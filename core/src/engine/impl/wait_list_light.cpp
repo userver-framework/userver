@@ -7,53 +7,12 @@
 #include <fmt/format.h>
 #include <boost/atomic/atomic.hpp>
 
+#include <engine/impl/waiter.hpp>
 #include <engine/task/sleep_state.hpp>
 #include <engine/task/task_context.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/underlying_value.hpp>
 #include <utils/impl/assert_extra.hpp>
-
-USERVER_NAMESPACE_BEGIN
-
-namespace engine::impl {
-namespace {
-
-struct alignas(8) Waiter32 final {
-  TaskContext* context{nullptr};
-  SleepState::Epoch epoch{0};
-};
-
-struct alignas(16) Waiter64 final {
-  TaskContext* context{nullptr};
-  SleepState::Epoch epoch{0};
-  [[maybe_unused]] std::uint32_t padding_dont_use{0};
-};
-
-using Waiter = std::conditional_t<sizeof(void*) == 8, Waiter64, Waiter32>;
-
-// Check that Waiter is double-width compared to register size
-static_assert(sizeof(Waiter) == 2 * sizeof(void*));
-
-// The type used in boost::atomic must have no padding to perform CAS safely.
-static_assert(std::has_unique_object_representations_v<Waiter>);
-
-}  // namespace
-}  // namespace engine::impl
-
-USERVER_NAMESPACE_END
-
-template <>
-struct fmt::formatter<USERVER_NAMESPACE::engine::impl::Waiter> {
-  static constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
-
-  template <typename FormatContext>
-  auto format(USERVER_NAMESPACE::engine::impl::Waiter waiter,
-              FormatContext& ctx) const {
-    return fmt::format_to(
-        ctx.out(), "({}, {})", fmt::ptr(waiter.context),
-        USERVER_NAMESPACE::utils::UnderlyingValue(waiter.epoch));
-  }
-};
 
 USERVER_NAMESPACE_BEGIN
 
@@ -74,14 +33,14 @@ WaitListLight::~WaitListLight() {
               "Someone is waiting on WaitListLight while it's being destroyed");
 }
 
-bool WaitListLight::WakeupOne() {
+void WaitListLight::WakeupOne() {
   Waiter old_waiter{};
   // We have to use 'compare_exchange_strong' instead of 'load', because old
   // Boost.Atomic has buggy 'load' for x86_64.
-  const bool success1 = impl_->waiter.compare_exchange_strong(
+  const bool success1 = impl_->waiter.compare_exchange_weak(
       old_waiter, Waiter{}, boost::memory_order_acquire,
       boost::memory_order_acquire);
-  if (success1) return false;
+  if (success1) return;
   UASSERT(old_waiter.context);
 
   // seq_cst is important for the "Append-Check-Wakeup" sequence.
@@ -89,12 +48,12 @@ bool WaitListLight::WakeupOne() {
       old_waiter, Waiter{}, boost::memory_order_seq_cst,
       boost::memory_order_relaxed);
   if (!success2) {
-    if (!old_waiter.context) return false;
+    if (!old_waiter.context) return;
     // The waiter has changed from one non-null value to another non-null value.
     // This means that during this execution of WakeupOne one waiter was
     // Removed, and another one was Appended. Pretend that we were called
     // between Remove and Append.
-    return false;
+    return;
   }
 
   const boost::intrusive_ptr<TaskContext> context{old_waiter.context,
@@ -102,15 +61,14 @@ bool WaitListLight::WakeupOne() {
 
   LOG_TRACE() << "WakeupOne waiter=" << fmt::to_string(old_waiter)
               << " use_count=" << context->use_count();
-  return context->Wakeup(TaskContext::WakeupSource::kWaitList,
-                         old_waiter.epoch);
+  context->Wakeup(TaskContext::WakeupSource::kWaitList, old_waiter.epoch);
 }
 
 TaskContext* WaitListLight::GetWaiterRelaxed() noexcept {
   // We have to use 'compare_exchange_strong' instead of 'load', because old
   // Boost.Atomic has buggy 'load' for x86_64.
   Waiter expected{};
-  impl_->waiter.compare_exchange_strong(expected, expected,
+  impl_->waiter.compare_exchange_weak(expected, expected,
                                         boost::memory_order_relaxed,
                                         boost::memory_order_relaxed);
   return expected.context;
@@ -151,7 +109,7 @@ void WaitScopeLight::Append() noexcept {
   context.detach();
 }
 
-bool WaitScopeLight::Remove() noexcept {
+void WaitScopeLight::Remove() noexcept {
   UASSERT(context_.IsCurrent());
   const Waiter expected{&context_, context_.GetEpoch()};
 
@@ -165,13 +123,12 @@ bool WaitScopeLight::Remove() noexcept {
                 fmt::format("An unexpected context is occupying the "
                             "AtomicWaiter: expected={} actual={}",
                             expected, old_waiter));
-    return false;
+    return;
   }
 
   LOG_TRACE() << "Remove waiter=" << fmt::to_string(expected)
               << " use_count=" << context_.use_count();
   intrusive_ptr_release(&context_);
-  return true;
 }
 
 }  // namespace engine::impl

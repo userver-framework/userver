@@ -1,95 +1,56 @@
 #include "wait_list.hpp"
 
 #include <atomic>
-#include <cstddef>
 
-#include <moodycamel/concurrentqueue.h>
-
-#include <concurrent/intrusive_walkable_pool.hpp>
-#include <engine/impl/wait_list_light.hpp>
+#include <concurrent/resettable_queue.hpp>
+#include <engine/impl/waiter.hpp>
 #include <engine/task/task_context.hpp>
+#include <utils/impl/assert_extra.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace engine::impl {
 
-namespace {
-
-bool ShouldCleanup(std::size_t node_count, std::size_t garbage_count) noexcept {
-  return garbage_count >= 32 && garbage_count >= 2 * node_count;
-}
-
-}  // namespace
-
-struct WaitList::WaiterNode final {
-  WaitListLight waiter;
-};
-
 class WaitList::Impl final {
  public:
-  Impl()
-      : waiters_(std::make_unique<moodycamel::ConcurrentQueue<WaiterNode*>>(0)),
-        free_list_(
-            std::make_unique<moodycamel::ConcurrentQueue<WaiterNode*>>(0)) {}
+  using Handle = concurrent::impl::ResettableQueue<Waiter>::ItemHandle;
+
+  Impl() = default;
 
   ~Impl() {
-    WaiterNode* node{};
-    while (free_list_->try_dequeue(node)) {
-      UASSERT(node);
-      delete node;
+    Waiter waiter;
+    if (waiters_.TryPop(waiter)) {
+      utils::impl::AbortWithStacktrace(
+          "A TaskContext is sleeping in a WaitList that is being destroyed");
     }
   }
 
-  bool WakeupOne() {
-    WaiterNode* waiter{nullptr};
-    while (waiters_->try_dequeue(waiter)) {
-      UASSERT(waiter);
-      if (waiter->waiter.WakeupOne()) return true;
+  bool WakeupOne() noexcept {
+    Waiter waiter{nullptr};
+    while (waiters_.TryPop(waiter)) {
+      if (waiter.context->Wakeup(TaskContext::WakeupSource::kWaitList,
+                                 waiter.epoch)) {
+        return true;
+      }
     }
     return false;
   }
 
-  WaiterNode& AcquireWaiterNode() {
-    WaiterNode* node{};
-    if (free_list_->try_dequeue(node)) {
-      return *node;
-    }
-    node_count_.fetch_add(1, std::memory_order_relaxed);
-    return *new WaiterNode{};
+  Handle Append(TaskContext& context) {
+    Waiter waiter;
+    waiter.context = &context;
+    waiter.epoch = context.GetEpoch();
+    // TODO An out-of-memory exception can theoretically fly from there.
+    //  Preallocate queue nodes?
+    return waiters_.Push(waiter);
   }
 
-  void ReleaseWaiterNode(WaiterNode& node) noexcept {
-    free_list_->enqueue(&node);
-  }
-
-  void AppendActiveWaiter(WaiterNode& node) noexcept {
-    waiters_->enqueue(&node);
-  }
-
-  void AccountGarbageNode() noexcept {
-    garbage_count_approx_.fetch_add(1, std::memory_order_release);
-    const auto node_count = node_count_.load(std::memory_order_relaxed);
-    const auto garbage_count_approx =
-        garbage_count_approx_.load(std::memory_order_acquire);
-
-    if (ShouldCleanup(node_count, garbage_count_approx)) {
-      const auto garbage_count =
-          garbage_count_approx_.exchange(0, std::memory_order_acq_rel);
-      if (ShouldCleanup(node_count, garbage_count)) {
-        // Yeah, that's a bunch of spurious wakeups.
-        while (WakeupOne()) {
-        }
-      } else {
-        garbage_count_approx_.fetch_add(0, std::memory_order_release);
-      }
-    }
+  void Remove(Handle&& handle) noexcept {
+    waiters_.Remove(std::move(handle));
   }
 
  private:
-  std::unique_ptr<moodycamel::ConcurrentQueue<WaiterNode*>> waiters_;
-  std::unique_ptr<moodycamel::ConcurrentQueue<WaiterNode*>> free_list_;
-  std::atomic<std::size_t> node_count_{0};
-  std::atomic<std::size_t> garbage_count_approx_{0};
+  concurrent::impl::ResettableQueue<Waiter> waiters_;
 };
 
 WaitList::WaitList() = default;
@@ -103,27 +64,27 @@ void WaitList::WakeupAll() noexcept {
   }
 }
 
-WaitScope::WaitScope(WaitList& owner, TaskContext& context)
-    : owner_(owner),
-      node_(owner_.impl_->AcquireWaiterNode()),
-      scope_light_(node_.waiter, context) {}
+struct WaitScope::Impl final {
+  WaitList& owner;
+  TaskContext& context;
+  WaitList::Impl::Handle handle{};
+};
 
-WaitScope::~WaitScope() { owner_.impl_->ReleaseWaiterNode(node_); }
+WaitScope::WaitScope(WaitList& owner, TaskContext& context)
+    : impl_(Impl{owner, context, {}}) {}
+
+WaitScope::~WaitScope() = default;
 
 TaskContext& WaitScope::GetContext() const noexcept {
-  return scope_light_.GetContext();
+  return impl_->context;
 }
 
 void WaitScope::Append() noexcept {
-  scope_light_.Append();
-  owner_.impl_->AppendActiveWaiter(node_);
+  impl_->handle = impl_->owner.impl_->Append(impl_->context);
 }
 
 void WaitScope::Remove() noexcept {
-  const bool not_woken_up = scope_light_.Remove();
-  if (not_woken_up) {
-    owner_.impl_->AccountGarbageNode();
-  }
+  impl_->owner.impl_->Remove(std::move(impl_->handle));
 }
 
 }  // namespace engine::impl

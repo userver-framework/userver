@@ -1,6 +1,5 @@
 #pragma once
 
-#include <engine/impl/wait_list_light.hpp>
 #include <userver/utils/fast_pimpl.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -27,10 +26,8 @@ class WaitList final {
  private:
   friend class WaitScope;
 
-  struct WaiterNode;
-
   class Impl;
-  utils::FastPimpl<Impl, 160, 8> impl_;
+  utils::FastPimpl<Impl, 144, 16> impl_;
 };
 
 class WaitScope final {
@@ -47,9 +44,8 @@ class WaitScope final {
   void Remove() noexcept;
 
  private:
-  WaitList& owner_;
-  WaitList::WaiterNode& node_;
-  WaitScopeLight scope_light_;
+  struct Impl;
+  utils::FastPimpl<Impl, 48, 16> impl_;
 };
 
 }  // namespace engine::impl

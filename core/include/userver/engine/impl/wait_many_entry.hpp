@@ -14,7 +14,7 @@ class ContextAccessor;
 class OptionalGenericWaitScope;
 
 using FastPimplOptionalGenericWaitScope =
-    utils::FastPimpl<OptionalGenericWaitScope, 48, 8>;
+    utils::FastPimpl<OptionalGenericWaitScope, 80, 16>;
 
 struct WaitManyEntry final {
   explicit WaitManyEntry(ContextAccessor* context_accessor);

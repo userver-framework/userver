@@ -10,7 +10,7 @@ namespace engine::impl {
 class TaskContext;
 
 class WaitList;
-using FastPimplWaitList = utils::FastPimpl<WaitList, 160, 8>;
+using FastPimplWaitList = utils::FastPimpl<WaitList, 144, 16>;
 
 class WaitListLight;
 using FastPimplWaitListLight = utils::FastPimpl<WaitListLight, 16, 16>;

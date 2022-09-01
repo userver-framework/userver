@@ -23,7 +23,7 @@ class WaitListLight final {
   /// @brief Wakes up the waiting task; the next waiter may not `Append` until
   /// `Remove` is called.
   /// @returns `true` if we caused the wakeup of a task.
-  bool WakeupOne();
+  void WakeupOne();
 
  private:
   friend class WaitScopeLight;
@@ -52,7 +52,7 @@ class WaitScopeLight final {
 
   /// @brief Remove the task from the `WaitListLight` without wakeup.
   /// @returns `true` if the task was still there and was removed by this call.
-  bool Remove() noexcept;
+  void Remove() noexcept;
 
  private:
   WaitListLight& owner_;

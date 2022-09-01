@@ -35,6 +35,14 @@ class TaggedPtr final {
 
   Tag GetNextTag() const noexcept { return static_cast<Tag>(GetTag() + 1); }
 
+  bool operator==(TaggedPtr other) const noexcept {
+    return impl_ == other.impl_;
+  }
+
+  bool operator!=(TaggedPtr other) const noexcept {
+    return impl_ != other.impl_;
+  }
+
  private:
   std::uint64_t impl_;
 };
@@ -91,7 +99,9 @@ class IntrusiveStack final {
     while (true) {
       GetNext(node).store(expected.GetDataPtr(), std::memory_order_relaxed);
       const NodeTaggedPtr desired(&node, expected.GetTag());
-      if (stack_head_.compare_exchange_weak(expected, desired, std::memory_order_release, std::memory_order_relaxed)) {
+      if (stack_head_.compare_exchange_weak(expected, desired,
+                                            std::memory_order_release,
+                                            std::memory_order_relaxed)) {
         break;
       }
     }
@@ -104,7 +114,9 @@ class IntrusiveStack final {
       if (!expected_ptr) return nullptr;
       const NodeTaggedPtr desired(GetNext(*expected_ptr).load(),
                                   expected.GetNextTag());
-      if (stack_head_.compare_exchange_weak(expected, desired, std::memory_order_acquire, std::memory_order_relaxed)) {
+      if (stack_head_.compare_exchange_weak(expected, desired,
+                                            std::memory_order_acquire,
+                                            std::memory_order_relaxed)) {
         // 'relaxed' is OK, because popping a node must happen-before pushing it
         GetNext(*expected_ptr).store(nullptr, std::memory_order_relaxed);
         return expected_ptr;
