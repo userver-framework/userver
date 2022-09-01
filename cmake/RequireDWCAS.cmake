@@ -1,7 +1,8 @@
 option(USERVER_FEATURE_DWCAS "Require double-width compare-exchange-swap" ON)
 
 if(MACOS AND NOT USERVER_FEATURE_DWCAS)
-  message(WARNING "macOS must use DWCAS, because atomic runtime is absent.")
+  # All CPUs, which can run macOS, provide a DWCAS instruction.
+  # On the other hand, emulation via libatomic is not accessible there.
   set(USERVER_FEATURE_DWCAS ON)
 endif()
 
@@ -10,12 +11,28 @@ if(NOT USERVER_FEATURE_DWCAS)
   return()
 endif()
 
-add_compile_definitions(USERVER_FEATURE_DWCAS=1)
+set(BOOST_CMAKE_VERSION "${Boost_MAJOR_VERSION}.${Boost_MINOR_VERSION}.${Boost_SUBMINOR_VERSION}")
+set(TEST_DEFINITIONS)
+set(TEST_LIBRARIES)
+
+if(NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND "${BOOST_CMAKE_VERSION}" VERSION_GREATER_EQUAL "1.66")
+  # Clang's std::atomic already emits DWCAS instructions for x86,
+  # x86_64 and armv8-a (a.k.a. ARM64) architectures (both libstdc++ and libc++).
+  #
+  # GCC's std::atomic falls back to libatomic:
+  # https://gcc.gnu.org/bugzilla/show_bug.cgi?id=80878
+  # https://gcc.gnu.org/bugzilla/show_bug.cgi?id=84522
+  # Boost.Atomic 1.66+ produces correct DWCAS instructions on x86, x86_64
+  # and ARM64 (Boost 1.74+) architectures.
+  add_compile_definitions(USERVER_USE_BOOST_DWCAS=1)
+  list(APPEND TEST_DEFINITIONS "-DUSERVER_USE_BOOST_DWCAS=1")
+endif()
 
 include(CheckCXXCompilerFlag)
 check_cxx_compiler_flag("-mcx16" HAS_mcx16)
 if(HAS_mcx16)
   add_compile_options("-mcx16")
+  list(APPEND TEST_DEFINITIONS "-mcx16")
 endif()
 
 if(USERVER_IMPL_DWCAS_CHECKED)
@@ -23,18 +40,8 @@ if(USERVER_IMPL_DWCAS_CHECKED)
   return()
 endif()
 
-if(HAS_mcx16)
-  set(MCX16_ARG "-mcx16")
-else()
-  set(MCX16_ARG "")
-endif()
-
-set(BOOST_CMAKE_VERSION "${Boost_MAJOR_VERSION}.${Boost_MINOR_VERSION}.${Boost_SUBMINOR_VERSION}")
-
 if(NOT MACOS)
-  set(TEST_LIBRARIES atomic)
-else()
-  set(TEST_LIBRARIES)
+  list(APPEND TEST_LIBRARIES "atomic")
 endif()
 
 # Make try_run honor parent CMAKE_CXX_STANDARD
@@ -45,7 +52,7 @@ try_run(
   "${CMAKE_CURRENT_BINARY_DIR}/require_dwcas"
   "${USERVER_ROOT_DIR}/cmake/RequireDWCAS.cpp"
   CMAKE_FLAGS "-DINCLUDE_DIRECTORIES=${Boost_INCLUDE_DIR}"
-  COMPILE_DEFINITIONS ${MCX16_ARG}
+  COMPILE_DEFINITIONS ${TEST_DEFINITIONS}
   LINK_LIBRARIES ${TEST_LIBRARIES}
   COMPILE_OUTPUT_VARIABLE COMPILE_OUTPUT
 )

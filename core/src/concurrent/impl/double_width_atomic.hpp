@@ -3,7 +3,7 @@
 #include <atomic>
 #include <type_traits>
 
-#if defined(USERVER_FEATURE_DWCAS) && !defined(__clang__)
+#if defined(USERVER_USE_BOOST_DWCAS)
 #include <boost/atomic/atomic.hpp>
 #endif
 
@@ -13,7 +13,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace concurrent::impl {
 
-#if defined(USERVER_FEATURE_DWCAS) && !defined(__clang__)
+#if defined(USERVER_USE_BOOST_DWCAS)
 template <typename T>
 using InternalDoubleWidthAtomic = boost::atomic<T>;
 
@@ -28,9 +28,9 @@ inline boost::memory_order ToInternalMemoryOrder(
       return boost::memory_order_acquire;
     case std::memory_order_release:
       return boost::memory_order_release;
-    case boost::memory_order_acq_rel:
+    case std::memory_order_acq_rel:
       return boost::memory_order_acq_rel;
-    case boost::memory_order_seq_cst:
+    case std::memory_order_seq_cst:
       return boost::memory_order_seq_cst;
   }
   utils::impl::AbortWithStacktrace("Invalid memory order");
@@ -45,12 +45,8 @@ inline std::memory_order ToInternalMemoryOrder(
 }
 #endif
 
-// Used to get various compilers to produce double-width compare-and-swap
-// (DWCAS) instructions.
-//
-// E.g. on GCC, std::atomic refuses to produce DWCAS on x86_64 architecture:
-// https://gcc.gnu.org/bugzilla/show_bug.cgi?id=80878
-// https://gcc.gnu.org/bugzilla/show_bug.cgi?id=84522
+// Used to get various compilers to produce (DWCAS) instructions.
+// See also RequireDWCAS.cmake.
 //
 // Has a std::atomic-compatible interface.
 template <typename T>
