@@ -29,7 +29,12 @@ if(NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND "${BOOST_CMAKE_VERSION}" VERSIO
 endif()
 
 include(CheckCXXCompilerFlag)
-check_cxx_compiler_flag("-Wunused-command-line-argument -Werror -mcx16" HAS_mcx16)
+if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+  check_cxx_compiler_flag("-Wunused-command-line-argument -Werror -mcx16" HAS_mcx16)
+else()
+  check_cxx_compiler_flag("-Werror -mcx16" HAS_mcx16)
+endif()
+
 if(HAS_mcx16)
   add_compile_options("-mcx16")
   list(APPEND TEST_DEFINITIONS "-mcx16")

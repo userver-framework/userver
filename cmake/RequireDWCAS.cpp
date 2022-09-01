@@ -2,7 +2,7 @@
 #include <cstdint>
 #include <cstdlib>
 
-#ifndef __clang__
+#ifdef USERVER_USE_BOOST_DWCAS
 #include <boost/atomic/atomic.hpp>
 #endif
 
