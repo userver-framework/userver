@@ -32,12 +32,12 @@ class ClientData final {
       : channel_token_(std::move(channel_token)),
         queue_(&queue),
         statistics_(&statistics) {
-    stubs_ = utils::GenerateFixedArray(
-        channel_token_.GetChannelCount(), [&](std::size_t index) {
-          return StubPtr(
-              Service::NewStub(channel_token_.GetChannel(index)).release(),
-              &StubDeleter<Service>);
-        });
+    const std::size_t channel_count = channel_token_.GetChannelCount();
+    stubs_ = utils::GenerateFixedArray(channel_count, [&](std::size_t index) {
+      return StubPtr(
+          Service::NewStub(channel_token_.GetChannel(index)).release(),
+          &StubDeleter<Service>);
+    });
   }
 
   ClientData(ClientData&&) noexcept = default;

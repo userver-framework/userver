@@ -74,15 +74,8 @@ ClientFactoryConfig Parse(const yaml_config::YamlConfig& value,
   config.credentials = MakeDefaultCredentials(
       value["auth-type"].As<AuthType>(AuthType::kInsecure));
 
-  // Due to error, we temporary have to support both 'default-service-config'
-  // and 'default_service_config' options
-  yaml_config::YamlConfig default_service_config =
-      value["default-service-config"].IsMissing()
-          ? value["default_service_config"]
-          : value["default-service-config"];
-
   config.channel_args =
-      MakeChannelArgs(value["channel-args"], default_service_config);
+      MakeChannelArgs(value["channel-args"], value["default-service-config"]);
   config.native_log_level =
       value["native-log-level"].As<logging::Level>(config.native_log_level);
   config.channel_count =
