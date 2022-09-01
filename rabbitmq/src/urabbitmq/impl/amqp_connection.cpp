@@ -9,6 +9,8 @@ namespace urabbitmq::impl {
 
 namespace {
 
+constexpr std::chrono::milliseconds kGracefulCloseTimeout{1000};
+
 AMQP::Connection CreateConnection(AmqpConnectionHandler& handler,
                                   engine::Deadline deadline) {
   handler.SetOperationDeadline(deadline);
@@ -50,7 +52,11 @@ AmqpConnection::AmqpConnection(AmqpConnectionHandler& handler,
   reliable_ = CreateReliable(deadline);
 }
 
-AmqpConnection::~AmqpConnection() { handler_.OnConnectionDestruction(); }
+AmqpConnection::~AmqpConnection() {
+  handler_.OnConnectionDestruction();
+  handler_.SetOperationDeadline(
+      engine::Deadline::FromDuration(kGracefulCloseTimeout));
+}
 
 AMQP::Connection& AmqpConnection::GetNative() { return conn_; }
 

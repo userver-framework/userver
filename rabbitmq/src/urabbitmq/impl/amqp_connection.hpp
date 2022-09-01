@@ -93,8 +93,8 @@ class AmqpConnection final {
 
   AMQP::Channel channel_;
 
-  AMQP::Channel reliable_channel_;
   std::unique_ptr<ReliableChannel> reliable_;
+  AMQP::Channel reliable_channel_;
 
   engine::Mutex mutex_{};
   engine::Semaphore waiters_sema_;

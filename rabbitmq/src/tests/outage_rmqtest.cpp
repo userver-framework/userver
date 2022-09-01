@@ -48,10 +48,10 @@ UTEST(ClusterOutage, HasAliveNodes) {
 
   size_t success = 0;
   const auto operations_count = 100;
+  const auto deadline = engine::Deadline::FromDuration(utest::kMaxTestWaitTime);
   for (size_t i = 0; i < operations_count; ++i) {
     try {
-      auto channel = client->GetChannel(
-          engine::Deadline::FromDuration(utest::kMaxTestWaitTime));
+      auto channel = client->GetChannel(deadline);
       ++success;
     } catch (const std::exception&) {
     }
