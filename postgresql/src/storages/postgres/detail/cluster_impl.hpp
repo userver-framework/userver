@@ -49,6 +49,8 @@ class ClusterImpl {
   void SetQueriesCommandControl(
       const CommandControlByQueryMap& queries_command_control);
 
+  void SetConnectionSettings(const ConnectionSettings& settings);
+
   void SetPoolSettings(const PoolSettings& settings);
 
   void SetStatementMetricsSettings(const StatementMetricsSettings& settings);

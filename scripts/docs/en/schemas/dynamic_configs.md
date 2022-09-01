@@ -279,8 +279,7 @@ Used by components::Postgres.
 
 Dynamic config that controls connection pool settings of PostgreSQL driver.
 
-Take note that it overrides the static
-configuration values of the service!
+Take note that it overrides the static configuration values of the service!
 
 ```
 yaml
@@ -301,6 +300,9 @@ definitions:
       max_queue_size:
         type: integer
         minimum: 1
+      connecting_limit:
+        type: integer
+        minimum: 0
     required:
       - min_pool_size
       - max_pool_size
@@ -313,12 +315,61 @@ definitions:
   "__default__": {
     "min_pool_size": 4,
     "max_pool_size": 15,
-    "max_queue_size": 200
+    "max_queue_size": 200,
+    "connecting_limit": 10
   },
   "postgresql-orders": {
     "min_pool_size": 8,
     "max_pool_size": 50,
-    "max_queue_size": 200
+    "max_queue_size": 200,
+    "connecting_limit": 8
+  }
+}
+```
+
+Used by components::Postgres.
+
+
+@anchor POSTGRES_CONNECTION_SETTINGS
+## POSTGRES_CONNECTION_SETTINGS
+
+Dynamic config that controls settings for newly created connections of
+PostgreSQL driver.
+
+Take note that it overrides the static configuration values of the service!
+
+```
+yaml
+type: object
+additionalProperties: false
+properties:
+  persistent-prepared-statements:
+    type: boolean
+    default: true
+  user-types-enabled:
+    type: boolean
+    default: true
+  max-prepared-cache-size:
+    type: integer
+    minimum: 1
+    default: 5000
+  ignore-unused-query-params:
+    type: boolean
+    default: false
+  pipeline-enabled:
+    type: boolean
+    default: false
+```
+
+**Example:**
+```json
+{
+  "__default__": {
+    "persistent-prepared-statements": true,
+    "user-types-enabled": true,
+    "max-prepared-cache-size": 5000,
+    "ignore-unused-query-params": false,
+    "pipeline-enabled": true
   }
 }
 ```

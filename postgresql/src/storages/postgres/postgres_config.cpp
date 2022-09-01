@@ -40,6 +40,48 @@ CommandControl Parse(const formats::json::Value& elem,
 namespace {
 
 template <typename ConfigType>
+ConnectionSettings ParseConnectionSettings(const ConfigType& config) {
+  ConnectionSettings settings{};
+  settings.prepared_statements =
+      config["persistent-prepared-statements"].template As<bool>(true)
+          ? ConnectionSettings::kCachePreparedStatements
+          : ConnectionSettings::kNoPreparedStatements;
+  settings.user_types = config["user-types-enabled"].template As<bool>(true)
+                            ? ConnectionSettings::kUserTypesEnabled
+                            : ConnectionSettings::kPredefinedTypesOnly;
+  // TODO: use hyphens in config keys, TAXICOMMON-5606
+  settings.max_prepared_cache_size =
+      config["max-prepared-cache-size"].template As<size_t>(
+          config["max_prepared_cache_size"].template As<size_t>(
+              kDefaultMaxPreparedCacheSize));
+  settings.ignore_unused_query_params =
+      config["ignore-unused-query-params"].template As<bool>(
+          config["ignore_unused_query_params"].template As<bool>(false))
+          ? ConnectionSettings::kIgnoreUnused
+          : ConnectionSettings::kCheckUnused;
+  settings.pipeline_mode =
+      config["pipeline-enabled"].template As<bool>(
+          config["pipeline_enabled"].template As<bool>(false))
+          ? ConnectionSettings::kPipelineEnabled
+          : ConnectionSettings::kPipelineDisabled;
+  return settings;
+}
+
+}  // namespace
+
+ConnectionSettings Parse(const formats::json::Value& config,
+                         formats::parse::To<ConnectionSettings>) {
+  return ParseConnectionSettings(config);
+}
+
+ConnectionSettings Parse(const yaml_config::YamlConfig& config,
+                         formats::parse::To<ConnectionSettings>) {
+  return ParseConnectionSettings(config);
+}
+
+namespace {
+
+template <typename ConfigType>
 PoolSettings ParsePoolSettings(const ConfigType& config) {
   PoolSettings result{};
   result.min_size =
@@ -100,6 +142,7 @@ Config::Config(const dynamic_config::DocsMap& docs_map)
       handlers_command_control{"POSTGRES_HANDLERS_COMMAND_CONTROL", docs_map},
       queries_command_control{"POSTGRES_QUERIES_COMMAND_CONTROL", docs_map},
       pool_settings{"POSTGRES_CONNECTION_POOL_SETTINGS", docs_map},
+      connection_settings{"POSTGRES_CONNECTION_SETTINGS", docs_map},
       statement_metrics_settings("POSTGRES_STATEMENT_METRICS_SETTINGS",
                                  docs_map) {}
 

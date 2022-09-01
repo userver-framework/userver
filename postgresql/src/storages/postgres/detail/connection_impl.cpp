@@ -296,6 +296,10 @@ bool ConnectionImpl::IsPipelineActive() const {
   return conn_wrapper_.IsPipelineActive();
 }
 
+ConnectionSettings const& ConnectionImpl::GetSettings() const {
+  return settings_;
+}
+
 CommandControl ConnectionImpl::GetDefaultCommandControl() const {
   return default_cmd_ctls_.GetDefaultCmdCtl();
 }
