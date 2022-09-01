@@ -6,7 +6,7 @@
 
 #include <fmt/format.h>
 
-#include <concurrent/impl/double_width_atomic.hpp>
+#include <concurrent/impl/fast_atomic.hpp>
 #include <engine/task/sleep_state.hpp>
 #include <engine/task/task_context.hpp>
 #include <userver/utils/assert.hpp>
@@ -54,7 +54,7 @@ USERVER_NAMESPACE_BEGIN
 namespace engine::impl {
 
 struct WaitListLight::Impl final {
-  concurrent::impl::DoubleWidthAtomic<Waiter> waiter{Waiter{}};
+  concurrent::impl::FastAtomic<Waiter> waiter{Waiter{}};
 };
 
 WaitListLight::WaitListLight() noexcept = default;

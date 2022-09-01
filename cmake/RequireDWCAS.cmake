@@ -65,7 +65,7 @@ try_run(
 if(NOT "${COMPILE_RESULT}")
   message(FATAL_ERROR "Error while compiling DWCAS test: ${COMPILE_OUTPUT}")
 elseif("${RUN_RESULT}" STREQUAL "1")
-  message(WARNING "DWCAS does not work on the host platform, userver may have suboptimal performance")
+  message(WARNING "DWCAS seems not to work on the host platform, userver may have suboptimal performance")
 elseif(NOT "${RUN_RESULT}" STREQUAL "0")
   message(WARNING "DWCAS does not work on the host platform, userver may crash with SIGILL")
 else()

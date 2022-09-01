@@ -28,11 +28,11 @@ int main() {
 
   A expected{1, 2};
   A desired{3, 4};
-  if (!a.compare_exchange_strong(expected, desired)) return 1;
+  if (!a.compare_exchange_strong(expected, desired)) return 2;
 
   expected = {3, 4};
   desired = {5, 6};
-  if (!a.compare_exchange_strong(expected, desired)) return 1;
+  if (!a.compare_exchange_strong(expected, desired)) return 2;
 
   return 0;
 }

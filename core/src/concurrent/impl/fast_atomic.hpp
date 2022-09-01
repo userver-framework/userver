@@ -45,21 +45,21 @@ inline std::memory_order ToInternalMemoryOrder(
 }
 #endif
 
-// Used to get various compilers to produce DWCAS instructions.
+// Tries harder than std::atomic to be lock-free.
 // See also RequireDWCAS.cmake.
 //
 // Has a std::atomic-compatible interface.
 template <typename T>
-class DoubleWidthAtomic final {
-  static_assert(sizeof(T) == sizeof(void*) * 2);
+class FastAtomic final {
+  static_assert(sizeof(T) <= sizeof(void*) * 2);
   static_assert(alignof(T) == sizeof(T));
   static_assert(std::is_trivially_copyable_v<T>);
   static_assert(std::has_unique_object_representations_v<T>);
 
  public:
-  constexpr DoubleWidthAtomic(T desired) noexcept : impl_(desired) {}
+  constexpr FastAtomic(T desired) noexcept : impl_(desired) {}
 
-  DoubleWidthAtomic(const DoubleWidthAtomic&) = delete;
+  FastAtomic(const FastAtomic&) = delete;
 
   bool compare_exchange_strong(T& expected, T desired,
                                std::memory_order success,
