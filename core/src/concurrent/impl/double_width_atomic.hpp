@@ -45,7 +45,7 @@ inline std::memory_order ToInternalMemoryOrder(
 }
 #endif
 
-// Used to get various compilers to produce (DWCAS) instructions.
+// Used to get various compilers to produce DWCAS instructions.
 // See also RequireDWCAS.cmake.
 //
 // Has a std::atomic-compatible interface.
