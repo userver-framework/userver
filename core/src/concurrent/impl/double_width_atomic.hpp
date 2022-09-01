@@ -49,11 +49,10 @@ inline std::memory_order ToInternalMemoryOrder(
 }
 #endif
 
-// Used to get various compilers to produce correct DWCAS instructions.
-// Has a std::atomic-compatible interface.
+// Used to get various compilers to produce double-width compare-and-swap
+// (DWCAS) instructions. Has a std::atomic-compatible interface.
 //
-// E.g. on GCC, std::atomic refuses to produce double-width compare-and-swap
-// instruction (DWCAS) on x86_64 architecture:
+// E.g. on GCC, std::atomic refuses to produce DWCAS on x86_64 architecture:
 // https://gcc.gnu.org/bugzilla/show_bug.cgi?id=80878
 // https://gcc.gnu.org/bugzilla/show_bug.cgi?id=84522
 template <typename T>
