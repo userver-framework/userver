@@ -322,6 +322,14 @@ void ConnectionPool::SetSettings(const PoolSettings& settings) {
   settings_.Assign(settings);
 }
 
+void ConnectionPool::SetConnectionSettings(const ConnectionSettings& settings) {
+  auto reader = conn_settings_.Read();
+  if (*reader == settings) return;
+  auto new_settings = settings;
+  new_settings.version = reader->version + 1;
+  conn_settings_.Assign(std::move(new_settings));
+}
+
 void ConnectionPool::SetStatementMetricsSettings(
     const StatementMetricsSettings& settings) {
   sts_.SetSettings(settings);
@@ -340,12 +348,13 @@ engine::TaskWithResult<bool> ConnectionPool::Connect(
       return false;
     }
     const uint32_t conn_id = ++shared_this->stats_.connection.open_total;
+    auto conn_settings = shared_this->conn_settings_.Read();
     std::unique_ptr<Connection> connection;
     Stopwatch st{shared_this->stats_.connection_percentile};
     try {
       connection = Connection::Connect(
           shared_this->dsn_, shared_this->resolver_,
-          shared_this->bg_task_processor_, conn_id, shared_this->conn_settings_,
+          shared_this->bg_task_processor_, conn_id, *conn_settings,
           shared_this->default_cmd_ctls_, shared_this->testsuite_pg_ctl_,
           shared_this->ei_settings_, std::move(sg));
     } catch (const ConnectionTimeoutError&) {
@@ -404,15 +413,17 @@ void ConnectionPool::CheckMinPoolSizeUnderflow() {
 }
 
 void ConnectionPool::Push(Connection* connection) {
-  if (queue_.push(connection)) {
+  auto conn_settings = conn_settings_.Read();
+  if (connection->GetSettings().version < conn_settings->version) {
+    DropOutdatedConnection(connection);
+  } else if (queue_.push(connection)) {
     conn_available_.NotifyOne();
-    return;
+  } else {
+    // TODO Reflect this as a statistics error
+    LOG_LIMITED_WARNING()
+        << "Couldn't push connection back to the pool. Deleting...";
+    DeleteConnection(connection);
   }
-
-  // TODO Reflect this as a statistics error
-  LOG_LIMITED_WARNING()
-      << "Couldn't push connection back to the pool. Deleting...";
-  DeleteConnection(connection);
 }
 
 Connection* ConnectionPool::Pop(engine::Deadline deadline) {
@@ -426,7 +437,12 @@ Connection* ConnectionPool::Pop(engine::Deadline deadline) {
   }
   Stopwatch st{stats_.acquire_percentile};
   Connection* connection = nullptr;
-  if (queue_.pop(connection)) {
+  auto conn_settings = conn_settings_.Read();
+  while (queue_.pop(connection)) {
+    if (connection->GetSettings().version < conn_settings->version) {
+      DropOutdatedConnection(connection);
+      continue;
+    }
     return connection;
   }
 
@@ -478,9 +494,19 @@ void ConnectionPool::DeleteBrokenConnection(Connection* connection) {
   DeleteConnection(connection);
 }
 
+void ConnectionPool::DropOutdatedConnection(Connection* connection) {
+  LOG_LIMITED_WARNING() << "Dropping connection with outdated settings";
+  DeleteConnection(connection);
+}
+
 Connection* ConnectionPool::AcquireImmediate() {
   Connection* conn = nullptr;
-  if (queue_.pop(conn)) {
+  auto conn_settings = conn_settings_.Read();
+  while (queue_.pop(conn)) {
+    if (conn->GetSettings().version < conn_settings->version) {
+      DropOutdatedConnection(conn);
+      continue;
+    }
     ++stats_.connection.used;
     return conn;
   }

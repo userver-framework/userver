@@ -52,6 +52,10 @@ void Connection::RefreshReplicaState(engine::Deadline deadline) const {
   pimpl_->RefreshReplicaState(deadline);
 }
 
+ConnectionSettings const& Connection::GetSettings() const {
+  return pimpl_->GetSettings();
+}
+
 ConnectionState Connection::GetState() const {
   return pimpl_->GetConnectionState();
 }
