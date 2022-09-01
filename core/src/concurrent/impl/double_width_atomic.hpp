@@ -74,7 +74,7 @@ class DoubleWidthAtomic final {
   }
 
  private:
-  mutable InternalDoubleWidthAtomic<T> impl_;
+  InternalDoubleWidthAtomic<T> impl_;
 };
 
 }  // namespace concurrent::impl
