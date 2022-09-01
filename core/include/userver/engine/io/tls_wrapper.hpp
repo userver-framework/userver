@@ -55,7 +55,7 @@ class USERVER_NODISCARD TlsWrapper final : public RwBase {
   [[nodiscard]] bool WaitWriteable(Deadline) override;
 
   /// @brief Receives at least one byte from the socket.
-  /// @returns 0 if connection is closed on one side and no data could be
+  /// @returns 0 if connnection is closed on one side and no data could be
   /// received any more, received bytes count otherwise.
   [[nodiscard]] size_t RecvSome(void* buf, size_t len, Deadline deadline);
 
@@ -73,7 +73,7 @@ class USERVER_NODISCARD TlsWrapper final : public RwBase {
   [[nodiscard]] Socket StopTls(Deadline deadline);
 
   /// @brief Receives at least one byte from the socket.
-  /// @returns 0 if connection is closed on one side and no data could be
+  /// @returns 0 if connnection is closed on one side and no data could be
   /// received any more, received bytes count otherwise.
   [[nodiscard]] size_t ReadSome(void* buf, size_t len,
                                 Deadline deadline) override {
