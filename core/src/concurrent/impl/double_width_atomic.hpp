@@ -14,8 +14,6 @@ USERVER_NAMESPACE_BEGIN
 namespace concurrent::impl {
 
 #if defined(USERVER_FEATURE_DWCAS) && !defined(__clang__)
-inline constexpr bool kUseBoostAtomic = true;
-
 template <typename T>
 using InternalDoubleWidthAtomic = boost::atomic<T>;
 
@@ -38,8 +36,6 @@ inline boost::memory_order ToInternalMemoryOrder(
   utils::impl::AbortWithStacktrace("Invalid memory order");
 }
 #else
-inline constexpr bool kUseBoostAtomic = false;
-
 template <typename T>
 using InternalDoubleWidthAtomic = std::atomic<T>;
 
@@ -50,11 +46,13 @@ inline std::memory_order ToInternalMemoryOrder(
 #endif
 
 // Used to get various compilers to produce double-width compare-and-swap
-// (DWCAS) instructions. Has a std::atomic-compatible interface.
+// (DWCAS) instructions.
 //
 // E.g. on GCC, std::atomic refuses to produce DWCAS on x86_64 architecture:
 // https://gcc.gnu.org/bugzilla/show_bug.cgi?id=80878
 // https://gcc.gnu.org/bugzilla/show_bug.cgi?id=84522
+//
+// Has a std::atomic-compatible interface.
 template <typename T>
 class DoubleWidthAtomic final {
   static_assert(sizeof(T) == sizeof(void*) * 2);
@@ -76,16 +74,7 @@ class DoubleWidthAtomic final {
   }
 
   T load(std::memory_order order) const noexcept {
-    if constexpr (kUseBoostAtomic) {
-      T expected{};
-      // We have to use 'compare_exchange_weak' instead of 'load', because old
-      // Boost.Atomic has buggy 'load' for x86_64.
-      return impl_.compare_exchange_weak(expected, expected,
-                                         ToInternalMemoryOrder(order),
-                                         ToInternalMemoryOrder(order));
-    } else {
-      return impl_.load(order);
-    }
+    return impl_.load(ToInternalMemoryOrder(order));
   }
 
  private:
