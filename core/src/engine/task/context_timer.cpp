@@ -32,7 +32,7 @@ class ContextTimer::Impl final : public ev::AsyncPayloadBase {
   bool WasStarted() const noexcept;
 
   void Start(boost::intrusive_ptr<TaskContext>&& context,
-             ev::ThreadControl thread_control, Params params);
+             ev::ThreadControl& thread_control, Params params);
 
   void Restart(Params params);
 
@@ -51,7 +51,7 @@ class ContextTimer::Impl final : public ev::AsyncPayloadBase {
   void DoOnTimer();
 
   boost::intrusive_ptr<TaskContext> context_;
-  std::optional<ev::ThreadControl> thread_control_;
+  ev::ThreadControl* thread_control_ = nullptr;
   Params params_;
   ev_timer timer_{};
 
@@ -75,12 +75,12 @@ bool ContextTimer::Impl::WasStarted() const noexcept {
 }
 
 void ContextTimer::Impl::Start(boost::intrusive_ptr<TaskContext>&& context,
-                               ev::ThreadControl thread_control,
+                               ev::ThreadControl& thread_control,
                                Params params) {
   UASSERT(!context_);
   UASSERT(!thread_control_);
   context_ = std::move(context);
-  thread_control_.emplace(thread_control);
+  thread_control_ = &thread_control;
 
   UASSERT(params.deadline.IsReachable());
   if (params.deadline.IsReached()) {
@@ -134,7 +134,7 @@ void ContextTimer::Impl::Finalize() {
         self.StopTimerInEvThread();
 
         // used as a flag for context release
-        self.thread_control_.reset();
+        self.thread_control_ = nullptr;
       },
       SelfAsPayload(), {});
 }
@@ -210,14 +210,14 @@ ContextTimer::~ContextTimer() = default;
 bool ContextTimer::WasStarted() const noexcept { return impl_->WasStarted(); }
 
 void ContextTimer::StartCancel(boost::intrusive_ptr<TaskContext> context,
-                               ev::ThreadControl thread_control,
+                               ev::ThreadControl& thread_control,
                                Deadline deadline) {
   impl_->Start(std::move(context), thread_control,
                {Action::kCancel, SleepState::Epoch{}, deadline});
 }
 
 void ContextTimer::StartWakeup(boost::intrusive_ptr<TaskContext> context,
-                               ev::ThreadControl thread_control,
+                               ev::ThreadControl& thread_control,
                                Deadline deadline,
                                SleepState::Epoch sleep_epoch) {
   impl_->Start(std::move(context), thread_control,

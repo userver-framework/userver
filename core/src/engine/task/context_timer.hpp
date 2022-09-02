@@ -30,12 +30,12 @@ class ContextTimer final {
   /// Asynchronously starts the timer with cancel request.
   /// Prolongs lifetime of the context until Finalize().
   void StartCancel(boost::intrusive_ptr<TaskContext> context,
-                   ev::ThreadControl thread_control, Deadline deadline);
+                   ev::ThreadControl& thread_control, Deadline deadline);
 
   /// Asynchronously starts the timer with wakeup request.
   /// Prolongs lifetime of the context until Finalize().
   void StartWakeup(boost::intrusive_ptr<TaskContext> context,
-                   ev::ThreadControl thread_control, Deadline deadline,
+                   ev::ThreadControl& thread_control, Deadline deadline,
                    SleepState::Epoch sleep_epoch);
 
   /// Restarts a running timer with specified params. More efficient than
@@ -54,7 +54,7 @@ class ContextTimer final {
 
  private:
   class Impl;
-  utils::FastPimpl<Impl, 136, 16> impl_;
+  utils::FastPimpl<Impl, 128, 16> impl_;
 };
 
 }  // namespace engine::impl
