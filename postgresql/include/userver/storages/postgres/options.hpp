@@ -229,7 +229,7 @@ struct ConnectionSettings {
   PipelineMode pipeline_mode = kPipelineDisabled;
 
   /// Helps keep track of the changes in settings
-  SettingsVersion version{0u};
+  SettingsVersion version{0U};
 
   bool operator==(const ConnectionSettings& rhs) const {
     return prepared_statements == rhs.prepared_statements &&
