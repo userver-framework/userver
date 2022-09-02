@@ -95,10 +95,10 @@ void WaitListLight::WakeupOne() {
   if (!old_waiter.context) return;
 
   // seq_cst is important for the "Append-Check-Wakeup" sequence.
-  const bool success2 = impl_->waiter.compare_exchange_strong(
+  const bool success = impl_->waiter.compare_exchange_strong(
       old_waiter, Waiter{}, std::memory_order_seq_cst,
       std::memory_order_relaxed);
-  if (!success2) {
+  if (!success) {
     if (!old_waiter.context) return;
     // The waiter has changed from one non-null value to another non-null value.
     // This means that during this execution of WakeupOne one waiter was
