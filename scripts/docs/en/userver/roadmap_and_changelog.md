@@ -40,14 +40,17 @@ Changelog news also go to the
   for the idea and draft PR.
   * Simplified and optimized FdControl, resulting in less CPU and memory usage
   for sockets, pipes and TLS.
+* Fixed typos in tests, thanks to [Георгий Попов](https://github.com/JorgenPo)
+  for the PR.
 * Removed suspicious operator, thanks to the
   [PatriotRossii](https://github.com/PatriotRossii) for the bugreport.
 * Fixed CentOS 7.8 builds, many thanks to [jinguoli](https://github.com/jinguoli)
   for the bugreport and fix ideas.
 * Fixed Gentoo builds, many thanks to [SanyaNya](https://github.com/SanyaNya)
   for the PR.
-* Fixed default DB values in [uservice-dynconf](https://github.com/userver-framework/uservice-dynconf),
-  many thanks to [skene2321](https://github.com/skene2321) for the PR.
+* Fixed default DB values in
+  [uservice-dynconf](https://github.com/userver-framework/uservice-dynconf),
+  many thanks to [skene2321](https://github.com/skene2321) for the bugreport.
 * Added engine::io::WritableBase and engine::io::RwBase, thanks to
   [Stas Zvyagin](https://github.com/szvyagin-gj) for the idea.
 * Added components::TcpAcceptorBase with new tutorials
