@@ -282,6 +282,12 @@ void ClusterImpl::SetQueriesCommandControl(
   default_cmd_ctls_.UpdateQueriesCommandControl(queries_command_control);
 }
 
+void ClusterImpl::SetConnectionSettings(const ConnectionSettings& settings) {
+  for (const auto& pool : host_pools_) {
+    pool->SetConnectionSettings(settings);
+  }
+}
+
 void ClusterImpl::SetPoolSettings(const PoolSettings& settings) {
   for (const auto& pool : host_pools_) {
     pool->SetSettings(settings);

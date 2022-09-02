@@ -13,7 +13,7 @@ class EchoTestpointClient final : public testsuite::TestpointClientBase {
  public:
   EchoTestpointClient() = default;
 
-  ~EchoTestpointClient() { Unregister(); }
+  ~EchoTestpointClient() override { Unregister(); }
 
   void Execute(const std::string& name, const formats::json::Value& json,
                const Callback& callback) const override {

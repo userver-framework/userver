@@ -82,6 +82,8 @@ class RequestState : public std::enable_shared_from_this<RequestState> {
 
   void SetTestsuiteConfig(const std::shared_ptr<const TestsuiteConfig>& config);
 
+  void SetAllowedUrlsExtra(const std::vector<std::string>& urls);
+
   void DisableReplyDecoding();
 
   void EnableAddClientTimeoutHeader();
@@ -144,6 +146,7 @@ class RequestState : public std::enable_shared_from_this<RequestState> {
   std::string destination_metric_name_;
 
   std::shared_ptr<const TestsuiteConfig> testsuite_config_;
+  std::vector<std::string> allowed_urls_extra_;
 
   crypto::PrivateKey pkey_;
   crypto::Certificate cert_;

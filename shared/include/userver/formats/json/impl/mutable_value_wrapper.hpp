@@ -56,7 +56,7 @@ class MutableValueWrapper {
                                            .ForLibStdCpp64(88)
                                            .ForLibStdCpp32(52);
   static constexpr std::size_t kAlignment = alignof(void*);
-  utils::FastPimpl<Impl, kSize, kAlignment, utils::kStrictMatch> impl_;
+  utils::FastPimpl<Impl, kSize, kAlignment> impl_;
 };
 
 }  // namespace formats::json::impl

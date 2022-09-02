@@ -91,21 +91,6 @@ constexpr SleepState MakeNextEpochSleepState(SleepState::Epoch current) {
   return {SleepFlags::kNone, Epoch{utils::UnderlyingValue(current) + 1}};
 }
 
-class NoopWaitStrategy final : public WaitStrategy {
- public:
-  static NoopWaitStrategy& Instance() noexcept {
-    static /*constinit*/ NoopWaitStrategy instance;
-    return instance;
-  }
-
-  void SetupWakeups() override {}
-
-  void DisableWakeups() override {}
-
- private:
-  constexpr NoopWaitStrategy() noexcept : WaitStrategy(Deadline{}) {}
-};
-
 auto* const kFinishedDetachedToken =
     reinterpret_cast<DetachedTasksSyncBlock::Token*>(1);
 
@@ -125,7 +110,6 @@ TaskContext::TaskContext(TaskProcessor& task_processor,
       finish_waiters_(wait_type),
       cancel_deadline_(deadline),
       trace_csw_left_(task_processor_.GetTaskTraceMaxCswForNewTask()),
-      wait_strategy_(&NoopWaitStrategy::Instance()),
       sleep_state_(SleepState{SleepFlags::kSleeping, SleepState::Epoch{0}}),
       local_storage_(std::nullopt) {
   UASSERT(payload_);
@@ -245,8 +229,6 @@ void TaskContext::DoStep() {
     try {
       SetState(Task::State::kRunning);
       (*coro_)(this);
-      UASSERT(wait_strategy_);
-      wait_strategy_->SetupWakeups();
     } catch (...) {
       uncaught = std::current_exception();
     }
@@ -318,33 +300,21 @@ bool TaskContext::SetCancellable(bool value) {
   return std::exchange(is_cancellable_, value);
 }
 
-class TaskContext::WaitStrategyGuard {
- public:
-  WaitStrategyGuard(TaskContext& self, WaitStrategy& new_strategy) noexcept
-      : self_(self), old_strategy_(self_.wait_strategy_) {
-    self_.wait_strategy_ = &new_strategy;
-  }
-
-  WaitStrategyGuard(const WaitStrategyGuard&) = delete;
-  WaitStrategyGuard(WaitStrategyGuard&&) = delete;
-
-  ~WaitStrategyGuard() { self_.wait_strategy_ = old_strategy_; }
-
- private:
-  TaskContext& self_;
-  WaitStrategy* const old_strategy_;
-};
-
 TaskContext::WakeupSource TaskContext::Sleep(WaitStrategy& wait_strategy) {
   UASSERT(IsCurrent());
   UASSERT(state_ == Task::State::kRunning);
 
-  UASSERT_MSG(wait_strategy_ == &NoopWaitStrategy::Instance(),
+  UASSERT_MSG(!std::exchange(within_sleep_, true),
               "Recursion in Sleep detected");
-  WaitStrategyGuard old_strategy_guard(*this, wait_strategy);
+  const utils::FastScopeGuard guard{[this]() noexcept {
+    UASSERT_MSG(std::exchange(within_sleep_, false),
+                "within_sleep_ should report being in Sleep");
+  }};
+
+  wait_strategy.SetupWakeups();
 
   const auto sleep_epoch = sleep_state_.Load<std::memory_order_seq_cst>().epoch;
-  const auto deadline = wait_strategy_->GetDeadline();
+  const auto deadline = wait_strategy.GetDeadline();
   const bool has_deadline = deadline.IsReachable() &&
                             (!IsCancellable() || deadline < cancel_deadline_);
   if (has_deadline) ArmDeadlineTimer(deadline, sleep_epoch);

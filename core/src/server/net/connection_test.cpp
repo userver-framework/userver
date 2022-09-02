@@ -61,6 +61,7 @@ class TestHttprequestHandler : public server::http::RequestHandlerBase {
     return no_logger_;
   };
 
+  // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
   mutable std::atomic<std::size_t> asyncs_finished{0};
 
  private:

@@ -4,7 +4,6 @@
 /// @brief @copybrief storages::clickhouse::Cluster
 
 #include <atomic>
-#include <memory>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -13,6 +12,7 @@
 #include <userver/components/component_fwd.hpp>
 
 #include <userver/formats/json_fwd.hpp>
+#include <userver/storages/clickhouse/fwd.hpp>
 #include <userver/storages/clickhouse/impl/insertion_request.hpp>
 #include <userver/storages/clickhouse/impl/pool.hpp>
 #include <userver/storages/clickhouse/options.hpp>
@@ -135,8 +135,6 @@ class Cluster final {
   std::vector<impl::Pool> pools_;
   mutable std::atomic<std::size_t> current_pool_ind_{0};
 };
-
-using ClusterPtr = std::shared_ptr<Cluster>;
 
 template <typename T>
 void Cluster::Insert(const std::string& table_name,

@@ -6,6 +6,7 @@
 #include <boost/algorithm/string/split.hpp>
 #include <boost/algorithm/string/trim.hpp>
 
+#include <clients/http/testsuite.hpp>
 #include <engine/task/task_context.hpp>
 #include <engine/task/task_processor.hpp>
 #include <userver/clients/dns/resolver.hpp>
@@ -1344,6 +1345,33 @@ UTEST(HttpClient, RequestReuseDifferentUrlAndTimeout) {
   EXPECT_EQ(res->body(), "test");
   EXPECT_EQ(200, res->status_code());
   EXPECT_EQ(*shared_echo_callback.responses_200, kFewRepetitions + 1);
+}
+
+UTEST(HttpClient, DISABLED_TestsuiteAllowedUrls) {
+  auto task = utils::Async("test", [] {
+    const utest::SimpleServer http_server{EchoCallback{}};
+    auto http_client_ptr = utest::CreateHttpClient();
+    http_client_ptr->SetTestsuiteConfig({{"http://126.0.0.1"}, {}});
+
+    EXPECT_NO_THROW((void)http_client_ptr->CreateRequest()
+                        ->get("http://126.0.0.1")
+                        ->async_perform());
+    ASSERT_DEATH((void)http_client_ptr->CreateRequest()
+                     ->get("http://12.0.0.1")
+                     ->async_perform(),
+                 ".*");
+
+    http_client_ptr->SetAllowedUrlsExtra({"http://12.0"});
+    EXPECT_NO_THROW((void)http_client_ptr->CreateRequest()
+                        ->get("http://12.0.0.1")
+                        ->async_perform());
+    ASSERT_DEATH((void)http_client_ptr->CreateRequest()
+                     ->get("http://13.0.0.1")
+                     ->async_perform(),
+                 ".*");
+  });
+
+  task.Get();
 }
 
 USERVER_NAMESPACE_END

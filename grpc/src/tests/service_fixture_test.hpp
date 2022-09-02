@@ -23,7 +23,7 @@ class GrpcServiceFixture : public ::testing::Test {
   void RegisterService(ugrpc::server::ServiceBase& service);
 
   // Must be called after the services are registered
-  void StartServer();
+  void StartServer(ugrpc::client::ClientFactoryConfig&& config = {});
 
   // Must be called in the destructor of the derived fixture
   void StopServer() noexcept;
@@ -55,6 +55,27 @@ class GrpcServiceFixtureSimple : public GrpcServiceFixture {
   }
 
   ~GrpcServiceFixtureSimple() { StopServer(); }
+
+ private:
+  Service service_{};
+};
+
+// Sets up a mini gRPC server using a single default-constructed service
+// implementation. Will create the client with number of connections greater
+// than one
+template <typename Service>
+class GrpcServiceFixtureMultichannel
+    : public GrpcServiceFixture,
+      public testing::WithParamInterface<std::size_t> {
+ protected:
+  GrpcServiceFixtureMultichannel() {
+    RegisterService(service_);
+    ugrpc::client::ClientFactoryConfig client_factory_config{};
+    client_factory_config.channel_count = GetParam();
+    StartServer(std::move(client_factory_config));
+  }
+
+  ~GrpcServiceFixtureMultichannel() { StopServer(); }
 
  private:
   Service service_{};

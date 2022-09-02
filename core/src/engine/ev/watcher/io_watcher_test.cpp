@@ -27,7 +27,7 @@ UTEST(IoWatcher, DevNull) {
   watcher.ReadAsync([&counter, &mutex, &cv, &fd, &done](std::error_code) {
     std::lock_guard<std::mutex> lock(mutex);
 
-    char c;
+    char c{};
     int rc = read(fd, &c, 1);
     if (rc == 0) done = true;
     if (rc > 0) counter += rc;

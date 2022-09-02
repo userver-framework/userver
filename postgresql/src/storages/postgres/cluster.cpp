@@ -69,6 +69,10 @@ void Cluster::ApplyGlobalCommandControlUpdate(CommandControl cmd_ctl) {
       cmd_ctl, detail::DefaultCommandControlSource::kGlobalConfig);
 }
 
+void Cluster::SetConnectionSettings(const ConnectionSettings& settings) {
+  pimpl_->SetConnectionSettings(settings);
+}
+
 void Cluster::SetPoolSettings(const PoolSettings& settings) {
   pimpl_->SetPoolSettings(settings);
 }

@@ -31,6 +31,7 @@ namespace components {
 /// * @ref POSTGRES_HANDLERS_COMMAND_CONTROL
 /// * @ref POSTGRES_QUERIES_COMMAND_CONTROL
 /// * @ref POSTGRES_CONNECTION_POOL_SETTINGS
+/// * @ref POSTGRES_CONNECTION_SETTINGS
 /// * @ref POSTGRES_STATEMENT_METRICS_SETTINGS
 ///
 /// ## Static configuration example:

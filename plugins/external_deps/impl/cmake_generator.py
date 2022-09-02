@@ -94,9 +94,9 @@ def generate_cmake(name: str, value, renderer: jinja2.Environment):
             raise RuntimeError(
                 f'{filename} would use '
                 f'"find_package_handle_standard_args" for "{name}" '
-                f'wich would cause a CMake "-Wdev" warning. '
-                f'To avoid that the external dep should have '
-                f'"helper-prefix: false" or have no following keys: '
+                'wich would cause a CMake "-Wdev" warning. '
+                'To avoid that the external dep should have '
+                '"helper-prefix: false" or have no following keys: '
                 f'{use_find}',
             )
 

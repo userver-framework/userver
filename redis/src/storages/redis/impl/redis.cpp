@@ -463,8 +463,8 @@ void Redis::RedisImpl::InvokeCommand(const CommandPtr& command,
   try {
     command->Callback()(command, reply);
   } catch (const std::exception& ex) {
-    LOG_WARNING() << "exception in callback handler ("
-                  << command->args.ToString() << ") " << ex.what();
+    LOG_WARNING() << "exception in callback handler (" << command->args << ") "
+                  << ex;
   }
 
   if (need_disconnect) Disconnect();
@@ -501,7 +501,7 @@ bool Redis::RedisImpl::WatchCommandTimerEnabled(
 bool Redis::RedisImpl::AsyncCommand(const CommandPtr& command) {
   LOG_DEBUG() << "AsyncCommand for server_id=" << GetServerId().GetId()
               << " server=" << GetServerId().GetDescription()
-              << " cmd=" << command->args.ToString();
+              << " cmd=" << command->args;
   {
     std::lock_guard<std::mutex> lock(command_mutex_);
     if (destroying_) return false;

@@ -79,7 +79,7 @@ class LoggingTestBase : public ::testing::Test {
   template <typename T>
   std::string ToStringViaLogging(const T& value) {
     LOG_CRITICAL() << value;
-    const std::string result = LoggedText();
+    std::string result = LoggedText();
     ClearLog();
     return result;
   }

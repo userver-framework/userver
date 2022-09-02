@@ -28,6 +28,7 @@ UTEST(SharedTaskWithResult, MoveInvalidatesOther) {
 
   engine::SharedTaskWithResult<void> moved_to{std::move(moved_from)};
   EXPECT_TRUE(moved_to.IsValid());
+  // NOLINTNEXTLINE(clang-analyzer-cplusplus.Move,bugprone-use-after-move)
   EXPECT_FALSE(moved_from.IsValid());
 }
 

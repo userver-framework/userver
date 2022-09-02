@@ -24,7 +24,7 @@ class SpinEvent final {
   std::atomic<bool> is_pending_;
 };
 
-static constexpr std::chrono::milliseconds kWaitPeriod{10};
+constexpr std::chrono::milliseconds kWaitPeriod{10};
 
 }  // namespace
 
@@ -63,6 +63,7 @@ UTEST_MT(ConditionVariable, SatisfyMultiple, 10) {
   bool ok = false;
 
   std::vector<engine::TaskWithResult<void>> tasks;
+  tasks.reserve(40);
   for (int i = 0; i < 40; i++)
     tasks.push_back(engine::AsyncNoSpan([&] {
       for (int j = 0; j < 10; j++) {

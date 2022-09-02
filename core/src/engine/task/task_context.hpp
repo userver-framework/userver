@@ -183,7 +183,6 @@ class TaskContext final : public boost::intrusive_ref_counter<TaskContext>,
   void RethrowErrorResult() const final;
 
  private:
-  class WaitStrategyGuard;
   class LocalStorageGuard;
 
   static constexpr uint64_t kMagic = 0x6b73615453755459ULL;  // "YTuSTask"
@@ -211,12 +210,13 @@ class TaskContext final : public boost::intrusive_ref_counter<TaskContext>,
   TaskProcessor& task_processor_;
   TaskCounter::Token task_counter_token_;
   const bool is_critical_;
+  bool is_cancellable_{true};
+  bool within_sleep_{false};
   EhGlobals eh_globals_;
   TaskPayload payload_;
 
   std::atomic<Task::State> state_;
   std::atomic<DetachedTasksSyncBlock::Token*> detached_token_;
-  bool is_cancellable_{true};
   std::atomic<TaskCancellationReason> cancellation_reason_;
   mutable FastPimplGenericWaitList finish_waiters_;
 
@@ -230,7 +230,6 @@ class TaskContext final : public boost::intrusive_ref_counter<TaskContext>,
 
   size_t trace_csw_left_;
 
-  WaitStrategy* wait_strategy_;
   AtomicSleepState sleep_state_;
   WakeupSource wakeup_source_{WakeupSource::kNone};
 

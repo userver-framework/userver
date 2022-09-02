@@ -104,7 +104,7 @@ class FixedArray final {
 /// results in a new utils::FixedArray. The generator is guaranteed to be
 /// invoked in the first-to-last order.
 /// @param size How many objects to generate
-/// @param transform A functor that takes an index and returns an object for the
+/// @param generator A functor that takes an index and returns an object for the
 /// `FixedArray`
 /// @returns `FixedArray` with the return objects of @p generator
 template <class GeneratorFunc>

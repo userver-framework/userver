@@ -207,6 +207,8 @@ class Cluster {
   void ApplyGlobalCommandControlUpdate(CommandControl);
   /// @endcond
 
+  void SetConnectionSettings(const ConnectionSettings& settings);
+
   void SetPoolSettings(const PoolSettings& settings);
 
   void SetStatementMetricsSettings(const StatementMetricsSettings& settings);

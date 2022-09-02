@@ -2,7 +2,7 @@ version: "2.3"
 
 services:
     userver-service-sample:
-        image: ghcr.io/userver-framework/docker-userver-build-base:v1
+        image: ghcr.io/userver-framework/docker-userver-build-base:v1a
         container_name: userver-service-sample
         networks:
           - dockerbridge
@@ -43,7 +43,7 @@ services:
         command: /userver/tools/docker/start-sample.sh
 
     userver-debian:
-        image: ghcr.io/userver-framework/docker-userver-build-base:v1
+        image: ghcr.io/userver-framework/docker-userver-build-base:v1a
         container_name: userver-debian
         networks:
           - dockerbridge
@@ -71,7 +71,7 @@ services:
         entrypoint: /tools/run_as_user.sh
 
     userver-tests:
-        image: ghcr.io/userver-framework/docker-userver-build-base:v1
+        image: ghcr.io/userver-framework/docker-userver-build-base:v1a
         container_name: userver-tests
         privileged: true
         mem_limit: 10G

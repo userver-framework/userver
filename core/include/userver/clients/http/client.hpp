@@ -97,6 +97,9 @@ class Client final {
   void SetTestsuiteConfig(const TestsuiteConfig& config);
 
   // For internal use only.
+  void SetAllowedUrlsExtra(std::vector<std::string>&& urls);
+
+  // For internal use only.
   void SetConfig(const Config&);
   /// @endcond
 
@@ -161,6 +164,7 @@ class Client final {
 
   // Testsuite support
   std::shared_ptr<const TestsuiteConfig> testsuite_config_;
+  rcu::Variable<std::vector<std::string>> allowed_urls_extra_;
 
   std::shared_ptr<curl::ConnectRateLimiter> connect_rate_limiter_;
 
