@@ -9,7 +9,7 @@ USERVER_NAMESPACE_BEGIN
 namespace {
 
 constexpr const char* kTestsuiteRabbitMqPort = "TESTSUITE_RABBITMQ_TCP_PORT";
-constexpr std::uint16_t kDefaultRabbitMqPort = 19002;
+constexpr std::uint16_t kDefaultRabbitMqPort = 8672;
 
 clients::dns::Resolver CreateResolver() {
   return clients::dns::Resolver{engine::current_task::GetTaskProcessor(), {}};

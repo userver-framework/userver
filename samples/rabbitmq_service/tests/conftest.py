@@ -17,7 +17,7 @@ SECDIST_CONFIG = {
     'rabbitmq_settings': {
         'my-rabbit-alias': {
             'hosts': ['localhost'],
-            'port': 19002,
+            'port': 8672,
             'login': 'guest',
             'password': 'guest',
             'vhost': '/',

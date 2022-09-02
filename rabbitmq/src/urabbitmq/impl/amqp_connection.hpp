@@ -93,6 +93,8 @@ class AmqpConnection final {
 
   AMQP::Channel channel_;
 
+  // The order is reversed intentionally
+  // https://github.com/CopernicaMarketingSoftware/AMQP-CPP/issues/480
   std::unique_ptr<ReliableChannel> reliable_;
   AMQP::Channel reliable_channel_;
 
