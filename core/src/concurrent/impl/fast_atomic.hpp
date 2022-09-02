@@ -3,7 +3,7 @@
 #include <atomic>
 #include <type_traits>
 
-#if defined(USERVER_USE_BOOST_DWCAS)
+#ifdef USERVER_USE_BOOST_DWCAS
 #include <boost/atomic/atomic.hpp>
 #endif
 
@@ -13,9 +13,9 @@ USERVER_NAMESPACE_BEGIN
 
 namespace concurrent::impl {
 
-#if defined(USERVER_USE_BOOST_DWCAS)
+#ifdef USERVER_USE_BOOST_DWCAS
 template <typename T>
-using InternalDoubleWidthAtomic = boost::atomic<T>;
+using DoubleWidthCapableAtomic = boost::atomic<T>;
 
 inline boost::memory_order ToInternalMemoryOrder(
     std::memory_order order) noexcept {
@@ -37,7 +37,7 @@ inline boost::memory_order ToInternalMemoryOrder(
 }
 #else
 template <typename T>
-using InternalDoubleWidthAtomic = std::atomic<T>;
+using DoubleWidthCapableAtomic = std::atomic<T>;
 
 inline std::memory_order ToInternalMemoryOrder(
     std::memory_order order) noexcept {
@@ -74,7 +74,7 @@ class FastAtomic final {
   }
 
  private:
-  InternalDoubleWidthAtomic<T> impl_;
+  DoubleWidthCapableAtomic<T> impl_;
 };
 
 }  // namespace concurrent::impl
