@@ -15,29 +15,47 @@ Changelog news also go to the
 
 ## Roadmap
 
-* Add component to serve static pages
-  * Add web interface to the [uservice-dynconf](https://github.com/userver-framework/uservice-dynconf)
+* Add web interface to the [uservice-dynconf](https://github.com/userver-framework/uservice-dynconf)
 * Migrate our internal CI to the github
 * Migrate to upstream versions of formatters
 * Improve documentation
-* Add a TCP acceptor sample
+* Add HTTP authentication sample
 * Add Prometheus metrics format
 
 
 ## Changelog
 
 
-### Beta
+### Beta (August 2022)
 
+* Added server::handlers::HttpHandlerStatic handler to serve static pages.
+* Added navigation to previous and next page in docs.
+* Optimized internals:
+  * WaitListLight now never calls std::this_thread::yield().
+  * More lightweight queues are now used in HTTP server.
+  * Smaller critical section in TaskContext::Sleep(), improved performance for
+  many the synchronization primitives.
+  * std::unique_ptr now holds the payload in engine::Task, rather than
+  std::shared_ptr. Thanks to the [Stas Zvyagin](https://github.com/szvyagin-gj)
+  for the idea and draft PR.
+  * Simplified and optimized FdControl, resulting in less CPU and memory usage
+  for sockets, pipes and TLS.
+* Removed suspicious operator, thanks to the
+  [PatriotRossii](https://github.com/PatriotRossii) for the bugreport.
+* Fixed CentOS 7.8 builds, many thanks to [jinguoli](https://github.com/jinguoli)
+  for the bugreport and fix ideas.
+* Fixed Gentoo builds, many thanks to [SanyaNya](https://github.com/SanyaNya)
+  for the PR.
+* Fixed default DB values in [uservice-dynconf](https://github.com/userver-framework/uservice-dynconf),
+  many thanks to [skene2321](https://github.com/skene2321) for the PR.
 * Added engine::io::WritableBase and engine::io::RwBase, thanks to
   [Stas Zvyagin](https://github.com/szvyagin-gj) for the idea.
-* Added components::TcpAcceptorBase with new tutorial @ref md_en_userver_tutorial_tcp_service,
+* Added components::TcpAcceptorBase with new tutorials
+  @ref md_en_userver_tutorial_tcp_service and @ref md_en_userver_tutorial_tcp_full,
   thanks to [Stas Zvyagin](https://github.com/szvyagin-gj) for the idea and
   usage samples at https://github.com/szvyagin-gj/unetwork.
 * Fixed comparison operator for UserScope, thanks to
   [PatriotRossii](https://github.com/PatriotRossii) for the PR.
-* Numerous improvements for the documentation, including new
-  pages.
 * Add CryptoPP version download during CryptoPP installation, thanks to
   [Konstantin](https://github.com/Nybik) for the PR.
 * Added more documentation on Non FIFO queues, thanks to
@@ -51,8 +69,7 @@ Changelog news also go to the
 * Improved statistics for gRPC.
 * Vector versions of engine::io::Socket::SendAll were added and used to
   optimize CPU and memory consumption during HTTP response sends.
-* Simplified and optimized FdControl, resulting in less CPU and memory usage
-  for sockets, pipes and TLS.
+
 
 ### Pre anounce (May-Jul 2022)
 * Fixed engine::io::TlsWrapper retries,
