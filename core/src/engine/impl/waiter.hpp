@@ -39,12 +39,6 @@ inline bool operator==(Waiter lhs, Waiter rhs) noexcept {
   return lhs.context == rhs.context && lhs.epoch == rhs.epoch;
 }
 
-// Check that Waiter is double-width compared to register size
-static_assert(sizeof(Waiter) == 2 * sizeof(void*));
-
-// The type used in boost::atomic must have no padding to perform CAS safely.
-static_assert(std::has_unique_object_representations_v<Waiter>);
-
 }  // namespace engine::impl
 
 USERVER_NAMESPACE_END

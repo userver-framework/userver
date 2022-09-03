@@ -3,8 +3,7 @@
 #include <atomic>
 #include <type_traits>
 
-#include <boost/atomic/atomic.hpp>
-
+#include <concurrent/impl/fast_atomic.hpp>
 #include <concurrent/intrusive_walkable_pool.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/flags.hpp>
@@ -95,7 +94,7 @@ class ResettableQueue final {
     explicit Node(StorageMode storage_mode) noexcept
         : storage_mode(storage_mode) {}
 
-    boost::atomic<T> value{kPhysicallyRemoved};
+    FastAtomic<T> value{kPhysicallyRemoved};
     std::atomic<TaggedPtr<Node>> next{nullptr};
     IntrusiveStackHook<Node> free_list_hook{};
     const StorageMode storage_mode;
@@ -127,7 +126,7 @@ class ResettableQueue<T>::ItemHandle final {
   T value_{};
 };
 
-// TODO replace loads and stores with CAS, because Boost.Atomic only has CAS.
+// TODO take note that 'load' and 'store' on FastAtomic are actually CAS.
 // TODO relax load-store if possible.
 template <typename T>
 ResettableQueue<T>::ResettableQueue() {
@@ -136,7 +135,7 @@ ResettableQueue<T>::ResettableQueue() {
   static_assert(std::is_trivially_copyable_v<T>);
   static_assert(std::has_unique_object_representations_v<T>);
 
-  static_nodes_[0].value.store(kPopped, boost::memory_order_relaxed);
+  static_nodes_[0].value.store(kPopped, std::memory_order_relaxed);
   for (std::size_t i = 1; i != kStaticNodesCount; ++i) {
     free_list_.Push(static_nodes_[i]);
   }
@@ -182,8 +181,8 @@ auto ResettableQueue<T>::Push(T value) -> ItemHandle {
     // kPhysicallyRemoved > kVacant > kVacantPopped
     T expected = kPhysicallyRemoved;
     if (node->value.compare_exchange_strong(expected, value,
-                                            boost::memory_order_release,
-                                            boost::memory_order_relaxed)) {
+                                            std::memory_order_release,
+                                            std::memory_order_relaxed)) {
       DoPush(*node);
       return ItemHandle(*node, value);
     }
@@ -191,8 +190,8 @@ auto ResettableQueue<T>::Push(T value) -> ItemHandle {
     while (true) {
       const T desired = (expected == kVacantPopped) ? kPopped : value;
       if (node->value.compare_exchange_strong(expected, desired,
-                                              boost::memory_order_release,
-                                              boost::memory_order_relaxed)) {
+                                              std::memory_order_release,
+                                              std::memory_order_relaxed)) {
         break;
       }
     }
@@ -210,7 +209,7 @@ auto ResettableQueue<T>::Push(T value) -> ItemHandle {
 
   // The free list is empty.
   auto& node = *new Node();
-  node.value.store(value, boost::memory_order_relaxed);
+  node.value.store(value, std::memory_order_relaxed);
   DoPush(node);
   return ItemHandle(node, value);
 }
@@ -261,7 +260,7 @@ bool ResettableQueue<T>::TryPop(T& value) noexcept {
     if (next.GetDataPtr() != nullptr) {
       // A modification of Michael-Scott Pop: we load next_value under the same
       // load head - foo - load head "lock".
-      next_value = next.GetDataPtr()->value.load(boost::memory_order_seq_cst);
+      next_value = next.GetDataPtr()->value.load(std::memory_order_seq_cst);
     }
     if (head != head_.load(std::memory_order_seq_cst)) continue;
 
@@ -322,15 +321,15 @@ bool ResettableQueue<T>::DoPopValue(Node& node, T expected) noexcept {
     //
     // TODO mitigate by tagging kVacant values
     return node.value.compare_exchange_weak(expected, kVacantPopped,
-                                            boost::memory_order_seq_cst,
-                                            boost::memory_order_relaxed);
+                                            std::memory_order_seq_cst,
+                                            std::memory_order_relaxed);
   } else {
     // If the same value gets popped and pushed onto the same node,
     // we may set a node in the middle of the queue to kPopped, producing
     // garbage (it will be cleaned up on successive TryPop calls).
     return node.value.compare_exchange_weak(expected, kPopped,
-                                            boost::memory_order_seq_cst,
-                                            boost::memory_order_relaxed);
+                                            std::memory_order_seq_cst,
+                                            std::memory_order_relaxed);
   }
 }
 
@@ -347,16 +346,16 @@ void ResettableQueue<T>::DoPopNode(Node& node) noexcept {
   // kPopped > kVacantPopped
   T expected = kVacantPopped;
   if (node.value.compare_exchange_strong(expected, kPhysicallyRemoved,
-                                         boost::memory_order_seq_cst,
-                                         boost::memory_order_relaxed)) {
+                                         std::memory_order_seq_cst,
+                                         std::memory_order_relaxed)) {
     return;
   }
 
   UASSERT(expected == kPopped);
   expected = kPopped;
   const bool success = node.value.compare_exchange_strong(
-      expected, kPhysicallyRemoved, boost::memory_order_seq_cst,
-      boost::memory_order_relaxed);
+      expected, kPhysicallyRemoved, std::memory_order_seq_cst,
+      std::memory_order_relaxed);
   UASSERT(success);
   free_list_.Push(node);
 }
@@ -376,8 +375,8 @@ void ResettableQueue<T>::Remove(ResettableQueue::ItemHandle&& handle) noexcept {
   // Pushed with the same value, and Remove steals an unrelated value.
   T expected = handle.value_;
   if (node.value.compare_exchange_strong(expected, kVacant,
-                                         boost::memory_order_seq_cst,
-                                         boost::memory_order_relaxed)) {
+                                         std::memory_order_seq_cst,
+                                         std::memory_order_relaxed)) {
     free_list_.Push(node);
   }
 }
