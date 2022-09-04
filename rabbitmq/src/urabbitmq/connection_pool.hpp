@@ -51,6 +51,8 @@ class ConnectionPool : public std::enable_shared_from_this<ConnectionPool> {
 
   void RunMonitor();
 
+  void CleanupQueue();
+
   clients::dns::Resolver& resolver_;
   const EndpointInfo endpoint_info_;
   const AuthSettings auth_settings_;

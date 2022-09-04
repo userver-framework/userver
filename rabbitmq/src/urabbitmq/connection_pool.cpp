@@ -51,16 +51,27 @@ ConnectionPool::ConnectionPool(clients::dns::Resolver& resolver,
       // FP?: pointer magic in boost.lockfree
       // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks)
       queue_{pool_settings_.max_pool_size} {
-  std::vector<engine::TaskWithResult<void>> init_tasks;
-  init_tasks.reserve(pool_settings_.min_pool_size);
-
-  for (size_t i = 0; i < pool_settings_.min_pool_size; ++i) {
-    init_tasks.emplace_back(engine::AsyncNoSpan([this] {
-      PushConnection(engine::Deadline::FromDuration(kConnectionSetupTimeout));
-    }));
-  }
   try {
+    std::vector<engine::TaskWithResult<void>> init_tasks;
+    init_tasks.reserve(pool_settings_.min_pool_size);
+
+    for (size_t i = 0; i < pool_settings_.min_pool_size; ++i) {
+      init_tasks.emplace_back(engine::AsyncNoSpan([this] {
+        PushConnection(engine::Deadline::FromDuration(kConnectionSetupTimeout));
+      }));
+    }
+
     engine::WaitAllChecked(init_tasks);
+  } catch (const impl::ConnectionSetupError& ex) {
+    // this error is thrown when connection creation fails explicitly,
+    // which is caused by either invalid auth or hitting some limits
+    // in RabbitMQ (per-vhost/per-user/global/etc. connections limit).
+    // In both cases it seems severe enough to fail completely.
+
+    LOG_ERROR() << "Critical failure encountered in connection pool setup: "
+                << ex.what();
+    CleanupQueue();
+    throw;
   } catch (const std::exception& ex) {
     LOG_WARNING() << "Failed to properly setup connection pool: " << ex.what();
   }
@@ -72,14 +83,7 @@ ConnectionPool::ConnectionPool(clients::dns::Resolver& resolver,
 ConnectionPool::~ConnectionPool() {
   monitor_.Stop();
 
-  while (true) {
-    Connection* conn{nullptr};
-    if (!queue_.pop(conn)) {
-      break;
-    }
-
-    Drop(conn);
-  }
+  CleanupQueue();
 }
 
 ConnectionPtr ConnectionPool::Acquire(engine::Deadline deadline) {
@@ -174,6 +178,17 @@ void ConnectionPool::RunMonitor() {
     } catch (const std::exception& ex) {
       LOG_WARNING() << "Failed to add connection into pool: " << ex;
     }
+  }
+}
+
+void ConnectionPool::CleanupQueue() {
+  while (true) {
+    Connection* conn{nullptr};
+    if (!queue_.pop(conn)) {
+      break;
+    }
+
+    Drop(conn);
   }
 }
 

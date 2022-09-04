@@ -17,13 +17,12 @@ ClientImpl::ClientImpl(clients::dns::Resolver& resolver,
                        const ClientSettings& settings)
     : settings_{settings} {
   const auto endpoints_count = settings_.endpoints.endpoints.size();
-  pools_.resize(endpoints_count);
+  pools_.assign(endpoints_count, {{}, nullptr});
 
   std::vector<engine::TaskWithResult<void>> init_tasks;
   init_tasks.reserve(endpoints_count);
   for (size_t i = 0; i < endpoints_count; ++i) {
     init_tasks.emplace_back(engine::AsyncNoSpan([this, &resolver, i] {
-      pools_[i] = {{}, nullptr};
       pools_[i].pool = ConnectionPool::Create(
           resolver, settings_.endpoints.endpoints[i], settings_.endpoints.auth,
           settings_.pool_settings, settings_.use_secure_connection,

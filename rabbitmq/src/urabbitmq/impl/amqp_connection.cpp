@@ -13,8 +13,9 @@ constexpr std::chrono::milliseconds kGracefulCloseTimeout{1000};
 
 AMQP::Connection CreateConnection(AmqpConnectionHandler& handler,
                                   engine::Deadline deadline) {
+  const auto& address = handler.GetAddress();
   handler.SetOperationDeadline(deadline);
-  return {&handler};
+  return {&handler, address.login(), address.vhost()};
 }
 
 }  // namespace
@@ -46,10 +47,15 @@ AmqpConnection::AmqpConnection(AmqpConnectionHandler& handler,
       waiters_sema_{max_in_flight_requests} {
   handler_.OnConnectionCreated(this, deadline);
 
-  AwaitChannelCreated(channel_, deadline);
-  AwaitChannelCreated(reliable_channel_, deadline);
+  try {
+    AwaitChannelCreated(channel_, deadline);
+    AwaitChannelCreated(reliable_channel_, deadline);
 
-  reliable_ = CreateReliable(deadline);
+    reliable_ = CreateReliable(deadline);
+  } catch (const std::exception&) {
+    handler_.OnConnectionDestruction();
+    throw;
+  }
 }
 
 AmqpConnection::~AmqpConnection() {

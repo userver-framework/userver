@@ -71,8 +71,8 @@ AmqpConnectionHandler::AmqpConnectionHandler(
     clients::dns::Resolver& resolver, const EndpointInfo& endpoint,
     const AuthSettings& auth_settings, bool secure,
     statistics::ConnectionStatistics& stats, engine::Deadline deadline)
-    : socket_{CreateSocketPtr(
-          resolver, ToAmqpAddress(endpoint, auth_settings, secure), deadline)},
+    : address_{ToAmqpAddress(endpoint, auth_settings, secure)},
+      socket_{CreateSocketPtr(resolver, address_, deadline)},
       reader_{*this, *socket_},
       stats_{stats} {}
 
@@ -113,13 +113,24 @@ void AmqpConnectionHandler::onData(AMQP::Connection* connection,
   }
 }
 
-void AmqpConnectionHandler::onError(AMQP::Connection*, const char*) {
+void AmqpConnectionHandler::onError(AMQP::Connection*, const char* message) {
   Invalidate();
+  if (is_ready_) return;
+
+  is_ready_.store(true);
+  error_.emplace(message);
+  connection_ready_event_.Send();
 }
 
 void AmqpConnectionHandler::onClosed(AMQP::Connection*) { Invalidate(); }
 
 void AmqpConnectionHandler::onReady(AMQP::Connection*) {
+  if (is_ready_) {
+    // this shouldn't actually happen
+    return;
+  }
+
+  is_ready_.store(true);
   connection_ready_event_.Send();
 }
 
@@ -128,8 +139,14 @@ void AmqpConnectionHandler::OnConnectionCreated(AmqpConnection* connection,
   reader_.Start(connection);
 
   if (!connection_ready_event_.WaitForEventUntil(deadline)) {
-    throw std::runtime_error{
+    reader_.Stop();
+    throw ConnectionSetupTimeout{
         "Failed to setup a connection within specified deadline"};
+  }
+
+  if (error_.has_value()) {
+    reader_.Stop();
+    throw ConnectionSetupError{"Failed to setup a connection: " + *error_};
   }
 }
 
@@ -153,6 +170,10 @@ void AmqpConnectionHandler::SetOperationDeadline(engine::Deadline deadline) {
 
 statistics::ConnectionStatistics& AmqpConnectionHandler::GetStatistics() {
   return stats_;
+}
+
+const AMQP::Address& AmqpConnectionHandler::GetAddress() const {
+  return address_;
 }
 
 }  // namespace urabbitmq::impl

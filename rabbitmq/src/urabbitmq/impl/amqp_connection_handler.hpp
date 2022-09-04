@@ -1,6 +1,9 @@
 #pragma once
 
 #include <memory>
+#include <optional>
+#include <stdexcept>
+#include <string>
 
 #include <userver/clients/dns/resolver_fwd.hpp>
 #include <userver/engine/single_consumer_event.hpp>
@@ -27,6 +30,14 @@ class ConnectionStatistics;
 namespace impl {
 
 class AmqpConnection;
+
+class ConnectionSetupError final : public std::runtime_error {
+  using std::runtime_error::runtime_error;
+};
+
+class ConnectionSetupTimeout final : public std::runtime_error {
+  using std::runtime_error::runtime_error;
+};
 
 class AmqpConnectionHandler final : public AMQP::ConnectionHandler {
  public:
@@ -63,7 +74,10 @@ class AmqpConnectionHandler final : public AMQP::ConnectionHandler {
 
   statistics::ConnectionStatistics& GetStatistics();
 
+  const AMQP::Address& GetAddress() const;
+
  private:
+  AMQP::Address address_;
   std::unique_ptr<engine::io::RwBase> socket_;
   io::SocketReader reader_;
 
@@ -73,6 +87,9 @@ class AmqpConnectionHandler final : public AMQP::ConnectionHandler {
   statistics::ConnectionStatistics& stats_;
 
   engine::Deadline operation_deadline_ = engine::Deadline::Passed();
+
+  std::atomic<bool> is_ready_{false};
+  std::optional<std::string> error_;
 };
 
 }  // namespace impl
