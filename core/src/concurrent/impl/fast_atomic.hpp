@@ -52,6 +52,7 @@ inline std::memory_order ToInternalMemoryOrder(
 template <typename T>
 class FastAtomic final {
   static_assert(sizeof(T) <= sizeof(void*) * 2);
+  // NOLINTNEXTLINE(misc-redundant-expression)
   static_assert(alignof(T) == sizeof(T));
   static_assert(std::is_trivially_copyable_v<T>);
   static_assert(std::has_unique_object_representations_v<T>);
