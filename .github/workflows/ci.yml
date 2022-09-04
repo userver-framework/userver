@@ -76,6 +76,10 @@ jobs:
                 sudo apt update
                 sudo apt install --allow-downgrades -y clickhouse-common-static $(cat scripts/docs/en/deps/${{matrix.os}}.md | tr '\n' ' ')
 
+          - name: Install RabbitMQ packages
+            run: |
+                ./scripts/rabbitmq/ubuntu_install_rabbitmq_server.sh
+
           - name: Setup ccache
             run: |
                 ccache -M 2.0GB
@@ -108,6 +112,13 @@ jobs:
                 cd build_debug
                 mkdir userver/clickhouse || :
                 cd userver/clickhouse
+                ctest -V
+
+          - name: Run tests (rabbitmq)
+            run: |
+                cd build_debug
+                mkdir userver/rabbitmq || :
+                cd userver/rabbitmq
                 ctest -V
 
           - name: Run tests (postgresql)
