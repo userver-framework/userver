@@ -41,6 +41,15 @@ formats::json::Value Control::Perform(
     metrics_storage_->ResetMetrics();
   }
 
+  auto http_allowed_urls_extra =
+      request_body["http_allowed_urls_extra"]
+          .As<std::optional<std::vector<std::string>>>(
+              std::optional<std::vector<std::string>>{});
+  if (http_allowed_urls_extra) {
+    testsuite_support_.GetHttpAllowedUrlsExtra().SetAllowedUrlsExtra(
+        std::move(*http_allowed_urls_extra));
+  }
+
   const auto mock_now = request_body["mock_now"];
   if (!mock_now.IsMissing()) {
     const auto now = mock_now.As<std::optional<std::string>>();

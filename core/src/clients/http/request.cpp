@@ -13,6 +13,7 @@
 #include <userver/clients/http/error.hpp>
 #include <userver/clients/http/form.hpp>
 #include <userver/clients/http/response_future.hpp>
+#include <userver/clients/http/streamed_response.hpp>
 #include <userver/engine/future.hpp>
 #include <userver/http/common_headers.hpp>
 #include <userver/http/url.hpp>
@@ -193,6 +194,15 @@ ResponseFuture Request::async_perform() {
           std::chrono::milliseconds(
               complete_timeout(pimpl_->timeout(), pimpl_->retries())),
           pimpl_};
+}
+
+StreamedResponse Request::async_perform_stream_body(
+    const std::shared_ptr<concurrent::SpscQueue<std::string>>& queue) {
+  auto deadline = engine::Deadline::FromDuration(
+      std::chrono::milliseconds(pimpl_->timeout()));
+
+  pimpl_->async_perform_stream(queue);
+  return StreamedResponse(queue->GetConsumer(), deadline, pimpl_);
 }
 
 std::shared_ptr<Response> Request::perform() { return async_perform().Get(); }

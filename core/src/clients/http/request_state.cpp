@@ -126,6 +126,8 @@ RequestState::RequestState(
       original_timeout_(kDefaultTimeout),
       effective_timeout_(original_timeout_),
       deadline_(GetTaskDeadline()),
+      is_cancelled_(false),
+      errorbuffer_(),
       resolver_{resolver} {
   // Libcurl calls sigaction(2)  way too frequently unless this option is used.
   easy().set_no_signal(true);
@@ -330,7 +332,10 @@ void RequestState::on_completed(std::shared_ptr<RequestState> holder,
   UASSERT(holder->span_storage_);
   auto& span = holder->span_storage_->Get();
   auto& easy = holder->easy();
+  auto* buffered_data = std::get_if<FullBufferedData>(&holder->data_);
+  auto* stream_data = std::get_if<StreamData>(&holder->data_);
   LOG_TRACE() << "Request::RequestImpl::on_completed(1)" << span;
+
   const auto status_code = static_cast<Status>(easy.get_response_code());
 
   if (holder->testsuite_config_ && !err) {
@@ -362,9 +367,15 @@ void RequestState::on_completed(std::shared_ptr<RequestState> holder,
       LOG_DEBUG() << "cURL error details: " << holder->errorbuffer_.data();
     }
 
-    const auto cleanup_request = holder->response_move();
-    holder->span_storage_.reset();
-    holder->promise_.set_exception(holder->PrepareException(err));
+    if (buffered_data) {
+      const auto cleanup_request = holder->response_move();
+      holder->span_storage_.reset();
+      buffered_data->promise_.set_exception(holder->PrepareException(err));
+    } else {
+      UASSERT(stream_data);
+      holder->span_storage_.reset();
+      stream_data->headers_promise.set_exception(holder->PrepareException(err));
+    }
   } else {
     span.AddTag(tracing::kHttpStatusCode, status_code);
     holder->response()->SetStatusCode(status_code);
@@ -373,12 +384,20 @@ void RequestState::on_completed(std::shared_ptr<RequestState> holder,
     if (!holder->response()->IsOk()) span.AddTag(tracing::kErrorFlag, true);
 
     holder->span_storage_.reset();
-    holder->promise_.set_value(holder->response_move());
+    if (buffered_data) {
+      buffered_data->promise_.set_value(holder->response_move());
+    } else {
+      stream_data->headers_promise.set_value();
+    }
   }
 
   // it is unsafe to touch any content of holder after this point!
 
   LOG_TRACE() << "Request::RequestImpl::on_completed(3)";
+}
+
+bool RequestState::IsStreamBody() const {
+  return !!std::get_if<StreamData>(&data_);
 }
 
 void RequestState::on_retry(std::shared_ptr<RequestState> holder,
@@ -466,6 +485,8 @@ void RequestState::parse_header(char* ptr, size_t size) {
 void RequestState::SetLoggedUrl(std::string url) { log_url_ = std::move(url); }
 
 engine::Future<std::shared_ptr<Response>> RequestState::async_perform() {
+  data_ = FullBufferedData{};
+
   StartNewSpan();
 
   auto future = StartNewPromise();
@@ -486,33 +507,60 @@ engine::Future<std::shared_ptr<Response>> RequestState::async_perform() {
   return future;
 }
 
+void RequestState::async_perform_stream(const std::shared_ptr<Queue>& queue) {
+  data_ = StreamData(queue->GetProducer());
+
+  StartNewSpan();
+
+  response_ = std::make_shared<Response>();
+
+  is_cancelled_ = false;
+  retry_.current = 1;
+  effective_timeout_ = original_timeout_;
+  report_timeout_as_cancellation_ = false;
+
+  easy().set_write_function(&RequestState::StreamWriteFunction);
+  easy().set_write_data(this);
+  retry_.retries = 1;  // Force no retries
+
+  ApplyTestsuiteConfig();
+  StartStats();
+
+  perform_request([holder = shared_from_this()](std::error_code err) mutable {
+    RequestState::on_completed(std::move(holder), err);
+  });
+}
+
 void RequestState::perform_request(curl::easy::handler_type handler) {
   UASSERT_MSG(!cert_ || pkey_,
               "Setting certificate is useless without setting private key");
 
+  auto* buffered_data = std::get_if<FullBufferedData>(&data_);
+
   UASSERT(response_);
   response_->sink_string().clear();
-  response_->headers().clear();
+  response_->body().clear();
 
   UpdateTimeoutFromDeadline();
   SetEasyTimeout(effective_timeout_);
   if (effective_timeout_ <= std::chrono::milliseconds{0}) {
-    promise_.set_exception(PrepareDeadlineAlreadyPassedException());
+    buffered_data->promise_.set_exception(
+        PrepareDeadlineAlreadyPassedException());
     return;
   }
   UpdateTimeoutHeader();
 
   if (resolver_ && retry_.current == 1) {
-    engine::AsyncNoSpan([this, holder = shared_from_this(),
+    engine::AsyncNoSpan([this, holder = shared_from_this(), buffered_data,
                          handler = std::move(handler)]() mutable {
       try {
         ResolveTargetAddress(*resolver_);
         easy().async_perform(std::move(handler));
       } catch (const clients::dns::ResolverException& ex) {
         // TODO: should retry - TAXICOMMON-4932
-        promise_.set_exception(std::make_exception_ptr(ex));
+        buffered_data->promise_.set_exception(std::make_exception_ptr(ex));
       } catch (const BaseException& ex) {
-        promise_.set_exception(std::make_exception_ptr(ex));
+        buffered_data->promise_.set_exception(std::make_exception_ptr(ex));
       }
     }).Detach();
   } else {
@@ -621,7 +669,7 @@ std::exception_ptr RequestState::PrepareDeadlinePassedException(
 }
 
 engine::Future<std::shared_ptr<Response>> RequestState::StartNewPromise() {
-  promise_ = {};
+  auto* buffered_data = std::get_if<FullBufferedData>(&data_);
 
   response_ = std::make_shared<Response>();
   easy().set_sink(&(response_->sink_string()));  // set place for response body
@@ -631,7 +679,22 @@ engine::Future<std::shared_ptr<Response>> RequestState::StartNewPromise() {
   effective_timeout_ = original_timeout_;
   report_timeout_as_cancellation_ = false;
 
-  return promise_.get_future();
+  return buffered_data->promise_.get_future();
+}
+
+size_t RequestState::StreamWriteFunction(char* ptr, size_t size, size_t nmemb,
+                                         void* userdata) {
+  size_t actual_size = size * nmemb;
+  RequestState& rs = *static_cast<RequestState*>(userdata);
+  auto* stream_data = std::get_if<StreamData>(&rs.data_);
+
+  std::string buffer(ptr, actual_size);
+  if (stream_data->queue_producer.PushNoblock(std::move(buffer)))
+    return actual_size;
+
+  UINVARIANT(false, "not implemented CURL_WRITEFUNC_PAUSE TAXICOMMON-5611");
+
+  return CURL_WRITEFUNC_PAUSE;
 }
 
 void RequestState::ApplyTestsuiteConfig() {
@@ -644,8 +707,10 @@ void RequestState::ApplyTestsuiteConfig() {
     auto url = easy().get_original_url();
     if (!IsPrefix(url, prefixes) && !IsPrefix(url, allowed_urls_extra_)) {
       utils::impl::AbortWithStacktrace(
-          fmt::format("{} forbidden by testsuite config, allowed prefixes={}",
-                      url, fmt::join(prefixes, ",")));
+          fmt::format("{} forbidden by testsuite config, allowed prefixes={}, "
+                      "extra prefixes={}",
+                      url, fmt::join(prefixes, ", "),
+                      fmt::join(allowed_urls_extra_, ", ")));
     }
   }
 
