@@ -1,8 +1,10 @@
 include(CTest)
 include(FindPython)
-find_package(PythonDev REQUIRED)  # required by virtualenv
 
-option(USERVER_FEATURE_TESTSUITE "Enable testsuite targets" ON)
+option(USERVER_FEATURE_TESTSUITE "Enable functional tests via testsuite" ON)
+if (USERVER_FEATURE_TESTSUITE)
+  find_package(PythonDev REQUIRED)  # required by virtualenv
+endif()
 
 get_filename_component(
   USERVER_TESTSUITE_DIR ${CMAKE_CURRENT_LIST_DIR}/../testsuite ABSOLUTE)
