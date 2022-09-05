@@ -233,7 +233,7 @@ cat scripts/docs/en/deps/arch.md | grep -- '-git' | while read ;\
 
 ### MacOS
 
-MacOS is recommended only for development as it may have performance issues in some cases. 
+MacOS is recommended only for development as it may have performance issues in some cases.
 At least MacOS 10.15 required with [Xcode](https://apps.apple.com/us/app/xcode/id497799835) and [Homebrew](https://brew.sh/).
 
 Start with the following command:
@@ -243,11 +243,13 @@ mkdir build_release
 cd build_release
 cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DUSERVER_FEATURE_CRYPTOPP_BLAKE2=0 \
       -DUSERVER_FEATURE_REDIS_HI_MALLOC=1 -DUSERVER_CHECK_PACKAGE_VERSIONS=0 \
-      -DUSERVER_FEATURE_CLICKHOUSE=0 -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl@1.1 \
+      -DUSERVER_FEATURE_CLICKHOUSE=0 -DOPENSSL_ROOT_DIR=$(brew --prefix openssl@1.1) \
+      -DUSERVER_PG_INCLUDE_DIR=$(pg_config --includedir) -DUSERVER_PG_LIBRARY_DIR=$(pg_config --libdir) \
+      -DUSERVER_PG_PKGLIB_DIR=$(pg_config --pkglibdir) -DUSERVER_PG_SERVER_INCLUDE_DIR=$(pg_config --includedir-server) \
       -DBENCHMARK_ENABLE_WERROR=0 ..
 ```
 
-Follow the cmake hints for the installation of required packets and keep calling cmake with the options. 
+Follow the cmake hints for the installation of required packets and keep calling cmake with the options.
 
 
 ### Other POSIX based platforms

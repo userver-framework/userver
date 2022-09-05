@@ -1,16 +1,28 @@
 name: PostgreSQL
 version: 12
-helper-prefix: true
+helper-prefix: false
 
-extra-cmake-vars:
-    PostgreSQL_ADDITIONAL_VERSIONS: '"12" "13" "14"'
+includes:
+    find:
+      - names:
+          - libpq-fe.h
+        paths:
+          - ${USERVER_PG_INCLUDE_DIR}
+        path-suffixes:
+          - postgresql
+          - pgsql
+
+libraries:
+    find:
+      - names:
+          - libpq.a
+        paths:
+          - ${USERVER_PG_LIBRARY_DIR}
 
 debian-names:
   - libpq-dev
-  - postgresql-server-dev-12
-formula-name: postgres
+formula-name: postgresql@14
 rpm-names:
-  - postgresql-server-devel
   - postgresql-static
 pacman-names:
   - postgresql-libs
