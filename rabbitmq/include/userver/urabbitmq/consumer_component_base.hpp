@@ -30,7 +30,7 @@ namespace urabbitmq {
 ///
 /// ## Static configuration example:
 ///
-/// @snippet samples/rabbitmq_service/static_config.yam  RabbitMQ consumer sample - static config
+/// @snippet samples/rabbitmq_service/static_config.yaml  RabbitMQ consumer sample - static config
 ///
 /// ## Static options:
 /// Name             | Description

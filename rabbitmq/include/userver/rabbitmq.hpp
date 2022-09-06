@@ -15,7 +15,7 @@
 #include <userver/urabbitmq/consumer_settings.hpp>
 #include <userver/urabbitmq/typedefs.hpp>
 
-/// @page rabbitmq_driver **EXPERIMENTAL** RabbitMQ driver
+/// @page rabbitmq_driver RabbitMQ (AMQP 0-9-1) - EXPERIMENTAL
 ///
 /// Disclaimer: current state of the driver is highly experimental, and
 /// although APIs are not likely to change drastically, some adjustments may be
@@ -28,11 +28,12 @@
 /// current coroutine for carrying out network I/O.
 ///
 /// @section feature Features
-/// - Connections pooling
-/// - TLS for connections;
-/// - Automatic consumer restart in case of underlying channel breakage;
-/// - Opentracing for messages in publish->consume chain;
-/// - Administrative interface for RabbitMQ broker.
+/// - Publishing messages;
+/// - Consuming messages;
+/// - Creating Exchanges, Queues and Bindings;
+/// - Transport level security;
+/// - Connections pooling;
+/// - End-to-end logging for messages in publish->consume chain.
 ///
 /// @section info More information
 /// - For configuration see components::RabbitMQ
