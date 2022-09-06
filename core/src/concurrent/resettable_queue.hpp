@@ -33,6 +33,10 @@ namespace concurrent::impl {
 ///
 /// The inserted elements must be "reasonably unique" for the queue to work
 /// correctly (see the details below).
+///
+/// The queue provides FIFO ordering for Push and TryPop. If Remove is used, an
+/// element may be placed out-of-order. A finite number of elements will be
+/// TryPopped before each Pushed element.
 template <typename T>
 class ResettableQueue final {
  public:
