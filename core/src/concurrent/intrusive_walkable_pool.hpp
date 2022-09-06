@@ -86,7 +86,7 @@ class IntrusiveStack final {
       std::is_invocable_r_v<IntrusiveStackHook<T>&, HookExtractor, T&>);
 
  public:
-  IntrusiveStack() = default;
+  constexpr IntrusiveStack() = default;
 
   IntrusiveStack(IntrusiveStack&&) = delete;
   IntrusiveStack& operator=(IntrusiveStack&&) = delete;
@@ -136,11 +136,12 @@ class IntrusiveStack final {
 
   template <typename DisposerFunc>
   void DisposeUnsafe(const DisposerFunc& disposer) noexcept {
-    T* iter = stack_head_.load().GetDataPtr();
-    stack_head_.store(nullptr);
+    T* iter = stack_head_.load(std::memory_order_relaxed).GetDataPtr();
+    stack_head_.store(nullptr, std::memory_order_relaxed);
     while (iter) {
       T* const old_iter = iter;
-      iter = GetNext(*iter).load();
+      iter = GetNext(*iter).load(std::memory_order_relaxed);
+      GetNext(*old_iter).store(nullptr, std::memory_order_relaxed);
       disposer(*old_iter);
     }
   }

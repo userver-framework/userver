@@ -18,8 +18,16 @@ struct alignas(8) Waiter32 final {
   TaskContext* context{nullptr};
   SleepState::Epoch epoch{0};
 
-  static Waiter32 MakeInvalid(std::size_t invalid_id) noexcept {
-    return {reinterpret_cast<TaskContext*>(invalid_id), {}};
+  static Waiter32 MakeInvalid(std::uint32_t invalid_id) noexcept {
+    return {nullptr, SleepState::Epoch{invalid_id}};
+  }
+
+  static bool IsValid(Waiter32 value) noexcept {
+    return value.context != nullptr;
+  }
+
+  static std::uint32_t GetInvalidId(Waiter32 value) noexcept {
+    return static_cast<std::uint32_t>(value.epoch);
   }
 };
 
@@ -28,8 +36,16 @@ struct alignas(16) Waiter64 final {
   SleepState::Epoch epoch{0};
   [[maybe_unused]] std::uint32_t padding_dont_use{0};
 
-  static Waiter64 MakeInvalid(std::size_t invalid_id) noexcept {
-    return {reinterpret_cast<TaskContext*>(invalid_id), {}, {}};
+  static Waiter64 MakeInvalid(std::uint32_t invalid_id) noexcept {
+    return {nullptr, SleepState::Epoch{invalid_id}, {}};
+  }
+
+  static bool IsValid(Waiter64 value) noexcept {
+    return value.context != nullptr;
+  }
+
+  static std::uint32_t GetInvalidId(Waiter64 value) noexcept {
+    return static_cast<std::uint32_t>(value.epoch);
   }
 };
 

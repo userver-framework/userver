@@ -3,6 +3,9 @@
 #include <atomic>
 #include <type_traits>
 
+#include <boost/intrusive/slist.hpp>
+#include <boost/intrusive/slist_hook.hpp>
+
 #include <concurrent/impl/fast_atomic.hpp>
 #include <concurrent/intrusive_walkable_pool.hpp>
 #include <userver/utils/assert.hpp>
@@ -22,10 +25,10 @@ namespace concurrent::impl {
 /// those "logically removed" nodes.
 ///
 /// The element type `T` must:
-/// 1. be trivially-copyable
-/// 2. have "invalid" states, which are never Pushed normally, and provide
-///    access to them using...
-/// 2.1. `T::MakeInvalid(std::size_t invalid_id) -> T`
+/// 1. be trivially-copyable and have no padding
+/// 2.1. `T::MakeInvalid(std::uint32_t invalid_id) -> T`
+/// 2.2. `T::IsValid(T value) -> bool`
+/// 2.3. `T::GetInvalidId(T value) -> std::uint32_t`
 /// 3. be equality-comparable using `operator==`
 ///
 /// The inserted elements must be "reasonably unique" for the queue to work
@@ -33,8 +36,6 @@ namespace concurrent::impl {
 template <typename T>
 class ResettableQueue final {
  public:
-  static constexpr std::size_t kInvalidStateCount = 4;
-
   ResettableQueue();
 
   ResettableQueue(ResettableQueue&&) = delete;
@@ -63,53 +64,55 @@ class ResettableQueue final {
   void Remove(ItemHandle&& handle) noexcept;
 
  private:
-  enum class StorageMode {
-    kStatic,
-    kDynamic,
-  };
-
-  static constexpr T MakeInvalid(std::size_t invalid_id) noexcept {
-    UASSERT(invalid_id < kInvalidStateCount);
+  static constexpr T MakeInvalid(std::uint32_t invalid_id) noexcept {
     return T::MakeInvalid(invalid_id);
   }
 
-  // The node has been physically removed from the queue and is free.
-  inline static const T kPhysicallyRemoved = MakeInvalid(0);
+  static bool IsValid(T value) noexcept { return T::IsValid(value); }
 
-  // The value of the node has been extracted in TryPop. The node is thus
-  // logically removed. However, it is still needed by the queue and is not
-  // free.
-  inline static const T kPopped = MakeInvalid(1);
+  static std::uint32_t GetInvalidId(T value) noexcept {
+    UASSERT(!IsValid(value));
+    return T::GetInvalidId(value);
+  }
 
-  // The value of the node has been cleared in Remove. The node has still not
-  // been popped. So the node may be reused without a proper push-pop sequence.
-  inline static const T kVacant = MakeInvalid(2);
+  // The value of the node has been extracted by TryPop. The node is thus at
+  // least logically removed. It may still be needed by the queue as a
+  // Michael-Scott dummy node.
+  inline static const T kRemoved = MakeInvalid(0x10000);
 
-  // A kVacant node that was then kPopped. The consumer can't remove the node
-  // from the free list, so it will be cleaned up by the next Push.
-  inline static const T kVacantPopped = MakeInvalid(3);
+  // The value of the node has been cleared in Remove. The value of the node has
+  // still not been extracted by TryPop. The node may thus be reused without a
+  // proper push-pop sequence.
+  static T MakeVacant(std::uint16_t tag) noexcept {
+    return MakeInvalid(std::uint32_t{tag});
+  }
+
+  // A subcategory of kRemoved. The value of the node has been cleared in
+  // Remove. Then the value of the node has been extracted by TryPop. However,
+  // it has not yet been physically removed from the queue, serving as a dummy
+  // node.
+  inline static const T kVacantDummy = MakeInvalid(0x10001);
+
+  using LocalFreeListHook = boost::intrusive::slist_member_hook<
+      boost::intrusive::link_mode<boost::intrusive::normal_link>>;
 
   struct Node final {
-    Node() noexcept : Node(StorageMode::kStatic) {}
-    explicit Node(StorageMode storage_mode) noexcept
-        : storage_mode(storage_mode) {}
-
-    FastAtomic<T> value{kPhysicallyRemoved};
+    FastAtomic<T> value{kRemoved};
     std::atomic<TaggedPtr<Node>> next{nullptr};
-    IntrusiveStackHook<Node> free_list_hook{};
-    const StorageMode storage_mode;
+    std::atomic<std::uint16_t> next_vacant_tag{0};
+    IntrusiveStackHook<Node> free_or_vacant_hook{};
+    LocalFreeListHook local_free_hook{};
   };
+
+  class FreeList;
 
   void DoPush(Node& node) noexcept;
   bool DoPopValue(Node& node, T expected) noexcept;
   void DoPopNode(Node& node) noexcept;
 
-  static constexpr std::size_t kStaticNodesCount = 2;
-
-  Node static_nodes_[kStaticNodesCount]{};
-  std::atomic<TaggedPtr<Node>> head_{{&static_nodes_[0], 0}};
-  std::atomic<TaggedPtr<Node>> tail_{{&static_nodes_[0], 0}};
-  IntrusiveStack<Node, MemberHook<&Node::free_list_hook>> free_list_{};
+  std::atomic<TaggedPtr<Node>> head_{nullptr};
+  std::atomic<TaggedPtr<Node>> tail_{nullptr};
+  IntrusiveStack<Node, MemberHook<&Node::free_or_vacant_hook>> vacant_list_{};
 };
 
 template <typename T>
@@ -126,89 +129,143 @@ class ResettableQueue<T>::ItemHandle final {
   T value_{};
 };
 
-// TODO take note that 'load' and 'store' on FastAtomic are actually CAS.
-// TODO relax load-store if possible.
+template <typename T>
+class ResettableQueue<T>::FreeList final {
+ public:
+  static Node& Acquire() {
+    if (Node* const node = local_.TryPop()) return *node;
+    if (Node* const node = global_.TryPop()) return *node;
+    return *new Node{};
+  }
+
+  static void Release(Node& node) noexcept {
+    if (local_.TryPush(node)) return;
+    global_.Push(node);
+  }
+
+ private:
+  class Global final {
+   public:
+    constexpr Global() noexcept = default;
+
+    ~Global() {
+      list_.DisposeUnsafe([](Node& node) { delete &node; });
+    }
+
+    void Push(Node& node) noexcept { list_.Push(node); }
+
+    Node* TryPop() noexcept { return list_.TryPop(); }
+
+   private:
+    IntrusiveStack<Node, MemberHook<&Node::free_or_vacant_hook>> list_{};
+  };
+
+  inline static /*constinit*/ Global global_{};
+
+  class Local final {
+   public:
+    constexpr Local() noexcept = default;
+
+    ~Local() {
+      list_.clear_and_dispose([](Node* node) { global_.Push(*node); });
+    }
+
+    bool TryPush(Node& node) noexcept {
+      if (list_.size() == kMaxSize) return false;
+      list_.push_front(node);
+      return true;
+    }
+
+    Node* TryPop() noexcept {
+      if (list_.empty()) return nullptr;
+      Node& node = list_.front();
+      list_.pop_front();
+      return &node;
+    }
+
+   private:
+    static constexpr std::size_t kMaxSize = 1024;
+
+    boost::intrusive::slist<
+        Node, boost::intrusive::member_hook<Node, LocalFreeListHook,
+                                            &Node::local_free_hook>>
+        list_{};
+  };
+
+  inline static thread_local /*constinit*/ Local local_{};
+};
+
 template <typename T>
 ResettableQueue<T>::ResettableQueue() {
   static_assert(std::atomic<TaggedPtr<Node>>::is_always_lock_free);
   static_assert(std::has_unique_object_representations_v<TaggedPtr<Node>>);
-  static_assert(std::is_trivially_copyable_v<T>);
-  static_assert(std::has_unique_object_representations_v<T>);
 
-  static_nodes_[0].value.store(kPopped, std::memory_order_relaxed);
-  for (std::size_t i = 1; i != kStaticNodesCount; ++i) {
-    free_list_.Push(static_nodes_[i]);
-  }
+  Node& initial_dummy = FreeList::Acquire();
+  initial_dummy.value.store(kRemoved, std::memory_order_relaxed);
+  initial_dummy.next.store(nullptr, std::memory_order_relaxed);
+  head_.store({&initial_dummy, 0}, std::memory_order_relaxed);
+  tail_.store({&initial_dummy, 0}, std::memory_order_relaxed);
 }
 
 template <typename T>
 ResettableQueue<T>::~ResettableQueue() {
-  {
-    T value{};
-    while (TryPop(value)) {
-    }
+  T value{};
+  while (TryPop(value)) {
   }
-  const auto disposer = [](Node& node) {
-    if (node.storage_mode == StorageMode::kDynamic) {
-      delete &node;
-    }
-  };
-  free_list_.DisposeUnsafe(disposer);
-  {
-    Node* const head = head_.load(std::memory_order_relaxed).GetDataPtr();
-    UASSERT(head);
-    disposer(*head);
+
+  Node* const head = head_.load(std::memory_order_relaxed).GetDataPtr();
+  const T head_value = head->value.load(std::memory_order_relaxed);
+  if (head_value == kRemoved) {
+    FreeList::Release(*head);
+  } else {
+    UASSERT(head_value == kVacantDummy);
   }
+
+  vacant_list_.DisposeUnsafe([&](Node& node) { FreeList::Release(node); });
 }
 
 template <typename T>
 auto ResettableQueue<T>::Push(T value) -> ItemHandle {
-  UASSERT(!(value == kPhysicallyRemoved));
-  UASSERT(!(value == kPopped));
-  UASSERT(!(value == kVacant));
-  UASSERT(!(value == kVacantPopped));
+  UASSERT(IsValid(value));
 
-  while (Node* const node = free_list_.TryPop()) {
+  while (Node* const node = vacant_list_.TryPop()) {
     // 'node' may arrive here in the following states:
-    // 1. kPhysicallyRemoved: fill with 'value' and enqueue
+    // 1. kRemoved: fill with 'value' and enqueue
     // 2. kVacant: fill with 'value'
-    // 3. kVacantPopped: set to kPopped, skip
+    // 3. kVacantDummy: set to kRemoved, skip
     //
     // 'node' may concurrently transition between those states in the order:
-    // kVacant -> kVacantPopped -> kPhysicallyRemoved
+    // kVacant -> kVacantPopped -> kRemoved
     //
     // The practical frequency of those states is:
-    // kPhysicallyRemoved > kVacant > kVacantPopped
-    T expected = kPhysicallyRemoved;
-    if (node->value.compare_exchange_strong(expected, value,
-                                            std::memory_order_release,
-                                            std::memory_order_relaxed)) {
-      DoPush(*node);
-      return ItemHandle(*node, value);
-    }
-
+    // kRemoved > kVacant > kVacantPopped
+    T expected = kRemoved;
     while (true) {
-      const T desired = (expected == kVacantPopped) ? kPopped : value;
-      if (node->value.compare_exchange_strong(expected, desired,
-                                              std::memory_order_release,
-                                              std::memory_order_relaxed)) {
+      UASSERT(!IsValid(expected));
+      const T desired = (expected == kVacantDummy) ? kRemoved : value;
+      if (node->value.compare_exchange_weak(expected, desired,
+                                            std::memory_order_seq_cst,
+                                            std::memory_order_relaxed)) {
         break;
       }
     }
 
-    if (expected == kPhysicallyRemoved) {
+    UASSERT(!IsValid(expected));
+    if (expected == kRemoved) {
       DoPush(*node);
       return ItemHandle(*node, value);
-    } else if (expected == kVacant) {
-      return ItemHandle(*node, value);
-    } else {
-      UASSERT(expected == kVacantPopped);
+    } else if (expected == kVacantDummy) {
+      UASSERT(expected == kVacantDummy);
       continue;
+    } else {
+      // Vacant
+      return ItemHandle(*node, value);
     }
   }
 
-  // The free list is empty.
-  auto& node = *new Node();
+  // The vacant list is empty.
+  // Note: this call might throw on an allocation failure.
+  auto& node = FreeList::Acquire();
   node.value.store(value, std::memory_order_relaxed);
   DoPush(node);
   return ItemHandle(node, value);
@@ -249,7 +306,7 @@ void ResettableQueue<T>::DoPush(Node& node) noexcept {
 template <typename T>
 bool ResettableQueue<T>::TryPop(T& value) noexcept {
   while (true) {
-    T next_value = kPhysicallyRemoved;
+    T next_value = kRemoved;
 
     TaggedPtr<Node> head = head_.load(std::memory_order_seq_cst);
     TaggedPtr<Node> tail = tail_.load(std::memory_order_seq_cst);
@@ -259,7 +316,7 @@ bool ResettableQueue<T>::TryPop(T& value) noexcept {
         head.GetDataPtr()->next.load(std::memory_order_seq_cst);
     if (next.GetDataPtr() != nullptr) {
       // A modification of Michael-Scott Pop: we load next_value under the same
-      // load head - foo - load head "lock".
+      // "load head - foo - load head" sequence.
       next_value = next.GetDataPtr()->value.load(std::memory_order_seq_cst);
     }
     if (head != head_.load(std::memory_order_seq_cst)) continue;
@@ -275,9 +332,9 @@ bool ResettableQueue<T>::TryPop(T& value) noexcept {
       UASSERT(next.GetDataPtr() != nullptr);
       auto& next_ref = *next.GetDataPtr();
       // A modification of Michael-Scott Pop: instead of just loading the
-      // current node value, we mark it as popped. This needs to be done to make
-      // sure the node is not Removed and reused, because in this case the
-      // replaced value will be lost.
+      // current node value, we mark it as dummy. This needs to be done to make
+      // sure the node is not Removed and reused as vacant in Push, because in
+      // this case the new value will be lost.
       if (!DoPopValue(next_ref, next_value)) continue;
 
       const TaggedPtr<Node> desired(&next_ref, head.GetNextTag());
@@ -286,9 +343,9 @@ bool ResettableQueue<T>::TryPop(T& value) noexcept {
         DoPopNode(*head.GetDataPtr());
       }
 
-      // We loop until we find a *valid* current node.
-      if (!(next_value == kVacant) && !(next_value == kPopped) &&
-          !(next_value == kVacantPopped)) {
+      // We loop until we find a *valid* current node. This is equivalent to an
+      // additional "pop until valid" loop on the caller side.
+      if (IsValid(next_value)) {
         value = next_value;
         return true;
       }
@@ -299,35 +356,27 @@ bool ResettableQueue<T>::TryPop(T& value) noexcept {
 template <typename T>
 bool ResettableQueue<T>::DoPopValue(Node& node, T expected) noexcept {
   // 'node' may arrive here in the following states:
-  // 1. user value: set to kPopped, use the value
-  // 2. kVacant: set to kVacantPopped
-  // 3. kPopped, kVacantPopped: do nothing
-  //
-  // 'node' may concurrently transition between those states in the order:
-  //
-  // The practical frequency of those states is:
-  // user value > kVacant > kVacantPopped > kPopped
-  UASSERT(!(expected == kPhysicallyRemoved));
-  UASSERT_MSG(!(expected == kPopped),
-              "The same value has been pushed in a short amount of time.");
-
-  if (expected == kPopped || expected == kVacantPopped) {
-    // Edge cases, described below.
-    return true;
-  } else if (expected == kVacant) {
-    // Annoyance: if the same kVacant value gets popped and pushed onto the same
-    // node, we may set a node in the middle of the queue to kVacantPopped,
-    // producing garbage (it will be cleaned up on successive TryPop calls).
-    //
-    // TODO mitigate by tagging kVacant values
-    return node.value.compare_exchange_weak(expected, kVacantPopped,
+  // 1. user value: set to kRemoved, use the value
+  // 2. Vacant: set to kVacantDummy
+  // 3. kRemoved, kVacantDummy: skip
+  if (IsValid(expected)) {
+    // If the same value gets popped and pushed onto the same node,
+    // we may set a node in the middle of the queue to kRemoved, producing
+    // garbage (it will be cleaned up on successive TryPop calls).
+    return node.value.compare_exchange_weak(expected, kRemoved,
                                             std::memory_order_seq_cst,
                                             std::memory_order_relaxed);
+  } else if (expected == kRemoved || expected == kVacantDummy) {
+    // May happen due to multiple parallel DoPopValue's.
+    // May also indicate garbage produced in edge cases.
+    return true;
   } else {
-    // If the same value gets popped and pushed onto the same node,
-    // we may set a node in the middle of the queue to kPopped, producing
-    // garbage (it will be cleaned up on successive TryPop calls).
-    return node.value.compare_exchange_weak(expected, kPopped,
+    // If the same Vacant value gets popped and pushed onto the same
+    // node, we may set a node in the middle of the queue to kVacantDummy,
+    // producing garbage (it will be cleaned up on successive TryPop calls).
+    //
+    // To mitigate, instead of a single kVacant, a tagged Vacant state is used.
+    return node.value.compare_exchange_weak(expected, kVacantDummy,
                                             std::memory_order_seq_cst,
                                             std::memory_order_relaxed);
   }
@@ -336,28 +385,23 @@ bool ResettableQueue<T>::DoPopValue(Node& node, T expected) noexcept {
 template <typename T>
 void ResettableQueue<T>::DoPopNode(Node& node) noexcept {
   // 'node' may arrive here in the following states:
-  // 1. kPopped: set to kPhysicallyRemoved, move to the free list
-  // 2. kVacantPopped: set to kPhysicallyRemoved, already in the free list
+  // 1. kRemoved: move to the free list
+  // 2. kVacantDummy: set to kRemoved
   //
   // 'node' may concurrently transition between those states in the order:
-  // kVacantPopped -> kPopped
+  // kVacantDummy -> kRemoved
   //
   // The practical frequency of those states is:
-  // kPopped > kVacantPopped
-  T expected = kVacantPopped;
-  if (node.value.compare_exchange_strong(expected, kPhysicallyRemoved,
+  // kRemoved > kVacantDummy
+  T expected = kVacantDummy;
+  if (node.value.compare_exchange_strong(expected, kRemoved,
                                          std::memory_order_seq_cst,
                                          std::memory_order_relaxed)) {
     return;
   }
 
-  UASSERT(expected == kPopped);
-  expected = kPopped;
-  const bool success = node.value.compare_exchange_strong(
-      expected, kPhysicallyRemoved, std::memory_order_seq_cst,
-      std::memory_order_relaxed);
-  UASSERT(success);
-  free_list_.Push(node);
+  UASSERT(expected == kRemoved);
+  FreeList::Release(node);
 }
 
 template <typename T>
@@ -366,18 +410,22 @@ void ResettableQueue<T>::Remove(ResettableQueue::ItemHandle&& handle) noexcept {
   Node& node = *handle.node_;
   handle.node_ = nullptr;
 
+  // See DoPopValue on the explanation why Vacant state should be tagged.
+  const auto vacant_tag =
+      node.next_vacant_tag.fetch_add(1, std::memory_order_relaxed);
+
   // 'node' may arrive here in the following states:
-  // 1. user value: set to kVacant, add to the free list
-  // 2. any invalid state: do nothing
+  // 1. user value: set to Vacant, push to the vacant list
+  // 2. any other state: do nothing
   // 'node' may concurrently transition between those states.
   //
   // If element values can repeat, then it is possible that the node is Popped,
   // Pushed with the same value, and Remove steals an unrelated value.
   T expected = handle.value_;
-  if (node.value.compare_exchange_strong(expected, kVacant,
+  if (node.value.compare_exchange_strong(expected, MakeVacant(vacant_tag),
                                          std::memory_order_seq_cst,
                                          std::memory_order_relaxed)) {
-    free_list_.Push(node);
+    vacant_list_.Push(node);
   }
 }
 
