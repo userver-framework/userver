@@ -42,6 +42,8 @@ class UserverConan(ConanFile):
         "revision": "conan"
     }
 
+    _build_subfolder = "cmake-build"
+
     def configure(self):
         if self.options.shared:
             del self.options.fPIC
@@ -84,7 +86,7 @@ class UserverConan(ConanFile):
         if not self.options.with_universal:
             cmake.definitions["USERVER_FEATURE_UNIVERSAL"] = "OFF"
 
-        cmake.configure(build_folder="cmake-build")
+        cmake.configure(build_folder=self._build_subfolder)
         return cmake
 
     def build(self):
@@ -114,18 +116,11 @@ class UserverConan(ConanFile):
         cmake.build()
 
     def package(self):
-        self.copy(pattern="LICENSE", dst="licenses", src=self._source_subfolder)
-        cmake = self._configure_cmake()
-        cmake.install()
-        # If the CMakeLists.txt has a proper install method, the steps below may be redundant
-        # If so, you can just remove the lines below
-        include_folder = os.path.join(self._source_subfolder, "include")
-        self.copy(pattern="*", dst="include", src=include_folder)
-        self.copy(pattern="*.dll", dst="bin", keep_path=False)
-        self.copy(pattern="*.lib", dst="lib", keep_path=False)
-        self.copy(pattern="*.a", dst="lib", keep_path=False)
-        self.copy(pattern="*.so*", dst="lib", keep_path=False)
-        self.copy(pattern="*.dylib", dst="lib", keep_path=False)
+        self.copy(pattern="LICENSE", dst="licenses")
+        
+        self.copy(pattern="*", dst="include", src="core/include", keep_path=True)
+        self.copy(pattern="libuserver-core.a", dst="lib", src=os.path.join(self._build_subfolder, "userver"), keep_path=False)
+        self.copy(pattern="libuserver-core.so*", dst="lib", src=os.path.join(self._build_subfolder, "userver"), keep_path=False)
 
     def package_info(self):
-        self.cpp_info.libs = tools.collect_libs(self)
+        self.cpp_info.libs = [tools.collect_libs(self)]
