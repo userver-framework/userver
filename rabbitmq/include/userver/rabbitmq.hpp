@@ -41,6 +41,12 @@
 ///   urabbitmq::Channel, urabbitmq::ReliableChannel
 /// - For consumers support see urabbitmq::ConsumerBase and
 ///   urabbitmq::ConsumerComponentBase
+///
+/// ----------
+///
+/// @htmlonly <div class="bottom-nav"> @endhtmlonly
+/// ⇦ @ref md_en_userver_grpc | @ref md_en_schemas_dynamic_configs ⇨
+/// @htmlonly </div> @endhtmlonly
 
 USERVER_NAMESPACE_BEGIN
 

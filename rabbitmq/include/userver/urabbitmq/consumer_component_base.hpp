@@ -48,9 +48,9 @@ class ConsumerComponentBase : public components::LoggableComponentBase {
   static yaml_config::Schema GetStaticConfigSchema();
 
  protected:
-  void OnAllComponentsLoaded() override;
+  void OnAllComponentsLoaded() final;
 
-  void OnAllComponentsAreStopping() override;
+  void OnAllComponentsAreStopping() final;
 
   /// @brief Override this method in derived class and implement
   /// message handling logic.
