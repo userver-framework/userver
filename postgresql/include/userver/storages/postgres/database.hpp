@@ -5,6 +5,7 @@
 
 #include <vector>
 
+#include <userver/storages/postgres/database_fwd.hpp>
 #include <userver/storages/postgres/options.hpp>
 #include <userver/storages/postgres/postgres_fwd.hpp>
 
@@ -34,7 +35,6 @@ class Database {
   friend class components::Postgres;
   std::vector<storages::postgres::ClusterPtr> clusters_;
 };
-using DatabasePtr = std::shared_ptr<Database>;
 
 }  // namespace storages::postgres
 
