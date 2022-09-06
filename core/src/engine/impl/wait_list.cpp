@@ -45,9 +45,7 @@ class WaitList::Impl final {
     return waiters_.Push(waiter);
   }
 
-  void Remove(Handle&& handle) noexcept {
-    waiters_.Remove(std::move(handle));
-  }
+  void Remove(Handle&& handle) noexcept { waiters_.Remove(std::move(handle)); }
 
  private:
   concurrent::impl::ResettableQueue<Waiter> waiters_;
@@ -75,9 +73,7 @@ WaitScope::WaitScope(WaitList& owner, TaskContext& context)
 
 WaitScope::~WaitScope() = default;
 
-TaskContext& WaitScope::GetContext() const noexcept {
-  return impl_->context;
-}
+TaskContext& WaitScope::GetContext() const noexcept { return impl_->context; }
 
 void WaitScope::Append() noexcept {
   impl_->handle = impl_->owner.impl_->Append(impl_->context);

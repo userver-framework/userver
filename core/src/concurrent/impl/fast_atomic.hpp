@@ -69,12 +69,11 @@ class FastAtomic final {
                                          ToInternalMemoryOrder(failure));
   }
 
-  bool compare_exchange_weak(T& expected, T desired,
-                               std::memory_order success,
-                               std::memory_order failure) noexcept {
+  bool compare_exchange_weak(T& expected, T desired, std::memory_order success,
+                             std::memory_order failure) noexcept {
     return impl_.compare_exchange_weak(expected, desired,
-                                         ToInternalMemoryOrder(success),
-                                         ToInternalMemoryOrder(failure));
+                                       ToInternalMemoryOrder(success),
+                                       ToInternalMemoryOrder(failure));
   }
 
   T load(std::memory_order order) const noexcept {
