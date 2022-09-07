@@ -134,7 +134,7 @@ class CachingComponentBase : public LoggableComponentBase,
   /// @}
 
  private:
-  void OnAllComponentsLoaded() override;
+  void OnAllComponentsLoaded() final;
 
   void Cleanup() final;
 

@@ -11,6 +11,7 @@ The following options could be used to control `cmake`:
 | USERVER_FEATURE_REDIS                  | Provide asynchronous driver for Redis                                        | ON                                               |
 | USERVER_FEATURE_CLICKHOUSE             | Provide asynchronous driver for ClickHouse                                   | ON if platform is x86\*; OFF otherwise           |
 | USERVER_FEATURE_GRPC                   | Provide asynchronous driver for gRPC                                         | ON                                               |
+| USERVER_FEATURE_RABBITMQ               | Provide asynchronous driver for RabbitMQ (AMQP 0-9-1)                        | ${USERVER_OPEN_SOURCE_BUILD}                     |
 | USERVER_FEATURE_UNIVERSAL              | Provide a universal utilities library that does not use coroutines           | ON                                               |
 | USERVER_FEATURE_CRYPTOPP_BLAKE2        | Provide wrappers for blake2 algorithms of crypto++                           | ON                                               |
 | USERVER_FEATURE_PATCH_LIBPQ            | Apply patches to the libpq (add portals support), requires libpq.a           | ON                                               |
@@ -20,6 +21,7 @@ The following options could be used to control `cmake`:
 | USERVER_FEATURE_STACKTRACE             | Allow capturing stacktraces using boost::stacktrace                          | ON                                               |
 | USERVER_FEATURE_JEMALLOC               | Use jemalloc memory allocator                                                | ON                                               |
 | USERVER_FEATURE_DWCAS                  | Require double-width compare-and-swap                                        | ON                                               |
+| USERVER_FEATURE_TESTSUITE              | Enable functional tests via testsuite                                        | ON                                               |
 | USERVER_CHECK_PACKAGE_VERSIONS         | Check package versions                                                       | ON                                               |
 | USERVER_SANITIZE                       | Build with sanitizers support, allows combination of values via 'val1 val2'  | ''                                               |
 | USERVER_SANITIZE_BLACKLIST             | Path to file that is passed to the -fsanitize-blacklist option               | ''                                               |
@@ -232,7 +234,7 @@ cat scripts/docs/en/deps/arch.md | grep -- '-git' | while read ;\
 
 ### MacOS
 
-MacOS is recommended only for development as it may have performance issues in some cases. 
+MacOS is recommended only for development as it may have performance issues in some cases.
 At least MacOS 10.15 required with [Xcode](https://apps.apple.com/us/app/xcode/id497799835) and [Homebrew](https://brew.sh/).
 
 Start with the following command:
@@ -242,11 +244,13 @@ mkdir build_release
 cd build_release
 cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DUSERVER_FEATURE_CRYPTOPP_BLAKE2=0 \
       -DUSERVER_FEATURE_REDIS_HI_MALLOC=1 -DUSERVER_CHECK_PACKAGE_VERSIONS=0 \
-      -DUSERVER_FEATURE_CLICKHOUSE=0 -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl@1.1 \
+      -DUSERVER_FEATURE_CLICKHOUSE=0 -DOPENSSL_ROOT_DIR=$(brew --prefix openssl@1.1) \
+      -DUSERVER_PG_INCLUDE_DIR=$(pg_config --includedir) -DUSERVER_PG_LIBRARY_DIR=$(pg_config --libdir) \
+      -DUSERVER_PG_PKGLIB_DIR=$(pg_config --pkglibdir) -DUSERVER_PG_SERVER_INCLUDE_DIR=$(pg_config --includedir-server) \
       -DBENCHMARK_ENABLE_WERROR=0 ..
 ```
 
-Follow the cmake hints for the installation of required packets and keep calling cmake with the options. 
+Follow the cmake hints for the installation of required packets and keep calling cmake with the options.
 
 
 ### Other POSIX based platforms

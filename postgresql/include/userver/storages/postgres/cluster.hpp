@@ -12,6 +12,7 @@
 #include <userver/testsuite/postgres_control.hpp>
 
 #include <userver/storages/postgres/cluster_types.hpp>
+#include <userver/storages/postgres/database.hpp>
 #include <userver/storages/postgres/detail/non_transaction.hpp>
 #include <userver/storages/postgres/options.hpp>
 #include <userver/storages/postgres/query.hpp>

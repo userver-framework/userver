@@ -6,38 +6,47 @@ includes:
     find:
       - names:
           - postgres_fe.h
+        paths:
+          - /usr/include/postgresql/12/server
+          - /usr/include/postgresql/13/server
+          - /usr/include/postgresql/14/server
+          - ${USERVER_PG_SERVER_INCLUDE_DIR}
         path-suffixes:
-          - postgresql/internal  # postgresql-server-dev
           - pgsql/server         # postgresql-server-devel
 
       - names:
           - libpq-int.h
+        paths:
+          - ${USERVER_PG_INCLUDE_DIR}/internal
         path-suffixes:
-          - postgresql/internal  # postgresql-server-dev
+          - postgresql/internal  # libpq-dev
           - pgsql/internal       # postgresql-private-devel
 
 libraries:
     find:
       - names:
           - libpq.a              # must be a static library as we use internal symbols
+        paths:
+          - ${USERVER_PG_LIBRARY_DIR}
       - names:
           - libpgcommon.a
         paths:
           - /usr/lib/postgresql/12/lib
           - /usr/lib/postgresql/13/lib
           - /usr/lib/postgresql/14/lib
+          - ${USERVER_PG_PKGLIB_DIR}
       - names:
           - libpgport.a
         paths:
           - /usr/lib/postgresql/12/lib
           - /usr/lib/postgresql/13/lib
           - /usr/lib/postgresql/14/lib
+          - ${USERVER_PG_PKGLIB_DIR}
 
 debian-names:
   - libpq-dev
-  - postgresql-12
   - postgresql-server-dev-12
-formula-name: postgres
+formula-name: postgresql@14
 rpm-names:
   - postgresql-server-devel
   - postgresql-static

@@ -10,6 +10,7 @@
 #include <engine/task/task_context.hpp>
 #include <engine/task/task_processor.hpp>
 #include <userver/clients/dns/resolver.hpp>
+#include <userver/clients/http/streamed_response.hpp>
 #include <userver/crypto/certificate.hpp>
 #include <userver/crypto/private_key.hpp>
 #include <userver/engine/async.hpp>
@@ -462,6 +463,40 @@ std::string DifferentUrlsRetry(std::string data, clients::http::Client& http,
   throw std::runtime_error("No alive servers");
 }
 /// [HTTP Client - request reuse]
+
+std::string DifferentUrlsRetryStreamResponseBody(
+    std::string data, clients::http::Client& http,
+    std::initializer_list<std::string> urls_list) {
+  auto request = http.CreateRequest()
+                     ->post()
+                     ->data(std::move(data))  // no copying
+                     ->retry(1)
+                     ->http_version(clients::http::HttpVersion::k11)
+                     ->timeout(kTimeout);
+
+  for (const auto& url : urls_list) {
+    request->url(url);  // set URL
+    auto queue = concurrent::SpscQueue<std::string>::Create();
+
+    try {
+      auto stream_response = request->async_perform_stream_body(queue);
+      const auto status_code = stream_response.StatusCode();
+
+      if (static_cast<int>(status_code) == 200) {
+        std::string body_part;
+        std::string result;
+        auto deadline = engine::Deadline::FromDuration(kTimeout);
+        while (stream_response.ReadChunk(body_part, deadline)) {
+          result += body_part;
+        }
+        return result;
+      }
+    } catch (const clients::http::TimeoutException&) {
+    }
+  }
+
+  UINVARIANT(false, "No alive servers");
+}
 
 }  // namespace sample
 
@@ -1279,7 +1314,6 @@ UTEST(HttpClient, RequestReuseSample) {
 
   auto http_client_ptr = utest::CreateHttpClient();
 
-  const auto server_url = http_sleep_server.GetBaseUrl();
   auto resp = sample::DifferentUrlsRetry(data, *http_client_ptr,
                                          {
                                              http_sleep_server.GetBaseUrl(),
@@ -1301,6 +1335,30 @@ UTEST(HttpClient, RequestReuseSample) {
 
   EXPECT_EQ(resp, data);
   EXPECT_EQ(*shared_echo_callback.responses_200, 2);
+}
+
+UTEST(HttpClient, DISABLED_RequestReuseSampleStream) {
+  EchoCallback shared_echo_callback{};
+  const utest::SimpleServer http_server{shared_echo_callback,
+                                        utest::SimpleServer::kTcpIpV6};
+  const utest::SimpleServer http_sleep_server{sleep_callback_1s};
+
+  std::string data = "Some long long request";
+  for (unsigned i = 0; i < kFewRepetitions; ++i) {
+    data += data;
+  }
+
+  auto http_client_ptr = utest::CreateHttpClient();
+  auto resp = sample::DifferentUrlsRetryStreamResponseBody(
+      data, *http_client_ptr,
+      {
+          http_sleep_server.GetBaseUrl(),
+          http_sleep_server.GetBaseUrl(),
+          http_server.GetBaseUrl(),
+          http_server.GetBaseUrl(),
+      });
+  EXPECT_EQ(resp, data);
+  EXPECT_EQ(*shared_echo_callback.responses_200, 3);
 }
 
 UTEST(HttpClient, RequestReuseDifferentUrlAndTimeout) {
