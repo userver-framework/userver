@@ -47,9 +47,11 @@ TEST(ResettableQueue, Basic) {
 TEST(ResettableQueue, Invalidation) {
   concurrent::impl::ResettableQueue<IntValue> queue;
   auto handle = queue.Push(IntValue{5});
-  queue.Remove(std::move(handle));
 
   IntValue item{};
+  EXPECT_TRUE(queue.Remove(std::move(handle), item));
+  EXPECT_EQ(item.value, 5);
+
   EXPECT_FALSE(queue.TryPop(item));
 }
 
@@ -95,7 +97,8 @@ TEST_P(ResettableQueueStress, Stress) {
           handles.push_back(item_handle);
           if (value % kChunkSize == 0) {
             for (auto& handle : handles) {
-              queue.Remove(std::move(handle));
+              IntValue item{};
+              queue.Remove(std::move(handle), item);
             }
             handles.clear();
           }

@@ -116,8 +116,8 @@ class ResettableQueue final {
   /// Dequeue an element, if the queue is not empty.
   bool TryPop(T& value) noexcept;
 
-  /// Remove the originally Pushed value, if it is still there.
-  bool Remove(ItemHandle&& handle) noexcept;
+  /// Move the originally Pushed element into `value`, if not TryPopped yet.
+  bool Remove(ItemHandle&& handle, T& value) noexcept;
 
  private:
   // The implementation of the queue is based on Segmented Queue from:
@@ -295,7 +295,10 @@ bool ResettableQueue<T>::TryPop(T& value) noexcept {
 }
 
 template <typename T>
-bool ResettableQueue<T>::Remove(ResettableQueue::ItemHandle&& handle) noexcept {
+bool ResettableQueue<T>::Remove(ResettableQueue::ItemHandle&& handle,
+                                T& value) noexcept {
+  static_assert(std::is_nothrow_move_assignable_v<T>);
+
   UASSERT(handle.slot_);
   Slot& slot = *handle.slot_;
   handle.slot_ = nullptr;
@@ -310,6 +313,8 @@ bool ResettableQueue<T>::Remove(ResettableQueue::ItemHandle&& handle) noexcept {
       slot.node.compare_exchange_strong(expected, desired,
                                         std::memory_order_seq_cst,
                                         std::memory_order_relaxed)) {
+    UASSERT(node.value);
+    value = *node.value;
     node.value.reset();
     node.vacant_slot = &slot;
     node.vacant_segment_epoch = segment_epoch;
