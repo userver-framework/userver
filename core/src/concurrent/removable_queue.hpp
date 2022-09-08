@@ -377,7 +377,7 @@ auto RemovableQueue<T>::GetLast() noexcept -> TaggedPtr<Segment> {
 
 template <typename T>
 auto RemovableQueue<T>::GetFirst() noexcept -> TaggedPtr<Segment> {
-  return head_.load(std::memory_order_acquire);
+  return head_.load(std::memory_order_seq_cst);
 }
 
 template <typename T>
@@ -385,13 +385,13 @@ auto RemovableQueue<T>::CreateLast(TaggedPtr<Segment> expected_tail)
     -> TaggedPtr<Segment> {
   UASSERT(expected_tail.GetDataPtr() != nullptr);
 
-  auto tail_tagged = tail_.load(std::memory_order_acquire);
+  auto tail_tagged = tail_.load(std::memory_order_seq_cst);
   auto* const tail = tail_tagged.GetDataPtr();
   UASSERT(tail != nullptr);
   TaggedPtr<Segment> expected_next(nullptr, tail_tagged.GetTag());
 
   if (tail_tagged != expected_tail ||
-      tail->next.load(std::memory_order_acquire) != expected_next) {
+      tail->next.load(std::memory_order_seq_cst) != expected_next) {
     // Tail moved.
     return GetLast();
   }
@@ -402,7 +402,7 @@ auto RemovableQueue<T>::CreateLast(TaggedPtr<Segment> expected_tail)
   TaggedPtr segment_tagged(&segment, segment.epoch);
 
   if (!tail->next.compare_exchange_strong(expected_next, segment_tagged,
-                                          std::memory_order_release,
+                                          std::memory_order_seq_cst,
                                           std::memory_order_relaxed)) {
     // Tail moved.
     SegmentFreeList::Release(segment);
@@ -412,7 +412,7 @@ auto RemovableQueue<T>::CreateLast(TaggedPtr<Segment> expected_tail)
   // Success, now try to help by fixing tail. If we fail, it means someone has
   // already helped us.
   tail_.compare_exchange_strong(tail_tagged, segment_tagged,
-                                std::memory_order_release,
+                                std::memory_order_seq_cst,
                                 std::memory_order_relaxed);
   return segment_tagged;
 }
