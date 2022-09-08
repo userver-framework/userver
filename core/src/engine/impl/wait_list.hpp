@@ -27,7 +27,7 @@ class WaitList final {
   friend class WaitScope;
 
   class Impl;
-  utils::FastPimpl<Impl, 24, 8> impl_;
+  utils::FastPimpl<Impl, 32, 8> impl_;
 };
 
 class WaitScope final {

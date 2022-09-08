@@ -40,9 +40,7 @@ class WaitList::Impl final {
     Waiter waiter;
     waiter.context = &context;
     waiter.epoch = context.GetEpoch();
-    // TODO An out-of-memory exception can theoretically fly from there.
-    //  Preallocate queue nodes?
-    return waiters_.Push(waiter);
+    return waiters_.Push(std::move(waiter));
   }
 
   void Remove(Handle&& handle) noexcept { waiters_.Remove(std::move(handle)); }
@@ -65,7 +63,7 @@ void WaitList::WakeupAll() noexcept {
 struct WaitScope::Impl final {
   WaitList& owner;
   TaskContext& context;
-  WaitList::Impl::Handle handle{};
+  WaitList::Impl::Handle handle;
 };
 
 WaitScope::WaitScope(WaitList& owner, TaskContext& context)

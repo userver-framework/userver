@@ -24,6 +24,8 @@ class TaggedPtr final {
       : impl_(reinterpret_cast<std::uintptr_t>(ptr) |
               (std::uint64_t{tag} << kTagShift)) {
     UASSERT(!(reinterpret_cast<std::uintptr_t>(ptr) & 0xffff'0000'0000'0000));
+    static_assert(std::atomic<TaggedPtr>::is_always_lock_free);
+    static_assert(std::has_unique_object_representations_v<TaggedPtr>);
   }
 
   T* GetDataPtr() const noexcept {
@@ -34,6 +36,8 @@ class TaggedPtr final {
   Tag GetTag() const noexcept { return static_cast<Tag>(impl_ >> kTagShift); }
 
   Tag GetNextTag() const noexcept { return static_cast<Tag>(GetTag() + 1); }
+
+  std::uint64_t GetRaw() const noexcept { return impl_; }
 
   bool operator==(TaggedPtr other) const noexcept {
     return impl_ == other.impl_;
@@ -108,7 +112,7 @@ class IntrusiveStack final {
   }
 
   T* TryPop() noexcept {
-    NodeTaggedPtr expected = stack_head_.load(std::memory_order_relaxed);
+    NodeTaggedPtr expected = stack_head_.load(std::memory_order_acquire);
     while (true) {
       T* const expected_ptr = expected.GetDataPtr();
       if (!expected_ptr) return nullptr;

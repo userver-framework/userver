@@ -6,6 +6,7 @@
 #include <future>
 #include <thread>
 #include <tuple>
+#include <unordered_map>
 #include <vector>
 
 #include <userver/utest/utest.hpp>
@@ -19,40 +20,33 @@ namespace {
 
 struct alignas(8) IntValue final {
   std::uint32_t value;
-  std::uint32_t is_valid;
-
-  static IntValue Make(std::uint32_t value) noexcept { return {value, 1}; }
-
-  static constexpr IntValue MakeInvalid(std::uint32_t invalid_id) noexcept {
-    return {invalid_id, 0};
-  }
-
-  static bool IsValid(IntValue value) noexcept { return value.is_valid != 0; }
-
-  friend bool operator==(IntValue lhs, IntValue rhs) noexcept {
-    return lhs.value == rhs.value;
-  }
 };
 
 }  // namespace
 
 TEST(ResettableQueue, Basic) {
+  constexpr std::uint32_t kItemCount = 100;
   concurrent::impl::ResettableQueue<IntValue> queue;
 
-  for (std::uint32_t i = 0; i < 10; ++i) {
-    queue.Push(IntValue::Make(i));
+  std::unordered_map<std::uint32_t, std::size_t> expected_values;
+  for (std::uint32_t i = 0; i < kItemCount; ++i) {
+    expected_values[i] += 1;
+    queue.Push(IntValue{i});
   }
 
-  for (std::uint32_t i = 0; i < 10; ++i) {
+  std::unordered_map<std::uint32_t, std::size_t> actual_values;
+  for (std::uint32_t i = 0; i < kItemCount; ++i) {
     IntValue item{};
     EXPECT_TRUE(queue.TryPop(item));
-    EXPECT_EQ(item, IntValue::Make(i));
+    actual_values[i] += 1;
   }
+
+  EXPECT_EQ(expected_values, actual_values);
 }
 
 TEST(ResettableQueue, Invalidation) {
   concurrent::impl::ResettableQueue<IntValue> queue;
-  auto handle = queue.Push(IntValue::Make(5));
+  auto handle = queue.Push(IntValue{5});
   queue.Remove(std::move(handle));
 
   IntValue item{};
@@ -95,7 +89,7 @@ TEST_P(ResettableQueueStress, Stress) {
 
       for (std::uint32_t value = value_begin; value != value_end; ++value) {
         if (!keep_running) break;
-        const auto item_handle = queue.Push(IntValue::Make(value));
+        const auto item_handle = queue.Push(IntValue{value});
 
         if (use_remove) {
           handles.push_back(item_handle);
@@ -115,10 +109,8 @@ TEST_P(ResettableQueueStress, Stress) {
       [[maybe_unused]] const auto unused_id = id;
 
       while (keep_running) {
-        auto value = IntValue::Make(0);
-        if (queue.TryPop(value)) {
-          EXPECT_TRUE(value.is_valid);
-        }
+        auto value = IntValue{0};
+        queue.TryPop(value);
       }
     }));
   }
@@ -137,7 +129,9 @@ INSTANTIATE_TEST_SUITE_P(
         {ProducerCount{1}, ConsumerCount{2}, UseRemove{false}},
         {ProducerCount{2}, ConsumerCount{1}, UseRemove{false}},
         {ProducerCount{2}, ConsumerCount{2}, UseRemove{false}},
+        {ProducerCount{1}, ConsumerCount{0}, UseRemove{true}},
         {ProducerCount{2}, ConsumerCount{0}, UseRemove{true}},
+        {ProducerCount{1}, ConsumerCount{1}, UseRemove{true}},
         {ProducerCount{2}, ConsumerCount{2}, UseRemove{true}},
     }));
 
