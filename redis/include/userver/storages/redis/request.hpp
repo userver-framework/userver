@@ -40,6 +40,9 @@ class USERVER_NODISCARD Request final {
   template <typename T1, typename T2>
   friend class RequestEval;
 
+  template <typename T1, typename T2>
+  friend class RequestEvalSha;
+
   template <ScanTag scan_tag>
   friend class RequestScanData;
 
@@ -145,6 +148,8 @@ using RequestAppend = Request<size_t>;
 using RequestDbsize = Request<size_t>;
 using RequestDel = Request<size_t>;
 using RequestEvalCommon = Request<ReplyData>;
+using RequestEvalShaCommon = Request<ReplyData>;
+using RequestScriptLoad = Request<std::string>;
 using RequestExec = Request<ReplyData, void>;
 using RequestExists = Request<size_t>;
 using RequestExpire = Request<ExpireReply>;

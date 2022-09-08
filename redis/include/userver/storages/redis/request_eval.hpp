@@ -1,6 +1,7 @@
 #pragma once
 
 #include <userver/storages/redis/parse_reply.hpp>
+#include <userver/storages/redis/reply.hpp>
 #include <userver/storages/redis/request.hpp>
 
 USERVER_NAMESPACE_BEGIN

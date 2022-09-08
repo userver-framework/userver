@@ -6,6 +6,10 @@ components_manager:
             path: /v1/key-value                  # Registering handler by URL '/v1/key-value'.
             method: GET,POST,DELETE              # GET, POST and DELETE requests only.
             task_processor: main-task-processor  # Run it on CPU bound task processor
+        handler-script:
+            path: /v1/script                     # Registering handler by URL '/v1/key-value'.
+            method: POST                         # GET, POST and DELETE requests only.
+            task_processor: main-task-processor  # Run it on CPU bound task processor
 
         key-value-database:
             groups:
