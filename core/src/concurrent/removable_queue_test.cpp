@@ -1,4 +1,4 @@
-#include <concurrent/resettable_queue.hpp>
+#include <concurrent/removable_queue.hpp>
 
 #include <algorithm>
 #include <atomic>
@@ -26,7 +26,7 @@ struct alignas(8) IntValue final {
 
 TEST(ResettableQueue, Basic) {
   constexpr std::uint32_t kItemCount = 100;
-  concurrent::impl::ResettableQueue<IntValue> queue;
+  concurrent::impl::RemovableQueue<IntValue> queue;
 
   std::unordered_map<std::uint32_t, std::size_t> expected_values;
   for (std::uint32_t i = 0; i < kItemCount; ++i) {
@@ -45,7 +45,7 @@ TEST(ResettableQueue, Basic) {
 }
 
 TEST(ResettableQueue, Invalidation) {
-  concurrent::impl::ResettableQueue<IntValue> queue;
+  concurrent::impl::RemovableQueue<IntValue> queue;
   auto handle = queue.Push(IntValue{5});
 
   IntValue item{};
@@ -78,7 +78,7 @@ TEST_P(ResettableQueueStress, Stress) {
       std::max(producer_count, std::size_t{1});
   constexpr std::size_t kChunkSize = 32;
 
-  using Queue = concurrent::impl::ResettableQueue<IntValue>;
+  using Queue = concurrent::impl::RemovableQueue<IntValue>;
   Queue queue;
   std::atomic<bool> keep_running{true};
   std::vector<std::future<void>> tasks;

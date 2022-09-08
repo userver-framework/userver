@@ -1,9 +1,6 @@
 #include "wait_list.hpp"
 
-#include <atomic>
-
-#include <concurrent/resettable_queue.hpp>
-#include <engine/impl/waiter.hpp>
+#include <concurrent/removable_queue.hpp>
 #include <engine/task/task_context.hpp>
 #include <utils/impl/assert_extra.hpp>
 
@@ -18,7 +15,7 @@ class WaitList::Impl final {
     SleepState::Epoch epoch;
   };
 
-  using WaiterQueue = concurrent::impl::ResettableQueue<Waiter>;
+  using WaiterQueue = concurrent::impl::RemovableQueue<Waiter>;
   using Handle = WaiterQueue::ItemHandle;
 
   Impl() = default;
