@@ -28,6 +28,9 @@ class WaitList::Impl final {
   bool WakeupOne() noexcept {
     Waiter waiter{nullptr};
     while (waiters_.TryPop(waiter)) {
+      utils::FastScopeGuard guard(
+          [&]() noexcept { intrusive_ptr_release(waiter.context); });
+
       if (waiter.context->Wakeup(TaskContext::WakeupSource::kWaitList,
                                  waiter.epoch)) {
         return true;
@@ -43,7 +46,9 @@ class WaitList::Impl final {
     return waiters_.Push(std::move(waiter));
   }
 
-  void Remove(Handle&& handle) noexcept { waiters_.Remove(std::move(handle)); }
+  bool Remove(Handle&& handle) noexcept {
+    return waiters_.Remove(std::move(handle));
+  }
 
  private:
   concurrent::impl::ResettableQueue<Waiter> waiters_;
@@ -74,11 +79,14 @@ WaitScope::~WaitScope() = default;
 TaskContext& WaitScope::GetContext() const noexcept { return impl_->context; }
 
 void WaitScope::Append() noexcept {
+  intrusive_ptr_add_ref(&impl_->context);
   impl_->handle = impl_->owner.impl_->Append(impl_->context);
 }
 
 void WaitScope::Remove() noexcept {
-  impl_->owner.impl_->Remove(std::move(impl_->handle));
+  if (impl_->owner.impl_->Remove(std::move(impl_->handle))) {
+    intrusive_ptr_release(&impl_->context);
+  }
 }
 
 }  // namespace engine::impl
