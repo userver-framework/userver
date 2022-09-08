@@ -310,7 +310,7 @@ bool RemovableQueue<T>::TryPop(T& value) noexcept {
 
 template <typename T>
 bool RemovableQueue<T>::Remove(RemovableQueue::ItemHandle&& handle,
-                                T& value) noexcept {
+                               T& value) noexcept {
   static_assert(std::is_nothrow_move_assignable_v<T>);
 
   UASSERT(handle.slot_);
