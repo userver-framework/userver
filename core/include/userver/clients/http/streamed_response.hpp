@@ -6,12 +6,14 @@
 #include <future>
 
 #include <userver/clients/http/response.hpp>
-#include <userver/concurrent/mpsc_queue.hpp>
+#include <userver/concurrent/queue.hpp>
 #include <userver/engine/deadline.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace clients::http {
+
+class RequestState;
 
 /// @brief HTTP response for streamed API.
 ///
@@ -20,10 +22,10 @@ namespace clients::http {
 /// to a remote Application.
 class StreamedResponse final {
  public:
-  StreamedResponse(StreamedResponse&&) = delete;
+  StreamedResponse(StreamedResponse&&) = default;
   StreamedResponse(const StreamedResponse&) = delete;
 
-  StreamedResponse& operator=(StreamedResponse&&) = delete;
+  StreamedResponse& operator=(StreamedResponse&&) = default;
   StreamedResponse& operator=(const StreamedResponse&) = delete;
 
   /// @brief HTTP status code
@@ -46,7 +48,7 @@ class StreamedResponse final {
 
   /// Creates a new StreamedResponse
   StreamedResponse(Queue::Consumer&& queue_consumer, engine::Deadline deadline,
-                   std::shared_ptr<RequestState> request_state);
+                   std::shared_ptr<clients::http::RequestState> request_state);
 
  private:
   std::future_status WaitForHeaders(engine::Deadline);
@@ -55,9 +57,9 @@ class StreamedResponse final {
   std::shared_ptr<RequestState> request_state_;
   std::shared_ptr<Response>
       response_;  // re-use sync response's headers & status code storage
-  const engine::Deadline deadline_;
+  engine::Deadline deadline_;
 
-  const Queue::Consumer queue_consumer_;
+  Queue::Consumer queue_consumer_;
 };
 
 }  // namespace clients::http
