@@ -48,11 +48,12 @@ ConsumerComponentBase::ConsumerComponentBase(
     const components::ComponentConfig& config,
     const components::ComponentContext& context)
     : components::LoggableComponentBase{config, context},
-      impl_{context
-                .FindComponent<components::RabbitMQ>(
-                    config["rabbit_name"].As<std::string>())
-                .GetClient(),
-            config.As<ConsumerSettings>()} {}
+      impl_{std::make_unique<Impl>(
+          context
+              .FindComponent<components::RabbitMQ>(
+                  config["rabbit_name"].As<std::string>())
+              .GetClient(),
+          config.As<ConsumerSettings>())} {}
 
 ConsumerComponentBase::~ConsumerComponentBase() = default;
 

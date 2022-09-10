@@ -3,8 +3,9 @@
 /// @file userver/urabbitmq/consumer_component_base.hpp
 /// @brief Base component for your consumers.
 
+#include <memory>
+
 #include <userver/components/loggable_component_base.hpp>
-#include <userver/utils/fast_pimpl.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -68,7 +69,7 @@ class ConsumerComponentBase : public components::LoggableComponentBase {
  private:
   // This is actually just a subclass of `ConsumerBase`
   class Impl;
-  utils::FastPimpl<Impl, 496, 16> impl_;
+  std::unique_ptr<Impl> impl_;
 };
 
 }  // namespace urabbitmq
