@@ -32,7 +32,11 @@ namespace engine {
 namespace current_task {
 namespace {
 
+#ifdef BOOST_USE_TSAN
+thread_local std::atomic<impl::TaskContext*> current_task_context_ptr = nullptr;
+#else
 thread_local impl::TaskContext* current_task_context_ptr = nullptr;
+#endif
 
 void SetCurrentTaskContext(impl::TaskContext* context) {
   UASSERT(!current_task_context_ptr || !context);
@@ -728,8 +732,13 @@ void TaskContext::TraceStateTransition(Task::State state) {
 void TaskContext::TsanAcquireBarrier() noexcept {
 #if defined(BOOST_USE_TSAN)
   // TODO:
+  __tsan_release(&coro_);
+  __tsan_release(&corotine_memory_acquired_);
+  __tsan_release(this);
+
   __tsan_acquire(this);
   __tsan_acquire(&corotine_memory_acquired_);
+  __tsan_acquire(&coro_);
 #endif
   UASSERT(!std::exchange(corotine_memory_acquired_, true));
 }
@@ -738,8 +747,13 @@ void TaskContext::TsanReleaseBarrier() noexcept {
   UASSERT(std::exchange(corotine_memory_acquired_, false));
 #if defined(BOOST_USE_TSAN)
   // TODO:
+  __tsan_release(&coro_);
   __tsan_release(&corotine_memory_acquired_);
   __tsan_release(this);
+
+  __tsan_acquire(this);
+  __tsan_acquire(&corotine_memory_acquired_);
+  __tsan_acquire(&coro_);
 #endif
 }
 

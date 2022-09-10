@@ -79,11 +79,20 @@ class Pool<Task>::CoroutinePtr final {
   Pool<Task>* pool_;
 };
 
+inline PoolConfig TsanAdjustPoolConfig(PoolConfig&& config) noexcept {
+#ifdef BOOST_USE_TSAN
+  config.max_size = 0;
+  config.initial_size = 0;
+#endif
+
+  return std::move(config);
+}
+
 template <typename Task>
 Pool<Task>::Pool(PoolConfig config, Executor executor)
-    : config_(std::move(config)),
+    : config_(TsanAdjustPoolConfig(std::move(config))),
       executor_(executor),
-      stack_allocator_(config.stack_size),
+      stack_allocator_(config_.stack_size),
       coroutines_(config_.max_size),
       idle_coroutines_num_(config_.initial_size),
       total_coroutines_num_(0) {
