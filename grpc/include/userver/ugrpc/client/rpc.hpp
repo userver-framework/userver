@@ -23,6 +23,8 @@ namespace ugrpc::client {
 
 /// @brief Controls a single request -> single response RPC
 ///
+/// This class is not thread-safe except for `GetContext`.
+///
 /// The RPC is cancelled on destruction unless `Finish` has been called. In that
 /// case the connection is not closed (it will be reused for new RPCs), and the
 /// server receives `RpcInterruptedError` immediately.
@@ -40,7 +42,7 @@ class USERVER_NODISCARD UnaryCall final {
   Response Finish();
 
   /// @returns the `ClientContext` used for this RPC
-  const grpc::ClientContext& GetContext() const;
+  grpc::ClientContext& GetContext();
 
   /// For internal use only
   template <typename Stub, typename Request>
@@ -95,7 +97,7 @@ class USERVER_NODISCARD InputStream final {
   void Finish();
 
   /// @returns the `ClientContext` used for this RPC
-  const grpc::ClientContext& GetContext() const;
+  grpc::ClientContext& GetContext();
 
   /// For internal use only
   template <typename Stub, typename Request>
@@ -150,7 +152,7 @@ class USERVER_NODISCARD OutputStream final {
   Response Finish();
 
   /// @returns the `ClientContext` used for this RPC
-  const grpc::ClientContext& GetContext() const;
+  grpc::ClientContext& GetContext();
 
   /// For internal use only
   template <typename Stub>
@@ -222,7 +224,7 @@ class USERVER_NODISCARD BidirectionalStream final {
   void Finish();
 
   /// @returns the `ClientContext` used for this RPC
-  const grpc::ClientContext& GetContext() const;
+  grpc::ClientContext& GetContext();
 
   /// For internal use only
   template <typename Stub>
@@ -257,7 +259,7 @@ UnaryCall<Response>::UnaryCall(
 }
 
 template <typename Response>
-const grpc::ClientContext& UnaryCall<Response>::GetContext() const {
+grpc::ClientContext& UnaryCall<Response>::GetContext() {
   return data_.GetContext();
 }
 
@@ -282,7 +284,7 @@ InputStream<Response>::InputStream(
 }
 
 template <typename Response>
-const grpc::ClientContext& InputStream<Response>::GetContext() const {
+grpc::ClientContext& InputStream<Response>::GetContext() {
   return data_.GetContext();
 }
 
@@ -317,7 +319,7 @@ OutputStream<Request, Response>::OutputStream(
 }
 
 template <typename Request, typename Response>
-const grpc::ClientContext& OutputStream<Request, Response>::GetContext() const {
+grpc::ClientContext& OutputStream<Request, Response>::GetContext() {
   return data_.GetContext();
 }
 
@@ -354,8 +356,7 @@ BidirectionalStream<Request, Response>::BidirectionalStream(
 }
 
 template <typename Request, typename Response>
-const grpc::ClientContext& BidirectionalStream<Request, Response>::GetContext()
-    const {
+grpc::ClientContext& BidirectionalStream<Request, Response>::GetContext() {
   return data_.GetContext();
 }
 

@@ -257,8 +257,8 @@ void SetDeadlineTags(tracing::Span& span,
       engine::current_task::CancellationReason() ==
       engine::TaskCancellationReason::kDeadline;
 
-  span.AddNonInheritableTag("deadline-received", info.deadline.IsReachable());
-  span.AddNonInheritableTag("cancelled-by-deadline", cancelled_by_deadline);
+  span.AddNonInheritableTag("deadline_received", info.deadline.IsReachable());
+  span.AddNonInheritableTag("cancelled_by_deadline", cancelled_by_deadline);
 }
 
 std::string CutTrailingSlash(
@@ -478,11 +478,14 @@ void HttpHandlerBase::HandleRequest(request::RequestBase& request,
             auto& response = http_request.GetHttpResponse();
             utils::ScopeGuard scope([&response] { response.SetHeadersEnd(); });
 
-            HandleStreamRequest(
-                http_request, context,
-                http::ResponseBodyStream{response.GetBodyProducer(),
-                                         http_request.GetHttpResponse()});
-            // BodyProducer is dead
+            server::http::ResponseBodyStream response_body_stream{
+                response.GetBodyProducer(), http_request.GetHttpResponse()};
+
+            // Just in case HandleStreamRequest() throws an exception.
+            // Though it can be changed in HandleStreamRequest().
+            response_body_stream.SetStatusCode(500);
+
+            HandleStreamRequest(http_request, context, response_body_stream);
           } else {
             // !IsBodyStreamed()
             response.SetData(HandleRequestThrow(http_request, context));
@@ -513,7 +516,7 @@ std::string HttpHandlerBase::HandleRequestThrow(
 
 void HttpHandlerBase::HandleStreamRequest(
     const server::http::HttpRequest&, server::request::RequestContext&,
-    server::http::ResponseBodyStream&&) const {
+    server::http::ResponseBodyStream&) const {
   throw std::runtime_error(
       "stream HandleStreamRequest() is executed, but the handler doesn't "
       "override HandleStreamRequest().");

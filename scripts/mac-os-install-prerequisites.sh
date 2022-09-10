@@ -70,7 +70,7 @@ REQUIRED_PACKAGES=" \
   libev \
   libiconv \
   openssl \
-  postgres \
+  postgresql@14 \
   protobuf-python37 \
   rapidjson \
   svn \

@@ -93,13 +93,16 @@ class HttpHandlerBase : public HandlerBase {
 
   virtual std::string HandleRequestThrow(
       const http::HttpRequest& request, request::RequestContext& context) const;
+
   virtual void OnRequestCompleteThrow(
       const http::HttpRequest& /*request*/,
       request::RequestContext& /*context*/) const {}
+
   virtual void HandleStreamRequest(const server::http::HttpRequest&,
                                    server::request::RequestContext&,
-                                   server::http::ResponseBodyStream&&) const;
-  bool IsStreamed() const { return is_body_streamed_; }
+                                   server::http::ResponseBodyStream&) const;
+
+  virtual bool IsStreamed() const { return is_body_streamed_; }
 
   /// Override it to show per HTTP-method statistics besides statistics for all
   /// methods

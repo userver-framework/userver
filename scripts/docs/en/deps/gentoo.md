@@ -26,3 +26,7 @@ net-dns/c-ares
 net-misc/curl
 sys-libs/libbacktrace
 sys-libs/zlib
+net-libs/http-parser
+net-nds/openldap
+dev-libs/re2
+net-libs/grpc

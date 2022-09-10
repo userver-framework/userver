@@ -19,7 +19,7 @@ std::vector<std::string> CurrentProcessOpenFiles() {
 
 #if defined(__APPLE__)
   // Figure out the size of the buffer needed to hold the list of open FDs
-  int buffer_size = proc_pidinfo(pid, PROC_PIDLISTFDS, 0, 0, 0);
+  int buffer_size = proc_pidinfo(pid, PROC_PIDLISTFDS, 0, nullptr, 0);
   if (buffer_size == -1) {
     throw std::runtime_error("proc_pidinfo call failed");
   }
@@ -37,12 +37,12 @@ std::vector<std::string> CurrentProcessOpenFiles() {
 
   for (int i = 0; i < num_of_fds; ++i) {
     if (proc_fd_info[i].proc_fdtype == PROX_FDTYPE_VNODE) {
-      struct vnode_fdinfowithpath vnode_info;
+      struct vnode_fdinfowithpath vnode_info {};
       int bytes_used =
           proc_pidfdinfo(pid, proc_fd_info[i].proc_fd, PROC_PIDFDVNODEPATHINFO,
                          &vnode_info, PROC_PIDFDVNODEPATHINFO_SIZE);
       if (bytes_used == PROC_PIDFDVNODEPATHINFO_SIZE) {
-        result.push_back(vnode_info.pvip.vip_path);
+        result.emplace_back(vnode_info.pvip.vip_path);
       } else if (bytes_used < 0) {
         throw std::runtime_error("proc_pidinfo call for fd failed");
       }

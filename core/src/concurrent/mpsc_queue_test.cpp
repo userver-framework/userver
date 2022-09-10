@@ -48,7 +48,7 @@ UTEST(MpscQueue, SampleMpscQueue) {
   auto consumer_task = utils::Async("consumer", [&] {
     for (;;) {
       // ...
-      int item;
+      int item{};
       if (consumer.Pop(item, engine::Deadline::FromDuration(kTimeout))) {
         // processing the queue element
         ASSERT_EQ(item, 1);

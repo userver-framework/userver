@@ -68,7 +68,7 @@ properties:
         enum:
           - insecure
           - ssl
-    default_service_config:
+    default-service-config:
         type: string
         description: |
             Default value for gRPC `service config`. See
@@ -76,6 +76,11 @@ properties:
             This value is used if the name resolution process can't get value
             from DNS
         defaultDescription: absent
+    channel-count:
+        type: integer
+        description: |
+            Number of channels created for each endpoint.
+        defaultDescription: 1
 )");
 }
 

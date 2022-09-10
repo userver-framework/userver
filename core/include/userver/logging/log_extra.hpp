@@ -147,7 +147,7 @@ class LogExtra final {
 
   const std::pair<Key, ProtectedValue>* Find(std::string_view) const;
 
-  utils::FastPimpl<Map, kPimplSize, alignof(void*), utils::kStrictMatch> extra_;
+  utils::FastPimpl<Map, kPimplSize, alignof(void*)> extra_;
 };
 
 }  // namespace logging

@@ -1,6 +1,9 @@
 #include <userver/ugrpc/client/channels.hpp>
 
+#include <algorithm>
+
 #include <grpcpp/create_channel.h>
+#include <boost/range/irange.hpp>
 
 #include <userver/engine/async.hpp>
 
@@ -40,6 +43,16 @@ namespace {
   return engine::AsyncNoSpan(blocking_task_processor, DoTryWaitForConnected,
                              std::ref(channel), std::ref(queue), deadline)
       .Get();
+}
+
+[[nodiscard]] bool TryWaitForConnected(
+    impl::ChannelCache::Token& token, grpc::CompletionQueue& queue,
+    engine::Deadline deadline, engine::TaskProcessor& blocking_task_processor) {
+  auto range = boost::irange(std::size_t{0}, token.GetChannelCount());
+  return std::all_of(range.begin(), range.end(), [&](std::size_t index) {
+    return TryWaitForConnected(*token.GetChannel(index), queue, deadline,
+                               blocking_task_processor);
+  });
 }
 
 }  // namespace impl

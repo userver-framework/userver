@@ -95,6 +95,10 @@ testsuite::TestsuiteTasks& TestsuiteSupport::GetTestsuiteTasks() {
   return *testsuite_tasks_;
 }
 
+testsuite::HttpAllowedUrlsExtra& TestsuiteSupport::GetHttpAllowedUrlsExtra() {
+  return http_allowed_urls_extra_;
+}
+
 yaml_config::Schema TestsuiteSupport::GetStaticConfigSchema() {
   return yaml_config::MergeSchemas<impl::ComponentBase>(R"(
 type: object

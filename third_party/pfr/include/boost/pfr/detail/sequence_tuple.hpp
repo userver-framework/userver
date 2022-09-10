@@ -50,6 +50,7 @@ struct tuple_base<std::index_sequence<> > {
 
 template <std::size_t N, class T>
 constexpr T& get_impl(base_from_member<N, T>& t) noexcept {
+    // NOLINTNEXTLINE(clang-analyzer-core.uninitialized.UndefReturn)
     return t.value;
 }
 

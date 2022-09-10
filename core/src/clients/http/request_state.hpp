@@ -10,6 +10,7 @@
 #include <userver/clients/http/error.hpp>
 #include <userver/clients/http/form.hpp>
 #include <userver/clients/http/response_future.hpp>
+#include <userver/concurrent/queue.hpp>
 #include <userver/crypto/certificate.hpp>
 #include <userver/crypto/private_key.hpp>
 #include <userver/engine/deadline.hpp>
@@ -23,7 +24,6 @@
 #include <clients/http/destination_statistics.hpp>
 #include <clients/http/easy_wrapper.hpp>
 #include <clients/http/enforce_task_deadline_config.hpp>
-#include <clients/http/statistics.hpp>
 #include <clients/http/testsuite.hpp>
 #include <crypto/helpers.hpp>
 #include <engine/ev/watcher/timer_watcher.hpp>
@@ -31,6 +31,8 @@
 USERVER_NAMESPACE_BEGIN
 
 namespace clients::http {
+
+class StreamedResponse;
 
 class RequestState : public std::enable_shared_from_this<RequestState> {
  public:
@@ -40,8 +42,16 @@ class RequestState : public std::enable_shared_from_this<RequestState> {
                clients::dns::Resolver* resolver);
   ~RequestState();
 
+  using Queue = concurrent::SpscQueue<std::string>;
+
+  enum class AsyncType {
+    kFullyBuffered,
+    kStreamed,
+  };
+
   /// Perform async http request
   engine::Future<std::shared_ptr<Response>> async_perform();
+  void async_perform_stream(const std::shared_ptr<Queue>& queue);
 
   /// set redirect flags
   void follow_redirects(bool follow);
@@ -82,6 +92,8 @@ class RequestState : public std::enable_shared_from_this<RequestState> {
 
   void SetTestsuiteConfig(const std::shared_ptr<const TestsuiteConfig>& config);
 
+  void SetAllowedUrlsExtra(const std::vector<std::string>& urls);
+
   void DisableReplyDecoding();
 
   void EnableAddClientTimeoutHeader();
@@ -121,6 +133,12 @@ class RequestState : public std::enable_shared_from_this<RequestState> {
   void UpdateTimeoutHeader();
   std::exception_ptr PrepareDeadlineAlreadyPassedException();
 
+  static size_t StreamWriteFunction(char* ptr, size_t size, size_t nmemb,
+                                    void* userdata);
+
+  uint64_t GetClientTimeoutMs() const;
+  void UpdateClientTimeoutHeader(uint64_t client_timeout_ms);
+
   void AccountResponse(std::error_code err);
   std::exception_ptr PrepareException(std::error_code err);
   std::exception_ptr PrepareDeadlinePassedException(std::string_view url);
@@ -134,6 +152,8 @@ class RequestState : public std::enable_shared_from_this<RequestState> {
   void WithRequestStats(const Func& func);
 
   void ResolveTargetAddress(clients::dns::Resolver& resolver);
+  void ScheduleWrite();
+  bool IsStreamBody() const;
 
   /// curl handler wrapper
   std::shared_ptr<impl::EasyWrapper> easy_;
@@ -144,6 +164,7 @@ class RequestState : public std::enable_shared_from_this<RequestState> {
   std::string destination_metric_name_;
 
   std::shared_ptr<const TestsuiteConfig> testsuite_config_;
+  std::vector<std::string> allowed_urls_extra_;
 
   crypto::PrivateKey pkey_;
   crypto::Certificate cert_;
@@ -151,7 +172,6 @@ class RequestState : public std::enable_shared_from_this<RequestState> {
 
   /// response
   std::shared_ptr<Response> response_;
-  engine::Promise<std::shared_ptr<Response>> promise_;
 
   /// the timeout value provided by user (or the default)
   std::chrono::milliseconds original_timeout_;
@@ -183,6 +203,24 @@ class RequestState : public std::enable_shared_from_this<RequestState> {
 
   clients::dns::Resolver* resolver_{nullptr};
   std::string proxy_url_;
+
+  struct StreamData {
+    StreamData(Queue::Producer&& queue_producer)
+        : queue_producer(std::move(queue_producer)),
+          headers_future(headers_promise.get_future()) {}
+
+    Queue::Producer queue_producer;
+    engine::Promise<void> headers_promise;
+    engine::Future<void> headers_future;
+  };
+
+  struct FullBufferedData {
+    engine::Promise<std::shared_ptr<Response>> promise_;
+  };
+
+  std::variant<FullBufferedData, StreamData> data_;
+
+  friend class StreamedResponse;
 };
 
 }  // namespace clients::http

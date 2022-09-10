@@ -129,6 +129,25 @@ RequestEvalCommon ClientImpl::EvalCommon(
                   shard, true, GetCommandControl(command_control)));
 }
 
+RequestEvalShaCommon ClientImpl::EvalShaCommon(
+    std::string script_hash, std::vector<std::string> keys,
+    std::vector<std::string> args, const CommandControl& command_control) {
+  UASSERT(!keys.empty());
+  auto shard = ShardByKey(keys.at(0), command_control);
+  size_t keys_size = keys.size();
+  return CreateRequest<RequestEvalShaCommon>(
+      MakeRequest(CmdArgs{"evalsha", std::move(script_hash), keys_size,
+                          std::move(keys), std::move(args)},
+                  shard, true, GetCommandControl(command_control)));
+}
+
+RequestScriptLoad ClientImpl::ScriptLoad(
+    std::string script, size_t shard, const CommandControl& command_control) {
+  return CreateRequest<RequestScriptLoad>(
+      MakeRequest(CmdArgs{"script", "load", std::move(script)}, shard, true,
+                  GetCommandControl(command_control)));
+}
+
 RequestExists ClientImpl::Exists(std::string key,
                                  const CommandControl& command_control) {
   auto shard = ShardByKey(key, command_control);

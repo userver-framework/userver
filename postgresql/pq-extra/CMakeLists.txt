@@ -11,7 +11,7 @@ if(NOT LDAP_LIBRARY)
           "For Mac OS X please install `openldap`.")
 endif()
 
-find_package(HelperPostgreSQL REQUIRED)
+find_package(PostgreSQL REQUIRED)
 find_package(PostgreSQLInternal REQUIRED)
 find_package_required(OpenSSL "libssl-dev")
 find_package(GssApi REQUIRED)
@@ -27,8 +27,6 @@ add_library(${PROJECT_NAME} STATIC ${SOURCES})
 
 target_include_directories(${PROJECT_NAME}
   PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}
-  SYSTEM PRIVATE
-    $<TARGET_PROPERTY:PostgreSQL,INTERFACE_INCLUDE_DIRECTORIES>
 )
 
 target_link_libraries(${PROJECT_NAME}

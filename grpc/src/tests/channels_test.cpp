@@ -37,7 +37,9 @@ ugrpc::server::ServerConfig MakeServerConfig() {
 
 }  // namespace
 
-UTEST_MT(GrpcChannels, TryWaitForConnected, 2) {
+struct GrpcChannels : public ::testing::TestWithParam<std::size_t> {};
+
+UTEST_P_MT(GrpcChannels, TryWaitForConnected, 2) {
   constexpr auto kSmallTimeout = 100ms;
   constexpr auto kServerStartDelay = 100ms;
   constexpr auto kMaxServerStartTime = 500ms;
@@ -46,6 +48,7 @@ UTEST_MT(GrpcChannels, TryWaitForConnected, 2) {
   auto client_task = engine::AsyncNoSpan([&] {
     ugrpc::client::ClientFactoryConfig config;
     config.channel_args.SetInt("grpc.testing.fixed_reconnect_backoff_ms", 100);
+    config.channel_count = GetParam();
     ugrpc::client::QueueHolder client_queue;
 
     ugrpc::client::ClientFactory client_factory(
@@ -81,5 +84,8 @@ UTEST_MT(GrpcChannels, TryWaitForConnected, 2) {
   client_task.Get();
   server.Stop();
 }
+
+INSTANTIATE_UTEST_SUITE_P(Basic, GrpcChannels,
+                          ::testing::Values(std::size_t{1}, std::size_t{4}));
 
 USERVER_NAMESPACE_END

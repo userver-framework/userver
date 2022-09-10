@@ -4,6 +4,7 @@
 #include <userver/components/component.hpp>
 #include <userver/components/statistics_storage.hpp>
 #include <userver/dynamic_config/storage/component.hpp>
+#include <userver/testsuite/testsuite_support.hpp>
 #include <userver/utils/statistics/metadata.hpp>
 
 #include <clients/http/config.hpp>
@@ -59,6 +60,9 @@ HttpClient::HttpClient(const ComponentConfig& component_config,
     auto prefixes = component_config["testsuite-allowed-url-prefixes"]
                         .As<std::vector<std::string>>({});
     http_client_.SetTestsuiteConfig({prefixes, timeout});
+
+    auto& testsuite = context.FindComponent<components::TestsuiteSupport>();
+    testsuite.GetHttpAllowedUrlsExtra().RegisterHttpClient(http_client_);
   }
 
   clients::http::Config bootstrap_config;

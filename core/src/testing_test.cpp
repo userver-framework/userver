@@ -13,8 +13,8 @@ USERVER_NAMESPACE_BEGIN
 namespace {
 using utest::SimpleServer;
 
-static const std::string kOkRequest = "OK";
-static const std::string kOkResponse = "OK RESPONSE DATA";
+const std::string kOkRequest = "OK";
+const std::string kOkResponse = "OK RESPONSE DATA";
 
 SimpleServer::Response assert_received_ok(const SimpleServer::Request& r) {
   EXPECT_EQ(r, kOkRequest) << "SimpleServer received: " << r;

@@ -14,6 +14,7 @@
 #include <userver/storages/redis/command_options.hpp>
 #include <userver/storages/redis/request.hpp>
 #include <userver/storages/redis/request_eval.hpp>
+#include <userver/storages/redis/request_evalsha.hpp>
 #include <userver/storages/redis/transaction.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -77,6 +78,19 @@ class Client {
     return RequestEval<ScriptResult, ReplyType>{EvalCommon(
         std::move(script), std::move(keys), std::move(args), command_control)};
   }
+  template <typename ScriptResult,
+            typename ReplyType = impl::DefaultReplyType<ScriptResult>>
+  RequestEvalSha<ScriptResult, ReplyType> EvalSha(
+      std::string script_hash, std::vector<std::string> keys,
+      std::vector<std::string> args, const CommandControl& command_control) {
+    return RequestEvalSha<ScriptResult, ReplyType>{
+        EvalShaCommon(std::move(script_hash), std::move(keys), std::move(args),
+                      command_control)};
+  }
+
+  virtual RequestScriptLoad ScriptLoad(
+      std::string script, size_t shard,
+      const CommandControl& command_control) = 0;
 
   template <typename ScriptInfo, typename ReplyType = impl::DefaultReplyType<
                                      std::decay_t<ScriptInfo>>>
@@ -439,6 +453,9 @@ class Client {
  protected:
   virtual RequestEvalCommon EvalCommon(
       std::string script, std::vector<std::string> keys,
+      std::vector<std::string> args, const CommandControl& command_control) = 0;
+  virtual RequestEvalShaCommon EvalShaCommon(
+      std::string script_hash, std::vector<std::string> keys,
       std::vector<std::string> args, const CommandControl& command_control) = 0;
 };
 

@@ -31,7 +31,7 @@ class Pipe final {
   int Out() { return fd_[1]; }
 
  private:
-  int fd_[2];
+  int fd_[2]{};
 };
 
 bool HasTimedOut() {
@@ -80,7 +80,7 @@ UTEST(FdControl, Ownership) {
 
 UTEST(FdControl, Wait) {
   Pipe pipe;
-  std::array<char, 16> buf;
+  std::array<char, 16> buf{};
 
   auto read_control = FdControl::Adopt(pipe.ExtractIn());
   auto& read_dir = read_control->Read();
@@ -140,7 +140,7 @@ UTEST(FdControl, DestructionNoData) {
 UTEST(FdControl, DestructionWithData) {
   for (unsigned i = 0; i < kRepetitions; ++i) {
     Pipe pipe;
-    std::array<char, 16> buf;
+    std::array<char, 16> buf{};
 
     auto read_control = FdControl::Adopt(pipe.ExtractIn());
     auto& read_dir = read_control->Read();
@@ -159,7 +159,7 @@ UTEST(FdControl, PartialTransfer) {
   auto read_control = FdControl::Adopt(pipe.ExtractIn());
   auto& read_dir = read_control->Read();
 
-  std::array<char, 16> buf;
+  std::array<char, 16> buf{};
   io::impl::Direction::SingleUserGuard guard(read_dir);
   try {
     read_dir.PerformIo(guard, &::read, buf.data(), buf.size(),
@@ -182,7 +182,7 @@ UTEST_MT(FdControl, WholeTransfer, 2) {
   auto read_control = FdControl::Adopt(pipe.ExtractIn());
   auto& read_dir = read_control->Read();
 
-  std::array<char, 16> buf;
+  std::array<char, 16> buf{};
   io::impl::Direction::SingleUserGuard guard(read_dir);
   try {
     read_dir.PerformIo(guard, &::read, buf.data(), buf.size(),

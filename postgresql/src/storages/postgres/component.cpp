@@ -215,27 +215,8 @@ Postgres::Postgres(const ComponentConfig& config,
       config["max_replication_lag"].As<std::chrono::milliseconds>(
           kDefaultMaxReplicationLag);
 
-  storages::postgres::ConnectionSettings& conn_settings =
-      cluster_settings.conn_settings;
-  conn_settings.prepared_statements =
-      config["persistent-prepared-statements"].As<bool>(true)
-          ? pg::ConnectionSettings::kCachePreparedStatements
-          : pg::ConnectionSettings::kNoPreparedStatements;
-  conn_settings.user_types = config["user-types-enabled"].As<bool>(true)
-                                 ? pg::ConnectionSettings::kUserTypesEnabled
-                                 : pg::ConnectionSettings::kPredefinedTypesOnly;
-  conn_settings.max_prepared_cache_size =
-      config["max_prepared_cache_size"].As<size_t>(
-          conn_settings.max_prepared_cache_size);
-
-  conn_settings.ignore_unused_query_params =
-      config["ignore_unused_query_params"].As<bool>(false)
-          ? pg::ConnectionSettings::kIgnoreUnused
-          : pg::ConnectionSettings::kCheckUnused;
-
-  conn_settings.pipeline_mode = config["pipeline_enabled"].As<bool>(false)
-                                    ? pg::ConnectionSettings::kPipelineEnabled
-                                    : pg::ConnectionSettings::kPipelineDisabled;
+  cluster_settings.conn_settings =
+      config.As<storages::postgres::ConnectionSettings>();
 
   const auto task_processor_name =
       config["blocking_task_processor"].As<std::string>();
@@ -313,6 +294,8 @@ formats::json::Value Postgres::ExtendStatistics(
 void Postgres::OnConfigUpdate(const dynamic_config::Snapshot& cfg) {
   const auto& pg_config = cfg.Get<storages::postgres::Config>();
   const auto pool_settings = pg_config.pool_settings.GetOptional(name_);
+  const auto connection_settings =
+      pg_config.connection_settings.GetOptional(name_);
   const auto statement_metrics_settings =
       pg_config.statement_metrics_settings.GetOptional(name_);
   for (const auto& cluster : database_->clusters_) {
@@ -320,6 +303,9 @@ void Postgres::OnConfigUpdate(const dynamic_config::Snapshot& cfg) {
     cluster->SetHandlersCommandControl(pg_config.handlers_command_control);
     cluster->SetQueriesCommandControl(pg_config.queries_command_control);
     if (pool_settings) cluster->SetPoolSettings(*pool_settings);
+    if (connection_settings) {
+      cluster->SetConnectionSettings(*connection_settings);
+    }
     if (statement_metrics_settings) {
       cluster->SetStatementMetricsSettings(*statement_metrics_settings);
     }

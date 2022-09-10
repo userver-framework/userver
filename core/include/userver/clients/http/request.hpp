@@ -4,11 +4,13 @@
 /// @brief @copybrief clients::http::Request
 
 #include <memory>
+#include <vector>
 
 #include <userver/clients/dns/resolver_fwd.hpp>
 #include <userver/clients/http/error.hpp>
 #include <userver/clients/http/response.hpp>
 #include <userver/clients/http/response_future.hpp>
+#include <userver/concurrent/queue.hpp>
 #include <userver/crypto/certificate.hpp>
 #include <userver/crypto/private_key.hpp>
 
@@ -18,6 +20,8 @@ USERVER_NAMESPACE_BEGIN
 namespace clients::http {
 
 class RequestState;
+class StreamedResponse;
+
 namespace impl {
 class EasyWrapper;
 }  // namespace impl
@@ -176,6 +180,9 @@ class Request final : public std::enable_shared_from_this<Request> {
   std::shared_ptr<Request> SetTestsuiteConfig(
       const std::shared_ptr<const TestsuiteConfig>& config);
 
+  std::shared_ptr<Request> SetAllowedUrlsExtra(
+      const std::vector<std::string>& urls);
+
   // Set deadline propagation settings. For internal use only.
   std::shared_ptr<Request> SetEnforceTaskDeadline(
       EnforceTaskDeadlineConfig enforce_task_deadline);
@@ -201,6 +208,14 @@ class Request final : public std::enable_shared_from_this<Request> {
   /// ResponseFuture, all the setup holds:
   /// @snippet src/clients/http/client_test.cpp  HTTP Client - reuse async
   [[nodiscard]] ResponseFuture async_perform();
+
+  /// @brief Perform a request with streamed response body.
+  ///
+  /// The HTTP client uses queue producer.
+  /// StreamedResponse uses queue consumer.
+  /// @see src/clients/http/partial_pesponse.hpp
+  [[nodiscard]] StreamedResponse async_perform_stream_body(
+      const std::shared_ptr<concurrent::SpscQueue<std::string>>& queue);
 
   /// Calls async_perform and wait for timeout_ms on a future. Default time
   /// for waiting will be timeout value if it was setted. If error occured it

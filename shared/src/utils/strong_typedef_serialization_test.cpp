@@ -1,6 +1,7 @@
 #include <userver/formats/json/serialize.hpp>
 
 #include <fmt/format.h>
+#include <userver/utils/fmt_compat.hpp>
 
 #include <userver/formats/json/serialize_container.hpp>
 #include <userver/formats/json/value.hpp>
@@ -60,7 +61,7 @@ template <>
 struct formatter<USERVER_NAMESPACE::NonStreamable> : formatter<const char*> {
   template <typename FormatContext>
   auto format(const USERVER_NAMESPACE::NonStreamable& /*v*/,
-              FormatContext& ctx) {
+              FormatContext& ctx) USERVER_FMT_CONST {
     return formatter<const char*>::format("!!!", ctx);
   }
 };

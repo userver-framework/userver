@@ -10,8 +10,8 @@ namespace {
 
 std::vector<std::string> ToVector(const curl::string_list& list) {
   std::vector<std::string> result;
-  for (auto elem = list.native_handle(); elem; elem = elem->next) {
-    result.push_back(elem->data);
+  for (const auto* elem = list.native_handle(); elem; elem = elem->next) {
+    result.emplace_back(elem->data);
   }
   return result;
 }

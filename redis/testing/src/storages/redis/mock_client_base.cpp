@@ -79,6 +79,21 @@ RequestEvalCommon MockClientBase::EvalCommon(
   return RequestEvalCommon{nullptr};
 }
 
+RequestEvalShaCommon MockClientBase::EvalShaCommon(
+    std::string /*script*/, std::vector<std::string> /*keys*/,
+    std::vector<std::string> /*args*/,
+    const CommandControl& /*command_control*/) {
+  UASSERT_MSG(false, "redis method not mocked");
+  return RequestEvalShaCommon{nullptr};
+}
+
+RequestScriptLoad MockClientBase::ScriptLoad(
+    std::string /*script*/, size_t /*shard*/,
+    const CommandControl& /*command_control*/) {
+  UASSERT_MSG(false, "redis method not mocked");
+  return RequestScriptLoad{nullptr};
+}
+
 RequestExists MockClientBase::Exists(
     std::string /*key*/, const CommandControl& /*command_control*/) {
   UASSERT_MSG(false, "redis method not mocked");

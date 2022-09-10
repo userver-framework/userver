@@ -14,6 +14,24 @@
 #include <userver/utils/daemon_run.hpp>
 
 namespace samples::redis {
+class EvalSha final : public server::handlers::HttpHandlerBase {
+ public:
+  static constexpr std::string_view kName = "handler-script";
+
+  EvalSha(const components::ComponentConfig& config,
+          const components::ComponentContext& context);
+
+  std::string HandleRequestThrow(
+      const server::http::HttpRequest& request,
+      server::request::RequestContext&) const override;
+
+ private:
+  std::string EvalShaRequest(const server::http::HttpRequest& request) const;
+  std::string ScriptLoad(const server::http::HttpRequest& request) const;
+
+  storages::redis::ClientPtr redis_client_;
+  storages::redis::CommandControl redis_cc_;
+};
 
 class KeyValue final : public server::handlers::HttpHandlerBase {
  public:
@@ -110,6 +128,77 @@ std::string KeyValue::DeleteValue(std::string_view key) const {
 }
 /// [Redis service sample - DeleteValue]
 
+EvalSha::EvalSha(const components::ComponentConfig& config,
+                 const components::ComponentContext& context)
+    : server::handlers::HttpHandlerBase(config, context),
+      redis_client_{
+          context.FindComponent<components::Redis>("key-value-database")
+              .GetClient("taxi-tmp")} {}
+
+std::string EvalSha::HandleRequestThrow(
+    const server::http::HttpRequest& request,
+    server::request::RequestContext&) const {
+  const auto& command = request.GetArg("command");
+  if (command.empty()) {
+    throw server::handlers::ClientError(
+        server::handlers::ExternalBody{"No 'command' query argument"});
+  }
+
+  if (command == "evalsha") {
+    return EvalShaRequest(request);
+  }
+  if (command == "scriptload") {
+    return ScriptLoad(request);
+  }
+  throw server::handlers::ClientError(server::handlers::ExternalBody{
+      "Invalid 'command' query argument: must be 'evalsha' or 'scriptload'"});
+}
+
+std::string EvalSha::EvalShaRequest(
+    const server::http::HttpRequest& request) const {
+  const auto script_hash = request.GetArg("hash");
+  if (script_hash.empty()) {
+    throw server::handlers::ClientError(
+        server::handlers::ExternalBody{"No 'hash' query argument"});
+  }
+  const auto& key = request.GetArg("key");
+  if (key.empty()) {
+    throw server::handlers::ClientError(
+        server::handlers::ExternalBody{"No 'key' query argument"});
+  }
+
+  auto redis_request =
+      redis_client_->EvalSha<std::string>(script_hash, {key}, {}, redis_cc_);
+  const auto eval_sha_result = redis_request.Get();
+  if (eval_sha_result.HasValue()) {
+    return eval_sha_result.Get();
+  }
+  if (eval_sha_result.IsNoScriptError()) {
+    return "NOSCRIPT";
+  }
+
+  throw server::handlers::InternalServerError(
+      server::handlers::ExternalBody{"Some internal redis error"});
+}
+
+std::string EvalSha::ScriptLoad(
+    const server::http::HttpRequest& request) const {
+  const auto script = request.GetArg("script");
+  if (script.empty()) {
+    throw server::handlers::ClientError(
+        server::handlers::ExternalBody{"No 'script' query argument"});
+  }
+  const auto& key = request.GetArg("key");
+  if (key.empty()) {
+    throw server::handlers::ClientError(
+        server::handlers::ExternalBody{"No 'key' query argument"});
+  }
+
+  const auto shard = redis_client_->ShardByKey(key);
+  auto redis_request = redis_client_->ScriptLoad(script, shard, redis_cc_);
+  /// Return script hash
+  return redis_request.Get();
+}
 }  // namespace samples::redis
 
 /// [Redis service sample - main]
@@ -117,6 +206,7 @@ int main(int argc, char* argv[]) {
   const auto component_list =
       components::MinimalServerComponentList()
           .Append<samples::redis::KeyValue>()
+          .Append<samples::redis::EvalSha>()
           .Append<components::Secdist>()
           .Append<components::Redis>("key-value-database")
           .Append<components::TestsuiteSupport>();
