@@ -150,7 +150,7 @@ void generic_contention(benchmark::State& state) {
   for (auto _ : state) {
     m.lock();
     m.unlock();
-    ++lock_unlock_count;
+    ++local_lock_unlock_count;
   }
 
   lock_unlock_count += local_lock_unlock_count;
@@ -173,11 +173,12 @@ void generic_contention_with_payload(benchmark::State& state) {
 
   PoolFor<Mutex> pool(state.range(0) - 1, [&]() {
     std::uint64_t local_lock_unlock_count = 0;
-    auto& engine = utils::DefaultRandom();
 
     while (run) {
       m.lock();
-      for (int i = 0; i < 10; ++i) benchmark::DoNotOptimize(engine());
+      for (int i = 0; i < 10; ++i) {
+        benchmark::DoNotOptimize(utils::DefaultRandom()());
+      }
       m.unlock();
       ++local_lock_unlock_count;
     }
@@ -186,11 +187,12 @@ void generic_contention_with_payload(benchmark::State& state) {
   });
 
   std::uint64_t local_lock_unlock_count = 0;
-  auto& engine = utils::DefaultRandom();
 
   for (auto _ : state) {
     m.lock();
-    for (int i = 0; i < 10; ++i) benchmark::DoNotOptimize(engine());
+    for (int i = 0; i < 10; ++i) {
+      benchmark::DoNotOptimize(utils::DefaultRandom()());
+    }
     m.unlock();
     ++local_lock_unlock_count;
   }
