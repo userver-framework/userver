@@ -69,6 +69,7 @@ Checks:
   ,-misc-unconventional-assign-operator\
   ,-modernize-avoid-c-arrays\
   ,-modernize-pass-by-value\
+  ,-modernize-return-braced-init-list\
   ,-modernize-use-nodiscard\
   ,-modernize-use-trailing-return-type\
   ,-performance-move-const-arg\
