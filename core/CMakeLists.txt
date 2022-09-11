@@ -133,11 +133,11 @@ target_link_libraries(${PROJECT_NAME}
     Boost::regex
     CryptoPP
     Http_Parser
-    Iconv
+    Iconv::Iconv
     LibEv
     OpenSSL::Crypto
     OpenSSL::SSL
-    ZLIB
+    ZLIB::ZLIB
     spdlog_header_only
 )
 

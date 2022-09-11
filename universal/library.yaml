@@ -12,9 +12,7 @@ libraries:
   - Boost::regex
   - CryptoPP
   - fmt
-  - Iconv
   - OpenSSL::Crypto
-  - ZLIB
   - libyamlcpp
 
 debian:

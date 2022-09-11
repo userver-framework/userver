@@ -16,11 +16,9 @@ libraries:
   - CurlYandex
   - fmt
   - Http_Parser
-  - Iconv
   - LibEv
   - OpenSSL::Crypto
   - OpenSSL::SSL
-  - ZLIB
   - libyamlcpp
 
 debian:

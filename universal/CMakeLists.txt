@@ -132,7 +132,7 @@ target_link_libraries(${PROJECT_NAME}
     CryptoPP
     OpenSSL::Crypto
     OpenSSL::SSL
-    ZLIB
+    ZLIB::ZLIB
 )
 
 set(UNIVERSAL_PUBLIC_INCLUDE_DIRS
