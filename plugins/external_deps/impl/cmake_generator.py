@@ -85,7 +85,7 @@ def generate_cmake(name: str, value, renderer: jinja2.Environment):
         fail_message = fail_message.replace('\n', ' ')
 
     helper_prefix = 'Helper' if value['helper-prefix'] else ''
-    #assert '::' not in name, f'Should be no "::" in "{name}"'
+    assert '::' not in name, f'Should be no "::" in "{name}"'
     filename = f'Find{helper_prefix}{name}.cmake'
     cmake_type = value.get('type', FIND_HELPER_TYPE)
 
