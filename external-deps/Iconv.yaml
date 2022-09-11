@@ -1,0 +1,20 @@
+name: Iconv
+helper-prefix: false
+
+includes:
+    find:
+      - names:
+          - iconv.h
+
+libraries:
+    find:
+      - names:
+          - iconv
+          - libiconv
+          - c
+
+debian-names:
+  - libc6-dev
+formula-name: libiconv
+pacman-names:
+  - glibc

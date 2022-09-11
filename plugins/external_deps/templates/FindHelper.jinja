@@ -209,6 +209,10 @@ if (NOT TARGET {{ name }})
   # Target {{ name }} is created
 endif()
 
+if (NOT TARGET {{ name }}::{{ name }})
+  add_library({{ name }}::{{ name }} ALIAS {{ name }})
+endif()
+
 if ({{ current_package_name }}_VERSION)
   set({{ name }}_VERSION "{{ '${' }}{{ current_package_name }}_VERSION{{ '}' }}" CACHE STRING "Version of the {{ name }}")
 endif()
