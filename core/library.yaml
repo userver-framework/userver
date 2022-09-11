@@ -16,11 +16,11 @@ libraries:
   - CurlYandex
   - fmt
   - Http_Parser
-  - Iconv::Iconv
+  - Iconv
   - LibEv
   - OpenSSL::Crypto
   - OpenSSL::SSL
-  - ZLIB::ZLIB
+  - ZLIB
   - libyamlcpp
 
 debian:
