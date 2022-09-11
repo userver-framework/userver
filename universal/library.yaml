@@ -14,7 +14,6 @@ libraries:
   - fmt
   - Iconv::Iconv
   - OpenSSL::Crypto
-  - Threads::Threads
   - ZLIB::ZLIB
   - libyamlcpp
 
