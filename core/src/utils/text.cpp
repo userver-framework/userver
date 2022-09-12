@@ -1,5 +1,6 @@
 #include <userver/utils/text.hpp>
 
+#include <algorithm>
 #include <unordered_map>
 
 #include <boost/algorithm/string.hpp>
@@ -302,6 +303,32 @@ void TrimViewTruncatedEnding(std::string_view& view) {
   if (correct_size < view.size()) {
     view = std::string_view{view.data(), correct_size};
   }
+}
+
+std::size_t GetTextPosByCodePointPos(std::string_view text,
+                                     std::size_t pos) noexcept {
+  size_t text_pos = 0;
+  while (text_pos < text.size() && pos > 0) {
+    text_pos += CodePointLengthByFirstByte(text[text_pos]);
+    pos--;
+  }
+  return std::min(text_pos, text.length());
+}
+
+void RemovePrefix(std::string& text, std::size_t count) noexcept {
+  text.erase(0, GetTextPosByCodePointPos(text, count));
+}
+
+void RemoveViewPrefix(std::string_view& text, std::size_t count) noexcept {
+  text.remove_prefix(GetTextPosByCodePointPos(text, count));
+}
+
+void TakePrefix(std::string& text, std::size_t count) noexcept {
+  text.erase(GetTextPosByCodePointPos(text, count));
+}
+
+void TakeViewPrefix(std::string_view& text, std::size_t count) noexcept {
+  text = text.substr(0, GetTextPosByCodePointPos(text, count));
 }
 
 }  // namespace utf8

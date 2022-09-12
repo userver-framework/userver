@@ -205,4 +205,73 @@ TEST(CheckIsCString, IsCString) {
   EXPECT_FALSE(IsCString(std::string("\0a\0b\0", 5)));
 }
 
+TEST(GetTextPosByCodePointPos_TakePrefix_RemovePrefix, Utf8) {
+  const auto& DoCheck = [](const std::string_view text,    //
+                           const std::size_t count,        //
+                           const std::size_t text_pos,     //
+                           const std::string_view prefix,  //
+                           const std::string_view suffix) {
+    using utils::text::utf8::GetTextPosByCodePointPos;
+    ASSERT_EQ(text_pos, GetTextPosByCodePointPos(text, count));
+
+    {
+      auto temp = std::string{text};
+      utils::text::utf8::TakePrefix(temp, count);
+      ASSERT_EQ(prefix, temp);
+    }
+
+    {
+      auto temp = text;
+      utils::text::utf8::TakeViewPrefix(temp, count);
+      ASSERT_EQ(prefix, temp);
+    }
+
+    {
+      auto temp = std::string{text};
+      utils::text::utf8::RemovePrefix(temp, count);
+      ASSERT_EQ(suffix, temp);
+    }
+
+    {
+      auto temp = text;
+      utils::text::utf8::RemoveViewPrefix(temp, count);
+      ASSERT_EQ(suffix, temp);
+    }
+  };
+
+  constexpr std::string_view kEmptyText{""};
+  DoCheck(kEmptyText, 0, 0, "", "");
+  DoCheck(kEmptyText, 1, 0, "", "");
+
+  constexpr std::string_view kSimpleText{"abc"};
+  DoCheck(kSimpleText, 0, 0, "", "abc");
+  DoCheck(kSimpleText, 1, 1, "a", "bc");
+  DoCheck(kSimpleText, 2, 2, "ab", "c");
+  DoCheck(kSimpleText, 3, 3, "abc", "");
+  DoCheck(kSimpleText, 4, 3, "abc", "");
+
+  constexpr std::string_view kComplexText{"aЭ百Юb度科dЯ"};
+  DoCheck(kComplexText, 0, 0, "", "aЭ百Юb度科dЯ");
+  DoCheck(kComplexText, 1, 1, "a", "Э百Юb度科dЯ");
+  DoCheck(kComplexText, 2, 3, "aЭ", "百Юb度科dЯ");
+  DoCheck(kComplexText, 3, 6, "aЭ百", "Юb度科dЯ");
+  DoCheck(kComplexText, 4, 8, "aЭ百Ю", "b度科dЯ");
+  DoCheck(kComplexText, 5, 9, "aЭ百Юb", "度科dЯ");
+  DoCheck(kComplexText, 6, 12, "aЭ百Юb度", "科dЯ");
+  DoCheck(kComplexText, 7, 15, "aЭ百Юb度科", "dЯ");
+  DoCheck(kComplexText, 8, 16, "aЭ百Юb度科d", "Я");
+  DoCheck(kComplexText, 9, 18, "aЭ百Юb度科dЯ", "");
+  DoCheck(kComplexText, 10, 18, "aЭ百Юb度科dЯ", "");
+  DoCheck(kComplexText, 99, 18, "aЭ百Юb度科dЯ", "");
+
+  // invalid utf-8
+  DoCheck("\xF7", 1, 1, "\xF7", "");
+  DoCheck("\xC2_bcdef", 1, 2, "\xC2_", "bcdef");
+  DoCheck("\xE0_bcdef", 1, 3, "\xE0_b", "cdef");
+  DoCheck("\xF0_bcdef", 1, 4, "\xF0_bc", "def");
+  DoCheck("\xFF_bcdef", 1, 4, "\xFF_bc", "def");
+  DoCheck("\xFF_bcdef", 2, 5, "\xFF_bcd", "ef");
+  DoCheck("\xE0_b\xC0", 2, 4, "\xE0_b\xC0", "");
+}
+
 USERVER_NAMESPACE_END

@@ -92,8 +92,30 @@ std::size_t GetCodePointsCount(std::string_view text);
 void TrimTruncatedEnding(std::string& str);
 
 /// @see void TrimTruncatedEnding(std::string& str)
-/// @warning this DOES NOT change the original string
+/// @warning this **does not** change the original string
 void TrimViewTruncatedEnding(std::string_view& view);
+
+/// Returns position in `text` where utf-8 code point with position `pos` starts
+/// OR `text.length()` if `text` contains less than or equal to `pos` points
+/// @warning this **does not** check if `text` is valid utf-8 text
+std::size_t GetTextPosByCodePointPos(std::string_view text,
+                                     std::size_t pos) noexcept;
+
+/// Removes the first `count` utf-8 code points from `text`
+/// @warning this **does not** check if `text` is valid utf-8 text
+void RemovePrefix(std::string& text, std::size_t count) noexcept;
+
+/// @see void RemovePrefix(std::string& text, std::size_t count)
+/// @warning this **does not** change the original string
+void RemoveViewPrefix(std::string_view& text, std::size_t count) noexcept;
+
+/// Takes the first `count` utf-8 code points from `text`
+/// @warning this **does not** check if `text` is valid utf-8 text
+void TakePrefix(std::string& text, std::size_t count) noexcept;
+
+/// @see void TakePrefix(std::string& text, std::size_t count)
+/// @warning this **does not** change the original string
+void TakeViewPrefix(std::string_view& text, std::size_t count) noexcept;
 
 }  // namespace utf8
 
