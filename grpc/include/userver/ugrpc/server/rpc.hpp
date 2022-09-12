@@ -9,6 +9,7 @@
 #include <userver/utils/assert.hpp>
 
 #include <userver/ugrpc/impl/deadline_timepoint.hpp>
+#include <userver/ugrpc/impl/span.hpp>
 #include <userver/ugrpc/impl/statistics_scope.hpp>
 #include <userver/ugrpc/server/exceptions.hpp>
 #include <userver/ugrpc/server/impl/async_methods.hpp>
@@ -47,7 +48,8 @@ class UnaryCall final {
   /// For internal use only
   UnaryCall(grpc::ServerContext& context, std::string_view call_name,
             impl::RawResponseWriter<Response>& stream,
-            ugrpc::impl::RpcStatisticsScope& statistics);
+            ugrpc::impl::RpcStatisticsScope& statistics,
+            tracing::Span& call_span);
 
   UnaryCall(UnaryCall&&) = delete;
   UnaryCall& operator=(UnaryCall&&) = delete;
@@ -59,6 +61,7 @@ class UnaryCall final {
   impl::RawResponseWriter<Response>& stream_;
   bool is_finished_{false};
   ugrpc::impl::RpcStatisticsScope& statistics_;
+  tracing::Span& call_span_;
 };
 
 /// @brief Controls a request stream -> single response RPC
@@ -101,7 +104,8 @@ class InputStream final {
   /// For internal use only
   InputStream(grpc::ServerContext& context, std::string_view call_name,
               impl::RawReader<Request, Response>& stream,
-              ugrpc::impl::RpcStatisticsScope& statistics);
+              ugrpc::impl::RpcStatisticsScope& statistics,
+              tracing::Span& call_span);
 
   InputStream(InputStream&&) = delete;
   InputStream& operator=(InputStream&&) = delete;
@@ -115,6 +119,7 @@ class InputStream final {
   impl::RawReader<Request, Response>& stream_;
   State state_{State::kOpen};
   ugrpc::impl::RpcStatisticsScope& statistics_;
+  tracing::Span& call_span_;
 };
 
 /// @brief Controls a single request -> response stream RPC
@@ -166,7 +171,8 @@ class OutputStream final {
   /// For internal use only
   OutputStream(grpc::ServerContext& context, std::string_view call_name,
                impl::RawWriter<Response>& stream,
-               ugrpc::impl::RpcStatisticsScope& statistics);
+               ugrpc::impl::RpcStatisticsScope& statistics,
+               tracing::Span& call_span);
 
   OutputStream(OutputStream&&) = delete;
   OutputStream& operator=(OutputStream&&) = delete;
@@ -180,6 +186,7 @@ class OutputStream final {
   impl::RawWriter<Response>& stream_;
   State state_{State::kNew};
   ugrpc::impl::RpcStatisticsScope& statistics_;
+  tracing::Span& call_span_;
 };
 
 /// @brief Controls a request stream -> response stream RPC
@@ -237,7 +244,8 @@ class BidirectionalStream {
   /// For internal use only
   BidirectionalStream(grpc::ServerContext& context, std::string_view call_name,
                       impl::RawReaderWriter<Request, Response>& stream,
-                      ugrpc::impl::RpcStatisticsScope& statistics);
+                      ugrpc::impl::RpcStatisticsScope& statistics,
+                      tracing::Span& call_span);
 
   BidirectionalStream(const BidirectionalStream&) = delete;
   BidirectionalStream(BidirectionalStream&&) = delete;
@@ -251,6 +259,7 @@ class BidirectionalStream {
   impl::RawReaderWriter<Request, Response>& stream_;
   State state_{State::kOpen};
   ugrpc::impl::RpcStatisticsScope& statistics_;
+  tracing::Span& call_span_;
 };
 
 // ========================== Implementation follows ==========================
@@ -259,11 +268,13 @@ template <typename Response>
 UnaryCall<Response>::UnaryCall(grpc::ServerContext& context,
                                std::string_view call_name,
                                impl::RawResponseWriter<Response>& stream,
-                               ugrpc::impl::RpcStatisticsScope& statistics)
+                               ugrpc::impl::RpcStatisticsScope& statistics,
+                               tracing::Span& call_span)
     : context_(context),
       call_name_(call_name),
       stream_(stream),
-      statistics_(statistics) {}
+      statistics_(statistics),
+      call_span_(call_span) {}
 
 template <typename Response>
 UnaryCall<Response>::~UnaryCall() {
@@ -281,6 +292,7 @@ void UnaryCall<Response>::Finish(const Response& response) {
   is_finished_ = true;
   impl::Finish(stream_, response, grpc::Status::OK, call_name_);
   statistics_.OnExplicitFinish(grpc::StatusCode::OK);
+  ugrpc::impl::UpdateSpanWithStatus(call_span_, grpc::Status::OK);
 }
 
 template <typename Response>
@@ -289,17 +301,19 @@ void UnaryCall<Response>::FinishWithError(const grpc::Status& status) {
   is_finished_ = true;
   impl::FinishWithError(stream_, status, call_name_);
   statistics_.OnExplicitFinish(status.error_code());
+  ugrpc::impl::UpdateSpanWithStatus(call_span_, status);
 }
 
 template <typename Request, typename Response>
 InputStream<Request, Response>::InputStream(
     grpc::ServerContext& context, std::string_view call_name,
     impl::RawReader<Request, Response>& stream,
-    ugrpc::impl::RpcStatisticsScope& statistics)
+    ugrpc::impl::RpcStatisticsScope& statistics, tracing::Span& call_span)
     : context_(context),
       call_name_(call_name),
       stream_(stream),
-      statistics_(statistics) {}
+      statistics_(statistics),
+      call_span_(call_span) {}
 
 template <typename Request, typename Response>
 InputStream<Request, Response>::~InputStream() {
@@ -330,6 +344,7 @@ void InputStream<Request, Response>::Finish(const Response& response) {
   state_ = State::kFinished;
   impl::Finish(stream_, response, grpc::Status::OK, call_name_);
   statistics_.OnExplicitFinish(grpc::StatusCode::OK);
+  ugrpc::impl::UpdateSpanWithStatus(call_span_, grpc::Status::OK);
 }
 
 template <typename Request, typename Response>
@@ -341,17 +356,19 @@ void InputStream<Request, Response>::FinishWithError(
   state_ = State::kFinished;
   impl::FinishWithError(stream_, status, call_name_);
   statistics_.OnExplicitFinish(status.error_code());
+  ugrpc::impl::UpdateSpanWithStatus(call_span_, status);
 }
 
 template <typename Response>
 OutputStream<Response>::OutputStream(
     grpc::ServerContext& context, std::string_view call_name,
     impl::RawWriter<Response>& stream,
-    ugrpc::impl::RpcStatisticsScope& statistics)
+    ugrpc::impl::RpcStatisticsScope& statistics, tracing::Span& call_span)
     : context_(context),
       call_name_(call_name),
       stream_(stream),
-      statistics_(statistics) {}
+      statistics_(statistics),
+      call_span_(call_span) {}
 
 template <typename Response>
 OutputStream<Response>::~OutputStream() {
@@ -385,6 +402,7 @@ void OutputStream<Response>::Finish() {
   state_ = State::kFinished;
   impl::Finish(stream_, grpc::Status::OK, call_name_);
   statistics_.OnExplicitFinish(grpc::StatusCode::OK);
+  ugrpc::impl::UpdateSpanWithStatus(call_span_, grpc::Status::OK);
 }
 
 template <typename Response>
@@ -395,6 +413,7 @@ void OutputStream<Response>::FinishWithError(const grpc::Status& status) {
   state_ = State::kFinished;
   impl::Finish(stream_, status, call_name_);
   statistics_.OnExplicitFinish(status.error_code());
+  ugrpc::impl::UpdateSpanWithStatus(call_span_, status);
 }
 
 template <typename Response>
@@ -414,11 +433,12 @@ template <typename Request, typename Response>
 BidirectionalStream<Request, Response>::BidirectionalStream(
     grpc::ServerContext& context, std::string_view call_name,
     impl::RawReaderWriter<Request, Response>& stream,
-    ugrpc::impl::RpcStatisticsScope& statistics)
+    ugrpc::impl::RpcStatisticsScope& statistics, tracing::Span& call_span)
     : context_(context),
       call_name_(call_name),
       stream_(stream),
-      statistics_(statistics) {}
+      statistics_(statistics),
+      call_span_(call_span) {}
 
 template <typename Request, typename Response>
 BidirectionalStream<Request, Response>::~BidirectionalStream<Request,
@@ -460,6 +480,7 @@ void BidirectionalStream<Request, Response>::Finish() {
   state_ = State::kFinished;
   impl::Finish(stream_, grpc::Status::OK, call_name_);
   statistics_.OnExplicitFinish(grpc::StatusCode::OK);
+  ugrpc::impl::UpdateSpanWithStatus(call_span_, grpc::Status::OK);
 }
 
 template <typename Request, typename Response>
@@ -471,6 +492,7 @@ void BidirectionalStream<Request, Response>::FinishWithError(
   state_ = State::kFinished;
   impl::Finish(stream_, status, call_name_);
   statistics_.OnExplicitFinish(status.error_code());
+  ugrpc::impl::UpdateSpanWithStatus(call_span_, status);
 }
 
 template <typename Request, typename Response>

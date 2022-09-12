@@ -129,7 +129,8 @@ class CallData final {
     utils::FastScopeGuard destroy_span([&]() noexcept { span_.reset(); });
 
     ugrpc::impl::RpcStatisticsScope statistics_scope(method_data_.statistics);
-    Call responder(context_, call_name, raw_responder_, statistics_scope);
+    Call responder(context_, call_name, raw_responder_, statistics_scope,
+                   span_->Get());
 
     try {
       if constexpr (std::is_same_v<InitialRequest, NoInitialRequest>) {
