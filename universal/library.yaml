@@ -12,10 +12,7 @@ libraries:
   - Boost::regex
   - CryptoPP
   - fmt
-  - Iconv::Iconv
   - OpenSSL::Crypto
-  - Threads::Threads
-  - ZLIB::ZLIB
   - libyamlcpp
 
 debian:
