@@ -99,6 +99,8 @@ formats::json::ValueBuilder InstanceStatisticsToJson(
 
   if (!stats.statement_timings.empty()) {
     auto timings = instance["statement_timings"];
+    utils::statistics::SolomonChildrenAreLabelValues(timings,
+                                                     "postgresql_query");
     for (const auto& [name, percentile] : stats.statement_timings) {
       timings[name] = utils::statistics::PercentileToJson(percentile);
     }
