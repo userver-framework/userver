@@ -1,0 +1,3 @@
+/userver/test_package/build/0bb5c6b789c31ce1a9e22c28a450347b2c15ae87/CMakeFiles/hello_service.dir
+/userver/test_package/build/0bb5c6b789c31ce1a9e22c28a450347b2c15ae87/CMakeFiles/edit_cache.dir
+/userver/test_package/build/0bb5c6b789c31ce1a9e22c28a450347b2c15ae87/CMakeFiles/rebuild_cache.dir

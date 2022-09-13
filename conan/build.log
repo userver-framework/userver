@@ -1,6 +1,3 @@
-Exporting package recipe
-userver/1.0.0: The stored package has not changed
-userver/1.0.0: Exported revision: 21f1413960a6c4a4ff456a77998024a2
 Configuration:
 [settings]
 arch=x86_64
@@ -15,63 +12,95 @@ os_build=Linux
 [build_requires]
 [env]
 
-Installing package: userver/1.0.0
+userver/1.0.0 (test package): Installing package
 Requirements
     boost/1.79.0 from 'conancenter' - Cache
     bzip2/1.0.8 from 'conancenter' - Cache
+    c-ares/1.18.1 from 'conancenter' - Cache
+    cctz/2.3 from 'conancenter' - Cache
+    cryptopp/8.6.0 from 'conancenter' - Cache
+    fmt/8.1.1 from 'conancenter' - Cache
+    http_parser/2.9.4 from 'conancenter' - Cache
+    jemalloc/5.2.1 from 'conancenter' - Cache
     libbacktrace/cci.20210118 from 'conancenter' - Cache
+    libcurl/7.68.0 from 'conancenter' - Cache
     libev/4.33 from 'conancenter' - Cache
+    openssl/1.1.1o from 'conancenter' - Cache
+    spdlog/1.9.0 from 'conancenter' - Cache
     userver/1.0.0 from local cache - Cache
+    yaml-cpp/0.7.0 from 'conancenter' - Cache
     zlib/1.2.12 from 'conancenter' - Cache
 Packages
     boost/1.79.0:dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978 - Cache
     bzip2/1.0.8:c32092bf4d4bb47cf962af898e02823f499b017e - Cache
+    c-ares/1.18.1:568a9f05046bc2a125b25bb11b7b1b0ed567b825 - Cache
+    cctz/2.3:238df00604cc31bb14445227f4be73e1727116e7 - Cache
+    cryptopp/8.6.0:6557f18ca99c0b6a233f43db00e30efaa525e27e - Cache
+    fmt/8.1.1:2c09c8f84c016041549fcee94e4caae5d89424b6 - Cache
+    http_parser/2.9.4:dfbe50feef7f3c6223a476cd5aeadb687084a646 - Cache
+    jemalloc/5.2.1:dd4b25aaf895ca2136a38b9660b8dbca6ee25a36 - Cache
     libbacktrace/cci.20210118:dfbe50feef7f3c6223a476cd5aeadb687084a646 - Cache
+    libcurl/7.68.0:0c5339e3252a17695b86faf7d8701a95bdc6c4ef - Cache
     libev/4.33:dfbe50feef7f3c6223a476cd5aeadb687084a646 - Cache
-    userver/1.0.0:234fb18387a355c1e147b2b545c0203591d1b859 - Build
+    openssl/1.1.1o:dfbe50feef7f3c6223a476cd5aeadb687084a646 - Cache
+    spdlog/1.9.0:4d2b231078dcc813aaf3eb5175bee272655efbc4 - Cache
+    userver/1.0.0:3dbae2e5af315b89cf2395933e40b73df1ea6d23 - Cache
+    yaml-cpp/0.7.0:6557f18ca99c0b6a233f43db00e30efaa525e27e - Cache
     zlib/1.2.12:dfbe50feef7f3c6223a476cd5aeadb687084a646 - Cache
 
 Installing (downloading, building) binaries...
 bzip2/1.0.8: Already installed!
 bzip2/1.0.8: Appending PATH environment variable: /root/.conan/data/bzip2/1.0.8/_/_/package/c32092bf4d4bb47cf962af898e02823f499b017e/bin
+c-ares/1.18.1: Already installed!
+c-ares/1.18.1: Appending PATH environment variable: /root/.conan/data/c-ares/1.18.1/_/_/package/568a9f05046bc2a125b25bb11b7b1b0ed567b825/bin
+cctz/2.3: Already installed!
+cctz/2.3: Appending PATH environment variable: /root/.conan/data/cctz/2.3/_/_/package/238df00604cc31bb14445227f4be73e1727116e7/bin
+cryptopp/8.6.0: Already installed!
+fmt/8.1.1: Already installed!
+http_parser/2.9.4: Already installed!
+jemalloc/5.2.1: Already installed!
 libbacktrace/cci.20210118: Already installed!
 libev/4.33: Already installed!
+openssl/1.1.1o: Already installed!
+yaml-cpp/0.7.0: Already installed!
 zlib/1.2.12: Already installed!
 boost/1.79.0: Already installed!
-userver/1.0.0: Copying sources to build folder
-userver/1.0.0: Building your package in /root/.conan/data/userver/1.0.0/_/_/build/234fb18387a355c1e147b2b545c0203591d1b859
-userver/1.0.0: Generator cmake_find_package created FindBoost.cmake
-userver/1.0.0: Generator cmake_find_package created Findlibev.cmake
-userver/1.0.0: Generator cmake_find_package created FindZLIB.cmake
-userver/1.0.0: Generator cmake_find_package created FindBZip2.cmake
-userver/1.0.0: Generator cmake_find_package created Findlibbacktrace.cmake
-userver/1.0.0: Aggregating env generators
-userver/1.0.0: Calling build()
-userver/1.0.0: odict_keys(['boost', 'libev', 'zlib', 'bzip2', 'libbacktrace'])
-userver/1.0.0: libev
--- The C compiler identification is GNU 11.2.0
+libcurl/7.68.0: Already installed!
+spdlog/1.9.0: Already installed!
+userver/1.0.0: Already installed!
+userver/1.0.0 (test package): Generator txt created conanbuildinfo.txt
+userver/1.0.0 (test package): Generator cmake_find_package created Finduserver.cmake
+userver/1.0.0 (test package): Generator cmake_find_package created FindBoost.cmake
+userver/1.0.0 (test package): Generator cmake_find_package created Findlibev.cmake
+userver/1.0.0 (test package): Generator cmake_find_package created Findspdlog.cmake
+userver/1.0.0 (test package): Generator cmake_find_package created Findc-ares.cmake
+userver/1.0.0 (test package): Generator cmake_find_package created FindCURL.cmake
+userver/1.0.0 (test package): Generator cmake_find_package created Findcryptopp.cmake
+userver/1.0.0 (test package): Generator cmake_find_package created Findyaml-cpp.cmake
+userver/1.0.0 (test package): Generator cmake_find_package created Findcctz.cmake
+userver/1.0.0 (test package): Generator cmake_find_package created Findhttp_parser.cmake
+userver/1.0.0 (test package): Generator cmake_find_package created Findjemalloc.cmake
+userver/1.0.0 (test package): Generator cmake_find_package created FindZLIB.cmake
+userver/1.0.0 (test package): Generator cmake_find_package created FindBZip2.cmake
+userver/1.0.0 (test package): Generator cmake_find_package created Findlibbacktrace.cmake
+userver/1.0.0 (test package): Generator cmake_find_package created Findfmt.cmake
+userver/1.0.0 (test package): Generator cmake_find_package created FindOpenSSL.cmake
+userver/1.0.0 (test package): Aggregating env generators
+userver/1.0.0 (test package): Generated conaninfo.txt
+userver/1.0.0 (test package): Generated graphinfo
+Using lockfile: '/userver/test_package/build/0bb5c6b789c31ce1a9e22c28a450347b2c15ae87/conan.lock'
+Using cached profile from lockfile
+userver/1.0.0 (test package): Calling build()
 -- The CXX compiler identification is GNU 11.2.0
--- Detecting C compiler ABI info
--- Detecting C compiler ABI info - done
--- Check for working C compiler: /usr/bin/cc - skipped
--- Detecting C compile features
--- Detecting C compile features - done
 -- Detecting CXX compiler ABI info
 -- Detecting CXX compiler ABI info - done
 -- Check for working CXX compiler: /usr/bin/c++ - skipped
 -- Detecting CXX compile features
 -- Detecting CXX compile features - done
--- Building userver as a primary project
--- C compiler: /usr/bin/cc
--- C++ compiler: /usr/bin/c++
--- LTO: on
--- LTO_CACHE disabled
--- Looking for C++ include string
--- Looking for C++ include string - found
--- ccache: enabled, but not found
--- Looking for C++ include variant
--- Looking for C++ include variant - found
--- variant: 1
+-- Conan: Using autogenerated Finduserver.cmake
+-- Found userver: 1.0.0 (found version "1.0.0") 
+-- Library userver-core found /root/.conan/data/userver/1.0.0/_/_/package/3dbae2e5af315b89cf2395933e40b73df1ea6d23/lib/libuserver-core.a
+-- Found: /root/.conan/data/userver/1.0.0/_/_/package/3dbae2e5af315b89cf2395933e40b73df1ea6d23/lib/libuserver-core.a
 -- Conan: Using autogenerated FindBoost.cmake
 -- Found Boost: 1.79.0 (found version "1.79.0") 
 -- Library boost_contract found /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_contract.a
@@ -246,310 +275,69 @@ userver/1.0.0: libev
 -- Found: /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_coroutine.a
 -- Library boost_contract found /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_contract.a
 -- Found: /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_contract.a
--- Checking -ftemplate-backtrace-limit=0
--- Performing Test HAS_ftemplate_backtrace_limit_0
--- Performing Test HAS_ftemplate_backtrace_limit_0 - Success
--- Checking -ftemplate-backtrace-limit=0 - found
--- Checking -Wdisabled-optimization
--- Performing Test HAS_Wdisabled_optimization
--- Performing Test HAS_Wdisabled_optimization - Success
--- Checking -Wdisabled-optimization - found
--- Checking -Winvalid-pch
--- Performing Test HAS_Winvalid_pch
--- Performing Test HAS_Winvalid_pch - Success
--- Checking -Winvalid-pch - found
--- Checking -Wlogical-op
--- Performing Test HAS_Wlogical_op
--- Performing Test HAS_Wlogical_op - Success
--- Checking -Wlogical-op - found
--- Checking -Wformat=2
--- Performing Test HAS_Wformat_2
--- Performing Test HAS_Wformat_2 - Success
--- Checking -Wformat=2 - found
--- Checking -Wno-error=deprecated-declarations
--- Performing Test HAS_Wno_error_deprecated_declarations
--- Performing Test HAS_Wno_error_deprecated_declarations - Success
--- Checking -Wno-error=deprecated-declarations - found
--- Checking -Wimplicit-fallthrough
--- Performing Test HAS_Wimplicit_fallthrough
--- Performing Test HAS_Wimplicit_fallthrough - Success
--- Checking -Wimplicit-fallthrough - found
--- Checking -Wno-useless-cast
--- Performing Test HAS_Wno_useless_cast
--- Performing Test HAS_Wno_useless_cast - Success
--- Checking -Wno-useless-cast - found
--- Found Python3: /usr/bin/python3.10 (found version "3.10.4") found components: Interpreter 
--- Python: /usr/bin/python3.10
--- Generating cmake files ...
--- Found Git: /usr/bin/git  
--- Userver version 1.0.0
--- Performing Test HAS_mcx16
--- Performing Test HAS_mcx16 - Failed
--- Looking for accept4
--- Looking for accept4 - found
--- Looking for pipe2
--- Looking for pipe2 - found
--- Looking for pthread.h
--- Looking for pthread.h - found
--- Performing Test CMAKE_HAVE_LIBC_PTHREAD
--- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
--- Found Threads: TRUE  
--- Conan: Using autogenerated FindBoost.cmake
--- Conan: Component 'program_options' found in package 'Boost'
--- Conan: Component 'filesystem' found in package 'Boost'
--- Conan: Component 'locale' found in package 'Boost'
--- Conan: Component 'regex' found in package 'Boost'
--- Conan: Component 'iostreams' found in package 'Boost'
--- Library boost_contract found /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_contract.a
--- Skipping already existing target: CONAN_LIB::Boost_boost_contract
--- Found: /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_contract.a
--- Library boost_coroutine found /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_coroutine.a
--- Skipping already existing target: CONAN_LIB::Boost_boost_coroutine
--- Found: /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_coroutine.a
--- Library boost_fiber_numa found /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_fiber_numa.a
--- Skipping already existing target: CONAN_LIB::Boost_boost_fiber_numa
--- Found: /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_fiber_numa.a
--- Library boost_fiber found /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_fiber.a
--- Skipping already existing target: CONAN_LIB::Boost_boost_fiber
--- Found: /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_fiber.a
--- Library boost_context found /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_context.a
--- Skipping already existing target: CONAN_LIB::Boost_boost_context
--- Found: /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_context.a
--- Library boost_graph found /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_graph.a
--- Skipping already existing target: CONAN_LIB::Boost_boost_graph
--- Found: /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_graph.a
--- Library boost_iostreams found /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_iostreams.a
--- Skipping already existing target: CONAN_LIB::Boost_boost_iostreams
--- Found: /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_iostreams.a
--- Library boost_json found /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_json.a
--- Skipping already existing target: CONAN_LIB::Boost_boost_json
--- Found: /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_json.a
--- Library boost_locale found /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_locale.a
--- Skipping already existing target: CONAN_LIB::Boost_boost_locale
--- Found: /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_locale.a
--- Library boost_log_setup found /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_log_setup.a
--- Skipping already existing target: CONAN_LIB::Boost_boost_log_setup
--- Found: /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_log_setup.a
--- Library boost_log found /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_log.a
--- Skipping already existing target: CONAN_LIB::Boost_boost_log
--- Found: /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_log.a
--- Library boost_math_c99 found /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_math_c99.a
--- Skipping already existing target: CONAN_LIB::Boost_boost_math_c99
--- Found: /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_math_c99.a
--- Library boost_math_c99f found /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_math_c99f.a
--- Skipping already existing target: CONAN_LIB::Boost_boost_math_c99f
--- Found: /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_math_c99f.a
--- Library boost_math_c99l found /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_math_c99l.a
--- Skipping already existing target: CONAN_LIB::Boost_boost_math_c99l
--- Found: /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_math_c99l.a
--- Library boost_math_tr1 found /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_math_tr1.a
--- Skipping already existing target: CONAN_LIB::Boost_boost_math_tr1
--- Found: /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_math_tr1.a
--- Library boost_math_tr1f found /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_math_tr1f.a
--- Skipping already existing target: CONAN_LIB::Boost_boost_math_tr1f
--- Found: /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_math_tr1f.a
--- Library boost_math_tr1l found /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_math_tr1l.a
--- Skipping already existing target: CONAN_LIB::Boost_boost_math_tr1l
--- Found: /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_math_tr1l.a
--- Library boost_nowide found /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_nowide.a
--- Skipping already existing target: CONAN_LIB::Boost_boost_nowide
--- Found: /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_nowide.a
--- Library boost_program_options found /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_program_options.a
--- Skipping already existing target: CONAN_LIB::Boost_boost_program_options
--- Found: /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_program_options.a
--- Library boost_random found /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_random.a
--- Skipping already existing target: CONAN_LIB::Boost_boost_random
--- Found: /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_random.a
--- Library boost_regex found /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_regex.a
--- Skipping already existing target: CONAN_LIB::Boost_boost_regex
--- Found: /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_regex.a
--- Library boost_stacktrace_addr2line found /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_stacktrace_addr2line.a
--- Skipping already existing target: CONAN_LIB::Boost_boost_stacktrace_addr2line
--- Found: /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_stacktrace_addr2line.a
--- Library boost_stacktrace_backtrace found /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_stacktrace_backtrace.a
--- Skipping already existing target: CONAN_LIB::Boost_boost_stacktrace_backtrace
--- Found: /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_stacktrace_backtrace.a
--- Library boost_stacktrace_basic found /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_stacktrace_basic.a
--- Skipping already existing target: CONAN_LIB::Boost_boost_stacktrace_basic
--- Found: /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_stacktrace_basic.a
--- Library boost_stacktrace_noop found /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_stacktrace_noop.a
--- Skipping already existing target: CONAN_LIB::Boost_boost_stacktrace_noop
--- Found: /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_stacktrace_noop.a
--- Library boost_timer found /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_timer.a
--- Skipping already existing target: CONAN_LIB::Boost_boost_timer
--- Found: /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_timer.a
--- Library boost_type_erasure found /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_type_erasure.a
--- Skipping already existing target: CONAN_LIB::Boost_boost_type_erasure
--- Found: /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_type_erasure.a
--- Library boost_thread found /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_thread.a
--- Skipping already existing target: CONAN_LIB::Boost_boost_thread
--- Found: /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_thread.a
--- Library boost_chrono found /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_chrono.a
--- Skipping already existing target: CONAN_LIB::Boost_boost_chrono
--- Found: /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_chrono.a
--- Library boost_container found /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_container.a
--- Skipping already existing target: CONAN_LIB::Boost_boost_container
--- Found: /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_container.a
--- Library boost_date_time found /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_date_time.a
--- Skipping already existing target: CONAN_LIB::Boost_boost_date_time
--- Found: /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_date_time.a
--- Library boost_unit_test_framework found /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_unit_test_framework.a
--- Skipping already existing target: CONAN_LIB::Boost_boost_unit_test_framework
--- Found: /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_unit_test_framework.a
--- Library boost_prg_exec_monitor found /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_prg_exec_monitor.a
--- Skipping already existing target: CONAN_LIB::Boost_boost_prg_exec_monitor
--- Found: /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_prg_exec_monitor.a
--- Library boost_test_exec_monitor found /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_test_exec_monitor.a
--- Skipping already existing target: CONAN_LIB::Boost_boost_test_exec_monitor
--- Found: /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_test_exec_monitor.a
--- Library boost_exception found /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_exception.a
--- Skipping already existing target: CONAN_LIB::Boost_boost_exception
--- Found: /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_exception.a
--- Library boost_wave found /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_wave.a
--- Skipping already existing target: CONAN_LIB::Boost_boost_wave
--- Found: /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_wave.a
--- Library boost_filesystem found /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_filesystem.a
--- Skipping already existing target: CONAN_LIB::Boost_boost_filesystem
--- Found: /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_filesystem.a
--- Library boost_atomic found /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_atomic.a
--- Skipping already existing target: CONAN_LIB::Boost_boost_atomic
--- Found: /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_atomic.a
--- Library boost_wserialization found /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_wserialization.a
--- Skipping already existing target: CONAN_LIB::Boost_boost_wserialization
--- Found: /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_wserialization.a
--- Library boost_serialization found /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_serialization.a
--- Skipping already existing target: CONAN_LIB::Boost_boost_serialization
--- Found: /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_serialization.a
--- Conan: Dependency BZip2 already found
+-- Conan: Using autogenerated Findlibev.cmake
+-- Found libev: 4.33 (found version "4.33") 
+-- Library ev found /root/.conan/data/libev/4.33/_/_/package/dfbe50feef7f3c6223a476cd5aeadb687084a646/lib/libev.a
+-- Found: /root/.conan/data/libev/4.33/_/_/package/dfbe50feef7f3c6223a476cd5aeadb687084a646/lib/libev.a
+-- Conan: Using autogenerated Findspdlog.cmake
+-- Found spdlog: 1.9.0 (found version "1.9.0") 
+-- Library spdlog found /root/.conan/data/spdlog/1.9.0/_/_/package/4d2b231078dcc813aaf3eb5175bee272655efbc4/lib/libspdlog.a
+-- Found: /root/.conan/data/spdlog/1.9.0/_/_/package/4d2b231078dcc813aaf3eb5175bee272655efbc4/lib/libspdlog.a
+-- Conan: Using autogenerated Findfmt.cmake
+-- Found fmt: 8.1.1 (found version "8.1.1") 
+-- Library fmt found /root/.conan/data/fmt/8.1.1/_/_/package/2c09c8f84c016041549fcee94e4caae5d89424b6/lib/libfmt.a
+-- Found: /root/.conan/data/fmt/8.1.1/_/_/package/2c09c8f84c016041549fcee94e4caae5d89424b6/lib/libfmt.a
+-- Library fmt found /root/.conan/data/fmt/8.1.1/_/_/package/2c09c8f84c016041549fcee94e4caae5d89424b6/lib/libfmt.a
+-- Found: /root/.conan/data/fmt/8.1.1/_/_/package/2c09c8f84c016041549fcee94e4caae5d89424b6/lib/libfmt.a
+-- Library spdlog found /root/.conan/data/spdlog/1.9.0/_/_/package/4d2b231078dcc813aaf3eb5175bee272655efbc4/lib/libspdlog.a
+-- Found: /root/.conan/data/spdlog/1.9.0/_/_/package/4d2b231078dcc813aaf3eb5175bee272655efbc4/lib/libspdlog.a
+-- Dependency fmt already found
+-- Conan: Using autogenerated Findc-ares.cmake
+-- Found c-ares: 1.18.1 (found version "1.18.1") 
+-- Library cares found /root/.conan/data/c-ares/1.18.1/_/_/package/568a9f05046bc2a125b25bb11b7b1b0ed567b825/lib/libcares.a
+-- Found: /root/.conan/data/c-ares/1.18.1/_/_/package/568a9f05046bc2a125b25bb11b7b1b0ed567b825/lib/libcares.a
+-- Library cares found /root/.conan/data/c-ares/1.18.1/_/_/package/568a9f05046bc2a125b25bb11b7b1b0ed567b825/lib/libcares.a
+-- Found: /root/.conan/data/c-ares/1.18.1/_/_/package/568a9f05046bc2a125b25bb11b7b1b0ed567b825/lib/libcares.a
+-- Conan: Using autogenerated FindCURL.cmake
+-- Found CURL: 7.68.0 (found version "7.68.0") 
+-- Library curl found /root/.conan/data/libcurl/7.68.0/_/_/package/0c5339e3252a17695b86faf7d8701a95bdc6c4ef/lib/libcurl.a
+-- Found: /root/.conan/data/libcurl/7.68.0/_/_/package/0c5339e3252a17695b86faf7d8701a95bdc6c4ef/lib/libcurl.a
+-- Conan: Using autogenerated FindOpenSSL.cmake
+-- Found OpenSSL: 1.1.1o (found version "1.1.1o") 
+-- Library ssl found /root/.conan/data/openssl/1.1.1o/_/_/package/dfbe50feef7f3c6223a476cd5aeadb687084a646/lib/libssl.a
+-- Found: /root/.conan/data/openssl/1.1.1o/_/_/package/dfbe50feef7f3c6223a476cd5aeadb687084a646/lib/libssl.a
+-- Library crypto found /root/.conan/data/openssl/1.1.1o/_/_/package/dfbe50feef7f3c6223a476cd5aeadb687084a646/lib/libcrypto.a
+-- Found: /root/.conan/data/openssl/1.1.1o/_/_/package/dfbe50feef7f3c6223a476cd5aeadb687084a646/lib/libcrypto.a
+-- Library crypto found /root/.conan/data/openssl/1.1.1o/_/_/package/dfbe50feef7f3c6223a476cd5aeadb687084a646/lib/libcrypto.a
+-- Found: /root/.conan/data/openssl/1.1.1o/_/_/package/dfbe50feef7f3c6223a476cd5aeadb687084a646/lib/libcrypto.a
+-- Library ssl found /root/.conan/data/openssl/1.1.1o/_/_/package/dfbe50feef7f3c6223a476cd5aeadb687084a646/lib/libssl.a
+-- Found: /root/.conan/data/openssl/1.1.1o/_/_/package/dfbe50feef7f3c6223a476cd5aeadb687084a646/lib/libssl.a
 -- Conan: Dependency ZLIB already found
--- Conan: Dependency libbacktrace already found
--- Library boost_serialization found /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_serialization.a
--- Skipping already existing target: CONAN_LIB::Boost_serialization_boost_serialization
--- Found: /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_serialization.a
--- Library boost_wserialization found /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_wserialization.a
--- Skipping already existing target: CONAN_LIB::Boost_wserialization_boost_wserialization
--- Found: /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_wserialization.a
--- Library boost_atomic found /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_atomic.a
--- Skipping already existing target: CONAN_LIB::Boost_atomic_boost_atomic
--- Found: /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_atomic.a
--- Library boost_filesystem found /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_filesystem.a
--- Skipping already existing target: CONAN_LIB::Boost_filesystem_boost_filesystem
--- Found: /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_filesystem.a
--- Library boost_wave found /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_wave.a
--- Skipping already existing target: CONAN_LIB::Boost_wave_boost_wave
--- Found: /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_wave.a
--- Library boost_exception found /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_exception.a
--- Skipping already existing target: CONAN_LIB::Boost_exception_boost_exception
--- Found: /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_exception.a
--- Library boost_test_exec_monitor found /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_test_exec_monitor.a
--- Skipping already existing target: CONAN_LIB::Boost_test_exec_monitor_boost_test_exec_monitor
--- Found: /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_test_exec_monitor.a
--- Library boost_prg_exec_monitor found /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_prg_exec_monitor.a
--- Skipping already existing target: CONAN_LIB::Boost_prg_exec_monitor_boost_prg_exec_monitor
--- Found: /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_prg_exec_monitor.a
--- Library boost_unit_test_framework found /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_unit_test_framework.a
--- Skipping already existing target: CONAN_LIB::Boost_unit_test_framework_boost_unit_test_framework
--- Found: /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_unit_test_framework.a
--- Library boost_date_time found /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_date_time.a
--- Skipping already existing target: CONAN_LIB::Boost_date_time_boost_date_time
--- Found: /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_date_time.a
--- Library boost_container found /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_container.a
--- Skipping already existing target: CONAN_LIB::Boost_container_boost_container
--- Found: /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_container.a
--- Library boost_chrono found /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_chrono.a
--- Skipping already existing target: CONAN_LIB::Boost_chrono_boost_chrono
--- Found: /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_chrono.a
--- Library boost_thread found /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_thread.a
--- Skipping already existing target: CONAN_LIB::Boost_thread_boost_thread
--- Found: /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_thread.a
--- Library boost_type_erasure found /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_type_erasure.a
--- Skipping already existing target: CONAN_LIB::Boost_type_erasure_boost_type_erasure
--- Found: /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_type_erasure.a
--- Library boost_timer found /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_timer.a
--- Skipping already existing target: CONAN_LIB::Boost_timer_boost_timer
--- Found: /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_timer.a
--- Library boost_stacktrace_noop found /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_stacktrace_noop.a
--- Skipping already existing target: CONAN_LIB::Boost_stacktrace_noop_boost_stacktrace_noop
--- Found: /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_stacktrace_noop.a
--- Library boost_stacktrace_basic found /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_stacktrace_basic.a
--- Skipping already existing target: CONAN_LIB::Boost_stacktrace_basic_boost_stacktrace_basic
--- Found: /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_stacktrace_basic.a
--- Library boost_stacktrace_backtrace found /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_stacktrace_backtrace.a
--- Skipping already existing target: CONAN_LIB::Boost_stacktrace_backtrace_boost_stacktrace_backtrace
--- Found: /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_stacktrace_backtrace.a
--- Library boost_stacktrace_addr2line found /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_stacktrace_addr2line.a
--- Skipping already existing target: CONAN_LIB::Boost_stacktrace_addr2line_boost_stacktrace_addr2line
--- Found: /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_stacktrace_addr2line.a
--- Library boost_regex found /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_regex.a
--- Skipping already existing target: CONAN_LIB::Boost_regex_boost_regex
--- Found: /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_regex.a
--- Library boost_random found /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_random.a
--- Skipping already existing target: CONAN_LIB::Boost_random_boost_random
--- Found: /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_random.a
--- Library boost_program_options found /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_program_options.a
--- Skipping already existing target: CONAN_LIB::Boost_program_options_boost_program_options
--- Found: /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_program_options.a
--- Library boost_nowide found /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_nowide.a
--- Skipping already existing target: CONAN_LIB::Boost_nowide_boost_nowide
--- Found: /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_nowide.a
--- Library boost_math_tr1l found /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_math_tr1l.a
--- Skipping already existing target: CONAN_LIB::Boost_math_tr1l_boost_math_tr1l
--- Found: /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_math_tr1l.a
--- Library boost_math_tr1f found /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_math_tr1f.a
--- Skipping already existing target: CONAN_LIB::Boost_math_tr1f_boost_math_tr1f
--- Found: /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_math_tr1f.a
--- Library boost_math_tr1 found /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_math_tr1.a
--- Skipping already existing target: CONAN_LIB::Boost_math_tr1_boost_math_tr1
--- Found: /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_math_tr1.a
--- Library boost_math_c99l found /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_math_c99l.a
--- Skipping already existing target: CONAN_LIB::Boost_math_c99l_boost_math_c99l
--- Found: /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_math_c99l.a
--- Library boost_math_c99f found /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_math_c99f.a
--- Skipping already existing target: CONAN_LIB::Boost_math_c99f_boost_math_c99f
--- Found: /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_math_c99f.a
--- Library boost_math_c99 found /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_math_c99.a
--- Skipping already existing target: CONAN_LIB::Boost_math_c99_boost_math_c99
--- Found: /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_math_c99.a
--- Library boost_log found /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_log.a
--- Skipping already existing target: CONAN_LIB::Boost_log_boost_log
--- Found: /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_log.a
--- Library boost_log_setup found /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_log_setup.a
--- Skipping already existing target: CONAN_LIB::Boost_log_setup_boost_log_setup
--- Found: /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_log_setup.a
--- Library boost_locale found /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_locale.a
--- Skipping already existing target: CONAN_LIB::Boost_locale_boost_locale
--- Found: /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_locale.a
--- Library boost_json found /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_json.a
--- Skipping already existing target: CONAN_LIB::Boost_json_boost_json
--- Found: /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_json.a
--- Library boost_iostreams found /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_iostreams.a
--- Skipping already existing target: CONAN_LIB::Boost_iostreams_boost_iostreams
--- Found: /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_iostreams.a
--- Library boost_graph found /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_graph.a
--- Skipping already existing target: CONAN_LIB::Boost_graph_boost_graph
--- Found: /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_graph.a
--- Library boost_context found /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_context.a
--- Skipping already existing target: CONAN_LIB::Boost_context_boost_context
--- Found: /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_context.a
--- Library boost_fiber found /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_fiber.a
--- Skipping already existing target: CONAN_LIB::Boost_fiber_boost_fiber
--- Found: /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_fiber.a
--- Library boost_fiber_numa found /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_fiber_numa.a
--- Skipping already existing target: CONAN_LIB::Boost_fiber_numa_boost_fiber_numa
--- Found: /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_fiber_numa.a
--- Library boost_coroutine found /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_coroutine.a
--- Skipping already existing target: CONAN_LIB::Boost_coroutine_boost_coroutine
--- Found: /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_coroutine.a
--- Library boost_contract found /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_contract.a
--- Skipping already existing target: CONAN_LIB::Boost_contract_boost_contract
--- Found: /root/.conan/data/boost/1.79.0/_/_/package/dc8aedd23a0f0a773a5fcdcfe1ae3e89c4205978/lib/libboost_contract.a
--- Could not find `LibEv` package.
-	Debian: sudo apt update && sudo apt install libev-dev
-	MacOS: brew install libev
-	Fedora: sudo dnf install libev-devel
-	ArchLinux: sudo pacman -S libev
- (missing: LibEv_LIBRARIES LibEv_INCLUDE_DIRS) 
--- Configuring incomplete, errors occurred!
-See also "/root/.conan/data/userver/1.0.0/_/_/build/234fb18387a355c1e147b2b545c0203591d1b859/cmake-build/CMakeFiles/CMakeOutput.log".
-See also "/root/.conan/data/userver/1.0.0/_/_/build/234fb18387a355c1e147b2b545c0203591d1b859/cmake-build/CMakeFiles/CMakeError.log".
-userver/1.0.0: 
+-- Library curl found /root/.conan/data/libcurl/7.68.0/_/_/package/0c5339e3252a17695b86faf7d8701a95bdc6c4ef/lib/libcurl.a
+-- Found: /root/.conan/data/libcurl/7.68.0/_/_/package/0c5339e3252a17695b86faf7d8701a95bdc6c4ef/lib/libcurl.a
+-- Conan: Using autogenerated Findcryptopp.cmake
+-- Found cryptopp: 8.6.0 (found version "8.6.0") 
+-- Library cryptopp found /root/.conan/data/cryptopp/8.6.0/_/_/package/6557f18ca99c0b6a233f43db00e30efaa525e27e/lib/libcryptopp.a
+-- Found: /root/.conan/data/cryptopp/8.6.0/_/_/package/6557f18ca99c0b6a233f43db00e30efaa525e27e/lib/libcryptopp.a
+-- Library cryptopp found /root/.conan/data/cryptopp/8.6.0/_/_/package/6557f18ca99c0b6a233f43db00e30efaa525e27e/lib/libcryptopp.a
+-- Found: /root/.conan/data/cryptopp/8.6.0/_/_/package/6557f18ca99c0b6a233f43db00e30efaa525e27e/lib/libcryptopp.a
+-- Conan: Using autogenerated Findyaml-cpp.cmake
+-- Found yaml-cpp: 0.7.0 (found version "0.7.0") 
+-- Library yaml-cpp found /root/.conan/data/yaml-cpp/0.7.0/_/_/package/6557f18ca99c0b6a233f43db00e30efaa525e27e/lib/libyaml-cpp.a
+-- Found: /root/.conan/data/yaml-cpp/0.7.0/_/_/package/6557f18ca99c0b6a233f43db00e30efaa525e27e/lib/libyaml-cpp.a
+-- Conan: Using autogenerated Findcctz.cmake
+-- Found cctz: 2.3 (found version "2.3") 
+-- Library cctz found /root/.conan/data/cctz/2.3/_/_/package/238df00604cc31bb14445227f4be73e1727116e7/lib/libcctz.a
+-- Found: /root/.conan/data/cctz/2.3/_/_/package/238df00604cc31bb14445227f4be73e1727116e7/lib/libcctz.a
+-- Conan: Using autogenerated Findhttp_parser.cmake
+-- Found http_parser: 2.9.4 (found version "2.9.4") 
+-- Library http_parser found /root/.conan/data/http_parser/2.9.4/_/_/package/dfbe50feef7f3c6223a476cd5aeadb687084a646/lib/libhttp_parser.a
+-- Found: /root/.conan/data/http_parser/2.9.4/_/_/package/dfbe50feef7f3c6223a476cd5aeadb687084a646/lib/libhttp_parser.a
+-- Conan: Using autogenerated Findjemalloc.cmake
+-- Found jemalloc: 5.2.1 (found version "5.2.1") 
+-- Library jemalloc_pic found /root/.conan/data/jemalloc/5.2.1/_/_/package/dd4b25aaf895ca2136a38b9660b8dbca6ee25a36/lib/libjemalloc_pic.a
+-- Found: /root/.conan/data/jemalloc/5.2.1/_/_/package/dd4b25aaf895ca2136a38b9660b8dbca6ee25a36/lib/libjemalloc_pic.a
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /userver/test_package/build/0bb5c6b789c31ce1a9e22c28a450347b2c15ae87
+[ 50%] Building CXX object CMakeFiles/hello_service.dir/hello_service.cpp.o

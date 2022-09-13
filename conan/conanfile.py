@@ -1,3 +1,4 @@
+import string
 from conans import ConanFile, CMake, tools
 import os
 
@@ -22,7 +23,10 @@ class UserverConan(ConanFile):
         "with_redis": [True, False],
         "with_grpc": [True, False],
         "with_clickhouse": [True, False],
-        "with_universal": [True, False]
+        "with_universal": [True, False],
+        "namespace": ["ANY"],
+        "namespace_begin": ["ANY"],
+        "namespace_end": ["ANY"]
     }
 
     default_options = {
@@ -34,6 +38,9 @@ class UserverConan(ConanFile):
         "with_grpc": False, 
         "with_clickhouse": False,
         "with_universal": False,
+        "namespace": "userver",
+        "namespace_begin": "",
+        "namespace_end": ""
     }
 
     scm = {
@@ -64,12 +71,20 @@ class UserverConan(ConanFile):
             self.requires("jemalloc/5.2.1")
 
     def _configure_cmake(self):
+        if not self.options.namespace_begin:
+            self.options.namespace_begin = f"namespace {self.options.namespace} {{"
+        if not self.options.namespace_end:
+            self.options.namespace_end = "}"
+
         cmake = CMake(self)
         cmake.definitions["CMAKE_FIND_DEBUG_MODE"] = "OFF"
 
         cmake.definitions["USERVER_OPEN_SOURCE_BUILD"] = "ON"
         cmake.definitions["USERVER_IS_THE_ROOT_PROJECT"] = "OFF"
         cmake.definitions["USERVER_DOWNLOAD_PACKAGES"] = "OFF"
+        cmake.definitions["USERVER_NAMESPACE"] = self.options.namespace
+        cmake.definitions["USERVER_NAMESPACE_BEGIN"] = self.options.namespace_begin
+        cmake.definitions["USERVER_NAMESPACE_END"] = self.options.namespace_end
 
         if not self.options.with_jemalloc:
             cmake.definitions["USERVER_FEATURE_JEMALLOC"] = "OFF"
@@ -119,8 +134,15 @@ class UserverConan(ConanFile):
         self.copy(pattern="LICENSE", dst="licenses")
         
         self.copy(pattern="*", dst="include", src="core/include", keep_path=True)
-        self.copy(pattern="libuserver-core.a", dst="lib", src=os.path.join(self._build_subfolder, "userver"), keep_path=False)
-        self.copy(pattern="libuserver-core.so*", dst="lib", src=os.path.join(self._build_subfolder, "userver"), keep_path=False)
+        self.copy(pattern="*", dst="include", src="shared/include", keep_path=True)
+        self.copy(pattern="*", dst="include", src="third_party/moodycamel/include", keep_path=True)
+
+        self.copy(pattern="*libuserver-core.a", dst="lib", src=os.path.join(self._build_subfolder, "userver"), keep_path=False)
+        self.copy(pattern="*libuserver-core.so", dst="lib", src=os.path.join(self._build_subfolder, "userver"), keep_path=False)
 
     def package_info(self):
-        self.cpp_info.libs = [tools.collect_libs(self)]
+        self.cpp_info.libs = tools.collect_libs(self)
+
+        self.cpp_info.defines.append(f"USERVER_NAMESPACE={self.options.namespace}")
+        self.cpp_info.defines.append(f"USERVER_NAMESPACE_BEGIN={self.options.namespace_begin}")
+        self.cpp_info.defines.append(f"USERVER_NAMESPACE_END={self.options.namespace_end}")
