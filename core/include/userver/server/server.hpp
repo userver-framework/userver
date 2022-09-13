@@ -35,6 +35,8 @@ class Server final {
   formats::json::Value GetMonitorData(
       const utils::statistics::StatisticsRequest&) const;
 
+  formats::json::Value GetTotalHandlerStatistics() const;
+
   net::Stats GetServerStats() const;
 
   void AddHandler(const handlers::HttpHandlerBase& handler,

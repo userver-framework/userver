@@ -70,6 +70,9 @@ class HttpHandlerBase : public HandlerBase {
 
   /// @cond
   // For internal use only.
+  HttpHandlerStatistics& GetHandlerStatistics() const;
+
+  // For internal use only.
   HttpRequestStatistics& GetRequestStatistics() const;
   /// @endcond
 

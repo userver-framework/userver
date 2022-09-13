@@ -5,6 +5,7 @@
 
 #include <engine/ev/thread_pool.hpp>
 #include <engine/task/task_processor.hpp>
+#include <server/handlers/http_handler_base_statistics.hpp>
 #include <server/http/http_request_handler.hpp>
 #include <server/http/http_request_impl.hpp>
 #include <server/net/endpoint_info.hpp>
@@ -193,6 +194,19 @@ formats::json::Value Server::GetMonitorData(
   }
 
   return json_data.ExtractValue();
+}
+
+formats::json::Value Server::GetTotalHandlerStatistics() const {
+  const auto& handlers =
+      pimpl->main_port_info_.request_handler_->GetHandlerInfoIndex()
+          .GetHandlers();
+
+  handlers::HttpHandlerStatisticsSnapshot total;
+  for (const auto handler_ptr : handlers) {
+    const auto& statistics = handler_ptr->GetHandlerStatistics().GetTotal();
+    total.Add(handlers::HttpHandlerStatisticsSnapshot{statistics});
+  }
+  return formats::json::ValueBuilder{total}.ExtractValue();
 }
 
 net::Stats Server::GetServerStats() const { return pimpl->GetServerStats(); }

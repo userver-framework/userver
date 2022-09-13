@@ -9,10 +9,6 @@ USERVER_NAMESPACE_BEGIN
 
 namespace components {
 
-namespace {
-const auto kStatisticsName = "server";
-}  // namespace
-
 Server::Server(const components::ComponentConfig& component_config,
                const components::ComponentContext& component_context)
     : LoggableComponentBase(component_config, component_context),
@@ -20,14 +16,21 @@ Server::Server(const components::ComponentConfig& component_config,
           component_config.As<server::ServerConfig>(), component_context)) {
   auto& statistics_storage =
       component_context.FindComponent<StatisticsStorage>().GetStorage();
-  statistics_holder_ = statistics_storage.RegisterExtender(
-      kStatisticsName,
-      [this](const utils::statistics::StatisticsRequest& request) {
+  server_statistics_holder_ = statistics_storage.RegisterExtender(
+      "server", [this](const utils::statistics::StatisticsRequest& request) {
         return ExtendStatistics(request);
+      });
+  handler_statistics_holder_ = statistics_storage.RegisterExtender(
+      "http.handler.total",
+      [this](const utils::statistics::StatisticsRequest& /*request*/) {
+        return server_->GetTotalHandlerStatistics();
       });
 }
 
-Server::~Server() { statistics_holder_.Unregister(); }
+Server::~Server() {
+  server_statistics_holder_.Unregister();
+  handler_statistics_holder_.Unregister();
+}
 
 void Server::OnAllComponentsLoaded() { server_->Start(); }
 

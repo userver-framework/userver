@@ -547,6 +547,10 @@ const std::vector<http::HttpMethod>& HttpHandlerBase::GetAllowedMethods()
   return allowed_methods_;
 }
 
+HttpHandlerStatistics& HttpHandlerBase::GetHandlerStatistics() const {
+  return *handler_statistics_;
+}
+
 HttpRequestStatistics& HttpHandlerBase::GetRequestStatistics() const {
   return *request_statistics_;
 }

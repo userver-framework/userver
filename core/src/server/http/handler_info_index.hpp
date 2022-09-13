@@ -9,6 +9,7 @@
 #include <userver/server/handlers/fallback_handlers.hpp>
 #include <userver/server/handlers/http_handler_base.hpp>
 #include <userver/server/http/http_method.hpp>
+#include <userver/utils/not_null.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -43,6 +44,10 @@ class HandlerInfoIndex final {
 
   void AddHandler(const handlers::HttpHandlerBase& handler,
                   engine::TaskProcessor& task_processor);
+
+  using HandlerList =
+      std::vector<utils::NotNull<const handlers::HttpHandlerBase*>>;
+  const HandlerList& GetHandlers() const;
 
   const HandlerInfo* GetFallbackHandler(handlers::FallbackHandler) const;
 

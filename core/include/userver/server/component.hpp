@@ -96,7 +96,8 @@ class Server final : public LoggableComponentBase {
       const utils::statistics::StatisticsRequest& /*request*/);
 
   std::unique_ptr<server::Server> server_;
-  utils::statistics::Entry statistics_holder_;
+  utils::statistics::Entry server_statistics_holder_;
+  utils::statistics::Entry handler_statistics_holder_;
 };
 
 template <>

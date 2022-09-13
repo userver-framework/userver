@@ -105,11 +105,6 @@ Statistics::ErrorGroup Statistics::ErrorCodeToGroup(std::error_code ec) {
   }
 }
 
-Statistics::Statistics() {
-  /* No way to init std::array<std::atomic<T>, N> w/o explicit default ctr :( */
-  for (auto& status : reply_status_) status = 0;
-}
-
 const char* Statistics::ToString(ErrorGroup error) {
   switch (error) {
     case ErrorGroup::kOk:
@@ -135,14 +130,7 @@ void Statistics::AccountError(ErrorGroup error) {
   error_count_[static_cast<int>(error)]++;
 }
 
-void Statistics::AccountStatus(int code) {
-  try {
-    reply_status_.at(code - kMinHttpStatus)++;
-  } catch (const std::out_of_range&) {
-    LOG_WARNING() << "Non-standard HTTP status code: " << code
-                  << ", skipping statistics accounting";
-  }
-}
+void Statistics::AccountStatus(int code) { reply_status_.Account(code); }
 
 formats::json::ValueBuilder StatisticsToJson(const InstanceStatistics& stats,
                                              FormatMode format_mode) {
@@ -160,12 +148,7 @@ formats::json::ValueBuilder StatisticsToJson(const InstanceStatistics& stats,
   utils::statistics::SolomonChildrenAreLabelValues(errors, "http_error");
   json["errors"] = errors;
 
-  formats::json::ValueBuilder statuses(formats::json::Type::kObject);
-  for (const auto& [code, count] : stats.reply_status) {
-    statuses[std::to_string(code)] = count;
-  }
-  utils::statistics::SolomonChildrenAreLabelValues(statuses, "http_code");
-  json["reply-statuses"] = std::move(statuses);
+  json["reply-statuses"] = stats.reply_status;
 
   json["retries"] = stats.retries;
   json["pending-requests"] = stats.easy_handles;
@@ -213,23 +196,13 @@ InstanceStatistics::InstanceStatistics(const Statistics& other)
     : easy_handles(other.easy_handles_.load()),
       last_time_to_start_us(other.last_time_to_start_us_.load()),
       timings_percentile(other.timings_percentile_.GetStatsForPeriod()),
+      reply_status(other.reply_status_.GetSnapshot()),
       retries(other.retries_.load()),
       timeout_updated_by_deadline(other.timeout_updated_by_deadline_.load()),
       cancelled_by_deadline(other.cancelled_by_deadline_.load()) {
   for (size_t i = 0; i < error_count.size(); i++)
     error_count[i] = other.error_count_[i].load();
-
-  for (size_t i = 0; i < other.reply_status_.size(); i++) {
-    const auto& value = other.reply_status_[i].load();
-    auto status = i + Statistics::kMinHttpStatus;
-    if (value || IsForcedStatusCode(status)) reply_status[status] = value;
-  }
-
   multi.socket_open = other.socket_open_;
-}
-
-bool InstanceStatistics::IsForcedStatusCode(int status) {
-  return status == 200 || status == 400 || status == 401 || status == 500;
 }
 
 uint64_t InstanceStatistics::GetNotOkErrorCount() const {
