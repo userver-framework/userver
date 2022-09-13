@@ -7,9 +7,8 @@
 #include <thread>
 #include <vector>
 
-// Some Linux platforms have old version of Boost, without the Boost.DLL library
 #if defined(__APPLE__)
-#include <boost/dll/runtime_symbol_info.hpp>
+#include <mach-o/dyld.h>
 #else
 #include <boost/filesystem.hpp>
 #endif
@@ -68,9 +67,13 @@ UTEST(Subprocess, CheckSpdlogClosesFds) {
       engine::current_task::GetTaskProcessor());
 
 #if defined(__APPLE__)
-  auto self = boost::dll::program_location();
+  std::string self;
+  uint32_t self_len = 0;
+  ASSERT_EQ(_NSGetExecutablePath(self.data(), &self_len), -1);
+  self.resize(self_len);
+  ASSERT_EQ(_NSGetExecutablePath(self.data(), &self_len), 0);
 #else
-  auto self = boost::filesystem::read_symlink("/proc/self/exe").string();
+  auto self = boost::filesystem::read_symlink("/proc/self/exe").native();
 #endif
 
   auto future = starter.Exec(
