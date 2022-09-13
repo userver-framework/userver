@@ -55,9 +55,14 @@ class UserverConan(ConanFile):
         if self.options.shared:
             del self.options.fPIC
 
+        if not self.options.namespace_begin:
+            self.options.namespace_begin = f"namespace {self.options.namespace} {{"
+        if not self.options.namespace_end:
+            self.options.namespace_end = "}"
+
     def requirements(self):
         self.requires("boost/1.79.0")
-        self.requires("libev/4.33")
+        #self.requires("libev/4.33")
         self.requires("spdlog/1.9.0")
         self.requires("fmt/8.1.1")
         self.requires("c-ares/1.18.1")
@@ -71,11 +76,6 @@ class UserverConan(ConanFile):
             self.requires("jemalloc/5.2.1")
 
     def _configure_cmake(self):
-        if not self.options.namespace_begin:
-            self.options.namespace_begin = f"namespace {self.options.namespace} {{"
-        if not self.options.namespace_end:
-            self.options.namespace_end = "}"
-
         cmake = CMake(self)
         cmake.definitions["CMAKE_FIND_DEBUG_MODE"] = "OFF"
 
@@ -106,7 +106,7 @@ class UserverConan(ConanFile):
 
     def build(self):
         # Rename some packages for cmake to find them in find_package
-        os.rename("Findlibev.cmake", "FindLibEv.cmake")
+        #os.rename("Findlibev.cmake", "FindLibEv.cmake")
         os.rename("Findcryptopp.cmake", "FindCryptoPP.cmake")
         os.rename("Findyaml-cpp.cmake", "Findlibyamlcpp.cmake")
         os.rename("Findhttp_parser.cmake", "FindHttp_Parser.cmake")
@@ -124,7 +124,7 @@ class UserverConan(ConanFile):
         tools.replace_in_file("Findlibyamlcpp.cmake", "yaml-cpp::yaml-cpp", "libyamlcpp")
         tools.replace_in_file("Findcctz.cmake", "cctz::cctz", "cctz")
         tools.replace_in_file("Findc-ares.cmake", "c-ares::c-ares", "c-ares")
-        tools.replace_in_file("FindLibEv.cmake", "libev::libev", "LibEv")
+        #tools.replace_in_file("FindLibEv.cmake", "libev::libev", "LibEv")
         tools.replace_in_file("FindHttp_Parser.cmake", "http_parser::http_parser", "Http_Parser")
 
         cmake = self._configure_cmake()

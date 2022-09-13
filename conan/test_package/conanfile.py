@@ -1,5 +1,4 @@
-from conans import ConanFile, CMake, tools
-import os
+from conans import ConanFile, CMake
 
 
 class UserverTestConan(ConanFile):
@@ -15,6 +14,4 @@ class UserverTestConan(ConanFile):
         cmake.build()
 
     def test(self):
-        if not tools.cross_building(self):
-            bin_path = os.path.join("bin", "example")
-            self.run(bin_path, run_environment=True)
+        self.run("./hello_service")
