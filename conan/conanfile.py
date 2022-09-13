@@ -142,6 +142,7 @@ class UserverConan(ConanFile):
 
     def package_info(self):
         self.cpp_info.libs = tools.collect_libs(self)
+        self.cpp_info.system_libs.append("ev")
 
         self.cpp_info.defines.append(f"USERVER_NAMESPACE={self.options.namespace}")
         self.cpp_info.defines.append(f"USERVER_NAMESPACE_BEGIN={self.options.namespace_begin}")
