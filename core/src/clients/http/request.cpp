@@ -157,6 +157,18 @@ void SetHeaders(curl::easy& easy, const Range& headers_range) {
   }
 }
 
+bool IsAllowedSchemaInUrl(std::string_view url) {
+  static constexpr std::string_view kAllowedSchemas[] = {"http://", "https://"};
+
+  for (std::string_view allowed_schema : kAllowedSchemas) {
+    if (utils::StrIcaseEqual{}(allowed_schema,
+                               url.substr(0, allowed_schema.size()))) {
+      return true;
+    }
+  }
+  return false;
+}
+
 }  // namespace
 
 ProxyAuthType ProxyAuthTypeFromString(const std::string& auth_name) {
@@ -208,6 +220,10 @@ StreamedResponse Request::async_perform_stream_body(
 std::shared_ptr<Response> Request::perform() { return async_perform().Get(); }
 
 std::shared_ptr<Request> Request::url(const std::string& url) {
+  if (!IsAllowedSchemaInUrl(url)) {
+    throw BadArgumentException(curl::errc::EasyErrorCode::kUnsupportedProtocol,
+                               "Bad URL", url, {});
+  }
   std::error_code ec;
   pimpl_->easy().set_url(url, ec);
   if (ec) throw BadArgumentException(ec, "Bad URL", url, {});

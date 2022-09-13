@@ -1432,4 +1432,20 @@ UTEST(HttpClient, DISABLED_TestsuiteAllowedUrls) {
   task.Get();
 }
 
+UTEST(HttpClient, CheckSchema) {
+  auto http_client_ptr = utest::CreateHttpClient();
+  UEXPECT_NO_THROW(http_client_ptr->CreateRequest()->url("http://localhost"));
+  UEXPECT_NO_THROW(http_client_ptr->CreateRequest()->url("https://localhost"));
+  UEXPECT_NO_THROW(http_client_ptr->CreateRequest()->url("httpS://localhost"));
+  UEXPECT_NO_THROW(http_client_ptr->CreateRequest()->url("HTTP://LOCALHOST"));
+  UEXPECT_THROW(http_client_ptr->CreateRequest()->url("dict://localhost"),
+                clients::http::BadArgumentException);
+  UEXPECT_THROW(http_client_ptr->CreateRequest()->url("file://localhost"),
+                clients::http::BadArgumentException);
+  UEXPECT_THROW(http_client_ptr->CreateRequest()->url("smtp://localhost"),
+                clients::http::BadArgumentException);
+  UEXPECT_THROW(http_client_ptr->CreateRequest()->url("telnet://localhost"),
+                clients::http::BadArgumentException);
+}
+
 USERVER_NAMESPACE_END
