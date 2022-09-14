@@ -98,6 +98,8 @@ void PutArg(CmdArgs::CmdArgsArray& args_,
 }
 
 logging::LogHelper& operator<<(logging::LogHelper& os, const CmdArgs& v) {
+  constexpr std::size_t kArgSizeLimit = 1024;
+
   if (v.args.size() > 1) os << "[";
   bool first = true;
   for (const auto& arg_array : v.args) {
@@ -124,10 +126,18 @@ logging::LogHelper& operator<<(logging::LogHelper& os, const CmdArgs& v) {
         }
       }
 
-      if (utils::text::IsUtf8(arg))
-        os << arg;
-      else
+      if (utils::text::IsUtf8(arg)) {
+        if (arg.size() <= kArgSizeLimit) {
+          os << arg;
+        } else {
+          std::string_view view{arg};
+          view = view.substr(0, kArgSizeLimit);
+          utils::text::utf8::TrimViewTruncatedEnding(view);
+          os << view << "<...>";
+        }
+      } else {
         os << "<bin:" << arg.size() << ">";
+      }
     }
     os << "\"";
   }
