@@ -1,4 +1,3 @@
-import string
 from conans import ConanFile, CMake, tools
 import os
 
@@ -62,7 +61,7 @@ class UserverConan(ConanFile):
 
     def requirements(self):
         self.requires("boost/1.79.0")
-        #self.requires("libev/4.33")
+        self.requires("libev/4.33")
         self.requires("spdlog/1.9.0")
         self.requires("fmt/8.1.1")
         self.requires("c-ares/1.18.1")
@@ -71,9 +70,12 @@ class UserverConan(ConanFile):
         self.requires("yaml-cpp/0.7.0")
         self.requires("cctz/2.3")
         self.requires("http_parser/2.9.4")
+        self.requires("openssl/1.1.1q")
 
         if self.options.with_jemalloc:
             self.requires("jemalloc/5.2.1")
+        if self.options.with_grpc:
+            self.requires("grpc/1.48.0")
 
     def _configure_cmake(self):
         cmake = CMake(self)
@@ -106,7 +108,7 @@ class UserverConan(ConanFile):
 
     def build(self):
         # Rename some packages for cmake to find them in find_package
-        #os.rename("Findlibev.cmake", "FindLibEv.cmake")
+        os.rename("Findlibev.cmake", "FindLibEv.cmake")
         os.rename("Findcryptopp.cmake", "FindCryptoPP.cmake")
         os.rename("Findyaml-cpp.cmake", "Findlibyamlcpp.cmake")
         os.rename("Findhttp_parser.cmake", "FindHttp_Parser.cmake")
@@ -114,6 +116,14 @@ class UserverConan(ConanFile):
         if self.options.with_jemalloc:
             os.rename("Findjemalloc.cmake", "FindJemalloc.cmake")
             tools.replace_in_file("FindJemalloc.cmake", "jemalloc::jemalloc", "Jemalloc")
+
+        # The simplest way for grpc to be found correctly is to patch CMakeLists
+        if self.options.with_grpc:
+            tools.replace_in_file("grpc/CMakeLists.txt", "find_package(UserverGrpc REQUIRED)", "find_package(gRPC REQUIRED)")
+            tools.replace_in_file("grpc/CMakeLists.txt", "add_library(Grpc ALIAS UserverGrpc)", "")
+            tools.replace_in_file("grpc/CMakeLists.txt", "find_package(UserverProtobuf REQUIRED)", "find_package(Protobuf REQUIRED)")
+            tools.replace_in_file("grpc/CMakeLists.txt", "add_library(Protobuf ALIAS UserverProtobuf)", "")
+            tools.replace_in_file("FindgRPC.cmake", "gRPC::gRPC", "Grpc")
 
         # Tune Find* files to produce correct variables-
         tools.replace_in_file("FindCryptoPP.cmake", "cryptopp_FOUND", "CryptoPP_FOUND")
@@ -124,8 +134,9 @@ class UserverConan(ConanFile):
         tools.replace_in_file("Findlibyamlcpp.cmake", "yaml-cpp::yaml-cpp", "libyamlcpp")
         tools.replace_in_file("Findcctz.cmake", "cctz::cctz", "cctz")
         tools.replace_in_file("Findc-ares.cmake", "c-ares::c-ares", "c-ares")
-        #tools.replace_in_file("FindLibEv.cmake", "libev::libev", "LibEv")
+        tools.replace_in_file("FindLibEv.cmake", "libev::libev", "LibEv")
         tools.replace_in_file("FindHttp_Parser.cmake", "http_parser::http_parser", "Http_Parser")
+        tools.replace_in_file("Findfmt.cmake", "add_library(fmt::fmt INTERFACE IMPORTED)", "add_library(fmt::fmt INTERFACE IMPORTED)\nadd_library(fmt ALIAS fmt::fmt)")
 
         cmake = self._configure_cmake()
         cmake.build()
@@ -136,6 +147,9 @@ class UserverConan(ConanFile):
         self.copy(pattern="*", dst="include", src="core/include", keep_path=True)
         self.copy(pattern="*", dst="include", src="shared/include", keep_path=True)
         self.copy(pattern="*", dst="include", src="third_party/moodycamel/include", keep_path=True)
+
+        if self.options.with_grpc:
+            self.copy(pattern="*", dst="include", src="grpc/include", keep_path=True)
 
         self.copy(pattern="*libuserver-core.a", dst="lib", src=os.path.join(self._build_subfolder, "userver"), keep_path=False)
         self.copy(pattern="*libuserver-core.so", dst="lib", src=os.path.join(self._build_subfolder, "userver"), keep_path=False)
