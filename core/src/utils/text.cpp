@@ -35,10 +35,25 @@ std::string Join(const std::vector<std::string>& strs, std::string_view sep) {
   return boost::algorithm::join(strs, sep);
 }
 
+namespace {
+
+const std::string kLocaleArabic = "ar";
+const std::string kLocaleArabicNumbersLatn = "ar@numbers=latn";
+
+}  // namespace
+
 std::string Format(double value, const std::string& locale, int ndigits,
                    bool is_fixed) {
   std::stringstream res;
-  res.imbue(GetLocale(locale));
+
+  // localization of arabic numerals is broken, fallback to latin (0-9)
+  if (locale == kLocaleArabic) {
+    // see: https://sites.google.com/site/icuprojectuserguide/locale
+    res.imbue(GetLocale(kLocaleArabicNumbersLatn));
+  } else {
+    res.imbue(GetLocale(locale));
+  }
+
   if (is_fixed) res.setf(std::ios::fixed, std::ios::floatfield);
   res.precision(ndigits);
 
