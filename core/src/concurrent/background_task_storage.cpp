@@ -1,6 +1,7 @@
 #include <userver/concurrent/background_task_storage.hpp>
 
 #include <userver/engine/task/cancel.hpp>
+#include <userver/server/request/task_inherited_data.hpp>
 #include <userver/utils/assert.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -34,6 +35,10 @@ std::int64_t BackgroundTaskStorage::ActiveTasksApprox() const noexcept {
   UASSERT_MSG(sync_block_, "Trying to get the task count for a dead BTS");
   if (!sync_block_) return 0;
   return sync_block_->ActiveTasksApprox();
+}
+
+void BackgroundTaskStorage::DropHandlerInheritedData() {
+  server::request::kTaskInheritedData.Erase();
 }
 
 }  // namespace concurrent

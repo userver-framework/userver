@@ -3,9 +3,12 @@
 /// @file userver/concurrent/background_task_storage.hpp
 /// @brief @copybrief concurrent::BackgroundTaskStorage
 
+#include <cstdint>
+#include <functional>
 #include <utility>
 
 #include <userver/engine/impl/detached_tasks_sync_block.hpp>
+#include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/utils/async.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -15,13 +18,12 @@ namespace concurrent {
 /// @ingroup userver_concurrency userver_containers
 ///
 /// A storage that allows one to start detached tasks and wait for their
-/// completion at the storage destructor. All active tasks are cancelled at
-/// the storage destructor.
+/// completion at the storage destructor. All active tasks are cancelled at an
+/// explicit CancelAndWait call (recommended) or at the storage destructor.
 ///
-/// Usable for detached tasks that capture
-/// references to resources with a limited lifetime. You must guarantee that
-/// the resources are available while storage is alive.
-/// Uses mutex, so might not be the best option for hot paths.
+/// Usable for detached tasks that capture references to resources with a
+/// limited lifetime. You must guarantee that the resources are available while
+/// the BackgroundTaskStorage is alive.
 ///
 /// ## Usage synopsis
 /// ```
@@ -54,9 +56,21 @@ class BackgroundTaskStorage final {
 
   /// Launch a task that will be cancelled and waited for in the BTS destructor.
   /// See utils::Async for parameter details.
+  ///
+  /// @see server::request::kTaskInheritedData Stops deadline propagation.
   template <typename... Args>
-  void AsyncDetach(Args&&... args) {
-    Detach(utils::Async(std::forward<Args>(args)...));
+  void AsyncDetach(std::string name, Args&&... args) {
+    Detach(utils::Async(std::move(name), HandlerInheritedDataDropper{},
+                        std::forward<Args>(args)...));
+  }
+
+  /// @overload
+  template <typename... Args>
+  void AsyncDetach(engine::TaskProcessor& task_processor, std::string name,
+                   Args&&... args) {
+    Detach(utils::Async(task_processor, std::move(name),
+                        HandlerInheritedDataDropper{},
+                        std::forward<Args>(args)...));
   }
 
   /// @brief Detaches task, allowing it to continue execution out of scope. It
@@ -68,6 +82,16 @@ class BackgroundTaskStorage final {
   std::int64_t ActiveTasksApprox() const noexcept;
 
  private:
+  static void DropHandlerInheritedData();
+
+  struct HandlerInheritedDataDropper final {
+    template <typename... Args>
+    auto operator()(Args&&... args) {
+      DropHandlerInheritedData();
+      return std::invoke(std::forward<Args>(args)...);
+    }
+  };
+
   std::optional<engine::impl::DetachedTasksSyncBlock> sync_block_;
 };
 
