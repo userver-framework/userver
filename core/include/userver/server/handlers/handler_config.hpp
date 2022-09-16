@@ -27,11 +27,11 @@ struct HandlerConfig {
   std::variant<std::string, FallbackHandler> path;
   std::string task_processor;
   std::string method;
-  size_t max_request_size;
-  size_t max_headers_size;
+  size_t max_request_size{1024 * 1024};
+  size_t max_headers_size{65536};
   size_t request_body_size_log_limit{0};
   size_t response_data_size_log_limit{0};
-  bool parse_args_from_body;
+  bool parse_args_from_body{false};
   std::optional<auth::HandlerAuthConfig> auth;
   UrlTrailingSlashOption url_trailing_slash{UrlTrailingSlashOption::kDefault};
   std::optional<size_t> max_requests_in_flight;
