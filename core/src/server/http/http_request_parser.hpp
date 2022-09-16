@@ -23,7 +23,7 @@ class HttpRequestParser final : public request::RequestParser {
       std::function<void(std::shared_ptr<request::RequestBase>&&)>;
 
   HttpRequestParser(const HandlerInfoIndex& handler_info_index,
-                    const request::RequestConfig& request_config,
+                    const request::HttpRequestConfig& request_config,
                     OnNewRequestCb&& on_new_request_cb, net::ParserStats& stats,
                     request::ResponseDataAccounter& data_accounter);
 

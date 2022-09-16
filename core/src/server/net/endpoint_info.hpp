@@ -4,8 +4,7 @@
 
 #include <server/http/http_request_handler.hpp>
 #include <server/net/connection.hpp>
-
-#include "listener_config.hpp"
+#include <server/net/listener_config.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

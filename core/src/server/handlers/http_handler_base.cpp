@@ -7,6 +7,7 @@
 #include <server/handlers/http_handler_base_statistics.hpp>
 #include <server/handlers/http_server_settings.hpp>
 #include <server/http/http_request_impl.hpp>
+#include <server/server_config.hpp>
 #include <userver/components/component.hpp>
 #include <userver/components/statistics_storage.hpp>
 #include <userver/dynamic_config/storage/component.hpp>
@@ -24,7 +25,6 @@
 #include <userver/server/http/http_method.hpp>
 #include <userver/server/http/http_response_body_stream.hpp>
 #include <userver/server/request/task_inherited_data.hpp>
-#include <userver/server/server_config.hpp>
 #include <userver/tracing/set_throttle_reason.hpp>
 #include <userver/tracing/span.hpp>
 #include <userver/tracing/tags.hpp>
@@ -635,7 +635,7 @@ void HttpHandlerBase::DecompressRequestBody(
       auto body = compression::gzip::Decompress(http_request.RequestBody(),
                                                 GetConfig().max_request_size);
       http_request.SetRequestBody(std::move(body));
-      if (GetConfig().parse_args_from_body.value_or(false)) {
+      if (GetConfig().parse_args_from_body) {
         http_request.ParseArgsFromBody();
       }
       return;

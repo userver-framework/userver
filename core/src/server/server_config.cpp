@@ -1,4 +1,4 @@
-#include <userver/server/server_config.hpp>
+#include <server/server_config.hpp>
 
 #include <userver/formats/parse/common_containers.hpp>
 #include <userver/utils/userver_info.hpp>

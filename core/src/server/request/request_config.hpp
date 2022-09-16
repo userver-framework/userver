@@ -1,8 +1,6 @@
 #pragma once
 
 #include <cstdint>
-#include <string>
-#include <variant>
 
 #include <userver/yaml_config/yaml_config.hpp>
 
@@ -19,27 +17,8 @@ struct HttpRequestConfig {
   bool decompress_request = false;
 };
 
-class RequestConfig final {
- public:
-  enum class Type { kHttp };
-
-  constexpr explicit RequestConfig(const HttpRequestConfig& config)
-      : config_(config) {}
-
-  Type GetType() const;
-
-  const HttpRequestConfig& GetHttpConfig() const {
-    return std::get<HttpRequestConfig>(config_);
-  }
-
-  static const std::string& TypeToString(Type type);
-
- private:
-  std::variant<HttpRequestConfig> config_{};
-};
-
-RequestConfig Parse(const yaml_config::YamlConfig& value,
-                    formats::parse::To<RequestConfig>);
+HttpRequestConfig Parse(const yaml_config::YamlConfig& value,
+                        formats::parse::To<HttpRequestConfig>);
 
 }  // namespace server::request
 

@@ -1,5 +1,6 @@
 #include <components/manager_config.hpp>
 
+#include <server/server_config.hpp>
 #include <userver/server/handlers/handler_config.hpp>
 
 #include <algorithm>
@@ -223,7 +224,8 @@ TEST(ManagerConfig, HandlerConfig) {
 
   EXPECT_EQ(it->GetPath(), "components_manager.components.tests-control");
 
-  const auto conf = it->As<server::handlers::HandlerConfig>();
+  const auto conf = server::handlers::ParseHandlerConfigsWithDefaults(
+      *it, server::ServerConfig{});
 
   EXPECT_EQ(std::get<std::string>(conf.path), "/tests/control");
   EXPECT_EQ(conf.task_processor, "main-task-processor");

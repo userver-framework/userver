@@ -151,7 +151,6 @@ components_manager:
         path: /ping
         method: GET
         task_processor: main-task-processor
-        max_url_size: 128
         max_request_size: 256
         max_headers_size: 256
         parse_args_from_body: false

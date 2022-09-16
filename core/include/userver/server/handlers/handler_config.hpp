@@ -9,6 +9,10 @@
 
 USERVER_NAMESPACE_BEGIN
 
+namespace server {
+struct ServerConfig;
+}  // namespace server
+
 namespace server::handlers {
 
 /// Defines matching behavior for paths with trailing slashes.
@@ -23,12 +27,11 @@ struct HandlerConfig {
   std::variant<std::string, FallbackHandler> path;
   std::string task_processor;
   std::string method;
-  std::optional<size_t> max_url_size;
-  size_t max_request_size{0};
-  std::optional<size_t> max_headers_size;
+  size_t max_request_size;
+  size_t max_headers_size;
   size_t request_body_size_log_limit{0};
   size_t response_data_size_log_limit{0};
-  std::optional<bool> parse_args_from_body;
+  bool parse_args_from_body;
   std::optional<auth::HandlerAuthConfig> auth;
   UrlTrailingSlashOption url_trailing_slash{UrlTrailingSlashOption::kDefault};
   std::optional<size_t> max_requests_in_flight;
@@ -39,8 +42,9 @@ struct HandlerConfig {
   std::optional<bool> set_response_server_hostname;
 };
 
-HandlerConfig Parse(const yaml_config::YamlConfig& value,
-                    formats::parse::To<HandlerConfig>);
+HandlerConfig ParseHandlerConfigsWithDefaults(
+    const yaml_config::YamlConfig& value,
+    const server::ServerConfig& server_config, bool is_monitor = false);
 
 }  // namespace server::handlers
 
