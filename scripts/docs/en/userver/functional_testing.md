@@ -18,6 +18,7 @@ Supported features:
 * Testpoint
 * Cache invalidation
 * Logs capture
+* Service runner
 
 ## CMake integration
 
@@ -296,6 +297,26 @@ Example usage:
 * C++ code: @ref samples/testsuite-support/src/metrics.cpp
 * C++ header: @ref samples/testsuite-support/src/metrics.hpp
 * Testcase: @ref samples/testsuite-support/tests/test_metrics.py
+
+#### Service runner
+
+Testsuite provides a way to start standalone service with all mocks and database started.
+This can be done by adding `--service-runner-mode` flag to pytest, e.g.:
+
+```shell
+./build/tests/runtests-my-project ./tests -s --service-runner-mode
+```
+
+Please note that `-s` flag is required to disable console output capture.
+
+`pytest_userver` provides default service runner testcase.
+In order to override it you have to add your own testcase with `@pytest.mark.servicetest`:
+
+```python
+@pytest.mark.servicetest
+def test_service(service_client):
+    ...
+```
 
 
 ----------

@@ -5,5 +5,6 @@ pytest_plugins = [
     'pytest_userver.plugins.log_capture',
     'pytest_userver.plugins.service',
     'pytest_userver.plugins.service_client',
+    'pytest_userver.plugins.service_runner',
     'pytest_userver.plugins.testpoint',
 ]
