@@ -42,6 +42,8 @@ class UserverConan(ConanFile):
         "namespace_end": ""
     }
 
+    exports_sources = "cmake/*"
+
     scm = {
         "type": "git",
         "url": "https://github.com/jorgenpo/userver.git",
@@ -87,6 +89,7 @@ class UserverConan(ConanFile):
         cmake.definitions["USERVER_NAMESPACE"] = self.options.namespace
         cmake.definitions["USERVER_NAMESPACE_BEGIN"] = self.options.namespace_begin
         cmake.definitions["USERVER_NAMESPACE_END"] = self.options.namespace_end
+        cmake.definitions["USERVER_FEATURE_STACKTRACE"] = "OFF"
 
         if not self.options.with_jemalloc:
             cmake.definitions["USERVER_FEATURE_JEMALLOC"] = "OFF"
@@ -144,19 +147,26 @@ class UserverConan(ConanFile):
     def package(self):
         self.copy(pattern="LICENSE", dst="licenses")
         
-        self.copy(pattern="*", dst="include", src="core/include", keep_path=True)
-        self.copy(pattern="*", dst="include", src="shared/include", keep_path=True)
-        self.copy(pattern="*", dst="include", src="third_party/moodycamel/include", keep_path=True)
-
-        if self.options.with_grpc:
-            self.copy(pattern="*", dst="include", src="grpc/include", keep_path=True)
+        self.copy(pattern="*", dst="include", src=os.path.join("core", "include"), keep_path=True)
+        self.copy(pattern="*", dst="include", src=os.path.join("shared", "include"), keep_path=True)
+        self.copy(pattern="*", dst="include", src=os.path.join("third_party", "moodycamel", "include"), keep_path=True)
 
         self.copy(pattern="*libuserver-core.a", dst="lib", src=os.path.join(self._build_subfolder, "userver"), keep_path=False)
         self.copy(pattern="*libuserver-core.so", dst="lib", src=os.path.join(self._build_subfolder, "userver"), keep_path=False)
 
+        if self.options.with_grpc:
+            self.copy(pattern="*", dst="include", src=os.path.join("grpc", "include"), keep_path=True)
+            self.copy(pattern="*", dst=os.path.join("scripts", "grpc"), src=os.path.join("scripts", "grpc"), keep_path=True)
+            self.copy(pattern="*.so", dst="lib", src=os.path.join(self._build_subfolder, "userver", "grpc"))
+            self.copy(pattern="*.a", dst="lib", src=os.path.join(self._build_subfolder, "userver", "grpc"))
+
+            os.rename(os.path.join("cmake", "GrpcTargets.cmake"), os.path.join("cmake", "GrpcTargetsImpl.cmake"))
+            os.rename(os.path.join("cmake", "GrpcTargetsWrapper.cmake"), os.path.join("cmake", "GrpcTargets.cmake"))
+            self.copy(pattern="GrpcTargets*.cmake", dst="cmake", src="cmake", keep_path=False)
+
     def package_info(self):
         self.cpp_info.libs = tools.collect_libs(self)
-        self.cpp_info.system_libs.append("ev")
+        self.cpp_info.builddirs.append("cmake")
 
         self.cpp_info.defines.append(f"USERVER_NAMESPACE={self.options.namespace}")
         self.cpp_info.defines.append(f"USERVER_NAMESPACE_BEGIN={self.options.namespace_begin}")

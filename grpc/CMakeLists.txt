@@ -36,7 +36,7 @@ target_include_directories(${PROJECT_NAME}
     ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 
-target_link_libraries(${PROJECT_NAME} PUBLIC userver-core Grpc)
+target_link_libraries(${PROJECT_NAME} PUBLIC userver-core Grpc Protobuf)
 
 if (USERVER_IS_THE_ROOT_PROJECT)
     add_grpc_library(${PROJECT_NAME}_unittest_proto
