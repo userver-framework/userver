@@ -11,7 +11,7 @@ function(userver_sample_testsuite_add)
     endif()
 
     userver_testsuite_add(
-      NAME testsuite-${PROJECT_NAME}
+      SERVICE_TARGET ${PROJECT_NAME}
       WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests
       PYTHON_BINARY ${TESTSUITE_PYTHON_BINARY}
       PYTEST_ARGS

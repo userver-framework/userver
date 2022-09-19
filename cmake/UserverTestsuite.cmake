@@ -68,13 +68,13 @@ endfunction()
 
 function(userver_testsuite_add)
   set(options)
-  set(oneValueArgs NAME WORKING_DIRECTORY PYTHON_BINARY)
+  set(oneValueArgs SERVICE_TARGET WORKING_DIRECTORY PYTHON_BINARY)
   set(multiValueArgs PYTEST_ARGS REQUIREMENTS PYTHONPATH VIRTUALENV_ARGS)
   cmake_parse_arguments(
     ARG "${options}" "${oneValueArgs}" "${multiValueArgs}"  ${ARGN})
 
-  if (NOT ARG_NAME)
-    message(FATAL_ERROR "No NAME given for testsuite")
+  if (NOT ARG_SERVICE_TARGET)
+    message(FATAL_ERROR "No SERVICE_TARGET given for testsuite")
     return()
   endif()
 
@@ -82,14 +82,16 @@ function(userver_testsuite_add)
     set(ARG_WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
   endif()
 
+  set(TESTSUITE_TARGET "testsuite-${ARG_SERVICE_TARGET}")
+
   if (NOT USERVER_FEATURE_TESTSUITE)
-    message(STATUS "Testsuite target ${ARG_NAME} is disabled")
+    message(STATUS "Testsuite target ${TESTSUITE_TARGET} is disabled")
     return()
   endif()
 
   if (ARG_REQUIREMENTS)
     userver_venv_setup(
-      NAME ${ARG_NAME}
+      NAME ${TESTSUITE_TARGET}
       REQUIREMENTS ${ARG_REQUIREMENTS}
       PYTHON_OUTPUT_VAR PYTHON_BINARY
       VIRTUALENV_ARGS ${ARG_VIRTUALENV_ARGS}
@@ -104,7 +106,7 @@ function(userver_testsuite_add)
     message(FATAL_ERROR "No python binary given.")
   endif()
 
-  set(TESTSUITE_RUNNER "${CMAKE_CURRENT_BINARY_DIR}/runtests-${ARG_NAME}")
+  set(TESTSUITE_RUNNER "${CMAKE_CURRENT_BINARY_DIR}/runtests-${TESTSUITE_TARGET}")
   list(APPEND ARG_PYTHONPATH ${USERVER_TESTSUITE_DIR}/pytest_plugins)
 
   execute_process(
@@ -123,8 +125,15 @@ function(userver_testsuite_add)
   endif()
 
   add_test(
-    NAME ${ARG_NAME}
+    NAME ${TESTSUITE_TARGET}
     COMMAND ${TESTSUITE_RUNNER} -vv
+    WORKING_DIRECTORY ${ARG_WORKING_DIRECTORY}
+  )
+
+  add_custom_target(
+    start-${ARG_SERVICE_TARGET}
+    COMMAND ${TESTSUITE_RUNNER} --service-runner-mode -vvs
+    DEPENDS ${TESTSUITE_RUNNER} ${ARG_SERVICE_TARGET}
     WORKING_DIRECTORY ${ARG_WORKING_DIRECTORY}
   )
 endfunction()

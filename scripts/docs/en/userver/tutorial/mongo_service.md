@@ -91,7 +91,7 @@ and start the server with static configuration `kStaticConfig`.
 @snippet samples/mongo_service/mongo_service.cpp  Mongo service sample - main
 
 
-### Build
+### Build and Run
 
 To build the sample, execute the following build steps at the userver root directory:
 ```
@@ -101,7 +101,16 @@ cmake -DCMAKE_BUILD_TYPE=Release ..
 make userver-samples-mongo_service
 ```
 
-Start the DB server and then start the service by running `./samples/mongo_service/userver-samples-mongo_service`.
+The sample could be started by running
+`make start-userver-samples-mongo_service`. The command would invoke
+@ref md_en_userver_functional_testing "testsuite start target" that sets proper
+paths in the configuration files, prepares and starts the DB, and starts the
+service.
+
+To start the service manually start the DB server and run
+`./samples/mongo_service/userver-samples-mongo_service -c </path/to/static_config.yaml>`
+(do not forget to prepare the configuration files!).
+
 Now you can send a request to your service from another terminal:
 ```
 bash

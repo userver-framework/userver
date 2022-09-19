@@ -100,7 +100,9 @@ and start the server with static config `kStaticConfig`.
 
 @snippet samples/postgres_service/postgres_service.cpp  Postgres service sample - main
 
-### Build
+
+### Build and Run
+
 To build the sample, execute the following build steps at the userver root directory:
 ```
 mkdir build_release
@@ -109,7 +111,16 @@ cmake -DCMAKE_BUILD_TYPE=Release ..
 make userver-samples-postgres_service
 ```
 
-Start the DB server and then start the service by running `./samples/postgres_service/userver-samples-postgres_service`.
+The sample could be started by running
+`make start-userver-samples-postgres_service`. The command would invoke
+@ref md_en_userver_functional_testing "testsuite start target" that sets proper
+paths in the configuration files, prepares and starts the DB, and starts the
+service.
+
+To start the service manually start the DB server and run
+`./samples/postgres_service/userver-samples-postgres_service -c </path/to/static_config.yaml>`
+(do not forget to prepare the configuration files!).
+
 Now you can send a request to your service from another terminal:
 ```
 bash

@@ -25,9 +25,11 @@ Supported features:
 With `userver_testsuite_add()` function you can easily add testsuite support to your project.
 Its main purpose is:
 
-* Setup Python environment `virtualenv` or  uses existing one.
+* Setup Python environment `virtualenv` or use an existing one.
 * Create runner script that setups `PYTHONPATH` and passes extra arguments to `pytest`.
 * Registers `ctest` target.
+* Adds a `start-*` target that starts the service and databases with testsuite
+  configs and waits for keyboard interruption to stop the service.
 
 
 @ref cmake/UserverTestsuite.cmake library is automatically addded to CMake path
@@ -40,7 +42,8 @@ Then create testsuite target:
 
 ### Arguments
 
-* NAME, required test name used as `ctest` target name.
+* SERVICE_TARGET, required CMake name of the target service to test. Used as
+  suffix for `testsuite-` and `start-` CMake target names.
 * WORKING_DIRECTORY, pytest working directory. Default is ${CMAKE_CURRENT_SOURCE_DIR}.
 * PYTEST_ARGS, list of extra arguments passed to `pytest`.
 * PYTHONPATH, list of directories to be prepended to `PYTHONPATH`.
@@ -66,15 +69,15 @@ yandex-taxi-testsuite[mongodb]
 Creating per-testsuite virtual environment is a recommended way to go.
 It creates virtualenv that could be found in current binary directory:
 
-`${CMAKE_CURRENT_BINARY_DIR}/venv-${ARG_NAME}`
+`${CMAKE_CURRENT_BINARY_DIR}/venv-testsuite-${SERVICE_TARGET}`
 
 ### Run with ctest
 
-`userver_testsuite_add()` registers a ctest target with name NAME.
+`userver_testsuite_add()` registers a ctest target with name `testsuite-${SERVICE_TARGET}`.
 Run all project tests with ctest command or use filters to run specific tests:
 
 ```shell
-ctest -V -R my-project  # NAME argument is used
+ctest -V -R testsuite-my-project  # SERVICE_TARGET argument is used
 ```
 
 ### Direct run
@@ -84,20 +87,20 @@ that could be found in corresponding binary directory.
 This may be useful to run a single testcase, to start the testsuite with gdb or to
 start the testsuite with extra pytest arguments:
 
-`${CMAKE_CURRENT_BINARY_DIR}/runtests-${ARG_NAME}`
+`${CMAKE_CURRENT_BINARY_DIR}/runtests-testsuite-${SERVICE_TARGET}`
 
 You can use it to manually start testsuite with extra `pytest` arguments, e.g.:
 
 
 ```shell
-./build/tests/runtests-my-project -vvx ./tests -k test_foo
+./build/tests/runtests-testsuite-my-project -vvx ./tests -k test_foo
 ```
 
 Please refer to `testuite` and `pytest` documentation for available options.
 Run it with `--help` argument to see the short options description.
 
 ```shell
-./build/tests/runtests-my-project ./tests --help
+./build/tests/runtests-testsuite-my-project ./tests --help
 ```
 
 ## pytest_userver

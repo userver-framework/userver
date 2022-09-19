@@ -106,7 +106,8 @@ config `kStaticConfig`.
 
 @snippet samples/redis_service/redis_service.cpp Redis service sample - main
 
-### Build
+
+### Build and Run
 
 To build the sample, execute the following build steps at the userver root
 directory:
@@ -118,8 +119,17 @@ cmake -DCMAKE_BUILD_TYPE=Release ..
 make userver-samples-redis_service
 ```
 
-Start the DB server and then start the service by
-running `./samples/redis_service/userver-samples-redis_service`. Now you can send a request to
+The sample could be started by running
+`make start-userver-samples-redis_service`. The command would invoke
+@ref md_en_userver_functional_testing "testsuite start target" that sets proper
+paths in the configuration files, prepares and starts the DB, and starts the
+service.
+
+To start the service manually start the DB server and run
+`./samples/redis_service/userver-samples-redis_service -c </path/to/static_config.yaml>`
+(do not forget to prepare the configuration files!).
+
+Now you can send a request to
 your service from another terminal:
 
 ```

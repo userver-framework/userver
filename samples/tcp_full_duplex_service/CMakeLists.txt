@@ -4,7 +4,7 @@ add_executable(${PROJECT_NAME} "tcp_full_duplex_service.cpp")
 target_link_libraries(${PROJECT_NAME} userver-core)
 
 userver_testsuite_add(
-  NAME testsuite-${PROJECT_NAME}
+  SERVICE_TARGET ${PROJECT_NAME}
   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests
   PYTHON_BINARY ${TESTSUITE_PYTHON_BINARY}
   PYTEST_ARGS

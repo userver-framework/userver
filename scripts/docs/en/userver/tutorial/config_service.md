@@ -90,7 +90,9 @@ and start the server with static config `kStaticConfig`.
 
 @snippet samples/config_service/config_service.cpp  Config service sample - main
 
-### Build
+
+### Build and Run
+
 To build the sample, execute the following build steps at the userver root directory:
 ```
 bash
@@ -100,7 +102,15 @@ cmake -DCMAKE_BUILD_TYPE=Release ..
 make userver-samples-config_service
 ```
 
-Start the server by running `./samples/config_service/userver-samples-config_service`.
+The sample could be started by running
+`make start-userver-samples-config_service`. The command would invoke
+@ref md_en_userver_functional_testing "testsuite start target" that sets proper
+paths in the configuration files and starts the service.
+
+To start the service manually run
+`./samples/config_service/userver-samples-config_service -c </path/to/static_config.yaml>`
+(do not forget to prepare the configuration files!).
+
 Now you can send a request to your server from another terminal:
 ```
 bash

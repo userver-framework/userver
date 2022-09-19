@@ -55,7 +55,7 @@ Finally, we register our components and start the server.
 
 @snippet samples/http_caching/http_caching.cpp  HTTP caching sample - main
 
-### Build
+### Build and Run
 
 To build the sample, execute the following build steps at the userver root
 directory:
@@ -67,8 +67,16 @@ cmake -DCMAKE_BUILD_TYPE=Release ..
 make userver-samples-grpc_service
 ```
 
-Start the server by running `./samples/grpc_service/userver-samples-grpc_service`. The service is available locally at port 8091 (as per our `static_config.yaml`).
+The sample could be started by running
+`make start-userver-samples-grpc_service`. The command would invoke
+@ref md_en_userver_functional_testing "testsuite start target" that sets proper
+paths in the configuration files and starts the service.
 
+To start the service manually run
+`./samples/grpc_service/userver-samples-grpc_service -c </path/to/static_config.yaml>`
+(do not forget to prepare the configuration files!).
+
+The service is available locally at port 8091 (as per our `static_config.yaml`).
 
 
 ## Full sources

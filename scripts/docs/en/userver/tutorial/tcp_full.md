@@ -124,7 +124,8 @@ and start the server with static configuration file passed from command line.
 @snippet samples/tcp_full_duplex_service/tcp_full_duplex_service.cpp  TCP sample - main
 
 
-### Build
+### Build and Run
+
 To build the sample, execute the following build steps at the userver root directory:
 ```
 mkdir build_release
@@ -133,7 +134,13 @@ cmake -DCMAKE_BUILD_TYPE=Release ..
 make userver-samples-tcp_full_duplex_service
 ```
 
-Start the server by running `./samples/tcp_full_duplex_service/userver-samples-tcp_full_duplex_service -c </path/to/static_config.yaml>`
+The sample could be started by running
+`make start-userver-samples-tcp_full_duplex_service`. The command would invoke
+@ref md_en_userver_functional_testing "testsuite start target" that sets proper
+paths in the configuration files and starts the service.
+
+To start the service manually run
+`./samples/tcp_full_duplex_service/userver-samples-tcp_full_duplex_service -c </path/to/static_config.yaml>`
 (do not forget to prepare the configuration files!).
 
 Now you can send a request to your server from another terminal:
