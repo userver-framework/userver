@@ -65,7 +65,7 @@ class TcpAcceptorBase : public LoggableComponentBase {
   const bool no_delay_;
   engine::TaskProcessor& acceptor_task_processor_;
   engine::TaskProcessor& sockets_task_processor_;
-  concurrent::BackgroundTaskStorage tasks_;
+  concurrent::BackgroundTaskStorageCore tasks_;
   engine::io::Socket listen_sock_;
   engine::Task acceptor_;
 };
