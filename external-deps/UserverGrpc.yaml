@@ -19,6 +19,8 @@ libraries:
           - grpc++
       - names:
           - gpr
+      - names:
+          - grpcpp_channelz
 
 includes:
     find:
