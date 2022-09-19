@@ -4,6 +4,20 @@ import pathlib
 import pytest
 
 
+class ServiceRunnerModule(pytest.Module):
+    class FakeModule:
+        def __init__(self, fspath):
+            self.__file__ = fspath
+
+    def __init__(self, **kwargs) -> None:
+        super().__init__(**kwargs)
+        self._module = self.FakeModule(str(self.fspath))
+
+    @property
+    def obj(self):
+        return self._module
+
+
 class UserviceRunner:
     @pytest.hookimpl(tryfirst=True)
     def pytest_collection_modifyitems(self, session, config, items):
@@ -21,7 +35,7 @@ class UserviceRunner:
 
         tests_root = min(pathes, key=lambda p: len(p.parts))
 
-        module = pytest.Module.from_parent(
+        module = ServiceRunnerModule.from_parent(
             parent=session, path=tests_root / '__service__',
         )
         function = pytest.Function.from_parent(
