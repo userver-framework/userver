@@ -1,5 +1,5 @@
 macro(userver_version_strip_trash VERSION_OUTPUT_VAR)
-  STRING(REGEX REPLACE "^1:" "" ${VERSION_OUTPUT_VAR} ${${VERSION_OUTPUT_VAR}})
+  STRING(REGEX REPLACE "^1:" "" ${VERSION_OUTPUT_VAR} "${${VERSION_OUTPUT_VAR}}")
 endmacro()
 
 function(rpm_version version_output_var rpmpackage)
