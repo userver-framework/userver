@@ -11,11 +11,10 @@ if(NOT USERVER_FEATURE_DWCAS)
   return()
 endif()
 
-set(BOOST_CMAKE_VERSION "${Boost_MAJOR_VERSION}.${Boost_MINOR_VERSION}.${Boost_SUBMINOR_VERSION}")
 set(TEST_DEFINITIONS)
 set(TEST_LIBRARIES)
 
-if(NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND "${BOOST_CMAKE_VERSION}" VERSION_GREATER_EQUAL "1.66")
+if(NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND "${Boost_VERSION}" VERSION_GREATER_EQUAL "1.66")
   # Clang's std::atomic already emits DWCAS instructions for x86,
   # x86_64 and armv8-a (a.k.a. ARM64) architectures (both libstdc++ and libc++).
   #
@@ -24,6 +23,7 @@ if(NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND "${BOOST_CMAKE_VERSION}" VERSIO
   # https://gcc.gnu.org/bugzilla/show_bug.cgi?id=84522
   # Boost.Atomic 1.66+ produces correct DWCAS instructions on x86, x86_64
   # and ARM64 (Boost 1.74+) architectures.
+  message(STATUS "DWCAS: Using Boost.Atomic")
   add_compile_definitions(USERVER_USE_BOOST_DWCAS=1)
   list(APPEND TEST_DEFINITIONS "-DUSERVER_USE_BOOST_DWCAS=1")
 endif()
