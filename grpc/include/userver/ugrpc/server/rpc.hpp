@@ -441,8 +441,7 @@ BidirectionalStream<Request, Response>::BidirectionalStream(
       call_span_(call_span) {}
 
 template <typename Request, typename Response>
-BidirectionalStream<Request, Response>::~BidirectionalStream<Request,
-                                                             Response>() {
+BidirectionalStream<Request, Response>::~BidirectionalStream() {
   if (state_ != State::kFinished) impl::Cancel(stream_, call_name_);
 }
 
