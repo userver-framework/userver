@@ -21,6 +21,10 @@ libraries:
           - grpc++
       - names:
           - gpr
+      - names:
+          - absl
+          - absl_synchronization
+          - grpc
 
 includes:
     find:
