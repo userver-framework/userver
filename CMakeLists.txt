@@ -80,6 +80,14 @@ set(USERVER_THIRD_PARTY_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/third_party CACHE INTER
 
 init_debian_depends()
 
+option(USERVER_FEATURE_MONGODB "Provide asynchronous driver for MongoDB" ${USERVER_BUILD_PLATFORM_X86})
+option(USERVER_FEATURE_POSTGRESQL "Provide asynchronous driver for PostgreSQL" ON)
+option(USERVER_FEATURE_REDIS "Provide asynchronous driver for Redis" ON)
+option(USERVER_FEATURE_GRPC "Provide asynchronous driver for gRPC" ON)
+option(USERVER_FEATURE_CLICKHOUSE "Provide asynchronous driver for ClickHouse" ${USERVER_BUILD_PLATFORM_X86})
+option(USERVER_FEATURE_RABBITMQ "Provide asynchronous driver for RabbitMQ" ${USERVER_OPEN_SOURCE_BUILD})
+option(USERVER_FEATURE_UNIVERSAL "Provide a universal utilities library that does not use coroutines" ON)
+
 add_subdirectory(core "${CMAKE_BINARY_DIR}/userver/core")
 add_subdirectory("${USERVER_THIRD_PARTY_DIRS}/boost_stacktrace")
 add_subdirectory("${USERVER_THIRD_PARTY_DIRS}/compiler-rt")
@@ -96,37 +104,30 @@ if (USERVER_IS_THE_ROOT_PROJECT)
     add_subdirectory(tools/congestion_control_emulator)
 endif()
 
-option(USERVER_FEATURE_MONGODB "Provide asynchronous driver for MongoDB" ${USERVER_BUILD_PLATFORM_X86})
 if (USERVER_FEATURE_MONGODB)
     add_subdirectory(mongo "${CMAKE_BINARY_DIR}/userver/mongo")
 endif()
 
-option(USERVER_FEATURE_POSTGRESQL "Provide asynchronous driver for PostgreSQL" ON)
 if (USERVER_FEATURE_POSTGRESQL)
     add_subdirectory(postgresql "${CMAKE_BINARY_DIR}/userver/postgresql")
 endif()
 
-option(USERVER_FEATURE_REDIS "Provide asynchronous driver for Redis" ON)
 if (USERVER_FEATURE_REDIS)
     add_subdirectory(redis "${CMAKE_BINARY_DIR}/userver/redis")
 endif()
 
-option(USERVER_FEATURE_GRPC "Provide asynchronous driver for gRPC" ON)
 if (USERVER_FEATURE_GRPC)
     add_subdirectory(grpc "${CMAKE_BINARY_DIR}/userver/grpc")
 endif()
 
-option(USERVER_FEATURE_CLICKHOUSE "Provide asynchronous driver for ClickHouse" ${USERVER_BUILD_PLATFORM_X86})
 if (USERVER_FEATURE_CLICKHOUSE)
     add_subdirectory(clickhouse "${CMAKE_BINARY_DIR}/userver/clickhouse")
 endif()
 
-option(USERVER_FEATURE_RABBITMQ "Provide asynchronous driver for RabbitMQ" ${USERVER_OPEN_SOURCE_BUILD})
 if (USERVER_FEATURE_RABBITMQ)
     add_subdirectory(rabbitmq "${CMAKE_BINARY_DIR}/userver/rabbitmq")
 endif()
 
-option(USERVER_FEATURE_UNIVERSAL "Provide a universal utilities library that does not use coroutines" ON)
 if (USERVER_FEATURE_UNIVERSAL)
   add_subdirectory(universal "${CMAKE_BINARY_DIR}/userver/universal")
 endif()
