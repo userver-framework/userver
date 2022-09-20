@@ -19,3 +19,5 @@ rpm-names:
   - spdlog-devel
 pacman-names:
   - spdlog
+pkg-config-names:
+  - spdlog

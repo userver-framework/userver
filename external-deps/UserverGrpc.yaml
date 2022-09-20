@@ -10,6 +10,8 @@ debian-names:
 formula-name: grpc
 pacman-names:
   - grpc
+pkg-config-names:
+  - grpc++
 
 libraries:
     find:

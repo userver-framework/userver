@@ -13,6 +13,9 @@ formula-name: google-benchmark
 pacman-names:
   - benchmark
 
+pkg-config-names:
+  - benchmark
+
 libraries:
     find:
       - names:

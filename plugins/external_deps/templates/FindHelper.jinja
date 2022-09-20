@@ -101,11 +101,12 @@ if ({{ name }}_VERSION)
   set({{ current_package_name }}_VERSION {{ '${' }}{{ name }}_VERSION{{ '}' }})
 endif()
 
-{% if debian_names or formula_name -%}
-if ({{ name }}_FIND_VERSION AND NOT {{ current_package_name }}_VERSION)
+{# We should always detect the version if it is possible as the dependent scripts relay on it #}
+{% if debian_names or rpm_names or pacman_names or pkg_config_names or formula_name -%}
+if (NOT {{ current_package_name }}_VERSION)
   include(DetectVersion)
 
-  {% if debian_names or rpm_names or pacman_names -%}
+  {% if debian_names or rpm_names or pacman_names or pkg_config_names -%}
   if (UNIX AND NOT APPLE)
     {% if debian_names -%}
     deb_version({{ current_package_name }}_VERSION {{ debian_names[0] }})
@@ -117,6 +118,10 @@ if ({{ name }}_FIND_VERSION AND NOT {{ current_package_name }}_VERSION)
 
     {% if pacman_names -%}
     pacman_version({{ current_package_name }}_VERSION {{ pacman_names[0] }})
+    {%- endif %}
+
+    {% if pkg_config_names -%}
+    pkg_config_version({{ current_package_name }}_VERSION {{ pkg_config_names[0] }})
     {%- endif %}
 
   endif()
