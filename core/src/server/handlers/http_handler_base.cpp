@@ -632,10 +632,11 @@ void HttpHandlerBase::DecompressRequestBody(
 
   try {
     if (content_encoding == "gzip") {
-      auto body = compression::gzip::Decompress(http_request.RequestBody(),
-                                                GetConfig().max_request_size);
+      auto body = compression::gzip::Decompress(
+          http_request.RequestBody(),
+          GetConfig().request_config.max_request_size);
       http_request.SetRequestBody(std::move(body));
-      if (GetConfig().parse_args_from_body) {
+      if (GetConfig().request_config.parse_args_from_body) {
         http_request.ParseArgsFromBody();
       }
       return;

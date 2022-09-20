@@ -2,7 +2,6 @@
 
 #include <fmt/format.h>
 
-#include <server/request/request_config.hpp>
 #include <server/server_config.hpp>
 
 #include <userver/formats/parse/common_containers.hpp>
@@ -60,12 +59,13 @@ HandlerConfig ParseHandlerConfigsWithDefaults(
 
   config.task_processor = value["task_processor"].As<std::string>();
   config.method = value["method"].As<std::string>();
-  config.max_request_size =
+  config.request_config.max_request_size =
       value["max_request_size"].As<size_t>(handler_defaults.max_request_size);
-  config.max_headers_size =
+  config.request_config.max_headers_size =
       value["max_headers_size"].As<size_t>(handler_defaults.max_headers_size);
-  config.parse_args_from_body = value["parse_args_from_body"].As<bool>(
-      handler_defaults.parse_args_from_body);
+  config.request_config.parse_args_from_body =
+      value["parse_args_from_body"].As<bool>(
+          handler_defaults.parse_args_from_body);
   config.auth = value["auth"].As<std::optional<auth::HandlerAuthConfig>>();
   config.url_trailing_slash =
       value["url_trailing_slash"].As<UrlTrailingSlashOption>(

@@ -8,13 +8,14 @@
 
 #include <server/http/http_request_parser.hpp>
 #include <server/http/request_handler_base.hpp>
-#include <server/request/request_config.hpp>
+
 #include <userver/engine/async.hpp>
 #include <userver/engine/exception.hpp>
 #include <userver/engine/io/exception.hpp>
 #include <userver/engine/single_consumer_event.hpp>
 #include <userver/engine/task/cancel.hpp>
 #include <userver/logging/log.hpp>
+#include <userver/server/request/request_config.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/scope_guard.hpp>
 
