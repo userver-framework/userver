@@ -14,6 +14,8 @@ rpm-names:
   - jemalloc-devel
 pacman-names:
   - jemalloc
+pkg-config-names:
+  - jemalloc
 
 libraries:
     find:
