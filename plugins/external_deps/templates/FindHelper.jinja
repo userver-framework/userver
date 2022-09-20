@@ -120,10 +120,6 @@ if (NOT {{ current_package_name }}_VERSION)
     pacman_version({{ current_package_name }}_VERSION {{ pacman_names[0] }})
     {%- endif %}
 
-    {% if pkg_config_names -%}
-    pkg_config_version({{ current_package_name }}_VERSION {{ pkg_config_names[0] }})
-    {%- endif %}
-
   endif()
   {%- endif %}
 
@@ -131,6 +127,10 @@ if (NOT {{ current_package_name }}_VERSION)
   if (APPLE)
     brew_version({{ current_package_name }}_VERSION {{ formula_name }})
   endif()
+  {%- endif %}
+
+  {% if pkg_config_names -%}
+  pkg_config_version({{ current_package_name }}_VERSION {{ pkg_config_names[0] }})
   {%- endif %}
 
 endif()
