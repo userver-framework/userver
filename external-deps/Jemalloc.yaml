@@ -2,7 +2,7 @@ name: Jemalloc
 helper-prefix: false
 
 checks:
-  - expression: SANITIZE
+  - expression: USERVER_SANITIZE
     error: >-
         jemalloc is not compatible with sanitizers,  please skip it for SANITIZE-enabled
         builds
