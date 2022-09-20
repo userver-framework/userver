@@ -27,7 +27,7 @@ libraries:
 
 debian-names:
   - python3-dev
-formula-name: python3-dev
+formula-name: python3-devel
 rpm-names:
   - python3-dev
 pacman-names:
