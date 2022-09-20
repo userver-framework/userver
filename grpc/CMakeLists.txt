@@ -10,7 +10,7 @@ else()
     find_package(Protobuf REQUIRED)
 endif()
 
-if(gRPC_VERSION VERSION_GREATER_EQUAL "1.41")
+if(Grpc_VERSION VERSION_GREATER_EQUAL "1.41" OR UserverGrpc_VERSION VERSION_GREATER_EQUAL "1.41")
   find_package(absl REQUIRED)
 endif()
 
