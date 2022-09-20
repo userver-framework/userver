@@ -148,7 +148,7 @@ TEST(Busy, TwoThreads) {
 
     std::future<void> f[2];
     for (size_t i = 0; i < 2; i++) {
-      f[i] = std::async(std::launch::async, std::bind(cb, i));
+      f[i] = std::async(std::launch::async, [&cb, i] { return cb(i); });
 
       std::unique_lock<std::mutex> lock(m);
       ASSERT_TRUE(

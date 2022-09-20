@@ -47,7 +47,7 @@ struct WaitListRaceSimulator final : public engine::impl::WaitStrategy {
   }
 };
 
-static constexpr size_t kWorkerThreads = 1;
+constexpr size_t kWorkerThreads = 1;
 
 }  // namespace
 

@@ -313,8 +313,7 @@ EmOKfeOntrWGKRoDws82ckOkpBkZ0/9gsl8g18u+jFCcSUfmXH7FtGg=
 -----END X509 CRL-----)";
 
 struct TlsServer {
-  TlsServer()
-      : tcp_listener_(), port_(tcp_listener_.socket.Getsockname().Port()) {}
+  TlsServer() : port_(tcp_listener_.socket.Getsockname().Port()) {}
 
   void RecieveAndShutdown(std::initializer_list<crypto::Certificate> cas = {}) {
     auto deadline = engine::Deadline::FromDuration(utest::kMaxTestWaitTime);

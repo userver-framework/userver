@@ -13,25 +13,25 @@ namespace {
 
 using Mock = utest::DnsServerMock;
 
-static const auto kV4Sockaddr1 = [] {
+const auto kV4Sockaddr1 = [] {
   engine::io::Sockaddr sockaddr;
   auto* sa = sockaddr.As<sockaddr_in>();
   sa->sin_family = AF_INET;
   sa->sin_addr.s_addr = htonl(0x4D583737);
   return sockaddr;
 }();
-constexpr static auto kV4String1{"77.88.55.55"};
+constexpr auto kV4String1{"77.88.55.55"};
 
-static const auto kV4Sockaddr2 = [] {
+const auto kV4Sockaddr2 = [] {
   engine::io::Sockaddr sockaddr;
   auto* sa = sockaddr.As<sockaddr_in>();
   sa->sin_family = AF_INET;
   sa->sin_addr.s_addr = htonl(0x4D58373C);
   return sockaddr;
 }();
-constexpr static auto kV4String2{"77.88.55.60"};
+constexpr auto kV4String2{"77.88.55.60"};
 
-static const auto kV6Sockaddr = [] {
+const auto kV6Sockaddr = [] {
   engine::io::Sockaddr sockaddr;
   auto* sa = sockaddr.As<sockaddr_in6>();
   sa->sin6_family = AF_INET6;
@@ -43,7 +43,7 @@ static const auto kV6Sockaddr = [] {
   sa->sin6_addr.s6_addr[15] = 0x0A;
   return sockaddr;
 }();
-constexpr static auto kV6String{"2a02:6b8:a::a"};
+constexpr auto kV6String{"2a02:6b8:a::a"};
 
 auto GetResolver(Mock& mock) {
   // Resolver is big for stack

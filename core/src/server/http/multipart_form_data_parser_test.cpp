@@ -29,21 +29,21 @@ void DoParseOkTest(const std::string& content_type, const std::string& body,
 
   sh::FormDataArg arg_text;
   arg_text.value = "default";
-  arg_text.content_disposition = "form-data; name=\"text\"";
+  arg_text.content_disposition = R"(form-data; name="text")";
   EXPECT_EQ(form_data_args["text"], std::vector{arg_text});
   EXPECT_EQ(form_data_args["text"].front().Charset(), "UTF-8");
 
   sh::FormDataArg arg_file_html;
   arg_file_html.value = "<!DOCTYPE html><title>Content of a.html.</title>\n";
   arg_file_html.content_disposition =
-      "form-data; name=\"file1\"; filename=\"a.html\"";
+      R"(form-data; name="file1"; filename="a.html")";
   arg_file_html.filename = "a.html";
   arg_file_html.content_type = "text/html";
 
   sh::FormDataArg arg_file_txt;
   arg_file_txt.value = "Content of a.txt.\n";
   arg_file_txt.content_disposition =
-      "form-data; name=\"file1\"; filename=\"a.txt\"";
+      R"(form-data; name="file1"; filename="a.txt")";
   arg_file_txt.filename = "a.txt";
   arg_file_txt.content_type = "text/plain";
 
@@ -59,9 +59,9 @@ void DoParseOkTest(const std::string& content_type, const std::string& body,
 }
 
 TEST(MultipartFormDataParser, ParseOk) {
-  const auto kContentType =
+  const std::string kContentType =
       "multipart/form-data; boundary=------------------------8099aaf9723cd601";
-  const auto kBody =
+  const std::string kBody =
       "--------------------------8099aaf9723cd601\r\n"
       "Content-Disposition: form-data; name=\"text\"\r\n"
       "\r\n"
@@ -83,10 +83,10 @@ TEST(MultipartFormDataParser, ParseOk) {
 }
 
 TEST(MultipartFormDataParser, ParseOkBoundaryQuoted) {
-  const auto kContentType =
+  const std::string kContentType =
       "multipart/form-data; "
       "boundary=\"------------------------8099aaf9723cd601\"";
-  const auto kBody =
+  const std::string kBody =
       "--------------------------8099aaf9723cd601\r\n"
       "Content-Disposition: form-data; name=\"text\"\r\n"
       "\r\n"
@@ -108,9 +108,9 @@ TEST(MultipartFormDataParser, ParseOkBoundaryQuoted) {
 }
 
 TEST(MultipartFormDataParser, ParseNonStrictCrEol) {
-  const auto kContentType =
+  const std::string kContentType =
       "multipart/form-data; boundary=------------------------8099aaf9723cd601";
-  const auto kBody =
+  const std::string kBody =
       "--------------------------8099aaf9723cd601\r"
       "Content-Disposition: form-data; name=\"text\"\r"
       "\r"
@@ -132,9 +132,9 @@ TEST(MultipartFormDataParser, ParseNonStrictCrEol) {
 }
 
 TEST(MultipartFormDataParser, ParseNonStrictLfEol) {
-  const auto kContentType =
+  const std::string kContentType =
       "multipart/form-data; boundary=------------------------8099aaf9723cd601";
-  const auto kBody =
+  const std::string kBody =
       "--------------------------8099aaf9723cd601\n"
       "Content-Disposition: form-data; name=\"text\"\n"
       "\n"
@@ -157,9 +157,9 @@ TEST(MultipartFormDataParser, ParseNonStrictLfEol) {
 
 TEST(MultipartFormDataParser, ParseStrictCrLfError) {
   namespace sh = server::http;
-  const auto kContentType =
+  const std::string kContentType =
       "multipart/form-data; boundary=------------------------8099aaf9723cd601";
-  const auto kBody =
+  const std::string kBody =
       "--------------------------8099aaf9723cd601\n"
       "Content-Disposition: form-data; name=\"text\"\n"
       "\n"
@@ -183,9 +183,9 @@ TEST(MultipartFormDataParser, ParseStrictCrLfError) {
 }
 
 TEST(MultipartFormDataParser, ParseLeadingTrailingTrash) {
-  const auto kContentType =
+  const std::string kContentType =
       "multipart/form-data; boundary=------------------------8099aaf9723cd601";
-  const auto kBody =
+  const std::string kBody =
       "some trash\r\n"
       "many lines of trash\r\n"
       "--------------------------8099aaf9723cd601\r\n"
@@ -210,9 +210,9 @@ TEST(MultipartFormDataParser, ParseLeadingTrailingTrash) {
 }
 
 TEST(MultipartFormDataParser, ParseLeadingTrailingTrash2) {
-  const auto kContentType =
+  const std::string kContentType =
       "multipart/form-data; boundary=------------------------8099aaf9723cd601";
-  const auto kBody =
+  const std::string kBody =
       "Content-Disposition: form-data; name=\"text\"\r\n"
       "\r\n"
       "some trash\r\n"
@@ -242,8 +242,8 @@ TEST(MultipartFormDataParser, ParseLeadingTrailingTrash2) {
 
 TEST(MultipartFormDataParser, ParseEmptyForm) {
   namespace sh = server::http;
-  const auto kContentType = "multipart/form-data; boundary=zzz";
-  const auto kBody = "--zzz--\r\n";
+  const std::string kContentType = "multipart/form-data; boundary=zzz";
+  const std::string kBody = "--zzz--\r\n";
 
   sh::FormDataArgs form_data_args;
   ASSERT_TRUE(ParseMultipartFormData(kContentType, kBody, form_data_args));
@@ -252,7 +252,7 @@ TEST(MultipartFormDataParser, ParseEmptyForm) {
 
 void DoParseEmptyData(std::string_view body) {
   namespace sh = server::http;
-  const auto kContentType = "multipart/form-data; Boundary=zzz";
+  const std::string kContentType = "multipart/form-data; Boundary=zzz";
 
   sh::FormDataArgs form_data_args;
   ASSERT_TRUE(ParseMultipartFormData(kContentType, body, form_data_args));
@@ -268,7 +268,7 @@ void DoParseEmptyData(std::string_view body) {
 }
 
 TEST(MultipartFormDataParser, ParseEmptyData) {
-  const auto kBody =
+  const std::string kBody =
       "--zzz\r\n"
       "Content-Disposition: form-data; name=arg\r\n"
       "Content-Type: text/plain\r\n"
@@ -279,7 +279,7 @@ TEST(MultipartFormDataParser, ParseEmptyData) {
 }
 
 TEST(MultipartFormDataParser, ParseEmptyDataNoFinalCrLf) {
-  const auto kBody =
+  const std::string kBody =
       "--zzz\r\n"
       "Content-Disposition: form-data; name=arg\r\n"
       "Content-Type: text/plain\r\n"
@@ -291,8 +291,8 @@ TEST(MultipartFormDataParser, ParseEmptyDataNoFinalCrLf) {
 
 TEST(MultipartFormDataParser, NoFinalCrLf2) {
   namespace sh = server::http;
-  const auto kContentType = "multipart/form-data; boundary=zzz";
-  const auto kNoFinalCrLf = "--zzz--";
+  const std::string kContentType = "multipart/form-data; boundary=zzz";
+  const std::string kNoFinalCrLf = "--zzz--";
   sh::FormDataArgs form_data_args;
   ASSERT_TRUE(
       ParseMultipartFormData(kContentType, kNoFinalCrLf, form_data_args));
@@ -301,8 +301,8 @@ TEST(MultipartFormDataParser, NoFinalCrLf2) {
 
 TEST(MultipartFormDataParser, ParseNonUsAsciiCharsInHeaders) {
   namespace sh = server::http;
-  const auto kContentType = "multipart/form-data; Boundary=zzz";
-  const auto kBody =
+  const std::string kContentType = "multipart/form-data; Boundary=zzz";
+  const std::string kBody =
       "--zzz\r\n"
       "Content-Disposition: form-data; name=arg; filename=\"имя файла.txt\"\r\n"
       "Content-Type: text/plain\r\n"
@@ -326,7 +326,7 @@ TEST(MultipartFormDataParser, ParseNonUsAsciiCharsInHeaders) {
 
 TEST(MultipartFormDataParser, ParseFileWithoutEolnEnding) {
   namespace sh = server::http;
-  const auto kContentType = "multipart/form-data; Boundary=zzz";
+  const std::string kContentType = "multipart/form-data; Boundary=zzz";
   const char kBodyChars[] =
       "--zzz\r\n"
       "Content-Disposition: form-data; name=arg; filename=\"x.txt\"\r\n"
@@ -360,8 +360,8 @@ TEST(MultipartFormDataParser, ParseFileWithoutEolnEnding) {
 
 TEST(MultipartFormDataParser, ParseExtraSpaces) {
   namespace sh = server::http;
-  const auto kContentType = "multipart/form-data; boundary= zzz ";
-  const auto kBody =
+  const std::string kContentType = "multipart/form-data; boundary= zzz ";
+  const std::string kBody =
       "--zzz\t  \t \r\n"
       "Content-Disposition:  \t \tform-data \t ; name  = \t\t \targ1 \t \r\n"
       "Content-Type: text/plain\r\n"
@@ -398,8 +398,8 @@ TEST(MultipartFormDataParser, ParseExtraSpaces) {
 
 TEST(MultipartFormDataParser, ParseCharset) {
   namespace sh = server::http;
-  const auto kContentType = "multipart/form-data; boundary=xxxxxx";
-  const auto kBody =
+  const std::string kContentType = "multipart/form-data; boundary=xxxxxx";
+  const std::string kBody =
       "--xxxxxx\r\n"
       "Content-Disposition: Form-Data; name=\"arg1\"\r\n"
       "Content-Type: text/plain; charset=iso-8859-1\r\n"
@@ -433,8 +433,8 @@ TEST(MultipartFormDataParser, ParseCharset) {
 
 TEST(MultipartFormDataParser, ParseCharsetArgDefault) {
   namespace sh = server::http;
-  const auto kContentType = "multipart/form-data; boundary=xxxxxx";
-  const auto kBody =
+  const std::string kContentType = "multipart/form-data; boundary=xxxxxx";
+  const std::string kBody =
       "--xxxxxx\r\n"
       "Content-Disposition: form-data; name=\"arg1\"\r\n"
       "Content-Type: text/plain; charset=iso-8859-1\r\n"
@@ -472,9 +472,9 @@ TEST(MultipartFormDataParser, ParseCharsetArgDefault) {
 
 TEST(MultipartFormDataParser, ParseCharsetContentTypeDefault) {
   namespace sh = server::http;
-  const auto kContentType =
+  const std::string kContentType =
       "multipart/form-data; boundary=xxxxxx; charset=iso-8859-4";
-  const auto kBody =
+  const std::string kBody =
       "--xxxxxx\r\n"
       "Content-Disposition: form-data; name=\"arg1\"\r\n"
       "Content-Type: text/plain; charset=iso-8859-1\r\n"
@@ -508,15 +508,15 @@ TEST(MultipartFormDataParser, ParseCharsetContentTypeDefault) {
 
 TEST(MultipartFormDataParser, ParseErrors) {
   namespace sh = server::http;
-  const auto kContentType = "multipart/form-data; boundary=zzz";
-  const auto kNoContentDispositionFormData =
+  const std::string kContentType = "multipart/form-data; boundary=zzz";
+  const std::string kNoContentDispositionFormData =
       "--zzz\r\n"
       "Content-Disposition: no-form-data; name=\"arg\"\r\n"
       "Content-Type: text/plain\r\n"
       "\r\n"
       "some text\r\n"
       "--zzz--\r\n";
-  const auto kNoData =
+  const std::string kNoData =
       "--zzz\r\n"
       "Content-Disposition: form-data; name=\"arg\"\r\n"
       "Content-Type: text/plain\r\n"

@@ -431,7 +431,8 @@ void RequestState::on_retry(std::shared_ptr<RequestState> holder,
     holder->retry_.timer.emplace(holder->easy().GetThreadControl());
 
     // call on_retry_timer on timer
-    holder->retry_.timer->SingleshotAsync(
+    auto& holder_ref = *holder;
+    holder_ref.retry_.timer->SingleshotAsync(
         backoff, [holder = std::move(holder)](std::error_code err) {
           holder->on_retry_timer(err);
         });

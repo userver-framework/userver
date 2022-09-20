@@ -105,10 +105,10 @@ UTEST(Socket, ListenConnect) {
     EXPECT_EQ('1', c);
   });
 
-  io::Socket first_client{listener.addr.Domain(), listener.type};
+  io::Socket first_client{listener.addr.Domain(), TcpListener::type};
   EXPECT_TRUE(first_client.IsValid());
   first_client.Connect(listener.addr, test_deadline);
-  io::Socket second_client{listener.addr.Domain(), listener.type};
+  io::Socket second_client{listener.addr.Domain(), TcpListener::type};
   EXPECT_TRUE(second_client.IsValid());
   second_client.Connect(listener.addr, test_deadline);
 
@@ -132,14 +132,14 @@ UTEST(Socket, ReleaseReuse) {
 
   TcpListener listener;
 
-  io::Socket client{listener.addr.Domain(), listener.type};
+  io::Socket client{listener.addr.Domain(), TcpListener::type};
   client.Connect(listener.addr, test_deadline);
   const int old_fd = client.Fd();
 
   int fd = -1;
   while (fd != old_fd) {
     EXPECT_EQ(0, ::close(std::move(client).Release()));
-    client = engine::io::Socket{listener.addr.Domain(), listener.type};
+    client = engine::io::Socket{listener.addr.Domain(), TcpListener::type};
     UASSERT_NO_THROW(client.Connect(listener.addr, test_deadline));
     fd = client.Fd();
   }
@@ -265,7 +265,7 @@ UTEST(Socket, ErrorPeername) {
   const auto test_deadline = Deadline::FromDuration(utest::kMaxTestWaitTime);
 
   TcpListener listener;
-  engine::io::Socket client{listener.addr.Domain(), listener.type};
+  engine::io::Socket client{listener.addr.Domain(), TcpListener::type};
   client.Connect(listener.addr, test_deadline);
   listener.socket.Accept(test_deadline).Close();
 
@@ -295,7 +295,8 @@ UTEST(Socket, DomainMismatch) {
 
   UdpListener listener;
 
-  engine::io::Socket unix_socket{engine::io::AddrDomain::kUnix, listener.type};
+  engine::io::Socket unix_socket{engine::io::AddrDomain::kUnix,
+                                 UdpListener::type};
 
   UEXPECT_THROW(unix_socket.Connect(listener.addr, test_deadline),
                 io::AddrException);
@@ -331,7 +332,7 @@ UTEST(Socket, DgramBound) {
         1, server.SendAllTo(server_recvfrom.src_addr, "4", 1, test_deadline));
   });
 
-  engine::io::Socket client{listener.addr.Domain(), listener.type};
+  engine::io::Socket client{listener.addr.Domain(), UdpListener::type};
   client.Connect(listener.addr, test_deadline);
   client_port = client.Getsockname().Port();
   EXPECT_EQ(1, client.SendAll("1", 1, test_deadline));
@@ -372,7 +373,7 @@ UTEST(Socket, DgramUnbound) {
         1, server.SendAllTo(server_recvfrom.src_addr, "4", 1, test_deadline));
   });
 
-  engine::io::Socket client{listener.addr.Domain(), listener.type};
+  engine::io::Socket client{listener.addr.Domain(), UdpListener::type};
   UEXPECT_THROW(
       [[maybe_unused]] auto ret = client.SendAll("1", 1, test_deadline),
       io::IoSystemError);
