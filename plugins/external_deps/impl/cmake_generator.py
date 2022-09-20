@@ -21,11 +21,9 @@ LIB_SCHEMA = voluptuous.Schema(
         'formula-name': str,
         'rpm-names': [str],
         'pacman-names': [str],
-
         # For version detection of manually installed packages and unknown
         # package managers.
         'pkg-config-names': [str],
-
         'version': voluptuous.Any(str, int),
         voluptuous.Required('helper-prefix'): bool,
         'extra-cmake-vars': {str: str},
