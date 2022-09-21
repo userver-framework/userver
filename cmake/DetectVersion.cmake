@@ -106,6 +106,11 @@ function(pacman_version version_output_var pacmanpackage)
 endfunction()
 
 function(pkg_config_version version_output_var pkg_config_name)
+  # pkg-config has issues on MacOS https://github.com/Homebrew/brew/issues/5068
+  if (APPLE)
+    return()
+  endif()
+
   if (${version_output_var})
     return()
   endif()
