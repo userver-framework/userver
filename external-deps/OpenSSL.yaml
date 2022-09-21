@@ -11,6 +11,8 @@ partials:
       - openssl-devel
     pacman-names:
       - openssl
+    pkg-config-names:
+      - openssl
 
     libraries:
         enabled: false
@@ -28,6 +30,8 @@ partials:
       - openssl-devel
     pacman-names:
       - openssl
+    pkg-config-names:
+      - libssl
 
     libraries:
         enabled: false

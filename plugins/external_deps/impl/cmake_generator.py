@@ -21,6 +21,9 @@ LIB_SCHEMA = voluptuous.Schema(
         'formula-name': str,
         'rpm-names': [str],
         'pacman-names': [str],
+        # For version detection of manually installed packages and unknown
+        # package managers.
+        'pkg-config-names': [str],
         'version': voluptuous.Any(str, int),
         voluptuous.Required('helper-prefix'): bool,
         'extra-cmake-vars': {str: str},
@@ -111,6 +114,7 @@ def generate_cmake(name: str, value, renderer: jinja2.Environment):
                 'formula_name': value.get('formula-name'),
                 'rpm_names': value.get('rpm-names'),
                 'pacman_names': value.get('pacman-names'),
+                'pkg_config_names': value.get('pkg-config-names'),
                 'version': value.get('version'),
                 'extra_cmake_vars': value.get('extra-cmake-vars', {}),
                 'includes': value.get('includes'),

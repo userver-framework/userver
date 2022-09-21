@@ -10,10 +10,6 @@ else()
     find_package(Protobuf REQUIRED)
 endif()
 
-if(gRPC_VERSION VERSION_GREATER_EQUAL "1.41")
-  find_package(absl REQUIRED)
-endif()
-
 include(GrpcTargets)
 
 file(GLOB_RECURSE SOURCES
