@@ -24,7 +24,7 @@ libraries:
       - names:
           - absl
           - absl_synchronization
-          - grpc
+          - grpc  # fallback, old versions of gRPC do not link with absl
 
 includes:
     find:
