@@ -17,7 +17,7 @@ TEST_F(LoggingTest, SwitchToTraceWorks) {
   logging::SetDefaultLoggerLevel(logging::Level::kInfo);
 
   logging::LogFlush();
-  const auto log_contents = sstream.str();
+  const auto log_contents = GetStreamString();
   size_t pos = 0;
   size_t entries = 0;
   while ((pos = log_contents.find("text=test", pos)) != std::string::npos) {
@@ -39,7 +39,7 @@ TEST_F(LoggingTest, LogExtraExtendType) {
   LOG_TRACE() << log_extra;
 
   logging::LogFlush();
-  const auto log_contents = sstream.str();
+  const auto log_contents = GetStreamString();
   EXPECT_NE(log_contents.find("key1=value1"), std::string::npos);
   EXPECT_NE(log_contents.find("key1=value2"), std::string::npos);
   EXPECT_EQ(log_contents.find("key1=value3"), std::string::npos);

@@ -178,11 +178,11 @@ TEST(GetCodePointsCountTest, All) {
   using utils::text::utf8::GetCodePointsCount;
   const std::string bad(1, static_cast<char>(0xff));
 
-  ASSERT_EQ(0u, GetCodePointsCount(""));
+  ASSERT_EQ(0U, GetCodePointsCount(""));
   UEXPECT_THROW(GetCodePointsCount(bad + "anton"), std::runtime_error);
-  ASSERT_EQ(5u, GetCodePointsCount("anton"));
-  ASSERT_EQ(5u, GetCodePointsCount("Антон"));
-  ASSERT_EQ(11u, GetCodePointsCount("Антон anton"));
+  ASSERT_EQ(5U, GetCodePointsCount("anton"));
+  ASSERT_EQ(5U, GetCodePointsCount("Антон"));
+  ASSERT_EQ(11U, GetCodePointsCount("Антон anton"));
   UEXPECT_THROW(GetCodePointsCount("Ант" + bad + "он"), std::runtime_error);
 }
 
@@ -206,7 +206,7 @@ TEST(CheckIsCString, IsCString) {
   EXPECT_FALSE(IsCString(std::string("\0a\0b\0", 5)));
 }
 
-TEST(GetTextPosByCodePointPos_TakePrefix_RemovePrefix, Utf8) {
+TEST(GetTextPosByCodePointPosTakePrefixRemovePrefix, Utf8) {
   const auto& DoCheck = [](const std::string_view text,    //
                            const std::size_t count,        //
                            const std::size_t text_pos,     //
@@ -240,6 +240,7 @@ TEST(GetTextPosByCodePointPos_TakePrefix_RemovePrefix, Utf8) {
     }
   };
 
+  // NOLINTNEXTLINE(readability-redundant-string-init)
   constexpr std::string_view kEmptyText{""};
   DoCheck(kEmptyText, 0, 0, "", "");
   DoCheck(kEmptyText, 1, 0, "", "");

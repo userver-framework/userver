@@ -53,8 +53,6 @@ class LoggingTestBase : public ::testing::Test {
     return logger;
   }
 
-  std::ostringstream sstream;
-
   std::string LoggedText() const {
     logging::LogFlush();
     const std::string str = sstream.str();
@@ -84,10 +82,14 @@ class LoggingTestBase : public ::testing::Test {
     return result;
   }
 
+  std::string GetStreamString() const { return sstream.str(); }
+
  private:
   const logging::Format format_;
   const std::string_view text_key_;
   logging::LoggerPtr old_;
+
+  std::ostringstream sstream;
 };
 
 class LoggingTest : public LoggingTestBase {

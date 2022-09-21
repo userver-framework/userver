@@ -11,7 +11,7 @@ TEST_F(LoggingTest, DynamicDebugBasic) {
 
   LOG_INFO() << "before";
 
-  auto location = USERVER_FILEPATH;
+  const std::string location = USERVER_FILEPATH;
   logging::AddDynamicDebugLog(std::string{location}, 17);
 
   LOG_INFO() << "123";
@@ -32,7 +32,7 @@ TEST_F(LoggingTest, DynamicDebugAnyLine) {
 
   LOG_INFO() << "before";
 
-  auto location = USERVER_FILEPATH;
+  const std::string location = USERVER_FILEPATH;
   logging::AddDynamicDebugLog(std::string{location}, logging::kAnyLine);
 
   LOG_INFO() << "123";

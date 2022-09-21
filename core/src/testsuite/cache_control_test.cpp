@@ -30,7 +30,7 @@ class FakeCache final : public cache::CacheMockBase {
     StartPeriodicUpdates(cache::CacheUpdateTrait::Flag::kNoFirstUpdate);
   }
 
-  ~FakeCache() { StopPeriodicUpdates(); }
+  ~FakeCache() final { StopPeriodicUpdates(); }
 
   const std::string& Get() const { return value_; }
   size_t UpdatesCount() const { return updates_count_; }

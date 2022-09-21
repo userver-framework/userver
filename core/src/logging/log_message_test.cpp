@@ -214,13 +214,13 @@ TEST_F(LoggingTest, IfExpressionWithoutBraces) {
 TEST_F(LoggingTest, CppModulePath) {
   LOG_CRITICAL();
   logging::LogFlush();
-  CheckModulePath(sstream.str(), "core/src/logging/log_message_test.cpp");
+  CheckModulePath(GetStreamString(), "core/src/logging/log_message_test.cpp");
 }
 
 TEST_F(LoggingTest, HppModulePath) {
   LoggingHeaderFunction();
   logging::LogFlush();
-  CheckModulePath(sstream.str(), "core/src/logging/log_message_test.hpp");
+  CheckModulePath(GetStreamString(), "core/src/logging/log_message_test.hpp");
 }
 
 TEST_F(LoggingTest, ExternalModulePath) {
@@ -230,7 +230,7 @@ TEST_F(LoggingTest, ExternalModulePath) {
                      kPath.c_str(), __LINE__, __func__);
   logging::LogFlush();
 
-  CheckModulePath(sstream.str(), kPath);
+  CheckModulePath(GetStreamString(), kPath);
 }
 
 TEST_F(LoggingTest, LogHelperNullptr) {
@@ -244,7 +244,7 @@ TEST_F(LoggingTest, LogHelperNullptr) {
       << "Test";
   logging::LogFlush();
 
-  EXPECT_EQ(sstream.str(), "");
+  EXPECT_EQ(GetStreamString(), "");
 }
 
 TEST_F(LoggingTest, PartialPrefixModulePath) {
@@ -253,11 +253,13 @@ TEST_F(LoggingTest, PartialPrefixModulePath) {
       kRealPath.substr(0, kRealPath.find('/', 1) + 1) +
       "somewhere_else/src/test.cpp";
 
-  logging::LogHelper(logging::DefaultLogger(), logging::Level::kCritical,
-                     kPath.c_str(), __LINE__, __func__);
+  {
+    logging::LogHelper a(logging::DefaultLogger(), logging::Level::kCritical,
+                         kPath.c_str(), __LINE__, __func__);
+  }
   logging::LogFlush();
 
-  CheckModulePath(sstream.str(), kPath);
+  CheckModulePath(GetStreamString(), kPath);
 }
 
 TEST_F(LoggingTest, LogExtraTAXICOMMON1362) {
@@ -266,7 +268,7 @@ TEST_F(LoggingTest, LogExtraTAXICOMMON1362) {
 
   LOG_CRITICAL() << input;
   logging::LogFlush();
-  std::string result = sstream.str();
+  std::string result = GetStreamString();
 
   ASSERT_GT(result.size(), 1);
   EXPECT_EQ(result.back(), '\n');
@@ -292,7 +294,7 @@ TEST_F(LoggingTest, TAXICOMMON1362) {
 
   LOG_CRITICAL() << logging::LogExtra{{"body", input}};
   logging::LogFlush();
-  std::string result = sstream.str();
+  std::string result = GetStreamString();
 
   const auto ascii_pos = result.find(tskv_test::ascii_part);
   EXPECT_TRUE(ascii_pos != std::string::npos) << "Result: " << result;

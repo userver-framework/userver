@@ -69,9 +69,9 @@ TEST(HttpCookie, Validation) {
       {"name", "\"a"},          //
       {"name", "a\""},          //
       {"name", " "},            //
-      {"name", "\" \""},        //
-      {"name", "\"val ue\""},   //
-      {"name", "\"val\"ue\""},  //
+      {"name", R"(" ")"},       //
+      {"name", R"("val ue")"},  //
+      {"name", R"("val"ue")"},  //
       {"name", ","},            //
       {"name", ";"},            //
       {"name", "\\"},           //

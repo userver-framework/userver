@@ -203,8 +203,9 @@ TEST(ManagerConfig, Basic) {
   EXPECT_EQ(mc.task_processors.size(), 5);
 
   ASSERT_EQ(mc.components.size(), 27);
-  auto begin = mc.components.begin();
-  auto end = mc.components.end();
+
+  const auto begin = mc.components.begin();
+  const auto end = mc.components.end();
 
   EXPECT_TRUE(std::any_of(begin, end, [](const auto& conf) {
     return conf.Name() == "api-firebase";
@@ -217,6 +218,7 @@ TEST(ManagerConfig, Basic) {
 TEST(ManagerConfig, HandlerConfig) {
   const auto mc = MakeManagerConfig();
 
+  // NOLINTNEXTLINE(readability-qualified-auto)
   const auto it =
       std::find_if(mc.components.cbegin(), mc.components.cend(),
                    [](const auto& v) { return v.Name() == "tests-control"; });

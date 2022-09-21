@@ -106,6 +106,7 @@ class TestCaseMacrosParametric : public ::testing::TestWithParam<std::string> {
     EXPECT_TRUE(GetParam() == "foo" || GetParam() == "bar");
   }
 
+ private:
   engine::Mutex mutex_;
 };
 

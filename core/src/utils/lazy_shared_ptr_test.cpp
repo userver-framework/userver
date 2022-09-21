@@ -43,7 +43,7 @@ UTEST(LazySharedPtr, SimpleNonLazy) {
 UTEST(LazySharedPtr, GetShared) {
   Cache cache({1, 2, 3});
   auto lazy_cache(utils::MakeLazyCachePtr(cache));
-  auto res = lazy_cache.GetShared();
+  const auto& res = lazy_cache.GetShared();
   auto ptr = cache.Get();
   ASSERT_EQ(&*res, &*ptr);
   ASSERT_EQ(*res, std::vector<int>({1, 2, 3}));

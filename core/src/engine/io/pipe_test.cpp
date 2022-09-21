@@ -110,7 +110,7 @@ const utils::SignalCatcher catcher{SIGPIPE};
 
 UTEST(Pipe, CloseRead) {
   io::Pipe pipe;
-  std::array<char, 16> buf;
+  std::array<char, 16> buf{};
 
   EXPECT_EQ(1, pipe.writer.WriteAll(buf.data(), 1,
                                     Deadline::FromDuration(kIoTimeout)));
@@ -126,7 +126,7 @@ UTEST(Pipe, CloseRead) {
 
 UTEST(Pipe, CloseWrite) {
   io::Pipe pipe;
-  std::array<char, 16> buf;
+  std::array<char, 16> buf{};
 
   UEXPECT_THROW([[maybe_unused]] auto read_bytes = pipe.reader.ReadAll(
                     buf.data(), 1, Deadline::FromDuration(kIoTimeout)),

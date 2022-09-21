@@ -18,13 +18,14 @@ constexpr std::string_view kTestFilePart = "test_files_listing_of_current_proc";
 // non-closed file descriptors.
 TEST(CurrentProcessOpenFiles, Basic) {
   const auto file_guard = fs::blocking::TempFile::Create("/tmp", kTestFilePart);
-  const auto path = file_guard.GetPath();
+  const auto& path = file_guard.GetPath();
 
   const auto fd = fs::blocking::FileDescriptor::Open(
       path, {fs::blocking::OpenFlag::kCreateIfNotExists,
              fs::blocking::OpenFlag::kWrite});
 
   const auto opened_files = utest::CurrentProcessOpenFiles();
+  // NOLINTNEXTLINE(readability-qualified-auto)
   const auto it = std::find_if(
       opened_files.begin(), opened_files.end(), [](const auto& file) {
         return file.find(kTestFilePart) != std::string::npos;
