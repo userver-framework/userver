@@ -6,11 +6,11 @@
 
 USERVER_NAMESPACE_BEGIN
 
-using namespace formats::bson;
-using namespace storages::mongo;
+namespace bson = formats::bson;
+namespace mongo = storages::mongo;
 
 namespace {
-Pool MakeTestPool(clients::dns::Resolver& dns_resolver) {
+mongo::Pool MakeTestPool(clients::dns::Resolver& dns_resolver) {
   return MakeTestsuiteMongoPool("bulk_test", &dns_resolver);
 }
 }  // namespace
@@ -41,7 +41,7 @@ UTEST(Bulk, InsertOne) {
 
   {
     auto bulk = coll.MakeOrderedBulk();
-    bulk.InsertOne(MakeDoc("x", 1));
+    bulk.InsertOne(bson::MakeDoc("x", 1));
     EXPECT_FALSE(bulk.IsEmpty());
     auto result = coll.Execute(std::move(bulk));
 
@@ -55,8 +55,8 @@ UTEST(Bulk, InsertOne) {
     EXPECT_TRUE(result.WriteConcernErrors().empty());
   }
   {
-    auto bulk = coll.MakeUnorderedBulk(options::WriteConcern::kMajority);
-    bulk.InsertOne(MakeDoc("x", 1));
+    auto bulk = coll.MakeUnorderedBulk(mongo::options::WriteConcern::kMajority);
+    bulk.InsertOne(bson::MakeDoc("x", 1));
     EXPECT_FALSE(bulk.IsEmpty());
     auto result = coll.Execute(std::move(bulk));
 
@@ -71,19 +71,20 @@ UTEST(Bulk, InsertOne) {
   }
   {
     auto bulk = coll.MakeOrderedBulk();
-    bulk.InsertOne(MakeDoc("_id", 1));
-    bulk.InsertOne(MakeDoc("_id", 1));
+    bulk.InsertOne(bson::MakeDoc("_id", 1));
+    bulk.InsertOne(bson::MakeDoc("_id", 1));
     EXPECT_FALSE(bulk.IsEmpty());
-    UEXPECT_THROW(coll.Execute(std::move(bulk)), DuplicateKeyException);
+    UEXPECT_THROW(coll.Execute(std::move(bulk)), mongo::DuplicateKeyException);
   }
   coll.DeleteMany({});
   {
-    auto bulk = coll.MakeOrderedBulk(options::SuppressServerExceptions{});
-    bulk.InsertOne(MakeDoc("_id", 1));
-    bulk.InsertOne(MakeDoc("_id", 2));
-    bulk.InsertOne(MakeDoc("_id", 1));
-    bulk.InsertOne(MakeDoc("_id", 3));
-    bulk.InsertOne(MakeDoc("_id", 1));
+    auto bulk =
+        coll.MakeOrderedBulk(mongo::options::SuppressServerExceptions{});
+    bulk.InsertOne(bson::MakeDoc("_id", 1));
+    bulk.InsertOne(bson::MakeDoc("_id", 2));
+    bulk.InsertOne(bson::MakeDoc("_id", 1));
+    bulk.InsertOne(bson::MakeDoc("_id", 3));
+    bulk.InsertOne(bson::MakeDoc("_id", 1));
     EXPECT_FALSE(bulk.IsEmpty());
     auto result = coll.Execute(std::move(bulk));
 
@@ -101,12 +102,13 @@ UTEST(Bulk, InsertOne) {
   }
   coll.DeleteMany({});
   {
-    auto bulk = coll.MakeUnorderedBulk(options::SuppressServerExceptions{});
-    bulk.InsertOne(MakeDoc("_id", 1));
-    bulk.InsertOne(MakeDoc("_id", 2));
-    bulk.InsertOne(MakeDoc("_id", 1));
-    bulk.InsertOne(MakeDoc("_id", 3));
-    bulk.InsertOne(MakeDoc("_id", 1));
+    auto bulk =
+        coll.MakeUnorderedBulk(mongo::options::SuppressServerExceptions{});
+    bulk.InsertOne(bson::MakeDoc("_id", 1));
+    bulk.InsertOne(bson::MakeDoc("_id", 2));
+    bulk.InsertOne(bson::MakeDoc("_id", 1));
+    bulk.InsertOne(bson::MakeDoc("_id", 3));
+    bulk.InsertOne(bson::MakeDoc("_id", 1));
     EXPECT_FALSE(bulk.IsEmpty());
     auto result = coll.Execute(std::move(bulk));
 
@@ -130,10 +132,10 @@ UTEST(Bulk, ReplaceOne) {
   auto pool = MakeTestPool(dns_resolver);
   auto coll = pool.GetCollection("replace_one");
 
-  coll.InsertOne(MakeDoc("_id", 1));
+  coll.InsertOne(bson::MakeDoc("_id", 1));
   {
     auto bulk = coll.MakeOrderedBulk();
-    bulk.ReplaceOne({}, MakeDoc("x", 2));
+    bulk.ReplaceOne({}, bson::MakeDoc("x", 2));
     EXPECT_FALSE(bulk.IsEmpty());
     auto result = coll.Execute(std::move(bulk));
 
@@ -147,10 +149,12 @@ UTEST(Bulk, ReplaceOne) {
     EXPECT_TRUE(result.WriteConcernErrors().empty());
   }
   {
-    auto bulk = coll.MakeUnorderedBulk(options::WriteConcern::kMajority,
-                                       options::SuppressServerExceptions{});
-    bulk.ReplaceOne(MakeDoc("y", 0), MakeDoc("_id", 1), options::Upsert{});
-    bulk.ReplaceOne({}, MakeDoc("x", 3));
+    auto bulk =
+        coll.MakeUnorderedBulk(mongo::options::WriteConcern::kMajority,
+                               mongo::options::SuppressServerExceptions{});
+    bulk.ReplaceOne(bson::MakeDoc("y", 0), bson::MakeDoc("_id", 1),
+                    mongo::options::Upsert{});
+    bulk.ReplaceOne({}, bson::MakeDoc("x", 3));
     EXPECT_FALSE(bulk.IsEmpty());
     auto result = coll.Execute(std::move(bulk));
 
@@ -175,8 +179,9 @@ UTEST(Bulk, Update) {
 
   {
     auto bulk = coll.MakeOrderedBulk();
-    bulk.UpdateOne(MakeDoc("_id", 1), MakeDoc("$set", MakeDoc("x", 1)),
-                   options::Upsert{});
+    bulk.UpdateOne(bson::MakeDoc("_id", 1),
+                   bson::MakeDoc("$set", bson::MakeDoc("x", 1)),
+                   mongo::options::Upsert{});
     EXPECT_FALSE(bulk.IsEmpty());
     auto result = coll.Execute(std::move(bulk));
 
@@ -193,12 +198,15 @@ UTEST(Bulk, Update) {
     EXPECT_EQ(1, upserted_ids[0].As<int>());
   }
   {
-    auto bulk = coll.MakeUnorderedBulk(options::SuppressServerExceptions{});
-    bulk.UpdateOne(MakeDoc("y", 2), MakeDoc("$setOnInsert", MakeDoc("_id", 1)),
-                   options::Upsert{});
-    bulk.UpdateOne(MakeDoc("_id", 2), MakeDoc("$set", MakeDoc("x", 2)),
-                   options::Upsert{});
-    bulk.UpdateMany({}, MakeDoc("$inc", MakeDoc("x", 1)));
+    auto bulk =
+        coll.MakeUnorderedBulk(mongo::options::SuppressServerExceptions{});
+    bulk.UpdateOne(bson::MakeDoc("y", 2),
+                   bson::MakeDoc("$setOnInsert", bson::MakeDoc("_id", 1)),
+                   mongo::options::Upsert{});
+    bulk.UpdateOne(bson::MakeDoc("_id", 2),
+                   bson::MakeDoc("$set", bson::MakeDoc("x", 2)),
+                   mongo::options::Upsert{});
+    bulk.UpdateMany({}, bson::MakeDoc("$inc", bson::MakeDoc("x", 1)));
     EXPECT_FALSE(bulk.IsEmpty());
     auto result = coll.Execute(std::move(bulk));
 
@@ -226,15 +234,16 @@ UTEST(Bulk, Delete) {
 
   {
     std::vector<formats::bson::Document> docs;
-    for (int i = 0; i < 10; ++i) docs.push_back(MakeDoc("x", i));
+    docs.reserve(10);
+    for (int i = 0; i < 10; ++i) docs.push_back(bson::MakeDoc("x", i));
     coll.InsertMany(std::move(docs));
   }
 
   auto bulk = coll.MakeUnorderedBulk();
-  bulk.DeleteOne(MakeDoc("x", 1));
-  bulk.DeleteOne(MakeDoc("x", MakeDoc("$gt", 6)));
-  bulk.DeleteMany(MakeDoc("x", MakeDoc("$gt", 10)));
-  bulk.DeleteMany(MakeDoc("x", MakeDoc("$lt", 5)));
+  bulk.DeleteOne(bson::MakeDoc("x", 1));
+  bulk.DeleteOne(bson::MakeDoc("x", bson::MakeDoc("$gt", 6)));
+  bulk.DeleteMany(bson::MakeDoc("x", bson::MakeDoc("$gt", 10)));
+  bulk.DeleteMany(bson::MakeDoc("x", bson::MakeDoc("$lt", 5)));
   EXPECT_FALSE(bulk.IsEmpty());
   auto result = coll.Execute(std::move(bulk));
 
@@ -254,17 +263,18 @@ UTEST(Bulk, Mixed) {
   auto coll = pool.GetCollection("mixed");
 
   auto bulk = coll.MakeOrderedBulk();
-  bulk.InsertOne(MakeDoc("x", 1));
-  bulk.InsertOne(MakeDoc("x", 2));
-  bulk.InsertOne(MakeDoc("y", 3));
-  bulk.UpdateMany(MakeDoc("x", MakeDoc("$exists", true)),
-                  MakeDoc("$inc", MakeDoc("x", -1)));
-  bulk.ReplaceOne(MakeDoc("y", 3), MakeDoc("x", 2));
-  bulk.UpdateOne(MakeDoc("y", 3), MakeDoc("$set", MakeDoc("x", 3)),
-                 options::Upsert{});
-  bulk.DeleteMany(MakeDoc("x", MakeDoc("$gt", 1)));
-  bulk.UpdateMany({}, MakeDoc("$set", MakeDoc("x", 0)));
-  bulk.DeleteOne(MakeDoc("x", MakeDoc("$lt", 1)));
+  bulk.InsertOne(bson::MakeDoc("x", 1));
+  bulk.InsertOne(bson::MakeDoc("x", 2));
+  bulk.InsertOne(bson::MakeDoc("y", 3));
+  bulk.UpdateMany(bson::MakeDoc("x", bson::MakeDoc("$exists", true)),
+                  bson::MakeDoc("$inc", bson::MakeDoc("x", -1)));
+  bulk.ReplaceOne(bson::MakeDoc("y", 3), bson::MakeDoc("x", 2));
+  bulk.UpdateOne(bson::MakeDoc("y", 3),
+                 bson::MakeDoc("$set", bson::MakeDoc("x", 3)),
+                 mongo::options::Upsert{});
+  bulk.DeleteMany(bson::MakeDoc("x", bson::MakeDoc("$gt", 1)));
+  bulk.UpdateMany({}, bson::MakeDoc("$set", bson::MakeDoc("x", 0)));
+  bulk.DeleteOne(bson::MakeDoc("x", bson::MakeDoc("$lt", 1)));
   EXPECT_FALSE(bulk.IsEmpty());
   auto result = coll.Execute(std::move(bulk));
 
