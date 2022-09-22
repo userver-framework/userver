@@ -37,13 +37,13 @@ Fill in the static config entries for the client side:
 
 ### The server side
 
-Implement the generated `api::GreeterServiceBase`. A single request-response RPC handling is simple: fill in the `response` and send it.
-
-@snippet samples/grpc_service/grpc_service.cpp  gRPC sample - server RPC handling
-
-Connect the service implementation to the component system:
+Implement the generated `api::GreeterServiceBase`. As a convenience, a derived `api::GreeterServiceBase::Component` class is provided for easy integration with the component system.
 
 @snippet samples/grpc_service/grpc_service.cpp  gRPC sample - service
+
+A single request-response RPC handling is simple: fill in the `response` and send it.
+
+@snippet samples/grpc_service/grpc_service.cpp  gRPC sample - server RPC handling
 
 Fill in the static config entries for the server side:
 

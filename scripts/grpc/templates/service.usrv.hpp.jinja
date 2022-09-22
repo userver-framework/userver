@@ -15,6 +15,9 @@
 class {{service.name}}Base
     : public USERVER_NAMESPACE::ugrpc::server::ServiceBase {
  public:
+  using Component = USERVER_NAMESPACE::ugrpc::server::impl::ServiceComponentBase<
+      {{service.name}}Base>;
+
   {% for method in service.method %}
   {% if method.client_streaming and method.server_streaming %}
   using {{method.name}}Call =
