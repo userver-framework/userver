@@ -63,8 +63,8 @@ target_include_directories (${PROJECT_NAME} PRIVATE
     $<TARGET_PROPERTY:userver-core,INCLUDE_DIRECTORIES>
 )
 
-
-if (USERVER_IS_THE_ROOT_PROJECT)
+# Helper library for testing user code with redis. Provides mock_client_base.hpp
+# and other helper headers
 add_library(${PROJECT_NAME}_utest STATIC ${UTESTLIB_SOURCES})
 target_include_directories(
   ${PROJECT_NAME}_utest
@@ -79,6 +79,7 @@ target_link_libraries(${PROJECT_NAME}_utest
   ${PROJECT_NAME}
 )
 
+if (USERVER_IS_THE_ROOT_PROJECT)
   add_executable(${PROJECT_NAME}_unittest ${UNIT_TEST_SOURCES})
   target_link_libraries(${PROJECT_NAME}_unittest
     userver-utest
