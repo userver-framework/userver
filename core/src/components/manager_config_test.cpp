@@ -204,15 +204,12 @@ TEST(ManagerConfig, Basic) {
 
   ASSERT_EQ(mc.components.size(), 27);
 
-  const auto begin = mc.components.begin();
-  const auto end = mc.components.end();
-
-  EXPECT_TRUE(std::any_of(begin, end, [](const auto& conf) {
-    return conf.Name() == "api-firebase";
-  }));
-  EXPECT_TRUE(std::any_of(begin, end, [](const auto& conf) {
-    return conf.Name() == "logging-configurator";
-  }));
+  EXPECT_TRUE(std::any_of(
+      mc.components.begin(), mc.components.end(),
+      [](const auto& conf) { return conf.Name() == "api-firebase"; }));
+  EXPECT_TRUE(std::any_of(
+      mc.components.begin(), mc.components.end(),
+      [](const auto& conf) { return conf.Name() == "logging-configurator"; }));
 }
 
 TEST(ManagerConfig, HandlerConfig) {

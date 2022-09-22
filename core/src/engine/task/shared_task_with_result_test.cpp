@@ -34,9 +34,11 @@ UTEST(SharedTaskWithResult, MoveInvalidatesOther) {
 
 TEST(SharedTaskWithResult, CopyCtr) {
   engine::SharedTaskWithResult<void> t;
+  // NOLINTNEXTLINE(performance-unnecessary-copy-initialization)
   engine::SharedTaskWithResult<void> t2 = t;
 
   engine::SharedTaskWithResult<int> t_int;
+  // NOLINTNEXTLINE(performance-unnecessary-copy-initialization)
   engine::SharedTaskWithResult<int> t2_int = t_int;
 }
 
@@ -45,6 +47,7 @@ UTEST(SharedTaskWithResult, CopyLeavesBothTasksValid) {
       utils::SharedAsync("we", []() { return std::make_unique<int>(5); });
   EXPECT_TRUE(copy_from.IsValid());
 
+  // NOLINTNEXTLINE(performance-unnecessary-copy-initialization)
   auto copy_to = copy_from;
   EXPECT_TRUE(copy_from.IsValid());
   EXPECT_TRUE(copy_to.IsValid());
@@ -58,6 +61,7 @@ UTEST(SharedTaskWithResult, CopyAfterCompletion) {
       utils::SharedAsync("we", []() { return std::make_unique<int>(5); });
   copy_from.Get();
 
+  // NOLINTNEXTLINE(performance-unnecessary-copy-initialization)
   auto copy_to = copy_from;
   EXPECT_EQ(*copy_from.Get(), 5);
   EXPECT_EQ(*copy_to.Get(), 5);

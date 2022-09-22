@@ -12,6 +12,7 @@
 #include <userver/formats/json/serialize.hpp>
 #include <userver/fs/blocking/write.hpp>
 #include <userver/utest/utest.hpp>
+#include <userver/utils/rand.hpp>
 
 #include <userver/dump/operations_mock.hpp>
 #include <userver/dump/test_helpers.hpp>
@@ -50,7 +51,7 @@ TYPED_TEST(DumpCommonNumeric, Numeric) {
     EXPECT_TRUE(std::isnan(dump::FromBinary<Num>(
         dump::ToBinary<Num>(std::numeric_limits<Num>::quiet_NaN()))));
   } else {
-    std::default_random_engine engine(42);
+    auto& engine = utils::DefaultRandom();
     std::uniform_int_distribution<Num> distribution(
         std::numeric_limits<Num>::min(), std::numeric_limits<Num>::max());
     for (int i = 0; i < 1000; ++i) {

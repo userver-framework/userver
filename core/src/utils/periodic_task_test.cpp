@@ -57,7 +57,9 @@ struct SimpleTaskData {
   long sleep_ms = 0;
   bool throw_exception = false;
 
-  auto GetTaskFunction() { return std::bind(&SimpleTaskData::Run, this); }
+  auto GetTaskFunction() {
+    return [this] { Run(); };
+  }
 
   void Run() {
     engine::SleepFor(std::chrono::milliseconds(sleep_ms));

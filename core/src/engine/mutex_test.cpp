@@ -82,7 +82,7 @@ TYPED_UTEST_P(Mutex, TryLock) {
 }
 
 namespace {
-static constexpr size_t kThreads = 4;
+constexpr size_t kThreads = 4;
 }  // namespace
 
 TYPED_UTEST_P_MT(Mutex, LockPassing, kThreads) {
@@ -147,12 +147,12 @@ TYPED_UTEST_P_MT(Mutex, NotifyAndDeadlineRace, 2) {
 UTEST(Mutex, SampleMutex) {
   /// [Sample engine::Mutex usage]
   engine::Mutex mutex;
-  constexpr auto kTestData = "Test Data";
+  constexpr std::string_view kTestData = "Test Data";
 
   {
     std::lock_guard<engine::Mutex> lock(mutex);
     // accessing data under a mutex
-    auto x = kTestData;
+    const auto x = kTestData;
     ASSERT_EQ(kTestData, x);
   }
   /// [Sample engine::Mutex usage]

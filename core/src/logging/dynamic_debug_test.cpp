@@ -12,11 +12,11 @@ TEST_F(LoggingTest, DynamicDebugBasic) {
   LOG_INFO() << "before";
 
   const std::string location = USERVER_FILEPATH;
-  logging::AddDynamicDebugLog(std::string{location}, 17);
+  logging::AddDynamicDebugLog(location, 17);
 
   LOG_INFO() << "123";
 
-  logging::RemoveDynamicDebugLog(std::string{location}, 17);
+  logging::RemoveDynamicDebugLog(location, 17);
 
   LOG_INFO() << "after";
 
@@ -33,12 +33,12 @@ TEST_F(LoggingTest, DynamicDebugAnyLine) {
   LOG_INFO() << "before";
 
   const std::string location = USERVER_FILEPATH;
-  logging::AddDynamicDebugLog(std::string{location}, logging::kAnyLine);
+  logging::AddDynamicDebugLog(location, logging::kAnyLine);
 
   LOG_INFO() << "123";
   LOG_INFO() << "456";
 
-  logging::RemoveDynamicDebugLog(std::string{location}, logging::kAnyLine);
+  logging::RemoveDynamicDebugLog(location, logging::kAnyLine);
 
   LOG_INFO() << "after";
 
@@ -55,10 +55,10 @@ TEST_F(LoggingTest, DynamicDebugAnyLineRemove) {
 
   LOG_INFO() << "before";
 
-  auto location = USERVER_FILEPATH;
-  logging::AddDynamicDebugLog(std::string{location}, 63);
-  logging::AddDynamicDebugLog(std::string{location}, 64);
-  logging::RemoveDynamicDebugLog(std::string{location}, logging::kAnyLine);
+  const std::string location = USERVER_FILEPATH;
+  logging::AddDynamicDebugLog(location, 63);
+  logging::AddDynamicDebugLog(location, 64);
+  logging::RemoveDynamicDebugLog(location, logging::kAnyLine);
 
   LOG_INFO() << "123";
   LOG_INFO() << "456";

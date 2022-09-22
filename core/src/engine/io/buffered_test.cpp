@@ -7,6 +7,7 @@
 #include <userver/engine/io/buffered.hpp>
 #include <userver/engine/io/common.hpp>
 #include <userver/utest/assert_macros.hpp>
+#include <userver/utils/rand.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -22,7 +23,7 @@ class ReadableMock : public ReadableBase {
   size_t ReadSome(void* buf, size_t len, engine::Deadline) override {
     if (!len || buffer_.empty()) return 0;
 
-    auto chars_to_copy = std::rand() % std::min(len, buffer_.size()) + 1;
+    auto chars_to_copy = utils::RandRange(std::min(len, buffer_.size())) + 1;
     std::copy(buffer_.begin(), buffer_.begin() + chars_to_copy,
               reinterpret_cast<char*>(buf));
     buffer_.erase(buffer_.begin(), buffer_.begin() + chars_to_copy);

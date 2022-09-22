@@ -20,7 +20,7 @@ class TwoStandaloneTaskProcessors final {
 
   template <typename Func>
   void RunBlocking(Func&& func) {
-    engine::impl::RunOnTaskProcessorSync(GetMain(), std::move(func));
+    engine::impl::RunOnTaskProcessorSync(GetMain(), std::forward<Func>(func));
   }
 
  private:

@@ -50,11 +50,10 @@ UTEST(DestinationStatistics, Ok) {
     EXPECT_EQ(url, stat_url);
     ASSERT_NE(nullptr, stat_ptr);
 
-    using namespace clients::http;
-    auto stats = InstanceStatistics(*stat_ptr);
-    auto ok = static_cast<size_t>(Statistics::ErrorGroup::kOk);
+    auto stats = clients::http::InstanceStatistics(*stat_ptr);
+    auto ok = static_cast<size_t>(clients::http::Statistics::ErrorGroup::kOk);
     EXPECT_EQ(1, stats.error_count[ok]);
-    for (size_t i = 0; i < Statistics::kErrorGroupCount; i++) {
+    for (size_t i = 0; i < clients::http::Statistics::kErrorGroupCount; i++) {
       if (i != ok) {
         EXPECT_EQ(0, stats.error_count[i]);
       }
@@ -95,11 +94,10 @@ UTEST(DestinationStatistics, Multiple) {
 
     ASSERT_NE(nullptr, stat_ptr);
 
-    using namespace clients::http;
-    auto stats = InstanceStatistics(*stat_ptr);
-    auto ok = static_cast<size_t>(Statistics::ErrorGroup::kOk);
+    auto stats = clients::http::InstanceStatistics(*stat_ptr);
+    auto ok = static_cast<size_t>(clients::http::Statistics::ErrorGroup::kOk);
     EXPECT_EQ(1, stats.error_count[ok]);
-    for (size_t i = 0; i < Statistics::kErrorGroupCount; i++) {
+    for (size_t i = 0; i < clients::http::Statistics::kErrorGroupCount; i++) {
       if (i != ok) {
         EXPECT_EQ(0, stats.error_count[i]) << i << " errors must be zero";
       }

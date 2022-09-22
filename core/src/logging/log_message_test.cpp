@@ -226,8 +226,10 @@ TEST_F(LoggingTest, HppModulePath) {
 TEST_F(LoggingTest, ExternalModulePath) {
   static const std::string kPath = "/somewhere_else/src/test.cpp";
 
-  logging::LogHelper(logging::DefaultLogger(), logging::Level::kCritical,
-                     kPath.c_str(), __LINE__, __func__);
+  {
+    logging::LogHelper a(logging::DefaultLogger(), logging::Level::kCritical,
+                         kPath.c_str(), __LINE__, __func__);
+  }
   logging::LogFlush();
 
   CheckModulePath(GetStreamString(), kPath);
@@ -302,11 +304,10 @@ TEST_F(LoggingTest, TAXICOMMON1362) {
   const auto body_pos = result.find("body=");
   EXPECT_TRUE(body_pos != std::string::npos) << "Result: " << result;
 
-  auto begin = result.begin() + body_pos;
-  auto end = result.begin() + ascii_pos;
-  EXPECT_EQ(0, std::count(begin, end, '\n')) << "Result: " << result;
-  EXPECT_EQ(0, std::count(begin, end, '\t')) << "Result: " << result;
-  EXPECT_EQ(0, std::count(begin, end, '\0')) << "Result: " << result;
+  EXPECT_EQ(result.substr(body_pos, ascii_pos - body_pos)
+                .find_first_of({'\n', '\t', '\0'}),
+            std::string::npos)
+      << "Result: " << result;
 }
 
 TEST_F(LoggingTest, Ranges) {
