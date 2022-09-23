@@ -14,7 +14,7 @@ namespace storages::redis {
 /// really powerful)
 class MockSubscribeClient : public SubscribeClient {
  public:
-  virtual ~MockSubscribeClient() = default;
+  ~MockSubscribeClient() override = default;
   MOCK_METHOD(SubscriptionToken, Subscribe,
               (std::string channel,
                SubscriptionToken::OnMessageCb on_message_cb,
@@ -33,7 +33,7 @@ class MockSubscribeClient : public SubscribeClient {
 /// @snippet storages/redis/test/subscribe_client_mock_test.cpp SbTknExmpl1
 class MockSubscriptionTokenImpl : public SubscriptionTokenImplBase {
  public:
-  virtual ~MockSubscriptionTokenImpl() = default;
+  ~MockSubscriptionTokenImpl() override = default;
 
   MOCK_METHOD(void, SetMaxQueueLength, (size_t length), (override));
 

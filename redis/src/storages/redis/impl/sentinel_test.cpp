@@ -3,14 +3,16 @@
 
 #include <gtest/gtest.h>
 
-using namespace USERVER_NAMESPACE::redis;
+USERVER_NAMESPACE_BEGIN
 
 TEST(Sentinel, CreateTmpKey) {
-  const KeyShardCrc32 key_shard(0xffffffff);
+  const redis::KeyShardCrc32 key_shard(0xffffffff);
   for (const char* const key : {"hello:world", "abc", "duke:nukem{must:die}"}) {
-    const std::string& tmpkey = Sentinel::CreateTmpKey(key);
+    const std::string& tmpkey = redis::Sentinel::CreateTmpKey(key);
     EXPECT_STRNE(key, tmpkey.c_str()) << key << " vs " << tmpkey;
     EXPECT_EQ(key_shard.ShardByKey(key), key_shard.ShardByKey(tmpkey))
         << key << " vs " << tmpkey;
   }
 }
+
+USERVER_NAMESPACE_END

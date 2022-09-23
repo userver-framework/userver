@@ -57,6 +57,7 @@ const std::string kRedisClusterSettingsJsonFormat = R"({
 
 const secdist::RedisSettings& GetTestsuiteRedisSettings() {
   static const auto settings_map = [] {
+    // NOLINTNEXTLINE(concurrency-mt-unsafe)
     const auto* sentinel_port_env = std::getenv(kTestsuiteSentinelPort);
     return storages::secdist::RedisMapSettings{
         formats::json::FromString(fmt::format(

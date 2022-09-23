@@ -59,7 +59,7 @@ redis::CommandControl kDefaultCc(std::chrono::milliseconds(300),
 // Tests are disabled because no local redis cluster is running by default.
 // See https://st.yandex-team.ru/TAXICOMMON-2440#5ecf09f0ffc9d004c04c43b1 for
 // details.
-UTEST(DISABLED_ClientCluster, SetGet) {
+UTEST(ClientCluster, DISABLED_SetGet) {
   auto client = GetClient();
 
   const size_t kNumKeys = 10;
@@ -83,7 +83,7 @@ UTEST(DISABLED_ClientCluster, SetGet) {
   }
 }
 
-UTEST(DISABLED_ClientCluster, Mget) {
+UTEST(ClientCluster, DISABLED_Mget) {
   auto client = GetClient();
 
   const size_t kNumKeys = 10;
@@ -122,7 +122,7 @@ UTEST(DISABLED_ClientCluster, Mget) {
   }
 }
 
-UTEST(DISABLED_ClientCluster, MgetCrossSlot) {
+UTEST(ClientCluster, DISABLED_MgetCrossSlot) {
   auto client = GetClient();
 
   const int add = 100;
@@ -131,9 +131,8 @@ UTEST(DISABLED_ClientCluster, MgetCrossSlot) {
   auto shard = client->ShardByKey(MakeKey(idx[0]));
   while (client->ShardByKey(MakeKey(idx[1])) != shard) ++idx[1];
 
-  for (size_t i = 0; i < 2; ++i) {
-    auto req =
-        client->Set(MakeKey(idx[i]), std::to_string(add + i), kDefaultCc);
+  for (unsigned long i : idx) {
+    auto req = client->Set(MakeKey(i), std::to_string(add + i), kDefaultCc);
     UASSERT_NO_THROW(req.Get());
   }
 
@@ -142,13 +141,13 @@ UTEST(DISABLED_ClientCluster, MgetCrossSlot) {
     UASSERT_THROW(req.Get(), redis::ParseReplyException);
   }
 
-  for (size_t i = 0; i < 2; ++i) {
-    auto req = client->Del(MakeKey(idx[i]), kDefaultCc);
+  for (unsigned long i : idx) {
+    auto req = client->Del(MakeKey(i), kDefaultCc);
     EXPECT_EQ(req.Get(), 1);
   }
 }
 
-UTEST(DISABLED_ClientCluster, Transaction) {
+UTEST(ClientCluster, DISABLED_Transaction) {
   auto client = GetClient();
   auto transaction = client->Multi();
 
@@ -177,7 +176,7 @@ UTEST(DISABLED_ClientCluster, Transaction) {
   }
 }
 
-UTEST(DISABLED_ClientCluster, TransactionCrossSlot) {
+UTEST(ClientCluster, DISABLED_TransactionCrossSlot) {
   auto client = GetClient();
   auto transaction = client->Multi();
 
@@ -195,7 +194,7 @@ UTEST(DISABLED_ClientCluster, TransactionCrossSlot) {
                 redis::ParseReplyException);
 }
 
-UTEST(DISABLED_ClientCluster, TransactionDistinctShards) {
+UTEST(ClientCluster, DISABLED_TransactionDistinctShards) {
   auto client = GetClient();
   auto transaction =
       client->Multi(storages::redis::Transaction::CheckShards::kNo);
@@ -211,7 +210,7 @@ UTEST(DISABLED_ClientCluster, TransactionDistinctShards) {
                 redis::ParseReplyException);
 }
 
-UTEST(DISABLED_ClientCluster, Subscribe) {
+UTEST(ClientCluster, DISABLED_Subscribe) {
   auto client = GetClient();
   auto subscribe_client = GetSubscribeClient();
 
@@ -261,7 +260,7 @@ UTEST(DISABLED_ClientCluster, Subscribe) {
 }
 
 // for manual testing of CLUSTER FAILOVER
-UTEST(DISABLED_ClientCluster, LongWork) {
+UTEST(ClientCluster, DISABLED_LongWork) {
   const auto kTestTime = std::chrono::seconds(30);
   auto deadline = engine::Deadline::FromDuration(kTestTime);
 
