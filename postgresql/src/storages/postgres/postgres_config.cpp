@@ -59,11 +59,6 @@ ConnectionSettings ParseConnectionSettings(const ConfigType& config) {
           config["ignore_unused_query_params"].template As<bool>(false))
           ? ConnectionSettings::kIgnoreUnused
           : ConnectionSettings::kCheckUnused;
-  settings.pipeline_mode =
-      config["pipeline-enabled"].template As<bool>(
-          config["pipeline_enabled"].template As<bool>(false))
-          ? ConnectionSettings::kPipelineEnabled
-          : ConnectionSettings::kPipelineDisabled;
   return settings;
 }
 
@@ -135,6 +130,12 @@ StatementMetricsSettings Parse(const formats::json::Value& config,
 StatementMetricsSettings Parse(const yaml_config::YamlConfig& config,
                                formats::parse::To<StatementMetricsSettings>) {
   return ParseStatementMetricsSettings(config);
+}
+
+PipelineMode ParsePipelineMode(const dynamic_config::DocsMap& docs_map) {
+  return docs_map.Get("POSTGRES_CONNECTION_PIPELINE_ENABLED").As<bool>(false)
+             ? PipelineMode::kEnabled
+             : PipelineMode::kDisabled;
 }
 
 Config::Config(const dynamic_config::DocsMap& docs_map)

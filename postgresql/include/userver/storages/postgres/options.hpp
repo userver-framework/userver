@@ -191,6 +191,11 @@ struct PoolSettings {
 /// Default size limit for prepared statements cache
 static constexpr size_t kDefaultMaxPreparedCacheSize = 5000;
 
+/// Pipeline mode configuration
+///
+/// Dynamic option @ref POSTGRES_CONNECTION_PIPELINE_ENABLED
+enum class PipelineMode { kDisabled, kEnabled };
+
 /// PostgreSQL connection options
 ///
 /// Dynamic option @ref POSTGRES_CONNECTION_SETTINGS
@@ -207,10 +212,6 @@ struct ConnectionSettings {
     kIgnoreUnused,
     kCheckUnused,
   };
-  enum PipelineMode {
-    kPipelineDisabled,
-    kPipelineEnabled,
-  };
   using SettingsVersion = size_t;
 
   /// Cache prepared statements or not
@@ -226,7 +227,7 @@ struct ConnectionSettings {
   size_t max_prepared_cache_size = kDefaultMaxPreparedCacheSize;
 
   /// Turns on connection pipeline mode
-  PipelineMode pipeline_mode = kPipelineDisabled;
+  PipelineMode pipeline_mode = PipelineMode::kDisabled;
 
   /// Helps keep track of the changes in settings
   SettingsVersion version{0U};
@@ -237,6 +238,10 @@ struct ConnectionSettings {
            ignore_unused_query_params == rhs.ignore_unused_query_params &&
            max_prepared_cache_size == rhs.max_prepared_cache_size &&
            pipeline_mode == rhs.pipeline_mode;
+  }
+
+  bool operator!=(const ConnectionSettings& rhs) const {
+    return !(*this == rhs);
   }
 };
 

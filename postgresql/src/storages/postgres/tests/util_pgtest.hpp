@@ -50,7 +50,7 @@ inline const storages::postgres::ConnectionSettings kPipelineEnabled{
     storages::postgres::ConnectionSettings::kUserTypesEnabled,
     storages::postgres::ConnectionSettings::kCheckUnused,
     storages::postgres::kDefaultMaxPreparedCacheSize,
-    storages::postgres::ConnectionSettings::kPipelineEnabled,
+    storages::postgres::PipelineMode::kEnabled,
 };
 
 engine::Deadline MakeDeadline();

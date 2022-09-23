@@ -301,6 +301,12 @@ void ClusterImpl::SetStatementMetricsSettings(
   }
 }
 
+void ClusterImpl::SetPipelineMode(PipelineMode mode) {
+  for (const auto& pool : host_pools_) {
+    pool->SetPipelineMode(mode);
+  }
+}
+
 OptionalCommandControl ClusterImpl::GetQueryCmdCtl(
     const std::string& query_name) const {
   return default_cmd_ctls_.GetQueryCmdCtl(query_name);
