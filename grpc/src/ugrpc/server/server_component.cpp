@@ -51,6 +51,9 @@ properties:
           - error
           - critical
           - none
+    enable-channelz:
+        type: boolean
+        description: enable channelz
 )");
 }
 

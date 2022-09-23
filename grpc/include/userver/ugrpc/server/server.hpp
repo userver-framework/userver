@@ -36,6 +36,9 @@ struct ServerConfig final {
   /// The logging level override for the internal grpcpp library. Must be either
   /// `kDebug`, `kInfo` or `kError`.
   logging::Level native_log_level{logging::Level::kError};
+
+  /// Serve a web page with runtime info about gRPC connections
+  bool enable_channelz{false};
 };
 
 ServerConfig Parse(const yaml_config::YamlConfig& value,
