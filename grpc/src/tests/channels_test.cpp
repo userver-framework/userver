@@ -16,13 +16,12 @@
 USERVER_NAMESPACE_BEGIN
 
 using namespace std::chrono_literals;
-using namespace sample::ugrpc;
 
 namespace {
 
-class UnitTestServiceSimple final : public UnitTestServiceBase {
+class UnitTestServiceSimple final : public sample::ugrpc::UnitTestServiceBase {
  public:
-  void SayHello(SayHelloCall& call, GreetingRequest&& request) override {
+  void SayHello(SayHelloCall& call, sample::ugrpc::GreetingRequest&&) override {
     call.Finish({});
   }
 };
@@ -56,7 +55,9 @@ UTEST_P_MT(GrpcChannels, TryWaitForConnected, 2) {
         client_queue.GetQueue(), statistics_storage);
 
     const auto endpoint = fmt::format("[::1]:{}", kPort);
-    auto client = client_factory.MakeClient<UnitTestServiceClient>(endpoint);
+    auto client =
+        client_factory.MakeClient<sample::ugrpc::UnitTestServiceClient>(
+            endpoint);
 
     // TryWaitForConnected should wait for the server to start and return 'true'
     EXPECT_TRUE(ugrpc::client::TryWaitForConnected(

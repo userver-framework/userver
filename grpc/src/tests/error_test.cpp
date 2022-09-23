@@ -8,17 +8,17 @@
 
 USERVER_NAMESPACE_BEGIN
 
-using namespace sample::ugrpc;
-
 namespace {
 
-class UnitTestServiceWithError final : public UnitTestServiceBase {
+class UnitTestServiceWithError final
+    : public sample::ugrpc::UnitTestServiceBase {
  public:
-  void SayHello(SayHelloCall& call, GreetingRequest&& request) override {
+  void SayHello(SayHelloCall& call, sample::ugrpc::GreetingRequest&&) override {
     call.FinishWithError({grpc::StatusCode::INTERNAL, "message", "details"});
   }
 
-  void ReadMany(ReadManyCall& call, StreamGreetingRequest&& request) override {
+  void ReadMany(ReadManyCall& call,
+                sample::ugrpc::StreamGreetingRequest&&) override {
     call.FinishWithError({grpc::StatusCode::INTERNAL, "message", "details"});
   }
 
@@ -36,32 +36,32 @@ class UnitTestServiceWithError final : public UnitTestServiceBase {
 using GrpcClientErrorTest = GrpcServiceFixtureSimple<UnitTestServiceWithError>;
 
 UTEST_F(GrpcClientErrorTest, UnaryRPC) {
-  auto client = MakeClient<UnitTestServiceClient>();
-  GreetingRequest out;
+  auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
+  sample::ugrpc::GreetingRequest out;
   out.set_name("userver");
   auto call = client.SayHello(out);
   UEXPECT_THROW(call.Finish(), ugrpc::client::InternalError);
 }
 
 UTEST_F(GrpcClientErrorTest, InputStream) {
-  auto client = MakeClient<UnitTestServiceClient>();
-  StreamGreetingRequest out;
+  auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
+  sample::ugrpc::StreamGreetingRequest out;
   out.set_name("userver");
   out.set_number(42);
-  StreamGreetingResponse in;
+  sample::ugrpc::StreamGreetingResponse in;
   auto call = client.ReadMany(out);
   UEXPECT_THROW(call.Finish(), ugrpc::client::InternalError);
 }
 
 UTEST_F(GrpcClientErrorTest, OutputStream) {
-  auto client = MakeClient<UnitTestServiceClient>();
+  auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
   auto call = client.WriteMany();
   UEXPECT_THROW(call.Finish(), ugrpc::client::InternalError);
 }
 
 UTEST_F(GrpcClientErrorTest, BidirectionalStream) {
-  auto client = MakeClient<UnitTestServiceClient>();
-  StreamGreetingResponse in;
+  auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
+  sample::ugrpc::StreamGreetingResponse in;
   auto call = client.Chat();
   UEXPECT_THROW(call.Finish(), ugrpc::client::InternalError);
 }

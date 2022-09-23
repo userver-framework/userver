@@ -15,14 +15,14 @@
 USERVER_NAMESPACE_BEGIN
 
 using namespace std::chrono_literals;
-using namespace sample::ugrpc;
 
 namespace {
 
-class UnitTestServiceCancelEcho final : public UnitTestServiceBase {
+class UnitTestServiceCancelEcho final
+    : public sample::ugrpc::UnitTestServiceBase {
  public:
   void Chat(ChatCall& call) override {
-    StreamGreetingRequest request;
+    sample::ugrpc::StreamGreetingRequest request;
     ASSERT_TRUE(call.Read(request));
     UASSERT_NO_THROW(call.Write({}));
 
@@ -36,13 +36,13 @@ class UnitTestServiceCancelEcho final : public UnitTestServiceBase {
 using GrpcCancel = GrpcServiceFixtureSimple<UnitTestServiceCancelEcho>;
 
 UTEST_F(GrpcCancel, TryCancel) {
-  auto client = MakeClient<UnitTestServiceClient>();
+  auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
 
   for (int i = 0; i < 2; ++i) {
     auto call = client.Chat();
 
     UEXPECT_NO_THROW(call.Write({}));
-    StreamGreetingResponse response;
+    sample::ugrpc::StreamGreetingResponse response;
     EXPECT_TRUE(call.Read(response));
 
     // Drop 'call' without finishing. After this the server side should
@@ -53,11 +53,11 @@ UTEST_F(GrpcCancel, TryCancel) {
 
 namespace {
 
-class UnitTestServiceEcho final : public UnitTestServiceBase {
+class UnitTestServiceEcho final : public sample::ugrpc::UnitTestServiceBase {
  public:
   void Chat(ChatCall& call) override {
-    StreamGreetingRequest request;
-    StreamGreetingResponse response;
+    sample::ugrpc::StreamGreetingRequest request;
+    sample::ugrpc::StreamGreetingResponse response;
     while (call.Read(request)) {
       response.set_name(request.name());
       response.set_number(request.number());
@@ -92,13 +92,15 @@ UTEST_MT(GrpcServer, DestroyServerDuringReqest, 2) {
       engine::current_task::GetTaskProcessor(), client_queue.GetQueue(),
       statistics_storage);
 
-  const auto endpoint = fmt::format("[::1]:{}", server.GetPort());
-  auto client = client_factory.MakeClient<UnitTestServiceClient>(endpoint);
+  const std::string endpoint = fmt::format("[::1]:{}", server.GetPort());
+  auto client =
+      client_factory.MakeClient<sample::ugrpc::UnitTestServiceClient>(endpoint);
 
   auto call = client.Chat();
+  // NOLINTNEXTLINE(clang-analyzer-optin.cplusplus.UninitializedObject)
   call.Write({});
 
-  StreamGreetingResponse response;
+  sample::ugrpc::StreamGreetingResponse response;
   EXPECT_TRUE(call.Read(response));
 
   auto complete_rpc = engine::AsyncNoSpan([&] {
@@ -118,14 +120,15 @@ UTEST_MT(GrpcServer, DestroyServerDuringReqest, 2) {
 UTEST(GrpcServer, DeadlineAffectsWaitForReady) {
   utils::statistics::Storage statistics_storage;
   ugrpc::client::QueueHolder client_queue;
-  const auto endpoint = "[::1]:1234";
+  const std::string endpoint = "[::1]:1234";
 
   ugrpc::client::ClientFactory client_factory(
       ugrpc::client::ClientFactoryConfig{},
       engine::current_task::GetTaskProcessor(), client_queue.GetQueue(),
       statistics_storage);
 
-  auto client = client_factory.MakeClient<UnitTestServiceClient>(endpoint);
+  auto client =
+      client_factory.MakeClient<sample::ugrpc::UnitTestServiceClient>(endpoint);
 
   auto context = std::make_unique<grpc::ClientContext>();
   context->set_deadline(engine::Deadline::FromDuration(100ms));

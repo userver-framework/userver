@@ -54,7 +54,7 @@ class GrpcServiceFixtureSimple : public GrpcServiceFixture {
     StartServer();
   }
 
-  ~GrpcServiceFixtureSimple() { StopServer(); }
+  ~GrpcServiceFixtureSimple() override { StopServer(); }
 
  private:
   Service service_{};
@@ -64,6 +64,7 @@ class GrpcServiceFixtureSimple : public GrpcServiceFixture {
 // implementation. Will create the client with number of connections greater
 // than one
 template <typename Service>
+// NOLINTNEXTLINE(fuchsia-multiple-inheritance)
 class GrpcServiceFixtureMultichannel
     : public GrpcServiceFixture,
       public testing::WithParamInterface<std::size_t> {
@@ -75,7 +76,7 @@ class GrpcServiceFixtureMultichannel
     StartServer(std::move(client_factory_config));
   }
 
-  ~GrpcServiceFixtureMultichannel() { StopServer(); }
+  ~GrpcServiceFixtureMultichannel() override { StopServer(); }
 
  private:
   Service service_{};

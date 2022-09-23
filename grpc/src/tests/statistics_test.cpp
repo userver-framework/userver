@@ -10,15 +10,14 @@
 #include <tests/unit_test_client.usrv.pb.hpp>
 #include <tests/unit_test_service.usrv.pb.hpp>
 
-using namespace sample::ugrpc;
-
 USERVER_NAMESPACE_BEGIN
 
 namespace {
 
-class UnitTestServiceForStatistics final : public UnitTestServiceBase {
+class UnitTestServiceForStatistics final
+    : public sample::ugrpc::UnitTestServiceBase {
  public:
-  void SayHello(SayHelloCall& call, GreetingRequest&& request) override {
+  void SayHello(SayHelloCall& call, sample::ugrpc::GreetingRequest&&) override {
     engine::SleepFor(std::chrono::milliseconds{20});
     call.FinishWithError(
         {grpc::StatusCode::INVALID_ARGUMENT, "message", "details"});
@@ -30,8 +29,8 @@ class UnitTestServiceForStatistics final : public UnitTestServiceBase {
 using GrpcStatistics = GrpcServiceFixtureSimple<UnitTestServiceForStatistics>;
 
 UTEST_F(GrpcStatistics, LongRequest) {
-  auto client = MakeClient<UnitTestServiceClient>();
-  GreetingRequest out;
+  auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
+  sample::ugrpc::GreetingRequest out;
   out.set_name("userver");
   UEXPECT_THROW(client.SayHello(out).Finish(),
                 ugrpc::client::InvalidArgumentError);
@@ -39,7 +38,7 @@ UTEST_F(GrpcStatistics, LongRequest) {
 
   const auto statistics = GetStatistics();
 
-  for (const auto domain : {"client", "server"}) {
+  for (const auto& domain : {"client", "server"}) {
     EXPECT_EQ("grpc_destination", statistics["grpc"][domain]["by-destination"]
                                             ["$meta"]["solomon_children_labels"]
                                                 .As<std::string>())
@@ -61,11 +60,11 @@ UTEST_F(GrpcStatistics, LongRequest) {
 UTEST_F_MT(GrpcStatistics, Multithreaded, 2) {
   constexpr int kIterations = 10;
 
-  auto client = MakeClient<UnitTestServiceClient>();
+  auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
 
   auto say_hello_task = utils::Async("say-hello", [&] {
     for (int i = 0; i < kIterations; ++i) {
-      GreetingRequest out;
+      sample::ugrpc::GreetingRequest out;
       out.set_name("userver");
       UEXPECT_THROW(client.SayHello(out).Finish(),
                     ugrpc::client::InvalidArgumentError);
@@ -75,7 +74,7 @@ UTEST_F_MT(GrpcStatistics, Multithreaded, 2) {
   auto chat_task = utils::Async("chat", [&] {
     for (int i = 0; i < kIterations; ++i) {
       auto chat = client.Chat();
-      StreamGreetingResponse response;
+      sample::ugrpc::StreamGreetingResponse response;
       UEXPECT_THROW((void)chat.Read(response),
                     ugrpc::client::UnimplementedError);
     }
@@ -86,7 +85,7 @@ UTEST_F_MT(GrpcStatistics, Multithreaded, 2) {
 
   const auto statistics = GetStatistics();
 
-  for (const auto domain : {"client", "server"}) {
+  for (const auto& domain : {"client", "server"}) {
     const auto destination_statistics =
         statistics["grpc"][domain]["by-destination"];
 
