@@ -133,6 +133,7 @@ UTEST_F(PostgrePoolStats, RunTransactions) {
   const auto exec_count = 10;
 
   std::vector<engine::TaskWithResult<void>> tasks;
+  tasks.reserve(trx_count);
   for (auto i = 0; i < trx_count; ++i) {
     tasks.push_back(engine::AsyncNoSpan([&pool] {
       pg::detail::ConnectionPtr conn(nullptr);

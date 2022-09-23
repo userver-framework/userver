@@ -81,13 +81,17 @@ class PostgreSQLBase : public ::testing::Test {
   logging::LoggerPtr old_;
 };
 
+// NOLINTNEXTLINE(fuchsia-multiple-inheritance)
 class PostgreConnection : public PostgreSQLBase,
                           public ::testing::WithParamInterface<
                               storages::postgres::ConnectionSettings> {
  protected:
   PostgreConnection();
-  ~PostgreConnection();
+  ~PostgreConnection() override;
 
+  storages::postgres::detail::ConnectionPtr& GetConn() { return conn; }
+
+ private:
   storages::postgres::detail::ConnectionPtr conn;
 };
 

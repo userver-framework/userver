@@ -212,8 +212,8 @@ class Range {
         : RangeData{OptionalValue{}, OptionalValue{std::forward<U>(upper)},
                     bounds} {}
 
-    RangeData(OptionalValue lower, OptionalValue upper, RangeBounds bounds)
-        : bounds{bounds}, lower{std::move(lower)}, upper{std::move(upper)} {
+    RangeData(OptionalValue low, OptionalValue up, RangeBounds bounds)
+        : bounds{bounds}, lower{std::move(low)}, upper{std::move(up)} {
       if (lower && upper && *upper < *lower) {
         throw LogicError("Range lower bound is greater than upper");
       }

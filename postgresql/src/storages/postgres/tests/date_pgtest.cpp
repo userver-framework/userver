@@ -39,13 +39,13 @@ TEST(PostgreIO, Date) {
 }
 
 UTEST_P(PostgreConnection, Date) {
-  CheckConnection(conn);
+  CheckConnection(GetConn());
 
   const pg::Date today = std::chrono::time_point_cast<pg::Date::Days>(
       std::chrono::system_clock::now());
 
   pg::ResultSet res{nullptr};
-  UEXPECT_NO_THROW(res = conn->Execute("select $1", today));
+  UEXPECT_NO_THROW(res = GetConn()->Execute("select $1", today));
   EXPECT_EQ(today, res[0][0].As<pg::Date>());
 }
 
