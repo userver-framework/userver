@@ -106,6 +106,8 @@ if (USERVER_IS_THE_ROOT_PROJECT)
       $<TARGET_FILE:${PROJECT_NAME}_pgtest>
       --gtest_output=xml:${CMAKE_BINARY_DIR}/test-results/${PROJECT_NAME}_pgtest.xml
   )
+
+  add_subdirectory(tests)
 endif()
 
 # Target with no need to use userver namespace, but includes require userver/
