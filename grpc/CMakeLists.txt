@@ -16,14 +16,16 @@ file(GLOB_RECURSE SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/*.hpp)
 
-add_grpc_library(${PROJECT_NAME}_unittest_proto
-  PROTOS
-    # Absolute paths are allowed
-    ${CMAKE_CURRENT_SOURCE_DIR}/proto/tests/unit_test.proto
-    # As well as paths relative to CMAKE_CURRENT_SOURCE_DIR
-    tests/messages.proto
-  INCLUDE_DIRECTORIES ${CMAKE_CURRENT_SOURCE_DIR}/proto
-)
+if (USERVER_IS_THE_ROOT_PROJECT)
+    add_grpc_library(${PROJECT_NAME}_unittest_proto
+      PROTOS
+        # Absolute paths are allowed
+        ${CMAKE_CURRENT_SOURCE_DIR}/proto/tests/unit_test.proto
+        # As well as paths relative to CMAKE_CURRENT_SOURCE_DIR
+        tests/messages.proto
+      INCLUDE_DIRECTORIES ${CMAKE_CURRENT_SOURCE_DIR}/proto
+    )
+endif()
 
 file(GLOB_RECURSE UNIT_TEST_SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/*_test.cpp
