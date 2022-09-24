@@ -353,6 +353,7 @@ auto InterceptCrlDistribution() {
   auto* sa = addr.template As<struct sockaddr_in6>();
   sa->sin6_family = AF_INET6;
   sa->sin6_addr = in6addr_loopback;
+  // NOLINTNEXTLINE(hicpp-no-assembler,readability-isolate-declaration)
   sa->sin6_port = htons(kCrlDistributionPort);
   listener.Bind(addr);
 

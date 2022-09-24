@@ -35,6 +35,7 @@ const auto kNetV4Sockaddr = [] {
   engine::io::Sockaddr sockaddr;
   auto* sa = sockaddr.As<sockaddr_in>();
   sa->sin_family = AF_INET;
+  // NOLINTNEXTLINE(hicpp-no-assembler,readability-isolate-declaration)
   sa->sin_addr.s_addr = htonl(0x4D583737);
   return sockaddr;
 }();
