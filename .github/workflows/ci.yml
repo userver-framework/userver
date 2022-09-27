@@ -56,6 +56,8 @@ jobs:
 
         steps:
           - uses: actions/checkout@v2
+            with:
+                fetch-depth: 0
 
           - name: Reuse ccache directory
             uses: actions/cache@v2
@@ -76,6 +78,14 @@ jobs:
                 sudo apt update
                 sudo apt install --allow-downgrades -y clickhouse-common-static $(cat scripts/docs/en/deps/${{matrix.os}}.md | tr '\n' ' ')
 
+          - name: Run clang-tidy
+            if: matrix.info == 'clang-14 + debug + sanitize addr+ub'
+            # TODO: add clang-tidy-diff.py after establishing baseline
+            run: |
+                sudo apt install -y clang-tidy-14
+                git diff origin/develop -U0 | ./tools/clang-tidy-diff.py -clang-tidy-binary clang-tidy-14 -p1 -path=build_debug -q
+                # python3 ./tools/run-clang-tidy -clang-tidy-binary clang-tidy-14 -p build_debug -q -j$(nproc)
+          
           - name: Install RabbitMQ packages
             run: |
                 ./scripts/rabbitmq/ubuntu_install_rabbitmq_server.sh
