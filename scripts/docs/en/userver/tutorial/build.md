@@ -13,6 +13,7 @@ The following options could be used to control `cmake`:
 | USERVER_FEATURE_GRPC                   | Provide asynchronous driver for gRPC                                         | ON                                               |
 | USERVER_FEATURE_RABBITMQ               | Provide asynchronous driver for RabbitMQ (AMQP 0-9-1)                        | ${USERVER_OPEN_SOURCE_BUILD}                     |
 | USERVER_FEATURE_UNIVERSAL              | Provide a universal utilities library that does not use coroutines           | ON                                               |
+| USERVER_FEATURE_UTEST                  | Provide 'utest' and 'ubench' for unit testing and benchmarking coroutines    | ON                                               |
 | USERVER_FEATURE_CRYPTOPP_BLAKE2        | Provide wrappers for blake2 algorithms of crypto++                           | ON                                               |
 | USERVER_FEATURE_PATCH_LIBPQ            | Apply patches to the libpq (add portals support), requires libpq.a           | ON                                               |
 | USERVER_FEATURE_CRYPTOPP_BASE64_URL    | Provide wrappers for Base64 URL decoding and encoding algorithms of crypto++ | ON                                               |
