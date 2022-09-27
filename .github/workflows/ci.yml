@@ -158,4 +158,5 @@ jobs:
             # TODO: add clang-tidy-diff.py after establishing baseline
             run: |
                 sudo apt install -y clang-tidy-14
-                python3 ./tools/run-clang-tidy -clang-tidy-binary clang-tidy-14 -p build_debug -q -j$(nproc)
+                git diff origin/develop -U0 | ./tools/clang-tidy-diff.py -clang-tidy-binary clang-tidy-14 -p1 -path=build_debug -q
+                # python3 ./tools/run-clang-tidy -clang-tidy-binary clang-tidy-14 -p build_debug -q -j$(nproc)
