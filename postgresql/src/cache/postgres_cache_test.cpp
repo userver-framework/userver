@@ -13,8 +13,8 @@ USERVER_NAMESPACE_BEGIN
 namespace example {
 
 struct MyStructure {
-  int id;
-  std::string bar;
+  int id = 0;
+  std::string bar{};
   std::chrono::system_clock::time_point updated;
 
   int get_id() const { return id; }
@@ -136,10 +136,10 @@ static_assert(pg_cache::detail::ClusterHostType<PostgresExamplePolicy2>() ==
 // Example of custom updated in cache
 /*! [Pg Cache Policy Custom Updated Example] */
 struct MyStructureWithRevision {
-  int id;
-  std::string bar;
+  int id = 0;
+  std::string bar{};
   std::chrono::system_clock::time_point updated;
-  int32_t revision;
+  int32_t revision = 0;
 
   int get_id() const { return id; }
 };
@@ -149,7 +149,7 @@ class UserSpecificCache {
   void insert_or_assign(int, MyStructureWithRevision&& item) {
     latest_revision_ = std::max(latest_revision_, item.revision);
   }
-  size_t size() const { return 0; }
+  static size_t size() { return 0; }
 
   int GetLatestRevision() const { return latest_revision_; }
 
@@ -264,7 +264,7 @@ static_assert(pg_cache::detail::kHasGetQuery<PostgresExamplePolicy5>);
 class UserSpecificCacheWithWriteNotification {
  public:
   void insert_or_assign(int, MyStructure&&) {}
-  size_t size() const { return 0; }
+  static size_t size() { return 0; }
 
   void OnWritesDone() {}
 };

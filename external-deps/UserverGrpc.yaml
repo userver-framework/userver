@@ -25,6 +25,8 @@ libraries:
           - absl
           - absl_synchronization
           - grpc  # fallback, old versions of gRPC do not link with absl
+      - names:
+          - grpcpp_channelz
 
 includes:
     find:

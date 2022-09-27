@@ -95,8 +95,9 @@ TEST(PostgreIO, ChronoTz) {
 // RAII class to set TZ environment variable. Not for use with threads.
 class TemporaryTZ {
  public:
-  TemporaryTZ(const std::string& tz) : current_tz_{tz}, old_tz_{} {
-    auto env = std::getenv("TZ");
+  TemporaryTZ(const std::string& tz) : current_tz_{tz} {
+    // NOLINTNEXTLINE(concurrency-mt-unsafe)
+    auto* env = std::getenv("TZ");
     if (env) {
       std::string{env}.swap(old_tz_);
     }
@@ -105,10 +106,12 @@ class TemporaryTZ {
   ~TemporaryTZ() { SetTz(old_tz_); }
 
  private:
-  void SetTz(const std::string& tz) {
+  static void SetTz(const std::string& tz) {
     if (tz.empty()) {
+      // NOLINTNEXTLINE(concurrency-mt-unsafe)
       ::unsetenv("TZ");
     } else {
+      // NOLINTNEXTLINE(concurrency-mt-unsafe)
       ::setenv("TZ", tz.c_str(), 1);
     }
   }
@@ -157,9 +160,12 @@ void CheckInTimezone(pg::detail::ConnectionPtr& conn,
     UEXPECT_NO_THROW(res = conn->Execute(select_timezones));
     EXPECT_EQ(0, res.Size())
         << "There should be no records that differ. " << tmp_tz;
-    for (auto r : res) {
-      std::string fmt, tz_setting;
-      pg::TimePoint tp, tptz, tp_utc;
+    for (const auto& r : res) {
+      std::string fmt;
+      std::string tz_setting;
+      pg::TimePoint tp;
+      pg::TimePoint tptz;
+      pg::TimePoint tp_utc;
       pg::TimePointTz tp_curr_tz;
       r.To(fmt, tp, tptz, tp_curr_tz, tp_utc, tz_setting);
       EXPECT_TRUE(EqualToMicroseconds(tp, tptz))
@@ -181,15 +187,16 @@ void CheckInTimezone(pg::detail::ConnectionPtr& conn,
 }
 
 UTEST_P(PostgreConnection, Timestamp) {
-  CheckConnection(conn);
+  CheckConnection(GetConn());
 
   pg::ResultSet res{nullptr};
   auto now = std::chrono::system_clock::now();
   pg::TimePoint tp;
   pg::TimePointTz tptz;
 
-  UEXPECT_NO_THROW(res = conn->Execute("select $1::timestamp, $2::timestamptz",
-                                       now, pg::TimePointTz(now)));
+  UEXPECT_NO_THROW(
+      res = GetConn()->Execute("select $1::timestamp, $2::timestamptz", now,
+                               pg::TimePointTz(now)));
 
   UEXPECT_NO_THROW(res.Front().To(tp, tptz));
   EXPECT_TRUE(EqualToMicroseconds(tp, now)) << "no tz";
@@ -225,22 +232,22 @@ UTEST_P(PostgreConnection, Timestamp) {
       "Australia/Sydney",    // UTC+11:00
   };
   for (const auto& tz_name : timezones) {
-    CheckInTimezone(conn, tz_name);
+    CheckInTimezone(GetConn(), tz_name);
   }
 }
 
 UTEST_P(PostgreConnection, TimestampTz) {
-  CheckConnection(conn);
+  CheckConnection(GetConn());
   // Make sure we use a time zone different from UTC and MSK
-  const auto tz_name = "Asia/Yekaterinburg";
+  const std::string tz_name = "Asia/Yekaterinburg";
   TemporaryTZ tmp_tz{tz_name};
-  UASSERT_NO_THROW(conn->SetParameter(
+  UASSERT_NO_THROW(GetConn()->SetParameter(
       "TimeZone", tz_name, pg::detail::Connection::ParameterScope::kSession));
 
   pg::TimePointTz now{std::chrono::system_clock::now()};
   pg::ResultSet res{nullptr};
 
-  UEXPECT_NO_THROW(res = conn->Execute("select $1, $1::text", now));
+  UEXPECT_NO_THROW(res = GetConn()->Execute("select $1, $1::text", now));
 
   auto [tptz, str] = res.Front().As<pg::TimePointTz, std::string>();
   auto tp = ParseUTC(str);
@@ -253,10 +260,10 @@ UTEST_P(PostgreConnection, TimestampTz) {
 }
 
 UTEST_P(PostgreConnection, TimestampInfinity) {
-  CheckConnection(conn);
+  CheckConnection(GetConn());
   pg::ResultSet res{nullptr};
 
-  UEXPECT_NO_THROW(res = conn->Execute(
+  UEXPECT_NO_THROW(res = GetConn()->Execute(
                        "select 'infinity'::timestamp, '-infinity'::timestamp"));
   pg::TimePoint pos_inf;
   pg::TimePoint neg_inf;
@@ -265,23 +272,23 @@ UTEST_P(PostgreConnection, TimestampInfinity) {
   EXPECT_EQ(pg::kTimestampPositiveInfinity, pos_inf);
   EXPECT_EQ(pg::kTimestampNegativeInfinity, neg_inf);
 
-  UEXPECT_NO_THROW(res = conn->Execute("select $1, $2",
-                                       pg::kTimestampPositiveInfinity,
-                                       pg::kTimestampNegativeInfinity));
+  UEXPECT_NO_THROW(res = GetConn()->Execute("select $1, $2",
+                                            pg::kTimestampPositiveInfinity,
+                                            pg::kTimestampNegativeInfinity));
   UEXPECT_NO_THROW(res.Front().To(pos_inf, neg_inf));
   EXPECT_EQ(pg::kTimestampPositiveInfinity, pos_inf);
   EXPECT_EQ(pg::kTimestampNegativeInfinity, neg_inf);
 }
 
 UTEST_P(PostgreConnection, TimestampStored) {
-  CheckConnection(conn);
+  CheckConnection(GetConn());
 
   pg::ResultSet res{nullptr};
   auto now = std::chrono::system_clock::now();
-  UEXPECT_NO_THROW(res = conn->Execute("select $1, $2",
-                                       pg::ParameterStore{}
-                                           .PushBack(pg::TimePoint{now})
-                                           .PushBack(pg::TimePointTz{now})));
+  UEXPECT_NO_THROW(res = GetConn()->Execute(
+                       "select $1, $2", pg::ParameterStore{}
+                                            .PushBack(pg::TimePoint{now})
+                                            .PushBack(pg::TimePointTz{now})));
 
   pg::TimePoint tp;
   pg::TimePointTz tptz;

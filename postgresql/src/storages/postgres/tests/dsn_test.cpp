@@ -140,7 +140,7 @@ TEST(PostgreDSN, EscapeHostName) {
 }
 
 TEST(PostgreDSN, QuotedOptions) {
-  const auto dsn = R"( options='-c \'backslash=\\\'')";
+  const std::string dsn = R"( options='-c \'backslash=\\\'')";
 
   pg::DsnList split_dsn;
   UEXPECT_NO_THROW(split_dsn = pg::SplitByHost(pg::Dsn{dsn}));

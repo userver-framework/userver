@@ -9,6 +9,7 @@
 #include <vector>
 
 #include <fmt/format.h>
+#include <grpcpp/ext/channelz_service_plugin.h>
 #include <grpcpp/server.h>
 
 #include <userver/engine/mutex.hpp>
@@ -75,6 +76,7 @@ ServerConfig Parse(const yaml_config::YamlConfig& value,
       value["channel-args"].As<decltype(config.channel_args)>({});
   config.native_log_level =
       value["native-log-level"].As<logging::Level>(logging::Level::kError);
+  config.enable_channelz = value["enable-channelz"].As<bool>(false);
   return config;
 }
 
@@ -126,6 +128,13 @@ Server::Impl::Impl(ServerConfig&& config,
   LOG_INFO() << "Configuring the gRPC server";
   ugrpc::impl::SetupNativeLogging();
   ugrpc::impl::UpdateNativeLogLevel(config.native_log_level);
+  if (config.enable_channelz) {
+#ifdef USERVER_DISABLE_GRPC_CHANNELZ
+    UINVARIANT(false, "Channelz is disabled via USERVER_FEATURE_GRPC_CHANNELZ");
+#else
+    grpc::channelz::experimental::InitChannelzService();
+#endif
+  }
   server_builder_.emplace();
   ApplyChannelArgs(*server_builder_, config);
   queue_.emplace(server_builder_->AddCompletionQueue());

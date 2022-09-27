@@ -75,6 +75,8 @@ class ConnectionPool : public std::enable_shared_from_this<ConnectionPool> {
 
   void SetStatementMetricsSettings(const StatementMetricsSettings& settings);
 
+  void SetPipelineMode(PipelineMode mode);
+
   const detail::StatementTimingsStorage& GetStatementTimingsStorage() const {
     return sts_;
   }
@@ -108,6 +110,9 @@ class ConnectionPool : public std::enable_shared_from_this<ConnectionPool> {
   void MaintainConnections();
   void StartMaintainTask();
   void StopMaintainTask();
+
+  void AssignNewSettings(ConnectionSettings settings,
+                         const ConnectionSettings& old_settings);
 
   using RecentCounter = USERVER_NAMESPACE::utils::statistics::RecentPeriod<
       USERVER_NAMESPACE::utils::statistics::RelaxedCounter<size_t>, size_t>;

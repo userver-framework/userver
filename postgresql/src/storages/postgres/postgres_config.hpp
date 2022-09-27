@@ -1,5 +1,6 @@
 #pragma once
 
+#include <userver/dynamic_config/snapshot.hpp>
 #include <userver/dynamic_config/value.hpp>
 #include <userver/yaml_config/yaml_config.hpp>
 
@@ -42,6 +43,10 @@ class Config {
 
   Config(const dynamic_config::DocsMap& docs_map);
 };
+
+PipelineMode ParsePipelineMode(const dynamic_config::DocsMap& docs_map);
+
+inline constexpr dynamic_config::Key<ParsePipelineMode> kPipelineModeKey;
 
 }  // namespace storages::postgres
 

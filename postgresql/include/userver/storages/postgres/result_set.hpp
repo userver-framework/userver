@@ -268,7 +268,7 @@ class Field {
   ///                           not nullable.
   template <typename T>
   typename std::decay<T>::type As() const {
-    T val;
+    T val{};
     To(val);
     return val;
   }
@@ -473,7 +473,7 @@ class Row {
   /// @see @ref pg_composite_types
   template <typename T>
   T As(RowTag) const {
-    T val;
+    T val{};
     To(val, kRowTag);
     return val;
   }
@@ -484,7 +484,7 @@ class Row {
   /// @see @ref pg_composite_types
   template <typename T>
   T As(FieldTag) const {
-    T val;
+    T val{};
     To(val, kFieldTag);
     return val;
   }

@@ -383,7 +383,7 @@ class PostgreCache final
   constexpr static auto kName = PolicyType::kName;
 
   PostgreCache(const ComponentConfig&, const ComponentContext&);
-  ~PostgreCache();
+  ~PostgreCache() override;
 
   static yaml_config::Schema GetStaticConfigSchema();
 

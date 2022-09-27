@@ -16,6 +16,22 @@ file(GLOB_RECURSE SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/*.hpp)
 
+option(USERVER_FEATURE_GRPC_CHANNELZ "Enable Channelz for gRPC" ${USERVER_OPEN_SOURCE_BUILD})
+if (NOT USERVER_FEATURE_GRPC_CHANNELZ)
+  set_source_files_properties(
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/ugrpc/server/server.cpp
+    PROPERTIES COMPILE_FLAGS -DUSERVER_DISABLE_GRPC_CHANNELZ=1
+  )
+endif()
+
+add_grpc_library(${PROJECT_NAME}_unittest_proto
+  PROTOS
+    # Absolute paths are allowed
+    ${CMAKE_CURRENT_SOURCE_DIR}/proto/tests/unit_test.proto
+    # As well as paths relative to CMAKE_CURRENT_SOURCE_DIR
+    tests/messages.proto
+  INCLUDE_DIRECTORIES ${CMAKE_CURRENT_SOURCE_DIR}/proto
+)
 if (USERVER_IS_THE_ROOT_PROJECT)
     add_grpc_library(${PROJECT_NAME}_unittest_proto
       PROTOS

@@ -177,9 +177,9 @@ ConnectionImpl::ConnectionImpl(
     throw InvalidConfig("max_prepared_cache_size is 0");
   }
 #if !LIBPQ_HAS_PIPELINING
-  if (settings_.pipeline_mode == ConnectionSettings::kPipelineEnabled) {
+  if (settings_.pipeline_mode == PipelineMode::kEnabled) {
     LOG_LIMITED_WARNING() << "Pipeline mode is not supported, falling back";
-    settings_.pipeline_mode = ConnectionSettings::kPipelineDisabled;
+    settings_.pipeline_mode = PipelineMode::kDisabled;
   }
 #endif
 }
@@ -193,7 +193,7 @@ void ConnectionImpl::AsyncConnect(const Dsn& dsn, engine::Deadline deadline) {
       std::chrono::duration_cast<std::chrono::milliseconds>(
           deadline.TimeLeft()));
   conn_wrapper_.AsyncConnect(dsn, deadline, scope);
-  if (settings_.pipeline_mode == ConnectionSettings::kPipelineEnabled) {
+  if (settings_.pipeline_mode == PipelineMode::kEnabled) {
     conn_wrapper_.EnterPipelineMode();
   }
   conn_wrapper_.FillSpanTags(span);

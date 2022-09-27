@@ -17,6 +17,7 @@ const auto kV4Sockaddr1 = [] {
   engine::io::Sockaddr sockaddr;
   auto* sa = sockaddr.As<sockaddr_in>();
   sa->sin_family = AF_INET;
+  // NOLINTNEXTLINE(hicpp-no-assembler,readability-isolate-declaration)
   sa->sin_addr.s_addr = htonl(0x4D583737);
   return sockaddr;
 }();
@@ -26,6 +27,7 @@ const auto kV4Sockaddr2 = [] {
   engine::io::Sockaddr sockaddr;
   auto* sa = sockaddr.As<sockaddr_in>();
   sa->sin_family = AF_INET;
+  // NOLINTNEXTLINE(hicpp-no-assembler,readability-isolate-declaration)
   sa->sin_addr.s_addr = htonl(0x4D58373C);
   return sockaddr;
 }();

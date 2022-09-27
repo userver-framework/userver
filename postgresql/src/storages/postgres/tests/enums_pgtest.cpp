@@ -103,27 +103,27 @@ TEST(PostgreIO, Enum) {
 
 UTEST_P(PostgreConnection, EnumRoundtrip) {
   using EnumMap = io::detail::EnumerationMap<Rainbow>;
-  CheckConnection(conn);
-  ASSERT_FALSE(conn->IsReadOnly()) << "Expect a read-write connection";
+  CheckConnection(GetConn());
+  ASSERT_FALSE(GetConn()->IsReadOnly()) << "Expect a read-write connection";
 
   pg::ResultSet res{nullptr};
-  UASSERT_NO_THROW(conn->Execute(kDropTestSchema)) << "Drop schema";
+  UASSERT_NO_THROW(GetConn()->Execute(kDropTestSchema)) << "Drop schema";
 
-  UASSERT_NO_THROW(conn->Execute(kCreateTestSchema)) << "Create schema";
+  UASSERT_NO_THROW(GetConn()->Execute(kCreateTestSchema)) << "Create schema";
 
-  UEXPECT_NO_THROW(conn->Execute(kCreateAnEnumType))
+  UEXPECT_NO_THROW(GetConn()->Execute(kCreateAnEnumType))
       << "Successfully create an enumeration type";
-  UEXPECT_NO_THROW(conn->ReloadUserTypes()) << "Reload user types";
-  const auto& user_types = conn->GetUserTypes();
+  UEXPECT_NO_THROW(GetConn()->ReloadUserTypes()) << "Reload user types";
+  const auto& user_types = GetConn()->GetUserTypes();
   EXPECT_NE(0, io::CppToPg<Rainbow>::GetOid(user_types));
 
-  UEXPECT_NO_THROW(res = conn->Execute(kSelectEnumValues));
+  UEXPECT_NO_THROW(res = GetConn()->Execute(kSelectEnumValues));
   for (auto f : res.Front()) {
     UEXPECT_NO_THROW(f.As<Rainbow>());
   }
 
   for (const auto& en : EnumMap::enumerators) {
-    UEXPECT_NO_THROW(res = conn->Execute("select $1", en.enumerator));
+    UEXPECT_NO_THROW(res = GetConn()->Execute("select $1", en.enumerator));
     EXPECT_EQ(en.enumerator, res[0][0].As<Rainbow>());
     EXPECT_EQ(en.literal, res[0][0].As<std::string_view>());
     // Test the data type that is used for reading only
@@ -131,7 +131,7 @@ UTEST_P(PostgreConnection, EnumRoundtrip) {
         << "Read a datatype that is never written to a Pg buffer";
   }
 
-  UEXPECT_NO_THROW(conn->Execute(kDropTestSchema)) << "Drop schema";
+  UEXPECT_NO_THROW(GetConn()->Execute(kDropTestSchema)) << "Drop schema";
 }
 
 }  // namespace
