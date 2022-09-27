@@ -98,7 +98,7 @@ jobs:
             # TODO: add clang-tidy-diff.py after establishing baseline
             run: |
                 echo "${GITHUB_BASE_REF:=HEAD~1}"
-                echo "$(git diff --name-only ${GITHUB_BASE_REF:=HEAD~1})"
+                echo "$(git diff --name-only origin/${GITHUB_BASE_REF:=HEAD~1})"
                 sudo apt install -y clang-tidy-14
                 git diff ${GITHUB_BASE_REF:=HEAD~1} -U0 | ./tools/clang-tidy-diff.py -clang-tidy-binary clang-tidy-14 -p1 -path=build_debug -q
                 # python3 ./tools/run-clang-tidy -clang-tidy-binary clang-tidy-14 -p build_debug -q -j$(nproc)
