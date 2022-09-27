@@ -6,6 +6,7 @@
 #include <userver/ugrpc/server/server_component.hpp>
 #include <userver/ugrpc/server/service_component_base.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
+#include <userver/storages/clickhouse/component.hpp>
 
 #include <greeter_client.usrv.pb.hpp>
 #include <greeter_service.usrv.pb.hpp>
@@ -85,6 +86,7 @@ int main(int argc, char* argv[]) {
   const auto component_list =
       components::MinimalServerComponentList()
           .Append<Hello>()
-          .Append<GreeterServiceComponent>();
+          .Append<GreeterServiceComponent>()
+          .Append<userver::components::ClickHouse>("clickhouse-database");
   return 0;
 }

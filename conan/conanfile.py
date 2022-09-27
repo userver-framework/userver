@@ -34,8 +34,8 @@ class UserverConan(ConanFile):
         "with_mongodb": False, 
         "with_postgresql": False,
         "with_redis": False,
-        "with_grpc": False, 
-        "with_clickhouse": False,
+        "with_grpc": True, 
+        "with_clickhouse": True,
         "with_universal": False,
         "namespace": "userver",
         "namespace_begin": "",
@@ -79,6 +79,10 @@ class UserverConan(ConanFile):
         if self.options.with_grpc:
             self.requires("grpc/1.48.0")
 
+        # TODO: comment this out when clickhouse-cpp will be available through conan
+        #if self.options.with_clickhouse:
+            #self.requires("clickhouse-cpp/1.0.0")
+
     def _configure_cmake(self):
         cmake = CMake(self)
         cmake.definitions["CMAKE_FIND_DEBUG_MODE"] = "OFF"
@@ -101,8 +105,13 @@ class UserverConan(ConanFile):
             cmake.definitions["USERVER_FEATURE_REDIS"] = "OFF"
         if not self.options.with_grpc:
             cmake.definitions["USERVER_FEATURE_GRPC"] = "OFF"
-        if not self.options.with_clickhouse:
+
+        if self.options.with_clickhouse:
+            cmake.definitions["USERVER_DOWNLOAD_PACKAGE_CLICKHOUSECPP"] = "ON"
+            cmake.definitions["USERVER_FEATURE_CLICKHOUSE"] = "ON"
+        else:
             cmake.definitions["USERVER_FEATURE_CLICKHOUSE"] = "OFF"
+
         if not self.options.with_universal:
             cmake.definitions["USERVER_FEATURE_UNIVERSAL"] = "OFF"
 
@@ -151,18 +160,19 @@ class UserverConan(ConanFile):
         self.copy(pattern="*", dst="include", src=os.path.join("shared", "include"), keep_path=True)
         self.copy(pattern="*", dst="include", src=os.path.join("third_party", "moodycamel", "include"), keep_path=True)
 
-        self.copy(pattern="*libuserver-core.a", dst="lib", src=os.path.join(self._build_subfolder, "userver"), keep_path=False)
-        self.copy(pattern="*libuserver-core.so", dst="lib", src=os.path.join(self._build_subfolder, "userver"), keep_path=False)
+        self.copy(pattern="*.so", dst="lib", src=os.path.join(self._build_subfolder, "userver"), keep_path=False)
+        self.copy(pattern="*.a", dst="lib", src=os.path.join(self._build_subfolder, "userver"), keep_path=False)
 
         if self.options.with_grpc:
             self.copy(pattern="*", dst="include", src=os.path.join("grpc", "include"), keep_path=True)
             self.copy(pattern="*", dst=os.path.join("scripts", "grpc"), src=os.path.join("scripts", "grpc"), keep_path=True)
-            self.copy(pattern="*.so", dst="lib", src=os.path.join(self._build_subfolder, "userver", "grpc"))
-            self.copy(pattern="*.a", dst="lib", src=os.path.join(self._build_subfolder, "userver", "grpc"))
-
             os.rename(os.path.join("cmake", "GrpcTargets.cmake"), os.path.join("cmake", "GrpcTargetsImpl.cmake"))
             os.rename(os.path.join("cmake", "GrpcTargetsWrapper.cmake"), os.path.join("cmake", "GrpcTargets.cmake"))
             self.copy(pattern="GrpcTargets*.cmake", dst="cmake", src="cmake", keep_path=False)
+
+        if self.options.with_clickhouse:
+            self.copy(pattern="*", dst="include", src=os.path.join("clickhouse", "include"), keep_path=True)
+            self.copy(pattern="*.so", dst="lib", src=os.path.join(self._build_subfolder, "third_party", "clickhouse-cpp", "clickhouse"), keep_path=False)
 
     def package_info(self):
         self.cpp_info.libs = tools.collect_libs(self)
