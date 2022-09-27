@@ -30,7 +30,7 @@ async def _gate_started(loop):
         host_right='localhost',
         port_right=15433,
     )
-    async with chaos.Gate(gate_config, loop) as proxy:
+    async with chaos.TcpGate(gate_config, loop) as proxy:
         yield proxy
 
 
@@ -43,6 +43,7 @@ def client_deps(_gate_started, pgsql):
 async def _gate_ready(service_client, _gate_started):
     _gate_started.to_right_pass()
     _gate_started.to_left_pass()
+    _gate_started.start_accepting()
 
     await _gate_started.wait_for_connectons()
     yield _gate_started

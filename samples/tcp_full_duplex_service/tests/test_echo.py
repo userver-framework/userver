@@ -54,7 +54,7 @@ async def _gate(loop):
         host_right='localhost',
         port_right=8181,
     )
-    async with chaos.Gate(gate_config, loop) as proxy:
+    async with chaos.TcpGate(gate_config, loop) as proxy:
         yield proxy
 
 

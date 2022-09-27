@@ -106,7 +106,7 @@ class GreeterServiceComponent final
   static yaml_config::Schema GetStaticConfigSchema();
 
  private:
-  std::string prefix_;
+  const std::string prefix_;
 };
 /// [gRPC sample - service]
 
