@@ -1,4 +1,4 @@
-name: UserverGrpc
+name: GrpcChannelz
 helper-prefix: false
 
 debian-names:
@@ -16,15 +16,7 @@ pkg-config-names:
 libraries:
     find:
       - names:
-          - grpc
-      - names:
-          - grpc++
-      - names:
-          - gpr
-      - names:
-          - absl
-          - absl_synchronization
-          - grpc  # fallback, old versions of gRPC do not link with absl
+          - grpcpp_channelz
 
 includes:
     find:

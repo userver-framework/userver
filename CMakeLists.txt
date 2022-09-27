@@ -13,7 +13,7 @@ if (CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
     set(USERVER_NOT_INCLUDED_AS_SUBDIR ON)
 endif()
 
-option(USERVER_FEATURE_UTEST "Build utest and ubench" ON)
+option(USERVER_FEATURE_UTEST "Provide 'utest' and 'ubench' for unit testing and benchmarking coroutines" ON)
 if (USERVER_FEATURE_UTEST)
   message(STATUS "Building utest with gtest and ubench with gbench")
 endif()

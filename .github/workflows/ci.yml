@@ -27,6 +27,7 @@ jobs:
 
                   - cmake-flags: >-
                         -DUSERVER_FEATURE_CRYPTOPP_BLAKE2=0 -DUSERVER_FEATURE_REDIS_HI_MALLOC=1
+                        -DUSERVER_FEATURE_GRPC_CHANNELZ=0
                         -DUSERVER_NO_WERROR=1 -DUSERVER_SANITIZE="ub addr" -DCMAKE_BUILD_TYPE=Debug
                     os: ubuntu-20.04
                     info: g++-9 + debug + sanitize addr+ub
@@ -34,6 +35,7 @@ jobs:
 
                   - cmake-flags: >-
                         -DUSERVER_FEATURE_CRYPTOPP_BLAKE2=0 -DUSERVER_FEATURE_REDIS_HI_MALLOC=1
+                        -DUSERVER_FEATURE_GRPC_CHANNELZ=0
                         -DUSERVER_NO_WERROR=1 -DCMAKE_BUILD_TYPE=Release
                     os: ubuntu-20.04
                     info: g++-9 + release
