@@ -129,7 +129,7 @@ def is_skip_filename(filename: str):
           and not 'third_party/spdlog/' in filename
           and not 'third_party/amqp-cpp/' in filename):
         return False
-    return True
+    return False
 
 
 def main():
