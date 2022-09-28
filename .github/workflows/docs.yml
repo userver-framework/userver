@@ -60,7 +60,7 @@ jobs:
             run: |
                 cd generated
                 git rm *
-                cp -Ra -v ./../userver/docs/html/* ./
+                cp -ra -v ./../userver/docs/html/* ./
 
           - name: Git status
             run: |
