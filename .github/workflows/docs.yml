@@ -1,4 +1,4 @@
-name: CI
+name: docs
 
 'on':
     pull_request:
@@ -37,6 +37,7 @@ jobs:
             with:
                 repository: userver-framework/userver-framework.github.io
                 path: generated
+                token: ${{ secrets.GH_USERVER_TECH }}
 
           - name: Install packages
             run: |
