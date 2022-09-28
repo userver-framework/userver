@@ -37,7 +37,6 @@ jobs:
             with:
                 repository: alexiprof/userver-framework.github.io
                 path: generated
-                token: '${{ secrets.GH_USERVER_TECH }}'
 
           - name: Install packages
             run: |
@@ -74,5 +73,6 @@ jobs:
                 cd generated
                 git config user.name github-actions
                 git config user.email github-actions@github.com
+                git remote set-url origin https://x-access-token:${{ secrets.GH_USERVER_TECH }}@github.com/alexiprof/userver-framework.github.io
                 git commit -m "generated"
                 git push
