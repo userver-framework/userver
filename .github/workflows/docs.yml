@@ -37,7 +37,7 @@ jobs:
             with:
                 repository: alexiprof/userver-framework.github.io
                 path: generated
-                token: ${{ secrets.GH_USERVER_TECH }}
+                token: '${{ secrets.GH_USERVER_TECH }}'
 
           - name: Install packages
             run: |
