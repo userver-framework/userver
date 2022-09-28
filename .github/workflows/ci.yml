@@ -57,7 +57,7 @@ jobs:
         steps:
           - uses: actions/checkout@v3
             with:
-                fetch-depth: 50
+                fetch-depth: 0
 
           - name: Reuse ccache directory
             uses: actions/cache@v2
