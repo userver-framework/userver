@@ -40,7 +40,7 @@ jobs:
 
           - name: Install packages
             run: |
-                sudo apt install --allow-downgrades -y g++ cmake coreutils flex bison python
+                sudo apt install --allow-downgrades -y g++ cmake coreutils flex bison
 
           - name: Make doxygen
             run: |
