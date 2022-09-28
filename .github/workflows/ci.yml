@@ -57,7 +57,9 @@ jobs:
         runs-on: ${{matrix.os}}
 
         steps:
-          - uses: actions/checkout@v2
+          - uses: actions/checkout@v3
+            with:
+                fetch-depth: 0
 
           - name: Reuse ccache directory
             uses: actions/cache@v2
@@ -92,6 +94,14 @@ jobs:
                 mkdir build_debug
                 cd build_debug
                 cmake ${{matrix.cmake-flags}} ..
+
+          - name: Run clang-tidy
+            if: matrix.info == 'clang-14 + debug + sanitize addr+ub'
+            run: |
+                echo "${GITHUB_BASE_REF:=HEAD~1}"
+                echo "$(git diff --name-only origin/${GITHUB_BASE_REF:=HEAD~1})"
+                sudo apt install -y clang-tidy-14
+                python3 ./tools/run-clang-tidy -clang-tidy-binary clang-tidy-14 -p build_debug -q -j$(nproc) $(git diff --name-only origin/${GITHUB_BASE_REF} | grep --color=never '.cpp' | tr '\n' ' ')
 
           - name: Compile
             run: |
@@ -154,10 +164,3 @@ jobs:
                 mkdir userver/grpc || :
                 cd userver/grpc
                 ctest -V
-
-          - name: Run clang-tidy
-            if: matrix.info == 'clang-14 + debug + sanitize addr+ub'
-            # TODO: add clang-tidy-diff.py after establishing baseline
-            run: |
-                sudo apt install -y clang-tidy-14
-                python3 ./tools/run-clang-tidy -clang-tidy-binary clang-tidy-14 -p build_debug -q -j$(nproc)
