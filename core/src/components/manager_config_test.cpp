@@ -215,7 +215,6 @@ TEST(ManagerConfig, Basic) {
 TEST(ManagerConfig, HandlerConfig) {
   const auto mc = MakeManagerConfig();
 
-  // NOLINTNEXTLINE(readability-qualified-auto)
   const auto it =
       std::find_if(mc.components.cbegin(), mc.components.cend(),
                    [](const auto& v) { return v.Name() == "tests-control"; });
