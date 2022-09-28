@@ -7,6 +7,7 @@
 #include <userver/storages/postgres/exceptions.hpp>
 #include <userver/storages/postgres/io/chrono.hpp>
 #include <userver/storages/postgres/null.hpp>
+#include <userver/storages/postgres/io/pg_types.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -103,6 +104,18 @@ UTEST_P(PostgreConnection, CheckResultset) {
   EXPECT_EQ(4, res.FieldCount()) << "Result contains 4 fields";
   EXPECT_EQ(1, res.RowsAffected()) << "The query affected 1 row";
   EXPECT_EQ("SELECT 1", res.CommandStatus());
+
+  auto dec = res.GetRowDescription();
+  EXPECT_EQ(4, dec.Size()) << "RowDescription contains 4 fields";
+  EXPECT_EQ("str", dec[0].name);
+  EXPECT_EQ("int", dec[1].name);
+  EXPECT_EQ("float", dec[2].name);
+  using storages::postgres::io::PredefinedOids;
+  using storages::postgres::Oid;
+  EXPECT_EQ(static_cast<Oid>(PredefinedOids::kText), dec[0].type_oid);
+  EXPECT_EQ(static_cast<Oid>(PredefinedOids::kInt4), dec[1].type_oid);
+  EXPECT_EQ(static_cast<Oid>(PredefinedOids::kFloat4), dec[2].type_oid);
+  EXPECT_EQ(static_cast<Oid>(PredefinedOids::kFloat8), dec[3].type_oid);
 
   for (const auto& row : res) {
     EXPECT_EQ(4, row.Size()) << "Row contains 4 fields";

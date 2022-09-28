@@ -205,13 +205,26 @@ struct FieldDescription {
 
 /// @brief A wrapper for PGresult to access field descriptions.
 class RowDescription {
- public:
+public:
+  //@{
+  /** @name Field container concept */
+  using size_type = std::size_t;
+  using value_type = FieldDescription;
+  using reference = FieldDescription;
+  //@}
   RowDescription(detail::ResultWrapperPtr res) : res_{res} {}
 
   /// Check that all fields can be read in binary format
   /// @throw NoBinaryParser if any of the fields doesn't have a binary parser
   void CheckBinaryFormat(const UserTypes& types) const;
   // TODO interface for iterating field descriptions
+
+  /** @name Field container interface */
+  /// Number of fields
+  size_type Size() const;
+  /// @brief Field access by index
+  /// @throws FieldIndexOutOfBounds if index is out of bounds
+  reference operator[](size_type index) const;
  private:
   detail::ResultWrapperPtr res_;
 };

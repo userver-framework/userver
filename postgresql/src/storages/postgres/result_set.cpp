@@ -58,6 +58,14 @@ void RowDescription::CheckBinaryFormat(const UserTypes& types) const {
   }
 }
 
+RowDescription::size_type RowDescription::Size() const { return res_->FieldCount(); }
+
+RowDescription::reference RowDescription::operator[](RowDescription::size_type index) const
+{
+     if (index >= Size()) throw FieldIndexOutOfBounds{index};
+     return res_->GetFieldDescription(index);
+}
+
 //----------------------------------------------------------------------------
 // Field implementation
 //----------------------------------------------------------------------------
