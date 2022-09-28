@@ -1,0 +1,69 @@
+name: CI
+
+'on':
+    pull_request:
+    push:
+        branches:
+          - master
+          - develop
+          - docs/**
+
+env:
+    UBSAN_OPTIONS: print_stacktrace=1
+
+jobs:
+    posix:
+        strategy:
+            fail-fast: false
+
+        name: Generate docs
+        runs-on: ubuntu-22.04
+
+
+        steps:
+          - name: Checkout userver
+            uses: actions/checkout@v3
+            with:
+                path: userver
+
+          - name: Checkout doxygen
+            uses: actions/checkout@v3
+            with:
+                repository: doxygen/doxygen
+                path: doxygen
+
+          - name: Checkout Docs Repository
+            uses: actions/checkout@v3
+            with:
+                repository: userver-framework/userver-framework.github.io
+                path: generated
+
+          - name: Install packages
+            run: |
+                sudo apt install --allow-downgrades -y g++ cmake coreutils flex bison python
+
+          - name: Make doxygen
+            run: |
+                cd doxygen
+                mkdir build
+                cd build
+                cmake -G "Unix Makefiles" ..
+                make -j$(nproc)
+                make install
+
+          - name: Make docs
+            run: |
+                cd userver
+                make opensource-docs
+
+          - name: Copy docs
+            run: |
+                cd generated
+                git rm *
+                cp -Ra -v ./../userver/docs/html/* ./
+
+          - name: Git status
+            run: |
+                cd generated
+                git add .
+                git status
