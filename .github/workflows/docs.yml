@@ -35,7 +35,7 @@ jobs:
           - name: Checkout Docs Repository
             uses: actions/checkout@v3
             with:
-                repository: userver-framework/userver-framework.github.io
+                repository: alexiprof/userver-framework.github.io
                 path: generated
                 token: ${{ secrets.GH_USERVER_TECH }}
 
