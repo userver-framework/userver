@@ -67,3 +67,11 @@ jobs:
                 cd generated
                 git add .
                 git status
+
+          - name: Git push
+            run: |
+                cd generated
+                git config user.name github-actions
+                git config user.email github-actions@github.com
+                git commit -m "generated"
+                git push
