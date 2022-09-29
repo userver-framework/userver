@@ -13,6 +13,11 @@ pytest_plugins = [
 ]
 
 
+@pytest.fixture(name='left_gate_port', scope='session')
+def _left_gate_port():
+    return 11433
+
+
 @pytest.fixture(scope='session')
 def pgsql_local(service_source_dir, pgsql_local_create):
     databases = discover.find_schemas(
@@ -22,13 +27,13 @@ def pgsql_local(service_source_dir, pgsql_local_create):
 
 
 @pytest.fixture(scope='session')
-async def _gate_started(loop):
+async def _gate_started(loop, left_gate_port, pgsql_local):
     gate_config = chaos.GateRoute(
         name='postgres proxy',
         host_left='localhost',
-        port_left=11433,
+        port_left=left_gate_port,
         host_right='localhost',
-        port_right=15433,
+        port_right=pgsql_local['key_value'].port,
     )
     async with chaos.TcpGate(gate_config, loop) as proxy:
         yield proxy
