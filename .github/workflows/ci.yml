@@ -101,9 +101,14 @@ jobs:
                 [[ -z "${GITHUB_BASE_REF}" ]] && BRANCH_VAR=HEAD~1 || BRANCH_VAR=origin/${GITHUB_BASE_REF}
                 echo "${BRANCH_VAR}"
                 echo "$(git diff --name-only ${BRANCH_VAR})"
-                sudo apt install -y clang-tidy-14
-                python3 ./tools/run-clang-tidy -clang-tidy-binary clang-tidy-14 -p build_debug -q -j$(nproc) $(git diff --name-only ${BRANCH_VAR} | grep --color=never '.cpp' | tr '\n' ' ')
-
+                LIST_CHECK_FILES=$(git diff --name-only ${BRANCH_VAR} | grep --color=never '.cpp' | tr '\n' ' ')
+                if [[ -n ${LIST_CHECK_FILES} ]]
+                then
+                  sudo apt install -y clang-tidy-14
+                  python3 ./tools/run-clang-tidy -clang-tidy-binary clang-tidy-14 -p build_debug -q -j$(nproc) ${LIST_CHECK_FILES}
+                else
+                  echo "Nothing check in clang-tidy"
+                fi
           - name: Compile
             run: |
                 pwd
