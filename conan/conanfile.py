@@ -172,10 +172,16 @@ class UserverConan(ConanFile):
 
         if self.options.with_clickhouse:
             self.copy(pattern="*", dst="include", src=os.path.join("clickhouse", "include"), keep_path=True)
-            self.copy(pattern="*.so", dst="lib", src=os.path.join(self._build_subfolder, "third_party", "clickhouse-cpp", "clickhouse"), keep_path=False)
+            self.copy(pattern="*.a", dst=os.path.join("lib", "clickhouse"), src=os.path.join(self._build_subfolder, "third_party", "clickhouse-cpp"), keep_path=False)
 
     def package_info(self):
         self.cpp_info.libs = tools.collect_libs(self)
+
+        # TODO: create clickhouse-cpp receipt
+        if self.options.with_clickhouse:
+            self.cpp_info.libs.extend(["clickhouse-cpp-lib-static", "cityhash-lib", "lz4-lib"])
+            self.cpp_info.libdirs.append(os.path.join("lib", "clickhouse"))
+
         self.cpp_info.builddirs.append("cmake")
 
         self.cpp_info.defines.append(f"USERVER_NAMESPACE={self.options.namespace}")
