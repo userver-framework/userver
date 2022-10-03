@@ -63,6 +63,19 @@ void SetCurrentThreadName(std::string_view name) {
   }
 }
 
+CurrentThreadNameGuard::CurrentThreadNameGuard(std::string_view name)
+    : prev_name_(GetCurrentThreadName()) {
+  SetCurrentThreadName(name);
+}
+
+CurrentThreadNameGuard::~CurrentThreadNameGuard() {
+  try {
+    SetCurrentThreadName(prev_name_);
+  } catch (const std::exception&) {
+    // ignore
+  }
+}
+
 }  // namespace utils
 
 USERVER_NAMESPACE_END

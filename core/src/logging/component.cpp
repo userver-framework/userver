@@ -114,12 +114,10 @@ std::shared_ptr<logging::impl::LoggerWithInfo> CreateAsyncLogger(
   auto file_sink =
       std::make_shared<logging::ReopeningFileSinkMT>(logger_config.file_path);
   auto tp = std::make_shared<spdlog::details::thread_pool>(
-      logger_config.message_queue_size, logger_config.thread_pool_size);
-
-  auto old_thread_name = utils::GetCurrentThreadName();
-  utils::SetCurrentThreadName("log/" + logger_name);
-
-  utils::SetCurrentThreadName(old_thread_name);
+      logger_config.message_queue_size, logger_config.thread_pool_size,
+      [thread_name = "log/" + logger_name] {
+        utils::SetCurrentThreadName(thread_name);
+      });
 
   return std::make_shared<logging::impl::LoggerWithInfo>(
       logger_config.format, tp,
