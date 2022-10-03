@@ -456,7 +456,7 @@ class AiohttpClient(service_client.AiohttpClient):
         if pending_update:
             await self._tests_control(pending_update)
 
-    async def _request(
+    async def _request(  # pylint: disable=arguments-differ
             self,
             http_method: str,
             path: str,

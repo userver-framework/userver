@@ -1,4 +1,5 @@
 import pytest
+
 from testsuite.utils import url_util
 
 

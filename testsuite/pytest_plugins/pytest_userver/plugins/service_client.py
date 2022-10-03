@@ -1,4 +1,5 @@
 import pytest
+
 from testsuite.daemons import service_client
 
 from pytest_userver import client
