@@ -1,7 +1,6 @@
 linters:
     package-dirs:
       - .
-      - submodules/codegen
     disable-paths-wildcards:
       - submodules/google-benchmark/*
       - submodules/googletest/*
