@@ -158,11 +158,6 @@ else
 	$(error There is a new version of code-linters, please install)
 endif
 
-
-.PHONY: docs
-docs: check-yandex-env
-	@(cat doxygen.conf || cat scripts/docs/doxygen.conf; echo OUTPUT_DIRECTORY=$(DOCS_DIR)) | doxygen -
-
 .PHONY: clean-lto-cache
 clean-lto-cache:
 	@rm -rf $(LTO_CACHE_FOLDER)
