@@ -9,6 +9,7 @@
 #include <utils/statistics/value_builder_helpers.hpp>
 
 #include <utils/statistics/entry_impl.hpp>
+#include <utils/statistics/visitation.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -40,6 +41,10 @@ formats::json::ValueBuilder Storage::GetAsJson(
   }
 
   return result;
+}
+
+void Storage::VisitMetrics(BaseExposeFormatBuilder& out) const {
+  statistics::VisitMetrics(out, GetAsJson({}).ExtractValue());
 }
 
 void Storage::StopRegisteringExtenders() { may_register_extenders_ = false; }
