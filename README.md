@@ -30,7 +30,7 @@ or [Habr](https://habr.com/post/674902) (Russian).
 ## Other Features
 
 * Efficient asynchronous drivers for databases (MongoDB, PostgreSQL, Redis, ClickHouse, ...)
-  and data transfer protocols (HTTP, GRPC, AMQP 0-9-1 (EXPERIMENTAL), TCP, ...), tasks construction and
+  and data transfer protocols (HTTP, GRPC, AMQP 0.9.1 (EXPERIMENTAL), TCP, ...), tasks construction and
   cancellation.
 * Rich set of high-level components for caches, tasks, distributed locking,
   logging, tracing, statistics, metrics, JSON/YAML/BSON.
