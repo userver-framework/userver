@@ -253,7 +253,7 @@ TEST(SentinelQuery, DifferentAnswers1) {
   auto cb = [&](const redis::ConnInfoByShard& info, size_t, size_t) {
     called++;
     ASSERT_EQ(info.size(), 1u);
-    auto shard_info = info[0];
+    const auto& shard_info = info[0];
     EXPECT_EQ(shard_info.HostPort().first, kHost1);
   };
   auto context = std::make_shared<redis::GetHostsContext>(
@@ -275,7 +275,7 @@ TEST(SentinelQuery, DifferentAnswers2) {
   auto cb = [&](const redis::ConnInfoByShard& info, size_t, size_t) {
     called++;
     ASSERT_EQ(info.size(), 1u);
-    auto shard_info = info[0];
+    const auto& shard_info = info[0];
     EXPECT_EQ(shard_info.HostPort().first, kHost1);
   };
   auto context = std::make_shared<redis::GetHostsContext>(
