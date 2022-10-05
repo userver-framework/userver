@@ -49,8 +49,6 @@ class SingleWaiterMutex final {
   /// Unlocks the mutex. The mutex must be locked by the current coroutine.
   /// @note the behaviour is undefined if a coroutine tries to unlock a mutex
   /// which is not locked or is locked by another coroutine
-  /// @note the order of coroutines to unblock is unspecified. Any code assuming
-  /// any specific order (e.g. FIFO) is incorrect and must be fixed.
   void unlock();
 
   bool try_lock();
