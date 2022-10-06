@@ -27,8 +27,8 @@ Changelog news also go to the
 * Add Prometheus metrics format
 * Add chaos tests for drivers
 * Enable PostgreSQL pipelining
-* Implement and enable Dedaline Propagation
-* Implement steaming API for the HTTP
+* Implement and enable Deadline Propagation
+* Implement streaming API for the HTTP
 * Add basic Kafka driver.
 
 

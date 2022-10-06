@@ -49,10 +49,10 @@ async def test_basic(service_client, loop, monitor_client):
 async def _gate(loop):
     gate_config = chaos.GateRoute(
         name='tcp proxy',
-        host_left='localhost',
-        port_left=9181,
-        host_right='localhost',
-        port_right=8181,
+        host_for_client='localhost',
+        port_for_client=9181,
+        host_to_server='localhost',
+        port_to_server=8181,
     )
     async with chaos.TcpGate(gate_config, loop) as proxy:
         yield proxy
@@ -63,7 +63,7 @@ async def test_delay_recv(service_client, loop, monitor_client, gate):
     TIMEOUT = 10.0
 
     # respond with delay in TIMEOUT seconds
-    gate.to_left_delay(TIMEOUT)
+    gate.to_client_delay(TIMEOUT)
 
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     await loop.sock_connect(s, ('localhost', 9181))
@@ -77,7 +77,7 @@ async def test_delay_recv(service_client, loop, monitor_client, gate):
     )
     assert not done
 
-    gate.to_left_pass()
+    gate.to_client_pass()
 
     await recv_task
     metrics = await monitor_client.get_metrics()
@@ -89,7 +89,7 @@ async def test_delay_recv(service_client, loop, monitor_client, gate):
 async def test_down_pending_recv(service_client, loop, monitor_client, gate):
     await service_client.reset_metrics()
 
-    gate.to_left_noop()
+    gate.to_client_noop()
 
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     await loop.sock_connect(s, ('localhost', 9181))

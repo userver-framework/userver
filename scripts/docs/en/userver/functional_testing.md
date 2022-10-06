@@ -2,7 +2,8 @@
 
 ## Getting started
 
-Userver has built-in support for functional service tests using [Yandex.Taxi Testsuite](https://pypi.org/project/yandex-taxi-testsuite/).
+🐙 **userver** has built-in support for functional service tests using
+[Yandex.Taxi Testsuite](https://pypi.org/project/yandex-taxi-testsuite/).
 Testsuite is based on [pytest](https://pytest.org/) and allows developers to test thier services
 in isolated environment.
 It starts service binary with minimal database and all external services mocked then allows
@@ -325,7 +326,7 @@ def test_service(service_client):
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref md_en_userver_testing | @ref md_en_userver_profile_context_switches ⇨
+⇦ @ref md_en_userver_testing | @ref md_en_userver_chaos_testing ⇨
 @htmlonly </div> @endhtmlonly
 
 @example cmake/UserverTestsuite.cmake

@@ -12,6 +12,7 @@ DATA_PARTS_SPLIT = 3
 BYTES_TRANSMISSION_LIMIT = 40960
 
 
+# /// [restore]
 async def _check_that_restores(service_client, gate):
     try:
         await gate.wait_for_connectons(timeout=5.0)
@@ -28,6 +29,7 @@ async def _check_that_restores(service_client, gate):
         await asyncio.sleep(0.75)
 
     assert False, 'Bad results after connection restore'
+    # /// [restore]
 
 
 async def test_pg_fine(service_client, gate):
@@ -57,26 +59,26 @@ async def test_pg_overload_no_accepts(service_client, gate):
 
 @pytest.mark.skip(reason='Assertion: Bad results after connection restore')
 async def test_pg_overload_no_reads(service_client, gate):
-    gate.to_right_noop()
+    gate.to_server_noop()
 
     for _ in range(gate.connections_count()):
         response = await service_client.get('/chaos/postgres?type=fill')
         assert response.status == 500
 
-    gate.to_right_pass()
+    gate.to_server_pass()
 
     await _check_that_restores(service_client, gate)
 
 
 @pytest.mark.skip(reason='Assertion: Bad results after connection restore')
 async def test_pg_overload_no_writes(service_client, gate):
-    gate.to_left_noop()
+    gate.to_client_noop()
 
     for _ in range(gate.connections_count()):
         response = await service_client.get('/chaos/postgres?type=fill')
         assert response.status == 500
 
-    gate.to_left_pass()
+    gate.to_client_pass()
 
     await _check_that_restores(service_client, gate)
 
@@ -90,78 +92,80 @@ async def test_pg_close_connections(service_client, gate):
     await _check_that_restores(service_client, gate)
 
 
+# /// [test cc]
 async def test_pg_congestion_control(service_client, gate):
-    gate.to_right_close_on_data()
-    gate.to_left_close_on_data()
+    gate.to_server_close_on_data()
+    gate.to_client_close_on_data()
 
     for _ in range(gate.connections_count()):
         response = await service_client.get('/chaos/postgres?type=fill')
         assert response.status == 500
 
-    gate.to_right_pass()
-    gate.to_left_pass()
+    gate.to_server_pass()
+    gate.to_client_pass()
 
     await _check_that_restores(service_client, gate)
+    # /// [test cc]
 
 
 @pytest.mark.skip(reason='Rarely breaks the server')
 async def test_pg_corupted_response(service_client, gate):
-    gate.to_left_corrupt_data()
+    gate.to_client_corrupt_data()
 
     for _ in range(gate.connections_count()):
         response = await service_client.get('/chaos/postgres?type=fill')
         assert response.status == 500
 
-    gate.to_left_pass()
+    gate.to_client_pass()
     await _check_that_restores(service_client, gate)
 
 
 async def test_network_delay_sends(service_client, gate):
-    gate.to_right_delay(DATA_TRANSMISSION_DELAY)
+    gate.to_server_delay(DATA_TRANSMISSION_DELAY)
 
     response = await service_client.get('/chaos/postgres?type=fill')
     assert response.status == 200
 
 
 async def test_network_delay_recv(service_client, gate):
-    gate.to_left_delay(DATA_TRANSMISSION_DELAY)
+    gate.to_client_delay(DATA_TRANSMISSION_DELAY)
 
     response = await service_client.get('/chaos/postgres?type=fill')
     assert response.status == 200
 
 
 async def test_network_delay(service_client, gate):
-    gate.to_right_delay(DATA_TRANSMISSION_DELAY)
-    gate.to_left_delay(DATA_TRANSMISSION_DELAY)
+    gate.to_server_delay(DATA_TRANSMISSION_DELAY)
+    gate.to_client_delay(DATA_TRANSMISSION_DELAY)
 
     response = await service_client.get('/chaos/postgres?type=fill')
     assert response.status == 200
 
 
 async def test_network_limit_bps_sends(service_client, gate):
-    gate.to_right_limit_bps(BYTES_PER_SECOND_LIMIT)
+    gate.to_server_limit_bps(BYTES_PER_SECOND_LIMIT)
 
     response = await service_client.get('/chaos/postgres?type=fill')
     assert response.status == 200
 
 
 async def test_network_limit_bps_recv(service_client, gate):
-    gate.to_left_limit_bps(BYTES_PER_SECOND_LIMIT)
+    gate.to_client_limit_bps(BYTES_PER_SECOND_LIMIT)
 
     response = await service_client.get('/chaos/postgres?type=fill')
     assert response.status == 200
 
 
 async def test_network_limit_bps(service_client, gate):
-    gate.to_right_limit_bps(BYTES_PER_SECOND_LIMIT)
-    gate.to_left_limit_bps(BYTES_PER_SECOND_LIMIT)
+    gate.to_server_limit_bps(BYTES_PER_SECOND_LIMIT)
+    gate.to_client_limit_bps(BYTES_PER_SECOND_LIMIT)
 
     response = await service_client.get('/chaos/postgres?type=fill')
     assert response.status == 200
 
 
 async def test_network_limit_time_sends(service_client, gate):
-    gate.to_right_limit_time(CONNECTION_TIME_LIMIT, CONNECTION_LIMIT_JITTER)
+    gate.to_server_limit_time(CONNECTION_TIME_LIMIT, CONNECTION_LIMIT_JITTER)
 
     response = await service_client.get('/chaos/postgres?type=fill')
     assert response.status == 200
@@ -175,14 +179,14 @@ async def test_network_limit_time_sends(service_client, gate):
 
     assert got_error, 'Previous steps unexpectedly finished with success'
 
-    gate.to_right_pass()
+    gate.to_server_pass()
 
     await _check_that_restores(service_client, gate)
 
 
 @pytest.mark.skip(reason='Service aborted by SIGABRT signal')
 async def test_network_limit_time_recv(service_client, gate):
-    gate.to_left_limit_time(CONNECTION_TIME_LIMIT, CONNECTION_LIMIT_JITTER)
+    gate.to_client_limit_time(CONNECTION_TIME_LIMIT, CONNECTION_LIMIT_JITTER)
 
     got_error = False
     for _ in range(FAULRE_RETRIES):
@@ -193,15 +197,15 @@ async def test_network_limit_time_recv(service_client, gate):
 
     assert got_error, 'Previous steps unexpectedly finished with success'
 
-    gate.to_left_pass()
+    gate.to_client_pass()
 
     await _check_that_restores(service_client, gate)
 
 
 @pytest.mark.skip(reason='Service aborted by SIGABRT signal')
 async def test_network_limit_time(service_client, gate):
-    gate.to_right_limit_time(CONNECTION_TIME_LIMIT, CONNECTION_LIMIT_JITTER)
-    gate.to_left_limit_time(CONNECTION_TIME_LIMIT, CONNECTION_LIMIT_JITTER)
+    gate.to_server_limit_time(CONNECTION_TIME_LIMIT, CONNECTION_LIMIT_JITTER)
+    gate.to_client_limit_time(CONNECTION_TIME_LIMIT, CONNECTION_LIMIT_JITTER)
 
     got_error = False
     for _ in range(FAULRE_RETRIES):
@@ -212,29 +216,29 @@ async def test_network_limit_time(service_client, gate):
 
     assert got_error, 'Previous steps unexpectedly finished with success'
 
-    gate.to_right_pass()
-    gate.to_left_pass()
+    gate.to_server_pass()
+    gate.to_client_pass()
 
     await _check_that_restores(service_client, gate)
 
 
 async def test_network_smaller_parts_sends(service_client, gate):
-    gate.to_right_smaller_parts(DATA_PARTS_SPLIT)
+    gate.to_server_smaller_parts(DATA_PARTS_SPLIT)
 
     response = await service_client.get('/chaos/postgres?type=fill')
     assert response.status == 200
 
 
 async def test_network_smaller_parts_recv(service_client, gate):
-    gate.to_left_smaller_parts(DATA_PARTS_SPLIT)
+    gate.to_client_smaller_parts(DATA_PARTS_SPLIT)
 
     response = await service_client.get('/chaos/postgres?type=fill')
     assert response.status == 200
 
 
 async def test_network_smaller_parts(service_client, gate):
-    gate.to_right_smaller_parts(DATA_PARTS_SPLIT)
-    gate.to_left_smaller_parts(DATA_PARTS_SPLIT)
+    gate.to_server_smaller_parts(DATA_PARTS_SPLIT)
+    gate.to_client_smaller_parts(DATA_PARTS_SPLIT)
 
     response = await service_client.get('/chaos/postgres?type=fill')
     assert response.status == 200
@@ -242,7 +246,7 @@ async def test_network_smaller_parts(service_client, gate):
 
 @pytest.mark.skip(reason='Assertion: Timout while waiting for restore')
 async def test_network_limit_bytes_sends(service_client, gate):
-    gate.to_right_limit_bytes(BYTES_TRANSMISSION_LIMIT)
+    gate.to_server_limit_bytes(BYTES_TRANSMISSION_LIMIT)
 
     response = await service_client.get('/chaos/postgres?type=fill')
     assert response.status == 200
@@ -256,14 +260,14 @@ async def test_network_limit_bytes_sends(service_client, gate):
 
     assert got_error, 'Previous steps unexpectedly finished with success'
 
-    gate.to_right_pass()
+    gate.to_server_pass()
 
     await _check_that_restores(service_client, gate)
 
 
 @pytest.mark.skip(reason='Assertion: Timout while waiting for restore')
 async def test_network_limit_bytes_recv(service_client, gate):
-    gate.to_left_limit_bytes(BYTES_TRANSMISSION_LIMIT)
+    gate.to_client_limit_bytes(BYTES_TRANSMISSION_LIMIT)
 
     got_error = False
     for _ in range(FAULRE_RETRIES):
@@ -274,15 +278,15 @@ async def test_network_limit_bytes_recv(service_client, gate):
 
     assert got_error, 'Previous steps unexpectedly finished with success'
 
-    gate.to_left_pass()
+    gate.to_client_pass()
 
     await _check_that_restores(service_client, gate)
 
 
 @pytest.mark.skip(reason='Assertion: Timout while waiting for restore')
 async def test_network_limit_bytes(service_client, gate):
-    gate.to_right_limit_bytes(BYTES_TRANSMISSION_LIMIT)
-    gate.to_left_limit_bytes(BYTES_TRANSMISSION_LIMIT)
+    gate.to_server_limit_bytes(BYTES_TRANSMISSION_LIMIT)
+    gate.to_client_limit_bytes(BYTES_TRANSMISSION_LIMIT)
 
     got_error = False
     for _ in range(FAULRE_RETRIES):
@@ -293,7 +297,7 @@ async def test_network_limit_bytes(service_client, gate):
 
     assert got_error, 'Previous steps unexpectedly finished with success'
 
-    gate.to_right_pass()
-    gate.to_left_pass()
+    gate.to_server_pass()
+    gate.to_client_pass()
 
     await _check_that_restores(service_client, gate)
