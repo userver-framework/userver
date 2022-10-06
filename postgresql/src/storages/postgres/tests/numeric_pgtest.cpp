@@ -50,7 +50,7 @@ TEST(PostgreIO, Numeric) {
     EXPECT_EQ(src, tgt);
   }
   {
-    Numeric src = boost::math::sin_pi(Numeric{1});
+    Numeric src{0};
     pg::test::Buffer buffer;
     UEXPECT_NO_THROW(io::WriteBuffer(types, buffer, src));
     auto fb = pg::test::MakeFieldBuffer(buffer);

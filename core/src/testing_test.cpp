@@ -43,7 +43,7 @@ UTEST(SimpleServer, ExampleTcpIpV4) {
 
   std::string response;
   response.resize(100);
-  const auto size = worksock.RecvAll(&response[0], response.size(), {});
+  const auto size = worksock.RecvAll(response.data(), response.size(), {});
   response.resize(size);
   EXPECT_EQ(response, kOkResponse) << "Received " << response;
 }
@@ -76,7 +76,7 @@ UTEST(SimpleServer, ExampleTcpIpV6) {
 
   std::string response;
   response.resize(100);
-  const auto size = worksock.RecvAll(&response[0], response.size(), {});
+  const auto size = worksock.RecvAll(response.data(), response.size(), {});
   response.resize(size);
   EXPECT_EQ(response, kOkResponse) << "Received " << response;
 }
@@ -111,7 +111,7 @@ UTEST(SimpleServer, ExampleTcpIpV4Twice) {
             worksock.SendAll(kOkRequest.data(), kOkRequest.size(), {}));
   std::string response;
   response.resize(100);
-  const auto size = worksock.RecvSome(&response[0], response.size(), {});
+  const auto size = worksock.RecvSome(response.data(), response.size(), {});
   response.resize(size);
   EXPECT_EQ(response, kOkResponse) << "Received " << response;
 
@@ -119,11 +119,11 @@ UTEST(SimpleServer, ExampleTcpIpV4Twice) {
             worksock.SendAll(kOkRequest.data(), kOkRequest.size(), {}));
   response.clear();
   response.resize(100);
-  const auto size2 = worksock.RecvAll(&response[0], response.size(), {});
+  const auto size2 = worksock.RecvAll(response.data(), response.size(), {});
   response.resize(size2);
   EXPECT_EQ(response, kOkResponse) << "Received " << response;
 
-  EXPECT_EQ(0, worksock.RecvAll(&response[0], response.size(), {}));
+  EXPECT_EQ(0, worksock.RecvAll(response.data(), response.size(), {}));
 }
 
 USERVER_NAMESPACE_END
