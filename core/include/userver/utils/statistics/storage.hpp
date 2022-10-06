@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/utils/statistics/storage.hpp
+/// @brief @copybrief utils::statistics::Storage
+
 #include <atomic>
 #include <functional>
 #include <initializer_list>
@@ -78,7 +81,8 @@ class Storage final {
   formats::json::ValueBuilder GetAsJson(const StatisticsRequest& request) const;
 
   /// Visits all the metrics and calls `out.HandleMetric` for each metric.
-  void VisitMetrics(BaseExposeFormatBuilder& out) const;
+  void VisitMetrics(BaseExposeFormatBuilder& out,
+                    const StatisticsRequest& request = {}) const;
 
   /// @cond
   /// Must be called from StatisticsStorage only. Don't call it from user

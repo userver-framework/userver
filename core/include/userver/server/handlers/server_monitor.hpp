@@ -24,8 +24,10 @@ namespace server::handlers {
 /// @snippet components/common_server_component_list_test.cpp  Sample handler server monitor component config
 ///
 /// ## Scheme
-/// Accepts a path argument `prefix` and pass it to
-/// utils::statistics::Storage::GetAsJson()
+///
+/// Accepts a path arguments `format` and `prefix`. At the moment "prometheus"
+/// and internal (default) `format` is supported. `prefix` is passed to
+/// utils::statistics::Storage as a recomendation for metrics to return.
 
 // clang-format on
 class ServerMonitor final : public HttpHandlerBase {

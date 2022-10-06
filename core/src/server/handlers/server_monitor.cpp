@@ -3,9 +3,10 @@
 #include <userver/components/component_context.hpp>
 #include <userver/components/statistics_storage.hpp>
 #include <userver/formats/json/serialize.hpp>
+#include <userver/utils/statistics/prometheus.hpp>
+#include <userver/utils/statistics/storage.hpp>
 #include <userver/yaml_config/schema.hpp>
 
-#include <userver/utils/statistics/storage.hpp>
 #include <utils/statistics/value_builder_helpers.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -24,6 +25,14 @@ std::string ServerMonitor::HandleRequestThrow(const http::HttpRequest& request,
                                               request::RequestContext&) const {
   utils::statistics::StatisticsRequest statistics_request;
   statistics_request.prefix = request.GetArg("prefix");
+  const auto& format = request.GetArg("format");
+
+  if (format == "prometheus") {
+    // TODO: add common labels
+    return utils::statistics::ToPrometheusFormat({}, statistics_storage_,
+                                                 statistics_request);
+  }
+
   formats::json::ValueBuilder monitor_data =
       statistics_storage_.GetAsJson(statistics_request);
 
