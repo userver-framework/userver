@@ -20,6 +20,7 @@ Checks:
   ,-bugprone-implicit-widening-of-multiplication-result\
   ,-bugprone-lambda-function-name\
   ,-bugprone-narrowing-conversions\
+  ,-bugprone-use-after-move\
   ,-cert-dcl21-cpp\
   ,-cert-err09-cpp\
   ,-cert-err33-c\
@@ -64,6 +65,7 @@ Checks:
   ,-hicpp-noexcept-move\
   ,-hicpp-signed-bitwise\
   ,-hicpp-special-member-functions\
+  ,-hicpp-uppercase-literal-suffix\
   ,-hicpp-vararg\
   ,-misc-no-recursion\
   ,-misc-unconventional-assign-operator\
@@ -87,6 +89,7 @@ Checks:
   ,-readability-misleading-indentation\
   ,-readability-named-parameter\
   ,-readability-redundant-declaration\
+  ,-readability-uppercase-literal-suffix\
   ,-readability-use-anyofallof\
   "
 
