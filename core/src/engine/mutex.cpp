@@ -10,9 +10,9 @@ struct Mutex::Impl final {
   impl::MutexImpl<impl::WaitList> mutex;
 };
 
-Mutex::Mutex() {}
+Mutex::Mutex() = default;
 
-Mutex::~Mutex() {}
+Mutex::~Mutex() = default;
 
 void Mutex::lock() { impl_->mutex.lock(); }
 

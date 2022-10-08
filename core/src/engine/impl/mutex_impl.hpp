@@ -48,26 +48,26 @@ class MutexImpl final {
 template<>
 class MutexImpl<WaitList>::MutexWaitStrategy final : public WaitStrategy {
  public:
-  MutexWaitStrategy(WaitList& waiters, TaskContext& current,
+  MutexWaitStrategy(MutexImpl<WaitList>& mutex, TaskContext& current,
                     Deadline deadline)
       : WaitStrategy(deadline),
-        waiters_(waiters),
+        mutex_(mutex),
         current_(current),
-        waiter_token_(waiters),
-        lock_(waiters) {}
+        waiter_token_(mutex_.lock_waiters_),
+        lock_(mutex_.lock_waiters_) {}
 
   void SetupWakeups() override {
-    waiters_.Append(lock_, &current_);
+    mutex_.lock_waiters_.Append(lock_, &current_);
     lock_.unlock();
   }
 
   void DisableWakeups() override {
     lock_.lock();
-    waiters_.Remove(lock_, current_);
+    mutex_.lock_waiters_.Remove(lock_, current_);
   }
 
  private:
-  WaitList& waiters_;
+  MutexImpl<WaitList>& mutex_;
   TaskContext& current_;
   const WaitList::WaitersScopeCounter waiter_token_;
   WaitList::Lock lock_;
@@ -76,22 +76,23 @@ class MutexImpl<WaitList>::MutexWaitStrategy final : public WaitStrategy {
 template<>
 class MutexImpl<WaitListLight>::MutexWaitStrategy final : public WaitStrategy {
  public:
-  MutexWaitStrategy(WaitListLight& waiters, TaskContext& current,
+  MutexWaitStrategy(MutexImpl<WaitListLight>& mutex, TaskContext& current,
                     Deadline deadline)
       : WaitStrategy(deadline),
-        waiters_(waiters),
+        mutex_(mutex),
         current_(current) {}
 
   void SetupWakeups() override {
-    waiters_.Append(&current_);
+    mutex_.lock_waiters_.Append(&current_);
+    if (!mutex_.owner_.load()) mutex_.lock_waiters_.WakeupOne();
   }
 
   void DisableWakeups() override {
-    waiters_.Remove(current_);
+    mutex_.lock_waiters_.Remove(current_);
   }
 
  private:
-  WaitListLight& waiters_;
+  MutexImpl<WaitListLight>& mutex_;
   TaskContext& current_;
 };
 
@@ -113,7 +114,7 @@ bool MutexImpl<Waiters>::LockSlowPath(TaskContext& current, Deadline deadline) {
   TaskContext* expected = nullptr;
 
   engine::TaskCancellationBlocker block_cancels;
-  MutexWaitStrategy wait_manager(lock_waiters_, current, deadline);
+  MutexWaitStrategy wait_manager(*this, current, deadline);
   while (!owner_.compare_exchange_strong(expected, &current,
                                          std::memory_order_relaxed)) {
     UINVARIANT(expected != &current,

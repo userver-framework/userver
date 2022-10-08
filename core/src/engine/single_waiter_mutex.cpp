@@ -10,9 +10,9 @@ struct SingleWaiterMutex::Impl final {
   impl::MutexImpl<impl::WaitListLight> mutex;
 };
 
-SingleWaiterMutex::SingleWaiterMutex() {}
+SingleWaiterMutex::SingleWaiterMutex() = default;
 
-SingleWaiterMutex::~SingleWaiterMutex() {}
+SingleWaiterMutex::~SingleWaiterMutex() = default;
 
 void SingleWaiterMutex::lock() { impl_->mutex.lock(); }
 
