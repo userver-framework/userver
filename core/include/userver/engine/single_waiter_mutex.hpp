@@ -62,9 +62,9 @@ class SingleWaiterMutex final {
   bool try_lock_until(Deadline deadline);
 
  private:
-  struct Impl;
+  class ImplWrapper;
 
-  utils::FastPimpl<Impl, 32, 16> impl_;
+  utils::FastPimpl<ImplWrapper, 32, 16> impl_wrapper_;
 };
 
 template <typename Rep, typename Period>

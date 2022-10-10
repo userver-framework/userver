@@ -59,9 +59,9 @@ class Mutex final {
   bool try_lock_until(Deadline deadline);
 
  private:
-  struct Impl;
+  class ImplWrapper;
 
-  utils::FastPimpl<Impl, impl::kWaitListSize + 8, alignof(void*)> impl_;
+  utils::FastPimpl<ImplWrapper, impl::kWaitListSize + 8, alignof(void*)> impl_wrapper_;
 };
 
 template <typename Rep, typename Period>
