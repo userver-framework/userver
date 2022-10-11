@@ -6,6 +6,7 @@
 #include <userver/engine/run_standalone.hpp>
 #include <userver/engine/shared_mutex.hpp>
 #include <userver/engine/task/task_with_result.hpp>
+#include <userver/utils/cpu_relax.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -18,9 +19,11 @@ void shared_mutex_benchmark(benchmark::State& state) {
     std::vector<engine::TaskWithResult<void>> tasks;
     for (int i = 0; i < state.range(0) - 1; ++i) {
       tasks.push_back(engine::AsyncNoSpan([&] {
+        utils::CpuRelax relax(100, nullptr);
         while (is_running) {
           std::shared_lock lock(mutex);
           benchmark::DoNotOptimize(variable);
+          relax.Relax();
         }
       }));
     }

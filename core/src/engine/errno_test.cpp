@@ -1,6 +1,5 @@
 #include <userver/utest/utest.hpp>
 
-#include <atomic>
 #include <cerrno>
 #include <chrono>
 #include <condition_variable>
@@ -17,17 +16,18 @@
 USERVER_NAMESPACE_BEGIN
 
 namespace {
-constexpr size_t kNumThreads = 2;
+constexpr std::size_t kNumThreads = 3;
 }  // namespace
 
 UTEST_MT(Errno, IsCoroLocal, kNumThreads) {
-  size_t threads_started{0};
-  size_t threads_switched{0};
+  std::size_t threads_started{0};
+  std::size_t threads_switched{0};
   std::mutex mutex;
   std::condition_variable cv;
   std::vector<engine::TaskWithResult<bool>> tasks;
 
-  auto deadline = engine::Deadline::FromDuration(utest::kMaxTestWaitTime);
+  auto deadline =
+      engine::Deadline::FromDuration(std::chrono::milliseconds{100});
 
   for (size_t i = 0; i < kNumThreads; ++i) {
     tasks.push_back(engine::AsyncNoSpan([&] {
@@ -60,7 +60,7 @@ UTEST_MT(Errno, IsCoroLocal, kNumThreads) {
           engine::Yield();
         }
       }
-      return false;
+      return true;
     }));
   }
 

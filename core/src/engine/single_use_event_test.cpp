@@ -91,10 +91,10 @@ UTEST_MT(SingleUseEvent, SimpleTaskQueue, 5) {
   };
 
   boost::lockfree::queue<SimpleTask*> task_queue{1};
-
-  std::atomic<bool> keep_running_clients{true};
   std::atomic<bool> keep_running_server{true};
 
+  const auto test_deadline =
+      engine::Deadline::FromDuration(std::chrono::milliseconds{50});
   std::vector<engine::TaskWithResult<void>> client_tasks;
   client_tasks.reserve(GetThreadCount() - 1);
 
@@ -102,7 +102,7 @@ UTEST_MT(SingleUseEvent, SimpleTaskQueue, 5) {
     client_tasks.push_back(utils::Async("client", [&, i] {
       std::uint64_t request = i;
 
-      while (keep_running_clients) {
+      while (!test_deadline.IsReached()) {
         SimpleTask task{request, {}, {}};
         task_queue.push(&task);
         task.completion.WaitNonCancellable();
@@ -116,16 +116,16 @@ UTEST_MT(SingleUseEvent, SimpleTaskQueue, 5) {
   auto server_task = utils::Async("server", [&] {
     while (keep_running_server) {
       SimpleTask* task{};
-      if (!task_queue.pop(task)) continue;
+      if (!task_queue.pop(task)) {
+        engine::Yield();
+        continue;
+      }
 
       task->response = task->request * 2;
       task->completion.Send();
     }
   });
 
-  engine::SleepFor(std::chrono::milliseconds{50});
-
-  keep_running_clients = false;
   for (auto& task : client_tasks) task.Get();
   keep_running_server = false;
   server_task.Get();

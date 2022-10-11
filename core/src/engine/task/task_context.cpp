@@ -99,19 +99,13 @@ auto* const kFinishedDetachedToken =
 TaskContext::TaskContext(TaskProcessor& task_processor,
                          Task::Importance importance, Task::WaitMode wait_type,
                          Deadline deadline, TaskPayload&& payload)
-    : magic_(kMagic),
-      task_processor_(task_processor),
+    : task_processor_(task_processor),
       task_counter_token_(task_processor_.GetTaskCounter()),
       is_critical_(importance == Task::Importance::kCritical),
       payload_(std::move(payload)),
-      state_(Task::State::kNew),
-      detached_token_(nullptr),
-      cancellation_reason_(TaskCancellationReason::kNone),
       finish_waiters_(wait_type),
       cancel_deadline_(deadline),
-      trace_csw_left_(task_processor_.GetTaskTraceMaxCswForNewTask()),
-      sleep_state_(SleepState{SleepFlags::kSleeping, SleepState::Epoch{0}}),
-      local_storage_(std::nullopt) {
+      trace_csw_left_(task_processor_.GetTaskTraceMaxCswForNewTask()) {
   UASSERT(payload_);
   LOG_TRACE() << "task with task_id="
               << ReadableTaskId(current_task::GetCurrentTaskContextUnchecked())
@@ -147,6 +141,15 @@ bool TaskContext::IsCritical() const {
 
 bool TaskContext::IsSharedWaitAllowed() const {
   return finish_waiters_->IsShared();
+}
+
+std::size_t TaskContext::GetThreadIndex() const noexcept {
+  return thread_index_;
+}
+
+void TaskContext::SetThreadIndex(std::size_t thread_index) noexcept {
+  UASSERT(thread_index_ == kNotPinnedToThread);
+  thread_index_ = thread_index;
 }
 
 void TaskContext::SetDetached(DetachedTasksSyncBlock::Token& token) noexcept {

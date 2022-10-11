@@ -65,14 +65,8 @@ void TaskProcessorThreadStartedHook() {
 TaskProcessor::TaskProcessor(TaskProcessorConfig config,
                              std::shared_ptr<impl::TaskProcessorPools> pools)
     : config_(std::move(config)),
-      task_profiler_threshold_{std::chrono::microseconds(0)},
-      profiler_force_stacktrace_{false},
       pools_(std::move(pools)),
-      is_shutting_down_(false),
-      detached_contexts_(impl::DetachedTasksSyncBlock::StopMode::kCancel),
-      max_task_queue_wait_time_(std::chrono::microseconds(0)),
-      max_task_queue_wait_length_(0),
-      task_trace_logger_{nullptr} {
+      task_queue_(config_) {
   utils::impl::FinishStaticRegistration();
   try {
     LOG_INFO() << "creating task_processor " << Name() << " "
@@ -109,20 +103,20 @@ void TaskProcessor::Cleanup() noexcept {
   InitiateShutdown();
 
   // Some tasks may be bound but not scheduled yet
-  task_counter_.WaitForExhaustion(std::chrono::milliseconds(10));
+  task_counter_->WaitForExhaustion(std::chrono::milliseconds(10));
 
-  task_queue_.enqueue(nullptr);
+  task_queue_.Shutdown();
 
   for (auto& w : workers_) {
     w.join();
   }
 
-  UASSERT(task_counter_.GetCurrentValue() == 0);
+  UASSERT(task_counter_->GetCurrentValue() == 0);
 }
 
 void TaskProcessor::InitiateShutdown() {
   is_shutting_down_ = true;
-  detached_contexts_.RequestCancellation(TaskCancellationReason::kShutdown);
+  detached_contexts_->RequestCancellation(TaskCancellationReason::kShutdown);
 }
 
 void TaskProcessor::Schedule(impl::TaskContext* context) {
@@ -142,16 +136,14 @@ void TaskProcessor::Schedule(impl::TaskContext* context) {
 
   SetTaskQueueWaitTimepoint(context);
 
-  // having native support for intrusive ptrs in lockfree would've been great
-  // but oh well
   intrusive_ptr_add_ref(context);
 
-  task_queue_.enqueue(context);
+  task_queue_.Push(*context);
   // NOTE: task may be executed at this point
 }
 
 void TaskProcessor::Adopt(impl::TaskContext& context) {
-  detached_contexts_.Add(context);
+  detached_contexts_->Add(context);
 }
 
 ev::ThreadPool& TaskProcessor::EventThreadPool() {
@@ -228,22 +220,9 @@ logging::LoggerPtr TaskProcessor::GetTaskTraceLogger() const {
 }
 
 impl::TaskContext* TaskProcessor::DequeueTask() {
-  impl::TaskContext* buf = nullptr;
-
-  /* Current thread handles only a single TaskProcessor, so it's safe to store
-   * a token for the task processor in a thread-local variable.
-   */
-  thread_local moodycamel::ConsumerToken token(task_queue_);
-
-  task_queue_.wait_dequeue(token, buf);
+  auto* const context = task_queue_.PopBlocking();
   GetTaskCounter().AccountTaskSwitchSlow();
-
-  if (!buf) {
-    // return "stop" token back
-    task_queue_.enqueue(nullptr);
-  }
-
-  return buf;
+  return context;
 }
 
 void RegisterThreadStartedHook(std::function<void()> func) {
@@ -254,6 +233,7 @@ void RegisterThreadStartedHook(std::function<void()> func) {
 
 void TaskProcessor::ProcessTasks() noexcept {
   TaskProcessorThreadStartedHook();
+  task_queue_.SetupThread();
 
   while (true) {
     // wrapping instance referenced in EnqueueTask
@@ -282,7 +262,7 @@ void TaskProcessor::CheckWaitTime(impl::TaskContext& context) {
   const auto sensor_wait_time = sensor_task_queue_wait_time_.load();
 
   if (max_wait_time.count() == 0 && sensor_wait_time.count() == 0) {
-    task_queue_wait_time_overloaded_.store(false, std::memory_order_relaxed);
+    SetTaskQueueWaitTimeOverloaded(false);
     return;
   }
 
@@ -293,9 +273,8 @@ void TaskProcessor::CheckWaitTime(impl::TaskContext& context) {
         std::chrono::duration_cast<std::chrono::microseconds>(wait_time);
     LOG_TRACE() << "queue wait time = " << wait_time_us.count() << "us";
 
-    task_queue_wait_time_overloaded_.store(
-        max_wait_time.count() && wait_time >= max_wait_time,
-        std::memory_order_relaxed);
+    SetTaskQueueWaitTimeOverloaded(max_wait_time.count() &&
+                                   wait_time >= max_wait_time);
 
     if (sensor_wait_time.count() && wait_time >= sensor_wait_time) {
       GetTaskCounter().AccountTaskOverloadSensor();
@@ -308,8 +287,16 @@ void TaskProcessor::CheckWaitTime(impl::TaskContext& context) {
   }
 
   // Don't cancel critical tasks, but use their timestamp to cancel other tasks
-  if (task_queue_wait_time_overloaded_.load()) {
+  if (task_queue_wait_time_overloaded_->load()) {
     HandleOverload(context);
+  }
+}
+
+void TaskProcessor::SetTaskQueueWaitTimeOverloaded(bool new_value) {
+  auto& atomic = *task_queue_wait_time_overloaded_;
+  // The check helps to reduce contention.
+  if (atomic.load(std::memory_order_relaxed) != new_value) {
+    atomic.store(new_value, std::memory_order_relaxed);
   }
 }
 

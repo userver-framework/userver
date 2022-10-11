@@ -32,7 +32,7 @@ struct CheckedInt {
     EXPECT_NE(x, 0) << "UB detected, possibly use-after-free";
   }
 
-  concurrent::impl::IntrusiveStackHook<CheckedInt> stack_hook;
+  concurrent::impl::SinglyLinkedHook<CheckedInt> stack_hook;
   concurrent::impl::IntrusiveWalkablePoolHook<CheckedInt> pool_hook;
 
   int x;
@@ -58,7 +58,7 @@ UTEST_MT(IntrusiveStack, TortureTest, 12) {
   CheckedIntStack stack;
   for (auto& node : nodes) stack.Push(node);
 
-  std::atomic<bool> keep_running{true};
+  const auto test_deadline = engine::Deadline::FromDuration(50ms);
   std::vector<engine::TaskWithResult<void>> tasks;
 
   for (std::size_t i = 0; i < GetThreadCount() - 1; ++i) {
@@ -66,7 +66,7 @@ UTEST_MT(IntrusiveStack, TortureTest, 12) {
       std::vector<CheckedInt*> our_nodes;
       our_nodes.reserve(nodes.size());
 
-      while (keep_running) {
+      while (!test_deadline.IsReached()) {
         while (auto* node = stack.TryPop()) {
           node->CheckAlive();
           our_nodes.push_back(node);
@@ -86,8 +86,6 @@ UTEST_MT(IntrusiveStack, TortureTest, 12) {
     }));
   }
 
-  engine::SleepFor(50ms);
-  keep_running = false;
   for (auto& task : tasks) task.Get();
 }
 
@@ -123,14 +121,14 @@ UTEST_MT(IntrusiveWalkablePool, TortureTest, 4) {
   constexpr std::size_t kNodesPerTask = 3;
   CheckedIntPool pool;
 
-  std::atomic<bool> keep_running{true};
+  const auto test_deadline = engine::Deadline::FromDuration(50ms);
   std::vector<engine::TaskWithResult<void>> tasks;
 
   for (std::size_t i = 0; i < GetThreadCount() - 2; ++i) {
     tasks.push_back(engine::AsyncNoSpan([&] {
       CheckedInt* nodes[kNodesPerTask]{};
 
-      while (keep_running) {
+      while (!test_deadline.IsReached()) {
         for (auto*& node : nodes) {
           node = &pool.Acquire();
           node->CheckAlive();
@@ -144,7 +142,7 @@ UTEST_MT(IntrusiveWalkablePool, TortureTest, 4) {
   }
 
   tasks.push_back(engine::AsyncNoSpan([&] {
-    while (keep_running) {
+    while (!test_deadline.IsReached()) {
       std::size_t node_count = 0;
       pool.Walk([&](CheckedInt& node) {
         node.CheckAlive();
@@ -154,8 +152,6 @@ UTEST_MT(IntrusiveWalkablePool, TortureTest, 4) {
     }
   }));
 
-  engine::SleepFor(50ms);
-  keep_running = false;
   for (auto& task : tasks) task.Get();
 }
 

@@ -1,20 +1,19 @@
 #pragma once
 
 #include <atomic>
-#include <condition_variable>
 #include <cstdint>
 #include <functional>
 #include <memory>
 #include <thread>
-#include <unordered_set>
 #include <vector>
 
-#include <moodycamel/blockingconcurrentqueue.h>
 #include <boost/smart_ptr/intrusive_ptr.hpp>
 
+#include <concurrent/impl/interference_shield.hpp>
 #include <engine/task/counted_coroutine_ptr.hpp>
 #include <engine/task/task_counter.hpp>
 #include <engine/task/task_processor_config.hpp>
+#include <engine/task/task_queue.hpp>
 #include <userver/engine/impl/detached_tasks_sync_block.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -51,11 +50,11 @@ class TaskProcessor final {
 
   const std::string& Name() const { return config_.name; }
 
-  impl::TaskCounter& GetTaskCounter() noexcept { return task_counter_; }
+  impl::TaskCounter& GetTaskCounter() noexcept { return *task_counter_; }
 
-  const impl::TaskCounter& GetTaskCounter() const { return task_counter_; }
+  const impl::TaskCounter& GetTaskCounter() const { return *task_counter_; }
 
-  size_t GetTaskQueueSize() const { return task_queue_.size_approx(); }
+  size_t GetTaskQueueSize() const { return task_queue_.GetSizeApprox(); }
 
   size_t GetWorkerCount() const { return workers_.size(); }
 
@@ -82,30 +81,35 @@ class TaskProcessor final {
 
   void CheckWaitTime(impl::TaskContext& context);
 
+  void SetTaskQueueWaitTimeOverloaded(bool new_value);
+
   void HandleOverload(impl::TaskContext& context);
 
   const TaskProcessorConfig config_;
-  std::atomic<std::chrono::microseconds> task_profiler_threshold_;
+  std::atomic<std::chrono::microseconds> task_profiler_threshold_{{}};
   std::atomic<bool> profiler_force_stacktrace_{false};
 
   std::shared_ptr<impl::TaskProcessorPools> pools_;
 
-  std::atomic<bool> is_shutting_down_;
-  impl::DetachedTasksSyncBlock detached_contexts_;
+  std::atomic<bool> is_shutting_down_{false};
 
-  moodycamel::BlockingConcurrentQueue<impl::TaskContext*> task_queue_;
+  impl::TaskQueue task_queue_;
 
   std::atomic<std::chrono::microseconds> sensor_task_queue_wait_time_{};
-  std::atomic<std::chrono::microseconds> max_task_queue_wait_time_{};
+  std::atomic<std::chrono::microseconds> max_task_queue_wait_time_{{}};
   std::atomic<size_t> max_task_queue_wait_length_{0};
-  TaskProcessorSettings::OverloadAction overload_action_{
+  std::atomic<TaskProcessorSettings::OverloadAction> overload_action_{
       TaskProcessorSettings::OverloadAction::kIgnore};
-  std::atomic<bool> task_queue_wait_time_overloaded_{false};
 
   std::vector<std::thread> workers_;
-  impl::TaskCounter task_counter_;
   std::atomic<bool> task_trace_logger_set_{false};
   logging::LoggerPtr task_trace_logger_{nullptr};
+
+  concurrent::impl::InterferenceShield<impl::TaskCounter> task_counter_;
+  concurrent::impl::InterferenceShield<impl::DetachedTasksSyncBlock>
+      detached_contexts_{impl::DetachedTasksSyncBlock::StopMode::kCancel};
+  concurrent::impl::InterferenceShield<std::atomic<bool>>
+      task_queue_wait_time_overloaded_{false};
 };
 
 /// Register a function that runs on all threads on task processor creation.
