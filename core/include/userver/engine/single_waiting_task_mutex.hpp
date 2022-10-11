@@ -1,7 +1,7 @@
 #pragma once
 
 /// @file userver/engine/single_waiter_mutex.hpp
-/// @brief @copybrief engine::SingleWaiterMutex
+/// @brief @copybrief engine::SingleWaitingTaskMutex
 
 #include <atomic>
 #include <chrono>
@@ -19,24 +19,24 @@ namespace engine {
 /// @brief There are some situations when a resource is accessed
 /// concurrently, but concurrency factor is limited by 2,
 /// (for instance: implications of socket r/w duality)
-///  SingleWaiterMutex is lighter version of Mutex.
+///  SingleWaitingTaskMutex is lighter version of Mutex.
 ///  At most 1 waiter can be at any given moment
 ///
 /// ## Example usage:
 ///
 /// @snippet engine/single_waiter_mutex_test.cpp  Sample
-/// engine::SingleWaiterMutex usage
+/// engine::SingleWaitingTaskMutex usage
 ///
 /// @see @ref md_en_userver_synchronization
-class SingleWaiterMutex final {
+class SingleWaitingTaskMutex final {
  public:
-  SingleWaiterMutex();
-  ~SingleWaiterMutex();
+  SingleWaitingTaskMutex();
+  ~SingleWaitingTaskMutex();
 
-  SingleWaiterMutex(const SingleWaiterMutex&) = delete;
-  SingleWaiterMutex(SingleWaiterMutex&&) = delete;
-  SingleWaiterMutex& operator=(const SingleWaiterMutex&) = delete;
-  SingleWaiterMutex& operator=(SingleWaiterMutex&&) = delete;
+  SingleWaitingTaskMutex(const SingleWaitingTaskMutex&) = delete;
+  SingleWaitingTaskMutex(SingleWaitingTaskMutex&&) = delete;
+  SingleWaitingTaskMutex& operator=(const SingleWaitingTaskMutex&) = delete;
+  SingleWaitingTaskMutex& operator=(SingleWaitingTaskMutex&&) = delete;
 
   /// Locks the mutex. Blocks current coroutine if the mutex is locked by
   /// another coroutine.
@@ -62,19 +62,19 @@ class SingleWaiterMutex final {
   bool try_lock_until(Deadline deadline);
 
  private:
-  class ImplWrapper;
+  class Impl;
 
-  utils::FastPimpl<ImplWrapper, 32, 16> impl_wrapper_;
+  utils::FastPimpl<Impl, 32, 16> impl_;
 };
 
 template <typename Rep, typename Period>
-bool SingleWaiterMutex::try_lock_for(
+bool SingleWaitingTaskMutex::try_lock_for(
     const std::chrono::duration<Rep, Period>& duration) {
   return try_lock_until(Deadline::FromDuration(duration));
 }
 
 template <typename Clock, typename Duration>
-bool SingleWaiterMutex::try_lock_until(
+bool SingleWaitingTaskMutex::try_lock_until(
     const std::chrono::time_point<Clock, Duration>& until) {
   return try_lock_until(Deadline::FromTimePoint(until));
 }

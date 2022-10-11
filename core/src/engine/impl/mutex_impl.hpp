@@ -15,7 +15,7 @@ USERVER_NAMESPACE_BEGIN
 namespace engine::impl {
 
 template <class Waiters>
-class MutexImpl final {
+class MutexImpl {
  public:
   MutexImpl();
   ~MutexImpl();
@@ -113,7 +113,7 @@ template <class Waiters>
 bool MutexImpl<Waiters>::LockSlowPath(TaskContext& current, Deadline deadline) {
   TaskContext* expected = nullptr;
 
-  engine::TaskCancellationBlocker block_cancels;
+  const engine::TaskCancellationBlocker block_cancels;
   MutexWaitStrategy wait_manager(*this, current, deadline);
   while (!owner_.compare_exchange_strong(expected, &current,
                                          std::memory_order_relaxed)) {
@@ -138,14 +138,13 @@ void MutexImpl<Waiters>::unlock() {
   auto* old_owner = owner_.exchange(nullptr, std::memory_order_acq_rel);
   UASSERT(old_owner && old_owner->IsCurrent());
 
-  if constexpr (std::is_same<Waiters, WaitList>::value) {
+  if constexpr (std::is_same_v<Waiters, WaitList>) {
     if (lock_waiters_.GetCountOfSleepies()) {
       WaitList::Lock lock(lock_waiters_);
       lock_waiters_.WakeupOne(lock);
     }
-  }
-
-  if constexpr (std::is_same<Waiters, WaitListLight>::value) {
+  } else {
+    static_assert(std::is_same_v<Waiters, WaitListLight>);
     lock_waiters_.WakeupOne();
   }
 }

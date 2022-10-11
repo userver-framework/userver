@@ -2,7 +2,7 @@
 
 #include <userver/engine/async.hpp>
 #include <userver/engine/single_consumer_event.hpp>
-#include <userver/engine/single_waiter_mutex.hpp>
+#include <userver/engine/single_waiting_task_mutex.hpp>
 #include <userver/engine/sleep.hpp>
 
 #include <userver/utest/utest.hpp>
@@ -11,14 +11,14 @@ using namespace std::chrono_literals;
 
 USERVER_NAMESPACE_BEGIN
 
-UTEST(SingleWaiterMutex, LockUnlock) {
-  engine::SingleWaiterMutex mutex;
+UTEST(SingleWaitingTaskMutex, LockUnlock) {
+  engine::SingleWaitingTaskMutex mutex;
   mutex.lock();
   mutex.unlock();
 }
 
-UTEST(SingleWaiterMutex, LockUnlockDouble) {
-  engine::SingleWaiterMutex mutex;
+UTEST(SingleWaitingTaskMutex, LockUnlockDouble) {
+  engine::SingleWaitingTaskMutex mutex;
   mutex.lock();
   mutex.unlock();
 
@@ -26,8 +26,8 @@ UTEST(SingleWaiterMutex, LockUnlockDouble) {
   mutex.unlock();
 }
 
-UTEST(SingleWaiterMutex, WaitAndCancel) {
-  engine::SingleWaiterMutex mutex;
+UTEST(SingleWaitingTaskMutex, WaitAndCancel) {
+  engine::SingleWaitingTaskMutex mutex;
   std::unique_lock lock(mutex);
   auto task = engine::AsyncNoSpan([&mutex]() { std::lock_guard lock(mutex); });
 
@@ -45,32 +45,32 @@ UTEST(SingleWaiterMutex, WaitAndCancel) {
 }
 
 UTEST(Mutex, TryLock) {
-  engine::SingleWaiterMutex mutex;
+  engine::SingleWaitingTaskMutex mutex;
 
   EXPECT_TRUE(
-      !!std::unique_lock<engine::SingleWaiterMutex>(mutex, std::try_to_lock));
-  EXPECT_TRUE(!!std::unique_lock<engine::SingleWaiterMutex>(
+      !!std::unique_lock<engine::SingleWaitingTaskMutex>(mutex, std::try_to_lock));
+  EXPECT_TRUE(!!std::unique_lock<engine::SingleWaitingTaskMutex>(
       mutex, std::chrono::milliseconds(10)));
-  EXPECT_TRUE(!!std::unique_lock<engine::SingleWaiterMutex>(
+  EXPECT_TRUE(!!std::unique_lock<engine::SingleWaitingTaskMutex>(
       mutex, std::chrono::system_clock::now()));
 
   std::unique_lock lock(mutex);
   EXPECT_FALSE(engine::AsyncNoSpan([&mutex] {
-                 return !!std::unique_lock<engine::SingleWaiterMutex>(
+                 return !!std::unique_lock<engine::SingleWaitingTaskMutex>(
                      mutex, std::try_to_lock);
                }).Get());
 
   EXPECT_FALSE(engine::AsyncNoSpan([&mutex] {
-                 return !!std::unique_lock<engine::SingleWaiterMutex>(
+                 return !!std::unique_lock<engine::SingleWaitingTaskMutex>(
                      mutex, std::chrono::milliseconds(10));
                }).Get());
   EXPECT_FALSE(engine::AsyncNoSpan([&mutex] {
-                 return !!std::unique_lock<engine::SingleWaiterMutex>(
+                 return !!std::unique_lock<engine::SingleWaitingTaskMutex>(
                      mutex, std::chrono::system_clock::now());
                }).Get());
 
   auto long_waiter = engine::AsyncNoSpan([&mutex] {
-    return !!std::unique_lock<engine::SingleWaiterMutex>(
+    return !!std::unique_lock<engine::SingleWaitingTaskMutex>(
         mutex, utest::kMaxTestWaitTime);
   });
   engine::Yield();
@@ -83,11 +83,11 @@ namespace {
 constexpr size_t kThreads = 2;
 }  // namespace
 
-UTEST_MT(SingleWaiterMutex, LockPassing, kThreads) {
+UTEST_MT(SingleWaitingTaskMutex, LockPassing, kThreads) {
   static constexpr auto kTestDuration = std::chrono::milliseconds{500};
 
   const auto test_deadline = engine::Deadline::FromDuration(kTestDuration);
-  engine::SingleWaiterMutex mutex;
+  engine::SingleWaitingTaskMutex mutex;
 
   const auto work = [&mutex] {
     std::unique_lock lock(mutex, std::defer_lock);
@@ -103,13 +103,13 @@ UTEST_MT(SingleWaiterMutex, LockPassing, kThreads) {
   }
 }
 
-UTEST(SingleWaiterMutex, SampleMutex) {
+UTEST(SingleWaitingTaskMutex, SampleMutex) {
   /// [Sample engine::Mutex usage]
-  engine::SingleWaiterMutex mutex;
+  engine::SingleWaitingTaskMutex mutex;
   constexpr std::string_view kTestData = "Test Data";
 
   {
-    std::lock_guard<engine::SingleWaiterMutex> lock(mutex);
+    std::lock_guard<engine::SingleWaitingTaskMutex> lock(mutex);
     // accessing data under a mutex
     const auto x = kTestData;
     ASSERT_EQ(kTestData, x);

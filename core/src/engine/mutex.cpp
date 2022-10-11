@@ -6,29 +6,20 @@ USERVER_NAMESPACE_BEGIN
 
 namespace engine {
 
-class Mutex::ImplWrapper final {
-public:
-  using Impl = impl::MutexImpl<impl::WaitList>;
-
-  Impl& operator->() {return impl;};
-  Impl& operator*() {return impl;};
-
-private:
-  Impl impl;
-};
+class Mutex::Impl final : public impl::MutexImpl<impl::WaitList> {};
 
 Mutex::Mutex() = default;
 
 Mutex::~Mutex() = default;
 
-void Mutex::lock() { (**impl_wrapper_).lock(); }
+void Mutex::lock() { impl_->lock(); }
 
-void Mutex::unlock() { (**impl_wrapper_).unlock(); }
+void Mutex::unlock() { impl_->unlock(); }
 
-bool Mutex::try_lock() { return (**impl_wrapper_).try_lock(); }
+bool Mutex::try_lock() { return impl_->try_lock(); }
 
 bool Mutex::try_lock_until(Deadline deadline) {
-  return (**impl_wrapper_).try_lock_until(deadline);
+  return impl_->try_lock_until(deadline);
 }
 
 }  // namespace engine

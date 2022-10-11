@@ -59,9 +59,11 @@ class Mutex final {
   bool try_lock_until(Deadline deadline);
 
  private:
-  class ImplWrapper;
+  class Impl;
 
-  utils::FastPimpl<ImplWrapper, impl::kWaitListSize + 8, alignof(void*)> impl_wrapper_;
+  constexpr static std::size_t kImplSize = impl::kWaitListSize + sizeof(impl::TaskContext*);
+
+  utils::FastPimpl<Impl, kImplSize, alignof(void*)> impl_;
 };
 
 template <typename Rep, typename Period>
