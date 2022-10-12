@@ -11,7 +11,7 @@ namespace utils::datetime {
 #if defined(CLOCK_MONOTONIC_COARSE)
 constexpr auto kCoarseSteadyClockNativeFlag = CLOCK_MONOTONIC_COARSE;
 #else
-constexpr auto kCoarseClockNativeFlag = CLOCK_MONOTONIC;
+constexpr auto kCoarseSteadyClockNativeFlag = CLOCK_MONOTONIC;
 #endif
 
 #if defined(CLOCK_REALTIME_COARSE)
