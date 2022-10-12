@@ -10,6 +10,6 @@ std::string_view GetCachedHttpDate();
 
 std::string GetHttpDate();
 
-}
+}  // namespace server::http
 
 USERVER_NAMESPACE_END

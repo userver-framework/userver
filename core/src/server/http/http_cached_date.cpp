@@ -1,7 +1,7 @@
 #include <server/http/http_cached_date.hpp>
 
-#include <cstring>
 #include <chrono>
+#include <cstring>
 
 #include <userver/utils/datetime/wall_coarse_clock.hpp>
 
@@ -20,9 +20,9 @@ std::string_view GetCachedHttpDate() {
   static const auto tz = cctz::utc_time_zone();
 
   const auto now = utils::datetime::WallCoarseClock::now();
-  const auto now_seconds = std::chrono::duration_cast<std::chrono::seconds>(
-      now.time_since_epoch()
-      ).count();
+  const auto now_seconds =
+      std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch())
+          .count();
   if (now_seconds != last_second) {
     last_second = now_seconds;
 
@@ -39,8 +39,8 @@ std::string GetHttpDate() {
   static const std::string kFormatString = "%a, %d %b %Y %H:%M:%S %Z";
   static const auto tz = cctz::utc_time_zone();
 
-  return cctz::format(
-      kFormatString, utils::datetime::WallCoarseClock::now(), tz);
+  return cctz::format(kFormatString, utils::datetime::WallCoarseClock::now(),
+                      tz);
 }
 
 }  // namespace server::http
