@@ -61,7 +61,8 @@ class ConnectionPool::EmplaceEnabler {};
 
 ConnectionPool::ConnectionPool(
     EmplaceEnabler, Dsn dsn, clients::dns::Resolver* resolver,
-    engine::TaskProcessor& bg_task_processor, const std::string& db_name,
+    engine::TaskProcessor& bg_cancel_task_processor,
+    engine::TaskProcessor& bg_work_task_processor, const std::string& db_name,
     const PoolSettings& settings, const ConnectionSettings& conn_settings,
     const StatementMetricsSettings& statement_metrics_settings,
     const DefaultCommandControls& default_cmd_ctls,
@@ -72,7 +73,8 @@ ConnectionPool::ConnectionPool(
       db_name_{db_name},
       settings_{settings},
       conn_settings_{conn_settings},
-      bg_task_processor_{bg_task_processor},
+      bg_cancel_task_processor_{bg_cancel_task_processor},
+      bg_work_task_processor_{bg_work_task_processor},
       queue_{settings.max_size},
       size_{std::make_shared<std::atomic<size_t>>(0)},
       connecting_semaphore_{settings.connecting_limit
@@ -93,7 +95,8 @@ ConnectionPool::~ConnectionPool() {
 
 std::shared_ptr<ConnectionPool> ConnectionPool::Create(
     Dsn dsn, clients::dns::Resolver* resolver,
-    engine::TaskProcessor& bg_task_processor, const std::string& db_name,
+    engine::TaskProcessor& bg_cancel_task_processor,
+    engine::TaskProcessor& bg_work_task_processor, const std::string& db_name,
     const InitMode& init_mode, const PoolSettings& pool_settings,
     const ConnectionSettings& conn_settings,
     const StatementMetricsSettings& statement_metrics_settings,
@@ -103,9 +106,10 @@ std::shared_ptr<ConnectionPool> ConnectionPool::Create(
   // FP?: pointer magic in boost.lockfree
   // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks)
   auto impl = std::make_shared<ConnectionPool>(
-      EmplaceEnabler{}, std::move(dsn), resolver, bg_task_processor, db_name,
-      pool_settings, conn_settings, statement_metrics_settings,
-      default_cmd_ctls, testsuite_pg_ctl, std::move(ei_settings));
+      EmplaceEnabler{}, std::move(dsn), resolver, bg_cancel_task_processor,
+      bg_work_task_processor, db_name, pool_settings, conn_settings,
+      statement_metrics_settings, default_cmd_ctls, testsuite_pg_ctl,
+      std::move(ei_settings));
   // Init() uses shared_from_this for connections and cannot be called from ctor
   impl->Init(init_mode);
   return impl;
@@ -359,7 +363,8 @@ engine::TaskWithResult<bool> ConnectionPool::Connect(
     try {
       connection = Connection::Connect(
           shared_this->dsn_, shared_this->resolver_,
-          shared_this->bg_task_processor_, conn_id, *conn_settings,
+          shared_this->bg_cancel_task_processor_,
+          shared_this->bg_work_task_processor_, conn_id, *conn_settings,
           shared_this->default_cmd_ctls_, shared_this->testsuite_pg_ctl_,
           shared_this->ei_settings_, std::move(sg));
     } catch (const ConnectionTimeoutError&) {

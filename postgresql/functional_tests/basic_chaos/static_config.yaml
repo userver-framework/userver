@@ -8,10 +8,23 @@ components_manager:
 
         key-value-database:
             dbconnection: 'postgresql://testsuite@localhost:11433/pg_key_value'
-            blocking_task_processor: fs-task-processor
+            blocking_cancel_task_processor: pg-cancel-task-processor
+            blocking_task_processor: pg-task-processor
             dns_resolver: async
 
         testsuite-support:
+
+        http-client:
+            fs-task-processor: main-task-processor
+
+        tests-control:
+            method: POST
+            path: /tests/{action}
+            skip-unregistered-testpoints: true
+            task_processor: main-task-processor
+            testpoint-timeout: 10s
+            testpoint-url: $mockserver/testpoint
+            throttling_enabled: false
 
         server:
             listener:
@@ -46,5 +59,13 @@ components_manager:
         fs-task-processor:
             thread_name: fs-worker
             worker_threads: 4
+
+        pg-task-processor:
+            thread_name: pg-worker
+            worker_threads: 4
+
+        pg-cancel-task-processor:
+            thread_name: pg-cancel
+            worker_threads: 3
 
     default_task_processor: main-task-processor

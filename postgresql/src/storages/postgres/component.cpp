@@ -220,9 +220,15 @@ Postgres::Postgres(const ComponentConfig& config,
   cluster_settings.conn_settings =
       config.As<storages::postgres::ConnectionSettings>();
 
-  const auto task_processor_name =
+  const auto cancel_task_processor_name =
+      config["blocking_cancel_task_processor"].As<std::string>();
+  auto* bg_cancel_task_processor =
+      &context.GetTaskProcessor(cancel_task_processor_name);
+
+  const auto blocking_task_processor_name =
       config["blocking_task_processor"].As<std::string>();
-  auto* bg_task_processor = &context.GetTaskProcessor(task_processor_name);
+  auto* bg_work_task_processor =
+      &context.GetTaskProcessor(blocking_task_processor_name);
 
   error_injection::Settings ei_settings;
   auto ei_settings_opt =
@@ -248,7 +254,8 @@ Postgres::Postgres(const ComponentConfig& config,
 
   for (auto& dsns : cluster_desc) {
     auto cluster = std::make_shared<pg::Cluster>(
-        std::move(dsns), resolver, *bg_task_processor, cluster_settings,
+        std::move(dsns), resolver, *bg_cancel_task_processor,
+        *bg_work_task_processor, cluster_settings,
         storages::postgres::DefaultCommandControls{
             pg_config.default_command_control,
             pg_config.handlers_command_control,
@@ -329,9 +336,12 @@ properties:
     dbconnection:
         type: string
         description: connection DSN string (used if no dbalias specified)
+    blocking_cancel_task_processor:
+        type: string
+        description: name of task processor for background blocking cancel operations
     blocking_task_processor:
         type: string
-        description: name of task processor for background blocking operations
+        description: name of task processor for background blocking connect, poll operations
     max_replication_lag:
         type: string
         description: replication lag limit for usable slaves
