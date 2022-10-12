@@ -186,8 +186,8 @@ void HttpResponse::SendResponse(engine::io::Socket& socket) {
   if (headers_.find(USERVER_NAMESPACE::http::headers::kDate) == end) {
     static const std::string kFormatString = "%a, %d %b %Y %H:%M:%S %Z";
     static const auto tz = cctz::utc_time_zone();
-    const auto& time_str =
-        cctz::format(kFormatString, utils::datetime::WallCoarseClock::now(), tz);
+    const auto& time_str = cctz::format(
+        kFormatString, utils::datetime::WallCoarseClock::now(), tz);
 
     impl::OutputHeader(header, USERVER_NAMESPACE::http::headers::kDate,
                        time_str);
