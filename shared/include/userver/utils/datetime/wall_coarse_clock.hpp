@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/utils/datetime/wall_coarse_clock.hpp
+/// @brief @copybrief utils::datetime::WallCoarseClock
+
 #include <chrono>
 
 USERVER_NAMESPACE_BEGIN
