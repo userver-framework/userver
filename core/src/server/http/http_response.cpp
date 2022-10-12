@@ -16,6 +16,8 @@
 #include <userver/utils/assert.hpp>
 #include <userver/utils/datetime/wall_coarse_clock.hpp>
 
+#include <server/http/http_cached_date.hpp>
+
 #include "http_request_impl.hpp"
 
 USERVER_NAMESPACE_BEGIN
@@ -184,13 +186,8 @@ void HttpResponse::SendResponse(engine::io::Socket& socket) {
   headers_.erase(USERVER_NAMESPACE::http::headers::kContentLength);
   const auto end = headers_.cend();
   if (headers_.find(USERVER_NAMESPACE::http::headers::kDate) == end) {
-    static const std::string kFormatString = "%a, %d %b %Y %H:%M:%S %Z";
-    static const auto tz = cctz::utc_time_zone();
-    const auto& time_str = cctz::format(
-        kFormatString, utils::datetime::WallCoarseClock::now(), tz);
-
     impl::OutputHeader(header, USERVER_NAMESPACE::http::headers::kDate,
-                       time_str);
+                       GetCachedHttpDate());
   }
   if (headers_.find(USERVER_NAMESPACE::http::headers::kContentType) == end) {
     impl::OutputHeader(header, USERVER_NAMESPACE::http::headers::kContentType,
