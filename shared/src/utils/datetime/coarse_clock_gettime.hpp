@@ -26,7 +26,7 @@ TimePoint CoarseNow() noexcept {
 
   // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
   ::timespec tp;
-  const auto res = ::clock_gettime(kCoarseSteadyClockNativeFlag, &tp);
+  const auto res = ::clock_gettime(Flag, &tp);
   UASSERT_MSG(res == 0, "Must always succeed");
   return TimePoint{std::chrono::seconds(tp.tv_sec) +
                     std::chrono::nanoseconds(tp.tv_nsec)};
@@ -39,7 +39,7 @@ Duration CoarseResolution() noexcept {
   static const Duration cached_resolution = []() {
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
     ::timespec tp;
-    const auto res = ::clock_getres(kCoarseSteadyClockNativeFlag, &tp);
+    const auto res = ::clock_getres(Flag, &tp);
     UASSERT_MSG(res == 0, "Must always succeed");
     return std::chrono::seconds(tp.tv_sec) +
            std::chrono::nanoseconds(tp.tv_nsec);
