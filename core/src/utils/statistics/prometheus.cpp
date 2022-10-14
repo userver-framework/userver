@@ -4,6 +4,7 @@
 #include <iterator>
 #include <unordered_map>
 
+#include <fmt/compile.h>
 #include <fmt/format.h>
 
 #include <userver/utils/algo.hpp>
@@ -17,6 +18,9 @@ namespace impl {
 
 namespace {
 
+enum class Typed { kYes, kNo };
+
+template <Typed IsTyped>
 class FormatBuilder final : public utils::statistics::BaseExposeFormatBuilder {
  public:
   explicit FormatBuilder(
@@ -24,7 +28,8 @@ class FormatBuilder final : public utils::statistics::BaseExposeFormatBuilder {
     fmt::memory_buffer buf;
     bool comma = false;
     for (const auto& [key, value] : common_labels) {
-      fmt::format_to(buf, "{}{}=\"", comma ? ',' : '{', key);
+      fmt::format_to(std::back_inserter(buf), FMT_COMPILE("{}{}=\""),
+                     comma ? ',' : '{', key);
       std::replace_copy(value.cbegin(), value.cend(), std::back_inserter(buf),
                         '"', '\'');
       buf.push_back('"');
@@ -38,11 +43,11 @@ class FormatBuilder final : public utils::statistics::BaseExposeFormatBuilder {
                     const MetricValue& value) override {
     DumpMetricName(std::string{path});
     DumpLabels(labels);
-    if (const auto* int_value = std::get_if<int64_t>(&value)) {
-      fmt::format_to(buf_, " {}", *int_value);
-    } else {
-      fmt::format_to(buf_, " {}", std::get<double>(value));
-    }
+    std::visit(
+        [this](const auto& v) {
+          fmt::format_to(std::back_inserter(buf_), FMT_COMPILE(" {}"), v);
+        },
+        value);
     buf_.push_back('\n');
   }
 
@@ -57,7 +62,11 @@ class FormatBuilder final : public utils::statistics::BaseExposeFormatBuilder {
 
     auto prometheus_name = impl::ToPrometheusName(name);
     metrics_.emplace(name, prometheus_name);
-    fmt::format_to(buf_, "# TYPE {0} gauge\n{0}", prometheus_name);
+    if constexpr (IsTyped == Typed::kYes) {
+      fmt::format_to(std::back_inserter(buf_), FMT_COMPILE("# TYPE {} gauge\n"),
+                     prometheus_name);
+    }
+    buf_.append(prometheus_name);
   }
 
   void DumpLabels(const std::vector<utils::statistics::Label>& labels) {
@@ -72,7 +81,8 @@ class FormatBuilder final : public utils::statistics::BaseExposeFormatBuilder {
       if (sep) {
         buf_.push_back(',');
       }
-      fmt::format_to(buf_, "{}=\"", impl::ToPrometheusLabel(label.Name()));
+      fmt::format_to(std::back_inserter(buf_), FMT_COMPILE("{}=\""),
+                     impl::ToPrometheusLabel(label.Name()));
       const auto& value = label.Value();
       std::replace_copy(value.cbegin(), value.cend(), std::back_inserter(buf_),
                         '"', '\'');
@@ -125,7 +135,16 @@ std::string ToPrometheusFormat(
     const std::unordered_map<std::string, std::string>& common_labels,
     const utils::statistics::Storage& statistics,
     const utils::statistics::StatisticsRequest& statistics_request) {
-  impl::FormatBuilder builder{common_labels};
+  impl::FormatBuilder<impl::Typed::kYes> builder{common_labels};
+  statistics.VisitMetrics(builder, statistics_request);
+  return builder.Release();
+}
+
+std::string ToPrometheusFormatUntyped(
+    const std::unordered_map<std::string, std::string>& common_labels,
+    const utils::statistics::Storage& statistics,
+    const utils::statistics::StatisticsRequest& statistics_request) {
+  impl::FormatBuilder<impl::Typed::kNo> builder{common_labels};
   statistics.VisitMetrics(builder, statistics_request);
   return builder.Release();
 }

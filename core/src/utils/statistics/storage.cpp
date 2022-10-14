@@ -22,6 +22,14 @@ constexpr int kVersion = 2;
 
 namespace utils::statistics {
 
+bool operator<(const Label& x, const Label& y) noexcept {
+  return x.Name() < y.Name() || (x.Name() == y.Name() && x.Value() < y.Value());
+}
+
+bool operator==(const Label& x, const Label& y) noexcept {
+  return x.Name() == y.Name() && x.Value() == y.Value();
+}
+
 Storage::Storage() : may_register_extenders_(true) {}
 
 formats::json::ValueBuilder Storage::GetAsJson(

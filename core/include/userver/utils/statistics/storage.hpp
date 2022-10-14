@@ -57,6 +57,9 @@ class Label {
   std::string value_;
 };
 
+bool operator<(const Label& x, const Label& y) noexcept;
+bool operator==(const Label& x, const Label& y) noexcept;
+
 class BaseExposeFormatBuilder {
  public:
   using MetricValue = std::variant<std::int64_t, double>;

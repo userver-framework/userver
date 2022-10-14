@@ -25,8 +25,11 @@ namespace server::handlers {
 ///
 /// ## Scheme
 ///
-/// Accepts a path arguments `format` and `prefix`. At the moment "prometheus"
-/// and internal (default) `format` is supported. `prefix` is passed to
+/// Accepts a path arguments `format` and `prefix`. At the moment "prometheus",
+/// "prometheus-untyped", "graphite", and internal (default)
+/// `format` is supported.
+///
+/// `prefix` is passed to
 /// utils::statistics::Storage as a recomendation for metrics to return.
 
 // clang-format on
