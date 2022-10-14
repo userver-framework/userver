@@ -100,6 +100,8 @@ class Semaphore final {
                                                  Counter count);
 
  private:
+  class SemaphoreWaitStrategy;
+
   enum class TryLockStatus { kSuccess, kTransientFailure, kPermanentFailure };
 
   TryLockStatus DoTryLock(Counter count);

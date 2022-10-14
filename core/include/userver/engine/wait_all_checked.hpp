@@ -8,6 +8,8 @@
 
 #include <userver/engine/deadline.hpp>
 #include <userver/engine/future_status.hpp>
+#include <userver/engine/impl/wait_many_entry.hpp>
+#include <userver/utils/fixed_array.hpp>
 #include <userver/utils/impl/span.hpp>
 #include <userver/utils/meta.hpp>
 
@@ -66,26 +68,17 @@ template <typename... Tasks>
 
 namespace impl {
 
-class ContextAccessor;
-
-FutureStatus DoWaitAllChecked(utils::impl::Span<ContextAccessor*> targets,
+FutureStatus DoWaitAllChecked(utils::impl::Span<WaitManyEntry> targets,
                               Deadline deadline);
 
 template <typename Container>
 FutureStatus WaitAllCheckedFromContainer(Deadline deadline, Container& tasks) {
-  std::vector<ContextAccessor*> targets;
-  targets.reserve(std::size(tasks));
-
-  for (auto& task : tasks) {
-    targets.push_back(task.TryGetContextAccessor());
-  }
-
-  return impl::DoWaitAllChecked(targets, deadline);
+  return impl::DoWaitAllChecked(ExtractWaitManyEntries(tasks), deadline);
 }
 
 template <typename... Tasks>
 FutureStatus WaitAllCheckedFromTasks(Deadline deadline, Tasks&... tasks) {
-  ContextAccessor* targets[]{tasks.TryGetContextAccessor()...};
+  WaitManyEntry targets[]{WaitManyEntry(tasks.TryGetContextAccessor())...};
   return impl::DoWaitAllChecked(targets, deadline);
 }
 

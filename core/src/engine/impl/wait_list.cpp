@@ -1,98 +1,90 @@
 #include "wait_list.hpp"
 
-#include <boost/intrusive/list.hpp>
-
+#include <concurrent/removable_queue.hpp>
 #include <engine/task/task_context.hpp>
-
-#include <userver/utils/assert.hpp>
+#include <utils/impl/assert_extra.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace engine::impl {
 
-namespace {
+class WaitList::Impl final {
+ public:
+  struct Waiter final {
+    boost::intrusive_ptr<TaskContext> context;
+    SleepState::Epoch epoch;
+  };
 
-constexpr bool kAdopt = false;
+  using WaiterQueue = concurrent::impl::RemovableQueue<Waiter>;
+  using Handle = WaiterQueue::ItemHandle;
 
-template <class Container, class Value>
-bool IsInIntrusiveContainer(const Container& container, const Value& val) {
-  const auto val_it = Container::s_iterator_to(val);
-  for (auto it = container.cbegin(); it != container.cend(); ++it) {
-    if (it == val_it) {
-      return true;
+  Impl() = default;
+
+  ~Impl() {
+    Waiter waiter;
+    if (waiters_.TryPop(waiter)) {
+      utils::impl::AbortWithStacktrace(
+          "A TaskContext is sleeping in a WaitList that is being destroyed");
     }
   }
 
-  return false;
-}
+  bool WakeupOne() noexcept {
+    Waiter waiter;
+    while (waiters_.TryPop(waiter)) {
+      if (waiter.context->Wakeup(TaskContext::WakeupSource::kWaitList,
+                                 waiter.epoch)) {
+        return true;
+      }
+    }
+    return false;
+  }
 
-using MemberHookConfig =
-    boost::intrusive::member_hook<impl::TaskContext,
-                                  impl::TaskContext::WaitListHook,
-                                  &impl::TaskContext::wait_list_hook>;
+  Handle Append(TaskContext& context) {
+    Waiter waiter;
+    waiter.context.reset(&context, /*add_ref=*/true);
+    waiter.epoch = context.GetEpoch();
+    return waiters_.Push(std::move(waiter));
+  }
 
-}  // namespace
+  void Remove(Handle&& handle) noexcept {
+    Waiter waiter;
+    waiters_.Remove(std::move(handle), waiter);
+  }
 
-struct WaitList::List
-    : public boost::intrusive::make_list<
-          impl::TaskContext, boost::intrusive::constant_time_size<false>,
-          MemberHookConfig>::type {};
+ private:
+  WaiterQueue waiters_;
+};
 
-// not implicitly noexcept on focal
-// NOLINTNEXTLINE(hicpp-use-equals-default,modernize-use-equals-default)
-WaitList::WaitList() noexcept {}
+WaitList::WaitList() = default;
 
-WaitList::~WaitList() {
-  UASSERT_MSG(waiting_contexts_->empty(), "Someone is waiting on the WaitList");
-}
+WaitList::~WaitList() = default;
 
-bool WaitList::IsEmpty(Lock& lock) const noexcept {
-  UASSERT(lock);
-  return waiting_contexts_->empty();
-}
+void WaitList::WakeupOne() noexcept { impl_->WakeupOne(); }
 
-void WaitList::Append(
-    Lock& lock, boost::intrusive_ptr<impl::TaskContext> context) noexcept {
-  UASSERT(lock);
-  UASSERT(context);
-  UASSERT_MSG(!context->wait_list_hook.is_linked(), "context already in list");
-
-  waiting_contexts_->push_back(*context.detach());  // referencing, not copying!
-}
-
-void WaitList::WakeupOne(Lock& lock) {
-  UASSERT(lock);
-  if (!waiting_contexts_->empty()) {
-    boost::intrusive_ptr<impl::TaskContext> context(&waiting_contexts_->front(),
-                                                    kAdopt);
-    context->wait_list_hook.unlink();
-
-    context->Wakeup(impl::TaskContext::WakeupSource::kWaitList,
-                    impl::TaskContext::NoEpoch{});
+void WaitList::WakeupAll() noexcept {
+  while (impl_->WakeupOne()) {
   }
 }
 
-void WaitList::WakeupAll(Lock& lock) {
-  UASSERT(lock);
-  while (!waiting_contexts_->empty()) {
-    boost::intrusive_ptr<impl::TaskContext> context(&waiting_contexts_->front(),
-                                                    kAdopt);
-    context->wait_list_hook.unlink();
+struct WaitScope::Impl final {
+  WaitList& owner;
+  TaskContext& context;
+  WaitList::Impl::Handle handle;
+};
 
-    context->Wakeup(impl::TaskContext::WakeupSource::kWaitList,
-                    impl::TaskContext::NoEpoch{});
-  }
+WaitScope::WaitScope(WaitList& owner, TaskContext& context)
+    : impl_(Impl{owner, context, {}}) {}
+
+WaitScope::~WaitScope() = default;
+
+TaskContext& WaitScope::GetContext() const noexcept { return impl_->context; }
+
+void WaitScope::Append() noexcept {
+  impl_->handle = impl_->owner.impl_->Append(impl_->context);
 }
 
-void WaitList::Remove(Lock& lock, impl::TaskContext& context) noexcept {
-  UASSERT(lock);
-  if (!context.wait_list_hook.is_linked()) return;
-
-  boost::intrusive_ptr<impl::TaskContext> ctx(&context, kAdopt);
-  UASSERT_MSG(IsInIntrusiveContainer(*waiting_contexts_, context),
-              "context belongs to other list");
-
-  context.wait_list_hook.unlink();
+void WaitScope::Remove() noexcept {
+  impl_->owner.impl_->Remove(std::move(impl_->handle));
 }
 
 }  // namespace engine::impl

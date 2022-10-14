@@ -21,46 +21,52 @@ auto CreateWaitList(Task::WaitMode wait_mode) noexcept {
   return ReturnType{std::in_place_type<WaitList>};
 }
 
+auto CreateWaitScope(std::variant<WaitListLight, WaitList>& owner,
+                     TaskContext& context) {
+  using ReturnType = std::variant<WaitScopeLight, WaitScope>;
+  return std::visit(
+      utils::Overloaded{
+          [&](WaitListLight& ws) {
+            return ReturnType{std::in_place_type<WaitScopeLight>, ws, context};
+          },
+          [&](WaitList& ws) {
+            return ReturnType{std::in_place_type<WaitScope>, ws, context};
+          }},
+      owner);
+}
+
 }  // namespace
 
 GenericWaitList::GenericWaitList(Task::WaitMode wait_mode) noexcept
     : waiters_(CreateWaitList(wait_mode)) {}
 
-// noexcept: waiters_ are never valueless_by_exception
-void GenericWaitList::Append(
-    boost::intrusive_ptr<TaskContext> context) noexcept {
-  std::visit(utils::Overloaded{[&context](WaitListLight& ws) {
-                                 ws.Append(std::move(context));
-                               },
-                               [&context](WaitList& ws) {
-                                 WaitList::Lock lock{ws};
-                                 ws.Append(lock, std::move(context));
-                               }},
-             waiters_);
-}
-
-// noexcept: waiters_ are never valueless_by_exception
-void GenericWaitList::Remove(impl::TaskContext& context) noexcept {
-  std::visit(
-      utils::Overloaded{[&context](WaitListLight& ws) { ws.Remove(context); },
-                        [&context](WaitList& ws) {
-                          WaitList::Lock lock{ws};
-                          ws.Remove(lock, context);
-                        }},
-      waiters_);
-}
-
 void GenericWaitList::WakeupAll() {
   std::visit(utils::Overloaded{[](WaitListLight& ws) { ws.WakeupOne(); },
-                               [](WaitList& ws) {
-                                 WaitList::Lock lock{ws};
-                                 ws.WakeupAll(lock);
-                               }},
+                               [](WaitList& ws) { ws.WakeupAll(); }},
              waiters_);
 }
 
 bool GenericWaitList::IsShared() const noexcept {
   return std::holds_alternative<WaitList>(waiters_);
+}
+
+GenericWaitScope::GenericWaitScope(GenericWaitList& owner, TaskContext& context)
+    : impl_(CreateWaitScope(owner.waiters_, context)) {}
+
+GenericWaitScope::GenericWaitScope(WaitListLight& owner, TaskContext& context)
+    : impl_(std::in_place_type<WaitScopeLight>, owner, context) {}
+
+GenericWaitScope::GenericWaitScope(WaitList& owner, TaskContext& context)
+    : impl_(std::in_place_type<WaitScope>, owner, context) {}
+
+GenericWaitScope::~GenericWaitScope() = default;
+
+void GenericWaitScope::Append() noexcept {
+  std::visit([](auto& scope) { scope.Append(); }, impl_);
+}
+
+void GenericWaitScope::Remove() noexcept {
+  std::visit([](auto& scope) { scope.Remove(); }, impl_);
 }
 
 }  // namespace engine::impl

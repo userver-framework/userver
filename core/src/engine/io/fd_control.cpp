@@ -83,25 +83,23 @@ class DirectionWaitStrategy final : public engine::impl::WaitStrategy {
                         ev::Watcher<ev_io>& watcher,
                         engine::impl::TaskContext& current)
       : WaitStrategy(deadline),
-        waiters_(waiters),
         watcher_(watcher),
-        current_(current) {}
+        wait_scope_(waiters, current) {}
 
   void SetupWakeups() override {
-    waiters_.Append(&current_);
+    wait_scope_.Append();
     watcher_.StartAsync();
   }
 
   void DisableWakeups() override {
-    waiters_.Remove(current_);
+    wait_scope_.Remove();
     // we need to stop watcher manually to avoid racy wakeups later
     watcher_.StopAsync();
   }
 
  private:
-  engine::impl::WaitListLight& waiters_;
   ev::Watcher<ev_io>& watcher_;
-  engine::impl::TaskContext& current_;
+  engine::impl::WaitScopeLight wait_scope_;
 };
 
 }  // namespace

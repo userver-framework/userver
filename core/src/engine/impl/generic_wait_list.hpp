@@ -14,16 +14,31 @@ class GenericWaitList final {
  public:
   explicit GenericWaitList(Task::WaitMode wait_mode) noexcept;
 
-  void Append(boost::intrusive_ptr<TaskContext> context) noexcept;
-
-  void Remove(impl::TaskContext& context) noexcept;
-
   void WakeupAll();
 
   bool IsShared() const noexcept;
 
  private:
+  friend class GenericWaitScope;
+
   std::variant<WaitListLight, WaitList> waiters_;
+};
+
+class GenericWaitScope final {
+ public:
+  GenericWaitScope(GenericWaitList& owner, TaskContext& context);
+  GenericWaitScope(WaitListLight& owner, TaskContext& context);
+  GenericWaitScope(WaitList& owner, TaskContext& context);
+
+  GenericWaitScope(GenericWaitScope&&) = delete;
+  GenericWaitScope& operator=(GenericWaitScope&&) = delete;
+  ~GenericWaitScope();
+
+  void Append() noexcept;
+  void Remove() noexcept;
+
+ private:
+  std::variant<WaitScopeLight, WaitScope> impl_;
 };
 
 }  // namespace engine::impl

@@ -24,6 +24,8 @@ class TaggedPtr final {
       : impl_(reinterpret_cast<std::uintptr_t>(ptr) |
               (std::uint64_t{tag} << kTagShift)) {
     UASSERT(!(reinterpret_cast<std::uintptr_t>(ptr) & 0xffff'0000'0000'0000));
+    static_assert(std::atomic<TaggedPtr>::is_always_lock_free);
+    static_assert(std::has_unique_object_representations_v<TaggedPtr>);
   }
 
   T* GetDataPtr() const noexcept {
@@ -34,6 +36,16 @@ class TaggedPtr final {
   Tag GetTag() const noexcept { return static_cast<Tag>(impl_ >> kTagShift); }
 
   Tag GetNextTag() const noexcept { return static_cast<Tag>(GetTag() + 1); }
+
+  std::uint64_t GetRaw() const noexcept { return impl_; }
+
+  bool operator==(TaggedPtr other) const noexcept {
+    return impl_ == other.impl_;
+  }
+
+  bool operator!=(TaggedPtr other) const noexcept {
+    return impl_ != other.impl_;
+  }
 
  private:
   std::uint64_t impl_;
@@ -78,7 +90,7 @@ class IntrusiveStack final {
       std::is_invocable_r_v<IntrusiveStackHook<T>&, HookExtractor, T&>);
 
  public:
-  IntrusiveStack() = default;
+  constexpr IntrusiveStack() = default;
 
   IntrusiveStack(IntrusiveStack&&) = delete;
   IntrusiveStack& operator=(IntrusiveStack&&) = delete;
@@ -89,22 +101,26 @@ class IntrusiveStack final {
 
     NodeTaggedPtr expected = stack_head_.load();
     while (true) {
-      GetNext(node).store(expected.GetDataPtr());
+      GetNext(node).store(expected.GetDataPtr(), std::memory_order_relaxed);
       const NodeTaggedPtr desired(&node, expected.GetTag());
-      if (stack_head_.compare_exchange_weak(expected, desired)) {
+      if (stack_head_.compare_exchange_weak(expected, desired,
+                                            std::memory_order_release,
+                                            std::memory_order_relaxed)) {
         break;
       }
     }
   }
 
   T* TryPop() noexcept {
-    NodeTaggedPtr expected = stack_head_.load();
+    NodeTaggedPtr expected = stack_head_.load(std::memory_order_acquire);
     while (true) {
       T* const expected_ptr = expected.GetDataPtr();
       if (!expected_ptr) return nullptr;
       const NodeTaggedPtr desired(GetNext(*expected_ptr).load(),
                                   expected.GetNextTag());
-      if (stack_head_.compare_exchange_weak(expected, desired)) {
+      if (stack_head_.compare_exchange_weak(expected, desired,
+                                            std::memory_order_acquire,
+                                            std::memory_order_relaxed)) {
         // 'relaxed' is OK, because popping a node must happen-before pushing it
         GetNext(*expected_ptr).store(nullptr, std::memory_order_relaxed);
         return expected_ptr;
@@ -124,11 +140,12 @@ class IntrusiveStack final {
 
   template <typename DisposerFunc>
   void DisposeUnsafe(const DisposerFunc& disposer) noexcept {
-    T* iter = stack_head_.load().GetDataPtr();
-    stack_head_.store(nullptr);
+    T* iter = stack_head_.load(std::memory_order_relaxed).GetDataPtr();
+    stack_head_.store(nullptr, std::memory_order_relaxed);
     while (iter) {
       T* const old_iter = iter;
-      iter = GetNext(*iter).load();
+      iter = GetNext(*iter).load(std::memory_order_relaxed);
+      GetNext(*old_iter).store(nullptr, std::memory_order_relaxed);
       disposer(*old_iter);
     }
   }

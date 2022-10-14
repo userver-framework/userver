@@ -128,6 +128,7 @@ void semaphore_lock_unlock_coro_contention(benchmark::State& state) {
         while (run) {
           sem.lock_shared();
           sem.unlock_shared();
+          engine::Yield();
         }
       }));
 

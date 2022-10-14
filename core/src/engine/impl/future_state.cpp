@@ -2,6 +2,7 @@
 
 #include <future>
 
+#include <engine/impl/generic_wait_list.hpp>
 #include <engine/impl/wait_list_light.hpp>
 #include <engine/task/task_context.hpp>
 #include <userver/engine/exception.hpp>
@@ -31,20 +32,21 @@ FutureStatus ToFutureStatus(TaskContext::WakeupSource wakeup_source) {
 
 class FutureStateBase::WaitStrategy final : public impl::WaitStrategy {
  public:
-  WaitStrategy(FutureStateBase& state, impl::TaskContext& context,
-               Deadline deadline)
-      : impl::WaitStrategy(deadline), state_(state), context_(context) {}
+  WaitStrategy(FutureStateBase& state, TaskContext& context, Deadline deadline)
+      : impl::WaitStrategy(deadline),
+        state_(state),
+        wait_scope_(*state_.finish_waiters_, context) {}
 
   void SetupWakeups() override {
-    state_.finish_waiters_->Append(&context_);
+    wait_scope_.Append();
     if (state_.is_ready_.load()) state_.finish_waiters_->WakeupOne();
   }
 
-  void DisableWakeups() override { state_.finish_waiters_->Remove(context_); }
+  void DisableWakeups() override { wait_scope_.Remove(); }
 
  private:
   FutureStateBase& state_;
-  impl::TaskContext& context_;
+  WaitScopeLight wait_scope_;
 };
 
 FutureStateBase::FutureStateBase() noexcept
@@ -92,12 +94,8 @@ void FutureStateBase::WaitForResult() {
   }
 }
 
-void FutureStateBase::AppendWaiter(impl::TaskContext& context) noexcept {
-  finish_waiters_->Append(&context);
-}
-
-void FutureStateBase::RemoveWaiter(impl::TaskContext& context) noexcept {
-  finish_waiters_->Remove(context);
+GenericWaitScope FutureStateBase::MakeWaitScope(impl::TaskContext& context) {
+  return GenericWaitScope(*finish_waiters_, context);
 }
 
 }  // namespace engine::impl
