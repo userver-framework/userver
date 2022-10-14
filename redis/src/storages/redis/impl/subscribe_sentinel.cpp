@@ -16,12 +16,13 @@ SubscribeSentinel::SubscribeSentinel(
     const std::vector<std::string>& shards,
     const std::vector<ConnectionInfo>& conns, std::string shard_group_name,
     const std::string& client_name, const Password& password,
-    ReadyChangeCallback ready_callback, std::unique_ptr<KeyShard>&& key_shard,
-    bool is_cluster_mode, CommandControl command_control,
+    ConnectionSecurity connection_security, ReadyChangeCallback ready_callback,
+    std::unique_ptr<KeyShard>&& key_shard, bool is_cluster_mode,
+    CommandControl command_control,
     const testsuite::RedisControl& testsuite_redis_control)
     : Sentinel(thread_pools, shards, conns, std::move(shard_group_name),
-               client_name, password, ready_callback, std::move(key_shard),
-               command_control, testsuite_redis_control,
+               client_name, password, connection_security, ready_callback,
+               std::move(key_shard), command_control, testsuite_redis_control,
                ConnectionMode::kSubscriber),
       storage_(std::make_shared<SubscriptionStorage>(
           thread_pools, shards.size(), is_cluster_mode)),
@@ -90,7 +91,8 @@ std::shared_ptr<SubscribeSentinel> SubscribeSentinel::Create(
     // CLUSTER SLOTS works after auth only. Masters and slaves used instead of
     // sentinels in cluster mode.
     conns.emplace_back(sentinel.host, sentinel.port,
-                       (is_cluster_mode ? password : Password("")));
+                       (is_cluster_mode ? password : Password("")), false,
+                       settings.secure_connection);
   }
   redis::CommandControl command_control = redis::kDefaultCommandControl;
   LOG_DEBUG() << "redis command_control: timeout_single = "
@@ -100,7 +102,7 @@ std::shared_ptr<SubscribeSentinel> SubscribeSentinel::Create(
 
   auto subscribe_sentinel = std::make_shared<SubscribeSentinel>(
       thread_pools, shards, conns, std::move(shard_group_name), client_name,
-      password, std::move(ready_callback),
+      password, settings.secure_connection, std::move(ready_callback),
       (is_cluster_mode ? nullptr : std::make_unique<KeyShardZero>()),
       is_cluster_mode, command_control, testsuite_redis_control);
   subscribe_sentinel->Start();

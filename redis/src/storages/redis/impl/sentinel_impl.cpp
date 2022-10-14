@@ -55,8 +55,8 @@ SentinelImpl::SentinelImpl(
     Sentinel& sentinel, const std::vector<std::string>& shards,
     const std::vector<ConnectionInfo>& conns, std::string shard_group_name,
     const std::string& client_name, const Password& password,
-    ReadyChangeCallback ready_callback, std::unique_ptr<KeyShard>&& key_shard,
-    ConnectionMode mode)
+    ConnectionSecurity connection_security, ReadyChangeCallback ready_callback,
+    std::unique_ptr<KeyShard>&& key_shard, ConnectionMode mode)
     : sentinel_obj_(sentinel),
       ev_thread_(sentinel_thread_control),
       shard_group_name_(std::move(shard_group_name)),
@@ -64,6 +64,7 @@ SentinelImpl::SentinelImpl(
       conns_(conns),
       ready_callback_(std::move(ready_callback)),
       redis_thread_pool_(redis_thread_pool),
+      connection_security_(connection_security),
       check_interval_(ToEvDuration(kSentinelGetHostsCheckInterval)),
       update_cluster_slots_flag_(false),
       cluster_mode_failed_(false),
@@ -557,12 +558,13 @@ void SentinelImpl::ReadSentinels() {
         auto watcher = std::make_shared<WatchContext>();
 
         std::vector<uint8_t> shard_found(init_shards_->size(), false);
-        for (const auto& shard_conn : info) {
+        for (auto shard_conn : info) {
           if (shards_.find(shard_conn.Name()) != shards_.end()) {
-            watcher->masters.push_back(shard_conn);
+            shard_conn.SetConnectionSecurity(connection_security_);
             shard_found[shards_[shard_conn.Name()]] = true;
             watcher->host_port_to_shard[shard_conn.HostPort()] =
                 shards_[shard_conn.Name()];
+            watcher->masters.push_back(std::move(shard_conn));
           }
         }
 
@@ -596,6 +598,7 @@ void SentinelImpl::ReadSentinels() {
                 for (auto shard_conn : info) {
                   shard_conn.SetName(shard);
                   shard_conn.SetReadOnly(true);
+                  shard_conn.SetConnectionSecurity(connection_security_);
                   if (shards_.find(shard_conn.Name()) != shards_.end())
                     watcher->host_port_to_shard[shard_conn.HostPort()] =
                         shards_[shard_conn.Name()];

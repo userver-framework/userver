@@ -44,6 +44,10 @@ if (USERVER_FEATURE_REDIS_HI_MALLOC)
   )
 endif()
 
+option(USERVER_FEATURE_REDIS_TLS "SSL/TLS support for Redis driver" OFF)
+if(USERVER_FEATURE_REDIS_TLS)
+  add_definitions(-DUSERVER_FEATURE_REDIS_TLS=1)
+endif()
 
 target_link_libraries(${PROJECT_NAME}
   PUBLIC
@@ -52,6 +56,10 @@ target_link_libraries(${PROJECT_NAME}
   PRIVATE
     userver-uboost-coro # uses BlockingFuture
 )
+
+if (USERVER_FEATURE_REDIS_TLS)
+  target_link_libraries(${PROJECT_NAME} PUBLIC hiredis_ssl)
+endif()
 target_include_directories(
   ${PROJECT_NAME}
   PUBLIC

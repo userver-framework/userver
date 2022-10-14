@@ -19,6 +19,7 @@ The following options could be used to control `cmake`:
 | USERVER_FEATURE_CRYPTOPP_BASE64_URL    | Provide wrappers for Base64 URL decoding and encoding algorithms of crypto++ | ON                                               |
 | USERVER_FEATURE_SPDLOG_TCP_SINK        | Use tcp_sink.h of the spdlog library for testing logs                        | ON                                               |
 | USERVER_FEATURE_REDIS_HI_MALLOC        | Provide a `hi_malloc(unsigned long)` [issue][hi_malloc] workaround           | OFF                                              |
+| USERVER_FEATURE_REDIS_TLS              | SSL/TLS support for Redis driver                                             | OFF                                              |
 | USERVER_FEATURE_STACKTRACE             | Allow capturing stacktraces using boost::stacktrace                          | ON                                               |
 | USERVER_FEATURE_JEMALLOC               | Use jemalloc memory allocator                                                | ON                                               |
 | USERVER_FEATURE_DWCAS                  | Require double-width compare-and-swap                                        | ON                                               |

@@ -32,19 +32,24 @@ const int REDIS_ERR_MAX = REDIS_ERR_NOT_READY + 1;
 
 using Password = utils::NonLoggable<class PasswordTag, std::string>;
 
+enum class ConnectionSecurity { kNone, kTLS };
+
 struct ConnectionInfo {
   std::string host = "localhost";
   int port = 26379;
   Password password;
   bool read_only = false;
+  ConnectionSecurity connection_security = ConnectionSecurity::kNone;
 
   ConnectionInfo() = default;
   ConnectionInfo(std::string host, int port, Password password,
-                 bool read_only = false)
+                 bool read_only = false,
+                 ConnectionSecurity security = ConnectionSecurity::kNone)
       : host{std::move(host)},
         port{port},
         password{std::move(password)},
-        read_only{read_only} {}
+        read_only{read_only},
+        connection_security(security) {}
 };
 
 struct Stat {
