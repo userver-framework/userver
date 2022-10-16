@@ -1,4 +1,4 @@
-#include <userver/utils/datetime/steady_coarse_clock.hpp>
+#include <userver/utils/datetime/wall_coarse_clock.hpp>
 
 #include <utils/datetime/coarse_clock_gettime.hpp>
 
@@ -6,13 +6,13 @@ USERVER_NAMESPACE_BEGIN
 
 namespace utils::datetime {
 
-constexpr auto kClockFlag = kCoarseSteadyClockNativeFlag;
+constexpr auto kClockFlag = kCoarseRealtimeClockNativeFlag;
 
-SteadyCoarseClock::time_point SteadyCoarseClock::now() noexcept {
+WallCoarseClock::time_point WallCoarseClock::now() noexcept {
   return CoarseNow<time_point, kClockFlag>();
 }
 
-SteadyCoarseClock::duration SteadyCoarseClock::resolution() noexcept {
+WallCoarseClock::duration WallCoarseClock::resolution() noexcept {
   return CoarseResolution<duration, kClockFlag>();
 }
 
