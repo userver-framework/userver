@@ -22,6 +22,10 @@ class BaseError(Exception):
     """Base class for exceptions of this module."""
 
 
+class TestsuiteActionFailed(BaseError):
+    pass
+
+
 class TestsuiteTaskError(BaseError):
     pass
 
@@ -36,6 +40,16 @@ class TestsuiteTaskConflict(TestsuiteTaskError):
 
 class ConfigurationError(BaseError):
     pass
+
+
+class PeriodicTaskFailed(BaseError):
+    pass
+
+
+class PeriodicTasksState:
+    def __init__(self):
+        self.suspended_tasks: typing.Set[str] = set()
+        self.tasks_to_suspend: typing.Set[str] = set()
 
 
 class TestsuiteTaskFailed(TestsuiteTaskError):
@@ -253,6 +267,8 @@ class ClientMonitor(ClientWrapper):
 class AiohttpClient(service_client.AiohttpClient):
     """Asyncio client uservice client class."""
 
+    PeriodicTaskFailed = PeriodicTaskFailed
+    TestsuiteActionFailed = TestsuiteActionFailed
     TestsuiteTaskNotFound = TestsuiteTaskNotFound
     TestsuiteTaskConflict = TestsuiteTaskConflict
     TestsuiteTaskFailed = TestsuiteTaskFailed
@@ -269,11 +285,13 @@ class AiohttpClient(service_client.AiohttpClient):
             span_id_header=None,
             cache_blocklist=None,
             api_coverage_report=None,
+            periodic_tasks_state: typing.Optional[PeriodicTasksState] = None,
             **kwargs,
     ):
         super().__init__(base_url, span_id_header=span_id_header, **kwargs)
         self._config = config
         self._mocked_time = mocked_time
+        self._periodic_tasks = periodic_tasks_state
         self._testpoint = testpoint
         self._testpoint_control = testpoint_control
         self._log_capture_fixture = log_capture_fixture
@@ -284,6 +302,29 @@ class AiohttpClient(service_client.AiohttpClient):
             cache_blocklist=cache_blocklist or [],
         )
         self._api_coverage_report = api_coverage_report
+
+    async def run_periodic_task(self, name):
+        response = await self._testsuite_action('run_periodic_task', name=name)
+        if not response['status']:
+            raise self.PeriodicTaskFailed(f'Periodic task {name} failed')
+
+    async def suspend_periodic_tasks(self, names: typing.List[str]) -> None:
+        if not self._periodic_tasks:
+            raise ConfigurationError('No periodic_tasks_state given')
+        self._periodic_tasks.tasks_to_suspend.update(names)
+        await self._suspend_periodic_tasks()
+
+    async def resume_periodic_tasks(self, names: typing.List[str]) -> None:
+        if not self._periodic_tasks:
+            raise ConfigurationError('No periodic_tasks_state given')
+        self._periodic_tasks.tasks_to_suspend.difference_update(names)
+        await self._suspend_periodic_tasks()
+
+    async def resume_all_periodic_tasks(self) -> None:
+        if not self._periodic_tasks:
+            raise ConfigurationError('No periodic_tasks_state given')
+        self._periodic_tasks.tasks_to_suspend.clear()
+        await self._suspend_periodic_tasks()
 
     async def write_cache_dumps(self, names: typing.List[str]) -> None:
         await self._testsuite_action('write_cache_dumps', names=names)
@@ -369,6 +410,8 @@ class AiohttpClient(service_client.AiohttpClient):
             invalidate_caches: bool = True,
             clean_update: bool = True,
             cache_names: typing.Optional[typing.List[str]] = None,
+            reset_metrics: bool = False,
+            http_allowed_urls_extra=None,
     ) -> typing.Dict[str, typing.Any]:
         body: typing.Dict[
             str, typing.Any,
@@ -389,6 +432,10 @@ class AiohttpClient(service_client.AiohttpClient):
             }
             if cache_names:
                 body['invalidate_caches']['names'] = cache_names
+        if reset_metrics:
+            body['reset_metrics'] = True
+        if http_allowed_urls_extra is not None:
+            body['http_allowed_urls_extra'] = http_allowed_urls_extra
         return await self._tests_control(body)
 
     async def update_server_state(self) -> None:
@@ -396,6 +443,7 @@ class AiohttpClient(service_client.AiohttpClient):
         Update service-side state through http call to 'tests/control':
         - clear dirty (from other tests) caches
         - set service-side mocked time,
+        - resume / suspend periodic tasks
         - enable testpoints
         If service is up-to-date, does nothing.
         """
@@ -432,6 +480,19 @@ class AiohttpClient(service_client.AiohttpClient):
                 response.raise_for_status()
                 return await response.json(content_type=None)
 
+    async def _suspend_periodic_tasks(self):
+        if (
+                self._periodic_tasks.tasks_to_suspend
+                != self._periodic_tasks.suspended_tasks
+        ):
+            await self._testsuite_action(
+                'suspend_periodic_tasks',
+                names=sorted(self._periodic_tasks.tasks_to_suspend),
+            )
+            self._periodic_tasks.suspended_tasks = set(
+                self._periodic_tasks.tasks_to_suspend,
+            )
+
     def _do_testsuite_action(self, action, **kwargs):
         if not self._config.testsuite_action_path:
             raise ConfigurationError(
@@ -448,6 +509,8 @@ class AiohttpClient(service_client.AiohttpClient):
                 json=kwargs,
                 testsuite_skip_prepare=testsuite_skip_prepare,
         ) as response:
+            if response.status == 500:
+                raise TestsuiteActionFailed
             response.raise_for_status()
             return await response.json(content_type=None)
 
@@ -487,6 +550,8 @@ class Client(ClientWrapper):
     werkzeug interface.
     """
 
+    PeriodicTaskFailed = PeriodicTaskFailed
+    TestsuiteActionFailed = TestsuiteActionFailed
     TestsuiteTaskNotFound = TestsuiteTaskNotFound
     TestsuiteTaskConflict = TestsuiteTaskConflict
     TestsuiteTaskFailed = TestsuiteTaskFailed
@@ -497,6 +562,22 @@ class Client(ClientWrapper):
         return http.wrap_client_response(
             response, json_loads=approx.json_loads,
         )
+
+    @_wrap_client_error
+    async def run_periodic_task(self, name):
+        await self._client.run_periodic_task(name)
+
+    @_wrap_client_error
+    async def suspend_periodic_tasks(self, names: typing.List[str]) -> None:
+        await self._client.suspend_periodic_tasks(names)
+
+    @_wrap_client_error
+    async def resume_periodic_tasks(self, names: typing.List[str]) -> None:
+        await self._client.resume_periodic_tasks(names)
+
+    @_wrap_client_error
+    async def resume_all_periodic_tasks(self) -> None:
+        await self._client.resume_all_periodic_tasks()
 
     @_wrap_client_error
     async def write_cache_dumps(self, names: typing.List[str]) -> None:
