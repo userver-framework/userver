@@ -16,16 +16,15 @@ namespace engine {
 
 /// @ingroup userver_concurrency
 ///
-/// @brief There are some situations when a resource is accessed
-/// concurrently, but concurrency factor is limited by 2,
-/// (for instance: implications of socket r/w duality)
-///  SingleWaitingTaskMutex is lighter version of Mutex.
-///  At most 1 waiter can be at any given moment
+/// @brief lighter version of Mutex with not more than 1 waiting thread.
+///
+/// There are some situations when a resource is accessed
+/// concurrently, but concurrency factor is limited by 2.
+/// For instance: implications of socket r/w duality
 ///
 /// ## Example usage:
 ///
-/// @snippet engine/single_waiter_mutex_test.cpp  Sample
-/// engine::SingleWaitingTaskMutex usage
+/// @snippet engine/mutex_test.cpp  Sample engine::Mutex usage
 ///
 /// @see @ref md_en_userver_synchronization
 class SingleWaitingTaskMutex final {

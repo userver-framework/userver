@@ -43,9 +43,7 @@ class MutexImpl {
   Waiters lock_waiters_;
 };
 
-
-
-template<>
+template <>
 class MutexImpl<WaitList>::MutexWaitStrategy final : public WaitStrategy {
  public:
   MutexWaitStrategy(MutexImpl<WaitList>& mutex, TaskContext& current,
@@ -73,23 +71,19 @@ class MutexImpl<WaitList>::MutexWaitStrategy final : public WaitStrategy {
   WaitList::Lock lock_;
 };
 
-template<>
+template <>
 class MutexImpl<WaitListLight>::MutexWaitStrategy final : public WaitStrategy {
  public:
   MutexWaitStrategy(MutexImpl<WaitListLight>& mutex, TaskContext& current,
                     Deadline deadline)
-      : WaitStrategy(deadline),
-        mutex_(mutex),
-        current_(current) {}
+      : WaitStrategy(deadline), mutex_(mutex), current_(current) {}
 
   void SetupWakeups() override {
     mutex_.lock_waiters_.Append(&current_);
     if (!mutex_.owner_.load()) mutex_.lock_waiters_.WakeupOne();
   }
 
-  void DisableWakeups() override {
-    mutex_.lock_waiters_.Remove(current_);
-  }
+  void DisableWakeups() override { mutex_.lock_waiters_.Remove(current_); }
 
  private:
   MutexImpl<WaitListLight>& mutex_;
@@ -100,7 +94,9 @@ template <class Waiters>
 MutexImpl<Waiters>::MutexImpl() : owner_(nullptr) {}
 
 template <class Waiters>
-MutexImpl<Waiters>::~MutexImpl() { UASSERT(!owner_); }
+MutexImpl<Waiters>::~MutexImpl() {
+  UASSERT(!owner_);
+}
 
 template <class Waiters>
 bool MutexImpl<Waiters>::LockFastPath(TaskContext& current) {
@@ -131,7 +127,9 @@ bool MutexImpl<Waiters>::LockSlowPath(TaskContext& current, Deadline deadline) {
 }
 
 template <class Waiters>
-void MutexImpl<Waiters>::lock() { try_lock_until(Deadline{}); }
+void MutexImpl<Waiters>::lock() {
+  try_lock_until(Deadline{});
+}
 
 template <class Waiters>
 void MutexImpl<Waiters>::unlock() {
