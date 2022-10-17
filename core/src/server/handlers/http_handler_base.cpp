@@ -262,14 +262,14 @@ void SetDeadlineTags(tracing::Span& span,
 }
 
 std::string CutTrailingSlash(
-    std::string meta_type,
+    std::string&& meta_type,
     server::handlers::UrlTrailingSlashOption trailing_slash) {
   if (trailing_slash == UrlTrailingSlashOption::kBoth && meta_type.size() > 1 &&
       meta_type.back() == '/') {
     meta_type.pop_back();
   }
 
-  return meta_type;
+  return std::move(meta_type);
 }
 
 // Separate function to avoid heavy computations when the result is not going
@@ -385,7 +385,9 @@ HttpHandlerBase::~HttpHandlerBase() { statistics_holder_.Unregister(); }
 
 void HttpHandlerBase::HandleRequest(request::RequestBase& request,
                                     request::RequestContext& context) const {
-  auto& http_request_impl = dynamic_cast<http::HttpRequestImpl&>(request);
+  UASSERT(dynamic_cast<http::HttpRequestImpl*>(&request));
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
+  auto& http_request_impl = static_cast<http::HttpRequestImpl&>(request);
   http::HttpRequest http_request(http_request_impl);
   auto& response = http_request.GetHttpResponse();
 
@@ -525,7 +527,9 @@ void HttpHandlerBase::HandleStreamRequest(
 void HttpHandlerBase::ReportMalformedRequest(
     request::RequestBase& request) const {
   try {
-    auto& http_request_impl = dynamic_cast<http::HttpRequestImpl&>(request);
+    UASSERT(dynamic_cast<http::HttpRequestImpl*>(&request));
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
+    auto& http_request_impl = static_cast<http::HttpRequestImpl&>(request);
     const http::HttpRequest http_request(http_request_impl);
     auto& response = http_request.GetHttpResponse();
 

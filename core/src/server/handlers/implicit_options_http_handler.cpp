@@ -66,7 +66,7 @@ ImplicitOptionsHttpHandler::ImplicitOptionsHttpHandler(
 
 std::string ImplicitOptionsHttpHandler::ExtractAllowedMethods(
     const std::string& path) const {
-  std::set<std::string> allowed_methods = {
+  std::vector<std::string> allowed_methods = {
       ToString(http::HttpMethod::kOptions)};
 
   LOG_DEBUG() << "Requesting OPTIONS for path " << path;
@@ -75,7 +75,7 @@ std::string ImplicitOptionsHttpHandler::ExtractAllowedMethods(
     auto match_result = GetHandlerInfoIndex().MatchRequest(method, path);
     switch (match_result.status) {
       case http::MatchRequestResult::Status::kOk:
-        allowed_methods.insert(ToString(method));
+        allowed_methods.push_back(ToString(method));
         break;
       case http::MatchRequestResult::Status::kHandlerNotFound:
         LOG_ERROR() << "No handlers available for path " << path;
@@ -85,6 +85,7 @@ std::string ImplicitOptionsHttpHandler::ExtractAllowedMethods(
     }
   }
 
+  std::sort(allowed_methods.begin(), allowed_methods.end());
   return fmt::to_string(fmt::join(allowed_methods, ", "));
 }
 

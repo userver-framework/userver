@@ -273,15 +273,18 @@ void HttpRequestImpl::SetHttpHandlerStatistics(
 void HttpRequestImpl::WriteAccessLogs(
     const logging::LoggerPtr& logger_access,
     const logging::LoggerPtr& logger_access_tskv,
-    std::chrono::system_clock::time_point tp,
     const std::string& remote_address) const {
+  if (!logger_access && !logger_access_tskv) return;
+
+  const auto tp = utils::datetime::WallCoarseClock::now();
   WriteAccessLog(logger_access, tp, remote_address);
   WriteAccessTskvLog(logger_access_tskv, tp, remote_address);
 }
 
-void HttpRequestImpl::WriteAccessLog(const logging::LoggerPtr& logger_access,
-                                     std::chrono::system_clock::time_point tp,
-                                     const std::string& remote_address) const {
+void HttpRequestImpl::WriteAccessLog(
+    const logging::LoggerPtr& logger_access,
+    utils::datetime::WallCoarseClock::time_point tp,
+    const std::string& remote_address) const {
   if (!logger_access) return;
 
   logger_access->ptr->info(
@@ -298,7 +301,7 @@ void HttpRequestImpl::WriteAccessLog(const logging::LoggerPtr& logger_access,
 
 void HttpRequestImpl::WriteAccessTskvLog(
     const logging::LoggerPtr& logger_access_tskv,
-    std::chrono::system_clock::time_point tp,
+    utils::datetime::WallCoarseClock::time_point tp,
     const std::string& remote_address) const {
   if (!logger_access_tskv) return;
 
