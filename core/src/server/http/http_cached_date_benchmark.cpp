@@ -7,7 +7,7 @@ USERVER_NAMESPACE_BEGIN
 
 void http_get_cached_date_benchmark(benchmark::State& state) {
   for (auto _ : state) {
-    benchmark::DoNotOptimize(server::http::GetCachedDate());
+    benchmark::DoNotOptimize(server::http::impl::GetCachedDate());
   }
 }
 BENCHMARK(http_get_cached_date_benchmark);

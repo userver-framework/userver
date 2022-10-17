@@ -20,8 +20,6 @@ std::string MakeHttpDate(std::chrono::system_clock::time_point date) {
   return cctz::format(kFormatString, date, tz);
 }
 
-}  // namespace impl
-
 std::string_view GetCachedDate() {
   constexpr size_t kMaxDateHeaderLength = 128;
 
@@ -45,6 +43,12 @@ std::string_view GetCachedDate() {
   }
 
   return result_view;
+}
+
+}  // namespace impl
+
+void AppendCachedDate(std::string& header) {
+  header.append(impl::GetCachedDate());
 }
 
 }  // namespace server::http

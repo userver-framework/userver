@@ -186,8 +186,10 @@ void HttpResponse::SendResponse(engine::io::Socket& socket) {
   headers_.erase(USERVER_NAMESPACE::http::headers::kContentLength);
   const auto end = headers_.cend();
   if (headers_.find(USERVER_NAMESPACE::http::headers::kDate) == end) {
-    impl::OutputHeader(header, USERVER_NAMESPACE::http::headers::kDate,
-                       GetCachedDate());
+    header.append(USERVER_NAMESPACE::http::headers::kDate);
+    header.append(kKeyValueHeaderSeparator);
+    AppendCachedDate(header);
+    header.append(kCrlf);
   }
   if (headers_.find(USERVER_NAMESPACE::http::headers::kContentType) == end) {
     impl::OutputHeader(header, USERVER_NAMESPACE::http::headers::kContentType,
