@@ -187,7 +187,7 @@ void HttpResponse::SendResponse(engine::io::Socket& socket) {
   const auto end = headers_.cend();
   if (headers_.find(USERVER_NAMESPACE::http::headers::kDate) == end) {
     impl::OutputHeader(header, USERVER_NAMESPACE::http::headers::kDate,
-                       GetCachedHttpDate());
+                       GetCachedDate());
   }
   if (headers_.find(USERVER_NAMESPACE::http::headers::kContentType) == end) {
     impl::OutputHeader(header, USERVER_NAMESPACE::http::headers::kContentType,
