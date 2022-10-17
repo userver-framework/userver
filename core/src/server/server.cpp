@@ -45,10 +45,10 @@ class ServerImpl final {
 
   void Stop();
 
-  void InitPortInfo(PortInfo& info, const ServerConfig& config,
+  static void InitPortInfo(PortInfo& info, const ServerConfig& config,
                     const net::ListenerConfig& listener_config,
                     const components::ComponentContext& component_context,
-                    bool is_monitor) const;
+                    bool is_monitor);
 
   void StartPortInfos();
 
@@ -132,7 +132,7 @@ void ServerImpl::InitPortInfo(
     PortInfo& info, const ServerConfig& config,
     const net::ListenerConfig& listener_config,
     const components::ComponentContext& component_context,
-    bool is_monitor) const {
+    bool is_monitor) {
   LOG_INFO() << "Creating listener" << (is_monitor ? " (monitor)" : "");
 
   engine::TaskProcessor& task_processor =
