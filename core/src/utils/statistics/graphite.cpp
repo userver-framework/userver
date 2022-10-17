@@ -16,10 +16,14 @@ namespace utils::statistics {
 
 namespace {
 
+bool IsGraphitePrintable(char c) noexcept {
+  return std::isalnum(c) || std::strchr(".-_", c);
+}
+
 void AppendGraphiteSafe(fmt::memory_buffer& out, std::string_view value) {
   std::replace_copy_if(
       value.cbegin(), value.cend(), std::back_inserter(out),
-      [](char c) { return !std::isalnum(c) && c != '.'; }, '_');
+      [](char c) { return !IsGraphitePrintable(c); }, '_');
 }
 
 std::string MakeCommonLabelsString(

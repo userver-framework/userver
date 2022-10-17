@@ -16,12 +16,24 @@
 #include <userver/utils/assert.hpp>
 #include <userver/utils/from_string.hpp>
 #include <userver/utils/statistics/storage.hpp>
+#include <userver/utils/text.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace utils::statistics {
 
 namespace {
+
+template <class ContainerLeft, class ContainerRight>
+bool LeftContainsRight(const ContainerLeft& left, const ContainerRight& right) {
+  for (const auto& value : right) {
+    if (std::find(left.begin(), left.end(), value) == left.end()) {
+      return false;
+    }
+  }
+
+  return true;
+}
 
 class SensorPath {
  public:
@@ -164,7 +176,8 @@ void ProcessInternalNode(DfsStack& dfs_stack, const SensorPath& path,
 
 void ProcessLeaf(BaseExposeFormatBuilder& builder, DfsLabelsBag& labels,
                  SensorPath& path, bool has_children_label,
-                 const std::string& key, const formats::json::Value& value) {
+                 const std::string& key, const formats::json::Value& value,
+                 const StatisticsRequest& request) {
   if (has_children_label) {
     labels.ResetLastLabel(key);
   } else {
@@ -183,8 +196,12 @@ void ProcessLeaf(BaseExposeFormatBuilder& builder, DfsLabelsBag& labels,
     metric_value = value.As<double>();
   }
 
-  if (metric_value) {
-    builder.HandleMetric(path.Get(), labels.Labels(), *metric_value);
+  if (metric_value && utils::text::StartsWith(path.Get(), request.prefix)) {
+    if (LeftContainsRight(labels.Labels(), request.labels)) {
+      if (request.path.empty() || path.Get() == request.path) {
+        builder.HandleMetric(path.Get(), labels.Labels(), *metric_value);
+      }
+    }
   }
   if (!has_children_label) {
     path.DiscardLastNode();
@@ -199,7 +216,11 @@ Label::Label(std::string name, std::string value)
 }
 
 void VisitMetrics(BaseExposeFormatBuilder& out,
-                  const formats::json::Value& statistics_storage_json) {
+                  const formats::json::Value& statistics_storage_json,
+                  const StatisticsRequest& request) {
+  UASSERT(request.path.empty() ||
+          utils::text::StartsWith(request.path, request.prefix));
+
   SensorPath path;
   DfsLabelsBag labels;
   std::stack<DfsNode> dfs_stack;
@@ -231,7 +252,7 @@ void VisitMetrics(BaseExposeFormatBuilder& out,
         ProcessInternalNode(dfs_stack, path, state.children_label_name, key,
                             value);
       } else {
-        ProcessLeaf(out, labels, path, has_children_label, key, value);
+        ProcessLeaf(out, labels, path, has_children_label, key, value, request);
       }
     }
     if (has_children_label) {

@@ -8,8 +8,10 @@
 namespace tests::handlers {
 namespace {
 
+/// [metrics definition]
 const utils::statistics::MetricTag<std::atomic<int>> kFooMetric{
     "sample-metrics.foo"};
+/// [metrics definition]
 
 }  // namespace
 
@@ -24,7 +26,9 @@ formats::json::Value Metrics::HandleRequestJsonThrow(
     [[maybe_unused]] const formats::json::Value& request_body,
     [[maybe_unused]] server::request::RequestContext& context) const {
   formats::json::ValueBuilder result;
+  /// [metrics usage]
   metrics_->GetMetric(kFooMetric)++;
+  /// [metrics usage]
   return result.ExtractValue();
 }
 

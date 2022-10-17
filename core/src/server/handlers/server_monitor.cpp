@@ -5,6 +5,7 @@
 #include <userver/formats/json/serialize.hpp>
 #include <userver/server/handlers/exceptions.hpp>
 #include <userver/utils/statistics/graphite.hpp>
+#include <userver/utils/statistics/json.hpp>
 #include <userver/utils/statistics/prometheus.hpp>
 #include <userver/utils/statistics/storage.hpp>
 #include <userver/yaml_config/schema.hpp>
@@ -22,6 +23,7 @@ enum class StatsFormat {
   kGraphite,
   kPrometheus,
   kPrometheusUntyped,
+  kJson,
 };
 
 StatsFormat ParseFormat(std::string_view format) {
@@ -31,6 +33,8 @@ StatsFormat ParseFormat(std::string_view format) {
     return StatsFormat::kPrometheus;
   } else if (format == "prometheus-untyped") {
     return StatsFormat::kPrometheusUntyped;
+  } else if (format == "json") {
+    return StatsFormat::kJson;
   } else if (format == "internal" || format.empty()) {
     return StatsFormat::kInternal;
   }
@@ -53,8 +57,17 @@ std::string ServerMonitor::HandleRequestThrow(const http::HttpRequest& request,
                                               request::RequestContext&) const {
   utils::statistics::StatisticsRequest statistics_request;
   statistics_request.prefix = request.GetArg("prefix");
-  const auto format = ParseFormat(request.GetArg("format"));
+  statistics_request.path = request.GetArg("path");
+  const auto& labels_json = request.GetArg("labels");
+  if (!labels_json.empty()) {
+    auto json = formats::json::FromString(labels_json);
+    for (auto [key, value] : Items(json)) {
+      statistics_request.labels.emplace_back(std::move(key),
+                                             value.As<std::string>());
+    }
+  }
 
+  const auto format = ParseFormat(request.GetArg("format"));
   switch (format) {
     case StatsFormat::kGraphite:
       // TODO: common labels
@@ -70,6 +83,11 @@ std::string ServerMonitor::HandleRequestThrow(const http::HttpRequest& request,
       // TODO: common labels
       return utils::statistics::ToPrometheusFormatUntyped(
           {}, statistics_storage_, statistics_request);
+
+    case StatsFormat::kJson:
+      // TODO: common labels
+      return utils::statistics::ToJsonFormat({}, statistics_storage_,
+                                             statistics_request);
 
     case StatsFormat::kInternal:
       const auto json =

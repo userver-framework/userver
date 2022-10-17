@@ -20,26 +20,6 @@ USERVER_NAMESPACE_BEGIN
 
 namespace utils::statistics {
 
-struct StatisticsRequest {
-  std::string prefix;
-};
-
-using ExtenderFunc =
-    std::function<formats::json::ValueBuilder(const StatisticsRequest&)>;
-
-namespace impl {
-
-struct MetricsSource final {
-  std::string prefix_path;
-  std::vector<std::string> path_segments;
-  ExtenderFunc extender;
-};
-
-using StorageData = std::list<MetricsSource>;
-using StorageIterator = StorageData::iterator;
-
-}  // namespace impl
-
 class Label {
  public:
   Label() = default;
@@ -59,6 +39,28 @@ class Label {
 
 bool operator<(const Label& x, const Label& y) noexcept;
 bool operator==(const Label& x, const Label& y) noexcept;
+
+struct StatisticsRequest final {
+  std::string prefix;
+  std::vector<Label> labels{};
+  std::string path{};
+};
+
+using ExtenderFunc =
+    std::function<formats::json::ValueBuilder(const StatisticsRequest&)>;
+
+namespace impl {
+
+struct MetricsSource final {
+  std::string prefix_path;
+  std::vector<std::string> path_segments;
+  ExtenderFunc extender;
+};
+
+using StorageData = std::list<MetricsSource>;
+using StorageIterator = StorageData::iterator;
+
+}  // namespace impl
 
 class BaseExposeFormatBuilder {
  public:

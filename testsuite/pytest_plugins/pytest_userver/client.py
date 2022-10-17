@@ -1,5 +1,6 @@
 import contextlib
 import dataclasses
+import json
 import logging
 import typing
 
@@ -63,6 +64,12 @@ class TestsuiteTaskFailed(TestsuiteTaskError):
 class TestsuiteClientConfig:
     testsuite_action_path: typing.Optional[str] = None
     server_monitor_path: typing.Optional[str] = None
+
+
+@dataclasses.dataclass(frozen=True)
+class Metric:
+    labels: typing.Dict[str, str]
+    value: int
 
 
 class ClientWrapper:
@@ -248,6 +255,61 @@ class AiohttpClientMonitor(service_client.AiohttpClient):
         assert metric_name in metrics, f'no metric with name {metric_name!r}'
         return metrics[metric_name]
 
+    async def metrics(
+            self,
+            *,
+            path: str = None,
+            prefix: str = None,
+            labels: typing.Optional[typing.Dict[str, str]] = None,
+    ) -> typing.Dict[str, typing.List[Metric]]:
+        if not self._config.server_monitor_path:
+            raise ConfigurationError(
+                'handler-server-monitor component is not configured',
+            )
+
+        params = {'format': 'json'}
+        if prefix:
+            params['prefix'] = prefix
+
+        if path:
+            params['path'] = path
+
+        if labels:
+            params['labels'] = json.dumps(labels)
+
+        response = await self.get(
+            self._config.server_monitor_path, params=params,
+        )
+        async with response:
+            response.raise_for_status()
+            json_data = await response.json(content_type=None)
+            return {
+                path: [
+                    Metric(labels=element['labels'], value=element['value'])
+                    for element in metrics_list
+                ]
+                for path, metrics_list in json_data.items()
+            }
+
+    async def single_metric(
+            self,
+            path: str,
+            *,
+            labels: typing.Optional[typing.Dict[str, str]] = None,
+    ) -> typing.Optional[Metric]:
+        response = await self.metrics(path=path, labels=labels)
+        metrics_list = response.get(path, [])
+
+        assert len(metrics_list) <= 1, (
+            f'More than one metric found for path {path} and labels {labels}: '
+            f'{response}',
+        )
+
+        if not metrics_list:
+            return None
+
+        return metrics_list[0]
+
 
 class ClientMonitor(ClientWrapper):
     """
@@ -262,6 +324,27 @@ class ClientMonitor(ClientWrapper):
     @_wrap_client_error
     async def get_metric(self, metric_name):
         return await self._client.get_metric(metric_name)
+
+    @_wrap_client_error
+    async def metrics(
+            self,
+            *,
+            path: str = None,
+            prefix: str = None,
+            labels: typing.Optional[typing.Dict[str, str]] = None,
+    ) -> typing.Dict[str, Metric]:
+        return await self._client.metrics(
+            path=path, prefix=prefix, labels=labels,
+        )
+
+    @_wrap_client_error
+    async def single_metric(
+            self,
+            path: str,
+            *,
+            labels: typing.Optional[typing.Dict[str, str]] = None,
+    ) -> typing.Optional[Metric]:
+        return await self._client.single_metric(path, labels=labels)
 
 
 class AiohttpClient(service_client.AiohttpClient):

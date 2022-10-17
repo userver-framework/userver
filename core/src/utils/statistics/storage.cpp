@@ -53,7 +53,7 @@ formats::json::ValueBuilder Storage::GetAsJson(
 
 void Storage::VisitMetrics(BaseExposeFormatBuilder& out,
                            const StatisticsRequest& request) const {
-  statistics::VisitMetrics(out, GetAsJson(request).ExtractValue());
+  statistics::VisitMetrics(out, GetAsJson(request).ExtractValue(), request);
 }
 
 void Storage::StopRegisteringExtenders() { may_register_extenders_ = false; }
