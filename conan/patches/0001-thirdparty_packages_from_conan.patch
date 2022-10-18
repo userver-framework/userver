@@ -279,7 +279,7 @@ index d2406e52..b40bb233 100644
  
  add_library(${PROJECT_NAME} STATIC ${SOURCES})
  set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
-@@ -48,7 +48,7 @@ endif()
+@@ -52,7 +52,7 @@ endif()
  target_link_libraries(${PROJECT_NAME}
    PUBLIC
      userver-core
