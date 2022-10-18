@@ -12,7 +12,7 @@ namespace engine::impl {
 class TaskContext;
 
 class WaitList;
-using WaitListPtr =      std::unique_ptr<WaitList>;
+using WaitListPtr = std::unique_ptr<WaitList>;
 
 class WaitListLight;
 using FastPimplWaitListLight = utils::FastPimpl<WaitListLight, 16, 16>;
