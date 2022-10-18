@@ -119,25 +119,35 @@ TEST(DumpCommon, ReadStringViewUnsafe) {
   TestWriteReadCycle(TwoStrings{"", "abc"});
 }
 
-namespace formats::json {
+namespace {
 
-void Write(dump::Writer& writer, const formats::json::Value& value) {
-  // formats::json::ToString does not currently produce std::string_view, but
-  // could be modified to do so.
-  writer.Write(formats::json::ToString(value));
+class MyBigInt final {
+ public:
+  explicit MyBigInt(std::string_view str) : data_(str) {}
+
+  // This could be some buffer from an external serialization library.
+  std::string_view AsStringView() const { return data_; }
+
+  bool operator==(const MyBigInt& other) const { return data_ == other.data_; }
+
+ private:
+  std::string data_;
+};
+
+void Write(dump::Writer& writer, const MyBigInt& value) {
+  writer.Write(value.AsStringView());
 }
 
-formats::json::Value Read(dump::Reader& reader,
-                          dump::To<formats::json::Value>) {
-  return formats::json::FromString(dump::ReadStringViewUnsafe(reader));
+MyBigInt Read(dump::Reader& reader, dump::To<MyBigInt>) {
+  return MyBigInt(dump::ReadStringViewUnsafe(reader));
 }
 
-}  // namespace formats::json
+}  // namespace
 
 TEST(DumpCommon, StringView) {
   EXPECT_TRUE(dump::kIsWritable<std::string_view>);
   EXPECT_FALSE(dump::kIsReadable<std::string_view>);
-  TestWriteReadCycle(formats::json::MakeObject("foo", 42, "bar", "baz"));
+  TestWriteReadCycle(MyBigInt("9001"));
 }
 
 TEST(DumpCommon, Enum) {
@@ -193,6 +203,10 @@ TEST(DumpCommon, UUID) {
   for (int i = 0; i < 1000; ++i) {
     TestWriteReadCycle(gen());
   }
+}
+
+TEST(DumpCommon, JsonValue) {
+  TestWriteReadCycle(formats::json::MakeObject("foo", 42, "bar", "baz"));
 }
 
 TEST(DumpCommon, ReadEntire) {
