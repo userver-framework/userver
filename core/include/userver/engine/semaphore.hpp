@@ -106,7 +106,7 @@ class Semaphore final {
   TryLockStatus LockFastPath(Counter count);
   bool LockSlowPath(Deadline, Counter count);
 
-  impl::FastPimplWaitList lock_waiters_;
+  impl::WaitListPtr lock_waiters_;
   std::atomic<Counter> acquired_locks_;
   std::atomic<Counter> capacity_;
 };

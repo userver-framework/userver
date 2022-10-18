@@ -35,7 +35,7 @@ class ConditionVariableAny {
   void NotifyAll();
 
  private:
-  FastPimplWaitList waiters_;
+  WaitListPtr waiters_;
 };
 
 template <typename MutexType>

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <memory>
+
 #include <userver/compiler/select.hpp>
 #include <userver/utils/fast_pimpl.hpp>
 
@@ -10,14 +12,7 @@ namespace engine::impl {
 class TaskContext;
 
 class WaitList;
-constexpr inline std::size_t kWaitListSize = compiler::SelectSize()
-                                                 .ForLibCpp64(88)
-                                                 .ForLibStdCpp64(64)
-                                                 .ForLibCpp32(88)
-                                                 .ForLibStdCpp32(64);
-
-using FastPimplWaitList =
-    utils::FastPimpl<WaitList, kWaitListSize, alignof(void*)>;
+using WaitListPtr =      std::unique_ptr<WaitList>;
 
 class WaitListLight;
 using FastPimplWaitListLight = utils::FastPimpl<WaitListLight, 16, 16>;

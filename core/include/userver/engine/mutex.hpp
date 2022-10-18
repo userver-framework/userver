@@ -63,7 +63,7 @@ class Mutex final {
   bool LockSlowPath(impl::TaskContext&, Deadline);
 
   std::atomic<impl::TaskContext*> owner_;
-  impl::FastPimplWaitList lock_waiters_;
+  impl::WaitListPtr lock_waiters_;
 };
 
 template <typename Rep, typename Period>
