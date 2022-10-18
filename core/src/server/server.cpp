@@ -59,9 +59,7 @@ class ServerImpl final {
   mutable std::shared_timed_mutex stat_mutex_;
   bool is_stopping_{false};
 
-#ifndef NDEBUG
   std::atomic<bool> started_{false};
-#endif
   std::atomic<bool> has_requests_view_watchers_{false};
 };
 
@@ -180,9 +178,7 @@ void ServerImpl::StartPortInfos() {
     LOG_WARNING() << "No 'listener-monitor' in 'server' component";
   }
 
-#ifndef NDEBUG
   started_.store(true);
-#endif
 }
 
 Server::Server(ServerConfig config,
