@@ -15,6 +15,7 @@
 #include <server/server_config.hpp>
 #include <userver/engine/sleep.hpp>
 #include <userver/logging/log.hpp>
+#include <userver/utils/assert.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -58,6 +59,9 @@ class ServerImpl final {
   mutable std::shared_timed_mutex stat_mutex_;
   bool is_stopping_{false};
 
+#ifndef NDEBUG
+  std::atomic<bool> started_{false};
+#endif
   std::atomic<bool> has_requests_view_watchers_{false};
 };
 
@@ -175,6 +179,10 @@ void ServerImpl::StartPortInfos() {
   } else {
     LOG_WARNING() << "No 'listener-monitor' in 'server' component";
   }
+
+#ifndef NDEBUG
+  started_.store(true);
+#endif
 }
 
 Server::Server(ServerConfig config,
@@ -282,6 +290,8 @@ void Server::Start() {
 void Server::Stop() { pimpl->Stop(); }
 
 RequestsView& Server::GetRequestsView() {
+  UASSERT(!pimpl->started_ || pimpl->has_requests_view_watchers_.load());
+
   pimpl->has_requests_view_watchers_.store(true);
   return *pimpl->requests_view_;
 }
