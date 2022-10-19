@@ -179,6 +179,13 @@ components_manager:
 # /// [Sample handler log level component config]
 # /// [Sample handler inspect requests component config]
 # yaml
+    handler-on-log-rotate:
+        path: /service/on-log-rotate/
+        method: POST
+        task_processor: monitor-task-processor
+# /// [Sample handler on log rotate component config]
+# /// [Sample handler inspect requests component config]
+# yaml
     handler-inspect-requests:
         path: /service/inspect-requests
         method: GET

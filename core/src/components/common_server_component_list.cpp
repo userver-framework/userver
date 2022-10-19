@@ -9,6 +9,7 @@
 #include <userver/server/handlers/inspect_requests.hpp>
 #include <userver/server/handlers/jemalloc.hpp>
 #include <userver/server/handlers/log_level.hpp>
+#include <userver/server/handlers/on_log_rotate.hpp>
 #include <userver/server/handlers/server_monitor.hpp>
 #include <userver/server/handlers/tests_control.hpp>
 
@@ -25,6 +26,7 @@ ComponentList CommonServerComponentList() {
       .Append<server::handlers::InspectRequests>()
       .Append<server::handlers::Jemalloc>()
       .Append<server::handlers::LogLevel>()
+      .Append<server::handlers::OnLogRotate>()
       .Append<server::handlers::ServerMonitor>()
       .Append<server::handlers::TestsControl>()
       .Append<congestion_control::Component>()

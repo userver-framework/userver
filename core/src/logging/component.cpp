@@ -264,6 +264,15 @@ void Logging::StopSocketLoggingDebug() {
 }
 
 void Logging::OnLogRotate() {
+  try {
+    TryReopenFiles();
+
+  } catch (const std::exception& e) {
+    LOG_ERROR() << "An error occured while ReopenAll: " << e;
+  }
+}
+
+void Logging::TryReopenFiles() {
   std::vector<engine::TaskWithResult<void>> tasks;
   tasks.reserve(loggers_.size() + 1);
 
@@ -277,14 +286,21 @@ void Logging::OnLogRotate() {
         *fs_task_processor_, ReopenAll, std::ref(item.second->ptr->sinks())));
   }
 
+  std::string result_messages;
+
   for (auto& task : tasks) {
     try {
       task.Get();
     } catch (const std::exception& e) {
-      LOG_ERROR() << "Exception escaped ReopenAll: " << e;
+      result_messages += e.what();
+      result_messages += ";";
     }
   }
   LOG_INFO() << "Log rotated";
+
+  if (!result_messages.empty()) {
+    throw std::runtime_error("ReopenAll errors: " + result_messages);
+  }
 }
 
 void Logging::FlushLogs() {

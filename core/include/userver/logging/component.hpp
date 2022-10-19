@@ -82,6 +82,7 @@ class Logging final : public impl::ComponentBase {
 
   /// Reopens log files after rotation
   void OnLogRotate();
+  void TryReopenFiles();
 
   class TestsuiteCaptureSink;
 
