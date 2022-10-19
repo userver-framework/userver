@@ -16,8 +16,10 @@ namespace server::handlers {
 ///
 /// @brief Handler that returns statistics data.
 ///
-/// The component has no service configuration except the
-/// @ref userver_http_handlers "common handler options".
+/// Additionaly to the
+/// @ref userver_http_handlers "common handler options" the component has
+/// 'common-labels' option that should be a map of label name to label value.
+/// Items of the map are added to each metric.
 ///
 /// ## Static configuration example:
 ///
@@ -55,6 +57,9 @@ class ServerMonitor final : public HttpHandlerBase {
       const std::string& response_data) const override;
 
   utils::statistics::Storage& statistics_storage_;
+
+  using CommonLabels = std::unordered_map<std::string, std::string>;
+  const CommonLabels common_labels_;
 };
 
 }  // namespace server::handlers

@@ -1,6 +1,6 @@
 #include <userver/server/handlers/server_monitor.hpp>
 
-#include <userver/components/component_context.hpp>
+#include <userver/components/component.hpp>
 #include <userver/components/statistics_storage.hpp>
 #include <userver/formats/json/serialize.hpp>
 #include <userver/server/handlers/exceptions.hpp>
@@ -8,6 +8,7 @@
 #include <userver/utils/statistics/json.hpp>
 #include <userver/utils/statistics/prometheus.hpp>
 #include <userver/utils/statistics/storage.hpp>
+#include <userver/yaml_config/merge_schemas.hpp>
 #include <userver/yaml_config/schema.hpp>
 
 #include <utils/statistics/value_builder_helpers.hpp>
@@ -51,13 +52,18 @@ ServerMonitor::ServerMonitor(
     : HttpHandlerBase(config, component_context, /*is_monitor = */ true),
       statistics_storage_(
           component_context.FindComponent<components::StatisticsStorage>()
-              .GetStorage()) {}
+              .GetStorage()),
+      common_labels_{config["common-labels"].As<CommonLabels>({})} {}
 
 std::string ServerMonitor::HandleRequestThrow(const http::HttpRequest& request,
                                               request::RequestContext&) const {
   utils::statistics::StatisticsRequest statistics_request;
   statistics_request.prefix = request.GetArg("prefix");
   statistics_request.path = request.GetArg("path");
+  if (statistics_request.prefix.empty()) {
+    statistics_request.prefix = statistics_request.path;
+  }
+
   const auto& labels_json = request.GetArg("labels");
   if (!labels_json.empty()) {
     auto json = formats::json::FromString(labels_json);
@@ -70,24 +76,20 @@ std::string ServerMonitor::HandleRequestThrow(const http::HttpRequest& request,
   const auto format = ParseFormat(request.GetArg("format"));
   switch (format) {
     case StatsFormat::kGraphite:
-      // TODO: common labels
-      return utils::statistics::ToGraphiteFormat({}, statistics_storage_,
-                                                 statistics_request);
+      return utils::statistics::ToGraphiteFormat(
+          common_labels_, statistics_storage_, statistics_request);
 
     case StatsFormat::kPrometheus:
-      // TODO: common labels
-      return utils::statistics::ToPrometheusFormat({}, statistics_storage_,
-                                                   statistics_request);
+      return utils::statistics::ToPrometheusFormat(
+          common_labels_, statistics_storage_, statistics_request);
 
     case StatsFormat::kPrometheusUntyped:
-      // TODO: common labels
       return utils::statistics::ToPrometheusFormatUntyped(
-          {}, statistics_storage_, statistics_request);
+          common_labels_, statistics_storage_, statistics_request);
 
     case StatsFormat::kJson:
-      // TODO: common labels
-      return utils::statistics::ToJsonFormat({}, statistics_storage_,
-                                             statistics_request);
+      return utils::statistics::ToJsonFormat(
+          common_labels_, statistics_storage_, statistics_request);
 
     case StatsFormat::kInternal:
       const auto json =
@@ -107,9 +109,19 @@ std::string ServerMonitor::GetResponseDataForLogging(const http::HttpRequest&,
 }
 
 yaml_config::Schema ServerMonitor::GetStaticConfigSchema() {
-  auto schema = HttpHandlerBase::GetStaticConfigSchema();
-  schema.UpdateDescription("handler-server-monitor config");
-  return schema;
+  return yaml_config::MergeSchemas<HttpHandlerBase>(R"(
+type: object
+description: handler-server-monitor config
+additionalProperties: false
+properties:
+    common-labels:
+        type: object
+        description: |
+            A map of label name to label value. Items of the map are
+            added to each metric.
+        additionalProperties: true
+        properties: {}
+  )");
 }
 
 }  // namespace server::handlers

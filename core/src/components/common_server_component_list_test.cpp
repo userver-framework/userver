@@ -211,6 +211,9 @@ components_manager:
         path: /*
         method: GET
         task_processor: monitor-task-processor
+        common-labels:
+            application: sample application
+            zone: some
 # /// [Sample handler server monitor component config]
 # /// [Sample handler dynamic debug log component config]
     handler-dynamic-debug-log:
