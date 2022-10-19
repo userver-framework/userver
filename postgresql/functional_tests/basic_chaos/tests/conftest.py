@@ -1,3 +1,6 @@
+import json
+import os
+
 import pytest
 
 from pytest_userver import chaos
@@ -56,3 +59,14 @@ async def _gate_ready(service_client, _gate_started):
     await _gate_started.wait_for_connectons()
     yield _gate_started
     # /// [gate fixture]
+
+
+@pytest.fixture(scope='session')
+def config_service_defaults():
+    with open(
+            os.path.join(
+                os.path.dirname(os.path.dirname(__file__)),
+                'dynamic_config_fallback.json',
+            ),
+    ) as fp:
+        return json.load(fp)

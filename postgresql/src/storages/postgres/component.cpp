@@ -414,14 +414,6 @@ properties:
                       - error
                       - max-delay
                       - random-delay
-    min_pool_size:
-        type: integer
-        description: number of connections created initially
-        defaultDescription: 4
-    max_pool_size:
-        type: integer
-        description: maximum number of created connections
-        defaultDescription: 15
     max_queue_size:
         type: integer
         description: maximum number of clients waiting for a connection

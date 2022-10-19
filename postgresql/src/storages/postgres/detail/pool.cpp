@@ -15,7 +15,6 @@ namespace storages::postgres::detail {
 
 namespace {
 
-constexpr std::size_t kRecentErrorThreshold = 2;
 constexpr std::chrono::seconds kRecentErrorPeriod{15};
 
 // Part of max_pool that can be cancelled at once
@@ -399,11 +398,13 @@ engine::TaskWithResult<bool> ConnectionPool::Connect(
 void ConnectionPool::TryCreateConnectionAsync() {
   SharedSizeGuard sg(size_);
   auto settings = settings_.Read();
+  auto conn_settings = conn_settings_.Read();
+
   if (sg.GetValue() <= settings->max_size) {
     // Checking errors is more expensive than incrementing an atomic, so we
     // check it only if we can start a new connection.
     if (recent_conn_errors_.GetStatsForPeriod(kRecentErrorPeriod, true) <
-        kRecentErrorThreshold) {
+        conn_settings->recent_errors_threshold) {
       // Create a new connection
       Connect(std::move(sg)).Detach();
     } else {

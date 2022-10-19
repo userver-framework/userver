@@ -59,6 +59,10 @@ ConnectionSettings ParseConnectionSettings(const ConfigType& config) {
           config["ignore_unused_query_params"].template As<bool>(false))
           ? ConnectionSettings::kIgnoreUnused
           : ConnectionSettings::kCheckUnused;
+
+  settings.recent_errors_threshold =
+      config["recent-errors-threshold"].template As<size_t>(
+          settings.recent_errors_threshold);
   return settings;
 }
 

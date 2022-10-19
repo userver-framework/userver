@@ -1,26 +1,4 @@
-import asyncio
-
 import pytest
-
-
-# TODO: eliminate copy-paste
-async def _check_that_restores(service_client, gate):
-    try:
-        await gate.wait_for_connectons(timeout=5.0)
-    except asyncio.TimeoutError:
-        assert False, 'Timout while waiting for restore'
-
-    assert gate.connections_count() >= 1
-
-    for _ in range(5):
-        response = await service_client.get('/chaos/postgres?type=fill')
-        if response.status == 200:
-            return
-
-        # await asyncio.sleep(0.75)
-        await asyncio.sleep(3)
-
-    assert False, 'Bad results after connection restore'
 
 
 async def test_transaction_fine(service_client, gate, testpoint):
@@ -50,19 +28,24 @@ async def test_transaction_fine(service_client, gate, testpoint):
     assert hook4.times_called == 1
 
 
-TESTPOINT_NAMES = (
-    'before_trx_begin',
-    'after_trx_begin',
-    'before_trx_commit',
-    'after_trx_commit',
+async def consume_dead_db_connections(service_client):
+    for i in range(5):
+        await service_client.get(
+            '/chaos/postgres', params={'type': 'fill', 'n': str(i)},
+        )
+
+
+TESTPOINT_NAMES = ('before_trx_begin', 'after_trx_begin', 'before_trx_commit')
+
+
+@pytest.mark.config(
+    POSTGRES_CONNECTION_SETTINGS={
+        'key-value-database': {'recent-errors-threshold': 0},
+    },
 )
-
-
-# @pytest.mark.skip(reason='Assertion: Timout while waiting for restore')
-@pytest.mark.xfail()
 @pytest.mark.parametrize('tp_name', TESTPOINT_NAMES)
-@pytest.mark.parametrize('attr', ['sockets_close', 'to_right_noop'])
-async def test_x(service_client, gate, testpoint, tp_name, attr):
+@pytest.mark.parametrize('attr', ['sockets_close'])
+async def test_x(service_client, gate, testpoint, tp_name, attr, taxi_config):
     async def f():
         @testpoint(tp_name)
         async def _hook(data):
@@ -72,12 +55,37 @@ async def test_x(service_client, gate, testpoint, tp_name, attr):
         assert response.status == 500
         assert gate.connections_count() == 0
 
-    await service_client.post('/tests/control', data={'testpoints': [tp_name]})
+    r = await service_client.post('/tests/control', {'testpoints': [tp_name]})
+    assert r.status_code == 200
+
     await f()
-    await _check_that_restores(service_client, gate)
+
+    taxi_config.set_values({'POSTGRES_CONNECTION_SETTINGS': {}})
+    r = await service_client.post('/tests/control', {'testpoints': []})
+    assert r.status_code == 200
+
+    await consume_dead_db_connections(service_client)
+
+    response = await service_client.get('/chaos/postgres?type=fill')
+    assert response.status_code == 200
 
 
-TIMEOUT = 6
+async def test_after_trx_commit(service_client, gate, testpoint, taxi_config):
+    @testpoint('after_trx_commit')
+    async def _hook(data):
+        await gate.sockets_close()
+
+    r = await service_client.post(
+        '/tests/control', {'testpoints': ['after_trx_commit']},
+    )
+    assert r.status_code == 200
+
+    # We've already handled the request, thus status code is 200
+    response = await service_client.get('/chaos/postgres?type=fill')
+    assert response.status_code == 200
+
+
+DELAY_SECS = 4.0
 
 
 @pytest.mark.skip(reason='not ready yet')
@@ -86,12 +94,15 @@ async def test_timeout(service_client, gate, testpoint, tp_name):
     async def f():
         @testpoint(tp_name)
         async def _hook(data):
-            await asyncio.sleep(TIMEOUT)
+            gate.to_client_delay(DELAY_SECS)
 
         response = await service_client.get('/chaos/postgres?type=fill')
         assert response.status == 500
-        assert gate.connections_count() == 0
 
-    await service_client.post('/tests/control', data={'testpoints': [tp_name]})
+    r = await service_client.post('/tests/control', {'testpoints': [tp_name]})
+    assert r.status_code == 200
+
     await f()
-    await _check_that_restores(service_client, gate)
+
+    r = await service_client.post('/tests/control', {'testpoints': []})
+    assert r.status_code == 200
