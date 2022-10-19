@@ -59,6 +59,8 @@ class ValueDict final {
   using const_iterator = typename DictType::const_iterator;
   using iterator = const_iterator;
   using value_type = typename DictType::value_type;
+  using key_type = std::string;
+  using mapped_type = ValueType;
 
   ValueDict() = default;
 
