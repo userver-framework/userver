@@ -147,7 +147,7 @@ class Secdist final {
       EventSource::Function&& func);
 
   class Impl;
-  utils::FastPimpl<Impl, 1032, 16> impl_;
+  utils::FastPimpl<Impl, 1040, 16> impl_;
 };
 
 template <typename Class>
