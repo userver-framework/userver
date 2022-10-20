@@ -1,5 +1,6 @@
 #include <userver/server/handlers/http_handler_base.hpp>
 
+#include <fmt/core.h>
 #include <fmt/format.h>
 #include <boost/algorithm/string/split.hpp>
 
@@ -411,6 +412,24 @@ void HttpHandlerBase::HandleRequest(request::RequestBase& request,
         http_request.GetHeader(USERVER_NAMESPACE::http::headers::kXYaTraceId);
     const auto& parent_span_id =
         http_request.GetHeader(USERVER_NAMESPACE::http::headers::kXYaSpanId);
+
+    const auto& yandex_request_id =
+        http_request.GetHeader(USERVER_NAMESPACE::http::headers::kXRequestId);
+    const auto& yandex_backend_server = http_request.GetHeader(
+        USERVER_NAMESPACE::http::headers::kXBackendServer);
+    const auto& envoy_proxy = http_request.GetHeader(
+        USERVER_NAMESPACE::http::headers::kXTaxiEnvoyProxyDstVhost);
+
+    if (!yandex_request_id.empty() || !yandex_backend_server.empty() ||
+        !envoy_proxy.empty()) {
+      LOG_INFO() << fmt::format(
+          "Yandex tracing headers {}={}, {}={}, {}={}",
+          USERVER_NAMESPACE::http::headers::kXRequestId, yandex_request_id,
+          USERVER_NAMESPACE::http::headers::kXBackendServer,
+          yandex_backend_server,
+          USERVER_NAMESPACE::http::headers::kXTaxiEnvoyProxyDstVhost,
+          envoy_proxy);
+    }
 
     auto span = tracing::Span::MakeSpan(fmt::format("http/{}", HandlerName()),
                                         trace_id, parent_span_id);
