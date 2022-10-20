@@ -46,10 +46,10 @@ class ServerImpl final {
 
   void Stop();
 
-  static void InitPortInfo(PortInfo& info, const ServerConfig& config,
-                    const net::ListenerConfig& listener_config,
-                    const components::ComponentContext& component_context,
-                    bool is_monitor);
+  static void InitPortInfo(
+      PortInfo& info, const ServerConfig& config,
+      const net::ListenerConfig& listener_config,
+      const components::ComponentContext& component_context, bool is_monitor);
 
   void StartPortInfos();
 
@@ -133,8 +133,7 @@ void ServerImpl::Stop() {
 void ServerImpl::InitPortInfo(
     PortInfo& info, const ServerConfig& config,
     const net::ListenerConfig& listener_config,
-    const components::ComponentContext& component_context,
-    bool is_monitor) {
+    const components::ComponentContext& component_context, bool is_monitor) {
   LOG_INFO() << "Creating listener" << (is_monitor ? " (monitor)" : "");
 
   engine::TaskProcessor& task_processor =
@@ -286,7 +285,7 @@ void Server::Start() {
 void Server::Stop() { pimpl->Stop(); }
 
 RequestsView& Server::GetRequestsView() {
-  UASSERT(!pimpl->started_ || pimpl->has_requests_view_watchers_.load());
+  UASSERT(!pimpl->started_.load() || pimpl->has_requests_view_watchers_.load());
 
   pimpl->has_requests_view_watchers_.store(true);
   return *pimpl->requests_view_;
