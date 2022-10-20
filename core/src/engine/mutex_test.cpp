@@ -92,8 +92,8 @@ TYPED_UTEST_P_MT(Mutex, LockPassing, kThreads) {
   const auto test_deadline = engine::Deadline::FromDuration(kTestDuration);
   TypeParam mutex;
 
-  const size_t thread_count =
-      std::is_same_v<TypeParam, engine::SingleWaitingTaskMutex> ? 2 : kThreads;
+  const size_t worker_count =
+      std::is_same_v<TypeParam, engine::SingleWaitingTaskMutex> ? 2 : 4;
 
   const auto work = [&mutex] {
     std::unique_lock lock(mutex, std::defer_lock);
@@ -102,7 +102,7 @@ TYPED_UTEST_P_MT(Mutex, LockPassing, kThreads) {
 
   while (!test_deadline.IsReached()) {
     std::vector<engine::TaskWithResult<void>> tasks;
-    for (size_t i = 0; i < thread_count; ++i) {
+    for (size_t i = 0; i < worker_count; ++i) {
       tasks.push_back(engine::AsyncNoSpan(work));
     }
     for (auto& task : tasks) task.Get();

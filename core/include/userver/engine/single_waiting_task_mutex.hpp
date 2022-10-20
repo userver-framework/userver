@@ -16,13 +16,15 @@ namespace engine {
 
 /// @ingroup userver_concurrency
 ///
-/// @brief lighter version of Mutex with not more than 1 waiting thread.
+/// @brief Lighter version of Mutex with not more than 1 waiting task.
 ///
 /// There are some situations when a resource is accessed
 /// concurrently, but concurrency factor is limited by 2.
 /// For instance: implications of socket r/w duality
 ///
 /// ## Example usage:
+///
+/// The class's API is the same as of engine::Mutex:
 ///
 /// @snippet engine/mutex_test.cpp  Sample engine::Mutex usage
 ///
