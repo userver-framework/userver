@@ -1,27 +1,25 @@
 #pragma once
 
 /// @file userver/rcu/rcu.hpp
-/// @brief Implementation of hazard pointer
+/// @brief @copybrief rcu::Variable
 
 #include <atomic>
 #include <cstdlib>
-#include <list>
-#include <unordered_set>
+#include <memory>
+#include <optional>
+#include <utility>
 
 #include <userver/engine/async.hpp>
 #include <userver/engine/mutex.hpp>
 #include <userver/logging/log.hpp>
+#include <userver/rcu/read_indicator.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/clang_format_workarounds.hpp>
 #include <userver/utils/impl/wait_token_storage.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
-/// @brief Read-Copy-Update
-///
-/// @see Based on ideas from
-/// http://www.drdobbs.com/lock-free-data-structures-with-hazard-po/184401890
-/// with modified API
+/// Data structures with MT-access pattern "very often reads, seldom writes"
 namespace rcu {
 
 template <typename T>
@@ -29,45 +27,13 @@ class Variable;
 
 namespace impl {
 
-// Hazard pointer implementation. Pointers form a linked list. \p ptr points
-// to the data they 'hold', next - to the next element in a list.
-// kUsed is a filler value to show that hazard pointer is not free. Please see
-// comment to it. Please note, pointers do not form a linked list with
-// application-wide list, that is there is no 'static
-// std::atomic<HazardPointerRecord*> global_head' Every rcu::Variable has its
-// own list of hazard pointers. Thus, move-assignment on hazard pointers is
-// difficult to implement.
 template <typename T>
-struct HazardPointerRecord final {
-  // You see, objects are created 'filled', that is for the purposes of hazard
-  // pointer list, they contain value. This eliminates some race conditions,
-  // because these algorithms checks for ptr != nullptr (And kUsed is not
-  // nullptr). Obviously, this value can't be used, when dereferenced it points
-  // somewhere into kernel space and will cause SEGFAULT
-  static inline T* const kUsed = reinterpret_cast<T*>(1);
-
-  explicit HazardPointerRecord(const Variable<T>& owner) : owner(owner) {}
-
-  std::atomic<T*> ptr = kUsed;
-  const Variable<T>& owner;
-  std::atomic<HazardPointerRecord*> next{nullptr};
-
-  // Simple operation that marks this hazard pointer as no longer used.
-  void Release() { ptr = nullptr; }
+struct SnapshotRecord final {
+  std::optional<T> data;
+  SnapshotRecord<T>* next_retired{nullptr};
+  std::atomic<SnapshotRecord<T>*> next_free{nullptr};
+  ReadIndicator indicator;
 };
-
-template <typename T>
-struct CachedData {
-  impl::HazardPointerRecord<T>* hp{nullptr};
-  const Variable<T>* variable{nullptr};
-  // ensures that `variable` points to the instance that filled the cache
-  uint64_t variable_epoch{0};
-};
-
-template <typename T>
-thread_local CachedData<T> cache;
-
-uint64_t GetNextEpoch() noexcept;
 
 }  // namespace impl
 
@@ -79,85 +45,35 @@ uint64_t GetNextEpoch() noexcept;
 template <typename T>
 class USERVER_NODISCARD ReadablePtr final {
  public:
-  explicit ReadablePtr(const Variable<T>& ptr)
-      : hp_record_(&ptr.MakeHazardPointer()) {
-    // This cycle guarantees that at the end of it both t_ptr_ and
-    // hp_record_->ptr will both be set to
-    // 1. something meaningful
-    // 2. and that this meaningful value was not removed between assigning to
-    //    t_ptr_ and storing  it in a hazard pointer
-    do {
-      t_ptr_ = ptr.GetCurrent();
+  explicit ReadablePtr(const Variable<T>& ptr) noexcept {
+    auto* record = ptr.current_.load(std::memory_order_relaxed);
 
-      hp_record_->ptr.store(t_ptr_);
-    } while (t_ptr_ != ptr.GetCurrent());
-  }
+    while (true) {
+      // Lock 'record', which may or may not be 'current_' by the time we got
+      // there.
+      lock_ = record->indicator.Lock();
 
-  ReadablePtr(ReadablePtr<T>&& other) noexcept
-      : t_ptr_(other.t_ptr_), hp_record_(other.hp_record_) {
-    other.t_ptr_ = nullptr;
-  }
+      // Is the record we locked 'current_'? If so, congratulations, we are
+      // holding a lock to 'current_'.
+      auto* new_current = ptr.current_.load(std::memory_order_acquire);
+      if (new_current == record) break;
 
-  ReadablePtr& operator=(ReadablePtr<T>&& other) noexcept {
-    // What do we have here?
-    // 1. 'other' may point to the same variable - or to a different one.
-    // 2. therefore, its hazard pointer may belong to the same list,
-    //    or to a different one.
-
-    // We can't move hazard pointers between different lists - there is simply
-    // no way to do this.
-    // We also can't simply swap two pointers inside hazard pointers and leave
-    // it be, because if 'other' is from different Variable, then our
-    // ScanRetiredList won't find any more pointer to current T* and will
-    // destroy object, while 'other' is still holding a hazard pointer to it.
-    // The thing is, whole ReadablePtr is just a glorified holder for
-    // hazard pointer + t_ptr_ just so that we don't have to load() atomics
-    // every time.
-    // so, lets just take pointer to hazard pointer inside other
-    UASSERT_MSG(this != &other, "Self assignment to RCU variable");
-    if (this == &other) {
-      // it is an error to assign to self. Do nothing in this case
-      return *this;
+      // 'current_' changed, try again
+      record = new_current;
     }
 
-    // Get rid of our current hp_record_
-    if (t_ptr_) {
-      hp_record_->Release();
-    }
-    // After that moment, the content of our hp_record_ can't be used -
-    // no more hp_record_->xyz calls, because it is probably already reused in
-    // some other ReadablePtr. Also, don't call t_ptr_, it is probably already
-    // freed. Just take values from 'other'.
-    hp_record_ = other.hp_record_;
-    t_ptr_ = other.t_ptr_;
-
-    // Now, it won't do us any good if there were two glorified things having
-    // pointer to same hp_record_. Kill the other one.
-    other.t_ptr_ = nullptr;
-    // We don't need to clean other.hp_record_, because other.t_ptr_ acts
-    // like a guard to it. As long as other.t_ptr_ is nullptr, nobody will
-    // use other.hp_record_
-
-    return *this;
+    ptr_ = &*record->data;
   }
 
-  ReadablePtr(const ReadablePtr<T>& other)
-      : ReadablePtr(other.hp_record_->owner) {}
-
-  ReadablePtr& operator=(const ReadablePtr<T>& other) {
-    if (this != &other) *this = ReadablePtr<T>{other};
-    return *this;
-  }
-
-  ~ReadablePtr() {
-    if (!t_ptr_) return;
-    UASSERT(hp_record_ != nullptr);
-    hp_record_->Release();
-  }
+  ReadablePtr(ReadablePtr<T>&& other) noexcept = default;
+  ReadablePtr& operator=(ReadablePtr<T>&& other) noexcept = default;
+  ReadablePtr(const ReadablePtr<T>& other) noexcept = default;
+  ReadablePtr& operator=(const ReadablePtr<T>& other) noexcept = default;
+  ~ReadablePtr() = default;
 
   const T* Get() const& {
-    UASSERT(t_ptr_);
-    return t_ptr_;
+    UASSERT(ptr_);
+    return ptr_;
   }
 
   const T* Get() && { return GetOnRvalue(); }
@@ -175,15 +91,8 @@ class USERVER_NODISCARD ReadablePtr final {
     std::abort();
   }
 
-  // This is a pointer to actual data. If it is null, then we treat it as
-  // an indicator that this ReadablePtr is cleared and won't call
-  // any logic associated with hp_record_
-  T* t_ptr_;
-  // Our hazard pointer. It can be nullptr in some circumstances.
-  // Invariant is this: if t_ptr_ is not nullptr, then hp_record_ is also
-  // not nullptr and points to hazard pointer containing same T*.
-  // Thus, if t_ptr_ is nullptr, then hp_record_ is undefined.
-  impl::HazardPointerRecord<T>* hp_record_;
+  const T* ptr_;
+  ReadIndicatorLock lock_;
 };
 
 /// Smart pointer for rcu::Variable<T> for changing RCU value. It stores a
@@ -201,32 +110,26 @@ class USERVER_NODISCARD WritablePtr final {
  public:
   /// For internal use only. Use `var.StartWrite()` instead
   explicit WritablePtr(Variable<T>& var)
-      : var_(var),
-        lock_(var.mutex_),
-        ptr_(std::make_unique<T>(*var_.GetCurrent())) {
-    LOG_TRACE() << "Start writing ptr=" << ptr_.get();
+      : var_(var), lock_(var.mutex_), record_(var.MakeSnapshot(lock_)) {
+    record_->data.emplace(*var.current_.load()->data);
   }
 
   /// For internal use only. Use `var.Emplace(args...)` instead
   template <typename... Args>
   WritablePtr(Variable<T>& var, std::in_place_t, Args&&... initial_value_args)
-      : var_(var),
-        lock_(var.mutex_),
-        ptr_(std::make_unique<T>(std::forward<Args>(initial_value_args)...)) {
-    LOG_TRACE() << "Start writing ptr=" << ptr_.get()
-                << " with custom initial value";
+      : var_(var), lock_(var.mutex_), record_(var.MakeSnapshot(lock_)) {
+    record_->data.emplace(std::forward<Args>(initial_value_args)...);
   }
 
   WritablePtr(WritablePtr<T>&& other) noexcept
       : var_(other.var_),
         lock_(std::move(other.lock_)),
-        ptr_(std::move(other.ptr_)) {
-    LOG_TRACE() << "Continue writing ptr=" << ptr_.get();
-  }
+        record_(std::exchange(other.ptr_, nullptr)) {}
 
   ~WritablePtr() {
-    if (ptr_) {
-      LOG_TRACE() << "Stop writing ptr=" << ptr_.get();
+    if (record_) {
+      record_->data.reset();
+      var_.AppendToFreeList(record_);
     }
   }
 
@@ -234,17 +137,14 @@ class USERVER_NODISCARD WritablePtr final {
   /// visible to new readers (IOW, Variable::Read() returns ReadablePtr
   /// referencing the stored value, not an old value).
   void Commit() {
-    UASSERT(ptr_ != nullptr);
-    LOG_TRACE() << "Committing ptr=" << ptr_.get();
-
-    std::unique_ptr<T> old_ptr(var_.current_.exchange(ptr_.release()));
-    var_.Retire(std::move(old_ptr), lock_);
+    UASSERT(record_ != nullptr);
+    var_.DoAssign(std::exchange(record_, nullptr), lock_);
     lock_.unlock();
   }
 
   T* Get() & {
-    UASSERT(ptr_);
-    return ptr_.get();
+    UASSERT(record_ != nullptr);
+    return &*record_->data;
   }
 
   T* Get() && { return GetOnRvalue(); }
@@ -264,7 +164,7 @@ class USERVER_NODISCARD WritablePtr final {
 
   Variable<T>& var_;
   std::unique_lock<engine::Mutex> lock_;
-  std::unique_ptr<T> ptr_;
+  impl::SnapshotRecord<T>* record_;
 };
 
 /// @brief Can be passed to `rcu::Variable` as the first argument to customize
@@ -274,10 +174,6 @@ enum class DestructionType { kSync, kAsync };
 /// @ingroup userver_concurrency userver_containers
 ///
 /// @brief Read-Copy-Update variable
-///
-/// @see Based on ideas from
-/// http://www.drdobbs.com/lock-free-data-structures-with-hazard-po/184401890
-/// with modified API.
 ///
 /// A variable with MT-access pattern "very often reads, seldom writes". It is
 /// specially optimized for reads. On read, one obtains a ReaderPtr<T> from it
@@ -307,9 +203,10 @@ class Variable final {
       : destruction_type_((std::is_trivially_destructible_v<T> ||
                            std::is_same_v<T, std::string>)
                               ? DestructionType::kSync
-                              : DestructionType::kAsync),
-        epoch_(impl::GetNextEpoch()),
-        current_(new T(std::forward<Args>(initial_value_args)...)) {}
+                              : DestructionType::kAsync) {
+    current_.load(std::memory_order_relaxed)
+        ->data.emplace(std::forward<Args>(initial_value_args)...);
+  }
 
   /// Create a new `Variable` with an in-place constructed initial value.
   /// @param destruction_type controls whether destruction of old values should
@@ -318,9 +215,10 @@ class Variable final {
   /// initial value
   template <typename... Args>
   Variable(DestructionType destruction_type, Args&&... initial_value_args)
-      : destruction_type_(destruction_type),
-        epoch_(impl::GetNextEpoch()),
-        current_(new T(std::forward<Args>(initial_value_args)...)) {}
+      : destruction_type_(destruction_type) {
+    current_.load(std::memory_order_relaxed)
+        ->data.emplace(std::forward<Args>(initial_value_args)...);
+  }
 
   Variable(const Variable&) = delete;
   Variable(Variable&&) = delete;
@@ -328,25 +226,35 @@ class Variable final {
   Variable& operator=(Variable&&) = delete;
 
   ~Variable() {
-    delete current_.load();
-
-    auto* hp = hp_record_head_.load();
-    while (hp) {
-      auto* next = hp->next.load();
-      UASSERT_MSG(hp->ptr == nullptr,
+    {
+      auto* record = current_.load(std::memory_order_acquire);
+      UASSERT_MSG(record->indicator.IsFree(),
                   "RCU variable is destroyed while being used");
-      delete hp;
-      hp = next;
+      delete record;
     }
 
-    // Make sure all data is deleted after return from dtr
+    for (auto* record = retire_list_head_; record != nullptr;) {
+      auto* next = record->next_retired;
+      UASSERT_MSG(record->indicator.IsFree(),
+                  "RCU variable is destroyed while being used");
+      delete record;
+      record = next;
+    }
+
     if (destruction_type_ == DestructionType::kAsync) {
       wait_token_storage_.WaitForAllTokens();
+    }
+
+    for (auto* record = free_list_head_.load(std::memory_order_acquire);
+         record != nullptr;) {
+      auto* next = record->next_free.load(std::memory_order_acquire);
+      delete record;
+      record = next;
     }
   }
 
   /// Obtain a smart pointer which can be used to read the current value.
-  ReadablePtr<T> Read() const { return ReadablePtr<T>(*this); }
+  ReadablePtr<T> Read() const noexcept { return ReadablePtr<T>(*this); }
 
   /// Obtain a copy of contained value.
   T ReadCopy() const {
@@ -380,144 +288,118 @@ class Variable final {
   void Cleanup() {
     std::unique_lock lock(mutex_, std::try_to_lock);
     if (!lock.owns_lock()) {
-      LOG_TRACE() << "Not cleaning up, someone else is holding the mutex lock";
-      // Someone is already changing the RCU
+      // Someone is already assigning to the RCU. They will call ScanRetireList
+      // in the process.
       return;
     }
-
-    ScanRetiredList(CollectHazardPtrs(lock));
+    ScanRetireList(lock);
   }
 
  private:
-  T* GetCurrent() const { return current_.load(); }
+  void DoAssign(impl::SnapshotRecord<T>* new_snapshot,
+                std::unique_lock<engine::Mutex>& lock) {
+    UASSERT(lock.owns_lock());
+    ScanRetireList(lock);
+    auto* old_snapshot = current_.load(std::memory_order_relaxed);
+    current_.store(new_snapshot, std::memory_order_release);
+    RetireSnapshot(old_snapshot, lock);
+  }
 
-  impl::HazardPointerRecord<T>* MakeHazardPointerCached() const {
-    auto& cache = impl::cache<T>;
-    auto* hp = cache.hp;
-    T* ptr = nullptr;
-    if (hp && cache.variable == this && cache.variable_epoch == epoch_) {
-      if (hp->ptr.load() == nullptr &&
-          hp->ptr.compare_exchange_strong(
-              ptr, impl::HazardPointerRecord<T>::kUsed)) {
-        return hp;
+  [[nodiscard]] impl::SnapshotRecord<T>* MakeSnapshot(
+      std::unique_lock<engine::Mutex>& lock) {
+    UASSERT(lock.owns_lock());
+    auto* record = RemoveFromFreeList(lock);
+    return record ? record : new impl::SnapshotRecord<T>;
+  }
+
+  void ScanRetireList(std::unique_lock<engine::Mutex>& lock) noexcept {
+    UASSERT(lock.owns_lock());
+
+    auto** next = &retire_list_head_;
+
+    while (*next != nullptr) {
+      if ((*next)->indicator.IsFree()) {
+        auto* retired_record = *next;
+        *next = retired_record->next_retired;
+        retired_record->next_retired = nullptr;
+        DeleteSnapshot(retired_record);
+      } else {
+        next = &(*next)->next_retired;
       }
     }
-
-    return nullptr;
   }
 
-  impl::HazardPointerRecord<T>* MakeHazardPointerFast() const {
-    // Look for any hazard pointer with nullptr data ptr.
-    // Mark it with kUsed (to reserve it for ourselves) and return it.
-    auto* hp = hp_record_head_.load();
-    while (hp) {
-      T* t_ptr = nullptr;
-      if (hp->ptr.load() == nullptr &&
-          hp->ptr.compare_exchange_strong(
-              t_ptr, impl::HazardPointerRecord<T>::kUsed)) {
-        return hp;
-      }
+  void RetireSnapshot(impl::SnapshotRecord<T>* record,
+                      std::unique_lock<engine::Mutex>& lock) {
+    UASSERT(lock.owns_lock());
 
-      hp = hp->next;
-    }
-    return nullptr;
-  }
-
-  impl::HazardPointerRecord<T>& MakeHazardPointer() const {
-    auto* hp = MakeHazardPointerCached();
-    if (!hp) {
-      hp = MakeHazardPointerFast();
-      // all buckets are full, create a new one
-      if (!hp) hp = MakeHazardPointerSlow();
-
-      auto& cache = impl::cache<T>;
-      cache.hp = hp;
-      cache.variable = this;
-      cache.variable_epoch = epoch_;
-    }
-    UASSERT(&hp->owner == this);
-    return *hp;
-  }
-
-  impl::HazardPointerRecord<T>* MakeHazardPointerSlow() const {
-    // allocate new pointer, and add it to the list (atomically)
-    auto hp = new impl::HazardPointerRecord<T>(*this);
-    impl::HazardPointerRecord<T>* old_hp = nullptr;
-    do {
-      old_hp = hp_record_head_.load();
-      hp->next = old_hp;
-    } while (!hp_record_head_.compare_exchange_strong(old_hp, hp));
-    return hp;
-  }
-
-  void Retire(std::unique_ptr<T> old_ptr,
-              std::unique_lock<engine::Mutex>& lock) {
-    LOG_TRACE() << "Retiring ptr=" << old_ptr.get();
-    auto hazard_ptrs = CollectHazardPtrs(lock);
-
-    if (hazard_ptrs.count(old_ptr.get()) > 0) {
-      // old_ptr is being used now, we may not delete it, delay deletion
-      LOG_TRACE() << "Not retire, still used ptr=" << old_ptr.get();
-      retire_list_head_.push_back(std::move(old_ptr));
+    if (record->indicator.IsFree()) {
+      DeleteSnapshot(record);
     } else {
-      LOG_TRACE() << "Retire, not used ptr=" << old_ptr.get();
-      DeleteAsync(std::move(old_ptr));
-    }
-
-    ScanRetiredList(hazard_ptrs);
-  }
-
-  // Scan retired list and for every object that has no more hazard_ptrs
-  // pointing at it, destroy it (asynchronously)
-  void ScanRetiredList(const std::unordered_set<T*>& hazard_ptrs) {
-    for (auto rit = retire_list_head_.begin();
-         rit != retire_list_head_.end();) {
-      auto current = rit++;
-      if (hazard_ptrs.count(current->get()) == 0) {
-        // *current is not used by anyone, may delete it
-        DeleteAsync(std::move(*current));
-        retire_list_head_.erase(current);
-      }
+      record->next_retired = retire_list_head_;
+      retire_list_head_ = record;
     }
   }
 
-  // Returns all T*, that have hazard ptr pointing at them. Occasionally nullptr
-  // might be in result as well.
-  std::unordered_set<T*> CollectHazardPtrs(std::unique_lock<engine::Mutex>&) {
-    std::unordered_set<T*> hazard_ptrs;
+  void DeleteSnapshot(impl::SnapshotRecord<T>* record) {
+    UASSERT(record != nullptr);
 
-    // Learn all currently used hazard pointers
-    for (auto* hp = hp_record_head_.load(); hp; hp = hp->next) {
-      hazard_ptrs.insert(hp->ptr.load());
-    }
-    return hazard_ptrs;
-  }
-
-  void DeleteAsync(std::unique_ptr<T> ptr) {
     switch (destruction_type_) {
       case DestructionType::kSync:
-        ptr.reset();
+        record->data.reset();
+        AppendToFreeList(record);
         break;
       case DestructionType::kAsync:
-        engine::CriticalAsyncNoSpan([ptr = std::move(ptr),
-                                     token = wait_token_storage_
-                                                 .GetToken()]() mutable {
-          // Make sure *ptr is deleted before token is destroyed
-          ptr.reset();
+        engine::CriticalAsyncNoSpan([this, record,
+                                     token = wait_token_storage_.GetToken()] {
+          record->data.reset();
+          AppendToFreeList(record);
         }).Detach();
         break;
     }
   }
 
+  void AppendToFreeList(impl::SnapshotRecord<T>* record) {
+    UASSERT(record != nullptr);
+
+    // Treiber stack algorithm is used.
+    auto* old_head = free_list_head_.load(std::memory_order_relaxed);
+    do {
+      record->next_free.store(old_head, std::memory_order_relaxed);
+    } while (!free_list_head_.compare_exchange_weak(old_head, record,
+                                                    std::memory_order_release,
+                                                    std::memory_order_relaxed));
+  }
+
+  [[nodiscard]] impl::SnapshotRecord<T>* RemoveFromFreeList(
+      std::unique_lock<engine::Mutex>& lock) {
+    UASSERT(lock.owns_lock());
+
+    impl::SnapshotRecord<T>* old_head{};
+    impl::SnapshotRecord<T>* next{};
+
+    // Treiber stack algorithm is used.
+    // ABA situation cannot occur, because popping from the stack is
+    // performed under the writer lock (a node can't get popped and pushed
+    // back in parallel with us).
+    do {
+      old_head = free_list_head_.load(std::memory_order_acquire);
+      if (old_head == nullptr) return nullptr;
+      next = old_head->next_free.load(std::memory_order_relaxed);
+    } while (!free_list_head_.compare_exchange_weak(
+        old_head, next, std::memory_order_acquire, std::memory_order_relaxed));
+
+    return old_head;
+  }
+
+ private:
   const DestructionType destruction_type_;
-  const uint64_t epoch_;
+  std::atomic<impl::SnapshotRecord<T>*> current_{new impl::SnapshotRecord<T>};
+  std::atomic<impl::SnapshotRecord<T>*> free_list_head_{nullptr};
 
-  mutable std::atomic<impl::HazardPointerRecord<T>*> hp_record_head_{{nullptr}};
-
-  engine::Mutex mutex_;  // for current_ changes and retire_list_head_ access
-  // may be read without mutex_ locked, but must be changed with held mutex_
-  std::atomic<T*> current_;
-  std::list<std::unique_ptr<T>> retire_list_head_;
+  // covers everything except current_ reads and free_list_head_
+  engine::Mutex mutex_;
+  impl::SnapshotRecord<T>* retire_list_head_{nullptr};
   utils::impl::WaitTokenStorage wait_token_storage_;
 
   friend class ReadablePtr<T>;
