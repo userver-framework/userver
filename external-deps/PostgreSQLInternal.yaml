@@ -18,6 +18,7 @@ includes:
           - libpq-int.h
         paths:
           - ${USERVER_PG_INCLUDE_DIR}/internal
+          - ${USERVER_PG_INCLUDE_DIR}/postgresql/internal
         path-suffixes:
           - postgresql/internal  # libpq-dev
           - pgsql/internal       # postgresql-private-devel
@@ -35,6 +36,7 @@ libraries:
           - /usr/lib/postgresql/13/lib
           - /usr/lib/postgresql/14/lib
           - ${USERVER_PG_PKGLIB_DIR}
+          - ${USERVER_PG_LIBRARY_DIR}
       - names:
           - libpgport.a
         paths:
@@ -42,6 +44,7 @@ libraries:
           - /usr/lib/postgresql/13/lib
           - /usr/lib/postgresql/14/lib
           - ${USERVER_PG_PKGLIB_DIR}
+          - ${USERVER_PG_LIBRARY_DIR}
 
 debian-names:
   - libpq-dev
