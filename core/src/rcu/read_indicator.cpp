@@ -15,10 +15,7 @@ namespace rcu {
 
 namespace {
 
-// TODO: replace with std::hardware_destructive_interference_size
-constexpr std::size_t kDestructiveInterferenceSize = 64;
-
-struct alignas(kDestructiveInterferenceSize) Counter final {
+struct Counter final {
   std::atomic<std::uint64_t> acquired{0};
   std::atomic<std::uint64_t> released{0};
 };
