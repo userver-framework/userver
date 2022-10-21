@@ -151,52 +151,34 @@ void Connection::ListenForRequests(Queue::Producer producer) noexcept {
         },
         stats_->parser_stats, data_accounter_);
 
-    std::vector<char> buf(config_.in_buffer_size);
-    std::size_t last_bytes_read = 0;
-    while (is_accepting_requests_) {
-      auto deadline = engine::Deadline::FromDuration(config_.keepalive_timeout);
+    const auto processing_result = peer_socket_.Drain(
+        config_.in_buffer_size, [this] { return is_accepting_requests_; },
+        [this, &request_parser](const char* data, std::size_t size) {
+          LOG_TRACE() << "Received " << size << " byte(s) from "
+                      << peer_socket_.Getpeername() << " on fd " << Fd();
 
-      bool is_readable = true;
-      // If we didn't fill the buffer in the previous loop iteration we almost
-      // certainly will hit EWOULDBLOCK on the subsequent recv syscall from
-      // peer_socket_.RecvSome, which will fall back to event-loop waiting
-      // for socket to become readable, and then issue another recv syscall,
-      // effectively doing
-      // 1. recv (returns -1)
-      // 2. notify event-loop about read interest
-      // 3. recv (return some data)
+          if (!request_parser.Parse(data, size)) {
+            LOG_DEBUG() << "Malformed request from "
+                        << peer_socket_.Getpeername() << " on fd " << Fd();
+
+            // Stop accepting new requests, send previous answers.
+            is_accepting_requests_ = false;
+          }
+        },
+        config_.keepalive_timeout);
+    if (processing_result ==
+        engine::io::Socket::DrainReturnReason::kClosedOrTimeout) {
+      LOG_TRACE() << "Peer " << peer_socket_.Getpeername() << " on fd " << Fd()
+                  << " closed connection or the connection timed out";
+
+      // RFC7230 does not specify rules for connections half-closed from
+      // client side. However, section 6 tells us that in most cases
+      // connections are closed after sending/receiving the last response. See
+      // also: https://github.com/httpwg/http-core/issues/22
       //
-      // So instead we just do 2. and 3., shaving off a whole recv syscall
-      if (last_bytes_read != buf.size()) {
-        is_readable = peer_socket_.WaitReadable(deadline);
-      }
-
-      last_bytes_read =
-          is_readable ? peer_socket_.RecvSome(buf.data(), buf.size(), deadline)
-                      : 0;
-      if (!last_bytes_read) {
-        LOG_TRACE() << "Peer " << peer_socket_.Getpeername() << " on fd "
-                    << Fd() << " closed connection or the connection timed out";
-
-        // RFC7230 does not specify rules for connections half-closed from
-        // client side. However, section 6 tells us that in most cases
-        // connections are closed after sending/receiving the last response. See
-        // also: https://github.com/httpwg/http-core/issues/22
-        //
-        // It is faster (and probably more efficient) for us to cancel currently
-        // processing and pending requests.
-        return;
-      }
-      LOG_TRACE() << "Received " << last_bytes_read << " byte(s) from "
-                  << peer_socket_.Getpeername() << " on fd " << Fd();
-
-      if (!request_parser.Parse(buf.data(), last_bytes_read)) {
-        LOG_DEBUG() << "Malformed request from " << peer_socket_.Getpeername()
-                    << " on fd " << Fd();
-
-        // Stop accepting new requests, send previous answers.
-        is_accepting_requests_ = false;
-      }
+      // It is faster (and probably more efficient) for us to cancel currently
+      // processing and pending requests.
+      return;
     }
 
     send_stopper.Release();
