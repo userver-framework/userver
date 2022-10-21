@@ -245,16 +245,24 @@ Start with the following command:
 bash
 mkdir build_release
 cd build_release
-cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DUSERVER_FEATURE_CRYPTOPP_BLAKE2=0 \
-      -DUSERVER_FEATURE_REDIS_HI_MALLOC=1 -DUSERVER_CHECK_PACKAGE_VERSIONS=0 \
-      -DUSERVER_FEATURE_CLICKHOUSE=0 -DOPENSSL_ROOT_DIR=$(brew --prefix openssl@1.1) \
+cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+      -DUSERVER_NO_WERROR=1 -DUSERVER_CHECK_PACKAGE_VERSIONS=0 \
+      -DUSERVER_FEATURE_REDIS_HI_MALLOC=1 \
+      -DUSERVER_FEATURE_CRYPTOPP_BLAKE2=0 -DUSERVER_DOWNLOAD_PACKAGE_CRYPTOPP=1 \
+      -DUSERVER_FEATURE_CLICKHOUSE=0 \
+      -DUSERVER_FEATURE_RABBITMQ=0 \
+      -DOPENSSL_ROOT_DIR=$(brew --prefix openssl@1.1) \
       -DUSERVER_PG_INCLUDE_DIR=$(pg_config --includedir) -DUSERVER_PG_LIBRARY_DIR=$(pg_config --libdir) \
       -DUSERVER_PG_PKGLIB_DIR=$(pg_config --pkglibdir) -DUSERVER_PG_SERVER_INCLUDE_DIR=$(pg_config --includedir-server) \
-      -DBENCHMARK_ENABLE_WERROR=0 ..
+      ..
 ```
 
 Follow the cmake hints for the installation of required packets and keep calling cmake with the options.
 
+To run the tests, increase the limits of open files count via:
+```
+ulimit -n 4096
+```
 
 ### Other POSIX based platforms
 
