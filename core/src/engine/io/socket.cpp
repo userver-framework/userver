@@ -7,6 +7,7 @@
 
 #include <cerrno>
 #include <string>
+#include <vector>
 
 #include <userver/engine/io/exception.hpp>
 #include <userver/engine/task/cancel.hpp>
@@ -222,6 +223,55 @@ size_t Socket::RecvSome(void* buf, size_t len, Deadline deadline) {
   return dir.PerformIo(guard, &RecvWrapper, buf, len,
                        impl::TransferMode::kPartial, deadline, "RecvSome from ",
                        peername_);
+}
+
+size_t Socket::RecvOnce(void* buf, size_t len, Deadline deadline) {
+  if (!IsValid()) {
+    throw IoException("Attempt to RecvSome from closed socket");
+  }
+  auto& dir = fd_control_->Read();
+  impl::Direction::SingleUserGuard guard(dir);
+  return dir.PerformIo(guard, &RecvWrapper, buf, len, impl::TransferMode::kOnce,
+                       deadline, "RecvSome from ", peername_);
+}
+
+Socket::DrainReturnReason Socket::Drain(
+    std::size_t buffer_size, DrainLoopPredicate predicate,
+    DrainOnDataCallback callback,
+    std::chrono::system_clock::duration read_timeout) {
+  UINVARIANT(buffer_size != 0, "Empty buffer is invalid");
+
+  std::vector<char> buffer(buffer_size);
+  std::size_t last_bytes_read = 0;
+  while (!predicate || predicate()) {
+    const auto deadline = engine::Deadline::FromDuration(read_timeout);
+
+    bool is_readable = true;
+    // If we didn't fill the buffer in the previous loop iteration we almost
+    // certainly will hit EWOULDBLOCK on the subsequent recv syscall from
+    // RecvOnce, which will fall back to event-loop waiting
+    // for socket to become readable, and then issue another recv syscall,
+    // effectively doing
+    // 1. recv (returns -1)
+    // 2. notify event-loop about read interest
+    // 3. recv (return some data)
+    //
+    // So instead we just do 2. and 3., shaving off a whole recv syscall
+    if (last_bytes_read != buffer_size) {
+      is_readable = WaitReadable(deadline);
+    }
+    last_bytes_read = is_readable
+                          // RecvOnce to avoid excessive tail recv from RecvSome
+                          ? RecvOnce(buffer.data(), buffer_size, deadline)
+                          : 0;
+    if (!last_bytes_read) {
+      return DrainReturnReason::kClosedOrTimeout;
+    }
+
+    callback(buffer.data(), last_bytes_read);
+  }
+
+  return DrainReturnReason::kPredicate;
 }
 
 size_t Socket::RecvAll(void* buf, size_t len, Deadline deadline) {
