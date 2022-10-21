@@ -85,7 +85,7 @@ void Connection::Start() {
         auto consumer = self->request_tasks_->GetConsumer();
         [[maybe_unused]] bool ok =
             self->response_sender_assigned_event_.WaitForEvent();
-        UASSERT(ok);
+        UASSERT(ok || engine::current_task::ShouldCancel());
         self->ProcessResponses(consumer);
 
         socket_listener.SyncCancel();
