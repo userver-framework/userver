@@ -86,4 +86,3 @@ components_manager:
         postgresql-service:
             dbconnection: 'postgresql://testsuite@localhost:5433/testsuite_support_service'
             blocking_task_processor: fs-task-processor
-            blocking_cancel_task_processor: fs-task-processor

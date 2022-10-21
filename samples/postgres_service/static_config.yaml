@@ -9,7 +9,6 @@ components_manager:
 
         key-value-database:
             dbconnection: 'postgresql://testsuite@localhost:15433/postgres'
-            blocking_cancel_task_processor: fs-task-processor
             blocking_task_processor: fs-task-processor
             dns_resolver: async
 

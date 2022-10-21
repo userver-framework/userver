@@ -18,7 +18,7 @@ UTEST_F(Standalone, Smoke) {
   if (dsns.size() != 1) return;
 
   pg::detail::topology::Standalone sa(
-      GetTaskProcessor(), GetTaskProcessor(), dsns, nullptr,
+      GetTaskProcessor(), dsns, nullptr,
       pg::TopologySettings{utest::kMaxTestWaitTime}, pg::ConnectionSettings{},
       GetTestCmdCtls(), testsuite::PostgresControl{},
       error_injection::Settings{});

@@ -26,8 +26,7 @@ class TopologyBase {
   using DsnIndicesByType =
       std::unordered_map<ClusterHostType, DsnIndices, ClusterHostTypeHash>;
 
-  TopologyBase(engine::TaskProcessor& bg_cancel_task_processor,
-               engine::TaskProcessor& bg_work_task_processor, DsnList dsns,
+  TopologyBase(engine::TaskProcessor& bg_task_processor, DsnList dsns,
                clients::dns::Resolver* resolver,
                const TopologySettings& topology_settings,
                const ConnectionSettings& conn_settings,
@@ -55,8 +54,7 @@ class TopologyBase {
   std::unique_ptr<Connection> MakeTopologyConnection(DsnIndex);
 
  private:
-  engine::TaskProcessor& bg_cancel_task_processor_;
-  engine::TaskProcessor& bg_work_task_processor_;
+  engine::TaskProcessor& bg_task_processor_;
   const DsnList dsns_;
   clients::dns::Resolver* resolver_;
   const TopologySettings topology_settings_;

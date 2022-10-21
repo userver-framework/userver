@@ -13,8 +13,7 @@ namespace storages::postgres::detail::topology {
 /// No-op scanner, always reports the single host as an alive master (no RTT)
 class Standalone final : public TopologyBase {
  public:
-  Standalone(engine::TaskProcessor& bg_cancel_task_processor,
-             engine::TaskProcessor& bg_work_task_processor, DsnList dsns,
+  Standalone(engine::TaskProcessor& bg_task_processor, DsnList dsns,
              clients::dns::Resolver* resolver,
              const TopologySettings& topology_settings,
              const ConnectionSettings& conn_settings,

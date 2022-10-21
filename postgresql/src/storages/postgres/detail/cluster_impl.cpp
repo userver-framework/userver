@@ -61,32 +61,28 @@ size_t SelectDsnIndex(const topology::TopologyBase::DsnIndices& indices,
 }  // namespace
 
 ClusterImpl::ClusterImpl(DsnList dsns, clients::dns::Resolver* resolver,
-                         engine::TaskProcessor& bg_cancel_task_processor,
-                         engine::TaskProcessor& bg_work_task_processor,
+                         engine::TaskProcessor& bg_task_processor,
                          const ClusterSettings& cluster_settings,
                          const DefaultCommandControls& default_cmd_ctls,
                          const testsuite::PostgresControl& testsuite_pg_ctl,
                          const error_injection::Settings& ei_settings)
     : default_cmd_ctls_(default_cmd_ctls),
-      bg_cancel_task_processor_(bg_cancel_task_processor),
-      bg_work_task_processor_(bg_work_task_processor),
+      bg_task_processor_(bg_task_processor),
       rr_host_idx_(0) {
   if (dsns.empty()) {
     throw ClusterError("Cannot create a cluster from an empty DSN list");
   } else if (dsns.size() == 1) {
     LOG_INFO() << "Creating a cluster in standalone mode";
     topology_ = std::make_unique<topology::Standalone>(
-        bg_cancel_task_processor_, bg_work_task_processor_, std::move(dsns),
-        resolver, cluster_settings.topology_settings,
-        cluster_settings.conn_settings, default_cmd_ctls_, testsuite_pg_ctl,
-        ei_settings);
+        bg_task_processor, std::move(dsns), resolver,
+        cluster_settings.topology_settings, cluster_settings.conn_settings,
+        default_cmd_ctls_, testsuite_pg_ctl, ei_settings);
   } else {
     LOG_INFO() << "Creating a cluster in hot standby mode";
     topology_ = std::make_unique<topology::HotStandby>(
-        bg_cancel_task_processor_, bg_work_task_processor_, std::move(dsns),
-        resolver, cluster_settings.topology_settings,
-        cluster_settings.conn_settings, default_cmd_ctls_, testsuite_pg_ctl,
-        ei_settings);
+        bg_task_processor, std::move(dsns), resolver,
+        cluster_settings.topology_settings, cluster_settings.conn_settings,
+        default_cmd_ctls_, testsuite_pg_ctl, ei_settings);
   }
 
   UASSERT(topology_);
@@ -97,9 +93,9 @@ ClusterImpl::ClusterImpl(DsnList dsns, clients::dns::Resolver* resolver,
   host_pools_.reserve(dsn_list.size());
   for (const auto& dsn : dsn_list) {
     host_pools_.push_back(ConnectionPool::Create(
-        dsn, resolver, bg_cancel_task_processor_, bg_work_task_processor_,
-        cluster_settings.db_name, cluster_settings.init_mode,
-        cluster_settings.pool_settings, cluster_settings.conn_settings,
+        dsn, resolver, bg_task_processor_, cluster_settings.db_name,
+        cluster_settings.init_mode, cluster_settings.pool_settings,
+        cluster_settings.conn_settings,
         cluster_settings.statement_metrics_settings, default_cmd_ctls_,
         testsuite_pg_ctl, ei_settings));
   }

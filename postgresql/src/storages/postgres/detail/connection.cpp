@@ -18,8 +18,7 @@ Connection::~Connection() = default;
 
 std::unique_ptr<Connection> Connection::Connect(
     const Dsn& dsn, clients::dns::Resolver* resolver,
-    engine::TaskProcessor& bg_cancel_task_processor,
-    engine::TaskProcessor& bg_work_task_processor, uint32_t id,
+    engine::TaskProcessor& bg_task_processor, uint32_t id,
     ConnectionSettings settings, const DefaultCommandControls& default_cmd_ctls,
     const testsuite::PostgresControl& testsuite_pg_ctl,
     const error_injection::Settings& ei_settings, SizeGuard&& size_guard) {
@@ -27,8 +26,8 @@ std::unique_ptr<Connection> Connection::Connect(
 
   const auto deadline = engine::Deadline::FromDuration(kConnectTimeout);
   conn->pimpl_ = std::make_unique<ConnectionImpl>(
-      bg_cancel_task_processor, bg_work_task_processor, id, settings,
-      default_cmd_ctls, testsuite_pg_ctl, ei_settings, std::move(size_guard));
+      bg_task_processor, id, settings, default_cmd_ctls, testsuite_pg_ctl,
+      ei_settings, std::move(size_guard));
   if (resolver) {
     try {
       conn->pimpl_->AsyncConnect(ResolveDsnHostaddrs(dsn, *resolver, deadline),

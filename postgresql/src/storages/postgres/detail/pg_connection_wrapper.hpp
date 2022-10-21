@@ -28,8 +28,7 @@ class PGConnectionWrapper {
   using SizeGuard =
       USERVER_NAMESPACE::utils::SizeGuard<std::shared_ptr<std::atomic<size_t>>>;
 
-  PGConnectionWrapper(engine::TaskProcessor& tp_cancel,
-                      engine::TaskProcessor& tp_connect, uint32_t id,
+  PGConnectionWrapper(engine::TaskProcessor& tp, uint32_t id,
                       SizeGuard&& size_guard);
   ~PGConnectionWrapper();
 
@@ -152,8 +151,8 @@ class PGConnectionWrapper {
 
   void UpdateLastUse();
 
-  engine::TaskProcessor& bg_cancel_task_processor_;
-  engine::TaskProcessor& bg_work_task_processor_;
+  engine::TaskProcessor& bg_task_processor_;
+
   PGconn* conn_{nullptr};
   engine::io::Socket socket_;
   logging::LogExtra log_extra_;

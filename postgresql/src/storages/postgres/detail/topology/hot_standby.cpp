@@ -130,17 +130,16 @@ struct HotStandby::HostState {
   std::vector<std::string> detected_sync_slaves;
 };
 
-HotStandby::HotStandby(engine::TaskProcessor& bg_cancel_task_processor,
-                       engine::TaskProcessor& bg_work_task_processor,
-                       DsnList dsns, clients::dns::Resolver* resolver,
+HotStandby::HotStandby(engine::TaskProcessor& bg_task_processor, DsnList dsns,
+                       clients::dns::Resolver* resolver,
                        const TopologySettings& topology_settings,
                        const ConnectionSettings& conn_settings,
                        const DefaultCommandControls& default_cmd_ctls,
                        const testsuite::PostgresControl& testsuite_pg_ctl,
                        error_injection::Settings ei_settings)
-    : TopologyBase(bg_cancel_task_processor, bg_work_task_processor,
-                   std::move(dsns), resolver, topology_settings, conn_settings,
-                   default_cmd_ctls, testsuite_pg_ctl, std::move(ei_settings)),
+    : TopologyBase(bg_task_processor, std::move(dsns), resolver,
+                   topology_settings, conn_settings, default_cmd_ctls,
+                   testsuite_pg_ctl, std::move(ei_settings)),
       host_states_{GetDsnList().begin(), GetDsnList().end()},
       dsn_stats_(GetDsnList().size()) {
   crypto::impl::Openssl::Init();

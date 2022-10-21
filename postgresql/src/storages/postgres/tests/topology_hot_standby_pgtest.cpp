@@ -17,7 +17,7 @@ UTEST_F(HotStandby, Smoke) {
   if (dsns.empty()) return;
 
   pg::detail::topology::HotStandby qcc(
-      GetTaskProcessor(), GetTaskProcessor(), dsns, nullptr,
+      GetTaskProcessor(), dsns, nullptr,
       pg::TopologySettings{utest::kMaxTestWaitTime}, pg::ConnectionSettings{},
       GetTestCmdCtls(), testsuite::PostgresControl{},
       error_injection::Settings{});
@@ -38,7 +38,7 @@ UTEST_F(HotStandby, ReplicationLag) {
   if (dsns.empty()) return;
 
   pg::detail::topology::HotStandby qcc(
-      GetTaskProcessor(), GetTaskProcessor(), dsns, nullptr,
+      GetTaskProcessor(), dsns, nullptr,
       pg::TopologySettings{std::chrono::seconds{-1}}, pg::ConnectionSettings{},
       GetTestCmdCtls(), testsuite::PostgresControl{},
       error_injection::Settings{});

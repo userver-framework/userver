@@ -38,8 +38,7 @@ class ConnectionPool : public std::enable_shared_from_this<ConnectionPool> {
 
  public:
   ConnectionPool(EmplaceEnabler, Dsn dsn, clients::dns::Resolver* resolver,
-                 engine::TaskProcessor& bg_cancel_task_processor,
-                 engine::TaskProcessor& bg_work_task_processor,
+                 engine::TaskProcessor& bg_task_processor,
                  const std::string& db_name, const PoolSettings& settings,
                  const ConnectionSettings& conn_settings,
                  const StatementMetricsSettings& statement_metrics_settings,
@@ -51,8 +50,7 @@ class ConnectionPool : public std::enable_shared_from_this<ConnectionPool> {
 
   static std::shared_ptr<ConnectionPool> Create(
       Dsn dsn, clients::dns::Resolver* resolver,
-      engine::TaskProcessor& bg_cancel_task_processor,
-      engine::TaskProcessor& bg_work_task_processor, const std::string& db_name,
+      engine::TaskProcessor& bg_task_processor, const std::string& db_name,
       const InitMode& init_mode, const PoolSettings& pool_settings,
       const ConnectionSettings& conn_settings,
       const StatementMetricsSettings& statement_metrics_settings,
@@ -125,8 +123,7 @@ class ConnectionPool : public std::enable_shared_from_this<ConnectionPool> {
   std::string db_name_;
   rcu::Variable<PoolSettings> settings_;
   rcu::Variable<ConnectionSettings> conn_settings_;
-  engine::TaskProcessor& bg_cancel_task_processor_;
-  engine::TaskProcessor& bg_work_task_processor_;
+  engine::TaskProcessor& bg_task_processor_;
   USERVER_NAMESPACE::utils::PeriodicTask ping_task_;
   engine::Mutex wait_mutex_;
   engine::ConditionVariable conn_available_;

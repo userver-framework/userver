@@ -41,8 +41,7 @@ namespace components {
 ///  # yaml
 ///  postgres-taxi:
 ///    dbalias: taxi
-///    blocking_cancel_task_processor: task-processor-name
-///    blocking_connect_task_processor: task-processor-name
+///    blocking_task_processor: task-processor-name
 ///    max_replication_lag: 60s
 ///    min_pool_size: 4
 ///    max_pool_size: 15

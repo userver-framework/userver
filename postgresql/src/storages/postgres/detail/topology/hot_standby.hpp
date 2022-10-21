@@ -16,8 +16,7 @@ namespace storages::postgres::detail::topology {
 /// Default topology scanner, suitable for quorum commit clusters
 class HotStandby final : public TopologyBase {
  public:
-  HotStandby(engine::TaskProcessor& bg_cancel_task_processor,
-             engine::TaskProcessor& bg_work_task_processor, DsnList dsns,
+  HotStandby(engine::TaskProcessor& bg_task_processor, DsnList dsns,
              clients::dns::Resolver* resolver,
              const TopologySettings& topology_settings,
              const ConnectionSettings& conn_settings,

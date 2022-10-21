@@ -85,10 +85,7 @@ class Cluster {
   /// Cluster constructor
   /// @param dsns List of DSNs to connect to
   /// @param resolver asynchronous DNS resolver
-  /// @param bg_cancel_task_processor task processor for blocking cancel
-  /// operations
-  /// @param bg_work_task_processor task processor for blocking connect/etc.
-  /// operations
+  /// @param bg_task_processor task processor for blocking connection operations
   /// @param cluster_settings struct with settings fields:
   /// task_data_keys_settings - settings for per-handler command controls
   /// topology_settings - settings for host discovery
@@ -101,8 +98,7 @@ class Cluster {
   /// available, `PoolError` is thrown for every new connection
   /// request
   Cluster(DsnList dsns, clients::dns::Resolver* resolver,
-          engine::TaskProcessor& bg_cancel_task_processor,
-          engine::TaskProcessor& bg_work_task_processor,
+          engine::TaskProcessor& bg_task_processor,
           const ClusterSettings& cluster_settings,
           DefaultCommandControls&& default_cmd_ctls,
           const testsuite::PostgresControl& testsuite_pg_ctl,

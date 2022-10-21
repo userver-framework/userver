@@ -39,8 +39,7 @@ void PgConnection::RunStandalone(benchmark::State& state,
     auto dsn = GetDsnFromEnv();
     if (!dsn.empty()) {
       conn_ = detail::Connection::Connect(
-          dsn, nullptr, engine::current_task::GetTaskProcessor(),
-          engine::current_task::GetTaskProcessor(), kConnectionId,
+          dsn, nullptr, engine::current_task::GetTaskProcessor(), kConnectionId,
           {ConnectionSettings::kCachePreparedStatements},
           DefaultCommandControls(kBenchCmdCtl, {}, {}), {}, {});
     }

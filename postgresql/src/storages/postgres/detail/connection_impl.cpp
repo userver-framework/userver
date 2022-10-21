@@ -161,15 +161,13 @@ struct ConnectionImpl::ResetTransactionCommandControl {
 };
 
 ConnectionImpl::ConnectionImpl(
-    engine::TaskProcessor& bg_cancel_task_processor,
-    engine::TaskProcessor& bg_work_task_processor, uint32_t id,
+    engine::TaskProcessor& bg_task_processor, uint32_t id,
     ConnectionSettings settings, const DefaultCommandControls& default_cmd_ctls,
     const testsuite::PostgresControl& testsuite_pg_ctl,
     const error_injection::Settings& ei_settings,
     Connection::SizeGuard&& size_guard)
     : uuid_{USERVER_NAMESPACE::utils::generators::GenerateUuid()},
-      conn_wrapper_{bg_cancel_task_processor, bg_work_task_processor, id,
-                    std::move(size_guard)},
+      conn_wrapper_{bg_task_processor, id, std::move(size_guard)},
       prepared_{settings.max_prepared_cache_size},
       settings_{settings},
       default_cmd_ctls_(default_cmd_ctls),

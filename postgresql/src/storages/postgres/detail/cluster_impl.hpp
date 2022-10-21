@@ -26,8 +26,7 @@ namespace storages::postgres::detail {
 class ClusterImpl {
  public:
   ClusterImpl(DsnList dsns, clients::dns::Resolver* resolver,
-              engine::TaskProcessor& bg_cancel_task_processor,
-              engine::TaskProcessor& bg_work_task_processor,
+              engine::TaskProcessor& bg_task_processor,
               const ClusterSettings& cluster_settings,
               const DefaultCommandControls& default_cmd_ctls,
               const testsuite::PostgresControl& testsuite_pg_ctl,
@@ -69,8 +68,7 @@ class ClusterImpl {
 
   DefaultCommandControls default_cmd_ctls_;
   std::unique_ptr<topology::TopologyBase> topology_;
-  engine::TaskProcessor& bg_cancel_task_processor_;
-  engine::TaskProcessor& bg_work_task_processor_;
+  engine::TaskProcessor& bg_task_processor_;
   std::vector<ConnectionPoolPtr> host_pools_;
   std::atomic<uint32_t> rr_host_idx_;
 };

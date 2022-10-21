@@ -28,8 +28,7 @@ namespace storages::postgres::detail {
 
 class ConnectionImpl {
  public:
-  ConnectionImpl(engine::TaskProcessor& bg_cancel_task_processor,
-                 engine::TaskProcessor& bg_work_task_processor, uint32_t id,
+  ConnectionImpl(engine::TaskProcessor& bg_task_processor, uint32_t id,
                  ConnectionSettings settings,
                  const DefaultCommandControls& default_cmd_ctls,
                  const testsuite::PostgresControl& testsuite_pg_ctl,
