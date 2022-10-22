@@ -107,7 +107,7 @@ class USERVER_NODISCARD Socket final : public RwBase {
   /// and then feeds this buffer into `callback'.
   /// @returns `DrainReturnReason::kClosedOrTimeout` in case of read timeout
   /// or socket being closed by remote,
-  /// DrainReturnReason::kPredicate otherwise.
+  /// `DrainReturnReason::kPredicate` otherwise.
   [[nodiscard]] DrainReturnReason Drain(
       std::size_t buffer_size, DrainLoopPredicate predicate,
       DrainOnDataCallback callback,
