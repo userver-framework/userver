@@ -233,7 +233,7 @@ size_t Socket::RecvOnce(void* buf, size_t len, Deadline deadline) {
   impl::Direction::SingleUserGuard guard(dir);
   return dir.PerformIo(guard, &RecvWrapper, buf, len,
                        impl::TransferMode::kOnce,
-                       deadline, "RecvSome from ", peername_);
+                       deadline, "RecvOnce from ", peername_);
 }
 
 size_t Socket::RecvAll(void* buf, size_t len, Deadline deadline) {
