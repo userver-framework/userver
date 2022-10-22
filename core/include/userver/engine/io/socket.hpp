@@ -100,9 +100,9 @@ class USERVER_NODISCARD Socket final : public RwBase {
 
   using DrainLoopPredicate = std::function<bool()>;
   using DrainOnDataCallback = std::function<void(const char*, std::size_t)>;
-  /// @brief Sits in a loop controlled by `predicate` (or endlessly if
-  /// predicate is empty), for every iteration reads data from the socket
-  /// in buffer of at most `buffer_size` size
+  /// @brief Receives data from the socket in a loop until
+  /// `predicate` returns false (or unconditionally if predicate is empty),
+  /// for every iteration reads data in a buffer of at most `buffer_size` size
   /// with `read_timeout` timeout,
   /// and then feeds this buffer into `callback'.
   /// @returns `DrainReturnReason::kClosedOrTimeout` in case of read timeout
