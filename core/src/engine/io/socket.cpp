@@ -227,12 +227,24 @@ size_t Socket::RecvSome(void* buf, size_t len, Deadline deadline) {
 
 size_t Socket::RecvOnce(void* buf, size_t len, Deadline deadline) {
   if (!IsValid()) {
-    throw IoException("Attempt to RecvSome from closed socket");
+    throw IoException("Attempt to RecvOnce from closed socket");
   }
   auto& dir = fd_control_->Read();
   impl::Direction::SingleUserGuard guard(dir);
-  return dir.PerformIo(guard, &RecvWrapper, buf, len, impl::TransferMode::kOnce,
+  return dir.PerformIo(guard, &RecvWrapper, buf, len,
+                       impl::TransferMode::kOnce,
                        deadline, "RecvSome from ", peername_);
+}
+
+size_t Socket::RecvAll(void* buf, size_t len, Deadline deadline) {
+  if (!IsValid()) {
+    throw IoException("Attempt to RecvAll from closed socket");
+  }
+  auto& dir = fd_control_->Read();
+  impl::Direction::SingleUserGuard guard(dir);
+  return dir.PerformIo(guard, &RecvWrapper, buf, len,
+                       impl::TransferMode::kWhole, deadline, "RecvAll from ",
+                       peername_);
 }
 
 Socket::DrainReturnReason Socket::Drain(
@@ -272,17 +284,6 @@ Socket::DrainReturnReason Socket::Drain(
   }
 
   return DrainReturnReason::kPredicate;
-}
-
-size_t Socket::RecvAll(void* buf, size_t len, Deadline deadline) {
-  if (!IsValid()) {
-    throw IoException("Attempt to RecvAll from closed socket");
-  }
-  auto& dir = fd_control_->Read();
-  impl::Direction::SingleUserGuard guard(dir);
-  return dir.PerformIo(guard, &RecvWrapper, buf, len,
-                       impl::TransferMode::kWhole, deadline, "RecvAll from ",
-                       peername_);
 }
 
 size_t Socket::SendAll(std::initializer_list<IoData> list, Deadline deadline) {
