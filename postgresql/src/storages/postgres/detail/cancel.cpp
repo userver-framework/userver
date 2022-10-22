@@ -5,6 +5,7 @@
 
 #include <userver/engine/io/sockaddr.hpp>
 #include <userver/engine/io/socket.hpp>
+#include <userver/storages/postgres/exceptions.hpp>
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define PG_PROTOCOL_MAJOR(v) ((v) >> 16)
@@ -73,8 +74,17 @@ void Cancel(PGcancel* cn, engine::Deadline deadline) {
   cp.cp.cancelAuthCode = htonl(cn->be_key);
 
   auto ret = tmp_sock.SendAll(&cp, sizeof(cp), deadline);
-  if (ret != sizeof(cp)) throw std::runtime_error("SendAll()");
+  if (ret != sizeof(cp)) throw CommandError("SendAll()");
 
+  /*
+   * Comment from libpq's sources, fe-connect.c, inside internal_cancel():
+   *
+   * Wait for the postmaster to close the connection, which indicates that
+   * it's processed the request.  Without this delay, we might issue another
+   * command only to find that our cancel zaps that command instead of the
+   * one we thought we were canceling.  Note we don't actually expect this
+   * read to obtain any data, we are just waiting for EOF to be signaled.
+   */
   std::array<char, 1024> c{};
   [[maybe_unused]] auto ret2 = tmp_sock.RecvAll(c.data(), c.size(), deadline);
 }
