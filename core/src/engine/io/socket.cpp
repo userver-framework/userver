@@ -254,7 +254,7 @@ Socket::DrainReturnReason Socket::Drain(
     // effectively doing
     // 1. recv (returns -1)
     // 2. notify event-loop about read interest
-    // 3. recv (return some data)
+    // 3. recv (returns some data)
     //
     // So instead we just do 2. and 3., shaving off a whole recv syscall
     if (last_bytes_read != buffer_size) {
