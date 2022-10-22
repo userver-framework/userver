@@ -122,14 +122,15 @@ std::string_view GetHexPart(std::string_view encoded) noexcept {
 
 void ToHex(std::string_view input, std::string& out) noexcept {
   out.clear();
-  out.reserve(input.size() * 2);
+  out.resize(input.size() * 2);
   const auto* first = input.data();
   const auto* last = input.data() + input.size();
+  size_t ind = 0;
   while (first != last) {
     const auto value = *first;
     // We don't use ToHexChar because it does range checking
-    out.push_back(detail::kXdigits[(value >> 4) & 0xf]);
-    out.push_back(detail::kXdigits[value & 0xf]);
+    out[ind++] = detail::kXdigits[(value >> 4) & 0xf];
+    out[ind++] = detail::kXdigits[value & 0xf];
     ++first;
   }
 }
