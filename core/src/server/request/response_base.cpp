@@ -57,7 +57,11 @@ void ResponseBase::SetData(std::string data) {
 }
 
 void ResponseBase::SetReady() {
-  ready_time_ = std::chrono::steady_clock::now();
+  SetReady(std::chrono::steady_clock::now());
+}
+
+void ResponseBase::SetReady(std::chrono::steady_clock::time_point now) {
+  ready_time_ = now;
   is_ready_ = true;
 }
 

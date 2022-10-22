@@ -57,6 +57,7 @@ class ResponseBase {
   /// @cond
   // TODO: server internals. remove from public interface
   void SetReady();
+  void SetReady(std::chrono::steady_clock::time_point now);
   virtual void SetSendFailed(
       std::chrono::steady_clock::time_point failure_time);
   bool IsLimitReached() const;

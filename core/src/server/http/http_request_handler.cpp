@@ -176,8 +176,9 @@ engine::TaskWithResult<void> HttpRequestHandler::StartRequestTask(
     request::RequestContext context;
     handler->HandleRequest(*request, context);
 
-    request->SetResponseNotifyTime();
-    request->GetResponse().SetReady();
+    const auto now = std::chrono::steady_clock::now();
+    request->SetResponseNotifyTime(now);
+    request->GetResponse().SetReady(now);
   };
 
   if (!is_monitor_ && throttling_enabled) {

@@ -31,6 +31,7 @@ class RequestBase {
   void SetTaskCreateTime();
   void SetTaskStartTime();
   void SetResponseNotifyTime();
+  void SetResponseNotifyTime(std::chrono::steady_clock::time_point now);
   void SetStartSendResponseTime();
   void SetFinishSendResponseTime();
 
