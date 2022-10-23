@@ -27,6 +27,13 @@ enum class TransferMode {
              ///< transferred
   kOnce,     ///< operation will complete after the first successful transfer
 };
+/// A note about `TransferMode::kPartial`:
+/// OS developers are very smart people and they understand that syscalls
+/// are expensive, so they will try their best to return/send as much data as
+/// possible in one go.
+/// `TransferMode::kPartial` might lead to very noticeable overhead in syscalls
+/// if used carelessly, so you are encouraged to stop for a second and think
+/// whether you really need this mode.
 
 /// Return HandleError in PerformIo
 enum class ErrorMode {

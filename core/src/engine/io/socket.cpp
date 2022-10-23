@@ -221,19 +221,8 @@ size_t Socket::RecvSome(void* buf, size_t len, Deadline deadline) {
   auto& dir = fd_control_->Read();
   impl::Direction::SingleUserGuard guard(dir);
   return dir.PerformIo(guard, &RecvWrapper, buf, len,
-                       impl::TransferMode::kPartial, deadline, "RecvSome from ",
+                       impl::TransferMode::kOnce, deadline, "RecvSome from ",
                        peername_);
-}
-
-size_t Socket::RecvOnce(void* buf, size_t len, Deadline deadline) {
-  if (!IsValid()) {
-    throw IoException("Attempt to RecvOnce from closed socket");
-  }
-  auto& dir = fd_control_->Read();
-  impl::Direction::SingleUserGuard guard(dir);
-  return dir.PerformIo(guard, &RecvWrapper, buf, len,
-                       impl::TransferMode::kOnce,
-                       deadline, "RecvOnce from ", peername_);
 }
 
 size_t Socket::RecvAll(void* buf, size_t len, Deadline deadline) {
@@ -273,8 +262,7 @@ Socket::DrainReturnReason Socket::Drain(
       is_readable = WaitReadable(deadline);
     }
     last_bytes_read = is_readable
-                          // RecvOnce to avoid excessive tail recv from RecvSome
-                          ? RecvOnce(buffer.data(), buffer_size, deadline)
+                          ? RecvSome(buffer.data(), buffer_size, deadline)
                           : 0;
     if (!last_bytes_read) {
       return DrainReturnReason::kClosedOrTimeout;
