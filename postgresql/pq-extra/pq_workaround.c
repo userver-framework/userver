@@ -828,7 +828,11 @@ PGresult* PQXgetResult(PGconn* conn) {
             libpq_gettext(
                 "PGEventProc \"%s\" failed during PGEVT_RESULTCREATE event\n"),
             res->events[i].name);
-#if PG_VERSION_NUM >= 140000
+#if PG_VERSION_NUM >= 150000
+        // We might use `conn->errorReported` instead of a 0
+        // to negate a rare possibility of messages duplication
+        pqSetResultError(res, &conn->errorMessage, 0);
+#elif PG_VERSION_NUM >= 140000
         pqSetResultError(res, &conn->errorMessage);
 #else
         pqSetResultError(res, conn->errorMessage.data);
