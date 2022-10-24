@@ -5,7 +5,6 @@
 
 #include <sys/socket.h>
 
-#include <functional>
 #include <initializer_list>
 
 #include <userver/engine/deadline.hpp>
@@ -46,8 +45,6 @@ class USERVER_NODISCARD Socket final : public RwBase {
     size_t bytes_received{0};
     Sockaddr src_addr;
   };
-
-  enum class DrainReturnReason { kPredicate, kClosedOrTimeout };
 
   /// Constructs an invalid socket.
   Socket() = default;
@@ -91,21 +88,6 @@ class USERVER_NODISCARD Socket final : public RwBase {
   /// @brief Receives exactly len bytes from the socket.
   /// @note Can return less than len if socket is closed by peer.
   [[nodiscard]] size_t RecvAll(void* buf, size_t len, Deadline deadline);
-
-  using DrainLoopPredicate = std::function<bool()>;
-  using DrainOnDataCallback = std::function<void(const char*, std::size_t)>;
-  /// @brief Receives data from the socket in a loop until
-  /// `predicate` returns false (or unconditionally if predicate is empty),
-  /// for every iteration reads data in a buffer of at most `buffer_size` size
-  /// with `read_timeout` timeout,
-  /// and then feeds this buffer into `callback'.
-  /// @returns `DrainReturnReason::kClosedOrTimeout` in case of read timeout
-  /// or socket being closed by remote,
-  /// `DrainReturnReason::kPredicate` otherwise.
-  [[nodiscard]] DrainReturnReason Drain(
-      std::size_t buffer_size, DrainLoopPredicate predicate,
-      DrainOnDataCallback callback,
-      std::chrono::system_clock::duration read_timeout);
 
   /// @brief Sends a buffer vector to the socket.
   /// @note Can return less than len if socket is closed by peer.
