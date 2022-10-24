@@ -5,9 +5,9 @@
 #include <string>
 #include <vector>
 
+// TODO: use fwd declarations
 #include <userver/logging/logger.hpp>
-
-#include "response_base.hpp"
+#include <userver/server/request/response_base.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -31,6 +31,7 @@ class RequestBase {
   void SetTaskCreateTime();
   void SetTaskStartTime();
   void SetResponseNotifyTime();
+  void SetResponseNotifyTime(std::chrono::steady_clock::time_point now);
   void SetStartSendResponseTime();
   void SetFinishSendResponseTime();
 

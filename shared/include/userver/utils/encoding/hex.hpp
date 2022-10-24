@@ -48,7 +48,6 @@ void ToHex(std::string_view input, std::string& out) noexcept;
 /// @param input range of input bytes
 inline std::string ToHex(std::string_view data) noexcept {
   std::string result;
-  result.reserve(LengthInHexForm(data));
   ToHex(data, result);
   return result;
 }
