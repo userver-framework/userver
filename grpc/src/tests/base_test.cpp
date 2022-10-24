@@ -108,6 +108,21 @@ UTEST_F(GrpcClientTest, UnaryRPC) {
   EXPECT_EQ("Hello " + out.name(), in.name());
 }
 
+UTEST_F(GrpcClientTest, AsyncUnaryRPC) {
+  auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
+  sample::ugrpc::GreetingRequest out;
+  sample::ugrpc::GreetingResponse in;
+  out.set_name("userver");
+  auto call_for_move = client.SayHello(out, PrepareClientContext());
+  auto future_for_move = call_for_move.FinishAsync(in);
+  auto call = std::move(call_for_move);      // test move operation
+  auto future = std::move(future_for_move);  // test move operation
+
+  UEXPECT_NO_THROW(future.Get());
+  CheckClientContext(call.GetContext());
+  EXPECT_EQ("Hello " + out.name(), in.name());
+}
+
 UTEST_F(GrpcClientTest, UnaryRPCDefaultContext) {
   auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
   sample::ugrpc::GreetingRequest out;
