@@ -79,8 +79,7 @@ class USERVER_NODISCARD Socket final : public RwBase {
   /// Suspends current task until the socket can accept more data.
   [[nodiscard]] bool WaitWriteable(Deadline) override;
 
-  /// @brief Receives at least one byte from the socket, doesn't read
-  /// from the socket any further after first successful receive.
+  /// @brief Receives at least one byte from the socket.
   /// @returns 0 if connection is closed on one side and no data could be
   /// received any more, received bytes count otherwise.
   [[nodiscard]] size_t RecvSome(void* buf, size_t len, Deadline deadline);
