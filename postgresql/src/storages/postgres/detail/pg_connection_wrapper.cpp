@@ -122,12 +122,27 @@ void PGConnectionWrapper::CheckError(const std::string& cmd,
       "or the server configuration";
 
   if (pg_dispatch_result == 0) {
+    HandleSocketPostClose();
     auto* msg = PQerrorMessage(conn_);
     PGCW_LOG_WARNING() << "libpq " << cmd << " error: " << msg
                        << (std::is_base_of_v<ConnectionError, ExceptionType>
                                ? kCheckConnectionQuota
                                : "");
     throw ExceptionType(cmd + " execution error: " + msg);
+  }
+}
+
+void PGConnectionWrapper::HandleSocketPostClose() {
+  auto fd = PQsocket(conn_);
+  if (fd < 0) {
+    /*
+     * Don't use the result, fd is invalid anyway. As fd is invalid,
+     * we have to guarantee that we are not waiting for it.
+     */
+    auto fd_invalid = std::move(socket_).Release();
+    if (fd_invalid >= 0) {
+      LOG_DEBUG() << "Socket is closed by libpq";
+    }
   }
 }
 
@@ -341,6 +356,7 @@ void PGConnectionWrapper::WaitConnectionFinish(Deadline deadline,
     poll_res = engine::CriticalAsyncNoSpan(bg_task_processor_, [this] {
                  return PQconnectPoll(conn_);
                }).Get();
+    HandleSocketPostClose();
 
     PGCW_LOG_TRACE() << MsgForStatus(PQstatus(conn_));
 
@@ -409,6 +425,7 @@ bool PGConnectionWrapper::WaitSocketWriteable(Deadline deadline) {
 void PGConnectionWrapper::Flush(Deadline deadline) {
 #if LIBPQ_HAS_PIPELINING
   if (PQpipelineStatus(conn_) != PQ_PIPELINE_OFF) {
+    HandleSocketPostClose();
     CheckError<CommandError>("PQpipelineSync", PQpipelineSync(conn_));
     is_syncing_pipeline_ = true;
   }
@@ -431,6 +448,7 @@ void PGConnectionWrapper::Flush(Deadline deadline) {
 
 bool PGConnectionWrapper::TryConsumeInput(Deadline deadline) {
   while (PQXisBusy(conn_)) {
+    HandleSocketPostClose();
     if (!WaitSocketReadable(deadline)) {
       return false;
     }
