@@ -44,7 +44,7 @@ target_compile_options(
   ${PROJECT_NAME} PUBLIC -Wno-ignored-attributes -Wno-pedantic)
 
 
-file(GLOB _PG_CONFIG_HEADERS "${POSTGRESQL_INCLUDE_DIR}/pg_config*.h")
+file(GLOB _PG_CONFIG_HEADERS "${PostgreSQL_INCLUDE_DIR}/pg_config*.h")
 foreach(_PG_CONFIG_HEADER ${_PG_CONFIG_HEADERS})
   if(EXISTS "${_PG_CONFIG_HEADER}")
     file(STRINGS "${_PG_CONFIG_HEADER}" pgsql_version_str
