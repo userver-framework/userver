@@ -2,6 +2,7 @@ project(userver-postgresql CXX)
 
 find_package(Boost REQUIRED regex)
 
+
 option(USERVER_FEATURE_PATCH_LIBPQ "Apply patches to the libpq (add portals support)" ON)
 add_library(userver-libpq INTERFACE)
 if (USERVER_FEATURE_PATCH_LIBPQ)
