@@ -1,7 +1,7 @@
 project(userver-postgresql CXX)
 
 find_package(Boost REQUIRED regex)
-
+find_package(PostgreSQL REQUIRED)
 
 option(USERVER_FEATURE_PATCH_LIBPQ "Apply patches to the libpq (add portals support)" ON)
 add_library(userver-libpq INTERFACE)
@@ -18,44 +18,11 @@ else()
   if (NOT LIBPQ_LIBRARIES)
     message(FATAL_ERROR "Failed to find libpq")
   endif()
-  target_link_libraries(userver-libpq INTERFACE ${LIBPQ_LIBRARIES})
-
-  find_path(LIBPQ_INCLUDE_DIR
-  NAMES libpq-fe.h
-  PATH_SUFFIXES
-    pgsql
-    postgresql
-    include
-    )
-  if (NOT LIBPQ_INCLUDE_DIR)
-    message(FATAL_ERROR "Failed to find libpq (headers)")
-  endif()
+  target_link_libraries(userver-libpq INTERFACE ${LIBPQ_LIBRARIES} PostgreSQL::PostgreSQL)
 endif()
 
-file(GLOB _PG_CONFIG_HEADERS "${LIBPQ_INCLUDE_DIR}/pg_config*.h")
-foreach(_PG_CONFIG_HEADER ${_PG_CONFIG_HEADERS})
-  if(EXISTS "${_PG_CONFIG_HEADER}")
-    file(STRINGS "${_PG_CONFIG_HEADER}" pgsql_version_str
-         REGEX "^#define[\t ]+PG_VERSION_NUM[\t ]+.*")
-    if(pgsql_version_str)
-      string(REGEX REPLACE "^#define[\t ]+PG_VERSION_NUM[\t ]+([0-9]*).*"
-             "\\1" LIBPQ_VERSION_NUM "${pgsql_version_str}")
-      break()
-    endif()
-  endif()
-endforeach()
-message("Found PostgreSQL version (PG_VERSION_NUM): ${LIBPQ_VERSION_NUM}")
-
-if(PG_VERSION_NUM GREATER_EQUAL 140005)
-  find_library(LIBPQ_LIBPGCOMMON NAMES libpgcommon.a)
-  find_library(LIBPQ_LIBPGPORT NAMES libpgport.a)
-  if(NOT LIBPQ_LIBPGCOMMON OR NOT LIBPQ_LIBPGPORT)
-    message(FATAL_ERROR "Not found libpgcommon.a/libpgport.a")
-  endif()
-  list(APPEND LIBPQ_LIBRARIES ${LIBPQ_LIBPGCOMMON})
-  list(APPEND LIBPQ_LIBRARIES ${LIBPQ_LIBPGPORT})
-endif()
-
+message(STATUS "Found PostgreSQL version (PG_VERSION_NUM): ${PostgreSQL_VERSION_STRING}")
+message(STATUS " ${PostgreSQL_FOUND} ${PostgreSQL_LIBRARIES} ${PostgreSQL_INCLUDE_DIRS} ${PostgreSQL_LIBRARY_DIRS} ${PostgreSQL_VERSION_STRING}")
 
 file(GLOB_RECURSE SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp
