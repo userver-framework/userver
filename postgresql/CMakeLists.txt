@@ -18,11 +18,8 @@ else()
   if (NOT LIBPQ_LIBRARIES)
     message(FATAL_ERROR "Failed to find libpq")
   endif()
-  target_link_libraries(userver-libpq INTERFACE ${LIBPQ_LIBRARIES} PostgreSQL::PostgreSQL)
+  target_link_libraries(userver-libpq INTERFACE ${LIBPQ_LIBRARIES})
 endif()
-
-message(STATUS "Found PostgreSQL version (PG_VERSION_NUM): ${PostgreSQL_VERSION_STRING}")
-message(STATUS " ${PostgreSQL_FOUND} ${PostgreSQL_LIBRARIES} ${PostgreSQL_INCLUDE_DIRS} ${PostgreSQL_LIBRARY_DIRS} ${PostgreSQL_VERSION_STRING}")
 
 file(GLOB_RECURSE SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp
@@ -121,3 +118,7 @@ endif()
 # Target with no need to use userver namespace, but includes require userver/
 add_library(yandex-${PROJECT_NAME} INTERFACE)
 target_link_libraries(yandex-${PROJECT_NAME} INTERFACE ${PROJECT_NAME})
+
+message(STATUS "Found PostgreSQL version (PG_VERSION_NUM): ${PostgreSQL_VERSION_STRING}")
+message(STATUS " ${PostgreSQL_FOUND} ${PostgreSQL_LIBRARIES} ${PostgreSQL_INCLUDE_DIRS} ${PostgreSQL_LIBRARY_DIRS} ${PostgreSQL_VERSION_STRING}")
+

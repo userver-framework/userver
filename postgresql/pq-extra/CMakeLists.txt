@@ -31,6 +31,7 @@ target_include_directories(${PROJECT_NAME}
 
 target_link_libraries(${PROJECT_NAME}
   PUBLIC
+    PostgreSQL
     PostgreSQLInternal
   PRIVATE
     ${LDAP_LIBRARY}
