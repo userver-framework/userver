@@ -42,3 +42,18 @@ target_link_libraries(${PROJECT_NAME}
 
 target_compile_options(
   ${PROJECT_NAME} PUBLIC -Wno-ignored-attributes -Wno-pedantic)
+
+
+file(GLOB _PG_CONFIG_HEADERS "${POSTGRESQL_INCLUDE_DIR}/pg_config*.h")
+foreach(_PG_CONFIG_HEADER ${_PG_CONFIG_HEADERS})
+  if(EXISTS "${_PG_CONFIG_HEADER}")
+    file(STRINGS "${_PG_CONFIG_HEADER}" pgsql_version_str
+         REGEX "^#define[\t ]+PG_VERSION_NUM[\t ]+.*")
+    if(pgsql_version_str)
+      string(REGEX REPLACE "^#define[\t ]+PG_VERSION_NUM[\t ]+([0-9]*).*"
+             "\\1" LIBPQ_VERSION_NUM "${pgsql_version_str}")
+      break()
+    endif()
+  endif()
+endforeach()
+message("Found PostgreSQL version (PG_VERSION_NUM): ${LIBPQ_VERSION_NUM}")
