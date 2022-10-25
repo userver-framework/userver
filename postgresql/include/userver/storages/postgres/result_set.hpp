@@ -8,6 +8,7 @@
 #include <memory>
 #include <tuple>
 #include <utility>
+#include <optional>
 
 #include <fmt/format.h>
 
@@ -641,6 +642,17 @@ class ResultSet {
   auto AsSingleRow(RowTag) const;
   template <typename T>
   auto AsSingleRow(FieldTag) const;
+
+  /// @brief Extract first row into user type.
+  /// @returns A single row result set if non empty result was returned, empty std::optional otherwise
+  /// @throws exception when result set size > 1
+  template <typename T>
+  std::optional<T> AsOptional() const;
+  template <typename T>
+  std::optional<T> AsOptional(RowTag) const;
+  template <typename T>
+  std::optional<T> AsOptional(FieldTag) const;
+
   //@}
  private:
   friend class detail::ConnectionImpl;
@@ -885,6 +897,27 @@ auto ResultSet::AsSingleRow(FieldTag) const {
     throw NonSingleRowResultSet{Size()};
   }
   return Front().As<T>(kFieldTag);
+}
+
+template <typename T>
+std::optional<T> AsOptional() const {
+  return AsOptional<T>(kFieldTag);
+}
+
+template <typename T>
+std::optional<T> AsOptional(RowTag) const {
+  if (Size() > 1) {
+    throw NonSingleRowResultSet{Size()};
+  }
+  return !isNull() ? { Front().As<T>(kRowTag) } : std::nullopt;
+}
+
+template <typename T>
+std::optional<T> AsOptional(FieldTag) const {
+  if (Size() > 1) {
+    throw NonSingleRowResultSet{Size()};
+  }
+  return !isNull() ? { Front().As<T>(kFieldTag) } : std::nullopt;
 }
 
 }  // namespace storages::postgres
