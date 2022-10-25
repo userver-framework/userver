@@ -36,13 +36,6 @@ async def test_pg_fine(service_client, gate):
     response = await service_client.get('/chaos/postgres?type=fill')
     assert response.status == 200
 
-    assert gate.connections_count() > 1
-
-    response = await service_client.get('/chaos/postgres?type=fill')
-    assert response.status == 200
-
-    assert gate.connections_count() > 1
-
 
 @pytest.mark.skip(reason='Further tests flap when use the closed connection')
 async def test_pg_overload_no_accepts(service_client, gate):

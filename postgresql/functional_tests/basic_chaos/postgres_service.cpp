@@ -24,6 +24,13 @@ const storages::postgres::Query kInsertValue{
     storages::postgres::Query::Name{"chaos_insert_value"},
 };
 
+constexpr int kPortalChunkSize = 4;
+
+const storages::postgres::Query kPortalQuery{
+    "SELECT generate_series(1, 10)",
+    storages::postgres::Query::Name{"portal_query"},
+};
+
 class PostgresHandler final : public server::handlers::HttpHandlerBase {
  public:
   static constexpr std::string_view kName = "handler-chaos-postgres";
@@ -72,6 +79,28 @@ std::string PostgresHandler::HandleRequestThrow(
     TESTPOINT("before_trx_commit", {});
     transaction.Commit();
     TESTPOINT("after_trx_commit", {});
+    return {};
+  } else if (type == "portal") {
+    storages::postgres::CommandControl cc{std::chrono::seconds(3),
+                                          std::chrono::seconds(3)};
+    auto transaction =
+        pg_cluster_->Begin(storages::postgres::ClusterHostType::kMaster,
+                           storages::postgres::TransactionOptions{}, cc);
+
+    auto portal = transaction.MakePortal(kPortalQuery);
+    TESTPOINT("after_make_portal", {});
+
+    std::vector<int> result;
+    while (portal) {
+      auto res = portal.Fetch(kPortalChunkSize);
+      TESTPOINT("after_fetch", {});
+
+      auto vec = res.AsContainer<std::vector<int>>();
+      result.insert(result.end(), vec.begin(), vec.end());
+    }
+
+    transaction.Commit();
+    return fmt::format("[{}]", fmt::join(result, ", "));
   } else {
     UINVARIANT(false, "Unknown chaos test request type");
   }
