@@ -1,6 +1,5 @@
 #include "thread.hpp"
 
-#include <atomic>
 #include <chrono>
 #include <stdexcept>
 

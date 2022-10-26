@@ -48,7 +48,7 @@ class ThreadCpuStatsStorage final {
   Clock::time_point last_ts_{};
   utils::statistics::impl::ThreadCpuUsage last_usage_{};
 
-  std::atomic<uint8_t> current_usage_pct_{0};
+  std::atomic<std::uint8_t> current_usage_pct_{0};
 
 #ifndef NDEBUG
   std::optional<std::thread::id> caller_id_;
