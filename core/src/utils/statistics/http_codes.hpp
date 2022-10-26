@@ -7,6 +7,7 @@
 #include <unordered_map>
 
 #include <userver/formats/json_fwd.hpp>
+#include <userver/utils/statistics/writer.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -39,6 +40,8 @@ class HttpCodes final {
 
 formats::json::Value Serialize(const HttpCodes::Snapshot& value,
                                formats::serialize::To<formats::json::Value>);
+
+void DumpMetric(Writer writer, const HttpCodes::Snapshot& snapshot);
 
 }  // namespace utils::statistics
 

@@ -52,8 +52,11 @@ formats::json::Value SystemStatisticsCollector::ExtendStatistics(
     stats = *self_locked;
   }
 
-  if (with_nginx_ && (boost::algorithm::starts_with(request.prefix, "nginx") ||
-                      boost::algorithm::starts_with("nginx", request.prefix))) {
+  if (with_nginx_ &&
+      (request.prefix_match_type ==
+           utils::statistics::StatisticsRequest::PrefixMatch::kNoop ||
+       boost::algorithm::starts_with(request.prefix, "nginx") ||
+       boost::algorithm::starts_with("nginx", request.prefix))) {
     auto nginx_stats = stats["nginx"];
     {
       auto nginx_locked = nginx_stats_.Lock();

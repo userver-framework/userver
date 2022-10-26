@@ -10,6 +10,7 @@
 #include <vector>
 
 #include <fmt/format.h>
+#include <boost/container/small_vector.hpp>
 
 #include <userver/formats/common/items.hpp>
 #include <userver/formats/json/string_builder.hpp>
@@ -134,17 +135,12 @@ struct DfsNode {
 
 using DfsStack = std::stack<DfsNode>;
 
-void ProcessInternalNode(DfsStack& dfs_stack, const SensorPath& path,
+void ProcessInternalNode(DfsStack& dfs_stack,
                          const std::string& default_label_name,
                          const std::string& key,
                          const formats::json::Value& value) {
   std::optional<std::string> path_node;
   std::string children_label_name;
-
-  if (path.Get() == "http" && (key == "by-path" || key == "by-handler")) {
-    path_node.emplace();  // skip
-    children_label_name = "http_" + key.substr(3);
-  }
 
   auto label_name = default_label_name;
   auto metadata = value["$meta"];
@@ -174,7 +170,7 @@ void ProcessInternalNode(DfsStack& dfs_stack, const SensorPath& path,
                     std::move(children_label_name));
 }
 
-void ProcessLeaf(BaseExposeFormatBuilder& builder, DfsLabelsBag& labels,
+void ProcessLeaf(BaseFormatBuilder& builder, DfsLabelsBag& labels,
                  SensorPath& path, bool has_children_label,
                  const std::string& key, const formats::json::Value& value,
                  const StatisticsRequest& request) {
@@ -196,10 +192,23 @@ void ProcessLeaf(BaseExposeFormatBuilder& builder, DfsLabelsBag& labels,
     metric_value = value.As<double>();
   }
 
+  // filtration is simplified, the whole internal JSON metrics code is
+  // to be deprecated
   if (metric_value && utils::text::StartsWith(path.Get(), request.prefix)) {
-    if (LeftContainsRight(labels.Labels(), request.labels)) {
-      if (request.path.empty() || path.Get() == request.path) {
-        builder.HandleMetric(path.Get(), labels.Labels(), *metric_value);
+    if (LeftContainsRight(labels.Labels(), request.require_labels)) {
+      if (request.prefix.empty() || path.Get() == request.prefix) {
+        boost::container::small_vector<LabelView, 16> labels_vector;
+        labels_vector.reserve(labels.Labels().size() +
+                              request.add_labels.size());
+        for (const auto& l : request.add_labels) {
+          labels_vector.emplace_back(l.first, l.second);
+        }
+        for (const auto& l : labels.Labels()) {
+          labels_vector.emplace_back(l);
+        }
+
+        builder.HandleMetric(path.Get(), LabelsSpan{labels_vector},
+                             *metric_value);
       }
     }
   }
@@ -215,12 +224,9 @@ Label::Label(std::string name, std::string value)
   UASSERT(!name_.empty());
 }
 
-void VisitMetrics(BaseExposeFormatBuilder& out,
+void VisitMetrics(BaseFormatBuilder& out,
                   const formats::json::Value& statistics_storage_json,
                   const StatisticsRequest& request) {
-  UASSERT(request.path.empty() ||
-          utils::text::StartsWith(request.path, request.prefix));
-
   SensorPath path;
   DfsLabelsBag labels;
   std::stack<DfsNode> dfs_stack;
@@ -249,8 +255,7 @@ void VisitMetrics(BaseExposeFormatBuilder& out,
       if (!key.empty() && key.front() == '$') continue;
 
       if (value.IsObject()) {
-        ProcessInternalNode(dfs_stack, path, state.children_label_name, key,
-                            value);
+        ProcessInternalNode(dfs_stack, state.children_label_name, key, value);
       } else {
         ProcessLeaf(out, labels, path, has_children_label, key, value, request);
       }

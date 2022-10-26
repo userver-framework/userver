@@ -6,6 +6,7 @@
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/server/handlers/fallback_handlers.hpp>
 #include <userver/server/handlers/http_handler_base.hpp>
+#include <userver/utils/statistics/writer.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -35,7 +36,7 @@ class Server final {
   formats::json::Value GetMonitorData(
       const utils::statistics::StatisticsRequest&) const;
 
-  formats::json::Value GetTotalHandlerStatistics() const;
+  void WriteTotalHandlerStatistics(utils::statistics::Writer writer) const;
 
   net::Stats GetServerStats() const;
 

@@ -59,3 +59,31 @@ async def test_engine_metrics(service_client, monitor_client):
             assert metric.labels['http_handler'] == 'handler-ping', (
                 f'Error at {key}',
             )
+
+    metrics_dict = await monitor_client.metrics(
+        prefix='http.handler.too-many-requests-in-flight',
+        labels={'http_path': '/ping'},
+    )
+    assert 'http.handler.too-many-requests-in-flight' in metrics_dict
+    assert len(metrics_dict) == 1
+    assert len(metrics_dict['http.handler.too-many-requests-in-flight']) == 1
+
+    metrics_dict = await monitor_client.metrics(
+        path='http.handler.too-many-requests-in-flight',
+        labels={'http_path': '/ping'},
+    )
+    assert 'http.handler.too-many-requests-in-flight' in metrics_dict
+    assert len(metrics_dict) == 1
+    assert len(metrics_dict['http.handler.too-many-requests-in-flight']) == 1
+
+    metric = await monitor_client.single_metric(
+        'http.handler.timings',
+        labels={'percentile': 'p95', 'http_path': '/ping'},
+    )
+    assert metric
+
+    metric = await monitor_client.single_metric(
+        'http.handler.timings',
+        labels={'http_path': '/ping', 'percentile': 'p99_9'},
+    )
+    assert metric
