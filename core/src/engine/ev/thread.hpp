@@ -10,8 +10,10 @@
 #include <boost/lockfree/queue.hpp>
 #include <boost/smart_ptr/intrusive_ptr.hpp>
 
-#include <engine/ev/async_payload_base.hpp>
 #include <userver/engine/deadline.hpp>
+
+#include <engine/ev/async_payload_base.hpp>
+#include <utils/statistics/thread_statistics.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -52,6 +54,9 @@ class Thread final {
                            Deadline deadline);
 
   bool IsInEvThread() const;
+
+  std::uint8_t GetCurrentLoadPct() const;
+  const std::string& GetName() const;
 
  private:
   Thread(const std::string& thread_name, bool use_ev_default_loop,
@@ -96,6 +101,9 @@ class Thread final {
   ev_async watch_update_{};
   ev_async watch_break_{};
   ev_child watch_child_{};
+
+  std::string name_;
+  utils::statistics::ThreadCpuStatsStorage cpu_stats_storage_;
 
   bool is_running_;
 };

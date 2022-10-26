@@ -11,7 +11,6 @@
 #include <userver/formats/json/serialize.hpp>
 #include <userver/formats/json/value_builder.hpp>
 #include <userver/logging/component.hpp>
-#include <userver/utils/statistics/aggregated_values.hpp>
 #include <userver/utils/statistics/metadata.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -99,20 +98,39 @@ formats::json::Value ManagerControllerComponent::ExtendStatistics(
     const utils::statistics::StatisticsRequest& /*request*/) {
   formats::json::ValueBuilder engine_data(formats::json::Type::kObject);
 
-  formats::json::ValueBuilder json_task_processors(
-      formats::json::Type::kObject);
-  for (const auto& [name, task_processor] :
-       components_manager_.GetTaskProcessorsMap()) {
-    json_task_processors[name] = GetTaskProcessorStats(*task_processor);
-  }
-  utils::statistics::SolomonChildrenAreLabelValues(json_task_processors,
-                                                   "task_processor");
-  utils::statistics::SolomonSkip(json_task_processors);
-  engine_data["task-processors"]["by-name"] = std::move(json_task_processors);
-
-  auto coro_stats =
-      components_manager_.GetTaskProcessorPools()->GetCoroPool().GetStats();
+  // task processors
   {
+    formats::json::ValueBuilder json_task_processors(
+        formats::json::Type::kObject);
+    for (const auto& [name, task_processor] :
+         components_manager_.GetTaskProcessorsMap()) {
+      json_task_processors[name] = GetTaskProcessorStats(*task_processor);
+    }
+    utils::statistics::SolomonChildrenAreLabelValues(json_task_processors,
+                                                     "task_processor");
+    utils::statistics::SolomonSkip(json_task_processors);
+    engine_data["task-processors"]["by-name"] = std::move(json_task_processors);
+  }
+
+  // ev-threads
+  {
+    formats::json::ValueBuilder json_ev_threads{formats::json::Type::kObject};
+
+    const auto& pools_ptr = components_manager_.GetTaskProcessorPools();
+    auto& ev_thread_pool = pools_ptr->EventThreadPool();
+    for (auto* thread : ev_thread_pool.NextThreads(ev_thread_pool.GetSize())) {
+      json_ev_threads[thread->GetName()] = thread->GetCurrentLoadPct();
+    }
+    utils::statistics::SolomonChildrenAreLabelValues(json_ev_threads,
+                                                     "ev_threads");
+    utils::statistics::SolomonSkip(json_ev_threads);
+    engine_data["ev-threads"]["cpu-load-pct"] = std::move(json_ev_threads);
+  }
+
+  // coroutines
+  {
+    auto coro_stats =
+        components_manager_.GetTaskProcessorPools()->GetCoroPool().GetStats();
     formats::json::ValueBuilder json_coro_pool(formats::json::Type::kObject);
 
     formats::json::ValueBuilder json_coro_stats(formats::json::Type::kObject);
@@ -123,6 +141,7 @@ formats::json::Value ManagerControllerComponent::ExtendStatistics(
     engine_data["coro-pool"] = std::move(json_coro_pool);
   }
 
+  // misc
   engine_data["uptime-seconds"] =
       std::chrono::duration_cast<std::chrono::seconds>(
           std::chrono::steady_clock::now() - components_manager_.GetStartTime())

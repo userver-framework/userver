@@ -75,6 +75,12 @@ bool ThreadControl::IsInEvThread() const noexcept {
   return thread_.IsInEvThread();
 }
 
+std::uint8_t ThreadControl::GetCurrentLoadPct() const {
+  return thread_.GetCurrentLoadPct();
+}
+
+const std::string& ThreadControl::GetName() const { return thread_.GetName(); }
+
 }  // namespace engine::ev
 
 USERVER_NAMESPACE_END

@@ -147,6 +147,9 @@ class ThreadControl final {
 
   bool IsInEvThread() const noexcept;
 
+  std::uint8_t GetCurrentLoadPct() const;
+  const std::string& GetName() const;
+
  private:
   Thread& thread_;
 };

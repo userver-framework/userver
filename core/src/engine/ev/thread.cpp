@@ -1,5 +1,6 @@
 #include "thread.hpp"
 
+#include <atomic>
 #include <chrono>
 #include <stdexcept>
 
@@ -9,8 +10,10 @@
 #include <userver/utils/assert.hpp>
 #include <userver/utils/datetime/steady_coarse_clock.hpp>
 #include <userver/utils/thread_name.hpp>
+
 #include <utils/check_syscall.hpp>
 #include <utils/impl/assert_extra.hpp>
+#include <utils/statistics/thread_statistics.hpp>
 
 #include "child_process_map.hpp"
 
@@ -70,6 +73,8 @@ Thread::Thread(const std::string& thread_name, bool use_ev_default_loop,
       func_queue_(kInitFuncQueueCapacity),
       loop_(nullptr),
       lock_(loop_mutex_, std::defer_lock),
+      name_{thread_name},
+      cpu_stats_storage_{std::chrono::seconds{1}, 16},
       is_running_(false) {
   if (use_ev_default_loop_) AcquireEvDefaultLoop(thread_name);
   Start(thread_name);
@@ -127,6 +132,12 @@ void Thread::RegisterInEvLoop(OnAsyncPayload* func, AsyncPayloadPtr&& data) {
 bool Thread::IsInEvThread() const {
   return (std::this_thread::get_id() == thread_.get_id());
 }
+
+std::uint8_t Thread::GetCurrentLoadPct() const {
+  return cpu_stats_storage_.GetCurrentLoadPct();
+}
+
+const std::string& Thread::GetName() const { return name_; }
 
 void Thread::Start(const std::string& name) {
   loop_ = use_ev_default_loop_ ? ev_default_loop(EVFLAG_AUTO)
@@ -187,6 +198,7 @@ void Thread::RunEvLoop() {
     AcquireImpl();
     ev_run(loop_, EVRUN_ONCE);
     UpdateLoopWatcherImpl();
+    cpu_stats_storage_.Collect();
     ReleaseImpl();
   }
 
