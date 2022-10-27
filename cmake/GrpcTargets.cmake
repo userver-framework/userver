@@ -69,6 +69,7 @@ function(generate_grpc_files)
               --cpp_out=${GENERATED_PROTO_DIR}
               --grpc_out=${GENERATED_PROTO_DIR}
               --usrv_out=${GENERATED_PROTO_DIR}
+              -I ${path}
               -I ${root_path}
               --plugin=protoc-gen-grpc=${PROTO_GRPC_CPP_PLUGIN}
               --plugin=protoc-gen-usrv=${PROTO_GRPC_USRV_PLUGIN}
