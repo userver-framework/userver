@@ -95,8 +95,6 @@ class DynamicConfigClientUpdater
   using AdditionalDocsMapKeys =
       std::unordered_set<std::shared_ptr<std::vector<std::string>>>;
 
-  DocsMapKeys GetStoredDocsMapKeys() const;
-
   std::vector<std::string> GetDocsMapKeysToFetch(
       AdditionalDocsMapKeys& additional_docs_map_keys);
 
@@ -119,7 +117,7 @@ class DynamicConfigClientUpdater
   // for atomic updates of cached data
   engine::Mutex update_config_mutex_;
 
-  concurrent::Variable<DocsMapKeys> docs_map_keys_;
+  DocsMapKeys docs_map_keys_;
   concurrent::Variable<AdditionalDocsMapKeys> additional_docs_map_keys_;
 };
 

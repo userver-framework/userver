@@ -63,6 +63,12 @@ formats::json::Value Serialize(const HttpCodes::Snapshot& value,
   return result.ExtractValue();
 }
 
+void DumpMetric(Writer writer, const HttpCodes::Snapshot& snapshot) {
+  for (const auto& [code, count] : snapshot.codes) {
+    writer.ValueWithLabels(count, {"http_code", std::to_string(code)});
+  }
+}
+
 }  // namespace utils::statistics
 
 USERVER_NAMESPACE_END

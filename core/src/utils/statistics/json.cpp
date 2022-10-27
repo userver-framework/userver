@@ -23,14 +23,11 @@ namespace utils::statistics {
 
 namespace {
 
-class JsonFormat final : public utils::statistics::BaseExposeFormatBuilder {
+class JsonFormat final : public utils::statistics::BaseFormatBuilder {
  public:
-  explicit JsonFormat(
-      const std::unordered_map<std::string, std::string>& common_labels)
-      : common_labels_{common_labels} {}
+  explicit JsonFormat() = default;
 
-  void HandleMetric(std::string_view path,
-                    const std::vector<utils::statistics::Label>& labels,
+  void HandleMetric(std::string_view path, utils::statistics::LabelsSpan labels,
                     const MetricValue& value) override {
     formats::json::ValueBuilder node;
     std::visit([&node](const auto& v) { node["value"] = v; }, value);
@@ -42,33 +39,26 @@ class JsonFormat final : public utils::statistics::BaseExposeFormatBuilder {
   std::string GetString() && { return ToString(builder_.ExtractValue()); }
 
  private:
-  formats::json::ValueBuilder BuildLabels(
-      const std::vector<utils::statistics::Label>& labels) {
+  static formats::json::ValueBuilder BuildLabels(
+      utils::statistics::LabelsSpan labels) {
     formats::json::ValueBuilder result{formats::common::Type::kObject};
 
     for (const auto& label : labels) {
-      result[label.Name()] = label.Value();
-    }
-
-    for (const auto& [name, value] : common_labels_) {
-      result[name] = value;
+      result[std::string{label.Name()}] = label.Value();
     }
 
     return result;
   }
 
-  const std::unordered_map<std::string, std::string>& common_labels_;
   formats::json::ValueBuilder builder_{formats::common::Type::kObject};
 };
 
 }  // namespace
 
-std::string ToJsonFormat(
-    const std::unordered_map<std::string, std::string>& common_labels,
-    const utils::statistics::Storage& statistics,
-    const utils::statistics::StatisticsRequest& statistics_request) {
-  JsonFormat builder{common_labels};
-  statistics.VisitMetrics(builder, statistics_request);
+std::string ToJsonFormat(const utils::statistics::Storage& statistics,
+                         const utils::statistics::StatisticsRequest& request) {
+  JsonFormat builder{};
+  statistics.VisitMetrics(builder, request);
   return std::move(builder).GetString();
 }
 

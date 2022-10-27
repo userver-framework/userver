@@ -4,6 +4,9 @@
 /// @brief Internal representation of a deadline time point
 
 #include <chrono>
+#include <type_traits>
+
+#include <userver/utils/assert.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -36,8 +39,41 @@ class Deadline final {
   /// Converts duration to a Deadline
   template <typename Rep, typename Period>
   static Deadline FromDuration(
-      const std::chrono::duration<Rep, Period>& duration) noexcept {
-    return Deadline(TimePoint::clock::now() + duration);
+      const std::chrono::duration<Rep, Period>& incoming_duration) noexcept {
+    using IncomingDuration = std::chrono::duration<Rep, Period>;
+
+    if (incoming_duration.count() < 0) {
+      return Deadline::Passed();
+    }
+
+    const auto now = TimePoint::clock::now();
+    constexpr auto max_now = TimePoint::clock::time_point::max();
+
+    // If:
+    // 1. incoming duration can't be represented in steady duration,
+    // 2. or it can, but adding it to now will overflow
+    // then set deadline to unreachable right away.
+    // To avoid division on hot path, we do this:
+    // 1. Check that resolution of Duration >= that of IncomingDuration.
+    static_assert(std::is_constructible<Duration, IncomingDuration>());
+    // 2. As it it higher, then range is lower (or equal). So casting
+    //    Duration::max to IncomingDuration is safe. Fast constexpr check that
+    //    incoming duration is higher than maximum potential Duration value.
+    if (incoming_duration >
+        std::chrono::duration_cast<IncomingDuration>(Duration::max())) {
+      OnDurationOverflow(
+          std::chrono::duration_cast<std::chrono::duration<double>>(
+              incoming_duration));
+      return Deadline{};
+    }
+
+    /// 3. This heavy check requires runtime division on happy path, so
+    ///    we move it to assert. Check that incoming duration is not higher
+    ///    than what Duration is actually left in our clock.
+    UASSERT(std::chrono::duration_cast<IncomingDuration>(max_now - now) >=
+            incoming_duration);
+
+    return Deadline(now + Duration{incoming_duration});
   }
 
   /// @brief Converts time point to a Deadline
@@ -73,6 +109,9 @@ class Deadline final {
 
  private:
   constexpr explicit Deadline(TimePoint value) noexcept : value_(value) {}
+
+  static void OnDurationOverflow(
+      std::chrono::duration<double> incoming_duration);
 
   static constexpr TimePoint kPassed = TimePoint::min();
 

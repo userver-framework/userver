@@ -9,7 +9,7 @@ USERVER_NAMESPACE_BEGIN
 namespace utils::statistics {
 
 class Storage;
-struct StatisticsRequest;
+class StatisticsRequest;
 
 class USERVER_NODISCARD Entry final {
  public:

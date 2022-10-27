@@ -354,26 +354,33 @@ HttpHandlerBase::HttpHandlerBase(const components::ComponentConfig& config,
     throw std::runtime_error(std::string("can't add handler to server: ") +
                              ex.what());
   }
-  /// TODO: unable to add prefix metadata ATM
 
-  const auto graphite_subpath = std::visit(
-      utils::Overloaded{[](const std::string& path) {
-                          return "by-path." + utils::graphite::EscapeName(path);
+  std::vector<utils::statistics::Label> labels{
+      {"http_handler", config.Name()},
+  };
+
+  auto prefix = std::visit(
+      utils::Overloaded{[&](const std::string& path) {
+                          labels.emplace_back(
+                              "http_path", utils::graphite::EscapeName(path));
+                          return std::string{"http"};
                         },
                         [](FallbackHandler fallback) {
-                          return "by-fallback." + ToString(fallback);
+                          return "http.by-fallback." + ToString(fallback);
                         }},
       GetConfig().path);
-  const auto graphite_path =
-      fmt::format("http.{}.by-handler.{}", graphite_subpath, config.Name());
 
   auto& statistics_storage =
       context.FindComponent<components::StatisticsStorage>().GetStorage();
-  statistics_holder_ = statistics_storage.RegisterExtender(
-      graphite_path,
-      [this](const utils::statistics::StatisticsRequest& request) {
-        return ExtendStatistics(request);
-      });
+  statistics_holder_ = statistics_storage.RegisterWriter(
+      std::move(prefix),
+      [this](utils::statistics::Writer result) {
+        FormatStatistics(result["handler"], *handler_statistics_);
+        if constexpr (kIncludeServerHttpMetrics) {
+          FormatStatistics(result["request"], *request_statistics_);
+        }
+      },
+      std::move(labels));
 
   set_response_server_hostname_ =
       GetConfig().set_response_server_hostname.value_or(
@@ -718,34 +725,16 @@ std::string HttpHandlerBase::GetResponseDataForLoggingChecked(
 }
 
 template <typename HttpStatistics>
-formats::json::ValueBuilder HttpHandlerBase::FormatStatistics(
-    const HttpStatistics& stats) {
-  formats::json::ValueBuilder result;
-  result["all-methods"] = stats.GetTotal();
-  utils::statistics::SolomonSkip(result["all-methods"]);
+void HttpHandlerBase::FormatStatistics(utils::statistics::Writer result,
+                                       const HttpStatistics& stats) {
+  result = stats.GetTotal();
 
   if (IsMethodStatisticIncluded()) {
-    formats::json::ValueBuilder by_method;
     for (auto method : GetAllowedMethods()) {
-      by_method[ToString(method)] = stats.GetByMethod(method);
+      result.ValueWithLabels(stats.GetByMethod(method),
+                             {"http_method", ToString(method)});
     }
-    utils::statistics::SolomonChildrenAreLabelValues(by_method, "http_method");
-    utils::statistics::SolomonSkip(by_method);
-    result["by-method"] = std::move(by_method);
   }
-  return result;
-}
-
-formats::json::ValueBuilder HttpHandlerBase::ExtendStatistics(
-    const utils::statistics::StatisticsRequest& /*request*/) {
-  formats::json::ValueBuilder result;
-  result["handler"] = FormatStatistics(*handler_statistics_);
-
-  if constexpr (kIncludeServerHttpMetrics) {
-    result["request"] = FormatStatistics(*request_statistics_);
-  }
-
-  return result;
 }
 
 void HttpHandlerBase::SetResponseAcceptEncoding(

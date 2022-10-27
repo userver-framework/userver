@@ -219,7 +219,8 @@ formats::json::Value Server::GetMonitorData(
   return json_data.ExtractValue();
 }
 
-formats::json::Value Server::GetTotalHandlerStatistics() const {
+void Server::WriteTotalHandlerStatistics(
+    utils::statistics::Writer writer) const {
   const auto& handlers =
       pimpl->main_port_info_.request_handler_->GetHandlerInfoIndex()
           .GetHandlers();
@@ -229,7 +230,8 @@ formats::json::Value Server::GetTotalHandlerStatistics() const {
     const auto& statistics = handler_ptr->GetHandlerStatistics().GetTotal();
     total.Add(handlers::HttpHandlerStatisticsSnapshot{statistics});
   }
-  return formats::json::ValueBuilder{total}.ExtractValue();
+
+  writer = total;
 }
 
 net::Stats Server::GetServerStats() const { return pimpl->GetServerStats(); }

@@ -21,25 +21,11 @@ namespace {
 enum class Typed { kYes, kNo };
 
 template <Typed IsTyped>
-class FormatBuilder final : public utils::statistics::BaseExposeFormatBuilder {
+class FormatBuilder final : public utils::statistics::BaseFormatBuilder {
  public:
-  explicit FormatBuilder(
-      const std::unordered_map<std::string, std::string>& common_labels) {
-    fmt::memory_buffer buf;
-    bool comma = false;
-    for (const auto& [key, value] : common_labels) {
-      fmt::format_to(std::back_inserter(buf), FMT_COMPILE("{}{}=\""),
-                     comma ? ',' : '{', key);
-      std::replace_copy(value.cbegin(), value.cend(), std::back_inserter(buf),
-                        '"', '\'');
-      buf.push_back('"');
-      comma = true;
-    }
-    common_labels_ = fmt::to_string(buf);
-  }
+  explicit FormatBuilder() = default;
 
-  void HandleMetric(std::string_view path,
-                    const std::vector<utils::statistics::Label>& labels,
+  void HandleMetric(std::string_view path, utils::statistics::LabelsSpan labels,
                     const MetricValue& value) override {
     DumpMetricName(std::string{path});
     DumpLabels(labels);
@@ -69,14 +55,9 @@ class FormatBuilder final : public utils::statistics::BaseExposeFormatBuilder {
     buf_.append(prometheus_name);
   }
 
-  void DumpLabels(const std::vector<utils::statistics::Label>& labels) {
+  void DumpLabels(utils::statistics::LabelsSpan labels) {
+    buf_.push_back('{');
     bool sep = false;
-    if (!common_labels_.empty()) {
-      buf_.append(common_labels_);
-      sep = true;
-    } else {
-      buf_.push_back('{');
-    }
     for (const auto& label : labels) {
       if (sep) {
         buf_.push_back(',');
@@ -92,7 +73,6 @@ class FormatBuilder final : public utils::statistics::BaseExposeFormatBuilder {
     buf_.push_back('}');
   }
 
-  std::string common_labels_;
   fmt::memory_buffer buf_;
   std::unordered_map<std::string, std::string> metrics_;
 };
@@ -132,20 +112,18 @@ std::string ToPrometheusLabel(std::string_view name) {
 }  // namespace impl
 
 std::string ToPrometheusFormat(
-    const std::unordered_map<std::string, std::string>& common_labels,
     const utils::statistics::Storage& statistics,
-    const utils::statistics::StatisticsRequest& statistics_request) {
-  impl::FormatBuilder<impl::Typed::kYes> builder{common_labels};
-  statistics.VisitMetrics(builder, statistics_request);
+    const utils::statistics::StatisticsRequest& request) {
+  impl::FormatBuilder<impl::Typed::kYes> builder{};
+  statistics.VisitMetrics(builder, request);
   return builder.Release();
 }
 
 std::string ToPrometheusFormatUntyped(
-    const std::unordered_map<std::string, std::string>& common_labels,
     const utils::statistics::Storage& statistics,
-    const utils::statistics::StatisticsRequest& statistics_request) {
-  impl::FormatBuilder<impl::Typed::kNo> builder{common_labels};
-  statistics.VisitMetrics(builder, statistics_request);
+    const utils::statistics::StatisticsRequest& request) {
+  impl::FormatBuilder<impl::Typed::kNo> builder{};
+  statistics.VisitMetrics(builder, request);
   return builder.Release();
 }
 
