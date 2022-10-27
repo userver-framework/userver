@@ -74,6 +74,15 @@ function(generate_grpc_files)
               --cpp_out=${GENERATED_PROTO_DIR}
               --grpc_out=${GENERATED_PROTO_DIR}
               --usrv_out=${GENERATED_PROTO_DIR}
+<<<<<<< HEAD
+=======
+              --python_out=${GENERATED_PROTO_DIR}
+              --grpc_python_out=${GENERATED_PROTO_DIR}
+              ${pyi_out_param}
+              -I ${path}
+              -I ${root_path}
+              -I ${USERVER_PROTOBUF_IMPORT_DIR}
+>>>>>>> fix compilation
               --plugin=protoc-gen-grpc=${PROTO_GRPC_CPP_PLUGIN}
               --plugin=protoc-gen-usrv=${PROTO_GRPC_USRV_PLUGIN}
               ${real_proto_file}
