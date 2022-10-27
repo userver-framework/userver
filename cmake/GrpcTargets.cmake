@@ -108,8 +108,7 @@ function(generate_grpc_files)
               --python_out=${GENERATED_PROTO_DIR}
               --grpc_python_out=${GENERATED_PROTO_DIR}
               ${pyi_out_param}
-              -I ${path}
-              -I ${real_root_path}
+              -I ${root_path}
               -I ${USERVER_PROTOBUF_IMPORT_DIR}
 >>>>>>> fix compilation
               --plugin=protoc-gen-grpc=${PROTO_GRPC_CPP_PLUGIN}
@@ -123,7 +122,7 @@ function(generate_grpc_files)
       message(SEND_ERROR "Error while generating gRPC sources for ${path_base}.proto")
 =======
               --plugin=protoc-gen-grpc_python=${PROTO_GRPC_PYTHON_PLUGIN}
-              ${real_proto_file}
+              ${proto_file}
         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
         RESULT_VARIABLE execute_process_result
       )
