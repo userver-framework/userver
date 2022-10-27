@@ -465,6 +465,11 @@ void TaskContext::Wakeup(WakeupSource source, TaskContext::NoEpoch) {
   }
 }
 
+TaskContext::WakeupSource TaskContext::DebugGetWakeupSource() const {
+  UASSERT(IsCurrent());
+  return wakeup_source_;
+}
+
 class TaskContext::LocalStorageGuard {
  public:
   explicit LocalStorageGuard(TaskContext& context) : context_(context) {

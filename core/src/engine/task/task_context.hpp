@@ -155,6 +155,9 @@ class TaskContext final : public boost::intrusive_ref_counter<TaskContext>,
   void Wakeup(WakeupSource, SleepState::Epoch epoch);
   void Wakeup(WakeupSource, NoEpoch);
 
+  // Must be called from this
+  WakeupSource DebugGetWakeupSource() const;
+
   static void CoroFunc(TaskPipe& task_pipe);
 
   // C++ ABI support, not to be used by anyone

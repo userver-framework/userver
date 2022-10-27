@@ -159,14 +159,7 @@ engine::impl::TaskContext::WakeupSource Direction::DoWait(Deadline deadline) {
 
   impl::DirectionWaitStrategy wait_manager(deadline, *waiters_, watcher_,
                                            current);
-  auto ret = current.Sleep(wait_manager);
-
-  /*
-   * Manually call Stop() here to be sure that after DoWait() no waiter_'s
-   * callback (IoWatcherCb) is running.
-   */
-  watcher_.Stop();
-  return ret;
+  return current.Sleep(wait_manager);
 }
 
 void Direction::Reset(int fd) {
@@ -202,12 +195,14 @@ void Direction::IoWatcherCb(struct ev_loop*, ev_io* watcher, int) noexcept {
   UASSERT((watcher->events & ~(EV_READ | EV_WRITE)) == 0);
 
   auto* self = static_cast<Direction*>(watcher->data);
-
-  /* Cleanup watcher_ first, then awake the coroutine.
-   * Otherwise the coroutine may close watcher_'s fd before watcher_ is stopped.
-   */
-  self->watcher_.Stop();
   self->WakeupWaiters();
+
+  // Watcher::Stop() from ev loop should execute synchronously w/o waiting.
+  //
+  // Should be the last call, because after it the destructor of watcher_ is
+  // allowed to return from Stop() without waiting (because of the
+  // `!pending_async_ops_ && !is_running_`).
+  self->watcher_.Stop();
 }
 
 FdControl::FdControl()
