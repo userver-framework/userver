@@ -18,7 +18,7 @@ struct MetricTypeThatMustBeSkipped {
   const char* context;
 };
 void DumpMetric(Writer, MetricTypeThatMustBeSkipped metric) {
-  ASSERT_FALSE(true) << "Metric dumping was called " << metric.context;
+  ADD_FAILURE() << "Metric dumping was called " << metric.context;
 }
 
 void DoTestBasic(Storage& storage) {

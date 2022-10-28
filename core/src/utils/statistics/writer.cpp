@@ -1,6 +1,7 @@
 #include <userver/utils/statistics/writer.hpp>
 
-#include <boost/container/small_vector.hpp>
+#include <algorithm>
+
 #include <boost/numeric/conversion/cast.hpp>
 
 #include <userver/utils/assert.hpp>
@@ -25,35 +26,44 @@ bool LeftContainsRight(LabelsSpan left, const ContainerRight& right) {
   return true;
 }
 
-bool IsExactMatchWouldFail(std::string_view current_path,
-                           std::string_view required) {
+bool CanSubPathSucceedExactMatch(std::string_view current_path,
+                                 std::string_view required,
+                                 std::size_t initial_path_size) {
   UASSERT(!required.empty());
   if (current_path.size() > required.size()) {
-    return true;
+    return false;
   }
+  UASSERT(initial_path_size <= required.size());
 
   if (current_path.size() == required.size()) {
-    return current_path != required;
+    return current_path.substr(initial_path_size) ==
+           required.substr(initial_path_size);
   }
 
   UASSERT(current_path.size() < required.size());
-  if (required[current_path.size()] != Writer::kDelimiter) {
+  return required[current_path.size()] == Writer::kDelimiter &&
+         utils::text::StartsWith(required.substr(initial_path_size),
+                                 current_path.substr(initial_path_size));
+}
+
+bool CanSubPathSucceedStartsWith(std::string_view current_path,
+                                 std::string_view required,
+                                 std::size_t initial_path_size) {
+  UASSERT(!required.empty());
+  if (initial_path_size >= required.size()) {
+    // Already checked in a parent Writer.
     return true;
   }
 
-  return !utils::text::StartsWith(required, current_path);
-}
-
-bool IsStartsWithMatchWouldFail(std::string_view current_path,
-                                std::string_view required) {
-  UASSERT(!required.empty());
   if (current_path.size() >= required.size()) {
-    return !utils::text::StartsWith(current_path, required);
+    return utils::text::StartsWith(current_path.substr(initial_path_size),
+                                   required.substr(initial_path_size));
   }
 
   UASSERT(current_path.size() < required.size());
-  return required[current_path.size()] != Writer::kDelimiter ||
-         !utils::text::StartsWith(required, current_path);
+  return required[current_path.size()] == Writer::kDelimiter &&
+         utils::text::StartsWith(required.substr(initial_path_size),
+                                 current_path.substr(initial_path_size));
 }
 
 void CheckAndWrite(impl::WriterState& state,
@@ -137,18 +147,16 @@ Writer::Writer(impl::WriterState* state, std::string_view path,
       break;
 
     case StatisticsRequest::PrefixMatch::kExact:
-      UASSERT(!state_->request.prefix.empty());
-      if (IsExactMatchWouldFail(state_->path, state_->request.prefix)) {
+      if (!CanSubPathSucceedExactMatch(state_->path, state_->request.prefix,
+                                       initial_path_size_)) {
         ResetState();
       }
       break;
 
     case StatisticsRequest::PrefixMatch::kStartsWith:
-      UASSERT(!state_->request.prefix.empty());
-      if (initial_path_size_ < state_->request.prefix.size()) {
-        if (IsStartsWithMatchWouldFail(state_->path, state_->request.prefix)) {
-          ResetState();
-        }
+      if (!CanSubPathSucceedStartsWith(state_->path, state_->request.prefix,
+                                       initial_path_size_)) {
+        ResetState();
       }
       break;
   }
