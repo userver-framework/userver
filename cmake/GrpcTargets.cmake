@@ -63,6 +63,7 @@ function(generate_grpc_files)
       set(path_base "${name_base}")
     endif()
 
+<<<<<<< HEAD
     # resolve root_path, proto_file to real path's - protoc check that root_path is prefix of proto_file (this can be non true if project inside folder sym linked to other dir)
     get_filename_component(real_root_path ${root_path} REALPATH)
     get_filename_component(real_proto_file ${proto_file} REALPATH)
@@ -71,6 +72,16 @@ function(generate_grpc_files)
       COMMAND mkdir -p proto
       COMMAND ${PROTOBUF_PROTOC}
               -I ${real_root_path} ${include_options}
+=======
+    set(did_generate_proto_sources FALSE)
+    if("${newest_proto_dependency}" IS_NEWER_THAN "${GENERATED_PROTO_DIR}/${path_base}.pb.cc")
+      # resolve root_path, proto_file to real path's - protoc check that root_path is prefix of proto_file (this can be non true if project inside folder sym linked to other dir)
+      get_filename_component(real_root_path ${root_path} REALPATH)
+      get_filename_component(real_proto_file ${proto_file} REALPATH)
+      execute_process(
+        COMMAND mkdir -p proto
+        COMMAND ${PROTOBUF_PROTOC} ${include_options}
+>>>>>>> Fix for building inside folder sym linked to other
               --cpp_out=${GENERATED_PROTO_DIR}
               --grpc_out=${GENERATED_PROTO_DIR}
               --usrv_out=${GENERATED_PROTO_DIR}
@@ -80,17 +91,31 @@ function(generate_grpc_files)
               --grpc_python_out=${GENERATED_PROTO_DIR}
               ${pyi_out_param}
               -I ${path}
-              -I ${root_path}
+              -I ${real_root_path}
               -I ${USERVER_PROTOBUF_IMPORT_DIR}
 >>>>>>> fix compilation
               --plugin=protoc-gen-grpc=${PROTO_GRPC_CPP_PLUGIN}
               --plugin=protoc-gen-usrv=${PROTO_GRPC_USRV_PLUGIN}
+<<<<<<< HEAD
               ${real_proto_file}
       WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
       RESULT_VARIABLE execute_process_result
     )
     if(execute_process_result)
       message(SEND_ERROR "Error while generating gRPC sources for ${path_base}.proto")
+=======
+              --plugin=protoc-gen-grpc_python=${PROTO_GRPC_PYTHON_PLUGIN}
+              ${real_proto_file}
+        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+        RESULT_VARIABLE execute_process_result
+      )
+      if(execute_process_result)
+        message(SEND_ERROR "Error while generating gRPC sources for ${path_base}.proto")
+      else()
+        file(TOUCH ${CMAKE_CURRENT_BINARY_DIR}/proto/${rel_path}/__init__.py)
+        set(did_generate_proto_sources TRUE)
+      endif()
+>>>>>>> Fix for building inside folder sym linked to other
     else()
       message(STATUS "Generated gRPC sources for ${path_base}.proto")
     endif()
