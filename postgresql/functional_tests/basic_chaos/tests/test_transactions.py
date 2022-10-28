@@ -44,12 +44,13 @@ TESTPOINT_NAMES = ('before_trx_begin', 'after_trx_begin', 'before_trx_commit')
     },
 )
 @pytest.mark.parametrize('tp_name', TESTPOINT_NAMES)
-@pytest.mark.parametrize('attr', ['sockets_close'])
-async def test_x(service_client, gate, testpoint, tp_name, attr, taxi_config):
+async def test_sockets_close(
+        service_client, gate, testpoint, tp_name, taxi_config,
+):
     async def f():
         @testpoint(tp_name)
         async def _hook(data):
-            await getattr(gate, attr)()
+            await gate.sockets_close()
 
         response = await service_client.get('/chaos/postgres?type=fill')
         assert response.status == 500
@@ -88,7 +89,6 @@ async def test_after_trx_commit(service_client, gate, testpoint, taxi_config):
 DELAY_SECS = 4.0
 
 
-@pytest.mark.skip(reason='not ready yet')
 @pytest.mark.parametrize('tp_name', TESTPOINT_NAMES)
 async def test_timeout(service_client, gate, testpoint, tp_name):
     async def f():
@@ -106,3 +106,10 @@ async def test_timeout(service_client, gate, testpoint, tp_name):
 
     r = await service_client.post('/tests/control', {'testpoints': []})
     assert r.status_code == 200
+
+    gate.to_client_delay(0)
+
+    await consume_dead_db_connections(service_client)
+
+    response = await service_client.get('/chaos/postgres?type=fill')
+    assert response.status == 200
