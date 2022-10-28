@@ -38,12 +38,14 @@ TEST(DeadlineDeathTest, Overflow) {
   // UASSERT will cause test to die.
   const auto duration_to_overflow_time_point =
       engine::Deadline::Duration::max();
-  ASSERT_DEATH(
-      {
-        engine::Deadline::FromDuration(duration_to_overflow_time_point)
-            .IsReachable();
-      },
-      "");
+  if constexpr (utils::impl::kEnableAssert) {
+    ASSERT_DEATH(
+        { engine::Deadline::FromDuration(duration_to_overflow_time_point); },
+        "");
+  } else {
+    EXPECT_TRUE(engine::Deadline::FromDuration(duration_to_overflow_time_point)
+                    .IsReachable());
+  }
 }
 
 USERVER_NAMESPACE_END
