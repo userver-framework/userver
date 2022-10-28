@@ -48,14 +48,16 @@ StatisticsRequest StatisticsRequest::MakeWithPrefix(
     const std::string& prefix, AddLabels add_labels,
     std::vector<Label> require_labels) {
   RemoveAddedLabels(require_labels, add_labels);
-  return {prefix, PrefixMatch::kStartsWith, std::move(require_labels),
-          std::move(add_labels)};
+  return {prefix,
+          prefix.empty() ? PrefixMatch::kNoop : PrefixMatch::kStartsWith,
+          std::move(require_labels), std::move(add_labels)};
 }
 
 StatisticsRequest StatisticsRequest::MakeWithPath(
     const std::string& path, AddLabels add_labels,
     std::vector<Label> require_labels) {
   RemoveAddedLabels(require_labels, add_labels);
+  UASSERT(!path.empty());
   return {path, PrefixMatch::kExact, std::move(require_labels),
           std::move(add_labels)};
 }
