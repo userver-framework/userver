@@ -910,7 +910,7 @@ std::optional<T> ResultSet::AsOptionalSingleRow(RowTag) const {
   if (Size() > 1) {
     throw NonSingleRowResultSet{Size()};
   }
-  return !isNull() ? { Front().As<T>(kRowTag) } : std::nullopt;
+  return !IsEmpty() ? Front().As<T>(kRowTag) : std::nullopt;
 }
 
 template <typename T>
@@ -918,7 +918,7 @@ std::optional<T> ResultSet::AsOptionalSingleRow(FieldTag) const {
   if (Size() > 1) {
     throw NonSingleRowResultSet{Size()};
   }
-  return !isNull() ? { Front().As<T>(kFieldTag) } : std::nullopt;
+  return !IsEmpty() ? Front().As<T>(kFieldTag) : std::nullopt;
 }
 
 }  // namespace storages::postgres
