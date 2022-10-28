@@ -18,8 +18,8 @@ libjemalloc-dev
 libmongoc-dev
 libbson-dev
 libldap2-dev
-libpq5=14.5-0ubuntu0.22.04.1
-libpq-dev=14.5-0ubuntu0.22.04.1
+libpq5
+libpq-dev
 postgresql-server-dev-14
 libkrb5-dev
 libhiredis-dev
