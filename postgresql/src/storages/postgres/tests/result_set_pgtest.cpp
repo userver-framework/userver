@@ -117,4 +117,28 @@ UTEST_P(PostgreConnection, ResultTraverseBackward) {
   EXPECT_EQ(5, num);
 }
 
+UTEST_P(PostgreConnection, ResultAsOptionalSingleRow) {
+  CheckConnection(GetConn());
+
+  pg::ResultSet res{nullptr};
+  UEXPECT_NO_THROW(res = GetConn()->Execute("select * from "
+                                            "(values (4, 3)) as data"));
+  ASSERT_EQ(1, res.Size());
+
+  UEXPECT_NO_THROW(res.AsOptionalSingleRow<int>());
+
+}
+
+UTEST_P(PostgreConnection, ResultAsOptionalSingleRowThrows) {
+  CheckConnection(GetConn());
+
+  pg::ResultSet res{nullptr};
+  UEXPECT_NO_THROW(res = GetConn()->Execute("select * from "
+                                            "(values (4, 3), (2, 1)) as data"));
+  ASSERT_EQ(2, res.Size());
+
+  UEXPECT_THROW(res.AsOptionalSingleRow<int>(), pg::NonSingleRowResultSet);
+}
+
+
 USERVER_NAMESPACE_END
