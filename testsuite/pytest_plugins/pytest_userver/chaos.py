@@ -337,7 +337,7 @@ class TcpGate:
     def start_accepting(self) -> None:
         """ Start accepting incommong connections from client """
         assert self._accept_sock
-        if self._accept_task:
+        if self._accept_task and not self._accept_task.done():
             return
 
         self._accept_task = asyncio.create_task(self._do_accept())

@@ -10,7 +10,7 @@ UTEST(StatisticsStorage, DotsInPathSegments) {
       {"foo.bar", "baz", "", "a.b.c"},
       [](const auto& /*prefix*/) { return formats::json::ValueBuilder{42}; });
 
-  const auto json = statistics_storage.GetAsJson({""}).ExtractValue();
+  const auto json = statistics_storage.GetAsJson({}).ExtractValue();
   EXPECT_EQ(json["foo.bar"]["baz"][""]["a.b.c"].As<int>(), 42);
 }
 

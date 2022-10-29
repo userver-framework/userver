@@ -11,7 +11,8 @@ namespace utils::statistics {
 
 class Storage;
 class Entry;
-struct StatisticsRequest;
+class StatisticsRequest;
+class Writer;
 
 class MetricsStorage;
 using MetricsStoragePtr = std::shared_ptr<MetricsStorage>;

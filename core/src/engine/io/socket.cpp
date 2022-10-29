@@ -7,6 +7,7 @@
 
 #include <cerrno>
 #include <string>
+#include <vector>
 
 #include <userver/engine/io/exception.hpp>
 #include <userver/engine/task/cancel.hpp>
@@ -219,9 +220,8 @@ size_t Socket::RecvSome(void* buf, size_t len, Deadline deadline) {
   }
   auto& dir = fd_control_->Read();
   impl::Direction::SingleUserGuard guard(dir);
-  return dir.PerformIo(guard, &RecvWrapper, buf, len,
-                       impl::TransferMode::kPartial, deadline, "RecvSome from ",
-                       peername_);
+  return dir.PerformIo(guard, &RecvWrapper, buf, len, impl::TransferMode::kOnce,
+                       deadline, "RecvSome from ", peername_);
 }
 
 size_t Socket::RecvAll(void* buf, size_t len, Deadline deadline) {

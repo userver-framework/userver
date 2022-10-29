@@ -9,6 +9,7 @@
 #include <logging/logger_with_info.hpp>
 #include <logging/reopening_file_sink.hpp>
 #include <logging/spdlog_helpers.hpp>
+#include <logging/unix_socket_sink.hpp>
 
 #include <spdlog/formatter.h>
 #include <spdlog/sinks/null_sink.h>

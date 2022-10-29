@@ -345,7 +345,7 @@ UTEST_P(PostgreConnection, StatementTimout) {
   UEXPECT_THROW(GetConn()->Execute("select pg_sleep(1)"),
                 pg::ConnectionTimeoutError);
   EXPECT_EQ(pg::ConnectionState::kTranActive, GetConn()->GetState());
-  UEXPECT_NO_THROW(GetConn()->CancelAndCleanup(std::chrono::seconds{1}));
+  UEXPECT_NO_THROW(GetConn()->CancelAndCleanup(utest::kMaxTestWaitTime));
   EXPECT_EQ(pg::ConnectionState::kIdle, GetConn()->GetState());
   // Query cancelled
   DefaultCommandControlScope scope2(pg::CommandControl{

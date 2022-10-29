@@ -2,6 +2,7 @@
 
 #include <algorithm>  // for std::max
 #include <atomic>
+#include <cerrno>
 #include <utility>
 
 #include <moodycamel/concurrentqueue.h>
@@ -139,13 +140,29 @@ PoolStats Pool<Task>::GetStats() const {
 
 template <typename Task>
 typename Pool<Task>::Coroutine Pool<Task>::CreateCoroutine(bool quiet) {
-  const auto new_total = ++total_coroutines_num_;
-  Coroutine coroutine(stack_allocator_, executor_);
-  if (!quiet) {
-    LOG_DEBUG() << "Created a coroutine #" << new_total << '/'
-                << config_.max_size;
+  try {
+    Coroutine coroutine(stack_allocator_, executor_);
+    const auto new_total = ++total_coroutines_num_;
+    if (!quiet) {
+      LOG_DEBUG() << "Created a coroutine #" << new_total << '/'
+                  << config_.max_size;
+    }
+    return coroutine;
+  } catch (const std::bad_alloc&) {
+    if (errno == ENOMEM) {
+      // It should be ok to allocate here (which LOG_ERROR might do),
+      // because ENOMEM is most likely coming from mmap
+      // hitting vm.max_map_count limit, not from the actual memory limit.
+      // See `stack_context::allocate` in
+      // uboost_coro/context/posix/protected_fixedsize_stack.hpp
+      LOG_ERROR() << "Failed to allocate a coroutine (ENOMEM), current "
+                     "coroutines count: "
+                  << total_coroutines_num_.load()
+                  << "; are you hitting the vm.max_map_count limit?";
+    }
+
+    throw;
   }
-  return coroutine;
 }
 
 template <typename Task>

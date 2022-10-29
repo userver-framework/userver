@@ -89,9 +89,7 @@ UTEST(TaskContext, WaitListWakeupRace) {
   auto& context = engine::current_task::GetCurrentTaskContext();
 
   WaitListRaceSimulator wait_manager;
-  context.Sleep(wait_manager);
-
-  EXPECT_EQ(context.DebugGetWakeupSource(),
+  EXPECT_EQ(context.Sleep(wait_manager),
             engine::impl::TaskContext::WakeupSource::kWaitList);
 }
 

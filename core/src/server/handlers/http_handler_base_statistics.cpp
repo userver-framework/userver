@@ -19,10 +19,9 @@ void HttpHandlerMethodStatistics::Account(
   }
 }
 
-formats::json::Value Serialize(const HttpHandlerMethodStatistics& stats,
-                               formats::serialize::To<formats::json::Value>) {
-  return formats::json::ValueBuilder{HttpHandlerStatisticsSnapshot{stats}}
-      .ExtractValue();
+void DumpMetric(utils::statistics::Writer writer,
+                const HttpHandlerMethodStatistics& stats) {
+  writer = HttpHandlerStatisticsSnapshot{stats};
 }
 
 HttpHandlerStatisticsSnapshot::HttpHandlerStatisticsSnapshot(
@@ -46,22 +45,15 @@ void HttpHandlerStatisticsSnapshot::Add(
   cancelled_by_deadline += other.cancelled_by_deadline;
 }
 
-formats::json::Value Serialize(const HttpHandlerStatisticsSnapshot& stats,
-                               formats::serialize::To<formats::json::Value>) {
-  formats::json::ValueBuilder result;
-
-  result["reply-codes"] = stats.reply_codes;
-  result["in-flight"] = stats.in_flight;
-  result["too-many-requests-in-flight"] = stats.too_many_requests_in_flight;
-  result["rate-limit-reached"] = stats.rate_limit_reached;
-  result["deadline-received"] = stats.deadline_received;
-  result["cancelled-by-deadline"] = stats.cancelled_by_deadline;
-
-  result["timings"]["1min"] =
-      utils::statistics::PercentileToJson(stats.timings);
-  utils::statistics::SolomonSkip(result["timings"]["1min"]);
-
-  return result.ExtractValue();
+void DumpMetric(utils::statistics::Writer writer,
+                const HttpHandlerStatisticsSnapshot& stats) {
+  writer["reply-codes"] = stats.reply_codes;
+  writer["in-flight"] = stats.in_flight;
+  writer["too-many-requests-in-flight"] = stats.too_many_requests_in_flight;
+  writer["rate-limit-reached"] = stats.rate_limit_reached;
+  writer["deadline-received"] = stats.deadline_received;
+  writer["cancelled-by-deadline"] = stats.cancelled_by_deadline;
+  writer["timings"] = stats.timings;
 }
 
 void HttpRequestMethodStatistics::Account(

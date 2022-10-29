@@ -1,8 +1,12 @@
 #include <gtest/gtest.h>
 
 #include <logging/logging_test.hpp>
+#include <userver/engine/condition_variable.hpp>
+#include <userver/engine/mutex.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/logging/log_helper_fwd.hpp>
+#include <userver/utest/utest.hpp>
+#include <userver/utils/async.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -74,6 +78,25 @@ TEST_F(LoggingTest, DocsData) {
   logging::Level level = flag ? logging::Level::kDebug : logging::Level::kInfo;
   LOG(level) << "some text";
   /// [Example set custom logging usage]
+}
+
+UTEST_F(SocketLoggingTest, Test) {
+  engine::Mutex mt;
+  engine::ConditionVariable cv;
+  auto task = utils::Async("server task", &SocketLoggingTest::Server, this,
+                           std::ref(cv));
+
+  std::unique_lock lock(mt);
+  if (!cv.Wait(lock, [&]() { return IsStarts(); })) {
+    FAIL();
+  }
+
+  LOG_ERROR() << "test";
+  if (!cv.Wait(lock, [&]() { return IsRead(); })) {
+    FAIL();
+  }
+
+  EXPECT_EQ("test", LoggedText());
 }
 
 USERVER_NAMESPACE_END

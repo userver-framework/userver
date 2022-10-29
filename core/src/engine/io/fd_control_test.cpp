@@ -34,11 +34,6 @@ class Pipe final {
   int fd_[2]{};
 };
 
-bool HasTimedOut() {
-  return engine::current_task::GetCurrentTaskContext().DebugGetWakeupSource() ==
-         engine::impl::TaskContext::WakeupSource::kDeadlineTimer;
-}
-
 void CheckedWrite(int fd, const void* buf, size_t len) {
   ASSERT_EQ(len, ::write(fd, buf, len));
 }
@@ -85,15 +80,12 @@ UTEST(FdControl, Wait) {
   auto read_control = FdControl::Adopt(pipe.ExtractIn());
   auto& read_dir = read_control->Read();
   EXPECT_FALSE(read_dir.Wait(Deadline::FromDuration(kReadTimeout)));
-  EXPECT_TRUE(HasTimedOut());
 
   CheckedWrite(pipe.Out(), buf.data(), 1);
   EXPECT_TRUE(read_dir.Wait(Deadline::FromDuration(kReadTimeout)));
-  EXPECT_FALSE(HasTimedOut());
 
   EXPECT_EQ(::read(read_dir.Fd(), buf.data(), buf.size()), 1);
   EXPECT_FALSE(read_dir.Wait(Deadline::FromDuration(kReadTimeout)));
-  EXPECT_TRUE(HasTimedOut());
 }
 
 UTEST(FdControl, Waits) {
