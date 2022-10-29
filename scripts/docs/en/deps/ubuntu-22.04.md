@@ -18,7 +18,6 @@ libjemalloc-dev
 libmongoc-dev
 libbson-dev
 libldap2-dev
-libpq5
 libpq-dev
 postgresql-server-dev-14
 libkrb5-dev

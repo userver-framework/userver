@@ -32,8 +32,8 @@ target_include_directories(${PROJECT_NAME}
 target_link_libraries(${PROJECT_NAME}
   PUBLIC
     PostgreSQL
-    PostgreSQLInternal
   PRIVATE
+    PostgreSQLInternal
     ${LDAP_LIBRARY}
     OpenSSL::SSL
     OpenSSL::Crypto
@@ -42,6 +42,3 @@ target_link_libraries(${PROJECT_NAME}
 
 target_compile_options(
   ${PROJECT_NAME} PUBLIC -Wno-ignored-attributes -Wno-pedantic)
-
-message(STATUS "Found PostgreSQL version (PG_VERSION_NUM): ${PostgreSQL_VERSION_STRING}")
-message(STATUS " ${PostgreSQL_FOUND} ${PostgreSQL_LIBRARIES} ${PostgreSQL_INCLUDE_DIRS} ${PostgreSQL_LIBRARY_DIRS} ${PostgreSQL_VERSION_STRING}")
