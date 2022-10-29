@@ -77,19 +77,13 @@ jobs:
                 sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 8919F6BD2B48D754
                 echo "deb https://packages.clickhouse.com/deb stable main" | sudo tee /etc/apt/sources.list.d/clickhouse.list
 
-                if [ "${{matrix.os}}" = "ubuntu-22.04" ]; then
-                    PG_REPO_URL="https://apt.postgresql.org/pub/repos/apt/"
-                    # Preparing repo for PostgreSQL
-                    wget -qO - https://www.postgresql.org/media/keys/ACCC4CF8.asc | gpg --dearmor > /usr/share/keyrings/postgresql.gpg
-                    echo "deb [signed-by=/usr/share/keyrings/postgresql.gpg] $PG_REPO_URL $(getOSVersionLabel)-pgdg main" > /etc/apt/sources.list.d/pgdg.list
-                fi
-
                 sudo apt update
                 sudo apt install --allow-downgrades -y clickhouse-common-static $(cat scripts/docs/en/deps/${{matrix.os}}.md | tr '\n' ' ')
-
+                # GH Ubuntu image has libpq version 15.0 from pg's repo.
+                # So we downgrade libpq5 and libpq-dev to the ubuntu's
+                # versions to mock real ubuntu experience.
                 if [ "${{matrix.os}}" = "ubuntu-22.04" ]; then
-                  sudo apt remove postgresql-server-dev-14
-                  sudo apt install postgresql-server-dev-15
+                  sudo apt install libpq5=14.5-0ubuntu0.22.04.1 libpq-dev=14.5-0ubuntu0.22.04.1
                 fi
 
           - name: Install RabbitMQ packages
