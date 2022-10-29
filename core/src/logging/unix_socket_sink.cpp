@@ -1,14 +1,15 @@
 #include "unix_socket_sink.hpp"
 
+#include <sys/socket.h>
+#include <sys/un.h>
+#include <unistd.h>
+
+#include <iostream>
+
 #include <spdlog/spdlog.h>
 
 #include <utils/check_syscall.hpp>
 #include <utils/strerror.hpp>
-
-#include <sys/socket.h>
-#include <sys/un.h>
-
-#include <iostream>
 
 USERVER_NAMESPACE_BEGIN
 
