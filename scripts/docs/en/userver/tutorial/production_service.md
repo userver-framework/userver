@@ -84,6 +84,7 @@ Your server has the following utility handlers:
 * to @ref md_en_userver_memory_profile_running_service "profile memory usage" - server::handlers::Jemalloc
 * to @ref md_en_userver_log_level_running_service "change logging level at runtime" - server::handlers::LogLevel
   and server::handlers::DynamicDebugLog
+* to reopen log files after log rotation (you can also use @ref md_en_userver_os_signals "signals") - server::handlers::OnLogRotate 
 * to @ref md_en_userver_dns_control "control the DNS resolver" - server::handlers::DnsClientControl
 * to @ref md_en_userver_service_monitor "get statistics" from the service - server::handlers::ServerMonitor
 

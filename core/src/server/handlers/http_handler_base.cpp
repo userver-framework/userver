@@ -1,5 +1,6 @@
 #include <userver/server/handlers/http_handler_base.hpp>
 
+#include <fmt/core.h>
 #include <fmt/format.h>
 #include <boost/algorithm/string/split.hpp>
 
@@ -262,14 +263,14 @@ void SetDeadlineTags(tracing::Span& span,
 }
 
 std::string CutTrailingSlash(
-    std::string meta_type,
+    std::string&& meta_type,
     server::handlers::UrlTrailingSlashOption trailing_slash) {
   if (trailing_slash == UrlTrailingSlashOption::kBoth && meta_type.size() > 1 &&
       meta_type.back() == '/') {
     meta_type.pop_back();
   }
 
-  return meta_type;
+  return std::move(meta_type);
 }
 
 // Separate function to avoid heavy computations when the result is not going
@@ -353,26 +354,33 @@ HttpHandlerBase::HttpHandlerBase(const components::ComponentConfig& config,
     throw std::runtime_error(std::string("can't add handler to server: ") +
                              ex.what());
   }
-  /// TODO: unable to add prefix metadata ATM
 
-  const auto graphite_subpath = std::visit(
-      utils::Overloaded{[](const std::string& path) {
-                          return "by-path." + utils::graphite::EscapeName(path);
+  std::vector<utils::statistics::Label> labels{
+      {"http_handler", config.Name()},
+  };
+
+  auto prefix = std::visit(
+      utils::Overloaded{[&](const std::string& path) {
+                          labels.emplace_back(
+                              "http_path", utils::graphite::EscapeName(path));
+                          return std::string{"http"};
                         },
                         [](FallbackHandler fallback) {
-                          return "by-fallback." + ToString(fallback);
+                          return "http.by-fallback." + ToString(fallback);
                         }},
       GetConfig().path);
-  const auto graphite_path =
-      fmt::format("http.{}.by-handler.{}", graphite_subpath, config.Name());
 
   auto& statistics_storage =
       context.FindComponent<components::StatisticsStorage>().GetStorage();
-  statistics_holder_ = statistics_storage.RegisterExtender(
-      graphite_path,
-      [this](const utils::statistics::StatisticsRequest& request) {
-        return ExtendStatistics(request);
-      });
+  statistics_holder_ = statistics_storage.RegisterWriter(
+      std::move(prefix),
+      [this](utils::statistics::Writer& result) {
+        FormatStatistics(result["handler"], *handler_statistics_);
+        if constexpr (kIncludeServerHttpMetrics) {
+          FormatStatistics(result["request"], *request_statistics_);
+        }
+      },
+      std::move(labels));
 
   set_response_server_hostname_ =
       GetConfig().set_response_server_hostname.value_or(
@@ -385,7 +393,9 @@ HttpHandlerBase::~HttpHandlerBase() { statistics_holder_.Unregister(); }
 
 void HttpHandlerBase::HandleRequest(request::RequestBase& request,
                                     request::RequestContext& context) const {
-  auto& http_request_impl = dynamic_cast<http::HttpRequestImpl&>(request);
+  UASSERT(dynamic_cast<http::HttpRequestImpl*>(&request));
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
+  auto& http_request_impl = static_cast<http::HttpRequestImpl&>(request);
   http::HttpRequest http_request(http_request_impl);
   auto& response = http_request.GetHttpResponse();
 
@@ -409,6 +419,24 @@ void HttpHandlerBase::HandleRequest(request::RequestBase& request,
         http_request.GetHeader(USERVER_NAMESPACE::http::headers::kXYaTraceId);
     const auto& parent_span_id =
         http_request.GetHeader(USERVER_NAMESPACE::http::headers::kXYaSpanId);
+
+    const auto& yandex_request_id =
+        http_request.GetHeader(USERVER_NAMESPACE::http::headers::kXRequestId);
+    const auto& yandex_backend_server = http_request.GetHeader(
+        USERVER_NAMESPACE::http::headers::kXBackendServer);
+    const auto& envoy_proxy = http_request.GetHeader(
+        USERVER_NAMESPACE::http::headers::kXTaxiEnvoyProxyDstVhost);
+
+    if (!yandex_request_id.empty() || !yandex_backend_server.empty() ||
+        !envoy_proxy.empty()) {
+      LOG_INFO() << fmt::format(
+          "Yandex tracing headers {}={}, {}={}, {}={}",
+          USERVER_NAMESPACE::http::headers::kXRequestId, yandex_request_id,
+          USERVER_NAMESPACE::http::headers::kXBackendServer,
+          yandex_backend_server,
+          USERVER_NAMESPACE::http::headers::kXTaxiEnvoyProxyDstVhost,
+          envoy_proxy);
+    }
 
     auto span = tracing::Span::MakeSpan(fmt::format("http/{}", HandlerName()),
                                         trace_id, parent_span_id);
@@ -525,7 +553,9 @@ void HttpHandlerBase::HandleStreamRequest(
 void HttpHandlerBase::ReportMalformedRequest(
     request::RequestBase& request) const {
   try {
-    auto& http_request_impl = dynamic_cast<http::HttpRequestImpl&>(request);
+    UASSERT(dynamic_cast<http::HttpRequestImpl*>(&request));
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
+    auto& http_request_impl = static_cast<http::HttpRequestImpl&>(request);
     const http::HttpRequest http_request(http_request_impl);
     auto& response = http_request.GetHttpResponse();
 
@@ -695,34 +725,16 @@ std::string HttpHandlerBase::GetResponseDataForLoggingChecked(
 }
 
 template <typename HttpStatistics>
-formats::json::ValueBuilder HttpHandlerBase::FormatStatistics(
-    const HttpStatistics& stats) {
-  formats::json::ValueBuilder result;
-  result["all-methods"] = stats.GetTotal();
-  utils::statistics::SolomonSkip(result["all-methods"]);
+void HttpHandlerBase::FormatStatistics(utils::statistics::Writer result,
+                                       const HttpStatistics& stats) {
+  result = stats.GetTotal();
 
   if (IsMethodStatisticIncluded()) {
-    formats::json::ValueBuilder by_method;
     for (auto method : GetAllowedMethods()) {
-      by_method[ToString(method)] = stats.GetByMethod(method);
+      result.ValueWithLabels(stats.GetByMethod(method),
+                             {"http_method", ToString(method)});
     }
-    utils::statistics::SolomonChildrenAreLabelValues(by_method, "http_method");
-    utils::statistics::SolomonSkip(by_method);
-    result["by-method"] = std::move(by_method);
   }
-  return result;
-}
-
-formats::json::ValueBuilder HttpHandlerBase::ExtendStatistics(
-    const utils::statistics::StatisticsRequest& /*request*/) {
-  formats::json::ValueBuilder result;
-  result["handler"] = FormatStatistics(*handler_statistics_);
-
-  if constexpr (kIncludeServerHttpMetrics) {
-    result["request"] = FormatStatistics(*request_statistics_);
-  }
-
-  return result;
 }
 
 void HttpHandlerBase::SetResponseAcceptEncoding(

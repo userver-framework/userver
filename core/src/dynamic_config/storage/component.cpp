@@ -255,7 +255,8 @@ DynamicConfig::NoblockSubscriber::GetEventSource() noexcept {
 
 DynamicConfig::DynamicConfig(const ComponentConfig& config,
                              const ComponentContext& context)
-    : LoggableComponentBase(config, context), impl_(config, context) {}
+    : LoggableComponentBase(config, context),
+      impl_(std::make_unique<Impl>(config, context)) {}
 
 DynamicConfig::~DynamicConfig() = default;
 

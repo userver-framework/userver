@@ -119,6 +119,12 @@ class Request final : public std::enable_shared_from_this<Request> {
   std::shared_ptr<Request> headers(
       std::initializer_list<std::pair<std::string_view, std::string_view>>
           headers);
+  /// Proxy headers for request as map
+  std::shared_ptr<Request> proxy_headers(const Headers& headers);
+  /// Proxy headers for request as list
+  std::shared_ptr<Request> proxy_headers(
+      std::initializer_list<std::pair<std::string_view, std::string_view>>
+          headers);
   /// Sets the User-Agent header
   std::shared_ptr<Request> user_agent(const std::string& value);
   /// Sets proxy to use. Example: [::1]:1080

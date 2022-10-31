@@ -8,7 +8,6 @@
 
 #include <ugrpc/impl/rpc_metadata_keys.hpp>
 #include <ugrpc/impl/to_string.hpp>
-#include <userver/ugrpc/client/exceptions.hpp>
 #include <userver/ugrpc/impl/status_codes.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -46,12 +45,13 @@ RpcData::RpcData(std::unique_ptr<grpc::ClientContext>&& context,
                  ugrpc::impl::MethodStatistics& statistics)
     : context_(std::move(context)),
       call_name_(call_name),
-      remote_data_(std::make_unique<RemoteData>(statistics)) {
+      stats_scope_(statistics) {
   UASSERT(context_);
-  SetupSpan(remote_data_->span, *context_, call_name_);
+  SetupSpan(span_, *context_, call_name_);
 }
 
 RpcData::~RpcData() {
+  UASSERT(!finish_.has_value());
   if (context_ && state_ != impl::State::kFinished) {
     SetErrorForSpan(*this, "Abandoned");
     context_->TryCancel();
@@ -75,19 +75,19 @@ std::string_view RpcData::GetCallName() const noexcept {
 
 tracing::Span& RpcData::GetSpan() noexcept {
   UASSERT(context_);
-  UASSERT(remote_data_->span);
-  return remote_data_->span->Get();
+  UASSERT(span_);
+  return span_->Get();
 }
 
 void RpcData::ResetSpan() noexcept {
   UASSERT(context_);
-  UASSERT(remote_data_->span);
-  remote_data_->span.reset();
+  UASSERT(span_);
+  span_.reset();
 }
 
 ugrpc::impl::RpcStatisticsScope& RpcData::GetStatsScope() noexcept {
   UASSERT(context_);
-  return remote_data_->stats_scope;
+  return stats_scope_;
 }
 
 State RpcData::GetState() const noexcept {
@@ -100,8 +100,27 @@ void RpcData::SetState(State new_state) noexcept {
   state_ = new_state;
 }
 
-RpcData::RemoteData::RemoteData(ugrpc::impl::MethodStatistics& statistics)
-    : stats_scope(statistics) {}
+void RpcData::EmplaceAsyncMethodInvocation() {
+  UINVARIANT(!finish_.has_value(), "'FinishAsync' already was called");
+  finish_.emplace();
+}
+
+AsyncMethodInvocation& RpcData::GetAsyncMethodInvocation() noexcept {
+  UASSERT(finish_.has_value());
+  return finish_.value();
+}
+
+grpc::Status& RpcData::GetStatus() noexcept { return status_; }
+
+RpcData::AsyncMethodInvocationGuard::AsyncMethodInvocationGuard(
+    RpcData& data) noexcept
+    : data_(data) {}
+
+RpcData::AsyncMethodInvocationGuard::~AsyncMethodInvocationGuard() noexcept {
+  UASSERT(data_.finish_.has_value());
+  data_.finish_.reset();
+  data_.GetStatus() = grpc::Status{};
+}
 
 void CheckOk(RpcData& data, bool ok, std::string_view stage) {
   if (!ok) {
@@ -118,7 +137,7 @@ void PrepareFinish(RpcData& data) {
   data.SetState(State::kFinished);
 }
 
-void ProcessFinishResult(RpcData& data, bool ok, grpc::Status&& status) {
+void ProcessFinishResult(RpcData& data, bool ok, grpc::Status& status) {
   UASSERT_MSG(ok,
               "ok=false in async Finish method invocation is prohibited "
               "by gRPC docs, see grpc::CompletionQueue::Next");
@@ -127,7 +146,7 @@ void ProcessFinishResult(RpcData& data, bool ok, grpc::Status&& status) {
     data.SetState(State::kFinished);
     SetErrorForSpan(data,
                     std::string{ugrpc::impl::ToString(status.error_code())});
-    impl::ThrowErrorWithStatus(data.GetCallName(), std::move(status));
+    return;
   }
   data.ResetSpan();
 }

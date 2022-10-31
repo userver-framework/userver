@@ -1,5 +1,6 @@
 import contextlib
 import dataclasses
+import json
 import logging
 import typing
 
@@ -22,6 +23,10 @@ class BaseError(Exception):
     """Base class for exceptions of this module."""
 
 
+class TestsuiteActionFailed(BaseError):
+    pass
+
+
 class TestsuiteTaskError(BaseError):
     pass
 
@@ -38,6 +43,16 @@ class ConfigurationError(BaseError):
     pass
 
 
+class PeriodicTaskFailed(BaseError):
+    pass
+
+
+class PeriodicTasksState:
+    def __init__(self):
+        self.suspended_tasks: typing.Set[str] = set()
+        self.tasks_to_suspend: typing.Set[str] = set()
+
+
 class TestsuiteTaskFailed(TestsuiteTaskError):
     def __init__(self, name, reason):
         self.name = name
@@ -49,6 +64,12 @@ class TestsuiteTaskFailed(TestsuiteTaskError):
 class TestsuiteClientConfig:
     testsuite_action_path: typing.Optional[str] = None
     server_monitor_path: typing.Optional[str] = None
+
+
+@dataclasses.dataclass(frozen=True)
+class Metric:
+    labels: typing.Dict[str, str]
+    value: int
 
 
 class ClientWrapper:
@@ -234,6 +255,61 @@ class AiohttpClientMonitor(service_client.AiohttpClient):
         assert metric_name in metrics, f'no metric with name {metric_name!r}'
         return metrics[metric_name]
 
+    async def metrics(
+            self,
+            *,
+            path: str = None,
+            prefix: str = None,
+            labels: typing.Optional[typing.Dict[str, str]] = None,
+    ) -> typing.Dict[str, typing.List[Metric]]:
+        if not self._config.server_monitor_path:
+            raise ConfigurationError(
+                'handler-server-monitor component is not configured',
+            )
+
+        params = {'format': 'json'}
+        if prefix:
+            params['prefix'] = prefix
+
+        if path:
+            params['path'] = path
+
+        if labels:
+            params['labels'] = json.dumps(labels)
+
+        response = await self.get(
+            self._config.server_monitor_path, params=params,
+        )
+        async with response:
+            response.raise_for_status()
+            json_data = await response.json(content_type=None)
+            return {
+                path: [
+                    Metric(labels=element['labels'], value=element['value'])
+                    for element in metrics_list
+                ]
+                for path, metrics_list in json_data.items()
+            }
+
+    async def single_metric(
+            self,
+            path: str,
+            *,
+            labels: typing.Optional[typing.Dict[str, str]] = None,
+    ) -> typing.Optional[Metric]:
+        response = await self.metrics(path=path, labels=labels)
+        metrics_list = response.get(path, [])
+
+        assert len(metrics_list) <= 1, (
+            f'More than one metric found for path {path} and labels {labels}: '
+            f'{response}',
+        )
+
+        if not metrics_list:
+            return None
+
+        return metrics_list[0]
+
 
 class ClientMonitor(ClientWrapper):
     """
@@ -249,10 +325,33 @@ class ClientMonitor(ClientWrapper):
     async def get_metric(self, metric_name):
         return await self._client.get_metric(metric_name)
 
+    @_wrap_client_error
+    async def metrics(
+            self,
+            *,
+            path: str = None,
+            prefix: str = None,
+            labels: typing.Optional[typing.Dict[str, str]] = None,
+    ) -> typing.Dict[str, Metric]:
+        return await self._client.metrics(
+            path=path, prefix=prefix, labels=labels,
+        )
+
+    @_wrap_client_error
+    async def single_metric(
+            self,
+            path: str,
+            *,
+            labels: typing.Optional[typing.Dict[str, str]] = None,
+    ) -> typing.Optional[Metric]:
+        return await self._client.single_metric(path, labels=labels)
+
 
 class AiohttpClient(service_client.AiohttpClient):
     """Asyncio client uservice client class."""
 
+    PeriodicTaskFailed = PeriodicTaskFailed
+    TestsuiteActionFailed = TestsuiteActionFailed
     TestsuiteTaskNotFound = TestsuiteTaskNotFound
     TestsuiteTaskConflict = TestsuiteTaskConflict
     TestsuiteTaskFailed = TestsuiteTaskFailed
@@ -269,11 +368,13 @@ class AiohttpClient(service_client.AiohttpClient):
             span_id_header=None,
             cache_blocklist=None,
             api_coverage_report=None,
+            periodic_tasks_state: typing.Optional[PeriodicTasksState] = None,
             **kwargs,
     ):
         super().__init__(base_url, span_id_header=span_id_header, **kwargs)
         self._config = config
         self._mocked_time = mocked_time
+        self._periodic_tasks = periodic_tasks_state
         self._testpoint = testpoint
         self._testpoint_control = testpoint_control
         self._log_capture_fixture = log_capture_fixture
@@ -284,6 +385,29 @@ class AiohttpClient(service_client.AiohttpClient):
             cache_blocklist=cache_blocklist or [],
         )
         self._api_coverage_report = api_coverage_report
+
+    async def run_periodic_task(self, name):
+        response = await self._testsuite_action('run_periodic_task', name=name)
+        if not response['status']:
+            raise self.PeriodicTaskFailed(f'Periodic task {name} failed')
+
+    async def suspend_periodic_tasks(self, names: typing.List[str]) -> None:
+        if not self._periodic_tasks:
+            raise ConfigurationError('No periodic_tasks_state given')
+        self._periodic_tasks.tasks_to_suspend.update(names)
+        await self._suspend_periodic_tasks()
+
+    async def resume_periodic_tasks(self, names: typing.List[str]) -> None:
+        if not self._periodic_tasks:
+            raise ConfigurationError('No periodic_tasks_state given')
+        self._periodic_tasks.tasks_to_suspend.difference_update(names)
+        await self._suspend_periodic_tasks()
+
+    async def resume_all_periodic_tasks(self) -> None:
+        if not self._periodic_tasks:
+            raise ConfigurationError('No periodic_tasks_state given')
+        self._periodic_tasks.tasks_to_suspend.clear()
+        await self._suspend_periodic_tasks()
 
     async def write_cache_dumps(self, names: typing.List[str]) -> None:
         await self._testsuite_action('write_cache_dumps', names=names)
@@ -369,6 +493,8 @@ class AiohttpClient(service_client.AiohttpClient):
             invalidate_caches: bool = True,
             clean_update: bool = True,
             cache_names: typing.Optional[typing.List[str]] = None,
+            reset_metrics: bool = False,
+            http_allowed_urls_extra=None,
     ) -> typing.Dict[str, typing.Any]:
         body: typing.Dict[
             str, typing.Any,
@@ -389,6 +515,10 @@ class AiohttpClient(service_client.AiohttpClient):
             }
             if cache_names:
                 body['invalidate_caches']['names'] = cache_names
+        if reset_metrics:
+            body['reset_metrics'] = True
+        if http_allowed_urls_extra is not None:
+            body['http_allowed_urls_extra'] = http_allowed_urls_extra
         return await self._tests_control(body)
 
     async def update_server_state(self) -> None:
@@ -396,6 +526,7 @@ class AiohttpClient(service_client.AiohttpClient):
         Update service-side state through http call to 'tests/control':
         - clear dirty (from other tests) caches
         - set service-side mocked time,
+        - resume / suspend periodic tasks
         - enable testpoints
         If service is up-to-date, does nothing.
         """
@@ -432,6 +563,19 @@ class AiohttpClient(service_client.AiohttpClient):
                 response.raise_for_status()
                 return await response.json(content_type=None)
 
+    async def _suspend_periodic_tasks(self):
+        if (
+                self._periodic_tasks.tasks_to_suspend
+                != self._periodic_tasks.suspended_tasks
+        ):
+            await self._testsuite_action(
+                'suspend_periodic_tasks',
+                names=sorted(self._periodic_tasks.tasks_to_suspend),
+            )
+            self._periodic_tasks.suspended_tasks = set(
+                self._periodic_tasks.tasks_to_suspend,
+            )
+
     def _do_testsuite_action(self, action, **kwargs):
         if not self._config.testsuite_action_path:
             raise ConfigurationError(
@@ -448,6 +592,8 @@ class AiohttpClient(service_client.AiohttpClient):
                 json=kwargs,
                 testsuite_skip_prepare=testsuite_skip_prepare,
         ) as response:
+            if response.status == 500:
+                raise TestsuiteActionFailed
             response.raise_for_status()
             return await response.json(content_type=None)
 
@@ -487,6 +633,8 @@ class Client(ClientWrapper):
     werkzeug interface.
     """
 
+    PeriodicTaskFailed = PeriodicTaskFailed
+    TestsuiteActionFailed = TestsuiteActionFailed
     TestsuiteTaskNotFound = TestsuiteTaskNotFound
     TestsuiteTaskConflict = TestsuiteTaskConflict
     TestsuiteTaskFailed = TestsuiteTaskFailed
@@ -497,6 +645,22 @@ class Client(ClientWrapper):
         return http.wrap_client_response(
             response, json_loads=approx.json_loads,
         )
+
+    @_wrap_client_error
+    async def run_periodic_task(self, name):
+        await self._client.run_periodic_task(name)
+
+    @_wrap_client_error
+    async def suspend_periodic_tasks(self, names: typing.List[str]) -> None:
+        await self._client.suspend_periodic_tasks(names)
+
+    @_wrap_client_error
+    async def resume_periodic_tasks(self, names: typing.List[str]) -> None:
+        await self._client.resume_periodic_tasks(names)
+
+    @_wrap_client_error
+    async def resume_all_periodic_tasks(self) -> None:
+        await self._client.resume_all_periodic_tasks()
 
     @_wrap_client_error
     async def write_cache_dumps(self, names: typing.List[str]) -> None:

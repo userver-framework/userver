@@ -1,3 +1,6 @@
+import json
+import os
+
 import pytest
 
 from pytest_userver import chaos
@@ -13,8 +16,9 @@ pytest_plugins = [
 ]
 
 
-@pytest.fixture(name='left_gate_port', scope='session')
-def _left_gate_port():
+# /// [gate start]
+@pytest.fixture(name='for_clinet_gate_port', scope='session')
+def _for_clinet_gate_port():
     return 11433
 
 
@@ -27,13 +31,13 @@ def pgsql_local(service_source_dir, pgsql_local_create):
 
 
 @pytest.fixture(scope='session')
-async def _gate_started(loop, left_gate_port, pgsql_local):
+async def _gate_started(loop, for_clinet_gate_port, pgsql_local):
     gate_config = chaos.GateRoute(
         name='postgres proxy',
-        host_left='localhost',
-        port_left=left_gate_port,
-        host_right='localhost',
-        port_right=pgsql_local['key_value'].port,
+        host_for_client='localhost',
+        port_for_client=for_clinet_gate_port,
+        host_to_server='localhost',
+        port_to_server=pgsql_local['key_value'].port,
     )
     async with chaos.TcpGate(gate_config, loop) as proxy:
         yield proxy
@@ -42,13 +46,27 @@ async def _gate_started(loop, left_gate_port, pgsql_local):
 @pytest.fixture
 def client_deps(_gate_started, pgsql):
     pass
+    # /// [gate start]
 
 
+# /// [gate fixture]
 @pytest.fixture(name='gate')
 async def _gate_ready(service_client, _gate_started):
-    _gate_started.to_right_pass()
-    _gate_started.to_left_pass()
+    _gate_started.to_server_pass()
+    _gate_started.to_client_pass()
     _gate_started.start_accepting()
 
     await _gate_started.wait_for_connectons()
     yield _gate_started
+    # /// [gate fixture]
+
+
+@pytest.fixture(scope='session')
+def config_service_defaults():
+    with open(
+            os.path.join(
+                os.path.dirname(os.path.dirname(__file__)),
+                'dynamic_config_fallback.json',
+            ),
+    ) as fp:
+        return json.load(fp)

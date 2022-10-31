@@ -7,6 +7,7 @@
 // to override spdlog's level names
 #include <logging/spdlog.hpp>
 
+#include <boost/algorithm/string/predicate.hpp>
 #include <boost/filesystem/operations.hpp>
 
 #include <fmt/format.h>
@@ -17,6 +18,7 @@
 #include <logging/logger_with_info.hpp>
 #include <logging/reopening_file_sink.hpp>
 #include <logging/spdlog_helpers.hpp>
+#include <logging/unix_socket_sink.hpp>
 #include <userver/components/component.hpp>
 #include <userver/engine/async.hpp>
 #include <userver/engine/sleep.hpp>
@@ -41,6 +43,7 @@ namespace components {
 namespace {
 
 constexpr std::chrono::seconds kDefaultFlushInterval{2};
+constexpr std::string_view unix_socket_prefix = "unix://";
 
 struct TestsuiteCaptureConfig {
   std::string host;
@@ -91,6 +94,17 @@ void CreateLogDirectory(const std::string& logger_name,
   }
 }
 
+spdlog::sink_ptr GetSinkFromFilename(const spdlog::filename_t& file_path) {
+  if (boost::starts_with(file_path, unix_socket_prefix)) {
+    // Use Unix-socket sink
+    return std::make_shared<logging::SocketSinkMT>(
+        file_path.substr(unix_socket_prefix.size()));
+  } else {
+    // Use File sink
+    return std::make_shared<logging::ReopeningFileSinkMT>(file_path);
+  }
+}
+
 std::shared_ptr<logging::impl::LoggerWithInfo> CreateAsyncLogger(
     const std::string& logger_name,
     const logging::LoggerConfig& logger_config) {
@@ -110,9 +124,8 @@ std::shared_ptr<logging::impl::LoggerWithInfo> CreateAsyncLogger(
   }
 
   CreateLogDirectory(logger_name, logger_config.file_path);
+  spdlog::sink_ptr sink = GetSinkFromFilename(logger_config.file_path);
 
-  auto file_sink =
-      std::make_shared<logging::ReopeningFileSinkMT>(logger_config.file_path);
   auto tp = std::make_shared<spdlog::details::thread_pool>(
       logger_config.message_queue_size, logger_config.thread_pool_size,
       [thread_name = "log/" + logger_name] {
@@ -121,8 +134,8 @@ std::shared_ptr<logging::impl::LoggerWithInfo> CreateAsyncLogger(
 
   return std::make_shared<logging::impl::LoggerWithInfo>(
       logger_config.format, tp,
-      utils::MakeSharedRef<spdlog::async_logger>(
-          logger_name, std::move(file_sink), tp, overflow_policy));
+      utils::MakeSharedRef<spdlog::async_logger>(logger_name, std::move(sink),
+                                                 tp, overflow_policy));
 }
 
 }  // namespace
@@ -264,6 +277,15 @@ void Logging::StopSocketLoggingDebug() {
 }
 
 void Logging::OnLogRotate() {
+  try {
+    TryReopenFiles();
+
+  } catch (const std::exception& e) {
+    LOG_ERROR() << "An error occured while ReopenAll: " << e;
+  }
+}
+
+void Logging::TryReopenFiles() {
   std::vector<engine::TaskWithResult<void>> tasks;
   tasks.reserve(loggers_.size() + 1);
 
@@ -277,14 +299,21 @@ void Logging::OnLogRotate() {
         *fs_task_processor_, ReopenAll, std::ref(item.second->ptr->sinks())));
   }
 
+  std::string result_messages;
+
   for (auto& task : tasks) {
     try {
       task.Get();
     } catch (const std::exception& e) {
-      LOG_ERROR() << "Exception escaped ReopenAll: " << e;
+      result_messages += e.what();
+      result_messages += ";";
     }
   }
   LOG_INFO() << "Log rotated";
+
+  if (!result_messages.empty()) {
+    throw std::runtime_error("ReopenAll errors: " + result_messages);
+  }
 }
 
 void Logging::FlushLogs() {

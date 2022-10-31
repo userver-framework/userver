@@ -179,6 +179,13 @@ components_manager:
 # /// [Sample handler log level component config]
 # /// [Sample handler inspect requests component config]
 # yaml
+    handler-on-log-rotate:
+        path: /service/on-log-rotate/
+        method: POST
+        task_processor: monitor-task-processor
+# /// [Sample handler on log rotate component config]
+# /// [Sample handler inspect requests component config]
+# yaml
     handler-inspect-requests:
         path: /service/inspect-requests
         method: GET
@@ -211,6 +218,9 @@ components_manager:
         path: /*
         method: GET
         task_processor: monitor-task-processor
+        common-labels:
+            application: sample application
+            zone: some
 # /// [Sample handler server monitor component config]
 # /// [Sample handler dynamic debug log component config]
     handler-dynamic-debug-log:

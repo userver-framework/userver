@@ -20,10 +20,9 @@ Server::Server(const components::ComponentConfig& component_config,
       "server", [this](const utils::statistics::StatisticsRequest& request) {
         return ExtendStatistics(request);
       });
-  handler_statistics_holder_ = statistics_storage.RegisterExtender(
-      "http.handler.total",
-      [this](const utils::statistics::StatisticsRequest& /*request*/) {
-        return server_->GetTotalHandlerStatistics();
+  handler_statistics_holder_ = statistics_storage.RegisterWriter(
+      "http.handler.total", [this](utils::statistics::Writer& writer) {
+        return server_->WriteTotalHandlerStatistics(writer);
       });
 }
 

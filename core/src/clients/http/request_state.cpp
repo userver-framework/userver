@@ -15,6 +15,7 @@
 
 #include <userver/clients/dns/resolver.hpp>
 #include <userver/server/request/task_inherited_data.hpp>
+#include <userver/utils/algo.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/async.hpp>
 #include <userver/utils/encoding/hex.hpp>
@@ -41,6 +42,12 @@ constexpr long kLeastBadHttpCodeForEB = 500;
 constexpr Status kFakeHttpErrorCode{599};
 
 const std::string kTracingClientName = "external";
+
+const std::vector<std::string> ya_tracing_headers = {
+    USERVER_NAMESPACE::http::headers::kXRequestId,
+    USERVER_NAMESPACE::http::headers::kXBackendServer,
+    USERVER_NAMESPACE::http::headers::kXTaxiEnvoyProxyDstVhost,
+};
 
 const std::map<std::string, std::error_code> kTestsuiteActions = {
     {"timeout", {curl::errc::EasyErrorCode::kOperationTimedout}},
@@ -338,9 +345,17 @@ void RequestState::on_completed(std::shared_ptr<RequestState> holder,
 
   const auto status_code = static_cast<Status>(easy.get_response_code());
 
+  const auto& headers = holder->response()->headers();
   if (holder->testsuite_config_ && !err) {
-    const auto& headers = holder->response()->headers();
     err = TestsuiteResponseHook(status_code, headers, span);
+  }
+
+  for (const auto& header : ya_tracing_headers) {
+    const auto header_opt = utils::FindOptional(headers, header);
+    if (header_opt) {
+      LOG_INFO() << "Client response contains Ya tracing header " << header
+                 << "=" << *header_opt;
+    }
   }
 
   holder->AccountResponse(err);

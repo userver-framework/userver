@@ -80,8 +80,8 @@ class HttpHandlerMethodStatistics final {
   std::atomic<std::uint64_t> cancelled_by_deadline_{0};
 };
 
-formats::json::Value Serialize(const HttpHandlerMethodStatistics& stats,
-                               formats::serialize::To<formats::json::Value>);
+void DumpMetric(utils::statistics::Writer& writer,
+                const HttpHandlerMethodStatistics& stats);
 
 struct HttpHandlerStatisticsSnapshot final {
   HttpHandlerStatisticsSnapshot() = default;
@@ -100,8 +100,8 @@ struct HttpHandlerStatisticsSnapshot final {
   std::uint64_t cancelled_by_deadline{0};
 };
 
-formats::json::Value Serialize(const HttpHandlerStatisticsSnapshot& stats,
-                               formats::serialize::To<formats::json::Value>);
+void DumpMetric(utils::statistics::Writer& writer,
+                const HttpHandlerStatisticsSnapshot& stats);
 
 // Statistics for a single request from the overall server or the external
 // client perspective. Includes the time spent in queue.

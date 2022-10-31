@@ -1,8 +1,23 @@
 #include <clients/http/destination_statistics.hpp>
 
+#include <userver/utils/statistics/writer.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace clients::http {
+
+namespace {
+
+struct FullInstanceStatisticsView {
+  const InstanceStatistics& data;
+};
+
+void DumpMetric(utils::statistics::Writer& writer,
+                FullInstanceStatisticsView stats) {
+  DumpMetric(writer, stats.data, FormatMode::kModeDestination);
+}
+
+}  // namespace
 
 std::shared_ptr<RequestStats>
 DestinationStatistics::GetStatisticsForDestination(
@@ -72,6 +87,14 @@ DestinationStatistics::begin() const {
 DestinationStatistics::DestinationsMap::ConstIterator
 DestinationStatistics::end() const {
   return rcu_map_.end();
+}
+
+void DumpMetric(utils::statistics::Writer& writer,
+                const DestinationStatistics& stats) {
+  for (const auto& [url, stat_ptr] : stats) {
+    writer.ValueWithLabels(FullInstanceStatisticsView{*stat_ptr},
+                           {"http_destination", url});
+  }
 }
 
 }  // namespace clients::http

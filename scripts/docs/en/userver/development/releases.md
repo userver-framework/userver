@@ -27,6 +27,13 @@ Please, see @ref CONTRIBUTING.md before making a PR or posting code!
 To report an issue or provide a pull request use the github interface
 https://github.com/userver-framework/.
 
+There is queue of simple tickets [for first-time contributors](https://github.com/userver-framework/userver/issues?q=is%3Aissue+is%3Aopen+label%3A"good+first+issue"+label%3A"help+wanted")
+and a queue of more complex features [for experienced contributors](https://github.com/userver-framework/userver/issues?q=is%3Aissue+is%3Aopen+label%3A"big"+label%3A"help+wanted").
+If you're planning to contribute soon or starting a work on a big feature,
+please write a comment about it into the issue. That way we could remove the
+issue from a queue and avoid contention on features.
+
+
 Bugfixes and new features are not ported to older releases. To get the
 functionality you have to update to a new release with a fix.
 

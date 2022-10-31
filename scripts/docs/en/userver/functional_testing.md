@@ -2,7 +2,8 @@
 
 ## Getting started
 
-Userver has built-in support for functional service tests using [Yandex.Taxi Testsuite](https://pypi.org/project/yandex-taxi-testsuite/).
+🐙 **userver** has built-in support for functional service tests using
+[Yandex.Taxi Testsuite](https://pypi.org/project/yandex-taxi-testsuite/).
 Testsuite is based on [pytest](https://pytest.org/) and allows developers to test thier services
 in isolated environment.
 It starts service binary with minimal database and all external services mocked then allows
@@ -290,12 +291,29 @@ An example on testsuite tasks could be found here:
 Testsuite provides access to userver metrics, see @ref tutorial_metrics "tutorial on configuration".
 It allows to:
 
-- retrieve service metrics with `await monitor_client.get_metrics()`
+- retrieve specific service metric by path and (optionally) labels
+  `await monitor_client.single_metric(path, labels)`
+- retrieve array of metrics by path prefix and (optionally) labels
+  `await monitor_client.metrics(path_prefix, labels)`
 - reset metrics using `await service_client.reset_metrics()`
 
 Example usage:
 
+For a metric tag that is defined as:
+
+@snippet samples/testsuite-support/src/metrics.cpp metrics definition
+
+and used like:
+
+@snippet samples/testsuite-support/src/metrics.cpp metrics usage
+
+the metrics could be retrieved and reset as follows:
+ 
 @snippet samples/testsuite-support/tests/test_metrics.py metrics reset
+
+For metrics with labels, they could be retrieved in the following way: 
+
+@snippet samples/testsuite-support/tests/test_metrics.py metrics labels
 
 * C++ code: @ref samples/testsuite-support/src/metrics.cpp
 * C++ header: @ref samples/testsuite-support/src/metrics.hpp
@@ -325,7 +343,7 @@ def test_service(service_client):
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref md_en_userver_testing | @ref md_en_userver_profile_context_switches ⇨
+⇦ @ref md_en_userver_testing | @ref md_en_userver_chaos_testing ⇨
 @htmlonly </div> @endhtmlonly
 
 @example cmake/UserverTestsuite.cmake

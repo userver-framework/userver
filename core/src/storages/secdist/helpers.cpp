@@ -6,45 +6,48 @@
 #include <userver/formats/json/exception.hpp>
 #include <userver/storages/secdist/exceptions.hpp>
 
+#include <fmt/format.h>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::secdist {
 
-[[noreturn]] void ThrowInvalidSecdistType(const std::string& name,
+[[noreturn]] void ThrowInvalidSecdistType(const formats::json::Value& val,
                                           const std::string& type) {
-  throw InvalidSecdistJson('\'' + name + "' is not " + type +
-                           " (or not found)");
+  throw InvalidSecdistJson(
+      fmt::format("'{}' is not {} (or not found)", val.GetPath(), type));
 }
 
 std::string GetString(const formats::json::Value& parent_val,
                       const std::string& name) {
   const auto& val = parent_val[name];
   if (!val.IsString()) {
-    ThrowInvalidSecdistType(name, "a string");
+    ThrowInvalidSecdistType(val, "a string");
   }
   return val.As<std::string>();
 }
 
 int GetInt(const formats::json::Value& parent_val, const std::string& name,
            int dflt) {
+  const auto& val = parent_val[name];
   try {
-    return parent_val[name].As<int>();
+    return val.As<int>();
   } catch (const formats::json::MemberMissingException&) {
     return dflt;
   } catch (const formats::json::TypeMismatchException&) {
-    ThrowInvalidSecdistType(name, "an int");
+    ThrowInvalidSecdistType(val, "an int");
   }
 }
 
-void CheckIsObject(const formats::json::Value& val, const std::string& name) {
+void CheckIsObject(const formats::json::Value& val, const std::string&) {
   if (!val.IsObject()) {
-    ThrowInvalidSecdistType(name, "an object");
+    ThrowInvalidSecdistType(val, "an object");
   }
 }
 
-void CheckIsArray(const formats::json::Value& val, const std::string& name) {
+void CheckIsArray(const formats::json::Value& val, const std::string&) {
   if (!val.IsArray()) {
-    ThrowInvalidSecdistType(name, "an array");
+    ThrowInvalidSecdistType(val, "an array");
   }
 }
 

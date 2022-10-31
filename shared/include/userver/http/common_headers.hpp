@@ -122,6 +122,9 @@ inline constexpr char kConnection[] = "Connection";
 inline constexpr char kXYaRequestId[] = "X-YaRequestId";
 inline constexpr char kXYaTraceId[] = "X-YaTraceId";
 inline constexpr char kXYaSpanId[] = "X-YaSpanId";
+inline constexpr char kXRequestId[] = "X-RequestId";
+inline constexpr char kXBackendServer[] = "X-Backend-Server";
+inline constexpr char kXTaxiEnvoyProxyDstVhost[] = "X-Taxi-EnvoyProxy-DstVhost";
 /// @}
 
 /// @name Generic Yandex headers

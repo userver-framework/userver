@@ -25,8 +25,11 @@ enum class HttpMethod {
   kUnknown,
 };
 
-const std::string& ToString(HttpMethod method);
-HttpMethod HttpMethodFromString(const std::string& method_str);
+/// @brief Convert HTTP method enum value to string
+const std::string& ToString(HttpMethod method) noexcept;
+
+/// @brief Convert HTTP method string to enum value
+HttpMethod HttpMethodFromString(std::string_view method_str);
 
 }  // namespace server::http
 

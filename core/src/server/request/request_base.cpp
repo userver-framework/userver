@@ -17,7 +17,12 @@ void RequestBase::SetTaskStartTime() {
 }
 
 void RequestBase::SetResponseNotifyTime() {
-  response_notify_time_ = std::chrono::steady_clock::now();
+  SetResponseNotifyTime(std::chrono::steady_clock::now());
+}
+
+void RequestBase::SetResponseNotifyTime(
+    std::chrono::steady_clock::time_point now) {
+  response_notify_time_ = now;
 }
 
 void RequestBase::SetStartSendResponseTime() {

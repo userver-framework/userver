@@ -229,6 +229,9 @@ struct ConnectionSettings {
   /// Turns on connection pipeline mode
   PipelineMode pipeline_mode = PipelineMode::kDisabled;
 
+  /// This many connection errors in 15 seconds block new connections opening
+  size_t recent_errors_threshold = 2;
+
   /// Helps keep track of the changes in settings
   SettingsVersion version{0U};
 
@@ -237,7 +240,8 @@ struct ConnectionSettings {
            user_types == rhs.user_types &&
            ignore_unused_query_params == rhs.ignore_unused_query_params &&
            max_prepared_cache_size == rhs.max_prepared_cache_size &&
-           pipeline_mode == rhs.pipeline_mode;
+           pipeline_mode == rhs.pipeline_mode &&
+           recent_errors_threshold == rhs.recent_errors_threshold;
   }
 
   bool operator!=(const ConnectionSettings& rhs) const {

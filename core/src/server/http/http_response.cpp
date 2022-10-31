@@ -7,7 +7,6 @@
 
 #include <userver/engine/deadline.hpp>
 #include <userver/engine/io/socket.hpp>
-#include <userver/engine/sleep.hpp>
 #include <userver/hostinfo/blocking/get_hostname.hpp>
 #include <userver/http/common_headers.hpp>
 #include <userver/http/content_type.hpp>
@@ -15,7 +14,9 @@
 #include <userver/tracing/set_throttle_reason.hpp>
 #include <userver/tracing/span.hpp>
 #include <userver/utils/assert.hpp>
-#include <userver/utils/userver_info.hpp>
+#include <userver/utils/datetime/wall_coarse_clock.hpp>
+
+#include <server/http/http_cached_date.hpp>
 
 #include "http_request_impl.hpp"
 
@@ -185,13 +186,10 @@ void HttpResponse::SendResponse(engine::io::Socket& socket) {
   headers_.erase(USERVER_NAMESPACE::http::headers::kContentLength);
   const auto end = headers_.cend();
   if (headers_.find(USERVER_NAMESPACE::http::headers::kDate) == end) {
-    static const std::string kFormatString = "%a, %d %b %Y %H:%M:%S %Z";
-    static const auto tz = cctz::utc_time_zone();
-    const auto& time_str =
-        cctz::format(kFormatString, std::chrono::system_clock::now(), tz);
-
-    impl::OutputHeader(header, USERVER_NAMESPACE::http::headers::kDate,
-                       time_str);
+    header.append(USERVER_NAMESPACE::http::headers::kDate);
+    header.append(kKeyValueHeaderSeparator);
+    AppendCachedDate(header);
+    header.append(kCrlf);
   }
   if (headers_.find(USERVER_NAMESPACE::http::headers::kContentType) == end) {
     impl::OutputHeader(header, USERVER_NAMESPACE::http::headers::kContentType,

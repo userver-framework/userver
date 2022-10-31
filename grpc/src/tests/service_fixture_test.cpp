@@ -43,7 +43,7 @@ void GrpcServiceFixture::StopServer() noexcept {
 }
 
 formats::json::Value GrpcServiceFixture::GetStatistics() {
-  return statistics_storage_.GetAsJson(utils::statistics::StatisticsRequest{""})
+  return statistics_storage_.GetAsJson(utils::statistics::StatisticsRequest{})
       .ExtractValue();
 }
 

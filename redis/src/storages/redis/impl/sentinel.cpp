@@ -15,6 +15,7 @@
 #include "redis.hpp"
 #include "sentinel_impl.hpp"
 #include "subscribe_sentinel.hpp"
+#include "userver/storages/redis/impl/base.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
@@ -31,15 +32,14 @@ void ThrowIfCancelled() {
 
 }  // namespace
 
-Sentinel::Sentinel(const std::shared_ptr<ThreadPools>& thread_pools,
-                   const std::vector<std::string>& shards,
-                   const std::vector<ConnectionInfo>& conns,
-                   std::string shard_group_name, const std::string& client_name,
-                   const Password& password, ReadyChangeCallback ready_callback,
-                   std::unique_ptr<KeyShard>&& key_shard,
-                   CommandControl command_control,
-                   const testsuite::RedisControl& testsuite_redis_control,
-                   ConnectionMode mode)
+Sentinel::Sentinel(
+    const std::shared_ptr<ThreadPools>& thread_pools,
+    const std::vector<std::string>& shards,
+    const std::vector<ConnectionInfo>& conns, std::string shard_group_name,
+    const std::string& client_name, const Password& password,
+    ConnectionSecurity connection_security, ReadyChangeCallback ready_callback,
+    std::unique_ptr<KeyShard>&& key_shard, CommandControl command_control,
+    const testsuite::RedisControl& testsuite_redis_control, ConnectionMode mode)
     : thread_pools_(thread_pools),
       secdist_default_command_control_(command_control),
       testsuite_redis_control_(testsuite_redis_control) {
@@ -56,7 +56,8 @@ Sentinel::Sentinel(const std::shared_ptr<ThreadPools>& thread_pools,
     impl_ = std::make_unique<SentinelImpl>(
         *sentinel_thread_control_, thread_pools_->GetRedisThreadPool(), *this,
         shards, conns, std::move(shard_group_name), client_name, password,
-        std::move(ready_callback), std::move(key_shard), mode);
+        connection_security, std::move(ready_callback), std::move(key_shard),
+        mode);
   });
 }
 
@@ -122,7 +123,8 @@ std::shared_ptr<Sentinel> Sentinel::CreateSentinel(
     // CLUSTER SLOTS works after auth only. Masters and slaves used instead of
     // sentinels in cluster mode.
     conns.emplace_back(sentinel.host, sentinel.port,
-                       (key_shard ? Password("") : password));
+                       (key_shard ? Password("") : password), false,
+                       settings.secure_connection);
   }
 
   LOG_DEBUG() << "redis command_control:"
@@ -135,8 +137,8 @@ std::shared_ptr<Sentinel> Sentinel::CreateSentinel(
   if (!shards.empty() && !conns.empty()) {
     client = std::make_shared<redis::Sentinel>(
         thread_pools, shards, conns, std::move(shard_group_name), client_name,
-        password, std::move(ready_callback), std::move(key_shard),
-        command_control, testsuite_redis_control);
+        password, settings.secure_connection, std::move(ready_callback),
+        std::move(key_shard), command_control, testsuite_redis_control);
     client->Start();
   }
 

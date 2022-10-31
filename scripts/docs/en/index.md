@@ -50,6 +50,7 @@ Telegram support chats: [English-speaking](https://t.me/userver_en) |
 ## Testing and Benchmarking
 * @ref md_en_userver_testing
 * @ref md_en_userver_functional_testing
+* @ref md_en_userver_chaos_testing
 * @ref md_en_userver_profile_context_switches
 
 

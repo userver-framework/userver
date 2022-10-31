@@ -165,10 +165,10 @@ class _InterceptBytesLimit:
 @dataclasses.dataclass(frozen=True)
 class GateRoute:
     name: str
-    host_left: str
-    port_left: int
-    host_right: str
-    port_right: int
+    host_for_client: str
+    port_for_client: int
+    host_to_server: str
+    port_to_server: int
 
 
 async def _cancel_and_join(task: typing.Optional[asyncio.Task]) -> None:
@@ -189,19 +189,19 @@ class _SocketsPaired:
             self,
             route: GateRoute,
             loop: EvLoop,
-            left: socket.socket,
+            client: socket.socket,
             right: socket.socket,
-            to_right_intercept: Interceptor,
-            to_left_intercept: Interceptor,
+            to_server_intercept: Interceptor,
+            to_client_intercept: Interceptor,
     ) -> None:
         self._route = route
         self._loop = loop
 
-        self._left = left
+        self._client = client
         self._right = right
 
-        self._to_right_intercept: Interceptor = to_right_intercept
-        self._to_left_intercept: Interceptor = to_left_intercept
+        self._to_server_intercept: Interceptor = to_server_intercept
+        self._to_client_intercept: Interceptor = to_client_intercept
 
         self._tasks: typing.Optional[asyncio.Task] = asyncio.create_task(
             self._do_stream(),
@@ -210,19 +210,19 @@ class _SocketsPaired:
     async def _do_stream(self) -> None:
         await asyncio.wait(
             [
-                asyncio.create_task(self._do_pipe_channels(to_right=True)),
-                asyncio.create_task(self._do_pipe_channels(to_right=False)),
+                asyncio.create_task(self._do_pipe_channels(to_server=True)),
+                asyncio.create_task(self._do_pipe_channels(to_server=False)),
             ],
             return_when=asyncio.ALL_COMPLETED,
         )
 
-    async def _do_pipe_channels(self, *, to_right: bool) -> None:
-        if to_right:
-            socket_from = self._left
+    async def _do_pipe_channels(self, *, to_server: bool) -> None:
+        if to_server:
+            socket_from = self._client
             socket_to = self._right
         else:
             socket_from = self._right
-            socket_to = self._left
+            socket_to = self._client
 
         try:
             while True:
@@ -241,10 +241,10 @@ class _SocketsPaired:
                     else:
                         raise e
 
-                if to_right:
-                    interceptor = self._to_right_intercept
+                if to_server:
+                    interceptor = self._to_server_intercept
                 else:
-                    interceptor = self._to_left_intercept
+                    interceptor = self._to_client_intercept
 
                 await interceptor(self._loop, socket_from, socket_to)
         except Exception as exc:  # pylint: disable=broad-except
@@ -252,18 +252,20 @@ class _SocketsPaired:
         finally:
             self._close_sockets()
 
-    def set_to_right_interceptor(self, interceptor: Interceptor) -> None:
-        self._to_right_intercept = interceptor
+    def set_to_server_interceptor(self, interceptor: Interceptor) -> None:
+        self._to_server_intercept = interceptor
 
-    def set_to_left_interceptor(self, interceptor: Interceptor) -> None:
-        self._to_left_intercept = interceptor
+    def set_to_client_interceptor(self, interceptor: Interceptor) -> None:
+        self._to_client_intercept = interceptor
 
     def _close_sockets(self) -> None:
         try:
-            self._left.close()
+            self._client.close()
         except Exception as exc:  # pylint: disable=broad-except
             logger.warning(
-                'Exception in "%s" on closing left: %s', self._route.name, exc,
+                'Exception in "%s" on closing client: %s',
+                self._route.name,
+                exc,
             )
 
         try:
@@ -286,11 +288,12 @@ class _SocketsPaired:
 
 class TcpGate:
     """
-    Accepts incomming connections on 'left' (host_left, port_left), on each new
-    connection on 'left' connects to 'right' (host_right, port_right).
+    Accepts incomming client connections (host_for_client, port_for_client),
+    on each new connection on client connects to server
+    (host_to_server, port_to_server).
 
-    Asynchronously concurrently passes data from 'left' to 'right' and from
-    'right' to 'left', allowing intercepting the data, injecting delays and
+    Asynchronously concurrently passes data from client to server and from
+    server to client, allowing intercepting the data, injecting delays and
     dropping connections.
     """
 
@@ -298,8 +301,8 @@ class TcpGate:
         self._route = route
         self._loop = loop
 
-        self._to_right_intercept: Interceptor = _intercept_ok
-        self._to_left_intercept: Interceptor = _intercept_ok
+        self._to_server_intercept: Interceptor = _intercept_ok
+        self._to_client_intercept: Interceptor = _intercept_ok
 
         self._accept_sock: typing.Optional[socket.socket] = None
         self._accept_task: typing.Optional[asyncio.Task[None]] = None
@@ -316,39 +319,43 @@ class TcpGate:
         await self.stop()
 
     def start(self) -> None:
-        """ Open the socket and start accepting connections on `left` """
+        """ Open the socket and start accepting connections from client """
         if self._accept_sock:
             return
 
         self._accept_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._accept_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self._accept_sock.bind((self._route.host_left, self._route.port_left))
+        client_addr = (
+            self._route.host_for_client,
+            self._route.port_for_client,
+        )
+        self._accept_sock.bind(client_addr)
         self._accept_sock.listen()
 
         self.start_accepting()
 
     def start_accepting(self) -> None:
-        """ Start accepting incommong connections on `left` """
+        """ Start accepting incommong connections from client """
         assert self._accept_sock
-        if self._accept_task:
+        if self._accept_task and not self._accept_task.done():
             return
 
         self._accept_task = asyncio.create_task(self._do_accept())
 
     async def stop_accepting(self) -> None:
-        """ Stop accepting incommong connections on `left` """
+        """ Stop accepting incommong connections from client """
         await _cancel_and_join(self._accept_task)
 
     async def stop(self) -> None:
         """
-        Stop accepting incommong connections on `left`, close all the sockets
+        Stop accepting incommong connections from client, close all the sockets
         and connections
         """
         if not self._accept_sock:
             return
 
-        self.to_right_pass()
-        self.to_left_pass()
+        self.to_server_pass()
+        self.to_client_pass()
 
         self._accept_sock.close()
 
@@ -356,33 +363,33 @@ class TcpGate:
         await self.sockets_close()
         self._accept_sock = None
 
-    def set_to_right_interceptor(self, interceptor: Interceptor) -> None:
-        self._to_right_intercept = interceptor
+    def set_to_server_interceptor(self, interceptor: Interceptor) -> None:
+        self._to_server_intercept = interceptor
         for x in self._sockets:
-            x.set_to_right_interceptor(self._to_right_intercept)
+            x.set_to_server_interceptor(self._to_server_intercept)
 
-    def set_to_left_interceptor(self, interceptor: Interceptor) -> None:
-        self._to_left_intercept = interceptor
+    def set_to_client_interceptor(self, interceptor: Interceptor) -> None:
+        self._to_client_intercept = interceptor
         for x in self._sockets:
-            x.set_to_left_interceptor(self._to_left_intercept)
+            x.set_to_client_interceptor(self._to_client_intercept)
 
-    def to_right_pass(self) -> None:
+    def to_server_pass(self) -> None:
         """ Pass data as is """
-        self.set_to_right_interceptor(_intercept_ok)
+        self.set_to_server_interceptor(_intercept_ok)
 
-    def to_left_pass(self) -> None:
+    def to_client_pass(self) -> None:
         """ Pass data as is """
-        self.set_to_left_interceptor(_intercept_ok)
+        self.set_to_client_interceptor(_intercept_ok)
 
-    def to_right_noop(self) -> None:
-        """ Do not read data, causing left socket buffer overflows """
-        self.set_to_right_interceptor(_intercept_noop)
+    def to_server_noop(self) -> None:
+        """ Do not read data, causing client socket buffer overflows """
+        self.set_to_server_interceptor(_intercept_noop)
 
-    def to_left_noop(self) -> None:
+    def to_client_noop(self) -> None:
         """ Do not read data, causing right socket buffer overflows """
-        self.set_to_left_interceptor(_intercept_noop)
+        self.set_to_client_interceptor(_intercept_noop)
 
-    def to_right_delay(self, delay: float) -> None:
+    def to_server_delay(self, delay: float) -> None:
         """ Delay data transmission """
 
         async def _intercept_delay_bound(
@@ -390,9 +397,9 @@ class TcpGate:
         ) -> None:
             await _intercept_delay(delay, loop, socket_from, socket_to)
 
-        self.set_to_right_interceptor(_intercept_delay_bound)
+        self.set_to_server_interceptor(_intercept_delay_bound)
 
-    def to_left_delay(self, delay: float) -> None:
+    def to_client_delay(self, delay: float) -> None:
         """ Delay data transmission """
 
         async def _intercept_delay_bound(
@@ -400,41 +407,41 @@ class TcpGate:
         ) -> None:
             await _intercept_delay(delay, loop, socket_from, socket_to)
 
-        self.set_to_left_interceptor(_intercept_delay_bound)
+        self.set_to_client_interceptor(_intercept_delay_bound)
 
-    def to_right_close_on_data(self) -> None:
-        """ Close on first bytes of data on left """
-        self.set_to_right_interceptor(_intercept_close_on_data)
+    def to_server_close_on_data(self) -> None:
+        """ Close on first bytes of data from client """
+        self.set_to_server_interceptor(_intercept_close_on_data)
 
-    def to_left_close_on_data(self) -> None:
-        """ Close on first bytes of data on right """
-        self.set_to_left_interceptor(_intercept_close_on_data)
+    def to_client_close_on_data(self) -> None:
+        """ Close on first bytes of data from server """
+        self.set_to_client_interceptor(_intercept_close_on_data)
 
-    def to_right_corrupt_data(self) -> None:
-        """ Corrupt data recveid from left """
-        self.set_to_right_interceptor(_intercept_corrupt)
+    def to_server_corrupt_data(self) -> None:
+        """ Corrupt data recveid from client """
+        self.set_to_server_interceptor(_intercept_corrupt)
 
-    def to_left_corrupt_data(self) -> None:
-        """ Corrupt data recveid from right """
-        self.set_to_left_interceptor(_intercept_corrupt)
+    def to_client_corrupt_data(self) -> None:
+        """ Corrupt data recveid from server """
+        self.set_to_client_interceptor(_intercept_corrupt)
 
-    def to_right_limit_bps(self, bytes_per_second: float) -> None:
-        """ Limit bytes per second transmission by network from left """
-        self.set_to_right_interceptor(_InterceptBpsLimit(bytes_per_second))
+    def to_server_limit_bps(self, bytes_per_second: float) -> None:
+        """ Limit bytes per second transmission by network from client """
+        self.set_to_server_interceptor(_InterceptBpsLimit(bytes_per_second))
 
-    def to_left_limit_bps(self, bytes_per_second: float) -> None:
-        """ Limit bytes per second transmission by network from right """
-        self.set_to_left_interceptor(_InterceptBpsLimit(bytes_per_second))
+    def to_client_limit_bps(self, bytes_per_second: float) -> None:
+        """ Limit bytes per second transmission by network from server """
+        self.set_to_client_interceptor(_InterceptBpsLimit(bytes_per_second))
 
-    def to_right_limit_time(self, timeout: float, jitter: float) -> None:
-        """ Limit conection lifetime on receive of first bytes on the left """
-        self.set_to_right_interceptor(_InterceptTimeLimit(timeout, jitter))
+    def to_server_limit_time(self, timeout: float, jitter: float) -> None:
+        """ Limit conection lifetime on receive of first bytes from client """
+        self.set_to_server_interceptor(_InterceptTimeLimit(timeout, jitter))
 
-    def to_left_limit_time(self, timeout: float, jitter: float) -> None:
-        """ Limit conection lifetime on receive of first bytes on the right """
-        self.set_to_left_interceptor(_InterceptTimeLimit(timeout, jitter))
+    def to_client_limit_time(self, timeout: float, jitter: float) -> None:
+        """ Limit conection lifetime on receive of first bytes from server """
+        self.set_to_client_interceptor(_InterceptTimeLimit(timeout, jitter))
 
-    def to_right_smaller_parts(self, parts_count: int) -> None:
+    def to_server_smaller_parts(self, parts_count: int) -> None:
         """ Pass data in smaller parts """
 
         async def _intercept_smaller_parts_bound(
@@ -444,9 +451,9 @@ class TcpGate:
                 parts_count, loop, socket_from, socket_to,
             )
 
-        self.set_to_right_interceptor(_intercept_smaller_parts_bound)
+        self.set_to_server_interceptor(_intercept_smaller_parts_bound)
 
-    def to_left_smaller_parts(self, parts_count: int) -> None:
+    def to_client_smaller_parts(self, parts_count: int) -> None:
         """ Pass data in smaller parts """
 
         async def _intercept_smaller_parts_bound(
@@ -456,15 +463,15 @@ class TcpGate:
                 parts_count, loop, socket_from, socket_to,
             )
 
-        self.set_to_left_interceptor(_intercept_smaller_parts_bound)
+        self.set_to_client_interceptor(_intercept_smaller_parts_bound)
 
-    def to_right_limit_bytes(self, bytes_limit: int) -> None:
+    def to_server_limit_bytes(self, bytes_limit: int) -> None:
         """ Drop all connections each `bytes_limit` of data sent by network """
-        self.set_to_right_interceptor(_InterceptBytesLimit(bytes_limit, self))
+        self.set_to_server_interceptor(_InterceptBytesLimit(bytes_limit, self))
 
-    def to_left_limit_bytes(self, bytes_limit: int) -> None:
+    def to_client_limit_bytes(self, bytes_limit: int) -> None:
         """ Drop all connections each `bytes_limit` of data sent by network """
-        self.set_to_left_interceptor(_InterceptBytesLimit(bytes_limit, self))
+        self.set_to_client_interceptor(_InterceptBytesLimit(bytes_limit, self))
 
     def connections_count(self) -> int:
         """ Returns amount of connections going through the gate """
@@ -503,24 +510,24 @@ class TcpGate:
 
     async def _do_accept(self) -> None:
         while self._accept_sock:
-            left, _ = await self._loop.sock_accept(self._accept_sock)
-            left.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-            fcntl.fcntl(left, fcntl.F_SETFL, os.O_NONBLOCK)
+            client, _ = await self._loop.sock_accept(self._accept_sock)
+            client.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+            fcntl.fcntl(client, fcntl.F_SETFL, os.O_NONBLOCK)
 
-            right = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            dest = (self._route.host_right, self._route.port_right)
+            server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            dest = (self._route.host_to_server, self._route.port_to_server)
             try:
-                await self._loop.sock_connect(right, dest)
-                right.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-                fcntl.fcntl(right, fcntl.F_SETFL, os.O_NONBLOCK)
+                await self._loop.sock_connect(server, dest)
+                server.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+                fcntl.fcntl(server, fcntl.F_SETFL, os.O_NONBLOCK)
                 self._sockets.add(
                     _SocketsPaired(
                         self._route,
                         self._loop,
-                        left,
-                        right,
-                        self._to_right_intercept,
-                        self._to_left_intercept,
+                        client,
+                        server,
+                        self._to_server_intercept,
+                        self._to_client_intercept,
                     ),
                 )
                 self._connected_event.set()
@@ -531,7 +538,7 @@ class TcpGate:
                     dest,
                     exc,
                 )
-                left.close()
-                right.close()
+                client.close()
+                server.close()
 
             self._collect_garbage()
