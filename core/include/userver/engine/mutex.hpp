@@ -61,9 +61,7 @@ class Mutex final {
  private:
   class Impl;
 
-  constexpr static std::size_t kImplSize = impl::kWaitListSize + sizeof(impl::TaskContext*);
-
-  utils::FastPimpl<Impl, kImplSize, alignof(void*)> impl_;
+  utils::FastPimpl<Impl, 96, alignof(void*)> impl_;
 };
 
 template <typename Rep, typename Period>
