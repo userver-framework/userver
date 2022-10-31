@@ -22,26 +22,6 @@ USERVER_NAMESPACE_BEGIN
 
 namespace utils::statistics {
 
-class Label {
- public:
-  Label() = default;
-  Label(std::string name, std::string value);
-
-  explicit operator bool() { return !name_.empty(); }
-
-  const std::string& Name() const { return name_; }
-  const std::string& Value() const& { return value_; }
-  std::string& Value() & { return value_; }
-  std::string&& Value() && { return std::move(value_); }
-
- private:
-  std::string name_;
-  std::string value_;
-};
-
-bool operator<(const Label& x, const Label& y) noexcept;
-bool operator==(const Label& x, const Label& y) noexcept;
-
 /// @brief Class describing the request for metrics data.
 ///
 /// Metric path and metric name are the same thing. For example for code like
@@ -101,7 +81,7 @@ class StatisticsRequest final {
 using ExtenderFunc =
     std::function<formats::json::ValueBuilder(const StatisticsRequest&)>;
 
-using WriterFunc = std::function<void(Writer)>;
+using WriterFunc = std::function<void(Writer&)>;
 
 namespace impl {
 

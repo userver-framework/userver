@@ -19,7 +19,7 @@ void HttpHandlerMethodStatistics::Account(
   }
 }
 
-void DumpMetric(utils::statistics::Writer writer,
+void DumpMetric(utils::statistics::Writer& writer,
                 const HttpHandlerMethodStatistics& stats) {
   writer = HttpHandlerStatisticsSnapshot{stats};
 }
@@ -45,7 +45,7 @@ void HttpHandlerStatisticsSnapshot::Add(
   cancelled_by_deadline += other.cancelled_by_deadline;
 }
 
-void DumpMetric(utils::statistics::Writer writer,
+void DumpMetric(utils::statistics::Writer& writer,
                 const HttpHandlerStatisticsSnapshot& stats) {
   writer["reply-codes"] = stats.reply_codes;
   writer["in-flight"] = stats.in_flight;

@@ -36,14 +36,6 @@ void RemoveAddedLabels(std::vector<Label>& labels,
 
 }  // namespace
 
-bool operator<(const Label& x, const Label& y) noexcept {
-  return x.Name() < y.Name() || (x.Name() == y.Name() && x.Value() < y.Value());
-}
-
-bool operator==(const Label& x, const Label& y) noexcept {
-  return x.Name() == y.Name() && x.Value() == y.Value();
-}
-
 StatisticsRequest StatisticsRequest::MakeWithPrefix(
     const std::string& prefix, AddLabels add_labels,
     std::vector<Label> require_labels) {
@@ -70,6 +62,8 @@ StatisticsRequest::StatisticsRequest(std::string prefix_in,
       prefix_match_type(path_match_type_in),
       require_labels(std::move(require_labels_in)),
       add_labels(std::move(add_labels_in)) {}
+
+BaseFormatBuilder::~BaseFormatBuilder() = default;
 
 Storage::Storage() : may_register_extenders_(true) {}
 
@@ -120,10 +114,13 @@ void Storage::VisitMetrics(BaseFormatBuilder& out,
       }
 
       try {
-        Writer writer{&state, entry.prefix_path, LabelsSpan{labels_vector}};
+        auto writer =
+            (entry.prefix_path.empty()
+                 ? Writer{state, LabelsSpan{labels_vector}}
+                 : Writer{state, LabelsSpan{labels_vector}}[entry.prefix_path]);
         if (writer) {
           LOG_DEBUG() << "Getting statistics for prefix=" << entry.prefix_path;
-          entry.writer(std::move(writer));
+          entry.writer(writer);
         }
       } catch (const std::exception& e) {
         UASSERT_MSG(false,

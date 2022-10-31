@@ -9,7 +9,9 @@ USERVER_NAMESPACE_BEGIN
 
 namespace utils::statistics {
 
+// NOLINTNEXTLINE(bugprone-forward-declaration-namespace)
 class Storage;
+
 class Entry;
 class StatisticsRequest;
 class Writer;

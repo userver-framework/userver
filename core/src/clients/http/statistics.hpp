@@ -5,10 +5,10 @@
 #include <unordered_map>
 #include <vector>
 
-#include <userver/formats/json/value.hpp>
 #include <userver/utils/datetime.hpp>
 #include <userver/utils/statistics/percentile.hpp>
 #include <userver/utils/statistics/recentperiod.hpp>
+#include <userver/utils/statistics/writer.hpp>
 #include <utils/statistics/http_codes.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -144,11 +144,11 @@ enum class FormatMode {
   kModeDestination,
 };
 
-formats::json::ValueBuilder StatisticsToJson(
-    const InstanceStatistics& stats,
-    FormatMode format_mode = FormatMode::kModeAll);
+void DumpMetric(utils::statistics::Writer& writer,
+                const InstanceStatistics& stats,
+                FormatMode format_mode = FormatMode::kModeAll);
 
-formats::json::ValueBuilder PoolStatisticsToJson(const PoolStatistics& stats);
+void DumpMetric(utils::statistics::Writer& writer, const PoolStatistics& stats);
 
 }  // namespace clients::http
 

@@ -181,7 +181,7 @@ std::string GetPercentileFieldName(double perc);
 template <size_t M, typename Counter, size_t ExtraBuckets,
           size_t ExtraBucketSize>
 void DumpMetric(
-    Writer writer,
+    Writer& writer,
     const Percentile<M, Counter, ExtraBuckets, ExtraBucketSize>& perc,
     std::initializer_list<double> percents = {0, 50, 90, 95, 98, 99, 99.6, 99.9,
                                               100}) {

@@ -1,63 +1,16 @@
 #pragma once
 
 /// @file userver/utils/statistics/writer.hpp
-/// @brief Utilities for efficient writing of metrics
+/// @brief @copybrief utils::statistics::Writer
 
 #include <string_view>
 #include <type_traits>
 
+#include <userver/utils/statistics/labels.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace utils::statistics {
-
-class Label;
-
-/// @brief Non owning label name+value storage.
-class LabelView {
- public:
-  LabelView() = default;
-  LabelView(Label&& label) = delete;
-  explicit LabelView(const Label& label) noexcept;
-  LabelView(std::string_view name, std::string_view value) noexcept
-      : name_(name), value_(value) {}
-
-  explicit operator bool() { return !name_.empty(); }
-
-  std::string_view Name() const { return name_; }
-  std::string_view Value() const { return value_; }
-
- private:
-  std::string_view name_;
-  std::string_view value_;
-};
-
-bool operator<(const LabelView& x, const LabelView& y) noexcept;
-bool operator==(const LabelView& x, const LabelView& y) noexcept;
-
-/// @brief View over a continious range of LabelView.
-class LabelsSpan {
- public:
-  LabelsSpan() = default;
-  LabelsSpan(const LabelView* begin, const LabelView* end) noexcept;
-  LabelsSpan(std::initializer_list<LabelView> il) noexcept
-      : LabelsSpan(il.begin(), il.end()) {}
-
-  template <class Container>
-  explicit LabelsSpan(
-      const Container& cont,
-      std::enable_if_t<std::is_same_v<decltype(*(cont.data() + cont.size())),
-                                      const LabelView&>>* = nullptr) noexcept
-      : LabelsSpan(cont.data(), cont.data() + cont.size()) {}
-
-  const LabelView* begin() const noexcept { return begin_; }
-  const LabelView* end() const noexcept { return end_; }
-  std::size_t size() const noexcept { return end_ - begin_; }
-  bool empty() const noexcept { return end_ == begin_; }
-
- private:
-  const LabelView* begin_{nullptr};
-  const LabelView* end_{nullptr};
-};
 
 namespace impl {
 
@@ -67,24 +20,22 @@ template <class Writer, class Metric>
 void DumpMetric(Writer&&, Metric&&) {
   static_assert(sizeof(Metric) == 0,
                 "Cast the metric to an arithmetic type or provide a "
-                "specialization of `void DumpMetric(utils::statistics::Writer "
+                "specialization of `void DumpMetric(utils::statistics::Writer& "
                 "writer, const Metric& value)` for the Metric type");
 }
 
 }  // namespace impl
 
 /// @brief Class for writing metrics
+///
+/// @warning This is an early version, API and behavior may change
 class Writer final {
  public:
   /// Path parts delimiter. In other words, writer["a"]["b"] becomes "a.b"
   static inline constexpr char kDelimiter = '.';
 
-  /// @cond
-  Writer(impl::WriterState* state, std::string_view path, LabelsSpan labels);
-  /// @endcond
-
-  Writer(Writer&& other) noexcept;
-
+  Writer() = delete;
+  Writer(Writer&& other) = delete;
   Writer(const Writer&) = delete;
   Writer& operator=(Writer&&) = delete;
   Writer& operator=(const Writer&) = delete;
@@ -92,7 +43,10 @@ class Writer final {
   ~Writer();
 
   /// Returns a Writer with a ('.' + path) appended
-  Writer operator[](std::string_view path);
+  [[nodiscard]] Writer operator[](std::string_view path) &;
+
+  /// Returns a Writer with a ('.' + path) appended
+  [[nodiscard]] Writer operator[](std::string_view path) &&;
 
   /// Write arithmetic metric value without labels to metrics builder
   template <class T>
@@ -106,19 +60,22 @@ class Writer final {
   std::enable_if_t<!std::is_arithmetic_v<T>> operator=(const T& value) {
     if (state_) {
       using impl::DumpMetric;  // poison pill
-      DumpMetric(Writer{state_, {}, {}}, value);
+      DumpMetric(*this, value);
     }
   }
 
   /// Write metric value with labels to metrics builder
   template <class T>
   Writer&& ValueWithLabels(const T& value, LabelsSpan labels) {
+    auto new_writer = MakeChild();
+    new_writer.AppendLabelsSpan(labels);
+
     if constexpr (std::is_arithmetic_v<T>) {
-      Writer{state_, {}, labels}.Write(value);
+      new_writer.Write(value);
     } else {
       if (state_) {
         using impl::DumpMetric;  // poison pill
-        DumpMetric(Writer{state_, {}, labels}, value);
+        DumpMetric(new_writer, value);
       }
     }
 
@@ -143,8 +100,14 @@ class Writer final {
   /// skipped.
   explicit operator bool() const noexcept { return !!state_; }
 
+  /// @cond
+  explicit Writer(impl::WriterState* state) noexcept;
+  explicit Writer(impl::WriterState& state, LabelsSpan labels);
+  /// @endcond
+
  private:
   using ULongLong = unsigned long long;
+
   using PathSizeType = std::uint16_t;
   using LabelsSizeType = std::uint8_t;
 
@@ -161,13 +124,18 @@ class Writer final {
   void Write(unsigned short value) { Write(static_cast<long long>(value)); }
   void Write(short value) { Write(static_cast<long long>(value)); }
 
+  Writer MakeChild();
+
+  struct MoveTag {};
+  Writer(Writer& other, MoveTag) noexcept;
+
+  Writer MoveOut() noexcept { return Writer{*this, MoveTag{}}; }
+
   void ResetState() noexcept;
   void ValidateUsage();
 
-  // In main constructor we need a constructor call that succeeds. In that case
-  // even if the main constructor throws, the ~Writer() is called.
-  struct MarkDestructionReady {};
-  Writer(impl::WriterState* state, MarkDestructionReady) noexcept;
+  void AppendPath(std::string_view path);
+  void AppendLabelsSpan(LabelsSpan labels);
 
   impl::WriterState* state_;
   const PathSizeType initial_path_size_;

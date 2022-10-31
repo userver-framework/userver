@@ -1,7 +1,6 @@
 #include <userver/utils/statistics/writer.hpp>
 
-#include <algorithm>
-
+#include <fmt/format.h>
 #include <boost/numeric/conversion/cast.hpp>
 
 #include <userver/utils/assert.hpp>
@@ -14,6 +13,9 @@ USERVER_NAMESPACE_BEGIN
 namespace utils::statistics {
 
 namespace {
+
+constexpr std::string_view kFixitHint =
+    "Destroy the last Writer object before using the previous one.";
 
 template <class ContainerRight>
 bool LeftContainsRight(LabelsSpan left, const ContainerRight& right) {
@@ -91,78 +93,18 @@ void CheckAndWrite(impl::WriterState& state,
 
 }  // namespace
 
-LabelView::LabelView(const Label& label) noexcept
-    : name_(label.Name()), value_(label.Value()) {}
-
-LabelsSpan::LabelsSpan(const LabelView* begin, const LabelView* end) noexcept
-    : begin_(begin), end_(end) {
-  UASSERT(begin <= end);
-}
-
-bool operator<(const LabelView& x, const LabelView& y) noexcept {
-  return x.Name() < y.Name() || (x.Name() == y.Name() && x.Value() < y.Value());
-}
-
-bool operator==(const LabelView& x, const LabelView& y) noexcept {
-  return x.Name() == y.Name() && x.Value() == y.Value();
-}
-
-BaseFormatBuilder::~BaseFormatBuilder() = default;
-
-Writer::Writer(impl::WriterState* state, MarkDestructionReady) noexcept
+Writer::Writer(impl::WriterState* state) noexcept
     : state_(state),
-      initial_path_size_(state_ ? state_->path.size() : 0),
+      initial_path_size_(state ? state->path.size() : 0),
       current_path_size_(initial_path_size_),
-      initial_labels_size_(state_ ? state_->add_labels.size() : 0),
+      initial_labels_size_(state ? state->add_labels.size() : 0),
       current_labels_size_(initial_labels_size_) {}
 
-Writer::Writer(impl::WriterState* state, std::string_view path,
-               LabelsSpan labels)
-    : Writer(state, MarkDestructionReady{}) {
-  if (!state_) {
-    return;
-  }
-
-  state_->add_labels.insert(state_->add_labels.end(), labels.begin(),
-                            labels.end());
-  UINVARIANT(
-      state_->add_labels.size() <= std::numeric_limits<LabelsSizeType>::max(),
-      "Too many labels");
-  current_labels_size_ = state_->add_labels.size();
-
-  if (path.empty()) {
-    return;
-  }
-
-  if (!state_->path.empty()) {
-    state_->path.push_back(kDelimiter);
-  }
-  state_->path.append(path);
-  UINVARIANT(state_->path.size() <= std::numeric_limits<PathSizeType>::max(),
-             "Path is too long");
-  current_path_size_ = state_->path.size();
-
-  switch (state_->request.prefix_match_type) {
-    case StatisticsRequest::PrefixMatch::kNoop:
-      break;
-
-    case StatisticsRequest::PrefixMatch::kExact:
-      if (!CanSubPathSucceedExactMatch(state_->path, state_->request.prefix,
-                                       initial_path_size_)) {
-        ResetState();
-      }
-      break;
-
-    case StatisticsRequest::PrefixMatch::kStartsWith:
-      if (!CanSubPathSucceedStartsWith(state_->path, state_->request.prefix,
-                                       initial_path_size_)) {
-        ResetState();
-      }
-      break;
-  }
+Writer::Writer(impl::WriterState& state, LabelsSpan labels) : Writer(&state) {
+  AppendLabelsSpan(labels);
 }
 
-Writer::Writer(Writer&& other) noexcept
+Writer::Writer(Writer& other, MoveTag) noexcept
     : state_(other.state_),
       initial_path_size_(other.initial_path_size_),
       current_path_size_(other.current_path_size_),
@@ -177,17 +119,21 @@ Writer::~Writer() {
   }
 }
 
-Writer Writer::operator[](std::string_view path) {
+Writer Writer::operator[](std::string_view path) & { return MakeChild()[path]; }
+
+Writer Writer::operator[](std::string_view path) && {
   UINVARIANT(!path.empty(),
              fmt::format("Detected an attempt to append an empty path to '{}'",
-                         state_->path));
+                         state_ ? state_->path : std::string_view{}));
+  AppendPath(path);
+  return MoveOut();
+}
 
-  UINVARIANT(!state_ || current_path_size_ == state_->path.size(),
-             fmt::format("Detected an attempt to simultaneously use Writer for "
-                         "different paths '{}' and '{}.{}', which is forbidden",
-                         state_->path,
-                         state_->path.substr(0, current_path_size_), path));
-  return Writer{state_, path, {}};
+Writer Writer::MakeChild() {
+  if (state_) {
+    ValidateUsage();
+  }
+  return Writer{state_};
 }
 
 void Writer::Write(unsigned long long value) {
@@ -215,11 +161,16 @@ void Writer::ResetState() noexcept {
   UASSERT(state_);
 
   UASSERT_MSG(current_path_size_ == state_->path.size(),
-              "Invalid destruction order! Writer should not be stored!");
+              fmt::format("Invalid destruction order for path '{}', expected "
+                          "path size {}! {}",
+                          state_->path, current_path_size_, kFixitHint));
   state_->path.resize(initial_path_size_);
 
   UASSERT_MSG(current_labels_size_ == state_->add_labels.size(),
-              "Invalid destruction order! Writer should not be stored!");
+              fmt::format("Invalid destruction order for path '{}', expected "
+                          "labels size {} while it is {}! {}",
+                          state_->path, current_labels_size_,
+                          state_->add_labels.size(), kFixitHint));
   state_->add_labels.resize(initial_labels_size_);
 
   state_ = nullptr;
@@ -231,9 +182,65 @@ void Writer::ValidateUsage() {
   UINVARIANT(
       current_path_size_ == state_->path.size(),
       fmt::format("Detected an attempt to simultaneously use Writer for "
-                  "different paths '{}' and '{}', which is forbidden",
-                  state_->path, state_->path.substr(0, current_path_size_)));
-  UASSERT(current_labels_size_ == state_->add_labels.size());
+                  "different paths '{}' and '{}', which is forbidden. {}",
+                  state_->path, state_->path.substr(0, current_path_size_),
+                  kFixitHint));
+
+  UINVARIANT(current_labels_size_ == state_->add_labels.size(),
+             fmt::format("Detected an attempt to simultaneously use Writer for "
+                         "path '{}' with different labels, expected "
+                         "labels size {} while it is {}! {}",
+                         state_->path, current_labels_size_,
+                         state_->add_labels.size(), kFixitHint));
+}
+
+void Writer::AppendPath(std::string_view path) {
+  if (!state_) {
+    return;
+  }
+
+  UINVARIANT(state_->path.size() + path.size() <
+                 std::numeric_limits<PathSizeType>::max(),
+             fmt::format("Path '{}' is too long", state_->path));
+
+  if (!state_->path.empty()) {
+    state_->path.push_back(kDelimiter);
+  }
+  state_->path.append(path);
+  current_path_size_ = state_->path.size();
+
+  switch (state_->request.prefix_match_type) {
+    case StatisticsRequest::PrefixMatch::kNoop:
+      break;
+
+    case StatisticsRequest::PrefixMatch::kExact:
+      if (!CanSubPathSucceedExactMatch(state_->path, state_->request.prefix,
+                                       initial_path_size_)) {
+        ResetState();
+      }
+      break;
+
+    case StatisticsRequest::PrefixMatch::kStartsWith:
+      if (!CanSubPathSucceedStartsWith(state_->path, state_->request.prefix,
+                                       initial_path_size_)) {
+        ResetState();
+      }
+      break;
+  }
+}
+
+void Writer::AppendLabelsSpan(LabelsSpan labels) {
+  if (!state_) {
+    return;
+  }
+
+  UINVARIANT(state_->add_labels.size() + labels.size() <=
+                 std::numeric_limits<LabelsSizeType>::max(),
+             fmt::format("Too many labels at path '{}'", state_->path));
+
+  state_->add_labels.insert(state_->add_labels.end(), labels.begin(),
+                            labels.end());
+  current_labels_size_ = state_->add_labels.size();
 }
 
 }  // namespace utils::statistics

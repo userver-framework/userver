@@ -220,7 +220,7 @@ formats::json::Value Server::GetMonitorData(
 }
 
 void Server::WriteTotalHandlerStatistics(
-    utils::statistics::Writer writer) const {
+    utils::statistics::Writer& writer) const {
   const auto& handlers =
       pimpl->main_port_info_.request_handler_->GetHandlerInfoIndex()
           .GetHandlers();

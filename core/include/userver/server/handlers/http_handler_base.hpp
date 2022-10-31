@@ -10,7 +10,6 @@
 #include <userver/dynamic_config/source.hpp>
 #include <userver/logging/level.hpp>
 #include <userver/utils/statistics/entry.hpp>
-#include <userver/utils/statistics/writer.hpp>
 #include <userver/utils/token_bucket.hpp>
 
 #include <userver/server/handlers/auth/auth_checker_base.hpp>

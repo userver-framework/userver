@@ -80,7 +80,7 @@ class HttpHandlerMethodStatistics final {
   std::atomic<std::uint64_t> cancelled_by_deadline_{0};
 };
 
-void DumpMetric(utils::statistics::Writer writer,
+void DumpMetric(utils::statistics::Writer& writer,
                 const HttpHandlerMethodStatistics& stats);
 
 struct HttpHandlerStatisticsSnapshot final {
@@ -100,7 +100,7 @@ struct HttpHandlerStatisticsSnapshot final {
   std::uint64_t cancelled_by_deadline{0};
 };
 
-void DumpMetric(utils::statistics::Writer writer,
+void DumpMetric(utils::statistics::Writer& writer,
                 const HttpHandlerStatisticsSnapshot& stats);
 
 // Statistics for a single request from the overall server or the external

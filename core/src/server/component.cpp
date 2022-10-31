@@ -21,8 +21,8 @@ Server::Server(const components::ComponentConfig& component_config,
         return ExtendStatistics(request);
       });
   handler_statistics_holder_ = statistics_storage.RegisterWriter(
-      "http.handler.total", [this](utils::statistics::Writer writer) {
-        return server_->WriteTotalHandlerStatistics(std::move(writer));
+      "http.handler.total", [this](utils::statistics::Writer& writer) {
+        return server_->WriteTotalHandlerStatistics(writer);
       });
 }
 

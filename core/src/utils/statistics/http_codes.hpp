@@ -6,8 +6,7 @@
 #include <cstdint>
 #include <unordered_map>
 
-#include <userver/formats/json_fwd.hpp>
-#include <userver/utils/statistics/writer.hpp>
+#include <userver/utils/statistics/fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -38,10 +37,7 @@ class HttpCodes final {
   std::array<std::atomic<ValueType>, kMaxHttpStatus - kMinHttpStatus> codes_{};
 };
 
-formats::json::Value Serialize(const HttpCodes::Snapshot& value,
-                               formats::serialize::To<formats::json::Value>);
-
-void DumpMetric(Writer writer, const HttpCodes::Snapshot& snapshot);
+void DumpMetric(Writer& writer, const HttpCodes::Snapshot& snapshot);
 
 }  // namespace utils::statistics
 

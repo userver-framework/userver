@@ -6,7 +6,7 @@
 #include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/enumerate.hpp>
-#include <userver/utils/statistics/metadata.hpp>
+#include <userver/utils/statistics/writer.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -53,17 +53,7 @@ void HttpCodes::Snapshot::Add(const Snapshot& other) {
   }
 }
 
-formats::json::Value Serialize(const HttpCodes::Snapshot& value,
-                               formats::serialize::To<formats::json::Value>) {
-  formats::json::ValueBuilder result(formats::common::Type::kObject);
-  for (const auto& [code, count] : value.codes) {
-    result[std::to_string(code)] = count;
-  }
-  utils::statistics::SolomonChildrenAreLabelValues(result, "http_code");
-  return result.ExtractValue();
-}
-
-void DumpMetric(Writer writer, const HttpCodes::Snapshot& snapshot) {
+void DumpMetric(Writer& writer, const HttpCodes::Snapshot& snapshot) {
   for (const auto& [code, count] : snapshot.codes) {
     writer.ValueWithLabels(count, {"http_code", std::to_string(code)});
   }

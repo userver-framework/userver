@@ -374,7 +374,7 @@ HttpHandlerBase::HttpHandlerBase(const components::ComponentConfig& config,
       context.FindComponent<components::StatisticsStorage>().GetStorage();
   statistics_holder_ = statistics_storage.RegisterWriter(
       std::move(prefix),
-      [this](utils::statistics::Writer result) {
+      [this](utils::statistics::Writer& result) {
         FormatStatistics(result["handler"], *handler_statistics_);
         if constexpr (kIncludeServerHttpMetrics) {
           FormatStatistics(result["request"], *request_statistics_);
