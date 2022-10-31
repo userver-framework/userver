@@ -4,7 +4,11 @@
 
 
 ## Introductions
-* 🎥 Writing a new service with database and cache from scratch: [Эффективные и высоконагруженные сервисы на C++](https://youtu.be/qrGZARf2Wno?t=2034)
+* 🎥 Writing a new service with database and cache from scratch:
+  [Эффективные и высоконагруженные сервисы на C++](https://youtu.be/qrGZARf2Wno?t=2034)
+* 🎥 Why there's a need in the C++ framework and introduction into its basics
+  (component system, configs, gRPC, lifetimes)
+  [Сервисы на userver](https://disk.yandex.ru/d/N8lQtMaWqLqn_g)
 
 
 ## Beta announcements
