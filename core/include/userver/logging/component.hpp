@@ -43,6 +43,14 @@ namespace components {
 /// overflow_behavior | message handling policy while the queue is full: `discard` drops messages, `block` waits until message gets into the queue | discard
 /// testsuite-capture | if exists, setups additional TCP log sink for testing purposes | {}
 ///
+/// ### Logs output
+/// You can specify logger output, in `file_path` option:
+/// - Use `@stdout` to write your logs to standard output stream;
+/// - Use `@stderr` to write your logs to standard error stream;
+/// - Use `@null` to supress sending of logs;
+/// - Use `%file_name%` to write your logs in file. Use USR1 signal or `OnLogRotate` handler to reopen files after log rotation;
+/// - Use `unix://%socket_name%` to write your logs to unix socket. Socket must be created before the service starts and closed by listener afert service is shuted down.
+///
 /// ### testsuite-capture options:
 /// Name | Description | Default value
 /// ---- | ----------- | -------------
