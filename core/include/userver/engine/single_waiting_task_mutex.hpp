@@ -1,7 +1,7 @@
 #pragma once
 
-/// @file userver/engine/mutex.hpp
-/// @brief @copybrief engine::Mutex
+/// @file userver/engine/single_waiter_mutex.hpp
+/// @brief @copybrief engine::SingleWaitingTaskMutex
 
 #include <atomic>
 #include <chrono>
@@ -16,22 +16,28 @@ namespace engine {
 
 /// @ingroup userver_concurrency
 ///
-/// @brief std::mutex replacement for asynchronous tasks
+/// @brief Lighter version of Mutex with not more than 1 waiting task.
+///
+/// There are some situations when a resource is accessed
+/// concurrently, but concurrency factor is limited by 2.
+/// For instance: implications of socket r/w duality
 ///
 /// ## Example usage:
+///
+/// The class's API is the same as of engine::Mutex:
 ///
 /// @snippet engine/mutex_test.cpp  Sample engine::Mutex usage
 ///
 /// @see @ref md_en_userver_synchronization
-class Mutex final {
+class SingleWaitingTaskMutex final {
  public:
-  Mutex();
-  ~Mutex();
+  SingleWaitingTaskMutex();
+  ~SingleWaitingTaskMutex();
 
-  Mutex(const Mutex&) = delete;
-  Mutex(Mutex&&) = delete;
-  Mutex& operator=(const Mutex&) = delete;
-  Mutex& operator=(Mutex&&) = delete;
+  SingleWaitingTaskMutex(const SingleWaitingTaskMutex&) = delete;
+  SingleWaitingTaskMutex(SingleWaitingTaskMutex&&) = delete;
+  SingleWaitingTaskMutex& operator=(const SingleWaitingTaskMutex&) = delete;
+  SingleWaitingTaskMutex& operator=(SingleWaitingTaskMutex&&) = delete;
 
   /// Locks the mutex. Blocks current coroutine if the mutex is locked by
   /// another coroutine.
@@ -44,8 +50,6 @@ class Mutex final {
   /// Unlocks the mutex. The mutex must be locked by the current coroutine.
   /// @note the behaviour is undefined if a coroutine tries to unlock a mutex
   /// which is not locked or is locked by another coroutine
-  /// @note the order of coroutines to unblock is unspecified. Any code assuming
-  /// any specific order (e.g. FIFO) is incorrect and must be fixed.
   void unlock();
 
   bool try_lock();
@@ -61,16 +65,17 @@ class Mutex final {
  private:
   class Impl;
 
-  utils::FastPimpl<Impl, 96, alignof(void*)> impl_;
+  utils::FastPimpl<Impl, 32, 16> impl_;
 };
 
 template <typename Rep, typename Period>
-bool Mutex::try_lock_for(const std::chrono::duration<Rep, Period>& duration) {
+bool SingleWaitingTaskMutex::try_lock_for(
+    const std::chrono::duration<Rep, Period>& duration) {
   return try_lock_until(Deadline::FromDuration(duration));
 }
 
 template <typename Clock, typename Duration>
-bool Mutex::try_lock_until(
+bool SingleWaitingTaskMutex::try_lock_until(
     const std::chrono::time_point<Clock, Duration>& until) {
   return try_lock_until(Deadline::FromTimePoint(until));
 }
