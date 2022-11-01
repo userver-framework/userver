@@ -31,7 +31,7 @@ Changelog news also go to the
 * Improve experience with metrics
   * ✓ Add Prometheus metrics format
   * ✓ Add Graphite metrics format
-  * Provide a modern simple iterface to write metrics
+  * Provide a modern simple interface to write metrics
 * Add chaos tests for drivers
   * ✓ Chaos proxy implemented
 * Enable PostgreSQL pipelining
@@ -73,6 +73,7 @@ Changelog news also go to the
   additional `utils::Async` invocations.
 * Build fixes for older platforms, thanks to
   [Yuri Bogomolov](https://github.com/ybogo) for the PR.
+* components::Logging now can output logs to UNIX sockets.
 * Now the "help wanted" issues at github have additional tags "good first issue"
   and "big", to help you to choose between a good starting issue and a big
   feature. See @ref md_en_userver_development_releases for more info.
