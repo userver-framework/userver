@@ -28,8 +28,13 @@ void CheckedMerge(formats::json::ValueBuilder& original,
       auto next_origin = original[elem_key];
       CheckedMerge(next_origin, std::move(elem_value));
     }
+  } else if (patch.IsNull()) {
+    return;  // do nothing
   } else {
-    UASSERT_MSG(original.IsNull(), MakeConflictMessage(original, patch));
+    UASSERT_MSG(original.IsNull() ||
+                    formats::json::ValueBuilder{original}.ExtractValue() ==
+                        formats::json::ValueBuilder{patch}.ExtractValue(),
+                MakeConflictMessage(original, patch));
     original = std::move(patch);
   }
 }
