@@ -29,7 +29,7 @@ namespace server::handlers {
 ///
 /// Accepts a path arguments 'format', 'labels', 'path' and 'prefix':
 /// * format - "prometheus", "prometheus-untyped", "graphite",
-///   "json" and internal (default) format is supported. For more info see the
+///   "json", "solomon" and internal (default) format is supported. For more info see the
 ///   documentation for utils::statistics::ToPrometheusFormat,
 ///   utils::statistics::ToPrometheusFormatUntyped,
 ///   utils::statistics::ToGraphiteFormat, utils::statistics::ToJsonFormat, utils::statistics::ToSolomonFormat
