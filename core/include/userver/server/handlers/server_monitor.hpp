@@ -32,7 +32,7 @@ namespace server::handlers {
 ///   "json" and internal (default) format is supported. For more info see the
 ///   documentation for utils::statistics::ToPrometheusFormat,
 ///   utils::statistics::ToPrometheusFormatUntyped,
-///   utils::statistics::ToGraphiteFormat, utils::statistics::ToJsonFormat
+///   utils::statistics::ToGraphiteFormat, utils::statistics::ToJsonFormat, utils::statistics::ToSolomonFormat
 /// * labels - filter out metrics without the provided labels. Parameter should
 ///   be a JSON dictionary in the form '{"label1":"value1", "label2":"value2"}'.
 /// * path - return metrics on for the following path 

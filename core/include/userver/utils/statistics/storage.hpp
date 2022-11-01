@@ -66,7 +66,7 @@ class StatisticsRequest final {
   /// Match type of the `prefix`
   const PrefixMatch prefix_match_type = PrefixMatch::kNoop;
 
-  /// Require those labels im the metric
+  /// Require those labels in the metric
   const std::vector<Label> require_labels{};
 
   /// Add those labels to each returned metric

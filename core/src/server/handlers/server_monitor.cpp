@@ -7,6 +7,7 @@
 #include <userver/utils/statistics/graphite.hpp>
 #include <userver/utils/statistics/json.hpp>
 #include <userver/utils/statistics/prometheus.hpp>
+#include <userver/utils/statistics/solomon.hpp>
 #include <userver/utils/statistics/storage.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 #include <userver/yaml_config/schema.hpp>
@@ -25,6 +26,7 @@ enum class StatsFormat {
   kPrometheus,
   kPrometheusUntyped,
   kJson,
+  kSolomon,
 };
 
 StatsFormat ParseFormat(std::string_view format) {
@@ -36,6 +38,8 @@ StatsFormat ParseFormat(std::string_view format) {
     return StatsFormat::kPrometheusUntyped;
   } else if (format == "json") {
     return StatsFormat::kJson;
+  } else if (format == "solomon") {
+    return StatsFormat::kSolomon;
   } else if (format == "internal" || format.empty()) {
     return StatsFormat::kInternal;
   }
@@ -73,14 +77,18 @@ std::string ServerMonitor::HandleRequestThrow(const http::HttpRequest& request,
     }
   }
 
-  using utils::statistics::StatisticsRequest;
-  const auto statistics_request =
-      (path.empty() ? StatisticsRequest::MakeWithPrefix(prefix, common_labels_,
-                                                        std::move(labels))
-                    : StatisticsRequest::MakeWithPath(path, common_labels_,
-                                                      std::move(labels)));
-
   const auto format = ParseFormat(request.GetArg("format"));
+
+  using utils::statistics::StatisticsRequest;
+  auto common_labels = format == StatsFormat::kSolomon
+                           ? StatisticsRequest::AddLabels{}
+                           : common_labels_;
+  const auto statistics_request =
+      (path.empty() ? StatisticsRequest::MakeWithPrefix(
+                          prefix, std::move(common_labels), std::move(labels))
+                    : StatisticsRequest::MakeWithPath(
+                          path, std::move(common_labels), std::move(labels)));
+
   switch (format) {
     case StatsFormat::kGraphite:
       return utils::statistics::ToGraphiteFormat(statistics_storage_,
@@ -97,6 +105,10 @@ std::string ServerMonitor::HandleRequestThrow(const http::HttpRequest& request,
     case StatsFormat::kJson:
       return utils::statistics::ToJsonFormat(statistics_storage_,
                                              statistics_request);
+
+    case StatsFormat::kSolomon:
+      return utils::statistics::ToSolomonFormat(
+          statistics_storage_, common_labels_, statistics_request);
 
     case StatsFormat::kInternal:
       const auto json =
