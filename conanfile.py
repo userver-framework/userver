@@ -95,6 +95,7 @@ class UserverConan(conans.ConanFile):
         self.requires('openssl/1.1.1q')
         self.requires('rapidjson/cci.20220822')
         self.requires('concurrentqueue/1.0.3')
+        self.requires('zlib/1.2.13')
 
         if self.options.with_jemalloc:
             self.requires('jemalloc/5.2.1')
