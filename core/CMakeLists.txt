@@ -88,6 +88,7 @@ endif()
 include(SetupCAres)
 include(SetupCURL)
 include(SetupCryptoPP)
+include(SetupLlhttp)
 
 find_package(Iconv REQUIRED)
 find_package_required(libyamlcpp "libyaml-cpp-dev")
@@ -141,6 +142,7 @@ target_link_libraries(${PROJECT_NAME}
     OpenSSL::SSL
     ZLIB::ZLIB
     spdlog_header_only
+    llhttp
 )
 
 if (NOT MACOS)
@@ -171,6 +173,10 @@ set_property(
 
 target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE
   ${USERVER_THIRD_PARTY_DIRS}/rapidjson/include
+)
+
+target_include_directories(${PROJECT_NAME} PRIVATE
+  ${USERVER_THIRD_PARTY_DIRS}/llhttp/include
 )
 
 target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC

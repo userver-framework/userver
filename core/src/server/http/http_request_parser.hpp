@@ -5,7 +5,7 @@
 #include <memory>
 #include <optional>
 
-#include <http_parser.h>
+#include <llhttp.h>
 
 #include <server/net/stats.hpp>
 #include <server/request/request_parser.hpp>
@@ -34,6 +34,8 @@ class HttpRequestParser final : public request::RequestParser {
   bool Parse(const char* data, size_t size) override;
 
  private:
+  using http_parser = llhttp_t;
+
   static int OnMessageBegin(http_parser* p);
   static int OnUrl(http_parser* p, const char* data, size_t size);
   static int OnHeaderField(http_parser* p, const char* data, size_t size);
@@ -67,7 +69,7 @@ class HttpRequestParser final : public request::RequestParser {
   http_parser parser_{};
   std::optional<HttpRequestConstructor> request_constructor_;
 
-  static const http_parser_settings parser_settings;
+  static const llhttp_settings_t parser_settings;
   net::ParserStats& stats_;
   request::ResponseDataAccounter& data_accounter_;
 };

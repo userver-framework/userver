@@ -2,7 +2,8 @@
 
 #include <memory>
 
-#include <http_parser.h>
+//#include <http_parser.h>
+//#include <llhttp.h>
 
 #include <userver/http/parser/http_request_parse_args.hpp>
 #include <userver/server/http/http_method.hpp>
@@ -38,6 +39,7 @@ class HttpRequestConstructor final : public request::RequestConstructor {
   HttpRequestConstructor(Config config,
                          const HandlerInfoIndex& handler_info_index,
                          request::ResponseDataAccounter& data_accounter);
+  ~HttpRequestConstructor();
 
   HttpRequestConstructor(HttpRequestConstructor&&) = delete;
   HttpRequestConstructor& operator=(HttpRequestConstructor&&) = delete;
@@ -57,9 +59,11 @@ class HttpRequestConstructor final : public request::RequestConstructor {
   std::shared_ptr<request::RequestBase> Finalize() override;
 
  private:
+  struct LegacyHttpParserUrlImpl;
+
   void FinalizeImpl();
 
-  void ParseArgs(const http_parser_url& url);
+  void ParseArgs(const LegacyHttpParserUrlImpl& url);
   void ParseArgs(const char* data, size_t size);
   void AddHeader();
   void ParseCookies();
@@ -74,7 +78,8 @@ class HttpRequestConstructor final : public request::RequestConstructor {
   Config config_;
   const HandlerInfoIndex& handler_info_index_;
 
-  http_parser_url parsed_url_{};
+  utils::FastPimpl<LegacyHttpParserUrlImpl, 32, 8> legacy_parsed_url_;
+  //http_parser_url parsed_url_{};
   std::string header_field_;
   std::string header_value_;
   bool header_field_flag_ = false;

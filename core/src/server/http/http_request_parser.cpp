@@ -11,7 +11,7 @@ namespace server::http {
 
 namespace {
 
-HttpMethod ConvertHttpMethod(http_method method) {
+HttpMethod ConvertHttpMethod(llhttp_method method) {
   switch (method) {
     case HTTP_DELETE:
       return HttpMethod::kDelete;
@@ -36,15 +36,21 @@ HttpMethod ConvertHttpMethod(http_method method) {
 
 }  // namespace
 
-const http_parser_settings HttpRequestParser::parser_settings = []() {
-  http_parser_settings settings{};
+const llhttp_settings_t HttpRequestParser::parser_settings = []() {
+  llhttp_settings_t settings{};
+  llhttp_settings_init(&settings);
+
   settings.on_message_begin = HttpRequestParser::OnMessageBegin;
+  settings.on_message_complete = HttpRequestParser::OnMessageComplete;
+
   settings.on_url = HttpRequestParser::OnUrl;
+
+  settings.on_body = HttpRequestParser::OnBody;
+
   settings.on_header_field = HttpRequestParser::OnHeaderField;
   settings.on_header_value = HttpRequestParser::OnHeaderValue;
   settings.on_headers_complete = HttpRequestParser::OnHeadersComplete;
-  settings.on_body = HttpRequestParser::OnBody;
-  settings.on_message_complete = HttpRequestParser::OnMessageComplete;
+
   return settings;
 }();
 
@@ -58,16 +64,17 @@ HttpRequestParser::HttpRequestParser(
       on_new_request_cb_(std::move(on_new_request_cb)),
       stats_(stats),
       data_accounter_(data_accounter) {
-  http_parser_init(&parser_, HTTP_REQUEST);
+  llhttp_init(&parser_, HTTP_REQUEST, &parser_settings);
   parser_.data = this;
 }
 
 bool HttpRequestParser::Parse(const char* data, size_t size) {
-  size_t parsed = http_parser_execute(&parser_, &parser_settings, data, size);
-  if (parsed != size) {
+  const auto err = llhttp_execute(&parser_, data, size);
+  const auto parsed = static_cast<size_t>(llhttp_get_error_pos(&parser_) - data + 1);
+  if (parsed != size || err != HPE_OK) {
     LOG_WARNING() << "parsed=" << parsed << " size=" << size
                   << " error_description="
-                  << http_errno_description(HTTP_PARSER_ERRNO(&parser_));
+                  << llhttp_errno_name(err);
     FinalizeRequest();
     return false;
   }
@@ -134,7 +141,7 @@ int HttpRequestParser::OnUrlImpl(http_parser* p, const char* data,
   UASSERT(request_constructor_);
   LOG_TRACE() << "url: '" << std::string_view(data, size) << '\'';
   request_constructor_->SetMethod(
-      ConvertHttpMethod(static_cast<http_method>(p->method)));
+      ConvertHttpMethod(static_cast<llhttp_method>(p->method)));
   try {
     request_constructor_->AppendUrl(data, size);
   } catch (const std::exception& ex) {
@@ -205,7 +212,7 @@ int HttpRequestParser::OnMessageCompleteImpl(http_parser* p) {
     LOG_WARNING() << "upgrade detected";
     return -1;  // error
   }
-  request_constructor_->SetIsFinal(!http_should_keep_alive(p));
+  request_constructor_->SetIsFinal(!llhttp_should_keep_alive(p));
   if (!CheckUrlComplete(p)) return -1;
   LOG_TRACE() << "message complete";
   if (!FinalizeRequest()) return -1;
@@ -223,7 +230,7 @@ bool HttpRequestParser::CheckUrlComplete(http_parser* p) {
   if (url_complete_) return true;
   url_complete_ = true;
   request_constructor_->SetMethod(
-      ConvertHttpMethod(static_cast<http_method>(p->method)));
+      ConvertHttpMethod(static_cast<llhttp_method>(p->method)));
   request_constructor_->SetHttpMajor(p->http_major);
   request_constructor_->SetHttpMinor(p->http_minor);
   try {
