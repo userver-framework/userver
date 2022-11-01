@@ -25,10 +25,10 @@ class UserviceRunner:
 
         # Is there servicetest choosen
         for item in items:
+            pathes.add(pathlib.Path(item.module.__file__).parent)
             for marker in item.own_markers:
                 if marker.name == 'servicetest':
                     return
-                pathes.add(pathlib.Path(item.module.__file__).parent)
 
         if not pathes:
             return
