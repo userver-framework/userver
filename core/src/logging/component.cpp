@@ -43,7 +43,7 @@ namespace components {
 namespace {
 
 constexpr std::chrono::seconds kDefaultFlushInterval{2};
-constexpr std::string_view unix_socket_prefix = "unix://";
+constexpr std::string_view unix_socket_prefix = "unix:";
 
 struct TestsuiteCaptureConfig {
   std::string host;
