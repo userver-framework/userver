@@ -48,7 +48,7 @@ file(GLOB_RECURSE UNIT_TEST_SOURCES
 )
 list(REMOVE_ITEM SOURCES ${UNIT_TEST_SOURCES})
 
-add_library(${PROJECT_NAME} STATIC ${SOURCES})
+userver_add_library(${PROJECT_NAME} SOURCES ${SOURCES})
 
 set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
 
@@ -70,7 +70,7 @@ if (USERVER_IS_THE_ROOT_PROJECT)
       ${CMAKE_CURRENT_SOURCE_DIR}/include
       ${CMAKE_CURRENT_SOURCE_DIR}/src
     )
-    target_link_libraries(${PROJECT_NAME}_unittest
+    userver_target_link_libraries(${PROJECT_NAME}_unittest
       PUBLIC
         ${PROJECT_NAME}
         userver-utest
@@ -83,3 +83,5 @@ endif()
 # Target with no need to use userver namespace, but includes require userver/
 add_library(yandex-${PROJECT_NAME} INTERFACE)
 target_link_libraries(yandex-${PROJECT_NAME} INTERFACE ${PROJECT_NAME})
+
+userver_install(TARGETS ${PROJECT_NAME})

@@ -19,9 +19,9 @@ list(APPEND CLICKHOUSE_TEST_SOURCES
 
 include(SetupClickhouseCPP)
 
-add_library(${PROJECT_NAME} STATIC ${SOURCES})
+userver_add_library(${PROJECT_NAME} SOURCES ${SOURCES})
 
-target_link_libraries(${PROJECT_NAME}
+userver_target_link_libraries(${PROJECT_NAME}
   PUBLIC
     userver-core
   PRIVATE
@@ -68,3 +68,5 @@ endif()
 # Target with no need to use userver namespace, but includes require userver/
 add_library(yandex-${PROJECT_NAME} INTERFACE)
 target_link_libraries(yandex-${PROJECT_NAME} INTERFACE ${PROJECT_NAME})
+
+userver_install(TARGETS ${PROJECT_NAME})

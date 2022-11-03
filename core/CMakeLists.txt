@@ -97,7 +97,7 @@ include(SetupCCTZ)
 
 find_package_required(Http_Parser "libhttp-parser-dev")
 
-add_library(${PROJECT_NAME} STATIC ${SOURCES})
+userver_add_library(${PROJECT_NAME} SOURCES ${SOURCES})
 target_compile_definitions(${PROJECT_NAME} PRIVATE SPDLOG_PREVENT_CHILD_FD SPDLOG_FMT_EXTERNAL)
 
 # https://github.com/jemalloc/jemalloc/issues/820
@@ -116,7 +116,7 @@ if (USERVER_SANITIZE AND NOT CMAKE_BUILD_TYPE MATCHES "^Rel")
   target_link_libraries(${PROJECT_NAME} PUBLIC userver-compiler-rt-parts)
 endif()
 
-target_link_libraries(${PROJECT_NAME}
+userver_target_link_libraries(${PROJECT_NAME}
   PUBLIC
     Threads::Threads
     Boost::locale
@@ -198,7 +198,7 @@ target_compile_definitions(${PROJECT_NAME} PUBLIC
   "USERVER_NAMESPACE_END=${USERVER_NAMESPACE_END}"
 )
 
-add_library(userver-core-internal STATIC ${INTERNAL_SOURCES})
+userver_add_library(userver-core-internal SOURCES ${INTERNAL_SOURCES})
 target_compile_definitions(userver-core-internal PUBLIC $<TARGET_PROPERTY:${PROJECT_NAME},COMPILE_DEFINITIONS>)
 target_include_directories(userver-core-internal PUBLIC
   $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>
@@ -210,20 +210,20 @@ target_link_libraries(userver-core-internal
 )
 
 if (USERVER_FEATURE_UTEST)
-    add_library(userver-utest STATIC ${LIBUTEST_SOURCES})
+    userver_add_library(userver-utest SOURCES ${LIBUTEST_SOURCES})
     target_compile_definitions(userver-utest PUBLIC $<TARGET_PROPERTY:${PROJECT_NAME},COMPILE_DEFINITIONS>)
 
-    target_link_libraries(userver-utest
-    PUBLIC
+    userver_target_link_libraries(userver-utest
+      PUBLIC
         libgtest
         libgmock
-	    userver-core-internal
+        userver-core-internal
         ${PROJECT_NAME}
-    PRIVATE
+      PRIVATE
         Boost::program_options
     )
     target_include_directories(userver-utest PUBLIC
-    ${CMAKE_CURRENT_SOURCE_DIR}/testing/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/testing/include
     )
     target_include_directories(userver-utest PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/src/
@@ -250,19 +250,19 @@ if (USERVER_IS_THE_ROOT_PROJECT)
 endif()
 
 if (USERVER_FEATURE_UTEST)
-    add_library(userver-ubench ${LIBUBENCH_SOURCES})
-    target_include_directories(userver-ubench PUBLIC $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>)
-    target_compile_definitions(userver-ubench PUBLIC $<TARGET_PROPERTY:${PROJECT_NAME},COMPILE_DEFINITIONS>)
-    target_link_libraries(userver-ubench
-      PUBLIC
-        libbenchmark
+  userver_add_library(userver-ubench SOURCES ${LIBUBENCH_SOURCES})
+  target_include_directories(userver-ubench PUBLIC $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>)
+  target_compile_definitions(userver-ubench PUBLIC $<TARGET_PROPERTY:${PROJECT_NAME},COMPILE_DEFINITIONS>)
+  userver_target_link_libraries(userver-ubench
+    PUBLIC
+      libbenchmark
       userver-core-internal
-        ${PROJECT_NAME}
-    )
+      ${PROJECT_NAME}
+  )
 
-# Target with no need to use userver namespace, but includes require userver/
-add_library(yandex-userver-ubench INTERFACE)
-target_link_libraries(yandex-userver-ubench INTERFACE userver-ubench)
+  # Target with no need to use userver namespace, but includes require userver/
+  add_library(yandex-userver-ubench INTERFACE)
+  target_link_libraries(yandex-userver-ubench INTERFACE userver-ubench)
 endif()
 
 if (USERVER_IS_THE_ROOT_PROJECT)
@@ -274,3 +274,5 @@ endif()
 # Target with no need to use userver namespace, but includes require userver/
 add_library(yandex-${PROJECT_NAME} INTERFACE)
 target_link_libraries(yandex-${PROJECT_NAME} INTERFACE ${PROJECT_NAME})
+
+userver_install(TARGETS ${PROJECT_NAME})

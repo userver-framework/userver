@@ -23,7 +23,8 @@ list(REMOVE_ITEM SOURCES ${REDIS_TEST_SOURCES})
 
 find_package(Hiredis)
 
-add_library(${PROJECT_NAME} STATIC ${SOURCES})
+userver_add_library(${PROJECT_NAME} SOURCES ${SOURCES})
+
 set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
 
 # for libev
@@ -49,7 +50,7 @@ if(USERVER_FEATURE_REDIS_TLS)
   add_definitions(-DUSERVER_FEATURE_REDIS_TLS=1)
 endif()
 
-target_link_libraries(${PROJECT_NAME}
+userver_target_link_libraries(${PROJECT_NAME}
   PUBLIC
     userver-core
     Hiredis
@@ -74,7 +75,7 @@ target_include_directories (${PROJECT_NAME} PRIVATE
 # Helper library for testing user code with redis. Provides mock_client_base.hpp
 # and other helper headers
 if (USERVER_FEATURE_UTEST)
-    add_library(${PROJECT_NAME}_utest STATIC ${UTESTLIB_SOURCES})
+    userver_add_library(${PROJECT_NAME}_utest SOURCES ${UTESTLIB_SOURCES})
     target_include_directories(
       ${PROJECT_NAME}_utest
       PUBLIC
@@ -134,3 +135,5 @@ endif()
 # Target with no need to use userver namespace, but includes require userver/
 add_library(yandex-${PROJECT_NAME} INTERFACE)
 target_link_libraries(yandex-${PROJECT_NAME} INTERFACE ${PROJECT_NAME})
+
+userver_install(TARGETS ${PROJECT_NAME})

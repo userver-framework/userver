@@ -11,8 +11,8 @@ list(REMOVE_ITEM SOURCES ${RABBITMQ_TEST_SOURCES})
 
 include(SetupAmqpCPP)
 
-add_library(${PROJECT_NAME} STATIC ${SOURCES})
-target_link_libraries(${PROJECT_NAME}
+userver_add_library(${PROJECT_NAME} SOURCES ${SOURCES})
+userver_target_link_libraries(${PROJECT_NAME}
   PUBLIC
     userver-core
   PRIVATE
@@ -39,3 +39,5 @@ if (USERVER_IS_THE_ROOT_PROJECT)
     --gtest_output=xml:${CMAKE_BINARY_DIR}/test-results/${PROJECT_NAME}_rmqtest.xml
   )
 endif()
+
+userver_install(TARGETS ${PROJECT_NAME})
