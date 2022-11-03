@@ -29,8 +29,8 @@ index 62cef2ac..e5914f6d 100644
  include(cmake/SetupEnvironment.cmake)
  include(AddGoogleTests)
  include(CheckSubmodule)
-@@ -99,7 +100,8 @@ option(USERVER_FEATURE_RABBITMQ "Provide asynchronous driver for RabbitMQ" ${USE
- option(USERVER_FEATURE_UNIVERSAL "Provide a universal utilities library that does not use coroutines" ON)
+@@ -104,7 +105,8 @@     add_subdirectory(testsuite)
+ endif()
  
  add_subdirectory(core "${CMAKE_BINARY_DIR}/userver/core")
 -add_subdirectory("${USERVER_THIRD_PARTY_DIRS}/boost_stacktrace")
@@ -169,7 +169,7 @@ index 3c190115..ba4412fb 100644
  	    userver-core-internal
          ${PROJECT_NAME}
      PRIVATE
-@@ -255,7 +255,7 @@ if (USERVER_FEATURE_UTEST)
+@@ -256,7 +256,7 @@ if (USERVER_FEATURE_UTEST)
      target_compile_definitions(userver-ubench PUBLIC $<TARGET_PROPERTY:${PROJECT_NAME},COMPILE_DEFINITIONS>)
      target_link_libraries(userver-ubench
        PUBLIC
