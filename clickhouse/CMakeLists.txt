@@ -17,6 +17,12 @@ list(APPEND CLICKHOUSE_TEST_SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/src/storages/tests/utils_test.cpp
 )
 
+file(GLOB_RECURSE CH_FUNCTIONAL_TEST_SOURCES
+  ${CMAKE_CURRENT_SOURCE_DIR}/functional_tests/*
+)
+list(REMOVE_ITEM SOURCES ${CH_FUNCTIONAL_TEST_SOURCES})
+
+
 include(SetupClickhouseCPP)
 
 userver_add_library(${PROJECT_NAME} SOURCES ${SOURCES})
@@ -37,13 +43,10 @@ target_include_directories(
   PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src
   )
 
-
-if(USERVER_OPEN_SOURCE_BUILD)
-  target_include_directories(${PROJECT_NAME} PRIVATE
-    ${USERVER_THIRD_PARTY_DIRS}/clickhouse-cpp
-    ${USERVER_THIRD_PARTY_DIRS}/clickhouse-cpp/contrib
-  )
-endif()
+target_include_directories(${PROJECT_NAME} PRIVATE
+  ${USERVER_THIRD_PARTY_DIRS}/clickhouse-cpp
+  ${USERVER_THIRD_PARTY_DIRS}/clickhouse-cpp/contrib
+)
 
 if (USERVER_IS_THE_ROOT_PROJECT)
   add_executable(${PROJECT_NAME}_unittest ${UNIT_TEST_SOURCES})
@@ -53,6 +56,10 @@ if (USERVER_IS_THE_ROOT_PROJECT)
   target_link_libraries(${PROJECT_NAME}_unittest userver-utest ${PROJECT_NAME})
   add_google_tests(${PROJECT_NAME}_unittest)
 
+  target_compile_definitions(${PROJECT_NAME}_unittest PRIVATE
+      DEFAULT_DYNAMIC_CONFIG_FILENAME="${CMAKE_SOURCE_DIR}/clickhouse/tests/dynamic_config_fallback.json"
+  )
+  
   add_executable(${PROJECT_NAME}_chtest ${CLICKHOUSE_TEST_SOURCES})
   target_include_directories(${PROJECT_NAME}_chtest PRIVATE
     $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>
@@ -68,6 +75,8 @@ if (USERVER_IS_THE_ROOT_PROJECT)
   )
   set_tests_properties(${PROJECT_NAME}_chtest PROPERTIES ENVIRONMENT
           "TESTSUITE_CLICKHOUSE_SERVER_START_TIMEOUT=10.0")
+
+  add_subdirectory(functional_tests)
 endif()
 
 # Target with no need to use userver namespace, but includes require userver/

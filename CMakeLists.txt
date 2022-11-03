@@ -6,17 +6,24 @@ endif()
 
 project(userver)
 
+<<<<<<< HEAD
 option(USERVER_GEN_GDB_DEBUGINFO "Compile with generation of gdb3 debug info format" OFF)
 
+=======
+>>>>>>> added ability to build as shared libraries, added make install support
 if (USERVER_BUILD_SHARED_LIBS)
   set(BUILD_SHARED_LIBS ${USERVER_BUILD_SHARED_LIBS})
 endif()
 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib/)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib/)
+<<<<<<< HEAD
 set(CMAKE_INSTALL_BINDIR bin/userver)
 
 #set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin/userver)
+=======
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin/userver)
+>>>>>>> added ability to build as shared libraries, added make install support
 
 set(USERVER_ROOT_DIR "${CMAKE_CURRENT_LIST_DIR}")
 

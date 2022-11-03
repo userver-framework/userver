@@ -54,6 +54,8 @@ list (REMOVE_ITEM SOURCES ${BENCH_SOURCES} ${LIBUBENCH_SOURCES})
 file(GLOB_RECURSE INTERNAL_SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/internal/*.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/internal/*.hpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/../shared/internal/*.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/../shared/internal/*.hpp
 )
 
 list (REMOVE_ITEM SOURCES ${INTERNAL_SOURCES})
@@ -68,7 +70,6 @@ find_package(Boost REQUIRED COMPONENTS
     regex
     iostreams
 )
-find_package_required(LibEv "libev-dev")
 find_package_required(ZLIB "zlib1g-dev")
 
 if (USERVER_FEATURE_UTEST)
@@ -80,25 +81,9 @@ if (USERVER_FEATURE_UTEST)
         include(SetupGBench)
     endif()
 endif()
-include(SetupSpdlog)
-
-option(USERVER_FEATURE_SPDLOG_TCP_SINK "Use tcp_sink.h of the spdlog library for testing logs" ON)
-if (NOT USERVER_FEATURE_SPDLOG_TCP_SINK)
-  set_source_files_properties(
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/logging/component.cpp
-    PROPERTIES COMPILE_FLAGS -DUSERVER_FEATURE_NO_SPDLOG_TCP_SINK=1
-  )
-endif()
-
-include(SetupCAres)
-include(SetupCURL)
-include(SetupCryptoPP)
 
 find_package(Iconv REQUIRED)
-find_package_required(libyamlcpp "libyaml-cpp-dev")
 find_package_required(OpenSSL "libssl-dev")
-include(SetupFmt)
-include(SetupCCTZ)
 
 if (USERVER_CONAN)
     find_package(c-ares REQUIRED)
@@ -109,29 +94,27 @@ if (USERVER_CONAN)
     find_package(spdlog REQUIRED)
     find_package(cctz REQUIRED)
     find_package(http_parser REQUIRED)
+    find_package(libnghttp2 REQUIRED)
     find_package(libev REQUIRED)
 
     find_package(RapidJSON REQUIRED)
-    target_compile_definitions(RapidJSON::RapidJSON INTERFACE RAPIDJSON_HAS_STDSTRING)
+    target_compile_definitions(rapidjson INTERFACE RAPIDJSON_HAS_STDSTRING)
 
     find_package(concurrentqueue REQUIRED)
 else()
-    if (DEFINED GRPC_EXTERNAL_ENABLE)
-        message("Target c-ares added by external grpc")
-    else()
-        include(SetupCAres)
-    endif()
+    include(SetupCAres)
     include(SetupCURL)
     include(SetupCryptoPP)
-    find_package_required(yaml-cpp "libyaml-cpp-dev")
+    find_package(libyamlcpp REQUIRED)
     include(SetupFmt)
     include(SetupSpdlog)
     include(SetupCCTZ)
-    find_package_required(Http_Parser "libhttp-parser-dev")
-    find_package_required(LibEv "libev-dev")
+    find_package(Http_Parser REQUIRED)
+    find_package(Nghttp2 REQUIRED)
+    find_package(LibEv REQUIRED)
 endif()
 
-userver_add_library(${PROJECT_NAME} SOURCES ${SOURCES})
+add_library(${PROJECT_NAME} STATIC ${SOURCES})
 
 target_compile_definitions(${PROJECT_NAME}
   PRIVATE
@@ -146,23 +129,42 @@ if (USERVER_FEATURE_JEMALLOC AND NOT USERVER_SANITIZE AND NOT MACOS)
   if (USERVER_CONAN)
     find_package(jemalloc REQUIRED)
     target_link_libraries(${PROJECT_NAME} PUBLIC jemalloc::jemalloc)
-  elseif (USERVER_OPEN_SOURCE_BUILD)
+  else()
     find_package_required(Jemalloc "libjemalloc-dev")
     target_link_libraries(${PROJECT_NAME} PUBLIC Jemalloc)
-  else()
-    find_package_required(Jemalloc "libyandex-taxi-jemalloc-dev")
-    target_link_libraries(${PROJECT_NAME} PUBLIC Jemalloc)
   endif()
+
   target_compile_definitions(${PROJECT_NAME} PRIVATE JEMALLOC_ENABLED)
+endif()
+
+if (USERVER_DISABLE_PHDR_CACHE)
+  target_compile_definitions(${PROJECT_NAME} PRIVATE USERVER_DISABLE_PHDR_CACHE)
 endif()
 
 # https://bugs.llvm.org/show_bug.cgi?id=16404
 if (USERVER_SANITIZE AND NOT CMAKE_BUILD_TYPE MATCHES "^Rel")
-  userver_target_link_libraries(${PROJECT_NAME} STATIC_PRIVATE userver-compiler-rt-parts)
+  target_link_libraries(${PROJECT_NAME} PUBLIC userver-compiler-rt-parts)
 endif()
 
+userver_target_link_libraries(${PROJECT_NAME}
+  PUBLIC
+    Threads::Threads
+    Boost::locale
+    sanitize-target
+    CURL::libcurl
+  PRIVATE
+    userver-uboost-coro
+    Boost::filesystem
+    Boost::program_options
+    Boost::iostreams
+    Boost::regex
+    Iconv::Iconv
+    OpenSSL::Crypto
+    OpenSSL::SSL
+    ZLIB::ZLIB
+)
 if (USERVER_CONAN)
-    userver_target_link_libraries(${PROJECT_NAME}
+    target_link_libraries(${PROJECT_NAME}
       PUBLIC
         yaml-cpp
         fmt::fmt
@@ -171,23 +173,25 @@ if (USERVER_CONAN)
         concurrentqueue::concurrentqueue
         Boost::stacktrace
       PRIVATE
-        cryptopp-static
+        cryptopp::cryptopp
         http_parser::http_parser
         libev::libev
-        spdlog::spdlog
-        RapidJSON::RapidJSON
+        libnghttp2::nghttp2
+        spdlog::spdlog_header_only
+        rapidjson
     )
 else()
     userver_target_link_libraries(${PROJECT_NAME}
       PUBLIC
         libyamlcpp
         fmt
-        c-ares
+        c-ares::cares
         cctz
         userver-stacktrace
       PRIVATE
         CryptoPP
         Http_Parser
+        Nghttp2
         LibEv
         spdlog_header_only
     )
@@ -200,6 +204,10 @@ else()
     )
 endif()
 
+target_include_directories(${PROJECT_NAME} PUBLIC
+    ${USERVER_THIRD_PARTY_DIRS}/date/include
+)
+
 if (NOT MACOS AND NOT ${CMAKE_SYSTEM_NAME} MATCHES "BSD")
   target_link_libraries(${PROJECT_NAME} PUBLIC atomic)
 endif()
@@ -207,22 +215,17 @@ endif()
 set(USERVER_PUBLIC_INCLUDE_DIRS
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../shared/include>
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../uboost_coro/include>
   $<BUILD_INTERFACE:${USERVER_THIRD_PARTY_DIRS}/pfr/include>
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../uboost_coro/include>
   $<INSTALL_INTERFACE:include>
   $<INSTALL_INTERFACE:include/userver>
   CACHE INTERNAL ""
 )
 set(USERVER_GLIBC_INCLUDE_FIXES_DIR
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/libc_include_fixes>
-  $<INSTALL_INTERFACE:include/userver/libc_include_fixes>
+  ${CMAKE_CURRENT_SOURCE_DIR}/libc_include_fixes
 )
 
 target_include_directories(${PROJECT_NAME} PUBLIC
-  $<BUILD_INTERFACE:${USERVER_PUBLIC_INCLUDE_DIRS}>
+  ${USERVER_PUBLIC_INCLUDE_DIRS}
 )
 target_include_directories(${PROJECT_NAME} SYSTEM BEFORE PUBLIC
   ${USERVER_GLIBC_INCLUDE_FIXES_DIR}
@@ -234,49 +237,6 @@ set_property(
   APPEND PROPERTY COMPILE_FLAGS -O2
 )
 
-target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE
-  ${USERVER_THIRD_PARTY_DIRS}/rapidjson/include
-)
-
-target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC
-  $<BUILD_INTERFACE:${USERVER_THIRD_PARTY_DIRS}/moodycamel/include>
-  $<INSTALL_INTERFACE:include/userver>
-  $<INSTALL_INTERFACE:include/userver/moodycamel>
-)
-
-install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/../shared/include/userver"
-  DESTINATION "include/"
-  FILES_MATCHING
-  PATTERN "*.hpp"
-  PATTERN "*.h"
-)
-
-install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/src/components/manager_config.hpp"
-  DESTINATION "include/userver/components/")
-
-install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/src/engine/coro/pool_config.hpp"
-  DESTINATION "include/engine/coro/")
-
-install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/src/engine/ev/thread_pool_config.hpp"
-  DESTINATION "include/engine/ev/")
-
-install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/src/engine/task/task_processor_config.hpp"
-  DESTINATION "include/engine/task/")
-
-install(DIRECTORY "${USERVER_THIRD_PARTY_DIRS}/moodycamel/include/moodycamel"
-  DESTINATION "include/userver"
-  FILES_MATCHING
-  PATTERN "*.hpp"
-  PATTERN "*.h"
-)
-
-install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/libc_include_fixes"
-  DESTINATION "include/userver"
-  FILES_MATCHING
-  PATTERN "*.hpp"
-  PATTERN "*.h"
-)
-
 target_include_directories(${PROJECT_NAME}
   PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/../shared/src/
@@ -284,11 +244,15 @@ target_include_directories(${PROJECT_NAME}
     ${CMAKE_CURRENT_BINARY_DIR}
 )
 
+get_filename_component(BASE_PREFIX "${CMAKE_SOURCE_DIR}/../" ABSOLUTE)
+
 file(TO_NATIVE_PATH "${CMAKE_SOURCE_DIR}/" SRC_LOG_PATH_BASE)
 file(TO_NATIVE_PATH "${CMAKE_BINARY_DIR}/" BIN_LOG_PATH_BASE)
+
 target_compile_definitions(${PROJECT_NAME} PUBLIC
   USERVER_LOG_SOURCE_PATH_BASE=${SRC_LOG_PATH_BASE}
   USERVER_LOG_BUILD_PATH_BASE=${BIN_LOG_PATH_BASE}
+  USERVER_LOG_PREFIX_PATH_BASE=${BASE_PREFIX}
 )
 
 message(STATUS "Putting userver into namespace '${USERVER_NAMESPACE}': ${USERVER_NAMESPACE_BEGIN} ${USERVER_NAMESPACE_END}")
@@ -298,11 +262,15 @@ target_compile_definitions(${PROJECT_NAME} PUBLIC
   "USERVER_NAMESPACE_END=${USERVER_NAMESPACE_END}"
 )
 
+# Suppress OpenSSL 3 warnings: we still primarily support OpenSSL 1.1.x
+target_compile_definitions(${PROJECT_NAME} PRIVATE OPENSSL_SUPPRESS_DEPRECATED=)
+
 userver_add_library(userver-core-internal SOURCES ${INTERNAL_SOURCES})
 target_compile_definitions(userver-core-internal PUBLIC $<TARGET_PROPERTY:${PROJECT_NAME},COMPILE_DEFINITIONS>)
 target_include_directories(userver-core-internal PUBLIC
   $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>
   ${CMAKE_CURRENT_SOURCE_DIR}/internal/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/../shared/internal/include
 )
 target_link_libraries(userver-core-internal
   PUBLIC
@@ -315,9 +283,6 @@ if (USERVER_FEATURE_UTEST)
 
     userver_target_link_libraries(userver-utest
       PUBLIC
-        libgtest
-        libgmock
-        userver-core-internal
         ${PROJECT_NAME}
       PRIVATE
         userver-core-internal
@@ -330,16 +295,12 @@ if (USERVER_FEATURE_UTEST)
     endif()
 
     target_include_directories(userver-utest PUBLIC
-        ${CMAKE_CURRENT_SOURCE_DIR}/testing/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/testing/include
     )
     target_include_directories(userver-utest PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/src/
         ${CMAKE_CURRENT_SOURCE_DIR}/testing/src/
     )
-
-    # Target with no need to use userver namespace, but includes require userver/
-    add_library(yandex-userver-utest INTERFACE)
-    target_link_libraries(yandex-userver-utest INTERFACE userver-utest)
 endif()
 
 if (USERVER_IS_THE_ROOT_PROJECT)
@@ -350,6 +311,10 @@ if (USERVER_IS_THE_ROOT_PROJECT)
     target_link_libraries(${PROJECT_NAME}_unittest PRIVATE
       userver-utest
       userver-core-internal
+    )
+
+    target_compile_definitions(${PROJECT_NAME}_unittest PRIVATE
+      DEFAULT_DYNAMIC_CONFIG_FILENAME="${CMAKE_SOURCE_DIR}/core/tests/dynamic_config_fallback.json"
     )
 
     # We keep testing deprecated functions, no need to warn about that
@@ -379,10 +344,13 @@ endif()
 
 if (USERVER_IS_THE_ROOT_PROJECT)
     add_executable(${PROJECT_NAME}_benchmark ${BENCH_SOURCES})
+    #    find_package(absl REQUIRED)
+
     target_link_libraries(${PROJECT_NAME}_benchmark
       PUBLIC
         userver-ubench
       PRIVATE
+      #        absl::raw_hash_set
         userver-core-internal
     )
     add_google_benchmark_tests(${PROJECT_NAME}_benchmark)

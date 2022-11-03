@@ -105,5 +105,3 @@ endif()
 
 find_package(Boost REQUIRED)
 target_link_libraries(${PROJECT_NAME} PUBLIC Boost::boost)
-
-userver_install_library(TARGETS ${PROJECT_NAME})

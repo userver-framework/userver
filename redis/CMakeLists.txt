@@ -21,10 +21,18 @@ file(GLOB_RECURSE REDIS_TEST_SOURCES
 )
 list(REMOVE_ITEM SOURCES ${REDIS_TEST_SOURCES})
 
-find_package(Hiredis)
+file(GLOB_RECURSE REDIS_BENCH_SOURCES
+  ${CMAKE_CURRENT_SOURCE_DIR}/benchmark/*.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/benchmark/*.hpp
+)
+
+file(GLOB_RECURSE REDIS_FUNCTIONAL_TEST_SOURCES
+  ${CMAKE_CURRENT_SOURCE_DIR}/functional_tests/*.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/functional_tests/*.hpp
+)
+list(REMOVE_ITEM SOURCES ${REDIS_FUNCTIONAL_TEST_SOURCES})
 
 userver_add_library(${PROJECT_NAME} SOURCES ${SOURCES})
-
 set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
 
 # for libev
@@ -50,13 +58,19 @@ if(USERVER_FEATURE_REDIS_TLS)
   add_definitions(-DUSERVER_FEATURE_REDIS_TLS=1)
 endif()
 
-userver_target_link_libraries(${PROJECT_NAME}
+target_link_libraries(${PROJECT_NAME}
   PUBLIC
     userver-core
-    Hiredis
   PRIVATE
-    userver-uboost-coro # uses BlockingFuture
+    userver-uboost-coro
 )
+if (USERVER_CONAN)
+  find_package(hiredis REQUIRED)
+  target_link_libraries(${PROJECT_NAME} PUBLIC hiredis::hiredis)
+else()
+  find_package(Hiredis REQUIRED)
+  target_link_libraries(${PROJECT_NAME} PUBLIC Hiredis)
+endif()
 
 if (USERVER_FEATURE_REDIS_TLS)
   target_link_libraries(${PROJECT_NAME} PUBLIC hiredis_ssl)
@@ -64,10 +78,9 @@ endif()
 target_include_directories(
   ${PROJECT_NAME}
   PUBLIC
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-    $<INSTALL_INTERFACE:include>
+  ${CMAKE_CURRENT_SOURCE_DIR}/include
   PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/src
+  ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 target_include_directories (${PROJECT_NAME} PRIVATE
     $<TARGET_PROPERTY:userver-core,INCLUDE_DIRECTORIES>
@@ -89,6 +102,9 @@ if (USERVER_FEATURE_UTEST)
       userver-utest
       ${PROJECT_NAME}
     )
+  target_compile_definitions(${PROJECT_NAME}_utest PRIVATE
+      DEFAULT_DYNAMIC_CONFIG_FILENAME="${CMAKE_CURRENT_SOURCE_DIR}/tests/dynamic_config_fallback.json"
+  )
 endif()
 
 if (USERVER_IS_THE_ROOT_PROJECT)
@@ -108,6 +124,9 @@ if (USERVER_IS_THE_ROOT_PROJECT)
   target_include_directories (${PROJECT_NAME}_unittest PRIVATE
     $<TARGET_PROPERTY:userver-core,INCLUDE_DIRECTORIES>
   )
+  target_compile_definitions(${PROJECT_NAME}_unittest PRIVATE
+      DEFAULT_DYNAMIC_CONFIG_FILENAME="${CMAKE_CURRENT_SOURCE_DIR}/tests/dynamic_config_fallback.json"
+  )
   add_google_tests(${PROJECT_NAME}_unittest)
 
   add_executable(${PROJECT_NAME}_redistest ${REDIS_TEST_SOURCES})
@@ -115,26 +134,35 @@ if (USERVER_IS_THE_ROOT_PROJECT)
       $<TARGET_PROPERTY:userver-redis,INCLUDE_DIRECTORIES>
   )
   target_link_libraries(${PROJECT_NAME}_redistest userver-utest ${PROJECT_NAME})
+  target_compile_definitions(${PROJECT_NAME}_redistest PRIVATE
+      DEFAULT_DYNAMIC_CONFIG_FILENAME="${CMAKE_CURRENT_SOURCE_DIR}/tests/dynamic_config_fallback.json"
+  )
   add_test(${PROJECT_NAME}_redistest
     env
       ${CMAKE_BINARY_DIR}/testsuite/env
-      --databases=redis
+      --databases=redis,redis-cluster
       run --
       ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}_redistest
       --gtest_output=xml:${CMAKE_BINARY_DIR}/test-results/${PROJECT_NAME}_redistest.xml
   )
 
-  add_subdirectory(tools/redisclient)
+  add_executable(${PROJECT_NAME}_benchmark ${REDIS_BENCH_SOURCES})
+  target_link_libraries(${PROJECT_NAME}_benchmark
+    userver-ubench
+    ${PROJECT_NAME}
+  )
+  target_include_directories(${PROJECT_NAME}_benchmark PRIVATE
+    $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>
+  )
+  add_test(${PROJECT_NAME}_benchmark
+    env
+      ${CMAKE_BINARY_DIR}/testsuite/env
+      --databases=redis
+      run --
+      ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}_benchmark
+      --benchmark_min_time=0
+      --benchmark_color=no
+  )
+
+  add_subdirectory(functional_tests)
 endif()
-
-if (USERVER_FEATURE_UTEST)
-    # Target with no need to use userver namespace, but includes require userver/
-    add_library(yandex-${PROJECT_NAME}_utest INTERFACE)
-    target_link_libraries(yandex-${PROJECT_NAME}_utest INTERFACE ${PROJECT_NAME}_utest)
-endif()
-
-# Target with no need to use userver namespace, but includes require userver/
-add_library(yandex-${PROJECT_NAME} INTERFACE)
-target_link_libraries(yandex-${PROJECT_NAME} INTERFACE ${PROJECT_NAME})
-
-userver_install_library(TARGETS ${PROJECT_NAME})
