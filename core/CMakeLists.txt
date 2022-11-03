@@ -247,7 +247,6 @@ if (USERVER_IS_THE_ROOT_PROJECT)
     # We keep testing deprecated functions, no need to warn about that
     target_compile_options(${PROJECT_NAME}_unittest PRIVATE "-Wno-deprecated-declarations")
     add_google_tests(${PROJECT_NAME}_unittest)
-    add_subdirectory(functional_tests)
 endif()
 
 if (USERVER_FEATURE_UTEST)
