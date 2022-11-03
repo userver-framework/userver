@@ -647,11 +647,11 @@ class ResultSet {
   /// @returns A single row result set if non empty result was returned, empty std::optional otherwise
   /// @throws exception when result set size > 1
   template <typename T>
-  std::optional<T> AsOptionalSingleRow() const;
+  auto AsOptionalSingleRow() const;
   template <typename T>
-  std::optional<T> AsOptionalSingleRow(RowTag) const;
+  auto AsOptionalSingleRow(RowTag) const;
   template <typename T>
-  std::optional<T> AsOptionalSingleRow(FieldTag) const;
+  auto AsOptionalSingleRow(FieldTag) const;
 
   //@}
  private:
@@ -900,12 +900,12 @@ auto ResultSet::AsSingleRow(FieldTag) const {
 }
 
 template <typename T>
-std::optional<T> ResultSet::AsOptionalSingleRow() const {
+auto ResultSet::AsOptionalSingleRow() const {
   return AsOptionalSingleRow<T>(kFieldTag);
 }
 
 template <typename T>
-std::optional<T> ResultSet::AsOptionalSingleRow(RowTag) const {
+auto ResultSet::AsOptionalSingleRow(RowTag) const {
   if (Size() > 1) {
     throw NonSingleRowResultSet{Size()};
   }
@@ -913,7 +913,7 @@ std::optional<T> ResultSet::AsOptionalSingleRow(RowTag) const {
 }
 
 template <typename T>
-std::optional<T> ResultSet::AsOptionalSingleRow(FieldTag) const {
+auto ResultSet::AsOptionalSingleRow(FieldTag) const {
   if (Size() > 1) {
     throw NonSingleRowResultSet{Size()};
   }
