@@ -6,24 +6,13 @@ endif()
 
 project(userver)
 
-<<<<<<< HEAD
-option(USERVER_GEN_GDB_DEBUGINFO "Compile with generation of gdb3 debug info format" OFF)
-
-=======
->>>>>>> added ability to build as shared libraries, added make install support
 if (USERVER_BUILD_SHARED_LIBS)
   set(BUILD_SHARED_LIBS ${USERVER_BUILD_SHARED_LIBS})
 endif()
 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib/)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib/)
-<<<<<<< HEAD
-set(CMAKE_INSTALL_BINDIR bin/userver)
-
-#set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin/userver)
-=======
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin/userver)
->>>>>>> added ability to build as shared libraries, added make install support
 
 set(USERVER_ROOT_DIR "${CMAKE_CURRENT_LIST_DIR}")
 
@@ -53,16 +42,9 @@ if(CMAKE_SYSTEM_PROCESSOR MATCHES "^x86")
   set(USERVER_BUILD_PLATFORM_X86 ON)
 endif()
 
-execute_process(
-  COMMAND bash -c "(apt-key finger '7FCD11186050CD1A' | grep Yandex) || (brew tap | grep 'yandex')"
-  RESULT_VARIABLE USERVER_NOT_YANDEX_ENV
-  OUTPUT_QUIET
-  ERROR_QUIET
-)
-
-option(USERVER_OPEN_SOURCE_BUILD "Build without Yandex and MLU packages" ${USERVER_NOT_YANDEX_ENV})
-if (NOT USERVER_OPEN_SOURCE_BUILD)
-  message(STATUS "Using internal to Yandex build setup")
+set(USERVER_MONGODB ${USERVER_BUILD_PLATFORM_X86})
+if(NOT MAC AND CMAKE_SYSTEM_NAME MATCHES "BSD")
+  set(USERVER_MONGODB OFF)
 endif()
 
 option(USERVER_CONAN "Build with Conan packages" ${CONAN_EXPORTED})
@@ -152,13 +134,10 @@ else()
 endif()
 
 add_subdirectory(core "${CMAKE_BINARY_DIR}/userver/core")
-add_subdirectory("${USERVER_THIRD_PARTY_DIRS}/boost_stacktrace")
 add_subdirectory("${USERVER_THIRD_PARTY_DIRS}/compiler-rt")
 add_subdirectory(uboost_coro)
 
 if (USERVER_IS_THE_ROOT_PROJECT)
-    include(testsuite/SetupUserverTestsuiteEnv.cmake)
-    add_subdirectory(testsuite)
     add_subdirectory(tools/engine)
     add_subdirectory(tools/json2yaml)
     add_subdirectory(tools/httpclient)
@@ -202,24 +181,3 @@ endif()
 if (USERVER_IS_THE_ROOT_PROJECT)
   add_subdirectory(samples)
 endif()
-
-set(CMAKE_INSTALL_CONFIGDIR ${CMAKE_INSTALL_LIBDIR}/cmake/userver)
-set(CMAKE_CONFIG_TARGETS_FILE "userverConfigTargets.cmake")
-INSTALL (EXPORT userver-targets
-  FILE "${CMAKE_CONFIG_TARGETS_FILE}" DESTINATION ${CMAKE_INSTALL_CONFIGDIR})
-EXPORT (EXPORT userver-targets
-  FILE "${CMAKE_INSTALL_CONFIGDIR}/${CMAKE_CONFIG_TARGETS_FILE}")
-
-include(CMakePackageConfigHelpers)
-set(CMAKE_VERSION_CONFIG_OUT_FILE "${CMAKE_CURRENT_BINARY_DIR}/userverConfigVersion.cmake")
-set(CMAKE_CONFIG_IN_FILE "${CMAKE_CURRENT_LIST_DIR}/cmake/userverConfig.cmake.in")
-set(CMAKE_CONFIG_OUT_FILE "${CMAKE_CURRENT_BINARY_DIR}/userverConfig.cmake")
-set(CMAKE_CONFIG_TARGETS_FILE "userverConfigTargets.cmake")
-configure_package_config_file(
-  "${CMAKE_CONFIG_IN_FILE}"
-  "${CMAKE_CONFIG_OUT_FILE}"
-  INSTALL_DESTINATION "${CMAKE_INSTALL_CONFIGDIR}/")
-write_basic_package_version_file("${CMAKE_VERSION_CONFIG_OUT_FILE}"
-  VERSION "1.0.0"
-  COMPATIBILITY SameMajorVersion)
-install(FILES "${CMAKE_CONFIG_OUT_FILE}" "${CMAKE_VERSION_CONFIG_OUT_FILE}" DESTINATION "${CMAKE_INSTALL_CONFIGDIR}")
