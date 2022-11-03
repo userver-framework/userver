@@ -6,8 +6,6 @@ function(userver_install)
   cmake_parse_arguments(USERVER_INSTALL "${options}" "${one_value_args}" "${multi_value_args}" ${ARGN})
 
   install(TARGETS ${USERVER_INSTALL_TARGETS}
-    LIBRARY DESTINATION lib
-    ARCHIVE DESTINATION lib
     PUBLIC_HEADER DESTINATION include)
 
   install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/include/"

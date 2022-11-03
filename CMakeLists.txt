@@ -70,6 +70,8 @@ option(USERVER_FEATURE_JEMALLOC "Enable linkage with jemalloc memory allocator" 
 
 option(USERVER_CHECK_PACKAGE_VERSIONS "Check package versions" ON)
 
+include(GNUInstallDirs)
+
 include(cmake/SetupEnvironment.cmake)
 include(AddGoogleTests)
 include(CheckSubmodule)
@@ -80,7 +82,7 @@ include(FindPython)
 include(UServerAddLibrary)
 include(UServerInstall)
 
-message(STATUS "Generating cmake files ...")
+message(STATUS "Generating cmake files ... (${CMAKE_INSTALL_LIBDIR})")
 execute_process(
     COMMAND
         ${PYTHON} -u ${CMAKE_CURRENT_SOURCE_DIR}/plugins/external_deps/impl/cmake_generator.py
