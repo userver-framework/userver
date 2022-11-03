@@ -86,7 +86,7 @@ jobs:
                   sudo apt install --allow-downgrades -y libpq5=14.5-0ubuntu0.22.04.1 libpq-dev=14.5-0ubuntu0.22.04.1
                 fi
                 if [ "${{matrix.os}}" = "ubuntu-18.04" ]; then
-                  sudo apt install -y libgtest-dev libgmock-dev
+                  sudo apt install -y libgtest-dev google-mock
                 fi
 
           - name: Install RabbitMQ packages
