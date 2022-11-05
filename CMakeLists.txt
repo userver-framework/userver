@@ -12,7 +12,8 @@ endif()
 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib/)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib/)
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin/userver)
+set(CMAKE_INSTALL_BINDIR bin/userver)
+#set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin/userver)
 
 set(USERVER_ROOT_DIR "${CMAKE_CURRENT_LIST_DIR}")
 
@@ -82,7 +83,7 @@ include(FindPython)
 include(UServerAddLibrary)
 include(UServerInstall)
 
-message(STATUS "Generating cmake files ... (${CMAKE_INSTALL_LIBDIR})")
+message(STATUS "Generating cmake files ...")
 execute_process(
     COMMAND
         ${PYTHON} -u ${CMAKE_CURRENT_SOURCE_DIR}/plugins/external_deps/impl/cmake_generator.py
