@@ -6,6 +6,18 @@ if(NOT USERVER_OPEN_SOURCE_BUILD)
 endif()
 
 option(USERVER_DOWNLOAD_PACKAGE_CLICKHOUSECPP "Download and setup clickhouse-cpp" ${USERVER_DOWNLOAD_PACKAGES})
+
+find_package(clickhouse-cpp-lib)
+
+if (clickhouse-cpp-lib_FOUND)
+  add_library(clickhouse-cpp ALIAS clickhouse-cpp-lib)
+  return()
+endif()
+
+if (clickhouse-cpp_FOUND)
+  return()
+endif()
+
 if (NOT USERVER_DOWNLOAD_PACKAGE_CLICKHOUSECPP)
   MESSAGE(FATAL_ERROR "Please enable USERVER_DOWNLOAD_PACKAGE_CLICKHOUSECPP, otherwise clickhouse driver can't be built")
 endif()

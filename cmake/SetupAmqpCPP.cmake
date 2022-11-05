@@ -1,8 +1,19 @@
 set(CMAKE_POLICY_DEFAULT_CMP0069 NEW)
 
 option(USERVER_DOWNLOAD_PACKAGE_AMQPCPP "Download and setup amqp-cpp" ${USERVER_DOWNLOAD_PACKAGES})
+
+find_package(amqpcpp)
+
+if (amqpcpp_FOUND)
+  add_library(amqp-cpp ALIAS amqpcpp)
+  return()
+endif()
+
 if (NOT USERVER_DOWNLOAD_PACKAGE_AMQPCPP)
   MESSAGE(FATAL_ERROR "Please enable USERVER_DOWNLOAD_PACKAGE_AMQPCPP, otherwise rabbitmq driver can't be built")
+  find_package(amqpcpp)
+else()
+  find_package(amqpcpp REQUIRED)
 endif()
 
 include(FetchContent)
