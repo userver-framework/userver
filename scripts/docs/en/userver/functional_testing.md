@@ -106,7 +106,7 @@ Run it with `--help` argument to see the short options description.
 
 ## pytest_userver
 
-By default internal `pytest_userver` plugin is included in python path.
+By default `pytest_userver` plugin is included in python path.
 It provides basic testsuite support for userver service.
 To use it add it to your `pytest_plugins` in root `conftest.py`:
 
@@ -141,6 +141,15 @@ In the example above this variable controls whether or `tests-control` component
 
 ### Features
 
+The essential parts of the testsuite are
+@ref service_client "pytest_userver.plugins.service_client.service_client" and
+pytest_userver.plugins.service_client.monitor_client fixtures that give you
+access to the pytest_userver.client.Client and
+pytest_userver.client.ClientMonitor respectively. Those types allow to interact
+with a running service.
+
+Testsuite functions reference could be found at @ref userver_testsuite.
+
 #### Service config generation
 
 `pytest_userver` uses config.yaml and config_vars.yaml passed to pytest to generate
@@ -154,7 +163,8 @@ Example usage:
 
 #### Service client
 
-Fixture `service_client` is used to access service being tested:
+Fixture @ref "service_client"
+is used to access the service being tested:
 
 @snippet samples/testsuite-support/tests/test_ping.py service_client
 
@@ -167,20 +177,23 @@ caches, mocked time, etc.
 
 #### Service environment variables
 
-Use this fixture to provide extra environment variables for your service:
+Use @ref pytest_userver.plugins.service.service_env "service_env" fixture
+to provide extra environment variables for your service:
 
 @snippet samples/redis_service/tests/conftest.py service_env
 
 #### Extra client dependencies
 
-Use this fixture to provide extra fixtures that your service depends on:
+Use @ref pytest_userver.plugins.service_client.client_deps "client_deps" fixture
+to provide extra fixtures that your service depends on:
 
 @snippet samples/postgres_service/tests/conftest.py client_deps
 
 #### Mockserver
 
 [Mockserver](https://yandex.github.io/yandex-taxi-testsuite/mockserver/) allows to mock external
-HTTP handlers. It starts its own HTTP server that receives HTTP traffic from service being tested.
+HTTP handlers. It starts its own HTTP server that receives HTTP traffic from
+the service being tested.
 And allows to install custom HTTP handlers within testsuite.
 In order to use it all HTTP clients must be pointed to mockserver address.
 
@@ -237,7 +250,7 @@ Then you can use testpoint from testcase:
 
 In order to eliminate unnecessary testpoint requests userver keeps track of testpoints
 that have testsuite handlers installed. Usually testpoint handlers are declared before
-first call to `service_client` which implicitly updates userver's list of testpoint.
+first call to @ref service_client which implicitly updates userver's list of testpoint.
 Sometimes it might be required to manually update server state.
 This can be achieved using `service_client.update_server_state()` method e.g.:
 
@@ -288,14 +301,16 @@ An example on testsuite tasks could be found here:
 
 #### Metrics
 
-Testsuite provides access to userver metrics, see @ref tutorial_metrics "tutorial on configuration".
+Testsuite provides access to userver metrics via
+@ref pytest_userver.plugins.service_client.monitor_client "monitor_client"
+, see @ref tutorial_metrics "tutorial on configuration".
 It allows to:
 
-- retrieve specific service metric by path and (optionally) labels
-  `await monitor_client.single_metric(path, labels)`
-- retrieve array of metrics by path prefix and (optionally) labels
-  `await monitor_client.metrics(path_prefix, labels)`
-- reset metrics using `await service_client.reset_metrics()`
+- retrieve specific service metric by path and (optionally) labels:
+  @ref pytest_userver.client.ClientMonitor.single_metric "await monitor_client.single_metric(path, labels)"
+- retrieve array of metrics by path prefix and (optionally) labels:
+  @ref pytest_userver.client.ClientMonitor.metrics "await monitor_client.metrics(path_prefix, labels)"
+- reset metrics: @ref pytest_userver.client.Client.reset_metrics "await service_client.reset_metrics()"
 
 Example usage:
 

@@ -7,7 +7,16 @@ DEFAULT_TIMEOUT = 15.0
 
 
 @pytest.fixture(scope='session')
-def grpc_service_port(service_config_yaml):
+def grpc_service_port(service_config_yaml) -> int:
+    """
+    Returns the gRPC listener port number of the service that is set in the
+    static configuration file.
+
+    Override this fixture to change the way the gRPC listener port number
+    is retrieved by the testsuite for tests.
+
+    @ingroup userver_testsuite_fixtures
+    """
     components = service_config_yaml['components_manager']['components']
     if 'grpc-server' not in components:
         raise RuntimeError('No grpc-server component')
@@ -15,13 +24,30 @@ def grpc_service_port(service_config_yaml):
 
 
 @pytest.fixture(scope='session')
-def grpc_service_endpoint(grpc_service_port):
+def grpc_service_endpoint(grpc_service_port) -> str:
+    """
+    Returns the gRPC endpoint of the service.
+
+    Override this fixture to change the way the gRPC endpoint
+    is retrieved by the testsuite for tests.
+
+    @ingroup userver_testsuite_fixtures
+    """
     return f'localhost:{grpc_service_port}'
 
 
 @pytest.fixture(scope='session')
-def grpc_service_timeout(pytestconfig):
-    return pytestconfig.option.service_timeout or DEFAULT_TIMEOUT
+def grpc_service_timeout(pytestconfig) -> float:
+    """
+    Returns the gRPC timeout for the service that is set by the command
+    line option `--service-timeout`.
+
+    Override this fixture to change the way the gRPC timeout
+    is set.
+
+    @ingroup userver_testsuite_fixtures
+    """
+    return float(pytestconfig.option.service_timeout) or DEFAULT_TIMEOUT
 
 
 @pytest.fixture(scope='session')

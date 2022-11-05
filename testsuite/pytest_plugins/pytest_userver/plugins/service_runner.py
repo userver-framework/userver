@@ -49,12 +49,17 @@ class UserviceRunner:
 
 @pytest.mark.servicetest
 def test_service_default(service_client):
-    """This is default service runner testcase. Feel free to override it
+    """
+    This is default service runner testcase. Feel free to override it
     in your own tests, e.g.:
 
+    @code
     @pytest.mark.servicetest
     def test_service(service_client):
         ...
+    @endcode
+
+    @ingroup userver_testsuite
     """
 
 

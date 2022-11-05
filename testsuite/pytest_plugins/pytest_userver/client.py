@@ -1,3 +1,10 @@
+"""
+Python module that provides clients for functional tests with
+testsuite; see @ref md_en_userver_functional_testing for an introduction.
+
+@ingroup userver_testsuite
+"""
+
 import contextlib
 import dataclasses
 import json
@@ -12,9 +19,9 @@ from testsuite.daemons import service_client
 from testsuite.utils import approx
 from testsuite.utils import http
 
-
+# @cond
 logger = logging.getLogger(__name__)
-
+# @endcond
 
 _UNKNOWN_STATE = '__UNKNOWN__'
 
@@ -68,14 +75,24 @@ class TestsuiteClientConfig:
 
 @dataclasses.dataclass(frozen=True)
 class Metric:
+    """
+    Metric type that contains the `labels: typing.Dict[str, str]` and
+    `value: int`.
+
+    @ingroup userver_testsuite
+    """
+
     labels: typing.Dict[str, str]
     value: int
 
 
 class ClientWrapper:
     """
-    Base wrapped asyncio client uservice client class for compatibility
-    with werkzeug interface.
+    Base asyncio userver client that implements HTTP requests to service.
+
+    Compatible with werkzeug interface.
+
+    @ingroup userver_testsuite
     """
 
     def __init__(self, client):
@@ -92,6 +109,9 @@ class ClientWrapper:
             headers: typing.Optional[typing.Dict[str, str]] = None,
             **kwargs,
     ) -> http.ClientResponse:
+        """
+        Make a HTTP POST request
+        """
         response = await self._client.post(
             path,
             json=json,
@@ -115,6 +135,9 @@ class ClientWrapper:
             headers: typing.Optional[typing.Dict[str, str]] = None,
             **kwargs,
     ) -> http.ClientResponse:
+        """
+        Make a HTTP PUT request
+        """
         response = await self._client.put(
             path,
             json=json,
@@ -138,6 +161,9 @@ class ClientWrapper:
             headers: typing.Optional[typing.Dict[str, str]] = None,
             **kwargs,
     ) -> http.ClientResponse:
+        """
+        Make a HTTP PATCH request
+        """
         response = await self._client.patch(
             path,
             json=json,
@@ -158,6 +184,9 @@ class ClientWrapper:
             x_real_ip: typing.Optional[str] = None,
             **kwargs,
     ) -> http.ClientResponse:
+        """
+        Make a HTTP GET request
+        """
         response = await self._client.get(
             path,
             headers=headers,
@@ -175,6 +204,9 @@ class ClientWrapper:
             x_real_ip: typing.Optional[str] = None,
             **kwargs,
     ) -> http.ClientResponse:
+        """
+        Make a HTTP DELETE request
+        """
         response = await self._client.delete(
             path,
             headers=headers,
@@ -192,6 +224,9 @@ class ClientWrapper:
             x_real_ip: typing.Optional[str] = None,
             **kwargs,
     ) -> http.ClientResponse:
+        """
+        Make a HTTP OPTIONS request
+        """
         response = await self._client.options(
             path,
             headers=headers,
@@ -204,6 +239,9 @@ class ClientWrapper:
     async def request(
             self, http_method: str, path: str, **kwargs,
     ) -> http.ClientResponse:
+        """
+        Make a HTTP request with the specified method
+        """
         response = await self._client.request(http_method, path, **kwargs)
         return await self._wrap_client_response(response)
 
@@ -211,6 +249,9 @@ class ClientWrapper:
             self, response: aiohttp.ClientResponse,
     ) -> typing.Awaitable[http.ClientResponse]:
         return http.wrap_client_response(response)
+
+
+# @cond
 
 
 def _wrap_client_error(func):
@@ -226,8 +267,6 @@ def _wrap_client_error(func):
 
 
 class AiohttpClientMonitor(service_client.AiohttpClient):
-    """Asyncio client for services with monitor support."""
-
     _config: TestsuiteClientConfig
 
     def __init__(self, base_url, *, config: TestsuiteClientConfig, **kwargs):
@@ -311,18 +350,31 @@ class AiohttpClientMonitor(service_client.AiohttpClient):
         return metrics_list[0]
 
 
+# @endcond
+
+
 class ClientMonitor(ClientWrapper):
     """
-    Wrapped asyncio client for services with monitor support for
-    compatibility with werkzeug interface.
+    Asyncio userver client for monitor listeners, typically retrieved from
+    plugins.service_client.monitor_client fixture.
+
+    Compatible with werkzeug interface.
+
+    @ingroup userver_testsuite
     """
 
     @_wrap_client_error
     async def get_metrics(self, prefix=None):
+        """
+        @deprecated Use metrics() or single_metric() instead
+        """
         return await self._client.get_metrics(prefix=prefix)
 
     @_wrap_client_error
     async def get_metric(self, metric_name):
+        """
+        @deprecated Use metrics() or single_metric() instead
+        """
         return await self._client.get_metric(metric_name)
 
     @_wrap_client_error
@@ -333,6 +385,13 @@ class ClientMonitor(ClientWrapper):
             prefix: str = None,
             labels: typing.Optional[typing.Dict[str, str]] = None,
     ) -> typing.Dict[str, Metric]:
+        """
+        Returns a dict of metric names to Metric.
+
+        @param path Optional full metric path
+        @param path Optional prefix on which the metric paths should start
+        @param labels Optional dictionary of labels that must be in the metric
+        """
         return await self._client.metrics(
             path=path, prefix=prefix, labels=labels,
         )
@@ -344,12 +403,21 @@ class ClientMonitor(ClientWrapper):
             *,
             labels: typing.Optional[typing.Dict[str, str]] = None,
     ) -> typing.Optional[Metric]:
+        """
+        Either return a Metric or None if there's no such metric.
+
+        @param path Full metric path
+        @param labels Optional dictionary of labels that must be in the metric
+
+        @throws AssertionError if more than one metric returned
+        """
         return await self._client.single_metric(path, labels=labels)
 
 
-class AiohttpClient(service_client.AiohttpClient):
-    """Asyncio client uservice client class."""
+# @cond
 
+
+class AiohttpClient(service_client.AiohttpClient):
     PeriodicTaskFailed = PeriodicTaskFailed
     TestsuiteActionFailed = TestsuiteActionFailed
     TestsuiteTaskNotFound = TestsuiteTaskNotFound
@@ -474,13 +542,6 @@ class AiohttpClient(service_client.AiohttpClient):
             clean_update: bool = True,
             cache_names: typing.Optional[typing.List[str]] = None,
     ) -> None:
-        """
-        Send ``POST tests/control`` request to service to update caches
-
-        :param clean_update: if False, service will do a faster incremental
-               update of caches whenever possible.
-        :param cache_names: which caches specifically should be updated
-        """
         await self.tests_control(
             invalidate_caches=True,
             clean_update=clean_update,
@@ -522,25 +583,9 @@ class AiohttpClient(service_client.AiohttpClient):
         return await self._tests_control(body)
 
     async def update_server_state(self) -> None:
-        """
-        Update service-side state through http call to 'tests/control':
-        - clear dirty (from other tests) caches
-        - set service-side mocked time,
-        - resume / suspend periodic tasks
-        - enable testpoints
-        If service is up-to-date, does nothing.
-        """
         await self._prepare()
 
     async def enable_testpoints(self, *, no_auto_cache_cleanup=False) -> None:
-        """
-        Send list of handled testpoint pats to service. For these paths service
-        will no more skip http calls from TESTPOINT(...) macro.
-        :param no_auto_cache_cleanup: prevent automatic cache cleanup.
-        When calling service client first time in scope of current test, client
-        makes additional http call to `tests/control` to update caches, to get
-        rid of data from previous test.
-        """
         if not self._testpoint:
             return
         if no_auto_cache_cleanup:
@@ -627,10 +672,18 @@ class AiohttpClient(service_client.AiohttpClient):
         return response
 
 
+# @endcond
+
+
 class Client(ClientWrapper):
     """
-    Wrapped asyncio client uservice client class for compatibility with
-    werkzeug interface.
+    Asyncio userver client, typically retrieved from
+    @ref service_client "plugins.service_client.service_client"
+    fixture.
+
+    Compatible with werkzeug interface.
+
+    @ingroup userver_testsuite
     """
 
     PeriodicTaskFailed = PeriodicTaskFailed
@@ -677,6 +730,9 @@ class Client(ClientWrapper):
         await self._client.run_distlock_task(name)
 
     async def reset_metrics(self) -> None:
+        """
+        Calls `ResetMetric(metric);` for each metric that has such C++ function
+        """
         await self._client.reset_metrics()
 
     def list_tasks(self) -> typing.List[str]:
@@ -690,6 +746,13 @@ class Client(ClientWrapper):
 
     @_wrap_client_error
     async def invalidate_caches(self, *args, **kwargs) -> None:
+        """
+        Send ``POST tests/control`` request to service to update caches
+
+        @param clean_update if False, service will do a faster incremental
+               update of caches whenever possible.
+        @param cache_names which caches specifically should be updated
+        """
         await self._client.invalidate_caches(*args, **kwargs)
 
     @_wrap_client_error
@@ -700,10 +763,27 @@ class Client(ClientWrapper):
 
     @_wrap_client_error
     async def update_server_state(self) -> None:
+        """
+        Update service-side state through http call to 'tests/control':
+        - clear dirty (from other tests) caches
+        - set service-side mocked time,
+        - resume / suspend periodic tasks
+        - enable testpoints
+        If service is up-to-date, does nothing.
+        """
         await self._client.update_server_state()
 
     @_wrap_client_error
     async def enable_testpoints(self, *args, **kwargs) -> None:
+        """
+        Send list of handled testpoint pats to service. For these paths service
+        will no more skip http calls from TESTPOINT(...) macro.
+
+        @param no_auto_cache_cleanup prevent automatic cache cleanup.
+        When calling service client first time in scope of current test, client
+        makes additional http call to `tests/control` to update caches, to get
+        rid of data from previous test.
+        """
         await self._client.enable_testpoints(*args, **kwargs)
 
 

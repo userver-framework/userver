@@ -1,3 +1,10 @@
+"""
+Python plugins that provide fixtures for functional tests with
+testsuite; see @ref md_en_userver_functional_testing for an introduction.
+
+@ingroup userver_testsuite_fixtures
+"""
+
 pytest_plugins = [
     'testsuite.pytest_plugin',
     'pytest_userver.plugins.base',

@@ -7,6 +7,9 @@ from testsuite.utils import url_util
 def service_env():
     """
     Override this to pass extra environment variables to the service.
+
+    @snippet samples/redis_service/tests/conftest.py service_env
+    @ingroup userver_testsuite_fixtures
     """
     return None
 
