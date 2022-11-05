@@ -78,15 +78,8 @@ find_package(Threads REQUIRED)
 find_package(Boost REQUIRED COMPONENTS program_options filesystem regex)
 find_package_required(ZLIB "zlib1g-dev")
 
-include(SetupGTest)
-include(SetupGBench)
-include(SetupCryptoPP)
-
 find_package(Iconv REQUIRED)
-find_package_required(libyamlcpp "libyaml-cpp-dev")
 find_package_required(OpenSSL "libssl-dev")
-include(SetupFmt)
-include(SetupCCTZ)
 
 if (USERVER_CONAN)
   find_package(GTest REQUIRED)
@@ -151,17 +144,11 @@ endif()
 userver_target_link_libraries(${PROJECT_NAME}
   PUBLIC
     Threads::Threads
-    libyamlcpp
-    fmt
-    cctz
-  STATIC_PRIVATE
     sanitize-target
-    userver-stacktrace
   PRIVATE
     Boost::filesystem
     Boost::program_options
     Boost::regex
-    CryptoPP
     OpenSSL::Crypto
     OpenSSL::SSL
     ZLIB::ZLIB
@@ -235,8 +222,6 @@ if (USERVER_IS_THE_ROOT_PROJECT)
     )
     target_link_libraries(${PROJECT_NAME}_unittest
       PUBLIC
-        libgtest
-        libgmock
         ${PROJECT_NAME}
         userver-shared-internal
       PRIVATE
@@ -282,9 +267,3 @@ if (USERVER_IS_THE_ROOT_PROJECT)
 
     add_google_benchmark_tests(${PROJECT_NAME}_benchmark)
 endif()
-
-# Target with no need to use userver namespace, but includes require userver/
-add_library(yandex-${PROJECT_NAME} INTERFACE)
-target_link_libraries(yandex-${PROJECT_NAME} INTERFACE ${PROJECT_NAME})
-
-userver_install_library(TARGETS ${PROJECT_NAME})
