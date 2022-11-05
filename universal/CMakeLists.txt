@@ -189,3 +189,5 @@ endif()
 # Target with no need to use userver namespace, but includes require userver/
 add_library(yandex-${PROJECT_NAME} INTERFACE)
 target_link_libraries(yandex-${PROJECT_NAME} INTERFACE ${PROJECT_NAME})
+
+userver_install(TARGETS ${PROJECT_NAME})
