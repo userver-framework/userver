@@ -5,7 +5,7 @@ Summary: userver framework
 Group:   Development/Libraries/C and C++
 License: Apache License 2.0
 URL:     https://github.com/userver-framework/userver
-Source0: https://github.com/yoori/userver/archive/refs/tags/%{_version}.tar.gz
+Source0: https://github.com/yoori/userver/archive/refs/tags/v%{_version}.tar.gz
 BuildRequires: cmake
 BuildRequires: python36 python3-libs
 BuildRequires: gcc-c++
@@ -84,7 +84,9 @@ DESTDIR=%{buildroot}/ make install INSTALL_PATH=%{buildroot}/
 # move third party installations into lib64
 #cp -r %{buildroot}/usr/lib %{buildroot}/usr/lib64/
 #rm -rf %{buildroot}/usr/lib
-mv %{buildroot}/usr/cmake %{buildroot}/usr/lib64/
+
+# TODO cmake config install
+#mv %{buildroot}/usr/cmake %{buildroot}/usr/lib64/
 #rm -rf %{buildroot}/usr/cmake
 popd
 
@@ -92,9 +94,10 @@ popd
 rm -rf %{buildroot}
 
 %files -n %{name}
+%{_bindir}/userver/
 %{_libdir}/lib*.so
 
 %files -n %{name}-devel
 %{_includedir}/
-#%{_libdir}/lib*.a
-%{_libdir}/cmake/*.cmake
+#{_libdir}/lib*.a
+#{_libdir}/cmake/*.cmake
