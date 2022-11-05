@@ -173,6 +173,19 @@ class UserverConan(conans.ConanFile):
             self.copy(
                 pattern='*', dst='include', src='grpc/include', keep_path=True,
             )
+        if self.options.with_utest:
+            self.copy(
+                pattern='*',
+                dst='include',
+                src='core/testing/include',
+                keep_path=True,
+            )
+            self.copy(
+                pattern='*',
+                dst='testsuite',
+                src='testsuite',
+                keep_path=True,
+            )             
         if self.options.with_postgresql:
             self.copy(
                 pattern='*',
@@ -180,6 +193,18 @@ class UserverConan(conans.ConanFile):
                 src='postgresql/include',
                 keep_path=True,
             )
+            self.copy(
+                pattern='UserverTestsuite.cmake',
+                dst='cmake',
+                src='cmake',
+                keep_path=True,
+            )        
+            self.copy(
+                pattern='AddGoogleTests.cmake',
+                dst='cmake',
+                src='cmake',
+                keep_path=True,
+            )              
         if self.options.with_mongodb:
             self.copy(
                 pattern='*',
