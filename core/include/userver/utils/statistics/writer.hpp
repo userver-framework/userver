@@ -17,7 +17,7 @@ namespace impl {
 struct WriterState;
 
 template <class Writer, class Metric>
-void DumpMetric(Writer&&, Metric&&) {
+void DumpMetric(Writer&&, const Metric&) {
   static_assert(sizeof(Metric) == 0,
                 "Cast the metric to an arithmetic type or provide a "
                 "specialization of `void DumpMetric(utils::statistics::Writer& "

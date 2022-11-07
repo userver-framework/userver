@@ -118,7 +118,6 @@ components_manager:
       fs-task-processor: main-task-processor
     system-statistics-collector:
       fs-task-processor: main-task-processor
-      update-interval: 1m
       with-nginx: false
 # /// [Sample tests control component config]
 # yaml

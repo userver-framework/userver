@@ -187,7 +187,6 @@ components_manager:
 # yaml
     system-statistics-collector:
       fs-task-processor: fs-task-processor
-      update-interval: 1m
       with-nginx: false
 # /// [Sample system statistics component config]
 config_vars: )" + kConfigVariablesPath + R"(
