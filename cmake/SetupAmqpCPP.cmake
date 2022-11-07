@@ -10,7 +10,7 @@ FetchContent_Declare(
   amqp-cpp_external_project
   GIT_REPOSITORY https://github.com/CopernicaMarketingSoftware/AMQP-CPP.git
   TIMEOUT 10
-  GIT_TAG v4.3.16
+  GIT_TAG v4.3.18
   SOURCE_DIR ${USERVER_ROOT_DIR}/third_party/amqp-cpp
 )
 FetchContent_GetProperties(amqp-cpp_external_project)
