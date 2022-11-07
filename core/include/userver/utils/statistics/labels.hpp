@@ -57,6 +57,9 @@ bool operator==(const LabelView& x, const LabelView& y) noexcept;
 /// @brief View over a continious range of LabelView.
 class LabelsSpan final {
  public:
+  using iterator = const LabelView*;
+  using const_iterator = const LabelView*;
+
   LabelsSpan() = default;
   LabelsSpan(const LabelView* begin, const LabelView* end) noexcept;
   LabelsSpan(std::initializer_list<LabelView> il) noexcept

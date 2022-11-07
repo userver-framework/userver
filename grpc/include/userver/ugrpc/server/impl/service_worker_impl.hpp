@@ -59,7 +59,7 @@ struct ServiceData final {
 
   const ServiceSettings settings;
   const ugrpc::impl::StaticServiceMetadata metadata;
-  AsyncService<GrpcppService> async_service{metadata.method_count};
+  AsyncService<GrpcppService> async_service{metadata.method_full_names.size()};
   utils::impl::WaitTokenStorage wait_tokens;
   ugrpc::impl::ServiceStatistics& statistics;
 };
@@ -85,7 +85,7 @@ class CallData final {
       : wait_token_(method_data.service_data.wait_tokens.GetToken()),
         method_data_(method_data) {
     UASSERT(method_data.method_id <
-            method_data.service_data.metadata.method_count);
+            method_data.service_data.metadata.method_full_names.size());
 
     // the request for an incoming RPC must be performed synchronously
     auto& queue = method_data_.service_data.settings.queue;

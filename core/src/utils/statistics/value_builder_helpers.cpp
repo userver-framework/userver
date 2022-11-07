@@ -1,7 +1,5 @@
 #include <utils/statistics/value_builder_helpers.hpp>
 
-#include <boost/algorithm/string/join.hpp>
-
 #include <userver/formats/common/utils.hpp>
 #include <userver/formats/json/serialize.hpp>
 #include <userver/utils/assert.hpp>
@@ -50,10 +48,6 @@ void SetSubField(formats::json::ValueBuilder& object,
     auto child = formats::common::GetAtPath(object, std::move(path));
     CheckedMerge(child, std::move(value));
   }
-}
-
-std::string JoinPath(const std::vector<std::string>& path) {
-  return boost::algorithm::join(path, ".");
 }
 
 std::optional<std::string> FindNonNumberMetricPath(

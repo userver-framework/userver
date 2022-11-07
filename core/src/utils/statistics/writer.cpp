@@ -88,7 +88,7 @@ void CheckAndWrite(impl::WriterState& state,
     return;
   }
 
-  state.builder.HandleMetric(state.path, labels, value);
+  state.builder.HandleMetric(state.path, labels, MetricValue{value});
 }
 
 }  // namespace

@@ -110,7 +110,7 @@ void Storage::VisitMetrics(BaseFormatBuilder& out,
       labels_vector.clear();
       labels_vector.reserve(entry.writer_labels.size());
       for (const auto& l : entry.writer_labels) {
-        labels_vector.emplace_back(l.Name(), l.Value());
+        labels_vector.emplace_back(l);
       }
 
       try {
@@ -147,18 +147,6 @@ Entry Storage::RegisterExtender(std::string prefix, ExtenderFunc func) {
   auto prefix_split = formats::common::SplitPathString(prefix);
   return DoRegisterExtender(impl::MetricsSource{
       std::move(prefix), std::move(prefix_split), std::move(func), {}, {}});
-}
-
-Entry Storage::RegisterExtender(std::vector<std::string> prefix,
-                                ExtenderFunc func) {
-  auto prefix_joined = JoinPath(prefix);
-  return DoRegisterExtender(impl::MetricsSource{
-      std::move(prefix_joined), std::move(prefix), std::move(func), {}, {}});
-}
-
-Entry Storage::RegisterExtender(std::initializer_list<std::string> prefix,
-                                ExtenderFunc func) {
-  return RegisterExtender(std::vector(prefix), std::move(func));
 }
 
 Entry Storage::DoRegisterExtender(impl::MetricsSource&& source) {

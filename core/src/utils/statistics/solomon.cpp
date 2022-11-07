@@ -39,11 +39,7 @@ class SolomonJsonBuilder final : public utils::statistics::BaseFormatBuilder {
     builder_.Key("labels");
     DumpLabels(path, labels);
     builder_.Key("value");
-    if (const auto* int_value = std::get_if<int64_t>(&value)) {
-      builder_.WriteInt64(*int_value);
-    } else {
-      builder_.WriteDouble(std::get<double>(value));
-    }
+    value.Visit([this](auto x) { WriteToStream(x, builder_); });
   }
 
   void AddCommonLabels(
@@ -51,16 +47,8 @@ class SolomonJsonBuilder final : public utils::statistics::BaseFormatBuilder {
     if (common_labels.empty()) {
       return;
     }
-    formats::json::StringBuilder common_labels_builder;
-    {
-      formats::json::StringBuilder::ObjectGuard guard(common_labels_builder);
-      for (const auto& [label, value] : common_labels) {
-        common_labels_builder.Key(label);
-        common_labels_builder.WriteString(value);
-      }
-    }
     builder_.Key("commonLabels");
-    builder_.WriteRawString(common_labels_builder.GetString());
+    WriteToStream(common_labels, builder_);
   }
 
  private:

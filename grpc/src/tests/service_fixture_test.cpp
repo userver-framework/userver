@@ -3,8 +3,6 @@
 #include <fmt/format.h>
 
 #include <userver/engine/task/task.hpp>
-#include <userver/formats/json/value_builder.hpp>
-#include <userver/utils/statistics/storage.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -42,9 +40,10 @@ void GrpcServiceFixture::StopServer() noexcept {
   server_.Stop();
 }
 
-formats::json::Value GrpcServiceFixture::GetStatistics() {
-  return statistics_storage_.GetAsJson(utils::statistics::StatisticsRequest{})
-      .ExtractValue();
+utils::statistics::Snapshot GrpcServiceFixture::GetStatistics(
+    std::string prefix, std::vector<utils::statistics::Label> require_labels) {
+  return utils::statistics::Snapshot{statistics_storage_, std::move(prefix),
+                                     std::move(require_labels)};
 }
 
 ugrpc::server::Server& GrpcServiceFixture::GetServer() noexcept {

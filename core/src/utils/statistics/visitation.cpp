@@ -5,8 +5,6 @@
 #include <optional>
 #include <stack>
 #include <string_view>
-#include <userver/formats/json.hpp>
-#include <variant>
 #include <vector>
 
 #include <fmt/format.h>
@@ -179,17 +177,18 @@ void ProcessLeaf(BaseFormatBuilder& builder, DfsLabelsBag& labels,
   } else {
     path.AppendNode(key);
   }
-  std::optional<std::variant<int64_t, double>> metric_value;
-  if (value.IsString()) {
-    try {
-      metric_value = utils::FromString<double>(value.As<std::string>());
-    } catch (const std::exception&) {
-      // ignore
-    }
-  } else if (value.IsInt64()) {
-    metric_value = value.As<int64_t>();
+  std::optional<MetricValue> metric_value;
+
+  if (value.IsInt64()) {
+    metric_value.emplace(value.As<std::int64_t>());
   } else if (value.IsDouble()) {
-    metric_value = value.As<double>();
+    metric_value.emplace(value.As<double>());
+  } else {
+    // TODO remove this condition, prohibit null metrics.
+    if (!value.IsNull()) {
+      UASSERT_MSG(false, fmt::format("Non-numeric metric at path '{}': {}",
+                                     path.Get(), ToString(value)));
+    }
   }
 
   // filtration is simplified, the whole internal JSON metrics code is

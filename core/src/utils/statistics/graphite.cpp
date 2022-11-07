@@ -7,7 +7,7 @@
 #include <fmt/compile.h>
 #include <fmt/format.h>
 
-#include <userver/utils/algo.hpp>
+#include <userver/utils/statistics/fmt.hpp>
 #include <userver/utils/statistics/storage.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -43,11 +43,7 @@ class FormatBuilder final : public utils::statistics::BaseFormatBuilder {
       PutLabel(label);
     }
 
-    std::visit(
-        [this](const auto& v) {
-          fmt::format_to(std::back_inserter(buf_), FMT_COMPILE(" {}"), v);
-        },
-        value);
+    fmt::format_to(std::back_inserter(buf_), FMT_COMPILE(" {}"), value);
     buf_.append(ending_);
   }
 

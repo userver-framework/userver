@@ -16,6 +16,7 @@
 #include <userver/formats/json/value_builder.hpp>
 #include <userver/utils/clang_format_workarounds.hpp>
 #include <userver/utils/statistics/entry.hpp>
+#include <userver/utils/statistics/metric_value.hpp>
 #include <userver/utils/statistics/writer.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -101,8 +102,6 @@ using StorageIterator = StorageData::iterator;
 
 class BaseFormatBuilder {
  public:
-  using MetricValue = std::variant<std::int64_t, double>;
-
   virtual ~BaseFormatBuilder();
 
   virtual void HandleMetric(std::string_view path, LabelsSpan labels,
@@ -140,13 +139,6 @@ class Storage final {
 
   /// @warning Deprecated. Use RegisterWriter instead.
   Entry RegisterExtender(std::string prefix, ExtenderFunc func);
-
-  /// @warning Deprecated. Use RegisterWriter instead.
-  Entry RegisterExtender(std::vector<std::string> prefix, ExtenderFunc func);
-
-  /// @warning Deprecated. Use RegisterWriter instead.
-  Entry RegisterExtender(std::initializer_list<std::string> prefix,
-                         ExtenderFunc func);
 
   void UnregisterExtender(impl::StorageIterator iterator) noexcept;
 

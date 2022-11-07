@@ -8,6 +8,7 @@
 #include <fmt/format.h>
 
 #include <userver/utils/algo.hpp>
+#include <userver/utils/statistics/fmt.hpp>
 #include <userver/utils/statistics/storage.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -29,12 +30,7 @@ class FormatBuilder final : public utils::statistics::BaseFormatBuilder {
                     const MetricValue& value) override {
     DumpMetricName(std::string{path});
     DumpLabels(labels);
-    std::visit(
-        [this](const auto& v) {
-          fmt::format_to(std::back_inserter(buf_), FMT_COMPILE(" {}"), v);
-        },
-        value);
-    buf_.push_back('\n');
+    fmt::format_to(std::back_inserter(buf_), FMT_COMPILE(" {}\n"), value);
   }
 
   std::string Release() { return fmt::to_string(buf_); }
