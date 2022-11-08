@@ -7,7 +7,6 @@
 #include <fmt/format.h>
 #include <boost/algorithm/cxx11/all_of.hpp>
 #include <boost/container/flat_set.hpp>
-#include <boost/range/adaptor/transformed.hpp>
 #include <boost/range/iterator_range.hpp>
 
 #include <userver/utils/statistics/fmt.hpp>
@@ -49,11 +48,12 @@ class SnapshotVisitor final : public BaseFormatBuilder {
 
   void HandleMetric(std::string_view path, LabelsSpan labels,
                     const MetricValue& value) override {
-    auto labels_copy =
-        labels | boost::adaptors::transformed([&](auto label) {
-          return Label{std::string{label.Name()}, std::string{label.Value()}};
-        });
-    SnapshotDataEntry entry{{labels_copy.begin(), labels_copy.end()}, value};
+    boost::container::flat_set<Label> labels_owned;
+    labels_owned.reserve(labels.size());
+    for (const auto& l : labels) {
+      labels_owned.emplace(Label{std::string{l.Name()}, std::string{l.Value()}});
+    }
+    SnapshotDataEntry entry{std::move(labels_owned), value};
     data_.metrics.emplace(std::string{path}, std::move(entry));
   }
 
