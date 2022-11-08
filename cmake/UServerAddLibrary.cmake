@@ -17,6 +17,7 @@ function(userver_add_library NAME)
     target_link_libraries(${NAME}
       PUBLIC
         ${USERVER_ADD_LIBRARY_PUBLIC_LINK_LIBRARIES}
+      PRIVATE
         ${USERVER_ADD_LIBRARY_PRIVATE_LINK_LIBRARIES}
         )
   else()
@@ -38,14 +39,17 @@ function(userver_target_link_libraries NAME)
   set(multi_value_args
     PUBLIC
     PRIVATE
+    STATIC_PRIVATE
     )
   cmake_parse_arguments(USERVER_ADD_LIBRARY "${options}" "${one_value_args}" "${multi_value_args}" ${ARGN})
 
-  if (BUILD_SHARED_LIBS)
+  if(BUILD_SHARED_LIBS)
     target_link_libraries(${NAME}
       PUBLIC
         ${USERVER_ADD_LIBRARY_PUBLIC}
         ${USERVER_ADD_LIBRARY_PRIVATE}
+      PRIVATE
+        ${USERVER_ADD_LIBRARY_STATIC_PRIVATE}
         )
   else()
     target_link_libraries(${NAME}
@@ -53,6 +57,7 @@ function(userver_target_link_libraries NAME)
         ${USERVER_ADD_LIBRARY_PUBLIC}
       PRIVATE
         ${USERVER_ADD_LIBRARY_PRIVATE}
+        ${USERVER_ADD_LIBRARY_STATIC_PRIVATE}
       )
   endif()
   

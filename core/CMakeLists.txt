@@ -113,20 +113,21 @@ endif()
 
 # https://bugs.llvm.org/show_bug.cgi?id=16404
 if (USERVER_SANITIZE AND NOT CMAKE_BUILD_TYPE MATCHES "^Rel")
-  target_link_libraries(${PROJECT_NAME} PUBLIC userver-compiler-rt-parts)
+  userver_target_link_libraries(${PROJECT_NAME} STATIC_PRIVATE userver-compiler-rt-parts)
 endif()
 
 userver_target_link_libraries(${PROJECT_NAME}
   PUBLIC
     Threads::Threads
     Boost::locale
-    sanitize-target
     libyamlcpp
     fmt
     c-ares
     cctz
     CURL::libcurl
+  STATIC_PRIVATE
     userver-stacktrace
+    sanitize-target
   PRIVATE
     userver-uboost-coro
     Boost::filesystem
@@ -148,16 +149,18 @@ if (NOT MACOS)
 endif()
 
 set(USERVER_PUBLIC_INCLUDE_DIRS
-  ${CMAKE_CURRENT_SOURCE_DIR}/include
-  ${CMAKE_CURRENT_SOURCE_DIR}/../shared/include
-  ${USERVER_THIRD_PARTY_DIRS}/pfr/include
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../shared/include>
+  $<BUILD_INTERFACE:${USERVER_THIRD_PARTY_DIRS}/pfr/include>
+  $<INSTALL_INTERFACE:include>
 )
 set(USERVER_GLIBC_INCLUDE_FIXES_DIR
-  ${CMAKE_CURRENT_SOURCE_DIR}/libc_include_fixes
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/libc_include_fixes>
+  $<INSTALL_INTERFACE:include/libc_include_fixes>
 )
 
 target_include_directories(${PROJECT_NAME} PUBLIC
-  ${USERVER_PUBLIC_INCLUDE_DIRS}
+  $<BUILD_INTERFACE:${USERVER_PUBLIC_INCLUDE_DIRS}>
 )
 target_include_directories(${PROJECT_NAME} SYSTEM BEFORE PUBLIC
   ${USERVER_GLIBC_INCLUDE_FIXES_DIR}
@@ -174,7 +177,14 @@ target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE
 )
 
 target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC
-  ${USERVER_THIRD_PARTY_DIRS}/moodycamel/include
+  $<BUILD_INTERFACE:${USERVER_THIRD_PARTY_DIRS}/moodycamel/include>
+  $<INSTALL_INTERFACE:include/userver/moodycamel>
+)
+
+install(DIRECTORY "${USERVER_THIRD_PARTY_DIRS}/moodycamel/include"
+  DESTINATION "include/userver"
+  FILES_MATCHING
+  PATTERN "*.h"
 )
 
 target_include_directories(${PROJECT_NAME}
@@ -275,4 +285,4 @@ endif()
 add_library(yandex-${PROJECT_NAME} INTERFACE)
 target_link_libraries(yandex-${PROJECT_NAME} INTERFACE ${PROJECT_NAME})
 
-userver_install(TARGETS ${PROJECT_NAME})
+userver_install_library(TARGETS ${PROJECT_NAME})

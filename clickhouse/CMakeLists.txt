@@ -26,13 +26,18 @@ userver_target_link_libraries(${PROJECT_NAME}
     userver-core
   PRIVATE
     clickhouse-cpp
+  STATIC_PRIVATE
     userver-compiler-rt-parts
 )
 target_include_directories(
   ${PROJECT_NAME}
-  PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include/userver>
   PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src
-)
+  )
+
+
 if(USERVER_OPEN_SOURCE_BUILD)
   target_include_directories(${PROJECT_NAME} PRIVATE
     ${USERVER_THIRD_PARTY_DIRS}/clickhouse-cpp
@@ -69,4 +74,4 @@ endif()
 add_library(yandex-${PROJECT_NAME} INTERFACE)
 target_link_libraries(yandex-${PROJECT_NAME} INTERFACE ${PROJECT_NAME})
 
-userver_install(TARGETS ${PROJECT_NAME})
+userver_install_library(TARGETS ${PROJECT_NAME})

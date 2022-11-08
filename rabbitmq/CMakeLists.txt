@@ -20,7 +20,9 @@ userver_target_link_libraries(${PROJECT_NAME}
 )
 target_include_directories(
   ${PROJECT_NAME}
-  PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
   PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 
@@ -40,4 +42,4 @@ if (USERVER_IS_THE_ROOT_PROJECT)
   )
 endif()
 
-userver_install(TARGETS ${PROJECT_NAME})
+userver_install_library(TARGETS ${PROJECT_NAME})
