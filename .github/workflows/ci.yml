@@ -83,6 +83,9 @@ jobs:
                 if [ "${{matrix.os}}" = "ubuntu-22.04" ]; then
                   sudo apt install --allow-downgrades -y libpq5=14.5-0ubuntu0.22.04.1 libpq-dev=14.5-0ubuntu0.22.04.1
                 fi
+                if [ "${{matrix.info}}" = "g++-8 + debug" ]; then
+                  sudo apt install --allow-downgrades -y g++-8
+                fi
 
           - name: Install RabbitMQ packages
             run: |
@@ -113,6 +116,7 @@ jobs:
                 else
                   echo "Nothing check in clang-tidy"
                 fi
+
           - name: Compile
             run: |
                 pwd
