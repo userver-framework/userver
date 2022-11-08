@@ -182,3 +182,7 @@ endif()
 if (USERVER_IS_THE_ROOT_PROJECT)
   add_subdirectory(samples)
 endif()
+
+set(CMAKE_INSTALL_CONFIGDIR ${CMAKE_INSTALL_LIBDIR}/cmake/userver)
+INSTALL (EXPORT userver-targets FILE userver-config.cmake DESTINATION ${CMAKE_INSTALL_CONFIGDIR})
+EXPORT (EXPORT userver-targets FILE userver-config.cmake DESTINATION ${CMAKE_INSTALL_CONFIGDIR})

@@ -24,9 +24,6 @@ else()
     target_link_libraries(userver-libpq INTERFACE ${LIBPQ_LIBRARIES})
   endif()
   target_link_libraries(userver-libpq INTERFACE ${LIBPQ_LIBRARIES})
-
-  userver_export(TARGETS userver-libpq)
-
 endif()
 
 file(GLOB_RECURSE SOURCES
@@ -59,9 +56,10 @@ userver_add_library(${PROJECT_NAME} SOURCES ${SOURCES})
 set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
 
 target_include_directories(${PROJECT_NAME} PUBLIC
-  ${CMAKE_CURRENT_SOURCE_DIR}/include
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
   PRIVATE
-  ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 target_include_directories (${PROJECT_NAME} PRIVATE
     $<TARGET_PROPERTY:userver-core,INCLUDE_DIRECTORIES>
@@ -114,9 +112,6 @@ if (USERVER_IS_THE_ROOT_PROJECT)
   target_include_directories (${PROJECT_NAME}_pgtest PRIVATE
       $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>
   )
-  target_compile_definitions(${PROJECT_NAME}_pgtest PRIVATE
-      DEFAULT_DYNAMIC_CONFIG_FILENAME="${CMAKE_CURRENT_SOURCE_DIR}/tests/dynamic_config_fallback.json"
-  )
   target_link_libraries(${PROJECT_NAME}_pgtest userver-utest ${PROJECT_NAME})
   add_test(NAME ${PROJECT_NAME}_pgtest COMMAND env
       POSTGRES_TEST_DSN=postgresql://testsuite@localhost:15433/postgres
@@ -129,3 +124,7 @@ if (USERVER_IS_THE_ROOT_PROJECT)
 
   add_subdirectory(functional_tests)
 endif()
+
+# Target with no need to use userver namespace, but includes require userver/
+add_library(yandex-${PROJECT_NAME} INTERFACE)
+target_link_libraries(yandex-${PROJECT_NAME} INTERFACE ${PROJECT_NAME})

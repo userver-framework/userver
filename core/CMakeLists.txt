@@ -146,25 +146,8 @@ if (USERVER_SANITIZE AND NOT CMAKE_BUILD_TYPE MATCHES "^Rel")
   target_link_libraries(${PROJECT_NAME} PUBLIC userver-compiler-rt-parts)
 endif()
 
-userver_target_link_libraries(${PROJECT_NAME}
-  PUBLIC
-    Threads::Threads
-    Boost::locale
-    sanitize-target
-    CURL::libcurl
-  PRIVATE
-    userver-uboost-coro
-    Boost::filesystem
-    Boost::program_options
-    Boost::iostreams
-    Boost::regex
-    Iconv::Iconv
-    OpenSSL::Crypto
-    OpenSSL::SSL
-    ZLIB::ZLIB
-)
 if (USERVER_CONAN)
-    target_link_libraries(${PROJECT_NAME}
+    userver_target_link_libraries(${PROJECT_NAME}
       PUBLIC
         yaml-cpp
         fmt::fmt
@@ -235,6 +218,14 @@ target_include_directories(${PROJECT_NAME} SYSTEM BEFORE PUBLIC
 set_property(
   SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/src/engine/errno_test.cpp
   APPEND PROPERTY COMPILE_FLAGS -O2
+)
+
+target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE
+  ${USERVER_THIRD_PARTY_DIRS}/rapidjson/include
+)
+
+target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC
+  ${USERVER_THIRD_PARTY_DIRS}/moodycamel/include
 )
 
 target_include_directories(${PROJECT_NAME}
@@ -324,15 +315,13 @@ if (USERVER_IS_THE_ROOT_PROJECT)
 endif()
 
 if (USERVER_FEATURE_UTEST)
-  userver_add_library(userver-ubench SOURCES ${LIBUBENCH_SOURCES})
-  target_include_directories(userver-ubench PUBLIC $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>)
-  target_compile_definitions(userver-ubench PUBLIC $<TARGET_PROPERTY:${PROJECT_NAME},COMPILE_DEFINITIONS>)
-  userver_target_link_libraries(userver-ubench
-    PUBLIC
-      libbenchmark
-      userver-core-internal
-      ${PROJECT_NAME}
-    PRIVATE
+    userver_add_library(userver-ubench SOURCES ${LIBUBENCH_SOURCES})
+    target_include_directories(userver-ubench PUBLIC $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>)
+    target_compile_definitions(userver-ubench PUBLIC $<TARGET_PROPERTY:${PROJECT_NAME},COMPILE_DEFINITIONS>)
+    userver_target_link_libraries(userver-ubench
+      PUBLIC
+        ${PROJECT_NAME}
+      PRIVATE
         userver-core-internal
     )
     if (USERVER_CONAN)
@@ -346,7 +335,7 @@ if (USERVER_IS_THE_ROOT_PROJECT)
     add_executable(${PROJECT_NAME}_benchmark ${BENCH_SOURCES})
     #    find_package(absl REQUIRED)
 
-    target_link_libraries(${PROJECT_NAME}_benchmark
+    userver_target_link_libraries(${PROJECT_NAME}_benchmark
       PUBLIC
         userver-ubench
       PRIVATE
@@ -359,5 +348,3 @@ endif()
 # Target with no need to use userver namespace, but includes require userver/
 add_library(yandex-${PROJECT_NAME} INTERFACE)
 target_link_libraries(yandex-${PROJECT_NAME} INTERFACE ${PROJECT_NAME})
-
-userver_install_library(TARGETS ${PROJECT_NAME})

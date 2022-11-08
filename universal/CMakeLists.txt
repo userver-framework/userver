@@ -145,6 +145,12 @@ userver_target_link_libraries(${PROJECT_NAME}
   PUBLIC
     Threads::Threads
     sanitize-target
+    libyamlcpp
+    fmt
+    cctz
+  STATIC_PRIVATE
+    sanitize-target
+    userver-stacktrace
   PRIVATE
     Boost::filesystem
     Boost::program_options
