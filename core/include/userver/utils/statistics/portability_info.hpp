@@ -77,7 +77,7 @@ formats::json::Value Serialize(const PortabilityWarnings& info,
 /// @see @ref md_en_userver_functional_testing
 PortabilityWarnings GetPortabilityWarnings(
     const utils::statistics::Storage& statistics,
-    const utils::statistics::StatisticsRequest& request);
+    const utils::statistics::Request& request);
 
 }  // namespace utils::statistics
 

@@ -17,9 +17,8 @@ MetricsPortability::MetricsPortability(
 
 formats::json::Value MetricsPortability::Perform(
     const formats::json::Value& request_body) const {
-  const auto statistics_request =
-      utils::statistics::StatisticsRequest::MakeWithPrefix(
-          request_body["prefix"].As<std::string>({}));
+  const auto statistics_request = utils::statistics::Request::MakeWithPrefix(
+      request_body["prefix"].As<std::string>({}));
   const auto info = utils::statistics::GetPortabilityWarnings(
       statistics_storage_, statistics_request);
 
