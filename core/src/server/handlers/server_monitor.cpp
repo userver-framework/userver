@@ -79,15 +79,14 @@ std::string ServerMonitor::HandleRequestThrow(const http::HttpRequest& request,
 
   const auto format = ParseFormat(request.GetArg("format"));
 
-  using utils::statistics::StatisticsRequest;
-  auto common_labels = format == StatsFormat::kSolomon
-                           ? StatisticsRequest::AddLabels{}
-                           : common_labels_;
+  using utils::statistics::Request;
+  auto common_labels =
+      format == StatsFormat::kSolomon ? Request::AddLabels{} : common_labels_;
   const auto statistics_request =
-      (path.empty() ? StatisticsRequest::MakeWithPrefix(
-                          prefix, std::move(common_labels), std::move(labels))
-                    : StatisticsRequest::MakeWithPath(
-                          path, std::move(common_labels), std::move(labels)));
+      (path.empty() ? Request::MakeWithPrefix(prefix, std::move(common_labels),
+                                              std::move(labels))
+                    : Request::MakeWithPath(path, std::move(common_labels),
+                                            std::move(labels)));
 
   switch (format) {
     case StatsFormat::kGraphite:
@@ -112,7 +111,7 @@ std::string ServerMonitor::HandleRequestThrow(const http::HttpRequest& request,
 
     case StatsFormat::kInternal:
       const auto json =
-          statistics_storage_.GetAsJson(statistics_request).ExtractValue();
+          statistics_storage_.GetAsJson(statistics_request.prefix);
       UASSERT(utils::statistics::AreAllMetricsNumbers(json));
       return formats::json::ToString(json);
   }

@@ -48,7 +48,7 @@ class Snapshot final {
                            std::vector<Label> require_labels = {}) const;
 
  private:
-  StatisticsRequest request_;
+  Request request_;
   utils::SharedRef<const impl::SnapshotData> data_;
 };
 

@@ -171,7 +171,7 @@ void ProcessInternalNode(DfsStack& dfs_stack,
 void ProcessLeaf(BaseFormatBuilder& builder, DfsLabelsBag& labels,
                  SensorPath& path, bool has_children_label,
                  const std::string& key, const formats::json::Value& value,
-                 const StatisticsRequest& request) {
+                 const Request& request) {
   if (has_children_label) {
     labels.ResetLastLabel(key);
   } else {
@@ -225,7 +225,7 @@ Label::Label(std::string name, std::string value)
 
 void VisitMetrics(BaseFormatBuilder& out,
                   const formats::json::Value& statistics_storage_json,
-                  const StatisticsRequest& request) {
+                  const Request& request) {
   SensorPath path;
   DfsLabelsBag labels;
   std::stack<DfsNode> dfs_stack;

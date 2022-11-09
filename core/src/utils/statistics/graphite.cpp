@@ -65,9 +65,8 @@ class FormatBuilder final : public utils::statistics::BaseFormatBuilder {
 
 }  // namespace
 
-std::string ToGraphiteFormat(
-    const utils::statistics::Storage& statistics,
-    const utils::statistics::StatisticsRequest& request) {
+std::string ToGraphiteFormat(const utils::statistics::Storage& statistics,
+                             const utils::statistics::Request& request) {
   FormatBuilder builder{};
   statistics.VisitMetrics(builder, request);
   return builder.Release();

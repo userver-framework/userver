@@ -62,14 +62,14 @@ class SnapshotVisitor final : public BaseFormatBuilder {
 };
 
 utils::SharedRef<const impl::SnapshotData> BuildSnapshotData(
-    const Storage& storage, const StatisticsRequest& request) {
+    const Storage& storage, const Request& request) {
   auto data = utils::MakeSharedRef<impl::SnapshotData>();
   SnapshotVisitor visitor{*data};
   storage.VisitMetrics(visitor, request);
   return std::move(data);
 }
 
-void PrependPrefix(std::string& path, const StatisticsRequest& request) {
+void PrependPrefix(std::string& path, const Request& request) {
   const std::string_view separator =
       (path.empty() || request.prefix.empty()) ? "" : ".";
   path = fmt::format("{}{}{}", request.prefix, separator, path);
@@ -110,8 +110,8 @@ Metric GetSingle(const impl::SnapshotData& data, const std::string& path,
 
 Snapshot::Snapshot(const Storage& storage, std::string prefix,
                    std::vector<Label> require_labels)
-    : request_(StatisticsRequest::MakeWithPrefix(std::move(prefix), {},
-                                                 std::move(require_labels))),
+    : request_(Request::MakeWithPrefix(std::move(prefix), {},
+                                       std::move(require_labels))),
       data_(BuildSnapshotData(storage, request_)) {}
 
 MetricValue Snapshot::SingleMetric(std::string path,

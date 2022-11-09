@@ -10,7 +10,7 @@ UTEST(StatisticsStorage, RegisterExtender) {
       "foo.bar.baz",
       [](const auto& /*prefix*/) { return formats::json::ValueBuilder{42}; });
 
-  const auto json = statistics_storage.GetAsJson({}).ExtractValue();
+  const auto json = statistics_storage.GetAsJson({});
   EXPECT_EQ(json["foo"]["bar"]["baz"].As<int>(), 42);
 }
 

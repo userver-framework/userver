@@ -24,7 +24,7 @@ const std::string kVersionField = "$version";
 constexpr int kVersion = 2;
 
 void RemoveAddedLabels(std::vector<Label>& labels,
-                       const StatisticsRequest::AddLabels& add_labels) {
+                       const Request::AddLabels& add_labels) {
   labels.erase(std::remove_if(labels.begin(), labels.end(),
                               [&add_labels](const auto& label) {
                                 auto it = add_labels.find(label.Name());
@@ -36,28 +36,24 @@ void RemoveAddedLabels(std::vector<Label>& labels,
 
 }  // namespace
 
-StatisticsRequest StatisticsRequest::MakeWithPrefix(
-    const std::string& prefix, AddLabels add_labels,
-    std::vector<Label> require_labels) {
+Request Request::MakeWithPrefix(const std::string& prefix, AddLabels add_labels,
+                                std::vector<Label> require_labels) {
   RemoveAddedLabels(require_labels, add_labels);
   return {prefix,
           prefix.empty() ? PrefixMatch::kNoop : PrefixMatch::kStartsWith,
           std::move(require_labels), std::move(add_labels)};
 }
 
-StatisticsRequest StatisticsRequest::MakeWithPath(
-    const std::string& path, AddLabels add_labels,
-    std::vector<Label> require_labels) {
+Request Request::MakeWithPath(const std::string& path, AddLabels add_labels,
+                              std::vector<Label> require_labels) {
   RemoveAddedLabels(require_labels, add_labels);
   UASSERT(!path.empty());
   return {path, PrefixMatch::kExact, std::move(require_labels),
           std::move(add_labels)};
 }
 
-StatisticsRequest::StatisticsRequest(std::string prefix_in,
-                                     PrefixMatch path_match_type_in,
-                                     std::vector<Label> require_labels_in,
-                                     AddLabels add_labels_in)
+Request::Request(std::string prefix_in, PrefixMatch path_match_type_in,
+                 std::vector<Label> require_labels_in, AddLabels add_labels_in)
     : prefix(std::move(prefix_in)),
       prefix_match_type(path_match_type_in),
       require_labels(std::move(require_labels_in)),
@@ -67,8 +63,7 @@ BaseFormatBuilder::~BaseFormatBuilder() = default;
 
 Storage::Storage() : may_register_extenders_(true) {}
 
-formats::json::ValueBuilder Storage::GetAsJson(
-    const StatisticsRequest& request) const {
+formats::json::Value Storage::GetAsJson(std::string_view prefix) const {
   formats::json::ValueBuilder result;
   result[kVersionField] = kVersion;
 
@@ -79,20 +74,19 @@ formats::json::ValueBuilder Storage::GetAsJson(
       continue;
     }
 
-    if (request.prefix_match_type == StatisticsRequest::PrefixMatch::kNoop ||
-        utils::text::StartsWith(entry.prefix_path, request.prefix) ||
-        utils::text::StartsWith(request.prefix, entry.prefix_path)) {
+    if (utils::text::StartsWith(entry.prefix_path, prefix) ||
+        utils::text::StartsWith(prefix, entry.prefix_path)) {
       LOG_DEBUG() << "Getting statistics for prefix=" << entry.prefix_path;
       SetSubField(result, std::vector(entry.path_segments),
-                  entry.extender(request));
+                  entry.extender(StatisticsRequest{}));
     }
   }
 
-  return result;
+  return result.ExtractValue();
 }
 
 void Storage::VisitMetrics(BaseFormatBuilder& out,
-                           const StatisticsRequest& request) const {
+                           const Request& request) const {
   {
     impl::WriterState state{out, request, {}, {}};
     for (const auto& [name, value] : request.add_labels) {
@@ -132,7 +126,7 @@ void Storage::VisitMetrics(BaseFormatBuilder& out,
     }
   }
 
-  statistics::VisitMetrics(out, GetAsJson(request).ExtractValue(), request);
+  statistics::VisitMetrics(out, GetAsJson(request.prefix), request);
 }
 
 void Storage::StopRegisteringExtenders() { may_register_extenders_ = false; }

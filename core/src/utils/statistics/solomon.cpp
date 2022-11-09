@@ -111,7 +111,7 @@ class SolomonJsonBuilder final : public utils::statistics::BaseFormatBuilder {
 std::string ToSolomonFormat(
     const utils::statistics::Storage& statistics,
     const std::unordered_map<std::string, std::string>& common_labels,
-    const utils::statistics::StatisticsRequest& request) {
+    const utils::statistics::Request& request) {
   formats::json::StringBuilder builder;
   SolomonJsonBuilder solomon_json_builder(builder);
   {

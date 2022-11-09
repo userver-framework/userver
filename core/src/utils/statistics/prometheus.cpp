@@ -107,9 +107,8 @@ std::string ToPrometheusLabel(std::string_view name) {
 
 }  // namespace impl
 
-std::string ToPrometheusFormat(
-    const utils::statistics::Storage& statistics,
-    const utils::statistics::StatisticsRequest& request) {
+std::string ToPrometheusFormat(const utils::statistics::Storage& statistics,
+                               const utils::statistics::Request& request) {
   impl::FormatBuilder<impl::Typed::kYes> builder{};
   statistics.VisitMetrics(builder, request);
   return builder.Release();
@@ -117,7 +116,7 @@ std::string ToPrometheusFormat(
 
 std::string ToPrometheusFormatUntyped(
     const utils::statistics::Storage& statistics,
-    const utils::statistics::StatisticsRequest& request) {
+    const utils::statistics::Request& request) {
   impl::FormatBuilder<impl::Typed::kNo> builder{};
   statistics.VisitMetrics(builder, request);
   return builder.Release();

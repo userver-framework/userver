@@ -42,7 +42,7 @@ class JsonFormat final : public utils::statistics::BaseFormatBuilder {
 }  // namespace
 
 std::string ToJsonFormat(const utils::statistics::Storage& statistics,
-                         const utils::statistics::StatisticsRequest& request) {
+                         const utils::statistics::Request& request) {
   JsonFormat builder{};
   statistics.VisitMetrics(builder, request);
   return std::move(builder).GetString();
