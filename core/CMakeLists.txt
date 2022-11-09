@@ -156,7 +156,7 @@ set(USERVER_PUBLIC_INCLUDE_DIRS
 )
 set(USERVER_GLIBC_INCLUDE_FIXES_DIR
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/libc_include_fixes>
-  $<INSTALL_INTERFACE:include/libc_include_fixes>
+  $<INSTALL_INTERFACE:include/userver/libc_include_fixes>
 )
 
 target_include_directories(${PROJECT_NAME} PUBLIC
@@ -182,6 +182,12 @@ target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC
 )
 
 install(DIRECTORY "${USERVER_THIRD_PARTY_DIRS}/moodycamel/include"
+  DESTINATION "include/userver"
+  FILES_MATCHING
+  PATTERN "*.h"
+)
+
+install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/libc_include_fixes"
   DESTINATION "include/userver"
   FILES_MATCHING
   PATTERN "*.h"
