@@ -11,13 +11,39 @@ USERVER_NAMESPACE_BEGIN
 
 namespace utils::statistics {
 
+class Label;
+
+/// @brief Non owning label name+value storage.
+class LabelView final {
+ public:
+  LabelView() = default;
+  LabelView(Label&& label) = delete;
+  explicit LabelView(const Label& label) noexcept;
+  LabelView(std::string_view name, std::string_view value) noexcept
+      : name_(name), value_(value) {}
+
+  explicit operator bool() const { return !name_.empty(); }
+
+  std::string_view Name() const { return name_; }
+  std::string_view Value() const { return value_; }
+
+ private:
+  std::string_view name_;
+  std::string_view value_;
+};
+
+bool operator<(const LabelView& x, const LabelView& y) noexcept;
+bool operator==(const LabelView& x, const LabelView& y) noexcept;
+
 /// @brief Label name+value storage.
 class Label final {
  public:
   Label() = default;
+  explicit Label(LabelView view);
   Label(std::string name, std::string value);
 
   explicit operator bool() const { return !name_.empty(); }
+  explicit operator LabelView() const { return {name_, value_}; }
 
   const std::string& Name() const { return name_; }
   const std::string& Value() const& { return value_; }
@@ -31,28 +57,6 @@ class Label final {
 
 bool operator<(const Label& x, const Label& y) noexcept;
 bool operator==(const Label& x, const Label& y) noexcept;
-
-/// @brief Non owning label name+value storage.
-class LabelView final {
- public:
-  LabelView() = default;
-  LabelView(Label&& label) = delete;
-  explicit LabelView(const Label& label) noexcept;
-  LabelView(std::string_view name, std::string_view value) noexcept
-      : name_(name), value_(value) {}
-
-  explicit operator bool() { return !name_.empty(); }
-
-  std::string_view Name() const { return name_; }
-  std::string_view Value() const { return value_; }
-
- private:
-  std::string_view name_;
-  std::string_view value_;
-};
-
-bool operator<(const LabelView& x, const LabelView& y) noexcept;
-bool operator==(const LabelView& x, const LabelView& y) noexcept;
 
 /// @brief View over a continious range of LabelView.
 class LabelsSpan final {

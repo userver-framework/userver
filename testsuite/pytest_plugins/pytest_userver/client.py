@@ -489,6 +489,13 @@ class AiohttpClient(service_client.AiohttpClient):
     async def reset_metrics(self) -> None:
         await self._testsuite_action('reset_metrics')
 
+    async def metrics_portability(
+            self, *, prefix: typing.Optional[str] = None,
+    ) -> typing.Dict[str, typing.List[typing.Dict[str, str]]]:
+        return await self._testsuite_action(
+            'metrics_portability', prefix=prefix,
+        )
+
     async def list_tasks(self) -> typing.List[str]:
         response = await self._do_testsuite_action('tasks_list')
         async with response:
@@ -734,6 +741,17 @@ class Client(ClientWrapper):
         Calls `ResetMetric(metric);` for each metric that has such C++ function
         """
         await self._client.reset_metrics()
+
+    async def metrics_portability(
+            self, *, prefix: typing.Optional[str] = None,
+    ) -> typing.Dict[str, typing.List[typing.Dict[str, str]]]:
+        """
+        Reports metrics related issues that could be encountered on
+        different monitoring systems.
+
+        @sa @ref utils::statistics::GetPortabilityInfo
+        """
+        return await self._client.metrics_portability(prefix=prefix)
 
     def list_tasks(self) -> typing.List[str]:
         return self._client.list_tasks()

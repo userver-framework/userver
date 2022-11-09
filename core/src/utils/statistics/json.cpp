@@ -1,7 +1,10 @@
 #include <userver/utils/statistics/json.hpp>
 
-#include <userver/formats/json/serialize.hpp>
+#include <string_view>
+
 #include <userver/formats/json/value_builder.hpp>
+#include <userver/utils/assert.hpp>
+#include <userver/utils/statistics/storage.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

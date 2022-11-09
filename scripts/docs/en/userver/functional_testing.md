@@ -299,6 +299,7 @@ An example on testsuite tasks could be found here:
 * C++ code: @ref samples/testsuite-support/src/tasks.cpp
 * Testcase: @ref samples/testsuite-support/tests/test_tasks.py
 
+
 #### Metrics
 
 Testsuite provides access to userver metrics via
@@ -333,6 +334,26 @@ For metrics with labels, they could be retrieved in the following way:
 * C++ code: @ref samples/testsuite-support/src/metrics.cpp
 * C++ header: @ref samples/testsuite-support/src/metrics.hpp
 * Testcase: @ref samples/testsuite-support/tests/test_metrics.py
+
+
+#### Metrics Portability
+
+Different monitoring systems and time series databases have different
+limitations. To make sure that the metrics of your service could be used on
+most of the popular systems, thare is special action in
+server::handlers::TestsControl.
+
+To use it you could just write the following test:
+
+@snippet samples/testsuite-support/tests/test_metrics.py metrics portability
+
+Note that issues are grouped by type, so you could check only for
+some particular issues. For example:
+
+@snippet samples/testsuite-support/tests/test_metrics.py metrics partial portability
+
+* Testcase: @ref samples/testsuite-support/tests/test_metrics.py
+
 
 #### Service runner
 

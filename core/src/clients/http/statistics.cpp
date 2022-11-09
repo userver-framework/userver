@@ -3,7 +3,6 @@
 #include <curl-ev/error_code.hpp>
 
 #include <userver/logging/log.hpp>
-#include <userver/utils/enumerate.hpp>
 #include <userver/utils/statistics/common.hpp>
 #include <userver/utils/statistics/writer.hpp>
 
@@ -172,9 +171,7 @@ void DumpMetric(utils::statistics::Writer& writer,
                 const PoolStatistics& stats) {
   InstanceStatistics sum_stats;
 
-  for (const auto& [i, stat] : utils::enumerate(stats.multi)) {
-    auto key = "worker-" + std::to_string(i);
-    writer.ValueWithLabels(stat, {"http_worker_id", key});
+  for (const auto& stat : stats.multi) {
     sum_stats += stat;
   }
 

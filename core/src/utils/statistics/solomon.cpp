@@ -6,28 +6,19 @@
 #include <userver/logging/log.hpp>
 #include <userver/utils/statistics/storage.hpp>
 
+#include <utils/statistics/solomon_limits.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace utils::statistics {
 namespace {
 
-// These labels are always applied and cannot be set by user
-constexpr std::array<std::string_view, 6> kReservedLabelNames = {
-    "project", "cluster", "service", "host", "group", "sensor"};
-
 constexpr bool IsReservedLabelName(std::string_view name) {
-  for (const auto& banned_name : kReservedLabelNames) {
+  for (const auto& banned_name : impl::solomon::kReservedLabelNames) {
     if (name == banned_name) return true;
   }
   return false;
 }
-
-// https://solomon.yandex-team.ru/docs/concepts/data-model#limits
-// "application" is in commonLabels and can be overridden (nginx system metrics)
-constexpr size_t kMaxLabels = 16 - kReservedLabelNames.size() - 1;
-constexpr size_t kMaxLabelNameLen = 31;
-constexpr size_t kMaxLabelValueLen = 200;
-
 class SolomonJsonBuilder final : public utils::statistics::BaseFormatBuilder {
  public:
   explicit SolomonJsonBuilder(formats::json::StringBuilder& builder)
@@ -56,15 +47,15 @@ class SolomonJsonBuilder final : public utils::statistics::BaseFormatBuilder {
     formats::json::StringBuilder::ObjectGuard guard{builder_};
     builder_.Key("sensor");
 
-    if (path.size() > kMaxLabelValueLen) {
+    if (path.size() > impl::solomon::kMaxLabelValueLen) {
       LOG_LIMITED_WARNING()
           << "Path '" << path << "' is too long for Solomon; will be truncated";
     }
-    builder_.WriteString(path.substr(0, kMaxLabelValueLen));
+    builder_.WriteString(path.substr(0, impl::solomon::kMaxLabelValueLen));
 
     std::size_t written_labels = 0;
     for (const auto& label : labels) {
-      const auto& name = label.Name();
+      const auto name = label.Name();
 
       const bool is_reserved = IsReservedLabelName(name);
       if (is_reserved) {
@@ -75,7 +66,7 @@ class SolomonJsonBuilder final : public utils::statistics::BaseFormatBuilder {
         continue;
       }
 
-      if (written_labels >= kMaxLabels) {
+      if (written_labels >= impl::solomon::kMaxLabels) {
         LOG_LIMITED_ERROR()
             << "Label '" << label.Name()
             << "' exceeds labels limit for Solomon; will be discarded";
@@ -83,21 +74,21 @@ class SolomonJsonBuilder final : public utils::statistics::BaseFormatBuilder {
         continue;
       }
 
-      if (name.size() > kMaxLabelNameLen) {
+      if (name.size() > impl::solomon::kMaxLabelNameLen) {
         LOG_LIMITED_WARNING() << "Label '" << name << "': name is longer than "
-                              << kMaxLabelNameLen
+                              << impl::solomon::kMaxLabelNameLen
                               << " chars allowed in Solomon; will be truncated";
       }
-      builder_.Key(std::string_view{name}.substr(0, kMaxLabelNameLen));
+      builder_.Key(name.substr(0, impl::solomon::kMaxLabelNameLen));
 
-      const auto& value = label.Value();
-      if (value.size() > kMaxLabelValueLen) {
-        LOG_LIMITED_WARNING() << "Label's '" << name << "': value '" << value
-                              << "' is longer than " << kMaxLabelValueLen
-                              << " chars allowed in Solomon; will be truncated";
+      const auto value = label.Value();
+      if (value.size() > impl::solomon::kMaxLabelValueLen) {
+        LOG_LIMITED_WARNING()
+            << "Label's '" << name << "': value '" << value
+            << "' is longer than " << impl::solomon::kMaxLabelValueLen
+            << " chars allowed in Solomon; will be truncated";
       }
-      builder_.WriteString(
-          std::string_view{value}.substr(0, kMaxLabelValueLen));
+      builder_.WriteString(value.substr(0, impl::solomon::kMaxLabelValueLen));
 
       ++written_labels;
     }

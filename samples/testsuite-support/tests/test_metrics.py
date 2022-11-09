@@ -87,3 +87,18 @@ async def test_engine_metrics(service_client, monitor_client):
         labels={'http_path': '/ping', 'percentile': 'p99_9'},
     )
     assert metric
+
+
+# /// [metrics portability]
+async def test_metrics_portability(service_client):
+    warnings = await service_client.metrics_portability()
+    assert not warnings, warnings
+    # /// [metrics portability]
+
+
+# /// [metrics partial portability]
+async def test_partial_metrics_portability(service_client):
+    warnings = await service_client.metrics_portability()
+    nan_metric_values = warnings.get('nan')
+    assert not nan_metric_values, nan_metric_values
+    # /// [metrics partial portability]

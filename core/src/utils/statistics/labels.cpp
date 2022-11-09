@@ -6,14 +6,6 @@ USERVER_NAMESPACE_BEGIN
 
 namespace utils::statistics {
 
-bool operator<(const Label& x, const Label& y) noexcept {
-  return x.Name() < y.Name() || (x.Name() == y.Name() && x.Value() < y.Value());
-}
-
-bool operator==(const Label& x, const Label& y) noexcept {
-  return x.Name() == y.Name() && x.Value() == y.Value();
-}
-
 LabelView::LabelView(const Label& label) noexcept
     : name_(label.Name()), value_(label.Value()) {}
 
@@ -29,6 +21,16 @@ bool operator<(const LabelView& x, const LabelView& y) noexcept {
 }
 
 bool operator==(const LabelView& x, const LabelView& y) noexcept {
+  return x.Name() == y.Name() && x.Value() == y.Value();
+}
+
+Label::Label(LabelView view) : name_{view.Name()}, value_{view.Value()} {}
+
+bool operator<(const Label& x, const Label& y) noexcept {
+  return x.Name() < y.Name() || (x.Name() == y.Name() && x.Value() < y.Value());
+}
+
+bool operator==(const Label& x, const Label& y) noexcept {
   return x.Name() == y.Name() && x.Value() == y.Value();
 }
 

@@ -10,6 +10,7 @@
 #include <testsuite/impl/actions/control.hpp>
 #include <testsuite/impl/actions/http_allowed_urls_extra.hpp>
 #include <testsuite/impl/actions/logcapture.hpp>
+#include <testsuite/impl/actions/metrics_portability.hpp>
 #include <testsuite/impl/actions/periodic.hpp>
 #include <testsuite/impl/actions/reset_metrics.hpp>
 #include <testsuite/impl/actions/tasks.hpp>
@@ -76,6 +77,9 @@ TestsControl::TestsControl(
   // Metrics
   actions_.emplace("reset_metrics",
                    std::make_unique<actions::ResetMetrics>(component_context));
+  actions_.emplace(
+      "metrics_portability",
+      std::make_unique<actions::MetricsPortability>(component_context));
 
   // Log capture
   actions_.emplace("log_capture",
