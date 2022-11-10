@@ -19,6 +19,10 @@ USERVER_NAMESPACE_BEGIN
 
 namespace engine {
 
+namespace impl {
+class TaskFactory;
+}
+
 /// Asynchronous task with result
 ///
 /// ## Example usage:
@@ -74,6 +78,11 @@ class USERVER_NODISCARD TaskWithResult : public Task {
   using Task::TryGetContextAccessor;
 
  private:
+  friend class impl::TaskFactory;
+
+  explicit TaskWithResult(boost::intrusive_ptr<impl::TaskContext>&& context)
+      : Task{std::move(context)} {}
+
   void EnsureValid() const {
     UINVARIANT(IsValid(),
                "TaskWithResult::Get was called on an invalid task. Note that "

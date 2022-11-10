@@ -14,6 +14,7 @@
 #include <userver/engine/task/cancel.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/utils/clang_format_workarounds.hpp>
+#include <userver/utils/make_intrusive_ptr.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -26,7 +27,7 @@ namespace ev {
 class ThreadControl;
 }  // namespace ev
 namespace impl {
-class TaskContext;
+//class TaskContext;
 class DetachedTasksSyncBlock;
 class ContextAccessor;
 using TaskPayload = std::unique_ptr<utils::impl::WrappedCallBase>;
@@ -162,6 +163,8 @@ class USERVER_NODISCARD Task {
   /// Constructor for internal use
   Task(TaskProcessor&, Task::Importance, Task::WaitMode, Deadline,
        impl::TaskPayload&&);
+
+  explicit Task(boost::intrusive_ptr<impl::TaskContext>&& context);
 
   /// Marks task as invalid
   void Invalidate() noexcept;

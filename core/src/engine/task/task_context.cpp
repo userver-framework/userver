@@ -103,7 +103,7 @@ TaskContext::TaskContext(TaskProcessor& task_processor,
       task_processor_(task_processor),
       task_counter_token_(task_processor_.GetTaskCounter()),
       is_critical_(importance == Task::Importance::kCritical),
-      payload_(std::move(payload)),
+      //payload_(std::move(payload)),
       state_(Task::State::kNew),
       detached_token_(nullptr),
       cancellation_reason_(TaskCancellationReason::kNone),
@@ -112,7 +112,7 @@ TaskContext::TaskContext(TaskProcessor& task_processor,
       trace_csw_left_(task_processor_.GetTaskTraceMaxCswForNewTask()),
       sleep_state_(SleepState{SleepFlags::kSleeping, SleepState::Epoch{0}}),
       local_storage_(std::nullopt) {
-  UASSERT(payload_);
+  //UASSERT(payload_);
   LOG_TRACE() << "task with task_id="
               << ReadableTaskId(current_task::GetCurrentTaskContextUnchecked())
               << " created task with task_id=" << ReadableTaskId(this)
@@ -129,11 +129,15 @@ TaskContext::~TaskContext() noexcept {
           detached_token_ == kFinishedDetachedToken);
 }
 
-utils::impl::WrappedCallBase& TaskContext::GetPayload() noexcept {
+utils::impl::WrappedCallBase& TaskContext::GetPayload() const noexcept {
   UASSERT(state_.load(std::memory_order_relaxed) == Task::State::kCompleted);
+  return DoGetPayload();
+}
+
+/*utils::impl::WrappedCallBase& TaskContext::DoGetPayload() noexcept {
   UASSERT(payload_);
   return *payload_;
-}
+}*/
 
 bool TaskContext::IsCurrent() const noexcept {
   return this == current_task::GetCurrentTaskContextUnchecked();
@@ -493,7 +497,8 @@ void TaskContext::CoroFunc(TaskPipe& task_pipe) {
       // to synchronize in its dtor (e.g. lambda closure).
       {
         LocalStorageGuard local_storage_guard(*context);
-        context->payload_.reset();
+        //context->payload_.reset();
+        context->ResetPayload();
       }
       context->yield_reason_ = YieldReason::kTaskCancelled;
     } else {
@@ -504,7 +509,8 @@ void TaskContext::CoroFunc(TaskPipe& task_pipe) {
           LocalStorageGuard local_storage_guard(*context);
 
           context->TraceStateTransition(Task::State::kRunning);
-          context->payload_->Perform();
+          //context->payload_->Perform();
+          context->GetPayload().Perform();
         }
         context->yield_reason_ = YieldReason::kTaskComplete;
       } catch (const CoroUnwinder&) {
@@ -556,7 +562,8 @@ void TaskContext::RethrowErrorResult() const {
   if (state_.load(std::memory_order_relaxed) != Task::State::kCompleted) {
     throw TaskCancelledException(CancellationReason());
   }
-  payload_->RethrowErrorResult();
+  //payload_->RethrowErrorResult();
+  GetPayload().RethrowErrorResult();
 }
 
 TaskContext::WakeupSource TaskContext::GetPrimaryWakeupSource(

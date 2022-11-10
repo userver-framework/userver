@@ -2,7 +2,6 @@
 
 #include <future>
 
-#include <engine/coro/pool.hpp>
 #include <engine/impl/generic_wait_list.hpp>
 #include <engine/task/task_context.hpp>
 #include <engine/task/task_processor.hpp>
@@ -21,9 +20,12 @@ Task::Task() = default;
 Task::Task(engine::TaskProcessor& task_processor, Task::Importance importance,
            Task::WaitMode wait_mode, engine::Deadline deadline,
            impl::TaskPayload&& payload)
-    : context_(utils::make_intrusive_ptr<impl::TaskContext>(
+    : Task{utils::make_intrusive_ptr<impl::TaskContext>(
           task_processor, importance, wait_mode, deadline,
-          std::move(payload))) {
+          std::move(payload))} {}
+
+Task::Task(boost::intrusive_ptr<impl::TaskContext>&& context) :
+  context_{std::move(context)} {
   context_->Wakeup(impl::TaskContext::WakeupSource::kBootstrap,
                    impl::SleepState::Epoch{0});
 }

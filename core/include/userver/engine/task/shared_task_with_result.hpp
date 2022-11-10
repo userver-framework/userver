@@ -19,6 +19,10 @@ USERVER_NAMESPACE_BEGIN
 
 namespace engine {
 
+namespace impl {
+class TaskFactory;
+}
+
 // clang-format off
 
 /// Asynchronous task with result
@@ -74,6 +78,12 @@ class USERVER_NODISCARD SharedTaskWithResult : public Task {
   std::add_lvalue_reference<const T> Get() && {
     static_assert(!sizeof(T*), "Store SharedTaskWithResult before using");
   }
+
+ private:
+  friend class impl::TaskFactory;
+
+  explicit SharedTaskWithResult(boost::intrusive_ptr<impl::TaskContext>&& context)
+      : Task{std::move(context)} {}
 };
 
 }  // namespace engine

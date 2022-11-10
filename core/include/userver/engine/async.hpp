@@ -9,6 +9,8 @@
 #include <userver/engine/task/task_with_result.hpp>
 #include <userver/utils/impl/wrapped_call.hpp>
 
+#include <userver/engine/impl/task_factory.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace engine {
@@ -21,11 +23,13 @@ template <template <typename> typename TaskType, typename Function,
                                       Task::Importance importance,
                                       Deadline deadline, Function&& f,
                                       Args&&... args) {
-  auto wrapped_call_ptr = utils::impl::WrapCall(std::forward<Function>(f),
+  return TaskFactory::MakeTaskWithResult<TaskType>(task_processor, importance, deadline, std::forward<Function>(f),
+      std::forward<Args>(args)...);
+  /*auto wrapped_call_ptr = utils::impl::WrapCall(std::forward<Function>(f),
                                                 std::forward<Args>(args)...);
   using ResultType = decltype(wrapped_call_ptr->Retrieve());
   return TaskType<ResultType>(task_processor, importance, deadline,
-                              std::move(wrapped_call_ptr));
+                              std::move(wrapped_call_ptr));*/
 }
 
 }  // namespace impl
