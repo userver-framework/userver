@@ -84,9 +84,9 @@ class USERVER_NODISCARD SharedTaskWithResult : public Task {
 
   SharedTaskWithResult(
       TaskProcessor& task_processor, Task::Importance importance,
-      Deadline deadline, void* context_storage, utils::impl::WrappedCallBase* payload)
+      Deadline deadline, std::unique_ptr<char[]>&& context_storage, utils::impl::WrappedCallBase* payload)
       : Task(task_processor, importance, Task::WaitMode::kMultipleWaiters,
-             deadline, context_storage, payload) {}
+             deadline, std::move(context_storage), payload) {}
 };
 
 }  // namespace engine

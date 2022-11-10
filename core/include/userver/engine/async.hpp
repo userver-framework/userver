@@ -7,6 +7,7 @@
 #include <userver/engine/task/shared_task_with_result.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/engine/task/task_with_result.hpp>
+#include <userver/utils/assert.hpp>
 #include <userver/utils/impl/wrapped_call.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -28,23 +29,32 @@ class TaskFactory final {
     using WrappedCallT = decltype(*utils::impl::WrapCall(std::forward<Function>(f),
                                                          std::forward<Args>(args)...));
 
-    char* storage = static_cast<char*>(malloc(GetTaskContextSize() + sizeof(WrappedCallT)));
-    if (storage == nullptr) {
-      throw std::bad_alloc{};
-    }
+    const auto task_context_size = GetTaskContextSize();
+    constexpr auto wrapped_size = sizeof(WrappedCallT);
+    constexpr auto wrapped_alignment = alignof(WrappedCallT);
+    // check that alignment of WrappedCall is indeed a power of 2,
+    // otherwise std::align is UB
+    static_assert(wrapped_alignment > 0
+                  && (wrapped_alignment & (wrapped_alignment - 1)) == 0);
 
-    try {
-      utils::impl::PlacementNewWrappedCall(storage + GetTaskContextSize(), std::forward<Function>(f),
-                                           std::forward<Args>(args)...);
-    } catch (...) {
-      free(storage);
-      throw;
+    const auto total_alloc_size = task_context_size + wrapped_size + wrapped_alignment;
+    auto storage = std::make_unique<char[]>(total_alloc_size);
+
+    void* payload_ptr = storage.get() + task_context_size;
+    auto payload_space = total_alloc_size - task_context_size;
+    if (!std::align(wrapped_alignment, wrapped_size, payload_ptr, payload_space)) {
+      // TODO : really shouldn't happen
+      std::abort();
     }
+    UASSERT(payload_space >= wrapped_size);
+
+    utils::impl::PlacementNewWrappedCall(payload_ptr, std::forward<Function>(f),
+                                         std::forward<Args>(args)...);
 
     using ResultType = decltype(std::declval<WrappedCallT>().Retrieve());
-
-    return TaskType<ResultType>{task_processor, importance, deadline, static_cast<void*>(storage),
-      static_cast<utils::impl::WrappedCallBase*>(static_cast<void*>(storage + GetTaskContextSize()))};
+    return TaskType<ResultType>{task_processor, importance, deadline,
+                                std::move(storage),
+                                static_cast<utils::impl::WrappedCallBase*>(payload_ptr)};
   }
 };
 

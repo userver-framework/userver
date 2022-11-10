@@ -17,6 +17,16 @@ void engine_task_create(benchmark::State& state) {
 }
 BENCHMARK(engine_task_create);
 
+void engine_task_create_destroy(benchmark::State& state) {
+  engine::RunStandalone([&] {
+    for (auto _ : state) {
+      auto task = engine::AsyncNoSpan([](){});
+      task.Get();
+    }
+  });
+}
+BENCHMARK(engine_task_create_destroy);
+
 void engine_task_yield(benchmark::State& state) {
   engine::RunStandalone([&] {
     std::vector<engine::TaskWithResult<void>> tasks;

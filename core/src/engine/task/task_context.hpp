@@ -255,6 +255,14 @@ class TaskContext final : //public boost::intrusive_ref_counter<TaskContext>,
   WaitListHook wait_list_hook;
 };
 
+/*template <size_t Size>
+struct FailAssert final {
+  static_assert(!Size);
+};
+
+FailAssert<sizeof(TaskContext)> f;
+FailAssert<alignof(TaskContext)> a;*/
+
 void intrusive_ptr_add_ref(TaskContext *p);
 void intrusive_ptr_release(TaskContext *p);
 

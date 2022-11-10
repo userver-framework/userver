@@ -2,7 +2,6 @@
 
 #include <future>
 
-#include <engine/coro/pool.hpp>
 #include <engine/impl/generic_wait_list.hpp>
 #include <engine/task/task_context.hpp>
 #include <engine/task/task_processor.hpp>
@@ -21,17 +20,18 @@ namespace {
 boost::intrusive_ptr<impl::TaskContext>
 PlacementNewContext(engine::TaskProcessor& task_processor, Task::Importance importance,
                     Task::WaitMode wait_mode, engine::Deadline deadline,
-                    void* context_storage, utils::impl::WrappedCallBase* payload) {
+                    std::unique_ptr<char[]> context_storage,
+                    utils::impl::WrappedCallBase* payload) {
   try {
-    new (context_storage) impl::TaskContext{task_processor, importance,
+    new (context_storage.get()) impl::TaskContext{task_processor, importance,
                                             wait_mode, deadline, payload};
   } catch (...) {
     payload->~WrappedCallBase();
-    free(context_storage);
     throw;
   }
 
-  return boost::intrusive_ptr<impl::TaskContext>{static_cast<impl::TaskContext*>(context_storage)};
+  return boost::intrusive_ptr<impl::TaskContext>{static_cast<impl::TaskContext*>
+                                                 (static_cast<void*>(context_storage.release()))};
 }
 
 }
@@ -40,8 +40,9 @@ Task::Task() = default;
 
 Task::Task(engine::TaskProcessor& task_processor, Task::Importance importance,
            Task::WaitMode wait_mode, engine::Deadline deadline,
-           void* context_storage, utils::impl::WrappedCallBase* payload)
-  : context_{PlacementNewContext(task_processor, importance, wait_mode, deadline, context_storage, payload)} {
+           std::unique_ptr<char[]> context_storage, utils::impl::WrappedCallBase* payload)
+  : context_{PlacementNewContext(task_processor, importance, wait_mode, deadline,
+                                   std::move(context_storage), payload)} {
   context_->Wakeup(impl::TaskContext::WakeupSource::kBootstrap,
                    impl::SleepState::Epoch{0});
 }

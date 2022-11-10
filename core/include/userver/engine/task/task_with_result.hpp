@@ -82,9 +82,9 @@ class USERVER_NODISCARD TaskWithResult : public Task {
 
   TaskWithResult(
       TaskProcessor& task_processor, Task::Importance importance,
-      Deadline deadline, void* context_storage, utils::impl::WrappedCallBase* payload)
+      Deadline deadline, std::unique_ptr<char[]>&& context_storage, utils::impl::WrappedCallBase* payload)
       : Task(task_processor, importance, Task::WaitMode::kSingleWaiter,
-             deadline, context_storage, payload) {}
+             deadline, std::move(context_storage), payload) {}
 
   void EnsureValid() const {
     UINVARIANT(IsValid(),
