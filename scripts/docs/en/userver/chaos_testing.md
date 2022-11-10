@@ -49,9 +49,9 @@ To restore the non failure behavior use `gate.to_*_pass()`.
 
 Import `chaos` to use @ref pytest_userver.chaos.TcpGate "chaos.TcpGate":
 
-```python
+@code{.py}
 from pytest_userver import chaos
-```
+@endcode
 
 The proxy usually should be started before the service and should keep working
 between the service tests runs. To achieve that make a fixture with the session

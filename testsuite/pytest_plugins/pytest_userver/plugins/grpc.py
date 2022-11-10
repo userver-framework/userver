@@ -1,3 +1,9 @@
+"""
+Make gRPC requests to the service.
+
+@sa @ref md_en_userver_tutorial_grpc_service
+"""
+
 import asyncio
 
 import grpc
@@ -63,6 +69,12 @@ async def grpc_channel(
         grpc_service_timeout,
         _grpc_session_channel,
 ):
+    """
+    Returns the gRPC channel configured by the parameters from the
+    @ref plugins.grpc.grpc_service_endpoint "grpc_service_endpoint" fixture.
+
+    @ingroup userver_testsuite_fixtures
+    """
     try:
         await asyncio.wait_for(
             _grpc_session_channel.channel_ready(),
@@ -78,4 +90,8 @@ async def grpc_channel(
 
 @pytest.fixture
 def grpc_service_deps(service_client):
-    pass
+    """
+    gRPC service dependencies hook. Feel free to override it.
+
+    @ingroup userver_testsuite_fixtures
+    """

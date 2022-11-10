@@ -1,3 +1,7 @@
+"""
+Helpers to make the `make start-*` commands work.
+"""
+
 # pylint: disable=no-member,missing-kwoa
 import pathlib
 

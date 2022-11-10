@@ -1,3 +1,7 @@
+"""
+Capture and work with logs.
+"""
+
 # pylint: disable=redefined-outer-name
 import asyncio
 import contextlib

@@ -369,12 +369,12 @@ Please note that `-s` flag is required to disable console output capture.
 `pytest_userver` provides default service runner testcase.
 In order to override it you have to add your own testcase with `@pytest.mark.servicetest`:
 
-```python
+
+@code{.py}
 @pytest.mark.servicetest
 def test_service(service_client):
     ...
-```
-
+@endcode
 
 ----------
 
