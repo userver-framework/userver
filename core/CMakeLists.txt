@@ -181,15 +181,24 @@ target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC
   $<INSTALL_INTERFACE:include/userver/moodycamel>
 )
 
-install(DIRECTORY "${USERVER_THIRD_PARTY_DIRS}/moodycamel/include"
+install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/../shared/include/userver"
+  DESTINATION "include/"
+  FILES_MATCHING
+  PATTERN "*.hpp"
+  PATTERN "*.h"
+)
+
+install(DIRECTORY "${USERVER_THIRD_PARTY_DIRS}/moodycamel/include/moodycamel"
   DESTINATION "include/userver"
   FILES_MATCHING
+  PATTERN "*.hpp"
   PATTERN "*.h"
 )
 
 install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/libc_include_fixes"
   DESTINATION "include/userver"
   FILES_MATCHING
+  PATTERN "*.hpp"
   PATTERN "*.h"
 )
 
