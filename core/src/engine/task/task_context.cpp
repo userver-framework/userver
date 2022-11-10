@@ -723,7 +723,9 @@ void intrusive_ptr_release(TaskContext *p) {
 
     p->~TaskContext();
 
-    free(static_cast<void *>(p));
+    std::unique_ptr<char[]> ptr{static_cast<char *>(
+        static_cast<void *>(p)
+        )};
   }
 }
 
