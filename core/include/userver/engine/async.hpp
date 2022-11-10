@@ -19,6 +19,7 @@ namespace impl {
 class TaskFactory final {
  public:
   static size_t GetTaskContextSize();
+  static size_t GetTaskContextAlignment();
 
   template <template <typename> typename TaskType, typename Function,
             typename... Args>
@@ -39,6 +40,9 @@ class TaskFactory final {
 
     const auto total_alloc_size = task_context_size + wrapped_size + wrapped_alignment;
     auto storage = std::make_unique<char[]>(total_alloc_size);
+    if ((reinterpret_cast<uint64_t>(storage.get()) & (GetTaskContextAlignment() - 1)) != 0) {
+      abort();
+    }
 
     void* payload_ptr = storage.get() + task_context_size;
     auto payload_space = total_alloc_size - task_context_size;

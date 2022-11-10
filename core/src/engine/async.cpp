@@ -10,6 +10,10 @@ size_t TaskFactory::GetTaskContextSize() {
   return sizeof(TaskContext);
 }
 
+size_t TaskFactory::GetTaskContextAlignment() {
+  return alignof(TaskContext);
+}
+
 }
 
 USERVER_NAMESPACE_END
