@@ -26,7 +26,6 @@
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/utils/flags.hpp>
 #include <userver/utils/impl/wrapped_call_base.hpp>
-#include <userver/utils/impl/wrapped_call.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -61,7 +60,7 @@ class WaitStrategy {
 };
 
 // NOLINTNEXTLINE(fuchsia-multiple-inheritance)
-class TaskContext : public boost::intrusive_ref_counter<TaskContext>,
+class TaskContext final : public boost::intrusive_ref_counter<TaskContext>,
                           public ContextAccessor {
  public:
   struct NoEpoch {};
@@ -82,7 +81,7 @@ class TaskContext : public boost::intrusive_ref_counter<TaskContext>,
   TaskContext(TaskProcessor&, Task::Importance, Task::WaitMode, Deadline,
               TaskPayload&&);
 
-  virtual ~TaskContext() noexcept;
+  ~TaskContext() noexcept;
 
   TaskContext(const TaskContext&) = delete;
   TaskContext(TaskContext&&) = delete;
@@ -90,7 +89,7 @@ class TaskContext : public boost::intrusive_ref_counter<TaskContext>,
   TaskContext& operator=(TaskContext&&) = delete;
 
   // can only be called on a State::kCompleted task
-  utils::impl::WrappedCallBase& GetPayload() const noexcept;
+  utils::impl::WrappedCallBase& GetPayload() noexcept;
 
   Task::State GetState() const { return state_; }
 
@@ -182,14 +181,6 @@ class TaskContext : public boost::intrusive_ref_counter<TaskContext>,
   void RemoveWaiter(impl::TaskContext& context) noexcept final;
   void RethrowErrorResult() const final;
 
- protected:
-  virtual utils::impl::WrappedCallBase& DoGetPayload() const noexcept {
-      abort();
-  };
-  virtual void ResetPayload() {
-    abort();
-  }
-
  private:
   class LocalStorageGuard;
 
@@ -221,7 +212,7 @@ class TaskContext : public boost::intrusive_ref_counter<TaskContext>,
   bool is_cancellable_{true};
   bool within_sleep_{false};
   EhGlobals eh_globals_;
-  //TaskPayload payload_;
+  TaskPayload payload_;
 
   std::atomic<Task::State> state_;
   std::atomic<DetachedTasksSyncBlock::Token*> detached_token_;
@@ -253,56 +244,6 @@ class TaskContext : public boost::intrusive_ref_counter<TaskContext>,
 
   // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
   WaitListHook wait_list_hook;
-};
-
-/*template <size_t Size>
-struct FailAssert final {
-  static_assert(!Size);
-};
-
-FailAssert<sizeof(TaskContext)> f;*/
-
-template <typename Function, typename... Args>
-class TaskContextWithPayload final : public TaskContext {
- public:
-  using WrappedCall = utils::impl::WrappedCallImpl<
-      utils::impl::DecayUnref<Function>,
-      utils::impl::DecayUnref<Args>...>;
-
-  TaskContextWithPayload(TaskProcessor& tp, Task::Importance ti, Task::WaitMode wm, Deadline d,
-                    Function&& f, Args&&... args) : TaskContext{tp, ti, wm, d, nullptr}, exists_{true} {
-    ::new (wrapped_call_storage)
-        WrappedCall{std::forward<Function>(f),
-                    std::forward_as_tuple(std::forward<Args>(args)...)};
-  }
-
-  ~TaskContextWithPayload() override {
-    Reset();
-  }
-
-  void ResetPayload() override {
-    Reset();
-  }
-
-  void Reset() {
-    if (exists_) {
-      exists_ = false;
-      TaskContextWithPayload::DoGetPayload().~WrappedCallBase();
-    }
-  }
-
-  utils::impl::WrappedCallBase& DoGetPayload() const noexcept override {
-    return *AsHeld();
-  }
-
- private:
-  utils::impl::WrappedCallBase* AsHeld() const noexcept {
-    return reinterpret_cast<utils::impl::WrappedCallBase*>(&wrapped_call_storage);
-  }
-
-  bool exists_{false};
-
-  alignas(alignof (WrappedCall)) mutable std::byte wrapped_call_storage[sizeof (WrappedCall)]{};
 };
 
 }  // namespace impl
