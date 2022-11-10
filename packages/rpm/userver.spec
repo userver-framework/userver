@@ -100,4 +100,4 @@ rm -rf %{buildroot}
 %files -n %{name}-devel
 %{_includedir}/
 #{_libdir}/lib*.a
-%{_libdir}/cmake/*.cmake
+%{_libdir}/cmake/userver/*.cmake
