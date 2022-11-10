@@ -16,14 +16,32 @@ USERVER_NAMESPACE_BEGIN
 
 namespace engine {
 
+namespace {
+
+boost::intrusive_ptr<impl::TaskContext>
+PlacementNewContext(engine::TaskProcessor& task_processor, Task::Importance importance,
+                    Task::WaitMode wait_mode, engine::Deadline deadline,
+                    void* context_storage, utils::impl::WrappedCallBase* payload) {
+  try {
+    new (context_storage) impl::TaskContext{task_processor, importance,
+                                            wait_mode, deadline, payload};
+  } catch (...) {
+    payload->~WrappedCallBase();
+    free(context_storage);
+    throw;
+  }
+
+  return boost::intrusive_ptr<impl::TaskContext>{static_cast<impl::TaskContext*>(context_storage)};
+}
+
+}
+
 Task::Task() = default;
 
 Task::Task(engine::TaskProcessor& task_processor, Task::Importance importance,
            Task::WaitMode wait_mode, engine::Deadline deadline,
-           impl::TaskPayload&& payload)
-    : context_(utils::make_intrusive_ptr<impl::TaskContext>(
-          task_processor, importance, wait_mode, deadline,
-          std::move(payload))) {
+           void* context_storage, utils::impl::WrappedCallBase* payload)
+  : context_{PlacementNewContext(task_processor, importance, wait_mode, deadline, context_storage, payload)} {
   context_->Wakeup(impl::TaskContext::WakeupSource::kBootstrap,
                    impl::SleepState::Epoch{0});
 }

@@ -15,17 +15,48 @@ namespace engine {
 
 namespace impl {
 
+class TaskFactory final {
+ public:
+  static size_t GetTaskContextSize();
+
+  template <template <typename> typename TaskType, typename Function,
+            typename... Args>
+  [[nodiscard]] static auto MakeTaskWithResult(TaskProcessor& task_processor,
+                                        Task::Importance importance,
+                                        Deadline deadline, Function&& f,
+                                        Args&&... args) {
+    using WrappedCallT = decltype(*utils::impl::WrapCall(std::forward<Function>(f),
+                                                         std::forward<Args>(args)...));
+
+    char* storage = static_cast<char*>(malloc(GetTaskContextSize() + sizeof(WrappedCallT)));
+    if (storage == nullptr) {
+      throw std::bad_alloc{};
+    }
+
+    try {
+      utils::impl::PlacementNewWrappedCall(storage + GetTaskContextSize(), std::forward<Function>(f),
+                                           std::forward<Args>(args)...);
+    } catch (...) {
+      free(storage);
+      throw;
+    }
+
+    using ResultType = decltype(std::declval<WrappedCallT>().Retrieve());
+
+    return TaskType<ResultType>{task_processor, importance, deadline, static_cast<void*>(storage),
+      static_cast<utils::impl::WrappedCallBase*>(static_cast<void*>(storage + GetTaskContextSize()))};
+  }
+};
+
 template <template <typename> typename TaskType, typename Function,
           typename... Args>
 [[nodiscard]] auto MakeTaskWithResult(TaskProcessor& task_processor,
                                       Task::Importance importance,
                                       Deadline deadline, Function&& f,
                                       Args&&... args) {
-  auto wrapped_call_ptr = utils::impl::WrapCall(std::forward<Function>(f),
-                                                std::forward<Args>(args)...);
-  using ResultType = decltype(wrapped_call_ptr->Retrieve());
-  return TaskType<ResultType>(task_processor, importance, deadline,
-                              std::move(wrapped_call_ptr));
+  return TaskFactory::MakeTaskWithResult<TaskType>(task_processor, importance, deadline,
+                                                   std::forward<Function>(f),
+                                                       std::forward<Args>(args)...);
 }
 
 }  // namespace impl

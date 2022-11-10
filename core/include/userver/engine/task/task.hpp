@@ -161,7 +161,7 @@ class USERVER_NODISCARD Task {
 
   /// Constructor for internal use
   Task(TaskProcessor&, Task::Importance, Task::WaitMode, Deadline,
-       impl::TaskPayload&&);
+       void* context_storage, utils::impl::WrappedCallBase* payload);
 
   /// Marks task as invalid
   void Invalidate() noexcept;

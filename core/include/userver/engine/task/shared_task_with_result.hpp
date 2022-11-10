@@ -19,6 +19,10 @@ USERVER_NAMESPACE_BEGIN
 
 namespace engine {
 
+namespace impl {
+class TaskFactory;
+}
+
 // clang-format off
 
 /// Asynchronous task with result
@@ -39,7 +43,7 @@ class USERVER_NODISCARD SharedTaskWithResult : public Task {
   /// Creates an invalid task.
   SharedTaskWithResult() = default;
 
-  /// @brief Constructor
+  /*/// @brief Constructor
   /// @param task_processor task processor used for execution of this task
   /// @param importance specifies whether this task can be auto-cancelled
   ///   in case of task processor overload
@@ -50,7 +54,7 @@ class USERVER_NODISCARD SharedTaskWithResult : public Task {
       Deadline deadline,
       std::unique_ptr<utils::impl::WrappedCall<T>>&& wrapped_call_ptr)
       : Task(task_processor, importance, Task::WaitMode::kMultipleWaiters,
-             deadline, std::move(wrapped_call_ptr)) {}
+             deadline, std::move(wrapped_call_ptr)) {}*/
 
   /// @brief Returns (or rethrows) the result of task invocation.
   /// Task remains valid after return from this method,
@@ -74,6 +78,15 @@ class USERVER_NODISCARD SharedTaskWithResult : public Task {
   std::add_lvalue_reference<const T> Get() && {
     static_assert(!sizeof(T*), "Store SharedTaskWithResult before using");
   }
+
+ private:
+  friend class impl::TaskFactory;
+
+  SharedTaskWithResult(
+      TaskProcessor& task_processor, Task::Importance importance,
+      Deadline deadline, void* context_storage, utils::impl::WrappedCallBase* payload)
+      : Task(task_processor, importance, Task::WaitMode::kMultipleWaiters,
+             deadline, context_storage, payload) {}
 };
 
 }  // namespace engine

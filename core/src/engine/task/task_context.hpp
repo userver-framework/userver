@@ -60,7 +60,7 @@ class WaitStrategy {
 };
 
 // NOLINTNEXTLINE(fuchsia-multiple-inheritance)
-class TaskContext final : public boost::intrusive_ref_counter<TaskContext>,
+class TaskContext final : //public boost::intrusive_ref_counter<TaskContext>,
                           public ContextAccessor {
  public:
   struct NoEpoch {};
@@ -79,7 +79,7 @@ class TaskContext final : public boost::intrusive_ref_counter<TaskContext>,
   };
 
   TaskContext(TaskProcessor&, Task::Importance, Task::WaitMode, Deadline,
-              TaskPayload&&);
+              utils::impl::WrappedCallBase* payload);
 
   ~TaskContext() noexcept;
 
@@ -181,6 +181,8 @@ class TaskContext final : public boost::intrusive_ref_counter<TaskContext>,
   void RemoveWaiter(impl::TaskContext& context) noexcept final;
   void RethrowErrorResult() const final;
 
+  size_t use_count() const;
+
  private:
   class LocalStorageGuard;
 
@@ -204,6 +206,7 @@ class TaskContext final : public boost::intrusive_ref_counter<TaskContext>,
   void ProfilerStopExecution();
 
   void TraceStateTransition(Task::State state);
+  void ResetPayload();
 
   const uint64_t magic_;
   TaskProcessor& task_processor_;
@@ -212,7 +215,9 @@ class TaskContext final : public boost::intrusive_ref_counter<TaskContext>,
   bool is_cancellable_{true};
   bool within_sleep_{false};
   EhGlobals eh_globals_;
-  TaskPayload payload_;
+
+  bool has_payload_{true};
+  utils::impl::WrappedCallBase* payload_;
 
   std::atomic<Task::State> state_;
   std::atomic<DetachedTasksSyncBlock::Token*> detached_token_;
@@ -238,6 +243,10 @@ class TaskContext final : public boost::intrusive_ref_counter<TaskContext>,
 
   std::optional<task_local::Storage> local_storage_;
 
+  std::atomic<std::size_t> intrusive_refcount_{0};
+  friend void intrusive_ptr_add_ref(TaskContext* p);
+  friend void intrusive_ptr_release(TaskContext* p);
+
  public:
   using WaitListHook = typename boost::intrusive::make_list_member_hook<
       boost::intrusive::link_mode<boost::intrusive::auto_unlink>>::type;
@@ -245,6 +254,9 @@ class TaskContext final : public boost::intrusive_ref_counter<TaskContext>,
   // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
   WaitListHook wait_list_hook;
 };
+
+void intrusive_ptr_add_ref(TaskContext *p);
+void intrusive_ptr_release(TaskContext *p);
 
 }  // namespace impl
 

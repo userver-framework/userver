@@ -19,6 +19,10 @@ USERVER_NAMESPACE_BEGIN
 
 namespace engine {
 
+namespace impl {
+class TaskFactory;
+}
+
 /// Asynchronous task with result
 ///
 /// ## Example usage:
@@ -34,7 +38,7 @@ class USERVER_NODISCARD TaskWithResult : public Task {
   /// Creates an invalid task.
   TaskWithResult() = default;
 
-  /// @brief Constructor, for internal use only
+  /*/// @brief Constructor, for internal use only
   /// @param task_processor task processor used for execution of this task
   /// @param importance specifies whether this task can be auto-cancelled
   ///   in case of task processor overload
@@ -45,7 +49,7 @@ class USERVER_NODISCARD TaskWithResult : public Task {
       Deadline deadline,
       std::unique_ptr<utils::impl::WrappedCall<T>>&& wrapped_call_ptr)
       : Task(task_processor, importance, Task::WaitMode::kSingleWaiter,
-             deadline, std::move(wrapped_call_ptr)) {}
+             deadline, std::move(wrapped_call_ptr)) {}*/
 
   TaskWithResult(const TaskWithResult&) = delete;
   TaskWithResult& operator=(const TaskWithResult&) = delete;
@@ -74,6 +78,14 @@ class USERVER_NODISCARD TaskWithResult : public Task {
   using Task::TryGetContextAccessor;
 
  private:
+  friend class impl::TaskFactory;
+
+  TaskWithResult(
+      TaskProcessor& task_processor, Task::Importance importance,
+      Deadline deadline, void* context_storage, utils::impl::WrappedCallBase* payload)
+      : Task(task_processor, importance, Task::WaitMode::kSingleWaiter,
+             deadline, context_storage, payload) {}
+
   void EnsureValid() const {
     UINVARIANT(IsValid(),
                "TaskWithResult::Get was called on an invalid task. Note that "

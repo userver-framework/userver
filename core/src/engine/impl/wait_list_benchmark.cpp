@@ -20,8 +20,12 @@ namespace {
 constexpr std::size_t kTasksCount = 1024 * 64;
 constexpr std::size_t kIterationsCount = 1024 * 16;
 
-engine::impl::TaskPayload MakeEmptyPayload() {
-  return utils::impl::WrapCall([] {});
+const auto kEmptyPayload = [] {
+  return utils::impl::WrapCall([]{});
+}();
+
+utils::impl::WrappedCallBase* MakeEmptyPayload() {
+  return kEmptyPayload.get();
 }
 
 auto MakeContexts() {

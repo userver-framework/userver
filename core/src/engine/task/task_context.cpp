@@ -98,12 +98,12 @@ auto* const kFinishedDetachedToken =
 
 TaskContext::TaskContext(TaskProcessor& task_processor,
                          Task::Importance importance, Task::WaitMode wait_type,
-                         Deadline deadline, TaskPayload&& payload)
+                         Deadline deadline, utils::impl::WrappedCallBase* payload)
     : magic_(kMagic),
       task_processor_(task_processor),
       task_counter_token_(task_processor_.GetTaskCounter()),
       is_critical_(importance == Task::Importance::kCritical),
-      payload_(std::move(payload)),
+      payload_(payload),
       state_(Task::State::kNew),
       detached_token_(nullptr),
       cancellation_reason_(TaskCancellationReason::kNone),
@@ -493,7 +493,7 @@ void TaskContext::CoroFunc(TaskPipe& task_pipe) {
       // to synchronize in its dtor (e.g. lambda closure).
       {
         LocalStorageGuard local_storage_guard(*context);
-        context->payload_.reset();
+        context->ResetPayload();
       }
       context->yield_reason_ = YieldReason::kTaskCancelled;
     } else {
@@ -557,6 +557,10 @@ void TaskContext::RethrowErrorResult() const {
     throw TaskCancelledException(CancellationReason());
   }
   payload_->RethrowErrorResult();
+}
+
+size_t TaskContext::use_count() const {
+  return intrusive_refcount_.load(std::memory_order_relaxed);
 }
 
 TaskContext::WakeupSource TaskContext::GetPrimaryWakeupSource(
@@ -700,6 +704,27 @@ void TaskContext::TraceStateTransition(Task::State state) {
                       << " changed state to " << Task::GetStateName(state)
                       << ", delay = " << diff_us << "us"
                       << logging::LogExtra::Stacktrace(logger);
+}
+
+void TaskContext::ResetPayload() {
+  if (std::exchange(has_payload_, false)) {
+    payload_->~WrappedCallBase();
+  }
+}
+
+void intrusive_ptr_add_ref(TaskContext *p) {
+  p->intrusive_refcount_.fetch_add(1, std::memory_order_relaxed);
+}
+
+void intrusive_ptr_release(TaskContext *p) {
+  if (p->intrusive_refcount_.fetch_sub(1, std::memory_order_relaxed) == 1) {
+    // fun begins here
+    p->ResetPayload();
+
+    p->~TaskContext();
+
+    free(static_cast<void *>(p));
+  }
 }
 
 }  // namespace impl
