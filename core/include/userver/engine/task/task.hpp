@@ -12,7 +12,6 @@
 #include <userver/engine/deadline.hpp>
 #include <userver/engine/exception.hpp>
 #include <userver/engine/task/cancel.hpp>
-#include <userver/engine/task/task_context_holder.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/utils/clang_format_workarounds.hpp>
 
@@ -27,10 +26,10 @@ namespace ev {
 class ThreadControl;
 }  // namespace ev
 namespace impl {
+class TaskContextHolder;
 class TaskContext;
 class DetachedTasksSyncBlock;
 class ContextAccessor;
-using TaskPayload = std::unique_ptr<utils::impl::WrappedCallBase>;
 }  // namespace impl
 
 /// Asynchronous task
@@ -162,7 +161,7 @@ class USERVER_NODISCARD Task {
 
   /// Constructor for internal use
   Task(TaskProcessor&, Task::Importance, Task::WaitMode, Deadline,
-       impl::TaskContextHolder context_holder);
+       impl::TaskContextHolder&& context_holder);
 
   /// Marks task as invalid
   void Invalidate() noexcept;

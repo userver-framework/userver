@@ -73,16 +73,9 @@ auto MakeContext() {
   auto holder =
       engine::impl::TaskContextHolder::Allocate(Payload<PayloadSize>{});
 
-  new (holder.storage.get())
-      engine::impl::TaskContext{engine::current_task::GetTaskProcessor(),
-                                engine::Task::Importance::kNormal,
-                                engine::Task::WaitMode::kSingleWaiter,
-                                {},
-                                holder.payload};
-
-  return boost::intrusive_ptr<engine::impl::TaskContext>{
-      static_cast<engine::impl::TaskContext*>(
-          static_cast<void*>(holder.storage.release()))};
+  return std::move(holder).ToContext(engine::current_task::GetTaskProcessor(),
+                                     engine::Task::Importance::kNormal,
+                                     engine::Task::WaitMode::kSingleWaiter, {});
 }
 
 }  // namespace

@@ -32,6 +32,8 @@ USERVER_NAMESPACE_BEGIN
 namespace engine {
 namespace impl {
 
+class TaskContextHolder;
+
 [[noreturn]] void ReportDeadlock();
 
 class WaitStrategy {
@@ -60,8 +62,7 @@ class WaitStrategy {
 };
 
 // NOLINTNEXTLINE(fuchsia-multiple-inheritance)
-class TaskContext final :  // public boost::intrusive_ref_counter<TaskContext>,
-                           public ContextAccessor {
+class TaskContext final : public ContextAccessor {
  public:
   struct NoEpoch {};
   using TaskPipe = coro::Pool<TaskContext>::TaskPipe;
@@ -77,9 +78,6 @@ class TaskContext final :  // public boost::intrusive_ref_counter<TaskContext>,
     kCancelRequest = static_cast<uint32_t>(SleepFlags::kWakeupByCancelRequest),
     kBootstrap = static_cast<uint32_t>(SleepFlags::kWakeupByBootstrap),
   };
-
-  TaskContext(TaskProcessor&, Task::Importance, Task::WaitMode, Deadline,
-              utils::impl::WrappedCallBase* payload);
 
   ~TaskContext() noexcept;
 
@@ -184,9 +182,13 @@ class TaskContext final :  // public boost::intrusive_ref_counter<TaskContext>,
   size_t use_count() const;
 
  private:
+  friend class TaskContextHolder;
   class LocalStorageGuard;
 
   static constexpr uint64_t kMagic = 0x6b73615453755459ULL;  // "YTuSTask"
+
+  TaskContext(TaskProcessor&, Task::Importance, Task::WaitMode, Deadline,
+              utils::impl::WrappedCallBase* payload);
 
   template <typename Func>
   void ArmTimer(Deadline deadline, Func&& func);
@@ -254,21 +256,6 @@ class TaskContext final :  // public boost::intrusive_ref_counter<TaskContext>,
   // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
   WaitListHook wait_list_hook;
 };
-
-/*template <size_t Size>
-struct FailAssert final {
-  static_assert(!Size);
-};
-
-FailAssert<alignof(TaskContext)> f;*/
-
-/*template <size_t Size>
-struct FailAssert final {
-  static_assert(!Size);
-};
-
-FailAssert<sizeof(TaskContext)> f;
-FailAssert<alignof(TaskContext)> a;*/
 
 void intrusive_ptr_add_ref(TaskContext* p);
 void intrusive_ptr_release(TaskContext* p);

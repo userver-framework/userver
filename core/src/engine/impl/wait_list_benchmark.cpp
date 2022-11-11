@@ -6,7 +6,6 @@
 #include <userver/engine/async.hpp>
 #include <userver/engine/run_standalone.hpp>
 #include <userver/engine/task/task_context_holder.hpp>
-#include <userver/utils/impl/wrapped_call.hpp>
 
 #include <engine/impl/wait_list.hpp>
 #include <engine/task/task_context.hpp>
@@ -28,15 +27,9 @@ struct Payload final {
 auto MakeContext() {
   auto holder = engine::impl::TaskContextHolder::Allocate(Payload{});
 
-  new (holder.storage.get())
-      TaskContext{engine::current_task::GetTaskProcessor(),
-                  engine::Task::Importance::kNormal,
-                  engine::Task::WaitMode::kSingleWaiter,
-                  {},
-                  holder.payload};
-
-  return boost::intrusive_ptr<TaskContext>{
-      static_cast<TaskContext*>(static_cast<void*>(holder.storage.release()))};
+  return std::move(holder).ToContext(engine::current_task::GetTaskProcessor(),
+                                     engine::Task::Importance::kNormal,
+                                     engine::Task::WaitMode::kSingleWaiter, {});
 }
 
 auto MakeContexts() {

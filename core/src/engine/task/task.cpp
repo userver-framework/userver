@@ -8,42 +8,21 @@
 #include <engine/task/task_processor_pools.hpp>
 #include <userver/engine/async.hpp>
 #include <userver/engine/task/cancel.hpp>
+#include <userver/engine/task/task_context_holder.hpp>
 #include <userver/utils/assert.hpp>
-#include <userver/utils/make_intrusive_ptr.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace engine {
 
-namespace {
-
-boost::intrusive_ptr<impl::TaskContext> PlacementNewContext(
-    engine::TaskProcessor& task_processor, Task::Importance importance,
-    Task::WaitMode wait_mode, engine::Deadline deadline,
-    impl::TaskContextHolder context_holder) {
-  try {
-    new (context_holder.storage.get())
-        impl::TaskContext{task_processor, importance, wait_mode, deadline,
-                          context_holder.payload};
-  } catch (...) {
-    context_holder.payload->~WrappedCallBase();
-    throw;
-  }
-
-  return boost::intrusive_ptr<impl::TaskContext>{
-      static_cast<impl::TaskContext*>(
-          static_cast<void*>(context_holder.storage.release()))};
-}
-
-}  // namespace
-
 Task::Task() = default;
 
 Task::Task(engine::TaskProcessor& task_processor, Task::Importance importance,
            Task::WaitMode wait_mode, engine::Deadline deadline,
-           impl::TaskContextHolder context_holder)
-    : context_{PlacementNewContext(task_processor, importance, wait_mode,
-                                   deadline, std::move(context_holder))} {
+           impl::TaskContextHolder&& context_holder)
+    : context_{
+          std::move(context_holder)
+              .ToContext(task_processor, importance, wait_mode, deadline)} {
   context_->Wakeup(impl::TaskContext::WakeupSource::kBootstrap,
                    impl::SleepState::Epoch{0});
 }
