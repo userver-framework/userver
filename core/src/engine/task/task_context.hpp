@@ -218,7 +218,6 @@ class TaskContext final : public ContextAccessor {
   bool within_sleep_{false};
   EhGlobals eh_globals_;
 
-  bool has_payload_{true};
   utils::impl::WrappedCallBase* payload_;
 
   std::atomic<Task::State> state_;

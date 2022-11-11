@@ -708,9 +708,9 @@ void TaskContext::TraceStateTransition(Task::State state) {
 }
 
 void TaskContext::ResetPayload() {
-  if (std::exchange(has_payload_, false)) {
-    payload_->~WrappedCallBase();
-  }
+  if (!payload_) return;
+
+  std::exchange(payload_, nullptr)->~WrappedCallBase();
 }
 
 void intrusive_ptr_add_ref(TaskContext* p) {
@@ -719,12 +719,12 @@ void intrusive_ptr_add_ref(TaskContext* p) {
 
 void intrusive_ptr_release(TaskContext* p) {
   if (p->intrusive_refcount_.fetch_sub(1, std::memory_order_relaxed) == 1) {
-    // fun begins here
     p->ResetPayload();
 
     p->~TaskContext();
 
-    std::unique_ptr<char[]> ptr{static_cast<char*>(static_cast<void*>(p))};
+    std::unique_ptr<std::byte[]> ptr{
+        static_cast<std::byte*>(static_cast<void*>(p))};
   }
 }
 
