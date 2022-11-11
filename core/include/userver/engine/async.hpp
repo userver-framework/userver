@@ -8,7 +8,6 @@
 #include <userver/engine/task/task_context_holder.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/engine/task/task_with_result.hpp>
-#include <userver/utils/assert.hpp>
 #include <userver/utils/impl/wrapped_call.hpp>
 
 USERVER_NAMESPACE_BEGIN

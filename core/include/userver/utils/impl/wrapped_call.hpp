@@ -157,8 +157,7 @@ void PlacementNewWrappedCall(void* where, Function&& f, Args&&... args) {
       (!std::is_array_v<std::remove_reference_t<Args>> && ...),
       "Passing C arrays to Async is forbidden. Use std::array instead");
 
-  new (where) impl::WrappedCallImpl<impl::DecayUnref<Function>,
-                                    impl::DecayUnref<Args>...>(
+  new (where) WrappedCallImplT<Function, Args...>(
       std::forward<Function>(f),
       std::forward_as_tuple(std::forward<Args>(args)...));
 }
