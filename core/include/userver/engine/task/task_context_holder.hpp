@@ -29,7 +29,8 @@ struct TaskContextHolder final {
     const auto total_alloc_size =
         task_context_size + wrapped_size + wrapped_alignment;
 
-    auto storage = std::make_unique<char[]>(total_alloc_size);
+    std::unique_ptr<char[]> storage{
+        static_cast<char*>(::operator new[](total_alloc_size))};
     if ((reinterpret_cast<uint64_t>(storage.get()) &
          (GetTaskContextAlignment() - 1)) != 0) {
       abort();

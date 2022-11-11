@@ -2,6 +2,7 @@
 
 #include <thread>
 
+#include <engine/task/task_context.hpp>
 #include <userver/engine/async.hpp>
 #include <userver/engine/run_standalone.hpp>
 #include <userver/engine/sleep.hpp>
@@ -57,5 +58,47 @@ void thread_yield(benchmark::State& state) {
   for (auto _ : state) std::this_thread::yield();
 }
 BENCHMARK(thread_yield)->RangeMultiplier(2)->ThreadRange(1, 32);
+
+namespace {
+
+template <size_t PayloadSize>
+struct Payload final {
+  void operator()() {}
+
+  char data[PayloadSize];
+};
+
+template <size_t PayloadSize>
+auto MakeContext() {
+  auto holder =
+      engine::impl::TaskContextHolder::Allocate(Payload<PayloadSize>{});
+
+  new (holder.storage.get())
+      engine::impl::TaskContext{engine::current_task::GetTaskProcessor(),
+                                engine::Task::Importance::kNormal,
+                                engine::Task::WaitMode::kSingleWaiter,
+                                {},
+                                holder.payload};
+
+  return boost::intrusive_ptr<engine::impl::TaskContext>{
+      static_cast<engine::impl::TaskContext*>(
+          static_cast<void*>(holder.storage.release()))};
+}
+
+}  // namespace
+
+template <size_t PayloadSize>
+void task_context_allocate(benchmark::State& state) {
+  engine::RunStandalone([&state] {
+    for (auto _ : state) {
+      benchmark::DoNotOptimize(MakeContext<PayloadSize>());
+    }
+  });
+}
+BENCHMARK_TEMPLATE(task_context_allocate, 32);
+BENCHMARK_TEMPLATE(task_context_allocate, 64);
+BENCHMARK_TEMPLATE(task_context_allocate, 128);
+BENCHMARK_TEMPLATE(task_context_allocate, 256);
+BENCHMARK_TEMPLATE(task_context_allocate, 512);
 
 USERVER_NAMESPACE_END

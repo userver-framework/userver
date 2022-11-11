@@ -21,12 +21,12 @@ namespace {
 constexpr std::size_t kTasksCount = 1024 * 64;
 constexpr std::size_t kIterationsCount = 1024 * 16;
 
-struct EmptyPayload final {
-  void operator()(){};
+struct Payload final {
+  void operator()() {}
 };
 
 auto MakeContext() {
-  auto holder = engine::impl::TaskContextHolder::Allocate(EmptyPayload{});
+  auto holder = engine::impl::TaskContextHolder::Allocate(Payload{});
 
   new (holder.storage.get())
       TaskContext{engine::current_task::GetTaskProcessor(),
