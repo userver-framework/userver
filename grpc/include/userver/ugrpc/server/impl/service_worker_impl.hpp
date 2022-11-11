@@ -12,6 +12,7 @@
 #include <grpcpp/server_context.h>
 
 #include <userver/engine/async.hpp>
+#include <userver/engine/task/cancel.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/tracing/in_place_span.hpp>
 #include <userver/tracing/span.hpp>
@@ -20,10 +21,10 @@
 #include <userver/utils/impl/wait_token_storage.hpp>
 #include <userver/utils/lazy_prvalue.hpp>
 
-#include <userver/ugrpc/impl/async_method_invocation.hpp>
 #include <userver/ugrpc/impl/static_metadata.hpp>
 #include <userver/ugrpc/impl/statistics.hpp>
 #include <userver/ugrpc/impl/statistics_scope.hpp>
+#include <userver/ugrpc/server/impl/async_method_invocation.hpp>
 #include <userver/ugrpc/server/impl/async_service.hpp>
 #include <userver/ugrpc/server/impl/call_traits.hpp>
 #include <userver/ugrpc/server/impl/service_worker.hpp>
@@ -86,17 +87,31 @@ class CallData final {
         method_data_(method_data) {
     UASSERT(method_data.method_id <
             method_data.service_data.metadata.method_full_names.size());
+  }
+
+  void operator()() && {
+    // Based on the tensorflow code, we must first call AsyncNotifyWhenDone
+    // and only then Prepare<>
+    // see
+    // https://git.ecdf.ed.ac.uk/s1886313/tensorflow/-/blob/438604fc885208ee05f9eef2d0f2c630e1360a83/tensorflow/core/distributed_runtime/rpc/grpc_call.h#L201
+    // and grpc::ServerContext::AsyncNotifyWhenDone
+    ugrpc::server::impl::RpcFinishedEvent notify_when_done(
+        engine::current_task::GetCancellationToken(), context_);
+
+    context_.AsyncNotifyWhenDone(notify_when_done.GetTag());
 
     // the request for an incoming RPC must be performed synchronously
     auto& queue = method_data_.service_data.settings.queue;
     method_data_.service_data.async_service.template Prepare<CallTraits>(
         method_data_.method_id, context_, initial_request_, raw_responder_,
         queue, queue, prepare_.GetTag());
-  }
 
-  void operator()() && {
     if (!prepare_.Wait()) {
       // the CompletionQueue is shutting down
+
+      // Do not wait for notify_when_done. When queue is shutting down, it will
+      // not be called.
+      // https://github.com/grpc/grpc/issues/10136
       return;
     }
 
@@ -104,11 +119,15 @@ class CallData final {
     ListenAsync(method_data_);
 
     HandleRpc();
+
+    // Even if we finished before receiving notification that call is done, we
+    // should wait on this async operation. CompletionQueue has a pointer to
+    // stack-allocated object, that object is going to be freed upon exit. To
+    // prevent segfaults, wait until queue is done with this object.
+    notify_when_done.Wait();
   }
 
   static void ListenAsync(const MethodData<GrpcppService, CallTraits>& data) {
-    // The new CallData is constructed synchronously and starts keeping
-    // 'reactor' alive using its 'wait_token_'.
     engine::CriticalAsyncNoSpan(
         data.service_data.settings.task_processor,
         utils::LazyPrvalue([&] { return CallData(data); }))
@@ -155,7 +174,7 @@ class CallData final {
   grpc::ServerContext context_{};
   InitialRequest initial_request_{};
   RawCall raw_responder_{&context_};
-  AsyncMethodInvocation prepare_{};
+  ugrpc::impl::AsyncMethodInvocation prepare_{};
   std::optional<tracing::InPlaceSpan> span_{};
 };
 

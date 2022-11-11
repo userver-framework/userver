@@ -1,6 +1,7 @@
 #include <userver/utest/utest.hpp>
 
 #include <userver/engine/async.hpp>
+#include <userver/engine/single_consumer_event.hpp>
 #include <userver/engine/sleep.hpp>
 
 #include <userver/ugrpc/client/client_factory.hpp>
@@ -11,6 +12,8 @@
 #include <tests/service_fixture_test.hpp>
 #include <tests/unit_test_client.usrv.pb.hpp>
 #include <tests/unit_test_service.usrv.pb.hpp>
+
+#include <tests/service_fixture_test.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -138,6 +141,53 @@ UTEST(GrpcServer, DeadlineAffectsWaitForReady) {
   auto call = client.SayHello({}, std::move(context));
   UEXPECT_THROW(call.Finish(), ugrpc::client::DeadlineExceededError);
   EXPECT_FALSE(long_deadline.IsReached());
+}
+
+namespace {
+
+class UnitTestServiceCancelHello final
+    : public sample::ugrpc::UnitTestServiceBase {
+ public:
+  UnitTestServiceCancelHello() = default;
+
+  void SayHello(SayHelloCall& call,
+                ::sample::ugrpc::GreetingRequest&&) override {
+    sample::ugrpc::GreetingResponse response;
+
+    // Wait until cancelled.
+    bool success = wait_event_.WaitForEvent();
+
+    finish_event_.Send();
+    call.Finish(response);
+    EXPECT_FALSE(success);
+    EXPECT_TRUE(engine::current_task::ShouldCancel());
+  }
+
+  auto& GetWaitEvent() { return wait_event_; }
+  auto& GetFinishEvent() { return finish_event_; }
+
+ private:
+  engine::SingleConsumerEvent wait_event_;
+  engine::SingleConsumerEvent finish_event_;
+};
+
+}  // namespace
+
+using GrpcCancelByClient = GrpcServiceFixtureSimple<UnitTestServiceCancelHello>;
+
+UTEST_F_MT(GrpcCancelByClient, CancelByClient, 3) {
+  UnitTestServiceCancelHello service;
+
+  auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
+
+  auto context = std::make_unique<grpc::ClientContext>();
+  context->set_deadline(engine::Deadline::FromDuration(100ms));
+  context->set_wait_for_ready(true);
+  auto call = client.SayHello({}, std::move(context));
+  EXPECT_THROW(call.Finish(), ugrpc::client::BaseError);
+
+  ASSERT_TRUE(
+      GetService().GetFinishEvent().WaitForEventFor(std::chrono::seconds{5}));
 }
 
 USERVER_NAMESPACE_END

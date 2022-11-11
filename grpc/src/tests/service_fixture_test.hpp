@@ -59,6 +59,8 @@ class GrpcServiceFixtureSimple : public GrpcServiceFixture {
 
   ~GrpcServiceFixtureSimple() override { StopServer(); }
 
+  Service& GetService() { return service_; }
+
  private:
   Service service_{};
 };
