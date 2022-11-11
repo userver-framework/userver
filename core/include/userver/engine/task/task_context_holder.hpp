@@ -51,10 +51,10 @@ class TaskContextHolder final {
  private:
   TaskContextHolder(std::unique_ptr<std::byte[]> storage,
                     utils::impl::WrappedCallBase* payload)
-      : storage{std::move(storage)}, payload{payload} {}
+      : storage_{std::move(storage)}, payload_{payload} {}
 
-  std::unique_ptr<std::byte[]> storage;
-  utils::impl::WrappedCallBase* payload;
+  std::unique_ptr<std::byte[]> storage_;
+  utils::impl::WrappedCallBase* payload_;
 };
 
 }  // namespace engine::impl
