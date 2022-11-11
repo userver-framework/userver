@@ -5,6 +5,7 @@
 
 #include <userver/engine/deadline.hpp>
 #include <userver/engine/task/shared_task_with_result.hpp>
+#include <userver/engine/task/task_context_holder.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/engine/task/task_with_result.hpp>
 #include <userver/utils/assert.hpp>
@@ -18,47 +19,20 @@ namespace impl {
 
 class TaskFactory final {
  public:
-  static size_t GetTaskContextSize();
-  static size_t GetTaskContextAlignment();
-
   template <template <typename> typename TaskType, typename Function,
             typename... Args>
   [[nodiscard]] static auto MakeTaskWithResult(TaskProcessor& task_processor,
-                                        Task::Importance importance,
-                                        Deadline deadline, Function&& f,
-                                        Args&&... args) {
-    using WrappedCallT = decltype(*utils::impl::WrapCall(std::forward<Function>(f),
-                                                         std::forward<Args>(args)...));
-
-    const auto task_context_size = GetTaskContextSize();
-    constexpr auto wrapped_size = sizeof(WrappedCallT);
-    constexpr auto wrapped_alignment = alignof(WrappedCallT);
-    // check that alignment of WrappedCall is indeed a power of 2,
-    // otherwise std::align is UB
-    static_assert(wrapped_alignment > 0
-                  && (wrapped_alignment & (wrapped_alignment - 1)) == 0);
-
-    const auto total_alloc_size = task_context_size + wrapped_size + wrapped_alignment;
-    auto storage = std::make_unique<char[]>(total_alloc_size);
-    if ((reinterpret_cast<uint64_t>(storage.get()) & (GetTaskContextAlignment() - 1)) != 0) {
-      abort();
-    }
-
-    void* payload_ptr = storage.get() + task_context_size;
-    auto payload_space = total_alloc_size - task_context_size;
-    if (!std::align(wrapped_alignment, wrapped_size, payload_ptr, payload_space)) {
-      // TODO : really shouldn't happen
-      std::abort();
-    }
-    UASSERT(payload_space >= wrapped_size);
-
-    utils::impl::PlacementNewWrappedCall(payload_ptr, std::forward<Function>(f),
-                                         std::forward<Args>(args)...);
-
+                                               Task::Importance importance,
+                                               Deadline deadline, Function&& f,
+                                               Args&&... args) {
+    using WrappedCallT = decltype(*utils::impl::WrapCall(
+        std::forward<Function>(f), std::forward<Args>(args)...));
     using ResultType = decltype(std::declval<WrappedCallT>().Retrieve());
+
+    auto storage = TaskContextHolder::Allocate(std::forward<Function>(f),
+                                               std::forward<Args>(args)...);
     return TaskType<ResultType>{task_processor, importance, deadline,
-                                std::move(storage),
-                                static_cast<utils::impl::WrappedCallBase*>(payload_ptr)};
+                                std::move(storage)};
   }
 };
 
@@ -68,9 +42,9 @@ template <template <typename> typename TaskType, typename Function,
                                       Task::Importance importance,
                                       Deadline deadline, Function&& f,
                                       Args&&... args) {
-  return TaskFactory::MakeTaskWithResult<TaskType>(task_processor, importance, deadline,
-                                                   std::forward<Function>(f),
-                                                       std::forward<Args>(args)...);
+  return TaskFactory::MakeTaskWithResult<TaskType>(
+      task_processor, importance, deadline, std::forward<Function>(f),
+      std::forward<Args>(args)...);
 }
 
 }  // namespace impl

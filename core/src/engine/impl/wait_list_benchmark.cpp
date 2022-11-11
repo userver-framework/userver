@@ -5,6 +5,7 @@
 
 #include <userver/engine/async.hpp>
 #include <userver/engine/run_standalone.hpp>
+#include <userver/engine/task/task_context_holder.hpp>
 #include <userver/utils/impl/wrapped_call.hpp>
 
 #include <engine/impl/wait_list.hpp>
@@ -20,22 +21,29 @@ namespace {
 constexpr std::size_t kTasksCount = 1024 * 64;
 constexpr std::size_t kIterationsCount = 1024 * 16;
 
-const auto kEmptyPayload = [] {
-  return utils::impl::WrapCall([]{});
-}();
+struct EmptyPayload final {
+  void operator()(){};
+};
 
-utils::impl::WrappedCallBase* MakeEmptyPayload() {
-  return kEmptyPayload.get();
+auto MakeContext() {
+  auto holder = engine::impl::TaskContextHolder::Allocate(EmptyPayload{});
+
+  new (holder.storage.get())
+      TaskContext{engine::current_task::GetTaskProcessor(),
+                  engine::Task::Importance::kNormal,
+                  engine::Task::WaitMode::kSingleWaiter,
+                  {},
+                  holder.payload};
+
+  return boost::intrusive_ptr<TaskContext>{
+      static_cast<TaskContext*>(static_cast<void*>(holder.storage.release()))};
 }
 
 auto MakeContexts() {
   std::vector<boost::intrusive_ptr<TaskContext>> contexts;
   contexts.reserve(kTasksCount);
   for (std::size_t i = 0; i < kTasksCount; ++i) {
-    contexts.push_back(new TaskContext(engine::current_task::GetTaskProcessor(),
-                                       engine::Task::Importance::kNormal,
-                                       engine::Task::WaitMode::kSingleWaiter,
-                                       {}, MakeEmptyPayload()));
+    contexts.push_back(MakeContext());
   }
 
   return contexts;
@@ -115,10 +123,7 @@ void wait_list_add_remove_contention(benchmark::State& state) {
     std::vector<engine::TaskWithResult<void>> tasks;
     for (int i = 0; i < state.range(0) - 1; i++)
       tasks.push_back(engine::AsyncNoSpan([&]() {
-        boost::intrusive_ptr<TaskContext> ctx = new TaskContext(
-            engine::current_task::GetTaskProcessor(),
-            engine::Task::Importance::kNormal,
-            engine::Task::WaitMode::kSingleWaiter, {}, MakeEmptyPayload());
+        boost::intrusive_ptr<TaskContext> ctx = MakeContext();
         while (run) {
           {
             WaitList::Lock guard{wl};
@@ -129,10 +134,7 @@ void wait_list_add_remove_contention(benchmark::State& state) {
         }
       }));
 
-    boost::intrusive_ptr<TaskContext> ctx = new TaskContext(
-        engine::current_task::GetTaskProcessor(),
-        engine::Task::Importance::kNormal,
-        engine::Task::WaitMode::kSingleWaiter, {}, MakeEmptyPayload());
+    boost::intrusive_ptr<TaskContext> ctx = MakeContext();
     for (auto _ : state) {
       {
         WaitList::Lock guard{wl};

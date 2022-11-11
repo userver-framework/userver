@@ -43,19 +43,6 @@ class USERVER_NODISCARD SharedTaskWithResult : public Task {
   /// Creates an invalid task.
   SharedTaskWithResult() = default;
 
-  /*/// @brief Constructor
-  /// @param task_processor task processor used for execution of this task
-  /// @param importance specifies whether this task can be auto-cancelled
-  ///   in case of task processor overload
-  /// @param wrapped_call_ptr task body
-  /// @see SharedAsync()
-  SharedTaskWithResult(
-      TaskProcessor& task_processor, Task::Importance importance,
-      Deadline deadline,
-      std::unique_ptr<utils::impl::WrappedCall<T>>&& wrapped_call_ptr)
-      : Task(task_processor, importance, Task::WaitMode::kMultipleWaiters,
-             deadline, std::move(wrapped_call_ptr)) {}*/
-
   /// @brief Returns (or rethrows) the result of task invocation.
   /// Task remains valid after return from this method,
   /// thread(coro)-safe.
@@ -82,11 +69,18 @@ class USERVER_NODISCARD SharedTaskWithResult : public Task {
  private:
   friend class impl::TaskFactory;
 
-  SharedTaskWithResult(
-      TaskProcessor& task_processor, Task::Importance importance,
-      Deadline deadline, std::unique_ptr<char[]>&& context_storage, utils::impl::WrappedCallBase* payload)
+  /// @brief Constructor
+  /// @param task_processor task processor used for execution of this task
+  /// @param importance specifies whether this task can be auto-cancelled
+  ///   in case of task processor overload
+  /// @param deadline execution deadline
+  /// @param context_holder memory management helper for task internals
+  /// @see SharedAsync()
+  SharedTaskWithResult(TaskProcessor& task_processor,
+                       Task::Importance importance, Deadline deadline,
+                       impl::TaskContextHolder&& context_holder)
       : Task(task_processor, importance, Task::WaitMode::kMultipleWaiters,
-             deadline, std::move(context_storage), payload) {}
+             deadline, std::move(context_holder)) {}
 };
 
 }  // namespace engine

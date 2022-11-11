@@ -60,8 +60,8 @@ class WaitStrategy {
 };
 
 // NOLINTNEXTLINE(fuchsia-multiple-inheritance)
-class TaskContext final : //public boost::intrusive_ref_counter<TaskContext>,
-                          public ContextAccessor {
+class TaskContext final :  // public boost::intrusive_ref_counter<TaskContext>,
+                           public ContextAccessor {
  public:
   struct NoEpoch {};
   using TaskPipe = coro::Pool<TaskContext>::TaskPipe;
@@ -260,11 +260,18 @@ struct FailAssert final {
   static_assert(!Size);
 };
 
+FailAssert<alignof(TaskContext)> f;*/
+
+/*template <size_t Size>
+struct FailAssert final {
+  static_assert(!Size);
+};
+
 FailAssert<sizeof(TaskContext)> f;
 FailAssert<alignof(TaskContext)> a;*/
 
-void intrusive_ptr_add_ref(TaskContext *p);
-void intrusive_ptr_release(TaskContext *p);
+void intrusive_ptr_add_ref(TaskContext* p);
+void intrusive_ptr_release(TaskContext* p);
 
 }  // namespace impl
 

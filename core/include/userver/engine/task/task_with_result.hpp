@@ -38,19 +38,6 @@ class USERVER_NODISCARD TaskWithResult : public Task {
   /// Creates an invalid task.
   TaskWithResult() = default;
 
-  /*/// @brief Constructor, for internal use only
-  /// @param task_processor task processor used for execution of this task
-  /// @param importance specifies whether this task can be auto-cancelled
-  ///   in case of task processor overload
-  /// @param wrapped_call_ptr task body
-  /// @see Async()
-  TaskWithResult(
-      TaskProcessor& task_processor, Task::Importance importance,
-      Deadline deadline,
-      std::unique_ptr<utils::impl::WrappedCall<T>>&& wrapped_call_ptr)
-      : Task(task_processor, importance, Task::WaitMode::kSingleWaiter,
-             deadline, std::move(wrapped_call_ptr)) {}*/
-
   TaskWithResult(const TaskWithResult&) = delete;
   TaskWithResult& operator=(const TaskWithResult&) = delete;
 
@@ -80,11 +67,17 @@ class USERVER_NODISCARD TaskWithResult : public Task {
  private:
   friend class impl::TaskFactory;
 
-  TaskWithResult(
-      TaskProcessor& task_processor, Task::Importance importance,
-      Deadline deadline, std::unique_ptr<char[]>&& context_storage, utils::impl::WrappedCallBase* payload)
+  /// @brief Constructor, for internal use only
+  /// @param task_processor task processor used for execution of this task
+  /// @param importance specifies whether this task can be auto-cancelled
+  ///   in case of task processor overload
+  /// @param deadline execution deadline
+  /// @param context_holder memory management helper for task internals
+  /// @see Async()
+  TaskWithResult(TaskProcessor& task_processor, Task::Importance importance,
+                 Deadline deadline, impl::TaskContextHolder&& context_holder)
       : Task(task_processor, importance, Task::WaitMode::kSingleWaiter,
-             deadline, std::move(context_storage), payload) {}
+             deadline, std::move(context_holder)) {}
 
   void EnsureValid() const {
     UINVARIANT(IsValid(),

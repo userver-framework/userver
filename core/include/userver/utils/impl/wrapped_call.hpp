@@ -129,6 +129,15 @@ class WrappedCallImpl final
   std::optional<Data> data_;
 };
 
+template <typename Function, typename... Args>
+struct WrappedCallImplType final {
+  using type = impl::WrappedCallImpl<impl::DecayUnref<Function>,
+                                     impl::DecayUnref<Args>...>;
+};
+
+template <typename Function, typename... Args>
+using WrappedCallImplT = typename WrappedCallImplType<Function, Args...>::type;
+
 /// Returns an object that stores passed arguments and function. Wrapped
 /// function may be invoked only once via call to member function Perform().
 template <typename Function, typename... Args>
@@ -137,8 +146,7 @@ auto WrapCall(Function&& f, Args&&... args) {
       (!std::is_array_v<std::remove_reference_t<Args>> && ...),
       "Passing C arrays to Async is forbidden. Use std::array instead");
 
-  return std::make_unique<impl::WrappedCallImpl<impl::DecayUnref<Function>,
-                                                impl::DecayUnref<Args>...>>(
+  return std::make_unique<WrappedCallImplT<Function, Args...>>(
       std::forward<Function>(f),
       std::forward_as_tuple(std::forward<Args>(args)...));
 }
@@ -151,8 +159,8 @@ void PlacementNewWrappedCall(void* where, Function&& f, Args&&... args) {
 
   new (where) impl::WrappedCallImpl<impl::DecayUnref<Function>,
                                     impl::DecayUnref<Args>...>(
-    std::forward<Function>(f),
-    std::forward_as_tuple(std::forward<Args>(args)...));
+      std::forward<Function>(f),
+      std::forward_as_tuple(std::forward<Args>(args)...));
 }
 
 }  // namespace utils::impl

@@ -12,6 +12,7 @@
 #include <userver/engine/deadline.hpp>
 #include <userver/engine/exception.hpp>
 #include <userver/engine/task/cancel.hpp>
+#include <userver/engine/task/task_context_holder.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/utils/clang_format_workarounds.hpp>
 
@@ -161,7 +162,7 @@ class USERVER_NODISCARD Task {
 
   /// Constructor for internal use
   Task(TaskProcessor&, Task::Importance, Task::WaitMode, Deadline,
-       std::unique_ptr<char[]> context_storage, utils::impl::WrappedCallBase* payload);
+       impl::TaskContextHolder context_holder);
 
   /// Marks task as invalid
   void Invalidate() noexcept;

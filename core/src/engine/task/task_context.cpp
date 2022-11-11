@@ -98,7 +98,8 @@ auto* const kFinishedDetachedToken =
 
 TaskContext::TaskContext(TaskProcessor& task_processor,
                          Task::Importance importance, Task::WaitMode wait_type,
-                         Deadline deadline, utils::impl::WrappedCallBase* payload)
+                         Deadline deadline,
+                         utils::impl::WrappedCallBase* payload)
     : magic_(kMagic),
       task_processor_(task_processor),
       task_counter_token_(task_processor_.GetTaskCounter()),
@@ -712,20 +713,18 @@ void TaskContext::ResetPayload() {
   }
 }
 
-void intrusive_ptr_add_ref(TaskContext *p) {
+void intrusive_ptr_add_ref(TaskContext* p) {
   p->intrusive_refcount_.fetch_add(1, std::memory_order_relaxed);
 }
 
-void intrusive_ptr_release(TaskContext *p) {
+void intrusive_ptr_release(TaskContext* p) {
   if (p->intrusive_refcount_.fetch_sub(1, std::memory_order_relaxed) == 1) {
     // fun begins here
     p->ResetPayload();
 
     p->~TaskContext();
 
-    std::unique_ptr<char[]> ptr{static_cast<char *>(
-        static_cast<void *>(p)
-        )};
+    std::unique_ptr<char[]> ptr{static_cast<char*>(static_cast<void*>(p))};
   }
 }
 

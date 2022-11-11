@@ -20,7 +20,7 @@ BENCHMARK(engine_task_create);
 void engine_task_create_destroy(benchmark::State& state) {
   engine::RunStandalone([&] {
     for (auto _ : state) {
-      auto task = engine::AsyncNoSpan([](){});
+      auto task = engine::AsyncNoSpan([]() {});
       task.Get();
     }
   });
