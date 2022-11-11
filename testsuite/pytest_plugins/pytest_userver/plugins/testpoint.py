@@ -1,3 +1,7 @@
+"""
+Testpoints support for the server.
+"""
+
 # pylint: disable=redefined-outer-name
 import typing
 

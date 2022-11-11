@@ -1,3 +1,7 @@
+"""
+Service main and monitor clients.
+"""
+
 import pytest
 
 from testsuite.daemons import service_client as base_service_client

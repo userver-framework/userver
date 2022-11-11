@@ -54,7 +54,7 @@ class BackgroundTaskStorageCore final {
 /// the BackgroundTaskStorage is alive.
 ///
 /// ## Usage synopsis
-/// @sample concurrent/background_task_storage_test.cpp  Sample
+/// @snippet concurrent/background_task_storage_test.cpp  Sample
 class BackgroundTaskStorage final {
  public:
   /// Creates a BTS that launches tasks in the engine::TaskProcessor used at the

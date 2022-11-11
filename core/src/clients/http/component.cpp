@@ -102,7 +102,7 @@ void HttpClient::OnConfigUpdate(const dynamic_config::Snapshot& config) {
 
 void HttpClient::ExtendStatistics(utils::statistics::Writer& writer) {
   if (!disable_pool_stats_) {
-    writer["pool"] = http_client_.GetPoolStatistics();
+    DumpMetric(writer, http_client_.GetPoolStatistics());
   }
   DumpMetric(writer, http_client_.GetDestinationStatistics());
 }

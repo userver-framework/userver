@@ -60,6 +60,10 @@ void SetDeadline(Deadline deadline) {
   GetCurrentTaskContext().SetCancelDeadline(deadline);
 }
 
+TaskCancellationToken GetCancellationToken() {
+  return TaskCancellationToken(GetCurrentTaskContext());
+}
+
 }  // namespace current_task
 
 TaskCancellationBlocker::TaskCancellationBlocker()
@@ -94,6 +98,33 @@ std::string ToString(TaskCancellationReason reason) {
   }
   return fmt::format("unknown({})", static_cast<int>(reason));
 }
+
+TaskCancellationToken::TaskCancellationToken(
+    impl::TaskContext& context) noexcept
+    : context_(&context) {}
+
+TaskCancellationToken::TaskCancellationToken(Task& task)
+    : context_(task.context_) {
+  UASSERT(context_);
+}
+
+TaskCancellationToken::TaskCancellationToken(
+    const TaskCancellationToken&) noexcept = default;
+TaskCancellationToken::TaskCancellationToken(TaskCancellationToken&&) noexcept =
+    default;
+TaskCancellationToken& TaskCancellationToken::operator=(
+    const TaskCancellationToken&) noexcept = default;
+TaskCancellationToken& TaskCancellationToken::operator=(
+    TaskCancellationToken&&) noexcept = default;
+
+TaskCancellationToken::~TaskCancellationToken() = default;
+
+void TaskCancellationToken::RequestCancel() {
+  UASSERT(context_);
+  context_->RequestCancel(TaskCancellationReason::kUserRequest);
+}
+
+bool TaskCancellationToken::IsValid() const noexcept { return !!context_; }
 
 }  // namespace engine
 

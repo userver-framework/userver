@@ -1,3 +1,7 @@
+"""
+Work with the configuration files of the service in testsuite.
+"""
+
 import pathlib
 import types
 import typing

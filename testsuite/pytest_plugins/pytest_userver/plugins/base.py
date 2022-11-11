@@ -1,3 +1,7 @@
+"""
+Configure the service in testsuite.
+"""
+
 import pathlib
 
 import pytest
