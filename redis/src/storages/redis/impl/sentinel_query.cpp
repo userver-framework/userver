@@ -4,6 +4,8 @@
 
 #include <fmt/format.h>
 
+#include <hiredis/hiredis.h>
+
 #include <storages/redis/impl/sentinel_impl.hpp>
 #include <storages/redis/impl/shard.hpp>
 #include <userver/logging/log.hpp>

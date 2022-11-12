@@ -8,7 +8,6 @@
 #include <thread>
 #include <unordered_map>
 #include <vector>
-#include "userver/storages/redis/impl/base.hpp"
 
 #include <hiredis/adapters/libev.h>
 #include <hiredis/hiredis.h>
@@ -154,9 +153,7 @@ class Redis::RedisImpl : public std::enable_shared_from_this<Redis::RedisImpl> {
 
   void OnConnectImpl(int status);
   void OnDisconnectImpl(int status);
-#ifdef USERVER_FEATURE_REDIS_TLS
   bool InitSecureConnection();
-#endif
   void InvokeCommand(const CommandPtr& command, ReplyPtr&& reply);
   void InvokeCommandError(const CommandPtr& command, const std::string& name,
                           int status);
@@ -180,7 +177,6 @@ class Redis::RedisImpl : public std::enable_shared_from_this<Redis::RedisImpl> {
   void SendReadOnly();
   void FreeCommands();
 
-  void RunEvLoop();
   static void LogSocketErrorReply(const CommandPtr& command,
                                   const ReplyPtr& reply);
   static void LogInstanceErrorReply(const CommandPtr& command,
@@ -303,8 +299,11 @@ bool Redis::AsyncCommand(const CommandPtr& command) {
 
 Redis::State Redis::GetState() const { return impl_->GetState(); }
 
-const Statistics& Redis::GetStatistics() const {
-  return impl_->GetStatistics();
+InstanceStatistics Redis::GetStatistics() {
+  InstanceStatistics result;
+  thread_control_.RunInEvLoopSync(
+      [this, &result]() { result = impl_->GetStatistics(); });
+  return result;
 }
 
 ServerId Redis::GetServerId() const { return impl_->GetServerId(); }
@@ -837,13 +836,11 @@ void Redis::RedisImpl::OnConnectImpl(int status) {
     return;
   }
 
-#ifdef USERVER_FEATURE_REDIS_TLS
   if (connection_security_ == ConnectionSecurity::kTLS &&
       !InitSecureConnection()) {
     Disconnect();
     return;
   }
-#endif
 
   LOG_INFO() << log_extra_ << "Connected to Redis successfully";
   self_ = shared_from_this();
@@ -873,8 +870,8 @@ void Redis::RedisImpl::OnDisconnectImpl(int status) {
   self_.reset();
 }
 
-#ifdef USERVER_FEATURE_REDIS_TLS
 bool Redis::RedisImpl::InitSecureConnection() {
+#ifdef USERVER_FEATURE_REDIS_TLS
   if (!ssl_context_) {
     redisSSLContextError ssl_error{};
     ssl_context_.reset(redisCreateSSLContext(nullptr, nullptr, nullptr, nullptr,
@@ -894,8 +891,11 @@ bool Redis::RedisImpl::InitSecureConnection() {
   }
 
   return true;
-}
+#else
+  LOG_ERROR() << log_extra_ << "SSL/TLS connections are not supported";
+  return false;
 #endif
+}
 
 void Redis::RedisImpl::Authenticate() {
   if (password_.GetUnderlying().empty()) {
@@ -985,12 +985,11 @@ void Redis::RedisImpl::OnRedisReplyImpl(redisReply* redis_reply,
 
     // After 'subscribe x' + 'unsubscribe x' + 'subscribe x' requests
     // 'unsubscribe' reply can be received as a reply to the second subscribe
-    // request instead of the first (with 'privdata' related to second request).
-    // After that 'subscribe' and 'message' replies will be received as a reply
-    // to the second request.
-    // You must not send the second SUBSCRIBE request with the same channel name
-    // until the response to UNSUBSCRIBE request is received.
-    // shard_subscriber::Fsm checks it.
+    // request instead of the first (with 'privdata' related to second
+    // request). After that 'subscribe' and 'message' replies will be received
+    // as a reply to the second request. You must not send the second
+    // SUBSCRIBE request with the same channel name until the response to
+    // UNSUBSCRIBE request is received. shard_subscriber::Fsm checks it.
     // TODO: add check in RedisImpl.
     if (!subscriber_ || !redis_reply || IsUnsubscribeReply(reply)) {
       command_ptr = std::move(data->second);
