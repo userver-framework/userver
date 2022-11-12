@@ -107,6 +107,11 @@ if (USERVER_FEATURE_REDIS)
     add_subdirectory(redis "${CMAKE_BINARY_DIR}/userver/redis")
 endif()
 
+option(USERVER_FEATURE_ETCD "Provide asynchronous driver for Etcd" ON)
+if (USERVER_FEATURE_ETCD)
+    add_subdirectory(etcd "${CMAKE_BINARY_DIR}/userver/etcd")
+endif()
+
 option(USERVER_FEATURE_GRPC "Provide asynchronous driver for gRPC" ON)
 if (USERVER_FEATURE_GRPC)
     add_subdirectory(grpc "${CMAKE_BINARY_DIR}/userver/grpc")
