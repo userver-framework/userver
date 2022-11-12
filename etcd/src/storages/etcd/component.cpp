@@ -26,8 +26,11 @@ Etcd::Etcd(const ComponentConfig& config,
     : LoggableComponentBase(config, component_context),
       config_(component_context.FindComponent<DynamicConfig>().GetSource())
       {
-        // [[maybe_unused]] auto hostname = config["host_name"].As<std::string>();
-        // LOG_INFO() << "Hostname for example: " << hostname;
+        [[maybe_unused]] auto endpoints = config["endpoints"].As<std::vector<std::string>>();
+        LOG_INFO() << "Etcd Endpoints: ";
+        for (const auto& endpoint: endpoints) {
+          LOG_INFO() << endpoint;
+        }
 }
 
 std::shared_ptr<storages::etcd::Client> Etcd::GetClient() const
