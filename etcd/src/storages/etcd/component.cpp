@@ -10,12 +10,12 @@
 #include <userver/logging/log.hpp>
 #include <userver/storages/secdist/component.hpp>
 #include <userver/storages/secdist/exceptions.hpp>
-#include <userver/storages/secdist/secdist.hpp>
 #include <userver/testsuite/testsuite_support.hpp>
 #include <userver/utils/statistics/aggregated_values.hpp>
 #include <userver/utils/statistics/metadata.hpp>
 #include <userver/utils/statistics/percentile_format_json.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
+#include <userver/storages/etcd/client.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -26,14 +26,14 @@ Etcd::Etcd(const ComponentConfig& config,
     : LoggableComponentBase(config, component_context),
       config_(component_context.FindComponent<DynamicConfig>().GetSource())
       {
-
-        [[maybe_unused]] auto hostname = config["host_name"].As<std::string>();
-        LOG_INFO() << "Hostname for example: " << hostname;
+        // [[maybe_unused]] auto hostname = config["host_name"].As<std::string>();
+        // LOG_INFO() << "Hostname for example: " << hostname;
 }
 
 std::shared_ptr<storages::etcd::Client> Etcd::GetClient() const
 {
-  throw std::runtime_error("etcd client not found");
+  return std::make_shared<storages::etcd::Client>();
+  // throw std::runtime_error("etcd client not found");
 }
 
 Etcd::~Etcd() {

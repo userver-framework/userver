@@ -7,7 +7,7 @@ namespace storages::etcd {
 
   void Client::Remove(const std::string& /*key*/)
   {
-    throw std::runtime_error("Not implemented");
+    // throw std::runtime_error("Not implemented");
   }
 
 }  // namespace storages::etcd
