@@ -1,12 +1,14 @@
-#include <userver/storages/etcd/client.hpp>
+#include "client_impl.hpp"
 #include <stdexcept>
+#include <string>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::etcd {
 
-  void Client::Remove(const std::string& /*key*/)
+  Request ClientImpl::GetRange(const std::string& /*key_begin*/, const std::string& /*key_end*/)
   {
+    return Request{};
     // throw std::runtime_error("Not implemented");
   }
 

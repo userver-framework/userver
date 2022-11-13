@@ -3,6 +3,7 @@
 #include <chrono>
 #include <memory>
 #include <string>
+#include "request.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
@@ -11,9 +12,9 @@ namespace storages::etcd {
 class Client {
  public:
   virtual ~Client() = default;
-  void Remove(const std::string& key);
+  virtual Request GetRange(const std::string& key_begin, const std::string& key_end) = 0;
 };
 
-}  // namespace storages::redis
+}  // namespace storages::etcd
 
 USERVER_NAMESPACE_END
