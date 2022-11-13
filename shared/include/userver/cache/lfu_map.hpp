@@ -64,8 +64,11 @@ class LfuBase final {
   explicit LfuBase(size_t max_size, const Hash& hash = Hash(),
                    const Equal& equal = Equal());
   LfuBase(LfuBase&& other) noexcept
-      : m_size_(std::move(other.m_size_)),
-        min_freq_(std::move(other.min_freq_)) {
+      : m_size_(other.m_size_),
+        min_freq_(other.min_freq_),
+        map_(std::move(other.map_)),
+        m_iter_(std::move(other.m_iter_)),
+        m_freq_(std::move(other.m_freq_)) {
     other.Clear();
   }
   LfuBase& operator=(LfuBase&& other) noexcept {
@@ -122,8 +125,6 @@ class LfuBase final {
 
   size_t m_size_{0};
   size_t min_freq_{0};
-  boost::unordered_map<Key, std::pair<Value, size_t>, Hash, Equal>
-      m_map_;  // key to {value,freq};
   std::vector<BucketType> buckets_;
   Map map_;  // key to {value, freq}
   boost::unordered_map<Key, typename std::list<Key>::iterator, Hash, Equal>
@@ -134,7 +135,6 @@ class LfuBase final {
 template <typename Key, typename Value, typename Hash, typename Equal>
 void LfuBase<Key, Value, Hash, Equal>::Clear() {
   map_.clear();
-  m_map_.clear();
   m_iter_.clear();
   m_freq_.clear();
   m_size_ = 0;
@@ -228,10 +228,3 @@ LfuBase<Key, Value, Hash, Equal>::LfuBase(size_t max_size, const Hash& h,
                                           const Equal& e)
     : buckets_(max_size ? max_size : 1),
       map_(BucketTraits(buckets_.data(), buckets_.size()), h, e) {}
-
-int main() {
-  LfuBase<unsigned int, unsigned int> x(10);
-  x.Put(10, 15);
-  x.Get(10);
-  return 0;
-}
