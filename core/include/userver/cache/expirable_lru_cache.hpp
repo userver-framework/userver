@@ -60,7 +60,8 @@ impl::ExpirableValue<Value> Read(dump::Reader& reader,
 ///
 /// @snippet cache/expirable_lru_cache_test.cpp Sample ExpirableLruCache
 template <typename Key, typename Value, typename Hash = std::hash<Key>,
-          typename Equal = std::equal_to<Key>>
+          typename Equal = std::equal_to<Key>,
+          CachePolicy Policy = CachePolicy::kLRU>
 class ExpirableLruCache final {
  public:
   using UpdateValueFunc = std::function<Value(const Key&)>;
@@ -158,7 +159,13 @@ class ExpirableLruCache final {
   bool ShouldUpdate(std::chrono::steady_clock::time_point update_time,
                     std::chrono::steady_clock::time_point now) const;
 
-  cache::NWayLRU<Key, impl::ExpirableValue<Value>, Hash, Equal> lru_;
+ struct MapValue {
+    Value value;
+    std::chrono::steady_clock::time_point update_time;
+  };
+
+  cache::NWayLRU<Key, MapValue, Hash, Equal, Policy> lru_;
+
   std::atomic<std::chrono::milliseconds> max_lifetime_{
       std::chrono::milliseconds(0)};
   std::atomic<BackgroundUpdateMode> background_update_mode_{
@@ -168,42 +175,49 @@ class ExpirableLruCache final {
   utils::impl::WaitTokenStorage wait_token_storage_;
 };
 
-template <typename Key, typename Value, typename Hash, typename Equal>
-ExpirableLruCache<Key, Value, Hash, Equal>::ExpirableLruCache(
+template <typename Key, typename Value, typename Hash, typename Equal,
+          CachePolicy Policy>
+ExpirableLruCache<Key, Value, Hash, Equal, Policy>::ExpirableLruCache(
     size_t ways, size_t way_size, const Hash& hash, const Equal& equal)
     : lru_(ways, way_size, hash, equal),
       mutex_set_{ways, way_size, hash, equal} {}
 
-template <typename Key, typename Value, typename Hash, typename Equal>
-ExpirableLruCache<Key, Value, Hash, Equal>::~ExpirableLruCache() {
+template <typename Key, typename Value, typename Hash, typename Equal,
+          CachePolicy Policy>
+ExpirableLruCache<Key, Value, Hash, Equal, Policy>::~ExpirableLruCache() {
   wait_token_storage_.WaitForAllTokens();
 }
 
-template <typename Key, typename Value, typename Hash, typename Equal>
-void ExpirableLruCache<Key, Value, Hash, Equal>::SetWaySize(size_t way_size) {
+template <typename Key, typename Value, typename Hash, typename Equal,
+          CachePolicy Policy>
+void ExpirableLruCache<Key, Value, Hash, Equal, Policy>::SetWaySize(size_t way_size) {
   lru_.UpdateWaySize(way_size);
 }
 
-template <typename Key, typename Value, typename Hash, typename Equal>
+template <typename Key, typename Value, typename Hash, typename Equal,
+          CachePolicy Policy>
 std::chrono::milliseconds
-ExpirableLruCache<Key, Value, Hash, Equal>::GetMaxLifetime() const noexcept {
+ExpirableLruCache<Key, Value, Hash, Equal, Policy>::GetMaxLifetime() const noexcept {
   return max_lifetime_.load();
 }
 
-template <typename Key, typename Value, typename Hash, typename Equal>
-void ExpirableLruCache<Key, Value, Hash, Equal>::SetMaxLifetime(
+template <typename Key, typename Value, typename Hash, typename Equal,
+          CachePolicy Policy>
+void ExpirableLruCache<Key, Value, Hash, Equal, Policy>::SetMaxLifetime(
     std::chrono::milliseconds max_lifetime) {
   max_lifetime_ = max_lifetime;
 }
 
-template <typename Key, typename Value, typename Hash, typename Equal>
-void ExpirableLruCache<Key, Value, Hash, Equal>::SetBackgroundUpdate(
+template <typename Key, typename Value, typename Hash, typename Equal,
+          CachePolicy Policy>
+void ExpirableLruCache<Key, Value, Hash, Equal, Policy>::SetBackgroundUpdate(
     BackgroundUpdateMode background_update) {
   background_update_mode_ = background_update;
 }
 
-template <typename Key, typename Value, typename Hash, typename Equal>
-Value ExpirableLruCache<Key, Value, Hash, Equal>::Get(
+template <typename Key, typename Value, typename Hash, typename Equal,
+          CachePolicy Policy>
+Value ExpirableLruCache<Key, Value, Hash, Equal, Policy>::Get(
     const Key& key, const UpdateValueFunc& update_func, ReadMode read_mode) {
   auto now = utils::datetime::SteadyNow();
   auto opt_old_value = GetOptional(key, update_func);
@@ -227,8 +241,9 @@ Value ExpirableLruCache<Key, Value, Hash, Equal>::Get(
   return value;
 }
 
-template <typename Key, typename Value, typename Hash, typename Equal>
-std::optional<Value> ExpirableLruCache<Key, Value, Hash, Equal>::GetOptional(
+template <typename Key, typename Value, typename Hash, typename Equal,
+          CachePolicy Policy>
+std::optional<Value> ExpirableLruCache<Key, Value, Hash, Equal, Policy>::GetOptional(
     const Key& key, const UpdateValueFunc& update_func) {
   auto now = utils::datetime::SteadyNow();
   auto old_value = lru_.Get(key);
@@ -251,9 +266,10 @@ std::optional<Value> ExpirableLruCache<Key, Value, Hash, Equal>::GetOptional(
   return std::nullopt;
 }
 
-template <typename Key, typename Value, typename Hash, typename Equal>
+template <typename Key, typename Value, typename Hash, typename Equal,
+          CachePolicy Policy>
 std::optional<Value>
-ExpirableLruCache<Key, Value, Hash, Equal>::GetOptionalUnexpirable(
+ExpirableLruCache<Key, Value, Hash, Equal, Policy>::GetOptionalUnexpirable(
     const Key& key) {
   auto old_value = lru_.Get(key);
 
@@ -266,9 +282,10 @@ ExpirableLruCache<Key, Value, Hash, Equal>::GetOptionalUnexpirable(
   return std::nullopt;
 }
 
-template <typename Key, typename Value, typename Hash, typename Equal>
+template <typename Key, typename Value, typename Hash, typename Equal,
+          CachePolicy Policy>
 std::optional<Value>
-ExpirableLruCache<Key, Value, Hash, Equal>::GetOptionalUnexpirableWithUpdate(
+ExpirableLruCache<Key, Value, Hash, Equal, Policy>::GetOptionalUnexpirableWithUpdate(
     const Key& key, const UpdateValueFunc& update_func) {
   auto now = utils::datetime::SteadyNow();
   auto old_value = lru_.Get(key);
@@ -287,9 +304,10 @@ ExpirableLruCache<Key, Value, Hash, Equal>::GetOptionalUnexpirableWithUpdate(
   return std::nullopt;
 }
 
-template <typename Key, typename Value, typename Hash, typename Equal>
+template <typename Key, typename Value, typename Hash, typename Equal,
+          CachePolicy Policy>
 std::optional<Value>
-ExpirableLruCache<Key, Value, Hash, Equal>::GetOptionalNoUpdate(
+ExpirableLruCache<Key, Value, Hash, Equal, Policy>::GetOptionalNoUpdate(
     const Key& key) {
   auto now = utils::datetime::SteadyNow();
   auto old_value = lru_.Get(key);
@@ -308,42 +326,49 @@ ExpirableLruCache<Key, Value, Hash, Equal>::GetOptionalNoUpdate(
   return std::nullopt;
 }
 
-template <typename Key, typename Value, typename Hash, typename Equal>
-void ExpirableLruCache<Key, Value, Hash, Equal>::Put(const Key& key,
+template <typename Key, typename Value, typename Hash, typename Equal,
+          CachePolicy Policy>
+void ExpirableLruCache<Key, Value, Hash, Equal, Policy>::Put(const Key& key,
                                                      const Value& value) {
   lru_.Put(key, {value, utils::datetime::SteadyNow()});
 }
 
-template <typename Key, typename Value, typename Hash, typename Equal>
-void ExpirableLruCache<Key, Value, Hash, Equal>::Put(const Key& key,
+template <typename Key, typename Value, typename Hash, typename Equal,
+          CachePolicy Policy>
+void ExpirableLruCache<Key, Value, Hash, Equal, Policy>::Put(const Key& key,
                                                      Value&& value) {
   lru_.Put(key, {std::move(value), utils::datetime::SteadyNow()});
 }
 
-template <typename Key, typename Value, typename Hash, typename Equal>
+template <typename Key, typename Value, typename Hash, typename Equal,
+          CachePolicy Policy>
 const impl::ExpirableLruCacheStatistics&
-ExpirableLruCache<Key, Value, Hash, Equal>::GetStatistics() const {
+ExpirableLruCache<Key, Value, Hash, Equal, Policy>::GetStatistics() const {
   return stats_;
 }
 
-template <typename Key, typename Value, typename Hash, typename Equal>
-size_t ExpirableLruCache<Key, Value, Hash, Equal>::GetSizeApproximate() const {
+template <typename Key, typename Value, typename Hash, typename Equal,
+          CachePolicy Policy>
+size_t ExpirableLruCache<Key, Value, Hash, Equal, Policy>::GetSizeApproximate() const {
   return lru_.GetSize();
 }
 
-template <typename Key, typename Value, typename Hash, typename Equal>
-void ExpirableLruCache<Key, Value, Hash, Equal>::Invalidate() {
+template <typename Key, typename Value, typename Hash, typename Equal,
+          CachePolicy Policy>
+void ExpirableLruCache<Key, Value, Hash, Equal, Policy>::Invalidate() {
   lru_.Invalidate();
 }
 
-template <typename Key, typename Value, typename Hash, typename Equal>
-void ExpirableLruCache<Key, Value, Hash, Equal>::InvalidateByKey(
+template <typename Key, typename Value, typename Hash, typename Equal,
+          CachePolicy Policy>
+void ExpirableLruCache<Key, Value, Hash, Equal, Policy>::InvalidateByKey(
     const Key& key) {
   lru_.InvalidateByKey(key);
 }
 
-template <typename Key, typename Value, typename Hash, typename Equal>
-void ExpirableLruCache<Key, Value, Hash, Equal>::UpdateInBackground(
+template <typename Key, typename Value, typename Hash, typename Equal,
+          CachePolicy Policy>
+void ExpirableLruCache<Key, Value, Hash, Equal, Policy>::UpdateInBackground(
     const Key& key, UpdateValueFunc update_func) {
   stats_.total.background_updates++;
   stats_.recent.GetCurrentCounter().background_updates++;
@@ -364,16 +389,18 @@ void ExpirableLruCache<Key, Value, Hash, Equal>::UpdateInBackground(
   }).Detach();
 }
 
-template <typename Key, typename Value, typename Hash, typename Equal>
-bool ExpirableLruCache<Key, Value, Hash, Equal>::IsExpired(
+template <typename Key, typename Value, typename Hash, typename Equal,
+          CachePolicy Policy>
+bool ExpirableLruCache<Key, Value, Hash, Equal, Policy>::IsExpired(
     std::chrono::steady_clock::time_point update_time,
     std::chrono::steady_clock::time_point now) const {
   auto max_lifetime = max_lifetime_.load();
   return max_lifetime.count() != 0 && update_time + max_lifetime < now;
 }
 
-template <typename Key, typename Value, typename Hash, typename Equal>
-bool ExpirableLruCache<Key, Value, Hash, Equal>::ShouldUpdate(
+template <typename Key, typename Value, typename Hash, typename Equal,
+          CachePolicy Policy>
+bool ExpirableLruCache<Key, Value, Hash, Equal, Policy>::ShouldUpdate(
     std::chrono::steady_clock::time_point update_time,
     std::chrono::steady_clock::time_point now) const {
   auto max_lifetime = max_lifetime_.load();
@@ -382,10 +409,11 @@ bool ExpirableLruCache<Key, Value, Hash, Equal>::ShouldUpdate(
 }
 
 template <typename Key, typename Value, typename Hash = std::hash<Key>,
-          typename Equal = std::equal_to<Key>>
+          typename Equal = std::equal_to<Key>,
+          CachePolicy Policy = CachePolicy::kLRU>
 class LruCacheWrapper final {
  public:
-  using Cache = ExpirableLruCache<Key, Value, Hash, Equal>;
+  using Cache = ExpirableLruCache<Key, Value, Hash, Equal, Policy>;
   using ReadMode = typename Cache::ReadMode;
 
   LruCacheWrapper(std::shared_ptr<Cache> cache,

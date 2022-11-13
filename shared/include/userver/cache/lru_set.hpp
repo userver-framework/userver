@@ -13,7 +13,8 @@ namespace cache {
 ///
 /// LRU set, thread safety matches Standard Library thread safety
 template <typename T, typename Hash = std::hash<T>,
-          typename Equal = std::equal_to<T>>
+          typename Equal = std::equal_to<T>,
+          CachePolicy Policy = CachePolicy::kLRU>
 class LruSet final {
  public:
   explicit LruSet(size_t max_size, const Hash& hash = Hash(),
@@ -58,7 +59,7 @@ class LruSet final {
   const T* GetLeastUsed() { return impl_.GetLeastUsedKey(); }
 
  private:
-  impl::LruBase<T, impl::EmptyPlaceholder, Hash, Equal> impl_;
+  impl::LruBase<T, impl::EmptyPlaceholder, Hash, Equal, Policy> impl_;
 };
 
 }  // namespace cache
