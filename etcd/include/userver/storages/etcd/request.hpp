@@ -10,17 +10,9 @@ namespace storages::etcd {
 
 class Component {
  public:
-  std::pair<std::string, std::string> KeyValue() const noexcept {
-    return std::make_pair(key_, value_);
-  }
-
-  std::string GetKey() const noexcept {
-    return key_;
-  }
-
-  std::string GetValue() const noexcept {
-    return value_;
-  }
+  std::pair<std::string, std::string> KeyValue();
+  std::string GetKey();
+  std::string GetValue();
 
  private:
   std::string key_;
@@ -29,9 +21,7 @@ class Component {
 
 class Request {
  public:
-  std::vector<Component> Get() const noexcept {
-    return components_;
-  }
+  std::vector<Component> Get();
 
  private:
   std::vector<Component> components_;
