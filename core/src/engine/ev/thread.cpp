@@ -55,6 +55,9 @@ void ReleaseEvDefaultLoop() {
   ev_default_loop_flag.clear();
 }
 
+constexpr std::chrono::milliseconds kCpuStatsCollectInterval{1000};
+constexpr std::size_t kCpuStatsThrottle{16};
+
 }  // namespace
 
 Thread::Thread(const std::string& thread_name,
@@ -73,7 +76,7 @@ Thread::Thread(const std::string& thread_name, bool use_ev_default_loop,
       loop_(nullptr),
       lock_(loop_mutex_, std::defer_lock),
       name_{thread_name},
-      cpu_stats_storage_{std::chrono::seconds{1}, 16},
+      cpu_stats_storage_{kCpuStatsCollectInterval, kCpuStatsThrottle},
       is_running_(false) {
   if (use_ev_default_loop_) AcquireEvDefaultLoop(thread_name);
   Start(thread_name);
@@ -157,14 +160,24 @@ void Thread::Start(const std::string& name) {
   ev_set_priority(&watch_break_, EV_MAXPRI);
   ev_async_start(loop_, &watch_break_);
 
+  using LibEvDuration = std::chrono::duration<double>;
   if (register_event_mode_ == RegisterEventMode::kDeferred) {
-    using LibEvDuration = std::chrono::duration<double>;
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast)
     ev_timer_init(
         &timers_driver_, UpdateTimersWatcher, 0.0,
         std::chrono::duration_cast<LibEvDuration>(kPeriodicEventsDriverInterval)
             .count());
     ev_timer_start(loop_, &timers_driver_);
+  } else {
+    // We set up a noop high-interval timer here to wake up the loop: that
+    // helps to avoid cpu-stats stall with outdated values if we become idle
+    // after a burst. No point in doing so if we already have timers_driver.
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast)
+    ev_timer_init(
+        &stats_timer_, UpdateTimersWatcher, 0.0,
+        std::chrono::duration_cast<LibEvDuration>(kCpuStatsCollectInterval)
+            .count());
+    ev_timer_start(loop_, &stats_timer_);
   }
 
   if (use_ev_default_loop_) {
@@ -205,6 +218,8 @@ void Thread::RunEvLoop() {
   ev_async_stop(loop_, &watch_break_);
   if (register_event_mode_ == RegisterEventMode::kDeferred) {
     ev_timer_stop(loop_, &timers_driver_);
+  } else {
+    ev_timer_stop(loop_, &stats_timer_);
   }
   if (use_ev_default_loop_) ev_child_stop(loop_, &watch_child_);
 }

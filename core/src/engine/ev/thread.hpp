@@ -39,9 +39,7 @@ class Thread final {
   Thread(const std::string& thread_name, UseDefaultEvLoop, RegisterEventMode);
   ~Thread();
 
-  struct ev_loop* GetEvLoop() const {
-    return loop_;
-  }
+  struct ev_loop* GetEvLoop() const { return loop_; }
 
   // Callbacks passed to RunInEvLoopAsync() are serialized.
   // All successfully registered callbacks are guaranteed to execute.
@@ -98,6 +96,7 @@ class Thread final {
   std::unique_lock<std::mutex> lock_;
 
   ev_timer timers_driver_{};
+  ev_timer stats_timer_{};
   ev_async watch_update_{};
   ev_async watch_break_{};
   ev_child watch_child_{};

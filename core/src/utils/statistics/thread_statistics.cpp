@@ -18,7 +18,7 @@ ThreadCpuUsage GetCurrentThreadCpuUsage() {
     return {};
   }
 
-  const auto timeval_to_mcs = [](timeval tv) {
+  const auto timeval_to_mcs = [](const timeval& tv) {
     return std::chrono::microseconds{
         static_cast<std::uint64_t>(tv.tv_sec) * 1'000'000 + tv.tv_usec};
   };
@@ -68,10 +68,12 @@ void ThreadCpuStatsStorage::DoCollect() {
 
   const auto usage = impl::GetCurrentThreadCpuUsage();
   if (last_ts_ != Clock::time_point{}) {
-    const auto usage_pct = std::min(
-        100L,
-        (usage.user + usage.system - last_usage_.user - last_usage_.system) *
-            100 / (now - last_ts_));
+    const auto usage_pct =
+        std::min(100L,
+                 // shouldn't be necessary, but won't hurt
+                 std::max(0L, (usage.user + usage.system - last_usage_.user -
+                               last_usage_.system) *
+                                  100 / (now - last_ts_)));
     current_usage_pct_.store(static_cast<std::uint8_t>(usage_pct),
                              std::memory_order_relaxed);
   }
