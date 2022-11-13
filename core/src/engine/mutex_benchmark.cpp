@@ -9,6 +9,7 @@
 #include <userver/engine/async.hpp>
 #include <userver/engine/mutex.hpp>
 #include <userver/engine/run_standalone.hpp>
+#include <userver/engine/single_waiting_task_mutex.hpp>
 #include <userver/utils/rand.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -67,6 +68,11 @@ struct PoolForImpl<std::mutex> {
 
 template <>
 struct PoolForImpl<engine::Mutex> {
+  using Pool = AsyncCoroPool;
+};
+
+template <>
+struct PoolForImpl<engine::SingleWaitingTaskMutex> {
   using Pool = AsyncCoroPool;
 };
 
@@ -223,12 +229,22 @@ void mutex_std_lock(benchmark::State& state) {
   generic_lock<std::mutex>(state);
 }
 
+void single_waiting_task_mutex_lock(benchmark::State& state) {
+  engine::RunStandalone(
+      [&] { generic_lock<engine::SingleWaitingTaskMutex>(state); });
+}
+
 void mutex_coro_unlock(benchmark::State& state) {
   engine::RunStandalone([&] { generic_unlock<engine::Mutex>(state); });
 }
 
 void mutex_std_unlock(benchmark::State& state) {
   generic_lock<std::mutex>(state);
+}
+
+void single_waiting_task_mutex_unlock(benchmark::State& state) {
+  engine::RunStandalone(
+      [&] { generic_unlock<engine::SingleWaitingTaskMutex>(state); });
 }
 
 void mutex_coro_contention(benchmark::State& state) {
@@ -238,6 +254,12 @@ void mutex_coro_contention(benchmark::State& state) {
 
 void mutex_std_contention(benchmark::State& state) {
   generic_contention<std::mutex>(state);
+}
+
+void single_waiting_task_mutex_contention(benchmark::State& state) {
+  engine::RunStandalone(state.range(0), [&] {
+    generic_contention<engine::SingleWaitingTaskMutex>(state);
+  });
 }
 
 void mutex_coro_contention_with_payload(benchmark::State& state) {
@@ -250,18 +272,29 @@ void mutex_std_contention_with_payload(benchmark::State& state) {
   generic_contention_with_payload<std::mutex>(state);
 }
 
+void single_waiting_task_mutex_contention_with_payload(
+    benchmark::State& state) {
+  engine::RunStandalone(state.range(0), [&] {
+    generic_contention_with_payload<engine::SingleWaitingTaskMutex>(state);
+  });
+}
+
 }  // namespace
 
 BENCHMARK(mutex_coro_lock);
 BENCHMARK(mutex_std_lock);
+BENCHMARK(single_waiting_task_mutex_lock);
 
 BENCHMARK(mutex_coro_unlock);
 BENCHMARK(mutex_std_unlock);
+BENCHMARK(single_waiting_task_mutex_unlock);
 
 BENCHMARK(mutex_coro_contention)->RangeMultiplier(2)->Range(1, 32);
 BENCHMARK(mutex_std_contention)->RangeMultiplier(2)->Range(1, 32);
+BENCHMARK(single_waiting_task_mutex_contention)->Range(1, 2);
 
 BENCHMARK(mutex_coro_contention_with_payload)->RangeMultiplier(2)->Range(1, 32);
 BENCHMARK(mutex_std_contention_with_payload)->RangeMultiplier(2)->Range(1, 32);
+BENCHMARK(single_waiting_task_mutex_contention_with_payload)->Range(1, 2);
 
 USERVER_NAMESPACE_END

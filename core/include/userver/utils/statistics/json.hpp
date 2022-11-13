@@ -4,7 +4,6 @@
 /// @brief Statistics output in JSON format.
 
 #include <string>
-#include <unordered_map>
 
 #include <userver/utils/statistics/storage.hpp>
 
@@ -32,12 +31,9 @@ namespace utils::statistics {
 ///   ]
 /// }
 /// @endcode
-///
-/// @note `common_labels` should not match labels from `statistics`.
 std::string ToJsonFormat(
-    const std::unordered_map<std::string, std::string>& common_labels,
     const utils::statistics::Storage& statistics,
-    const utils::statistics::StatisticsRequest& statistics_request = {});
+    const utils::statistics::Request& statistics_request = {});
 
 }  // namespace utils::statistics
 

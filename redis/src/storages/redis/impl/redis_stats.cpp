@@ -1,6 +1,8 @@
 #include <userver/storages/redis/impl/redis_stats.hpp>
 #include <userver/storages/redis/impl/reply.hpp>
 
+#include <hiredis/hiredis.h>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace redis {
@@ -35,6 +37,10 @@ void Statistics::AccountReplyReceived(const ReplyPtr& reply,
   auto ms =
       std::chrono::duration_cast<std::chrono::milliseconds>(delta).count();
   timings_percentile.GetCurrentCounter().Account(ms);
+  {
+    auto request_timings = command_timings_percentile.Lock();
+    (*request_timings)[cmd->GetName()].GetCurrentCounter().Account(ms);
+  }
 
   AccountError(reply->status);
 }

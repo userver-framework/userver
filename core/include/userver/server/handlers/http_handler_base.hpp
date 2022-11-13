@@ -144,11 +144,9 @@ class HttpHandlerBase : public HandlerBase {
 
   void DecompressRequestBody(http::HttpRequest& http_request) const;
 
-  formats::json::ValueBuilder ExtendStatistics(
-      const utils::statistics::StatisticsRequest&);
-
   template <typename HttpStatistics>
-  formats::json::ValueBuilder FormatStatistics(const HttpStatistics& stats);
+  void FormatStatistics(utils::statistics::Writer result,
+                        const HttpStatistics& stats);
 
   void SetResponseAcceptEncoding(http::HttpResponse& response) const;
   void SetResponseServerHostname(http::HttpResponse& response) const;

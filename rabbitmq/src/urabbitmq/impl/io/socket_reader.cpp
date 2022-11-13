@@ -38,14 +38,20 @@ bool SocketReader::Buffer::Read(engine::io::RwBase& socket,
                                 AmqpConnection* conn,
                                 AmqpConnectionHandler& parent) {
   try {
-    const auto read = socket.ReadSome(&tmp_buffer_[0], kTmpBufferSize, {});
-    if (read == 0) {
+    bool is_readable = true;
+    if (last_bytes_read_ != kTmpBufferSize) {
+      is_readable = socket.WaitReadable({});
+    }
+
+    last_bytes_read_ =
+        is_readable ? socket.ReadSome(&tmp_buffer_[0], kTmpBufferSize, {}) : 0;
+    if (last_bytes_read_ == 0) {
       throw std::runtime_error{"Connection is closed by remote"};
     }
 
-    data_.resize(size_ + read);
-    std::memcpy(data_.data() + size_, &tmp_buffer_[0], read);
-    size_ += read;
+    data_.resize(size_ + last_bytes_read_);
+    std::memcpy(data_.data() + size_, &tmp_buffer_[0], last_bytes_read_);
+    size_ += last_bytes_read_;
 
     const auto parsed = [this, conn] {
       auto lock = AmqpConnectionLocker{*conn}.Lock({});

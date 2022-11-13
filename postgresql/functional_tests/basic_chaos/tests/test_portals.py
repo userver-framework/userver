@@ -53,7 +53,6 @@ async def test_x(service_client, gate, testpoint, tp_name, attr, taxi_config):
 DELAY_SECS = 4.0
 
 
-@pytest.mark.skip(reason='not ready yet')
 @pytest.mark.config(
     POSTGRES_CONNECTION_SETTINGS={
         'key-value-database': {'recent-errors-threshold': 10000},
@@ -76,6 +75,8 @@ async def test_timeout(service_client, gate, testpoint, tp_name):
 
     r = await service_client.post('/tests/control', {'testpoints': []})
     assert r.status_code == 200
+
+    gate.to_client_pass()
 
     await consume_dead_db_connections(service_client)
 

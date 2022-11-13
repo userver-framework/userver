@@ -1,8 +1,8 @@
 #pragma once
 
 #include <userver/engine/deadline.hpp>
-#include <userver/engine/mutex.hpp>
 #include <userver/engine/semaphore.hpp>
+#include <userver/engine/single_waiting_task_mutex.hpp>
 
 #include <amqpcpp.h>
 
@@ -19,14 +19,15 @@ namespace urabbitmq::impl {
 
 class ConnectionLock final {
  public:
-  ConnectionLock(engine::Mutex& mutex, engine::Deadline deadline);
+  ConnectionLock(engine::SingleWaitingTaskMutex& mutex,
+                 engine::Deadline deadline);
   ~ConnectionLock();
 
   ConnectionLock(const ConnectionLock& other) = delete;
   ConnectionLock(ConnectionLock&& other) noexcept;
 
  private:
-  engine::Mutex& mutex_;
+  engine::SingleWaitingTaskMutex& mutex_;
   bool owns_;
 };
 
@@ -93,12 +94,10 @@ class AmqpConnection final {
 
   AMQP::Channel channel_;
 
-  // The order is reversed intentionally
-  // https://github.com/CopernicaMarketingSoftware/AMQP-CPP/issues/480
-  std::unique_ptr<ReliableChannel> reliable_;
   AMQP::Channel reliable_channel_;
+  std::unique_ptr<ReliableChannel> reliable_;
 
-  engine::Mutex mutex_{};
+  engine::SingleWaitingTaskMutex mutex_{};
   engine::Semaphore waiters_sema_;
 };
 

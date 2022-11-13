@@ -95,6 +95,7 @@ class UserverConan(conans.ConanFile):
         self.requires('openssl/1.1.1q')
         self.requires('rapidjson/cci.20220822')
         self.requires('concurrentqueue/1.0.3')
+        self.requires('zlib/1.2.13')
 
         if self.options.with_jemalloc:
             self.requires('jemalloc/5.2.1')
@@ -172,11 +173,33 @@ class UserverConan(conans.ConanFile):
             self.copy(
                 pattern='*', dst='include', src='grpc/include', keep_path=True,
             )
+        if self.options.with_utest:
+            self.copy(
+                pattern='*',
+                dst='include',
+                src='core/testing/include',
+                keep_path=True,
+            )
+            self.copy(
+                pattern='*', dst='testsuite', src='testsuite', keep_path=True,
+            )
         if self.options.with_postgresql:
             self.copy(
                 pattern='*',
                 dst='include',
                 src='postgresql/include',
+                keep_path=True,
+            )
+            self.copy(
+                pattern='UserverTestsuite.cmake',
+                dst='cmake',
+                src='cmake',
+                keep_path=True,
+            )
+            self.copy(
+                pattern='AddGoogleTests.cmake',
+                dst='cmake',
+                src='cmake',
                 keep_path=True,
             )
         if self.options.with_mongodb:

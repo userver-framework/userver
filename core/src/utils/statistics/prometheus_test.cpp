@@ -27,7 +27,8 @@ void TestToMetricsPrometheus(const utils::statistics::Storage& statistics,
                              const std::string_view expected,
                              const bool sorted = false) {
   const auto result =
-      ToPrometheusFormat({{"application", "processing"}}, statistics);
+      ToPrometheusFormat(statistics, utils::statistics::Request::MakeWithPrefix(
+                                         {}, {{"application", "processing"}}));
   if (sorted) {
     EXPECT_EQ(Sorted(expected), Sorted(result));
   } else {

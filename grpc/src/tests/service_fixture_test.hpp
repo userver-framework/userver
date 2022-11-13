@@ -4,9 +4,10 @@
 
 #include <grpcpp/channel.h>
 
-#include <userver/formats/json/value.hpp>
 #include <userver/utest/utest.hpp>
+#include <userver/utils/statistics/labels.hpp>
 #include <userver/utils/statistics/storage.hpp>
+#include <userver/utils/statistics/testing.hpp>
 
 #include <userver/ugrpc/client/client_factory.hpp>
 #include <userver/ugrpc/server/server.hpp>
@@ -33,7 +34,9 @@ class GrpcServiceFixture : public ::testing::Test {
     return client_factory_->MakeClient<Client>(*endpoint_);
   }
 
-  formats::json::Value GetStatistics();
+  utils::statistics::Snapshot GetStatistics(
+      std::string prefix,
+      std::vector<utils::statistics::Label> require_labels = {});
 
   ugrpc::server::Server& GetServer() noexcept;
 
@@ -55,6 +58,8 @@ class GrpcServiceFixtureSimple : public GrpcServiceFixture {
   }
 
   ~GrpcServiceFixtureSimple() override { StopServer(); }
+
+  Service& GetService() { return service_; }
 
  private:
   Service service_{};

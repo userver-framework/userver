@@ -4,6 +4,7 @@
 #include <unordered_map>
 
 #include <userver/rcu/rcu_map.hpp>
+#include <userver/utils/statistics/fwd.hpp>
 
 #include <clients/http/statistics.hpp>
 
@@ -40,6 +41,9 @@ class DestinationStatistics final {
   size_t max_auto_destinations_{0};
   std::atomic<size_t> current_auto_destinations_{0};
 };
+
+void DumpMetric(utils::statistics::Writer& writer,
+                const DestinationStatistics& stats);
 
 }  // namespace clients::http
 

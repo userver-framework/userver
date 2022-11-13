@@ -98,14 +98,17 @@ option(USERVER_FEATURE_CLICKHOUSE "Provide asynchronous driver for ClickHouse" $
 option(USERVER_FEATURE_RABBITMQ "Provide asynchronous driver for RabbitMQ" ${USERVER_OPEN_SOURCE_BUILD})
 option(USERVER_FEATURE_UNIVERSAL "Provide a universal utilities library that does not use coroutines" ON)
 
+if (USERVER_IS_THE_ROOT_PROJECT)
+    include(testsuite/SetupUserverTestsuiteEnv.cmake)
+    add_subdirectory(testsuite)
+endif()
+
 add_subdirectory(core "${CMAKE_BINARY_DIR}/userver/core")
 add_subdirectory("${USERVER_THIRD_PARTY_DIRS}/boost_stacktrace")
 add_subdirectory("${USERVER_THIRD_PARTY_DIRS}/compiler-rt")
 add_subdirectory(uboost_coro)
 
 if (USERVER_IS_THE_ROOT_PROJECT)
-    include(testsuite/SetupUserverTestsuiteEnv.cmake)
-    add_subdirectory(testsuite)
     add_subdirectory(tools/engine)
     add_subdirectory(tools/json2yaml)
     add_subdirectory(tools/httpclient)
@@ -143,5 +146,5 @@ if (USERVER_FEATURE_UNIVERSAL)
 endif()
 
 if (USERVER_IS_THE_ROOT_PROJECT)
-    add_subdirectory(samples)
+  add_subdirectory(samples)
 endif()

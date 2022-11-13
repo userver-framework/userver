@@ -163,7 +163,8 @@ $ curl -X POST -d '{"ids":["USERVER_TASK_PROCESSOR_QOS"]}' 127.0.0.1:8083/config
 
 ### Functional testing
 @ref md_en_userver_functional_testing "Functional tests" for the service
-could be implemented using the testsuite in the following way:
+could be implemented using the @ref service_client "service_client fixture"
+in the following way:
 
 @snippet samples/config_service/tests/test_config.py  Functional test
 

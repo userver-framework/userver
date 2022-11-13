@@ -386,9 +386,8 @@ ShardStatistics Shard::GetStatistics(bool master) const {
 
   for (const auto& instance : instances_) {
     if (!instance.instance || instance.info.IsReadOnly() == master) continue;
-    stats.instances.emplace(
-        instance.info.Fulltext(),
-        redis::InstanceStatistics(instance.instance->GetStatistics()));
+    stats.instances.emplace(instance.info.Fulltext(),
+                            instance.instance->GetStatistics());
     if (instance.instance->GetState() == Redis::State::kConnected) {
       stats.is_ready = true;
     }

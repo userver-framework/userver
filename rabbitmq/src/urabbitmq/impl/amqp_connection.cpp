@@ -20,7 +20,8 @@ AMQP::Connection CreateConnection(AmqpConnectionHandler& handler,
 
 }  // namespace
 
-ConnectionLock::ConnectionLock(engine::Mutex& mutex, engine::Deadline deadline)
+ConnectionLock::ConnectionLock(engine::SingleWaitingTaskMutex& mutex,
+                               engine::Deadline deadline)
     : mutex_{mutex}, owns_{mutex_.try_lock_until(deadline)} {
   if (!owns_) {
     throw std::runtime_error{

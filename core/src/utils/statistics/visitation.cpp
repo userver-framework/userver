@@ -5,11 +5,10 @@
 #include <optional>
 #include <stack>
 #include <string_view>
-#include <userver/formats/json.hpp>
-#include <variant>
 #include <vector>
 
 #include <fmt/format.h>
+#include <boost/container/small_vector.hpp>
 
 #include <userver/formats/common/items.hpp>
 #include <userver/formats/json/string_builder.hpp>
@@ -134,17 +133,12 @@ struct DfsNode {
 
 using DfsStack = std::stack<DfsNode>;
 
-void ProcessInternalNode(DfsStack& dfs_stack, const SensorPath& path,
+void ProcessInternalNode(DfsStack& dfs_stack,
                          const std::string& default_label_name,
                          const std::string& key,
                          const formats::json::Value& value) {
   std::optional<std::string> path_node;
   std::string children_label_name;
-
-  if (path.Get() == "http" && (key == "by-path" || key == "by-handler")) {
-    path_node.emplace();  // skip
-    children_label_name = "http_" + key.substr(3);
-  }
 
   auto label_name = default_label_name;
   auto metadata = value["$meta"];
@@ -174,32 +168,46 @@ void ProcessInternalNode(DfsStack& dfs_stack, const SensorPath& path,
                     std::move(children_label_name));
 }
 
-void ProcessLeaf(BaseExposeFormatBuilder& builder, DfsLabelsBag& labels,
+void ProcessLeaf(BaseFormatBuilder& builder, DfsLabelsBag& labels,
                  SensorPath& path, bool has_children_label,
                  const std::string& key, const formats::json::Value& value,
-                 const StatisticsRequest& request) {
+                 const Request& request) {
   if (has_children_label) {
     labels.ResetLastLabel(key);
   } else {
     path.AppendNode(key);
   }
-  std::optional<std::variant<int64_t, double>> metric_value;
-  if (value.IsString()) {
-    try {
-      metric_value = utils::FromString<double>(value.As<std::string>());
-    } catch (const std::exception&) {
-      // ignore
-    }
-  } else if (value.IsInt64()) {
-    metric_value = value.As<int64_t>();
+  std::optional<MetricValue> metric_value;
+
+  if (value.IsInt64()) {
+    metric_value.emplace(value.As<std::int64_t>());
   } else if (value.IsDouble()) {
-    metric_value = value.As<double>();
+    metric_value.emplace(value.As<double>());
+  } else {
+    // TODO remove this condition, prohibit null metrics.
+    if (!value.IsNull()) {
+      UASSERT_MSG(false, fmt::format("Non-numeric metric at path '{}': {}",
+                                     path.Get(), ToString(value)));
+    }
   }
 
+  // filtration is simplified, the whole internal JSON metrics code is
+  // to be deprecated
   if (metric_value && utils::text::StartsWith(path.Get(), request.prefix)) {
-    if (LeftContainsRight(labels.Labels(), request.labels)) {
-      if (request.path.empty() || path.Get() == request.path) {
-        builder.HandleMetric(path.Get(), labels.Labels(), *metric_value);
+    if (LeftContainsRight(labels.Labels(), request.require_labels)) {
+      if (request.prefix.empty() || path.Get() == request.prefix) {
+        boost::container::small_vector<LabelView, 16> labels_vector;
+        labels_vector.reserve(labels.Labels().size() +
+                              request.add_labels.size());
+        for (const auto& l : request.add_labels) {
+          labels_vector.emplace_back(l.first, l.second);
+        }
+        for (const auto& l : labels.Labels()) {
+          labels_vector.emplace_back(l);
+        }
+
+        builder.HandleMetric(path.Get(), LabelsSpan{labels_vector},
+                             *metric_value);
       }
     }
   }
@@ -215,12 +223,9 @@ Label::Label(std::string name, std::string value)
   UASSERT(!name_.empty());
 }
 
-void VisitMetrics(BaseExposeFormatBuilder& out,
+void VisitMetrics(BaseFormatBuilder& out,
                   const formats::json::Value& statistics_storage_json,
-                  const StatisticsRequest& request) {
-  UASSERT(request.path.empty() ||
-          utils::text::StartsWith(request.path, request.prefix));
-
+                  const Request& request) {
   SensorPath path;
   DfsLabelsBag labels;
   std::stack<DfsNode> dfs_stack;
@@ -249,8 +254,7 @@ void VisitMetrics(BaseExposeFormatBuilder& out,
       if (!key.empty() && key.front() == '$') continue;
 
       if (value.IsObject()) {
-        ProcessInternalNode(dfs_stack, path, state.children_label_name, key,
-                            value);
+        ProcessInternalNode(dfs_stack, state.children_label_name, key, value);
       } else {
         ProcessLeaf(out, labels, path, has_children_label, key, value, request);
       }

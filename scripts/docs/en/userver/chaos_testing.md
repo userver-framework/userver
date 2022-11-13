@@ -1,7 +1,5 @@
 # Chaos Testing
 
-@warning This is the early version of functionality. API may change, issues in chaos.TcpGate may be encountered.
-
 A system could not achieve high availability if it does not tolerate failures. In
 microservices and other distributed network architectures the hardware and
 network itself is the source of failures.
@@ -11,7 +9,7 @@ behavior could be controlled from
 @ref md_en_userver_functional_testing "functional tests". In other
 words, it is a tool to do chaos testing.
 
-To implement the tests the `chaos.TcpGate` is placed between client and
+To implement the tests, the pytest_userver.chaos.TcpGate is placed between client and
 server. After that, the proxy could be used to test the client and the server
 fault tolerance. The following network conditions could be simulated: 
 
@@ -31,13 +29,14 @@ fault tolerance. The following network conditions could be simulated:
 
 ## chaos.TcpGate
 
-Kepp in mind the following picture:
+Keep in mind the following picture:
 
 ```
   Client <-> (client) chaos.TcpGate (server) <-> Server
 ```
 
-`chaos.TcpGate` allows you to simulate different network conditions on `client`
+@ref pytest_userver.chaos.TcpGate "chaos.TcpGate" allows you to simulate
+various network conditions on `client`
 and `server` parts independently. For example, if you wish to corrupt data from
 Client to Server, you should use `gate.to_server_corrupt_data()`. If you wish
 to corrupt data that goes from Server to Client, you should use
@@ -45,17 +44,14 @@ to corrupt data that goes from Server to Client, you should use
 
 To restore the non failure behavior use `gate.to_*_pass()`.
 
-All the `chaos.TcpGate` functions could be found at
-@ref testsuite/pytest_plugins/pytest_userver/chaos.py
-
 
 ## Usage Sample
 
-To use `chaos.TcpGate` it should be imported first:
+Import `chaos` to use @ref pytest_userver.chaos.TcpGate "chaos.TcpGate":
 
-```python
+@code{.py}
 from pytest_userver import chaos
-```
+@endcode
 
 The proxy usually should be started before the service and should keep working
 between the service tests runs. To achieve that make a fixture with the session

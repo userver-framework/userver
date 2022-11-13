@@ -8,7 +8,6 @@
 
 #include <grpcpp/support/status.h>
 
-#include <userver/formats/json_fwd.hpp>
 #include <userver/utils/fixed_array.hpp>
 #include <userver/utils/statistics/fwd.hpp>
 #include <userver/utils/statistics/percentile.hpp>
@@ -39,7 +38,8 @@ class MethodStatistics final {
   // UNKNOWN status code is automatically returned in this case.
   void AccountInternalError() noexcept;
 
-  formats::json::Value ExtendStatistics() const;
+  friend void DumpMetric(utils::statistics::Writer& writer,
+                         const MethodStatistics& stats);
 
  private:
   using Percentile =
@@ -69,7 +69,8 @@ class ServiceStatistics final {
 
   const StaticServiceMetadata& GetMetadata() const;
 
-  formats::json::Value ExtendStatistics() const;
+  friend void DumpMetric(utils::statistics::Writer& writer,
+                         const ServiceStatistics& stats);
 
  private:
   const StaticServiceMetadata metadata_;

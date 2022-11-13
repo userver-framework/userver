@@ -7,7 +7,7 @@
 #include <fmt/compile.h>
 #include <fmt/format.h>
 
-#include <userver/utils/algo.hpp>
+#include <userver/utils/statistics/fmt.hpp>
 #include <userver/utils/statistics/storage.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -26,34 +26,16 @@ void AppendGraphiteSafe(fmt::memory_buffer& out, std::string_view value) {
       [](char c) { return !IsGraphitePrintable(c); }, '_');
 }
 
-std::string MakeCommonLabelsString(
-    const std::unordered_map<std::string, std::string>& common_labels) {
-  fmt::memory_buffer buf;
-
-  for (const auto& [key, value] : common_labels) {
-    buf.push_back(';');
-
-    AppendGraphiteSafe(buf, key);
-    buf.push_back('=');
-    AppendGraphiteSafe(buf, value);
-  }
-
-  return to_string(buf);
-}
-
-class FormatBuilder final : public utils::statistics::BaseExposeFormatBuilder {
+class FormatBuilder final : public utils::statistics::BaseFormatBuilder {
  public:
-  explicit FormatBuilder(
-      const std::unordered_map<std::string, std::string>& common_labels)
+  FormatBuilder()
       : ending_(
             fmt::format(FMT_COMPILE(" {}\n"),
                         std::chrono::duration_cast<std::chrono::seconds>(
                             std::chrono::system_clock::now().time_since_epoch())
-                            .count())),
-        common_labels_(MakeCommonLabelsString(common_labels)) {}
+                            .count())) {}
 
-  void HandleMetric(std::string_view path,
-                    const std::vector<utils::statistics::Label>& labels,
+  void HandleMetric(std::string_view path, utils::statistics::LabelsSpan labels,
                     const MetricValue& value) override {
     AppendGraphiteSafe(buf_, path);
 
@@ -61,20 +43,14 @@ class FormatBuilder final : public utils::statistics::BaseExposeFormatBuilder {
       PutLabel(label);
     }
 
-    buf_.append(common_labels_);
-
-    std::visit(
-        [this](const auto& v) {
-          fmt::format_to(std::back_inserter(buf_), FMT_COMPILE(" {}"), v);
-        },
-        value);
+    fmt::format_to(std::back_inserter(buf_), FMT_COMPILE(" {}"), value);
     buf_.append(ending_);
   }
 
   std::string Release() { return fmt::to_string(buf_); }
 
  private:
-  void PutLabel(const Label& label) {
+  void PutLabel(const LabelView& label) {
     buf_.push_back(';');
 
     AppendGraphiteSafe(buf_, label.Name());
@@ -83,19 +59,16 @@ class FormatBuilder final : public utils::statistics::BaseExposeFormatBuilder {
   }
 
   const std::string ending_;
-  const std::string common_labels_;
   fmt::memory_buffer buf_;
   std::unordered_map<std::string, std::string> metrics_;
 };
 
 }  // namespace
 
-std::string ToGraphiteFormat(
-    const std::unordered_map<std::string, std::string>& common_labels,
-    const utils::statistics::Storage& statistics,
-    const utils::statistics::StatisticsRequest& statistics_request) {
-  FormatBuilder builder{common_labels};
-  statistics.VisitMetrics(builder, statistics_request);
+std::string ToGraphiteFormat(const utils::statistics::Storage& statistics,
+                             const utils::statistics::Request& request) {
+  FormatBuilder builder{};
+  statistics.VisitMetrics(builder, request);
   return builder.Release();
 }
 

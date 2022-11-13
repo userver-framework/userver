@@ -1,4 +1,8 @@
-# pylint: disable=no-member
+"""
+Helpers to make the `make start-*` commands work.
+"""
+
+# pylint: disable=no-member,missing-kwoa
 import pathlib
 
 import pytest
@@ -25,10 +29,10 @@ class UserviceRunner:
 
         # Is there servicetest choosen
         for item in items:
+            pathes.add(pathlib.Path(item.module.__file__).parent)
             for marker in item.own_markers:
                 if marker.name == 'servicetest':
                     return
-                pathes.add(pathlib.Path(item.module.__file__).parent)
 
         if not pathes:
             return
@@ -49,12 +53,17 @@ class UserviceRunner:
 
 @pytest.mark.servicetest
 def test_service_default(service_client):
-    """This is default service runner testcase. Feel free to override it
+    """
+    This is default service runner testcase. Feel free to override it
     in your own tests, e.g.:
 
+    @code
     @pytest.mark.servicetest
     def test_service(service_client):
         ...
+    @endcode
+
+    @ingroup userver_testsuite
     """
 
 

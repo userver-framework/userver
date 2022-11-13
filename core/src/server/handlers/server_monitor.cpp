@@ -7,6 +7,7 @@
 #include <userver/utils/statistics/graphite.hpp>
 #include <userver/utils/statistics/json.hpp>
 #include <userver/utils/statistics/prometheus.hpp>
+#include <userver/utils/statistics/solomon.hpp>
 #include <userver/utils/statistics/storage.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 #include <userver/yaml_config/schema.hpp>
@@ -25,6 +26,7 @@ enum class StatsFormat {
   kPrometheus,
   kPrometheusUntyped,
   kJson,
+  kSolomon,
 };
 
 StatsFormat ParseFormat(std::string_view format) {
@@ -36,6 +38,8 @@ StatsFormat ParseFormat(std::string_view format) {
     return StatsFormat::kPrometheusUntyped;
   } else if (format == "json") {
     return StatsFormat::kJson;
+  } else if (format == "solomon") {
+    return StatsFormat::kSolomon;
   } else if (format == "internal" || format.empty()) {
     return StatsFormat::kInternal;
   }
@@ -57,43 +61,57 @@ ServerMonitor::ServerMonitor(
 
 std::string ServerMonitor::HandleRequestThrow(const http::HttpRequest& request,
                                               request::RequestContext&) const {
-  utils::statistics::StatisticsRequest statistics_request;
-  statistics_request.prefix = request.GetArg("prefix");
-  statistics_request.path = request.GetArg("path");
-  if (statistics_request.prefix.empty()) {
-    statistics_request.prefix = statistics_request.path;
+  const auto& prefix = request.GetArg("prefix");
+  const auto& path = request.GetArg("path");
+  if (!path.empty() && !prefix.empty() && path != prefix) {
+    throw handlers::ClientError(handlers::ExternalBody{
+        "Use either 'path' or 'prefix' URL parameter, not both"});
   }
 
+  std::vector<utils::statistics::Label> labels;
   const auto& labels_json = request.GetArg("labels");
   if (!labels_json.empty()) {
     auto json = formats::json::FromString(labels_json);
     for (auto [key, value] : Items(json)) {
-      statistics_request.labels.emplace_back(std::move(key),
-                                             value.As<std::string>());
+      labels.emplace_back(std::move(key), value.As<std::string>());
     }
   }
 
   const auto format = ParseFormat(request.GetArg("format"));
+
+  using utils::statistics::Request;
+  auto common_labels =
+      format == StatsFormat::kSolomon ? Request::AddLabels{} : common_labels_;
+  const auto statistics_request =
+      (path.empty() ? Request::MakeWithPrefix(prefix, std::move(common_labels),
+                                              std::move(labels))
+                    : Request::MakeWithPath(path, std::move(common_labels),
+                                            std::move(labels)));
+
   switch (format) {
     case StatsFormat::kGraphite:
-      return utils::statistics::ToGraphiteFormat(
-          common_labels_, statistics_storage_, statistics_request);
+      return utils::statistics::ToGraphiteFormat(statistics_storage_,
+                                                 statistics_request);
 
     case StatsFormat::kPrometheus:
-      return utils::statistics::ToPrometheusFormat(
-          common_labels_, statistics_storage_, statistics_request);
+      return utils::statistics::ToPrometheusFormat(statistics_storage_,
+                                                   statistics_request);
 
     case StatsFormat::kPrometheusUntyped:
-      return utils::statistics::ToPrometheusFormatUntyped(
-          common_labels_, statistics_storage_, statistics_request);
+      return utils::statistics::ToPrometheusFormatUntyped(statistics_storage_,
+                                                          statistics_request);
 
     case StatsFormat::kJson:
-      return utils::statistics::ToJsonFormat(
-          common_labels_, statistics_storage_, statistics_request);
+      return utils::statistics::ToJsonFormat(statistics_storage_,
+                                             statistics_request);
+
+    case StatsFormat::kSolomon:
+      return utils::statistics::ToSolomonFormat(
+          statistics_storage_, common_labels_, statistics_request);
 
     case StatsFormat::kInternal:
       const auto json =
-          statistics_storage_.GetAsJson(statistics_request).ExtractValue();
+          statistics_storage_.GetAsJson(statistics_request.prefix);
       UASSERT(utils::statistics::AreAllMetricsNumbers(json));
       return formats::json::ToString(json);
   }

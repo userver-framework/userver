@@ -1,3 +1,10 @@
+"""
+Python module that provides testsuite support for
+chaos tests; see @ref md_en_userver_chaos_testing for an introduction.
+
+@ingroup userver_testsuite
+"""
+
 import asyncio
 import dataclasses
 import errno
@@ -8,6 +15,24 @@ import random
 import socket
 import time
 import typing
+
+
+@dataclasses.dataclass(frozen=True)
+class GateRoute:
+    """
+    Class that describes route for TcpGate
+
+    @ingroup userver_testsuite
+    """
+
+    name: str
+    host_for_client: str
+    port_for_client: int
+    host_to_server: str
+    port_to_server: int
+
+
+# @cond
 
 # https://docs.python.org/3/library/socket.html#socket.socket.recv
 RECV_BUFF_SIZE_HINT = 4096
@@ -162,15 +187,6 @@ class _InterceptBytesLimit:
         await loop.sock_sendall(socket_to, data)
 
 
-@dataclasses.dataclass(frozen=True)
-class GateRoute:
-    name: str
-    host_for_client: str
-    port_for_client: int
-    host_to_server: str
-    port_to_server: int
-
-
 async def _cancel_and_join(task: typing.Optional[asyncio.Task]) -> None:
     if not task or task.cancelled():
         return
@@ -286,6 +302,9 @@ class _SocketsPaired:
         return bool(self._tasks)
 
 
+# @endcond
+
+
 class TcpGate:
     """
     Accepts incomming client connections (host_for_client, port_for_client),
@@ -295,6 +314,8 @@ class TcpGate:
     Asynchronously concurrently passes data from client to server and from
     server to client, allowing intercepting the data, injecting delays and
     dropping connections.
+
+    @ingroup userver_testsuite
     """
 
     def __init__(self, route: GateRoute, loop) -> None:
@@ -337,7 +358,7 @@ class TcpGate:
     def start_accepting(self) -> None:
         """ Start accepting incommong connections from client """
         assert self._accept_sock
-        if self._accept_task:
+        if self._accept_task and not self._accept_task.done():
             return
 
         self._accept_task = asyncio.create_task(self._do_accept())

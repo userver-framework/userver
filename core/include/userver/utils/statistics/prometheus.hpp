@@ -4,7 +4,6 @@
 /// @brief Statistics output in Prometheus format.
 
 #include <string>
-#include <unordered_map>
 
 #include <userver/utils/statistics/storage.hpp>
 
@@ -28,20 +27,13 @@ std::string ToPrometheusLabel(std::string_view name);
 }  // namespace impl
 
 /// Output `statistics` in Prometheus format, each metric has `gauge` type.
-///
-/// @note `common_labels` should not match labels from `statistics`.
-std::string ToPrometheusFormat(
-    const std::unordered_map<std::string, std::string>& common_labels,
-    const utils::statistics::Storage& statistics,
-    const utils::statistics::StatisticsRequest& statistics_request = {});
+std::string ToPrometheusFormat(const utils::statistics::Storage& statistics,
+                               const utils::statistics::Request& request = {});
 
 /// Output `statistics` in Prometheus format, without metric types.
-///
-/// @note `common_labels` should not match labels from `statistics`.
 std::string ToPrometheusFormatUntyped(
-    const std::unordered_map<std::string, std::string>& common_labels,
     const utils::statistics::Storage& statistics,
-    const utils::statistics::StatisticsRequest& statistics_request = {});
+    const utils::statistics::Request& request = {});
 
 }  // namespace utils::statistics
 

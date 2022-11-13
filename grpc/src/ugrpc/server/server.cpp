@@ -255,7 +255,7 @@ void Server::Impl::DoStart() {
 
 Server::Server(ServerConfig&& config,
                utils::statistics::Storage& statistics_storage)
-    : impl_(std::move(config), statistics_storage) {}
+    : impl_(std::make_unique<Impl>(std::move(config), statistics_storage)) {}
 
 Server::~Server() = default;
 

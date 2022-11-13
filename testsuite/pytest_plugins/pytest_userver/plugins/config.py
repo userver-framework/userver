@@ -1,3 +1,7 @@
+"""
+Work with the configuration files of the service in testsuite.
+"""
+
 import pathlib
 import types
 import typing
@@ -62,22 +66,48 @@ def pytest_addoption(parser) -> None:
     group.addoption(
         '--config-fallback',
         type=pathlib.Path,
-        help='Path to config fallback file.',
+        help='Path to dynamic config fallback file.',
     )
 
 
 @pytest.fixture(scope='session')
-def service_config_path(pytestconfig):
+def service_config_path(pytestconfig) -> pathlib.Path:
+    """
+    Returns the path to service.yaml file set by command line
+    `--service-config` option.
+
+    Override this fixture to change the way path to service.yaml is provided.
+
+    @ingroup userver_testsuite_fixtures
+    """
     return pytestconfig.option.service_config
 
 
 @pytest.fixture(scope='session')
-def service_config_vars_path(pytestconfig):
+def service_config_vars_path(pytestconfig) -> pathlib.Path:
+    """
+    Returns the path to config_vars.yaml file set by command line
+    `--service-config-vars` option.
+
+    Override this fixture to change the way path to config_vars.yaml is
+    provided.
+
+    @ingroup userver_testsuite_fixtures
+    """
     return pytestconfig.option.service_config_vars
 
 
 @pytest.fixture(scope='session')
-def config_fallback_path(pytestconfig):
+def config_fallback_path(pytestconfig) -> pathlib.Path:
+    """
+    Returns the path to dynamic config fallback file set by command line
+    `--config-fallback` option.
+
+    Override this fixture to change the way path to dynamic config fallback is
+    provided.
+
+    @ingroup userver_testsuite_fixtures
+    """
     return pytestconfig.option.config_fallback
 
 
@@ -266,13 +296,17 @@ def taxi_config(
 @pytest.fixture(scope='session')
 def config_service_defaults():
     """
-    Fixture that returns default values for config. You have to override
+    Fixture that returns default values for config. You may override
     it in your local conftest.py or fixture:
 
+    @code
     @pytest.fixture(scope='session')
     def config_service_defaults():
         with open('defaults.json') as fp:
             return json.load(fp)
+    @endcode
+
+    @ingroup userver_testsuite_fixtures
     """
     raise RuntimeError(
         'In order to use fixture %s you have to override %s fixture'

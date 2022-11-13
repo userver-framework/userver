@@ -368,6 +368,7 @@ void PGConnectionWrapper::WaitConnectionFinish(Deadline deadline,
 
   // fe-exec.c: Needs to be called only on a connected database connection.
   if (PQsetnonblocking(conn_, 1)) {
+    HandleSocketPostClose();
     PGCW_LOG_LIMITED_ERROR()
         << "libpq failed to set non-blocking connection mode";
     throw ConnectionFailed{dsn, "Failed to set non-blocking connection mode"};
@@ -415,10 +416,12 @@ void PGConnectionWrapper::RefreshSocket(const Dsn& dsn) {
 }
 
 bool PGConnectionWrapper::WaitSocketReadable(Deadline deadline) {
+  if (!socket_.IsValid()) return false;
   return socket_.WaitReadable(deadline);
 }
 
 bool PGConnectionWrapper::WaitSocketWriteable(Deadline deadline) {
+  if (!socket_.IsValid()) return false;
   return socket_.WaitWriteable(deadline);
 }
 
@@ -432,6 +435,7 @@ void PGConnectionWrapper::Flush(Deadline deadline) {
 #endif
   while (const int flush_res = PQflush(conn_)) {
     if (flush_res < 0) {
+      HandleSocketPostClose();
       throw CommandError(PQerrorMessage(conn_));
     }
     if (!WaitSocketWriteable(deadline)) {
