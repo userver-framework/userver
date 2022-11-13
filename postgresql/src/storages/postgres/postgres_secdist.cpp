@@ -19,8 +19,7 @@ DsnList DsnListFromJson(const formats::json::Value& elem) {
   std::set<Dsn> dsn_set;
   for (auto host_it = hosts.begin(); host_it != hosts.end(); ++host_it) {
     if (!host_it->IsString()) {
-      storages::secdist::ThrowInvalidSecdistType(
-          "hosts[" + std::to_string(host_it.GetIndex()) + ']', "a string");
+      storages::secdist::ThrowInvalidSecdistType(*host_it, "a string");
     }
     Dsn dsn{host_it->As<std::string>()};
     auto multihost = storages::postgres::SplitByHost(dsn);

@@ -356,9 +356,6 @@ properties:
   ignore-unused-query-params:
     type: boolean
     default: false
-  pipeline-enabled:
-    type: boolean
-    default: false
 ```
 
 **Example:**
@@ -368,8 +365,7 @@ properties:
     "persistent-prepared-statements": true,
     "user-types-enabled": true,
     "max-prepared-cache-size": 5000,
-    "ignore-unused-query-params": false,
-    "pipeline-enabled": true
+    "ignore-unused-query-params": false
   }
 }
 ```
@@ -377,11 +373,32 @@ properties:
 Used by components::Postgres.
 
 
+@anchor POSTGRES_CONNECTION_PIPELINE_ENABLED
+## POSTGRES_CONNECTION_PIPELINE_ENABLED
+
+Dynamic config that enables pipeline mode for PostgreSQL connections.
+
+```
+yaml
+default: false
+schema:
+  type: boolean
+```
+
 @anchor POSTGRES_STATEMENT_METRICS_SETTINGS
 ## POSTGRES_STATEMENT_METRICS_SETTINGS
 
 Dynamic config that controls statement metrics settings for specific service.
-`max_statement_metrics == 0` disables metrics export.
+
+Dictionary keys can be either the service component names or `__default__`.
+The latter configuration will be applied for every PostgreSQL component of
+the service.
+
+The value of `max_statement_metrics` controls the maximum size of LRU-cache
+for named statement metrics. When set to 0 (default) no metrics are being
+exported.
+
+The exported data can be found as `postgresql.statement_timings`.
 
 ```
 yaml
@@ -400,9 +417,9 @@ definitions:
 
 ```json
 {
-    "postgresql-grocery_orders": {
-        "max_statement_metrics": 50
-    }
+  "postgresql-database_name": {
+    "max_statement_metrics": 50
+  }
 }
 ```
 

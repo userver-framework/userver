@@ -5,17 +5,14 @@
 
 USERVER_NAMESPACE_BEGIN
 
-using server::http::HttpRequestConstructor;
-using namespace http::parser;
-
 TEST(HttpRequestConstructor, DecodeUrl) {
   std::string str = "Some+String%20x%30";
-  EXPECT_EQ("Some String x0", UrlDecode(str));
+  EXPECT_EQ("Some String x0", http::parser::UrlDecode(str));
 }
 
 TEST(HttpRequestConstructor, DecodeUrlPlus) {
   std::string str = "Some+String";
-  EXPECT_EQ("Some String", UrlDecode(str));
+  EXPECT_EQ("Some String", http::parser::UrlDecode(str));
 }
 
 USERVER_NAMESPACE_END

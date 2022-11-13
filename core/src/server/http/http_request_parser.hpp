@@ -8,8 +8,9 @@
 #include <http_parser.h>
 
 #include <server/net/stats.hpp>
-#include <server/request/request_config.hpp>
 #include <server/request/request_parser.hpp>
+
+#include <userver/server/request/request_config.hpp>
 
 #include "http_request_constructor.hpp"
 

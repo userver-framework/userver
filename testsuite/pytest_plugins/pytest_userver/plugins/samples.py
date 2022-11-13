@@ -1,3 +1,7 @@
+"""
+Helpers for the userver samples; not included by the pytest_userver.plugins
+"""
+
 import pathlib
 
 import pytest
@@ -16,6 +20,15 @@ def pytest_addoption(parser) -> None:
 
 @pytest.fixture(scope='session')
 def service_source_dir(pytestconfig):
+    """
+    Returns the path to the service source directory that is set by command
+    line `--service-source-dir` option.
+
+    Override this fixture to change the way the path to the service
+    source directory is detected by testsuite.
+
+    @ingroup userver_testsuite_fixtures
+    """
     return pytestconfig.option.service_source_dir
 
 

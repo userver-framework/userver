@@ -64,6 +64,7 @@ storages::clickhouse::Cluster MakeCluster(
 }  // namespace
 
 uint32_t GetClickhousePort() {
+  // NOLINTNEXTLINE(concurrency-mt-unsafe)
   const auto* clickhouse_port_env = std::getenv(kTestsuiteClickhouseTcpPort);
   return clickhouse_port_env
              ? utils::FromString<std::uint32_t>(clickhouse_port_env)

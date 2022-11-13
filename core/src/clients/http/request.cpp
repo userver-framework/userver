@@ -157,6 +157,13 @@ void SetHeaders(curl::easy& easy, const Range& headers_range) {
   }
 }
 
+template <class Range>
+void SetProxyHeaders(curl::easy& easy, const Range& headers_range) {
+  for (const auto& [name, value] : headers_range) {
+    easy.add_proxy_header(name, value);
+  }
+}
+
 bool IsAllowedSchemaInUrl(std::string_view url) {
   static constexpr std::string_view kAllowedSchemas[] = {"http://", "https://"};
 
@@ -311,6 +318,18 @@ std::shared_ptr<Request> Request::headers(
     std::initializer_list<std::pair<std::string_view, std::string_view>>
         headers) {
   SetHeaders(pimpl_->easy(), headers);
+  return shared_from_this();
+}
+
+std::shared_ptr<Request> Request::proxy_headers(const Headers& headers) {
+  SetProxyHeaders(pimpl_->easy(), headers);
+  return shared_from_this();
+}
+
+std::shared_ptr<Request> Request::proxy_headers(
+    std::initializer_list<std::pair<std::string_view, std::string_view>>
+        headers) {
+  SetProxyHeaders(pimpl_->easy(), headers);
   return shared_from_this();
 }
 

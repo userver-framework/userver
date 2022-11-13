@@ -229,8 +229,8 @@ UTEST(Redis, SentinelCcRetryToMasterOnNilReply) {
     cc.force_retries_to_master_on_nil_reply = true;
     auto res = MakeGetRequest(sentinel, "master_nil", cc).Get();
     EXPECT_TRUE(res->data.IsNil());
-    EXPECT_EQ(slave_nil_handler->GetReplyCount(), 1ul);
-    EXPECT_EQ(master_nil_handler->GetReplyCount(), 1ul);
+    EXPECT_EQ(slave_nil_handler->GetReplyCount(), 1UL);
+    EXPECT_EQ(master_nil_handler->GetReplyCount(), 1UL);
   }
 }
 

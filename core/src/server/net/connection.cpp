@@ -8,13 +8,14 @@
 
 #include <server/http/http_request_parser.hpp>
 #include <server/http/request_handler_base.hpp>
-#include <server/request/request_config.hpp>
+
 #include <userver/engine/async.hpp>
 #include <userver/engine/exception.hpp>
 #include <userver/engine/io/exception.hpp>
 #include <userver/engine/single_consumer_event.hpp>
 #include <userver/engine/task/cancel.hpp>
 #include <userver/logging/log.hpp>
+#include <userver/server/request/request_config.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/scope_guard.hpp>
 
@@ -84,7 +85,7 @@ void Connection::Start() {
         auto consumer = self->request_tasks_->GetConsumer();
         [[maybe_unused]] bool ok =
             self->response_sender_assigned_event_.WaitForEvent();
-        UASSERT(ok);
+        UASSERT(ok || engine::current_task::ShouldCancel());
         self->ProcessResponses(consumer);
 
         socket_listener.SyncCancel();
@@ -151,13 +152,31 @@ void Connection::ListenForRequests(Queue::Producer producer) noexcept {
         stats_->parser_stats, data_accounter_);
 
     std::vector<char> buf(config_.in_buffer_size);
+    std::size_t last_bytes_read = 0;
     while (is_accepting_requests_) {
       auto deadline = engine::Deadline::FromDuration(config_.keepalive_timeout);
-      const auto bytes_read =
-          peer_socket_.RecvSome(buf.data(), buf.size(), deadline);
-      if (!bytes_read) {
+
+      bool is_readable = true;
+      // If we didn't fill the buffer in the previous loop iteration we almost
+      // certainly will hit EWOULDBLOCK on the subsequent recv syscall from
+      // peer_socket_.RecvSome, which will fall back to event-loop waiting
+      // for socket to become readable, and then issue another recv syscall,
+      // effectively doing
+      // 1. recv (returns -1)
+      // 2. notify event-loop about read interest
+      // 3. recv (return some data)
+      //
+      // So instead we just do 2. and 3., shaving off a whole recv syscall
+      if (last_bytes_read != buf.size()) {
+        is_readable = peer_socket_.WaitReadable(deadline);
+      }
+
+      last_bytes_read =
+          is_readable ? peer_socket_.RecvSome(buf.data(), buf.size(), deadline)
+                      : 0;
+      if (!last_bytes_read) {
         LOG_TRACE() << "Peer " << peer_socket_.Getpeername() << " on fd "
-                    << Fd() << " closed connection";
+                    << Fd() << " closed connection or the connection timed out";
 
         // RFC7230 does not specify rules for connections half-closed from
         // client side. However, section 6 tells us that in most cases
@@ -168,10 +187,10 @@ void Connection::ListenForRequests(Queue::Producer producer) noexcept {
         // processing and pending requests.
         return;
       }
-      LOG_TRACE() << "Received " << bytes_read << " byte(s) from "
+      LOG_TRACE() << "Received " << last_bytes_read << " byte(s) from "
                   << peer_socket_.Getpeername() << " on fd " << Fd();
 
-      if (!request_parser.Parse(buf.data(), bytes_read)) {
+      if (!request_parser.Parse(buf.data(), last_bytes_read)) {
         LOG_DEBUG() << "Malformed request from " << peer_socket_.Getpeername()
                     << " on fd " << Fd();
 
@@ -309,8 +328,7 @@ void Connection::SendResponse(request::RequestBase& request) {
   ++stats_->requests_processed_count;
 
   request.WriteAccessLogs(request_handler_.LoggerAccess(),
-                          request_handler_.LoggerAccessTskv(),
-                          std::chrono::system_clock::now(), remote_address_);
+                          request_handler_.LoggerAccessTskv(), remote_address_);
 }
 
 }  // namespace server::net

@@ -1,5 +1,9 @@
 cmake_minimum_required(VERSION 3.12)
 cmake_policy(SET CMP0025 NEW)
+if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.15")
+  cmake_policy(SET CMP0093 NEW)
+endif()
+
 project(userver)
 
 set(USERVER_ROOT_DIR "${CMAKE_CURRENT_LIST_DIR}")
@@ -8,9 +12,19 @@ set(USERVER_NOT_INCLUDED_AS_SUBDIR OFF)
 if (CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
     set(USERVER_NOT_INCLUDED_AS_SUBDIR ON)
 endif()
+
+option(USERVER_FEATURE_UTEST "Provide 'utest' and 'ubench' for unit testing and benchmarking coroutines" ON)
+if (USERVER_FEATURE_UTEST)
+  message(STATUS "Building utest with gtest and ubench with gbench")
+endif()
+
+
 option(USERVER_IS_THE_ROOT_PROJECT "Build tests, samples and helper tools" ${USERVER_NOT_INCLUDED_AS_SUBDIR})
 if (USERVER_IS_THE_ROOT_PROJECT)
   message(STATUS "Building userver as a primary project")
+  if (NOT USERVER_FEATURE_UTEST)
+      message(FATAL_ERROR "Cannot build tests without utest")
+  endif()
 else()
   message(STATUS "Building userver as a subproject")
 endif()
@@ -76,14 +90,25 @@ set(USERVER_THIRD_PARTY_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/third_party CACHE INTER
 
 init_debian_depends()
 
+option(USERVER_FEATURE_MONGODB "Provide asynchronous driver for MongoDB" ${USERVER_BUILD_PLATFORM_X86})
+option(USERVER_FEATURE_POSTGRESQL "Provide asynchronous driver for PostgreSQL" ON)
+option(USERVER_FEATURE_REDIS "Provide asynchronous driver for Redis" ON)
+option(USERVER_FEATURE_GRPC "Provide asynchronous driver for gRPC" ON)
+option(USERVER_FEATURE_CLICKHOUSE "Provide asynchronous driver for ClickHouse" ${USERVER_BUILD_PLATFORM_X86})
+option(USERVER_FEATURE_RABBITMQ "Provide asynchronous driver for RabbitMQ" ${USERVER_OPEN_SOURCE_BUILD})
+option(USERVER_FEATURE_UNIVERSAL "Provide a universal utilities library that does not use coroutines" ON)
+
+if (USERVER_IS_THE_ROOT_PROJECT)
+    include(testsuite/SetupUserverTestsuiteEnv.cmake)
+    add_subdirectory(testsuite)
+endif()
+
 add_subdirectory(core "${CMAKE_BINARY_DIR}/userver/core")
 add_subdirectory("${USERVER_THIRD_PARTY_DIRS}/boost_stacktrace")
 add_subdirectory("${USERVER_THIRD_PARTY_DIRS}/compiler-rt")
 add_subdirectory(uboost_coro)
 
 if (USERVER_IS_THE_ROOT_PROJECT)
-    include(testsuite/SetupUserverTestsuiteEnv.cmake)
-    add_subdirectory(testsuite)
     add_subdirectory(tools/engine)
     add_subdirectory(tools/json2yaml)
     add_subdirectory(tools/httpclient)
@@ -92,17 +117,14 @@ if (USERVER_IS_THE_ROOT_PROJECT)
     add_subdirectory(tools/congestion_control_emulator)
 endif()
 
-option(USERVER_FEATURE_MONGODB "Provide asynchronous driver for MongoDB" ${USERVER_BUILD_PLATFORM_X86})
 if (USERVER_FEATURE_MONGODB)
     add_subdirectory(mongo "${CMAKE_BINARY_DIR}/userver/mongo")
 endif()
 
-option(USERVER_FEATURE_POSTGRESQL "Provide asynchronous driver for PostgreSQL" ON)
 if (USERVER_FEATURE_POSTGRESQL)
     add_subdirectory(postgresql "${CMAKE_BINARY_DIR}/userver/postgresql")
 endif()
 
-option(USERVER_FEATURE_REDIS "Provide asynchronous driver for Redis" ON)
 if (USERVER_FEATURE_REDIS)
     add_subdirectory(redis "${CMAKE_BINARY_DIR}/userver/redis")
 endif()
@@ -117,21 +139,18 @@ if (USERVER_FEATURE_GRPC)
     add_subdirectory(grpc "${CMAKE_BINARY_DIR}/userver/grpc")
 endif()
 
-option(USERVER_FEATURE_CLICKHOUSE "Provide asynchronous driver for ClickHouse" ${USERVER_BUILD_PLATFORM_X86})
 if (USERVER_FEATURE_CLICKHOUSE)
     add_subdirectory(clickhouse "${CMAKE_BINARY_DIR}/userver/clickhouse")
 endif()
 
-option(USERVER_FEATURE_RABBITMQ "Provide asynchronous driver for RabbitMQ" ${USERVER_OPEN_SOURCE_BUILD})
 if (USERVER_FEATURE_RABBITMQ)
     add_subdirectory(rabbitmq "${CMAKE_BINARY_DIR}/userver/rabbitmq")
 endif()
 
-option(USERVER_FEATURE_UNIVERSAL "Provide a universal utilities library that does not use coroutines" ON)
 if (USERVER_FEATURE_UNIVERSAL)
   add_subdirectory(universal "${CMAKE_BINARY_DIR}/userver/universal")
 endif()
 
 if (USERVER_IS_THE_ROOT_PROJECT)
-    add_subdirectory(samples)
+  add_subdirectory(samples)
 endif()

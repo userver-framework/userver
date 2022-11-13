@@ -18,6 +18,7 @@ constexpr const char* kDefaultMongoPort = "27217";
 }  // namespace
 
 std::string GetTestsuiteMongoUri(const std::string& database) {
+  // NOLINTNEXTLINE(concurrency-mt-unsafe)
   const auto* mongo_port_env = std::getenv(kTestsuiteMongosPort);
   return fmt::format("mongodb://localhost:{}/{}",
                      mongo_port_env ? mongo_port_env : kDefaultMongoPort,

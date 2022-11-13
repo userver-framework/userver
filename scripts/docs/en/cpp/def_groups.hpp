@@ -112,4 +112,13 @@
 ///
 /// @brief Files with implemented ClickHouse types
 
+/// @defgroup userver_testsuite Testsuite Python support 
+///
+/// @brief Functions, fixtures and classes to do
+/// @ref md_en_userver_functional_testing "functional testing with testsuite".
+
+/// @defgroup userver_testsuite_fixtures Fixtures
+/// @brief Fixtures to use with testsuite
+/// @ingroup userver_testsuite
+
 // clang-format on

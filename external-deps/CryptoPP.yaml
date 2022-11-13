@@ -23,3 +23,5 @@ rpm-names:
   - cryptopp-devel
 pacman-names:
   - crypto++
+pkg-config-names:
+  - libcrypto++

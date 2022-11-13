@@ -56,8 +56,10 @@ void ResponseBase::SetData(std::string data) {
   guard_.emplace(accounter_, create_time_, data_.size());
 }
 
-void ResponseBase::SetReady() {
-  ready_time_ = std::chrono::steady_clock::now();
+void ResponseBase::SetReady() { SetReady(std::chrono::steady_clock::now()); }
+
+void ResponseBase::SetReady(std::chrono::steady_clock::time_point now) {
+  ready_time_ = now;
   is_ready_ = true;
 }
 

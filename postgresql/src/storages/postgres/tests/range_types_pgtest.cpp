@@ -6,8 +6,6 @@
 USERVER_NAMESPACE_BEGIN
 
 namespace pg = storages::postgres;
-namespace io = pg::io;
-namespace tt = io::traits;
 
 namespace {
 
@@ -163,8 +161,8 @@ struct TestData {
 };
 
 UTEST_P(PostgreConnection, Int4RangeRoundtripTest) {
-  CheckConnection(conn);
-  ASSERT_FALSE(conn->IsReadOnly()) << "Expect a read-write connection";
+  CheckConnection(GetConn());
+  ASSERT_FALSE(GetConn()->IsReadOnly()) << "Expect a read-write connection";
 
   pg::ResultSet res{nullptr};
   pg::IntegerRange r;
@@ -186,16 +184,16 @@ UTEST_P(PostgreConnection, Int4RangeRoundtripTest) {
        pg::MakeRange(pg::kUnbounded, 0, pg::RangeBound::kNone)}};
 
   for (const auto& test : test_data) {
-    UEXPECT_NO_THROW(res = conn->Execute("select '" + test.select_expression +
-                                         "'::int4range, '" + test.description +
-                                         "'"))
+    UEXPECT_NO_THROW(
+        res = GetConn()->Execute("select '" + test.select_expression +
+                                 "'::int4range, '" + test.description + "'"))
         << "Select " << test.description << " range from database";
     UEXPECT_NO_THROW(res.Front()[0].To(r))
         << "Parse " << test.select_expression << " value";
     EXPECT_EQ(test.expected, r)
         << "Expect equality for " << test.description << " range";
 
-    UEXPECT_NO_THROW(res = conn->Execute("select $1", test.expected))
+    UEXPECT_NO_THROW(res = GetConn()->Execute("select $1", test.expected))
         << "Roundtrip select " << test.description << " range";
     UEXPECT_NO_THROW(res.Front()[0].To(r));
     EXPECT_EQ(test.expected, r)
@@ -204,8 +202,8 @@ UTEST_P(PostgreConnection, Int4RangeRoundtripTest) {
 }
 
 UTEST_P(PostgreConnection, Int8RangeRoundtripTest) {
-  CheckConnection(conn);
-  ASSERT_FALSE(conn->IsReadOnly()) << "Expect a read-write connection";
+  CheckConnection(GetConn());
+  ASSERT_FALSE(GetConn()->IsReadOnly()) << "Expect a read-write connection";
 
   pg::ResultSet res{nullptr};
   pg::BigintRange r;
@@ -227,16 +225,16 @@ UTEST_P(PostgreConnection, Int8RangeRoundtripTest) {
        pg::MakeRange(pg::kUnbounded, 0, pg::RangeBound::kNone)}};
 
   for (const auto& test : test_data) {
-    UEXPECT_NO_THROW(res = conn->Execute("select '" + test.select_expression +
-                                         "'::int8range, '" + test.description +
-                                         "'"))
+    UEXPECT_NO_THROW(
+        res = GetConn()->Execute("select '" + test.select_expression +
+                                 "'::int8range, '" + test.description + "'"))
         << "Select " << test.description << " range from database";
     UEXPECT_NO_THROW(res.Front()[0].To(r))
         << "Parse " << test.select_expression << " value";
     EXPECT_EQ(test.expected, r)
         << "Expect equality for " << test.description << " range";
 
-    UEXPECT_NO_THROW(res = conn->Execute("select $1", test.expected))
+    UEXPECT_NO_THROW(res = GetConn()->Execute("select $1", test.expected))
         << "Roundtrip select " << test.description << " range";
     UEXPECT_NO_THROW(res.Front()[0].To(r));
     EXPECT_EQ(test.expected, r)
@@ -245,11 +243,12 @@ UTEST_P(PostgreConnection, Int8RangeRoundtripTest) {
 }
 
 UTEST_P(PostgreConnection, BoundedInt8RangeRoundtripTest) {
-  CheckConnection(conn);
+  CheckConnection(GetConn());
   pg::ResultSet res{nullptr};
   std::string invalid_ranges[]{"empty", "(,)", "[0,)", "(,0]", "(0,)", "(,0)"};
   for (const auto& test : invalid_ranges) {
-    UEXPECT_NO_THROW(res = conn->Execute("select '" + test + "'::int8range"));
+    UEXPECT_NO_THROW(
+        res = GetConn()->Execute("select '" + test + "'::int8range"));
     UEXPECT_THROW(res.AsSingleRow<pg::BoundedBigintRange>(),
                   pg::BoundedRangeError);
   }
@@ -264,16 +263,16 @@ UTEST_P(PostgreConnection, BoundedInt8RangeRoundtripTest) {
   };
   for (const auto& test : test_data) {
     pg::BoundedBigintRange r;
-    UEXPECT_NO_THROW(res = conn->Execute("select '" + test.select_expression +
-                                         "'::int8range, '" + test.description +
-                                         "'"))
+    UEXPECT_NO_THROW(
+        res = GetConn()->Execute("select '" + test.select_expression +
+                                 "'::int8range, '" + test.description + "'"))
         << "Select " << test.description << " range from database";
     UEXPECT_NO_THROW(res.Front()[0].To(r))
         << "Parse " << test.select_expression << " value";
     EXPECT_EQ(test.expected, r)
         << "Expect equality for " << test.description << " range";
 
-    UEXPECT_NO_THROW(res = conn->Execute("select $1", test.expected))
+    UEXPECT_NO_THROW(res = GetConn()->Execute("select $1", test.expected))
         << "Roundtrip select " << test.description << " range";
     UEXPECT_NO_THROW(res.Front()[0].To(r));
     EXPECT_EQ(test.expected, r)
@@ -282,13 +281,13 @@ UTEST_P(PostgreConnection, BoundedInt8RangeRoundtripTest) {
 }
 
 UTEST_P(PostgreConnection, RangeStored) {
-  CheckConnection(conn);
+  CheckConnection(GetConn());
   pg::ResultSet res{nullptr};
   auto exp1 = pg::MakeRange(-1, 1, pg::RangeBound::kLower);
   auto exp2 = pg::MakeRange(int64_t{13}, int64_t{42});
   UEXPECT_NO_THROW(
-      res = conn->Execute("select $1, $2",
-                          pg::ParameterStore{}.PushBack(exp1).PushBack(exp2)));
+      res = GetConn()->Execute(
+          "select $1, $2", pg::ParameterStore{}.PushBack(exp1).PushBack(exp2)));
 
   EXPECT_EQ(exp1, res[0][0].As<pg::IntegerRange>());
   EXPECT_EQ(exp2, res[0][1].As<pg::BigintRange>());

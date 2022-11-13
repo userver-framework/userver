@@ -15,7 +15,6 @@ namespace storages::postgres::detail {
 
 namespace {
 
-constexpr std::size_t kRecentErrorThreshold = 2;
 constexpr std::chrono::seconds kRecentErrorPeriod{15};
 
 // Part of max_pool that can be cancelled at once
@@ -324,15 +323,20 @@ void ConnectionPool::SetSettings(const PoolSettings& settings) {
 
 void ConnectionPool::SetConnectionSettings(const ConnectionSettings& settings) {
   auto reader = conn_settings_.Read();
-  if (*reader == settings) return;
-  auto new_settings = settings;
-  new_settings.version = reader->version + 1;
-  conn_settings_.Assign(std::move(new_settings));
+  if (*reader != settings) AssignNewSettings(settings, *reader);
 }
 
 void ConnectionPool::SetStatementMetricsSettings(
     const StatementMetricsSettings& settings) {
   sts_.SetSettings(settings);
+}
+
+void ConnectionPool::SetPipelineMode(PipelineMode mode) {
+  auto reader = conn_settings_.Read();
+  if (reader->pipeline_mode == mode) return;
+  auto settings = *reader;
+  settings.pipeline_mode = mode;
+  AssignNewSettings(std::move(settings), *reader);
 }
 
 engine::TaskWithResult<bool> ConnectionPool::Connect(
@@ -389,11 +393,13 @@ engine::TaskWithResult<bool> ConnectionPool::Connect(
 void ConnectionPool::TryCreateConnectionAsync() {
   SharedSizeGuard sg(size_);
   auto settings = settings_.Read();
+  auto conn_settings = conn_settings_.Read();
+
   if (sg.GetValue() <= settings->max_size) {
     // Checking errors is more expensive than incrementing an atomic, so we
     // check it only if we can start a new connection.
     if (recent_conn_errors_.GetStatsForPeriod(kRecentErrorPeriod, true) <
-        kRecentErrorThreshold) {
+        conn_settings->recent_errors_threshold) {
       // Create a new connection
       Connect(std::move(sg)).Detach();
     } else {
@@ -574,6 +580,12 @@ void ConnectionPool::StartMaintainTask() {
 }
 
 void ConnectionPool::StopMaintainTask() { ping_task_.Stop(); }
+
+void ConnectionPool::AssignNewSettings(ConnectionSettings settings,
+                                       const ConnectionSettings& old_settings) {
+  settings.version = old_settings.version + 1;
+  conn_settings_.Assign(std::move(settings));
+}
 
 }  // namespace storages::postgres::detail
 

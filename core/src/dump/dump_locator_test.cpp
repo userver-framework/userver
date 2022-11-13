@@ -234,10 +234,10 @@ max-age: 30m
 )";
   const auto dir = fs::blocking::TempDirectory::Create();
 
-  const auto file1 = "2015-03-22T09:00:00.000000-v5"s;
-  const auto file2 = "2015-03-22T091000.000000Z-v5"s;
-  const auto file3 = "2015-03-22T094000.000000Z-v5"s;
-  const auto file4 = "2015-03-22T09:50:00.000000-v5";
+  const std::string file1 = "2015-03-22T09:00:00.000000-v5"s;
+  const std::string file2 = "2015-03-22T091000.000000Z-v5"s;
+  const std::string file3 = "2015-03-22T094000.000000Z-v5"s;
+  const std::string file4 = "2015-03-22T09:50:00.000000-v5";
   dump::CreateDumps({file1, file2, file3, file4}, dir, kDumperName);
 
   utils::datetime::MockNowSet(BaseTime() + 60min);  // 2015-03-22T100000.000000Z

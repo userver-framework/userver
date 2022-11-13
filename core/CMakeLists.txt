@@ -71,8 +71,10 @@ find_package(Boost REQUIRED COMPONENTS
 find_package_required(LibEv "libev-dev")
 find_package_required(ZLIB "zlib1g-dev")
 
-include(SetupGTest)
-include(SetupGBench)
+if (USERVER_FEATURE_UTEST)
+    include(SetupGTest)
+    include(SetupGBench)
+endif()
 include(SetupSpdlog)
 
 option(USERVER_FEATURE_SPDLOG_TCP_SINK "Use tcp_sink.h of the spdlog library for testing logs" ON)
@@ -207,31 +209,31 @@ target_link_libraries(userver-core-internal
     ${PROJECT_NAME}
 )
 
+if (USERVER_FEATURE_UTEST)
+    add_library(userver-utest STATIC ${LIBUTEST_SOURCES})
+    target_compile_definitions(userver-utest PUBLIC $<TARGET_PROPERTY:${PROJECT_NAME},COMPILE_DEFINITIONS>)
 
-add_library(userver-utest STATIC ${LIBUTEST_SOURCES})
-target_compile_definitions(userver-utest PUBLIC $<TARGET_PROPERTY:${PROJECT_NAME},COMPILE_DEFINITIONS>)
+    target_link_libraries(userver-utest
+    PUBLIC
+        libgtest
+        libgmock
+	    userver-core-internal
+        ${PROJECT_NAME}
+    PRIVATE
+        Boost::program_options
+    )
+    target_include_directories(userver-utest PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/testing/include
+    )
+    target_include_directories(userver-utest PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/
+        ${CMAKE_CURRENT_SOURCE_DIR}/testing/src/
+    )
 
-target_link_libraries(userver-utest
-  PUBLIC
-    libgtest
-    libgmock
-	userver-core-internal
-    ${PROJECT_NAME}
-  PRIVATE
-    Boost::program_options
-)
-target_include_directories(userver-utest PUBLIC
-  ${CMAKE_CURRENT_SOURCE_DIR}/testing/include
-)
-target_include_directories(userver-utest PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/
-    ${CMAKE_CURRENT_SOURCE_DIR}/testing/src/
-)
-
-# Target with no need to use userver namespace, but includes require userver/
-add_library(yandex-userver-utest INTERFACE)
-target_link_libraries(yandex-userver-utest INTERFACE userver-utest)
-
+    # Target with no need to use userver namespace, but includes require userver/
+    add_library(yandex-userver-utest INTERFACE)
+    target_link_libraries(yandex-userver-utest INTERFACE userver-utest)
+endif()
 
 if (USERVER_IS_THE_ROOT_PROJECT)
     add_executable(${PROJECT_NAME}_unittest ${UNIT_TEST_SOURCES})
@@ -245,21 +247,24 @@ if (USERVER_IS_THE_ROOT_PROJECT)
     # We keep testing deprecated functions, no need to warn about that
     target_compile_options(${PROJECT_NAME}_unittest PRIVATE "-Wno-deprecated-declarations")
     add_google_tests(${PROJECT_NAME}_unittest)
+    add_subdirectory(functional_tests)
 endif()
 
-add_library(userver-ubench ${LIBUBENCH_SOURCES})
-target_include_directories(userver-ubench PUBLIC $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>)
-target_compile_definitions(userver-ubench PUBLIC $<TARGET_PROPERTY:${PROJECT_NAME},COMPILE_DEFINITIONS>)
-target_link_libraries(userver-ubench
-  PUBLIC
-    libbenchmark
-	userver-core-internal
-    ${PROJECT_NAME}
-)
+if (USERVER_FEATURE_UTEST)
+    add_library(userver-ubench ${LIBUBENCH_SOURCES})
+    target_include_directories(userver-ubench PUBLIC $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>)
+    target_compile_definitions(userver-ubench PUBLIC $<TARGET_PROPERTY:${PROJECT_NAME},COMPILE_DEFINITIONS>)
+    target_link_libraries(userver-ubench
+      PUBLIC
+        libbenchmark
+      userver-core-internal
+        ${PROJECT_NAME}
+    )
 
 # Target with no need to use userver namespace, but includes require userver/
 add_library(yandex-userver-ubench INTERFACE)
 target_link_libraries(yandex-userver-ubench INTERFACE userver-ubench)
+endif()
 
 if (USERVER_IS_THE_ROOT_PROJECT)
     add_executable(${PROJECT_NAME}_benchmark ${BENCH_SOURCES})

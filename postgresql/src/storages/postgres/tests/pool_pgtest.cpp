@@ -101,6 +101,7 @@ UTEST_F(PostgrePool, BlockWaitingOnAvailableConnection) {
       },
       std::move(conn))
       .Detach();
+  // NOLINTNEXTLINE(bugprone-use-after-move)
   UEXPECT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
       << "Execution blocked because pool reached max size, but connection "
          "found later";
@@ -154,6 +155,7 @@ UTEST_F(PostgrePool, ConnectionPtrWorks) {
   CheckConnection(std::move(conn));
 
   // We still should have initial count of working connections in the pool
+  // NOLINTNEXTLINE(bugprone-use-after-move)
   UEXPECT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
       << "Obtained connection from pool again";
   UEXPECT_NO_THROW(conn = pool->Acquire(MakeDeadline()))

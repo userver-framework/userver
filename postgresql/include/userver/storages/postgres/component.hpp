@@ -32,6 +32,7 @@ namespace components {
 /// * @ref POSTGRES_QUERIES_COMMAND_CONTROL
 /// * @ref POSTGRES_CONNECTION_POOL_SETTINGS
 /// * @ref POSTGRES_CONNECTION_SETTINGS
+/// * @ref POSTGRES_CONNECTION_PIPELINE_ENABLED
 /// * @ref POSTGRES_STATEMENT_METRICS_SETTINGS
 ///
 /// ## Static configuration example:
@@ -127,7 +128,6 @@ namespace components {
 /// min_pool_size           | number of connections created initially                   | 4
 /// max_pool_size           | maximum number of created connections                     | 15
 /// max_queue_size          | maximum number of clients waiting for a connection        | 200
-/// pipeline_enabled        | turn on pipeline mode                                     | false
 /// connecting_limit        | limit for concurrent establishing connections number per pool (0 - unlimited) | 0
 
 // clang-format on

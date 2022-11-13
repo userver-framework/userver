@@ -1,8 +1,12 @@
 #include <gtest/gtest.h>
 
 #include <logging/logging_test.hpp>
+#include <userver/engine/condition_variable.hpp>
+#include <userver/engine/mutex.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/logging/log_helper_fwd.hpp>
+#include <userver/utest/utest.hpp>
+#include <userver/utils/async.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -17,7 +21,7 @@ TEST_F(LoggingTest, SwitchToTraceWorks) {
   logging::SetDefaultLoggerLevel(logging::Level::kInfo);
 
   logging::LogFlush();
-  const auto log_contents = sstream.str();
+  const auto log_contents = GetStreamString();
   size_t pos = 0;
   size_t entries = 0;
   while ((pos = log_contents.find("text=test", pos)) != std::string::npos) {
@@ -39,7 +43,7 @@ TEST_F(LoggingTest, LogExtraExtendType) {
   LOG_TRACE() << log_extra;
 
   logging::LogFlush();
-  const auto log_contents = sstream.str();
+  const auto log_contents = GetStreamString();
   EXPECT_NE(log_contents.find("key1=value1"), std::string::npos);
   EXPECT_NE(log_contents.find("key1=value2"), std::string::npos);
   EXPECT_EQ(log_contents.find("key1=value3"), std::string::npos);
@@ -74,6 +78,25 @@ TEST_F(LoggingTest, DocsData) {
   logging::Level level = flag ? logging::Level::kDebug : logging::Level::kInfo;
   LOG(level) << "some text";
   /// [Example set custom logging usage]
+}
+
+UTEST_F(SocketLoggingTest, Test) {
+  engine::Mutex mt;
+  engine::ConditionVariable cv;
+  auto task = utils::Async("server task", &SocketLoggingTest::Server, this,
+                           std::ref(cv));
+
+  std::unique_lock lock(mt);
+  if (!cv.Wait(lock, [&]() { return IsStarts(); })) {
+    FAIL();
+  }
+
+  LOG_ERROR() << "test";
+  if (!cv.Wait(lock, [&]() { return IsRead(); })) {
+    FAIL();
+  }
+
+  EXPECT_EQ("test", LoggedText());
 }
 
 USERVER_NAMESPACE_END

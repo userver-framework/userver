@@ -43,7 +43,8 @@ class SentinelImpl {
                Sentinel& sentinel, const std::vector<std::string>& shards,
                const std::vector<ConnectionInfo>& conns,
                std::string shard_group_name, const std::string& client_name,
-               const Password& password, ReadyChangeCallback ready_callback,
+               const Password& password, ConnectionSecurity connection_security,
+               ReadyChangeCallback ready_callback,
                std::unique_ptr<KeyShard>&& key_shard,
                ConnectionMode mode = ConnectionMode::kCommands);
   ~SentinelImpl();
@@ -211,6 +212,7 @@ class SentinelImpl {
   ShardInfo shard_info_;
   std::string client_name_;
   Password password_{std::string()};
+  ConnectionSecurity connection_security_;
   double check_interval_;
   std::atomic<bool> update_cluster_slots_flag_;
   std::atomic<bool> cluster_mode_failed_;  // also false if not in cluster mode

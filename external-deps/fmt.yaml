@@ -19,3 +19,5 @@ rpm-names:
   - fmt-devel
 pacman-names:
   - fmt
+pkg-config-names:
+  - fmt

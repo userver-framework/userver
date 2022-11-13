@@ -12,8 +12,6 @@
 
 USERVER_NAMESPACE_BEGIN
 
-using namespace sample::ugrpc;
-
 namespace {
 
 template <typename MetadataMap>
@@ -30,14 +28,16 @@ const grpc::string kClientTraceIdEcho = "client-trace-id-echo";
 const grpc::string kClientSpanIdEcho = "client-span-id-echo";
 const grpc::string kClientLinkEcho = "client-link-echo";
 
-class UnitTestServiceWithTracingChecks final : public UnitTestServiceBase {
+class UnitTestServiceWithTracingChecks final
+    : public sample::ugrpc::UnitTestServiceBase {
  public:
-  void SayHello(SayHelloCall& call, GreetingRequest&& request) override {
+  void SayHello(SayHelloCall& call, sample::ugrpc::GreetingRequest&&) override {
     SetMetadata(call.GetContext());
     call.Finish({});
   }
 
-  void ReadMany(ReadManyCall& call, StreamGreetingRequest&& request) override {
+  void ReadMany(ReadManyCall& call,
+                sample::ugrpc::StreamGreetingRequest&&) override {
     SetMetadata(call.GetContext());
     call.Finish();
   }
@@ -53,7 +53,7 @@ class UnitTestServiceWithTracingChecks final : public UnitTestServiceBase {
   }
 
  private:
-  void SetMetadata(grpc::ServerContext& context) {
+  static void SetMetadata(grpc::ServerContext& context) {
     const auto& span = tracing::Span::CurrentSpan();
     const auto& client_meta = context.client_metadata();
 
@@ -112,8 +112,8 @@ void CheckMetadata(const grpc::ClientContext& context) {
 }  // namespace
 
 UTEST_F(GrpcTracing, UnaryRPC) {
-  auto client = MakeClient<UnitTestServiceClient>();
-  GreetingRequest out;
+  auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
+  sample::ugrpc::GreetingRequest out;
   out.set_name("userver");
   auto call = client.SayHello(out);
   UEXPECT_NO_THROW(call.Finish());
@@ -121,34 +121,34 @@ UTEST_F(GrpcTracing, UnaryRPC) {
 }
 
 UTEST_F(GrpcTracing, InputStream) {
-  auto client = MakeClient<UnitTestServiceClient>();
-  StreamGreetingRequest out;
+  auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
+  sample::ugrpc::StreamGreetingRequest out;
   out.set_name("userver");
   out.set_number(42);
-  StreamGreetingResponse in;
+  sample::ugrpc::StreamGreetingResponse in;
   auto call = client.ReadMany(out);
   EXPECT_FALSE(call.Read(in));
   CheckMetadata(call.GetContext());
 }
 
 UTEST_F(GrpcTracing, OutputStream) {
-  auto client = MakeClient<UnitTestServiceClient>();
+  auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
   auto call = client.WriteMany();
   UEXPECT_NO_THROW(call.Finish());
   CheckMetadata(call.GetContext());
 }
 
 UTEST_F(GrpcTracing, BidirectionalStream) {
-  auto client = MakeClient<UnitTestServiceClient>();
-  StreamGreetingResponse in;
+  auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
+  sample::ugrpc::StreamGreetingResponse in;
   auto call = client.Chat();
   EXPECT_FALSE(call.Read(in));
   CheckMetadata(call.GetContext());
 }
 
 UTEST_F(GrpcTracing, SpansInDifferentRPCs) {
-  auto client = MakeClient<UnitTestServiceClient>();
-  GreetingRequest out;
+  auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
+  sample::ugrpc::GreetingRequest out;
   out.set_name("userver");
 
   auto call1 = client.SayHello(out);

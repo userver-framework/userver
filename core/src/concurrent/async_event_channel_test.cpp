@@ -81,6 +81,7 @@ UTEST(AsyncEventChannel, PublishException) {
   concurrent::AsyncEventChannel<int> channel("channel");
 
   struct X {
+    // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
     void OnEvent(int) { throw std::runtime_error("error msg"); }
   };
   X x;

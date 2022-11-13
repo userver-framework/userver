@@ -24,6 +24,7 @@ ClusterHostType Fallback(ClusterHostType ht) {
     case ClusterHostType::kSyncSlave:
     case ClusterHostType::kSlave:
       return ClusterHostType::kMaster;
+    case ClusterHostType::kSlaveOrMaster:
     case ClusterHostType::kNone:
     case ClusterHostType::kRoundRobin:
     case ClusterHostType::kNearest:
@@ -298,6 +299,12 @@ void ClusterImpl::SetStatementMetricsSettings(
     const StatementMetricsSettings& settings) {
   for (const auto& pool : host_pools_) {
     pool->SetStatementMetricsSettings(settings);
+  }
+}
+
+void ClusterImpl::SetPipelineMode(PipelineMode mode) {
+  for (const auto& pool : host_pools_) {
+    pool->SetPipelineMode(mode);
   }
 }
 

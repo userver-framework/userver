@@ -39,7 +39,7 @@ class FakeCache final : public cache::CacheMockBase {
     StartPeriodicUpdates();
   }
 
-  ~FakeCache() { StopPeriodicUpdates(); }
+  ~FakeCache() final { StopPeriodicUpdates(); }
 
   cache::UpdateType LastUpdateType() const { return last_update_type_; }
 
@@ -94,7 +94,7 @@ class DumpedCache final : public cache::CacheMockBase {
     StartPeriodicUpdates();
   }
 
-  ~DumpedCache() { StopPeriodicUpdates(); }
+  ~DumpedCache() final { StopPeriodicUpdates(); }
 
   std::uint64_t Get() const { return value_; }
 
@@ -258,7 +258,7 @@ class CacheUpdateTraitDumped : public ::testing::TestWithParam<TestParams> {
     InitDumpAndData();
   }
 
-  std::string ParamsString() const {
+  static std::string ParamsString() {
     return fmt::format("Params({}, {}, {}, {}, {})",
                        ToString(std::get<AllowedUpdateTypes>(GetParam())),
                        ToString(std::get<FirstUpdateMode>(GetParam())),
@@ -279,6 +279,11 @@ class CacheUpdateTraitDumped : public ::testing::TestWithParam<TestParams> {
     }
   }
 
+  yaml_config::YamlConfig& Config() { return config_; }
+  cache::MockEnvironment& GetEnvironment() { return environment_; }
+  cache::DataSourceMock<std::uint64_t>& GetDataSource() { return data_source_; }
+
+ private:
   yaml_config::YamlConfig config_ = MakeDumpedCacheConfig(GetParam());
   cache::MockEnvironment environment_;
   cache::DataSourceMock<std::uint64_t> data_source_{{}};
@@ -295,15 +300,15 @@ class CacheUpdateTraitDumpedIncrementalThenAsyncFull
   CacheUpdateTraitDumpedIncrementalThenAsyncFull()
       : CacheUpdateTraitDumped(
             testsuite::CacheControl::PeriodicUpdatesMode::kEnabled) {
-    config_ = UpdateConfig(config_,
-                           formats::yaml::FromString("update-interval: 1ms"));
+    Config() = UpdateConfig(Config(),
+                            formats::yaml::FromString("update-interval: 1ms"));
   }
 };
 
 }  // namespace
 
 UTEST_P(CacheUpdateTraitDumpedIncrementalThenAsyncFull, Test) {
-  DumpedCache cache(config_, environment_, data_source_);
+  DumpedCache cache(Config(), GetEnvironment(), GetDataSource());
 
   // There will be no data race because only one thread is using
   while (cache.GetUpdatesLog().size() < 3) {
@@ -312,7 +317,7 @@ UTEST_P(CacheUpdateTraitDumpedIncrementalThenAsyncFull, Test) {
 
   size_t updates = cache.GetUpdatesLog().size();
 
-  data_source_.Set(20);
+  GetDataSource().Set(20);
 
   while (cache.GetUpdatesLog().size() < updates + 2) {
     engine::Yield();
@@ -342,7 +347,7 @@ INSTANTIATE_UTEST_SUITE_P(
 
 UTEST_P(CacheUpdateTraitDumpedNoUpdate, Test) {
   try {
-    DumpedCache cache{config_, environment_, data_source_};
+    DumpedCache cache{Config(), GetEnvironment(), GetDataSource()};
     EXPECT_EQ(cache.GetUpdatesLog(), std::vector<UpdateType>{})
         << ParamsString();
   } catch (const cache::ConfigError&) {
@@ -364,7 +369,7 @@ INSTANTIATE_UTEST_SUITE_P(Skip, CacheUpdateTraitDumpedNoUpdate,
 
 UTEST_P(CacheUpdateTraitDumpedFull, Test) {
   try {
-    DumpedCache cache{config_, environment_, data_source_};
+    DumpedCache cache{Config(), GetEnvironment(), GetDataSource()};
     EXPECT_EQ(cache.GetUpdatesLog(), std::vector{UpdateType::kFull})
         << ParamsString();
   } catch (const cache::ConfigError&) {
@@ -413,7 +418,7 @@ INSTANTIATE_UTEST_SUITE_P(BestEffortFullUpdateFailure,
 
 UTEST_P(CacheUpdateTraitDumpedIncremental, Test) {
   std::optional<DumpedCache> cache;
-  UEXPECT_NO_THROW(cache.emplace(config_, environment_, data_source_))
+  UEXPECT_NO_THROW(cache.emplace(Config(), GetEnvironment(), GetDataSource()))
       << ParamsString();
   EXPECT_EQ(cache->GetUpdatesLog(), std::vector{UpdateType::kIncremental})
       << ParamsString();
@@ -452,9 +457,9 @@ INSTANTIATE_UTEST_SUITE_P(
 
 UTEST_P(CacheUpdateTraitDumpedFailureOk, Test) {
   try {
-    config_ = UpdateConfig(
-        config_, formats::yaml::FromString("first-update-fail-ok: true"));
-    DumpedCache{config_, environment_, data_source_};
+    Config() = UpdateConfig(
+        Config(), formats::yaml::FromString("first-update-fail-ok: true"));
+    DumpedCache cache{Config(), GetEnvironment(), GetDataSource()};
     SUCCEED();
   } catch (const cache::MockError&) {
     FAIL() << ParamsString();
@@ -476,7 +481,7 @@ INSTANTIATE_UTEST_SUITE_P(
 
 UTEST_P(CacheUpdateTraitDumpedFailure, Test) {
   try {
-    DumpedCache{config_, environment_, data_source_};
+    DumpedCache cache{Config(), GetEnvironment(), GetDataSource()};
     FAIL() << ParamsString();
   } catch (const cache::MockError&) {
     SUCCEED();
@@ -568,7 +573,7 @@ class FaultyDumpedCache final : public cache::CacheMockBase {
     StartPeriodicUpdates();
   }
 
-  ~FaultyDumpedCache() { StopPeriodicUpdates(); }
+  ~FaultyDumpedCache() final { StopPeriodicUpdates(); }
 
  private:
   void Update(cache::UpdateType, const std::chrono::system_clock::time_point&,

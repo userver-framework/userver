@@ -14,14 +14,14 @@ namespace {
 namespace pg = storages::postgres;
 
 UTEST_P(PostgreConnection, UuidRoundtrip) {
-  CheckConnection(conn);
+  CheckConnection(GetConn());
   boost::uuids::uuid expected = boost::uuids::random_generator{}();
   ASSERT_FALSE(expected.is_nil());
 
   pg::ResultSet res{nullptr};
-  UEXPECT_NO_THROW(res = conn->Execute("select $1, $1::text", expected));
+  UEXPECT_NO_THROW(res = GetConn()->Execute("select $1, $1::text", expected));
 
-  boost::uuids::uuid received;
+  boost::uuids::uuid received{};
   std::string string_rep;
   UEXPECT_NO_THROW(res[0].To(received, string_rep));
   EXPECT_EQ(expected, received);
@@ -29,11 +29,11 @@ UTEST_P(PostgreConnection, UuidRoundtrip) {
 }
 
 UTEST_P(PostgreConnection, UuidStored) {
-  CheckConnection(conn);
+  CheckConnection(GetConn());
   boost::uuids::uuid expected = boost::uuids::random_generator{}();
 
   pg::ResultSet res{nullptr};
-  UEXPECT_NO_THROW(res = conn->Execute(
+  UEXPECT_NO_THROW(res = GetConn()->Execute(
                        "select $1", pg::ParameterStore{}.PushBack(expected)));
   EXPECT_EQ(expected, res[0][0].As<boost::uuids::uuid>());
 }

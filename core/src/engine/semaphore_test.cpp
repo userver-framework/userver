@@ -375,6 +375,7 @@ UTEST_MT(SemaphoreLock, LockMoveCopyOwning, 2) {
   ASSERT_TRUE(lock.OwnsLock());
 
   engine::SemaphoreLock move_here{std::move(lock)};
+  // NOLINTNEXTLINE(bugprone-use-after-move,clang-analyzer-cplusplus.Move)
   EXPECT_FALSE(lock.OwnsLock());
   EXPECT_TRUE(move_here.OwnsLock());
 }
@@ -385,6 +386,7 @@ UTEST_MT(SemaphoreLock, LockMoveCopyEmpty, 2) {
   ASSERT_FALSE(empty_lock.OwnsLock());
 
   engine::SemaphoreLock move_here{std::move(empty_lock)};
+  // NOLINTNEXTLINE(bugprone-use-after-move,clang-analyzer-cplusplus.Move)
   EXPECT_FALSE(empty_lock.OwnsLock());
   EXPECT_FALSE(move_here.OwnsLock());
 }
@@ -396,6 +398,7 @@ UTEST_MT(SemaphoreLock, LockMoveAssignOwning, 2) {
 
   engine::SemaphoreLock move_here;
   move_here = std::move(lock);
+  // NOLINTNEXTLINE(bugprone-use-after-move,clang-analyzer-cplusplus.Move)
   EXPECT_FALSE(lock.OwnsLock());
   EXPECT_TRUE(move_here.OwnsLock());
 }
@@ -406,6 +409,7 @@ UTEST_MT(SemaphoreLock, LockMoveAssignEmpty, 2) {
 
   engine::SemaphoreLock move_here;
   move_here = std::move(empty_lock);
+  // NOLINTNEXTLINE(bugprone-use-after-move,clang-analyzer-cplusplus.Move)
   EXPECT_FALSE(empty_lock.OwnsLock());
   EXPECT_FALSE(move_here.OwnsLock());
 }

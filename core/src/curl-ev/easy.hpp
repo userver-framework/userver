@@ -426,6 +426,17 @@ class easy final : public std::enable_shared_from_this<easy> {
   void set_headers(std::shared_ptr<string_list> headers);
   void set_headers(std::shared_ptr<string_list> headers, std::error_code& ec);
   std::optional<std::string_view> FindHeaderByName(std::string_view name) const;
+  void add_proxy_header(
+      std::string_view name, std::string_view value,
+      EmptyHeaderAction empty_header_action = EmptyHeaderAction::kSend,
+      DuplicateHeaderAction duplicate_header_action =
+          DuplicateHeaderAction::kAdd);
+  void add_proxy_header(
+      std::string_view name, std::string_view value, std::error_code& ec,
+      EmptyHeaderAction empty_header_action = EmptyHeaderAction::kSend,
+      DuplicateHeaderAction duplicate_header_action =
+          DuplicateHeaderAction::kAdd);
+  void add_proxy_header(const char* header, std::error_code& ec);
   void add_http200_alias(const std::string& http200_alias);
   void add_http200_alias(const std::string& http200_alias, std::error_code& ec);
   void set_http200_aliases(std::shared_ptr<string_list> http200_aliases);
@@ -771,6 +782,7 @@ class easy final : public std::enable_shared_from_this<easy> {
   std::string post_fields_;
   std::shared_ptr<form> form_;
   std::shared_ptr<string_list> headers_;
+  std::shared_ptr<string_list> proxy_headers_;
   std::shared_ptr<string_list> http200_aliases_;
   std::shared_ptr<string_list> resolved_hosts_;
   std::shared_ptr<share> share_;

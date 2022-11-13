@@ -28,7 +28,7 @@ UTEST(WaitAny, VectorTasks) {
       return i;
     }));
   }
-  std::array<bool, kTaskCount> completed;
+  std::array<bool, kTaskCount> completed{};
   completed.fill(false);
   for (size_t i = 0; i < kTaskCount; i++) {
     auto task_idx_opt = engine::WaitAny(tasks);

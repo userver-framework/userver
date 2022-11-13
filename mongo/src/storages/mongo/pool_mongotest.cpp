@@ -19,7 +19,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-using namespace storages::mongo;
+namespace mongo = storages::mongo;
 
 UTEST(Pool, CollectionAccess) {
   static const std::string kSysVerCollName = "system.version";
@@ -48,20 +48,23 @@ UTEST(Pool, ConnectionFailure) {
   auto dns_resolver = MakeDnsResolver();
 
   // constructor should not throw
-  Pool bad_pool("bad", "mongodb://%2Fnonexistent.sock/bad",
-                {"bad", PoolConfig::DriverImpl::kMongoCDriver}, &dns_resolver,
-                {});
-  UEXPECT_THROW(bad_pool.HasCollection("test"), ClusterUnavailableException);
+  mongo::Pool bad_pool("bad", "mongodb://%2Fnonexistent.sock/bad",
+                       {"bad", mongo::PoolConfig::DriverImpl::kMongoCDriver},
+                       &dns_resolver, {});
+  UEXPECT_THROW(bad_pool.HasCollection("test"),
+                mongo::ClusterUnavailableException);
 }
 
 UTEST(Pool, Limits) {
   auto dns_resolver = MakeDnsResolver();
-  PoolConfig limited_config{"limited", PoolConfig::DriverImpl::kMongoCDriver};
+  mongo::PoolConfig limited_config{
+      "limited", mongo::PoolConfig::DriverImpl::kMongoCDriver};
   limited_config.max_size = 1;
   auto limited_pool =
       MakeTestsuiteMongoPool("limits_test", limited_config, &dns_resolver);
 
   std::vector<formats::bson::Document> docs;
+  docs.reserve(150);
   /// large enough to not fit into a single batch
   for (int i = 0; i < 150; ++i) {
     docs.push_back(formats::bson::MakeDoc("_id", i));
@@ -72,7 +75,7 @@ UTEST(Pool, Limits) {
 
   auto second_find = engine::AsyncNoSpan(
       [&limited_pool] { limited_pool.GetCollection("test").Find({}); });
-  UEXPECT_THROW(second_find.Get(), MongoException);
+  UEXPECT_THROW(second_find.Get(), mongo::MongoException);
 }
 
 USERVER_NAMESPACE_END

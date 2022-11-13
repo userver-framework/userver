@@ -118,6 +118,7 @@ class WrappedCallImpl final
     // TODO remove after paren-init for aggregates in C++20
     template <typename RawFunction, typename RawArgsTuple>
     explicit Data(RawFunction&& func, RawArgsTuple&& args)
+        // NOLINTNEXTLINE(clang-analyzer-cplusplus.Move)
         : func(std::forward<RawFunction>(func)),
           args(std::forward<RawArgsTuple>(args)) {}
 

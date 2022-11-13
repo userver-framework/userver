@@ -3,8 +3,9 @@
 #include <cstdint>
 #include <optional>
 
-#include <server/request/request_config.hpp>
+#include <userver/server/request/request_config.hpp>
 #include <userver/yaml_config/yaml_config.hpp>
+
 #include "connection_config.hpp"
 
 USERVER_NAMESPACE_BEGIN

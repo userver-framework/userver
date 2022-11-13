@@ -205,7 +205,7 @@ UTEST(RcuMap, IterStability) {
   while (started_count < 2) engine::Yield();
 
   curr_val = 2;
-  for (auto& [k, v] : map) {
+  for (const auto& [k, v] : map) {
     *v = curr_val;
   }
   map.Erase(9);

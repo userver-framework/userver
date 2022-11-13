@@ -146,6 +146,8 @@ class PGConnectionWrapper {
   template <typename ExceptionType>
   void CheckError(const std::string& cmd, int pg_dispatch_result);
 
+  void HandleSocketPostClose();
+
   template <typename ExceptionType>
   [[noreturn]] void CloseWithError(ExceptionType&& ex);
 

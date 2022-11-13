@@ -13,17 +13,96 @@ Note that there's also a @ref md_en_userver_security_changelog.
 Changelog news also go to the
 [userver framework news channel](https://t.me/userver_news).
 
+
 ## Roadmap
 
+
+### Plans for the first release
+
 * Add web interface to the [uservice-dynconf](https://github.com/userver-framework/uservice-dynconf)
+  * ✓ Add component to serve static pages
 * Migrate our internal CI to the github
 * Migrate to upstream versions of formatters
 * Improve documentation
-* Add HTTP authentication sample
-* Add Prometheus metrics format
+  * ✓ Improve @ref md_en_userver_framework_comparison
+  * ✓ Add TCP acceptor sample
+  * Add HTTP authentication sample
+  * Add gRPC testsuite mock sample
+* Improve experience with metrics
+  * ✓ Add Prometheus metrics format
+  * ✓ Add Graphite metrics format
+  * Provide a modern simple interface to write metrics
+* Add chaos tests for drivers
+  * ✓ Chaos proxy implemented
+* Enable PostgreSQL pipelining
+* Implement and enable Deadline Propagation
+* Implement streaming API for the HTTP
+* Add basic Kafka driver.
 
 
 ## Changelog
+
+### Beta (October 2022)
+
+* Experimental support for Conan packaging, many thanks to
+  [Anton](https://github.com/Jihadist) for the PR.
+* Prometheus and Graphite metrics formats were added, see
+  @ref md_en_userver_service_monitor for details.
+* Initial support for chaos testing was added, see
+  @ref md_en_userver_chaos_testing for more info.
+* Generic Escape implementation for ranges was added to clickhouse, thanks to
+  [Ivan Trofimov](https://github.com/itrofimow) for the PR.
+* TLS/SSL support for Redis.
+* Multiple optimizations from [Ivan Trofimov](https://github.com/itrofimow):
+  * utils::datetime::WallCoarseClock and its usage in the framework core;
+  * HTTP "Date" header caching;
+  * Significant reduction of syscalls count during any recv operations;
+  * Server::GetRequestsView not initialized if it is not required;
+  * utils::encoding::ToHex became faster;
+  * Marking response as ready became faster.
+* Better diagnostics for CoroPool initialization failure, thanks to
+  [Ivan Trofimov](https://github.com/itrofimow) for the PR.
+* New handler server::handlers::OnLogRotate.
+* Multiple optimizations, including:
+  * Faster async cancellations for PostgreSQL;
+  * Avoid using dynamic_cast in multiple places;
+  * Avoid calling `std::chrono::steady_clock::now()` in multiple places.
+* gRPC mockserver support (docs will be updated soon at
+  @ref md_en_userver_tutorial_grpc_service).
+* gRPC now provides an efficient API for async execution of requests without
+  additional `utils::Async` invocations.
+* Build fixes for older platforms, thanks to
+  [Yuri Bogomolov](https://github.com/ybogo) for the PR.
+* components::Logging now can output logs to UNIX sockets.
+* Now the "help wanted" issues at github have additional tags "good first issue"
+  and "big", to help you to choose between a good starting issue and a big
+  feature. See @ref md_en_userver_development_releases for more info.
+
+
+### Beta (September 2022)
+
+* [Ivan Trofimov](https://github.com/itrofimow) implemented the RabbitMQ driver.
+* Added navigation to the next and previous page in docs, thanks to multiple
+  feature requests in [Telegram support chat](https://t.me/userver_ru).
+* Improved Task::Detach docs and added recomendation to use
+  concurrent::BackgroundTaskStorage instead, thanks to
+  [Ivan Trofimov](https://github.com/itrofimow) for the bugreport.
+* Added `start-` targets for the samples, to simplify experimenting with them.
+* Docs now support dark theme out ot the box.
+* Fixed CMake issue with `-DUSERVER_FEATURE_TESTSUITE=0`, thanks to
+  [Георгий Попов](https://github.com/JorgenPo) for the bugreport.
+* Fixed build on Arch Linux, thanks to [Mikhail K.](https://github.com/posidoni)
+  for the bugreport.
+* Fixed building in virtual environment on Windows, thanks to
+  [sabudilovskiy](https://github.com/sabudilovskiy) for the bug report.
+* Fixed building with `-std=gnu++20`, thanks to
+  [Георгий Попов](https://github.com/JorgenPo) for the PR. 
+* Improved package version detection in CMake via `pkg-config`.
+* Added a `USERVER_FEATURE_UTEST` flag for disabling utest and ubench target
+  builds, thanks to [Anton](https://github.com/Jihadist) for the PR.
+* Simplified gRPC component registration and usage.
+* Added an ability to turn on gRPCs ChannelZ.
+* Added evalsha/script load commands for Redis driver.
 
 
 ### Beta (August 2022)

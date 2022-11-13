@@ -6,6 +6,9 @@
 #include <array>
 #include <atomic>
 #include <chrono>
+#include <string>
+
+#include <userver/utils/statistics/writer.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -172,6 +175,22 @@ class Percentile final {
   std::array<std::atomic<Counter>, ExtraBuckets> extra_values_;
   std::atomic<Counter> count_;
 };
+
+std::string GetPercentileFieldName(double perc);
+
+template <size_t M, typename Counter, size_t ExtraBuckets,
+          size_t ExtraBucketSize>
+void DumpMetric(
+    Writer& writer,
+    const Percentile<M, Counter, ExtraBuckets, ExtraBucketSize>& perc,
+    std::initializer_list<double> percents = {0, 50, 90, 95, 98, 99, 99.6, 99.9,
+                                              100}) {
+  for (double percent : percents) {
+    writer.ValueWithLabels(
+        perc.GetPercentile(percent),
+        {"percentile", statistics::GetPercentileFieldName(percent)});
+  }
+}
 
 }  // namespace utils::statistics
 

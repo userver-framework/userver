@@ -4,6 +4,7 @@
 /// @brief @copybrief ugrpc::server::Server
 
 #include <functional>
+#include <memory>
 #include <unordered_map>
 
 #include <grpcpp/completion_queue.h>
@@ -11,7 +12,6 @@
 
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/logging/level.hpp>
-#include <userver/utils/fast_pimpl.hpp>
 #include <userver/utils/statistics/fwd.hpp>
 #include <userver/yaml_config/fwd.hpp>
 
@@ -36,6 +36,9 @@ struct ServerConfig final {
   /// The logging level override for the internal grpcpp library. Must be either
   /// `kDebug`, `kInfo` or `kError`.
   logging::Level native_log_level{logging::Level::kError};
+
+  /// Serve a web page with runtime info about gRPC connections
+  bool enable_channelz{false};
 };
 
 ServerConfig Parse(const yaml_config::YamlConfig& value,
@@ -95,7 +98,7 @@ class Server final {
 
  private:
   class Impl;
-  utils::FastPimpl<Impl, 888, 8> impl_;
+  std::unique_ptr<Impl> impl_;
 };
 
 }  // namespace ugrpc::server

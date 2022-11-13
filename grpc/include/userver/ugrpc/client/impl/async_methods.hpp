@@ -12,6 +12,7 @@
 
 #include <userver/tracing/in_place_span.hpp>
 #include <userver/tracing/span.hpp>
+#include <userver/ugrpc/client/exceptions.hpp>
 #include <userver/ugrpc/impl/async_method_invocation.hpp>
 #include <userver/ugrpc/impl/statistics_scope.hpp>
 
@@ -69,8 +70,8 @@ class RpcData final {
           std::string_view call_name,
           ugrpc::impl::MethodStatistics& statistics);
 
-  RpcData(RpcData&&) noexcept = default;
-  RpcData& operator=(RpcData&&) noexcept = default;
+  RpcData(RpcData&&) noexcept = delete;
+  RpcData& operator=(RpcData&&) noexcept = delete;
   ~RpcData();
 
   const grpc::ClientContext& GetContext() const noexcept;
@@ -89,20 +90,31 @@ class RpcData final {
 
   void SetState(State new_state) noexcept;
 
- private:
-  // Non-movable fields are wrapped in a unique_ptr to make sure RpcData is
-  // movable.
-  struct RemoteData final {
-    explicit RemoteData(ugrpc::impl::MethodStatistics& statistics);
+  void EmplaceAsyncMethodInvocation();
 
-    std::optional<tracing::InPlaceSpan> span;
-    ugrpc::impl::RpcStatisticsScope stats_scope;
+  AsyncMethodInvocation& GetAsyncMethodInvocation() noexcept;
+
+  grpc::Status& GetStatus() noexcept;
+
+  class AsyncMethodInvocationGuard {
+   public:
+    AsyncMethodInvocationGuard(RpcData& data) noexcept;
+    ~AsyncMethodInvocationGuard() noexcept;
+
+   private:
+    RpcData& data_;
   };
 
+ private:
   std::unique_ptr<grpc::ClientContext> context_;
   std::string_view call_name_;
   State state_{State::kOpen};
-  std::unique_ptr<RemoteData> remote_data_;
+
+  std::optional<tracing::InPlaceSpan> span_;
+  ugrpc::impl::RpcStatisticsScope stats_scope_;
+
+  std::optional<AsyncMethodInvocation> finish_;
+  grpc::Status status_;
 };
 
 void CheckOk(RpcData& data, bool ok, std::string_view stage);
@@ -116,16 +128,7 @@ void StartCall(GrpcStream& stream, RpcData& data) {
 
 void PrepareFinish(RpcData& data);
 
-void ProcessFinishResult(RpcData& data, bool ok, grpc::Status&& status);
-
-template <typename GrpcStream, typename Response>
-void FinishUnary(GrpcStream& stream, Response& response, RpcData& data) {
-  PrepareFinish(data);
-  grpc::Status status;
-  AsyncMethodInvocation finish;
-  stream.Finish(&response, &status, finish.GetTag());
-  ProcessFinishResult(data, finish.Wait(), std::move(status));
-}
+void ProcessFinishResult(RpcData& data, bool ok, grpc::Status& status);
 
 template <typename GrpcStream>
 void Finish(GrpcStream& stream, RpcData& data) {
@@ -133,7 +136,10 @@ void Finish(GrpcStream& stream, RpcData& data) {
   grpc::Status status;
   AsyncMethodInvocation finish;
   stream.Finish(&status, finish.GetTag());
-  ProcessFinishResult(data, finish.Wait(), std::move(status));
+  ProcessFinishResult(data, finish.Wait(), status);
+  if (!status.ok()) {
+    impl::ThrowErrorWithStatus(data.GetCallName(), std::move(status));
+  }
 }
 
 void PrepareRead(RpcData& data);

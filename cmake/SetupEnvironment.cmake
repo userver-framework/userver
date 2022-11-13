@@ -113,8 +113,8 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang"
   add_compile_options("-Wno-range-loop-analysis")
 endif()
 
+message (STATUS "boost: ${Boost_VERSION}")
 if (CLANG)
-  message (STATUS "boost: ${Boost_VERSION}")
   if (MACOS AND Boost_FOUND)
     # requires Boost_FOUND to make a valid expression
     if (${Boost_VERSION} VERSION_LESS "1.68")

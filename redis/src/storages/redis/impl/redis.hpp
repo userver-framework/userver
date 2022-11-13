@@ -27,7 +27,7 @@ class Redis {
   static const std::string& StateToString(State state);
 
   Redis(const std::shared_ptr<engine::ev::ThreadPool>& thread_pool,
-        bool send_readonly = false);
+        bool send_readonly, ConnectionSecurity connection_security);
   ~Redis();
 
   Redis(Redis&& o) = delete;

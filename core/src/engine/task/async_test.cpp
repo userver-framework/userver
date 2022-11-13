@@ -15,7 +15,7 @@ namespace {
 
 struct CountGuard {
   CountGuard(std::atomic<int>& count) : count_(count) { count_++; }
-  CountGuard(CountGuard&& other) : count_(other.count_) { count_++; }
+  CountGuard(CountGuard&& other) noexcept : count_(other.count_) { count_++; }
   CountGuard(const CountGuard& other) : count_(other.count_) { count_++; }
 
   ~CountGuard() { count_--; }

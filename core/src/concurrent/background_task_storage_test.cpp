@@ -25,7 +25,8 @@ UTEST(BackgroundTaskStorage, TaskStart) {
 }
 
 UTEST(BackgroundTaskStorage, CancelAndWaitInDtr) {
-  std::atomic<bool> started{false}, cancelled{false};
+  std::atomic<bool> started{false};
+  std::atomic<bool> cancelled{false};
   auto shared = std::make_shared<int>(1);
   {
     concurrent::BackgroundTaskStorage bts;

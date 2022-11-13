@@ -31,9 +31,11 @@ void ExchangeEhGlobals(EhGlobals&) noexcept {
 #elif defined(USERVER_EHGLOBALS_SWAP)
 
 namespace __cxxabiv1 {
+// NOLINTNEXTLINE(bugprone-reserved-identifier,cert-dcl37-c,cert-dcl51-cpp)
 struct __cxa_eh_globals;
 }  // namespace __cxxabiv1
 
+// NOLINTNEXTLINE(bugprone-reserved-identifier,cert-dcl37-c,cert-dcl51-cpp)
 extern "C" __cxxabiv1::__cxa_eh_globals* __cxa_get_globals();
 
 namespace engine::impl {

@@ -33,7 +33,9 @@ abi::__cxa_eh_globals* GetGlobals() throw();
 // let's juggle some razor blades then
 #define USERVER_EHGLOBALS_SWAP
 
+// NOLINTNEXTLINE(bugprone-reserved-identifier,cert-dcl37-c,cert-dcl51-cpp)
 namespace __cxxabiv1 {
+// NOLINTNEXTLINE(bugprone-reserved-identifier,cert-dcl37-c,cert-dcl51-cpp)
 struct __cxa_exception;
 }  // namespace __cxxabiv1
 

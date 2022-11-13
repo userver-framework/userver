@@ -1,5 +1,10 @@
+"""
+Service main and monitor clients.
+"""
+
 import pytest
-from testsuite.daemons import service_client
+
+from testsuite.daemons import service_client as base_service_client
 
 from pytest_userver import client
 
@@ -9,14 +14,13 @@ def client_deps():
     """
     Service client dependencies hook. Feel free to override, e.g.:
 
-    @pytest.fixture
-    def client_deps(dep1, dep2, ...):
-        pass
+    @snippet samples/postgres_service/tests/conftest.py client_deps
+    @ingroup userver_testsuite_fixtures
     """
 
 
-@pytest.fixture(name='service_client')
-async def _service_client(
+@pytest.fixture
+async def service_client(
         ensure_daemon_started,
         mockserver,
         service_daemon,
@@ -24,7 +28,14 @@ async def _service_client(
         _testsuite_client_config: client.TestsuiteClientConfig,
         _service_client_base,
         _service_client_testsuite,
-):
+) -> client.Client:
+    """
+    Main fixture that provides access to userver based service.
+
+    @snippet samples/testsuite-support/tests/test_ping.py service_client
+    @anchor service_client
+    @ingroup userver_testsuite_fixtures
+    """
     await ensure_daemon_started(service_daemon)
     if _testsuite_client_config.testsuite_action_path:
         return _service_client_testsuite
@@ -38,7 +49,13 @@ def monitor_client(
         mockserver,
         monitor_baseurl: str,
         _testsuite_client_config: client.TestsuiteClientConfig,
-):
+) -> client.ClientMonitor:
+    """
+    Main fixture that provides access to userver monitor listener.
+
+    @snippet samples/testsuite-support/tests/test_metrics.py metrics labels
+    @ingroup userver_testsuite_fixtures
+    """
     aiohttp_client = client.AiohttpClientMonitor(
         monitor_baseurl,
         config=_testsuite_client_config,
@@ -50,7 +67,9 @@ def monitor_client(
 
 @pytest.fixture
 async def _service_client_base(service_baseurl, service_client_options):
-    return service_client.Client(service_baseurl, **service_client_options)
+    return base_service_client.Client(
+        service_baseurl, **service_client_options,
+    )
 
 
 @pytest.fixture
@@ -76,12 +95,28 @@ async def _service_client_testsuite(
 
 
 @pytest.fixture(scope='session')
-def service_baseurl(service_port):
+def service_baseurl(service_port) -> str:
+    """
+    Returns the main listener URL of the service.
+
+    Override this fixture to change the main listener URL that the testsuite
+    uses for tests.
+
+    @ingroup userver_testsuite_fixtures
+    """
     return f'http://localhost:{service_port}/'
 
 
 @pytest.fixture(scope='session')
-def monitor_baseurl(monitor_port):
+def monitor_baseurl(monitor_port) -> str:
+    """
+    Returns the main monitor URL of the service.
+
+    Override this fixture to change the main monitor URL that the testsuite
+    uses for tests.
+
+    @ingroup userver_testsuite_fixtures
+    """
     return f'http://localhost:{monitor_port}/'
 
 

@@ -26,7 +26,7 @@ class Pipe final {
   int Out() { return fd_[1]; }
 
  private:
-  int fd_[2];
+  int fd_[2]{};
 };
 
 void WriteOne(int fd) {
@@ -215,7 +215,7 @@ UTEST(Poller, ReadWriteMultipleTorture) {
                   Poller::Status::kSuccess);
         EXPECT_EQ(event.type, Poller::Event::kRead);
 
-        const auto it = std::find_if(
+        const auto* it = std::find_if(
             std::begin(pipes), std::end(pipes),
             [&event](auto& pipe) { return pipe.In() == event.fd; });
         EXPECT_NE(it, std::end(pipes));

@@ -1,6 +1,6 @@
 #include <userver/server/server.hpp>
 
-#include <algorithm>
+#include <atomic>
 #include <stdexcept>
 
 #include <engine/ev/thread_pool.hpp>
@@ -15,6 +15,7 @@
 #include <server/server_config.hpp>
 #include <userver/engine/sleep.hpp>
 #include <userver/logging/log.hpp>
+#include <userver/utils/assert.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -45,16 +46,21 @@ class ServerImpl final {
 
   void Stop();
 
-  void InitPortInfo(PortInfo& info, const ServerConfig& config,
-                    const net::ListenerConfig& listener_config,
-                    const components::ComponentContext& component_context,
-                    bool is_monitor) const;
+  static void InitPortInfo(
+      PortInfo& info, const ServerConfig& config,
+      const net::ListenerConfig& listener_config,
+      const components::ComponentContext& component_context, bool is_monitor);
+
+  void StartPortInfos();
 
   PortInfo main_port_info_, monitor_port_info_;
   std::atomic<size_t> handlers_count_{0};
 
   mutable std::shared_timed_mutex stat_mutex_;
   bool is_stopping_{false};
+
+  std::atomic<bool> started_{false};
+  std::atomic<bool> has_requests_view_watchers_{false};
 };
 
 void ServerImpl::PortInfo::Stop() {
@@ -127,8 +133,7 @@ void ServerImpl::Stop() {
 void ServerImpl::InitPortInfo(
     PortInfo& info, const ServerConfig& config,
     const net::ListenerConfig& listener_config,
-    const components::ComponentContext& component_context,
-    bool is_monitor) const {
+    const components::ComponentContext& component_context, bool is_monitor) {
   LOG_INFO() << "Creating listener" << (is_monitor ? " (monitor)" : "");
 
   engine::TaskProcessor& task_processor =
@@ -137,13 +142,6 @@ void ServerImpl::InitPortInfo(
   info.request_handler_ = std::make_unique<http::HttpRequestHandler>(
       component_context, config.logger_access, config.logger_access_tskv,
       is_monitor, config.server_name);
-
-  auto queue = requests_view_->GetQueue();
-  requests_view_->StartBackgroudWorker();
-  auto hook = [queue](std::shared_ptr<request::RequestBase> request) {
-    queue->enqueue(request);
-  };
-  info.request_handler_->SetNewRequestHook(std::move(hook));
 
   info.endpoint_info_ = std::make_shared<net::EndpointInfo>(
       listener_config, *info.request_handler_);
@@ -155,6 +153,31 @@ void ServerImpl::InitPortInfo(
     info.listeners_.emplace_back(info.endpoint_info_, task_processor,
                                  info.data_accounter_);
   }
+}
+
+void ServerImpl::StartPortInfos() {
+  UASSERT(main_port_info_.request_handler_);
+
+  if (has_requests_view_watchers_.load()) {
+    auto queue = requests_view_->GetQueue();
+    requests_view_->StartBackgroudWorker();
+    auto hook = [queue](std::shared_ptr<request::RequestBase> request) {
+      queue->enqueue(request);
+    };
+    main_port_info_.request_handler_->SetNewRequestHook(hook);
+    if (monitor_port_info_.request_handler_) {
+      monitor_port_info_.request_handler_->SetNewRequestHook(hook);
+    }
+  }
+
+  main_port_info_.Start();
+  if (monitor_port_info_.request_handler_) {
+    monitor_port_info_.Start();
+  } else {
+    LOG_WARNING() << "No 'listener-monitor' in 'server' component";
+  }
+
+  started_.store(true);
 }
 
 Server::Server(ServerConfig config,
@@ -196,7 +219,8 @@ formats::json::Value Server::GetMonitorData(
   return json_data.ExtractValue();
 }
 
-formats::json::Value Server::GetTotalHandlerStatistics() const {
+void Server::WriteTotalHandlerStatistics(
+    utils::statistics::Writer& writer) const {
   const auto& handlers =
       pimpl->main_port_info_.request_handler_->GetHandlerInfoIndex()
           .GetHandlers();
@@ -206,7 +230,8 @@ formats::json::Value Server::GetTotalHandlerStatistics() const {
     const auto& statistics = handler_ptr->GetHandlerStatistics().GetTotal();
     total.Add(handlers::HttpHandlerStatisticsSnapshot{statistics});
   }
-  return formats::json::ValueBuilder{total}.ExtractValue();
+
+  writer = total;
 }
 
 net::Stats Server::GetServerStats() const { return pimpl->GetServerStats(); }
@@ -255,20 +280,18 @@ const http::HttpRequestHandler& Server::GetHttpRequestHandler(
 
 void Server::Start() {
   LOG_INFO() << "Starting server";
-  UASSERT(pimpl->main_port_info_.request_handler_);
-  pimpl->main_port_info_.Start();
-
-  if (pimpl->monitor_port_info_.request_handler_) {
-    pimpl->monitor_port_info_.Start();
-  } else {
-    LOG_WARNING() << "No 'listener-monitor' in 'server' component";
-  }
+  pimpl->StartPortInfos();
   LOG_INFO() << "Server is started";
 }
 
 void Server::Stop() { pimpl->Stop(); }
 
-RequestsView& Server::GetRequestsView() { return *pimpl->requests_view_; }
+RequestsView& Server::GetRequestsView() {
+  UASSERT(!pimpl->started_ || pimpl->has_requests_view_watchers_.load());
+
+  pimpl->has_requests_view_watchers_.store(true);
+  return *pimpl->requests_view_;
+}
 
 void Server::SetRpsRatelimit(std::optional<size_t> rps) {
   pimpl->main_port_info_.request_handler_->SetRpsRatelimit(rps);

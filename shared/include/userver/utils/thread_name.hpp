@@ -33,6 +33,31 @@ std::string GetCurrentThreadName();
 /// @throws std::system_error on error
 void SetCurrentThreadName(std::string_view name);
 
+/// @brief RAII helper to run some code with a temporary current thread name
+///
+/// This might be useful for spawning external library threads if no other
+/// customisation points are available. All restrictions for thread name
+/// operations apply.
+///
+/// @note There is a chance of failure during thread name update on scope exit.
+/// No errors will be reported in this case.
+class CurrentThreadNameGuard {
+ public:
+  /// @brief Set the name of the current thread in the current scope
+  /// @param name temporary thread name
+  /// @throws std::system_error on error
+  CurrentThreadNameGuard(std::string_view name);
+  ~CurrentThreadNameGuard();
+
+  CurrentThreadNameGuard(const CurrentThreadNameGuard&) = delete;
+  CurrentThreadNameGuard(CurrentThreadNameGuard&&) noexcept = delete;
+  CurrentThreadNameGuard& operator=(const CurrentThreadNameGuard&) = delete;
+  CurrentThreadNameGuard& operator=(CurrentThreadNameGuard&&) noexcept = delete;
+
+ private:
+  std::string prev_name_;
+};
+
 }  // namespace utils
 
 USERVER_NAMESPACE_END

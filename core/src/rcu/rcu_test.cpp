@@ -267,7 +267,7 @@ UTEST(Rcu, Cleanup) {
   static std::atomic<size_t> count{0};
   struct X {
     X() { count++; }
-    X(X&&) { count++; }
+    X(X&&) noexcept { count++; }
     X(const X&) { count++; }
     ~X() { count--; }
   };
@@ -541,7 +541,7 @@ UTEST_MT(Rcu, Core, 3) {
 
     // reader task
     tasks.push_back(engine::AsyncNoSpan([&] {
-      auto t_ptr_ = &non_null;
+      auto* t_ptr_ = &non_null;
       // mimics storing current_ address into a hazard pointer
       hazard_pointer.store(t_ptr_, std::memory_order_seq_cst);
 

@@ -4,6 +4,7 @@
 #include <userver/engine/mutex.hpp>
 #include <userver/engine/shared_mutex.hpp>
 #include <userver/engine/single_consumer_event.hpp>
+#include <userver/engine/single_waiting_task_mutex.hpp>
 #include <userver/engine/sleep.hpp>
 
 #include <userver/utest/utest.hpp>
@@ -82,7 +83,7 @@ TYPED_UTEST_P(Mutex, TryLock) {
 }
 
 namespace {
-static constexpr size_t kThreads = 4;
+constexpr size_t kThreads = 4;
 }  // namespace
 
 TYPED_UTEST_P_MT(Mutex, LockPassing, kThreads) {
@@ -91,6 +92,9 @@ TYPED_UTEST_P_MT(Mutex, LockPassing, kThreads) {
   const auto test_deadline = engine::Deadline::FromDuration(kTestDuration);
   TypeParam mutex;
 
+  const size_t worker_count =
+      std::is_same_v<TypeParam, engine::SingleWaitingTaskMutex> ? 2 : 4;
+
   const auto work = [&mutex] {
     std::unique_lock lock(mutex, std::defer_lock);
     ASSERT_TRUE(lock.try_lock_for(utest::kMaxTestWaitTime));
@@ -98,7 +102,7 @@ TYPED_UTEST_P_MT(Mutex, LockPassing, kThreads) {
 
   while (!test_deadline.IsReached()) {
     std::vector<engine::TaskWithResult<void>> tasks;
-    for (size_t i = 0; i < kThreads; ++i) {
+    for (size_t i = 0; i < worker_count; ++i) {
       tasks.push_back(engine::AsyncNoSpan(work));
     }
     for (auto& task : tasks) task.Get();
@@ -106,6 +110,9 @@ TYPED_UTEST_P_MT(Mutex, LockPassing, kThreads) {
 }
 
 TYPED_UTEST_P_MT(Mutex, NotifyAndDeadlineRace, 2) {
+  if constexpr (std::is_same_v<TypeParam, engine::SingleWaitingTaskMutex>) {
+    return;
+  }
   constexpr int kTestIterationsCount = 1000;
   constexpr auto kSmallWaitTime = 5us;
 
@@ -147,12 +154,12 @@ TYPED_UTEST_P_MT(Mutex, NotifyAndDeadlineRace, 2) {
 UTEST(Mutex, SampleMutex) {
   /// [Sample engine::Mutex usage]
   engine::Mutex mutex;
-  constexpr auto kTestData = "Test Data";
+  constexpr std::string_view kTestData = "Test Data";
 
   {
     std::lock_guard<engine::Mutex> lock(mutex);
     // accessing data under a mutex
-    auto x = kTestData;
+    const auto x = kTestData;
     ASSERT_EQ(kTestData, x);
   }
   /// [Sample engine::Mutex usage]
@@ -165,5 +172,7 @@ REGISTER_TYPED_UTEST_SUITE_P(Mutex,
 
 INSTANTIATE_TYPED_UTEST_SUITE_P(EngineMutex, Mutex, engine::Mutex);
 INSTANTIATE_TYPED_UTEST_SUITE_P(EngineSharedMutex, Mutex, engine::SharedMutex);
+INSTANTIATE_TYPED_UTEST_SUITE_P(EngineSingleWaitingTaskMutex, Mutex,
+                                engine::SingleWaitingTaskMutex);
 
 USERVER_NAMESPACE_END

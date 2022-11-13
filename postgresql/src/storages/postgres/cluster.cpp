@@ -82,6 +82,10 @@ void Cluster::SetStatementMetricsSettings(
   pimpl_->SetStatementMetricsSettings(settings);
 }
 
+void Cluster::SetPipelineMode(PipelineMode mode) {
+  pimpl_->SetPipelineMode(mode);
+}
+
 detail::NonTransaction Cluster::Start(ClusterHostTypeFlags flags,
                                       OptionalCommandControl cmd_ctl) {
   return pimpl_->Start(flags, cmd_ctl);

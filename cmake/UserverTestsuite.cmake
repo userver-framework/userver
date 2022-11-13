@@ -12,7 +12,7 @@ get_filename_component(
 function(userver_venv_setup)
   set(options)
   set(oneValueArgs NAME PYTHON_OUTPUT_VAR)
-  set(multiValueArgs REQUIREMENTS VIRTUALENV_ARGS)
+  set(multiValueArgs REQUIREMENTS VIRTUALENV_ARGS PIP_ARGS)
 
   cmake_parse_arguments(
     ARG "${options}" "${oneValueArgs}" "${multiValueArgs}"  ${ARGN})
@@ -46,7 +46,11 @@ function(userver_venv_setup)
   set(VENV_BIN_DIR ${VENV_DIR}/bin)
   set(${PYTHON_OUTPUT_VAR} ${VENV_BIN_DIR}/python PARENT_SCOPE)
 
-  message(STATUS "Setting up the virtualenv with requirements ${ARG_REQUIREMENTS}")
+  message(STATUS "Setting up the virtualenv with requirements:")
+  foreach(req ${ARG_REQUIREMENTS})
+    message(STATUS "  ${req}")
+  endforeach()
+
   if (NOT EXISTS ${VENV_DIR})
     execute_process(
       COMMAND ${TESTSUITE_VIRTUALENV} --python=${PYTHON} ${VENV_DIR} ${ARG_VIRTUALENV_ARGS}
@@ -57,8 +61,10 @@ function(userver_venv_setup)
       message(FATAL_ERROR "Failed to create Python virtual environment")
     endif()
   endif()
+  list(TRANSFORM ARG_REQUIREMENTS PREPEND "--requirement="
+    OUTPUT_VARIABLE PIP_REQUIREMENTS)
   execute_process(
-    COMMAND ${VENV_BIN_DIR}/pip install -U -r ${ARG_REQUIREMENTS}
+    COMMAND ${VENV_BIN_DIR}/pip install -U ${PIP_REQUIREMENTS} ${ARG_PIP_ARGS}
     RESULT_VARIABLE STATUS
   )
   if (STATUS)

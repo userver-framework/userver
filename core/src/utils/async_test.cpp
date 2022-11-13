@@ -48,6 +48,7 @@ UTEST(UtilsAsync, MemberFunctions) {
     NotCopyable() = default;
     NotCopyable(const NotCopyable&) = delete;
     NotCopyable(NotCopyable&&) = default;
+    // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
     int MultiplyByTwo(int x) { return x * 2; }
   };
 
@@ -126,7 +127,7 @@ Response AsyncRequestProcessor::WaitAndGetAggregate() {
   return boost::accumulate(*tasks | get_result, 0);
 }
 
-Response AsyncRequestProcessor::Foo(Request&& x) { return x * 2; }
+Response AsyncRequestProcessor::Foo(Request&& request) { return request * 2; }
 
 }  // namespace
 

@@ -8,9 +8,13 @@
 #include <thread>
 #include <unordered_map>
 #include <vector>
+#include "userver/storages/redis/impl/base.hpp"
 
 #include <hiredis/adapters/libev.h>
 #include <hiredis/hiredis.h>
+#ifdef USERVER_FEATURE_REDIS_TLS
+#include <hiredis/hiredis_ssl.h>
+#endif
 #include <boost/algorithm/string.hpp>
 
 #include <userver/logging/level.hpp>
@@ -87,6 +91,15 @@ bool IsUnsubscribeReply(const ReplyPtr& reply) {
          !strcasecmp(reply_array[0].GetString().c_str(), "PUNSUBSCRIBE");
 }
 
+#ifdef USERVER_FEATURE_REDIS_TLS
+struct SSLContextDeleter final {
+  void operator()(redisSSLContext* ptr) const noexcept {
+    redisFreeSSLContext(ptr);
+  }
+};
+using SSLContextPtr = std::unique_ptr<redisSSLContext, SSLContextDeleter>;
+#endif
+
 }  // namespace
 
 class Redis::RedisImpl : public std::enable_shared_from_this<Redis::RedisImpl> {
@@ -95,7 +108,7 @@ class Redis::RedisImpl : public std::enable_shared_from_this<Redis::RedisImpl> {
 
   RedisImpl(const std::shared_ptr<engine::ev::ThreadPool>& thread_pool,
             const engine::ev::ThreadControl& thread_control, Redis& redis_obj,
-            bool send_readonly = false);
+            bool send_readonly, ConnectionSecurity connection_security);
   ~RedisImpl();
 
   void Connect(const std::string& host, int port, const Password& password);
@@ -141,6 +154,9 @@ class Redis::RedisImpl : public std::enable_shared_from_this<Redis::RedisImpl> {
 
   void OnConnectImpl(int status);
   void OnDisconnectImpl(int status);
+#ifdef USERVER_FEATURE_REDIS_TLS
+  bool InitSecureConnection();
+#endif
   void InvokeCommand(const CommandPtr& command, ReplyPtr&& reply);
   void InvokeCommandError(const CommandPtr& command, const std::string& name,
                           int status);
@@ -199,6 +215,9 @@ class Redis::RedisImpl : public std::enable_shared_from_this<Redis::RedisImpl> {
   std::atomic<bool> destroying_{false};
 
   redisAsyncContext* context_ = nullptr;
+#ifdef USERVER_FEATURE_REDIS_TLS
+  SSLContextPtr ssl_context_;
+#endif
   std::atomic<State> state_{State::kInit};
   std::string host_;
   std::string server_;
@@ -221,7 +240,8 @@ class Redis::RedisImpl : public std::enable_shared_from_this<Redis::RedisImpl> {
   std::chrono::milliseconds ping_timeout_{4000};
   std::atomic<double> ping_latency_ms_{kInitialPingLatencyMs};
   logging::LogExtra log_extra_;
-  const bool send_readonly_ = false;
+  const bool send_readonly_;
+  const ConnectionSecurity connection_security_;
   bool watch_command_timer_started_ = false;
   Statistics statistics_;
   ServerId server_id_;
@@ -256,11 +276,11 @@ const std::string& Redis::StateToString(State state) {
 }
 
 Redis::Redis(const std::shared_ptr<engine::ev::ThreadPool>& thread_pool,
-             bool send_readonly)
+             bool send_readonly, ConnectionSecurity connection_security)
     : thread_control_(thread_pool->NextThread()) {
   thread_control_.RunInEvLoopBlocking([&]() {
     impl_ = std::make_shared<RedisImpl>(thread_pool, thread_control_, *this,
-                                        send_readonly);
+                                        send_readonly, connection_security);
   });
 }
 
@@ -307,11 +327,12 @@ void Redis::SetCommandsBufferingSettings(
 Redis::RedisImpl::RedisImpl(
     const std::shared_ptr<engine::ev::ThreadPool>& thread_pool,
     const engine::ev::ThreadControl& thread_control, Redis& redis_obj,
-    bool send_readonly)
+    bool send_readonly, ConnectionSecurity connection_security)
     : redis_obj_(&redis_obj),
       ev_thread_control_(thread_control),
       thread_pool_(thread_pool),
       send_readonly_(send_readonly),
+      connection_security_(connection_security),
       server_id_(ServerId::Generate()) {
   SetCommandsBufferingSettings(CommandsBufferingSettings{});
   LOG_DEBUG() << "RedisImpl() server_id=" << GetServerId().GetId();
@@ -384,25 +405,22 @@ void Redis::RedisImpl::Connect(const std::string& host, int port,
   } else {
     ev_thread_control_.RunInEvLoopBlocking([this]() {
       bool err = false;
-      auto CheckError = [&err](bool err_now, const std::string& msg) {
-        if (err_now) {
+      auto CheckError = [&err](int status, const std::string& name) {
+        if (status != REDIS_OK) {
           err = true;
-          LOG_ERROR() << msg;
+          LOG_ERROR() << "error in " << name;
         }
       };
       if (!err) Attach();
       if (!err)
-        CheckError(redisLibevAttach(ev_thread_control_.GetEvLoop(), context_) !=
-                       REDIS_OK,
-                   "error in redisLibevAttach");
+        CheckError(redisLibevAttach(ev_thread_control_.GetEvLoop(), context_),
+                   "redisLibevAttach");
       if (!err)
-        CheckError(
-            redisAsyncSetConnectCallback(context_, OnConnect) != REDIS_OK,
-            "error in redisAsyncSetConnectCallback");
+        CheckError(redisAsyncSetConnectCallback(context_, OnConnect),
+                   "redisAsyncSetConnectCallback");
       if (!err)
-        CheckError(
-            redisAsyncSetDisconnectCallback(context_, OnDisconnect) != REDIS_OK,
-            "error in redisAsyncSetDisconnectCallback");
+        CheckError(redisAsyncSetDisconnectCallback(context_, OnDisconnect),
+                   "redisAsyncSetDisconnectCallback");
       SetState(err ? State::kInitError : State::kInit);
     });
   }
@@ -819,6 +837,14 @@ void Redis::RedisImpl::OnConnectImpl(int status) {
     return;
   }
 
+#ifdef USERVER_FEATURE_REDIS_TLS
+  if (connection_security_ == ConnectionSecurity::kTLS &&
+      !InitSecureConnection()) {
+    Disconnect();
+    return;
+  }
+#endif
+
   LOG_INFO() << log_extra_ << "Connected to Redis successfully";
   self_ = shared_from_this();
 
@@ -846,6 +872,30 @@ void Redis::RedisImpl::OnDisconnectImpl(int status) {
   context_ = nullptr;
   self_.reset();
 }
+
+#ifdef USERVER_FEATURE_REDIS_TLS
+bool Redis::RedisImpl::InitSecureConnection() {
+  if (!ssl_context_) {
+    redisSSLContextError ssl_error{};
+    ssl_context_.reset(redisCreateSSLContext(nullptr, nullptr, nullptr, nullptr,
+                                             nullptr, &ssl_error));
+    if (!ssl_context_) {
+      LOG_ERROR() << "redisCreateSSLContext failed: "
+                  << redisSSLContextGetError(ssl_error);
+      return false;
+    }
+  }
+
+  if (redisInitiateSSLWithContext(&context_->c, ssl_context_.get()) !=
+      REDIS_OK) {
+    LOG_ERROR() << "redisInitiateSSLWithContext failed. Hiredis errstr='"
+                << context_->errstr << '\'' << " server=" << server_;
+    return false;
+  }
+
+  return true;
+}
+#endif
 
 void Redis::RedisImpl::Authenticate() {
   if (password_.GetUnderlying().empty()) {

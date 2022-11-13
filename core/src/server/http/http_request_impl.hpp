@@ -12,6 +12,7 @@
 #include <userver/server/http/http_request.hpp>
 #include <userver/server/http/http_response.hpp>
 #include <userver/server/request/request_base.hpp>
+#include <userver/utils/datetime/wall_coarse_clock.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -88,15 +89,14 @@ class HttpRequestImpl final : public request::RequestBase {
 
   void WriteAccessLogs(const logging::LoggerPtr& logger_access,
                        const logging::LoggerPtr& logger_access_tskv,
-                       std::chrono::system_clock::time_point tp,
                        const std::string& remote_address) const override;
 
   void WriteAccessLog(const logging::LoggerPtr& logger_access,
-                      std::chrono::system_clock::time_point tp,
+                      utils::datetime::WallCoarseClock::time_point tp,
                       const std::string& remote_address) const;
 
   void WriteAccessTskvLog(const logging::LoggerPtr& logger_access_tskv,
-                          std::chrono::system_clock::time_point tp,
+                          utils::datetime::WallCoarseClock::time_point tp,
                           const std::string& remote_address) const;
 
   void SetPathArgs(std::vector<std::pair<std::string, std::string>> args);

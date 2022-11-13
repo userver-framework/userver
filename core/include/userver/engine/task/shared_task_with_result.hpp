@@ -55,11 +55,12 @@ class USERVER_NODISCARD SharedTaskWithResult : public Task {
   /// @brief Returns (or rethrows) the result of task invocation.
   /// Task remains valid after return from this method,
   /// thread(coro)-safe.
+  /// @returns const T& or void
   /// @throws WaitInterruptedException when `current_task::IsCancelRequested()`
   /// and no TaskCancellationBlockers are present.
   /// @throws TaskCancelledException
   ///   if no result is available because the task was cancelled
-  std::add_lvalue_reference_t<const T> Get() const& noexcept(false) {
+  decltype(auto) Get() const& noexcept(false) {
     UASSERT(IsValid());
 
     Wait();

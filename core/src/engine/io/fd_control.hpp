@@ -21,6 +21,14 @@ USERVER_NAMESPACE_BEGIN
 namespace engine::io::impl {
 
 /// I/O operation transfer mode
+///
+/// A note about `TransferMode::kPartial`:
+/// OS developers are very smart people and they understand that syscalls
+/// are expensive, so they will try their best to return/send as much data as
+/// possible in one go.
+/// `TransferMode::kPartial` might lead to very noticeable overhead in syscalls
+/// if used carelessly, so you are encouraged to stop for a second and think
+/// whether you really need this mode.
 enum class TransferMode {
   kPartial,  ///< operation may complete after transferring any amount of data
   kWhole,    ///< operation may complete only after the whole buffer is

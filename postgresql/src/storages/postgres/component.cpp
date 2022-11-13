@@ -296,17 +296,20 @@ formats::json::Value Postgres::ExtendStatistics(
 void Postgres::OnConfigUpdate(const dynamic_config::Snapshot& cfg) {
   const auto& pg_config = cfg.Get<storages::postgres::Config>();
   const auto pool_settings = pg_config.pool_settings.GetOptional(name_);
-  const auto connection_settings =
-      pg_config.connection_settings.GetOptional(name_);
+  auto connection_settings = pg_config.connection_settings.GetOptional(name_);
   const auto statement_metrics_settings =
       pg_config.statement_metrics_settings.GetOptional(name_);
+  const auto pipeline_mode = cfg[storages::postgres::kPipelineModeKey];
   for (const auto& cluster : database_->clusters_) {
     cluster->ApplyGlobalCommandControlUpdate(pg_config.default_command_control);
     cluster->SetHandlersCommandControl(pg_config.handlers_command_control);
     cluster->SetQueriesCommandControl(pg_config.queries_command_control);
     if (pool_settings) cluster->SetPoolSettings(*pool_settings);
     if (connection_settings) {
+      connection_settings->pipeline_mode = pipeline_mode;
       cluster->SetConnectionSettings(*connection_settings);
+    } else {
+      cluster->SetPipelineMode(pipeline_mode);
     }
     if (statement_metrics_settings) {
       cluster->SetStatementMetricsSettings(*statement_metrics_settings);
@@ -401,14 +404,6 @@ properties:
                       - error
                       - max-delay
                       - random-delay
-    min_pool_size:
-        type: integer
-        description: number of connections created initially
-        defaultDescription: 4
-    max_pool_size:
-        type: integer
-        description: maximum number of created connections
-        defaultDescription: 15
     max_queue_size:
         type: integer
         description: maximum number of clients waiting for a connection

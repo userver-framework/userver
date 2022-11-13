@@ -77,7 +77,7 @@ UTEST(Subprocess, CheckSpdlogClosesFds) {
 #endif
 
   auto future = starter.Exec(
-      self.c_str(),
+      self,
       {
           "--gtest_also_run_disabled_tests",
           "--gtest_filter=Subprocess.DISABLED_CheckSpdlogClosesFdsFromChild",
@@ -99,9 +99,11 @@ TEST(Subprocess, DISABLED_CheckSpdlogClosesFdsFromChild) {
   for (const auto& file : opened_files) {
     // CurrentProcessOpenFiles.Basic makes sure that this works well
     if (file.find(kSpdlogFilePart) != std::string::npos) {
+      // NOLINTNEXTLINE(concurrency-mt-unsafe)
       std::exit(1);
     }
   }
+  // NOLINTNEXTLINE(concurrency-mt-unsafe)
   std::exit(0);
 }
 

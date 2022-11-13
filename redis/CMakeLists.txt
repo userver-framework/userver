@@ -44,6 +44,10 @@ if (USERVER_FEATURE_REDIS_HI_MALLOC)
   )
 endif()
 
+option(USERVER_FEATURE_REDIS_TLS "SSL/TLS support for Redis driver" OFF)
+if(USERVER_FEATURE_REDIS_TLS)
+  add_definitions(-DUSERVER_FEATURE_REDIS_TLS=1)
+endif()
 
 target_link_libraries(${PROJECT_NAME}
   PUBLIC
@@ -52,6 +56,10 @@ target_link_libraries(${PROJECT_NAME}
   PRIVATE
     userver-uboost-coro # uses BlockingFuture
 )
+
+if (USERVER_FEATURE_REDIS_TLS)
+  target_link_libraries(${PROJECT_NAME} PUBLIC hiredis_ssl)
+endif()
 target_include_directories(
   ${PROJECT_NAME}
   PUBLIC
@@ -63,20 +71,23 @@ target_include_directories (${PROJECT_NAME} PRIVATE
     $<TARGET_PROPERTY:userver-core,INCLUDE_DIRECTORIES>
 )
 
-
-add_library(${PROJECT_NAME}_utest STATIC ${UTESTLIB_SOURCES})
-target_include_directories(
-  ${PROJECT_NAME}_utest
-  PUBLIC
-    ${CMAKE_CURRENT_SOURCE_DIR}/testing/include
-)
-target_include_directories (${PROJECT_NAME}_utest PRIVATE
-  $<TARGET_PROPERTY:userver-core,INCLUDE_DIRECTORIES>
-)
-target_link_libraries(${PROJECT_NAME}_utest
-  userver-utest
-  ${PROJECT_NAME}
-)
+# Helper library for testing user code with redis. Provides mock_client_base.hpp
+# and other helper headers
+if (USERVER_FEATURE_UTEST)
+    add_library(${PROJECT_NAME}_utest STATIC ${UTESTLIB_SOURCES})
+    target_include_directories(
+      ${PROJECT_NAME}_utest
+      PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}/testing/include
+    )
+    target_include_directories (${PROJECT_NAME}_utest PRIVATE
+      $<TARGET_PROPERTY:userver-core,INCLUDE_DIRECTORIES>
+    )
+    target_link_libraries(${PROJECT_NAME}_utest
+      userver-utest
+      ${PROJECT_NAME}
+    )
+endif()
 
 if (USERVER_IS_THE_ROOT_PROJECT)
   add_executable(${PROJECT_NAME}_unittest ${UNIT_TEST_SOURCES})
@@ -114,10 +125,11 @@ if (USERVER_IS_THE_ROOT_PROJECT)
   add_subdirectory(tools/redisclient)
 endif()
 
-
-# Target with no need to use userver namespace, but includes require userver/
-add_library(yandex-${PROJECT_NAME}_utest INTERFACE)
-target_link_libraries(yandex-${PROJECT_NAME}_utest INTERFACE ${PROJECT_NAME}_utest)
+if (USERVER_FEATURE_UTEST)
+    # Target with no need to use userver namespace, but includes require userver/
+    add_library(yandex-${PROJECT_NAME}_utest INTERFACE)
+    target_link_libraries(yandex-${PROJECT_NAME}_utest INTERFACE ${PROJECT_NAME}_utest)
+endif()
 
 # Target with no need to use userver namespace, but includes require userver/
 add_library(yandex-${PROJECT_NAME} INTERFACE)
