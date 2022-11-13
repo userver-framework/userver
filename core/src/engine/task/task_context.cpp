@@ -723,8 +723,7 @@ void intrusive_ptr_release(TaskContext* p) {
 
     p->~TaskContext();
 
-    std::unique_ptr<std::byte[]> ptr{
-        static_cast<std::byte*>(static_cast<void*>(p))};
+    ::operator delete[](static_cast<void*>(p));
   }
 }
 
