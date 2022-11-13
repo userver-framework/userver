@@ -1,3 +1,5 @@
+#pragma once
+
 #include <boost/intrusive/link_mode.hpp>
 #include <boost/intrusive/list.hpp>
 #include <boost/intrusive/list_hook.hpp>
@@ -62,8 +64,7 @@ class LfuBase final {
   explicit LfuBase(size_t max_size, const Hash& hash = Hash(),
                    const Equal& equal = Equal());
   LfuBase(LfuBase&& other) noexcept
-      : m_capacity_(std::move(other.m_capacity_)),
-        m_size_(std::move(other.m_size_)),
+      : m_size_(std::move(other.m_size_)),
         min_freq_(std::move(other.min_freq_)) {
     other.Clear();
   }
@@ -119,7 +120,6 @@ class LfuBase final {
   using BucketTraits = typename Map::bucket_traits;
   using BucketType = typename Map::bucket_type;
 
-  size_t m_capacity_;
   size_t m_size_{0};
   size_t min_freq_{0};
   boost::unordered_map<Key, std::pair<Value, size_t>, Hash, Equal>
@@ -214,7 +214,6 @@ Value* LfuBase<Key, Value, Hash, Equal>::Get(const Key& key) {
 
 template <typename Key, typename Value, typename Hash, typename Equal>
 void LfuBase<Key, Value, Hash, Equal>::SetMaxSize(size_t new_max_size) {
-  m_capacity_ = new_max_size;
   std::vector<BucketType> new_buckets(new_max_size);
   map_.rehash(BucketTraits(new_buckets.data(), new_max_size));
   buckets_.swap(new_buckets);
@@ -227,6 +226,12 @@ size_t LfuBase<Key, Value, Hash, Equal>::GetSize() const {
 template <typename Key, typename Value, typename Hash, typename Equal>
 LfuBase<Key, Value, Hash, Equal>::LfuBase(size_t max_size, const Hash& h,
                                           const Equal& e)
-    : m_capacity_(max_size),
-      buckets_(max_size ? max_size : 1),
+    : buckets_(max_size ? max_size : 1),
       map_(BucketTraits(buckets_.data(), buckets_.size()), h, e) {}
+
+int main() {
+  LfuBase<unsigned int, unsigned int> x(10);
+  x.Put(10, 15);
+  x.Get(10);
+  return 0;
+}
