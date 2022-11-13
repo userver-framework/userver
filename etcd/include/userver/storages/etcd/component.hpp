@@ -39,7 +39,8 @@ private:
 dynamic_config::Source config_;
 
 };
-}
+
+} // namespace components
 
 USERVER_NAMESPACE_END
 

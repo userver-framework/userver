@@ -35,7 +35,7 @@ Etcd::Etcd(const ComponentConfig& config,
 
 std::shared_ptr<storages::etcd::Client> Etcd::GetClient() const
 {
-  return std::make_shared<storages::etcd::Client>();
+  return nullptr;
   // throw std::runtime_error("etcd client not found");
 }
 
