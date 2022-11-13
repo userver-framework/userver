@@ -1157,7 +1157,8 @@ Dynamic config for mapping extension files with http header content type
 yaml
 schema:
     type: object
-    additionalProperties: true
+    additionalProperties:
+        type: string
 ```
 
 **Example:**
