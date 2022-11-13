@@ -106,6 +106,9 @@ TaskCancellationToken::TaskCancellationToken(Task& task)
   UASSERT(context_);
 }
 
+// clang-tidy insists on defaulting this,
+// gcc complains about exception-specification mismatch with '= default'
+// NOLINTNEXTLINE(hicpp-use-equals-default)
 TaskCancellationToken::TaskCancellationToken(
     const TaskCancellationToken& other) noexcept
     : context_{other.context_} {}
@@ -114,7 +117,10 @@ TaskCancellationToken::TaskCancellationToken(TaskCancellationToken&&) noexcept =
 
 TaskCancellationToken& TaskCancellationToken::operator=(
     const TaskCancellationToken& other) noexcept {
-  context_ = other.context_;
+  if (&other != this) {
+    context_ = other.context_;
+  }
+
   return *this;
 }
 TaskCancellationToken& TaskCancellationToken::operator=(
