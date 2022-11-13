@@ -1,19 +1,22 @@
 #include <benchmark/benchmark.h>
 
-#include <userver/cache/lru_set.hpp>
+#include <userver/cache/lru_map.hpp>
+#include <userver/cache/lfu_map.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace {
 
-using Lru = cache::LruSet<unsigned>;
+using Lru = cache::LruMap<unsigned, unsigned>;
+using Lfu = LfuBase<unsigned, unsigned>;
 
 constexpr unsigned kElementsCount = 1000;
 
-Lru FillLru(unsigned elements_count) {
-  Lru lru(kElementsCount);
+template <typename CachePolicyContainer>
+CachePolicyContainer FillLru(unsigned elements_count) {
+  CachePolicyContainer lru(kElementsCount);
   for (unsigned i = 0; i < elements_count; ++i) {
-    lru.Put(i);
+    lru.Put(i, i);
   }
 
   return lru;
@@ -21,34 +24,41 @@ Lru FillLru(unsigned elements_count) {
 
 }  // namespace
 
-void LruPut(benchmark::State& state) {
+template <typename CachePolicyContainer>
+void Put(benchmark::State& state) {
   for (auto _ : state) {
-    auto lru = FillLru(kElementsCount);
+    auto lru = FillLru<CachePolicyContainer>(kElementsCount);
     benchmark::DoNotOptimize(lru);
   }
 }
-BENCHMARK(LruPut);
+BENCHMARK(Put<Lru>);
+BENCHMARK(Put<Lfu>);
 
-void LruHas(benchmark::State& state) {
-  auto lru = FillLru(kElementsCount);
+template <typename CachePolicyContainer>
+void Has(benchmark::State& state) {
+  auto lru = FillLru<CachePolicyContainer>(kElementsCount);
   for (auto _ : state) {
     for (unsigned i = 0; i < kElementsCount; ++i) {
-      benchmark::DoNotOptimize(lru.Has(i));
+      benchmark::DoNotOptimize(lru.Get(i));
     }
   }
 }
-BENCHMARK(LruHas);
+BENCHMARK(Has<Lru>);
+BENCHMARK(Has<Lfu>);
 
-void LruPutOverflow(benchmark::State& state) {
-  auto lru = FillLru(kElementsCount);
+template <typename CachePolicyContainer>
+void PutOverflow(benchmark::State& state) {
+  auto lru = FillLru<CachePolicyContainer>(kElementsCount);
   unsigned i = kElementsCount;
   for (auto _ : state) {
     for (unsigned j = 0; j < kElementsCount; ++j) {
-      lru.Put(++i);
+      ++i;
+      lru.Put(i, i);
     }
     benchmark::DoNotOptimize(lru);
   }
 }
-BENCHMARK(LruPutOverflow);
+BENCHMARK(PutOverflow<Lru>);
+BENCHMARK(PutOverflow<Lfu>);
 
 USERVER_NAMESPACE_END
