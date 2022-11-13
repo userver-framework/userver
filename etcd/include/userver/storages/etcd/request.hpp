@@ -11,11 +11,11 @@ namespace storages::etcd {
 
 class Component {
  public:
-  std::pair<std::string, std::string> Get() const noexcept {
+  std::pair<std::string, std::string> KeyValue() const noexcept {
     return std::make_pair(key_, value_);
   }
 
-  std::string GetKey() {
+  std::string GetKey() const noexcept {
     return key_;
   }
 
