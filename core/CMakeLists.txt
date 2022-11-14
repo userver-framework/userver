@@ -285,8 +285,9 @@ if (USERVER_IS_THE_ROOT_PROJECT)
     target_include_directories (${PROJECT_NAME}_unittest PRIVATE
         $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>
     )
-    target_link_libraries(${PROJECT_NAME}_unittest
+    target_link_libraries(${PROJECT_NAME}_unittest PRIVATE
       userver-utest
+      userver-core-internal
     )
 
     # We keep testing deprecated functions, no need to warn about that
@@ -318,7 +319,12 @@ endif()
 
 if (USERVER_IS_THE_ROOT_PROJECT)
     add_executable(${PROJECT_NAME}_benchmark ${BENCH_SOURCES})
-    target_link_libraries(${PROJECT_NAME}_benchmark PUBLIC userver-ubench)
+    target_link_libraries(${PROJECT_NAME}_benchmark
+      PUBLIC
+        userver-ubench
+      PRIVATE
+        userver-core-internal
+    )
     add_google_benchmark_tests(${PROJECT_NAME}_benchmark)
 endif()
 
