@@ -299,11 +299,8 @@ bool Redis::AsyncCommand(const CommandPtr& command) {
 
 Redis::State Redis::GetState() const { return impl_->GetState(); }
 
-InstanceStatistics Redis::GetStatistics() {
-  InstanceStatistics result;
-  thread_control_.RunInEvLoopSync(
-      [this, &result]() { result = impl_->GetStatistics(); });
-  return result;
+const Statistics& Redis::GetStatistics() const {
+  return impl_->GetStatistics();
 }
 
 ServerId Redis::GetServerId() const { return impl_->GetServerId(); }
