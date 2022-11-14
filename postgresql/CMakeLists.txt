@@ -2,10 +2,25 @@ project(userver-postgresql CXX)
 
 find_package(Boost REQUIRED regex)
 
+# We need libldap to statically link with libpq
+# There is no FindLdap.cmake and no package config files
+# for ldap library, so need to search for it by hand.
+find_library(LDAP_LIBRARY NAMES ldap)
+if(NOT LDAP_LIBRARY)
+  message(FATAL_ERROR "Failed to find libldap.so.\n"
+      "The linux system ldap installs shared objects with very ugly names, "
+      "so please install `libldap2-dev` package. "
+      "For Mac OS X please install `openldap`.")
+endif()
 
 option(USERVER_FEATURE_PATCH_LIBPQ "Apply patches to the libpq (add portals support)" ON)
 add_library(userver-libpq INTERFACE)
 if (USERVER_FEATURE_PATCH_LIBPQ)
+  # With Conan and libpq patching, use the system library as a workaround,
+  # because Conan's libpq does not provide internal APIs. Delete the
+  # Conan-generated Find*.cmake to reveal the cmake_generated version.
+  file(REMOVE "${CMAKE_BINARY_DIR}/cmake_generated/FindPostgreSQL.cmake")
+
   add_subdirectory(pq-extra)
   target_link_libraries(userver-libpq INTERFACE userver-pq-extra)
 else()
@@ -14,15 +29,18 @@ else()
     PROPERTIES COMPILE_FLAGS -DUSERVER_NO_LIBPQ_PATCHES=1
   )
 
-  find_library(LIBPQ_LIBRARIES NAMES libpq.a libpq.so)
-  if (NOT LIBPQ_LIBRARIES)
-    message(FATAL_ERROR "Failed to find libpq")
-  endif()
-  target_link_libraries(userver-libpq INTERFACE ${LIBPQ_LIBRARIES})
   if (USERVER_CONAN)
     find_package(PostgreSQL REQUIRED)
     target_link_libraries(userver-libpq INTERFACE PostgreSQL::PostgreSQL)
+  else()
+    find_library(LIBPQ_LIBRARIES NAMES libpq.a libpq.so)
+    if (NOT LIBPQ_LIBRARIES)
+      message(FATAL_ERROR "Failed to find libpq")
+    endif()
+    target_link_libraries(userver-libpq INTERFACE ${LIBPQ_LIBRARIES})
   endif()
+
+  target_link_libraries(userver-libpq INTERFACE ${LDAP_LIBRARY})
 endif()
 
 file(GLOB_RECURSE SOURCES

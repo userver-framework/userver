@@ -5,8 +5,9 @@ message(STATUS "C++ compiler: ${CMAKE_CXX_COMPILER}")
 
 set(CMAKE_MODULE_PATH
   ${CMAKE_MODULE_PATH}
-  ${CMAKE_CURRENT_LIST_DIR}
-  ${CMAKE_BINARY_DIR}/cmake_generated
+  "${CMAKE_CURRENT_LIST_DIR}"
+  "${CMAKE_BINARY_DIR}"
+  "${CMAKE_BINARY_DIR}/cmake_generated"
 )
 
 set (CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -35,7 +36,6 @@ add_compile_options ("-Wall" "-Wextra" "-Wpedantic")
 
 if (CMAKE_SYSTEM_NAME MATCHES "Darwin")
   set(MACOS found)
-  set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_LIST_DIR}/macos)
   # disable pkg-config as it's broken by homebrew -- TAXICOMMON-2264
   set(PKG_CONFIG_EXECUTABLE "")
 endif()

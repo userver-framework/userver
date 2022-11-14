@@ -33,6 +33,13 @@ if(NOT TARGET userver-core)
   # bug on xenial https://bugs.launchpad.net/ubuntu/+source/llvm-toolchain-3.8/+bug/1664321
   add_definitions (-DBOOST_REGEX_NO_EXTERNAL_TEMPLATES=1)
 
+  # boost.stacktrace
+  add_subdirectory(${UNIVERSAL_THIRD_PARTY_DIR}/boost_stacktrace ${CMAKE_CURRENT_BINARY_DIR}/boost_stacktrace)
+  set_target_properties(userver-stacktrace PROPERTIES
+    CXX_EXTENSIONS OFF
+    POSITION_INDEPENDENT_CODE ON
+  )
+
   # sanitizers fixups
   add_subdirectory(${UNIVERSAL_THIRD_PARTY_DIR}/compiler-rt ${CMAKE_CURRENT_BINARY_DIR}/compiler-rt)
   set_target_properties(userver-compiler-rt-parts PROPERTIES

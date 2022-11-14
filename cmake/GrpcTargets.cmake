@@ -2,12 +2,12 @@
 # wrappers. A separate target is required as GRPC generated headers require
 # relaxed compilation flags.
 
-if(NOT USERVER_OPEN_SOURCE_BUILD)
-  find_program(PROTOBUF_PROTOC NAMES yandex-taxi-protoc protoc)
+set(PROTOBUF_PROTOC ${Protobuf_PROTOC_EXECUTABLE})
+if(USERVER_CONAN)
+  set(PROTO_GRPC_CPP_PLUGIN ${GRPC_CPP_PLUGIN_PROGRAM})
 else()
   find_program(PROTOBUF_PROTOC NAMES protoc)
 endif()
-find_program(PROTO_GRPC_CPP_PLUGIN grpc_cpp_plugin)
 
 get_filename_component(USERVER_DIR ${CMAKE_CURRENT_LIST_DIR} DIRECTORY)
 set(PROTO_GRPC_USRV_PLUGIN ${USERVER_DIR}/scripts/grpc/protoc_usrv_plugin)

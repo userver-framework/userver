@@ -1,16 +1,5 @@
 project(userver-pq-extra)
 
-# We need libldap to statically link with libpq
-# There is no FindLdap.cmake and no package config files
-# for ldap library, so need to search for it by hand.
-find_library(LDAP_LIBRARY NAMES ldap)
-if(NOT LDAP_LIBRARY)
-  message(FATAL_ERROR "Failed to find libldap.so.\n"
-          "The linux system ldap installs shared objects with very ugly names, "
-          "so please install `libldap2-dev` package. "
-          "For Mac OS X please install `openldap`.")
-endif()
-
 find_package(PostgreSQL REQUIRED)
 find_package(PostgreSQLInternal REQUIRED)
 find_package_required(OpenSSL "libssl-dev")

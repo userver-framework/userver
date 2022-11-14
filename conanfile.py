@@ -41,13 +41,13 @@ class UserverConan(conans.ConanFile):
     default_options = {
         'shared': False,
         'fPIC': True,
-        'with_jemalloc': False,
+        'with_jemalloc': True,
         'with_mongodb': True,
         'with_postgresql': True,
         'with_postgresql_extra': False,
         'with_redis': True,
-        'with_grpc': False,
-        'with_clickhouse': False,
+        'with_grpc': True,
+        'with_clickhouse': True,
         'with_universal': True,
         'with_rabbitmq': True,
         'with_utest': True,
@@ -102,7 +102,11 @@ class UserverConan(conans.ConanFile):
         if self.options.with_grpc:
             self.requires('grpc/1.48.0')
         if self.options.with_postgresql:
-            self.requires('libpq/14.2')
+            if self.options.with_postgresql_extra:
+                # Use system postgresql libs as a workaround
+                pass
+            else:
+                self.requires('libpq/14.2')
         if self.options.with_mongodb:
             self.requires('mongo-c-driver/1.22.0')
             self.options['mongo-c-driver'].with_sasl = 'cyrus'
