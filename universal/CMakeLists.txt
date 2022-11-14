@@ -108,12 +108,17 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
 
 # https://github.com/jemalloc/jemalloc/issues/820
 if (USERVER_FEATURE_JEMALLOC AND NOT USERVER_SANITIZE AND NOT MACOS)
-  if (USERVER_OPEN_SOURCE_BUILD)
+  if (USERVER_CONAN)
+    find_package(jemalloc REQUIRED)
+    target_link_libraries(${PROJECT_NAME} PUBLIC jemalloc::jemalloc)
+  elseif (USERVER_OPEN_SOURCE_BUILD)
     find_package_required(Jemalloc "libjemalloc-dev")
+    target_link_libraries(${PROJECT_NAME} PUBLIC Jemalloc)
   else()
     find_package_required(Jemalloc "libyandex-taxi-jemalloc-dev")
+    target_link_libraries(${PROJECT_NAME} PUBLIC Jemalloc)
   endif()
-  target_link_libraries(${PROJECT_NAME} PUBLIC Jemalloc)
+
   target_compile_definitions(${PROJECT_NAME} PRIVATE JEMALLOC_ENABLED)
 endif()
 
