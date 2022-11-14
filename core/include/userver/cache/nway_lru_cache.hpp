@@ -95,7 +95,7 @@ void NWayLRU<T, U, Hash, Eq, Policy>::Put(const T& key, U value) {
   NotifyDumper();
 }
 
-template <typename T, typename U, typename Hash, typename Eq, Policy Policy>
+template <typename T, typename U, typename Hash, typename Eq, CachePolicy Policy>
 template <typename Validator>
 std::optional<U> NWayLRU<T, U, Hash, Eq, Policy>::Get(const T& key,
                                               Validator validator) {
@@ -140,7 +140,7 @@ void NWayLRU<T, U, Hash, Eq, Policy>::Invalidate() {
   NotifyDumper();
 }
 
-template <typename T, typename U, typename Hash, typename Eq, Policy Policy>
+template <typename T, typename U, typename Hash, typename Eq, CachePolicy Policy>
 template <typename Function>
 void NWayLRU<T, U, Hash, Eq, Policy>::VisitAll(Function func) const {
   for (const auto& way : caches_) {
