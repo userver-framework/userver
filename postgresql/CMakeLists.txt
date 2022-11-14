@@ -19,7 +19,7 @@ if (USERVER_FEATURE_PATCH_LIBPQ)
   # With Conan and libpq patching, use the system library as a workaround,
   # because Conan's libpq does not provide internal APIs. Delete the
   # Conan-generated Find*.cmake to reveal the cmake_generated version.
-  file(REMOVE "${CMAKE_BINARY_DIR}/cmake_generated/FindPostgreSQL.cmake")
+  file(REMOVE "${CMAKE_BINARY_DIR}/FindPostgreSQL.cmake")
 
   add_subdirectory(pq-extra)
   target_link_libraries(userver-libpq INTERFACE userver-pq-extra)
@@ -31,7 +31,7 @@ else()
 
   if (USERVER_CONAN)
     find_package(PostgreSQL REQUIRED)
-    target_link_libraries(userver-libpq INTERFACE PostgreSQL::PostgreSQL)
+    target_link_libraries(userver-libpq INTERFACE PostgreSQL::PostgreSQL ${LDAP_LIBRARY})
   else()
     find_library(LIBPQ_LIBRARIES NAMES libpq.a libpq.so)
     if (NOT LIBPQ_LIBRARIES)
@@ -39,8 +39,6 @@ else()
     endif()
     target_link_libraries(userver-libpq INTERFACE ${LIBPQ_LIBRARIES})
   endif()
-
-  target_link_libraries(userver-libpq INTERFACE ${LDAP_LIBRARY})
 endif()
 
 file(GLOB_RECURSE SOURCES
