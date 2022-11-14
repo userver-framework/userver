@@ -98,7 +98,7 @@ class Server final {
 
  private:
   class Impl;
-  utils::FastPimpl<Impl, 888, 8> impl_;
+  utils::FastPimpl<Impl, 912, 8> impl_;
 };
 
 }  // namespace ugrpc::server
