@@ -11,7 +11,7 @@
 #include <userver/utils/assert.hpp>
 #include <userver/utils/impl/intrusive_link_mode.hpp>
 
-#include "base.hpp"
+#include <userver/cache/impl/base.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
