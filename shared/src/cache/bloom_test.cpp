@@ -7,7 +7,7 @@
 USERVER_NAMESPACE_BEGIN
 
 TEST(Bloom, HeavyHitters) {
-  cache::impl::FrequencySketch<double> bloom(512);
+  cache::impl::FrequencySketch<double, cache::FrequencySketchPolicy::Bloom>bloom(512);
   for (int i = 100; i < 100000; i++) {
     bloom.RecordAccess(static_cast<double>(i));
   }
