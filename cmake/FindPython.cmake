@@ -1,7 +1,6 @@
 if (USERVER_OPEN_SOURCE_BUILD)
-  set(PYTHON_PACKAGE_NAME python3)
-  find_package(Python3 REQUIRED COMPONENTS Interpreter)
-  set(PYTHON ${Python3_EXECUTABLE})
+  set(USERVER_PYTHON_PATH "python3" CACHE FILEPATH "Path to python3 executable to use")
+  set(PYTHON "${USERVER_PYTHON_PATH}")
 else()
   # Clear caches
   unset(PYTHON CACHE)

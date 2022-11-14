@@ -29,6 +29,7 @@
 #include "client_impl.hpp"
 #include "redis_secdist.hpp"
 #include "subscribe_client_impl.hpp"
+#include "userver/storages/redis/impl/base.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
@@ -37,28 +38,28 @@ namespace {
 const auto kStatisticsName = "redis";
 const auto kSubscribeStatisticsName = "redis-pubsub";
 
-// request/reply sizes are almost useless (were never actually used for
-// diagnostics/postmortem analysis), but cost much in Solomon
-constexpr bool kShouldDumpSizeStatistics = false;
-
 formats::json::ValueBuilder InstanceStatisticsToJson(
-    const redis::InstanceStatistics& stats, bool real_instance) {
+    const redis::InstanceStatistics& stats,
+    const redis::MetricsSettings& metrics_settings, bool real_instance) {
   formats::json::ValueBuilder result(formats::json::Type::kObject);
   formats::json::ValueBuilder errors(formats::json::Type::kObject);
   formats::json::ValueBuilder states(formats::json::Type::kObject);
 
-  if constexpr (kShouldDumpSizeStatistics) {
+  if (metrics_settings.request_sizes_enabled) {
     result["request-sizes"]["1min"] =
         utils::statistics::PercentileToJson(stats.request_size_percentile);
     utils::statistics::SolomonSkip(result["request-sizes"]["1min"]);
+  }
+  if (metrics_settings.reply_sizes_enabled) {
     result["reply-sizes"]["1min"] =
         utils::statistics::PercentileToJson(stats.reply_size_percentile);
     utils::statistics::SolomonSkip(result["reply-sizes"]["1min"]);
   }
-
-  result["timings"]["1min"] =
-      utils::statistics::PercentileToJson(stats.timings_percentile);
-  utils::statistics::SolomonSkip(result["timings"]["1min"]);
+  if (metrics_settings.timings_enabled) {
+    result["timings"]["1min"] =
+        utils::statistics::PercentileToJson(stats.timings_percentile);
+    utils::statistics::SolomonSkip(result["timings"]["1min"]);
+  }
 
   result["reconnects"] = stats.reconnects;
 
@@ -91,21 +92,23 @@ formats::json::ValueBuilder InstanceStatisticsToJson(
 }
 
 formats::json::ValueBuilder ShardStatisticsToJson(
-    const redis::ShardStatistics& shard_stats) {
+    const redis::ShardStatistics& shard_stats,
+    const redis::MetricsSettings& metrics_settings) {
   formats::json::ValueBuilder result(formats::json::Type::kObject);
   formats::json::ValueBuilder insts(formats::json::Type::kObject);
   for (const auto& it2 : shard_stats.instances) {
     const auto& inst_name = it2.first;
     const auto& inst_stats = it2.second;
-    insts[inst_name] = InstanceStatisticsToJson(inst_stats, true);
+    insts[inst_name] =
+        InstanceStatisticsToJson(inst_stats, metrics_settings, true);
   }
   utils::statistics::SolomonChildrenAreLabelValues(insts, "redis_instance");
   utils::statistics::SolomonSkip(insts);
   result["instances"] = insts;
   result["instances_count"] = shard_stats.instances.size();
 
-  result["shard-total"] =
-      InstanceStatisticsToJson(shard_stats.GetShardTotalStatistics(), false);
+  result["shard-total"] = InstanceStatisticsToJson(
+      shard_stats.GetShardTotalStatistics(), metrics_settings, false);
   utils::statistics::SolomonSkip(result["shard-total"]);
 
   result["is_ready"] = shard_stats.is_ready ? 1 : 0;
@@ -119,7 +122,8 @@ formats::json::ValueBuilder ShardStatisticsToJson(
 }
 
 formats::json::ValueBuilder RedisStatisticsToJson(
-    const std::shared_ptr<redis::Sentinel>& redis) {
+    const std::shared_ptr<redis::Sentinel>& redis,
+    const redis::MetricsSettings& metrics_settings) {
   formats::json::ValueBuilder result(formats::json::Type::kObject);
   formats::json::ValueBuilder masters(formats::json::Type::kObject);
   formats::json::ValueBuilder slaves(formats::json::Type::kObject);
@@ -128,7 +132,7 @@ formats::json::ValueBuilder RedisStatisticsToJson(
   for (const auto& it : stats.masters) {
     const auto& shard_name = it.first;
     const auto& shard_stats = it.second;
-    masters[shard_name] = ShardStatisticsToJson(shard_stats);
+    masters[shard_name] = ShardStatisticsToJson(shard_stats, metrics_settings);
   }
   utils::statistics::SolomonChildrenAreLabelValues(masters, "redis_shard");
   utils::statistics::SolomonLabelValue(masters, "redis_instance_type");
@@ -136,17 +140,17 @@ formats::json::ValueBuilder RedisStatisticsToJson(
   for (const auto& it : stats.slaves) {
     const auto& shard_name = it.first;
     const auto& shard_stats = it.second;
-    slaves[shard_name] = ShardStatisticsToJson(shard_stats);
+    slaves[shard_name] = ShardStatisticsToJson(shard_stats, metrics_settings);
   }
   utils::statistics::SolomonChildrenAreLabelValues(slaves, "redis_shard");
   utils::statistics::SolomonLabelValue(slaves, "redis_instance_type");
   result["slaves"] = slaves;
-  result["sentinels"] = ShardStatisticsToJson(stats.sentinel);
+  result["sentinels"] = ShardStatisticsToJson(stats.sentinel, metrics_settings);
   utils::statistics::SolomonLabelValue(result["sentinels"],
                                        "redis_instance_type");
 
-  result["shard-group-total"] =
-      InstanceStatisticsToJson(stats.GetShardGroupTotalStatistics(), false);
+  result["shard-group-total"] = InstanceStatisticsToJson(
+      stats.GetShardGroupTotalStatistics(), metrics_settings, false);
   utils::statistics::SolomonSkip(result["shard-group-total"]);
 
   result["errors"] = formats::json::Type::kObject;
@@ -416,10 +420,11 @@ Redis::~Redis() {
 formats::json::Value Redis::ExtendStatisticsRedis(
     const utils::statistics::StatisticsRequest& /*request*/) {
   formats::json::ValueBuilder json(formats::json::Type::kObject);
+  auto settings = metrics_settings_.Read();
   for (const auto& client : sentinels_) {
     const auto& name = client.first;
     const auto& redis = client.second;
-    json[name] = RedisStatisticsToJson(redis);
+    json[name] = RedisStatisticsToJson(redis, *settings);
   }
   utils::statistics::SolomonChildrenAreLabelValues(json, "redis_database");
   return json.ExtractValue();
@@ -460,6 +465,11 @@ void Redis::OnConfigUpdate(const dynamic_config::Snapshot& cfg) {
     subscribe_client.SetConfigDefaultCommandControl(subscriber_cc);
     subscribe_client.SetRebalanceMinInterval(
         subscriptions_rebalance_min_interval);
+  }
+
+  auto metrics_settings = metrics_settings_.Read();
+  if (*metrics_settings != redis_config.metrics_settings) {
+    metrics_settings_.Assign(redis_config.metrics_settings);
   }
 }
 

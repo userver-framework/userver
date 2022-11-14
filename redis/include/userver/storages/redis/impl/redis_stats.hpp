@@ -5,12 +5,12 @@
 #include <chrono>
 #include <map>
 
-#include <hiredis/hiredis.h>
-
+#include <userver/concurrent/variable.hpp>
 #include <userver/storages/redis/impl/command.hpp>
 #include <userver/utils/statistics/aggregated_values.hpp>
 #include <userver/utils/statistics/percentile.hpp>
 #include <userver/utils/statistics/recentperiod.hpp>
+
 #include "redis_state.hpp"
 
 USERVER_NAMESPACE_BEGIN
@@ -34,13 +34,16 @@ class Statistics {
   void AccountError(int code);
 
   using Percentile = utils::statistics::Percentile<2048>;
+  using RecentPeriod =
+      utils::statistics::RecentPeriod<Percentile, Percentile,
+                                      utils::datetime::SteadyClock>;
 
   std::atomic<RedisState> state{RedisState::kInit};
   std::atomic_llong reconnects{0};
   std::atomic<std::chrono::milliseconds> session_start_time{};
-  utils::statistics::RecentPeriod<Percentile, Percentile,
-                                  utils::datetime::SteadyClock>
-      request_size_percentile, reply_size_percentile, timings_percentile;
+  RecentPeriod request_size_percentile;
+  RecentPeriod reply_size_percentile;
+  RecentPeriod timings_percentile;
   std::atomic_llong last_ping_ms{};
 
   std::array<std::atomic_llong, REDIS_ERR_MAX + 1> error_count{{}};
@@ -76,8 +79,9 @@ struct InstanceStatistics {
   RedisState state;
   long long reconnects;
   std::chrono::milliseconds session_start_time;
-  Statistics::Percentile request_size_percentile, reply_size_percentile,
-      timings_percentile;
+  Statistics::Percentile request_size_percentile;
+  Statistics::Percentile reply_size_percentile;
+  Statistics::Percentile timings_percentile;
   long long last_ping_ms;
 
   std::array<long long, REDIS_ERR_MAX + 1> error_count{{}};

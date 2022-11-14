@@ -1,6 +1,8 @@
 #include <userver/storages/redis/impl/redis_stats.hpp>
 #include <userver/storages/redis/impl/reply.hpp>
 
+#include <hiredis/hiredis.h>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace redis {
