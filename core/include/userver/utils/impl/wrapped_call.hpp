@@ -130,13 +130,8 @@ class WrappedCallImpl final
 };
 
 template <typename Function, typename... Args>
-struct WrappedCallImplType final {
-  using type = impl::WrappedCallImpl<impl::DecayUnref<Function>,
-                                     impl::DecayUnref<Args>...>;
-};
-
-template <typename Function, typename... Args>
-using WrappedCallImplT = typename WrappedCallImplType<Function, Args...>::type;
+using WrappedCallImplT = impl::WrappedCallImpl<impl::DecayUnref<Function>,
+                                               impl::DecayUnref<Args>...>;
 
 /// Returns an object that stores passed arguments and function. Wrapped
 /// function may be invoked only once via call to member function Perform().

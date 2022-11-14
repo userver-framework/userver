@@ -13,8 +13,15 @@ namespace engine::impl {
 
 size_t GetTaskContextSize();
 
+/// Helper class to construct both TaskContext and WrappedCall within
+/// a single allocation.
+/// Although it resides in public includes you should not use it manually
+/// (with the engine tests being the single exception).
 class TaskContextHolder final {
  public:
+  TaskContextHolder(TaskContextHolder&& other) noexcept;
+  ~TaskContextHolder();
+
   template <typename Function, typename... Args>
   static TaskContextHolder Allocate(Function&& f, Args&&... args) {
     using WrappedCallT = utils::impl::WrappedCallImplT<Function, Args...>;
@@ -52,8 +59,7 @@ class TaskContextHolder final {
 
  private:
   TaskContextHolder(std::unique_ptr<std::byte[]> storage,
-                    utils::impl::WrappedCallBase* payload)
-      : storage_{std::move(storage)}, payload_{payload} {}
+                    utils::impl::WrappedCallBase* payload);
 
   std::unique_ptr<std::byte[]> storage_;
   utils::impl::WrappedCallBase* payload_;

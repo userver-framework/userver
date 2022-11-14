@@ -563,7 +563,9 @@ void TaskContext::RethrowErrorResult() const {
 }
 
 size_t TaskContext::use_count() const {
-  return intrusive_refcount_.load(std::memory_order_relaxed);
+  // memory order could potentially be less restricting, but it gets very
+  // complicated to reason about
+  return intrusive_refcount_.load(std::memory_order_seq_cst);
 }
 
 TaskContext::WakeupSource TaskContext::GetPrimaryWakeupSource(
@@ -716,11 +718,15 @@ void TaskContext::ResetPayload() {
 }
 
 void intrusive_ptr_add_ref(TaskContext* p) noexcept {
-  p->intrusive_refcount_.fetch_add(1, std::memory_order_relaxed);
+  // memory order could potentially be less restricting, but it gets very
+  // complicated to reason about
+  p->intrusive_refcount_.fetch_add(1, std::memory_order_seq_cst);
 }
 
 void intrusive_ptr_release(TaskContext* p) noexcept {
-  if (p->intrusive_refcount_.fetch_sub(1, std::memory_order_relaxed) == 1) {
+  // memory order could potentially be less restricting, but it gets very
+  // complicated to reason about
+  if (p->intrusive_refcount_.fetch_sub(1, std::memory_order_seq_cst) == 1) {
     p->ResetPayload();
 
     p->~TaskContext();
