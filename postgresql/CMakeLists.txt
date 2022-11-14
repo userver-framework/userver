@@ -17,7 +17,7 @@ option(USERVER_FEATURE_PATCH_LIBPQ "Apply patches to the libpq (add portals supp
 add_library(userver-libpq INTERFACE)
 if (USERVER_FEATURE_PATCH_LIBPQ)
   # With Conan and libpq patching, use the system library as a workaround,
-  # because Conan's libpq does not provide internal APIs. Delete the
+  # because Conan's libpq does not expose internal APIs. Delete the
   # Conan-generated Find*.cmake to reveal the cmake_generated version.
   file(REMOVE "${CMAKE_BINARY_DIR}/FindPostgreSQL.cmake")
 
