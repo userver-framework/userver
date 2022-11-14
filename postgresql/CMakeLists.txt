@@ -19,6 +19,10 @@ else()
     message(FATAL_ERROR "Failed to find libpq")
   endif()
   target_link_libraries(userver-libpq INTERFACE ${LIBPQ_LIBRARIES})
+  if (USERVER_CONAN)
+    find_package(PostgreSQL REQUIRED)
+    target_link_libraries(userver-libpq INTERFACE PostgreSQL::PostgreSQL)
+  endif()
 endif()
 
 file(GLOB_RECURSE SOURCES

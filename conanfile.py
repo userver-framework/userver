@@ -153,9 +153,6 @@ class UserverConan(conans.ConanFile):
         return cmake
 
     def build(self):
-
-        files.apply_conandata_patches(self)
-
         cmake = self._configure_cmake()
         cmake.build()
 

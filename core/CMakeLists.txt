@@ -68,12 +68,16 @@ find_package(Boost REQUIRED COMPONENTS
     regex
     iostreams
 )
-find_package_required(LibEv "libev-dev")
 find_package_required(ZLIB "zlib1g-dev")
 
 if (USERVER_FEATURE_UTEST)
-    include(SetupGTest)
-    include(SetupGBench)
+    if (USERVER_CONAN)
+        include(SetupGTest)
+        include(SetupGBench)
+    else()
+        find_package(benchmark REQUIRED)
+        find_package(GTest REQUIRED)
+    endif()
 endif()
 include(SetupSpdlog)
 
@@ -85,17 +89,33 @@ if (NOT USERVER_FEATURE_SPDLOG_TCP_SINK)
   )
 endif()
 
-include(SetupCAres)
-include(SetupCURL)
-include(SetupCryptoPP)
-
 find_package(Iconv REQUIRED)
-find_package_required(libyamlcpp "libyaml-cpp-dev")
 find_package_required(OpenSSL "libssl-dev")
-include(SetupFmt)
-include(SetupCCTZ)
 
-find_package_required(Http_Parser "libhttp-parser-dev")
+if (USERVER_CONAN)
+    find_package(c-ares REQUIRED)
+    find_package(CURL REQUIRED)
+    find_package(cryptopp REQUIRED)
+    find_package(yaml-cpp REQUIRED)
+    find_package(fmt REQUIRED)
+    find_package(cctz REQUIRED)
+    find_package(http_parser REQUIRED)
+    find_package(libev REQUIRED)
+
+    find_package(RapidJSON REQUIRED)
+    target_compile_definitions(RapidJSON::RapidJSON INTERFACE RAPIDJSON_HAS_STDSTRING)
+
+    find_package(concurrentqueue REQUIRED)
+else()
+    include(SetupCAres)
+    include(SetupCURL)
+    include(SetupCryptoPP)
+    find_package_required(libyamlcpp "libyaml-cpp-dev")
+    include(SetupFmt)
+    include(SetupCCTZ)
+    find_package_required(Http_Parser "libhttp-parser-dev")
+    find_package_required(LibEv "libev-dev")
+endif()
 
 add_library(${PROJECT_NAME} STATIC ${SOURCES})
 target_compile_definitions(${PROJECT_NAME} PRIVATE SPDLOG_PREVENT_CHILD_FD SPDLOG_FMT_EXTERNAL)
@@ -121,27 +141,56 @@ target_link_libraries(${PROJECT_NAME}
     Threads::Threads
     Boost::locale
     sanitize-target
-    libyamlcpp
-    fmt
-    c-ares
-    cctz
     CURL::libcurl
-    userver-stacktrace
   PRIVATE
     userver-uboost-coro
     Boost::filesystem
     Boost::program_options
     Boost::iostreams
     Boost::regex
-    CryptoPP
-    Http_Parser
     Iconv::Iconv
-    LibEv
     OpenSSL::Crypto
     OpenSSL::SSL
     ZLIB::ZLIB
-    spdlog_header_only
 )
+if (USERVER_CONAN)
+    target_link_libraries(${PROJECT_NAME}
+      PUBLIC
+        yaml-cpp
+        fmt::fmt
+        c-ares::cares
+        cctz::cctz
+        concurrentqueue::concurrentqueue
+        Boost::stacktrace
+      PRIVATE
+        cryptopp-static
+        http_parser::http_parser
+        libev::libev
+        spdlog::spdlog
+        RapidJSON::RapidJSON
+    )
+else()
+    target_link_libraries(${PROJECT_NAME}
+      PUBLIC
+        libyamlcpp
+        fmt
+        c-ares
+        cctz
+        userver-stacktrace
+      PRIVATE
+        CryptoPP
+        Http_Parser
+        LibEv
+        spdlog_header_only
+    )
+
+    target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE
+        ${USERVER_THIRD_PARTY_DIRS}/rapidjson/include
+    )
+    target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC
+        ${USERVER_THIRD_PARTY_DIRS}/moodycamel/include
+    )
+endif()
 
 if (NOT MACOS)
   target_link_libraries(${PROJECT_NAME} PUBLIC atomic)
@@ -167,14 +216,6 @@ target_include_directories(${PROJECT_NAME} SYSTEM BEFORE PUBLIC
 set_property(
   SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/src/engine/errno_test.cpp
   APPEND PROPERTY COMPILE_FLAGS -O2
-)
-
-target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE
-  ${USERVER_THIRD_PARTY_DIRS}/rapidjson/include
-)
-
-target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC
-  ${USERVER_THIRD_PARTY_DIRS}/moodycamel/include
 )
 
 target_include_directories(${PROJECT_NAME}
@@ -214,14 +255,18 @@ if (USERVER_FEATURE_UTEST)
     target_compile_definitions(userver-utest PUBLIC $<TARGET_PROPERTY:${PROJECT_NAME},COMPILE_DEFINITIONS>)
 
     target_link_libraries(userver-utest
-    PUBLIC
-        libgtest
-        libgmock
-	    userver-core-internal
+      PUBLIC
         ${PROJECT_NAME}
-    PRIVATE
+      PRIVATE
+        userver-core-internal
         Boost::program_options
     )
+    if (USERVER_CONAN)
+        target_link_libraries(userver-utest PUBLIC GTest::gtest GTest::gmock)
+    else()
+        target_link_libraries(userver-utest PUBLIC libgtest libgmock)
+    endif()
+
     target_include_directories(userver-utest PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/testing/include
     )
@@ -256,14 +301,19 @@ if (USERVER_FEATURE_UTEST)
     target_compile_definitions(userver-ubench PUBLIC $<TARGET_PROPERTY:${PROJECT_NAME},COMPILE_DEFINITIONS>)
     target_link_libraries(userver-ubench
       PUBLIC
-        libbenchmark
-      userver-core-internal
         ${PROJECT_NAME}
+      PRIVATE
+        userver-core-internal
     )
+    if (USERVER_CONAN)
+        target_link_libraries(userver-ubench PUBLIC benchmark::benchmark)
+    else()
+        target_link_libraries(userver-ubench PUBLIC libbenchmark)
+    endif()
 
-# Target with no need to use userver namespace, but includes require userver/
-add_library(yandex-userver-ubench INTERFACE)
-target_link_libraries(yandex-userver-ubench INTERFACE userver-ubench)
+    # Target with no need to use userver namespace, but includes require userver/
+    add_library(yandex-userver-ubench INTERFACE)
+    target_link_libraries(yandex-userver-ubench INTERFACE userver-ubench)
 endif()
 
 if (USERVER_IS_THE_ROOT_PROJECT)
