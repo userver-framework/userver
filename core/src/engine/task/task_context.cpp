@@ -99,12 +99,12 @@ auto* const kFinishedDetachedToken =
 TaskContext::TaskContext(TaskProcessor& task_processor,
                          Task::Importance importance, Task::WaitMode wait_type,
                          Deadline deadline,
-                         utils::impl::WrappedCallBase* payload)
+                         utils::impl::WrappedCallBase& payload)
     : magic_(kMagic),
       task_processor_(task_processor),
       task_counter_token_(task_processor_.GetTaskCounter()),
       is_critical_(importance == Task::Importance::kCritical),
-      payload_(payload),
+      payload_(&payload),
       state_(Task::State::kNew),
       detached_token_(nullptr),
       cancellation_reason_(TaskCancellationReason::kNone),
@@ -128,6 +128,8 @@ TaskContext::~TaskContext() noexcept {
   UASSERT(state_ == Task::State::kNew || IsFinished());
   UASSERT(detached_token_ == nullptr ||
           detached_token_ == kFinishedDetachedToken);
+
+  UASSERT(payload_ == nullptr);
 }
 
 utils::impl::WrappedCallBase& TaskContext::GetPayload() noexcept {
@@ -713,11 +715,11 @@ void TaskContext::ResetPayload() {
   std::exchange(payload_, nullptr)->~WrappedCallBase();
 }
 
-void intrusive_ptr_add_ref(TaskContext* p) {
+void intrusive_ptr_add_ref(TaskContext* p) noexcept {
   p->intrusive_refcount_.fetch_add(1, std::memory_order_relaxed);
 }
 
-void intrusive_ptr_release(TaskContext* p) {
+void intrusive_ptr_release(TaskContext* p) noexcept {
   if (p->intrusive_refcount_.fetch_sub(1, std::memory_order_relaxed) == 1) {
     p->ResetPayload();
 

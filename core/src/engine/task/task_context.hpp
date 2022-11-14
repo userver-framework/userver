@@ -61,7 +61,6 @@ class WaitStrategy {
   const Deadline deadline_;
 };
 
-// NOLINTNEXTLINE(fuchsia-multiple-inheritance)
 class TaskContext final : public ContextAccessor {
  public:
   struct NoEpoch {};
@@ -188,7 +187,7 @@ class TaskContext final : public ContextAccessor {
   static constexpr uint64_t kMagic = 0x6b73615453755459ULL;  // "YTuSTask"
 
   TaskContext(TaskProcessor&, Task::Importance, Task::WaitMode, Deadline,
-              utils::impl::WrappedCallBase* payload);
+              utils::impl::WrappedCallBase& payload);
 
   template <typename Func>
   void ArmTimer(Deadline deadline, Func&& func);
@@ -245,8 +244,8 @@ class TaskContext final : public ContextAccessor {
   std::optional<task_local::Storage> local_storage_;
 
   std::atomic<std::size_t> intrusive_refcount_{0};
-  friend void intrusive_ptr_add_ref(TaskContext* p);
-  friend void intrusive_ptr_release(TaskContext* p);
+  friend void intrusive_ptr_add_ref(TaskContext* p) noexcept;
+  friend void intrusive_ptr_release(TaskContext* p) noexcept;
 
  public:
   using WaitListHook = typename boost::intrusive::make_list_member_hook<
@@ -256,8 +255,8 @@ class TaskContext final : public ContextAccessor {
   WaitListHook wait_list_hook;
 };
 
-void intrusive_ptr_add_ref(TaskContext* p);
-void intrusive_ptr_release(TaskContext* p);
+void intrusive_ptr_add_ref(TaskContext* p) noexcept;
+void intrusive_ptr_release(TaskContext* p) noexcept;
 
 }  // namespace impl
 

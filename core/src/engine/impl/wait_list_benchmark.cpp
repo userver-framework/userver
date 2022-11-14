@@ -5,7 +5,7 @@
 
 #include <userver/engine/async.hpp>
 #include <userver/engine/run_standalone.hpp>
-#include <userver/engine/task/task_context_holder.hpp>
+#include <userver/engine/impl/task_context_holder.hpp>
 
 #include <engine/impl/wait_list.hpp>
 #include <engine/task/task_context.hpp>

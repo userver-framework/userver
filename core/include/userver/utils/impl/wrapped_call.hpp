@@ -151,8 +151,10 @@ auto WrapCall(Function&& f, Args&&... args) {
       std::forward_as_tuple(std::forward<Args>(args)...));
 }
 
+/// Same as WrapCall, but uses placement new instead.
+/// Engine internals, not expected to be used directly.
 template <typename Function, typename... Args>
-void PlacementNewWrappedCall(void* where, Function&& f, Args&&... args) {
+void PlacementNewWrapCall(void* where, Function&& f, Args&&... args) {
   static_assert(
       (!std::is_array_v<std::remove_reference_t<Args>> && ...),
       "Passing C arrays to Async is forbidden. Use std::array instead");

@@ -24,8 +24,10 @@ class TaskContextHolder final {
     constexpr auto wrapped_alignment = alignof(WrappedCallT);
     // check that alignment of WrappedCall is indeed a power of 2,
     // otherwise std::align is UB
-    static_assert(wrapped_alignment > 0 &&
-                  (wrapped_alignment & (wrapped_alignment - 1)) == 0);
+    static_assert(
+        wrapped_alignment > 0 &&
+            (wrapped_alignment & (wrapped_alignment - 1)) == 0,
+        "Alignment of Function passed to Async should be a power of 2");
     const auto total_alloc_size =
         task_context_size + wrapped_size + wrapped_alignment;
 
@@ -36,8 +38,8 @@ class TaskContextHolder final {
     auto payload_space = total_alloc_size - task_context_size;
     std::align(wrapped_alignment, wrapped_size, payload_ptr, payload_space);
 
-    utils::impl::PlacementNewWrappedCall(payload_ptr, std::forward<Function>(f),
-                                         std::forward<Args>(args)...);
+    utils::impl::PlacementNewWrapCall(payload_ptr, std::forward<Function>(f),
+                                      std::forward<Args>(args)...);
 
     return TaskContextHolder{
         std::move(storage),
