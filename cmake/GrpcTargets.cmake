@@ -6,7 +6,7 @@ set(PROTOBUF_PROTOC ${Protobuf_PROTOC_EXECUTABLE})
 if(USERVER_CONAN)
   set(PROTO_GRPC_CPP_PLUGIN ${GRPC_CPP_PLUGIN_PROGRAM})
 else()
-  find_program(PROTOBUF_PROTOC NAMES protoc)
+  find_program(PROTO_GRPC_CPP_PLUGIN grpc_cpp_plugin)
 endif()
 
 get_filename_component(USERVER_DIR ${CMAKE_CURRENT_LIST_DIR} DIRECTORY)
