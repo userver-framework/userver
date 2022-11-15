@@ -92,7 +92,7 @@ class UserverConan(conans.ConanFile):
         self.requires('yaml-cpp/0.7.0')
         self.requires('cctz/2.3')
         self.requires('http_parser/2.9.4')
-        self.requires('openssl/1.1.1q')
+        self.requires('openssl/3.0.7')
         self.requires('rapidjson/cci.20220822')
         self.requires('concurrentqueue/1.0.3')
         self.requires('zlib/1.2.13')
@@ -102,11 +102,7 @@ class UserverConan(conans.ConanFile):
         if self.options.with_grpc:
             self.requires('grpc/1.48.0')
         if self.options.with_postgresql:
-            if self.options.with_postgresql_extra:
-                # Use system postgresql libs as a workaround
-                pass
-            else:
-                self.requires('libpq/14.2')
+            self.requires('libpq/14.5')
         if self.options.with_mongodb:
             self.requires('mongo-c-driver/1.22.0')
             self.options['mongo-c-driver'].with_sasl = 'cyrus'
