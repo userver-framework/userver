@@ -68,6 +68,14 @@ target_include_directories(${PROJECT_NAME}
 
 target_link_libraries(${PROJECT_NAME} PUBLIC userver-core)
 
+if (USERVER_FEATURE_GRPC_CHANNELZ)
+    if (USERVER_CONAN)
+        target_link_libraries(${PROJECT_NAME} PUBLIC gRPC::grpcpp_channelz)
+    else()
+        target_link_libraries(${PROJECT_NAME} PUBLIC GrpcChannelz)
+    endif()
+endif()
+
 if (USERVER_CONAN)
     target_link_libraries(${PROJECT_NAME} PUBLIC
         userver-core gRPC::gRPC protobuf::protobuf
