@@ -66,7 +66,7 @@ utils::SharedRef<const impl::SnapshotData> BuildSnapshotData(
   auto data = utils::MakeSharedRef<impl::SnapshotData>();
   SnapshotVisitor visitor{*data};
   storage.VisitMetrics(visitor, request);
-  return std::move(data);
+  return data;
 }
 
 void PrependPrefix(std::string& path, const Request& request) {
