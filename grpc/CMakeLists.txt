@@ -19,10 +19,10 @@ if (USERVER_OPEN_SOURCE_BUILD)
         add_library(Grpc ALIAS UserverGrpc)  # Unify link names
         add_library(Protobuf ALIAS UserverProtobuf)  # Unify link names
         set(GRPC_LIBRARY_VERSION "${UserverGrpc_VERSION}")
-    endif()
 
-    if (USERVER_FEATURE_GRPC_CHANNELZ)
-        find_package(GrpcChannelz REQUIRED)
+        if (USERVER_FEATURE_GRPC_CHANNELZ)
+            find_package(GrpcChannelz REQUIRED)
+        endif()
     endif()
 else()
     find_package(Grpc REQUIRED)
