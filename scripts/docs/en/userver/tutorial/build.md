@@ -24,7 +24,7 @@ The following options could be used to control `cmake`:
 | USERVER_FEATURE_JEMALLOC               | Use jemalloc memory allocator                                                | ON                                               |
 | USERVER_FEATURE_DWCAS                  | Require double-width compare-and-swap                                        | ON                                               |
 | USERVER_FEATURE_TESTSUITE              | Enable functional tests via testsuite                                        | ON                                               |
-| USERVER_FEATURE_GRPC_CHANNELZ          | Enable Channelz for gRPC                                                     | ${USERVER_OPEN_SOURCE_BUILD}                     |
+| USERVER_FEATURE_GRPC_CHANNELZ          | Enable Channelz for gRPC                                                     | ON for "sufficiently new" gRPC versions          |
 | USERVER_CHECK_PACKAGE_VERSIONS         | Check package versions                                                       | ON                                               |
 | USERVER_SANITIZE                       | Build with sanitizers support, allows combination of values via 'val1 val2'  | ''                                               |
 | USERVER_SANITIZE_BLACKLIST             | Path to file that is passed to the -fsanitize-blacklist option               | ''                                               |

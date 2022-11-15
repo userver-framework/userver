@@ -1,13 +1,5 @@
 project(userver-grpc CXX)
 
-option(USERVER_FEATURE_GRPC_CHANNELZ "Enable Channelz for gRPC" ${USERVER_OPEN_SOURCE_BUILD})
-if (NOT USERVER_FEATURE_GRPC_CHANNELZ)
-  set_source_files_properties(
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/ugrpc/server/server.cpp
-    PROPERTIES COMPILE_FLAGS -DUSERVER_DISABLE_GRPC_CHANNELZ=1
-  )
-endif()
-
 if (USERVER_OPEN_SOURCE_BUILD)
     if (USERVER_CONAN)
         find_package(gRPC REQUIRED)
@@ -19,18 +11,11 @@ if (USERVER_OPEN_SOURCE_BUILD)
         add_library(Grpc ALIAS UserverGrpc)  # Unify link names
         add_library(Protobuf ALIAS UserverProtobuf)  # Unify link names
         set(GRPC_LIBRARY_VERSION "${UserverGrpc_VERSION}")
-
-        if (USERVER_FEATURE_GRPC_CHANNELZ)
-            find_package(GrpcChannelz REQUIRED)
-        endif()
     endif()
 else()
     find_package(Grpc REQUIRED)
     find_package(Protobuf REQUIRED)
-
-    if (USERVER_FEATURE_GRPC_CHANNELZ)
-        message(FATAL_ERROR "gRPC Channelz is not supported in Tier1 configuration")
-    endif()
+    set(GRPC_LIBRARY_VERSION "1.0.0")
 endif()
 
 include(GrpcTargets)
@@ -68,17 +53,37 @@ target_include_directories(${PROJECT_NAME}
 
 target_link_libraries(${PROJECT_NAME} PUBLIC userver-core)
 
+set(CHANNELZ_MIN_VERSION "1.17.0")
+if (${GRPC_LIBRARY_VERSION} VERSION_GREATER_EQUAL ${CHANNELZ_MIN_VERSION})
+    set(HAS_CHANNELZ TRUE)
+else()
+    set(HAS_CHANNELZ FALSE)
+endif()
+option(USERVER_FEATURE_GRPC_CHANNELZ "Enable Channelz for gRPC" ${HAS_CHANNELZ})
+if (${USERVER_FEATURE_GRPC_CHANNELZ} AND NOT ${HAS_CHANNELZ})
+    message(FATAL_ERROR
+        "For Channelz, install gRPC >= ${CHANNELZ_MIN_VERSION}"
+        "(found: ${GRPC_LIBRARY_VERSION})")
+endif()
+
 if (USERVER_FEATURE_GRPC_CHANNELZ)
+    message(STATUS "gRPC Channelz enabled")
     if (USERVER_CONAN)
         target_link_libraries(${PROJECT_NAME} PUBLIC gRPC::grpcpp_channelz)
     else()
+        find_package(GrpcChannelz REQUIRED)
         target_link_libraries(${PROJECT_NAME} PUBLIC GrpcChannelz)
     endif()
+else()
+    message(STATUS "gRPC Channelz disabled, install gRPC >= ${CHANNELZ_MIN_VERSION} to enable")
+    target_compile_definitions(${PROJECT_NAME} PRIVATE
+        "USERVER_DISABLE_GRPC_CHANNELZ=1"
+    )
 endif()
 
 if (USERVER_CONAN)
     target_link_libraries(${PROJECT_NAME} PUBLIC
-        userver-core gRPC::gRPC protobuf::protobuf
+        userver-core protobuf::protobuf gRPC::gRPC
     )
     if ("${GRPC_LIBRARY_VERSION}" VERSION_GREATER_EQUAL "1.41")
         target_link_libraries(${PROJECT_NAME} PUBLIC
