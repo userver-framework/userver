@@ -13,6 +13,6 @@ enum FrequencySketchPolicy {
   Trivial = 0,
   Bloom,
 };
-}
+} // namespace cache
 
 USERVER_NAMESPACE_END
