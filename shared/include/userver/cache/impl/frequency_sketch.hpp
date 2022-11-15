@@ -138,7 +138,7 @@ void FrequencySketch<T, FrequencySketchPolicy::Bloom>::Reset() {
   size_ = (size_ >> 1);
 }
 
-// TODO: think about it (W / C, W -- sample size, C -- cache size)
+// TODO: think about it
 template <typename T>
 int FrequencySketch<T, FrequencySketchPolicy::Bloom>::GetSamplingSize() {
   return static_cast<freq_type>(table_.size() * access_count_limit_rate_);
