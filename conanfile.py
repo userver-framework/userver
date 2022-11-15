@@ -47,7 +47,7 @@ class UserverConan(conans.ConanFile):
         'with_postgresql_extra': False,
         'with_redis': True,
         'with_grpc': True,
-        'with_clickhouse': True,
+        'with_clickhouse': False,
         'with_universal': True,
         'with_rabbitmq': True,
         'with_utest': True,
