@@ -2,17 +2,6 @@ project(userver-postgresql CXX)
 
 find_package(Boost REQUIRED regex)
 
-# We need libldap to statically link with libpq
-# There is no FindLdap.cmake and no package config files
-# for ldap library, so need to search for it by hand.
-find_library(LDAP_LIBRARY NAMES ldap)
-if(NOT LDAP_LIBRARY)
-  message(FATAL_ERROR "Failed to find libldap.so.\n"
-      "The linux system ldap installs shared objects with very ugly names, "
-      "so please install `libldap2-dev` package. "
-      "For Mac OS X please install `openldap`.")
-endif()
-
 option(USERVER_FEATURE_PATCH_LIBPQ "Apply patches to the libpq (add portals support)" ON)
 add_library(userver-libpq INTERFACE)
 if (USERVER_FEATURE_PATCH_LIBPQ)
@@ -26,7 +15,7 @@ else()
 
   if (USERVER_CONAN)
     find_package(PostgreSQL REQUIRED)
-    target_link_libraries(userver-libpq INTERFACE PostgreSQL::PostgreSQL ${LDAP_LIBRARY})
+    target_link_libraries(userver-libpq INTERFACE PostgreSQL::PostgreSQL)
   else()
     find_library(LIBPQ_LIBRARIES NAMES libpq.a libpq.so)
     if (NOT LIBPQ_LIBRARIES)

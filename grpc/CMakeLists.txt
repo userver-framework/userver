@@ -81,10 +81,6 @@ else()
     target_link_libraries(${PROJECT_NAME} PUBLIC Protobuf Grpc)
 endif()
 
-if (USERVER_FEATURE_GRPC_CHANNELZ)
-    target_link_libraries(${PROJECT_NAME} PUBLIC GrpcChannelz)
-endif()
-
 if (USERVER_IS_THE_ROOT_PROJECT)
     add_executable(${PROJECT_NAME}_unittest ${UNIT_TEST_SOURCES})
     target_include_directories(${PROJECT_NAME}_unittest PRIVATE
