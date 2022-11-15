@@ -2,17 +2,19 @@
 
 #include <netinet/in.h>
 
-#include <fmt/format.h>
-
 #include <cstdint>
 #include <cstdlib>
 #include <vector>
+
+#include <fmt/format.h>
 
 #include <userver/engine/async.hpp>
 #include <userver/engine/io/sockaddr.hpp>
 #include <userver/engine/task/cancel.hpp>
 #include <userver/utest/utest.hpp>
 #include <userver/utils/assert.hpp>
+
+#include <userver/internal/net/net_listener.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -225,12 +227,12 @@ size_t UpdateForServFail(char* data, size_t original_size) noexcept {
 
 DnsServerMock::DnsServerMock(DnsHandler handler)
     // NOLINTNEXTLINE(cppcoreguidelines-slicing)
-    : handler_{std::move(handler)}, receiver_task_{engine::AsyncNoSpan([this] {
-        ProcessRequests();
-      })} {}
+    : listener_(std::make_shared<internal::net::UdpListener>()),
+      handler_{std::move(handler)},
+      receiver_task_{engine::AsyncNoSpan([this] { ProcessRequests(); })} {}
 
 std::string DnsServerMock::GetServerAddress() const {
-  return fmt::to_string(listener_.addr);
+  return fmt::to_string(listener_->addr);
 }
 
 void DnsServerMock::ProcessRequests() {
@@ -241,7 +243,7 @@ void DnsServerMock::ProcessRequests() {
   while (!engine::current_task::ShouldCancel()) {
     const auto iter_deadline =
         engine::Deadline::FromDuration(utest::kMaxTestWaitTime);
-    const auto recv_result = listener_.socket.RecvSomeFrom(
+    const auto recv_result = listener_->socket.RecvSomeFrom(
         buffer.data(), buffer.size(), iter_deadline);
     size_t response_size = 0;
     try {
@@ -257,7 +259,7 @@ void DnsServerMock::ProcessRequests() {
           UpdateForServFail(buffer.data(), recv_result.bytes_received);
     }
     UASSERT(response_size);
-    const auto sent_bytes = listener_.socket.SendAllTo(
+    const auto sent_bytes = listener_->socket.SendAllTo(
         recv_result.src_addr, buffer.data(), response_size, iter_deadline);
     UASSERT(sent_bytes == response_size);
   }

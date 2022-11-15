@@ -9,6 +9,8 @@
 
 #include <fmt/format.h>
 
+#include <hiredis/hiredis.h>
+
 #include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
 

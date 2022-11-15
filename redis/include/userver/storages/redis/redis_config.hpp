@@ -23,6 +23,8 @@ RedisWaitConnected Parse(const formats::json::Value& elem,
 CommandsBufferingSettings Parse(const formats::json::Value& elem,
                                 formats::parse::To<CommandsBufferingSettings>);
 
+MetricsSettings Parse(const formats::json::Value& elem,
+                      formats::parse::To<MetricsSettings>);
 }  // namespace redis
 
 namespace storages::redis {
@@ -38,6 +40,8 @@ class Config {
       redis_wait_connected;
   dynamic_config::Value<USERVER_NAMESPACE::redis::CommandsBufferingSettings>
       commands_buffering_settings;
+  dynamic_config::Value<USERVER_NAMESPACE::redis::MetricsSettings>
+      metrics_settings;
 
   Config(const dynamic_config::DocsMap& docs_map)
       : default_command_control{"REDIS_DEFAULT_COMMAND_CONTROL", docs_map},
@@ -47,7 +51,8 @@ class Config {
             "REDIS_SUBSCRIPTIONS_REBALANCE_MIN_INTERVAL_SECONDS", docs_map},
         redis_wait_connected{"REDIS_WAIT_CONNECTED", docs_map},
         commands_buffering_settings{"REDIS_COMMANDS_BUFFERING_SETTINGS",
-                                    docs_map} {}
+                                    docs_map},
+        metrics_settings{"REDIS_METRICS_SETTINGS", docs_map} {}
 };
 
 }  // namespace storages::redis
