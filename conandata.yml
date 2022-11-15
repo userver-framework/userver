@@ -1,6 +1,0 @@
-patches:
-    '1.0.0':
-      - patch_file: 'conan/patches/0001-thirdparty_packages_from_conan.patch'
-        patch_type: 'conan'
-        patch_description: 'Patch cmakelists to use thirdparty packages from conan'
-
