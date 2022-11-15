@@ -1,3 +1,7 @@
+#include <iterator>
+#include <memory>
+#include <numeric>
+#include <string>
 #include <userver/storages/etcd/component.hpp>
 
 //#include <stdexcept>
@@ -16,6 +20,10 @@
 #include <userver/utils/statistics/percentile_format_json.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 #include <userver/storages/etcd/client.hpp>
+#include <vector>
+#include "client_impl.hpp"
+#include "userver/utils/assert.hpp"
+#include "userver/yaml_config/yaml_config.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
@@ -25,18 +33,19 @@ Etcd::Etcd(const ComponentConfig& config,
              const ComponentContext& component_context)
     : LoggableComponentBase(config, component_context),
       config_(component_context.FindComponent<DynamicConfig>().GetSource())
-      {
-        [[maybe_unused]] auto endpoints = config["endpoints"].As<std::vector<std::string>>();
-        LOG_INFO() << "Etcd Endpoints: ";
-        for (const auto& endpoint: endpoints) {
-          LOG_INFO() << endpoint;
-        }
+{
+  [[maybe_unused]] auto endpoints = config["endpoints"].As<std::vector<std::string>>();
+  LOG_INFO() << "Etcd Endpoints: ";
+  for (const auto& endpoint: endpoints) {
+    LOG_INFO() << endpoint;
+  }
+  // TODO: создавтаь клиента на основе полученного endpoint-а.
+  client_ = std::make_shared<storages::etcd::ClientImpl>(endpoints.front());
 }
 
 std::shared_ptr<storages::etcd::Client> Etcd::GetClient() const
 {
-  return nullptr;
-  // throw std::runtime_error("etcd client not found");
+  return client_;
 }
 
 Etcd::~Etcd() {

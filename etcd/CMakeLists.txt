@@ -94,13 +94,13 @@ if (USERVER_IS_THE_ROOT_PROJECT)
 #     ${PROJECT_NAME}_utest
 #     ${PROJECT_NAME}
 #   )
-  target_include_directories(
-    ${PROJECT_NAME}_unittest
-    PUBLIC
-      ${CMAKE_CURRENT_SOURCE_DIR}/include
-    PRIVATE
-      ${CMAKE_CURRENT_SOURCE_DIR}/src
-  )
+#  target_include_directories(
+#    ${PROJECT_NAME}_unittest
+#    PUBLIC
+#      ${CMAKE_CURRENT_SOURCE_DIR}/include
+#    PRIVATE
+#      ${CMAKE_CURRENT_SOURCE_DIR}/src
+#  )
 #   target_include_directories (${PROJECT_NAME}_unittest PRIVATE
 #     $<TARGET_PROPERTY:userver-core,INCLUDE_DIRECTORIES>
 #   )
