@@ -14,6 +14,7 @@ template <typename T,
           FrequencySketchPolicy policy = FrequencySketchPolicy::Bloom>
 class FrequencySketch {};
 
+// TODO: think about hash
 template <typename T>
 class FrequencySketch<T, FrequencySketchPolicy::Bloom> {
   using freq_type = int;
@@ -24,7 +25,6 @@ class FrequencySketch<T, FrequencySketchPolicy::Bloom> {
   freq_type GetFrequency(const T& item);
   void RecordAccess(const T& item);
   freq_type Size() { return size_; }
-
 
  private:
   std::vector<uint64_t> table_;
@@ -39,6 +39,7 @@ class FrequencySketch<T, FrequencySketchPolicy::Bloom> {
   uint32_t GetHash(const T& item, int step);
   int GetIndex(uint32_t hash);
   int GetOffset(uint32_t hash, int step);
+  freq_type GetSamplingSize();
 
   bool TryIncrement(const T& item, int step);
   void Reset();
@@ -74,7 +75,7 @@ uint32_t FrequencySketch<T, FrequencySketchPolicy::Bloom>::GetHash(
   const char* data = reinterpret_cast<const char*>(&item);
   uint32_t hash = 0;
 
-  for (auto i = 0; i < static_cast<int>(sizeof item); ++i) {
+  for (auto i = 0; i < static_cast<size_t>(sizeof item); ++i) {
     hash += data[i];
     hash += hash << 10;
     hash ^= hash >> 6;
@@ -114,9 +115,7 @@ void FrequencySketch<T, FrequencySketchPolicy::Bloom>::RecordAccess(
     const T& item) {
   auto was_added = false;
   for (int i = 0; i < num_hashes_; i++) was_added |= TryIncrement(item, i);
-  if (was_added && (++size_ == static_cast<freq_type>(
-                                   table_.size() * access_count_limit_rate_)))
-    Reset();
+  if (was_added && (++size_ == GetSamplingSize())) Reset();
 }
 
 template <typename T>
@@ -137,6 +136,12 @@ void FrequencySketch<T, FrequencySketchPolicy::Bloom>::Reset() {
   for (auto& counters : table_)
     counters = (counters >> 1) & 0x7777777777777777L;
   size_ = (size_ >> 1);
+}
+
+// TODO: think about it (W / C, W -- sample size, C -- cache size)
+template <typename T>
+int FrequencySketch<T, FrequencySketchPolicy::Bloom>::GetSamplingSize() {
+  return static_cast<freq_type>(table_.size() * access_count_limit_rate_);
 }
 
 }  // namespace cache::impl
