@@ -1,8 +1,8 @@
 #pragma once
 
-#include <userver/cache/policy.hpp>
-#include <userver/cache/impl/lru.hpp>
 #include <userver/cache/impl/frequency_sketch.hpp>
+#include <userver/cache/impl/lru.hpp>
+#include <userver/cache/policy.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -42,10 +42,8 @@ template <typename T, typename U, typename Hash, typename Equal>
 LruBase<T, U, Hash, Equal, CachePolicy::kTinyLFU>::LruBase(size_t max_size,
                                                            const Hash& hash,
                                                            const Equal& equal)
-    : main_(max_size, hash, equal),
-      proxy_(max_size) {
-}
+    : main_(max_size, hash, equal), proxy_(max_size) {}
 
-}
+}  // namespace cache::impl
 
 USERVER_NAMESPACE_END
