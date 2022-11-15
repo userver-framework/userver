@@ -2,10 +2,19 @@
 # wrappers. A separate target is required as GRPC generated headers require
 # relaxed compilation flags.
 
-set(PROTOBUF_PROTOC ${Protobuf_PROTOC_EXECUTABLE})
 if(USERVER_CONAN)
+  # Can't use find_*, because it may find a system binary with a wrong version.
+  set(PROTOBUF_PROTOC ${Protobuf_PROTOC_EXECUTABLE})
+  if(NOT PROTOBUF_PROTOC)
+    message(FATAL_ERROR "protoc not found")
+  endif()
   set(PROTO_GRPC_CPP_PLUGIN ${GRPC_CPP_PLUGIN_PROGRAM})
 else()
+  if(NOT USERVER_OPEN_SOURCE_BUILD)
+    find_program(PROTOBUF_PROTOC NAMES yandex-taxi-protoc protoc)
+  else()
+    find_program(PROTOBUF_PROTOC NAMES protoc)
+  endif()
   find_program(PROTO_GRPC_CPP_PLUGIN grpc_cpp_plugin)
 endif()
 
