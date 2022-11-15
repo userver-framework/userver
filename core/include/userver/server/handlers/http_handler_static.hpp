@@ -47,8 +47,6 @@ class HttpHandlerStatic final : public HttpHandlerBase {
   HttpHandlerStatic(const components::ComponentConfig& config,
                     const components::ComponentContext& context);
 
-  std::string GetContentType(std::string_view extension) const;
-
   std::string HandleRequestThrow(const http::HttpRequest& request,
                                  request::RequestContext&) const override;
 
