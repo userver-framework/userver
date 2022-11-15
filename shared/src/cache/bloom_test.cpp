@@ -45,7 +45,7 @@ TEST(Bloom, HeavyHitters) {
   }
 
   // A perfect popularity count yields an array [0, 0, 2, 0, 4, 0, 6, 0, 8, 0]
-  auto* popularity = new int[10];
+  std::vector<int> popularity(10);
   for (int i = 0; i < 10; i++) {
     popularity[i] = bloom.GetFrequency(static_cast<double>(i));
   }
