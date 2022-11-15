@@ -25,7 +25,7 @@ class FrequencySketch<T, FrequencySketchPolicy::Bloom> {
   freq_type GetFrequency(const T& item);
   void RecordAccess(const T& item);
   freq_type Size() { return size_; }
-
+  void Clear();
  private:
   std::vector<uint64_t> table_;
   freq_type size_{0};
@@ -142,6 +142,13 @@ void FrequencySketch<T, FrequencySketchPolicy::Bloom>::Reset() {
 template <typename T>
 int FrequencySketch<T, FrequencySketchPolicy::Bloom>::GetSamplingSize() {
   return static_cast<freq_type>(table_.size() * access_count_limit_rate_);
+}
+template <typename T>
+void FrequencySketch<T, FrequencySketchPolicy::Bloom>::Clear() {
+  for (auto& counter : table_) {
+    counter = 0;
+  }
+  size_ = 0;
 }
 
 }  // namespace cache::impl
