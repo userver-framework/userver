@@ -80,6 +80,9 @@ const T& GetKey(const T& key) noexcept {
 template <typename T, typename U, typename Hash, typename Equal>
 class LruBase<T, U, Hash, Equal, CachePolicy::kLRU> final {
  public:
+  template <T, U, typename Hash2, typename Equal2>
+  friend class LruBase;
+
   explicit LruBase(size_t max_size, const Hash& hash, const Equal& equal);
   ~LruBase() { Clear(); }
 
@@ -113,6 +116,21 @@ class LruBase<T, U, Hash, Equal, CachePolicy::kLRU> final {
   void Erase(const T& key);
 
   U* Get(const T& key);
+
+  //// move element from one cache to another if key was, does not check
+  /// capacity of another cache, set checker on false if you are sure the key
+  /// does not exist in both caches simultaneously
+  template <typename Hash2, typename Equal2, bool Checker = true>
+  bool MoveIfHas(const T& key,
+                 LruBase<T, U, Hash2, Equal2>* another_base_ptr) noexcept;
+
+  //// move element from one cache to another if key was and set value, does not
+  /// check capacity of another cache, set checker on false if you are sure the
+  /// key does not exist in both caches simultaneously
+  template <typename Hash2, typename Equal2, bool Checker = true>
+  bool MoveIfHasWithSetValue(
+      const T& key, U value,
+      LruBase<T, U, Hash2, Equal2>* another_base_ptr) noexcept;
 
   const T* GetLeastUsedKey();
 
@@ -152,7 +170,6 @@ class LruBase<T, U, Hash, Equal, CachePolicy::kLRU> final {
       return Equal::operator()(impl::GetKey(x), impl::GetKey(y));
     }
   };
-
   using Map = boost::intrusive::unordered_set<
       Node, boost::intrusive::constant_time_size<true>,
       boost::intrusive::hash<LruNodeHash>,
@@ -173,8 +190,8 @@ class LruBase<T, U, Hash, Equal, CachePolicy::kLRU> final {
 
 template <typename T, typename U, typename Hash, typename Equal>
 LruBase<T, U, Hash, Equal, CachePolicy::kLRU>::LruBase(size_t max_size,
-                                                 const Hash& hash,
-                                                 const Equal& eq)
+                                                       const Hash& hash,
+                                                       const Equal& eq)
     : buckets_(max_size ? max_size : 1),
       map_(BucketTraits(buckets_.data(), buckets_.size()), hash, eq) {
   UASSERT(max_size > 0);
@@ -195,7 +212,8 @@ bool LruBase<T, U, Hash, Eq, CachePolicy::kLRU>::Put(const T& key, U value) {
 
 template <typename T, typename U, typename Hash, typename Eq>
 template <typename... Args>
-U* LruBase<T, U, Hash, Eq, CachePolicy::kLRU>::Emplace(const T& key, Args&&... args) {
+U* LruBase<T, U, Hash, Eq, CachePolicy::kLRU>::Emplace(const T& key,
+                                                       Args&&... args) {
   auto* existing = Get(key);
   if (existing) return existing;
   return &Add(key, U{std::forward<Args>(args)...});
@@ -229,7 +247,8 @@ U* LruBase<T, U, Hash, Eq, CachePolicy::kLRU>::GetLeastUsedValue() {
 }
 
 template <typename T, typename U, typename Hash, typename Eq>
-void LruBase<T, U, Hash, Eq, CachePolicy::kLRU>::SetMaxSize(size_t new_max_size) {
+void LruBase<T, U, Hash, Eq, CachePolicy::kLRU>::SetMaxSize(
+    size_t new_max_size) {
   UASSERT(new_max_size > 0);
   if (!new_max_size) ++new_max_size;
 
@@ -255,7 +274,8 @@ void LruBase<T, U, Hash, Eq, CachePolicy::kLRU>::Clear() noexcept {
 
 template <typename T, typename U, typename Hash, typename Eq>
 template <typename Function>
-void LruBase<T, U, Hash, Eq, CachePolicy::kLRU>::VisitAll(Function&& func) const {
+void LruBase<T, U, Hash, Eq, CachePolicy::kLRU>::VisitAll(
+    Function&& func) const {
   for (const auto& node : map_) {
     func(node.GetKey(), node.GetValue());
   }
@@ -315,6 +335,42 @@ LruNode<T, U>& LruBase<T, U, Hash, Eq, CachePolicy::kLRU>::InsertNode(
   list_.insert(list_.end(), *node);  // noexcept
 
   return *node.release();
+}
+
+template <typename T, typename U, typename Hash, typename Eq>
+template <typename Hash2, typename Equal2, bool Checker>
+bool LruBase<T, U, Hash, Eq, CachePolicy::kLRU>::MoveIfHas(
+    const T& key, LruBase<T, U, Hash2, Equal2>* another_base_ptr) noexcept {
+  auto it = map_.find(key, map_.hash_function(), map_.key_eq());
+  if (it == map_.end()) {
+    return false;
+  }
+  if constexpr (Checker) {
+    another_base_ptr->Erase(key);
+  }
+  auto node_ptr = ExtractNode(list_.iterator_to(*it));
+
+  another_base_ptr->InsertNode(std::move(node_ptr));
+  return true;
+}
+
+template <typename T, typename U, typename Hash, typename Eq>
+template <typename Hash2, typename Equal2, bool Checker>
+bool LruBase<T, U, Hash, Eq, CachePolicy::kLRU>::MoveIfHasWithSetValue(
+    const T& key, U value,
+    LruBase<T, U, Hash2, Equal2>* another_base_ptr) noexcept {
+  auto it = map_.find(key, map_.hash_function(), map_.key_eq());
+  if (it == map_.end()) {
+    return false;
+  }
+  if constexpr (Checker) {
+    another_base_ptr->Erase(key);
+  }
+  auto node_ptr = ExtractNode(list_.iterator_to(*it));
+
+  node_ptr->SetValue(std::move(value));
+  another_base_ptr->InsertNode(std::move(node_ptr));
+  return true;
 }
 
 }  // namespace cache::impl
