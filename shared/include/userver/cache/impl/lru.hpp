@@ -79,8 +79,9 @@ const T& GetKey(const T& key) noexcept {
 
 template <typename T, typename U, typename Hash, typename Equal>
 class LruBase<T, U, Hash, Equal, CachePolicy::kLRU> final {
+
  public:
-  template <T, U, typename Hash2, typename Equal2>
+  template <typename T2, typename U2, typename Hash2, typename Equal2, CachePolicy>
   friend class LruBase;
 
   explicit LruBase(size_t max_size, const Hash& hash, const Equal& equal);
