@@ -74,8 +74,8 @@ class NWayLRU final {
 
 template <typename T, typename U, typename Hash, typename Eq,
           CachePolicy Policy>
-NWayLRU<T, U, Hash, Eq, Policy>::NWayLRU(size_t ways, size_t way_size, const Hash& hash,
-                                 const Eq& equal)
+NWayLRU<T, U, Hash, Eq, Policy>::NWayLRU(size_t ways, size_t way_size,
+                                         const Hash& hash, const Eq& equal)
     : caches_(), hash_fn_(hash) {
   caches_.reserve(ways);
   for (size_t i = 0; i < ways; ++i) caches_.emplace_back(hash, equal);
@@ -95,10 +95,11 @@ void NWayLRU<T, U, Hash, Eq, Policy>::Put(const T& key, U value) {
   NotifyDumper();
 }
 
-template <typename T, typename U, typename Hash, typename Eq, CachePolicy Policy>
+template <typename T, typename U, typename Hash, typename Eq,
+          CachePolicy Policy>
 template <typename Validator>
 std::optional<U> NWayLRU<T, U, Hash, Eq, Policy>::Get(const T& key,
-                                              Validator validator) {
+                                                      Validator validator) {
   auto& way = GetWay(key);
   std::unique_lock<engine::Mutex> lock(way.mutex);
   auto* value = way.cache.Get(key);
@@ -140,7 +141,8 @@ void NWayLRU<T, U, Hash, Eq, Policy>::Invalidate() {
   NotifyDumper();
 }
 
-template <typename T, typename U, typename Hash, typename Eq, CachePolicy Policy>
+template <typename T, typename U, typename Hash, typename Eq,
+          CachePolicy Policy>
 template <typename Function>
 void NWayLRU<T, U, Hash, Eq, Policy>::VisitAll(Function func) const {
   for (const auto& way : caches_) {
@@ -171,8 +173,8 @@ void NWayLRU<T, U, Hash, Eq, Policy>::UpdateWaySize(size_t way_size) {
 
 template <typename T, typename U, typename Hash, typename Eq,
           CachePolicy Policy>
-typename NWayLRU<T, U, Hash, Eq, Policy>::Way& NWayLRU<T, U, Hash, Eq, Policy>::GetWay(
-    const T& key) {
+typename NWayLRU<T, U, Hash, Eq, Policy>::Way&
+NWayLRU<T, U, Hash, Eq, Policy>::GetWay(const T& key) {
   auto n = hash_fn_(key) % caches_.size();
   return caches_[n];
 }

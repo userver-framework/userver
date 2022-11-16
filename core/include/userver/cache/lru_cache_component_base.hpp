@@ -157,7 +157,8 @@ LruCacheComponent<Key, Value, Hash, Equal, Policy>::LruCacheComponent(
     config_subscription_ =
         impl::FindDynamicConfigSource(context).UpdateAndListen(
             this, "cache." + name_,
-            &LruCacheComponent<Key, Value, Hash, Equal, Policy>::OnConfigUpdate);
+            &LruCacheComponent<Key, Value, Hash, Equal,
+                               Policy>::OnConfigUpdate);
   } else {
     LOG_INFO() << "Dynamic LRU cache config is disabled, cache=" << name_;
   }
@@ -199,7 +200,8 @@ void LruCacheComponent<Key, Value, Hash, Equal, Policy>::DropCache() {
 
 template <typename Key, typename Value, typename Hash, typename Equal,
           CachePolicy Policy>
-Value LruCacheComponent<Key, Value, Hash, Equal, Policy>::GetByKey(const Key& key) {
+Value LruCacheComponent<Key, Value, Hash, Equal, Policy>::GetByKey(
+    const Key& key) {
   return DoGetByKey(key);
 }
 
