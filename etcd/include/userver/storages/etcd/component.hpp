@@ -33,8 +33,7 @@ class Etcd : public LoggableComponentBase {
  std::shared_ptr<storages::etcd::Client> GetClient() const;
 
 private:
- std::unordered_map<std::string, std::shared_ptr<storages::etcd::Client>>
-     clients_;
+ std::shared_ptr<storages::etcd::Client> client_;
 
 dynamic_config::Source config_;
 
