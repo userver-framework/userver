@@ -36,7 +36,9 @@ ThreadCpuUsage GetCurrentThreadCpuUsage() {
 
 ThreadCpuStatsStorage::ThreadCpuStatsStorage(
     std::chrono::milliseconds collect_interval, std::size_t throttle)
-    : collect_interval_{collect_interval}, throttle_{throttle} {}
+    : collect_interval_{collect_interval}, throttle_{throttle} {
+  UASSERT(collect_interval_.count() > 0);
+}
 
 void ThreadCpuStatsStorage::Collect() {
   ValidateThreadSafety();
@@ -62,7 +64,8 @@ bool ThreadCpuStatsStorage::Throttle() {
 
 void ThreadCpuStatsStorage::DoCollect() {
   const auto now = Clock::now();
-  if (last_ts_ != Clock::time_point{} && (now - last_ts_ < collect_interval_)) {
+  if (last_ts_ != Clock::time_point{} &&
+      (now - last_ts_ <= collect_interval_)) {
     return;
   }
 

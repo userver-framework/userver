@@ -16,8 +16,11 @@ namespace utils::statistics {
 
 namespace impl {
 
+/// Some stats about thread CPU usage, consult getrusage(2) for more context.
 struct ThreadCpuUsage final {
+  /// User CPU time used since the thread creation.
   std::chrono::microseconds user{};
+  /// System CPU time used since the thread creation.
   std::chrono::microseconds system{};
 };
 
