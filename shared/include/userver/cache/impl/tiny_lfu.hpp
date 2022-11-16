@@ -37,39 +37,41 @@ class LruBase<T, U, Hash, Equal, CachePolicy::kTinyLFU> {
 
  private:
   FrequencySketch<T, FrequencySketchPolicy::Bloom> proxy_;
+  size_t max_size_;
   LruBase<T, U, Hash, Equal, CachePolicy::kLRU> main_;
 };
 
+// need max_size > 0 for put
 template <typename T, typename U, typename Hash, typename Equal>
 LruBase<T, U, Hash, Equal, CachePolicy::kTinyLFU>::LruBase(size_t max_size,
                                                            const Hash& hash,
                                                            const Equal& equal)
-    : main_(max_size, hash, equal), proxy_(max_size) {}
+    : proxy_(max_size), max_size_(max_size), main_(max_size + 1, hash, equal) {}
 
+// TODO: what should be returned? (same get() or success/failure)
 template <typename T, typename U, typename Hash, typename Equal>
 bool LruBase<T, U, Hash, Equal, CachePolicy::kTinyLFU>::Put(const T& key,
                                                             U value) {
-  //// getting ptr on key which will be deleted if new key is added;
-  auto least_used_key = main_.GetLeastUsedKey();
-  //// new key will be added if only frequency of new key is bigger than
-  /// frequency of key which will be deleted
-  if (proxy_.GetFrequency(*least_used_key) < proxy_.GetFrequency(key)) {
-    proxy_.RecordAccess(key);
-    return main_.Put(key, value);
+  proxy_.RecordAccess(key);
+  auto res = main_.Put(key, value);
+  if (main_.GetSize() == max_size_ + 1) {
+    if (proxy_.GetFrequency(key) > proxy_.GetFrequency(*main_.GetLeastUsedKey()))
+      main_.Erase(*main_.GetLeastUsedKey());
+    else
+      main_.Erase(key);
   }
-  return false;
+  return res;
 }
 template <typename T, typename U, typename Hash, typename Equal>
 template <typename... Args>
 U* LruBase<T, U, Hash, Equal, CachePolicy::kTinyLFU>::Emplace(const T& key,
                                                               Args&&... args) {
-  auto least_used_key = main_.GetLeastUsedKey();
-  if (proxy_.GetFrequency(*least_used_key) < proxy_.GetFrequency(key)) {
-    proxy_.RecordAccess(key);
-    return main_.Emplace(key, std::forward<Args>(args)...);
-  }
-  return nullptr;
+  auto* existing = main_.Get(key);
+  if (existing) return existing;
+  Put(key, U{std::forward<Args>(args)...});
+  return main_.Get(key);
 }
+
 template <typename T, typename U, typename Hash, typename Equal>
 void LruBase<T, U, Hash, Equal, CachePolicy::kTinyLFU>::Erase(const T& key) {
   return main_.Erase(key);
@@ -91,6 +93,7 @@ U* LruBase<T, U, Hash, Equal, CachePolicy::kTinyLFU>::GetLeastUsedValue() {
   return main_.GetLeastUsedValue();
 }
 
+// TODO: think about more smart new_proxy init | need tests
 template <typename T, typename U, typename Hash, typename Equal>
 void LruBase<T, U, Hash, Equal, CachePolicy::kTinyLFU>::SetMaxSize(
     size_t new_max_size) {

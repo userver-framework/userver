@@ -45,10 +45,11 @@ class FrequencySketch<T, FrequencySketchPolicy::Bloom> {
   void Reset();
 };
 
+// TODO: capacity - ? (space optimize)
 template <typename T>
 FrequencySketch<T, FrequencySketchPolicy::Bloom>::FrequencySketch(
     std::size_t capacity, int access_count_limit_rate)
-    : table_(capacity / sizeof(uint64_t) * counter_size_),
+    : table_(capacity),
       access_count_limit_rate_(access_count_limit_rate) {}
 
 template <typename T>
@@ -75,7 +76,7 @@ uint32_t FrequencySketch<T, FrequencySketchPolicy::Bloom>::GetHash(
   const char* data = reinterpret_cast<const char*>(&item);
   uint32_t hash = 0;
 
-  for (auto i = 0; i < static_cast<size_t>(sizeof item); ++i) {
+  for (size_t i = 0; i < static_cast<size_t>(sizeof item); ++i) {
     hash += data[i];
     hash += hash << 10;
     hash ^= hash >> 6;
