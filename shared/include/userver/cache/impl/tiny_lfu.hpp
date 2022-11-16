@@ -55,7 +55,8 @@ bool LruBase<T, U, Hash, Equal, CachePolicy::kTinyLFU>::Put(const T& key,
   proxy_.RecordAccess(key);
   auto res = main_.Put(key, value);
   if (main_.GetSize() == max_size_ + 1) {
-    if (proxy_.GetFrequency(key) > proxy_.GetFrequency(*main_.GetLeastUsedKey()))
+    if (proxy_.GetFrequency(key) >
+        proxy_.GetFrequency(*main_.GetLeastUsedKey()))
       main_.Erase(*main_.GetLeastUsedKey());
     else
       main_.Erase(key);
@@ -99,7 +100,7 @@ void LruBase<T, U, Hash, Equal, CachePolicy::kTinyLFU>::SetMaxSize(
     size_t new_max_size) {
   auto new_proxy =
       FrequencySketch<T, FrequencySketchPolicy::Bloom>(new_max_size);
-  main_.VisitAll([&new_proxy](const T& key, const U& value) mutable {
+  main_.VisitAll([&new_proxy](const T& key, const U&) mutable {
     new_proxy.RecordAccess(key);
   });
   proxy_ = new_proxy;

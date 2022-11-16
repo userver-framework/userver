@@ -26,6 +26,7 @@ class FrequencySketch<T, FrequencySketchPolicy::Bloom> {
   void RecordAccess(const T& item);
   freq_type Size() { return size_; }
   void Clear();
+
  private:
   std::vector<uint64_t> table_;
   freq_type size_{0};
@@ -49,8 +50,7 @@ class FrequencySketch<T, FrequencySketchPolicy::Bloom> {
 template <typename T>
 FrequencySketch<T, FrequencySketchPolicy::Bloom>::FrequencySketch(
     std::size_t capacity, int access_count_limit_rate)
-    : table_(capacity),
-      access_count_limit_rate_(access_count_limit_rate) {}
+    : table_(capacity), access_count_limit_rate_(access_count_limit_rate) {}
 
 template <typename T>
 int FrequencySketch<T, FrequencySketchPolicy::Bloom>::GetFrequency(

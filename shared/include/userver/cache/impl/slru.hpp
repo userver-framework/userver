@@ -62,10 +62,8 @@ LruBase<T, U, Hash, Equal, CachePolicy::kSLRU>::LruBase(size_t max_size,
                                                         double probation_part)
     : probation_part_(probation_part),
       probation_size_(std::round(max_size * probation_part)),
-      probation_(
-          static_cast<size_t>(std::round(max_size * probation_part)) + 1,
-          hash,
-          equal),
+      probation_(static_cast<size_t>(std::round(max_size * probation_part)) + 1,
+                 hash, equal),
       protected_size_(std::round(max_size * (1. - probation_part))),
       protected_(
           static_cast<size_t>(std::round(max_size * (1 - probation_part))) + 1,
@@ -92,7 +90,8 @@ bool LruBase<T, U, Hash, Eq, CachePolicy::kSLRU>::Put(const T& key, U value) {
 
 template <typename T, typename U, typename Hash, typename Eq>
 template <typename... Args>
-U* LruBase<T, U, Hash, Eq, CachePolicy::kSLRU>::Emplace(const T& key, Args&&... args) {
+U* LruBase<T, U, Hash, Eq, CachePolicy::kSLRU>::Emplace(const T& key,
+                                                        Args&&... args) {
   auto* existing = Get(key);
   if (existing) return existing;
   Put(key, U{std::forward<Args>(args)...});
@@ -108,8 +107,7 @@ void LruBase<T, U, Hash, Eq, CachePolicy::kSLRU>::Erase(const T& key) {
 template <typename T, typename U, typename Hash, typename Eq>
 U* LruBase<T, U, Hash, Eq, CachePolicy::kSLRU>::Get(const T& key) {
   auto result = probation_.Get(key);
-  if (!result)
-    return protected_.Get(key);
+  if (!result) return protected_.Get(key);
 
   protected_.Put(key, *result);
   probation_.Erase(key);
@@ -123,22 +121,23 @@ U* LruBase<T, U, Hash, Eq, CachePolicy::kSLRU>::Get(const T& key) {
 
 template <typename T, typename U, typename Hash, typename Eq>
 const T* LruBase<T, U, Hash, Eq, CachePolicy::kSLRU>::GetLeastUsedKey() {
-  if (probation_.GetSize())
-    return probation_.GetLeastUsedValue();
+  if (probation_.GetSize()) return probation_.GetLeastUsedValue();
   return protected_.GetLeastUsedValue();
 }
 
 template <typename T, typename U, typename Hash, typename Eq>
 U* LruBase<T, U, Hash, Eq, CachePolicy::kSLRU>::GetLeastUsedValue() {
-  if (probation_.GetSize())
-    return probation_.GetLeastUsedKey();
+  if (probation_.GetSize()) return probation_.GetLeastUsedKey();
   return protected_.GetLeastUsedKey();
 }
 
 template <typename T, typename U, typename Hash, typename Eq>
-void LruBase<T, U, Hash, Eq, CachePolicy::kSLRU>::SetMaxSize(size_t new_max_size) {
-  probation_size_ = static_cast<size_t>(std::round(new_max_size * probation_part_));
-  protected_size_ = static_cast<size_t>(std::round(new_max_size * (1. - probation_part_)));
+void LruBase<T, U, Hash, Eq, CachePolicy::kSLRU>::SetMaxSize(
+    size_t new_max_size) {
+  probation_size_ =
+      static_cast<size_t>(std::round(new_max_size * probation_part_));
+  protected_size_ =
+      static_cast<size_t>(std::round(new_max_size * (1. - probation_part_)));
   probation_.SetMaxSize(probation_size_ + 1);
   protected_.SetMaxSize(protected_size_ + 1);
 }
@@ -151,7 +150,8 @@ void LruBase<T, U, Hash, Eq, CachePolicy::kSLRU>::Clear() noexcept {
 
 template <typename T, typename U, typename Hash, typename Eq>
 template <typename Function>
-void LruBase<T, U, Hash, Eq, CachePolicy::kSLRU>::VisitAll(Function&& func) const {
+void LruBase<T, U, Hash, Eq, CachePolicy::kSLRU>::VisitAll(
+    Function&& func) const {
   probation_.template VisitAll(func);
   protected_.template VisitAll(std::forward<Function>(func));
 }
@@ -176,8 +176,6 @@ void LruBase<T, U, Hash, Eq, CachePolicy::kSLRU>::VisitAll(Function&& func) {
   probation_.template VisitAll(func);
   protected_.template VisitAll(std::forward<Function>(func));
 }
-
-
 
 }  // namespace cache::impl
 

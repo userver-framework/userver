@@ -71,9 +71,7 @@ class LfuBase final {
         m_freq_(std::move(other.m_freq_)) {
     other.Clear();
   }
-  ~LfuBase() {
-    Clear();
-  }
+  ~LfuBase() { Clear(); }
   LfuBase& operator=(LfuBase&& other) noexcept {
     if (this != &other) {
       Clear();
