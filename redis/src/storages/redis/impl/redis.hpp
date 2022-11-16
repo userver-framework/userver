@@ -19,7 +19,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace redis {
 
-struct InstanceStatistics;
+class Statistics;
 
 class Redis {
  public:
@@ -41,7 +41,7 @@ class Redis {
   std::string GetServerHost() const;
 
   State GetState() const;
-  InstanceStatistics GetStatistics();
+  const Statistics& GetStatistics() const;
   ServerId GetServerId() const;
 
   void SetCommandsBufferingSettings(

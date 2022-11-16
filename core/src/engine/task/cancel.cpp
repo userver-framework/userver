@@ -1,10 +1,8 @@
 #include <userver/engine/task/cancel.hpp>
 
-#include <cctype>
 #include <exception>
 
 #include <fmt/format.h>
-#include <boost/algorithm/string/predicate.hpp>
 #include <boost/algorithm/string/replace.hpp>
 
 #include <userver/engine/sleep.hpp>
@@ -108,12 +106,23 @@ TaskCancellationToken::TaskCancellationToken(Task& task)
   UASSERT(context_);
 }
 
+// clang-tidy insists on defaulting this,
+// gcc complains about exception-specification mismatch with '= default'
+// NOLINTNEXTLINE(hicpp-use-equals-default,modernize-use-equals-default)
 TaskCancellationToken::TaskCancellationToken(
-    const TaskCancellationToken&) noexcept = default;
+    const TaskCancellationToken& other) noexcept
+    : context_{other.context_} {}
 TaskCancellationToken::TaskCancellationToken(TaskCancellationToken&&) noexcept =
     default;
+
 TaskCancellationToken& TaskCancellationToken::operator=(
-    const TaskCancellationToken&) noexcept = default;
+    const TaskCancellationToken& other) noexcept {
+  if (&other != this) {
+    context_ = other.context_;
+  }
+
+  return *this;
+}
 TaskCancellationToken& TaskCancellationToken::operator=(
     TaskCancellationToken&&) noexcept = default;
 

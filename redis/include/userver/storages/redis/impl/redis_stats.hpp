@@ -4,8 +4,6 @@
 #include <atomic>
 #include <chrono>
 #include <map>
-#include <mutex>
-#include <unordered_map>
 
 #include <userver/concurrent/variable.hpp>
 #include <userver/storages/redis/impl/command.hpp>
@@ -39,7 +37,6 @@ class Statistics {
   using RecentPeriod =
       utils::statistics::RecentPeriod<Percentile, Percentile,
                                       utils::datetime::SteadyClock>;
-  using CommandTimings = std::unordered_map<std::string, RecentPeriod>;
 
   std::atomic<RedisState> state{RedisState::kInit};
   std::atomic_llong reconnects{0};
@@ -47,7 +44,6 @@ class Statistics {
   RecentPeriod request_size_percentile;
   RecentPeriod reply_size_percentile;
   RecentPeriod timings_percentile;
-  concurrent::Variable<CommandTimings, std::mutex> command_timings_percentile;
   std::atomic_llong last_ping_ms{};
 
   std::array<std::atomic_llong, REDIS_ERR_MAX + 1> error_count{{}};
@@ -66,9 +62,6 @@ struct InstanceStatistics {
         last_ping_ms(other.last_ping_ms.load(std::memory_order_relaxed)) {
     for (size_t i = 0; i < error_count.size(); i++)
       error_count[i] = other.error_count[i].load(std::memory_order_relaxed);
-    auto command_timings = other.command_timings_percentile.Lock();
-    for (const auto& [command, timings] : *command_timings)
-      command_timings_percentile.emplace(command, timings.GetStatsForPeriod());
   }
 
   InstanceStatistics() : InstanceStatistics(Statistics()) {}
@@ -81,9 +74,6 @@ struct InstanceStatistics {
 
     for (size_t i = 0; i < error_count.size(); i++)
       error_count[i] += other.error_count[i];
-
-    for (const auto& [command, timings] : other.command_timings_percentile)
-      command_timings_percentile[command].Add(timings);
   }
 
   RedisState state;
@@ -92,8 +82,6 @@ struct InstanceStatistics {
   Statistics::Percentile request_size_percentile;
   Statistics::Percentile reply_size_percentile;
   Statistics::Percentile timings_percentile;
-  std::unordered_map<std::string, Statistics::Percentile>
-      command_timings_percentile;
   long long last_ping_ms;
 
   std::array<long long, REDIS_ERR_MAX + 1> error_count{{}};
