@@ -10,9 +10,9 @@ namespace storages::etcd {
 
 class Component {
  public:
-  std::pair<std::string, std::string> KeyValue();
-  std::string GetKey();
-  std::string GetValue();
+  std::pair<std::string, std::string> KeyValue() const;
+  std::string GetKey() const;
+  std::string GetValue() const;
 
  private:
   std::string key_;
@@ -21,7 +21,7 @@ class Component {
 
 class Request {
  public:
-  std::vector<Component> Get();
+  std::vector<Component> Get() const;
 
  private:
   std::vector<Component> components_;
