@@ -129,6 +129,10 @@ target_compile_definitions(${PROJECT_NAME} PUBLIC
   "USERVER_NAMESPACE_END=${USERVER_NAMESPACE_END}"
 )
 
+target_compile_definitions(${PROJECT_NAME} PRIVATE
+  CRYPTOPP_ENABLE_NAMESPACE_WEAK=1
+)
+
 # https://bugs.llvm.org/show_bug.cgi?id=16404
 if (USERVER_SANITIZE AND NOT CMAKE_BUILD_TYPE MATCHES "^Rel")
   target_link_libraries(${PROJECT_NAME} PUBLIC userver-compiler-rt-parts)
