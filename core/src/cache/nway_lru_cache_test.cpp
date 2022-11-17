@@ -12,6 +12,7 @@ class NWayLRU : public ::testing::Test {
   using Cache = T;
 };
 
+// TODO: take out for all cache tests
 using NWayLRUPolicyTypes = ::testing::Types<
     cache::NWayLRU<int, int, std::hash<int>, std::equal_to<int>, cache::CachePolicy::kLRU>,
     cache::NWayLRU<int, int, std::hash<int>, std::equal_to<int>, cache::CachePolicy::kSLRU>,
