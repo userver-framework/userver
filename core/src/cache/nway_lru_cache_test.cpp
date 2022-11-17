@@ -12,12 +12,12 @@ class NWayLRU : public ::testing::Test {
   using Cache = T;
 };
 
-using PolicyTypes = ::testing::Types<
+using NWayLRUPolicyTypes = ::testing::Types<
     cache::NWayLRU<int, int, std::hash<int>, std::equal_to<int>, cache::CachePolicy::kLRU>,
     cache::NWayLRU<int, int, std::hash<int>, std::equal_to<int>, cache::CachePolicy::kSLRU>,
     cache::NWayLRU<int, int, std::hash<int>, std::equal_to<int>, cache::CachePolicy::kTinyLFU>>;
 
-TYPED_UTEST_SUITE(NWayLRU, PolicyTypes);
+TYPED_UTEST_SUITE(NWayLRU, NWayLRUPolicyTypes);
 
 TYPED_UTEST(NWayLRU, Ctr) {
   using Cache = typename TestFixture::Cache;
