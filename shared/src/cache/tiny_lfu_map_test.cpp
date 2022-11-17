@@ -123,4 +123,13 @@ TEST(TinyLFU, Get) {
   EXPECT_EQ(*res, 3);
 }
 
+TEST(TinyLFU, Size2) {
+  TinyLFU cache(2, std::hash<int>{}, std::equal_to<int>{});
+  cache.Put(1, 1);
+  cache.Put(2, 2);
+  EXPECT_TRUE(cache.Get(1));
+  EXPECT_TRUE(cache.Get(2));
+  EXPECT_EQ(2, cache.GetSize());
+}
+
 USERVER_NAMESPACE_END

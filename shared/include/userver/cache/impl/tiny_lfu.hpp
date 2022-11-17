@@ -104,7 +104,8 @@ void LruBase<T, U, Hash, Equal, CachePolicy::kTinyLFU>::SetMaxSize(
     new_proxy.RecordAccess(key);
   });
   proxy_ = new_proxy;
-  main_.SetMaxSize(new_max_size);
+  main_.SetMaxSize(new_max_size + 1);
+  max_size_ = new_max_size;
 }
 
 template <typename T, typename U, typename Hash, typename Equal>
