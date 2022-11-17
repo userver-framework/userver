@@ -2,6 +2,7 @@
 
 #include <type_traits>
 
+#include <cache/cache_policy_types_test.hpp>
 #include <userver/cache/nway_lru_cache.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -9,16 +10,10 @@ USERVER_NAMESPACE_BEGIN
 template <typename T>
 class NWayLRU : public ::testing::Test {
  public:
-  using Cache = T;
+  using Cache = cache::NWayLRU<int, int, std::hash<int>, std::equal_to<int>, T::value>;
 };
 
-// TODO: take out for all cache tests
-using NWayLRUPolicyTypes = ::testing::Types<
-    cache::NWayLRU<int, int, std::hash<int>, std::equal_to<int>, cache::CachePolicy::kLRU>,
-    cache::NWayLRU<int, int, std::hash<int>, std::equal_to<int>, cache::CachePolicy::kSLRU>,
-    cache::NWayLRU<int, int, std::hash<int>, std::equal_to<int>, cache::CachePolicy::kTinyLFU>>;
-
-TYPED_UTEST_SUITE(NWayLRU, NWayLRUPolicyTypes);
+TYPED_UTEST_SUITE(NWayLRU, PolicyTypes);
 
 TYPED_UTEST(NWayLRU, Ctr) {
   using Cache = typename TestFixture::Cache;
