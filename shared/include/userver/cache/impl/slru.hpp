@@ -83,8 +83,17 @@ bool LruBase<T, U, Hash, Eq, CachePolicy::kSLRU>::Put(const T& key, U value) {
     }
     return false;
   }
-  if (probation_.GetSize() == probation_size_ + 1)
-    probation_.Erase(*probation_.GetLeastUsedKey());
+  result = protected_.Put(key, value);
+  if (result) {
+    protected_.Erase(key);
+    if (probation_.GetSize() == probation_size_ + 1)
+      probation_.Erase(*probation_.GetLeastUsedKey());
+  }
+  else {
+    probation_.Erase(key);
+    return false;
+  }
+
   return true;
 }
 
