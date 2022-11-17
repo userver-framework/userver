@@ -92,12 +92,12 @@ class Request final : public std::enable_shared_from_this<Request> {
   /// PUT request
   std::shared_ptr<Request> put();
   /// PUT request with url and data
-  std::shared_ptr<Request> put(const std::string& url, std::string data);
+  std::shared_ptr<Request> put(const std::string& url, std::string data = {});
 
   /// PATCH request
   std::shared_ptr<Request> patch();
   /// PATCH request with url and data
-  std::shared_ptr<Request> patch(const std::string& url, std::string data);
+  std::shared_ptr<Request> patch(const std::string& url, std::string data = {});
 
   /// DELETE request
   std::shared_ptr<Request> delete_method();
