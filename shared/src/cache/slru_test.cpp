@@ -150,4 +150,15 @@ TEST(SLRU, Erase) {
   EXPECT_FALSE(slru.Get(2));
 }
 
+TEST(SLRU, Size1) {
+  SLRU slru(1, std::hash<int>{}, std::equal_to<int>{}, 0.8);
+  slru.Put(1, 1);
+  slru.Put(2, 2);
+  EXPECT_EQ(GetProbation(slru), (std::vector<int> {2}));
+  EXPECT_EQ(GetProtected(slru), (std::vector<int> {}));
+  EXPECT_TRUE(slru.Get(2));
+  EXPECT_EQ(1, slru.GetSize());
+  EXPECT_FALSE(slru.Get(1));
+}
+
 USERVER_NAMESPACE_END

@@ -116,6 +116,8 @@ void LruBase<T, U, Hash, Eq, CachePolicy::kSLRU>::Erase(const T& key) {
 template <typename T, typename U, typename Hash, typename Eq>
 U* LruBase<T, U, Hash, Eq, CachePolicy::kSLRU>::Get(const T& key) {
   auto result = probation_.Get(key);
+  if (protected_size_ == 0)
+    return result;
   if (!result) return protected_.Get(key);
 
   protected_.Put(key, *result);
