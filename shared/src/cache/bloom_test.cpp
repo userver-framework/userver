@@ -7,7 +7,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-using Jenkins = cache::impl::utils::Jenkins<int>;
+using Jenkins = cache::impl::internal::Jenkins<int>;
 using FrequencySketch =
     cache::impl::FrequencySketch<int, Jenkins,
                                  cache::FrequencySketchPolicy::Bloom>;

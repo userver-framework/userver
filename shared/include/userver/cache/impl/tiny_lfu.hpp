@@ -4,6 +4,7 @@
 
 #include <userver/cache/impl/frequency_sketch.hpp>
 #include <userver/cache/impl/lru.hpp>
+#include <userver/cache/impl/hash.hpp>
 #include <userver/cache/policy.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -13,7 +14,7 @@ namespace cache::impl {
 template <typename T, typename U, typename Hash, typename Equal>
 class LruBase<T, U, Hash, Equal, CachePolicy::kTinyLFU> {
  public:
-  explicit LruBase(size_t max_size, const Hash& hash, const Equal& equal);
+  explicit LruBase(std::size_t max_size, const Hash& hash, const Equal& equal);
 
   LruBase(LruBase&& other) noexcept = default;
   LruBase& operator=(LruBase&& other) noexcept = default;
@@ -27,26 +28,26 @@ class LruBase<T, U, Hash, Equal, CachePolicy::kTinyLFU> {
   U* Get(const T& key);
   const T* GetLeastUsedKey();
   U* GetLeastUsedValue();
-  void SetMaxSize(size_t new_max_size);
+  void SetMaxSize(std::size_t new_max_size);
   void Clear() noexcept;
   template <typename Function>
   void VisitAll(Function&& func) const;
   template <typename Function>
   void VisitAll(Function&& func);
-  size_t GetSize() const;
+  std::size_t GetSize() const;
 
  private:
-  FrequencySketch<T, FrequencySketchPolicy::Bloom> proxy_;
-  size_t max_size_;
+  FrequencySketch<T, internal::Jenkins<T>, FrequencySketchPolicy::Bloom> proxy_;
+  std::size_t max_size_;
   LruBase<T, U, Hash, Equal, CachePolicy::kLRU> main_;
 };
 
 // need max_size > 0 for put
 template <typename T, typename U, typename Hash, typename Equal>
-LruBase<T, U, Hash, Equal, CachePolicy::kTinyLFU>::LruBase(size_t max_size,
+LruBase<T, U, Hash, Equal, CachePolicy::kTinyLFU>::LruBase(std::size_t max_size,
                                                            const Hash& hash,
                                                            const Equal& equal)
-    : proxy_(max_size), max_size_(max_size), main_(max_size + 1, hash, equal) {}
+    : proxy_(max_size, internal::Jenkins<T>{}), max_size_(max_size), main_(max_size + 1, hash, equal) {}
 
 // TODO: what should be returned? (same get() or success/failure)
 template <typename T, typename U, typename Hash, typename Equal>
@@ -97,9 +98,9 @@ U* LruBase<T, U, Hash, Equal, CachePolicy::kTinyLFU>::GetLeastUsedValue() {
 // TODO: think about more smart new_proxy init | need tests
 template <typename T, typename U, typename Hash, typename Equal>
 void LruBase<T, U, Hash, Equal, CachePolicy::kTinyLFU>::SetMaxSize(
-    size_t new_max_size) {
+    std::size_t new_max_size) {
   auto new_proxy =
-      FrequencySketch<T, FrequencySketchPolicy::Bloom>(new_max_size);
+      FrequencySketch<T, internal::Jenkins<T>, FrequencySketchPolicy::Bloom>(new_max_size, internal::Jenkins<T>{});
   main_.VisitAll([&new_proxy](const T& key, const U&) mutable {
     new_proxy.RecordAccess(key);
   });
@@ -129,7 +130,7 @@ void LruBase<T, U, Hash, Equal, CachePolicy::kTinyLFU>::VisitAll(
 }
 
 template <typename T, typename U, typename Hash, typename Equal>
-size_t LruBase<T, U, Hash, Equal, CachePolicy::kTinyLFU>::GetSize() const {
+std::size_t LruBase<T, U, Hash, Equal, CachePolicy::kTinyLFU>::GetSize() const {
   return main_.GetSize();
 }
 
