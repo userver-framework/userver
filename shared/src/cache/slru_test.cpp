@@ -49,6 +49,10 @@ TEST(SLRU, Put) {
   EXPECT_EQ(GetProbation(slru), (std::vector<int> {1, 2, 3, 4, 5, 8}));
   EXPECT_EQ(GetProtected(slru), (std::vector<int> {6, 7}));
 
+  EXPECT_FALSE(slru.Put(7, 2));
+  EXPECT_EQ(GetProbation(slru), (std::vector<int> {1, 2, 3, 4, 5, 8}));
+  EXPECT_EQ(GetProtected(slru), (std::vector<int> {6, 7}));
+
   EXPECT_TRUE(slru.Put(9, 0));
   EXPECT_TRUE(slru.Put(10, 0));
   EXPECT_TRUE(slru.Put(11, 0));
