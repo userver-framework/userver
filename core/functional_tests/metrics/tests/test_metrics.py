@@ -1,3 +1,4 @@
+import re
 import sys
 
 
@@ -10,16 +11,8 @@ def _normalize_metrics(metrics: str) -> str:
             # MacOS does not provide some of the io_* metrics
             continue
 
-        if ';' in left:
-            path, labels = left.split(';', 1)
-            label_keys = [x.split('=', 1)[0] + '=' for x in labels.split(';')]
-            left = path + ';' + ';'.join(label_keys)
-
+        left = re.sub('localhost_\\d+', 'localhost_00000', left)
         result.append(left + ' ' + '0')
-
-    # Leave only unique values to deal with httpclient metric flaps
-    # TODO: remove
-    result = list(set(result))
 
     result.sort()
     return '\n'.join(result)

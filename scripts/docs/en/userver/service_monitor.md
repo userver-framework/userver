@@ -74,7 +74,7 @@ bash
 $ curl http://localhost:8086/service/monitor?format=graphite | sort
 ```
 
-@include core/functional_tests/metrics/tests/metrics_values.txt
+@include core/functional_tests/metrics/tests/static/metrics_values.txt
 
 
 ----------

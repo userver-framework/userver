@@ -92,7 +92,8 @@ DestinationStatistics::end() const {
 void DumpMetric(utils::statistics::Writer& writer,
                 const DestinationStatistics& stats) {
   for (const auto& [url, stat_ptr] : stats) {
-    writer.ValueWithLabels(FullInstanceStatisticsView{*stat_ptr},
+    const InstanceStatistics instance_stat{*stat_ptr};
+    writer.ValueWithLabels(FullInstanceStatisticsView{instance_stat},
                            {"http_destination", url});
   }
 }
