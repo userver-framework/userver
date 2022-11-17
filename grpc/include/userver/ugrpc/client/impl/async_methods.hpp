@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <optional>
 #include <string_view>
 #include <utility>
 
@@ -128,7 +129,10 @@ void StartCall(GrpcStream& stream, RpcData& data) {
 
 void PrepareFinish(RpcData& data);
 
-void ProcessFinishResult(RpcData& data, bool ok, grpc::Status& status);
+void ProcessFinishResult(RpcData& data, bool ok, grpc::Status& status,
+                         const std::optional<std::string>& message);
+
+void ProcessFinishResultAndCheck(RpcData& data, bool ok, grpc::Status& status);
 
 template <typename GrpcStream>
 void Finish(GrpcStream& stream, RpcData& data) {
@@ -136,10 +140,7 @@ void Finish(GrpcStream& stream, RpcData& data) {
   grpc::Status status;
   AsyncMethodInvocation finish;
   stream.Finish(&status, finish.GetTag());
-  ProcessFinishResult(data, finish.Wait(), status);
-  if (!status.ok()) {
-    impl::ThrowErrorWithStatus(data.GetCallName(), std::move(status));
-  }
+  ProcessFinishResultAndCheck(data, finish.Wait(), status);
 }
 
 void PrepareRead(RpcData& data);

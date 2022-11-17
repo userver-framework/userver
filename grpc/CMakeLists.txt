@@ -5,20 +5,24 @@ if (USERVER_OPEN_SOURCE_BUILD)
         find_package(gRPC REQUIRED)
         find_package(Protobuf REQUIRED)
         set(GRPC_LIBRARY_VERSION "${gRPC_VERSION}")
+        set(GRPC_PROTOBUF_INCLUDE_DIRS "${Protobuf_INCLUDE_DIRS}" CACHE PATH INTERNAL)
     else()
         find_package(UserverGrpc REQUIRED)
         find_package(UserverProtobuf REQUIRED)
         add_library(Grpc ALIAS UserverGrpc)  # Unify link names
         add_library(Protobuf ALIAS UserverProtobuf)  # Unify link names
         set(GRPC_LIBRARY_VERSION "${UserverGrpc_VERSION}")
+        set(GRPC_PROTOBUF_INCLUDE_DIRS "${UserverProtobuf_INCLUDE_DIRS}" CACHE PATH INTERNAL)
     endif()
 else()
     find_package(Grpc REQUIRED)
     find_package(Protobuf REQUIRED)
     set(GRPC_LIBRARY_VERSION "1.0.0")
+    set(GRPC_PROTOBUF_INCLUDE_DIRS "${Protobuf_INCLUDE_DIRS}" CACHE PATH INTERNAL)
 endif()
 
 include(GrpcTargets)
+include(SetupGoogleProtoApis)
 
 file(GLOB_RECURSE SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp
@@ -40,6 +44,10 @@ file(GLOB_RECURSE UNIT_TEST_SOURCES
 )
 list(REMOVE_ITEM SOURCES ${UNIT_TEST_SOURCES})
 
+if (api-common-proto_USRV_SOURCES)
+  list(APPEND SOURCES ${api-common-proto_USRV_SOURCES})
+endif()
+
 add_library(${PROJECT_NAME} STATIC ${SOURCES})
 
 set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
@@ -50,6 +58,10 @@ target_include_directories(${PROJECT_NAME}
   PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
+
+if (DEFINED api-common-proto_LIBRARY)
+  target_link_libraries(${PROJECT_NAME} PUBLIC ${api-common-proto_LIBRARY})
+endif()
 
 target_link_libraries(${PROJECT_NAME} PUBLIC userver-core)
 

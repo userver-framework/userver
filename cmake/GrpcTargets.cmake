@@ -23,7 +23,7 @@ set(PROTO_GRPC_USRV_PLUGIN ${USERVER_DIR}/scripts/grpc/protoc_usrv_plugin)
 
 function(generate_grpc_files)
   set(options)
-  set(one_value_args CPP_FILES GENERATED_INCLUDES SOURCE_PATH)
+  set(one_value_args CPP_FILES CPP_USRV_FILES GENERATED_INCLUDES SOURCE_PATH)
   set(multi_value_args PROTOS INCLUDE_DIRECTORIES)
   cmake_parse_arguments(GEN_RPC "${options}" "${one_value_args}" "${multi_value_args}" ${ARGN})
 
@@ -79,6 +79,7 @@ function(generate_grpc_files)
               --grpc_out=${GENERATED_PROTO_DIR}
               --usrv_out=${GENERATED_PROTO_DIR}
               -I ${root_path}
+              -I ${GRPC_PROTOBUF_INCLUDE_DIRS}
               --plugin=protoc-gen-grpc=${PROTO_GRPC_CPP_PLUGIN}
               --plugin=protoc-gen-usrv=${PROTO_GRPC_USRV_PLUGIN}
               ${proto_file}
@@ -96,24 +97,24 @@ function(generate_grpc_files)
       ${GENERATED_PROTO_DIR}/${path_base}.pb.cc
     )
 
-    if(EXISTS ${GENERATED_PROTO_DIR}/${path_base}.grpc.pb.h)
-      list(APPEND files
-        ${GENERATED_PROTO_DIR}/${path_base}.grpc.pb.h
-        ${GENERATED_PROTO_DIR}/${path_base}.grpc.pb.cc
-      )
-    endif()
-
     if (EXISTS ${GENERATED_PROTO_DIR}/${path_base}_client.usrv.pb.hpp)
-      list(APPEND files
+      set(usrv_files
         ${GENERATED_PROTO_DIR}/${path_base}_client.usrv.pb.hpp
         ${GENERATED_PROTO_DIR}/${path_base}_client.usrv.pb.cpp
         ${GENERATED_PROTO_DIR}/${path_base}_service.usrv.pb.hpp
         ${GENERATED_PROTO_DIR}/${path_base}_service.usrv.pb.cpp
       )
+      if(EXISTS ${GENERATED_PROTO_DIR}/${path_base}.grpc.pb.h)
+        list(APPEND files
+          ${GENERATED_PROTO_DIR}/${path_base}.grpc.pb.h
+          ${GENERATED_PROTO_DIR}/${path_base}.grpc.pb.cc
+        )
+      endif()
     endif()
 
-    set_source_files_properties(${files} PROPERTIES GENERATED 1)
+    set_source_files_properties(${files} ${usrv_files} PROPERTIES GENERATED 1)
     list(APPEND generated_cpps ${files})
+    list(APPEND generated_usrv_cpps ${usrv_files})
   endforeach()
 
   if(GEN_RPC_GENERATED_INCLUDES)
@@ -121,6 +122,9 @@ function(generate_grpc_files)
   endif()
   if(GEN_RPC_CPP_FILES)
     set(${GEN_RPC_CPP_FILES} ${generated_cpps} PARENT_SCOPE)
+  endif()
+  if(GEN_RPC_CPP_USRV_FILES)
+    set(${GEN_RPC_CPP_USRV_FILES} ${generated_usrv_cpps} PARENT_SCOPE)
   endif()
 endfunction()
 
@@ -136,8 +140,9 @@ function(add_grpc_library NAME)
     SOURCE_PATH ${RPC_LIB_SOURCE_PATH}
     GENERATED_INCLUDES include_paths
     CPP_FILES generated_sources
+    CPP_USRV_FILES generated_usrv_sources
   )
-  add_library(${NAME} STATIC ${generated_sources})
+  add_library(${NAME} STATIC ${generated_sources} ${generated_usrv_sources})
   target_compile_options(${NAME} PUBLIC -Wno-unused-parameter)
   target_include_directories(${NAME} SYSTEM PUBLIC ${include_paths})
   target_link_libraries(${NAME} PUBLIC userver-grpc)
