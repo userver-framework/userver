@@ -7,26 +7,27 @@
 USERVER_NAMESPACE_BEGIN
 
 template <typename T>
-class NWayLRU : public ::testing::Test {};
+class NWayLRU : public ::testing::Test {
+ public:
+  using Cache = T;
+};
 
-using policy_types = ::testing::Types<
-    std::integral_constant<cache::CachePolicy, cache::CachePolicy::kLRU>,
-    std::integral_constant<cache::CachePolicy, cache::CachePolicy::kSLRU>,
-    std::integral_constant<cache::CachePolicy, cache::CachePolicy::kTinyLFU>>;
+using PolicyTypes = ::testing::Types<
+    cache::NWayLRU<int, int, std::hash<int>, std::equal_to<int>, cache::CachePolicy::kLRU>,
+    cache::NWayLRU<int, int, std::hash<int>, std::equal_to<int>, cache::CachePolicy::kSLRU>,
+    cache::NWayLRU<int, int, std::hash<int>, std::equal_to<int>, cache::CachePolicy::kTinyLFU>>;
 
-TYPED_UTEST_SUITE(NWayLRU, policy_types);
+TYPED_UTEST_SUITE(NWayLRU, PolicyTypes);
 
 TYPED_UTEST(NWayLRU, Ctr) {
-  using Cache = cache::NWayLRU<int, int, std::hash<int>, std::equal_to<int>,
-                               TypeParam::value>;
+  using Cache = typename TestFixture::Cache;
   UEXPECT_NO_THROW(Cache(1, 10));
   UEXPECT_NO_THROW(Cache(10, 10));
   UEXPECT_THROW(Cache(0, 10), std::logic_error);
 }
 
 TYPED_UTEST(NWayLRU, Set) {
-  using Cache = cache::NWayLRU<int, int, std::hash<int>, std::equal_to<int>,
-                               TypeParam::value>;
+  using Cache = typename TestFixture::Cache;
   Cache cache(1, 1);
   EXPECT_EQ(0, cache.GetSize());
 
@@ -34,8 +35,7 @@ TYPED_UTEST(NWayLRU, Set) {
   EXPECT_EQ(1, cache.GetSize());
 
   cache.Put(2, 2);
-  if constexpr (TypeParam::value == cache::CachePolicy::kTinyLFU)
-    cache.Put(2, 2);
+  cache.Put(2, 2);
 
   EXPECT_EQ(2, cache.Get(2));
   EXPECT_EQ(1, cache.GetSize());
@@ -43,8 +43,7 @@ TYPED_UTEST(NWayLRU, Set) {
 }
 
 TYPED_UTEST(NWayLRU, GetExpired) {
-  using Cache = cache::NWayLRU<int, int, std::hash<int>, std::equal_to<int>,
-                               TypeParam::value>;
+  using Cache = typename TestFixture::Cache;
   Cache cache(1, 2);
   cache.Put(1, 1);
   cache.Put(2, 2);
@@ -64,8 +63,7 @@ TYPED_UTEST(NWayLRU, GetExpired) {
 }
 
 TYPED_UTEST(NWayLRU, SetMultipleWays) {
-  using Cache = cache::NWayLRU<int, int, std::hash<int>, std::equal_to<int>,
-                               TypeParam::value>;
+  using Cache = typename TestFixture::Cache;
   Cache cache(2, 1);
   cache.Put(1, 1);
   cache.Put(2, 2);
