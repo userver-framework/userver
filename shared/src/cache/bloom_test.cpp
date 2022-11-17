@@ -3,13 +3,17 @@
 #include <vector>
 
 #include <userver/cache/impl/frequency_sketch.hpp>
+#include <userver/cache/impl/hash.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
-using cache::impl::FrequencySketch;
+using Jenkins = cache::impl::utils::Jenkins<int>;
+using FrequencySketch =
+    cache::impl::FrequencySketch<int, Jenkins,
+                                 cache::FrequencySketchPolicy::Bloom>;
 
 TEST(Bloom, Reset) {
-  FrequencySketch<int, cache::FrequencySketchPolicy::Bloom> bloom(64);
+  FrequencySketch bloom(64, Jenkins{});
 
   bool was_reset = false;
   for (int i = 0; i <= 1000 * 64; i++) {
@@ -24,17 +28,15 @@ TEST(Bloom, Reset) {
 }
 
 TEST(Bloom, Full) {
-  FrequencySketch<int, cache::FrequencySketchPolicy::Bloom> bloom(16, 1000);
+  FrequencySketch bloom(16, Jenkins{}, 1000);
 
-  for (int i = 0; i < 100'000; i++)
-    bloom.RecordAccess(i);
+  for (int i = 0; i < 100'000; i++) bloom.RecordAccess(i);
 
-  for (int i = 0; i < 100'000; i++)
-    EXPECT_EQ(bloom.GetFrequency(i), 15);
+  for (int i = 0; i < 100'000; i++) EXPECT_EQ(bloom.GetFrequency(i), 15);
 }
 
 TEST(Bloom, HeavyHitters) {
-  FrequencySketch<double, cache::FrequencySketchPolicy::Bloom> bloom(512);
+  FrequencySketch bloom(512, Jenkins{});
   for (int i = 100; i < 100'000; i++) {
     bloom.RecordAccess(static_cast<double>(i));
   }
