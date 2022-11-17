@@ -21,10 +21,9 @@ namespace impl {
 formats::json::Value GetCacheStatisticsAsJson(
     const ExpirableLruCacheStatistics& stats, std::size_t size);
 
-// TODO: to other Polices
-template <typename Key, typename Value, typename Hash, typename Equal>
+template <typename Key, typename Value, typename Hash, typename Equal, CachePolicy Policy>
 formats::json::Value GetCacheStatisticsAsJson(
-    const ExpirableLruCache<Key, Value, Hash, Equal>& cache) {
+    const ExpirableLruCache<Key, Value, Hash, Equal, Policy>& cache) {
   return GetCacheStatisticsAsJson(cache.GetStatistics(),
                                   cache.GetSizeApproximate());
 }

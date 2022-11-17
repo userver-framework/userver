@@ -4,6 +4,8 @@
 /// @brief @copybrief cache::LruMap
 
 #include <userver/cache/impl/lru.hpp>
+#include <userver/cache/impl/slru.hpp>
+#include <userver/cache/impl/tiny_lfu.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
