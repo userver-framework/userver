@@ -33,6 +33,8 @@ dns-client.replies;dns_reply_source=network 0 1668196220
 dns-client.replies;dns_reply_source=network-failure 0 1668196220
 engine.coro-pool.coroutines.active 17 1668196220
 engine.coro-pool.coroutines.total 5000 1668196220
+engine.ev-threads.cpu-load-percent;ev_thread_name=event-worker_0 0 1668196220
+engine.ev-threads.cpu-load-percent;ev_thread_name=event-worker_1 0 1668196220
 engine.load-ms 165 1668196220
 engine.task-processors.context_switch.fast;task_processor=fs-task-processor 0 1668196220
 engine.task-processors.context_switch.fast;task_processor=main-task-processor 0 1668196220
