@@ -15,18 +15,19 @@ class FrequencySketchF : public ::testing::Test {
 };
 
 using PolicyTypes = ::testing::Types<
-    std::integral_constant<cache::FrequencySketchPolicy, cache::FrequencySketchPolicy::Bloom>,
-    std::integral_constant<cache::FrequencySketchPolicy, cache::FrequencySketchPolicy::DoorkeeperBloom>>;
+    std::integral_constant<cache::FrequencySketchPolicy,
+                           cache::FrequencySketchPolicy::Bloom>,
+    std::integral_constant<cache::FrequencySketchPolicy,
+                           cache::FrequencySketchPolicy::DoorkeeperBloom>>;
 
-TYPED_TEST_SUITE(FrequencySketchF, PolicyTypes);
+TYPED_TEST_SUITE(FrequencySketchF, PolicyTypes, );
 
 TYPED_TEST(FrequencySketchF, SingleCounter) {
   using FrequencySketch = typename TestFixture::FrequencySketch;
   using Hash = typename TestFixture::Hash;
   FrequencySketch counter(512, Hash{});
 
-  for (int i = 0; i < 10; i++)
-    counter.RecordAccess(100);
+  for (int i = 0; i < 10; i++) counter.RecordAccess(100);
   EXPECT_EQ(10, counter.GetFrequency(100));
 }
 
@@ -47,9 +48,11 @@ TYPED_TEST(FrequencySketchF, Reset) {
   EXPECT_TRUE(was_reset);
 }
 
-TYPED_TEST(FrequencySketchF, Full) {
-  using FrequencySketch = typename TestFixture::FrequencySketch;
-  using Hash = typename TestFixture::Hash;
+TEST(FrequencySketchF, Full) {
+  using Hash = cache::impl::internal::Jenkins<double>;
+  using FrequencySketch =
+      cache::impl::FrequencySketch<double, Hash,
+                                   cache::FrequencySketchPolicy::Bloom>;
   FrequencySketch counter(16, Hash{}, 1000);
 
   for (int i = 0; i < 100'000; i++) counter.RecordAccess(i);
