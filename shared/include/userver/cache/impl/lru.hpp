@@ -81,7 +81,7 @@ template <typename T, typename U, typename Hash, typename Equal>
 class LruBase<T, U, Hash, Equal, CachePolicy::kLRU> final {
 
  public:
-  template <typename T2, typename U2, typename Hash2, typename Equal2, CachePolicy>
+  template <typename T2, typename U2, typename Hash2, typename Equal2, CachePolicy, CachePolicy...>
   friend class LruBase;
 
   explicit LruBase(size_t max_size, const Hash& hash, const Equal& equal);
