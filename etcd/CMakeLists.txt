@@ -52,6 +52,7 @@ set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
 target_link_libraries(${PROJECT_NAME}
   PUBLIC
     userver-core
+    ${PROJECT_NAME}_proto
   # PRIVATE
   #   userver-uboost-coro # uses BlockingFuture
 )
@@ -70,6 +71,28 @@ target_include_directories(
 target_include_directories (${PROJECT_NAME} PRIVATE
     $<TARGET_PROPERTY:userver-core,INCLUDE_DIRECTORIES>
 )
+
+# /// [gRPC]
+include(GrpcTargets)
+
+add_grpc_library(${PROJECT_NAME}_proto PROTOS
+	etcd/api/etcdserverpb/rpc.proto
+	etcd/api/mvccpb/kv.proto
+	etcd/api/authpb/auth.proto
+	etcd/api/etcdserverpb/etcdserver.proto
+	etcd/api/etcdserverpb/raft_internal.proto
+	etcd/api/membershippb/membership.proto
+	etcd/api/versionpb/version.proto
+
+	gogoproto/gogo.proto
+	etcd/api/membershippb/membership.proto
+	google/protobuf/descriptor.proto
+	google/api/annotations.proto
+	google/api/http.proto
+)
+
+# target_link_libraries(${PROJECT_NAME} ${PROJECT_NAME}_proto)
+# /// [gRPC]
 
 
 

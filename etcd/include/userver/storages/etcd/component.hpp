@@ -12,13 +12,9 @@
 #include <userver/dynamic_config/source.hpp>
 #include <userver/utils/statistics/entry.hpp>
 
+#include "client_fwd.hpp"
+
 USERVER_NAMESPACE_BEGIN
-
-
-/// Etcd client
-namespace storages::etcd {
-class Client;
-}  // namespace storages::etcd
 
 namespace components {
 
@@ -30,13 +26,16 @@ class Etcd : public LoggableComponentBase {
   static constexpr std::string_view kName = "etcd";
 
 
- std::shared_ptr<storages::etcd::Client> GetClient() const;
+  storages::etcd::ClientPtr GetClient(const std::string& endpoint = std::string()) const;
 
 private:
- std::shared_ptr<storages::etcd::Client> client_;
+  void Connect(const ComponentConfig& config);
 
-dynamic_config::Source config_;
+  std::unordered_map<std::string, storages::etcd::ClientPtr> clients_;
+  userver::ugrpc::client::ClientFactory& grpc_client_factory_;
+  std::unordered_map<std::string, etcdserverpb::KVClientUPtr> grpc_clients_;
 
+  dynamic_config::Source config_;
 };
 
 } // namespace components

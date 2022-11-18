@@ -1,4 +1,5 @@
 #include <userver/storages/etcd/client.hpp>
+#include <userver/storages/etcd/client_fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -9,11 +10,11 @@ class ClientImpl : public Client,
                     public std::enable_shared_from_this<ClientImpl>
 {
 public:
-    ClientImpl(const std::string& endpoint = std::string());
-    Request GetRange(const std::string& key_begin, const std::string& key_end) final;
+    ClientImpl(etcdserverpb::KVClientUPtr grpc_client);
+    Request GetRange(const std::string& key_begin, const std::string& key_end) const final;
 
 private:
-    std::string endpoint_;
+    etcdserverpb::KVClientUPtr grpc_client_;
 };
 
 } // namespace storages::etcd
