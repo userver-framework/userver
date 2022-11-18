@@ -5,6 +5,7 @@
 #include <userver/cache/impl/frequency_sketch.hpp>
 #include <userver/cache/impl/hash.hpp>
 #include <userver/cache/impl/lru.hpp>
+#include <userver/cache/impl/slru.hpp>
 #include <userver/cache/policy.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -86,24 +87,29 @@ LruBase<T, U, Hash, Equal, CachePolicy::kTinyLFU, InnerPolicy>::LruBase(
     std::size_t max_size, const Hash& hash, const Equal& equal)
     : proxy_(max_size, internal::Jenkins<T>{}),
       max_size_(max_size),
-      main_(max_size + 1, hash, equal) {}
+      main_(max_size, hash, equal) {}
 
 // TODO: what should be returned? (same get() or success/failure)
+// TODO: size 0
 template <typename T, typename U, typename Hash, typename Equal,
           CachePolicy InnerPolicy>
 bool LruBase<T, U, Hash, Equal, CachePolicy::kTinyLFU, InnerPolicy>::Put(
     const T& key, U value) {
   proxy_.RecordAccess(key);
-  auto res = main_.Put(key, value);
-  if (main_.GetSize() == max_size_ + 1) {
+  if (main_.GetSize() == max_size_) {
+    if (main_.Get(key)) {
+      main_.Put(key, std::move(value));
+      return false;
+    }
     if (proxy_.GetFrequency(key) >
         proxy_.GetFrequency(*main_.GetLeastUsedKey()))
-      main_.Erase(*main_.GetLeastUsedKey());
-    else
-      main_.Erase(key);
+      main_.Put(key, std::move(value));
+    return true;
   }
-  return res;
+  else
+    return main_.Put(key, std::move(value));
 }
+
 template <typename T, typename U, typename Hash, typename Equal,
           CachePolicy InnerPolicy>
 template <typename... Args>
@@ -119,7 +125,7 @@ template <typename T, typename U, typename Hash, typename Equal,
           CachePolicy InnerPolicy>
 void LruBase<T, U, Hash, Equal, CachePolicy::kTinyLFU, InnerPolicy>::Erase(
     const T& key) {
-  return main_.Erase(key);
+  main_.Erase(key);
 }
 
 template <typename T, typename U, typename Hash, typename Equal,
@@ -156,7 +162,7 @@ void LruBase<T, U, Hash, Equal, CachePolicy::kTinyLFU, InnerPolicy>::SetMaxSize(
     new_proxy.RecordAccess(key);
   });
   proxy_ = new_proxy;
-  main_.SetMaxSize(new_max_size + 1);
+  main_.SetMaxSize(new_max_size);
   max_size_ = new_max_size;
 }
 
@@ -173,7 +179,7 @@ template <typename T, typename U, typename Hash, typename Equal,
 template <typename Function>
 void LruBase<T, U, Hash, Equal, CachePolicy::kTinyLFU, InnerPolicy>::VisitAll(
     Function&& func) const {
-  return main_.VisitAll(std::forward<Function>(func));
+  main_.VisitAll(std::forward<Function>(func));
 }
 
 template <typename T, typename U, typename Hash, typename Equal,
@@ -181,7 +187,7 @@ template <typename T, typename U, typename Hash, typename Equal,
 template <typename Function>
 void LruBase<T, U, Hash, Equal, CachePolicy::kTinyLFU, InnerPolicy>::VisitAll(
     Function&& func) {
-  return main_.VisitAll(std::forward<Function>(func));
+  main_.VisitAll(std::forward<Function>(func));
 }
 
 template <typename T, typename U, typename Hash, typename Equal,

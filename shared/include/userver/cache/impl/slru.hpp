@@ -69,6 +69,7 @@ LruBase<T, U, Hash, Equal, CachePolicy::kSLRU>::LruBase(size_t max_size,
           static_cast<size_t>(std::round(max_size * (1 - probation_part))) + 1,
           hash, equal) {}
 
+// TODO: don't copy
 template <typename T, typename U, typename Hash, typename Eq>
 bool LruBase<T, U, Hash, Eq, CachePolicy::kSLRU>::Put(const T& key, U value) {
   auto result = probation_.Put(key, value);
@@ -113,6 +114,7 @@ void LruBase<T, U, Hash, Eq, CachePolicy::kSLRU>::Erase(const T& key) {
   protected_.Erase(key);
 }
 
+// TODO: don't copy
 template <typename T, typename U, typename Hash, typename Eq>
 U* LruBase<T, U, Hash, Eq, CachePolicy::kSLRU>::Get(const T& key) {
   auto result = probation_.Get(key);
