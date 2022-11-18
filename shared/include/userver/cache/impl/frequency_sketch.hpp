@@ -5,13 +5,13 @@
 #include <limits>
 #include <vector>
 
+#include <userver/cache/impl/doorkeeper.hpp>
 #include <userver/cache/policy.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace cache::impl {
-template <typename T,
-          typename Hash = std::hash<T>,
+template <typename T, typename Hash = std::hash<T>,
           FrequencySketchPolicy policy = FrequencySketchPolicy::Bloom>
 class FrequencySketch {};
 
@@ -20,7 +20,8 @@ class FrequencySketch<T, Hash, FrequencySketchPolicy::Bloom> {
   using freq_type = int;
 
  public:
-  explicit FrequencySketch(size_t capacity, const Hash& = std::hash<T>{}, int access_count_limit_rate = 10);
+  explicit FrequencySketch(size_t capacity, const Hash& = std::hash<T>{},
+                           int access_count_limit_rate = 10);
   freq_type GetFrequency(const T& item);
   void RecordAccess(const T& item);
   freq_type Size() { return size_; }
@@ -45,11 +46,30 @@ class FrequencySketch<T, Hash, FrequencySketchPolicy::Bloom> {
   void Reset();
 };
 
+// TODO: tests
+template <typename T, typename Hash>
+class FrequencySketch<T, Hash, FrequencySketchPolicy::DoorkeeperBloom> {
+  using freq_type = int;
+
+ public:
+  explicit FrequencySketch(size_t capacity, const Hash& = std::hash<T>{}, int access_count_limit_rate = 10);
+  freq_type GetFrequency(const T& item);
+  void RecordAccess(const T& item);
+  freq_type Size();
+  void Clear();
+
+ private:
+  Doorkeeper<T, Hash> proxy_;
+  FrequencySketch<T, Hash, FrequencySketchPolicy::Bloom> main_;
+};
+
 // TODO: capacity - ? (space optimize)
 template <typename T, typename Hash>
 FrequencySketch<T, Hash, FrequencySketchPolicy::Bloom>::FrequencySketch(
     size_t capacity, const Hash& hash, int access_count_limit_rate)
-    : table_(capacity), hash_(hash), access_count_limit_rate_(access_count_limit_rate) {}
+    : table_(capacity),
+      hash_(hash),
+      access_count_limit_rate_(access_count_limit_rate) {}
 
 template <typename T, typename Hash>
 int FrequencySketch<T, Hash, FrequencySketchPolicy::Bloom>::GetFrequency(
@@ -61,8 +81,8 @@ int FrequencySketch<T, Hash, FrequencySketchPolicy::Bloom>::GetFrequency(
 }
 
 template <typename T, typename Hash>
-int FrequencySketch<T, Hash, FrequencySketchPolicy::Bloom>::GetCount(const T& item,
-                                                               int step) {
+int FrequencySketch<T, Hash, FrequencySketchPolicy::Bloom>::GetCount(
+    const T& item, int step) {
   auto hash = GetHash(item, step);
   int index = GetIndex(hash);
   int offset = GetOffset(hash, step);
@@ -81,13 +101,14 @@ uint32_t FrequencySketch<T, Hash, FrequencySketchPolicy::Bloom>::GetHash(
 }
 
 template <typename T, typename Hash>
-int FrequencySketch<T, Hash, FrequencySketchPolicy::Bloom>::GetIndex(uint32_t hash) {
+int FrequencySketch<T, Hash, FrequencySketchPolicy::Bloom>::GetIndex(
+    uint32_t hash) {
   return hash & (table_.size() - 1);
 }
 
 template <typename T, typename Hash>
-int FrequencySketch<T, Hash, FrequencySketchPolicy::Bloom>::GetOffset(uint32_t hash,
-                                                                int step) {
+int FrequencySketch<T, Hash, FrequencySketchPolicy::Bloom>::GetOffset(
+    uint32_t hash, int step) {
   return (((hash & 3) << 2) + step) << 2;
 }
 
@@ -130,6 +151,40 @@ void FrequencySketch<T, Hash, FrequencySketchPolicy::Bloom>::Clear() {
     counter = 0;
   }
   size_ = 0;
+}
+
+// TODO: capacity?
+template <typename T, typename Hash>
+FrequencySketch<T, Hash, FrequencySketchPolicy::DoorkeeperBloom>::
+    FrequencySketch(size_t capacity, const Hash& hash, int access_count_limit_rate)
+    : proxy_(capacity * 16, hash), main_(capacity, hash, access_count_limit_rate) {}
+
+template <typename T, typename Hash>
+int FrequencySketch<T, Hash, FrequencySketchPolicy::DoorkeeperBloom>::
+    GetFrequency(const T& item) {
+  if (proxy_.Contains(item)) return main_.GetFrequency(item) + 1;
+  return main_.GetFrequency(item);
+}
+
+template <typename T, typename Hash>
+void FrequencySketch<T, Hash, FrequencySketchPolicy::DoorkeeperBloom>::
+    RecordAccess(const T& item) {
+  if (!proxy_.Contains(item)) {
+    proxy_.Put(item);
+    return;
+  }
+  return main_.RecordAccess(item);
+}
+
+template <typename T, typename Hash>
+void FrequencySketch<T, Hash, FrequencySketchPolicy::DoorkeeperBloom>::Clear() {
+  proxy_.Reset();
+  main_.Clear();
+}
+
+template <typename T, typename Hash>
+int FrequencySketch<T, Hash, FrequencySketchPolicy::DoorkeeperBloom>::Size() {
+  return main_.Size();
 }
 
 }  // namespace cache::impl
