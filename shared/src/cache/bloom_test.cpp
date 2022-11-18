@@ -7,18 +7,38 @@
 
 USERVER_NAMESPACE_BEGIN
 
-using Jenkins = cache::impl::internal::Jenkins<int>;
-using FrequencySketch =
-    cache::impl::FrequencySketch<int, Jenkins,
-                                 cache::FrequencySketchPolicy::Bloom>;
+template <typename T>
+class FrequencySketchF : public ::testing::Test {
+ public:
+  using Hash = cache::impl::internal::Jenkins<double>;
+  using FrequencySketch = cache::impl::FrequencySketch<double, Hash, T::value>;
+};
 
-TEST(Bloom, Reset) {
-  FrequencySketch bloom(64, Jenkins{});
+using PolicyTypes = ::testing::Types<
+    std::integral_constant<cache::FrequencySketchPolicy, cache::FrequencySketchPolicy::Bloom>,
+    std::integral_constant<cache::FrequencySketchPolicy, cache::FrequencySketchPolicy::DoorkeeperBloom>>;
+
+TYPED_TEST_SUITE(FrequencySketchF, PolicyTypes);
+
+TYPED_TEST(FrequencySketchF, SingleCounter) {
+  using FrequencySketch = typename TestFixture::FrequencySketch;
+  using Hash = typename TestFixture::Hash;
+  FrequencySketch counter(512, Hash{});
+
+  for (int i = 0; i < 10; i++)
+    counter.RecordAccess(100);
+  EXPECT_EQ(10, counter.GetFrequency(100));
+}
+
+TYPED_TEST(FrequencySketchF, Reset) {
+  using FrequencySketch = typename TestFixture::FrequencySketch;
+  using Hash = typename TestFixture::Hash;
+  FrequencySketch counter(64, Hash{});
 
   bool was_reset = false;
   for (int i = 0; i <= 1000 * 64; i++) {
-    bloom.RecordAccess(i);
-    if (bloom.Size() != i) {
+    counter.RecordAccess(i);
+    if (counter.Size() != i) {
       was_reset = true;
       break;
     }
@@ -27,29 +47,33 @@ TEST(Bloom, Reset) {
   EXPECT_TRUE(was_reset);
 }
 
-TEST(Bloom, Full) {
-  FrequencySketch bloom(16, Jenkins{}, 1000);
+TYPED_TEST(FrequencySketchF, Full) {
+  using FrequencySketch = typename TestFixture::FrequencySketch;
+  using Hash = typename TestFixture::Hash;
+  FrequencySketch counter(16, Hash{}, 1000);
 
-  for (int i = 0; i < 100'000; i++) bloom.RecordAccess(i);
+  for (int i = 0; i < 100'000; i++) counter.RecordAccess(i);
 
-  for (int i = 0; i < 100'000; i++) EXPECT_EQ(bloom.GetFrequency(i), 15);
+  for (int i = 0; i < 100'000; i++) EXPECT_EQ(counter.GetFrequency(i), 15);
 }
 
-TEST(Bloom, HeavyHitters) {
-  FrequencySketch bloom(512, Jenkins{});
+TYPED_TEST(FrequencySketchF, HeavyHitters) {
+  using FrequencySketch = typename TestFixture::FrequencySketch;
+  using Hash = typename TestFixture::Hash;
+  FrequencySketch counter(512, Hash{});
   for (int i = 100; i < 100'000; i++) {
-    bloom.RecordAccess(static_cast<double>(i));
+    counter.RecordAccess(static_cast<double>(i));
   }
   for (int i = 0; i < 10; i += 2) {
     for (int j = 0; j < i; j++) {
-      bloom.RecordAccess(static_cast<double>(i));
+      counter.RecordAccess(static_cast<double>(i));
     }
   }
 
   // A perfect popularity count yields an array [0, 0, 2, 0, 4, 0, 6, 0, 8, 0]
   std::vector<int> popularity(10);
   for (int i = 0; i < 10; i++) {
-    popularity[i] = bloom.GetFrequency(static_cast<double>(i));
+    popularity[i] = counter.GetFrequency(static_cast<double>(i));
   }
   EXPECT_TRUE(popularity[2] <= popularity[4]);
   EXPECT_TRUE(popularity[4] <= popularity[6]);
