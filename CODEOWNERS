@@ -20,6 +20,7 @@
 /mongo/ @bugaevskiy
 /postgresql/ @bugaevskiy
 /redis/ @segoon
+/etcd/ etcd-friendly // TODO
 /grpc/ @antonyzhilin
 /clickhouse/ @itrofimow
 /rabbitmq/ @itrofimow

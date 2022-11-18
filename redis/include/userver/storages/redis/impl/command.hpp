@@ -4,6 +4,7 @@
 
 #include <userver/storages/redis/impl/base.hpp>
 #include <userver/storages/redis/impl/types.hpp>
+#include <userver/utils/assert.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -23,6 +24,12 @@ struct Command : public std::enable_shared_from_this<Command> {
   Command(const Command&) = delete;
   Command& operator=(const Command&) = delete;
   Command& operator=(Command&&) = delete;
+
+  std::string GetName() {
+    UASSERT(!args.args.empty());
+    UASSERT(!args.args.front().empty());
+    return args.args.front().front();
+  }
 
   // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
   CmdArgs args;
