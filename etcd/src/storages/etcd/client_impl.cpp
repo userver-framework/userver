@@ -22,7 +22,7 @@ namespace storages::etcd {
   Request ClientImpl::GetRange(const std::string& key_begin, const std::string& /*key_end*/) const
   {
     etcdserverpb::RangeRequest request;
-    request.set_key(std::move(key_begin));
+    request.set_key(key_begin);
     auto context = std::make_unique<grpc::ClientContext>();
     context->set_deadline(
         userver::engine::Deadline::FromDuration(std::chrono::seconds{20}));
@@ -38,6 +38,33 @@ namespace storages::etcd {
     }
 
     return Request{std::move(results)};
+  }
+
+  void ClientImpl::Put(const std::string &key, const std::string &value) const {
+    etcdserverpb::PutRequest request;
+    request.set_key(key);
+    request.set_value(value);
+    request.set_lease(0);
+    request.set_prev_kv(false);
+    request.set_ignore_value(false);
+    request.set_ignore_lease(false);
+
+    auto context = std::make_unique<grpc::ClientContext>();
+    context->set_deadline(
+        userver::engine::Deadline::FromDuration(std::chrono::seconds{20}));
+    auto stream = grpc_client_->Put(request, std::move(context));
+
+    etcdserverpb::PutResponse response = stream.Finish();
+  }
+
+  void ClientImpl::Delete(const std::string &key) const {
+    etcdserverpb::DeleteRangeRequest request;
+    request.set_key(key);
+    auto context = std::make_unique<grpc::ClientContext>();
+    context->set_deadline(
+        userver::engine::Deadline::FromDuration(std::chrono::seconds{20}));
+    auto stream = grpc_client_->DeleteRange(request, std::move(context));
+    etcdserverpb::DeleteRangeResponse response = stream.Finish();
   }
 
 }  // namespace storages::etcd
