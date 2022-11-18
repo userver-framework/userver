@@ -11,7 +11,7 @@ class ClientImpl : public Client,
 {
 public:
     ClientImpl(etcdserverpb::KVClientUPtr grpc_client);
-    Request GetRange(const std::string& key_begin, const std::string& key_end) final;
+    Request GetRange(const std::string& key_begin, const std::string& key_end) const final;
 
 private:
     etcdserverpb::KVClientUPtr grpc_client_;

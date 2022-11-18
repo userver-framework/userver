@@ -49,6 +49,14 @@ Etcd::Etcd(const ComponentConfig& config,
 
 storages::etcd::ClientPtr Etcd::GetClient(const std::string& endpoint) const
 {
+  if (endpoint.empty())
+  {
+    if (clients_.empty())
+      throw std::runtime_error("Etcd endpoints not provided");
+    else
+      return clients_.begin()->second;
+  }
+  
   const auto it  = clients_.find(endpoint);
   if (it == clients_.cend())
     throw std::runtime_error(fmt::format("Etcd client not found at {}", endpoint));

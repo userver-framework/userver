@@ -26,7 +26,7 @@ class Etcd : public LoggableComponentBase {
   static constexpr std::string_view kName = "etcd";
 
 
-  storages::etcd::ClientPtr GetClient(const std::string& endpoint) const;
+  storages::etcd::ClientPtr GetClient(const std::string& endpoint = std::string()) const;
 
 private:
   void Connect(const ComponentConfig& config);
