@@ -3,16 +3,17 @@
 #include <utility>
 
 #include <userver/cache/impl/frequency_sketch.hpp>
-#include <userver/cache/impl/lru.hpp>
 #include <userver/cache/impl/hash.hpp>
+#include <userver/cache/impl/lru.hpp>
 #include <userver/cache/policy.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace cache::impl {
 
-template <typename T, typename U, typename Hash, typename Equal>
-class LruBase<T, U, Hash, Equal, CachePolicy::kTinyLFU> {
+template <typename T, typename U, typename Hash, typename Equal,
+          CachePolicy InnerPolicy>
+class LruBase<T, U, Hash, Equal, CachePolicy::kTinyLFU, InnerPolicy> {
  public:
   explicit LruBase(std::size_t max_size, const Hash& hash, const Equal& equal);
 
@@ -39,20 +40,59 @@ class LruBase<T, U, Hash, Equal, CachePolicy::kTinyLFU> {
  private:
   FrequencySketch<T, internal::Jenkins<T>, FrequencySketchPolicy::Bloom> proxy_;
   std::size_t max_size_;
-  LruBase<T, U, Hash, Equal, CachePolicy::kLRU> main_;
+  LruBase<T, U, Hash, Equal, InnerPolicy> main_;
+};
+
+template <typename T, typename U, typename Hash, typename Equal>
+class LruBase<T, U, Hash, Equal, CachePolicy::kTinyLFU> {
+ public:
+  explicit LruBase(std::size_t max_size, const Hash& hash, const Equal& equal)
+      : inner_(max_size, hash, equal) {}
+
+  LruBase(LruBase&& other) noexcept = default;
+  LruBase& operator=(LruBase&& other) noexcept = default;
+  LruBase(const LruBase& lru) = delete;
+  LruBase& operator=(const LruBase& lru) = delete;
+
+  bool Put(const T& key, U value) { return inner_.Put(key, value); }
+  template <typename... Args>
+  U* Emplace(const T& key, Args&&... args) {
+    return inner_.Emplace(key, args...);
+  }
+  void Erase(const T& key) { inner_.Erase(key); }
+  U* Get(const T& key) { return inner_.Get(key); }
+  const T* GetLeastUsedKey() { return inner_.GetLeastUsedKey(); }
+  U* GetLeastUsedValue() { return inner_.GetLeastUsedValue(); }
+  void SetMaxSize(std::size_t new_max_size) { inner_.SetMaxSize(new_max_size); }
+  void Clear() noexcept { inner_.Clear(); }
+  template <typename Function>
+  void VisitAll(Function&& func) const {
+    inner_.VisitAll(std::forward<Function>(func));
+  }
+  template <typename Function>
+  void VisitAll(Function&& func) {
+    inner_.VisitAll(std::forward<Function>(func));
+  }
+  std::size_t GetSize() const { return inner_.GetSize(); }
+
+ private:
+  LruBase<T, U, Hash, Equal, CachePolicy::kTinyLFU, CachePolicy::kLRU> inner_;
 };
 
 // need max_size > 0 for put
-template <typename T, typename U, typename Hash, typename Equal>
-LruBase<T, U, Hash, Equal, CachePolicy::kTinyLFU>::LruBase(std::size_t max_size,
-                                                           const Hash& hash,
-                                                           const Equal& equal)
-    : proxy_(max_size, internal::Jenkins<T>{}), max_size_(max_size), main_(max_size + 1, hash, equal) {}
+template <typename T, typename U, typename Hash, typename Equal,
+          CachePolicy InnerPolicy>
+LruBase<T, U, Hash, Equal, CachePolicy::kTinyLFU, InnerPolicy>::LruBase(
+    std::size_t max_size, const Hash& hash, const Equal& equal)
+    : proxy_(max_size, internal::Jenkins<T>{}),
+      max_size_(max_size),
+      main_(max_size + 1, hash, equal) {}
 
 // TODO: what should be returned? (same get() or success/failure)
-template <typename T, typename U, typename Hash, typename Equal>
-bool LruBase<T, U, Hash, Equal, CachePolicy::kTinyLFU>::Put(const T& key,
-                                                            U value) {
+template <typename T, typename U, typename Hash, typename Equal,
+          CachePolicy InnerPolicy>
+bool LruBase<T, U, Hash, Equal, CachePolicy::kTinyLFU, InnerPolicy>::Put(
+    const T& key, U value) {
   proxy_.RecordAccess(key);
   auto res = main_.Put(key, value);
   if (main_.GetSize() == max_size_ + 1) {
@@ -64,43 +104,54 @@ bool LruBase<T, U, Hash, Equal, CachePolicy::kTinyLFU>::Put(const T& key,
   }
   return res;
 }
-template <typename T, typename U, typename Hash, typename Equal>
+template <typename T, typename U, typename Hash, typename Equal,
+          CachePolicy InnerPolicy>
 template <typename... Args>
-U* LruBase<T, U, Hash, Equal, CachePolicy::kTinyLFU>::Emplace(const T& key,
-                                                              Args&&... args) {
+U* LruBase<T, U, Hash, Equal, CachePolicy::kTinyLFU, InnerPolicy>::Emplace(
+    const T& key, Args&&... args) {
   auto* existing = main_.Get(key);
   if (existing) return existing;
   Put(key, U{std::forward<Args>(args)...});
   return main_.Get(key);
 }
 
-template <typename T, typename U, typename Hash, typename Equal>
-void LruBase<T, U, Hash, Equal, CachePolicy::kTinyLFU>::Erase(const T& key) {
+template <typename T, typename U, typename Hash, typename Equal,
+          CachePolicy InnerPolicy>
+void LruBase<T, U, Hash, Equal, CachePolicy::kTinyLFU, InnerPolicy>::Erase(
+    const T& key) {
   return main_.Erase(key);
 }
 
-template <typename T, typename U, typename Hash, typename Equal>
-U* LruBase<T, U, Hash, Equal, CachePolicy::kTinyLFU>::Get(const T& key) {
+template <typename T, typename U, typename Hash, typename Equal,
+          CachePolicy InnerPolicy>
+U* LruBase<T, U, Hash, Equal, CachePolicy::kTinyLFU, InnerPolicy>::Get(
+    const T& key) {
   proxy_.RecordAccess(key);
   return main_.Get(key);
 }
 
-template <typename T, typename U, typename Hash, typename Equal>
-const T* LruBase<T, U, Hash, Equal, CachePolicy::kTinyLFU>::GetLeastUsedKey() {
+template <typename T, typename U, typename Hash, typename Equal,
+          CachePolicy InnerPolicy>
+const T* LruBase<T, U, Hash, Equal, CachePolicy::kTinyLFU,
+                 InnerPolicy>::GetLeastUsedKey() {
   return main_.GetLeastUsedKey();
 }
 
-template <typename T, typename U, typename Hash, typename Equal>
-U* LruBase<T, U, Hash, Equal, CachePolicy::kTinyLFU>::GetLeastUsedValue() {
+template <typename T, typename U, typename Hash, typename Equal,
+          CachePolicy InnerPolicy>
+U* LruBase<T, U, Hash, Equal, CachePolicy::kTinyLFU,
+           InnerPolicy>::GetLeastUsedValue() {
   return main_.GetLeastUsedValue();
 }
 
 // TODO: think about more smart new_proxy init | need tests
-template <typename T, typename U, typename Hash, typename Equal>
-void LruBase<T, U, Hash, Equal, CachePolicy::kTinyLFU>::SetMaxSize(
+template <typename T, typename U, typename Hash, typename Equal,
+          CachePolicy InnerPolicy>
+void LruBase<T, U, Hash, Equal, CachePolicy::kTinyLFU, InnerPolicy>::SetMaxSize(
     std::size_t new_max_size) {
   auto new_proxy =
-      FrequencySketch<T, internal::Jenkins<T>, FrequencySketchPolicy::Bloom>(new_max_size, internal::Jenkins<T>{});
+      FrequencySketch<T, internal::Jenkins<T>, FrequencySketchPolicy::Bloom>(
+          new_max_size, internal::Jenkins<T>{});
   main_.VisitAll([&new_proxy](const T& key, const U&) mutable {
     new_proxy.RecordAccess(key);
   });
@@ -109,28 +160,34 @@ void LruBase<T, U, Hash, Equal, CachePolicy::kTinyLFU>::SetMaxSize(
   max_size_ = new_max_size;
 }
 
-template <typename T, typename U, typename Hash, typename Equal>
-void LruBase<T, U, Hash, Equal, CachePolicy::kTinyLFU>::Clear() noexcept {
+template <typename T, typename U, typename Hash, typename Equal,
+          CachePolicy InnerPolicy>
+void LruBase<T, U, Hash, Equal, CachePolicy::kTinyLFU,
+             InnerPolicy>::Clear() noexcept {
   proxy_.Clear();
   main_.Clear();
 }
 
-template <typename T, typename U, typename Hash, typename Equal>
+template <typename T, typename U, typename Hash, typename Equal,
+          CachePolicy InnerPolicy>
 template <typename Function>
-void LruBase<T, U, Hash, Equal, CachePolicy::kTinyLFU>::VisitAll(
+void LruBase<T, U, Hash, Equal, CachePolicy::kTinyLFU, InnerPolicy>::VisitAll(
     Function&& func) const {
   return main_.VisitAll(std::forward<Function>(func));
 }
 
-template <typename T, typename U, typename Hash, typename Equal>
+template <typename T, typename U, typename Hash, typename Equal,
+          CachePolicy InnerPolicy>
 template <typename Function>
-void LruBase<T, U, Hash, Equal, CachePolicy::kTinyLFU>::VisitAll(
+void LruBase<T, U, Hash, Equal, CachePolicy::kTinyLFU, InnerPolicy>::VisitAll(
     Function&& func) {
   return main_.VisitAll(std::forward<Function>(func));
 }
 
-template <typename T, typename U, typename Hash, typename Equal>
-std::size_t LruBase<T, U, Hash, Equal, CachePolicy::kTinyLFU>::GetSize() const {
+template <typename T, typename U, typename Hash, typename Equal,
+          CachePolicy InnerPolicy>
+std::size_t LruBase<T, U, Hash, Equal, CachePolicy::kTinyLFU,
+                    InnerPolicy>::GetSize() const {
   return main_.GetSize();
 }
 
