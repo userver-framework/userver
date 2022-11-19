@@ -163,4 +163,14 @@ TEST(SLRU, Size1) {
   EXPECT_FALSE(slru.Get(1));
 }
 
+TEST(SLRU, GetLeastUsedValue) {
+  SLRU slru(10, std::hash<int>{}, std::equal_to<int>{}, 0.8);
+
+  slru.Put(2, 3);
+  slru.Get(2);
+  slru.Get(2);
+
+  EXPECT_EQ(*slru.GetLeastUsedKey(), 3);
+}
+
 USERVER_NAMESPACE_END
