@@ -6,7 +6,9 @@
 
 USERVER_NAMESPACE_BEGIN
 
-using SLRU = cache::impl::LruBase<int, int, std::hash<int>, std::equal_to<int>,
+using Equal = std::equal_to<int>;
+using Hash = std::hash<int>;
+using SLRU = cache::impl::LruBase<int, int, Hash, Equal,
                                   cache::CachePolicy::kSLRU>;
 
 std::vector<int> GetProbation(SLRU& slru) {
