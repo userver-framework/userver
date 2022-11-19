@@ -6,6 +6,7 @@
 #include <userver/cache/impl/lru.hpp>
 #include <userver/cache/impl/slru.hpp>
 #include <userver/cache/impl/tiny_lfu.hpp>
+#include <userver/cache/impl/window_tiny_lfu.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
