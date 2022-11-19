@@ -3,6 +3,7 @@
 #include <userver/cache/lru_map.hpp>
 #include <userver/cache/lfu_map.hpp>
 #include <userver/cache/impl/slru.hpp>
+#include <userver/cache/impl/window_tiny_lfu.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -12,6 +13,7 @@ using Lru = cache::LruMap<unsigned, unsigned>;
 using Lfu = LfuBase<unsigned, unsigned>;
 using Slru = cache::LruMap<unsigned, unsigned, std::hash<unsigned>, std::equal_to<unsigned>, cache::CachePolicy::kSLRU>;
 using TinyLfu = cache::LruMap<unsigned, unsigned, std::hash<unsigned>, std::equal_to<unsigned>, cache::CachePolicy::kTinyLFU>;
+using WTinyLfu = cache::LruMap<unsigned, unsigned, std::hash<unsigned>, std::equal_to<unsigned>, cache::CachePolicy::kWTinyLFU>;
 
 constexpr unsigned kElementsCount = 75000;
 
@@ -36,7 +38,7 @@ void Put(benchmark::State& state) {
 }
 BENCHMARK(Put<Lru>);
 BENCHMARK(Put<Lfu>);
-BENCHMARK(Put<TinyLfu>);
+BENCHMARK(Put<WTinyLfu>);
 
 template <typename CachePolicyContainer>
 void Has(benchmark::State& state) {
