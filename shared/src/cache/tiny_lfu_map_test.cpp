@@ -7,8 +7,10 @@ USERVER_NAMESPACE_BEGIN
 template <typename T>
 class TinyLFU : public ::testing::Test {
  public:
+  using Hash = std::hash<int>;
+  using Equal = std::equal_to<int>;
   using Cache =
-      cache::impl::LruBase<int, int, std::hash<int>, std::equal_to<int>,
+      cache::impl::LruBase<int, int, Hash, Equal,
                            cache::CachePolicy::kTinyLFU, T::value>;
 };
 
