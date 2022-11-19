@@ -13,7 +13,7 @@ using Lfu = LfuBase<unsigned, unsigned>;
 using Slru = cache::LruMap<unsigned, unsigned, std::hash<unsigned>, std::equal_to<unsigned>, cache::CachePolicy::kSLRU>;
 using TinyLfu = cache::LruMap<unsigned, unsigned, std::hash<unsigned>, std::equal_to<unsigned>, cache::CachePolicy::kTinyLFU>;
 
-constexpr unsigned kElementsCount = 5000;
+constexpr unsigned kElementsCount = 75000;
 
 template <typename CachePolicyContainer>
 CachePolicyContainer FillLru(unsigned elements_count) {
