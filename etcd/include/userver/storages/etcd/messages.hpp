@@ -8,25 +8,30 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::etcd {
 
-class Component {
+class KeyValue {
  public:
-  Component(const std::string& key, const std::string& value);
+  KeyValue(const std::string& key, const std::string& value);
+
   std::pair<std::string, std::string> KeyValue() const;
+
   std::string GetKey() const;
+
   std::string GetValue() const;
 
  private:
   std::string key_;
+
   std::string value_;
 };
 
-class Request {
+class Message {
  public:
-  Request(const std::vector<Component>& components);
-  std::vector<Component> Get() const;
+  Message(const std::vector<KeyValue>& key_values);
+
+  std::vector<KeyValue> Get() const;
 
  private:
-  std::vector<Component> components_;
+  std::vector<KeyValue> key_values_;
 };
 
 }  // namespace storages::etcd

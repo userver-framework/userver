@@ -24,4 +24,4 @@ namespace etcdserverpb {
 class KVClient;
 using KVClientUPtr = std::unique_ptr<KVClient>;
 
-}
+}  // namespace etcdserverpb
