@@ -111,7 +111,7 @@ class Statistics {
 struct InstanceStatistics {
   InstanceStatistics() = default;
 
-  InstanceStatistics(const Statistics& other);
+  explicit InstanceStatistics(const Statistics& other);
 
   uint64_t GetNotOkErrorCount() const;
 
@@ -126,11 +126,11 @@ struct InstanceStatistics {
   Percentile timings_percentile;
   std::array<uint64_t, Statistics::kErrorGroupCount> error_count{
       {0, 0, 0, 0, 0, 0, 0}};
-  utils::statistics::HttpCodes::Snapshot reply_status;
   uint64_t retries{0};
 
   std::uint64_t timeout_updated_by_deadline{0};
   std::uint64_t cancelled_by_deadline{0};
+  utils::statistics::HttpCodes::Snapshot reply_status;
 
   MultiStats multi;
 };

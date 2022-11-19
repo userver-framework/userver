@@ -1,7 +1,8 @@
 #include <storages/postgres/detail/pg_connection_wrapper.hpp>
 
-#ifndef USERVER_NO_LIBPQ_PATCHES
 #include <pg_config.h>
+
+#ifndef USERVER_NO_LIBPQ_PATCHES
 #include <pq_portal_funcs.h>
 #include <pq_workaround.h>
 #else

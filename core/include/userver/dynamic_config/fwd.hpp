@@ -15,7 +15,7 @@ namespace dynamic_config {
 
 class DocsMap;
 class KeyValue;
-class Snapshot;
+class Snapshot;  // NOLINT(bugprone-forward-declaration-namespace)
 class Source;
 
 }  // namespace dynamic_config

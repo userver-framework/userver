@@ -2,7 +2,6 @@ project(userver-postgresql CXX)
 
 find_package(Boost REQUIRED regex)
 
-
 option(USERVER_FEATURE_PATCH_LIBPQ "Apply patches to the libpq (add portals support)" ON)
 add_library(userver-libpq INTERFACE)
 if (USERVER_FEATURE_PATCH_LIBPQ)
@@ -14,11 +13,16 @@ else()
     PROPERTIES COMPILE_FLAGS -DUSERVER_NO_LIBPQ_PATCHES=1
   )
 
-  find_library(LIBPQ_LIBRARIES NAMES libpq.a libpq.so)
-  if (NOT LIBPQ_LIBRARIES)
-    message(FATAL_ERROR "Failed to find libpq")
+  if (USERVER_CONAN)
+    find_package(PostgreSQL REQUIRED)
+    target_link_libraries(userver-libpq INTERFACE PostgreSQL::PostgreSQL)
+  else()
+    find_library(LIBPQ_LIBRARIES NAMES libpq.a libpq.so)
+    if (NOT LIBPQ_LIBRARIES)
+      message(FATAL_ERROR "Failed to find libpq")
+    endif()
+    target_link_libraries(userver-libpq INTERFACE ${LIBPQ_LIBRARIES})
   endif()
-  target_link_libraries(userver-libpq INTERFACE ${LIBPQ_LIBRARIES})
 endif()
 
 file(GLOB_RECURSE SOURCES

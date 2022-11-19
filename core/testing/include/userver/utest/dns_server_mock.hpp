@@ -2,15 +2,19 @@
 
 #include <exception>
 #include <functional>
+#include <memory>
 #include <string>
 #include <variant>
 #include <vector>
 
 #include <userver/engine/io/sockaddr.hpp>
 #include <userver/engine/task/task.hpp>
-#include <userver/internal/net/net_listener.hpp>
 
 USERVER_NAMESPACE_BEGIN
+
+namespace internal::net {
+struct UdpListener;
+}  // namespace internal::net
 
 namespace utest {
 
@@ -51,7 +55,7 @@ class DnsServerMock final {
  private:
   void ProcessRequests();
 
-  internal::net::UdpListener listener_;
+  std::shared_ptr<internal::net::UdpListener> listener_;
   DnsHandler handler_;
   engine::Task receiver_task_;
 };

@@ -90,6 +90,7 @@ ReplyPtr RequestFuture::Get() {
       throw RequestCancelledException(
           "Redis request wait was aborted due to task cancellation");
   }
+  UINVARIANT(false, "Invalid FutureStatus enum value");
 }
 
 ReplyPtr Request::Get() { return request_future_.Get(); }

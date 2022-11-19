@@ -32,8 +32,8 @@ class HttpHandlerMethodStatistics final {
  public:
   void Account(const HttpHandlerStatisticsEntry& stats) noexcept;
 
-  utils::statistics::HttpCodes::Snapshot GetReplyCodes() const {
-    return reply_codes_.GetSnapshot();
+  const utils::statistics::HttpCodes& GetReplyCodes() const {
+    return reply_codes_;
   }
 
   using Percentile = utils::statistics::Percentile<2048, unsigned int, 120>;

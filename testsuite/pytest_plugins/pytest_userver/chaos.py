@@ -13,6 +13,7 @@ import logging
 import os
 import random
 import socket
+import sys
 import time
 import typing
 
@@ -35,9 +36,10 @@ class GateRoute:
 # @cond
 
 # https://docs.python.org/3/library/socket.html#socket.socket.recv
-RECV_BUFF_SIZE_HINT = 4096
+RECV_MAX_SIZE = 1024 * 1024 * 128
 
 MIN_DELAY = 0.01
+MAX_DELAY = 60.0
 
 
 logger = logging.getLogger(__name__)
@@ -58,10 +60,21 @@ class GateInterceptException(Exception):
     pass
 
 
+def _incomming_data_size(recv_socket: Socket) -> int:
+    try:
+        data = recv_socket.recv(RECV_MAX_SIZE, socket.MSG_PEEK)
+        return len(data)
+    except socket.error as e:
+        err = e.args[0]
+        if err in {errno.EAGAIN, errno.EWOULDBLOCK}:
+            return 0
+        raise e
+
+
 async def _intercept_ok(
         loop: EvLoop, socket_from: Socket, socket_to: Socket,
 ) -> None:
-    data = await loop.sock_recv(socket_from, RECV_BUFF_SIZE_HINT)
+    data = await loop.sock_recv(socket_from, RECV_MAX_SIZE)
     await loop.sock_sendall(socket_to, data)
 
 
@@ -74,7 +87,7 @@ async def _intercept_noop(
 async def _intercept_delay(
         delay: float, loop: EvLoop, socket_from: Socket, socket_to: Socket,
 ) -> None:
-    data = await loop.sock_recv(socket_from, RECV_BUFF_SIZE_HINT)
+    data = await loop.sock_recv(socket_from, RECV_MAX_SIZE)
     await asyncio.sleep(delay)
     await loop.sock_sendall(socket_to, data)
 
@@ -89,7 +102,7 @@ async def _intercept_close_on_data(
 async def _intercept_corrupt(
         loop: EvLoop, socket_from: Socket, socket_to: Socket,
 ) -> None:
-    data = await loop.sock_recv(socket_from, RECV_BUFF_SIZE_HINT)
+    data = await loop.sock_recv(socket_from, RECV_MAX_SIZE)
     for i in range(len(data)):  # pylint: disable=consider-using-enumerate
         data[i] = ~data[i]
     await loop.sock_sendall(socket_to, data)
@@ -117,7 +130,7 @@ class _InterceptBpsLimit:
     ) -> None:
         self._update_limit()
 
-        bytes_to_recv = min(int(self._bytes_left), RECV_BUFF_SIZE_HINT)
+        bytes_to_recv = min(int(self._bytes_left), RECV_MAX_SIZE)
         if bytes_to_recv > 0:
             data = await loop.sock_recv(socket_from, bytes_to_recv)
             self._bytes_left -= len(data)
@@ -155,7 +168,7 @@ class _InterceptTimeLimit:
 async def _intercept_smaller_parts(
         parts_count: int, loop: EvLoop, socket_from: Socket, socket_to: Socket,
 ) -> None:
-    data = await loop.sock_recv(socket_from, RECV_BUFF_SIZE_HINT)
+    data = await loop.sock_recv(socket_from, RECV_MAX_SIZE)
 
     length = len(data)
     if length < parts_count:
@@ -167,6 +180,36 @@ async def _intercept_smaller_parts(
         await loop.sock_sendall(socket_to, data[i : i + part_size])
 
 
+class _InterceptConcatPackets:
+    def __init__(self, packet_size: int):
+        self._packet_size = packet_size
+        self._expire_at: typing.Optional[float] = None
+
+    async def __call__(
+            self, loop: EvLoop, socket_from: Socket, socket_to: Socket,
+    ) -> None:
+        if self._expire_at is None:
+            self._expire_at = time.monotonic() + MAX_DELAY
+
+        if self._expire_at <= time.monotonic():
+            logger.error(
+                f'Failed to make a packet of sufficient size in {MAX_DELAY} '
+                'seconds. Check the test logic, it should end with checking '
+                'that the data was sent and by calling TcpGate function '
+                'to_client_pass() to pass the remaining packets.',
+            )
+            sys.exit(2)
+
+        incomming_size = _incomming_data_size(socket_from)
+        if incomming_size >= self._packet_size:
+            data = await loop.sock_recv(socket_from, RECV_MAX_SIZE)
+            await loop.sock_sendall(socket_to, data)
+            self._expire_at = None
+            return
+
+        await asyncio.sleep(MIN_DELAY)
+
+
 class _InterceptBytesLimit:
     def __init__(self, bytes_limit: int, gate: 'TcpGate'):
         self._bytes_limit = bytes_limit
@@ -176,7 +219,7 @@ class _InterceptBytesLimit:
     async def __call__(
             self, loop: EvLoop, socket_from: Socket, socket_to: Socket,
     ) -> None:
-        data = await loop.sock_recv(socket_from, RECV_BUFF_SIZE_HINT)
+        data = await loop.sock_recv(socket_from, RECV_MAX_SIZE)
         self._bytes_remain -= len(data)
 
         if self._bytes_remain <= 0:
@@ -247,15 +290,9 @@ class _SocketsPaired:
                 # To avoid long awaiting on sock_recv in an outdated
                 # interceptor we wait for data before grabbing and applying
                 # the interceptor.
-                try:
-                    socket_from.recv(1, socket.MSG_PEEK)
-                except socket.error as e:
-                    err = e.args[0]
-                    if err in {errno.EAGAIN, errno.EWOULDBLOCK}:
-                        await asyncio.sleep(MIN_DELAY)
-                        continue
-                    else:
-                        raise e
+                if not _incomming_data_size(socket_from):
+                    await asyncio.sleep(MIN_DELAY)
+                    continue
 
                 if to_server:
                     interceptor = self._to_server_intercept
@@ -385,11 +422,17 @@ class TcpGate:
         self._accept_sock = None
 
     def set_to_server_interceptor(self, interceptor: Interceptor) -> None:
+        """
+        Replace existing interceptor of client to server data with a custom
+        """
         self._to_server_intercept = interceptor
         for x in self._sockets:
             x.set_to_server_interceptor(self._to_server_intercept)
 
     def set_to_client_interceptor(self, interceptor: Interceptor) -> None:
+        """
+        Replace existing interceptor of server to client data with a custom
+        """
         self._to_client_intercept = interceptor
         for x in self._sockets:
             x.set_to_client_interceptor(self._to_client_intercept)
@@ -403,11 +446,11 @@ class TcpGate:
         self.set_to_client_interceptor(_intercept_ok)
 
     def to_server_noop(self) -> None:
-        """ Do not read data, causing client socket buffer overflows """
+        """ Do not read data, causing client to keep multiple data """
         self.set_to_server_interceptor(_intercept_noop)
 
     def to_client_noop(self) -> None:
-        """ Do not read data, causing right socket buffer overflows """
+        """ Do not read data, causing server to keep multiple data """
         self.set_to_client_interceptor(_intercept_noop)
 
     def to_server_delay(self, delay: float) -> None:
@@ -485,6 +528,22 @@ class TcpGate:
             )
 
         self.set_to_client_interceptor(_intercept_smaller_parts_bound)
+
+    def to_server_concat_packets(self, packet_size: int) -> None:
+        """
+        Pass data in bigger parts
+        @param packet_size minimal size of the resulting packet
+        """
+
+        self.set_to_server_interceptor(_InterceptConcatPackets(packet_size))
+
+    def to_client_concat_packets(self, packet_size: int) -> None:
+        """
+        Pass data in bigger parts
+        @param packet_size minimal size of the resulting packet
+        """
+
+        self.set_to_client_interceptor(_InterceptConcatPackets(packet_size))
 
     def to_server_limit_bytes(self, bytes_limit: int) -> None:
         """ Drop all connections each `bytes_limit` of data sent by network """
