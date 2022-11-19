@@ -7,6 +7,7 @@ name: CI
           - master
           - develop
           - feature/**
+          - feature-core-slru
 
 env:
     UBSAN_OPTIONS: print_stacktrace=1
