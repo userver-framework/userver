@@ -169,7 +169,7 @@ def main(
         loader: Optional[jinja2.BaseLoader] = None,
         mode: Mode = Mode.Both,
         skip_files_wo_service: bool = True,
-        support_feature_optional: bool = False,
+        support_feature_optional: bool = True,
 ) -> None:
     if loader is None:
         loader = jinja2.FileSystemLoader(
