@@ -91,8 +91,7 @@ bool LruBase<T, U, Hash, Eq, CachePolicy::kSLRU>::Put(const T& key, U value) {
   if (move_result) {
     if (protected_.GetSize() == protected_size_ + 1) {
       protected_.template MoveIfHas<Hash, Eq, false>(
-          *protected_.GetLeastUsedKey(),
-          &probation_);
+          *protected_.GetLeastUsedKey(), &probation_);
     }
     return false;
   }
