@@ -294,19 +294,20 @@ class AiohttpClientMonitor(service_client.AiohttpClient):
         assert metric_name in metrics, f'no metric with name {metric_name!r}'
         return metrics[metric_name]
 
-    async def metrics(
+    async def metrics_raw(
             self,
+            output_format,
             *,
             path: str = None,
             prefix: str = None,
             labels: typing.Optional[typing.Dict[str, str]] = None,
-    ) -> typing.Dict[str, typing.List[Metric]]:
+    ) -> str:
         if not self._config.server_monitor_path:
             raise ConfigurationError(
                 'handler-server-monitor component is not configured',
             )
 
-        params = {'format': 'json'}
+        params = {'format': output_format}
         if prefix:
             params['prefix'] = prefix
 
@@ -321,16 +322,28 @@ class AiohttpClientMonitor(service_client.AiohttpClient):
         )
         async with response:
             response.raise_for_status()
-            json_data = await response.json(content_type=None)
-            return {
-                path: [
-                    Metric(labels=element['labels'], value=element['value'])
-                    for element in metrics_list
-                ]
-                for path, metrics_list in json_data.items()
-            }
+            return await response.text()
 
-    async def single_metric(
+    async def metrics(
+            self,
+            *,
+            path: str = None,
+            prefix: str = None,
+            labels: typing.Optional[typing.Dict[str, str]] = None,
+    ) -> typing.Dict[str, typing.List[Metric]]:
+        response = await self.metrics_raw(
+            output_format='json', path=path, prefix=prefix, labels=labels,
+        )
+        json_data = json.loads(str(response))
+        return {
+            path: [
+                Metric(labels=element['labels'], value=element['value'])
+                for element in metrics_list
+            ]
+            for path, metrics_list in json_data.items()
+        }
+
+    async def single_metric_optional(
             self,
             path: str,
             *,
@@ -348,6 +361,18 @@ class AiohttpClientMonitor(service_client.AiohttpClient):
             return None
 
         return metrics_list[0]
+
+    async def single_metric(
+            self,
+            path: str,
+            *,
+            labels: typing.Optional[typing.Dict[str, str]] = None,
+    ) -> Metric:
+        value = await self.single_metric_optional(path, labels=labels)
+        assert value is not None, (
+            f'No metric was found for path {path} and labels {labels}',
+        )
+        return value
 
 
 # @endcond
@@ -378,6 +403,31 @@ class ClientMonitor(ClientWrapper):
         return await self._client.get_metric(metric_name)
 
     @_wrap_client_error
+    async def metrics_raw(
+            self,
+            output_format: str,
+            *,
+            path: str = None,
+            prefix: str = None,
+            labels: typing.Optional[typing.Dict[str, str]] = None,
+    ) -> typing.Dict[str, Metric]:
+        """
+        Low level function that returns metrics in a specific format.
+
+        @param output_format Metric output format. See
+               server::handlers::ServerMonitor for a list of supported formats.
+        @param path Optional full metric path
+        @param path Optional prefix on which the metric paths should start
+        @param labels Optional dictionary of labels that must be in the metric
+        """
+        return await self._client.metrics_raw(
+            output_format=output_format,
+            path=path,
+            prefix=prefix,
+            labels=labels,
+        )
+
+    @_wrap_client_error
     async def metrics(
             self,
             *,
@@ -397,7 +447,7 @@ class ClientMonitor(ClientWrapper):
         )
 
     @_wrap_client_error
-    async def single_metric(
+    async def single_metric_optional(
             self,
             path: str,
             *,
@@ -410,6 +460,23 @@ class ClientMonitor(ClientWrapper):
         @param labels Optional dictionary of labels that must be in the metric
 
         @throws AssertionError if more than one metric returned
+        """
+        return await self._client.single_metric_optional(path, labels=labels)
+
+    @_wrap_client_error
+    async def single_metric(
+            self,
+            path: str,
+            *,
+            labels: typing.Optional[typing.Dict[str, str]] = None,
+    ) -> typing.Optional[Metric]:
+        """
+        Returns the Metric.
+
+        @param path Full metric path
+        @param labels Optional dictionary of labels that must be in the metric
+
+        @throws AssertionError if more than one metric or no metric found
         """
         return await self._client.single_metric(path, labels=labels)
 

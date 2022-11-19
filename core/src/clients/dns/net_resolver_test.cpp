@@ -3,6 +3,8 @@
 
 #include <clients/dns/net_resolver.hpp>
 #include <userver/clients/dns/exception.hpp>
+#include <userver/engine/io/sockaddr.hpp>
+#include <userver/engine/io/socket.hpp>
 #include <userver/utest/dns_server_mock.hpp>
 #include <userver/utest/utest.hpp>
 #include <userver/utils/mock_now.hpp>

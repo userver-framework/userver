@@ -37,7 +37,7 @@ HttpHandlerStatisticsSnapshot::HttpHandlerStatisticsSnapshot(
 void HttpHandlerStatisticsSnapshot::Add(
     const HttpHandlerStatisticsSnapshot& other) {
   timings.Add(other.timings);
-  reply_codes.Add(other.reply_codes);
+  reply_codes += other.reply_codes;
   in_flight += other.in_flight;
   too_many_requests_in_flight += other.too_many_requests_in_flight;
   rate_limit_reached += other.rate_limit_reached;

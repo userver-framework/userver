@@ -172,9 +172,7 @@ void DumpMetric(utils::statistics::Writer& writer,
                 const PoolStatistics& stats) {
   InstanceStatistics sum_stats;
 
-  for (const auto& [i, stat] : utils::enumerate(stats.multi)) {
-    auto key = "worker-" + std::to_string(i);
-    writer.ValueWithLabels(stat, {"http_worker_id", key});
+  for (const auto& stat : stats.multi) {
     sum_stats += stat;
   }
 
@@ -185,10 +183,10 @@ InstanceStatistics::InstanceStatistics(const Statistics& other)
     : easy_handles(other.easy_handles_.load()),
       last_time_to_start_us(other.last_time_to_start_us_.load()),
       timings_percentile(other.timings_percentile_.GetStatsForPeriod()),
-      reply_status(other.reply_status_.GetSnapshot()),
       retries(other.retries_.load()),
       timeout_updated_by_deadline(other.timeout_updated_by_deadline_.load()),
-      cancelled_by_deadline(other.cancelled_by_deadline_.load()) {
+      cancelled_by_deadline(other.cancelled_by_deadline_.load()),
+      reply_status(other.reply_status_) {
   for (size_t i = 0; i < error_count.size(); i++)
     error_count[i] = other.error_count_[i].load();
   multi.socket_open = other.socket_open_;
@@ -222,6 +220,7 @@ InstanceStatistics& InstanceStatistics::operator+=(
 
   timeout_updated_by_deadline += stat.timeout_updated_by_deadline;
   cancelled_by_deadline += stat.cancelled_by_deadline;
+  reply_status += stat.reply_status;
 
   multi += stat.multi;
   return *this;

@@ -91,6 +91,7 @@ class RcuMap final {
   using Iterator = RcuMapIterator<Key, Value, Value>;
   using ConstValuePtr = std::shared_ptr<const Value>;
   using ConstIterator = RcuMapIterator<Key, Value, const Value>;
+  using RawMap = std::unordered_map<Key, ValuePtr>;
   using Snapshot = std::unordered_map<Key, ConstValuePtr>;
   using InsertReturnType = InsertReturnTypeImpl<ValuePtr>;
 
@@ -157,8 +158,6 @@ class RcuMap final {
   template <typename RawKey>
   void InsertOrAssign(RawKey&& key, ValuePtr value);
 
-  // TODO: add multiple keys in one txn?
-
   /// @brief Returns a readonly value pointer by its key or an empty pointer
   const ConstValuePtr Get(const Key&) const;
 
@@ -179,7 +178,12 @@ class RcuMap final {
   void Clear();
 
   /// Replace current data by data from `new_map`.
-  void Assign(std::unordered_map<Key, ValuePtr> new_map);
+  void Assign(RawMap new_map);
+
+  /// @brief Starts a transaction, used to perform a series of arbitrary changes
+  /// to the map.
+  /// @details The map is copied. Don't forget to `Commit` to apply the changes.
+  rcu::WritablePtr<RawMap> StartWrite();
 
   /// @brief Returns a readonly copy of the map
   /// @note Equivalent to `{begin(), end()}` construct, preferable
@@ -189,9 +193,7 @@ class RcuMap final {
  private:
   InsertReturnType DoInsert(const Key& key, ValuePtr value);
 
-  using MapType = std::unordered_map<Key, ValuePtr>;
-
-  rcu::Variable<MapType> rcu_;
+  rcu::Variable<RawMap> rcu_;
 };
 
 template <typename K, typename V>
@@ -365,9 +367,13 @@ void RcuMap<K, V>::Clear() {
 }
 
 template <typename K, typename V>
-void RcuMap<K, V>::Assign(
-    std::unordered_map<K, typename RcuMap<K, V>::ValuePtr> new_map) {
+void RcuMap<K, V>::Assign(RawMap new_map) {
   rcu_.Assign(std::move(new_map));
+}
+
+template <typename K, typename V>
+rcu::WritablePtr<typename RcuMap<K, V>::RawMap> RcuMap<K, V>::StartWrite() {
+  return rcu_.StartWrite();
 }
 
 template <typename K, typename V>

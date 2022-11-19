@@ -31,7 +31,8 @@ class HttpRequest final {
 
   using HeadersMapKeys = decltype(utils::impl::MakeKeysView(HeadersMap()));
 
-  using CookiesMap = std::unordered_map<std::string, std::string>;
+  using CookiesMap =
+      std::unordered_map<std::string, std::string, utils::StrCaseHash>;
 
   using CookiesMapKeys = decltype(utils::impl::MakeKeysView(CookiesMap()));
 
