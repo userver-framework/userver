@@ -7,16 +7,14 @@ components_manager:
             method: GET,POST,DELETE              # GET, POST and DELETE requests only.
             task_processor: main-task-processor  # Run it on CPU bound task processor
 
-        key-value-database:
-            groups:
-              - config_name: taxi-tmp  # Key to lookup in secdist configuration
-                db: taxi-tmp           # Name to refer to the cluster in components::Etcd::GetClient()
+        etcd:
+            endpoints:
+                - 'localhost:2379'
 
-            subscribe_groups:  # Array of etcd clusters to work with in subscribe mode
-
-            thread_pools:
-                etcd_thread_pool_size: 8
-                sentinel_thread_pool_size: 1
+        grpc-client-factory:
+            task-processor: grpc-blocking-task-processor
+            channel-args: {}
+        
 
         secdist:                                         # Component that stores configuration of hosts and passwords
             config: /etc/etcd_service/secure_data.json  # Values are supposed to be stored in this file
@@ -26,8 +24,6 @@ components_manager:
         testsuite-support:
 
         server:
-            # ...
-# /// [Etcd service sample - static config]
             listener:                 # configuring the main listening socket...
                 port: 8092            # ...to listen on this port and...
                 task_processor: main-task-processor    # ...process incoming requests on this task processor.
@@ -59,5 +55,9 @@ components_manager:
         fs-task-processor:            # Make a separate task processor for filesystem bound tasks.
             thread_name: fs-worker
             worker_threads: 4
+
+        grpc-blocking-task-processor:  # For blocking gRPC channel creation
+            thread_name: grpc-worker
+            worker_threads: 2
 
     default_task_processor: main-task-processor
