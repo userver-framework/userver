@@ -10,7 +10,9 @@ USERVER_NAMESPACE_BEGIN
 template <typename T>
 class NWayLRU : public ::testing::Test {
  public:
-  using Cache = cache::NWayLRU<int, int, std::hash<int>, std::equal_to<int>, T::value>;
+  using Hash = std::hash<int>;
+  using Equal = std::equal_to<int>;
+  using Cache = cache::NWayLRU<int, int, Hash, Equal, T::value>;
 };
 
 TYPED_UTEST_SUITE(NWayLRU, PolicyTypes);

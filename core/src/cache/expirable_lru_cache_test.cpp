@@ -17,10 +17,12 @@ using SimpleCacheValue = int;
 template <typename T>
 class ExpirableLruCache : public ::testing::Test {
  public:
+  using Hash = std::hash<SimpleCacheKey>;
+  using Equal = std::equal_to<SimpleCacheKey>;
   using SimpleCache =
       cache::ExpirableLruCache<SimpleCacheKey, SimpleCacheValue,
-                               std::hash<SimpleCacheKey>,
-                               std::equal_to<SimpleCacheKey>, T::value>;
+                               Hash,
+                               Equal, T::value>;
   static SimpleCache CreateSimpleCache() { return SimpleCache(1, 1); }
 };
 
@@ -29,14 +31,16 @@ TYPED_UTEST_SUITE(ExpirableLruCache, PolicyTypes);
 template <typename T>
 class LruCacheWrapper : public ::testing::Test {
  public:
+  using Hash = std::hash<SimpleCacheKey>;
+  using Equal = std::equal_to<SimpleCacheKey>;
   using SimpleCache =
       cache::ExpirableLruCache<SimpleCacheKey, SimpleCacheValue,
-                               std::hash<SimpleCacheKey>,
-                               std::equal_to<SimpleCacheKey>, T::value>;
+                               Hash,
+                               Equal, T::value>;
   using SimpleWrapper =
       cache::LruCacheWrapper<SimpleCacheKey, SimpleCacheValue,
-                             std::hash<SimpleCacheKey>,
-                             std::equal_to<SimpleCacheKey>, T::value>;
+                             Hash,
+                             Equal, T::value>;
   static std::shared_ptr<SimpleCache> CreateSimpleCachePtr() {
     return std::make_shared<SimpleCache>(1, 1);
   }
