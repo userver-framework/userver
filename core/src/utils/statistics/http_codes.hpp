@@ -17,27 +17,36 @@ class HttpCodes final {
   using Code = int;
   using Counter = std::uint64_t;
 
-  struct Snapshot final {
-    void Add(const Snapshot& other);
-
-    std::unordered_map<Code, Counter> codes;
-  };
+  static constexpr Code kMinHttpStatus = 100;
+  static constexpr Code kMaxHttpStatus = 600;
+  class Snapshot;
 
   HttpCodes();
+  HttpCodes(const HttpCodes&) = delete;
+  HttpCodes& operator=(const HttpCodes&) = delete;
 
   void Account(Code code) noexcept;
 
-  Snapshot GetSnapshot() const;
-
  private:
   using ValueType = std::uint64_t;
-
-  static constexpr Code kMinHttpStatus = 100;
-  static constexpr Code kMaxHttpStatus = 600;
   std::array<std::atomic<ValueType>, kMaxHttpStatus - kMinHttpStatus> codes_{};
 };
 
-void DumpMetric(Writer& writer, const HttpCodes::Snapshot& snapshot);
+class HttpCodes::Snapshot final {
+ public:
+  Snapshot() = default;
+  Snapshot(const Snapshot&) = default;
+  Snapshot& operator=(const Snapshot&) = default;
+
+  explicit Snapshot(const HttpCodes& other) noexcept;
+
+  void operator+=(const Snapshot& other);
+
+  friend void DumpMetric(Writer& writer, const Snapshot& snapshot);
+
+ private:
+  std::array<HttpCodes::ValueType, kMaxHttpStatus - kMinHttpStatus> codes_{};
+};
 
 }  // namespace utils::statistics
 

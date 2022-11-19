@@ -32,6 +32,14 @@ TEST(StrIcases, Hash) {
             hash(std::string_view("warning")));
 }
 
+TEST(StrCases, Hash) {
+  utils::StrCaseHash hash{};
+
+  const auto hash1 = hash(kLowercaseChars);
+  const auto hash2 = hash(kUppercaseChars);
+  EXPECT_NE(hash1, hash2);
+}
+
 TEST(StrIcases, HashIsRandomlySeeded) {
   utils::StrIcaseHash hash1;
   utils::StrIcaseHash hash2;

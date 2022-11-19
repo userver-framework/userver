@@ -13,10 +13,7 @@
 
 #include <userver/crypto/exception.hpp>
 
-// NOLINTNEXTLINE(cppcoreguidelines-macro-usage): intended use
-#define CRYPTOPP_ENABLE_NAMESPACE_WEAK 1
 #include <cryptopp/md5.h>
-#undef CRYPTOPP_ENABLE_NAMESPACE_WEAK
 
 #ifdef CRYPTOPP_NO_GLOBAL_BYTE
 using CryptoPP::byte;

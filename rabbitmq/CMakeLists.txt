@@ -9,15 +9,15 @@ file(GLOB_RECURSE RABBITMQ_TEST_SOURCES
 
 list(REMOVE_ITEM SOURCES ${RABBITMQ_TEST_SOURCES})
 
-include(SetupAmqpCPP)
-
 add_library(${PROJECT_NAME} STATIC ${SOURCES})
-target_link_libraries(${PROJECT_NAME}
-  PUBLIC
-    userver-core
-  PRIVATE
-    amqp-cpp
-)
+target_link_libraries(${PROJECT_NAME} PUBLIC userver-core)
+if (USERVER_CONAN)
+  find_package(amqpcpp)
+  target_link_libraries(${PROJECT_NAME} PRIVATE amqpcpp)
+else()
+  include(SetupAmqpCPP)
+  target_link_libraries(${PROJECT_NAME} PRIVATE amqp-cpp)
+endif()
 target_include_directories(
   ${PROJECT_NAME}
   PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include

@@ -2,12 +2,21 @@
 # wrappers. A separate target is required as GRPC generated headers require
 # relaxed compilation flags.
 
-if(NOT USERVER_OPEN_SOURCE_BUILD)
-  find_program(PROTOBUF_PROTOC NAMES yandex-taxi-protoc protoc)
+if(USERVER_CONAN)
+  # Can't use find_*, because it may find a system binary with a wrong version.
+  set(PROTOBUF_PROTOC ${Protobuf_PROTOC_EXECUTABLE})
+  if(NOT PROTOBUF_PROTOC)
+    message(FATAL_ERROR "protoc not found")
+  endif()
+  set(PROTO_GRPC_CPP_PLUGIN ${GRPC_CPP_PLUGIN_PROGRAM})
 else()
-  find_program(PROTOBUF_PROTOC NAMES protoc)
+  if(NOT USERVER_OPEN_SOURCE_BUILD)
+    find_program(PROTOBUF_PROTOC NAMES yandex-taxi-protoc protoc)
+  else()
+    find_program(PROTOBUF_PROTOC NAMES protoc)
+  endif()
+  find_program(PROTO_GRPC_CPP_PLUGIN grpc_cpp_plugin)
 endif()
-find_program(PROTO_GRPC_CPP_PLUGIN grpc_cpp_plugin)
 
 get_filename_component(USERVER_DIR ${CMAKE_CURRENT_LIST_DIR} DIRECTORY)
 set(PROTO_GRPC_USRV_PLUGIN ${USERVER_DIR}/scripts/grpc/protoc_usrv_plugin)
@@ -131,5 +140,5 @@ function(add_grpc_library NAME)
   add_library(${NAME} STATIC ${generated_sources})
   target_compile_options(${NAME} PUBLIC -Wno-unused-parameter)
   target_include_directories(${NAME} SYSTEM PUBLIC ${include_paths})
-  target_link_libraries(${NAME} PUBLIC userver-grpc Protobuf)
+  target_link_libraries(${NAME} PUBLIC userver-grpc)
 endfunction()

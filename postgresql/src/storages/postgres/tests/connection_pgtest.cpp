@@ -293,7 +293,7 @@ UTEST_P(PostgreConnection, RollbackOnBusyOeErroredConnection) {
                 pg::ConnectionTimeoutError);
   EXPECT_EQ(pg::ConnectionState::kTranActive, GetConn()->GetState());
   UEXPECT_NO_THROW(GetConn()->Rollback());
-  UEXPECT_NO_THROW(GetConn()->CancelAndCleanup(std::chrono::seconds{1}));
+  UEXPECT_NO_THROW(GetConn()->CancelAndCleanup(utest::kMaxTestWaitTime));
   EXPECT_EQ(pg::ConnectionState::kIdle, GetConn()->GetState());
   // Query cancelled
   DefaultCommandControlScope scope2(pg::CommandControl{
@@ -302,7 +302,7 @@ UTEST_P(PostgreConnection, RollbackOnBusyOeErroredConnection) {
   UEXPECT_THROW(GetConn()->Execute("select pg_sleep(1)"), pg::QueryCancelled);
   EXPECT_EQ(pg::ConnectionState::kTranError, GetConn()->GetState());
   UEXPECT_NO_THROW(GetConn()->Rollback());
-  UEXPECT_NO_THROW(GetConn()->CancelAndCleanup(std::chrono::seconds{1}));
+  UEXPECT_NO_THROW(GetConn()->CancelAndCleanup(utest::kMaxTestWaitTime));
   EXPECT_EQ(pg::ConnectionState::kIdle, GetConn()->GetState());
 }
 
@@ -318,7 +318,7 @@ UTEST_P(PostgreConnection, CommitOnBusyOeErroredConnection) {
                 pg::ConnectionTimeoutError);
   EXPECT_EQ(pg::ConnectionState::kTranActive, GetConn()->GetState());
   UEXPECT_THROW(GetConn()->Commit(), std::exception);
-  UEXPECT_NO_THROW(GetConn()->CancelAndCleanup(std::chrono::seconds{1}));
+  UEXPECT_NO_THROW(GetConn()->CancelAndCleanup(utest::kMaxTestWaitTime));
   EXPECT_EQ(pg::ConnectionState::kIdle, GetConn()->GetState());
   // Query cancelled
   DefaultCommandControlScope scope2(pg::CommandControl{
@@ -331,7 +331,7 @@ UTEST_P(PostgreConnection, CommitOnBusyOeErroredConnection) {
   // TODO: TAXICOMMON-4103
   // UEXPECT_THROW(GetConn()->Commit(), std::exception);
 
-  UEXPECT_NO_THROW(GetConn()->CancelAndCleanup(std::chrono::seconds{1}));
+  UEXPECT_NO_THROW(GetConn()->CancelAndCleanup(utest::kMaxTestWaitTime));
   EXPECT_EQ(pg::ConnectionState::kIdle, GetConn()->GetState());
 }
 
@@ -352,7 +352,7 @@ UTEST_P(PostgreConnection, StatementTimout) {
       std::chrono::seconds{2}, std::chrono::milliseconds{10}});
   UEXPECT_THROW(GetConn()->Execute("select pg_sleep(1)"), pg::QueryCancelled);
   EXPECT_EQ(pg::ConnectionState::kIdle, GetConn()->GetState());
-  UEXPECT_NO_THROW(GetConn()->CancelAndCleanup(std::chrono::seconds{1}));
+  UEXPECT_NO_THROW(GetConn()->CancelAndCleanup(utest::kMaxTestWaitTime));
   EXPECT_EQ(pg::ConnectionState::kIdle, GetConn()->GetState());
 }
 
@@ -375,7 +375,7 @@ UTEST_P(PostgreConnection, QueryTaskCancel) {
   ASSERT_TRUE(task.IsFinished());
 
   EXPECT_EQ(pg::ConnectionState::kTranActive, GetConn()->GetState());
-  UEXPECT_NO_THROW(GetConn()->CancelAndCleanup(std::chrono::seconds{1}));
+  UEXPECT_NO_THROW(GetConn()->CancelAndCleanup(utest::kMaxTestWaitTime));
   EXPECT_EQ(pg::ConnectionState::kIdle, GetConn()->GetState());
 }
 

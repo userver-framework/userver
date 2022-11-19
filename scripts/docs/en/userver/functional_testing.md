@@ -311,6 +311,8 @@ It allows to:
   @ref pytest_userver.client.ClientMonitor.single_metric "await monitor_client.single_metric(path, labels)"
 - retrieve array of metrics by path prefix and (optionally) labels:
   @ref pytest_userver.client.ClientMonitor.metrics "await monitor_client.metrics(path_prefix, labels)"
+- retrieve specific service metric by path and (optionally) labels or `None` if no such metric:
+  @ref pytest_userver.client.ClientMonitor.single_metric "await monitor_client.single_metric_optional(path, labels)"
 - reset metrics: @ref pytest_userver.client.Client.reset_metrics "await service_client.reset_metrics()"
 
 Example usage:
@@ -345,14 +347,18 @@ server::handlers::TestsControl.
 
 To use it you could just write the following test:
 
-@snippet samples/testsuite-support/tests/test_metrics.py metrics portability
+@code{.py}
+def test_metrics_portability(service_client):
+    warnings = await service_client.metrics_portability()
+    assert not warnings
+@endcode
 
-Note that issues are grouped by type, so you could check only for
-some particular issues. For example:
+Note that warnings are grouped by type, so you could check only for
+some particular warnings or skip some of them. For example:
 
-@snippet samples/testsuite-support/tests/test_metrics.py metrics partial portability
+@snippet samples/production_service/tests/test_production.py metrics partial portability
 
-* Testcase: @ref samples/testsuite-support/tests/test_metrics.py
+* Testcase: @ref samples/production_service/tests/test_production.py
 
 
 #### Service runner
@@ -395,3 +401,4 @@ def test_service(service_client):
 @example samples/testsuite-support/tests/test_mocked_time.py
 @example samples/testsuite-support/tests/test_tasks.py
 @example samples/testsuite-support/tests/test_testpoint.py
+@exmaple samples/production_service/tests/test_production.py
