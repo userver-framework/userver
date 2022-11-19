@@ -7,7 +7,7 @@ namespace storages::etcd {
 KeyValue::KeyValue(const std::string& key, const std::string& value)
     : key_(key), value_(value) {}
 
-std::pair<std::string, std::string> KeyValue::KeyValue() const {
+std::pair<std::string, std::string> KeyValue::GetPair() const {
   return std::make_pair(key_, value_);
 }
 

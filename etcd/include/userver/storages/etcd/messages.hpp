@@ -12,7 +12,7 @@ class KeyValue {
  public:
   KeyValue(const std::string& key, const std::string& value);
 
-  std::pair<std::string, std::string> KeyValue() const;
+  std::pair<std::string, std::string> GetPair() const;
 
   std::string GetKey() const;
 

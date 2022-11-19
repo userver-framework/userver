@@ -1,4 +1,5 @@
 #include "client_impl.hpp"
+
 #include <etcd/api/etcdserverpb/rpc.pb.h>
 #include <stdexcept>
 #include <string>
@@ -9,7 +10,7 @@
 #include <userver/ugrpc/client/client_factory_component.hpp>
 #include <utility>
 #include <vector>
-#include "userver/storages/etcd/request.hpp"
+#include "userver/storages/etcd/messages.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
@@ -18,7 +19,7 @@ namespace storages::etcd {
 ClientImpl::ClientImpl(etcdserverpb::KVClientUPtr grpc_client)
     : grpc_client_(std::move(grpc_client)) {}
 
-Request ClientImpl::GetRange(const std::string& key_begin,
+Message ClientImpl::GetRange(const std::string& key_begin,
                              const std::string& /*key_end*/) const {
   etcdserverpb::RangeRequest request;
   request.set_key(key_begin);
@@ -29,13 +30,13 @@ Request ClientImpl::GetRange(const std::string& key_begin,
   etcdserverpb::RangeResponse response = stream.Finish();
 
   auto* mutalbe_kvs = response.mutable_kvs();
-  std::vector<Component> results;
+  std::vector<KeyValue> results;
   results.reserve(mutalbe_kvs->size());
   for (auto kv : *mutalbe_kvs) {
     results.emplace_back(*kv.mutable_key(), *kv.mutable_value());
   }
 
-  return Request{std::move(results)};
+  return Message{std::move(results)};
 }
 
 void ClientImpl::Put(const std::string& key, const std::string& value) const {
