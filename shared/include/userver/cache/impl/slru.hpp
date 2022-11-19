@@ -72,27 +72,46 @@ LruBase<T, U, Hash, Equal, CachePolicy::kSLRU>::LruBase(size_t max_size,
 // TODO: don't copy
 template <typename T, typename U, typename Hash, typename Eq>
 bool LruBase<T, U, Hash, Eq, CachePolicy::kSLRU>::Put(const T& key, U value) {
-  auto result = probation_.Put(key, value);
-  if (!result) {
-    probation_.Erase(key);
-    result = protected_.Put(key, value);
-    if (!result) return false;
+  //  auto result = probation_.Put(key, value);
+  auto move_result = probation_.template MoveIfHasWithSetValue<Hash, Eq, false>(
+      key, value, &protected_);
+  if (move_result) {
     if (protected_.GetSize() == protected_size_ + 1) {
-      probation_.Put(*protected_.GetLeastUsedKey(),
-                     *protected_.GetLeastUsedValue());
-      protected_.Erase(*protected_.GetLeastUsedKey());
+      protected_.template MoveIfHasWithSetValue<Hash, Eq, false>(key, value,
+                                                                 &probation_);
     }
     return false;
   }
-  result = protected_.Put(key, value);
+  //  if (!result) {
+  //    probation_.Erase(key);
+  //    result = protected_.Put(key, value);
+  //    if (!result) return false;
+  //    if (protected_.GetSize() == protected_size_ + 1) {
+  //      probation_.Put(*protected_.GetLeastUsedKey(),
+  //                     *protected_.GetLeastUsedValue());
+  //      protected_.Erase(*protected_.GetLeastUsedKey());
+  //    }
+  //    return false;
+  //  }
+  //  result = protected_.Put(key, value);
+  //  if (result) {
+  //    protected_.Erase(key);
+  //    if (probation_.GetSize() == probation_size_ + 1)
+  //      probation_.Erase(*probation_.GetLeastUsedKey());
+  //  }
+  //  else {
+  //    probation_.Erase(key);
+  //    return false;
+  //  }
+  auto result = protected_.Get(key);
   if (result) {
-    protected_.Erase(key);
-    if (probation_.GetSize() == probation_size_ + 1)
-      probation_.Erase(*probation_.GetLeastUsedKey());
-  }
-  else {
-    probation_.Erase(key);
+    *result = value;
     return false;
+  } else {
+    probation_.Put(key, value);
+    if (probation_.GetSize() == probation_size_ + 1) {
+      probation_.Erase(*probation_.GetLeastUsedKey());
+    }
   }
 
   return true;
@@ -118,8 +137,7 @@ void LruBase<T, U, Hash, Eq, CachePolicy::kSLRU>::Erase(const T& key) {
 template <typename T, typename U, typename Hash, typename Eq>
 U* LruBase<T, U, Hash, Eq, CachePolicy::kSLRU>::Get(const T& key) {
   auto result = probation_.Get(key);
-  if (protected_size_ == 0)
-    return result;
+  if (protected_size_ == 0) return result;
   if (!result) return protected_.Get(key);
 
   protected_.Put(key, *result);
