@@ -9,13 +9,7 @@ pytest_plugins = [
 
 # /// [service_env value]
 SECDIST_CONFIG = {
-    'redis_settings': {
-        'taxi-tmp': {
-            'password': '',
-            'sentinels': [{'host': 'localhost', 'port': 26379}],
-            'shards': [{'name': 'test_master0'}],
-        },
-    },
+    
 }
 # /// [service_env value]
 
