@@ -2,6 +2,7 @@
 
 #include <userver/cache/lru_map.hpp>
 #include <userver/cache/lfu_map.hpp>
+#include <userver/cache/impl/slru.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -9,8 +10,10 @@ namespace {
 
 using Lru = cache::LruMap<unsigned, unsigned>;
 using Lfu = LfuBase<unsigned, unsigned>;
+using Slru = cache::LruMap<unsigned, unsigned, std::hash<unsigned>, std::equal_to<unsigned>, cache::CachePolicy::kSLRU>;
+using TinyLfu = cache::LruMap<unsigned, unsigned, std::hash<unsigned>, std::equal_to<unsigned>, cache::CachePolicy::kTinyLFU>;
 
-constexpr unsigned kElementsCount = 1000;
+constexpr unsigned kElementsCount = 5000;
 
 template <typename CachePolicyContainer>
 CachePolicyContainer FillLru(unsigned elements_count) {
@@ -33,6 +36,8 @@ void Put(benchmark::State& state) {
 }
 BENCHMARK(Put<Lru>);
 BENCHMARK(Put<Lfu>);
+BENCHMARK(Put<Slru>);
+BENCHMARK(Put<TinyLfu>);
 
 template <typename CachePolicyContainer>
 void Has(benchmark::State& state) {
@@ -45,6 +50,8 @@ void Has(benchmark::State& state) {
 }
 BENCHMARK(Has<Lru>);
 BENCHMARK(Has<Lfu>);
+BENCHMARK(Has<Slru>);
+BENCHMARK(Has<TinyLfu>);
 
 template <typename CachePolicyContainer>
 void PutOverflow(benchmark::State& state) {
@@ -60,5 +67,7 @@ void PutOverflow(benchmark::State& state) {
 }
 BENCHMARK(PutOverflow<Lru>);
 BENCHMARK(PutOverflow<Lfu>);
+BENCHMARK(PutOverflow<Slru>);
+BENCHMARK(PutOverflow<TinyLfu>);
 
 USERVER_NAMESPACE_END
