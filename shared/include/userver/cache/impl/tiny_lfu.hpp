@@ -39,7 +39,7 @@ class LruBase<T, U, Hash, Equal, CachePolicy::kTinyLFU, InnerPolicy> {
   std::size_t GetSize() const;
 
  private:
-  FrequencySketch<T, internal::Jenkins<T>, FrequencySketchPolicy::Bloom> proxy_;
+  FrequencySketch<T, internal::Jenkins<T>, FrequencySketchPolicy::DoorkeeperBloom> proxy_;
   std::size_t max_size_;
   LruBase<T, U, Hash, Equal, InnerPolicy> main_;
 };
