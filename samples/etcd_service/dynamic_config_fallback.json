@@ -1,16 +1,4 @@
 {
-    "ETCD_COMMANDS_BUFFERING_SETTINGS": {
-      "buffering_enabled": false,
-      "watch_command_timer_interval_us": 0
-    },
-    "ETCD_DEFAULT_COMMAND_CONTROL": {},
-    "ETCD_SUBSCRIBER_DEFAULT_COMMAND_CONTROL": {},
-    "ETCD_SUBSCRIPTIONS_REBALANCE_MIN_INTERVAL_SECONDS": 30,
-    "ETCD_WAIT_CONNECTED": {
-      "mode": "master_or_slave",
-      "throw_on_fail": false,
-      "timeout-ms": 11000
-    },
     "USERVER_CACHES": {},
     "USERVER_CANCEL_HANDLE_REQUEST_BY_DEADLINE": false,
     "USERVER_CHECK_AUTH_IN_HANDLERS": false,
