@@ -16,10 +16,6 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::etcd {
 
-<<<<<<< HEAD
-ClientImpl::ClientImpl(etcdserverpb::KVClientUPtr grpc_client)
-    : grpc_client_(std::move(grpc_client)) {}
-=======
 ClientImpl::ClientImpl(const components::ComponentConfig& config,
                        const components::ComponentContext& context)
     : client_factory_(
@@ -29,7 +25,7 @@ ClientImpl::ClientImpl(const components::ComponentConfig& config,
           client_factory_.MakeClient<etcdserverpb::KVClient>(
               config["endpoint"].As<std::string>()))),
       watch_client_(context.FindComponent<WatchClient>("watch-client")) {}
->>>>>>> 182b2651 (moving watch to etcd)
+
 
 Response ClientImpl::Get(const std::string& key_begin,
                          const std::optional<std::string>& key_end) const {
