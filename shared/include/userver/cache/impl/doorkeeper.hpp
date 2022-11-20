@@ -16,6 +16,7 @@ class Doorkeeper {
   void Put(const T&);
   bool Contains(const T&);
   void Reset();
+  void Clear();
 
  private:
   std::vector<bool> table_;
@@ -56,7 +57,12 @@ bool Doorkeeper<T, Hash>::Contains(const T& item) {
 
 template <typename T, typename Hash>
 void Doorkeeper<T, Hash>::Reset() {
-  table_ = {};
+  table_.assign(table_.size(), false);
+}
+
+template <typename T, typename Hash>
+void Doorkeeper<T, Hash>::Clear() {
+  table_.assign(table_.size(), false);
 }
 }  // namespace cache::impl
 
