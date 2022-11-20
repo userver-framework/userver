@@ -10,7 +10,7 @@ class ClientImpl : public Client,
  public:
   ClientImpl(etcdserverpb::KVClientUPtr grpc_client);
   Response GetRange(const std::string& key_begin,
-                   const std::string& key_end) const final;
+                    const std::optional<std::string>& key_end) const final;
   void Put(const std::string& key, const std::string& value) const final;
   void Delete(const std::string& key) const final;
 

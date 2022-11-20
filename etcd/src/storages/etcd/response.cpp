@@ -44,6 +44,10 @@ Response::iterator::reference Response::iterator::operator*() {
   return response_[index_];
 }
 
+std::unique_ptr<KeyValue> Response::iterator::operator->() {
+  return std::make_unique<KeyValue>(response_[index_]);
+}
+
 std::size_t Response::size() const {
   return response_->kvs_size();
 }

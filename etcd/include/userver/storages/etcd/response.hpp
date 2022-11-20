@@ -18,7 +18,7 @@ class Response {
  public:
   using ResponseNative = etcdserverpb::RangeResponse;
 
-  class iterator : public std::iterator<std::input_iterator_tag, const KeyValue, const KeyValue, const KeyValue*, const KeyValue&> {
+  class iterator : public std::iterator<std::input_iterator_tag, KeyValue, KeyValue, KeyValue*, KeyValue> {
    public:
     explicit iterator(std::size_t index, const Response& response);
     iterator& operator++();
@@ -26,6 +26,7 @@ class Response {
     bool operator==(iterator other);
     bool operator!=(iterator other);
     reference operator*();
+    std::unique_ptr<KeyValue> operator->();
    private:
     std::size_t index_;
     const Response& response_;
