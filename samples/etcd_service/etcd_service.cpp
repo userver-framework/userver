@@ -72,7 +72,9 @@ std::string KeyValue::HandleRequestThrow(
 
 std::string KeyValue::GetValue(std::string_view key,
                                const server::http::HttpRequest& request) const {
-  auto result = etcd_client_->GetRange(std::string{key}, std::string{key});
+  auto key_end = request.GetArg("key_end");
+  key_end = key_end.empty() ? key : key_end;
+  auto result = etcd_client_->GetRange(std::string{key}, key_end);
 
   if (!result.size()) {
     request.SetResponseStatus(server::http::HttpStatus::kConflict);
@@ -80,7 +82,9 @@ std::string KeyValue::GetValue(std::string_view key,
   }
 
   userver::formats::json::ValueBuilder ans{};
-  ans[result[0].GetKey()] = result[0].GetValue();
+  for (auto item : result) {
+    ans[item.GetKey()] = item.GetValue();
+  }
   return formats::json::ToString(ans.ExtractValue());
 }
 
