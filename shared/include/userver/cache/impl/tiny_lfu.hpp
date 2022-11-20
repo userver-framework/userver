@@ -41,6 +41,10 @@ class LruBase<T, U, Hash, Equal, CachePolicy::kTinyLFU, InnerPolicy> {
   template <typename Function>
   void VisitAll(Function&& func);
   std::size_t GetSize() const;
+  // TODO: remove it (slug)
+  void Access(const T& key)  {
+    proxy_.RecordAccess(key);
+  }
 
  private:
   FrequencySketch<T, DefaultBloomHash, DefaultFrequencySketchPolicy> proxy_;
@@ -154,6 +158,7 @@ U* LruBase<T, U, Hash, Equal, CachePolicy::kTinyLFU,
 }
 
 // TODO: think about more smart new_proxy init | need tests
+// TODO: set max size to FrequencySketchPolicy
 template <typename T, typename U, typename Hash, typename Equal,
           CachePolicy InnerPolicy>
 void LruBase<T, U, Hash, Equal, CachePolicy::kTinyLFU, InnerPolicy>::SetMaxSize(
