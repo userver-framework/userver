@@ -72,7 +72,7 @@ std::string KeyValue::HandleRequestThrow(
 
 std::string KeyValue::GetValue(std::string_view key,
                                const server::http::HttpRequest& request) const {
-  auto result = etcd_client_->GetRange(std::string{key}, std::string{key}).Get();
+  auto result = etcd_client_->GetRange(std::string{key}, std::string{key});
 
   if (!result.size()) {
     request.SetResponseStatus(server::http::HttpStatus::kConflict);
