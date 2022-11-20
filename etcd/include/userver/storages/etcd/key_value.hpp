@@ -15,17 +15,19 @@ namespace storages::etcd {
 
 class KeyValue {
  public:
+    using KeyValueNative = mvccpb::KeyValue;
+
     KeyValue();
     KeyValue(KeyValue&&);
+    KeyValue(const KeyValueNative&);
     KeyValue& operator=(KeyValue&&);
     ~KeyValue();
 
   std::pair<const std::string&, const std::string&> Pair();
-  const std::string& GetKey();
-  const std::string& GetValue();
+  const std::string& GetKey() const;
+  const std::string& GetValue() const;
 
  private:
-    using KeyValueNative = mvccpb::KeyValue;
     static constexpr std::size_t kImplSize = 72;
     static constexpr std::size_t kImplAlign = 8;
     utils::FastPimpl<KeyValueNative, kImplSize, kImplAlign> key_value_;

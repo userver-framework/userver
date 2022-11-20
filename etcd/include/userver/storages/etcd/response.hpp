@@ -16,6 +16,8 @@ namespace storages::etcd {
 
 class Response {
  public:
+  using ResponseNative = etcdserverpb::RangeResponse;
+
   class iterator : public std::iterator<std::input_iterator_tag, const KeyValue, const KeyValue, const KeyValue*, const KeyValue&> {
     public:
         explicit iterator(std::size_t index, const Response& response);
@@ -31,16 +33,16 @@ class Response {
 
   Response();
   Response(Response&&);
-
+  Response(const ResponseNative& native_response);
   Response& operator=(Response&&);
   ~Response();
   
+  std::size_t size() const;
   iterator begin();
   iterator end();
-  const KeyValue& operator[](std::size_t index) const;
+  KeyValue operator[](std::size_t index) const;
 
  private:
-    using ResponseNative = etcdserverpb::RangeResponse;
     static constexpr std::size_t kImplSize = 64;
     static constexpr std::size_t kImplAlign = 8;
     utils::FastPimpl<ResponseNative, kImplSize, kImplAlign> response_;

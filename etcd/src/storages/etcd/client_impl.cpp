@@ -29,7 +29,7 @@ namespace storages::etcd {
     auto stream = grpc_client_->Range(request, std::move(context));
     etcdserverpb::RangeResponse response = stream.Finish();
     
-    return Response(std::move(dynamic_cast<Response&>(response)));
+    return Response(response);
   }
 
   void ClientImpl::Put(const std::string &key, const std::string &value) const {
