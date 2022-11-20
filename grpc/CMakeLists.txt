@@ -31,6 +31,7 @@ if (USERVER_IS_THE_ROOT_PROJECT)
         ${CMAKE_CURRENT_SOURCE_DIR}/proto/tests/unit_test.proto
         # As well as paths relative to CMAKE_CURRENT_SOURCE_DIR
         tests/messages.proto
+        tests/same_service_and_method_name.proto
       INCLUDE_DIRECTORIES ${CMAKE_CURRENT_SOURCE_DIR}/proto
     )
 endif()
