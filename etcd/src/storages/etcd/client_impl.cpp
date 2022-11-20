@@ -21,9 +21,12 @@ ClientImpl::ClientImpl(etcdserverpb::KVClientUPtr grpc_client)
     : grpc_client_(std::move(grpc_client)) {}
 
 Response ClientImpl::GetRange(const std::string& key_begin,
-                             const std::string& /*key_end*/) const {
+                             const std::optional<std::string>& key_end) const {
   etcdserverpb::RangeRequest request;
   request.set_key(key_begin);
+  if (key_end) {
+    request.set_range_end(*key_end);
+  }
   auto context = std::make_unique<grpc::ClientContext>();
   context->set_deadline(
       userver::engine::Deadline::FromDuration(std::chrono::seconds{20}));
