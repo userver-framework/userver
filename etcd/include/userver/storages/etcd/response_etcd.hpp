@@ -24,9 +24,9 @@ class KeyValue {
   std::string value_;
 };
 
-class Message {
+class Response {
  public:
-  Message(const std::vector<KeyValue>& key_values);
+  Response(const std::vector<KeyValue>& key_values);
 
   std::vector<KeyValue> Get() const;
 

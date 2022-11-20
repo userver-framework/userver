@@ -10,7 +10,7 @@
 #include <userver/components/component.hpp>
 #include <userver/storages/etcd/client_fwd.hpp>
 #include <userver/ugrpc/client/client_factory_component.hpp>
-#include <userver/storages/etcd/messages.hpp>
+#include <userver/storages/etcd/response_etcd.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -19,7 +19,7 @@ namespace storages::etcd {
 ClientImpl::ClientImpl(etcdserverpb::KVClientUPtr grpc_client)
     : grpc_client_(std::move(grpc_client)) {}
 
-Message ClientImpl::GetRange(const std::string& key_begin,
+Response ClientImpl::GetRange(const std::string& key_begin,
                              const std::string& /*key_end*/) const {
   etcdserverpb::RangeRequest request;
   request.set_key(key_begin);
@@ -36,7 +36,7 @@ Message ClientImpl::GetRange(const std::string& key_begin,
     results.emplace_back(*kv.mutable_key(), *kv.mutable_value());
   }
 
-  return Message{std::move(results)};
+  return Response{std::move(results)};
 }
 
 void ClientImpl::Put(const std::string& key, const std::string& value) const {

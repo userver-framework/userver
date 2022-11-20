@@ -1,4 +1,4 @@
-#include <userver/storages/etcd/messages.hpp>
+#include <userver/storages/etcd/response_etcd.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -15,9 +15,9 @@ std::string KeyValue::GetKey() const { return key_; }
 
 std::string KeyValue::GetValue() const { return value_; }
 
-std::vector<KeyValue> Message::Get() const { return key_values_; }
+std::vector<KeyValue> Response::Get() const { return key_values_; }
 
-Message::Message(const std::vector<KeyValue>& key_values)
+Response::Response(const std::vector<KeyValue>& key_values)
     : key_values_(key_values) {}
 
 }  // namespace storages::etcd
