@@ -1,4 +1,4 @@
-#include "component.hpp"
+#include <userver/storages/etcd/component.hpp>
 
 #include <fmt/format.h>
 #include <iterator>
@@ -21,13 +21,14 @@
 #include <userver/utils/statistics/metadata.hpp>
 #include <userver/utils/statistics/percentile_format_json.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
-#include <userver/storages/etcd/client_impl.hpp>
 #include <userver/storages/etcd/client_fwd.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/yaml_config/yaml_config.hpp>
 #include <etcd/api/etcdserverpb/rpc_client.usrv.pb.hpp>
 #include <userver/components/component.hpp>
 #include <userver/ugrpc/client/client_factory_component.hpp>
+
+#include "client_impl.hpp"
 
 USERVER_NAMESPACE_BEGIN
 

@@ -33,7 +33,7 @@ class Response {
 
   Response();
   Response(Response&&);
-  Response(const ResponseNative& native_response);
+  Response(ResponseNative&& native_response);
   Response& operator=(Response&&);
   ~Response();
   

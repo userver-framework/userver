@@ -30,7 +30,7 @@ Response ClientImpl::GetRange(const std::string& key_begin,
   auto stream = grpc_client_->Range(request, std::move(context));
   etcdserverpb::RangeResponse response = stream.Finish();
 
-  return Response(response);
+  return Response(std::move(response));
 }
 
 void ClientImpl::Put(const std::string& key, const std::string& value) const {
