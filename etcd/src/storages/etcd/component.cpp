@@ -1,13 +1,12 @@
+#include "component.hpp"
+
 #include <fmt/format.h>
 #include <iterator>
 #include <memory>
 #include <numeric>
 #include <stdexcept>
 #include <string>
-#include <userver/storages/etcd/component.hpp>
-
-//#include <stdexcept>
-//#include <vector>
+#include <vector>
 
 #include <userver/components/component.hpp>
 #include <userver/components/statistics_storage.hpp>
@@ -22,12 +21,10 @@
 #include <userver/utils/statistics/metadata.hpp>
 #include <userver/utils/statistics/percentile_format_json.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
-#include <vector>
-#include "client_impl.hpp"
-#include "userver/storages/etcd/client_fwd.hpp"
-#include "userver/utils/assert.hpp"
-#include "userver/yaml_config/yaml_config.hpp"
-
+#include <userver/storages/etcd/client_impl.hpp>
+#include <userver/storages/etcd/client_fwd.hpp>
+#include <userver/utils/assert.hpp>
+#include <userver/yaml_config/yaml_config.hpp>
 #include <etcd/api/etcdserverpb/rpc_client.usrv.pb.hpp>
 #include <userver/components/component.hpp>
 #include <userver/ugrpc/client/client_factory_component.hpp>
