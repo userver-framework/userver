@@ -10,7 +10,9 @@ namespace storages::etcd {
 
 Response::Response() = default;
 Response::Response(Response&&) = default;
+Response::Response(const Response&) = default;
 Response& Response::operator=(Response&&) = default;
+Response& Response::operator=(const Response&) = default;
 Response::~Response() = default;
 
 Response::Response(ResponseNative&& native_response)
@@ -59,4 +61,5 @@ KeyValue Response::operator[](std::size_t index) const {
 }
 
 }  // namespace storages::etcd
+
 USERVER_NAMESPACE_END
