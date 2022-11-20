@@ -1,8 +1,5 @@
 #pragma once
 
-/// @file userver/storages/redis/component.hpp
-/// @brief @copybrief components::Redis
-
 #include <memory>
 #include <string>
 #include <unordered_map>
