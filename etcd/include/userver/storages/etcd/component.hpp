@@ -21,14 +21,14 @@ namespace components {
 class Etcd : public LoggableComponentBase {
  public:
   Etcd(const ComponentConfig& config,
-        const ComponentContext& component_context);
+       const ComponentContext& component_context);
   ~Etcd() override;
   static constexpr std::string_view kName = "etcd";
 
+  storages::etcd::ClientPtr GetClient(
+      const std::string& endpoint = std::string()) const;
 
-  storages::etcd::ClientPtr GetClient(const std::string& endpoint = std::string()) const;
-
-private:
+ private:
   void Connect(const ComponentConfig& config);
 
   std::unordered_map<std::string, storages::etcd::ClientPtr> clients_;
@@ -38,7 +38,6 @@ private:
   dynamic_config::Source config_;
 };
 
-} // namespace components
+}  // namespace components
 
 USERVER_NAMESPACE_END
-
