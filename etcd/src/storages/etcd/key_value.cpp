@@ -10,11 +10,15 @@ KeyValue::KeyValue() = default;
 
 KeyValue::KeyValue(KeyValue&&) = default;
 
+KeyValue::KeyValue(const KeyValue&) = default;
+
 KeyValue::KeyValue(const KeyValueNative& key_value)
     : key_value_(key_value)
 {}
 
 KeyValue& KeyValue::operator=(KeyValue&&) = default;
+
+KeyValue& KeyValue::operator=(const KeyValue&) = default;
 
 KeyValue::~KeyValue() = default;
 
