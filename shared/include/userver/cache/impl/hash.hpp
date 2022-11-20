@@ -4,7 +4,19 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace cache::impl::internal {
+namespace cache::impl::utils {
+size_t NextPowerOfTwo(size_t n) {
+  assert(n > 0);
+  n--;
+  n |= n >> 1;
+  n |= n >> 2;
+  n |= n >> 4;
+  n |= n >> 8;
+  n |= n >> 16;
+  n++;
+  return n;
+}
+// TODO: Murmur3
 template <typename T>
 struct Jenkins {
   uint32_t operator()(const T& item) {
@@ -24,6 +36,6 @@ struct Jenkins {
     return hash;
   }
 };
-}  // namespace cache::impl::internal
+}  // namespace cache::impl::utils
 
 USERVER_NAMESPACE_END
