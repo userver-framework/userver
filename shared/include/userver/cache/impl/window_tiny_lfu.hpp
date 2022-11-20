@@ -10,7 +10,7 @@ template <typename T, typename U, typename Hash, typename Equal>
 class LruBase<T, U, Hash, Equal, CachePolicy::kWTinyLFU> {
  public:
   explicit LruBase(std::size_t max_size, const Hash& hash, const Equal& equal,
-                   double window_part = 0.03);
+                   double window_part = 0.01);
 
   LruBase(LruBase&& other) noexcept = default;
   LruBase& operator=(LruBase&& other) noexcept = default;
@@ -47,8 +47,8 @@ LruBase<T, U, Hash, Equal, CachePolicy::kWTinyLFU>::LruBase(
     std::size_t max_size, const Hash& hash, const Equal& equal,
     double window_part)
     : window_part_(window_part),
-      window_size_(std::round(max_size * window_part)),
-      window_(std::round(max_size * window_part), hash, equal),
+      window_size_(std::round(max_size * window_part) + 1),
+      window_(std::round(max_size * window_part) + 1, hash, equal),
       main_size_(std::round(max_size * (1. - window_part))),
       main_(std::round(max_size * (1. - window_part)), hash, equal) {}
 
@@ -59,25 +59,25 @@ bool LruBase<T, U, Hash, Equal, CachePolicy::kWTinyLFU>::Put(const T& key,
                                                              U value) {
   if (window_.GetSize() == window_size_) {
     if (window_.Get(key)) {
+      main_.Access(key);
       window_.Put(key, std::move(value));
-      return false;
-    }
-    if (main_.Get(key)) {
-      main_.Put(key, std::move(value));
       return false;
     }
     // TODO: move?
     main_.Put(*window_.GetLeastUsedKey(), *window_.GetLeastUsedValue());
     window_.Put(key, std::move(value));
     return true;
-  } else
+  } else {
+    main_.Access(key);
     return window_.Put(key, std::move(value));
+  }
 }
 
 template <typename T, typename U, typename Hash, typename Equal>
 U* LruBase<T, U, Hash, Equal, CachePolicy::kWTinyLFU>::Get(const T& key) {
   auto* result = window_.Get(key);
   if (!result) return main_.Get(key);
+  main_.Access(key);
   return result;
 }
 
@@ -110,7 +110,7 @@ U* LruBase<T, U, Hash, Equal, CachePolicy::kWTinyLFU>::GetLeastUsedValue() {
 template <typename T, typename U, typename Hash, typename Equal>
 void LruBase<T, U, Hash, Equal, CachePolicy::kWTinyLFU>::SetMaxSize(
     std::size_t new_max_size) {
-  window_size_ = std::round(new_max_size * window_part_);
+  window_size_ = std::round(new_max_size * window_part_) + 1;
   main_size_ = std::round(new_max_size * (1 - window_part_));
   window_.SetMaxSize(window_size_);
   main_.SetMaxSize(main_size_);
