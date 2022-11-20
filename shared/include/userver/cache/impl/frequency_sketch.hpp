@@ -6,6 +6,7 @@
 #include <vector>
 
 #include <userver/cache/impl/doorkeeper.hpp>
+#include <userver/cache/impl/hash.hpp>
 #include <userver/cache/policy.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -21,7 +22,7 @@ class FrequencySketch<T, Hash, FrequencySketchPolicy::Bloom> {
 
  public:
   explicit FrequencySketch(size_t capacity, const Hash& = std::hash<T>{},
-                           int access_count_limit_rate = 10);
+                           int access_count_limit_rate = 8);
   freq_type GetFrequency(const T& item);
   void RecordAccess(const T& item);
   freq_type Size() { return size_; }
@@ -52,7 +53,8 @@ class FrequencySketch<T, Hash, FrequencySketchPolicy::DoorkeeperBloom> {
   using freq_type = int;
 
  public:
-  explicit FrequencySketch(size_t capacity, const Hash& = std::hash<T>{}, int access_count_limit_rate = 10);
+  explicit FrequencySketch(size_t capacity, const Hash& = std::hash<T>{},
+                           int access_count_limit_rate = 8);
   freq_type GetFrequency(const T& item);
   void RecordAccess(const T& item);
   freq_type Size();
@@ -67,7 +69,7 @@ class FrequencySketch<T, Hash, FrequencySketchPolicy::DoorkeeperBloom> {
 template <typename T, typename Hash>
 FrequencySketch<T, Hash, FrequencySketchPolicy::Bloom>::FrequencySketch(
     size_t capacity, const Hash& hash, int access_count_limit_rate)
-    : table_(capacity),
+    : table_(utils::NextPowerOfTwo(capacity)),
       hash_(hash),
       access_count_limit_rate_(access_count_limit_rate) {}
 
@@ -156,8 +158,10 @@ void FrequencySketch<T, Hash, FrequencySketchPolicy::Bloom>::Clear() {
 // TODO: capacity?
 template <typename T, typename Hash>
 FrequencySketch<T, Hash, FrequencySketchPolicy::DoorkeeperBloom>::
-    FrequencySketch(size_t capacity, const Hash& hash, int access_count_limit_rate)
-    : proxy_(capacity * 16, hash), main_(capacity, hash, access_count_limit_rate) {}
+    FrequencySketch(size_t capacity, const Hash& hash,
+                    int access_count_limit_rate)
+    : proxy_(capacity * 64, hash),
+      main_(capacity, hash, access_count_limit_rate) {}
 
 template <typename T, typename Hash>
 int FrequencySketch<T, Hash, FrequencySketchPolicy::DoorkeeperBloom>::
