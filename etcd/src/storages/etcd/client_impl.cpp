@@ -4,7 +4,6 @@
 #include <string>
 #include <utility>
 #include <vector>
-#include "userver/storages/etcd/response.hpp"
 
 #include <etcd/api/etcdserverpb/rpc.pb.h>
 #include <etcd/api/etcdserverpb/rpc_client.usrv.pb.hpp>
@@ -20,13 +19,30 @@ namespace storages::etcd {
 ClientImpl::ClientImpl(etcdserverpb::KVClientUPtr grpc_client)
     : grpc_client_(std::move(grpc_client)) {}
 
-Response ClientImpl::GetRange(const std::string& key_begin,
-                             const std::optional<std::string>& key_end) const {
+Response ClientImpl::Get(const std::string& key_begin,
+                         const std::optional<std::string>& key_end) const {
   etcdserverpb::RangeRequest request;
   request.set_key(key_begin);
-  if (key_end) {
+  if (key_end.has_value()) {
     request.set_range_end(*key_end);
   }
+
+  return MakeGet(request);
+}
+
+Response ClientImpl::GetByPrefix(const std::string &prefix) const {
+  etcdserverpb::RangeRequest request;
+  request.set_key(prefix);
+  if (!prefix.empty()) {
+    auto prefix_end = prefix;
+    ++prefix_end.back();
+    request.set_range_end(prefix_end);
+  }
+
+  return MakeGet(request);
+}
+
+Response ClientImpl::MakeGet(const etcdserverpb::RangeRequest& request) const {
   auto context = std::make_unique<grpc::ClientContext>();
   context->set_deadline(
       userver::engine::Deadline::FromDuration(std::chrono::seconds{20}));
@@ -49,13 +65,33 @@ void ClientImpl::Put(const std::string& key, const std::string& value) const {
   context->set_deadline(
       userver::engine::Deadline::FromDuration(std::chrono::seconds{20}));
   auto stream = grpc_client_->Put(request, std::move(context));
-
   etcdserverpb::PutResponse response = stream.Finish();
 }
 
-void ClientImpl::Delete(const std::string& key) const {
+void ClientImpl::Delete(const std::string &key_begin,
+                        const std::optional<std::string>& key_end) const {
   etcdserverpb::DeleteRangeRequest request;
-  request.set_key(key);
+  request.set_key(key_begin);
+  if (key_end.has_value()) {
+    request.set_range_end(*key_end);
+  }
+
+  MakeDelete(request);
+}
+
+void ClientImpl::DeleteByPrefix(const std::string &prefix) const {
+  etcdserverpb::DeleteRangeRequest request;
+  request.set_key(prefix);
+  if (!prefix.empty()) {
+    auto prefix_end = prefix;
+    ++prefix_end.back();
+    request.set_range_end(prefix_end);
+  }
+
+  MakeDelete(request);
+}
+
+void ClientImpl::MakeDelete(const etcdserverpb::DeleteRangeRequest& request) const {
   auto context = std::make_unique<grpc::ClientContext>();
   context->set_deadline(
       userver::engine::Deadline::FromDuration(std::chrono::seconds{20}));
