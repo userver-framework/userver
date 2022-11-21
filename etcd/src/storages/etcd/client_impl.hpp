@@ -1,5 +1,12 @@
 #include <userver/storages/etcd/client.hpp>
-#include <userver/storages/etcd/client_fwd.hpp>
+#include <userver/storages/etcd/fwd.hpp>
+
+namespace etcdserverpb {
+
+class RangeRequest;
+class DeleteRangeRequest;
+
+}  // namespace etcdserverpb
 
 USERVER_NAMESPACE_BEGIN
 

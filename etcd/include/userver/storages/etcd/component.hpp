@@ -9,7 +9,7 @@
 #include <userver/dynamic_config/source.hpp>
 #include <userver/utils/statistics/entry.hpp>
 
-#include "client_fwd.hpp"
+#include "fwd.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
