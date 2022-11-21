@@ -1,21 +1,14 @@
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
+
+#include <userver/utils/assert.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
-namespace cache::impl::utils {
-size_t NextPowerOfTwo(size_t n) {
-  assert(n > 0);
-  n--;
-  n |= n >> 1;
-  n |= n >> 2;
-  n |= n >> 4;
-  n |= n >> 8;
-  n |= n >> 16;
-  n++;
-  return n;
-}
+namespace cache::impl::tools {
+size_t NextPowerOfTwo(size_t n);
 // TODO: Murmur3
 template <typename T>
 struct Jenkins {
@@ -36,6 +29,6 @@ struct Jenkins {
     return hash;
   }
 };
-}  // namespace cache::impl::utils
+}  // namespace cache::impl::tools
 
 USERVER_NAMESPACE_END
