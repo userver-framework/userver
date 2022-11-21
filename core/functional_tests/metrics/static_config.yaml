@@ -147,6 +147,10 @@ components_manager:
                 format-version: 0
                 first-update-mode: required
                 first-update-type: full
+        sample-lru-cache:
+            size: 1024
+            ways: 32
+            lifetie: 1s
         tracer:
             service-name: $service-name
             tracer: native
