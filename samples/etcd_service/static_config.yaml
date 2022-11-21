@@ -1,0 +1,63 @@
+# /// [Etcd service sample - static config]
+# yaml
+components_manager:
+    components:                       # Configuring components that were registered via component_list
+        handler-key-value:
+            path: /v1/key-value                  # Registering handler by URL '/v1/key-value'.
+            method: GET,POST,DELETE              # GET, POST and DELETE requests only.
+            task_processor: main-task-processor  # Run it on CPU bound task processor
+
+        etcd:
+            endpoints:
+                - 'localhost:2379'
+
+        grpc-client-factory:
+            task-processor: grpc-blocking-task-processor
+            channel-args: {}
+        
+
+        secdist:                                         # Component that stores configuration of hosts and passwords
+            config: /etc/etcd_service/secure_data.json  # Values are supposed to be stored in this file
+            missing-ok: true                             # ... but if the file is missing it is still ok
+            environment-secrets-key: SECDIST_CONFIG      # ... values will be loaded from this environment value
+
+        testsuite-support:
+
+        server:
+            listener:                 # configuring the main listening socket...
+                port: 8092            # ...to listen on this port and...
+                task_processor: main-task-processor    # ...process incoming requests on this task processor.
+        logging:
+            fs-task-processor: fs-task-processor
+            loggers:
+                default:
+                    file_path: '@stderr'
+                    level: debug
+                    overflow_behavior: discard  # Drop logs if the system is too busy to write them down.
+
+        tracer:                           # Component that helps to trace execution times and requests in logs.
+            service-name: etcd-service    # "You know. You all know exactly who I am. Say my name. " (c)
+
+        dynamic-config:                      # Dynamic config storage options, do nothing
+            fs-cache-path: ''
+        dynamic-config-fallbacks:            # Load options from file and push them into the dynamic config storage.
+            fallback-path: /etc/etcd_service/dynamic_config_fallback.json
+    coro_pool:
+        initial_size: 500             # Preallocate 500 coroutines at startup.
+        max_size: 1000                # Do not keep more than 1000 preallocated coroutines.
+
+    task_processors:                  # Task processor is an executor for coroutine tasks
+
+        main-task-processor:          # Make a task processor for CPU-bound coroutine tasks.
+            worker_threads: 4         # Process tasks in 4 threads.
+            thread_name: main-worker  # OS will show the threads of this task processor with 'main-worker' prefix.
+
+        fs-task-processor:            # Make a separate task processor for filesystem bound tasks.
+            thread_name: fs-worker
+            worker_threads: 4
+
+        grpc-blocking-task-processor:  # For blocking gRPC channel creation
+            thread_name: grpc-worker
+            worker_threads: 2
+
+    default_task_processor: main-task-processor
