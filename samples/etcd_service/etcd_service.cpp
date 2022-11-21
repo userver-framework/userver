@@ -72,9 +72,11 @@ std::string KeyValue::HandleRequestThrow(
 
 std::string KeyValue::GetValue(std::string_view key,
                                const server::http::HttpRequest& request) const {
-  auto key_end = request.GetArg("key_end");
-  key_end = key_end.empty() ? key : key_end;
-  auto result = etcd_client_->GetRange(std::string{key}, key_end);
+  auto key_end = std::make_optional<std::string>(request.GetArg("key_end"));
+  if (key_end->empty()) {
+    key_end = std::nullopt;
+  }
+  auto result = etcd_client_->Get(std::string{key}, key_end);
 
   if (!result.size()) {
     request.SetResponseStatus(server::http::HttpStatus::kConflict);
