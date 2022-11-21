@@ -21,7 +21,6 @@
 #include <userver/utils/statistics/metadata.hpp>
 #include <userver/utils/statistics/percentile_format_json.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
-#include <userver/storages/etcd/client_fwd.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/yaml_config/yaml_config.hpp>
 #include <etcd/api/etcdserverpb/rpc_client.usrv.pb.hpp>

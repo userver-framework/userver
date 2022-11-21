@@ -8,7 +8,6 @@
 #include <etcd/api/etcdserverpb/rpc.pb.h>
 #include <etcd/api/etcdserverpb/rpc_client.usrv.pb.hpp>
 #include <userver/components/component.hpp>
-#include <userver/storages/etcd/client_fwd.hpp>
 #include <userver/ugrpc/client/client_factory_component.hpp>
 #include <userver/storages/etcd/response.hpp>
 

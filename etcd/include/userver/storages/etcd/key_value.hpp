@@ -7,7 +7,7 @@
 
 #include <userver/utils/fast_pimpl.hpp>
 
-#include "client_fwd.hpp"
+#include "fwd.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
