@@ -8,7 +8,7 @@ BYTES_PER_SECOND_LIMIT = 10
 CONNECTION_TIME_LIMIT = 0.4
 CONNECTION_LIMIT_JITTER = 0.004
 FAULRE_RETRIES = 250
-DATA_PARTS_SPLIT = 40
+DATA_PARTS_MAX_SIZE = 40
 BYTES_TRANSMISSION_LIMIT = 40960
 
 
@@ -19,7 +19,7 @@ async def _check_that_restores(service_client, gate):
     gate.start_accepting()
 
     try:
-        await gate.wait_for_connectons(timeout=30.0)
+        await gate.wait_for_connections(timeout=30.0)
     except asyncio.TimeoutError:
         assert False, 'Timout while waiting for restore'
 
@@ -183,22 +183,22 @@ async def test_network_limit_time(service_client, gate):
 
 
 async def test_network_smaller_parts_sends(service_client, gate):
-    gate.to_server_smaller_parts(DATA_PARTS_SPLIT)
+    gate.to_server_smaller_parts(DATA_PARTS_MAX_SIZE)
 
     response = await service_client.get('/chaos/postgres?type=fill')
     assert response.status == 200
 
 
 async def test_network_smaller_parts_recv(service_client, gate):
-    gate.to_client_smaller_parts(DATA_PARTS_SPLIT)
+    gate.to_client_smaller_parts(DATA_PARTS_MAX_SIZE)
 
     response = await service_client.get('/chaos/postgres?type=fill')
     assert response.status == 200
 
 
 async def test_network_smaller_parts(service_client, gate):
-    gate.to_server_smaller_parts(DATA_PARTS_SPLIT)
-    gate.to_client_smaller_parts(DATA_PARTS_SPLIT)
+    gate.to_server_smaller_parts(DATA_PARTS_MAX_SIZE)
+    gate.to_client_smaller_parts(DATA_PARTS_MAX_SIZE)
 
     response = await service_client.get('/chaos/postgres?type=fill')
     assert response.status == 200

@@ -21,24 +21,25 @@ import typing
 @dataclasses.dataclass(frozen=True)
 class GateRoute:
     """
-    Class that describes route for TcpGate
+    Class that describes the route for TcpGate.
+
+    Use `port_for_client == 0` to bind to some unused port. In that case the
+    actual address could be retrieved via TcpGate.get_sockname_for_clients().
 
     @ingroup userver_testsuite
     """
 
     name: str
-    host_for_client: str
-    port_for_client: int
     host_to_server: str
     port_to_server: int
+    host_for_client: str = 'localhost'
+    port_for_client: int = 0
 
 
 # @cond
 
 # https://docs.python.org/3/library/socket.html#socket.socket.recv
 RECV_MAX_SIZE = 1024 * 1024 * 128
-
-MIN_DELAY = 0.01
 MAX_DELAY = 60.0
 
 
@@ -58,6 +59,11 @@ class GateException(Exception):
 
 class GateInterceptException(Exception):
     pass
+
+
+async def _yield() -> None:
+    _MIN_DELAY = 0.01
+    await asyncio.sleep(_MIN_DELAY)
 
 
 def _incomming_data_size(recv_socket: Socket) -> int:
@@ -81,7 +87,7 @@ async def _intercept_ok(
 async def _intercept_noop(
         loop: EvLoop, socket_from: Socket, socket_to: Socket,
 ) -> None:
-    await asyncio.sleep(MIN_DELAY)
+    pass
 
 
 async def _intercept_delay(
@@ -103,13 +109,12 @@ async def _intercept_corrupt(
         loop: EvLoop, socket_from: Socket, socket_to: Socket,
 ) -> None:
     data = await loop.sock_recv(socket_from, RECV_MAX_SIZE)
-    for i in range(len(data)):  # pylint: disable=consider-using-enumerate
-        data[i] = ~data[i]
-    await loop.sock_sendall(socket_to, data)
+    await loop.sock_sendall(socket_to, bytearray([not x for x in data]))
 
 
 class _InterceptBpsLimit:
     def __init__(self, bytes_per_second: float):
+        assert bytes_per_second >= 1
         self._bytes_per_second = bytes_per_second
         self._time_last_added = 0.0
         self._bytes_left = self._bytes_per_second
@@ -138,13 +143,15 @@ class _InterceptBpsLimit:
             await loop.sock_sendall(socket_to, data)
         else:
             logger.info('Socket hits the bytes per second limit')
-            await asyncio.sleep(max(1.0 / self._bytes_per_second, MIN_DELAY))
+            await asyncio.sleep(1.0 / self._bytes_per_second)
 
 
 class _InterceptTimeLimit:
     def __init__(self, timeout: float, jitter: float):
         self._sockets: typing.Dict[Socket, float] = {}
+        assert timeout >= 0.0
         self._timeout = timeout
+        assert jitter >= 0.0
         self._jitter = jitter
 
     def raise_if_timed_out(self, socket_from: Socket) -> None:
@@ -165,23 +172,23 @@ class _InterceptTimeLimit:
         await _intercept_ok(loop, socket_from, socket_to)
 
 
-async def _intercept_smaller_parts(
-        parts_count: int, loop: EvLoop, socket_from: Socket, socket_to: Socket,
-) -> None:
-    data = await loop.sock_recv(socket_from, RECV_MAX_SIZE)
+class _InterceptSmallerParts:
+    def __init__(self, max_size: int):
+        assert max_size > 0
+        self._max_size = max_size
 
-    length = len(data)
-    if length < parts_count:
+    async def __call__(
+            self, loop: EvLoop, socket_from: Socket, socket_to: Socket,
+    ) -> None:
+        incomming_size = _incomming_data_size(socket_from)
+        chunk_size = min(incomming_size, self._max_size)
+        data = await loop.sock_recv(socket_from, chunk_size)
         await loop.sock_sendall(socket_to, data)
-        return
-
-    part_size = (length + parts_count - 1) // parts_count
-    for i in range(0, length, part_size):
-        await loop.sock_sendall(socket_to, data[i : i + part_size])
 
 
 class _InterceptConcatPackets:
     def __init__(self, packet_size: int):
+        assert packet_size >= 0
         self._packet_size = packet_size
         self._expire_at: typing.Optional[float] = None
 
@@ -205,13 +212,11 @@ class _InterceptConcatPackets:
             data = await loop.sock_recv(socket_from, RECV_MAX_SIZE)
             await loop.sock_sendall(socket_to, data)
             self._expire_at = None
-            return
-
-        await asyncio.sleep(MIN_DELAY)
 
 
 class _InterceptBytesLimit:
     def __init__(self, bytes_limit: int, gate: 'TcpGate'):
+        assert bytes_limit >= 0
         self._bytes_limit = bytes_limit
         self._bytes_remain = self._bytes_limit
         self._gate = gate
@@ -220,13 +225,12 @@ class _InterceptBytesLimit:
             self, loop: EvLoop, socket_from: Socket, socket_to: Socket,
     ) -> None:
         data = await loop.sock_recv(socket_from, RECV_MAX_SIZE)
-        self._bytes_remain -= len(data)
-
-        if self._bytes_remain <= 0:
-            self._bytes_remain = self._bytes_limit
+        if self._bytes_remain <= len(data):
+            await loop.sock_sendall(socket_to, data[0 : self._bytes_remain])
             await self._gate.sockets_close()
             raise GateInterceptException('Data transmission limit reached')
 
+        self._bytes_remain -= len(data)
         await loop.sock_sendall(socket_to, data)
 
 
@@ -291,7 +295,7 @@ class _SocketsPaired:
                 # interceptor we wait for data before grabbing and applying
                 # the interceptor.
                 if not _incomming_data_size(socket_from):
-                    await asyncio.sleep(MIN_DELAY)
+                    await _yield()
                     continue
 
                 if to_server:
@@ -300,6 +304,7 @@ class _SocketsPaired:
                     interceptor = self._to_client_intercept
 
                 await interceptor(self._loop, socket_from, socket_to)
+                await _yield()
         except Exception as exc:  # pylint: disable=broad-except
             logger.info('Exception in "%s": %s', self._route.name, exc)
         finally:
@@ -344,7 +349,7 @@ class _SocketsPaired:
 
 class TcpGate:
     """
-    Accepts incomming client connections (host_for_client, port_for_client),
+    Accepts incoming client connections (host_for_client, port_for_client),
     on each new connection on client connects to server
     (host_to_server, port_to_server).
 
@@ -375,6 +380,7 @@ class TcpGate:
 
     async def __aexit__(self, exc_type, exc_value, traceback) -> None:
         await self.stop()
+        await _yield()
 
     def start(self) -> None:
         """ Open the socket and start accepting connections from client """
@@ -388,12 +394,23 @@ class TcpGate:
             self._route.port_for_client,
         )
         self._accept_sock.bind(client_addr)
+
+        if self._route.port_for_client == 0:
+            # In case of stop()+start() bind to the same port
+            self._route = GateRoute(
+                name=self._route.name,
+                host_to_server=self._route.host_to_server,
+                port_to_server=self._route.port_to_server,
+                host_for_client=self._accept_sock.getsockname()[0],
+                port_for_client=self._accept_sock.getsockname()[1],
+            )
+
         self._accept_sock.listen()
 
         self.start_accepting()
 
     def start_accepting(self) -> None:
-        """ Start accepting incommong connections from client """
+        """ Start accepting incoming connections from client """
         assert self._accept_sock
         if self._accept_task and not self._accept_task.done():
             return
@@ -401,12 +418,16 @@ class TcpGate:
         self._accept_task = asyncio.create_task(self._do_accept())
 
     async def stop_accepting(self) -> None:
-        """ Stop accepting incommong connections from client """
+        """
+        Stop accepting incoming connections from client without closing
+        the accepting socket.
+        """
         await _cancel_and_join(self._accept_task)
+        self._accept_task = None
 
     async def stop(self) -> None:
         """
-        Stop accepting incommong connections from client, close all the sockets
+        Stop accepting incoming connections from client, close all the sockets
         and connections
         """
         if not self._accept_sock:
@@ -482,11 +503,11 @@ class TcpGate:
         self.set_to_client_interceptor(_intercept_close_on_data)
 
     def to_server_corrupt_data(self) -> None:
-        """ Corrupt data recveid from client """
+        """ Corrupt data received from client """
         self.set_to_server_interceptor(_intercept_corrupt)
 
     def to_client_corrupt_data(self) -> None:
-        """ Corrupt data recveid from server """
+        """ Corrupt data received from server """
         self.set_to_client_interceptor(_intercept_corrupt)
 
     def to_server_limit_bps(self, bytes_per_second: float) -> None:
@@ -498,36 +519,28 @@ class TcpGate:
         self.set_to_client_interceptor(_InterceptBpsLimit(bytes_per_second))
 
     def to_server_limit_time(self, timeout: float, jitter: float) -> None:
-        """ Limit conection lifetime on receive of first bytes from client """
+        """ Limit connection lifetime on receive of first bytes from client """
         self.set_to_server_interceptor(_InterceptTimeLimit(timeout, jitter))
 
     def to_client_limit_time(self, timeout: float, jitter: float) -> None:
-        """ Limit conection lifetime on receive of first bytes from server """
+        """ Limit connection lifetime on receive of first bytes from server """
         self.set_to_client_interceptor(_InterceptTimeLimit(timeout, jitter))
 
-    def to_server_smaller_parts(self, parts_count: int) -> None:
-        """ Pass data in smaller parts """
+    def to_server_smaller_parts(self, max_size: int) -> None:
+        """
+        Pass data to server in smaller parts
 
-        async def _intercept_smaller_parts_bound(
-                loop: EvLoop, socket_from: Socket, socket_to: Socket,
-        ) -> None:
-            await _intercept_smaller_parts(
-                parts_count, loop, socket_from, socket_to,
-            )
+        @param max_size Max packet size to send to server
+        """
+        self.set_to_server_interceptor(_InterceptSmallerParts(max_size))
 
-        self.set_to_server_interceptor(_intercept_smaller_parts_bound)
+    def to_client_smaller_parts(self, max_size: int) -> None:
+        """
+        Pass data to client in smaller parts
 
-    def to_client_smaller_parts(self, parts_count: int) -> None:
-        """ Pass data in smaller parts """
-
-        async def _intercept_smaller_parts_bound(
-                loop: EvLoop, socket_from: Socket, socket_to: Socket,
-        ) -> None:
-            await _intercept_smaller_parts(
-                parts_count, loop, socket_from, socket_to,
-            )
-
-        self.set_to_client_interceptor(_intercept_smaller_parts_bound)
+        @param max_size Max packet size to send to client
+        """
+        self.set_to_client_interceptor(_InterceptSmallerParts(max_size))
 
     def to_server_concat_packets(self, packet_size: int) -> None:
         """
@@ -554,7 +567,11 @@ class TcpGate:
         self.set_to_client_interceptor(_InterceptBytesLimit(bytes_limit, self))
 
     def connections_count(self) -> int:
-        """ Returns amount of connections going through the gate """
+        """
+        Returns maximal amount of connections going through the gate at
+        the moment. Some of the connection could be closing, use the value
+        with caution.
+        """
         return len(self._sockets)
 
     async def sockets_close(
@@ -565,11 +582,12 @@ class TcpGate:
             await x.shutdown()
         self._collect_garbage()
 
-    async def wait_for_connectons(self, *, count=1, timeout=0.0) -> None:
+    async def wait_for_connections(self, *, count=1, timeout=0.0) -> None:
         """
         Wait for at least `count` connections going through the gate.
-        Raises a Timeout exception if failed to get the required amount of
-        connections in time.
+
+        @throws asyncio.TimeoutError exception if failed to get the
+                required amount of connections in time.
         """
         if timeout <= 0.0:
             while self.connections_count() < count:
@@ -584,6 +602,18 @@ class TcpGate:
                 self._connected_event.wait(), timeout=time_left,
             )
             self._connected_event.clear()
+
+    def get_sockname_for_clients(self) -> typing.Tuple[str, int]:
+        """
+        Returns the client socket address that the gate listens on.
+
+        This function allows to use 0 in GateRoute.port_for_client and retrieve
+        the actual port and host.
+        """
+        assert self._route.port_for_client != 0, (
+            'Gate was not started and the port_for_client is still 0',
+        )
+        return (self._route.host_for_client, self._route.port_for_client)
 
     def _collect_garbage(self) -> None:
         self._sockets = {x for x in self._sockets if x.is_active()}

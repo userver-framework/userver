@@ -56,7 +56,7 @@ async def _gate_ready(service_client, _gate_started):
     _gate_started.to_client_pass()
     _gate_started.start_accepting()
 
-    await _gate_started.wait_for_connectons()
+    await _gate_started.wait_for_connections()
     yield _gate_started
     # /// [gate fixture]
 
