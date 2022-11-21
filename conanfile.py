@@ -84,9 +84,10 @@ class UserverConan(conans.ConanFile):
         self.requires('boost/1.79.0')
         self.requires('libev/4.33')
         self.requires('spdlog/1.9.0')
+        self.options['spdlog'].header_only = True
         self.requires('fmt/8.1.1')
         self.requires('c-ares/1.18.1')
-        self.requires('libcurl/7.68.0')
+        self.requires('libcurl/7.86.0')
         self.requires('cryptopp/8.6.0')
         self.requires('yaml-cpp/0.7.0')
         self.requires('cctz/2.3')
