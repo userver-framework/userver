@@ -9,7 +9,10 @@ USERVER_NAMESPACE_BEGIN
 
 namespace cache::impl::tools {
 size_t NextPowerOfTwo(size_t n);
+<<<<<<< HEAD
 
+=======
+>>>>>>> 044bfb53 (refactor)
 // TODO: Murmur3
 template <typename T>
 struct Jenkins {
@@ -30,6 +33,10 @@ struct Jenkins {
     return hash;
   }
 };
+<<<<<<< HEAD
 } // namespace cache::impl::utils
+=======
+}  // namespace cache::impl::tools
+>>>>>>> 044bfb53 (refactor)
 
 USERVER_NAMESPACE_END
