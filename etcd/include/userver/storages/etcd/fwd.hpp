@@ -24,4 +24,12 @@ namespace etcdserverpb {
 class KVClient;
 using KVClientUPtr = std::unique_ptr<KVClient>;
 
+class RangeResponse;
+
 }  // namespace etcdserverpb
+
+namespace mvccpb {
+
+class KeyValue;
+
+}  // namespace mvccpb
