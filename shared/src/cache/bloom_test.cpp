@@ -10,7 +10,7 @@ USERVER_NAMESPACE_BEGIN
 template <typename T>
 class FrequencySketchF : public ::testing::Test {
  public:
-  using Hash = cache::impl::internal::Jenkins<double>;
+  using Hash = cache::impl::tools::Jenkins<double>;
   using FrequencySketch = cache::impl::FrequencySketch<double, Hash, T::value>;
 };
 
@@ -49,11 +49,11 @@ TYPED_TEST(FrequencySketchF, Reset) {
 }
 
 TEST(FrequencySketchF, Full) {
-  using Hash = cache::impl::internal::Jenkins<double>;
+  using Hash = cache::impl::tools::Jenkins<double>;
   using FrequencySketch =
       cache::impl::FrequencySketch<double, Hash,
                                    cache::FrequencySketchPolicy::Bloom>;
-  FrequencySketch counter(16, Hash{}, 1000);
+  FrequencySketch counter(16, Hash{});
 
   for (int i = 0; i < 100'000; i++) counter.RecordAccess(i);
 
