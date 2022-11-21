@@ -15,8 +15,10 @@ namespace cache::impl {
 template <typename T, typename U, typename Hash, typename Equal,
           CachePolicy InnerPolicy>
 class LruBase<T, U, Hash, Equal, CachePolicy::kTinyLFU, InnerPolicy> {
-  using DefaultBloomHash = utils::Jenkins<T>;
-  static constexpr auto DefaultFrequencySketchPolicy = FrequencySketchPolicy::DoorkeeperBloom;
+  using DefaultBloomHash = tools::Jenkins<T>;
+  static constexpr auto DefaultFrequencySketchPolicy =
+      FrequencySketchPolicy::DoorkeeperBloom;
+
  public:
   explicit LruBase(std::size_t max_size, const Hash& hash, const Equal& equal);
 
@@ -87,11 +89,7 @@ template <typename T, typename U, typename Hash, typename Equal,
           CachePolicy InnerPolicy>
 LruBase<T, U, Hash, Equal, CachePolicy::kTinyLFU, InnerPolicy>::LruBase(
     std::size_t max_size, const Hash& hash, const Equal& equal)
-<<<<<<< HEAD
-    : proxy_(max_size, internal::Jenkins<T>{}),
-=======
     : proxy_(max_size, DefaultBloomHash{}),
->>>>>>> 3b67b9fd (refactor: TinyLfu)
       max_size_(max_size),
       main_(max_size, hash, equal) {}
 
@@ -111,8 +109,7 @@ bool LruBase<T, U, Hash, Equal, CachePolicy::kTinyLFU, InnerPolicy>::Put(
         proxy_.GetFrequency(*main_.GetLeastUsedKey()))
       main_.Put(key, std::move(value));
     return true;
-  }
-  else
+  } else
     return main_.Put(key, std::move(value));
 }
 
@@ -162,13 +159,8 @@ template <typename T, typename U, typename Hash, typename Equal,
 void LruBase<T, U, Hash, Equal, CachePolicy::kTinyLFU, InnerPolicy>::SetMaxSize(
     std::size_t new_max_size) {
   auto new_proxy =
-<<<<<<< HEAD
-      FrequencySketch<T, internal::Jenkins<T>, FrequencySketchPolicy::Bloom>(
-          new_max_size, internal::Jenkins<T>{});
-=======
       FrequencySketch<T, DefaultBloomHash, DefaultFrequencySketchPolicy>(
           new_max_size, DefaultBloomHash{});
->>>>>>> 3b67b9fd (refactor: TinyLfu)
   main_.VisitAll([&new_proxy](const T& key, const U&) mutable {
     new_proxy.RecordAccess(key);
   });
