@@ -32,7 +32,8 @@ class KeyValue final : public server::handlers::HttpHandlerBase {
                        const server::http::HttpRequest& request) const;
   std::string PostValue(const std::string& key,
                         const server::http::HttpRequest& request) const;
-  std::string DeleteValue(const std::string& key) const;
+  std::string DeleteValue(const std::string& key,
+                          const server::http::HttpRequest& request) const;
 
   storages::etcd::ClientPtr etcd_client_;
 };
@@ -63,7 +64,7 @@ std::string KeyValue::HandleRequestThrow(
     case server::http::HttpMethod::kPost:
       return PostValue(key, request);
     case server::http::HttpMethod::kDelete:
-      return DeleteValue(key);
+      return DeleteValue(key, request);
     default:
       throw server::handlers::ClientError(server::handlers::ExternalBody{
           fmt::format("Unsupported method {}", request.GetMethod())});
@@ -99,12 +100,18 @@ std::string KeyValue::PostValue(const std::string& key,
     return {};
   }
 
-  etcd_client_->Put(std::string{key}, value);
+  etcd_client_->Put(key, value);
   return {};
 }
 
-std::string KeyValue::DeleteValue(const std::string& key) const {
-  etcd_client_->Delete(std::string{key});
+std::string KeyValue::DeleteValue(const std::string& key,
+                                  const server::http::HttpRequest& request) const {
+  auto key_end = std::make_optional<std::string>(request.GetArg("key_end"));
+  if (key_end->empty()) {
+    key_end = std::nullopt;
+  }
+
+  etcd_client_->Delete(key, key_end);
   return {};
 }
 
