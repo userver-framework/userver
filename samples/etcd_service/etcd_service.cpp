@@ -28,11 +28,11 @@ class KeyValue final : public server::handlers::HttpHandlerBase {
       server::request::RequestContext&) const override;
 
  private:
-  std::string GetValue(std::string_view key,
+  std::string GetValue(const std::string& key,
                        const server::http::HttpRequest& request) const;
-  std::string PostValue(std::string_view key,
+  std::string PostValue(const std::string& key,
                         const server::http::HttpRequest& request) const;
-  std::string DeleteValue(std::string_view key) const;
+  std::string DeleteValue(const std::string& key) const;
 
   storages::etcd::ClientPtr etcd_client_;
 };
@@ -46,15 +46,15 @@ KeyValue::KeyValue(const components::ComponentConfig& config,
     : server::handlers::HttpHandlerBase(config, context),
       etcd_client_{
           context.FindComponent<components::Etcd>("etcd")
-            .GetClient()} {}
+              .GetClient()} {}
 
 std::string KeyValue::HandleRequestThrow(
     const server::http::HttpRequest& request,
     server::request::RequestContext&) const {
   const auto& key = request.GetArg("key");
   if (key.empty()) {
-    throw server::handlers::ClientError(
-        server::handlers::ExternalBody{"No 'key' query argument"});
+    request.SetResponseStatus(server::http::HttpStatus::kBadRequest);
+    return {};
   }
 
   switch (request.GetMethod()) {
@@ -70,16 +70,16 @@ std::string KeyValue::HandleRequestThrow(
   }
 }
 
-std::string KeyValue::GetValue(std::string_view key,
+std::string KeyValue::GetValue(const std::string& key,
                                const server::http::HttpRequest& request) const {
   auto key_end = std::make_optional<std::string>(request.GetArg("key_end"));
   if (key_end->empty()) {
     key_end = std::nullopt;
   }
-  auto result = etcd_client_->Get(std::string{key}, key_end);
 
+  auto result = etcd_client_->Get(key, key_end);
   if (!result.size()) {
-    request.SetResponseStatus(server::http::HttpStatus::kConflict);
+    request.SetResponseStatus(server::http::HttpStatus::kNotFound);
     return {};
   }
 
@@ -87,17 +87,23 @@ std::string KeyValue::GetValue(std::string_view key,
   for (auto item : result) {
     ans[item.GetKey()] = item.GetValue();
   }
+
   return formats::json::ToString(ans.ExtractValue());
 }
 
-std::string KeyValue::PostValue(
-    std::string_view key, const server::http::HttpRequest& request) const {
+std::string KeyValue::PostValue(const std::string& key,
+                                const server::http::HttpRequest& request) const {
   const auto& value = request.GetArg("value");
+  if (value.empty()) {
+    request.SetResponseStatus(server::http::HttpStatus::kBadRequest);
+    return {};
+  }
+
   etcd_client_->Put(std::string{key}, value);
   return {};
 }
 
-std::string KeyValue::DeleteValue(std::string_view key) const {
+std::string KeyValue::DeleteValue(const std::string& key) const {
   etcd_client_->Delete(std::string{key});
   return {};
 }
