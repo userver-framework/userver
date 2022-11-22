@@ -125,26 +125,48 @@ void ConnectionPool::Init(InitMode mode) {
   LOG_INFO() << "Creating " << settings->min_size
              << " PostgreSQL connections to " << DsnCutPassword(dsn_)
              << (mode == InitMode::kAsync ? " async" : " sync");
+
   if (mode == InitMode::kAsync) {
-    for (size_t i = 0; i < settings->min_size; ++i) {
+    for (std::size_t i = 0; i < settings->min_size; ++i) {
       Connect(SharedSizeGuard{size_}).Detach();
     }
-  } else {
+    LOG_INFO() << "Pool initialization is ongoing";
+    StartMaintainTask();
+    return;
+  }
+
+  for (;;) {
+    engine::current_task::CancellationPoint();
+
     std::vector<engine::TaskWithResult<bool>> tasks;
     tasks.reserve(settings->min_size);
-    for (size_t i = 0; i < settings->min_size; ++i) {
+    for (std::size_t i = size_->load(); i < settings->min_size; ++i) {
       tasks.push_back(Connect(SharedSizeGuard{size_}));
     }
     for (auto& t : tasks) {
       try {
-        t.Get();
+        const auto success = t.Get();
+        if (!success) {
+          LOG_ERROR() << "Failed to establish connection to PostgreSQL server";
+        }
       } catch (const std::exception& e) {
         LOG_ERROR() << "Failed to establish connection with PostgreSQL server "
                     << DsnCutPassword(dsn_) << ": " << e;
       }
     }
+
+    const auto connections_count = size_->load();
+    if (connections_count < settings->min_size) {
+      LOG_WARNING() << "Pool is poorly initialized, opening "
+                    << settings->min_size - connections_count
+                    << " additional connections";
+    } else {
+      LOG_INFO() << "Pool initialized, " << connections_count
+                 << " connections are ready to use";
+      break;
+    }
   }
-  LOG_INFO() << "Pool initialized";
+
   StartMaintainTask();
 }
 
