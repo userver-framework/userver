@@ -29,7 +29,7 @@ def pgsql_local(service_source_dir, pgsql_local_create):
 async def _gate_started(loop, pgsql_local):
     gate_config = chaos.GateRoute(
         name='postgres proxy',
-        host_to_server='localhost',
+        host_to_server=pgsql_local['key_value'].host,
         port_to_server=pgsql_local['key_value'].port,
     )
     async with chaos.TcpGate(gate_config, loop) as proxy:

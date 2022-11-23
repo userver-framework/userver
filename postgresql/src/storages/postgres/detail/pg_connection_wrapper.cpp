@@ -455,6 +455,9 @@ bool PGConnectionWrapper::TryConsumeInput(Deadline deadline) {
   while (PQXisBusy(conn_)) {
     HandleSocketPostClose();
     if (!WaitSocketReadable(deadline)) {
+      LOG_DEBUG() << "Socket " << socket_.Fd()
+                  << " has not become readable in TryConsumeInput due to "
+                  << (socket_.IsValid() ? "timeout" : "closed fd");
       return false;
     }
     CheckError<CommandError>("PQconsumeInput", PQconsumeInput(conn_));
