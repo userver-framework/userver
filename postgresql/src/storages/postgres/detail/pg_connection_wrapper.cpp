@@ -508,6 +508,7 @@ ResultSet PGConnectionWrapper::WaitResult(Deadline deadline,
       handle = std::move(next_handle);
     }
   } while (is_syncing_pipeline_ && PQstatus(conn_) != CONNECTION_BAD);
+
   return MakeResult(std::move(handle));
 }
 

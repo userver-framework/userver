@@ -679,6 +679,9 @@ const ConnectionImpl::PreparedStatementInfo& ConnectionImpl::PrepareStatement(
     conn_wrapper_.SendDescribePrepared(statement_name, scope);
     statement_info = prepared_.Get(query_id);
     auto res = conn_wrapper_.WaitResult(deadline, scope);
+    if (!res.pimpl_) {
+      throw CommandError("WaitResult() returned nullptr");
+    }
     FillBufferCategories(res);
     statement_info->description = res;
     // Ensure we've got binary format established
