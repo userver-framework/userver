@@ -34,9 +34,9 @@ void CreateDumps(const std::vector<std::string>& filenames,
 }
 
 void CreateDump(std::string_view contents, const Config& config) {
-  const auto dump_stats = dump::DumpLocator{}.RegisterNewDump(
-      std::chrono::time_point_cast<TimePoint::duration>(utils::datetime::Now()),
-      config);
+  const auto dump_stats = dump::DumpLocator{config}.RegisterNewDump(
+      std::chrono::time_point_cast<TimePoint::duration>(
+          utils::datetime::Now()));
   fs::blocking::RewriteFileContents(dump_stats.full_path, contents);
 }
 

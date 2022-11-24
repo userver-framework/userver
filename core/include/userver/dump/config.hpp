@@ -35,8 +35,6 @@ struct Config final {
   Config(std::string name, const yaml_config::YamlConfig& config,
          std::string_view dump_root);
 
-  Config MergeWith(const ConfigPatch& patch) const;
-
   std::string name;
   uint64_t dump_format_version;
   bool world_readable;
@@ -46,6 +44,13 @@ struct Config final {
   std::optional<std::chrono::milliseconds> max_dump_age;
   bool max_dump_age_set;
   bool dump_is_encrypted;
+
+  bool static_dumps_enabled;
+  std::chrono::milliseconds static_min_dump_interval;
+};
+
+struct DynamicConfig final {
+  explicit DynamicConfig(const Config& config, const ConfigPatch& patch);
 
   bool dumps_enabled;
   std::chrono::milliseconds min_dump_interval;

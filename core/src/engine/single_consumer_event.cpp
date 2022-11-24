@@ -74,6 +74,10 @@ void SingleConsumerEvent::Send() {
   waiters_->WakeupOne();
 }
 
+bool SingleConsumerEvent::IsReady() const noexcept {
+  return is_signaled_.load();
+}
+
 bool SingleConsumerEvent::GetIsSignaled() noexcept {
   if (is_auto_reset_) {
     return is_signaled_.exchange(false);
