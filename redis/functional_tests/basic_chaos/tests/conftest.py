@@ -26,7 +26,10 @@ def master_gate_settings() -> typing.Tuple[str, int]:
 
 
 @pytest.fixture(scope='session')
-def service_env(sentinel_gate_settings, _redis_service_settings):
+def service_env(
+        sentinel_gate_settings,
+        _redis_service_settings: service.ServiceSettings,
+):
     secdist_config = {
         'redis_settings': {
             'test': {
@@ -96,13 +99,17 @@ async def _sentinel_gate_ready(
 
 
 @pytest.fixture(scope='session')
-async def _master_gate(loop, _redis_service_settings, master_gate_settings):
+async def _master_gate(
+        loop,
+        master_gate_settings,
+        _redis_service_settings: service.ServiceSettings,
+):
     gate_config = chaos.GateRoute(
         name='master proxy',
         host_for_client=master_gate_settings[0],
         port_for_client=master_gate_settings[1],
         host_to_server=_redis_service_settings.host,
-        port_to_server=16379,
+        port_to_server=_redis_service_settings.master_ports[0],
     )
     async with chaos.TcpGate(gate_config, loop) as proxy:
         yield proxy
