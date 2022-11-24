@@ -409,8 +409,7 @@ class PostgreCache final
   static storages::postgres::Query GetAllQuery();
   static storages::postgres::Query GetDeltaQuery();
 
-  static std::chrono::milliseconds ParseCorrection(
-      const ComponentConfig& config);
+  std::chrono::milliseconds ParseCorrection(const ComponentConfig& config);
 
   std::vector<storages::postgres::ClusterPtr> clusters_;
 
@@ -513,7 +512,8 @@ template <typename PostgreCachePolicy>
 std::chrono::milliseconds PostgreCache<PostgreCachePolicy>::ParseCorrection(
     const ComponentConfig& config) {
   static constexpr std::string_view kUpdateCorrection = "update-correction";
-  if constexpr (pg_cache::detail::kHasCustomUpdated<PostgreCachePolicy>) {
+  if (pg_cache::detail::kHasCustomUpdated<PostgreCachePolicy> ||
+      this->GetAllowedUpdateTypes() == cache::AllowedUpdateTypes::kOnlyFull) {
     return config[kUpdateCorrection].As<std::chrono::milliseconds>(0);
   } else {
     return config[kUpdateCorrection].As<std::chrono::milliseconds>();
