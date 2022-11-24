@@ -449,6 +449,24 @@ async def test_to_server_limit_bytes(
     await _assert_connection_dead(tcp_client2, loop)
 
 
+async def test_substitute(
+        tcp_client, gate, server_connection, tcp_server, loop,
+):
+    gate.to_server_substitute('hello', 'die')
+    gate.to_client_substitute('hello', 'die')
+
+    await _assert_data_from_to(server_connection, tcp_client, loop)
+    await _assert_data_from_to(tcp_client, server_connection, loop)
+
+    await loop.sock_sendall(tcp_client, b'hello')
+    data = await loop.sock_recv(server_connection, 10)
+    assert data == b'die'
+
+    await loop.sock_sendall(server_connection, b'hello')
+    data = await loop.sock_recv(tcp_client, 10)
+    assert data == b'die'
+
+
 async def test_wait_for_connections(
         tcp_client, gate, server_connection, tcp_server, loop,
 ):

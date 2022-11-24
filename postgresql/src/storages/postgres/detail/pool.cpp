@@ -158,7 +158,6 @@ void ConnectionPool::Init(InitMode mode) {
                   << settings->min_size - connections_count
                   << " connections have not been opened, " << connections_count
                   << " connections are ready to use";
-    ;
   } else {
     LOG_INFO() << "Pool initialized, " << connections_count
                << " connections are ready to use";

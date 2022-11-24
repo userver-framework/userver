@@ -7,7 +7,7 @@ DATA_TRANSMISSION_DELAY = 1
 BYTES_PER_SECOND_LIMIT = 10
 CONNECTION_TIME_LIMIT = 0.4
 CONNECTION_LIMIT_JITTER = 0.004
-FAULRE_RETRIES = 250
+FAILURE_RETRIES = 250
 DATA_PARTS_MAX_SIZE = 40
 BYTES_TRANSMISSION_LIMIT = 40960
 
@@ -172,7 +172,7 @@ async def test_network_limit_time_sends(service_client, gate):
     assert response.status == 200
 
     got_error = False
-    for _ in range(FAULRE_RETRIES):
+    for _ in range(FAILURE_RETRIES):
         response = await service_client.get('/chaos/postgres?type=fill')
         if response.status != 200:
             got_error = True
@@ -187,7 +187,7 @@ async def test_network_limit_time_recv(service_client, gate):
     gate.to_client_limit_time(CONNECTION_TIME_LIMIT, CONNECTION_LIMIT_JITTER)
 
     got_error = False
-    for _ in range(FAULRE_RETRIES):
+    for _ in range(FAILURE_RETRIES):
         response = await service_client.get('/chaos/postgres?type=fill')
         if response.status != 200:
             got_error = True
@@ -203,7 +203,7 @@ async def test_network_limit_time(service_client, gate):
     gate.to_client_limit_time(CONNECTION_TIME_LIMIT, CONNECTION_LIMIT_JITTER)
 
     got_error = False
-    for _ in range(FAULRE_RETRIES):
+    for _ in range(FAILURE_RETRIES):
         response = await service_client.get('/chaos/postgres?type=fill')
         if response.status != 200:
             got_error = True
@@ -243,7 +243,7 @@ async def test_network_limit_bytes_sends(service_client, gate):
     assert response.status == 200
 
     got_error = False
-    for _ in range(FAULRE_RETRIES):
+    for _ in range(FAILURE_RETRIES):
         response = await service_client.get('/chaos/postgres?type=fill')
         if response.status != 200:
             got_error = True
@@ -258,7 +258,7 @@ async def test_network_limit_bytes_recv(service_client, gate):
     gate.to_client_limit_bytes(BYTES_TRANSMISSION_LIMIT)
 
     got_error = False
-    for _ in range(FAULRE_RETRIES):
+    for _ in range(FAILURE_RETRIES):
         response = await service_client.get('/chaos/postgres?type=fill')
         if response.status != 200:
             got_error = True
@@ -274,7 +274,7 @@ async def test_network_limit_bytes(service_client, gate):
     gate.to_client_limit_bytes(BYTES_TRANSMISSION_LIMIT)
 
     got_error = False
-    for _ in range(FAULRE_RETRIES):
+    for _ in range(FAILURE_RETRIES):
         response = await service_client.get('/chaos/postgres?type=fill')
         if response.status != 200:
             got_error = True
