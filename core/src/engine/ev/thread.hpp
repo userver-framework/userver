@@ -10,8 +10,10 @@
 #include <boost/lockfree/queue.hpp>
 #include <boost/smart_ptr/intrusive_ptr.hpp>
 
-#include <engine/ev/async_payload_base.hpp>
 #include <userver/engine/deadline.hpp>
+
+#include <engine/ev/async_payload_base.hpp>
+#include <utils/statistics/thread_statistics.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -53,13 +55,16 @@ class Thread final {
 
   bool IsInEvThread() const;
 
+  std::uint8_t GetCurrentLoadPercent() const;
+  const std::string& GetName() const;
+
  private:
   Thread(const std::string& thread_name, bool use_ev_default_loop,
          RegisterEventMode register_event_mode);
 
   void RegisterInEvLoop(OnAsyncPayload* func, AsyncPayloadPtr&& data);
 
-  void Start(const std::string& name);
+  void Start();
 
   void StopEventLoop();
   void RunEvLoop();
@@ -93,9 +98,13 @@ class Thread final {
   std::unique_lock<std::mutex> lock_;
 
   ev_timer timers_driver_{};
+  ev_timer stats_timer_{};
   ev_async watch_update_{};
   ev_async watch_break_{};
   ev_child watch_child_{};
+
+  const std::string name_;
+  utils::statistics::ThreadCpuStatsStorage cpu_stats_storage_;
 
   bool is_running_;
 };

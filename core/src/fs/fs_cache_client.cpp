@@ -12,17 +12,15 @@ FsCacheClient::FsCacheClient(std::string_view dir,
                              std::chrono::milliseconds update_period,
                              engine::TaskProcessor& tp)
     : dir_(dir), update_period_(update_period), tp_(tp) {
+  UpdateCache();
+
   if (update_period_ == std::chrono::milliseconds(0)) {
-    UpdateCache();
     return;
   }
 
-  cache_updater_.Start(
-      "fs_cache_updater",
-      utils::PeriodicTask::Settings{update_period_,
-                                    {utils::PeriodicTask::Flags::kNow,
-                                     utils::PeriodicTask::Flags::kChaotic}},
-      [this] { UpdateCache(); });
+  cache_updater_.Start("fs_cache_updater",
+                       utils::PeriodicTask::Settings{update_period_},
+                       [this] { UpdateCache(); });
 }
 
 void FsCacheClient::UpdateCache() {

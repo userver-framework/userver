@@ -125,13 +125,12 @@ UTEST(MetricsWriter, WithError) {
       too_long_path, [](Writer& writer) { writer["q"] = 24; });
 
   auto holder4 = storage.RegisterWriter({}, [](Writer& writer) {
-    writer["some"]["path"]
-        .ValueWithLabels(3, {"name", "value"})
-        .ValueWithLabels(
-            [](bool raise) {
-              return raise ? throw std::runtime_error{"Oops"} : 1;
-            }(true),
-            {"name", "value"});
+    writer["some"]["path"].ValueWithLabels(3, {"name", "value"});
+    writer["some"]["path"].ValueWithLabels(
+        [](bool raise) {
+          return raise ? throw std::runtime_error{"Oops"} : 1;
+        }(true),
+        {"name", "value"});
   });
 
   auto holder5 = storage.RegisterWriter("some",
@@ -191,18 +190,17 @@ fine_ok{} 1
 UTEST(MetricsWriter, LabeledSingle) {
   Storage storage;
   auto holder = storage.RegisterWriter("prefix", [](Writer& writer) {
-    writer["name"]
-        .ValueWithLabels(42, {"label_name", "label_value1"})
-        .ValueWithLabels(43, {"label_name", "label_value2"});
+    writer["name"].ValueWithLabels(42, {"label_name", "label_value1"});
+    writer["name"].ValueWithLabels(43, {"label_name", "label_value2"});
   });
 
   auto holder0 = storage.RegisterWriter("prefix", [](Writer& writer) {
-    writer.ValueWithLabels(52, {"label_name", "label_value1"})
-        .ValueWithLabels(53, {"label_name", "label_value2"});
+    writer.ValueWithLabels(52, {"label_name", "label_value1"});
+    writer.ValueWithLabels(53, {"label_name", "label_value2"});
   });
   auto holder1 = storage.RegisterWriter("prEfix.name", [](Writer& writer) {
-    writer.ValueWithLabels(62, {"label_name", "label_value1"})
-        .ValueWithLabels(63, {"label_name", "label_value2"});
+    writer.ValueWithLabels(62, {"label_name", "label_value1"});
+    writer.ValueWithLabels(63, {"label_name", "label_value2"});
   });
 
   const auto* const expected_labeled =
@@ -227,26 +225,25 @@ UTEST(MetricsWriter, LabeledMultiple) {
   utils::statistics::LabelView label{"name", "value"};
 
   auto holder = storage.RegisterWriter("a", [label](Writer& writer) {
-    writer["1"]
-        .ValueWithLabels(1, {label, {"label_name", "label_value1"}})
-        .ValueWithLabels(2, {label, {"label_name", "label_value2"}});
+    writer["1"].ValueWithLabels(1, {label, {"label_name", "label_value1"}});
+    writer["1"].ValueWithLabels(2, {label, {"label_name", "label_value2"}});
   });
 
   auto holder0 = storage.RegisterWriter("a", [&label](Writer& writer) {
-    writer.ValueWithLabels(52, {label, {"label_name", "label_value1"}})
-        .ValueWithLabels(53, {label, {"label_name", "label_value2"}});
+    writer.ValueWithLabels(52, {label, {"label_name", "label_value1"}});
+    writer.ValueWithLabels(53, {label, {"label_name", "label_value2"}});
   });
   auto holder1 = storage.RegisterWriter("b", [label](Writer& writer) {
-    writer.ValueWithLabels(62, {label, {"label_name", "label_value1"}})
-        .ValueWithLabels(63, {label, {"label_name", "label_value2"}})
-        .ValueWithLabels(63, {label, {"label_name", "label_value3"}});
+    writer.ValueWithLabels(62, {label, {"label_name", "label_value1"}});
+    writer.ValueWithLabels(63, {label, {"label_name", "label_value2"}});
+    writer.ValueWithLabels(63, {label, {"label_name", "label_value3"}});
   });
   auto holder2 = storage.RegisterWriter(
       "c",
       [](Writer& writer) {
-        writer.ValueWithLabels(62, {{"label_name", "label_value1"}})
-            .ValueWithLabels(63, {"label_name", "label_value2"})
-            .ValueWithLabels(63, {{"label_name", "label_value3"}});
+        writer.ValueWithLabels(62, {{"label_name", "label_value1"}});
+        writer.ValueWithLabels(63, {"label_name", "label_value2"});
+        writer.ValueWithLabels(63, {{"label_name", "label_value3"}});
       },
       {{"name", "value"}});
 
@@ -308,17 +305,15 @@ UTEST(MetricsWriter, CustomTypesOptimization) {
     writer["dump"] = MetricTypeThatMayBeDumped{};
   });
   auto holder3 = storage.RegisterWriter("a", [](Writer& writer) {
-    writer["s"]["d"]
-        .ValueWithLabels(MetricTypeThatMustBeSkipped{"first at 'a.s.d' path"},
-                         {"a", "b"})
-        .ValueWithLabels(MetricTypeThatMustBeSkipped{"second at 'a.s.d' path"},
-                         {{"c", "d"}});
+    writer["s"]["d"].ValueWithLabels(
+        MetricTypeThatMustBeSkipped{"first at 'a.s.d' path"}, {"a", "b"});
+    writer["s"]["d"].ValueWithLabels(
+        MetricTypeThatMustBeSkipped{"second at 'a.s.d' path"}, {{"c", "d"}});
 
-    writer["d"]
-        .ValueWithLabels(MetricTypeThatMustBeSkipped{"first at 'a.d' path"},
-                         {"a", "b"})
-        .ValueWithLabels(MetricTypeThatMustBeSkipped{"second at 'a.d' path"},
-                         {{"c", "d"}});
+    writer["d"].ValueWithLabels(
+        MetricTypeThatMustBeSkipped{"first at 'a.d' path"}, {"a", "b"});
+    writer["d"].ValueWithLabels(
+        MetricTypeThatMustBeSkipped{"second at 'a.d' path"}, {{"c", "d"}});
   });
 
   const auto* const expected = "a_dump{} 42\n";

@@ -649,6 +649,7 @@ class ResultSet {
 
   template <typename T, typename Tag>
   friend class TypedResultSet;
+  friend class ConnectionImpl;
 
   std::shared_ptr<detail::ResultWrapper> pimpl_;
 };

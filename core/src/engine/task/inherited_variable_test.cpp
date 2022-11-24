@@ -152,6 +152,11 @@ UTEST(TaskInheritedVariable, SameObjectIsInherited) {
 }
 
 UTEST_MT(TaskInheritedVariable, VariablesAfterParentTaskDeath, 4) {
+  using Event = engine::SingleConsumerEvent;
+  Event assigned_a{Event::NoAutoReset{}};
+  Event assigned_b{Event::NoAutoReset{}};
+  Event assigned_c{Event::NoAutoReset{}};
+
   engine::SharedTaskWithResult<void> task_a;
   engine::SharedTaskWithResult<void> task_b;
   engine::SharedTaskWithResult<void> task_c;
@@ -165,6 +170,8 @@ UTEST_MT(TaskInheritedVariable, VariablesAfterParentTaskDeath, 4) {
       task_c = utils::SharedAsync("c", [&] {
         kStringVariable3.Emplace("3");
 
+        ASSERT_TRUE(assigned_a.WaitForEvent());
+        ASSERT_TRUE(assigned_b.WaitForEvent());
         task_a.Wait();
         task_b.Wait();
 
@@ -172,18 +179,25 @@ UTEST_MT(TaskInheritedVariable, VariablesAfterParentTaskDeath, 4) {
         EXPECT_EQ(kStringVariable2.Get(), "2");
         EXPECT_EQ(kStringVariable3.Get(), "3");
       });
+      assigned_c.Send();
 
+      ASSERT_TRUE(assigned_a.WaitForEvent());
       task_a.Wait();
 
       EXPECT_EQ(kStringVariable.Get(), "1");
       EXPECT_EQ(kStringVariable2.Get(), "2");
       EXPECT_FALSE(kStringVariable3.GetOptional());
     });
+    assigned_b.Send();
 
     EXPECT_EQ(kStringVariable.Get(), "1");
     EXPECT_FALSE(kStringVariable2.GetOptional());
     EXPECT_FALSE(kStringVariable3.GetOptional());
   });
+  assigned_a.Send();
+
+  ASSERT_TRUE(assigned_b.WaitForEvent());
+  ASSERT_TRUE(assigned_c.WaitForEvent());
 
   engine::SharedTaskWithResult<void>* tasks[3] = {&task_a, &task_b, &task_c};
   for (auto* task : tasks) task->Wait();

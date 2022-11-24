@@ -32,6 +32,22 @@ std::size_t StrIcaseHash::operator()(std::string_view s) const& noexcept {
   return res;
 }
 
+StrCaseHash::StrCaseHash()
+    : seed_(std::uniform_int_distribution<std::size_t>{}(DefaultRandom())) {}
+
+StrCaseHash::StrCaseHash(std::size_t seed) noexcept : seed_(seed) {}
+
+std::size_t StrCaseHash::operator()(std::string_view s) const& noexcept {
+  // NOTE: a random seed, mixed "well enough" into string hash, should make it
+  // resistant to HashDOS attacks. That is, it should make deliberate generation
+  // of collisions infeasible.
+  std::size_t res = seed_;
+  for (const char c : s) {
+    boost::hash_combine(res, static_cast<char>(c));
+  }
+  return res;
+}
+
 int StrIcaseCompareThreeWay::operator()(std::string_view lhs,
                                         std::string_view rhs) const noexcept {
   const auto min_len = std::min(lhs.size(), rhs.size());

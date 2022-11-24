@@ -19,7 +19,7 @@ jobs:
             fail-fast: false
             matrix:
                 ubuntu_version: [22.04]
-                shared: [true, false]
+                shared: [false]
 
         steps:
           - name: Checkout

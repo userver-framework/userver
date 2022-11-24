@@ -426,7 +426,8 @@ void OutputStream<Response>::WriteAndFinish(const Response& response) {
   // may never actually be delivered
   grpc::WriteOptions write_options{};
 
-  impl::WriteAndFinish(stream_, response, write_options, grpc::Status::OK);
+  impl::WriteAndFinish(stream_, response, write_options, grpc::Status::OK,
+                       call_name_);
 }
 
 template <typename Request, typename Response>
