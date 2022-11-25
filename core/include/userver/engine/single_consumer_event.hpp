@@ -65,6 +65,9 @@ class SingleConsumerEvent final {
   /// If the signal flag is already set, does nothing.
   void Send();
 
+  /// Returns `true` iff already signaled. Never resets the signal.
+  bool IsReady() const noexcept;
+
  private:
   class EventWaitStrategy;
 
