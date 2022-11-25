@@ -85,6 +85,7 @@ struct WriteOperationStatistics {
     kFindAndModify,
     kFindAndRemove,
     kBulk,
+    kDrop,
   };
 
   rcu::RcuMap<OpType, Aggregator<OperationStatisticsItem>> items;

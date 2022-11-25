@@ -29,6 +29,7 @@ class CDriverCollectionImpl : public CollectionImpl {
   WriteResult Execute(const operations::FindAndRemove&) override;
   WriteResult Execute(operations::Bulk&&) override;
   Cursor Execute(const operations::Aggregate&) override;
+  DropResult Execute(const operations::Drop&) override;
 
  private:
   cdriver::CDriverPoolImpl::BoundClientPtr GetCDriverClient() const;
