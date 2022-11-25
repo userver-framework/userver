@@ -7,7 +7,7 @@
 USERVER_NAMESPACE_BEGIN
 
 namespace cache::impl::sketch {
-enum Policy { Mocked = 0, Bloom, Doorkeeper, Aged };
+enum Policy { Trivial = 0, Bloom, Doorkeeper, Aged };
 template <typename T, typename Hash = std::hash<T>,
           Policy policy = Policy::Bloom>
 class Sketch {};

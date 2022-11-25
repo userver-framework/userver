@@ -66,12 +66,12 @@ int Sketch<T, Hash, Policy::Bloom>::Estimate(const T& item) {
 }
 
 template <typename T, typename Hash>
-int Sketch<T, Hash, Policy::Bloom>::Estimate(const T& item) {
-  int result = std::numeric_limits<int>::max();
+bool Sketch<T, Hash, Policy::Bloom>::Increment(const T& item) {
+  auto was_added = false;
   auto hashed = hash_(item);
   for (int i = 0; i < static_cast<int>(num_hashes); i++)
-    result = std::min(result, Get((hashed ^ (hashed >> 1)) ^ seeds[i], i));
-  return result;
+    was_added |= TryIncrement((hashed ^ (hashed >> 1)) ^ seeds[i], i);
+  return was_added;
 }
 
 template <typename T, typename Hash>
@@ -119,4 +119,8 @@ void Sketch<T, Hash, Policy::Bloom>::Clear() {
 
 }  // namespace cache::impl::sketch
 
+<<<<<<< HEAD
 USERVER_NAMESPACE_END
+=======
+USERVER_NAMESPACE_END
+>>>>>>> 78c842ce (add: new implementation sketch counters)
