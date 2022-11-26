@@ -128,20 +128,6 @@ void LruBase<T, U, Hash, Eq, CachePolicy::kSLRU>::Erase(const T& key) {
 
 template <typename T, typename U, typename Hash, typename Eq>
 U* LruBase<T, U, Hash, Eq, CachePolicy::kSLRU>::Get(const T& key) {
-<<<<<<< HEAD
-  //  auto result = probation_.Get(key);
-  //  if (protected_size_ == 0) return result;
-  //  if (!result) return protected_.Get(key);
-  //
-  //  protected_.Put(key, *result);
-  //  probation_.Erase(key);
-  //  if (protected_.GetSize() == protected_size_ + 1) {
-  //    probation_.Put(*protected_.GetLeastUsedKey(),
-  //                   *protected_.GetLeastUsedValue());
-  //    protected_.Erase(*protected_.GetLeastUsedKey());
-  //  }
-=======
->>>>>>> 9c906e90 (add: method move if has and move if has with set value in slru)
   if (protected_size_ == 0) {
     return probation_.Get(key);
   }
@@ -150,12 +136,7 @@ U* LruBase<T, U, Hash, Eq, CachePolicy::kSLRU>::Get(const T& key) {
   if (result) {
     if (protected_.GetSize() == protected_size_ + 1) {
       protected_.template MoveIfHas<Hash, Eq, false>(
-<<<<<<< HEAD
-          *protected_.GetLeastUsedKey(),
-          &probation_);
-=======
           *protected_.GetLeastUsedKey(), &probation_);
->>>>>>> 9c906e90 (add: method move if has and move if has with set value in slru)
     }
   }
   return protected_.Get(key);
