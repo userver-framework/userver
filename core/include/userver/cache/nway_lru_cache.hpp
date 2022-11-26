@@ -5,6 +5,7 @@
 #include <vector>
 
 #include <userver/cache/lru_map.hpp>
+#include <userver/dump/operations.hpp>
 #include <userver/engine/mutex.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -41,6 +42,9 @@ class NWayLRU final {
   size_t GetSize() const;
 
   void UpdateWaySize(size_t way_size);
+
+  void Write(dump::Writer& writer) const;
+  void Read(dump::Reader& reader);
 
  private:
   struct Way {
@@ -148,6 +152,37 @@ typename NWayLRU<T, U, Hash, Eq>::Way& NWayLRU<T, U, Hash, Eq>::GetWay(
     const T& key) {
   auto n = hash_fn_(key) % caches_.size();
   return caches_[n];
+}
+
+template <typename T, typename U, typename Hash, typename Equal>
+void NWayLRU<T, U, Hash, Equal>::Write(dump::Writer& writer) const {
+  writer.Write(caches_.size());
+
+  for (const Way& way : caches_) {
+    std::unique_lock<engine::Mutex> lock(way.mutex);
+
+    writer.Write(way.cache.GetSize());
+
+    way.cache.VisitAll([&writer](const T& key, const U& value) {
+      writer.Write(key);
+      writer.Write(value);
+    });
+  }
+}
+
+template <typename T, typename U, typename Hash, typename Equal>
+void NWayLRU<T, U, Hash, Equal>::Read(dump::Reader& reader) {
+  Invalidate();
+
+  auto ways = reader.Read<size_t>();
+  while (ways--) {
+    auto elements_in_way = reader.Read<size_t>();
+    while (elements_in_way--) {
+      auto key = reader.Read<T>();
+      auto value = reader.Read<U>();
+      Put(std::move(key), std::move(value));
+    }
+  }
 }
 
 }  // namespace cache

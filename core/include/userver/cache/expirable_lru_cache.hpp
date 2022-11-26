@@ -9,6 +9,8 @@
 #include <userver/cache/lru_cache_statistics.hpp>
 #include <userver/cache/nway_lru_cache.hpp>
 #include <userver/concurrent/mutex_set.hpp>
+#include <userver/dump/common.hpp>
+#include <userver/dump/dumper.hpp>
 #include <userver/engine/async.hpp>
 #include <userver/utils/datetime.hpp>
 #include <userver/utils/impl/wait_token_storage.hpp>
@@ -19,6 +21,41 @@
 USERVER_NAMESPACE_BEGIN
 
 namespace cache {
+
+namespace impl {
+
+using SystemTimePoint = std::chrono::system_clock::time_point;
+using SteadyTimePoint = std::chrono::steady_clock::time_point;
+
+void UpdateGlobalTime();
+std::tuple<SystemTimePoint, SteadyTimePoint>
+
+GetGlobalTime();
+
+template <typename Value>
+struct ExpirableValue final {
+  Value value;
+  std::chrono::steady_clock::time_point update_time;
+};
+
+template <typename Value>
+void Write(dump::Writer& writer, const impl::ExpirableValue<Value>& value) {
+  writer.Write(value.value);
+  const auto [now, steady_now] = impl::GetGlobalTime();
+  writer.Write(value.update_time - steady_now + now);
+}
+
+template <typename Value>
+impl::ExpirableValue<Value> Read(dump::Reader& reader,
+                                 dump::To<impl::ExpirableValue<Value>>) {
+  auto value = reader.Read<Value>();
+  const auto update_date = reader.Read<std::chrono::system_clock::time_point>();
+  const auto [now, steady_now] = impl::GetGlobalTime();
+  return impl::ExpirableValue<Value>{std::move(value),
+                                     update_date - now + steady_now};
+}
+
+}  // namespace impl
 
 /// @ingroup userver_containers
 /// @brief Class for expirable LRU cache. Use cache::LruMap for not expirable
@@ -111,6 +148,14 @@ class ExpirableLruCache final {
   /// Add async task for updating value by update_func(key)
   void UpdateInBackground(const Key& key, UpdateValueFunc update_func);
 
+  void Write(dump::Writer& writer) const;
+
+  void Read(dump::Reader& reader);
+
+  /// This method is not thread-safe. The user must ensure that @a dumper
+  /// outlives `this`.
+  void SetDumper(dump::Dumper& dumper);
+
  private:
   bool IsExpired(std::chrono::steady_clock::time_point update_time,
                  std::chrono::steady_clock::time_point now) const;
@@ -118,16 +163,14 @@ class ExpirableLruCache final {
   bool ShouldUpdate(std::chrono::steady_clock::time_point update_time,
                     std::chrono::steady_clock::time_point now) const;
 
-  struct MapValue {
-    Value value;
-    std::chrono::steady_clock::time_point update_time;
-  };
+  void NotifyDumper();
 
-  cache::NWayLRU<Key, MapValue, Hash, Equal> lru_;
+  cache::NWayLRU<Key, impl::ExpirableValue<Value>, Hash, Equal> lru_;
   std::atomic<std::chrono::milliseconds> max_lifetime_{
       std::chrono::milliseconds(0)};
   std::atomic<BackgroundUpdateMode> background_update_mode_{
       BackgroundUpdateMode::kDisabled};
+  dump::Dumper* dumper_ = nullptr;
   impl::ExpirableLruCacheStatistics stats_;
   concurrent::MutexSet<Key, Hash, Equal> mutex_set_;
   utils::impl::WaitTokenStorage wait_token_storage_;
@@ -188,6 +231,7 @@ Value ExpirableLruCache<Key, Value, Hash, Equal>::Get(
   auto value = update_func(key);
   if (read_mode == ReadMode::kUseCache) {
     lru_.Put(key, {value, now});
+    NotifyDumper();
   }
   return value;
 }
@@ -277,12 +321,14 @@ template <typename Key, typename Value, typename Hash, typename Equal>
 void ExpirableLruCache<Key, Value, Hash, Equal>::Put(const Key& key,
                                                      const Value& value) {
   lru_.Put(key, {value, utils::datetime::SteadyNow()});
+  NotifyDumper();
 }
 
 template <typename Key, typename Value, typename Hash, typename Equal>
 void ExpirableLruCache<Key, Value, Hash, Equal>::Put(const Key& key,
                                                      Value&& value) {
   lru_.Put(key, {std::move(value), utils::datetime::SteadyNow()});
+  NotifyDumper();
 }
 
 template <typename Key, typename Value, typename Hash, typename Equal>
@@ -299,12 +345,14 @@ size_t ExpirableLruCache<Key, Value, Hash, Equal>::GetSizeApproximate() const {
 template <typename Key, typename Value, typename Hash, typename Equal>
 void ExpirableLruCache<Key, Value, Hash, Equal>::Invalidate() {
   lru_.Invalidate();
+  NotifyDumper();
 }
 
 template <typename Key, typename Value, typename Hash, typename Equal>
 void ExpirableLruCache<Key, Value, Hash, Equal>::InvalidateByKey(
     const Key& key) {
   lru_.InvalidateByKey(key);
+  NotifyDumper();
 }
 
 template <typename Key, typename Value, typename Hash, typename Equal>
@@ -326,6 +374,7 @@ void ExpirableLruCache<Key, Value, Hash, Equal>::UpdateInBackground(
     auto now = utils::datetime::SteadyNow();
     auto value = update_func(key);
     lru_.Put(key, {value, now});
+    NotifyDumper();
   }).Detach();
 }
 
@@ -381,6 +430,32 @@ class LruCacheWrapper final {
   std::shared_ptr<Cache> cache_;
   typename Cache::UpdateValueFunc update_func_;
 };
+
+template <typename Key, typename Value, typename Hash, typename Equal>
+void ExpirableLruCache<Key, Value, Hash, Equal>::Write(
+    dump::Writer& writer) const {
+  impl::UpdateGlobalTime();
+  lru_.Write(writer);
+}
+
+template <typename Key, typename Value, typename Hash, typename Equal>
+void ExpirableLruCache<Key, Value, Hash, Equal>::Read(dump::Reader& reader) {
+  impl::UpdateGlobalTime();
+  lru_.Read(reader);
+}
+
+template <typename Key, typename Value, typename Hash, typename Equal>
+void ExpirableLruCache<Key, Value, Hash, Equal>::NotifyDumper() {
+  if (dumper_ != nullptr) {
+    dumper_->SetModifiedAndWriteAsync();
+  }
+}
+
+template <typename Key, typename Value, typename Hash, typename Equal>
+void ExpirableLruCache<Key, Value, Hash, Equal>::SetDumper(
+    dump::Dumper& dumper) {
+  dumper_ = &dumper;
+}
 
 }  // namespace cache
 
