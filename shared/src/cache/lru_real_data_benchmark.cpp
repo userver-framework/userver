@@ -14,7 +14,7 @@ using Lfu = LfuBase<std::string, unsigned>;
 using Slru = cache::LruMap<std::string, unsigned, std::hash<std::string>, std::equal_to<std::string>, cache::CachePolicy::kSLRU>;
 using TinyLfu = cache::LruMap<std::string, unsigned, std::hash<std::string>, std::equal_to<std::string>, cache::CachePolicy::kTinyLFU>;
 
-constexpr unsigned kElementsCount = 5000;
+constexpr unsigned kElementsCount = 75000;
 
   std::vector<std::string> LoadData(std::string file) {
     auto rows = userver::fs::blocking::ReadFileContents(file);
@@ -31,15 +31,21 @@ constexpr unsigned kElementsCount = 5000;
 
 template <const char* file, typename CachePolicyContainer>
 void OnRealData(benchmark::State& state) {
+  std::int32_t all = 0;
+  std::int32_t hit = 0;
   auto data = LoadData(file);
   auto lru = CachePolicyContainer(kElementsCount);
   for (auto _ : state) {
     for (auto& key : data) {
+      all++;
       if (!lru.Get(key)) {
         lru.Put(key, 1);
+      } else {
+        hit++;
       }
     }
   }
+  state.counters["hit_rate"] = static_cast<double>(hit) / all;
 }
 static const char phoenix[] = "test_data/phoenix";
 static const char goblet[] = "test_data/goblet";
