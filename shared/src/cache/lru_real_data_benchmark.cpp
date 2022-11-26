@@ -41,8 +41,8 @@ void OnRealData(benchmark::State& state) {
     }
   }
 }
-static const char phoenix[] = "/home/st/c/userver/test_data/phoenix";
-static const char goblet[] = "/home/st/c/userver/test_data/goblet";
+static const char phoenix[] = "test_data/phoenix";
+static const char goblet[] = "test_data/goblet";
 BENCHMARK(OnRealData<phoenix, Lru>);
 BENCHMARK(OnRealData<goblet, Lru>);
 BENCHMARK(OnRealData<phoenix, Lfu>);
