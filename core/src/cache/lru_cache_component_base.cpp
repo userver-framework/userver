@@ -1,5 +1,6 @@
 #include <userver/cache/lru_cache_component_base.hpp>
 
+#include <userver/components/component_config.hpp>
 #include <userver/components/component_context.hpp>
 #include <userver/components/statistics_storage.hpp>
 #include <userver/dynamic_config/storage/component.hpp>
@@ -56,6 +57,10 @@ utils::statistics::Storage& FindStatisticsStorage(
 dynamic_config::Source FindDynamicConfigSource(
     const components::ComponentContext& context) {
   return context.FindComponent<components::DynamicConfig>().GetSource();
+}
+
+bool IsDumpSupportEnabled(const components::ComponentConfig& config) {
+  return config.HasMember("dump");
 }
 
 yaml_config::Schema GetLruCacheComponentBaseSchema() {
