@@ -2,6 +2,7 @@
 #include <userver/cache/lru_map.hpp>
 #include <userver/cache/lfu_map.hpp>
 #include <userver/cache/impl/slru.hpp>
+#include <userver/cache/impl/window_tiny_lfu.hpp>
 
 #include <userver/fs/blocking/read.hpp>
 
@@ -13,8 +14,7 @@ using Lru = cache::LruMap<std::string, unsigned>;
 using Lfu = LfuBase<std::string, unsigned>;
 using Slru = cache::LruMap<std::string, unsigned, std::hash<std::string>, std::equal_to<std::string>, cache::CachePolicy::kSLRU>;
 using TinyLfu = cache::LruMap<std::string, unsigned, std::hash<std::string>, std::equal_to<std::string>, cache::CachePolicy::kTinyLFU>;
-
-constexpr unsigned kElementsCount = 75000;
+using WTinyLfu = cache::LruMap<std::string, unsigned, std::hash<std::string>, std::equal_to<std::string>, cache::CachePolicy::kWTinyLFU>;
 
   std::vector<std::string> LoadData(std::string file) {
     auto rows = userver::fs::blocking::ReadFileContents(file);
@@ -29,12 +29,12 @@ constexpr unsigned kElementsCount = 75000;
   }
 } // namespace
 
-template <const char* file, typename CachePolicyContainer>
+template <typename CachePolicyContainer, const char* test_data_file>
 void OnRealData(benchmark::State& state) {
   std::int32_t all = 0;
   std::int32_t hit = 0;
-  auto data = LoadData(file);
-  auto lru = CachePolicyContainer(kElementsCount);
+  auto data = LoadData(test_data_file);
+  auto lru = CachePolicyContainer(state.range(0));
   for (auto _ : state) {
     for (auto& key : data) {
       all++;
@@ -47,15 +47,23 @@ void OnRealData(benchmark::State& state) {
   }
   state.counters["hit_rate"] = static_cast<double>(hit) / all;
 }
+
 static const char phoenix[] = "test_data/phoenix";
 static const char goblet[] = "test_data/goblet";
-BENCHMARK(OnRealData<phoenix, Lru>);
-BENCHMARK(OnRealData<goblet, Lru>);
-BENCHMARK(OnRealData<phoenix, Lfu>);
-BENCHMARK(OnRealData<goblet, Lfu>);
-BENCHMARK(OnRealData<phoenix, Slru>);
-BENCHMARK(OnRealData<goblet, Slru>);
-BENCHMARK(OnRealData<phoenix, TinyLfu>);
-BENCHMARK(OnRealData<goblet, TinyLfu>);
+// static const char zipfian_[] = "test_data/goblet";
+// BENCHMARK(OnRealData<Lru, phoenix>)->RangeMultiplier(2)->Range(2<<10, 2<<17);
+// BENCHMARK(OnRealData<Lru, goblet>)->RangeMultiplier(2)->Range(2<<10, 2<<17);
+// BENCHMARK(OnRealData<Lru, zipfian_30k_2kk>)->RangeMultiplier(2)->Range(2<<8, 2<<17);
+// BENCHMARK(OnRealData<Lfu, phoenix>)->RangeMultiplier(2)->Range(2<<10, 2<<17);
+// BENCHMARK(OnRealData<Lfu, goblet>)->RangeMultiplier(2)->Range(2<<10, 2<<17);
+// BENCHMARK(OnRealData<Lfu, zipfian_30k_2kk>)->RangeMultiplier(2)->Range(2<<8, 2<<17);
+// BENCHMARK(OnRealData<Slru, phoenix>)->RangeMultiplier(2)->Range(2<<10, 2<<17);
+// BENCHMARK(OnRealData<Slru, goblet>)->RangeMultiplier(2)->Range(2<<10, 2<<17);
+// BENCHMARK(OnRealData<Slru, zipfian_30k_2kk>)->RangeMultiplier(2)->Range(2<<8, 2<<17);
+BENCHMARK(OnRealData<TinyLfu, phoenix>)->RangeMultiplier(2)->Range(2<<10, 2<<17);
+BENCHMARK(OnRealData<TinyLfu, goblet>)->RangeMultiplier(2)->Range(2<<8, 2<<17);
+// BENCHMARK(OnRealData<TinyLfu, zipfian_30k_2kk>)->RangeMultiplier(2)->Range(2, 2<<8);
+// BENCHMARK(OnRealData<WTinyLfu, phoenix>)->RangeMultiplier(2)->Range(2<<10, 2<<17);
+// BENCHMARK(OnRealData<WTinyLfu, goblet>)->RangeMultiplier(2)->Range(2<<8, 2<<17);
 
 USERVER_NAMESPACE_END
