@@ -9,7 +9,7 @@ template <typename T, typename U, typename Hash, typename Equal>
 class LruBase<T, U, Hash, Equal, CachePolicy::kSLRU> final {
  public:
   explicit LruBase(size_t max_size, const Hash& hash, const Equal& equal,
-                   double probation_part = 0.2);
+                   double probation_part = 0.8);
 
   LruBase(LruBase&& other) noexcept = default;
   LruBase& operator=(LruBase&& other) noexcept = default;
@@ -33,6 +33,21 @@ class LruBase<T, U, Hash, Equal, CachePolicy::kSLRU> final {
 
   void Clear() noexcept;
 
+  //// move element from one cache to another if key was, does not check
+  /// capacity of another cache, set checker on false if you are sure the key
+  /// does not exist in both caches simultaneously
+  template <typename Hash2, typename Equal2, bool Checker = true>
+  bool MoveIfHas(const T& key,
+                 LruBase<T, U, Hash2, Equal2>* another_base_ptr) noexcept;
+
+  //// move element from one cache to another if key was and set value, does not
+  /// check capacity of another cache, set checker on false if you are sure the
+  /// key does not exist in both caches simultaneously
+  template <typename Hash2, typename Equal2, bool Checker = true>
+  bool MoveIfHasWithSetValue(
+      const T& key, U value,
+      LruBase<T, U, Hash2, Equal2>* another_base_ptr) noexcept;
+
   template <typename Function>
   void VisitAll(Function&& func) const;
 
@@ -50,8 +65,8 @@ class LruBase<T, U, Hash, Equal, CachePolicy::kSLRU> final {
  private:
   double probation_part_;
   size_t probation_size_;
-  LruBase<T, U> probation_;
   size_t protected_size_;
+  LruBase<T, U> probation_;
   LruBase<T, U> protected_;
 };
 
@@ -69,30 +84,27 @@ LruBase<T, U, Hash, Equal, CachePolicy::kSLRU>::LruBase(size_t max_size,
           static_cast<size_t>(std::round(max_size * (1 - probation_part))) + 1,
           hash, equal) {}
 
-// TODO: don't copy
 template <typename T, typename U, typename Hash, typename Eq>
 bool LruBase<T, U, Hash, Eq, CachePolicy::kSLRU>::Put(const T& key, U value) {
-  auto result = probation_.Put(key, value);
-  if (!result) {
-    probation_.Erase(key);
-    result = protected_.Put(key, value);
-    if (!result) return false;
+  auto move_result = probation_.template MoveIfHasWithSetValue<Hash, Eq, false>(
+      key, value, &protected_);
+  if (move_result) {
     if (protected_.GetSize() == protected_size_ + 1) {
-      probation_.Put(*protected_.GetLeastUsedKey(),
-                     *protected_.GetLeastUsedValue());
-      protected_.Erase(*protected_.GetLeastUsedKey());
+      protected_.template MoveIfHas<Hash, Eq, false>(
+          *protected_.GetLeastUsedKey(),
+          &probation_);
     }
     return false;
   }
-  result = protected_.Put(key, value);
+  auto result = protected_.Get(key);
   if (result) {
-    protected_.Erase(key);
-    if (probation_.GetSize() == probation_size_ + 1)
-      probation_.Erase(*probation_.GetLeastUsedKey());
-  }
-  else {
-    probation_.Erase(key);
+    *result = value;
     return false;
+  } else {
+    probation_.Put(key, value);
+    if (probation_.GetSize() == probation_size_ + 1) {
+      probation_.Erase(*probation_.GetLeastUsedKey());
+    }
   }
 
   return true;
@@ -114,34 +126,32 @@ void LruBase<T, U, Hash, Eq, CachePolicy::kSLRU>::Erase(const T& key) {
   protected_.Erase(key);
 }
 
-// TODO: don't copy
 template <typename T, typename U, typename Hash, typename Eq>
 U* LruBase<T, U, Hash, Eq, CachePolicy::kSLRU>::Get(const T& key) {
-  auto result = probation_.Get(key);
-  if (protected_size_ == 0)
-    return result;
-  if (!result) return protected_.Get(key);
-
-  protected_.Put(key, *result);
-  probation_.Erase(key);
-  if (protected_.GetSize() == protected_size_ + 1) {
-    probation_.Put(*protected_.GetLeastUsedKey(),
-                   *protected_.GetLeastUsedValue());
-    protected_.Erase(*protected_.GetLeastUsedKey());
+  if (protected_size_ == 0) {
+    return probation_.Get(key);
+  }
+  auto result =
+      probation_.template MoveIfHas<Hash, Eq, false>(key, &protected_);
+  if (result) {
+    if (protected_.GetSize() == protected_size_ + 1) {
+      protected_.template MoveIfHas<Hash, Eq, false>(
+          *protected_.GetLeastUsedKey(), &probation_);
+    }
   }
   return protected_.Get(key);
 }
 
 template <typename T, typename U, typename Hash, typename Eq>
 const T* LruBase<T, U, Hash, Eq, CachePolicy::kSLRU>::GetLeastUsedKey() {
-  if (probation_.GetSize()) return probation_.GetLeastUsedKey();
-  return protected_.GetLeastUsedKey();
+  if (probation_.GetSize()) return probation_.GetLeastUsedValue();
+  return protected_.GetLeastUsedValue();
 }
 
 template <typename T, typename U, typename Hash, typename Eq>
 U* LruBase<T, U, Hash, Eq, CachePolicy::kSLRU>::GetLeastUsedValue() {
-  if (probation_.GetSize()) return probation_.GetLeastUsedValue();
-  return protected_.GetLeastUsedValue();
+  if (probation_.GetSize()) return probation_.GetLeastUsedKey();
+  return protected_.GetLeastUsedKey();
 }
 
 template <typename T, typename U, typename Hash, typename Eq>
@@ -188,6 +198,31 @@ template <typename Function>
 void LruBase<T, U, Hash, Eq, CachePolicy::kSLRU>::VisitAll(Function&& func) {
   probation_.template VisitAll(func);
   protected_.template VisitAll(std::forward<Function>(func));
+}
+
+template <typename T, typename U, typename Hash, typename Eq>
+template <typename Hash2, typename Equal2, bool Checker>
+bool LruBase<T, U, Hash, Eq, CachePolicy::kSLRU>::MoveIfHas(
+    const T& key, LruBase<T, U, Hash2, Equal2>* another_base_ptr) noexcept {
+  if (!probation_.template MoveIfHas<Hash2, Equal2, Checker>(
+          key, another_base_ptr)) {
+    return protected_.template MoveIfHas<Hash2, Equal2, Checker>(
+        key, another_base_ptr);
+  }
+  return true;
+}
+
+template <typename T, typename U, typename Hash, typename Eq>
+template <typename Hash2, typename Equal2, bool Checker>
+bool LruBase<T, U, Hash, Eq, CachePolicy::kSLRU>::MoveIfHasWithSetValue(
+    const T& key, U value,
+    LruBase<T, U, Hash2, Equal2>* another_base_ptr) noexcept {
+  if (!probation_.template MoveIfHasWithSetValue<Hash2, Equal2, Checker>(
+          key, std::move(value), another_base_ptr)) {
+    return protected_.template MoveIfHasWithSetValue<Hash2, Equal2, Checker>(
+        key, std::move(value), another_base_ptr);
+  }
+  return true;
 }
 
 }  // namespace cache::impl
