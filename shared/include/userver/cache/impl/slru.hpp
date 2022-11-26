@@ -9,7 +9,7 @@ template <typename T, typename U, typename Hash, typename Equal>
 class LruBase<T, U, Hash, Equal, CachePolicy::kSLRU> final {
  public:
   explicit LruBase(size_t max_size, const Hash& hash, const Equal& equal,
-                   double probation_part = 0.2);
+                   double probation_part = 0.8);
 
   LruBase(LruBase&& other) noexcept = default;
   LruBase& operator=(LruBase&& other) noexcept = default;
