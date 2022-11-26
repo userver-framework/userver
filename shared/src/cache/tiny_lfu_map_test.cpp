@@ -22,6 +22,7 @@ class Sketch<T, Hash, Policy::Mocked> {
     counters_[key]++;
     return true;
   }
+
  private:
   std::unordered_map<T, int> counters_;
 };
