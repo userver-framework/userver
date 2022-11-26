@@ -60,28 +60,18 @@ template <typename T, typename Hash>
 int Sketch<T, Hash, Policy::Bloom>::Estimate(const T& item) {
   int result = std::numeric_limits<int>::max();
   auto hashed = hash_(item);
-<<<<<<< HEAD
   for (int i = 0; i < static_cast<int>(num_hashes); i++)
     result = std::min(result, Get((hashed ^ (hashed >> 1)) ^ seeds[i], i));
-=======
-  for (int i = 0; i < num_hashes; i++)
-    result = std::min(result, Get(hashed ^ seeds[i], i));
->>>>>>> b93cb8b8 (add: new implementation sketch counters)
   return result;
 }
 
 template <typename T, typename Hash>
-bool Sketch<T, Hash, Policy::Bloom>::Increment(const T& item) {
-  auto was_added = false;
+int Sketch<T, Hash, Policy::Bloom>::Estimate(const T& item) {
+  int result = std::numeric_limits<int>::max();
   auto hashed = hash_(item);
-<<<<<<< HEAD
   for (int i = 0; i < static_cast<int>(num_hashes); i++)
-    was_added |= TryIncrement((hashed ^ (hashed >> 1)) ^ seeds[i], i);
-=======
-  for (int i = 0; i < num_hashes; i++)
-    was_added |= TryIncrement(hashed ^ seeds[i], i);
->>>>>>> b93cb8b8 (add: new implementation sketch counters)
-  return was_added;
+    result = std::min(result, Get((hashed ^ (hashed >> 1)) ^ seeds[i], i));
+  return result;
 }
 
 template <typename T, typename Hash>
