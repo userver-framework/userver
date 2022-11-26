@@ -20,16 +20,16 @@ template <typename T, typename U, typename Hash, typename Equal,
           CachePolicy InnerPolicy = CachePolicy::kLRU,
           typename SketchHash = std::hash<T>,
           sketch::Policy SketchPolicy = sketch::Policy::Aged>
-class TinyLFU {
+class TinyLfu {
   // std::hash -- Bad for digits, good for strings
   // tools::Jenkins -- too slow
  public:
-  explicit TinyLFU(std::size_t max_size, const Hash& hash, const Equal& equal);
+  explicit TinyLfu(std::size_t max_size, const Hash& hash, const Equal& equal);
 
-  TinyLFU(TinyLFU&& other) noexcept = default;
-  TinyLFU& operator=(TinyLFU&& other) noexcept = default;
-  TinyLFU(const TinyLFU& lru) = delete;
-  TinyLFU& operator=(const TinyLFU& lru) = delete;
+  TinyLfu(TinyLfu&& other) noexcept = default;
+  TinyLfu& operator=(TinyLfu&& other) noexcept = default;
+  TinyLfu(const TinyLfu& lru) = delete;
+  TinyLfu& operator=(const TinyLfu& lru) = delete;
 
   bool Put(const T& key, U value);
 
@@ -78,7 +78,7 @@ class TinyLFU {
 template <typename T, typename U, typename Hash, typename Equal,
           CachePolicy InnerPolicy, typename SketchHash,
           sketch::Policy SketchPolicy>
-TinyLFU<T, U, Hash, Equal, InnerPolicy, SketchHash, SketchPolicy>::TinyLFU(
+TinyLfu<T, U, Hash, Equal, InnerPolicy, SketchHash, SketchPolicy>::TinyLfu(
     std::size_t max_size, const Hash& hash, const Equal& equal)
     : counters_(max_size, SketchHash{}),
       max_size_(max_size),
@@ -91,7 +91,7 @@ TinyLFU<T, U, Hash, Equal, InnerPolicy, SketchHash, SketchPolicy>::TinyLFU(
 template <typename T, typename U, typename Hash, typename Equal,
           CachePolicy InnerPolicy, typename SketchHash,
           sketch::Policy SketchPolicy>
-bool TinyLFU<T, U, Hash, Equal, InnerPolicy, SketchHash, SketchPolicy>::Put(
+bool TinyLfu<T, U, Hash, Equal, InnerPolicy, SketchHash, SketchPolicy>::Put(
     const T& key, U value) {
   counters_.Increment(key);
   if (main_.GetSize() == max_size_) {
@@ -112,7 +112,7 @@ template <typename T, typename U, typename Hash, typename Equal,
           CachePolicy InnerPolicy, typename SketchHash,
           sketch::Policy SketchPolicy>
 template <typename... Args>
-U* TinyLFU<T, U, Hash, Equal, InnerPolicy, SketchHash, SketchPolicy>::Emplace(
+U* TinyLfu<T, U, Hash, Equal, InnerPolicy, SketchHash, SketchPolicy>::Emplace(
     const T& key, Args&&... args) {
   auto* existing = main_.Get(key);
   if (existing) return existing;
@@ -125,7 +125,7 @@ U* TinyLFU<T, U, Hash, Equal, InnerPolicy, SketchHash, SketchPolicy>::Emplace(
 template <typename T, typename U, typename Hash, typename Equal,
           CachePolicy InnerPolicy, typename SketchHash,
           sketch::Policy SketchPolicy>
-void TinyLFU<T, U, Hash, Equal, InnerPolicy, SketchHash,
+void TinyLfu<T, U, Hash, Equal, InnerPolicy, SketchHash,
              SketchPolicy>::SetMaxSize(std::size_t new_max_size) {
   UASSERT(new_max_size > 0);
   auto new_counters =
@@ -172,7 +172,7 @@ class LruBase<T, U, Hash, Equal, CachePolicy::kTinyLFU> {
   std::size_t GetSize() const { return inner_.GetSize(); }
 
  private:
-  TinyLFU<T, U, Hash, Equal, CachePolicy::kLRU> inner_;
+  TinyLfu<T, U, Hash, Equal, CachePolicy::kLRU> inner_;
 };
 
 }  // namespace cache::impl
