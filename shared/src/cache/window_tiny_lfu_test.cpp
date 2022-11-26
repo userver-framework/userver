@@ -5,8 +5,8 @@
 USERVER_NAMESPACE_BEGIN
 
 using WTinyLFU =
-    cache::impl::LruBase<int, int, std::hash<int>,
-                         std::equal_to<int>, cache::CachePolicy::kWTinyLFU>;
+    cache::impl::LruBase<int, int, std::hash<int>, std::equal_to<int>,
+                         cache::CachePolicy::kWTinyLFU>;
 
 // TODO: don't depend on SLRU probation_part which is 0.8 by default
 TEST(WTinyLFU, PutNew) {
@@ -15,15 +15,13 @@ TEST(WTinyLFU, PutNew) {
   const int main_size_lower_bound = std::round(97 * 0.8);
 
   int count_putted = 0;
-  for (int i = 0; i < 3; i++)
-    count_putted += cache.Put(i, i);
+  for (int i = 0; i < 3; i++) count_putted += cache.Put(i, i);
   EXPECT_EQ(3, count_putted);
   EXPECT_EQ(3, cache.GetSize());
   EXPECT_EQ(3, cache.GetWindowSize());
 
   count_putted = 0;
-  for (int i = 3; i < 100; i++)
-    count_putted += cache.Put(i, i);
+  for (int i = 3; i < 100; i++) count_putted += cache.Put(i, i);
   EXPECT_TRUE(count_putted >= main_size_lower_bound);
 
   EXPECT_TRUE(cache.Put(100, 100));
@@ -35,20 +33,18 @@ TEST(WTinyLFU, PutNew) {
   EXPECT_TRUE(cache.Get(98));
   int count = 0;
   for (int i = 0; i < 100; i++)
-    if (cache.Get(i))
-      count++;
+    if (cache.Get(i)) count++;
   EXPECT_EQ(80, count);
 }
 
 TEST(WTinyLFU, PutAlreadyInWindow) {
   WTinyLFU cache(100, std::hash<int>{}, std::equal_to<int>{}, 0.03);
-  for (int i = 0; i < 100; i++)
-    cache.Put(i, i);
+  for (int i = 0; i < 100; i++) cache.Put(i, i);
 
   int count_putted = 0;
   for (int i = 97; i < 100; i++) {
     count_putted += cache.Put(i, 100);
-    auto *res = cache.Get(i);
+    auto* res = cache.Get(i);
     EXPECT_TRUE(res);
     EXPECT_EQ(100, *res);
   }
@@ -57,8 +53,7 @@ TEST(WTinyLFU, PutAlreadyInWindow) {
 
 TEST(WTinyLFU, PutAlreadyInMain) {
   WTinyLFU cache(100, std::hash<int>{}, std::equal_to<int>{}, 0.03);
-  for (int i = 0; i < 100; i++)
-    cache.Put(i, i);
+  for (int i = 0; i < 100; i++) cache.Put(i, i);
 
   // For SLRU engine only
   EXPECT_TRUE(cache.Put(5, 5));
@@ -66,7 +61,7 @@ TEST(WTinyLFU, PutAlreadyInMain) {
   EXPECT_FALSE(cache.Put(37, 37));
   //
 
-  auto *res = cache.Get(20);
+  auto* res = cache.Get(20);
   EXPECT_TRUE(res);
   EXPECT_EQ(20, *res);
   res = cache.Get(5);
@@ -79,9 +74,8 @@ TEST(WTinyLFU, PutAlreadyInMain) {
 
 TEST(WTinyLFU, Get) {
   WTinyLFU cache(100, std::hash<int>{}, std::equal_to<int>{}, 0.03);
-  for (int i = 0; i < 100; i++)
-    cache.Put(i, i);
-  auto *res = cache.Get(98);
+  for (int i = 0; i < 100; i++) cache.Put(i, i);
+  auto* res = cache.Get(98);
   EXPECT_TRUE(res);
   EXPECT_EQ(98, *res);
   res = cache.Get(20);
@@ -91,10 +85,9 @@ TEST(WTinyLFU, Get) {
 
 TEST(WTinyLFU, Erase) {
   WTinyLFU cache(100, std::hash<int>{}, std::equal_to<int>{}, 0.03);
-  for (int i = 0; i < 100; i++)
-    cache.Put(i, i);
+  for (int i = 0; i < 100; i++) cache.Put(i, i);
   cache.Erase(98);
-  auto *res = cache.Get(98);
+  auto* res = cache.Get(98);
   EXPECT_FALSE(res);
   cache.Erase(20);
   res = cache.Get(20);
