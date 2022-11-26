@@ -39,7 +39,7 @@ class LruBase<T, U, Hash, Equal, CachePolicy::kWTinyLFU> {
   size_t window_size_;
   LruBase<T, U, Hash, Equal, CachePolicy::kLRU> window_;
   size_t main_size_;
-  TinyLFU<T, U, Hash, Equal, CachePolicy::kSLRU> main_;
+  TinyLfu<T, U, Hash, Equal, CachePolicy::kSLRU> main_;
 };
 
 template <typename T, typename U, typename Hash, typename Equal>
