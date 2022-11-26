@@ -58,7 +58,8 @@ class SingleConsumerEvent final {
   /// @overload bool WaitForEvent()
   [[nodiscard]] bool WaitForEventUntil(Deadline);
 
-  /// Resets the signal flag.
+  /// Resets the signal flag. Guarantees at least 'acquire' and 'release' memory
+  /// ordering.
   void Reset() noexcept;
 
   /// Sets the signal flag and wakes a coroutine that waits on it (if any).

@@ -7,6 +7,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace components {
 
+// NOLINTNEXTLINE(bugprone-forward-declaration-namespace)
 class DynamicConfig;
 
 }  // namespace components
