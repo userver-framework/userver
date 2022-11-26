@@ -63,7 +63,7 @@ static const char goblet[] = "test_data/goblet";
 BENCHMARK(OnRealData<TinyLfu, phoenix>)->RangeMultiplier(2)->Range(2<<10, 2<<17);
 BENCHMARK(OnRealData<TinyLfu, goblet>)->RangeMultiplier(2)->Range(2<<8, 2<<17);
 // BENCHMARK(OnRealData<TinyLfu, zipfian_30k_2kk>)->RangeMultiplier(2)->Range(2, 2<<8);
-// BENCHMARK(OnRealData<WTinyLfu, phoenix>)->RangeMultiplier(2)->Range(2<<10, 2<<17);
-// BENCHMARK(OnRealData<WTinyLfu, goblet>)->RangeMultiplier(2)->Range(2<<8, 2<<17);
+BENCHMARK(OnRealData<WTinyLfu, phoenix>)->RangeMultiplier(2)->Range(2<<10, 2<<17);
+BENCHMARK(OnRealData<WTinyLfu, goblet>)->RangeMultiplier(2)->Range(2<<8, 2<<17);
 
 USERVER_NAMESPACE_END
