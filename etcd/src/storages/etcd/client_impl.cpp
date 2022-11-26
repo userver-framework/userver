@@ -21,10 +21,12 @@ ClientImpl::ClientImpl(const components::ComponentConfig& config,
     : client_factory_(
           context.FindComponent<ugrpc::client::ClientFactoryComponent>()
               .GetFactory()),
-      grpc_client_(std::make_unique<etcdserverpb::KVClient>(
-          client_factory_.MakeClient<etcdserverpb::KVClient>(
-              config["endpoint"].As<std::string>()))),
-      watch_client_(context.FindComponent<WatchClient>("watch-client")) {}
+      grpc_client_(),
+      watch_client_(context.FindComponent<WatchClient>("watch-client")) {
+        const auto endpoints = config["endpoints"].As<std::vector<std::string>>();
+        grpc_client_ = std::make_unique<etcdserverpb::KVClient>(
+          client_factory_.MakeClient<etcdserverpb::KVClient>(endpoints.front()));
+      }
 
 
 Response ClientImpl::Get(const std::string& key_begin,

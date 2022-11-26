@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include <userver/components/loggable_component_base.hpp>
 #include <userver/ugrpc/client/client_factory_component.hpp>
 #include <userver/components/component.hpp>
@@ -38,7 +39,7 @@ class WatchClient final : public userver::components::LoggableComponentBase {
  
  private:
   userver::ugrpc::client::ClientFactory& grpc_client_factory_;
-  etcdserverpb::WatchClient grpc_watch_client_;
+  std::shared_ptr<etcdserverpb::WatchClient> grpc_watch_client_;
   userver::concurrent::BackgroundTaskStorage bts;
   int64_t watch_id;
   std::atomic<bool> started;

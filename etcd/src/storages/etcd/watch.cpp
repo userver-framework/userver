@@ -1,6 +1,8 @@
 #include "userver/storages/etcd/watch.hpp"
 
 #include <chrono>
+#include <etcd/api/etcdserverpb/rpc_client.usrv.pb.hpp>
+#include <memory>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -11,9 +13,11 @@ WatchClient::WatchClient(const userver::components::ComponentConfig& config,
       : userver::components::LoggableComponentBase(config, context),
         grpc_client_factory_(
             context.FindComponent<userver::ugrpc::client::ClientFactoryComponent>()
-                .GetFactory()),
-        grpc_watch_client_(grpc_client_factory_.MakeClient<etcdserverpb::WatchClient>(
-            config["endpoint"].As<std::string>())) {
+                .GetFactory()) {
+
+              const auto endpoints = config["endpoints"].As<std::vector<std::string>>();
+              grpc_watch_client_ = std::make_shared<etcdserverpb::WatchClient>(grpc_client_factory_.MakeClient<etcdserverpb::WatchClient>(endpoints.front()));
+
               bts.AsyncDetach("task_watch", [&](){
                 while(!userver::engine::current_task::ShouldCancel()){
                   Reset();
@@ -24,12 +28,12 @@ WatchClient::WatchClient(const userver::components::ComponentConfig& config,
 auto WatchClient::Init(){
   ::etcdserverpb::WatchRequest request;
   etcdserverpb::WatchCreateRequest create_request;
-  create_request.set_key(/*key*/ "f");
-  create_request.set_range_end(/*range_end*/"foobar");
+  create_request.set_key(/*key*/ ".");
+  create_request.set_range_end(/*range_end*/std::string(1,'.'+1));
   *request.mutable_create_request() = create_request;
 
   auto context = std::make_unique<grpc::ClientContext>();
-  auto stream = grpc_watch_client_.Watch(std::move(context));
+  auto stream = grpc_watch_client_->Watch(std::move(context));
   stream.Write(request);
 
   etcdserverpb::WatchResponse response; 
