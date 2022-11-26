@@ -1,24 +1,41 @@
 #include <gtest/gtest.h>
 
+#include <unordered_map>
+
+#include <userver/cache/impl/hash.hpp>
+#include <userver/cache/impl/sketch/policy.hpp>
 #include <userver/cache/impl/tiny_lfu.hpp>
+#include <userver/utils/rand.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
-template <typename T>
-class TinyLFU : public ::testing::Test {
+namespace cache::impl::sketch {
+template <typename T, typename Hash>
+class Sketch<T, Hash, Policy::Mocked> {
  public:
-  using Hash = std::hash<int>;
-  using Equal = std::equal_to<int>;
-  using Cache =
-      cache::impl::LruBase<int, int, Hash, Equal,
-                           cache::CachePolicy::kTinyLFU, T::value>;
+  explicit Sketch(size_t, const Hash& = Hash{}) {}
+  int Estimate(const T& key) {
+    std::cout << key << ' ' << counters_[key] << std::endl;
+    return counters_[key];
+  }
+  bool Increment(const T& key) {
+    counters_[key]++;
+    return true;
+  }
+
+ private:
+  std::unordered_map<T, int> counters_;
 };
+}  // namespace cache::impl::sketch
 
-using InnerPolicyTypes = ::testing::Types<
-    std::integral_constant<cache::CachePolicy, cache::CachePolicy::kLRU>,
-    std::integral_constant<cache::CachePolicy, cache::CachePolicy::kSLRU>>;
+namespace {
 
-TYPED_TEST_SUITE(TinyLFU, InnerPolicyTypes, );
+using Type = int;
+using Hash = std::hash<Type>;
+using Equal = std::equal_to<Type>;
+using Cache =
+    cache::impl::TinyLFU<Type, int, Hash, Equal, cache::CachePolicy::kLRU,
+                         std::hash<Type>, cache::impl::sketch::Policy::Mocked>;
 
 template <typename Cache>
 std::vector<int> Get(Cache& cache) {
@@ -27,113 +44,70 @@ std::vector<int> Get(Cache& cache) {
   std::sort(actual.begin(), actual.end());
   return actual;
 }
+}  // namespace
 
-TYPED_TEST(TinyLFU, PutGet) {
-  using Cache = typename TestFixture::Cache;
-  Cache cache(2, std::hash<int>{}, std::equal_to<int>{});
-  EXPECT_TRUE(cache.Put(0, 0));
-  cache.Get(0);
-  EXPECT_TRUE(cache.Put(1, 1));
-  cache.Get(1);
-  cache.Get(1);
+TEST(TinyLFU, PutGet) {
+  Cache cache(256, Hash{}, std::equal_to<int>{});
+  int count = 0;
+  for (int i = 0; i < 256; i++) count += cache.Put(i, i);
+  EXPECT_EQ(count, 256);
+  count = 0;
+  for (int i = 0; i < 256; i++) count += (cache.Get(i) ? 1 : 0);
+  EXPECT_EQ(count, 256);
 
-  EXPECT_EQ(Get(cache), (std::vector<int>{0, 1}));
   int try_count = 0;
-  for (int i = 0; i < 10; i++) {
-    try_count++;
-    EXPECT_TRUE(cache.Put(2, 2));
-    if (Get(cache) == (std::vector<int>{1, 2})) break;
+  for (int i = 0; i < 20; i++, try_count++) {
+    cache.Put(256, 256);
+    auto* res = cache.Get(256);
+    if (res) break;
   }
-  EXPECT_TRUE(try_count >= 2 && try_count < 10);
-
-  EXPECT_EQ(Get(cache), (std::vector<int>{1, 2}));
-  try_count = 0;
-  for (int i = 0; i < 10; i++) {
-    try_count++;
-    EXPECT_TRUE(cache.Put(3, 3));
-    if (Get(cache) == (std::vector<int>{2, 3})) break;
-  }
-  EXPECT_TRUE(try_count >= 3 && try_count < 10);
+  EXPECT_EQ(try_count, 1);
 }
 
-TYPED_TEST(TinyLFU, EmplaceGet) {
-  using Cache = typename TestFixture::Cache;
-  Cache cache(2, std::hash<int>{}, std::equal_to<int>{});
-  auto* res = cache.Emplace(0, 0);
-  EXPECT_TRUE(res);
-  EXPECT_EQ(*res, 0);
-  cache.Get(0);
-
-  res = cache.Emplace(1, 1);
-  EXPECT_TRUE(res);
-  EXPECT_EQ(*res, 1);
-  cache.Get(1);
-  cache.Get(1);
-
-  EXPECT_EQ(Get(cache), (std::vector<int>{0, 1}));
-  int try_count = 0;
-  for (int i = 0; i < 10; i++) {
-    try_count++;
-    res = cache.Emplace(2, 2);
-    if (Get(cache) == (std::vector<int>{1, 2})) break;
-    EXPECT_FALSE(res);
+TEST(TinyLFU, PutUpdate) {
+  Cache cache(256, Hash{}, std::equal_to<int>{});
+  // Fill
+  for (int i = 1; i <= 100000; i++) {
+    int key = utils::RandRange(1, 257);
+    cache.Put(key, i);
   }
-  EXPECT_TRUE(try_count >= 2 && try_count < 10);
-  EXPECT_EQ(*res, 2);
 
-  EXPECT_EQ(Get(cache), (std::vector<int>{1, 2}));
-  try_count = 0;
-  for (int i = 0; i < 10; i++) {
-    try_count++;
-    res = cache.Emplace(3, 3);
-    if (Get(cache) == (std::vector<int>{2, 3})) break;
-    EXPECT_FALSE(res);
+  cache.Put(143, 0);
+  auto* res = cache.Get(143);
+  EXPECT_TRUE(res);
+  if (res) {
+    EXPECT_EQ(*res, 0);
   }
-  EXPECT_TRUE(try_count >= 3 && try_count < 10);
-  EXPECT_EQ(*res, 3);
 }
 
-TYPED_TEST(TinyLFU, Get) {
-  using Cache = typename TestFixture::Cache;
-  Cache cache(2, std::hash<int>{}, std::equal_to<int>{});
+TEST(TinyLFU, Get) {
+  Cache cache(256, Hash{}, std::equal_to<int>{});
   cache.Put(0, 0);
   cache.Put(1, 1);
 
   auto* res = cache.Get(0);
   EXPECT_TRUE(res);
-  EXPECT_EQ(*res, 0);
-
-  res = cache.Get(0);
-  EXPECT_TRUE(res);
-  EXPECT_EQ(*res, 0);
-
-  int try_count = 0;
-  for (int i = 0; i < 10; i++) {
-    try_count++;
-    cache.Put(2, 2);
-    if (Get(cache) == (std::vector<int>{0, 2})) break;
+  if (res) {
+    EXPECT_EQ(*res, 0);
   }
-  EXPECT_TRUE(try_count >= 1 && try_count < 10);
-
-  try_count = 0;
-  for (int i = 0; i < 10; i++) {
-    try_count++;
-    cache.Put(3, 3);
-    if (Get(cache) == (std::vector<int>{2, 3})) break;
-  }
-  EXPECT_TRUE(try_count >= 3 && try_count < 10);
 
   res = cache.Get(2);
+  EXPECT_FALSE(res);
+
+  for (int i = 2; i < 256; i++) cache.Put(i, i);
+
+  EXPECT_FALSE(cache.Get(257));
+  EXPECT_FALSE(cache.Get(257));
+  cache.Put(257, 257);
+  res = cache.Get(257);
   EXPECT_TRUE(res);
-  EXPECT_EQ(*res, 2);
-  res = cache.Get(3);
-  EXPECT_TRUE(res);
-  EXPECT_EQ(*res, 3);
+  if (res) {
+    EXPECT_EQ(*res, 257);
+  }
 }
 
-TYPED_TEST(TinyLFU, Size2) {
-  using Cache = typename TestFixture::Cache;
-  Cache cache(2, std::hash<int>{}, std::equal_to<int>{});
+TEST(TinyLFU, Size2) {
+  Cache cache(2, Hash{}, std::equal_to<int>{});
   cache.Put(1, 1);
   cache.Put(2, 2);
   EXPECT_TRUE(cache.Get(1));
