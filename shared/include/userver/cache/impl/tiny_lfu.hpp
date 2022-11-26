@@ -9,7 +9,7 @@
 #include <userver/cache/impl/sketch/policy.hpp>
 #include <userver/cache/impl/slru.hpp>
 #include <userver/cache/policy.hpp>
-#include "userver/utils/assert.hpp"
+#include <userver/utils/assert.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
