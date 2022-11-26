@@ -143,14 +143,14 @@ U* LruBase<T, U, Hash, Eq, CachePolicy::kSLRU>::Get(const T& key) {
 
 template <typename T, typename U, typename Hash, typename Eq>
 const T* LruBase<T, U, Hash, Eq, CachePolicy::kSLRU>::GetLeastUsedKey() {
-  if (probation_.GetSize()) return probation_.GetLeastUsedValue();
-  return protected_.GetLeastUsedValue();
+  if (probation_.GetSize()) return probation_.GetLeastUsedKey();
+  return protected_.GetLeastUsedKey();
 }
 
 template <typename T, typename U, typename Hash, typename Eq>
 U* LruBase<T, U, Hash, Eq, CachePolicy::kSLRU>::GetLeastUsedValue() {
-  if (probation_.GetSize()) return probation_.GetLeastUsedKey();
-  return protected_.GetLeastUsedKey();
+  if (probation_.GetSize()) return probation_.GetLeastUsedValue();
+  return protected_.GetLeastUsedValue();
 }
 
 template <typename T, typename U, typename Hash, typename Eq>
