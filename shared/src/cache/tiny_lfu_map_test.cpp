@@ -11,7 +11,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace cache::impl::sketch {
 template <typename T, typename Hash>
-class Sketch<T, Hash, Policy::Mocked> {
+class Sketch<T, Hash, Policy::Trivial> {
  public:
   explicit Sketch(size_t, const Hash& = Hash{}) {}
   int Estimate(const T& key) {
@@ -34,8 +34,8 @@ using Type = int;
 using Hash = std::hash<Type>;
 using Equal = std::equal_to<Type>;
 using Cache =
-    cache::impl::TinyLFU<Type, int, Hash, Equal, cache::CachePolicy::kLRU,
-                         std::hash<Type>, cache::impl::sketch::Policy::Mocked>;
+    cache::impl::TinyLfu<Type, int, Hash, Equal, cache::CachePolicy::kLRU,
+                         std::hash<Type>, cache::impl::sketch::Policy::Trivial>;
 
 template <typename Cache>
 std::vector<int> Get(Cache& cache) {
@@ -46,7 +46,7 @@ std::vector<int> Get(Cache& cache) {
 }
 }  // namespace
 
-TEST(TinyLFU, PutGet) {
+TEST(TinyLfu, PutGet) {
   Cache cache(256, Hash{}, std::equal_to<int>{});
   int count = 0;
   for (int i = 0; i < 256; i++) count += cache.Put(i, i);
@@ -64,7 +64,7 @@ TEST(TinyLFU, PutGet) {
   EXPECT_EQ(try_count, 1);
 }
 
-TEST(TinyLFU, PutUpdate) {
+TEST(TinyLfu, PutUpdate) {
   Cache cache(256, Hash{}, std::equal_to<int>{});
   // Fill
   for (int i = 1; i <= 100000; i++) {
@@ -80,7 +80,7 @@ TEST(TinyLFU, PutUpdate) {
   }
 }
 
-TEST(TinyLFU, Get) {
+TEST(TinyLfu, Get) {
   Cache cache(256, Hash{}, std::equal_to<int>{});
   cache.Put(0, 0);
   cache.Put(1, 1);
@@ -106,7 +106,7 @@ TEST(TinyLFU, Get) {
   }
 }
 
-TEST(TinyLFU, Size2) {
+TEST(TinyLfu, Size2) {
   Cache cache(2, Hash{}, std::equal_to<int>{});
   cache.Put(1, 1);
   cache.Put(2, 2);
