@@ -28,6 +28,7 @@
 #include <userver/ugrpc/client/client_factory_component.hpp>
 
 #include "client_impl.hpp"
+#include "userver/components/component_context.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
@@ -41,7 +42,7 @@ Etcd::Etcd(const ComponentConfig& config,
               .FindComponent<userver::ugrpc::client::ClientFactoryComponent>()
               .GetFactory()),
       config_(component_context.FindComponent<DynamicConfig>().GetSource()) {
-  Connect(config);
+  Connect(config, component_context);
 }
 
 storages::etcd::ClientPtr Etcd::GetClient(const std::string& endpoint) const {
@@ -71,13 +72,13 @@ Etcd::~Etcd() {
   }
 }
 
-void Etcd::Connect(const ComponentConfig& config) {
+void Etcd::Connect(const ComponentConfig& config, const ComponentContext& context) {
   auto endpoints = config["endpoints"].As<std::vector<std::string>>();
   for (const auto& endpoint : endpoints) {
     auto grpc_client = std::make_unique<etcdserverpb::KVClient>(
         grpc_client_factory_.MakeClient<etcdserverpb::KVClient>(endpoint));
     clients_.emplace(endpoint, std::make_shared<storages::etcd::ClientImpl>(
-                                   std::move(grpc_client)));
+                                   config, context));
   }
 }
 

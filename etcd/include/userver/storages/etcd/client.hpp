@@ -26,6 +26,8 @@ class Client {
                       const std::optional<std::string>& key_end = std::nullopt) const = 0;
 
   virtual void DeleteByPrefix(const std::string& key) const = 0;
+
+  virtual void SetWatchCallback(std::function<void(bool, std::string, std::string)>) = 0;
 };
 
 }  // namespace storages::etcd

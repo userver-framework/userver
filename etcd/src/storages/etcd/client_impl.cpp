@@ -10,13 +10,26 @@
 #include <userver/components/component.hpp>
 #include <userver/ugrpc/client/client_factory_component.hpp>
 #include <userver/storages/etcd/response.hpp>
+#include "userver/storages/etcd/watch.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::etcd {
 
+<<<<<<< HEAD
 ClientImpl::ClientImpl(etcdserverpb::KVClientUPtr grpc_client)
     : grpc_client_(std::move(grpc_client)) {}
+=======
+ClientImpl::ClientImpl(const components::ComponentConfig& config,
+                       const components::ComponentContext& context)
+    : client_factory_(
+          context.FindComponent<ugrpc::client::ClientFactoryComponent>()
+              .GetFactory()),
+      grpc_client_(std::make_unique<etcdserverpb::KVClient>(
+          client_factory_.MakeClient<etcdserverpb::KVClient>(
+              config["endpoint"].As<std::string>()))),
+      watch_client_(context.FindComponent<WatchClient>("watch-client")) {}
+>>>>>>> 182b2651 (moving watch to etcd)
 
 Response ClientImpl::Get(const std::string& key_begin,
                          const std::optional<std::string>& key_end) const {
@@ -96,6 +109,10 @@ void ClientImpl::MakeDelete(const etcdserverpb::DeleteRangeRequest& request) con
       userver::engine::Deadline::FromDuration(std::chrono::seconds{20}));
   auto stream = grpc_client_->DeleteRange(request, std::move(context));
   etcdserverpb::DeleteRangeResponse response = stream.Finish();
+}
+
+void ClientImpl::SetWatchCallback(std::function<void(bool, std::string, std::string)> func){
+  watch_client_.SetCallback(std::move(func));
 }
 
 }  // namespace storages::etcd

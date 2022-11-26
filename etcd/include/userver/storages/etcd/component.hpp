@@ -26,7 +26,7 @@ class Etcd : public LoggableComponentBase {
       const std::string& endpoint = std::string()) const;
 
  private:
-  void Connect(const ComponentConfig& config);
+  void Connect(const ComponentConfig& config, const ComponentContext& context);
 
   std::unordered_map<std::string, storages::etcd::ClientPtr> clients_;
   userver::ugrpc::client::ClientFactory& grpc_client_factory_;

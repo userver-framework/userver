@@ -1,5 +1,6 @@
 #include <userver/storages/etcd/client.hpp>
 #include <userver/storages/etcd/fwd.hpp>
+#include <userver/storages/etcd/watch.hpp>
 
 namespace etcdserverpb {
 
@@ -27,13 +28,16 @@ class ClientImpl : public Client,
   void Delete(const std::string& key_begin,
               const std::optional<std::string>& key_end) const final;
 
-  void DeleteByPrefix(const std::string& key) const final;
+  void DeleteByPrefix(const std::string& prefix) const final;
+
+  void SetWatchCallback(std::function<void(bool, std::string, std::string)>) final;
 
  private:
   Response MakeGet(const etcdserverpb::RangeRequest& request) const;
   void MakeDelete(const etcdserverpb::DeleteRangeRequest& request) const;
 
   etcdserverpb::KVClientUPtr grpc_client_;
+  WatchClient& watch_client_;
 };
 
 }  // namespace storages::etcd
