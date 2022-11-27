@@ -50,20 +50,21 @@ void OnRealData(benchmark::State& state) {
 
 static const char phoenix[] = "test_data/phoenix";
 static const char goblet[] = "test_data/goblet";
-// static const char zipfian_[] = "test_data/goblet";
-// BENCHMARK(OnRealData<Lru, phoenix>)->RangeMultiplier(2)->Range(2<<10, 2<<17);
-// BENCHMARK(OnRealData<Lru, goblet>)->RangeMultiplier(2)->Range(2<<10, 2<<17);
-// BENCHMARK(OnRealData<Lru, zipfian_30k_2kk>)->RangeMultiplier(2)->Range(2<<8, 2<<17);
-// BENCHMARK(OnRealData<Lfu, phoenix>)->RangeMultiplier(2)->Range(2<<10, 2<<17);
-// BENCHMARK(OnRealData<Lfu, goblet>)->RangeMultiplier(2)->Range(2<<10, 2<<17);
-// BENCHMARK(OnRealData<Lfu, zipfian_30k_2kk>)->RangeMultiplier(2)->Range(2<<8, 2<<17);
-// BENCHMARK(OnRealData<Slru, phoenix>)->RangeMultiplier(2)->Range(2<<10, 2<<17);
-// BENCHMARK(OnRealData<Slru, goblet>)->RangeMultiplier(2)->Range(2<<10, 2<<17);
-// BENCHMARK(OnRealData<Slru, zipfian_30k_2kk>)->RangeMultiplier(2)->Range(2<<8, 2<<17);
-BENCHMARK(OnRealData<TinyLfu, phoenix>)->RangeMultiplier(2)->Range(2<<10, 2<<17);
-BENCHMARK(OnRealData<TinyLfu, goblet>)->RangeMultiplier(2)->Range(2<<8, 2<<17);
-// BENCHMARK(OnRealData<TinyLfu, zipfian_30k_2kk>)->RangeMultiplier(2)->Range(2, 2<<8);
-BENCHMARK(OnRealData<WTinyLfu, phoenix>)->RangeMultiplier(2)->Range(2<<10, 2<<17);
-BENCHMARK(OnRealData<WTinyLfu, goblet>)->RangeMultiplier(2)->Range(2<<8, 2<<17);
+static const char zipfian_10k_2kk[] = "test_data/zipfian_10k_2kk";
+BENCHMARK(OnRealData<Lru, phoenix>)->RangeMultiplier(2)->Range(2<<10, 2<<20);
+BENCHMARK(OnRealData<Lfu, phoenix>)->RangeMultiplier(2)->Range(2<<10, 2<<20);
+BENCHMARK(OnRealData<Slru, phoenix>)->RangeMultiplier(2)->Range(2<<10, 2<<20);
+BENCHMARK(OnRealData<TinyLfu, phoenix>)->RangeMultiplier(2)->Range(2<<10, 2<<20);
+BENCHMARK(OnRealData<WTinyLfu, phoenix>)->RangeMultiplier(2)->Range(2<<10, 2<<20);
+BENCHMARK(OnRealData<Lru, goblet>)->RangeMultiplier(2)->Range(2<<6, 2<<17);
+BENCHMARK(OnRealData<Lfu, goblet>)->RangeMultiplier(2)->Range(2<<6, 2<<17);
+BENCHMARK(OnRealData<Slru, goblet>)->RangeMultiplier(2)->Range(2<<6, 2<<17);
+BENCHMARK(OnRealData<TinyLfu, goblet>)->RangeMultiplier(2)->Range(2<<6, 2<<17);
+BENCHMARK(OnRealData<WTinyLfu, goblet>)->RangeMultiplier(2)->Range(2<<6, 2<<17);
+BENCHMARK(OnRealData<Lru, zipfian_10k_2kk>)->RangeMultiplier(2)->Range(2<<5, 2<<12);
+BENCHMARK(OnRealData<Lfu, zipfian_10k_2kk>)->RangeMultiplier(2)->Range(2<<5, 2<<12);
+BENCHMARK(OnRealData<Slru, zipfian_10k_2kk>)->RangeMultiplier(2)->Range(2<<5, 2<<12);
+BENCHMARK(OnRealData<TinyLfu, zipfian_10k_2kk>)->RangeMultiplier(2)->Range(2<<5, 2<<12);
+BENCHMARK(OnRealData<WTinyLfu, zipfian_10k_2kk>)->RangeMultiplier(2)->Range(2<<5, 2<<12);
 
 USERVER_NAMESPACE_END
