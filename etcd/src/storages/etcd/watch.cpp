@@ -19,7 +19,8 @@ WatchClient::WatchClient(const userver::components::ComponentConfig& config,
         create_cooldown(config["create_cooldown"].As<int64_t>()),
         to_stop(false),
         to_reset(false),
-        watch_callback_set(false) {
+        watch_callback_set(false),
+        watch_start(true) {
               const auto endpoints = config["endpoints"].As<std::vector<std::string>>();
               grpc_watch_client_ = std::make_shared<etcdserverpb::WatchClient>(grpc_client_factory_.MakeClient<etcdserverpb::WatchClient>(endpoints.front()));
 
@@ -62,6 +63,7 @@ userver::ugrpc::client::BidirectionalStream<etcdserverpb::WatchRequest, etcdserv
 
   watch_id = response.watch_id();
   to_reset = false;
+  watch_start = true;
   return stream;
 }
 
@@ -99,25 +101,38 @@ void WatchClient::Reset(/*std::string& key, std::string& range_end*/){
     if(to_stop){
       return;
     }
-    
-    for(int i = 0; i < response.mutable_events()->size(); ++i){
-      while((i + 1 < response.mutable_events()->size()) && (((*response.mutable_events())[i]).kv().key() == ((*response.mutable_events())[i + 1]).kv().key())){
-        ++i;
+
+    if(watch_start){
+      for(int i = 0; i < response.mutable_events()->size(); ++i){
+        while((i + 1 < response.mutable_events()->size()) && (((*response.mutable_events())[i]).kv().key() == ((*response.mutable_events())[i + 1]).kv().key())){
+          ++i;
+        }
+
+        if(i + 1 == response.mutable_events()->size()){
+          
+        }
+
+        auto& cur = (*response.mutable_events())[i];
+
+        if(cur.type() == mvccpb::Event_EventType::Event_EventType_PUT){
+          LOG_DEBUG() << "reported event: PUT " + cur.kv().key() + " " + cur.kv().value();
+        } else{
+          LOG_DEBUG() << "reported event: DELETE " + cur.kv().key() + " " + cur.kv().value();
+        }
+
+        //watch_callback(cur.type() == mvccpb::Event_EventType::Event_EventType_PUT, cur.kv().key(), cur.kv().value());
       }
-
-      if(i + 1 == response.mutable_events()->size()){
-        
+      watch_start = false;
+    } else{
+      for(auto& i : *response.mutable_events()){   
+        //watch_callback(i.type() == mvccpb::Event_EventType::Event_EventType_PUT, i.kv().key(), i.kv().value());
+        if(i.type() == mvccpb::Event_EventType::Event_EventType_PUT){
+          LOG_DEBUG() << "reported event: PUT " + i.kv().key() + " " + i.kv().value();
+        } else{
+          LOG_DEBUG() << "reported event: DELETE " + i.kv().key() + " " + i.kv().value();
+        }
+        //LOG_CRITICAL() << "reported event: PUT " + i.kv().key() + " " + i.kv().value();
       }
-
-      auto& cur = (*response.mutable_events())[i];
-
-      if(cur.type() == mvccpb::Event_EventType::Event_EventType_PUT){
-        LOG_DEBUG() << "reported event: PUT " + cur.kv().key() + " " + cur.kv().value();
-      } else{
-        LOG_DEBUG() << "reported event: DELETE " + cur.kv().key() + " " + cur.kv().value();
-      }
-
-      //watch_callback(cur.type() == mvccpb::Event_EventType::Event_EventType_PUT, cur.kv().key(), cur.kv().value());
     }
   }
   Destroy(stream);

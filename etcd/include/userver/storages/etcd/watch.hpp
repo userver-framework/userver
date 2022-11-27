@@ -49,6 +49,7 @@ class WatchClient final : public userver::components::LoggableComponentBase {
   std::atomic<bool> to_stop;
   std::atomic<bool> to_reset;
   std::atomic<bool> watch_callback_set;
+  std::atomic<bool> watch_start;
 
   std::function<void(bool, std::string, std::string)> watch_callback;
 };

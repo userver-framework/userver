@@ -29,7 +29,7 @@ class Client {
 
   virtual void SetWatchCallback(std::function<void(bool, std::string, std::string)>) = 0;
 
-  virtual bool IsCallbackSet();
+  virtual bool IsCallbackSet() = 0;
 };
 
 }  // namespace storages::etcd
