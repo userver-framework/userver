@@ -27,14 +27,16 @@ class WatchClient final : public userver::components::LoggableComponentBase {
   WatchClient(const components::ComponentConfig& config,
            const components::ComponentContext& context);
 
-  auto Init();
+  userver::ugrpc::client::BidirectionalStream<etcdserverpb::WatchRequest, etcdserverpb::WatchResponse> Init();
 
-  bool Reset(/*std::string& key, std::string& range_end*/);
+  void Reset(/*std::string& key, std::string& range_end*/);
 
-  bool Destroy(userver::ugrpc::client::BidirectionalStream<etcdserverpb::WatchRequest, etcdserverpb::WatchResponse>& stream);
+  void Destroy(userver::ugrpc::client::BidirectionalStream<etcdserverpb::WatchRequest, etcdserverpb::WatchResponse>& stream);
 
   void SetCallback(std::function<void(bool, std::string, std::string)> func);
  
+  bool IsCallbackSet() const;
+
   ~WatchClient() final;
  
  private:
@@ -42,8 +44,11 @@ class WatchClient final : public userver::components::LoggableComponentBase {
   std::shared_ptr<etcdserverpb::WatchClient> grpc_watch_client_;
   userver::concurrent::BackgroundTaskStorage bts;
   int64_t watch_id;
-  std::atomic<bool> started;
+  int64_t create_cooldown;
+
+  std::atomic<bool> to_stop;
   std::atomic<bool> to_reset;
+  std::atomic<bool> watch_callback_set;
 
   std::function<void(bool, std::string, std::string)> watch_callback;
 };

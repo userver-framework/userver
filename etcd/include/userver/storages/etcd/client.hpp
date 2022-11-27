@@ -28,6 +28,8 @@ class Client {
   virtual void DeleteByPrefix(const std::string& key) const = 0;
 
   virtual void SetWatchCallback(std::function<void(bool, std::string, std::string)>) = 0;
+
+  virtual bool IsCallbackSet();
 };
 
 }  // namespace storages::etcd

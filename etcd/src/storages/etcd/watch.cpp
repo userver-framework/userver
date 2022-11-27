@@ -3,6 +3,8 @@
 #include <chrono>
 #include <etcd/api/etcdserverpb/rpc_client.usrv.pb.hpp>
 #include <memory>
+#include <userver/ugrpc/client/exceptions.hpp>
+#include <userver/engine/sleep.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -13,79 +15,120 @@ WatchClient::WatchClient(const userver::components::ComponentConfig& config,
       : userver::components::LoggableComponentBase(config, context),
         grpc_client_factory_(
             context.FindComponent<userver::ugrpc::client::ClientFactoryComponent>()
-                .GetFactory()) {
-
+                .GetFactory()),
+        create_cooldown(config["create_cooldown"].As<int64_t>()),
+        to_stop(false),
+        to_reset(false),
+        watch_callback_set(false) {
               const auto endpoints = config["endpoints"].As<std::vector<std::string>>();
               grpc_watch_client_ = std::make_shared<etcdserverpb::WatchClient>(grpc_client_factory_.MakeClient<etcdserverpb::WatchClient>(endpoints.front()));
 
               bts.AsyncDetach("task_watch", [&](){
-                while(!userver::engine::current_task::ShouldCancel()){
+                while(!userver::engine::current_task::ShouldCancel() && !to_stop){
                   Reset();
                 }
               });
             }
 
-auto WatchClient::Init(){
+userver::ugrpc::client::BidirectionalStream<etcdserverpb::WatchRequest, etcdserverpb::WatchResponse> WatchClient::Init(){
   ::etcdserverpb::WatchRequest request;
   etcdserverpb::WatchCreateRequest create_request;
   create_request.set_key(/*key*/ ".");
   create_request.set_range_end(/*range_end*/std::string(1,'.'+1));
+  create_request.set_start_revision(1);
   *request.mutable_create_request() = create_request;
 
   auto context = std::make_unique<grpc::ClientContext>();
+  context->set_fail_fast(true);
   auto stream = grpc_watch_client_->Watch(std::move(context));
-  stream.Write(request);
-
   etcdserverpb::WatchResponse response; 
-  if(!stream.Read(response) || !response.created()){
-    started = false;
+
+  try{
+    stream.Write(request);
+    if(!stream.Read(response)){
+      to_reset = true;
+      return stream;
+    }
+  } catch(userver::ugrpc::client::RpcError& er){
+    LOG_CRITICAL() << "Read error";
     to_reset = true;
+    return stream;
+  }
+
+  if(!response.created()){
+    to_reset = true;
+    return stream;
   }
 
   watch_id = response.watch_id();
-  started = true;
   to_reset = false;
   return stream;
 }
 
-bool WatchClient::Reset(/*std::string& key, std::string& range_end*/){
-  // while(callback not set)
-  //std::string key = "#", range_end = "$";
-
-  auto stream = Init();
+void WatchClient::Reset(/*std::string& key, std::string& range_end*/){
   etcdserverpb::WatchResponse response; 
 
+  auto stream = Init();
+  if(to_reset){
+    userver::engine::SleepFor(std::chrono::milliseconds{create_cooldown}); 
+    return;
+  }
+
   while(!userver::engine::current_task::ShouldCancel()){
-    while(!watch_callback){
-      
+    if(!watch_callback_set){
+      userver::engine::SleepFor(std::chrono::milliseconds{50}); 
+      continue;
     }
 
     if(to_reset){
-      //should be commented
-      if(!Destroy(stream)){
-        continue;
-      }
+      LOG_DEBUG() << "Reseting stream";
+      Destroy(stream);
       stream = Init();
     }
 
-    if(!stream.Read(response)){
+    try{
+      if(!stream.Read(response)){
+        break;
+      }
+    } catch(userver::ugrpc::client::RpcError& er){
+      LOG_DEBUG() << "Read error";
       to_reset = true;
+      break;
     }
 
-    for(auto& i : *response.mutable_events()){   
-      watch_callback(i.type() == mvccpb::Event_EventType::Event_EventType_PUT, i.kv().key(), i.kv().value());
-      LOG_CRITICAL() << "reported event";
-      //func(""); // process single event 
+    if(to_stop){
+      return;
+    }
+    
+    for(int i = 0; i < response.mutable_events()->size(); ++i){
+      while((i + 1 < response.mutable_events()->size()) && (((*response.mutable_events())[i]).kv().key() == ((*response.mutable_events())[i + 1]).kv().key())){
+        ++i;
+      }
+
+      if(i + 1 == response.mutable_events()->size()){
+        
+      }
+
+      auto& cur = (*response.mutable_events())[i];
+
+      if(cur.type() == mvccpb::Event_EventType::Event_EventType_PUT){
+        LOG_DEBUG() << "reported event: PUT " + cur.kv().key() + " " + cur.kv().value();
+      } else{
+        LOG_DEBUG() << "reported event: DELETE " + cur.kv().key() + " " + cur.kv().value();
+      }
+
+      //watch_callback(cur.type() == mvccpb::Event_EventType::Event_EventType_PUT, cur.kv().key(), cur.kv().value());
     }
   }
-  return Destroy(stream);
+  Destroy(stream);
+  userver::engine::SleepFor(std::chrono::milliseconds{create_cooldown});
 }
 
-bool WatchClient::Destroy(userver::ugrpc::client::BidirectionalStream<::etcdserverpb::WatchRequest, etcdserverpb::WatchResponse>& stream){
-  if(!started){
-    return true;
+void WatchClient::Destroy(userver::ugrpc::client::BidirectionalStream<::etcdserverpb::WatchRequest, etcdserverpb::WatchResponse>& stream){
+  if(to_reset){
+    return;
   }
-  // problem with writing to dead stream?
+  
   etcdserverpb::WatchRequest second_request;
   etcdserverpb::WatchCancelRequest cancel_request;
   cancel_request.set_watch_id(watch_id);
@@ -94,20 +137,33 @@ bool WatchClient::Destroy(userver::ugrpc::client::BidirectionalStream<::etcdserv
   stream.WritesDone();
 
   etcdserverpb::WatchResponse response; 
-  if(!stream.Read(response) || !response.canceled()){
-    return false;
+  try{
+    if(!stream.Read(response)){
+      return;
+    }
+  } catch(userver::ugrpc::client::RpcError& er){
+    LOG_DEBUG() << "Read error";
+    to_reset = true;
+    return;
+  }
+  if(!response.canceled()){
+    return;
   }
 
   stream.Finish();
-  return true;
-}
-
-WatchClient::~WatchClient() {
-  bts.CancelAndWait();
 }
 
 void WatchClient::SetCallback(std::function<void(bool, std::string, std::string)> func) {
   watch_callback = std::move(func);
+  watch_callback_set = true;
+}
+
+bool WatchClient::IsCallbackSet() const{
+  return watch_callback_set;
+}
+
+WatchClient::~WatchClient() {
+  bts.CancelAndWait();
 }
 
 } // namespace storages::etcd

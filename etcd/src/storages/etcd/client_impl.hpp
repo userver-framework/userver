@@ -35,6 +35,8 @@ class ClientImpl : public Client,
 
   void SetWatchCallback(std::function<void(bool, std::string, std::string)>) final;
 
+  bool IsCallbackSet();
+
  private:
   Response MakeGet(const etcdserverpb::RangeRequest& request) const;
   void MakeDelete(const etcdserverpb::DeleteRangeRequest& request) const;

@@ -113,6 +113,10 @@ void ClientImpl::SetWatchCallback(std::function<void(bool, std::string, std::str
   watch_client_.SetCallback(std::move(func));
 }
 
+bool ClientImpl::IsCallbackSet(){
+  return watch_client_.IsCallbackSet();
+}
+
 }  // namespace storages::etcd
 
 USERVER_NAMESPACE_END
