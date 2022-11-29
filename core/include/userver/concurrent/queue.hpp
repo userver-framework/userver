@@ -225,10 +225,12 @@ class GenericQueue final
     }
   }
 
+ public:  // TODO
   bool NoMoreConsumers() const { return consumers_count_ == kCreatedAndDead; }
 
   bool NoMoreProducers() const { return producers_count_ == kCreatedAndDead; }
 
+ private:
   template <typename Token>
   void DoPush(Token& token, T&& value) {
     if constexpr (std::is_same_v<Token, moodycamel::ProducerToken>) {

@@ -217,10 +217,10 @@ ResponseFuture Request::async_perform() {
 
 StreamedResponse Request::async_perform_stream_body(
     const std::shared_ptr<concurrent::SpscQueue<std::string>>& queue) {
-  auto deadline = engine::Deadline::FromDuration(
-      std::chrono::milliseconds(pimpl_->timeout()));
-
+  LOG_DEBUG() << "Starting an async HTTP request with streamed response body";
   pimpl_->async_perform_stream(queue);
+  auto deadline = engine::Deadline::FromDuration(
+      std::chrono::milliseconds(pimpl_->effective_timeout()));
   return StreamedResponse(queue->GetConsumer(), deadline, pimpl_);
 }
 

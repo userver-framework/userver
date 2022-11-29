@@ -94,6 +94,10 @@ class HttpHandlerBase : public HandlerBase {
   [[noreturn]] void ThrowUnsupportedHttpMethod(
       const http::HttpRequest& request) const;
 
+  /// The core method for HTTP request handling.
+  /// `request` arg contains HTTP headers, full body, etc.
+  /// The method should return response body.
+  /// @note It is used only if IsStreamed() returned `false`.
   virtual std::string HandleRequestThrow(
       const http::HttpRequest& request, request::RequestContext& context) const;
 
@@ -101,10 +105,27 @@ class HttpHandlerBase : public HandlerBase {
       const http::HttpRequest& /*request*/,
       request::RequestContext& /*context*/) const {}
 
+  /// The core method for HTTP request handling.
+  /// `request` arg contains HTTP headers, full body, etc.
+  /// The response body is passed in parts to `ResponseBodyStream`.
+  /// Stream transmission is useful when:
+  /// 1) The body size is unknown beforehand.
+  /// 2) The client may take advantage of early body transmission
+  ///    (e.g. a Web Browser may start rendering the HTML page
+  ///     or downloading dependant resources).
+  /// 3) The body size is huge and we want to have only a part of it
+  ///    in memory.
+  /// @note It is used only if IsStreamed() returned `true`.
   virtual void HandleStreamRequest(const server::http::HttpRequest&,
                                    server::request::RequestContext&,
                                    server::http::ResponseBodyStream&) const;
 
+  /// If IsStreamed() returns `true`, call HandleStreamRequest()
+  /// for request handling, HandleRequestThrow() is not called.
+  /// If it returns `false`, HandleRequestThrow() is called instead,
+  /// and HandleStreamRequest() is not called.
+  /// @note The default implementation returns the cached value of
+  /// "response-body-streamed" value from static config.
   virtual bool IsStreamed() const { return is_body_streamed_; }
 
   /// Override it to show per HTTP-method statistics besides statistics for all

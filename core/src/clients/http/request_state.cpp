@@ -13,6 +13,7 @@
 #include <boost/range/adaptor/map.hpp>
 #include <boost/range/adaptor/transformed.hpp>
 
+#include <curl-ev/error_code.hpp>
 #include <userver/clients/dns/resolver.hpp>
 #include <userver/server/request/task_inherited_data.hpp>
 #include <userver/utils/algo.hpp>
@@ -20,6 +21,7 @@
 #include <userver/utils/async.hpp>
 #include <userver/utils/encoding/hex.hpp>
 #include <userver/utils/from_string.hpp>
+#include <userver/utils/overloaded.hpp>
 #include <userver/utils/rand.hpp>
 #include <utils/impl/assert_extra.hpp>
 
@@ -145,7 +147,7 @@ RequestState::RequestState(
   easy().set_header_data(this);
 
   // set autodecoding for gzip and deflate
-  easy().set_accept_encoding("gzip,deflate");
+  easy().set_accept_encoding("gzip,deflate,identity");
 }
 
 RequestState::~RequestState() {
@@ -339,9 +341,6 @@ void RequestState::on_completed(std::shared_ptr<RequestState> holder,
   UASSERT(holder->span_storage_);
   auto& span = holder->span_storage_->Get();
   auto& easy = holder->easy();
-  auto* buffered_data = std::get_if<FullBufferedData>(&holder->data_);
-  auto* stream_data = std::get_if<StreamData>(&holder->data_);
-  LOG_TRACE() << "Request::RequestImpl::on_completed(1)" << span;
 
   const auto status_code = static_cast<Status>(easy.get_response_code());
 
@@ -367,7 +366,6 @@ void RequestState::on_completed(std::shared_ptr<RequestState> holder,
   span.AddTag(tracing::kMaxAttempts, holder->retry_.retries);
   span.AddTag(tracing::kTimeoutMs, holder->effective_timeout_.count());
 
-  LOG_TRACE() << "Request::RequestImpl::on_completed(2)" << span;
   if (err) {
     if (easy.rate_limit_error()) {
       // The most probable cause, takes precedence
@@ -382,15 +380,21 @@ void RequestState::on_completed(std::shared_ptr<RequestState> holder,
       LOG_DEBUG() << "cURL error details: " << holder->errorbuffer_.data();
     }
 
-    if (buffered_data) {
-      const auto cleanup_request = holder->response_move();
-      holder->span_storage_.reset();
-      buffered_data->promise_.set_exception(holder->PrepareException(err));
-    } else {
-      UASSERT(stream_data);
-      holder->span_storage_.reset();
-      stream_data->headers_promise.set_exception(holder->PrepareException(err));
-    }
+    std::visit(utils::Overloaded{
+                   [&holder, &err](FullBufferedData& buffered_data) {
+                     const auto cleanup_request = holder->response_move();
+                     holder->span_storage_.reset();
+                     buffered_data.promise_.set_exception(
+                         holder->PrepareException(err));
+                   },
+                   [&holder, &err](StreamData& stream_data) {
+                     holder->span_storage_.reset();
+                     if (!stream_data.headers_promise_set.exchange(true)) {
+                       stream_data.headers_promise.set_exception(
+                           holder->PrepareException(err));
+                     }
+                   }},
+               holder->data_);
   } else {
     span.AddTag(tracing::kHttpStatusCode, status_code);
     holder->response()->SetStatusCode(status_code);
@@ -399,16 +403,17 @@ void RequestState::on_completed(std::shared_ptr<RequestState> holder,
     if (!holder->response()->IsOk()) span.AddTag(tracing::kErrorFlag, true);
 
     holder->span_storage_.reset();
-    if (buffered_data) {
-      buffered_data->promise_.set_value(holder->response_move());
-    } else {
-      stream_data->headers_promise.set_value();
-    }
+
+    std::visit(utils::Overloaded{
+                   [&holder](FullBufferedData& buffered_data) {
+                     buffered_data.promise_.set_value(holder->response_move());
+                   },
+                   [](StreamData& stream_data) {
+                     std::move(stream_data.queue_producer).Release();
+                   }},
+               holder->data_);
   }
-
   // it is unsafe to touch any content of holder after this point!
-
-  LOG_TRACE() << "Request::RequestImpl::on_completed(3)";
 }
 
 bool RequestState::IsStreamBody() const {
@@ -467,8 +472,24 @@ void RequestState::on_retry_timer(std::error_code err) {
 void RequestState::parse_header(char* ptr, size_t size) {
   /* It is a fast path in curl's thread (io thread).  Creation of tmp
    * std::string, boost::trim_right_if(), etc. is too expensive. */
+
   auto* end = rfind_not_space(ptr, size);
-  if (ptr == end) return;
+  if (ptr == end) {
+    auto* stream_data = std::get_if<StreamData>(&data_);
+    if (stream_data) {
+      // We're ready to show the headers
+      const auto status_code = static_cast<Status>(easy().get_response_code());
+      if (status_code / 100 != 3) {
+        response()->SetStatusCode(status_code);
+
+        if (!stream_data->headers_promise_set.exchange(true)) {
+          stream_data->headers_promise.set_value();
+        }
+        LOG_DEBUG() << "Stream API, status code is set to " << status_code;
+      }
+    }
+    return;
+  }
   *end = '\0';
 
   const char* col_pos = static_cast<const char*>(memchr(ptr, ':', size));
@@ -505,6 +526,9 @@ engine::Future<std::shared_ptr<Response>> RequestState::async_perform() {
 
   StartNewSpan();
 
+  auto& span = span_storage_->Get();
+  span.AddTag("stream_api", "0");
+
   auto future = StartNewPromise();
   ApplyTestsuiteConfig();
   StartStats();
@@ -524,9 +548,12 @@ engine::Future<std::shared_ptr<Response>> RequestState::async_perform() {
 }
 
 void RequestState::async_perform_stream(const std::shared_ptr<Queue>& queue) {
-  data_ = StreamData(queue->GetProducer());
+  data_.emplace<StreamData>(queue->GetProducer());
 
   StartNewSpan();
+
+  auto& span = span_storage_->Get();
+  span.AddTag("stream_api", "1");
 
   response_ = std::make_shared<Response>();
 
@@ -551,8 +578,6 @@ void RequestState::perform_request(curl::easy::handler_type handler) {
   UASSERT_MSG(!cert_ || pkey_,
               "Setting certificate is useless without setting private key");
 
-  auto* buffered_data = std::get_if<FullBufferedData>(&data_);
-
   UASSERT(response_);
   response_->sink_string().clear();
   response_->body().clear();
@@ -560,23 +585,37 @@ void RequestState::perform_request(curl::easy::handler_type handler) {
   UpdateTimeoutFromDeadline();
   SetEasyTimeout(effective_timeout_);
   if (effective_timeout_ <= std::chrono::milliseconds{0}) {
-    buffered_data->promise_.set_exception(
-        PrepareDeadlineAlreadyPassedException());
+    auto exc = PrepareDeadlineAlreadyPassedException();
+
+    std::visit(
+        utils::Overloaded{[&exc](FullBufferedData& buffered_data) {
+                            buffered_data.promise_.set_exception(exc);
+                          },
+                          [&exc](StreamData& stream_data) {
+                            stream_data.headers_promise.set_exception(exc);
+                          }},
+        data_);
     return;
   }
   UpdateTimeoutHeader();
 
   if (resolver_ && retry_.current == 1) {
-    engine::AsyncNoSpan([this, holder = shared_from_this(), buffered_data,
+    engine::AsyncNoSpan([this, holder = shared_from_this(),
                          handler = std::move(handler)]() mutable {
       try {
         ResolveTargetAddress(*resolver_);
         easy().async_perform(std::move(handler));
       } catch (const clients::dns::ResolverException& ex) {
         // TODO: should retry - TAXICOMMON-4932
-        buffered_data->promise_.set_exception(std::make_exception_ptr(ex));
+        auto* buffered_data = std::get_if<FullBufferedData>(&data_);
+        if (buffered_data) {
+          buffered_data->promise_.set_exception(std::current_exception());
+        }
       } catch (const BaseException& ex) {
-        buffered_data->promise_.set_exception(std::make_exception_ptr(ex));
+        auto* buffered_data = std::get_if<FullBufferedData>(&data_);
+        if (buffered_data) {
+          buffered_data->promise_.set_exception(std::current_exception());
+        }
       }
     }).Detach();
   } else {
@@ -703,10 +742,25 @@ size_t RequestState::StreamWriteFunction(char* ptr, size_t size, size_t nmemb,
   size_t actual_size = size * nmemb;
   RequestState& rs = *static_cast<RequestState*>(userdata);
   auto* stream_data = std::get_if<StreamData>(&rs.data_);
+  UASSERT(stream_data);
+
+  LOG_DEBUG() << fmt::format(
+                     "Got bytes in stream API chunk, chunk of ({} bytes)",
+                     actual_size)
+              << rs.span_storage_->Get();
 
   std::string buffer(ptr, actual_size);
-  if (stream_data->queue_producer.PushNoblock(std::move(buffer)))
+  auto& queue_producer = stream_data->queue_producer;
+  if (queue_producer.PushNoblock(std::move(buffer))) {
     return actual_size;
+  }
+  LOG_DEBUG() << "PushNoblock() has failed";
+
+  if (queue_producer.Queue()->NoMoreConsumers()) {
+    return actual_size;
+  }
+
+  LOG_DEBUG() << "There are some alive consumers";
 
   UINVARIANT(false, "not implemented CURL_WRITEFUNC_PAUSE TAXICOMMON-5611");
 

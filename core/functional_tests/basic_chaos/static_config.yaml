@@ -6,6 +6,12 @@ components_manager:
             task_processor: main-task-processor
             method: GET,DELETE,POST
 
+        handler-chaos-stream:
+            response-body-stream: true
+            path: /chaos/httpclient/stream
+            task_processor: main-task-processor
+            method: GET,DELETE,POST
+
         testsuite-support:
 
         http-client:
