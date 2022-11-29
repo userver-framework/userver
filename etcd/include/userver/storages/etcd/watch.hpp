@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <optional>
 #include <userver/components/loggable_component_base.hpp>
 #include <userver/ugrpc/client/client_factory_component.hpp>
 #include <userver/components/component.hpp>
@@ -14,6 +15,9 @@
 #include <userver/dynamic_config/source.hpp>
 
 #include <atomic>
+#include "userver/engine/mutex.hpp"
+#include "userver/engine/task/task.hpp"
+#include "userver/engine/task/task_with_result.hpp"
 #include "userver/storages/etcd/fwd.hpp"
 
 USERVER_NAMESPACE_BEGIN
@@ -27,11 +31,11 @@ class WatchClient final : public userver::components::LoggableComponentBase {
   WatchClient(const components::ComponentConfig& config,
            const components::ComponentContext& context);
 
-  userver::ugrpc::client::BidirectionalStream<etcdserverpb::WatchRequest, etcdserverpb::WatchResponse> Init();
+  void Init();
 
   void Reset(/*std::string& key, std::string& range_end*/);
 
-  void Destroy(userver::ugrpc::client::BidirectionalStream<etcdserverpb::WatchRequest, etcdserverpb::WatchResponse>& stream);
+  void Destroy();
 
   void SetCallback(std::function<void(bool, std::string, std::string)> func);
  
@@ -42,8 +46,11 @@ class WatchClient final : public userver::components::LoggableComponentBase {
  private:
   userver::ugrpc::client::ClientFactory& grpc_client_factory_;
   std::shared_ptr<etcdserverpb::WatchClient> grpc_watch_client_;
-  userver::concurrent::BackgroundTaskStorage bts;
-  int64_t watch_id;
+  userver::engine::TaskWithResult<void> task_with_result_;
+  std::optional<etcdserverpb::WatchClient::WatchCall> stream_;
+  engine::Mutex stream_mutex_;
+
+  int64_t watch_id = 0;
   int64_t create_cooldown;
 
   std::atomic<bool> to_stop;

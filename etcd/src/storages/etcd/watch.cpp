@@ -1,10 +1,15 @@
 #include "userver/storages/etcd/watch.hpp"
 
 #include <chrono>
+#include <cmath>
 #include <etcd/api/etcdserverpb/rpc_client.usrv.pb.hpp>
 #include <memory>
+#include <mutex>
 #include <userver/ugrpc/client/exceptions.hpp>
 #include <userver/engine/sleep.hpp>
+#include "userver/engine/mutex.hpp"
+#include "userver/utils/async.hpp"
+#include <userver/utils/fast_scope_guard.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -16,7 +21,7 @@ WatchClient::WatchClient(const userver::components::ComponentConfig& config,
         grpc_client_factory_(
             context.FindComponent<userver::ugrpc::client::ClientFactoryComponent>()
                 .GetFactory()),
-        create_cooldown(config["create_cooldown"].As<int64_t>()),
+        create_cooldown(config["create-cooldown"].As<int64_t>()),
         to_stop(false),
         to_reset(false),
         watch_callback_set(false),
@@ -24,14 +29,14 @@ WatchClient::WatchClient(const userver::components::ComponentConfig& config,
               const auto endpoints = config["endpoints"].As<std::vector<std::string>>();
               grpc_watch_client_ = std::make_shared<etcdserverpb::WatchClient>(grpc_client_factory_.MakeClient<etcdserverpb::WatchClient>(endpoints.front()));
 
-              bts.AsyncDetach("task_watch", [&](){
+              task_with_result_ = utils::Async("task_watch", [&](){
                 while(!userver::engine::current_task::ShouldCancel() && !to_stop){
                   Reset();
                 }
               });
             }
 
-userver::ugrpc::client::BidirectionalStream<etcdserverpb::WatchRequest, etcdserverpb::WatchResponse> WatchClient::Init(){
+void WatchClient::Init(){
   ::etcdserverpb::WatchRequest request;
   etcdserverpb::WatchCreateRequest create_request;
   create_request.set_key(/*key*/ ".");
@@ -41,36 +46,40 @@ userver::ugrpc::client::BidirectionalStream<etcdserverpb::WatchRequest, etcdserv
 
   auto context = std::make_unique<grpc::ClientContext>();
   context->set_fail_fast(true);
-  auto stream = grpc_watch_client_->Watch(std::move(context));
+  {
+    std::lock_guard lock(stream_mutex_);
+    stream_ = grpc_watch_client_->Watch(std::move(context));
+  }
+  auto& stream = *stream_;
   etcdserverpb::WatchResponse response; 
 
   try{
     stream.Write(request);
     if(!stream.Read(response)){
       to_reset = true;
-      return stream;
+      return;
     }
   } catch(userver::ugrpc::client::RpcError& er){
     LOG_CRITICAL() << "Read error";
     to_reset = true;
-    return stream;
+    return;
   }
 
   if(!response.created()){
     to_reset = true;
-    return stream;
+    return;
   }
 
   watch_id = response.watch_id();
   to_reset = false;
   watch_start = true;
-  return stream;
 }
 
 void WatchClient::Reset(/*std::string& key, std::string& range_end*/){
   etcdserverpb::WatchResponse response; 
 
-  auto stream = Init();
+  // auto stream = Init();
+  Init();
   if(to_reset){
     userver::engine::SleepFor(std::chrono::milliseconds{create_cooldown}); 
     return;
@@ -84,12 +93,12 @@ void WatchClient::Reset(/*std::string& key, std::string& range_end*/){
 
     if(to_reset){
       LOG_DEBUG() << "Reseting stream";
-      Destroy(stream);
-      stream = Init();
+      Destroy();
+      Init();
     }
 
     try{
-      if(!stream.Read(response)){
+      if(!stream_->Read(response)){
         break;
       }
     } catch(userver::ugrpc::client::RpcError& er){
@@ -135,11 +144,17 @@ void WatchClient::Reset(/*std::string& key, std::string& range_end*/){
       }
     }
   }
-  Destroy(stream);
+  Destroy();
   userver::engine::SleepFor(std::chrono::milliseconds{create_cooldown});
 }
 
-void WatchClient::Destroy(userver::ugrpc::client::BidirectionalStream<::etcdserverpb::WatchRequest, etcdserverpb::WatchResponse>& stream){
+void WatchClient::Destroy(){
+
+  userver::utils::FastScopeGuard streamGuard([&]() noexcept {
+    std::lock_guard lock(stream_mutex_);
+    stream_.reset();
+  });
+
   if(to_reset){
     return;
   }
@@ -148,12 +163,12 @@ void WatchClient::Destroy(userver::ugrpc::client::BidirectionalStream<::etcdserv
   etcdserverpb::WatchCancelRequest cancel_request;
   cancel_request.set_watch_id(watch_id);
   second_request.set_allocated_cancel_request(&cancel_request);
-  stream.Write(second_request);
-  stream.WritesDone();
+  stream_->Write(second_request);
+  stream_->WritesDone();
 
   etcdserverpb::WatchResponse response; 
   try{
-    if(!stream.Read(response)){
+    if(!stream_->Read(response)){
       return;
     }
   } catch(userver::ugrpc::client::RpcError& er){
@@ -165,12 +180,11 @@ void WatchClient::Destroy(userver::ugrpc::client::BidirectionalStream<::etcdserv
     return;
   }
 
-  stream.Finish();
+  stream_->Finish();
 }
 
 void WatchClient::SetCallback(std::function<void(bool, std::string, std::string)> func) {
   watch_callback = std::move(func);
-  watch_callback_set = true;
 }
 
 bool WatchClient::IsCallbackSet() const{
@@ -178,7 +192,11 @@ bool WatchClient::IsCallbackSet() const{
 }
 
 WatchClient::~WatchClient() {
-  bts.CancelAndWait();
+  {
+    std::lock_guard lock(stream_mutex_);
+    stream_->GetContext().TryCancel();
+  }
+  task_with_result_.SyncCancel();
 }
 
 } // namespace storages::etcd
