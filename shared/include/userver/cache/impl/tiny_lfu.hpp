@@ -54,6 +54,21 @@ class TinyLfu {
     main_.Clear();
   }
 
+  //// move element from one cache to another if key was, does not check
+  /// capacity of another cache, set checker on false if you are sure the key
+  /// does not exist in both caches simultaneously
+  template <typename Hash2, typename Equal2, bool Checker = true>
+  bool MoveIfHas(const T& key,
+                 LruBase<T, U, Hash2, Equal2>* another_base_ptr) noexcept;
+
+  //// move element from one cache to another if key was and set value, does not
+  /// check capacity of another cache, set checker on false if you are sure the
+  /// key does not exist in both caches simultaneously
+  template <typename Hash2, typename Equal2, bool Checker = true>
+  bool MoveIfHasWithSetValue(
+      const T& key, U value,
+      LruBase<T, U, Hash2, Equal2>* another_base_ptr) noexcept;
+
   template <typename Function>
   void VisitAll(Function&& func) const {
     main_.VisitAll(std::forward<Function>(func));
@@ -136,6 +151,29 @@ void TinyLfu<T, U, Hash, Equal, InnerPolicy, SketchHash,
   counters_ = new_counters;
   main_.SetMaxSize(new_max_size);
   max_size_ = new_max_size;
+}
+
+template <typename T, typename U, typename Hash, typename Equal,
+          CachePolicy InnerPolicy, typename SketchHash,
+          sketch::Policy SketchPolicy>
+template <typename Hash2, typename Equal2, bool Checker>
+bool TinyLfu<T, U, Hash, Equal, InnerPolicy, SketchHash,
+             SketchPolicy>::MoveIfHas(const T& key,
+                                      LruBase<T, U, Hash2, Equal2>*
+                                          another_base_ptr) noexcept {
+  return main_.template MoveIfHas(key, another_base_ptr);
+}
+
+template <typename T, typename U, typename Hash, typename Equal,
+          CachePolicy InnerPolicy, typename SketchHash,
+          sketch::Policy SketchPolicy>
+template <typename Hash2, typename Equal2, bool Checker>
+bool TinyLfu<T, U, Hash, Equal, InnerPolicy, SketchHash, SketchPolicy>::
+    MoveIfHasWithSetValue(
+        const T& key, U value,
+        LruBase<T, U, Hash2, Equal2>* another_base_ptr) noexcept {
+  return main_.template MoveIfHasWithSetValue(key, std::move(value),
+                                              another_base_ptr);
 }
 
 // Default
