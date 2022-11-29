@@ -27,7 +27,8 @@ std::size_t StrIcaseHash::operator()(std::string_view s) const& noexcept {
   // of collisions infeasible.
   std::size_t res = seed_;
   for (const char c : s) {
-    boost::hash_combine(res, static_cast<char>(c | kUppercaseToLowerMask));
+    const char mask = (c >= 'A' && c <= 'Z') ? kUppercaseToLowerMask : 0;
+    boost::hash_combine(res, static_cast<char>(c | mask));
   }
   return res;
 }
