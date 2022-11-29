@@ -147,9 +147,9 @@ class ExpirableLruCache final {
 
   void Read(dump::Reader& reader);
 
-  /// This method is not thread-safe. The user must ensure that @a dumper
-  /// outlives `this`.
-  void SetDumper(dump::Dumper& dumper);
+  /// The dump::Dumper will be notified of any cache updates. This method is not
+  /// thread-safe.
+  void SetDumper(std::shared_ptr<dump::Dumper> dumper);
 
  private:
   bool IsExpired(std::chrono::steady_clock::time_point update_time,
@@ -158,14 +158,11 @@ class ExpirableLruCache final {
   bool ShouldUpdate(std::chrono::steady_clock::time_point update_time,
                     std::chrono::steady_clock::time_point now) const;
 
-  void NotifyDumper();
-
   cache::NWayLRU<Key, impl::ExpirableValue<Value>, Hash, Equal> lru_;
   std::atomic<std::chrono::milliseconds> max_lifetime_{
       std::chrono::milliseconds(0)};
   std::atomic<BackgroundUpdateMode> background_update_mode_{
       BackgroundUpdateMode::kDisabled};
-  dump::Dumper* dumper_{nullptr};
   impl::ExpirableLruCacheStatistics stats_;
   concurrent::MutexSet<Key, Hash, Equal> mutex_set_;
   utils::impl::WaitTokenStorage wait_token_storage_;
@@ -226,7 +223,6 @@ Value ExpirableLruCache<Key, Value, Hash, Equal>::Get(
   auto value = update_func(key);
   if (read_mode == ReadMode::kUseCache) {
     lru_.Put(key, {value, now});
-    NotifyDumper();
   }
   return value;
 }
@@ -316,14 +312,12 @@ template <typename Key, typename Value, typename Hash, typename Equal>
 void ExpirableLruCache<Key, Value, Hash, Equal>::Put(const Key& key,
                                                      const Value& value) {
   lru_.Put(key, {value, utils::datetime::SteadyNow()});
-  NotifyDumper();
 }
 
 template <typename Key, typename Value, typename Hash, typename Equal>
 void ExpirableLruCache<Key, Value, Hash, Equal>::Put(const Key& key,
                                                      Value&& value) {
   lru_.Put(key, {std::move(value), utils::datetime::SteadyNow()});
-  NotifyDumper();
 }
 
 template <typename Key, typename Value, typename Hash, typename Equal>
@@ -340,14 +334,12 @@ size_t ExpirableLruCache<Key, Value, Hash, Equal>::GetSizeApproximate() const {
 template <typename Key, typename Value, typename Hash, typename Equal>
 void ExpirableLruCache<Key, Value, Hash, Equal>::Invalidate() {
   lru_.Invalidate();
-  NotifyDumper();
 }
 
 template <typename Key, typename Value, typename Hash, typename Equal>
 void ExpirableLruCache<Key, Value, Hash, Equal>::InvalidateByKey(
     const Key& key) {
   lru_.InvalidateByKey(key);
-  NotifyDumper();
 }
 
 template <typename Key, typename Value, typename Hash, typename Equal>
@@ -369,7 +361,6 @@ void ExpirableLruCache<Key, Value, Hash, Equal>::UpdateInBackground(
     auto now = utils::datetime::SteadyNow();
     auto value = update_func(key);
     lru_.Put(key, {value, now});
-    NotifyDumper();
   }).Detach();
 }
 
@@ -440,16 +431,9 @@ void ExpirableLruCache<Key, Value, Hash, Equal>::Read(dump::Reader& reader) {
 }
 
 template <typename Key, typename Value, typename Hash, typename Equal>
-void ExpirableLruCache<Key, Value, Hash, Equal>::NotifyDumper() {
-  if (dumper_ != nullptr) {
-    dumper_->OnUpdateCompleted();
-  }
-}
-
-template <typename Key, typename Value, typename Hash, typename Equal>
 void ExpirableLruCache<Key, Value, Hash, Equal>::SetDumper(
-    dump::Dumper& dumper) {
-  dumper_ = &dumper;
+    std::shared_ptr<dump::Dumper> dumper) {
+  lru_.SetDumper(std::move(dumper));
 }
 
 }  // namespace cache

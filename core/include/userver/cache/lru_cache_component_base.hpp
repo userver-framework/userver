@@ -122,7 +122,7 @@ class LruCacheComponent : public components::LoggableComponentBase,
  private:
   const std::string name_;
   const LruCacheConfigStatic static_config_;
-  std::optional<dump::Dumper> dumper_;
+  std::shared_ptr<dump::Dumper> dumper_;
   const std::shared_ptr<Cache> cache_;
   concurrent::AsyncEventSubscriberScope config_subscription_;
   utils::statistics::Entry statistics_holder_;
@@ -139,8 +139,9 @@ LruCacheComponent<Key, Value, Hash, Equal>::LruCacheComponent(
       cache_(std::make_shared<Cache>(static_config_.ways,
                                      static_config_.GetWaySize())) {
   if (impl::IsDumpSupportEnabled(config)) {
-    dumper_.emplace(config, context, static_cast<dump::DumpableEntity&>(*this));
-    cache_->SetDumper(*dumper_);
+    dumper_ = std::make_shared<dump::Dumper>(
+        config, context, static_cast<dump::DumpableEntity&>(*this));
+    cache_->SetDumper(dumper_);
     dumper_->ReadDump();
   }
 
