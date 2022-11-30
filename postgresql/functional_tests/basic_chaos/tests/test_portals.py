@@ -24,7 +24,9 @@ TESTPOINT_NAMES = ('after_make_portal', 'after_fetch')
 )
 @pytest.mark.parametrize('tp_name', TESTPOINT_NAMES)
 @pytest.mark.parametrize('attr', ['sockets_close'])
-async def test_x(service_client, gate, testpoint, tp_name, attr, taxi_config):
+async def test_x(
+        service_client, gate, testpoint, tp_name, attr, dynamic_config,
+):
     async def f():
         @testpoint(tp_name)
         async def _hook(data):
@@ -39,7 +41,7 @@ async def test_x(service_client, gate, testpoint, tp_name, attr, taxi_config):
 
     await f()
 
-    taxi_config.set_values({'POSTGRES_CONNECTION_SETTINGS': {}})
+    dynamic_config.set_values({'POSTGRES_CONNECTION_SETTINGS': {}})
     r = await service_client.post('/tests/control', {'testpoints': []})
     assert r.status_code == 200
 
