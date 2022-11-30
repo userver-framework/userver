@@ -2,6 +2,7 @@
 Work with the configuration files of the service in testsuite.
 """
 
+import json
 import pathlib
 import types
 import typing
@@ -294,7 +295,7 @@ def taxi_config(
 
 
 @pytest.fixture(scope='session')
-def config_service_defaults():
+def config_service_defaults(config_fallback_path) -> typing.Any:
     """
     Fixture that returns default values for config. You may override
     it in your local conftest.py or fixture:
@@ -308,6 +309,9 @@ def config_service_defaults():
 
     @ingroup userver_testsuite_fixtures
     """
+    if config_fallback_path.exists():
+        with open(config_fallback_path, 'r', encoding='utf-8') as file:
+            return json.load(file)
     raise RuntimeError(
         'In order to use fixture %s you have to override %s fixture'
         % ('mock_configs_service', config_service_defaults.__name__),
