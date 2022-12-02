@@ -32,6 +32,13 @@ TEST(Hex, ToHex) {
   EXPECT_EQ(reference, result);
 }
 
+TEST(Hex, ToHexLong) {
+  std::string data{"21e30c92afe54396"};
+  std::string reference{"32316533306339326166653534333936"};
+  std::string result = ToHex(data);
+  EXPECT_EQ(reference, result);
+}
+
 TEST(Hex, FromHex) {
   // Test simple case - everything is correct
   {

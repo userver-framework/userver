@@ -3,6 +3,10 @@
 #include <stdexcept>
 #include <string_view>
 
+#ifdef __SSSE3__
+#include <tmmintrin.h>
+#endif
+
 USERVER_NAMESPACE_BEGIN
 
 namespace utils::encoding {
@@ -100,6 +104,16 @@ bool IsXDigit(unsigned char x_digit) noexcept {
 
   return false;
 }
+
+#ifdef __SSSE3__
+const auto kLow4BitsMask = _mm_set1_epi8(0xf);
+const auto kZeroMask = _mm_setzero_si128();
+const auto kHiLoPermMask =
+    _mm_setr_epi8(0, 8, 1, 9, 2, 10, 3, 11, 4, 12, 5, 13, 6, 14, 7, 15);
+const auto kDigitsMask = _mm_setr_epi8('0', '1', '2', '3', '4', '5', '6', '7',
+                                       '8', '9', 'a', 'b', 'c', 'd', 'e', 'f');
+#endif
+
 }  // namespace detail
 
 std::string_view GetHexPart(std::string_view encoded) noexcept {
@@ -125,12 +139,46 @@ void ToHex(std::string_view input, std::string& out) noexcept {
   out.resize(input.size() * 2);
   const auto* first = input.data();
   const auto* last = input.data() + input.size();
-  size_t ind = 0;
+  auto* dst = out.data();
+
+#ifdef __SSSE3__
+  while (last - first >= 8) {
+    // we only take 8 bytes because each byte transforms into 2 bytes
+    // (first digit comes from 4 high bits, second comes from 4 low bits)
+    const auto eight_bytes_of_data = _mm_loadu_si64(first);
+
+    // we take 4 high bits of every byte by shifting data as 16-bits integers
+    // 4 bits right and masking out 4 high bits of every byte
+    const auto high_4_bits = _mm_and_si128(
+        _mm_srli_epi16(eight_bytes_of_data, 4), detail::kLow4BitsMask);
+    // now we take 4 lowest bits of every byte by just masking out high bits,
+    // and store the result in the yet unused remaining 64 bits
+    const auto low_4_bits = _mm_unpacklo_epi64(
+        detail::kZeroMask,
+        _mm_and_si128(eight_bytes_of_data, detail::kLow4BitsMask));
+    // restore the required order:
+    // first 2 bytes become 4 high bits and 4 low bits of the first byte,
+    // second 2 bytes are hi/lo of the second byte and so on
+    const auto interleaving_hi_lo_of_original_data = _mm_shuffle_epi8(
+        _mm_or_si128(high_4_bits, low_4_bits), detail::kHiLoPermMask);
+    // gather kXdigits as specified in the interleaving_hi_lo_of_original_data
+    // and append it to the result
+    _mm_storeu_si128(static_cast<__m128i*>(static_cast<void*>(dst)),
+                     _mm_shuffle_epi8(detail::kDigitsMask,
+                                      interleaving_hi_lo_of_original_data));
+
+    // 9 instructions per 8 bytes, not great not terrible
+
+    first += 8;
+    dst += 16;
+  }
+#endif
+
   while (first != last) {
     const auto value = *first;
     // We don't use ToHexChar because it does range checking
-    out[ind++] = detail::kXdigits[(value >> 4) & 0xf];
-    out[ind++] = detail::kXdigits[value & 0xf];
+    *(dst++) = detail::kXdigits[(value >> 4) & 0xf];
+    *(dst++) = detail::kXdigits[value & 0xf];
     ++first;
   }
 }
