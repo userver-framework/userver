@@ -5,7 +5,6 @@
 
 #ifdef __SSSE3__
 #include <tmmintrin.h>
-#include <cstring>
 #endif
 
 USERVER_NAMESPACE_BEGIN
