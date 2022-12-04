@@ -5,6 +5,7 @@
 #include <vector>
 
 #include <userver/cache/lru_map.hpp>
+#include <userver/dump/dumper.hpp>
 #include <userver/dump/operations.hpp>
 #include <userver/engine/mutex.hpp>
 
@@ -46,6 +47,10 @@ class NWayLRU final {
   void Write(dump::Writer& writer) const;
   void Read(dump::Reader& reader);
 
+  /// The dump::Dumper will be notified of any cache updates. This method is not
+  /// thread-safe.
+  void SetDumper(std::shared_ptr<dump::Dumper> dumper);
+
  private:
   struct Way {
     Way(Way&& other) noexcept : cache(std::move(other.cache)) {}
@@ -59,8 +64,11 @@ class NWayLRU final {
 
   Way& GetWay(const T& key);
 
+  void NotifyDumper();
+
   std::vector<Way> caches_;
   Hash hash_fn_;
+  std::shared_ptr<dump::Dumper> dumper_{nullptr};
 };
 
 template <typename T, typename U, typename Hash, typename Eq>
@@ -77,9 +85,11 @@ NWayLRU<T, U, Hash, Eq>::NWayLRU(size_t ways, size_t way_size, const Hash& hash,
 template <typename T, typename U, typename Hash, typename Eq>
 void NWayLRU<T, U, Hash, Eq>::Put(const T& key, U value) {
   auto& way = GetWay(key);
-
-  std::unique_lock<engine::Mutex> lock(way.mutex);
-  way.cache.Put(key, std::move(value));
+  {
+    std::unique_lock<engine::Mutex> lock(way.mutex);
+    way.cache.Put(key, std::move(value));
+  }
+  NotifyDumper();
 }
 
 template <typename T, typename U, typename Hash, typename Eq>
@@ -101,8 +111,11 @@ std::optional<U> NWayLRU<T, U, Hash, Eq>::Get(const T& key,
 template <typename T, typename U, typename Hash, typename Eq>
 void NWayLRU<T, U, Hash, Eq>::InvalidateByKey(const T& key) {
   auto& way = GetWay(key);
-  std::unique_lock<engine::Mutex> lock(way.mutex);
-  way.cache.Erase(key);
+  {
+    std::unique_lock<engine::Mutex> lock(way.mutex);
+    way.cache.Erase(key);
+  }
+  NotifyDumper();
 }
 
 template <typename T, typename U, typename Hash, typename Eq>
@@ -118,6 +131,7 @@ void NWayLRU<T, U, Hash, Eq>::Invalidate() {
     std::unique_lock<engine::Mutex> lock(way.mutex);
     way.cache.Clear();
   }
+  NotifyDumper();
 }
 
 template <typename T, typename U, typename Hash, typename Eq>
@@ -183,6 +197,19 @@ void NWayLRU<T, U, Hash, Equal>::Read(dump::Reader& reader) {
       Put(std::move(key), std::move(value));
     }
   }
+}
+
+template <typename T, typename U, typename Hash, typename Equal>
+void NWayLRU<T, U, Hash, Equal>::NotifyDumper() {
+  if (dumper_ != nullptr) {
+    dumper_->OnUpdateCompleted();
+  }
+}
+
+template <typename T, typename U, typename Hash, typename Equal>
+void NWayLRU<T, U, Hash, Equal>::SetDumper(
+    std::shared_ptr<dump::Dumper> dumper) {
+  dumper_ = std::move(dumper);
 }
 
 }  // namespace cache

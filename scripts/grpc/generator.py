@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+# pylint: disable=invalid-name
 
 """
 This script is a Protobuf protoc plugin that generates userver asynchronous

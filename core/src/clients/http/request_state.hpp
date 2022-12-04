@@ -2,6 +2,7 @@
 
 #include <array>
 #include <cstdlib>
+#include <memory>
 #include <optional>
 #include <string>
 #include <system_error>
@@ -80,6 +81,8 @@ class RequestState : public std::enable_shared_from_this<RequestState> {
 
   /// get timeout value in milliseconds
   long timeout() const { return original_timeout_.count(); }
+  /// get final timeout value in milliseconds
+  long effective_timeout() const { return effective_timeout_.count(); }
   /// get retries count
   short retries() const { return retry_.retries; }
 
@@ -207,9 +210,11 @@ class RequestState : public std::enable_shared_from_this<RequestState> {
   struct StreamData {
     StreamData(Queue::Producer&& queue_producer)
         : queue_producer(std::move(queue_producer)),
+          headers_promise_set(false),
           headers_future(headers_promise.get_future()) {}
 
     Queue::Producer queue_producer;
+    std::atomic<bool> headers_promise_set;
     engine::Promise<void> headers_promise;
     engine::Future<void> headers_future;
   };

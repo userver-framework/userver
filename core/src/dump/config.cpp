@@ -13,7 +13,6 @@ namespace dump {
 namespace {
 
 constexpr std::string_view kDumpsEnabled = "enable";
-constexpr std::string_view kMinDumpInterval = "min-interval";
 constexpr std::string_view kFsTaskProcessor = "fs-task-processor";
 constexpr std::string_view kDumpFormatVersion = "format-version";
 constexpr std::string_view kMaxDumpCount = "max-count";
@@ -43,6 +42,7 @@ std::chrono::milliseconds ParseMs(
 
 constexpr std::string_view kDump = "dump";
 constexpr std::string_view kMaxDumpAge = "max-age";
+constexpr std::string_view kMinDumpInterval = "min-interval";
 
 ConfigPatch Parse(const formats::json::Value& value,
                   formats::parse::To<ConfigPatch>) {

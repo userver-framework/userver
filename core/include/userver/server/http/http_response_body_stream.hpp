@@ -27,6 +27,8 @@ class ResponseBodyStream final {
 
   void SetStatusCode(int status_code);
 
+  void SetStatusCode(HttpStatus status);
+
  private:
   friend class server::handlers::HttpHandlerBase;
 

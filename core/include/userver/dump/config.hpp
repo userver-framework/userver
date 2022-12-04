@@ -22,6 +22,7 @@ std::chrono::milliseconds ParseMs(
 
 extern const std::string_view kDump;
 extern const std::string_view kMaxDumpAge;
+extern const std::string_view kMinDumpInterval;
 
 struct ConfigPatch final {
   std::optional<bool> dumps_enabled;

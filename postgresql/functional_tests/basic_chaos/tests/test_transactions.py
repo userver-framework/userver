@@ -45,7 +45,7 @@ TESTPOINT_NAMES = ('before_trx_begin', 'after_trx_begin', 'before_trx_commit')
 )
 @pytest.mark.parametrize('tp_name', TESTPOINT_NAMES)
 async def test_sockets_close(
-        service_client, gate, testpoint, tp_name, taxi_config,
+        service_client, gate, testpoint, tp_name, dynamic_config,
 ):
     async def f():
         @testpoint(tp_name)
@@ -61,7 +61,7 @@ async def test_sockets_close(
 
     await f()
 
-    taxi_config.set_values({'POSTGRES_CONNECTION_SETTINGS': {}})
+    dynamic_config.set_values({'POSTGRES_CONNECTION_SETTINGS': {}})
     r = await service_client.post('/tests/control', {'testpoints': []})
     assert r.status_code == 200
 
@@ -71,7 +71,7 @@ async def test_sockets_close(
     assert response.status_code == 200
 
 
-async def test_after_trx_commit(service_client, gate, testpoint, taxi_config):
+async def test_after_trx_commit(service_client, gate, testpoint):
     @testpoint('after_trx_commit')
     async def _hook(data):
         await gate.sockets_close()
