@@ -70,8 +70,8 @@ HttpRequestParser::HttpRequestParser(
 
 bool HttpRequestParser::Parse(const char* data, size_t size) {
   const auto err = llhttp_execute(&parser_, data, size);
-  const auto parsed = static_cast<size_t>(llhttp_get_error_pos(&parser_) - data + 1);
-  if (parsed != size || err != HPE_OK) {
+  if (err != HPE_OK) {
+    const auto parsed = static_cast<size_t>(llhttp_get_error_pos(&parser_) - data + 1);
     LOG_WARNING() << "parsed=" << parsed << " size=" << size
                   << " error_description="
                   << llhttp_errno_name(err);
