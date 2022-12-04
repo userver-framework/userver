@@ -78,7 +78,9 @@ jobs:
                 # So we downgrade libpq5 and libpq-dev to the ubuntu's
                 # versions to mock real ubuntu experience.
                 if [ "${{matrix.os}}" = "ubuntu-22.04" ]; then
-                  sudo apt install --allow-downgrades -y libpq5=14.5-0ubuntu0.22.04.1 libpq-dev=14.5-0ubuntu0.22.04.1 postgresql-14=14.5-2.pgdg22.04+2
+                  echo "deb https://apt-archive.postgresql.org/pub/repos/apt jammy-pgdg-archive main" | sudo tee /etc/apt/sources.list.d/pgdg.list
+                  sudo apt update && sudo apt install --allow-downgrades -y \
+                    libpq5=14.5-0ubuntu0.22.04.1 libpq-dev=14.5-0ubuntu0.22.04.1 postgresql-14=14.5-2.pgdg22.04+2
                 fi
                 if [ "${{matrix.info}}" = "g++-8 + debug" ]; then
                   sudo apt install --allow-downgrades -y g++-8
