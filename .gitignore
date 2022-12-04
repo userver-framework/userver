@@ -25,6 +25,7 @@ third_party/gbench
 third_party/gtest
 third_party/libcurl
 third_party/spdlog
+third_party/llhttp
 static-analyzer-report
 .project
 .cproject
