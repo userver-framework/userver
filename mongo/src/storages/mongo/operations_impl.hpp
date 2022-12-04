@@ -161,6 +161,14 @@ class Aggregate::Impl {
   bool has_max_server_time_option{false};
 };
 
+class Drop::Impl {
+ public:
+  Impl() = default;
+
+  std::optional<formats::bson::impl::BsonBuilder> options;
+  std::string write_concern_desc{kDefaultWriteConcernDesc};
+};
+
 void AppendComment(formats::bson::impl::BsonBuilder& builder,
                    bool& has_comment_option, const options::Comment& comment);
 

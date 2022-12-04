@@ -125,26 +125,44 @@ void ConnectionPool::Init(InitMode mode) {
   LOG_INFO() << "Creating " << settings->min_size
              << " PostgreSQL connections to " << DsnCutPassword(dsn_)
              << (mode == InitMode::kAsync ? " async" : " sync");
+
   if (mode == InitMode::kAsync) {
-    for (size_t i = 0; i < settings->min_size; ++i) {
+    for (std::size_t i = 0; i < settings->min_size; ++i) {
       Connect(SharedSizeGuard{size_}).Detach();
     }
-  } else {
-    std::vector<engine::TaskWithResult<bool>> tasks;
-    tasks.reserve(settings->min_size);
-    for (size_t i = 0; i < settings->min_size; ++i) {
-      tasks.push_back(Connect(SharedSizeGuard{size_}));
-    }
-    for (auto& t : tasks) {
-      try {
-        t.Get();
-      } catch (const std::exception& e) {
-        LOG_ERROR() << "Failed to establish connection with PostgreSQL server "
-                    << DsnCutPassword(dsn_) << ": " << e;
+    LOG_INFO() << "Pool initialization is ongoing";
+    StartMaintainTask();
+    return;
+  }
+
+  std::vector<engine::TaskWithResult<bool>> tasks;
+  tasks.reserve(settings->min_size);
+  for (std::size_t i = size_->load(); i < settings->min_size; ++i) {
+    tasks.push_back(Connect(SharedSizeGuard{size_}));
+  }
+  for (auto& t : tasks) {
+    try {
+      const auto success = t.Get();
+      if (!success) {
+        LOG_ERROR() << "Failed to establish connection to PostgreSQL server";
       }
+    } catch (const std::exception& e) {
+      LOG_ERROR() << "Failed to establish connection with PostgreSQL server "
+                  << DsnCutPassword(dsn_) << ": " << e;
     }
   }
-  LOG_INFO() << "Pool initialized";
+
+  const auto connections_count = size_->load();
+  if (connections_count < settings->min_size) {
+    LOG_WARNING() << "Pool is poorly initialized, "
+                  << settings->min_size - connections_count
+                  << " connections have not been opened, " << connections_count
+                  << " connections are ready to use";
+  } else {
+    LOG_INFO() << "Pool initialized, " << connections_count
+               << " connections are ready to use";
+  }
+
   StartMaintainTask();
 }
 

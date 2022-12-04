@@ -714,6 +714,24 @@ void Aggregate::SetOption(const options::MaxServerTime& max_server_time) {
                       impl_->has_max_server_time_option, max_server_time);
 }
 
+Drop::Drop() = default;
+Drop::~Drop() = default;
+
+Drop::Drop(const Drop&) = default;
+Drop::Drop(Drop&&) noexcept = default;
+Drop& Drop::operator=(const Drop&) = default;
+Drop& Drop::operator=(Drop&&) noexcept = default;
+
+void Drop::SetOption(options::WriteConcern::Level level) {
+  AppendWriteConcern(impl::EnsureBuilder(impl_->options), level);
+  impl_->write_concern_desc = MakeWriteConcernDescription(level);
+}
+
+void Drop::SetOption(const options::WriteConcern& write_concern) {
+  AppendWriteConcern(impl::EnsureBuilder(impl_->options), write_concern);
+  impl_->write_concern_desc = MakeWriteConcernDescription(write_concern);
+}
+
 }  // namespace storages::mongo::operations
 
 USERVER_NAMESPACE_END

@@ -24,7 +24,7 @@ The following options could be used to control `cmake`:
 | USERVER_FEATURE_JEMALLOC               | Use jemalloc memory allocator                                                | ON                                               |
 | USERVER_FEATURE_DWCAS                  | Require double-width compare-and-swap                                        | ON                                               |
 | USERVER_FEATURE_TESTSUITE              | Enable functional tests via testsuite                                        | ON                                               |
-| USERVER_FEATURE_GRPC_CHANNELZ          | Enable Channelz for gRPC                                                     | ${USERVER_OPEN_SOURCE_BUILD}                     |
+| USERVER_FEATURE_GRPC_CHANNELZ          | Enable Channelz for gRPC                                                     | ON for "sufficiently new" gRPC versions          |
 | USERVER_CHECK_PACKAGE_VERSIONS         | Check package versions                                                       | ON                                               |
 | USERVER_SANITIZE                       | Build with sanitizers support, allows combination of values via 'val1 val2'  | ''                                               |
 | USERVER_SANITIZE_BLACKLIST             | Path to file that is passed to the -fsanitize-blacklist option               | ''                                               |
@@ -32,6 +32,7 @@ The following options could be used to control `cmake`:
 | USERVER_LTO                            | Use link time optimizations                                                  | OFF for Debug build, ON for all the other builds |
 | USERVER_OPEN_SOURCE_BUILD              | Do not use internal Yandex packages                                          | auto-detects                                     |
 | USERVER_NO_WERROR                      | Do not treat warnings as errors                                              | ${USERVER_OPEN_SOURCE_BUILD}                     |
+| USERVER_PYTHON_PATH                    | Path to the python3 binary for use in testsuite tests                        | python3                                          |
 | USERVER_DOWNLOAD_PACKAGES              | Download missing third party packages and use the downloaded versions        | ${USERVER_OPEN_SOURCE_BUILD}                     |
 | USERVER_DOWNLOAD_PACKAGE_CARES         | Download and setup c-ares if no c-ares of matching version was found         | ${USERVER_DOWNLOAD_PACKAGES}                     |
 | USERVER_DOWNLOAD_PACKAGE_CCTZ          | Download and setup cctz if no cctz of matching version was found             | ${USERVER_DOWNLOAD_PACKAGES}                     |

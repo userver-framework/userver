@@ -8,6 +8,7 @@
 #include <fmt/format.h>
 
 #include <userver/utils/algo.hpp>
+#include <userver/utils/statistics/fmt.hpp>
 #include <userver/utils/statistics/storage.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -29,12 +30,7 @@ class FormatBuilder final : public utils::statistics::BaseFormatBuilder {
                     const MetricValue& value) override {
     DumpMetricName(std::string{path});
     DumpLabels(labels);
-    std::visit(
-        [this](const auto& v) {
-          fmt::format_to(std::back_inserter(buf_), FMT_COMPILE(" {}"), v);
-        },
-        value);
-    buf_.push_back('\n');
+    fmt::format_to(std::back_inserter(buf_), FMT_COMPILE(" {}\n"), value);
   }
 
   std::string Release() { return fmt::to_string(buf_); }
@@ -111,9 +107,8 @@ std::string ToPrometheusLabel(std::string_view name) {
 
 }  // namespace impl
 
-std::string ToPrometheusFormat(
-    const utils::statistics::Storage& statistics,
-    const utils::statistics::StatisticsRequest& request) {
+std::string ToPrometheusFormat(const utils::statistics::Storage& statistics,
+                               const utils::statistics::Request& request) {
   impl::FormatBuilder<impl::Typed::kYes> builder{};
   statistics.VisitMetrics(builder, request);
   return builder.Release();
@@ -121,7 +116,7 @@ std::string ToPrometheusFormat(
 
 std::string ToPrometheusFormatUntyped(
     const utils::statistics::Storage& statistics,
-    const utils::statistics::StatisticsRequest& request) {
+    const utils::statistics::Request& request) {
   impl::FormatBuilder<impl::Typed::kNo> builder{};
   statistics.VisitMetrics(builder, request);
   return builder.Release();

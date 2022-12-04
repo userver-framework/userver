@@ -12,6 +12,7 @@
 #include <userver/formats/bson/value.hpp>
 #include <userver/storages/mongo/bulk.hpp>
 #include <userver/storages/mongo/cursor.hpp>
+#include <userver/storages/mongo/drop_result.hpp>
 #include <userver/storages/mongo/operations.hpp>
 #include <userver/storages/mongo/write_result.hpp>
 
@@ -104,6 +105,10 @@ class Collection {
   WriteResult FindAndRemove(formats::bson::Document query,
                             Options&&... options);
 
+  /// Drop collection
+  template <typename... Options>
+  DropResult Drop(Options&&... options);
+
   /// Efficiently executes multiple operations in order, stops on error
   template <typename... Options>
   operations::Bulk MakeOrderedBulk(Options&&... options);
@@ -131,6 +136,7 @@ class Collection {
   WriteResult Execute(const operations::FindAndRemove&);
   WriteResult Execute(operations::Bulk&&);
   Cursor Execute(const operations::Aggregate&);
+  DropResult Execute(const operations::Drop&);
   /// @}
  private:
   std::shared_ptr<impl::CollectionImpl> impl_;
@@ -261,6 +267,13 @@ WriteResult Collection::FindAndRemove(formats::bson::Document query,
   operations::FindAndRemove fam_op(std::move(query));
   (fam_op.SetOption(std::forward<Options>(options)), ...);
   return Execute(fam_op);
+}
+
+template <typename... Options>
+DropResult Collection::Drop(Options&&... options) {
+  operations::Drop drop_op;
+  (drop_op.SetOption(std::forward<Options>(options)), ...);
+  return Execute(drop_op);
 }
 
 template <typename... Options>

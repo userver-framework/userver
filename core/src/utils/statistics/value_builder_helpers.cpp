@@ -1,7 +1,5 @@
 #include <utils/statistics/value_builder_helpers.hpp>
 
-#include <boost/algorithm/string/join.hpp>
-
 #include <userver/formats/common/utils.hpp>
 #include <userver/formats/json/serialize.hpp>
 #include <userver/utils/assert.hpp>
@@ -28,8 +26,13 @@ void CheckedMerge(formats::json::ValueBuilder& original,
       auto next_origin = original[elem_key];
       CheckedMerge(next_origin, std::move(elem_value));
     }
+  } else if (patch.IsNull()) {
+    return;  // do nothing
   } else {
-    UASSERT_MSG(original.IsNull(), MakeConflictMessage(original, patch));
+    UASSERT_MSG(original.IsNull() ||
+                    formats::json::ValueBuilder{original}.ExtractValue() ==
+                        formats::json::ValueBuilder{patch}.ExtractValue(),
+                MakeConflictMessage(original, patch));
     original = std::move(patch);
   }
 }
@@ -45,10 +48,6 @@ void SetSubField(formats::json::ValueBuilder& object,
     auto child = formats::common::GetAtPath(object, std::move(path));
     CheckedMerge(child, std::move(value));
   }
-}
-
-std::string JoinPath(const std::vector<std::string>& path) {
-  return boost::algorithm::join(path, ".");
 }
 
 std::optional<std::string> FindNonNumberMetricPath(

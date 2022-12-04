@@ -174,6 +174,7 @@ class USERVER_NODISCARD Task {
 
  private:
   friend class impl::DetachedTasksSyncBlock;
+  friend class TaskCancellationToken;
 
   bool IsSharedWaitAllowed() const;
 

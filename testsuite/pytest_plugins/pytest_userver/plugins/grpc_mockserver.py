@@ -1,3 +1,10 @@
+"""
+Mocks for the gRPC servers.
+
+@sa @ref md_en_userver_tutorial_grpc_service
+"""
+
+# pylint: disable=no-member
 import asyncio
 import contextlib
 import functools
@@ -49,7 +56,17 @@ def _grpc_mockserver_endpoint(pytestconfig):
 
 
 @pytest.fixture(scope='session')
-def grpc_mockserver_endpoint(pytestconfig, _grpc_mockserver_and_port):
+def grpc_mockserver_endpoint(pytestconfig, _grpc_mockserver_and_port) -> str:
+    """
+    Returns the gRPC endpoint to start the mocking server that is set by
+    command line `--grpc-mockserver-host` and `--grpc-mockserver-port` options.
+
+    Override this fixture to change the way the gRPC endpoint
+    is detected by the testsuite.
+
+    @snippet samples/grpc_service/tests/conftest.py  Prepare configs
+    @ingroup userver_testsuite_fixtures
+    """
     _, port = _grpc_mockserver_and_port
     return f'{pytestconfig.option.grpc_mockserver_host}:{port}'
 
@@ -63,6 +80,15 @@ async def _grpc_mockserver_and_port(_grpc_mockserver_endpoint):
 
 @pytest.fixture(scope='session')
 async def grpc_mockserver(_grpc_mockserver_and_port):
+    """
+    Returns the gRPC mocking server.
+
+    Override this fixture to change the way the gRPC
+    mocking server is started by the testsuite.
+
+    @snippet samples/grpc_service/tests/conftest.py  Prepare server mock
+    @ingroup userver_testsuite_fixtures
+    """
     server, _ = _grpc_mockserver_and_port
     server_task = asyncio.create_task(server.start())
 
@@ -76,6 +102,12 @@ async def grpc_mockserver(_grpc_mockserver_and_port):
 
 @pytest.fixture(scope='session')
 def create_grpc_mock():
+    """
+    Creates the gRPC mock server for the provided type.
+
+    @snippet samples/grpc_service/tests/conftest.py  Prepare server mock
+    @ingroup userver_testsuite_fixtures
+    """
     return _create_servicer_mock
 
 

@@ -31,6 +31,13 @@ void ResponseBodyStream::SetStatusCode(int status_code) {
   http_response_.SetStatus(static_cast<server::http::HttpStatus>(status_code));
 }
 
+void ResponseBodyStream::SetStatusCode(HttpStatus status) {
+  UINVARIANT(
+      !headers_ended_,
+      "Calling SetStatusCode() after the status line and headers are sent");
+  http_response_.SetStatus(status);
+}
+
 }  // namespace server::http
 
 USERVER_NAMESPACE_END

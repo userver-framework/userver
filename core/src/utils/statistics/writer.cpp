@@ -73,8 +73,7 @@ void CheckAndWrite(impl::WriterState& state,
   UINVARIANT(!state.path.empty(),
              "Detected an attempt to write a metric by empty path");
 
-  if (state.request.prefix_match_type !=
-      StatisticsRequest::PrefixMatch::kNoop) {
+  if (state.request.prefix_match_type != Request::PrefixMatch::kNoop) {
     UASSERT(!state.request.prefix.empty());
     if (state.path.size() < state.request.prefix.size()) {
       return;
@@ -88,7 +87,7 @@ void CheckAndWrite(impl::WriterState& state,
     return;
   }
 
-  state.builder.HandleMetric(state.path, labels, value);
+  state.builder.HandleMetric(state.path, labels, MetricValue{value});
 }
 
 }  // namespace
@@ -210,17 +209,17 @@ void Writer::AppendPath(std::string_view path) {
   current_path_size_ = state_->path.size();
 
   switch (state_->request.prefix_match_type) {
-    case StatisticsRequest::PrefixMatch::kNoop:
+    case Request::PrefixMatch::kNoop:
       break;
 
-    case StatisticsRequest::PrefixMatch::kExact:
+    case Request::PrefixMatch::kExact:
       if (!CanSubPathSucceedExactMatch(state_->path, state_->request.prefix,
                                        initial_path_size_)) {
         ResetState();
       }
       break;
 
-    case StatisticsRequest::PrefixMatch::kStartsWith:
+    case Request::PrefixMatch::kStartsWith:
       if (!CanSubPathSucceedStartsWith(state_->path, state_->request.prefix,
                                        initial_path_size_)) {
         ResetState();

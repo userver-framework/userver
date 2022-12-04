@@ -1,10 +1,8 @@
 #include <userver/engine/task/cancel.hpp>
 
-#include <cctype>
 #include <exception>
 
 #include <fmt/format.h>
-#include <boost/algorithm/string/predicate.hpp>
 #include <boost/algorithm/string/replace.hpp>
 
 #include <userver/engine/sleep.hpp>
@@ -60,6 +58,10 @@ void SetDeadline(Deadline deadline) {
   GetCurrentTaskContext().SetCancelDeadline(deadline);
 }
 
+TaskCancellationToken GetCancellationToken() {
+  return TaskCancellationToken(GetCurrentTaskContext());
+}
+
 }  // namespace current_task
 
 TaskCancellationBlocker::TaskCancellationBlocker()
@@ -94,6 +96,44 @@ std::string ToString(TaskCancellationReason reason) {
   }
   return fmt::format("unknown({})", static_cast<int>(reason));
 }
+
+TaskCancellationToken::TaskCancellationToken(
+    impl::TaskContext& context) noexcept
+    : context_(&context) {}
+
+TaskCancellationToken::TaskCancellationToken(Task& task)
+    : context_(task.context_) {
+  UASSERT(context_);
+}
+
+// clang-tidy insists on defaulting this,
+// gcc complains about exception-specification mismatch with '= default'
+// NOLINTNEXTLINE(hicpp-use-equals-default,modernize-use-equals-default)
+TaskCancellationToken::TaskCancellationToken(
+    const TaskCancellationToken& other) noexcept
+    : context_{other.context_} {}
+TaskCancellationToken::TaskCancellationToken(TaskCancellationToken&&) noexcept =
+    default;
+
+TaskCancellationToken& TaskCancellationToken::operator=(
+    const TaskCancellationToken& other) noexcept {
+  if (&other != this) {
+    context_ = other.context_;
+  }
+
+  return *this;
+}
+TaskCancellationToken& TaskCancellationToken::operator=(
+    TaskCancellationToken&&) noexcept = default;
+
+TaskCancellationToken::~TaskCancellationToken() = default;
+
+void TaskCancellationToken::RequestCancel() {
+  UASSERT(context_);
+  context_->RequestCancel(TaskCancellationReason::kUserRequest);
+}
+
+bool TaskCancellationToken::IsValid() const noexcept { return !!context_; }
 
 }  // namespace engine
 

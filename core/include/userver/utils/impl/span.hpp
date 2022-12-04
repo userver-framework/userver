@@ -16,9 +16,9 @@ class Span final {
   using iterator = T*;
   using const_iterator = T*;  // Span has pointer semantics
 
-  Span() : Span(nullptr, nullptr) {}
+  constexpr Span() : Span(nullptr, nullptr) {}
 
-  Span(T* begin, T* end) noexcept : begin_(begin), end_(end) {
+  constexpr Span(T* begin, T* end) noexcept : begin_(begin), end_(end) {
     UASSERT((begin != nullptr && end != nullptr && begin <= end) ||
             (begin == nullptr && end == nullptr));
   }
@@ -32,16 +32,16 @@ class Span final {
           // Copy and move constructor fix
           !std::is_same_v<std::remove_cv_t<std::remove_reference_t<Container>>,
                           Span>>>
-  /*implicit*/ Span(Container&& cont) noexcept
+  constexpr /*implicit*/ Span(Container&& cont) noexcept
       : Span(std::data(cont), std::data(cont) + std::size(cont)) {}
 
-  T* begin() const noexcept { return begin_; }
-  T* end() const noexcept { return end_; }
+  constexpr T* begin() const noexcept { return begin_; }
+  constexpr T* end() const noexcept { return end_; }
 
-  T* data() const noexcept { return begin_; }
-  std::size_t size() const noexcept { return end_ - begin_; }
+  constexpr T* data() const noexcept { return begin_; }
+  constexpr std::size_t size() const noexcept { return end_ - begin_; }
 
-  T& operator[](std::size_t index) const noexcept {
+  constexpr T& operator[](std::size_t index) const noexcept {
     UASSERT(index < size());
     return begin_[index];
   }

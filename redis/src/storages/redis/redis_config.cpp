@@ -94,6 +94,20 @@ USERVER_NAMESPACE::redis::CommandsBufferingSettings Parse(
   return result;
 }
 
+MetricsSettings Parse(const formats::json::Value& elem,
+                      formats::parse::To<MetricsSettings>) {
+  MetricsSettings result;
+  result.timings_enabled =
+      elem["timings-enabled"].As<bool>(result.timings_enabled);
+  result.command_timings_enabled =
+      elem["command-timings-enabled"].As<bool>(result.command_timings_enabled);
+  result.request_sizes_enabled =
+      elem["request-sizes-enabled"].As<bool>(result.request_sizes_enabled);
+  result.reply_sizes_enabled =
+      elem["reply-sizes-enabled"].As<bool>(result.reply_sizes_enabled);
+  return result;
+}
+
 }  // namespace redis
 
 USERVER_NAMESPACE_END

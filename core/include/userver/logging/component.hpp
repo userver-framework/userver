@@ -49,7 +49,7 @@ namespace components {
 /// - Use `@stderr` to write your logs to standard error stream;
 /// - Use `@null` to supress sending of logs;
 /// - Use `%file_name%` to write your logs in file. Use USR1 signal or `OnLogRotate` handler to reopen files after log rotation;
-/// - Use `unix://%socket_name%` to write your logs to unix socket. Socket must be created before the service starts and closed by listener afert service is shuted down.
+/// - Use `unix:%socket_name%` to write your logs to unix socket. Socket must be created before the service starts and closed by listener afert service is shuted down.
 ///
 /// ### testsuite-capture options:
 /// Name | Description | Default value

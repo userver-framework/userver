@@ -6,7 +6,7 @@
 USERVER_NAMESPACE_BEGIN
 
 namespace {
-using utils::statistics::StatisticsRequest;
+using utils::statistics::Request;
 using utils::statistics::Storage;
 using utils::statistics::ToPrometheusFormatUntyped;
 using utils::statistics::Writer;
@@ -24,11 +24,10 @@ void DumpMetric(Writer&, MetricTypeThatMustBeSkipped metric) {
 void DoTestBasic(Storage& storage) {
   const auto* const expected = "prefix_name{} 42\n";
   EXPECT_EQ(expected, ToPrometheusFormatUntyped(storage));
-  EXPECT_EQ(expected,
-            ToPrometheusFormatUntyped(
-                storage, StatisticsRequest::MakeWithPrefix("prefix")));
   EXPECT_EQ(expected, ToPrometheusFormatUntyped(
-                          storage, StatisticsRequest::MakeWithPrefix("pre")));
+                          storage, Request::MakeWithPrefix("prefix")));
+  EXPECT_EQ(expected,
+            ToPrometheusFormatUntyped(storage, Request::MakeWithPrefix("pre")));
 
   auto holder0 =
       storage.RegisterWriter("prefix", [](Writer& writer) { writer = 41; });
@@ -37,24 +36,21 @@ void DoTestBasic(Storage& storage) {
   auto holder2 =
       storage.RegisterWriter({}, [](Writer& writer) { writer["a"] = 44; });
 
-  EXPECT_EQ(expected,
-            ToPrometheusFormatUntyped(
-                storage, StatisticsRequest::MakeWithPrefix("prefix.")));
-  EXPECT_EQ(expected,
-            ToPrometheusFormatUntyped(
-                storage, StatisticsRequest::MakeWithPrefix("prefix.name")));
-  EXPECT_EQ(expected,
-            ToPrometheusFormatUntyped(
-                storage, StatisticsRequest::MakeWithPath("prefix.name")));
+  EXPECT_EQ(expected, ToPrometheusFormatUntyped(
+                          storage, Request::MakeWithPrefix("prefix.")));
+  EXPECT_EQ(expected, ToPrometheusFormatUntyped(
+                          storage, Request::MakeWithPrefix("prefix.name")));
+  EXPECT_EQ(expected, ToPrometheusFormatUntyped(
+                          storage, Request::MakeWithPath("prefix.name")));
 
   const auto* const expected_labeld = "prefix_name{lab=\"foo\"} 42\n";
   EXPECT_EQ(
       expected_labeld,
-      ToPrometheusFormatUntyped(storage, StatisticsRequest::MakeWithPrefix(
-                                             "prefix.name", {{"lab", "foo"}})));
+      ToPrometheusFormatUntyped(
+          storage, Request::MakeWithPrefix("prefix.name", {{"lab", "foo"}})));
 
   EXPECT_EQ(expected_labeld, ToPrometheusFormatUntyped(
-                                 storage, StatisticsRequest::MakeWithPrefix(
+                                 storage, Request::MakeWithPrefix(
                                               "prefix.name", {{"lab", "foo"}},
                                               {{"lab", "foo"}})));
   const auto* const expected_all = R"(
@@ -63,8 +59,7 @@ prefix{} 41
 prEfix_name{} 43
 a{} 44
 )";
-  EXPECT_EQ(expected_all,
-            "\n" + ToPrometheusFormatUntyped(storage, StatisticsRequest{}));
+  EXPECT_EQ(expected_all, "\n" + ToPrometheusFormatUntyped(storage, Request{}));
 }
 
 }  // namespace
@@ -130,13 +125,12 @@ UTEST(MetricsWriter, WithError) {
       too_long_path, [](Writer& writer) { writer["q"] = 24; });
 
   auto holder4 = storage.RegisterWriter({}, [](Writer& writer) {
-    writer["some"]["path"]
-        .ValueWithLabels(3, {"name", "value"})
-        .ValueWithLabels(
-            [](bool raise) {
-              return raise ? throw std::runtime_error{"Oops"} : 1;
-            }(true),
-            {"name", "value"});
+    writer["some"]["path"].ValueWithLabels(3, {"name", "value"});
+    writer["some"]["path"].ValueWithLabels(
+        [](bool raise) {
+          return raise ? throw std::runtime_error{"Oops"} : 1;
+        }(true),
+        {"name", "value"});
   });
 
   auto holder5 = storage.RegisterWriter("some",
@@ -196,34 +190,33 @@ fine_ok{} 1
 UTEST(MetricsWriter, LabeledSingle) {
   Storage storage;
   auto holder = storage.RegisterWriter("prefix", [](Writer& writer) {
-    writer["name"]
-        .ValueWithLabels(42, {"label_name", "label_value1"})
-        .ValueWithLabels(43, {"label_name", "label_value2"});
+    writer["name"].ValueWithLabels(42, {"label_name", "label_value1"});
+    writer["name"].ValueWithLabels(43, {"label_name", "label_value2"});
   });
 
   auto holder0 = storage.RegisterWriter("prefix", [](Writer& writer) {
-    writer.ValueWithLabels(52, {"label_name", "label_value1"})
-        .ValueWithLabels(53, {"label_name", "label_value2"});
+    writer.ValueWithLabels(52, {"label_name", "label_value1"});
+    writer.ValueWithLabels(53, {"label_name", "label_value2"});
   });
   auto holder1 = storage.RegisterWriter("prEfix.name", [](Writer& writer) {
-    writer.ValueWithLabels(62, {"label_name", "label_value1"})
-        .ValueWithLabels(63, {"label_name", "label_value2"});
+    writer.ValueWithLabels(62, {"label_name", "label_value1"});
+    writer.ValueWithLabels(63, {"label_name", "label_value2"});
   });
 
   const auto* const expected_labeled =
       "prefix_name{label_name=\"label_value1\"} 42\n"
       "prefix_name{label_name=\"label_value2\"} 43\n";
-  EXPECT_EQ(expected_labeled,
-            ToPrometheusFormatUntyped(
-                storage, StatisticsRequest::MakeWithPath("prefix.name")));
+  EXPECT_EQ(
+      expected_labeled,
+      ToPrometheusFormatUntyped(storage, Request::MakeWithPath("prefix.name")));
 
   const auto* const expected_labeled2 =
       "prefix_name{label_name=\"label_value2\"} 43\n";
   EXPECT_EQ(
       expected_labeled2,
       ToPrometheusFormatUntyped(
-          storage, StatisticsRequest::MakeWithPath(
-                       "prefix.name", {}, {{"label_name", "label_value2"}})));
+          storage, Request::MakeWithPath("prefix.name", {},
+                                         {{"label_name", "label_value2"}})));
 }
 
 UTEST(MetricsWriter, LabeledMultiple) {
@@ -232,26 +225,25 @@ UTEST(MetricsWriter, LabeledMultiple) {
   utils::statistics::LabelView label{"name", "value"};
 
   auto holder = storage.RegisterWriter("a", [label](Writer& writer) {
-    writer["1"]
-        .ValueWithLabels(1, {label, {"label_name", "label_value1"}})
-        .ValueWithLabels(2, {label, {"label_name", "label_value2"}});
+    writer["1"].ValueWithLabels(1, {label, {"label_name", "label_value1"}});
+    writer["1"].ValueWithLabels(2, {label, {"label_name", "label_value2"}});
   });
 
   auto holder0 = storage.RegisterWriter("a", [&label](Writer& writer) {
-    writer.ValueWithLabels(52, {label, {"label_name", "label_value1"}})
-        .ValueWithLabels(53, {label, {"label_name", "label_value2"}});
+    writer.ValueWithLabels(52, {label, {"label_name", "label_value1"}});
+    writer.ValueWithLabels(53, {label, {"label_name", "label_value2"}});
   });
   auto holder1 = storage.RegisterWriter("b", [label](Writer& writer) {
-    writer.ValueWithLabels(62, {label, {"label_name", "label_value1"}})
-        .ValueWithLabels(63, {label, {"label_name", "label_value2"}})
-        .ValueWithLabels(63, {label, {"label_name", "label_value3"}});
+    writer.ValueWithLabels(62, {label, {"label_name", "label_value1"}});
+    writer.ValueWithLabels(63, {label, {"label_name", "label_value2"}});
+    writer.ValueWithLabels(63, {label, {"label_name", "label_value3"}});
   });
   auto holder2 = storage.RegisterWriter(
       "c",
       [](Writer& writer) {
-        writer.ValueWithLabels(62, {{"label_name", "label_value1"}})
-            .ValueWithLabels(63, {"label_name", "label_value2"})
-            .ValueWithLabels(63, {{"label_name", "label_value3"}});
+        writer.ValueWithLabels(62, {{"label_name", "label_value1"}});
+        writer.ValueWithLabels(63, {"label_name", "label_value2"});
+        writer.ValueWithLabels(63, {{"label_name", "label_value3"}});
       },
       {{"name", "value"}});
 
@@ -259,46 +251,45 @@ UTEST(MetricsWriter, LabeledMultiple) {
       "a_1{name=\"value\",label_name=\"label_value1\"} 1\n"
       "a_1{name=\"value\",label_name=\"label_value2\"} 2\n";
   EXPECT_EQ(expected_labeled,
-            ToPrometheusFormatUntyped(storage,
-                                      StatisticsRequest::MakeWithPath("a.1")));
+            ToPrometheusFormatUntyped(storage, Request::MakeWithPath("a.1")));
 
   const auto* const expected_labeled2 =
       "a_1{name=\"value\",label_name=\"label_value2\"} 2\n";
   EXPECT_EQ(expected_labeled2,
             ToPrometheusFormatUntyped(
-                storage, StatisticsRequest::MakeWithPath(
+                storage, Request::MakeWithPath(
                              "a.1", {}, {{"label_name", "label_value2"}})));
   EXPECT_EQ(
       expected_labeled2,
       ToPrometheusFormatUntyped(
           storage,
-          StatisticsRequest::MakeWithPath(
+          Request::MakeWithPath(
               "a.1", {}, {{"name", "value"}, {"label_name", "label_value2"}})));
 
   const auto* const expected_labeled2_a =
       "a{name=\"value\",label_name=\"label_value2\"} 53\n";
   EXPECT_EQ(expected_labeled2_a,
             ToPrometheusFormatUntyped(
-                storage, StatisticsRequest::MakeWithPath(
+                storage, Request::MakeWithPath(
                              "a", {}, {{"label_name", "label_value2"}})));
   EXPECT_EQ(
       expected_labeled2_a,
       ToPrometheusFormatUntyped(
           storage,
-          StatisticsRequest::MakeWithPath(
+          Request::MakeWithPath(
               "a", {}, {{"name", "value"}, {"label_name", "label_value2"}})));
 
   const auto* const expected_labeled2_c =
       "c{name=\"value\",label_name=\"label_value2\"} 63\n";
   EXPECT_EQ(expected_labeled2_c,
             ToPrometheusFormatUntyped(
-                storage, StatisticsRequest::MakeWithPath(
+                storage, Request::MakeWithPath(
                              "c", {}, {{"label_name", "label_value2"}})));
   EXPECT_EQ(
       expected_labeled2_c,
       ToPrometheusFormatUntyped(
           storage,
-          StatisticsRequest::MakeWithPath(
+          Request::MakeWithPath(
               "c", {}, {{"name", "value"}, {"label_name", "label_value2"}})));
 }
 
@@ -314,22 +305,20 @@ UTEST(MetricsWriter, CustomTypesOptimization) {
     writer["dump"] = MetricTypeThatMayBeDumped{};
   });
   auto holder3 = storage.RegisterWriter("a", [](Writer& writer) {
-    writer["s"]["d"]
-        .ValueWithLabels(MetricTypeThatMustBeSkipped{"first at 'a.s.d' path"},
-                         {"a", "b"})
-        .ValueWithLabels(MetricTypeThatMustBeSkipped{"second at 'a.s.d' path"},
-                         {{"c", "d"}});
+    writer["s"]["d"].ValueWithLabels(
+        MetricTypeThatMustBeSkipped{"first at 'a.s.d' path"}, {"a", "b"});
+    writer["s"]["d"].ValueWithLabels(
+        MetricTypeThatMustBeSkipped{"second at 'a.s.d' path"}, {{"c", "d"}});
 
-    writer["d"]
-        .ValueWithLabels(MetricTypeThatMustBeSkipped{"first at 'a.d' path"},
-                         {"a", "b"})
-        .ValueWithLabels(MetricTypeThatMustBeSkipped{"second at 'a.d' path"},
-                         {{"c", "d"}});
+    writer["d"].ValueWithLabels(
+        MetricTypeThatMustBeSkipped{"first at 'a.d' path"}, {"a", "b"});
+    writer["d"].ValueWithLabels(
+        MetricTypeThatMustBeSkipped{"second at 'a.d' path"}, {{"c", "d"}});
   });
 
   const auto* const expected = "a_dump{} 42\n";
   EXPECT_EQ(expected, ToPrometheusFormatUntyped(
-                          storage, StatisticsRequest::MakeWithPath("a.dump")));
+                          storage, Request::MakeWithPath("a.dump")));
 }
 
 UTEST(MetricsWriter, ComplexPathsStored) {

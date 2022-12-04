@@ -21,7 +21,11 @@ file(GLOB_RECURSE REDIS_TEST_SOURCES
 )
 list(REMOVE_ITEM SOURCES ${REDIS_TEST_SOURCES})
 
-find_package(Hiredis)
+file(GLOB_RECURSE REDIS_FUNCTIONAL_TEST_SOURCES
+  ${CMAKE_CURRENT_SOURCE_DIR}/functional_tests/*.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/functional_tests/*.hpp
+)
+list(REMOVE_ITEM SOURCES ${REDIS_FUNCTIONAL_TEST_SOURCES})
 
 add_library(${PROJECT_NAME} STATIC ${SOURCES})
 set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
@@ -52,10 +56,16 @@ endif()
 target_link_libraries(${PROJECT_NAME}
   PUBLIC
     userver-core
-    Hiredis
   PRIVATE
-    userver-uboost-coro # uses BlockingFuture
+    userver-uboost-coro
 )
+if (USERVER_CONAN)
+  find_package(hiredis REQUIRED)
+  target_link_libraries(${PROJECT_NAME} PUBLIC hiredis::hiredis)
+else()
+  find_package(Hiredis)
+  target_link_libraries(${PROJECT_NAME} PUBLIC Hiredis)
+endif()
 
 if (USERVER_FEATURE_REDIS_TLS)
   target_link_libraries(${PROJECT_NAME} PUBLIC hiredis_ssl)
@@ -123,6 +133,7 @@ if (USERVER_IS_THE_ROOT_PROJECT)
   )
 
   add_subdirectory(tools/redisclient)
+  add_subdirectory(functional_tests)
 endif()
 
 if (USERVER_FEATURE_UTEST)

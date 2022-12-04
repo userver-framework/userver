@@ -17,7 +17,7 @@ namespace impl {
 struct WriterState;
 
 template <class Writer, class Metric>
-void DumpMetric(Writer&&, Metric&&) {
+void DumpMetric(Writer&&, const Metric&) {
   static_assert(sizeof(Metric) == 0,
                 "Cast the metric to an arithmetic type or provide a "
                 "specialization of `void DumpMetric(utils::statistics::Writer& "
@@ -48,51 +48,38 @@ class Writer final {
   /// Returns a Writer with a ('.' + path) appended
   [[nodiscard]] Writer operator[](std::string_view path) &&;
 
-  /// Write arithmetic metric value without labels to metrics builder
-  template <class T>
-  std::enable_if_t<std::is_arithmetic_v<T>> operator=(T value) {
-    Write(value);
-  }
-
-  /// Write metric value without labels to metrics builder via custom DumpMetric
+  /// Write metric value to metrics builder via using DumpMetric
   /// function.
   template <class T>
-  std::enable_if_t<!std::is_arithmetic_v<T>> operator=(const T& value) {
-    if (state_) {
-      using impl::DumpMetric;  // poison pill
-      DumpMetric(*this, value);
-    }
-  }
-
-  /// Write metric value with labels to metrics builder
-  template <class T>
-  Writer&& ValueWithLabels(const T& value, LabelsSpan labels) {
-    auto new_writer = MakeChild();
-    new_writer.AppendLabelsSpan(labels);
-
+  void operator=(const T& value) {
     if constexpr (std::is_arithmetic_v<T>) {
-      new_writer.Write(value);
+      Write(value);
     } else {
       if (state_) {
         using impl::DumpMetric;  // poison pill
-        DumpMetric(new_writer, value);
+        DumpMetric(*this, value);
       }
     }
-
-    return std::move(*this);
   }
 
   /// Write metric value with labels to metrics builder
   template <class T>
-  Writer&& ValueWithLabels(const T& value,
-                           std::initializer_list<LabelView> il) {
-    return ValueWithLabels(value, LabelsSpan{il});
+  void ValueWithLabels(const T& value, LabelsSpan labels) {
+    auto new_writer = MakeChild();
+    new_writer.AppendLabelsSpan(labels);
+    new_writer = value;
+  }
+
+  /// Write metric value with labels to metrics builder
+  template <class T>
+  void ValueWithLabels(const T& value, std::initializer_list<LabelView> il) {
+    ValueWithLabels(value, LabelsSpan{il});
   }
 
   /// Write metric value with label to metrics builder
   template <class T>
-  Writer&& ValueWithLabels(const T& value, const LabelView& label) {
-    return ValueWithLabels(value, LabelsSpan{&label, &label + 1});
+  void ValueWithLabels(const T& value, const LabelView& label) {
+    ValueWithLabels(value, LabelsSpan{&label, &label + 1});
   }
 
   /// Returns true if this writer would actually write data. Returns false if

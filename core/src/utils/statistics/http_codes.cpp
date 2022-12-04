@@ -11,7 +11,6 @@
 USERVER_NAMESPACE_BEGIN
 
 namespace utils::statistics {
-
 namespace {
 
 bool IsForcedStatusCode(HttpCodes::Code status) noexcept {
@@ -36,26 +35,24 @@ void HttpCodes::Account(Code code) noexcept {
   codes_[code - kMinHttpStatus].fetch_add(1, std::memory_order_relaxed);
 }
 
-HttpCodes::Snapshot HttpCodes::GetSnapshot() const {
-  Snapshot result;
-  for (const auto& [code, counter] : utils::enumerate(codes_)) {
-    const auto count = counter.load(std::memory_order_relaxed);
-    if (count != 0 || IsForcedStatusCode(code)) {
-      result.codes[code + kMinHttpStatus] += count;
-    }
+HttpCodes::Snapshot::Snapshot(const HttpCodes& other) noexcept {
+  for (std::size_t i = 0; i < codes_.size(); ++i) {
+    codes_[i] = other.codes_[i].load(std::memory_order_relaxed);
   }
-  return result;
 }
 
-void HttpCodes::Snapshot::Add(const Snapshot& other) {
-  for (const auto& [code, count] : other.codes) {
-    codes[code] += count;
+void HttpCodes::Snapshot::operator+=(const Snapshot& other) {
+  for (std::size_t i = 0; i < codes_.size(); ++i) {
+    codes_[i] += other.codes_[i];
   }
 }
 
 void DumpMetric(Writer& writer, const HttpCodes::Snapshot& snapshot) {
-  for (const auto& [code, count] : snapshot.codes) {
-    writer.ValueWithLabels(count, {"http_code", std::to_string(code)});
+  for (const auto& [base_code, count] : utils::enumerate(snapshot.codes_)) {
+    if (count != 0 || IsForcedStatusCode(base_code)) {
+      const auto code = base_code + HttpCodes::kMinHttpStatus;
+      writer.ValueWithLabels(count, {"http_code", std::to_string(code)});
+    }
   }
 }
 

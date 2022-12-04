@@ -47,8 +47,7 @@ class NotNull {
 
   template <typename U,
             typename = std::enable_if_t<std::is_convertible_v<U, T>>>
-  constexpr explicit NotNull(NotNull<U>&& other)
-      : ptr_(std::move(other.GetBase())) {
+  constexpr NotNull(NotNull<U>&& other) : ptr_(std::move(other).GetBase()) {
     UASSERT_MSG(ptr_,
                 "Trying to construct NotNull from null (moved-from) NotNull");
   }

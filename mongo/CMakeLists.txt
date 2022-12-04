@@ -1,8 +1,17 @@
 project(userver-mongo CXX)
 
 if (USERVER_OPEN_SOURCE_BUILD)
-  find_package(bson REQUIRED)
-  find_package(mongoc REQUIRED)
+  if (USERVER_CONAN)
+    find_package(mongoc-1.0 REQUIRED)
+    set_target_properties(mongo::bson_static PROPERTIES IMPORTED_GLOBAL TRUE)
+    set_target_properties(mongo::mongoc_static PROPERTIES IMPORTED_GLOBAL TRUE)
+    add_library(bson ALIAS mongo::bson_static)
+    add_library(mongoc ALIAS mongo::mongoc_static)
+    find_package(cyrus-sasl REQUIRED)
+  else()
+    find_package(bson REQUIRED)
+    find_package(mongoc REQUIRED)
+  endif()
 else()
   find_package(Helperbson-1.0)
   find_package(Helpermongoc-1.0)
@@ -27,6 +36,12 @@ file(GLOB_RECURSE MONGO_TEST_SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/*_mongotest.cpp
 )
 list(REMOVE_ITEM SOURCES ${MONGO_TEST_SOURCES})
+
+file(GLOB_RECURSE MONGO_FUNCTIONAL_TEST_SOURCES
+  ${CMAKE_CURRENT_SOURCE_DIR}/functional_tests/*.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/functional_tests/*.hpp
+)
+list(REMOVE_ITEM SOURCES ${MONGO_FUNCTIONAL_TEST_SOURCES})
 
 file(GLOB_RECURSE BENCH_SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/*_benchmark.cpp
@@ -85,6 +100,8 @@ if (USERVER_IS_THE_ROOT_PROJECT)
     $<TARGET_FILE:${PROJECT_NAME}_mongotest>
     --gtest_output=xml:${CMAKE_BINARY_DIR}/test-results/${PROJECT_NAME}_mongotest.xml
   )
+
+  add_subdirectory(functional_tests)
 endif()
 
 # Target with no need to use userver namespace, but includes require userver/

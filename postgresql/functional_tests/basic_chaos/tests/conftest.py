@@ -1,6 +1,3 @@
-import json
-import os
-
 import pytest
 
 from pytest_userver import chaos
@@ -17,11 +14,6 @@ pytest_plugins = [
 
 
 # /// [gate start]
-@pytest.fixture(name='for_clinet_gate_port', scope='session')
-def _for_clinet_gate_port():
-    return 11433
-
-
 @pytest.fixture(scope='session')
 def pgsql_local(service_source_dir, pgsql_local_create):
     databases = discover.find_schemas(
@@ -31,12 +23,10 @@ def pgsql_local(service_source_dir, pgsql_local_create):
 
 
 @pytest.fixture(scope='session')
-async def _gate_started(loop, for_clinet_gate_port, pgsql_local):
+async def _gate_started(loop, pgsql_local):
     gate_config = chaos.GateRoute(
         name='postgres proxy',
-        host_for_client='localhost',
-        port_for_client=for_clinet_gate_port,
-        host_to_server='localhost',
+        host_to_server=pgsql_local['key_value'].host,
         port_to_server=pgsql_local['key_value'].port,
     )
     async with chaos.TcpGate(gate_config, loop) as proxy:
@@ -46,6 +36,22 @@ async def _gate_started(loop, for_clinet_gate_port, pgsql_local):
 @pytest.fixture
 def client_deps(_gate_started, pgsql):
     pass
+
+
+USERVER_CONFIG_HOOKS = ['hook_db_config']
+
+
+@pytest.fixture(scope='session')
+def hook_db_config(pgsql_local, _gate_started):
+    def _hook_db_config(config_yaml, config_vars):
+        _DB_NAME = 'pg_key_value'
+        host, port = _gate_started.get_sockname_for_clients()
+
+        components = config_yaml['components_manager']['components']
+        db = components['key-value-database']
+        db['dbconnection'] = f'postgresql://testsuite@{host}:{port}/{_DB_NAME}'
+
+    return _hook_db_config
     # /// [gate start]
 
 
@@ -56,17 +62,6 @@ async def _gate_ready(service_client, _gate_started):
     _gate_started.to_client_pass()
     _gate_started.start_accepting()
 
-    await _gate_started.wait_for_connectons()
+    await _gate_started.wait_for_connections()
     yield _gate_started
     # /// [gate fixture]
-
-
-@pytest.fixture(scope='session')
-def config_service_defaults():
-    with open(
-            os.path.join(
-                os.path.dirname(os.path.dirname(__file__)),
-                'dynamic_config_fallback.json',
-            ),
-    ) as fp:
-        return json.load(fp)

@@ -90,7 +90,7 @@ using `dynamic_config::StorageMock`.
 If you don't want to specify all configs used by the tested code, you can use default dynamic config.
 
 To use default dynamic config values in tests, add
-`DEFAULT_TAXI_CONFIG_FILENAME` preprocessor definition to your test CMake target, specifying the path of a YAML file
+`DEFAULT_DYNAMIC_CONFIG_FILENAME` preprocessor definition to your test CMake target, specifying the path of a YAML file
 with `dynamic_config::DocsMap` contents.
 
 Default dynamic config values can be accessed using `<dynamic_config/test_helpers.hpp>`:

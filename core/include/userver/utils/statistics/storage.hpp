@@ -16,11 +16,15 @@
 #include <userver/formats/json/value_builder.hpp>
 #include <userver/utils/clang_format_workarounds.hpp>
 #include <userver/utils/statistics/entry.hpp>
+#include <userver/utils/statistics/metric_value.hpp>
 #include <userver/utils/statistics/writer.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace utils::statistics {
+
+/// @brief Used in legacy statistics extenders
+struct StatisticsRequest final {};
 
 /// @brief Class describing the request for metrics data.
 ///
@@ -35,23 +39,23 @@ namespace utils::statistics {
 ///
 /// @note `add_labels` should not match labels from Storage, otherwise the
 /// returned metrics may not be read by metrics server.
-class StatisticsRequest final {
+class Request final {
  public:
   using AddLabels = std::unordered_map<std::string, std::string>;
 
   /// Default request without parameters. Equivalent to requesting all the
   /// metrics without adding or requiring any labels.
-  StatisticsRequest() = default;
+  Request() = default;
 
   /// Makes request for metrics whose path starts with the `prefix`.
-  static StatisticsRequest MakeWithPrefix(
-      const std::string& prefix, AddLabels add_labels = {},
-      std::vector<Label> require_labels = {});
+  static Request MakeWithPrefix(const std::string& prefix,
+                                AddLabels add_labels = {},
+                                std::vector<Label> require_labels = {});
 
   /// Makes request for metrics whose path is `path`.
-  static StatisticsRequest MakeWithPath(const std::string& path,
-                                        AddLabels add_labels = {},
-                                        std::vector<Label> require_labels = {});
+  static Request MakeWithPath(const std::string& path,
+                              AddLabels add_labels = {},
+                              std::vector<Label> require_labels = {});
 
   /// Return metrics whose path matches with this `prefix`
   const std::string prefix{};
@@ -66,16 +70,15 @@ class StatisticsRequest final {
   /// Match type of the `prefix`
   const PrefixMatch prefix_match_type = PrefixMatch::kNoop;
 
-  /// Require those labels im the metric
+  /// Require those labels in the metric
   const std::vector<Label> require_labels{};
 
   /// Add those labels to each returned metric
   const AddLabels add_labels{};
 
  private:
-  StatisticsRequest(std::string prefix_in, PrefixMatch path_match_type_in,
-                    std::vector<Label> require_labels_in,
-                    AddLabels add_labels_in);
+  Request(std::string prefix_in, PrefixMatch path_match_type_in,
+          std::vector<Label> require_labels_in, AddLabels add_labels_in);
 };
 
 using ExtenderFunc =
@@ -101,8 +104,6 @@ using StorageIterator = StorageData::iterator;
 
 class BaseFormatBuilder {
  public:
-  using MetricValue = std::variant<std::int64_t, double>;
-
   virtual ~BaseFormatBuilder();
 
   virtual void HandleMetric(std::string_view path, LabelsSpan labels,
@@ -122,11 +123,10 @@ class Storage final {
   /// func over it.
   ///
   /// @warning Deprecated. Use VisitMetrics instead.
-  formats::json::ValueBuilder GetAsJson(const StatisticsRequest& request) const;
+  formats::json::Value GetAsJson(std::string_view prefix) const;
 
   /// Visits all the metrics and calls `out.HandleMetric` for each metric.
-  void VisitMetrics(BaseFormatBuilder& out,
-                    const StatisticsRequest& request = {}) const;
+  void VisitMetrics(BaseFormatBuilder& out, const Request& request = {}) const;
 
   /// @cond
   /// Must be called from StatisticsStorage only. Don't call it from user
@@ -140,13 +140,6 @@ class Storage final {
 
   /// @warning Deprecated. Use RegisterWriter instead.
   Entry RegisterExtender(std::string prefix, ExtenderFunc func);
-
-  /// @warning Deprecated. Use RegisterWriter instead.
-  Entry RegisterExtender(std::vector<std::string> prefix, ExtenderFunc func);
-
-  /// @warning Deprecated. Use RegisterWriter instead.
-  Entry RegisterExtender(std::initializer_list<std::string> prefix,
-                         ExtenderFunc func);
 
   void UnregisterExtender(impl::StorageIterator iterator) noexcept;
 

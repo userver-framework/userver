@@ -27,7 +27,6 @@ jobs:
 
                   - cmake-flags: >-
                         -DUSERVER_FEATURE_CRYPTOPP_BLAKE2=0 -DUSERVER_FEATURE_REDIS_HI_MALLOC=1
-                        -DUSERVER_FEATURE_GRPC_CHANNELZ=0
                         -DUSERVER_NO_WERROR=1 -DUSERVER_SANITIZE="ub addr" -DCMAKE_BUILD_TYPE=Debug
                     os: ubuntu-20.04
                     info: g++-9 + debug + sanitize addr+ub
@@ -35,23 +34,19 @@ jobs:
 
                   - cmake-flags: >-
                         -DUSERVER_FEATURE_CRYPTOPP_BLAKE2=0 -DUSERVER_FEATURE_REDIS_HI_MALLOC=1
-                        -DUSERVER_FEATURE_GRPC_CHANNELZ=0
                         -DUSERVER_NO_WERROR=1 -DCMAKE_BUILD_TYPE=Release
                     os: ubuntu-20.04
                     info: g++-9 + release
                     tests-flags: '--gtest_filter=-HttpClient.RedirectHeaders'
 
+                  # GCC-8 - testing minimal required compiler
                   - cmake-flags: >-
                         -DCMAKE_CXX_COMPILER=g++-8 -DCMAKE_C_COMPILER=gcc-8
-                        -DUSERVER_FEATURE_MONGODB=0
-                        -DUSERVER_FEATURE_POSTGRESQL=0
-                        -DUSERVER_FEATURE_GRPC=0
-                        -DUSERVER_FEATURE_CRYPTOPP_BLAKE2=0
-                        -DUSERVER_USE_LD=gold -DCMAKE_BUILD_TYPE=Release
-                        -DUSERVER_LTO=0
-                    os: ubuntu-18.04
-                    info: g++-8 + release
-                    tests-flags: '--gtest_filter=-FormatsYaml.NativeLocation:FormatsYaml.NullAsDefaulted'
+                        -DUSERVER_FEATURE_CRYPTOPP_BLAKE2=0 -DUSERVER_FEATURE_REDIS_HI_MALLOC=1
+                        -DUSERVER_NO_WERROR=1 -DCMAKE_BUILD_TYPE=Debug
+                    os: ubuntu-20.04
+                    info: g++-8 + debug
+                    tests-flags: '--gtest_filter=-HttpClient.RedirectHeaders'
 
         name: '${{matrix.os}}: ${{matrix.info}}'
         runs-on: ${{matrix.os}}
@@ -85,6 +80,9 @@ jobs:
                 if [ "${{matrix.os}}" = "ubuntu-22.04" ]; then
                   sudo apt install --allow-downgrades -y libpq5=14.5-0ubuntu0.22.04.1 libpq-dev=14.5-0ubuntu0.22.04.1
                 fi
+                if [ "${{matrix.info}}" = "g++-8 + debug" ]; then
+                  sudo apt install --allow-downgrades -y g++-8
+                fi
 
           - name: Install RabbitMQ packages
             run: |
@@ -115,6 +113,7 @@ jobs:
                 else
                   echo "Nothing check in clang-tidy"
                 fi
+
           - name: Compile
             run: |
                 pwd

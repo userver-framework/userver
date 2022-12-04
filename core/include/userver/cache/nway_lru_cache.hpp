@@ -5,6 +5,8 @@
 #include <vector>
 
 #include <userver/cache/lru_map.hpp>
+#include <userver/dump/dumper.hpp>
+#include <userver/dump/operations.hpp>
 #include <userver/engine/mutex.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -42,6 +44,13 @@ class NWayLRU final {
 
   void UpdateWaySize(size_t way_size);
 
+  void Write(dump::Writer& writer) const;
+  void Read(dump::Reader& reader);
+
+  /// The dump::Dumper will be notified of any cache updates. This method is not
+  /// thread-safe.
+  void SetDumper(std::shared_ptr<dump::Dumper> dumper);
+
  private:
   struct Way {
     Way(Way&& other) noexcept : cache(std::move(other.cache)) {}
@@ -55,8 +64,11 @@ class NWayLRU final {
 
   Way& GetWay(const T& key);
 
+  void NotifyDumper();
+
   std::vector<Way> caches_;
   Hash hash_fn_;
+  std::shared_ptr<dump::Dumper> dumper_{nullptr};
 };
 
 template <typename T, typename U, typename Hash, typename Eq>
@@ -73,9 +85,11 @@ NWayLRU<T, U, Hash, Eq>::NWayLRU(size_t ways, size_t way_size, const Hash& hash,
 template <typename T, typename U, typename Hash, typename Eq>
 void NWayLRU<T, U, Hash, Eq>::Put(const T& key, U value) {
   auto& way = GetWay(key);
-
-  std::unique_lock<engine::Mutex> lock(way.mutex);
-  way.cache.Put(key, std::move(value));
+  {
+    std::unique_lock<engine::Mutex> lock(way.mutex);
+    way.cache.Put(key, std::move(value));
+  }
+  NotifyDumper();
 }
 
 template <typename T, typename U, typename Hash, typename Eq>
@@ -97,8 +111,11 @@ std::optional<U> NWayLRU<T, U, Hash, Eq>::Get(const T& key,
 template <typename T, typename U, typename Hash, typename Eq>
 void NWayLRU<T, U, Hash, Eq>::InvalidateByKey(const T& key) {
   auto& way = GetWay(key);
-  std::unique_lock<engine::Mutex> lock(way.mutex);
-  way.cache.Erase(key);
+  {
+    std::unique_lock<engine::Mutex> lock(way.mutex);
+    way.cache.Erase(key);
+  }
+  NotifyDumper();
 }
 
 template <typename T, typename U, typename Hash, typename Eq>
@@ -114,6 +131,7 @@ void NWayLRU<T, U, Hash, Eq>::Invalidate() {
     std::unique_lock<engine::Mutex> lock(way.mutex);
     way.cache.Clear();
   }
+  NotifyDumper();
 }
 
 template <typename T, typename U, typename Hash, typename Eq>
@@ -148,6 +166,50 @@ typename NWayLRU<T, U, Hash, Eq>::Way& NWayLRU<T, U, Hash, Eq>::GetWay(
     const T& key) {
   auto n = hash_fn_(key) % caches_.size();
   return caches_[n];
+}
+
+template <typename T, typename U, typename Hash, typename Equal>
+void NWayLRU<T, U, Hash, Equal>::Write(dump::Writer& writer) const {
+  writer.Write(caches_.size());
+
+  for (const Way& way : caches_) {
+    std::unique_lock<engine::Mutex> lock(way.mutex);
+
+    writer.Write(way.cache.GetSize());
+
+    way.cache.VisitAll([&writer](const T& key, const U& value) {
+      writer.Write(key);
+      writer.Write(value);
+    });
+  }
+}
+
+template <typename T, typename U, typename Hash, typename Equal>
+void NWayLRU<T, U, Hash, Equal>::Read(dump::Reader& reader) {
+  Invalidate();
+
+  const auto ways = reader.Read<std::size_t>();
+  for (std::size_t i = 0; i < ways; ++i) {
+    const auto elements_in_way = reader.Read<std::size_t>();
+    for (std::size_t j = 0; j < elements_in_way; ++j) {
+      auto key = reader.Read<T>();
+      auto value = reader.Read<U>();
+      Put(std::move(key), std::move(value));
+    }
+  }
+}
+
+template <typename T, typename U, typename Hash, typename Equal>
+void NWayLRU<T, U, Hash, Equal>::NotifyDumper() {
+  if (dumper_ != nullptr) {
+    dumper_->OnUpdateCompleted();
+  }
+}
+
+template <typename T, typename U, typename Hash, typename Equal>
+void NWayLRU<T, U, Hash, Equal>::SetDumper(
+    std::shared_ptr<dump::Dumper> dumper) {
+  dumper_ = std::move(dumper);
 }
 
 }  // namespace cache

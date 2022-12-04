@@ -13,6 +13,7 @@
 #include <userver/server/http/http_response.hpp>
 #include <userver/server/request/request_base.hpp>
 #include <userver/utils/datetime/wall_coarse_clock.hpp>
+#include <userver/utils/str_icase.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -127,10 +128,13 @@ class HttpRequestImpl final : public request::RequestBase {
   std::string request_path_;
   std::string request_body_;
   std::string path_suffix_;
-  std::unordered_map<std::string, std::vector<std::string>> request_args_;
-  std::unordered_map<std::string, std::vector<FormDataArg>> form_data_args_;
+  std::unordered_map<std::string, std::vector<std::string>, utils::StrCaseHash>
+      request_args_;
+  std::unordered_map<std::string, std::vector<FormDataArg>, utils::StrCaseHash>
+      form_data_args_;
   std::vector<std::string> path_args_;
-  std::unordered_map<std::string, size_t> path_args_by_name_index_;
+  std::unordered_map<std::string, size_t, utils::StrCaseHash>
+      path_args_by_name_index_;
   HttpRequest::HeadersMap headers_;
   HttpRequest::CookiesMap cookies_;
   bool is_final_{false};

@@ -2,7 +2,6 @@
 
 import os
 
-from conan.tools import files  # pylint: disable=import-error,no-name-in-module
 import conans  # pylint: disable=import-error
 
 required_conan_version = '>=1.51.0'  # pylint: disable=invalid-name
@@ -41,12 +40,12 @@ class UserverConan(conans.ConanFile):
     default_options = {
         'shared': False,
         'fPIC': True,
-        'with_jemalloc': False,
+        'with_jemalloc': True,
         'with_mongodb': True,
         'with_postgresql': True,
         'with_postgresql_extra': False,
         'with_redis': True,
-        'with_grpc': False,
+        'with_grpc': True,
         'with_clickhouse': False,
         'with_universal': True,
         'with_rabbitmq': True,
@@ -85,23 +84,25 @@ class UserverConan(conans.ConanFile):
         self.requires('boost/1.79.0')
         self.requires('libev/4.33')
         self.requires('spdlog/1.9.0')
+        self.options['spdlog'].header_only = True
         self.requires('fmt/8.1.1')
         self.requires('c-ares/1.18.1')
-        self.requires('libcurl/7.68.0')
+        self.requires('libcurl/7.86.0')
         self.requires('cryptopp/8.6.0')
         self.requires('yaml-cpp/0.7.0')
         self.requires('cctz/2.3')
         self.requires('http_parser/2.9.4')
-        self.requires('openssl/1.1.1q')
+        self.requires('openssl/1.1.1s')
         self.requires('rapidjson/cci.20220822')
         self.requires('concurrentqueue/1.0.3')
+        self.requires('zlib/1.2.13')
 
         if self.options.with_jemalloc:
             self.requires('jemalloc/5.2.1')
         if self.options.with_grpc:
             self.requires('grpc/1.48.0')
         if self.options.with_postgresql:
-            self.requires('libpq/14.2')
+            self.requires('libpq/14.5')
         if self.options.with_mongodb:
             self.requires('mongo-c-driver/1.22.0')
             self.options['mongo-c-driver'].with_sasl = 'cyrus'
@@ -152,9 +153,6 @@ class UserverConan(conans.ConanFile):
         return cmake
 
     def build(self):
-
-        files.apply_conandata_patches(self)
-
         cmake = self._configure_cmake()
         cmake.build()
 
@@ -172,11 +170,33 @@ class UserverConan(conans.ConanFile):
             self.copy(
                 pattern='*', dst='include', src='grpc/include', keep_path=True,
             )
+        if self.options.with_utest:
+            self.copy(
+                pattern='*',
+                dst='include',
+                src='core/testing/include',
+                keep_path=True,
+            )
+            self.copy(
+                pattern='*', dst='testsuite', src='testsuite', keep_path=True,
+            )
         if self.options.with_postgresql:
             self.copy(
                 pattern='*',
                 dst='include',
                 src='postgresql/include',
+                keep_path=True,
+            )
+            self.copy(
+                pattern='UserverTestsuite.cmake',
+                dst='cmake',
+                src='cmake',
+                keep_path=True,
+            )
+            self.copy(
+                pattern='AddGoogleTests.cmake',
+                dst='cmake',
+                src='cmake',
                 keep_path=True,
             )
         if self.options.with_mongodb:

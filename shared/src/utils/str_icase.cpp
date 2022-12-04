@@ -27,7 +27,24 @@ std::size_t StrIcaseHash::operator()(std::string_view s) const& noexcept {
   // of collisions infeasible.
   std::size_t res = seed_;
   for (const char c : s) {
-    boost::hash_combine(res, static_cast<char>(c | kUppercaseToLowerMask));
+    const char mask = (c >= 'A' && c <= 'Z') ? kUppercaseToLowerMask : 0;
+    boost::hash_combine(res, static_cast<char>(c | mask));
+  }
+  return res;
+}
+
+StrCaseHash::StrCaseHash()
+    : seed_(std::uniform_int_distribution<std::size_t>{}(DefaultRandom())) {}
+
+StrCaseHash::StrCaseHash(std::size_t seed) noexcept : seed_(seed) {}
+
+std::size_t StrCaseHash::operator()(std::string_view s) const& noexcept {
+  // NOTE: a random seed, mixed "well enough" into string hash, should make it
+  // resistant to HashDOS attacks. That is, it should make deliberate generation
+  // of collisions infeasible.
+  std::size_t res = seed_;
+  for (const char c : s) {
+    boost::hash_combine(res, static_cast<char>(c));
   }
   return res;
 }

@@ -84,6 +84,18 @@ void SetFormattedErrorResponse(http::HttpResponse& http_response,
   }
 }
 
+void SetFormattedErrorResponse(
+    server::http::ResponseBodyStream& response_body_stream,
+    FormattedErrorData&& formatted_error) {
+  if (formatted_error.content_type) {
+    response_body_stream.SetHeader(
+        USERVER_NAMESPACE::http::headers::kContentType,
+        std::move(formatted_error.content_type->ToString()));
+  }
+  response_body_stream.SetEndOfHeaders();
+  response_body_stream.PushBodyChunk(std::move(formatted_error.external_body));
+}
+
 const std::string kTracingTypeResponse = "response";
 const std::string kTracingTypeRequest = "request";
 const std::string kTracingBody = "body";
@@ -160,6 +172,7 @@ class RequestProcessor final {
       auto level = handler_.GetLogLevelForResponseStatus(http_status);
       LOG(level) << "custom handler exception in '" << handler_.HandlerName()
                  << "' handler in " + step_name + ": msg=" << ex;
+
       response.SetStatus(http_status);
       if (ex.IsExternalErrorBodyFormatted()) {
         response.SetData(ex.GetExternalErrorBody());
@@ -391,6 +404,54 @@ HttpHandlerBase::HttpHandlerBase(const components::ComponentConfig& config,
 
 HttpHandlerBase::~HttpHandlerBase() { statistics_holder_.Unregister(); }
 
+void HttpHandlerBase::HandleRequestStream(
+    const http::HttpRequest& http_request, http::HttpResponse& response,
+    request::RequestContext& context) const {
+  utils::ScopeGuard scope([&response] { response.SetHeadersEnd(); });
+
+  auto& http_response = http_request.GetHttpResponse();
+  server::http::ResponseBodyStream response_body_stream{
+      response.GetBodyProducer(), http_response};
+
+  // Just in case HandleStreamRequest() throws an exception.
+  // Though it can be changed in HandleStreamRequest().
+  response_body_stream.SetStatusCode(500);
+
+  try {
+    HandleStreamRequest(http_request, context, response_body_stream);
+  } catch (const CustomHandlerException& e) {
+    response_body_stream.SetStatusCode(http::GetHttpStatus(e.GetCode()));
+
+    for (const auto& [name, value] : e.GetExtraHeaders()) {
+      response_body_stream.SetHeader(name, value);
+    }
+    if (e.IsExternalErrorBodyFormatted()) {
+      response_body_stream.SetEndOfHeaders();
+      response_body_stream.PushBodyChunk(std::string{e.GetExternalErrorBody()});
+    } else {
+      auto formatted_error = GetFormattedExternalErrorBody(e);
+      SetFormattedErrorResponse(response_body_stream,
+                                std::move(formatted_error));
+    }
+  } catch (const std::exception& e) {
+    if (engine::current_task::ShouldCancel()) {
+      LOG_WARNING() << "request task cancelled, exception in '" << HandlerName()
+                    << "' handler in handle_request: " << e;
+      response_body_stream.SetStatusCode(
+          http::HttpStatus::kClientClosedRequest);
+    } else {
+      LOG_ERROR() << "exception in '" << HandlerName()
+                  << "' handler in handle_request: " << e;
+      response_body_stream.SetStatusCode(500);
+      SetFormattedErrorResponse(response,
+                                GetFormattedExternalErrorBody({
+                                    ExternalBody{response.GetData()},
+                                    HandlerErrorCode::kServerSideError,
+                                }));
+    }
+  }
+}
+
 void HttpHandlerBase::HandleRequest(request::RequestBase& request,
                                     request::RequestContext& context) const {
   UASSERT(dynamic_cast<http::HttpRequestImpl*>(&request));
@@ -503,17 +564,7 @@ void HttpHandlerBase::HandleRequest(request::RequestBase& request,
     request_processor.ProcessRequestStep(
         kHandleRequestStep, [this, &response, &http_request, &context] {
           if (response.IsBodyStreamed()) {
-            auto& response = http_request.GetHttpResponse();
-            utils::ScopeGuard scope([&response] { response.SetHeadersEnd(); });
-
-            server::http::ResponseBodyStream response_body_stream{
-                response.GetBodyProducer(), http_request.GetHttpResponse()};
-
-            // Just in case HandleStreamRequest() throws an exception.
-            // Though it can be changed in HandleStreamRequest().
-            response_body_stream.SetStatusCode(500);
-
-            HandleStreamRequest(http_request, context, response_body_stream);
+            HandleRequestStream(http_request, response, context);
           } else {
             // !IsBodyStreamed()
             response.SetData(HandleRequestThrow(http_request, context));
@@ -525,6 +576,7 @@ void HttpHandlerBase::HandleRequest(request::RequestBase& request,
 
   SetResponseAcceptEncoding(response);
   SetResponseServerHostname(response);
+  response.SetHeadersEnd();
 }
 
 void HttpHandlerBase::ThrowUnsupportedHttpMethod(

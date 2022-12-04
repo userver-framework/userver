@@ -5,8 +5,6 @@
 #include <optional>
 #include <stack>
 #include <string_view>
-#include <userver/formats/json.hpp>
-#include <variant>
 #include <vector>
 
 #include <fmt/format.h>
@@ -173,23 +171,24 @@ void ProcessInternalNode(DfsStack& dfs_stack,
 void ProcessLeaf(BaseFormatBuilder& builder, DfsLabelsBag& labels,
                  SensorPath& path, bool has_children_label,
                  const std::string& key, const formats::json::Value& value,
-                 const StatisticsRequest& request) {
+                 const Request& request) {
   if (has_children_label) {
     labels.ResetLastLabel(key);
   } else {
     path.AppendNode(key);
   }
-  std::optional<std::variant<int64_t, double>> metric_value;
-  if (value.IsString()) {
-    try {
-      metric_value = utils::FromString<double>(value.As<std::string>());
-    } catch (const std::exception&) {
-      // ignore
-    }
-  } else if (value.IsInt64()) {
-    metric_value = value.As<int64_t>();
+  std::optional<MetricValue> metric_value;
+
+  if (value.IsInt64()) {
+    metric_value.emplace(value.As<std::int64_t>());
   } else if (value.IsDouble()) {
-    metric_value = value.As<double>();
+    metric_value.emplace(value.As<double>());
+  } else {
+    // TODO remove this condition, prohibit null metrics.
+    if (!value.IsNull()) {
+      UASSERT_MSG(false, fmt::format("Non-numeric metric at path '{}': {}",
+                                     path.Get(), ToString(value)));
+    }
   }
 
   // filtration is simplified, the whole internal JSON metrics code is
@@ -226,7 +225,7 @@ Label::Label(std::string name, std::string value)
 
 void VisitMetrics(BaseFormatBuilder& out,
                   const formats::json::Value& statistics_storage_json,
-                  const StatisticsRequest& request) {
+                  const Request& request) {
   SensorPath path;
   DfsLabelsBag labels;
   std::stack<DfsNode> dfs_stack;

@@ -37,13 +37,20 @@ class Producer final {
   /// Push element into queue. May wait asynchronously if the queue is full.
   /// @returns whether push succeeded before the deadline.
   bool Push(ValueType&& value, engine::Deadline deadline = {}) const {
+    UASSERT(queue_);
     return queue_->Push(token_, std::move(value), deadline);
   }
 
   /// Try to push element into queue without blocking.
   /// @returns whether push succeeded.
   bool PushNoblock(ValueType&& value) const {
+    UASSERT(queue_);
     return queue_->PushNoblock(token_, std::move(value));
+  }
+
+  void Release() && {
+    if (queue_) queue_->MarkProducerIsDead();
+    queue_.reset();
   }
 
   /// Const access to source queue.

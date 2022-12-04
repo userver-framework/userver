@@ -24,6 +24,7 @@ ClusterHostType Fallback(ClusterHostType ht) {
     case ClusterHostType::kSyncSlave:
     case ClusterHostType::kSlave:
       return ClusterHostType::kMaster;
+    case ClusterHostType::kSlaveOrMaster:
     case ClusterHostType::kNone:
     case ClusterHostType::kRoundRobin:
     case ClusterHostType::kNearest:

@@ -1,3 +1,8 @@
+"""
+Work with the configuration files of the service in testsuite.
+"""
+
+import json
 import pathlib
 import types
 import typing
@@ -62,22 +67,48 @@ def pytest_addoption(parser) -> None:
     group.addoption(
         '--config-fallback',
         type=pathlib.Path,
-        help='Path to config fallback file.',
+        help='Path to dynamic config fallback file.',
     )
 
 
 @pytest.fixture(scope='session')
-def service_config_path(pytestconfig):
+def service_config_path(pytestconfig) -> pathlib.Path:
+    """
+    Returns the path to service.yaml file set by command line
+    `--service-config` option.
+
+    Override this fixture to change the way path to service.yaml is provided.
+
+    @ingroup userver_testsuite_fixtures
+    """
     return pytestconfig.option.service_config
 
 
 @pytest.fixture(scope='session')
-def service_config_vars_path(pytestconfig):
+def service_config_vars_path(pytestconfig) -> pathlib.Path:
+    """
+    Returns the path to config_vars.yaml file set by command line
+    `--service-config-vars` option.
+
+    Override this fixture to change the way path to config_vars.yaml is
+    provided.
+
+    @ingroup userver_testsuite_fixtures
+    """
     return pytestconfig.option.service_config_vars
 
 
 @pytest.fixture(scope='session')
-def config_fallback_path(pytestconfig):
+def config_fallback_path(pytestconfig) -> pathlib.Path:
+    """
+    Returns the path to dynamic config fallback file set by command line
+    `--config-fallback` option.
+
+    Override this fixture to change the way path to dynamic config fallback is
+    provided.
+
+    @ingroup userver_testsuite_fixtures
+    """
     return pytestconfig.option.config_fallback
 
 
@@ -192,8 +223,6 @@ def userver_config_fallback(pytestconfig, config_fallback_path):
     def _patch_config(config_yaml, config_vars):
         components = config_yaml['components_manager']['components']
         for component_name in (
-                'taxi-config-fallbacks',
-                'taxi-config-client-updater',
                 'dynamic-config-fallbacks',
                 'dynamic-config-client-updater',
         ):
@@ -207,8 +236,8 @@ def userver_config_fallback(pytestconfig, config_fallback_path):
     return _patch_config
 
 
-class TaxiConfig:
-    """Simple config backend."""
+class DynamicConfig:
+    """Simple dynamic config backend."""
 
     def __init__(self):
         self._values = {}
@@ -244,14 +273,26 @@ class TaxiConfig:
 
 
 @pytest.fixture
-def taxi_config(
+def dynamic_config(
         request,
         search_path,
         load_json,
         object_substitute,
         config_service_defaults,
-):
-    config = TaxiConfig()
+) -> DynamicConfig:
+    """
+    Fixture that allows to control dynamic config values used by the service.
+
+    After change to the config, be sure to call:
+    @code
+    await service_client.update_server_state()
+    @endcode
+
+    HTTP client requests call it automatically before each request.
+
+    @ingroup userver_testsuite_fixtures
+    """
+    config = DynamicConfig()
     all_values = config_service_defaults.copy()
     for path in reversed(list(search_path('config.json'))):
         values = load_json(path)
@@ -263,17 +304,32 @@ def taxi_config(
     return config
 
 
-@pytest.fixture(scope='session')
-def config_service_defaults():
+@pytest.fixture
+def taxi_config(dynamic_config):
     """
-    Fixture that returns default values for config. You have to override
+    Deprecated, use `dynamic_config` instead.
+    """
+    return dynamic_config
+
+
+@pytest.fixture(scope='session')
+def config_service_defaults(config_fallback_path) -> typing.Any:
+    """
+    Fixture that returns default values for config. You may override
     it in your local conftest.py or fixture:
 
+    @code
     @pytest.fixture(scope='session')
     def config_service_defaults():
         with open('defaults.json') as fp:
             return json.load(fp)
+    @endcode
+
+    @ingroup userver_testsuite_fixtures
     """
+    if config_fallback_path.exists():
+        with open(config_fallback_path, 'r', encoding='utf-8') as file:
+            return json.load(file)
     raise RuntimeError(
         'In order to use fixture %s you have to override %s fixture'
         % ('mock_configs_service', config_service_defaults.__name__),

@@ -58,12 +58,16 @@ class SingleConsumerEvent final {
   /// @overload bool WaitForEvent()
   [[nodiscard]] bool WaitForEventUntil(Deadline);
 
-  /// Resets the signal flag.
+  /// Resets the signal flag. Guarantees at least 'acquire' and 'release' memory
+  /// ordering.
   void Reset() noexcept;
 
   /// Sets the signal flag and wakes a coroutine that waits on it (if any).
   /// If the signal flag is already set, does nothing.
   void Send();
+
+  /// Returns `true` iff already signaled. Never resets the signal.
+  bool IsReady() const noexcept;
 
  private:
   class EventWaitStrategy;

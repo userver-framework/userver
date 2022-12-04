@@ -10,7 +10,7 @@ namespace utils::statistics::impl {
 
 struct WriterState {
   BaseFormatBuilder& builder;
-  const StatisticsRequest& request;
+  const Request& request;
   std::string path;
   std::vector<LabelView> add_labels;
 };

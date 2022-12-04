@@ -206,7 +206,6 @@ void CacheUpdateTrait::Impl::StopPeriodicUpdates() {
   }
 
   if (dumper_) {
-    engine::TaskCancellationBlocker blocker;
     dumper_->CancelWriteTaskAndWait();
   }
 }
@@ -265,11 +264,9 @@ void CacheUpdateTrait::Impl::DoPeriodicUpdate() {
   try {
     DoUpdate(update_type);
     forced_update_type_ = {};
-    if (dumper_) dumper_->WriteDumpAsync();
   } catch (const std::exception& ex) {
     LOG_WARNING() << "Error while updating cache " << name_
                   << ". Reason: " << ex;
-    if (dumper_) dumper_->WriteDumpAsync();
     throw;
   }
 }

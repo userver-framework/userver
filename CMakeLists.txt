@@ -46,6 +46,11 @@ if (NOT USERVER_OPEN_SOURCE_BUILD)
   message(STATUS "Using internal to Yandex build setup")
 endif()
 
+option(USERVER_CONAN "Build with Conan packages" ${CONAN_EXPORTED})
+if (USERVER_CONAN)
+  message(STATUS "Using Conan packages")
+endif()
+
 option(USERVER_DOWNLOAD_PACKAGES "Download missing third party packages and use the downloaded versions" ${USERVER_OPEN_SOURCE_BUILD})
 
 option(USERVER_FEATURE_CRYPTOPP_BLAKE2 "Provide wrappers for blake2 algorithms of crypto++" ON)
@@ -98,14 +103,22 @@ option(USERVER_FEATURE_CLICKHOUSE "Provide asynchronous driver for ClickHouse" $
 option(USERVER_FEATURE_RABBITMQ "Provide asynchronous driver for RabbitMQ" ${USERVER_OPEN_SOURCE_BUILD})
 option(USERVER_FEATURE_UNIVERSAL "Provide a universal utilities library that does not use coroutines" ON)
 
+if (USERVER_IS_THE_ROOT_PROJECT)
+    include(testsuite/SetupUserverTestsuiteEnv.cmake)
+    add_subdirectory(testsuite)
+endif()
+
+if (USERVER_CONAN)
+    find_package(Boost COMPONENTS stacktrace REQUIRED)
+else()
+    add_subdirectory("${USERVER_THIRD_PARTY_DIRS}/boost_stacktrace")
+endif()
+
 add_subdirectory(core "${CMAKE_BINARY_DIR}/userver/core")
-add_subdirectory("${USERVER_THIRD_PARTY_DIRS}/boost_stacktrace")
 add_subdirectory("${USERVER_THIRD_PARTY_DIRS}/compiler-rt")
 add_subdirectory(uboost_coro)
 
 if (USERVER_IS_THE_ROOT_PROJECT)
-    include(testsuite/SetupUserverTestsuiteEnv.cmake)
-    add_subdirectory(testsuite)
     add_subdirectory(tools/engine)
     add_subdirectory(tools/json2yaml)
     add_subdirectory(tools/httpclient)
@@ -143,5 +156,5 @@ if (USERVER_FEATURE_UNIVERSAL)
 endif()
 
 if (USERVER_IS_THE_ROOT_PROJECT)
-    add_subdirectory(samples)
+  add_subdirectory(samples)
 endif()

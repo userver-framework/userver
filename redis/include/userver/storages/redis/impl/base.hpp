@@ -256,6 +256,24 @@ enum class ConnectionMode {
   kSubscriber,
 };
 
+struct MetricsSettings {
+  bool timings_enabled{true};
+  bool command_timings_enabled{false};
+  bool request_sizes_enabled{false};
+  bool reply_sizes_enabled{false};
+
+  constexpr bool operator==(const MetricsSettings& rhs) const {
+    return timings_enabled == rhs.timings_enabled &&
+           command_timings_enabled == rhs.command_timings_enabled &&
+           request_sizes_enabled == rhs.request_sizes_enabled &&
+           reply_sizes_enabled == rhs.reply_sizes_enabled;
+  }
+
+  constexpr bool operator!=(const MetricsSettings& rhs) const {
+    return !(*this == rhs);
+  }
+};
+
 }  // namespace redis
 
 USERVER_NAMESPACE_END
