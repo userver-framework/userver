@@ -2,9 +2,6 @@
 
 #include <memory>
 
-//#include <http_parser.h>
-//#include <llhttp.h>
-
 #include <userver/http/parser/http_request_parse_args.hpp>
 #include <userver/server/http/http_method.hpp>
 #include <userver/server/request/request_config.hpp>
@@ -79,7 +76,6 @@ class HttpRequestConstructor final : public request::RequestConstructor {
   const HandlerInfoIndex& handler_info_index_;
 
   utils::FastPimpl<LegacyHttpParserUrlImpl, 32, 8> legacy_parsed_url_;
-  //http_parser_url parsed_url_{};
   std::string header_field_;
   std::string header_value_;
   bool header_field_flag_ = false;
