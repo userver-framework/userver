@@ -190,6 +190,7 @@ class HttpHandlerBase : public HandlerBase {
   bool set_response_server_hostname_;
   mutable utils::TokenBucket rate_limit_;
   bool is_body_streamed_;
+  bool tracing_headers_enabled_;
 };
 
 }  // namespace server::handlers
