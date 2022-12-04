@@ -158,7 +158,7 @@ void ToHex(std::string_view input, std::string& out) noexcept {
 
     // and now we gather kXdigits as specified in interleaving_hi_lo
     // and store them into the result
-    _mm_storeu_si128(static_cast<__m128i*>(static_cast<void*>(dst)),
+    _mm_storeu_si128(reinterpret_cast<__m128i*>(dst),
                      _mm_shuffle_epi8(detail::kDigitsMask, interleaving_hi_lo));
 
     first += 8;
