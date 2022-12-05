@@ -69,3 +69,4 @@ groups:
       - redis/library.yaml
     fallbacks:
       - samples/redis_service/dynamic_config_fallback.json
+      - redis/functional_tests/integration_tests/dynamic_config_fallback.json
