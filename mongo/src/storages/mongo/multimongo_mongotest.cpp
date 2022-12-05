@@ -30,14 +30,14 @@ const mongo::PoolConfig kPoolConfig(
 }  // namespace
 
 UTEST(MultiMongo, DynamicSecdistUpdate) {
-  const std::string kSecdistInitJson = R"~(
+  constexpr std::string_view kSecdistInitJson = R"~(
   {
       "mongo_settings": {
       }
   }
   )~";
 
-  const std::string kSecdistUpdateJsonFormat = R"~(
+  constexpr std::string_view kSecdistUpdateJsonFormat = R"~(
   {{
       "mongo_settings": {{
           "admin": {{
