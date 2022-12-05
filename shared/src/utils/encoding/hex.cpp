@@ -3,6 +3,10 @@
 #include <stdexcept>
 #include <string_view>
 
+#ifdef __SSSE3__
+#include <tmmintrin.h>
+#endif
+
 USERVER_NAMESPACE_BEGIN
 
 namespace utils::encoding {
@@ -100,6 +104,13 @@ bool IsXDigit(unsigned char x_digit) noexcept {
 
   return false;
 }
+
+#ifdef __SSSE3__
+const auto kLow4BitsMask = _mm_set1_epi8(0xf);
+const auto kDigitsMask = _mm_setr_epi8('0', '1', '2', '3', '4', '5', '6', '7',
+                                       '8', '9', 'a', 'b', 'c', 'd', 'e', 'f');
+#endif
+
 }  // namespace detail
 
 std::string_view GetHexPart(std::string_view encoded) noexcept {
@@ -125,12 +136,41 @@ void ToHex(std::string_view input, std::string& out) noexcept {
   out.resize(input.size() * 2);
   const auto* first = input.data();
   const auto* last = input.data() + input.size();
-  size_t ind = 0;
+  auto* dst = out.data();
+
+#ifdef __SSSE3__
+  while (last - first >= 8) {
+    // we only take 8 bytes because each byte transforms into 2 bytes
+    // (first digit comes from 4 high bits, second comes from 4 low bits)
+    const auto eight_bytes_of_data = _mm_loadu_si64(first);
+
+    // we take the original eight bytes, shift them (as one 64-bits integer)
+    // 4 bits to the right - now we have 4 high bits of each original byte
+    // in the lowest 4 bits, with some garbage in higher bits, - combine
+    // the original 8 bytes interleaved with it and mask out
+    // highest 4 bits of each byte. So we get this in the end:
+    // h4(b0), l4(b0), h4(b1), l4(b1), ... where h4() is the highest 4 bits,
+    // l4() - lowest 4 bits, and b0, b1, ... are the original bytes
+    const auto interleaving_hi_lo =
+        _mm_and_si128(_mm_unpacklo_epi8(_mm_srli_epi64(eight_bytes_of_data, 4),
+                                        eight_bytes_of_data),
+                      detail::kLow4BitsMask);
+
+    // and now we gather kXdigits as specified in interleaving_hi_lo
+    // and store them into the result
+    _mm_storeu_si128(reinterpret_cast<__m128i*>(dst),
+                     _mm_shuffle_epi8(detail::kDigitsMask, interleaving_hi_lo));
+
+    first += 8;
+    dst += 16;
+  }
+#endif
+
   while (first != last) {
     const auto value = *first;
     // We don't use ToHexChar because it does range checking
-    out[ind++] = detail::kXdigits[(value >> 4) & 0xf];
-    out[ind++] = detail::kXdigits[value & 0xf];
+    *(dst++) = detail::kXdigits[(value >> 4) & 0xf];
+    *(dst++) = detail::kXdigits[value & 0xf];
     ++first;
   }
 }
