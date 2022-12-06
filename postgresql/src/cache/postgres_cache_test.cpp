@@ -5,6 +5,7 @@
 #include <boost/functional/hash.hpp>
 
 #include <userver/components/minimal_server_component_list.hpp>
+#include <userver/utils/projected_set.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -63,7 +64,7 @@ struct PostgresExamplePolicy {
   // Specifies whether updated field should be treated as a timestamp
   // with or without timezone in database queries.
   //
-  // Required: **yes** if incremantal updates are used.
+  // Required: **yes** if incremental updates are used.
   using UpdatedFieldType = storages::postgres::TimePointTz;
 
   // Where clause of the query. Either `kWhere` or `GetWhere` can be defined.
@@ -270,6 +271,7 @@ class UserSpecificCacheWithWriteNotification {
 };
 /*! [Pg Cache Policy Custom Container With Write Notification Example] */
 
+// Tests a container with OnWritesDone
 struct PostgresExamplePolicy6 {
   static constexpr std::string_view kName = "my-pg-cache";
   using ValueType = MyStructure;
@@ -281,6 +283,18 @@ struct PostgresExamplePolicy6 {
   using CacheContainer = UserSpecificCacheWithWriteNotification;
 };
 
+// Tests ProjectedUnorderedSet as container
+struct PostgresExamplePolicy7 {
+  static constexpr std::string_view kName = "my-pg-cache";
+  using ValueType = MyStructure;
+  static constexpr auto kKeyMember = &MyStructure::id;
+  static constexpr const char* kQuery =
+      "select id, bar, updated from test.my_data";
+  static constexpr const char* kUpdatedField = "updated";
+  using UpdatedFieldType = storages::postgres::TimePointTz;
+  using CacheContainer = utils::ProjectedUnorderedSet<ValueType, kKeyMember>;
+};
+
 // Instantiation test
 using MyCache1 = PostgreCache<PostgresExamplePolicy>;
 using MyCache2 = PostgreCache<PostgresExamplePolicy2>;
@@ -289,6 +303,7 @@ using MyCache4 = PostgreCache<PostgresExamplePolicy4>;
 using MyTrivialCache = PostgreCache<PostgresTrivialPolicy>;
 using MyCache5 = PostgreCache<PostgresExamplePolicy5>;
 using MyCache6 = PostgreCache<PostgresExamplePolicy6>;
+using MyCache7 = PostgreCache<PostgresExamplePolicy7>;
 
 // NB: field access required for actual instantiation
 static_assert(MyCache1::kIncrementalUpdates);
@@ -297,6 +312,7 @@ static_assert(MyCache3::kIncrementalUpdates);
 static_assert(MyCache4::kIncrementalUpdates);
 static_assert(MyCache5::kIncrementalUpdates);
 static_assert(MyCache6::kIncrementalUpdates);
+static_assert(MyCache7::kIncrementalUpdates);
 
 namespace pg = storages::postgres;
 static_assert(MyCache1::kClusterHostTypeFlags == pg::ClusterHostType::kSlave);
@@ -305,6 +321,7 @@ static_assert(MyCache3::kClusterHostTypeFlags == pg::ClusterHostType::kSlave);
 static_assert(MyCache4::kClusterHostTypeFlags == pg::ClusterHostType::kSlave);
 static_assert(MyCache5::kClusterHostTypeFlags == pg::ClusterHostType::kSlave);
 static_assert(MyCache6::kClusterHostTypeFlags == pg::ClusterHostType::kSlave);
+static_assert(MyCache7::kClusterHostTypeFlags == pg::ClusterHostType::kSlave);
 
 // Update() instantiation test
 [[maybe_unused]] void VerifyUpdateCompiles(
@@ -314,8 +331,10 @@ static_assert(MyCache6::kClusterHostTypeFlags == pg::ClusterHostType::kSlave);
   MyCache2 cache2{config, context};
   MyCache3 cache3{config, context};
   MyCache4 cache4{config, context};
+  MyTrivialCache my_trivial_cache{config, context};
   MyCache5 cache5{config, context};
   MyCache6 cache6{config, context};
+  MyCache7 cache7{config, context};
 }
 
 inline auto SampleOfComponentRegistration() {
