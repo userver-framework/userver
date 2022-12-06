@@ -1,0 +1,33 @@
+#include <storages/mysql/infra/connection_ptr.hpp>
+
+#include <storages/mysql/impl/mysql_connection.hpp>
+#include <storages/mysql/infra/pool.hpp>
+
+USERVER_NAMESPACE_BEGIN
+
+namespace storages::mysql::infra {
+
+ConnectionPtr::ConnectionPtr(
+    std::shared_ptr<Pool>&& pool,
+    std::unique_ptr<impl::MySQLConnection>&& connection)
+    : pool_{std::move(pool)}, connection_{std::move(connection)} {}
+
+ConnectionPtr::~ConnectionPtr() { Release(); }
+
+ConnectionPtr::ConnectionPtr(ConnectionPtr&& other) noexcept = default;
+
+impl::MySQLConnection& ConnectionPtr::operator*() const { return *connection_; }
+
+impl::MySQLConnection* ConnectionPtr::operator->() const noexcept {
+  return connection_.get();
+}
+
+void ConnectionPtr::Release() noexcept {
+  if (!pool_) return;
+
+  pool_->Release(std::move(connection_));
+}
+
+}  // namespace storages::mysql::infra
+
+USERVER_NAMESPACE_END

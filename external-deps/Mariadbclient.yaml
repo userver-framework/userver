@@ -1,0 +1,16 @@
+name: Mariadbclient
+version: 10.1.48
+helper-prefix: false
+
+includes:
+    find:
+      - names:
+          - mysql/mysql.h
+
+libraries:
+    find:
+      - names:
+          - mariadbclient
+
+debian-names:
+  - libmariadbclient-dev
