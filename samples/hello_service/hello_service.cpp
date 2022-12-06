@@ -25,6 +25,15 @@ class Hello final : public server::handlers::HttpHandlerBase {
 }  // namespace samples::hello
 /// [Hello service sample - component]
 
+namespace userver::components {
+
+// This forces userver to validate provided static config of Hello handler
+// against the schema.
+template <>
+inline constexpr bool kHasValidate<samples::hello::Hello> = true;
+
+}  // namespace userver::components
+
 /// [Hello service sample - main]
 int main(int argc, char* argv[]) {
   const auto component_list =

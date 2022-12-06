@@ -94,6 +94,8 @@ HandlerConfig ParseHandlerConfigsWithDefaults(
         std::to_string(config.max_requests_per_second.value()));
   }
 
+  config.set_tracing_headers = value["set-tracing-headers"].As<bool>(true);
+
   return config;
 }
 

@@ -111,6 +111,10 @@ properties:
         type: boolean
         description: overrides the in-code `is_monitor` flag that makes the handler run either on 'server.listener' or on 'server.listener-monitor'
         defaultDescription: uses in-code flag value
+    set-tracing-headers:
+        type: boolean
+        description: whether to set http tracing headers (X-YaTraceId, X-YaSpanId, X-RequestId)
+        defaultDescription: true
 )");
 }
 
