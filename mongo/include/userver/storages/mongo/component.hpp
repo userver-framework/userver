@@ -180,9 +180,6 @@ class MultiMongo : public LoggableComponentBase {
   /// Creates an empty database set bound to the component
   storages::mongo::MultiMongo::PoolSet NewPoolSet();
 
-  /// Returns component statistics JSON
-  formats::json::Value GetStatistics() const;
-
   using PoolSet = storages::mongo::MultiMongo::PoolSet;
 
   static yaml_config::Schema GetStaticConfigSchema();
@@ -191,6 +188,8 @@ class MultiMongo : public LoggableComponentBase {
   void OnConfigUpdate(const dynamic_config::Snapshot& cfg);
 
   storages::mongo::MultiMongo multi_mongo_;
+
+  formats::json::Value GetStatistics() const;
 
   const bool is_verbose_stats_enabled_;
   utils::statistics::Entry statistics_holder_;

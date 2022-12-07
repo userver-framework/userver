@@ -104,50 +104,50 @@ properties:
         description: connection string (used if no dbalias specified)
     appname:
         type: string
-        description: application name for the DB server 
+        description: application name for the DB server
         defaultDescription: userver
     conn_timeout:
         type: string
-        description: connection timeout 
+        description: connection timeout
         defaultDescription: 2s
     so_timeout:
         type: string
-        description: socket timeout 
+        description: socket timeout
         defaultDescription: 10s
     queue_timeout:
         type: string
-        description: max connection queue wait time 
+        description: max connection queue wait time
         defaultDescription: 1s
     initial_size:
         type: integer
-        description: number of connections created initially 
+        description: number of connections created initially
         defaultDescription: 16
     max_size:
         type: integer
-        description: limit for total connections number 
+        description: limit for total connections number
         defaultDescription: 128
     idle_limit:
         type: integer
-        description: limit for idle connections number 
+        description: limit for idle connections number
         defaultDescription: 64
     connecting_limit:
         type: integer
-        description: limit for establishing connections number 
+        description: limit for establishing connections number
         defaultDescription: 8
     local_threshold:
         type: string
-        description: latency window for instance selection 
+        description: latency window for instance selection
         defaultDescription: mongodb default
     max_replication_lag:
         type: string
         description: replication lag limit for usable secondaries, min. 90s
     maintenance_period:
         type: string
-        description: pool maintenance period (idle connections pruning etc.) 
+        description: pool maintenance period (idle connections pruning etc.)
         defaultDescription: 15s
     stats_verbosity:
         type: string
-        description: changes the granularity of reported metrics 
+        description: changes the granularity of reported metrics
         defaultDescription: 'terse'
     dns_resolver:
         type: string
