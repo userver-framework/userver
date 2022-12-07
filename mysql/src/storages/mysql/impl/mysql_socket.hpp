@@ -1,7 +1,7 @@
 #pragma once
 
 #include <engine/ev/watcher.hpp>
-#include <userver/engine/single_consumer_event.hpp>
+#include <userver/engine/impl/wait_list_fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -21,9 +21,8 @@ class MySQLSocket final {
 
   const int fd_;
 
-  int mysql_events_to_wait_on_;
-
-  engine::SingleConsumerEvent watcher_ready_event_;
+  std::atomic<int> mysql_events_to_wait_on_;
+  engine::impl::FastPimplWaitListLight waiters_;
   engine::ev::Watcher<ev_io> watcher_;
 };
 

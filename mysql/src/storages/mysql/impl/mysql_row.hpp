@@ -19,6 +19,8 @@ class MySQLRow final {
 
   std::size_t FieldsCount() const;
 
+  std::string& GetField(std::size_t ind);
+
   auto begin() { return columns_.begin(); }
   auto begin() const { return columns_.begin(); }
 

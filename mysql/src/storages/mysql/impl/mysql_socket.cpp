@@ -1,15 +1,61 @@
 #include <storages/mysql/impl/mysql_socket.hpp>
 
-#include <utility>
-
 #include <mysql/mysql.h>
 
+#include <engine/impl/wait_list_light.hpp>
+#include <engine/task/task_context.hpp>
 #include <userver/engine/task/task.hpp>
 #include <userver/utils/assert.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::mysql::impl {
+
+namespace {
+
+class SocketWaitStrategy final : public engine::impl::WaitStrategy {
+ public:
+  SocketWaitStrategy(engine::Deadline deadline,
+                     engine::impl::WaitListLight& waiters,
+                     engine::ev::Watcher<ev_io>& watcher,
+                     engine::impl::TaskContext& current)
+      : engine::impl::WaitStrategy(deadline),
+        waiters_{waiters},
+        watcher_{watcher},
+        current_{current} {}
+
+  void SetupWakeups() override {
+    waiters_.Append(&current_);
+    watcher_.StartAsync();
+  }
+
+  void DisableWakeups() override {
+    waiters_.Remove(current_);
+    watcher_.StopAsync();
+  }
+
+ private:
+  engine::impl::WaitListLight& waiters_;
+  engine::ev::Watcher<ev_io>& watcher_;
+  engine::impl::TaskContext& current_;
+};
+
+engine::impl::TaskContext::WakeupSource DoWait(
+    engine::Deadline deadline, engine::impl::WaitListLight& waiters,
+    engine::ev::Watcher<ev_io>& watcher) {
+  auto& current = engine::current_task::GetCurrentTaskContext();
+  if (current.ShouldCancel()) {
+    return engine::impl::TaskContext::WakeupSource::kCancelRequest;
+  }
+
+  SocketWaitStrategy wait_strategy{deadline, waiters, watcher, current};
+  auto ret = current.Sleep(wait_strategy);
+
+  watcher.Stop();
+  return ret;
+}
+
+}  // namespace
 
 MySQLSocket::MySQLSocket(int fd, int mysql_events)
     : fd_{fd},
@@ -20,33 +66,39 @@ MySQLSocket::MySQLSocket(int fd, int mysql_events)
 
 MySQLSocket::~MySQLSocket() { watcher_.Stop(); }
 
-bool MySQLSocket::ShouldWait() const { return mysql_events_to_wait_on_ != 0; }
+bool MySQLSocket::ShouldWait() const {
+  return mysql_events_to_wait_on_.load() != 0;
+}
 
 int MySQLSocket::Wait(engine::Deadline deadline) {
-  UASSERT(mysql_events_to_wait_on_ != 0);
+  UASSERT(mysql_events_to_wait_on_.load() != 0);
 
   int ev_events = 0;
-  if (mysql_events_to_wait_on_ & MYSQL_WAIT_READ) ev_events |= EV_READ;
-  if (mysql_events_to_wait_on_ & MYSQL_WAIT_WRITE) ev_events |= EV_WRITE;
+  const auto mysql_events = mysql_events_to_wait_on_.load();
+  if (mysql_events & MYSQL_WAIT_READ) ev_events |= EV_READ;
+  if (mysql_events & MYSQL_WAIT_WRITE) ev_events |= EV_WRITE;
 
-  watcher_.RunInBoundEvLoopSync([this, ev_events] {
-    watcher_.Stop();
-    watcher_ready_event_.Reset();
-    watcher_.Set(fd_, ev_events);
-    watcher_.Start();
-  });
+  watcher_.RunInBoundEvLoopAsync(
+      [this, ev_events] { watcher_.Set(fd_, ev_events); });
 
-  if (!watcher_ready_event_.WaitForEventUntil(deadline)) {
-    throw std::runtime_error{"Wait deadline, idk"};
+  using WakeupSource = engine::impl::TaskContext::WakeupSource;
+  auto ret = DoWait(deadline, *waiters_, watcher_);
+  if (ret != WakeupSource::kWaitList) {
+    if (ret == WakeupSource::kCancelRequest) {
+      // TODO : CancellationPoint()?
+      throw std::runtime_error{"Wait cancelled"};
+    } else if (ret == WakeupSource::kDeadlineTimer) {
+      throw std::runtime_error{"Wait timed out"};
+    }
   }
-  return std::exchange(mysql_events_to_wait_on_, 0);
+
+  return mysql_events_to_wait_on_.exchange(0);
 }
 
 void MySQLSocket::SetEvents(int mysql_events) {
-  UASSERT(mysql_events_to_wait_on_ == 0);
+  UASSERT(mysql_events_to_wait_on_.load() == 0);
 
-  watcher_.RunInBoundEvLoopSync(
-      [this, mysql_events] { mysql_events_to_wait_on_ = mysql_events; });
+  mysql_events_to_wait_on_.store(mysql_events);
 }
 
 void MySQLSocket::WatcherCallback(struct ev_loop*, ev_io* watcher,
@@ -59,8 +111,8 @@ void MySQLSocket::WatcherCallback(struct ev_loop*, ev_io* watcher,
 
   self->watcher_.Stop();
 
-  self->mysql_events_to_wait_on_ = mysql_events;
-  self->watcher_ready_event_.Send();
+  self->mysql_events_to_wait_on_.store(mysql_events);
+  self->waiters_->WakeupOne();
 }
 
 }  // namespace storages::mysql::impl
