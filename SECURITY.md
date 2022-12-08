@@ -22,8 +22,12 @@ We're extremely grateful for security researchers and users that report
 vulnerabilities to the userver Open Source Community. All reports are
 thoroughly investigated by developers.
 
-To report a potential vulnerability or weakness in userver please send the
-details about it to [security@userver.tech](mailto:security@userver.tech).
+
+🐙 userver is the part of the "The Yandex Bug Bounty" program. To report a
+potential vulnerability or weakness in userver please send the
+details about it to
+[https://yandex.com/bugbounty/i/report/](https://yandex.com/bugbounty/i/report/)
+or to [security@yandex-team.ru](mailto:security@yandex-team.ru).
 
 
 ### When Should I Report a Vulnerability?
