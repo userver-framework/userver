@@ -2,7 +2,14 @@
 
 #include <stdexcept>
 
-#include <userver/engine/task/task.hpp>
+#include <fmt/format.h>
+
+#include <userver/utils/assert.hpp>
+#include <userver/utils/scope_guard.hpp>
+
+#include <storages/mysql/impl/mysql_binds_storage.hpp>
+#include <storages/mysql/impl/mysql_plain_query.hpp>
+#include <userver/storages/mysql/io/extractor.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -18,40 +25,11 @@ MYSQL InitMysql() {
   return mysql;
 }
 
-template <typename StartFn, typename ContFn>
-void RunToCompletion(MySQLSocket& socket_, StartFn&& start_fn, ContFn cont_fn,
-                     engine::Deadline deadline) {
-  socket_.SetEvents(start_fn());
-  while (socket_.ShouldWait()) {
-    const auto mysql_events = socket_.Wait(deadline);
-    socket_.SetEvents(cont_fn(mysql_events));
-  }
-}
-
-class MySQLResultDeleter final {
- public:
-  MySQLResultDeleter(MySQLSocket& socket) : socket_{socket} {}
-
-  void operator()(MYSQL_RES* res) noexcept {
-    try {
-      RunToCompletion(
-          socket_, [res] { return mysql_free_result_start(res); },
-          [res](int mysql_events) {
-            return mysql_free_result_cont(res, mysql_events);
-          },
-          {} /* TODO : deadline? */);
-    } catch (const std::exception& ex) {
-    }
-  }
-
- private:
-  MySQLSocket& socket_;
-};
-
 }  // namespace
 
 MySQLConnection::MySQLConnection()
     : mysql_{InitMysql()}, socket_{InitSocket()} {
+  // TODO : deadline and cleanup
   while (socket_.ShouldWait()) {
     const auto mysql_events = socket_.Wait({});
     socket_.SetEvents(
@@ -65,19 +43,63 @@ MySQLConnection::MySQLConnection()
 }
 
 MySQLConnection::~MySQLConnection() {
-  RunToCompletion(
-      socket_, [this] { return mysql_close_start(&mysql_); },
-      [this](int mysql_event) {
-        return mysql_close_cont(&mysql_, mysql_event);
-      },
-      {});
+  socket_.RunToCompletion([this] { return mysql_close_start(&mysql_); },
+                          [this](int mysql_event) {
+                            return mysql_close_cont(&mysql_, mysql_event);
+                          },
+                          {} /* TODO : deadline */);
 }
 
-MySQLResult MySQLConnection::Execute(const std::string& query,
-                                     engine::Deadline deadline) {
-  MySQLExecuteQuery(query, deadline);
+MySQLResult MySQLConnection::ExecutePlain(const std::string& query,
+                                          engine::Deadline deadline) {
+  MySQLPlainQuery mysql_query{*this, query};
 
-  return MySQLFetchResult(deadline);
+  mysql_query.Execute(deadline);
+  return mysql_query.FetchResult(deadline);
+}
+
+void MySQLConnection::ExecuteStatement(const std::string& statement,
+                                       io::ParamsBinderBase& params,
+                                       io::ExtractorBase& extractor,
+                                       engine::Deadline deadline) {
+  auto& mysql_statement = PrepareStatement(statement, deadline);
+
+  UINVARIANT(
+      mysql_statement.ParamsCount() == params.GetBinds().Size(),
+      fmt::format("Statement has {} parameters, but {} were provided",
+                  mysql_statement.ParamsCount(), params.GetBinds().Size()));
+  UINVARIANT(
+      mysql_statement.ResultColumnsCount() == extractor.ColumnsCount(),
+      fmt::format("Statement has {} output columns, but {} were provided",
+                  mysql_statement.ResultColumnsCount(),
+                  extractor.ColumnsCount()));
+
+  mysql_statement.BindStatementParams(params.GetBinds());
+  mysql_statement.Execute(deadline);
+
+  utils::ScopeGuard result_scope_dispose{
+      [&mysql_statement, deadline] { mysql_statement.FreeResult(deadline); }};
+
+  mysql_statement.StoreResult(deadline);
+
+  const auto rows_count = mysql_statement.RowsCount();
+  extractor.Reserve(rows_count);
+
+  for (std::size_t i = 0; i < rows_count; ++i) {
+    auto& bind = extractor.BindNextRow();
+    const auto parsed = mysql_statement.FetchResultRow(bind);
+    UASSERT(parsed);
+  }
+}
+
+MySQLSocket& MySQLConnection::GetSocket() { return socket_; }
+
+MYSQL& MySQLConnection::GetNativeHandler() { return mysql_; }
+
+const char* MySQLConnection::GetNativeError() { return mysql_error(&mysql_); }
+
+std::string MySQLConnection::GetNativeError(std::string_view prefix) {
+  return std::string{prefix} + mysql_error(&mysql_);
 }
 
 MySQLSocket MySQLConnection::InitSocket() {
@@ -88,50 +110,19 @@ MySQLSocket MySQLConnection::InitSocket() {
   return MySQLSocket{mysql_get_socket(&mysql_), mysql_events};
 }
 
-void MySQLConnection::MySQLExecuteQuery(const std::string& query,
-                                        engine::Deadline deadline) {
-  int err = 0;
-  RunToCompletion(
-      socket_,
-      [this, &err, &query] {
-        return mysql_real_query_start(&err, &mysql_, query.data(),
-                                      query.size());
-      },
-      [this, &err](int mysql_events) {
-        return mysql_real_query_cont(&err, &mysql_, mysql_events);
-      },
-      deadline);
-
-  if (err != 0) {
-    throw std::runtime_error{std::string{"Failed to execute query: "} +
-                             mysql_error(&mysql_)};
-  }
-}
-
-MySQLResult MySQLConnection::MySQLFetchResult(engine::Deadline deadline) {
-  std::unique_ptr<MYSQL_RES, MySQLResultDeleter> res{
-      mysql_use_result(&mysql_), MySQLResultDeleter{socket_}};
-  if (!res) {
-    throw std::runtime_error{std::string{"Idk, TODO"} + mysql_error(&mysql_)};
+MySQLStatement& MySQLConnection::PrepareStatement(const std::string& statement,
+                                                  engine::Deadline deadline) {
+  // TODO : case insensitive find
+  if (auto it = statements_cache_.find(statement);
+      it != statements_cache_.end()) {
+    return it->second;
   }
 
-  MySQLResult result{};
-  MYSQL_ROW row{nullptr};
-  while (true) {
-    RunToCompletion(
-        socket_,
-        [&row, res = res.get()] { return mysql_fetch_row_start(&row, res); },
-        [&row, res = res.get()](int mysql_events) {
-          return mysql_fetch_row_cont(&row, res, mysql_events);
-        },
-        deadline);
-
-    if (!row) break;
-
-    result.AppendRow(MySQLRow{row, mysql_field_count(&mysql_)});
-  }
-
-  return result;
+  MySQLStatement mysql_statement{*this, statement, deadline};
+  auto [it, inserted] =
+      statements_cache_.emplace(statement, std::move(mysql_statement));
+  UASSERT(inserted);
+  return it->second;
 }
 
 }  // namespace storages::mysql::impl

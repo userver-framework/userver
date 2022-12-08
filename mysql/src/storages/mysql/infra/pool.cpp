@@ -71,6 +71,8 @@ void Pool::Release(std::unique_ptr<impl::MySQLConnection> connection) {
   if (!queue_.bounded_push(connection_ptr)) {
     Drop(connection_ptr);
   }
+
+  given_away_semaphore_.unlock_shared();
 }
 
 Pool::SmartConnectionPtr Pool::Pop(engine::Deadline deadline) {

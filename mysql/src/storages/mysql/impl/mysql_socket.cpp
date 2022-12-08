@@ -96,6 +96,7 @@ int MySQLSocket::Wait(engine::Deadline deadline) {
 }
 
 void MySQLSocket::SetEvents(int mysql_events) {
+  // TODO : think about this one, can fail if `Wait` timed out/was cancelled
   UASSERT(mysql_events_to_wait_on_.load() == 0);
 
   mysql_events_to_wait_on_.store(mysql_events);

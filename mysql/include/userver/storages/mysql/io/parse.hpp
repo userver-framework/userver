@@ -15,6 +15,8 @@ class BaseParser {
 
  protected:
   virtual void Parse(std::string& source) = 0;
+
+  // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
   T& field_;
 };
 
@@ -29,14 +31,14 @@ template <>
 class FieldParser<std::string> final : public BaseParser<std::string> {
   using BaseParser::BaseParser;
 
-  void Parse(std::string& source) override;
+  void Parse(std::string& source) final;
 };
 
 template <>
 class FieldParser<int> final : public BaseParser<int> {
   using BaseParser::BaseParser;
 
-  void Parse(std::string& source) override;
+  void Parse(std::string& source) final;
 };
 
 template <typename T>

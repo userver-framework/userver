@@ -5,6 +5,7 @@
 #include <storages/mysql/impl/mysql_connection.hpp>
 #include <storages/mysql/infra/pool.hpp>
 
+#include <userver/storages/mysql/io/extractor.hpp>
 #include <userver/storages/mysql/result_set.hpp>
 
 #include <userver/engine/sleep.hpp>
@@ -16,7 +17,7 @@ UTEST(Connection, Works) { storages::mysql::impl::MySQLConnection conn{}; }
 UTEST(Connection, ExecuteWorks) {
   storages::mysql::impl::MySQLConnection conn{};
 
-  const auto res = conn.Execute("SELECT Id, Value FROM test", {});
+  const auto res = conn.ExecutePlain("SELECT Id, Value FROM test", {});
 
   for (const auto& row : res) {
     for (const auto& field : row) {
@@ -40,7 +41,7 @@ UTEST(Connection, TypedWorks) {
 
   const auto get_res = [&conn] {
     return storages::mysql::ResultSet{
-        conn.Execute("SELECT Id, Value FROM test", {})};
+        conn.ExecutePlain("SELECT Id, Value FROM test", {})};
   };
 
   {
@@ -53,6 +54,19 @@ UTEST(Connection, TypedWorks) {
   }
   { auto res = get_res().AsContainer<std::vector<Row>>(); }
 }
+
+/*UTEST(Connection, PreparedWorks) {
+  storages::mysql::impl::MySQLConnection conn{};
+
+  // yeap, this type is in public includes, yet connection is private
+  storages::mysql::io::TypedExtractor<Row> extractor{};
+  conn.ExecuteStatement("SELECT Id, Value FROM test", extractor, {});
+  auto data = std::move(extractor).ExtractData();
+
+  for (const auto& row : data) {
+    std::cout << row.id << " | " << row.value << std::endl;
+  }
+}*/
 
 UTEST(Pool, Works) { const auto pool = storages::mysql::infra::Pool::Create(); }
 

@@ -10,7 +10,7 @@ namespace storages::mysql::impl {
 class MySQLRow final {
  public:
   MySQLRow();
-  MySQLRow(char** data, std::size_t fields_count);
+  MySQLRow(char** data, std::size_t fields_count, std::size_t* fields_lengths);
 
   MySQLRow(const MySQLRow& other) = delete;
   MySQLRow(MySQLRow&& other) noexcept;

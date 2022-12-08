@@ -137,7 +137,7 @@ class TypedResultSet final {
 
     class FieldMapper final {
      public:
-      explicit FieldMapper(ResultSet* result_set, std::size_t row_ind)
+      FieldMapper(ResultSet* result_set, std::size_t row_ind)
           : result_set_{result_set}, row_ind_{row_ind} {}
 
       template <typename Field, size_t Index>
