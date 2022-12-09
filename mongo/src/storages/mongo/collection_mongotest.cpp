@@ -521,48 +521,47 @@ UTEST(Collection, AggregateOut) {
 }
 
 UTEST(Collection, Drop) {
-  std::string colletion_name = "drop";
+  const std::string collection_name = "drop";
   auto dns_resolver = MakeDnsResolver();
   auto pool = MakeTestPool(&dns_resolver);
-  auto coll = pool.GetCollection(colletion_name);
+  auto coll = pool.GetCollection(collection_name);
 
   {
     coll.InsertOne(bson::MakeDoc("x", 1));
     EXPECT_EQ(1, coll.Count({}));
-    EXPECT_TRUE(coll.Drop().IsSucces());
-    EXPECT_FALSE(pool.HasCollection(colletion_name));
+    UEXPECT_NO_THROW(coll.Drop());
+    EXPECT_FALSE(pool.HasCollection(collection_name));
     EXPECT_EQ(0, coll.Count({}));
   }
 
   {
     coll.InsertOne(bson::MakeDoc("x", 1));
     EXPECT_EQ(1, coll.Count({}));
-    EXPECT_TRUE(coll.Drop().IsSucces());
-    EXPECT_TRUE(coll.Drop().IsSucces());
-    EXPECT_FALSE(pool.HasCollection(colletion_name));
+    UEXPECT_NO_THROW(coll.Drop());
+    UEXPECT_NO_THROW(coll.Drop());
+    EXPECT_FALSE(pool.HasCollection(collection_name));
     EXPECT_EQ(0, coll.Count({}));
   }
 
   {
     coll.InsertOne(bson::MakeDoc("x", 1));
     EXPECT_EQ(1, coll.Count({}));
-    EXPECT_TRUE(coll.Drop().IsSucces());
-    EXPECT_FALSE(pool.HasCollection(colletion_name));
+    UEXPECT_NO_THROW(coll.Drop());
+    EXPECT_FALSE(pool.HasCollection(collection_name));
     EXPECT_EQ(0, coll.Count({}));
   }
 
   {
     coll.InsertOne(bson::MakeDoc("x", 1));
-    EXPECT_TRUE(
-        coll.Drop(mongo::options::WriteConcern::Level::kMajority).IsSucces());
-    EXPECT_FALSE(pool.HasCollection(colletion_name));
+    UEXPECT_NO_THROW(coll.Drop(mongo::options::WriteConcern::Level::kMajority));
+    EXPECT_FALSE(pool.HasCollection(collection_name));
   }
 
   {
     coll.InsertOne(bson::MakeDoc("x", 1));
-    EXPECT_TRUE(coll.Drop(mongo::options::WriteConcern::Level::kUnacknowledged)
-                    .IsSucces());
-    EXPECT_FALSE(pool.HasCollection(colletion_name));
+    UEXPECT_NO_THROW(
+        coll.Drop(mongo::options::WriteConcern::Level::kUnacknowledged));
+    EXPECT_FALSE(pool.HasCollection(collection_name));
   }
 }
 

@@ -162,16 +162,17 @@ UTEST_MT(TaskInheritedVariable, VariablesAfterParentTaskDeath, 4) {
   engine::SharedTaskWithResult<void> task_c;
 
   task_a = utils::SharedAsync("a", [&] {
+    ASSERT_TRUE(assigned_a.WaitForEvent());
     kStringVariable.Emplace("1");
 
     task_b = utils::SharedAsync("b", [&] {
+      ASSERT_TRUE(assigned_b.WaitForEvent());
       kStringVariable2.Emplace("2");
 
       task_c = utils::SharedAsync("c", [&] {
+        ASSERT_TRUE(assigned_c.WaitForEvent());
         kStringVariable3.Emplace("3");
 
-        ASSERT_TRUE(assigned_a.WaitForEvent());
-        ASSERT_TRUE(assigned_b.WaitForEvent());
         task_a.Wait();
         task_b.Wait();
 
@@ -181,7 +182,6 @@ UTEST_MT(TaskInheritedVariable, VariablesAfterParentTaskDeath, 4) {
       });
       assigned_c.Send();
 
-      ASSERT_TRUE(assigned_a.WaitForEvent());
       task_a.Wait();
 
       EXPECT_EQ(kStringVariable.Get(), "1");
@@ -195,9 +195,6 @@ UTEST_MT(TaskInheritedVariable, VariablesAfterParentTaskDeath, 4) {
     EXPECT_FALSE(kStringVariable3.GetOptional());
   });
   assigned_a.Send();
-
-  ASSERT_TRUE(assigned_b.WaitForEvent());
-  ASSERT_TRUE(assigned_c.WaitForEvent());
 
   engine::SharedTaskWithResult<void>* tasks[3] = {&task_a, &task_b, &task_c};
   for (auto* task : tasks) task->Wait();

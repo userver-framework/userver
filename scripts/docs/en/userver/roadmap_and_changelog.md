@@ -26,8 +26,9 @@ Changelog news also go to the
 * Improve documentation
   * ✓ Improve @ref md_en_userver_framework_comparison
   * ✓ Add TCP acceptor sample
+  * ✓ Add gRPC testsuite mock sample
+  * ✓ Add reference sections for the Python fixtures
   * Add HTTP authentication sample
-  * Add gRPC testsuite mock sample
 * Improve experience with metrics
   * ✓ Add Prometheus metrics format
   * ✓ Add Graphite metrics format
@@ -41,6 +42,31 @@ Changelog news also go to the
 
 
 ## Changelog
+
+### Beta (November 2022)
+
+* engine::SingleWaitingTaskMutex was added, many thanks to the
+  [Denis Korovyakovskiy](https://github.com/den818) for the PR!
+* On-disk dumps were implemented for the LRU caches, many thanks to the
+  [Roman Guryanov](https://github.com/YaImedgar) and
+  [wyr241](https://github.com/wyr241) for the PR!
+* Introduce metrics for ev-threads cpu load, thanks to the
+  [Ivan Trofimov](https://github.com/itrofimow) for the PR.
+* AMQP optimized, thanks to the [Ivan Trofimov](https://github.com/itrofimow)
+  for the PR.
+* Improved support for Conan packaging, many thanks to
+  [Anton](https://github.com/Jihadist) for the PR.
+* Fixed GCC build, thanks to the [Ivan Trofimov](https://github.com/itrofimow)
+  for the PR.
+* Fixed formats::yaml exception message typo, thanks to the
+  [Denis Galeev](https://github.com/dengaleev) for the PR.
+* Added gRPC testsuite mock sample at @ref md_en_userver_tutorial_grpc_service.
+* Added engine::TaskCancellationToken to simplify async drivers development.
+* Simplified build steps, in particular:
+  * Added `USERVER_PYTHON_PATH` to specify the path to the python3 binary for
+    use in testsuite tests.
+  * Conan patches were merged into CMake scripts.
+  * Channelz support is now detected automatically.
 
 ### Beta (October 2022)
 
@@ -154,6 +180,7 @@ Changelog news also go to the
 
 
 ### Pre anounce (May-Jul 2022)
+
 * Fixed engine::io::TlsWrapper retries,
   thanks to [Ivan Trofimov](https://github.com/itrofimow) for the report.
 * Fixed missing `const` in utils::DaemonMain function,

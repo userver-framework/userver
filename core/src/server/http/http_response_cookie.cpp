@@ -1,15 +1,118 @@
 #include <userver/server/http/http_response_cookie.hpp>
 
 #include <array>
+#include <boost/algorithm/string.hpp>
 
 #include <fmt/compile.h>
+#include <unordered_map>
+#include <userver/logging/log.hpp>
 #include <userver/utils/datetime.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace {
 const std::string kTimeFormat = "%a, %d %b %Y %H:%M:%S %Z";
+constexpr std::string_view kDomain = "Domain";
+constexpr std::string_view kExpires = "Expires";
+constexpr std::string_view kHttpOnly = "HttpOnly";
+constexpr std::string_view kMaxAge = "Max-Age";
+constexpr std::string_view kPath = "Path";
+constexpr std::string_view kSecure = "Secure";
+constexpr std::string_view kSameSite = "SameSite";
+
+enum class KeyType {
+  kDomain,
+  kExpires,
+  kHttpOnly,
+  kMaxAge,
+  kPath,
+  kSecure,
+  kUnknown,
+  kSameSite,
+};
+
+KeyType GetKeyType(std::string_view type) {
+  static const std::unordered_map<std::string_view, KeyType,
+                                  utils::StrIcaseHash, utils::StrIcaseEqual>
+      kCookiesKeyStringToType{
+          {kDomain, KeyType::kDomain},     {kExpires, KeyType::kExpires},
+          {kHttpOnly, KeyType::kHttpOnly}, {kMaxAge, KeyType::kMaxAge},
+          {kPath, KeyType::kPath},         {kSecure, KeyType::kSecure},
+          {kSameSite, KeyType::kSameSite}};
+  auto it = kCookiesKeyStringToType.find(type);
+  if (it == kCookiesKeyStringToType.end()) {
+    return KeyType::kUnknown;
+  }
+  return it->second;
 }
+
+std::optional<std::chrono::system_clock::time_point> ParseTime(
+    const std::string& timestring) {
+  if (timestring.size() < 3) {
+    return std::nullopt;
+  }
+  try {
+    return utils::datetime::Stringtime(
+        timestring, timestring.substr(timestring.size() - 3), kTimeFormat);
+  } catch (const utils::datetime::DateParseError& err) {
+    LOG_WARNING() << "Error while parsing cookie time: " << err.what();
+    return std::nullopt;
+  } catch (const utils::datetime::TimezoneLookupError& err) {
+    LOG_WARNING() << "Error while parsing cookie timezone: " << err.what();
+    return std::nullopt;
+  }
+}
+
+struct CookieKeyValue {
+  size_t shift;
+  std::string key;
+  std::optional<std::string> value{};
+};
+
+std::optional<CookieKeyValue> GetCookieKeyValueOpt(const char* start,
+                                                   size_t size) {
+  const char* ptr = start;
+  const char* end = ptr + size;
+  while (ptr != end && *ptr == ' ') ptr++;
+  if (ptr == end) {
+    return std::nullopt;
+  }
+  size_t size_from_ptr = size - (ptr - start);
+
+  const char* equal_pos =
+      static_cast<const char*>(memchr(ptr, '=', size_from_ptr));
+  const char* end_pair_pos =
+      static_cast<const char*>(memchr(ptr, ';', size_from_ptr));
+
+  if (equal_pos == nullptr) {
+    if (end_pair_pos == nullptr) {
+      return {{size, std::string(ptr, size_from_ptr)}};
+    }
+    return {{static_cast<size_t>(end_pair_pos - start) + 1,
+             std::string(ptr, end_pair_pos - ptr)}};
+  }
+  if (end_pair_pos != nullptr && end_pair_pos < equal_pos) {
+    return {{static_cast<size_t>(end_pair_pos - start) + 1,
+             std::string(ptr, end_pair_pos - ptr)}};
+  }
+
+  std::string key(ptr, equal_pos - ptr);
+
+  size_t shift = size;
+  if (end_pair_pos == nullptr) {
+    end_pair_pos = end;
+  } else {
+    shift = static_cast<size_t>(end_pair_pos - start) + 1;
+  }
+  if (equal_pos + 1 == end_pair_pos) {
+    return {{static_cast<size_t>(end_pair_pos - start) + 1, std::move(key)}};
+  }
+  equal_pos++;
+  std::string value(equal_pos, end_pair_pos - equal_pos);
+  return {{shift, std::move(key), std::move(value)}};
+}
+
+}  // namespace
 
 namespace server::http {
 
@@ -45,6 +148,9 @@ class Cookie::CookieData final {
   [[nodiscard]] std::chrono::seconds MaxAge() const;
   void SetMaxAge(std::chrono::seconds value);
 
+  [[nodiscard]] std::string SameSite() const;
+  void SetSameSite(std::string value);
+
   void AppendToString(std::string& os) const;
 
  private:
@@ -55,11 +161,12 @@ class Cookie::CookieData final {
   std::string value_;
   std::string path_;
   std::string domain_;
+  std::string same_site_;
 
   bool secure_{false};
   bool http_only_{false};
-  std::chrono::system_clock::time_point expires_{};
-  std::chrono::seconds max_age_{0};
+  std::optional<std::chrono::system_clock::time_point> expires_{};
+  std::optional<std::chrono::seconds> max_age_{};
 };
 
 Cookie::CookieData::CookieData(std::string&& name, std::string&& value)
@@ -75,7 +182,7 @@ bool Cookie::CookieData::IsSecure() const { return secure_; }
 void Cookie::CookieData::SetSecure() { secure_ = true; }
 
 std::chrono::system_clock::time_point Cookie::CookieData::Expires() const {
-  return expires_;
+  return expires_.value_or(std::chrono::system_clock::time_point{});
 }
 void Cookie::CookieData::SetExpires(
     std::chrono::system_clock::time_point value) {
@@ -102,9 +209,16 @@ void Cookie::CookieData::SetDomain(std::string&& value) {
   domain_ = std::move(value);
 }
 
-std::chrono::seconds Cookie::CookieData::MaxAge() const { return max_age_; }
+std::chrono::seconds Cookie::CookieData::MaxAge() const {
+  return max_age_.value_or(std::chrono::seconds{0});
+}
 void Cookie::CookieData::SetMaxAge(std::chrono::seconds value) {
   max_age_ = value;
+}
+
+std::string Cookie::CookieData::SameSite() const { return same_site_; }
+void Cookie::CookieData::SetSameSite(std::string value) {
+  same_site_ = std::move(value);
 }
 
 void Cookie::CookieData::AppendToString(std::string& os) const {
@@ -120,16 +234,22 @@ void Cookie::CookieData::AppendToString(std::string& os) const {
     os.append("; Path=");
     os.append(path_);
   }
-  if (expires_ > std::chrono::system_clock::time_point{}) {
+  if (expires_.has_value()) {
     os.append("; Expires=");
-    os.append(utils::datetime::Timestring(expires_, "GMT", kTimeFormat));
+    os.append(
+        utils::datetime::Timestring(expires_.value(), "GMT", kTimeFormat));
   }
-  if (max_age_ > std::chrono::seconds{0}) {
+  if (max_age_.has_value()) {
     os.append("; Max-Age=");
-    fmt::format_to(std::back_inserter(os), FMT_COMPILE("{}"), max_age_.count());
+    fmt::format_to(std::back_inserter(os), FMT_COMPILE("{}"),
+                   max_age_.value().count());
   }
   if (secure_) {
     os.append("; Secure");
+  }
+  if (!same_site_.empty()) {
+    os.append("; SameSite=");
+    os.append(same_site_);
   }
   if (http_only_) {
     os.append("; HttpOnly");
@@ -183,6 +303,68 @@ void Cookie::CookieData::ValidateValue() const {
 }
 
 // Cookie class
+
+/// static
+std::optional<Cookie> Cookie::FromString(std::string_view cookie) {
+  return FromString(cookie.data(), cookie.size());
+}
+
+/// static
+std::optional<Cookie> Cookie::FromString(const char* ptr, size_t size) {
+  if (!size) return std::nullopt;
+  auto cookie_opt = GetCookieKeyValueOpt(ptr, size);
+  if (!cookie_opt.has_value()) {
+    return std::nullopt;
+  }
+  ptr += cookie_opt->shift;
+  size -= cookie_opt->shift;
+  Cookie cookie(std::move(cookie_opt->key), cookie_opt->value.has_value()
+                                                ? std::move(*cookie_opt->value)
+                                                : "");
+  while (auto cookie_options = GetCookieKeyValueOpt(ptr, size)) {
+    ptr += cookie_options->shift;
+    size -= cookie_options->shift;
+    switch (GetKeyType(cookie_options->key)) {
+      case KeyType::kDomain:
+        if (cookie_options->value.has_value()) {
+          cookie.SetDomain(std::move(*cookie_options->value));
+        }
+        break;
+      case KeyType::kPath:
+        if (cookie_options->value.has_value()) {
+          cookie.SetPath(std::move(*cookie_options->value));
+        }
+        break;
+      case KeyType::kMaxAge:
+        if (cookie_options->value.has_value()) {
+          cookie.SetMaxAge(
+              std::chrono::seconds{std::stoll(*cookie_options->value)});
+        }
+        break;
+      case KeyType::kExpires:
+        if (cookie_options->value.has_value()) {
+          if (auto datetime = ParseTime(std::move(*cookie_options->value))) {
+            cookie.SetExpires(datetime.value());
+          }
+        }
+        break;
+      case KeyType::kSameSite:
+        if (cookie_options->value.has_value()) {
+          cookie.SetSameSite(std::move(*cookie_options->value));
+        }
+        break;
+      case KeyType::kHttpOnly:
+        cookie.SetHttpOnly();
+        break;
+      case KeyType::kSecure:
+        cookie.SetSecure();
+        break;
+      case KeyType::kUnknown:
+        break;
+    }
+  }
+  return cookie;
+}
 
 Cookie::Cookie(std::string name, std::string value)
     : data_(std::make_unique<CookieData>(std::move(name), std::move(value))) {}
@@ -242,6 +424,12 @@ Cookie& Cookie::SetDomain(std::string value) {
 std::chrono::seconds Cookie::MaxAge() const { return data_->MaxAge(); }
 Cookie& Cookie::SetMaxAge(std::chrono::seconds value) {
   data_->SetMaxAge(value);
+  return *this;
+}
+
+std::string Cookie::SameSite() const { return data_->SameSite(); }
+Cookie& Cookie::SetSameSite(std::string value) {
+  data_->SetSameSite(std::move(value));
   return *this;
 }
 

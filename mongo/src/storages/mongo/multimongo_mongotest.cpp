@@ -9,7 +9,7 @@
 #include <storages/mongo/util_mongotest.hpp>
 #include <userver/clients/dns/resolver.hpp>
 #include <userver/engine/deadline.hpp>
-#include <userver/engine/sleep.hpp>
+#include <userver/engine/single_consumer_event.hpp>
 #include <userver/engine/task/task.hpp>
 #include <userver/fs/blocking/temp_file.hpp>
 #include <userver/fs/blocking/write.hpp>
@@ -52,20 +52,20 @@ UTEST(MultiMongo, DynamicSecdistUpdate) {
         const storages::secdist::SecdistConfig& secdist_config_update) {
       if (updates_counter == 1) {
         // prevents test flaps
-        const auto deadline =
-            engine::Deadline::FromDuration(utest::kMaxTestWaitTime);
-        while (!file_updated.load() && !deadline.IsReached()) {
-          engine::SleepFor(std::chrono::milliseconds(1));
-        }
+        EXPECT_TRUE(file_updated.WaitForEventFor(utest::kMaxTestWaitTime));
       }
 
       if (updates_counter < 2) secdist_config = secdist_config_update;
       updates_counter++;
+      if (updates_counter == 2) updated_twice.Send();
     };
 
     storages::secdist::SecdistConfig secdist_config;
     std::atomic<int> updates_counter{0};
-    std::atomic<bool> file_updated{false};
+    engine::SingleConsumerEvent file_updated{
+        engine::SingleConsumerEvent::NoAutoReset{}};
+    engine::SingleConsumerEvent updated_twice{
+        engine::SingleConsumerEvent::NoAutoReset{}};
   };
 
   SecdistConfigStorage storage;
@@ -84,7 +84,7 @@ UTEST(MultiMongo, DynamicSecdistUpdate) {
   EXPECT_EQ(storage.updates_counter.load(), 1);
 
   mongo::MultiMongo multi_mongo("userver_multimongo_test", secdist, kPoolConfig,
-                                &dns_resolver, {});
+                                &dns_resolver, GetDefaultDynamicConfig());
 
   UEXPECT_THROW(multi_mongo.AddPool("admin"),
                 storages::mongo::InvalidConfigException);
@@ -95,11 +95,8 @@ UTEST(MultiMongo, DynamicSecdistUpdate) {
       temp_file.GetPath(),
       fmt::format(kSecdistUpdateJsonFormat, GetTestsuiteMongoUri("admin")));
   ASSERT_EQ(storage.updates_counter.load(), 1);
-  storage.file_updated = true;
-  const auto deadline = engine::Deadline::FromDuration(utest::kMaxTestWaitTime);
-  while (storage.updates_counter.load() < 2 && !deadline.IsReached()) {
-    engine::SleepFor(std::chrono::milliseconds(1));
-  }
+  storage.file_updated.Send();
+  EXPECT_TRUE(storage.updated_twice.WaitForEventFor(utest::kMaxTestWaitTime));
 
   UEXPECT_NO_THROW(multi_mongo.AddPool("admin"));
   auto admin_pool = multi_mongo.GetPool("admin");

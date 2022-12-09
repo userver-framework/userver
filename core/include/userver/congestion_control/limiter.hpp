@@ -8,6 +8,7 @@ namespace congestion_control {
 
 struct Limit {
   std::optional<size_t> load_limit;
+  size_t current_load{0};
 };
 
 class Limiter {

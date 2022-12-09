@@ -495,7 +495,7 @@ Cursor CDriverCollectionImpl::Execute(
       std::move(client), std::move(cdriver_cursor), std::move(stats_ptr)));
 }
 
-DropResult CDriverCollectionImpl::Execute(const operations::Drop& drop_op) {
+void CDriverCollectionImpl::Execute(const operations::Drop& drop_op) {
   auto span = MakeSpan("mongo_drop");
   auto [client, collection] = GetCDriverCollection();
   auto stats_ptr = statistics_->write[drop_op.impl_->write_concern_desc];
@@ -510,11 +510,9 @@ DropResult CDriverCollectionImpl::Execute(const operations::Drop& drop_op) {
                                        impl::GetNative(drop_op.impl_->options),
                                        error.GetNative())) {
     drop_sw.AccountSuccess();
-    return DropResult(true);
   } else {
     drop_sw.AccountError(error.GetKind());
     error.Throw("Error running drop");
-    return DropResult(false);
   }
 }
 
@@ -535,8 +533,8 @@ CDriverCollectionImpl::GetCDriverCollection() const {
 
 std::chrono::milliseconds CDriverCollectionImpl::GetDefaultMaxServerTime()
     const {
-  auto config = pool_impl_->GetConfig();
-  return std::chrono::milliseconds(config->default_max_time_ms);
+  const auto config = pool_impl_->GetConfig();
+  return config[kDefaultMaxTime];
 }
 
 void CDriverCollectionImpl::SetDefaultMaxServerTime(

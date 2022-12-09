@@ -6,6 +6,8 @@
 
 #include <userver/clients/dns/resolver.hpp>
 #include <userver/engine/task/task.hpp>
+
+#include <storages/mongo/dynamic_config.hpp>
 #include <userver/storages/mongo/pool_config.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -32,21 +34,31 @@ clients::dns::Resolver MakeDnsResolver() {
   };
 }
 
+dynamic_config::StorageMock MakeDynamicConfig() {
+  return dynamic_config::StorageMock{{storages::mongo::kDefaultMaxTime, {}}};
+}
+
+dynamic_config::Source GetDefaultDynamicConfig() {
+  static const auto storage = MakeDynamicConfig();
+  return storage.GetSource();
+}
+
 storages::mongo::Pool MakeTestsuiteMongoPool(
     const std::string& name, clients::dns::Resolver* dns_resolver,
-    storages::mongo::Config mongo_config) {
+    dynamic_config::Source config_source) {
   return MakeTestsuiteMongoPool(
       name,
       storages::mongo::PoolConfig{
           name, storages::mongo::PoolConfig::DriverImpl::kMongoCDriver},
-      dns_resolver, mongo_config);
+      dns_resolver, config_source);
 }
 
 storages::mongo::Pool MakeTestsuiteMongoPool(
     const std::string& name, const storages::mongo::PoolConfig& config,
     clients::dns::Resolver* dns_resolver,
-    storages::mongo::Config mongo_config) {
-  return {name, GetTestsuiteMongoUri(name), config, dns_resolver, mongo_config};
+    dynamic_config::Source config_source) {
+  return {name, GetTestsuiteMongoUri(name), config, dns_resolver,
+          config_source};
 }
 
 USERVER_NAMESPACE_END

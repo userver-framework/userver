@@ -5,7 +5,7 @@
 #include <userver/storages/secdist/exceptions.hpp>
 #include <userver/storages/secdist/secdist.hpp>
 
-#include <storages/mongo/mongo_config.hpp>
+#include <storages/mongo/dynamic_config.hpp>
 #include <storages/mongo/mongo_secdist.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -44,8 +44,7 @@ void MultiMongo::PoolSet::AddPool(std::string dbalias) {
     pool_ptr = std::make_shared<storages::mongo::Pool>(
         target_->name_ + ':' + dbalias,
         secdist::GetSecdistConnectionString(target_->secdist_, dbalias),
-        target_->pool_config_, target_->dns_resolver_,
-        target_->GetConfigCopy());
+        target_->pool_config_, target_->dns_resolver_, target_->config_source_);
   }
 
   pool_map_ptr_->emplace(std::move(dbalias), std::move(pool_ptr));
@@ -63,10 +62,10 @@ MultiMongo::MultiMongo(std::string name,
                        const storages::secdist::Secdist& secdist,
                        storages::mongo::PoolConfig pool_config,
                        clients::dns::Resolver* dns_resolver,
-                       Config mongo_config)
+                       dynamic_config::Source config_source)
     : name_(std::move(name)),
       secdist_(secdist),
-      config_storage_(std::make_unique<rcu::Variable<Config>>(mongo_config)),
+      config_source_(config_source),
       pool_config_(std::move(pool_config)),
       dns_resolver_(dns_resolver),
       pool_map_ptr_(std::make_shared<PoolMap>()) {}
@@ -112,13 +111,6 @@ formats::json::Value MultiMongo::GetStatistics(bool verbose) const {
   return builder.ExtractValue();
 }
 
-void MultiMongo::SetConfig(Config config) {
-  auto pool_map = pool_map_ptr_.Get();
-  for (const auto& [_, pool] : *pool_map) {
-    pool->SetConfig(config);
-  }
-}
-
 storages::mongo::PoolPtr MultiMongo::FindPool(
     const std::string& dbalias) const {
   auto pool_map = pool_map_ptr_.Get();
@@ -128,8 +120,6 @@ storages::mongo::PoolPtr MultiMongo::FindPool(
   if (it == pool_map->end()) return {};
   return it->second;
 }
-
-Config MultiMongo::GetConfigCopy() const { return config_storage_->ReadCopy(); }
 
 }  // namespace storages::mongo
 

@@ -34,6 +34,7 @@ inline constexpr std::string_view kRuntimeConfig = R"~({
     }
   },
   "USERVER_CACHES": {},
+  "USERVER_RPS_CCONTROL_ACTIVATED_FACTOR_METRIC": 5,
   "USERVER_LRU_CACHES": {},
   "USERVER_DUMPS": {},
   "HTTP_CLIENT_CONNECTION_POOL_SIZE": 1000,
