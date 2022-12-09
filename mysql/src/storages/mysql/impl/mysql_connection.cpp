@@ -4,8 +4,8 @@
 
 #include <fmt/format.h>
 
+#include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
-#include <userver/utils/scope_guard.hpp>
 
 #include <storages/mysql/impl/mysql_binds_storage.hpp>
 #include <storages/mysql/impl/mysql_plain_query.hpp>
@@ -43,52 +43,62 @@ MySQLConnection::MySQLConnection()
 }
 
 MySQLConnection::~MySQLConnection() {
-  socket_.RunToCompletion([this] { return mysql_close_start(&mysql_); },
-                          [this](int mysql_event) {
-                            return mysql_close_cont(&mysql_, mysql_event);
-                          },
-                          {} /* TODO : deadline */);
+  try {
+    socket_.RunToCompletion([this] { return mysql_close_start(&mysql_); },
+                            [this](int mysql_event) {
+                              return mysql_close_cont(&mysql_, mysql_event);
+                            },
+                            {} /* TODO : deadline */);
+  } catch (const std::exception& ex) {
+    LOG_WARNING() << "Failed to correctly release a connection: " << ex.what();
+  }
 }
 
 MySQLResult MySQLConnection::ExecutePlain(const std::string& query,
                                           engine::Deadline deadline) {
-  MySQLPlainQuery mysql_query{*this, query};
+  auto broken_guard = GetBrokenGuard();
 
+  MySQLPlainQuery mysql_query{*this, query};
   mysql_query.Execute(deadline);
   return mysql_query.FetchResult(deadline);
 }
 
-void MySQLConnection::ExecuteStatement(const std::string& statement,
-                                       io::ParamsBinderBase& params,
-                                       io::ExtractorBase& extractor,
-                                       engine::Deadline deadline) {
+MySQLStatementFetcher MySQLConnection::ExecuteStatement(
+    const std::string& statement, io::ParamsBinderBase& params,
+    engine::Deadline deadline) {
+  auto broken_guard = GetBrokenGuard();
+
   auto& mysql_statement = PrepareStatement(statement, deadline);
 
-  UINVARIANT(
-      mysql_statement.ParamsCount() == params.GetBinds().Size(),
-      fmt::format("Statement has {} parameters, but {} were provided",
-                  mysql_statement.ParamsCount(), params.GetBinds().Size()));
-  UINVARIANT(
-      mysql_statement.ResultColumnsCount() == extractor.ColumnsCount(),
-      fmt::format("Statement has {} output columns, but {} were provided",
-                  mysql_statement.ResultColumnsCount(),
-                  extractor.ColumnsCount()));
+  return mysql_statement.Execute(deadline, params.GetBinds());
+}
 
-  mysql_statement.BindStatementParams(params.GetBinds());
-  mysql_statement.Execute(deadline);
+void MySQLConnection::ExecuteInsert(const std::string& insert_statement,
+                                    io::ParamsBinderBase& params,
+                                    std::size_t rows_count,
+                                    engine::Deadline deadline) {
+  auto broken_guard = GetBrokenGuard();
 
-  utils::ScopeGuard result_scope_dispose{
-      [&mysql_statement, deadline] { mysql_statement.FreeResult(deadline); }};
+  auto& mysql_statement = PrepareStatement(insert_statement, deadline);
 
-  mysql_statement.StoreResult(deadline);
+  mysql_statement.SetInsertRowsCount(rows_count);
 
-  const auto rows_count = mysql_statement.RowsCount();
-  extractor.Reserve(rows_count);
+  mysql_statement.Execute(deadline, params.GetBinds());
+}
 
-  for (std::size_t i = 0; i < rows_count; ++i) {
-    auto& bind = extractor.BindNextRow();
-    const auto parsed = mysql_statement.FetchResultRow(bind);
-    UASSERT(parsed);
+void MySQLConnection::Ping(engine::Deadline deadline) {
+  auto broken_guard = GetBrokenGuard();
+
+  int err = 0;
+  socket_.RunToCompletion(
+      [this, &err] { return mysql_ping_start(&err, &mysql_); },
+      [this, &err](int mysql_events) {
+        return mysql_ping_cont(&err, &mysql_, mysql_events);
+      },
+      deadline);
+
+  if (err != 0) {
+    throw std::runtime_error{GetNativeError("Failed to ping the server: ")};
   }
 }
 
@@ -96,10 +106,16 @@ MySQLSocket& MySQLConnection::GetSocket() { return socket_; }
 
 MYSQL& MySQLConnection::GetNativeHandler() { return mysql_; }
 
+bool MySQLConnection::IsBroken() const { return broken_.load(); }
+
 const char* MySQLConnection::GetNativeError() { return mysql_error(&mysql_); }
 
 std::string MySQLConnection::GetNativeError(std::string_view prefix) {
   return std::string{prefix} + mysql_error(&mysql_);
+}
+
+MySQLConnection::BrokenGuard MySQLConnection::GetBrokenGuard() {
+  return BrokenGuard{*this};
 }
 
 MySQLSocket MySQLConnection::InitSocket() {
@@ -123,6 +139,20 @@ MySQLStatement& MySQLConnection::PrepareStatement(const std::string& statement,
       statements_cache_.emplace(statement, std::move(mysql_statement));
   UASSERT(inserted);
   return it->second;
+}
+
+MySQLConnection::BrokenGuard::BrokenGuard(MySQLConnection& connection)
+    : exceptions_on_enter_{std::uncaught_exceptions()},
+      broken_{connection.broken_} {
+  if (broken_.load()) {
+    throw std::runtime_error{"Connection is broken"};
+  }
+}
+
+MySQLConnection::BrokenGuard::~BrokenGuard() {
+  if (exceptions_on_enter_ != std::uncaught_exceptions()) {
+    broken_.store(true);
+  }
 }
 
 }  // namespace storages::mysql::impl

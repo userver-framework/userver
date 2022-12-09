@@ -1,6 +1,6 @@
 #include <storages/mysql/impl/mysql_socket.hpp>
 
-#include <mysql/mysql.h>
+#include <storages/mysql/impl/mariadb_include.hpp>
 
 #include <engine/impl/wait_list_light.hpp>
 #include <engine/task/task_context.hpp>

@@ -17,7 +17,7 @@ UTEST(Connection, Works) { storages::mysql::impl::MySQLConnection conn{}; }
 UTEST(Connection, ExecuteWorks) {
   storages::mysql::impl::MySQLConnection conn{};
 
-  const auto res = conn.ExecutePlain("SELECT Id, Value FROM test", {});
+  const auto res = conn.ExecutePlain("DESCRIBE test", {});
 
   for (const auto& row : res) {
     for (const auto& field : row) {

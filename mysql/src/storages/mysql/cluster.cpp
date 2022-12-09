@@ -2,21 +2,34 @@
 
 #include <storages/mysql/impl/mysql_connection.hpp>
 #include <storages/mysql/infra/pool.hpp>
+#include <storages/mysql/infra/topology.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::mysql {
 
-Cluster::Cluster() { pool_.push_back(infra::Pool::Create()); }
+Cluster::Cluster() = default;
 
 Cluster::~Cluster() = default;
 
-void Cluster::DoExecute(const std::string& query, io::ParamsBinderBase& params,
-                        io::ExtractorBase& extractor,
-                        engine::Deadline deadline) {
-  auto connection = pool_.back()->Acquire(deadline);
+StatementResultSet Cluster::DoExecute(ClusterHostType host_type,
+                                      const std::string& query,
+                                      io::ParamsBinderBase& params,
+                                      engine::Deadline deadline) {
+  auto connection = topology_->SelectPool(host_type).Acquire(deadline);
 
-  connection->ExecuteStatement(query, params, extractor, deadline);
+  auto fetcher = connection->ExecuteStatement(query, params, deadline);
+
+  return {std::move(connection), std::move(fetcher)};
+}
+
+void Cluster::DoInsert(const std::string& insert_query,
+                       io::ParamsBinderBase& params, std::size_t rows_count,
+                       engine::Deadline deadline) {
+  auto connection =
+      topology_->SelectPool(ClusterHostType::kMaster).Acquire(deadline);
+
+  connection->ExecuteInsert(insert_query, params, rows_count, deadline);
 }
 
 }  // namespace storages::mysql

@@ -7,6 +7,7 @@
 
 #include <userver/engine/deadline.hpp>
 #include <userver/engine/semaphore.hpp>
+#include <userver/utils/datetime/wall_coarse_clock.hpp>
 #include <userver/utils/periodic_task.hpp>
 
 #include <storages/mysql/infra/connection_ptr.hpp>
@@ -41,18 +42,47 @@ class Pool : public std::enable_shared_from_this<Pool> {
   SmartConnectionPtr Pop(engine::Deadline deadline);
   SmartConnectionPtr TryPop();
 
+  void DoRelease(SmartConnectionPtr connection);
+
   void PushConnection(engine::Deadline deadline);
   SmartConnectionPtr CreateConnection(engine::Deadline deadline);
   void Drop(RawConnectionPtr connection);
 
-  void RunMonitor();
+  void RunSizeMonitor();
+  void RunPinger();
+
+  class PoolMonitor final {
+   public:
+    explicit PoolMonitor(Pool& pool);
+    ~PoolMonitor();
+
+    void Start();
+    void Stop();
+
+    void AccountSuccess() noexcept;
+    void AccountFailure() noexcept;
+
+    bool IsAvailable() noexcept;
+
+   private:
+    using Clock = utils::datetime::WallCoarseClock;
+    static constexpr std::chrono::seconds kUnavailabilityThreshold{2};
+
+    Pool& pool_;
+
+    utils::PeriodicTask size_monitor_;
+    utils::PeriodicTask pinger_;
+
+    std::atomic<Clock::time_point> last_success_{};
+    std::atomic<Clock::time_point> last_failure_{};
+  };
 
   engine::Semaphore given_away_semaphore_;
   engine::Semaphore connecting_semaphore_;
   boost::lockfree::queue<RawConnectionPtr> queue_;
   std::atomic<std::size_t> size_{0};
 
-  utils::PeriodicTask monitor_;
+  PoolMonitor monitor_;
 };
 
 }  // namespace infra

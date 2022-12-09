@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <string>
 #include <string_view>
+#include <vector>
 
 #include <boost/pfr/core.hpp>
 
@@ -78,35 +79,48 @@ class ParamsBinder final : public ParamsBinderBase {
   ParamsBinder(const ParamsBinder& other) = delete;
   ParamsBinder(ParamsBinder&& other) noexcept;
 
-  impl::BindsStorage& GetBinds() final { return *impl_; }
+  impl::BindsStorage& GetBinds() final;
 
   template <typename Field>
   void Bind(std::size_t pos, Field& field) {
     GetBinder(*impl_, pos, field)();
   }
 
+  template <typename... Args>
+  static ParamsBinder BindParams(Args&... args) {
+    ParamsBinder binder{};
+    size_t ind = 0;
+
+    const auto do_bind = [&binder](std::size_t pos, auto& arg) {
+      if constexpr (std::is_convertible_v<decltype(arg), std::string_view>) {
+        std::string_view sw{arg};
+        binder.Bind(pos, sw);
+      } else {
+        binder.Bind(pos, arg);
+      }
+    };
+
+    (..., do_bind(ind++, args));
+
+    return binder;
+  }
+
  private:
   impl::BindsPimpl impl_;
 };
 
-template <typename... Args>
-ParamsBinder BindParams(Args&... args) {
-  ParamsBinder binder{};
-  size_t ind = 0;
+class FieldBinder final {
+ public:
+  explicit FieldBinder(impl::BindsStorage& binds) : binds_{binds} {}
 
-  const auto do_bind = [&binder](std::size_t pos, auto& arg) {
-    if constexpr (std::is_convertible_v<decltype(arg), std::string_view>) {
-      std::string_view sw{arg};
-      binder.Bind(pos, sw);
-    } else {
-      binder.Bind(pos, arg);
-    }
-  };
+  template <typename Field, size_t Index>
+  void operator()(Field& field, std::integral_constant<std::size_t, Index> i) {
+    GetBinder(binds_, i, field)();
+  }
 
-  (..., do_bind(ind++, args));
-
-  return binder;
-}
+ private:
+  impl::BindsStorage& binds_;
+};
 
 class ResultBinder final {
  public:
@@ -121,20 +135,6 @@ class ResultBinder final {
   }
 
  private:
-  class FieldBinder final {
-   public:
-    explicit FieldBinder(impl::BindsStorage& binds) : binds_{binds} {}
-
-    template <typename Field, size_t Index>
-    void operator()(Field& field,
-                    std::integral_constant<std::size_t, Index> i) {
-      GetBinder(binds_, i, field)();
-    }
-
-   private:
-    impl::BindsStorage& binds_;
-  };
-
   impl::BindsPimpl impl_;
 };
 

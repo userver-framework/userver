@@ -2,7 +2,7 @@
 
 #include <memory>
 
-#include <mysql/mysql.h>
+#include <storages/mysql/impl/mariadb_include.hpp>
 
 #include <storages/mysql/impl/mysql_connection.hpp>
 #include <userver/logging/log.hpp>

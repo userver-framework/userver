@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-#include <mysql/mysql.h>
+#include <storages/mysql/impl/mariadb_include.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -27,6 +27,7 @@ class BindsStorage final {
   void Bind(std::size_t pos, std::string_view& val);
 
   void ResizeOutputString(std::size_t pos);
+  void FixupForInsert(std::size_t pos, char* buffer, std::size_t* lengths);
 
   MYSQL_BIND* GetBindsArray();
 

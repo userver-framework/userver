@@ -3,16 +3,40 @@
 #include <memory>
 #include <string>
 
-#include <mysql/mysql.h>
+#include <storages/mysql/impl/mariadb_include.hpp>
 
 #include <userver/engine/deadline.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
+namespace storages::mysql::io {
+class ExtractorBase;
+}
+
 namespace storages::mysql::impl {
 
 class MySQLConnection;
 class BindsStorage;
+
+class MySQLStatement;
+
+class MySQLStatementFetcher final {
+ public:
+  ~MySQLStatementFetcher();
+
+  MySQLStatementFetcher(const MySQLStatementFetcher& other) = delete;
+  MySQLStatementFetcher(MySQLStatementFetcher&& other) noexcept;
+
+  void FetchResult(io::ExtractorBase& extractor, engine::Deadline deadline);
+
+ private:
+  friend class MySQLStatement;
+  MySQLStatementFetcher(MySQLStatement& statement);
+
+  void ValidateBinding(BindsStorage& binds);
+
+  MySQLStatement& statement_;
+};
 
 class MySQLStatement final {
  public:
@@ -23,13 +47,9 @@ class MySQLStatement final {
   MySQLStatement(const MySQLStatement& other) = delete;
   MySQLStatement(MySQLStatement&& other) noexcept;
 
-  void BindStatementParams(BindsStorage& binds);
-  void Execute(engine::Deadline deadline);
+  MySQLStatementFetcher Execute(engine::Deadline deadline, BindsStorage& binds);
 
-  void StoreResult(engine::Deadline deadline);
-  bool FetchResultRow(BindsStorage& binds);
-
-  void FreeResult(engine::Deadline deadline);
+  void SetInsertRowsCount(std::size_t rows_count);
 
   std::size_t RowsCount() const;
 
@@ -37,6 +57,13 @@ class MySQLStatement final {
   std::size_t ResultColumnsCount();
 
  private:
+  friend class MySQLStatementFetcher;
+  void StoreResult(engine::Deadline deadline);
+  bool FetchResultRow(BindsStorage& binds);
+  void FreeResult(engine::Deadline deadline);
+
+  void UpdateParamsBindings(BindsStorage& binds);
+
   class NativeStatementDeleter final {
    public:
     NativeStatementDeleter(MySQLConnection* connection);
@@ -51,6 +78,7 @@ class MySQLStatement final {
 
   NativeStatementPtr CreateStatement(const std::string& statement,
                                      engine::Deadline deadline);
+  std::string GetNativeError(std::string_view prefix) const;
 
   MySQLConnection* connection_;
   NativeStatementPtr native_statement_;

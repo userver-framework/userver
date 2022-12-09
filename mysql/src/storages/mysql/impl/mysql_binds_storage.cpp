@@ -6,6 +6,36 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::mysql::impl {
 
+namespace {
+
+void UpdateBindBufferLength(MYSQL_BIND& bind, enum_field_types type) {
+  const auto type_size = [type]() -> std::size_t {
+    switch (type) {
+      case MYSQL_TYPE_TINY:
+        return 1;
+      case MYSQL_TYPE_SHORT:
+        return 2;
+      case MYSQL_TYPE_LONG:
+        return 4;
+      case MYSQL_TYPE_LONGLONG:
+        return 8;
+      case MYSQL_TYPE_FLOAT:
+        return 4;
+      case MYSQL_TYPE_DOUBLE:
+        return 8;
+
+      default:
+        return 0;
+    };
+  }();
+
+  if (type_size != 0) {
+    bind.buffer_length = type_size;
+  }
+}
+
+}  // namespace
+
 BindsStorage::BindsStorage(BindsType binds_type) : binds_type_{binds_type} {}
 
 BindsStorage::~BindsStorage() = default;
@@ -53,6 +83,15 @@ void BindsStorage::ResizeOutputString(std::size_t pos) {
   bind.buffer_length = output_string.output->size();
 }
 
+void BindsStorage::FixupForInsert(std::size_t pos, char* buffer,
+                                  std::size_t* lengths) {
+  UASSERT(binds_type_ == BindsType::kParameters);
+
+  auto& bind = binds_[pos];
+  bind.buffer = buffer;
+  bind.length = lengths;
+}
+
 MYSQL_BIND* BindsStorage::GetBindsArray() { return binds_.data(); }
 
 std::size_t BindsStorage::Size() const { return binds_.size(); }
@@ -92,6 +131,10 @@ void BindsStorage::DoBind(std::size_t pos, enum_field_types type, void* buffer,
   bind.buffer = buffer;
   bind.buffer_length = length;
   bind.is_unsigned = is_unsigned;
+
+  if (binds_type_ == BindsType::kResult) {
+    UpdateBindBufferLength(bind, type);
+  }
 }
 
 }  // namespace storages::mysql::impl
