@@ -2,6 +2,7 @@
 #include <chrono>
 #include <string>
 
+#include <storages/mongo/dynamic_config.hpp>
 #include <storages/mongo/util_mongotest.hpp>
 #include <userver/formats/bson.hpp>
 #include <userver/storages/mongo/collection.hpp>
@@ -14,9 +15,10 @@ namespace bson = formats::bson;
 namespace mongo = storages::mongo;
 
 namespace {
-mongo::Pool MakeTestPool(clients::dns::Resolver& dns_resolver,
-                         mongo::Config mongo_config = {}) {
-  return MakeTestsuiteMongoPool("options_test", &dns_resolver, mongo_config);
+mongo::Pool MakeTestPool(
+    clients::dns::Resolver& dns_resolver,
+    dynamic_config::Source config_source = GetDefaultDynamicConfig()) {
+  return MakeTestsuiteMongoPool("options_test", &dns_resolver, config_source);
 }
 }  // namespace
 
@@ -630,10 +632,12 @@ UTEST(Options, MaxServerTime) {
 }
 
 UTEST(Options, DefaultMaxServerTime) {
-  dynamic_config::DocsMap docs_map;
-  docs_map.Parse(R"~({"MONGO_DEFAULT_MAX_TIME_MS": 123})~", false);
+  auto config_storage = MakeDynamicConfig();
+  config_storage.Extend(
+      {{mongo::kDefaultMaxTime, std::chrono::milliseconds{123}}});
+
   auto dns_resolver = MakeDnsResolver();
-  auto pool = MakeTestPool(dns_resolver, {docs_map});
+  auto pool = MakeTestPool(dns_resolver, config_storage.GetSource());
   auto coll = pool.GetCollection("max_server_time");
 
   coll.InsertOne(bson::MakeDoc("x", 1));

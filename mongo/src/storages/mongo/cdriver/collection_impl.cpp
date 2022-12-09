@@ -533,8 +533,8 @@ CDriverCollectionImpl::GetCDriverCollection() const {
 
 std::chrono::milliseconds CDriverCollectionImpl::GetDefaultMaxServerTime()
     const {
-  auto config = pool_impl_->GetConfig();
-  return std::chrono::milliseconds(config->default_max_time_ms);
+  const auto config = pool_impl_->GetConfig();
+  return config[kDefaultMaxTime];
 }
 
 void CDriverCollectionImpl::SetDefaultMaxServerTime(

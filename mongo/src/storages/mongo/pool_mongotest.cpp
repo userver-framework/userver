@@ -50,7 +50,7 @@ UTEST(Pool, ConnectionFailure) {
   // constructor should not throw
   mongo::Pool bad_pool("bad", "mongodb://%2Fnonexistent.sock/bad",
                        {"bad", mongo::PoolConfig::DriverImpl::kMongoCDriver},
-                       &dns_resolver, {});
+                       &dns_resolver, GetDefaultDynamicConfig());
   UEXPECT_THROW(bad_pool.HasCollection("test"),
                 mongo::ClusterUnavailableException);
 }
