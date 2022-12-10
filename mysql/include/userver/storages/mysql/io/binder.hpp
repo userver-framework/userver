@@ -1,9 +1,9 @@
 #pragma once
 
+#include <chrono>
 #include <cstdint>
 #include <string>
 #include <string_view>
-#include <vector>
 
 #include <boost/pfr/core.hpp>
 
@@ -16,7 +16,7 @@ namespace storages::mysql {
 namespace impl {
 class BindsStorage;
 
-using BindsPimpl = utils::FastPimpl<BindsStorage, 72, 8>;
+using BindsPimpl = utils::FastPimpl<BindsStorage, 96, 8>;
 }  // namespace impl
 
 namespace io {
@@ -44,10 +44,16 @@ template <typename T>
 class Binder final {
  public:
   Binder(impl::BindsStorage&, std::size_t, T&) {
+    if constexpr (std::is_same_v<std::chrono::steady_clock::time_point, T>) {
+      static_assert(!sizeof(T),
+                    "Don't store steady_clock times in the database, use "
+                    "system_clock instead");
+    }
     static_assert(!sizeof(T), "Binding for the type is not implemented");
   }
 };
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define DECLARE_BINDER(type)                           \
   template <>                                          \
   class Binder<type> final : public BinderBase<type> { \
@@ -55,12 +61,22 @@ class Binder final {
     void Bind() final;                                 \
   };
 
+// numeric types
 DECLARE_BINDER(std::uint8_t)
 DECLARE_BINDER(std::int8_t)
+DECLARE_BINDER(std::uint16_t)
+DECLARE_BINDER(std::int16_t)
 DECLARE_BINDER(std::int32_t)
 DECLARE_BINDER(std::uint32_t)
+DECLARE_BINDER(std::uint64_t)
+DECLARE_BINDER(std::int64_t)
+DECLARE_BINDER(float);
+DECLARE_BINDER(double);
+// string types
 DECLARE_BINDER(std::string)
 DECLARE_BINDER(std::string_view)
+// date types
+DECLARE_BINDER(std::chrono::system_clock::time_point);
 
 template <typename T>
 auto GetBinder(impl::BindsStorage& binds, std::size_t pos, T& field) {
@@ -68,7 +84,7 @@ auto GetBinder(impl::BindsStorage& binds, std::size_t pos, T& field) {
 
   // Underlying mysql native library uses mutable pointers for bind buffers, so
   // we have to cast const away sooner or later. This is fine, since buffer are
-  // indeed readonly for input parameters, and for output ones we never have
+  // only read from for input parameters, and for output ones we never have
   // const here.
   // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
   return Binder<Mutable>{binds, pos, const_cast<Mutable&>(field)};

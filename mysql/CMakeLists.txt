@@ -25,6 +25,9 @@ target_include_directories(
 target_include_directories (${PROJECT_NAME} PRIVATE
   $<TARGET_PROPERTY:userver-core,INCLUDE_DIRECTORIES>
 )
+target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE
+  ${USERVER_THIRD_PARTY_DIRS}/date/include
+)
 
 if (USERVER_IS_THE_ROOT_PROJECT)
   add_executable(${PROJECT_NAME}_mysqltest ${MYSQL_TEST_SOURCES})

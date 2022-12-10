@@ -79,6 +79,7 @@ StatementResultSet Cluster::Execute(ClusterHostType host_type,
 template <typename T>
 void Cluster::InsertOne(engine::Deadline deadline,
                         const std::string& insert_query, T&& row) {
+  // TODO : reuse DetectIsSuitableRowType from PG
   using Row = std::decay_t<T>;
   static_assert(boost::pfr::tuple_size_v<Row> != 0,
                 "Row to insert has zero columns");

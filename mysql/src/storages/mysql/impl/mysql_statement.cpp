@@ -36,6 +36,8 @@ const char* GetFieldTypeName(enum_field_types type) {
       return "MYSQL_TYPE_STRING";
     case MYSQL_TYPE_VAR_STRING:
       return "MYSQL_TYPE_VAR_STRING";
+    case MYSQL_TYPE_BLOB:
+      return "MYSQL_TYPE_BLOB";
 
     default:
       return "unmapped";
@@ -45,7 +47,7 @@ const char* GetFieldTypeName(enum_field_types type) {
 bool IsBindable(enum_field_types bind_type, enum_field_types field_type) {
   if (bind_type == MYSQL_TYPE_STRING) {
     return field_type == MYSQL_TYPE_VARCHAR ||
-           field_type == MYSQL_TYPE_VAR_STRING;
+           field_type == MYSQL_TYPE_VAR_STRING || field_type == MYSQL_TYPE_BLOB;
   }
 
   return bind_type == field_type;
@@ -74,6 +76,8 @@ void ValidateTypesMatch(MYSQL_STMT* statement, MYSQL_BIND* binds,
                            field.name, i,
                            signed_to_string((field.flags & UNSIGNED_FLAG) != 0),
                            signed_to_string(bind.is_unsigned)));
+
+    // TODO : nullable
   }
 }
 
@@ -191,16 +195,16 @@ bool MySQLStatement::FetchResultRow(BindsStorage& binds,
   auto* binds_array = binds.GetBindsArray();
 
   for (std::size_t i = 0; i < binds.Size(); ++i) {
-    auto& bind = binds_array[i];
-    if (bind.buffer_type == MYSQL_TYPE_STRING) {
-      binds.ResizeOutputString(i);
-    }
+    binds.UpdateBeforeFetch(i);
 
+    auto& bind = binds_array[i];
     int err = mysql_stmt_fetch_column(native_statement_.get(), &bind, i, 0);
     if (err != 0) {
       throw std::runtime_error{
           GetNativeError("Failed to fetch a column from statement result row")};
     }
+
+    binds.UpdateAfterFetch(i);
   }
 
   return true;

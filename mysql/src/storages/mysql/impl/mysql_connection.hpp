@@ -6,6 +6,8 @@
 #include <unordered_map>
 #include <vector>
 
+#include <userver/utils/str_icase.hpp>
+
 #include <storages/mysql/impl/mariadb_include.hpp>
 
 #include <storages/mysql/impl/mysql_result.hpp>
@@ -69,7 +71,9 @@ class MySQLConnection final {
 
   MySQLSocket socket_;
 
-  std::unordered_map<std::string, MySQLStatement> statements_cache_;
+  std::unordered_map<std::string, MySQLStatement, utils::StrIcaseHash,
+                     utils::StrIcaseEqual>
+      statements_cache_;
 };
 
 }  // namespace storages::mysql::impl
