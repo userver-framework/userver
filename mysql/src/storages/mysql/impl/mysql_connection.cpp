@@ -107,6 +107,14 @@ std::string MySQLConnection::GetNativeError(std::string_view prefix) {
   return std::string{prefix} + mysql_error(&mysql_);
 }
 
+std::string MySQLConnection::EscapeString(std::string_view source) {
+  auto buffer = std::make_unique<char[]>(source.length() * 2 + 1);
+  std::size_t escaped_length = mysql_real_escape_string(
+      &mysql_, buffer.get(), source.data(), source.length());
+
+  return std::string(buffer.get(), escaped_length);
+}
+
 MySQLConnection::BrokenGuard MySQLConnection::GetBrokenGuard() {
   return BrokenGuard{*this};
 }

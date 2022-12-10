@@ -47,6 +47,8 @@ class MySQLConnection final {
   const char* GetNativeError();
   std::string GetNativeError(std::string_view prefix);
 
+  std::string EscapeString(std::string_view source);
+
   class BrokenGuard final {
    public:
     explicit BrokenGuard(MySQLConnection& connection);

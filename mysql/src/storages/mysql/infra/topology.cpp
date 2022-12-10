@@ -28,7 +28,7 @@ Topology::Topology() {
 
 Topology::~Topology() = default;
 
-Pool& Topology::SelectPool(ClusterHostType host_type) {
+Pool& Topology::SelectPool(ClusterHostType host_type) const {
   switch (host_type) {
     case ClusterHostType::kMaster:
       return GetMaster();

@@ -16,6 +16,10 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::mysql {
 
+namespace tests {
+class TestsHelper;
+}
+
 namespace infra {
 class Topology;
 }
@@ -29,31 +33,35 @@ class Cluster final {
   template <typename... Args>
   StatementResultSet Select(ClusterHostType host_type,
                             engine::Deadline deadline, const std::string& query,
-                            const Args&... args);
+                            const Args&... args) const;
 
   template <typename... Args>
   StatementResultSet Execute(ClusterHostType host_type,
                              engine::Deadline deadline,
-                             const std::string& query, const Args&... args);
+                             const std::string& query,
+                             const Args&... args) const;
 
   template <typename T>
   void InsertOne(engine::Deadline deadline, const std::string& insert_query,
-                 T&& row);
+                 T&& row) const;
 
   // only works with recent enough MariaDB as a server,
   // requires mariadb client lib
   template <typename Container>
   void InsertMany(engine::Deadline deadline, const std::string& insert_query,
-                  Container&& rows, bool throw_on_empty_insert = true);
+                  Container&& rows, bool throw_on_empty_insert = true) const;
 
  private:
   StatementResultSet DoExecute(ClusterHostType host_type,
                                const std::string& query,
                                io::ParamsBinderBase& params,
-                               engine::Deadline deadline);
+                               engine::Deadline deadline) const;
 
   void DoInsert(const std::string& insert_query, io::ParamsBinderBase& params,
-                engine::Deadline deadline);
+                engine::Deadline deadline) const;
+
+  friend class tests::TestsHelper;
+  std::string EscapeString(std::string_view source) const;
 
   utils::FastPimpl<infra::Topology, 24, 8> topology_;
 };
@@ -62,7 +70,7 @@ template <typename... Args>
 StatementResultSet Cluster::Select(ClusterHostType host_type,
                                    engine::Deadline deadline,
                                    const std::string& query,
-                                   const Args&... args) {
+                                   const Args&... args) const {
   return Execute(host_type, deadline, query, args...);
 }
 
@@ -70,7 +78,7 @@ template <typename... Args>
 StatementResultSet Cluster::Execute(ClusterHostType host_type,
                                     engine::Deadline deadline,
                                     const std::string& query,
-                                    const Args&... args) {
+                                    const Args&... args) const {
   auto params_binder = io::ParamsBinder::BindParams(args...);
 
   return DoExecute(host_type, query, params_binder, deadline);
@@ -78,7 +86,7 @@ StatementResultSet Cluster::Execute(ClusterHostType host_type,
 
 template <typename T>
 void Cluster::InsertOne(engine::Deadline deadline,
-                        const std::string& insert_query, T&& row) {
+                        const std::string& insert_query, T&& row) const {
   // TODO : reuse DetectIsSuitableRowType from PG
   using Row = std::decay_t<T>;
   static_assert(boost::pfr::tuple_size_v<Row> != 0,
@@ -97,7 +105,7 @@ void Cluster::InsertOne(engine::Deadline deadline,
 template <typename Container>
 void Cluster::InsertMany(engine::Deadline deadline,
                          const std::string& insert_query, Container&& rows,
-                         bool throw_on_empty_insert) {
+                         bool throw_on_empty_insert) const {
   if (rows.empty()) {
     if (throw_on_empty_insert) {
       throw std::runtime_error{"Empty insert requested"};

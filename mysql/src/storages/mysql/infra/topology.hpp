@@ -16,7 +16,7 @@ class Topology final {
   Topology();
   ~Topology();
 
-  Pool& SelectPool(ClusterHostType host_type);
+  Pool& SelectPool(ClusterHostType host_type) const;
 
  private:
   Pool& GetMaster() const;
