@@ -16,7 +16,7 @@ namespace storages::mysql {
 namespace impl {
 class BindsStorage;
 
-using BindsPimpl = utils::FastPimpl<BindsStorage, 56, 8>;
+using BindsPimpl = utils::FastPimpl<BindsStorage, 72, 8>;
 }  // namespace impl
 
 namespace io {
@@ -42,6 +42,7 @@ class BinderBase {
 
 template <typename T>
 class Binder final {
+ public:
   Binder(impl::BindsStorage&, std::size_t, T&) {
     static_assert(!sizeof(T), "Binding for the type is not implemented");
   }
@@ -63,12 +64,21 @@ DECLARE_BINDER(std::string_view)
 
 template <typename T>
 auto GetBinder(impl::BindsStorage& binds, std::size_t pos, T& field) {
-  return Binder<T>{binds, pos, field};
+  using Mutable = std::remove_const_t<T>;
+
+  // Underlying mysql native library uses mutable pointers for bind buffers, so
+  // we have to cast const away sooner or later. This is fine, since buffer are
+  // indeed readonly for input parameters, and for output ones we never have
+  // const here.
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
+  return Binder<Mutable>{binds, pos, const_cast<Mutable&>(field)};
 }
 
 class ParamsBinderBase {
  public:
   virtual impl::BindsStorage& GetBinds() = 0;
+
+  virtual std::size_t GetRowsCount() const { return 0; }
 };
 
 class ParamsBinder final : public ParamsBinderBase {
@@ -82,16 +92,18 @@ class ParamsBinder final : public ParamsBinderBase {
   impl::BindsStorage& GetBinds() final;
 
   template <typename Field>
-  void Bind(std::size_t pos, Field& field) {
-    GetBinder(*impl_, pos, field)();
+  void Bind(std::size_t pos, const Field& field) {
+    GetBinder(GetBinds(), pos, field)();
   }
 
+  std::size_t GetRowsCount() const final { return 1; }
+
   template <typename... Args>
-  static ParamsBinder BindParams(Args&... args) {
+  static ParamsBinder BindParams(const Args&... args) {
     ParamsBinder binder{};
     size_t ind = 0;
 
-    const auto do_bind = [&binder](std::size_t pos, auto& arg) {
+    const auto do_bind = [&binder](std::size_t pos, const auto& arg) {
       if constexpr (std::is_convertible_v<decltype(arg), std::string_view>) {
         std::string_view sw{arg};
         binder.Bind(pos, sw);
@@ -109,32 +121,38 @@ class ParamsBinder final : public ParamsBinderBase {
   impl::BindsPimpl impl_;
 };
 
-class FieldBinder final {
- public:
-  explicit FieldBinder(impl::BindsStorage& binds) : binds_{binds} {}
-
-  template <typename Field, size_t Index>
-  void operator()(Field& field, std::integral_constant<std::size_t, Index> i) {
-    GetBinder(binds_, i, field)();
-  }
-
- private:
-  impl::BindsStorage& binds_;
-};
-
 class ResultBinder final {
  public:
   ResultBinder();
   ~ResultBinder();
 
+  ResultBinder(const ResultBinder& other) = delete;
+  ResultBinder(ResultBinder&& other) noexcept;
+
   template <typename T>
   impl::BindsStorage& BindTo(T& row) {
     boost::pfr::for_each_field(row, FieldBinder{*impl_});
 
-    return *impl_;
+    return GetBinds();
   }
 
+  impl::BindsStorage& GetBinds();
+
  private:
+  class FieldBinder final {
+   public:
+    explicit FieldBinder(impl::BindsStorage& binds) : binds_{binds} {}
+
+    template <typename Field, size_t Index>
+    void operator()(Field& field,
+                    std::integral_constant<std::size_t, Index> i) {
+      GetBinder(binds_, i, field)();
+    }
+
+   private:
+    impl::BindsStorage& binds_;
+  };
+
   impl::BindsPimpl impl_;
 };
 

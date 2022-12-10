@@ -70,20 +70,13 @@ MySQLStatementFetcher MySQLConnection::ExecuteStatement(
 
   auto& mysql_statement = PrepareStatement(statement, deadline);
 
-  return mysql_statement.Execute(deadline, params.GetBinds());
+  return mysql_statement.Execute(deadline, params);
 }
 
 void MySQLConnection::ExecuteInsert(const std::string& insert_statement,
                                     io::ParamsBinderBase& params,
-                                    std::size_t rows_count,
                                     engine::Deadline deadline) {
-  auto broken_guard = GetBrokenGuard();
-
-  auto& mysql_statement = PrepareStatement(insert_statement, deadline);
-
-  mysql_statement.SetInsertRowsCount(rows_count);
-
-  mysql_statement.Execute(deadline, params.GetBinds());
+  ExecuteStatement(insert_statement, params, deadline);
 }
 
 void MySQLConnection::Ping(engine::Deadline deadline) {

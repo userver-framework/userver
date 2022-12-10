@@ -1,5 +1,7 @@
 #include <storages/mysql/impl/mysql_statement.hpp>
 
+#include <utility>
+
 #include <fmt/format.h>
 
 #include <userver/logging/log.hpp>
@@ -7,6 +9,7 @@
 
 #include <storages/mysql/impl/mysql_binds_storage.hpp>
 #include <storages/mysql/impl/mysql_connection.hpp>
+#include <userver/storages/mysql/io/binder.hpp>
 #include <userver/storages/mysql/io/extractor.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -107,8 +110,8 @@ MySQLStatement::~MySQLStatement() = default;
 MySQLStatement::MySQLStatement(MySQLStatement&& other) noexcept = default;
 
 MySQLStatementFetcher MySQLStatement::Execute(engine::Deadline deadline,
-                                              BindsStorage& binds) {
-  UpdateParamsBindings(binds);
+                                              io::ParamsBinderBase& params) {
+  UpdateParamsBindings(params);
 
   int err = 0;
   connection_->GetSocket().RunToCompletion(
@@ -127,11 +130,6 @@ MySQLStatementFetcher MySQLStatement::Execute(engine::Deadline deadline,
   }
 
   return MySQLStatementFetcher{*this};
-}
-
-void MySQLStatement::SetInsertRowsCount(std::size_t rows_count) {
-  mysql_stmt_attr_set(native_statement_.get(), STMT_ATTR_ARRAY_SIZE,
-                      &rows_count);
 }
 
 void MySQLStatement::StoreResult(engine::Deadline deadline) {
@@ -156,7 +154,8 @@ void MySQLStatement::StoreResult(engine::Deadline deadline) {
   }
 }
 
-bool MySQLStatement::FetchResultRow(BindsStorage& binds) {
+bool MySQLStatement::FetchResultRow(BindsStorage& binds,
+                                    engine::Deadline deadline) {
   if (!binds.Empty()) {
     if (mysql_stmt_bind_result(native_statement_.get(),
                                binds.GetBindsArray()) != 0) {
@@ -165,13 +164,23 @@ bool MySQLStatement::FetchResultRow(BindsStorage& binds) {
     }
   }
 
-  int fetch_error = mysql_stmt_fetch(native_statement_.get());
-  if (fetch_error != 0) {
-    if (fetch_error == MYSQL_NO_DATA) {
+  int fetch_err = 0;
+  connection_->GetSocket().RunToCompletion(
+      [this, &fetch_err] {
+        return mysql_stmt_fetch_start(&fetch_err, native_statement_.get());
+      },
+      [this, &fetch_err](int mysql_events) {
+        return mysql_stmt_fetch_cont(&fetch_err, native_statement_.get(),
+                                     mysql_events);
+      },
+      deadline);
+
+  if (fetch_err != 0) {
+    if (fetch_err == MYSQL_NO_DATA) {
       return false;
     }
 
-    if (fetch_error != MYSQL_DATA_TRUNCATED) {
+    if (fetch_err != MYSQL_DATA_TRUNCATED) {
       // MYSQL_DATA_TRUNCATED is what we get with the way we bind strings,
       // it's ok. Other errors are not ok tho.
       throw std::runtime_error{
@@ -197,7 +206,7 @@ bool MySQLStatement::FetchResultRow(BindsStorage& binds) {
   return true;
 }
 
-void MySQLStatement::FreeResult(engine::Deadline deadline) {
+void MySQLStatement::Reset(engine::Deadline deadline) {
   my_bool err{};
   connection_->GetSocket().RunToCompletion(
       [this, &err] {
@@ -213,14 +222,44 @@ void MySQLStatement::FreeResult(engine::Deadline deadline) {
     throw std::runtime_error{
         GetNativeError("Failed to free a prepared statement result: ")};
   }
+
+  connection_->GetSocket().RunToCompletion(
+      [this, &err] {
+        return mysql_stmt_reset_start(&err, native_statement_.get());
+      },
+      [this, &err](int mysql_events) {
+        return mysql_stmt_reset_cont(&err, native_statement_.get(),
+                                     mysql_events);
+      },
+      deadline);
+  if (err != 0) {
+    throw std::runtime_error{
+        GetNativeError("Failed to reset a prepared statement: ")};
+  }
 }
 
-void MySQLStatement::UpdateParamsBindings(BindsStorage& binds) {
+void MySQLStatement::UpdateParamsBindings(io::ParamsBinderBase& params) {
+  auto& binds = params.GetBinds();
+
   UINVARIANT(ParamsCount() == binds.Size(),
              fmt::format("Statement has {} parameters, but {} were provided",
                          ParamsCount(), binds.Size()));
   if (!binds.Empty()) {
     mysql_stmt_bind_param(native_statement_.get(), binds.GetBindsArray());
+
+    if (auto rows_count = params.GetRowsCount(); rows_count > 1) {
+      mysql_stmt_attr_set(native_statement_.get(), STMT_ATTR_ARRAY_SIZE,
+                          &rows_count);
+    }
+
+    if (auto* user_data = binds.GetUserData()) {
+      mysql_stmt_attr_set(native_statement_.get(), STMT_ATTR_CB_USER_DATA,
+                          user_data);
+    }
+    if (auto* param_cb = binds.GetParamCb()) {
+      mysql_stmt_attr_set(native_statement_.get(), STMT_ATTR_CB_PARAM,
+                          param_cb);
+    }
   }
 }
 
@@ -260,6 +299,13 @@ MySQLStatement::NativeStatementPtr MySQLStatement::CreateStatement(
         GetNativeError("Failed to initialize a prepared statement: ")};
   }
 
+  // We force statements to return a cursor, because otherwise Execute returns a
+  // whole result set, which is not always desirable (we support async iteration
+  // via AsStreamOf)
+  std::size_t cursor_type = CURSOR_TYPE_READ_ONLY;
+  mysql_stmt_attr_set(native_statement_.get(), STMT_ATTR_CURSOR_TYPE,
+                      &cursor_type);
+
   return statement_ptr;
 }
 
@@ -268,47 +314,68 @@ std::string MySQLStatement::GetNativeError(std::string_view prefix) const {
 }
 
 MySQLStatementFetcher::MySQLStatementFetcher(MySQLStatement& statement)
-    : statement_{statement} {
-  UASSERT(statement_.native_statement_);
+    : statement_{&statement} {
+  UASSERT(statement_->native_statement_);
 }
 
-MySQLStatementFetcher::~MySQLStatementFetcher() = default;
+MySQLStatementFetcher::~MySQLStatementFetcher() {
+  if (statement_) {
+    try {
+      // TODO : mysql_stmt_reset ?
+      statement_->Reset(parent_statement_deadline_);
+    } catch (const std::exception& ex) {
+      LOG_ERROR() << "Failed to correctly cleanup a statement: " << ex.what();
+    }
+  }
+}
 
 MySQLStatementFetcher::MySQLStatementFetcher(
-    MySQLStatementFetcher&& other) noexcept = default;
+    MySQLStatementFetcher&& other) noexcept
+    : parent_statement_deadline_{other.parent_statement_deadline_},
+      batch_size_{other.batch_size_},
+      binds_validated_{other.binds_validated_},
+      statement_{std::exchange(other.statement_, nullptr)} {}
 
-void MySQLStatementFetcher::FetchResult(io::ExtractorBase& extractor,
-                                        engine::Deadline deadline) {
+bool MySQLStatementFetcher::FetchResult(io::ExtractorBase& extractor) {
   UINVARIANT(
-      statement_.ResultColumnsCount() == extractor.ColumnsCount(),
+      statement_->ResultColumnsCount() == extractor.ColumnsCount(),
       fmt::format("Statement has {} output columns, but {} were provided",
-                  statement_.ResultColumnsCount(), extractor.ColumnsCount()));
+                  statement_->ResultColumnsCount(), extractor.ColumnsCount()));
 
-  auto broken_guard = statement_.connection_->GetBrokenGuard();
+  auto broken_guard = statement_->connection_->GetBrokenGuard();
 
-  statement_.StoreResult(deadline);
-  utils::ScopeGuard free_result_scope{
-      [this, deadline] { statement_.FreeResult(deadline); }};
+  if (!batch_size_.has_value()) {
+    statement_->StoreResult(parent_statement_deadline_);
+  }
 
-  const auto rows_count = statement_.RowsCount();
+  const auto rows_count = batch_size_.value_or(statement_->RowsCount());
   extractor.Reserve(rows_count);
 
   for (size_t i = 0; i < rows_count; ++i) {
     auto& binds = extractor.BindNextRow();
-    if (i == 0) {
+    if (!std::exchange(binds_validated_, true)) {
       ValidateBinding(binds);
     }
 
-    const auto parsed = statement_.FetchResultRow(binds);
-    UASSERT(parsed);
+    const auto parsed =
+        statement_->FetchResultRow(binds, parent_statement_deadline_);
+    if (!parsed) return false;
   }
+
+  return true;
+}
+
+void MySQLStatementFetcher::SetFetchBatchSize(std::size_t batch_size) {
+  batch_size_.emplace(batch_size);
+  mysql_stmt_attr_set(statement_->native_statement_.get(),
+                      STMT_ATTR_PREFETCH_ROWS, &batch_size);
 }
 
 void MySQLStatementFetcher::ValidateBinding(BindsStorage& binds) {
-  const auto fields_count = statement_.ResultColumnsCount();
+  const auto fields_count = statement_->ResultColumnsCount();
   UASSERT(binds.Size() == fields_count);
 
-  ValidateTypesMatch(statement_.native_statement_.get(), binds.GetBindsArray(),
+  ValidateTypesMatch(statement_->native_statement_.get(), binds.GetBindsArray(),
                      fields_count);
 }
 

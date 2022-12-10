@@ -49,24 +49,11 @@ UTEST(Connection, TypedWorks) {
 
     auto typed = std::move(res).AsRows<Row>();
     for (auto& row : typed) {
-      std::cout << row.id << " " << row.value << std::endl;
+      // std::cout << row.id << " " << row.value << std::endl;
     }
   }
   { auto res = get_res().AsContainer<std::vector<Row>>(); }
 }
-
-/*UTEST(Connection, PreparedWorks) {
-  storages::mysql::impl::MySQLConnection conn{};
-
-  // yeap, this type is in public includes, yet connection is private
-  storages::mysql::io::TypedExtractor<Row> extractor{};
-  conn.ExecuteStatement("SELECT Id, Value FROM test", extractor, {});
-  auto data = std::move(extractor).ExtractData();
-
-  for (const auto& row : data) {
-    std::cout << row.id << " | " << row.value << std::endl;
-  }
-}*/
 
 UTEST(Pool, Works) { const auto pool = storages::mysql::infra::Pool::Create(); }
 

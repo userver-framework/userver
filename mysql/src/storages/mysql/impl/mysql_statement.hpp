@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <optional>
 #include <string>
 
 #include <storages/mysql/impl/mariadb_include.hpp>
@@ -11,7 +12,8 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::mysql::io {
 class ExtractorBase;
-}
+class ParamsBinderBase;
+}  // namespace storages::mysql::io
 
 namespace storages::mysql::impl {
 
@@ -27,7 +29,9 @@ class MySQLStatementFetcher final {
   MySQLStatementFetcher(const MySQLStatementFetcher& other) = delete;
   MySQLStatementFetcher(MySQLStatementFetcher&& other) noexcept;
 
-  void FetchResult(io::ExtractorBase& extractor, engine::Deadline deadline);
+  void SetFetchBatchSize(std::size_t batch_size);
+
+  bool FetchResult(io::ExtractorBase& extractor);
 
  private:
   friend class MySQLStatement;
@@ -35,7 +39,10 @@ class MySQLStatementFetcher final {
 
   void ValidateBinding(BindsStorage& binds);
 
-  MySQLStatement& statement_;
+  engine::Deadline parent_statement_deadline_;
+  std::optional<std::size_t> batch_size_;
+  bool binds_validated_{false};
+  MySQLStatement* statement_;
 };
 
 class MySQLStatement final {
@@ -47,9 +54,8 @@ class MySQLStatement final {
   MySQLStatement(const MySQLStatement& other) = delete;
   MySQLStatement(MySQLStatement&& other) noexcept;
 
-  MySQLStatementFetcher Execute(engine::Deadline deadline, BindsStorage& binds);
-
-  void SetInsertRowsCount(std::size_t rows_count);
+  MySQLStatementFetcher Execute(engine::Deadline deadline,
+                                io::ParamsBinderBase& params);
 
   std::size_t RowsCount() const;
 
@@ -59,10 +65,11 @@ class MySQLStatement final {
  private:
   friend class MySQLStatementFetcher;
   void StoreResult(engine::Deadline deadline);
-  bool FetchResultRow(BindsStorage& binds);
-  void FreeResult(engine::Deadline deadline);
 
-  void UpdateParamsBindings(BindsStorage& binds);
+  bool FetchResultRow(BindsStorage& binds, engine::Deadline deadline);
+  void Reset(engine::Deadline deadline);
+
+  void UpdateParamsBindings(io::ParamsBinderBase& params);
 
   class NativeStatementDeleter final {
    public:

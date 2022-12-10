@@ -2,6 +2,8 @@
 
 #include <iostream>
 
+#include <userver/engine/sleep.hpp>
+
 #include <userver/storages/mysql/cluster.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -30,10 +32,10 @@ UTEST(Cluster, TypedWorks) {
       cluster
           .Execute(storages::mysql::ClusterHostType::kMaster, deadline,
                    "SELECT Id, Value FROM test WHERE Id=? OR Value=?", 1, "two")
-          .AsVector<Row>(deadline);
+          .AsVector<Row>();
 
   for (const auto& [id, value] : rows) {
-    std::cout << id << ": " << value << std::endl;
+    // std::cout << id << ": " << value << std::endl;
   }
 }
 
@@ -43,11 +45,11 @@ UTEST(Cluster, TypedSizeMismatch) {
   storages::mysql::Cluster cluster{};
 
   auto rows = cluster.Execute(kMasterHost, deadline, "SELECT Id FROM test")
-                  .AsVector<Id>(deadline);
+                  .AsVector<Id>();
 
-  for (const auto [id] : rows) {
-    std::cout << id << " ";
-  }
+  // for (const auto [id] : rows) {
+  // std::cout << id << " ";
+  //}
   std::cout << std::endl;
 }
 
@@ -71,19 +73,54 @@ UTEST(Cluster, AsSingleRow) {
                            "SELECT Id, Value FROM test limit ?", limit);
   };
 
-  EXPECT_ANY_THROW(select_with_limit(0).AsSingleRow<Row>(deadline));
-  EXPECT_ANY_THROW(select_with_limit(2).AsSingleRow<Row>(deadline));
-  EXPECT_NO_THROW(select_with_limit(1).AsSingleRow<Row>(deadline));
+  EXPECT_ANY_THROW(select_with_limit(0).AsSingleRow<Row>());
+  EXPECT_ANY_THROW(select_with_limit(2).AsSingleRow<Row>());
+  EXPECT_NO_THROW(select_with_limit(1).AsSingleRow<Row>());
 }
 
-UTEST(Cluster, Insert) {
+UTEST(Cluster, InsertMany) {
+  const auto deadline =
+      engine::Deadline::FromDuration(std::chrono::seconds{500});
+
+  storages::mysql::Cluster cluster{};
+
+  std::vector<Row> rows{{11, "55zxc"}, {22, "66asdwe"}, {33, "77ok"}};
+  cluster.InsertMany(deadline, "INSERT INTO test(Id, Value) VALUES(?, ?)",
+                     rows);
+}
+
+UTEST(Cluster, InsertManySimple) {
   const auto deadline = engine::Deadline::FromDuration(utest::kMaxTestWaitTime);
 
   storages::mysql::Cluster cluster{};
 
-  std::vector<Row> rows{{1, "55zxc"}, {2, "66asdwe"}, {3, "77ok"}};
-  cluster.InsertMany(deadline, "INSERT INTO test(Id, Value) VALUES(?, ?)",
-                     rows);
+  std::vector<Id> ids{{1}, {2}, {3}, {4}, {5}, {6}};
+  cluster.InsertMany(deadline, "INSERT INTO test(Id) VALUES(?)", ids);
+}
+
+UTEST(Cluster, InsertOne) {
+  const auto deadline = engine::Deadline::FromDuration(utest::kMaxTestWaitTime);
+
+  storages::mysql::Cluster cluster{};
+
+  Row row{7, "seven"};
+  cluster.InsertOne(deadline, "INSERT INTO test(Id, Value) VALUES(?, ?)", row);
+}
+
+UTEST(StreamedResult, Works) {
+  const auto deadline = engine::Deadline::FromDuration(utest::kMaxTestWaitTime);
+
+  storages::mysql::Cluster cluster{};
+
+  auto stream =
+      cluster.Select(kMasterHost, deadline, "SELECT Id, Value FROM test")
+          .AsStreamOf<Row>();
+
+  std::move(stream).ForEach(
+      [](Row&&) {
+        // std::cout << row.id << " " << row.value << std::endl;
+      },
+      1, deadline);
 }
 
 UTEST(Cluster, DISABLED_BigInsert) {
@@ -106,9 +143,19 @@ UTEST(Cluster, DISABLED_BigInsert) {
                      rows);
 
   rows = cluster.Execute(kMasterHost, deadline, "SELECT Id, Value FROM test")
-             .AsVector<Row>(deadline);
+             .AsVector<Row>();
 
-  cluster.Execute(kMasterHost, deadline, "DELETE FROM test");
+  // cluster.Execute(kMasterHost, deadline, "DELETE FROM test");
+}
+
+UTEST(Cluster, WorksWithConsts) {
+  const auto deadline = engine::Deadline::FromDuration(utest::kMaxTestWaitTime);
+
+  storages::mysql::Cluster cluster{};
+
+  const int id = 5;
+  cluster.Select(kMasterHost, deadline, "SELECT Id, Value FROM test WHERE Id=?",
+                 id);
 }
 
 USERVER_NAMESPACE_END

@@ -83,20 +83,24 @@ void BindsStorage::ResizeOutputString(std::size_t pos) {
   bind.buffer_length = output_string.output->size();
 }
 
-void BindsStorage::FixupForInsert(std::size_t pos, char* buffer,
-                                  std::size_t* lengths) {
-  UASSERT(binds_type_ == BindsType::kParameters);
-
-  auto& bind = binds_[pos];
-  bind.buffer = buffer;
-  bind.length = lengths;
-}
-
 MYSQL_BIND* BindsStorage::GetBindsArray() { return binds_.data(); }
 
 std::size_t BindsStorage::Size() const { return binds_.size(); }
 
 bool BindsStorage::Empty() const { return binds_.empty(); }
+
+void BindsStorage::SetBindCallbacks(void* user_data,
+                                    void (*param_cb)(void*, void*,
+                                                     std::size_t)) {
+  user_data_ = user_data;
+  param_cb_ = param_cb;
+}
+
+void* BindsStorage::GetUserData() const { return user_data_; }
+
+void* BindsStorage::GetParamCb() const {
+  return reinterpret_cast<void*>(param_cb_);
+}
 
 void BindsStorage::ResizeIfNecessary(std::size_t pos) {
   if (pos >= binds_.size()) {

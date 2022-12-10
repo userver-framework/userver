@@ -25,18 +25,26 @@ class Cluster final {
   Cluster();
   ~Cluster();
 
+  // An alias for Execute
+  template <typename... Args>
+  StatementResultSet Select(ClusterHostType host_type,
+                            engine::Deadline deadline, const std::string& query,
+                            const Args&... args);
+
   template <typename... Args>
   StatementResultSet Execute(ClusterHostType host_type,
                              engine::Deadline deadline,
-                             const std::string& query, Args&&... args);
+                             const std::string& query, const Args&... args);
 
   template <typename T>
-  void InsertSingle(engine::Deadline deadline, const std::string& insert_query,
-                    T&& row);
+  void InsertOne(engine::Deadline deadline, const std::string& insert_query,
+                 T&& row);
 
+  // only works with recent enough MariaDB as a server,
+  // requires mariadb client lib
   template <typename Container>
   void InsertMany(engine::Deadline deadline, const std::string& insert_query,
-                  Container&& rows);
+                  Container&& rows, bool throw_on_empty_insert = true);
 
  private:
   StatementResultSet DoExecute(ClusterHostType host_type,
@@ -45,40 +53,62 @@ class Cluster final {
                                engine::Deadline deadline);
 
   void DoInsert(const std::string& insert_query, io::ParamsBinderBase& params,
-                std::size_t rows_count, engine::Deadline deadline);
+                engine::Deadline deadline);
 
   utils::FastPimpl<infra::Topology, 24, 8> topology_;
 };
 
 template <typename... Args>
+StatementResultSet Cluster::Select(ClusterHostType host_type,
+                                   engine::Deadline deadline,
+                                   const std::string& query,
+                                   const Args&... args) {
+  return Execute(host_type, deadline, query, args...);
+}
+
+template <typename... Args>
 StatementResultSet Cluster::Execute(ClusterHostType host_type,
                                     engine::Deadline deadline,
-                                    const std::string& query, Args&&... args) {
-  auto params_binder =
-      io::ParamsBinder::BindParams(/* no forward here */ args...);
+                                    const std::string& query,
+                                    const Args&... args) {
+  auto params_binder = io::ParamsBinder::BindParams(args...);
 
   return DoExecute(host_type, query, params_binder, deadline);
 }
 
-/*template <typename T>
-void Cluster::InsertSingle(engine::Deadline deadline,
-                           const std::string& insert_query, T&& row) {
-  // TODO : reuse ParamsBinder somehow
-}*/
+template <typename T>
+void Cluster::InsertOne(engine::Deadline deadline,
+                        const std::string& insert_query, T&& row) {
+  using Row = std::decay_t<T>;
+  static_assert(boost::pfr::tuple_size_v<Row> != 0,
+                "Row to insert has zero columns");
+
+  auto binder = std::apply(
+      [](auto&&... args) {
+        return io::ParamsBinder::BindParams(
+            std::forward<decltype(args)>(args)...);
+      },
+      boost::pfr::structure_tie(row));
+
+  return DoInsert(insert_query, binder, deadline);
+}
 
 template <typename Container>
 void Cluster::InsertMany(engine::Deadline deadline,
-                         const std::string& insert_query, Container&& rows) {
-  static_assert(io::kIsRange<Container>, "The type isn't actually a container");
+                         const std::string& insert_query, Container&& rows,
+                         bool throw_on_empty_insert) {
   if (rows.empty()) {
-    // TODO : throw?
-    return;
+    if (throw_on_empty_insert) {
+      throw std::runtime_error{"Empty insert requested"};
+    } else {
+      return;
+    }
   }
 
   io::InsertBinder binder{rows};
   binder.BindRows();
 
-  DoInsert(insert_query, binder, rows.size(), deadline);
+  DoInsert(insert_query, binder, deadline);
 }
 
 }  // namespace storages::mysql

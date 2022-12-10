@@ -19,7 +19,7 @@ namespace {
 
 constexpr std::size_t kMaxSimultaneouslyConnectingClients{5};
 constexpr std::size_t kMaxPoolSize{10};
-constexpr std::size_t kMinPoolSize{5};
+constexpr std::size_t kMinPoolSize{1};
 
 constexpr std::chrono::milliseconds kConnectionSetupTimeout{2000};
 

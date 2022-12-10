@@ -33,8 +33,7 @@ class MySQLConnection final {
                                          engine::Deadline deadline);
 
   void ExecuteInsert(const std::string& insert_statement,
-                     io::ParamsBinderBase& params, std::size_t rows_count,
-                     engine::Deadline deadline);
+                     io::ParamsBinderBase& params, engine::Deadline deadline);
 
   void Ping(engine::Deadline deadline);
 

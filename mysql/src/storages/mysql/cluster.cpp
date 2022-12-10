@@ -24,12 +24,12 @@ StatementResultSet Cluster::DoExecute(ClusterHostType host_type,
 }
 
 void Cluster::DoInsert(const std::string& insert_query,
-                       io::ParamsBinderBase& params, std::size_t rows_count,
+                       io::ParamsBinderBase& params,
                        engine::Deadline deadline) {
   auto connection =
       topology_->SelectPool(ClusterHostType::kMaster).Acquire(deadline);
 
-  connection->ExecuteInsert(insert_query, params, rows_count, deadline);
+  connection->ExecuteInsert(insert_query, params, deadline);
 }
 
 }  // namespace storages::mysql

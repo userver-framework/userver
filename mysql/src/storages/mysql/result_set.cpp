@@ -1,7 +1,5 @@
 #include <userver/storages/mysql/result_set.hpp>
 
-#include <string>
-
 #include <userver/utils/assert.hpp>
 
 #include <storages/mysql/impl/mysql_result.hpp>

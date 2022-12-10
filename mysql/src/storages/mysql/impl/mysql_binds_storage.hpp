@@ -27,12 +27,17 @@ class BindsStorage final {
   void Bind(std::size_t pos, std::string_view& val);
 
   void ResizeOutputString(std::size_t pos);
-  void FixupForInsert(std::size_t pos, char* buffer, std::size_t* lengths);
 
   MYSQL_BIND* GetBindsArray();
 
   std::size_t Size() const;
   bool Empty() const;
+
+  void SetBindCallbacks(void* user_data,
+                        void (*param_cb)(void*, void*, std::size_t));
+
+  void* GetUserData() const;
+  void* GetParamCb() const;
 
  private:
   void ResizeIfNecessary(std::size_t pos);
@@ -51,6 +56,9 @@ class BindsStorage final {
 
   std::vector<OutputString> output_strings_;
   std::vector<MYSQL_BIND> binds_;
+
+  void* user_data_{nullptr};
+  void (*param_cb_)(void*, void*, std::size_t){nullptr};
 };
 
 }  // namespace storages::mysql::impl

@@ -24,12 +24,12 @@ StatementResultSet::~StatementResultSet() = default;
 StatementResultSet::StatementResultSet(StatementResultSet&& other) noexcept =
     default;
 
-void StatementResultSet::FetchResult(io::ExtractorBase& extractor,
-                                     engine::Deadline deadline) && {
-  {
-    auto impl = std::move(impl_);
-    impl->fetcher.FetchResult(extractor, deadline);
-  }
+bool StatementResultSet::FetchResult(io::ExtractorBase& extractor) {
+  return impl_->fetcher.FetchResult(extractor);
+}
+
+void StatementResultSet::SetBatchSize(std::size_t batch_size) {
+  impl_->fetcher.SetFetchBatchSize(batch_size);
 }
 
 }  // namespace storages::mysql
