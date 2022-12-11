@@ -16,4 +16,5 @@ debian:
 
 configs:
     names:
+      - MONGO_DEADLINE_PROPAGATION_ENABLED
       - MONGO_DEFAULT_MAX_TIME_MS
