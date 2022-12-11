@@ -8,36 +8,6 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::mysql::impl {
 
-namespace {
-
-void UpdateBindBufferLength(MYSQL_BIND& bind, enum_field_types type) {
-  const auto type_size = [type]() -> std::size_t {
-    switch (type) {
-      case MYSQL_TYPE_TINY:
-        return 1;
-      case MYSQL_TYPE_SHORT:
-        return 2;
-      case MYSQL_TYPE_LONG:
-        return 4;
-      case MYSQL_TYPE_LONGLONG:
-        return 8;
-      case MYSQL_TYPE_FLOAT:
-        return 4;
-      case MYSQL_TYPE_DOUBLE:
-        return 8;
-
-      default:
-        return 0;
-    };
-  }();
-
-  if (type_size != 0) {
-    bind.buffer_length = type_size;
-  }
-}
-
-}  // namespace
-
 BindsStorage::BindsStorage(BindsType binds_type) : binds_type_{binds_type} {}
 
 BindsStorage::~BindsStorage() = default;
@@ -49,41 +19,61 @@ void BindsStorage::At::Bind(std::uint8_t& val) {
   storage_.DoBind(pos_, MYSQL_TYPE_TINY, &val, 0, true);
 }
 
+void BindsStorage::At::Bind(O<std::uint8_t>& val) { BindOptional(val); }
+
 void BindsStorage::At::Bind(std::int8_t& val) {
   storage_.DoBind(pos_, MYSQL_TYPE_TINY, &val, 0);
 }
+
+void BindsStorage::At::Bind(O<std::int8_t>& val) { BindOptional(val); }
 
 void BindsStorage::At::Bind(std::uint16_t& val) {
   storage_.DoBind(pos_, MYSQL_TYPE_SHORT, &val, 0, true);
 }
 
+void BindsStorage::At::Bind(O<std::uint16_t>& val) { BindOptional(val); }
+
 void BindsStorage::At::Bind(std::int16_t& val) {
   storage_.DoBind(pos_, MYSQL_TYPE_SHORT, &val, 0);
 }
+
+void BindsStorage::At::Bind(O<std::int16_t>& val) { BindOptional(val); }
 
 void BindsStorage::At::Bind(std::uint32_t& val) {
   storage_.DoBind(pos_, MYSQL_TYPE_LONG, &val, 0, true);
 }
 
+void BindsStorage::At::Bind(O<std::uint32_t>& val) { BindOptional(val); }
+
 void BindsStorage::At::Bind(std::int32_t& val) {
   storage_.DoBind(pos_, MYSQL_TYPE_LONG, &val, 0);
 }
+
+void BindsStorage::At::Bind(O<std::int32_t>& val) { BindOptional(val); }
 
 void BindsStorage::At::Bind(std::uint64_t& val) {
   storage_.DoBind(pos_, MYSQL_TYPE_LONGLONG, &val, 0, true);
 }
 
+void BindsStorage::At::Bind(O<std::uint64_t>& val) { BindOptional(val); }
+
 void BindsStorage::At::Bind(std::int64_t& val) {
   storage_.DoBind(pos_, MYSQL_TYPE_LONGLONG, &val, 0);
 }
+
+void BindsStorage::At::Bind(O<std::int64_t>& val) { BindOptional(val); }
 
 void BindsStorage::At::Bind(float& val) {
   storage_.DoBind(pos_, MYSQL_TYPE_FLOAT, &val, 0);
 }
 
+void BindsStorage::At::Bind(O<float>& val) { BindOptional(val); }
+
 void BindsStorage::At::Bind(double& val) {
   storage_.DoBind(pos_, MYSQL_TYPE_DOUBLE, &val, 0);
 }
+
+void BindsStorage::At::Bind(O<double>& val) { BindOptional(val); }
 
 void BindsStorage::At::Bind(std::string& val) {
   if (storage_.binds_type_ == BindsType::kParameters) {
@@ -92,6 +82,8 @@ void BindsStorage::At::Bind(std::string& val) {
     storage_.DoBindOutputString(pos_, val);
   }
 }
+
+void BindsStorage::At::Bind(O<std::string>& val) { BindOptional(val); }
 
 void BindsStorage::At::Bind(std::string_view& val) {
   UINVARIANT(storage_.binds_type_ != BindsType::kResult,
@@ -110,19 +102,46 @@ void BindsStorage::At::Bind(std::chrono::system_clock::time_point& val) {
   }
 }
 
+void BindsStorage::At::Bind(O<std::chrono::system_clock::time_point>& val) {
+  BindOptional(val);
+}
+
+void BindsStorage::At::DoBindNull() {
+  storage_.DoBind(pos_, MYSQL_TYPE_NULL, nullptr, 0);
+}
+
 BindsStorage::At BindsStorage::GetAt(std::size_t pos) { return At{*this, pos}; }
 
 void BindsStorage::UpdateBeforeFetch(std::size_t pos) {
   auto& bind = binds_[pos];
   if (bind.buffer_type == MYSQL_TYPE_STRING) {
     ResizeOutputString(pos);
+  } else if (!output_optionals_.empty()) {
+    auto& opt = output_optionals_[pos];
+    if (opt.optional && !bind.is_null_value) {
+      opt.emplace_cb(&opt, opt.optional);
+      opt.fix_bind_cb(&opt, &bind);
+
+      if (bind.buffer_type != MYSQL_TYPE_DATETIME) {
+        bind.buffer = opt.get_data_ptr(opt.optional);
+      } else {
+        wrapped_dates_[pos].UpdateOutput(opt.get_data_ptr(opt.optional));
+      }
+    }
+
+    int a = 5;
   }
 }
 
 void BindsStorage::UpdateAfterFetch(std::size_t pos) {
   auto& bind = binds_[pos];
-  if (bind.buffer_type == MYSQL_TYPE_DATETIME) {
-    FillOutputDate(pos);
+  if (bind.is_null && *bind.is_null) {
+    UASSERT(pos <= output_optionals_.size());
+    output_optionals_[pos].reset_cb(output_optionals_[pos].optional);
+  } else {
+    if (bind.buffer_type == MYSQL_TYPE_DATETIME) {
+      FillOutputDate(pos);
+    }
   }
 }
 
@@ -164,6 +183,7 @@ void BindsStorage::ResizeIfNecessary(std::size_t pos) {
 
     if (binds_type_ == BindsType::kResult) {
       output_strings_.resize(new_size);
+      output_optionals_.resize(new_size);
     }
   }
 }
@@ -247,7 +267,7 @@ void BindsStorage::DoBind(std::size_t pos, enum_field_types type, void* buffer,
   bind.is_unsigned = is_unsigned;
 
   if (binds_type_ == BindsType::kResult) {
-    UpdateBindBufferLength(bind, type);
+    // UpdateBindBufferLength(bind, type);
   }
 }
 

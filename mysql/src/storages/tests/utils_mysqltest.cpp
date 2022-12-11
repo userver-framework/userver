@@ -53,8 +53,7 @@ storages::mysql::Cluster* ClusterWrapper::operator->() const {
 engine::Deadline ClusterWrapper::GetDeadline() const { return deadline_; }
 
 TmpTable::TmpTable(ClusterWrapper& cluster, std::string_view definition)
-    : cluster_{cluster},
-      table_name_{TestsHelper::EscapeString(*cluster_, GenerateTableName())} {
+    : cluster_{cluster}, table_name_{GenerateTableName()} {
   auto create_table_query =
       fmt::format(kCreateTableQueryTemplate, table_name_, definition);
 

@@ -7,8 +7,17 @@ USERVER_NAMESPACE_BEGIN
 namespace storages::mysql::io {
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define DEFINE_BINDER(type) \
+#define DEFINE_BINDER_T(type) \
   void Binder<type>::Bind() { binds_.GetAt(pos_).Bind(field_); }
+
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+#define DEFINE_BINDER_OPTT(type) \
+  void Binder<std::optional<type>>::Bind() { binds_.GetAt(pos_).Bind(field_); }
+
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+#define DEFINE_BINDER(type) \
+  DEFINE_BINDER_T(type)     \
+  DEFINE_BINDER_OPTT(type)
 
 // numeric types
 DEFINE_BINDER(std::uint8_t)
@@ -23,7 +32,7 @@ DEFINE_BINDER(float)
 DEFINE_BINDER(double)
 // string types
 DEFINE_BINDER(std::string)
-DEFINE_BINDER(std::string_view)
+DEFINE_BINDER_T(std::string_view)
 // date types
 DEFINE_BINDER(std::chrono::system_clock::time_point)
 

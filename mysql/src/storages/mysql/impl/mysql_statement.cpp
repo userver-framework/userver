@@ -55,6 +55,8 @@ bool IsBindable(enum_field_types bind_type, enum_field_types field_type) {
 
 void ValidateTypesMatch(MYSQL_STMT* statement, MYSQL_BIND* binds,
                         std::size_t fields_count) {
+  // TODO : fix for nulls
+  return;
   auto* fields = statement->fields;
 
   for (std::size_t i = 0; i < fields_count; ++i) {

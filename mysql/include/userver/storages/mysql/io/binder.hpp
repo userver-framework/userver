@@ -2,6 +2,7 @@
 
 #include <chrono>
 #include <cstdint>
+#include <optional>
 #include <string>
 #include <string_view>
 
@@ -16,7 +17,7 @@ namespace storages::mysql {
 namespace impl {
 class BindsStorage;
 
-using BindsPimpl = utils::FastPimpl<BindsStorage, 96, 8>;
+using BindsPimpl = utils::FastPimpl<BindsStorage, 120, 8>;
 }  // namespace impl
 
 namespace io {
@@ -44,7 +45,9 @@ template <typename T>
 class Binder final {
  public:
   Binder(impl::BindsStorage&, std::size_t, T&) {
-    if constexpr (std::is_same_v<std::chrono::steady_clock::time_point, T>) {
+    using SteadyClock = std::chrono::steady_clock;
+    if constexpr (std::is_same_v<SteadyClock::time_point, T> ||
+                  std::is_same_v<std::optional<SteadyClock::time_point>, T>) {
       static_assert(!sizeof(T),
                     "Don't store steady_clock times in the database, use "
                     "system_clock instead");
@@ -54,12 +57,26 @@ class Binder final {
 };
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define DECLARE_BINDER(type)                           \
+#define DECLARE_BINDER_T(type)                         \
   template <>                                          \
   class Binder<type> final : public BinderBase<type> { \
     using BinderBase::BinderBase;                      \
     void Bind() final;                                 \
   };
+
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+#define DECLARE_BINDER_OPTT(type)                \
+  template <>                                    \
+  class Binder<std::optional<type>> final        \
+      : public BinderBase<std::optional<type>> { \
+    using BinderBase::BinderBase;                \
+    void Bind() final;                           \
+  };
+
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+#define DECLARE_BINDER(type) \
+  DECLARE_BINDER_T(type)     \
+  DECLARE_BINDER_OPTT(type)
 
 // numeric types
 DECLARE_BINDER(std::uint8_t)
@@ -74,7 +91,7 @@ DECLARE_BINDER(float);
 DECLARE_BINDER(double);
 // string types
 DECLARE_BINDER(std::string)
-DECLARE_BINDER(std::string_view)
+DECLARE_BINDER_T(std::string_view)
 // date types
 DECLARE_BINDER(std::chrono::system_clock::time_point);
 
