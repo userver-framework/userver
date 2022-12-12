@@ -11,7 +11,7 @@ list(REMOVE_ITEM SOURCES ${MYSQL_TEST_SOURCES})
 
 add_library(${PROJECT_NAME} STATIC ${SOURCES})
 
-find_package(Mariadbclient)
+find_package(libmariadb)
 
 target_link_libraries(${PROJECT_NAME}
   PUBLIC
@@ -37,7 +37,7 @@ if (USERVER_IS_THE_ROOT_PROJECT)
   target_link_libraries(${PROJECT_NAME}_mysqltest
     userver-utest
     ${PROJECT_NAME}
-    mariadbclient)
+    mariadb)
   add_test(${PROJECT_NAME}_mysqltest
     env
       ${CMAKE_BINARY_DIR}/testsuite/env

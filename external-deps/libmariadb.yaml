@@ -1,0 +1,16 @@
+name: libmariadb
+version: 10.10.2
+helper-prefix: false
+
+includes:
+    find:
+      - names:
+          - mariadb/mysql.h
+
+libraries:
+    find:
+      - names:
+          - libmariadb
+
+debian-names:
+  - libmariadb-dev
