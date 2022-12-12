@@ -15,6 +15,16 @@ Cluster::Cluster(std::vector<settings::HostSettings>&& settings)
 
 Cluster::~Cluster() = default;
 
+void Cluster::ExecuteNoPrepare(ClusterHostType host_type,
+                               engine::Deadline deadline,
+                               const std::string& command) {
+  tracing::Span execute_plain_span{"mysql_execute_plain"};
+
+  auto connection = topology_->SelectPool(host_type).Acquire(deadline);
+
+  connection->ExecutePlain(command, deadline);
+}
+
 StatementResultSet Cluster::DoExecute(ClusterHostType host_type,
                                       const std::string& query,
                                       io::ParamsBinderBase& params,

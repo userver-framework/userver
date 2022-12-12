@@ -8,8 +8,8 @@ namespace storages::mysql::settings {
 
 struct AuthSettings final {
   std::string dbname{"test"};
-  std::string user{"test"};
-  std::string password{"test"};
+  std::string user{"root"};  //{"test"};
+  std::string password{};    //{"test"};
 };
 
 }  // namespace storages::mysql::settings

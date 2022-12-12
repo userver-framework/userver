@@ -68,12 +68,13 @@ class MySQLConnection final {
   BrokenGuard GetBrokenGuard();
 
  private:
-  MySQLSocket InitSocket(engine::Deadline deadline);
+  MySQLSocket InitSocket();
 
   MySQLStatement& PrepareStatement(const std::string& statement,
                                    engine::Deadline deadline);
 
   const settings::HostSettings& host_settings_;
+  const std::string host_ip_;
 
   std::atomic<bool> broken_{false};
 

@@ -70,7 +70,9 @@ MySQLResult MySQLPlainQuery::FetchResult(engine::Deadline deadline) {
       mysql_use_result(&connection_->GetNativeHandler()),
       NativeResultDeleter{*connection_}};
   if (!native_result) {
-    throw std::runtime_error{"Failed to fetch a query result"};
+    // TODO : think about it
+    return {};
+    // throw std::runtime_error{"Failed to fetch a query result"};
   }
 
   MySQLResult result{};

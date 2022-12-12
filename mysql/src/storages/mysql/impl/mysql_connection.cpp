@@ -7,6 +7,8 @@
 #include <userver/logging/log.hpp>
 #include <userver/tracing/scope_time.hpp>
 #include <userver/utils/assert.hpp>
+// TODO : drop
+#include <userver/engine/sleep.hpp>
 
 #include <storages/mysql/impl/mysql_plain_query.hpp>
 #include <userver/storages/mysql/io/extractor.hpp>
@@ -32,8 +34,9 @@ MYSQL InitMysql() {
 MySQLConnection::MySQLConnection(const settings::HostSettings& host_settings,
                                  engine::Deadline deadline)
     : host_settings_{host_settings},
+      host_ip_{host_settings_.GetHostIp(deadline)},
       mysql_{InitMysql()},
-      socket_{InitSocket(deadline)} {
+      socket_{InitSocket()} {
   // TODO : deadline and cleanup
   while (socket_.ShouldWait()) {
     const auto mysql_events = socket_.Wait({});
@@ -124,14 +127,13 @@ MySQLConnection::BrokenGuard MySQLConnection::GetBrokenGuard() {
   return BrokenGuard{*this};
 }
 
-MySQLSocket MySQLConnection::InitSocket(engine::Deadline deadline) {
-  const auto ip = host_settings_.GetHostIp(deadline);
+MySQLSocket MySQLConnection::InitSocket() {
   const auto& auth_settings = host_settings_.GetAuthSettings();
 
   const auto mysql_events = mysql_real_connect_start(
-      &connect_ret_, &mysql_, ip.c_str(), auth_settings.user.c_str(),
+      &connect_ret_, &mysql_, host_ip_.c_str(), auth_settings.user.c_str(),
       auth_settings.password.c_str(), auth_settings.dbname.c_str(),
-      host_settings_.GetPort() /* port */, nullptr /* unix_socket */,
+      host_settings_.GetPort(), nullptr /* unix_socket */,
       0 /* client_flags */);
 
   return MySQLSocket{mysql_get_socket(&mysql_), mysql_events};

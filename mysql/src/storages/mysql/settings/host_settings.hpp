@@ -15,7 +15,7 @@ namespace storages::mysql::settings {
 class HostSettings final {
  public:
   HostSettings(clients::dns::Resolver& resolver, std::string hostname,
-               std::uint32_t port);
+               std::uint32_t port, const AuthSettings& auth_settings);
 
   std::string GetHostIp(userver::engine::Deadline deadline) const;
 

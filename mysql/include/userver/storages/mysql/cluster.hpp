@@ -55,6 +55,9 @@ class Cluster final {
   void InsertMany(engine::Deadline deadline, const std::string& insert_query,
                   Container&& rows, bool throw_on_empty_insert = true) const;
 
+  void ExecuteNoPrepare(ClusterHostType host_type, engine::Deadline deadline,
+                        const std::string& command);
+
  private:
   StatementResultSet DoExecute(ClusterHostType host_type,
                                const std::string& query,

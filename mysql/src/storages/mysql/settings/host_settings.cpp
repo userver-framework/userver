@@ -9,8 +9,12 @@ USERVER_NAMESPACE_BEGIN
 namespace storages::mysql::settings {
 
 HostSettings::HostSettings(clients::dns::Resolver& resolver,
-                           std::string hostname, uint32_t port)
-    : resolver_{resolver}, hostname_{std::move(hostname)}, port_{port} {}
+                           std::string hostname, uint32_t port,
+                           const AuthSettings& auth_settings)
+    : resolver_{resolver},
+      hostname_{std::move(hostname)},
+      auth_settings_{auth_settings},
+      port_{port} {}
 
 const AuthSettings& HostSettings::GetAuthSettings() const {
   return auth_settings_;

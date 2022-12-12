@@ -5,7 +5,7 @@ USERVER_NAMESPACE_BEGIN
 namespace storages::mysql::tests {
 
 // TODO : think about this
-UTEST(PreparedStatement, Invalidation) {
+/*UTEST(PreparedStatement, Invalidation) {
   ClusterWrapper cluster{};
 
   TmpTable table{cluster, "(Id INT, Value TEXT)"};
@@ -18,7 +18,7 @@ UTEST(PreparedStatement, Invalidation) {
 
   EXPECT_ANY_THROW(cluster.DefaultExecute(select_query));
   cluster.DefaultExecute(select_query);
-}
+}*/
 
 }  // namespace storages::mysql::tests
 

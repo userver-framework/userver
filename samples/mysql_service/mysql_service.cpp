@@ -53,17 +53,7 @@ class KeyValue final : public server::handlers::HttpHandlerJsonBase {
 KeyValue::KeyValue(const components::ComponentConfig& config,
                    const components::ComponentContext& context)
     : server::handlers::HttpHandlerJsonBase{config, context},
-      mysql_{context.FindComponent<components::MySQL>("test").GetCluster()} {
-  const std::string kCreateTable{R"(
-  CREATE TABLE IF NOT EXISTS key_value_table (
-    `key` INT PRIMARY KEY,
-    value TEXT
-  )
-)"};
-
-  using storages::mysql::ClusterHostType;
-  mysql_->Execute(ClusterHostType::kMaster, {}, kCreateTable);
-}
+      mysql_{context.FindComponent<components::MySQL>("test").GetCluster()} {}
 
 formats::json::Value KeyValue::HandleRequestJsonThrow(
     const server::http::HttpRequest& request,

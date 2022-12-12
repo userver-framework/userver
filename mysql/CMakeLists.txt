@@ -38,14 +38,12 @@ if (USERVER_IS_THE_ROOT_PROJECT)
     userver-utest
     ${PROJECT_NAME}
     mariadbclient)
-#  add_test(${PROJECT_NAME}_chtest
-#        env
-#        ${CMAKE_BINARY_DIR}/testsuite/env
-#        --databases=clickhouse
-#        run --
-#        ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}_chtest
-#        --gtest_output=xml:${CMAKE_BINARY_DIR}/test-results/${PROJECT_NAME}_chtest.xml
-#        )
-#set_tests_properties(${PROJECT_NAME}_chtest PROPERTIES ENVIRONMENT
-#        "TESTSUITE_CLICKHOUSE_SERVER_START_TIMEOUT=10.0")
+  add_test(${PROJECT_NAME}_mysqltest
+    env
+      ${CMAKE_BINARY_DIR}/testsuite/env
+      --databases=mysql
+      run --
+      ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}_mysqltest
+      --gtest_output=xml:${CMAKE_BINARY_DIR}/test-results/${PROJECT_NAME}_mysqltest.xml
+  )
 endif()

@@ -17,6 +17,8 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::mysql::tests {
 
+std::uint32_t GetMysqlPort();
+
 std::chrono::system_clock::time_point ToMariaDBPrecision(
     std::chrono::system_clock::time_point tp);
 

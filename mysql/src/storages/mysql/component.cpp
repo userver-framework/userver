@@ -14,7 +14,8 @@ namespace {
 
 std::shared_ptr<storages::mysql::Cluster> BuildCluster(
     clients::dns::Resolver& resolver) {
-  storages::mysql::settings::HostSettings settings{resolver, "localhost", 3306};
+  storages::mysql::settings::HostSettings settings{
+      resolver, "localhost", 13307, {}};
 
   std::vector<storages::mysql::settings::HostSettings> hosts{
       std::move(settings)};
