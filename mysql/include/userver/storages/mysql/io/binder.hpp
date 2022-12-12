@@ -15,17 +15,22 @@ USERVER_NAMESPACE_BEGIN
 namespace storages::mysql {
 
 namespace impl {
-class BindsStorage;
 
-using BindsPimpl = utils::FastPimpl<BindsStorage, 120, 8>;
+namespace bindings {
+class InputBindings;
+class OutputBindings;
+}  // namespace bindings
+
+using InputBindingsPimpl = utils::FastPimpl<bindings::InputBindings, 72, 8>;
+using OutputBindingsPimpl = utils::FastPimpl<bindings::OutputBindings, 80, 8>;
 }  // namespace impl
 
 namespace io {
 
-template <typename Field>
+template <typename BindsStorage, typename Field>
 class BinderBase {
  public:
-  BinderBase(impl::BindsStorage& binds, std::size_t pos, Field& field)
+  BinderBase(BindsStorage& binds, std::size_t pos, Field& field)
       : binds_{binds}, pos_{pos}, field_{field} {}
 
   void operator()() { Bind(); }
@@ -34,7 +39,7 @@ class BinderBase {
   virtual void Bind() = 0;
 
   // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
-  impl::BindsStorage& binds_;
+  BindsStorage& binds_;
   // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
   std::size_t pos_;
   // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
@@ -42,35 +47,77 @@ class BinderBase {
 };
 
 template <typename T>
-class Binder final {
+class InputBinder final {
  public:
-  Binder(impl::BindsStorage&, std::size_t, T&) {
+  InputBinder(impl::bindings::InputBindings&, std::size_t, T&) {
+    using SteadyClock = std::chrono::steady_clock;
+    using Mutable = std::remove_const_t<T>;
+    if constexpr (std::is_same_v<SteadyClock::time_point, Mutable> ||
+                  std::is_same_v<std::optional<SteadyClock::time_point>,
+                                 Mutable>) {
+      static_assert(!sizeof(Mutable),
+                    "Don't store steady_clock times in the database, use "
+                    "system_clock instead");
+    } else {
+      static_assert(!sizeof(Mutable),
+                    "Binding for the type is not implemented");
+    }
+  }
+};
+
+template <typename T>
+class OutputBinder final {
+ public:
+  OutputBinder(impl::bindings::OutputBindings&, std::size_t, T&) {
     using SteadyClock = std::chrono::steady_clock;
     if constexpr (std::is_same_v<SteadyClock::time_point, T> ||
                   std::is_same_v<std::optional<SteadyClock::time_point>, T>) {
       static_assert(!sizeof(T),
                     "Don't store steady_clock times in the database, use "
                     "system_clock instead");
+    } else if constexpr (std::is_same_v<std::string_view, T> ||
+                         std::is_same_v<std::optional<std::string_view>, T>) {
+      static_assert(
+          !sizeof(T),
+          "Don't use std::string_view in output params, since it's not-owning");
+    } else {
+      static_assert(!sizeof(T), "Binding for the type is not implemented");
     }
-    static_assert(!sizeof(T), "Binding for the type is not implemented");
   }
 };
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define DECLARE_BINDER_T(type)                         \
-  template <>                                          \
-  class Binder<type> final : public BinderBase<type> { \
-    using BinderBase::BinderBase;                      \
-    void Bind() final;                                 \
+#define DECLARE_BINDER_T(type)                                         \
+  template <>                                                          \
+  class InputBinder<const type> final                                  \
+      : public BinderBase<impl::bindings::InputBindings, const type> { \
+    using BinderBase::BinderBase;                                      \
+    void Bind() final;                                                 \
+  };                                                                   \
+                                                                       \
+  template <>                                                          \
+  class OutputBinder<type> final                                       \
+      : public BinderBase<impl::bindings::OutputBindings, type> {      \
+    using BinderBase::BinderBase;                                      \
+    void Bind() final;                                                 \
   };
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define DECLARE_BINDER_OPTT(type)                \
-  template <>                                    \
-  class Binder<std::optional<type>> final        \
-      : public BinderBase<std::optional<type>> { \
-    using BinderBase::BinderBase;                \
-    void Bind() final;                           \
+#define DECLARE_BINDER_OPTT(type)                         \
+  template <>                                             \
+  class InputBinder<const std::optional<type>> final      \
+      : public BinderBase<impl::bindings::InputBindings,  \
+                          const std::optional<type>> {    \
+    using BinderBase::BinderBase;                         \
+    void Bind() final;                                    \
+  };                                                      \
+                                                          \
+  template <>                                             \
+  class OutputBinder<std::optional<type>> final           \
+      : public BinderBase<impl::bindings::OutputBindings, \
+                          std::optional<type>> {          \
+    using BinderBase::BinderBase;                         \
+    void Bind() final;                                    \
   };
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
@@ -91,52 +138,54 @@ DECLARE_BINDER(float);
 DECLARE_BINDER(double);
 // string types
 DECLARE_BINDER(std::string)
-DECLARE_BINDER_T(std::string_view)
+DECLARE_BINDER(std::string_view)
 // date types
 DECLARE_BINDER(std::chrono::system_clock::time_point);
 
 template <typename T>
-auto GetBinder(impl::BindsStorage& binds, std::size_t pos, T& field) {
-  using Mutable = std::remove_const_t<T>;
+auto GetInputBinder(impl::bindings::InputBindings& binds, std::size_t pos,
+                    T& field) {
+  return InputBinder<T>{binds, pos, field};
+  // return GetBinder<InputBinder>(binds, pos, field);
+}
 
-  // Underlying mysql native library uses mutable pointers for bind buffers, so
-  // we have to cast const away sooner or later. This is fine, since buffer are
-  // only read from for input parameters, and for output ones we never have
-  // const here.
-  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
-  return Binder<Mutable>{binds, pos, const_cast<Mutable&>(field)};
+template <typename T>
+auto GetOutputBinder(impl::bindings::OutputBindings& binds, std::size_t pos,
+                     T& field) {
+  return OutputBinder<T>(binds, pos, field);
 }
 
 class ParamsBinderBase {
  public:
-  virtual impl::BindsStorage& GetBinds() = 0;
+  virtual impl::bindings::InputBindings& GetBinds() = 0;
 
   virtual std::size_t GetRowsCount() const { return 0; }
 };
 
 class ParamsBinder final : public ParamsBinderBase {
  public:
-  ParamsBinder();
+  explicit ParamsBinder(std::size_t size);
   ~ParamsBinder();
 
   ParamsBinder(const ParamsBinder& other) = delete;
   ParamsBinder(ParamsBinder&& other) noexcept;
 
-  impl::BindsStorage& GetBinds() final;
+  impl::bindings::InputBindings& GetBinds() final;
 
   template <typename Field>
   void Bind(std::size_t pos, const Field& field) {
-    GetBinder(GetBinds(), pos, field)();
+    GetInputBinder(GetBinds(), pos, field)();
   }
 
   std::size_t GetRowsCount() const final { return 1; }
 
   template <typename... Args>
   static ParamsBinder BindParams(const Args&... args) {
-    ParamsBinder binder{};
+    ParamsBinder binder{sizeof...(Args)};
     size_t ind = 0;
 
     const auto do_bind = [&binder](std::size_t pos, const auto& arg) {
+      // TODO : this catches too much probably
       if constexpr (std::is_convertible_v<decltype(arg), std::string_view>) {
         std::string_view sw{arg};
         binder.Bind(pos, sw);
@@ -151,42 +200,43 @@ class ParamsBinder final : public ParamsBinderBase {
   }
 
  private:
-  impl::BindsPimpl impl_;
+  impl::InputBindingsPimpl impl_;
 };
 
 class ResultBinder final {
  public:
-  ResultBinder();
+  explicit ResultBinder(std::size_t size);
   ~ResultBinder();
 
   ResultBinder(const ResultBinder& other) = delete;
   ResultBinder(ResultBinder&& other) noexcept;
 
   template <typename T>
-  impl::BindsStorage& BindTo(T& row) {
+  impl::bindings::OutputBindings& BindTo(T& row) {
     boost::pfr::for_each_field(row, FieldBinder{*impl_});
 
     return GetBinds();
   }
 
-  impl::BindsStorage& GetBinds();
+  impl::bindings::OutputBindings& GetBinds();
 
  private:
   class FieldBinder final {
    public:
-    explicit FieldBinder(impl::BindsStorage& binds) : binds_{binds} {}
+    explicit FieldBinder(impl::bindings::OutputBindings& binds)
+        : binds_{binds} {}
 
     template <typename Field, size_t Index>
     void operator()(Field& field,
                     std::integral_constant<std::size_t, Index> i) {
-      GetBinder(binds_, i, field)();
+      GetOutputBinder(binds_, i, field)();
     }
 
    private:
-    impl::BindsStorage& binds_;
+    impl::bindings::OutputBindings& binds_;
   };
 
-  impl::BindsPimpl impl_;
+  impl::OutputBindingsPimpl impl_;
 };
 
 }  // namespace io

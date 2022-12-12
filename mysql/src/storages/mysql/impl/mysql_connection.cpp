@@ -7,7 +7,6 @@
 #include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
 
-#include <storages/mysql/impl/mysql_binds_storage.hpp>
 #include <storages/mysql/impl/mysql_plain_query.hpp>
 #include <userver/storages/mysql/io/extractor.hpp>
 

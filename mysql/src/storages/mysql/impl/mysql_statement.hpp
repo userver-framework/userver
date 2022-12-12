@@ -18,7 +18,9 @@ class ParamsBinderBase;
 namespace storages::mysql::impl {
 
 class MySQLConnection;
-class BindsStorage;
+namespace bindings {
+class OutputBindings;
+}
 
 class MySQLStatement;
 
@@ -37,7 +39,7 @@ class MySQLStatementFetcher final {
   friend class MySQLStatement;
   MySQLStatementFetcher(MySQLStatement& statement);
 
-  void ValidateBinding(BindsStorage& binds);
+  void ValidateBinding(bindings::OutputBindings& binds);
 
   engine::Deadline parent_statement_deadline_;
   std::optional<std::size_t> batch_size_;
@@ -66,7 +68,8 @@ class MySQLStatement final {
   friend class MySQLStatementFetcher;
   void StoreResult(engine::Deadline deadline);
 
-  bool FetchResultRow(BindsStorage& binds, engine::Deadline deadline);
+  bool FetchResultRow(bindings::OutputBindings& binds,
+                      engine::Deadline deadline);
   void Reset(engine::Deadline deadline);
 
   void UpdateParamsBindings(io::ParamsBinderBase& params);

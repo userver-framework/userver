@@ -7,7 +7,8 @@
 #include <userver/logging/log.hpp>
 #include <userver/utils/scope_guard.hpp>
 
-#include <storages/mysql/impl/mysql_binds_storage.hpp>
+#include <storages/mysql/impl/bindings/input_bindings.hpp>
+#include <storages/mysql/impl/bindings/output_bindings.hpp>
 #include <storages/mysql/impl/mysql_connection.hpp>
 #include <userver/storages/mysql/io/binder.hpp>
 #include <userver/storages/mysql/io/extractor.hpp>
@@ -160,7 +161,7 @@ void MySQLStatement::StoreResult(engine::Deadline deadline) {
   }
 }
 
-bool MySQLStatement::FetchResultRow(BindsStorage& binds,
+bool MySQLStatement::FetchResultRow(bindings::OutputBindings& binds,
                                     engine::Deadline deadline) {
   if (!binds.Empty()) {
     if (mysql_stmt_bind_result(native_statement_.get(),
@@ -197,7 +198,7 @@ bool MySQLStatement::FetchResultRow(BindsStorage& binds,
   auto* binds_array = binds.GetBindsArray();
 
   for (std::size_t i = 0; i < binds.Size(); ++i) {
-    binds.UpdateBeforeFetch(i);
+    binds.BeforeFetch(i);
 
     auto& bind = binds_array[i];
     int err = mysql_stmt_fetch_column(native_statement_.get(), &bind, i, 0);
@@ -206,7 +207,7 @@ bool MySQLStatement::FetchResultRow(BindsStorage& binds,
           GetNativeError("Failed to fetch a column from statement result row")};
     }
 
-    binds.UpdateAfterFetch(i);
+    binds.AfterFetch(i);
   }
 
   return true;
@@ -262,9 +263,9 @@ void MySQLStatement::UpdateParamsBindings(io::ParamsBinderBase& params) {
       mysql_stmt_attr_set(native_statement_.get(), STMT_ATTR_CB_USER_DATA,
                           user_data);
     }
-    if (auto* param_cb = binds.GetParamCb()) {
+    if (auto* param_cb = binds.GetParamsCallback()) {
       mysql_stmt_attr_set(native_statement_.get(), STMT_ATTR_CB_PARAM,
-                          param_cb);
+                          reinterpret_cast<void*>(param_cb));
     }
   }
 }
@@ -377,7 +378,7 @@ void MySQLStatementFetcher::SetFetchBatchSize(std::size_t batch_size) {
                       STMT_ATTR_PREFETCH_ROWS, &batch_size);
 }
 
-void MySQLStatementFetcher::ValidateBinding(BindsStorage& binds) {
+void MySQLStatementFetcher::ValidateBinding(bindings::OutputBindings& binds) {
   const auto fields_count = statement_->ResultColumnsCount();
   UASSERT(binds.Size() == fields_count);
 

@@ -13,30 +13,32 @@ namespace storages::mysql::io {
 
 class InsertBinderBase : public ParamsBinderBase {
  public:
-  InsertBinderBase();
+  explicit InsertBinderBase(std::size_t size);
   ~InsertBinderBase();
 
   InsertBinderBase(const InsertBinderBase& other) = delete;
   InsertBinderBase(InsertBinderBase&& other) noexcept;
 
-  impl::BindsStorage& GetBinds() final;
+  impl::bindings::InputBindings& GetBinds() final;
 
   void SetBindCallback(void* user_data,
                        void (*param_cb)(void*, void*, std::size_t));
 
  protected:
-  static void PatchBind(void* binds_array, std::size_t pos, void* buffer,
+  static void PatchBind(void* binds_array, std::size_t pos, const void* buffer,
                         std::size_t* length);
 
   // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
-  impl::BindsPimpl impl_;
+  impl::InputBindingsPimpl impl_;
 };
 
 template <typename Container>
 class InsertBinder final : public InsertBinderBase {
  public:
-  explicit InsertBinder(Container& container)
-      : container_{container}, current_row_it_{container_.begin()} {
+  explicit InsertBinder(const Container& container)
+      : InsertBinderBase{kColumnsCount},
+        container_{container},
+        current_row_it_{container_.begin()} {
     static_assert(kColumnsCount != 0, "Rows to insert have zero columns");
     static_assert(meta::kIsSizable<Container>,
                   "Container should be sizeable for batch insertion");
@@ -82,7 +84,8 @@ class InsertBinder final : public InsertBinderBase {
     explicit CurrentRowUpdater(InsertBinder& binder) : binder_{binder} {}
 
     template <typename Field, std::size_t Index>
-    void operator()(Field& f, std::integral_constant<std::size_t, Index>) {
+    void operator()(const Field& f,
+                    std::integral_constant<std::size_t, Index>) {
       if constexpr (std::is_same_v<Field, std::string>) {
         binder_.current_row_buffers_[Index] = {f.data(), f.length()};
       } else {
@@ -100,7 +103,7 @@ class InsertBinder final : public InsertBinderBase {
 
     template <typename Field, std::size_t Index>
     void operator()(Field& f, std::integral_constant<std::size_t, Index>) {
-      GetBinder(binder_.GetBinds(), Index, f)();
+      GetInputBinder(binder_.GetBinds(), Index, f)();
     }
 
    private:
@@ -108,13 +111,13 @@ class InsertBinder final : public InsertBinderBase {
   };
 
   struct FieldBuffer final {
-    void* data{nullptr};
+    const void* data{nullptr};
     std::size_t length{0};
   };
 
-  Container& container_;
+  const Container& container_;
 
-  typename Container::iterator current_row_it_;
+  typename Container::const_iterator current_row_it_;
   std::array<FieldBuffer, kColumnsCount> current_row_buffers_{};
 
   std::size_t max_row_number_seen_{0};
