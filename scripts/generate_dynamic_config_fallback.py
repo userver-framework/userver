@@ -83,7 +83,7 @@ def write_fallbacks(config: Config, fallbacks: Dict[str, Any]) -> None:
     for group in config.groups:
         configs_names = []
         for library_yaml in group.library_yaml_filenames:
-            with open(library_yaml) as ffi:
+            with open(USERVER_ROOT / library_yaml) as ffi:
                 contents = yaml.safe_load(ffi)
             configs_names += contents.get('configs', {}).get('names', [])
 
@@ -95,7 +95,7 @@ def write_fallbacks(config: Config, fallbacks: Dict[str, Any]) -> None:
             configs[name] = value
 
         for fallback in group.dest_fallback_filenames:
-            with open(fallback, 'w') as ffo:
+            with open(USERVER_ROOT / fallback, 'w') as ffo:
                 contents = json.dumps(configs, sort_keys=True, indent='  ')
                 ffo.write(contents + '\n')
 
