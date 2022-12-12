@@ -2,8 +2,9 @@
 
 #include <memory>
 #include <string>
-#include <vector>
 
+#include <userver/clients/dns/resolver_fwd.hpp>
+#include <userver/components/component_fwd.hpp>
 #include <userver/engine/deadline.hpp>
 
 #include <userver/storages/mysql/cluster_host_type.hpp>
@@ -20,7 +21,7 @@ class TestsHelper;
 }
 
 namespace settings {
-class HostSettings;
+struct MysqlSettings;
 }
 
 namespace infra::topology {
@@ -29,7 +30,9 @@ class TopologyBase;
 
 class Cluster final {
  public:
-  Cluster(std::vector<settings::HostSettings>&& settings);
+  Cluster(clients::dns::Resolver& resolver,
+          const settings::MysqlSettings& settings,
+          const components::ComponentConfig& config);
   ~Cluster();
 
   // An alias for Execute

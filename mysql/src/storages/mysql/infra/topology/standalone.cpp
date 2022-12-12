@@ -1,11 +1,15 @@
 #include <storages/mysql/infra/topology/standalone.hpp>
 
+#include <userver/utils/assert.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::mysql::infra::topology {
 
-Standalone::Standalone(std::vector<settings::HostSettings>&& hosts_settings)
-    : TopologyBase{std::move(hosts_settings)}, pool_{InitializePool()} {}
+Standalone::Standalone(
+    clients::dns::Resolver& resolver,
+    const std::vector<settings::PoolSettings>& pools_settings)
+    : TopologyBase{resolver, pools_settings}, pool_{InitializePool()} {}
 
 Standalone::~Standalone() = default;
 

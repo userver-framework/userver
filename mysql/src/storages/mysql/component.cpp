@@ -3,32 +3,26 @@
 #include <userver/clients/dns/component.hpp>
 #include <userver/components/component_context.hpp>
 
-#include <storages/mysql/settings/host_settings.hpp>
+#include <storages/mysql/settings/settings.hpp>
 #include <userver/storages/mysql/cluster.hpp>
+#include <userver/storages/secdist/component.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace components {
 
-namespace {
-
-std::shared_ptr<storages::mysql::Cluster> BuildCluster(
-    clients::dns::Resolver& resolver) {
-  storages::mysql::settings::HostSettings settings{
-      resolver, "localhost", 13307, {}};
-
-  std::vector<storages::mysql::settings::HostSettings> hosts{
-      std::move(settings)};
-
-  return std::make_shared<storages::mysql::Cluster>(std::move(hosts));
-}
-
-}  // namespace
-
 MySQL::MySQL(const ComponentConfig& config, const ComponentContext& context)
     : LoggableComponentBase{config, context},
-      dns_{context.FindComponent<clients::dns::Component>()},
-      cluster_{BuildCluster(dns_.GetResolver())} {}
+      dns_{context.FindComponent<clients::dns::Component>()} {
+  const auto& secdist = context.FindComponent<Secdist>().Get();
+  const auto& settings_multi =
+      secdist.Get<storages::mysql::settings::MysqlSettingsMulti>();
+  const auto& settings =
+      settings_multi.Get(storages::mysql::settings::GetSecdistAlias(config));
+
+  cluster_ = std::make_shared<storages::mysql::Cluster>(dns_.GetResolver(),
+                                                        settings, config);
+}
 
 MySQL::~MySQL() = default;
 

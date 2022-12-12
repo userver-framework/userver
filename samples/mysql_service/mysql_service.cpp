@@ -5,6 +5,7 @@
 #include <userver/formats/parse/common_containers.hpp>
 #include <userver/formats/serialize/common_containers.hpp>
 #include <userver/server/handlers/http_handler_json_base.hpp>
+#include <userver/storages/secdist/component.hpp>
 #include <userver/utils/daemon_run.hpp>
 
 #include <userver/storages/mysql.hpp>
@@ -94,6 +95,7 @@ int main(int argc, char* argv[]) {
   const auto component_list = components::MinimalServerComponentList()
                                   .Append<samples::mysql::KeyValue>()
                                   .Append<components::MySQL>("test")
+                                  .Append<userver::components::Secdist>()
                                   .Append<clients::dns::Component>();
 
   return utils::DaemonMain(argc, argv, component_list);

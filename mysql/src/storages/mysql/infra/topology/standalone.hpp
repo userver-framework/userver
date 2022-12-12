@@ -8,7 +8,8 @@ namespace storages::mysql::infra::topology {
 
 class Standalone final : public TopologyBase {
  public:
-  explicit Standalone(std::vector<settings::HostSettings>&& hosts_settings);
+  Standalone(clients::dns::Resolver& resolver,
+             const std::vector<settings::PoolSettings>& pools_settings);
   ~Standalone() final;
 
  private:

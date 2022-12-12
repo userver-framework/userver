@@ -4,16 +4,14 @@
 
 #include <fmt/format.h>
 
+#include <userver/clients/dns/resolver.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/tracing/scope_time.hpp>
 #include <userver/utils/assert.hpp>
-// TODO : drop
-#include <userver/engine/sleep.hpp>
 
 #include <storages/mysql/impl/mysql_plain_query.hpp>
+#include <storages/mysql/settings/settings.hpp>
 #include <userver/storages/mysql/io/extractor.hpp>
-
-#include <storages/mysql/settings/host_settings.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -29,14 +27,30 @@ MYSQL InitMysql() {
   return mysql;
 }
 
+std::string ResolveHostIp(clients::dns::Resolver& resolver,
+                          const std::string& hostname,
+                          engine::Deadline deadline) {
+  const auto addr_vec = resolver.Resolve(hostname, deadline);
+
+  for (const auto& addr : addr_vec) {
+    // TODO : fix
+    if (addr.Domain() == engine::io::AddrDomain::kInet) {
+      return addr.PrimaryAddressString();
+    }
+  }
+
+  throw std::runtime_error{"Failed to resolve provided host"};
+}
+
 }  // namespace
 
-MySQLConnection::MySQLConnection(const settings::HostSettings& host_settings,
+MySQLConnection::MySQLConnection(clients::dns::Resolver& resolver,
+                                 const settings::EndpointInfo& endpoint_info,
+                                 const settings::AuthSettings& auth_info,
                                  engine::Deadline deadline)
-    : host_settings_{host_settings},
-      host_ip_{host_settings_.GetHostIp(deadline)},
+    : host_ip_{ResolveHostIp(resolver, endpoint_info.host, deadline)},
       mysql_{InitMysql()},
-      socket_{InitSocket()} {
+      socket_{InitSocket(auth_info, endpoint_info.port)} {
   // TODO : deadline and cleanup
   while (socket_.ShouldWait()) {
     const auto mysql_events = socket_.Wait({});
@@ -127,14 +141,15 @@ MySQLConnection::BrokenGuard MySQLConnection::GetBrokenGuard() {
   return BrokenGuard{*this};
 }
 
-MySQLSocket MySQLConnection::InitSocket() {
-  const auto& auth_settings = host_settings_.GetAuthSettings();
+MySQLSocket MySQLConnection::InitSocket(
+    const settings::AuthSettings& auth_settings, std::uint32_t port) {
+  const auto& password = auth_settings.password;
+  const auto* password_ptr = password.empty() ? nullptr : password.c_str();
 
   const auto mysql_events = mysql_real_connect_start(
       &connect_ret_, &mysql_, host_ip_.c_str(), auth_settings.user.c_str(),
-      auth_settings.password.c_str(), auth_settings.dbname.c_str(),
-      host_settings_.GetPort(), nullptr /* unix_socket */,
-      0 /* client_flags */);
+      password_ptr, auth_settings.database.c_str(), port,
+      nullptr /* unix_socket */, 0 /* client_flags */);
 
   return MySQLSocket{mysql_get_socket(&mysql_), mysql_events};
 }

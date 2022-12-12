@@ -2,12 +2,15 @@
 
 #include <fmt/format.h>
 
+#include <userver/components/component_config.hpp>
 #include <userver/engine/task/task.hpp>
+#include <userver/formats/json.hpp>
+#include <userver/formats/yaml.hpp>
 #include <userver/utils/from_string.hpp>
 #include <userver/utils/uuid4.hpp>
 
 #include <storages/mysql/impl/mysql_connection.hpp>
-#include <storages/mysql/settings/host_settings.hpp>
+#include <storages/mysql/settings/settings.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -32,28 +35,41 @@ std::string GenerateTableName() {
   return name;
 }
 
-void CreateDatabase(clients::dns::Resolver& resolver) {
+void CreateDatabase(clients::dns::Resolver& resolver,
+                    const settings::EndpointInfo& endpoint_info,
+                    const std::string& dbname) {
   settings::AuthSettings auth_settings{};
-  auth_settings.dbname = "";
-
-  settings::HostSettings settings{resolver, "localhost", GetMysqlPort(),
-                                  auth_settings};
+  auth_settings.user = "root";
+  auth_settings.database = "";
 
   const auto deadline = engine::Deadline::FromDuration(std::chrono::seconds{1});
-  impl::MySQLConnection{settings, deadline}.ExecutePlain(
-      fmt::format("CREATE DATABASE IF NOT EXISTS {}",
-                  settings::AuthSettings{}.dbname),
-      deadline);
+  impl::MySQLConnection{resolver, endpoint_info, auth_settings, deadline}
+      .ExecutePlain(fmt::format("CREATE DATABASE IF NOT EXISTS {}", dbname),
+                    deadline);
 }
 
 std::shared_ptr<Cluster> CreateCluster(clients::dns::Resolver& resolver) {
-  CreateDatabase(resolver);
+  const settings::MysqlSettings settings{
+      formats::json::FromString(fmt::format(R"(
+  {{
+    "port": {},
+    "hosts": ["localhost"],
+    "database": "userver_mysql_test",
+    "user": "root",
+    "password": ""
+  }})",
+                                            GetMysqlPort()))};
 
-  settings::HostSettings settings{resolver, "localhost", GetMysqlPort(), {}};
+  const components::ComponentConfig config{
+      yaml_config::YamlConfig{formats::yaml::FromString(R"(
+    initial_pool_size: 1
+    max_pool_size: 5
+  )"),
+                              {}}};
 
-  std::vector<settings::HostSettings> hosts{std::move(settings)};
+  CreateDatabase(resolver, settings.endpoints.front(), settings.auth.database);
 
-  return std::make_shared<Cluster>(std::move(hosts));
+  return std::make_shared<Cluster>(resolver, settings, config);
 }
 
 }  // namespace

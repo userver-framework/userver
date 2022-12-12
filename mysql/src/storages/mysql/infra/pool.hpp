@@ -5,13 +5,14 @@
 
 #include <boost/lockfree/queue.hpp>
 
+#include <userver/clients/dns/resolver_fwd.hpp>
 #include <userver/engine/deadline.hpp>
 #include <userver/engine/semaphore.hpp>
 #include <userver/utils/datetime/wall_coarse_clock.hpp>
 #include <userver/utils/periodic_task.hpp>
 
 #include <storages/mysql/infra/connection_ptr.hpp>
-#include <storages/mysql/settings/host_settings.hpp>
+#include <storages/mysql/settings/settings.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -25,14 +26,17 @@ namespace infra {
 
 class Pool : public std::enable_shared_from_this<Pool> {
  public:
-  static std::shared_ptr<Pool> Create(settings::HostSettings host_settings);
+  static std::shared_ptr<Pool> Create(
+      clients::dns::Resolver& resolver,
+      const settings::PoolSettings& pool_settings);
   ~Pool();
 
   ConnectionPtr Acquire(engine::Deadline deadline);
   void Release(std::unique_ptr<impl::MySQLConnection> connection);
 
  protected:
-  Pool(settings::HostSettings host_settings);
+  Pool(clients::dns::Resolver& resolver,
+       const settings::PoolSettings& pool_settings);
 
  private:
   using RawConnectionPtr = impl::MySQLConnection*;
@@ -76,7 +80,8 @@ class Pool : public std::enable_shared_from_this<Pool> {
     std::atomic<Clock::time_point> last_failure_{};
   };
 
-  settings::HostSettings host_settings_;
+  clients::dns::Resolver& resolver_;
+  const settings::PoolSettings settings_;
 
   engine::Semaphore given_away_semaphore_;
   engine::Semaphore connecting_semaphore_;

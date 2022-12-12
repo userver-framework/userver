@@ -7,12 +7,14 @@ components_manager:
 # /// [Clickhouse service sample - static config]
 # yaml
         test:
+            min_pool_size: 5
+            max_pool_size: 10
 # /// [Clickhouse service sample - static config]
 
-#        secdist: # Component that stores configuration of hosts and passwords
-#            config: /etc/clickhouse_service/secure_data.json  # Values are supposed to be stored in this file
-#            missing-ok: true                             # ... but if the file is missing it is still ok
-#            environment-secrets-key: SECDIST_CONFIG      # ... values will be loaded from this environment value
+        secdist: # Component that stores configuration of hosts and passwords
+            config: /etc/clickhouse_service/secure_data.json  # Values are supposed to be stored in this file
+            missing-ok: true                             # ... but if the file is missing it is still ok
+            environment-secrets-key: SECDIST_CONFIG      # ... values will be loaded from this environment value
 
         server:
             listener:                 # configuring the main listening socket...

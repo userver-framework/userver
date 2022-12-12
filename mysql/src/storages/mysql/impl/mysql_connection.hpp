@@ -6,6 +6,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include <userver/clients/dns/resolver_fwd.hpp>
 #include <userver/utils/str_icase.hpp>
 
 #include <storages/mysql/impl/mariadb_include.hpp>
@@ -18,8 +19,9 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::mysql {
 namespace settings {
-class HostSettings;
-}
+struct EndpointInfo;
+struct AuthSettings;
+}  // namespace settings
 
 namespace io {
 class ExtractorBase;
@@ -31,7 +33,9 @@ namespace storages::mysql::impl {
 
 class MySQLConnection final {
  public:
-  MySQLConnection(const settings::HostSettings& host_settings,
+  MySQLConnection(clients::dns::Resolver& resolver,
+                  const settings::EndpointInfo& endpoint_info,
+                  const settings::AuthSettings& auth_settings,
                   engine::Deadline deadline);
   ~MySQLConnection();
 
@@ -68,12 +72,12 @@ class MySQLConnection final {
   BrokenGuard GetBrokenGuard();
 
  private:
-  MySQLSocket InitSocket();
+  MySQLSocket InitSocket(const settings::AuthSettings& auth_settings,
+                         std::uint32_t port);
 
   MySQLStatement& PrepareStatement(const std::string& statement,
                                    engine::Deadline deadline);
 
-  const settings::HostSettings& host_settings_;
   const std::string host_ip_;
 
   std::atomic<bool> broken_{false};

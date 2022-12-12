@@ -30,18 +30,22 @@ constexpr std::chrono::milliseconds kPingTimeout{200};
 
 }  // namespace
 
-std::shared_ptr<Pool> Pool::Create(settings::HostSettings host_settings) {
-  return std::make_shared<MakeSharedEnabler<Pool>>(std::move(host_settings));
+std::shared_ptr<Pool> Pool::Create(
+    clients::dns::Resolver& resolver,
+    const settings::PoolSettings& pool_settings) {
+  return std::make_shared<MakeSharedEnabler<Pool>>(resolver, pool_settings);
 }
 
-Pool::Pool(settings::HostSettings host_settings)
-    : host_settings_{std::move(host_settings)},
-      given_away_semaphore_{host_settings_.GetPoolSettings().max_pool_size},
+Pool::Pool(clients::dns::Resolver& resolver,
+           const settings::PoolSettings& pool_settings)
+    : resolver_{resolver},
+      settings_{pool_settings},
+      given_away_semaphore_{settings_.max_pool_size},
       connecting_semaphore_{kMaxSimultaneouslyConnectingClients},
-      queue_{host_settings_.GetPoolSettings().max_pool_size},
+      queue_{settings_.max_pool_size},
       monitor_{*this} {
   try {
-    const auto init_size = host_settings_.GetPoolSettings().min_pool_size;
+    const auto init_size = settings_.initial_pool_size;
     std::vector<engine::TaskWithResult<void>> init_tasks;
     init_tasks.reserve(init_size);
 
@@ -139,8 +143,8 @@ void Pool::PushConnection(engine::Deadline deadline) {
 
 Pool::SmartConnectionPtr Pool::CreateConnection(engine::Deadline deadline) {
   try {
-    auto connection_ptr =
-        std::make_unique<impl::MySQLConnection>(host_settings_, deadline);
+    auto connection_ptr = std::make_unique<impl::MySQLConnection>(
+        resolver_, settings_.endpoint_info, settings_.auth_settings, deadline);
     size_.fetch_add(1);
     monitor_.AccountSuccess();
 
@@ -158,7 +162,7 @@ void Pool::Drop(RawConnectionPtr connection) {
 }
 
 void Pool::RunSizeMonitor() {
-  if (size_ < host_settings_.GetPoolSettings().min_pool_size) {
+  if (size_ < settings_.initial_pool_size) {
     try {
       PushConnection(engine::Deadline::FromDuration(kConnectionSetupTimeout));
     } catch (const std::exception& ex) {

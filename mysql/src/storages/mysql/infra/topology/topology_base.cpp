@@ -10,8 +10,10 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::mysql::infra::topology {
 
-TopologyBase::TopologyBase(std::vector<settings::HostSettings> hosts_settings) {
-  const auto hosts_count = hosts_settings.size();
+TopologyBase::TopologyBase(
+    clients::dns::Resolver& resolver,
+    const std::vector<settings::PoolSettings>& pools_settings) {
+  const auto hosts_count = pools_settings.size();
 
   pools_.resize(hosts_count);
   std::vector<engine::TaskWithResult<void>> init_tasks;
@@ -19,8 +21,8 @@ TopologyBase::TopologyBase(std::vector<settings::HostSettings> hosts_settings) {
   for (size_t i = 0; i < hosts_count; ++i) {
     auto& pool = pools_[i];
     init_tasks.emplace_back(engine::AsyncNoSpan(
-        [&pool, settings = std::move(hosts_settings[i])]() mutable {
-          pool = Pool::Create(std::move(settings));
+        [&pool, &resolver, &settings = pools_settings[i]]() {
+          pool = Pool::Create(resolver, settings);
         }));
   }
 
@@ -30,12 +32,13 @@ TopologyBase::TopologyBase(std::vector<settings::HostSettings> hosts_settings) {
 TopologyBase::~TopologyBase() = default;
 
 std::unique_ptr<TopologyBase> TopologyBase::Create(
-    std::vector<settings::HostSettings>&& hosts_settings) {
-  UASSERT(!hosts_settings.empty());
+    clients::dns::Resolver& resolver,
+    const std::vector<settings::PoolSettings>& pools_settings) {
+  UASSERT(!pools_settings.empty());
 
-  if (hosts_settings.size() == 1) {
-    return std::make_unique<infra::topology::Standalone>(
-        std::move(hosts_settings));
+  if (pools_settings.size() == 1) {
+    return std::make_unique<infra::topology::Standalone>(resolver,
+                                                         pools_settings);
   }
 
   UINVARIANT(false, "Multihost topology is not yet implemented");

@@ -1,9 +1,13 @@
 #include <userver/storages/mysql/cluster.hpp>
 
+#include <vector>
+
+#include <userver/components/component_config.hpp>
 #include <userver/tracing/span.hpp>
 
 #include <storages/mysql/impl/mysql_connection.hpp>
 #include <storages/mysql/infra/pool.hpp>
+#include <storages/mysql/settings/settings.hpp>
 
 #include <storages/mysql/infra/topology/topology_base.hpp>
 
@@ -11,8 +15,27 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::mysql {
 
-Cluster::Cluster(std::vector<settings::HostSettings>&& settings)
-    : topology_{infra::topology::TopologyBase::Create(std::move(settings))} {}
+namespace {
+
+std::unique_ptr<infra::topology::TopologyBase> CreateTopology(
+    clients::dns::Resolver& resolver, const settings::MysqlSettings& settings,
+    const components::ComponentConfig& config) {
+  std::vector<settings::PoolSettings> pools_settings{};
+  pools_settings.reserve(settings.endpoints.size());
+
+  for (const auto& endpoint_info : settings.endpoints) {
+    pools_settings.emplace_back(config, endpoint_info, settings.auth);
+  }
+
+  return infra::topology::TopologyBase::Create(resolver, pools_settings);
+}
+
+}  // namespace
+
+Cluster::Cluster(clients::dns::Resolver& resolver,
+                 const settings::MysqlSettings& settings,
+                 const components::ComponentConfig& config)
+    : topology_{CreateTopology(resolver, settings, config)} {}
 
 Cluster::~Cluster() = default;
 

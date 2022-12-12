@@ -3,12 +3,19 @@
 #include <memory>
 #include <vector>
 
-#include <storages/mysql/settings/host_settings.hpp>
+#include <userver/clients/dns/resolver_fwd.hpp>
+
 #include <userver/storages/mysql/cluster_host_type.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
-namespace storages::mysql::infra {
+namespace storages::mysql {
+
+namespace settings {
+struct PoolSettings;
+}
+
+namespace infra {
 
 class Pool;
 
@@ -21,10 +28,13 @@ class TopologyBase {
   Pool& SelectPool(ClusterHostType host_type) const;
 
   static std::unique_ptr<TopologyBase> Create(
-      std::vector<settings::HostSettings>&& hosts_settings);
+      clients::dns::Resolver& resolver,
+      const std::vector<settings::PoolSettings>& pools_settings);
 
  protected:
-  explicit TopologyBase(std::vector<settings::HostSettings> hosts_settings);
+  explicit TopologyBase(
+      clients::dns::Resolver& resolver,
+      const std::vector<settings::PoolSettings>& pools_settings);
 
   virtual Pool& GetMaster() const = 0;
   virtual Pool& GetSlave() const = 0;
@@ -32,8 +42,8 @@ class TopologyBase {
   // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
   std::vector<std::shared_ptr<Pool>> pools_;
 };
-
 }  // namespace topology
-}  // namespace storages::mysql::infra
+}  // namespace infra
+}  // namespace storages::mysql
 
 USERVER_NAMESPACE_END
