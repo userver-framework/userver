@@ -14,6 +14,11 @@ std::chrono::milliseconds ParseDefaultMaxTime(
 
 inline constexpr dynamic_config::Key<ParseDefaultMaxTime> kDefaultMaxTime;
 
+bool ParseDeadlinePropagationEnabled(const dynamic_config::DocsMap& docs_map);
+
+inline constexpr dynamic_config::Key<ParseDeadlinePropagationEnabled>
+    kDeadlinePropagationEnabled;
+
 }  // namespace storages::mongo
 
 USERVER_NAMESPACE_END

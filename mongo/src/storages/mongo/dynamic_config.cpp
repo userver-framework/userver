@@ -12,6 +12,10 @@ std::chrono::milliseconds ParseDefaultMaxTime(
       docs_map.Get("MONGO_DEFAULT_MAX_TIME_MS").As<std::uint32_t>()};
 }
 
+bool ParseDeadlinePropagationEnabled(const dynamic_config::DocsMap& docs_map) {
+  return docs_map.Get("MONGO_DEADLINE_PROPAGATION_ENABLED").As<bool>();
+}
+
 }  // namespace storages::mongo
 
 USERVER_NAMESPACE_END
