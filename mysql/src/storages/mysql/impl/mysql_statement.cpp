@@ -366,7 +366,10 @@ bool MySQLStatementFetcher::FetchResult(io::ExtractorBase& extractor) {
 
     const auto parsed =
         statement_->FetchResultRow(binds, parent_statement_deadline_);
-    if (!parsed) return false;
+    if (!parsed) {
+      extractor.RollbackLastRow();
+      return false;
+    }
   }
 
   return true;

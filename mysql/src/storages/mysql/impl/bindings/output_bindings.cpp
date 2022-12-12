@@ -161,6 +161,8 @@ void OutputBindings::StringBeforeFetch(void* value, MYSQL_BIND& bind) {
 
   // TODO : check length
   string->resize(bind.length_value);
+  bind.buffer = string->data();
+  bind.buffer_length = bind.length_value;
 }
 
 void OutputBindings::BindOptionalString(std::size_t pos,
@@ -175,6 +177,7 @@ void OutputBindings::BindOptionalString(std::size_t pos,
   bind.buffer = nullptr;
   bind.buffer_length = 0;
   bind.length = &bind.length_value;
+  bind.is_null = &bind.is_null_value;
 
   cb.value = &val;
   cb.before_fetch_cb = &OptionalStringBeforeFetch;
@@ -189,6 +192,7 @@ void OutputBindings::OptionalStringBeforeFetch(void* value, MYSQL_BIND& bind) {
     // TODO : check length
     optional->emplace(bind.length_value, 0);
     bind.buffer = (*optional)->data();
+    bind.buffer_length = bind.length_value;
   }
 }
 
@@ -238,6 +242,7 @@ void OutputBindings::BindOptionalDate(
   bind.buffer_type = MYSQL_TYPE_DATETIME;
   bind.buffer = &date;
   bind.buffer_length = sizeof(MYSQL_TIME);
+  bind.is_null = &bind.is_null_value;
 
   cb.value = &val;
   cb.after_fetch_cb = &OptionalDateAfterFetch;
@@ -251,6 +256,7 @@ void OutputBindings::OptionalDateAfterFetch(void* value, MYSQL_BIND& bind,
 
   // TODO : check this
   if (!bind.is_null_value) {
+    optional->emplace();
     OutputBindings::DateAfterFetch(&*optional, bind, date);
   }
 }

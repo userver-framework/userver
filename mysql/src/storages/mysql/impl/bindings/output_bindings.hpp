@@ -64,7 +64,12 @@ class OutputBindings final : public BindsStorageInterface<false> {
   // The special problem of binding primitive optionals: we don't know whether
   // it contains a value upfront, so after mysql_stmt_fetch we have to determine
   // it and if it does emplace the optional and fix the buffer before
-  // mysql_stmt_fetch_column
+  // mysql_stmt_fetch_column.
+  //
+  // BUT! mariadb doesn't care and for primitive types just writes into the
+  // provided buffer (which is null obviously), so instead we emplace the
+  // optional at bind time and reset it before mysql_stmt_fetch_column (or
+  // after, doesn't matter)
   template <typename T>
   void BindPrimitiveOptional(std::size_t pos, std::optional<T>& val,
                              bool is_unsigned = false);
@@ -126,10 +131,12 @@ void OutputBindings::BindPrimitiveOptional(std::size_t pos,
   auto& bind = binds_[pos];
   auto& cb = callbacks_[pos];
 
+  val.emplace();
   bind.buffer_type = GetNativeType<T>();
-  bind.buffer = nullptr;
+  bind.buffer = &*val;
   bind.buffer_length = 0;
   bind.is_unsigned = is_unsigned;
+  bind.is_null = &bind.is_null_value;
 
   cb.value = &val;
   cb.before_fetch_cb = &PrimitiveOptionalBeforeFetch<T>;
@@ -142,9 +149,8 @@ void OutputBindings::PrimitiveOptionalBeforeFetch(void* value,
   UASSERT(optional);
 
   // TODO : check this
-  if (!bind.is_null_value) {
-    optional->emplace();
-    bind.buffer = &(**optional);
+  if (bind.is_null_value) {
+    optional->reset();
   }
 }
 

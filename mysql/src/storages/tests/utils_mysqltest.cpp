@@ -38,7 +38,9 @@ std::string TestsHelper::EscapeString(const Cluster& cluster,
 
 ClusterWrapper::ClusterWrapper()
     : cluster_{std::make_shared<Cluster>()},
-      deadline_{engine::Deadline::FromDuration(utest::kMaxTestWaitTime)} {}
+      // TODO : return to normal
+      deadline_{engine::Deadline::FromDuration(std::chrono::seconds{500})} {}
+// deadline_{engine::Deadline::FromDuration(utest::kMaxTestWaitTime)} {
 
 ClusterWrapper::~ClusterWrapper() = default;
 

@@ -202,10 +202,9 @@ UTEST(AllSupportedTypes, NullableWithValues) {
                              [](const auto& f) { EXPECT_TRUE(f.has_value()); });
 }
 
-/*namespace {
+namespace {
 
 struct Id final {
-  std::optional<std::int8_t> int8;
   std::optional<std::int32_t> id;
 };
 
@@ -214,14 +213,13 @@ struct Id final {
 UTEST(Help, Me) {
   ClusterWrapper cluster{};
 
-  TmpTable table{cluster, "(Id INT, int8_t TINYINT)"};
+  TmpTable table{cluster, "(Id INT)"};
 
   const auto insert_query =
-      table.FormatWithTableName("INSERT INTO {}(int8_t, Id) VALUES(?, ?)");
-  const auto select_query = table.FormatWithTableName("SELECT int8_t, Id FROM
-{}");
+      table.FormatWithTableName("INSERT INTO {}(Id) VALUES(?)");
+  const auto select_query = table.FormatWithTableName("SELECT Id FROM {}");
 
-  cluster->InsertOne(cluster.GetDeadline(), insert_query, Id{7, 2});
+  cluster->InsertOne(cluster.GetDeadline(), insert_query, Id{});
 
   const auto db_row = cluster
                           ->Select(ClusterHostType::kMaster,
@@ -229,7 +227,7 @@ UTEST(Help, Me) {
                           .AsSingleRow<Id>();
 
   int a = 5;
-}*/
+}
 
 }  // namespace storages::mysql::tests
 
