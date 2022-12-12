@@ -1,7 +1,8 @@
 #include <storages/mysql/impl/mysql_connection.hpp>
 
-#include <stdexcept>
+// TODO : drop
 #include <iostream>
+#include <stdexcept>
 
 #include <fmt/format.h>
 
@@ -23,9 +24,7 @@ MySQLConnection::MySQLConnection(clients::dns::Resolver& resolver,
                                  const settings::AuthSettings& auth_settings,
                                  engine::Deadline deadline)
     : socket_{-1, 0} {
-  std::cout << "CONNECTING !!!!" << std::endl;
   InitSocket(resolver, endpoint_info, auth_settings, deadline);
-  std::cout << "DONE!!!!!!!" << std::endl;
 }
 
 MySQLConnection::~MySQLConnection() {

@@ -76,8 +76,8 @@ class Pool : public std::enable_shared_from_this<Pool> {
     utils::PeriodicTask size_monitor_;
     utils::PeriodicTask pinger_;
 
-    std::atomic<Clock::time_point> last_success_{};
-    std::atomic<Clock::time_point> last_failure_{};
+    std::atomic<Clock::time_point> last_success_{Clock::time_point{}};
+    std::atomic<Clock::time_point> last_failure_{Clock::time_point{}};
   };
 
   clients::dns::Resolver& resolver_;

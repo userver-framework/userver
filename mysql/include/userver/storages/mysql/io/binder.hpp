@@ -134,13 +134,13 @@ DECLARE_BINDER(std::int32_t)
 DECLARE_BINDER(std::uint32_t)
 DECLARE_BINDER(std::uint64_t)
 DECLARE_BINDER(std::int64_t)
-DECLARE_BINDER(float);
-DECLARE_BINDER(double);
+DECLARE_BINDER(float)
+DECLARE_BINDER(double)
 // string types
 DECLARE_BINDER(std::string)
 DECLARE_BINDER(std::string_view)
 // date types
-DECLARE_BINDER(std::chrono::system_clock::time_point);
+DECLARE_BINDER(std::chrono::system_clock::time_point)
 
 template <typename T>
 auto GetInputBinder(impl::bindings::InputBindings& binds, std::size_t pos,
@@ -181,20 +181,23 @@ class ParamsBinder final : public ParamsBinderBase {
 
   template <typename... Args>
   static ParamsBinder BindParams(const Args&... args) {
-    ParamsBinder binder{sizeof...(Args)};
-    size_t ind = 0;
+    constexpr auto kParamsCount = sizeof...(Args);
+    ParamsBinder binder{kParamsCount};
 
-    const auto do_bind = [&binder](std::size_t pos, const auto& arg) {
-      // TODO : this catches too much probably
-      if constexpr (std::is_convertible_v<decltype(arg), std::string_view>) {
-        std::string_view sw{arg};
-        binder.Bind(pos, sw);
-      } else {
-        binder.Bind(pos, arg);
-      }
-    };
+    if constexpr (kParamsCount > 0) {
+      size_t ind = 0;
+      const auto do_bind = [&binder](std::size_t pos, const auto& arg) {
+        // TODO : this catches too much probably
+        if constexpr (std::is_convertible_v<decltype(arg), std::string_view>) {
+          std::string_view sw{arg};
+          binder.Bind(pos, sw);
+        } else {
+          binder.Bind(pos, arg);
+        }
+      };
 
-    (..., do_bind(ind++, args));
+      (..., do_bind(ind++, args));
+    }
 
     return binder;
   }

@@ -102,13 +102,9 @@ void MySQLSocket::SetEvents(int mysql_events) {
   mysql_events_to_wait_on_.store(mysql_events);
 }
 
-void MySQLSocket::SetFd(int fd) {
-  fd_ = fd;
-}
+void MySQLSocket::SetFd(int fd) { fd_ = fd; }
 
-bool MySQLSocket::IsValid() {
-  return fd_ != -1;
-}
+bool MySQLSocket::IsValid() { return fd_ != -1; }
 
 void MySQLSocket::WatcherCallback(struct ev_loop*, ev_io* watcher,
                                   int) noexcept {
