@@ -72,21 +72,27 @@ class MySQLConnection final {
   BrokenGuard GetBrokenGuard();
 
  private:
-  MySQLSocket InitSocket(const settings::AuthSettings& auth_settings,
-                         std::uint32_t port);
+  void InitMysql();
+  void InitSocket(clients::dns::Resolver& resolver,
+                  const settings::EndpointInfo& endpoint_info,
+                  const settings::AuthSettings& auth_settings,
+                  engine::Deadline deadline);
+  bool DoInitSocket(const std::string& ip, std::uint32_t port,
+                    const settings::AuthSettings& auth_settings,
+                    engine::Deadline deadline);
+  void Close(engine::Deadline deadline) noexcept;
 
   MySQLStatement& PrepareStatement(const std::string& statement,
                                    engine::Deadline deadline);
 
-  const std::string host_ip_;
-
   std::atomic<bool> broken_{false};
 
-  MYSQL mysql_;
+  MYSQL mysql_{};
   MYSQL* connect_ret_{nullptr};
 
   MySQLSocket socket_;
 
+  // TODO : LRU
   std::unordered_map<std::string, MySQLStatement, utils::StrIcaseHash,
                      utils::StrIcaseEqual>
       statements_cache_;

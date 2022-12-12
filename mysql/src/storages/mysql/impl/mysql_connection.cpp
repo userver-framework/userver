@@ -1,6 +1,7 @@
 #include <storages/mysql/impl/mysql_connection.hpp>
 
 #include <stdexcept>
+#include <iostream>
 
 #include <fmt/format.h>
 
@@ -17,62 +18,19 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::mysql::impl {
 
-namespace {
-
-MYSQL InitMysql() {
-  MYSQL mysql;
-  mysql_init(&mysql);
-  mysql_options(&mysql, MYSQL_OPT_NONBLOCK, nullptr);
-
-  return mysql;
-}
-
-std::string ResolveHostIp(clients::dns::Resolver& resolver,
-                          const std::string& hostname,
-                          engine::Deadline deadline) {
-  const auto addr_vec = resolver.Resolve(hostname, deadline);
-
-  for (const auto& addr : addr_vec) {
-    // TODO : fix
-    if (addr.Domain() == engine::io::AddrDomain::kInet) {
-      return addr.PrimaryAddressString();
-    }
-  }
-
-  throw std::runtime_error{"Failed to resolve provided host"};
-}
-
-}  // namespace
-
 MySQLConnection::MySQLConnection(clients::dns::Resolver& resolver,
                                  const settings::EndpointInfo& endpoint_info,
-                                 const settings::AuthSettings& auth_info,
+                                 const settings::AuthSettings& auth_settings,
                                  engine::Deadline deadline)
-    : host_ip_{ResolveHostIp(resolver, endpoint_info.host, deadline)},
-      mysql_{InitMysql()},
-      socket_{InitSocket(auth_info, endpoint_info.port)} {
-  // TODO : deadline and cleanup
-  while (socket_.ShouldWait()) {
-    const auto mysql_events = socket_.Wait({});
-    socket_.SetEvents(
-        mysql_real_connect_cont(&connect_ret_, &mysql_, mysql_events));
-  }
-
-  if (!connect_ret_) {
-    throw std::runtime_error{GetNativeError("Failed to connect")};
-  }
+    : socket_{-1, 0} {
+  std::cout << "CONNECTING !!!!" << std::endl;
+  InitSocket(resolver, endpoint_info, auth_settings, deadline);
+  std::cout << "DONE!!!!!!!" << std::endl;
 }
 
 MySQLConnection::~MySQLConnection() {
-  try {
-    socket_.RunToCompletion([this] { return mysql_close_start(&mysql_); },
-                            [this](int mysql_event) {
-                              return mysql_close_cont(&mysql_, mysql_event);
-                            },
-                            {} /* TODO : deadline */);
-  } catch (const std::exception& ex) {
-    LOG_WARNING() << "Failed to correctly release a connection: " << ex.what();
-  }
+  // TODO : deadline?
+  Close({});
 }
 
 MySQLResult MySQLConnection::ExecutePlain(const std::string& query,
@@ -141,17 +99,79 @@ MySQLConnection::BrokenGuard MySQLConnection::GetBrokenGuard() {
   return BrokenGuard{*this};
 }
 
-MySQLSocket MySQLConnection::InitSocket(
-    const settings::AuthSettings& auth_settings, std::uint32_t port) {
-  const auto& password = auth_settings.password;
-  const auto* password_ptr = password.empty() ? nullptr : password.c_str();
+void MySQLConnection::InitSocket(clients::dns::Resolver& resolver,
+                                 const settings::EndpointInfo& endpoint_info,
+                                 const settings::AuthSettings& auth_settings,
+                                 engine::Deadline deadline) {
+  const auto addr_vec = resolver.Resolve(endpoint_info.host, deadline);
 
-  const auto mysql_events = mysql_real_connect_start(
-      &connect_ret_, &mysql_, host_ip_.c_str(), auth_settings.user.c_str(),
-      password_ptr, auth_settings.database.c_str(), port,
+  for (const auto& addr : addr_vec) {
+    const auto ip = addr.Domain() == engine::io::AddrDomain::kInet6
+                        ? fmt::format("[{}]", addr.PrimaryAddressString())
+                        : addr.PrimaryAddressString();
+
+    if (DoInitSocket(ip, endpoint_info.port, auth_settings, deadline)) {
+      return;
+    } else if (deadline.IsReached()) {
+      break;
+    }
+  }
+
+  throw std::runtime_error{
+      "Failed to connect to any of the the resolved addresses"};
+}
+
+bool MySQLConnection::DoInitSocket(const std::string& ip, std::uint32_t port,
+                                   const settings::AuthSettings& auth_settings,
+                                   engine::Deadline deadline) {
+  mysql_init(&mysql_);
+  mysql_options(&mysql_, MYSQL_OPT_NONBLOCK, nullptr);
+
+  auto mysql_events = mysql_real_connect_start(
+      &connect_ret_, &mysql_, ip.c_str(), auth_settings.user.c_str(),
+      auth_settings.password.c_str(), auth_settings.database.c_str(), port,
       nullptr /* unix_socket */, 0 /* client_flags */);
 
-  return MySQLSocket{mysql_get_socket(&mysql_), mysql_events};
+  const auto fd = mysql_get_socket(&mysql_);
+  if (fd == -1) {
+    return false;
+  }
+
+  socket_.SetFd(fd);
+  socket_.SetEvents(mysql_events);
+
+  try {
+    while (socket_.ShouldWait()) {
+      mysql_events = socket_.Wait(deadline);
+      socket_.SetEvents(
+          mysql_real_connect_cont(&connect_ret_, &mysql_, mysql_events));
+    }
+
+    if (!connect_ret_) {
+      LOG_WARNING() << GetNativeError("Failed to connect");
+      Close(deadline);
+      return false;
+    }
+  } catch (const std::exception&) {
+    Close(deadline);
+    return false;
+  }
+
+  return true;
+}
+
+void MySQLConnection::Close(engine::Deadline deadline) noexcept {
+  UASSERT(socket_.IsValid());
+
+  try {
+    socket_.RunToCompletion([this] { return mysql_close_start(&mysql_); },
+                            [this](int mysql_event) {
+                              return mysql_close_cont(&mysql_, mysql_event);
+                            },
+                            deadline);
+  } catch (const std::exception& ex) {
+    LOG_WARNING() << "Failed to correctly release a connection: " << ex.what();
+  }
 }
 
 MySQLStatement& MySQLConnection::PrepareStatement(const std::string& statement,

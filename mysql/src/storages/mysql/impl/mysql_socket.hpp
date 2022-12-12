@@ -16,15 +16,18 @@ class MySQLSocket final {
   bool ShouldWait() const;
   int Wait(engine::Deadline deadline);
   void SetEvents(int mysql_events);
+  void SetFd(int fd);
 
   template <typename StartFn, typename ContFn>
   void RunToCompletion(StartFn&& start_fn, ContFn&& cont_fn,
                        engine::Deadline deadline);
 
+  bool IsValid();
+
  private:
   static void WatcherCallback(struct ev_loop*, ev_io* watcher, int) noexcept;
 
-  const int fd_;
+  int fd_;
 
   std::atomic<int> mysql_events_to_wait_on_;
   engine::impl::FastPimplWaitListLight waiters_;
