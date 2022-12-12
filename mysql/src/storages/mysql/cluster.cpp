@@ -4,14 +4,15 @@
 
 #include <storages/mysql/impl/mysql_connection.hpp>
 #include <storages/mysql/infra/pool.hpp>
-#include <storages/mysql/infra/topology.hpp>
+
+#include <storages/mysql/infra/topology/topology_base.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::mysql {
 
 Cluster::Cluster(std::vector<settings::HostSettings>&& settings)
-    : topology_(std::move(settings)) {}
+    : topology_{infra::topology::TopologyBase::Create(std::move(settings))} {}
 
 Cluster::~Cluster() = default;
 

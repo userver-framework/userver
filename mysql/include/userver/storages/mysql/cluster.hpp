@@ -5,7 +5,6 @@
 #include <vector>
 
 #include <userver/engine/deadline.hpp>
-#include <userver/utils/fast_pimpl.hpp>
 
 #include <userver/storages/mysql/cluster_host_type.hpp>
 #include <userver/storages/mysql/io/binder.hpp>
@@ -24,8 +23,8 @@ namespace settings {
 class HostSettings;
 }
 
-namespace infra {
-class Topology;
+namespace infra::topology {
+class TopologyBase;
 }
 
 class Cluster final {
@@ -70,7 +69,7 @@ class Cluster final {
   friend class tests::TestsHelper;
   std::string EscapeString(std::string_view source) const;
 
-  utils::FastPimpl<infra::Topology, 24, 8> topology_;
+  std::unique_ptr<infra::topology::TopologyBase> topology_;
 };
 
 template <typename... Args>
