@@ -1,0 +1,9 @@
+project-name: userver-mysql
+project-alt-names:
+  - yandex-userver-mysql
+maintainers:
+  - Common components
+description: MySQL (MariaDB) driver
+
+libraries:
+  - userver-core
