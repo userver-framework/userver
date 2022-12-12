@@ -5,6 +5,7 @@
 #include <fmt/format.h>
 
 #include <userver/logging/log.hpp>
+#include <userver/tracing/scope_time.hpp>
 #include <userver/utils/scope_guard.hpp>
 
 #include <storages/mysql/impl/bindings/input_bindings.hpp>
@@ -118,6 +119,7 @@ MySQLStatement::MySQLStatement(MySQLStatement&& other) noexcept = default;
 
 MySQLStatementFetcher MySQLStatement::Execute(engine::Deadline deadline,
                                               io::ParamsBinderBase& params) {
+  tracing::ScopeTime execute{"execute"};
   UpdateParamsBindings(params);
 
   int err = 0;
@@ -133,7 +135,7 @@ MySQLStatementFetcher MySQLStatement::Execute(engine::Deadline deadline,
 
   if (err != 0) {
     throw std::runtime_error{
-        GetNativeError("Failed to execute a prepared statement: ")};
+        GetNativeError("Failed to execute a prepared statement")};
   }
 
   return MySQLStatementFetcher{*this};
@@ -157,7 +159,7 @@ void MySQLStatement::StoreResult(engine::Deadline deadline) {
     }
 
     throw std::runtime_error{
-        GetNativeError("Failed to fetch a prepared statement result: ")};
+        GetNativeError("Failed to fetch a prepared statement result")};
   }
 }
 
@@ -167,7 +169,7 @@ bool MySQLStatement::FetchResultRow(bindings::OutputBindings& binds,
     if (mysql_stmt_bind_result(native_statement_.get(),
                                binds.GetBindsArray()) != 0) {
       throw std::runtime_error{
-          GetNativeError("Failed to perform result binding: ")};
+          GetNativeError("Failed to perform result binding")};
     }
   }
 
@@ -191,7 +193,7 @@ bool MySQLStatement::FetchResultRow(bindings::OutputBindings& binds,
       // MYSQL_DATA_TRUNCATED is what we get with the way we bind strings,
       // it's ok. Other errors are not ok tho.
       throw std::runtime_error{
-          GetNativeError("Failed to fetch statement result row: ")};
+          GetNativeError("Failed to fetch statement result row")};
     }
   }
 
@@ -227,7 +229,7 @@ void MySQLStatement::Reset(engine::Deadline deadline) {
 
   if (err != 0) {
     throw std::runtime_error{
-        GetNativeError("Failed to free a prepared statement result: ")};
+        GetNativeError("Failed to free a prepared statement result")};
   }
 
   connection_->GetSocket().RunToCompletion(
@@ -241,7 +243,7 @@ void MySQLStatement::Reset(engine::Deadline deadline) {
       deadline);
   if (err != 0) {
     throw std::runtime_error{
-        GetNativeError("Failed to reset a prepared statement: ")};
+        GetNativeError("Failed to reset a prepared statement")};
   }
 }
 
@@ -303,7 +305,7 @@ MySQLStatement::NativeStatementPtr MySQLStatement::CreateStatement(
       deadline);
   if (err != 0) {
     throw std::runtime_error{
-        GetNativeError("Failed to initialize a prepared statement: ")};
+        GetNativeError("Failed to initialize a prepared statement")};
   }
 
   // We force statements to return a cursor, because otherwise Execute returns a
@@ -317,7 +319,9 @@ MySQLStatement::NativeStatementPtr MySQLStatement::CreateStatement(
 }
 
 std::string MySQLStatement::GetNativeError(std::string_view prefix) const {
-  return std::string{prefix} + mysql_stmt_error(native_statement_.get());
+  return fmt::format("{}: {}. Errno: {}", prefix,
+                     mysql_stmt_error(native_statement_.get()),
+                     mysql_stmt_errno(native_statement_.get()));
 }
 
 MySQLStatementFetcher::MySQLStatementFetcher(MySQLStatement& statement)
@@ -348,7 +352,6 @@ bool MySQLStatementFetcher::FetchResult(io::ExtractorBase& extractor) {
       statement_->ResultColumnsCount() == extractor.ColumnsCount(),
       fmt::format("Statement has {} output columns, but {} were provided",
                   statement_->ResultColumnsCount(), extractor.ColumnsCount()));
-
   auto broken_guard = statement_->connection_->GetBrokenGuard();
 
   if (!batch_size_.has_value()) {

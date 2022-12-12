@@ -16,16 +16,23 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace storages::mysql::io {
+namespace storages::mysql {
+namespace settings {
+class HostSettings;
+}
+
+namespace io {
 class ExtractorBase;
 class ParamsBinderBase;
-}  // namespace storages::mysql::io
+}  // namespace io
+}  // namespace storages::mysql
 
 namespace storages::mysql::impl {
 
 class MySQLConnection final {
  public:
-  MySQLConnection();
+  MySQLConnection(const settings::HostSettings& host_settings,
+                  engine::Deadline deadline);
   ~MySQLConnection();
 
   MySQLResult ExecutePlain(const std::string& query, engine::Deadline deadline);
@@ -61,10 +68,12 @@ class MySQLConnection final {
   BrokenGuard GetBrokenGuard();
 
  private:
-  MySQLSocket InitSocket();
+  MySQLSocket InitSocket(engine::Deadline deadline);
 
   MySQLStatement& PrepareStatement(const std::string& statement,
                                    engine::Deadline deadline);
+
+  const settings::HostSettings& host_settings_;
 
   std::atomic<bool> broken_{false};
 

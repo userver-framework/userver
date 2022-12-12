@@ -12,7 +12,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-UTEST(Connection, Works) { storages::mysql::impl::MySQLConnection conn{}; }
+/*UTEST(Connection, Works) { storages::mysql::impl::MySQLConnection conn{}; }
 
 UTEST(Connection, ExecuteWorks) {
   storages::mysql::impl::MySQLConnection conn{};
@@ -55,6 +55,7 @@ UTEST(Connection, TypedWorks) {
   { auto res = get_res().AsContainer<std::vector<Row>>(); }
 }
 
-UTEST(Pool, Works) { const auto pool = storages::mysql::infra::Pool::Create(); }
+UTEST(Pool, Works) { const auto pool = storages::mysql::infra::Pool::Create();
+}*/
 
 USERVER_NAMESPACE_END

@@ -5,10 +5,13 @@
 #include <fmt/format.h>
 
 #include <userver/logging/log.hpp>
+#include <userver/tracing/scope_time.hpp>
 #include <userver/utils/assert.hpp>
 
 #include <storages/mysql/impl/mysql_plain_query.hpp>
 #include <userver/storages/mysql/io/extractor.hpp>
+
+#include <storages/mysql/settings/host_settings.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -26,8 +29,11 @@ MYSQL InitMysql() {
 
 }  // namespace
 
-MySQLConnection::MySQLConnection()
-    : mysql_{InitMysql()}, socket_{InitSocket()} {
+MySQLConnection::MySQLConnection(const settings::HostSettings& host_settings,
+                                 engine::Deadline deadline)
+    : host_settings_{host_settings},
+      mysql_{InitMysql()},
+      socket_{InitSocket(deadline)} {
   // TODO : deadline and cleanup
   while (socket_.ShouldWait()) {
     const auto mysql_events = socket_.Wait({});
@@ -36,8 +42,7 @@ MySQLConnection::MySQLConnection()
   }
 
   if (!connect_ret_) {
-    throw std::runtime_error{std::string{"Failed to connect: "} +
-                             mysql_error(&mysql_)};
+    throw std::runtime_error{GetNativeError("Failed to connect")};
   }
 }
 
@@ -90,7 +95,7 @@ void MySQLConnection::Ping(engine::Deadline deadline) {
       deadline);
 
   if (err != 0) {
-    throw std::runtime_error{GetNativeError("Failed to ping the server: ")};
+    throw std::runtime_error{GetNativeError("Failed to ping the server")};
   }
 }
 
@@ -103,7 +108,8 @@ bool MySQLConnection::IsBroken() const { return broken_.load(); }
 const char* MySQLConnection::GetNativeError() { return mysql_error(&mysql_); }
 
 std::string MySQLConnection::GetNativeError(std::string_view prefix) {
-  return std::string{prefix} + mysql_error(&mysql_);
+  return fmt::format("{}: {}. Errno: {}", prefix, mysql_error(&mysql_),
+                     mysql_errno(&mysql_));
 }
 
 std::string MySQLConnection::EscapeString(std::string_view source) {
@@ -118,10 +124,15 @@ MySQLConnection::BrokenGuard MySQLConnection::GetBrokenGuard() {
   return BrokenGuard{*this};
 }
 
-MySQLSocket MySQLConnection::InitSocket() {
+MySQLSocket MySQLConnection::InitSocket(engine::Deadline deadline) {
+  const auto ip = host_settings_.GetHostIp(deadline);
+  const auto& auth_settings = host_settings_.GetAuthSettings();
+
   const auto mysql_events = mysql_real_connect_start(
-      &connect_ret_, &mysql_, "0.0.0.0", "test", "test", "test", 0 /* port */,
-      nullptr /* unix_socket */, 0 /* client_flags */);
+      &connect_ret_, &mysql_, ip.c_str(), auth_settings.user.c_str(),
+      auth_settings.password.c_str(), auth_settings.dbname.c_str(),
+      host_settings_.GetPort() /* port */, nullptr /* unix_socket */,
+      0 /* client_flags */);
 
   return MySQLSocket{mysql_get_socket(&mysql_), mysql_events};
 }
@@ -134,6 +145,7 @@ MySQLStatement& MySQLConnection::PrepareStatement(const std::string& statement,
     return it->second;
   }
 
+  tracing::ScopeTime prepare{"prepare"};
   MySQLStatement mysql_statement{*this, statement, deadline};
   auto [it, inserted] =
       statements_cache_.emplace(statement, std::move(mysql_statement));

@@ -11,29 +11,28 @@
 #include <userver/utils/periodic_task.hpp>
 
 #include <storages/mysql/infra/connection_ptr.hpp>
+#include <storages/mysql/settings/host_settings.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::mysql {
 
 namespace impl {
-
 class MySQLConnection;
-
 }
 
 namespace infra {
 
 class Pool : public std::enable_shared_from_this<Pool> {
  public:
-  static std::shared_ptr<Pool> Create();
+  static std::shared_ptr<Pool> Create(settings::HostSettings host_settings);
   ~Pool();
 
   ConnectionPtr Acquire(engine::Deadline deadline);
   void Release(std::unique_ptr<impl::MySQLConnection> connection);
 
  protected:
-  Pool();
+  Pool(settings::HostSettings host_settings);
 
  private:
   using RawConnectionPtr = impl::MySQLConnection*;
@@ -76,6 +75,8 @@ class Pool : public std::enable_shared_from_this<Pool> {
     std::atomic<Clock::time_point> last_success_{};
     std::atomic<Clock::time_point> last_failure_{};
   };
+
+  settings::HostSettings host_settings_;
 
   engine::Semaphore given_away_semaphore_;
   engine::Semaphore connecting_semaphore_;

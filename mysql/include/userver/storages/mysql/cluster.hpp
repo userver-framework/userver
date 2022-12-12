@@ -20,13 +20,17 @@ namespace tests {
 class TestsHelper;
 }
 
+namespace settings {
+class HostSettings;
+}
+
 namespace infra {
 class Topology;
 }
 
 class Cluster final {
  public:
-  Cluster();
+  Cluster(std::vector<settings::HostSettings>&& settings);
   ~Cluster();
 
   // An alias for Execute

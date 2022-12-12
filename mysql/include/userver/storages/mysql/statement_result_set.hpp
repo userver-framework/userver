@@ -6,6 +6,7 @@
 #include <fmt/format.h>
 
 #include <userver/engine/deadline.hpp>
+#include <userver/tracing/scope_time.hpp>
 #include <userver/utils/fast_pimpl.hpp>
 #include <userver/utils/scope_guard.hpp>
 
@@ -90,7 +91,10 @@ Container StatementResultSet::AsContainer() && {
   using Row = typename Container::value_type;
 
   auto extractor = io::TypedExtractor<Row>{};
+
+  tracing::ScopeTime fetch{"fetch"};
   std::move(*this).FetchResult(extractor);
+  fetch.Reset();
 
   if constexpr (meta::kIsInstantiationOf<std::vector, Container>) {
     return std::move(extractor).ExtractData();
@@ -159,13 +163,15 @@ void StreamedStatementResultSet<T>::ForEach(
   UASSERT(batch_size > 0);
   result_set_.SetBatchSize(batch_size);
 
-  while (true) {
+  bool keep_going = true;
+  while (keep_going) {
     auto extractor = io::TypedExtractor<T>{};
 
-    if (!result_set_.FetchResult(extractor)) {
-      break;
-    }
+    tracing::ScopeTime fetch{"fetch"};
+    keep_going = result_set_.FetchResult(extractor);
+    fetch.Reset();
 
+    tracing::ScopeTime for_each{"for_each"};
     for (auto&& row : std::move(extractor).ExtractData()) {
       row_callback(std::move(row));
     }

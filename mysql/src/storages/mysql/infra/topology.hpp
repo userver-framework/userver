@@ -3,6 +3,7 @@
 #include <memory>
 #include <vector>
 
+#include <storages/mysql/settings/host_settings.hpp>
 #include <userver/storages/mysql/cluster_host_type.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -13,7 +14,7 @@ class Pool;
 
 class Topology final {
  public:
-  Topology();
+  Topology(std::vector<settings::HostSettings> hosts_settings);
   ~Topology();
 
   Pool& SelectPool(ClusterHostType host_type) const;

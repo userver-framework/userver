@@ -1,8 +1,15 @@
 #pragma once
 
+// TODO : drop
+#include <iostream>
+
 #include <userver/utest/utest.hpp>
 
+#include <userver/clients/dns/resolver.hpp>
 #include <userver/engine/deadline.hpp>
+// TODO : drop
+#include <userver/engine/sleep.hpp>
+#include <userver/utils/uuid4.hpp>
 
 #include <userver/storages/mysql.hpp>
 
@@ -29,11 +36,23 @@ class ClusterWrapper final {
 
   engine::Deadline GetDeadline() const;
 
+  template <typename... Args>
+  StatementResultSet DefaultExecute(const std::string& query,
+                                    const Args&... args) const;
+
  private:
+  clients::dns::Resolver resolver_;
   std::shared_ptr<storages::mysql::Cluster> cluster_;
 
   engine::Deadline deadline_;
 };
+
+template <typename... Args>
+StatementResultSet ClusterWrapper::DefaultExecute(const std::string& query,
+                                                  const Args&... args) const {
+  return cluster_->Execute(ClusterHostType::kMaster, GetDeadline(), query,
+                           args...);
+}
 
 class TmpTable final {
  public:

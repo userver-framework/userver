@@ -1,12 +1,12 @@
-#include <userver/utest/utest.hpp>
+#include "utils_mysqltest.hpp"
 
 #include <iostream>
 
 #include <userver/engine/sleep.hpp>
 
-#include <userver/storages/mysql/cluster.hpp>
-
 USERVER_NAMESPACE_BEGIN
+
+namespace storages::mysql::tests {
 
 namespace {
 
@@ -15,6 +15,10 @@ constexpr auto kMasterHost = storages::mysql::ClusterHostType::kMaster;
 struct Row final {
   int id{};
   std::string value;
+
+  bool operator==(const Row& other) const {
+    return id == other.id && value == other.value;
+  }
 };
 
 struct Id final {
@@ -23,7 +27,7 @@ struct Id final {
 
 }  // namespace
 
-UTEST(Cluster, TypedWorks) {
+/*UTEST(Cluster, TypedWorks) {
   const auto deadline = engine::Deadline::FromDuration(utest::kMaxTestWaitTime);
 
   storages::mysql::Cluster cluster{};
@@ -105,10 +109,42 @@ UTEST(Cluster, InsertOne) {
 
   Row row{7, "seven"};
   cluster.InsertOne(deadline, "INSERT INTO test(Id, Value) VALUES(?, ?)", row);
-}
+}*/
 
 UTEST(StreamedResult, Works) {
-  const auto deadline = engine::Deadline::FromDuration(utest::kMaxTestWaitTime);
+  ClusterWrapper cluster{};
+
+  TmpTable table{cluster, "(Id INT, Value TEXT)"};
+
+  constexpr std::size_t kRowsCount = 100;
+  std::vector<Row> rows_to_insert;
+  rows_to_insert.reserve(kRowsCount);
+
+  for (std::size_t i = 0; i < kRowsCount; ++i) {
+    rows_to_insert.push_back(
+        {static_cast<std::int32_t>(i), utils::generators::GenerateUuid()});
+  }
+
+  cluster->InsertMany(
+      cluster.GetDeadline(),
+      table.FormatWithTableName("INSERT INTO {}(Id, Value) VALUES(?, ?)"),
+      rows_to_insert);
+
+  std::vector<Row> db_rows;
+  db_rows.reserve(kRowsCount);
+
+  cluster
+      ->Select(kMasterHost, cluster.GetDeadline(),
+               table.FormatWithTableName("SELECT Id, Value FROM {}"))
+      .AsStreamOf<Row>()
+      .ForEach([&db_rows](Row&& row) { db_rows.push_back(std::move(row)); }, 32,
+               cluster.GetDeadline());
+
+  ASSERT_EQ(db_rows.size(), rows_to_insert.size());
+  EXPECT_EQ(db_rows, rows_to_insert);
+
+  /*const auto deadline =
+  engine::Deadline::FromDuration(utest::kMaxTestWaitTime);
 
   storages::mysql::Cluster cluster{};
 
@@ -120,10 +156,10 @@ UTEST(StreamedResult, Works) {
       [](Row&&) {
         // std::cout << row.id << " " << row.value << std::endl;
       },
-      1, deadline);
+      1, deadline);*/
 }
 
-UTEST(Cluster, DISABLED_BigInsert) {
+/*UTEST(Cluster, DISABLED_BigInsert) {
   const auto deadline = engine::Deadline::FromDuration(utest::kMaxTestWaitTime);
 
   storages::mysql::Cluster cluster{};
@@ -156,6 +192,8 @@ UTEST(Cluster, WorksWithConsts) {
   const int id = 5;
   cluster.Select(kMasterHost, deadline, "SELECT Id, Value FROM test WHERE Id=?",
                  id);
-}
+}*/
+
+}  // namespace storages::mysql::tests
 
 USERVER_NAMESPACE_END

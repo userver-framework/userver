@@ -9,18 +9,18 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::mysql::infra {
 
-constexpr std::size_t kHostsCount = 1;
-
-Topology::Topology() {
-  const auto hosts_count = kHostsCount;
+Topology::Topology(std::vector<settings::HostSettings> hosts_settings) {
+  const auto hosts_count = hosts_settings.size();
 
   pools_.resize(hosts_count);
   std::vector<engine::TaskWithResult<void>> init_tasks;
   init_tasks.reserve(hosts_count);
   for (size_t i = 0; i < hosts_count; ++i) {
     auto& pool = pools_[i];
-    init_tasks.emplace_back(
-        engine::AsyncNoSpan([&pool] { pool = Pool::Create(); }));
+    init_tasks.emplace_back(engine::AsyncNoSpan(
+        [&pool, settings = std::move(hosts_settings[i])]() mutable {
+          pool = Pool::Create(std::move(settings));
+        }));
   }
 
   engine::WaitAllChecked(init_tasks);

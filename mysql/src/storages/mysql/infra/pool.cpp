@@ -6,6 +6,7 @@
 #include <userver/engine/async.hpp>
 #include <userver/engine/wait_all_checked.hpp>
 #include <userver/logging/log.hpp>
+#include <userver/tracing/scope_time.hpp>
 #include <userver/utils/assert.hpp>
 
 #include <storages/mysql/impl/mysql_connection.hpp>
@@ -18,33 +19,33 @@ namespace storages::mysql::infra {
 namespace {
 
 constexpr std::size_t kMaxSimultaneouslyConnectingClients{5};
-constexpr std::size_t kMaxPoolSize{10};
-constexpr std::size_t kMinPoolSize{1};
 
 constexpr std::chrono::milliseconds kConnectionSetupTimeout{2000};
 
-constexpr std::chrono::milliseconds kPoolSizeMonitorInterval{1000};
+constexpr std::chrono::milliseconds kPoolSizeMonitorInterval{51000};
 
 // TODO : think about these values
-constexpr std::chrono::milliseconds kPingerInterval{330};
+constexpr std::chrono::milliseconds kPingerInterval{51330};
 constexpr std::chrono::milliseconds kPingTimeout{200};
 
 }  // namespace
 
-std::shared_ptr<Pool> Pool::Create() {
-  return std::make_shared<MakeSharedEnabler<Pool>>();
+std::shared_ptr<Pool> Pool::Create(settings::HostSettings host_settings) {
+  return std::make_shared<MakeSharedEnabler<Pool>>(std::move(host_settings));
 }
 
-Pool::Pool()
-    : given_away_semaphore_{kMaxPoolSize},
+Pool::Pool(settings::HostSettings host_settings)
+    : host_settings_{std::move(host_settings)},
+      given_away_semaphore_{host_settings_.GetPoolSettings().max_pool_size},
       connecting_semaphore_{kMaxSimultaneouslyConnectingClients},
-      queue_{kMaxPoolSize},
+      queue_{host_settings_.GetPoolSettings().max_pool_size},
       monitor_{*this} {
   try {
+    const auto init_size = host_settings_.GetPoolSettings().min_pool_size;
     std::vector<engine::TaskWithResult<void>> init_tasks;
-    init_tasks.reserve(kMinPoolSize);
+    init_tasks.reserve(init_size);
 
-    for (std::size_t i = 0; i < kMinPoolSize; ++i) {
+    for (std::size_t i = 0; i < init_size; ++i) {
       init_tasks.emplace_back(engine::AsyncNoSpan([this] {
         PushConnection(engine::Deadline::FromDuration(kConnectionSetupTimeout));
       }));
@@ -78,6 +79,8 @@ void Pool::Release(std::unique_ptr<impl::MySQLConnection> connection) {
 }
 
 Pool::SmartConnectionPtr Pool::Pop(engine::Deadline deadline) {
+  tracing::ScopeTime acquire{"acquire"};
+
   engine::SemaphoreLock given_away_lock{given_away_semaphore_, deadline};
   if (!given_away_lock.OwnsLock()) {
     throw std::runtime_error{"Connection pool acquisition wait limit exceeded"};
@@ -93,6 +96,7 @@ Pool::SmartConnectionPtr Pool::Pop(engine::Deadline deadline) {
         throw std::runtime_error{
             "Connection pool acquisition wait limit exceeded"};
       }
+      tracing::ScopeTime create{"create"};
       connection_ptr = CreateConnection(deadline);
     }
   }
@@ -133,9 +137,10 @@ void Pool::PushConnection(engine::Deadline deadline) {
   }
 }
 
-Pool::SmartConnectionPtr Pool::CreateConnection(engine::Deadline /*deadline*/) {
+Pool::SmartConnectionPtr Pool::CreateConnection(engine::Deadline deadline) {
   try {
-    auto connection_ptr = std::make_unique<impl::MySQLConnection>();
+    auto connection_ptr =
+        std::make_unique<impl::MySQLConnection>(host_settings_, deadline);
     size_.fetch_add(1);
     monitor_.AccountSuccess();
 
@@ -153,7 +158,7 @@ void Pool::Drop(RawConnectionPtr connection) {
 }
 
 void Pool::RunSizeMonitor() {
-  if (size_ < kMinPoolSize) {
+  if (size_ < host_settings_.GetPoolSettings().min_pool_size) {
     try {
       PushConnection(engine::Deadline::FromDuration(kConnectionSetupTimeout));
     } catch (const std::exception& ex) {
