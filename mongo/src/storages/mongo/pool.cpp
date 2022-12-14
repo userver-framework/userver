@@ -27,15 +27,26 @@ formats::json::Value GetPoolStatistics(const impl::PoolImpl& pool_impl,
   return builder.ExtractValue();
 }
 
+const PoolConfig& ValidateConfig(const PoolConfig& config,
+                                 const std::string& id) {
+  config.Validate(id);
+  return config;
+}
+
 }  // namespace
 
 Pool::Pool(std::string id, const std::string& uri,
            const PoolConfig& pool_config, clients::dns::Resolver* dns_resolver,
            dynamic_config::Source config_source)
     : impl_(std::make_shared<impl::cdriver::CDriverPoolImpl>(
-          std::move(id), uri, pool_config, dns_resolver, config_source)) {}
+          std::move(id), uri, ValidateConfig(pool_config, id), dns_resolver,
+          config_source)) {}
 
 Pool::~Pool() = default;
+
+void Pool::DropDatabase() {
+  impl::Database(impl_, impl_->DefaultDatabaseName()).DropDatabase();
+}
 
 bool Pool::HasCollection(const std::string& name) const {
   return impl::Database(impl_, impl_->DefaultDatabaseName())

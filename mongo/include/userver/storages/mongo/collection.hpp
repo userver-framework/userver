@@ -32,7 +32,10 @@ class CollectionImpl;
 /// @snippet storages/mongo/collection_mongotest.hpp  Sample Mongo usage
 class Collection {
  public:
+  /// @cond
+  // For internal use only.
   explicit Collection(std::shared_ptr<impl::CollectionImpl>);
+  /// @endcond
 
   /// @brief Returns the number of documents matching the query
   /// @warning Unless explicitly overridden, runs CountApprox for empty filters
