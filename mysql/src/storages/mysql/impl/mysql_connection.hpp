@@ -11,6 +11,7 @@
 
 #include <storages/mysql/impl/mariadb_include.hpp>
 
+#include <storages/mysql/impl/metadata/mysql_server_info.hpp>
 #include <storages/mysql/impl/mysql_result.hpp>
 #include <storages/mysql/impl/mysql_socket.hpp>
 #include <storages/mysql/impl/mysql_statement.hpp>
@@ -64,6 +65,8 @@ class MySQLConnection final {
 
   std::string EscapeString(std::string_view source);
 
+  const metadata::MySQLServerInfo& GetServerInfo() const;
+
   class BrokenGuard final {
    public:
     explicit BrokenGuard(MySQLConnection& connection);
@@ -76,7 +79,6 @@ class MySQLConnection final {
   BrokenGuard GetBrokenGuard();
 
  private:
-  void InitMysql();
   void InitSocket(clients::dns::Resolver& resolver,
                   const settings::EndpointInfo& endpoint_info,
                   const settings::AuthSettings& auth_settings,
@@ -96,6 +98,7 @@ class MySQLConnection final {
   MYSQL* connect_ret_{nullptr};
 
   MySQLSocket socket_;
+  metadata::MySQLServerInfo server_info_{};
 
   // TODO : LRU
   std::unordered_map<std::string, MySQLStatement, utils::StrIcaseHash,

@@ -184,9 +184,13 @@ void MySQLStatement::Reset(engine::Deadline deadline) {
   if (batch_size_.has_value()) {
     // MySQL 8.0.31 seems to be buggy:
     // it doesn't send EOF_PACKET if we execute a statement without cursor
-    // after we executed with cursor before
-    // TODO : file a bug
-    PrepareStatement(native_statement_, deadline);
+    // after we executed with cursor before, so we re-prepare the statement
+    // https://bugs.mysql.com/bug.php?id=109380
+    // TODO : conditionally on server version?
+    if (connection_->GetServerInfo().server_type ==
+        metadata::MySQLServerInfo::Type::kMySQL) {
+      PrepareStatement(native_statement_, deadline);
+    }
     batch_size_.reset();
   }
 }
@@ -199,6 +203,13 @@ void MySQLStatement::UpdateParamsBindings(io::ParamsBinderBase& params) {
     mysql_stmt_bind_param(native_statement_.get(), binds.GetBindsArray());
 
     if (auto rows_count = params.GetRowsCount(); rows_count > 1) {
+      const auto& server_info = connection_->GetServerInfo();
+      if (server_info.server_type !=
+              metadata::MySQLServerInfo::Type::kMariaDB ||
+          server_info.server_version < metadata::MySQLSemVer{10, 2, 0}) {
+        throw std::logic_error{"Batch insert requires MariaDB 10.2 or later"};
+      }
+
       mysql_stmt_attr_set(native_statement_.get(), STMT_ATTR_ARRAY_SIZE,
                           &rows_count);
     }

@@ -5,6 +5,7 @@
 #include <userver/components/component_config.hpp>
 #include <userver/tracing/span.hpp>
 
+#include <storages/mysql/impl/metadata/mysql_client_info.hpp>
 #include <storages/mysql/impl/mysql_connection.hpp>
 #include <storages/mysql/infra/pool.hpp>
 #include <storages/mysql/settings/settings.hpp>
@@ -35,7 +36,12 @@ std::unique_ptr<infra::topology::TopologyBase> CreateTopology(
 Cluster::Cluster(clients::dns::Resolver& resolver,
                  const settings::MysqlSettings& settings,
                  const components::ComponentConfig& config)
-    : topology_{CreateTopology(resolver, settings, config)} {}
+    : topology_{CreateTopology(resolver, settings, config)} {
+  const auto client_info = impl::metadata::MySQLClientInfo::Get();
+  LOG_INFO() << "MySQL cluster initialized."
+             << " Native client version: "
+             << client_info.client_version_id.ToString();
+}
 
 Cluster::~Cluster() = default;
 

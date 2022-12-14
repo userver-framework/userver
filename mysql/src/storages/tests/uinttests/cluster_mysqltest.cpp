@@ -167,40 +167,30 @@ UTEST(StreamedResult, Works) {
       1, deadline);*/
 }
 
-/*UTEST(Cluster, DISABLED_BigInsert) {
-  const auto deadline = engine::Deadline::FromDuration(utest::kMaxTestWaitTime);
-
-  storages::mysql::Cluster cluster{};
+UTEST(Cluster, InsertMany) {
+  ClusterWrapper cluster{};
+  TmpTable table{cluster, "Id INT NOT NULL, Value TEXT NOT NULL"};
 
   const std::string long_string_to_avoid_sso{
       "hi i am some long string that doesn't fit in sso"};
 
-  constexpr int kRowsCount = 100000;
+  constexpr int kRowsCount = 100;
 
-  std::vector<Row> rows;
-  rows.reserve(kRowsCount);
+  std::vector<Row> rows_to_insert;
+  rows_to_insert.reserve(kRowsCount);
   for (int i = 0; i < kRowsCount; ++i) {
-    rows.push_back({i, long_string_to_avoid_sso});
+    rows_to_insert.push_back({i, long_string_to_avoid_sso});
   }
 
-  cluster.InsertMany(deadline, "INSERT INTO test(Id, Value) VALUES(?, ?)",
-                     rows);
+  cluster->InsertMany(
+      cluster.GetDeadline(),
+      table.FormatWithTableName("INSERT INTO {}(Id, Value) VALUES(?, ?)"),
+      rows_to_insert);
 
-  rows = cluster.Execute(kMasterHost, deadline, "SELECT Id, Value FROM test")
-             .AsVector<Row>();
-
-  // cluster.Execute(kMasterHost, deadline, "DELETE FROM test");
+  const auto db_rows =
+      table.DefaultExecute("SELECT Id, Value FROM {}").AsVector<Row>();
+  EXPECT_EQ(db_rows, rows_to_insert);
 }
-
-UTEST(Cluster, WorksWithConsts) {
-  const auto deadline = engine::Deadline::FromDuration(utest::kMaxTestWaitTime);
-
-  storages::mysql::Cluster cluster{};
-
-  const int id = 5;
-  cluster.Select(kMasterHost, deadline, "SELECT Id, Value FROM test WHERE Id=?",
-                 id);
-}*/
 
 UTEST(ShowCase, Basic) {
   ClusterWrapper cluster{};

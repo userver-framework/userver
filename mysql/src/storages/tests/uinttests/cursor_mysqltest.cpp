@@ -5,18 +5,52 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::mysql::tests {
 
+namespace {
+
+struct Row final {
+  std::int32_t id{};
+  std::string value;
+
+  bool operator==(const Row& other) const {
+    return std::tie(id, value) == std::tie(other.id, other.value);
+  }
+};
+
+}  // namespace
+
 UTEST(Cursor, Works) {
   ClusterWrapper cluster{};
   TmpTable table{cluster, "Id INT NOT NULL, Value TEXT NOT NULL"};
 
-  struct Row final {
-    std::int32_t id{};
-    std::string value;
+  constexpr std::size_t rows_count = 20;
+  std::vector<Row> rows_to_insert;
+  rows_to_insert.reserve(rows_count);
 
-    bool operator==(const Row& other) const {
-      return std::tie(id, value) == std::tie(other.id, other.value);
-    }
-  };
+  for (std::size_t i = 0; i < rows_count; ++i) {
+    rows_to_insert.push_back(
+        {static_cast<std::int32_t>(i), utils::generators::GenerateUuid()});
+
+    cluster->InsertOne(
+        cluster.GetDeadline(),
+        table.FormatWithTableName("INSERT INTO {}(Id, Value) VALUES(?, ?)"),
+        rows_to_insert.back());
+  }
+
+  std::vector<Row> db_rows;
+  db_rows.reserve(rows_count);
+
+  cluster
+      ->GetCursor<Row>(ClusterHostType::kMaster, cluster.GetDeadline(), 7,
+                       table.FormatWithTableName("SELECT Id, Value FROM {}"))
+      .ForEach([&db_rows](Row&& row) { db_rows.push_back(std::move(row)); },
+               cluster.GetDeadline());
+  EXPECT_EQ(db_rows, rows_to_insert);
+}
+
+// https://bugs.mysql.com/bug.php?id=109380
+UTEST(Cursor, StatementReuseWorks) {
+  ClusterWrapper cluster{};
+  TmpTable table{cluster, "Id INT NOT NULL, Value TEXT NOT NULL"};
 
   constexpr std::size_t rows_count = 1;
   std::vector<Row> rows_to_insert;
@@ -32,27 +66,20 @@ UTEST(Cursor, Works) {
         rows_to_insert.back());
   }
 
-  /*cluster->InsertMany(
-      cluster.GetDeadline(),
-      table.FormatWithTableName("INSERT INTO {}(Id, Value) VALUES(?, ?)"),
-      rows_to_insert);*/
-
-  std::vector<Row> db_rows;
-  db_rows.reserve(rows_count);
-
-  // auto asd = table.DefaultExecute("SELECT Id, Value FROM
-  // {}").AsVector<Row>();
+  std::vector<Row> cursor_rows;
+  cursor_rows.reserve(rows_count);
 
   cluster
       ->GetCursor<Row>(ClusterHostType::kMaster, cluster.GetDeadline(), 2,
                        table.FormatWithTableName("SELECT Id, Value FROM {}"))
-      .ForEach([&db_rows](Row&& row) { db_rows.push_back(std::move(row)); },
-               cluster.GetDeadline());
-  ASSERT_EQ(db_rows.size(), rows_to_insert.size());
-  EXPECT_EQ(db_rows, rows_to_insert);
+      .ForEach(
+          [&cursor_rows](Row&& row) { cursor_rows.push_back(std::move(row)); },
+          cluster.GetDeadline());
+  EXPECT_EQ(cursor_rows, rows_to_insert);
 
-  auto we = table.DefaultExecute("SELECT Id, Value FROM {}").AsVector<Row>();
-  ASSERT_EQ(we.size(), rows_to_insert.size());
+  const auto db_rows =
+      table.DefaultExecute("SELECT Id, Value FROM {}").AsVector<Row>();
+  EXPECT_EQ(db_rows, rows_to_insert);
 }
 
 }  // namespace storages::mysql::tests

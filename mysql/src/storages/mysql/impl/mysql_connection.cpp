@@ -9,6 +9,7 @@
 #include <userver/tracing/scope_time.hpp>
 #include <userver/utils/assert.hpp>
 
+#include <storages/mysql/impl/metadata/mysql_server_info.hpp>
 #include <storages/mysql/impl/mysql_plain_query.hpp>
 #include <storages/mysql/settings/settings.hpp>
 #include <userver/storages/mysql/io/extractor.hpp>
@@ -23,6 +24,12 @@ MySQLConnection::MySQLConnection(clients::dns::Resolver& resolver,
                                  engine::Deadline deadline)
     : socket_{-1, 0} {
   InitSocket(resolver, endpoint_info, auth_settings, deadline);
+  server_info_ = metadata::MySQLServerInfo::Get(mysql_);
+
+  const auto server_info = metadata::MySQLServerInfo::Get(mysql_);
+  LOG_INFO() << "MySQL connection initialized."
+             << " Server type: " << server_info.server_type_str << " "
+             << server_info.server_version.ToString();
 }
 
 MySQLConnection::~MySQLConnection() {
@@ -123,6 +130,10 @@ std::string MySQLConnection::EscapeString(std::string_view source) {
       &mysql_, buffer.get(), source.data(), source.length());
 
   return std::string(buffer.get(), escaped_length);
+}
+
+const metadata::MySQLServerInfo& MySQLConnection::GetServerInfo() const {
+  return server_info_;
 }
 
 MySQLConnection::BrokenGuard MySQLConnection::GetBrokenGuard() {
