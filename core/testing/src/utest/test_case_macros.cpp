@@ -52,6 +52,12 @@ auto CallLoggingExceptions(const char* name, const Func& func) noexcept {
   }
 }
 
+bool IsCurrentTestCancelled() {
+  const auto& current_test_status =
+      *::testing::UnitTest::GetInstance()->current_test_info()->result();
+  return current_test_status.Skipped() || current_test_status.HasFatalFailure();
+}
+
 void DoRunTest(std::size_t worker_threads,
                const engine::TaskProcessorPoolsConfig& config,
                std::function<std::unique_ptr<EnrichedTestBase>()> factory) {
@@ -61,7 +67,7 @@ void DoRunTest(std::size_t worker_threads,
     auto test =
         CallLoggingExceptions("the test fixture's constructor", factory);
     if (!test) return;  // test fixture's constructor has thrown
-    if (test->IsTestCancelled()) return;
+    if (IsCurrentTestCancelled()) return;
 
     test->SetThreadCount(worker_threads);
 
@@ -71,7 +77,7 @@ void DoRunTest(std::size_t worker_threads,
     }};
 
     CallLoggingExceptions("SetUp()", [&] { test->SetUp(); });
-    if (test->IsTestCancelled()) return;
+    if (IsCurrentTestCancelled()) return;
 
     CallLoggingExceptions("the test body", [&] { test->TestBody(); });
   });

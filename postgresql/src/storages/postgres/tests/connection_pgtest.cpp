@@ -414,7 +414,7 @@ UTEST_F(PostgreCustomConnection, NoPreparedStatements) {
 
 UTEST_F(PostgreCustomConnection, NoUserTypes) {
   std::unique_ptr<pg::detail::Connection> conn;
-  UEXPECT_NO_THROW(conn = pg::detail::Connection::Connect(
+  UASSERT_NO_THROW(conn = pg::detail::Connection::Connect(
                        GetDsnFromEnv(), nullptr, GetTaskProcessor(),
                        kConnectionId, kNoUserTypes, GetTestCmdCtls(), {}, {}));
   ASSERT_TRUE(conn);
