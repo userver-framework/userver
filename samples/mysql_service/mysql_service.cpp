@@ -30,6 +30,19 @@ Row Parse(const formats::json::Value& json, formats::parse::To<Row>) {
   return {json["key"].As<std::int32_t>(), json["value"].As<std::string>()};
 };
 
+struct KeyValueCachePolicy final {
+  static constexpr std::string_view kName{"key-value-cache"};
+
+  using ValueType = Row;
+
+  static constexpr auto KeyMember = &Row::key;
+
+  static constexpr std::string_view kQuery{"SELECT Id, Value FROM test"};
+
+  static constexpr std::nullptr_t kUpdatedField{};
+};
+using KeyValueCache = components::MySQLCache<KeyValueCachePolicy>;
+
 class KeyValue final : public server::handlers::HttpHandlerJsonBase {
  public:
   static constexpr std::string_view kName = "handler-key-value";
@@ -93,6 +106,7 @@ formats::json::Value KeyValue::GetValues() const {
 
 int main(int argc, char* argv[]) {
   const auto component_list = components::MinimalServerComponentList()
+                                  .Append<KeyValueCache>()
                                   .Append<samples::mysql::KeyValue>()
                                   .Append<components::MySQL>("test")
                                   .Append<userver::components::Secdist>()
