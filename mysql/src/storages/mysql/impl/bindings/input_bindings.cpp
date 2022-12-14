@@ -1,12 +1,40 @@
 #include <storages/mysql/impl/bindings/input_bindings.hpp>
 
 #include <date.h>
+#include <fmt/format.h>
 
 #include <userver/utils/assert.hpp>
+
+#include <storages/mysql/assert_when_implemented.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::mysql::impl::bindings {
+
+namespace {
+
+bool IsBindable(enum_field_types bind_type, enum_field_types field_type) {
+  if (bind_type == MYSQL_TYPE_STRING) {
+    return field_type == MYSQL_TYPE_STRING ||
+           field_type == MYSQL_TYPE_VAR_STRING ||
+           field_type == MYSQL_TYPE_VARCHAR ||
+           // blobs
+           field_type == MYSQL_TYPE_BLOB ||
+           field_type == MYSQL_TYPE_TINY_BLOB ||
+           field_type == MYSQL_TYPE_MEDIUM_BLOB ||
+           field_type == MYSQL_TYPE_LONG_BLOB;
+    // TODO : json
+  }
+
+  if (bind_type == MYSQL_TYPE_DATETIME) {
+    return field_type == MYSQL_TYPE_DATE || field_type == MYSQL_TYPE_DATETIME ||
+           field_type == MYSQL_TYPE_TIME || field_type == MYSQL_TYPE_TIMESTAMP;
+  }
+
+  return bind_type == field_type;
+}
+
+}  // namespace
 
 InputBindings::InputBindings(std::size_t size) {
   binds_.resize(size);
@@ -166,6 +194,26 @@ void InputBindings::BindStringView(std::size_t pos,
   // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
   bind.buffer = const_cast<void*>(buffer);
   bind.buffer_length = val.length();
+}
+
+void InputBindings::ValidateAgainstStatement(MYSQL_STMT& statement) {
+  const auto params_count = mysql_stmt_param_count(&statement);
+  UINVARIANT(params_count == Size(),
+             fmt::format("Parameters count mismatch: expected {}, got {}",
+                         params_count, Size()));
+  if (params_count == 0) {
+    return;
+  }
+
+  const auto res_deleter = [](MYSQL_RES* res) { mysql_free_result(res); };
+  std::unique_ptr<MYSQL_RES, decltype(res_deleter)> params_metadata{
+      mysql_stmt_param_metadata(&statement), res_deleter};
+
+  // mysql_stmt_param_metadata always returns NULL at the time of writing,
+  // because "server doesn't deliver any information yet".
+  // This is sad, but oh well
+  AssertWhenImplemented(params_metadata != nullptr,
+                        "mysql_stmt_param_metadata");
 }
 
 }  // namespace storages::mysql::impl::bindings

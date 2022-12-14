@@ -60,6 +60,8 @@ class OutputBindings final : public BindsStorageInterface<false> {
   void Bind(std::size_t pos,
             O<std::chrono::system_clock::time_point>& val) final;
 
+  void ValidateAgainstStatement(MYSQL_STMT& statement);
+
  private:
   // The special problem of binding primitive optionals: we don't know whether
   // it contains a value upfront, so after mysql_stmt_fetch we have to determine
@@ -105,6 +107,9 @@ class OutputBindings final : public BindsStorageInterface<false> {
       std::optional<std::chrono::system_clock::time_point>& val);
   static void OptionalDateAfterFetch(void* value, MYSQL_BIND& bind,
                                      MYSQL_TIME& date);
+
+  static void ValidateBind(std::size_t pos, const MYSQL_BIND& bind,
+                           const MYSQL_FIELD& field);
 
   struct BindCallbacks final {
     using BeforeFetchCb = void (*)(void* value, MYSQL_BIND& bind);

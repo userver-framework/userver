@@ -1,5 +1,8 @@
 #include <storages/mysql/impl/mysql_statement.hpp>
 
+// TODO : drop
+#include <iostream>
+
 #include <utility>
 
 #include <fmt/format.h>
@@ -17,75 +20,6 @@
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::mysql::impl {
-
-namespace {
-
-const char* GetFieldTypeName(enum_field_types type) {
-  switch (type) {
-    case MYSQL_TYPE_TINY:
-      return "MYSQL_TYPE_TINY";
-    case MYSQL_TYPE_SHORT:
-      return "MYSQL_TYPE_SHORT";
-    case MYSQL_TYPE_LONG:
-      return "MYSQL_TYPE_LONG";
-    case MYSQL_TYPE_LONGLONG:
-      return "MYSQL_TYPE_LONGLONG";
-    case MYSQL_TYPE_FLOAT:
-      return "MYSQL_TYPE_FLOAT";
-    case MYSQL_TYPE_DOUBLE:
-      return "MYSQL_TYPE_DOUBLE";
-    case MYSQL_TYPE_STRING:
-      return "MYSQL_TYPE_STRING";
-    case MYSQL_TYPE_VAR_STRING:
-      return "MYSQL_TYPE_VAR_STRING";
-    case MYSQL_TYPE_BLOB:
-      return "MYSQL_TYPE_BLOB";
-
-    default:
-      return "unmapped";
-  }
-}
-
-bool IsBindable(enum_field_types bind_type, enum_field_types field_type) {
-  if (bind_type == MYSQL_TYPE_STRING) {
-    return field_type == MYSQL_TYPE_VARCHAR ||
-           field_type == MYSQL_TYPE_VAR_STRING || field_type == MYSQL_TYPE_BLOB;
-  }
-
-  return bind_type == field_type;
-}
-
-void ValidateTypesMatch(MYSQL_STMT* statement, MYSQL_BIND* binds,
-                        std::size_t fields_count) {
-  // TODO : fix for nulls
-  return;
-  auto* fields = statement->fields;
-
-  for (std::size_t i = 0; i < fields_count; ++i) {
-    auto& bind = binds[i];
-    auto& field = fields[i];
-
-    UINVARIANT(IsBindable(bind.buffer_type, field.type),
-               fmt::format("Type mismatch for field '{}' ({}-th field): "
-                           "expected '{}', got '{}'",
-                           field.name, i, GetFieldTypeName(field.type),
-                           GetFieldTypeName(bind.buffer_type)));
-
-    const auto signed_to_string = [](bool is_signed) -> std::string_view {
-      return is_signed ? "signed" : "unsigned";
-    };
-    UINVARIANT(bind.is_unsigned == ((field.flags & UNSIGNED_FLAG) != 0),
-               fmt::format("Type signed/unsigned mismatch for field '{}' "
-                           "({}-th field): {} in DB, {} in user type",
-                           field.name, i,
-                           signed_to_string((field.flags & UNSIGNED_FLAG) != 0),
-                           signed_to_string(bind.is_unsigned)));
-
-    // TODO : nullable
-  }
-}
-
-}  // namespace
 
 MySQLStatement::NativeStatementDeleter::NativeStatementDeleter(
     MySQLConnection* connection)
@@ -110,8 +44,9 @@ void MySQLStatement::NativeStatementDeleter::operator()(MYSQL_STMT* statement) {
 MySQLStatement::MySQLStatement(MySQLConnection& connection,
                                const std::string& statement,
                                engine::Deadline deadline)
-    : connection_{&connection},
-      native_statement_{CreateStatement(statement, deadline)} {}
+    : statement_{statement},
+      connection_{&connection},
+      native_statement_{CreateStatement(deadline)} {}
 
 MySQLStatement::~MySQLStatement() = default;
 
@@ -245,14 +180,21 @@ void MySQLStatement::Reset(engine::Deadline deadline) {
     throw std::runtime_error{
         GetNativeError("Failed to reset a prepared statement")};
   }
+
+  if (batch_size_.has_value()) {
+    // MySQL 8.0.31 seems to be buggy:
+    // it doesn't send EOF_PACKET if we execute a statement without cursor
+    // after we executed with cursor before
+    // TODO : file a bug
+    PrepareStatement(native_statement_, deadline);
+    batch_size_.reset();
+  }
 }
 
 void MySQLStatement::UpdateParamsBindings(io::ParamsBinderBase& params) {
   auto& binds = params.GetBinds();
+  binds.ValidateAgainstStatement(*native_statement_);
 
-  UINVARIANT(ParamsCount() == binds.Size(),
-             fmt::format("Statement has {} parameters, but {} were provided",
-                         ParamsCount(), binds.Size()));
   if (!binds.Empty()) {
     mysql_stmt_bind_param(native_statement_.get(), binds.GetBindsArray());
 
@@ -284,8 +226,33 @@ std::size_t MySQLStatement::ResultColumnsCount() {
   return mysql_stmt_field_count(native_statement_.get());
 }
 
+void MySQLStatement::SetReadonlyCursor(std::size_t batch_size) {
+  std::size_t cursor_type = CURSOR_TYPE_READ_ONLY;
+  mysql_stmt_attr_set(native_statement_.get(), STMT_ATTR_CURSOR_TYPE,
+                      &cursor_type);
+  mysql_stmt_attr_set(native_statement_.get(), STMT_ATTR_PREFETCH_ROWS,
+                      &batch_size);
+
+  batch_size_.emplace(batch_size);
+}
+
+void MySQLStatement::SetNoCursor() {
+  std::size_t cursor_type = CURSOR_TYPE_NO_CURSOR;
+  mysql_stmt_attr_set(native_statement_.get(), STMT_ATTR_CURSOR_TYPE,
+                      &cursor_type);
+  std::size_t batch_size = 0;
+  mysql_stmt_attr_set(native_statement_.get(), STMT_ATTR_PREFETCH_ROWS,
+                      &batch_size);
+
+  batch_size_.reset();
+}
+
+std::optional<std::size_t> MySQLStatement::GetBatchSize() const {
+  return batch_size_;
+}
+
 MySQLStatement::NativeStatementPtr MySQLStatement::CreateStatement(
-    const std::string& statement, engine::Deadline deadline) {
+    engine::Deadline deadline) {
   NativeStatementPtr statement_ptr{
       mysql_stmt_init(&connection_->GetNativeHandler()),
       NativeStatementDeleter(connection_)};
@@ -293,29 +260,28 @@ MySQLStatement::NativeStatementPtr MySQLStatement::CreateStatement(
     throw std::runtime_error{"Failed to initialize a prepared statement"};
   }
 
+  PrepareStatement(statement_ptr, deadline);
+
+  return statement_ptr;
+}
+
+void MySQLStatement::PrepareStatement(NativeStatementPtr& native_statement,
+                                      engine::Deadline deadline) {
   int err = 0;
   connection_->GetSocket().RunToCompletion(
-      [&err, &statement, &statement_ptr] {
-        return mysql_stmt_prepare_start(&err, statement_ptr.get(),
-                                        statement.data(), statement.length());
+      [this, &err, &native_statement] {
+        return mysql_stmt_prepare_start(&err, native_statement.get(),
+                                        statement_.data(), statement_.length());
       },
-      [&err, &statement_ptr](int mysql_events) {
-        return mysql_stmt_prepare_cont(&err, statement_ptr.get(), mysql_events);
+      [&err, &native_statement](int mysql_events) {
+        return mysql_stmt_prepare_cont(&err, native_statement.get(),
+                                       mysql_events);
       },
       deadline);
   if (err != 0) {
     throw std::runtime_error{
         GetNativeError("Failed to initialize a prepared statement")};
   }
-
-  // We force statements to return a cursor, because otherwise Execute returns a
-  // whole result set, which is not always desirable (we support async iteration
-  // via AsStreamOf)
-  std::size_t cursor_type = CURSOR_TYPE_READ_ONLY;
-  mysql_stmt_attr_set(native_statement_.get(), STMT_ATTR_CURSOR_TYPE,
-                      &cursor_type);
-
-  return statement_ptr;
 }
 
 std::string MySQLStatement::GetNativeError(std::string_view prefix) const {
@@ -332,7 +298,6 @@ MySQLStatementFetcher::MySQLStatementFetcher(MySQLStatement& statement)
 MySQLStatementFetcher::~MySQLStatementFetcher() {
   if (statement_) {
     try {
-      // TODO : mysql_stmt_reset ?
       statement_->Reset(parent_statement_deadline_);
     } catch (const std::exception& ex) {
       LOG_ERROR() << "Failed to correctly cleanup a statement: " << ex.what();
@@ -343,28 +308,25 @@ MySQLStatementFetcher::~MySQLStatementFetcher() {
 MySQLStatementFetcher::MySQLStatementFetcher(
     MySQLStatementFetcher&& other) noexcept
     : parent_statement_deadline_{other.parent_statement_deadline_},
-      batch_size_{other.batch_size_},
       binds_validated_{other.binds_validated_},
       statement_{std::exchange(other.statement_, nullptr)} {}
 
 bool MySQLStatementFetcher::FetchResult(io::ExtractorBase& extractor) {
-  UINVARIANT(
-      statement_->ResultColumnsCount() == extractor.ColumnsCount(),
-      fmt::format("Statement has {} output columns, but {} were provided",
-                  statement_->ResultColumnsCount(), extractor.ColumnsCount()));
   auto broken_guard = statement_->connection_->GetBrokenGuard();
 
-  if (!batch_size_.has_value()) {
+  const auto batch_size = statement_->GetBatchSize();
+
+  if (!batch_size.has_value()) {
     statement_->StoreResult(parent_statement_deadline_);
   }
 
-  const auto rows_count = batch_size_.value_or(statement_->RowsCount());
+  const auto rows_count = batch_size.value_or(statement_->RowsCount());
   extractor.Reserve(rows_count);
 
   for (size_t i = 0; i < rows_count; ++i) {
     auto& binds = extractor.BindNextRow();
     if (!std::exchange(binds_validated_, true)) {
-      ValidateBinding(binds);
+      binds.ValidateAgainstStatement(*statement_->native_statement_);
     }
 
     const auto parsed =
@@ -376,20 +338,6 @@ bool MySQLStatementFetcher::FetchResult(io::ExtractorBase& extractor) {
   }
 
   return true;
-}
-
-void MySQLStatementFetcher::SetFetchBatchSize(std::size_t batch_size) {
-  batch_size_.emplace(batch_size);
-  mysql_stmt_attr_set(statement_->native_statement_.get(),
-                      STMT_ATTR_PREFETCH_ROWS, &batch_size);
-}
-
-void MySQLStatementFetcher::ValidateBinding(bindings::OutputBindings& binds) {
-  const auto fields_count = statement_->ResultColumnsCount();
-  UASSERT(binds.Size() == fields_count);
-
-  ValidateTypesMatch(statement_->native_statement_.get(), binds.GetBindsArray(),
-                     fields_count);
 }
 
 }  // namespace storages::mysql::impl

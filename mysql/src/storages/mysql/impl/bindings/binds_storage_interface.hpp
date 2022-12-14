@@ -12,8 +12,18 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::mysql::impl::bindings {
 
+struct NativeBindsHelper {
+  template <typename T>
+  static constexpr enum_field_types GetNativeType();
+
+  template <typename T>
+  static constexpr enum_field_types GetNativeType(T&);
+
+  static std::string_view NativeTypeToString(enum_field_types type);
+};
+
 template <bool Const>
-class BindsStorageInterface {
+class BindsStorageInterface : public NativeBindsHelper {
  public:
   virtual std::size_t Size() const = 0;
   virtual bool Empty() const = 0;
@@ -60,11 +70,7 @@ class BindsStorageInterface {
   virtual void Bind(std::size_t pos,
                     C<O<std::chrono::system_clock::time_point>>& val) = 0;
 
-  template <typename T>
-  static constexpr enum_field_types GetNativeType();
-
-  template <typename T>
-  static constexpr enum_field_types GetNativeType(T&);
+  virtual void ValidateAgainstStatement(MYSQL_STMT& statement) = 0;
 
  protected:
   using MariaDBTimepointResolution = std::chrono::microseconds;
@@ -72,9 +78,8 @@ class BindsStorageInterface {
   ~BindsStorageInterface() = default;
 };
 
-template <bool Const>
 template <typename U>
-constexpr enum_field_types BindsStorageInterface<Const>::GetNativeType() {
+constexpr enum_field_types NativeBindsHelper::GetNativeType() {
   using T = std::remove_const_t<U>;
 
   if constexpr (std::is_same_v<std::uint8_t, T> ||
@@ -104,9 +109,8 @@ constexpr enum_field_types BindsStorageInterface<Const>::GetNativeType() {
   }
 }
 
-template <bool Const>
 template <typename T>
-constexpr enum_field_types BindsStorageInterface<Const>::GetNativeType(T&) {
+constexpr enum_field_types NativeBindsHelper::GetNativeType(T&) {
   return GetNativeType<T>();
 }
 

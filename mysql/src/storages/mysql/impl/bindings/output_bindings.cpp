@@ -1,10 +1,38 @@
 #include <storages/mysql/impl/bindings/output_bindings.hpp>
 
 #include <date.h>
+#include <fmt/format.h>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::mysql::impl::bindings {
+
+namespace {
+
+bool IsBindable(enum_field_types bind_type, enum_field_types field_type) {
+  if (bind_type == MYSQL_TYPE_STRING) {
+    return field_type == MYSQL_TYPE_STRING ||
+           field_type == MYSQL_TYPE_VAR_STRING ||
+           field_type == MYSQL_TYPE_VARCHAR ||
+           // blobs
+           field_type == MYSQL_TYPE_BLOB ||
+           field_type == MYSQL_TYPE_TINY_BLOB ||
+           field_type == MYSQL_TYPE_MEDIUM_BLOB ||
+           field_type == MYSQL_TYPE_LONG_BLOB;
+    // TODO : json
+  }
+
+  if (bind_type == MYSQL_TYPE_DATETIME) {
+    return field_type == MYSQL_TYPE_DATE || field_type == MYSQL_TYPE_DATETIME ||
+           field_type == MYSQL_TYPE_TIMESTAMP;
+
+    // TODO : MYSQL_TYPE_TIME?
+  }
+
+  return bind_type == field_type;
+}
+
+}  // namespace
 
 OutputBindings::OutputBindings(std::size_t size) {
   binds_.resize(size);
@@ -259,6 +287,70 @@ void OutputBindings::OptionalDateAfterFetch(void* value, MYSQL_BIND& bind,
     optional->emplace();
     OutputBindings::DateAfterFetch(&*optional, bind, date);
   }
+}
+
+void OutputBindings::ValidateAgainstStatement(MYSQL_STMT& statement) {
+  const auto fields_count = mysql_stmt_field_count(&statement);
+  UINVARIANT(fields_count == Size(),
+             fmt::format("Fields count mismatch: expected {}, got {}",
+                         fields_count, Size()));
+  if (fields_count == 0) {
+    return;
+  }
+
+  const auto res_deleter = [](MYSQL_RES* res) { mysql_free_result(res); };
+  std::unique_ptr<MYSQL_RES, decltype(res_deleter)> result_metadata{
+      mysql_stmt_result_metadata(&statement), res_deleter};
+  UASSERT(result_metadata);
+
+  const auto* fields = mysql_fetch_fields(result_metadata.get());
+  for (std::size_t i = 0; i < fields_count; ++i) {
+    const auto& bind = binds_[i];
+    const auto& field = fields[i];
+
+    ValidateBind(i, bind, field);
+  }
+}
+
+void OutputBindings::ValidateBind(std::size_t pos, const MYSQL_BIND& bind,
+                                  const MYSQL_FIELD& field) {
+  const auto error_for_column = [&field, pos](std::string_view error,
+                                              const auto&... args) {
+    return fmt::format("Field type mismatch for column '{}' ({}-th column): {}",
+                       field.name, pos, fmt::format(error, args...));
+  };
+
+  // validate general types match
+  UINVARIANT(IsBindable(bind.buffer_type, field.type),
+             error_for_column("expected {}, got {}",
+                              NativeTypeToString(bind.buffer_type),
+                              NativeTypeToString(field.type)));
+
+  // validate null/not null
+  const bool is_bind_nullable = bind.is_null != nullptr;
+  const bool is_field_nullable = !(field.flags & NOT_NULL_FLAG);
+  /*
+   * SN = server nullable, CN = client nullable
+   * SN    |  CN   |  OK
+   * true  | true  | true
+   * true  | false | false
+   * false | true  | true
+   * false | false | true
+   */
+  UINVARIANT(!(is_field_nullable && !is_bind_nullable),
+             error_for_column(
+                 "field is nullable in DB but not-nullable in client code"));
+
+  const auto signed_to_string = [](bool is_nullable) -> std::string_view {
+    return is_nullable ? "signed" : "unsigned";
+  };
+  // validate signed/unsigned
+  const bool is_bind_signed = !bind.is_unsigned;
+  const bool is_field_signed = !(field.flags & UNSIGNED_FLAG);
+  UINVARIANT(is_field_signed == is_bind_signed,
+             error_for_column("field is {} in DB but {} in client code",
+                              signed_to_string(is_field_signed),
+                              signed_to_string(is_bind_signed)));
 }
 
 }  // namespace storages::mysql::impl::bindings

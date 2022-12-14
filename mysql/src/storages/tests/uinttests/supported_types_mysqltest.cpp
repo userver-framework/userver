@@ -1,4 +1,5 @@
-#include "utils_mysqltest.hpp"
+#include <userver/utest/utest.hpp>
+#include "../utils_mysqltest.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
@@ -7,37 +8,33 @@ namespace storages::mysql::tests {
 namespace {
 
 constexpr std::string_view kTableDefinitionNotNull = R"(
-(
-  uint8_t TINYINT UNSIGNED NOT NULL,
-  int8_t TINYINT NOT NULL,
-  uint16_t SMALLINT UNSIGNED NOT NULL,
-  int16_t SMALLINT NOT NULL,
-  uint32_t INT UNSIGNED NOT NULL,
-  int32_t INT NOT NULL,
-  uint64_t BIGINT UNSIGNED NOT NULL,
-  int64_t BIGINT NOT NULL,
-  float_t FLOAT NOT NULL,
-  double_t DOUBLE NOT NULL,
-  string_t TEXT NOT NULL,
-  datetime_6_t DATETIME(6) NOT NULL
-)
+uint8_t TINYINT UNSIGNED NOT NULL,
+int8_t TINYINT NOT NULL,
+uint16_t SMALLINT UNSIGNED NOT NULL,
+int16_t SMALLINT NOT NULL,
+uint32_t INT UNSIGNED NOT NULL,
+int32_t INT NOT NULL,
+uint64_t BIGINT UNSIGNED NOT NULL,
+int64_t BIGINT NOT NULL,
+float_t FLOAT NOT NULL,
+double_t DOUBLE NOT NULL,
+string_t TEXT NOT NULL,
+datetime_6_t DATETIME(6) NOT NULL
 )";
 
 constexpr std::string_view kTableDefinitionNullable = R"(
-(
-  uint8_t TINYINT UNSIGNED,
-  int8_t TINYINT,
-  uint16_t SMALLINT UNSIGNED,
-  int16_t SMALLINT,
-  uint32_t INT UNSIGNED,
-  int32_t INT,
-  uint64_t BIGINT UNSIGNED,
-  int64_t BIGINT,
-  float_t FLOAT,
-  double_t DOUBLE,
-  string_t TEXT,
-  datetime_6_t DATETIME(6)
-)
+uint8_t TINYINT UNSIGNED,
+int8_t TINYINT,
+uint16_t SMALLINT UNSIGNED,
+int16_t SMALLINT,
+uint32_t INT UNSIGNED,
+int32_t INT,
+uint64_t BIGINT UNSIGNED,
+int64_t BIGINT,
+float_t FLOAT,
+double_t DOUBLE,
+string_t TEXT,
+datetime_6_t DATETIME(6)
 )";
 
 constexpr std::string_view kInsertQueryTemplate = R"(
@@ -200,33 +197,6 @@ UTEST(AllSupportedTypes, NullableWithValues) {
 
   boost::pfr::for_each_field(db_row,
                              [](const auto& f) { EXPECT_TRUE(f.has_value()); });
-}
-
-namespace {
-
-struct Id final {
-  std::optional<std::int32_t> id;
-};
-
-}  // namespace
-
-UTEST(Help, Me) {
-  ClusterWrapper cluster{};
-
-  TmpTable table{cluster, "(Id INT)"};
-
-  const auto insert_query =
-      table.FormatWithTableName("INSERT INTO {}(Id) VALUES(?)");
-  const auto select_query = table.FormatWithTableName("SELECT Id FROM {}");
-
-  cluster->InsertOne(cluster.GetDeadline(), insert_query, Id{});
-
-  const auto db_row = cluster
-                          ->Select(ClusterHostType::kMaster,
-                                   cluster.GetDeadline(), select_query)
-                          .AsSingleRow<Id>();
-
-  int a = 5;
 }
 
 }  // namespace storages::mysql::tests

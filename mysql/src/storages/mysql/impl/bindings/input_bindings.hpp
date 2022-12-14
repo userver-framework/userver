@@ -60,6 +60,8 @@ class InputBindings final : public BindsStorageInterface<true> {
   void Bind(std::size_t pos,
             C<O<std::chrono::system_clock::time_point>>& val) final;
 
+  void ValidateAgainstStatement(MYSQL_STMT& statement) final;
+
  private:
   template <typename COT>
   void BindOptional(std::size_t pos, COT& val);

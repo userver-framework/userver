@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <optional>
 #include <string>
 
 #include <userver/clients/dns/resolver_fwd.hpp>
@@ -8,6 +9,7 @@
 #include <userver/engine/deadline.hpp>
 
 #include <userver/storages/mysql/cluster_host_type.hpp>
+#include <userver/storages/mysql/cursor_result_set.hpp>
 #include <userver/storages/mysql/io/binder.hpp>
 #include <userver/storages/mysql/io/insert_binder.hpp>
 #include <userver/storages/mysql/statement_result_set.hpp>
@@ -47,12 +49,17 @@ class Cluster final {
                              const std::string& query,
                              const Args&... args) const;
 
+  template <typename T, typename... Args>
+  CursorResultSet<T> GetCursor(ClusterHostType host_type,
+                               engine::Deadline deadline,
+                               std::size_t batch_size, const std::string& query,
+                               const Args&... args) const;
+
   template <typename T>
   void InsertOne(engine::Deadline deadline, const std::string& insert_query,
                  T&& row) const;
 
-  // only works with recent enough MariaDB as a server,
-  // requires mariadb client lib
+  // only works with recent enough MariaDB as a server
   template <typename Container>
   void InsertMany(engine::Deadline deadline, const std::string& insert_query,
                   Container&& rows, bool throw_on_empty_insert = true) const;
@@ -61,10 +68,10 @@ class Cluster final {
                         const std::string& command);
 
  private:
-  StatementResultSet DoExecute(ClusterHostType host_type,
-                               const std::string& query,
-                               io::ParamsBinderBase& params,
-                               engine::Deadline deadline) const;
+  StatementResultSet DoExecute(
+      ClusterHostType host_type, const std::string& query,
+      io::ParamsBinderBase& params, engine::Deadline deadline,
+      std::optional<std::size_t> batch_size = std::nullopt) const;
 
   void DoInsert(const std::string& insert_query, io::ParamsBinderBase& params,
                 engine::Deadline deadline) const;
@@ -91,6 +98,18 @@ StatementResultSet Cluster::Execute(ClusterHostType host_type,
   auto params_binder = io::ParamsBinder::BindParams(args...);
 
   return DoExecute(host_type, query, params_binder, deadline);
+}
+
+template <typename T, typename... Args>
+CursorResultSet<T> Cluster::GetCursor(ClusterHostType host_type,
+                                      engine::Deadline deadline,
+                                      std::size_t batch_size,
+                                      const std::string& query,
+                                      const Args&... args) const {
+  auto params_binder = io::ParamsBinder::BindParams(args...);
+
+  return CursorResultSet<T>{
+      DoExecute(host_type, query, params_binder, deadline, batch_size)};
 }
 
 template <typename T>

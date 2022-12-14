@@ -3,8 +3,6 @@
 // TODO : drop
 #include <iostream>
 
-#include <userver/utest/utest.hpp>
-
 #include <userver/clients/dns/resolver.hpp>
 #include <userver/engine/deadline.hpp>
 // TODO : drop
@@ -58,17 +56,24 @@ StatementResultSet ClusterWrapper::DefaultExecute(const std::string& query,
 
 class TmpTable final {
  public:
+  TmpTable(std::string_view definition);
   TmpTable(ClusterWrapper& cluster, std::string_view definition);
   ~TmpTable();
 
   template <typename... Args>
   std::string FormatWithTableName(std::string_view source, const Args&... args);
 
+  template <typename... Args>
+  StatementResultSet DefaultExecute(std::string_view source,
+                                    const Args&... args);
+
  private:
   static constexpr std::string_view kCreateTableQueryTemplate =
-      "CREATE TABLE {} {}";
-  static constexpr std::string_view kDropTableQueryTemplate = "DROP TABLE {}";
+      "CREATE TABLE {} ({})";
 
+  void CreateTable(std::string_view definition);
+
+  std::optional<ClusterWrapper> owned_cluster_;
   ClusterWrapper& cluster_;
   std::string table_name_;
 };
@@ -77,6 +82,13 @@ template <typename... Args>
 std::string TmpTable::FormatWithTableName(std::string_view source,
                                           const Args&... args) {
   return fmt::format(source, table_name_, args...);
+}
+
+template <typename... Args>
+StatementResultSet TmpTable::DefaultExecute(std::string_view source,
+                                            const Args&... args) {
+  return cluster_.DefaultExecute(FormatWithTableName(source, table_name_),
+                                 args...);
 }
 
 }  // namespace storages::mysql::tests

@@ -31,18 +31,13 @@ class MySQLStatementFetcher final {
   MySQLStatementFetcher(const MySQLStatementFetcher& other) = delete;
   MySQLStatementFetcher(MySQLStatementFetcher&& other) noexcept;
 
-  void SetFetchBatchSize(std::size_t batch_size);
-
   bool FetchResult(io::ExtractorBase& extractor);
 
  private:
   friend class MySQLStatement;
   MySQLStatementFetcher(MySQLStatement& statement);
 
-  void ValidateBinding(bindings::OutputBindings& binds);
-
   engine::Deadline parent_statement_deadline_;
-  std::optional<std::size_t> batch_size_;
   bool binds_validated_{false};
   MySQLStatement* statement_;
 };
@@ -63,6 +58,10 @@ class MySQLStatement final {
 
   std::size_t ParamsCount();
   std::size_t ResultColumnsCount();
+
+  void SetReadonlyCursor(std::size_t batch_size);
+  void SetNoCursor();
+  std::optional<std::size_t> GetBatchSize() const;
 
  private:
   friend class MySQLStatementFetcher;
@@ -86,12 +85,17 @@ class MySQLStatement final {
   using NativeStatementPtr =
       std::unique_ptr<MYSQL_STMT, NativeStatementDeleter>;
 
-  NativeStatementPtr CreateStatement(const std::string& statement,
-                                     engine::Deadline deadline);
+  NativeStatementPtr CreateStatement(engine::Deadline deadline);
+  void PrepareStatement(NativeStatementPtr& native_statement,
+                        engine::Deadline deadline);
   std::string GetNativeError(std::string_view prefix) const;
+
+  std::string statement_;
 
   MySQLConnection* connection_;
   NativeStatementPtr native_statement_;
+
+  std::optional<std::size_t> batch_size_;
 };
 
 }  // namespace storages::mysql::impl

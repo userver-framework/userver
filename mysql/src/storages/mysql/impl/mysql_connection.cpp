@@ -1,7 +1,5 @@
 #include <storages/mysql/impl/mysql_connection.hpp>
 
-// TODO : drop
-#include <iostream>
 #include <stdexcept>
 
 #include <fmt/format.h>
@@ -43,10 +41,10 @@ MySQLResult MySQLConnection::ExecutePlain(const std::string& query,
 
 MySQLStatementFetcher MySQLConnection::ExecuteStatement(
     const std::string& statement, io::ParamsBinderBase& params,
-    engine::Deadline deadline) {
+    engine::Deadline deadline, std::optional<std::size_t> batch_size) {
   auto broken_guard = GetBrokenGuard();
 
-  auto& mysql_statement = PrepareStatement(statement, deadline);
+  auto& mysql_statement = PrepareStatement(statement, deadline, batch_size);
 
   return mysql_statement.Execute(deadline, params);
 }
@@ -54,7 +52,7 @@ MySQLStatementFetcher MySQLConnection::ExecuteStatement(
 void MySQLConnection::ExecuteInsert(const std::string& insert_statement,
                                     io::ParamsBinderBase& params,
                                     engine::Deadline deadline) {
-  ExecuteStatement(insert_statement, params, deadline);
+  ExecuteStatement(insert_statement, params, deadline, std::nullopt);
 }
 
 void MySQLConnection::Ping(engine::Deadline deadline) {
@@ -109,7 +107,8 @@ void MySQLConnection::InitSocket(clients::dns::Resolver& resolver,
                         ? fmt::format("[{}]", addr.PrimaryAddressString())
                         : addr.PrimaryAddressString();
 
-    if (DoInitSocket(ip, endpoint_info.port, auth_settings, deadline)) {
+    if (DoInitSocket(ip, endpoint_info.port, auth_settings,
+                     deadline)) {
       return;
     } else if (deadline.IsReached()) {
       break;
@@ -133,6 +132,7 @@ bool MySQLConnection::DoInitSocket(const std::string& ip, std::uint32_t port,
 
   const auto fd = mysql_get_socket(&mysql_);
   if (fd == -1) {
+    LOG_WARNING() << GetNativeError("Failed to connect");
     return false;
   }
 
@@ -151,7 +151,7 @@ bool MySQLConnection::DoInitSocket(const std::string& ip, std::uint32_t port,
       Close(deadline);
       return false;
     }
-  } catch (const std::exception&) {
+  } catch (const std::exception& ex) {
     Close(deadline);
     return false;
   }
@@ -173,20 +173,32 @@ void MySQLConnection::Close(engine::Deadline deadline) noexcept {
   }
 }
 
-MySQLStatement& MySQLConnection::PrepareStatement(const std::string& statement,
-                                                  engine::Deadline deadline) {
-  // TODO : case insensitive find
-  if (auto it = statements_cache_.find(statement);
-      it != statements_cache_.end()) {
+MySQLStatement& MySQLConnection::PrepareStatement(
+    const std::string& statement, engine::Deadline deadline,
+    std::optional<std::size_t> batch_size) {
+  auto& mysql_statement = [this, &statement, deadline]() -> MySQLStatement& {
+    if (auto it = statements_cache_.find(statement);
+        it != statements_cache_.end()) {
+      return it->second;
+    }
+
+    tracing::ScopeTime prepare{"prepare"};
+    MySQLStatement mysql_statement{*this, statement, deadline};
+    auto [it, inserted] =
+        statements_cache_.emplace(statement, std::move(mysql_statement));
+    UASSERT(inserted);
+
     return it->second;
+  }();
+
+  if (batch_size.has_value()) {
+    UASSERT(*batch_size > 0);
+    mysql_statement.SetReadonlyCursor(*batch_size);
+  } else {
+    mysql_statement.SetNoCursor();
   }
 
-  tracing::ScopeTime prepare{"prepare"};
-  MySQLStatement mysql_statement{*this, statement, deadline};
-  auto [it, inserted] =
-      statements_cache_.emplace(statement, std::move(mysql_statement));
-  UASSERT(inserted);
-  return it->second;
+  return mysql_statement;
 }
 
 MySQLConnection::BrokenGuard::BrokenGuard(MySQLConnection& connection)

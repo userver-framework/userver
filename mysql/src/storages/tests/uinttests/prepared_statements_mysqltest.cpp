@@ -1,4 +1,5 @@
-#include "utils_mysqltest.hpp"
+#include <userver/utest/utest.hpp>
+#include "../utils_mysqltest.hpp"
 
 USERVER_NAMESPACE_BEGIN
 

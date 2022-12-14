@@ -19,7 +19,7 @@ namespace storages::mysql::tests {
 namespace {
 
 constexpr const char* kTestsuiteMysqlPort = "TESTSUITE_MYSQL_PORT";
-constexpr std::uint32_t kDefaultTestsuiteMysqlPort = 13307;
+constexpr std::uint32_t kDefaultTestsuiteMysqlPort = 3306;  // 13307;
 
 std::string GenerateTableName() {
   auto uuid = utils::generators::GenerateUuid();
@@ -67,7 +67,8 @@ std::shared_ptr<Cluster> CreateCluster(clients::dns::Resolver& resolver) {
   )"),
                               {}}};
 
-  CreateDatabase(resolver, settings.endpoints.front(), settings.auth.database);
+  // CreateDatabase(resolver, settings.endpoints.front(),
+  // settings.auth.database);
 
   return std::make_shared<Cluster>(resolver, settings, config);
 }
@@ -110,26 +111,27 @@ storages::mysql::Cluster* ClusterWrapper::operator->() const {
 
 engine::Deadline ClusterWrapper::GetDeadline() const { return deadline_; }
 
+TmpTable::TmpTable(std::string_view definition)
+    : owned_cluster_{std::in_place},
+      cluster_{*owned_cluster_},
+      table_name_{GenerateTableName()} {
+  CreateTable(definition);
+}
+
 TmpTable::TmpTable(ClusterWrapper& cluster, std::string_view definition)
     : cluster_{cluster}, table_name_{GenerateTableName()} {
-  auto create_table_query =
+  CreateTable(definition);
+}
+
+// We don't drop table here because it seems to be very slow
+TmpTable::~TmpTable() = default;
+
+void TmpTable::CreateTable(std::string_view definition) {
+  const auto create_table_query =
       fmt::format(kCreateTableQueryTemplate, table_name_, definition);
 
   cluster_->ExecuteNoPrepare(ClusterHostType::kMaster, cluster_.GetDeadline(),
                              create_table_query);
-}
-
-TmpTable::~TmpTable() {
-  auto drop_table_query = TestsHelper::EscapeString(
-      *cluster_, fmt::format(kDropTableQueryTemplate, table_name_));
-
-  try {
-    cluster_->ExecuteNoPrepare(ClusterHostType::kMaster, cluster_.GetDeadline(),
-                               drop_table_query);
-  } catch (const std::exception& ex) {
-    LOG_ERROR() << "Failed to drop temp table " << table_name_ << ": "
-                << ex.what();
-  }
 }
 
 }  // namespace storages::mysql::tests

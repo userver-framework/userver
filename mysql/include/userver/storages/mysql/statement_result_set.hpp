@@ -25,9 +25,6 @@ namespace infra {
 class ConnectionPtr;
 }
 
-template <typename T>
-class StreamedStatementResultSet;
-
 class StatementResultSet final {
  public:
   StatementResultSet(infra::ConnectionPtr&& connection,
@@ -49,35 +46,14 @@ class StatementResultSet final {
   template <typename T>
   std::optional<T> AsOptionalSingleRow() &&;
 
-  template <typename T>
-  StreamedStatementResultSet<T> AsStreamOf() &&;
-
  private:
   template <typename T>
-  friend class StreamedStatementResultSet;
+  friend class CursorResultSet;
 
   bool FetchResult(io::ExtractorBase& extractor);
-  void SetBatchSize(std::size_t batch_size);
 
   struct Impl;
   utils::FastPimpl<Impl, 64, 8> impl_;
-};
-
-template <typename T>
-class StreamedStatementResultSet final {
- public:
-  explicit StreamedStatementResultSet(StatementResultSet&& result_set);
-  ~StreamedStatementResultSet();
-
-  StreamedStatementResultSet(const StreamedStatementResultSet& other) = delete;
-  StreamedStatementResultSet(StreamedStatementResultSet&& other) noexcept;
-
-  template <typename RowCallback>
-  void ForEach(RowCallback&& row_callback, std::size_t batch_size,
-               engine::Deadline deadline) &&;
-
- private:
-  StatementResultSet result_set_;
 };
 
 template <typename T>
@@ -135,47 +111,6 @@ std::optional<T> StatementResultSet::AsOptionalSingleRow() && {
   }
 
   return {std::move(rows.front())};
-}
-
-template <typename T>
-StreamedStatementResultSet<T> StatementResultSet::AsStreamOf() && {
-  return StreamedStatementResultSet<T>{std::move(*this)};
-}
-
-template <typename T>
-StreamedStatementResultSet<T>::StreamedStatementResultSet(
-    StatementResultSet&& result_set)
-    : result_set_{std::move(result_set)} {}
-
-template <typename T>
-StreamedStatementResultSet<T>::~StreamedStatementResultSet() = default;
-
-template <typename T>
-StreamedStatementResultSet<T>::StreamedStatementResultSet(
-    StreamedStatementResultSet<T>&& other) noexcept = default;
-
-template <typename T>
-template <typename RowCallback>
-void StreamedStatementResultSet<T>::ForEach(
-    RowCallback&& row_callback, std::size_t batch_size,
-    // TODO : think about separate deadline here
-    engine::Deadline deadline) && {
-  UASSERT(batch_size > 0);
-  result_set_.SetBatchSize(batch_size);
-
-  bool keep_going = true;
-  while (keep_going) {
-    auto extractor = io::TypedExtractor<T>{};
-
-    tracing::ScopeTime fetch{"fetch"};
-    keep_going = result_set_.FetchResult(extractor);
-    fetch.Reset();
-
-    tracing::ScopeTime for_each{"for_each"};
-    for (auto&& row : std::move(extractor).ExtractData()) {
-      row_callback(std::move(row));
-    }
-  }
 }
 
 }  // namespace storages::mysql

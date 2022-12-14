@@ -43,7 +43,8 @@ class MySQLConnection final {
 
   MySQLStatementFetcher ExecuteStatement(const std::string& statement,
                                          io::ParamsBinderBase& params,
-                                         engine::Deadline deadline);
+                                         engine::Deadline deadline,
+                                         std::optional<std::size_t> batch_size);
 
   void ExecuteInsert(const std::string& insert_statement,
                      io::ParamsBinderBase& params, engine::Deadline deadline);
@@ -83,7 +84,8 @@ class MySQLConnection final {
   void Close(engine::Deadline deadline) noexcept;
 
   MySQLStatement& PrepareStatement(const std::string& statement,
-                                   engine::Deadline deadline);
+                                   engine::Deadline deadline,
+                                   std::optional<std::size_t> batch_size);
 
   std::atomic<bool> broken_{false};
 

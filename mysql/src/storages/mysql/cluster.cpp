@@ -49,15 +49,16 @@ void Cluster::ExecuteNoPrepare(ClusterHostType host_type,
   connection->ExecutePlain(command, deadline);
 }
 
-StatementResultSet Cluster::DoExecute(ClusterHostType host_type,
-                                      const std::string& query,
-                                      io::ParamsBinderBase& params,
-                                      engine::Deadline deadline) const {
+StatementResultSet Cluster::DoExecute(
+    ClusterHostType host_type, const std::string& query,
+    io::ParamsBinderBase& params, engine::Deadline deadline,
+    std::optional<std::size_t> batch_size) const {
   tracing::Span execute_span{"mysql_execute"};
 
   auto connection = topology_->SelectPool(host_type).Acquire(deadline);
 
-  auto fetcher = connection->ExecuteStatement(query, params, deadline);
+  auto fetcher =
+      connection->ExecuteStatement(query, params, deadline, batch_size);
 
   return {std::move(connection), std::move(fetcher)};
 }

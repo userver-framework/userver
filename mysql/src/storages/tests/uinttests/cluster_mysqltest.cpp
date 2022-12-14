@@ -1,4 +1,5 @@
-#include "utils_mysqltest.hpp"
+#include <userver/utest/utest.hpp>
+#include "../utils_mysqltest.hpp"
 
 #include <iostream>
 
@@ -114,7 +115,7 @@ UTEST(Cluster, InsertOne) {
 UTEST(StreamedResult, Works) {
   ClusterWrapper cluster{};
 
-  TmpTable table{cluster, "(Id INT, Value TEXT)"};
+  TmpTable table{cluster, "Id INT NOT NULL, Value TEXT NOT NULL"};
 
   constexpr std::size_t kRowsCount = 100;
   std::vector<Row> rows_to_insert;
@@ -123,25 +124,32 @@ UTEST(StreamedResult, Works) {
   for (std::size_t i = 0; i < kRowsCount; ++i) {
     rows_to_insert.push_back(
         {static_cast<std::int32_t>(i), utils::generators::GenerateUuid()});
+
+    cluster->InsertOne(
+        cluster.GetDeadline(),
+        table.FormatWithTableName("INSERT INTO {}(Id, Value) VALUES(?, ?)"),
+        rows_to_insert.back());
   }
 
-  cluster->InsertMany(
+  /*cluster->InsertMany(
       cluster.GetDeadline(),
       table.FormatWithTableName("INSERT INTO {}(Id, Value) VALUES(?, ?)"),
-      rows_to_insert);
+      rows_to_insert);*/
 
   std::vector<Row> db_rows;
   db_rows.reserve(kRowsCount);
 
   cluster
-      ->Select(kMasterHost, cluster.GetDeadline(),
-               table.FormatWithTableName("SELECT Id, Value FROM {}"))
-      .AsStreamOf<Row>()
-      .ForEach([&db_rows](Row&& row) { db_rows.push_back(std::move(row)); }, 32,
+      ->GetCursor<Row>(kMasterHost, cluster.GetDeadline(), 42,
+                       table.FormatWithTableName("SELECT Id, Value FROM {}"))
+      .ForEach([&db_rows](Row&& row) { db_rows.push_back(std::move(row)); },
                cluster.GetDeadline());
+
+  auto asd = table.DefaultExecute("SELECT Id, Value FROM {}").AsVector<Row>();
 
   ASSERT_EQ(db_rows.size(), rows_to_insert.size());
   EXPECT_EQ(db_rows, rows_to_insert);
+  ASSERT_EQ(asd.size(), rows_to_insert.size());
 
   /*const auto deadline =
   engine::Deadline::FromDuration(utest::kMaxTestWaitTime);
@@ -193,6 +201,28 @@ UTEST(Cluster, WorksWithConsts) {
   cluster.Select(kMasterHost, deadline, "SELECT Id, Value FROM test WHERE Id=?",
                  id);
 }*/
+
+UTEST(ShowCase, Basic) {
+  ClusterWrapper cluster{};
+
+  TmpTable table{cluster, "Id INT, Value TEXT, CreatedAt DATETIME(6)"};
+
+  const auto deadline = cluster.GetDeadline();
+
+  struct Row final {
+    std::int32_t id{};
+    std::string value;
+    std::chrono::system_clock::time_point created_at;
+  };
+  const std::vector<Row> rows =
+      cluster
+          ->Execute(
+              ClusterHostType::kMaster, deadline,
+              table.FormatWithTableName(
+                  "SELECT Id, Value, CreatedAt FROM {} WHERE CreatedAt > ?"),
+              std::chrono::system_clock::now() - std::chrono::hours{3})
+          .AsVector<Row>();
+}
 
 }  // namespace storages::mysql::tests
 
