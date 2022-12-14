@@ -91,7 +91,7 @@ std::string ToString(TaskCancellationReason reason);
 class TaskCancellationToken final {
  public:
   /// Creates an invalid TaskCancellationToken
-  TaskCancellationToken() noexcept = default;
+  TaskCancellationToken() noexcept;
 
   /// Creates a TaskCancellationToken associated with a task. The task must be
   /// valid.
