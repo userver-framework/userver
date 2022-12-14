@@ -110,20 +110,19 @@ class RequestProcessor final {
                    const http::HttpRequestImpl& http_request_impl,
                    const http::HttpRequest& http_request,
                    request::RequestContext& context, bool log_request,
-                   bool log_request_headers, bool set_tracing_headers)
+                   bool log_request_headers)
       : handler_(handler),
         http_request_impl_(http_request_impl),
         http_request_(http_request),
         context_(context),
         log_request_(log_request),
-        log_request_headers_(log_request_headers),
-        set_tracing_headers_(set_tracing_headers) {}
+        log_request_headers_(log_request_headers) {}
 
   ~RequestProcessor() {
     try {
       auto& span = tracing::Span::CurrentSpan();
       auto& response = http_request_.GetHttpResponse();
-      if (set_tracing_headers_) {
+      if (handler_.GetConfig().set_tracing_headers) {
         response.SetHeader(USERVER_NAMESPACE::http::headers::kXYaRequestId,
                            span.GetLink());
       }
@@ -222,7 +221,6 @@ class RequestProcessor final {
   request::RequestContext& context_;
   const bool log_request_;
   const bool log_request_headers_;
-  const bool set_tracing_headers_;
 };
 
 std::optional<std::chrono::milliseconds> ParseTimeout(
@@ -536,7 +534,7 @@ void HttpHandlerBase::HandleRequest(request::RequestBase& request,
     RequestProcessor request_processor(
         *this, http_request_impl, http_request, context,
         server_settings.need_log_request,
-        server_settings.need_log_request_headers, config.set_tracing_headers);
+        server_settings.need_log_request_headers);
 
     request_processor.ProcessRequestStep(
         kCheckRatelimitStep,
