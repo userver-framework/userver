@@ -212,7 +212,7 @@ yaml_config::YamlConfig MakeDumpedCacheConfig(const TestParams& params) {
   const auto& [update_types, first_update_mode, first_update_type, dump_exists,
                data_source_exists] = params;
 
-  static std::string kConfigTemplate = R"(
+  static constexpr std::string_view kConfigTemplate = R"(
 update-types: {update_types}
 update-interval: 1s
 {full_update_interval}

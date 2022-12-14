@@ -71,22 +71,29 @@ class MyRabbitConsumer final
                    const components::ComponentContext& context)
       : userver::urabbitmq::ConsumerComponentBase{config, context} {}
 
-  std::vector<std::string> GetConsumedMessages() {
+  std::vector<int> GetConsumedMessages() {
     auto storage = storage_.Lock();
 
-    return *storage;
+    auto messages = *storage;
+    // We sort messages here because `Process` might run in parallel
+    // and ordering is not guaranteed.
+    std::sort(messages.begin(), messages.end());
+
+    return messages;
   }
 
  protected:
   void Process(std::string message) override {
+    const auto as_integer = std::stoi(message);
+
     auto storage = storage_.Lock();
-    storage->push_back(std::move(message));
+    storage->push_back(as_integer);
 
     TESTPOINT("message_consumed", {});
   }
 
  private:
-  userver::concurrent::Variable<std::vector<std::string>> storage_;
+  userver::concurrent::Variable<std::vector<int>> storage_;
 };
 
 class RequestHandler final : public server::handlers::HttpHandlerJsonBase {

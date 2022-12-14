@@ -148,8 +148,8 @@ std::chrono::seconds Parse(const YamlConfig& value,
 
   if (as_seconds != as_milliseconds) {
     throw ParseException(
-        fmt::format(FMT_STRING("While parsing '{}': '{}' cannot be represented "
-                               "as milliseconds without precision loss"),
+        fmt::format("While parsing '{}': '{}' cannot be represented "
+                    "as milliseconds without precision loss",
                     value.GetPath(), value.As<std::string>()));
   }
 
@@ -162,8 +162,8 @@ std::chrono::milliseconds Parse(const YamlConfig& value,
   try {
     return utils::StringToDuration(as_string);
   } catch (const std::exception& ex) {
-    throw ParseException(fmt::format(FMT_STRING("While parsing '{}': {}"),
-                                     value.GetPath(), ex.what()));
+    throw ParseException(
+        fmt::format("While parsing '{}': {}", value.GetPath(), ex.what()));
   }
 }
 

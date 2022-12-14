@@ -3,14 +3,15 @@
 #include <sstream>
 
 #include <fmt/format.h>
-
 #include <hiredis/hiredis.h>
 
+#include <userver/logging/log.hpp>
+#include <userver/utils/assert.hpp>
+
+#include <storages/redis/impl/command.hpp>
 #include <storages/redis/impl/sentinel_impl.hpp>
 #include <storages/redis/impl/shard.hpp>
-#include <userver/logging/log.hpp>
 #include <userver/storages/redis/impl/reply.hpp>
-#include <userver/utils/assert.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

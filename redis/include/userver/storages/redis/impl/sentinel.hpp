@@ -8,10 +8,10 @@
 #include <userver/utils/swappingsmart.hpp>
 
 #include <userver/storages/redis/impl/base.hpp>
-#include <userver/storages/redis/impl/command.hpp>
 #include <userver/storages/redis/impl/command_options.hpp>
 #include <userver/storages/redis/impl/redis_stats.hpp>
 #include <userver/storages/redis/impl/request.hpp>
+#include <userver/storages/redis/impl/types.hpp>
 #include <userver/storages/redis/impl/wait_connected_mode.hpp>
 #include "keyshard.hpp"
 #include "secdist_redis.hpp"
@@ -138,13 +138,6 @@ class Sentinel {
     return {*this,           std::forward<CmdArgs>(args),
             shard,           master,
             command_control, replies_to_skip};
-  }
-
-  Request MakeRequest(CmdArgs&& args, size_t shard,
-                      redis::ReplyCallback&& callback, bool master = true,
-                      const CommandControl& command_control = {}) {
-    return {*this,           std::forward<CmdArgs>(args), shard, master,
-            command_control, std::move(callback)};
   }
 
   std::vector<Request> MakeRequests(CmdArgs&& args, bool master = true,

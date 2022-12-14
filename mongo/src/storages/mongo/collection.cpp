@@ -57,7 +57,7 @@ Cursor Collection::Execute(const operations::Aggregate& aggregate_op) {
   return impl_->Execute(aggregate_op);
 }
 
-DropResult Collection::Execute(const operations::Drop& drop_op) {
+void Collection::Execute(const operations::Drop& drop_op) {
   return impl_->Execute(drop_op);
 }
 

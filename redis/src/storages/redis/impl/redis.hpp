@@ -11,9 +11,9 @@
 #include <engine/ev/thread_pool.hpp>
 
 #include <userver/storages/redis/impl/base.hpp>
-#include <userver/storages/redis/impl/command.hpp>
 #include <userver/storages/redis/impl/redis_state.hpp>
 #include <userver/storages/redis/impl/request.hpp>
+#include <userver/storages/redis/impl/types.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

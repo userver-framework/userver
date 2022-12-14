@@ -76,8 +76,8 @@ formats::json::Value DoLoadFromFile(const std::string& path,
     }
   } catch (const std::exception& e) {
     if (missing_ok) {
-      LOG_WARNING() << "Failed to load secdist from file: " << e
-                    << ", booting without secdist";
+      LOG_WARNING() << "Failed to load secdist from file '" << path
+                    << "': " << e << ", booting without secdist";
     } else {
       throw SecdistError(
           "Cannot load secdist config. File '" + path +

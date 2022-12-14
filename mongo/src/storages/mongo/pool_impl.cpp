@@ -4,8 +4,8 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::mongo::impl {
 
-PoolImpl::PoolImpl(std::string&& id, Config config)
-    : id_(std::move(id)), config_storage_(config) {}
+PoolImpl::PoolImpl(std::string&& id, dynamic_config::Source config_source)
+    : id_(std::move(id)), config_source_(config_source) {}
 
 const std::string& PoolImpl::Id() const { return id_; }
 
@@ -15,11 +15,9 @@ const stats::PoolStatistics& PoolImpl::GetStatistics() const {
 
 stats::PoolStatistics& PoolImpl::GetStatistics() { return statistics_; }
 
-rcu::ReadablePtr<Config> PoolImpl::GetConfig() const {
-  return config_storage_.Read();
+dynamic_config::Snapshot PoolImpl::GetConfig() const {
+  return config_source_.GetSnapshot();
 }
-
-void PoolImpl::SetConfig(Config config) { config_storage_.Assign(config); }
 
 }  // namespace storages::mongo::impl
 

@@ -2,6 +2,7 @@
 #include <chrono>
 #include <string>
 
+#include <storages/mongo/dynamic_config.hpp>
 #include <storages/mongo/util_mongotest.hpp>
 #include <userver/formats/bson.hpp>
 #include <userver/storages/mongo/collection.hpp>
@@ -14,16 +15,11 @@ namespace bson = formats::bson;
 namespace mongo = storages::mongo;
 
 namespace {
-mongo::Pool MakeTestPool(clients::dns::Resolver& dns_resolver,
-                         mongo::Config mongo_config = {}) {
-  return MakeTestsuiteMongoPool("options_test", &dns_resolver, mongo_config);
-}
+class Options : public MongoPoolFixture {};
 }  // namespace
 
-UTEST(Options, ReadPreference) {
-  auto dns_resolver = MakeDnsResolver();
-  auto pool = MakeTestPool(dns_resolver);
-  auto coll = pool.GetCollection("read_preference");
+UTEST_F(Options, ReadPreference) {
+  auto coll = GetDefaultPool().GetCollection("read_preference");
 
   EXPECT_EQ(0, coll.Count({}, mongo::options::ReadPreference::kNearest));
 
@@ -52,19 +48,15 @@ UTEST(Options, ReadPreference) {
       mongo::InvalidQueryArgumentException);
 }
 
-UTEST(Options, ReadConcern) {
-  auto dns_resolver = MakeDnsResolver();
-  auto pool = MakeTestPool(dns_resolver);
-  auto coll = pool.GetCollection("read_concern");
+UTEST_F(Options, ReadConcern) {
+  auto coll = GetDefaultPool().GetCollection("read_concern");
 
   EXPECT_EQ(0, coll.Count({}, mongo::options::ReadConcern::kLocal));
   EXPECT_EQ(0, coll.Count({}, mongo::options::ReadConcern::kLinearizable));
 }
 
-UTEST(Options, SkipLimit) {
-  auto dns_resolver = MakeDnsResolver();
-  auto pool = MakeTestPool(dns_resolver);
-  auto coll = pool.GetCollection("skip_limit");
+UTEST_F(Options, SkipLimit) {
+  auto coll = GetDefaultPool().GetCollection("skip_limit");
 
   coll.InsertOne(bson::MakeDoc("x", 0));
   coll.InsertOne(bson::MakeDoc("x", 1));
@@ -113,10 +105,8 @@ UTEST(Options, SkipLimit) {
       mongo::InvalidQueryArgumentException);
 }
 
-UTEST(Options, Projection) {
-  auto dns_resolver = MakeDnsResolver();
-  auto pool = MakeTestPool(dns_resolver);
-  auto coll = pool.GetCollection("projection");
+UTEST_F(Options, Projection) {
+  auto coll = GetDefaultPool().GetCollection("projection");
 
   coll.InsertOne(bson::MakeDoc("a", 1, "b", "2", "doc",
                                bson::MakeDoc("a", nullptr, "b", 0), "arr",
@@ -230,10 +220,8 @@ UTEST(Options, Projection) {
   }
 }
 
-UTEST(Options, ProjectionTwo) {
-  auto dns_resolver = MakeDnsResolver();
-  auto pool = MakeTestPool(dns_resolver);
-  auto coll = pool.GetCollection("projection");
+UTEST_F(Options, ProjectionTwo) {
+  auto coll = GetDefaultPool().GetCollection("projection");
 
   coll.InsertOne(bson::MakeDoc("a", 1, "b", "2", "doc",
                                bson::MakeDoc("a", nullptr, "b", 0), "arr",
@@ -323,10 +311,8 @@ UTEST(Options, ProjectionTwo) {
   }
 }
 
-UTEST(Options, ProjectionThree) {
-  auto dns_resolver = MakeDnsResolver();
-  auto pool = MakeTestPool(dns_resolver);
-  auto coll = pool.GetCollection("projection");
+UTEST_F(Options, ProjectionThree) {
+  auto coll = GetDefaultPool().GetCollection("projection");
 
   coll.InsertOne(bson::MakeDoc("a", 1, "b", "2", "doc",
                                bson::MakeDoc("a", nullptr, "b", 0), "arr",
@@ -449,10 +435,8 @@ UTEST(Options, ProjectionThree) {
   }
 }
 
-UTEST(Options, Sort) {
-  auto dns_resolver = MakeDnsResolver();
-  auto pool = MakeTestPool(dns_resolver);
-  auto coll = pool.GetCollection("sort");
+UTEST_F(Options, Sort) {
+  auto coll = GetDefaultPool().GetCollection("sort");
 
   coll.InsertOne(bson::MakeDoc("a", 1, "b", 0));
   coll.InsertOne(bson::MakeDoc("a", 0, "b", 1));
@@ -574,44 +558,34 @@ UTEST(Options, Sort) {
   }
 }
 
-UTEST(Options, Hint) {
-  auto dns_resolver = MakeDnsResolver();
-  auto pool = MakeTestPool(dns_resolver);
-  auto coll = pool.GetCollection("hint");
+UTEST_F(Options, Hint) {
+  auto coll = GetDefaultPool().GetCollection("hint");
 
   UEXPECT_NO_THROW(coll.FindOne({}, mongo::options::Hint{"some_index"}));
   UEXPECT_NO_THROW(
       coll.FindOne({}, mongo::options::Hint{bson::MakeDoc("_id", 1)}));
 }
 
-UTEST(Options, AllowPartialResults) {
-  auto dns_resolver = MakeDnsResolver();
-  auto pool = MakeTestPool(dns_resolver);
-  auto coll = pool.GetCollection("allow_partial_results");
+UTEST_F(Options, AllowPartialResults) {
+  auto coll = GetDefaultPool().GetCollection("allow_partial_results");
 
   UEXPECT_NO_THROW(coll.FindOne({}, mongo::options::AllowPartialResults{}));
 }
 
-UTEST(Options, Tailable) {
-  auto dns_resolver = MakeDnsResolver();
-  auto pool = MakeTestPool(dns_resolver);
-  auto coll = pool.GetCollection("tailable");
+UTEST_F(Options, Tailable) {
+  auto coll = GetDefaultPool().GetCollection("tailable");
 
   UEXPECT_NO_THROW(coll.FindOne({}, mongo::options::Tailable{}));
 }
 
-UTEST(Options, Comment) {
-  auto dns_resolver = MakeDnsResolver();
-  auto pool = MakeTestPool(dns_resolver);
-  auto coll = pool.GetCollection("comment");
+UTEST_F(Options, Comment) {
+  auto coll = GetDefaultPool().GetCollection("comment");
 
   UEXPECT_NO_THROW(coll.FindOne({}, mongo::options::Comment{"snarky comment"}));
 }
 
-UTEST(Options, MaxServerTime) {
-  auto dns_resolver = MakeDnsResolver();
-  auto pool = MakeTestPool(dns_resolver);
-  auto coll = pool.GetCollection("max_server_time");
+UTEST_F(Options, MaxServerTime) {
+  auto coll = GetDefaultPool().GetCollection("max_server_time");
 
   coll.InsertOne(bson::MakeDoc("x", 1));
 
@@ -629,12 +603,9 @@ UTEST(Options, MaxServerTime) {
       {}, mongo::options::MaxServerTime{utest::kMaxTestWaitTime}));
 }
 
-UTEST(Options, DefaultMaxServerTime) {
-  dynamic_config::DocsMap docs_map;
-  docs_map.Parse(R"~({"MONGO_DEFAULT_MAX_TIME_MS": 123})~", false);
-  auto dns_resolver = MakeDnsResolver();
-  auto pool = MakeTestPool(dns_resolver, {docs_map});
-  auto coll = pool.GetCollection("max_server_time");
+UTEST_F(Options, DefaultMaxServerTime) {
+  SetDynamicConfig({{mongo::kDefaultMaxTime, std::chrono::milliseconds{123}}});
+  auto coll = GetDefaultPool().GetCollection("max_server_time");
 
   coll.InsertOne(bson::MakeDoc("x", 1));
   UEXPECT_NO_THROW(coll.Find(bson::MakeDoc("$where", "sleep(50) || true")));
@@ -653,10 +624,8 @@ UTEST(Options, DefaultMaxServerTime) {
       {}, mongo::options::MaxServerTime{utest::kMaxTestWaitTime}));
 }
 
-UTEST(Options, WriteConcern) {
-  auto dns_resolver = MakeDnsResolver();
-  auto pool = MakeTestPool(dns_resolver);
-  auto coll = pool.GetCollection("write_concern");
+UTEST_F(Options, WriteConcern) {
+  auto coll = GetDefaultPool().GetCollection("write_concern");
 
   coll.InsertOne({}, mongo::options::WriteConcern::kMajority);
   UEXPECT_NO_THROW(coll.InsertOne({}, mongo::options::WriteConcern::kMajority));
@@ -696,10 +665,8 @@ UTEST(Options, WriteConcern) {
       mongo::ServerException);
 }
 
-UTEST(Options, Unordered) {
-  auto dns_resolver = MakeDnsResolver();
-  auto pool = MakeTestPool(dns_resolver);
-  auto coll = pool.GetCollection("unordered");
+UTEST_F(Options, Unordered) {
+  auto coll = GetDefaultPool().GetCollection("unordered");
 
   coll.InsertOne(bson::MakeDoc("_id", 1));
 
@@ -725,10 +692,8 @@ UTEST(Options, Unordered) {
   }
 }
 
-UTEST(Options, Upsert) {
-  auto dns_resolver = MakeDnsResolver();
-  auto pool = MakeTestPool(dns_resolver);
-  auto coll = pool.GetCollection("upsert");
+UTEST_F(Options, Upsert) {
+  auto coll = GetDefaultPool().GetCollection("upsert");
 
   coll.InsertOne(bson::MakeDoc("_id", 1));
   {
@@ -778,10 +743,8 @@ UTEST(Options, Upsert) {
   EXPECT_EQ(3, coll.CountApprox());
 }
 
-UTEST(Options, ReturnNew) {
-  auto dns_resolver = MakeDnsResolver();
-  auto pool = MakeTestPool(dns_resolver);
-  auto coll = pool.GetCollection("return_new");
+UTEST_F(Options, ReturnNew) {
+  auto coll = GetDefaultPool().GetCollection("return_new");
 
   coll.InsertOne(bson::MakeDoc("_id", 1, "x", 1));
   {

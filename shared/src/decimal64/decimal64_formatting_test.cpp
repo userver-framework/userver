@@ -9,6 +9,7 @@
 #include <userver/decimal64/format_options.hpp>
 #include <userver/formats/json/serialize.hpp>
 #include <userver/formats/json/value_builder.hpp>
+#include <userver/utils/fmt_compat.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -156,11 +157,12 @@ TEST(Decimal64, Fmt) {
   EXPECT_EQ(fmt::format("{:.5}", Dec4{"12.34"}), "12.34000");
   EXPECT_EQ(fmt::format("{:.2}", Dec4{"12.34"}), "12.34");
   EXPECT_EQ(fmt::format("{:.1}", Dec4{"12.34"}), "12.3");
-  EXPECT_THROW(static_cast<void>(fmt::format("{:.5f}", Dec4{"12.34"})),
+  EXPECT_THROW(
+      static_cast<void>(fmt::format(fmt::runtime("{:.5f}"), Dec4{"12.34"})),
+      fmt::format_error);
+  EXPECT_THROW(static_cast<void>(fmt::format(fmt::runtime("{:s}"), Dec4{42})),
                fmt::format_error);
-  EXPECT_THROW(static_cast<void>(fmt::format("{:s}", Dec4{42})),
-               fmt::format_error);
-  EXPECT_THROW(static_cast<void>(fmt::format("{:s}", Dec4{42})),
+  EXPECT_THROW(static_cast<void>(fmt::format(fmt::runtime("{:s}"), Dec4{42})),
                fmt::format_error);
 }
 

@@ -10,12 +10,13 @@
 #include <userver/testsuite/testsuite_support.hpp>
 #include <userver/utils/assert.hpp>
 
+#include <storages/redis/impl/command.hpp>
+#include <storages/redis/impl/redis.hpp>
+#include <storages/redis/impl/sentinel_impl.hpp>
+#include <storages/redis/impl/subscribe_sentinel.hpp>
+#include <userver/storages/redis/impl/base.hpp>
 #include <userver/storages/redis/impl/exception.hpp>
 #include <userver/storages/redis/impl/reply.hpp>
-#include "redis.hpp"
-#include "sentinel_impl.hpp"
-#include "subscribe_sentinel.hpp"
-#include "userver/storages/redis/impl/base.hpp"
 
 USERVER_NAMESPACE_BEGIN
 

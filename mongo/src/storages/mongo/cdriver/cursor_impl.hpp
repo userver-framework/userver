@@ -15,7 +15,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::mongo::impl::cdriver {
 
-class CDriverCursorImpl : public CursorImpl {
+class CDriverCursorImpl final : public CursorImpl {
  public:
   CDriverCursorImpl(cdriver::CDriverPoolImpl::BoundClientPtr,
                     cdriver::CursorPtr,

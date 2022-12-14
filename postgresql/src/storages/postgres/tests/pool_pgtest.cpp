@@ -51,7 +51,7 @@ UTEST_F(PostgrePool, ConnectionPool) {
       kCachePreparedStatements, {}, GetTestCmdCtls(), {}, {});
   pg::detail::ConnectionPtr conn(nullptr);
 
-  UEXPECT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
+  UASSERT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
       << "Obtained connection from pool";
   CheckConnection(std::move(conn));
 }
@@ -63,7 +63,7 @@ UTEST_F(PostgrePool, ConnectionPoolInitiallyEmpty) {
       kCachePreparedStatements, {}, GetTestCmdCtls(), {}, {});
   pg::detail::ConnectionPtr conn(nullptr);
 
-  UEXPECT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
+  UASSERT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
       << "Obtained connection from empty pool";
   CheckConnection(std::move(conn));
 }
@@ -75,7 +75,7 @@ UTEST_F(PostgrePool, ConnectionPoolReachedMaxSize) {
       kCachePreparedStatements, {}, GetTestCmdCtls(), {}, {});
   pg::detail::ConnectionPtr conn(nullptr);
 
-  UEXPECT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
+  UASSERT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
       << "Obtained connection from pool";
   UEXPECT_THROW(pg::detail::ConnectionPtr conn2 = pool->Acquire(MakeDeadline()),
                 pg::PoolError)
@@ -91,7 +91,7 @@ UTEST_F(PostgrePool, BlockWaitingOnAvailableConnection) {
       kCachePreparedStatements, {}, GetTestCmdCtls(), {}, {});
   pg::detail::ConnectionPtr conn(nullptr);
 
-  UEXPECT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
+  UASSERT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
       << "Obtained connection from pool";
   // Free up connection asynchronously
   engine::AsyncNoSpan(
@@ -102,7 +102,7 @@ UTEST_F(PostgrePool, BlockWaitingOnAvailableConnection) {
       std::move(conn))
       .Detach();
   // NOLINTNEXTLINE(bugprone-use-after-move)
-  UEXPECT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
+  UASSERT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
       << "Execution blocked because pool reached max size, but connection "
          "found later";
 
@@ -134,7 +134,7 @@ UTEST_F(PostgrePool, PoolAliveIfConnectionExists) {
       testsuite::PostgresControl{}, error_injection::Settings{});
   pg::detail::ConnectionPtr conn(nullptr);
 
-  UEXPECT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
+  UASSERT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
       << "Obtained connection from pool";
   pool.reset();
   CheckConnection(std::move(conn));
@@ -148,20 +148,20 @@ UTEST_F(PostgrePool, ConnectionPtrWorks) {
       testsuite::PostgresControl{}, error_injection::Settings{});
   pg::detail::ConnectionPtr conn(nullptr);
 
-  UEXPECT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
+  UASSERT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
       << "Obtained connection from pool";
-  UEXPECT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
+  UASSERT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
       << "Obtained another connection from pool";
   CheckConnection(std::move(conn));
 
   // We still should have initial count of working connections in the pool
   // NOLINTNEXTLINE(bugprone-use-after-move)
-  UEXPECT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
+  UASSERT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
       << "Obtained connection from pool again";
-  UEXPECT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
+  UASSERT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
       << "Obtained another connection from pool again";
   pg::detail::ConnectionPtr conn2(nullptr);
-  UEXPECT_NO_THROW(conn2 = pool->Acquire(MakeDeadline()))
+  UASSERT_NO_THROW(conn2 = pool->Acquire(MakeDeadline()))
       << "Obtained connection from pool one more time";
   pool.reset();
   CheckConnection(std::move(conn));
