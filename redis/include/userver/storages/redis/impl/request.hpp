@@ -2,6 +2,9 @@
 
 #include <chrono>
 
+#include <userver/engine/deadline.hpp>
+#include <userver/engine/future.hpp>
+
 #include <userver/storages/redis/impl/base.hpp>
 #include <userver/storages/redis/impl/types.hpp>
 
@@ -13,29 +16,6 @@ class Span;
 
 namespace redis {
 
-class RequestFuture {
-  friend class Request;
-
- public:
-  RequestFuture() = default;
-  RequestFuture(ReplyPtrFuture&& fut,
-                std::chrono::steady_clock::time_point t) noexcept
-      : ro_future_(std::move(fut)), until_(t) {}
-  ~RequestFuture() = default;
-
-  RequestFuture(const RequestFuture&) = delete;
-  RequestFuture(RequestFuture&& r) noexcept = default;
-  RequestFuture& operator=(const RequestFuture&) = delete;
-  RequestFuture& operator=(RequestFuture&& r) noexcept = default;
-
-  ReplyPtr Get();
-
- private:
-  ReplyPtrFuture ro_future_;
-  std::chrono::steady_clock::time_point until_;
-  std::shared_ptr<tracing::Span> span_ptr_;
-};
-
 class Request {
  public:
   Request(const Request&) = delete;
@@ -44,24 +24,23 @@ class Request {
   Request& operator=(Request&& r) noexcept = default;
 
   ReplyPtr Get();
-  RequestFuture&& PopFuture();
-
-  friend class Sentinel;
 
  private:
+  friend class Sentinel;
+
   Request(Sentinel& sentinel, CmdArgs&& args, const std::string& key,
           bool master, const CommandControl& command_control,
-          size_t replies_to_skip = 0);
+          size_t replies_to_skip);
+
   Request(Sentinel& sentinel, CmdArgs&& args, size_t shard, bool master,
-          const CommandControl& command_control, size_t replies_to_skip = 0);
-  Request(Sentinel& sentinel, CmdArgs&& args, size_t shard, bool master,
-          const CommandControl& command_control,
-          redis::ReplyCallback&& callback);
+          const CommandControl& command_control, size_t replies_to_skip);
+
   CommandPtr PrepareRequest(CmdArgs&& args,
                             const CommandControl& command_control,
-                            size_t replies_to_skip = 0);
+                            size_t replies_to_skip);
 
-  RequestFuture request_future_;
+  engine::Future<ReplyPtr> future_;
+  engine::Deadline deadline_;
 };
 
 }  // namespace redis

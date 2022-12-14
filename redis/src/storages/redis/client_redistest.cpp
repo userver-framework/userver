@@ -22,6 +22,9 @@ std::shared_ptr<storages::redis::Client> GetClient() {
       redis::KeyShardFactory{""});
   sentinel->WaitConnectedDebug();
 
+  // For tests repeatability
+  sentinel->MakeRequest({"FLUSHDB"}, "none").Get();
+
   return std::make_shared<storages::redis::ClientImpl>(std::move(sentinel));
 }
 

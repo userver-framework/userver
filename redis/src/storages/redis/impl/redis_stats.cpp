@@ -1,4 +1,6 @@
 #include <userver/storages/redis/impl/redis_stats.hpp>
+
+#include <storages/redis/impl/command.hpp>
 #include <userver/storages/redis/impl/reply.hpp>
 
 #include <hiredis/hiredis.h>
