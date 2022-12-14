@@ -8,6 +8,7 @@
     "cancel-request": false,
     "update-timeout": false
   },
+  "MONGO_DEADLINE_PROPAGATION_ENABLED": false,
   "MONGO_DEFAULT_MAX_TIME_MS": 0,
   "USERVER_CACHES": {},
   "USERVER_CANCEL_HANDLE_REQUEST_BY_DEADLINE": false,

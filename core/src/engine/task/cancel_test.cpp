@@ -3,7 +3,6 @@
 #include <chrono>
 #include <stdexcept>
 
-#include <engine/task/task_context.hpp>
 #include <userver/engine/async.hpp>
 #include <userver/engine/deadline.hpp>
 #include <userver/engine/future.hpp>
@@ -67,8 +66,7 @@ UTEST(Cancel, CancelDuringInterruptibleSleep) {
 }
 
 UTEST(Cancel, CancelBeforeInterruptibleSleep) {
-  engine::current_task::GetCurrentTaskContext().RequestCancel(
-      engine::TaskCancellationReason::kUserRequest);
+  engine::current_task::GetCancellationToken().RequestCancel();
 
   // The task should wake up from this sleep immediately, because it is
   // already cancelled

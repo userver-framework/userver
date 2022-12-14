@@ -43,7 +43,10 @@ class PoolConfig {
 
   /// @cond
   // Constructs a constrained pool for tests, not to be used in production code
-  PoolConfig(std::string app_name, DriverImpl driver_impl);
+  PoolConfig();
+
+  // Throws InvalidConfigException if the config is invalid
+  void Validate(const std::string& pool_id) const;
   /// @endcond
 
   /// Connection (I/O) timeout
@@ -66,7 +69,7 @@ class PoolConfig {
   std::chrono::milliseconds maintenance_period;
 
   /// Application name (sent to server)
-  const std::string app_name;
+  std::string app_name;
   /// Default max replication lag for the pool
   std::optional<std::chrono::seconds> max_replication_lag;
 

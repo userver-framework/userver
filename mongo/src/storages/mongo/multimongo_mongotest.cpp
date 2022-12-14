@@ -25,8 +25,7 @@ USERVER_NAMESPACE_BEGIN
 namespace mongo = storages::mongo;
 
 namespace {
-const mongo::PoolConfig kPoolConfig(
-    "userver_multimongo_test", mongo::PoolConfig::DriverImpl::kMongoCDriver);
+const mongo::PoolConfig kPoolConfig{};
 }  // namespace
 
 UTEST(MultiMongo, DynamicSecdistUpdate) {
@@ -83,8 +82,9 @@ UTEST(MultiMongo, DynamicSecdistUpdate) {
                               &SecdistConfigStorage::OnSecdistUpdate);
   EXPECT_EQ(storage.updates_counter.load(), 1);
 
+  const auto dynamic_config = MakeDynamicConfig();
   mongo::MultiMongo multi_mongo("userver_multimongo_test", secdist, kPoolConfig,
-                                &dns_resolver, GetDefaultDynamicConfig());
+                                &dns_resolver, dynamic_config.GetSource());
 
   UEXPECT_THROW(multi_mongo.AddPool("admin"),
                 storages::mongo::InvalidConfigException);

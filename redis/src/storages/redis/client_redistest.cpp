@@ -3,7 +3,8 @@
 #include <memory>
 #include <string>
 
-#include <engine/task/task_context.hpp>
+#include <userver/engine/task/cancel.hpp>
+
 #include <storages/redis/client_impl.hpp>
 #include <storages/redis/util_redistest.hpp>
 #include <userver/storages/redis/impl/sentinel.hpp>
@@ -21,6 +22,9 @@ std::shared_ptr<storages::redis::Client> GetClient() {
       std::move(thread_pools), GetTestsuiteRedisSettings(), "none", "pub",
       redis::KeyShardFactory{""});
   sentinel->WaitConnectedDebug();
+
+  // For tests repeatability
+  sentinel->MakeRequest({"FLUSHDB"}, "none").Get();
 
   return std::make_shared<storages::redis::ClientImpl>(std::move(sentinel));
 }
@@ -40,8 +44,7 @@ std::optional<std::string> RedisClientCancelRequest(
     storages::redis::Client& client) {
   auto result = client.Get("foo", {});
 
-  engine::current_task::GetCurrentTaskContext().RequestCancel(
-      engine::TaskCancellationReason::kUserRequest);
+  engine::current_task::GetCancellationToken().RequestCancel();
 
   // Throws redis::RequestCancelledException if Redis was not
   // fast enough to answer
@@ -84,9 +87,9 @@ UTEST(RedisClient, Lpushx) {
   // Missing array - does nothing
   EXPECT_EQ(client->Lpushx("pushx_testlist", "a", {}).Get(), 0);
   EXPECT_EQ(client->Rpushx("pushx_testlist", "a", {}).Get(), 0);
-  // // Init list
+  // Init list
   EXPECT_EQ(client->Lpush("pushx_testlist", "a", {}).Get(), 1);
-  // // List exists - appends values
+  // List exists - appends values
   EXPECT_EQ(client->Lpushx("pushx_testlist", "a", {}).Get(), 2);
   EXPECT_EQ(client->Rpushx("pushx_testlist", "a", {}).Get(), 3);
 }

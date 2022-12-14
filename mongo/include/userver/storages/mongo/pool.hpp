@@ -54,6 +54,10 @@ class Pool {
   /// Returns a handle for the specified collection
   Collection GetCollection(std::string name) const;
 
+  /// Drops the associated database if it exists. New modifications of
+  /// collections will attempt to re-create the database automatically.
+  void DropDatabase();
+
   /// Returns pool statistics JSON
   formats::json::Value GetStatistics() const;
 

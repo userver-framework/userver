@@ -14,6 +14,7 @@
 #include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
 
+#include <storages/redis/impl/command.hpp>
 #include <storages/redis/impl/keyshard_impl.hpp>
 #include <userver/storages/redis/impl/exception.hpp>
 #include <userver/storages/redis/impl/reply.hpp>
@@ -213,7 +214,7 @@ static inline void InvokeCommand(CommandPtr command, ReplyPtr&& reply) {
               << command->log_extra;
   ++command->invoke_counter;
   try {
-    command->Callback()(command, reply);
+    command->callback(command, reply);
   } catch (const std::exception& ex) {
     LOG_WARNING() << "exception in command->callback, cmd=" << reply->cmd << " "
                   << ex << command->log_extra;
