@@ -8,11 +8,13 @@
 #include <userver/components/component_fwd.hpp>
 #include <userver/engine/deadline.hpp>
 
-#include <userver/storages/mysql/cluster_host_type.hpp>
-#include <userver/storages/mysql/cursor_result_set.hpp>
 #include <userver/storages/mysql/io/binder.hpp>
 #include <userver/storages/mysql/io/insert_binder.hpp>
+
+#include <userver/storages/mysql/cluster_host_type.hpp>
+#include <userver/storages/mysql/cursor_result_set.hpp>
 #include <userver/storages/mysql/statement_result_set.hpp>
+#include <userver/storages/mysql/transaction.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -57,12 +59,15 @@ class Cluster final {
 
   template <typename T>
   void InsertOne(engine::Deadline deadline, const std::string& insert_query,
-                 T&& row) const;
+                 const T& row) const;
 
   // only works with recent enough MariaDB as a server
   template <typename Container>
   void InsertMany(engine::Deadline deadline, const std::string& insert_query,
-                  Container&& rows, bool throw_on_empty_insert = true) const;
+                  const Container& rows,
+                  bool throw_on_empty_insert = true) const;
+
+  Transaction Begin(ClusterHostType host_type, engine::Deadline deadline);
 
   void ExecuteNoPrepare(ClusterHostType host_type, engine::Deadline deadline,
                         const std::string& command);
@@ -114,17 +119,14 @@ CursorResultSet<T> Cluster::GetCursor(ClusterHostType host_type,
 
 template <typename T>
 void Cluster::InsertOne(engine::Deadline deadline,
-                        const std::string& insert_query, T&& row) const {
+                        const std::string& insert_query, const T& row) const {
   // TODO : reuse DetectIsSuitableRowType from PG
   using Row = std::decay_t<T>;
   static_assert(boost::pfr::tuple_size_v<Row> != 0,
                 "Row to insert has zero columns");
 
   auto binder = std::apply(
-      [](auto&&... args) {
-        return io::ParamsBinder::BindParams(
-            std::forward<decltype(args)>(args)...);
-      },
+      [](const auto&... args) { return io::ParamsBinder::BindParams(args...); },
       boost::pfr::structure_tie(row));
 
   return DoInsert(insert_query, binder, deadline);
@@ -132,7 +134,7 @@ void Cluster::InsertOne(engine::Deadline deadline,
 
 template <typename Container>
 void Cluster::InsertMany(engine::Deadline deadline,
-                         const std::string& insert_query, Container&& rows,
+                         const std::string& insert_query, const Container& rows,
                          bool throw_on_empty_insert) const {
   if (rows.empty()) {
     if (throw_on_empty_insert) {

@@ -25,6 +25,8 @@ class ConnectionPtr final {
   impl::MySQLConnection& operator*() const;
   impl::MySQLConnection* operator->() const noexcept;
 
+  bool IsValid() const;
+
  private:
   void Release() noexcept;
 

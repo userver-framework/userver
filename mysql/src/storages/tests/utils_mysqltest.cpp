@@ -126,6 +126,14 @@ TmpTable::TmpTable(ClusterWrapper& cluster, std::string_view definition)
 // We don't drop table here because it seems to be very slow
 TmpTable::~TmpTable() = default;
 
+Transaction TmpTable::Begin() {
+  return cluster_->Begin(ClusterHostType::kMaster, cluster_.GetDeadline());
+}
+
+engine::Deadline TmpTable::GetDeadline() const {
+  return cluster_.GetDeadline();
+}
+
 void TmpTable::CreateTable(std::string_view definition) {
   const auto create_table_query =
       fmt::format(kCreateTableQueryTemplate, table_name_, definition);

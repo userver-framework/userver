@@ -51,6 +51,9 @@ class MySQLConnection final {
 
   void Ping(engine::Deadline deadline);
 
+  void Commit(engine::Deadline deadline);
+  void Rollback(engine::Deadline deadline);
+
   MySQLSocket& GetSocket();
   MYSQL& GetNativeHandler();
 

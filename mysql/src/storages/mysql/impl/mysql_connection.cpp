@@ -71,6 +71,39 @@ void MySQLConnection::Ping(engine::Deadline deadline) {
   }
 }
 
+void MySQLConnection::Commit(engine::Deadline deadline) {
+  auto broken_guard = GetBrokenGuard();
+
+  my_bool err = 0;
+  socket_.RunToCompletion(
+      [this, &err] { return mysql_commit_start(&err, &mysql_); },
+      [this, &err](int mysql_events) {
+        return mysql_commit_cont(&err, &mysql_, mysql_events);
+      },
+      deadline);
+
+  if (err != 0) {
+    throw std::runtime_error{GetNativeError("Failed to commit a transaction")};
+  }
+}
+
+void MySQLConnection::Rollback(engine::Deadline deadline) {
+  auto broken_guard = GetBrokenGuard();
+
+  my_bool err = 0;
+  socket_.RunToCompletion(
+      [this, &err] { return mysql_rollback_start(&err, &mysql_); },
+      [this, &err](int mysql_events) {
+        return mysql_rollback_cont(&err, &mysql_, mysql_events);
+      },
+      deadline);
+
+  if (err != 0) {
+    throw std::runtime_error{
+        GetNativeError("Failed to rollback a transaction")};
+  }
+}
+
 MySQLSocket& MySQLConnection::GetSocket() { return socket_; }
 
 MYSQL& MySQLConnection::GetNativeHandler() { return mysql_; }
@@ -107,8 +140,7 @@ void MySQLConnection::InitSocket(clients::dns::Resolver& resolver,
                         ? fmt::format("[{}]", addr.PrimaryAddressString())
                         : addr.PrimaryAddressString();
 
-    if (DoInitSocket(ip, endpoint_info.port, auth_settings,
-                     deadline)) {
+    if (DoInitSocket(ip, endpoint_info.port, auth_settings, deadline)) {
       return;
     } else if (deadline.IsReached()) {
       break;

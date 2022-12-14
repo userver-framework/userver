@@ -27,6 +27,7 @@ class ConnectionPtr;
 
 class StatementResultSet final {
  public:
+  explicit StatementResultSet(impl::MySQLStatementFetcher&& fetcher);
   StatementResultSet(infra::ConnectionPtr&& connection,
                      impl::MySQLStatementFetcher&& fetcher);
   ~StatementResultSet();

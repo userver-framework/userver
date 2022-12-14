@@ -56,16 +56,21 @@ StatementResultSet ClusterWrapper::DefaultExecute(const std::string& query,
 
 class TmpTable final {
  public:
-  TmpTable(std::string_view definition);
+  explicit TmpTable(std::string_view definition);
   TmpTable(ClusterWrapper& cluster, std::string_view definition);
   ~TmpTable();
 
   template <typename... Args>
-  std::string FormatWithTableName(std::string_view source, const Args&... args);
+  std::string FormatWithTableName(std::string_view source,
+                                  const Args&... args) const;
 
   template <typename... Args>
   StatementResultSet DefaultExecute(std::string_view source,
                                     const Args&... args);
+
+  Transaction Begin();
+
+  engine::Deadline GetDeadline() const;
 
  private:
   static constexpr std::string_view kCreateTableQueryTemplate =
@@ -80,7 +85,7 @@ class TmpTable final {
 
 template <typename... Args>
 std::string TmpTable::FormatWithTableName(std::string_view source,
-                                          const Args&... args) {
+                                          const Args&... args) const {
   return fmt::format(source, table_name_, args...);
 }
 

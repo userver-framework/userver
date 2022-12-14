@@ -39,6 +39,13 @@ Cluster::Cluster(clients::dns::Resolver& resolver,
 
 Cluster::~Cluster() = default;
 
+Transaction Cluster::Begin(ClusterHostType host_type,
+                           engine::Deadline deadline) {
+  auto connection = topology_->SelectPool(host_type).Acquire(deadline);
+
+  return Transaction{std::move(connection)};
+}
+
 void Cluster::ExecuteNoPrepare(ClusterHostType host_type,
                                engine::Deadline deadline,
                                const std::string& command) {

@@ -22,6 +22,8 @@ impl::MySQLConnection* ConnectionPtr::operator->() const noexcept {
   return connection_.get();
 }
 
+bool ConnectionPtr::IsValid() const { return connection_ != nullptr; }
+
 void ConnectionPtr::Release() noexcept {
   if (!pool_) return;
 
