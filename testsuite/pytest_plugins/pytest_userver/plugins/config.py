@@ -55,6 +55,12 @@ def pytest_configure(config):
 def pytest_addoption(parser) -> None:
     group = parser.getgroup('userver-config')
     group.addoption(
+        '--service-log-level',
+        type=str.lower,
+        default='debug',
+        choices=['trace', 'debug', 'info', 'warning', 'error', 'critical'],
+    )
+    group.addoption(
         '--service-config',
         type=pathlib.Path,
         help='Path to service.yaml file.',
@@ -190,17 +196,20 @@ def userver_config_base(service_port, monitor_port):
 
 
 @pytest.fixture(scope='session')
-def userver_config_logging():
+def userver_config_logging(pytestconfig):
+    log_level = pytestconfig.option.service_log_level
+
     def _patch_config(config_yaml, config_vars):
         components = config_yaml['components_manager']['components']
         if 'logging' in components:
             components['logging']['loggers'] = {
                 'default': {
                     'file_path': '@stderr',
-                    'level': 'debug',
+                    'level': log_level,
                     'overflow_behavior': 'discard',
                 },
             }
+        config_vars['logger_level'] = log_level
 
     return _patch_config
 
