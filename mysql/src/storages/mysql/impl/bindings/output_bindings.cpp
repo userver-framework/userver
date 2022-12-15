@@ -19,10 +19,12 @@ bool IsBindable(enum_field_types bind_type, enum_field_types field_type) {
   if (bind_type == MYSQL_TYPE_STRING) {
     return field_type == MYSQL_TYPE_STRING ||
            field_type == MYSQL_TYPE_VAR_STRING ||
-           field_type == MYSQL_TYPE_VARCHAR ||
-           // blobs
-           IsBlob(field_type);
-    // TODO : json
+           field_type == MYSQL_TYPE_VARCHAR || IsBlob(field_type);
+  }
+
+  if (bind_type == MYSQL_TYPE_DECIMAL) {
+    return field_type == MYSQL_TYPE_DECIMAL ||
+           field_type == MYSQL_TYPE_NEWDECIMAL;
   }
 
   if (bind_type == MYSQL_TYPE_JSON) {
@@ -146,6 +148,13 @@ void OutputBindings::Bind(std::size_t pos, double& val) {
 }
 void OutputBindings::Bind(std::size_t pos, O<double>& val) {
   BindPrimitiveOptional(pos, val);
+}
+
+void OutputBindings::Bind(std::size_t pos, io::DecimalWrapper& val) {
+  BindDecimal(pos, val);
+}
+void OutputBindings::Bind(std::size_t pos, O<io::DecimalWrapper>& val) {
+  BindOptionalDecimal(pos, val);
 }
 
 void OutputBindings::Bind(std::size_t pos, std::string& val) {
@@ -376,6 +385,83 @@ void OutputBindings::OptionalJsonAfterFetch(void* value, MYSQL_BIND& bind,
   }
 }
 
+void OutputBindings::BindDecimal(std::size_t pos, io::DecimalWrapper& val) {
+  UASSERT(pos < Size());
+
+  auto& bind = binds_[pos];
+  auto& cb = callbacks_[pos];
+
+  // !important: val is a reference to temporary, copy it
+  auto& buffer = intermediate_buffers_[pos];
+  buffer.decimal = val;
+
+  bind.buffer_type = MYSQL_TYPE_DECIMAL;
+  bind.buffer = nullptr;
+  bind.buffer_length = 0;
+  bind.length = &bind.length_value;
+
+  cb.value = &buffer.decimal;
+  cb.before_fetch_cb = &DecimalBeforeFetch;
+  cb.after_fetch_cb = &DecimalAfterFetch;
+}
+
+void OutputBindings::DecimalBeforeFetch(void*, MYSQL_BIND& bind,
+                                        FieldIntermediateBuffer& buffer) {
+  auto& string = buffer.string;
+
+  string.resize(bind.length_value);
+  bind.buffer = string.data();
+  bind.buffer_length = bind.length_value;
+}
+
+void OutputBindings::DecimalAfterFetch(void* value, MYSQL_BIND&,
+                                       FieldIntermediateBuffer& buffer) {
+  auto* wrapper = static_cast<io::DecimalWrapper*>(value);
+  UASSERT(wrapper);
+
+  wrapper->Restore(buffer.string);
+}
+
+void OutputBindings::BindOptionalDecimal(std::size_t pos,
+                                         O<io::DecimalWrapper>& val) {
+  UASSERT(pos < Size());
+  UASSERT(!val.has_value());
+
+  auto& bind = binds_[pos];
+  auto& cb = callbacks_[pos];
+
+  bind.buffer_type = MYSQL_TYPE_DECIMAL;
+  bind.buffer = nullptr;
+  bind.buffer_length = 0;
+  bind.length = &bind.length_value;
+  bind.is_null = &bind.is_null_value;
+
+  cb.value = &val;
+  cb.before_fetch_cb = &OptionalDecimalBeforeFetch;
+  cb.after_fetch_cb = &OptionalDecimalAfterFetch;
+}
+
+void OutputBindings::OptionalDecimalBeforeFetch(
+    void*, MYSQL_BIND& bind, FieldIntermediateBuffer& buffer) {
+  auto& string = buffer.string;
+  if (!bind.is_null_value) {
+    string.resize(bind.length_value);
+    bind.buffer = string.data();
+    bind.buffer_length = bind.length_value;
+  }
+}
+
+void OutputBindings::OptionalDecimalAfterFetch(
+    void* value, MYSQL_BIND& bind, FieldIntermediateBuffer& buffer) {
+  auto* optional = static_cast<std::optional<io::DecimalWrapper>*>(value);
+  UASSERT(optional);
+
+  if (!bind.is_null_value) {
+    optional->emplace();
+    DecimalAfterFetch(&*optional, bind, buffer);
+  }
+}
+
 void OutputBindings::ValidateAgainstStatement(MYSQL_STMT& statement) {
   const auto fields_count = mysql_stmt_field_count(&statement);
   UINVARIANT(fields_count == Size(),
@@ -441,6 +527,8 @@ void OutputBindings::ValidateBind(std::size_t pos, const MYSQL_BIND& bind,
                                 signed_to_string(is_field_signed),
                                 signed_to_string(is_bind_signed)));
   }
+
+  // TODO : validate decimal somehow
 }
 
 }  // namespace storages::mysql::impl::bindings

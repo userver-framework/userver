@@ -105,6 +105,13 @@ void InputBindings::Bind(std::size_t pos, C<O<double>>& val) {
   BindOptional(pos, val);
 }
 
+void InputBindings::Bind(std::size_t pos, C<io::DecimalWrapper>& val) {
+  BindDecimal(pos, val);
+}
+void InputBindings::Bind(std::size_t pos, C<O<io::DecimalWrapper>>& val) {
+  BindOptional(pos, val);
+}
+
 void InputBindings::Bind(std::size_t pos, C<std::string>& val) {
   Bind(pos, std::string_view{val});
 }
@@ -191,6 +198,18 @@ void InputBindings::BindJson(std::size_t pos, C<formats::json::Value>& val) {
   bind.buffer_type = MYSQL_TYPE_STRING;
   bind.buffer = json_str.data();
   bind.buffer_length = json_str.length();
+}
+
+void InputBindings::BindDecimal(std::size_t pos, C<io::DecimalWrapper>& val) {
+  UASSERT(pos < Size());
+
+  auto& decimal_str = intermediate_buffers_[pos].string;
+  decimal_str = val.GetValue();
+
+  auto& bind = binds_[pos];
+  bind.buffer_type = MYSQL_TYPE_DECIMAL;
+  bind.buffer = decimal_str.data();
+  bind.buffer_length = decimal_str.length();
 }
 
 void InputBindings::ValidateAgainstStatement(MYSQL_STMT& statement) {

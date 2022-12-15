@@ -8,6 +8,8 @@
 
 #include <userver/formats/json/value.hpp>
 
+#include <userver/storages/mysql/io/decimal_wrapper.hpp>
+
 #include <storages/mysql/impl/mariadb_include.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -63,6 +65,9 @@ class BindsStorageInterface : public NativeBindsHelper {
   virtual void Bind(std::size_t pos, C<O<float>>& val) = 0;
   virtual void Bind(std::size_t pos, C<double>& val) = 0;
   virtual void Bind(std::size_t pos, C<O<double>>& val) = 0;
+
+  virtual void Bind(std::size_t pos, C<io::DecimalWrapper>& val) = 0;
+  virtual void Bind(std::size_t pos, C<O<io::DecimalWrapper>>& val) = 0;
 
   virtual void Bind(std::size_t pos, C<std::string>& val) = 0;
   virtual void Bind(std::size_t pos, C<O<std::string>>& val) = 0;

@@ -7,6 +7,7 @@ namespace storages::mysql::impl::bindings {
 namespace {
 
 constexpr std::string_view kTypeDecimalStr{"MYSQL_TYPE_DECIMAL"};
+constexpr std::string_view kTypeNewDecimalStr{"MYSQL_TYPE_NEWDECIMAL"};
 constexpr std::string_view kTypeTinyStr{"MYSQL_TYPE_TINY"};
 constexpr std::string_view kTypeShortStr{"MYSQL_TYPE_SHORT"};
 constexpr std::string_view kTypeLongStr{"MYSQL_TYPE_LONG"};
@@ -31,6 +32,7 @@ std::string_view FieldTypeToString(enum_field_types type) {
   using Type = enum_field_types;
   switch (type) {
     case Type::MYSQL_TYPE_DECIMAL: return kTypeDecimalStr;
+    case Type::MYSQL_TYPE_NEWDECIMAL: return kTypeNewDecimalStr;
     case Type::MYSQL_TYPE_TINY: return kTypeTinyStr;
     case Type::MYSQL_TYPE_SHORT: return kTypeShortStr;
     case Type::MYSQL_TYPE_LONG: return kTypeLongStr;
@@ -59,7 +61,7 @@ bool NativeBindsHelper::IsFieldNumeric(enum_field_types type) {
   return type == MYSQL_TYPE_TINY || type == MYSQL_TYPE_SHORT ||
          type == MYSQL_TYPE_INT24 || type == MYSQL_TYPE_LONG ||
          type == MYSQL_TYPE_LONG_BLOB || type == MYSQL_TYPE_FLOAT ||
-         type == MYSQL_TYPE_DOUBLE;
+         type == MYSQL_TYPE_DOUBLE || type == MYSQL_TYPE_DECIMAL;
 }
 
 std::string_view NativeBindsHelper::NativeTypeToString(enum_field_types type) {

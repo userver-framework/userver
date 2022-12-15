@@ -50,6 +50,9 @@ class InputBindings final : public BindsStorageInterface<true> {
   void Bind(std::size_t pos, C<double>& val) final;
   void Bind(std::size_t pos, C<O<double>>& val) final;
 
+  void Bind(std::size_t pos, C<io::DecimalWrapper>& val) final;
+  void Bind(std::size_t pos, C<O<io::DecimalWrapper>>& val) final;
+
   void Bind(std::size_t pos, C<std::string>& val) final;
   void Bind(std::size_t pos, C<O<std::string>>& val) final;
   void Bind(std::size_t pos, C<std::string_view>& val) final;
@@ -80,6 +83,8 @@ class InputBindings final : public BindsStorageInterface<true> {
   void BindStringView(std::size_t pos, C<std::string_view>& val);
 
   void BindJson(std::size_t pos, C<formats::json::Value>& val);
+
+  void BindDecimal(std::size_t pos, C<io::DecimalWrapper>& val);
 
   struct FieldIntermediateBuffer final {
     MYSQL_TIME time{};     // for dates and the likes

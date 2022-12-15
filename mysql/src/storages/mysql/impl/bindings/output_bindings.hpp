@@ -46,17 +46,23 @@ class OutputBindings final : public BindsStorageInterface<false> {
   void Bind(std::size_t pos, double& val) final;
   void Bind(std::size_t pos, O<double>& val) final;
 
+  void Bind(std::size_t pos, io::DecimalWrapper& val) final;
+  void Bind(std::size_t pos, O<io::DecimalWrapper>& val) final;
+
   void Bind(std::size_t pos, std::string& val) final;
   void Bind(std::size_t pos, O<std::string>& val) final;
 
   void Bind(std::size_t pos, formats::json::Value& val) final;
   void Bind(std::size_t pos, O<formats::json::Value>& val) final;
 
+  // These 2 should never be called, so we just leave them unimplemented
   void Bind(std::size_t, std::string_view&) final {
-    UINVARIANT(false, "string_view in output params is not supported");
+    UINVARIANT(false,
+               "std::string_view for output binding should be unreachable");
   }
   void Bind(std::size_t, O<std::string_view>&) final {
-    UINVARIANT(false, "string_view in output params is not supported");
+    UINVARIANT(false,
+               "std::string_view for output binding should be unreachable");
   }
 
   void Bind(std::size_t pos, std::chrono::system_clock::time_point& val) final;
@@ -67,8 +73,9 @@ class OutputBindings final : public BindsStorageInterface<false> {
 
  private:
   struct FieldIntermediateBuffer final {
-    MYSQL_TIME time{};     // for dates and the likes
-    std::string string{};  // for json and what not
+    io::DecimalWrapper decimal{};  //
+    MYSQL_TIME time{};             // for dates and the likes
+    std::string string{};          // for json and what not
   };
 
   // The special problem of binding primitive optionals: we don't know whether
@@ -138,21 +145,42 @@ class OutputBindings final : public BindsStorageInterface<false> {
   static void OptionalJsonAfterFetch(void* value, MYSQL_BIND& bind,
                                      FieldIntermediateBuffer& buffer);
 
+  // The VERY special problem of binding decimals: decimal::Decimal64 is
+  // templated at call site, so we either have to specialize for every possible
+  // combination, which is insane, or bring mysql.h in public includes, which is
+  // a no-go, or do some dirty type erasure via proxy class and void*.
+  // We roll with void*, and what is even more scary is the fact that i'm
+  // actually enjoying it and feel very smart about myself.
+  // That aside, similar to json: alloc a buffer before
+  // fetch, emplace converted data after fetch
+  void BindDecimal(std::size_t pos, io::DecimalWrapper& val);
+  static void DecimalBeforeFetch(void* value, MYSQL_BIND& bind,
+                                 FieldIntermediateBuffer& buffer);
+  static void DecimalAfterFetch(void* value, MYSQL_BIND& bind,
+                                FieldIntermediateBuffer& buffer);
+
+  // Same problem as with decimal, same solution as with json: if not null -
+  // alloc before fetch, emplace with fetched data after fetch
+  void BindOptionalDecimal(std::size_t pos, O<io::DecimalWrapper>& val);
+  static void OptionalDecimalBeforeFetch(void* value, MYSQL_BIND& bind,
+                                         FieldIntermediateBuffer& buffer);
+  static void OptionalDecimalAfterFetch(void* value, MYSQL_BIND& bind,
+                                        FieldIntermediateBuffer& buffer);
+
   static void ValidateBind(std::size_t pos, const MYSQL_BIND& bind,
                            const MYSQL_FIELD& field);
 
   struct BindCallbacks final {
     // TODO : std::function
-    using BeforeFetchCb = void (*)(void* value, MYSQL_BIND& bind,
+    using TypedCallback = void (*)(void* value, MYSQL_BIND& bind,
                                    FieldIntermediateBuffer&);
-    using AfterFetchCb = void (*)(void* value, MYSQL_BIND& bind,
-                                  FieldIntermediateBuffer& buffer);
 
     void* value{nullptr};
-    BeforeFetchCb before_fetch_cb{nullptr};
-    AfterFetchCb after_fetch_cb{nullptr};
+    TypedCallback before_fetch_cb{nullptr};
+    TypedCallback after_fetch_cb{nullptr};
   };
 
+  // TODO : merge
   std::vector<BindCallbacks> callbacks_;
   std::vector<FieldIntermediateBuffer> intermediate_buffers_;
   std::vector<MYSQL_BIND> binds_;
@@ -185,7 +213,6 @@ void OutputBindings::PrimitiveOptionalBeforeFetch(void* value, MYSQL_BIND& bind,
   auto* optional = static_cast<std::optional<T>*>(value);
   UASSERT(optional);
 
-  // TODO : check this
   if (bind.is_null_value) {
     optional->reset();
   }

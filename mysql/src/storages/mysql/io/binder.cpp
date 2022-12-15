@@ -1,5 +1,7 @@
 #include <userver/storages/mysql/io/binder.hpp>
 
+#include <userver/storages/mysql/io/decimal_wrapper.hpp>
+
 #include <storages/mysql/impl/bindings/input_bindings.hpp>
 #include <storages/mysql/impl/bindings/output_bindings.hpp>
 
@@ -35,7 +37,7 @@ DEFINE_BINDER(std::uint64_t)
 DEFINE_BINDER(std::int64_t)
 DEFINE_BINDER(float)
 DEFINE_BINDER(double)
-// string types
+DEFINE_BINDER(io::DecimalWrapper)
 DEFINE_BINDER(std::string)
 DEFINE_BINDER(std::string_view)
 DEFINE_BINDER(formats::json::Value)
