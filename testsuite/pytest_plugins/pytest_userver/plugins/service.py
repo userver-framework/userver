@@ -156,6 +156,7 @@ def _userver_log_handler(pytestconfig, testsuite_logger, _uservice_logfile):
 def _uservice_logfile(pytestconfig):
     path = pytestconfig.option.service_logs_file
     if not path:
-        return None
-    with path.open('wb') as fp:
-        yield fp
+        yield Nond
+    else:
+        with path.open('wb') as fp:
+            yield fp
