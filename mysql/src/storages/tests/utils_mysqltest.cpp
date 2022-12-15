@@ -126,6 +126,8 @@ TmpTable::TmpTable(ClusterWrapper& cluster, std::string_view definition)
 // We don't drop table here because it seems to be very slow
 TmpTable::~TmpTable() = default;
 
+ClusterWrapper& TmpTable::GetCluster() const { return cluster_; }
+
 Transaction TmpTable::Begin() {
   return cluster_->Begin(ClusterHostType::kMaster, cluster_.GetDeadline());
 }

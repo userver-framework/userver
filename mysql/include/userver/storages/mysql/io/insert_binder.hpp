@@ -86,7 +86,8 @@ class InsertBinder final : public InsertBinderBase {
     template <typename Field, std::size_t Index>
     void operator()(const Field& f,
                     std::integral_constant<std::size_t, Index>) {
-      if constexpr (std::is_same_v<Field, std::string>) {
+      if constexpr (std::is_same_v<Field, std::string> ||
+                    std::is_same_v<Field, std::string_view>) {
         binder_.current_row_buffers_[Index] = {f.data(), f.length()};
       } else {
         binder_.current_row_buffers_[Index] = {&f, 0};

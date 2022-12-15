@@ -68,6 +68,8 @@ class TmpTable final {
   StatementResultSet DefaultExecute(std::string_view source,
                                     const Args&... args);
 
+  ClusterWrapper& GetCluster() const;
+
   Transaction Begin();
 
   engine::Deadline GetDeadline() const;

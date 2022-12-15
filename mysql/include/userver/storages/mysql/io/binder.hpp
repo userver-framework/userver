@@ -77,11 +77,6 @@ class OutputBinder final {
       static_assert(!sizeof(T),
                     "Don't store steady_clock times in the database, use "
                     "system_clock instead");
-    } else if constexpr (std::is_same_v<std::string_view, T> ||
-                         std::is_same_v<std::optional<std::string_view>, T>) {
-      static_assert(
-          !sizeof(T),
-          "Don't use std::string_view in output params, since it's not-owning");
     } else {
       static_assert(!sizeof(T), "Binding for the type is not implemented");
     }
@@ -151,12 +146,18 @@ template <typename T>
 auto GetInputBinder(impl::bindings::InputBindings& binds, std::size_t pos,
                     T& field) {
   return InputBinder<T>{binds, pos, field};
-  // return GetBinder<InputBinder>(binds, pos, field);
 }
 
 template <typename T>
 auto GetOutputBinder(impl::bindings::OutputBindings& binds, std::size_t pos,
                      T& field) {
+  if constexpr (std::is_same_v<std::string_view, T> ||
+                std::is_same_v<std::optional<std::string_view>, T>) {
+    static_assert(
+        !sizeof(T),
+        "Don't use std::string_view in output params, since it's not-owning");
+  }
+
   return OutputBinder<T>(binds, pos, field);
 }
 
