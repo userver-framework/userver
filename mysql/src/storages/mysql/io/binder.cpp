@@ -38,6 +38,7 @@ DEFINE_BINDER(double)
 // string types
 DEFINE_BINDER(std::string)
 DEFINE_BINDER(std::string_view)
+DEFINE_BINDER(formats::json::Value)
 // date types
 DEFINE_BINDER(std::chrono::system_clock::time_point)
 

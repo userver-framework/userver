@@ -1,12 +1,15 @@
 #include <userver/utest/utest.hpp>
 #include "../utils_mysqltest.hpp"
 
+#include <userver/formats/json/inline.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::mysql::tests {
 
 namespace {
 
+// TODO : dates
 constexpr std::string_view kTableDefinitionNotNull = R"(
 uint8_t TINYINT UNSIGNED NOT NULL,
 int8_t TINYINT NOT NULL,
@@ -19,7 +22,8 @@ int64_t BIGINT NOT NULL,
 float_t FLOAT NOT NULL,
 double_t DOUBLE NOT NULL,
 string_t TEXT NOT NULL,
-datetime_6_t DATETIME(6) NOT NULL
+datetime_6_t DATETIME(6) NOT NULL,
+json_t JSON NOT NULL
 )";
 
 constexpr std::string_view kTableDefinitionNullable = R"(
@@ -34,7 +38,8 @@ int64_t BIGINT,
 float_t FLOAT,
 double_t DOUBLE,
 string_t TEXT,
-datetime_6_t DATETIME(6)
+datetime_6_t DATETIME(6),
+json_t JSON
 )";
 
 constexpr std::string_view kInsertQueryTemplate = R"(
@@ -50,8 +55,9 @@ INSERT INTO {}(
   float_t,
   double_t,
   string_t,
-  datetime_6_t
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  datetime_6_t,
+  json_t
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 )";
 
 constexpr std::string_view kSelectQueryTemplate = R"(
@@ -67,7 +73,8 @@ SELECT
   float_t,
   double_t,
   string_t,
-  datetime_6_t
+  datetime_6_t,
+  json_t
 FROM {}
 )";
 
@@ -84,6 +91,7 @@ struct AllSupportedTypesNotNull final {
   double double_t{};
   std::string string_t{};
   std::chrono::system_clock::time_point datetime_6_t{};
+  userver::formats::json::Value json_t{};
 };
 
 struct AllSupportedTypesNullable final {
@@ -99,6 +107,7 @@ struct AllSupportedTypesNullable final {
   std::optional<double> double_t{};
   std::optional<std::string> string_t{};
   std::optional<std::chrono::system_clock::time_point> datetime_6_t{};
+  std::optional<userver::formats::json::Value> json_t{};
 };
 
 }  // namespace
@@ -123,7 +132,9 @@ UTEST(AllSupportedTypes, NotNull) {
       9.1f,                                     //
       10.2,                                     //
       "string_value_long_enough_to_avoid_sso",  //
-      std::chrono::system_clock::now()};
+      std::chrono::system_clock::now(),         //
+      formats::json::MakeObject("key", 13)      //
+  };
 
   cluster->InsertOne(cluster.GetDeadline(), insert_query, row_to_insert);
 
@@ -145,6 +156,7 @@ UTEST(AllSupportedTypes, NotNull) {
   EXPECT_EQ(row_to_insert.string_t, db_row.string_t);
   EXPECT_EQ(ToMariaDBPrecision(row_to_insert.datetime_6_t),
             db_row.datetime_6_t);
+  EXPECT_EQ(row_to_insert.json_t, db_row.json_t);
 }
 
 UTEST(AllSupportedTypes, NullableWithNulls) {
@@ -187,7 +199,9 @@ UTEST(AllSupportedTypes, NullableWithValues) {
       9.1f,                                     //
       10.2,                                     //
       "string_value_long_enough_to_avoid_sso",  //
-      std::chrono::system_clock::now()};
+      std::chrono::system_clock::now(),         //
+      formats::json::MakeObject("key", 13)      //
+  };
   cluster->InsertOne(cluster.GetDeadline(), insert_query, row_to_insert);
 
   const auto db_row = cluster

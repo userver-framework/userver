@@ -10,6 +10,8 @@
 
 #include <userver/utils/fast_pimpl.hpp>
 
+#include <userver/formats/json/value.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::mysql {
@@ -130,17 +132,20 @@ DECLARE_BINDER(std::uint8_t)
 DECLARE_BINDER(std::int8_t)
 DECLARE_BINDER(std::uint16_t)
 DECLARE_BINDER(std::int16_t)
-DECLARE_BINDER(std::int32_t)
 DECLARE_BINDER(std::uint32_t)
+DECLARE_BINDER(std::int32_t)
 DECLARE_BINDER(std::uint64_t)
 DECLARE_BINDER(std::int64_t)
 DECLARE_BINDER(float)
 DECLARE_BINDER(double)
+// TODO : decimal
 // string types
 DECLARE_BINDER(std::string)
-DECLARE_BINDER(std::string_view)
+DECLARE_BINDER(std::string_view)  // why not for input, disabled for output
+DECLARE_BINDER(formats::json::Value)
 // date types
 DECLARE_BINDER(std::chrono::system_clock::time_point)
+// TODO : duration
 
 template <typename T>
 auto GetInputBinder(impl::bindings::InputBindings& binds, std::size_t pos,

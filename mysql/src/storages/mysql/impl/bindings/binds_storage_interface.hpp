@@ -6,6 +6,8 @@
 #include <string>
 #include <string_view>
 
+#include <userver/formats/json/value.hpp>
+
 #include <storages/mysql/impl/mariadb_include.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -18,6 +20,8 @@ struct NativeBindsHelper {
 
   template <typename T>
   static constexpr enum_field_types GetNativeType(T&);
+
+  static bool IsFieldNumeric(enum_field_types type);
 
   static std::string_view NativeTypeToString(enum_field_types type);
 };
@@ -65,6 +69,9 @@ class BindsStorageInterface : public NativeBindsHelper {
   virtual void Bind(std::size_t pos, C<std::string_view>& val) = 0;
   virtual void Bind(std::size_t pos, C<O<std::string_view>>& val) = 0;
 
+  virtual void Bind(std::size_t pos, C<formats::json::Value>& val) = 0;
+  virtual void Bind(std::size_t pos, C<O<formats::json::Value>>& val) = 0;
+
   virtual void Bind(std::size_t pos,
                     C<std::chrono::system_clock::time_point>& val) = 0;
   virtual void Bind(std::size_t pos,
@@ -104,6 +111,8 @@ constexpr enum_field_types NativeBindsHelper::GetNativeType() {
   } else if constexpr (std::is_same_v<std::chrono::system_clock::time_point,
                                       T>) {
     return MYSQL_TYPE_DATETIME;
+  } else if constexpr (std::is_same_v<formats::json::Value, T>) {
+    return MYSQL_TYPE_JSON;
   } else {
     static_assert(!sizeof(T), "This shouldn't fire, fix me");
   }

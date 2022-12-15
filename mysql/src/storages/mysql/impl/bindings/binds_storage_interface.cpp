@@ -55,6 +55,13 @@ std::string_view FieldTypeToString(enum_field_types type) {
 // clang-format on
 }  // namespace
 
+bool NativeBindsHelper::IsFieldNumeric(enum_field_types type) {
+  return type == MYSQL_TYPE_TINY || type == MYSQL_TYPE_SHORT ||
+         type == MYSQL_TYPE_INT24 || type == MYSQL_TYPE_LONG ||
+         type == MYSQL_TYPE_LONG_BLOB || type == MYSQL_TYPE_FLOAT ||
+         type == MYSQL_TYPE_DOUBLE;
+}
+
 std::string_view NativeBindsHelper::NativeTypeToString(enum_field_types type) {
   return FieldTypeToString(type);
 }

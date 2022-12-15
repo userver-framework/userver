@@ -200,7 +200,9 @@ void MySQLStatement::UpdateParamsBindings(io::ParamsBinderBase& params) {
   binds.ValidateAgainstStatement(*native_statement_);
 
   if (!binds.Empty()) {
-    mysql_stmt_bind_param(native_statement_.get(), binds.GetBindsArray());
+    if (mysql_stmt_bind_param(native_statement_.get(), binds.GetBindsArray())) {
+      int a = 5;
+    }
 
     if (auto rows_count = params.GetRowsCount(); rows_count > 1) {
       const auto& server_info = connection_->GetServerInfo();

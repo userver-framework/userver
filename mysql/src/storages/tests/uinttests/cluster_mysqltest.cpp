@@ -117,7 +117,7 @@ UTEST(StreamedResult, Works) {
 
   TmpTable table{cluster, "Id INT NOT NULL, Value TEXT NOT NULL"};
 
-  constexpr std::size_t kRowsCount = 100;
+  constexpr std::size_t kRowsCount = 10;
   std::vector<Row> rows_to_insert;
   rows_to_insert.reserve(kRowsCount);
 
@@ -140,7 +140,7 @@ UTEST(StreamedResult, Works) {
   db_rows.reserve(kRowsCount);
 
   cluster
-      ->GetCursor<Row>(kMasterHost, cluster.GetDeadline(), 42,
+      ->GetCursor<Row>(kMasterHost, cluster.GetDeadline(), 3,
                        table.FormatWithTableName("SELECT Id, Value FROM {}"))
       .ForEach([&db_rows](Row&& row) { db_rows.push_back(std::move(row)); },
                cluster.GetDeadline());
@@ -174,7 +174,7 @@ UTEST(Cluster, InsertMany) {
   const std::string long_string_to_avoid_sso{
       "hi i am some long string that doesn't fit in sso"};
 
-  constexpr int kRowsCount = 100;
+  constexpr int kRowsCount = 100'000;
 
   std::vector<Row> rows_to_insert;
   rows_to_insert.reserve(kRowsCount);
@@ -195,7 +195,9 @@ UTEST(Cluster, InsertMany) {
 UTEST(ShowCase, Basic) {
   ClusterWrapper cluster{};
 
-  TmpTable table{cluster, "Id INT, Value TEXT, CreatedAt DATETIME(6)"};
+  TmpTable table{
+      cluster,
+      "Id INT NOT NULL, Value TEXT NOT NULL, CreatedAt DATETIME(6) NOT NULL"};
 
   const auto deadline = cluster.GetDeadline();
 
@@ -212,6 +214,47 @@ UTEST(ShowCase, Basic) {
                   "SELECT Id, Value, CreatedAt FROM {} WHERE CreatedAt > ?"),
               std::chrono::system_clock::now() - std::chrono::hours{3})
           .AsVector<Row>();
+
+  table.DefaultExecute("INSERT INTO {} VALUES(?, ?, ?)", 1, "we",
+                       std::chrono::system_clock::now());
+
+  const std::vector<Row> we =
+      cluster
+          ->Execute(
+              ClusterHostType::kMaster, deadline,
+              table.FormatWithTableName(
+                  "SELECT Id, Value, CreatedAt FROM {} WHERE CreatedAt > ?"),
+              std::chrono::system_clock::now() - std::chrono::hours{3})
+          .AsVector<Row>();
+}
+
+UTEST(ShowCase, BatchInsert) {
+  ClusterWrapper cluster{};
+  TmpTable table{cluster, "Id INT NOT NULL, Value TEXT NOT NULL"};
+
+  struct Row final {
+    std::int32_t id;
+    std::string value;
+  };
+
+  constexpr int kRowsCount = 100'000;
+  std::vector<Row> rows_to_insert;
+  rows_to_insert.reserve(kRowsCount);
+  for (int i = 0; i < kRowsCount; ++i) {
+    rows_to_insert.push_back(
+        {i, "i am just some random string, don't mind me"});
+  }
+
+  const auto deadline = engine::Deadline::FromDuration(std::chrono::seconds{2});
+
+  cluster->InsertMany(deadline,
+                      "INSERT INTO batch_insert_test (Id, Value) VALUES(?, ?)",
+                      rows_to_insert);
+
+  cluster->InsertMany(
+      deadline,
+      table.FormatWithTableName("INSERT INTO {}(Id, Value) VALUES(?, ?)"),
+      rows_to_insert);
 }
 
 }  // namespace storages::mysql::tests

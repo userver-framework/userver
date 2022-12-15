@@ -55,6 +55,9 @@ class InputBindings final : public BindsStorageInterface<true> {
   void Bind(std::size_t pos, C<std::string_view>& val) final;
   void Bind(std::size_t pos, C<O<std::string_view>>& val) final;
 
+  void Bind(std::size_t pos, C<formats::json::Value>& val) final;
+  void Bind(std::size_t pos, C<O<formats::json::Value>>& val) final;
+
   void Bind(std::size_t pos,
             C<std::chrono::system_clock::time_point>& val) final;
   void Bind(std::size_t pos,
@@ -76,8 +79,14 @@ class InputBindings final : public BindsStorageInterface<true> {
 
   void BindStringView(std::size_t pos, C<std::string_view>& val);
 
+  void BindJson(std::size_t pos, C<formats::json::Value>& val);
+
+  struct FieldIntermediateBuffer final {
+    MYSQL_TIME time{};     // for dates and the likes
+    std::string string{};  // for json and what not
+  };
   std::vector<MYSQL_BIND> binds_;
-  std::vector<MYSQL_TIME> dates_;
+  std::vector<FieldIntermediateBuffer> intermediate_buffers_;
 
   ParamsCallback params_cb_{nullptr};
   void* user_data_{nullptr};

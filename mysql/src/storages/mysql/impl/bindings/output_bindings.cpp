@@ -9,22 +9,29 @@ namespace storages::mysql::impl::bindings {
 
 namespace {
 
+bool IsBlob(enum_field_types field_type) {
+  return field_type == MYSQL_TYPE_BLOB || field_type == MYSQL_TYPE_TINY_BLOB ||
+         field_type == MYSQL_TYPE_MEDIUM_BLOB ||
+         field_type == MYSQL_TYPE_LONG_BLOB;
+}
+
 bool IsBindable(enum_field_types bind_type, enum_field_types field_type) {
   if (bind_type == MYSQL_TYPE_STRING) {
     return field_type == MYSQL_TYPE_STRING ||
            field_type == MYSQL_TYPE_VAR_STRING ||
            field_type == MYSQL_TYPE_VARCHAR ||
            // blobs
-           field_type == MYSQL_TYPE_BLOB ||
-           field_type == MYSQL_TYPE_TINY_BLOB ||
-           field_type == MYSQL_TYPE_MEDIUM_BLOB ||
-           field_type == MYSQL_TYPE_LONG_BLOB;
+           IsBlob(field_type);
     // TODO : json
+  }
+
+  if (bind_type == MYSQL_TYPE_JSON) {
+    return field_type == MYSQL_TYPE_JSON || IsBlob(field_type);
   }
 
   if (bind_type == MYSQL_TYPE_DATETIME) {
     return field_type == MYSQL_TYPE_DATE || field_type == MYSQL_TYPE_DATETIME ||
-           field_type == MYSQL_TYPE_TIMESTAMP;
+           field_type == MYSQL_TYPE_TIMESTAMP || field_type == MYSQL_TYPE_TIME;
 
     // TODO : MYSQL_TYPE_TIME?
   }
@@ -39,7 +46,7 @@ OutputBindings::OutputBindings(std::size_t size) {
 
   // Not always necessary, but we can live with that
   callbacks_.resize(size);
-  dates_.resize(size);
+  intermediate_buffers_.resize(size);
 }
 
 void OutputBindings::BeforeFetch(std::size_t pos) {
@@ -47,9 +54,10 @@ void OutputBindings::BeforeFetch(std::size_t pos) {
 
   auto& bind = binds_[pos];
   auto& cb = callbacks_[pos];
+  auto& intermediate_buffer = intermediate_buffers_[pos];
 
   if (cb.before_fetch_cb) {
-    cb.before_fetch_cb(cb.value, bind);
+    cb.before_fetch_cb(cb.value, bind, intermediate_buffer);
   }
 }
 
@@ -58,10 +66,10 @@ void OutputBindings::AfterFetch(std::size_t pos) {
 
   auto& bind = binds_[pos];
   auto& cb = callbacks_[pos];
-  auto& date = dates_[pos];
+  auto& buffer = intermediate_buffers_[pos];
 
   if (cb.after_fetch_cb) {
-    cb.after_fetch_cb(cb.value, bind, date);
+    cb.after_fetch_cb(cb.value, bind, buffer);
   }
 }
 
@@ -147,6 +155,13 @@ void OutputBindings::Bind(std::size_t pos, O<std::string>& val) {
   BindOptionalString(pos, val);
 }
 
+void OutputBindings::Bind(std::size_t pos, formats::json::Value& val) {
+  BindJson(pos, val);
+}
+void OutputBindings::Bind(std::size_t pos, O<formats::json::Value>& val) {
+  BindOptionalJson(pos, val);
+}
+
 void OutputBindings::Bind(std::size_t pos,
                           std::chrono::system_clock::time_point& val) {
   BindDate(pos, val);
@@ -183,11 +198,11 @@ void OutputBindings::BindString(std::size_t pos, std::string& val) {
   cb.before_fetch_cb = &StringBeforeFetch;
 }
 
-void OutputBindings::StringBeforeFetch(void* value, MYSQL_BIND& bind) {
+void OutputBindings::StringBeforeFetch(void* value, MYSQL_BIND& bind,
+                                       FieldIntermediateBuffer&) {
   auto* string = static_cast<std::string*>(value);
   UASSERT(string);
 
-  // TODO : check length
   string->resize(bind.length_value);
   bind.buffer = string->data();
   bind.buffer_length = bind.length_value;
@@ -211,13 +226,12 @@ void OutputBindings::BindOptionalString(std::size_t pos,
   cb.before_fetch_cb = &OptionalStringBeforeFetch;
 }
 
-void OutputBindings::OptionalStringBeforeFetch(void* value, MYSQL_BIND& bind) {
+void OutputBindings::OptionalStringBeforeFetch(void* value, MYSQL_BIND& bind,
+                                               FieldIntermediateBuffer&) {
   auto* optional = static_cast<std::optional<std::string>*>(value);
   UASSERT(optional);
 
-  // TODO : check this
   if (!bind.is_null_value) {
-    // TODO : check length
     optional->emplace(bind.length_value, 0);
     bind.buffer = (*optional)->data();
     bind.buffer_length = bind.length_value;
@@ -228,7 +242,7 @@ void OutputBindings::BindDate(std::size_t pos,
                               std::chrono::system_clock::time_point& val) {
   UASSERT(pos < Size());
 
-  auto& date = dates_[pos];
+  auto& date = intermediate_buffers_[pos].time;
   auto& bind = binds_[pos];
   auto& cb = callbacks_[pos];
 
@@ -241,10 +255,11 @@ void OutputBindings::BindDate(std::size_t pos,
 }
 
 void OutputBindings::DateAfterFetch(void* value, MYSQL_BIND&,
-                                    MYSQL_TIME& date) {
+                                    FieldIntermediateBuffer& buffer) {
   auto* timepoint = static_cast<std::chrono::system_clock::time_point*>(value);
   UASSERT(timepoint);
 
+  auto& date = buffer.time;
   const date::year year(date.year);
   const date::month month{date.month};
   const date::day day{date.day};
@@ -263,7 +278,7 @@ void OutputBindings::BindOptionalDate(
   UASSERT(pos < Size());
   UASSERT(!val.has_value());
 
-  auto& date = dates_[pos];
+  auto& date = intermediate_buffers_[pos].time;
   auto& bind = binds_[pos];
   auto& cb = callbacks_[pos];
 
@@ -277,15 +292,87 @@ void OutputBindings::BindOptionalDate(
 }
 
 void OutputBindings::OptionalDateAfterFetch(void* value, MYSQL_BIND& bind,
-                                            MYSQL_TIME& date) {
+                                            FieldIntermediateBuffer& buffer) {
   auto* optional =
       static_cast<std::optional<std::chrono::system_clock::time_point>*>(value);
   UASSERT(optional);
 
-  // TODO : check this
   if (!bind.is_null_value) {
     optional->emplace();
-    OutputBindings::DateAfterFetch(&*optional, bind, date);
+    DateAfterFetch(&*optional, bind, buffer);
+  }
+}
+
+void OutputBindings::BindJson(std::size_t pos, formats::json::Value& val) {
+  UASSERT(pos < Size());
+
+  auto& bind = binds_[pos];
+  auto& cb = callbacks_[pos];
+
+  bind.buffer_type = MYSQL_TYPE_JSON;
+  bind.buffer = nullptr;
+  bind.buffer_length = 0;
+  bind.length = &bind.length_value;
+
+  cb.value = &val;
+  cb.before_fetch_cb = &JsonBeforeFetch;
+  cb.after_fetch_cb = &JsonAfterFetch;
+}
+
+void OutputBindings::JsonBeforeFetch(void*, MYSQL_BIND& bind,
+                                     FieldIntermediateBuffer& buffer) {
+  auto& string = buffer.string;
+
+  string.resize(bind.length_value);
+  bind.buffer = string.data();
+  bind.buffer_length = bind.length_value;
+}
+
+void OutputBindings::JsonAfterFetch(void* value, MYSQL_BIND&,
+                                    FieldIntermediateBuffer& buffer) {
+  auto* json = static_cast<formats::json::Value*>(value);
+  UASSERT(json);
+
+  *json = formats::json::FromString(buffer.string);
+}
+
+void OutputBindings::BindOptionalJson(
+    std::size_t pos, std::optional<formats::json::Value>& val) {
+  UASSERT(pos < Size());
+  UASSERT(!val.has_value());
+
+  auto& bind = binds_[pos];
+  auto& cb = callbacks_[pos];
+
+  bind.buffer_type = MYSQL_TYPE_JSON;
+  bind.buffer = nullptr;
+  bind.buffer_length = 0;
+  bind.length = &bind.length_value;
+  bind.is_null = &bind.is_null_value;
+
+  cb.value = &val;
+  cb.before_fetch_cb = &OptionalJsonBeforeFetch;
+  cb.after_fetch_cb = &OptionalJsonAfterFetch;
+}
+
+void OutputBindings::OptionalJsonBeforeFetch(void*, MYSQL_BIND& bind,
+                                             FieldIntermediateBuffer& buffer) {
+  auto& string = buffer.string;
+  if (!bind.is_null_value) {
+    string.resize(bind.length_value);
+    bind.buffer = string.data();
+    bind.buffer_length = bind.length_value;
+  }
+}
+
+void OutputBindings::OptionalJsonAfterFetch(void* value, MYSQL_BIND& bind,
+                                            FieldIntermediateBuffer& buffer) {
+  auto* optional = static_cast<std::optional<formats::json::Value>*>(value);
+  UASSERT(optional);
+
+  if (!bind.is_null_value) {
+    optional->emplace();
+    JsonAfterFetch(&*optional, bind, buffer);
   }
 }
 
@@ -344,13 +431,16 @@ void OutputBindings::ValidateBind(std::size_t pos, const MYSQL_BIND& bind,
   const auto signed_to_string = [](bool is_nullable) -> std::string_view {
     return is_nullable ? "signed" : "unsigned";
   };
-  // validate signed/unsigned
-  const bool is_bind_signed = !bind.is_unsigned;
-  const bool is_field_signed = !(field.flags & UNSIGNED_FLAG);
-  UINVARIANT(is_field_signed == is_bind_signed,
-             error_for_column("field is {} in DB but {} in client code",
-                              signed_to_string(is_field_signed),
-                              signed_to_string(is_bind_signed)));
+  // validate signed/unsigned for numeric types (mysql and mariadb handle
+  // TIMESTAMP differently, and there is no point in validating it here anyway)
+  if (IsFieldNumeric(field.type)) {
+    const bool is_bind_signed = !bind.is_unsigned;
+    const bool is_field_signed = !(field.flags & UNSIGNED_FLAG);
+    UINVARIANT(is_bind_signed == is_field_signed,
+               error_for_column("field is {} in DB but {} in client code",
+                                signed_to_string(is_field_signed),
+                                signed_to_string(is_bind_signed)));
+  }
 }
 
 }  // namespace storages::mysql::impl::bindings

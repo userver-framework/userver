@@ -49,6 +49,9 @@ class OutputBindings final : public BindsStorageInterface<false> {
   void Bind(std::size_t pos, std::string& val) final;
   void Bind(std::size_t pos, O<std::string>& val) final;
 
+  void Bind(std::size_t pos, formats::json::Value& val) final;
+  void Bind(std::size_t pos, O<formats::json::Value>& val) final;
+
   void Bind(std::size_t, std::string_view&) final {
     UINVARIANT(false, "string_view in output params is not supported");
   }
@@ -60,9 +63,14 @@ class OutputBindings final : public BindsStorageInterface<false> {
   void Bind(std::size_t pos,
             O<std::chrono::system_clock::time_point>& val) final;
 
-  void ValidateAgainstStatement(MYSQL_STMT& statement);
+  void ValidateAgainstStatement(MYSQL_STMT& statement) final;
 
  private:
+  struct FieldIntermediateBuffer final {
+    MYSQL_TIME time{};     // for dates and the likes
+    std::string string{};  // for json and what not
+  };
+
   // The special problem of binding primitive optionals: we don't know whether
   // it contains a value upfront, so after mysql_stmt_fetch we have to determine
   // it and if it does emplace the optional and fix the buffer before
@@ -76,7 +84,8 @@ class OutputBindings final : public BindsStorageInterface<false> {
   void BindPrimitiveOptional(std::size_t pos, std::optional<T>& val,
                              bool is_unsigned = false);
   template <typename T>
-  static void PrimitiveOptionalBeforeFetch(void* value, MYSQL_BIND& bind);
+  static void PrimitiveOptionalBeforeFetch(void* value, MYSQL_BIND& bind,
+                                           FieldIntermediateBuffer&);
 
   void BindValue(std::size_t pos, enum_field_types type, void* buffer,
                  bool is_unsigned = false);
@@ -85,20 +94,23 @@ class OutputBindings final : public BindsStorageInterface<false> {
   // upfront, so after mysql_stmt_fetch we have MYSQL_TRUNCATED and length set,
   // now we have to resize the string accordingly before mysql_stmt_fetch_column
   void BindString(std::size_t pos, std::string& val);
-  static void StringBeforeFetch(void* value, MYSQL_BIND& bind);
+  static void StringBeforeFetch(void* value, MYSQL_BIND& bind,
+                                FieldIntermediateBuffer&);
 
   // The special problem of binding optional strings: same as for strings, but
   // now we have to determine whether it contains a value first, and if it does
   // emplace the optional and resize its string
   void BindOptionalString(std::size_t pos, std::optional<std::string>& val);
-  static void OptionalStringBeforeFetch(void* value, MYSQL_BIND& bind);
+  static void OptionalStringBeforeFetch(void* value, MYSQL_BIND& bind,
+                                        FieldIntermediateBuffer&);
 
   // The special problem of binding dates: they are not buffer-wise
   // compatible with C++ types, so we have to store DB date in some
   // storage first, call mysql_stmt_fetch_column and fill the C++ type after
   // that
   void BindDate(std::size_t pos, std::chrono::system_clock::time_point& val);
-  static void DateAfterFetch(void* value, MYSQL_BIND& bind, MYSQL_TIME& date);
+  static void DateAfterFetch(void* value, MYSQL_BIND& bind,
+                             FieldIntermediateBuffer& buffer);
 
   // The special problem of binding optional dates: same as for dates, but have
   // to emplace the optional first if a value is present
@@ -106,15 +118,35 @@ class OutputBindings final : public BindsStorageInterface<false> {
       std::size_t pos,
       std::optional<std::chrono::system_clock::time_point>& val);
   static void OptionalDateAfterFetch(void* value, MYSQL_BIND& bind,
-                                     MYSQL_TIME& date);
+                                     FieldIntermediateBuffer& buffer);
+
+  // The special problem of binding jsons: basically as with strings, but we
+  // can't fetch into json directly, so we use a temporary buffer which we alloc
+  // before column fetch and feed into json::Value after column fetch
+  void BindJson(std::size_t pos, formats::json::Value& val);
+  static void JsonBeforeFetch(void* value, MYSQL_BIND& bind,
+                              FieldIntermediateBuffer& buffer);
+  static void JsonAfterFetch(void* value, MYSQL_BIND& bind,
+                             FieldIntermediateBuffer& buffer);
+
+  // The special problem of binding optional jsons: basically the same as with
+  // jsons, but have to determine whether it's a null or not first
+  void BindOptionalJson(std::size_t pos,
+                        std::optional<formats::json::Value>& val);
+  static void OptionalJsonBeforeFetch(void* value, MYSQL_BIND& bind,
+                                      FieldIntermediateBuffer& buffer);
+  static void OptionalJsonAfterFetch(void* value, MYSQL_BIND& bind,
+                                     FieldIntermediateBuffer& buffer);
 
   static void ValidateBind(std::size_t pos, const MYSQL_BIND& bind,
                            const MYSQL_FIELD& field);
 
   struct BindCallbacks final {
-    using BeforeFetchCb = void (*)(void* value, MYSQL_BIND& bind);
+    // TODO : std::function
+    using BeforeFetchCb = void (*)(void* value, MYSQL_BIND& bind,
+                                   FieldIntermediateBuffer&);
     using AfterFetchCb = void (*)(void* value, MYSQL_BIND& bind,
-                                  MYSQL_TIME& date);
+                                  FieldIntermediateBuffer& buffer);
 
     void* value{nullptr};
     BeforeFetchCb before_fetch_cb{nullptr};
@@ -122,7 +154,7 @@ class OutputBindings final : public BindsStorageInterface<false> {
   };
 
   std::vector<BindCallbacks> callbacks_;
-  std::vector<MYSQL_TIME> dates_;
+  std::vector<FieldIntermediateBuffer> intermediate_buffers_;
   std::vector<MYSQL_BIND> binds_;
 };
 
@@ -148,8 +180,8 @@ void OutputBindings::BindPrimitiveOptional(std::size_t pos,
 }
 
 template <typename T>
-void OutputBindings::PrimitiveOptionalBeforeFetch(void* value,
-                                                  MYSQL_BIND& bind) {
+void OutputBindings::PrimitiveOptionalBeforeFetch(void* value, MYSQL_BIND& bind,
+                                                  FieldIntermediateBuffer&) {
   auto* optional = static_cast<std::optional<T>*>(value);
   UASSERT(optional);
 

@@ -11,36 +11,11 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::mysql::impl::bindings {
 
-namespace {
-
-bool IsBindable(enum_field_types bind_type, enum_field_types field_type) {
-  if (bind_type == MYSQL_TYPE_STRING) {
-    return field_type == MYSQL_TYPE_STRING ||
-           field_type == MYSQL_TYPE_VAR_STRING ||
-           field_type == MYSQL_TYPE_VARCHAR ||
-           // blobs
-           field_type == MYSQL_TYPE_BLOB ||
-           field_type == MYSQL_TYPE_TINY_BLOB ||
-           field_type == MYSQL_TYPE_MEDIUM_BLOB ||
-           field_type == MYSQL_TYPE_LONG_BLOB;
-    // TODO : json
-  }
-
-  if (bind_type == MYSQL_TYPE_DATETIME) {
-    return field_type == MYSQL_TYPE_DATE || field_type == MYSQL_TYPE_DATETIME ||
-           field_type == MYSQL_TYPE_TIME || field_type == MYSQL_TYPE_TIMESTAMP;
-  }
-
-  return bind_type == field_type;
-}
-
-}  // namespace
-
 InputBindings::InputBindings(std::size_t size) {
   binds_.resize(size);
 
   // Not always necessary, but we can live with that
-  dates_.resize(size);
+  intermediate_buffers_.resize(size);
 }
 
 void InputBindings::SetParamsCallback(ParamsCallback params_cb) {
@@ -143,6 +118,13 @@ void InputBindings::Bind(std::size_t pos, C<O<std::string_view>>& val) {
   BindOptional(pos, val);
 }
 
+void InputBindings::Bind(std::size_t pos, C<formats::json::Value>& val) {
+  BindJson(pos, val);
+}
+void InputBindings::Bind(std::size_t pos, C<O<formats::json::Value>>& val) {
+  BindOptional(pos, val);
+}
+
 void InputBindings::Bind(std::size_t pos,
                          C<std::chrono::system_clock::time_point>& val) {
   BindDate(pos, val);
@@ -169,7 +151,7 @@ void InputBindings::BindDate(std::size_t pos,
   auto time = date::make_time(
       std::chrono::duration_cast<MariaDBTimepointResolution>(val - dp));
 
-  auto& native_time = dates_[pos];
+  auto& native_time = intermediate_buffers_[pos].time;
   native_time.year = ymd.year().operator int();
   native_time.month = ymd.month().operator unsigned int();
   native_time.day = ymd.day().operator unsigned int();
@@ -183,8 +165,7 @@ void InputBindings::BindDate(std::size_t pos,
   BindValue(pos, GetNativeType(val), native_time, sizeof(MYSQL_TIME));
 }
 
-void InputBindings::BindStringView(std::size_t pos,
-                                   const std::string_view& val) {
+void InputBindings::BindStringView(std::size_t pos, C<std::string_view>& val) {
   UASSERT(pos < Size());
 
   const void* buffer = val.data();
@@ -194,6 +175,22 @@ void InputBindings::BindStringView(std::size_t pos,
   // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
   bind.buffer = const_cast<void*>(buffer);
   bind.buffer_length = val.length();
+}
+
+void InputBindings::BindJson(std::size_t pos, C<formats::json::Value>& val) {
+  UASSERT(pos < Size());
+
+  auto& json_str = intermediate_buffers_[pos].string;
+  json_str = ToString(val);
+
+  auto& bind = binds_[pos];
+  // This should be MYSQL_TYPE_JSON ideally, but
+  // https://bugs.mysql.com/bug.php?id=95984
+  // MariaDB doesn't allow for json in params either
+  // https://github.com/MariaDB/server/blob/10.11/sql/sql_prepare.cc#L933
+  bind.buffer_type = MYSQL_TYPE_STRING;
+  bind.buffer = json_str.data();
+  bind.buffer_length = json_str.length();
 }
 
 void InputBindings::ValidateAgainstStatement(MYSQL_STMT& statement) {

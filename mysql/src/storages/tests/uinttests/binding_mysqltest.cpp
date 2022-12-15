@@ -85,22 +85,23 @@ UTEST(OutputBinding, AllSupportedDates) {
   ClusterWrapper cluster{};
   TmpTable table{cluster,
                  "DatetimeT DATETIME(6) NOT NULL, DateT DATE NOT NULL, "
-                 "TimestampT TIMESTAMP NOT NULL"};
+                 "TimestampT TIMESTAMP NOT NULL, TimeT TIME NOT NULL"};
 
   struct AllSupportedDates final {
     std::chrono::system_clock::time_point datetime;
     std::chrono::system_clock::time_point date;
     std::chrono::system_clock::time_point timestamp;
+    std::chrono::system_clock::time_point time;
   };
   const auto now = std::chrono::system_clock::now();
 
   cluster->InsertOne(
       cluster.GetDeadline(),
-      table.FormatWithTableName("INSERT INTO {} VALUES(?, ?, ?)"),
-      AllSupportedDates{now, now, now});
+      table.FormatWithTableName("INSERT INTO {} VALUES(?, ?, ?, ?)"),
+      AllSupportedDates{now, now, now, now});
 
   const auto row =
-      table.DefaultExecute("SELECT DatetimeT, DateT, TimestampT FROM {}")
+      table.DefaultExecute("SELECT DatetimeT, DateT, TimestampT, TimeT FROM {}")
           .AsSingleRow<AllSupportedDates>();
 
   const auto to_days = [](std::chrono::system_clock::time_point tp) {
