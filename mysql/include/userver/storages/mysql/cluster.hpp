@@ -8,8 +8,7 @@
 #include <userver/components/component_fwd.hpp>
 #include <userver/engine/deadline.hpp>
 
-#include <userver/storages/mysql/impl/io/insert_binder.hpp>
-#include <userver/storages/mysql/impl/io/result_binder.hpp>
+#include <userver/storages/mysql/impl/bind_helper.hpp>
 
 #include <userver/storages/mysql/cluster_host_type.hpp>
 #include <userver/storages/mysql/cursor_result_set.hpp>
@@ -69,8 +68,8 @@ class Cluster final {
 
   Transaction Begin(ClusterHostType host_type, engine::Deadline deadline);
 
-  void ExecuteNoPrepare(ClusterHostType host_type, engine::Deadline deadline,
-                        const std::string& command);
+  void ExecuteCommand(ClusterHostType host_type, engine::Deadline deadline,
+                      const std::string& command);
 
  private:
   StatementResultSet DoExecute(
@@ -112,7 +111,7 @@ CursorResultSet<T> Cluster::GetCursor(ClusterHostType host_type,
                                       std::size_t batch_size,
                                       const std::string& query,
                                       const Args&... args) const {
-  auto params_binder = impl::io::ParamsBinder::BindParams(args...);
+  auto params_binder = impl::BindHelper::BindParams(args...);
 
   return CursorResultSet<T>{
       DoExecute(host_type, query, params_binder, deadline, batch_size)};
@@ -121,18 +120,9 @@ CursorResultSet<T> Cluster::GetCursor(ClusterHostType host_type,
 template <typename T>
 void Cluster::InsertOne(engine::Deadline deadline,
                         const std::string& insert_query, const T& row) const {
-  // TODO : reuse DetectIsSuitableRowType from PG
-  using Row = std::decay_t<T>;
-  static_assert(boost::pfr::tuple_size_v<Row> != 0,
-                "Row to insert has zero columns");
+  auto params_binder = impl::BindHelper::BindRowAsParams(row);
 
-  auto binder = std::apply(
-      [](const auto&... args) {
-        return impl::io::ParamsBinder::BindParams(args...);
-      },
-      boost::pfr::structure_tie(row));
-
-  return DoInsert(insert_query, binder, deadline);
+  return DoInsert(insert_query, params_binder, deadline);
 }
 
 template <typename Container>
@@ -147,9 +137,9 @@ void Cluster::InsertMany(engine::Deadline deadline,
     }
   }
 
-  impl::io::InsertBinder binder{rows};
+  auto params_binder = impl::BindHelper::BindContainerAsParams(rows);
 
-  DoInsert(insert_query, binder, deadline);
+  DoInsert(insert_query, params_binder, deadline);
 }
 
 }  // namespace storages::mysql

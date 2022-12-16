@@ -49,13 +49,13 @@ Transaction Cluster::Begin(ClusterHostType host_type,
                            engine::Deadline deadline) {
   auto connection = topology_->SelectPool(host_type).Acquire(deadline);
 
-  return Transaction{std::move(connection)};
+  return Transaction{std::move(connection), deadline};
 }
 
-void Cluster::ExecuteNoPrepare(ClusterHostType host_type,
-                               engine::Deadline deadline,
-                               const std::string& command) {
-  tracing::Span execute_plain_span{"mysql_execute_plain"};
+void Cluster::ExecuteCommand(ClusterHostType host_type,
+                             engine::Deadline deadline,
+                             const std::string& command) {
+  tracing::Span execute_plain_span{"mysql_execute_command"};
 
   auto connection = topology_->SelectPool(host_type).Acquire(deadline);
 

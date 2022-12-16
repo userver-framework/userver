@@ -38,6 +38,34 @@ UTEST(Decimal, OptionalWorks) {
   EXPECT_FALSE(db_row.decimal.has_value());
 }
 
+UTEST(Decimal, ThrowsOnFractionalOverflow) {
+  TmpTable table{"Value DECIMAL(10, 5) NOT NULL"};
+
+  table.DefaultExecute("INSERT INTO {} VALUES(?)", Decimal{1});
+
+  struct Row final {
+    Decimal decimal;
+  };
+
+  EXPECT_THROW(table.DefaultExecute("SELECT Value FROM {}").AsSingleRow<Row>(),
+               decimal64::DecimalError);
+}
+
+UTEST(Decimal, ThrowsOnOverflow) {
+  TmpTable table{"Value DECIMAL(30, 3) NOT NULL"};
+
+  table.DefaultExecute("INSERT INTO {} VALUES(?)",
+                       Decimal{std::int64_t{1} << 40});
+
+  struct Row final {
+    Decimal decimal;
+  };
+
+  EXPECT_THROW(
+      table.DefaultExecute("SELECT Value * Value FROM {}").AsSingleRow<Row>(),
+      decimal64::DecimalError);
+}
+
 }  // namespace storages::mysql::tests
 
 USERVER_NAMESPACE_END

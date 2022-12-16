@@ -140,8 +140,8 @@ void TmpTable::CreateTable(std::string_view definition) {
   const auto create_table_query =
       fmt::format(kCreateTableQueryTemplate, table_name_, definition);
 
-  cluster_->ExecuteNoPrepare(ClusterHostType::kMaster, cluster_.GetDeadline(),
-                             create_table_query);
+  cluster_->ExecuteCommand(ClusterHostType::kMaster, cluster_.GetDeadline(),
+                           create_table_query);
 }
 
 }  // namespace storages::mysql::tests

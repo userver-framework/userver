@@ -10,6 +10,10 @@ namespace {
 struct Row final {
   std::int32_t id{};
   std::string value;
+
+  bool operator==(const Row& other) const {
+    return id == other.id && value == other.value;
+  }
 };
 
 struct TableMeta final {
@@ -28,12 +32,9 @@ struct TableMeta final {
   };
 
   TmpTable table;
-  const engine::Deadline deadline;
 
  private:
-  TableMeta()
-      : table{"Id INT NOT NULL, Value TEXT NOT NULL"},
-        deadline{table.GetDeadline()} {}
+  TableMeta() : table{"Id INT NOT NULL, Value TEXT NOT NULL"} {}
 };
 
 }  // namespace
@@ -42,20 +43,18 @@ UTEST_DEATH(TransactionDeathTest, AccessAfterCommit) {
   auto meta = TableMeta::Create();
 
   auto transaction = meta.table.Begin();
-  transaction.Commit(meta.deadline);
+  transaction.Commit();
 
-  EXPECT_UINVARIANT_FAILURE(
-      transaction.Execute(meta.deadline, meta.GetSelectQuery()));
+  EXPECT_UINVARIANT_FAILURE(transaction.Execute(meta.GetSelectQuery()));
 }
 
 UTEST_DEATH(TransactionDeathTest, AccessAfterRollback) {
   auto meta = TableMeta::Create();
 
   auto transaction = meta.table.Begin();
-  transaction.Rollback(meta.deadline);
+  transaction.Rollback();
 
-  EXPECT_UINVARIANT_FAILURE(
-      transaction.Execute(meta.deadline, meta.GetSelectQuery()));
+  EXPECT_UINVARIANT_FAILURE(transaction.Execute(meta.GetSelectQuery()));
 }
 
 UTEST(Transaction, Commit) {
@@ -63,8 +62,8 @@ UTEST(Transaction, Commit) {
 
   {
     auto transaction = meta.table.Begin();
-    transaction.Execute(meta.deadline, meta.GetInsertQuery(), 1, "some text");
-    transaction.Commit(meta.deadline);
+    transaction.Execute(meta.GetInsertQuery(), 1, "some text");
+    transaction.Commit();
   }
 
   EXPECT_NO_THROW(meta.table.DefaultExecute(TableMeta::GetDefaultSelectQuery())
@@ -76,10 +75,10 @@ UTEST(Transaction, Rollback) {
 
   {
     auto transaction = meta.table.Begin();
-    transaction.Execute(meta.deadline, meta.GetInsertQuery(), 1, "some text");
-    EXPECT_NO_THROW(transaction.Execute(meta.deadline, meta.GetSelectQuery())
-                        .AsSingleRow<Row>());
-    transaction.Rollback(meta.deadline);
+    transaction.Execute(meta.GetInsertQuery(), 1, "some text");
+    EXPECT_NO_THROW(
+        transaction.Execute(meta.GetSelectQuery()).AsSingleRow<Row>());
+    transaction.Rollback();
   }
 
   auto row_opt = meta.table.DefaultExecute(TableMeta::GetDefaultSelectQuery())
@@ -92,9 +91,9 @@ UTEST(Transaction, AutoRollback) {
 
   {
     auto transaction = meta.table.Begin();
-    transaction.Execute(meta.deadline, meta.GetInsertQuery(), 1, "some string");
-    EXPECT_NO_THROW(transaction.Execute(meta.deadline, meta.GetSelectQuery())
-                        .AsSingleRow<Row>());
+    transaction.Execute(meta.GetInsertQuery(), 1, "some string");
+    EXPECT_NO_THROW(
+        transaction.Execute(meta.GetSelectQuery()).AsSingleRow<Row>());
   }
 
   auto row_opt = meta.table.DefaultExecute(TableMeta::GetDefaultSelectQuery())
@@ -106,19 +105,57 @@ UTEST(Transaction, ActuallyTransactional) {
   auto meta = TableMeta::Create();
 
   {
-    auto transaction = meta.table.Begin();
-    transaction.Execute(meta.deadline, meta.GetInsertQuery(), 5,
-                        "i am not seen by another connection");
+    auto insert_transaction = meta.table.Begin();
+    insert_transaction.Execute(meta.GetInsertQuery(), 5,
+                               "i am not seen by another transaction");
 
-    const auto outside_select = [&meta] {
-      return meta.table.DefaultExecute(TableMeta::GetDefaultSelectQuery())
+    const auto select = [&meta] {
+      auto transaction = meta.table.Begin();
+      return transaction.Execute(meta.GetSelectQuery())
           .AsOptionalSingleRow<Row>();
     };
 
-    EXPECT_FALSE(outside_select().has_value());
+    EXPECT_FALSE(select().has_value());
 
-    transaction.Commit(meta.deadline);
-    EXPECT_TRUE(outside_select().has_value());
+    insert_transaction.Commit();
+    EXPECT_TRUE(select().has_value());
+  }
+}
+
+UTEST(Transaction, InsertOne) {
+  auto meta = TableMeta::Create();
+
+  {
+    const Row row{1, "some text"};
+
+    auto transaction = meta.table.Begin();
+    transaction.InsertOne(meta.GetInsertQuery(), row);
+
+    EXPECT_EQ(transaction.Execute(meta.GetSelectQuery()).AsSingleRow<Row>(),
+              row);
+
+    transaction.Rollback();
+    EXPECT_FALSE(meta.table.DefaultExecute(meta.GetDefaultSelectQuery())
+                     .AsOptionalSingleRow<Row>()
+                     .has_value());
+  }
+}
+
+UTEST(Transaction, InsertMany) {
+  auto meta = TableMeta::Create();
+
+  {
+    const std::vector<Row> rows{{1, "some text"}, {2, "other text"}};
+
+    auto transaction = meta.table.Begin();
+    transaction.InsertMany(meta.GetInsertQuery(), rows);
+
+    EXPECT_EQ(transaction.Execute(meta.GetSelectQuery()).AsVector<Row>(), rows);
+
+    transaction.Rollback();
+    EXPECT_FALSE(meta.table.DefaultExecute(meta.GetDefaultSelectQuery())
+                     .AsOptionalSingleRow<Row>()
+                     .has_value());
   }
 }
 

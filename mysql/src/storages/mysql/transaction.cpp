@@ -9,10 +9,12 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::mysql {
 
-Transaction::Transaction(infra::ConnectionPtr&& connection)
-    : connection_{std::move(connection)} {
-  // TODO : deadline?
-  (*connection_)->ExecutePlain("BEGIN", {});
+Transaction::Transaction(infra::ConnectionPtr&& connection,
+                         engine::Deadline deadline)
+    : connection_{std::move(connection)},
+      deadline_{deadline},
+      span_{"mysql_transaction"} {
+  (*connection_)->ExecutePlain("BEGIN", deadline);
 }
 
 Transaction::Transaction(Transaction&& other) noexcept = default;
@@ -20,47 +22,51 @@ Transaction::Transaction(Transaction&& other) noexcept = default;
 Transaction::~Transaction() {
   if (connection_->IsValid()) {
     try {
-      Rollback({} /* TODO : think about deadline here */);
+      Rollback();
     } catch (const std::exception& ex) {
       LOG_ERROR() << "Failed to auto rollback a transaction: " << ex.what();
     }
   }
 }
 
-void Transaction::Commit(engine::Deadline deadline) {
-  UASSERT(connection_->IsValid());
-  {
-    auto connection = std::move(connection_);
-    (*connection)->Commit(deadline);
-  }
-}
-
-void Transaction::Rollback(engine::Deadline deadline) {
-  UASSERT(connection_->IsValid());
-  {
-    auto connection = std::move(connection_);
-    (*connection)->Rollback(deadline);
-  }
-}
-
-StatementResultSet Transaction::DoExecute(const std::string& query,
-                                          impl::io::ParamsBinderBase& params,
-                                          engine::Deadline deadline) {
+void Transaction::Commit() {
   AssertValid();
+  {
+    auto connection = std::move(connection_);
+    (*connection)->Commit(deadline_);
+  }
+}
+
+void Transaction::Rollback() {
+  AssertValid();
+  {
+    auto connection = std::move(connection_);
+    (*connection)->Rollback(deadline_);
+  }
+}
+
+StatementResultSet Transaction::DoExecute(
+    const std::string& query, impl::io::ParamsBinderBase& params) const {
+  AssertValid();
+
+  tracing::Span execute_span{"mysql_execute"};
+
   return StatementResultSet{
-      (*connection_)->ExecuteStatement(query, params, deadline, std::nullopt)};
+      (*connection_)->ExecuteStatement(query, params, deadline_, std::nullopt)};
 }
 
 void Transaction::DoInsert(const std::string& query,
-                           impl::io::ParamsBinderBase& params,
-                           engine::Deadline deadline) {
+                           impl::io::ParamsBinderBase& params) const {
   AssertValid();
-  (*connection_)->ExecuteInsert(query, params, deadline);
+
+  tracing::Span insert_span{"mysql_insert"};
+
+  (*connection_)->ExecuteInsert(query, params, deadline_);
 }
 
 void Transaction::AssertValid() const {
   UINVARIANT(connection_->IsValid(),
-             "Transaction accessed after it's been committed (rolled back)");
+             "Transaction accessed after it's been committed (or rolled back)");
 }
 
 }  // namespace storages::mysql

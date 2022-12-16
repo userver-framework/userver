@@ -1,9 +1,9 @@
 #pragma once
 
+#include <userver/tracing/span.hpp>
 #include <userver/utils/fast_pimpl.hpp>
 
-#include <userver/storages/mysql/impl/io/insert_binder.hpp>
-#include <userver/storages/mysql/impl/io/params_binder.hpp>
+#include <userver/storages/mysql/impl/bind_helper.hpp>
 #include <userver/storages/mysql/statement_result_set.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -16,70 +16,59 @@ class ConnectionPtr;
 
 class Transaction final {
  public:
-  explicit Transaction(infra::ConnectionPtr&& connection);
+  explicit Transaction(infra::ConnectionPtr&& connection,
+                       engine::Deadline deadline);
   ~Transaction();
   Transaction(const Transaction& other) = delete;
   Transaction(Transaction&& other) noexcept;
 
   template <typename... Args>
-  StatementResultSet Execute(engine::Deadline deadline,
-                             const std::string& query, const Args&... args);
+  StatementResultSet Execute(const std::string& query,
+                             const Args&... args) const;
 
   template <typename T>
-  void InsertOne(engine::Deadline deadline, const std::string& insert_query,
-                 const T& row) const;
+  void InsertOne(const std::string& insert_query, const T& row) const;
 
   // only works with recent enough MariaDB as a server
   template <typename Container>
-  void InsertMany(engine::Deadline deadline, const std::string& insert_query,
-                  const Container& rows,
+  void InsertMany(const std::string& insert_query, const Container& rows,
                   bool throw_on_empty_insert = true) const;
 
-  void Commit(engine::Deadline deadline);
-  void Rollback(engine::Deadline deadline);
+  void Commit();
+  void Rollback();
 
  private:
   StatementResultSet DoExecute(const std::string& query,
-                               impl::io::ParamsBinderBase& params,
-                               engine::Deadline deadline);
+                               impl::io::ParamsBinderBase& params) const;
 
-  void DoInsert(const std::string& query, impl::io::ParamsBinderBase& params,
-                engine::Deadline deadline);
+  void DoInsert(const std::string& query,
+                impl::io::ParamsBinderBase& params) const;
 
   void AssertValid() const;
 
   utils::FastPimpl<infra::ConnectionPtr, 24, 8> connection_;
+  engine::Deadline deadline_;
+  tracing::Span span_;
 };
 
 template <typename... Args>
-StatementResultSet Transaction::Execute(engine::Deadline deadline,
-                                        const std::string& query,
-                                        const Args&... args) {
-  auto params_binder = impl::io::ParamsBinder::BindParams(args...);
+StatementResultSet Transaction::Execute(const std::string& query,
+                                        const Args&... args) const {
+  auto params_binder = impl::BindHelper::BindParams(args...);
 
-  return DoExecute(query, params_binder, deadline);
+  return DoExecute(query, params_binder);
 }
 
 template <typename T>
-void Transaction::InsertOne(engine::Deadline deadline,
-                            const std::string& insert_query,
+void Transaction::InsertOne(const std::string& insert_query,
                             const T& row) const {
-  using Row = std::decay_t<T>;
-  static_assert(boost::pfr::tuple_size_v<Row> != 0,
-                "Row to insert has zero columns");
+  auto params_binder = impl::BindHelper::BindRowAsParams(row);
 
-  auto binder = std::apply(
-      [](const auto&... args) {
-        return impl::io::ParamsBinder::BindParams(args...);
-      },
-      boost::pfr::structure_tie(row));
-
-  return DoInsert(insert_query, binder, deadline);
+  return DoInsert(insert_query, params_binder);
 }
 
 template <typename Container>
-void Transaction::InsertMany(engine::Deadline deadline,
-                             const std::string& insert_query,
+void Transaction::InsertMany(const std::string& insert_query,
                              const Container& rows,
                              bool throw_on_empty_insert) const {
   if (rows.empty()) {
@@ -90,9 +79,9 @@ void Transaction::InsertMany(engine::Deadline deadline,
     }
   }
 
-  impl::io::InsertBinder binder{rows};
+  auto params_binder = impl::BindHelper::BindContainerAsParams(rows);
 
-  DoInsert(insert_query, binder, deadline);
+  DoInsert(insert_query, params_binder);
 }
 
 }  // namespace storages::mysql
