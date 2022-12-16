@@ -18,11 +18,17 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::mysql::impl {
 
+namespace {
+
+constexpr std::chrono::milliseconds kDefaultCloseTimeout{200};
+
+}
+
 MySQLConnection::MySQLConnection(clients::dns::Resolver& resolver,
                                  const settings::EndpointInfo& endpoint_info,
                                  const settings::AuthSettings& auth_settings,
                                  engine::Deadline deadline)
-    : socket_{-1, 0} {
+    : socket_{-1, 0}, statements_cache_{*this, 10} {
   InitSocket(resolver, endpoint_info, auth_settings, deadline);
   server_info_ = metadata::MySQLServerInfo::Get(mysql_);
 
@@ -33,8 +39,14 @@ MySQLConnection::MySQLConnection(clients::dns::Resolver& resolver,
 }
 
 MySQLConnection::~MySQLConnection() {
-  // TODO : deadline?
-  Close({});
+  // We close the connection before resetting statements cache, so that reset
+  // doesn't do potentially slow I/O
+
+  // quoting the docs:
+  // mysql_close() sends a COM_QUIT request to the server, though it does not
+  // wait for any reply. Thus, theoretically it can block (if the socket buffer
+  // is full), though in practise it is probably unlikely to occur frequently.
+  Close(engine::Deadline::FromDuration(kDefaultCloseTimeout));
 }
 
 MySQLResult MySQLConnection::ExecutePlain(const std::string& query,
@@ -219,20 +231,8 @@ void MySQLConnection::Close(engine::Deadline deadline) noexcept {
 MySQLStatement& MySQLConnection::PrepareStatement(
     const std::string& statement, engine::Deadline deadline,
     std::optional<std::size_t> batch_size) {
-  auto& mysql_statement = [this, &statement, deadline]() -> MySQLStatement& {
-    if (auto it = statements_cache_.find(statement);
-        it != statements_cache_.end()) {
-      return it->second;
-    }
-
-    tracing::ScopeTime prepare{"prepare"};
-    MySQLStatement mysql_statement{*this, statement, deadline};
-    auto [it, inserted] =
-        statements_cache_.emplace(statement, std::move(mysql_statement));
-    UASSERT(inserted);
-
-    return it->second;
-  }();
+  auto& mysql_statement =
+      statements_cache_.PrepareStatement(statement, deadline);
 
   if (batch_size.has_value()) {
     UASSERT(*batch_size > 0);

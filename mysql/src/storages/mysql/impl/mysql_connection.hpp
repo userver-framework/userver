@@ -7,7 +7,6 @@
 #include <vector>
 
 #include <userver/clients/dns/resolver_fwd.hpp>
-#include <userver/utils/str_icase.hpp>
 
 #include <storages/mysql/impl/mariadb_include.hpp>
 
@@ -15,6 +14,7 @@
 #include <storages/mysql/impl/mysql_result.hpp>
 #include <storages/mysql/impl/mysql_socket.hpp>
 #include <storages/mysql/impl/mysql_statement.hpp>
+#include <storages/mysql/impl/mysql_statements_cache.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -99,10 +99,7 @@ class MySQLConnection final {
   MySQLSocket socket_;
   metadata::MySQLServerInfo server_info_{};
 
-  // TODO : LRU
-  std::unordered_map<std::string, MySQLStatement, utils::StrIcaseHash,
-                     utils::StrIcaseEqual>
-      statements_cache_;
+  MySQLStatementsCache statements_cache_;
 };
 
 }  // namespace impl
