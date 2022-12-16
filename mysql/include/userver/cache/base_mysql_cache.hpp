@@ -4,9 +4,9 @@
 
 #include <userver/tracing/span.hpp>
 
-#include <userver/components/component_context.hpp>
-#include <userver/components/component_config.hpp>
 #include <userver/cache/mysql_cache_type_traits.hpp>
+#include <userver/components/component_config.hpp>
+#include <userver/components/component_context.hpp>
 #include <userver/storages/mysql/cluster.hpp>
 #include <userver/storages/mysql/component.hpp>
 
