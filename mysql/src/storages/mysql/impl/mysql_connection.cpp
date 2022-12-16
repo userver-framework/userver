@@ -12,7 +12,7 @@
 #include <storages/mysql/impl/metadata/mysql_server_info.hpp>
 #include <storages/mysql/impl/mysql_plain_query.hpp>
 #include <storages/mysql/settings/settings.hpp>
-#include <userver/storages/mysql/io/extractor.hpp>
+#include <userver/storages/mysql/impl/io/extractor.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

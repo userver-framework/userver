@@ -31,7 +31,7 @@ StatementResultSet::~StatementResultSet() = default;
 StatementResultSet::StatementResultSet(StatementResultSet&& other) noexcept =
     default;
 
-bool StatementResultSet::FetchResult(io::ExtractorBase& extractor) {
+bool StatementResultSet::FetchResult(impl::io::ExtractorBase& extractor) {
   return impl_->fetcher.FetchResult(extractor);
 }
 

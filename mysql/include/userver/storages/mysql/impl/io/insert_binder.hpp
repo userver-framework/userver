@@ -2,14 +2,17 @@
 
 #include <array>
 
+#include <boost/pfr/core.hpp>
+
 #include <userver/utils/assert.hpp>
 
-#include <userver/storages/mysql/io/binder.hpp>
-#include <userver/storages/mysql/io/traits.hpp>
+#include <userver/storages/mysql/impl/io/binder_declarations.hpp>
+#include <userver/storages/mysql/impl/io/params_binder_base.hpp>
+#include <userver/storages/mysql/impl/io/traits.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
-namespace storages::mysql::io {
+namespace storages::mysql::impl::io {
 
 class InsertBinderBase : public ParamsBinderBase {
  public:
@@ -19,17 +22,12 @@ class InsertBinderBase : public ParamsBinderBase {
   InsertBinderBase(const InsertBinderBase& other) = delete;
   InsertBinderBase(InsertBinderBase&& other) noexcept;
 
-  impl::bindings::InputBindings& GetBinds() final;
-
   void SetBindCallback(void* user_data,
                        void (*param_cb)(void*, void*, std::size_t));
 
  protected:
   static void PatchBind(void* binds_array, std::size_t pos, const void* buffer,
                         std::size_t* length);
-
-  // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
-  impl::InputBindingsPimpl impl_;
 };
 
 template <typename Container>
@@ -44,13 +42,7 @@ class InsertBinder final : public InsertBinderBase {
                   "Container should be sizeable for batch insertion");
 
     UASSERT(!container_.empty());
-  }
-
-  void BindRows() {
-    auto& first_row = *container_.begin();
-    boost::pfr::for_each_field(first_row, BindsInitializer{*this});
-
-    SetBindCallback(this, &BindsRowCallback);
+    BindColumns();
   }
 
   std::size_t GetRowsCount() const final { return container_.size(); }
@@ -61,6 +53,13 @@ class InsertBinder final : public InsertBinderBase {
 
   static void BindsRowCallback(void* user_data, void* binds_array,
                                std::size_t row_number);
+
+  void BindColumns() {
+    auto& first_row = *container_.begin();
+    boost::pfr::for_each_field(first_row, BindsInitializer{*this});
+
+    SetBindCallback(this, &BindsRowCallback);
+  }
 
   void UpdateCurrentRow(std::size_t row_number) {
     UASSERT(CheckRowNumber(row_number));
@@ -140,6 +139,6 @@ void InsertBinder<Container>::BindsRowCallback(void* user_data,
   ++self->current_row_it_;
 }
 
-}  // namespace storages::mysql::io
+}  // namespace storages::mysql::impl::io
 
 USERVER_NAMESPACE_END

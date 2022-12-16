@@ -5,7 +5,7 @@
 #include <storages/mysql/impl/mysql_connection.hpp>
 #include <storages/mysql/infra/pool.hpp>
 
-#include <userver/storages/mysql/io/extractor.hpp>
+#include <userver/storages/mysql/impl/io/extractor.hpp>
 #include <userver/storages/mysql/result_set.hpp>
 
 #include <userver/engine/sleep.hpp>

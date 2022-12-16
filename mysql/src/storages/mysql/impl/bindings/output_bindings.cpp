@@ -457,7 +457,8 @@ void OutputBindings::OptionalDecimalAfterFetch(
   UASSERT(optional);
 
   if (!bind.is_null_value) {
-    optional->emplace();
+    // Constructor is private and friended to us, so emplace() doesn't compile
+    optional->emplace(io::DecimalWrapper{});
     DecimalAfterFetch(&*optional, bind, buffer);
   }
 }

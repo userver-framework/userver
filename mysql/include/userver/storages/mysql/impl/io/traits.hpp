@@ -4,7 +4,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace storages::mysql::io {
+namespace storages::mysql::impl::io {
 
 template <typename Container>
 auto Inserter(Container& container) {
@@ -17,6 +17,9 @@ inline constexpr bool kIsReservable = meta::kIsReservable<Container>;
 template <typename Container>
 inline constexpr bool kIsRange = meta::kIsRange<Container>;
 
-}  // namespace storages::mysql::io
+template <typename Container>
+inline constexpr bool kIsSizeable = meta::kIsSizable<Container>;
+
+}  // namespace storages::mysql::impl::io
 
 USERVER_NAMESPACE_END

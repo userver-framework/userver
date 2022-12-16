@@ -14,8 +14,8 @@
 #include <storages/mysql/impl/bindings/input_bindings.hpp>
 #include <storages/mysql/impl/bindings/output_bindings.hpp>
 #include <storages/mysql/impl/mysql_connection.hpp>
-#include <userver/storages/mysql/io/binder.hpp>
-#include <userver/storages/mysql/io/extractor.hpp>
+#include <userver/storages/mysql/impl/io/extractor.hpp>
+#include <userver/storages/mysql/impl/io/params_binder_base.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

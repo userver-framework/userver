@@ -8,8 +8,8 @@
 #include <userver/components/component_fwd.hpp>
 #include <userver/engine/deadline.hpp>
 
-#include <userver/storages/mysql/io/binder.hpp>
-#include <userver/storages/mysql/io/insert_binder.hpp>
+#include <userver/storages/mysql/impl/io/insert_binder.hpp>
+#include <userver/storages/mysql/impl/io/result_binder.hpp>
 
 #include <userver/storages/mysql/cluster_host_type.hpp>
 #include <userver/storages/mysql/cursor_result_set.hpp>
@@ -75,10 +75,11 @@ class Cluster final {
  private:
   StatementResultSet DoExecute(
       ClusterHostType host_type, const std::string& query,
-      io::ParamsBinderBase& params, engine::Deadline deadline,
+      impl::io::ParamsBinderBase& params, engine::Deadline deadline,
       std::optional<std::size_t> batch_size = std::nullopt) const;
 
-  void DoInsert(const std::string& insert_query, io::ParamsBinderBase& params,
+  void DoInsert(const std::string& insert_query,
+                impl::io::ParamsBinderBase& params,
                 engine::Deadline deadline) const;
 
   friend class tests::TestsHelper;
@@ -100,7 +101,7 @@ StatementResultSet Cluster::Execute(ClusterHostType host_type,
                                     engine::Deadline deadline,
                                     const std::string& query,
                                     const Args&... args) const {
-  auto params_binder = io::ParamsBinder::BindParams(args...);
+  auto params_binder = impl::io::ParamsBinder::BindParams(args...);
 
   return DoExecute(host_type, query, params_binder, deadline);
 }
@@ -111,7 +112,7 @@ CursorResultSet<T> Cluster::GetCursor(ClusterHostType host_type,
                                       std::size_t batch_size,
                                       const std::string& query,
                                       const Args&... args) const {
-  auto params_binder = io::ParamsBinder::BindParams(args...);
+  auto params_binder = impl::io::ParamsBinder::BindParams(args...);
 
   return CursorResultSet<T>{
       DoExecute(host_type, query, params_binder, deadline, batch_size)};
@@ -126,7 +127,9 @@ void Cluster::InsertOne(engine::Deadline deadline,
                 "Row to insert has zero columns");
 
   auto binder = std::apply(
-      [](const auto&... args) { return io::ParamsBinder::BindParams(args...); },
+      [](const auto&... args) {
+        return impl::io::ParamsBinder::BindParams(args...);
+      },
       boost::pfr::structure_tie(row));
 
   return DoInsert(insert_query, binder, deadline);
@@ -144,8 +147,7 @@ void Cluster::InsertMany(engine::Deadline deadline,
     }
   }
 
-  io::InsertBinder binder{rows};
-  binder.BindRows();
+  impl::io::InsertBinder binder{rows};
 
   DoInsert(insert_query, binder, deadline);
 }

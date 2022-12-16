@@ -10,14 +10,15 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace storages::mysql::io {
-class ExtractorBase;
-class ParamsBinderBase;
-}  // namespace storages::mysql::io
-
 namespace storages::mysql::impl {
 
+namespace io {
+class ExtractorBase;
+class ParamsBinderBase;
+}  // namespace io
+
 class MySQLConnection;
+
 namespace bindings {
 class OutputBindings;
 }

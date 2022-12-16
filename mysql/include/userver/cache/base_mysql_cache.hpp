@@ -91,7 +91,7 @@ std::string MySQLCache<MySQLCachePolicy>::GetDeltaQuery() {
 template <typename MySQLCachePolicy>
 void MySQLCache<MySQLCachePolicy>::Update(
     cache::UpdateType type,
-    const std::chrono::system_clock::time_point& last_update,
+    const std::chrono::system_clock::time_point& /* last_update */,
     const std::chrono::system_clock::time_point& /* now */,
     cache::UpdateStatisticsScope& stats_scope) {
   if constexpr (!kIncrementalUpdates) {

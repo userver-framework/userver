@@ -2,8 +2,8 @@
 
 #include <userver/utils/fast_pimpl.hpp>
 
-#include <userver/storages/mysql/io/binder.hpp>
-#include <userver/storages/mysql/io/insert_binder.hpp>
+#include <userver/storages/mysql/impl/io/insert_binder.hpp>
+#include <userver/storages/mysql/impl/io/params_binder.hpp>
 #include <userver/storages/mysql/statement_result_set.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -40,10 +40,10 @@ class Transaction final {
 
  private:
   StatementResultSet DoExecute(const std::string& query,
-                               io::ParamsBinderBase& params,
+                               impl::io::ParamsBinderBase& params,
                                engine::Deadline deadline);
 
-  void DoInsert(const std::string& query, io::ParamsBinderBase& params,
+  void DoInsert(const std::string& query, impl::io::ParamsBinderBase& params,
                 engine::Deadline deadline);
 
   void AssertValid() const;
@@ -55,7 +55,7 @@ template <typename... Args>
 StatementResultSet Transaction::Execute(engine::Deadline deadline,
                                         const std::string& query,
                                         const Args&... args) {
-  auto params_binder = io::ParamsBinder::BindParams(args...);
+  auto params_binder = impl::io::ParamsBinder::BindParams(args...);
 
   return DoExecute(query, params_binder, deadline);
 }
@@ -70,7 +70,7 @@ void Transaction::InsertOne(engine::Deadline deadline,
 
   auto binder = std::apply(
       [](const auto&... args) {
-        return io::ParamsBinder::BindParams(std::forward(args)...);
+        return impl::io::ParamsBinder::BindParams(args...);
       },
       boost::pfr::structure_tie(row));
 
@@ -90,8 +90,7 @@ void Transaction::InsertMany(engine::Deadline deadline,
     }
   }
 
-  io::InsertBinder binder{rows};
-  binder.BindRows();
+  impl::io::InsertBinder binder{rows};
 
   DoInsert(insert_query, binder, deadline);
 }

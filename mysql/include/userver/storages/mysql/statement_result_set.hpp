@@ -10,8 +10,8 @@
 #include <userver/utils/fast_pimpl.hpp>
 #include <userver/utils/scope_guard.hpp>
 
-#include <userver/storages/mysql/io/extractor.hpp>
-#include <userver/storages/mysql/io/traits.hpp>
+#include <userver/storages/mysql/impl/io/extractor.hpp>
+#include <userver/storages/mysql/impl/io/traits.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -51,7 +51,7 @@ class StatementResultSet final {
   template <typename T>
   friend class CursorResultSet;
 
-  bool FetchResult(io::ExtractorBase& extractor);
+  bool FetchResult(impl::io::ExtractorBase& extractor);
 
   struct Impl;
   utils::FastPimpl<Impl, 64, 8> impl_;
@@ -64,10 +64,11 @@ std::vector<T> StatementResultSet::AsVector() && {
 
 template <typename Container>
 Container StatementResultSet::AsContainer() && {
-  static_assert(io::kIsRange<Container>, "The type isn't actually a container");
+  static_assert(impl::io::kIsRange<Container>,
+                "The type isn't actually a container");
   using Row = typename Container::value_type;
 
-  auto extractor = io::TypedExtractor<Row>{};
+  auto extractor = impl::io::TypedExtractor<Row>{};
 
   tracing::ScopeTime fetch{"fetch"};
   std::move(*this).FetchResult(extractor);
@@ -79,11 +80,11 @@ Container StatementResultSet::AsContainer() && {
 
   Container container{};
   auto rows = std::move(extractor).ExtractData();
-  if constexpr (io::kIsReservable<Container>) {
+  if constexpr (impl::io::kIsReservable<Container>) {
     container.reserve(rows.size());
   }
 
-  std::move(rows.begin(), rows.end(), io::Inserter(container));
+  std::move(rows.begin(), rows.end(), impl::io::Inserter(container));
   return container;
 }
 

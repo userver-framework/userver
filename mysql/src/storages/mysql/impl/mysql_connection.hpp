@@ -19,18 +19,17 @@
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::mysql {
+
 namespace settings {
 struct EndpointInfo;
 struct AuthSettings;
 }  // namespace settings
 
+namespace impl {
+
 namespace io {
-class ExtractorBase;
 class ParamsBinderBase;
 }  // namespace io
-}  // namespace storages::mysql
-
-namespace storages::mysql::impl {
 
 class MySQLConnection final {
  public:
@@ -106,6 +105,7 @@ class MySQLConnection final {
       statements_cache_;
 };
 
-}  // namespace storages::mysql::impl
+}  // namespace impl
+}  // namespace storages::mysql
 
 USERVER_NAMESPACE_END

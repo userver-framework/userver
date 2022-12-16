@@ -1,24 +1,22 @@
-#include <userver/storages/mysql/io/insert_binder.hpp>
+#include <userver/storages/mysql/impl/io/insert_binder.hpp>
 
 #include <storages/mysql/impl/bindings/input_bindings.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
-namespace storages::mysql::io {
+namespace storages::mysql::impl::io {
 
-InsertBinderBase::InsertBinderBase(std::size_t size) : impl_{size} {}
+InsertBinderBase::InsertBinderBase(std::size_t size) : ParamsBinderBase{size} {}
 
 InsertBinderBase::~InsertBinderBase() = default;
 
 InsertBinderBase::InsertBinderBase(InsertBinderBase&& other) noexcept = default;
 
-impl::bindings::InputBindings& InsertBinderBase::GetBinds() { return *impl_; }
-
 void InsertBinderBase::SetBindCallback(void* user_data,
                                        void (*param_cb)(void*, void*,
                                                         std::size_t)) {
-  impl_->SetUserData(user_data);
-  impl_->SetParamsCallback(param_cb);
+  GetBinds().SetUserData(user_data);
+  GetBinds().SetParamsCallback(param_cb);
 }
 
 void InsertBinderBase::PatchBind(void* binds_array, std::size_t pos,
@@ -33,6 +31,6 @@ void InsertBinderBase::PatchBind(void* binds_array, std::size_t pos,
   bind.length = length;
 }
 
-}  // namespace storages::mysql::io
+}  // namespace storages::mysql::impl::io
 
 USERVER_NAMESPACE_END

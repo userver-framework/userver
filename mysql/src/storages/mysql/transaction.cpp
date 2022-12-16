@@ -44,7 +44,7 @@ void Transaction::Rollback(engine::Deadline deadline) {
 }
 
 StatementResultSet Transaction::DoExecute(const std::string& query,
-                                          io::ParamsBinderBase& params,
+                                          impl::io::ParamsBinderBase& params,
                                           engine::Deadline deadline) {
   AssertValid();
   return StatementResultSet{
@@ -52,7 +52,7 @@ StatementResultSet Transaction::DoExecute(const std::string& query,
 }
 
 void Transaction::DoInsert(const std::string& query,
-                           io::ParamsBinderBase& params,
+                           impl::io::ParamsBinderBase& params,
                            engine::Deadline deadline) {
   AssertValid();
   (*connection_)->ExecuteInsert(query, params, deadline);

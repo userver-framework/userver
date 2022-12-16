@@ -2,16 +2,16 @@
 
 #include <vector>
 
-#include <userver/storages/mysql/io/binder.hpp>
+#include <userver/storages/mysql/impl/io/result_binder.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
-namespace storages::mysql::io {
+namespace storages::mysql::impl::io {
 
 class ExtractorBase {
  public:
   virtual void Reserve(std::size_t size) = 0;
-  virtual impl::bindings::OutputBindings& BindNextRow() = 0;
+  virtual OutputBindingsFwd& BindNextRow() = 0;
   virtual void RollbackLastRow() = 0;
   virtual std::size_t ColumnsCount() const = 0;
 };
@@ -62,6 +62,6 @@ std::vector<T>&& TypedExtractor<T>::ExtractData() && {
   return std::move(data_);
 }
 
-}  // namespace storages::mysql::io
+}  // namespace storages::mysql::impl::io
 
 USERVER_NAMESPACE_END

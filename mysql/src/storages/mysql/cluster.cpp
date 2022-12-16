@@ -64,7 +64,7 @@ void Cluster::ExecuteNoPrepare(ClusterHostType host_type,
 
 StatementResultSet Cluster::DoExecute(
     ClusterHostType host_type, const std::string& query,
-    io::ParamsBinderBase& params, engine::Deadline deadline,
+    impl::io::ParamsBinderBase& params, engine::Deadline deadline,
     std::optional<std::size_t> batch_size) const {
   tracing::Span execute_span{"mysql_execute"};
 
@@ -77,7 +77,7 @@ StatementResultSet Cluster::DoExecute(
 }
 
 void Cluster::DoInsert(const std::string& insert_query,
-                       io::ParamsBinderBase& params,
+                       impl::io::ParamsBinderBase& params,
                        engine::Deadline deadline) const {
   tracing::Span insert_span{"mysql_insert"};
 

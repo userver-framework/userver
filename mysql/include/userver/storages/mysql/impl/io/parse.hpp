@@ -4,7 +4,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace storages::mysql::io {
+namespace storages::mysql::impl::io {
 
 template <typename T>
 class BaseParser {
@@ -46,6 +46,6 @@ auto GetParser(T& field) {
   return FieldParser<T>{field};
 }
 
-}  // namespace storages::mysql::io
+}  // namespace storages::mysql::impl::io
 
 USERVER_NAMESPACE_END

@@ -9,8 +9,8 @@
 #include <userver/utils/assert.hpp>
 #include <userver/utils/fast_pimpl.hpp>
 
-#include <userver/storages/mysql/io/parse.hpp>
-#include <userver/storages/mysql/io/traits.hpp>
+#include <userver/storages/mysql/impl/io/parse.hpp>
+#include <userver/storages/mysql/impl/io/traits.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -92,16 +92,17 @@ std::optional<T> ResultSet::AsOptionalSingleRow() && {
 
 template <typename Container>
 Container ResultSet::AsContainer() && {
-  static_assert(io::kIsRange<Container>, "The type isn't actually a container");
+  static_assert(impl::io::kIsRange<Container>,
+                "The type isn't actually a container");
   using Row = typename Container::value_type;
 
   Container result;
-  if (io::kIsReservable<Container>) {
+  if (impl::io::kIsReservable<Container>) {
     result.reserve(RowsCount());
   }
 
   auto rows = std::move(*this).AsRows<Row>();
-  std::move(rows.begin(), rows.end(), io::Inserter(result));
+  std::move(rows.begin(), rows.end(), impl::io::Inserter(result));
   return result;
 }
 
@@ -143,7 +144,7 @@ class TypedResultSet final {
       template <typename Field, size_t Index>
       void operator()(Field& field,
                       std::integral_constant<std::size_t, Index> i) const {
-        io::GetParser(field)(result_set_->GetAt(row_ind_, i));
+        impl::io::GetParser(field)(result_set_->GetAt(row_ind_, i));
       }
 
      private:

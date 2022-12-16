@@ -8,7 +8,7 @@
 
 #include <userver/formats/json/value.hpp>
 
-#include <userver/storages/mysql/io/decimal_wrapper.hpp>
+#include <userver/storages/mysql/impl/io/decimal_binder.hpp>
 
 #include <storages/mysql/impl/mariadb_include.hpp>
 
