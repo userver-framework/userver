@@ -1,4 +1,5 @@
 #include <userver/clients/dns/component.hpp>
+#include <userver/testsuite/testsuite_support.hpp>
 #include <userver/utest/using_namespace_userver.hpp>
 
 #include <userver/components/minimal_server_component_list.hpp>
@@ -37,11 +38,12 @@ struct KeyValueCachePolicy final {
 
   static constexpr auto KeyMember = &Row::key;
 
-  static constexpr std::string_view kQuery{"SELECT Id, Value FROM test"};
+  static constexpr std::string_view kQuery{
+      "SELECT `Key`, Value FROM key_value_table"};
 
   static constexpr std::nullptr_t kUpdatedField{};
 };
-using KeyValueCache = components::MySQLCache<KeyValueCachePolicy>;
+using KeyValueDbCache = components::MySQLCache<KeyValueCachePolicy>;
 
 class KeyValue final : public server::handlers::HttpHandlerJsonBase {
  public:
@@ -104,12 +106,46 @@ formats::json::Value KeyValue::GetValues() const {
   return builder.ExtractValue();
 }
 
+class KeyValueCacheHandler final
+    : public server::handlers::HttpHandlerJsonBase {
+ public:
+  static constexpr std::string_view kName = "handler-key-value-cache";
+
+  KeyValueCacheHandler(const components::ComponentConfig& config,
+                       const components::ComponentContext& context)
+      : server::handlers::HttpHandlerJsonBase{config, context},
+        cache_{context.FindComponent<KeyValueDbCache>()} {}
+
+  formats::json::Value HandleRequestJsonThrow(
+      const server::http::HttpRequest&, const formats::json::Value&,
+      server::request::RequestContext&) const final;
+
+ private:
+  const KeyValueDbCache& cache_;
+};
+
+formats::json::Value KeyValueCacheHandler::HandleRequestJsonThrow(
+    const server::http::HttpRequest&, const formats::json::Value&,
+    server::request::RequestContext&) const {
+  auto cache_ptr = cache_.Get();
+
+  formats::json::ValueBuilder builder{};
+  std::vector<Row> rows(cache_ptr->size());
+  std::transform(cache_ptr->begin(), cache_ptr->end(), rows.begin(),
+                 [](const auto& pair) { return pair.second; });
+  builder["values"] = rows;
+
+  return builder.ExtractValue();
+}
+
 int main(int argc, char* argv[]) {
   const auto component_list = components::MinimalServerComponentList()
-                                  .Append<KeyValueCache>()
-                                  .Append<samples::mysql::KeyValue>()
+                                  .Append<KeyValueDbCache>()
+                                  .Append<KeyValue>()
+                                  .Append<KeyValueCacheHandler>()
                                   .Append<components::MySQL>("test")
                                   .Append<userver::components::Secdist>()
+                                  .Append<components::TestsuiteSupport>()
                                   .Append<clients::dns::Component>();
 
   return utils::DaemonMain(argc, argv, component_list);

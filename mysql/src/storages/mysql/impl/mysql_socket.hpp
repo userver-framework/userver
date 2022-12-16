@@ -22,7 +22,7 @@ class MySQLSocket final {
   void RunToCompletion(StartFn&& start_fn, ContFn&& cont_fn,
                        engine::Deadline deadline);
 
-  bool IsValid();
+  bool IsValid() const;
 
  private:
   static void WatcherCallback(struct ev_loop*, ev_io* watcher, int) noexcept;

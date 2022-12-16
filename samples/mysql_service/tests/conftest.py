@@ -40,8 +40,6 @@ def mysql_local(service_source_dir):
         dbprefix=''
     )
 
-    print(databases)
-
     return databases
 
 

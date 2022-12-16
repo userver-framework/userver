@@ -201,7 +201,7 @@ void MySQLStatement::UpdateParamsBindings(io::ParamsBinderBase& params) {
 
   if (!binds.Empty()) {
     if (mysql_stmt_bind_param(native_statement_.get(), binds.GetBindsArray())) {
-      int a = 5;
+      throw std::runtime_error("Failed to bind statements params");
     }
 
     if (auto rows_count = params.GetRowsCount(); rows_count > 1) {

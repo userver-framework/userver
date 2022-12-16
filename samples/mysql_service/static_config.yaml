@@ -4,15 +4,26 @@ components_manager:
             path: /v1/db                  # Registering handler by URL '/v1/key-value'.
             task_processor: main-task-processor  # Run it on CPU bound task processor
             method: GET,POST
+
+        handler-key-value-cache:
+            path: /v1/db-cache
+            task_processor: main-task-processor
+            method: GET
 # /// [Clickhouse service sample - static config]
 # yaml
         test:
             min_pool_size: 5
             max_pool_size: 10
 # /// [Clickhouse service sample - static config]
+        testsuite-support:
+
+        key-value-cache:
+            mysql-component: test
+            update-types: only-full
+            update-interval: 10s
 
         secdist: # Component that stores configuration of hosts and passwords
-            config: /etc/clickhouse_service/secure_data.json  # Values are supposed to be stored in this file
+            config: /etc/mysql_service/secure_data.json  # Values are supposed to be stored in this file
             missing-ok: true                             # ... but if the file is missing it is still ok
             environment-secrets-key: SECDIST_CONFIG      # ... values will be loaded from this environment value
 

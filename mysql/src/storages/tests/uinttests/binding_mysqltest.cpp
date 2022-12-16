@@ -111,6 +111,7 @@ UTEST(OutputBinding, AllSupportedDates) {
 
   EXPECT_EQ(ToMariaDBPrecision(now), row.datetime);
   EXPECT_EQ(to_days(now), to_days(row.date));
+  // TODO : fix casting
   EXPECT_EQ(std::chrono::time_point_cast<std::chrono::seconds>(now),
             row.timestamp);
 }

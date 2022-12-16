@@ -4,8 +4,11 @@
 
 #include <userver/tracing/span.hpp>
 
+#include <userver/components/component_context.hpp>
+#include <userver/components/component_config.hpp>
 #include <userver/cache/mysql_cache_type_traits.hpp>
 #include <userver/storages/mysql/cluster.hpp>
+#include <userver/storages/mysql/component.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -53,7 +56,11 @@ class MySQLCache final
 template <typename MySQLCachePolicy>
 MySQLCache<MySQLCachePolicy>::MySQLCache(const ComponentConfig& config,
                                          const ComponentContext& context)
-    : BaseType{config, context} {
+    : BaseType{config, context},
+      cluster_{
+          context
+              .FindComponent<MySQL>(config["mysql-component"].As<std::string>())
+              .GetCluster()} {
   this->StartPeriodicUpdates();
 }
 
@@ -109,11 +116,22 @@ void MySQLCache<MySQLCachePolicy>::Update(
 
   const auto deadline = engine::Deadline::FromDuration(timeout);
   std::size_t changes{0};
-  cluster_
-      ->GetCursor<RawValueType>(kClusterHostTypeFlags,
-                                // TODO : batch size
-                                deadline, 10, query)
-      .ForEach([](auto&&) {}, deadline);
+  const std::size_t chunk_size = 5;
+  if (chunk_size > 0) {
+    cluster_
+        ->GetCursor<RawValueType>(kClusterHostTypeFlags,
+                                  // TODO : batch size
+                                  deadline, 10, query)
+        .ForEach(
+            [&data_cache](RawValueType&& row) {
+              mysql_cache::impl::CacheInsertOrAssign(
+                  *data_cache,
+                  mysql_cache::impl::ExtractValue<MySQLCachePolicy>(
+                      std::move(row)),
+                  MySQLCachePolicy::KeyMember);
+            },
+            deadline);
+  }
 
   scope.Reset();
 

@@ -14,3 +14,16 @@ async def test_basic(service_client):
     response = await service_client.get('/v1/db/')
     assert response.status_code == 200
     assert response.json()['values'] == [{'key': 1, 'value': '1'}]
+
+
+async def test_cache(service_client):
+    response = await service_client.post('/v1/db/', json={
+        'data': [{'key': i, 'value': str(i)} for i in range(10)]
+    })
+    assert response.status_code == 200
+
+    service_client.invalidate_caches()
+
+    response = await service_client.get('v1/db-cache')
+    assert response.status_code == 200
+    assert response.json()['values'] == [{'key': i, 'value': str(i)} for i in range(10)]
