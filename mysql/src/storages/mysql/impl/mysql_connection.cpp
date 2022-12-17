@@ -152,6 +152,10 @@ MySQLConnection::BrokenGuard MySQLConnection::GetBrokenGuard() {
   return BrokenGuard{*this};
 }
 
+void MySQLConnection::NotifyBroken() {
+  broken_.store(true);
+}
+
 void MySQLConnection::InitSocket(clients::dns::Resolver& resolver,
                                  const settings::EndpointInfo& endpoint_info,
                                  const settings::AuthSettings& auth_settings,

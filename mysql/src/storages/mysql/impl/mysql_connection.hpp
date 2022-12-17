@@ -77,6 +77,13 @@ class MySQLConnection final {
   };
   BrokenGuard GetBrokenGuard();
 
+  // There are places (destructors, basically) where we want to run some
+  // function even if connection is already broken, because that function frees
+  // resources no matter what. Can't use BrokenGuard for that, 'cause it will
+  // throw on construction, but still need a way no notify a connection that it
+  // broke.
+  void NotifyBroken();
+
  private:
   void InitSocket(clients::dns::Resolver& resolver,
                   const settings::EndpointInfo& endpoint_info,
