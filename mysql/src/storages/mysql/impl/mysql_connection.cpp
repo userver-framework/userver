@@ -162,8 +162,6 @@ void MySQLConnection::InitSocket(clients::dns::Resolver& resolver,
     const auto ip = addr.Domain() == engine::io::AddrDomain::kInet6
                         ? fmt::format("[{}]", addr.PrimaryAddressString())
                         : addr.PrimaryAddressString();
-    LOG_INFO() << "connecting to ip " << ip;
-
     if (DoInitSocket(ip, endpoint_info.port, auth_settings, deadline)) {
       return;
     } else if (deadline.IsReached()) {
