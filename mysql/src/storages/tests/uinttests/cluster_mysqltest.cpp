@@ -192,6 +192,48 @@ UTEST(Cluster, InsertMany) {
   EXPECT_EQ(db_rows, rows_to_insert);
 }
 
+UTEST(Cluster, UpdateMany) {
+  ClusterWrapper cluster{};
+  TmpTable table{cluster, "Id INT PRIMARY KEY, Value TEXT NOT NULL"};
+
+  const std::string long_string_to_avoid_sso{
+      "hi i am some long string that doesn't fit in sso"};
+  const std::string another_long_string{"hi i am another pretty long string"};
+
+  constexpr int kRowsCount = 100;
+
+  std::vector<Row> rows_to_insert;
+  rows_to_insert.reserve(kRowsCount);
+  for (int i = 0; i < kRowsCount; ++i) {
+    rows_to_insert.push_back({i, long_string_to_avoid_sso});
+  }
+
+  cluster->InsertMany(
+      cluster.GetDeadline(),
+      table.FormatWithTableName("INSERT INTO {}(Id, Value) VALUES(?, ?)"),
+      rows_to_insert);
+
+  {
+    const auto db_rows =
+        table.DefaultExecute("SELECT Id, Value FROM {}").AsVector<Row>();
+    EXPECT_EQ(db_rows, rows_to_insert);
+  }
+
+  for (auto& row : rows_to_insert) {
+    row.value = another_long_string;
+  }
+  cluster->InsertMany(
+      cluster.GetDeadline(),
+      table.FormatWithTableName("INSERT INTO {}(Id, Value) VALUES(?, ?) ON "
+                                "DUPLICATE KEY UPDATE Value=VALUES(Value)"),
+      rows_to_insert);
+  {
+    const auto db_rows =
+        table.DefaultExecute("SELECT Id, Value FROM {}").AsVector<Row>();
+    EXPECT_EQ(db_rows, rows_to_insert);
+  }
+}
+
 UTEST(ShowCase, Basic) {
   ClusterWrapper cluster{};
 

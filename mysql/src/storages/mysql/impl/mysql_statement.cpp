@@ -101,6 +101,8 @@ void MySQLStatement::StoreResult(engine::Deadline deadline) {
 bool MySQLStatement::FetchResultRow(bindings::OutputBindings& binds,
                                     engine::Deadline deadline) {
   if (!binds.Empty()) {
+    // TODO : we don't have to rebind all the time, can just fix some values
+    // probably
     if (mysql_stmt_bind_result(native_statement_.get(),
                                binds.GetBindsArray()) != 0) {
       throw std::runtime_error{
