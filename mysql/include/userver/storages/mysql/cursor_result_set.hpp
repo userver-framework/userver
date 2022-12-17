@@ -40,15 +40,16 @@ void CursorResultSet<T>::ForEach(
     // TODO : think about separate deadline here
     [[maybe_unused]] engine::Deadline deadline) && {
   bool keep_going = true;
-  while (keep_going) {
-    auto extractor = impl::io::TypedExtractor<T>{};
+  auto extractor = impl::io::TypedExtractor<T>{};
 
+  while (keep_going) {
     tracing::ScopeTime fetch{"fetch"};
     keep_going = result_set_.FetchResult(extractor);
     fetch.Reset();
 
     tracing::ScopeTime for_each{"for_each"};
-    for (auto&& row : std::move(extractor).ExtractData()) {
+    std::vector<T> data{extractor.ExtractData()};
+    for (auto&& row : data) {
       row_callback(std::move(row));
     }
   }

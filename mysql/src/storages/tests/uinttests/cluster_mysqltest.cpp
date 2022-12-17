@@ -174,12 +174,13 @@ UTEST(Cluster, InsertMany) {
   const std::string long_string_to_avoid_sso{
       "hi i am some long string that doesn't fit in sso"};
 
-  constexpr int kRowsCount = 100'000;
+  constexpr int kRowsCount = 10;
 
   std::vector<Row> rows_to_insert;
   rows_to_insert.reserve(kRowsCount);
   for (int i = 0; i < kRowsCount; ++i) {
-    rows_to_insert.push_back({i, long_string_to_avoid_sso});
+    rows_to_insert.push_back(
+        {i, fmt::format("{}: {}", i, long_string_to_avoid_sso)});
   }
 
   cluster->InsertMany(

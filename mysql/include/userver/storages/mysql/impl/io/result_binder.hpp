@@ -25,7 +25,7 @@ class ResultBinder final {
 
   template <typename T>
   OutputBindingsFwd& BindTo(T& row) {
-    boost::pfr::for_each_field(row, FieldBinder{*impl_});
+    boost::pfr::for_each_field(row, FieldBinder{GetBinds()});
 
     return GetBinds();
   }

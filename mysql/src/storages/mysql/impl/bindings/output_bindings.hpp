@@ -14,6 +14,7 @@ class OutputBindings final : public BindsStorageInterface<false> {
  public:
   OutputBindings(std::size_t size);
 
+  void WrapBinds(void* binds_array);
   void BeforeFetch(std::size_t pos);
   void AfterFetch(std::size_t pos);
 
@@ -72,8 +73,12 @@ class OutputBindings final : public BindsStorageInterface<false> {
   void ValidateAgainstStatement(MYSQL_STMT& statement) final;
 
  private:
+  MYSQL_BIND& GetBind(std::size_t pos);
+  // TODO : this is redundant, drop
+  void ResetBind(std::size_t pos);
+
   struct FieldIntermediateBuffer final {
-    io::DecimalWrapper decimal{};  //
+    io::DecimalWrapper decimal{};  // for un-templated decimals
     MYSQL_TIME time{};             // for dates and the likes
     std::string string{};          // for json and what not
   };
@@ -180,20 +185,23 @@ class OutputBindings final : public BindsStorageInterface<false> {
     TypedCallback after_fetch_cb{nullptr};
   };
 
-  // TODO : merge
+  // TODO : merge these 2
   std::vector<BindCallbacks> callbacks_;
   std::vector<FieldIntermediateBuffer> intermediate_buffers_;
-  std::vector<MYSQL_BIND> binds_;
+  std::vector<MYSQL_BIND> owned_binds_;
+  // This is either pointing to owned_binds_.data()
+  // or to binds array stored inside mysql internals
+  MYSQL_BIND* binds_ptr_{nullptr};
 };
 
 template <typename T>
 void OutputBindings::BindPrimitiveOptional(std::size_t pos,
                                            std::optional<T>& val,
                                            bool is_unsigned) {
-  UASSERT(pos < Size());
+  ResetBind(pos);
   UASSERT(!val.has_value());
 
-  auto& bind = binds_[pos];
+  auto& bind = GetBind(pos);
   auto& cb = callbacks_[pos];
 
   val.emplace();

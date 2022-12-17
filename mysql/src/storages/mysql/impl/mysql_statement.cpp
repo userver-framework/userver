@@ -99,10 +99,9 @@ void MySQLStatement::StoreResult(engine::Deadline deadline) {
 }
 
 bool MySQLStatement::FetchResultRow(bindings::OutputBindings& binds,
+                                    bool apply_binds,
                                     engine::Deadline deadline) {
-  if (!binds.Empty()) {
-    // TODO : we don't have to rebind all the time, can just fix some values
-    // probably
+  if (!binds.Empty() && apply_binds) {
     if (mysql_stmt_bind_result(native_statement_.get(),
                                binds.GetBindsArray()) != 0) {
       throw std::runtime_error{
@@ -323,7 +322,7 @@ MySQLStatementFetcher::~MySQLStatementFetcher() {
 MySQLStatementFetcher::MySQLStatementFetcher(
     MySQLStatementFetcher&& other) noexcept
     : parent_statement_deadline_{other.parent_statement_deadline_},
-      binds_validated_{other.binds_validated_},
+      binds_applied_{other.binds_applied_},
       statement_{std::exchange(other.statement_, nullptr)} {}
 
 bool MySQLStatementFetcher::FetchResult(io::ExtractorBase& extractor) {
@@ -340,16 +339,24 @@ bool MySQLStatementFetcher::FetchResult(io::ExtractorBase& extractor) {
 
   for (size_t i = 0; i < rows_count; ++i) {
     auto& binds = extractor.BindNextRow();
-    if (!std::exchange(binds_validated_, true)) {
+
+    const auto apply_binds = !std::exchange(binds_applied_, true);
+    if (apply_binds) {
       binds.ValidateAgainstStatement(*statement_->native_statement_);
     }
 
-    const auto parsed =
-        statement_->FetchResultRow(binds, parent_statement_deadline_);
+    // We don't have to reapply binds all the time: values in them are changed
+    // by extractor.BindNextRow() call, and mysql_stmt_bind_result is costly.
+    // Not reapplying them for each row gives ~20% speedup in benchmarks with
+    // wide select.
+    const auto parsed = statement_->FetchResultRow(binds, apply_binds,
+                                                   parent_statement_deadline_);
     if (!parsed) {
       extractor.RollbackLastRow();
       return false;
     }
+    // TODO : DIRTY!
+    extractor.WrapBindsArray(statement_->native_statement_->bind);
   }
 
   return true;

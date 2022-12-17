@@ -39,7 +39,7 @@ class MySQLStatementFetcher final {
   MySQLStatementFetcher(MySQLStatement& statement);
 
   engine::Deadline parent_statement_deadline_;
-  bool binds_validated_{false};
+  bool binds_applied_{false};
   MySQLStatement* statement_;
 };
 
@@ -68,7 +68,7 @@ class MySQLStatement final {
   friend class MySQLStatementFetcher;
   void StoreResult(engine::Deadline deadline);
 
-  bool FetchResultRow(bindings::OutputBindings& binds,
+  bool FetchResultRow(bindings::OutputBindings& binds, bool apply_binds,
                       engine::Deadline deadline);
   void Reset(engine::Deadline deadline);
 

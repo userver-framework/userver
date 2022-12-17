@@ -10,16 +10,24 @@ namespace storages::mysql::impl::io {
 
 class ExtractorBase {
  public:
+  ExtractorBase(std::size_t size);
   virtual void Reserve(std::size_t size) = 0;
   virtual OutputBindingsFwd& BindNextRow() = 0;
   virtual void RollbackLastRow() = 0;
   virtual std::size_t ColumnsCount() const = 0;
+
+  void WrapBindsArray(void* binds_array);
+
+ protected:
+  ~ExtractorBase();
+  // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
+  ResultBinder binder_;
 };
 
 template <typename T>
 class TypedExtractor final : public ExtractorBase {
  public:
-  TypedExtractor() : binder_{boost::pfr::tuple_size_v<T>} {}
+  TypedExtractor() : ExtractorBase{boost::pfr::tuple_size_v<T>} {}
 
   void Reserve(std::size_t size) final;
 
@@ -29,10 +37,9 @@ class TypedExtractor final : public ExtractorBase {
 
   std::size_t ColumnsCount() const final;
 
-  std::vector<T>&& ExtractData() &&;
+  std::vector<T>&& ExtractData();
 
  private:
-  ResultBinder binder_;
   std::vector<T> data_;
 };
 
@@ -58,7 +65,7 @@ std::size_t TypedExtractor<T>::ColumnsCount() const {
 }
 
 template <typename T>
-std::vector<T>&& TypedExtractor<T>::ExtractData() && {
+std::vector<T>&& TypedExtractor<T>::ExtractData() {
   return std::move(data_);
 }
 
