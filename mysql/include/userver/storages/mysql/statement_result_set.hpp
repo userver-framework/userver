@@ -25,6 +25,9 @@ namespace infra {
 class ConnectionPtr;
 }
 
+template <typename DbType>
+class MappedStatementResultSet;
+
 class StatementResultSet final {
  public:
   explicit StatementResultSet(impl::MySQLStatementFetcher&& fetcher);
@@ -41,32 +44,39 @@ class StatementResultSet final {
   template <typename T>
   std::vector<T> AsVector(FieldTag) &&;
 
-  // TODO : swap parameters? Right now it's AsVectorMapped<To, From>,
-  // when AsVectorMapped<From, To> is likely a more readable version
-  template <typename T, typename MapFrom>
-  std::vector<T> AsVectorMapped() &&;
-
   template <typename Container>
   Container AsContainer() &&;
 
-  template <typename Container, typename MapFrom>
-  Container AsContainerMapped() &&;
-
-  template <typename Container, typename MapFrom>
-  Container AsContainerMapped(FieldTag) &&;
+  template <typename Container>
+  Container AsContainer(FieldTag) &&;
 
   template <typename T>
   T AsSingleRow() &&;
 
   template <typename T>
+  T AsSingleField() &&;
+
+  template <typename T>
   std::optional<T> AsOptionalSingleRow() &&;
+
+  template <typename T>
+  std::optional<T> AsOptionalSingleField() &&;
+
+  template <typename DbType>
+  MappedStatementResultSet<DbType> MapFrom() &&;
 
  private:
   template <typename T>
   friend class CursorResultSet;
 
+  template <typename DbType>
+  friend class MappedStatementResultSet;
+
   template <typename Container, typename MapFrom, typename ExtractionTag>
   Container DoAsContainerMapped() &&;
+
+  template <typename T, typename ExtractionTag>
+  std::optional<T> DoAsOptionalSingleRow() &&;
 
   bool FetchResult(impl::io::ExtractorBase& extractor);
 
@@ -76,17 +86,12 @@ class StatementResultSet final {
 
 template <typename T>
 std::vector<T> StatementResultSet::AsVector() && {
-  return std::move(*this).AsVectorMapped<T, T>();
+  return std::move(*this).AsContainer<std::vector<T>>();
 }
 
 template <typename T>
 std::vector<T> StatementResultSet::AsVector(FieldTag) && {
-  return std::move(*this).AsContainerMapped<std::vector<T>, T>(kFieldTag);
-}
-
-template <typename T, typename MapFrom>
-std::vector<T> StatementResultSet::AsVectorMapped() && {
-  return std::move(*this).AsContainerMapped<std::vector<T>, MapFrom>();
+  return std::move(*this).AsContainer<std::vector<T>>(kFieldTag);
 }
 
 template <typename Container>
@@ -95,17 +100,16 @@ Container StatementResultSet::AsContainer() && {
                 "The type isn't actually a container");
   using Row = typename Container::value_type;
 
-  return std::move(*this).AsContainerMapped<Container, Row>();
+  return std::move(*this).DoAsContainerMapped<Container, Row, RowTag>();
 }
 
-template <typename Container, typename MapFrom>
-Container StatementResultSet::AsContainerMapped() && {
-  return std::move(*this).DoAsContainerMapped<Container, MapFrom, RowTag>();
-}
+template <typename Container>
+Container StatementResultSet::AsContainer(FieldTag) && {
+  static_assert(impl::io::kIsRange<Container>,
+                "The type isn't actually a container");
+  using Row = typename Container::value_type;
 
-template <typename Container, typename MapFrom>
-Container StatementResultSet::AsContainerMapped(FieldTag) && {
-  return std::move(*this).DoAsContainerMapped<Container, MapFrom, FieldTag>();
+  return std::move(*this).DoAsContainerMapped<Container, Row, FieldTag>();
 }
 
 template <typename T>
@@ -120,19 +124,24 @@ T StatementResultSet::AsSingleRow() && {
 }
 
 template <typename T>
+T StatementResultSet::AsSingleField() && {
+  auto optional_data = std::move(*this).AsOptionalSingleField<T>();
+
+  if (!optional_data.has_value()) {
+    throw std::runtime_error{"Result set is empty"};
+  }
+
+  return std::move(*optional_data);
+}
+
+template <typename T>
 std::optional<T> StatementResultSet::AsOptionalSingleRow() && {
-  auto rows = std::move(*this).AsVector<T>();
+  return std::move(*this).DoAsOptionalSingleRow<T, RowTag>();
+}
 
-  if (rows.empty()) {
-    return std::nullopt;
-  }
-
-  if (rows.size() > 1) {
-    throw std::runtime_error{fmt::format(
-        "There is more than one row in result set ({} rows)", rows.size())};
-  }
-
-  return {std::move(rows.front())};
+template <typename T>
+std::optional<T> StatementResultSet::AsOptionalSingleField() && {
+  return std::move(*this).DoAsOptionalSingleRow<T, FieldTag>();
 }
 
 template <typename Container, typename MapFrom, typename ExtractionTag>
@@ -160,6 +169,95 @@ Container StatementResultSet::DoAsContainerMapped() && {
 
   std::move(rows.begin(), rows.end(), impl::io::Inserter(container));
   return container;
+}
+
+template <typename T, typename ExtractionTag>
+std::optional<T> StatementResultSet::DoAsOptionalSingleRow() && {
+  auto rows = [this] {
+    if constexpr (std::is_same_v<RowTag, ExtractionTag>) {
+      return std::move(*this).AsVector<T>();
+    } else {
+      return std::move(*this).AsVector<T>(kFieldTag);
+    }
+  }();
+
+  if (rows.empty()) {
+    return std::nullopt;
+  }
+
+  if (rows.size() > 1) {
+    throw std::runtime_error{fmt::format(
+        "There is more than one row in result set ({} rows)", rows.size())};
+  }
+
+  return {std::move(rows.front())};
+}
+
+template <typename DbType>
+class MappedStatementResultSet final {
+ public:
+  explicit MappedStatementResultSet(StatementResultSet&& result_set);
+  ~MappedStatementResultSet();
+
+  template <typename T>
+  std::vector<T> AsVector() &&;
+
+  template <typename T>
+  std::vector<T> AsVector(FieldTag) &&;
+
+  template <typename Container>
+  Container AsContainer() &&;
+
+  template <typename Container>
+  Container AsContainer(FieldTag) &&;
+
+  /*template <typename T>
+  T AsSingleRow() &&;
+
+  template <typename T>
+  std::optional<T> AsOptionalSingleRow() &&;*/
+
+ private:
+  StatementResultSet result_set_;
+};
+
+template <typename DbType>
+MappedStatementResultSet<DbType>::MappedStatementResultSet(
+    StatementResultSet&& result_set)
+    : result_set_{std::move(result_set)} {}
+
+template <typename DbType>
+MappedStatementResultSet<DbType>::~MappedStatementResultSet() = default;
+
+template <typename DbType>
+template <typename T>
+std::vector<T> MappedStatementResultSet<DbType>::AsVector() && {
+  return std::move(*this).template AsContainer<std::vector<T>>();
+}
+
+template <typename DbType>
+template <typename T>
+std::vector<T> MappedStatementResultSet<DbType>::AsVector(FieldTag) && {
+  return std::move(*this).template AsContainer<std::vector<T>>(kFieldTag);
+}
+
+template <typename DbType>
+template <typename Container>
+Container MappedStatementResultSet<DbType>::AsContainer() && {
+  return std::move(result_set_)
+      .DoAsContainerMapped<Container, DbType, RowTag>();
+}
+
+template <typename DbType>
+template <typename Container>
+Container MappedStatementResultSet<DbType>::AsContainer(FieldTag) && {
+  return std::move(result_set_)
+      .DoAsContainerMapped<Container, DbType, FieldTag>();
+}
+
+template <typename DbType>
+MappedStatementResultSet<DbType> StatementResultSet::MapFrom() && {
+  return MappedStatementResultSet<DbType>{std::move(*this)};
 }
 
 }  // namespace storages::mysql

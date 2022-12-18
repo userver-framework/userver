@@ -19,9 +19,11 @@ struct UserRow final {
 
 namespace storages::mysql::convert {
 
-UserRow MySQLConvert(DbRow&& db_row, To<UserRow>) {
+UserRow Convert(DbRow&& db_row, To<UserRow>) {
   return {static_cast<std::int64_t>(db_row.a) * db_row.b};
 }
+
+int Convert(std::string&& field, To<int>) { return std::stoi(field); }
 
 }  // namespace storages::mysql::convert
 
@@ -32,7 +34,8 @@ UTEST(MappedResultSet, Works) {
   table.DefaultExecute("INSERT INTO {} VALUES(?, ?)", 2, 3);
 
   const auto db_row = table.DefaultExecute("SELECT a, b FROM {}")
-                          .AsVectorMapped<UserRow, DbRow>();
+                          .MapFrom<DbRow>()
+                          .AsVector<UserRow>();
 
   ASSERT_EQ(db_row.size(), 1);
   EXPECT_EQ(db_row.front().mult, 2 * 3);
@@ -48,6 +51,50 @@ UTEST(MappedResultSet, FieldWorks) {
                              .AsVector<std::string>(kFieldTag);
   ASSERT_EQ(container.size(), 1);
   EXPECT_EQ(container.front(), text);
+}
+
+namespace {
+
+struct DbUser final {
+  std::string first_name;
+  std::string last_name;
+};
+
+std::string Convert(DbUser&& db_user,
+                    storages::mysql::convert::To<std::string>) {
+  return fmt::format("{} {}", db_user.first_name, db_user.last_name);
+}
+
+}  // namespace
+
+UTEST(MappedResultSet, MappedVectorWorks) {
+  ClusterWrapper cluster{};
+  cluster->ExecuteCommand(
+      ClusterHostType::kMaster,
+      "CREATE TABLE Users(first_name TEXT NOT NULL, last_name TEXT NOT NULL)");
+
+  cluster->InsertOne("INSERT INTO Users VALUES(?, ?)",
+                     DbUser{"Ivan", "Trofimov"});
+
+  const auto users = cluster
+                         ->Select(ClusterHostType::kMaster,
+                                  "SELECT first_name, last_name FROM Users")
+                         .MapFrom<DbUser>()
+                         .AsVector<std::string>();
+  ASSERT_EQ(users.size(), 1);
+  EXPECT_EQ(users.front(), "Ivan Trofimov");
+}
+
+UTEST(MappedResultSet, MappedFieldWorks) {
+  TmpTable table{"Value TEXT NOT NULL"};
+  table.DefaultExecute("INSERT INTO {} VALUES(?)", "123");
+
+  const auto as_int = table.DefaultExecute("SELECT Value FROM {}")
+                          .MapFrom<std::string>()
+                          .AsVector<int>(kFieldTag);
+
+  ASSERT_EQ(as_int.size(), 1);
+  EXPECT_EQ(as_int.front(), 123);
 }
 
 }  // namespace storages::mysql::tests

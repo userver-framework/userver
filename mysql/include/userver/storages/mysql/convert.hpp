@@ -11,24 +11,24 @@ struct To final {};
 
 namespace impl {
 
-template <typename T, typename MapFrom>
+template <typename T, typename DbType>
 using HasConvert =
-    decltype(MySQLConvert(std::declval<MapFrom&&>(), convert::To<T>{}));
+    decltype(Convert(std::declval<DbType&&>(), convert::To<T>{}));
 
-template <typename T, typename MapFrom>
-inline constexpr bool kHasConvert = meta::kIsDetected<HasConvert, T, MapFrom>;
+template <typename T, typename DbType>
+inline constexpr bool kHasConvert = meta::kIsDetected<HasConvert, T, DbType>;
 
 }  // namespace impl
 
-template <typename T, typename MapFrom>
-T DoConvert(MapFrom&& from) {
+template <typename T, typename DbType>
+T DoConvert(DbType&& from) {
   static_assert(
       // TODO : better wording
-      impl::kHasConvert<T, MapFrom>,
+      impl::kHasConvert<T, DbType>,
       "There is no MySQLConvert(From&&, storages::mysql::convert::To<T>) in "
       "namespace of `storages::mysql::convert`");
 
-  return MySQLConvert(std::forward<MapFrom>(from), To<T>{});
+  return Convert(std::forward<DbType>(from), To<T>{});
 }
 
 }  // namespace storages::mysql::convert
