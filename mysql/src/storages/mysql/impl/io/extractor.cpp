@@ -10,7 +10,7 @@ ExtractorBase::ExtractorBase(std::size_t size) : binder_{size} {}
 
 ExtractorBase::~ExtractorBase() = default;
 
-void ExtractorBase::WrapBindsArray(void* binds_array) {
+void ExtractorBase::UpdateBinds(void* binds_array) {
   binder_.GetBinds().WrapBinds(binds_array);
 }
 

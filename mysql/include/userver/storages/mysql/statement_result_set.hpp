@@ -38,6 +38,8 @@ class StatementResultSet final {
   template <typename T>
   std::vector<T> AsVector() &&;
 
+  // TODO : swap parameters? Right now it's AsVectorMapped<To, From>,
+  // when AsVectorMapped<From, To> is likely a more readable version
   template <typename T, typename MapFrom>
   std::vector<T> AsVectorMapped() &&;
 
@@ -65,7 +67,12 @@ class StatementResultSet final {
 
 template <typename T>
 std::vector<T> StatementResultSet::AsVector() && {
-  return std::move(*this).AsContainer<std::vector<T>>();
+  return std::move(*this).AsVectorMapped<T, T>();
+}
+
+template <typename T, typename MapFrom>
+std::vector<T> StatementResultSet::AsVectorMapped() && {
+  return std::move(*this).AsContainerMapped<std::vector<T>, MapFrom>();
 }
 
 template <typename Container>
@@ -73,7 +80,16 @@ Container StatementResultSet::AsContainer() && {
   static_assert(impl::io::kIsRange<Container>,
                 "The type isn't actually a container");
   using Row = typename Container::value_type;
-  using Extractor = impl::io::TypedExtractor<Row>;
+
+  return std::move(*this).AsContainerMapped<Container, Row>();
+}
+
+template <typename Container, typename MapFrom>
+Container StatementResultSet::AsContainerMapped() && {
+  static_assert(impl::io::kIsRange<Container>,
+                "The type isn't actually a container");
+  using Row = typename Container::value_type;
+  using Extractor = impl::io::TypedExtractor<Row, MapFrom>;
 
   Extractor extractor{};
 
