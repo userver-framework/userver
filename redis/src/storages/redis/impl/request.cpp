@@ -82,7 +82,12 @@ CommandPtr Request::PrepareRequest(CmdArgs&& args,
       std::move(args),
       [state_ptr = std::move(state_ptr)](const CommandPtr&,
                                          ReplyPtr reply) mutable {
-        UASSERT(state_ptr);
+        if (!state_ptr) {
+          LOG_LIMITED_WARNING() << "redis::Command keeps running after "
+                                   "triggering the callback initially";
+          return;
+        }
+
         state_ptr->SetExecuted();
 
         if (state_ptr->GetRepliesToSkip() != 0) {

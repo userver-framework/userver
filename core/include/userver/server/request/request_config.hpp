@@ -15,6 +15,7 @@ struct HttpRequestConfig {
   bool parse_args_from_body = false;
   bool testing_mode = false;
   bool decompress_request = false;
+  bool set_tracing_headers = true;
 };
 
 HttpRequestConfig Parse(const yaml_config::YamlConfig& value,

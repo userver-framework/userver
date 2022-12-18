@@ -135,9 +135,9 @@ engine::TaskWithResult<void> HttpRequestHandler::StartRequestTask(
                            "limit via 'server.max_response_size_in_flight')";
     return StartFailsafeTask(std::move(request));
   }
+  const auto& config = config_source_.GetSnapshot();
 
   if (throttling_enabled && !rate_limit_.Obtain()) {
-    const auto& config = config_source_.GetSnapshot();
     auto config_var = config[kCcCustomStatus];
     const auto& delta = config_var.max_time_delta;
 

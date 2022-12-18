@@ -122,8 +122,10 @@ class RequestProcessor final {
     try {
       auto& span = tracing::Span::CurrentSpan();
       auto& response = http_request_.GetHttpResponse();
-      response.SetHeader(USERVER_NAMESPACE::http::headers::kXYaRequestId,
-                         span.GetLink());
+      if (handler_.GetConfig().set_tracing_headers) {
+        response.SetHeader(USERVER_NAMESPACE::http::headers::kXYaRequestId,
+                           span.GetLink());
+      }
 
       const auto status_code = response.GetStatus();
       span.SetLogLevel(handler_.GetLogLevelForResponseStatus(status_code));
@@ -502,10 +504,12 @@ void HttpHandlerBase::HandleRequest(request::RequestBase& request,
     auto span = tracing::Span::MakeSpan(fmt::format("http/{}", HandlerName()),
                                         trace_id, parent_span_id);
 
-    response.SetHeader(USERVER_NAMESPACE::http::headers::kXYaTraceId,
-                       span.GetTraceId());
-    response.SetHeader(USERVER_NAMESPACE::http::headers::kXYaSpanId,
-                       span.GetSpanId());
+    if (config.set_tracing_headers) {
+      response.SetHeader(USERVER_NAMESPACE::http::headers::kXYaTraceId,
+                         span.GetTraceId());
+      response.SetHeader(USERVER_NAMESPACE::http::headers::kXYaSpanId,
+                         span.GetSpanId());
+    }
 
     span.SetLocalLogLevel(log_level_);
 
