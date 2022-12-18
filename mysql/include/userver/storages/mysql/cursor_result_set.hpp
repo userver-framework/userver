@@ -40,7 +40,7 @@ void CursorResultSet<T>::ForEach(
     // TODO : think about separate deadline here
     [[maybe_unused]] engine::Deadline deadline) && {
   bool keep_going = true;
-  auto extractor = impl::io::TypedExtractor<T>{};
+  auto extractor = impl::io::TypedExtractor<T, T, RowTag>{};
 
   while (keep_going) {
     tracing::ScopeTime fetch{"fetch"};

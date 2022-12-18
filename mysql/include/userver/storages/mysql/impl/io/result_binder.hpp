@@ -10,6 +10,7 @@
 
 #include <userver/storages/mysql/impl/binder_fwd.hpp>
 #include <userver/storages/mysql/impl/io/binder_declarations.hpp>
+#include <userver/storages/mysql/row_types.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -23,9 +24,15 @@ class ResultBinder final {
   ResultBinder(const ResultBinder& other) = delete;
   ResultBinder(ResultBinder&& other) noexcept;
 
-  template <typename T>
-  OutputBindingsFwd& BindTo(T& row) {
-    boost::pfr::for_each_field(row, FieldBinder{GetBinds()});
+  template <typename T, typename ExtractionTag>
+  OutputBindingsFwd& BindTo(T& row, ExtractionTag) {
+    if constexpr (std::is_same_v<ExtractionTag, RowTag>) {
+      boost::pfr::for_each_field(row, FieldBinder{GetBinds()});
+    } else if constexpr (std::is_same_v<ExtractionTag, FieldTag>) {
+      GetOutputBinder(GetBinds(), 0, row)();
+    } else {
+      static_assert(!sizeof(ExtractionTag), "should be unreachable");
+    }
 
     return GetBinds();
   }

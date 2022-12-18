@@ -30,7 +30,7 @@ class ExtractorBase {
   ResultBinder binder_;
 };
 
-template <typename T, typename MapFrom = T>
+template <typename T, typename MapFrom, typename ExtractionTag>
 class TypedExtractor final : public ExtractorBase {
  public:
   using StorageType = std::vector<T>;
@@ -89,111 +89,127 @@ class TypedExtractor final : public ExtractorBase {
     ResultBinder& binder_;
   };
 
+  static constexpr std::size_t kColumnsCount = [] {
+    if constexpr (std::is_same_v<ExtractionTag, RowTag>) {
+      return boost::pfr::tuple_size_v<MapFrom>;
+    } else if constexpr (std::is_same_v<ExtractionTag, FieldTag>) {
+      return 1;
+    } else {
+      static_assert(!sizeof(ExtractionTag), "should be unreachable");
+    }
+  }();
+
   using InternalStorageType =
       std::conditional_t<std::is_same_v<T, MapFrom>, IdentityStorage,
                          MappedStorage>;
   InternalStorageType storage_;
 };
 
-template <typename T, typename MapFrom>
-TypedExtractor<T, MapFrom>::TypedExtractor()
-    : ExtractorBase{boost::pfr::tuple_size_v<MapFrom>},
-      storage_{InternalStorageType{binder_}} {}
+template <typename T, typename MapFrom, typename ExtractionTag>
+TypedExtractor<T, MapFrom, ExtractionTag>::TypedExtractor()
+    : ExtractorBase{kColumnsCount}, storage_{InternalStorageType{binder_}} {}
 
-template <typename T, typename MapFrom>
-void TypedExtractor<T, MapFrom>::Reserve(std::size_t size) {
+template <typename T, typename MapFrom, typename ExtractionTag>
+void TypedExtractor<T, MapFrom, ExtractionTag>::Reserve(std::size_t size) {
   storage_.Reserve(size);
 }
 
-template <typename T, typename MapFrom>
-impl::bindings::OutputBindings& TypedExtractor<T, MapFrom>::BindNextRow() {
+template <typename T, typename MapFrom, typename ExtractionTag>
+impl::bindings::OutputBindings&
+TypedExtractor<T, MapFrom, ExtractionTag>::BindNextRow() {
   return storage_.BindNextRow();
 }
 
-template <typename T, typename MapFrom>
-void TypedExtractor<T, MapFrom>::CommitLastRow() {
+template <typename T, typename MapFrom, typename ExtractionTag>
+void TypedExtractor<T, MapFrom, ExtractionTag>::CommitLastRow() {
   storage_.CommitLastRow();
 }
 
-template <typename T, typename MapFrom>
-void TypedExtractor<T, MapFrom>::RollbackLastRow() {
+template <typename T, typename MapFrom, typename ExtractionTag>
+void TypedExtractor<T, MapFrom, ExtractionTag>::RollbackLastRow() {
   storage_.RollbackLastRow();
 }
 
-template <typename T, typename MapFrom>
-std::size_t TypedExtractor<T, MapFrom>::ColumnsCount() const {
-  return boost::pfr::tuple_size_v<MapFrom>;
+template <typename T, typename MapFrom, typename ExtractionTag>
+std::size_t TypedExtractor<T, MapFrom, ExtractionTag>::ColumnsCount() const {
+  return kColumnsCount;
 }
 
-template <typename T, typename MapFrom>
-typename TypedExtractor<T, MapFrom>::StorageType&&
-TypedExtractor<T, MapFrom>::ExtractData() {
+template <typename T, typename MapFrom, typename ExtractionTag>
+typename TypedExtractor<T, MapFrom, ExtractionTag>::StorageType&&
+TypedExtractor<T, MapFrom, ExtractionTag>::ExtractData() {
   return storage_.ExtractData();
 }
 
-template <typename T, typename MapFrom>
-TypedExtractor<T, MapFrom>::IdentityStorage::IdentityStorage(
+template <typename T, typename MapFrom, typename ExtractionTag>
+TypedExtractor<T, MapFrom, ExtractionTag>::IdentityStorage::IdentityStorage(
     ResultBinder& binder)
     : binder_{binder} {}
 
-template <typename T, typename MapFrom>
-void TypedExtractor<T, MapFrom>::IdentityStorage::Reserve(std::size_t size) {
+template <typename T, typename MapFrom, typename ExtractionTag>
+void TypedExtractor<T, MapFrom, ExtractionTag>::IdentityStorage::Reserve(
+    std::size_t size) {
   // +1 because we overcommit one row and then rollback it in default execution
   // path
   data_.reserve(size + 1);
 }
 
-template <typename T, typename MapFrom>
+template <typename T, typename MapFrom, typename ExtractionTag>
 impl::bindings::OutputBindings&
-TypedExtractor<T, MapFrom>::IdentityStorage::BindNextRow() {
+TypedExtractor<T, MapFrom, ExtractionTag>::IdentityStorage::BindNextRow() {
   data_.emplace_back();
-  return binder_.BindTo(data_.back());
+  return binder_.BindTo(data_.back(), ExtractionTag{});
 }
 
-template <typename T, typename MapFrom>
-void TypedExtractor<T, MapFrom>::IdentityStorage::CommitLastRow() {
+template <typename T, typename MapFrom, typename ExtractionTag>
+void TypedExtractor<T, MapFrom,
+                    ExtractionTag>::IdentityStorage::CommitLastRow() {
   // no-op, already committed
 }
 
-template <typename T, typename MapFrom>
-void TypedExtractor<T, MapFrom>::IdentityStorage::RollbackLastRow() {
+template <typename T, typename MapFrom, typename ExtractionTag>
+void TypedExtractor<T, MapFrom,
+                    ExtractionTag>::IdentityStorage::RollbackLastRow() {
   data_.pop_back();
 }
 
-template <typename T, typename MapFrom>
-typename TypedExtractor<T, MapFrom>::StorageType&&
-TypedExtractor<T, MapFrom>::IdentityStorage::ExtractData() {
+template <typename T, typename MapFrom, typename ExtractionTag>
+typename TypedExtractor<T, MapFrom, ExtractionTag>::StorageType&&
+TypedExtractor<T, MapFrom, ExtractionTag>::IdentityStorage::ExtractData() {
   return std::move(data_);
 }
 
-template <typename T, typename MapFrom>
-TypedExtractor<T, MapFrom>::MappedStorage::MappedStorage(ResultBinder& binder)
+template <typename T, typename MapFrom, typename ExtractionTag>
+TypedExtractor<T, MapFrom, ExtractionTag>::MappedStorage::MappedStorage(
+    ResultBinder& binder)
     : binder_{binder} {}
 
-template <typename T, typename MapFrom>
-void TypedExtractor<T, MapFrom>::MappedStorage::Reserve(std::size_t size) {
+template <typename T, typename MapFrom, typename ExtractionTag>
+void TypedExtractor<T, MapFrom, ExtractionTag>::MappedStorage::Reserve(
+    std::size_t size) {
   data_.reserve(size);
 }
 
-template <typename T, typename MapFrom>
+template <typename T, typename MapFrom, typename ExtractionTag>
 impl::bindings::OutputBindings&
-TypedExtractor<T, MapFrom>::MappedStorage::BindNextRow() {
-  return binder_.BindTo(row_);
+TypedExtractor<T, MapFrom, ExtractionTag>::MappedStorage::BindNextRow() {
+  return binder_.BindTo(row_, ExtractionTag{});
 }
 
-template <typename T, typename MapFrom>
-void TypedExtractor<T, MapFrom>::MappedStorage::CommitLastRow() {
+template <typename T, typename MapFrom, typename ExtractionTag>
+void TypedExtractor<T, MapFrom, ExtractionTag>::MappedStorage::CommitLastRow() {
   data_.emplace_back(storages::mysql::convert::DoConvert<T>(std::move(row_)));
 }
 
-template <typename T, typename MapFrom>
-void TypedExtractor<T, MapFrom>::MappedStorage::RollbackLastRow() {
+template <typename T, typename MapFrom, typename ExtractionTag>
+void TypedExtractor<T, MapFrom,
+                    ExtractionTag>::MappedStorage::RollbackLastRow() {
   // no-op, because either this function or commit is called, not both
 }
 
-template <typename T, typename MapFrom>
-typename TypedExtractor<T, MapFrom>::StorageType&&
-TypedExtractor<T, MapFrom>::MappedStorage::ExtractData() {
+template <typename T, typename MapFrom, typename ExtractionTag>
+typename TypedExtractor<T, MapFrom, ExtractionTag>::StorageType&&
+TypedExtractor<T, MapFrom, ExtractionTag>::MappedStorage::ExtractData() {
   return std::move(data_);
 }
 

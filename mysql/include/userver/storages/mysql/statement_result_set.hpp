@@ -38,6 +38,9 @@ class StatementResultSet final {
   template <typename T>
   std::vector<T> AsVector() &&;
 
+  template <typename T>
+  std::vector<T> AsVector(FieldTag) &&;
+
   // TODO : swap parameters? Right now it's AsVectorMapped<To, From>,
   // when AsVectorMapped<From, To> is likely a more readable version
   template <typename T, typename MapFrom>
@@ -49,6 +52,9 @@ class StatementResultSet final {
   template <typename Container, typename MapFrom>
   Container AsContainerMapped() &&;
 
+  template <typename Container, typename MapFrom>
+  Container AsContainerMapped(FieldTag) &&;
+
   template <typename T>
   T AsSingleRow() &&;
 
@@ -59,6 +65,9 @@ class StatementResultSet final {
   template <typename T>
   friend class CursorResultSet;
 
+  template <typename Container, typename MapFrom, typename ExtractionTag>
+  Container DoAsContainerMapped() &&;
+
   bool FetchResult(impl::io::ExtractorBase& extractor);
 
   struct Impl;
@@ -68,6 +77,11 @@ class StatementResultSet final {
 template <typename T>
 std::vector<T> StatementResultSet::AsVector() && {
   return std::move(*this).AsVectorMapped<T, T>();
+}
+
+template <typename T>
+std::vector<T> StatementResultSet::AsVector(FieldTag) && {
+  return std::move(*this).AsContainerMapped<std::vector<T>, T>(kFieldTag);
 }
 
 template <typename T, typename MapFrom>
@@ -86,29 +100,12 @@ Container StatementResultSet::AsContainer() && {
 
 template <typename Container, typename MapFrom>
 Container StatementResultSet::AsContainerMapped() && {
-  static_assert(impl::io::kIsRange<Container>,
-                "The type isn't actually a container");
-  using Row = typename Container::value_type;
-  using Extractor = impl::io::TypedExtractor<Row, MapFrom>;
+  return std::move(*this).DoAsContainerMapped<Container, MapFrom, RowTag>();
+}
 
-  Extractor extractor{};
-
-  tracing::ScopeTime fetch{"fetch"};
-  std::move(*this).FetchResult(extractor);
-  fetch.Reset();
-
-  if constexpr (std::is_same_v<Container, typename Extractor::StorageType>) {
-    return std::move(extractor).ExtractData();
-  }
-
-  Container container{};
-  typename Extractor::StorageType rows{std::move(extractor).ExtractData()};
-  if constexpr (impl::io::kIsReservable<Container>) {
-    container.reserve(rows.size());
-  }
-
-  std::move(rows.begin(), rows.end(), impl::io::Inserter(container));
-  return container;
+template <typename Container, typename MapFrom>
+Container StatementResultSet::AsContainerMapped(FieldTag) && {
+  return std::move(*this).DoAsContainerMapped<Container, MapFrom, FieldTag>();
 }
 
 template <typename T>
@@ -136,6 +133,33 @@ std::optional<T> StatementResultSet::AsOptionalSingleRow() && {
   }
 
   return {std::move(rows.front())};
+}
+
+template <typename Container, typename MapFrom, typename ExtractionTag>
+Container StatementResultSet::DoAsContainerMapped() && {
+  static_assert(impl::io::kIsRange<Container>,
+                "The type isn't actually a container");
+  using Row = typename Container::value_type;
+  using Extractor = impl::io::TypedExtractor<Row, MapFrom, ExtractionTag>;
+
+  Extractor extractor{};
+
+  tracing::ScopeTime fetch{"fetch"};
+  std::move(*this).FetchResult(extractor);
+  fetch.Reset();
+
+  if constexpr (std::is_same_v<Container, typename Extractor::StorageType>) {
+    return std::move(extractor).ExtractData();
+  }
+
+  Container container{};
+  typename Extractor::StorageType rows{std::move(extractor).ExtractData()};
+  if constexpr (impl::io::kIsReservable<Container>) {
+    container.reserve(rows.size());
+  }
+
+  std::move(rows.begin(), rows.end(), impl::io::Inserter(container));
+  return container;
 }
 
 }  // namespace storages::mysql

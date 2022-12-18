@@ -38,6 +38,18 @@ UTEST(MappedResultSet, Works) {
   EXPECT_EQ(db_row.front().mult, 2 * 3);
 }
 
+UTEST(MappedResultSet, FieldWorks) {
+  TmpTable table{"text TEXT NOT NULL"};
+
+  const std::string text = "hi from FieldTag";
+  table.DefaultExecute("INSERT INTO {} VALUES(?)", text);
+
+  const auto container = table.DefaultExecute("SELECT text FROM {}")
+                             .AsVector<std::string>(kFieldTag);
+  ASSERT_EQ(container.size(), 1);
+  EXPECT_EQ(container.front(), text);
+}
+
 }  // namespace storages::mysql::tests
 
 USERVER_NAMESPACE_END
