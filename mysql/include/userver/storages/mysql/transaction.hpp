@@ -4,6 +4,7 @@
 #include <userver/utils/fast_pimpl.hpp>
 
 #include <userver/storages/mysql/impl/bind_helper.hpp>
+#include <userver/storages/mysql/query.hpp>
 #include <userver/storages/mysql/statement_result_set.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -23,15 +24,14 @@ class Transaction final {
   Transaction(Transaction&& other) noexcept;
 
   template <typename... Args>
-  StatementResultSet Execute(const std::string& query,
-                             const Args&... args) const;
+  StatementResultSet Execute(const Query& query, const Args&... args) const;
 
   template <typename T>
-  void InsertOne(const std::string& insert_query, const T& row) const;
+  void InsertOne(const Query& insert_query, const T& row) const;
 
   // only works with recent enough MariaDB as a server
   template <typename Container>
-  void InsertMany(const std::string& insert_query, const Container& rows,
+  void InsertMany(const Query& insert_query, const Container& rows,
                   bool throw_on_empty_insert = true) const;
 
   void Commit();
@@ -52,24 +52,22 @@ class Transaction final {
 };
 
 template <typename... Args>
-StatementResultSet Transaction::Execute(const std::string& query,
+StatementResultSet Transaction::Execute(const Query& query,
                                         const Args&... args) const {
   auto params_binder = impl::BindHelper::BindParams(args...);
 
-  return DoExecute(query, params_binder);
+  return DoExecute(query.GetStatement(), params_binder);
 }
 
 template <typename T>
-void Transaction::InsertOne(const std::string& insert_query,
-                            const T& row) const {
+void Transaction::InsertOne(const Query& insert_query, const T& row) const {
   auto params_binder = impl::BindHelper::BindRowAsParams(row);
 
-  return DoInsert(insert_query, params_binder);
+  return DoInsert(insert_query.GetStatement(), params_binder);
 }
 
 template <typename Container>
-void Transaction::InsertMany(const std::string& insert_query,
-                             const Container& rows,
+void Transaction::InsertMany(const Query& insert_query, const Container& rows,
                              bool throw_on_empty_insert) const {
   if (rows.empty()) {
     if (throw_on_empty_insert) {
@@ -81,7 +79,7 @@ void Transaction::InsertMany(const std::string& insert_query,
 
   auto params_binder = impl::BindHelper::BindContainerAsParams(rows);
 
-  DoInsert(insert_query, params_binder);
+  DoInsert(insert_query.GetStatement(), params_binder);
 }
 
 }  // namespace storages::mysql
