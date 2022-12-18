@@ -11,8 +11,8 @@ class InputBindings;
 class OutputBindings;
 }  // namespace bindings
 
-using InputBindingsPimpl = utils::FastPimpl<bindings::InputBindings, 72, 8>;
-using OutputBindingsPimpl = utils::FastPimpl<bindings::OutputBindings, 88, 8>;
+using InputBindingsPimpl = utils::FastPimpl<bindings::InputBindings, 1544, 8>;
+using OutputBindingsPimpl = utils::FastPimpl<bindings::OutputBindings, 1944, 8>;
 
 using InputBindingsFwd = bindings::InputBindings;
 using OutputBindingsFwd = bindings::OutputBindings;

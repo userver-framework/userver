@@ -1,8 +1,10 @@
 #pragma once
 
-#include <storages/mysql/impl/bindings/binds_storage_interface.hpp>
-
 #include <vector>
+
+#include <boost/container/small_vector.hpp>
+
+#include <storages/mysql/impl/bindings/binds_storage_interface.hpp>
 
 #include <userver/utils/assert.hpp>
 
@@ -186,9 +188,10 @@ class OutputBindings final : public BindsStorageInterface<false> {
   };
 
   // TODO : merge these 2
-  std::vector<BindCallbacks> callbacks_;
-  std::vector<FieldIntermediateBuffer> intermediate_buffers_;
-  std::vector<MYSQL_BIND> owned_binds_;
+  boost::container::small_vector<BindCallbacks, kOnStackBindsCount> callbacks_;
+  boost::container::small_vector<FieldIntermediateBuffer, kOnStackBindsCount>
+      intermediate_buffers_;
+  boost::container::small_vector<MYSQL_BIND, kOnStackBindsCount> owned_binds_;
   // This is either pointing to owned_binds_.data()
   // or to binds array stored inside mysql internals
   MYSQL_BIND* binds_ptr_{nullptr};

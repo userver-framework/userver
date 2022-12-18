@@ -1,14 +1,18 @@
 #pragma once
 
-#include <storages/mysql/impl/bindings/binds_storage_interface.hpp>
-
 #include <vector>
+
+#include <boost/container/small_vector.hpp>
+
+#include <storages/mysql/impl/bindings/binds_storage_interface.hpp>
 
 #include <userver/utils/assert.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::mysql::impl::bindings {
+
+struct NativeBind final : public MYSQL_BIND {};
 
 class InputBindings final : public BindsStorageInterface<true> {
  public:
@@ -90,8 +94,9 @@ class InputBindings final : public BindsStorageInterface<true> {
     MYSQL_TIME time{};     // for dates and the likes
     std::string string{};  // for json and what not
   };
-  std::vector<MYSQL_BIND> binds_;
-  std::vector<FieldIntermediateBuffer> intermediate_buffers_;
+  boost::container::small_vector<MYSQL_BIND, kOnStackBindsCount> binds_;
+  boost::container::small_vector<FieldIntermediateBuffer, kOnStackBindsCount>
+      intermediate_buffers_;
 
   ParamsCallback params_cb_{nullptr};
   void* user_data_{nullptr};

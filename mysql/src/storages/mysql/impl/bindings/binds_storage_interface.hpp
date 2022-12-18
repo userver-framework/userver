@@ -26,6 +26,8 @@ struct NativeBindsHelper {
   static bool IsFieldNumeric(enum_field_types type);
 
   static std::string_view NativeTypeToString(enum_field_types type);
+
+  static constexpr std::size_t kOnStackBindsCount = 8;
 };
 
 template <bool Const>
