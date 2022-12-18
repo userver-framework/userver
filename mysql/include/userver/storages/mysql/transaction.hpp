@@ -34,6 +34,10 @@ class Transaction final {
   void InsertMany(const Query& insert_query, const Container& rows,
                   bool throw_on_empty_insert = true) const;
 
+  template <typename Container, typename MapTo>
+  void InsertManyMapped(const Query& insert_query, const Container& rows,
+                        bool throw_on_empty_insert = true) const;
+
   void Commit();
   void Rollback();
 
@@ -80,6 +84,19 @@ void Transaction::InsertMany(const Query& insert_query, const Container& rows,
   auto params_binder = impl::BindHelper::BindContainerAsParams(rows);
 
   DoInsert(insert_query.GetStatement(), params_binder);
+}
+
+template <typename Container, typename MapTo>
+void Transaction::InsertManyMapped([[maybe_unused]] const Query& insert_query,
+                                   const Container& rows,
+                                   bool throw_on_empty_insert) const {
+  if (rows.empty()) {
+    if (throw_on_empty_insert) {
+      throw std::runtime_error{"Empty insert requested"};
+    } else {
+      return;
+    }
+  }
 }
 
 }  // namespace storages::mysql

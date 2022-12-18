@@ -38,8 +38,14 @@ class StatementResultSet final {
   template <typename T>
   std::vector<T> AsVector() &&;
 
+  template <typename T, typename MapFrom>
+  std::vector<T> AsVectorMapped() &&;
+
   template <typename Container>
   Container AsContainer() &&;
+
+  template <typename Container, typename MapFrom>
+  Container AsContainerMapped() &&;
 
   template <typename T>
   T AsSingleRow() &&;
@@ -67,19 +73,20 @@ Container StatementResultSet::AsContainer() && {
   static_assert(impl::io::kIsRange<Container>,
                 "The type isn't actually a container");
   using Row = typename Container::value_type;
+  using Extractor = impl::io::TypedExtractor<Row>;
 
-  auto extractor = impl::io::TypedExtractor<Row>{};
+  Extractor extractor{};
 
   tracing::ScopeTime fetch{"fetch"};
   std::move(*this).FetchResult(extractor);
   fetch.Reset();
 
-  if constexpr (meta::kIsInstantiationOf<std::vector, Container>) {
+  if constexpr (std::is_same_v<Container, typename Extractor::StorageType>) {
     return std::move(extractor).ExtractData();
   }
 
   Container container{};
-  auto rows = std::move(extractor).ExtractData();
+  typename Extractor::StorageType rows{std::move(extractor).ExtractData()};
   if constexpr (impl::io::kIsReservable<Container>) {
     container.reserve(rows.size());
   }

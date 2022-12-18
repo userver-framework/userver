@@ -27,6 +27,8 @@ class ExtractorBase {
 template <typename T>
 class TypedExtractor final : public ExtractorBase {
  public:
+  using StorageType = std::vector<T>;
+
   TypedExtractor() : ExtractorBase{boost::pfr::tuple_size_v<T>} {}
 
   void Reserve(std::size_t size) final;
@@ -37,10 +39,10 @@ class TypedExtractor final : public ExtractorBase {
 
   std::size_t ColumnsCount() const final;
 
-  std::vector<T>&& ExtractData();
+  StorageType&& ExtractData();
 
  private:
-  std::vector<T> data_;
+  StorageType data_;
 };
 
 template <typename T>
