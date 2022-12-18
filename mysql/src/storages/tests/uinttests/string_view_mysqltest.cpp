@@ -23,7 +23,6 @@ UTEST(StringView, WorksWithSingleInsert) {
 
   const RowToInsert row_to_insert{"hi from std::string_view"};
   table.GetCluster()->InsertOne(
-      table.GetDeadline(),
       table.FormatWithTableName("INSERT INTO {} VALUES(?)"), row_to_insert);
 
   const auto db_row =
@@ -36,7 +35,6 @@ UTEST(StringView, WorksWithBatchInsert) {
 
   std::vector<RowToInsert> rows_to_insert{{"first value"}, {"second value"}};
   table.GetCluster()->InsertMany(
-      table.GetDeadline(),
       table.FormatWithTableName("INSERT INTO {} VALUES(?)"), rows_to_insert);
 
   const auto db_rows =

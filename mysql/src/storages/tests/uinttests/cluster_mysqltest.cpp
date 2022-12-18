@@ -126,7 +126,6 @@ UTEST(StreamedResult, Works) {
         {static_cast<std::int32_t>(i), utils::generators::GenerateUuid()});
 
     cluster->InsertOne(
-        cluster.GetDeadline(),
         table.FormatWithTableName("INSERT INTO {}(Id, Value) VALUES(?, ?)"),
         rows_to_insert.back());
   }
@@ -140,7 +139,7 @@ UTEST(StreamedResult, Works) {
   db_rows.reserve(kRowsCount);
 
   cluster
-      ->GetCursor<Row>(kMasterHost, cluster.GetDeadline(), 3,
+      ->GetCursor<Row>(kMasterHost, 3,
                        table.FormatWithTableName("SELECT Id, Value FROM {}"))
       .ForEach([&db_rows](Row&& row) { db_rows.push_back(std::move(row)); },
                cluster.GetDeadline());
@@ -184,7 +183,6 @@ UTEST(Cluster, InsertMany) {
   }
 
   cluster->InsertMany(
-      cluster.GetDeadline(),
       table.FormatWithTableName("INSERT INTO {}(Id, Value) VALUES(?, ?)"),
       rows_to_insert);
 
@@ -210,7 +208,6 @@ UTEST(Cluster, UpdateMany) {
   }
 
   cluster->InsertMany(
-      cluster.GetDeadline(),
       table.FormatWithTableName("INSERT INTO {}(Id, Value) VALUES(?, ?)"),
       rows_to_insert);
 
@@ -224,7 +221,6 @@ UTEST(Cluster, UpdateMany) {
     row.value = another_long_string;
   }
   cluster->InsertMany(
-      cluster.GetDeadline(),
       table.FormatWithTableName("INSERT INTO {}(Id, Value) VALUES(?, ?) ON "
                                 "DUPLICATE KEY UPDATE Value=VALUES(Value)"),
       rows_to_insert);
@@ -242,8 +238,6 @@ UTEST(ShowCase, Basic) {
       cluster,
       "Id INT NOT NULL, Value TEXT NOT NULL, CreatedAt DATETIME(6) NOT NULL"};
 
-  const auto deadline = cluster.GetDeadline();
-
   struct Row final {
     std::int32_t id{};
     std::string value;
@@ -252,7 +246,7 @@ UTEST(ShowCase, Basic) {
   const std::vector<Row> rows =
       cluster
           ->Execute(
-              ClusterHostType::kMaster, deadline,
+              ClusterHostType::kMaster,
               table.FormatWithTableName(
                   "SELECT Id, Value, CreatedAt FROM {} WHERE CreatedAt > ?"),
               std::chrono::system_clock::now() - std::chrono::hours{3})
@@ -264,7 +258,7 @@ UTEST(ShowCase, Basic) {
   const std::vector<Row> we =
       cluster
           ->Execute(
-              ClusterHostType::kMaster, deadline,
+              ClusterHostType::kMaster,
               table.FormatWithTableName(
                   "SELECT Id, Value, CreatedAt FROM {} WHERE CreatedAt > ?"),
               std::chrono::system_clock::now() - std::chrono::hours{3})
@@ -288,14 +282,10 @@ UTEST(ShowCase, BatchInsert) {
         {i, "i am just some random string, don't mind me"});
   }
 
-  const auto deadline = engine::Deadline::FromDuration(std::chrono::seconds{2});
-
-  cluster->InsertMany(deadline,
-                      "INSERT INTO batch_insert_test (Id, Value) VALUES(?, ?)",
+  cluster->InsertMany("INSERT INTO batch_insert_test (Id, Value) VALUES(?, ?)",
                       rows_to_insert);
 
   cluster->InsertMany(
-      deadline,
       table.FormatWithTableName("INSERT INTO {}(Id, Value) VALUES(?, ?)"),
       rows_to_insert);
 }

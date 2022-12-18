@@ -96,7 +96,6 @@ UTEST(OutputBinding, AllSupportedDates) {
   const auto now = std::chrono::system_clock::now();
 
   cluster->InsertOne(
-      cluster.GetDeadline(),
       table.FormatWithTableName("INSERT INTO {} VALUES(?, ?, ?, ?)"),
       AllSupportedDates{now, now, now, now});
 
@@ -142,8 +141,7 @@ UTEST(OutputBinding, AllSupportedStrings) {
   const AllSupportedStrings row_to_insert{
       "varchar", "varbinary",  "tinyblob",   "tinytext", "blob",
       "text",    "mediumblob", "mediumtext", "longblob", "longtext"};
-  cluster->InsertOne(cluster.GetDeadline(),
-                     table.FormatWithTableName(
+  cluster->InsertOne(table.FormatWithTableName(
                          "INSERT INTO {} VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"),
                      row_to_insert);
 

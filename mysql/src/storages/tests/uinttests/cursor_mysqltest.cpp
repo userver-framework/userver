@@ -31,7 +31,6 @@ UTEST(Cursor, Works) {
         {static_cast<std::int32_t>(i), utils::generators::GenerateUuid()});
 
     cluster->InsertOne(
-        cluster.GetDeadline(),
         table.FormatWithTableName("INSERT INTO {}(Id, Value) VALUES(?, ?)"),
         rows_to_insert.back());
   }
@@ -40,7 +39,7 @@ UTEST(Cursor, Works) {
   db_rows.reserve(rows_count);
 
   cluster
-      ->GetCursor<Row>(ClusterHostType::kMaster, cluster.GetDeadline(), 7,
+      ->GetCursor<Row>(ClusterHostType::kMaster, 7,
                        table.FormatWithTableName("SELECT Id, Value FROM {}"))
       .ForEach([&db_rows](Row&& row) { db_rows.push_back(std::move(row)); },
                cluster.GetDeadline());
@@ -61,7 +60,6 @@ UTEST(Cursor, StatementReuseWorks) {
         {static_cast<std::int32_t>(i), utils::generators::GenerateUuid()});
 
     cluster->InsertOne(
-        cluster.GetDeadline(),
         table.FormatWithTableName("INSERT INTO {}(Id, Value) VALUES(?, ?)"),
         rows_to_insert.back());
   }
@@ -70,7 +68,7 @@ UTEST(Cursor, StatementReuseWorks) {
   cursor_rows.reserve(rows_count);
 
   cluster
-      ->GetCursor<Row>(ClusterHostType::kMaster, cluster.GetDeadline(), 2,
+      ->GetCursor<Row>(ClusterHostType::kMaster, 2,
                        table.FormatWithTableName("SELECT Id, Value FROM {}"))
       .ForEach(
           [&cursor_rows](Row&& row) { cursor_rows.push_back(std::move(row)); },

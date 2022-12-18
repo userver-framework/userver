@@ -18,6 +18,16 @@ namespace storages::mysql {
 
 namespace {
 
+constexpr std::chrono::milliseconds kDefaultStatementTimeout{1750};
+
+engine::Deadline GetDeadline(OptionalCommandControl optional_cc,
+                             CommandControl default_cc) {
+  const auto timeout =
+      optional_cc.has_value() ? optional_cc->execute : default_cc.execute;
+
+  return engine::Deadline::FromDuration(timeout);
+}
+
 std::unique_ptr<infra::topology::TopologyBase> CreateTopology(
     clients::dns::Resolver& resolver, const settings::MysqlSettings& settings,
     const components::ComponentConfig& config) {
@@ -45,46 +55,56 @@ Cluster::Cluster(clients::dns::Resolver& resolver,
 
 Cluster::~Cluster() = default;
 
-Transaction Cluster::Begin(ClusterHostType host_type,
-                           engine::Deadline deadline) {
-  auto connection = topology_->SelectPool(host_type).Acquire(deadline);
+Transaction Cluster::Begin(ClusterHostType host_type) const {
+  return Cluster::Begin(std::nullopt, host_type);
+}
 
-  return Transaction{std::move(connection), deadline};
+Transaction Cluster::Begin(OptionalCommandControl command_control,
+                           ClusterHostType host_type) const {
+  const auto deadline =
+      GetDeadline(command_control, GetDefaultCommandControl());
+
+  return Transaction{topology_->SelectPool(host_type).Acquire(deadline),
+                     deadline};
 }
 
 void Cluster::ExecuteCommand(ClusterHostType host_type,
-                             engine::Deadline deadline,
-                             const std::string& command) {
+                             const Query& command) const {
+  return ExecuteCommand(std::nullopt, host_type, command);
+}
+
+void Cluster::ExecuteCommand(OptionalCommandControl command_control,
+                             ClusterHostType host_type,
+                             const Query& command) const {
+  const auto deadline =
+      GetDeadline(command_control, GetDefaultCommandControl());
+
   tracing::Span execute_plain_span{"mysql_execute_command"};
 
   auto connection = topology_->SelectPool(host_type).Acquire(deadline);
 
-  connection->ExecutePlain(command, deadline);
+  connection->ExecutePlain(command.GetStatement(), deadline);
+}
+
+CommandControl Cluster::GetDefaultCommandControl() const {
+  return CommandControl{kDefaultStatementTimeout};
 }
 
 StatementResultSet Cluster::DoExecute(
-    ClusterHostType host_type, const std::string& query,
-    impl::io::ParamsBinderBase& params, engine::Deadline deadline,
+    OptionalCommandControl command_control, ClusterHostType host_type,
+    const Query& query, impl::io::ParamsBinderBase& params,
     std::optional<std::size_t> batch_size) const {
-  tracing::Span execute_span{"mysql_execute"};
+  const auto deadline =
+      GetDeadline(command_control, GetDefaultCommandControl());
+
+  // TODO : name the span
+  tracing::Span span{"name_me"};
 
   auto connection = topology_->SelectPool(host_type).Acquire(deadline);
 
-  auto fetcher =
-      connection->ExecuteStatement(query, params, deadline, batch_size);
-
+  auto fetcher = connection->ExecuteStatement(query.GetStatement(), params,
+                                              deadline, batch_size);
   return {std::move(connection), std::move(fetcher)};
-}
-
-void Cluster::DoInsert(const std::string& insert_query,
-                       impl::io::ParamsBinderBase& params,
-                       engine::Deadline deadline) const {
-  tracing::Span insert_span{"mysql_insert"};
-
-  auto connection =
-      topology_->SelectPool(ClusterHostType::kMaster).Acquire(deadline);
-
-  connection->ExecuteInsert(insert_query, params, deadline);
 }
 
 std::string Cluster::EscapeString(std::string_view source) const {

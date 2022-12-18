@@ -50,8 +50,7 @@ class ClusterWrapper final {
 template <typename... Args>
 StatementResultSet ClusterWrapper::DefaultExecute(const std::string& query,
                                                   const Args&... args) const {
-  return cluster_->Execute(ClusterHostType::kMaster, GetDeadline(), query,
-                           args...);
+  return cluster_->Execute(ClusterHostType::kMaster, query, args...);
 }
 
 class TmpTable final {

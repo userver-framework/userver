@@ -136,11 +136,9 @@ UTEST(AllSupportedTypes, NotNull) {
       formats::json::MakeObject("key", 13)      //
   };
 
-  cluster->InsertOne(cluster.GetDeadline(), insert_query, row_to_insert);
+  cluster->InsertOne(insert_query, row_to_insert);
 
-  const auto db_row = cluster
-                          ->Select(ClusterHostType::kMaster,
-                                   cluster.GetDeadline(), select_query)
+  const auto db_row = cluster->Select(ClusterHostType::kMaster, select_query)
                           .AsSingleRow<AllSupportedTypesNotNull>();
 
   EXPECT_EQ(row_to_insert.uint8, db_row.uint8);
@@ -168,11 +166,9 @@ UTEST(AllSupportedTypes, NullableWithNulls) {
   const auto select_query = table.FormatWithTableName(kSelectQueryTemplate);
 
   AllSupportedTypesNullable row_to_insert{};
-  cluster->InsertOne(cluster.GetDeadline(), insert_query, row_to_insert);
+  cluster->InsertOne(insert_query, row_to_insert);
 
-  const auto db_row = cluster
-                          ->Select(ClusterHostType::kMaster,
-                                   cluster.GetDeadline(), select_query)
+  const auto db_row = cluster->Select(ClusterHostType::kMaster, select_query)
                           .AsSingleRow<AllSupportedTypesNullable>();
 
   boost::pfr::for_each_field(
@@ -202,11 +198,9 @@ UTEST(AllSupportedTypes, NullableWithValues) {
       std::chrono::system_clock::now(),         //
       formats::json::MakeObject("key", 13)      //
   };
-  cluster->InsertOne(cluster.GetDeadline(), insert_query, row_to_insert);
+  cluster->InsertOne(insert_query, row_to_insert);
 
-  const auto db_row = cluster
-                          ->Select(ClusterHostType::kMaster,
-                                   cluster.GetDeadline(), select_query)
+  const auto db_row = cluster->Select(ClusterHostType::kMaster, select_query)
                           .AsSingleRow<AllSupportedTypesNullable>();
 
   boost::pfr::for_each_field(db_row,

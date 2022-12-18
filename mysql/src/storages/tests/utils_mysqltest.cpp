@@ -129,7 +129,7 @@ TmpTable::~TmpTable() = default;
 ClusterWrapper& TmpTable::GetCluster() const { return cluster_; }
 
 Transaction TmpTable::Begin() {
-  return cluster_->Begin(ClusterHostType::kMaster, cluster_.GetDeadline());
+  return cluster_->Begin(ClusterHostType::kMaster);
 }
 
 engine::Deadline TmpTable::GetDeadline() const {
@@ -140,8 +140,7 @@ void TmpTable::CreateTable(std::string_view definition) {
   const auto create_table_query =
       fmt::format(kCreateTableQueryTemplate, table_name_, definition);
 
-  cluster_->ExecuteCommand(ClusterHostType::kMaster, cluster_.GetDeadline(),
-                           create_table_query);
+  cluster_->ExecuteCommand(ClusterHostType::kMaster, create_table_query);
 }
 
 }  // namespace storages::mysql::tests
