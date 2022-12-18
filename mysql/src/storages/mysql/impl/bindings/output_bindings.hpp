@@ -16,13 +16,13 @@ class OutputBindings final : public BindsStorageInterface<false> {
  public:
   OutputBindings(std::size_t size);
 
-  void WrapBinds(void* binds_array);
   void BeforeFetch(std::size_t pos);
   void AfterFetch(std::size_t pos);
 
   std::size_t Size() const final;
   bool Empty() const final;
   MYSQL_BIND* GetBindsArray() final;
+  void WrapBinds(void* binds_array) final;
 
   void Bind(std::size_t pos, std::uint8_t& val) final;
   void Bind(std::size_t pos, O<std::uint8_t>& val) final;
@@ -76,8 +76,6 @@ class OutputBindings final : public BindsStorageInterface<false> {
 
  private:
   MYSQL_BIND& GetBind(std::size_t pos);
-  // TODO : this is redundant, drop
-  void ResetBind(std::size_t pos);
 
   struct FieldIntermediateBuffer final {
     io::DecimalWrapper decimal{};  // for un-templated decimals
@@ -201,7 +199,6 @@ template <typename T>
 void OutputBindings::BindPrimitiveOptional(std::size_t pos,
                                            std::optional<T>& val,
                                            bool is_unsigned) {
-  ResetBind(pos);
   UASSERT(!val.has_value());
 
   auto& bind = GetBind(pos);

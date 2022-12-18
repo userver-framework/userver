@@ -11,9 +11,8 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::mysql::impl::bindings {
 
-InputBindings::InputBindings(std::size_t size) {
-  binds_.resize(size);
-
+InputBindings::InputBindings(std::size_t size)
+    : owned_binds_{size}, binds_ptr_{owned_binds_.data()} {
   // Not always necessary, but we can live with that
   intermediate_buffers_.resize(size);
 }
@@ -30,14 +29,19 @@ void InputBindings::SetUserData(void* user_data) { user_data_ = user_data; }
 
 void* InputBindings::GetUserData() const { return user_data_; }
 
-std::size_t InputBindings::Size() const { return binds_.size(); }
+std::size_t InputBindings::Size() const { return owned_binds_.size(); }
 
 bool InputBindings::Empty() const { return Size() == 0; }
 
 MYSQL_BIND* InputBindings::GetBindsArray() {
   UASSERT(!Empty());
 
-  return binds_.data();
+  return binds_ptr_;
+}
+
+void InputBindings::WrapBinds(void* binds_array) {
+  UASSERT(binds_array);
+  binds_ptr_ = static_cast<MYSQL_BIND*>(binds_array);
 }
 
 void InputBindings::Bind(std::size_t pos, C<uint8_t>& val) {
@@ -144,7 +148,7 @@ void InputBindings::Bind(std::size_t pos,
 void InputBindings::BindNull(std::size_t pos) {
   UASSERT(pos < Size());
 
-  auto& bind = binds_[pos];
+  auto& bind = GetBind(pos);
   bind.buffer_type = MYSQL_TYPE_NULL;
 }
 
@@ -177,7 +181,7 @@ void InputBindings::BindStringView(std::size_t pos, C<std::string_view>& val) {
 
   const void* buffer = val.data();
 
-  auto& bind = binds_[pos];
+  auto& bind = GetBind(pos);
   bind.buffer_type = MYSQL_TYPE_STRING;
   // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
   bind.buffer = const_cast<void*>(buffer);
@@ -190,7 +194,7 @@ void InputBindings::BindJson(std::size_t pos, C<formats::json::Value>& val) {
   auto& json_str = intermediate_buffers_[pos].string;
   json_str = ToString(val);
 
-  auto& bind = binds_[pos];
+  auto& bind = GetBind(pos);
   // This should be MYSQL_TYPE_JSON ideally, but
   // https://bugs.mysql.com/bug.php?id=95984
   // MariaDB doesn't allow for json in params either
@@ -206,7 +210,7 @@ void InputBindings::BindDecimal(std::size_t pos, C<io::DecimalWrapper>& val) {
   auto& decimal_str = intermediate_buffers_[pos].string;
   decimal_str = val.GetValue();
 
-  auto& bind = binds_[pos];
+  auto& bind = GetBind(pos);
   bind.buffer_type = MYSQL_TYPE_DECIMAL;
   bind.buffer = decimal_str.data();
   bind.buffer_length = decimal_str.length();
@@ -230,6 +234,11 @@ void InputBindings::ValidateAgainstStatement(MYSQL_STMT& statement) {
   // This is sad, but oh well
   AssertWhenImplemented(params_metadata != nullptr,
                         "mysql_stmt_param_metadata");
+}
+
+MYSQL_BIND& InputBindings::GetBind(std::size_t pos) {
+  UASSERT(pos < Size());
+  return binds_ptr_[pos];
 }
 
 }  // namespace storages::mysql::impl::bindings

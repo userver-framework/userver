@@ -6,6 +6,7 @@
 
 #include <userver/utils/assert.hpp>
 
+#include <userver/storages/mysql/convert.hpp>
 #include <userver/storages/mysql/impl/io/binder_declarations.hpp>
 #include <userver/storages/mysql/impl/io/params_binder_base.hpp>
 #include <userver/storages/mysql/impl/io/traits.hpp>
@@ -22,15 +23,14 @@ class InsertBinderBase : public ParamsBinderBase {
   InsertBinderBase(const InsertBinderBase& other) = delete;
   InsertBinderBase(InsertBinderBase&& other) noexcept;
 
+ protected:
   void SetBindCallback(void* user_data,
                        void (*param_cb)(void*, void*, std::size_t));
 
- protected:
-  static void PatchBind(void* binds_array, std::size_t pos, const void* buffer,
-                        std::size_t* length);
+  void UpdateBinds(void* binds_array);
 };
 
-template <typename Container>
+template <typename Container, typename MapTo = typename Container::value_type>
 class InsertBinder final : public InsertBinderBase {
  public:
   explicit InsertBinder(const Container& container)
@@ -43,29 +43,42 @@ class InsertBinder final : public InsertBinderBase {
 
     UASSERT(!container_.empty());
     BindColumns();
+
+    SetBindCallback(this, &BindsRowCallback);
   }
 
   std::size_t GetRowsCount() const final { return container_.size(); }
 
  private:
-  using Row = typename Container::value_type;
+  using Row = MapTo;
   static constexpr std::size_t kColumnsCount = boost::pfr::tuple_size_v<Row>;
+  static constexpr bool kIsMapped =
+      !std::is_same_v<typename Container::value_type, Row>;
 
   static void BindsRowCallback(void* user_data, void* binds_array,
                                std::size_t row_number);
 
-  void BindColumns() {
-    auto& first_row = *container_.begin();
-    boost::pfr::for_each_field(first_row, BindsInitializer{*this});
+  void UpdateCurrentRowPtr() {
+    if constexpr (kIsMapped) {
+      current_row_.value =
+          storages::mysql::convert::DoConvert<Row>(*current_row_it_);
+      current_row_ptr_ = &current_row_.value;
+    } else {
+      current_row_ptr_ = &*current_row_it_;
+    }
+  }
 
-    SetBindCallback(this, &BindsRowCallback);
+  void BindColumns() {
+    UpdateCurrentRowPtr();
+    boost::pfr::for_each_field(*current_row_ptr_, CurrentRowUpdater{*this});
   }
 
   void UpdateCurrentRow(std::size_t row_number) {
     UASSERT(CheckRowNumber(row_number));
     UASSERT(current_row_it_ != container_.end());
+    if (row_number == 0) return;  // Everything already done at initialization
 
-    boost::pfr::for_each_field(*current_row_it_, CurrentRowUpdater{*this});
+    BindColumns();
   }
 
   bool CheckRowNumber(std::size_t row_number) {
@@ -85,24 +98,6 @@ class InsertBinder final : public InsertBinderBase {
     template <typename Field, std::size_t Index>
     void operator()(const Field& f,
                     std::integral_constant<std::size_t, Index>) {
-      if constexpr (std::is_same_v<Field, std::string> ||
-                    std::is_same_v<Field, std::string_view>) {
-        binder_.current_row_buffers_[Index] = {f.data(), f.length()};
-      } else {
-        binder_.current_row_buffers_[Index] = {&f, 0};
-      }
-    }
-
-   private:
-    InsertBinder& binder_;
-  };
-
-  class BindsInitializer final {
-   public:
-    explicit BindsInitializer(InsertBinder& binder) : binder_{binder} {}
-
-    template <typename Field, std::size_t Index>
-    void operator()(Field& f, std::integral_constant<std::size_t, Index>) {
       GetInputBinder(binder_.GetBinds(), Index, f)();
     }
 
@@ -110,31 +105,32 @@ class InsertBinder final : public InsertBinderBase {
     InsertBinder& binder_;
   };
 
-  struct FieldBuffer final {
-    const void* data{nullptr};
-    std::size_t length{0};
-  };
-
   const Container& container_;
 
   typename Container::const_iterator current_row_it_;
-  std::array<FieldBuffer, kColumnsCount> current_row_buffers_{};
+
+  template <bool IsMapped>
+  struct OwnedMappedRow final {};
+  template <>
+  struct OwnedMappedRow<true> final {
+    Row value;
+  };
+
+  OwnedMappedRow<kIsMapped> current_row_;
+  const Row* current_row_ptr_;
 
   std::size_t max_row_number_seen_{0};
 };
 
-template <typename Container>
-void InsertBinder<Container>::BindsRowCallback(void* user_data,
-                                               void* binds_array,
-                                               std::size_t row_number) {
+template <typename Container, typename MapTo>
+void InsertBinder<Container, MapTo>::BindsRowCallback(void* user_data,
+                                                      void* binds_array,
+                                                      std::size_t row_number) {
   auto* self = static_cast<InsertBinder*>(user_data);
   UASSERT(self);
 
+  self->UpdateBinds(binds_array);
   self->UpdateCurrentRow(row_number);
-  for (std::size_t i = 0; i < kColumnsCount; ++i) {
-    self->PatchBind(binds_array, i, self->current_row_buffers_[i].data,
-                    &self->current_row_buffers_[i].length);
-  }
 
   ++self->current_row_it_;
 }

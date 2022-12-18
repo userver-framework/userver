@@ -19,16 +19,10 @@ void InsertBinderBase::SetBindCallback(void* user_data,
   GetBinds().SetParamsCallback(param_cb);
 }
 
-void InsertBinderBase::PatchBind(void* binds_array, std::size_t pos,
-                                 const void* buffer, std::size_t* length) {
-  auto* binds_ptr = static_cast<MYSQL_BIND*>(binds_array);
-  UASSERT(binds_ptr);
+void InsertBinderBase::UpdateBinds(void* binds_array) {
+  UASSERT(binds_array);
 
-  auto& bind = binds_ptr[pos];
-
-  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
-  bind.buffer = const_cast<void*>(buffer);
-  bind.length = length;
+  GetBinds().WrapBinds(binds_array);
 }
 
 }  // namespace storages::mysql::impl::io

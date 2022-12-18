@@ -12,8 +12,6 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::mysql::impl::bindings {
 
-struct NativeBind final : public MYSQL_BIND {};
-
 class InputBindings final : public BindsStorageInterface<true> {
  public:
   InputBindings(std::size_t size);
@@ -28,6 +26,7 @@ class InputBindings final : public BindsStorageInterface<true> {
   std::size_t Size() const final;
   bool Empty() const final;
   MYSQL_BIND* GetBindsArray() final;
+  void WrapBinds(void* binds_array) final;
 
   void Bind(std::size_t pos, C<std::uint8_t>& val) final;
   void Bind(std::size_t pos, C<O<std::uint8_t>>& val) final;
@@ -73,6 +72,8 @@ class InputBindings final : public BindsStorageInterface<true> {
   void ValidateAgainstStatement(MYSQL_STMT& statement) final;
 
  private:
+  MYSQL_BIND& GetBind(std::size_t pos);
+
   template <typename COT>
   void BindOptional(std::size_t pos, COT& val);
 
@@ -94,12 +95,16 @@ class InputBindings final : public BindsStorageInterface<true> {
     MYSQL_TIME time{};     // for dates and the likes
     std::string string{};  // for json and what not
   };
-  boost::container::small_vector<MYSQL_BIND, kOnStackBindsCount> binds_;
+  boost::container::small_vector<MYSQL_BIND, kOnStackBindsCount> owned_binds_;
   boost::container::small_vector<FieldIntermediateBuffer, kOnStackBindsCount>
       intermediate_buffers_;
 
   ParamsCallback params_cb_{nullptr};
   void* user_data_{nullptr};
+
+  // This is either pointing to owned_binds_.data()
+  // or to binds array stored inside mysql internals (happens with batch insert)
+  MYSQL_BIND* binds_ptr_{nullptr};
 };
 
 template <typename COT>
@@ -118,7 +123,7 @@ void InputBindings::BindValue(std::size_t pos, enum_field_types type, CT& val,
 
   const void* buffer = &val;
 
-  auto& bind = binds_[pos];
+  auto& bind = GetBind(pos);
   bind.buffer_type = type;
   // Underlying mysql native library uses mutable pointers for bind buffers, so
   // we have to cast const away sooner or later. This is fine, since buffer are

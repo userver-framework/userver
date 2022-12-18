@@ -36,6 +36,7 @@ class BindsStorageInterface : public NativeBindsHelper {
   virtual std::size_t Size() const = 0;
   virtual bool Empty() const = 0;
   virtual MYSQL_BIND* GetBindsArray() = 0;
+  virtual void WrapBinds(void* binds_array) = 0;
 
   template <typename T>
   using O = std::optional<T>;

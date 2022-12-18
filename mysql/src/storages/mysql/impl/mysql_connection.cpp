@@ -40,7 +40,7 @@ MySQLConnection::MySQLConnection(clients::dns::Resolver& resolver,
 
 MySQLConnection::~MySQLConnection() {
   // We close the connection before resetting statements cache, so that reset
-  // doesn't do potentially slow I/O
+  // doesn't do potentially costly I/O
 
   // quoting the docs:
   // mysql_close() sends a COM_QUIT request to the server, though it does not
@@ -225,7 +225,16 @@ void MySQLConnection::Close(engine::Deadline deadline) noexcept {
                             },
                             deadline);
   } catch (const std::exception& ex) {
-    LOG_WARNING() << "Failed to correctly release a connection: " << ex.what();
+    // Even though we can time out here, the special care has been taken by
+    // mariadb-connector-c devs to clean up resources before doing close IO, so
+    // we don't leak here and life is good.
+    // Quoting some comments in code:
+    // "We need special handling for mysql_close(), as the first part may block,
+    // while the last part needs to free our extra library context stack.
+    //
+    // So we do the first part (mysql_close_slow_part()) non-blocking, but the
+    // last part blocking."
+    LOG_WARNING() << "Failed to correctly close a connection: " << ex.what();
   }
 }
 

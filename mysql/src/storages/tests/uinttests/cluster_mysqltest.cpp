@@ -274,7 +274,7 @@ UTEST(ShowCase, BatchInsert) {
     std::string value;
   };
 
-  constexpr int kRowsCount = 100'000;
+  constexpr int kRowsCount = 100;
   std::vector<Row> rows_to_insert;
   rows_to_insert.reserve(kRowsCount);
   for (int i = 0; i < kRowsCount; ++i) {
@@ -282,12 +282,45 @@ UTEST(ShowCase, BatchInsert) {
         {i, "i am just some random string, don't mind me"});
   }
 
-  cluster->InsertMany("INSERT INTO batch_insert_test (Id, Value) VALUES(?, ?)",
-                      rows_to_insert);
-
   cluster->InsertMany(
       table.FormatWithTableName("INSERT INTO {}(Id, Value) VALUES(?, ?)"),
       rows_to_insert);
+}
+
+namespace {
+
+struct DbRow final {
+  std::int32_t id{};
+  std::string username;
+};
+
+struct UserRow final {
+  std::int32_t id{};
+  std::string first_name;
+  std::string last_name;
+};
+
+DbRow Convert(const UserRow& user_row, storages::mysql::convert::To<DbRow>) {
+  return DbRow{user_row.id,
+               fmt::format("{} {}", user_row.first_name, user_row.last_name)};
+}
+
+}  // namespace
+
+UTEST(Cluster, MappedBatchInsert) {
+  ClusterWrapper cluster{};
+  TmpTable table{cluster, "Id INT NOT NULL, Username TEXT NOT NULL"};
+  std::vector<UserRow> users{{1, "Ivan", "Trofimov"}, {2, "John", "Doe"}};
+
+  cluster->InsertManyMapped<DbRow>(
+      table.FormatWithTableName("INSERT INTO {}(Id, Username) VALUES(?, ?)"),
+      users);
+
+  const auto db_rows =
+      table.DefaultExecute("SELECT Id, Username FROM {}").AsVector<DbRow>();
+  ASSERT_EQ(db_rows.size(), 2);
+  EXPECT_EQ(db_rows[0].username, "Ivan Trofimov");
+  EXPECT_EQ(db_rows[1].username, "John Doe");
 }
 
 }  // namespace storages::mysql::tests

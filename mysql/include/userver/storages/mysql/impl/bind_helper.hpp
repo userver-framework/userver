@@ -35,6 +35,12 @@ class BindHelper final {
       const Container& rows) {
     return io::InsertBinder{rows};
   }
+
+  template <typename MapTo, typename Container>
+  static io::InsertBinder<Container, MapTo> BindContainerAsParamsMapped(
+      const Container& rows) {
+    return io::InsertBinder<Container, MapTo>{rows};
+  }
 };
 
 }  // namespace storages::mysql::impl

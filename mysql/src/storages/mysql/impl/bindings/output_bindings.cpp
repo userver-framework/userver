@@ -43,18 +43,11 @@ bool IsBindable(enum_field_types bind_type, enum_field_types field_type) {
 
 }  // namespace
 
-OutputBindings::OutputBindings(std::size_t size) {
-  owned_binds_.resize(size);
-  binds_ptr_ = owned_binds_.data();
-
+OutputBindings::OutputBindings(std::size_t size)
+    : owned_binds_{size}, binds_ptr_{owned_binds_.data()} {
   // Not always necessary, but we can live with that
   callbacks_.resize(size);
   intermediate_buffers_.resize(size);
-}
-
-void OutputBindings::WrapBinds(void* binds_array) {
-  UASSERT(binds_array);
-  binds_ptr_ = static_cast<MYSQL_BIND*>(binds_array);
 }
 
 void OutputBindings::BeforeFetch(std::size_t pos) {
@@ -89,6 +82,11 @@ MYSQL_BIND* OutputBindings::GetBindsArray() {
   UASSERT(!Empty());
 
   return binds_ptr_;
+}
+
+void OutputBindings::WrapBinds(void* binds_array) {
+  UASSERT(binds_array);
+  binds_ptr_ = static_cast<MYSQL_BIND*>(binds_array);
 }
 
 void OutputBindings::Bind(std::size_t pos, uint8_t& val) {
@@ -189,10 +187,7 @@ void OutputBindings::Bind(std::size_t pos,
 
 void OutputBindings::BindValue(std::size_t pos, enum_field_types type,
                                void* buffer, bool is_unsigned) {
-  ResetBind(pos);
-
   auto& bind = GetBind(pos);
-  ;
   bind.buffer_type = type;
   bind.buffer = buffer;
   // bind.buffer_length = 0;
@@ -200,8 +195,6 @@ void OutputBindings::BindValue(std::size_t pos, enum_field_types type,
 }
 
 void OutputBindings::BindString(std::size_t pos, std::string& val) {
-  ResetBind(pos);
-
   auto& bind = GetBind(pos);
   auto& cb = callbacks_[pos];
 
@@ -226,7 +219,6 @@ void OutputBindings::StringBeforeFetch(void* value, MYSQL_BIND& bind,
 
 void OutputBindings::BindOptionalString(std::size_t pos,
                                         std::optional<std::string>& val) {
-  ResetBind(pos);
   UASSERT(!val.has_value());
 
   auto& bind = GetBind(pos);
@@ -256,8 +248,6 @@ void OutputBindings::OptionalStringBeforeFetch(void* value, MYSQL_BIND& bind,
 
 void OutputBindings::BindDate(std::size_t pos,
                               std::chrono::system_clock::time_point& val) {
-  ResetBind(pos);
-
   auto& date = intermediate_buffers_[pos].time;
   auto& bind = GetBind(pos);
   auto& cb = callbacks_[pos];
@@ -291,7 +281,6 @@ void OutputBindings::DateAfterFetch(void* value, MYSQL_BIND&,
 void OutputBindings::BindOptionalDate(
     std::size_t pos,
     std::optional<std::chrono::system_clock::time_point>& val) {
-  ResetBind(pos);
   UASSERT(!val.has_value());
 
   auto& date = intermediate_buffers_[pos].time;
@@ -320,8 +309,6 @@ void OutputBindings::OptionalDateAfterFetch(void* value, MYSQL_BIND& bind,
 }
 
 void OutputBindings::BindJson(std::size_t pos, formats::json::Value& val) {
-  ResetBind(pos);
-
   auto& bind = GetBind(pos);
   auto& cb = callbacks_[pos];
 
@@ -354,7 +341,6 @@ void OutputBindings::JsonAfterFetch(void* value, MYSQL_BIND&,
 
 void OutputBindings::BindOptionalJson(
     std::size_t pos, std::optional<formats::json::Value>& val) {
-  ResetBind(pos);
   UASSERT(!val.has_value());
 
   auto& bind = GetBind(pos);
@@ -393,8 +379,6 @@ void OutputBindings::OptionalJsonAfterFetch(void* value, MYSQL_BIND& bind,
 }
 
 void OutputBindings::BindDecimal(std::size_t pos, io::DecimalWrapper& val) {
-  ResetBind(pos);
-
   auto& bind = GetBind(pos);
   auto& cb = callbacks_[pos];
 
@@ -431,7 +415,6 @@ void OutputBindings::DecimalAfterFetch(void* value, MYSQL_BIND&,
 
 void OutputBindings::BindOptionalDecimal(std::size_t pos,
                                          O<io::DecimalWrapper>& val) {
-  ResetBind(pos);
   UASSERT(!val.has_value());
 
   auto& bind = GetBind(pos);
@@ -497,11 +480,6 @@ void OutputBindings::ValidateAgainstStatement(MYSQL_STMT& statement) {
 MYSQL_BIND& OutputBindings::GetBind(std::size_t pos) {
   UASSERT(pos < Size());
   return binds_ptr_[pos];
-}
-
-void OutputBindings::ResetBind(std::size_t pos) {
-  UASSERT(pos < Size());
-  // std::memset(binds_ptr_ + pos, 0, sizeof(MYSQL_BIND));
 }
 
 void OutputBindings::ValidateBind(std::size_t pos, const MYSQL_BIND& bind,
