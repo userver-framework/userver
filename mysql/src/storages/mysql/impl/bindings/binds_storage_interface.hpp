@@ -17,6 +17,8 @@ USERVER_NAMESPACE_BEGIN
 namespace storages::mysql::impl::bindings {
 
 struct NativeBindsHelper {
+  using MariaDBTimepointResolution = std::chrono::microseconds;
+
   template <typename T>
   static constexpr enum_field_types GetNativeType();
 
@@ -26,6 +28,11 @@ struct NativeBindsHelper {
   static bool IsFieldNumeric(enum_field_types type);
 
   static std::string_view NativeTypeToString(enum_field_types type);
+
+  static MYSQL_TIME ToNativeTime(std::chrono::system_clock::time_point tp);
+
+  static std::chrono::system_clock::time_point FromNativeTime(
+      const MYSQL_TIME& native_time);
 
   static constexpr std::size_t kOnStackBindsCount = 8;
 };
@@ -88,8 +95,6 @@ class BindsStorageInterface : public NativeBindsHelper {
   virtual void ValidateAgainstStatement(MYSQL_STMT& statement) = 0;
 
  protected:
-  using MariaDBTimepointResolution = std::chrono::microseconds;
-
   ~BindsStorageInterface() = default;
 };
 

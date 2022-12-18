@@ -1,6 +1,5 @@
 #include <storages/mysql/impl/bindings/input_bindings.hpp>
 
-#include <date.h>
 #include <fmt/format.h>
 
 #include <userver/utils/assert.hpp>
@@ -156,22 +155,8 @@ void InputBindings::BindDate(std::size_t pos,
                              C<std::chrono::system_clock::time_point>& val) {
   UASSERT(pos < Size());
 
-  // https://stackoverflow.com/a/15958113/10508079
-  auto dp = date::floor<date::days>(val);
-  auto ymd = date::year_month_day{date::floor<date::days>(val)};
-  auto time = date::make_time(
-      std::chrono::duration_cast<MariaDBTimepointResolution>(val - dp));
-
   auto& native_time = intermediate_buffers_[pos].time;
-  native_time.year = ymd.year().operator int();
-  native_time.month = ymd.month().operator unsigned int();
-  native_time.day = ymd.day().operator unsigned int();
-  native_time.hour = time.hours().count();
-  native_time.minute = time.minutes().count();
-  native_time.second = time.seconds().count();
-  native_time.second_part = time.subseconds().count();
-
-  native_time.time_type = MYSQL_TIMESTAMP_DATETIME;
+  native_time = ToNativeTime(val);
 
   BindValue(pos, GetNativeType(val), native_time, sizeof(MYSQL_TIME));
 }

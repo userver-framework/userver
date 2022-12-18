@@ -85,7 +85,7 @@ UTEST(OutputBinding, AllSupportedDates) {
   ClusterWrapper cluster{};
   TmpTable table{cluster,
                  "DatetimeT DATETIME(6) NOT NULL, DateT DATE NOT NULL, "
-                 "TimestampT TIMESTAMP NOT NULL, TimeT TIME NOT NULL"};
+                 "TimestampT TIMESTAMP(6) NOT NULL, TimeT TIME NOT NULL"};
 
   struct AllSupportedDates final {
     std::chrono::system_clock::time_point datetime;
@@ -110,9 +110,8 @@ UTEST(OutputBinding, AllSupportedDates) {
 
   EXPECT_EQ(ToMariaDBPrecision(now), row.datetime);
   EXPECT_EQ(to_days(now), to_days(row.date));
-  // TODO : fix casting
-  EXPECT_EQ(std::chrono::time_point_cast<std::chrono::seconds>(now),
-            row.timestamp);
+  // TODO : seems like we ceil in db and floor here
+  EXPECT_EQ(ToMariaDBPrecision(now), row.timestamp);
 }
 
 UTEST(OutputBinding, AllSupportedStrings) {

@@ -1,5 +1,7 @@
 #include <storages/mysql/impl/bindings/binds_storage_interface.hpp>
 
+#include <date.h>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::mysql::impl::bindings {
@@ -55,6 +57,7 @@ std::string_view FieldTypeToString(enum_field_types type) {
   }
 }
 // clang-format on
+
 }  // namespace
 
 bool NativeBindsHelper::IsFieldNumeric(enum_field_types type) {
@@ -66,6 +69,43 @@ bool NativeBindsHelper::IsFieldNumeric(enum_field_types type) {
 
 std::string_view NativeBindsHelper::NativeTypeToString(enum_field_types type) {
   return FieldTypeToString(type);
+}
+
+MYSQL_TIME NativeBindsHelper::ToNativeTime(
+    std::chrono::system_clock::time_point tp) {
+  // https://stackoverflow.com/a/15958113/10508079
+  auto dp = date::floor<date::days>(tp);
+  auto ymd = date::year_month_day{date::floor<date::days>(tp)};
+  auto time = date::make_time(
+      std::chrono::duration_cast<MariaDBTimepointResolution>(tp - dp));
+
+  MYSQL_TIME native_time{};
+  native_time.year = ymd.year().operator int();
+  native_time.month = ymd.month().operator unsigned int();
+  native_time.day = ymd.day().operator unsigned int();
+  native_time.hour = time.hours().count();
+  native_time.minute = time.minutes().count();
+  native_time.second = time.seconds().count();
+  native_time.second_part = time.subseconds().count();
+
+  native_time.time_type = MYSQL_TIMESTAMP_DATETIME;
+
+  return native_time;
+}
+
+std::chrono::system_clock::time_point NativeBindsHelper::FromNativeTime(
+    const MYSQL_TIME& native_time) {
+  // https://stackoverflow.com/a/15958113/10508079
+  const date::year year(native_time.year);
+  const date::month month{native_time.month};
+  const date::day day{native_time.day};
+  const std::chrono::hours hour{native_time.hour};
+  const std::chrono::minutes minute{native_time.minute};
+  const std::chrono::seconds second{native_time.second};
+  const MariaDBTimepointResolution microsecond{native_time.second_part};
+
+  return date::sys_days{year / month / day} + hour + minute + second +
+         microsecond;
 }
 
 }  // namespace storages::mysql::impl::bindings

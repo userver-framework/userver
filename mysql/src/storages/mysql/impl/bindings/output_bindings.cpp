@@ -1,6 +1,5 @@
 #include <storages/mysql/impl/bindings/output_bindings.hpp>
 
-#include <date.h>
 #include <fmt/format.h>
 
 USERVER_NAMESPACE_BEGIN
@@ -265,17 +264,7 @@ void OutputBindings::DateAfterFetch(void* value, MYSQL_BIND&,
   auto* timepoint = static_cast<std::chrono::system_clock::time_point*>(value);
   UASSERT(timepoint);
 
-  auto& date = buffer.time;
-  const date::year year(date.year);
-  const date::month month{date.month};
-  const date::day day{date.day};
-  const std::chrono::hours hour{date.hour};
-  const std::chrono::minutes minute{date.minute};
-  const std::chrono::seconds second{date.second};
-  const MariaDBTimepointResolution microsecond{date.second_part};
-
-  *timepoint =
-      date::sys_days{year / month / day} + hour + minute + second + microsecond;
+  *timepoint = FromNativeTime(buffer.time);
 }
 
 void OutputBindings::BindOptionalDate(
