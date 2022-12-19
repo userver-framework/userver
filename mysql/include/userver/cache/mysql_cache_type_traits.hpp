@@ -4,7 +4,6 @@
 #include <functional>
 #include <map>
 #include <memory>
-#include <memory_resource>
 #include <unordered_map>
 
 #include <userver/formats/parse/to.hpp>

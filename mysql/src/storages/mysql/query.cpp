@@ -12,7 +12,7 @@ Query::Query(std::string statement, std::optional<Name> name)
 
 const std::string& Query::GetStatement() const { return statement_; }
 
-const std::optional<Query::Name> Query::GetName() const { return name_; }
+const std::optional<Query::Name>& Query::GetName() const { return name_; }
 
 }  // namespace storages::mysql
 

@@ -19,7 +19,7 @@ class Query final {
 
   const std::string& GetStatement() const;
 
-  const std::optional<Name> GetName() const;
+  const std::optional<Name>& GetName() const;
 
  private:
   std::string statement_;

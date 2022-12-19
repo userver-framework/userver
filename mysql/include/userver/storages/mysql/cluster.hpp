@@ -127,7 +127,7 @@ class Cluster final {
                                const Args&... args) const;
 
  private:
-  CommandControl GetDefaultCommandControl() const;
+  static CommandControl GetDefaultCommandControl();
 
   StatementResultSet DoExecute(
       OptionalCommandControl command_control, ClusterHostType host_type,

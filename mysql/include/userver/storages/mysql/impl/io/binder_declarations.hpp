@@ -12,9 +12,11 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::mysql::impl::io {
 
-class DecimalWrapper;
-
-// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+// Tidy gets upset with <type> and insists on parentheses around 'type',
+// which is invalid C++.
+// Tidy also heavily dislikes macro usage, but these are just a bunch of codegen
+// macros, so idc.
+// NOLINTBEGIN
 #define DECLARE_INPUT_BINDER(type)                               \
   template <>                                                    \
   class InputBinder<type> final : public InputBinderBase<type> { \
@@ -28,7 +30,6 @@ class DecimalWrapper;
     void Bind() final;                                           \
   };
 
-// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define DECLARE_OUTPUT_BINDER(type)                                \
   template <>                                                      \
   class OutputBinder<type> final : public OutputBinderBase<type> { \
@@ -42,10 +43,10 @@ class DecimalWrapper;
     void Bind() final;                                             \
   };
 
-// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define DECLARE_BINDER(type) \
   DECLARE_INPUT_BINDER(type) \
   DECLARE_OUTPUT_BINDER(type)
+// NOLINTEND
 
 // numeric types
 // TODO : bool

@@ -16,6 +16,15 @@ InputBindings::InputBindings(std::size_t size)
   intermediate_buffers_.resize(size);
 }
 
+InputBindings::InputBindings(InputBindings&& other) noexcept
+    : owned_binds_{std::move(other.owned_binds_)},
+      intermediate_buffers_{std::move(other.intermediate_buffers_)},
+      params_cb_{other.params_cb_},
+      user_data_{other.user_data_},
+      // Technically this is incorrect, since bind_ptr_ could've been updated to
+      // point into libmariadb, but move neven happens after that
+      binds_ptr_{owned_binds_.data()} {}
+
 void InputBindings::SetParamsCallback(ParamsCallback params_cb) {
   params_cb_ = params_cb;
 }

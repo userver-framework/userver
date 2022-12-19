@@ -29,7 +29,7 @@ formats::json::Value Serialize(const Row& row,
 
 Row Parse(const formats::json::Value& json, formats::parse::To<Row>) {
   return {json["key"].As<std::int32_t>(), json["value"].As<std::string>()};
-};
+}
 
 struct KeyValueCachePolicy final {
   static constexpr std::string_view kName{"key-value-cache"};

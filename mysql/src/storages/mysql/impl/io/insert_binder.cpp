@@ -10,8 +10,6 @@ InsertBinderBase::InsertBinderBase(std::size_t size) : ParamsBinderBase{size} {}
 
 InsertBinderBase::~InsertBinderBase() = default;
 
-InsertBinderBase::InsertBinderBase(InsertBinderBase&& other) noexcept = default;
-
 void InsertBinderBase::SetBindCallback(void* user_data,
                                        void (*param_cb)(void*, void*,
                                                         std::size_t)) {

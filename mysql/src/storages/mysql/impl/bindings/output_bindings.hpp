@@ -16,6 +16,9 @@ class OutputBindings final : public BindsStorageInterface<false> {
  public:
   OutputBindings(std::size_t size);
 
+  OutputBindings(const OutputBindings& other) = delete;
+  OutputBindings(OutputBindings&& other) noexcept;
+
   void BeforeFetch(std::size_t pos);
   void AfterFetch(std::size_t pos);
 
@@ -194,6 +197,8 @@ class OutputBindings final : public BindsStorageInterface<false> {
   // or to binds array stored inside mysql internals
   MYSQL_BIND* binds_ptr_{nullptr};
 };
+
+static_assert(std::is_nothrow_move_constructible_v<OutputBindings>);
 
 template <typename T>
 void OutputBindings::BindPrimitiveOptional(std::size_t pos,

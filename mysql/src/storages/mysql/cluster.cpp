@@ -86,7 +86,7 @@ void Cluster::ExecuteCommand(OptionalCommandControl command_control,
   connection->ExecutePlain(command.GetStatement(), deadline);
 }
 
-CommandControl Cluster::GetDefaultCommandControl() const {
+CommandControl Cluster::GetDefaultCommandControl() {
   return CommandControl{kDefaultStatementTimeout};
 }
 

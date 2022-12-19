@@ -15,13 +15,19 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::mysql::impl::io {
 
+template <typename Row, bool IsMapped>
+struct OwnedMappedRow final {};
+template <typename Row>
+struct OwnedMappedRow<Row, true> final {
+  Row value;
+};
+
 class InsertBinderBase : public ParamsBinderBase {
  public:
   explicit InsertBinderBase(std::size_t size);
   ~InsertBinderBase();
 
   InsertBinderBase(const InsertBinderBase& other) = delete;
-  InsertBinderBase(InsertBinderBase&& other) noexcept;
 
  protected:
   void SetBindCallback(void* user_data,
@@ -109,14 +115,7 @@ class InsertBinder final : public InsertBinderBase {
 
   typename Container::const_iterator current_row_it_;
 
-  template <bool IsMapped>
-  struct OwnedMappedRow final {};
-  template <>
-  struct OwnedMappedRow<true> final {
-    Row value;
-  };
-
-  OwnedMappedRow<kIsMapped> current_row_;
+  OwnedMappedRow<Row, kIsMapped> current_row_;
   const Row* current_row_ptr_;
 
   std::size_t max_row_number_seen_{0};

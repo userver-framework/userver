@@ -49,6 +49,14 @@ OutputBindings::OutputBindings(std::size_t size)
   intermediate_buffers_.resize(size);
 }
 
+OutputBindings::OutputBindings(OutputBindings&& other) noexcept
+    : callbacks_{std::move(other.callbacks_)},
+      intermediate_buffers_{std::move(other.intermediate_buffers_)},
+      owned_binds_{std::move(other.owned_binds_)},
+      // Technically this is incorrect, since bind_ptr_ could've been updated to
+      // point into libmariadb, but move neven happens after that
+      binds_ptr_{owned_binds_.data()} {}
+
 void OutputBindings::BeforeFetch(std::size_t pos) {
   UASSERT(pos < Size());
 

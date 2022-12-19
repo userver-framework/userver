@@ -35,19 +35,6 @@ std::string GenerateTableName() {
   return name;
 }
 
-void CreateDatabase(clients::dns::Resolver& resolver,
-                    const settings::EndpointInfo& endpoint_info,
-                    const std::string& dbname) {
-  settings::AuthSettings auth_settings{};
-  auth_settings.user = "root";
-  auth_settings.database = "";
-
-  const auto deadline = engine::Deadline::FromDuration(std::chrono::seconds{1});
-  impl::MySQLConnection{resolver, endpoint_info, auth_settings, deadline}
-      .ExecutePlain(fmt::format("CREATE DATABASE IF NOT EXISTS {}", dbname),
-                    deadline);
-}
-
 std::shared_ptr<Cluster> CreateCluster(clients::dns::Resolver& resolver) {
   const settings::MysqlSettings settings{
       formats::json::FromString(fmt::format(R"(

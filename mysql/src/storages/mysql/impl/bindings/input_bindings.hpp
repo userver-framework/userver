@@ -16,6 +16,9 @@ class InputBindings final : public BindsStorageInterface<true> {
  public:
   InputBindings(std::size_t size);
 
+  InputBindings(const InputBindings& other) = delete;
+  InputBindings(InputBindings&& other) noexcept;
+
   using ParamsCallback = void (*)(void*, void*, std::size_t);
 
   void SetParamsCallback(ParamsCallback params_cb);
@@ -106,6 +109,8 @@ class InputBindings final : public BindsStorageInterface<true> {
   // or to binds array stored inside mysql internals (happens with batch insert)
   MYSQL_BIND* binds_ptr_{nullptr};
 };
+
+static_assert(std::is_nothrow_move_constructible_v<InputBindings>);
 
 template <typename COT>
 void InputBindings::BindOptional(std::size_t pos, COT& val) {

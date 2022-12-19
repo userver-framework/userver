@@ -10,6 +10,9 @@ class ParamsBinderBase {
  public:
   explicit ParamsBinderBase(std::size_t size);
 
+  ParamsBinderBase(const ParamsBinderBase& other) = delete;
+  ParamsBinderBase(ParamsBinderBase&& other) noexcept;
+
   InputBindingsFwd& GetBinds();
 
   virtual std::size_t GetRowsCount() const = 0;

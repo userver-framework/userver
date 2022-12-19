@@ -51,6 +51,8 @@ Pool& TopologyBase::SelectPool(ClusterHostType host_type) const {
     case ClusterHostType::kSlave:
       return GetSlave();
   }
+
+  UINVARIANT(false, "Unknown host type");
 }
 
 }  // namespace storages::mysql::infra::topology
