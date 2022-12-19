@@ -19,7 +19,7 @@ namespace storages::mysql::tests {
 namespace {
 
 constexpr const char* kTestsuiteMysqlPort = "TESTSUITE_MYSQL_PORT";
-constexpr std::uint32_t kDefaultTestsuiteMysqlPort = 3306;  // 13307;
+constexpr std::uint32_t kDefaultTestsuiteMysqlPort = 13307;
 
 std::string GenerateTableName() {
   auto uuid = utils::generators::GenerateUuid();

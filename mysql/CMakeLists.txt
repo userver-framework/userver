@@ -56,29 +56,35 @@ if (USERVER_IS_THE_ROOT_PROJECT)
   target_link_libraries(${PROJECT_NAME}_mysqltest userver-utest ${PROJECT_NAME}
           #mariadbclient
           mariadb)
+  set(TESTS_TEMPLATE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/src/storages/tests/tests_runner.sh)
+  set(UNIT_TESTS_PATH ${CMAKE_CURRENT_BINARY_DIR}/unit_tests.sh)
+  set(TESTS_BINARY_PATH ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}_mysqltest)
+  set(TESTS_ARGS --gtest_output=xml:${CMAKE_BINARY_DIR}/test-results/${PROJECT_NAME}_mysqltest.xml)
+  execute_process(COMMAND cp ${TESTS_TEMPLATE_PATH} ${UNIT_TESTS_PATH})
+  execute_process(COMMAND sed -i "s%__BINARY__%${TESTS_BINARY_PATH}%" ${UNIT_TESTS_PATH})
+  execute_process(COMMAND sed -i "s%__ARGS__%${TESTS_ARGS}%" ${UNIT_TESTS_PATH})
   add_test(${PROJECT_NAME}_mysqltest
     env
       ${CMAKE_BINARY_DIR}/testsuite/env
       --databases=mysql
       run --
-      ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}_mysqltest
-      --gtest_output=xml:${CMAKE_BINARY_DIR}/test-results/${PROJECT_NAME}_mysqltest.xml
+      ${UNIT_TESTS_PATH}
   )
 
-  add_executable(${PROJECT_NAME}_benchmark ${MYSQL_BENCH_SOURCES})
-  target_include_directories(${PROJECT_NAME}_benchmark PRIVATE
-    $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>
-  )
-  target_link_libraries(${PROJECT_NAME}_benchmark PRIVATE userver-ubench ${PROJECT_NAME}
-          #mariadbclient
-          mariadb)
-  add_test(${PROJECT_NAME}_mysqltest
-    env
-      ${CMAKE_BINARY_DIR}/testsuite/env
-      --databases=mysql
-      run --
-      ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}_benchmark
-      --benchmark_min_time=0
-      --benchmark_color=no
-  )
+#  add_executable(${PROJECT_NAME}_benchmark ${MYSQL_BENCH_SOURCES})
+#  target_include_directories(${PROJECT_NAME}_benchmark PRIVATE
+#    $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>
+#  )
+#  target_link_libraries(${PROJECT_NAME}_benchmark PRIVATE userver-ubench ${PROJECT_NAME}
+#          #mariadbclient
+#          mariadb)
+#  add_test(${PROJECT_NAME}_mysqltest
+#    env
+#      ${CMAKE_BINARY_DIR}/testsuite/env
+#      --databases=mysql
+#      run --
+#      ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}_benchmark
+#      --benchmark_min_time=0
+#      --benchmark_color=no
+#  )
 endif()

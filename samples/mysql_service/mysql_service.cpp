@@ -36,7 +36,7 @@ struct KeyValueCachePolicy final {
 
   using ValueType = Row;
 
-  static constexpr auto KeyMember = &Row::key;
+  static constexpr auto kKeyMember = &Row::key;
 
   static constexpr std::string_view kQuery{
       "SELECT `Key`, Value FROM key_value_table"};
@@ -99,7 +99,7 @@ formats::json::Value KeyValue::GetValues() const {
   formats::json::ValueBuilder builder{};
   builder["values"] =
       mysql_
-          ->Select(userver::storages::mysql::ClusterHostType::kMaster, {},
+          ->Select(userver::storages::mysql::ClusterHostType::kMaster,
                    "SELECT `key`, value FROM key_value_table")
           .AsVector<Row>();
 

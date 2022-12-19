@@ -83,7 +83,7 @@ inline constexpr bool kWantsIncrementalUpdates =
 // Key member in policy
 template <typename T>
 using KeyMemberTypeImpl =
-    std::decay_t<std::invoke_result_t<decltype(T::KeyMember), ValueType<T>>>;
+    std::decay_t<std::invoke_result_t<decltype(T::kKeyMember), ValueType<T>>>;
 template <typename T>
 inline constexpr bool kHasKeyMember = meta::kIsDetected<KeyMemberTypeImpl, T>;
 template <typename T>

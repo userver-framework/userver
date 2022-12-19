@@ -25,8 +25,7 @@ void select(benchmark::State& state) {
     const engine::Deadline deadline{};
     for (auto _ : state) {
       const auto rows =
-          cluster->Select(ClusterHostType::kMaster, deadline, query)
-              .AsVector<Row>();
+          cluster->Select(ClusterHostType::kMaster, query).AsVector<Row>();
     }
   });
 }
@@ -71,7 +70,6 @@ void select_many_small_columns(benchmark::State& state) {
 
     const engine::Deadline deadline{};
     cluster->InsertMany(
-        deadline,
         table.FormatWithTableName(
             "INSERT INTO {} VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"),
         rows_to_insert);
@@ -80,8 +78,7 @@ void select_many_small_columns(benchmark::State& state) {
         "SELECT a, b, c, d, e, f, g, h, j, k FROM {}");
     for (auto _ : state) {
       const auto rows =
-          cluster->Select(ClusterHostType::kMaster, deadline, query)
-              .AsVector<Row>();
+          cluster->Select(ClusterHostType::kMaster, query).AsVector<Row>();
     }
   });
 }

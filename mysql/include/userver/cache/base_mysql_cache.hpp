@@ -121,14 +121,14 @@ void MySQLCache<MySQLCachePolicy>::Update(
     cluster_
         ->GetCursor<RawValueType>(kClusterHostTypeFlags,
                                   // TODO : batch size
-                                  deadline, 10, query)
+                                  10, query)
         .ForEach(
             [&data_cache](RawValueType&& row) {
               mysql_cache::impl::CacheInsertOrAssign(
                   *data_cache,
                   mysql_cache::impl::ExtractValue<MySQLCachePolicy>(
                       std::move(row)),
-                  MySQLCachePolicy::KeyMember);
+                  MySQLCachePolicy::kKeyMember);
             },
             deadline);
   }
