@@ -89,6 +89,12 @@ CcCustomStatus ParseRuntimeCfg(const dynamic_config::DocsMap& docs_map) {
 
 constexpr dynamic_config::Key<ParseRuntimeCfg> kCcCustomStatus{};
 
+bool ParseStreamApiEnabled(const dynamic_config::DocsMap& docs_map) {
+  return docs_map.Get("USERVER_HANDLER_STREAM_API_ENABLED").As<bool>();
+}
+
+constexpr dynamic_config::Key<ParseStreamApiEnabled> kStreamApiEnabled{};
+
 utils::statistics::MetricTag<std::atomic<size_t>> kCcStatusCodeIsCustom{
     "congestion-control.rps.is-custom-status-activated"};
 
@@ -166,7 +172,7 @@ engine::TaskWithResult<void> HttpRequestHandler::StartRequestTask(
     return StartFailsafeTask(std::move(request));
   }
 
-  if (handler->GetConfig().response_body_stream) {
+  if (handler->GetConfig().response_body_stream && config[kStreamApiEnabled]) {
     http_response.SetStreamBody();
   }
 
