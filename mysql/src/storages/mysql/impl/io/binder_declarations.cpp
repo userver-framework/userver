@@ -7,20 +7,23 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::mysql::impl::io {
 
-// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+// Tidy gets upset with <type> and insists on parentheses around 'type',
+// which is invalid C++.
+// Tidy also heavily dislikes macro usage, but these are just a bunch of codegen
+// macros, so idc.
+// NOLINTBEGIN
 #define DEFINE_INPUT_BINDER(type)                               \
   void InputBinder<type>::Bind() { binds_.Bind(pos_, field_); } \
   void InputBinder<std::optional<type>>::Bind() { binds_.Bind(pos_, field_); }
 
-// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define DEFINE_OUTPUT_BINDER(type)                               \
   void OutputBinder<type>::Bind() { binds_.Bind(pos_, field_); } \
   void OutputBinder<std::optional<type>>::Bind() { binds_.Bind(pos_, field_); }
 
-// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define DEFINE_BINDER(type) \
   DEFINE_INPUT_BINDER(type) \
   DEFINE_OUTPUT_BINDER(type)
+// NOLINTEND
 
 // numeric types
 DEFINE_BINDER(std::uint8_t)
