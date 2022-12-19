@@ -21,7 +21,7 @@ def client_deps(
         docker_service_redis_slave_0,
 ):
     config = service_config_yaml['components_manager']['components'][
-        'secdist'
+        'default-secdist-provider'
     ]['config']
     with open(config, 'r') as ffi:
         contents = json.load(ffi)

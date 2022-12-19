@@ -86,7 +86,8 @@ components_manager:
             limited-logging-enable: true
             limited-logging-interval: 1s
 
-        secdist:
+        secdist: {}
+        default-secdist-provider:
             config: $secdist-path
 
         server:

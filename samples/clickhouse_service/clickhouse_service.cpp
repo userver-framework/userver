@@ -14,6 +14,7 @@
 #include <userver/storages/clickhouse/query.hpp>
 
 #include <userver/storages/secdist/component.hpp>
+#include <userver/storages/secdist/provider_component.hpp>
 
 #include <userver/utils/daemon_run.hpp>
 
@@ -71,7 +72,8 @@ int main(int argc, char* argv[]) {
           .Append<samples::clickhouse::HandlerDb>()
           .Append<userver::components::ClickHouse>("clickhouse-database")
           .Append<userver::clients::dns::Component>()
-          .Append<components::Secdist>();
+          .Append<components::Secdist>()
+          .Append<components::DefaultSecdistProvider>();
 
   return userver::utils::DaemonMain(argc, argv, components_list);
 }
