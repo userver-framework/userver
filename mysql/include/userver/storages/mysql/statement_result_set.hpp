@@ -1,5 +1,7 @@
 #pragma once
 
+/// @file userver/storages/mysql/statement_result_set.hpp
+
 #include <optional>
 #include <vector>
 
@@ -29,6 +31,10 @@ class ConnectionPtr;
 template <typename DbType>
 class MappedStatementResultSet;
 
+/// @brief A wrapper for statement execution result.
+///
+/// This type can't be constructed in user code and is always retrieved from
+/// storages::mysql::Cluster or storages::mysql::Transaction methods.
 class StatementResultSet final {
  public:
   explicit StatementResultSet(impl::MySQLStatementFetcher&& fetcher);
@@ -39,33 +45,81 @@ class StatementResultSet final {
   StatementResultSet(const StatementResultSet& other) = delete;
   StatementResultSet(StatementResultSet&& other) noexcept;
 
+  /// @brief Parse statement result set as std::vector<T>.
+  /// `T` is expected to be an aggregate of supported types.
+  ///
+  /// UINVARIANTs on columns count mismatch or types mismatch.
   template <typename T>
   std::vector<T> AsVector() &&;
 
+  /// @brief Parse statement result set as std::vector<T>.
+  /// Result set is expected to have a single column, `T` is expected to be one
+  /// of supported types.
+  ///
+  /// UINVARIANTs on columns count not being equal to 1 or type mismatch.
   template <typename T>
   std::vector<T> AsVector(FieldTag) &&;
 
+  /// @brief Parse statement result set as Container<T>.
+  /// `T` is expected to be an aggregate of supported types, `Container` is
+  /// expected to meet std::Container requirements.
+  ///
+  /// UINVARIANTs on columns count mismatch or types mismatch.
   template <typename Container>
   Container AsContainer() &&;
 
+  /// @brief Parse statement result as Container<T>.
+  /// Result set is expected to have a single column, `T` is expected to be one
+  /// of supported types,
+  /// `Container` is expected to meed std::Container requirements.
+  ///
+  /// UINVARIANTs on columns count not being equal to 1 or type mismatch.
   template <typename Container>
   Container AsContainer(FieldTag) &&;
 
+  /// @brief Parse statement result as T.
+  /// Result set is expected to have a single row, `T` is expected to be an
+  /// aggregate of supported types.
+  ///
+  /// UINVARIANTs on columns count mismatch or types mismatch.
+  /// throws if result set is empty or contains more than one row.
   template <typename T>
   T AsSingleRow() &&;
 
+  /// @brief Parse statement result as T.
+  /// Result set is expected to have a single row and a single column,
+  /// `T` is expected to be one of supported types.
+  ///
+  /// UINVARIANTs on columns count not being equal to 1 or type mismatch.
+  /// throws if result set is empty of contains more than one row.
   template <typename T>
   T AsSingleField() &&;
 
+  /// @brief Parse statement result as std::optional<T>.
+  /// Result set is expected to have not more than one row,
+  /// `T` is expected to be an aggregate of supported types.
+  ///
+  /// UINVARIANTs on columns count mismatch or types mismatch.
+  /// throws if result set contains more than one row.
   template <typename T>
   std::optional<T> AsOptionalSingleRow() &&;
 
+  /// @brief Parse statement result as T.
+  /// Result set is expected to have not more than one row,
+  /// `T` is expected to be one of supported types.
+  ///
+  /// UINVARIANTs on columns count not being equal to 1 or type mismatch.
+  /// throws if result set contains more than one row.
   template <typename T>
   std::optional<T> AsOptionalSingleField() &&;
 
+  /// @brief Converts to an interface for on-the-flight mapping
+  /// statement result set from DbType.
+  /// `DbType` is expected to be an aggregate of supported types.
   template <typename DbType>
   MappedStatementResultSet<DbType> MapFrom() &&;
 
+  /// @brief Get statement execution metadata.
   ExecutionResult AsExecutionResult() &&;
 
  private:
@@ -85,6 +139,69 @@ class StatementResultSet final {
 
   struct Impl;
   utils::FastPimpl<Impl, 64, 8> impl_;
+};
+
+/// @brief An interface for on-the-flight mapping statement result set from
+/// DbType into whatever type you provide without additional allocations.
+///
+/// `DbType` is expected to be either an aggregate of supported types or a
+/// supported type itself for methods taking `FieldTag`; DbType is expected
+/// to match DB representation - same amount of columns (1 for `FieldTag`
+/// overload) and matching types.
+///
+/// You are expected to provide a converter function
+/// `T Convert(DbType&&, storages::mysql::convert:To<T>)` in either
+/// T's namespace or `storages::mysql::convert` namespace
+template <typename DbType>
+class MappedStatementResultSet final {
+ public:
+  explicit MappedStatementResultSet(StatementResultSet&& result_set);
+  ~MappedStatementResultSet();
+
+  /// @brief Parse statement result set as std::vector<T> using provided
+  /// converter function.
+  ///
+  /// UINVARIANTs on columns count mismatch or types mismatch for `DbType`.
+  template <typename T>
+  std::vector<T> AsVector() &&;
+
+  /// @brief Parse statement result set as std::vector<T> using provided
+  /// converter function.
+  ///
+  /// UINVARIANTs on columns count not being 1 or types mismatch for DbType.
+  template <typename T>
+  std::vector<T> AsVector(FieldTag) &&;
+
+  /// @brief Parse statement result set as Container<T> using provided
+  /// converter function.
+  ///
+  /// UINVARIANTs on columns count mismatch or types mismatch for `DbType`.
+  template <typename Container>
+  Container AsContainer() &&;
+
+  /// @brief Parse statement result set as Container<T> using provided
+  /// converter function.
+  ///
+  /// UINVARIANTs on columns count not being 1 or types mismatch for DbType.
+  template <typename Container>
+  Container AsContainer(FieldTag) &&;
+
+  template <typename T>
+  T AsSingleRow() && {
+    static_assert(!sizeof(T),
+                  "Not implemented, just use StatementResultSet version and "
+                  "convert yourself.");
+  }
+
+  template <typename T>
+  std::optional<T> AsOptionalSingleRow() && {
+    static_assert(!sizeof(T),
+                  "Not implemented, just use StatementResultSet version and "
+                  "convert yourself.");
+  }
+
+ private:
+  StatementResultSet result_set_;
 };
 
 template <typename T>
@@ -195,34 +312,6 @@ std::optional<T> StatementResultSet::DoAsOptionalSingleRow() && {
 
   return {std::move(rows.front())};
 }
-
-template <typename DbType>
-class MappedStatementResultSet final {
- public:
-  explicit MappedStatementResultSet(StatementResultSet&& result_set);
-  ~MappedStatementResultSet();
-
-  template <typename T>
-  std::vector<T> AsVector() &&;
-
-  template <typename T>
-  std::vector<T> AsVector(FieldTag) &&;
-
-  template <typename Container>
-  Container AsContainer() &&;
-
-  template <typename Container>
-  Container AsContainer(FieldTag) &&;
-
-  /*template <typename T>
-  T AsSingleRow() &&;
-
-  template <typename T>
-  std::optional<T> AsOptionalSingleRow() &&;*/
-
- private:
-  StatementResultSet result_set_;
-};
 
 template <typename DbType>
 MappedStatementResultSet<DbType>::MappedStatementResultSet(

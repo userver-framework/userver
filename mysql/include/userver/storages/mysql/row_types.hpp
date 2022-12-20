@@ -1,10 +1,15 @@
 #pragma once
 
+/// @file userver/storages/mysql/row_types.hpp
+/// @brief Helper tags to disambiguate result extraction between row and field.
+
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::mysql {
 
+/// Used for extracting statement results as a single field.
 struct FieldTag {};
+/// Used for extracting statement results as rows.
 struct RowTag {};
 
 constexpr FieldTag kFieldTag;

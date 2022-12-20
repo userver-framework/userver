@@ -99,6 +99,13 @@ UTEST(MappedResultSet, MappedFieldWorks) {
   EXPECT_EQ(as_int.front(), 123);
 }
 
+UTEST(ResultSet, UnmappedFieldWorks) {
+  ClusterWrapper cluster{};
+  const auto res =
+      cluster.DefaultExecute("SELECT 'field'").AsSingleField<std::string>();
+  EXPECT_EQ(res, "field");
+}
+
 }  // namespace storages::mysql::tests
 
 USERVER_NAMESPACE_END

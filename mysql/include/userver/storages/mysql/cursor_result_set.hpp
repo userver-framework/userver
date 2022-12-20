@@ -1,11 +1,17 @@
 #pragma once
 
+/// @file userver/storages/mysql/cursor_result_set.hpp
+
 #include <userver/storages/mysql/statement_result_set.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::mysql {
 
+/// @brief A wrapper for read-only cursor.
+///
+/// Although this class can be constructed from StatementResultSet, you should
+/// always retrieve it from `storages::mysql::Cluster` for correct behavior.
 template <typename T>
 class CursorResultSet final {
  public:
@@ -15,6 +21,12 @@ class CursorResultSet final {
   CursorResultSet(const CursorResultSet& other) = delete;
   CursorResultSet(CursorResultSet&& other) noexcept;
 
+  /// @brief Fetches all the rows from cursor and for each new row executes
+  /// row_callback.
+  ///
+  /// Usable when expected result set is expected to be big enough to put too
+  /// much memory pressure if fetched as a whole.
+  // TODO : deadline?
   template <typename RowCallback>
   void ForEach(RowCallback&& row_callback, engine::Deadline deadline) &&;
 

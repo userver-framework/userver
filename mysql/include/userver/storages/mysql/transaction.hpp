@@ -1,5 +1,7 @@
 #pragma once
 
+/// @file userver/storages/mysql/transaction.hpp
+
 #include <userver/tracing/span.hpp>
 #include <userver/utils/fast_pimpl.hpp>
 
@@ -15,6 +17,11 @@ namespace infra {
 class ConnectionPtr;
 }
 
+/// @brief RAII transaction wrapper, auto-**ROLLBACK**s on destruction if no
+/// prior `Commit`/`Rollback` call was made.
+///
+/// This type can't be constructed in user code and is always retrieved from
+/// storages::mysql::Cluster
 class Transaction final {
  public:
   explicit Transaction(infra::ConnectionPtr&& connection,

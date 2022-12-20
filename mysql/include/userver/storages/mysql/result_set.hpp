@@ -14,6 +14,8 @@
 
 USERVER_NAMESPACE_BEGIN
 
+// TODO : maybe drop? or just drop parsing and leave as vector<vector<string>>
+
 namespace storages::mysql {
 
 namespace impl {

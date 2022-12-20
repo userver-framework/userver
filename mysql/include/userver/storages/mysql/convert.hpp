@@ -26,7 +26,7 @@ T DoConvert(DbType&& from) {
       // TODO : better wording
       impl::kHasConvert<T, DbType>,
       "There is no MySQLConvert(From&&, storages::mysql::convert::To<T>) in "
-      "namespace of `storages::mysql::convert`");
+      "neither namespace of 'T' or `storages::mysql::convert`");
 
   return Convert(std::forward<DbType>(from), To<T>{});
 }
