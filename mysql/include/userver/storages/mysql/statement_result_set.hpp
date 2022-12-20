@@ -10,9 +10,9 @@
 #include <userver/utils/fast_pimpl.hpp>
 #include <userver/utils/scope_guard.hpp>
 
+#include <userver/storages/mysql/execution_result.hpp>
 #include <userver/storages/mysql/impl/io/extractor.hpp>
 #include <userver/storages/mysql/impl/io/traits.hpp>
-#include <userver/storages/mysql/execution_result.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
