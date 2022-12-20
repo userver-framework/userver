@@ -237,6 +237,7 @@ if (USERVER_IS_THE_ROOT_PROJECT)
     add_google_benchmark_tests(${PROJECT_NAME}_benchmark)
 endif()
 
+# TODO: remove
 # Target with no need to use userver namespace, but includes require userver/
 add_library(yandex-${PROJECT_NAME} INTERFACE)
 target_link_libraries(yandex-${PROJECT_NAME} INTERFACE ${PROJECT_NAME})
