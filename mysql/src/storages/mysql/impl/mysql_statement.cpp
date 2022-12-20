@@ -166,7 +166,8 @@ void MySQLStatement::Reset(engine::Deadline deadline) {
   }
 
   // TODO : we probably need to reset the statement when cursor processing
-  // fails. Apart from that - not sure if that's ever needed
+  // fails. Apart from that - not sure if that's ever needed.
+  // Actually mysql_stmt_free_result closes any open cursors, idk.
   /*connection_->GetSocket().RunToCompletion(
       [this, &err] {
         return mysql_stmt_reset_start(&err, native_statement_.get());
@@ -367,6 +368,24 @@ bool MySQLStatementFetcher::FetchResult(io::ExtractorBase& extractor) {
   }
 
   return true;
+}
+
+std::size_t MySQLStatementFetcher::RowsAffected() const {
+  const auto rows_affected =
+      mysql_stmt_affected_rows(statement_->native_statement_.get());
+
+  // libmariadb return -1 as ulonglong
+  if (rows_affected == std::numeric_limits<std::size_t>::max()) {
+    LOG_WARNING()
+        << "RowsAffected called on a statement that doesn't affect any rows";
+    return 0;
+  }
+
+  return rows_affected;
+}
+
+std::size_t MySQLStatementFetcher::LastInsertId() const {
+  return mysql_stmt_insert_id(statement_->native_statement_.get());
 }
 
 }  // namespace storages::mysql::impl

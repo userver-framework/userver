@@ -31,6 +31,16 @@ StatementResultSet::~StatementResultSet() = default;
 StatementResultSet::StatementResultSet(StatementResultSet&& other) noexcept =
     default;
 
+ExecutionResult StatementResultSet::AsExecutionResult() && {
+  const auto rows_affected = impl_->fetcher.RowsAffected();
+  const auto last_insert_id = impl_->fetcher.LastInsertId();
+
+  ExecutionResult result{};
+  result.rows_affected = rows_affected;
+  result.last_insert_id = last_insert_id;
+  return result;
+}
+
 bool StatementResultSet::FetchResult(impl::io::ExtractorBase& extractor) {
   return impl_->fetcher.FetchResult(extractor);
 }

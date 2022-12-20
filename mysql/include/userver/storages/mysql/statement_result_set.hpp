@@ -12,6 +12,7 @@
 
 #include <userver/storages/mysql/impl/io/extractor.hpp>
 #include <userver/storages/mysql/impl/io/traits.hpp>
+#include <userver/storages/mysql/execution_result.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -64,6 +65,8 @@ class StatementResultSet final {
 
   template <typename DbType>
   MappedStatementResultSet<DbType> MapFrom() &&;
+
+  ExecutionResult AsExecutionResult() &&;
 
  private:
   template <typename T>

@@ -69,6 +69,8 @@ std::string Convert(DbUser&& db_user,
 
 UTEST(MappedResultSet, MappedVectorWorks) {
   ClusterWrapper cluster{};
+  cluster->ExecuteCommand(ClusterHostType::kMaster,
+                          "DROP TABLE IF EXISTS Users");
   cluster->ExecuteCommand(
       ClusterHostType::kMaster,
       "CREATE TABLE Users(first_name TEXT NOT NULL, last_name TEXT NOT NULL)");

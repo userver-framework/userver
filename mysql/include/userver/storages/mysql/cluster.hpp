@@ -55,29 +55,29 @@ class Cluster final {
                             const Args&... args) const;
 
   template <typename T>
-  void InsertOne(const Query& query, const T& row) const;
+  ExecutionResult InsertOne(const Query& query, const T& row) const;
 
   template <typename T>
-  void InsertOne(OptionalCommandControl command_control, const Query& query,
-                 const T& row) const;
+  ExecutionResult InsertOne(OptionalCommandControl command_control,
+                            const Query& query, const T& row) const;
 
   template <typename Container>
-  void InsertMany(const Query& query, const Container& rows,
-                  bool throw_on_empty_insert = true) const;
+  ExecutionResult InsertMany(const Query& query, const Container& rows,
+                             bool throw_on_empty_insert = true) const;
 
   template <typename Container>
-  void InsertMany(OptionalCommandControl command_control, const Query& query,
-                  const Container& rows,
-                  bool throw_on_empty_insert = true) const;
+  ExecutionResult InsertMany(OptionalCommandControl command_control,
+                             const Query& query, const Container& rows,
+                             bool throw_on_empty_insert = true) const;
 
   template <typename MapTo, typename Container>
-  void InsertManyMapped(const Query& query, const Container& rows,
-                        bool throw_on_empty_insert = true) const;
+  ExecutionResult InsertManyMapped(const Query& query, const Container& rows,
+                                   bool throw_on_empty_insert = true) const;
 
   template <typename MapTo, typename Container>
-  void InsertManyMapped(OptionalCommandControl command_control,
-                        const Query& query, const Container& rows,
-                        bool throw_on_empty_insert = true) const;
+  ExecutionResult InsertManyMapped(OptionalCommandControl command_control,
+                                   const Query& query, const Container& rows,
+                                   bool throw_on_empty_insert = true) const;
 
   template <typename... Args>
   StatementResultSet Execute(ClusterHostType host_type, const Query& query,
@@ -89,26 +89,28 @@ class Cluster final {
                              const Args&... args) const;
 
   template <typename Container>
-  void ExecuteBulk(ClusterHostType host_type, const Query& query,
-                   const Container& params,
-                   bool throw_on_empty_params = true) const;
+  StatementResultSet ExecuteBulk(ClusterHostType host_type, const Query& query,
+                                 const Container& params,
+                                 bool throw_on_empty_params = true) const;
 
   template <typename Container>
-  void ExecuteBulk(OptionalCommandControl command_control,
-                   ClusterHostType host_type, const Query& query,
-                   const Container& params,
-                   bool throw_on_empty_params = true) const;
+  StatementResultSet ExecuteBulk(OptionalCommandControl command_control,
+                                 ClusterHostType host_type, const Query& query,
+                                 const Container& params,
+                                 bool throw_on_empty_params = true) const;
 
   template <typename MapTo, typename Container>
-  void ExecuteBulkMapped(ClusterHostType host_type, const Query& query,
-                         const Container& params,
-                         bool throw_on_empty_params = true) const;
+  StatementResultSet ExecuteBulkMapped(ClusterHostType host_type,
+                                       const Query& query,
+                                       const Container& params,
+                                       bool throw_on_empty_params = true) const;
 
   template <typename MapTo, typename Container>
-  void ExecuteBulkMapped(OptionalCommandControl command_control,
-                         ClusterHostType host_type, const Query& query,
-                         const Container& params,
-                         bool throw_on_empty_params = true) const;
+  StatementResultSet ExecuteBulkMapped(OptionalCommandControl command_control,
+                                       ClusterHostType host_type,
+                                       const Query& query,
+                                       const Container& params,
+                                       bool throw_on_empty_params = true) const;
 
   void ExecuteCommand(ClusterHostType host_type, const Query& command) const;
 
@@ -156,44 +158,50 @@ StatementResultSet Cluster::Select(OptionalCommandControl command_control,
 }
 
 template <typename T>
-void Cluster::InsertOne(const Query& query, const T& row) const {
+ExecutionResult Cluster::InsertOne(const Query& query, const T& row) const {
   return InsertOne(std::nullopt, query, row);
 }
 
 template <typename T>
-void Cluster::InsertOne(OptionalCommandControl command_control,
-                        const Query& query, const T& row) const {
+ExecutionResult Cluster::InsertOne(OptionalCommandControl command_control,
+                                   const Query& query, const T& row) const {
   auto params_binder = impl::BindHelper::BindRowAsParams(row);
 
-  DoExecute(command_control, ClusterHostType::kMaster, query, params_binder);
+  return DoExecute(command_control, ClusterHostType::kMaster, query,
+                   params_binder)
+      .AsExecutionResult();
 }
 
 template <typename Container>
-void Cluster::InsertMany(const Query& query, const Container& rows,
-                         bool throw_on_empty_insert) const {
-  InsertMany(std::nullopt, query, rows, throw_on_empty_insert);
+ExecutionResult Cluster::InsertMany(const Query& query, const Container& rows,
+                                    bool throw_on_empty_insert) const {
+  return InsertMany(std::nullopt, query, rows, throw_on_empty_insert);
 }
 
 template <typename Container>
-void Cluster::InsertMany(OptionalCommandControl command_control,
-                         const Query& query, const Container& rows,
-                         bool throw_on_empty_insert) const {
-  ExecuteBulk(command_control, ClusterHostType::kMaster, query, rows,
-              throw_on_empty_insert);
+ExecutionResult Cluster::InsertMany(OptionalCommandControl command_control,
+                                    const Query& query, const Container& rows,
+                                    bool throw_on_empty_insert) const {
+  return ExecuteBulk(command_control, ClusterHostType::kMaster, query, rows,
+                     throw_on_empty_insert)
+      .AsExecutionResult();
 }
 
 template <typename MapTo, typename Container>
-void Cluster::InsertManyMapped(const Query& query, const Container& rows,
-                               bool throw_on_empty_insert) const {
-  InsertManyMapped<MapTo>(std::nullopt, query, rows, throw_on_empty_insert);
+ExecutionResult Cluster::InsertManyMapped(const Query& query,
+                                          const Container& rows,
+                                          bool throw_on_empty_insert) const {
+  return InsertManyMapped<MapTo>(std::nullopt, query, rows,
+                                 throw_on_empty_insert);
 }
 
 template <typename MapTo, typename Container>
-void Cluster::InsertManyMapped(OptionalCommandControl command_control,
-                               const Query& query, const Container& rows,
-                               bool throw_on_empty_insert) const {
-  ExecuteBulkMapped<MapTo>(command_control, ClusterHostType::kMaster, query,
-                           rows, throw_on_empty_insert);
+ExecutionResult Cluster::InsertManyMapped(
+    OptionalCommandControl command_control, const Query& query,
+    const Container& rows, bool throw_on_empty_insert) const {
+  return ExecuteBulkMapped<MapTo>(command_control, ClusterHostType::kMaster,
+                                  query, rows, throw_on_empty_insert)
+      .AsExecutionResult();
 }
 
 template <typename... Args>
@@ -215,56 +223,63 @@ StatementResultSet Cluster::Execute(OptionalCommandControl command_control,
 }
 
 template <typename Container>
-void Cluster::ExecuteBulk(ClusterHostType host_type, const Query& query,
-                          const Container& params,
-                          bool throw_on_empty_params) const {
+StatementResultSet Cluster::ExecuteBulk(ClusterHostType host_type,
+                                        const Query& query,
+                                        const Container& params,
+                                        bool throw_on_empty_params) const {
   return ExecuteBulk(std::nullopt, host_type, query, params,
                      throw_on_empty_params);
 }
 
 template <typename Container>
-void Cluster::ExecuteBulk(OptionalCommandControl command_control,
-                          ClusterHostType host_type, const Query& query,
-                          const Container& params,
-                          bool throw_on_empty_params) const {
+StatementResultSet Cluster::ExecuteBulk(
+    OptionalCommandControl command_control, ClusterHostType host_type,
+    const Query& query, const Container& params,
+    [[maybe_unused]] bool throw_on_empty_params) const {
   if (params.empty()) {
-    if (throw_on_empty_params) {
+    // TODO : what do?
+    throw std::runtime_error{"Empty params in bulk execution"};
+    /*if (throw_on_empty_params) {
       throw std::runtime_error{"Empty params in bulk execution"};
     } else {
       return;
-    }
+    }*/
   }
 
   auto params_binder = impl::BindHelper::BindContainerAsParams(params);
 
-  DoExecute(command_control, host_type, query.GetStatement(), params_binder);
+  return DoExecute(command_control, host_type, query.GetStatement(),
+                   params_binder);
 }
 
 template <typename MapTo, typename Container>
-void Cluster::ExecuteBulkMapped(ClusterHostType host_type, const Query& query,
-                                const Container& params,
-                                bool throw_on_empty_params) const {
-  ExecuteBulkMapped<MapTo>(std::nullopt, host_type, query, params,
-                           throw_on_empty_params);
+StatementResultSet Cluster::ExecuteBulkMapped(
+    ClusterHostType host_type, const Query& query, const Container& params,
+    bool throw_on_empty_params) const {
+  return ExecuteBulkMapped<MapTo>(std::nullopt, host_type, query, params,
+                                  throw_on_empty_params);
 }
 
 template <typename MapTo, typename Container>
-void Cluster::ExecuteBulkMapped(OptionalCommandControl command_control,
-                                ClusterHostType host_type, const Query& query,
-                                const Container& params,
-                                bool throw_on_empty_params) const {
+StatementResultSet Cluster::ExecuteBulkMapped(
+    OptionalCommandControl command_control, ClusterHostType host_type,
+    const Query& query, const Container& params,
+    [[maybe_unused]] bool throw_on_empty_params) const {
   if (params.empty()) {
-    if (throw_on_empty_params) {
+    // TODO : what do?
+    throw std::runtime_error{"Empty params in bulk execution"};
+    /*if (throw_on_empty_params) {
       throw std::runtime_error{"Empty params in bulk execution"};
     } else {
       return;
-    }
+    }*/
   }
 
   auto params_binder =
       impl::BindHelper::BindContainerAsParamsMapped<MapTo>(params);
 
-  DoExecute(command_control, host_type, query.GetStatement(), params_binder);
+  return DoExecute(command_control, host_type, query.GetStatement(),
+                   params_binder);
 }
 
 template <typename T, typename... Args>

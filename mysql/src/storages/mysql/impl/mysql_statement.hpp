@@ -34,6 +34,10 @@ class MySQLStatementFetcher final {
 
   bool FetchResult(io::ExtractorBase& extractor);
 
+  std::size_t RowsAffected() const;
+
+  std::size_t LastInsertId() const;
+
  private:
   friend class MySQLStatement;
   MySQLStatementFetcher(MySQLStatement& statement);

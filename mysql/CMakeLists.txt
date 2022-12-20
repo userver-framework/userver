@@ -71,20 +71,20 @@ if (USERVER_IS_THE_ROOT_PROJECT)
       ${UNIT_TESTS_PATH}
   )
 
-#  add_executable(${PROJECT_NAME}_benchmark ${MYSQL_BENCH_SOURCES})
-#  target_include_directories(${PROJECT_NAME}_benchmark PRIVATE
-#    $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>
-#  )
-#  target_link_libraries(${PROJECT_NAME}_benchmark PRIVATE userver-ubench ${PROJECT_NAME}
-#          #mariadbclient
-#          mariadb)
-#  add_test(${PROJECT_NAME}_mysqltest
-#    env
-#      ${CMAKE_BINARY_DIR}/testsuite/env
-#      --databases=mysql
-#      run --
-#      ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}_benchmark
-#      --benchmark_min_time=0
-#      --benchmark_color=no
-#  )
+  add_executable(${PROJECT_NAME}_benchmark ${MYSQL_BENCH_SOURCES})
+  target_include_directories(${PROJECT_NAME}_benchmark PRIVATE
+    $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>
+  )
+  target_link_libraries(${PROJECT_NAME}_benchmark PRIVATE userver-ubench ${PROJECT_NAME}
+          #mariadbclient
+          mariadb)
+  add_test(${PROJECT_NAME}_mysqltest
+    env
+      ${CMAKE_BINARY_DIR}/testsuite/env
+      --databases=mysql
+      run --
+      ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}_benchmark
+      --benchmark_min_time=0
+      --benchmark_color=no
+  )
 endif()
