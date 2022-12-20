@@ -1,8 +1,5 @@
 #include <storages/mysql/impl/mysql_statement.hpp>
 
-// TODO : drop
-#include <iostream>
-
 #include <utility>
 
 #include <fmt/format.h>
@@ -168,7 +165,9 @@ void MySQLStatement::Reset(engine::Deadline deadline) {
         GetNativeError("Failed to free a prepared statement result")};
   }
 
-  connection_->GetSocket().RunToCompletion(
+  // TODO : we probably need to reset the statement when cursor processing
+  // fails. Apart from that - not sure if that's ever needed
+  /*connection_->GetSocket().RunToCompletion(
       [this, &err] {
         return mysql_stmt_reset_start(&err, native_statement_.get());
       },
@@ -180,7 +179,7 @@ void MySQLStatement::Reset(engine::Deadline deadline) {
   if (err != 0) {
     throw std::runtime_error{
         GetNativeError("Failed to reset a prepared statement")};
-  }
+  }*/
 
   if (batch_size_.has_value()) {
     // MySQL 8.0.31 seems to be buggy:

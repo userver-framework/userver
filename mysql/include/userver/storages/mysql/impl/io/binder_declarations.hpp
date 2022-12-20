@@ -62,6 +62,7 @@ DECLARE_BINDER(float)
 DECLARE_BINDER(double)
 // Binders for decimal are specialized in decimal_binder.hpp
 // string types
+// string-alike types
 DECLARE_BINDER(std::string)
 DECLARE_BINDER(std::string_view)  // why not for input, disabled for output
 DECLARE_BINDER(formats::json::Value)

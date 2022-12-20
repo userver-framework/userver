@@ -37,6 +37,7 @@ DEFINE_BINDER(std::int64_t)
 DEFINE_BINDER(float)
 DEFINE_BINDER(double)
 DEFINE_BINDER(DecimalWrapper)
+// string-alike types
 DEFINE_BINDER(std::string)
 DEFINE_BINDER(std::string_view)
 DEFINE_BINDER(formats::json::Value)
