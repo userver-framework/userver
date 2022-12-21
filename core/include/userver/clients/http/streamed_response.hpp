@@ -40,7 +40,6 @@ class StreamedResponse final {
   /// Get all HTTP headers as a case-insensitive unordered map
   /// @note may suspend the coroutine if headers are not obtained yet.
   const Headers& GetHeaders();
-  const Response::CookiesMap& GetCookies();
 
   using Queue = concurrent::SpscQueue<std::string>;
 
