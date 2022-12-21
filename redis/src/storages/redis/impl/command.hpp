@@ -6,6 +6,8 @@
 #include <userver/storages/redis/impl/types.hpp>
 #include <userver/utils/assert.hpp>
 
+#include <algorithm>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace redis {
@@ -21,7 +23,10 @@ struct Command : public std::enable_shared_from_this<Command> {
   std::string GetName() {
     UASSERT(!args.args.empty());
     UASSERT(!args.args.front().empty());
-    return args.args.front().front();
+    auto name = args.args.front().front();
+    std::transform(name.begin(), name.end(), name.begin(),
+                   [](unsigned char c) { return std::tolower(c); });
+    return name;
   }
 
   ReplyCallback Callback() const;

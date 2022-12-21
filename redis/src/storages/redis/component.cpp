@@ -60,6 +60,14 @@ formats::json::ValueBuilder InstanceStatisticsToJson(
         utils::statistics::PercentileToJson(stats.timings_percentile);
     utils::statistics::SolomonSkip(result["timings"]["1min"]);
   }
+  if (metrics_settings.command_timings_enabled &&
+      !stats.command_timings_percentile.empty()) {
+    auto timings = result["command_timings"];
+    utils::statistics::SolomonChildrenAreLabelValues(timings, "redis_command");
+    for (const auto& [command, percentile] : stats.command_timings_percentile) {
+      timings[command] = utils::statistics::PercentileToJson(percentile);
+    }
+  }
 
   result["reconnects"] = stats.reconnects;
 

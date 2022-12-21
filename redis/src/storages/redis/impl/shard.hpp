@@ -11,7 +11,6 @@
 
 #include <storages/redis/impl/redis.hpp>
 #include <userver/storages/redis/impl/redis_stats.hpp>
-#include "userver/storages/redis/impl/base.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
