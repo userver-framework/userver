@@ -36,6 +36,7 @@ constexpr std::string_view kRuntimeConfigMissingParam = R"~({
   "USERVER_RPS_CCONTROL_ACTIVATED_FACTOR_METRIC": 5,
   "USERVER_LRU_CACHES": {},
   "USERVER_DUMPS": {},
+  "USERVER_HANDLER_STREAM_API_ENABLED": false,
   "HTTP_CLIENT_CONNECTION_POOL_SIZE": 1000,
   "HTTP_CLIENT_CONNECT_THROTTLE": {
     "max-size": 100,
