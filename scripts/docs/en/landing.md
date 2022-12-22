@@ -61,8 +61,8 @@ std::size_t Ins(storages::postgres::Transaction& tr, std::string_view key) {
 
 <div class="landing-container">
   <div class="landing-intro-left">
-      Efficient asynchronous drivers for databases (MongoDB, PostgreSQL, Redis, ClickHouse,
-      ...) and data transfer protocols (HTTP, GRPC, TCP, ...), tasks
+      Efficient asynchronous drivers for databases (MongoDB, PostgreSQL, MySQL/MariaDB (experimental), Redis, ClickHouse,
+      ...) and data transfer protocols (HTTP, GRPC, TCP, AMQP-0.9.1 (experimental), ...), tasks
       construction and cancellation.
   </div>
   <div class="landing-intro-right">

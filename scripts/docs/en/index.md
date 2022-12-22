@@ -99,6 +99,9 @@ Telegram support chats: [English-speaking](https://t.me/userver_en) |
   * @ref pg_arrays
   * @ref pg_bytea
 
+## MySQL
+* @ref mysql_driver
+
 
 ## Non relational databases
 * @ref md_en_userver_mongodb
