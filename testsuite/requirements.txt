@@ -1,2 +1,2 @@
-yandex-taxi-testsuite[mongodb,postgresql,redis,clickhouse,rabbitmq,mysql] >= 0.1.67.1
+yandex-taxi-testsuite[mongodb,postgresql,redis,clickhouse,rabbitmq,mysql] >= 0.1.7.1
 
