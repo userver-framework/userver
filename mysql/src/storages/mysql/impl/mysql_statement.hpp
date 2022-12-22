@@ -44,6 +44,7 @@ class MySQLStatementFetcher final {
 
   engine::Deadline parent_statement_deadline_;
   bool binds_applied_{false};
+  bool binds_validated_{false};
   MySQLStatement* statement_;
 };
 

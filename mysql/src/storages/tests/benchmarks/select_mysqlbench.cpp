@@ -63,9 +63,8 @@ void select_many_small_columns(benchmark::State& state) {
     std::vector<Row> rows_to_insert;
     rows_to_insert.reserve(state.range(0));
     for (int i = 0; i < state.range(0); ++i) {
-      Row row{};
+      auto& row = rows_to_insert.emplace_back();
       boost::pfr::for_each_field(row, [i](auto& field) { field = i; });
-      rows_to_insert.push_back(row);
     }
 
     const engine::Deadline deadline{};

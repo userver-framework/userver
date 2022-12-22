@@ -339,14 +339,20 @@ bool MySQLStatementFetcher::FetchResult(io::ExtractorBase& extractor) {
   const auto rows_count = batch_size.value_or(statement_->RowsCount());
   extractor.Reserve(rows_count);
 
+  const auto validate_binds = !std::exchange(binds_validated_, true);
+  if (validate_binds) {
+    // We validate binds even for empty results:
+    // we don't want a query returning empty result to pass tests and then BOOM
+    // with actual data. Performance cost of this should be negligible, if any.
+    auto& binds = extractor.BindNextRow();
+    binds.ValidateAgainstStatement(*statement_->native_statement_);
+    extractor.RollbackLastRow();
+  }
+
   for (size_t i = 0; i < rows_count; ++i) {
     auto& binds = extractor.BindNextRow();
 
     const auto apply_binds = !std::exchange(binds_applied_, true);
-    if (apply_binds) {
-      binds.ValidateAgainstStatement(*statement_->native_statement_);
-    }
-
     // We don't have to reapply binds all the time: values in them are changed
     // by extractor.BindNextRow() call, and mysql_stmt_bind_result is costly.
     // Not reapplying them for each row gives ~20% speedup in benchmarks with

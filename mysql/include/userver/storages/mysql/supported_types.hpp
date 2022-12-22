@@ -73,11 +73,11 @@ inline constexpr bool kIsTypeSupported =
 /// Is column NULLABLE | Is type optional | behavior
 /// ----------------- | ----------------- | --------
 /// `true`            | `true`            | allowed
-/// `true`            | `false`           | UINVARIANT
+/// `true`            | `false`           | `UINVARIANT`
 /// `false`           | `true`            | allowed
 /// `false`           | `false`           | allowed
 ///
-/// Third, an attempt to parse DECIMAL with more than 18 digits will throw at
+/// Third, an attempt to parse `DECIMAL` with more than 18 digits will throw at
 /// extraction stage. <br>
 /// Fourth, general type mismatch will UINVARIANT, however widening numeric
 /// conversions are allowed, this check happens before actual extraction.

@@ -81,6 +81,13 @@ UTEST_DEATH(OutputBindingDeathTest, FieldsCountMismatch) {
       cluster.DefaultExecute("SELECT 1, 2, 3").AsSingleRow<Row>());
 }
 
+UTEST_DEATH(OutputBindingDeathTest, TypeMismatchWithEmptyResult) {
+  TmpTable table{"Value TEXT NOT NULL"};
+
+  EXPECT_UINVARIANT_FAILURE(table.DefaultExecute("SELECT Value FROM {}")
+                                .AsOptionalSingleField<int>());
+}
+
 UTEST(OutputBinding, AllSupportedDates) {
   ClusterWrapper cluster{};
   TmpTable table{cluster,
