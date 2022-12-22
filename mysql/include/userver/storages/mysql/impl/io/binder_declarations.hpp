@@ -20,12 +20,16 @@ namespace storages::mysql::impl::io {
 #define DECLARE_INPUT_BINDER(type)                               \
   template <>                                                    \
   class InputBinder<type> final : public InputBinderBase<type> { \
+   public:                                                       \
+    static constexpr bool kIsSupported = true;                   \
     using InputBinderBase<type>::InputBinderBase;                \
     void Bind() final;                                           \
   };                                                             \
   template <>                                                    \
   class InputBinder<std::optional<type>> final                   \
       : public InputBinderBase<std::optional<type>> {            \
+   public:                                                       \
+    static constexpr bool kIsSupported = true;                   \
     using InputBinderBase<std::optional<type>>::InputBinderBase; \
     void Bind() final;                                           \
   };
@@ -33,12 +37,16 @@ namespace storages::mysql::impl::io {
 #define DECLARE_OUTPUT_BINDER(type)                                \
   template <>                                                      \
   class OutputBinder<type> final : public OutputBinderBase<type> { \
+   public:                                                         \
+    static constexpr bool kIsSupported = true;                     \
     using OutputBinderBase<type>::OutputBinderBase;                \
     void Bind() final;                                             \
   };                                                               \
   template <>                                                      \
   class OutputBinder<std::optional<type>> final                    \
       : public OutputBinderBase<std::optional<type>> {             \
+   public:                                                         \
+    static constexpr bool kIsSupported = true;                     \
     using OutputBinderBase<std::optional<type>>::OutputBinderBase; \
     void Bind() final;                                             \
   };

@@ -13,6 +13,10 @@ namespace storages::mysql::impl::io {
 template <typename BindsStorage>
 class BinderBase {
  public:
+  // We override this to true in the binders we do support,
+  // and use this for some static asserts
+  static constexpr bool kIsSupported = false;
+
   BinderBase(BindsStorage& binds, std::size_t pos) : binds_{binds}, pos_{pos} {}
 
   void operator()() { Bind(); }

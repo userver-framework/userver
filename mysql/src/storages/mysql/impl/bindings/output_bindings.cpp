@@ -8,6 +8,15 @@ namespace storages::mysql::impl::bindings {
 
 namespace {
 
+bool IsNumericBindable(enum_field_types bind_type,
+                       enum_field_types field_type) {
+  UASSERT(NativeBindsHelper::IsFieldNumeric(bind_type) &&
+          NativeBindsHelper::IsFieldNumeric(field_type));
+
+  return NativeBindsHelper::NumericFieldWidth(bind_type) >=
+         NativeBindsHelper::NumericFieldWidth(field_type);
+}
+
 bool IsBlob(enum_field_types field_type) {
   return field_type == MYSQL_TYPE_BLOB || field_type == MYSQL_TYPE_TINY_BLOB ||
          field_type == MYSQL_TYPE_MEDIUM_BLOB ||
@@ -37,6 +46,12 @@ bool IsBindable(enum_field_types bind_type, enum_field_types field_type) {
     // TODO : MYSQL_TYPE_TIME?
   }
 
+  if (NativeBindsHelper::IsFieldNumeric(bind_type) &&
+      NativeBindsHelper::IsFieldNumeric(field_type)) {
+    return IsNumericBindable(bind_type, field_type);
+  }
+
+  // TODO : MYSQL_TYPE_BIT
   return bind_type == field_type;
 }
 
@@ -467,7 +482,6 @@ void OutputBindings::ValidateAgainstStatement(MYSQL_STMT& statement) {
   const auto* fields = mysql_fetch_fields(result_metadata.get());
   for (std::size_t i = 0; i < fields_count; ++i) {
     const auto& bind = GetBind(i);
-    ;
     const auto& field = fields[i];
 
     ValidateBind(i, bind, field);
@@ -511,8 +525,7 @@ void OutputBindings::ValidateBind(std::size_t pos, const MYSQL_BIND& bind,
   const auto signed_to_string = [](bool is_nullable) -> std::string_view {
     return is_nullable ? "signed" : "unsigned";
   };
-  // validate signed/unsigned for numeric types (mysql and mariadb handle
-  // TIMESTAMP differently, and there is no point in validating it here anyway)
+  // validate signed/unsigned for numeric types
   if (IsFieldNumeric(field.type)) {
     const bool is_bind_signed = !bind.is_unsigned;
     const bool is_field_signed = !(field.flags & UNSIGNED_FLAG);

@@ -97,6 +97,7 @@ template <int Prec, typename Policy>
 class InputBinder<Decimal64<Prec, Policy>> final
     : public InputBinderBase<Decimal64<Prec, Policy>> {
  public:
+  static constexpr bool kIsSupported = true;
   using InputBinderBase<Decimal64<Prec, Policy>>::InputBinderBase;
 
   void Bind() final {
@@ -109,6 +110,7 @@ template <int Prec, typename Policy>
 class InputBinder<Decimal64Opt<Prec, Policy>> final
     : public InputBinderBase<Decimal64Opt<Prec, Policy>> {
  public:
+  static constexpr bool kIsSupported = true;
   using InputBinderBase<Decimal64Opt<Prec, Policy>>::InputBinderBase;
 
   void Bind() final {
@@ -128,6 +130,7 @@ template <int Prec, typename Policy>
 class OutputBinder<Decimal64<Prec, Policy>> final
     : public OutputBinderBase<Decimal64<Prec, Policy>> {
  public:
+  static constexpr bool kIsSupported = true;
   using OutputBinderBase<Decimal64<Prec, Policy>>::OutputBinderBase;
 
   void Bind() final {
@@ -140,6 +143,7 @@ template <int Prec, typename Policy>
 class OutputBinder<Decimal64Opt<Prec, Policy>> final
     : public OutputBinderBase<Decimal64Opt<Prec, Policy>> {
  public:
+  static constexpr bool kIsSupported = true;
   using OutputBinderBase<Decimal64Opt<Prec, Policy>>::OutputBinderBase;
 
   void Bind() final {

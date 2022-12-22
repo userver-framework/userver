@@ -3,6 +3,8 @@
 
 #include <userver/formats/json/inline.hpp>
 
+#include <userver/storages/mysql/supported_types.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::mysql::tests {

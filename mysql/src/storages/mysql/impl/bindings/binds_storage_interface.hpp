@@ -27,6 +27,8 @@ struct NativeBindsHelper {
 
   static bool IsFieldNumeric(enum_field_types type);
 
+  static std::size_t NumericFieldWidth(enum_field_types type);
+
   static std::string_view NativeTypeToString(enum_field_types type);
 
   static MYSQL_TIME ToNativeTime(std::chrono::system_clock::time_point tp);

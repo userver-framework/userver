@@ -9,7 +9,13 @@
 #include <userver/storages/mysql/component.hpp>
 #include <userver/storages/mysql/cursor_result_set.hpp>
 
-/// @page mysql_driver MySQL Driver
+/// @page mysql_driver MySQL Driver - EXPERIMENTAL
+///
+/// Disclaimer: current state of the driver is highly experimental, and
+/// although APIs are not likely to change drastically, some adjustments may be
+/// made in the future.
+/// Please also keep in mind that this driver is a community-based effort and is
+/// not backed by Yandex expertise nor by Yandex-scale production usage.
 ///
 /// 🐙 **userver** provides access to MySQL databases servers via
 /// components::MySQL. The uMySQL driver is asynchronous, it suspends
@@ -34,6 +40,7 @@
 /// @section info More information
 /// - For configuring see components::MySQL
 /// - For cluster operations see storages::mysql::Cluster
+/// - For C++ <-> MySQL mapping see @ref userver_mysql_types
 /// - For types extraction of statements results into C++ types see
 /// storages::mysql::StatementResultSet
 

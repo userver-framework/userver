@@ -40,7 +40,7 @@ void SetNativeOptions(MYSQL* mysql,
   std::size_t net_buffer_size = 0x10000;
   mysql_optionsv(mysql, MYSQL_OPT_NET_BUFFER_LENGTH, &net_buffer_size);  // 64Kb
   // force TCP just to be sure
-  enum mysql_protocol_type prot_type = MYSQL_PROTOCOL_SOCKET;
+  enum mysql_protocol_type prot_type = MYSQL_PROTOCOL_TCP;
   mysql_optionsv(mysql, MYSQL_OPT_PROTOCOL, &prot_type);
   // introduce ourselves
   mysql_optionsv(mysql, MYSQL_OPT_CONNECT_ATTR_ADD, "client_name",
