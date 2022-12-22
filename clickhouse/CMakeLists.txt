@@ -64,7 +64,3 @@ if (USERVER_IS_THE_ROOT_PROJECT)
   set_tests_properties(${PROJECT_NAME}_chtest PROPERTIES ENVIRONMENT
           "TESTSUITE_CLICKHOUSE_SERVER_START_TIMEOUT=10.0")
 endif()
-
-# Target with no need to use userver namespace, but includes require userver/
-add_library(yandex-${PROJECT_NAME} INTERFACE)
-target_link_libraries(yandex-${PROJECT_NAME} INTERFACE ${PROJECT_NAME})

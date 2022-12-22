@@ -39,7 +39,7 @@ class HttpResponse final : public request::ResponseBase {
 
   using HeadersMapKeys = decltype(utils::impl::MakeKeysView(HeadersMap()));
 
-  using CookiesMap = Cookie::CookiesMap;
+  using CookiesMap = std::unordered_map<std::string_view, Cookie>;
 
   using CookiesMapKeys = decltype(utils::impl::MakeKeysView(CookiesMap()));
 
@@ -53,7 +53,9 @@ class HttpResponse final : public request::ResponseBase {
   /// @endcond
 
   /// @brief Add a new response header or rewrite an existing one.
-  void SetHeader(std::string name, std::string value);
+  /// @returns true if the header was set. Returns false if headers
+  /// were already sent for stream'ed response and the new header was not set.
+  bool SetHeader(std::string name, std::string value);
 
   /// @brief Add or rewrite the Content-Type header.
   void SetContentType(const USERVER_NAMESPACE::http::ContentType& type);
@@ -62,10 +64,14 @@ class HttpResponse final : public request::ResponseBase {
   void SetContentEncoding(std::string encoding);
 
   /// @brief Set the HTTP response status code.
-  void SetStatus(HttpStatus status);
+  /// @returns true if the status was set. Returns false if headers
+  /// were already sent for stream'ed response and the new status was not set.
+  bool SetStatus(HttpStatus status);
 
   /// @brief Remove all headers from response.
-  void ClearHeaders();
+  /// @returns true if the headers were cleared. Returns false if headers
+  /// were already sent for stream'ed response and the headers were not cleared.
+  bool ClearHeaders();
 
   /// @brief Sets a cookie if it was not set before.
   void SetCookie(Cookie cookie);

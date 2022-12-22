@@ -287,10 +287,6 @@ if (USERVER_FEATURE_UTEST)
         ${CMAKE_CURRENT_SOURCE_DIR}/src/
         ${CMAKE_CURRENT_SOURCE_DIR}/testing/src/
     )
-
-    # Target with no need to use userver namespace, but includes require userver/
-    add_library(yandex-userver-utest INTERFACE)
-    target_link_libraries(yandex-userver-utest INTERFACE userver-utest)
 endif()
 
 if (USERVER_IS_THE_ROOT_PROJECT)
@@ -324,10 +320,6 @@ if (USERVER_FEATURE_UTEST)
     else()
         target_link_libraries(userver-ubench PUBLIC libbenchmark)
     endif()
-
-    # Target with no need to use userver namespace, but includes require userver/
-    add_library(yandex-userver-ubench INTERFACE)
-    target_link_libraries(yandex-userver-ubench INTERFACE userver-ubench)
 endif()
 
 if (USERVER_IS_THE_ROOT_PROJECT)
@@ -340,7 +332,3 @@ if (USERVER_IS_THE_ROOT_PROJECT)
     )
     add_google_benchmark_tests(${PROJECT_NAME}_benchmark)
 endif()
-
-# Target with no need to use userver namespace, but includes require userver/
-add_library(yandex-${PROJECT_NAME} INTERFACE)
-target_link_libraries(yandex-${PROJECT_NAME} INTERFACE ${PROJECT_NAME})

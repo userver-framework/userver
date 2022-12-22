@@ -17,11 +17,11 @@ pytest_plugins = [
 def client_deps(
         service_config_yaml,
         _redis_service_settings,
-        docker_service_redis,
-        docker_service_redis_slave_0,
+        redis_docker_service,
+        redis_slave_0_docker_service,
 ):
     config = service_config_yaml['components_manager']['components'][
-        'secdist'
+        'default-secdist-provider'
     ]['config']
     with open(config, 'r') as ffi:
         contents = json.load(ffi)

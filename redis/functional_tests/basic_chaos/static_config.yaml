@@ -38,7 +38,8 @@ components_manager:
         dynamic-config-fallbacks:
             fallback-path: /etc/redis_basic_chaos/dynamic_config_fallback.json
 
-        secdist:
+        secdist: {}
+        default-secdist-provider:
             config: /etc/redis_service/secure_data.json
             missing-ok: true
             environment-secrets-key: SECDIST_CONFIG

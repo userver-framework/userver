@@ -82,11 +82,6 @@ std::error_code TestsuiteResponseHook(Status status_code,
   return {};
 }
 
-bool IsSetCookie(std::string_view key) {
-  utils::StrIcaseEqual equal;
-  return equal(key, USERVER_NAMESPACE::http::headers::kSetCookie);
-}
-
 // Not a strict check, but OK for non-header line check
 bool IsHttpStatusLineStart(const char* ptr, size_t size) {
   return (size > 5 && memcmp(ptr, "HTTP/", 5) == 0);
@@ -474,17 +469,6 @@ void RequestState::on_retry_timer(std::error_code err) {
     on_completed(shared_from_this(), err);
 }
 
-void RequestState::ParseCookie(const char* ptr, size_t size) {
-  if (auto cookie = server::http::Cookie::FromString(ptr, size)) {
-    [[maybe_unused]] auto [it, ok] =
-        response_->cookies().emplace(cookie->Name(), std::move(*cookie));
-    if (!ok) {
-      LOG_WARNING() << "Failed to add cookie '" + it->first +
-                           "', already added";
-    }
-  }
-}
-
 void RequestState::parse_header(char* ptr, size_t size) {
   /* It is a fast path in curl's thread (io thread).  Creation of tmp
    * std::string, boost::trim_right_if(), etc. is too expensive. */
@@ -522,10 +506,6 @@ void RequestState::parse_header(char* ptr, size_t size) {
   std::string key(ptr, col_pos - ptr);
 
   ++col_pos;
-
-  if (IsSetCookie(key)) {
-    return ParseCookie(col_pos, end - col_pos);
-  }
 
   // From https://tools.ietf.org/html/rfc7230#page-22 :
   //

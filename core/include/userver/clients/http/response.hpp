@@ -9,7 +9,6 @@
 
 #include <userver/clients/http/error.hpp>
 #include <userver/clients/http/local_stats.hpp>
-#include <userver/server/http/http_response_cookie.hpp>
 #include <userver/utils/str_icase.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -48,8 +47,6 @@ using Headers = std::unordered_map<std::string, std::string,
 /// Class that will be returned for successful request
 class Response final {
  public:
-  using CookiesMap = server::http::Cookie::CookiesMap;
-
   Response() = default;
 
   /// response string
@@ -65,8 +62,6 @@ class Response final {
   /// return referece to headers
   const Headers& headers() const { return headers_; }
   Headers& headers() { return headers_; }
-  const CookiesMap& cookies() const { return cookies_; }
-  CookiesMap& cookies() { return cookies_; }
 
   /// status_code
   Status status_code() const;
@@ -86,7 +81,6 @@ class Response final {
 
  private:
   Headers headers_;
-  CookiesMap cookies_;
   std::string response_;
   Status status_code_{Status::Invalid};
   LocalStats stats_;

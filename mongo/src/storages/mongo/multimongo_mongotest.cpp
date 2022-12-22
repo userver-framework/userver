@@ -18,6 +18,7 @@
 #include <userver/storages/mongo/multi_mongo.hpp>
 #include <userver/storages/mongo/pool.hpp>
 #include <userver/storages/mongo/pool_config.hpp>
+#include <userver/storages/secdist/provider_component.hpp>
 #include <userver/storages/secdist/secdist.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -73,10 +74,11 @@ UTEST(MultiMongo, DynamicSecdistUpdate) {
   auto temp_file = fs::blocking::TempFile::Create();
   fs::blocking::RewriteFileContents(temp_file.GetPath(), kSecdistInitJson);
 
-  storages::secdist::Secdist secdist(
+  storages::secdist::DefaultLoader provider{
       {temp_file.GetPath(), storages::secdist::SecdistFormat::kJson, false,
-       std::nullopt, std::chrono::milliseconds(100),
-       &engine::current_task::GetTaskProcessor()});
+       std::nullopt, &engine::current_task::GetTaskProcessor()}};
+  storages::secdist::Secdist secdist{
+      {&provider, std::chrono::milliseconds(100)}};
   auto subscriber =
       secdist.UpdateAndListen(&storage, "test/multimongo_update_secdist",
                               &SecdistConfigStorage::OnSecdistUpdate);

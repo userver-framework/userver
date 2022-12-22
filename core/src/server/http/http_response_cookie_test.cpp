@@ -22,11 +22,8 @@ TEST(HttpCookie, Simple) {
       std::chrono::system_clock::time_point{std::chrono::seconds{1560358305}});
   EXPECT_EQ(cookie.ToString(),
             "name1=value1; Domain=domain.com; Path=/; Expires=Wed, 12 Jun 2019 "
-            "16:51:45 GMT; Max-Age=3600; Secure; HttpOnly");
-  cookie.SetSameSite("None");
-  EXPECT_EQ(cookie.ToString(),
-            "name1=value1; Domain=domain.com; Path=/; Expires=Wed, 12 Jun 2019 "
-            "16:51:45 GMT; Max-Age=3600; Secure; SameSite=None; HttpOnly");
+            "16:51:45 GMT; "
+            "Max-Age=3600; Secure; HttpOnly");
   EXPECT_EQ(cookie.Name(), "name1");
   EXPECT_EQ(cookie.Value(), "value1");
   EXPECT_TRUE(cookie.IsSecure());
@@ -35,7 +32,6 @@ TEST(HttpCookie, Simple) {
   EXPECT_EQ(cookie.Path(), "/");
   EXPECT_EQ(cookie.Domain(), "domain.com");
   EXPECT_EQ(cookie.MaxAge().count(), 3600);
-  EXPECT_EQ(cookie.SameSite(), "None");
   EXPECT_EQ(cookie.Expires().time_since_epoch().count() *
                 std::chrono::system_clock::period::num /
                 std::chrono::system_clock::period::den,
@@ -100,56 +96,6 @@ TEST(HttpCookie, Validation) {
 
   for (const auto& bad : bads) {
     UEXPECT_THROW(create_cookie(bad), std::runtime_error);
-  }
-}
-
-TEST(HttpCookie, FromString) {
-  const std::vector<std::string> good_cookies_as_str = {
-      "name1=value1; Domain=domain.com; Path=/; Expires=Wed, 12 Jun 2019 "
-      "16:51:45 GMT; Max-Age=3600; Secure; SameSite=None; HttpOnly",
-      "name1=value1; Domain=domain.com; Path=/; Expires=Wed, 12 Jun 2019 "
-      "16:51:45 GMT; Max-Age=0; Secure; SameSite=None; HttpOnly",
-      "name1=value1; Domain=domain.com; Path=/my_beautiful_path; "
-      "Expires=Thu, 01 Jan 1970 00:00:00 GMT; Max-Age=1800; Secure; "
-      "SameSite=None; HttpOnly",
-      "name1=; Domain=domain.com; Path=/my_beautiful_path; "
-      "Expires=Thu, 01 Jan 1970 00:00:00 GMT; Max-Age=1800; Secure; "
-      "SameSite=None; HttpOnly"};
-  for (const auto& cookie_as_str : good_cookies_as_str) {
-    auto cookie = server::http::Cookie::FromString(cookie_as_str);
-    EXPECT_EQ(cookie.value().ToString(), cookie_as_str);
-  }
-
-  utils::StrIcaseEqual equal;
-  const std::vector<std::string> cookies_as_str_icase = {
-      "name1=value1; Domain=domain.com; Path=/; Expires=Wed, 12 Jun 2019 "
-      "16:51:45 GMT; Max-Age=3600; Secure; SameSite=None; HttpOnly",
-      "name1=value1; Domain=domain.com; Path=/; Expires=Wed, 12 Jun 2019 "
-      "16:51:45 GMT; Max-Age=0; secure; SameSItE=None; HttpOnly",
-      "name1=value1; Domain=domain.com; path=/my_beautiful_path; "
-      "expires=Thu, 01 Jan 1970 00:00:00 GMT; mAx-Age=1800; Secure; "
-      "SameSite=None; httponly",
-      "name1=; domain=domain.com; path=/my_beautiful_path; "
-      "expires=Thu, 01 Jan 1970 00:00:00 GMT; max-age=1800; secure; "
-      "samesite=None; httponly"};
-  for (const auto& cookie_as_str : cookies_as_str_icase) {
-    auto cookie = server::http::Cookie::FromString(cookie_as_str);
-    EXPECT_TRUE(equal(cookie.value().ToString(), cookie_as_str));
-  }
-
-  const std::vector<std::string> bad_cookies_as_str = {
-      "name1=value1; Domain=domain.com; Path=; Expires=Wed, 12 Jun 2019 "
-      "16:51:45 GMT; Max-Age=0; Secure; SameSite=None; HttpOnly",
-      "name1=value1; Domain=domain.com; Path=/my_beautiful_path; "
-      "Expires=Thu, 01 Jan 1969 00:00:00 GMT; Max-Age=1800; Secure; "
-      "SameSite=None; HttpOnly",
-      "name1=; Domain; Path=/my_beautiful_path; "
-      "Expires=Thu, 01 Jan 1970 00:00:00 GMT; Max-Age=1800; Secure; "
-      "SameSite=None; HttpOnly",
-      "name1=; Domain=domain.com; Path=/my_beautiful_path; "};
-  for (const auto& cookie_as_str : bad_cookies_as_str) {
-    auto cookie = server::http::Cookie::FromString(cookie_as_str);
-    EXPECT_FALSE(equal(cookie.value().ToString(), cookie_as_str));
   }
 }
 

@@ -28,7 +28,8 @@ components_manager:
             testpoint-timeout: 10s
             testpoint-url: $mockserver/testpoint
             throttling_enabled: false
-        secdist:
+        secdist: {}
+        default-secdist-provider:
             missing-ok: true
 
         server:

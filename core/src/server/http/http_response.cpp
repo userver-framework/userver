@@ -102,7 +102,12 @@ void HttpResponse::SetSendFailed(
   request::ResponseBase::SetSendFailed(failure_time);
 }
 
-void HttpResponse::SetHeader(std::string name, std::string value) {
+bool HttpResponse::SetHeader(std::string name, std::string value) {
+  if (headers_end_.IsReady()) {
+    // Attempt to set headers for Stream'ed response after it is already set
+    return false;
+  }
+
   CheckHeaderName(name);
   CheckHeaderValue(value);
   const auto header_it = headers_.find(name);
@@ -111,6 +116,8 @@ void HttpResponse::SetHeader(std::string name, std::string value) {
   } else {
     header_it->second = std::move(value);
   }
+
+  return true;
 }
 
 void HttpResponse::SetContentType(
@@ -123,9 +130,25 @@ void HttpResponse::SetContentEncoding(std::string encoding) {
             std::move(encoding));
 }
 
-void HttpResponse::SetStatus(HttpStatus status) { status_ = status; }
+bool HttpResponse::SetStatus(HttpStatus status) {
+  if (headers_end_.IsReady()) {
+    // Attempt to set headers for Stream'ed response after it is already set
+    return false;
+  }
 
-void HttpResponse::ClearHeaders() { headers_.clear(); }
+  status_ = status;
+  return true;
+}
+
+bool HttpResponse::ClearHeaders() {
+  if (headers_end_.IsReady()) {
+    // Attempt to set headers for Stream'ed response after it is already set
+    return false;
+  }
+
+  headers_.clear();
+  return true;
+}
 
 void HttpResponse::SetCookie(Cookie cookie) {
   CheckHeaderValue(cookie.Name());
@@ -160,7 +183,7 @@ HttpResponse::CookiesMapKeys HttpResponse::GetCookieNames() const {
 }
 
 const Cookie& HttpResponse::GetCookie(std::string_view cookie_name) const {
-  return cookies_.at(cookie_name.data());
+  return cookies_.at(cookie_name);
 }
 
 void HttpResponse::SetHeadersEnd() { headers_end_.Send(); }

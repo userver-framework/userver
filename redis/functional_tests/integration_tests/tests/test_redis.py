@@ -17,8 +17,8 @@ async def test_happy_path(_redis_service_settings, service_client):
 async def test_hard_failover(
         _redis_service_settings,
         service_client,
-        docker_service_redis,
-        docker_service_redis_master_0,
+        redis_docker_service,
+        redis_master_0_docker_service,
 ):
     result = await service_client.post(
         '/redis', params={'value': 'abc', 'key': 'hf_key'},
@@ -34,7 +34,7 @@ async def test_hard_failover(
     assert response == b'abc'
 
     # Start the failover
-    docker_service_redis_master_0.kill()
+    redis_master_0_docker_service.kill()
 
     # Failover starts in ~15 seconds
     for _ in range(20):

@@ -151,7 +151,7 @@ help of @ref md_en_userver_functional_testing "testsuite functional tests".
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref md_en_userver_tutorial_redis_service | @ref userver_clients ⇨
+⇦ @ref md_en_userver_tutorial_auth_postgres | @ref userver_clients ⇨
 @htmlonly </div> @endhtmlonly
 
 @example components/component_sample_test.hpp

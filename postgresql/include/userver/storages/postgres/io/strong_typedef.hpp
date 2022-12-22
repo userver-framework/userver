@@ -1,7 +1,7 @@
 #pragma once
 
 /// @file userver/storages/postgres/io/strong_typedef.hpp
-/// @brief StrongTypedef I/O support
+/// @brief utils::StrongTypedef I/O support
 /// @ingroup userver_postgres_parse_and_format
 
 #include <userver/storages/postgres/exceptions.hpp>
