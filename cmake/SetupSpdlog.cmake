@@ -22,20 +22,7 @@ macro(userver_fetch_and_add_spdlog_subdirectory)
 endmacro()
 
 if (NOT USERVER_OPEN_SOURCE_BUILD)
-  if (EXISTS "${USERVER_ROOT_DIR}/submodules/spdlog")
-    userver_add_spdlog_subdirectory("submodules/spdlog")
-    return()
-  endif()
-
-  include(FetchContent)
-  FetchContent_Declare(
-    spdlog_external_project
-    GIT_REPOSITORY git@bb.yandex-team.ru:taxi-external/spdlog.git
-    TIMEOUT 10
-    GIT_TAG develop
-    SOURCE_DIR ${USERVER_ROOT_DIR}/third_party/spdlog
-  )
-  userver_fetch_and_add_spdlog_subdirectory()
+  userver_add_spdlog_subdirectory("submodules/spdlog")
   return()
 endif()
 
