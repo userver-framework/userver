@@ -9,6 +9,7 @@
 #include <userver/storages/mysql/component.hpp>
 #include <userver/storages/mysql/cursor_result_set.hpp>
 
+// clang-format off
 /// @page mysql_driver MySQL Driver - EXPERIMENTAL
 ///
 /// Disclaimer: current state of the driver is highly experimental, and
@@ -18,8 +19,9 @@
 /// not backed by Yandex expertise nor by Yandex-scale production usage.
 ///
 /// 🐙 **userver** provides access to MySQL databases servers via
-/// components::MySQL. The uMySQL driver is asynchronous, it suspends
-/// current coroutine for carrying out network I/O.
+/// components::MySQL. The uMySQL driver is asynchronous, and with it one can
+/// write queries like this:
+/// @snippet storages/tests/unittests/showcase_mysqltest.cpp  uMySQL usage sample - main page
 ///
 /// @section features Features
 /// - Connection pooling;
@@ -43,6 +45,7 @@
 /// - For C++ <-> MySQL mapping see @ref userver_mysql_types
 /// - For types extraction of statements results into C++ types see
 /// storages::mysql::StatementResultSet
+// clang-format on
 
 USERVER_NAMESPACE_BEGIN
 
