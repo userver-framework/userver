@@ -144,7 +144,8 @@ void Pool::PushConnection(engine::Deadline deadline) {
 Pool::SmartConnectionPtr Pool::CreateConnection(engine::Deadline deadline) {
   try {
     auto connection_ptr = std::make_unique<impl::MySQLConnection>(
-        resolver_, settings_.endpoint_info, settings_.auth_settings, deadline);
+        resolver_, settings_.endpoint_info, settings_.auth_settings,
+        settings_.connection_settings, deadline);
     size_.fetch_add(1);
     monitor_.AccountSuccess();
 

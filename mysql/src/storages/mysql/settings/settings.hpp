@@ -5,6 +5,7 @@
 
 #include <userver/components/component_fwd.hpp>
 #include <userver/formats/json_fwd.hpp>
+#include <userver/yaml_config/fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -19,6 +20,17 @@ struct AuthSettings final {
 AuthSettings Parse(const formats::json::Value& doc,
                    formats::parse::To<AuthSettings>);
 
+struct ConnectionSettings final {
+  std::size_t statements_cache_size;
+  // TODO : implement ssl somehow
+  bool use_secure_connection;
+  // TODO : implement compression somehow
+  bool use_compression;
+};
+
+ConnectionSettings Parse(const yaml_config::YamlConfig& doc,
+                         formats::parse::To<ConnectionSettings>);
+
 struct EndpointInfo final {
   std::string host;
   std::uint32_t port;
@@ -30,6 +42,7 @@ struct PoolSettings final {
 
   EndpointInfo endpoint_info;
   AuthSettings auth_settings;
+  ConnectionSettings connection_settings;
 
   PoolSettings(const components::ComponentConfig& config,
                const EndpointInfo& endpoint_info, const AuthSettings& auth);

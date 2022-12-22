@@ -23,6 +23,7 @@ namespace storages::mysql {
 namespace settings {
 struct EndpointInfo;
 struct AuthSettings;
+struct ConnectionSettings;
 }  // namespace settings
 
 namespace impl {
@@ -36,6 +37,7 @@ class MySQLConnection final {
   MySQLConnection(clients::dns::Resolver& resolver,
                   const settings::EndpointInfo& endpoint_info,
                   const settings::AuthSettings& auth_settings,
+                  const settings::ConnectionSettings& connection_settings,
                   engine::Deadline deadline);
   ~MySQLConnection();
 
@@ -88,9 +90,11 @@ class MySQLConnection final {
   void InitSocket(clients::dns::Resolver& resolver,
                   const settings::EndpointInfo& endpoint_info,
                   const settings::AuthSettings& auth_settings,
+                  const settings::ConnectionSettings& connection_settings,
                   engine::Deadline deadline);
   bool DoInitSocket(const std::string& ip, std::uint32_t port,
                     const settings::AuthSettings& auth_settings,
+                    const settings::ConnectionSettings& connection_settings,
                     engine::Deadline deadline);
   void Close(engine::Deadline deadline) noexcept;
 

@@ -41,7 +41,7 @@ std::unique_ptr<TopologyBase> TopologyBase::Create(
                                                          pools_settings);
   }
 
-  UINVARIANT(false, "Multihost topology is not yet implemented");
+  UINVARIANT(false, "Multihost topology is not implemented yet");
 }
 
 Pool& TopologyBase::SelectPool(ClusterHostType host_type) const {

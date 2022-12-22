@@ -43,15 +43,35 @@ AuthSettings Parse(const formats::json::Value& doc,
   return auth;
 }
 
+ConnectionSettings Parse(const yaml_config::YamlConfig& doc,
+                         formats::parse::To<ConnectionSettings>) {
+  ConnectionSettings settings{};
+  // TODO : named const
+  settings.statements_cache_size =
+      doc["statements_cache_size"].As<std::size_t>(20);
+  // TODO
+  settings.use_secure_connection = false;
+  // TODO
+  settings.use_compression = false;
+
+  return settings;
+}
+
 PoolSettings::PoolSettings(const components::ComponentConfig& config,
                            const EndpointInfo& endpoint_info,
                            const AuthSettings& auth_settings)
+    // TODO : named const
     : initial_pool_size{std::max(config["initial_pool_size"].As<std::size_t>(1),
                                  std::size_t{1})},
-      // TODO : validate against min_pool_size
+      // TODO : named const
       max_pool_size{config["max_pool_size"].As<std::size_t>(10)},
       endpoint_info{endpoint_info},
-      auth_settings{auth_settings} {}
+      auth_settings{auth_settings},
+      connection_settings{config.As<ConnectionSettings>()} {
+  UINVARIANT(
+      max_pool_size >= initial_pool_size,
+      "max_pool_size should be >= initial_pool_size, recheck your config");
+}
 
 MysqlSettings::MysqlSettings(const formats::json::Value& database) {
   auto port = database["port"].As<std::uint32_t>();

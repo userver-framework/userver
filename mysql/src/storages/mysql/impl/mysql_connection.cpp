@@ -22,14 +22,47 @@ namespace {
 
 constexpr std::chrono::milliseconds kDefaultCloseTimeout{200};
 
+void SetNativeOptions(MYSQL* mysql,
+                      const settings::ConnectionSettings& connection_settings) {
+  // making everything async
+  mysql_optionsv(mysql, MYSQL_OPT_NONBLOCK, nullptr);
+  // no automatic reconnect
+  my_bool reconnect = 0;
+  mysql_optionsv(mysql, MYSQL_OPT_RECONNECT, &reconnect);
+  // report MYSQL_DATA_TRUNCATED for prepared statements fetch
+  mysql_optionsv(mysql, MYSQL_REPORT_DATA_TRUNCATION, "1");
+  // set maximum packet length higher than default (16Mb), because why not
+  std::size_t max_allowed_packet = 0x8000000;
+  mysql_optionsv(mysql, MYSQL_OPT_MAX_ALLOWED_PACKET,
+                 &max_allowed_packet);  // 128Mb
+  // set socket buffer size higher than default(16Kb),
+  // because 16Kb seems low to me
+  std::size_t net_buffer_size = 0x10000;
+  mysql_optionsv(mysql, MYSQL_OPT_NET_BUFFER_LENGTH, &net_buffer_size);  // 64Kb
+  // force TCP just to be sure
+  enum mysql_protocol_type prot_type = MYSQL_PROTOCOL_SOCKET;
+  mysql_optionsv(mysql, MYSQL_OPT_PROTOCOL, &prot_type);
+  // introduce ourselves
+  mysql_optionsv(mysql, MYSQL_OPT_CONNECT_ATTR_ADD, "client_name",
+                 "userver-mysql");
+
+  if (connection_settings.use_compression) {
+    mysql_optionsv(mysql, MYSQL_OPT_COMPRESS, nullptr);
+  }
 }
 
-MySQLConnection::MySQLConnection(clients::dns::Resolver& resolver,
-                                 const settings::EndpointInfo& endpoint_info,
-                                 const settings::AuthSettings& auth_settings,
-                                 engine::Deadline deadline)
-    : socket_{-1, 0}, statements_cache_{*this, 10} {
-  InitSocket(resolver, endpoint_info, auth_settings, deadline);
+}  // namespace
+
+MySQLConnection::MySQLConnection(
+    clients::dns::Resolver& resolver,
+    const settings::EndpointInfo& endpoint_info,
+    const settings::AuthSettings& auth_settings,
+    const settings::ConnectionSettings& connection_settings,
+    engine::Deadline deadline)
+    : socket_{-1, 0},
+      statements_cache_{*this, connection_settings.statements_cache_size} {
+  InitSocket(resolver, endpoint_info, auth_settings, connection_settings,
+             deadline);
   server_info_ = metadata::MySQLServerInfo::Get(mysql_);
 
   const auto server_info = metadata::MySQLServerInfo::Get(mysql_);
@@ -154,17 +187,20 @@ MySQLConnection::BrokenGuard MySQLConnection::GetBrokenGuard() {
 
 void MySQLConnection::NotifyBroken() { broken_.store(true); }
 
-void MySQLConnection::InitSocket(clients::dns::Resolver& resolver,
-                                 const settings::EndpointInfo& endpoint_info,
-                                 const settings::AuthSettings& auth_settings,
-                                 engine::Deadline deadline) {
+void MySQLConnection::InitSocket(
+    clients::dns::Resolver& resolver,
+    const settings::EndpointInfo& endpoint_info,
+    const settings::AuthSettings& auth_settings,
+    const settings::ConnectionSettings& connection_settings,
+    engine::Deadline deadline) {
   const auto addr_vec = resolver.Resolve(endpoint_info.host, deadline);
 
   for (const auto& addr : addr_vec) {
     const auto ip = addr.Domain() == engine::io::AddrDomain::kInet6
                         ? fmt::format("[{}]", addr.PrimaryAddressString())
                         : addr.PrimaryAddressString();
-    if (DoInitSocket(ip, endpoint_info.port, auth_settings, deadline)) {
+    if (DoInitSocket(ip, endpoint_info.port, auth_settings, connection_settings,
+                     deadline)) {
       return;
     } else if (deadline.IsReached()) {
       break;
@@ -175,11 +211,13 @@ void MySQLConnection::InitSocket(clients::dns::Resolver& resolver,
       "Failed to connect to any of the the resolved addresses"};
 }
 
-bool MySQLConnection::DoInitSocket(const std::string& ip, std::uint32_t port,
-                                   const settings::AuthSettings& auth_settings,
-                                   engine::Deadline deadline) {
+bool MySQLConnection::DoInitSocket(
+    const std::string& ip, std::uint32_t port,
+    const settings::AuthSettings& auth_settings,
+    const settings::ConnectionSettings& connection_settings,
+    engine::Deadline deadline) {
   mysql_init(&mysql_);
-  mysql_options(&mysql_, MYSQL_OPT_NONBLOCK, nullptr);
+  SetNativeOptions(&mysql_, connection_settings);
 
   auto mysql_events = mysql_real_connect_start(
       &connect_ret_, &mysql_, ip.c_str(), auth_settings.user.c_str(),
