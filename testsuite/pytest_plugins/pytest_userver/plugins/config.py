@@ -2,7 +2,6 @@
 Work with the configuration files of the service in testsuite.
 """
 
-import json
 import pathlib
 import types
 import typing
@@ -14,16 +13,7 @@ USERVER_CONFIG_HOOKS = [
     'userver_config_base',
     'userver_config_logging',
     'userver_config_testsuite',
-    'userver_config_fallback',
 ]
-
-
-class BaseError(Exception):
-    """Base class for exceptions of this module"""
-
-
-class ConfigNotFoundError(BaseError):
-    """Config parameter was not found and no default was provided"""
 
 
 class UserverConfigPlugin:
@@ -91,7 +81,7 @@ def service_config_path(pytestconfig) -> pathlib.Path:
 
 
 @pytest.fixture(scope='session')
-def service_config_vars_path(pytestconfig) -> pathlib.Path:
+def service_config_vars_path(pytestconfig) -> typing.Optional[pathlib.Path]:
     """
     Returns the path to config_vars.yaml file set by command line
     `--service-config-vars` option.
@@ -225,121 +215,3 @@ def userver_config_testsuite(mockserver_info):
             )
 
     return _patch_config
-
-
-@pytest.fixture(scope='session')
-def userver_config_fallback(pytestconfig, config_fallback_path):
-    def _patch_config(config_yaml, config_vars):
-        components = config_yaml['components_manager']['components']
-        for component_name in (
-                'dynamic-config-fallbacks',
-                'dynamic-config-client-updater',
-        ):
-            if component_name not in components:
-                continue
-            component = components[component_name]
-            if not config_fallback_path:
-                pytest.fail('Please run with --config-fallback=...')
-            component['fallback-path'] = str(config_fallback_path)
-
-    return _patch_config
-
-
-class DynamicConfig:
-    """Simple dynamic config backend."""
-
-    def __init__(self):
-        self._values = {}
-
-    def set_values(self, values):
-        self._values.update(values)
-
-    def get_values(self):
-        return self._values.copy()
-
-    def remove_values(self, keys):
-        for key in keys:
-            if key not in self._values:
-                raise ConfigNotFoundError(
-                    f'param "{key}" is not found in config',
-                )
-            self._values.pop(key)
-
-    def set(self, **values):
-        self.set_values(values)
-
-    def get(self, key, default=None):
-        if key not in self._values:
-            if default is not None:
-                return default
-            raise ConfigNotFoundError(
-                'param "%s" is not found in config' % (key,),
-            )
-        return self._values[key]
-
-    def remove(self, key):
-        return self.remove_values([key])
-
-
-@pytest.fixture
-def dynamic_config(
-        request,
-        search_path,
-        load_json,
-        object_substitute,
-        config_service_defaults,
-) -> DynamicConfig:
-    """
-    Fixture that allows to control dynamic config values used by the service.
-
-    After change to the config, be sure to call:
-    @code
-    await service_client.update_server_state()
-    @endcode
-
-    HTTP client requests call it automatically before each request.
-
-    @ingroup userver_testsuite_fixtures
-    """
-    config = DynamicConfig()
-    all_values = config_service_defaults.copy()
-    for path in reversed(list(search_path('config.json'))):
-        values = load_json(path)
-        all_values.update(values)
-    for marker in request.node.iter_markers('config'):
-        marker_json = object_substitute(marker.kwargs)
-        all_values.update(marker_json)
-    config.set_values(all_values)
-    return config
-
-
-@pytest.fixture
-def taxi_config(dynamic_config):
-    """
-    Deprecated, use `dynamic_config` instead.
-    """
-    return dynamic_config
-
-
-@pytest.fixture(scope='session')
-def config_service_defaults(config_fallback_path) -> typing.Any:
-    """
-    Fixture that returns default values for config. You may override
-    it in your local conftest.py or fixture:
-
-    @code
-    @pytest.fixture(scope='session')
-    def config_service_defaults():
-        with open('defaults.json') as fp:
-            return json.load(fp)
-    @endcode
-
-    @ingroup userver_testsuite_fixtures
-    """
-    if config_fallback_path.exists():
-        with open(config_fallback_path, 'r', encoding='utf-8') as file:
-            return json.load(file)
-    raise RuntimeError(
-        'In order to use fixture %s you have to override %s fixture'
-        % ('mock_configs_service', config_service_defaults.__name__),
-    )

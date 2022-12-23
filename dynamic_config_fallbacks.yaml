@@ -12,9 +12,21 @@ groups:
       - samples/static_service/dynamic_config_fallback.json
       - samples/tcp_full_duplex_service/dynamic_config_fallback.json
       - samples/tcp_service/dynamic_config_fallback.json
-      - samples/testsuite-support/dynamic_config_fallback.json
-      - core/functional_tests/basic_chaos/dynamic_config_fallback.json
       - core/functional_tests/metrics/dynamic_config_fallback.json
+
+  - library-yamls:
+      - core/library.yaml
+    fallbacks:
+      - core/functional_tests/basic_chaos/dynamic_config_fallback.json
+    overrides:
+        USERVER_HANDLER_STREAM_API_ENABLED: true
+
+  - library-yamls:
+      - core/library.yaml
+    fallbacks:
+      - samples/testsuite-support/dynamic_config_fallback.json
+    overrides:
+        MEANING_OF_LIFE: 42
 
   - library-yamls:
       - core/library.yaml

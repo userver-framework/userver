@@ -9,11 +9,11 @@ import pytest
 pytest_plugins = ['pytest_userver.plugins', 'pytest_userver.plugins.samples']
 
 # /// [Prepare configs]
-USERVER_CONFIG_HOOKS = ['_prepare_service_config']
+USERVER_CONFIG_HOOKS = ['prepare_service_config']
 
 
 @pytest.fixture(scope='session')
-def _prepare_service_config(grpc_mockserver_endpoint):
+def prepare_service_config(grpc_mockserver_endpoint):
     def patch_config(config, config_vars):
         components = config['components_manager']['components']
         components['greeter-client']['endpoint'] = grpc_mockserver_endpoint

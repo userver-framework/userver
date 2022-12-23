@@ -1,7 +1,3 @@
-"""
-Helpers for the userver samples; not included by the pytest_userver.plugins
-"""
-
 import pathlib
 
 import pytest

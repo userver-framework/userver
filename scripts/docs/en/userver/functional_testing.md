@@ -159,7 +159,7 @@ You can decalre `USERVER_CONFIG_HOOKS` variable in your pytest-plugin it is list
 functions or pytest-fixtures that are run before config is written to disk.
 Example usage:
 
-@snippet samples/production_service/tests/conftest.py config hook
+@snippet samples/grpc_service/tests/conftest.py Prepare configs
 
 #### Service client
 

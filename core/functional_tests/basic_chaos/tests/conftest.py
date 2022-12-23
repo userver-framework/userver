@@ -7,7 +7,10 @@ pytest_plugins = ['pytest_userver.plugins', 'pytest_userver.plugins.samples']
 
 
 @pytest.fixture(name='for_client_gate_port', scope='session')
-def _for_client_gate_port():
+def _for_client_gate_port(request):
+    # This fixture might be defined in an outer scope.
+    if 'for_client_gate_port_override' in request.fixturenames:
+        return request.getfixturevalue('for_client_gate_port_override')
     return 11433
 
 
