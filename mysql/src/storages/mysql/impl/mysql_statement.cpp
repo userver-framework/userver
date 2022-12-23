@@ -197,6 +197,7 @@ void MySQLStatement::Reset(engine::Deadline deadline) {
 
 void MySQLStatement::UpdateParamsBindings(io::ParamsBinderBase& params) {
   auto& binds = params.GetBinds();
+  // Remember, we don't have binds populated here in case of batch insert
   binds.ValidateAgainstStatement(*native_statement_);
 
   if (!binds.Empty()) {
@@ -208,8 +209,8 @@ void MySQLStatement::UpdateParamsBindings(io::ParamsBinderBase& params) {
       const auto& server_info = connection_->GetServerInfo();
       if (server_info.server_type !=
               metadata::MySQLServerInfo::Type::kMariaDB ||
-          server_info.server_version < metadata::MySQLSemVer{10, 2, 0}) {
-        throw std::logic_error{"Batch insert requires MariaDB 10.2 or later"};
+          server_info.server_version < metadata::MySQLSemVer{10, 2, 6}) {
+        throw std::logic_error{"Batch insert requires MariaDB 10.2.6 or later"};
       }
 
       mysql_stmt_attr_set(native_statement_.get(), STMT_ATTR_ARRAY_SIZE,

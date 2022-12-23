@@ -15,6 +15,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::mysql::impl::io {
 
+// tidy complains about this being specified not in the outer namespace scope
 template <typename Row, bool IsMapped>
 struct OwnedMappedRow final {};
 template <typename Row>
@@ -48,7 +49,6 @@ class InsertBinder final : public InsertBinderBase {
                   "Container should be sizeable for batch insertion");
 
     UASSERT(!container_.empty());
-    BindColumns();
 
     SetBindCallback(this, &BindsRowCallback);
   }
@@ -74,17 +74,12 @@ class InsertBinder final : public InsertBinderBase {
     }
   }
 
-  void BindColumns() {
-    UpdateCurrentRowPtr();
-    boost::pfr::for_each_field(*current_row_ptr_, CurrentRowUpdater{*this});
-  }
-
   void UpdateCurrentRow(std::size_t row_number) {
     UASSERT(CheckRowNumber(row_number));
     UASSERT(current_row_it_ != container_.end());
-    if (row_number == 0) return;  // Everything already done at initialization
 
-    BindColumns();
+    UpdateCurrentRowPtr();
+    boost::pfr::for_each_field(*current_row_ptr_, CurrentRowUpdater{*this});
   }
 
   bool CheckRowNumber(std::size_t row_number) {

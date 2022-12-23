@@ -1,7 +1,8 @@
 #pragma once
 
 /// @file userver/storages/mysql/supported_types.hpp
-/// This file is for documentation purposes only.
+/// This file is mostly for documentation purposes.
+/// It also contains some static_asserts, but no actual functionality.
 
 #include <userver/storages/mysql/impl/io/binder_declarations.hpp>
 

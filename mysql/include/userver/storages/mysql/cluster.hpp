@@ -101,7 +101,7 @@ class Cluster final {
   /// Basically an alias for ExecuteBulk(ClusterHostType::kMaster, query, rows,
   /// throw_on_empty_insert).
   ///
-  /// @note Requires MariaDB 10.2+ as a server
+  /// @note Requires MariaDB 10.2.6+ as a server
   ///
   /// UINVARIANTs on params count missmatch, doesn't validate types.
   template <typename Container>
@@ -115,7 +115,7 @@ class Cluster final {
   /// Basically an alias for ExecuteBulk(command_control,
   /// ClusterHostType::kMaster, query, rows, throw_on_empty_insert).
   ///
-  /// @note Requires MariaDB 10.2+ as a server
+  /// @note Requires MariaDB 10.2.6+ as a server
   ///
   /// UINVARIANTs on params count missmatch, doesn't validate types.
   template <typename Container>
@@ -136,7 +136,7 @@ class Cluster final {
   /// Basically an alias for ExecuteBulkMapped<MapTo>(ClusterHostType::kMaster,
   /// query, rows, throw_on_empty_insert).
   ///
-  /// @note Requires MariaDB 10.2+ as a server
+  /// @note Requires MariaDB 10.2.6+ as a server
   ///
   /// UINVARIANTs on params count mismatch, doesn't validate types.
   template <typename MapTo, typename Container>
@@ -157,7 +157,7 @@ class Cluster final {
   /// Basically an alias for ExecuteBulkMapped<MapTo>(command_control,
   /// ClusterHostType::kMaster, query, rows, throw_on_empty_insert).
   ///
-  /// @note Requires MariaDB 10.2+ as a server
+  /// @note Requires MariaDB 10.2.6+ as a server
   ///
   /// UINVARIANTs on params count mismatch, doesn't validate types.
   template <typename MapTo, typename Container>
@@ -192,7 +192,7 @@ class Cluster final {
   /// Container is expected to be a std::Container, Container::value_type is
   /// expected to be an aggregate of supported types.
   ///
-  /// @note Requires MariaDB 10.2+ as a server
+  /// @note Requires MariaDB 10.2.6+ as a server
   ///
   /// UINVARIANTs on params count missmatch, doesn't validate types.
   template <typename Container>
@@ -207,7 +207,7 @@ class Cluster final {
   /// Container is expected to be a std::Container, Container::value_type is
   /// expected to be an aggregate of supported types.
   ///
-  /// @note Requires MariaDB 10.2+ as a server
+  /// @note Requires MariaDB 10.2.6+ as a server
   ///
   /// UINVARIANTs on params count missmatch, doesn't validate types.
   template <typename Container>
@@ -226,7 +226,7 @@ class Cluster final {
   /// `MapTo Convert(const Container::value_type&, storages::mysql::convert::To<MapTo>)`
   /// in namespace of `MapTo` or storages::mysql::convert.
   ///
-  /// @note Requires MariaDB 10.2+ as a server
+  /// @note Requires MariaDB 10.2.6+ as a server
   ///
   /// UINVARIANTs on params count mismatch, doesn't validate types.
   template <typename MapTo, typename Container>
@@ -247,7 +247,7 @@ class Cluster final {
   /// `MapTo Convert(const Container::value_type&, storages::mysql::convert::To<MapTo>)`
   /// in namespace of `MapTo` or storages::mysql::convert.
   ///
-  /// @note Requires MariaDB 10.2+ as a server
+  /// @note Requires MariaDB 10.2.6+ as a server
   ///
   /// UINVARIANTs on params count mismatch, doesn't validate types.
   template <typename MapTo, typename Container>

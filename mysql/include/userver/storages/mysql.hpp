@@ -22,6 +22,8 @@
 /// components::MySQL. The uMySQL driver is asynchronous, and with it one can
 /// write queries like this:
 /// @snippet storages/tests/unittests/showcase_mysqltest.cpp  uMySQL usage sample - main page
+/// No macros, no meta-structs, no boilerplate, just your types used directly. <br>
+/// Interested? - read ahead.
 ///
 /// @section features Features
 /// - Connection pooling;
@@ -45,6 +47,7 @@
 /// - For C++ <-> MySQL mapping see @ref userver_mysql_types
 /// - For types extraction of statements results into C++ types see
 /// storages::mysql::StatementResultSet
+/// - For high-level design see @ref mysql_driver_design
 // clang-format on
 
 USERVER_NAMESPACE_BEGIN
