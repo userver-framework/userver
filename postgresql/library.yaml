@@ -10,14 +10,6 @@ libraries:
   - PostgreSQL
   - userver-core
 
-debian:
-    build_dependencies:
-      - libboost-regex-dev
-      - libpq-dev
-      - postgresql-server-dev-12
-      - libldap2-dev
-      - python3-yandex-pgmigrate
-
 configs:
     names:
       - POSTGRES_DEFAULT_COMMAND_CONTROL
