@@ -67,7 +67,6 @@ void select_many_small_columns(benchmark::State& state) {
       boost::pfr::for_each_field(row, [i](auto& field) { field = i; });
     }
 
-    const engine::Deadline deadline{};
     cluster->InsertMany(
         table.FormatWithTableName(
             "INSERT INTO {} VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"),
@@ -78,6 +77,12 @@ void select_many_small_columns(benchmark::State& state) {
     for (auto _ : state) {
       const auto rows =
           cluster->Select(ClusterHostType::kMaster, query).AsVector<Row>();
+
+      state.PauseTiming();
+      if (rows_to_insert != rows) {
+        state.SkipWithError("SELECT OR INSERT IS BROKEN");
+      }
+      state.ResumeTiming();
     }
   });
 }

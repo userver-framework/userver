@@ -17,11 +17,17 @@ using Decimal64Opt = std::optional<Decimal64<Prec, Policy>>;
 
 class DecimalWrapper {
  public:
+  // For input
+  template <int Prec, typename Policy>
+  DecimalWrapper(const Decimal64<Prec, Policy>& decimal);
+
+  // For output
   template <int Prec, typename Policy>
   DecimalWrapper(Decimal64<Prec, Policy>& decimal);
 
+  // For optional output
   template <int Prec, typename Policy>
-  DecimalWrapper(const Decimal64<Prec, Policy>& decimal);
+  DecimalWrapper(std::optional<Decimal64<Prec, Policy>>& opt_decimal);
 
   std::string GetValue() const;
 
@@ -40,6 +46,15 @@ class DecimalWrapper {
   }
 
   template <typename T>
+  static void RestoreOptionalCb(void* source,
+                                std::string_view db_representation) {
+    auto* optional = static_cast<std::optional<T>*>(source);
+    UASSERT(optional);
+
+    optional->emplace(db_representation);
+  }
+
+  template <typename T>
   static std::string GetValueCb(void* source) {
     auto* decimal = static_cast<T*>(source);
     UASSERT(decimal);
@@ -53,20 +68,28 @@ class DecimalWrapper {
 };
 
 template <int Prec, typename Policy>
-DecimalWrapper::DecimalWrapper(Decimal64<Prec, Policy>& decimal)
-    : source_{&decimal},
-      // this constructor take non-const reference, that means we are binding
-      // for output
-      restore_cb_{&RestoreCb<Decimal64<Prec, Policy>>} {}
-
-template <int Prec, typename Policy>
 DecimalWrapper::DecimalWrapper(const Decimal64<Prec, Policy>& decimal)
     // We only ever read from it via ToString()
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
     : source_{const_cast<Decimal64<Prec, Policy>*>(&decimal)},
-      // this constructor take const reference, that means we are binding
+      // this constructor takes const reference, that means we are binding
       // for input
-      get_value_cb_{&GetValueCb<Decimal64<Prec, Policy>>} {}
+      get_value_cb_{GetValueCb<Decimal64<Prec, Policy>>} {}
+
+template <int Prec, typename Policy>
+DecimalWrapper::DecimalWrapper(Decimal64<Prec, Policy>& decimal)
+    : source_{&decimal},
+      // this constructor takes non-const reference, that means we are binding
+      // for output
+      restore_cb_{RestoreCb<Decimal64<Prec, Policy>>} {}
+
+template <int Prec, typename Policy>
+DecimalWrapper::DecimalWrapper(
+    std::optional<Decimal64<Prec, Policy>>& opt_decimal)
+    : source_{&opt_decimal},
+      // this constructor takes non-const reference, that means we are binding
+      // for output optional
+      restore_cb_{RestoreOptionalCb<std::optional<Decimal64<Prec, Policy>>>} {}
 
 template <>
 class InputBinder<DecimalWrapper> final
@@ -147,13 +170,8 @@ class OutputBinder<Decimal64Opt<Prec, Policy>> final
   using OutputBinderBase<Decimal64Opt<Prec, Policy>>::OutputBinderBase;
 
   void Bind() final {
-    auto wrapper = [this]() -> std::optional<DecimalWrapper> {
-      if (this->field_.has_value()) {
-        return DecimalWrapper{*this->field_};
-      } else {
-        return std::nullopt;
-      }
-    }();
+    // This doesn't have to be optional, but it's easier to distinguish this way
+    std::optional<DecimalWrapper> wrapper{this->field_};
     OutputBinder<std::optional<DecimalWrapper>>{this->binds_, this->pos_,
                                                 wrapper}();
   }

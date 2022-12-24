@@ -9,7 +9,7 @@ namespace storages::mysql::tests {
 
 using Decimal = decimal64::Decimal<3>;
 
-UTEST(Decimal, Works) {
+UTEST(Decimal, FetchIntoRealFromReal) {
   TmpTable table{"Value DECIMAL(10, 3) NOT NULL"};
 
   struct Row final {
@@ -24,7 +24,7 @@ UTEST(Decimal, Works) {
   EXPECT_EQ(value_to_insert, db_row.decimal);
 }
 
-UTEST(Decimal, OptionalWorks) {
+UTEST(Decimal, FetchIntoOptionalFromNull) {
   TmpTable table{"Value DECIMAL(10, 3)"};
 
   struct Row final {
@@ -36,6 +36,18 @@ UTEST(Decimal, OptionalWorks) {
   const auto db_row =
       table.DefaultExecute("SELECT Value FROM {}").AsSingleRow<Row>();
   EXPECT_FALSE(db_row.decimal.has_value());
+}
+
+UTEST(Decimal, FetchIntoOptionalFromEngagedNullable) {
+  TmpTable table{"Value DECIMAL(10, 3)"};
+
+  const std::optional<Decimal> decimal_to_insert{1};
+  table.DefaultExecute("INSERT INTO {} VALUES(?)", decimal_to_insert);
+
+  const auto decimal_field = table.DefaultExecute("SELECT Value FROM {}")
+                                 .AsSingleField<std::optional<Decimal>>();
+  ASSERT_TRUE(decimal_field.has_value());
+  EXPECT_EQ(decimal_to_insert, decimal_field);
 }
 
 UTEST(Decimal, ThrowsOnFractionalOverflow) {

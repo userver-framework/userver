@@ -50,7 +50,7 @@
 /// struct MYSQL_BIND {
 ///     enum_field_types buffer_type;
 ///     void* buffer;
-///     std::size_t buffer_length;
+///     unsigned long buffer_length;
 /// };
 /// @endcode
 /// which is self-explanatory; <br>
@@ -111,7 +111,7 @@
 /// metaprogramming, and turns out there is a better way:
 /// `STMT_ATTR_CB_PARAM`.<br>
 /// This is an undocumented feature (https://jira.mariadb.org/browse/CONC-348)
-/// and is used in 2 repositories across all of the github (guess where,
+/// and is used in only 2 repositories across all of the github (guess where,
 /// `mariadb-connector-c++` and `mariadb-connector-python`), but it's there
 /// since Dec 3, 2018 therefore i consider it stable enough.<br> Basically it
 /// allows one to specify a callback which will be called before mariadbclient
@@ -122,17 +122,59 @@
 /// metaprogramming (to transform user type into tuple of `C` types), no
 /// intermediate allocations; a thing of beauty IMO.
 ///
+/// ## Results extraction
+/// The part responsible for that `.AsVector<T>` API. Uses the same machinery
+/// with `boost::pfr`, but binding is done differently: you see, for input
+/// params we already know all the things necessary - whether an `std::optional`
+/// contains a value, what is the length of `std::string` we are binding etc. -
+/// but for output we don't before the data is actually fetched; luckily
+/// `MYSQL_BIND` has us covered. <br>
 ///
+/// For output fields `MYSQL_BIND` resembles to this:
+/// @code{.cpp}
+/// struct MYSQL_BIND {
+///     enum_field_types buffer_type;
+///     void* buffer;
+///     unsigned long buffer_length;
+///     unsigned long* length;
+///     bool is_null_value;
+///     bool* is_null;
+/// };
+/// @endcode
+/// When initializing a bind for an output field one can set `length` to
+/// `&buffer_length` and `is_null` to `&is_null_value`, and then follow this
+/// process:
+/// 1. Try to fetch another row from the result (we buffer the whole result on a
+/// client in most cases, so that doesn't do any I/O).
+/// 2. If that returns `MYSQL_NO_DATA` we are done.
+/// 3. At this point mariadbclient updated the pointers we supplied into bind (
+/// but didn't pull any data into it just yet) so we know whether a field is a
+/// NULL or not and of what length its buffer is, so we fix the bind and the
+/// user type associated with it accordingly: call `.resize` for strings,
+/// `.emplace` for optionals, allocate intermediate buffers if needed (there are
+/// some type, say, `userver::formats::Json` for which we can't just .`resize`).
+/// 4. For every column we fetch the data into corresponding bind.
+/// 5. For every columns that needs an intermediate buffer we deserialize the
+/// user type from that buffer.
 ///
+/// User types are created and stored in container in user-facing layer, which
+/// implements `AsContainer<Container>` like this:
+/// 1. Create a Container::value_type{}.
+/// 2. Bind that newly created instance into output binds via `boost::pfr`.
+/// 3. Try to fetch the next row of data, and stop if there aren't any.
+/// 4. Emplace the fetched `Container::value_type` instance into result vector
+/// and go to step 1.
 ///
-///
-///
-///
-///
-///
-///
-///
-///
-///
-///
+/// There are some optimizations implemented:
+/// * we don't have to create a `T` on stack and then move it into vector, we
+/// can just `.emplace()` into vector and operate on its `.back()`, but that
+/// doesn't work in general (say, `unordered_set`)
+/// * we don't have to call `mysql_stmt_bind_result` for every new row - it
+/// copies all the binds supplied, which is 112 bytes per bind, and is a huge
+/// overhead, - we can just reuse the binds mariadbclient has copied after first
+/// call. There is no API to extract them (but a field is there and `C` structs
+/// aren't that private) so strictly speaking it might break one day.. but
+/// likely won't.
+/// * we don't have to fetch a column again if the initial row-wide fetch for
+/// that column succeeded
 ///

@@ -50,6 +50,8 @@ class InsertBinder final : public InsertBinderBase {
 
     UASSERT(!container_.empty());
 
+    BindColumn();
+
     SetBindCallback(this, &BindsRowCallback);
   }
 
@@ -63,6 +65,11 @@ class InsertBinder final : public InsertBinderBase {
 
   static void BindsRowCallback(void* user_data, void* binds_array,
                                std::size_t row_number);
+
+  void BindColumn() {
+    UpdateCurrentRowPtr();
+    boost::pfr::for_each_field(*current_row_ptr_, CurrentRowUpdater{*this});
+  }
 
   void UpdateCurrentRowPtr() {
     if constexpr (kIsMapped) {
@@ -78,8 +85,11 @@ class InsertBinder final : public InsertBinderBase {
     UASSERT(CheckRowNumber(row_number));
     UASSERT(current_row_it_ != container_.end());
 
-    UpdateCurrentRowPtr();
-    boost::pfr::for_each_field(*current_row_ptr_, CurrentRowUpdater{*this});
+    if (row_number == 0) {
+      return; // everything already done at construction
+    }
+
+    BindColumn();
   }
 
   bool CheckRowNumber(std::size_t row_number) {

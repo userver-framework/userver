@@ -112,7 +112,7 @@ UTEST(OutputBinding, AllSupportedDates) {
 
   const auto to_days = [](std::chrono::system_clock::time_point tp) {
     return std::chrono::time_point_cast<
-        std::chrono::duration<long long, std::ratio<86400> > >(tp);
+        std::chrono::duration<long long, std::ratio<86400>>>(tp);
   };
 
   EXPECT_EQ(ToMariaDBPrecision(now), row.datetime);

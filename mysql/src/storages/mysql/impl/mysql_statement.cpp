@@ -136,10 +136,16 @@ bool MySQLStatement::FetchResultRow(bindings::OutputBindings& binds,
     binds.BeforeFetch(i);
 
     auto& bind = binds_array[i];
-    int err = mysql_stmt_fetch_column(native_statement_.get(), &bind, i, 0);
-    if (err != 0) {
-      throw std::runtime_error{
-          GetNativeError("Failed to fetch a column from statement result row")};
+    // We don't have to fetch again if there was no truncation. Not refetching
+    // gives ~30% speedup in benchmarks
+    if (bind.error_value) {
+      UASSERT(fetch_err == MYSQL_DATA_TRUNCATED);
+
+      int err = mysql_stmt_fetch_column(native_statement_.get(), &bind, i, 0);
+      if (err != 0) {
+        throw std::runtime_error{GetNativeError(
+            "Failed to fetch a column from statement result row")};
+      }
     }
 
     binds.AfterFetch(i);
@@ -197,7 +203,6 @@ void MySQLStatement::Reset(engine::Deadline deadline) {
 
 void MySQLStatement::UpdateParamsBindings(io::ParamsBinderBase& params) {
   auto& binds = params.GetBinds();
-  // Remember, we don't have binds populated here in case of batch insert
   binds.ValidateAgainstStatement(*native_statement_);
 
   if (!binds.Empty()) {

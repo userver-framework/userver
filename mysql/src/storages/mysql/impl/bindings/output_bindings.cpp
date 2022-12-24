@@ -251,6 +251,7 @@ void OutputBindings::BindOptionalString(std::size_t pos,
   bind.buffer_length = 0;
   bind.length = &bind.length_value;
   bind.is_null = &bind.is_null_value;
+  bind.error = &bind.error_value;
 
   cb.value = &val;
   cb.before_fetch_cb = &OptionalStringBeforeFetch;
@@ -427,7 +428,13 @@ void OutputBindings::DecimalAfterFetch(void* value, MYSQL_BIND&,
 
 void OutputBindings::BindOptionalDecimal(std::size_t pos,
                                          O<io::DecimalWrapper>& val) {
-  UASSERT(!val.has_value());
+  // We assert that it HAS value, because it always has, it's optional itself to
+  // distinguish easier. What's WRAPPED is actually optional
+  UASSERT(val.has_value());
+
+  // !important: val is a reference to temporary, copy it
+  auto& buffer = intermediate_buffers_[pos];
+  buffer.decimal = *val;
 
   auto& bind = GetBind(pos);
   auto& cb = callbacks_[pos];
@@ -438,7 +445,7 @@ void OutputBindings::BindOptionalDecimal(std::size_t pos,
   bind.length = &bind.length_value;
   bind.is_null = &bind.is_null_value;
 
-  cb.value = &val;
+  cb.value = &buffer.decimal;
   cb.before_fetch_cb = &OptionalDecimalBeforeFetch;
   cb.after_fetch_cb = &OptionalDecimalAfterFetch;
 }
@@ -455,12 +462,10 @@ void OutputBindings::OptionalDecimalBeforeFetch(
 
 void OutputBindings::OptionalDecimalAfterFetch(
     void* value, MYSQL_BIND& bind, FieldIntermediateBuffer& buffer) {
-  auto* optional = static_cast<std::optional<io::DecimalWrapper>*>(value);
+  auto* optional = static_cast<io::DecimalWrapper*>(value);
   UASSERT(optional);
 
   if (!bind.is_null_value) {
-    // Constructor is private and friended to us, so emplace() doesn't compile
-    optional->emplace(io::DecimalWrapper{});
     DecimalAfterFetch(&*optional, bind, buffer);
   }
 }
@@ -490,7 +495,10 @@ void OutputBindings::ValidateAgainstStatement(MYSQL_STMT& statement) {
 
 MYSQL_BIND& OutputBindings::GetBind(std::size_t pos) {
   UASSERT(pos < Size());
-  return binds_ptr_[pos];
+  auto& bind = binds_ptr_[pos];
+  bind.error = &bind.error_value;
+
+  return bind;
 }
 
 void OutputBindings::ValidateBind(std::size_t pos, const MYSQL_BIND& bind,

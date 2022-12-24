@@ -47,7 +47,7 @@
 /// - For C++ <-> MySQL mapping see @ref userver_mysql_types
 /// - For types extraction of statements results into C++ types see
 /// storages::mysql::StatementResultSet
-/// - For high-level design see @ref mysql_driver_design
+/// - For high-level design and implementation details see @ref mysql_driver_design
 // clang-format on
 
 USERVER_NAMESPACE_BEGIN
@@ -60,13 +60,5 @@ namespace storages::mysql {}
 /// @brief Namespace containing helper classes and functions for on-the-flight
 /// remapping DbType<->UserType
 namespace storages::mysql::convert {}
-
-/// @brief Implementation details, internal, don't use directly.
-namespace storages::mysql::impl {}
-
-/// Namespace containing classes and functions for defining datatype
-/// input-output and specifying mapping between C++ and MySQL types. Internal,
-/// don't use directly.
-namespace storages::mysql::impl::io {}
 
 USERVER_NAMESPACE_END
