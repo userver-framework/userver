@@ -227,6 +227,7 @@ bool MySQLConnection::DoInitSocket(
   const auto fd = mysql_get_socket(&mysql_);
   if (fd == -1) {
     LOG_WARNING() << GetNativeError("Failed to connect");
+    mysql_close(&mysql_);
     return false;
   }
 
