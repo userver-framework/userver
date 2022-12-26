@@ -5,6 +5,7 @@
 #include <storages/mysql/impl/mariadb_include.hpp>
 
 #include <storages/mysql/impl/mysql_connection.hpp>
+#include <storages/mysql/impl/mysql_native_interface.hpp>
 #include <userver/logging/log.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -19,13 +20,8 @@ class NativeResultDeleter final {
 
   void operator()(MYSQL_RES* native_result) {
     try {
-      connection_.GetSocket().RunToCompletion(
-          [native_result] { return mysql_free_result_start(native_result); },
-          [native_result](int mysql_events) {
-            return mysql_free_result_cont(native_result, mysql_events);
-          },
-          {} /* TODO : deadline */
-      );
+      MySQLNativeInterface{connection_.GetSocket(), {} /* TODO : deadline */}
+          .QueryFreeResult(native_result);
     } catch (const std::exception& ex) {
       LOG_WARNING() << "Failed to correctly dispose a query result: "
                     << ex.what();
@@ -47,17 +43,9 @@ MySQLPlainQuery::~MySQLPlainQuery() = default;
 MySQLPlainQuery::MySQLPlainQuery(MySQLPlainQuery&& other) noexcept = default;
 
 void MySQLPlainQuery::Execute(engine::Deadline deadline) {
-  int err = 0;
-  MYSQL* native_handler = &connection_->GetNativeHandler();
-  connection_->GetSocket().RunToCompletion(
-      [this, &err, native_handler] {
-        return mysql_real_query_start(&err, native_handler, query_.data(),
-                                      query_.length());
-      },
-      [&err, native_handler](int mysql_events) {
-        return mysql_real_query_cont(&err, native_handler, mysql_events);
-      },
-      deadline);
+  int err =
+      MySQLNativeInterface{connection_->GetSocket(), deadline}.QueryExecute(
+          &connection_->GetNativeHandler(), query_.data(), query_.length());
 
   if (err != 0) {
     throw std::runtime_error{
@@ -70,22 +58,14 @@ MySQLResult MySQLPlainQuery::FetchResult(engine::Deadline deadline) {
       mysql_use_result(&connection_->GetNativeHandler()),
       NativeResultDeleter{*connection_}};
   if (!native_result) {
-    // TODO : think about it
+    // Well, query doesn't return any result set
     return {};
-    // throw std::runtime_error{"Failed to fetch a query result"};
   }
 
   MySQLResult result{};
-  MYSQL_ROW row{nullptr};
   while (true) {
-    connection_->GetSocket().RunToCompletion(
-        [&row, &native_result] {
-          return mysql_fetch_row_start(&row, native_result.get());
-        },
-        [&row, &native_result](int mysql_events) {
-          return mysql_fetch_row_cont(&row, native_result.get(), mysql_events);
-        },
-        deadline);
+    MYSQL_ROW row = MySQLNativeInterface{connection_->GetSocket(), deadline}
+                        .QueryResultFetchRow(native_result.get());
     if (!row) {
       break;
     }

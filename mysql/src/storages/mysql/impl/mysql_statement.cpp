@@ -11,6 +11,7 @@
 #include <storages/mysql/impl/bindings/input_bindings.hpp>
 #include <storages/mysql/impl/bindings/output_bindings.hpp>
 #include <storages/mysql/impl/mysql_connection.hpp>
+#include <storages/mysql/impl/mysql_native_interface.hpp>
 #include <userver/storages/mysql/impl/io/extractor.hpp>
 #include <userver/storages/mysql/impl/io/params_binder_base.hpp>
 
@@ -24,13 +25,8 @@ MySQLStatement::NativeStatementDeleter::NativeStatementDeleter(
 
 void MySQLStatement::NativeStatementDeleter::operator()(MYSQL_STMT* statement) {
   try {
-    my_bool err{};
-    connection_->GetSocket().RunToCompletion(
-        [&err, statement] { return mysql_stmt_close_start(&err, statement); },
-        [&err, statement](int mysql_events) {
-          return mysql_stmt_close_cont(&err, statement, mysql_events);
-        },
-        {} /* TODO : deadline */);
+    MySQLNativeInterface{connection_->GetSocket(), {} /* TODO : deadline */}
+        .StatementClose(statement);
   } catch (const std::exception& ex) {
     LOG_WARNING() << "Failed to correctly dispose a prepared statement, it "
                      "might get leaked server-side. Error: "
@@ -54,16 +50,9 @@ MySQLStatementFetcher MySQLStatement::Execute(engine::Deadline deadline,
   tracing::ScopeTime execute{"execute"};
   UpdateParamsBindings(params);
 
-  int err = 0;
-  connection_->GetSocket().RunToCompletion(
-      [this, &err] {
-        return mysql_stmt_execute_start(&err, native_statement_.get());
-      },
-      [this, &err](int mysql_events) {
-        return mysql_stmt_execute_cont(&err, native_statement_.get(),
-                                       mysql_events);
-      },
-      deadline);
+  int err =
+      MySQLNativeInterface{connection_->GetSocket(), deadline}.StatementExecute(
+          native_statement_.get());
 
   if (err != 0) {
     throw std::runtime_error{
@@ -74,16 +63,8 @@ MySQLStatementFetcher MySQLStatement::Execute(engine::Deadline deadline,
 }
 
 void MySQLStatement::StoreResult(engine::Deadline deadline) {
-  int err = 0;
-  connection_->GetSocket().RunToCompletion(
-      [this, &err] {
-        return mysql_stmt_store_result_start(&err, native_statement_.get());
-      },
-      [this, &err](int mysql_events) {
-        return mysql_stmt_store_result_cont(&err, native_statement_.get(),
-                                            mysql_events);
-      },
-      deadline);
+  int err = MySQLNativeInterface{connection_->GetSocket(), deadline}
+                .StatementStoreResult(native_statement_.get());
 
   if (err != 0) {
     if (err == MYSQL_NO_DATA) {
@@ -106,16 +87,9 @@ bool MySQLStatement::FetchResultRow(bindings::OutputBindings& binds,
     }
   }
 
-  int fetch_err = 0;
-  connection_->GetSocket().RunToCompletion(
-      [this, &fetch_err] {
-        return mysql_stmt_fetch_start(&fetch_err, native_statement_.get());
-      },
-      [this, &fetch_err](int mysql_events) {
-        return mysql_stmt_fetch_cont(&fetch_err, native_statement_.get(),
-                                     mysql_events);
-      },
-      deadline);
+  int fetch_err =
+      MySQLNativeInterface{connection_->GetSocket(), deadline}.StatementFetch(
+          native_statement_.get());
 
   if (fetch_err != 0) {
     if (fetch_err == MYSQL_NO_DATA) {
@@ -155,16 +129,8 @@ bool MySQLStatement::FetchResultRow(bindings::OutputBindings& binds,
 }
 
 void MySQLStatement::Reset(engine::Deadline deadline) {
-  my_bool err{};
-  connection_->GetSocket().RunToCompletion(
-      [this, &err] {
-        return mysql_stmt_free_result_start(&err, native_statement_.get());
-      },
-      [this, &err](int mysql_events) {
-        return mysql_stmt_free_result_cont(&err, native_statement_.get(),
-                                           mysql_events);
-      },
-      deadline);
+  my_bool err = MySQLNativeInterface{connection_->GetSocket(), deadline}
+                    .StatementFreeResult(native_statement_.get());
 
   if (err != 0) {
     throw std::runtime_error{
@@ -174,19 +140,6 @@ void MySQLStatement::Reset(engine::Deadline deadline) {
   // TODO : we probably need to reset the statement when cursor processing
   // fails. Apart from that - not sure if that's ever needed.
   // Actually mysql_stmt_free_result closes any open cursors, idk.
-  /*connection_->GetSocket().RunToCompletion(
-      [this, &err] {
-        return mysql_stmt_reset_start(&err, native_statement_.get());
-      },
-      [this, &err](int mysql_events) {
-        return mysql_stmt_reset_cont(&err, native_statement_.get(),
-                                     mysql_events);
-      },
-      deadline);
-  if (err != 0) {
-    throw std::runtime_error{
-        GetNativeError("Failed to reset a prepared statement")};
-  }*/
 
   if (batch_size_.has_value()) {
     // MySQL 8.0.31 seems to be buggy:
@@ -286,17 +239,10 @@ MySQLStatement::NativeStatementPtr MySQLStatement::CreateStatement(
 
 void MySQLStatement::PrepareStatement(NativeStatementPtr& native_statement,
                                       engine::Deadline deadline) {
-  int err = 0;
-  connection_->GetSocket().RunToCompletion(
-      [this, &err, &native_statement] {
-        return mysql_stmt_prepare_start(&err, native_statement.get(),
-                                        statement_.data(), statement_.length());
-      },
-      [&err, &native_statement](int mysql_events) {
-        return mysql_stmt_prepare_cont(&err, native_statement.get(),
-                                       mysql_events);
-      },
-      deadline);
+  int err =
+      MySQLNativeInterface{connection_->GetSocket(), deadline}.StatementPrepare(
+          native_statement.get(), statement_.data(), statement_.length());
+
   if (err != 0) {
     throw std::runtime_error{
         GetNativeError("Failed to initialize a prepared statement")};

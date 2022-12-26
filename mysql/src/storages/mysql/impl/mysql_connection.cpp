@@ -10,6 +10,7 @@
 #include <userver/utils/assert.hpp>
 
 #include <storages/mysql/impl/metadata/mysql_server_info.hpp>
+#include <storages/mysql/impl/mysql_native_interface.hpp>
 #include <storages/mysql/impl/mysql_plain_query.hpp>
 #include <storages/mysql/settings/settings.hpp>
 #include <userver/storages/mysql/impl/io/extractor.hpp>
@@ -112,13 +113,7 @@ void MySQLConnection::ExecuteInsert(const std::string& insert_statement,
 void MySQLConnection::Ping(engine::Deadline deadline) {
   auto broken_guard = GetBrokenGuard();
 
-  int err = 0;
-  socket_.RunToCompletion(
-      [this, &err] { return mysql_ping_start(&err, &mysql_); },
-      [this, &err](int mysql_events) {
-        return mysql_ping_cont(&err, &mysql_, mysql_events);
-      },
-      deadline);
+  int err = MySQLNativeInterface{socket_, deadline}.Ping(&mysql_);
 
   if (err != 0) {
     throw std::runtime_error{GetNativeError("Failed to ping the server")};
@@ -128,13 +123,7 @@ void MySQLConnection::Ping(engine::Deadline deadline) {
 void MySQLConnection::Commit(engine::Deadline deadline) {
   auto broken_guard = GetBrokenGuard();
 
-  my_bool err = 0;
-  socket_.RunToCompletion(
-      [this, &err] { return mysql_commit_start(&err, &mysql_); },
-      [this, &err](int mysql_events) {
-        return mysql_commit_cont(&err, &mysql_, mysql_events);
-      },
-      deadline);
+  my_bool err = MySQLNativeInterface{socket_, deadline}.Commit(&mysql_);
 
   if (err != 0) {
     throw std::runtime_error{GetNativeError("Failed to commit a transaction")};
@@ -144,13 +133,7 @@ void MySQLConnection::Commit(engine::Deadline deadline) {
 void MySQLConnection::Rollback(engine::Deadline deadline) {
   auto broken_guard = GetBrokenGuard();
 
-  my_bool err = 0;
-  socket_.RunToCompletion(
-      [this, &err] { return mysql_rollback_start(&err, &mysql_); },
-      [this, &err](int mysql_events) {
-        return mysql_rollback_cont(&err, &mysql_, mysql_events);
-      },
-      deadline);
+  my_bool err = MySQLNativeInterface{socket_, deadline}.Rollback(&mysql_);
 
   if (err != 0) {
     throw std::runtime_error{
@@ -238,6 +221,7 @@ bool MySQLConnection::DoInitSocket(
   const auto fd = mysql_get_socket(&mysql_);
   if (fd == -1) {
     LOG_WARNING() << GetNativeError("Failed to connect");
+    // Socket is invalid, so we can just call blocking version
     mysql_close(&mysql_);
     return false;
   }
@@ -246,19 +230,20 @@ bool MySQLConnection::DoInitSocket(
   socket_.SetEvents(mysql_events);
 
   try {
-    while (socket_.ShouldWait()) {
-      mysql_events = socket_.Wait(deadline);
-      socket_.SetEvents(
-          mysql_real_connect_cont(&connect_ret_, &mysql_, mysql_events));
-    }
-
-    if (!connect_ret_) {
-      LOG_WARNING() << fmt::format("Failed to connect to {}:{}", ip, port);
-      return false;
-    }
+    socket_.RunToCompletion([mysql_events] { return mysql_events; },
+                            [this](int mysql_events) {
+                              return mysql_real_connect_cont(
+                                  &connect_ret_, &mysql_, mysql_events);
+                            },
+                            deadline);
   } catch (const std::exception& ex) {
     // TODO : is it safe to call close here?
     Close(deadline);
+    return false;
+  }
+
+  if (!connect_ret_) {
+    LOG_WARNING() << fmt::format("Failed to connect to {}:{}", ip, port);
     return false;
   }
 
@@ -268,26 +253,7 @@ bool MySQLConnection::DoInitSocket(
 void MySQLConnection::Close(engine::Deadline deadline) noexcept {
   UASSERT(socket_.IsValid());
 
-  try {
-    socket_.RunToCompletion([this] { return mysql_close_start(&mysql_); },
-                            [this](int mysql_event) {
-                              return mysql_close_cont(&mysql_, mysql_event);
-                            },
-                            deadline);
-  } catch (const std::exception& ex) {
-    // Us being here means we timed out on sending COM_QUIT.
-    // We must drive mysql_close_cont to completion, otherwise connection gets
-    // leaked, but mysql_close_cont won't go any further until socket is
-    // unblocked, so we `shutdown` the socket.
-    // https://jira.mariadb.org/browse/CONC-621
-    mariadb_cancel(&mysql_);
-
-    mysql_close_cont(&mysql_, 0);
-
-    LOG_WARNING() << "Failed to correctly close a connection, forcibly "
-                     "shutting it down. Reason: "
-                  << ex.what();
-  }
+  MySQLNativeInterface{socket_, deadline}.Close(&mysql_);
 }
 
 MySQLStatement& MySQLConnection::PrepareStatement(

@@ -4,7 +4,6 @@
 
 #include <engine/impl/wait_list_light.hpp>
 #include <engine/task/task_context.hpp>
-#include <userver/engine/io/socket.hpp>
 #include <userver/engine/task/task.hpp>
 #include <userver/utils/assert.hpp>
 
@@ -104,19 +103,6 @@ void MySQLSocket::SetEvents(int mysql_events) {
 void MySQLSocket::SetFd(int fd) { fd_ = fd; }
 
 bool MySQLSocket::IsValid() const { return fd_ != -1; }
-
-void MySQLSocket::DebugFillSocketWriteBuffer() {
-  std::string we(10'000'000, 'a');
-
-  engine::io::Socket sock(fd_);
-  try {
-    [[maybe_unused]] const auto bytes_sent = sock.SendAll(
-        we.data(), we.size(),
-        engine::Deadline::FromDuration(std::chrono::milliseconds{0}));
-  } catch (const std::exception& e) {
-  }
-  fd_ = std::move(sock).Release();
-}
 
 void MySQLSocket::WatcherCallback(struct ev_loop*, ev_io* watcher,
                                   int) noexcept {

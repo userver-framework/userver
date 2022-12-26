@@ -24,9 +24,6 @@ class MySQLSocket final {
 
   bool IsValid() const;
 
-  // TODO : drop
-  void DebugFillSocketWriteBuffer();
-
  private:
   static void WatcherCallback(struct ev_loop*, ev_io* watcher, int) noexcept;
 
