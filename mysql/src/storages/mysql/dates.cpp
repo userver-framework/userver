@@ -36,8 +36,8 @@ DateTime::DateTime(Date date, std::uint32_t hour, std::uint32_t minute,
 
 DateTime::DateTime(std::uint32_t year, std::uint32_t month, std::uint32_t day,
                    std::uint32_t hour, std::uint32_t minute,
-                   std::uint32_t second, std::uint64_t subsecond)
-    : DateTime(Date{year, month, day}, hour, minute, second, subsecond) {}
+                   std::uint32_t second, std::uint64_t microsecond)
+    : DateTime(Date{year, month, day}, hour, minute, second, microsecond) {}
 
 DateTime::DateTime(std::chrono::system_clock::time_point tp)
     : DateTime{impl::TimeUtils::DateTimeFromChrono(tp)} {}

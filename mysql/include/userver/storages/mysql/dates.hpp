@@ -48,12 +48,12 @@ class DateTime final {
   DateTime();
 
   /// @brief constructs a DATETIME from provided DATE, hour, minute, second and
-  /// subsecond.
+  /// microsecond.
   DateTime(Date date, std::uint32_t hour, std::uint32_t minute,
-           std::uint32_t second, std::uint64_t subsecond);
+           std::uint32_t second, std::uint64_t microsecond);
 
   /// @brief constructs a DATETIME from provided year, month, day, hour, minute,
-  /// second and subsecond.
+  /// second and microsecond.
   DateTime(std::uint32_t year, std::uint32_t month, std::uint32_t day,
            std::uint32_t hour, std::uint32_t minute, std::uint32_t second,
            std::uint64_t microsecond);
@@ -77,7 +77,7 @@ class DateTime final {
   /// @brief Returns the second part of the datetime.
   std::uint32_t GetSecond() const noexcept;
 
-  /// @brief Returns the subsecond part of the datetime.
+  /// @brief Returns the microsecond part of the datetime.
   std::uint64_t GetMicrosecond() const noexcept;
 
  private:
