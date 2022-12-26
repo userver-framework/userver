@@ -74,6 +74,10 @@ class OutputBindings final : public BindsStorageInterface<false> {
   void Bind(std::size_t pos, std::chrono::system_clock::time_point& val) final;
   void Bind(std::size_t pos,
             O<std::chrono::system_clock::time_point>& val) final;
+  void Bind(std::size_t pos, Date& val) final;
+  void Bind(std::size_t pos, O<Date>& val) final;
+  void Bind(std::size_t pos, DateTime& val) final;
+  void Bind(std::size_t pos, O<DateTime>& val) final;
 
   void ValidateAgainstStatement(MYSQL_STMT& statement) final;
 
@@ -123,17 +127,34 @@ class OutputBindings final : public BindsStorageInterface<false> {
   // compatible with C++ types, so we have to store DB date in some
   // storage first, call mysql_stmt_fetch_column and fill the C++ type after
   // that
-  void BindDate(std::size_t pos, std::chrono::system_clock::time_point& val);
-  static void DateAfterFetch(void* value, MYSQL_BIND& bind,
-                             FieldIntermediateBuffer& buffer);
+  void BindTimePoint(std::size_t pos,
+                     std::chrono::system_clock::time_point& val);
+  static void TimepointAfterFetch(void* value, MYSQL_BIND& bind,
+                                  FieldIntermediateBuffer& buffer);
 
   // The special problem of binding optional dates: same as for dates, but have
   // to emplace the optional first if a value is present
-  void BindOptionalDate(
+  void BindOptionalTimePoint(
       std::size_t pos,
       std::optional<std::chrono::system_clock::time_point>& val);
+  static void OptionalTimePointAfterFetch(void* value, MYSQL_BIND& bind,
+                                          FieldIntermediateBuffer& buffer);
+
+  // Date and DateTime are basically the same as TimePoint, they are just easier
+  // to restore (they map 1 to 1 to MYSQL_TIME)
+  void BindDate(std::size_t pos, Date& val);
+  static void DateAfterFetch(void* value, MYSQL_BIND& bind,
+                             FieldIntermediateBuffer& buffer);
+  void BindOptionalDate(std::size_t pos, std::optional<Date>& val);
   static void OptionalDateAfterFetch(void* value, MYSQL_BIND& bind,
                                      FieldIntermediateBuffer& buffer);
+
+  void BindDateTime(std::size_t pos, DateTime& val);
+  static void DateTimeAfterFetch(void* value, MYSQL_BIND& bind,
+                                 FieldIntermediateBuffer& buffer);
+  void BindOptionalDateTime(std::size_t pos, std::optional<DateTime>& val);
+  static void OptionalDateTimeAfterFetch(void* value, MYSQL_BIND& bind,
+                                         FieldIntermediateBuffer& buffer);
 
   // The special problem of binding jsons: basically as with strings, but we
   // can't fetch into json directly, so we use a temporary buffer which we alloc
@@ -178,8 +199,9 @@ class OutputBindings final : public BindsStorageInterface<false> {
   static void ValidateBind(std::size_t pos, const MYSQL_BIND& bind,
                            const MYSQL_FIELD& field);
 
+  // We use this to perform some kind of type erasure: every instance knows how
+  // to restore its type via typed callbacks
   struct BindCallbacks final {
-    // TODO : std::function
     using TypedCallback = void (*)(void* value, MYSQL_BIND& bind,
                                    FieldIntermediateBuffer&);
 

@@ -43,6 +43,8 @@ DEFINE_BINDER(std::string_view)
 DEFINE_BINDER(formats::json::Value)
 // date types
 DEFINE_BINDER(std::chrono::system_clock::time_point)
+DEFINE_BINDER(storages::mysql::Date)
+DEFINE_BINDER(storages::mysql::DateTime)
 
 #undef DEFINE_INPUT_BINDER
 #undef DEFINE_OUTPUT_BINDER

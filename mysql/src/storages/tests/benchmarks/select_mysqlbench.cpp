@@ -72,7 +72,7 @@ void select_many_small_columns(benchmark::State& state) {
             "INSERT INTO {} VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"),
         rows_to_insert);
 
-    const auto query = table.FormatWithTableName(
+    const storages::mysql::Query query = table.FormatWithTableName(
         "SELECT a, b, c, d, e, f, g, h, j, k FROM {}");
     for (auto _ : state) {
       const auto rows =
@@ -86,7 +86,7 @@ void select_many_small_columns(benchmark::State& state) {
     }
   });
 }
-BENCHMARK(select_many_small_columns)->Range(1 << 10, 1 << 16);
+BENCHMARK(select_many_small_columns)->Range(1000, 100'000);
 
 }  // namespace storages::mysql::benches
 

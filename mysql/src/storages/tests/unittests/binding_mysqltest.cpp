@@ -1,21 +1,41 @@
 #include <userver/utest/utest.hpp>
 #include "../utils_mysqltest.hpp"
 
+#include <sys/resource.h>
+
+#include <thread>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::mysql::tests {
 
-UTEST_DEATH(OutputBindingDeathTest, NullableToT) {
-  TmpTable table{"Id INT"};
-  table.DefaultExecute("INSERT INTO {}(Id) VALUES(1)");
+namespace {
 
-  struct Row final {
-    std::int32_t id;
+bool DatesEqual(const Date& lhs, const Date& rhs) {
+  return lhs.GetYear() == rhs.GetYear() && lhs.GetMonth() == rhs.GetMonth() &&
+         lhs.GetDay() == rhs.GetDay();
+}
+
+bool DateTimesEqual(const DateTime& lhs, const DateTime& rhs) {
+  return DatesEqual(lhs.GetDate(), rhs.GetDate()) &&
+         lhs.GetHour() == rhs.GetHour() && lhs.GetMinute() == rhs.GetMinute() &&
+         lhs.GetSecond() == rhs.GetSecond() &&
+         lhs.GetMicrosecond() == rhs.GetMicrosecond();
+}
+
+}  // namespace
+
+UTEST_DEATH(OutputBindingDeathTest, NullableToT) {
+  const auto body = [] {
+    TmpTable table{"Id INT"};
+
+    struct Row final {
+      std::int32_t id;
+    };
+
+    table.DefaultExecute("SELECT Id FROM {}").AsVector<Row>();
   };
-  // TODO : can we do it without insert? rn Validate isn't called because there
-  // are no binds done
-  EXPECT_UINVARIANT_FAILURE(
-      table.DefaultExecute("SELECT Id FROM {}").AsVector<Row>());
+  EXPECT_UINVARIANT_FAILURE(body());
 }
 
 UTEST(OutputBinding, NullAndNotNullCombinations) {
@@ -37,17 +57,19 @@ UTEST(OutputBinding, NullAndNotNullCombinations) {
 }
 
 UTEST_DEATH(OutputBindingDeathTest, TypeMismatch) {
-  ClusterWrapper cluster{};
+  const auto body = [] {
+    ClusterWrapper cluster{};
 
-  TmpTable table{cluster, "Value TEXT"};
-  table.DefaultExecute("INSERT INTO {}(Value) VALUES(?)", "some string");
+    TmpTable table{cluster, "Value TEXT"};
 
-  struct Row final {
-    std::chrono::system_clock::time_point tp{};
+    struct Row final {
+      std::chrono::system_clock::time_point tp{};
+    };
+
+    table.DefaultExecute("SELECT Value FROM {}").AsOptionalSingleRow<Row>();
   };
 
-  EXPECT_UINVARIANT_FAILURE(
-      table.DefaultExecute("SELECT Value FROM {}").AsSingleRow<Row>());
+  EXPECT_UINVARIANT_FAILURE(body());
 }
 
 UTEST_DEATH(OutputBindingDeathTest, SignMismatch) {
@@ -82,43 +104,40 @@ UTEST_DEATH(OutputBindingDeathTest, FieldsCountMismatch) {
 }
 
 UTEST_DEATH(OutputBindingDeathTest, TypeMismatchWithEmptyResult) {
-  TmpTable table{"Value TEXT NOT NULL"};
+  const auto body = [] {
+    TmpTable table{"Value TEXT NOT NULL"};
+    table.DefaultExecute("SELECT Value FROM {}").AsOptionalSingleField<int>();
+  };
 
-  EXPECT_UINVARIANT_FAILURE(table.DefaultExecute("SELECT Value FROM {}")
-                                .AsOptionalSingleField<int>());
+  EXPECT_UINVARIANT_FAILURE(body());
 }
 
 UTEST(OutputBinding, AllSupportedDates) {
   ClusterWrapper cluster{};
   TmpTable table{cluster,
                  "DatetimeT DATETIME(6) NOT NULL, DateT DATE NOT NULL, "
-                 "TimestampT TIMESTAMP(6) NOT NULL, TimeT TIME NOT NULL"};
+                 "TimestampT TIMESTAMP(6) NOT NULL"};
 
   struct AllSupportedDates final {
-    std::chrono::system_clock::time_point datetime;
-    std::chrono::system_clock::time_point date;
+    storages::mysql::DateTime datetime;
+    storages::mysql::Date date;
     std::chrono::system_clock::time_point timestamp;
-    std::chrono::system_clock::time_point time;
   };
   const auto now = std::chrono::system_clock::now();
 
-  cluster->InsertOne(
-      table.FormatWithTableName("INSERT INTO {} VALUES(?, ?, ?, ?)"),
-      AllSupportedDates{now, now, now, now});
+  const AllSupportedDates row_to_insert{DateTime{now}, Date{now}, now};
 
-  const auto row =
-      table.DefaultExecute("SELECT DatetimeT, DateT, TimestampT, TimeT FROM {}")
+  cluster->InsertOne(
+      table.FormatWithTableName("INSERT INTO {} VALUES(?, ?, ?)"),
+      row_to_insert);
+
+  const auto db_row =
+      table.DefaultExecute("SELECT DatetimeT, DateT, TimestampT FROM {}")
           .AsSingleRow<AllSupportedDates>();
 
-  const auto to_days = [](std::chrono::system_clock::time_point tp) {
-    return std::chrono::time_point_cast<
-        std::chrono::duration<long long, std::ratio<86400>>>(tp);
-  };
-
-  EXPECT_EQ(ToMariaDBPrecision(now), row.datetime);
-  EXPECT_EQ(to_days(now), to_days(row.date));
-  // TODO : seems like we ceil in db and floor here
-  EXPECT_EQ(ToMariaDBPrecision(now), row.timestamp);
+  EXPECT_TRUE(DateTimesEqual(row_to_insert.datetime, db_row.datetime));
+  EXPECT_TRUE(DatesEqual(row_to_insert.date, db_row.date));
+  EXPECT_EQ(ToMariaDBPrecision(row_to_insert.timestamp), db_row.timestamp);
 }
 
 UTEST(OutputBinding, AllSupportedStrings) {

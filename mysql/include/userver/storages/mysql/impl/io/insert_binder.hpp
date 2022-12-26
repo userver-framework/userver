@@ -86,7 +86,7 @@ class InsertBinder final : public InsertBinderBase {
     UASSERT(current_row_it_ != container_.end());
 
     if (row_number == 0) {
-      return; // everything already done at construction
+      return;  // everything already done at construction
     }
 
     BindColumn();

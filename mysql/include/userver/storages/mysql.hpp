@@ -47,7 +47,7 @@
 /// - For C++ <-> MySQL mapping see @ref userver_mysql_types
 /// - For types extraction of statements results into C++ types see
 /// storages::mysql::StatementResultSet
-/// - For high-level design and implementation details see @ref mysql_driver_design
+/// - For high-level design and implementation details see @ref userver_mysql_design
 // clang-format on
 
 USERVER_NAMESPACE_BEGIN

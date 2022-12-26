@@ -72,6 +72,11 @@ class InputBindings final : public BindsStorageInterface<true> {
   void Bind(std::size_t pos,
             C<O<std::chrono::system_clock::time_point>>& val) final;
 
+  void Bind(std::size_t pos, C<Date>& val) final;
+  void Bind(std::size_t pos, C<O<Date>>& val) final;
+  void Bind(std::size_t pos, C<DateTime>& val) final;
+  void Bind(std::size_t pos, C<O<DateTime>>& val) final;
+
   void ValidateAgainstStatement(MYSQL_STMT& statement) final;
 
  private:
@@ -86,7 +91,10 @@ class InputBindings final : public BindsStorageInterface<true> {
   void BindValue(std::size_t pos, enum_field_types type, CT& val,
                  std::size_t size, bool is_unsigned = false);
 
-  void BindDate(std::size_t pos, C<std::chrono::system_clock::time_point>& val);
+  void BindTimePoint(std::size_t pos,
+                     C<std::chrono::system_clock::time_point>& val);
+  void BindDate(std::size_t pos, C<Date>& val);
+  void BindDateTime(std::size_t pos, C<DateTime>& val);
 
   void BindStringView(std::size_t pos, C<std::string_view>& val);
 

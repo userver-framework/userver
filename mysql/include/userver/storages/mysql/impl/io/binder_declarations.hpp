@@ -5,6 +5,7 @@
 #include <string_view>
 
 #include <userver/formats/json_fwd.hpp>
+#include <userver/storages/mysql/dates.hpp>
 #include <userver/storages/mysql/impl/io/base_binder.hpp>
 #include <userver/storages/mysql/impl/io/decimal_binder.hpp>
 
@@ -76,6 +77,8 @@ DECLARE_BINDER(std::string_view)  // why not for input, disabled for output
 DECLARE_BINDER(formats::json::Value)
 // date types
 DECLARE_BINDER(std::chrono::system_clock::time_point)
+DECLARE_BINDER(storages::mysql::Date)
+DECLARE_BINDER(storages::mysql::DateTime)
 // TODO : duration
 
 #undef DECLARE_INPUT_BINDER

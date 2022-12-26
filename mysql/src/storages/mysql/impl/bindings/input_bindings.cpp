@@ -146,10 +146,21 @@ void InputBindings::Bind(std::size_t pos, C<O<formats::json::Value>>& val) {
 
 void InputBindings::Bind(std::size_t pos,
                          C<std::chrono::system_clock::time_point>& val) {
-  BindDate(pos, val);
+  BindTimePoint(pos, val);
 }
 void InputBindings::Bind(std::size_t pos,
                          C<O<std::chrono::system_clock::time_point>>& val) {
+  BindOptional(pos, val);
+}
+
+void InputBindings::Bind(std::size_t pos, C<Date>& val) { BindDate(pos, val); }
+void InputBindings::Bind(std::size_t pos, C<O<Date>>& val) {
+  BindOptional(pos, val);
+}
+void InputBindings::Bind(std::size_t pos, C<DateTime>& val) {
+  BindDateTime(pos, val);
+}
+void InputBindings::Bind(std::size_t pos, C<O<DateTime>>& val) {
   BindOptional(pos, val);
 }
 
@@ -160,12 +171,43 @@ void InputBindings::BindNull(std::size_t pos) {
   bind.buffer_type = MYSQL_TYPE_NULL;
 }
 
-void InputBindings::BindDate(std::size_t pos,
-                             C<std::chrono::system_clock::time_point>& val) {
+void InputBindings::BindTimePoint(
+    std::size_t pos, C<std::chrono::system_clock::time_point>& val) {
   UASSERT(pos < Size());
 
   auto& native_time = intermediate_buffers_[pos].time;
   native_time = ToNativeTime(val);
+  native_time.time_type = MYSQL_TIMESTAMP_DATETIME;
+
+  BindValue(pos, GetNativeType(val), native_time, sizeof(MYSQL_TIME));
+}
+
+void InputBindings::BindDate(std::size_t pos, C<Date>& val) {
+  UASSERT(pos < Size());
+
+  auto& native_time = intermediate_buffers_[pos].time;
+  native_time.year = val.GetYear();
+  native_time.month = val.GetMonth();
+  native_time.day = val.GetDay();
+
+  native_time.time_type = MYSQL_TIMESTAMP_DATE;
+
+  BindValue(pos, GetNativeType(val), native_time, sizeof(MYSQL_TIME));
+}
+
+void InputBindings::BindDateTime(std::size_t pos, C<DateTime>& val) {
+  UASSERT(pos < Size());
+
+  auto& native_time = intermediate_buffers_[pos].time;
+  native_time.year = val.GetDate().GetYear();
+  native_time.month = val.GetDate().GetMonth();
+  native_time.day = val.GetDate().GetDay();
+  native_time.hour = val.GetHour();
+  native_time.minute = val.GetMinute();
+  native_time.second = val.GetSecond();
+  native_time.second_part = val.GetMicrosecond();
+
+  native_time.time_type = MYSQL_TIMESTAMP_DATETIME;
 
   BindValue(pos, GetNativeType(val), native_time, sizeof(MYSQL_TIME));
 }

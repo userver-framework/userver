@@ -3,7 +3,7 @@
 /// @file userver/storages/mysql/high_level_design.hpp
 /// This file is for documentation purposes only.
 
-/// @page mysql_driver_design
+/// @page userver_mysql_design
 /// ## Driver Architecture
 /// Like most drivers in uServer the uMySQL driver consists of three logically
 /// separate layers:
@@ -154,27 +154,33 @@
 /// `.emplace` for optionals, allocate intermediate buffers if needed (there are
 /// some type, say, `userver::formats::Json` for which we can't just .`resize`).
 /// 4. For every column we fetch the data into corresponding bind.
-/// 5. For every columns that needs an intermediate buffer we deserialize the
+/// 5. For every column that needs an intermediate buffer we deserialize the
 /// user type from that buffer.
+/// There is a funny catch tho - mariadbclient completely disregards `buffer`
+/// being nullptr for numeric types and just writes into it if a value is
+/// present in DB, so for optionals of numeric types we
+/// `.emplace()` them at bind stage and `.reset()` at fetch stage if null.
+///
 ///
 /// User types are created and stored in container in user-facing layer, which
 /// implements `AsContainer<Container>` like this:
-/// 1. Create a Container::value_type{}.
+/// 1. Create a `Container::value_type{}`.
 /// 2. Bind that newly created instance into output binds via `boost::pfr`.
 /// 3. Try to fetch the next row of data, and stop if there aren't any.
-/// 4. Emplace the fetched `Container::value_type` instance into result vector
-/// and go to step 1.
+/// 4. Emplace the fetched `Container::value_type` instance into result
+/// `Container` and go to step 1.
 ///
 /// There are some optimizations implemented:
 /// * we don't have to create a `T` on stack and then move it into vector, we
-/// can just `.emplace()` into vector and operate on its `.back()`, but that
-/// doesn't work in general (say, `unordered_set`)
+/// can just `.emplace()` into vector and operate on its `.back()`; but since
+/// that doesn't work in general (say, `unordered_set`), we only do that for
+/// white-listed types.
 /// * we don't have to call `mysql_stmt_bind_result` for every new row - it
 /// copies all the binds supplied, which is 112 bytes per bind, and is a huge
 /// overhead, - we can just reuse the binds mariadbclient has copied after first
 /// call. There is no API to extract them (but a field is there and `C` structs
 /// aren't that private) so strictly speaking it might break one day.. but
-/// likely won't.
+/// likely won't. https://jira.mariadb.org/browse/CONC-620
 /// * we don't have to fetch a column again if the initial row-wide fetch for
 /// that column succeeded
 ///

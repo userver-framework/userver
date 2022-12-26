@@ -8,6 +8,7 @@
 
 #include <userver/formats/json/value.hpp>
 
+#include <userver/storages/mysql/dates.hpp>
 #include <userver/storages/mysql/impl/io/decimal_binder.hpp>
 
 #include <storages/mysql/impl/mariadb_include.hpp>
@@ -94,6 +95,11 @@ class BindsStorageInterface : public NativeBindsHelper {
   virtual void Bind(std::size_t pos,
                     C<O<std::chrono::system_clock::time_point>>& val) = 0;
 
+  virtual void Bind(std::size_t pos, C<Date>& val) = 0;
+  virtual void Bind(std::size_t pos, C<O<Date>>& val) = 0;
+  virtual void Bind(std::size_t pos, C<DateTime>& val) = 0;
+  virtual void Bind(std::size_t pos, C<O<DateTime>>& val) = 0;
+
   virtual void ValidateAgainstStatement(MYSQL_STMT& statement) = 0;
 
  protected:
@@ -125,6 +131,10 @@ constexpr enum_field_types NativeBindsHelper::GetNativeType() {
     return MYSQL_TYPE_STRING;
   } else if constexpr (std::is_same_v<std::chrono::system_clock::time_point,
                                       T>) {
+    return MYSQL_TYPE_TIMESTAMP;
+  } else if constexpr (std::is_same_v<Date, T>) {
+    return MYSQL_TYPE_DATE;
+  } else if constexpr (std::is_same_v<DateTime, T>) {
     return MYSQL_TYPE_DATETIME;
   } else if constexpr (std::is_same_v<formats::json::Value, T>) {
     return MYSQL_TYPE_JSON;

@@ -53,7 +53,9 @@ inline constexpr bool kIsTypeSupported =
 /// `std::string`                               | `TEXT` // TODO : maybe blob?
 /// `std::string_view`                          | `TEXT` // TODO : maybe blob?
 /// `const char *`                              | `TEXT` // TODO : maybe blob?
-/// `std::chrono::system_clock::timepoint`      | `TIMESTAMP(6)`
+/// `std::chrono::system_clock::timepoint`      | `TIMESTAMP`
+/// `storages::mysql::Date`                     | `DATE`
+/// `storages::mysql::DateTime`                 | `DATETIME`
 /// `userver::formats::json::Value`             | `TEXT` // TODO : what is this?
 /// `userver::decimal64::Decimal<Prec, Policy>` | `DECIMAL`
 ///
@@ -78,17 +80,21 @@ inline constexpr bool kIsTypeSupported =
 /// `false`           | `true`            | allowed
 /// `false`           | `false`           | allowed
 ///
-/// Third, an attempt to parse `DECIMAL` with more than 18 digits will throw at
-/// extraction stage. <br>
-/// Fourth, general type mismatch will UINVARIANT, however widening numeric
+/// Third, an attempt to parse `DECIMAL` will throw at extraction stage if precision/rounding policy
+/// of corresponding `decimal::Decimal64<Prec, Policy>` is violated. <br>
+/// Fourth, an attempt to parse `DATE` or `DATETIME` not within `TIMEPOINT`
+/// range into `std::chrono::system_clock::timepoint` will throw at extraction stage.
+/// The decision was made to allow this conversion, since it might be very convenient to use,
+/// but in general this conversion is narrowing. <br>
+/// Fourth, general type mismatch will `UINVARIANT`, however widening numeric
 /// conversions are allowed, this check happens before actual extraction.
 /// You can see to what C++ types MySQL types can map in the following table:
 /// ## MySQL to C++ mapping
 /// Output C++ type                                             | Allowed MySQL types
 /// ----------------------------------------------------------- | -------------------
-/// `std::uint8_t`                                              | `TINYINT NOT NULL UNSIGNED`
+/// `std::uint8_t`                                              | `TINYINT UNSIGNED NOT NULL`
 /// `std::int8_t`                                               | `TINYINT NOT NULL`
-/// `std::optional<std::uint8_t>`                               | `TINYINT NOT NULL UNSIGNED`, `TINYINT UNSIGNED`
+/// `std::optional<std::uint8_t>`                               | `TINYINT UNSIGNED NOT NULL`, `TINYINT UNSIGNED`
 /// `std::optional<std::int8_t>`                                | `TINYINT NOT NULL`, `TINYINT`
 /// `std::uint16_t`/`std::int16_t`/`optional`                   | `SMALLINT` + all types above, with respect to signed/unsigned and NULL/NOT NULL
 /// `std::uint32_t`/`std::int32_t`/`optional`                   | `INT`, `INT24` + all types above, with respect to signed/unsigned and NULL/NOT NULL
@@ -98,9 +104,12 @@ inline constexpr bool kIsTypeSupported =
 /// `double`                                                    | `DOUBLE NOT NULL`, `FLOAT NOT NULL`
 /// `std::optional<double>`                                     | `DOUBLE`, `DOUBLE NOT NULL`, `FLOAT`, `FLOAT NOT NULL`
 /// `std::string/optional`                                      | `CHAR`, `BINARY`, `VARCHAR`, `VARBINARY`, `TINYBLOB`, `TINYTEXT`, `BLOB`, `TEXT`, `MEDIUMBLOB`, `MEDIUMTEXT`, `LONGBLOB`, `LONGTEXT`, with respect to NULL/NOT NULL
-/// `std::chrono::system_clock::timepoint/optional`             | `TIMEPOINT`, `DATETIME`, `DATE` (`DATETIME` and `DATE` not with `TIMEPOINT` range are UB), with respect to NULL/NOT NULL
+/// `std::chrono::system_clock::timepoint/optional`             | `TIMEPOINT`, `DATETIME`, `DATE`, with respect to NULL/NOT NULL
+/// `storages::mysql::Date`/optional                            | `DATE`, with respect to NULL/NOT NULL
+/// `storages::mysql::DateTime`/optional                        | `DATETIME`, with respect to NULL/NOT NULL
 /// `userver::formats::json::Value/optional`                    | `JSON`, with respect to NULL/NOT NULL
 /// `userver::decimal64::Decimal<Prec, Policy>`/optional        | `DECIMAL`, with respect to NULL/NOT NULL
+///
 ///
 // clang-format on
 
@@ -116,10 +125,14 @@ static_assert(kIsTypeSupported<std::int64_t>);
 static_assert(kIsTypeSupported<float>);
 static_assert(kIsTypeSupported<double>);
 
-// std:: types
+// strings
 static_assert(kIsTypeSupported<std::string>);
 static_assert(impl::kIsTypeSupportedAsInput<std::string_view>);  // input only
+
+// dates
 static_assert(kIsTypeSupported<std::chrono::system_clock::time_point>);
+static_assert(kIsTypeSupported<storages::mysql::Date>);
+static_assert(kIsTypeSupported<storages::mysql::DateTime>);
 
 // Json
 static_assert(kIsTypeSupported<formats::json::Value>);

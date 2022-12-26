@@ -39,11 +39,19 @@ bool IsBindable(enum_field_types bind_type, enum_field_types field_type) {
     return field_type == MYSQL_TYPE_JSON || IsBlob(field_type);
   }
 
-  if (bind_type == MYSQL_TYPE_DATETIME) {
-    return field_type == MYSQL_TYPE_DATE || field_type == MYSQL_TYPE_DATETIME ||
-           field_type == MYSQL_TYPE_TIMESTAMP || field_type == MYSQL_TYPE_TIME;
+  if (bind_type == MYSQL_TYPE_DATE) {
+    return field_type == MYSQL_TYPE_DATE || field_type == MYSQL_TYPE_NEWDATE;
+  }
 
-    // TODO : MYSQL_TYPE_TIME?
+  if (bind_type == MYSQL_TYPE_DATETIME) {
+    return field_type == MYSQL_TYPE_DATETIME;
+  }
+
+  if (bind_type == MYSQL_TYPE_TIMESTAMP) {
+    return field_type == MYSQL_TYPE_TIMESTAMP ||
+           // TODO : think about this: it's convenient to use, but narrowing
+           field_type == MYSQL_TYPE_DATE || field_type == MYSQL_TYPE_NEWDATE ||
+           field_type == MYSQL_TYPE_DATETIME;
   }
 
   if (NativeBindsHelper::IsFieldNumeric(bind_type) &&
@@ -199,12 +207,21 @@ void OutputBindings::Bind(std::size_t pos, O<formats::json::Value>& val) {
 
 void OutputBindings::Bind(std::size_t pos,
                           std::chrono::system_clock::time_point& val) {
-  BindDate(pos, val);
+  BindTimePoint(pos, val);
 }
-
 void OutputBindings::Bind(std::size_t pos,
                           O<std::chrono::system_clock::time_point>& val) {
+  BindOptionalTimePoint(pos, val);
+}
+void OutputBindings::Bind(std::size_t pos, Date& val) { BindDate(pos, val); }
+void OutputBindings::Bind(std::size_t pos, O<Date>& val) {
   BindOptionalDate(pos, val);
+}
+void OutputBindings::Bind(std::size_t pos, DateTime& val) {
+  BindDateTime(pos, val);
+}
+void OutputBindings::Bind(std::size_t pos, O<DateTime>& val) {
+  BindOptionalDateTime(pos, val);
 }
 
 void OutputBindings::BindValue(std::size_t pos, enum_field_types type,
@@ -269,13 +286,64 @@ void OutputBindings::OptionalStringBeforeFetch(void* value, MYSQL_BIND& bind,
   }
 }
 
-void OutputBindings::BindDate(std::size_t pos,
-                              std::chrono::system_clock::time_point& val) {
+void OutputBindings::BindTimePoint(std::size_t pos,
+                                   std::chrono::system_clock::time_point& val) {
   auto& date = intermediate_buffers_[pos].time;
   auto& bind = GetBind(pos);
   auto& cb = callbacks_[pos];
 
-  bind.buffer_type = MYSQL_TYPE_DATETIME;
+  bind.buffer_type = MYSQL_TYPE_TIMESTAMP;
+  bind.buffer = &date;
+  bind.buffer_length = sizeof(MYSQL_TIME);
+
+  cb.value = &val;
+  cb.after_fetch_cb = &TimepointAfterFetch;
+}
+
+void OutputBindings::TimepointAfterFetch(void* value, MYSQL_BIND&,
+                                         FieldIntermediateBuffer& buffer) {
+  auto* timepoint = static_cast<std::chrono::system_clock::time_point*>(value);
+  UASSERT(timepoint);
+
+  *timepoint = FromNativeTime(buffer.time);
+}
+
+void OutputBindings::BindOptionalTimePoint(
+    std::size_t pos,
+    std::optional<std::chrono::system_clock::time_point>& val) {
+  UASSERT(!val.has_value());
+
+  auto& date = intermediate_buffers_[pos].time;
+  auto& bind = GetBind(pos);
+  auto& cb = callbacks_[pos];
+
+  bind.buffer_type = MYSQL_TYPE_TIMESTAMP;
+  bind.buffer = &date;
+  bind.buffer_length = sizeof(MYSQL_TIME);
+  bind.is_null = &bind.is_null_value;
+
+  cb.value = &val;
+  cb.after_fetch_cb = &OptionalTimePointAfterFetch;
+}
+
+void OutputBindings::OptionalTimePointAfterFetch(
+    void* value, MYSQL_BIND& bind, FieldIntermediateBuffer& buffer) {
+  auto* optional =
+      static_cast<std::optional<std::chrono::system_clock::time_point>*>(value);
+  UASSERT(optional);
+
+  if (!bind.is_null_value) {
+    optional->emplace();
+    TimepointAfterFetch(&*optional, bind, buffer);
+  }
+}
+
+void OutputBindings::BindDate(std::size_t pos, Date& val) {
+  auto& date = intermediate_buffers_[pos].time;
+  auto& bind = GetBind(pos);
+  auto& cb = callbacks_[pos];
+
+  bind.buffer_type = MYSQL_TYPE_DATE;
   bind.buffer = &date;
   bind.buffer_length = sizeof(MYSQL_TIME);
 
@@ -285,15 +353,70 @@ void OutputBindings::BindDate(std::size_t pos,
 
 void OutputBindings::DateAfterFetch(void* value, MYSQL_BIND&,
                                     FieldIntermediateBuffer& buffer) {
-  auto* timepoint = static_cast<std::chrono::system_clock::time_point*>(value);
-  UASSERT(timepoint);
+  auto* date = static_cast<Date*>(value);
+  UASSERT(date);
 
-  *timepoint = FromNativeTime(buffer.time);
+  auto& native_time = buffer.time;
+
+  *date = Date{native_time.year, native_time.month, native_time.day};
 }
 
-void OutputBindings::BindOptionalDate(
-    std::size_t pos,
-    std::optional<std::chrono::system_clock::time_point>& val) {
+void OutputBindings::BindOptionalDate(std::size_t pos,
+                                      std::optional<Date>& val) {
+  UASSERT(!val.has_value());
+
+  auto& date = intermediate_buffers_[pos].time;
+  auto& bind = GetBind(pos);
+  auto& cb = callbacks_[pos];
+
+  bind.buffer_type = MYSQL_TYPE_DATE;
+  bind.buffer = &date;
+  bind.buffer_length = sizeof(MYSQL_TIME);
+  bind.is_null = &bind.is_null_value;
+
+  cb.value = &val;
+  cb.after_fetch_cb = &OptionalDateAfterFetch;
+}
+
+void OutputBindings::OptionalDateAfterFetch(void* value, MYSQL_BIND& bind,
+                                            FieldIntermediateBuffer& buffer) {
+  auto* optional = static_cast<std::optional<Date>*>(value);
+  UASSERT(optional);
+
+  if (!bind.is_null_value) {
+    optional->emplace();
+    DateAfterFetch(&*optional, bind, buffer);
+  }
+}
+
+void OutputBindings::BindDateTime(std::size_t pos, DateTime& val) {
+  auto& date = intermediate_buffers_[pos].time;
+  auto& bind = GetBind(pos);
+  auto& cb = callbacks_[pos];
+
+  bind.buffer_type = MYSQL_TYPE_DATETIME;
+  bind.buffer = &date;
+  bind.buffer_length = sizeof(MYSQL_TIME);
+
+  cb.value = &val;
+  cb.after_fetch_cb = &DateTimeAfterFetch;
+}
+
+void OutputBindings::DateTimeAfterFetch(void* value, MYSQL_BIND&,
+                                        FieldIntermediateBuffer& buffer) {
+  auto* datetime = static_cast<DateTime*>(value);
+  UASSERT(datetime);
+
+  auto& native_time = buffer.time;
+
+  *datetime =
+      DateTime{native_time.year,       native_time.month,  native_time.day,
+               native_time.hour,       native_time.minute, native_time.second,
+               native_time.second_part};
+}
+
+void OutputBindings::BindOptionalDateTime(std::size_t pos,
+                                          std::optional<DateTime>& val) {
   UASSERT(!val.has_value());
 
   auto& date = intermediate_buffers_[pos].time;
@@ -306,18 +429,17 @@ void OutputBindings::BindOptionalDate(
   bind.is_null = &bind.is_null_value;
 
   cb.value = &val;
-  cb.after_fetch_cb = &OptionalDateAfterFetch;
+  cb.after_fetch_cb = &OptionalDateTimeAfterFetch;
 }
 
-void OutputBindings::OptionalDateAfterFetch(void* value, MYSQL_BIND& bind,
-                                            FieldIntermediateBuffer& buffer) {
-  auto* optional =
-      static_cast<std::optional<std::chrono::system_clock::time_point>*>(value);
+void OutputBindings::OptionalDateTimeAfterFetch(
+    void* value, MYSQL_BIND& bind, FieldIntermediateBuffer& buffer) {
+  auto* optional = static_cast<std::optional<DateTime>*>(value);
   UASSERT(optional);
 
   if (!bind.is_null_value) {
     optional->emplace();
-    DateAfterFetch(&*optional, bind, buffer);
+    DateTimeAfterFetch(&*optional, bind, buffer);
   }
 }
 

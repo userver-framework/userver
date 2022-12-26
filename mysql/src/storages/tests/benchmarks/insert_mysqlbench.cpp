@@ -45,6 +45,65 @@ void insert_retrieve(benchmark::State& state) {
 }
 BENCHMARK(insert_retrieve)->Range(1 << 10, 1 << 20)->RangeMultiplier(4);
 
+void batch_insert(benchmark::State& state) {
+  engine::TaskProcessorPoolsConfig config{};
+  config.defer_events = false;
+
+  engine::RunStandalone(1, config, [&state] {
+    tests::ClusterWrapper cluster;
+    struct Row final {
+      std::int32_t a{};
+      std::int32_t b{};
+      std::int32_t c{};
+      std::int32_t d{};
+      std::int32_t e{};
+      std::int32_t f{};
+      std::int32_t g{};
+      std::int32_t h{};
+      std::int32_t j{};
+      std::int32_t k{};
+
+      bool operator==(const Row& other) const {
+        return boost::pfr::structure_tie(*this) ==
+               boost::pfr::structure_tie(other);
+      }
+    };
+    std::vector<Row> rows_to_insert;
+    rows_to_insert.reserve(state.range(0));
+    for (int i = 0; i < state.range(0); ++i) {
+      auto& row = rows_to_insert.emplace_back();
+      boost::pfr::for_each_field(row, [i](auto& field) { field = i; });
+    }
+
+    for (auto _ : state) {
+      state.PauseTiming();
+      tests::TmpTable table{
+          cluster,
+          "a INT NOT NULL, b INT NOT NULL, c INT NOT NULL, d INT NOT NULL, "
+          "e INT NOT NULL, f INT NOT NULL, g INT NOT NULL, h INT NOT NULL, "
+          "j INT NOT NULL, k INT NOT NULL"};
+      const storages::mysql::Query query{
+          table.FormatWithTableName(
+              "INSERT INTO {} VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"),
+      };
+      state.ResumeTiming();
+
+      cluster->InsertMany(query, rows_to_insert);
+
+      state.PauseTiming();
+      const auto db_rows =
+          table.DefaultExecute("SELECT a, b, c, d, e, f, g, h, j, k FROM {}")
+              .AsVector<Row>();
+      if (rows_to_insert != db_rows) {
+        state.SkipWithError("INSERT OR SELECT IS BROKEN");
+      }
+      table.DefaultExecute("DROP TABLE {}");
+      state.ResumeTiming();
+    }
+  });
+}
+BENCHMARK(batch_insert)->Range(1000, 100'000);
+
 }  // namespace storages::mysql::benches
 
 USERVER_NAMESPACE_END
