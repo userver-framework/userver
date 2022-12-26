@@ -51,8 +51,10 @@ void CursorResultSet<T>::ForEach(
     RowCallback&& row_callback,
     // TODO : think about separate deadline here
     [[maybe_unused]] engine::Deadline deadline) && {
+  using IntermediateStorage = std::vector<T>;
+
   bool keep_going = true;
-  auto extractor = impl::io::TypedExtractor<T, T, RowTag>{};
+  auto extractor = impl::io::TypedExtractor<IntermediateStorage, T, RowTag>{};
 
   while (keep_going) {
     tracing::ScopeTime fetch{"fetch"};
@@ -60,7 +62,7 @@ void CursorResultSet<T>::ForEach(
     fetch.Reset();
 
     tracing::ScopeTime for_each{"for_each"};
-    std::vector<T> data{extractor.ExtractData()};
+    IntermediateStorage data{extractor.ExtractData()};
     for (auto&& row : data) {
       row_callback(std::move(row));
     }

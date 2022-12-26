@@ -268,8 +268,7 @@ template <typename Container, typename MapFrom, typename ExtractionTag>
 Container StatementResultSet::DoAsContainerMapped() && {
   static_assert(impl::io::kIsRange<Container>,
                 "The type isn't actually a container");
-  using Row = typename Container::value_type;
-  using Extractor = impl::io::TypedExtractor<Row, MapFrom, ExtractionTag>;
+  using Extractor = impl::io::TypedExtractor<Container, MapFrom, ExtractionTag>;
 
   Extractor extractor{};
 
@@ -277,18 +276,7 @@ Container StatementResultSet::DoAsContainerMapped() && {
   std::move(*this).FetchResult(extractor);
   fetch.Reset();
 
-  if constexpr (std::is_same_v<Container, typename Extractor::StorageType>) {
-    return std::move(extractor).ExtractData();
-  }
-
-  Container container{};
-  typename Extractor::StorageType rows{std::move(extractor).ExtractData()};
-  if constexpr (impl::io::kIsReservable<Container>) {
-    container.reserve(rows.size());
-  }
-
-  std::move(rows.begin(), rows.end(), impl::io::Inserter(container));
-  return container;
+  return Container{extractor.ExtractData()};
 }
 
 template <typename T, typename ExtractionTag>
