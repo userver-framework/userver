@@ -209,9 +209,7 @@ void MySQLConnection::InitSocket(
       }
     }
 
-    const auto ip = addr_domain == engine::io::AddrDomain::kInet6
-                        ? fmt::format("[{}]", addr.PrimaryAddressString())
-                        : addr.PrimaryAddressString();
+    const auto ip = addr.PrimaryAddressString();
     if (DoInitSocket(ip, endpoint_info.port, auth_settings, connection_settings,
                      deadline)) {
       return;
@@ -255,11 +253,11 @@ bool MySQLConnection::DoInitSocket(
     }
 
     if (!connect_ret_) {
-      LOG_WARNING() << GetNativeError("Failed to connect");
-      Close(deadline);
+      LOG_WARNING() << fmt::format("Failed to connect to {}:{}", ip, port);
       return false;
     }
   } catch (const std::exception& ex) {
+    // TODO : is it safe to call close here?
     Close(deadline);
     return false;
   }

@@ -110,11 +110,12 @@ void MySQLSocket::DebugFillSocketWriteBuffer() {
 
   engine::io::Socket sock(fd_);
   try {
-    sock.SendAll(we.data(), we.size(),
-                 engine::Deadline::FromDuration(std::chrono::milliseconds{0}));
+    [[maybe_unused]] const auto bytes_sent = sock.SendAll(
+        we.data(), we.size(),
+        engine::Deadline::FromDuration(std::chrono::milliseconds{0}));
   } catch (const std::exception& e) {
   }
-  std::move(sock).Release();
+  fd_ = std::move(sock).Release();
 }
 
 void MySQLSocket::WatcherCallback(struct ev_loop*, ev_io* watcher,
