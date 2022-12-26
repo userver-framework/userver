@@ -20,7 +20,14 @@ namespace storages::mysql::impl {
 
 namespace {
 
-constexpr std::chrono::milliseconds kDefaultCloseTimeout{200};
+// quoting the docs:
+// "mysql_close() sends a COM_QUIT request to the server, though it does not
+// wait for any reply. Thus, theoretically it can block (if the socket buffer
+// is full), though in practise it is probably unlikely to occur frequently."
+//
+// If it blocks we use `shutdown` on the socket, because there is no other way
+// to honor any kind of deadline, so this is zero.
+constexpr std::chrono::milliseconds kDefaultCloseTimeout{0};
 
 void SetNativeOptions(MYSQL* mysql,
                       const settings::ConnectionSettings& connection_settings) {
@@ -74,11 +81,6 @@ MySQLConnection::MySQLConnection(
 MySQLConnection::~MySQLConnection() {
   // We close the connection before resetting statements cache, so that reset
   // doesn't do potentially costly I/O
-
-  // quoting the docs:
-  // mysql_close() sends a COM_QUIT request to the server, though it does not
-  // wait for any reply. Thus, theoretically it can block (if the socket buffer
-  // is full), though in practise it is probably unlikely to occur frequently.
   Close(engine::Deadline::FromDuration(kDefaultCloseTimeout));
 }
 
@@ -196,7 +198,18 @@ void MySQLConnection::InitSocket(
   const auto addr_vec = resolver.Resolve(endpoint_info.host, deadline);
 
   for (const auto& addr : addr_vec) {
-    const auto ip = addr.Domain() == engine::io::AddrDomain::kInet6
+    const auto ip_mode = connection_settings.ip_mode;
+    const auto addr_domain = addr.Domain();
+    if (ip_mode != settings::IpMode::kAny) {
+      if ((addr_domain == engine::io::AddrDomain::kInet6 &&
+           ip_mode != settings::IpMode::kIpV6) ||
+          (addr_domain == engine::io::AddrDomain::kInet &&
+           ip_mode != settings::IpMode::kIpV4)) {
+        continue;
+      }
+    }
+
+    const auto ip = addr_domain == engine::io::AddrDomain::kInet6
                         ? fmt::format("[{}]", addr.PrimaryAddressString())
                         : addr.PrimaryAddressString();
     if (DoInitSocket(ip, endpoint_info.port, auth_settings, connection_settings,
@@ -264,16 +277,18 @@ void MySQLConnection::Close(engine::Deadline deadline) noexcept {
                             },
                             deadline);
   } catch (const std::exception& ex) {
-    // Even though we can time out here, the special care has been taken by
-    // mariadb-connector-c devs to clean up resources before doing close IO, so
-    // we don't leak here and life is good.
-    // Quoting some comments in code:
-    // "We need special handling for mysql_close(), as the first part may block,
-    // while the last part needs to free our extra library context stack.
-    //
-    // So we do the first part (mysql_close_slow_part()) non-blocking, but the
-    // last part blocking."
-    LOG_WARNING() << "Failed to correctly close a connection: " << ex.what();
+    // Us being here means we timed out on sending COM_QUIT.
+    // We must drive mysql_close_cont to completion, otherwise connection gets
+    // leaked, but mysql_close_cont won't go any further until socket is
+    // unblocked, so we `shutdown` the socket.
+    // https://jira.mariadb.org/browse/CONC-621
+    mariadb_cancel(&mysql_);
+
+    mysql_close_cont(&mysql_, 0);
+
+    LOG_WARNING() << "Failed to correctly close a connection, forcibly "
+                     "shutting it down. Reason: "
+                  << ex.what();
   }
 }
 

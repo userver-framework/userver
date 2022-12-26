@@ -20,12 +20,16 @@ struct AuthSettings final {
 AuthSettings Parse(const formats::json::Value& doc,
                    formats::parse::To<AuthSettings>);
 
+enum class IpMode { kIpV4, kIpV6, kAny };
+
 struct ConnectionSettings final {
   std::size_t statements_cache_size;
   // TODO : implement ssl somehow
   bool use_secure_connection;
   // TODO : implement compression somehow
   bool use_compression;
+
+  IpMode ip_mode;
 };
 
 ConnectionSettings Parse(const yaml_config::YamlConfig& doc,

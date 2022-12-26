@@ -55,7 +55,8 @@ if (USERVER_IS_THE_ROOT_PROJECT)
   )
   target_link_libraries(${PROJECT_NAME}_mysqltest userver-utest ${PROJECT_NAME}
           #mariadbclient
-          mariadb)
+          mariadb
+    )
   set(TESTS_TEMPLATE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/src/storages/tests/tests_runner.sh)
   set(UNIT_TESTS_PATH ${CMAKE_CURRENT_BINARY_DIR}/unit_tests.sh)
   set(TESTS_BINARY_PATH ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}_mysqltest)
@@ -77,7 +78,8 @@ if (USERVER_IS_THE_ROOT_PROJECT)
   )
   target_link_libraries(${PROJECT_NAME}_benchmark PRIVATE userver-ubench ${PROJECT_NAME}
           #mariadbclient
-          mariadb)
+          mariadb
+    )
   add_test(${PROJECT_NAME}_mysqltest
     env
       ${CMAKE_BINARY_DIR}/testsuite/env
