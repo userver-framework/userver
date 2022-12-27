@@ -16,9 +16,6 @@ Control::Control(const components::ComponentContext& component_context,
                  bool testpoint_supported)
     : testsuite_support_(
           component_context.FindComponent<components::TestsuiteSupport>()),
-      metrics_storage_(
-          component_context.FindComponent<components::StatisticsStorage>()
-              .GetMetricsStorage()),
       logging_component_(
           component_context.FindComponent<components::Logging>()),
       testpoint_supported_(testpoint_supported) {}
@@ -35,10 +32,6 @@ formats::json::Value Control::Perform(
     }
     testsuite_support_.GetTestpointControl().SetEnabledNames(
         testpoints.As<std::unordered_set<std::string>>());
-  }
-
-  if (request_body["reset_metrics"].As<bool>(false)) {
-    metrics_storage_->ResetMetrics();
   }
 
   auto http_allowed_urls_extra =

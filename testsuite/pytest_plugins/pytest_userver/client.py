@@ -628,7 +628,6 @@ class AiohttpClient(service_client.AiohttpClient):
             invalidate_caches: bool = True,
             clean_update: bool = True,
             cache_names: typing.Optional[typing.List[str]] = None,
-            reset_metrics: bool = False,
             http_allowed_urls_extra=None,
     ) -> typing.Dict[str, typing.Any]:
         body: typing.Dict[
@@ -650,8 +649,6 @@ class AiohttpClient(service_client.AiohttpClient):
             }
             if cache_names:
                 body['invalidate_caches']['names'] = cache_names
-        if reset_metrics:
-            body['reset_metrics'] = True
         if http_allowed_urls_extra is not None:
             body['http_allowed_urls_extra'] = http_allowed_urls_extra
         return await self._tests_control(body)
