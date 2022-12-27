@@ -1,4 +1,4 @@
-# userver Core Functionality
+# userver: Core Functionality
 
 This folder contains the userver core functionality:
 

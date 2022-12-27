@@ -1,4 +1,4 @@
-# userver Samples
+# userver: Samples
 
 A directory with samples:
 

@@ -1,4 +1,4 @@
-# userver Boost.Coro
+# userver: Boost.Coro
 Subset of [Boost C++ Libraries](https://www.boost.org) 1.80.0, that includes Coroutine2 and Context.
 `CMakeLists.txt` is based on [boost-cmake](https://github.com/Orphis/boost-cmake).
 

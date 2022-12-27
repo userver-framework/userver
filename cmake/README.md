@@ -1,4 +1,4 @@
-# userver CMake helpers
+# userver: CMake Helpers
 
 CMake scripts that are used by the core CMakeLists.txt
 

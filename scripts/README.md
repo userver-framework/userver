@@ -1,4 +1,4 @@
-# userver Scripts
+# userver: Scripts
 
 Various helper scripts and data that does not fit in other folders:
 

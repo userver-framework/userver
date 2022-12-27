@@ -1,4 +1,4 @@
-# userver Testsuite
+# userver: Testsuite Extensions
 
 🐙 userver specific extensions to the Yandex.Taxi Testsuite.
 

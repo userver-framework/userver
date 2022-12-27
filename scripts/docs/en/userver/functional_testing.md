@@ -348,7 +348,7 @@ server::handlers::TestsControl.
 To use it you could just write the following test:
 
 @code{.py}
-def test_metrics_portability(service_client):
+async def test_metrics_portability(service_client):
     warnings = await service_client.metrics_portability()
     assert not warnings
 @endcode

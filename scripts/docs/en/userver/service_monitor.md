@@ -77,6 +77,12 @@ $ curl http://localhost:8086/service/monitor?format=graphite | sort
 @include core/functional_tests/metrics/tests/static/metrics_values.txt
 
 
+With components::Postgres and some components::PostgreCache you will get those
+additional metrics:
+
+@include postgresql/functional_tests/metrics/tests/static/metrics_values.txt
+
+
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly

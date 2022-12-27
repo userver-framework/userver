@@ -1,4 +1,4 @@
-# userver Universal
+# userver: Universal Functionality
 
 This folder takes `../shared` and creates a separate CMake target out of it.
 

@@ -43,6 +43,7 @@ groups:
       - samples/postgres_service/dynamic_config_fallback.json
       - samples/postgres-support/dynamic_config_fallback.json
       - postgresql/functional_tests/basic_chaos/dynamic_config_fallback.json
+      - postgresql/functional_tests/metrics/dynamic_config_fallback.json
     overrides:
         POSTGRES_CONNECTION_POOL_SETTINGS:
             key-value-database:
