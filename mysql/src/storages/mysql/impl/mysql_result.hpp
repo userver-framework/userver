@@ -20,6 +20,7 @@ class MySQLResult final {
 
   std::size_t RowsCount() const;
 
+  const MySQLRow& GetRow(std::size_t ind) const;
   MySQLRow& GetRow(std::size_t ind);
 
   auto begin() { return rows_.begin(); }

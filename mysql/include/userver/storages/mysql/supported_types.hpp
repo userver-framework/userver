@@ -37,9 +37,14 @@ inline constexpr bool kIsTypeSupported =
 
 // clang-format off
 /// @page userver_mysql_types
-/// The uMySQL driver supports various std:: types for both input and output
-/// directions and some userver-specific types; the following table shows how
-/// types are mapped from C++ to MySQL types.
+/// The uMySQL driver supports various `std::` types for both input and output
+/// directions and some userver-specific types. <br>
+/// The driver also supports aggregates of supported types as input or output parameters:<br>
+/// whenever there is a row-wise mapping to/from `T`, `T` is expected to be an SimpleAggregate,
+/// that is an aggregate type without base classes, const fields, references, or C arrays.
+///
+///
+/// The following table shows how types are mapped from C++ to MySQL types.
 ///
 /// ## C++ to MySQL Mapping
 /// Input C++ types                             |   Corresponding MySQLType
@@ -54,8 +59,8 @@ inline constexpr bool kIsTypeSupported =
 /// `std::string_view`                          | `TEXT` // TODO : maybe blob?
 /// `const char *`                              | `TEXT` // TODO : maybe blob?
 /// `std::chrono::system_clock::timepoint`      | `TIMESTAMP`
-/// `storages::mysql::Date`                     | `DATE`
-/// `storages::mysql::DateTime`                 | `DATETIME`
+/// `userver::storages::mysql::Date`            | `DATE`
+/// `userver::storages::mysql::DateTime`        | `DATETIME`
 /// `userver::formats::json::Value`             | `TEXT` // TODO : what is this?
 /// `userver::decimal64::Decimal<Prec, Policy>` | `DECIMAL`
 ///
@@ -105,8 +110,8 @@ inline constexpr bool kIsTypeSupported =
 /// `std::optional<double>`                                     | `DOUBLE`, `DOUBLE NOT NULL`, `FLOAT`, `FLOAT NOT NULL`
 /// `std::string/optional`                                      | `CHAR`, `BINARY`, `VARCHAR`, `VARBINARY`, `TINYBLOB`, `TINYTEXT`, `BLOB`, `TEXT`, `MEDIUMBLOB`, `MEDIUMTEXT`, `LONGBLOB`, `LONGTEXT`, with respect to NULL/NOT NULL
 /// `std::chrono::system_clock::timepoint/optional`             | `TIMEPOINT`, `DATETIME`, `DATE`, with respect to NULL/NOT NULL
-/// `storages::mysql::Date`/optional                            | `DATE`, with respect to NULL/NOT NULL
-/// `storages::mysql::DateTime`/optional                        | `DATETIME`, with respect to NULL/NOT NULL
+/// `userver::storages::mysql::Date`/optional                   | `DATE`, with respect to NULL/NOT NULL
+/// `userver::storages::mysql::DateTime`/optional               | `DATETIME`, with respect to NULL/NOT NULL
 /// `userver::formats::json::Value/optional`                    | `JSON`, with respect to NULL/NOT NULL
 /// `userver::decimal64::Decimal<Prec, Policy>`/optional        | `DECIMAL`, with respect to NULL/NOT NULL
 ///

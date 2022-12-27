@@ -24,6 +24,12 @@ MySQLRow::~MySQLRow() = default;
 
 std::size_t MySQLRow::FieldsCount() const { return columns_.size(); }
 
+const std::string& MySQLRow::GetField(std::size_t ind) const {
+  UASSERT(ind < FieldsCount());
+
+  return columns_[ind];
+}
+
 std::string& MySQLRow::GetField(std::size_t ind) {
   UASSERT(ind < FieldsCount());
 

@@ -16,6 +16,12 @@ void MySQLResult::AppendRow(MySQLRow&& row) { rows_.push_back(std::move(row)); }
 
 std::size_t MySQLResult::RowsCount() const { return rows_.size(); }
 
+const MySQLRow& MySQLResult::GetRow(std::size_t ind) const {
+  UASSERT(ind < RowsCount());
+
+  return rows_[ind];
+}
+
 MySQLRow& MySQLResult::GetRow(std::size_t ind) {
   UASSERT(ind < RowsCount());
 

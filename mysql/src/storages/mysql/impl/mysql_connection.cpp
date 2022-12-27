@@ -282,6 +282,8 @@ MySQLConnection::BrokenGuard::BrokenGuard(MySQLConnection& connection)
 
 MySQLConnection::BrokenGuard::~BrokenGuard() {
   if (exceptions_on_enter_ != std::uncaught_exceptions()) {
+    // TODO : we don't actually have to break a connection unconditionally here:
+    // some errors are fine.
     broken_.store(true);
   }
 }

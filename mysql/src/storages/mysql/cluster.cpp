@@ -68,14 +68,14 @@ Transaction Cluster::Begin(OptionalCommandControl command_control,
                      deadline};
 }
 
-void Cluster::ExecuteCommand(ClusterHostType host_type,
-                             const Query& command) const {
+CommandResultSet Cluster::ExecuteCommand(ClusterHostType host_type,
+                                         const Query& command) const {
   return ExecuteCommand(std::nullopt, host_type, command);
 }
 
-void Cluster::ExecuteCommand(OptionalCommandControl command_control,
-                             ClusterHostType host_type,
-                             const Query& command) const {
+CommandResultSet Cluster::ExecuteCommand(OptionalCommandControl command_control,
+                                         ClusterHostType host_type,
+                                         const Query& command) const {
   const auto deadline =
       GetDeadline(command_control, GetDefaultCommandControl());
 
@@ -83,7 +83,8 @@ void Cluster::ExecuteCommand(OptionalCommandControl command_control,
 
   auto connection = topology_->SelectPool(host_type).Acquire(deadline);
 
-  connection->ExecutePlain(command.GetStatement(), deadline);
+  return CommandResultSet{
+      connection->ExecutePlain(command.GetStatement(), deadline)};
 }
 
 CommandControl Cluster::GetDefaultCommandControl() {
