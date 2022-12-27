@@ -80,13 +80,13 @@ if (USERVER_IS_THE_ROOT_PROJECT)
           #mariadbclient
           mariadb
     )
-  add_test(${PROJECT_NAME}_mysqltest
-    env
-      ${CMAKE_BINARY_DIR}/testsuite/env
-      --databases=mysql
-      run --
-      ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}_benchmark
-      --benchmark_min_time=0
-      --benchmark_color=no
-  )
+#  add_test(${PROJECT_NAME}_mysqltest
+#    env
+#      ${CMAKE_BINARY_DIR}/testsuite/env
+#      --databases=mysql
+#      run --
+#      ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}_benchmark
+#      --benchmark_min_time=0
+#      --benchmark_color=no
+#  )
 endif()
