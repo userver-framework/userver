@@ -213,8 +213,10 @@ bool MySQLConnection::DoInitSocket(
   mysql_init(&mysql_);
   SetNativeOptions(&mysql_, connection_settings);
 
+  MYSQL* connect_res{nullptr};
+
   auto mysql_events = mysql_real_connect_start(
-      &connect_ret_, &mysql_, ip.c_str(), auth_settings.user.c_str(),
+      &connect_res, &mysql_, ip.c_str(), auth_settings.user.c_str(),
       auth_settings.password.c_str(), auth_settings.database.c_str(), port,
       nullptr /* unix_socket */, 0 /* client_flags */);
 
@@ -227,13 +229,11 @@ bool MySQLConnection::DoInitSocket(
   }
 
   socket_.SetFd(fd);
-  socket_.SetEvents(mysql_events);
-
   try {
     socket_.RunToCompletion([mysql_events] { return mysql_events; },
-                            [this](int mysql_events) {
+                            [this, &connect_res](int mysql_events) {
                               return mysql_real_connect_cont(
-                                  &connect_ret_, &mysql_, mysql_events);
+                                  &connect_res, &mysql_, mysql_events);
                             },
                             deadline);
   } catch (const std::exception& ex) {
@@ -242,7 +242,11 @@ bool MySQLConnection::DoInitSocket(
     return false;
   }
 
-  if (!connect_ret_) {
+  if (!connect_res) {
+    // If we call mysql_close here - we SEGFAULT.
+    // If we don't - we leak.
+    // https://jira.mariadb.org/browse/CONC-622
+    // TODO : this has to be fixed somehow
     LOG_WARNING() << fmt::format("Failed to connect to {}:{}", ip, port);
     return false;
   }

@@ -104,10 +104,9 @@ class MySQLConnection final {
 
   std::atomic<bool> broken_{false};
 
-  MYSQL mysql_{};
-  MYSQL* connect_ret_{nullptr};
-
   MySQLSocket socket_;
+  MYSQL mysql_{};
+
   metadata::MySQLServerInfo server_info_{};
 
   MySQLStatementsCache statements_cache_;
