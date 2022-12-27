@@ -4,6 +4,7 @@
 /// @brief @copybrief clients::http::Request
 
 #include <memory>
+#include <string_view>
 #include <vector>
 
 #include <userver/clients/dns/resolver_fwd.hpp>
@@ -28,6 +29,8 @@ class EasyWrapper;
 
 /// HTTP request method
 enum class HttpMethod { kGet, kPost, kHead, kPut, kDelete, kPatch, kOptions };
+
+std::string_view ToStringView(HttpMethod method);
 
 /// HTTP version to use
 enum class HttpVersion {

@@ -4,6 +4,7 @@
 #include <cstdlib>
 #include <map>
 #include <string>
+#include <string_view>
 #include <system_error>
 #include <unordered_map>
 
@@ -43,24 +44,7 @@ constexpr long kEBBaseTime = 25;
 constexpr std::string_view kHeaderExpect = "Expect";
 
 std::string ToString(HttpMethod method) {
-  switch (method) {
-    case HttpMethod::kDelete:
-      return "DELETE";
-    case HttpMethod::kGet:
-      return "GET";
-    case HttpMethod::kHead:
-      return "HEAD";
-    case HttpMethod::kPost:
-      return "POST";
-    case HttpMethod::kPut:
-      return "PUT";
-    case HttpMethod::kPatch:
-      return "PATCH";
-    case HttpMethod::kOptions:
-      return "OPTIONS";
-  }
-
-  UINVARIANT(false, "Unexpected HTTP method");
+  return std::string{ToStringView(method)};
 }
 
 curl::easy::http_version_t ToNative(HttpVersion version) {
@@ -177,6 +161,27 @@ bool IsAllowedSchemaInUrl(std::string_view url) {
 }
 
 }  // namespace
+
+std::string_view ToStringView(HttpMethod method) {
+  switch (method) {
+    case HttpMethod::kDelete:
+      return "DELETE";
+    case HttpMethod::kGet:
+      return "GET";
+    case HttpMethod::kHead:
+      return "HEAD";
+    case HttpMethod::kPost:
+      return "POST";
+    case HttpMethod::kPut:
+      return "PUT";
+    case HttpMethod::kPatch:
+      return "PATCH";
+    case HttpMethod::kOptions:
+      return "OPTIONS";
+  }
+
+  UINVARIANT(false, "Unexpected HTTP method");
+}
 
 ProxyAuthType ProxyAuthTypeFromString(const std::string& auth_name) {
   auto it = kAuthTypeMap.find(auth_name);
