@@ -12,6 +12,9 @@ namespace testsuite {
 
 void PeriodicTaskControl::RegisterPeriodicTask(const std::string& name,
                                                utils::PeriodicTask& task) {
+  UINVARIANT(!name.empty(),
+             "RegisterInTestsuite called on an empty PeriodicTask. Call "
+             "PeriodicTask::Start before RegisterInTestsuite.");
   auto periodic_tasks = periodic_tasks_.Lock();
   const auto [_, success] = periodic_tasks->emplace(name, task);
   UINVARIANT(success, "Periodic task name " + name + " already registered");

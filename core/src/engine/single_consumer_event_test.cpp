@@ -14,6 +14,17 @@ USERVER_NAMESPACE_BEGIN
 TEST(SingleConsumerEvent, Ctr) {
   engine::SingleConsumerEvent event;
   EXPECT_TRUE(event.IsAutoReset());
+  EXPECT_FALSE(event.IsReady());
+}
+
+UTEST(SingleConsumerEvent, IsReady) {
+  engine::SingleConsumerEvent event;
+  event.Send();
+  EXPECT_TRUE(event.IsReady());
+  EXPECT_TRUE(event.IsReady());
+
+  EXPECT_TRUE(event.WaitForEvent());
+  EXPECT_FALSE(event.IsReady());
 }
 
 UTEST(SingleConsumerEvent, WaitAndCancel) {

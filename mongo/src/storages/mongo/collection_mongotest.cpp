@@ -520,6 +520,52 @@ UTEST(Collection, AggregateOut) {
   SampleMongoPool(MakeTestPool(&dns_resolver));
 }
 
+UTEST(Collection, Drop) {
+  std::string colletion_name = "drop";
+  auto dns_resolver = MakeDnsResolver();
+  auto pool = MakeTestPool(&dns_resolver);
+  auto coll = pool.GetCollection(colletion_name);
+
+  {
+    coll.InsertOne(bson::MakeDoc("x", 1));
+    EXPECT_EQ(1, coll.Count({}));
+    EXPECT_TRUE(coll.Drop().IsSucces());
+    EXPECT_FALSE(pool.HasCollection(colletion_name));
+    EXPECT_EQ(0, coll.Count({}));
+  }
+
+  {
+    coll.InsertOne(bson::MakeDoc("x", 1));
+    EXPECT_EQ(1, coll.Count({}));
+    EXPECT_TRUE(coll.Drop().IsSucces());
+    EXPECT_TRUE(coll.Drop().IsSucces());
+    EXPECT_FALSE(pool.HasCollection(colletion_name));
+    EXPECT_EQ(0, coll.Count({}));
+  }
+
+  {
+    coll.InsertOne(bson::MakeDoc("x", 1));
+    EXPECT_EQ(1, coll.Count({}));
+    EXPECT_TRUE(coll.Drop().IsSucces());
+    EXPECT_FALSE(pool.HasCollection(colletion_name));
+    EXPECT_EQ(0, coll.Count({}));
+  }
+
+  {
+    coll.InsertOne(bson::MakeDoc("x", 1));
+    EXPECT_TRUE(
+        coll.Drop(mongo::options::WriteConcern::Level::kMajority).IsSucces());
+    EXPECT_FALSE(pool.HasCollection(colletion_name));
+  }
+
+  {
+    coll.InsertOne(bson::MakeDoc("x", 1));
+    EXPECT_TRUE(coll.Drop(mongo::options::WriteConcern::Level::kUnacknowledged)
+                    .IsSucces());
+    EXPECT_FALSE(pool.HasCollection(colletion_name));
+  }
+}
+
 UTEST(Collection, LargeDocRoundtrip) {
   auto dns_resolver = MakeDnsResolver();
   auto pool = MakeTestPool(&dns_resolver);

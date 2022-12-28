@@ -21,6 +21,12 @@ file(GLOB_RECURSE REDIS_TEST_SOURCES
 )
 list(REMOVE_ITEM SOURCES ${REDIS_TEST_SOURCES})
 
+file(GLOB_RECURSE REDIS_FUNCTIONAL_TEST_SOURCES
+  ${CMAKE_CURRENT_SOURCE_DIR}/functional_tests/*.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/functional_tests/*.hpp
+)
+list(REMOVE_ITEM SOURCES ${REDIS_FUNCTIONAL_TEST_SOURCES})
+
 add_library(${PROJECT_NAME} STATIC ${SOURCES})
 set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
 
@@ -127,6 +133,7 @@ if (USERVER_IS_THE_ROOT_PROJECT)
   )
 
   add_subdirectory(tools/redisclient)
+  add_subdirectory(functional_tests)
 endif()
 
 if (USERVER_FEATURE_UTEST)

@@ -66,12 +66,16 @@ bool SingleConsumerEvent::WaitForEventUntil(Deadline deadline) {
 }
 
 void SingleConsumerEvent::Reset() noexcept {
-  is_signaled_.store(false, std::memory_order_release);
+  is_signaled_.exchange(false, std::memory_order_seq_cst);
 }
 
 void SingleConsumerEvent::Send() {
   is_signaled_.store(true, std::memory_order_release);
   waiters_->WakeupOne();
+}
+
+bool SingleConsumerEvent::IsReady() const noexcept {
+  return is_signaled_.load();
 }
 
 bool SingleConsumerEvent::GetIsSignaled() noexcept {

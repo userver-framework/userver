@@ -495,6 +495,29 @@ Cursor CDriverCollectionImpl::Execute(
       std::move(client), std::move(cdriver_cursor), std::move(stats_ptr)));
 }
 
+DropResult CDriverCollectionImpl::Execute(const operations::Drop& drop_op) {
+  auto span = MakeSpan("mongo_drop");
+  auto [client, collection] = GetCDriverCollection();
+  auto stats_ptr = statistics_->write[drop_op.impl_->write_concern_desc];
+
+  auto options = drop_op.impl_->options;
+
+  stats::OperationStopwatch drop_sw(stats_ptr,
+                                    stats::WriteOperationStatistics::kDrop);
+
+  MongoError error;
+  if (mongoc_collection_drop_with_opts(collection.get(),
+                                       impl::GetNative(drop_op.impl_->options),
+                                       error.GetNative())) {
+    drop_sw.AccountSuccess();
+    return DropResult(true);
+  } else {
+    drop_sw.AccountError(error.GetKind());
+    error.Throw("Error running drop");
+    return DropResult(false);
+  }
+}
+
 cdriver::CDriverPoolImpl::BoundClientPtr
 CDriverCollectionImpl::GetCDriverClient() const {
   // uasserted in ctor

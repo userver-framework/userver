@@ -4,7 +4,6 @@ import pytest
 from pytest_userver import chaos
 
 _ALL_DATA = 512
-_PORT_FOR_CLIENT = 9180
 _PORT_FOR_SERVER = 8180
 
 
@@ -12,8 +11,6 @@ _PORT_FOR_SERVER = 8180
 async def _gate(loop):
     gate_config = chaos.GateRoute(
         name='tcp proxy',
-        host_for_client='localhost',
-        port_for_client=_PORT_FOR_CLIENT,
         host_to_server='localhost',
         port_to_server=_PORT_FOR_SERVER,
     )
@@ -25,7 +22,7 @@ async def test_chaos_concat_packets(service_client, loop, gate):
     gate.to_client_concat_packets(4)
 
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.connect(('localhost', _PORT_FOR_CLIENT))
+    sock.connect(gate.get_sockname_for_clients())
 
     await loop.sock_sendall(sock, b'hi')
     await loop.sock_sendall(sock, b'hi')
@@ -41,7 +38,7 @@ async def test_chaos_close_on_data(service_client, loop, gate):
     gate.to_client_close_on_data()
 
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.connect(('localhost', _PORT_FOR_CLIENT))
+    sock.connect(gate.get_sockname_for_clients())
 
     await loop.sock_sendall(sock, b'hi')
     hello = await loop.sock_recv(sock, _ALL_DATA)

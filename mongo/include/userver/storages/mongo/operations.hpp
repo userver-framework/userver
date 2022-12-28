@@ -332,6 +332,29 @@ class Aggregate {
   utils::FastPimpl<Impl, kSize, kAlignment, false> impl_;
 };
 
+class Drop {
+ public:
+  Drop();
+  ~Drop();
+
+  Drop(const Drop&);
+  Drop(Drop&&) noexcept;
+  Drop& operator=(const Drop&);
+  Drop& operator=(Drop&&) noexcept;
+
+  void SetOption(const options::WriteConcern&);
+  void SetOption(options::WriteConcern::Level);
+
+ private:
+  friend class storages::mongo::impl::cdriver::CDriverCollectionImpl;
+
+  class Impl;
+  static constexpr size_t kSize = 48;
+  static constexpr size_t kAlignment = 8;
+  // MAC_COMPAT: std::string size differs
+  utils::FastPimpl<Impl, kSize, kAlignment, false> impl_;
+};
+
 }  // namespace storages::mongo::operations
 
 USERVER_NAMESPACE_END

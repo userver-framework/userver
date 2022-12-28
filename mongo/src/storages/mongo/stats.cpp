@@ -129,6 +129,8 @@ std::string ToString(WriteOperationStatistics::OpType type) {
       return "find-and-remove";
     case Type::kBulk:
       return "bulk";
+    case Type::kDrop:
+      return "drop";
   }
 
   UINVARIANT(false, "Unexpected type");

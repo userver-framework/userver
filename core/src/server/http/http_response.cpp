@@ -209,10 +209,12 @@ void HttpResponse::SendResponse(engine::io::Socket& socket) {
     header.append(kCrlf);
   }
 
-  if (IsBodyStreamed())
+  if (IsBodyStreamed() && GetData().empty()) {
     SetBodyStreamed(socket, header);
-  else
+  } else {
+    // e.g. a CustomHandlerException
     SetBodyNotstreamed(socket, header);
+  }
 }
 
 void HttpResponse::SetBodyNotstreamed(engine::io::Socket& socket,
@@ -255,12 +257,10 @@ void HttpResponse::SetBodyStreamed(engine::io::Socket& socket,
 
   // send HTTP headers
   size_t sent_bytes = socket.SendAll(header.data(), header.size(), {});
-
   std::string().swap(header);  // free memory before time consuming operation
 
   // Transmit HTTP response body
   std::string body_part;
-
   while (body_stream_->Pop(body_part)) {
     if (body_part.empty()) {
       LOG_DEBUG() << "Zero size body_part in http_response.cpp";

@@ -137,6 +137,20 @@ components_manager:
             testpoint-url: $mockserver/testpoint
             throttling_enabled: false
         testsuite-support:
+        sample-cache:
+            update-types: full-and-incremental
+            full-update-interval: 1h
+            update-interval: 15m
+            dump:
+                enable: true
+                world-readable: false
+                format-version: 0
+                first-update-mode: required
+                first-update-type: full
+        sample-lru-cache:
+            size: 1024
+            ways: 32
+            lifetie: 1s
         tracer:
             service-name: $service-name
             tracer: native

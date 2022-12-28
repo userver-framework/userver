@@ -47,15 +47,10 @@ async def test_basic(service_client, loop, monitor_client):
     # /// [Functional test]
 
 
-_GATE_CLIENT_PORT = 9181
-
-
 @pytest.fixture(name='gate', scope='function')
 async def _gate(loop):
     gate_config = chaos.GateRoute(
         name='tcp proxy',
-        host_for_client='localhost',
-        port_for_client=_GATE_CLIENT_PORT,
         host_to_server='localhost',
         port_to_server=_SERVICE_PORT,
     )
@@ -71,7 +66,7 @@ async def test_delay_recv(service_client, loop, monitor_client, gate):
     gate.to_client_delay(TIMEOUT)
 
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    await loop.sock_connect(sock, ('localhost', _GATE_CLIENT_PORT))
+    await loop.sock_connect(sock, gate.get_sockname_for_clients())
     sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
 
     recv_task = asyncio.create_task(recv_all_data(sock, loop))
@@ -96,7 +91,7 @@ async def test_data_combine(service_client, loop, monitor_client, gate):
     gate.to_client_concat_packets(DATA_LENGTH)
 
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    await loop.sock_connect(sock, ('localhost', _GATE_CLIENT_PORT))
+    await loop.sock_connect(sock, gate.get_sockname_for_clients())
     sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
 
     send_task = asyncio.create_task(send_all_data(sock, loop))
@@ -115,7 +110,7 @@ async def test_down_pending_recv(service_client, loop, gate):
     gate.to_client_noop()
 
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    await loop.sock_connect(sock, ('localhost', _GATE_CLIENT_PORT))
+    await loop.sock_connect(sock, gate.get_sockname_for_clients())
     sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
 
     async def _recv_no_data(s, loop):
@@ -143,7 +138,7 @@ async def test_down_pending_recv(service_client, loop, gate):
     gate.to_client_pass()
 
     sock2 = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock2.connect(('localhost', _GATE_CLIENT_PORT))
+    sock2.connect(gate.get_sockname_for_clients())
     await loop.sock_sendall(sock2, b'hi')
     hello = await loop.sock_recv(sock2, 2)
     assert hello == b'hi'

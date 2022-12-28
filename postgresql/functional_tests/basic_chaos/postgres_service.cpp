@@ -63,8 +63,8 @@ std::string PostgresHandler::HandleRequestThrow(
   }
 
   if (type == "fill") {
-    storages::postgres::CommandControl cc{std::chrono::seconds(3),
-                                          std::chrono::seconds(3)};
+    storages::postgres::CommandControl cc{std::chrono::seconds(1),
+                                          std::chrono::seconds(1)};
     TESTPOINT("before_trx_begin", {});
     auto transaction =
         pg_cluster_->Begin(storages::postgres::ClusterHostType::kMaster,

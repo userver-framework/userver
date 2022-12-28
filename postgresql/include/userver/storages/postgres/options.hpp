@@ -108,9 +108,9 @@ const std::string& BeginStatement(const TransactionOptions&);
 /// exception and the driver tries to clean up the connection for further reuse.
 struct CommandControl {
   /// Overall timeout for a command being executed
-  TimeoutDuration execute;
+  TimeoutDuration execute{};
   /// PostgreSQL server-side timeout
-  TimeoutDuration statement;
+  TimeoutDuration statement{};
 
   constexpr CommandControl(TimeoutDuration execute, TimeoutDuration statement)
       : execute(execute), statement(statement) {}

@@ -160,6 +160,7 @@ class RequestProcessor final {
       auto level = handler_.GetLogLevelForResponseStatus(http_status);
       LOG(level) << "custom handler exception in '" << handler_.HandlerName()
                  << "' handler in " + step_name + ": msg=" << ex;
+
       response.SetStatus(http_status);
       if (ex.IsExternalErrorBodyFormatted()) {
         response.SetData(ex.GetExternalErrorBody());
@@ -506,14 +507,37 @@ void HttpHandlerBase::HandleRequest(request::RequestBase& request,
             auto& response = http_request.GetHttpResponse();
             utils::ScopeGuard scope([&response] { response.SetHeadersEnd(); });
 
+            auto& http_response = http_request.GetHttpResponse();
             server::http::ResponseBodyStream response_body_stream{
-                response.GetBodyProducer(), http_request.GetHttpResponse()};
+                response.GetBodyProducer(), http_response};
 
             // Just in case HandleStreamRequest() throws an exception.
             // Though it can be changed in HandleStreamRequest().
             response_body_stream.SetStatusCode(500);
 
-            HandleStreamRequest(http_request, context, response_body_stream);
+            try {
+              HandleStreamRequest(http_request, context, response_body_stream);
+            } catch (const CustomHandlerException& e) {
+              response_body_stream.SetStatusCode(
+                  static_cast<int>(http::GetHttpStatus(e.GetCode())));
+
+              if (e.IsExternalErrorBodyFormatted()) {
+                response_body_stream.SetEndOfHeaders();
+                response_body_stream.PushBodyChunk(
+                    std::string{e.GetExternalErrorBody()});
+              } else {
+                auto formatted_error = GetFormattedExternalErrorBody(e);
+                if (formatted_error.content_type) {
+                  response_body_stream.SetHeader(
+                      USERVER_NAMESPACE::http::headers::kContentType,
+                      move(formatted_error.content_type->ToString()));
+                }
+                response_body_stream.SetEndOfHeaders();
+                response_body_stream.PushBodyChunk(
+                    std::move(formatted_error.external_body));
+              }
+              throw;
+            }
           } else {
             // !IsBodyStreamed()
             response.SetData(HandleRequestThrow(http_request, context));
@@ -525,6 +549,7 @@ void HttpHandlerBase::HandleRequest(request::RequestBase& request,
 
   SetResponseAcceptEncoding(response);
   SetResponseServerHostname(response);
+  response.SetHeadersEnd();
 }
 
 void HttpHandlerBase::ThrowUnsupportedHttpMethod(
