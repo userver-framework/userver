@@ -85,3 +85,4 @@ groups:
       - samples/redis_service/dynamic_config_fallback.json
       - redis/functional_tests/integration_tests/dynamic_config_fallback.json
       - redis/functional_tests/basic_chaos/dynamic_config_fallback.json
+      - redis/functional_tests/metrics/dynamic_config_fallback.json

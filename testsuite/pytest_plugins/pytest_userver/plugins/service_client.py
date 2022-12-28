@@ -67,9 +67,19 @@ def monitor_client(
 
 @pytest.fixture
 async def _service_client_base(service_baseurl, service_client_options):
-    return base_service_client.Client(
-        service_baseurl, **service_client_options,
-    )
+    class _ClientDiagnose(base_service_client.Client):
+        def __getattr__(self, name: str) -> None:
+            raise AttributeError(
+                f'"Client" object has no attribute "{name}". '
+                'Note that "service_client" fixture returned the basic '
+                '"testsuite.daemons.service_client.Client" client rather than '
+                'a "pytest_userver.client.Client" client with userver '
+                'extensions. That happened because the service '
+                'static configuration file contains no "tests-control" '
+                'component with "action" field.',
+            )
+
+    return _ClientDiagnose(service_baseurl, **service_client_options)
 
 
 @pytest.fixture
