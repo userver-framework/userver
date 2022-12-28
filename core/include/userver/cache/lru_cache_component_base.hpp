@@ -81,7 +81,8 @@ yaml_config::Schema GetLruCacheComponentBaseSchema();
 
 // clang-format on
 template <typename Key, typename Value, typename Hash = std::hash<Key>,
-          typename Equal = std::equal_to<Key>>
+          typename Equal = std::equal_to<Key>,
+          CachePolicy Policy = CachePolicy::kLRU>
 // NOLINTNEXTLINE(fuchsia-multiple-inheritance)
 class LruCacheComponent : public components::LoggableComponentBase,
                           private dump::DumpableEntity {
