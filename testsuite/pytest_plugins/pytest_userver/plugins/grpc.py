@@ -4,6 +4,7 @@ Make gRPC requests to the service.
 @sa @ref md_en_userver_tutorial_grpc_service
 """
 
+# pylint: disable=no-member
 import asyncio
 
 import grpc

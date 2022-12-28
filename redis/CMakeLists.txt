@@ -135,13 +135,3 @@ if (USERVER_IS_THE_ROOT_PROJECT)
   add_subdirectory(tools/redisclient)
   add_subdirectory(functional_tests)
 endif()
-
-if (USERVER_FEATURE_UTEST)
-    # Target with no need to use userver namespace, but includes require userver/
-    add_library(yandex-${PROJECT_NAME}_utest INTERFACE)
-    target_link_libraries(yandex-${PROJECT_NAME}_utest INTERFACE ${PROJECT_NAME}_utest)
-endif()
-
-# Target with no need to use userver namespace, but includes require userver/
-add_library(yandex-${PROJECT_NAME} INTERFACE)
-target_link_libraries(yandex-${PROJECT_NAME} INTERFACE ${PROJECT_NAME})

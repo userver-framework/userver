@@ -189,7 +189,7 @@ See the full example:
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref md_en_userver_tutorial_mongo_service | @ref md_en_userver_component_system ⇨
+⇦ @ref md_en_userver_tutorial_mongo_service | @ref md_en_userver_tutorial_auth_postgres ⇨
 @htmlonly </div> @endhtmlonly
 
 @example samples/redis_service/redis_service.cpp

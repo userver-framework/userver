@@ -22,6 +22,7 @@ inline constexpr std::string_view kRuntimeConfig = R"~({
   "USERVER_CANCEL_HANDLE_REQUEST_BY_DEADLINE": false,
   "USERVER_HTTP_PROXY": "",
   "USERVER_NO_LOG_SPANS":{"names":[], "prefixes":[]},
+  "USERVER_HANDLER_STREAM_API_ENABLED": true,
   "USERVER_TASK_PROCESSOR_QOS": {
     "default-service": {
       "default-task-processor": {
@@ -34,6 +35,7 @@ inline constexpr std::string_view kRuntimeConfig = R"~({
     }
   },
   "USERVER_CACHES": {},
+  "USERVER_RPS_CCONTROL_ACTIVATED_FACTOR_METRIC": 5,
   "USERVER_LRU_CACHES": {},
   "USERVER_DUMPS": {},
   "HTTP_CLIENT_CONNECTION_POOL_SIZE": 1000,

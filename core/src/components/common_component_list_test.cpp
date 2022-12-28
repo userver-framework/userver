@@ -19,7 +19,7 @@ const std::string kRuntimeConfingPath =
 const std::string kConfigVariablesPath =
     kTmpDir.GetPath() + "/config_vars.json";
 
-const std::string_view kConfigVariables = R"(
+constexpr std::string_view kConfigVariables = R"(
   userver-dumps-root: {0}
   runtime_config_path: {1}
   access_log_path: {0}/access.log

@@ -12,6 +12,7 @@
 #include <userver/server/handlers/http_handler_json_base.hpp>
 #include <userver/server/handlers/tests_control.hpp>
 #include <userver/storages/secdist/component.hpp>
+#include <userver/storages/secdist/provider_component.hpp>
 #include <userver/testsuite/testpoint.hpp>
 #include <userver/testsuite/testsuite_support.hpp>
 #include <userver/utils/daemon_run.hpp>
@@ -71,22 +72,29 @@ class MyRabbitConsumer final
                    const components::ComponentContext& context)
       : userver::urabbitmq::ConsumerComponentBase{config, context} {}
 
-  std::vector<std::string> GetConsumedMessages() {
+  std::vector<int> GetConsumedMessages() {
     auto storage = storage_.Lock();
 
-    return *storage;
+    auto messages = *storage;
+    // We sort messages here because `Process` might run in parallel
+    // and ordering is not guaranteed.
+    std::sort(messages.begin(), messages.end());
+
+    return messages;
   }
 
  protected:
   void Process(std::string message) override {
+    const auto as_integer = std::stoi(message);
+
     auto storage = storage_.Lock();
-    storage->push_back(std::move(message));
+    storage->push_back(as_integer);
 
     TESTPOINT("message_consumed", {});
   }
 
  private:
-  userver::concurrent::Variable<std::vector<std::string>> storage_;
+  userver::concurrent::Variable<std::vector<int>> storage_;
 };
 
 class RequestHandler final : public server::handlers::HttpHandlerJsonBase {
@@ -147,6 +155,7 @@ int main(int argc, char* argv[]) {
           .Append<samples::urabbitmq::RequestHandler>()
           .Append<userver::clients::dns::Component>()
           .Append<userver::components::Secdist>()
+          .Append<userver::components::DefaultSecdistProvider>()
           .Append<userver::components::TestsuiteSupport>()
           .Append<userver::server::handlers::TestsControl>()
           .Append<components::HttpClient>();

@@ -22,8 +22,8 @@ def client_deps():
 @pytest.fixture
 async def service_client(
         ensure_daemon_started,
-        mockserver,
         service_daemon,
+        mock_configs_service,
         client_deps,
         _testsuite_client_config: client.TestsuiteClientConfig,
         _service_client_base,

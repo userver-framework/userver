@@ -62,6 +62,7 @@ class HttpHandlerBase : public HandlerBase {
 
   void HandleRequest(request::RequestBase& request,
                      request::RequestContext& context) const override;
+
   void ReportMalformedRequest(request::RequestBase& request) const final;
 
   virtual const std::string& HandlerName() const;
@@ -154,6 +155,10 @@ class HttpHandlerBase : public HandlerBase {
   virtual std::string GetMetaType(const http::HttpRequest&) const;
 
  private:
+  void HandleRequestStream(const http::HttpRequest& http_request,
+                           http::HttpResponse& response,
+                           request::RequestContext& context) const;
+
   std::string GetRequestBodyForLoggingChecked(
       const http::HttpRequest& request, request::RequestContext& context,
       const std::string& request_body) const;

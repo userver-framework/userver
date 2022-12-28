@@ -4,6 +4,7 @@ Mocks for the gRPC servers.
 @sa @ref md_en_userver_tutorial_grpc_service
 """
 
+# pylint: disable=no-member
 import asyncio
 import contextlib
 import functools

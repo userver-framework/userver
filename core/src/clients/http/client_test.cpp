@@ -7,7 +7,6 @@
 #include <boost/algorithm/string/trim.hpp>
 
 #include <clients/http/testsuite.hpp>
-#include <engine/task/task_context.hpp>
 #include <engine/task/task_processor.hpp>
 #include <userver/clients/dns/resolver.hpp>
 #include <userver/clients/http/streamed_response.hpp>
@@ -619,8 +618,7 @@ UTEST(HttpClient, CancelPre) {
     const utest::SimpleServer http_server{EchoCallback{}};
     auto http_client_ptr = utest::CreateHttpClient();
 
-    engine::current_task::GetCurrentTaskContext().RequestCancel(
-        engine::TaskCancellationReason::kUserRequest);
+    engine::current_task::GetCancellationToken().RequestCancel();
 
     UEXPECT_THROW(http_client_ptr->CreateRequest(),
                   clients::http::CancelException);
@@ -638,8 +636,7 @@ UTEST(HttpClient, CancelPost) {
                              ->post(http_server.GetBaseUrl(), kTestData)
                              ->timeout(kTimeout);
 
-    engine::current_task::GetCurrentTaskContext().RequestCancel(
-        engine::TaskCancellationReason::kUserRequest);
+    engine::current_task::GetCancellationToken().RequestCancel();
 
     auto future = request->async_perform();
     UEXPECT_THROW(future.Wait(), clients::http::CancelException);
@@ -684,8 +681,7 @@ UTEST(HttpClient, CancelRetries) {
   ASSERT_TRUE(enough_retries_event.WaitForEventFor(utest::kMaxTestWaitTime));
 
   const auto cancellation_start_time = std::chrono::steady_clock::now();
-  engine::current_task::GetCurrentTaskContext().RequestCancel(
-      engine::TaskCancellationReason::kUserRequest);
+  engine::current_task::GetCancellationToken().RequestCancel();
 
   const auto request_creation_duration =
       cancellation_start_time - start_create_request_time;

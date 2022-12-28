@@ -37,7 +37,7 @@ constexpr std::string_view k{{service.name}}MethodNames[] = {
     {% if not method.client_streaming %}
     const {{ method.input_type | grpc_to_cpp_name }}& request,
     {% endif %}
-    std::unique_ptr<::grpc::ClientContext> context) {
+    std::unique_ptr<::grpc::ClientContext> context) const {
   return {impl_.NextStub<{{proto.namespace}}::{{service.name}}>(),
           impl_.GetQueue(),
           &{{proto.namespace}}::{{service.name}}::Stub::PrepareAsync{{method.name}},

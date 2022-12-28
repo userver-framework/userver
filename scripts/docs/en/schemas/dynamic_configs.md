@@ -149,6 +149,26 @@ schema:
 Used by components::Mongo, components::MultiMongo.
 
 
+@anchor MONGO_DEADLINE_PROPAGATION_ENABLED
+## MONGO_DEADLINE_PROPAGATION_ENABLED
+
+Dynamic config that controls whether task-inherited deadline is accounted for
+while executing mongodb queries.
+
+```
+yaml
+schema:
+    type: boolean
+```
+
+**Example:**
+```json
+false
+```
+
+Used by components::Mongo, components::MultiMongo.
+
+
 @anchor POSTGRES_DEFAULT_COMMAND_CONTROL
 ## POSTGRES_DEFAULT_COMMAND_CONTROL
 
@@ -267,7 +287,7 @@ definitions:
   "select_recent_users": {
     "network_timeout_ms": 70,
     "statement_timeout_ms": 30
-  },
+  }
 }
 ```
 

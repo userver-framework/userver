@@ -4,16 +4,16 @@
 
 #include <bson/bson.h>
 
-#include <storages/mongo/stats.hpp>
 #include <userver/clients/dns/resolver.hpp>
 #include <userver/formats/bson.hpp>
 #include <userver/logging/log.hpp>
-#include <userver/storages/mongo/exception.hpp>
-#include <userver/storages/mongo/mongo_error.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/traceful_exception.hpp>
 
 #include <storages/mongo/cdriver/async_stream.hpp>
+#include <storages/mongo/stats.hpp>
+#include <userver/storages/mongo/exception.hpp>
+#include <userver/storages/mongo/mongo_error.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -121,8 +121,8 @@ mongoc_ssl_opt_t MakeSslOpt(const mongoc_uri_t* uri) {
 CDriverPoolImpl::CDriverPoolImpl(std::string id, const std::string& uri_string,
                                  const PoolConfig& config,
                                  clients::dns::Resolver* dns_resolver,
-                                 Config mongo_config)
-    : PoolImpl(std::move(id), mongo_config),
+                                 dynamic_config::Source config_source)
+    : PoolImpl(std::move(id), config_source),
       app_name_(config.app_name),
       init_data_{dns_resolver, {}},
       max_size_(config.max_size),
