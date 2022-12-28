@@ -8,8 +8,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::redis {
 
-template <typename ScriptResult,
-          typename ReplyType = impl::DefaultReplyType<ScriptResult>>
+template <typename ScriptResult, typename ReplyType = ScriptResult>
 class USERVER_NODISCARD RequestEval final {
  public:
   explicit RequestEval(RequestEvalCommon&& request)

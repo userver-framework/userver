@@ -21,7 +21,7 @@ namespace storages::redis {
 template <ScanTag scan_tag>
 class RequestScanData;
 
-template <typename Result, typename ReplyType = impl::DefaultReplyType<Result>>
+template <typename Result, typename ReplyType = Result>
 class USERVER_NODISCARD Request final {
  public:
   using Reply = ReplyType;

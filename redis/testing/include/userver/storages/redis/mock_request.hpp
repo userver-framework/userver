@@ -107,7 +107,7 @@ class MockRequestScanData : public RequestScanDataBase<scan_tag> {
   std::deque<ReplyElem> data_;
 };
 
-template <typename Result, typename ReplyType = DefaultReplyType<Result>>
+template <typename Result, typename ReplyType = Result>
 Request<Result, ReplyType> CreateMockRequest(
     Result&& result, Request<Result, ReplyType>* /* for ADL */) {
   return Request<Result, ReplyType>(
@@ -115,7 +115,7 @@ Request<Result, ReplyType> CreateMockRequest(
           std::forward<Result>(result)));
 }
 
-template <typename Result, typename ReplyType = DefaultReplyType<Result>>
+template <typename Result, typename ReplyType = Result>
 Request<Result, ReplyType> CreateMockRequestVoid(
     Request<Result, ReplyType>* /* for ADL */) {
   static_assert(std::is_same<ReplyType, void>::value, "ReplyType must be void");
@@ -123,7 +123,7 @@ Request<Result, ReplyType> CreateMockRequestVoid(
       std::make_unique<MockRequestData<Result, ReplyType>>());
 }
 
-template <typename Result, typename ReplyType = DefaultReplyType<Result>>
+template <typename Result, typename ReplyType = Result>
 Request<Result, ReplyType> CreateMockRequestTimeout(
     Request<Result, ReplyType>* /* for ADL */) {
   return Request<Result, ReplyType>(

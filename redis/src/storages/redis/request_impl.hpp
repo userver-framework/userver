@@ -11,7 +11,7 @@ USERVER_NAMESPACE_BEGIN
 namespace storages::redis {
 namespace impl {
 
-template <typename Result, typename ReplyType = DefaultReplyType<Result>>
+template <typename Result, typename ReplyType = Result>
 Request<Result, ReplyType> CreateRequest(
     USERVER_NAMESPACE::redis::Request&& request,
     Request<Result, ReplyType>* /* for ADL */) {
@@ -19,7 +19,7 @@ Request<Result, ReplyType> CreateRequest(
       std::make_unique<RequestDataImpl<Result, ReplyType>>(std::move(request)));
 }
 
-template <typename Result, typename ReplyType = DefaultReplyType<Result>>
+template <typename Result, typename ReplyType = Result>
 Request<Result, ReplyType> CreateAggregateRequest(
     std::vector<USERVER_NAMESPACE::redis::Request>&& requests,
     Request<Result, ReplyType>* /* for ADL */) {
@@ -34,7 +34,7 @@ Request<Result, ReplyType> CreateAggregateRequest(
           std::move(req_data)));
 }
 
-template <typename Result, typename ReplyType = DefaultReplyType<Result>>
+template <typename Result, typename ReplyType = Result>
 Request<Result, ReplyType> CreateDummyRequest(
     ReplyPtr&& reply, Request<Result, ReplyType>* /* for ADL */) {
   return Request<Result, ReplyType>(
