@@ -16,12 +16,13 @@ namespace {
 
 class NativeResultDeleter final {
  public:
-  NativeResultDeleter(MySQLConnection& connection) : connection_{connection} {}
+  NativeResultDeleter(MySQLConnection& connection, engine::Deadline deadline)
+      : connection_{connection}, deadline_{deadline} {}
 
   void operator()(MYSQL_RES* native_result) {
     try {
-      MySQLNativeInterface{connection_.GetSocket(), {} /* TODO : deadline */}
-          .QueryFreeResult(native_result);
+      MySQLNativeInterface{connection_.GetSocket(), deadline_}.QueryFreeResult(
+          native_result);
     } catch (const std::exception& ex) {
       LOG_WARNING() << "Failed to correctly dispose a query result: "
                     << ex.what();
@@ -30,6 +31,7 @@ class NativeResultDeleter final {
 
  private:
   MySQLConnection& connection_;
+  engine::Deadline deadline_;
 };
 
 }  // namespace
@@ -42,21 +44,24 @@ MySQLPlainQuery::~MySQLPlainQuery() = default;
 
 MySQLPlainQuery::MySQLPlainQuery(MySQLPlainQuery&& other) noexcept = default;
 
-void MySQLPlainQuery::Execute(engine::Deadline deadline) {
+void MySQLPlainQuery::Execute(BrokenGuard& guard, engine::Deadline deadline) {
   int err =
       MySQLNativeInterface{connection_->GetSocket(), deadline}.QueryExecute(
           &connection_->GetNativeHandler(), query_.data(), query_.length());
 
   if (err != 0) {
-    throw std::runtime_error{
-        connection_->GetNativeError("Failed to execute a query: ")};
+    guard.ThrowCommandException(
+        mysql_errno(&connection_->GetNativeHandler()),
+        connection_->GetNativeError("Failed to execute a query: "));
   }
 }
 
-MySQLResult MySQLPlainQuery::FetchResult(engine::Deadline deadline) {
+MySQLResult MySQLPlainQuery::FetchResult(BrokenGuard&,
+                                         engine::Deadline deadline) {
   std::unique_ptr<MYSQL_RES, NativeResultDeleter> native_result{
-      mysql_use_result(&connection_->GetNativeHandler()),
-      NativeResultDeleter{*connection_}};
+      MySQLNativeInterface{connection_->GetSocket(), deadline}.QueryStoreResult(
+          &connection_->GetNativeHandler()),
+      NativeResultDeleter{*connection_, deadline}};
   if (!native_result) {
     // Well, query doesn't return any result set
     return {};

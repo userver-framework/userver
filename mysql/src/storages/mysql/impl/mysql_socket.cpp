@@ -7,6 +7,8 @@
 #include <userver/engine/task/task.hpp>
 #include <userver/utils/assert.hpp>
 
+#include <userver/storages/mysql/exceptions.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::mysql::impl {
@@ -77,7 +79,10 @@ int MySQLSocket::Wait(engine::Deadline deadline) {
   int ev_events = 0;
   const auto mysql_events = mysql_events_to_wait_on_.load();
   if (mysql_events & MYSQL_WAIT_READ) ev_events |= EV_READ;
+  if (mysql_events & MYSQL_WAIT_EXCEPT) ev_events |= EV_READ;
   if (mysql_events & MYSQL_WAIT_WRITE) ev_events |= EV_WRITE;
+  UASSERT_MSG(!(mysql_events & MYSQL_WAIT_TIMEOUT),
+              "Native timeouts shouldn't be used");
 
   watcher_.RunInBoundEvLoopAsync(
       [this, ev_events] { watcher_.Set(fd_, ev_events); });
@@ -86,10 +91,10 @@ int MySQLSocket::Wait(engine::Deadline deadline) {
   auto ret = DoWait(deadline, *waiters_, watcher_);
   if (ret != WakeupSource::kWaitList) {
     if (ret == WakeupSource::kCancelRequest) {
-      // TODO : CancellationPoint()?
-      throw std::runtime_error{"Wait cancelled"};
+      throw MySQLIOException{0, "Canceled while waiting for IO event to occur"};
     } else if (ret == WakeupSource::kDeadlineTimer) {
-      throw std::runtime_error{"Wait timed out"};
+      throw MySQLIOException{0,
+                             "Timed out while waiting for IO event to occur"};
     }
   }
 

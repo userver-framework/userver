@@ -13,6 +13,7 @@
 #include <storages/mysql/impl/mysql_native_interface.hpp>
 #include <storages/mysql/impl/mysql_plain_query.hpp>
 #include <storages/mysql/settings/settings.hpp>
+#include <userver/storages/mysql/exceptions.hpp>
 #include <userver/storages/mysql/impl/io/extractor.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -90,8 +91,8 @@ MySQLResult MySQLConnection::ExecutePlain(const std::string& query,
   auto broken_guard = GetBrokenGuard();
 
   MySQLPlainQuery mysql_query{*this, query};
-  mysql_query.Execute(deadline);
-  return mysql_query.FetchResult(deadline);
+  mysql_query.Execute(broken_guard, deadline);
+  return mysql_query.FetchResult(broken_guard, deadline);
 }
 
 MySQLStatementFetcher MySQLConnection::ExecuteStatement(
@@ -101,7 +102,7 @@ MySQLStatementFetcher MySQLConnection::ExecuteStatement(
 
   auto& mysql_statement = PrepareStatement(statement, deadline, batch_size);
 
-  return mysql_statement.Execute(deadline, params);
+  return mysql_statement.Execute(broken_guard, params, deadline);
 }
 
 void MySQLConnection::ExecuteInsert(const std::string& insert_statement,
@@ -116,28 +117,32 @@ void MySQLConnection::Ping(engine::Deadline deadline) {
   int err = MySQLNativeInterface{socket_, deadline}.Ping(&mysql_);
 
   if (err != 0) {
-    throw std::runtime_error{GetNativeError("Failed to ping the server")};
+    // TODO : reason
+    throw MySQLException{mysql_errno(&mysql_),
+                         GetNativeError("Failed to ping the server")};
   }
 }
 
 void MySQLConnection::Commit(engine::Deadline deadline) {
-  auto broken_guard = GetBrokenGuard();
+  auto guard = GetBrokenGuard();
 
   my_bool err = MySQLNativeInterface{socket_, deadline}.Commit(&mysql_);
 
   if (err != 0) {
-    throw std::runtime_error{GetNativeError("Failed to commit a transaction")};
+    guard.ThrowTransactionException(
+        mysql_errno(&mysql_), GetNativeError("Failed to commit a transaction"));
   }
 }
 
 void MySQLConnection::Rollback(engine::Deadline deadline) {
-  auto broken_guard = GetBrokenGuard();
+  auto guard = GetBrokenGuard();
 
   my_bool err = MySQLNativeInterface{socket_, deadline}.Rollback(&mysql_);
 
   if (err != 0) {
-    throw std::runtime_error{
-        GetNativeError("Failed to rollback a transaction")};
+    guard.ThrowTransactionException(
+        mysql_errno(&mysql_),
+        GetNativeError("Failed to rollback a transaction"));
   }
 }
 
@@ -150,8 +155,8 @@ bool MySQLConnection::IsBroken() const { return broken_.load(); }
 const char* MySQLConnection::GetNativeError() { return mysql_error(&mysql_); }
 
 std::string MySQLConnection::GetNativeError(std::string_view prefix) {
-  return fmt::format("{}: {}. Errno: {}", prefix, mysql_error(&mysql_),
-                     mysql_errno(&mysql_));
+  return fmt::format("{}: error({}) [{}] \"{}\"", prefix, mysql_errno(&mysql_),
+                     mysql_sqlstate(&mysql_), mysql_error(&mysql_));
 }
 
 std::string MySQLConnection::EscapeString(std::string_view source) {
@@ -166,9 +171,7 @@ const metadata::MySQLServerInfo& MySQLConnection::GetServerInfo() const {
   return server_info_;
 }
 
-MySQLConnection::BrokenGuard MySQLConnection::GetBrokenGuard() {
-  return BrokenGuard{*this};
-}
+BrokenGuard MySQLConnection::GetBrokenGuard() { return BrokenGuard{*this}; }
 
 void MySQLConnection::NotifyBroken() { broken_.store(true); }
 
@@ -201,8 +204,8 @@ void MySQLConnection::InitSocket(
     }
   }
 
-  throw std::runtime_error{
-      "Failed to connect to any of the the resolved addresses"};
+  throw MySQLException{
+      0, "Failed to connect to any of the the resolved addresses"};
 }
 
 bool MySQLConnection::DoInitSocket(
@@ -246,8 +249,9 @@ bool MySQLConnection::DoInitSocket(
     // If we call mysql_close here - we SEGFAULT.
     // If we don't - we leak.
     // https://jira.mariadb.org/browse/CONC-622
-    // TODO : this has to be fixed somehow
-    LOG_WARNING() << fmt::format("Failed to connect to {}:{}", ip, port);
+    // TODO : this must be fixed somehow
+    mysql_close(&mysql_);
+    LOG_WARNING() << GetNativeError("Failed to connect");
     return false;
   }
 
@@ -274,22 +278,6 @@ MySQLStatement& MySQLConnection::PrepareStatement(
   }
 
   return mysql_statement;
-}
-
-MySQLConnection::BrokenGuard::BrokenGuard(MySQLConnection& connection)
-    : exceptions_on_enter_{std::uncaught_exceptions()},
-      broken_{connection.broken_} {
-  if (broken_.load()) {
-    throw std::runtime_error{"Connection is broken"};
-  }
-}
-
-MySQLConnection::BrokenGuard::~BrokenGuard() {
-  if (exceptions_on_enter_ != std::uncaught_exceptions()) {
-    // TODO : we don't actually have to break a connection unconditionally here:
-    // some errors are fine.
-    broken_.store(true);
-  }
 }
 
 }  // namespace storages::mysql::impl

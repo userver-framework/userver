@@ -9,6 +9,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::mysql::impl {
 
+class BrokenGuard;
 class MySQLConnection;
 
 class MySQLPlainQuery final {
@@ -19,8 +20,8 @@ class MySQLPlainQuery final {
   MySQLPlainQuery(const MySQLPlainQuery& other) = delete;
   MySQLPlainQuery(MySQLPlainQuery&& other) noexcept;
 
-  void Execute(engine::Deadline deadline);
-  MySQLResult FetchResult(engine::Deadline deadline);
+  void Execute(BrokenGuard& guard, engine::Deadline deadline);
+  MySQLResult FetchResult(BrokenGuard& guard, engine::Deadline deadline);
 
  private:
   MySQLConnection* connection_;

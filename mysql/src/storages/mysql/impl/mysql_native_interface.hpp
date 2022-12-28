@@ -24,6 +24,7 @@ class MySQLNativeInterface final {
   my_bool StatementClose(MYSQL_STMT* stmt) &&;
 
   int QueryExecute(MYSQL* mysql, const char* stmt_str, std::size_t length) &&;
+  MYSQL_RES* QueryStoreResult(MYSQL* mysql) &&;
   MYSQL_ROW QueryResultFetchRow(MYSQL_RES* result) &&;
   void QueryFreeResult(MYSQL_RES* result) &&;
 

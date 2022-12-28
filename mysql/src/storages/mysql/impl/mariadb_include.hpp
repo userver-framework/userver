@@ -1,6 +1,8 @@
 #pragma once
 
+#include <mariadb/errmsg.h>
 #include <mariadb/mysql.h>
+#include <mariadb/mysqld_error.h>
 
 USERVER_NAMESPACE_BEGIN
 

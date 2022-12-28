@@ -10,6 +10,7 @@
 
 #include <storages/mysql/impl/mariadb_include.hpp>
 
+#include <storages/mysql/impl/broken_guard.hpp>
 #include <storages/mysql/impl/metadata/mysql_server_info.hpp>
 #include <storages/mysql/impl/mysql_result.hpp>
 #include <storages/mysql/impl/mysql_socket.hpp>
@@ -68,15 +69,6 @@ class MySQLConnection final {
 
   const metadata::MySQLServerInfo& GetServerInfo() const;
 
-  class BrokenGuard final {
-   public:
-    explicit BrokenGuard(MySQLConnection& connection);
-    ~BrokenGuard();
-
-   private:
-    int exceptions_on_enter_;
-    std::atomic<bool>& broken_;
-  };
   BrokenGuard GetBrokenGuard();
 
   // There are places (destructors, basically) where we want to run some

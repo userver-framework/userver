@@ -103,6 +103,19 @@ int MySQLNativeInterface::QueryExecute(MYSQL* mysql, const char* stmt_str,
   return err;
 }
 
+MYSQL_RES* MySQLNativeInterface::QueryStoreResult(MYSQL* mysql) && {
+  MYSQL_RES* result{nullptr};
+
+  socket_.RunToCompletion(
+      [&result, mysql] { return mysql_store_result_start(&result, mysql); },
+      [&result, mysql](int mysql_events) {
+        return mysql_store_result_cont(&result, mysql, mysql_events);
+      },
+      deadline_);
+
+  return result;
+}
+
 MYSQL_ROW MySQLNativeInterface::QueryResultFetchRow(MYSQL_RES* result) && {
   MYSQL_ROW row{nullptr};
   socket_.RunToCompletion(
