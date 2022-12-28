@@ -83,7 +83,9 @@ yaml_config::Schema GetLruCacheComponentBaseSchema();
 template <typename Key, typename Value, typename Hash = std::hash<Key>,
           typename Equal = std::equal_to<Key>,
           CachePolicy Policy = CachePolicy::kLRU>
-class LruCacheComponent : public components::LoggableComponentBase {
+// NOLINTNEXTLINE(fuchsia-multiple-inheritance)
+class LruCacheComponent : public components::LoggableComponentBase,
+                          private dump::DumpableEntity {
  public:
   using Cache = ExpirableLruCache<Key, Value, Hash, Equal, Policy>;
   using CacheWrapper = LruCacheWrapper<Key, Value, Hash, Equal, Policy>;

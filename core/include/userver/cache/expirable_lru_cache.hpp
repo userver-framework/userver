@@ -159,12 +159,7 @@ class ExpirableLruCache final {
   bool ShouldUpdate(std::chrono::steady_clock::time_point update_time,
                     std::chrono::steady_clock::time_point now) const;
 
- struct MapValue {
-    Value value;
-    std::chrono::steady_clock::time_point update_time;
-  };
-
-  cache::NWayLRU<Key, MapValue, Hash, Equal, Policy> lru_;
+  cache::NWayLRU<Key, impl::ExpirableValue<Value>, Hash, Equal, Policy> lru_;
 
   std::atomic<std::chrono::milliseconds> max_lifetime_{
       std::chrono::milliseconds(0)};
