@@ -45,9 +45,10 @@ std::string_view ErrorDescription(ParseErrorCode error_code) {
 
 std::string GetErrorMessage(std::string_view source, std::string_view path,
                             size_t position, ParseErrorCode reason) {
-  return fmt::format(FMT_STRING("While parsing Decimal at '{}' from '{}', "
-                                "error at char #{}: {}"),
-                     path, source, position + 1, ErrorDescription(reason));
+  return fmt::format(
+      "While parsing Decimal at '{}' from '{}', "
+      "error at char #{}: {}",
+      path, source, position + 1, ErrorDescription(reason));
 }
 
 void TrimTrailingZeros(int64_t& after, int& after_precision) {

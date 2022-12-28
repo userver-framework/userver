@@ -15,7 +15,8 @@ namespace cache {
 
 /// @ingroup userver_containers
 template <typename T, typename U, typename Hash = std::hash<T>,
-          typename Equal = std::equal_to<T>>
+          typename Equal = std::equal_to<T>,
+          CachePolicy Policy = CachePolicy::kLRU>
 class NWayLRU final {
  public:
   NWayLRU(size_t ways, size_t way_size, const Hash& hash = Hash(),
@@ -59,7 +60,7 @@ class NWayLRU final {
     Way(const Hash& hash, const Equal& equal) : cache(1, hash, equal) {}
 
     mutable engine::Mutex mutex;
-    LruMap<T, U, Hash, Equal> cache;
+    LruMap<T, U, Hash, Equal, Policy> cache;
   };
 
   Way& GetWay(const T& key);
@@ -71,9 +72,10 @@ class NWayLRU final {
   std::shared_ptr<dump::Dumper> dumper_{nullptr};
 };
 
-template <typename T, typename U, typename Hash, typename Eq>
-NWayLRU<T, U, Hash, Eq>::NWayLRU(size_t ways, size_t way_size, const Hash& hash,
-                                 const Eq& equal)
+template <typename T, typename U, typename Hash, typename Eq,
+          CachePolicy Policy>
+NWayLRU<T, U, Hash, Eq, Policy>::NWayLRU(size_t ways, size_t way_size,
+                                         const Hash& hash, const Eq& equal)
     : caches_(), hash_fn_(hash) {
   caches_.reserve(ways);
   for (size_t i = 0; i < ways; ++i) caches_.emplace_back(hash, equal);
@@ -82,8 +84,9 @@ NWayLRU<T, U, Hash, Eq>::NWayLRU(size_t ways, size_t way_size, const Hash& hash,
   for (auto& way : caches_) way.cache.SetMaxSize(way_size);
 }
 
-template <typename T, typename U, typename Hash, typename Eq>
-void NWayLRU<T, U, Hash, Eq>::Put(const T& key, U value) {
+template <typename T, typename U, typename Hash, typename Eq,
+          CachePolicy Policy>
+void NWayLRU<T, U, Hash, Eq, Policy>::Put(const T& key, U value) {
   auto& way = GetWay(key);
   {
     std::unique_lock<engine::Mutex> lock(way.mutex);
@@ -92,10 +95,11 @@ void NWayLRU<T, U, Hash, Eq>::Put(const T& key, U value) {
   NotifyDumper();
 }
 
-template <typename T, typename U, typename Hash, typename Eq>
+template <typename T, typename U, typename Hash, typename Eq,
+          CachePolicy Policy>
 template <typename Validator>
-std::optional<U> NWayLRU<T, U, Hash, Eq>::Get(const T& key,
-                                              Validator validator) {
+std::optional<U> NWayLRU<T, U, Hash, Eq, Policy>::Get(const T& key,
+                                                      Validator validator) {
   auto& way = GetWay(key);
   std::unique_lock<engine::Mutex> lock(way.mutex);
   auto* value = way.cache.Get(key);
@@ -108,8 +112,9 @@ std::optional<U> NWayLRU<T, U, Hash, Eq>::Get(const T& key,
   return std::nullopt;
 }
 
-template <typename T, typename U, typename Hash, typename Eq>
-void NWayLRU<T, U, Hash, Eq>::InvalidateByKey(const T& key) {
+template <typename T, typename U, typename Hash, typename Eq,
+          CachePolicy Policy>
+void NWayLRU<T, U, Hash, Eq, Policy>::InvalidateByKey(const T& key) {
   auto& way = GetWay(key);
   {
     std::unique_lock<engine::Mutex> lock(way.mutex);
@@ -118,15 +123,17 @@ void NWayLRU<T, U, Hash, Eq>::InvalidateByKey(const T& key) {
   NotifyDumper();
 }
 
-template <typename T, typename U, typename Hash, typename Eq>
-U NWayLRU<T, U, Hash, Eq>::GetOr(const T& key, const U& default_value) {
+template <typename T, typename U, typename Hash, typename Eq,
+          CachePolicy Policy>
+U NWayLRU<T, U, Hash, Eq, Policy>::GetOr(const T& key, const U& default_value) {
   auto& way = GetWay(key);
   std::unique_lock<engine::Mutex> lock(way.mutex);
   return way.cache.GetOr(key, default_value);
 }
 
-template <typename T, typename U, typename Hash, typename Eq>
-void NWayLRU<T, U, Hash, Eq>::Invalidate() {
+template <typename T, typename U, typename Hash, typename Eq,
+          CachePolicy Policy>
+void NWayLRU<T, U, Hash, Eq, Policy>::Invalidate() {
   for (auto& way : caches_) {
     std::unique_lock<engine::Mutex> lock(way.mutex);
     way.cache.Clear();
@@ -134,17 +141,19 @@ void NWayLRU<T, U, Hash, Eq>::Invalidate() {
   NotifyDumper();
 }
 
-template <typename T, typename U, typename Hash, typename Eq>
+template <typename T, typename U, typename Hash, typename Eq,
+          CachePolicy Policy>
 template <typename Function>
-void NWayLRU<T, U, Hash, Eq>::VisitAll(Function func) const {
+void NWayLRU<T, U, Hash, Eq, Policy>::VisitAll(Function func) const {
   for (const auto& way : caches_) {
     std::unique_lock<engine::Mutex> lock(way.mutex);
     way.cache.VisitAll(func);
   }
 }
 
-template <typename T, typename U, typename Hash, typename Eq>
-size_t NWayLRU<T, U, Hash, Eq>::GetSize() const {
+template <typename T, typename U, typename Hash, typename Eq,
+          CachePolicy Policy>
+size_t NWayLRU<T, U, Hash, Eq, Policy>::GetSize() const {
   size_t size{0};
   for (const auto& way : caches_) {
     std::unique_lock<engine::Mutex> lock(way.mutex);
@@ -153,17 +162,19 @@ size_t NWayLRU<T, U, Hash, Eq>::GetSize() const {
   return size;
 }
 
-template <typename T, typename U, typename Hash, typename Eq>
-void NWayLRU<T, U, Hash, Eq>::UpdateWaySize(size_t way_size) {
+template <typename T, typename U, typename Hash, typename Eq,
+          CachePolicy Policy>
+void NWayLRU<T, U, Hash, Eq, Policy>::UpdateWaySize(size_t way_size) {
   for (auto& way : caches_) {
     std::unique_lock<engine::Mutex> lock(way.mutex);
     way.cache.SetMaxSize(way_size);
   }
 }
 
-template <typename T, typename U, typename Hash, typename Eq>
-typename NWayLRU<T, U, Hash, Eq>::Way& NWayLRU<T, U, Hash, Eq>::GetWay(
-    const T& key) {
+template <typename T, typename U, typename Hash, typename Eq,
+          CachePolicy Policy>
+typename NWayLRU<T, U, Hash, Eq, Policy>::Way&
+NWayLRU<T, U, Hash, Eq, Policy>::GetWay(const T& key) {
   auto n = hash_fn_(key) % caches_.size();
   return caches_[n];
 }

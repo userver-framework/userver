@@ -13,16 +13,7 @@ USERVER_CONFIG_HOOKS = [
     'userver_config_base',
     'userver_config_logging',
     'userver_config_testsuite',
-    'userver_config_fallback',
 ]
-
-
-class BaseError(Exception):
-    """Base class for exceptions of this module"""
-
-
-class ConfigNotFoundError(BaseError):
-    """Config parameter was not found and no default was provided"""
 
 
 class UserverConfigPlugin:
@@ -54,6 +45,12 @@ def pytest_configure(config):
 def pytest_addoption(parser) -> None:
     group = parser.getgroup('userver-config')
     group.addoption(
+        '--service-log-level',
+        type=str.lower,
+        default='debug',
+        choices=['trace', 'debug', 'info', 'warning', 'error', 'critical'],
+    )
+    group.addoption(
         '--service-config',
         type=pathlib.Path,
         help='Path to service.yaml file.',
@@ -84,7 +81,7 @@ def service_config_path(pytestconfig) -> pathlib.Path:
 
 
 @pytest.fixture(scope='session')
-def service_config_vars_path(pytestconfig) -> pathlib.Path:
+def service_config_vars_path(pytestconfig) -> typing.Optional[pathlib.Path]:
     """
     Returns the path to config_vars.yaml file set by command line
     `--service-config-vars` option.
@@ -189,17 +186,20 @@ def userver_config_base(service_port, monitor_port):
 
 
 @pytest.fixture(scope='session')
-def userver_config_logging():
+def userver_config_logging(pytestconfig):
+    log_level = pytestconfig.option.service_log_level
+
     def _patch_config(config_yaml, config_vars):
         components = config_yaml['components_manager']['components']
         if 'logging' in components:
             components['logging']['loggers'] = {
                 'default': {
                     'file_path': '@stderr',
-                    'level': 'debug',
+                    'level': log_level,
                     'overflow_behavior': 'discard',
                 },
             }
+        config_vars['logger_level'] = log_level
 
     return _patch_config
 
@@ -215,100 +215,3 @@ def userver_config_testsuite(mockserver_info):
             )
 
     return _patch_config
-
-
-@pytest.fixture(scope='session')
-def userver_config_fallback(pytestconfig, config_fallback_path):
-    def _patch_config(config_yaml, config_vars):
-        components = config_yaml['components_manager']['components']
-        for component_name in (
-                'taxi-config-fallbacks',
-                'taxi-config-client-updater',
-                'dynamic-config-fallbacks',
-                'dynamic-config-client-updater',
-        ):
-            if component_name not in components:
-                continue
-            component = components[component_name]
-            if not config_fallback_path:
-                pytest.fail('Please run with --config-fallback=...')
-            component['fallback-path'] = str(config_fallback_path)
-
-    return _patch_config
-
-
-class TaxiConfig:
-    """Simple config backend."""
-
-    def __init__(self):
-        self._values = {}
-
-    def set_values(self, values):
-        self._values.update(values)
-
-    def get_values(self):
-        return self._values.copy()
-
-    def remove_values(self, keys):
-        for key in keys:
-            if key not in self._values:
-                raise ConfigNotFoundError(
-                    f'param "{key}" is not found in config',
-                )
-            self._values.pop(key)
-
-    def set(self, **values):
-        self.set_values(values)
-
-    def get(self, key, default=None):
-        if key not in self._values:
-            if default is not None:
-                return default
-            raise ConfigNotFoundError(
-                'param "%s" is not found in config' % (key,),
-            )
-        return self._values[key]
-
-    def remove(self, key):
-        return self.remove_values([key])
-
-
-@pytest.fixture
-def taxi_config(
-        request,
-        search_path,
-        load_json,
-        object_substitute,
-        config_service_defaults,
-):
-    config = TaxiConfig()
-    all_values = config_service_defaults.copy()
-    for path in reversed(list(search_path('config.json'))):
-        values = load_json(path)
-        all_values.update(values)
-    for marker in request.node.iter_markers('config'):
-        marker_json = object_substitute(marker.kwargs)
-        all_values.update(marker_json)
-    config.set_values(all_values)
-    return config
-
-
-@pytest.fixture(scope='session')
-def config_service_defaults():
-    """
-    Fixture that returns default values for config. You may override
-    it in your local conftest.py or fixture:
-
-    @code
-    @pytest.fixture(scope='session')
-    def config_service_defaults():
-        with open('defaults.json') as fp:
-            return json.load(fp)
-    @endcode
-
-    @ingroup userver_testsuite_fixtures
-    """
-    raise RuntimeError(
-        'In order to use fixture %s you have to override %s fixture'
-        % ('mock_configs_service', config_service_defaults.__name__),
-    )

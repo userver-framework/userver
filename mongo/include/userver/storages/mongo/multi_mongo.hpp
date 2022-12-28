@@ -4,7 +4,7 @@
 #include <string>
 #include <unordered_map>
 
-#include <userver/rcu/rcu.hpp>
+#include <userver/dynamic_config/source.hpp>
 #include <userver/utils/swappingsmart.hpp>
 
 #include <userver/storages/mongo/pool.hpp>
@@ -54,9 +54,12 @@ class MultiMongo {
     std::shared_ptr<PoolMap> pool_map_ptr_;
   };
 
+  /// @cond
   MultiMongo(std::string name, const storages::secdist::Secdist& secdist,
              storages::mongo::PoolConfig pool_config,
-             clients::dns::Resolver* dns_resolver, Config mongo_config);
+             clients::dns::Resolver* dns_resolver,
+             dynamic_config::Source config_source);
+  /// @endcond
 
   /// @brief Client pool accessor
   /// @param dbalias name previously passed to `AddPool`
@@ -84,16 +87,12 @@ class MultiMongo {
 
   const std::string& GetName() const { return name_; }
 
-  void SetConfig(Config config);
-
  private:
   storages::mongo::PoolPtr FindPool(const std::string& dbalias) const;
 
-  Config GetConfigCopy() const;
-
   const std::string name_;
   const storages::secdist::Secdist& secdist_;
-  std::unique_ptr<rcu::Variable<Config>> config_storage_;
+  dynamic_config::Source config_source_;
   const storages::mongo::PoolConfig pool_config_;
   clients::dns::Resolver* dns_resolver_;
   utils::SwappingSmart<PoolMap> pool_map_ptr_;

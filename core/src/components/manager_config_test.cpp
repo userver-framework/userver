@@ -106,6 +106,7 @@ components_manager:
       blocking_task_processor: pg-task-processor
       dbalias: devicenotify
     secdist:
+    default-secdist-provider:
       config: /etc/yandex/taxi-secdist/taxi.json
     server:
       listener:
@@ -131,7 +132,7 @@ components_manager:
     dynamic-config-client-updater:
       config-settings: false
       config-url: $config_server_url
-      fallback-path: /etc/yandex/taxi/device-notify/taxi_config_fallback.json
+      fallback-path: /etc/yandex/taxi/device-notify/dynamic_config_fallback.json
       full-update-interval: 1m
       http-retries: 5
       http-timeout: 1000ms
@@ -202,7 +203,7 @@ TEST(ManagerConfig, Basic) {
   EXPECT_EQ(mc.coro_pool.initial_size, 5000) << "#fallback does not work";
   EXPECT_EQ(mc.task_processors.size(), 5);
 
-  ASSERT_EQ(mc.components.size(), 27);
+  ASSERT_EQ(mc.components.size(), 28);
 
   EXPECT_TRUE(std::any_of(
       mc.components.begin(), mc.components.end(),

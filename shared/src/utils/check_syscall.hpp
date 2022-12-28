@@ -5,6 +5,8 @@
 
 #include <fmt/format.h>
 
+#include <userver/utils/fmt_compat.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace utils {
@@ -19,7 +21,7 @@ Ret CheckSyscallNotEqualsCustomException(Ret ret, ErrorMark mark,
     const auto err_value = errno;
     fmt::memory_buffer msg_buf;
     fmt::format_to(std::back_inserter(msg_buf), "Error while ");
-    fmt::format_to(std::back_inserter(msg_buf), format, args...);
+    fmt::format_to(std::back_inserter(msg_buf), fmt::runtime(format), args...);
     msg_buf.push_back('\0');
     throw Exception(std::error_code(err_value, std::system_category()),
                     msg_buf.data());

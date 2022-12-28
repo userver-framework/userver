@@ -10,15 +10,11 @@ namespace bson = formats::bson;
 namespace mongo = storages::mongo;
 
 namespace {
-mongo::Pool MakeTestPool(clients::dns::Resolver& dns_resolver) {
-  return MakeTestsuiteMongoPool("bulk_test", &dns_resolver);
-}
+class Bulk : public MongoPoolFixture {};
 }  // namespace
 
-UTEST(Bulk, Empty) {
-  auto dns_resolver = MakeDnsResolver();
-  auto pool = MakeTestPool(dns_resolver);
-  auto coll = pool.GetCollection("empty");
+UTEST_F(Bulk, Empty) {
+  auto coll = GetDefaultPool().GetCollection("empty");
 
   auto bulk = coll.MakeUnorderedBulk();
   EXPECT_TRUE(bulk.IsEmpty());
@@ -34,10 +30,8 @@ UTEST(Bulk, Empty) {
   EXPECT_TRUE(result.WriteConcernErrors().empty());
 }
 
-UTEST(Bulk, InsertOne) {
-  auto dns_resolver = MakeDnsResolver();
-  auto pool = MakeTestPool(dns_resolver);
-  auto coll = pool.GetCollection("insert_one");
+UTEST_F(Bulk, InsertOne) {
+  auto coll = GetDefaultPool().GetCollection("insert_one");
 
   {
     auto bulk = coll.MakeOrderedBulk();
@@ -127,10 +121,8 @@ UTEST(Bulk, InsertOne) {
   }
 }
 
-UTEST(Bulk, ReplaceOne) {
-  auto dns_resolver = MakeDnsResolver();
-  auto pool = MakeTestPool(dns_resolver);
-  auto coll = pool.GetCollection("replace_one");
+UTEST_F(Bulk, ReplaceOne) {
+  auto coll = GetDefaultPool().GetCollection("replace_one");
 
   coll.InsertOne(bson::MakeDoc("_id", 1));
   {
@@ -172,10 +164,8 @@ UTEST(Bulk, ReplaceOne) {
   }
 }
 
-UTEST(Bulk, Update) {
-  auto dns_resolver = MakeDnsResolver();
-  auto pool = MakeTestPool(dns_resolver);
-  auto coll = pool.GetCollection("update");
+UTEST_F(Bulk, Update) {
+  auto coll = GetDefaultPool().GetCollection("update");
 
   {
     auto bulk = coll.MakeOrderedBulk();
@@ -227,10 +217,8 @@ UTEST(Bulk, Update) {
   }
 }
 
-UTEST(Bulk, Delete) {
-  auto dns_resolver = MakeDnsResolver();
-  auto pool = MakeTestPool(dns_resolver);
-  auto coll = pool.GetCollection("delete");
+UTEST_F(Bulk, Delete) {
+  auto coll = GetDefaultPool().GetCollection("delete");
 
   {
     std::vector<formats::bson::Document> docs;
@@ -257,10 +245,8 @@ UTEST(Bulk, Delete) {
   EXPECT_TRUE(result.WriteConcernErrors().empty());
 }
 
-UTEST(Bulk, Mixed) {
-  auto dns_resolver = MakeDnsResolver();
-  auto pool = MakeTestPool(dns_resolver);
-  auto coll = pool.GetCollection("mixed");
+UTEST_F(Bulk, Mixed) {
+  auto coll = GetDefaultPool().GetCollection("mixed");
 
   auto bulk = coll.MakeOrderedBulk();
   bulk.InsertOne(bson::MakeDoc("x", 1));

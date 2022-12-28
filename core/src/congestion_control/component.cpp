@@ -24,12 +24,16 @@ namespace {
 
 const auto kServerControllerName = "server-main-tp-cc";
 
-formats::json::Value FormatStats(const Controller& c) {
+formats::json::Value FormatStats(const Controller& c, size_t activated_factor) {
   formats::json::ValueBuilder builder;
   builder["is-enabled"] = c.IsEnabled() ? 1 : 0;
 
   auto limit = c.GetLimit();
-  builder["is-activated"] = limit.load_limit ? 1 : 0;
+  builder["is-activated"] =
+      (limit.load_limit &&
+       limit.current_load * activated_factor < *limit.load_limit)
+          ? 1
+          : 0;
   if (limit.load_limit) {
     builder["limit"] = *limit.load_limit;
   }
@@ -70,6 +74,7 @@ struct Component::Impl {
   concurrent::AsyncEventSubscriberScope config_subscription;
   std::atomic<bool> fake_mode;
   std::atomic<bool> force_disabled{false};
+  std::atomic<size_t> last_activate_factor{1};
 
   Impl(dynamic_config::Source dynamic_config, server::Server& server,
        engine::TaskProcessor& tp, bool fake_mode)
@@ -133,7 +138,9 @@ Component::~Component() {
 }
 
 void Component::OnConfigUpdate(const dynamic_config::Snapshot& cfg) {
-  const bool is_enabled_dynamic = cfg[impl::kRpsCcConfig].is_enabled;
+  const auto& conf = cfg[impl::kRpsCcConfig];
+  const bool is_enabled_dynamic = conf.is_enabled;
+  pimpl_->last_activate_factor = conf.activate_factor;
 
   bool enabled = !pimpl_->fake_mode.load() && !pimpl_->force_disabled.load();
   if (enabled && !is_enabled_dynamic) {
@@ -162,7 +169,8 @@ formats::json::Value Component::ExtendStatistics(
     const utils::statistics::StatisticsRequest& /*request*/) {
   formats::json::ValueBuilder builder{formats::common::Type::kObject};
   if (!pimpl_->force_disabled) {
-    builder["rps"] = FormatStats(pimpl_->server_controller);
+    builder["rps"] =
+        FormatStats(pimpl_->server_controller, pimpl_->last_activate_factor);
   }
   return builder.ExtractValue();
 }

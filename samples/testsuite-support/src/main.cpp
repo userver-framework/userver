@@ -3,6 +3,8 @@
 #include <userver/clients/http/component.hpp>
 #include <userver/components/minimal_server_component_list.hpp>
 #include <userver/congestion_control/component.hpp>
+#include <userver/dynamic_config/client/component.hpp>
+#include <userver/dynamic_config/updater/component.hpp>
 #include <userver/server/handlers/ping.hpp>
 /// [testsuite - include components]
 #include <userver/server/handlers/tests_control.hpp>
@@ -11,6 +13,7 @@
 #include <userver/server/handlers/server_monitor.hpp>
 #include <userver/utils/daemon_run.hpp>
 
+#include "dynamic_config.hpp"
 #include "logcapture.hpp"
 #include "metrics.hpp"
 #include "now.hpp"
@@ -28,8 +31,11 @@ int main(int argc, char* argv[]) {
           /// [testsuite - register components]
           .Append<components::TestsuiteSupport>()
           .Append<server::handlers::TestsControl>()
+          .Append<components::DynamicConfigClient>()
+          .Append<components::DynamicConfigClientUpdater>()
           /// [testsuite - register components]
           // Project local components
+          .Append<tests::handlers::DynamicConfig>()
           .Append<tests::handlers::LogCapture>()
           .Append<tests::handlers::Metrics>()
           .Append<tests::handlers::Now>()

@@ -22,11 +22,22 @@ namespace utils {
 /// utils::TracefulException instead.
 class TracefulExceptionBase {
  public:
+  enum class TraceMode {
+    kAlways,
+    kIfLoggingIsEnabled,
+  };
+
   static constexpr size_t kInlineBufferSize = 100;
   using MemoryBuffer = fmt::basic_memory_buffer<char, kInlineBufferSize>;
 
-  virtual ~TracefulExceptionBase();
+  TracefulExceptionBase();
+
+  explicit TracefulExceptionBase(std::string_view what);
+
+  explicit TracefulExceptionBase(TraceMode trace_mode);
+
   TracefulExceptionBase(TracefulExceptionBase&&) noexcept;
+  virtual ~TracefulExceptionBase() = 0;
 
   const MemoryBuffer& MessageBuffer() const noexcept;
   const boost::stacktrace::basic_stacktrace<>& Trace() const noexcept;
@@ -43,15 +54,6 @@ class TracefulExceptionBase {
     return std::forward<Exception>(ex);
   }
 
- protected:
-  /// @cond
-  /// Default constructor, internal use only
-  TracefulExceptionBase();
-
-  /// Initial message constructor, internal use only
-  explicit TracefulExceptionBase(std::string_view what);
-
-  /// @endcond
  private:
   void EnsureNullTerminated();
 
@@ -70,10 +72,7 @@ class TracefulExceptionBase {
 // NOLINTNEXTLINE(fuchsia-multiple-inheritance)
 class TracefulException : public std::exception, public TracefulExceptionBase {
  public:
-  TracefulException() = default;
-  explicit TracefulException(std::string_view what)
-      // NOLINTNEXTLINE(bugprone-throw-keyword-missing)
-      : TracefulExceptionBase(what) {}
+  using TracefulExceptionBase::TracefulExceptionBase;
 
   const char* what() const noexcept override;
 };

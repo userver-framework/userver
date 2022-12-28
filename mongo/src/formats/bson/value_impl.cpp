@@ -83,7 +83,7 @@ void ForEachValue(const uint8_t* data, size_t length, const Path& path,
   bson_iter_t it;
   if (!bson_iter_init_from_data(&it, data, length)) {
     throw ParseException(
-        fmt::format(FMT_STRING("malformed BSON at {}"), path.ToStringView()));
+        fmt::format("malformed BSON at {}", path.ToStringView()));
   }
   while (bson_iter_next(&it)) {
     func(&it);
@@ -615,16 +615,16 @@ void ValueImpl::EnsureParsed() {
                                                  bson_iter_key_len(it));
                      if (expected_key != actual_key) {
                        throw ParseException(fmt::format(
-                           FMT_STRING("malformed BSON array at {}: index "
-                                      "mismatch, expected={}, got={}"),
+                           "malformed BSON array at {}: index "
+                           "mismatch, expected={}, got={}",
                            path_.ToStringView(), expected_key, actual_key));
                      }
 
                      const bson_value_t* iter_value = bson_iter_value(it);
                      if (!iter_value) {
-                       throw ParseException(fmt::format(
-                           FMT_STRING("malformed BSON element at {}[{}]"),
-                           path_.ToStringView(), expected_key));
+                       throw ParseException(
+                           fmt::format("malformed BSON element at {}[{}]",
+                                       path_.ToStringView(), expected_key));
                      }
                      parsed_array.push_back(std::make_shared<ValueImpl>(
                          EmplaceEnabler{}, storage_, path_, *iter_value,
@@ -645,7 +645,7 @@ void ValueImpl::EnsureParsed() {
             const bson_value_t* iter_value = bson_iter_value(it);
             if (!iter_value) {
               throw ParseException(
-                  fmt::format(FMT_STRING("malformed BSON element at {}.{}"),
+                  fmt::format("malformed BSON element at {}.{}",
                               path_.ToStringView(), key));
             }
             auto [parsed_it, is_new] = parsed_doc.emplace(
@@ -656,9 +656,8 @@ void ValueImpl::EnsureParsed() {
             if (!is_new) {
               switch (duplicate_fields_policy_) {
                 case Value::DuplicateFieldsPolicy::kForbid:
-                  throw ParseException(
-                      fmt::format(FMT_STRING("duplicate key '{}' at {}"), key,
-                                  path_.ToStringView()));
+                  throw ParseException(fmt::format("duplicate key '{}' at {}",
+                                                   key, path_.ToStringView()));
                 case Value::DuplicateFieldsPolicy::kUseFirst:
                   // leave current value as is
                   break;

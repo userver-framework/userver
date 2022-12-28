@@ -1,0 +1,39 @@
+stages:
+  - Build
+  - Test
+
+image: ghcr.io/userver-framework/docker-userver-build-base:v1-amd64
+
+cache:
+  paths:
+    - ${CI_PROJECT_DIR}/.ccache
+
+before_script:
+  - sed -i 's/url =.*\/userver.git/url = ..\/userver.git/g' .gitmodules
+
+build:
+  stage: Build
+  only:
+    - merge_requests
+    - pushes
+  script:
+    - make build-debug
+    - ccache -M 200MB && ccache -s
+
+test:
+  stage: Test
+  only:
+    - merge_requests
+    - pushes
+  script:
+    - |
+      if ! id -u user > /dev/null 2> /dev/null; then
+          DIR_UID="$(stat -c '%u' .)"
+          if [ "$DIR_UID" = "0" ]; then
+              useradd --create-home --no-user-group user
+          else
+              useradd --create-home --no-user-group --uid $DIR_UID user
+          fi
+      fi
+
+      HOME=/home/user sudo -E -u user make test-debug

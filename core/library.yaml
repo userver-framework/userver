@@ -21,33 +21,6 @@ libraries:
   - OpenSSL::SSL
   - libyamlcpp
 
-debian:
-    build_dependencies:
-      - clang-9
-      - libstdc++-7-dev
-      - libboost-filesystem-dev
-      - libboost-iostreams-dev
-      - libboost-locale-dev
-      - libboost-program-options-dev
-      - libboost-thread-dev
-      - libcctz-dev
-      - libcrypto++-dev
-      - libev-dev
-      - libfmt-dev
-      - libgcrypt11-dev
-      - libhttp-parser-dev
-      - libkrb5-dev
-      - libnghttp2-dev
-      - libssl-dev
-      - libyaml-cpp-dev
-      - libyandex-taxi-curl4-openssl-dev
-      - libyandex-taxi-jemalloc-dev
-      - lld-9
-      - zlib1g-dev
-      - clang-format-9
-      #- clang-tidy-14 -- not available everywhere
-      - lcov # support for coverage-reports
-
 configs:
     names:
       - HTTP_CLIENT_CONNECTION_POOL_SIZE
@@ -57,13 +30,16 @@ configs:
       - USERVER_CANCEL_HANDLE_REQUEST_BY_DEADLINE
       - USERVER_CHECK_AUTH_IN_HANDLERS
       - USERVER_DUMPS
+      - USERVER_FILES_CONTENT_TYPE_MAP
+      - USERVER_HANDLER_STREAM_API_ENABLED
       - USERVER_HTTP_PROXY
       - USERVER_LOG_REQUEST
       - USERVER_LOG_REQUEST_HEADERS
       - USERVER_LRU_CACHES
       - USERVER_NO_LOG_SPANS
       - USERVER_RPS_CCONTROL
-      - USERVER_RPS_CCONTROL_ENABLED
+      - USERVER_RPS_CCONTROL_ACTIVATED_FACTOR_METRIC
       - USERVER_RPS_CCONTROL_CUSTOM_STATUS
+      - USERVER_RPS_CCONTROL_ENABLED
       - USERVER_TASK_PROCESSOR_PROFILER_DEBUG
       - USERVER_TASK_PROCESSOR_QOS

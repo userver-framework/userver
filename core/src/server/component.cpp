@@ -116,6 +116,10 @@ properties:
                     parse_args_from_body:
                         type: boolean
                         description: optional field to parse request according to x-www-form-urlencoded rules and make parameters accessible as query parameters
+                    set_tracing_headers:
+                        type: boolean
+                        description: whether to set http tracing headers (X-YaTraceId, X-YaSpanId, X-RequestId)
+                        defaultDescription: true
             connection:
                 type: object
                 description: connection options

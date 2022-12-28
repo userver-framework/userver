@@ -97,6 +97,8 @@ std::string ToString(TaskCancellationReason reason) {
   return fmt::format("unknown({})", static_cast<int>(reason));
 }
 
+TaskCancellationToken::TaskCancellationToken() noexcept = default;
+
 TaskCancellationToken::TaskCancellationToken(
     impl::TaskContext& context) noexcept
     : context_(&context) {}
@@ -112,6 +114,7 @@ TaskCancellationToken::TaskCancellationToken(Task& task)
 TaskCancellationToken::TaskCancellationToken(
     const TaskCancellationToken& other) noexcept
     : context_{other.context_} {}
+
 TaskCancellationToken::TaskCancellationToken(TaskCancellationToken&&) noexcept =
     default;
 
@@ -123,6 +126,7 @@ TaskCancellationToken& TaskCancellationToken::operator=(
 
   return *this;
 }
+
 TaskCancellationToken& TaskCancellationToken::operator=(
     TaskCancellationToken&&) noexcept = default;
 

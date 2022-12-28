@@ -6,7 +6,9 @@
 #include <userver/logging/log.hpp>
 #include <userver/utils/algo.hpp>
 #include <userver/utils/assert.hpp>
-#include "userver/storages/redis/impl/base.hpp"
+
+#include <storages/redis/impl/command.hpp>
+#include <userver/storages/redis/impl/base.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

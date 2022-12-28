@@ -1,10 +1,10 @@
 #include <gtest/gtest.h>
 
+#include <formats/common/serialize_test.hpp>
 #include <userver/formats/json/exception.hpp>
 #include <userver/formats/json/serialize.hpp>
-
-#include <formats/common/serialize_test.hpp>
 #include <userver/formats/json/value_builder.hpp>
+#include <userver/utils/fmt_compat.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -84,7 +84,7 @@ TEST_P(FmtFormatterParameterized, FormatsJsonFmt) {
   const std::string str = GetParam();
   const auto value = formats::json::FromString(str);
   EXPECT_EQ(fmt::format("{}", value), str);
-  EXPECT_THROW(static_cast<void>(fmt::format("{:s}", value)),
+  EXPECT_THROW(static_cast<void>(fmt::format(fmt::runtime("{:s}"), value)),
                fmt::format_error);
 }
 

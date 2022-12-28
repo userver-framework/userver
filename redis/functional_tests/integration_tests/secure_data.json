@@ -1,0 +1,18 @@
+{
+  "redis_settings": {
+    "redis1": {
+      "password": "",
+      "sentinels": [
+        {
+          "host": "localhost",
+          "port": 10691
+        }
+      ],
+      "shards": [
+        {
+          "name": "mymaster"
+        }
+      ]
+    }
+  }
+}

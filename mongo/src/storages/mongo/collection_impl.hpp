@@ -5,7 +5,6 @@
 #include <storages/mongo/stats.hpp>
 #include <userver/storages/mongo/bulk.hpp>
 #include <userver/storages/mongo/cursor.hpp>
-#include <userver/storages/mongo/drop_result.hpp>
 #include <userver/storages/mongo/operations.hpp>
 #include <userver/storages/mongo/write_result.hpp>
 #include <userver/tracing/span.hpp>
@@ -33,7 +32,7 @@ class CollectionImpl {
   virtual WriteResult Execute(const operations::FindAndRemove&) = 0;
   virtual WriteResult Execute(operations::Bulk&&) = 0;
   virtual Cursor Execute(const operations::Aggregate&) = 0;
-  virtual DropResult Execute(const operations::Drop&) = 0;
+  virtual void Execute(const operations::Drop&) = 0;
 
  protected:
   CollectionImpl(std::string&& database_name, std::string&& collection_name);

@@ -189,6 +189,7 @@ void Controller::Feed(const Sensor::Data& data) {
                    << " max_up_delta=" << state_.max_up_delta << log_suffix;
   }
   limit_.load_limit = state_.current_limit;
+  limit_.current_load = data.current_load;
 }
 
 Limit Controller::GetLimit() const {

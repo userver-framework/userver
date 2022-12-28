@@ -4,6 +4,9 @@
 /// @brief @copybrief cache::LruMap
 
 #include <userver/cache/impl/lru.hpp>
+#include <userver/cache/impl/slru.hpp>
+#include <userver/cache/impl/tiny_lfu.hpp>
+#include <userver/cache/impl/window_tiny_lfu.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -15,7 +18,8 @@ namespace cache {
 /// LRU key value storage (LRU cache), thread safety matches Standard Library
 /// thread safety
 template <typename T, typename U, typename Hash = std::hash<T>,
-          typename Equal = std::equal_to<T>>
+          typename Equal = std::equal_to<T>,
+          CachePolicy Policy = CachePolicy::kLRU>
 class LruMap final {
  public:
   explicit LruMap(size_t max_size, const Hash& hash = Hash(),
@@ -83,7 +87,7 @@ class LruMap final {
   size_t GetSize() const { return impl_.GetSize(); }
 
  private:
-  impl::LruBase<T, U, Hash, Equal> impl_;
+  impl::LruBase<T, U, Hash, Equal, Policy> impl_;
 };
 
 }  // namespace cache

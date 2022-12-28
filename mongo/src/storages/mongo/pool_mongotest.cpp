@@ -21,15 +21,18 @@ USERVER_NAMESPACE_BEGIN
 
 namespace mongo = storages::mongo;
 
-UTEST(Pool, CollectionAccess) {
+namespace {
+class Pool : public MongoPoolFixture {};
+}  // namespace
+
+UTEST_F(Pool, CollectionAccess) {
   static const std::string kSysVerCollName = "system.version";
   static const std::string kNonexistentCollName = "nonexistent";
 
-  auto dns_resolver = MakeDnsResolver();
   // this database always exists
-  auto admin_pool = MakeTestsuiteMongoPool("admin", &dns_resolver);
-  // this one should not exist
-  auto test_pool = MakeTestsuiteMongoPool("pool_test", &dns_resolver);
+  auto admin_pool = MakePool("admin", {});
+  // this one should not exist yet
+  auto test_pool = MakePool(kTestDatabaseDefaultName, {});
 
   EXPECT_TRUE(admin_pool.HasCollection(kSysVerCollName));
   UEXPECT_NO_THROW(admin_pool.GetCollection(kSysVerCollName));
@@ -44,24 +47,39 @@ UTEST(Pool, CollectionAccess) {
   UEXPECT_NO_THROW(test_pool.GetCollection(kNonexistentCollName));
 }
 
-UTEST(Pool, ConnectionFailure) {
+UTEST_F(Pool, DropDatabase) {
+  static const std::string kCollName = "test";
+
+  auto pool = GetDefaultPool();
+  auto coll = pool.GetCollection(kCollName);
+
+  UEXPECT_NO_THROW(coll.InsertOne(formats::bson::MakeDoc("_id", 42)));
+  EXPECT_TRUE(pool.HasCollection(kCollName));
+
+  UEXPECT_NO_THROW(pool.DropDatabase());
+  EXPECT_FALSE(pool.HasCollection(kCollName));
+
+  UEXPECT_NO_THROW(coll.InsertOne(formats::bson::MakeDoc("_id", 42)));
+  EXPECT_TRUE(pool.HasCollection(kCollName));
+}
+
+UTEST(NonexistentPool, ConnectionFailure) {
   auto dns_resolver = MakeDnsResolver();
+  auto dynamic_config = MakeDynamicConfig();
 
   // constructor should not throw
-  mongo::Pool bad_pool("bad", "mongodb://%2Fnonexistent.sock/bad",
-                       {"bad", mongo::PoolConfig::DriverImpl::kMongoCDriver},
-                       &dns_resolver, {});
+  mongo::Pool bad_pool("bad", "mongodb://%2Fnonexistent.sock/bad", {},
+                       &dns_resolver, dynamic_config.GetSource());
   UEXPECT_THROW(bad_pool.HasCollection("test"),
                 mongo::ClusterUnavailableException);
 }
 
-UTEST(Pool, Limits) {
-  auto dns_resolver = MakeDnsResolver();
-  mongo::PoolConfig limited_config{
-      "limited", mongo::PoolConfig::DriverImpl::kMongoCDriver};
+UTEST_F(Pool, Limits) {
+  mongo::PoolConfig limited_config{};
+  limited_config.initial_size = 1;
+  limited_config.idle_limit = 1;
   limited_config.max_size = 1;
-  auto limited_pool =
-      MakeTestsuiteMongoPool("limits_test", limited_config, &dns_resolver);
+  auto limited_pool = MakePool({}, limited_config);
 
   std::vector<formats::bson::Document> docs;
   docs.reserve(150);

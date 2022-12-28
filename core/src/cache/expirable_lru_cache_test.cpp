@@ -1,7 +1,9 @@
 #include <string>
+#include <type_traits>
 
 #include <userver/utest/utest.hpp>
 
+#include <cache/cache_policy_types_test.hpp>
 #include <userver/cache/expirable_lru_cache.hpp>
 #include <userver/dump/operations_mock.hpp>
 #include <userver/engine/sleep.hpp>
@@ -9,12 +11,44 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace {
-
 using SimpleCacheKey = std::string;
 using SimpleCacheValue = int;
-using SimpleCache = cache::ExpirableLruCache<SimpleCacheKey, SimpleCacheValue>;
-using SimpleWrapper = cache::LruCacheWrapper<SimpleCacheKey, SimpleCacheValue>;
+
+template <typename T>
+class ExpirableLruCache : public ::testing::Test {
+ public:
+  using Hash = std::hash<SimpleCacheKey>;
+  using Equal = std::equal_to<SimpleCacheKey>;
+  using SimpleCache =
+      cache::ExpirableLruCache<SimpleCacheKey, SimpleCacheValue,
+                               Hash,
+                               Equal, T::value>;
+  static SimpleCache CreateSimpleCache() { return SimpleCache(1, 1); }
+};
+
+TYPED_UTEST_SUITE(ExpirableLruCache, PolicyTypes);
+
+template <typename T>
+class LruCacheWrapper : public ::testing::Test {
+ public:
+  using Hash = std::hash<SimpleCacheKey>;
+  using Equal = std::equal_to<SimpleCacheKey>;
+  using SimpleCache =
+      cache::ExpirableLruCache<SimpleCacheKey, SimpleCacheValue,
+                               Hash,
+                               Equal, T::value>;
+  using SimpleWrapper =
+      cache::LruCacheWrapper<SimpleCacheKey, SimpleCacheValue,
+                             Hash,
+                             Equal, T::value>;
+  static std::shared_ptr<SimpleCache> CreateSimpleCachePtr() {
+    return std::make_shared<SimpleCache>(1, 1);
+  }
+};
+
+TYPED_UTEST_SUITE(LruCacheWrapper, PolicyTypes);
+
+namespace {
 
 void WriteAndReadFromDump(SimpleCache& cache) {
   const auto cache_size_before = cache.GetSizeApproximate();
@@ -82,18 +116,12 @@ std::function<SimpleCacheValue(SimpleCacheKey)> UpdateValue(
   };
 }
 
-SimpleCache CreateSimpleCache() { return SimpleCache(1, 1); }
-
-std::shared_ptr<SimpleCache> CreateSimpleCachePtr() {
-  return std::make_shared<SimpleCache>(1, 1);
-}
-
 }  // namespace
 
-UTEST(ExpirableLruCache, Hit) {
+TYPED_UTEST(ExpirableLruCache, Hit) {
   auto counter = std::make_shared<Counter>();
 
-  auto cache = CreateSimpleCache();
+  auto cache = TestFixture::CreateSimpleCache();
   const SimpleCacheKey key = "my-key";
 
   counter->Flush();
@@ -105,10 +133,10 @@ UTEST(ExpirableLruCache, Hit) {
   EXPECT_EQ(1, cache.Get(key, UpdateNever()));
 }
 
-UTEST(ExpirableLruCache, HitOptional) {
+TYPED_UTEST(ExpirableLruCache, HitOptional) {
   auto counter = std::make_shared<Counter>();
 
-  auto cache = CreateSimpleCache();
+  auto cache = TestFixture::CreateSimpleCache();
   SimpleCacheKey key = "my-key";
 
   EXPECT_EQ(std::nullopt, cache.GetOptional(key, UpdateNever()));
@@ -122,10 +150,10 @@ UTEST(ExpirableLruCache, HitOptional) {
   EXPECT_EQ(std::make_optional(1), cache.GetOptional(key, UpdateNever()));
 }
 
-UTEST(ExpirableLruCache, HitOptionalUnexpirable) {
+TYPED_UTEST(ExpirableLruCache, HitOptionalUnexpirable) {
   auto counter = std::make_shared<Counter>();
 
-  auto cache = CreateSimpleCache();
+  auto cache = TestFixture::CreateSimpleCache();
   cache.SetMaxLifetime(std::chrono::seconds(2));
   SimpleCacheKey key = "my-key";
 
@@ -141,10 +169,10 @@ UTEST(ExpirableLruCache, HitOptionalUnexpirable) {
   }
 }
 
-UTEST(ExpirableLruCache, HitOptionalUnexpirableWithUpdate) {
+TYPED_UTEST(ExpirableLruCache, HitOptionalUnexpirableWithUpdate) {
   auto counter = std::make_shared<Counter>();
 
-  auto cache = CreateSimpleCache();
+  auto cache = TestFixture::CreateSimpleCache();
   cache.SetMaxLifetime(std::chrono::seconds(2));
   cache.SetBackgroundUpdate(cache::BackgroundUpdateMode::kEnabled);
   SimpleCacheKey key = "my-key";
@@ -164,10 +192,10 @@ UTEST(ExpirableLruCache, HitOptionalUnexpirableWithUpdate) {
       2, cache.GetOptionalUnexpirableWithUpdate(key, UpdateValue(counter, 2)));
 }
 
-UTEST(ExpirableLruCache, HitOptionalNoUpdate) {
+TYPED_UTEST(ExpirableLruCache, HitOptionalNoUpdate) {
   auto counter = std::make_shared<Counter>();
 
-  auto cache = CreateSimpleCache();
+  auto cache = TestFixture::CreateSimpleCache();
   cache.SetMaxLifetime(std::chrono::seconds(2));
   SimpleCacheKey key = "my-key";
 
@@ -190,10 +218,11 @@ UTEST(ExpirableLruCache, HitOptionalNoUpdate) {
   EXPECT_EQ(std::nullopt, cache.GetOptionalNoUpdate(key));
 }
 
-UTEST(ExpirableLruCache, NoCache) {
+TYPED_UTEST(ExpirableLruCache, NoCache) {
+  using SimpleCache = typename TestFixture::SimpleCache;
   auto counter = std::make_shared<Counter>();
 
-  auto cache = CreateSimpleCache();
+  auto cache = TestFixture::CreateSimpleCache();
   const auto read_mode = SimpleCache::ReadMode::kSkipCache;
 
   SimpleCacheKey key = "my-key";
@@ -209,10 +238,10 @@ UTEST(ExpirableLruCache, NoCache) {
   EXPECT_EQ(Counter::One(), *counter);
 }
 
-UTEST(ExpirableLruCache, Expire) {
+TYPED_UTEST(ExpirableLruCache, Expire) {
   auto counter = std::make_shared<Counter>();
 
-  auto cache = CreateSimpleCache();
+  auto cache = TestFixture::CreateSimpleCache();
   cache.SetMaxLifetime(std::chrono::seconds(2));
   SimpleCacheKey key = "my-key";
 
@@ -259,7 +288,7 @@ UTEST(ExpirableLruCache, DumpAndChangeMaxLiftime) {
 UTEST(ExpirableLruCache, DefaultNoExpire) {
   auto counter = std::make_shared<Counter>();
 
-  auto cache = CreateSimpleCache();
+  auto cache = TestFixture::CreateSimpleCache();
   SimpleCacheKey key = "my-key";
 
   utils::datetime::MockNowSet(std::chrono::system_clock::now());
@@ -276,10 +305,10 @@ UTEST(ExpirableLruCache, DefaultNoExpire) {
   }
 }
 
-UTEST(ExpirableLruCache, InvalidateByKey) {
+TYPED_UTEST(ExpirableLruCache, InvalidateByKey) {
   auto counter = std::make_shared<Counter>();
 
-  auto cache = CreateSimpleCache();
+  auto cache = TestFixture::CreateSimpleCache();
   SimpleCacheKey key = "my-key";
 
   counter->Flush();
@@ -295,10 +324,10 @@ UTEST(ExpirableLruCache, InvalidateByKey) {
   EXPECT_EQ(Counter::One(), *counter);
 }
 
-UTEST(ExpirableLruCache, BackgroundUpdate) {
+TYPED_UTEST(ExpirableLruCache, BackgroundUpdate) {
   auto counter = std::make_shared<Counter>();
 
-  auto cache = CreateSimpleCache();
+  auto cache = TestFixture::CreateSimpleCache();
   cache.SetMaxLifetime(std::chrono::seconds(3));
   cache.SetBackgroundUpdate(cache::BackgroundUpdateMode::kEnabled);
 
@@ -330,7 +359,7 @@ UTEST(ExpirableLruCache, BackgroundUpdate) {
   EXPECT_EQ(2, cache.Get(key, UpdateNever()));
 }
 
-UTEST(ExpirableLruCache, Example) {
+TYPED_UTEST(ExpirableLruCache, Example) {
   /// [Sample ExpirableLruCache]
   using Key = std::string;
   using Value = int;
@@ -357,10 +386,11 @@ UTEST(ExpirableLruCache, Example) {
   /// [Sample ExpirableLruCache]
 }
 
-UTEST(LruCacheWrapper, HitWrapper) {
+TYPED_UTEST(LruCacheWrapper, HitWrapper) {
+  using SimpleWrapper = typename TestFixture::SimpleWrapper;
   auto counter = std::make_shared<Counter>();
 
-  auto cache_ptr = CreateSimpleCachePtr();
+  auto cache_ptr = TestFixture::CreateSimpleCachePtr();
   SimpleWrapper wrapper(cache_ptr, UpdateValue(counter, 1));
 
   SimpleCacheKey key = "my-key";

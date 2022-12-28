@@ -64,6 +64,9 @@ if (USERVER_FEATURE_POSTGRESQL)
     add_subdirectory(postgres_service)
     add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-postgres_service)
 
+    add_subdirectory(postgres_auth)
+    add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-postgres_auth)
+
     add_subdirectory(postgres-support)
     add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-postgres-support)
 endif()

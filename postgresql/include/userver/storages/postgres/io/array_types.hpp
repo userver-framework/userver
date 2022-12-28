@@ -1,7 +1,8 @@
 #pragma once
 
 /// @file userver/storages/postgres/io/array_types.hpp
-/// @brief Arrays I/O support
+/// @brief I/O support for arrays (std::array, std::set, std::unordered_set,
+/// std::vector)
 /// @ingroup userver_postgres_parse_and_format
 
 #include <array>

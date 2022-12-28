@@ -18,17 +18,17 @@ void ResponseBodyStream::PushBodyChunk(std::string&& chunk) {
 
 void ResponseBodyStream::SetHeader(const std::string& name,
                                    const std::string& value) {
-  UINVARIANT(!headers_ended_, "Calling SetHeader() after SetEndOfHeaders()");
   http_response_.SetHeader(name, value);
 }
 
 void ResponseBodyStream::SetEndOfHeaders() { headers_ended_ = true; }
 
 void ResponseBodyStream::SetStatusCode(int status_code) {
-  UINVARIANT(
-      !headers_ended_,
-      "Calling SetStatusCode() after the status line and headers are sent");
   http_response_.SetStatus(static_cast<server::http::HttpStatus>(status_code));
+}
+
+void ResponseBodyStream::SetStatusCode(HttpStatus status) {
+  http_response_.SetStatus(status);
 }
 
 }  // namespace server::http

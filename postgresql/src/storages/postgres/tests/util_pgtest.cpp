@@ -115,7 +115,7 @@ storages::postgres::detail::ConnectionPtr PostgreSQLBase::MakeConnection(
                        GetTestCmdCtls(), {}, {}))
       << "Connect to correct DSN";
   pg::detail::ConnectionPtr conn_ptr{std::move(conn)};
-  CheckConnection(conn_ptr);
+  if (conn_ptr) CheckConnection(conn_ptr);
   return conn_ptr;
 }
 

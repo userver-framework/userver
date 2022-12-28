@@ -21,6 +21,7 @@
 #include <userver/utils/assert.hpp>
 #include <userver/utils/swappingsmart.hpp>
 
+#include <storages/redis/impl/command.hpp>
 #include <storages/redis/impl/ev_wrapper.hpp>
 #include <storages/redis/impl/tcp_socket.hpp>
 #include <userver/storages/redis/impl/redis_stats.hpp>
@@ -475,7 +476,7 @@ void Redis::RedisImpl::InvokeCommand(const CommandPtr& command,
   }
 
   try {
-    command->Callback()(command, reply);
+    command->callback(command, reply);
   } catch (const std::exception& ex) {
     LOG_WARNING() << "exception in callback handler (" << command->args << ") "
                   << ex;

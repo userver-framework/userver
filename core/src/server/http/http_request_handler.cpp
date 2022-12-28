@@ -89,6 +89,12 @@ CcCustomStatus ParseRuntimeCfg(const dynamic_config::DocsMap& docs_map) {
 
 constexpr dynamic_config::Key<ParseRuntimeCfg> kCcCustomStatus{};
 
+bool ParseStreamApiEnabled(const dynamic_config::DocsMap& docs_map) {
+  return docs_map.Get("USERVER_HANDLER_STREAM_API_ENABLED").As<bool>();
+}
+
+constexpr dynamic_config::Key<ParseStreamApiEnabled> kStreamApiEnabled{};
+
 utils::statistics::MetricTag<std::atomic<size_t>> kCcStatusCodeIsCustom{
     "congestion-control.rps.is-custom-status-activated"};
 
@@ -135,9 +141,9 @@ engine::TaskWithResult<void> HttpRequestHandler::StartRequestTask(
                            "limit via 'server.max_response_size_in_flight')";
     return StartFailsafeTask(std::move(request));
   }
+  const auto& config = config_source_.GetSnapshot();
 
   if (throttling_enabled && !rate_limit_.Obtain()) {
-    const auto& config = config_source_.GetSnapshot();
     auto config_var = config[kCcCustomStatus];
     const auto& delta = config_var.max_time_delta;
 
@@ -166,7 +172,7 @@ engine::TaskWithResult<void> HttpRequestHandler::StartRequestTask(
     return StartFailsafeTask(std::move(request));
   }
 
-  if (handler->GetConfig().response_body_stream) {
+  if (handler->GetConfig().response_body_stream && config[kStreamApiEnabled]) {
     http_response.SetStreamBody();
   }
 

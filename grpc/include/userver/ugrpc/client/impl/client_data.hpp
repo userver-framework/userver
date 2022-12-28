@@ -47,14 +47,14 @@ class ClientData final {
   ClientData& operator=(const ClientData&) = delete;
 
   template <typename Service>
-  Stub<Service>& NextStub() {
+  Stub<Service>& NextStub() const {
     return *static_cast<Stub<Service>*>(
         stubs_[utils::RandRange(stubs_.size())].get());
   }
 
-  grpc::CompletionQueue& GetQueue() { return *queue_; }
+  grpc::CompletionQueue& GetQueue() const { return *queue_; }
 
-  ugrpc::impl::MethodStatistics& GetStatistics(std::size_t method_id) {
+  ugrpc::impl::MethodStatistics& GetStatistics(std::size_t method_id) const {
     return statistics_->GetMethodStatistics(method_id);
   }
 

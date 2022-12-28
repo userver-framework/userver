@@ -11,6 +11,7 @@
 #include <userver/storages/redis/client.hpp>
 #include <userver/storages/redis/component.hpp>
 #include <userver/storages/secdist/component.hpp>
+#include <userver/storages/secdist/provider_component.hpp>
 #include <userver/utils/daemon_run.hpp>
 
 namespace samples::redis {
@@ -208,6 +209,7 @@ int main(int argc, char* argv[]) {
           .Append<samples::redis::KeyValue>()
           .Append<samples::redis::EvalSha>()
           .Append<components::Secdist>()
+          .Append<components::DefaultSecdistProvider>()
           .Append<components::Redis>("key-value-database")
           .Append<components::TestsuiteSupport>();
   return utils::DaemonMain(argc, argv, component_list);
