@@ -58,8 +58,7 @@ class MySQLStatement final {
   MySQLStatement(const MySQLStatement& other) = delete;
   MySQLStatement(MySQLStatement&& other) noexcept;
 
-  MySQLStatementFetcher Execute(BrokenGuard& guard,
-                                io::ParamsBinderBase& params,
+  MySQLStatementFetcher Execute(io::ParamsBinderBase& params,
                                 engine::Deadline deadline);
 
   std::size_t RowsCount() const;
@@ -73,10 +72,10 @@ class MySQLStatement final {
 
  private:
   friend class MySQLStatementFetcher;
-  void StoreResult(BrokenGuard& guard, engine::Deadline deadline);
+  void StoreResult(engine::Deadline deadline);
 
-  bool FetchResultRow(BrokenGuard& guard, bindings::OutputBindings& binds,
-                      bool apply_binds, engine::Deadline deadline);
+  bool FetchResultRow(bindings::OutputBindings& binds, bool apply_binds,
+                      engine::Deadline deadline);
   void Reset(engine::Deadline deadline);
 
   void UpdateParamsBindings(io::ParamsBinderBase& params);
@@ -94,8 +93,7 @@ class MySQLStatement final {
       std::unique_ptr<MYSQL_STMT, NativeStatementDeleter>;
 
   NativeStatementPtr CreateStatement(engine::Deadline deadline);
-  void PrepareStatement(BrokenGuard& guard,
-                        NativeStatementPtr& native_statement,
+  void PrepareStatement(NativeStatementPtr& native_statement,
                         engine::Deadline deadline);
   std::string GetNativeError(std::string_view prefix) const;
 

@@ -2,8 +2,6 @@
 
 #include <storages/mysql/impl/mariadb_include.hpp>
 
-#include <userver/storages/mysql/exceptions.hpp>
-
 #include <storages/mysql/impl/mysql_connection.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -14,14 +12,13 @@ BrokenGuard::BrokenGuard(MySQLConnection& connection)
     : connection_{connection},
       exceptions_on_enter_{std::uncaught_exceptions()} {
   if (connection_.IsBroken()) {
-    ThrowGeneralException(0, "Connection is broken.");
+    throw MySQLException(0, "Connection is broken.");
   }
 }
 
 BrokenGuard::~BrokenGuard() {
   if (exceptions_on_enter_ != std::uncaught_exceptions()) {
-    // some exception is being thrown, but not via our interface.
-    // Break the connection.
+    // Some exception is being thrown, but unknown. Break the connection
     if (errno_ == 0) {
       connection_.NotifyBroken();
     }
@@ -41,6 +38,7 @@ BrokenGuard::~BrokenGuard() {
 
     if (within_range(CR_MIN_ERROR, CR_MAX_ERROR) ||
         within_range(CER_MIN_ERROR, CER_MAX_ERROR)) {
+      // TODO : be more selective
       // these are client errors, we are screwed
       connection_.NotifyBroken();
       return;
@@ -50,30 +48,6 @@ BrokenGuard::~BrokenGuard() {
     // Break the connection.
     connection_.NotifyBroken();
   }
-}
-
-void BrokenGuard::ThrowGeneralException(unsigned int error,
-                                        std::string message) {
-  errno_ = error;
-  throw MySQLException{error, message};
-}
-
-void BrokenGuard::ThrowStatementException(unsigned int error,
-                                          std::string message) {
-  errno_ = error;
-  throw MySQLStatementException{error, message};
-}
-
-void BrokenGuard::ThrowCommandException(unsigned int error,
-                                        std::string message) {
-  errno_ = error;
-  throw MySQLCommandException{error, message};
-}
-
-void BrokenGuard::ThrowTransactionException(unsigned int error,
-                                            std::string message) {
-  errno_ = error;
-  throw MySQLTransactionException{error, message};
 }
 
 }  // namespace storages::mysql::impl

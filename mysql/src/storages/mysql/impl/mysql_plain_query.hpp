@@ -20,8 +20,8 @@ class MySQLPlainQuery final {
   MySQLPlainQuery(const MySQLPlainQuery& other) = delete;
   MySQLPlainQuery(MySQLPlainQuery&& other) noexcept;
 
-  void Execute(BrokenGuard& guard, engine::Deadline deadline);
-  MySQLResult FetchResult(BrokenGuard& guard, engine::Deadline deadline);
+  void Execute(engine::Deadline deadline);
+  MySQLResult FetchResult(engine::Deadline deadline);
 
  private:
   MySQLConnection* connection_;

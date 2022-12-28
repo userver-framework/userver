@@ -10,7 +10,6 @@
 
 #include <storages/mysql/impl/bindings/input_bindings.hpp>
 #include <storages/mysql/impl/bindings/output_bindings.hpp>
-#include <storages/mysql/impl/broken_guard.hpp>
 #include <storages/mysql/impl/mysql_connection.hpp>
 #include <storages/mysql/impl/mysql_native_interface.hpp>
 #include <userver/storages/mysql/exceptions.hpp>
@@ -47,8 +46,7 @@ MySQLStatement::~MySQLStatement() = default;
 
 MySQLStatement::MySQLStatement(MySQLStatement&& other) noexcept = default;
 
-MySQLStatementFetcher MySQLStatement::Execute(BrokenGuard& guard,
-                                              io::ParamsBinderBase& params,
+MySQLStatementFetcher MySQLStatement::Execute(io::ParamsBinderBase& params,
                                               engine::Deadline deadline) {
   tracing::ScopeTime execute{"execute"};
   UpdateParamsBindings(params);
@@ -58,16 +56,15 @@ MySQLStatementFetcher MySQLStatement::Execute(BrokenGuard& guard,
           native_statement_.get());
 
   if (err != 0) {
-    guard.ThrowStatementException(
+    throw MySQLStatementException{
         mysql_stmt_errno(native_statement_.get()),
-        GetNativeError("Failed to execute a prepared statement"));
+        GetNativeError("Failed to execute a prepared statement")};
   }
 
   return MySQLStatementFetcher{*this};
 }
 
-void MySQLStatement::StoreResult(BrokenGuard& guard,
-                                 engine::Deadline deadline) {
+void MySQLStatement::StoreResult(engine::Deadline deadline) {
   int err = MySQLNativeInterface{connection_->GetSocket(), deadline}
                 .StatementStoreResult(native_statement_.get());
 
@@ -76,20 +73,20 @@ void MySQLStatement::StoreResult(BrokenGuard& guard,
       return;
     }
 
-    guard.ThrowStatementException(
+    throw MySQLStatementException{
         mysql_stmt_errno(native_statement_.get()),
-        GetNativeError("Failed to fetch a prepared statement result"));
+        GetNativeError("Failed to fetch a prepared statement result")};
   }
 }
 
-bool MySQLStatement::FetchResultRow(BrokenGuard& guard,
-                                    bindings::OutputBindings& binds,
+bool MySQLStatement::FetchResultRow(bindings::OutputBindings& binds,
                                     bool apply_binds,
                                     engine::Deadline deadline) {
   if (!binds.Empty() && apply_binds) {
     if (mysql_stmt_bind_result(native_statement_.get(),
                                binds.GetBindsArray()) != 0) {
-      throw std::runtime_error{
+      throw MySQLStatementException{
+          mysql_stmt_errno(native_statement_.get()),
           GetNativeError("Failed to perform result binding")};
     }
   }
@@ -106,9 +103,9 @@ bool MySQLStatement::FetchResultRow(BrokenGuard& guard,
     if (fetch_err != MYSQL_DATA_TRUNCATED) {
       // MYSQL_DATA_TRUNCATED is what we get with the way we bind strings,
       // it's ok. Other errors are not ok tho.
-      guard.ThrowStatementException(
+      throw MySQLStatementException{
           mysql_stmt_errno(native_statement_.get()),
-          GetNativeError("Failed to fetch statement result row"));
+          GetNativeError("Failed to fetch statement result row")};
     }
   }
 
@@ -157,8 +154,7 @@ void MySQLStatement::Reset(engine::Deadline deadline) {
     // https://bugs.mysql.com/bug.php?id=109380
     if (connection_->GetServerInfo().server_type ==
         metadata::MySQLServerInfo::Type::kMySQL) {
-      auto guard = connection_->GetBrokenGuard();
-      PrepareStatement(guard, native_statement_, deadline);
+      PrepareStatement(native_statement_, deadline);
     }
     batch_size_.reset();
   }
@@ -235,33 +231,31 @@ std::optional<std::size_t> MySQLStatement::GetBatchSize() const {
 
 MySQLStatement::NativeStatementPtr MySQLStatement::CreateStatement(
     engine::Deadline deadline) {
-  auto guard = connection_->GetBrokenGuard();
   NativeStatementPtr statement_ptr{
       mysql_stmt_init(&connection_->GetNativeHandler()),
       NativeStatementDeleter(connection_)};
   if (!statement_ptr) {
-    guard.ThrowStatementException(
+    throw MySQLStatementException{
         mysql_errno(&connection_->GetNativeHandler()),
         connection_->GetNativeError(
-            "Failed to initialize a prepared statement"));
+            "Failed to initialize a prepared statement")};
   }
 
-  PrepareStatement(guard, statement_ptr, deadline);
+  PrepareStatement(statement_ptr, deadline);
 
   return statement_ptr;
 }
 
-void MySQLStatement::PrepareStatement(BrokenGuard& guard,
-                                      NativeStatementPtr& native_statement,
+void MySQLStatement::PrepareStatement(NativeStatementPtr& native_statement,
                                       engine::Deadline deadline) {
   int err =
       MySQLNativeInterface{connection_->GetSocket(), deadline}.StatementPrepare(
           native_statement.get(), statement_.data(), statement_.length());
 
   if (err != 0) {
-    guard.ThrowStatementException(
+    throw MySQLStatementException{
         mysql_stmt_errno(native_statement.get()),
-        GetNativeError("Failed to initialize a prepared statement"));
+        GetNativeError("Failed to initialize a prepared statement")};
   }
 }
 
@@ -297,52 +291,55 @@ MySQLStatementFetcher::MySQLStatementFetcher(
       statement_{std::exchange(other.statement_, nullptr)} {}
 
 bool MySQLStatementFetcher::FetchResult(io::ExtractorBase& extractor) {
-  auto broken_guard = statement_->connection_->GetBrokenGuard();
+  auto guard = statement_->connection_->GetBrokenGuard();
 
-  const auto batch_size = statement_->GetBatchSize();
+  return guard.Execute([&] {
+    const auto batch_size = statement_->GetBatchSize();
 
-  if (!batch_size.has_value()) {
-    statement_->StoreResult(broken_guard, parent_statement_deadline_);
-  }
-
-  const auto rows_count = batch_size.value_or(statement_->RowsCount());
-  extractor.Reserve(rows_count);
-
-  const auto validate_binds = !std::exchange(binds_validated_, true);
-  if (validate_binds) {
-    // We validate binds even for empty results:
-    // we don't want a query returning empty result to pass tests and then BOOM
-    // with actual data. Performance cost of this should be negligible, if any.
-    auto& binds = extractor.BindNextRow();
-    binds.ValidateAgainstStatement(*statement_->native_statement_);
-    extractor.RollbackLastRow();
-  }
-
-  for (size_t i = 0; i < rows_count; ++i) {
-    auto& binds = extractor.BindNextRow();
-
-    const auto apply_binds = !std::exchange(binds_applied_, true);
-    // We don't have to reapply binds all the time: values in them are changed
-    // by extractor.BindNextRow() call, and mysql_stmt_bind_result is costly.
-    // Not reapplying them for each row gives ~20% speedup in benchmarks with
-    // wide select.
-    const auto parsed = statement_->FetchResultRow(
-        broken_guard, binds, apply_binds, parent_statement_deadline_);
-    if (!parsed) {
-      extractor.RollbackLastRow();
-      return false;
+    if (!batch_size.has_value()) {
+      statement_->StoreResult(parent_statement_deadline_);
     }
-    extractor.CommitLastRow();
-    // With this we make OutputBinder operate on MYSQL_BIND array stored in
-    // statement. sizeof(MYSQL_BIND) = 112 in 64bit mode, and without this
-    // trickery we would have to copy the whole array for each column with
-    // mysql_stst_bind_result, and for say 10 columns and 10^6 rows that
-    // accounts for 10 * 112 * 10^6 ~= 1Gb of memcpy (and 10^6 rows of 10 ints
-    // is only about 40Mb)
-    extractor.UpdateBinds(statement_->native_statement_->bind);
-  }
 
-  return true;
+    const auto rows_count = batch_size.value_or(statement_->RowsCount());
+    extractor.Reserve(rows_count);
+
+    const auto validate_binds = !std::exchange(binds_validated_, true);
+    if (validate_binds) {
+      // We validate binds even for empty results:
+      // we don't want a query returning empty result to pass tests and then
+      // BOOM with actual data. Performance cost of this should be negligible,
+      // if any.
+      auto& binds = extractor.BindNextRow();
+      binds.ValidateAgainstStatement(*statement_->native_statement_);
+      extractor.RollbackLastRow();
+    }
+
+    for (size_t i = 0; i < rows_count; ++i) {
+      auto& binds = extractor.BindNextRow();
+
+      const auto apply_binds = !std::exchange(binds_applied_, true);
+      // We don't have to reapply binds all the time: values in them are changed
+      // by extractor.BindNextRow() call, and mysql_stmt_bind_result is costly.
+      // Not reapplying them for each row gives ~20% speedup in benchmarks with
+      // wide select.
+      const auto parsed = statement_->FetchResultRow(
+          binds, apply_binds, parent_statement_deadline_);
+      if (!parsed) {
+        extractor.RollbackLastRow();
+        return false;
+      }
+      extractor.CommitLastRow();
+      // With this we make OutputBinder operate on MYSQL_BIND array stored in
+      // statement. sizeof(MYSQL_BIND) = 112 in 64bit mode, and without this
+      // trickery we would have to copy the whole array for each column with
+      // mysql_stst_bind_result, and for say 10 columns and 10^6 rows that
+      // accounts for 10 * 112 * 10^6 ~= 1Gb of memcpy (and 10^6 rows of 10 ints
+      // is only about 40Mb)
+      extractor.UpdateBinds(statement_->native_statement_->bind);
+    }
+
+    return true;
+  });
 }
 
 std::size_t MySQLStatementFetcher::RowsAffected() const {

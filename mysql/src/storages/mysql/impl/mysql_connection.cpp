@@ -88,21 +88,25 @@ MySQLConnection::~MySQLConnection() {
 
 MySQLResult MySQLConnection::ExecutePlain(const std::string& query,
                                           engine::Deadline deadline) {
-  auto broken_guard = GetBrokenGuard();
+  auto guard = GetBrokenGuard();
 
-  MySQLPlainQuery mysql_query{*this, query};
-  mysql_query.Execute(broken_guard, deadline);
-  return mysql_query.FetchResult(broken_guard, deadline);
+  return guard.Execute([&] {
+    MySQLPlainQuery mysql_query{*this, query};
+    mysql_query.Execute(deadline);
+    return mysql_query.FetchResult(deadline);
+  });
 }
 
 MySQLStatementFetcher MySQLConnection::ExecuteStatement(
     const std::string& statement, io::ParamsBinderBase& params,
     engine::Deadline deadline, std::optional<std::size_t> batch_size) {
-  auto broken_guard = GetBrokenGuard();
+  auto guard = GetBrokenGuard();
 
-  auto& mysql_statement = PrepareStatement(statement, deadline, batch_size);
+  return guard.Execute([&] {
+    auto& mysql_statement = PrepareStatement(statement, deadline, batch_size);
 
-  return mysql_statement.Execute(broken_guard, params, deadline);
+    return mysql_statement.Execute(params, deadline);
+  });
 }
 
 void MySQLConnection::ExecuteInsert(const std::string& insert_statement,
@@ -112,38 +116,44 @@ void MySQLConnection::ExecuteInsert(const std::string& insert_statement,
 }
 
 void MySQLConnection::Ping(engine::Deadline deadline) {
-  auto broken_guard = GetBrokenGuard();
+  auto guard = GetBrokenGuard();
 
-  int err = MySQLNativeInterface{socket_, deadline}.Ping(&mysql_);
+  guard.Execute([this, deadline] {
+    int err = MySQLNativeInterface{socket_, deadline}.Ping(&mysql_);
 
-  if (err != 0) {
-    // TODO : reason
-    throw MySQLException{mysql_errno(&mysql_),
-                         GetNativeError("Failed to ping the server")};
-  }
+    if (err != 0) {
+      throw MySQLException{mysql_errno(&mysql_),
+                           GetNativeError("Failed to ping the server")};
+    }
+  });
 }
 
 void MySQLConnection::Commit(engine::Deadline deadline) {
   auto guard = GetBrokenGuard();
 
-  my_bool err = MySQLNativeInterface{socket_, deadline}.Commit(&mysql_);
+  guard.Execute([this, deadline] {
+    my_bool err = MySQLNativeInterface{socket_, deadline}.Commit(&mysql_);
 
-  if (err != 0) {
-    guard.ThrowTransactionException(
-        mysql_errno(&mysql_), GetNativeError("Failed to commit a transaction"));
-  }
+    if (err != 0) {
+      throw MySQLTransactionException{
+          mysql_errno(&mysql_),
+          GetNativeError("Failed to commit a transaction")};
+    }
+  });
 }
 
 void MySQLConnection::Rollback(engine::Deadline deadline) {
   auto guard = GetBrokenGuard();
 
-  my_bool err = MySQLNativeInterface{socket_, deadline}.Rollback(&mysql_);
+  guard.Execute([this, deadline] {
+    my_bool err = MySQLNativeInterface{socket_, deadline}.Rollback(&mysql_);
 
-  if (err != 0) {
-    guard.ThrowTransactionException(
-        mysql_errno(&mysql_),
-        GetNativeError("Failed to rollback a transaction"));
-  }
+    if (err != 0) {
+      throw MySQLTransactionException{
+          mysql_errno(&mysql_),
+          GetNativeError("Failed to rollback a transaction")};
+    }
+  });
 }
 
 MySQLSocket& MySQLConnection::GetSocket() { return socket_; }

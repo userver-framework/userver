@@ -2,6 +2,8 @@
 
 #include <string>
 
+#include <userver/storages/mysql/exceptions.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::mysql::impl {
@@ -13,13 +15,8 @@ class BrokenGuard final {
   explicit BrokenGuard(MySQLConnection& connection);
   ~BrokenGuard();
 
-  void ThrowGeneralException(unsigned int error, std::string message);
-
-  void ThrowStatementException(unsigned int error, std::string message);
-
-  void ThrowCommandException(unsigned int error, std::string message);
-
-  void ThrowTransactionException(unsigned int error, std::string message);
+  template <typename Func>
+  auto Execute(Func&& func);
 
  private:
   MySQLConnection& connection_;
@@ -27,6 +24,16 @@ class BrokenGuard final {
   int exceptions_on_enter_;
   unsigned int errno_{0};
 };
+
+template <typename Func>
+auto BrokenGuard::Execute(Func&& func) {
+  try {
+    return func();
+  } catch (const MySQLException& ex) {
+    errno_ = ex.GetErrno();
+    throw;
+  }
+}
 
 }  // namespace storages::mysql::impl
 

@@ -44,20 +44,19 @@ MySQLPlainQuery::~MySQLPlainQuery() = default;
 
 MySQLPlainQuery::MySQLPlainQuery(MySQLPlainQuery&& other) noexcept = default;
 
-void MySQLPlainQuery::Execute(BrokenGuard& guard, engine::Deadline deadline) {
+void MySQLPlainQuery::Execute(engine::Deadline deadline) {
   int err =
       MySQLNativeInterface{connection_->GetSocket(), deadline}.QueryExecute(
           &connection_->GetNativeHandler(), query_.data(), query_.length());
 
   if (err != 0) {
-    guard.ThrowCommandException(
+    throw MySQLCommandException{
         mysql_errno(&connection_->GetNativeHandler()),
-        connection_->GetNativeError("Failed to execute a query: "));
+        connection_->GetNativeError("Failed to execute a query: ")};
   }
 }
 
-MySQLResult MySQLPlainQuery::FetchResult(BrokenGuard&,
-                                         engine::Deadline deadline) {
+MySQLResult MySQLPlainQuery::FetchResult(engine::Deadline deadline) {
   std::unique_ptr<MYSQL_RES, NativeResultDeleter> native_result{
       MySQLNativeInterface{connection_->GetSocket(), deadline}.QueryStoreResult(
           &connection_->GetNativeHandler()),
