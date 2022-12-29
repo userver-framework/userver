@@ -46,7 +46,7 @@ class {{service.name}}Client final {
       const {{ method.input_type | grpc_to_cpp_name }}& request,
       {% endif %}
       std::unique_ptr<::grpc::ClientContext> context =
-          std::make_unique<::grpc::ClientContext>());
+          std::make_unique<::grpc::ClientContext>()) const;
   {% endfor %}
 
   // For internal use only

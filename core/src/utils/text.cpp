@@ -82,6 +82,11 @@ bool EndsWith(std::string_view hay, std::string_view needle) {
          hay.substr(hay.size() - needle.size()) == needle;
 }
 
+std::string ToLower(std::string_view str, const std::string& locale) {
+  return boost::locale::to_lower(str.data(), str.data() + str.size(),
+                                 GetLocale(locale));
+}
+
 std::string Capitalize(std::string_view str, const std::string& locale) {
   return boost::locale::to_title(str.data(), str.data() + str.size(),
                                  GetLocale(locale));

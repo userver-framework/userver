@@ -5,7 +5,7 @@
 
 namespace tests::handlers {
 
-class Now final : public userver::server::handlers::HttpHandlerJsonBase {
+class Now final : public server::handlers::HttpHandlerJsonBase {
  public:
   static constexpr std::string_view kName = "handler-now";
 

@@ -77,6 +77,17 @@ $ curl http://localhost:8086/service/monitor?format=graphite | sort
 @include core/functional_tests/metrics/tests/static/metrics_values.txt
 
 
+With components::Postgres and some components::PostgreCache the following
+additional metrics appear:
+
+@include postgresql/functional_tests/metrics/tests/static/metrics_values.txt
+
+
+With components::Redis the following additional metrics appear:
+
+@include redis/functional_tests/metrics/tests/static/metrics_values.txt
+
+
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly

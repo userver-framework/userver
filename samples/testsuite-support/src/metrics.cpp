@@ -15,9 +15,9 @@ const utils::statistics::MetricTag<std::atomic<int>> kFooMetric{
 
 }  // namespace
 
-Metrics::Metrics(const userver::components::ComponentConfig& config,
-                 const userver::components::ComponentContext& context)
-    : userver::server::handlers::HttpHandlerJsonBase(config, context),
+Metrics::Metrics(const components::ComponentConfig& config,
+                 const components::ComponentContext& context)
+    : server::handlers::HttpHandlerJsonBase(config, context),
       metrics_(context.FindComponent<components::StatisticsStorage>()
                    .GetMetricsStorage()) {}
 

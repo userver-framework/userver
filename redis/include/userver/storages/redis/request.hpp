@@ -21,12 +21,12 @@ namespace storages::redis {
 template <ScanTag scan_tag>
 class RequestScanData;
 
-template <typename Result, typename ReplyType = impl::DefaultReplyType<Result>>
+template <typename Result, typename ReplyType = Result>
 class USERVER_NODISCARD Request final {
  public:
   using Reply = ReplyType;
 
-  explicit Request(std::unique_ptr<RequestDataBase<Result, ReplyType>>&& impl)
+  explicit Request(std::unique_ptr<RequestDataBase<ReplyType>>&& impl)
       : impl_(std::move(impl)) {}
 
   void Wait() { impl_->Wait(); }
@@ -49,7 +49,7 @@ class USERVER_NODISCARD Request final {
  private:
   ReplyPtr GetRaw() { return impl_->GetRaw(); }
 
-  std::unique_ptr<RequestDataBase<Result, ReplyType>> impl_;
+  std::unique_ptr<RequestDataBase<ReplyType>> impl_;
 };
 
 template <ScanTag scan_tag>

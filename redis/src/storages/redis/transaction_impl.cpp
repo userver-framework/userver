@@ -664,7 +664,7 @@ Request<Result, ReplyType> TransactionImpl::DoAddCmd(
     To<Request<Result, ReplyType>> to) {
   engine::Promise<ReplyType> promise;
   Request<Result, ReplyType> request(
-      std::make_unique<impl::TransactionSubrequestDataImpl<Result, ReplyType>>(
+      std::make_unique<impl::TransactionSubrequestDataImpl<ReplyType>>(
           promise.get_future()));
   result_promises_.emplace_back(std::move(promise), to);
   return request;

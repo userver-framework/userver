@@ -21,33 +21,6 @@ libraries:
   - OpenSSL::SSL
   - libyamlcpp
 
-debian:
-    build_dependencies:
-      - clang-9
-      - libstdc++-7-dev
-      - libboost-filesystem-dev
-      - libboost-iostreams-dev
-      - libboost-locale-dev
-      - libboost-program-options-dev
-      - libboost-thread-dev
-      - libcctz-dev
-      - libcrypto++-dev
-      - libev-dev
-      - libfmt-dev
-      - libgcrypt11-dev
-      - libhttp-parser-dev
-      - libkrb5-dev
-      - libnghttp2-dev
-      - libssl-dev
-      - libyaml-cpp-dev
-      - libyandex-taxi-curl4-openssl-dev
-      - libyandex-taxi-jemalloc-dev
-      - lld-9
-      - zlib1g-dev
-      - clang-format-9
-      #- clang-tidy-14 -- not available everywhere
-      - lcov # support for coverage-reports
-
 configs:
     names:
       - HTTP_CLIENT_CONNECTION_POOL_SIZE

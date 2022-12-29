@@ -15,6 +15,8 @@ USERVER_NAMESPACE_BEGIN
 /// @brief Text utilities
 namespace utils::text {
 
+inline const std::string kEnLocale{"en_US.UTF-8"};
+
 /// Return trimmed copy of string.
 std::string Trim(const std::string& str);
 
@@ -42,6 +44,10 @@ bool StartsWith(std::string_view hay, std::string_view needle);
 
 /// Return true if `hay` ends with `needle`, false otherwise.
 bool EndsWith(std::string_view hay, std::string_view needle);
+
+/// Transform letters to lower case
+std::string ToLower(std::string_view str,
+                    const std::string& locale = kEnLocale);
 
 /// Capitalizes the first letter of the str
 std::string Capitalize(std::string_view str, const std::string& locale);

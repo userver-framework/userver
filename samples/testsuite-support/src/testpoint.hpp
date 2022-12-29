@@ -5,7 +5,7 @@
 
 namespace tests::handlers {
 
-class Testpoint final : public userver::server::handlers::HttpHandlerJsonBase {
+class Testpoint final : public server::handlers::HttpHandlerJsonBase {
  public:
   static constexpr std::string_view kName = "handler-testpoint";
 

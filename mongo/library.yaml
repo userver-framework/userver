@@ -10,10 +10,6 @@ libraries:
   - mongoc-1.0
   - userver-core
 
-debian:
-    build_dependencies:
-      - libyandex-taxi-mongo-c-driver-dev
-
 configs:
     names:
       - MONGO_DEADLINE_PROPAGATION_ENABLED
