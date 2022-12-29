@@ -21,7 +21,7 @@ namespace storages::redis {
 namespace impl {
 
 template <typename Result, typename ReplyType>
-class MockRequestData final : public RequestDataBase<Result, ReplyType> {
+class MockRequestData final : public RequestDataBase<ReplyType> {
  public:
   explicit MockRequestData(ReplyType&& reply) : reply_(std::move(reply)) {}
 
@@ -41,8 +41,7 @@ class MockRequestData final : public RequestDataBase<Result, ReplyType> {
 };
 
 template <typename Result>
-class MockRequestData<Result, void> final
-    : public RequestDataBase<Result, void> {
+class MockRequestData<Result, void> final : public RequestDataBase<void> {
  public:
   MockRequestData() = default;
 
@@ -57,7 +56,7 @@ class MockRequestData<Result, void> final
 };
 
 template <typename Result, typename ReplyType>
-class MockRequestDataTimeout final : public RequestDataBase<Result, ReplyType> {
+class MockRequestDataTimeout final : public RequestDataBase<ReplyType> {
  public:
   MockRequestDataTimeout() = default;
 

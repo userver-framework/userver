@@ -23,7 +23,7 @@ template <typename Result, typename ReplyType = Result>
 Request<Result, ReplyType> CreateAggregateRequest(
     std::vector<USERVER_NAMESPACE::redis::Request>&& requests,
     Request<Result, ReplyType>* /* for ADL */) {
-  std::vector<std::unique_ptr<RequestDataBase<Result, ReplyType>>> req_data;
+  std::vector<std::unique_ptr<RequestDataBase<ReplyType>>> req_data;
   req_data.reserve(requests.size());
   for (auto& request : requests) {
     req_data.push_back(std::make_unique<RequestDataImpl<Result, ReplyType>>(

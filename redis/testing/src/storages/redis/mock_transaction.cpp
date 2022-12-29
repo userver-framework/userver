@@ -64,7 +64,7 @@ class MockTransaction::ResultPromise {
 };
 
 class MockTransaction::MockRequestExecDataImpl final
-    : public RequestDataBase<ReplyData, void> {
+    : public RequestDataBase<void> {
  public:
   MockRequestExecDataImpl(
       std::vector<std::unique_ptr<ResultPromise>>&& result_promises)
@@ -696,7 +696,7 @@ Request<Result, ReplyType> MockTransaction::AddSubrequest(
     Request<Result, ReplyType>&& subrequest) {
   engine::Promise<ReplyType> promise;
   Request<Result, ReplyType> request(
-      std::make_unique<impl::TransactionSubrequestDataImpl<Result, ReplyType>>(
+      std::make_unique<impl::TransactionSubrequestDataImpl<ReplyType>>(
           promise.get_future()));
   result_promises_.emplace_back(std::make_unique<ResultPromise>(
       std::move(promise), std::move(subrequest)));
