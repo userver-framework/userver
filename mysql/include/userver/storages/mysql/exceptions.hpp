@@ -20,21 +20,25 @@ class MySQLException : public std::runtime_error {
   unsigned int errno_;
 };
 
+/// @brief IO exception (read/write timeout/cancelled)
 class MySQLIOException : public MySQLException {
  public:
   using MySQLException::MySQLException;
 };
 
+/// @brief Statement exception - something went wrong with the statement
 class MySQLStatementException : public MySQLException {
  public:
   using MySQLException::MySQLException;
 };
 
+/// @brief Command exception - something went wrong with the command
 class MySQLCommandException : public MySQLException {
  public:
   using MySQLException::MySQLException;
 };
 
+/// @brief Transaction exception - something went wrong with the transaction
 class MySQLTransactionException : public MySQLException {
  public:
   using MySQLException::MySQLException;

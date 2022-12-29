@@ -70,6 +70,8 @@ class MySQLStatement final {
   void SetNoCursor();
   std::optional<std::size_t> GetBatchSize() const;
 
+  void SetDestructionDeadline(engine::Deadline deadline);
+
  private:
   friend class MySQLStatementFetcher;
   void StoreResult(engine::Deadline deadline);
@@ -86,8 +88,11 @@ class MySQLStatement final {
 
     void operator()(MYSQL_STMT* statement);
 
+    void SetDeadline(engine::Deadline deadline);
+
    private:
     MySQLConnection* connection_;
+    engine::Deadline deadline_;
   };
   using NativeStatementPtr =
       std::unique_ptr<MYSQL_STMT, NativeStatementDeleter>;

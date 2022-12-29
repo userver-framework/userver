@@ -54,7 +54,7 @@ ConnectionSettings Parse(const yaml_config::YamlConfig& doc,
   // TODO
   settings.use_compression = false;
   // TODO
-  settings.ip_mode = IpMode::kAny;
+  settings.ip_mode = IpMode::kIpV4;
 
   return settings;
 }

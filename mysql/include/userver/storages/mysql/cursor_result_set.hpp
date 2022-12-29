@@ -24,7 +24,7 @@ class CursorResultSet final {
   /// @brief Fetches all the rows from cursor and for each new row executes
   /// row_callback.
   ///
-  /// Usable when expected result set is expected to be big enough to put too
+  /// Usable when the result set is expected to be big enough to put too
   /// much memory pressure if fetched as a whole.
   // TODO : deadline?
   template <typename RowCallback>

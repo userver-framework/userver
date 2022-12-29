@@ -25,14 +25,21 @@ MySQLStatement::NativeStatementDeleter::NativeStatementDeleter(
     : connection_{connection} {}
 
 void MySQLStatement::NativeStatementDeleter::operator()(MYSQL_STMT* statement) {
+  // This means deadline was set
+  UASSERT(deadline_.IsReachable());
   try {
-    MySQLNativeInterface{connection_->GetSocket(), {} /* TODO : deadline */}
-        .StatementClose(statement);
+    MySQLNativeInterface{connection_->GetSocket(), deadline_}.StatementClose(
+        statement);
   } catch (const std::exception& ex) {
     LOG_WARNING() << "Failed to correctly dispose a prepared statement, it "
                      "might get leaked server-side. Error: "
                   << ex.what();
   }
+}
+
+void MySQLStatement::NativeStatementDeleter::SetDeadline(
+    engine::Deadline deadline) {
+  deadline_ = deadline;
 }
 
 MySQLStatement::MySQLStatement(MySQLConnection& connection,
@@ -227,6 +234,10 @@ void MySQLStatement::SetNoCursor() {
 
 std::optional<std::size_t> MySQLStatement::GetBatchSize() const {
   return batch_size_;
+}
+
+void MySQLStatement::SetDestructionDeadline(engine::Deadline deadline) {
+  native_statement_.get_deleter().SetDeadline(deadline);
 }
 
 MySQLStatement::NativeStatementPtr MySQLStatement::CreateStatement(

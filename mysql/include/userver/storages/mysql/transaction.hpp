@@ -17,7 +17,7 @@ namespace infra {
 class ConnectionPtr;
 }
 
-/// @brief RAII transaction wrapper, auto-**ROLLBACK**s on destruction if no
+/// @brief RAII transaction wrapper, auto-<b>ROLLBACK</b>s on destruction if no
 /// prior `Commit`/`Rollback` call was made.
 ///
 /// This type can't be constructed in user code and is always retrieved from
@@ -45,7 +45,10 @@ class Transaction final {
   void InsertManyMapped(const Query& insert_query, const Container& rows,
                         bool throw_on_empty_insert = true) const;
 
+  /// @brief Commit the transaction
   void Commit();
+
+  /// @brief Rollback the transaction
   void Rollback();
 
  private:
@@ -94,7 +97,7 @@ void Transaction::InsertMany(const Query& insert_query, const Container& rows,
 }
 
 template <typename Container, typename MapTo>
-void Transaction::InsertManyMapped([[maybe_unused]] const Query& insert_query,
+void Transaction::InsertManyMapped(const Query& insert_query,
                                    const Container& rows,
                                    bool throw_on_empty_insert) const {
   if (rows.empty()) {
@@ -104,6 +107,11 @@ void Transaction::InsertManyMapped([[maybe_unused]] const Query& insert_query,
       return;
     }
   }
+
+  auto params_binder =
+      impl::BindHelper::BindContainerAsParamsMapped<MapTo>(rows);
+
+  DoInsert(insert_query.GetStatement(), params_binder);
 }
 
 }  // namespace storages::mysql

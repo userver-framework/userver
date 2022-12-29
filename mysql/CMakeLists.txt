@@ -20,8 +20,13 @@ list(APPEND MYSQL_BENCH_SOURCES
 add_library(${PROJECT_NAME} STATIC ${SOURCES})
 
 find_package(libmariadb REQUIRED)
-
 #add_subdirectory(${USERVER_ROOT_DIR}/third_party/mariadb-connector-c "${CMAKE_BINARY_DIR}/third_party/mariadb-connector-c")
+#target_include_directories(${PROJECT_NAME} PRIVATE
+#  ${USERVER_THIRD_PARTY_DIRS}/mariadb-connector-c/include
+#)
+#target_include_directories(${PROJECT_NAME} PRIVATE
+#  ${CMAKE_BINARY_DIR}/third_party/mariadb-connector-c/include
+#)
 
 target_link_libraries(${PROJECT_NAME}
   PUBLIC
@@ -35,13 +40,6 @@ target_include_directories(
 target_include_directories (${PROJECT_NAME} PRIVATE
   $<TARGET_PROPERTY:userver-core,INCLUDE_DIRECTORIES>
 )
-
-#target_include_directories(${PROJECT_NAME} PRIVATE
-#  ${USERVER_THIRD_PARTY_DIRS}/mariadb-connector-c/include
-#)
-#target_include_directories(${PROJECT_NAME} PRIVATE
-#  ${CMAKE_BINARY_DIR}/third_party/mariadb-connector-c/include
-#)
 
 target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE
   ${USERVER_THIRD_PARTY_DIRS}/date/include

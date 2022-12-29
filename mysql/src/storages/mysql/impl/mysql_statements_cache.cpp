@@ -29,6 +29,8 @@ MySQLStatement& MySQLStatementsCache::PrepareStatement(
     if (queue_.size() > capacity_) {
       tracing::ScopeTime clear_lru{"reset_old_statements"};
       lookup_.erase(queue_.back().first);
+
+      queue_.back().second.SetDestructionDeadline(deadline);
       queue_.pop_back();
     }
   } else {
