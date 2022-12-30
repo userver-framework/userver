@@ -197,7 +197,7 @@ Request::Request(std::shared_ptr<impl::EasyWrapper>&& wrapper,
                  clients::dns::Resolver* resolver)
     : pimpl_(std::make_shared<RequestState>(
           std::move(wrapper), std::move(req_stats), dest_stats, resolver)) {
-  LOG_DEBUG() << "Request::Request()";
+  LOG_TRACE() << "Request::Request()";
   // default behavior follow redirects and verify ssl
   pimpl_->follow_redirects(true);
   pimpl_->verify(true);

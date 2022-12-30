@@ -51,6 +51,7 @@ Then create testsuite target:
 * REQUIREMENTS, list of reqirements.txt files used to populate `virtualenv`.
 * PYTHON_BINARY, path to existing Python binary.
 * VIRTUALENV_ARGS, list of extra arguments passed to `virtualenv`.
+* PRETTY_LOGS, set to `OFF` to disable pretty printing.
 
 ### Python environment
 

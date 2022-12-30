@@ -39,7 +39,9 @@ class UserverConfig(typing.NamedTuple):
 
 def pytest_configure(config):
     config.pluginmanager.register(UserverConfigPlugin(), 'userver_config')
-    config.addinivalue_line('markers', 'config: per-test taxi config values')
+    config.addinivalue_line(
+        'markers', 'config: per-test dynamic config values',
+    )
 
 
 def pytest_addoption(parser) -> None:

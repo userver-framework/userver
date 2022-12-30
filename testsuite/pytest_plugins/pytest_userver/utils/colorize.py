@@ -131,12 +131,12 @@ class Colorizer:
 
         fields = [
             self.textcolor(f'{level:<8}', level_color),
-            self.textcolor(logid, Colors.BLUE),
+            self.textcolor(logid, flow_color),
         ]
         if text:
-            fields.append(self.textcolor(text, flow_color))
+            fields.append(text)
         elif self.verbose:
-            fields.append(self.textcolor('<NO TEXT>', flow_color))
+            fields.append('<NO TEXT>')
         else:
             return None
 
