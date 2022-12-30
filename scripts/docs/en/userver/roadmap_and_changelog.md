@@ -23,12 +23,12 @@ Changelog news also go to the
   * ✓ Add component to serve static pages
 * Migrate our internal CI to the github
 * Migrate to upstream versions of formatters
-* Improve documentation
+* ✓ Improve documentation
   * ✓ Improve @ref md_en_userver_framework_comparison
   * ✓ Add TCP acceptor sample
   * ✓ Add gRPC testsuite mock sample
   * ✓ Add reference sections for the Python fixtures
-  * Add HTTP authentication sample
+  * ✓ Add HTTP authentication sample
 * Improve experience with metrics
   * ✓ Add Prometheus metrics format
   * ✓ Add Graphite metrics format
@@ -42,6 +42,22 @@ Changelog news also go to the
 
 
 ## Changelog
+
+### Beta (December 2022)
+
+* Added logs colorization to the testsuite plugins, thanks to
+  [Victor Makarov](https://github.com/vitek) for the PR.
+* Multiple big improvements in framework testing:
+  * improved unit tests re-entrance
+  * multiple new chaos and metrics tests
+  * improved testsuite diagnostics
+* Added a @ref md_en_userver_tutorial_auth_postgres sample.
+* Added an option `set_tracing_headers` to disable HTTP tracing headers, thanks
+  to [Ivan Trofimov](https://github.com/itrofimow) for the PR.
+* Fixed race in RabbitMQ sample, thanks to
+  [Ivan Trofimov](https://github.com/itrofimow) for the PR.
+* Fixed PostgreSQL testing at GithubCI, thanks to
+  [Ivan Trofimov](https://github.com/itrofimow) for the PR.
 
 ### Beta (November 2022)
 
@@ -76,7 +92,7 @@ Changelog news also go to the
   @ref md_en_userver_service_monitor for details.
 * Initial support for chaos testing was added, see
   @ref md_en_userver_chaos_testing for more info.
-* Generic Escape implementation for ranges was added to clickhouse, thanks to
+* Generic Escape implementation for ranges was added to Clickhouse, thanks to
   [Ivan Trofimov](https://github.com/itrofimow) for the PR.
 * TLS/SSL support for Redis.
 * Multiple optimizations from [Ivan Trofimov](https://github.com/itrofimow):
