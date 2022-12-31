@@ -36,7 +36,10 @@ async def service_client(
     @anchor service_client
     @ingroup userver_testsuite_fixtures
     """
+    # The service is lazily started here (not at the 'session' scope)
+    # to allow 'client_deps' to be active during service start
     await ensure_daemon_started(service_daemon)
+
     if _testsuite_client_config.testsuite_action_path:
         return _service_client_testsuite
     return _service_client_base
@@ -83,7 +86,7 @@ async def _service_client_base(service_baseurl, service_client_options):
 
 
 @pytest.fixture
-async def _service_client_testsuite(
+def _service_client_testsuite(
         service_baseurl,
         service_client_options,
         mocked_time,
