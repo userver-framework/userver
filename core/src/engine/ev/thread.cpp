@@ -3,6 +3,10 @@
 #include <chrono>
 #include <stdexcept>
 
+#include <sys/param.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+
 #include <userver/compiler/demangle.hpp>
 #include <userver/engine/task/cancel.hpp>
 #include <userver/logging/log.hpp>

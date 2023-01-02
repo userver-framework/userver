@@ -1,6 +1,7 @@
 #include <userver/utest/current_process_open_files.hpp>
 
 #include <fmt/format.h>
+#include <sys/param.h>
 #include <boost/filesystem.hpp>
 
 #if defined(__APPLE__)
@@ -51,7 +52,11 @@ std::vector<std::string> CurrentProcessOpenFiles() {
 
 #else
 
+#ifdef BSD
+  boost::filesystem::path open_files_dir = "/dev/fd";
+#else
   boost::filesystem::path open_files_dir = fmt::format("/proc/{}/fd", pid);
+#endif
   boost::filesystem::directory_iterator it{open_files_dir};
   boost::filesystem::directory_iterator end;
   for (; it != end; ++it) {

@@ -63,7 +63,12 @@ if (NOT USERVER_FEATURE_CRYPTOPP_BASE64_URL)
   add_definitions("-DUSERVER_NO_CRYPTOPP_BASE64_URL=1")
 endif()
 
-option(USERVER_FEATURE_JEMALLOC "Enable linkage with jemalloc memory allocator" ON)
+if(CMAKE_SYSTEM_NAME MATCHES "BSD")
+  set(JEMALLOC_DEFAULT OFF)
+else()
+  set(JEMALLOC_DEFAULT ON)
+endif()
+option(USERVER_FEATURE_JEMALLOC "Enable linkage with jemalloc memory allocator" ${JEMALLOC_DEFAULT})
 
 option(USERVER_CHECK_PACKAGE_VERSIONS "Check package versions" ON)
 

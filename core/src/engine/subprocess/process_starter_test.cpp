@@ -1,5 +1,6 @@
 #include <userver/utest/utest.hpp>
 
+#include <sys/param.h>
 #include <unistd.h>
 
 #include <chrono>
@@ -9,6 +10,9 @@
 
 #if defined(__APPLE__)
 #include <mach-o/dyld.h>
+#elif defined(BSD)
+#include <sys/sysctl.h>
+#include <sys/types.h>
 #else
 #include <boost/filesystem.hpp>
 #endif
@@ -30,6 +34,8 @@ namespace {
 
 // MAC_COMPAT
 #ifdef __APPLE__
+const std::string kTestProgram = "/bin/test";
+#elif defined(BSD)
 const std::string kTestProgram = "/bin/test";
 #else
 const std::string kTestProgram = "/usr/bin/test";
@@ -72,6 +78,17 @@ UTEST(Subprocess, CheckSpdlogClosesFds) {
   ASSERT_EQ(_NSGetExecutablePath(self.data(), &self_len), -1);
   self.resize(self_len);
   ASSERT_EQ(_NSGetExecutablePath(self.data(), &self_len), 0);
+#elif defined(BSD)
+  int mib[4];
+  mib[0] = CTL_KERN;
+  mib[1] = KERN_PROC;
+  mib[2] = KERN_PROC_PATHNAME;
+  mib[3] = -1;
+  char buf[1024];
+  size_t cb = sizeof(buf);
+  ASSERT_EQ(sysctl(mib, 4, buf, &cb, NULL, 0), 0);
+
+  std::string self(buf);
 #else
   auto self = boost::filesystem::read_symlink("/proc/self/exe").native();
 #endif
@@ -99,6 +116,7 @@ TEST(Subprocess, DISABLED_CheckSpdlogClosesFdsFromChild) {
   for (const auto& file : opened_files) {
     // CurrentProcessOpenFiles.Basic makes sure that this works well
     if (file.find(kSpdlogFilePart) != std::string::npos) {
+      LOG_ERROR() << "Error: " << file;
       // NOLINTNEXTLINE(concurrency-mt-unsafe)
       std::exit(1);
     }

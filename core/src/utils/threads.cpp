@@ -1,10 +1,16 @@
 #include <utils/threads.hpp>
 
 #include <sched.h>
+#include <sys/param.h>
 
 #ifdef __APPLE__
 #include <pthread.h>
 #include <sys/resource.h>
+#elif defined(BSD)
+#include <pthread_np.h>
+#include <sys/resource.h>
+#include <sys/time.h>
+#include <unistd.h>
 #else
 #include <sys/syscall.h>
 #include <sys/types.h>
@@ -56,7 +62,7 @@ LowPriorityParams QueryLowPriorityParams() {
 }  // namespace
 
 bool IsMainThread() {
-#ifdef __APPLE__
+#if defined(__APPLE__) || defined(BSD)
   return !!pthread_main_np();
 #else
   return getpid() == GetTid();
@@ -64,11 +70,15 @@ bool IsMainThread() {
 }
 
 void SetCurrentThreadIdleScheduling() {
-#ifdef __APPLE__
+#if defined(__APPLE__)
   static constexpr ::id_t kThisThread = 0;
   utils::CheckSyscall(
       ::setpriority(PRIO_DARWIN_THREAD, kThisThread, PRIO_DARWIN_BG),
       "setting scheduler to IDLE");
+#elif defined(BSD)
+  ::id_t kThisThread = ::getpid();
+  utils::CheckSyscall(::setpriority(PRIO_PROCESS, kThisThread, 20),
+                      "setting scheduler to IDLE");
 #else
   static constexpr ::pid_t kThisThreadPid = 0;
   static constexpr struct sched_param kParam {};
