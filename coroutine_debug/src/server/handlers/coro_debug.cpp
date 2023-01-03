@@ -1,6 +1,8 @@
 #include <userver/server/handlers/coro_debug.hpp>
 
+#define UNW_LOCAL_ONLY
 #include <libunwind.h>
+#undef UNW_LOCAL_ONLY
 
 #include <cstdio>
 #include <thread>
