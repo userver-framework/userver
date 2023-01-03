@@ -60,6 +60,9 @@ void TaskProcessorThreadStartedHook() {
   EmitMagicNanosleep();
 }
 
+impl::TaskContext* const kNoopContext =
+    reinterpret_cast<impl::TaskContext*>(std::uintptr_t{0x1});
+
 }  // namespace
 
 TaskProcessor::TaskProcessor(TaskProcessorConfig config,
@@ -227,6 +230,28 @@ logging::LoggerPtr TaskProcessor::GetTaskTraceLogger() const {
   return task_trace_logger_;
 }
 
+void TaskProcessor::Pause() {
+  UINVARIANT(current_task::GetCurrentTaskContextUnchecked() == nullptr,
+             "Pause should NOT be called from worker thread");
+  pause_mutex_.lock();
+  pause_requested_.store(true);
+
+  for (std::size_t i = 0; i < workers_.size(); ++i) {
+    task_queue_.enqueue(kNoopContext);
+  }
+
+  while (paused_.load() != workers_.size()) {
+    std::this_thread::sleep_for(std::chrono::milliseconds{20});
+  }
+}
+
+void TaskProcessor::Resume() {
+  UINVARIANT(current_task::GetCurrentTaskContextUnchecked() == nullptr,
+             "Resume should NOT be called from worker thread");
+  pause_requested_.store(false);
+  pause_mutex_.unlock();
+}
+
 impl::TaskContext* TaskProcessor::DequeueTask() {
   impl::TaskContext* buf = nullptr;
 
@@ -256,8 +281,19 @@ void TaskProcessor::ProcessTasks() noexcept {
   TaskProcessorThreadStartedHook();
 
   while (true) {
+    if (pause_requested_.load()) {
+      paused_.fetch_add(1);
+      // This blocks until Resume is called
+      std::lock_guard<std::mutex> lock{pause_mutex_};
+      paused_.fetch_sub(1);
+    }
+
+    auto* context_ptr = DequeueTask();
+    if (context_ptr == kNoopContext) {
+      continue;
+    }
     // wrapping instance referenced in EnqueueTask
-    boost::intrusive_ptr<impl::TaskContext> context(DequeueTask(),
+    boost::intrusive_ptr<impl::TaskContext> context(context_ptr,
                                                     /* add_ref =*/false);
     if (!context) break;
 

@@ -34,6 +34,7 @@ class Pool final {
   void PutCoroutine(CoroutinePtr&& coroutine_ptr);
   PoolStats GetStats() const;
   std::size_t GetStackSize() const;
+  std::size_t GetMMapSize() const;
 
  private:
   Coroutine CreateCoroutine(bool quiet = false);
@@ -173,6 +174,16 @@ void Pool<Task>::OnCoroutineDestruction() noexcept {
 template <typename Task>
 std::size_t Pool<Task>::GetStackSize() const {
   return config_.stack_size;
+}
+
+template <typename Task>
+std::size_t Pool<Task>::GetMMapSize() const {
+  using Traits = boost::coroutines2::protected_fixedsize_stack::traits_type;
+
+  const std::size_t pages =
+      (GetStackSize() + Traits::page_size() - 1) / Traits::page_size();
+  // add one page at bottom that will be used as guard-page
+  return (pages + 1) * Traits::page_size();
 }
 
 template <typename Task>

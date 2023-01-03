@@ -73,6 +73,10 @@ class TaskProcessor final {
 
   logging::LoggerPtr GetTaskTraceLogger() const;
 
+  void Pause();
+
+  void Resume();
+
  private:
   void Cleanup() noexcept;
 
@@ -106,6 +110,10 @@ class TaskProcessor final {
   impl::TaskCounter task_counter_;
   std::atomic<bool> task_trace_logger_set_{false};
   logging::LoggerPtr task_trace_logger_{nullptr};
+
+  std::atomic<bool> pause_requested_{false};
+  std::mutex pause_mutex_;
+  std::atomic<std::size_t> paused_{0};
 };
 
 /// Register a function that runs on all threads on task processor creation.
