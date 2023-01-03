@@ -26,11 +26,12 @@ namespace detail {
 
 template< typename T >
 class push_coroutine {
+public:
+    struct control_block;
+    static BOOST_CONSTEXPR_OR_CONST std::size_t kCoroMagic = 0x12345678;
 private:
     template< typename X >
     friend class pull_coroutine;
-
-    struct control_block;
 
     control_block   *   cb_;
 

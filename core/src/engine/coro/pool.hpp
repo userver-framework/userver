@@ -19,6 +19,8 @@ USERVER_NAMESPACE_BEGIN
 
 namespace engine::coro {
 
+ucontext_t* GetCoroUcontext(void* sp, std::size_t expected_magic);
+
 template <typename Task>
 class Pool final {
  public:

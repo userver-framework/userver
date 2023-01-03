@@ -1,0 +1,9 @@
+project-name: userver-coroutine-debug
+project-alt-names:
+  - yandex-userver-coroutine-debug
+maintainers:
+  - Common components
+description: Facilities for low level coroutine debug
+
+libraries:
+  - userver-core

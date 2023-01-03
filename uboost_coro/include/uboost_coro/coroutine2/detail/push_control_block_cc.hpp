@@ -24,6 +24,7 @@ namespace detail {
 
 template< typename T >
 struct push_coroutine< T >::control_block {
+    std::size_t                                     magic{0};
     boost::context::fiber                           c;
     typename pull_coroutine< T >::control_block *   other;
     state_t                                         state;

@@ -102,6 +102,7 @@ option(USERVER_FEATURE_GRPC "Provide asynchronous driver for gRPC" ON)
 option(USERVER_FEATURE_CLICKHOUSE "Provide asynchronous driver for ClickHouse" ${USERVER_BUILD_PLATFORM_X86})
 option(USERVER_FEATURE_RABBITMQ "Provide asynchronous driver for RabbitMQ" ${USERVER_OPEN_SOURCE_BUILD})
 option(USERVER_FEATURE_UNIVERSAL "Provide a universal utilities library that does not use coroutines" ON)
+option(USERVER_FEATURE_COROUTINE_DEBUG "Provide facilities for low level debugging" ON)
 
 if (USERVER_IS_THE_ROOT_PROJECT)
     include(testsuite/SetupUserverTestsuiteEnv.cmake)
@@ -153,6 +154,10 @@ endif()
 
 if (USERVER_FEATURE_UNIVERSAL)
   add_subdirectory(universal "${CMAKE_BINARY_DIR}/userver/universal")
+endif()
+
+if (USERVER_FEATURE_COROUTINE_DEBUG)
+  add_subdirectory(coroutine_debug "${CMAKE_BINARY_DIR}/userver/coroutine_debug")
 endif()
 
 if (USERVER_IS_THE_ROOT_PROJECT)

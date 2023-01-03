@@ -44,6 +44,7 @@ template< typename T >
 template< typename StackAllocator, typename Fn >
 push_coroutine< T >::control_block::control_block( context::preallocated palloc, StackAllocator && salloc,
                                                    Fn && fn) :
+    magic{kCoroMagic ^ reinterpret_cast<std::size_t>(palloc.sp) ^ palloc.size},
 #if defined(BOOST_NO_CXX14_GENERIC_LAMBDAS)
     c{ std::allocator_arg, palloc, std::forward< StackAllocator >( salloc),
        wrap( [this](typename std::decay< Fn >::type & fn_,boost::context::fiber && c) mutable {

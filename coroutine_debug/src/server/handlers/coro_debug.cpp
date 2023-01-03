@@ -1,18 +1,14 @@
 #include <userver/server/handlers/coro_debug.hpp>
 
-//#include <unwind.h>
 #include <libunwind.h>
 
 #include <cstdio>
-#include <iostream>
 #include <thread>
 #include <vector>
 
 #include <userver/components/component_context.hpp>
 #include <userver/components/manager.hpp>
-#include <userver/engine/async.hpp>
 #include <userver/engine/sleep.hpp>
-#include <userver/formats/serialize/common_containers.hpp>
 #include <userver/utils/fast_scope_guard.hpp>
 #include <userver/utils/thread_name.hpp>
 
@@ -21,7 +17,6 @@
 #include <engine/task/task_processor_pools.hpp>
 
 #include <boost/stacktrace.hpp>
-#include <uboost_coro/coroutine2/detail/push_control_block_cc.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -46,16 +41,6 @@ struct MMapInfo final {
 
   std::string pathname;
 };
-
-formats::json::Value Serialize(const MMapInfo& mmap_info,
-                               formats::serialize::To<formats::json::Value>) {
-  formats::json::ValueBuilder builder{};
-  builder["start"] = mmap_info.addr_start;
-  builder["end"] = mmap_info.addr_end;
-  builder["length"] = mmap_info.length;
-
-  return builder.ExtractValue();
-}
 
 void SplitMMapInfoLine(const char* buf, char* addr1, char* addr2, char* perm,
                        char* offset, char* device, char* inode,
@@ -240,21 +225,18 @@ void CaptureBacktraceWithLibUnwind(BacktraceState& state) {
   }
 }
 
-void UnwindCoro(ucontext_t& context) {
+std::string BacktraceCoro(ucontext_t& context) {
   BacktraceState state{context};
   CaptureBacktraceWithLibUnwind(state);
 
-  int a = 5;
-
-  auto st = boost::stacktrace::stacktrace::from_dump(
+  auto trace = boost::stacktrace::stacktrace::from_dump(
       &state.addresses[0], sizeof(void*) * state.address_count);
 
-  std::cout << st << std::endl;
-
-  int b = 5;
+  return to_string(trace);
 }
 
-void CollectStackTrace(const MMapInfo mmap_info) {
+std::string CollectStackTrace(const MMapInfo& mmap_info,
+                              std::size_t full_mmap_size) {
   using Coro = engine::coro::Pool<engine::impl::TaskContext>::Coroutine;
 
   constexpr std::size_t func_alignment = 64;  // alignof( ControlBlock);
@@ -267,38 +249,34 @@ void CollectStackTrace(const MMapInfo mmap_info) {
   std::size_t space = func_size + func_alignment;
   sp = std::align(func_alignment, func_size, sp, space);
 
-  auto& control_block = *reinterpret_cast<Coro::control_block*>(sp);
-  if (!control_block.valid() || !control_block.c) {
-    return;
+  const auto remaining_size =
+      full_mmap_size -
+      (reinterpret_cast<char*>(mmap_info.addr_end) - static_cast<char*>(sp));
+  const auto expected_magic =
+      Coro::kCoroMagic ^ reinterpret_cast<std::uintptr_t>(sp) ^ remaining_size;
+
+  auto* context = engine::coro::GetCoroUcontext(sp, expected_magic);
+  if (context == nullptr) {
+    return {};
   }
 
-  auto& context =
-      (*reinterpret_cast<boost::context::detail::fiber_activation_record**>(
-           &control_block.c))
-          ->uctx;
-
-  UnwindCoro(context);
-
-  int a = 5;
+  return BacktraceCoro(*context);
 }
 
 }  // namespace
 
 CoroDebug::CoroDebug(const components::ComponentConfig& config,
                      const components::ComponentContext& context)
-    : HttpHandlerJsonBase{config, context}, manager_{context.GetManager()} {}
+    : HttpHandlerBase{config, context}, manager_{context.GetManager()} {}
 
 CoroDebug::~CoroDebug() = default;
 
-formats::json::Value CoroDebug::HandleRequestJsonThrow(
-    const http::HttpRequest&, const formats::json::Value&,
-    request::RequestContext&) const {
-  auto t = engine::AsyncNoSpan(
-      [] { engine::SleepFor(std::chrono::milliseconds{2500}); });
-  auto& we = engine::current_task::GetCurrentTaskContext();
+std::string CoroDebug::HandleRequestThrow(const http::HttpRequest&,
+                                          request::RequestContext&) const {
   std::lock_guard<std::mutex> lock{processing_mutex_};
 
-  formats::json::ValueBuilder result{};
+  std::string result;
+
   do_yield_.store(true);
   std::thread worker{[this, &result] {
     utils::SetCurrentThreadName("coro_debug");
@@ -312,9 +290,7 @@ formats::json::Value CoroDebug::HandleRequestJsonThrow(
 
   worker.join();
 
-  t.Wait();
-
-  return result.ExtractValue();
+  return result;
 }
 
 void CoroDebug::StopTheWorld() const {
@@ -324,10 +300,11 @@ void CoroDebug::StopTheWorld() const {
   do_yield_.store(false);
 }
 
-void CoroDebug::CollectDebugInfo(formats::json::ValueBuilder& result) const {
+void CoroDebug::CollectDebugInfo(std::string& result) const {
   const auto mmap_size =
       manager_.GetTaskProcessorPools()->GetCoroPool().GetStackSize();
-  // manager_.GetTaskProcessorPools()->GetCoroPool().GetMMapSize();
+  const auto full_mmap_size =
+      manager_.GetTaskProcessorPools()->GetCoroPool().GetMMapSize();
   auto maps = ParseSelfProcMaps();
 
   maps.erase(std::remove_if(maps.begin(), maps.end(),
@@ -337,10 +314,9 @@ void CoroDebug::CollectDebugInfo(formats::json::ValueBuilder& result) const {
              maps.end());
 
   for (const auto& mmap_info : maps) {
-    CollectStackTrace(mmap_info);
+    result.push_back('\n');
+    result.append(CollectStackTrace(mmap_info, full_mmap_size));
   }
-
-  result["maps"] = maps;
 }
 
 void CoroDebug::ResumeTheWorld() const {

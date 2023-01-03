@@ -1,0 +1,19 @@
+name: libunwind
+helper-prefix: false
+
+includes:
+  find:
+    - names:
+        - libunwind.h
+      path-suffixes:
+        - libunwind
+
+libraries:
+  find:
+    - names:
+        - unwind
+      path-suffixes:
+        - lib
+
+debian-names:
+  - libunwind-12-dev
