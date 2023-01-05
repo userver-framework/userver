@@ -6,8 +6,6 @@ import pathlib
 
 import pytest
 
-from pytest_userver.utils import net as net_utils
-
 
 def pytest_addoption(parser) -> None:
     group = parser.getgroup('userver')
@@ -88,26 +86,3 @@ def monitor_port(pytestconfig) -> int:
     @ingroup userver_testsuite_fixtures
     """
     return pytestconfig.option.monitor_port
-
-
-@pytest.fixture(scope='session')
-def create_port_health_checker():
-    """
-    Returns health checker factory function with sinature
-    'def create_health_checker(*, hostname: str, port: int)' that should return
-    'async def checker(*, session, process) -> bool' function for health
-    checking of the service.
-
-    Override this fixture to change the way testsuite detects the tested
-    service being alive.
-
-    @ingroup userver_testsuite_fixtures
-    """
-
-    def create_health_checker(*, hostname: str, port: int):
-        async def checker(*, session, process):
-            return await net_utils.check_port_availability(hostname, port)
-
-        return checker
-
-    return create_health_checker

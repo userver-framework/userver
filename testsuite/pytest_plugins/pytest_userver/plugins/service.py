@@ -13,6 +13,7 @@ from testsuite.logging import logger
 from testsuite.utils import url_util
 
 from ..utils import colorize
+from ..utils import net
 
 
 class ColorLogger(logger.Logger):
@@ -87,32 +88,75 @@ def service_env():
 
 
 @pytest.fixture(scope='session')
+async def service_http_ping_url(
+        service_config_yaml, service_baseurl,
+) -> typing.Optional[str]:
+    """
+    Returns the service HTTP ping URL that is used by the testsuite to detect
+    that the service is ready to work. Returns None if there's no such URL.
+
+    By default attempts to find server::handlers::Ping component by
+    "handler-ping" name in static config. Override this fixture to change the
+    behavior.
+
+    @ingroup userver_testsuite_fixtures
+    """
+    components = service_config_yaml['components_manager']['components']
+    ping_handler = components.get('handler-ping')
+    if ping_handler:
+        return url_util.join(service_baseurl, ping_handler['path'])
+    return None
+
+
+@pytest.fixture(scope='session')
+def service_non_http_health_checks(service_config_yaml) -> net.HealthChecks:
+    """
+    Returns a health checks info.
+
+    By default returns pytest_userver.utils.net.get_health_checks_info.
+    Override this fixture to change the way testsuite detects the tested
+    service being alive.
+
+    @see pytest_userver.utils.net.get_health_checks_info
+
+    @ingroup userver_testsuite_fixtures
+    """
+
+    return net.get_health_checks_info(service_config_yaml)
+
+
+@pytest.fixture(scope='session')
 async def service_daemon(
         pytestconfig,
         create_daemon_scope,
         service_env,
-        service_baseurl,
+        service_http_ping_url,
         service_config_path_temp,
         service_config_yaml,
         service_binary,
-        service_port,
-        create_port_health_checker,
+        service_non_http_health_checks,
         testsuite_logger,
         _userver_log_handler,
 ):
-    components = service_config_yaml['components_manager']['components']
+    """
+    Configures the health checking to use service_http_ping_url fixture value
+    if it is not None; otherwise uses the service_non_http_health_checks info.
+    Starts the service daemon.
 
-    ping_url = None
-    health_check = None
+    @ingroup userver_testsuite_fixtures
+    """
+    assert service_http_ping_url or service_non_http_health_checks.tcp, (
+        '"service_http_ping_url" and "create_health_checker" fixtures '
+        'returned None. Testsuite is unable to detect if the service is ready '
+        'to accept requests.',
+    )
 
-    if 'handler-ping' in components:
-        ping_url = url_util.join(
-            service_baseurl, components['handler-ping']['path'],
-        )
-    else:
-        health_check = create_port_health_checker(
-            hostname='localhost', port=service_port,
-        )
+    async def _checker(*, session, process) -> bool:
+        return await net.check_availability(service_non_http_health_checks)
+
+    health_check = _checker
+    if service_http_ping_url:
+        health_check = None
 
     async with create_daemon_scope(
             args=[
@@ -120,7 +164,7 @@ async def service_daemon(
                 '--config',
                 str(service_config_path_temp),
             ],
-            ping_url=ping_url,
+            ping_url=service_http_ping_url,
             health_check=health_check,
             env=service_env,
             stderr_handler=_userver_log_handler,

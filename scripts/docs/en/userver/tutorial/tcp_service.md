@@ -104,6 +104,13 @@ implemented using the testsuite in the following way:
 
 @snippet samples/tcp_service/tests/test_tcp.py  Functional test
 
+
+Note that in this case testsuite requires some help to detect that the service
+is ready to accept requests. To do that, override the
+pytest_userver.plugins.service.service_non_http_health_checks :
+
+@snippet samples/tcp_service/tests/conftest.py  service_non_http_health_checker
+
 ## Full sources
 
 See the full example at:
@@ -111,6 +118,7 @@ See the full example at:
 * @ref samples/tcp_service/static_config.yaml
 * @ref samples/tcp_service/dynamic_config_fallback.json
 * @ref samples/tcp_service/CMakeLists.txt
+* @ref samples/tcp_service/tests/conftest.py
 * @ref samples/tcp_service/tests/test_tcp.py
 
 ----------
@@ -123,5 +131,6 @@ See the full example at:
 @example samples/tcp_service/static_config.yaml
 @example samples/tcp_service/dynamic_config_fallback.json
 @example samples/tcp_service/CMakeLists.txt
+@example samples/tcp_service/tests/conftest.py
 @example samples/tcp_service/tests/test_tcp.py
 
