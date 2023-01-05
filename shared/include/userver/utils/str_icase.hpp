@@ -22,6 +22,8 @@ class StrCaseHash {
 
   std::size_t operator()(std::string_view s) const& noexcept;
 
+  std::size_t GetSeed() const noexcept { return seed_; }
+
  private:
   std::size_t seed_;
 };
