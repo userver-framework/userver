@@ -29,8 +29,7 @@ void RemoveDirectory(const std::string& path) {
 }  // namespace
 
 TempDirectory TempDirectory::Create() {
-  return Create(boost::filesystem::temp_directory_path().string() + "/userver",
-                {});
+  return Create(boost::filesystem::temp_directory_path().string(), "userver-");
 }
 
 TempDirectory TempDirectory::Create(std::string_view parent_path,
@@ -38,6 +37,7 @@ TempDirectory TempDirectory::Create(std::string_view parent_path,
   CreateDirectories(parent_path, boost::filesystem::perms::owner_all);
   auto path = utils::StrCat(parent_path, "/", name_prefix, "XXXXXX");
   utils::CheckSyscallNotEquals(::mkdtemp(path.data()), nullptr, "::mkdtemp");
+  LOG_DEBUG() << "Created a temporary directory: " << path;
   return TempDirectory{std::move(path)};
 }
 
@@ -50,7 +50,7 @@ TempDirectory::TempDirectory(TempDirectory&& other) noexcept
 
 TempDirectory& TempDirectory::operator=(TempDirectory&& other) noexcept {
   if (&other != this) {
-    TempDirectory temp = std::move(*this);
+    const TempDirectory temp = std::move(*this);
     path_ = std::exchange(other.path_, {});
   }
   return *this;
