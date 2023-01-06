@@ -60,14 +60,14 @@ class FdPoller final {
   /// Wait().
   [[nodiscard]] bool Wait(Deadline);
 
+ private:
+  friend class impl::Direction;
+
   enum class State : int {
     kInvalid,
     kReadyToUse,
-    kInUse,  /// < used inly in debug to detect invalid concurrent usage
+    kInUse,  /// < used only in debug to detect invalid concurrent usage
   };
-
- private:
-  friend class impl::Direction;
 
   void WakeupWaiters();
   void SwitchStateToInUse();

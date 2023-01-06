@@ -8,10 +8,8 @@ template <>
 struct fmt::formatter<USERVER_NAMESPACE::engine::io::FdPoller::State> {
   static constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
 
-  template <typename FormatContext>
-  auto format(USERVER_NAMESPACE::engine::io::FdPoller::State state,
-              FormatContext& ctx) const {
-    using State = USERVER_NAMESPACE::engine::io::FdPoller::State;
+  template <typename State, typename FormatContext>
+  auto format(State state, FormatContext& ctx) const {
     std::string_view str = "broken";
     switch (state) {
       case State::kInvalid:
