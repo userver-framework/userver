@@ -53,13 +53,10 @@ bool CacheControl::IsPeriodicUpdateEnabled(
   return enabled;
 }
 
-void CacheControl::InvalidateAllCaches(
-    cache::UpdateType update_type,
-    const std::unordered_set<std::string>& names_blocklist) {
+void CacheControl::InvalidateAllCaches(cache::UpdateType update_type) {
   std::lock_guard lock(mutex_);
 
   for (const auto& cache : caches_) {
-    if (names_blocklist.count(cache->Name()) > 0) continue;
     tracing::Span span(std::string{kInvalidatorSpanTag});
     cache->Update(update_type);
   }

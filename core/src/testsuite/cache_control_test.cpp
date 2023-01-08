@@ -100,7 +100,7 @@ UTEST_DEATH(CacheControlDeathTest, Smoke) {
   EXPECT_EQ(2, test_cache.UpdatesCount());
   EXPECT_EQ(cache::UpdateType::kFull, test_cache.LastUpdateType());
 
-  env.cache_control.InvalidateAllCaches(cache::UpdateType::kIncremental, {});
+  env.cache_control.InvalidateAllCaches(cache::UpdateType::kIncremental);
   EXPECT_EQ(3, test_cache.UpdatesCount());
   EXPECT_EQ(cache::UpdateType::kIncremental, test_cache.LastUpdateType());
 

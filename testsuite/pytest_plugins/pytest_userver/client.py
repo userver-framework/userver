@@ -501,7 +501,6 @@ class AiohttpClient(service_client.AiohttpClient):
             testpoint,
             testpoint_control,
             span_id_header=None,
-            cache_blocklist=None,
             api_coverage_report=None,
             periodic_tasks_state: typing.Optional[PeriodicTasksState] = None,
             **kwargs,
@@ -517,7 +516,6 @@ class AiohttpClient(service_client.AiohttpClient):
             mocked_time=mocked_time,
             testpoint=testpoint,
             testpoint_control=testpoint_control,
-            cache_blocklist=cache_blocklist or [],
         )
         self._api_coverage_report = api_coverage_report
 
@@ -877,19 +875,11 @@ class State:
 
 
 class StateManager:
-    def __init__(
-            self,
-            *,
-            mocked_time,
-            testpoint,
-            testpoint_control,
-            cache_blocklist: typing.List[str],
-    ):
+    def __init__(self, *, mocked_time, testpoint, testpoint_control):
         self._state = State()
         self._mocked_time = mocked_time
         self._testpoint = testpoint
         self._testpoint_control = testpoint_control
-        self._cache_blocklist = cache_blocklist
 
     @contextlib.contextmanager
     def updating_state(self, body):
@@ -911,10 +901,7 @@ class StateManager:
         body: typing.Dict[str, typing.Any] = {}
 
         if self._state.caches_invalidated != state.caches_invalidated:
-            body['invalidate_caches'] = {
-                'update_type': 'full',
-                'names_blocklist': self._cache_blocklist,
-            }
+            body['invalidate_caches'] = {'update_type': 'full'}
 
         if self._state.testpoints != state.testpoints:
             body['testpoints'] = sorted(state.testpoints)
