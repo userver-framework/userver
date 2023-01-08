@@ -193,8 +193,11 @@ Dumper::Impl::Impl(const Config& initial_config,
       [this](auto&) { return ExtendStatistics(); });
   config_subscription_ = config_source.UpdateAndListen(this, "dump." + Name(),
                                                        &Impl::OnConfigUpdate);
-  periodic_task_ = engine::CriticalAsyncNoSpan(fs_task_processor_,
-                                               [this] { PeriodicWriteTask(); });
+  if (dump_control.GetPeriodicsMode() ==
+      testsuite::DumpControl::PeriodicsMode::kEnabled) {
+    periodic_task_ = engine::CriticalAsyncNoSpan(
+        fs_task_processor_, [this] { PeriodicWriteTask(); });
+  }
 }
 
 Dumper::Impl::~Impl() {
@@ -389,7 +392,7 @@ void Dumper::Impl::OnConfigUpdate(const dynamic_config::Snapshot& config) {
   DynamicConfig new_config{static_config_, std::move(patch)};
   const auto old_config = dynamic_config_.Read();
 
-  dynamic_config_.Assign(std::move(new_config));
+  dynamic_config_.Assign(new_config);
 
   if (new_config != *old_config) {
     // synchronizes-with config_updated_signal_.Reset in
@@ -405,7 +408,9 @@ formats::json::Value Dumper::Impl::ExtendStatistics() const {
 
 void Dumper::Impl::CancelWriteTaskAndWait() noexcept {
   testsuite_registration_.reset();
-  periodic_task_.SyncCancel();
+  if (periodic_task_.IsValid()) {
+    periodic_task_.SyncCancel();
+  }
 }
 
 void Dumper::Impl::DoWriteDump(TimePoint update_time, tracing::ScopeTime& scope,

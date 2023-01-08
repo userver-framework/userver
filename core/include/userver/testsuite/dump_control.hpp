@@ -20,6 +20,12 @@ namespace testsuite {
 /// @details All methods are coro-safe.
 class DumpControl final {
  public:
+  enum class PeriodicsMode { kDisabled, kEnabled };
+
+  explicit DumpControl(PeriodicsMode periodics_mode);
+
+  PeriodicsMode GetPeriodicsMode() const;
+
   void WriteCacheDumps(const std::vector<std::string>& dumper_names);
 
   void ReadCacheDumps(const std::vector<std::string>& dumper_names);
@@ -33,6 +39,7 @@ class DumpControl final {
 
   dump::Dumper& FindDumper(const std::string& name) const;
 
+  PeriodicsMode periodics_mode_;
   concurrent::Variable<
       std::unordered_map<std::string, utils::NotNull<dump::Dumper*>>>
       dumpers_;
