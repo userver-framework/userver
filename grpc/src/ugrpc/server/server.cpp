@@ -6,6 +6,7 @@
 #include <limits>
 #include <memory>
 #include <optional>
+#include <thread>
 #include <vector>
 
 #include <fmt/format.h>
@@ -13,6 +14,7 @@
 #include <grpcpp/server.h>
 
 #include <userver/engine/mutex.hpp>
+#include <userver/engine/single_use_event.hpp>
 #include <userver/logging/level_serialization.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
@@ -214,7 +216,14 @@ void Server::Impl::Stop() noexcept {
   // Must shutdown server, then ServiceWorkers, then queues before anything else
   if (server_) {
     LOG_INFO() << "Stopping the gRPC server";
-    server_->Shutdown();
+
+    // TODO pass a blocking TaskProcessor?
+    // Shutdown blocks thread, must not do it in the main TaskProcessor.
+    engine::SingleUseEvent finished;
+    std::thread([&] {
+      server_->Shutdown();
+      finished.Send();
+    }).detach();
   }
   service_workers_.clear();
   queue_.reset();

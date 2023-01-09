@@ -9,6 +9,7 @@
 #include <boost/intrusive/list_hook.hpp>
 #include <boost/smart_ptr/intrusive_ref_counter.hpp>
 
+#include <concurrent/impl/intrusive_hooks.hpp>
 #include <engine/coro/pool.hpp>
 #include <engine/ev/thread_control.hpp>
 #include <engine/task/context_timer.hpp>
@@ -104,6 +105,10 @@ class TaskContext final : public boost::intrusive_ref_counter<TaskContext>,
   // simultaneously
   bool IsSharedWaitAllowed() const;
 
+  static constexpr std::size_t kNotPinnedToThread = -1;
+  std::size_t GetThreadIndex() const noexcept;
+  void SetThreadIndex(std::size_t thread_index) noexcept;
+
   // whether user code finished executing, coroutine may still be running
   bool IsFinished() const noexcept {
     return state_ == Task::State::kCompleted ||
@@ -175,6 +180,8 @@ class TaskContext final : public boost::intrusive_ref_counter<TaskContext>,
   bool HasLocalStorage() const noexcept;
   task_local::Storage& GetLocalStorage() noexcept;
 
+  auto& GetTaskQueueHook() noexcept { return task_queue_hook_; }
+
   // ContextAccessor implementation
   bool IsReady() const noexcept final;
   void AppendWaiter(impl::TaskContext& context) noexcept final;
@@ -205,18 +212,20 @@ class TaskContext final : public boost::intrusive_ref_counter<TaskContext>,
 
   void TraceStateTransition(Task::State state);
 
-  const uint64_t magic_;
+  const uint64_t magic_{kMagic};
   TaskProcessor& task_processor_;
   TaskCounter::Token task_counter_token_;
+  std::size_t thread_index_{kNotPinnedToThread};
   const bool is_critical_;
   bool is_cancellable_{true};
   bool within_sleep_{false};
   EhGlobals eh_globals_;
   TaskPayload payload_;
 
-  std::atomic<Task::State> state_;
-  std::atomic<DetachedTasksSyncBlock::Token*> detached_token_;
-  std::atomic<TaskCancellationReason> cancellation_reason_;
+  std::atomic<Task::State> state_{Task::State::kNew};
+  std::atomic<DetachedTasksSyncBlock::Token*> detached_token_{nullptr};
+  std::atomic<TaskCancellationReason> cancellation_reason_{
+      TaskCancellationReason::kNone};
   mutable FastPimplGenericWaitList finish_waiters_;
 
   ContextTimer deadline_timer_;
@@ -229,14 +238,17 @@ class TaskContext final : public boost::intrusive_ref_counter<TaskContext>,
 
   size_t trace_csw_left_;
 
-  AtomicSleepState sleep_state_;
+  AtomicSleepState sleep_state_{
+      SleepState{SleepFlags::kSleeping, SleepState::Epoch{0}}};
   WakeupSource wakeup_source_{WakeupSource::kNone};
 
   CountedCoroutinePtr coro_;
   TaskPipe* task_pipe_{nullptr};
   YieldReason yield_reason_{YieldReason::kNone};
 
-  std::optional<task_local::Storage> local_storage_;
+  std::optional<task_local::Storage> local_storage_{};
+
+  concurrent::impl::SinglyLinkedHook<TaskContext> task_queue_hook_;
 
  public:
   using WaitListHook = typename boost::intrusive::make_list_member_hook<

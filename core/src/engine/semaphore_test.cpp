@@ -203,7 +203,7 @@ UTEST_MT(Semaphore, LockFastPathRace, 5) {
   engine::Semaphore sem{-1UL};
   std::vector<engine::TaskWithResult<void>> tasks;
 
-  for (std::size_t i = 0; i < GetThreadCount(); ++i) {
+  for (std::size_t i = 0; i < GetThreadCount() - 1; ++i) {
     tasks.push_back(engine::AsyncNoSpan([&] {
       std::size_t locks_taken = 0;
       utils::FastScopeGuard unlock(

@@ -17,6 +17,11 @@ enum class OsScheduling {
   kIdle,
 };
 
+enum class TaskThreadSwitches {
+  kAllowed,
+  kNotAllowed,
+};
+
 struct TaskProcessorConfig {
   std::string name;
 
@@ -24,6 +29,7 @@ struct TaskProcessorConfig {
   std::size_t worker_threads{6};
   std::string thread_name;
   OsScheduling os_scheduling{OsScheduling::kNormal};
+  TaskThreadSwitches task_thread_switches{TaskThreadSwitches::kAllowed};
 
   std::size_t task_trace_every{1000};
   std::size_t task_trace_max_csw{0};

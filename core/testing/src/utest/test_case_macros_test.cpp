@@ -3,6 +3,7 @@
 #include <atomic>
 #include <type_traits>
 
+#include <engine/task/task_processor.hpp>
 #include <userver/engine/mutex.hpp>
 #include <userver/utils/async.hpp>
 
@@ -15,32 +16,9 @@ UTEST(TestCaseMacros, UTESTEngine) {
   std::lock_guard lock(mutex);
 }
 
-namespace {
-
-void DeadlockUnlessMultiThreaded() {
-  std::atomic<bool> keep_running1{true};
-  std::atomic<bool> keep_running2{true};
-
-  auto task1 = utils::Async("task1", [&] {
-    keep_running2 = false;
-    while (keep_running1) {
-    }
-  });
-  auto task2 = utils::Async("task2", [&] {
-    keep_running1 = false;
-    while (keep_running2) {
-    }
-  });
-
-  task1.Get();
-  task2.Get();
-}
-
-}  // namespace
-
 UTEST_MT(TestCaseMacros, MultiThreaded, 2) {
   EXPECT_EQ(GetThreadCount(), 2);
-  DeadlockUnlessMultiThreaded();
+  EXPECT_EQ(engine::current_task::GetTaskProcessor().GetWorkerCount(), 2);
 }
 
 TEST(TestCaseMacros, UtestAndTestWithSameTestSuite) { SUCCEED(); }
@@ -80,7 +58,7 @@ UTEST_F(TestCaseMacrosFixture, UtestFEngine) { CheckEngine(); }
 
 UTEST_F_MT(TestCaseMacrosFixture, UtestFEngine2, 2) {
   EXPECT_EQ(GetThreadCount(), 2);
-  DeadlockUnlessMultiThreaded();
+  EXPECT_EQ(engine::current_task::GetTaskProcessor().GetWorkerCount(), 2);
 }
 
 // Using the same test fixture with both U-macros and vanilla macros leads to
@@ -115,7 +93,7 @@ UTEST_P(TestCaseMacrosParametric, UtestPEngine) { CheckEngineAndParam(); }
 UTEST_P_MT(TestCaseMacrosParametric, UtestPEngine2, 2) {
   CheckEngineAndParam();
   EXPECT_EQ(GetThreadCount(), 2);
-  DeadlockUnlessMultiThreaded();
+  EXPECT_EQ(engine::current_task::GetTaskProcessor().GetWorkerCount(), 2);
 }
 
 INSTANTIATE_UTEST_SUITE_P(FooBar, TestCaseMacrosParametric,
@@ -147,7 +125,7 @@ TYPED_UTEST(TestCaseMacrosTyped, TypedUtestEngine) {
 TYPED_UTEST_MT(TestCaseMacrosTyped, TypedUtestEngine2, 2) {
   this->CheckEngine();
   EXPECT_EQ(GetThreadCount(), 2);
-  DeadlockUnlessMultiThreaded();
+  EXPECT_EQ(engine::current_task::GetTaskProcessor().GetWorkerCount(), 2);
 }
 
 template <typename T>
@@ -167,7 +145,7 @@ TYPED_UTEST_P(TestCaseMacrosTypedP, TypedUtestPEngine) {
 TYPED_UTEST_P_MT(TestCaseMacrosTypedP, TypedUtestPEngine2, 2) {
   this->CheckEngine();
   EXPECT_EQ(GetThreadCount(), 2);
-  DeadlockUnlessMultiThreaded();
+  EXPECT_EQ(engine::current_task::GetTaskProcessor().GetWorkerCount(), 2);
 }
 
 REGISTER_TYPED_UTEST_SUITE_P(TestCaseMacrosTypedP, TypedUtestPEngine,

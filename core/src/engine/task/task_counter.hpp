@@ -100,7 +100,8 @@ class TaskCounter final {
 
   void AccountTaskSwitchFast() { tasks_switch_fast_++; }
 
-  void AccountTaskSwitchSlow() { tasks_switch_slow_++; }
+  // TODO put back the counter
+  void AccountTaskSwitchSlow() {}
 
   void AccountSpuriousWakeup() { spurious_wakeups_++; }
 
