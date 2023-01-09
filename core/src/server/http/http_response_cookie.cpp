@@ -83,7 +83,7 @@ std::optional<CookieKeyValue> GetCookieKeyValueOpt(const char* start,
 
   const char* equal_pos =
       static_cast<const char*>(memchr(ptr, '=', size_from_ptr));
-  if (equal_pos + 1 == end) {
+  if (equal_pos != nullptr && equal_pos + 1 == end) {
     return {
         {static_cast<size_t>(end - start), std::string(ptr, equal_pos - ptr)}};
   }
