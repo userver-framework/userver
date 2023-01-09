@@ -58,7 +58,7 @@ class ChildProcess final {
 
   /// Wait for the child process to terminate.
   /// Returns `ChildProcessStatus` of finished subprocess.
-  ChildProcessStatus Get();
+  [[nodiscard]] ChildProcessStatus Get();
 
   /// Send a signal to the child process.
   void SendSignal(int signum);
