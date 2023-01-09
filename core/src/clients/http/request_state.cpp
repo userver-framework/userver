@@ -82,6 +82,11 @@ std::error_code TestsuiteResponseHook(Status status_code,
   return {};
 }
 
+bool IsSetCookie(std::string_view key) {
+  utils::StrIcaseEqual equal;
+  return equal(key, USERVER_NAMESPACE::http::headers::kSetCookie);
+}
+
 // Not a strict check, but OK for non-header line check
 bool IsHttpStatusLineStart(const char* ptr, size_t size) {
   return (size > 5 && memcmp(ptr, "HTTP/", 5) == 0);
@@ -469,7 +474,19 @@ void RequestState::on_retry_timer(std::error_code err) {
     on_completed(shared_from_this(), err);
 }
 
-void RequestState::parse_header(char* ptr, size_t size) {
+void RequestState::ParseSingleCookie(const char* ptr, size_t size) {
+  if (auto cookie =
+          server::http::Cookie::FromString(std::string_view(ptr, size))) {
+    [[maybe_unused]] auto [it, ok] =
+        response_->cookies().emplace(cookie->Name(), std::move(*cookie));
+    if (!ok) {
+      LOG_WARNING() << "Failed to add cookie '" + it->first +
+                           "', already added";
+    }
+  }
+}
+
+void RequestState::parse_header(char* ptr, size_t size) try {
   /* It is a fast path in curl's thread (io thread).  Creation of tmp
    * std::string, boost::trim_right_if(), etc. is too expensive. */
 
@@ -507,6 +524,10 @@ void RequestState::parse_header(char* ptr, size_t size) {
 
   ++col_pos;
 
+  if (IsSetCookie(key)) {
+    return ParseSingleCookie(col_pos, end - col_pos);
+  }
+
   // From https://tools.ietf.org/html/rfc7230#page-22 :
   //
   // header-field   = field-name ":" OWS field-value OWS
@@ -517,6 +538,8 @@ void RequestState::parse_header(char* ptr, size_t size) {
 
   std::string value(col_pos, end - col_pos);
   response_->headers().emplace(std::move(key), std::move(value));
+} catch (const std::exception& e) {
+  LOG_ERROR() << "Failed to parse header: " << e.what();
 }
 
 void RequestState::SetLoggedUrl(std::string url) { log_url_ = std::move(url); }

@@ -39,7 +39,7 @@ class HttpResponse final : public request::ResponseBase {
 
   using HeadersMapKeys = decltype(utils::impl::MakeKeysView(HeadersMap()));
 
-  using CookiesMap = std::unordered_map<std::string_view, Cookie>;
+  using CookiesMap = Cookie::CookiesMap;
 
   using CookiesMapKeys = decltype(utils::impl::MakeKeysView(CookiesMap()));
 

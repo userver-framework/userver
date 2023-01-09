@@ -183,7 +183,7 @@ HttpResponse::CookiesMapKeys HttpResponse::GetCookieNames() const {
 }
 
 const Cookie& HttpResponse::GetCookie(std::string_view cookie_name) const {
-  return cookies_.at(cookie_name);
+  return cookies_.at(cookie_name.data());
 }
 
 void HttpResponse::SetHeadersEnd() { headers_end_.Send(); }
