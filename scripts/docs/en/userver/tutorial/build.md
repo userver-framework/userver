@@ -6,7 +6,7 @@ The following options could be used to control `cmake`:
 
 | Option                                 | Description                                                                  | Default                                          |
 |----------------------------------------|------------------------------------------------------------------------------|--------------------------------------------------|
-| USERVER_FEATURE_MONGODB                | Provide asynchronous driver for MongoDB                                      | ON if platform is x86\*; OFF otherwise           |
+| USERVER_FEATURE_MONGODB                | Provide asynchronous driver for MongoDB                                      | ON if platform is x86\* and not \*BSD; OFF otherwise |
 | USERVER_FEATURE_POSTGRESQL             | Provide asynchronous driver for PostgreSQL                                   | ON                                               |
 | USERVER_FEATURE_REDIS                  | Provide asynchronous driver for Redis                                        | ON                                               |
 | USERVER_FEATURE_CLICKHOUSE             | Provide asynchronous driver for ClickHouse                                   | ON if platform is x86\*; OFF otherwise           |
@@ -20,7 +20,7 @@ The following options could be used to control `cmake`:
 | USERVER_FEATURE_SPDLOG_TCP_SINK        | Use tcp_sink.h of the spdlog library for testing logs                        | ON                                               |
 | USERVER_FEATURE_REDIS_HI_MALLOC        | Provide a `hi_malloc(unsigned long)` [issue][hi_malloc] workaround           | OFF                                              |
 | USERVER_FEATURE_REDIS_TLS              | SSL/TLS support for Redis driver                                             | OFF                                              |
-| USERVER_FEATURE_STACKTRACE             | Allow capturing stacktraces using boost::stacktrace                          | ON                                               |
+| USERVER_FEATURE_STACKTRACE             | Allow capturing stacktraces using boost::stacktrace                          | OFF if platform is not \*BSD; ON otherwise       |
 | USERVER_FEATURE_JEMALLOC               | Use jemalloc memory allocator                                                | ON                                               |
 | USERVER_FEATURE_DWCAS                  | Require double-width compare-and-swap                                        | ON                                               |
 | USERVER_FEATURE_TESTSUITE              | Enable functional tests via testsuite                                        | ON                                               |

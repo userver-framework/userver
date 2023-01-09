@@ -1,5 +1,7 @@
 #include <userver/utest/utest.hpp>
 
+#include <sys/param.h>
+
 #include <userver/server/http/http_response_cookie.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -20,13 +22,30 @@ TEST(HttpCookie, Simple) {
             "HttpOnly");
   cookie.SetExpires(
       std::chrono::system_clock::time_point{std::chrono::seconds{1560358305}});
-  EXPECT_EQ(cookie.ToString(),
-            "name1=value1; Domain=domain.com; Path=/; Expires=Wed, 12 Jun 2019 "
-            "16:51:45 GMT; Max-Age=3600; Secure; HttpOnly");
+
+  const auto* const expected =
+      "name1=value1; Domain=domain.com; Path=/; Expires=Wed, 12 Jun 2019 "
+      "16:51:45 "
+#if defined(BSD) && !defined(__APPLE__)
+      "UTC; "
+#else
+      "GMT; "
+#endif
+      "Max-Age=3600; Secure; HttpOnly";
+  EXPECT_EQ(cookie.ToString(), expected);
+
   cookie.SetSameSite("None");
-  EXPECT_EQ(cookie.ToString(),
-            "name1=value1; Domain=domain.com; Path=/; Expires=Wed, 12 Jun 2019 "
-            "16:51:45 GMT; Max-Age=3600; Secure; SameSite=None; HttpOnly");
+  const auto* const expected2 =
+      "name1=value1; Domain=domain.com; Path=/; Expires=Wed, 12 Jun 2019 "
+      "16:51:45 "
+#if defined(BSD) && !defined(__APPLE__)
+      "UTC; "
+#else
+      "GMT; "
+#endif
+      "Max-Age=3600; Secure; SameSite=None; HttpOnly";
+  EXPECT_EQ(cookie.ToString(), expected2);
+
   EXPECT_EQ(cookie.Name(), "name1");
   EXPECT_EQ(cookie.Value(), "value1");
   EXPECT_TRUE(cookie.IsSecure());

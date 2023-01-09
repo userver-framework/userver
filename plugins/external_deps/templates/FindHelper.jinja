@@ -56,6 +56,9 @@ set({{var_name}} {{var_value}})
   {%- if pacman_names -%}
     {%- set full_error_message = full_error_message + "\\n\\tArchLinux: sudo pacman -S " + ' '.join(pacman_names) -%}
   {%- endif -%}
+  {%- if pkg_names -%}
+    {%- set full_error_message = full_error_message + "\\n\\tFreeBSD: pkg install " + ' '.join(pkg_names) -%}
+  {%- endif -%}
 {%- endif -%}
 
 set(FULL_ERROR_MESSAGE "{{ full_error_message }}\\n")
@@ -102,11 +105,11 @@ if ({{ name }}_VERSION)
 endif()
 
 {# If it is possible detect the version as the dependent CMake files may rely on it #}
-{% if debian_names or rpm_names or pacman_names or pkg_config_names or formula_name -%}
+{% if debian_names or rpm_names or pacman_names or pkg_config_names or formula_name or pkg_names -%}
 if (NOT {{ current_package_name }}_VERSION)
   include(DetectVersion)
 
-  {% if debian_names or rpm_names or pacman_names or pkg_config_names -%}
+  {% if debian_names or rpm_names or pacman_names or pkg_config_names or pkg_names -%}
   if (UNIX AND NOT APPLE)
     {% if debian_names -%}
     deb_version({{ current_package_name }}_VERSION {{ debian_names[0] }})
@@ -118,6 +121,10 @@ if (NOT {{ current_package_name }}_VERSION)
 
     {% if pacman_names -%}
     pacman_version({{ current_package_name }}_VERSION {{ pacman_names[0] }})
+    {%- endif %}
+
+    {% if pkg_names -%}
+    pkg_version({{ current_package_name }}_VERSION {{ pkg_names[0] }})
     {%- endif %}
 
   endif()
@@ -197,10 +204,12 @@ if (NOT TARGET {{ name }})
 
   {% if includes.enabled|default(true) -%}
   target_include_directories({{ name }} INTERFACE {{ '${' }}{{ includes_variable }}{{ '}' }})
+  message(STATUS "{{ name }} include directories: {{ '${' }}{{ includes_variable }}{{ '}' }}")
   {% endif -%}
 
   {% if libraries.enabled|default(true) -%}
   target_link_libraries({{ name }} INTERFACE {{ '${' }}{{ libraries_variable }}{{ '}' }})
+  message(STATUS "{{ name }} libraries: {{ '${' }}{{ libraries_variable }}{{ '}' }}")
   {% endif -%}
 
   {% if compile_definitions and compile_definitions.names -%}

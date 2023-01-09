@@ -34,6 +34,11 @@ if(CMAKE_SYSTEM_PROCESSOR MATCHES "^x86")
 	set(USERVER_BUILD_PLATFORM_X86 ON)
 endif()
 
+set(USERVER_MONGODB ${USERVER_BUILD_PLATFORM_X86})
+if(NOT MAC AND CMAKE_SYSTEM_NAME MATCHES "BSD")
+  set(USERVER_MONGODB OFF)
+endif()
+
 execute_process(
   COMMAND bash -c "(apt-key finger '7FCD11186050CD1A' | grep Yandex) || (brew tap | grep 'yandex')"
   RESULT_VARIABLE USERVER_NOT_YANDEX_ENV
@@ -100,7 +105,7 @@ set(USERVER_THIRD_PARTY_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/third_party CACHE INTER
 
 init_debian_depends()
 
-option(USERVER_FEATURE_MONGODB "Provide asynchronous driver for MongoDB" ${USERVER_BUILD_PLATFORM_X86})
+option(USERVER_FEATURE_MONGODB "Provide asynchronous driver for MongoDB" ${USERVER_MONGODB})
 option(USERVER_FEATURE_POSTGRESQL "Provide asynchronous driver for PostgreSQL" ON)
 option(USERVER_FEATURE_REDIS "Provide asynchronous driver for Redis" ON)
 option(USERVER_FEATURE_GRPC "Provide asynchronous driver for gRPC" ON)

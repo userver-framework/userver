@@ -19,3 +19,5 @@ rpm-names:
   - hiredis-devel
 pacman-names:
   - hiredis
+pkg-names:
+  - hiredis

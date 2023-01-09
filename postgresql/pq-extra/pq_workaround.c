@@ -40,6 +40,7 @@
 #include <string.h>
 
 #include <libpq-int.h>
+#include <pg_config.h>
 
 /*
  * This is copy-paste from fe-protocol3.c

@@ -16,6 +16,11 @@ find_package(PostgreSQLInternal REQUIRED)
 find_package_required(OpenSSL "libssl-dev")
 find_package(GssApi REQUIRED)
 
+if(${CMAKE_SYSTEM_NAME} MATCHES "BSD")
+  find_package(libintl REQUIRED)
+  target_link_libraries(PostgreSQLInternal INTERFACE libintl)
+endif()
+
 set(SOURCES
   pq_portal_funcs.c
   pq_portal_funcs.h
