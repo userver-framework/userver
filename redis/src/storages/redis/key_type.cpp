@@ -1,7 +1,10 @@
 #include <userver/storages/redis/key_type.hpp>
 
 #include <stdexcept>
-#include <unordered_map>
+
+#include <fmt/format.h>
+
+#include <userver/utils/trivial_map.hpp>
 
 namespace std {
 
@@ -20,41 +23,34 @@ USERVER_NAMESPACE_BEGIN
 namespace storages::redis {
 namespace {
 
-std::unordered_map<std::string, KeyType> InitKeyTypeMap() {
-  return {{"none", KeyType::kNone},    {"string", KeyType::kString},
-          {"list", KeyType::kList},    {"set", KeyType::kSet},
-          {"zset", KeyType::kZset},    {"hash", KeyType::kHash},
-          {"stream", KeyType::kStream}};
-}
-
-std::unordered_map<KeyType, std::string> InitKeyTypeNames() {
-  auto key_type_map = InitKeyTypeMap();
-  std::unordered_map<KeyType, std::string> result;
-  for (const auto& elem : key_type_map) {
-    result[elem.second] = elem.first;
-  }
-  return result;
-}
+constexpr utils::TrivialBiMap kKeyTypeMap = [](auto selector) {
+  return selector()
+      .Case("none", KeyType::kNone)
+      .Case("string", KeyType::kString)
+      .Case("list", KeyType::kList)
+      .Case("set", KeyType::kSet)
+      .Case("zset", KeyType::kZset)
+      .Case("hash", KeyType::kHash)
+      .Case("stream", KeyType::kStream);
+};
 
 }  // namespace
 
-KeyType ParseKeyType(const std::string& str) {
-  static const auto types_map = InitKeyTypeMap();
-  auto it = types_map.find(str);
-  if (it == types_map.end()) {
-    throw std::runtime_error("Can't parse KeyType from '" + str + '\'');
+KeyType ParseKeyType(std::string_view str) {
+  auto value = kKeyTypeMap.TryFind(str);
+  if (!value) {
+    throw std::runtime_error(fmt::format("Can't parse KeyType from '{}'", str));
   }
-  return it->second;
+  return *value;
 }
 
 std::string ToString(KeyType key_type) {
-  static const auto type_names_map = InitKeyTypeNames();
-  auto it = type_names_map.find(key_type);
-  if (it == type_names_map.end()) {
+  auto value = kKeyTypeMap.TryFind(key_type);
+  if (!value) {
     throw std::runtime_error("Unknown type: (" +
                              std::to_string(static_cast<int>(key_type)) + ')');
   }
-  return it->second;
+  return std::string{*value};
 }
 
 }  // namespace storages::redis

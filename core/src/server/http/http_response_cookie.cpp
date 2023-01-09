@@ -7,6 +7,7 @@
 #include <unordered_map>
 #include <userver/logging/log.hpp>
 #include <userver/utils/datetime.hpp>
+#include <userver/utils/trivial_map.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

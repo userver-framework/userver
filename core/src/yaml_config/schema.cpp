@@ -3,6 +3,7 @@
 #include <userver/formats/parse/common_containers.hpp>
 #include <userver/formats/yaml/serialize.hpp>
 #include <userver/utils/assert.hpp>
+#include <userver/utils/trivial_map.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -10,29 +11,26 @@ namespace yaml_config {
 
 namespace {
 
-const std::unordered_map<std::string, FieldType> kNamesToTypes{
-    {"integer", FieldType::kInt},   {"string", FieldType::kString},
-    {"boolean", FieldType::kBool},  {"double", FieldType::kDouble},
-    {"object", FieldType::kObject}, {"array", FieldType::kArray}};
-
-const std::unordered_set<std::string> kSchemaFields{
-    "type",
-    "description",
-    "defaultDescription",
-    "additionalProperties",
-    "properties",
-    "items",
-    "enum",
-};
-
 void CheckFieldsNames(const formats::yaml::Value& yaml_schema) {
+  static constexpr utils::TrivialSet kFieldNames = [](auto selector) {
+    return selector()
+        .Case("type")
+        .Case("description")
+        .Case("defaultDescription")
+        .Case("additionalProperties")
+        .Case("properties")
+        .Case("items")
+        .Case("enum");
+  };
+
   for (const auto& [name, value] : Items(yaml_schema)) {
-    if (kSchemaFields.find(name) == kSchemaFields.end()) {
+    const auto found = kFieldNames.Contains(name);
+
+    if (!found) {
       throw std::runtime_error(
-          fmt::format("Schema field name must be one of [type, description, "
-                      "defaultDescription, additionalProperties, properties, "
-                      "items, enum], but '{}' was given. Schema path: '{}'",
-                      name, yaml_schema.GetPath()));
+          fmt::format("Schema field name must be one of [{}], but '{}' was "
+                      "given. Schema path: '{}'",
+                      kFieldNames.Describe(), name, yaml_schema.GetPath()));
     }
   }
 }
@@ -87,40 +85,36 @@ void CheckSchemaStructure(const Schema& schema) {
   }
 }
 
+constexpr utils::TrivialBiMap kFieldTypes = [](auto selector) {
+  return selector()
+      .Case("integer", FieldType::kInt)
+      .Case("string", FieldType::kString)
+      .Case("boolean", FieldType::kBool)
+      .Case("double", FieldType::kDouble)
+      .Case("object", FieldType::kObject)
+      .Case("array", FieldType::kArray);
+};
+
 }  // namespace
 
 std::string ToString(FieldType type) {
-  switch (type) {
-    case FieldType::kInt:
-      return "integer";
-    case FieldType::kString:
-      return "string";
-    case FieldType::kBool:
-      return "boolean";
-    case FieldType::kDouble:
-      return "double";
-    case FieldType::kObject:
-      return "object";
-    case FieldType::kArray:
-      return "array";
-    default:
-      UINVARIANT(false, "Incorrect field type");
-  }
+  auto value = kFieldTypes.TryFind(type);
+  UINVARIANT(value, "Incorrect field type");
+  return std::string{*value};
 }
 
 FieldType Parse(const formats::yaml::Value& type,
                 formats::parse::To<FieldType>) {
   const std::string as_string = type.As<std::string>();
-  const auto it = kNamesToTypes.find(as_string);
+  auto value = kFieldTypes.TryFind(as_string);
 
-  if (it != kNamesToTypes.end()) {
-    return it->second;
+  if (value) {
+    return *value;
   }
 
-  throw std::runtime_error(
-      fmt::format("Schema field 'type' must be one of ['integer', "
-                  "'string' 'boolean', 'object', 'array']), but '{}' was given",
-                  as_string));
+  throw std::runtime_error(fmt::format(
+      "Schema field 'type' must be one of [{}]), but '{}' was given",
+      kFieldTypes.DescribeFirst(), as_string));
 }
 
 SchemaPtr Parse(const formats::yaml::Value& schema,

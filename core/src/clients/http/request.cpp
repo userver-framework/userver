@@ -8,9 +8,6 @@
 #include <system_error>
 #include <unordered_map>
 
-#include <boost/algorithm/string/join.hpp>
-#include <boost/range/adaptor/map.hpp>
-
 #include <userver/clients/http/error.hpp>
 #include <userver/clients/http/form.hpp>
 #include <userver/clients/http/response_future.hpp>
@@ -21,6 +18,7 @@
 #include <userver/tracing/span.hpp>
 #include <userver/tracing/tags.hpp>
 #include <userver/utils/str_icase.hpp>
+#include <userver/utils/trivial_map.hpp>
 
 #include <clients/http/destination_statistics.hpp>
 #include <clients/http/easy_wrapper.hpp>
@@ -66,17 +64,18 @@ curl::easy::http_version_t ToNative(HttpVersion version) {
   UINVARIANT(false, "Unexpected HTTP version");
 }
 
-const std::unordered_map<std::string, ProxyAuthType, utils::StrIcaseHash,
-                         utils::StrIcaseEqual>
-    kAuthTypeMap = {{"basic", ProxyAuthType::kBasic},
-                    {"digest", ProxyAuthType::kDigest},
-                    {"digest_ie", ProxyAuthType::kDigestIE},
-                    {"bearer", ProxyAuthType::kBearer},
-                    {"negotiate", ProxyAuthType::kNegotiate},
-                    {"ntlm", ProxyAuthType::kNtlm},
-                    {"ntlm_wb", ProxyAuthType::kNtlmWb},
-                    {"any", ProxyAuthType::kAny},
-                    {"any_safe", ProxyAuthType::kAnySafe}};
+constexpr utils::TrivialBiMap kAuthTypeMap = [](auto selector) {
+  return selector()
+      .Case("basic", ProxyAuthType::kBasic)
+      .Case("digest", ProxyAuthType::kDigest)
+      .Case("digest_ie", ProxyAuthType::kDigestIE)
+      .Case("bearer", ProxyAuthType::kBearer)
+      .Case("negotiate", ProxyAuthType::kNegotiate)
+      .Case("ntlm", ProxyAuthType::kNtlm)
+      .Case("ntlm_wb", ProxyAuthType::kNtlmWb)
+      .Case("any", ProxyAuthType::kAny)
+      .Case("any_safe", ProxyAuthType::kAnySafe);
+};
 
 curl::easy::proxyauth_t ProxyAuthTypeToNative(ProxyAuthType value) {
   switch (value) {
@@ -184,14 +183,13 @@ std::string_view ToStringView(HttpMethod method) {
 }
 
 ProxyAuthType ProxyAuthTypeFromString(const std::string& auth_name) {
-  auto it = kAuthTypeMap.find(auth_name);
-  if (it == kAuthTypeMap.end()) {
-    throw std::runtime_error(fmt::format(
-        "Unknown proxy auth type '{}' (must be one of '{}')", auth_name,
-        boost::algorithm::join(kAuthTypeMap | boost::adaptors::map_keys,
-                               "', '")));
+  auto value = kAuthTypeMap.TryFindICase(auth_name);
+  if (!value) {
+    throw std::runtime_error(
+        fmt::format("Unknown proxy auth type '{}' (must be one of {})",
+                    auth_name, kAuthTypeMap.DescribeFirst()));
   }
-  return it->second;
+  return *value;
 }
 
 // Request implementation

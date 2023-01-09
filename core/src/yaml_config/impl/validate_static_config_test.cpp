@@ -28,9 +28,9 @@ incorrect_filed_name:
   UEXPECT_THROW_MSG(
       formats::yaml::FromString(kSchema).As<yaml_config::Schema>(),
       std::runtime_error,
-      "Schema field name must be one of [type, description, "
-      "defaultDescription, additionalProperties, properties, items, enum], but "
-      "'incorrect_filed_name' was given. Schema path: '/'");
+      "Schema field name must be one of ['type', 'description', "
+      "'defaultDescription', 'additionalProperties', 'properties', 'items', "
+      "'enum'], but 'incorrect_filed_name' was given. Schema path: '/'");
 }
 
 TEST(StaticConfigValidator, AdditionalPropertiesAbsent) {
