@@ -26,6 +26,14 @@ jobs:
                     tests-flags: ''
 
                   - cmake-flags: >-
+                        -DCMAKE_CXX_COMPILER=clang++-14 -DCMAKE_C_COMPILER=clang-14
+                        -DUSERVER_FEATURE_GRPC=0 -DUSERVER_FEATURE_POSTGRESQL=0 -DUSERVER_FEATURE_MONGODB=0 -DUSERVER_FEATURE_REDIS=0 -DUSERVER_FEATURE_RABBITMQ=0 -DUSERVER_FEATURE_CLICKHOUSE=0 
+                        -DUSERVER_USE_LD=lld-14 -DCMAKE_BUILD_TYPE=RelWithDebInfo
+                    os: ubuntu-22.04
+                    info: clang-14 + release
+                    tests-flags: ''
+
+                  - cmake-flags: >-
                         -DUSERVER_FEATURE_CRYPTOPP_BLAKE2=0 -DUSERVER_FEATURE_REDIS_HI_MALLOC=1
                         -DUSERVER_NO_WERROR=1 -DUSERVER_SANITIZE="ub addr" -DCMAKE_BUILD_TYPE=Debug
                     os: ubuntu-20.04
