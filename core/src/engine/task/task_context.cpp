@@ -322,7 +322,7 @@ TaskContext::WakeupSource TaskContext::Sleep(WaitStrategy& wait_strategy) {
 
   // We set this here to find a span from sleeping coroutine
   // when debugging externally.
-  parent_span_ = tracing::Span::CurrentSpanUnchecked();
+  current_span_within_sleep_ = tracing::Span::CurrentSpanUnchecked();
 
   yield_reason_ = YieldReason::kTaskWaiting;
   UASSERT(task_pipe_);

@@ -244,7 +244,7 @@ class TaskContext final : public boost::intrusive_ref_counter<TaskContext>,
 
   // For debugging purposes only, don't use.
   // No guarantees of what is here, no guarantees of the pointer being valid.
-  [[maybe_unused]] const tracing::Span* parent_span_{nullptr};
+  [[maybe_unused]] const tracing::Span* current_span_within_sleep_{nullptr};
 
  public:
   using WaitListHook = typename boost::intrusive::make_list_member_hook<
