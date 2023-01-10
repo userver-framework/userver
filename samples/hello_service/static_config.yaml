@@ -1,7 +1,7 @@
 # yaml
 components_manager:
     coro_pool:
-        initial_size: 20             # Preallocate 500 coroutines at startup.
+        initial_size: 500             # Preallocate 500 coroutines at startup.
         max_size: 1000                # Do not keep more than 1000 preallocated coroutines.
 
     task_processors:                  # Task processor is an executor for coroutine tasks
@@ -26,7 +26,7 @@ components_manager:
             loggers:
                 default:
                     file_path: '@stderr'
-                    level: error
+                    level: debug
                     overflow_behavior: discard  # Drop logs if the system is too busy to write them down.
 
         tracer:                           # Component that helps to trace execution times and requests in logs.
@@ -35,7 +35,7 @@ components_manager:
         dynamic-config:                      # Dynamic config storage options, do nothing
             fs-cache-path: ''
         dynamic-config-fallbacks:            # Load options from file and push them into the dynamic config storage.
-            fallback-path: /home/itrofimow/work/userver/samples/hello_service/dynamic_config_fallback.json
+            fallback-path: /etc/hello_service/dynamic_config_fallback.json
 
         handler-hello-sample:             # Finally! Our handler.
             path: /hello                  # Registering handler by URL '/hello'.
