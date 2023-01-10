@@ -6,6 +6,7 @@
 #include <thread>
 #include <vector>
 
+#include <concurrent/impl/interference_shield.hpp>
 #include <userver/engine/async.hpp>
 #include <userver/engine/mutex.hpp>
 #include <userver/engine/run_standalone.hpp>
@@ -15,10 +16,6 @@
 USERVER_NAMESPACE_BEGIN
 
 namespace {
-
-// Minimum offset between two objects to avoid false sharing
-// TODO: replace with std::hardware_destructive_interference_size
-constexpr std::size_t kInterferenceSize = 64;
 
 class ThreadPool {
  public:
@@ -135,16 +132,16 @@ void generic_unlock(benchmark::State& state) {
 
 template <typename Mutex>
 void generic_contention(benchmark::State& state) {
-  alignas(kInterferenceSize) std::atomic<bool> run{true};
-  alignas(kInterferenceSize) std::atomic<std::size_t> lock_unlock_count{0};
-  alignas(kInterferenceSize) Mutex m;
+  std::atomic<bool> run{true};
+  std::atomic<std::size_t> lock_unlock_count{0};
+  concurrent::impl::InterferenceShield<Mutex> m;
 
   PoolFor<Mutex> pool(state.range(0) - 1, [&]() {
     std::uint64_t local_lock_unlock_count = 0;
 
     while (run) {
-      m.lock();
-      m.unlock();
+      m->lock();
+      m->unlock();
       ++local_lock_unlock_count;
     }
 
@@ -154,8 +151,8 @@ void generic_contention(benchmark::State& state) {
   std::uint64_t local_lock_unlock_count = 0;
 
   for (auto _ : state) {
-    m.lock();
-    m.unlock();
+    m->lock();
+    m->unlock();
     ++local_lock_unlock_count;
   }
 
@@ -173,19 +170,19 @@ void generic_contention(benchmark::State& state) {
 
 template <typename Mutex>
 void generic_contention_with_payload(benchmark::State& state) {
-  alignas(kInterferenceSize) std::atomic<bool> run{true};
-  alignas(kInterferenceSize) std::atomic<std::uint64_t> lock_unlock_count{0};
-  alignas(kInterferenceSize) Mutex m;
+  std::atomic<bool> run{true};
+  std::atomic<std::uint64_t> lock_unlock_count{0};
+  concurrent::impl::InterferenceShield<Mutex> m;
 
   PoolFor<Mutex> pool(state.range(0) - 1, [&]() {
     std::uint64_t local_lock_unlock_count = 0;
 
     while (run) {
-      m.lock();
+      m->lock();
       for (int i = 0; i < 10; ++i) {
         benchmark::DoNotOptimize(utils::DefaultRandom()());
       }
-      m.unlock();
+      m->unlock();
       ++local_lock_unlock_count;
     }
 
@@ -195,11 +192,11 @@ void generic_contention_with_payload(benchmark::State& state) {
   std::uint64_t local_lock_unlock_count = 0;
 
   for (auto _ : state) {
-    m.lock();
+    m->lock();
     for (int i = 0; i < 10; ++i) {
       benchmark::DoNotOptimize(utils::DefaultRandom()());
     }
-    m.unlock();
+    m->unlock();
     ++local_lock_unlock_count;
   }
 

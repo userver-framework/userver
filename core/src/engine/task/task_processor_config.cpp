@@ -24,7 +24,8 @@ OsScheduling Parse(const yaml_config::YamlConfig& value,
     return OsScheduling::kIdle;
   }
 
-  UINVARIANT(false, "Unknown OS scheduling value: " + str);
+  throw std::logic_error(fmt::format(
+      "Invalid OsScheduling value '{}' at path '{}'", str, value.GetPath()));
 }
 
 TaskProcessorConfig Parse(const yaml_config::YamlConfig& value,
@@ -35,7 +36,7 @@ TaskProcessorConfig Parse(const yaml_config::YamlConfig& value,
   config.worker_threads = value["worker_threads"].As<std::size_t>();
   config.thread_name = value["thread_name"].As<std::string>();
   config.os_scheduling =
-      value["os-scheduling"].As<OsScheduling>(OsScheduling::kNormal);
+      value["os-scheduling"].As<OsScheduling>(config.os_scheduling);
 
   const auto task_trace = value["task-trace"];
   if (!task_trace.IsMissing()) {
