@@ -175,6 +175,7 @@ class Postgres : public LoggableComponentBase {
 
   std::string name_;
   std::string db_name_;
+  storages::postgres::ClusterSettings initial_settings_;
   storages::postgres::DatabasePtr database_;
 };
 

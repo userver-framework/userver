@@ -200,24 +200,21 @@ Postgres::Postgres(const ComponentConfig& config,
     db_name_ = monitoring_dbalias;
   }
 
-  storages::postgres::ClusterSettings cluster_settings;
-  cluster_settings.statement_metrics_settings =
+  initial_settings_.statement_metrics_settings =
       config.As<storages::postgres::StatementMetricsSettings>();
 
-  cluster_settings.pool_settings =
+  initial_settings_.pool_settings =
       config.As<storages::postgres::PoolSettings>();
-  cluster_settings.init_mode = config["sync-start"].As<bool>(true)
-                                   ? storages::postgres::InitMode::kSync
-                                   : storages::postgres::InitMode::kAsync;
-  cluster_settings.db_name = db_name_;
+  initial_settings_.init_mode = config["sync-start"].As<bool>(true)
+                                    ? storages::postgres::InitMode::kSync
+                                    : storages::postgres::InitMode::kAsync;
+  initial_settings_.db_name = db_name_;
 
-  storages::postgres::TopologySettings& topology_settings =
-      cluster_settings.topology_settings;
-  topology_settings.max_replication_lag =
+  initial_settings_.topology_settings.max_replication_lag =
       config["max_replication_lag"].As<std::chrono::milliseconds>(
           kDefaultMaxReplicationLag);
 
-  cluster_settings.conn_settings =
+  initial_settings_.conn_settings =
       config.As<storages::postgres::ConnectionSettings>();
 
   const auto task_processor_name =
@@ -248,7 +245,7 @@ Postgres::Postgres(const ComponentConfig& config,
 
   for (auto& dsns : cluster_desc) {
     auto cluster = std::make_shared<pg::Cluster>(
-        std::move(dsns), resolver, *bg_task_processor, cluster_settings,
+        std::move(dsns), resolver, *bg_task_processor, initial_settings_,
         storages::postgres::DefaultCommandControls{
             pg_config.default_command_control,
             pg_config.handlers_command_control,
@@ -295,25 +292,24 @@ formats::json::Value Postgres::ExtendStatistics(
 
 void Postgres::OnConfigUpdate(const dynamic_config::Snapshot& cfg) {
   const auto& pg_config = cfg.Get<storages::postgres::Config>();
-  const auto pool_settings = pg_config.pool_settings.GetOptional(name_);
-  auto connection_settings = pg_config.connection_settings.GetOptional(name_);
+  const auto pool_settings =
+      pg_config.pool_settings.GetOptional(name_).value_or(
+          initial_settings_.pool_settings);
+  auto connection_settings =
+      pg_config.connection_settings.GetOptional(name_).value_or(
+          initial_settings_.conn_settings);
+  connection_settings.pipeline_mode = cfg[storages::postgres::kPipelineModeKey];
   const auto statement_metrics_settings =
-      pg_config.statement_metrics_settings.GetOptional(name_);
-  const auto pipeline_mode = cfg[storages::postgres::kPipelineModeKey];
+      pg_config.statement_metrics_settings.GetOptional(name_).value_or(
+          initial_settings_.statement_metrics_settings);
+
   for (const auto& cluster : database_->clusters_) {
     cluster->ApplyGlobalCommandControlUpdate(pg_config.default_command_control);
     cluster->SetHandlersCommandControl(pg_config.handlers_command_control);
     cluster->SetQueriesCommandControl(pg_config.queries_command_control);
-    if (pool_settings) cluster->SetPoolSettings(*pool_settings);
-    if (connection_settings) {
-      connection_settings->pipeline_mode = pipeline_mode;
-      cluster->SetConnectionSettings(*connection_settings);
-    } else {
-      cluster->SetPipelineMode(pipeline_mode);
-    }
-    if (statement_metrics_settings) {
-      cluster->SetStatementMetricsSettings(*statement_metrics_settings);
-    }
+    cluster->SetPoolSettings(pool_settings);
+    cluster->SetConnectionSettings(connection_settings);
+    cluster->SetStatementMetricsSettings(statement_metrics_settings);
   }
 }
 
