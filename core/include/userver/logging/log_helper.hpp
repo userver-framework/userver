@@ -192,6 +192,9 @@ class LogHelper final {
 
   std::ostream& Stream();
 
+  template <typename T>
+  friend void PutData(LogHelper& lh, std::string_view key, const T& value);
+
   class Impl;
   std::unique_ptr<Impl> pimpl_;
 };

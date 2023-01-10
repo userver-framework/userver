@@ -102,10 +102,10 @@ LogHelper::LogHelper(LoggerPtr logger, Level level, std::string_view path,
 
     // The following functions actually never throw if the assertions at the
     // bottom hold.
+    LogModule(path, line, func);
     if (mode != Mode::kNoSpan) {
       LogSpan();
     }
-    LogModule(path, line, func);
     LogIds();
 
     LogTextKey();

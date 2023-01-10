@@ -7,6 +7,7 @@
 #include <fmt/format.h>
 
 #include <engine/task/task_context.hpp>
+#include <logging/put_data.hpp>
 #include <userver/engine/task/local_variable.hpp>
 #include <userver/tracing/span.hpp>
 #include <userver/tracing/tracer.hpp>
@@ -34,11 +35,13 @@ const std::string kReferenceType = "span_ref_type";
 const std::string kReferenceTypeChild = "child";
 const std::string kReferenceTypeFollows = "follows";
 
-std::string StartTsToString(std::chrono::system_clock::time_point start) {
+std::string_view StartTsToString(std::chrono::system_clock::time_point start) {
   const auto start_ts_epoch =
       std::chrono::duration_cast<std::chrono::microseconds>(
           start.time_since_epoch())
           .count();
+  // digits + dot + fract + (to be sure)
+  thread_local char buffer[32];
 
   // Avoiding `return fmt::format("{:.6}", float)` because it calls a slow
   // snprintf or gives incorrect results with -DFMT_USE_GRISU=1:
@@ -54,7 +57,9 @@ std::string StartTsToString(std::chrono::system_clock::time_point start) {
 
   const auto integral_part = start_ts_epoch / 1000000;
   const auto fractional_part = start_ts_epoch % 1000000;
-  return fmt::format(FMT_COMPILE("{}.{:0>6}"), integral_part, fractional_part);
+  auto size = fmt::format_to_n(buffer, sizeof(buffer), FMT_COMPILE("{}.{:0>6}"),
+                               integral_part, fractional_part);
+  return std::string_view{&buffer[0], size.size};
 }
 
 /* Maintain coro-local span stack to identify "current span" in O(1).
@@ -115,6 +120,10 @@ Span::Impl::~Impl() {
     return;
   }
 
+  PutIntoLogger(DO_LOG_TO_NO_SPAN(logging::DefaultLogger(), log_level_));
+}
+
+void Span::Impl::PutIntoLogger(logging::LogHelper& lh) {
   const auto steady_now = std::chrono::steady_clock::now();
   const auto duration = steady_now - start_steady_time_;
   const auto total_time_ms =
@@ -124,22 +133,18 @@ Span::Impl::~Impl() {
                              ? kReferenceTypeChild
                              : kReferenceTypeFollows;
 
-  logging::LogExtra result;
-
-  // Using result.Extend to move construct the keys and values.
-  result.Extend(kStopWatchAttrName, name_);
-  result.Extend(kTotalTimeAttrName, total_time_ms);
-  result.Extend(kReferenceType, ref_type);
-  result.Extend(kTimeUnitsAttrName, "ms");
-  result.Extend(kStartTimestampAttrName, StartTsToString(start_system_time_));
+  PutData(lh, kStopWatchAttrName, name_);
+  PutData(lh, kTotalTimeAttrName, total_time_ms);
+  PutData(lh, kReferenceType, ref_type);
+  PutData(lh, kTimeUnitsAttrName, "ms");
+  PutData(lh, kStartTimestampAttrName, StartTsToString(start_system_time_));
 
   LogOpenTracing();
 
-  if (log_extra_local_) result.Extend(std::move(*log_extra_local_));
-  time_storage_.MergeInto(result);
+  time_storage_.MergeInto(lh);
 
-  DO_LOG_TO_NO_SPAN(logging::DefaultLogger(), log_level_)
-      << std::move(result) << std::move(*this);
+  if (log_extra_local_) lh << std::move(*log_extra_local_);
+  lh << std::move(*this);
 }
 
 void Span::Impl::LogTo(logging::LogHelper& log_helper) const& {
