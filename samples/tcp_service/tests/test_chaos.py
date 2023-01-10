@@ -4,15 +4,14 @@ import pytest
 from pytest_userver import chaos
 
 _ALL_DATA = 512
-_PORT_FOR_SERVER = 8180
 
 
 @pytest.fixture(name='gate', scope='function')
-async def _gate(loop):
+async def _gate(loop, tcp_service_port):
     gate_config = chaos.GateRoute(
         name='tcp proxy',
         host_to_server='localhost',
-        port_to_server=_PORT_FOR_SERVER,
+        port_to_server=tcp_service_port,
     )
     async with chaos.TcpGate(gate_config, loop) as proxy:
         yield proxy

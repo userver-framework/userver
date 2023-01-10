@@ -2,9 +2,9 @@
 import socket
 
 
-async def test_basic(service_client, loop):
+async def test_basic(service_client, loop, tcp_service_port):
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.connect(('localhost', 8180))
+    sock.connect(('localhost', tcp_service_port))
 
     await loop.sock_sendall(sock, b'hi')
     hello = await loop.sock_recv(sock, 5)
