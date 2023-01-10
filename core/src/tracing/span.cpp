@@ -157,33 +157,6 @@ void Span::Impl::DetachFromCoroStack() { unlink(); }
 void Span::Impl::AttachToCoroStack() {
   UASSERT(!is_linked());
   task_local_spans->push_back(*this);
-  UINVARIANT(!GetSpansStackFromContext(
-                  engine::current_task::GetCurrentTaskContextUnchecked())
-                  .empty(),
-             "");
-}
-
-std::vector<const Span::Impl*> Span::Impl::GetSpansStackFromContext(
-    engine::impl::TaskContext* context) {
-  UASSERT(context);
-  UASSERT(context->HasLocalStorage());
-
-  const auto* spans_stack =
-      context->GetLocalStorage()
-          .GetOptional<decltype(task_local_spans)::VariableType,
-                       engine::impl::task_local::VariableKind::kNormal>(
-              task_local_spans.GetKey());
-  if (!spans_stack || spans_stack->empty()) {
-    return {};
-  }
-
-  std::vector<const Span::Impl*> result{};
-  for (const auto& span_impl : *spans_stack) {
-    result.push_back(&span_impl);
-  }
-  std::reverse(result.begin(), result.end());
-
-  return result;
 }
 
 std::string Span::Impl::GetParentIdForLogging(const Span::Impl* parent) {

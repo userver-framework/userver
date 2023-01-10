@@ -30,10 +30,6 @@ namespace formats::json {
 class ValueBuilder;
 }
 
-namespace engine::impl {
-class TaskContext;
-}
-
 namespace tracing {
 
 class Span::Impl
@@ -73,9 +69,6 @@ class Span::Impl
 
   void DetachFromCoroStack();
   void AttachToCoroStack();
-
-  __attribute__((noinline)) static std::vector<const Span::Impl*>
-  GetSpansStackFromContext(engine::impl::TaskContext* context);
 
  private:
   void LogOpenTracing() const;

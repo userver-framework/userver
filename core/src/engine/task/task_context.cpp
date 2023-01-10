@@ -11,6 +11,7 @@
 #include <userver/engine/exception.hpp>
 #include <userver/engine/task/cancel.hpp>
 #include <userver/logging/stacktrace_cache.hpp>
+#include <userver/tracing/span.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/underlying_value.hpp>
 
@@ -318,6 +319,10 @@ TaskContext::WakeupSource TaskContext::Sleep(WaitStrategy& wait_strategy) {
   const bool has_deadline = deadline.IsReachable() &&
                             (!IsCancellable() || deadline < cancel_deadline_);
   if (has_deadline) ArmDeadlineTimer(deadline, sleep_epoch);
+
+  // We set this here to find a span from sleeping coroutine
+  // when debugging externally.
+  parent_span_ = tracing::Span::CurrentSpanUnchecked();
 
   yield_reason_ = YieldReason::kTaskWaiting;
   UASSERT(task_pipe_);

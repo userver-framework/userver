@@ -29,6 +29,10 @@
 
 USERVER_NAMESPACE_BEGIN
 
+namespace tracing {
+class Span;
+}
+
 namespace engine {
 namespace impl {
 
@@ -237,6 +241,10 @@ class TaskContext final : public boost::intrusive_ref_counter<TaskContext>,
   YieldReason yield_reason_{YieldReason::kNone};
 
   std::optional<task_local::Storage> local_storage_;
+
+  // For debugging purposes only, don't use.
+  // No guarantees of what is here, no guarantees of the pointer being valid.
+  [[maybe_unused]] const tracing::Span* parent_span_{nullptr};
 
  public:
   using WaitListHook = typename boost::intrusive::make_list_member_hook<
