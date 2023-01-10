@@ -123,7 +123,7 @@ class Storage final {
   /// func over it.
   ///
   /// @warning Deprecated. Use VisitMetrics instead.
-  formats::json::Value GetAsJson(std::string_view prefix) const;
+  formats::json::Value GetAsJson() const;
 
   /// Visits all the metrics and calls `out.HandleMetric` for each metric.
   void VisitMetrics(BaseFormatBuilder& out, const Request& request = {}) const;

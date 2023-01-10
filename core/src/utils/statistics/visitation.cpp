@@ -191,11 +191,11 @@ void ProcessLeaf(BaseFormatBuilder& builder, DfsLabelsBag& labels,
     }
   }
 
-  // filtration is simplified, the whole internal JSON metrics code is
-  // to be deprecated
+  // The whole internal JSON metrics code is to be deprecated
   if (metric_value && utils::text::StartsWith(path.Get(), request.prefix)) {
     if (LeftContainsRight(labels.Labels(), request.require_labels)) {
-      if (request.prefix.empty() || path.Get() == request.prefix) {
+      if (request.prefix_match_type != Request::PrefixMatch::kExact ||
+          path.Get() == request.prefix) {
         boost::container::small_vector<LabelView, 16> labels_vector;
         labels_vector.reserve(labels.Labels().size() +
                               request.add_labels.size());

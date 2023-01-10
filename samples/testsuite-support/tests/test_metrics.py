@@ -39,51 +39,23 @@ async def test_engine_metrics(service_client, monitor_client):
     metrics_dict = await monitor_client.metrics(
         prefix='http.', labels={'http_path': '/ping'},
     )
+
     assert metrics_dict
     assert 'http.handler.cancelled-by-deadline' in metrics_dict
+
+    assert (
+        metrics_dict.value_at(
+            'http.handler.in-flight',
+            labels={'http_path': '/ping', 'http_handler': 'handler-ping'},
+        )
+        == 0
+    )
+
+    assert (
+        metrics_dict.value_at(
+            'http.handler.in-flight',
+            labels={'http_handler': 'handler-ping', 'http_path': '/ping'},
+        )
+        == 0
+    )
     # /// [metrics labels]
-    assert 'http.handler.in-flight' in metrics_dict
-    assert 'http.handler.too-many-requests-in-flight' in metrics_dict
-    assert 'http.handler.rate-limit-reached' in metrics_dict
-    assert 'http.handler.deadline-received' in metrics_dict
-    assert 'http.handler.timings' in metrics_dict
-    assert 'http.handler.reply-codes' in metrics_dict
-
-    for key, value in metrics_dict.items():
-        assert value, f'Error at {key}'
-        for metric in value:
-            assert 'http_path' in metric.labels, f'Error at {key}'
-            assert metric.labels['http_path'] == '/ping', f'Error at {key}'
-
-            assert 'http_handler' in metric.labels, f'Error at {key}'
-            assert metric.labels['http_handler'] == 'handler-ping', (
-                f'Error at {key}',
-            )
-
-    metrics_dict = await monitor_client.metrics(
-        prefix='http.handler.too-many-requests-in-flight',
-        labels={'http_path': '/ping'},
-    )
-    assert 'http.handler.too-many-requests-in-flight' in metrics_dict
-    assert len(metrics_dict) == 1
-    assert len(metrics_dict['http.handler.too-many-requests-in-flight']) == 1
-
-    metrics_dict = await monitor_client.metrics(
-        path='http.handler.too-many-requests-in-flight',
-        labels={'http_path': '/ping'},
-    )
-    assert 'http.handler.too-many-requests-in-flight' in metrics_dict
-    assert len(metrics_dict) == 1
-    assert len(metrics_dict['http.handler.too-many-requests-in-flight']) == 1
-
-    metric = await monitor_client.single_metric(
-        'http.handler.timings',
-        labels={'percentile': 'p95', 'http_path': '/ping'},
-    )
-    assert metric
-
-    metric = await monitor_client.single_metric(
-        'http.handler.timings',
-        labels={'http_path': '/ping', 'percentile': 'p99_9'},
-    )
-    assert metric

@@ -22,6 +22,12 @@ async def test_metrics_smoke(monitor_client):
     metrics = await monitor_client.metrics()
     assert len(metrics) > 1
 
+    cache_hits = await monitor_client.single_metric('cache.hits')
+    assert cache_hits.value >= 0
+
+    cache_hits = await monitor_client.metrics(prefix='cache.hits')
+    assert cache_hits.value_at('cache.hits') >= 0
+
 
 async def test_metrics(monitor_client, load):
     ethalon = _normalize_metrics(load('metrics_values.txt'))

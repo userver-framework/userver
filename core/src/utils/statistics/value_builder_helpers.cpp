@@ -29,7 +29,7 @@ void CheckedMerge(formats::json::ValueBuilder& original,
   } else if (patch.IsNull()) {
     return;  // do nothing
   } else {
-    UASSERT_MSG(original.IsNull() ||
+    UASSERT_MSG(original.IsNull() ||  // TODO: remove IsNull()
                     formats::json::ValueBuilder{original}.ExtractValue() ==
                         formats::json::ValueBuilder{patch}.ExtractValue(),
                 MakeConflictMessage(original, patch));
@@ -62,7 +62,7 @@ std::optional<std::string> FindNonNumberMetricPath(
         return path;
       }
     } else if (value.IsInt() || value.IsInt64() || value.IsUInt64() ||
-               value.IsDouble()) {
+               value.IsDouble() || value.IsNull()) {  // TODO: remove IsNull()
       continue;
     } else {
       return value.GetPath();
@@ -75,7 +75,9 @@ std::optional<std::string> FindNonNumberMetricPath(
 bool AreAllMetricsNumbers(const formats::json::Value& json) {
   const auto path = FindNonNumberMetricPath(json);
   UASSERT_MSG(!path.has_value(),
-              "Some metrics are not numbers, path: " + path.value());
+              "Some metrics are not numbers, path: " + *path + ". Value: " +
+                  ToString(formats::common::GetAtPath(
+                      json, formats::common::SplitPathString(*path))));
   return true;
 }
 

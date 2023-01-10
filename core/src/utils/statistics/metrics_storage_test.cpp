@@ -24,11 +24,11 @@ UTEST(MetricsStorage, Smoke) {
     utils::statistics::MetricsStorage metrics_storage;
     const auto statistic_holders = metrics_storage.RegisterIn(storage);
 
-    EXPECT_EQ(storage.GetAsJson("foo-metric")["foo-metric"],
+    EXPECT_EQ(storage.GetAsJson()["foo-metric"],
               formats::json::ValueBuilder{0}.ExtractValue());
 
     metrics_storage.GetMetric(kFooMetric).store(42);
-    EXPECT_EQ(storage.GetAsJson("foo-metric")["foo-metric"],
+    EXPECT_EQ(storage.GetAsJson()["foo-metric"],
               formats::json::ValueBuilder{42}.ExtractValue());
   }
 }

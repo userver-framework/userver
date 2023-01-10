@@ -19,6 +19,8 @@ from testsuite.daemons import service_client
 from testsuite.utils import approx
 from testsuite.utils import http
 
+import pytest_userver.metrics as metric_module  # pylint: disable=import-error
+
 # @cond
 logger = logging.getLogger(__name__)
 # @endcond
@@ -73,17 +75,7 @@ class TestsuiteClientConfig:
     server_monitor_path: typing.Optional[str] = None
 
 
-@dataclasses.dataclass(frozen=True)
-class Metric:
-    """
-    Metric type that contains the `labels: typing.Dict[str, str]` and
-    `value: int`.
-
-    @ingroup userver_testsuite
-    """
-
-    labels: typing.Dict[str, str]
-    value: int
+Metric = metric_module.Metric
 
 
 class ClientWrapper:
@@ -330,18 +322,11 @@ class AiohttpClientMonitor(service_client.AiohttpClient):
             path: str = None,
             prefix: str = None,
             labels: typing.Optional[typing.Dict[str, str]] = None,
-    ) -> typing.Dict[str, typing.List[Metric]]:
+    ) -> metric_module.MetricsSnapshot:
         response = await self.metrics_raw(
             output_format='json', path=path, prefix=prefix, labels=labels,
         )
-        json_data = json.loads(str(response))
-        return {
-            path: [
-                Metric(labels=element['labels'], value=element['value'])
-                for element in metrics_list
-            ]
-            for path, metrics_list in json_data.items()
-        }
+        return metric_module.MetricsSnapshot.from_json(str(response))
 
     async def single_metric_optional(
             self,
@@ -417,7 +402,7 @@ class ClientMonitor(ClientWrapper):
         @param output_format Metric output format. See
                server::handlers::ServerMonitor for a list of supported formats.
         @param path Optional full metric path
-        @param path Optional prefix on which the metric paths should start
+        @param prefix Optional prefix on which the metric paths should start
         @param labels Optional dictionary of labels that must be in the metric
         """
         return await self._client.metrics_raw(
@@ -434,12 +419,12 @@ class ClientMonitor(ClientWrapper):
             path: str = None,
             prefix: str = None,
             labels: typing.Optional[typing.Dict[str, str]] = None,
-    ) -> typing.Dict[str, Metric]:
+    ) -> metric_module.MetricsSnapshot:
         """
         Returns a dict of metric names to Metric.
 
         @param path Optional full metric path
-        @param path Optional prefix on which the metric paths should start
+        @param prefix Optional prefix on which the metric paths should start
         @param labels Optional dictionary of labels that must be in the metric
         """
         return await self._client.metrics(

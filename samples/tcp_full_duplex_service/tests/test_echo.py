@@ -40,10 +40,10 @@ async def test_basic(service_client, loop, monitor_client):
     send_task = asyncio.create_task(send_all_data(sock, loop))
     await recv_all_data(sock, loop)
     await send_task
-    metrics = await monitor_client.get_metrics()
-    assert metrics['tcp-echo']['sockets']['opened'] == 1
-    assert metrics['tcp-echo']['sockets']['closed'] == 0
-    assert metrics['tcp-echo']['bytes']['read'] == DATA_LENGTH
+    metrics = await monitor_client.metrics(prefix='tcp-echo.')
+    assert metrics.value_at('tcp-echo.sockets.opened') == 1
+    assert metrics.value_at('tcp-echo.sockets.closed') == 0
+    assert metrics.value_at('tcp-echo.bytes.read') == DATA_LENGTH
     # /// [Functional test]
 
 
@@ -80,10 +80,10 @@ async def test_delay_recv(service_client, loop, monitor_client, gate):
     gate.to_client_pass()
 
     await recv_task
-    metrics = await monitor_client.get_metrics()
-    assert metrics['tcp-echo']['sockets']['opened'] == 1
-    assert metrics['tcp-echo']['sockets']['closed'] == 0
-    assert metrics['tcp-echo']['bytes']['read'] == DATA_LENGTH
+    metrics = await monitor_client.metrics(prefix='tcp-echo.')
+    assert metrics.value_at('tcp-echo.sockets.opened') == 1
+    assert metrics.value_at('tcp-echo.sockets.closed') == 0
+    assert metrics.value_at('tcp-echo.bytes.read') == DATA_LENGTH
 
 
 async def test_data_combine(service_client, loop, monitor_client, gate):
@@ -100,10 +100,10 @@ async def test_data_combine(service_client, loop, monitor_client, gate):
 
     gate.to_client_pass()
 
-    metrics = await monitor_client.get_metrics()
-    assert metrics['tcp-echo']['sockets']['opened'] == 1
-    assert metrics['tcp-echo']['sockets']['closed'] == 0
-    assert metrics['tcp-echo']['bytes']['read'] == DATA_LENGTH
+    metrics = await monitor_client.metrics(prefix='tcp-echo.')
+    assert metrics.value_at('tcp-echo.sockets.opened') == 1
+    assert metrics.value_at('tcp-echo.sockets.closed') == 0
+    assert metrics.value_at('tcp-echo.bytes.read') == DATA_LENGTH
 
 
 async def test_down_pending_recv(service_client, loop, gate):
@@ -158,9 +158,11 @@ async def test_multiple_socks(service_client, loop, monitor_client):
         tasks.append(asyncio.create_task(recv_all_data(sock, loop)))
     await asyncio.gather(*tasks)
 
-    metrics = await monitor_client.get_metrics()
-    assert metrics['tcp-echo']['sockets']['opened'] == sockets_count
-    assert metrics['tcp-echo']['bytes']['read'] == DATA_LENGTH * sockets_count
+    metrics = await monitor_client.metrics(prefix='tcp-echo.')
+    assert metrics.value_at('tcp-echo.sockets.opened') == sockets_count
+    assert (
+        metrics.value_at('tcp-echo.bytes.read') == DATA_LENGTH * sockets_count
+    )
 
 
 async def test_multiple_send_only(service_client, loop, monitor_client):

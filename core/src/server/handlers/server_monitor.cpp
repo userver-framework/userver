@@ -110,8 +110,7 @@ std::string ServerMonitor::HandleRequestThrow(const http::HttpRequest& request,
           statistics_storage_, common_labels_, statistics_request);
 
     case StatsFormat::kInternal:
-      const auto json =
-          statistics_storage_.GetAsJson(statistics_request.prefix);
+      const auto json = statistics_storage_.GetAsJson();
       UASSERT(utils::statistics::AreAllMetricsNumbers(json));
       return formats::json::ToString(json);
   }

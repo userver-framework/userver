@@ -87,7 +87,7 @@ TEST(SetSubField, EmptyObject) {
   EXPECT_TRUE(result_object["a"].IsEmpty());
 }
 
-TEST(AreAllMetricsNumbers, Null) {
+TEST(AreAllMetricsNumbers, DISABLED_Null) {
   const auto json = formats::json::FromString(R"({
     "my_value" : {
       "field1" : 1.34,

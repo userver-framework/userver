@@ -63,7 +63,7 @@ BaseFormatBuilder::~BaseFormatBuilder() = default;
 
 Storage::Storage() : may_register_extenders_(true) {}
 
-formats::json::Value Storage::GetAsJson(std::string_view prefix) const {
+formats::json::Value Storage::GetAsJson() const {
   formats::json::ValueBuilder result;
   result[kVersionField] = kVersion;
 
@@ -74,12 +74,9 @@ formats::json::Value Storage::GetAsJson(std::string_view prefix) const {
       continue;
     }
 
-    if (utils::text::StartsWith(entry.prefix_path, prefix) ||
-        utils::text::StartsWith(prefix, entry.prefix_path)) {
-      LOG_DEBUG() << "Getting statistics for prefix=" << entry.prefix_path;
-      SetSubField(result, std::vector(entry.path_segments),
-                  entry.extender(StatisticsRequest{}));
-    }
+    LOG_DEBUG() << "Getting statistics for prefix=" << entry.prefix_path;
+    SetSubField(result, std::vector(entry.path_segments),
+                entry.extender(StatisticsRequest{}));
   }
 
   return result.ExtractValue();
@@ -126,7 +123,7 @@ void Storage::VisitMetrics(BaseFormatBuilder& out,
     }
   }
 
-  statistics::VisitMetrics(out, GetAsJson(request.prefix), request);
+  statistics::VisitMetrics(out, GetAsJson(), request);
 }
 
 void Storage::StopRegisteringExtenders() { may_register_extenders_ = false; }
