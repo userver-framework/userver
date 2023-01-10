@@ -340,21 +340,18 @@ void ConnectionPool::SetSettings(const PoolSettings& settings) {
 }
 
 void ConnectionPool::SetConnectionSettings(const ConnectionSettings& settings) {
-  auto reader = conn_settings_.Read();
-  if (*reader != settings) AssignNewSettings(settings, *reader);
+  auto writer = conn_settings_.StartWrite();
+  if (*writer != settings) {
+    const auto old_version = writer->version;
+    *writer = settings;
+    writer->version = old_version + 1;
+    writer.Commit();
+  }
 }
 
 void ConnectionPool::SetStatementMetricsSettings(
     const StatementMetricsSettings& settings) {
   sts_.SetSettings(settings);
-}
-
-void ConnectionPool::SetPipelineMode(PipelineMode mode) {
-  auto reader = conn_settings_.Read();
-  if (reader->pipeline_mode == mode) return;
-  auto settings = *reader;
-  settings.pipeline_mode = mode;
-  AssignNewSettings(std::move(settings), *reader);
 }
 
 engine::TaskWithResult<bool> ConnectionPool::Connect(
@@ -598,12 +595,6 @@ void ConnectionPool::StartMaintainTask() {
 }
 
 void ConnectionPool::StopMaintainTask() { ping_task_.Stop(); }
-
-void ConnectionPool::AssignNewSettings(ConnectionSettings settings,
-                                       const ConnectionSettings& old_settings) {
-  settings.version = old_settings.version + 1;
-  conn_settings_.Assign(std::move(settings));
-}
 
 }  // namespace storages::postgres::detail
 

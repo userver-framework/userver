@@ -55,8 +55,6 @@ class ClusterImpl {
 
   void SetStatementMetricsSettings(const StatementMetricsSettings& settings);
 
-  void SetPipelineMode(PipelineMode mode);
-
   OptionalCommandControl GetQueryCmdCtl(const std::string& query_name) const;
 
   OptionalCommandControl GetTaskDataHandlersCommandControl() const;
