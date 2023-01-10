@@ -2,7 +2,10 @@
 
 /// [Hello service sample - component]
 #include <userver/components/minimal_server_component_list.hpp>
+#include <userver/engine/sleep.hpp>
 #include <userver/server/handlers/http_handler_base.hpp>
+#include <userver/tracing/span.hpp>
+#include <userver/utils/async.hpp>
 #include <userver/utils/daemon_run.hpp>
 
 namespace samples::hello {
@@ -18,6 +21,12 @@ class Hello final : public server::handlers::HttpHandlerBase {
   std::string HandleRequestThrow(
       const server::http::HttpRequest&,
       server::request::RequestContext&) const override {
+    tracing::Span inner{"inner"};
+
+    utils::Async("innermost", [] {
+      engine::SleepFor(std::chrono::seconds{2});
+    }).Wait();
+
     return "Hello world!\n";
   }
 };

@@ -41,6 +41,12 @@ class TaskLocalVariable final {
         impl_.GetKey());
   }
 
+  using VariableType = T;
+
+  std::size_t GetKey() const noexcept {
+    return impl_.GetKey();
+  }
+
  private:
   static constexpr auto kVariableKind = impl::task_local::VariableKind::kNormal;
 
