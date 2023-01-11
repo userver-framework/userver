@@ -30,62 +30,11 @@ class Metric:
         return tuple(sorted(self.labels.items()))
 
 
-class MetricsSet:
-    """
-    Set of metrics that is comparable with Set[Metric]
-    and other MetricsSet.
-
-    @snippet testsuite/tests/test_metrics.py metrics set
-
-    @ingroup userver_testsuite
-    """
-
-    def __init__(self, values: typing.Set[Metric]):
-        self._values = values
-
-    def __len__(self) -> int:
-        """ Returns count of metrics """
-        return len(self._values)
-
-    def __iter__(self):
-        """ Returns an iterable over the set of Metric """
-        return self._values.__iter__()
-
-    def __contains__(self, metric: Metric) -> bool:
-        """
-        Returns True if metric with specified labels and value is in the set,
-        False otherwise.
-        """
-        return metric in self._values
-
-    def __eq__(self, other: typing.Any) -> bool:
-        """
-        Compares the MetricsSet with another MetricsSet, or with
-        Set[Metric].
-        """
-        if len(other) != len(self._values):
-            return False
-
-        return self._values == set(other)
-
-    def __repr__(self) -> str:
-        return self._values.__repr__()
-
-    def __getitem__(self, key: int) -> Metric:
-        """
-        Access metric by index 0. This operator should be avoided as the order
-        of metrics is unspecified and may change.
-        """
-        if key == 0:
-            return next(iter(self._values))
-        raise NotImplementedError()
-
-
 class _MetricsJSONEncoder(json.JSONEncoder):
     def default(self, o):  # pylint: disable=method-hidden
         if dataclasses.is_dataclass(o):
             return dataclasses.asdict(o)
-        if isinstance(o, MetricsSet):
+        if isinstance(o, set):
             return list(o)
         return super().default(o)
 
@@ -93,7 +42,7 @@ class _MetricsJSONEncoder(json.JSONEncoder):
 class MetricsSnapshot:
     """
     Snapshot of captured metrics that mimics the dict interface. Metrics have
-    the 'Dict[str(path), MetricsSet]' format.
+    the 'Dict[str(path), Set[Metric]]' format.
 
     @snippet samples/testsuite-support/tests/test_metrics.py metrics labels
 
@@ -101,11 +50,9 @@ class MetricsSnapshot:
     """
 
     def __init__(self, values: typing.Mapping[str, typing.Set[Metric]]):
-        self._values = {
-            key: MetricsSet(value) for key, value in values.items()
-        }
+        self._values = values
 
-    def __getitem__(self, path: str) -> MetricsSet:
+    def __getitem__(self, path: str) -> typing.Set[Metric]:
         """ Returns a list of metrics by specified path """
         return self._values[path]
 
@@ -168,7 +115,7 @@ class MetricsSnapshot:
         entry = self[path]
         assert entry, f'No metrics found by path "{path}"'
         if labels is not None:
-            entry = MetricsSet({x for x in entry if x.labels == labels})
+            entry = {x for x in entry if x.labels == labels}
             assert (
                 entry
             ), f'No metrics found by path "{path}" and labels {labels}'
@@ -181,7 +128,7 @@ class MetricsSnapshot:
                 len(entry) == 1
             ), f'Multiple metrics found by path "{path}": {entry}'
 
-        return entry[0].value
+        return next(iter(entry)).value
 
     @staticmethod
     def from_json(json_str: str) -> 'MetricsSnapshot':

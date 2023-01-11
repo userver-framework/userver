@@ -345,7 +345,7 @@ class AiohttpClientMonitor(service_client.AiohttpClient):
         if not metrics_list:
             return None
 
-        return metrics_list[0]
+        return next(iter(metrics_list))
 
     async def single_metric(
             self,
