@@ -2,7 +2,6 @@
 
 #include <algorithm>
 #include <iterator>
-#include <unordered_map>
 
 #include <fmt/compile.h>
 #include <fmt/format.h>
@@ -60,7 +59,6 @@ class FormatBuilder final : public utils::statistics::BaseFormatBuilder {
 
   const std::string ending_;
   fmt::memory_buffer buf_;
-  std::unordered_map<std::string, std::string> metrics_;
 };
 
 }  // namespace
