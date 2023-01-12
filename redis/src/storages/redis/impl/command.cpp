@@ -2,15 +2,18 @@
 
 #include <userver/logging/log.hpp>
 #include <userver/tracing/span.hpp>
+#include <userver/utils/assert.hpp>
+
+#include <algorithm>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace redis {
 
-Command::Command(CmdArgs&& args, ReplyCallback callback, CommandControl control,
-                 int counter, bool asking, size_t instance_idx, bool redirected,
-                 bool read_only)
-    : args(std::move(args)),
+Command::Command(CmdArgs&& _args, ReplyCallback callback,
+                 CommandControl control, int counter, bool asking,
+                 size_t instance_idx, bool redirected, bool read_only)
+    : args(std::move(_args)),
       callback(std::move(callback)),
       log_extra(PrepareLogExtra()),
       control(control),
@@ -18,7 +21,15 @@ Command::Command(CmdArgs&& args, ReplyCallback callback, CommandControl control,
       counter(counter),
       asking(asking),
       redirected(redirected),
-      read_only(read_only) {}
+      read_only(read_only) {
+  UASSERT_MSG(!args.args.empty() && !args.args.front().empty(),
+              "Empty command make no sense");
+  if (!args.args.empty() && !args.args.front().empty()) {
+    name = args.args.front().front();
+    std::transform(name.begin(), name.end(), name.begin(),
+                   [](unsigned char c) { return std::tolower(c); });
+  }
+}
 
 ReplyCallback Command::Callback() const {
   auto self = shared_from_this();

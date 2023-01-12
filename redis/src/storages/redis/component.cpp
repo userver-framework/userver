@@ -46,19 +46,27 @@ formats::json::ValueBuilder InstanceStatisticsToJson(
   formats::json::ValueBuilder states(formats::json::Type::kObject);
 
   if (metrics_settings.request_sizes_enabled) {
-    result["request-sizes"]["1min"] =
+    result["request_sizes"]["1min"] =
         utils::statistics::PercentileToJson(stats.request_size_percentile);
-    utils::statistics::SolomonSkip(result["request-sizes"]["1min"]);
+    utils::statistics::SolomonSkip(result["request_sizes"]["1min"]);
   }
   if (metrics_settings.reply_sizes_enabled) {
-    result["reply-sizes"]["1min"] =
+    result["reply_sizes"]["1min"] =
         utils::statistics::PercentileToJson(stats.reply_size_percentile);
-    utils::statistics::SolomonSkip(result["reply-sizes"]["1min"]);
+    utils::statistics::SolomonSkip(result["reply_sizes"]["1min"]);
   }
   if (metrics_settings.timings_enabled) {
     result["timings"]["1min"] =
         utils::statistics::PercentileToJson(stats.timings_percentile);
     utils::statistics::SolomonSkip(result["timings"]["1min"]);
+  }
+  if (metrics_settings.command_timings_enabled &&
+      !stats.command_timings_percentile.empty()) {
+    auto timings = result["command_timings"];
+    utils::statistics::SolomonChildrenAreLabelValues(timings, "redis_command");
+    for (const auto& [command, percentile] : stats.command_timings_percentile) {
+      timings[command] = utils::statistics::PercentileToJson(percentile);
+    }
   }
 
   result["reconnects"] = stats.reconnects;

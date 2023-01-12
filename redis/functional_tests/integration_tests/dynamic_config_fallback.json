@@ -13,7 +13,12 @@
     "watch_command_timer_interval_us": 0
   },
   "REDIS_DEFAULT_COMMAND_CONTROL": {},
-  "REDIS_METRICS_SETTINGS": {},
+  "REDIS_METRICS_SETTINGS": {
+    "command-timings-enabled": true,
+    "reply-sizes-enabled": true,
+    "request-sizes-enabled": true,
+    "timings-enabled": true
+  },
   "REDIS_SUBSCRIBER_DEFAULT_COMMAND_CONTROL": {},
   "REDIS_SUBSCRIPTIONS_REBALANCE_MIN_INTERVAL_SECONDS": 30,
   "REDIS_WAIT_CONNECTED": {

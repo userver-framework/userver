@@ -106,3 +106,9 @@ groups:
       - redis/functional_tests/integration_tests/dynamic_config_fallback.json
       - redis/functional_tests/basic_chaos/dynamic_config_fallback.json
       - redis/functional_tests/metrics/dynamic_config_fallback.json
+    overrides:
+        REDIS_METRICS_SETTINGS:
+            command-timings-enabled: true
+            reply-sizes-enabled: true
+            request-sizes-enabled: true
+            timings-enabled: true
