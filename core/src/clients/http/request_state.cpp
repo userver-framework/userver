@@ -347,6 +347,12 @@ void RequestState::on_completed(std::shared_ptr<RequestState> holder,
   auto& span = holder->span_storage_->Get();
   auto& easy = holder->easy();
 
+  auto* stream_data = std::get_if<StreamData>(&holder->data_);
+  if (stream_data && !stream_data->headers_promise_set.exchange(true)) {
+    stream_data->headers_promise.set_value();
+    LOG_DEBUG() << "Stream API, status code is set (with body)";
+  }
+
   const auto status_code = static_cast<Status>(easy.get_response_code());
 
   const auto& headers = holder->response()->headers();
@@ -492,19 +498,8 @@ void RequestState::parse_header(char* ptr, size_t size) try {
 
   auto* end = rfind_not_space(ptr, size);
   if (ptr == end) {
-    auto* stream_data = std::get_if<StreamData>(&data_);
-    if (stream_data) {
-      // We're ready to show the headers
-      const auto status_code = static_cast<Status>(easy().get_response_code());
-      if (status_code / 100 != 3) {
-        response()->SetStatusCode(status_code);
-
-        if (!stream_data->headers_promise_set.exchange(true)) {
-          stream_data->headers_promise.set_value();
-        }
-        LOG_DEBUG() << "Stream API, status code is set to " << status_code;
-      }
-    }
+    const auto status_code = static_cast<Status>(easy().get_response_code());
+    response()->SetStatusCode(status_code);
     return;
   }
   *end = '\0';
@@ -579,6 +574,7 @@ void RequestState::async_perform_stream(const std::shared_ptr<Queue>& queue) {
   span.AddTag("stream_api", "1");
 
   response_ = std::make_shared<Response>();
+  response()->SetStatusCode(static_cast<Status>(500));
 
   is_cancelled_ = false;
   retry_.current = 1;
@@ -750,6 +746,7 @@ engine::Future<std::shared_ptr<Response>> RequestState::StartNewPromise() {
   auto* buffered_data = std::get_if<FullBufferedData>(&data_);
 
   response_ = std::make_shared<Response>();
+  response()->SetStatusCode(static_cast<Status>(500));
   easy().set_sink(&(response_->sink_string()));  // set place for response body
 
   is_cancelled_ = false;
@@ -774,6 +771,12 @@ size_t RequestState::StreamWriteFunction(char* ptr, size_t size, size_t nmemb,
 
   std::string buffer(ptr, actual_size);
   auto& queue_producer = stream_data->queue_producer;
+
+  if (!stream_data->headers_promise_set.exchange(true)) {
+    stream_data->headers_promise.set_value();
+    LOG_DEBUG() << "Stream API, status code is set (with body)";
+  }
+
   if (queue_producer.PushNoblock(std::move(buffer))) {
     return actual_size;
   }
