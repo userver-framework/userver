@@ -88,6 +88,8 @@ class Server::Impl final {
 
   void AddService(ServiceBase& service, engine::TaskProcessor& task_processor);
 
+  std::vector<std::string_view> GetServiceNames() const;
+
   void WithServerBuilder(SetupHook&& setup);
 
   grpc::CompletionQueue& GetCompletionQueue() noexcept;
@@ -117,7 +119,7 @@ class Server::Impl final {
   std::vector<std::unique_ptr<impl::ServiceWorker>> service_workers_;
   std::optional<impl::QueueHolder> queue_;
   std::unique_ptr<grpc::Server> server_;
-  engine::Mutex configuration_mutex_;
+  mutable engine::Mutex configuration_mutex_;
 
   ugrpc::impl::StatisticsStorage statistics_storage_;
 };
@@ -171,6 +173,18 @@ void Server::Impl::AddService(ServiceBase& service,
 
   service_workers_.push_back(service.MakeWorker(impl::ServiceSettings{
       queue_->GetQueue(), task_processor, statistics_storage_}));
+}
+
+std::vector<std::string_view> Server::Impl::GetServiceNames() const {
+  std::vector<std::string_view> ret;
+
+  std::lock_guard lock(configuration_mutex_);
+
+  ret.reserve(service_workers_.size());
+  for (const auto& worker : service_workers_) {
+    ret.push_back(worker->GetMetadata().service_full_name);
+  }
+  return ret;
 }
 
 void Server::Impl::WithServerBuilder(SetupHook&& setup) {
@@ -262,6 +276,10 @@ Server::~Server() = default;
 void Server::AddService(ServiceBase& service,
                         engine::TaskProcessor& task_processor) {
   impl_->AddService(service, task_processor);
+}
+
+std::vector<std::string_view> Server::GetServiceNames() const {
+  return impl_->GetServiceNames();
 }
 
 void Server::WithServerBuilder(SetupHook&& setup) {
