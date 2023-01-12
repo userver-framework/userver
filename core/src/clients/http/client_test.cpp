@@ -1410,19 +1410,19 @@ UTEST(HttpClient, DISABLED_TestsuiteAllowedUrls) {
     EXPECT_NO_THROW((void)http_client_ptr->CreateRequest()
                         ->get("http://126.0.0.1")
                         ->async_perform());
-    ASSERT_DEATH((void)http_client_ptr->CreateRequest()
-                     ->get("http://12.0.0.1")
-                     ->async_perform(),
-                 ".*");
+    UEXPECT_DEATH((void)http_client_ptr->CreateRequest()
+                      ->get("http://12.0.0.1")
+                      ->async_perform(),
+                  ".*");
 
     http_client_ptr->SetAllowedUrlsExtra({"http://12.0"});
     EXPECT_NO_THROW((void)http_client_ptr->CreateRequest()
                         ->get("http://12.0.0.1")
                         ->async_perform());
-    ASSERT_DEATH((void)http_client_ptr->CreateRequest()
-                     ->get("http://13.0.0.1")
-                     ->async_perform(),
-                 ".*");
+    UEXPECT_DEATH((void)http_client_ptr->CreateRequest()
+                      ->get("http://13.0.0.1")
+                      ->async_perform(),
+                  ".*");
   });
 
   task.Get();

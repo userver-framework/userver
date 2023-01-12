@@ -2,6 +2,8 @@
 
 #include <gtest/gtest.h>
 
+#include <userver/utest/death_tests.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 TEST(ScopeGuard, Dtr) {
@@ -55,7 +57,7 @@ TEST(ScopeGuard, ExceptionSuppression) {
 #ifdef NDEBUG
   EXPECT_THROW(test_body(), TestExceptionOuter);
 #else
-  EXPECT_DEATH(test_body(), "exception is thrown during stack unwinding");
+  UEXPECT_DEATH(test_body(), "exception is thrown during stack unwinding");
 #endif
 }
 

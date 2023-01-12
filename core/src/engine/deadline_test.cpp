@@ -38,9 +38,9 @@ TEST(DeadlineDeathTest, Overflow) {
   // but will overflow steady_clock::time_point.
   const auto duration_to_overflow_time_point =
       engine::Deadline::Duration::max();
-  ASSERT_DEATH(engine::Deadline::FromDuration(duration_to_overflow_time_point)
-                   .IsReachable(),
-               "");
+  UEXPECT_DEATH(engine::Deadline::FromDuration(duration_to_overflow_time_point)
+                    .IsReachable(),
+                "");
 }
 #endif
 
