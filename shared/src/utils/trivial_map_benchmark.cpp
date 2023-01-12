@@ -6,24 +6,12 @@
 
 #include <benchmark/benchmark.h>
 
+#include <utils/gbench_auxilary.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
-// Compiler is too aggressive with optimizations and without this laundering
-// all the utils::TrivialBiMap give an answer in less than a nanosecond.
 static std::string_view MyLaunder(std::string_view value) {
-  static std::mutex static_mutex{};
-  static std::optional<std::string_view> static_value{};
-  {
-    std::lock_guard lock(static_mutex);
-    static_value.emplace(std::move(value));
-  }
-  benchmark::ClobberMemory();
-  {
-    std::lock_guard lock(static_mutex);
-    auto result = std::move(static_value.value());
-    static_value.reset();
-    return result;
-  }
+  return Launder(value);
 }
 
 constexpr utils::TrivialBiMap kSmallTrivialBiMap = [](auto selector) {

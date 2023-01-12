@@ -12,6 +12,7 @@ USERVER_NAMESPACE_BEGIN
 class LogHelperBenchmark : public benchmark::Fixture {
   void SetUp(const benchmark::State&) override {
     old_ = logging::SetDefaultLogger(logging::MakeNullLogger("null_logger"));
+    logging::SetDefaultLoggerLevel(logging::Level::kInfo);
   }
 
   void TearDown(const benchmark::State&) override {
@@ -23,7 +24,7 @@ class LogHelperBenchmark : public benchmark::Fixture {
 
 BENCHMARK_DEFINE_TEMPLATE_F(LogHelperBenchmark, LogNumber)
 (benchmark::State& state) {
-  T msg{42};
+  const auto msg = Launder(T{42});
   for (auto _ : state) {
     LOG_INFO() << msg;
   }
@@ -35,7 +36,7 @@ BENCHMARK_INSTANTIATE_TEMPLATE_F(LogHelperBenchmark, LogNumber, float);
 BENCHMARK_INSTANTIATE_TEMPLATE_F(LogHelperBenchmark, LogNumber, double);
 
 BENCHMARK_DEFINE_F(LogHelperBenchmark, LogString)(benchmark::State& state) {
-  std::string msg(state.range(0), '*');
+  const auto msg = Launder(std::string(state.range(0), '*'));
   for (auto _ : state) {
     LOG_INFO() << msg;
   }
@@ -48,7 +49,7 @@ BENCHMARK_REGISTER_F(LogHelperBenchmark, LogString)
     ->Complexity();
 
 BENCHMARK_DEFINE_F(LogHelperBenchmark, LogChar)(benchmark::State& state) {
-  std::string msg(state.range(0), '*');
+  const auto msg = Launder(std::string(state.range(0), '*'));
   for (auto _ : state) {
     LOG_INFO() << msg.c_str();
   }
@@ -61,7 +62,7 @@ BENCHMARK_REGISTER_F(LogHelperBenchmark, LogChar)
     ->Complexity();
 
 BENCHMARK_DEFINE_F(LogHelperBenchmark, LogCheck)(benchmark::State& state) {
-  std::string msg(state.range(0), '*');
+  const auto msg = Launder(std::string(state.range(0), '*'));
   for (auto _ : state) {
     LOG_TRACE() << msg.c_str();
   }
@@ -86,7 +87,8 @@ std::ostream& operator<<(std::ostream& os, const StreamedStruct& value) {
 }
 
 BENCHMARK_DEFINE_F(LogHelperBenchmark, LogStruct)(benchmark::State& state) {
-  StreamedStruct msg{state.range(0), std::string(state.range(0), '*')};
+  const StreamedStruct msg{state.range(0),
+                           Launder(std::string(state.range(0), '*'))};
   for (auto _ : state) {
     LOG_INFO() << msg;
   }
