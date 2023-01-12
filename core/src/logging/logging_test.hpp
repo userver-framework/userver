@@ -28,8 +28,7 @@ inline logging::LoggerPtr MakeLoggerFromSink(
     const std::string& logger_name,
     std::shared_ptr<spdlog::sinks::sink> sink_ptr, logging::Format format) {
   return std::make_shared<logging::impl::LoggerWithInfo>(
-      format, std::shared_ptr<spdlog::details::thread_pool>{},
-      utils::MakeSharedRef<spdlog::logger>(logger_name, sink_ptr));
+      format, utils::MakeSharedRef<spdlog::logger>(logger_name, sink_ptr));
 }
 
 inline logging::LoggerPtr MakeNamedStreamLogger(const std::string& logger_name,
