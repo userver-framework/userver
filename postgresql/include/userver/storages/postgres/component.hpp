@@ -161,8 +161,7 @@ class Postgres : public LoggableComponentBase {
   storages::postgres::DatabasePtr GetDatabase() const { return database_; }
 
   /// Reports statistics for PostgreSQL driver
-  formats::json::Value ExtendStatistics(
-      const utils::statistics::StatisticsRequest& /*request*/);
+  void ExtendStatistics(utils::statistics::Writer& writer);
 
   static yaml_config::Schema GetStaticConfigSchema();
 
