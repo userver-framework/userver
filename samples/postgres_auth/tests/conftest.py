@@ -6,10 +6,8 @@ pytest_plugins = [
     'pytest_userver.plugins',
     'pytest_userver.plugins.samples',
     'testsuite.databases.pgsql.pytest_plugin',
+    'pytest_userver.plugins.pg_conf',
 ]
-
-
-USERVER_CONFIG_HOOKS = ['pgsql_config_hook']
 
 
 @pytest.fixture(scope='session')
@@ -23,14 +21,3 @@ def pgsql_local(service_source_dir, pgsql_local_create):
 @pytest.fixture
 def client_deps(pgsql):
     pass
-
-
-@pytest.fixture(scope='session')
-def pgsql_config_hook(pgsql_local):
-    def _patch_config(config_yaml, config_vars):
-        components = config_yaml['components_manager']['components']
-        components['auth-database']['dbconnection'] = pgsql_local[
-            'auth'
-        ].get_uri()
-
-    return _patch_config

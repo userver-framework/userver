@@ -8,6 +8,7 @@ pytest_plugins = [
     'pytest_userver.plugins.samples',
     # Database related plugins
     'testsuite.databases.pgsql.pytest_plugin',
+    'pytest_userver.plugins.pg_conf',
 ]
 
 

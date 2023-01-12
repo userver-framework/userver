@@ -113,11 +113,10 @@ def service_non_http_health_checks(service_config_yaml) -> net.HealthChecks:
     """
     Returns a health checks info.
 
-    By default returns pytest_userver.utils.net.get_health_checks_info.
+    By default returns pytest_userver.utils.net.get_health_checks_info().
+
     Override this fixture to change the way testsuite detects the tested
     service being alive.
-
-    @see pytest_userver.utils.net.get_health_checks_info
 
     @ingroup userver_testsuite_fixtures
     """

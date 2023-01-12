@@ -42,7 +42,6 @@ groups:
     fallbacks:
       - samples/postgres_service/dynamic_config_fallback.json
       - samples/postgres-support/dynamic_config_fallback.json
-      - postgresql/functional_tests/basic_chaos/dynamic_config_fallback.json
       - postgresql/functional_tests/metrics/dynamic_config_fallback.json
     overrides:
         POSTGRES_CONNECTION_POOL_SETTINGS:
@@ -71,6 +70,27 @@ groups:
         POSTGRES_STATEMENT_METRICS_SETTINGS:
             key-value-database:
                 max_statement_metrics: 5
+
+  - library-yamls:
+      - core/library.yaml
+      - postgresql/library.yaml
+    fallbacks:
+      - postgresql/functional_tests/basic_chaos/dynamic_config_fallback.json
+    overrides:
+        # some tests close all the connections and wait for them to start
+        # again... no need to have too many connections 
+        POSTGRES_CONNECTION_POOL_SETTINGS:
+            key-value-database:
+                max_pool_size: 15
+                max_queue_size: 200
+                min_pool_size: 8
+        # chaos proxy is slow, initial connection setup takes quite some time
+        POSTGRES_DEFAULT_COMMAND_CONTROL:
+            network_timeout_ms: 750
+            statement_timeout_ms: 500
+        POSTGRES_CONNECTION_SETTINGS:
+            key-value-database:
+                recent-errors-threshold: 100000
 
   - library-yamls:
       - core/library.yaml

@@ -58,7 +58,7 @@ def get_health_checks_info(service_config_yaml: dict) -> HealthChecks:
     Returns a health checks info that for server.listener, grpc-server.port
     and server.listener-monitor.
 
-    @see pytest_userver.plugins.base.service_non_http_health_checks
+    @see pytest_userver.plugins.base.service_non_http_health_checks()
 
     @ingroup userver_testsuite
     """

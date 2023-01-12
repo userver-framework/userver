@@ -868,7 +868,7 @@ ResultSet ConnectionImpl::WaitResult(const std::string& statement,
     ++stats_.execute_timeout;
     LOG_LIMITED_WARNING() << "Statement `" << statement
                           << "` network timeout error: " << e << ". "
-                          << "Network timout was " << network_timeout.count()
+                          << "Network timeout was " << network_timeout.count()
                           << "ms";
     span.AddTag(tracing::kErrorFlag, true);
     throw;

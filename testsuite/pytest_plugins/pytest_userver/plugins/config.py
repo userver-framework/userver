@@ -9,6 +9,22 @@ import typing
 import pytest
 import yaml
 
+
+# flake8: noqa E266
+## Fixtures and functions in USERVER_CONFIG_HOOKS used to change the
+## static config or config_vars.yaml.
+##
+## Functions and fixtures that are listed in the USERVER_CONFIG_HOOKS variable
+## in your pytest-plugin are run before config is written to disk, so that the
+## service, the pytest_userver.plugins.config.service_config_yaml and
+## the pytest_userver.plugins.config.service_config_vars get the modified
+## values.
+##
+## Example of patching config:
+##
+## @snippet samples/grpc_service/tests/conftest.py Prepare configs
+##
+## @hideinitializer
 USERVER_CONFIG_HOOKS = [
     'userver_config_base',
     'userver_config_logging',
@@ -16,7 +32,10 @@ USERVER_CONFIG_HOOKS = [
 ]
 
 
-class UserverConfigPlugin:
+# @cond
+
+
+class _UserverConfigPlugin:
     def __init__(self):
         self._config_hooks = []
 
@@ -32,13 +51,13 @@ class UserverConfigPlugin:
             self._config_hooks.extend(uhooks)
 
 
-class UserverConfig(typing.NamedTuple):
+class _UserverConfig(typing.NamedTuple):
     config_yaml: dict
     config_vars: dict
 
 
 def pytest_configure(config):
-    config.pluginmanager.register(UserverConfigPlugin(), 'userver_config')
+    config.pluginmanager.register(_UserverConfigPlugin(), 'userver_config')
     config.addinivalue_line(
         'markers', 'config: per-test dynamic config values',
     )
@@ -67,6 +86,9 @@ def pytest_addoption(parser) -> None:
         type=pathlib.Path,
         help='Path to dynamic config fallback file.',
     )
+
+
+# @endcond
 
 
 @pytest.fixture(scope='session')
@@ -112,6 +134,13 @@ def config_fallback_path(pytestconfig) -> pathlib.Path:
 
 @pytest.fixture(scope='session')
 def service_tmpdir(service_binary, tmp_path_factory):
+    """
+    Returns the path for temporary files. The path is the same for the whole
+    session and files are not removed (at least by this fixture) between
+    tests.
+
+    @ingroup userver_testsuite_fixtures
+    """
     return tmp_path_factory.mktemp(pathlib.Path(service_binary).name)
 
 
@@ -125,12 +154,24 @@ def service_config_path_temp(
 
 
 @pytest.fixture(scope='session')
-def service_config_yaml(_service_config):
+def service_config_yaml(_service_config) -> dict:
+    """
+    Returns the static config values after the USERVER_CONFIG_HOOKS were
+    applied (if any).
+
+    @ingroup userver_testsuite_fixtures
+    """
     return _service_config.config_yaml
 
 
 @pytest.fixture(scope='session')
-def service_config_vars(_service_config):
+def service_config_vars(_service_config) -> dict:
+    """
+    Returns the static config variables (config_vars.yaml) values after the
+    USERVER_CONFIG_HOOKS were applied (if any).
+
+    @ingroup userver_testsuite_fixtures
+    """
     return _service_config.config_vars
 
 
@@ -141,7 +182,7 @@ def _service_config(
         service_tmpdir,
         service_config_path,
         service_config_vars_path,
-) -> UserverConfig:
+) -> _UserverConfig:
     config_vars: dict
     config_yaml: dict
 
@@ -169,7 +210,7 @@ def _service_config(
         config_vars_path.write_text(yaml.dump(config_vars))
         config_yaml['config_vars'] = str(config_vars_path)
 
-    return UserverConfig(config_yaml=config_yaml, config_vars=config_vars)
+    return _UserverConfig(config_yaml=config_yaml, config_vars=config_vars)
 
 
 @pytest.fixture(scope='session')

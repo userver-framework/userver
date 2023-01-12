@@ -2,6 +2,7 @@ import pytest
 
 from pytest_userver import chaos
 
+from testsuite.databases.pgsql import connection
 from testsuite.databases.pgsql import discover
 
 
@@ -44,12 +45,22 @@ USERVER_CONFIG_HOOKS = ['hook_db_config']
 @pytest.fixture(scope='session')
 def hook_db_config(pgsql_local, _gate_started):
     def _hook_db_config(config_yaml, config_vars):
-        _DB_NAME = 'pg_key_value'
         host, port = _gate_started.get_sockname_for_clients()
+
+        db_info = pgsql_local['key_value']
+        db_chaos_gate = connection.PgConnectionInfo(
+            host=host,
+            port=port,
+            user=db_info.user,
+            password=db_info.password,
+            options=db_info.options,
+            sslmode=db_info.sslmode,
+            dbname=db_info.dbname,
+        )
 
         components = config_yaml['components_manager']['components']
         db = components['key-value-database']
-        db['dbconnection'] = f'postgresql://testsuite@{host}:{port}/{_DB_NAME}'
+        db['dbconnection'] = db_chaos_gate.get_uri()
 
     return _hook_db_config
     # /// [gate start]
