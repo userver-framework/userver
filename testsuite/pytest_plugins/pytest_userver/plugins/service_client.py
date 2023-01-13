@@ -24,6 +24,7 @@ async def service_client(
         ensure_daemon_started,
         service_daemon,
         mock_configs_service,
+        cleanup_userver_dumps,
         client_deps,
         _testsuite_client_config: client.TestsuiteClientConfig,
         _service_client_base,

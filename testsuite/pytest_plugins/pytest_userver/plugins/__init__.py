@@ -9,6 +9,7 @@ pytest_plugins = [
     'testsuite.pytest_plugin',
     'pytest_userver.plugins.base',
     'pytest_userver.plugins.config',
+    'pytest_userver.plugins.dumps',
     'pytest_userver.plugins.dynamic_config',
     'pytest_userver.plugins.grpc',
     'pytest_userver.plugins.grpc_mockserver',
