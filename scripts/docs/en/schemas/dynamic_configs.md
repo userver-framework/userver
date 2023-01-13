@@ -373,6 +373,9 @@ properties:
     type: integer
     minimum: 1
     default: 5000
+  recent-errors-threshold:
+    type: integer
+    minimum: 1
   ignore-unused-query-params:
     type: boolean
     default: false
@@ -385,7 +388,8 @@ properties:
     "persistent-prepared-statements": true,
     "user-types-enabled": true,
     "max-prepared-cache-size": 5000,
-    "ignore-unused-query-params": false
+    "ignore-unused-query-params": false,
+    "recent-errors-threshold": 2
   }
 }
 ```
