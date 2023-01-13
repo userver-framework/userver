@@ -6,22 +6,27 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace concurrent::impl {
+namespace concurrent {
 
-struct EmplaceEnabler final {
-  // Disable {}-initialization in Queue's constructor
-  explicit EmplaceEnabler() = default;
-};
+namespace impl {
 
 struct NoToken final {
   template <typename LockFreeQueue>
   explicit NoToken(LockFreeQueue& /*unused*/) {}
 };
 
+}  // namespace impl
+
 /// @warning A single Producer must not be used from multiple threads
 /// concurrently
-template <typename QueueType, typename ProducerToken>
+template <typename QueueType, typename ProducerToken,
+          typename EmplaceEnablerType>
 class Producer final {
+  static_assert(
+      std::is_same_v<EmplaceEnablerType, typename QueueType::EmplaceEnabler>,
+      "Do not instantiate Producer on your own. Use Producer type alias "
+      "from queue");
+
   using ValueType = typename QueueType::ValueType;
 
  public:
@@ -41,7 +46,8 @@ class Producer final {
     return queue_->Push(token_, std::move(value), deadline);
   }
 
-  /// Try to push element into queue without blocking.
+  /// Try to push element into queue without blocking. May be used in
+  /// non-coroutine environment
   /// @returns whether push succeeded.
   bool PushNoblock(ValueType&& value) const {
     UASSERT(queue_);
@@ -58,7 +64,7 @@ class Producer final {
 
   /// @cond
   // For internal use only
-  Producer(std::shared_ptr<QueueType> queue, EmplaceEnabler /*unused*/)
+  Producer(std::shared_ptr<QueueType> queue, EmplaceEnablerType /*unused*/)
       : queue_(std::move(queue)), token_(queue_->queue_) {}
   /// @endcond
 
@@ -69,8 +75,13 @@ class Producer final {
 
 /// @warning A single Consumer must not be used from multiple threads
 /// concurrently
-template <typename QueueType>
+template <typename QueueType, typename EmplaceEnablerType>
 class Consumer final {
+  static_assert(
+      std::is_same_v<EmplaceEnablerType, typename QueueType::EmplaceEnabler>,
+      "Do not instantiate Consumer on your own. Use Consumer type alias "
+      "from queue");
+
   using ValueType = typename QueueType::ValueType;
   using ConsumerToken = typename QueueType::ConsumerToken;
 
@@ -93,7 +104,8 @@ class Consumer final {
     return queue_->Pop(token_, value, deadline);
   }
 
-  /// Try to pop element from queue without blocking.
+  /// Try to pop element from queue without blocking. May be used in
+  /// non-coroutine environment
   /// @return whether something was popped.
   bool PopNoblock(ValueType& value) const {
     return queue_->PopNoblock(token_, value);
@@ -104,7 +116,7 @@ class Consumer final {
 
   /// @cond
   // For internal use only
-  Consumer(std::shared_ptr<QueueType> queue, EmplaceEnabler /*unused*/)
+  Consumer(std::shared_ptr<QueueType> queue, EmplaceEnablerType /*unused*/)
       : queue_(std::move(queue)), token_(queue_->queue_) {}
   /// @endcond
 
@@ -113,6 +125,6 @@ class Consumer final {
   mutable ConsumerToken token_;
 };
 
-}  // namespace concurrent::impl
+}  // namespace concurrent
 
 USERVER_NAMESPACE_END

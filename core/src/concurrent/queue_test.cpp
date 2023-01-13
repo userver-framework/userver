@@ -25,6 +25,9 @@ auto GetProducerTask(const Producer& producer, std::size_t i) {
   });
 }
 
+template <typename T>
+class NonCoroutineTest : public ::testing::Test {};
+
 using TestMpmcTypes =
     testing::Types<concurrent::NonFifoMpmcQueue<int>,
                    concurrent::NonFifoMpmcQueue<std::unique_ptr<int>>,
@@ -33,6 +36,12 @@ using TestMpscTypes =
     testing::Types<concurrent::NonFifoMpscQueue<int>,
                    concurrent::NonFifoMpscQueue<std::unique_ptr<int>>,
                    concurrent::NonFifoMpscQueue<std::unique_ptr<RefCountData>>>;
+
+using TestQueueTypes = testing::Types<concurrent::NonFifoMpmcQueue<std::size_t>,
+                                      concurrent::NonFifoMpscQueue<std::size_t>,
+                                      concurrent::SpmcQueue<std::size_t>,
+                                      concurrent::SpscQueue<std::size_t>>;
+
 }  // namespace
 
 INSTANTIATE_TYPED_UTEST_SUITE_P(NonFifoMpmcQueue, QueueFixture,
@@ -46,6 +55,30 @@ INSTANTIATE_TYPED_UTEST_SUITE_P(NonFifoMpscQueue, QueueFixture,
 
 INSTANTIATE_TYPED_UTEST_SUITE_P(NonFifoMpscQueue, TypedQueueFixture,
                                 TestMpmcTypes);
+
+TYPED_TEST_SUITE(NonCoroutineTest, TestQueueTypes);
+
+TYPED_TEST(NonCoroutineTest, PushPopNoblock) {
+  auto queue = TypeParam::Create();
+
+  auto producer = queue->GetProducer();
+  auto consumer = queue->GetConsumer();
+
+  std::size_t value = 0;
+
+  EXPECT_TRUE(producer.PushNoblock(0));
+  EXPECT_TRUE(producer.PushNoblock(1));
+
+  consumer.PopNoblock(value);
+  EXPECT_EQ(value, 0);
+  consumer.PopNoblock(value);
+  EXPECT_EQ(value, 1);
+
+  EXPECT_TRUE(producer.PushNoblock(2));
+
+  consumer.PopNoblock(value);
+  EXPECT_EQ(value, 2);
+}
 
 UTEST(NonFifoMpmcQueue, ConsumerIsDead) {
   auto queue = concurrent::NonFifoMpmcQueue<int>::Create();
