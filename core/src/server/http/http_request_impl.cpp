@@ -17,6 +17,8 @@ namespace {
 
 constexpr size_t kBucketCount = 32;
 
+constexpr size_t kZeroAllocationBucketCount = 0;
+
 std::string EscapeLogString(const std::string& str,
                             const std::vector<uint8_t>& need_escape_map) {
   size_t esc_cnt = 0;
@@ -74,11 +76,13 @@ namespace server::http {
 // unordered_maps because we don't need different seeds and want to avoid its
 // overhead.
 HttpRequestImpl::HttpRequestImpl(request::ResponseDataAccounter& data_accounter)
-    : form_data_args_(kBucketCount, request_args_.hash_function()),
-      path_args_by_name_index_(kBucketCount, request_args_.hash_function()),
+    : form_data_args_(kZeroAllocationBucketCount,
+                      request_args_.hash_function()),
+      path_args_by_name_index_(kZeroAllocationBucketCount,
+                               request_args_.hash_function()),
       headers_(kBucketCount,
                utils::StrIcaseHash(request_args_.hash_function().GetSeed())),
-      cookies_(kBucketCount, request_args_.hash_function()),
+      cookies_(kZeroAllocationBucketCount, request_args_.hash_function()),
       response_(*this, data_accounter) {}
 
 HttpRequestImpl::~HttpRequestImpl() = default;
