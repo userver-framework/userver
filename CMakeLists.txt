@@ -88,7 +88,7 @@ include(FindPython)
 message(STATUS "Generating cmake files ...")
 execute_process(
     COMMAND
-        ${PYTHON} -u ${CMAKE_CURRENT_SOURCE_DIR}/plugins/external_deps/impl/cmake_generator.py
+        ${PYTHON} -u ${CMAKE_CURRENT_SOURCE_DIR}/scripts/external_deps/cmake_generator.py
         --repo-dir=${CMAKE_CURRENT_SOURCE_DIR}
         --build-dir=${CMAKE_BINARY_DIR}
     RESULT_VARIABLE RESULT

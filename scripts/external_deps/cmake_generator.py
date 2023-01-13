@@ -198,7 +198,7 @@ def main(argv=None):
     os.makedirs(cmake_generated_path, exist_ok=True)
 
     template_path = os.path.join(
-        args.repo_dir, 'plugins', 'external_deps', 'templates',
+        args.repo_dir, 'scripts', 'external_deps', 'templates',
     )
     renderer = jinja2.Environment(
         trim_blocks=True,
