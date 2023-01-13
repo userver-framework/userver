@@ -88,6 +88,11 @@ With components::Redis the following additional metrics appear:
 @include redis/functional_tests/metrics/tests/static/metrics_values.txt
 
 
+With components::ClickHouse the following additional metrics appear:
+
+@include clickhouse/functional_tests/metrics/tests/static/metrics_values.txt
+
+
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
