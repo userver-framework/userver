@@ -90,8 +90,9 @@ class MpscQueue final : public std::enable_shared_from_this<MpscQueue<T>> {
 
   using ValueType = T;
 
-  using Producer = Producer<MpscQueue, ProducerToken, EmplaceEnabler>;
-  using Consumer = Consumer<MpscQueue, EmplaceEnabler>;
+  using Producer =
+      concurrent::Producer<MpscQueue, ProducerToken, EmplaceEnabler>;
+  using Consumer = concurrent::Consumer<MpscQueue, EmplaceEnabler>;
   using MultiProducer =
       concurrent::Producer<MpscQueue, impl::NoToken, EmplaceEnabler>;
 

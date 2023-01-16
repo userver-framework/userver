@@ -60,8 +60,9 @@ class GenericQueue final
  public:
   using ValueType = T;
 
-  using Producer = Producer<GenericQueue, ProducerToken, EmplaceEnabler>;
-  using Consumer = Consumer<GenericQueue, EmplaceEnabler>;
+  using Producer =
+      concurrent::Producer<GenericQueue, ProducerToken, EmplaceEnabler>;
+  using Consumer = concurrent::Consumer<GenericQueue, EmplaceEnabler>;
   using MultiProducer =
       concurrent::Producer<GenericQueue, MultiProducerToken, EmplaceEnabler>;
 
