@@ -26,10 +26,3 @@ SECDIST_CONFIG = {
 def service_env():
     return {'SECDIST_CONFIG': json.dumps(SECDIST_CONFIG)}
     # /// [service_env]
-
-
-# /// [client_deps]
-@pytest.fixture
-def client_deps(redis_store):
-    pass
-    # /// [client_deps]

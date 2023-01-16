@@ -166,16 +166,16 @@ Content-Length: 1
 implemented using the testsuite. To do that you have to:
 
 * Provide Redis settings info:
-@snippet samples/redis_service/tests/conftest.py service_env value
+  @snippet samples/redis_service/tests/conftest.py service_env value
 
 * Add the above values to the service environment variable:
-@snippet samples/redis_service/tests/conftest.py service_env
-
-* Tell the testsuite to start the Redis database:
-@snippet samples/redis_service/tests/conftest.py client_deps
+  @snippet samples/redis_service/tests/conftest.py service_env
+  The pytest_userver.plugins.service_client.auto_client_deps() fixture
+  already knows about the redis_store fixture, so there's no need to override
+  the extra_client_deps() fixture.
 
 * Write the test:
-@snippet samples/redis_service/tests/test_redis.py  Functional test
+  @snippet samples/redis_service/tests/test_redis.py  Functional test
 
 
 ## Full sources

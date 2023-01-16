@@ -10,13 +10,43 @@ from pytest_userver import client
 
 
 @pytest.fixture
-def client_deps():
+def extra_client_deps() -> None:
     """
     Service client dependencies hook. Feel free to override, e.g.:
 
-    @snippet samples/postgres_service/tests/conftest.py client_deps
+    @code
+    @pytest.fixture
+    def extra_client_deps(some_fixtures_to_wait_before_service_start):
+        pass
+    @endcode
     @ingroup userver_testsuite_fixtures
     """
+
+
+@pytest.fixture
+def auto_client_deps(request) -> None:
+    """
+    Service client dependencies hook that knows about pgsql, mongodb,
+    clickhouse, rabbitmq, redis_store dependencies.
+    To add some other dependencies prefer overriding the
+    client_deps() fixture.
+
+    @ingroup userver_testsuite_fixtures
+    """
+    known_deps = {'pgsql', 'mongodb', 'clickhouse', 'rabbitmq', 'redis_store'}
+
+    try:
+        FixtureLookupError = pytest.FixtureLookupError
+    except AttributeError:
+        # support for an older version of the pytest
+        import _pytest.fixtures
+        FixtureLookupError = _pytest.fixtures.FixtureLookupError
+
+    for dep in known_deps:
+        try:
+            request.getfixturevalue(dep)
+        except FixtureLookupError:
+            pass
 
 
 @pytest.fixture
@@ -25,7 +55,8 @@ async def service_client(
         service_daemon,
         mock_configs_service,
         cleanup_userver_dumps,
-        client_deps,
+        extra_client_deps,
+        auto_client_deps,
         _testsuite_client_config: client.TestsuiteClientConfig,
         _service_client_base,
         _service_client_testsuite,
@@ -38,7 +69,7 @@ async def service_client(
     @ingroup userver_testsuite_fixtures
     """
     # The service is lazily started here (not at the 'session' scope)
-    # to allow 'client_deps' to be active during service start
+    # to allow '*_client_deps' to be active during service start
     await ensure_daemon_started(service_daemon)
 
     if _testsuite_client_config.testsuite_action_path:

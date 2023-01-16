@@ -47,11 +47,6 @@ def service_env(
     return {'SECDIST_CONFIG': json.dumps(secdist_config)}
 
 
-@pytest.fixture
-def client_deps(redis_service):
-    pass
-
-
 @pytest.fixture(scope='session')
 async def _sentinel_gate(
         loop,

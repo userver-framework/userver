@@ -12,25 +12,24 @@ pytest_plugins = [
 ]
 
 
-SECDIST_CONFIG = {
-    # /// [Clickhouse service sample - secdist]
-    # json
-    'clickhouse_settings': {
-        'clickhouse-database-alias': {
-            'hosts': ['localhost'],
-            'port': 17123,
-            'password': '',
-            'user': 'default',
-            'dbname': 'clickhouse-database',
-        },
-    },
-    # /// [Clickhouse service sample - secdist]
-}
-
-
+# /// [Clickhouse service sample - secdist]
+# json
 @pytest.fixture(scope='session')
-def service_env():
+def service_env(clickhouse_conn_info) -> dict:
+    SECDIST_CONFIG = {
+        'clickhouse_settings': {
+            'clickhouse-database-alias': {
+                'hosts': [clickhouse_conn_info.host],
+                'port': clickhouse_conn_info.tcp_port,
+                'password': '',
+                'user': 'default',
+                'dbname': 'clickhouse-database',
+            },
+        },
+    }
+
     return {'SECDIST_CONFIG': json.dumps(SECDIST_CONFIG)}
+    # /// [Clickhouse service sample - secdist]
 
 
 @pytest.fixture(scope='session')
@@ -39,8 +38,3 @@ def clickhouse_local(service_source_dir):
         schema_dirs=[service_source_dir.joinpath('schemas', 'clickhouse')],
         dbprefix='',
     )
-
-
-@pytest.fixture
-def client_deps(clickhouse):
-    pass

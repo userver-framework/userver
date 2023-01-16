@@ -4,11 +4,8 @@ import pytest
 from testsuite.databases.pgsql import discover
 
 pytest_plugins = [
-    'pytest_userver.plugins',
     'pytest_userver.plugins.samples',
-    # Database related plugins
-    'testsuite.databases.pgsql.pytest_plugin',
-    'pytest_userver.plugins.pg_conf',
+    'pytest_userver.plugins.pgsql',
 ]
 
 
@@ -19,10 +16,3 @@ def pgsql_local(service_source_dir, pgsql_local_create):
     )
     return pgsql_local_create(list(databases.values()))
     # /// [psql prepare]
-
-
-# /// [client_deps]
-@pytest.fixture
-def client_deps(pgsql):
-    pass
-    # /// [client_deps]

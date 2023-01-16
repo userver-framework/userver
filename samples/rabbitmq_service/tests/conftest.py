@@ -30,8 +30,3 @@ SECDIST_CONFIG = {
 @pytest.fixture(scope='session')
 def service_env():
     return {'SECDIST_CONFIG': json.dumps(SECDIST_CONFIG)}
-
-
-@pytest.fixture
-def client_deps(rabbitmq):
-    pass

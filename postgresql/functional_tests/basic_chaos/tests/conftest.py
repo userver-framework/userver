@@ -7,10 +7,9 @@ from testsuite.databases.pgsql import discover
 
 
 pytest_plugins = [
-    'pytest_userver.plugins',
     'pytest_userver.plugins.samples',
     # Database related plugins
-    'testsuite.databases.pgsql.pytest_plugin',
+    'pytest_userver.plugins.pgsql',
 ]
 
 
@@ -35,15 +34,12 @@ async def _gate_started(loop, pgsql_local):
 
 
 @pytest.fixture
-def client_deps(_gate_started, pgsql):
+def extra_client_deps(_gate_started):
     pass
 
 
-USERVER_CONFIG_HOOKS = ['hook_db_config']
-
-
 @pytest.fixture(scope='session')
-def hook_db_config(pgsql_local, _gate_started):
+def userver_pg_config(pgsql_local, _gate_started):
     def _hook_db_config(config_yaml, config_vars):
         host, port = _gate_started.get_sockname_for_clients()
 
