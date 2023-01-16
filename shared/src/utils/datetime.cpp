@@ -135,7 +135,7 @@ std::chrono::system_clock::time_point Stringtime(const std::string& timestring,
   return *optional_tp;
 }
 
-std::chrono::system_clock::time_point LocalTimezonetringtime(
+std::chrono::system_clock::time_point LocalTimezoneStringtime(
     const std::string& timestring, const std::string& format) {
   const auto optional_tp =
       OptionalStringtime(timestring, GetLocalTimezone(), format);
