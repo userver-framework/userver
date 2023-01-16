@@ -2,7 +2,7 @@ import pytest
 
 from testsuite import utils
 
-pytest_plugins = ['pytest_userver.plugins', 'pytest_userver.plugins.samples']
+pytest_plugins = ['pytest_userver.plugins']
 
 # /// [patch configs]
 USERVER_CONFIG_HOOKS = ['userver_config_translations']

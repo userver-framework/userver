@@ -29,6 +29,7 @@ USERVER_CONFIG_HOOKS = [
     'userver_config_base',
     'userver_config_logging',
     'userver_config_testsuite',
+    'userver_config_secdist',
 ]
 
 
@@ -256,5 +257,20 @@ def userver_config_testsuite(mockserver_info):
             components['tests-control']['testpoint-url'] = mockserver_info.url(
                 'testpoint',
             )
+
+    return _patch_config
+
+
+@pytest.fixture(scope='session')
+def userver_config_secdist(service_secdist_data_dirs):
+    def _patch_config(config_yaml, config_vars):
+        components = config_yaml['components_manager']['components']
+        if 'default-secdist-provider' not in components:
+            return
+
+        for path in service_secdist_data_dirs:
+            if path.is_file():
+                components['default-secdist-provider']['config'] = str(path)
+                return
 
     return _patch_config

@@ -1,10 +1,7 @@
 # /// [mongodb settings]
 import pytest
 
-pytest_plugins = [
-    'pytest_userver.plugins.samples',
-    'pytest_userver.plugins.mongo',
-]
+pytest_plugins = ['pytest_userver.plugins.mongo']
 
 MONGO_COLLECTIONS = {
     'translations': {

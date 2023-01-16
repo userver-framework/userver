@@ -8,11 +8,7 @@ from pytest_userver import chaos
 from testsuite.databases.redis import service
 
 
-pytest_plugins = [
-    'pytest_userver.plugins',
-    'pytest_userver.plugins.samples',
-    'testsuite.databases.redis.pytest_plugin',
-]
+pytest_plugins = ['pytest_userver.plugins.redis']
 
 
 @pytest.fixture(scope='session')

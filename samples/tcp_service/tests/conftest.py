@@ -4,6 +4,9 @@ import pytest
 from pytest_userver.utils import net
 
 
+pytest_plugins = ['pytest_userver.plugins']
+
+
 @pytest.fixture(scope='session')
 def tcp_service_port(service_config_yaml) -> int:
     components = service_config_yaml['components_manager']['components']
@@ -20,6 +23,3 @@ def service_non_http_health_checks(
     checks.tcp.append(net.HostPort(host='localhost', port=tcp_service_port))
     return checks
     # /// [service_non_http_health_checker]
-
-
-pytest_plugins = ['pytest_userver.plugins', 'pytest_userver.plugins.samples']

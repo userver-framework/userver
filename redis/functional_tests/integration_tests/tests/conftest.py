@@ -5,7 +5,6 @@ import pytest
 
 pytest_plugins = [
     'pytest_userver.plugins.base',
-    'pytest_userver.plugins.samples',
     'pytest_userver.plugins.service_client',
     'pytest_userver.plugins.config',
     'pytest_userver.plugins.service',

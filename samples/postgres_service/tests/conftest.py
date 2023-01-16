@@ -1,12 +1,9 @@
+# /// [psql prepare]
 import pytest
 
-# /// [psql prepare]
 from testsuite.databases.pgsql import discover
 
-pytest_plugins = [
-    'pytest_userver.plugins.samples',
-    'pytest_userver.plugins.pgsql',
-]
+pytest_plugins = ['pytest_userver.plugins.pgsql']
 
 
 @pytest.fixture(scope='session')

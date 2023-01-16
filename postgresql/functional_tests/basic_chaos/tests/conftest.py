@@ -6,11 +6,7 @@ from testsuite.databases.pgsql import connection
 from testsuite.databases.pgsql import discover
 
 
-pytest_plugins = [
-    'pytest_userver.plugins.samples',
-    # Database related plugins
-    'pytest_userver.plugins.pgsql',
-]
+pytest_plugins = ['pytest_userver.plugins.pgsql']
 
 
 # /// [gate start]
