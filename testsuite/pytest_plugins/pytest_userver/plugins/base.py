@@ -3,7 +3,6 @@ Configure the service in testsuite.
 """
 
 import pathlib
-import typing
 
 import pytest
 
@@ -52,29 +51,6 @@ def service_source_dir(pytestconfig) -> pathlib.Path:
     @ingroup userver_testsuite_fixtures
     """
     return pytestconfig.option.service_source_dir
-
-
-@pytest.fixture(scope='session')
-def service_secdist_data_dirs(service_source_dir) -> typing.List[pathlib.Path]:
-    """
-    Returns the list of files to search for secure data file. By default
-    returns:
-    @code
-    [
-        pathlib.Path(service_source_dir) / 'secure_data.json',
-        pathlib.Path(service_source_dir) / 'configs' / 'secure_data.json',
-    ]
-    @endcode
-
-    Override this fixture to change the way the path to the service secure
-    data is detected by testsuite.
-
-    @ingroup userver_testsuite_fixtures
-    """
-    return [
-        pathlib.Path(service_source_dir) / 'secure_data.json',
-        pathlib.Path(service_source_dir) / 'configs' / 'secure_data.json',
-    ]
 
 
 @pytest.fixture(scope='session')

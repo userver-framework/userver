@@ -83,6 +83,11 @@ def pytest_addoption(parser) -> None:
         help='Path to config_vars.yaml file.',
     )
     group.addoption(
+        '--service-secdist',
+        type=pathlib.Path,
+        help='Path to secure_data.json file.',
+    )
+    group.addoption(
         '--config-fallback',
         type=pathlib.Path,
         help='Path to dynamic config fallback file.',
@@ -117,6 +122,20 @@ def service_config_vars_path(pytestconfig) -> typing.Optional[pathlib.Path]:
     @ingroup userver_testsuite_fixtures
     """
     return pytestconfig.option.service_config_vars
+
+
+@pytest.fixture(scope='session')
+def service_secdist_path(pytestconfig) -> typing.Optional[pathlib.Path]:
+    """
+    Returns the path to secure_data.json file set by command line
+    `--service-secdist` option.
+
+    Override this fixture to change the way path to secure_data.json is
+    provided.
+
+    @ingroup userver_testsuite_fixtures
+    """
+    return pytestconfig.option.service_secdist
 
 
 @pytest.fixture(scope='session')
@@ -262,15 +281,23 @@ def userver_config_testsuite(mockserver_info):
 
 
 @pytest.fixture(scope='session')
-def userver_config_secdist(service_secdist_data_dirs):
+def userver_config_secdist(service_secdist_path):
     def _patch_config(config_yaml, config_vars):
+        if not service_secdist_path:
+            return
+
         components = config_yaml['components_manager']['components']
         if 'default-secdist-provider' not in components:
             return
 
-        for path in service_secdist_data_dirs:
-            if path.is_file():
-                components['default-secdist-provider']['config'] = str(path)
-                return
+        if not service_secdist_path.is_file():
+            raise ValueError(
+                f'"{service_secdist_path}" is not a file. Provide a '
+                f'"--service-secdist" pytest option or override the '
+                f'"service_secdist_path" fixture.',
+            )
+        components['default-secdist-provider']['config'] = str(
+            service_secdist_path,
+        )
 
     return _patch_config
