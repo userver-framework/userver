@@ -98,7 +98,7 @@ class ComponentContext final {
 
   template <typename T>
   T& FindComponent(std::string_view /*name*/ = {}) {
-    ReportMisuse<T>();
+    return ReportMisuse<T>();
   }
 
   /// @brief If there's no component with specified type and name return
@@ -119,7 +119,7 @@ class ComponentContext final {
 
   template <typename T>
   T& FindComponentOptional(std::string_view /*name*/ = {}) {
-    ReportMisuse<T>();
+    return ReportMisuse<T>();
   }
 
   /// @brief Returns an engine::TaskProcessor with the specified name.
@@ -127,7 +127,7 @@ class ComponentContext final {
 
   template <typename T>
   engine::TaskProcessor& GetTaskProcessor(const T&) {
-    ReportMisuse<T>();
+    return ReportMisuse<T>();
   }
 
   const Manager& GetManager() const;
@@ -144,17 +144,18 @@ class ComponentContext final {
 
   template <typename T>
   bool Contains(const T&) {
-    ReportMisuse<T>();
+    return ReportMisuse<T>();
   }
 
  private:
   template <class T>
-  [[noreturn]] void ReportMisuse() {
+  decltype(auto) ReportMisuse() {
     static_assert(!sizeof(T),
                   "components::ComponentContext should be accepted by "
                   "a constant reference, i.e. "
                   "`MyComponent(const components::ComponentConfig& config, "
                   "const components::ComponentContext& context)`");
+    return 0;
   }
 
   friend class Manager;
