@@ -107,18 +107,18 @@ std::string HandlerMetricsClickhouse::HandleRequestThrow(
 
 int main(int argc, char* argv[]) {
   const auto components_list =
-      userver::components::MinimalServerComponentList()
+      components::MinimalServerComponentList()
           .Append<server::handlers::ServerMonitor>()
           .Append<clickhouse::metrics::HandlerMetricsClickhouse>()
-          .Append<userver::components::ClickHouse>("clickhouse-database")
+          .Append<components::ClickHouse>("clickhouse-database")
           .Append<components::HttpClient>()
           .Append<components::TestsuiteSupport>()
           .Append<server::handlers::TestsControl>()
-          .Append<userver::clients::dns::Component>()
+          .Append<clients::dns::Component>()
           .Append<components::Secdist>()
           .Append<components::DefaultSecdistProvider>();
 
-  return userver::utils::DaemonMain(argc, argv, components_list);
+  return utils::DaemonMain(argc, argv, components_list);
 }
 
 USERVER_NAMESPACE_BEGIN

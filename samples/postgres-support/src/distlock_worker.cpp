@@ -5,16 +5,16 @@
 namespace tests::distlock {
 
 PgWorkerComponent::PgWorkerComponent(
-    const userver::components::ComponentConfig& config,
-    const userver::components::ComponentContext& context)
-    : userver::storages::postgres::DistLockComponentBase(config, context) {
+    const components::ComponentConfig& config,
+    const components::ComponentContext& context)
+    : storages::postgres::DistLockComponentBase(config, context) {
   AutostartDistLock();
 }
 
 PgWorkerComponent::~PgWorkerComponent() { StopDistLock(); }
 
 void PgWorkerComponent::DoWork() {
-  TESTPOINT("distlock-worker", userver::formats::json::Value());
+  TESTPOINT("distlock-worker", formats::json::Value());
 }
 
 }  // namespace tests::distlock

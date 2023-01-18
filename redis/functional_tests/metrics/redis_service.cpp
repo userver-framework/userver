@@ -38,7 +38,7 @@ class KeyValue final : public server::handlers::HttpHandlerBase {
   std::string DeleteValue(std::string_view key) const;
 
   storages::redis::ClientPtr redis_client_;
-  storages::redis::CommandControl redis_cc_;
+  storages::redis::CommandControl redis_cc_{};
 };
 
 KeyValue::KeyValue(const components::ComponentConfig& config,
@@ -46,7 +46,9 @@ KeyValue::KeyValue(const components::ComponentConfig& config,
     : server::handlers::HttpHandlerBase(config, context),
       redis_client_{
           context.FindComponent<components::Redis>("key-value-database")
-              .GetClient("metrics_test")} {}
+              .GetClient("metrics_test")} {
+  redis_cc_.force_request_to_master = true;
+}
 
 std::string KeyValue::HandleRequestThrow(
     const server::http::HttpRequest& request,

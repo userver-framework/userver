@@ -165,10 +165,10 @@ Content-Length: 1
 @ref md_en_userver_functional_testing "Functional tests" for the service could be
 implemented using the testsuite. To do that you have to:
 
-* Provide Redis settings info:
-  @snippet samples/redis_service/tests/conftest.py service_env value
+* Prepare the pytest by importing the pytest_userver.plugins.redis plugin:
+  @snippet samples/redis_service/tests/conftest.py redis setup
 
-* Add the above values to the service environment variable:
+* Add the Redis settings info to the service environment variable:
   @snippet samples/redis_service/tests/conftest.py service_env
   The pytest_userver.plugins.service_client.auto_client_deps() fixture
   already knows about the redis_store fixture, so there's no need to override
