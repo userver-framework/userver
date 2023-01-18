@@ -503,11 +503,15 @@ class GenericQueue<T, MP, MC>::MultiConsumerSide final {
 
  private:
   [[nodiscard]] bool DoPop(ConsumerToken& token, T& value) {
-    if (!queue_.DoPop(token, value)) {
-      size_.unlock_shared();
-      return false;
+    while (true) {
+      if (queue_.DoPop(token, value)) return true;
+      if (queue_.NoMoreProducers()) {
+        size_.unlock_shared();
+        return false;
+      }
+      // We can get here if another consumer steals our element, leaving another
+      // element in a Moodycamel sub-queue that we have already passed.
     }
-    return true;
   }
 
   GenericQueue& queue_;
