@@ -3,6 +3,9 @@ components_manager:
     components:
         key-value-database:
             dbconnection: mongodb://localhost:27217/admin
+            conn_timeout: 15s
+            so_timeout: 20s
+            queue_timeout: 7s
 
         handler-key-value:
             path: /v1/key-value
