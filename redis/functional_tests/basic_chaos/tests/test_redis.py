@@ -34,13 +34,13 @@ async def _check_crud(client):
 
 
 async def test_redis_happy(service_client, sentinel_gate, gate):
-    _check_crud(service_client)
+    await _check_crud(service_client)
 
 
 async def test_smaller_parts(service_client, sentinel_gate, gate):
     gate.to_server_smaller_parts(20)
     gate.to_client_smaller_parts(20)
-    _check_crud(service_client)
+    await _check_crud(service_client)
 
 
 async def test_redis_disable_reads(service_client, sentinel_gate, gate):

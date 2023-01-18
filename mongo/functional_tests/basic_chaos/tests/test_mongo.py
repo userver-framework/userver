@@ -37,21 +37,21 @@ async def _check_read_ok(service_client):
 
 
 async def _check_write_and_read(service_client):
-    _check_write_ok(service_client)
-    _check_read_ok(service_client)
+    await _check_write_ok(service_client)
+    await _check_read_ok(service_client)
 
 
 async def test_mongo_fine(service_client, gate: chaos.TcpGate):
-    _check_write_and_read(service_client)
+    await _check_write_and_read(service_client)
 
 
 async def test_stop_accepting(service_client, gate: chaos.TcpGate):
-    _check_write_and_read(service_client)
+    await _check_write_and_read(service_client)
 
     await gate.stop_accepting()
 
     # should use already opened connections
-    _check_write_and_read(service_client)
+    await _check_write_and_read(service_client)
 
 
 async def test_close_connection(service_client, gate: chaos.TcpGate):
