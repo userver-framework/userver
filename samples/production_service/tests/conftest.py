@@ -1,1 +1,1 @@
-pytest_plugins = ['pytest_userver.plugins']
+pytest_plugins = ['pytest_userver.plugins.core']

@@ -8,7 +8,7 @@ import pytest
 
 pytest_plugins = [
     'testsuite.databases.pgsql.pytest_plugin',
-    'pytest_userver.plugins',
+    'pytest_userver.plugins.core',
 ]
 
 

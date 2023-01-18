@@ -3,7 +3,7 @@ import pytest
 from pytest_userver import chaos
 
 
-pytest_plugins = ['pytest_userver.plugins']
+pytest_plugins = ['pytest_userver.plugins.core']
 
 
 @pytest.fixture(name='for_client_gate_port', scope='session')

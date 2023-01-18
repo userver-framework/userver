@@ -6,7 +6,7 @@ from testsuite.databases.pgsql import discover
 
 SERVICE_SOURCE_DIR = pathlib.Path(__file__).parent.parent
 
-pytest_plugins = ['pytest_userver.plugins.pgsql']
+pytest_plugins = ['pytest_userver.plugins.postgresql']
 
 
 @pytest.fixture(scope='session')

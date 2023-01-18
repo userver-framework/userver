@@ -4,7 +4,7 @@ import pytest
 from pytest_userver.utils import net
 
 
-pytest_plugins = ['pytest_userver.plugins']
+pytest_plugins = ['pytest_userver.plugins.core']
 
 
 @pytest.fixture(scope='session')

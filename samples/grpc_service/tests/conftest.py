@@ -6,7 +6,7 @@ import grpc
 import pytest
 # /// [Prepare modules]
 
-pytest_plugins = ['pytest_userver.plugins']
+pytest_plugins = ['pytest_userver.plugins.grpc']
 
 # /// [Prepare configs]
 USERVER_CONFIG_HOOKS = ['prepare_service_config']
