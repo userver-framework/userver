@@ -84,16 +84,10 @@ To implement @ref md_en_userver_functional_testing "Functional tests" for the
 service some preparational steps should be done.
 
 #### Preparations
-First of all, import the required modules:
+First of all, import the required modules and add the required
+pytest_userver.plugins.grpc pytest plugin:
 
 @snippet samples/grpc_service/tests/conftest.py  Prepare modules
-
-Add the required userver pytest plugins, for example, by adding the whole
-pytest_userver.plugins:
-
-@code{.py}
-pytest_plugins = ['pytest_userver.plugins']
-@endcode
 
 Load gRPC schemes by adding the path to the schemes to system paths and
 preloading them:
@@ -118,7 +112,7 @@ After that everything is ready to check the service client requests:
 #### gRPC client
 
 To do the gRPC requests write a client fixture using
-@ref pytest_userver.plugins.grpc.grpc_channel "grpc_channel":
+@ref pytest_userver.plugins.grpc_client.grpc_channel "grpc_channel":
 
 @snippet samples/grpc_service/tests/conftest.py  grpc client
 

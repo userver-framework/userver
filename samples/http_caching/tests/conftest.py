@@ -2,9 +2,10 @@ import pytest
 
 from testsuite import utils
 
-pytest_plugins = ['pytest_userver.plugins.core']
 
 # /// [patch configs]
+pytest_plugins = ['pytest_userver.plugins.core']
+
 USERVER_CONFIG_HOOKS = ['userver_config_translations']
 
 

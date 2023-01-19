@@ -130,7 +130,18 @@ def config_service_defaults(
 
 @pytest.fixture(scope='session')
 def userver_config_dynconf_fallback(pytestconfig, config_fallback_path):
-    def patch_config(config_yaml, _config_vars):
+    """
+    Returns a function that adjusts the static configuration file for
+    the testsuite.
+    Sets the `fallback-path` of the `dynamic-config-fallbacks` and
+    `dynamic-config-fallbacks` to the value of
+    @ref pytest_userver.plugins.config.config_fallback_path
+    "config_fallback_path" fixture.
+
+    @ingroup userver_testsuite_fixtures
+    """
+
+    def _patch_config(config_yaml, _config_vars):
         components = config_yaml['components_manager']['components']
         for component_name in (
                 'dynamic-config-fallbacks',
@@ -143,25 +154,38 @@ def userver_config_dynconf_fallback(pytestconfig, config_fallback_path):
                 pytest.fail('Please run with --config-fallback=...')
             component['fallback-path'] = str(config_fallback_path)
 
-    return patch_config
+    return _patch_config
 
 
 @pytest.fixture(scope='session')
 def userver_config_dynconf_url(mockserver_info):
-    def patch_config(config, _config_vars) -> None:
+    """
+    Returns a function that adjusts the static configuration file for
+    the testsuite.
+    Sets the `dynamic-config-client.config-url` to the value of mockserver
+    configs-service, so that the
+    @ref pytest_userver.plugins.dynamic_config.mock_configs_service
+    "mock_configs_service" fixture could work.
+
+    @ingroup userver_testsuite_fixtures
+    """
+
+    def _patch_config(config, _config_vars) -> None:
         components = config['components_manager']['components']
         client = components.get('dynamic-config-client', None)
         if client:
             client['config-url'] = mockserver_info.url('configs-service')
 
-    return patch_config
+    return _patch_config
 
 
 @pytest.fixture
 def mock_configs_service(mockserver, dynamic_config) -> None:
     """
     Adds a mockserver handler that forwards dynamic_config to service's
-    dynamic-config-client component.
+    `dynamic-config-client` component.
+
+    @ingroup userver_testsuite_fixtures
     """
 
     def service_timestamp():

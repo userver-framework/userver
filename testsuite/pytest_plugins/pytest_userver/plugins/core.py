@@ -1,5 +1,5 @@
 """
-Python plugins that provide core fixtures for functional tests with
+Python plugin that provides core fixtures for functional tests with
 testsuite; see @ref md_en_userver_functional_testing for an introduction.
 
 @ingroup userver_testsuite_fixtures

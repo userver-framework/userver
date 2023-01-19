@@ -19,6 +19,15 @@ USERVER_CONFIG_HOOKS = ['userver_mongo_config']
 
 @pytest.fixture(scope='session')
 def userver_mongo_config(mongo_connection_info):
+    """
+    Returns a function that adjusts the static configuration file for
+    the testsuite.
+    Sets the `dbconnection` of to the testsuite started Mongo credentials if
+    the `dbconnection` starts with `mongodb://`.
+
+    @ingroup userver_testsuite_fixtures
+    """
+
     port = mongo_connection_info.port
     host = mongo_connection_info.host
     new_uri = f'mongodb://{host}:{port}/'

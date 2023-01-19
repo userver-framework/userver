@@ -104,11 +104,14 @@ Hello world!
 
 @ref md_en_userver_functional_testing "Functional tests" for the service could be
 implemented using the @ref service_client "service_client" fixture from
-pytest_userver.plugins in the
+pytest_userver.plugins.core in the
 following way:
 
 @snippet samples/hello_service/tests/test_hello.py  Functional test
 
+Do not forget to add the plugin in conftest.py:
+
+@snippet samples/hello_service/tests/conftest.py  registration
 
 ## Full sources
 

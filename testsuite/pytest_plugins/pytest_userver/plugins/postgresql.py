@@ -17,6 +17,15 @@ USERVER_CONFIG_HOOKS = ['userver_pg_config']
 
 @pytest.fixture(scope='session')
 def userver_pg_config(pgsql_local):
+    """
+    Returns a function that adjusts the static configuration file for
+    the testsuite.
+    Sets the `dbconnection` to the testsuite started PostgreSQL credentials
+    if there's only one `dbconnection` in static config.
+
+    @ingroup userver_testsuite_fixtures
+    """
+
     if not pgsql_local:
         raise ValueError(
             'Override the "pgsql_local" fixture so that testsuite knowns how '

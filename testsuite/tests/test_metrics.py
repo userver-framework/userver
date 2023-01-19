@@ -110,7 +110,6 @@ def test_metrics_list():
 
 
 def test_metrics_list_sample():
-    # /// [values set]
     values = metrics.MetricsSnapshot(
         {
             'sample': {
@@ -121,6 +120,7 @@ def test_metrics_list_sample():
         },
     )
 
+    # /// [values set]
     # Checking for a particular metric
     assert metrics.Metric({}, value=3) in values['sample']
 

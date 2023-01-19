@@ -162,7 +162,7 @@ its metrics could be implemented using the testsuite in the following way:
 
 Note that in this case testsuite requires some help to detect that the service
 is ready to accept requests. To do that, override the
-pytest_userver.plugins.service.service_non_http_health_checks :
+@ref pytest_userver.plugins.service.service_non_http_health_checks "service_non_http_health_checks":
 
 @snippet samples/tcp_full_duplex_service/tests/conftest.py  service_non_http_health_checker
 

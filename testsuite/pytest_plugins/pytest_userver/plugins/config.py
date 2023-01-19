@@ -168,6 +168,12 @@ def service_tmpdir(service_binary, tmp_path_factory):
 def service_config_path_temp(
         service_tmpdir, service_config_yaml,
 ) -> pathlib.Path:
+    """
+    Dumps the contents of the service_config_yaml into a static config for
+    testsuite and returns the path to the config file.
+
+    @ingroup userver_testsuite_fixtures
+    """
     dst_path = service_tmpdir / 'config.yaml'
     dst_path.write_text(yaml.dump(service_config_yaml))
     return dst_path
@@ -235,6 +241,17 @@ def _service_config(
 
 @pytest.fixture(scope='session')
 def userver_config_base(service_port, monitor_port):
+    """
+    Returns a function that adjusts the static configuration file for testsuite.
+    Sets the `server.listener.port` to listen on
+    @ref pytest_userver.plugins.base.service_port "service_port" fixture value;
+    sets the `server.listener-monitor.port` to listen on
+    @ref pytest_userver.plugins.base.monitor_port "monitor_port"
+    fixture value.
+
+    @ingroup userver_testsuite_fixtures
+    """
+
     def _patch_config(config_yaml, config_vars):
         components = config_yaml['components_manager']['components']
         if 'server' in components:
@@ -250,6 +267,13 @@ def userver_config_base(service_port, monitor_port):
 
 @pytest.fixture(scope='session')
 def userver_config_logging(pytestconfig):
+    """
+    Returns a function that adjusts the static configuration file for testsuite.
+    Sets the `logging.loggers.default` to log to `@stderr` with level set
+    from `--service-log-level` pytest configuration option.
+
+    @ingroup userver_testsuite_fixtures
+    """
     log_level = pytestconfig.option.service_log_level
 
     def _patch_config(config_yaml, config_vars):
@@ -269,6 +293,14 @@ def userver_config_logging(pytestconfig):
 
 @pytest.fixture(scope='session')
 def userver_config_testsuite(mockserver_info):
+    """
+    Returns a function that adjusts the static configuration file for testsuite.
+    Sets the `testsuite-enabled` in config_vars.yaml to `True`; sets the
+    `tests-control.testpoint-url` to mockserver URL.
+
+    @ingroup userver_testsuite_fixtures
+    """
+
     def _patch_config(config_yaml, config_vars):
         config_vars['testsuite-enabled'] = True
         components = config_yaml['components_manager']['components']
@@ -282,6 +314,15 @@ def userver_config_testsuite(mockserver_info):
 
 @pytest.fixture(scope='session')
 def userver_config_secdist(service_secdist_path):
+    """
+    Returns a function that adjusts the static configuration file for testsuite.
+    Sets the `default-secdist-provider.config` to the value of
+    @ref pytest_userver.plugins.config.service_secdist_path "service_secdist_path"
+    fixture.
+
+    @ingroup userver_testsuite_fixtures
+    """
+
     def _patch_config(config_yaml, config_vars):
         if not service_secdist_path:
             return

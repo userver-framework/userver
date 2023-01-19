@@ -16,6 +16,9 @@ class Metric:
     Metric type that contains the `labels: typing.Dict[str, str]` and
     `value: int`.
 
+    The type is hashable and comparable:
+    @snippet testsuite/tests/test_metrics.py  values set
+
     @ingroup userver_testsuite
     """
 

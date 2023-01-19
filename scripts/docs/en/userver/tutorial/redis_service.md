@@ -170,9 +170,10 @@ implemented using the testsuite. To do that you have to:
 
 * Add the Redis settings info to the service environment variable:
   @snippet samples/redis_service/tests/conftest.py service_env
-  The pytest_userver.plugins.service_client.auto_client_deps() fixture
-  already knows about the redis_store fixture, so there's no need to override
-  the extra_client_deps() fixture.
+  The @ref pytest_userver.plugins.service_client.auto_client_deps "auto_client_deps"
+  fixture already knows about the redis_store fixture, so there's no need to override
+  the @ref pytest_userver.plugins.service_client.extra_client_deps "extra_client_deps"
+  fixture.
 
 * Write the test:
   @snippet samples/redis_service/tests/test_redis.py  Functional test

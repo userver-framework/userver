@@ -167,12 +167,13 @@ Content-Length: 1
 @ref md_en_userver_functional_testing "Functional tests" for the service could be
 implemented using the testsuite. To do that you have to:
 
-* Turn on the pytest_userver.plugins.pgsql plugin and provide PostgreSQL schema
-  to start the database:
+* Turn on the pytest_userver.plugins.postgresql plugin and provide PostgreSQL
+  schema to start the database:
   @snippet samples/postgres_service/tests/conftest.py psql prepare
-  The pytest_userver.plugins.service_client.auto_client_deps() fixture
-  already knows about the pgsql fixture, so there's no need to override the
-  extra_client_deps() fixture.
+  The @ref pytest_userver.plugins.service_client.auto_client_deps "auto_client_deps"
+  fixture already knows about the pgsql fixture, so there's no need to override
+  the @ref pytest_userver.plugins.service_client.extra_client_deps "extra_client_deps"
+  fixture.
 
 * Write the test:
   @snippet samples/postgres_service/tests/test_postgres.py  Functional test
