@@ -32,13 +32,13 @@ constexpr bool ICaseEqualLowercase(std::string_view lowercase,
                                    std::string_view y) noexcept {
   const auto size = lowercase.size();
   UASSERT(size == y.size());
-  constexpr std::size_t kLowerToUpperMask = 32;
+  constexpr char kLowerToUpperMask = static_cast<char>(~unsigned{32});
   for (std::size_t i = 0; i < size; ++i) {
     const auto lowercase_c = lowercase[i];
     UASSERT(!('A' <= lowercase_c && lowercase_c <= 'Z'));
     if (lowercase_c != y[i]) {
       if (!('a' <= lowercase_c && lowercase_c <= 'z') ||
-          (lowercase_c & ~kLowerToUpperMask) != y[i]) {
+          (lowercase_c & kLowerToUpperMask) != y[i]) {
         return false;
       }
     }
