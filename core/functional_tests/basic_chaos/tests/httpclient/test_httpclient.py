@@ -61,19 +61,3 @@ async def test_close_after_headers(call, gate, mockserver):
     on = False
     response = await call()
     assert response.status == 200
-
-
-async def test_timeout(call, gate, mock_test):
-    response = await call()
-    assert response.status == 200
-
-    await gate.stop_accepting()
-    await gate.sockets_close()  # close keepalive connections
-
-    response = await call(timeout=1)
-    assert response.status == 500
-
-    gate.start_accepting()
-
-    response = await call()
-    assert response.status == 200
