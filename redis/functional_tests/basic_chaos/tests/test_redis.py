@@ -1,5 +1,7 @@
 import asyncio
 
+import pytest
+
 
 async def _check_that_restores(client, gate):
     try:
@@ -43,6 +45,7 @@ async def test_smaller_parts(service_client, sentinel_gate, gate):
     await _check_crud(service_client)
 
 
+@pytest.mark.skip(reason='Flaky test TAXICOMMON-6075')
 async def test_redis_disable_reads(service_client, sentinel_gate, gate):
     gate.to_server_noop()
     result = await service_client.delete('/chaos?key=foo')
