@@ -13,7 +13,7 @@ UnaryFuture::~UnaryFuture() noexcept {
   if (data_) {
     impl::RpcData::AsyncMethodInvocationGuard guard(*data_);
     impl::ProcessFinishResult(*data_, data_->GetAsyncMethodInvocation().Wait(),
-                              data_->GetStatus());
+                              data_->GetStatus(), false);
   }
 }
 
@@ -33,11 +33,7 @@ void UnaryFuture::Get() {
   auto& data = *std::exchange(data_, nullptr);
   auto& status = data.GetStatus();
   impl::ProcessFinishResult(data, data.GetAsyncMethodInvocation().Wait(),
-                            status);
-  if (!status.ok()) {
-    std::string call_name{data.GetCallName()};
-    impl::ThrowErrorWithStatus(std::move(call_name), std::move(status));
-  }
+                            status, true);
 }
 
 }  // namespace ugrpc::client

@@ -7,6 +7,7 @@
 #include <userver/utils/assert.hpp>
 
 #include <ugrpc/impl/rpc_metadata_keys.hpp>
+#include <ugrpc/impl/status.hpp>
 #include <ugrpc/impl/to_string.hpp>
 #include <userver/ugrpc/impl/status_codes.hpp>
 
@@ -30,6 +31,19 @@ void SetupSpan(std::optional<tracing::InPlaceSpan>& span_holder,
                       ugrpc::impl::ToGrpcString(span.GetSpanId()));
   context.AddMetadata(ugrpc::impl::kXYaRequestId,
                       ugrpc::impl::ToGrpcString(span.GetLink()));
+}
+
+void SetStatusDetailsForSpan(RpcData& data, grpc::Status& status,
+                             const std::optional<std::string>& message) {
+  data.GetSpan().AddTag(tracing::kErrorFlag, true);
+  data.GetSpan().AddTag(
+      "grpc_code", std::string{ugrpc::impl::ToString(status.error_code())});
+  if (message.has_value()) {
+    data.GetSpan().AddTag(tracing::kErrorMessage, *message);
+  } else {
+    data.GetSpan().AddTag(tracing::kErrorMessage, status.error_message());
+  }
+  data.ResetSpan();
 }
 
 void SetErrorForSpan(RpcData& data, std::string&& message) {
@@ -137,18 +151,31 @@ void PrepareFinish(RpcData& data) {
   data.SetState(State::kFinished);
 }
 
-void ProcessFinishResult(RpcData& data, bool ok, grpc::Status& status) {
+void ProcessFinishResult(RpcData& data, bool ok, grpc::Status& status,
+                         bool throw_on_error) {
   UASSERT_MSG(ok,
               "ok=false in async Finish method invocation is prohibited "
               "by gRPC docs, see grpc::CompletionQueue::Next");
   data.GetStatsScope().OnExplicitFinish(status.error_code());
+
   if (!status.ok()) {
+    // extract error
+    std::optional<std::string> gstatus_string;
+
+    auto gstatus = ugrpc::impl::ToGoogleRpcStatus(status);
+    if (gstatus) {
+      gstatus_string = ugrpc::impl::GetGStatusLimitedMessage(*gstatus);
+    }
+
     data.SetState(State::kFinished);
-    SetErrorForSpan(data,
-                    std::string{ugrpc::impl::ToString(status.error_code())});
-    return;
+    SetStatusDetailsForSpan(data, status, gstatus_string);
+    if (throw_on_error) {
+      impl::ThrowErrorWithStatus(data.GetCallName(), std::move(status),
+                                 std::move(gstatus), std::move(gstatus_string));
+    }
+  } else {
+    data.ResetSpan();
   }
-  data.ResetSpan();
 }
 
 void PrepareRead(RpcData& data) {

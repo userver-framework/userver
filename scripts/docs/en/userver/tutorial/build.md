@@ -44,6 +44,8 @@ The following options could be used to control `cmake`:
 | USERVER_DOWNLOAD_PACKAGE_SPDLOG        | Download and setup Spdlog if no Spdlog of matching version was found         | ${USERVER_DOWNLOAD_PACKAGES}                     |
 | USERVER_DOWNLOAD_PACKAGE_CRYPTOPP      | Download and setup CryptoPP if no CryptoPP of matching version was found     | ${USERVER_DOWNLOAD_PACKAGES}                     |
 | USERVER_IS_THE_ROOT_PROJECT            | Build tests, samples and helper tools                                        | auto-detects if userver is the top level project |
+| USERVER_GOOGLE_COMMON_PROTOS_TARGET    | Name of cmake target preparing google common proto library                   | ''                                               |
+| USERVER_GOOGLE_COMMON_PROTOS           | Path to the folder with google common proto files                            | ''                                               |
 
 [hi_malloc]: https://bugs.launchpad.net/ubuntu/+source/hiredis/+bug/1888025
 
