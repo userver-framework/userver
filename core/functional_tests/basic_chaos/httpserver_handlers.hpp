@@ -26,7 +26,7 @@ class HttpServerHandler final : public server::handlers::HttpHandlerBase {
 
     if (type == "common") {
       TESTPOINT("testpoint_request", {});
-      return std::string(kDefaultAnswer);
+      return kDefaultAnswer;
     }
 
     UASSERT(false);

@@ -11,6 +11,7 @@ from testsuite.utils import http
 
 HEADERS = {'Connection': 'keep-alive'}
 DEFAULT_TIMEOUT = 5.0
+DEFAULT_DATA = {'hello': 'world'}
 
 DATA_PARTS_MAX_SIZE = 10
 
@@ -27,16 +28,20 @@ class ErrorType(enum.Enum):
 def call(modified_service_client):
     async def _call(
             htype: str = 'common',
+            data: typing.Optional[typing.Dict] = None,
             timeout: float = DEFAULT_TIMEOUT,
             tests_control: bool = False,
             **args,
     ) -> typing.Union[http.ClientResponse, ErrorType]:
         try:
+            if not data:
+                data = DEFAULT_DATA
             return await modified_service_client.get(
                 '/chaos/httpserver',
                 headers=HEADERS,
                 timeout=timeout,
                 params={'type': htype},
+                data=data,
                 testsuite_skip_prepare=not tests_control,
             )
         except asyncio.TimeoutError:
@@ -144,10 +149,23 @@ async def test_corrupted_request(call, gate, check_restore):
 
 
 async def test_partial_request(call, gate, check_restore):
-    for bytes_count in range(1, 200):
+    success: bool = False
+    fail: int = 0
+    for bytes_count in range(1, 1000):
         gate.to_server_limit_bytes(bytes_count)
         response = await call()
-        assert response == ErrorType.DISCONNECT, bytes_count
+        if response == ErrorType.DISCONNECT:
+            fail = fail + 1
+        elif isinstance(response, http.ClientResponse):
+            success = True
+            break
+        else:
+            assert False
+
+    assert fail >= 250
+    assert success
+    assert isinstance(response, http.ClientResponse)
+    assert response.status == 200
 
     await check_restore()
 
