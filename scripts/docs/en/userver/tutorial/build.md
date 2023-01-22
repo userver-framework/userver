@@ -6,7 +6,7 @@ The following options could be used to control `cmake`:
 
 | Option                                 | Description                                                                  | Default                                          |
 |----------------------------------------|------------------------------------------------------------------------------|--------------------------------------------------|
-| USERVER_FEATURE_MONGODB                | Provide asynchronous driver for MongoDB                                      | ON if platform is x86\* and not \*BSD; OFF otherwise |
+| USERVER_FEATURE_MONGODB                | Provide asynchronous driver for MongoDB                                      | ON if platform is x86\* and not \*BSD            |
 | USERVER_FEATURE_POSTGRESQL             | Provide asynchronous driver for PostgreSQL                                   | ON                                               |
 | USERVER_FEATURE_REDIS                  | Provide asynchronous driver for Redis                                        | ON                                               |
 | USERVER_FEATURE_CLICKHOUSE             | Provide asynchronous driver for ClickHouse                                   | ON if platform is x86\*; OFF otherwise           |
@@ -44,8 +44,8 @@ The following options could be used to control `cmake`:
 | USERVER_DOWNLOAD_PACKAGE_SPDLOG        | Download and setup Spdlog if no Spdlog of matching version was found         | ${USERVER_DOWNLOAD_PACKAGES}                     |
 | USERVER_DOWNLOAD_PACKAGE_CRYPTOPP      | Download and setup CryptoPP if no CryptoPP of matching version was found     | ${USERVER_DOWNLOAD_PACKAGES}                     |
 | USERVER_IS_THE_ROOT_PROJECT            | Build tests, samples and helper tools                                        | auto-detects if userver is the top level project |
-| USERVER_GOOGLE_COMMON_PROTOS_TARGET    | Name of cmake target preparing google common proto library                   | ''                                               |
-| USERVER_GOOGLE_COMMON_PROTOS           | Path to the folder with google common proto files                            | ''                                               |
+| USERVER_GOOGLE_COMMON_PROTOS_TARGET    | Name of cmake target preparing google common proto library                   | Builds userver-api-common-protos                 |
+| USERVER_GOOGLE_COMMON_PROTOS           | Path to the folder with google common proto files                            | Downloads to third_party automatically           |
 
 [hi_malloc]: https://bugs.launchpad.net/ubuntu/+source/hiredis/+bug/1888025
 
