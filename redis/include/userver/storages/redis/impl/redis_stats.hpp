@@ -48,6 +48,8 @@ class Statistics {
   RecentPeriod timings_percentile;
   std::unordered_map<std::string_view, RecentPeriod> command_timings_percentile;
   std::atomic_llong last_ping_ms{};
+  std::atomic_bool is_syncing = false;
+  std::atomic_size_t offset_from_master_bytes = 0;
 
   std::array<std::atomic_llong, REDIS_ERR_MAX + 1> error_count{{}};
 };
@@ -62,7 +64,10 @@ struct InstanceStatistics {
             other.request_size_percentile.GetStatsForPeriod()),
         reply_size_percentile(other.reply_size_percentile.GetStatsForPeriod()),
         timings_percentile(other.timings_percentile.GetStatsForPeriod()),
-        last_ping_ms(other.last_ping_ms.load(std::memory_order_relaxed)) {
+        last_ping_ms(other.last_ping_ms.load(std::memory_order_relaxed)),
+        is_syncing(other.is_syncing.load(std::memory_order_relaxed)),
+        offset_from_master(
+            other.offset_from_master_bytes.load(std::memory_order_relaxed)) {
     for (size_t i = 0; i < error_count.size(); i++)
       error_count[i] = other.error_count[i].load(std::memory_order_relaxed);
     for (const auto& [command, timings] : other.command_timings_percentile) {
@@ -96,6 +101,8 @@ struct InstanceStatistics {
   std::unordered_map<std::string, Statistics::Percentile>
       command_timings_percentile;
   long long last_ping_ms;
+  bool is_syncing;
+  long long offset_from_master;
 
   std::array<long long, REDIS_ERR_MAX + 1> error_count{{}};
 };

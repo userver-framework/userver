@@ -96,6 +96,8 @@ class Shard {
 
   void SetCommandsBufferingSettings(
       CommandsBufferingSettings commands_buffering_settings);
+  void SetReplicationMonitoringSettings(
+      const ReplicationMonitoringSettings& replication_monitoring_settings);
 
  private:
   std::vector<unsigned char> GetAvailableServers(

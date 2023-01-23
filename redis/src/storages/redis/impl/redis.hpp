@@ -15,6 +15,8 @@
 #include <userver/storages/redis/impl/request.hpp>
 #include <userver/storages/redis/impl/types.hpp>
 
+#include "redis_creation_settings.hpp"
+
 USERVER_NAMESPACE_BEGIN
 
 namespace redis {
@@ -27,7 +29,7 @@ class Redis {
   static const std::string& StateToString(State state);
 
   Redis(const std::shared_ptr<engine::ev::ThreadPool>& thread_pool,
-        bool send_readonly, ConnectionSecurity connection_security);
+        const RedisCreationSettings& redis_settings);
   ~Redis();
 
   Redis(Redis&& o) = delete;
@@ -39,6 +41,7 @@ class Redis {
   std::chrono::milliseconds GetPingLatency() const;
   bool IsDestroying() const;
   std::string GetServerHost() const;
+  bool IsSyncing() const;
 
   State GetState() const;
   const Statistics& GetStatistics() const;
@@ -46,6 +49,8 @@ class Redis {
 
   void SetCommandsBufferingSettings(
       CommandsBufferingSettings commands_buffering_settings);
+  void SetReplicationMonitoringSettings(
+      const ReplicationMonitoringSettings& replication_monitoring_settings);
 
   // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
   boost::signals2::signal<void(State)> signal_state_change;

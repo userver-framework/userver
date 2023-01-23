@@ -1,3 +1,4 @@
+#include <unordered_map>
 #include <userver/storages/redis/redis_config.hpp>
 
 #include <userver/logging/log.hpp>
@@ -105,6 +106,18 @@ MetricsSettings Parse(const formats::json::Value& elem,
       elem["request-sizes-enabled"].As<bool>(result.request_sizes_enabled);
   result.reply_sizes_enabled =
       elem["reply-sizes-enabled"].As<bool>(result.reply_sizes_enabled);
+  return result;
+}
+
+ReplicationMonitoringSettings Parse(
+    const formats::json::Value& elem,
+    formats::parse::To<ReplicationMonitoringSettings>) {
+  ReplicationMonitoringSettings result;
+  result.enable_monitoring =
+      elem["enable-monitoring"].As<bool>(result.enable_monitoring);
+  result.restrict_requests =
+      elem["forbid-requests-to-syncing-replicas"].As<bool>(
+          result.restrict_requests);
   return result;
 }
 

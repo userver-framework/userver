@@ -490,6 +490,12 @@ void SentinelImpl::SetCommandsBufferingSettings(
     shard->SetCommandsBufferingSettings(commands_buffering_settings);
 }
 
+void SentinelImpl::SetReplicationMonitoringSettings(
+    const ReplicationMonitoringSettings& replication_monitoring_settings) {
+  for (auto& shard : master_shards_)
+    shard->SetReplicationMonitoringSettings(replication_monitoring_settings);
+}
+
 void SentinelImpl::RequestUpdateClusterSlots(size_t shard) {
   current_slots_shard_ = shard;
   ev_thread_.Send(watch_cluster_slots_);
