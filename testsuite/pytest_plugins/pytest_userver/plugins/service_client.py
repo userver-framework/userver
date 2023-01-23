@@ -125,6 +125,7 @@ def _service_client_testsuite(
         userver_log_capture,
         testpoint,
         testpoint_control,
+        cache_invalidation_state,
         _testsuite_client_config: client.TestsuiteClientConfig,
 ):
     aiohttp_client = client.AiohttpClient(
@@ -134,6 +135,7 @@ def _service_client_testsuite(
         testpoint_control=testpoint_control,
         log_capture_fixture=userver_log_capture,
         mocked_time=mocked_time,
+        cache_invalidation_state=cache_invalidation_state,
         **service_client_options,
     )
     return client.Client(aiohttp_client)

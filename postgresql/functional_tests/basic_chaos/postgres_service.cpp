@@ -5,6 +5,8 @@
 
 #include <userver/clients/http/component.hpp>
 #include <userver/components/minimal_server_component_list.hpp>
+#include <userver/dynamic_config/client/component.hpp>
+#include <userver/dynamic_config/updater/component.hpp>
 #include <userver/server/handlers/http_handler_base.hpp>
 #include <userver/server/handlers/tests_control.hpp>
 #include <userver/testsuite/testpoint.hpp>
@@ -113,6 +115,8 @@ std::string PostgresHandler::HandleRequestThrow(
 int main(int argc, char* argv[]) {
   const auto component_list =
       components::MinimalServerComponentList()
+          .Append<components::DynamicConfigClient>()
+          .Append<components::DynamicConfigClientUpdater>()
           .Append<chaos::PostgresHandler>()
           .Append<components::HttpClient>()
           .Append<components::Postgres>("key-value-database")

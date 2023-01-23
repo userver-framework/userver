@@ -8,6 +8,7 @@ testsuite; see @ref md_en_userver_functional_testing for an introduction.
 pytest_plugins = [
     'testsuite.pytest_plugin',
     'pytest_userver.plugins.base',
+    'pytest_userver.plugins.caches',
     'pytest_userver.plugins.config',
     'pytest_userver.plugins.dumps',
     'pytest_userver.plugins.dynamic_config',

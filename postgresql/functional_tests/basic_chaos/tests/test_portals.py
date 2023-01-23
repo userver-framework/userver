@@ -17,16 +17,9 @@ async def consume_dead_db_connections(service_client):
 TESTPOINT_NAMES = ('after_make_portal', 'after_fetch')
 
 
-@pytest.mark.config(
-    POSTGRES_CONNECTION_SETTINGS={
-        'key-value-database': {'recent-errors-threshold': 0},
-    },
-)
 @pytest.mark.parametrize('tp_name', TESTPOINT_NAMES)
 @pytest.mark.parametrize('attr', ['sockets_close'])
-async def test_x(
-        service_client, gate, testpoint, tp_name, attr, dynamic_config,
-):
+async def test_x(service_client, gate, testpoint, tp_name, attr):
     async def f():
         @testpoint(tp_name)
         async def _hook(data):
@@ -41,7 +34,6 @@ async def test_x(
 
     await f()
 
-    dynamic_config.set_values({'POSTGRES_CONNECTION_SETTINGS': {}})
     r = await service_client.post('/tests/control', {'testpoints': []})
     assert r.status_code == 200
 
