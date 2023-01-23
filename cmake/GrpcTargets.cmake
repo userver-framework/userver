@@ -59,6 +59,7 @@ function(generate_grpc_files)
   endif()
 
   get_filename_component(root_path "${root_path}" REALPATH BASE_DIR "/")
+  message(STATUS "Generating sources for protos in ${root_path}:")
 
   foreach (proto_file ${GEN_RPC_PROTOS})
     get_filename_component(proto_file "${proto_file}" REALPATH BASE_DIR "${root_path}")
@@ -66,7 +67,6 @@ function(generate_grpc_files)
     get_filename_component(path ${proto_file} DIRECTORY)
     get_filename_component(name_base ${proto_file} NAME_WE)
     file(RELATIVE_PATH rel_path "${root_path}" "${path}")
-    message(STATUS "Root path for ${proto_file} is ${root_path}. Rel path is '${rel_path}'")
 
     if(rel_path)
       set(path_base "${rel_path}/${name_base}")
@@ -90,8 +90,6 @@ function(generate_grpc_files)
     )
     if(execute_process_result)
       message(SEND_ERROR "Error while generating gRPC sources for ${path_base}.proto")
-    else()
-      message(STATUS "Generated gRPC sources for ${path_base}.proto")
     endif()
 
     set(files
@@ -100,6 +98,7 @@ function(generate_grpc_files)
     )
 
     if (EXISTS ${GENERATED_PROTO_DIR}/${path_base}_client.usrv.pb.hpp)
+      message(STATUS "Generated sources for ${path_base}.proto with gRPC")
       set(usrv_files
         ${GENERATED_PROTO_DIR}/${path_base}_client.usrv.pb.hpp
         ${GENERATED_PROTO_DIR}/${path_base}_client.usrv.pb.cpp
@@ -110,6 +109,8 @@ function(generate_grpc_files)
         ${GENERATED_PROTO_DIR}/${path_base}.grpc.pb.h
         ${GENERATED_PROTO_DIR}/${path_base}.grpc.pb.cc
       )
+    else()
+      message(STATUS "Generated sources for ${path_base}.proto")
     endif()
 
     set_source_files_properties(${files} ${usrv_files} PROPERTIES GENERATED 1)

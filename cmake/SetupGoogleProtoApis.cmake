@@ -16,15 +16,15 @@ if (NOT api-common-protos_SOURCE_DIR)
     GIT_REPOSITORY https://github.com/googleapis/api-common-protos.git
     TIMEOUT 10
     GIT_TAG 1.50.0
-    SOURCE_DIR ${CMAKE_CURRENT_BINARY_DIR}/third_party/api-common-protos
-    )
+    SOURCE_DIR ${USERVER_ROOT_DIR}/third_party/api-common-protos
+  )
 
   FetchContent_GetProperties(api-common-protos_external_project)
   if (NOT api-common-protos_external_project_POPULATED)
     message(STATUS "Downloading api-common-protos from remote")
     FetchContent_Populate(api-common-protos_external_project)
   endif()
-  set(api-common-protos_SOURCE_DIR ${CMAKE_CURRENT_BINARY_DIR}/third_party/api-common-protos)
+  set(api-common-protos_SOURCE_DIR ${USERVER_ROOT_DIR}/third_party/api-common-protos)
 endif()
 
 if (NOT api-common-protos_SOURCE_DIR)
@@ -54,4 +54,3 @@ target_link_libraries(userver-api-common-protos PUBLIC userver-core userver-grpc
 
 set(api-common-proto_LIBRARY userver-api-common-protos)
 set(api-common-proto_USRV_SOURCES ${generated_usrv_sources})
-
