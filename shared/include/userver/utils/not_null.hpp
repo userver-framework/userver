@@ -39,6 +39,10 @@ class NotNull {
   }
 
   template <typename U,
+            typename = std::enable_if_t<std::is_convertible_v<U*, T>>>
+  constexpr /*implicit*/ NotNull(U& u) : ptr_(std::addressof(u)) {}
+
+  template <typename U,
             typename = std::enable_if_t<std::is_convertible_v<U, T>>>
   constexpr NotNull(const NotNull<U>& other) : ptr_(other.GetBase()) {
     UASSERT_MSG(ptr_,

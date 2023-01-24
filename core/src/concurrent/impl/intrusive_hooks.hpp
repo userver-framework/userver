@@ -35,6 +35,8 @@ class SinglyLinkedHook final {
   template <typename U, typename HookExtractor>
   friend class IntrusiveStack;
 
+  friend class IntrusiveMpscQueueImpl;
+
   std::atomic<T*> next_{nullptr};
 };
 
@@ -42,6 +44,12 @@ template <typename T>
 struct IntrusiveWalkablePoolHook final {
   SinglyLinkedHook<T> permanent_list_hook;
   SinglyLinkedHook<T> free_list_hook;
+};
+
+// IntrusiveMpscQueue element types must inherit from this.
+class SinglyLinkedBaseHook {
+ public:
+  SinglyLinkedHook<SinglyLinkedBaseHook> singly_linked_hook;
 };
 
 }  // namespace concurrent::impl

@@ -87,6 +87,12 @@ TEST(NotNull, Pointer) {
   EXPECT_EQ(ref.GetBase(), &sample);
 }
 
+TEST(NotNull, ConvertibleFromReference) {
+  int sample = 179;
+  utils::NotNull<int*> ref = sample;
+  EXPECT_EQ(ref.GetBase(), &sample);
+}
+
 TEST(NotNull, SharedRef) {
   int sample = 179;
   auto ref = utils::MakeSharedRef<int>(sample);

@@ -7,11 +7,10 @@
 #include <thread>
 
 #include <ev.h>
-#include <boost/lockfree/queue.hpp>
-#include <boost/smart_ptr/intrusive_ptr.hpp>
 
 #include <userver/engine/deadline.hpp>
 
+#include <concurrent/impl/intrusive_mpsc_queue.hpp>
 #include <engine/ev/async_payload_base.hpp>
 #include <utils/statistics/thread_statistics.hpp>
 
@@ -44,14 +43,14 @@ class Thread final {
   }
 
   // Callbacks passed to RunInEvLoopAsync() are serialized.
-  // All successfully registered callbacks are guaranteed to execute.
-  void RunInEvLoopAsync(OnAsyncPayload* func, AsyncPayloadPtr&& data);
+  // All callbacks are guaranteed to execute.
+  void RunInEvLoopAsync(AsyncPayloadBase& payload) noexcept;
 
   // Callbacks passed to RunInEvLoopDeferred() are serialized.
   // Same as RunInEvLoopAsync but doesn't force the wakeup of ev-loop, adding
   // delay up to ~1ms.
-  void RunInEvLoopDeferred(OnAsyncPayload* func, AsyncPayloadPtr&& data,
-                           Deadline deadline);
+  void RunInEvLoopDeferred(AsyncPayloadBase& payload,
+                           Deadline deadline) noexcept;
 
   bool IsInEvThread() const;
 
@@ -62,7 +61,7 @@ class Thread final {
   Thread(const std::string& thread_name, bool use_ev_default_loop,
          RegisterEventMode register_event_mode);
 
-  void RegisterInEvLoop(OnAsyncPayload* func, AsyncPayloadPtr&& data);
+  void RegisterInEvLoop(AsyncPayloadBase& payload);
 
   void Start();
 
@@ -82,15 +81,10 @@ class Thread final {
   void AcquireImpl() noexcept;
   void ReleaseImpl() noexcept;
 
+  concurrent::impl::IntrusiveMpscQueue<AsyncPayloadBase> func_queue_;
+
   bool use_ev_default_loop_;
   RegisterEventMode register_event_mode_;
-
-  struct QueueData {
-    OnAsyncPayload* func;
-    AsyncPayloadBase* data;
-  };
-
-  boost::lockfree::queue<QueueData> func_queue_;
 
   struct ev_loop* loop_;
   std::thread thread_;

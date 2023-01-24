@@ -74,7 +74,7 @@ class FdPoller final {
   void SwitchStateToReadyToUse();
 
   struct Impl;
-  utils::FastPimpl<Impl, 112, 16> pimpl_;
+  utils::FastPimpl<Impl, 128, 16> pimpl_;
 };
 
 }  // namespace engine::io

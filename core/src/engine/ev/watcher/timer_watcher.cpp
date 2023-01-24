@@ -8,7 +8,9 @@ USERVER_NAMESPACE_BEGIN
 namespace engine::ev {
 
 TimerWatcher::TimerWatcher(ThreadControl& thread_control)
-    : ev_timer_(thread_control, this) {}
+    : ev_timer_(thread_control, this) {
+  ev_timer_.Init(&TimerWatcher::OnEventTimeout, {}, {});
+}
 
 TimerWatcher::~TimerWatcher() { Cancel(); }
 
@@ -17,12 +19,11 @@ void TimerWatcher::SingleshotAsync(std::chrono::milliseconds timeout,
   LOG_TRACE() << "TimerWatcher::SingleshotAsync";
   Cancel();
   {
-    std::lock_guard<std::mutex> lock(mutex_);
+    const std::lock_guard lock{mutex_};
     swap(cb, cb_);
   }
 
-  ev_timer_.Init(&TimerWatcher::OnEventTimeout, (1.0 * timeout.count()) / 1000,
-                 0.);
+  ev_timer_.Set(timeout, {});
   ev_timer_.Start();
 }
 
@@ -44,7 +45,7 @@ void TimerWatcher::CallTimeoutCb(std::error_code ec) {
   LOG_TRACE() << "TimerWatcher::CallTimeoutCb  watcher=" << this;
   Callback cb;
   {
-    std::lock_guard<std::mutex> lock(mutex_);
+    const std::lock_guard lock{mutex_};
     swap(cb, cb_);
   }
 
@@ -57,7 +58,7 @@ void TimerWatcher::Cancel() {
   LOG_TRACE() << "TimerWatcher::Cancel() (1) watcher=" << this;
   bool need_call_cb = false;
   {
-    std::lock_guard<std::mutex> lock(mutex_);
+    const std::lock_guard lock{mutex_};
     if (cb_) need_call_cb = true;
   }
   if (need_call_cb) {

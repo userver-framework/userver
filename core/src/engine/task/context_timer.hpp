@@ -49,7 +49,7 @@ class ContextTimer final {
 
  private:
   class Impl;
-  utils::FastPimpl<Impl, 288, 16> impl_;
+  utils::FastPimpl<Impl, 336, 16> impl_;
 };
 
 }  // namespace engine::impl
