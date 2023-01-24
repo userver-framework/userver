@@ -61,6 +61,21 @@ function(generate_grpc_files)
   get_filename_component(root_path "${root_path}" REALPATH BASE_DIR "/")
   message(STATUS "Generating sources for protos in ${root_path}:")
 
+  set(proto_dependencies_globs ${GEN_RPC_INCLUDE_DIRECTORIES})
+  list(TRANSFORM proto_dependencies_globs APPEND "/*.proto")
+  list(APPEND proto_dependencies_globs
+    "${root_path}/*.proto"
+    "${GRPC_PROTOBUF_INCLUDE_DIRS}/*.proto"
+    "${USERVER_ROOT_DIR}/scripts/grpc/*"
+  )
+  file(GLOB_RECURSE proto_dependencies ${proto_dependencies_globs})
+  list(GET proto_dependencies 0 newest_proto_dependency)
+  foreach(dependency ${proto_dependencies})
+    if("${dependency}" IS_NEWER_THAN "${newest_proto_dependency}")
+      set(newest_proto_dependency "${dependency}")
+    endif()
+  endforeach()
+
   foreach (proto_file ${GEN_RPC_PROTOS})
     get_filename_component(proto_file "${proto_file}" REALPATH BASE_DIR "${root_path}")
 
@@ -74,9 +89,11 @@ function(generate_grpc_files)
       set(path_base "${name_base}")
     endif()
 
-    execute_process(
-      COMMAND mkdir -p proto
-      COMMAND ${PROTOBUF_PROTOC} ${include_options}
+    set(did_generate_proto_sources FALSE)
+    if("${newest_proto_dependency}" IS_NEWER_THAN "${GENERATED_PROTO_DIR}/${path_base}.pb.cc")
+      execute_process(
+        COMMAND mkdir -p proto
+        COMMAND ${PROTOBUF_PROTOC} ${include_options}
               --cpp_out=${GENERATED_PROTO_DIR}
               --grpc_out=${GENERATED_PROTO_DIR}
               --usrv_out=${GENERATED_PROTO_DIR}
@@ -85,11 +102,16 @@ function(generate_grpc_files)
               --plugin=protoc-gen-grpc=${PROTO_GRPC_CPP_PLUGIN}
               --plugin=protoc-gen-usrv=${PROTO_GRPC_USRV_PLUGIN}
               ${proto_file}
-      WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-      RESULT_VARIABLE execute_process_result
-    )
-    if(execute_process_result)
-      message(SEND_ERROR "Error while generating gRPC sources for ${path_base}.proto")
+        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+        RESULT_VARIABLE execute_process_result
+      )
+      if(execute_process_result)
+        message(SEND_ERROR "Error while generating gRPC sources for ${path_base}.proto")
+      else()
+        set(did_generate_proto_sources TRUE)
+      endif()
+    else()
+      message(STATUS "Reused previously generated sources for ${path_base}.proto")
     endif()
 
     set(files
@@ -98,7 +120,10 @@ function(generate_grpc_files)
     )
 
     if (EXISTS ${GENERATED_PROTO_DIR}/${path_base}_client.usrv.pb.hpp)
-      message(STATUS "Generated sources for ${path_base}.proto with gRPC")
+      if(did_generate_proto_sources)
+        message(STATUS "Generated sources for ${path_base}.proto with gRPC")
+      endif()
+
       set(usrv_files
         ${GENERATED_PROTO_DIR}/${path_base}_client.usrv.pb.hpp
         ${GENERATED_PROTO_DIR}/${path_base}_client.usrv.pb.cpp
@@ -109,7 +134,7 @@ function(generate_grpc_files)
         ${GENERATED_PROTO_DIR}/${path_base}.grpc.pb.h
         ${GENERATED_PROTO_DIR}/${path_base}.grpc.pb.cc
       )
-    else()
+    elseif(did_generate_proto_sources)
       message(STATUS "Generated sources for ${path_base}.proto")
     endif()
 
