@@ -1,5 +1,9 @@
 #include "tp_logger.hpp"
 
+// this header must be included before any spdlog headers
+// to override spdlog's level names
+#include <logging/spdlog.hpp>
+
 #include <memory>
 #include <string>
 
@@ -8,26 +12,57 @@
 #include <userver/logging/log.hpp>
 
 #include <engine/task/task_context.hpp>
-#include <logging/logger_with_info.hpp>
+#include <logging/spdlog_helpers.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
-namespace logging {
+namespace logging::impl {
 
-TpLogger::TpLogger(std::string logger_name,
-                   engine::TaskProcessor& task_processor,
-                   std::size_t max_queue_size,
-                   LoggerConfig::QueueOveflowBehavior overflow_policy)
-    : logger(std::move(logger_name)),
-      queue_(Queue::Create(max_queue_size)),
-      consuming_task_(engine::CriticalAsyncNoSpan(
-          task_processor, &TpLogger::ProcessingLoop, this)),
-      producer_(queue_->GetMultiProducer()),
-      overflow_policy_(overflow_policy) {}
+AsyncAction::AsyncAction(ActionType type) : action_type_{type} {}
+
+AsyncAction::AsyncAction(Level level, std::string payload)
+    : level_{level},
+      time_{std::chrono::system_clock::now()},
+      payload_{std::move(payload)} {}
+
+ActionType AsyncAction::GetType() const noexcept { return action_type_; }
+
+Level AsyncAction::GetLevel() const noexcept { return level_; }
+
+std::chrono::system_clock::time_point AsyncAction::GetTime() const noexcept {
+  return time_;
+}
+
+std::string_view AsyncAction::GetPayloadView() const noexcept {
+  return payload_;
+}
+
+TpLogger::TpLogger(Format format, std::string logger_name)
+    : LoggerBase(format),
+      logger_name_(std::move(logger_name)),
+      formatter_pattern_(GetSpdlogPattern(format)),
+      queue_(Queue::Create(0)),
+      producer_(queue_->GetMultiProducer()) {
+  SetLevel(logging::Level::kInfo);
+}
+
+void TpLogger::StartAsync(engine::TaskProcessor& task_processor,
+                          std::size_t max_queue_size,
+                          LoggerConfig::QueueOveflowBehavior overflow_policy) {
+  const auto was_async = in_async_mode_.exchange(true);
+  UINVARIANT(!was_async,
+             "Attempt to switch logger to async mode, while it is already in "
+             "that mode");
+
+  overflow_policy_ = overflow_policy;
+  queue_->SetSoftMaxSize(max_queue_size);
+  consuming_task_ = engine::CriticalAsyncNoSpan(
+      task_processor, &TpLogger::ProcessingLoop, this);
+}
 
 TpLogger::~TpLogger() {
   UASSERT_MSG(
-      in_fallback_mode_,
+      !in_async_mode_,
       "We may be in non coroutine context, async logger must be in sync mode");
   UASSERT_MSG(!consuming_task_.IsValid(),
               "We may be in non coroutine context, async logger must be in "
@@ -35,8 +70,10 @@ TpLogger::~TpLogger() {
 }
 
 void TpLogger::SwitchToSyncMode() {
-  const auto was_fallback = in_fallback_mode_.exchange(true);
-  UASSERT(!was_fallback);
+  const auto was_async = in_async_mode_.exchange(false);
+  if (!was_async) {
+    return;
+  }
 
   // Some loggings could be in progress. To wait for those we send a kStop
   // message by an explicit producer_.Push to avoid losing the message
@@ -48,30 +85,12 @@ void TpLogger::SwitchToSyncMode() {
   consuming_task_ = {};
 }
 
-std::shared_ptr<spdlog::logger> TpLogger::clone(std::string /*new_name*/) {
-  UINVARIANT(false, "Not implemented");
-}
-
-void TpLogger::sink_it_(const spdlog::details::log_msg& msg) {
-  if (sinks_.empty()) {
+void TpLogger::Flush() const {
+  if (GetSinks().empty()) {
     return;
   }
 
-  if (in_fallback_mode_) {
-    BackendSinkIt(msg);
-    return;
-  }
-
-  impl::AsyncAction action(impl::ActionType::kLog, msg);
-  Push(std::move(action));
-}
-
-void TpLogger::flush_() {
-  if (sinks_.empty()) {
-    return;
-  }
-
-  if (in_fallback_mode_) {
+  if (!in_async_mode_) {
     BackendFlush();
     return;
   }
@@ -92,6 +111,42 @@ void TpLogger::flush_() {
   }
 }
 
+void TpLogger::Log(Level level, std::string_view msg) const {
+  if (GetSinks().empty()) {
+    return;
+  }
+
+  impl::AsyncAction action{level, std::string{msg}};
+
+  if (!in_async_mode_) {
+    BackendLog(std::move(action));
+    return;
+  }
+
+  Push(std::move(action));
+}
+
+void TpLogger::SetPattern(std::string pattern) {
+  formatter_pattern_ = std::move(pattern);
+
+  for (const auto& sink : GetSinks()) {
+    sink->set_pattern(formatter_pattern_);
+  }
+}
+
+void TpLogger::AddSink(impl::SinkPtr&& sink) {
+  UASSERT(sink);
+  sink->set_level(spdlog::level::level_enum::trace);  // Always on
+  sink->set_pattern(formatter_pattern_);
+  sinks_.push_back(std::move(sink));
+}
+
+const std::vector<impl::SinkPtr>& TpLogger::GetSinks() const { return sinks_; }
+
+std::string_view TpLogger::GetLoggerName() const noexcept {
+  return logger_name_;
+}
+
 void TpLogger::ProcessingLoop() {
   auto consumer = queue_->GetConsumer();
 
@@ -102,16 +157,16 @@ void TpLogger::ProcessingLoop() {
       return;
     }
 
-    if (!KeepProcessing(incoming_async_action)) {
+    if (!KeepProcessing(std::move(incoming_async_action))) {
       return;
     }
   }
 }
 
-bool TpLogger::KeepProcessing(const impl::AsyncAction& action) {
+bool TpLogger::KeepProcessing(impl::AsyncAction&& action) {
   switch (action.GetType()) {
     case impl::ActionType::kLog:
-      BackendSinkIt(action);
+      BackendLog(std::move(action));
       break;
 
     case impl::ActionType::kFlush:
@@ -128,7 +183,7 @@ bool TpLogger::KeepProcessing(const impl::AsyncAction& action) {
   return true;
 }
 
-void TpLogger::Push(impl::AsyncAction&& action) {
+void TpLogger::Push(impl::AsyncAction&& action) const {
   // Do not do blocking push if we are not in a coroutine context
   if (overflow_policy_ == LoggerConfig::QueueOveflowBehavior::kBlock &&
       engine::current_task::GetCurrentTaskContextUnchecked()) {
@@ -140,8 +195,14 @@ void TpLogger::Push(impl::AsyncAction&& action) {
   }
 }
 
-void TpLogger::BackendSinkIt(const spdlog::details::log_msg& msg) {
-  for (auto& sink : sinks_) {
+void TpLogger::BackendLog(impl::AsyncAction&& action) const {
+  spdlog::details::log_msg msg{};
+  msg.logger_name = GetLoggerName();
+  msg.level = static_cast<spdlog::level::level_enum>(action.GetLevel());
+  msg.time = action.GetTime();
+  msg.payload = action.GetPayloadView();
+
+  for (const auto& sink : GetSinks()) {
     if (!sink->should_log(msg.level)) {
       // We could get in here because of the LogRaw, or because log level
       // was changed at runtime, or because socket sink is not listened by
@@ -157,13 +218,13 @@ void TpLogger::BackendSinkIt(const spdlog::details::log_msg& msg) {
     }
   }
 
-  if (should_flush_(msg)) {
+  if (ShouldFlush(action.GetLevel())) {
     BackendFlush();
   }
 }
 
-void TpLogger::BackendFlush() {
-  for (auto& sink : sinks_) {
+void TpLogger::BackendFlush() const {
+  for (const auto& sink : GetSinks()) {
     try {
       sink->flush();
     } catch (const std::exception& e) {
@@ -173,6 +234,6 @@ void TpLogger::BackendFlush() {
   }
 }
 
-}  // namespace logging
+}  // namespace logging::impl
 
 USERVER_NAMESPACE_END

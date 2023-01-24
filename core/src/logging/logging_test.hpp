@@ -5,8 +5,8 @@
 #include <logging/spdlog.hpp>
 
 #include <logging/config.hpp>
-#include <logging/logger_with_info.hpp>
 #include <logging/spdlog_helpers.hpp>
+#include <logging/tp_logger.hpp>
 #include <logging/unix_socket_sink.hpp>
 
 #include <spdlog/sinks/ostream_sink.h>
@@ -24,23 +24,24 @@
 
 USERVER_NAMESPACE_BEGIN
 
-inline logging::LoggerPtr MakeLoggerFromSink(
+inline std::shared_ptr<logging::impl::TpLogger> MakeLoggerFromSink(
     const std::string& logger_name,
     std::shared_ptr<spdlog::sinks::sink> sink_ptr, logging::Format format) {
-  return std::make_shared<logging::impl::LoggerWithInfo>(
-      format, utils::MakeSharedRef<spdlog::logger>(logger_name, sink_ptr));
+  auto logger = std::make_shared<logging::impl::TpLogger>(format, logger_name);
+  logger->AddSink(std::move(sink_ptr));
+  return logger;
 }
 
-inline logging::LoggerPtr MakeNamedStreamLogger(const std::string& logger_name,
-                                                std::ostream& stream,
-                                                logging::Format format) {
+inline std::shared_ptr<logging::impl::TpLogger> MakeNamedStreamLogger(
+    const std::string& logger_name, std::ostream& stream,
+    logging::Format format) {
   auto sink = std::make_shared<spdlog::sinks::ostream_sink_st>(stream);
   return MakeLoggerFromSink(logger_name, sink, format);
 }
 
-inline logging::LoggerPtr MakeSocketLogger(const std::string& logger_name,
-                                           std::string& filename,
-                                           logging::Format format) {
+inline std::shared_ptr<logging::impl::TpLogger> MakeSocketLogger(
+    const std::string& logger_name, std::string& filename,
+    logging::Format format) {
   auto sink = std::make_shared<logging::SocketSinkST>(filename);
   return MakeLoggerFromSink(logger_name, sink, format);
 }
@@ -104,8 +105,8 @@ class SocketLoggingTest : public ::testing::Test {
     std::string filename(socket_file);
     auto logger =
         MakeSocketLogger(logger_name, filename, logging::Format::kTskv);
-    logger->ptr->set_pattern(logging::GetSpdlogPattern(logging::Format::kTskv));
-    logger->ptr->set_level(spdlog::level::level_enum::err);
+    logger->SetPattern(logging::GetSpdlogPattern(logging::Format::kTskv));
+    logger->SetLevel(logging::Level::kError);
     old_ = logging::SetDefaultLogger(logger);
 
     logging::LogFlush();
@@ -163,7 +164,7 @@ class LoggingTestBase : public ::testing::Test {
     std::ostringstream os;
     os << this;
     auto logger = MakeNamedStreamLogger(os.str(), stream, format_);
-    logger->ptr->set_pattern(logging::GetSpdlogPattern(format_));
+    logger->SetPattern(logging::GetSpdlogPattern(format_));
     return logger;
   }
 

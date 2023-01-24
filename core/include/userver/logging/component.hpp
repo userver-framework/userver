@@ -19,7 +19,12 @@ USERVER_NAMESPACE_BEGIN
 
 namespace logging {
 struct LoggerConfig;
+
+namespace impl {
+class TpLogger;
 }
+
+}  // namespace logging
 
 namespace components {
 
@@ -104,7 +109,8 @@ class Logging final : public impl::ComponentBase {
   void FlushLogs();
 
   engine::TaskProcessor* fs_task_processor_;
-  std::unordered_map<std::string, logging::LoggerPtr> loggers_;
+  std::unordered_map<std::string, std::shared_ptr<logging::impl::TpLogger>>
+      loggers_;
   utils::PeriodicTask flush_task_;
   std::shared_ptr<TestsuiteCaptureSink> socket_sink_;
   os_signals::Subscriber signal_subscriber_;

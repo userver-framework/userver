@@ -1,19 +1,23 @@
 #pragma once
 
-/// @copybrief logging::TpLogger
-
-#include <spdlog/logger.h>
+#include <memory>
 
 #include <userver/concurrent/queue.hpp>
 #include <userver/engine/async.hpp>
+#include <userver/logging/format.hpp>
+#include <userver/logging/impl/logger_base.hpp>
 
 #include "config.hpp"
 
+namespace spdlog::sinks {
+class sink;
+}
+
 USERVER_NAMESPACE_BEGIN
 
-namespace logging {
+namespace logging::impl {
 
-namespace impl {
+using SinkPtr = std::shared_ptr<spdlog::sinks::sink>;
 
 enum class ActionType {
   kLog,
@@ -21,7 +25,7 @@ enum class ActionType {
   kStop,
 };
 
-class AsyncAction final : public spdlog::details::log_msg_buffer {
+class AsyncAction final {
  public:
   AsyncAction() = default;
 
@@ -32,50 +36,62 @@ class AsyncAction final : public spdlog::details::log_msg_buffer {
 
   ~AsyncAction() = default;
 
-  explicit AsyncAction(ActionType type) : action_type_{type} {}
+  explicit AsyncAction(ActionType type);
+  AsyncAction(Level level, std::string payload);
 
-  AsyncAction(ActionType type, const spdlog::details::log_msg& m)
-      : log_msg_buffer{m}, action_type_{type} {}
-
-  ActionType GetType() const noexcept { return action_type_; }
+  ActionType GetType() const noexcept;
+  Level GetLevel() const noexcept;
+  std::chrono::system_clock::time_point GetTime() const noexcept;
+  std::string_view GetPayloadView() const noexcept;
 
  private:
   ActionType action_type_{ActionType::kLog};
+  Level level_{};
+  std::chrono::system_clock::time_point time_{};
+  std::string payload_{};
 };
 
-}  // namespace impl
-
 /// @brief Asynchronous logger that logs into a specific TaskProcessor.
-class TpLogger final : public spdlog::logger {
+class TpLogger final : public LoggerBase {
  public:
-  TpLogger(std::string logger_name, engine::TaskProcessor& task_processor,
-           std::size_t max_queue_size,
-           LoggerConfig::QueueOveflowBehavior overflow_policy);
+  TpLogger(Format format, std::string logger_name);
   ~TpLogger() override;
 
+  void StartAsync(engine::TaskProcessor& task_processor,
+                  std::size_t max_queue_size,
+                  LoggerConfig::QueueOveflowBehavior overflow_policy);
+
   void SwitchToSyncMode();
+
+  void Log(Level level, std::string_view msg) const override;
+  void Flush() const override;
+
+  void SetPattern(std::string pattern);
+  void AddSink(impl::SinkPtr&& sink);
+  const std::vector<impl::SinkPtr>& GetSinks() const;
+
+  std::string_view GetLoggerName() const noexcept;
 
  private:
   using Queue = concurrent::NonFifoMpmcQueue<impl::AsyncAction>;
 
-  std::shared_ptr<logger> clone(std::string new_name) override;
-  void sink_it_(const spdlog::details::log_msg& msg) override;
-  void flush_() override;
-
   void ProcessingLoop();
-  bool KeepProcessing(const impl::AsyncAction& action);
-  void Push(impl::AsyncAction&& action);
-  void BackendSinkIt(const spdlog::details::log_msg& incoming_log_msg);
-  void BackendFlush();
+  bool KeepProcessing(impl::AsyncAction&& action);
+  void Push(impl::AsyncAction&& action) const;
+  void BackendLog(impl::AsyncAction&& action) const;
+  void BackendFlush() const;
 
+  const std::string logger_name_;
+  std::string formatter_pattern_;
   const std::shared_ptr<Queue> queue_;
   engine::Task consuming_task_;
-  std::atomic<bool> in_fallback_mode_{false};
+  std::atomic<bool> in_async_mode_{false};
   Queue::MultiProducer producer_;
-  const LoggerConfig::QueueOveflowBehavior overflow_policy_;
+  LoggerConfig::QueueOveflowBehavior overflow_policy_{};
   std::atomic<std::int32_t> flush_index_{0};
+  std::vector<impl::SinkPtr> sinks_;
 };
 
-}  // namespace logging
+}  // namespace logging::impl
 
 USERVER_NAMESPACE_END
