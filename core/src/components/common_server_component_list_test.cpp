@@ -15,20 +15,13 @@ USERVER_NAMESPACE_BEGIN
 
 namespace {
 
-const auto kTmpDir = fs::blocking::TempDirectory::Create();
-const std::string kRuntimeConfingPath =
-    kTmpDir.GetPath() + "/runtime_config.json";
-const std::string kConfigVariablesPath =
-    kTmpDir.GetPath() + "/config_vars.json";
-
-const std::string kConfigVariables = fmt::format(
-    R"(
+constexpr std::string_view kConfigVarsTemplate = R"(
   userver-dumps-root: {0}
-  runtime_config_path: {1})",
-    kTmpDir.GetPath(), kRuntimeConfingPath);
+  runtime_config_path: {1}
+)";
 
 // BEWARE! No separate fs-task-processor. Testing almost single thread mode
-const std::string kStaticConfig = R"(
+constexpr std::string_view kStaticConfig = R"(
 components_manager:
   coro_pool:
     initial_size: 50
@@ -227,18 +220,24 @@ components_manager:
         method: GET,PUT,DELETE
         task_processor: monitor-task-processor
 # /// [Sample handler dynamic debug log component config]
-config_vars: )" + kConfigVariablesPath +
-                                  R"(
-)";
+config_vars: )";
 
 }  // namespace
 
 TEST_F(ComponentList, ServerCommon) {
-  fs::blocking::RewriteFileContents(kRuntimeConfingPath, tests::kRuntimeConfig);
-  fs::blocking::RewriteFileContents(kConfigVariablesPath, kConfigVariables);
+  const auto temp_root = fs::blocking::TempDirectory::Create();
+  const std::string runtime_config_path =
+      temp_root.GetPath() + "/runtime_config.json";
+  const std::string config_vars_path =
+      temp_root.GetPath() + "/config_vars.json";
+
+  fs::blocking::RewriteFileContents(runtime_config_path, tests::kRuntimeConfig);
+  fs::blocking::RewriteFileContents(
+      config_vars_path, fmt::format(kConfigVarsTemplate, temp_root.GetPath(),
+                                    runtime_config_path));
 
   components::RunOnce(
-      components::InMemoryConfig{kStaticConfig},
+      components::InMemoryConfig{std::string{kStaticConfig} + config_vars_path},
       components::CommonComponentList()
           .AppendComponentList(components::CommonServerComponentList())
           .Append<server::handlers::Ping>());
