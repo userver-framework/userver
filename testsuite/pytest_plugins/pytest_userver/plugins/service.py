@@ -2,6 +2,7 @@
 Start the service in testsuite.
 """
 
+import logging
 import pathlib
 import sys
 import traceback
@@ -14,6 +15,9 @@ from testsuite.utils import url_util
 
 from ..utils import colorize
 from ..utils import net
+
+
+logger_testsuite = logging.getLogger(__name__)
 
 
 class ColorLogger(logger.Logger):
@@ -150,8 +154,23 @@ async def service_daemon(
         'to accept requests.',
     )
 
+    logger_testsuite.debug(
+        'userver fixture "service_daemon" would check for "%s"',
+        service_non_http_health_checks,
+    )
+
     async def _checker(*, session, process) -> bool:
-        return await net.check_availability(service_non_http_health_checks)
+        logger_testsuite.debug(
+            'userver fixture "service_daemon" is about to start "%s" checks',
+            service_non_http_health_checks,
+        )
+        result = await net.check_availability(service_non_http_health_checks)
+        logger_testsuite.debug(
+            'userver fixture "service_daemon" checked "%s" and got "%s"',
+            service_non_http_health_checks,
+            result,
+        )
+        return result
 
     health_check = _checker
     if service_http_ping_url:

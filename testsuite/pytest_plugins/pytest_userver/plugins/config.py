@@ -2,6 +2,7 @@
 Work with the configuration files of the service in testsuite.
 """
 
+import logging
 import pathlib
 import types
 import typing
@@ -34,6 +35,9 @@ USERVER_CONFIG_HOOKS = [
 
 
 # @cond
+
+
+logger = logging.getLogger(__name__)
 
 
 class _UserverConfigPlugin:
@@ -175,7 +179,16 @@ def service_config_path_temp(
     @ingroup userver_testsuite_fixtures
     """
     dst_path = service_tmpdir / 'config.yaml'
-    dst_path.write_text(yaml.dump(service_config_yaml))
+
+    config_text = yaml.dump(service_config_yaml)
+    logger.debug(
+        'userver fixture "service_config_path_temp" writes the patched static '
+        'config to "%s":\n%s',
+        dst_path,
+        config_text,
+    )
+    dst_path.write_text(config_text)
+
     return dst_path
 
 
@@ -233,7 +246,14 @@ def _service_config(
         config_yaml.pop('config_vars', None)
     else:
         config_vars_path = service_tmpdir / 'config_vars.yaml'
-        config_vars_path.write_text(yaml.dump(config_vars))
+        config_vars_text = yaml.dump(config_vars)
+        logger.debug(
+            'userver fixture "service_config" writes the patched static '
+            'config vars to "%s":\n%s',
+            config_vars_path,
+            config_vars_text,
+        )
+        config_vars_path.write_text(config_vars_text)
         config_yaml['config_vars'] = str(config_vars_path)
 
     return _UserverConfig(config_yaml=config_yaml, config_vars=config_vars)

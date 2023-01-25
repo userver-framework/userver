@@ -2,11 +2,16 @@
 Service main and monitor clients.
 """
 
+import logging
+
 import pytest
 
 from testsuite.daemons import service_client as base_service_client
 
 from pytest_userver import client
+
+
+logger = logging.getLogger(__name__)
 
 
 @pytest.fixture
@@ -44,9 +49,19 @@ def auto_client_deps(request) -> None:
 
     for dep in known_deps:
         try:
+            logger.debug(
+                'userver fixture "auto_client_deps" tries to get "%s"', dep,
+            )
             request.getfixturevalue(dep)
+            logger.debug(
+                'userver fixture "auto_client_deps" resolved dependency '
+                'to "%s"',
+                dep,
+            )
         except FixtureLookupError:
-            pass
+            logger.debug(
+                'userver fixture "auto_client_deps" did not find "%s"', dep,
+            )
 
 
 @pytest.fixture

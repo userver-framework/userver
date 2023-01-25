@@ -1,9 +1,14 @@
 import asyncio
+import logging
 
 from pytest_userver import chaos
 
 
+logger = logging.getLogger(__name__)
+
+
 async def _check_that_restores(service_client, gate: chaos.TcpGate):
+    logger.info('mongotest starts "_check_that_restores"')
     gate.to_server_pass()
     gate.to_client_pass()
     gate.start_accepting()
@@ -18,6 +23,7 @@ async def _check_that_restores(service_client, gate: chaos.TcpGate):
     for _ in range(10):
         response = await service_client.put('/v1/key-value?key=foo&value=bar')
         if response.status == 200:
+            logger.info('mongotest ends "_check_that_restores"')
             return
 
         await asyncio.sleep(1)
@@ -26,14 +32,18 @@ async def _check_that_restores(service_client, gate: chaos.TcpGate):
 
 
 async def _check_write_ok(service_client):
+    logger.info('mongotest starts "_check_write_ok"')
     response = await service_client.put('/v1/key-value?key=foo&value=bar')
     assert response.status == 200
+    logger.info('mongotest ends "_check_write_ok"')
 
 
 async def _check_read_ok(service_client):
+    logger.info('mongotest starts "_check_read_ok"')
     response = await service_client.get('/v1/key-value?key=foo')
     assert response.status_code == 200
     assert response.text == 'bar'
+    logger.info('mongotest ends "_check_read_ok"')
 
 
 async def _check_write_and_read(service_client):
@@ -42,7 +52,9 @@ async def _check_write_and_read(service_client):
 
 
 async def test_mongo_fine(service_client, gate: chaos.TcpGate):
+    logger.info('mongotest starts "test_mongo_fine"')
     await _check_write_and_read(service_client)
+    logger.info('mongotest finishes "test_mongo_fine"')
 
 
 async def test_stop_accepting(service_client, gate: chaos.TcpGate):

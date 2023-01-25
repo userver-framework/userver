@@ -1,7 +1,16 @@
 # pylint: disable=no-member
 import asyncio
 import dataclasses
+import logging
 import typing
+
+# @cond
+
+
+logger = logging.getLogger(__name__)
+
+
+# @endcond
 
 
 @dataclasses.dataclass(frozen=True)
@@ -27,17 +36,14 @@ class HealthChecks:
     tcp: typing.List[HostPort] = dataclasses.field(default_factory=list)
 
 
-async def _check_tcp_port_availability(
-        tcp: HostPort, timeout: float = 1.0,
-) -> bool:
+async def _check_tcp_port_availability(tcp: HostPort) -> bool:
     try:
-        _, writer = await asyncio.wait_for(
-            asyncio.open_connection(tcp.host, tcp.port), timeout=timeout,
-        )
-    except (OSError, asyncio.TimeoutError):
+        _, writer = await asyncio.open_connection(tcp.host, tcp.port)
+        writer.close()
+        await writer.wait_closed()
+    except (OSError, asyncio.TimeoutError) as exc:
+        logger.debug('TCP %s:%s is not available: %s', tcp.host, tcp.port, exc)
         return False
-    writer.close()
-    await writer.wait_closed()
     return True
 
 
@@ -47,10 +53,23 @@ async def check_availability(checks: HealthChecks) -> bool:
 
     @ingroup userver_testsuite
     """
-    for val in checks.tcp:
-        if not await _check_tcp_port_availability(val):
-            return False
-    return True
+    assert checks.tcp
+    done, pending = await asyncio.wait(
+        [
+            asyncio.Task(_check_tcp_port_availability(val))
+            for val in checks.tcp
+        ],
+        timeout=25.0,
+        return_when=asyncio.ALL_COMPLETED,
+    )
+
+    for task in pending:
+        task.cancel()
+
+    for task in pending:
+        await task
+
+    return not pending and all(task.result() for task in done)
 
 
 def get_health_checks_info(service_config_yaml: dict) -> HealthChecks:
