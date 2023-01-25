@@ -200,9 +200,10 @@ void ComponentContext::Impl::ThrowNonRegisteredComponent(
     std::string_view name, std::string_view type) const {
   auto data = shared_data_.Lock();
   throw std::runtime_error(fmt::format(
-      "Component '{}' requested component with non registered name '{}' of "
-      "type {}",
-      GetLoadingComponentName(*data).StringViewName(), name, type));
+      "Component '{}' requested component {} with name '{}'. That name is "
+      "missing in the static config or the '{}' static config section contains "
+      "'load-enabled: false'.",
+      GetLoadingComponentName(*data).StringViewName(), type, name, name));
 }
 
 void ComponentContext::Impl::ThrowComponentTypeMissmatch(
