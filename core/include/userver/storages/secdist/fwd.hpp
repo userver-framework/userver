@@ -1,7 +1,8 @@
 #pragma once
 
 /// @file storages/secdist/fwd.hpp
-/// @brief @copybrief components::Secdist
+/// @brief Forward declarations of components::Secdist,
+/// storages::secdist::Secdist and storages::secdist::SecdistConfig
 
 USERVER_NAMESPACE_BEGIN
 
