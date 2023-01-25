@@ -36,6 +36,11 @@ else()
   target_link_libraries(${PROJECT_NAME}-deps INTERFACE Protobuf Grpc)
 endif()
 
+execute_process(
+    COMMAND
+        ${PYTHON} -m pip install -r ${CMAKE_CURRENT_SOURCE_DIR}/grpc/requirements.txt
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+)
 include(GrpcTargets)
 include(SetupGoogleProtoApis)
 
