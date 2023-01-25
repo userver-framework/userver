@@ -3,10 +3,11 @@
 #include <utility>
 
 #include <logging/get_should_log_cache.hpp>
+#include <logging/logger_with_info.hpp>
 #include <logging/rate_limit.hpp>
+#include <logging/spdlog.hpp>
 #include <userver/engine/run_standalone.hpp>
 #include <userver/engine/task/task.hpp>
-#include <userver/logging/impl/logger_base.hpp>
 #include <userver/rcu/rcu.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -61,30 +62,34 @@ LoggerPtr SetDefaultLogger(LoggerPtr logger) {
 }
 
 void SetDefaultLoggerLevel(Level level) {
-  DefaultLogger()->SetLevel(level);
+  DefaultLogger()->ptr->set_level(
+      static_cast<spdlog::level::level_enum>(level));
   UpdateLogLevelCache();
 }
 
 void SetLoggerLevel(const LoggerPtr& logger, Level level) {
-  logger->SetLevel(level);
+  logger->ptr->set_level(static_cast<spdlog::level::level_enum>(level));
   if (logger == DefaultLoggerOptional()) {
     UpdateLogLevelCache();
   }
 }
 
 Level GetDefaultLoggerLevel() {
-  return static_cast<Level>(DefaultLogger()->GetLevel());
+  return static_cast<Level>(DefaultLogger()->ptr->level());
 }
 
 bool LoggerShouldLog(const LoggerPtr& logger, Level level) {
-  return logger && logger->ShouldLog(level);
+  return logger &&
+         logger->ptr->should_log(static_cast<spdlog::level::level_enum>(level));
 }
 
-Level GetLoggerLevel(const LoggerPtr& logger) { return logger->GetLevel(); }
+Level GetLoggerLevel(const LoggerPtr& logger) {
+  return static_cast<Level>(logger->ptr->level());
+}
 
-void LogFlush() { DefaultLogger()->Flush(); }
+void LogFlush() { DefaultLogger()->ptr->flush(); }
 
-void LogFlush(const LoggerPtr& logger) { logger->Flush(); }
+void LogFlush(const LoggerPtr& logger) { logger->ptr->flush(); }
 
 namespace impl {
 

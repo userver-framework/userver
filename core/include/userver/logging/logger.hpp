@@ -6,9 +6,8 @@
 #include <memory>
 #include <string>
 
-#include <userver/logging/format.hpp>
-#include <userver/logging/level.hpp>
-#include <userver/logging/null_logger.hpp>
+#include "format.hpp"
+#include "level.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
@@ -16,12 +15,12 @@ namespace logging {
 
 namespace impl {
 
-class LoggerBase;
-void LogRaw(LoggerBase& logger, Level level, std::string_view message);
+class LoggerWithInfo;
+void LogRaw(LoggerWithInfo& logger, Level level, std::string_view message);
 
 }  // namespace impl
 
-using LoggerPtr = std::shared_ptr<impl::LoggerBase>;
+using LoggerPtr = std::shared_ptr<impl::LoggerWithInfo>;
 
 /// @brief Creates synchronous stderr logger with default tskv pattern
 /// @param name logger name, for internal use, must be unique
@@ -47,6 +46,11 @@ LoggerPtr MakeStdoutLogger(const std::string& name, Format format,
 /// @see components::Logging
 LoggerPtr MakeFileLogger(const std::string& name, const std::string& path,
                          Format format, Level level = Level::kInfo);
+
+/// @brief Creates a logger that drops all incoming messages
+/// @param name logger name, for internal use, must be unique
+/// @see components::Logging
+LoggerPtr MakeNullLogger(const std::string& name);
 
 }  // namespace logging
 

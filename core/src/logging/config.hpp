@@ -14,6 +14,7 @@ namespace logging {
 
 struct LoggerConfig {
   static constexpr size_t kDefaultMessageQueueSize = 1 << 16;
+  static constexpr size_t kDefaultThreadPoolSize = 1;
 
   enum class QueueOveflowBehavior { kDiscard, kBlock };
 
@@ -27,7 +28,7 @@ struct LoggerConfig {
   size_t message_queue_size = kDefaultMessageQueueSize;
   QueueOveflowBehavior queue_overflow_behavior = QueueOveflowBehavior::kDiscard;
 
-  std::optional<std::string> fs_task_processor;
+  size_t thread_pool_size = kDefaultThreadPoolSize;
 };
 
 LoggerConfig Parse(const yaml_config::YamlConfig& value,

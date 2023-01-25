@@ -11,7 +11,7 @@ USERVER_NAMESPACE_BEGIN
 
 class LogHelperBenchmark : public benchmark::Fixture {
   void SetUp(const benchmark::State&) override {
-    old_ = logging::SetDefaultLogger(logging::MakeNullLogger());
+    old_ = logging::SetDefaultLogger(logging::MakeNullLogger("null_logger"));
     logging::SetDefaultLoggerLevel(logging::Level::kInfo);
   }
 

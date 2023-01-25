@@ -4,8 +4,8 @@
 #include <spdlog/sinks/ostream_sink.h>
 
 #include <logging/config.hpp>
+#include <logging/logger_with_info.hpp>
 #include <logging/spdlog_helpers.hpp>
-#include <logging/tp_logger.hpp>
 #include <logging/unix_socket_sink.hpp>
 
 #include <userver/logging/format.hpp>
@@ -13,18 +13,20 @@
 
 USERVER_NAMESPACE_BEGIN
 
-inline std::shared_ptr<logging::impl::TpLogger> MakeLoggerFromSink(
+inline logging::LoggerPtr MakeLoggerFromSink(
     const std::string& logger_name,
     std::shared_ptr<spdlog::sinks::sink> sink_ptr, logging::Format format) {
-  auto logger = std::make_shared<logging::impl::TpLogger>(format, logger_name);
-  logger->AddSink(std::move(sink_ptr));
-  logger->SetPattern(logging::GetSpdlogPattern(format));
+  auto logger = std::make_shared<logging::impl::LoggerWithInfo>(
+      format, std::shared_ptr<spdlog::details::thread_pool>{},
+      utils::MakeSharedRef<spdlog::logger>(logger_name, sink_ptr));
+  logger->ptr->set_pattern(logging::GetSpdlogPattern(format));
+  logger->ptr->set_level(spdlog::level::level_enum::info);
   return logger;
 }
 
-inline std::shared_ptr<logging::impl::TpLogger> MakeNamedStreamLogger(
-    const std::string& logger_name, std::ostream& stream,
-    logging::Format format) {
+inline logging::LoggerPtr MakeNamedStreamLogger(const std::string& logger_name,
+                                                std::ostream& stream,
+                                                logging::Format format) {
   auto sink = std::make_shared<spdlog::sinks::ostream_sink_st>(stream);
   return MakeLoggerFromSink(logger_name, sink, format);
 }
