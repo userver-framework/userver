@@ -1,7 +1,7 @@
 import pytest
 
 
-async def test_portal_fine(service_client, gate, testpoint):
+async def test_portal_fine(service_client, gate):
     response = await service_client.get('/chaos/postgres?type=portal')
     assert response.status == 200
     assert response.json() == [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
@@ -18,25 +18,19 @@ TESTPOINT_NAMES = ('after_make_portal', 'after_fetch')
 
 
 @pytest.mark.parametrize('tp_name', TESTPOINT_NAMES)
-@pytest.mark.parametrize('attr', ['sockets_close'])
-async def test_x(service_client, gate, testpoint, tp_name, attr):
-    async def f():
-        @testpoint(tp_name)
-        async def _hook(data):
-            await getattr(gate, attr)()
+async def test_sockets_close(service_client, gate, testpoint, tp_name):
+    should_close_sockets = True
 
-        response = await service_client.get('/chaos/postgres?type=portal')
-        assert response.status == 500
-        assert gate.connections_count() == 0
+    @testpoint(tp_name)
+    async def _hook(_data):
+        if should_close_sockets:
+            await gate.sockets_close()
 
-    r = await service_client.post('/tests/control', {'testpoints': [tp_name]})
-    assert r.status_code == 200
+    response = await service_client.get('/chaos/postgres?type=portal')
+    assert response.status == 500
+    assert gate.connections_count() == 0
 
-    await f()
-
-    r = await service_client.post('/tests/control', {'testpoints': []})
-    assert r.status_code == 200
-
+    should_close_sockets = False
     await consume_dead_db_connections(service_client)
 
     response = await service_client.get('/chaos/postgres?type=portal')
@@ -54,24 +48,18 @@ DELAY_SECS = 4.0
 )
 @pytest.mark.parametrize('tp_name', TESTPOINT_NAMES)
 async def test_timeout(service_client, gate, testpoint, tp_name):
-    async def f():
-        @testpoint(tp_name)
-        async def _hook(data):
+    should_delay = True
+
+    @testpoint(tp_name)
+    async def _hook(_data):
+        if should_delay:
             gate.to_client_delay(DELAY_SECS)
 
-        response = await service_client.get('/chaos/postgres?type=portal')
-        assert response.status == 500
+    response = await service_client.get('/chaos/postgres?type=portal')
+    assert response.status == 500
 
-    r = await service_client.post('/tests/control', {'testpoints': [tp_name]})
-    assert r.status_code == 200
-
-    await f()
-
-    r = await service_client.post('/tests/control', {'testpoints': []})
-    assert r.status_code == 200
-
+    should_delay = False
     gate.to_client_pass()
-
     await consume_dead_db_connections(service_client)
 
     response = await service_client.get('/chaos/postgres?type=portal')
