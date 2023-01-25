@@ -7,6 +7,7 @@
 #include <unordered_map>
 #include <unordered_set>
 
+#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include <boost/filesystem/path.hpp>
 
@@ -74,7 +75,8 @@ TEST_F(LoggingTest, TskvEncodeKeyWithDot) {
   logging::LogExtra le;
   le.Extend("http.port.ipv4", "4040");
   LOG_CRITICAL() << "line 1\nline 2" << le;
-  EXPECT_EQ(LoggedText(), "line 1\\nline 2\thttp_port_ipv4=4040");
+  EXPECT_THAT(GetStreamString(),
+              testing::HasSubstr("line 1\\nline 2\thttp_port_ipv4=4040"));
 }
 
 TEST_F(LoggingTest, FloatingPoint) {
@@ -139,9 +141,9 @@ TEST_F(LoggingTest, TracefulExceptionDebug) {
 
   LOG_CRITICAL() << utils::TracefulException("traceful exception");
 
-  EXPECT_TRUE(LoggedTextContains("traceful exception"))
+  EXPECT_THAT(GetStreamString(), testing::HasSubstr("traceful exception"))
       << "traceful exception is missing its message";
-  EXPECT_TRUE(LoggedTextContains("\tstacktrace="))
+  EXPECT_THAT(GetStreamString(), testing::HasSubstr("\tstacktrace="))
       << "traceful exception is missing its trace";
 }
 
@@ -169,7 +171,7 @@ TEST_F(LoggingTest, AttachedException) {
       << "missing plain exception message";
   EXPECT_TRUE(LoggedTextContains("plain exception with additional info"))
       << "traceful exception message malformed";
-  EXPECT_TRUE(LoggedTextContains("\tstacktrace="))
+  EXPECT_THAT(GetStreamString(), testing::HasSubstr("\tstacktrace="))
       << "traceful exception missing its trace";
 }
 

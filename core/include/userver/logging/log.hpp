@@ -28,7 +28,7 @@ LoggerPtr SetDefaultLogger(LoggerPtr);
 /// Sets new log level for default logger
 void SetDefaultLoggerLevel(Level);
 
-void SetLoggerLevel(LoggerPtr, Level);
+void SetLoggerLevel(const LoggerPtr&, Level);
 
 /// Returns log level for default logger
 Level GetDefaultLoggerLevel();
@@ -41,7 +41,7 @@ Level GetLoggerLevel(const LoggerPtr& logger);
 void LogFlush();
 
 /// Forces flush of `logger` message queue
-void LogFlush(LoggerPtr logger);
+void LogFlush(const LoggerPtr& logger);
 
 namespace impl {
 

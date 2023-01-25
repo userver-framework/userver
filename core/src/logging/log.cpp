@@ -65,7 +65,12 @@ void SetDefaultLoggerLevel(Level level) {
   UpdateLogLevelCache();
 }
 
-void SetLoggerLevel(LoggerPtr logger, Level level) { logger->SetLevel(level); }
+void SetLoggerLevel(const LoggerPtr& logger, Level level) {
+  logger->SetLevel(level);
+  if (logger == DefaultLoggerOptional()) {
+    UpdateLogLevelCache();
+  }
+}
 
 Level GetDefaultLoggerLevel() {
   return static_cast<Level>(DefaultLogger()->GetLevel());
@@ -79,7 +84,7 @@ Level GetLoggerLevel(const LoggerPtr& logger) { return logger->GetLevel(); }
 
 void LogFlush() { DefaultLogger()->Flush(); }
 
-void LogFlush(LoggerPtr logger) { logger->Flush(); }
+void LogFlush(const LoggerPtr& logger) { logger->Flush(); }
 
 namespace impl {
 
