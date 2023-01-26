@@ -2,9 +2,8 @@
 
 #include <pthread.h>
 
+#include <atomic>
 #include <thread>
-
-#include <fmt/ostream.h>
 
 #include <userver/engine/async.hpp>
 #include <userver/engine/sleep.hpp>
