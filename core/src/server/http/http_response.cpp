@@ -102,6 +102,7 @@ HttpResponse::HttpResponse(const HttpRequestImpl& request,
                            request::ResponseDataAccounter& data_accounter)
     : ResponseBase(data_accounter),
       request_(request),
+      headers_(16, utils::StrIcaseHash{cookies_.hash_function().GetSeed()}),
       headers_end_(engine::SingleConsumerEvent::NoAutoReset()) {}
 
 HttpResponse::~HttpResponse() = default;

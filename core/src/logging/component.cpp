@@ -234,12 +234,12 @@ Logging::Logging(const ComponentConfig& config, const ComponentContext& context)
       }
     }
   }
-  flush_task_.Start("log_flusher",
+  /*flush_task_.Start("log_flusher",
                     utils::PeriodicTask::Settings(
                         std::chrono::duration_cast<std::chrono::milliseconds>(
                             kDefaultFlushInterval),
                         {}, logging::Level::kTrace),
-                    GetTaskFunction());
+                    GetTaskFunction());*/
 }
 
 Logging::~Logging() {

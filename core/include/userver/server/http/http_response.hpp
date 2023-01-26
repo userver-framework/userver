@@ -127,8 +127,8 @@ class HttpResponse final : public request::ResponseBase {
 
   const HttpRequestImpl& request_;
   HttpStatus status_ = HttpStatus::kOk;
-  HeadersMap headers_;
   CookiesMap cookies_;
+  HeadersMap headers_;
 
   engine::SingleConsumerEvent headers_end_;
   std::optional<Queue::Consumer> body_stream_;
