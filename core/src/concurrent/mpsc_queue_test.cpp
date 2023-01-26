@@ -110,7 +110,7 @@ UTEST_MT(MpscQueue, FifoTest, kProducersCount + 1) {
   producers_tasks.reserve(kProducersCount);
   for (std::size_t i = 0; i < kProducersCount; ++i) {
     producers_tasks.push_back(
-        utils::Async("producer", [& producer = producers[i], i] {
+        utils::Async("producer", [&producer = producers[i], i] {
           for (std::size_t message = i * kMessageCount;
                message < (i + 1) * kMessageCount; ++message) {
             ASSERT_TRUE(producer.Push(std::size_t{message}));

@@ -53,7 +53,7 @@ class Span final {
 
 template <typename Container>
 Span(Container&& cont)
-    ->Span<std::remove_reference_t<decltype(*std::begin(cont))>>;
+    -> Span<std::remove_reference_t<decltype(*std::begin(cont))>>;
 
 }  // namespace utils::impl
 

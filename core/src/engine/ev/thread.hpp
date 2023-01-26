@@ -38,9 +38,7 @@ class Thread final {
   Thread(const std::string& thread_name, UseDefaultEvLoop, RegisterEventMode);
   ~Thread();
 
-  struct ev_loop* GetEvLoop() const {
-    return loop_;
-  }
+  struct ev_loop* GetEvLoop() const { return loop_; }
 
   // Callbacks passed to RunInEvLoopAsync() are serialized.
   // All callbacks are guaranteed to execute.

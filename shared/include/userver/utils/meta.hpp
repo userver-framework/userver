@@ -149,8 +149,9 @@ template <typename T>
 inline constexpr bool kIsRange = kIsDetected<impl::IsRange, T>;
 
 template <typename T>
-inline constexpr bool kIsMap = kIsDetected<impl::IsRange, T>&&
-    kIsDetected<impl::KeyType, T>&& kIsDetected<impl::MappedType, T>;
+inline constexpr bool kIsMap =
+    kIsDetected<impl::IsRange, T> && kIsDetected<impl::KeyType, T> &&
+    kIsDetected<impl::MappedType, T>;
 
 template <typename T>
 using MapKeyType = DetectedType<impl::KeyType, T>;
@@ -191,7 +192,7 @@ inline constexpr bool kIsEqualityComparable =
 
 template <typename T>
 inline constexpr bool kIsStdHashable =
-    kIsDetected<impl::IsStdHashable, T>&& kIsEqualityComparable<T>;
+    kIsDetected<impl::IsStdHashable, T> && kIsEqualityComparable<T>;
 
 /// @brief  Check if std::size is applicable to container
 template <typename T>

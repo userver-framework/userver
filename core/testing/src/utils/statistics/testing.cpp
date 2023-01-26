@@ -82,7 +82,7 @@ Metric GetSingle(const impl::SnapshotData& data, const std::string& path,
 
   for (const auto& [_, entry] : boost::make_iterator_range(iterator_pair)) {
     const bool matches = boost::algorithm::all_of(
-        required_labels, [& entry = entry](const auto& needle) {
+        required_labels, [&entry = entry](const auto& needle) {
           return entry.labels.count(needle) != 0;
         });
 

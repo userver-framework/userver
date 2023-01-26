@@ -78,7 +78,7 @@ class NotNull {
 
   constexpr operator const T&() const& { return GetBase(); }
 
-  constexpr decltype(auto) operator-> () const& { return GetBase(); }
+  constexpr decltype(auto) operator->() const& { return GetBase(); }
 
   constexpr decltype(auto) operator*() const& { return *GetBase(); }
 

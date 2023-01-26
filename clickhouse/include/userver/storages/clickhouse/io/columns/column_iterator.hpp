@@ -114,13 +114,13 @@ ColumnIterator<ColumnType>& ColumnIterator<ColumnType>::operator++() {
 
 template <typename ColumnType>
 typename ColumnIterator<ColumnType>::reference
-    ColumnIterator<ColumnType>::operator*() const {
+ColumnIterator<ColumnType>::operator*() const {
   return data_.UpdateValue();
 }
 
 template <typename ColumnType>
 typename ColumnIterator<ColumnType>::pointer
-    ColumnIterator<ColumnType>::operator->() const {
+ColumnIterator<ColumnType>::operator->() const {
   return &data_.UpdateValue();
 }
 

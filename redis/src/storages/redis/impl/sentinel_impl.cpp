@@ -974,18 +974,14 @@ void SentinelImpl::ShardInfo::UpdateHostPortToShard(
 
 void SentinelImpl::ConnectedStatus::SetMasterReady() {
   if (!master_ready_.exchange(true)) {
-    {
-      std::lock_guard<std::mutex> lock(mutex_);
-    }
+    { std::lock_guard<std::mutex> lock(mutex_); }
     cv_.NotifyAll();
   }
 }
 
 void SentinelImpl::ConnectedStatus::SetSlaveReady() {
   if (!slave_ready_.exchange(true)) {
-    {
-      std::lock_guard<std::mutex> lock(mutex_);
-    }
+    { std::lock_guard<std::mutex> lock(mutex_); }
     cv_.NotifyAll();
   }
 }

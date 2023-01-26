@@ -114,17 +114,19 @@ struct CheckTraits {
   CheckTraits() {
     if constexpr (kHasDefaultDeserializeObject<MongoCacheTraits>) {
       static_assert(
-          std::is_same_v<std::decay_t<decltype(
-                             MongoCacheTraits::kUseDefaultDeserializeObject)>,
-                         bool>,
+          std::is_same_v<
+              std::decay_t<
+                  decltype(MongoCacheTraits::kUseDefaultDeserializeObject)>,
+              bool>,
           "Mongo cache traits must specify kUseDefaultDeserializeObject as "
           "bool");
     }
     if constexpr (kHasDefaultFindOperation<MongoCacheTraits>) {
       static_assert(
-          std::is_same_v<std::decay_t<decltype(
-                             MongoCacheTraits::kUseDefaultFindOperation)>,
-                         bool>,
+          std::is_same_v<
+              std::decay_t<
+                  decltype(MongoCacheTraits::kUseDefaultFindOperation)>,
+              bool>,
           "Mongo cache traits must specify kUseDefaultFindOperation as bool");
     }
   }
