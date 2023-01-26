@@ -33,7 +33,7 @@ void SleepUntil(Deadline deadline) {
   InterruptibleSleepUntil(deadline);
 }
 
-void Yield() { SleepUntil(Deadline::FromDuration(std::chrono::milliseconds{1})); }
+void Yield() { SleepUntil(Deadline::Passed()); }
 
 }  // namespace engine
 
