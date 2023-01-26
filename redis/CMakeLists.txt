@@ -21,6 +21,12 @@ file(GLOB_RECURSE REDIS_TEST_SOURCES
 )
 list(REMOVE_ITEM SOURCES ${REDIS_TEST_SOURCES})
 
+file(GLOB_RECURSE REDIS_BENCH_SOURCES
+  ${CMAKE_CURRENT_SOURCE_DIR}/*_benchmark.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/*_benchmark.hpp
+)
+list (REMOVE_ITEM SOURCES ${REDIS_BENCH_SOURCES})
+
 file(GLOB_RECURSE REDIS_FUNCTIONAL_TEST_SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/functional_tests/*.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/functional_tests/*.hpp
@@ -130,6 +136,24 @@ if (USERVER_IS_THE_ROOT_PROJECT)
       run --
       ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}_redistest
       --gtest_output=xml:${CMAKE_BINARY_DIR}/test-results/${PROJECT_NAME}_redistest.xml
+  )
+
+  add_executable(${PROJECT_NAME}_benchmark ${REDIS_BENCH_SOURCES})
+  target_link_libraries(${PROJECT_NAME}_benchmark
+    userver-ubench
+    ${PROJECT_NAME}
+  )
+  target_include_directories(${PROJECT_NAME}_benchmark PRIVATE
+    $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>
+  )
+  add_test(${PROJECT_NAME}_benchmark
+    env
+      ${CMAKE_BINARY_DIR}/testsuite/env
+      --databases=redis
+      run --
+      ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}_benchmark
+      --benchmark_min_time=0
+      --benchmark_color=no
   )
 
   add_subdirectory(tools/redisclient)
