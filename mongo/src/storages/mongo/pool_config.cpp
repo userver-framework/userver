@@ -76,7 +76,36 @@ PoolConfig::PoolConfig(const components::ComponentConfig& component_config)
                               .As<std::optional<std::chrono::seconds>>()),
       driver_impl(component_config["driver"].As<DriverImpl>(
           DriverImpl::kMongoCDriver)) {
-  const auto& pool_id = component_config.Name();
+  auto user_idle_limit =
+      component_config["idle_limit"].As<std::optional<size_t>>();
+  idle_limit = user_idle_limit ? *user_idle_limit
+                               : std::min(kDefaultIdleLimit, max_size);
+
+  auto user_initial_size =
+      component_config["initial_size"].As<std::optional<size_t>>();
+  initial_size = user_initial_size ? *user_initial_size
+                                   : std::min(kDefaultInitialSize, idle_limit);
+
+  Validate(component_config.Name());
+}
+
+PoolConfig::PoolConfig()
+    : conn_timeout(kTestConnTimeout),
+      so_timeout(kTestSoTimeout),
+      queue_timeout(kTestQueueTimeout),
+      initial_size(kTestInitialSize),
+      max_size(kTestMaxSize),
+      idle_limit(kTestIdleLimit),
+      connecting_limit(kTestConnectingLimit),
+      maintenance_period(kTestMaintenancePeriod),
+      app_name(kDefaultAppName),
+      driver_impl(DriverImpl::kMongoCDriver) {
+  if (!IsValidAppName(app_name)) {
+    throw InvalidConfigException("Invalid appname in test pool config");
+  }
+}
+
+void PoolConfig::Validate(const std::string& pool_id) const {
   CheckDuration(conn_timeout, "connection timeout", pool_id);
   CheckDuration(so_timeout, "socket timeout", pool_id);
   CheckDuration(queue_timeout, "queue wait timeout", pool_id);
@@ -90,19 +119,11 @@ PoolConfig::PoolConfig(const components::ComponentConfig& component_config)
         << pool_id << " pool config";
   }
 
-  auto user_idle_limit =
-      component_config["idle_limit"].As<std::optional<size_t>>();
-  idle_limit = user_idle_limit ? *user_idle_limit
-                               : std::min(kDefaultIdleLimit, max_size);
   if (idle_limit > max_size) {
     throw InvalidConfigException("invalid idle connections limit in ")
         << pool_id << " pool config";
   }
 
-  auto user_initial_size =
-      component_config["initial_size"].As<std::optional<size_t>>();
-  initial_size = user_initial_size ? *user_initial_size
-                                   : std::min(kDefaultInitialSize, idle_limit);
   if (initial_size > idle_limit) {
     throw InvalidConfigException("invalid initial connections count in ")
         << pool_id << " pool config";
@@ -116,22 +137,6 @@ PoolConfig::PoolConfig(const components::ComponentConfig& component_config)
   if (!IsValidAppName(app_name)) {
     throw InvalidConfigException("Invalid appname in ")
         << pool_id << " pool config";
-  }
-}
-
-PoolConfig::PoolConfig(std::string app_name_, DriverImpl driver_impl_)
-    : conn_timeout(kTestConnTimeout),
-      so_timeout(kTestSoTimeout),
-      queue_timeout(kTestQueueTimeout),
-      initial_size(kTestInitialSize),
-      max_size(kTestMaxSize),
-      idle_limit(kTestIdleLimit),
-      connecting_limit(kTestConnectingLimit),
-      maintenance_period(kTestMaintenancePeriod),
-      app_name(std::move(app_name_)),
-      driver_impl(driver_impl_) {
-  if (!IsValidAppName(app_name)) {
-    throw InvalidConfigException("Invalid appname in test pool config");
   }
 }
 

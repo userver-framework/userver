@@ -8,14 +8,16 @@
 namespace tests::handlers {
 namespace {
 
+/// [metrics definition]
 const utils::statistics::MetricTag<std::atomic<int>> kFooMetric{
     "sample-metrics.foo"};
+/// [metrics definition]
 
 }  // namespace
 
-Metrics::Metrics(const userver::components::ComponentConfig& config,
-                 const userver::components::ComponentContext& context)
-    : userver::server::handlers::HttpHandlerJsonBase(config, context),
+Metrics::Metrics(const components::ComponentConfig& config,
+                 const components::ComponentContext& context)
+    : server::handlers::HttpHandlerJsonBase(config, context),
       metrics_(context.FindComponent<components::StatisticsStorage>()
                    .GetMetricsStorage()) {}
 
@@ -24,7 +26,9 @@ formats::json::Value Metrics::HandleRequestJsonThrow(
     [[maybe_unused]] const formats::json::Value& request_body,
     [[maybe_unused]] server::request::RequestContext& context) const {
   formats::json::ValueBuilder result;
+  /// [metrics usage]
   metrics_->GetMetric(kFooMetric)++;
+  /// [metrics usage]
   return result.ExtractValue();
 }
 

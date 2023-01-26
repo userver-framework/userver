@@ -40,3 +40,10 @@ and C++ standards.
 Feel free to ask questions about any parts of the framework at the
 [english-speaking](https://t.me/userver_en) or [russian-speaking](https://t.me/userver_ru)
 Telegram channels.
+
+
+----------
+
+@htmlonly <div class="bottom-nav"> @endhtmlonly
+⇦ @ref md_en_userver_framework_comparison | @ref md_en_userver_tutorial_build ⇨
+@htmlonly </div> @endhtmlonly

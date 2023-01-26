@@ -8,6 +8,7 @@
 
 #include <userver/logging/log.hpp>
 #include <userver/utils/async.hpp>
+#include <userver/utils/rand.hpp>
 #include <userver/utils/userver_info.hpp>
 
 #include <clients/http/config.hpp>
@@ -124,8 +125,7 @@ std::shared_ptr<Request> Client::CreateRequest() {
                                         statistics_[idx].CreateRequestStats(),
                                         destination_statistics_, resolver_);
   } else {
-    thread_local unsigned int rand_state = 0;
-    auto i = rand_r(&rand_state) % multis_.size();
+    auto i = utils::RandRange(multis_.size());
     auto& multi = multis_[i];
 
     try {
@@ -145,6 +145,8 @@ std::shared_ptr<Request> Client::CreateRequest() {
   if (testsuite_config_) {
     request->SetTestsuiteConfig(testsuite_config_);
   }
+  auto urls = allowed_urls_extra_.Read();
+  request->SetAllowedUrlsExtra(*urls);
 
   if (user_agent_) {
     request->user_agent(*user_agent_);
@@ -248,6 +250,10 @@ std::shared_ptr<curl::easy> Client::TryDequeueIdle() noexcept {
 void Client::SetTestsuiteConfig(const TestsuiteConfig& config) {
   LOG_INFO() << "http client: configured for testsuite";
   testsuite_config_ = std::make_shared<const TestsuiteConfig>(config);
+}
+
+void Client::SetAllowedUrlsExtra(std::vector<std::string>&& urls) {
+  allowed_urls_extra_.Assign(std::move(urls));
 }
 
 void Client::SetConfig(const Config& config) {

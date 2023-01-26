@@ -17,8 +17,6 @@ USERVER_NAMESPACE_BEGIN
 
 namespace components {
 
-using TaxiConfig = DynamicConfig;
-
 // clang-format off
 
 /// @ingroup userver_components
@@ -70,7 +68,7 @@ class HttpClient final : public LoggableComponentBase {
  private:
   void OnConfigUpdate(const dynamic_config::Snapshot& config);
 
-  formats::json::Value ExtendStatistics();
+  void ExtendStatistics(utils::statistics::Writer& writer);
 
   const bool disable_pool_stats_;
   clients::http::Client http_client_;

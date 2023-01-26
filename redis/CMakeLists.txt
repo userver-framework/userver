@@ -21,7 +21,11 @@ file(GLOB_RECURSE REDIS_TEST_SOURCES
 )
 list(REMOVE_ITEM SOURCES ${REDIS_TEST_SOURCES})
 
-find_package(Hiredis)
+file(GLOB_RECURSE REDIS_FUNCTIONAL_TEST_SOURCES
+  ${CMAKE_CURRENT_SOURCE_DIR}/functional_tests/*.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/functional_tests/*.hpp
+)
+list(REMOVE_ITEM SOURCES ${REDIS_FUNCTIONAL_TEST_SOURCES})
 
 add_library(${PROJECT_NAME} STATIC ${SOURCES})
 set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
@@ -44,14 +48,28 @@ if (USERVER_FEATURE_REDIS_HI_MALLOC)
   )
 endif()
 
+option(USERVER_FEATURE_REDIS_TLS "SSL/TLS support for Redis driver" OFF)
+if(USERVER_FEATURE_REDIS_TLS)
+  add_definitions(-DUSERVER_FEATURE_REDIS_TLS=1)
+endif()
 
 target_link_libraries(${PROJECT_NAME}
   PUBLIC
     userver-core
-    Hiredis
   PRIVATE
-    userver-uboost-coro # uses BlockingFuture
+    userver-uboost-coro
 )
+if (USERVER_CONAN)
+  find_package(hiredis REQUIRED)
+  target_link_libraries(${PROJECT_NAME} PUBLIC hiredis::hiredis)
+else()
+  find_package(Hiredis)
+  target_link_libraries(${PROJECT_NAME} PUBLIC Hiredis)
+endif()
+
+if (USERVER_FEATURE_REDIS_TLS)
+  target_link_libraries(${PROJECT_NAME} PUBLIC hiredis_ssl)
+endif()
 target_include_directories(
   ${PROJECT_NAME}
   PUBLIC
@@ -63,20 +81,23 @@ target_include_directories (${PROJECT_NAME} PRIVATE
     $<TARGET_PROPERTY:userver-core,INCLUDE_DIRECTORIES>
 )
 
-
-add_library(${PROJECT_NAME}_utest STATIC ${UTESTLIB_SOURCES})
-target_include_directories(
-  ${PROJECT_NAME}_utest
-  PUBLIC
-    ${CMAKE_CURRENT_SOURCE_DIR}/testing/include
-)
-target_include_directories (${PROJECT_NAME}_utest PRIVATE
-  $<TARGET_PROPERTY:userver-core,INCLUDE_DIRECTORIES>
-)
-target_link_libraries(${PROJECT_NAME}_utest
-  userver-utest
-  ${PROJECT_NAME}
-)
+# Helper library for testing user code with redis. Provides mock_client_base.hpp
+# and other helper headers
+if (USERVER_FEATURE_UTEST)
+    add_library(${PROJECT_NAME}_utest STATIC ${UTESTLIB_SOURCES})
+    target_include_directories(
+      ${PROJECT_NAME}_utest
+      PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}/testing/include
+    )
+    target_include_directories (${PROJECT_NAME}_utest PRIVATE
+      $<TARGET_PROPERTY:userver-core,INCLUDE_DIRECTORIES>
+    )
+    target_link_libraries(${PROJECT_NAME}_utest
+      userver-utest
+      ${PROJECT_NAME}
+    )
+endif()
 
 if (USERVER_IS_THE_ROOT_PROJECT)
   add_executable(${PROJECT_NAME}_unittest ${UNIT_TEST_SOURCES})
@@ -112,13 +133,5 @@ if (USERVER_IS_THE_ROOT_PROJECT)
   )
 
   add_subdirectory(tools/redisclient)
+  add_subdirectory(functional_tests)
 endif()
-
-
-# Target with no need to use userver namespace, but includes require userver/
-add_library(yandex-${PROJECT_NAME}_utest INTERFACE)
-target_link_libraries(yandex-${PROJECT_NAME}_utest INTERFACE ${PROJECT_NAME}_utest)
-
-# Target with no need to use userver namespace, but includes require userver/
-add_library(yandex-${PROJECT_NAME} INTERFACE)
-target_link_libraries(yandex-${PROJECT_NAME} INTERFACE ${PROJECT_NAME})

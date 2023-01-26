@@ -65,6 +65,7 @@ class StringBuilder final : public serialize::SaxStream {
 
   /// @return JSON string
   std::string GetString() const;
+  std::string_view GetStringView() const;
 
   void WriteNull();
   void WriteString(std::string_view value);

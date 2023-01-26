@@ -35,7 +35,7 @@ UTEST(CxxabiEhGlobals, UncaughtIsCoroLocal) {
 
       // if we got here, subtask wasn't cancelled while it should've been
       // one of possible reasons is uncaught exception leaked via thread local
-      ASSERT_FALSE(std::uncaught_exception());
+      ASSERT_FALSE(std::uncaught_exceptions());
       FAIL() << "Subtask wasn't cancelled";
     });
     ASSERT_EQ(engine::CvStatus::kNoTimeout, cv.Wait(lock));

@@ -58,7 +58,7 @@ class RequestDataImplBase {
 
 template <typename Result, typename ReplyType>
 class RequestDataImpl final : public RequestDataImplBase,
-                              public RequestDataBase<Result, ReplyType> {
+                              public RequestDataBase<ReplyType> {
  public:
   explicit RequestDataImpl(USERVER_NAMESPACE::redis::Request&& request)
       : RequestDataImplBase(std::move(request)) {}
@@ -74,9 +74,8 @@ class RequestDataImpl final : public RequestDataImplBase,
 };
 
 template <typename Result, typename ReplyType>
-class AggregateRequestDataImpl final
-    : public RequestDataBase<Result, ReplyType> {
-  using RequestDataPtr = std::unique_ptr<RequestDataBase<Result, ReplyType>>;
+class AggregateRequestDataImpl final : public RequestDataBase<ReplyType> {
+  using RequestDataPtr = std::unique_ptr<RequestDataBase<ReplyType>>;
 
  public:
   explicit AggregateRequestDataImpl(std::vector<RequestDataPtr>&& requests)
@@ -107,7 +106,7 @@ class AggregateRequestDataImpl final
 };
 
 template <typename Result, typename ReplyType>
-class DummyRequestDataImpl final : public RequestDataBase<Result, ReplyType> {
+class DummyRequestDataImpl final : public RequestDataBase<ReplyType> {
  public:
   explicit DummyRequestDataImpl(ReplyPtr&& reply) : reply_(std::move(reply)) {}
 

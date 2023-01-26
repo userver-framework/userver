@@ -12,6 +12,7 @@
 #include <userver/utils/statistics/percentile.hpp>
 #include <userver/utils/statistics/recentperiod.hpp>
 #include <userver/utils/statistics/relaxed_counter.hpp>
+#include <userver/utils/statistics/writer.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -224,6 +225,18 @@ struct ClusterStatistics {
   /// Unknown/unreachable instances statistics
   std::vector<InstanceStatsDescriptor> unknown;
 };
+
+// InstanceStatisticsNonatomic values support for utils::statistics::Writer
+void DumpMetric(USERVER_NAMESPACE::utils::statistics::Writer& writer,
+                const InstanceStatisticsNonatomic& stats);
+
+/// @brief InstanceStatsDescriptor values support for utils::statistics::Writer
+void DumpMetric(USERVER_NAMESPACE::utils::statistics::Writer& writer,
+                const InstanceStatsDescriptor& value);
+
+/// @brief ClusterStatistics values support for utils::statistics::Writer
+void DumpMetric(USERVER_NAMESPACE::utils::statistics::Writer& writer,
+                const ClusterStatistics& value);
 
 using ClusterStatisticsPtr = std::unique_ptr<ClusterStatistics>;
 

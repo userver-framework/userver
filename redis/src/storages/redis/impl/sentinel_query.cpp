@@ -1,15 +1,17 @@
-#include "sentinel_query.hpp"
+#include <storages/redis/impl/sentinel_query.hpp>
 
 #include <sstream>
 
 #include <fmt/format.h>
+#include <hiredis/hiredis.h>
 
 #include <userver/logging/log.hpp>
-#include <userver/storages/redis/impl/reply.hpp>
 #include <userver/utils/assert.hpp>
 
-#include "sentinel_impl.hpp"
-#include "shard.hpp"
+#include <storages/redis/impl/command.hpp>
+#include <storages/redis/impl/sentinel_impl.hpp>
+#include <storages/redis/impl/shard.hpp>
+#include <userver/storages/redis/impl/reply.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -245,9 +247,10 @@ ClusterSlotsResponseStatus ParseClusterSlotsResponse(
       if (host_info_array.size() < 2) return ClusterSlotsResponseStatus::kFail;
       if (!host_info_array[0].IsString() || !host_info_array[1].IsInt())
         return ClusterSlotsResponseStatus::kFail;
-      ConnectionInfoInt conn_info;
-      conn_info.host = host_info_array[0].GetString();
-      conn_info.port = host_info_array[1].GetInt();
+      ConnectionInfoInt conn_info{
+          {host_info_array[0].GetString(),
+           static_cast<int>(host_info_array[1].GetInt()),
+           {}}};
       SlotInterval slot_interval(array[0].GetInt(), array[1].GetInt());
       if (i == 2)
         res[slot_interval].master = std::move(conn_info);
@@ -320,21 +323,21 @@ void GetHostsContext::ProcessResponsesOnce() {
       for (const auto& response : group.second) {
         UpdateInstanceStatus(response, status);
       }
-      ConnectionInfoInt info;
       const auto& properties = group.second.front();
 
       try {
-        info.name = properties.at("name");
-        info.host = properties.at("ip");
-        info.port = std::stoi(properties.at("port"));
+        ConnectionInfoInt info{
+            {properties.at("ip"), std::stoi(properties.at("port")), password_}};
+        info.SetName(properties.at("name"));
 
         InstanceUpChecker instance_up_checker(status, expected_responses_cnt_);
         if (instance_up_checker.IsInstanceUp()) {
-          info.password = password_;
           res.push_back(std::move(info));
         } else {
-          LOG_INFO() << "Skip redis server instance: name=" << info.name
-                     << ", host=" << info.host << ", port=" << info.port
+          const auto host_port = info.HostPort();
+          LOG_INFO() << "Skip redis server instance: name=" << info.Name()
+                     << ", host=" << host_port.first
+                     << ", port=" << host_port.second
                      << ", reason: " << instance_up_checker.GetReason();
         }
       } catch (const std::invalid_argument& e) {
@@ -516,8 +519,7 @@ void GetClusterHostsContext::ProcessResponsesOnce() {
       UASSERT(master);
       shard_info.second.master = *master;
 
-      ClusterShardHostInfo host_info;
-      host_info.master = shard_info.second.master;
+      ClusterShardHostInfo host_info{shard_info.second.master, {}, {}};
       for (const auto& slave : shard_info.first) {
         if (slave != host_info.master) host_info.slaves.push_back(slave);
       }
@@ -533,11 +535,11 @@ void GetClusterHostsContext::ProcessResponsesOnce() {
     } else {
       std::sort(res.begin(), res.end());
       for (auto& shard_host_info : res) {
-        shard_host_info.master.password = password_;
-        shard_host_info.master.name = (*shard_names_)[shard_index];
+        shard_host_info.master.SetPassword(password_);
+        shard_host_info.master.SetName((*shard_names_)[shard_index]);
         for (auto& slave : shard_host_info.slaves) {
-          slave.password = password_;
-          slave.name = (*shard_names_)[shard_index];
+          slave.SetPassword(password_);
+          slave.SetName((*shard_names_)[shard_index]);
         }
         ++shard_index;
       }

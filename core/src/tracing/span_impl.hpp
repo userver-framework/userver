@@ -8,6 +8,7 @@
 
 #include <boost/intrusive/list.hpp>
 
+#include <userver/formats/json/string_builder.hpp>
 #include <userver/logging/level.hpp>
 #include <userver/logging/log_extra.hpp>
 #include <userver/logging/log_filepath.hpp>
@@ -69,10 +70,12 @@ class Span::Impl
 
   void DetachFromCoroStack();
   void AttachToCoroStack();
+  void PutIntoLogger(logging::LogHelper& lh);
 
  private:
   void LogOpenTracing() const;
-  static void AddOpentracingTags(formats::json::ValueBuilder& output,
+  void DoLogOpenTracing(logging::LogHelper& lh) const;
+  static void AddOpentracingTags(formats::json::StringBuilder& output,
                                  const logging::LogExtra& input);
 
   static std::string GetParentIdForLogging(const Span::Impl* parent);

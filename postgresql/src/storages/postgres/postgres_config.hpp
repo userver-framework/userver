@@ -1,5 +1,6 @@
 #pragma once
 
+#include <userver/dynamic_config/snapshot.hpp>
 #include <userver/dynamic_config/value.hpp>
 #include <userver/yaml_config/yaml_config.hpp>
 
@@ -11,6 +12,12 @@ namespace storages::postgres {
 
 CommandControl Parse(const formats::json::Value& elem,
                      formats::parse::To<CommandControl>);
+
+ConnectionSettings Parse(const formats::json::Value& config,
+                         formats::parse::To<ConnectionSettings>);
+
+ConnectionSettings Parse(const yaml_config::YamlConfig& config,
+                         formats::parse::To<ConnectionSettings>);
 
 PoolSettings Parse(const formats::json::Value& config,
                    formats::parse::To<PoolSettings>);
@@ -30,11 +37,16 @@ class Config {
   dynamic_config::Value<CommandControlByHandlerMap> handlers_command_control;
   dynamic_config::Value<CommandControlByQueryMap> queries_command_control;
   dynamic_config::ValueDict<PoolSettings> pool_settings;
+  dynamic_config::ValueDict<ConnectionSettings> connection_settings;
   dynamic_config::ValueDict<StatementMetricsSettings>
       statement_metrics_settings;
 
   Config(const dynamic_config::DocsMap& docs_map);
 };
+
+PipelineMode ParsePipelineMode(const dynamic_config::DocsMap& docs_map);
+
+inline constexpr dynamic_config::Key<ParsePipelineMode> kPipelineModeKey;
 
 }  // namespace storages::postgres
 

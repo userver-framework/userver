@@ -12,6 +12,8 @@ USERVER_NAMESPACE_BEGIN
 
 namespace components {
 
+/// @ingroup userver_base_classes
+///
 /// @brief Base class for all @ref userver_components "application components",
 /// it depends on components::Logger and components::Tracer.
 class LoggableComponentBase : public impl::ComponentBase {
@@ -41,12 +43,20 @@ class LoggableComponentBase : public impl::ComponentBase {
   /// Application components might not want to override it.
   void OnLoadingCancelled() override {}
 
-  /// Disgusting crutch added to prevent the need to specify server handlers
-  /// twice in the service config.
-  /// Don't use it.
+  /// Component may use this function to finalize registration of other
+  /// components that depend on it (for example, handler components register
+  /// in server component, and the latter uses OnAllComponentsLoaded() to start
+  /// processing requests).
+  ///
+  /// Base components may override it and make `final` to do some work after the
+  /// derived object constructor is called. Don't use it otherwise.
   void OnAllComponentsLoaded() override {}
 
-  /// Same as OnAllComponentsLoaded(). Just do not use it.
+  /// Component may use this function to stop doing work before the stop of the
+  /// components that depend on it.
+  ///
+  /// Base components may override it and make `final` to do some work before
+  /// the derived object constructor is called. Don't use it otherwise.
   void OnAllComponentsAreStopping() override {}
 
   static yaml_config::Schema GetStaticConfigSchema();

@@ -3,6 +3,7 @@
 /// @file userver/dynamic_config/storage/component.hpp
 /// @brief @copybrief components::DynamicConfig
 
+#include <memory>
 #include <string_view>
 #include <type_traits>
 
@@ -69,7 +70,7 @@ class DynamicConfig final : public LoggableComponentBase {
   void NotifyLoadingFailed(std::string_view updater, std::string_view error);
 
   class Impl;
-  utils::FastPimpl<Impl, 704, 8> impl_;
+  std::unique_ptr<Impl> impl_;
 };
 
 /// @brief Class that provides update functionality for the config
@@ -99,8 +100,6 @@ class DynamicConfig::Updater final {
   static inline const bool kRegistered =
       DynamicConfig::RegisterUpdaterName(UpdaterComponent::kName);
 };
-
-using TaxiConfig = DynamicConfig;
 
 /// @brief Allows to subscribe to `DynamicConfig` updates without waiting for
 /// the first update to complete. Primarily intended for internal use.

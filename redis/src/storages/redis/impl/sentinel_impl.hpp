@@ -19,8 +19,8 @@
 #include <userver/engine/impl/condition_variable_any.hpp>
 #include <userver/utils/swappingsmart.hpp>
 
-#include <userver/storages/redis/impl/command.hpp>
 #include <userver/storages/redis/impl/redis_stats.hpp>
+#include <userver/storages/redis/impl/types.hpp>
 #include <userver/storages/redis/impl/wait_connected_mode.hpp>
 #include "ev_wrapper.hpp"
 #include "keys_for_shards.hpp"
@@ -43,7 +43,8 @@ class SentinelImpl {
                Sentinel& sentinel, const std::vector<std::string>& shards,
                const std::vector<ConnectionInfo>& conns,
                std::string shard_group_name, const std::string& client_name,
-               const Password& password, ReadyChangeCallback ready_callback,
+               const Password& password, ConnectionSecurity connection_security,
+               ReadyChangeCallback ready_callback,
                std::unique_ptr<KeyShard>&& key_shard,
                ConnectionMode mode = ConnectionMode::kCommands);
   ~SentinelImpl();
@@ -90,6 +91,8 @@ class SentinelImpl {
 
   void SetCommandsBufferingSettings(
       CommandsBufferingSettings commands_buffering_settings);
+  void SetReplicationMonitoringSettings(
+      const ReplicationMonitoringSettings& replication_monitoring_settings);
 
  private:
   static constexpr const std::chrono::milliseconds cluster_slots_timeout_ =
@@ -211,6 +214,7 @@ class SentinelImpl {
   ShardInfo shard_info_;
   std::string client_name_;
   Password password_{std::string()};
+  ConnectionSecurity connection_security_;
   double check_interval_;
   std::atomic<bool> update_cluster_slots_flag_;
   std::atomic<bool> cluster_mode_failed_;  // also false if not in cluster mode

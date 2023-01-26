@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <memory>
 #include <utility>
 
@@ -8,6 +9,8 @@
 
 #include <userver/ugrpc/client/impl/channel_cache.hpp>
 #include <userver/ugrpc/impl/statistics.hpp>
+#include <userver/utils/fixed_array.hpp>
+#include <userver/utils/rand.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -27,10 +30,15 @@ class ClientData final {
              ugrpc::impl::ServiceStatistics& statistics,
              std::in_place_type_t<Service>)
       : channel_token_(std::move(channel_token)),
-        stub_(Service::NewStub(channel_token_.GetChannel()).release(),
-              &StubDeleter<Service>),
         queue_(&queue),
-        statistics_(&statistics) {}
+        statistics_(&statistics) {
+    const std::size_t channel_count = channel_token_.GetChannelCount();
+    stubs_ = utils::GenerateFixedArray(channel_count, [&](std::size_t index) {
+      return StubPtr(
+          Service::NewStub(channel_token_.GetChannel(index)).release(),
+          &StubDeleter<Service>);
+    });
+  }
 
   ClientData(ClientData&&) noexcept = default;
   ClientData& operator=(ClientData&&) noexcept = default;
@@ -39,20 +47,22 @@ class ClientData final {
   ClientData& operator=(const ClientData&) = delete;
 
   template <typename Service>
-  Stub<Service>& GetStub() {
-    return *static_cast<Stub<Service>*>(stub_.get());
+  Stub<Service>& NextStub() const {
+    return *static_cast<Stub<Service>*>(
+        stubs_[utils::RandRange(stubs_.size())].get());
   }
 
-  grpc::CompletionQueue& GetQueue() { return *queue_; }
+  grpc::CompletionQueue& GetQueue() const { return *queue_; }
 
-  ugrpc::impl::MethodStatistics& GetStatistics(std::size_t method_id) {
+  ugrpc::impl::MethodStatistics& GetStatistics(std::size_t method_id) const {
     return statistics_->GetMethodStatistics(method_id);
   }
 
-  grpc::Channel& GetChannel() { return *channel_token_.GetChannel(); }
+  ChannelCache::Token& GetChannelToken() { return channel_token_; }
 
  private:
   using StubDeleterType = void (*)(void*);
+  using StubPtr = std::unique_ptr<void, StubDeleterType>;
 
   template <typename Service>
   static void StubDeleter(void* ptr) noexcept {
@@ -60,7 +70,7 @@ class ClientData final {
   }
 
   impl::ChannelCache::Token channel_token_;
-  std::unique_ptr<void, StubDeleterType> stub_;
+  utils::FixedArray<StubPtr> stubs_;
   grpc::CompletionQueue* queue_;
   ugrpc::impl::ServiceStatistics* statistics_;
 };

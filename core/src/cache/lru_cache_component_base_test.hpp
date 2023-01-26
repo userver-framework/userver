@@ -25,7 +25,9 @@ class ExampleCacheComponent final
 };
 /// [Sample lru cache component]
 
-Value ExampleCacheComponent::GetValueForExpiredKeyFromRemote(const Key&) {
+// NOLINTNEXTLINE(readability-convert-member-functions-to-static)
+inline Value ExampleCacheComponent::GetValueForExpiredKeyFromRemote(
+    const Key&) {
   return 0;
 }
 

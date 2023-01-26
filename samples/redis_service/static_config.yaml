@@ -6,6 +6,10 @@ components_manager:
             path: /v1/key-value                  # Registering handler by URL '/v1/key-value'.
             method: GET,POST,DELETE              # GET, POST and DELETE requests only.
             task_processor: main-task-processor  # Run it on CPU bound task processor
+        handler-script:
+            path: /v1/script                     # Registering handler by URL '/v1/key-value'.
+            method: POST                         # GET, POST and DELETE requests only.
+            task_processor: main-task-processor  # Run it on CPU bound task processor
 
         key-value-database:
             groups:
@@ -18,7 +22,8 @@ components_manager:
                 redis_thread_pool_size: 8
                 sentinel_thread_pool_size: 1
 
-        secdist:                                         # Component that stores configuration of hosts and passwords
+        secdist: {}                                      # Component that stores configuration of hosts and passwords
+        default-secdist-provider:                        # Component that loads configuration of hosts and passwords
             config: /etc/redis_service/secure_data.json  # Values are supposed to be stored in this file
             missing-ok: true                             # ... but if the file is missing it is still ok
             environment-secrets-key: SECDIST_CONFIG      # ... values will be loaded from this environment value

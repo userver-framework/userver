@@ -116,3 +116,10 @@ that could be is dynamically enabled/disabled via the server::handlers::Jemalloc
 
   **A:** You need to make sure that the directory specified in `prof_prefix` is
      created and that the service has write access to it.
+
+
+----------
+
+@htmlonly <div class="bottom-nav"> @endhtmlonly
+⇦ @ref md_en_userver_service_monitor | @ref md_en_userver_dns_control ⇨
+@htmlonly </div> @endhtmlonly

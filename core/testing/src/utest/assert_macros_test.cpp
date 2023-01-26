@@ -1,5 +1,6 @@
 #include <userver/utest/assert_macros.hpp>
 
+#include <cstdlib>
 #include <stdexcept>
 #include <type_traits>
 
@@ -37,7 +38,7 @@ void DummyWrapperFunction() { DummyTracedThrowingFunction(); }
 
 static_assert(std::is_base_of_v<std::logic_error, std::length_error>);
 
-TEST(AssertMacros, EXPECT_THROW_MSG) {
+TEST(AssertMacros, ExpectThrowMsg) {
   UEXPECT_THROW_MSG(throw std::length_error("what"), std::logic_error, "ha");
 
   EXPECT_NONFATAL_FAILURE(UEXPECT_THROW_MSG(throw std::length_error("what"),
@@ -60,11 +61,12 @@ TEST(AssertMacros, EXPECT_THROW_MSG) {
   Actual: it does not throw.
   )~"));
 
+  // NOLINTNEXTLINE(hicpp-exception-baseclass)
   EXPECT_NONFATAL_FAILURE(UEXPECT_THROW_MSG(throw 0, std::logic_error, "what"),
                           "'throw 0' throws a non-std::exception");
 }
 
-TEST(AssertMacros, ASSERT_THROW_MSG) {
+TEST(AssertMacros, AssertThrowMsg) {
   UASSERT_THROW_MSG(throw std::length_error("what"), std::logic_error, "ha");
 
   EXPECT_FATAL_FAILURE(UASSERT_THROW_MSG(throw std::length_error("what"),
@@ -75,7 +77,7 @@ TEST(AssertMacros, ASSERT_THROW_MSG) {
   )~"));
 }
 
-TEST(AssertMacros, EXPECT_THROW) {
+TEST(AssertMacros, ExpectThrow) {
   UEXPECT_THROW(throw std::length_error("what"), std::logic_error);
 
   EXPECT_NONFATAL_FAILURE(
@@ -91,11 +93,12 @@ TEST(AssertMacros, EXPECT_THROW) {
   Actual: it does not throw.
   )~"));
 
+  // NOLINTNEXTLINE(hicpp-exception-baseclass)
   EXPECT_NONFATAL_FAILURE(UEXPECT_THROW(throw 0, std::logic_error),
                           "'throw 0' throws a non-std::exception");
 }
 
-TEST(AssertMacros, ASSERT_THROW) {
+TEST(AssertMacros, AssertThrow) {
   UASSERT_THROW(throw std::length_error("what"), std::logic_error);
 
   EXPECT_FATAL_FAILURE(
@@ -106,7 +109,7 @@ TEST(AssertMacros, ASSERT_THROW) {
   )~"));
 }
 
-TEST(AssertMacros, EXPECT_NO_THROW) {
+TEST(AssertMacros, ExpectNoThrow) {
   UEXPECT_NO_THROW(BarrelRoll());
 
   EXPECT_NONFATAL_FAILURE(UEXPECT_NO_THROW(throw std::runtime_error("what")),
@@ -115,11 +118,12 @@ TEST(AssertMacros, EXPECT_NO_THROW) {
   Actual: it throws an exception of type 'std::runtime_error' with message 'what'.
   )~"));
 
+  // NOLINTNEXTLINE(hicpp-exception-baseclass)
   EXPECT_NONFATAL_FAILURE(UEXPECT_NO_THROW(throw 0),
                           "'throw 0' throws a non-std::exception");
 }
 
-TEST(AssertMacros, ASSERT_NO_THROW) {
+TEST(AssertMacros, AssertNoThrow) {
   UASSERT_NO_THROW(BarrelRoll());
 
   EXPECT_FATAL_FAILURE(UASSERT_NO_THROW(throw std::runtime_error("what")),
@@ -166,7 +170,7 @@ TEST(AssertMacros, TracefulException) {
 
   EXPECT_NONFATAL_FAILURE(
       UEXPECT_THROW(DummyWrapperFunction(), std::runtime_error),
-      "DummyTracedThrowingFunction");
+      "DummyTracedException");
 }
 
 namespace {
@@ -186,7 +190,14 @@ TEST(AssertMacros, Sample) {
 
 }  // namespace
 
-TEST(AssertMacros, EXPECT_UINVARIANT_FAILURE) {
+TEST(AssertMacros, ExpectDeath) {
+  testing::FLAGS_gtest_death_test_style = "threadsafe";
+  UEXPECT_DEATH(std::abort(), "");
+  EXPECT_NONFATAL_FAILURE(UEXPECT_DEATH(BarrelRoll(), ""), "");
+}
+
+TEST(AssertMacros, ExpectUinvariantFailure) {
+  testing::FLAGS_gtest_death_test_style = "threadsafe";
   EXPECT_UINVARIANT_FAILURE(UINVARIANT(false, "what"));
   EXPECT_NONFATAL_FAILURE(EXPECT_UINVARIANT_FAILURE(BarrelRoll()), "");
 }

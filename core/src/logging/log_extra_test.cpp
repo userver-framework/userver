@@ -15,7 +15,7 @@ TEST(LogExtra, Types) {
       {"long long", 1LL},            //
       {"unsigned long", 1UL},        //
       {"unsigned long long", 1ULL},  //
-      {"size_t", sizeof(1)},         //
+      {"size_t", size_t{1}},         //
   };
 }
 
@@ -38,7 +38,7 @@ TEST(LogExtra, DocsData) {
 
 TEST(LogExtraDeathTest, UsingTechnicalKeys) {
   logging::LogExtra log_extra;
-  for (auto& key :
+  for (const auto& key :
        {"timestamp", "level", "module", "task_id", "thread_id", "text"}) {
     EXPECT_UINVARIANT_FAILURE(log_extra.Extend(key, 1));
   }

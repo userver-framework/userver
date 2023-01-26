@@ -70,8 +70,8 @@ UTEST(ConcurrentVariable, SampleConcurrentVariable) {
   constexpr auto kTestString = "Test string";
 
   struct Data {
-    int x;
-    std::string s;
+    int x = 0;
+    std::string s{};
   };
   // If you do not specify the 2nd template parameter,
   // then by default Variable is protected by engine::Mutex.

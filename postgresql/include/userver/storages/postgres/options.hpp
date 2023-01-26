@@ -108,9 +108,9 @@ const std::string& BeginStatement(const TransactionOptions&);
 /// exception and the driver tries to clean up the connection for further reuse.
 struct CommandControl {
   /// Overall timeout for a command being executed
-  TimeoutDuration execute;
+  TimeoutDuration execute{};
   /// PostgreSQL server-side timeout
-  TimeoutDuration statement;
+  TimeoutDuration statement{};
 
   constexpr CommandControl(TimeoutDuration execute, TimeoutDuration statement)
       : execute(execute), statement(statement) {}
@@ -191,7 +191,14 @@ struct PoolSettings {
 /// Default size limit for prepared statements cache
 static constexpr size_t kDefaultMaxPreparedCacheSize = 5000;
 
+/// Pipeline mode configuration
+///
+/// Dynamic option @ref POSTGRES_CONNECTION_PIPELINE_ENABLED
+enum class PipelineMode { kDisabled, kEnabled };
+
 /// PostgreSQL connection options
+///
+/// Dynamic option @ref POSTGRES_CONNECTION_SETTINGS
 struct ConnectionSettings {
   enum PreparedStatementOptions {
     kCachePreparedStatements,
@@ -205,15 +212,41 @@ struct ConnectionSettings {
     kIgnoreUnused,
     kCheckUnused,
   };
-  enum PipelineMode {
-    kPipelineDisabled,
-    kPipelineEnabled,
-  };
+  using SettingsVersion = size_t;
+
+  /// Cache prepared statements or not
   PreparedStatementOptions prepared_statements = kCachePreparedStatements;
+
+  /// Enables the usage of user-defined types
   UserTypesOptions user_types = kUserTypesEnabled;
+
+  /// Checks for not-NULL query params that are not used in query
   CheckQueryParamsOptions ignore_unused_query_params = kCheckUnused;
+
+  /// Limits the size or prepared statments cache
   size_t max_prepared_cache_size = kDefaultMaxPreparedCacheSize;
-  PipelineMode pipeline_mode = kPipelineDisabled;
+
+  /// Turns on connection pipeline mode
+  PipelineMode pipeline_mode = PipelineMode::kDisabled;
+
+  /// This many connection errors in 15 seconds block new connections opening
+  size_t recent_errors_threshold = 2;
+
+  /// Helps keep track of the changes in settings
+  SettingsVersion version{0U};
+
+  bool operator==(const ConnectionSettings& rhs) const {
+    return prepared_statements == rhs.prepared_statements &&
+           user_types == rhs.user_types &&
+           ignore_unused_query_params == rhs.ignore_unused_query_params &&
+           max_prepared_cache_size == rhs.max_prepared_cache_size &&
+           pipeline_mode == rhs.pipeline_mode &&
+           recent_errors_threshold == rhs.recent_errors_threshold;
+  }
+
+  bool operator!=(const ConnectionSettings& rhs) const {
+    return !(*this == rhs);
+  }
 };
 
 /// @brief PostgreSQL statements metrics options

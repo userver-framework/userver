@@ -22,6 +22,8 @@ inline constexpr bool kEnableAssert = false;
 inline constexpr bool kEnableAssert = true;
 #endif
 
+extern bool dump_stacktrace_on_assert_failure;
+
 }  // namespace utils::impl
 
 USERVER_NAMESPACE_END

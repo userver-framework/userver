@@ -6,9 +6,10 @@
 #include <boost/algorithm/string/split.hpp>
 #include <boost/algorithm/string/trim.hpp>
 
-#include <engine/task/task_context.hpp>
+#include <clients/http/testsuite.hpp>
 #include <engine/task/task_processor.hpp>
 #include <userver/clients/dns/resolver.hpp>
+#include <userver/clients/http/streamed_response.hpp>
 #include <userver/crypto/certificate.hpp>
 #include <userver/crypto/private_key.hpp>
 #include <userver/engine/async.hpp>
@@ -131,7 +132,7 @@ using HttpResponse = utest::SimpleServer::Response;
 using HttpRequest = utest::SimpleServer::Request;
 using HttpCallback = utest::SimpleServer::OnRequest;
 
-static std::optional<HttpResponse> process_100(const HttpRequest& request) {
+std::optional<HttpResponse> process_100(const HttpRequest& request) {
   const bool requires_continue =
       (request.find("Expect: 100-continue") != std::string::npos);
 
@@ -148,7 +149,7 @@ static std::optional<HttpResponse> process_100(const HttpRequest& request) {
 struct EchoCallback {
   std::shared_ptr<std::size_t> responses_200 = std::make_shared<std::size_t>(0);
 
-  HttpResponse operator()(const HttpRequest& request) {
+  HttpResponse operator()(const HttpRequest& request) const {
     LOG_INFO() << "HTTP Server receive: " << request;
 
     const auto cont = process_100(request);
@@ -207,7 +208,7 @@ struct ValidatingSharedCallback {
   }
 };
 
-static HttpResponse put_validate_callback(const HttpRequest& request) {
+HttpResponse put_validate_callback(const HttpRequest& request) {
   LOG_INFO() << "HTTP Server receive: " << request;
 
   EXPECT_NE(request.find("PUT"), std::string::npos)
@@ -219,8 +220,8 @@ static HttpResponse put_validate_callback(const HttpRequest& request) {
       HttpResponse::kWriteAndClose};
 }
 
-static HttpResponse sleep_callback_base(const HttpRequest& request,
-                                        std::chrono::milliseconds sleep_for) {
+HttpResponse sleep_callback_base(const HttpRequest& request,
+                                 std::chrono::milliseconds sleep_for) {
   LOG_INFO() << "HTTP Server receive: " << request;
 
   engine::InterruptibleSleepFor(sleep_for);
@@ -232,15 +233,15 @@ static HttpResponse sleep_callback_base(const HttpRequest& request,
       HttpResponse::kWriteAndClose};
 }
 
-static HttpResponse sleep_callback(const HttpRequest& request) {
+HttpResponse sleep_callback(const HttpRequest& request) {
   return sleep_callback_base(request, utest::kMaxTestWaitTime);
 }
 
-static HttpResponse sleep_callback_1s(const HttpRequest& request) {
+HttpResponse sleep_callback_1s(const HttpRequest& request) {
   return sleep_callback_base(request, std::chrono::seconds(1));
 }
 
-static HttpResponse huge_data_callback(const HttpRequest& request) {
+HttpResponse huge_data_callback(const HttpRequest& request) {
   LOG_INFO() << "HTTP Server receive: " << request;
 
   const auto cont = process_100(request);
@@ -264,8 +265,8 @@ std::string TryGetHeader(const HttpRequest& request, std::string_view header) {
       << "Header `" << header
       << "` exists more than once in request: " << request;
 
-  auto values_begin_pos = request.find(":", first_pos + header.length()) + 1;
-  auto values_end_pos = request.find("\r", values_begin_pos);
+  auto values_begin_pos = request.find(':', first_pos + header.length()) + 1;
+  auto values_end_pos = request.find('\r', values_begin_pos);
 
   std::string header_value(request.data() + values_begin_pos,
                            values_end_pos - values_begin_pos);
@@ -281,7 +282,7 @@ std::string AssertHeader(const HttpRequest& request, std::string_view header) {
   return TryGetHeader(request, header);
 }
 
-static HttpResponse header_validate_callback(const HttpRequest& request) {
+HttpResponse header_validate_callback(const HttpRequest& request) {
   LOG_INFO() << "HTTP Server receive: " << request;
   AssertHeader(request, kTestHeader);
   return {
@@ -290,7 +291,7 @@ static HttpResponse header_validate_callback(const HttpRequest& request) {
       HttpResponse::kWriteAndClose};
 }
 
-static HttpResponse user_agent_validate_callback(const HttpRequest& request) {
+HttpResponse user_agent_validate_callback(const HttpRequest& request) {
   LOG_INFO() << "HTTP Server receive: " << request;
   auto header_value = AssertHeader(request, http::headers::kUserAgent);
 
@@ -302,8 +303,7 @@ static HttpResponse user_agent_validate_callback(const HttpRequest& request) {
       HttpResponse::kWriteAndClose};
 }
 
-static HttpResponse no_user_agent_validate_callback(
-    const HttpRequest& request) {
+HttpResponse no_user_agent_validate_callback(const HttpRequest& request) {
   LOG_INFO() << "HTTP Server receive: " << request;
   auto header_value = TryGetHeader(request, http::headers::kUserAgent);
   EXPECT_EQ(header_value, utils::GetUserverIdentifier())
@@ -427,6 +427,13 @@ struct ResolverWrapper {
   clients::dns::Resolver resolver;
 };
 
+auto LogLevelScope(logging::Level level) {
+  const auto old_level = logging::GetDefaultLoggerLevel();
+  logging::SetDefaultLoggerLevel(level);
+  return utils::FastScopeGuard(
+      [old_level]() noexcept { logging::SetDefaultLoggerLevel(old_level); });
+}
+
 namespace sample {
 
 /// [HTTP Client - request reuse]
@@ -454,6 +461,40 @@ std::string DifferentUrlsRetry(std::string data, clients::http::Client& http,
   throw std::runtime_error("No alive servers");
 }
 /// [HTTP Client - request reuse]
+
+std::string DifferentUrlsRetryStreamResponseBody(
+    std::string data, clients::http::Client& http,
+    std::initializer_list<std::string> urls_list) {
+  auto request = http.CreateRequest()
+                     ->post()
+                     ->data(std::move(data))  // no copying
+                     ->retry(1)
+                     ->http_version(clients::http::HttpVersion::k11)
+                     ->timeout(kTimeout);
+
+  for (const auto& url : urls_list) {
+    request->url(url);  // set URL
+    auto queue = concurrent::SpscQueue<std::string>::Create();
+
+    try {
+      auto stream_response = request->async_perform_stream_body(queue);
+      const auto status_code = stream_response.StatusCode();
+
+      if (static_cast<int>(status_code) == 200) {
+        std::string body_part;
+        std::string result;
+        auto deadline = engine::Deadline::FromDuration(kTimeout);
+        while (stream_response.ReadChunk(body_part, deadline)) {
+          result += body_part;
+        }
+        return result;
+      }
+    } catch (const clients::http::TimeoutException&) {
+    }
+  }
+
+  UINVARIANT(false, "No alive servers");
+}
 
 }  // namespace sample
 
@@ -577,8 +618,7 @@ UTEST(HttpClient, CancelPre) {
     const utest::SimpleServer http_server{EchoCallback{}};
     auto http_client_ptr = utest::CreateHttpClient();
 
-    engine::current_task::GetCurrentTaskContext().RequestCancel(
-        engine::TaskCancellationReason::kUserRequest);
+    engine::current_task::GetCancellationToken().RequestCancel();
 
     UEXPECT_THROW(http_client_ptr->CreateRequest(),
                   clients::http::CancelException);
@@ -596,8 +636,7 @@ UTEST(HttpClient, CancelPost) {
                              ->post(http_server.GetBaseUrl(), kTestData)
                              ->timeout(kTimeout);
 
-    engine::current_task::GetCurrentTaskContext().RequestCancel(
-        engine::TaskCancellationReason::kUserRequest);
+    engine::current_task::GetCancellationToken().RequestCancel();
 
     auto future = request->async_perform();
     UEXPECT_THROW(future.Wait(), clients::http::CancelException);
@@ -642,8 +681,12 @@ UTEST(HttpClient, CancelRetries) {
   ASSERT_TRUE(enough_retries_event.WaitForEventFor(utest::kMaxTestWaitTime));
 
   const auto cancellation_start_time = std::chrono::steady_clock::now();
-  engine::current_task::GetCurrentTaskContext().RequestCancel(
-      engine::TaskCancellationReason::kUserRequest);
+  engine::current_task::GetCancellationToken().RequestCancel();
+
+  const auto request_creation_duration =
+      cancellation_start_time - start_create_request_time;
+
+  EXPECT_LT(request_creation_duration, kMaxNonIoReactionTime);
 
   try {
     [[maybe_unused]] auto val = future->Wait();
@@ -672,10 +715,6 @@ UTEST(HttpClient, CancelRetries) {
       << duration_cast<milliseconds>(future_destruction_duration).count()
       << "ms";
 
-  const auto request_creation_duration =
-      cancellation_start_time - start_create_request_time;
-  EXPECT_LT(request_creation_duration, kMaxNonIoReactionTime);
-
   EXPECT_GE(server_requests, kMinRetries);
   EXPECT_LT(server_requests, kMinRetries * 2);
 
@@ -700,6 +739,9 @@ UTEST(HttpClient, PostShutdownWithPendingRequest) {
 }
 
 UTEST(HttpClient, PostShutdownWithPendingRequestHuge) {
+  // The test produces too much logs otherwise
+  auto log_level_scope = LogLevelScope(logging::Level::kError);
+
   const utest::SimpleServer http_server{&sleep_callback};
   auto http_client_ptr = utest::CreateHttpClient();
 
@@ -764,6 +806,9 @@ UTEST(HttpClient, PutShutdownWithPendingRequest) {
 }
 
 UTEST(HttpClient, PutShutdownWithPendingRequestHuge) {
+  // The test produces too much logs otherwise
+  auto log_level_scope = LogLevelScope(logging::Level::kError);
+
   const utest::SimpleServer http_server{&sleep_callback};
   auto http_client_ptr = utest::CreateHttpClient();
 
@@ -1265,7 +1310,6 @@ UTEST(HttpClient, RequestReuseSample) {
 
   auto http_client_ptr = utest::CreateHttpClient();
 
-  const auto server_url = http_sleep_server.GetBaseUrl();
   auto resp = sample::DifferentUrlsRetry(data, *http_client_ptr,
                                          {
                                              http_sleep_server.GetBaseUrl(),
@@ -1287,6 +1331,30 @@ UTEST(HttpClient, RequestReuseSample) {
 
   EXPECT_EQ(resp, data);
   EXPECT_EQ(*shared_echo_callback.responses_200, 2);
+}
+
+UTEST(HttpClient, DISABLED_RequestReuseSampleStream) {
+  EchoCallback shared_echo_callback{};
+  const utest::SimpleServer http_server{shared_echo_callback,
+                                        utest::SimpleServer::kTcpIpV6};
+  const utest::SimpleServer http_sleep_server{sleep_callback_1s};
+
+  std::string data = "Some long long request";
+  for (unsigned i = 0; i < kFewRepetitions; ++i) {
+    data += data;
+  }
+
+  auto http_client_ptr = utest::CreateHttpClient();
+  auto resp = sample::DifferentUrlsRetryStreamResponseBody(
+      data, *http_client_ptr,
+      {
+          http_sleep_server.GetBaseUrl(),
+          http_sleep_server.GetBaseUrl(),
+          http_server.GetBaseUrl(),
+          http_server.GetBaseUrl(),
+      });
+  EXPECT_EQ(resp, data);
+  EXPECT_EQ(*shared_echo_callback.responses_200, 3);
 }
 
 UTEST(HttpClient, RequestReuseDifferentUrlAndTimeout) {
@@ -1331,6 +1399,49 @@ UTEST(HttpClient, RequestReuseDifferentUrlAndTimeout) {
   EXPECT_EQ(res->body(), "test");
   EXPECT_EQ(200, res->status_code());
   EXPECT_EQ(*shared_echo_callback.responses_200, kFewRepetitions + 1);
+}
+
+UTEST(HttpClient, DISABLED_TestsuiteAllowedUrls) {
+  auto task = utils::Async("test", [] {
+    const utest::SimpleServer http_server{EchoCallback{}};
+    auto http_client_ptr = utest::CreateHttpClient();
+    http_client_ptr->SetTestsuiteConfig({{"http://126.0.0.1"}, {}});
+
+    EXPECT_NO_THROW((void)http_client_ptr->CreateRequest()
+                        ->get("http://126.0.0.1")
+                        ->async_perform());
+    UEXPECT_DEATH((void)http_client_ptr->CreateRequest()
+                      ->get("http://12.0.0.1")
+                      ->async_perform(),
+                  ".*");
+
+    http_client_ptr->SetAllowedUrlsExtra({"http://12.0"});
+    EXPECT_NO_THROW((void)http_client_ptr->CreateRequest()
+                        ->get("http://12.0.0.1")
+                        ->async_perform());
+    UEXPECT_DEATH((void)http_client_ptr->CreateRequest()
+                      ->get("http://13.0.0.1")
+                      ->async_perform(),
+                  ".*");
+  });
+
+  task.Get();
+}
+
+UTEST(HttpClient, CheckSchema) {
+  auto http_client_ptr = utest::CreateHttpClient();
+  UEXPECT_NO_THROW(http_client_ptr->CreateRequest()->url("http://localhost"));
+  UEXPECT_NO_THROW(http_client_ptr->CreateRequest()->url("https://localhost"));
+  UEXPECT_NO_THROW(http_client_ptr->CreateRequest()->url("httpS://localhost"));
+  UEXPECT_NO_THROW(http_client_ptr->CreateRequest()->url("HTTP://LOCALHOST"));
+  UEXPECT_THROW(http_client_ptr->CreateRequest()->url("dict://localhost"),
+                clients::http::BadArgumentException);
+  UEXPECT_THROW(http_client_ptr->CreateRequest()->url("file://localhost"),
+                clients::http::BadArgumentException);
+  UEXPECT_THROW(http_client_ptr->CreateRequest()->url("smtp://localhost"),
+                clients::http::BadArgumentException);
+  UEXPECT_THROW(http_client_ptr->CreateRequest()->url("telnet://localhost"),
+                clients::http::BadArgumentException);
 }
 
 USERVER_NAMESPACE_END

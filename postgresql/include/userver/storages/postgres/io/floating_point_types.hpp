@@ -71,8 +71,9 @@ struct FloatingPointBinaryFormatter {
   template <typename Buffer>
   void operator()(const UserTypes& types, Buffer& buf) const {
     using IntType = typename IntegralType<size>::type;
-    IntegralBinaryFormatter<IntType>(reinterpret_cast<const IntType&>(value))(
-        types, buf);
+    IntType int_value{};
+    std::memcpy(&int_value, &value, size);
+    IntegralBinaryFormatter<IntType>{int_value}(types, buf);
   }
 };
 }  // namespace detail

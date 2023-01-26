@@ -129,6 +129,8 @@ std::string ToString(WriteOperationStatistics::OpType type) {
       return "find-and-remove";
     case Type::kBulk:
       return "bulk";
+    case Type::kDrop:
+      return "drop";
   }
 
   UINVARIANT(false, "Unexpected type");
@@ -173,7 +175,7 @@ template <typename OpStats>
 void OperationStopwatch<OpStats>::Reset(
     const std::shared_ptr<OpStats>& stats_ptr,
     typename OpStats::OpType op_type) {
-  stats_item_agg_ = stats_ptr->items[op_type];
+  stats_item_agg_ = stats_ptr ? stats_ptr->items[op_type] : nullptr;
   scope_time_.Reset(ToString(op_type));
 }
 

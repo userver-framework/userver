@@ -114,7 +114,7 @@ formats::json::Value Client::FetchConfigs(
   }
 
   auto request_body = formats::json::ToString(body_builder.ExtractValue());
-  LOG_DEBUG() << "request body: " << request_body;
+  LOG_TRACE() << "request body: " << request_body;
 
   auto json = FetchConfigsValues(request_body);
 

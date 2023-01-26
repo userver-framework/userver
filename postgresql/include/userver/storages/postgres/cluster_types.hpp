@@ -31,6 +31,9 @@ enum class ClusterHostType {
   /// Connect to one of cluster's slaves. May fallback to master. Can be used
   /// only for read only transactions.
   kSlave = 0x04,
+  /// Connect to either a master or to a slave, whatever the host selection
+  /// strategy chooses. Can be used only for read only transactions.
+  kSlaveOrMaster = kMaster | kSlave,
   /// @}
 
   /// @name Host selection strategies

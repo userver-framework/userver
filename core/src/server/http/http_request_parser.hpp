@@ -8,8 +8,9 @@
 #include <http_parser.h>
 
 #include <server/net/stats.hpp>
-#include <server/request/request_config.hpp>
 #include <server/request/request_parser.hpp>
+
+#include <userver/server/request/request_config.hpp>
 
 #include "http_request_constructor.hpp"
 
@@ -23,7 +24,7 @@ class HttpRequestParser final : public request::RequestParser {
       std::function<void(std::shared_ptr<request::RequestBase>&&)>;
 
   HttpRequestParser(const HandlerInfoIndex& handler_info_index,
-                    const request::RequestConfig& request_config,
+                    const request::HttpRequestConfig& request_config,
                     OnNewRequestCb&& on_new_request_cb, net::ParserStats& stats,
                     request::ResponseDataAccounter& data_accounter);
 

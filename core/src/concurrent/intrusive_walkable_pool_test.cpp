@@ -18,27 +18,24 @@ USERVER_NAMESPACE_BEGIN
 
 namespace {
 
-class CheckedInt {
- public:
+struct CheckedInt {
   CheckedInt() : CheckedInt(42) {}
 
-  explicit CheckedInt(int x) : x_(x) { UASSERT(x != 0); }
+  explicit CheckedInt(int x) : x(x) { UASSERT(x != 0); }
 
   ~CheckedInt() {
     CheckAlive();
-    x_ = 0;
+    x = 0;
   }
 
   void CheckAlive() const {
-    const auto x = x_;
     EXPECT_NE(x, 0) << "UB detected, possibly use-after-free";
   }
 
-  concurrent::impl::IntrusiveStackHook<CheckedInt> stack_hook;
+  concurrent::impl::SinglyLinkedHook<CheckedInt> stack_hook;
   concurrent::impl::IntrusiveWalkablePoolHook<CheckedInt> pool_hook;
 
- private:
-  int x_;
+  int x;
 };
 
 using CheckedIntStack = concurrent::impl::IntrusiveStack<

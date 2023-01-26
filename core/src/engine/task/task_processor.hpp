@@ -100,7 +100,7 @@ class TaskProcessor final {
   std::atomic<size_t> max_task_queue_wait_length_{0};
   TaskProcessorSettings::OverloadAction overload_action_{
       TaskProcessorSettings::OverloadAction::kIgnore};
-  bool task_queue_wait_time_overloaded_{false};
+  std::atomic<bool> task_queue_wait_time_overloaded_{false};
 
   std::vector<std::thread> workers_;
   impl::TaskCounter task_counter_;

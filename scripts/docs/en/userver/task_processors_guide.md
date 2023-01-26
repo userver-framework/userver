@@ -68,8 +68,7 @@ engine::io::Socket::ReadAll() in `fs-task-processor`, use the
 
 A common usage pattern for this task processor looks like:
 
-```
-cpp
+```cpp
 // lib_sample synchronously reads some of /etc/* files.
 auto result = engine::AsyncNoSpan(fs_task_processor_, [preset_name]() {
   return lib_sample::quick_check_config_preset(preset_name);
@@ -77,8 +76,7 @@ auto result = engine::AsyncNoSpan(fs_task_processor_, [preset_name]() {
 ```
 
 Or:
-```
-cpp
+```cpp
 auto result = engine::Async(fs_task_processor_, "torrent/validate", [path]() {
   auto files = libtorrent::discover_files(path);  // searches FS
   return libtorrent::validate_hashes(files);      // reads files and computes hashes
@@ -125,3 +123,10 @@ CPU cores:
   background tasks.
 
 Make sure that tasks execute faster than they arrive.
+
+
+----------
+
+@htmlonly <div class="bottom-nav"> @endhtmlonly
+⇦ @ref md_en_userver_logging | @ref md_en_userver_testing ⇨
+@htmlonly </div> @endhtmlonly

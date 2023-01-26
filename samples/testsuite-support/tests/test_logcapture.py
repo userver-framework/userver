@@ -7,7 +7,7 @@ async def test_select(service_client):
     records = capture.select(
         text='Message to catpure', link=response.headers['x-yarequestid'],
     )
-    assert len(records) == 1
+    assert len(records) == 1, capture.select()
     # /// [select]
 
 

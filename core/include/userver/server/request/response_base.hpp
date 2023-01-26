@@ -8,8 +8,6 @@
 #include <string>
 #include <unordered_map>
 
-#include <userver/concurrent/mpsc_queue.hpp>
-
 USERVER_NAMESPACE_BEGIN
 
 namespace engine::io {
@@ -52,10 +50,6 @@ class ResponseBase {
   void SetData(std::string data);
   const std::string& GetData() const { return data_; }
 
-  using Queue = concurrent::MpscQueue<std::unique_ptr<std::string>>;
-  using QueueConsumer = Queue::Consumer;
-  using QueueProducer = Queue::Producer;
-
   virtual bool IsBodyStreamed() const = 0;
   virtual bool WaitForHeadersEnd() = 0;
   virtual void SetHeadersEnd() = 0;
@@ -63,6 +57,7 @@ class ResponseBase {
   /// @cond
   // TODO: server internals. remove from public interface
   void SetReady();
+  void SetReady(std::chrono::steady_clock::time_point now);
   virtual void SetSendFailed(
       std::chrono::steady_clock::time_point failure_time);
   bool IsLimitReached() const;

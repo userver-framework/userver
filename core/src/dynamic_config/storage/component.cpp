@@ -192,7 +192,7 @@ bool DynamicConfig::Impl::IsFsCacheEnabled() const {
 void DynamicConfig::Impl::ReadFsCache() {
   if (!IsFsCacheEnabled()) return;
 
-  tracing::Span span("taxi_config_fs_cache_read");
+  tracing::Span span("dynamic_config_fs_cache_read");
   try {
     if (!fs::FileExists(*fs_task_processor_, fs_cache_path_)) {
       LOG_WARNING() << "No FS cache for config found, waiting until "
@@ -225,7 +225,7 @@ void DynamicConfig::Impl::WriteFsCache(
     const dynamic_config::DocsMap& docs_map) {
   if (!IsFsCacheEnabled()) return;
 
-  tracing::Span span("taxi_config_fs_cache_write");
+  tracing::Span span("dynamic_config_fs_cache_write");
   try {
     const auto contents = docs_map.AsJsonString();
     using perms = boost::filesystem::perms;
@@ -255,7 +255,8 @@ DynamicConfig::NoblockSubscriber::GetEventSource() noexcept {
 
 DynamicConfig::DynamicConfig(const ComponentConfig& config,
                              const ComponentContext& context)
-    : LoggableComponentBase(config, context), impl_(config, context) {}
+    : LoggableComponentBase(config, context),
+      impl_(std::make_unique<Impl>(config, context)) {}
 
 DynamicConfig::~DynamicConfig() = default;
 

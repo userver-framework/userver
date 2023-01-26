@@ -17,7 +17,7 @@ namespace io = pg::io;
 
 namespace static_test {
 
-using namespace io::traits;
+namespace tt = io::traits;
 
 using Numeric = pg::MultiPrecision<50>;
 
@@ -26,10 +26,11 @@ static_assert(sizeof(Numeric));
 static_assert(sizeof(io::BufferParser<Numeric>));
 static_assert(sizeof(io::BufferFormatter<Numeric>));
 
-static_assert(kHasFormatter<Numeric>);
-static_assert(kHasParser<Numeric>);
-static_assert(kIsMappedToPg<Numeric>);
-static_assert(kTypeBufferCategory<Numeric> == io::BufferCategory::kPlainBuffer);
+static_assert(tt::kHasFormatter<Numeric>);
+static_assert(tt::kHasParser<Numeric>);
+static_assert(tt::kIsMappedToPg<Numeric>);
+static_assert(tt::kTypeBufferCategory<Numeric> ==
+              io::BufferCategory::kPlainBuffer);
 
 }  // namespace static_test
 
@@ -49,7 +50,7 @@ TEST(PostgreIO, Numeric) {
     EXPECT_EQ(src, tgt);
   }
   {
-    Numeric src = boost::math::sin_pi(Numeric{1});
+    Numeric src{0};
     pg::test::Buffer buffer;
     UEXPECT_NO_THROW(io::WriteBuffer(types, buffer, src));
     auto fb = pg::test::MakeFieldBuffer(buffer);
@@ -90,7 +91,7 @@ INSTANTIATE_TEST_SUITE_P(
                       "000000000000000000000000"));
 
 UTEST_P(PostgreConnection, NumericRoundtrip) {
-  CheckConnection(conn);
+  CheckConnection(GetConn());
   pg::ResultSet res{nullptr};
 
   EXPECT_EQ(io::BufferCategory::kPlainBuffer,
@@ -104,7 +105,7 @@ UTEST_P(PostgreConnection, NumericRoundtrip) {
       Numeric{"-100500"}, Numeric{"3.14159265358979323846"}};
 
   for (auto n : test_values) {
-    UEXPECT_NO_THROW(res = conn->Execute("select $1", n));
+    UEXPECT_NO_THROW(res = GetConn()->Execute("select $1", n));
     Numeric v;
     UEXPECT_NO_THROW(v = res[0][0].As<Numeric>());
     EXPECT_EQ(n, v) << n << " is not equal to " << v;
@@ -170,7 +171,7 @@ INSTANTIATE_TEST_SUITE_P(
 UTEST_P(PostgreConnection, DecimalRoundtrip) {
   using Decimal = decimal64::Decimal<10>;
 
-  CheckConnection(conn);
+  CheckConnection(GetConn());
   pg::ResultSet res{nullptr};
 
   EXPECT_EQ(io::BufferCategory::kPlainBuffer,
@@ -186,7 +187,7 @@ UTEST_P(PostgreConnection, DecimalRoundtrip) {
       Decimal{"3.1415926535"}};
 
   for (auto n : test_values) {
-    UEXPECT_NO_THROW(res = conn->Execute("select $1", n));
+    UEXPECT_NO_THROW(res = GetConn()->Execute("select $1", n));
     Decimal v;
     UEXPECT_NO_THROW(v = res[0][0].As<Decimal>());
     EXPECT_EQ(n, v) << n << " is not equal to " << v;
@@ -196,11 +197,11 @@ UTEST_P(PostgreConnection, DecimalRoundtrip) {
 UTEST_P(PostgreConnection, DecimalStored) {
   using Decimal = decimal64::Decimal<5>;
 
-  CheckConnection(conn);
+  CheckConnection(GetConn());
   pg::ResultSet res{nullptr};
 
   Decimal expected{"2.71828"};
-  UEXPECT_NO_THROW(res = conn->Execute(
+  UEXPECT_NO_THROW(res = GetConn()->Execute(
                        "select $1", pg::ParameterStore{}.PushBack(expected)));
   Decimal decimal;
   UEXPECT_NO_THROW(res[0][0].To(decimal));

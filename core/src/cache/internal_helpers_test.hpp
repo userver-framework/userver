@@ -21,13 +21,19 @@ USERVER_NAMESPACE_BEGIN
 namespace cache {
 
 struct MockEnvironment final {
+  MockEnvironment() = default;
+  explicit MockEnvironment(
+      testsuite::CacheControl::PeriodicUpdatesMode update_mode)
+      : cache_control(update_mode) {}
+
   dynamic_config::StorageMock config_storage{{dump::kConfigSet, {}},
                                              {cache::kCacheConfigSet, {}}};
   utils::statistics::Storage statistics_storage;
   fs::blocking::TempDirectory dump_root = fs::blocking::TempDirectory::Create();
   testsuite::CacheControl cache_control{
       testsuite::CacheControl::PeriodicUpdatesMode::kDisabled};
-  testsuite::DumpControl dump_control;
+  testsuite::DumpControl dump_control{
+      testsuite::DumpControl::PeriodicsMode::kDisabled};
 };
 
 class CacheMockBase : public CacheUpdateTrait {

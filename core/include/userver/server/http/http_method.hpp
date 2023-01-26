@@ -6,6 +6,7 @@
 #include <string>
 
 #include <fmt/core.h>
+#include <userver/utils/fmt_compat.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -24,8 +25,11 @@ enum class HttpMethod {
   kUnknown,
 };
 
-const std::string& ToString(HttpMethod method);
-HttpMethod HttpMethodFromString(const std::string& method_str);
+/// @brief Convert HTTP method enum value to string
+const std::string& ToString(HttpMethod method) noexcept;
+
+/// @brief Convert HTTP method string to enum value
+HttpMethod HttpMethodFromString(std::string_view method_str);
 
 }  // namespace server::http
 
@@ -37,7 +41,7 @@ struct fmt::formatter<USERVER_NAMESPACE::server::http::HttpMethod> {
 
   template <typename FormatContext>
   auto format(USERVER_NAMESPACE::server::http::HttpMethod method,
-              FormatContext& ctx) {
+              FormatContext& ctx) USERVER_FMT_CONST {
     return fmt::format_to(ctx.out(), "{}",
                           USERVER_NAMESPACE::server::http::ToString(method));
   }

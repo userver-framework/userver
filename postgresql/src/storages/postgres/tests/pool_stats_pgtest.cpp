@@ -88,7 +88,7 @@ UTEST_F(PostgrePoolStats, RunStatement) {
   const auto query = pg::Query{"select 1", pg::Query::Name{statement_name}};
 
   pg::detail::ConnectionPtr conn{nullptr};
-  UEXPECT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
+  UASSERT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
       << "Obtained connection from pool";
   CheckConnection(conn);
 
@@ -110,7 +110,7 @@ UTEST_F(PostgrePoolStats, RunSingleTransaction) {
   const auto query = pg::Query{"select 1", pg::Query::Name{statement_name}};
 
   pg::detail::ConnectionPtr conn{nullptr};
-  UEXPECT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
+  UASSERT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
       << "Obtained connection from pool";
   CheckConnection(conn);
 
@@ -133,16 +133,17 @@ UTEST_F(PostgrePoolStats, RunTransactions) {
   const auto exec_count = 10;
 
   std::vector<engine::TaskWithResult<void>> tasks;
+  tasks.reserve(trx_count);
   for (auto i = 0; i < trx_count; ++i) {
     tasks.push_back(engine::AsyncNoSpan([&pool] {
       pg::detail::ConnectionPtr conn(nullptr);
 
-      UEXPECT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
+      UASSERT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
           << "Obtained connection from pool";
       CheckConnection(conn);
 
       [[maybe_unused]] const auto old_stats = conn->GetStatsAndReset();
-      UEXPECT_NO_THROW(conn->Begin(pg::TransactionOptions{},
+      UASSERT_NO_THROW(conn->Begin(pg::TransactionOptions{},
                                    pg::detail::SteadyClock::now()));
       for (auto i = 0; i < exec_count; ++i) {
         UEXPECT_NO_THROW(conn->Execute("select 1"))
@@ -199,7 +200,7 @@ UTEST_F(PostgrePoolStats, ConnUsed) {
       kCachePreparedStatements, {}, GetTestCmdCtls(), {}, {});
   pg::detail::ConnectionPtr conn(nullptr);
 
-  UEXPECT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
+  UASSERT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
       << "Obtained connection from pool";
 
   const auto& stats = pool->GetStatistics();
@@ -215,7 +216,7 @@ UTEST_F(PostgrePoolStats, Portal) {
   {
     pg::detail::ConnectionPtr conn(nullptr);
 
-    UEXPECT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
+    UASSERT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
         << "Obtained connection from pool";
     CheckConnection(conn);
 
@@ -258,7 +259,7 @@ UTEST_F(PostgrePoolStats, MaxPreparedCacheSize) {
       GetTestCmdCtls(), {}, {});
 
   auto conn = pg::detail::ConnectionPtr{nullptr};
-  UEXPECT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
+  UASSERT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
       << "Obtained connection from pool";
   CheckConnection(conn);
 

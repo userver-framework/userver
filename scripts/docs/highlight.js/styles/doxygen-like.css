@@ -39,7 +39,7 @@ Gruvbox style (light) (c) Pavel Pertsev (original style at https://github.com/mo
 .hljs-template-tag,
 .hljs-type {
   /* color: #b57614; /* Gruvbox Yellow */
-  color: black;
+  color: var(--fragment-foreground-color, black);
 }
 
 /* Gruvbox Purple */
@@ -67,7 +67,7 @@ Gruvbox style (light) (c) Pavel Pertsev (original style at https://github.com/mo
 .hljs-selector-class,
 .hljs-string,
 .hljs-symbol {
-  color: #806000;
+  color: var(--code-string-literal-color, #806000);
 }
 
 /* Gruvbox Aqua */
@@ -85,14 +85,14 @@ Gruvbox style (light) (c) Pavel Pertsev (original style at https://github.com/mo
 }
 
 .hljs-comment {
-  color: #800000;
+  color: var(--code-comment-color, #800000);
 }
 
 /* Gruvbox Purple */
 .hljs-link_label,
 .hljs-literal,
 .hljs-number {
-  color: #8f3f71;
+  color: var(--code-char-literal-color, #8f3f71);
 }
 
 .hljs-emphasis {

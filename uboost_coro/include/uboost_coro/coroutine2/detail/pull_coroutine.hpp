@@ -130,6 +130,9 @@ public:
     };
 
     friend class iterator;
+
+    iterator begin() { return iterator (this); }
+    iterator end() { return iterator(); }
 };
 
 template< typename T >
@@ -238,6 +241,9 @@ public:
     };
 
     friend class iterator;
+
+    iterator begin() { return iterator (this); }
+    iterator end() { return iterator(); }
 };
 
 template<>
@@ -278,6 +284,8 @@ public:
     explicit operator bool() const noexcept;
 
     bool operator!() const noexcept;
+
+
 };
 
 template< typename T >

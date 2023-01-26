@@ -20,6 +20,7 @@ UTEST(TaskWithResult, Wait) {
 
   /// [Sample TaskWithResult usage]
   std::vector<engine::TaskWithResult<int>> tasks;
+  tasks.reserve(container.size());
   for (auto value : container) {
     // Creating tasks that will be executed in parallel
     tasks.push_back(utils::Async("some_task", [value = std::move(value)] {
@@ -41,8 +42,9 @@ UTEST(TaskWithResult, Wait) {
 }
 
 UTEST_DEATH(TaskWithResultDeathTest, NonStdException) {
+  // NOLINTNEXTLINE(hicpp-exception-baseclass)
   auto task = engine::AsyncNoSpan([] { throw 42; });
-  EXPECT_DEATH(task.Get(), "not derived from std::exception");
+  UEXPECT_DEATH(task.Get(), "not derived from std::exception");
 }
 
 UTEST(TaskWithResult, LifetimeIfTaskCancelledBeforeStart) {

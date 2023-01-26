@@ -8,7 +8,7 @@ USERVER_NAMESPACE_BEGIN
 namespace storages::postgres::detail {
 namespace {
 
-const TimeoutDuration kConnectTimeout = std::chrono::seconds{2};
+constexpr TimeoutDuration kMinConnectTimeout = std::chrono::seconds{2};
 
 }  // namespace
 
@@ -24,7 +24,8 @@ std::unique_ptr<Connection> Connection::Connect(
     const error_injection::Settings& ei_settings, SizeGuard&& size_guard) {
   std::unique_ptr<Connection> conn(new Connection());
 
-  const auto deadline = engine::Deadline::FromDuration(kConnectTimeout);
+  const auto deadline = engine::Deadline::FromDuration(std::max(
+      kMinConnectTimeout, default_cmd_ctls.GetDefaultCmdCtl().execute));
   conn->pimpl_ = std::make_unique<ConnectionImpl>(
       bg_task_processor, id, settings, default_cmd_ctls, testsuite_pg_ctl,
       ei_settings, std::move(size_guard));
@@ -50,6 +51,10 @@ bool Connection::IsReadOnly() const { return pimpl_->IsReadOnly(); }
 
 void Connection::RefreshReplicaState(engine::Deadline deadline) const {
   pimpl_->RefreshReplicaState(deadline);
+}
+
+ConnectionSettings const& Connection::GetSettings() const {
+  return pimpl_->GetSettings();
 }
 
 ConnectionState Connection::GetState() const {

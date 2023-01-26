@@ -6,6 +6,7 @@
 #include <string>
 
 #include <fmt/core.h>
+#include <userver/utils/fmt_compat.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -91,7 +92,7 @@ struct fmt::formatter<USERVER_NAMESPACE::server::http::HttpStatus> {
 
   template <typename FormatContext>
   auto format(USERVER_NAMESPACE::server::http::HttpStatus status,
-              FormatContext& ctx) {
+              FormatContext& ctx) USERVER_FMT_CONST {
     return fmt::format_to(
         ctx.out(), "{}",
         USERVER_NAMESPACE::server::http::HttpStatusString(status));

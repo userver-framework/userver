@@ -11,7 +11,6 @@
 #include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
 
-#include <engine/impl/wait_list.hpp>
 #include <engine/task/task_context.hpp>
 #include <utils/check_syscall.hpp>
 
@@ -50,107 +49,31 @@ int ReduceSigpipe(int fd) {
   return fd;
 }
 
-class DirectionWaitStrategy final : public engine::impl::WaitStrategy {
- public:
-  DirectionWaitStrategy(Deadline deadline, engine::impl::WaitList& waiters,
-                        ev::Watcher<ev_io>& watcher,
-                        engine::impl::TaskContext& current)
-      : WaitStrategy(deadline),
-        waiters_(waiters),
-        lock_(waiters_),
-        watcher_(watcher),
-        current_(current) {}
-
-  void SetupWakeups() override {
-    waiters_.Append(lock_, &current_);
-    lock_.unlock();
-
-    watcher_.StartAsync();
-  }
-
-  void DisableWakeups() override {
-    lock_.lock();
-    waiters_.Remove(lock_, current_);
-    // we need to stop watcher manually to avoid racy wakeups later
-    if (waiters_.IsEmpty(lock_)) {
-      // locked queueing to avoid race w/ StartAsync in wait strategy
-      watcher_.StopAsync();
-    }
-  }
-
- private:
-  engine::impl::WaitList& waiters_;
-  engine::impl::WaitList::Lock lock_;
-  ev::Watcher<ev_io>& watcher_;
-  engine::impl::TaskContext& current_;
-};
-
 }  // namespace
 
-Direction::Direction(Kind kind)
-    : kind_(kind),
-      is_valid_(false),
-      watcher_(current_task::GetEventThread(), this) {
-  watcher_.Init(&IoWatcherCb);
+void FdControlDeleter::operator()(FdControl* ptr) const noexcept {
+  std::default_delete<FdControl>{}(ptr);
 }
+
+#ifndef NDEBUG
+Direction::SingleUserGuard::SingleUserGuard(Direction& dir) : dir_(dir) {
+  dir_.poller_.SwitchStateToInUse();
+}
+
+Direction::SingleUserGuard::~SingleUserGuard() {
+  dir_.poller_.SwitchStateToReadyToUse();
+}
+#endif  // #ifndef NDEBUG
+
+Direction::Direction(Kind kind) : kind_(kind) {}
 
 Direction::~Direction() = default;
 
-bool Direction::Wait(Deadline deadline) {
-  return DoWait(deadline) == engine::impl::TaskContext::WakeupSource::kWaitList;
-}
+bool Direction::Wait(Deadline deadline) { return poller_.Wait(deadline); }
 
-engine::impl::TaskContext::WakeupSource Direction::DoWait(Deadline deadline) {
-  UASSERT(IsValid());
+void Direction::Reset(int fd) { poller_.Reset(fd, kind_); }
 
-  auto& current = current_task::GetCurrentTaskContext();
-
-  if (current.ShouldCancel()) {
-    return engine::impl::TaskContext::WakeupSource::kCancelRequest;
-  }
-
-  impl::DirectionWaitStrategy wait_manager(deadline, *waiters_, watcher_,
-                                           current);
-  return current.Sleep(wait_manager);
-}
-
-void Direction::Reset(int fd) {
-  UASSERT(!IsValid());
-  UASSERT(fd_ == fd || fd_ == -1);
-  fd_ = fd;
-  watcher_.Set(fd_, kind_ == Kind::kRead ? EV_READ : EV_WRITE);
-  is_valid_ = true;
-}
-
-void Direction::StopWatcher() {
-  UASSERT(is_valid_);
-  watcher_.Stop();
-}
-
-void Direction::WakeupWaiters() {
-  engine::impl::WaitList::Lock lock(*waiters_);
-  waiters_->WakeupAll(lock);
-}
-
-void Direction::Invalidate() {
-  StopWatcher();
-  is_valid_ = false;
-}
-
-void Direction::IoWatcherCb(struct ev_loop*, ev_io* watcher, int) noexcept {
-  UASSERT(watcher->active);
-  UASSERT((watcher->events & ~(EV_READ | EV_WRITE)) == 0);
-
-  auto* self = static_cast<Direction*>(watcher->data);
-  self->WakeupWaiters();
-
-  // Watcher::Stop() from ev loop should execute synchronously w/o waiting.
-  //
-  // Should be the last call, because after it the destructor of watcher_ is
-  // allowed to return from Stop() without waiting (because of the
-  // `!pending_async_ops_ && !is_running_`).
-  self->watcher_.Stop();
-}
+void Direction::Invalidate() { poller_.Invalidate(); }
 
 FdControl::FdControl()
     : read_(Direction::Kind::kRead), write_(Direction::Kind::kWrite) {}
@@ -164,7 +87,7 @@ FdControl::~FdControl() {
 }
 
 FdControlHolder FdControl::Adopt(int fd) {
-  auto fd_control = std::make_shared<FdControl>();
+  FdControlHolder fd_control{new FdControl()};
   // TODO: add conditional CLOEXEC set
   SetCloexec(fd);
   SetNonblock(fd);

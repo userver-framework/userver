@@ -1,6 +1,7 @@
 #include <userver/storages/postgres/dsn.hpp>
 
 #include <algorithm>
+#include <array>
 #include <cstring>
 #include <iostream>
 #include <map>

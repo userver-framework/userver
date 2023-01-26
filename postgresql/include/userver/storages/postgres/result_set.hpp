@@ -174,7 +174,12 @@ namespace storages::postgres {
 ///
 /// @todo Process non-select result and provide interface. Do the docs.
 ///
-/// Next: @ref pg_user_row_types
+///
+/// ----------
+///
+/// @htmlonly <div class="bottom-nav"> @endhtmlonly
+/// ⇦ @ref pg_run_queries | @ref pg_types ⇨
+/// @htmlonly </div> @endhtmlonly
 
 struct FieldDescription {
   /// Index of the field in the result set
@@ -263,7 +268,7 @@ class Field {
   ///                           not nullable.
   template <typename T>
   typename std::decay<T>::type As() const {
-    T val;
+    T val{};
     To(val);
     return val;
   }
@@ -468,7 +473,7 @@ class Row {
   /// @see @ref pg_composite_types
   template <typename T>
   T As(RowTag) const {
-    T val;
+    T val{};
     To(val, kRowTag);
     return val;
   }
@@ -479,7 +484,7 @@ class Row {
   /// @see @ref pg_composite_types
   template <typename T>
   T As(FieldTag) const {
-    T val;
+    T val{};
     To(val, kFieldTag);
     return val;
   }
@@ -644,6 +649,7 @@ class ResultSet {
 
   template <typename T, typename Tag>
   friend class TypedResultSet;
+  friend class ConnectionImpl;
 
   std::shared_ptr<detail::ResultWrapper> pimpl_;
 };

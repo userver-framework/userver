@@ -10,3 +10,4 @@
 #include <userver/ugrpc/server/impl/service_worker.hpp>
 #include <userver/ugrpc/server/rpc.hpp>
 #include <userver/ugrpc/server/service_base.hpp>
+#include <userver/ugrpc/server/service_component_base.hpp>

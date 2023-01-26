@@ -18,6 +18,21 @@ void tracing_noop_ctr(benchmark::State& state) {
 }
 BENCHMARK(tracing_noop_ctr);
 
+void tracing_happy_log(benchmark::State& state) {
+  logging::LoggerPtr logger = logging::MakeNullLogger("logger");
+  engine::RunStandalone([&] {
+    auto old_logger = logging::SetDefaultLogger(logger);
+    logging::SetDefaultLoggerLevel(logging::Level::kInfo);
+    auto tracer = tracing::MakeNoopTracer("test_service");
+
+    for (auto _ : state)
+      benchmark::DoNotOptimize(tracer->CreateSpanWithoutParent("name"));
+
+    logging::SetDefaultLogger(old_logger);
+  });
+}
+BENCHMARK(tracing_happy_log);
+
 tracing::Span GetSpanWithOpentracingHttpTags(tracing::TracerPtr tracer) {
   auto span = tracer->CreateSpanWithoutParent("name");
   span.AddTag("meta_code", 200);

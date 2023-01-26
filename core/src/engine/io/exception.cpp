@@ -9,7 +9,13 @@ USERVER_NAMESPACE_BEGIN
 
 namespace engine::io {
 
-IoException::IoException() : utils::TracefulException("Generic I/O error") {}
+IoException::IoException() : IoException("Generic I/O error") {}
+
+IoException::IoException(std::string_view message)
+    : utils::TracefulException(
+          utils::TracefulException::TraceMode::kIfLoggingIsEnabled) {
+  *this << message;
+}
 
 IoInterrupted::IoInterrupted(std::string_view reason, size_t bytes_transferred)
     : IoException(reason), bytes_transferred_(bytes_transferred) {}

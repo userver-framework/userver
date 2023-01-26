@@ -3,6 +3,8 @@
 #include <cxxabi.h>
 #include <cstring>
 
+#include <sys/param.h>
+
 USERVER_NAMESPACE_BEGIN
 
 #if defined(__linux__) && defined(__GLIBCXX__)
@@ -25,7 +27,7 @@ abi::__cxa_eh_globals* GetGlobals() throw();
 }  // namespace engine::impl
 
 #elif defined(_LIBCPP_VERSION) && \
-    (defined(__APPLE__) || defined(Y_CXA_EH_GLOBALS_COMPLETE))
+    (defined(__APPLE__) || defined(BSD) || defined(Y_CXA_EH_GLOBALS_COMPLETE))
 
 // MAC_COMPAT, YA_COMPAT
 // "only INSERTED libraries can interpose", you say
@@ -33,7 +35,9 @@ abi::__cxa_eh_globals* GetGlobals() throw();
 // let's juggle some razor blades then
 #define USERVER_EHGLOBALS_SWAP
 
+// NOLINTNEXTLINE(bugprone-reserved-identifier,cert-dcl37-c,cert-dcl51-cpp)
 namespace __cxxabiv1 {
+// NOLINTNEXTLINE(bugprone-reserved-identifier,cert-dcl37-c,cert-dcl51-cpp)
 struct __cxa_exception;
 }  // namespace __cxxabiv1
 

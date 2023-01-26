@@ -1,13 +1,12 @@
-# μboost_coro
-Подмножество [Boost](https://www.boost.org) версии 1.70.0, включающее библиотеки Coroutine2 и Context.
-В качестве основы для `CMakeLists.txt` использован [boost-cmake](https://github.com/Orphis/boost-cmake).
+# userver: Boost.Coro
+Subset of [Boost C++ Libraries](https://www.boost.org) 1.80.0, that includes Coroutine2 and Context.
+`CMakeLists.txt` is based on [boost-cmake](https://github.com/Orphis/boost-cmake).
 
-Поддерживает сборку с `SANITIZE` (в частности, AddressSanitizer).
+Sanitizers could be enabled via [USERVER_SANITIZE](https://userver.tech/d1/d03/md_en_userver_tutorial_build.html).
 
-## Изменения по сравнению с upstream
-  * Директория `boost` переименована в `uboost_coro`, и перемещена в `include`.
-  Инклуды из `context` и `coroutine2` замкнуты на новые пути.
-  * Исходники перемещены из `libs/<libname>/src` в `src/<libname>`.
-  * Убраны файлы, относящиеся к не-`x86` архитектурам и Windows.
-  * В [stack_traits.cpp](src/context/posix/stack_traits.cpp) вставлен костыль,
-  исправляющий сборку `std::call_once` из libstdc++ 5.4 в clang.
+
+## Diff with Upstream
+* `boost` directory renamed into `uboost_coro` and moved into `include`.
+Includes of `context` and `coroutine2` use the new paths.
+* Source codes are moved from `libs/<libname>/src` to `src/<libname>`.
+* Removed files for some unsupported architectures and platforms.

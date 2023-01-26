@@ -18,6 +18,7 @@
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/formats/json/value.hpp>
 #include <userver/rcu/rcu.hpp>
+#include <userver/storages/secdist/provider.hpp>
 #include <userver/utils/fast_pimpl.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -77,12 +78,8 @@ enum class SecdistFormat {
 class SecdistConfig final {
  public:
   struct Settings {
-    std::string config_path;
-    SecdistFormat format{SecdistFormat::kJson};
-    bool missing_ok{false};
-    std::optional<std::string> environment_secrets_key;
+    SecdistProvider* provider{nullptr};
     std::chrono::milliseconds update_period{std::chrono::milliseconds::zero()};
-    engine::TaskProcessor* blocking_task_processor{nullptr};
   };
 
   SecdistConfig();
@@ -147,14 +144,7 @@ class Secdist final {
       EventSource::Function&& func);
 
   class Impl;
-#ifdef _LIBCPP_VERSION
-  static constexpr size_t kImplSize = 1032;
-  static constexpr size_t kImplAlign = 16;
-#else
-  static constexpr size_t kImplSize = 928;
-  static constexpr size_t kImplAlign = 8;
-#endif
-  utils::FastPimpl<Impl, kImplSize, kImplAlign> impl_;
+  utils::FastPimpl<Impl, 1040, 16> impl_;
 };
 
 template <typename Class>

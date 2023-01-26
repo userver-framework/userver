@@ -23,7 +23,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace {
 
-static constexpr std::chrono::milliseconds kWaitPeriod{10};
+constexpr std::chrono::milliseconds kWaitPeriod{10};
 
 auto GetTimePoint() { return std::chrono::steady_clock::now() + kWaitPeriod; }
 
@@ -296,7 +296,7 @@ UTEST(Future, SampleFuture) {
           case engine::FutureStatus::kCancelled:
             // Handling cancellation of calculations
             // (example, return to queue)
-            break;
+            return;
         }
       });
 

@@ -37,7 +37,7 @@ Here's a sample update mode settings of components::CachingComponentBase
 based cache:
 ```
 yaml
-  mongo-taxi-config-cache:
+  mongo-dynamic-config-cache:
     update-interval: 5s
     update-jitter: 1s
     full-update-interval: 10s
@@ -208,31 +208,38 @@ cache.simple-dumped-cache.dump.last-nontrivial-write.size-kb 0
 cache.simple-dumped-cache.dump.last-nontrivial-write.time-from-start-ms 927
 cache.simple-dumped-cache.dump.load-duration-ms 9
 ...
-cache.taxi-config.any.documents.parse_failures 0
-cache.taxi-config.any.documents.read_count 1257984
-cache.taxi-config.any.time.last-update-duration-ms 45
-cache.taxi-config.any.time.time-from-last-successful-start-ms 4687
-cache.taxi-config.any.time.time-from-last-update-start-ms 4687
-cache.taxi-config.any.update.attempts_count 12290
-cache.taxi-config.any.update.failures_count 0
-cache.taxi-config.any.update.no_changes_count 11294
-cache.taxi-config.current-documents-count 1271
-cache.taxi-config.dump.is-loaded-from-dump 0
-cache.taxi-config.full.documents.parse_failures 0
-cache.taxi-config.full.documents.read_count 1249139
-cache.taxi-config.full.time.last-update-duration-ms 45
-cache.taxi-config.full.time.time-from-last-successful-start-ms 39832
-cache.taxi-config.full.time.time-from-last-update-start-ms 39832
-cache.taxi-config.full.update.attempts_count 989
-cache.taxi-config.full.update.failures_count 0
-cache.taxi-config.full.update.no_changes_count 0
-cache.taxi-config.incremental.documents.parse_failures 0
-cache.taxi-config.incremental.documents.read_count 8845
-cache.taxi-config.incremental.time.last-update-duration-ms 1
-cache.taxi-config.incremental.time.time-from-last-successful-start-ms 4687
-cache.taxi-config.incremental.time.time-from-last-update-start-ms 4687
-cache.taxi-config.incremental.update.attempts_count 11301
-cache.taxi-config.incremental.update.failures_count 0
-cache.taxi-config.incremental.update.no_changes_count 11294
+cache.dynamic-config.any.documents.parse_failures 0
+cache.dynamic-config.any.documents.read_count 1257984
+cache.dynamic-config.any.time.last-update-duration-ms 45
+cache.dynamic-config.any.time.time-from-last-successful-start-ms 4687
+cache.dynamic-config.any.time.time-from-last-update-start-ms 4687
+cache.dynamic-config.any.update.attempts_count 12290
+cache.dynamic-config.any.update.failures_count 0
+cache.dynamic-config.any.update.no_changes_count 11294
+cache.dynamic-config.current-documents-count 1271
+cache.dynamic-config.dump.is-loaded-from-dump 0
+cache.dynamic-config.full.documents.parse_failures 0
+cache.dynamic-config.full.documents.read_count 1249139
+cache.dynamic-config.full.time.last-update-duration-ms 45
+cache.dynamic-config.full.time.time-from-last-successful-start-ms 39832
+cache.dynamic-config.full.time.time-from-last-update-start-ms 39832
+cache.dynamic-config.full.update.attempts_count 989
+cache.dynamic-config.full.update.failures_count 0
+cache.dynamic-config.full.update.no_changes_count 0
+cache.dynamic-config.incremental.documents.parse_failures 0
+cache.dynamic-config.incremental.documents.read_count 8845
+cache.dynamic-config.incremental.time.last-update-duration-ms 1
+cache.dynamic-config.incremental.time.time-from-last-successful-start-ms 4687
+cache.dynamic-config.incremental.time.time-from-last-update-start-ms 4687
+cache.dynamic-config.incremental.update.attempts_count 11301
+cache.dynamic-config.incremental.update.failures_count 0
+cache.dynamic-config.incremental.update.no_changes_count 11294
 ...
 ```
+
+
+----------
+
+@htmlonly <div class="bottom-nav"> @endhtmlonly
+⇦ @ref md_en_userver_os_signals | @ref md_en_userver_cache_dumps ⇨
+@htmlonly </div> @endhtmlonly

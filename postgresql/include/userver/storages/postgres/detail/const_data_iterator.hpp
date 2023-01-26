@@ -19,6 +19,8 @@ namespace storages::postgres::detail {
 template <typename FinalType, typename DataType,
           IteratorDirection direction = IteratorDirection::kForward>
 class ConstDataIterator : protected DataType {
+  using Iter = ConstDataIterator;
+
  public:
   //@{
   /** @name Iterator concept */
@@ -87,14 +89,13 @@ class ConstDataIterator : protected DataType {
 
   //@{
   /** @name Iterator comparison */
-  bool operator==(const FinalType& rhs) const { return DoCompare(rhs) == 0; }
+  bool operator==(const Iter& rhs) const { return DoCompare(rhs) == 0; }
+  bool operator!=(const Iter& rhs) const { return !(*this == rhs); }
 
-  bool operator!=(const FinalType& rhs) const { return !(*this == rhs); }
-
-  bool operator<(const FinalType& rhs) const { return DoCompare(rhs) < 0; }
-  bool operator<=(const FinalType& rhs) const { return DoCompare(rhs) <= 0; }
-  bool operator>(const FinalType& rhs) const { return DoCompare(rhs) > 0; }
-  bool operator>=(const FinalType& rhs) const { return DoCompare(rhs) >= 0; }
+  bool operator<(const Iter& rhs) const { return DoCompare(rhs) < 0; }
+  bool operator<=(const Iter& rhs) const { return DoCompare(rhs) <= 0; }
+  bool operator>(const Iter& rhs) const { return DoCompare(rhs) > 0; }
+  bool operator>=(const Iter& rhs) const { return DoCompare(rhs) >= 0; }
   //@}
  protected:
   template <typename... T>
@@ -110,7 +111,7 @@ class ConstDataIterator : protected DataType {
     this->Advance(distance * static_cast<int>(direction));
     return Rebind();
   }
-  int DoCompare(const FinalType& lhs) const { return this->Compare(lhs); }
+  int DoCompare(const Iter& rhs) const { return this->Compare(rhs); }
 };
 
 }  // namespace storages::postgres::detail

@@ -8,6 +8,13 @@ USERVER_NAMESPACE_BEGIN
 
 namespace testsuite {
 
+DumpControl::DumpControl(PeriodicsMode periodics_mode)
+    : periodics_mode_(periodics_mode) {}
+
+DumpControl::PeriodicsMode DumpControl::GetPeriodicsMode() const {
+  return periodics_mode_;
+}
+
 void DumpControl::WriteCacheDumps(
     const std::vector<std::string>& dumper_names) {
   for (const auto& name : dumper_names) {

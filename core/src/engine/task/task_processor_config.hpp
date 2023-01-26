@@ -17,6 +17,9 @@ enum class OsScheduling {
   kIdle,
 };
 
+OsScheduling Parse(const yaml_config::YamlConfig& value,
+                   formats::parse::To<OsScheduling>);
+
 struct TaskProcessorConfig {
   std::string name;
 

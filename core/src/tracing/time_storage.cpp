@@ -3,6 +3,7 @@
 #include <fmt/compile.h>
 #include <fmt/format.h>
 
+#include <logging/put_data.hpp>
 #include <userver/utils/algo.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -24,12 +25,12 @@ TimeStorage::Duration TimeStorage::DurationTotal(const std::string& key) const {
   return utils::FindOrDefault(data_, key, Duration{0});
 }
 
-void TimeStorage::MergeInto(logging::LogExtra& result) {
+void TimeStorage::MergeInto(logging::LogHelper& lh) {
   for (const auto& [key, value] : data_) {
     const auto ns_count = value.count();
-    result.Extend(key + kTimerSuffix,
-                  fmt::format(FMT_COMPILE("{}.{:0>6}"), ns_count / kNsInMs,
-                              ns_count % kNsInMs));
+    PutData(lh, key + kTimerSuffix,
+            fmt::format(FMT_COMPILE("{}.{:0>6}"), ns_count / kNsInMs,
+                        ns_count % kNsInMs));
   }
 }
 

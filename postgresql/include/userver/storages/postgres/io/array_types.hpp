@@ -1,7 +1,8 @@
 #pragma once
 
 /// @file userver/storages/postgres/io/array_types.hpp
-/// @brief Arrays I/O support
+/// @brief I/O support for arrays (std::array, std::set, std::unordered_set,
+/// std::vector)
 /// @ingroup userver_postgres_parse_and_format
 
 #include <array>
@@ -42,6 +43,12 @@ namespace storages::postgres::io {
 /// - std::set
 /// - std::unordered_set
 /// - std::vector
+///
+/// ----------
+///
+/// @htmlonly <div class="bottom-nav"> @endhtmlonly
+/// ⇦ @ref pg_range_types | @ref pg_bytea ⇨
+/// @htmlonly </div> @endhtmlonly
 
 namespace traits {
 

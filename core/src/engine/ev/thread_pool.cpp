@@ -28,22 +28,20 @@ ThreadPool::ThreadPool(ThreadPoolConfig config, UseDefaultEvLoop)
 
 ThreadPool::ThreadPool(ThreadPoolConfig config, bool use_ev_default_loop)
     : use_ev_default_loop_(use_ev_default_loop) {
-  threads_.reserve(config.threads);
   const auto register_timer_event_mode =
       GetRegisterEventMode(config.defer_events);
-  for (size_t i = 0; i < config.threads; i++) {
-    const auto thread_name = fmt::format("{}_{}", config.thread_name, i);
-    threads_.push_back(
-        use_ev_default_loop_ && !i
-            ? std::make_unique<Thread>(thread_name, Thread::kUseDefaultEvLoop,
-                                       register_timer_event_mode)
-            : std::make_unique<Thread>(thread_name, register_timer_event_mode));
-  }
 
-  thread_controls_.reserve(threads_.size());
-  for (const auto& thread : threads_) {
-    thread_controls_.emplace_back(*thread);
-  }
+  threads_ = utils::GenerateFixedArray(config.threads, [&](std::size_t index) {
+    const auto thread_name = fmt::format("{}_{}", config.thread_name, index);
+    return (use_ev_default_loop && index == 0)
+               ? Thread(thread_name, Thread::kUseDefaultEvLoop,
+                        register_timer_event_mode)
+               : Thread(thread_name, register_timer_event_mode);
+  });
+
+  thread_controls_ = utils::GenerateFixedArray(
+      threads_.size(),
+      [&](std::size_t index) { return ThreadControl(threads_[index]); });
 }
 
 ThreadPool::~ThreadPool() = default;

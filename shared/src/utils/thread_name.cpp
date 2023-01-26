@@ -20,6 +20,8 @@ namespace {
 constexpr std::size_t kMaxThreadNameLen = 15;  // + '\0'
 #elif defined(__APPLE__)
 constexpr std::size_t kMaxThreadNameLen = 63;  // + '\0'
+#else
+constexpr std::size_t kMaxThreadNameLen = 15;  // + '\0'
 #endif
 
 }  // namespace
@@ -60,6 +62,19 @@ void SetCurrentThreadName(std::string_view name) {
   if (ret) {
     throw std::system_error(ret, std::system_category(),
                             "Cannot set thread name");
+  }
+}
+
+CurrentThreadNameGuard::CurrentThreadNameGuard(std::string_view name)
+    : prev_name_(GetCurrentThreadName()) {
+  SetCurrentThreadName(name);
+}
+
+CurrentThreadNameGuard::~CurrentThreadNameGuard() {
+  try {
+    SetCurrentThreadName(prev_name_);
+  } catch (const std::exception&) {
+    // ignore
   }
 }
 

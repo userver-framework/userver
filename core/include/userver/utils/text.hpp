@@ -15,6 +15,8 @@ USERVER_NAMESPACE_BEGIN
 /// @brief Text utilities
 namespace utils::text {
 
+inline const std::string kEnLocale{"en_US.UTF-8"};
+
 /// Return trimmed copy of string.
 std::string Trim(const std::string& str);
 
@@ -42,6 +44,10 @@ bool StartsWith(std::string_view hay, std::string_view needle);
 
 /// Return true if `hay` ends with `needle`, false otherwise.
 bool EndsWith(std::string_view hay, std::string_view needle);
+
+/// Transform letters to lower case
+std::string ToLower(std::string_view str,
+                    const std::string& locale = kEnLocale);
 
 /// Capitalizes the first letter of the str
 std::string Capitalize(std::string_view str, const std::string& locale);
@@ -92,8 +98,30 @@ std::size_t GetCodePointsCount(std::string_view text);
 void TrimTruncatedEnding(std::string& str);
 
 /// @see void TrimTruncatedEnding(std::string& str)
-/// @warning this DOES NOT change the original string
+/// @warning this **does not** change the original string
 void TrimViewTruncatedEnding(std::string_view& view);
+
+/// Returns position in `text` where utf-8 code point with position `pos` starts
+/// OR `text.length()` if `text` contains less than or equal to `pos` points
+/// @warning this **does not** check if `text` is valid utf-8 text
+std::size_t GetTextPosByCodePointPos(std::string_view text,
+                                     std::size_t pos) noexcept;
+
+/// Removes the first `count` utf-8 code points from `text`
+/// @warning this **does not** check if `text` is valid utf-8 text
+void RemovePrefix(std::string& text, std::size_t count) noexcept;
+
+/// @see void RemovePrefix(std::string& text, std::size_t count)
+/// @warning this **does not** change the original string
+void RemoveViewPrefix(std::string_view& text, std::size_t count) noexcept;
+
+/// Takes the first `count` utf-8 code points from `text`
+/// @warning this **does not** check if `text` is valid utf-8 text
+void TakePrefix(std::string& text, std::size_t count) noexcept;
+
+/// @see void TakePrefix(std::string& text, std::size_t count)
+/// @warning this **does not** change the original string
+void TakeViewPrefix(std::string_view& text, std::size_t count) noexcept;
 
 }  // namespace utf8
 

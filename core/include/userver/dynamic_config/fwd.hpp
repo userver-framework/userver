@@ -7,6 +7,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace components {
 
+// NOLINTNEXTLINE(bugprone-forward-declaration-namespace)
 class DynamicConfig;
 
 }  // namespace components
@@ -15,7 +16,7 @@ namespace dynamic_config {
 
 class DocsMap;
 class KeyValue;
-class Snapshot;
+class Snapshot;  // NOLINT(bugprone-forward-declaration-namespace)
 class Source;
 
 }  // namespace dynamic_config

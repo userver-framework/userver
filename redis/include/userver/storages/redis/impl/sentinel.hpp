@@ -8,10 +8,10 @@
 #include <userver/utils/swappingsmart.hpp>
 
 #include <userver/storages/redis/impl/base.hpp>
-#include <userver/storages/redis/impl/command.hpp>
 #include <userver/storages/redis/impl/command_options.hpp>
 #include <userver/storages/redis/impl/redis_stats.hpp>
 #include <userver/storages/redis/impl/request.hpp>
+#include <userver/storages/redis/impl/types.hpp>
 #include <userver/storages/redis/impl/wait_connected_mode.hpp>
 #include "keyshard.hpp"
 #include "secdist_redis.hpp"
@@ -46,7 +46,8 @@ class Sentinel {
            const std::vector<std::string>& shards,
            const std::vector<ConnectionInfo>& conns,
            std::string shard_group_name, const std::string& client_name,
-           const Password& password, ReadyChangeCallback ready_callback,
+           const Password& password, ConnectionSecurity connection_security,
+           ReadyChangeCallback ready_callback,
            std::unique_ptr<KeyShard>&& key_shard = nullptr,
            CommandControl command_control = kDefaultCommandControl,
            const testsuite::RedisControl& testsuite_redis_control = {},
@@ -113,6 +114,8 @@ class Sentinel {
 
   void SetCommandsBufferingSettings(
       CommandsBufferingSettings commands_buffering_settings);
+  void SetReplicationMonitoringSettings(
+      const ReplicationMonitoringSettings& replication_monitoring_settings);
 
   // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
   boost::signals2::signal<void(size_t shard)> signal_instances_changed;
@@ -137,13 +140,6 @@ class Sentinel {
     return {*this,           std::forward<CmdArgs>(args),
             shard,           master,
             command_control, replies_to_skip};
-  }
-
-  Request MakeRequest(CmdArgs&& args, size_t shard,
-                      redis::ReplyCallback&& callback, bool master = true,
-                      const CommandControl& command_control = {}) {
-    return {*this,           std::forward<CmdArgs>(args), shard, master,
-            command_control, std::move(callback)};
   }
 
   std::vector<Request> MakeRequests(CmdArgs&& args, bool master = true,

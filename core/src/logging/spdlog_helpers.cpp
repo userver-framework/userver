@@ -1,5 +1,7 @@
 #include <logging/spdlog_helpers.hpp>
 
+#include <userver/utils/assert.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace logging {
@@ -19,6 +21,8 @@ const std::string& GetSpdlogPattern(Format format) {
     case Format::kRaw:
       return kSpdlogRawPattern;
   }
+
+  UINVARIANT(false, "Invalid logging::Format enum value");
 }
 
 }  // namespace logging

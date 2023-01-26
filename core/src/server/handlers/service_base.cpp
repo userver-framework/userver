@@ -1,6 +1,9 @@
 #include <userver/server/handlers/handler_base.hpp>
 
+#include <server/server_config.hpp>
 #include <userver/components/component.hpp>
+#include <userver/server/component.hpp>
+#include <userver/server/handlers/handler_config.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -11,8 +14,11 @@ HandlerBase::HandlerBase(const components::ComponentConfig& config,
                          const components::ComponentContext& context,
                          bool is_monitor)
     : LoggableComponentBase(config, context),
-      config_(config.As<HandlerConfig>()),
-      is_monitor_(is_monitor) {}
+      is_monitor_(config["monitor-handler"].As<bool>(is_monitor)),
+      config_(ParseHandlerConfigsWithDefaults(
+          config,
+          context.FindComponent<components::Server>().GetServer().GetConfig(),
+          is_monitor_)) {}
 
 const HandlerConfig& HandlerBase::GetConfig() const { return config_; }
 
@@ -37,9 +43,6 @@ properties:
     method:
         type: string
         description: comma-separated list of allowed methods
-    max_url_size:
-        type: integer
-        description: max request path/URL size or empty to not limit
     max_request_size:
         type: integer
         description: max size of the whole request
@@ -104,6 +107,14 @@ properties:
         type: boolean
         description: TODO
         defaultDescription: false
+    monitor-handler:
+        type: boolean
+        description: overrides the in-code `is_monitor` flag that makes the handler run either on 'server.listener' or on 'server.listener-monitor'
+        defaultDescription: uses in-code flag value
+    set_tracing_headers:
+        type: boolean
+        description: whether to set http tracing headers (X-YaTraceId, X-YaSpanId, X-RequestId)
+        defaultDescription: true
 )");
 }
 

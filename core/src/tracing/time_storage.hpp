@@ -26,7 +26,7 @@ class TimeStorage {
   /// Accumulated time for a certain key. If the key is not there, returns 0
   Duration DurationTotal(const std::string& key) const;
 
-  void MergeInto(logging::LogExtra& result);
+  void MergeInto(logging::LogHelper& lh);
 
  private:
   std::unordered_map<std::string, Duration> data_;

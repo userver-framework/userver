@@ -51,7 +51,7 @@ properties:
         defaultDescription: '{}'
         additionalProperties:
             type: string
-            description: value of chanel argument, must be string or integer
+            description: value of channel argument, must be string or integer
         properties: {}
     native-log-level:
         type: string
@@ -68,6 +68,19 @@ properties:
         enum:
           - insecure
           - ssl
+    default-service-config:
+        type: string
+        description: |
+            Default value for gRPC `service config`. See
+            https://github.com/grpc/grpc/blob/master/doc/service_config.md
+            This value is used if the name resolution process can't get value
+            from DNS
+        defaultDescription: absent
+    channel-count:
+        type: integer
+        description: |
+            Number of channels created for each endpoint.
+        defaultDescription: 1
 )");
 }
 

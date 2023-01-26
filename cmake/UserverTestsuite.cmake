@@ -1,8 +1,10 @@
 include(CTest)
 include(FindPython)
-find_package(PythonDev REQUIRED)  # required by virtualenv
 
-option(USERVER_FEATURE_TESTSUITE "Enable testsuite targets" ON)
+option(USERVER_FEATURE_TESTSUITE "Enable functional tests via testsuite" ON)
+if (USERVER_FEATURE_TESTSUITE)
+  find_package(PythonDev REQUIRED)  # required by virtualenv
+endif()
 
 get_filename_component(
   USERVER_TESTSUITE_DIR ${CMAKE_CURRENT_LIST_DIR}/../testsuite ABSOLUTE)
@@ -10,7 +12,7 @@ get_filename_component(
 function(userver_venv_setup)
   set(options)
   set(oneValueArgs NAME PYTHON_OUTPUT_VAR)
-  set(multiValueArgs REQUIREMENTS VIRTUALENV_ARGS)
+  set(multiValueArgs REQUIREMENTS VIRTUALENV_ARGS PIP_ARGS)
 
   cmake_parse_arguments(
     ARG "${options}" "${oneValueArgs}" "${multiValueArgs}"  ${ARGN})
@@ -44,7 +46,11 @@ function(userver_venv_setup)
   set(VENV_BIN_DIR ${VENV_DIR}/bin)
   set(${PYTHON_OUTPUT_VAR} ${VENV_BIN_DIR}/python PARENT_SCOPE)
 
-  message(STATUS "Setting up the virtualenv with requirements ${ARG_REQUIREMENTS}")
+  message(STATUS "Setting up the virtualenv with requirements:")
+  foreach(req ${ARG_REQUIREMENTS})
+    message(STATUS "  ${req}")
+  endforeach()
+
   if (NOT EXISTS ${VENV_DIR})
     execute_process(
       COMMAND ${TESTSUITE_VIRTUALENV} --python=${PYTHON} ${VENV_DIR} ${ARG_VIRTUALENV_ARGS}
@@ -55,8 +61,10 @@ function(userver_venv_setup)
       message(FATAL_ERROR "Failed to create Python virtual environment")
     endif()
   endif()
+  list(TRANSFORM ARG_REQUIREMENTS PREPEND "--requirement="
+    OUTPUT_VARIABLE PIP_REQUIREMENTS)
   execute_process(
-    COMMAND ${VENV_BIN_DIR}/pip install -U -r ${ARG_REQUIREMENTS}
+    COMMAND ${VENV_BIN_DIR}/pip install -U ${PIP_REQUIREMENTS} ${ARG_PIP_ARGS}
     RESULT_VARIABLE STATUS
   )
   if (STATUS)
@@ -66,13 +74,13 @@ endfunction()
 
 function(userver_testsuite_add)
   set(options)
-  set(oneValueArgs NAME WORKING_DIRECTORY PYTHON_BINARY)
+  set(oneValueArgs SERVICE_TARGET WORKING_DIRECTORY PYTHON_BINARY PRETTY_LOGS)
   set(multiValueArgs PYTEST_ARGS REQUIREMENTS PYTHONPATH VIRTUALENV_ARGS)
   cmake_parse_arguments(
     ARG "${options}" "${oneValueArgs}" "${multiValueArgs}"  ${ARGN})
 
-  if (NOT ARG_NAME)
-    message(FATAL_ERROR "No NAME given for testsuite")
+  if (NOT ARG_SERVICE_TARGET)
+    message(FATAL_ERROR "No SERVICE_TARGET given for testsuite")
     return()
   endif()
 
@@ -80,14 +88,20 @@ function(userver_testsuite_add)
     set(ARG_WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
   endif()
 
+  if (NOT DEFINED ARG_PRETTY_LOGS)
+    set(ARG_PRETTY_LOGS ON)
+  endif()
+
+  set(TESTSUITE_TARGET "testsuite-${ARG_SERVICE_TARGET}")
+
   if (NOT USERVER_FEATURE_TESTSUITE)
-    message(STATUS "Testsuite target ${ARG_NAME} is disabled")
+    message(STATUS "Testsuite target ${TESTSUITE_TARGET} is disabled")
     return()
   endif()
 
   if (ARG_REQUIREMENTS)
     userver_venv_setup(
-      NAME ${ARG_NAME}
+      NAME ${TESTSUITE_TARGET}
       REQUIREMENTS ${ARG_REQUIREMENTS}
       PYTHON_OUTPUT_VAR PYTHON_BINARY
       VIRTUALENV_ARGS ${ARG_VIRTUALENV_ARGS}
@@ -102,7 +116,7 @@ function(userver_testsuite_add)
     message(FATAL_ERROR "No python binary given.")
   endif()
 
-  set(TESTSUITE_RUNNER "${CMAKE_CURRENT_BINARY_DIR}/runtests-${ARG_NAME}")
+  set(TESTSUITE_RUNNER "${CMAKE_CURRENT_BINARY_DIR}/runtests-${TESTSUITE_TARGET}")
   list(APPEND ARG_PYTHONPATH ${USERVER_TESTSUITE_DIR}/pytest_plugins)
 
   execute_process(
@@ -120,9 +134,20 @@ function(userver_testsuite_add)
     message(FATAL_ERROR "Failed to create testsuite runner")
   endif()
 
+  set(PRETTY_LOGS_MODE "")
+  if (ARG_PRETTY_LOGS)
+      set(PRETTY_LOGS_MODE "--service-logs-pretty")
+  endif()
+
+  # Without WORKING_DIRECTORY the `add_test` prints better diagnostic info
   add_test(
-    NAME ${ARG_NAME}
-    COMMAND ${TESTSUITE_RUNNER} -vv
-    WORKING_DIRECTORY ${ARG_WORKING_DIRECTORY}
+    NAME ${TESTSUITE_TARGET}
+    COMMAND ${TESTSUITE_RUNNER} ${PRETTY_LOGS_MODE} -vv ${ARG_WORKING_DIRECTORY}
+  )
+
+  add_custom_target(
+    start-${ARG_SERVICE_TARGET}
+    COMMAND ${TESTSUITE_RUNNER} --service-runner-mode ${PRETTY_LOGS_MODE} -vvs ${ARG_WORKING_DIRECTORY}
+    DEPENDS ${TESTSUITE_RUNNER} ${ARG_SERVICE_TARGET}
   )
 endfunction()

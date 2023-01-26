@@ -89,10 +89,11 @@ void ListenerImpl::SetupConnection(engine::io::Socket peer_socket) {
     peer_socket.SetOption(IPPROTO_TCP, TCP_NODELAY, 1);
 
   LOG_TRACE() << "Creating connection for fd " << fd;
+
   auto connection_ptr = Connection::Create(
       task_processor_, endpoint_info_->listener_config.connection_config,
-      std::move(peer_socket), endpoint_info_->request_handler, stats_,
-      data_accounter_);
+      endpoint_info_->listener_config.handler_defaults, std::move(peer_socket),
+      endpoint_info_->request_handler, stats_, data_accounter_);
   connection_ptr->SetCloseCb([endpoint_info = endpoint_info_]() {
     --endpoint_info->connection_count;
   });

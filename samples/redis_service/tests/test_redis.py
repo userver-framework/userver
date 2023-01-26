@@ -29,3 +29,26 @@ async def test_redis(service_client):
 
     response = await service_client.request('GET', '/v1/key-value?key=hello')
     assert response.status == 404  # Not Found
+
+
+async def test_evalsha(service_client):
+    script = 'return "42"'
+
+    hash_id = 'initialhash'
+    response = await service_client.post(
+        f'/v1/script?command=evalsha&key=hello&hash={hash_id}',
+    )
+    assert response.status == 200
+    assert response.content == b'NOSCRIPT'
+
+    response = await service_client.post(
+        f'/v1/script?command=scriptload&key=hello&script={script}',
+    )
+    assert response.status == 200
+    hash_id = response.content.decode()
+
+    response = await service_client.post(
+        f'/v1/script?command=evalsha&key=hello&hash={hash_id}',
+    )
+    assert response.status == 200
+    assert response.content == b'42'

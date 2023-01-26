@@ -9,9 +9,9 @@ USERVER_NAMESPACE_BEGIN
 
 namespace utils::datetime {
 
-/// @brief Steady clock with up to a few millisecond resulution that is slightly
+/// @brief Steady clock with up to a few millisecond resolution that is slightly
 /// faster than the std::chrono::steady_clock
-struct SteadyCoarseClock {
+struct SteadyCoarseClock final {
   // Duration matches steady clock, but it is updated once in a few milliseconds
   using duration = std::chrono::steady_clock::duration;
   using rep = duration::rep;

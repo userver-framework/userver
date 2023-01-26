@@ -10,9 +10,9 @@
 #include <userver/storages/clickhouse/options.hpp>
 #include <userver/storages/clickhouse/query.hpp>
 
-/// @page clickhouse_driver uClickHouse Driver
+/// @page clickhouse_driver ClickHouse Driver
 ///
-/// µserver provides access to ClickHouse databases servers via
+/// 🐙 **userver** provides access to ClickHouse databases servers via
 /// components::ClickHouse. The uClickHouse driver is asynchronous, it suspends
 /// current coroutine for carrying out network I/O.
 ///
@@ -26,26 +26,30 @@
 /// - For configuration see components::ClickHouse
 /// - For cluster operations see storages::clickhouse::Cluster
 /// - For mapping C++ types to Clickhouse types see @ref clickhouse_io
+///
+/// ----------
+///
+/// @htmlonly <div class="bottom-nav"> @endhtmlonly
+/// ⇦ @ref md_en_userver_redis | @ref md_en_userver_development_stability ⇨
+/// @htmlonly </div> @endhtmlonly
 
 USERVER_NAMESPACE_BEGIN
 
-namespace storages {
 /// @brief Top namespace for uClickHouse driver.
 ///
 /// For more information see @ref clickhouse_driver.
-namespace clickhouse {
+namespace storages::clickhouse {}
+
 /// @brief uClickHouse input-output.
 ///
 /// Namespace containing classes and functions for defining datatype
 /// input-output and specifying mapping between C++ and ClickHouse types.
-namespace io {
+namespace storages::clickhouse::io {}
+
 /// @brief uClickHouse columns.
 ///
 /// Namespace containing definitions of supported ClickHouse column types.
 /// For more information see @ref userver_clickhouse_types
-namespace columns {}
-}  // namespace io
-}  // namespace clickhouse
-}  // namespace storages
+namespace storages::clickhouse::io::columns {}
 
 USERVER_NAMESPACE_END

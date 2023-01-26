@@ -67,8 +67,11 @@ void SetDefaultLoggerLevel(Level level) {
   UpdateLogLevelCache();
 }
 
-void SetLoggerLevel(LoggerPtr logger, Level level) {
+void SetLoggerLevel(const LoggerPtr& logger, Level level) {
   logger->ptr->set_level(static_cast<spdlog::level::level_enum>(level));
+  if (logger == DefaultLoggerOptional()) {
+    UpdateLogLevelCache();
+  }
 }
 
 Level GetDefaultLoggerLevel() {
@@ -86,7 +89,7 @@ Level GetLoggerLevel(const LoggerPtr& logger) {
 
 void LogFlush() { DefaultLogger()->ptr->flush(); }
 
-void LogFlush(LoggerPtr logger) { logger->ptr->flush(); }
+void LogFlush(const LoggerPtr& logger) { logger->ptr->flush(); }
 
 namespace impl {
 

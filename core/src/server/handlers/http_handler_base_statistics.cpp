@@ -11,7 +11,7 @@ namespace server::handlers {
 void HttpHandlerMethodStatistics::Account(
     const HttpHandlerStatisticsEntry& stats) noexcept {
   reply_codes_.Account(
-      static_cast<utils::statistics::HttpCodes::CodeType>(stats.code));
+      static_cast<utils::statistics::HttpCodes::Code>(stats.code));
   timings_.GetCurrentCounter().Account(stats.timing.count());
   if (stats.deadline.IsReachable()) ++deadline_received_;
   if (stats.cancellation == engine::TaskCancellationReason::kDeadline) {
@@ -19,25 +19,41 @@ void HttpHandlerMethodStatistics::Account(
   }
 }
 
-formats::json::Value Serialize(const HttpHandlerMethodStatistics& stats,
-                               formats::serialize::To<formats::json::Value>) {
-  formats::json::ValueBuilder result;
-  formats::json::ValueBuilder total;
+void DumpMetric(utils::statistics::Writer& writer,
+                const HttpHandlerMethodStatistics& stats) {
+  writer = HttpHandlerStatisticsSnapshot{stats};
+}
 
-  total["reply-codes"] = stats.FormatReplyCodes();
-  total["in-flight"] = stats.GetInFlight();
-  total["too-many-requests-in-flight"] = stats.GetTooManyRequestsInFlight();
-  total["rate-limit-reached"] = stats.GetRateLimitReached();
-  total["deadline-received"] = stats.GetDeadlineReceived();
-  total["cancelled-by-deadline"] = stats.GetCancelledByDeadline();
+HttpHandlerStatisticsSnapshot::HttpHandlerStatisticsSnapshot(
+    const HttpHandlerMethodStatistics& stats)
+    : timings(stats.GetTimings()),
+      reply_codes(stats.GetReplyCodes()),
+      in_flight(stats.GetInFlight()),
+      too_many_requests_in_flight(stats.GetTooManyRequestsInFlight()),
+      rate_limit_reached(stats.GetRateLimitReached()),
+      deadline_received(stats.GetDeadlineReceived()),
+      cancelled_by_deadline(stats.GetCancelledByDeadline()) {}
 
-  total["timings"]["1min"] =
-      utils::statistics::PercentileToJson(stats.GetTimings());
-  utils::statistics::SolomonSkip(total["timings"]["1min"]);
+void HttpHandlerStatisticsSnapshot::Add(
+    const HttpHandlerStatisticsSnapshot& other) {
+  timings.Add(other.timings);
+  reply_codes += other.reply_codes;
+  in_flight += other.in_flight;
+  too_many_requests_in_flight += other.too_many_requests_in_flight;
+  rate_limit_reached += other.rate_limit_reached;
+  deadline_received += other.deadline_received;
+  cancelled_by_deadline += other.cancelled_by_deadline;
+}
 
-  utils::statistics::SolomonSkip(total);
-  result["total"] = std::move(total);
-  return result.ExtractValue();
+void DumpMetric(utils::statistics::Writer& writer,
+                const HttpHandlerStatisticsSnapshot& stats) {
+  writer["reply-codes"] = stats.reply_codes;
+  writer["in-flight"] = stats.in_flight;
+  writer["too-many-requests-in-flight"] = stats.too_many_requests_in_flight;
+  writer["rate-limit-reached"] = stats.rate_limit_reached;
+  writer["deadline-received"] = stats.deadline_received;
+  writer["cancelled-by-deadline"] = stats.cancelled_by_deadline;
+  writer["timings"] = stats.timings;
 }
 
 void HttpRequestMethodStatistics::Account(

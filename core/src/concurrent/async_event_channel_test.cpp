@@ -59,8 +59,10 @@ UTEST(AsyncEventChannel, Unsubscribe) {
 UTEST(AsyncEventChannel, PublishTwoSubscribers) {
   concurrent::AsyncEventChannel<int> channel("channel");
 
-  int value1{0}, value2{0};
-  Subscriber s1(value1), s2(value2);
+  int value1{0};
+  int value2{0};
+  Subscriber s1(value1);
+  Subscriber s2(value2);
 
   auto sub1 = channel.AddListener(&s1, "", &Subscriber::OnEvent);
   auto sub2 = channel.AddListener(&s2, "", &Subscriber::OnEvent);
@@ -79,6 +81,7 @@ UTEST(AsyncEventChannel, PublishException) {
   concurrent::AsyncEventChannel<int> channel("channel");
 
   struct X {
+    // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
     void OnEvent(int) { throw std::runtime_error("error msg"); }
   };
   X x;

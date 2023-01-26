@@ -11,16 +11,16 @@ USERVER_NAMESPACE_BEGIN
 
 namespace formats::yaml {
 
-/// Parse JSON from string
+/// Parse YAML from string
 formats::yaml::Value FromString(const std::string& doc);
 
-/// Parse JSON from stream
+/// Parse YAML from stream
 formats::yaml::Value FromStream(std::istream& is);
 
-/// Serialize JSON to stream
+/// Serialize YAML to stream
 void Serialize(const formats::yaml::Value& doc, std::ostream& os);
 
-/// Serialize JSON to string
+/// Serialize YAML to string
 std::string ToString(const formats::yaml::Value& doc);
 
 /// Blocking operations that should not be used on main task processor after

@@ -5,8 +5,7 @@
 #include <userver/logging/log.hpp>
 #include <userver/utils/enumerate.hpp>
 #include <userver/utils/statistics/common.hpp>
-#include <userver/utils/statistics/metadata.hpp>
-#include <userver/utils/statistics/percentile_format_json.hpp>
+#include <userver/utils/statistics/writer.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -105,11 +104,6 @@ Statistics::ErrorGroup Statistics::ErrorCodeToGroup(std::error_code ec) {
   }
 }
 
-Statistics::Statistics() {
-  /* No way to init std::array<std::atomic<T>, N> w/o explicit default ctr :( */
-  for (auto& status : reply_status_) status = 0;
-}
-
 const char* Statistics::ToString(ErrorGroup error) {
   switch (error) {
     case ErrorGroup::kOk:
@@ -135,78 +129,54 @@ void Statistics::AccountError(ErrorGroup error) {
   error_count_[static_cast<int>(error)]++;
 }
 
-void Statistics::AccountStatus(int code) {
-  try {
-    reply_status_.at(code - kMinHttpStatus)++;
-  } catch (const std::out_of_range&) {
-    LOG_WARNING() << "Non-standard HTTP status code: " << code
-                  << ", skipping statistics accounting";
-  }
-}
+void Statistics::AccountStatus(int code) { reply_status_.Account(code); }
 
-formats::json::ValueBuilder StatisticsToJson(const InstanceStatistics& stats,
-                                             FormatMode format_mode) {
-  formats::json::ValueBuilder json;
-  json["timings"]["1min"] =
-      utils::statistics::PercentileToJson(stats.timings_percentile)
-          .ExtractValue();
-  utils::statistics::SolomonSkip(json["timings"]["1min"]);
+void DumpMetric(utils::statistics::Writer& writer,
+                const InstanceStatistics& stats, FormatMode format_mode) {
+  writer["timings"] = stats.timings_percentile;
 
-  formats::json::ValueBuilder errors;
   for (std::size_t i = 0; i < Statistics::kErrorGroupCount; i++) {
     const auto error_group = static_cast<Statistics::ErrorGroup>(i);
-    errors[Statistics::ToString(error_group)] = stats.error_count[i];
+    writer["errors"].ValueWithLabels(
+        stats.error_count[i],
+        {"http_error", Statistics::ToString(error_group)});
   }
-  utils::statistics::SolomonChildrenAreLabelValues(errors, "http_error");
-  json["errors"] = errors;
 
-  formats::json::ValueBuilder statuses(formats::json::Type::kObject);
-  for (const auto& [code, count] : stats.reply_status) {
-    statuses[std::to_string(code)] = count;
-  }
-  utils::statistics::SolomonChildrenAreLabelValues(statuses, "http_code");
-  json["reply-statuses"] = std::move(statuses);
+  writer["reply-statuses"] = stats.reply_status;
 
-  json["retries"] = stats.retries;
-  json["pending-requests"] = stats.easy_handles;
+  writer["retries"] = stats.retries;
+  writer["pending-requests"] = stats.easy_handles;
 
-  json["timeout-updated-by-deadline"] = stats.timeout_updated_by_deadline;
-  json["cancelled-by-deadline"] = stats.cancelled_by_deadline;
+  writer["timeout-updated-by-deadline"] = stats.timeout_updated_by_deadline;
+  writer["cancelled-by-deadline"] = stats.cancelled_by_deadline;
 
   if (format_mode == FormatMode::kModeAll) {
-    json["last-time-to-start-us"] =
+    writer["last-time-to-start-us"] =
         SumToMean(stats.last_time_to_start_us, stats.instances_aggregated);
-    json["event-loop-load"][utils::statistics::DurationToString(
+    writer["event-loop-load"][utils::statistics::DurationToString(
         utils::statistics::kDefaultMaxPeriod)] =
         SumToMean(stats.multi.current_load, stats.instances_aggregated);
 
     // Destinations may reuse sockets from other destination,
     // it is very unjust to account active/closed sockets
-    json["sockets"]["close"] = stats.multi.socket_close;
-    json["sockets"]["throttled"] = stats.multi.socket_ratelimit;
-    json["sockets"]["active"] =
+    writer["sockets"]["close"] = stats.multi.socket_close;
+    writer["sockets"]["throttled"] = stats.multi.socket_ratelimit;
+    writer["sockets"]["active"] =
         stats.multi.socket_open - stats.multi.socket_close;
   }
-  json["sockets"]["open"] = stats.multi.socket_open;
 
-  return json;
+  writer["sockets"]["open"] = stats.multi.socket_open;
 }
 
-formats::json::ValueBuilder PoolStatisticsToJson(const PoolStatistics& stats) {
-  formats::json::ValueBuilder json;
+void DumpMetric(utils::statistics::Writer& writer,
+                const PoolStatistics& stats) {
   InstanceStatistics sum_stats;
 
-  for (const auto& [i, stat] : utils::enumerate(stats.multi)) {
-    auto key = "worker-" + std::to_string(i);
-    json[key] = StatisticsToJson(stat);
-    utils::statistics::SolomonLabelValue(json[key], "http_worker_id");
-
+  for (const auto& stat : stats.multi) {
     sum_stats += stat;
   }
 
-  json["pool-total"] = StatisticsToJson(sum_stats);
-  utils::statistics::SolomonSkip(json["pool-total"]);
-  return json;
+  writer = sum_stats;
 }
 
 InstanceStatistics::InstanceStatistics(const Statistics& other)
@@ -215,21 +185,11 @@ InstanceStatistics::InstanceStatistics(const Statistics& other)
       timings_percentile(other.timings_percentile_.GetStatsForPeriod()),
       retries(other.retries_.load()),
       timeout_updated_by_deadline(other.timeout_updated_by_deadline_.load()),
-      cancelled_by_deadline(other.cancelled_by_deadline_.load()) {
+      cancelled_by_deadline(other.cancelled_by_deadline_.load()),
+      reply_status(other.reply_status_) {
   for (size_t i = 0; i < error_count.size(); i++)
     error_count[i] = other.error_count_[i].load();
-
-  for (size_t i = 0; i < other.reply_status_.size(); i++) {
-    const auto& value = other.reply_status_[i].load();
-    auto status = i + Statistics::kMinHttpStatus;
-    if (value || IsForcedStatusCode(status)) reply_status[status] = value;
-  }
-
   multi.socket_open = other.socket_open_;
-}
-
-bool InstanceStatistics::IsForcedStatusCode(int status) {
-  return status == 200 || status == 400 || status == 401 || status == 500;
 }
 
 uint64_t InstanceStatistics::GetNotOkErrorCount() const {
@@ -260,6 +220,7 @@ InstanceStatistics& InstanceStatistics::operator+=(
 
   timeout_updated_by_deadline += stat.timeout_updated_by_deadline;
   cancelled_by_deadline += stat.cancelled_by_deadline;
+  reply_status += stat.reply_status;
 
   multi += stat.multi;
   return *this;

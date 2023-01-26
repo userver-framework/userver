@@ -4,10 +4,11 @@
 #include <userver/components/component.hpp>
 #include <userver/components/statistics_storage.hpp>
 #include <userver/dynamic_config/storage/component.hpp>
+#include <userver/testsuite/testsuite_support.hpp>
 #include <userver/utils/statistics/metadata.hpp>
 
 #include <clients/http/config.hpp>
-#include <clients/http/destination_statistics_json.hpp>
+#include <clients/http/destination_statistics.hpp>
 #include <clients/http/statistics.hpp>
 #include <clients/http/testsuite.hpp>
 #include <userver/clients/http/client.hpp>
@@ -59,6 +60,9 @@ HttpClient::HttpClient(const ComponentConfig& component_config,
     auto prefixes = component_config["testsuite-allowed-url-prefixes"]
                         .As<std::vector<std::string>>({});
     http_client_.SetTestsuiteConfig({prefixes, timeout});
+
+    auto& testsuite = context.FindComponent<components::TestsuiteSupport>();
+    testsuite.GetHttpAllowedUrlsExtra().RegisterHttpClient(http_client_);
   }
 
   clients::http::Config bootstrap_config;
@@ -79,10 +83,9 @@ HttpClient::HttpClient(const ComponentConfig& component_config,
       (thread_name_prefix.empty() ? "" : ("-" + thread_name_prefix));
   auto& storage =
       context.FindComponent<components::StatisticsStorage>().GetStorage();
-  statistics_holder_ = storage.RegisterExtender(
-      stats_name,
-      [this](const utils::statistics::StatisticsRequest& /*request*/) {
-        return ExtendStatistics();
+  statistics_holder_ = storage.RegisterWriter(
+      std::move(stats_name), [this](utils::statistics::Writer& writer) {
+        return ExtendStatistics(writer);
       });
 }
 
@@ -97,18 +100,11 @@ void HttpClient::OnConfigUpdate(const dynamic_config::Snapshot& config) {
   http_client_.SetConfig(config.Get<clients::http::Config>());
 }
 
-formats::json::Value HttpClient::ExtendStatistics() {
-  formats::json::ValueBuilder json;
+void HttpClient::ExtendStatistics(utils::statistics::Writer& writer) {
   if (!disable_pool_stats_) {
-    json =
-        clients::http::PoolStatisticsToJson(http_client_.GetPoolStatistics());
+    DumpMetric(writer, http_client_.GetPoolStatistics());
   }
-  json["destinations"] = clients::http::DestinationStatisticsToJson(
-      http_client_.GetDestinationStatistics());
-  utils::statistics::SolomonChildrenAreLabelValues(json["destinations"],
-                                                   "http_destination");
-  utils::statistics::SolomonSkip(json["destinations"]);
-  return json.ExtractValue();
+  DumpMetric(writer, http_client_.GetDestinationStatistics());
 }
 
 yaml_config::Schema HttpClient::GetStaticConfigSchema() {

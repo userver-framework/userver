@@ -59,8 +59,7 @@ To create a task call the `utils::Async` function. It accepts the name of a
 task, the user-defined function to execute, and the arguments of the
 user-defined function:
 
-```
-cpp
+```cpp
 auto task = utils::Async("my_job", &func, arg1, arg2);
 // do something ...
 auto result = task.Get();
@@ -77,8 +76,7 @@ thread of the operating system instead. As a result, the thread is not idle,
 but reused by other users. After an external event occurs, the coroutine
 will be scheduled and executed.
 
-```
-cpp
+```cpp
 f();
 engine::SleepFor(std::chrono::seconds(60)); // voluntarily giving the current thread to other coroutines
 g(); // The thread has returned to us
@@ -108,5 +106,12 @@ Calling `engine::TaskWithResult::Get()` on a canceled task would wait for task t
 For non-canceled tasks the `engine::TaskWithResult::Get()` returns the result of the task.
 
 Note that the destructor of `engine::Task` cancels and waits for task to finish if the task has not finished yet. Use `concurrent::BackgroundTaskStorage` or `engine::Task::Detach()` to continue task execution out of scope.
+
+
+----------
+
+@htmlonly <div class="bottom-nav"> @endhtmlonly
+⇦ @ref md_en_userver_intro_io_bound_coro | @ref md_en_userver_framework_comparison ⇨
+@htmlonly </div> @endhtmlonly
 
 @example core/src/engine/mutex_benchmark.cpp

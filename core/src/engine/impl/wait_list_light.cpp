@@ -1,81 +1,144 @@
 #include "wait_list_light.hpp"
 
+#include <cstddef>
+#include <cstdint>
+#include <type_traits>
+
+#include <fmt/format.h>
+
+#include <concurrent/impl/fast_atomic.hpp>
+#include <engine/task/sleep_state.hpp>
 #include <engine/task/task_context.hpp>
-#include <userver/engine/sleep.hpp>
 #include <userver/utils/assert.hpp>
-#include <userver/utils/fast_scope_guard.hpp>
+#include <userver/utils/underlying_value.hpp>
+#include <utils/impl/assert_extra.hpp>
+
+USERVER_NAMESPACE_BEGIN
+
+namespace engine::impl {
+namespace {
+
+struct alignas(8) Waiter32 final {
+  TaskContext* context{nullptr};
+  SleepState::Epoch epoch{0};
+};
+
+struct alignas(16) Waiter64 final {
+  TaskContext* context{nullptr};
+  SleepState::Epoch epoch{0};
+  [[maybe_unused]] std::uint32_t padding_dont_use{0};
+};
+
+using Waiter = std::conditional_t<sizeof(void*) == 8, Waiter64, Waiter32>;
+
+}  // namespace
+}  // namespace engine::impl
+
+USERVER_NAMESPACE_END
+
+template <>
+struct fmt::formatter<USERVER_NAMESPACE::engine::impl::Waiter> {
+  static constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
+
+  template <typename FormatContext>
+  auto format(USERVER_NAMESPACE::engine::impl::Waiter waiter,
+              FormatContext& ctx) const {
+    return fmt::format_to(
+        ctx.out(), "({}, {})", fmt::ptr(waiter.context),
+        USERVER_NAMESPACE::utils::UnderlyingValue(waiter.epoch));
+  }
+};
 
 USERVER_NAMESPACE_BEGIN
 
 namespace engine::impl {
 
-#ifndef NDEBUG
-WaitListLight::SingleUserGuard::SingleUserGuard(WaitListLight& wait_list)
-    : wait_list_(wait_list) {
-  auto& task = engine::current_task::GetCurrentTaskContext();
-  UASSERT(!wait_list_.owner_);
-  wait_list_.owner_ = &task;
+struct WaitListLight::Impl final {
+  concurrent::impl::FastAtomic<Waiter> waiter{Waiter{}};
+};
+
+WaitListLight::WaitListLight() noexcept = default;
+
+WaitListLight::~WaitListLight() {
+  UASSERT_MSG(IsEmptyRelaxed(),
+              "Someone is waiting on WaitListLight while it's being destroyed");
 }
 
-WaitListLight::SingleUserGuard::~SingleUserGuard() {
-  auto& task = engine::current_task::GetCurrentTaskContext();
-  UASSERT(wait_list_.owner_ == &task);
-  wait_list_.owner_ = nullptr;
-}
-#endif
-
-WaitListLight::~WaitListLight() = default;
-
-bool WaitListLight::IsEmpty() const { return waiting_; }
-
-void WaitListLight::Append(
-    boost::intrusive_ptr<impl::TaskContext> context) noexcept {
+void WaitListLight::Append(boost::intrusive_ptr<TaskContext> context) noexcept {
   UASSERT(context);
   UASSERT(context->IsCurrent());
-  UASSERT(!waiting_);
-#ifndef NDEBUG
-  UASSERT(!owner_ || owner_ == context.get());
-#endif
 
-  LOG_TRACE() << "Appending, use_count=" << context->use_count();
-  waiting_ = context.detach();
+  const Waiter new_waiter{context.get(), context->GetEpoch()};
+  LOG_TRACE() << "Append waiter=" << fmt::to_string(new_waiter)
+              << " use_count=" << context->use_count();
+
+  Waiter expected{};
+  // seq_cst is important for the "Append-Check-Wakeup" sequence.
+  const bool success = impl_->waiter.compare_exchange_strong(
+      expected, new_waiter, std::memory_order_seq_cst,
+      std::memory_order_relaxed);
+  if (!success) {
+    utils::impl::AbortWithStacktrace(
+        fmt::format("Attempting to wait in a single AtomicWaiter "
+                    "from multiple coroutines: new={} existing={}",
+                    new_waiter, expected));
+  }
+
+  // Keep a reference logically stored in the WaitListLight to ensure that
+  // WakeupOne can complete safely in parallel with the waiting task being
+  // cancelled, Remove-d and stopped.
+  context.detach();
 }
 
 void WaitListLight::WakeupOne() {
-  ++in_wakeup_;
-  utils::FastScopeGuard guard([this]() noexcept { --in_wakeup_; });
+  auto old_waiter = impl_->waiter.load(std::memory_order_acquire);
+  if (!old_waiter.context) return;
 
-  auto* old = waiting_.exchange(nullptr);
-  if (old) {
-    LOG_TRACE() << "Waking up! use_count=" << old->use_count();
-    old->Wakeup(impl::TaskContext::WakeupSource::kWaitList,
-                impl::TaskContext::NoEpoch{});
-    intrusive_ptr_release(old);
+  // seq_cst is important for the "Append-Check-Wakeup" sequence.
+  const bool success = impl_->waiter.compare_exchange_strong(
+      old_waiter, Waiter{}, std::memory_order_seq_cst,
+      std::memory_order_relaxed);
+  if (!success) {
+    if (!old_waiter.context) return;
+    // The waiter has changed from one non-null value to another non-null value.
+    // This means that during this execution of WakeupOne one waiter was
+    // Removed, and another one was Appended. Pretend that we were called
+    // between Remove and Append.
+    return;
   }
+
+  const boost::intrusive_ptr<TaskContext> context{old_waiter.context,
+                                                  /*add_ref=*/false};
+
+  LOG_TRACE() << "WakeupOne waiter=" << fmt::to_string(old_waiter)
+              << " use_count=" << context->use_count();
+  context->Wakeup(TaskContext::WakeupSource::kWaitList, old_waiter.epoch);
 }
 
-void WaitListLight::Remove(impl::TaskContext& context) noexcept {
-  LOG_TRACE() << "remove (cancel)";
-  auto* old = waiting_.exchange(nullptr);
+void WaitListLight::Remove(TaskContext& context) noexcept {
+  UASSERT(context.IsCurrent());
+  const Waiter expected{&context, context.GetEpoch()};
 
-  UASSERT(!old || old == &context);
+  auto old_waiter = expected;
+  const bool success = impl_->waiter.compare_exchange_strong(
+      old_waiter, Waiter{}, std::memory_order_release,
+      std::memory_order_relaxed);
 
-  if (old) {
-    intrusive_ptr_release(old);
-  } else {
-    /*
-     * Race with WakeupOne()/WakeupAll() has fired. We have to wait until
-     * Wakeup*() in another thread has finished, otherwise Wakeup*() might awake
-     * the task too late (e.g. after the next Sleep()) which results in a
-     * spurious wakeup (very bad, not all sync primitives check for spurious
-     * wakeups, e.g. SleepFor()).
-     */
-
-    LOG_TRACE() << "Race with Wakeup*(), spinning";
-    while (in_wakeup_) {
-      std::this_thread::yield();
-    }
+  if (!success) {
+    UASSERT_MSG(!old_waiter.context,
+                fmt::format("An unexpected context is occupying the "
+                            "AtomicWaiter: expected={} actual={}",
+                            expected, old_waiter));
+    return;
   }
+
+  LOG_TRACE() << "Remove waiter=" << fmt::to_string(expected)
+              << " use_count=" << context.use_count();
+  intrusive_ptr_release(&context);
+}
+
+bool WaitListLight::IsEmptyRelaxed() noexcept {
+  return impl_->waiter.load(std::memory_order_relaxed).context == nullptr;
 }
 
 }  // namespace engine::impl

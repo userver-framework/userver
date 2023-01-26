@@ -1,5 +1,7 @@
 #include <userver/utest/utest.hpp>
 
+#include <gmock/gmock.h>
+
 #include <logging/dynamic_debug.hpp>
 #include <logging/logging_test.hpp>
 #include <userver/logging/log.hpp>
@@ -11,12 +13,13 @@ TEST_F(LoggingTest, DynamicDebugBasic) {
 
   LOG_INFO() << "before";
 
-  auto location = USERVER_FILEPATH;
-  logging::AddDynamicDebugLog(std::string{location}, 17);
+  const std::string location = USERVER_FILEPATH;
+  logging::AddDynamicDebugLog(location, 10001);
 
+#line 10001
   LOG_INFO() << "123";
 
-  logging::RemoveDynamicDebugLog(std::string{location}, 17);
+  logging::RemoveDynamicDebugLog(location, 10001);
 
   LOG_INFO() << "after";
 
@@ -32,20 +35,20 @@ TEST_F(LoggingTest, DynamicDebugAnyLine) {
 
   LOG_INFO() << "before";
 
-  auto location = USERVER_FILEPATH;
-  logging::AddDynamicDebugLog(std::string{location}, logging::kAnyLine);
+  const std::string location = USERVER_FILEPATH;
+  logging::AddDynamicDebugLog(location, logging::kAnyLine);
 
   LOG_INFO() << "123";
   LOG_INFO() << "456";
 
-  logging::RemoveDynamicDebugLog(std::string{location}, logging::kAnyLine);
+  logging::RemoveDynamicDebugLog(location, logging::kAnyLine);
 
   LOG_INFO() << "after";
 
-  EXPECT_FALSE(LoggedTextContains("before"));
-  EXPECT_TRUE(LoggedTextContains("123"));
-  EXPECT_TRUE(LoggedTextContains("456"));
-  EXPECT_FALSE(LoggedTextContains("after"));
+  EXPECT_THAT(GetStreamString(), testing::Not(testing::HasSubstr("before")));
+  EXPECT_THAT(GetStreamString(), testing::HasSubstr("123"));
+  EXPECT_THAT(GetStreamString(), testing::HasSubstr("456"));
+  EXPECT_THAT(GetStreamString(), testing::Not(testing::HasSubstr("after")));
 
   logging::SetDefaultLoggerLevel(logging::Level::kInfo);
 }
@@ -55,11 +58,12 @@ TEST_F(LoggingTest, DynamicDebugAnyLineRemove) {
 
   LOG_INFO() << "before";
 
-  auto location = USERVER_FILEPATH;
-  logging::AddDynamicDebugLog(std::string{location}, 63);
-  logging::AddDynamicDebugLog(std::string{location}, 64);
-  logging::RemoveDynamicDebugLog(std::string{location}, logging::kAnyLine);
+  const std::string location = USERVER_FILEPATH;
+  logging::AddDynamicDebugLog(location, 20001);
+  logging::AddDynamicDebugLog(location, 20002);
+  logging::RemoveDynamicDebugLog(location, logging::kAnyLine);
 
+#line 20001
   LOG_INFO() << "123";
   LOG_INFO() << "456";
 

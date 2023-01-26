@@ -575,12 +575,12 @@ TEST(PostgreIO, ArraysUnorderedSet) {
 }
 
 UTEST_P(PostgreConnection, ArrayRoundtrip) {
-  CheckConnection(conn);
+  CheckConnection(GetConn());
   pg::ResultSet res{nullptr};
   {
     using test_array = static_test::one_dim_vector;
     test_array src{-3, -2, 0, 1, 2, 3};
-    UEXPECT_NO_THROW(res = conn->Execute("select $1 as int_array", src));
+    UEXPECT_NO_THROW(res = GetConn()->Execute("select $1 as int_array", src));
     test_array tgt;
     UEXPECT_NO_THROW(res[0][0].To(tgt));
     UEXPECT_THROW(res[0][0].As<int>(), pg::InvalidParserCategory);
@@ -589,7 +589,7 @@ UTEST_P(PostgreConnection, ArrayRoundtrip) {
   {
     using test_array = static_test::vector_of_arrays;
     test_array src{{{{{1, 2, 3}}, {{4, 5, 6}}}}, {{{{1, 2, 3}}, {{4, 5, 6}}}}};
-    UEXPECT_NO_THROW(res = conn->Execute("select $1 as array3d", src));
+    UEXPECT_NO_THROW(res = GetConn()->Execute("select $1 as array3d", src));
     test_array tgt;
     UEXPECT_NO_THROW(res[0][0].To(tgt));
     UEXPECT_THROW(res[0][0].As<int>(), pg::InvalidParserCategory);
@@ -598,7 +598,7 @@ UTEST_P(PostgreConnection, ArrayRoundtrip) {
   {
     using test_array = std::vector<float>;
     test_array src{-3, -2, 0, 1, 2, 3};
-    UEXPECT_NO_THROW(res = conn->Execute("select $1 as float_array", src));
+    UEXPECT_NO_THROW(res = GetConn()->Execute("select $1 as float_array", src));
     test_array tgt;
     UEXPECT_NO_THROW(res[0][0].To(tgt));
     UEXPECT_THROW(res[0][0].As<float>(), pg::InvalidParserCategory);
@@ -607,7 +607,7 @@ UTEST_P(PostgreConnection, ArrayRoundtrip) {
   {
     using test_array = std::vector<std::string>;
     test_array src{"", "foo", "bar", ""};
-    UEXPECT_NO_THROW(res = conn->Execute("select $1 as text_array", src));
+    UEXPECT_NO_THROW(res = GetConn()->Execute("select $1 as text_array", src));
     test_array tgt;
     UEXPECT_NO_THROW(res[0][0].To(tgt));
     UEXPECT_THROW(res[0][0].As<std::string>(), pg::InvalidParserCategory);
@@ -619,7 +619,7 @@ UTEST_P(PostgreConnection, ArrayRoundtrip) {
     test_array src{
         {}, nullable_type{"foo"}, nullable_type{"bar"}, nullable_type{""}};
     UEXPECT_NO_THROW(
-        res = conn->Execute("select $1 as text_array_with_nulls", src));
+        res = GetConn()->Execute("select $1 as text_array_with_nulls", src));
     test_array tgt;
     UEXPECT_NO_THROW(res[0][0].To(tgt));
     UEXPECT_THROW(res[0][0].As<nullable_type>(), pg::InvalidParserCategory);
@@ -635,7 +635,8 @@ UTEST_P(PostgreConnection, ArrayRoundtrip) {
   {
     using test_array = std::vector<std::vector<std::string>>;
     test_array src{};
-    UEXPECT_NO_THROW(res = conn->Execute("select $1 as text_2d_array", src));
+    UEXPECT_NO_THROW(res =
+                         GetConn()->Execute("select $1 as text_2d_array", src));
     test_array tgt;
     UEXPECT_NO_THROW(res[0][0].To(tgt));
     UEXPECT_THROW(res[0][0].As<std::string>(), pg::InvalidParserCategory);
@@ -644,12 +645,12 @@ UTEST_P(PostgreConnection, ArrayRoundtrip) {
 }
 
 UTEST_P(PostgreConnection, ArraySetRoundtrip) {
-  CheckConnection(conn);
+  CheckConnection(GetConn());
   pg::ResultSet res{nullptr};
   {
     using test_array = static_test::one_dim_set;
     test_array src{-3, -2, 0, 1, 2, 3};
-    UEXPECT_NO_THROW(res = conn->Execute("select $1 as int_array", src));
+    UEXPECT_NO_THROW(res = GetConn()->Execute("select $1 as int_array", src));
     test_array tgt;
     UEXPECT_NO_THROW(res[0][0].To(tgt));
     UEXPECT_THROW(res[0][0].As<int>(), pg::InvalidParserCategory);
@@ -658,7 +659,7 @@ UTEST_P(PostgreConnection, ArraySetRoundtrip) {
   {
     using test_array = static_test::two_dim_set;
     test_array src{{1, 2, 3, 4, 5, 6}, {1, 2, 3, 4, 5, 7}};
-    UEXPECT_NO_THROW(res = conn->Execute("select $1 as array3d", src));
+    UEXPECT_NO_THROW(res = GetConn()->Execute("select $1 as array3d", src));
     test_array tgt;
     UEXPECT_NO_THROW(res[0][0].To(tgt));
     UEXPECT_THROW(res[0][0].As<int>(), pg::InvalidParserCategory);
@@ -667,7 +668,7 @@ UTEST_P(PostgreConnection, ArraySetRoundtrip) {
   {
     using test_array = std::set<float>;
     test_array src{-3, -2, 0, 1, 2, 3};
-    UEXPECT_NO_THROW(res = conn->Execute("select $1 as float_array", src));
+    UEXPECT_NO_THROW(res = GetConn()->Execute("select $1 as float_array", src));
     test_array tgt;
     UEXPECT_NO_THROW(res[0][0].To(tgt));
     UEXPECT_THROW(res[0][0].As<float>(), pg::InvalidParserCategory);
@@ -676,7 +677,7 @@ UTEST_P(PostgreConnection, ArraySetRoundtrip) {
   {
     using test_array = std::set<std::string>;
     test_array src{"", "foo", "bar", ""};
-    UEXPECT_NO_THROW(res = conn->Execute("select $1 as text_array", src));
+    UEXPECT_NO_THROW(res = GetConn()->Execute("select $1 as text_array", src));
     test_array tgt;
     UEXPECT_NO_THROW(res[0][0].To(tgt));
     UEXPECT_THROW(res[0][0].As<std::string>(), pg::InvalidParserCategory);
@@ -689,7 +690,7 @@ UTEST_P(PostgreConnection, ArraySetRoundtrip) {
     test_array src{
         {}, nullable_type{"foo"}, nullable_type{"bar"}, nullable_type{""}};
     UEXPECT_NO_THROW(
-        res = conn->Execute("select $1 as text_array_with_nulls", src));
+        res = GetConn()->Execute("select $1 as text_array_with_nulls", src));
     test_array tgt;
     UEXPECT_NO_THROW(res[0][0].To(tgt));
     UEXPECT_THROW(res[0][0].As<nullable_type>(), pg::InvalidParserCategory);
@@ -702,7 +703,7 @@ UTEST_P(PostgreConnection, ArraySetRoundtrip) {
     using test_optional_array = std::optional<std::set<std::string>>;
     test_optional_array src = std::nullopt;
     UEXPECT_NO_THROW(
-        res = conn->Execute("select $1 as optional_text_array", src));
+        res = GetConn()->Execute("select $1 as optional_text_array", src));
     test_optional_array tgt;
     UEXPECT_NO_THROW(res[0][0].To(tgt));
     EXPECT_EQ(tgt, std::nullopt);
@@ -714,7 +715,7 @@ UTEST_P(PostgreConnection, ArraySetRoundtrip) {
     test_optional_array src = std::make_optional<std::set<std::string>>(
         {std::string{"foo"}, std::string{"bar"}, std::string{""}});
     UEXPECT_NO_THROW(
-        res = conn->Execute("select $1 as optional_text_array", src));
+        res = GetConn()->Execute("select $1 as optional_text_array", src));
     test_optional_array tgt;
     UEXPECT_NO_THROW(res[0][0].To(tgt));
     EXPECT_EQ(tgt, src);
@@ -725,12 +726,12 @@ UTEST_P(PostgreConnection, ArraySetRoundtrip) {
 }
 
 UTEST_P(PostgreConnection, ArrayUnorderedSetRoundtrip) {
-  CheckConnection(conn);
+  CheckConnection(GetConn());
   pg::ResultSet res{nullptr};
   {
     using test_array = static_test::unordered_set;
     test_array src{-3, -2, 0, 1, 2, 3};
-    UEXPECT_NO_THROW(res = conn->Execute("select $1 as int_array", src));
+    UEXPECT_NO_THROW(res = GetConn()->Execute("select $1 as int_array", src));
     test_array tgt;
     UEXPECT_NO_THROW(res[0][0].To(tgt));
     UEXPECT_THROW(res[0][0].As<int>(), pg::InvalidParserCategory);
@@ -739,7 +740,7 @@ UTEST_P(PostgreConnection, ArrayUnorderedSetRoundtrip) {
   {
     using test_array = static_test::vector_of_unordered_sets;
     test_array src{{1, 2, 3, 4, 5, 6}, {1, 2, 3, 4, 5, 6}};
-    UEXPECT_NO_THROW(res = conn->Execute("select $1 as array3d", src));
+    UEXPECT_NO_THROW(res = GetConn()->Execute("select $1 as array3d", src));
     test_array tgt;
     UEXPECT_NO_THROW(res[0][0].To(tgt));
     UEXPECT_THROW(res[0][0].As<int>(), pg::InvalidParserCategory);
@@ -748,7 +749,7 @@ UTEST_P(PostgreConnection, ArrayUnorderedSetRoundtrip) {
   {
     using test_array = std::unordered_set<float>;
     test_array src{-3, -2, 0, 1, 2, 3};
-    UEXPECT_NO_THROW(res = conn->Execute("select $1 as float_array", src));
+    UEXPECT_NO_THROW(res = GetConn()->Execute("select $1 as float_array", src));
     test_array tgt;
     UEXPECT_NO_THROW(res[0][0].To(tgt));
     UEXPECT_THROW(res[0][0].As<float>(), pg::InvalidParserCategory);
@@ -757,7 +758,7 @@ UTEST_P(PostgreConnection, ArrayUnorderedSetRoundtrip) {
   {
     using test_array = std::unordered_set<std::string>;
     test_array src{"", "foo", "bar", ""};
-    UEXPECT_NO_THROW(res = conn->Execute("select $1 as text_array", src));
+    UEXPECT_NO_THROW(res = GetConn()->Execute("select $1 as text_array", src));
     test_array tgt;
     UEXPECT_NO_THROW(res[0][0].To(tgt));
     UEXPECT_THROW(res[0][0].As<std::string>(), pg::InvalidParserCategory);
@@ -770,7 +771,7 @@ UTEST_P(PostgreConnection, ArrayUnorderedSetRoundtrip) {
     test_array src{
         {}, nullable_type{"foo"}, nullable_type{"bar"}, nullable_type{""}};
     UEXPECT_NO_THROW(
-        res = conn->Execute("select $1 as text_array_with_nulls", src));
+        res = GetConn()->Execute("select $1 as text_array_with_nulls", src));
     test_array tgt;
     UEXPECT_NO_THROW(res[0][0].To(tgt));
     UEXPECT_THROW(res[0][0].As<nullable_type>(), pg::InvalidParserCategory);
@@ -783,7 +784,7 @@ UTEST_P(PostgreConnection, ArrayUnorderedSetRoundtrip) {
     using test_optional_array = std::optional<std::unordered_set<std::string>>;
     test_optional_array src = std::nullopt;
     UEXPECT_NO_THROW(
-        res = conn->Execute("select $1 as optional_text_array", src));
+        res = GetConn()->Execute("select $1 as optional_text_array", src));
     test_optional_array tgt;
     UEXPECT_NO_THROW(res[0][0].To(tgt));
     EXPECT_EQ(tgt, std::nullopt);
@@ -796,7 +797,7 @@ UTEST_P(PostgreConnection, ArrayUnorderedSetRoundtrip) {
         std::make_optional<std::unordered_set<std::string>>(
             {std::string{"foo"}, std::string{"bar"}, std::string{""}});
     UEXPECT_NO_THROW(
-        res = conn->Execute("select $1 as optional_text_array", src));
+        res = GetConn()->Execute("select $1 as optional_text_array", src));
     test_optional_array tgt;
     UEXPECT_NO_THROW(res[0][0].To(tgt));
     EXPECT_EQ(tgt, src);
@@ -807,17 +808,17 @@ UTEST_P(PostgreConnection, ArrayUnorderedSetRoundtrip) {
 }
 
 UTEST_P(PostgreConnection, ArrayEmpty) {
-  CheckConnection(conn);
+  CheckConnection(GetConn());
   pg::ResultSet res{nullptr};
   {
-    UEXPECT_NO_THROW(res = conn->Execute("select ARRAY[]::integer[]"));
+    UEXPECT_NO_THROW(res = GetConn()->Execute("select ARRAY[]::integer[]"));
     static_test::one_dim_vector v{1};
     UEXPECT_NO_THROW(res[0].To(v));
     EXPECT_TRUE(v.empty());
   }
   {
-    UEXPECT_NO_THROW(res = conn->Execute("select $1 as array",
-                                         static_test::one_dim_vector{}));
+    UEXPECT_NO_THROW(res = GetConn()->Execute("select $1 as array",
+                                              static_test::one_dim_vector{}));
     static_test::one_dim_vector v{1};
     UEXPECT_NO_THROW(res[0].To(v));
     EXPECT_TRUE(v.empty());
@@ -825,20 +826,22 @@ UTEST_P(PostgreConnection, ArrayEmpty) {
 }
 
 UTEST_P(PostgreConnection, ArrayOfVarchar) {
-  CheckConnection(conn);
+  CheckConnection(GetConn());
   pg::ResultSet res{nullptr};
+  UEXPECT_NO_THROW(GetConn()->Execute(
+      "create temporary table vchar_array_test( v varchar[] )"));
   UEXPECT_NO_THROW(
-      conn->Execute("create temporary table vchar_array_test( v varchar[] )"));
-  UEXPECT_NO_THROW(conn->Execute("insert into vchar_array_test values ($1)",
-                                 std::vector<std::string>{"foo", "bar"}));
+      GetConn()->Execute("insert into vchar_array_test values ($1)",
+                         std::vector<std::string>{"foo", "bar"}));
 }
 
 UTEST_P(PostgreConnection, ArrayOfBool) {
-  CheckConnection(conn);
+  CheckConnection(GetConn());
   std::vector<bool> src{true, false, true};
   pg::ResultSet res{nullptr};
-  UEXPECT_NO_THROW(res = conn->Execute("select $1::boolean[]",
-                                       std::vector<bool>{true, false, true}));
+  UEXPECT_NO_THROW(
+      res = GetConn()->Execute("select $1::boolean[]",
+                               std::vector<bool>{true, false, true}));
   std::vector<bool> tgt;
   UEXPECT_NO_THROW(res[0][0].To(tgt));
   EXPECT_EQ(src, tgt);
@@ -876,27 +879,27 @@ TEST(PostgreIO, SplitContainer) {
 }
 
 UTEST_P(PostgreConnection, ChunkedContainer) {
-  CheckConnection(conn);
+  CheckConnection(GetConn());
 
-  conn->Execute("create temporary table chunked_array_test(v integer)");
+  GetConn()->Execute("create temporary table chunked_array_test(v integer)");
   std::vector<int> data(1001, 42);
   auto split = io::SplitContainer(data, 100);
   for (auto chunk : split) {
-    UEXPECT_NO_THROW(conn->Execute(
+    UEXPECT_NO_THROW(GetConn()->Execute(
         "insert into chunked_array_test select * from unnest($1)", chunk));
   }
 
-  auto res = conn->Execute("select count(*) from chunked_array_test");
+  auto res = GetConn()->Execute("select count(*) from chunked_array_test");
   EXPECT_EQ(data.size(), res.Front().As<pg::Bigint>(pg::kFieldTag));
 }
 
 UTEST_P(PostgreConnection, TransactionChunkedContainer) {
-  CheckConnection(conn);
+  CheckConnection(GetConn());
 
-  conn->Execute("create temporary table chunked_array_test(v integer)");
+  GetConn()->Execute("create temporary table chunked_array_test(v integer)");
   std::vector<int> data(1001, 42);
 
-  pg::Transaction trx(std::move(conn), pg::TransactionOptions{});
+  pg::Transaction trx(std::move(GetConn()), pg::TransactionOptions{});
   UEXPECT_NO_THROW(trx.ExecuteBulk(
       "insert into chunked_array_test select * from unnest($1)", data, 100));
 

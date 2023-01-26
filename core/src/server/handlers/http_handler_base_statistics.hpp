@@ -11,9 +11,9 @@
 #include <userver/server/handlers/http_handler_base.hpp>
 #include <userver/server/http/http_status.hpp>
 #include <userver/utils/statistics/aggregated_values.hpp>
-#include <userver/utils/statistics/http_codes.hpp>
 #include <userver/utils/statistics/percentile.hpp>
 #include <userver/utils/statistics/recentperiod.hpp>
+#include <utils/statistics/http_codes.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -32,8 +32,8 @@ class HttpHandlerMethodStatistics final {
  public:
   void Account(const HttpHandlerStatisticsEntry& stats) noexcept;
 
-  formats::json::Value FormatReplyCodes() const {
-    return reply_codes_.FormatReplyCodes();
+  const utils::statistics::HttpCodes& GetReplyCodes() const {
+    return reply_codes_;
   }
 
   using Percentile = utils::statistics::Percentile<2048, unsigned int, 120>;
@@ -67,19 +67,41 @@ class HttpHandlerMethodStatistics final {
   }
 
  private:
-  utils::statistics::RecentPeriod<Percentile, Percentile,
-                                  utils::datetime::SteadyClock>
-      timings_;
-  utils::statistics::HttpCodes reply_codes_{400, 401, 499, 500};
-  std::atomic<size_t> in_flight_{0};
-  std::atomic<size_t> too_many_requests_in_flight_{0};
-  std::atomic<size_t> rate_limit_reached_{0};
+  using RecentPeriod =
+      utils::statistics::RecentPeriod<Percentile, Percentile,
+                                      utils::datetime::SteadyClock>;
+
+  RecentPeriod timings_;
+  utils::statistics::HttpCodes reply_codes_;
+  std::atomic<std::size_t> in_flight_{0};
+  std::atomic<std::uint64_t> too_many_requests_in_flight_{0};
+  std::atomic<std::uint64_t> rate_limit_reached_{0};
   std::atomic<std::uint64_t> deadline_received_{0};
   std::atomic<std::uint64_t> cancelled_by_deadline_{0};
 };
 
-formats::json::Value Serialize(const HttpHandlerMethodStatistics& stats,
-                               formats::serialize::To<formats::json::Value>);
+void DumpMetric(utils::statistics::Writer& writer,
+                const HttpHandlerMethodStatistics& stats);
+
+struct HttpHandlerStatisticsSnapshot final {
+  HttpHandlerStatisticsSnapshot() = default;
+
+  explicit HttpHandlerStatisticsSnapshot(
+      const HttpHandlerMethodStatistics& stats);
+
+  void Add(const HttpHandlerStatisticsSnapshot& other);
+
+  HttpHandlerMethodStatistics::Percentile timings;
+  utils::statistics::HttpCodes::Snapshot reply_codes;
+  std::size_t in_flight{0};
+  std::uint64_t too_many_requests_in_flight{0};
+  std::uint64_t rate_limit_reached{0};
+  std::uint64_t deadline_received{0};
+  std::uint64_t cancelled_by_deadline{0};
+};
+
+void DumpMetric(utils::statistics::Writer& writer,
+                const HttpHandlerStatisticsSnapshot& stats);
 
 // Statistics for a single request from the overall server or the external
 // client perspective. Includes the time spent in queue.

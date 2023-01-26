@@ -8,7 +8,7 @@ clean: check-yandex-env
 
 .PHONY: gen
 gen:
-	$(PYTHON3_BIN_DIR)python3 plugins/external_deps/impl/cmake_generator.py --repo-dir=. --build-dir=cmake
+	$(PYTHON3_BIN_DIR)python3 scripts/external_deps/cmake_generator.py --repo-dir=. --build-dir=cmake
 
 bionic-%: check-yandex-env
 	docker-compose run --rm taxi-userver-bionic make $*
@@ -18,25 +18,6 @@ docker-bionic-pull: check-yandex-env
 
 build-release: check-yandex-env
 	$(MAKE) build BUILD_TYPE=Release
-
-.PHONY: internal-docs
-internal-docs: check-yandex-env
-	@if ! git diff --quiet scripts/docs/doxygen.conf; then \
-	    echo "!!! This command should run on an unchanged or commited scripts/docs/doxygen.conf"; \
-	    exit 1; \
-	fi
-	@if [ -z "${OAUTH_TOKEN}" ]; then \
-	    echo "!!! No OAUTH_TOKEN environment variable provided"; \
-	    exit 2; \
-	fi
-	rm -rf docs/html || :
-	@echo "Checking aws tool configuration"
-	@aws --endpoint-url=https://s3.mds.yandex.net s3 ls > /dev/null
-	@(cd scripts/docs/ && taxi-python3 ./download.py --token ${OAUTH_TOKEN})
-	doxygen scripts/docs/doxygen.conf
-	aws --endpoint-url=https://s3.mds.yandex.net s3 rm --recursive s3://userver/
-	aws --endpoint-url=https://s3.mds.yandex.net s3 cp --recursive docs/html/ s3://userver/
-
 
 .PHONY: opensource-docs
 opensource-docs:

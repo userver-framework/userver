@@ -8,22 +8,19 @@
 
 USERVER_NAMESPACE_BEGIN
 
-using namespace formats::bson;
-using namespace storages::mongo;
+namespace bson = formats::bson;
+namespace mongo = storages::mongo;
 
 namespace {
-Pool MakeTestPool(clients::dns::Resolver& dns_resolver) {
-  return MakeTestsuiteMongoPool("exception_test", &dns_resolver);
-}
+class Exception : public MongoPoolFixture {};
 }  // namespace
 
-UTEST(Exception, DuplicateKey) {
-  auto dns_resolver = MakeDnsResolver();
-  auto pool = MakeTestPool(dns_resolver);
-  auto coll = pool.GetCollection("duplicate_key");
+UTEST_F(Exception, DuplicateKey) {
+  auto coll = GetDefaultPool().GetCollection("duplicate_key");
 
-  UASSERT_NO_THROW(coll.InsertOne(MakeDoc("_id", 1)));
-  UEXPECT_THROW(coll.InsertOne(MakeDoc("_id", 1)), DuplicateKeyException);
+  UASSERT_NO_THROW(coll.InsertOne(bson::MakeDoc("_id", 1)));
+  UEXPECT_THROW(coll.InsertOne(bson::MakeDoc("_id", 1)),
+                mongo::DuplicateKeyException);
 }
 
 USERVER_NAMESPACE_END

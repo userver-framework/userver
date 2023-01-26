@@ -24,20 +24,7 @@ macro(userver_fetch_and_add_gtest_subdirectory)
 endmacro()
 
 if (NOT USERVER_OPEN_SOURCE_BUILD)
-    if (EXISTS "${USERVER_ROOT_DIR}/submodules/googletest")
-      userver_add_gtest_subdirectory("submodules/googletest")
-      return()
-    endif()
-
-    include(FetchContent)
-    FetchContent_Declare(
-      gtest_external_project
-      GIT_REPOSITORY git@bb.yandex-team.ru:taxi-external/googletest.git
-      TIMEOUT 10
-      GIT_TAG develop
-      SOURCE_DIR ${USERVER_ROOT_DIR}/third_party/gtest
-    )
-    userver_fetch_and_add_gtest_subdirectory()
+    userver_add_gtest_subdirectory("submodules/googletest")
     return()
 endif()
 

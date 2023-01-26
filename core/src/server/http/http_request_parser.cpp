@@ -50,11 +50,11 @@ const http_parser_settings HttpRequestParser::parser_settings = []() {
 
 HttpRequestParser::HttpRequestParser(
     const HandlerInfoIndex& handler_info_index,
-    const request::RequestConfig& request_config,
+    const request::HttpRequestConfig& request_config,
     OnNewRequestCb&& on_new_request_cb, net::ParserStats& stats,
     request::ResponseDataAccounter& data_accounter)
     : handler_info_index_(handler_info_index),
-      request_constructor_config_{request_config.GetHttpConfig()},
+      request_constructor_config_{request_config},
       on_new_request_cb_(std::move(on_new_request_cb)),
       stats_(stats),
       data_accounter_(data_accounter) {

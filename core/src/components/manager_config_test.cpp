@@ -1,5 +1,6 @@
 #include <components/manager_config.hpp>
 
+#include <server/server_config.hpp>
 #include <userver/server/handlers/handler_config.hpp>
 
 #include <algorithm>
@@ -105,6 +106,7 @@ components_manager:
       blocking_task_processor: pg-task-processor
       dbalias: devicenotify
     secdist:
+    default-secdist-provider:
       config: /etc/yandex/taxi-secdist/taxi.json
     server:
       listener:
@@ -130,7 +132,7 @@ components_manager:
     dynamic-config-client-updater:
       config-settings: false
       config-url: $config_server_url
-      fallback-path: /etc/yandex/taxi/device-notify/taxi_config_fallback.json
+      fallback-path: /etc/yandex/taxi/device-notify/dynamic_config_fallback.json
       full-update-interval: 1m
       http-retries: 5
       http-timeout: 1000ms
@@ -201,21 +203,20 @@ TEST(ManagerConfig, Basic) {
   EXPECT_EQ(mc.coro_pool.initial_size, 5000) << "#fallback does not work";
   EXPECT_EQ(mc.task_processors.size(), 5);
 
-  ASSERT_EQ(mc.components.size(), 27);
-  auto begin = mc.components.begin();
-  auto end = mc.components.end();
+  ASSERT_EQ(mc.components.size(), 28);
 
-  EXPECT_TRUE(std::any_of(begin, end, [](const auto& conf) {
-    return conf.Name() == "api-firebase";
-  }));
-  EXPECT_TRUE(std::any_of(begin, end, [](const auto& conf) {
-    return conf.Name() == "logging-configurator";
-  }));
+  EXPECT_TRUE(std::any_of(
+      mc.components.begin(), mc.components.end(),
+      [](const auto& conf) { return conf.Name() == "api-firebase"; }));
+  EXPECT_TRUE(std::any_of(
+      mc.components.begin(), mc.components.end(),
+      [](const auto& conf) { return conf.Name() == "logging-configurator"; }));
 }
 
 TEST(ManagerConfig, HandlerConfig) {
   const auto mc = MakeManagerConfig();
 
+  // NOLINTNEXTLINE(readability-qualified-auto)
   const auto it =
       std::find_if(mc.components.cbegin(), mc.components.cend(),
                    [](const auto& v) { return v.Name() == "tests-control"; });
@@ -223,7 +224,8 @@ TEST(ManagerConfig, HandlerConfig) {
 
   EXPECT_EQ(it->GetPath(), "components_manager.components.tests-control");
 
-  const auto conf = it->As<server::handlers::HandlerConfig>();
+  const auto conf = server::handlers::ParseHandlerConfigsWithDefaults(
+      *it, server::ServerConfig{});
 
   EXPECT_EQ(std::get<std::string>(conf.path), "/tests/control");
   EXPECT_EQ(conf.task_processor, "main-task-processor");

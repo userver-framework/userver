@@ -28,9 +28,10 @@ incorrect_filed_name:
   UEXPECT_THROW_MSG(
       formats::yaml::FromString(kSchema).As<yaml_config::Schema>(),
       std::runtime_error,
-      "Schema field name must be one of [type, description, "
-      "defaultDescription, additionalProperties, properties, items, enum], but "
-      "'incorrect_filed_name' was given. Schema path: '/'");
+      "Schema field name must be one of ['type', 'description', "
+      "'defaultDescription', 'additionalProperties', 'properties', 'items', "
+      "'enum', 'minimum', 'maximum'], but 'incorrect_filed_name' was given. "
+      "Schema path: '/'");
 }
 
 TEST(StaticConfigValidator, AdditionalPropertiesAbsent) {
@@ -373,6 +374,48 @@ properties:
                     std::runtime_error,
                     "Error while validating static config against schema. "
                     "Value '[]' of field 'mode' must be string");
+}
+
+TEST(StaticConfigValidator, IntegerBounds) {
+  const std::string kSchema = R"(
+type: integer
+description: .
+minimum: 10
+maximum: 20
+)";
+
+  UEXPECT_NO_THROW(Validate("10", kSchema));
+  UEXPECT_NO_THROW(Validate("15", kSchema));
+  UEXPECT_NO_THROW(Validate("20", kSchema));
+  UEXPECT_THROW_MSG(Validate("9", kSchema), std::runtime_error,
+                    "Expected integer at path '/' to be >= 10 (actual: 9)");
+  UEXPECT_THROW_MSG(Validate("21", kSchema), std::runtime_error,
+                    "Expected integer at path '/' to be <= 20 (actual: 21)");
+  UEXPECT_THROW_MSG(Validate("15.5", kSchema), std::runtime_error,
+                    "Value '15.5' of field '/' must be integer");
+  UEXPECT_THROW_MSG(Validate("What", kSchema), std::runtime_error,
+                    "Value 'What' of field '/' must be integer");
+}
+
+TEST(StaticConfigValidatorBounds, NumberBounds) {
+  const std::string kSchema = R"(
+type: number
+description: .
+minimum: 10.5
+maximum: 19.5
+)";
+
+  UEXPECT_NO_THROW(Validate("15", kSchema));
+  UEXPECT_NO_THROW(Validate("10.5", kSchema));
+  UEXPECT_NO_THROW(Validate("10.6", kSchema));
+  UEXPECT_NO_THROW(Validate("19.4", kSchema));
+  UEXPECT_NO_THROW(Validate("19.5", kSchema));
+  UEXPECT_THROW_MSG(Validate("10.4", kSchema), std::runtime_error,
+                    "Expected number at path '/' to be >= 10.5 (actual: 10.4)");
+  UEXPECT_THROW_MSG(Validate("19.6", kSchema), std::runtime_error,
+                    "Expected number at path '/' to be <= 19.5 (actual: 19.6)");
+  UEXPECT_THROW_MSG(Validate("What", kSchema), std::runtime_error,
+                    "Value 'What' of field '/' must be number");
 }
 
 USERVER_NAMESPACE_END

@@ -18,7 +18,6 @@ class EnrichedTestBase {
   virtual void SetUp() = 0;
   virtual void TearDown() = 0;
   virtual void TestBody() = 0;
-  virtual bool IsTestCancelled() = 0;
 
   std::size_t GetThreadCount() const { return utest_thread_count_; }
   void SetThreadCount(std::size_t count) { utest_thread_count_ = count; }
@@ -55,10 +54,6 @@ class EnrichedFixture : public UserFixture, public EnrichedTestBase {
  private:
   using EnrichedTestBase::SetThreadCount;
   using EnrichedTestBase::TestBody;
-
-  bool IsTestCancelled() final {
-    return UserFixture::HasFatalFailure() || UserFixture::IsSkipped();
-  }
 };
 
 template <typename Base, typename UserFixture>

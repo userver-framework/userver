@@ -1,6 +1,7 @@
 #include <userver/utils/fixed_array.hpp>
 
-#include <cstddef>
+#include <atomic>
+#include <cstdint>
 
 #include <gtest/gtest.h>
 
@@ -42,6 +43,55 @@ TEST(FixedArray, Overaligned) {
   };
   utils::FixedArray<Overaligned> array(4);
   ASSERT_TRUE((reinterpret_cast<std::uintptr_t>(array.data()) % align) == 0);
+}
+
+TEST(FixedArray, Empty) {
+  utils::FixedArray<int> array(0, 42);
+  EXPECT_EQ(array.size(), 0);
+  EXPECT_TRUE(array.empty());
+  EXPECT_EQ(array.begin(), array.end());
+}
+
+TEST(FixedArray, GenerateEmpty) {
+  auto array = utils::GenerateFixedArray(0, [](int x) { return x; });
+  static_assert(std::is_same_v<decltype(array), utils::FixedArray<int>>);
+  EXPECT_EQ(array.size(), 0);
+  EXPECT_TRUE(array.empty());
+  EXPECT_EQ(array.begin(), array.end());
+}
+
+TEST(FixedArray, GenerateOrder) {
+  constexpr std::size_t kObjectCount = 42;
+
+  std::size_t iteration_index = 0;
+  auto array = utils::GenerateFixedArray(kObjectCount, [&](std::size_t index) {
+    EXPECT_EQ(index, iteration_index++);
+    return index * 2;
+  });
+
+  EXPECT_EQ(array.size(), kObjectCount);
+  EXPECT_FALSE(array.empty());
+  std::size_t index = 0;
+  for (const auto& item : array) {
+    EXPECT_EQ(item, index++ * 2);
+  }
+  EXPECT_EQ(index, kObjectCount);
+}
+
+TEST(FixedArray, GenerateNonMovable) {
+  using NonMovable = std::atomic<int>;
+  constexpr std::size_t kObjectCount = 42;
+
+  auto array = utils::GenerateFixedArray(kObjectCount,
+                                         [](int x) { return NonMovable(x); });
+
+  EXPECT_EQ(array.size(), kObjectCount);
+  EXPECT_FALSE(array.empty());
+  std::size_t index = 0;
+  for (const auto& item : array) {
+    EXPECT_EQ(item.load(), index++);
+  }
+  EXPECT_EQ(index, kObjectCount);
 }
 
 USERVER_NAMESPACE_END

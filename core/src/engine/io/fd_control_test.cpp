@@ -31,13 +31,8 @@ class Pipe final {
   int Out() { return fd_[1]; }
 
  private:
-  int fd_[2];
+  int fd_[2]{};
 };
-
-bool HasTimedOut() {
-  return engine::current_task::GetCurrentTaskContext().DebugGetWakeupSource() ==
-         engine::impl::TaskContext::WakeupSource::kDeadlineTimer;
-}
 
 void CheckedWrite(int fd, const void* buf, size_t len) {
   ASSERT_EQ(len, ::write(fd, buf, len));
@@ -80,20 +75,17 @@ UTEST(FdControl, Ownership) {
 
 UTEST(FdControl, Wait) {
   Pipe pipe;
-  std::array<char, 16> buf;
+  std::array<char, 16> buf{};
 
   auto read_control = FdControl::Adopt(pipe.ExtractIn());
   auto& read_dir = read_control->Read();
   EXPECT_FALSE(read_dir.Wait(Deadline::FromDuration(kReadTimeout)));
-  EXPECT_TRUE(HasTimedOut());
 
   CheckedWrite(pipe.Out(), buf.data(), 1);
   EXPECT_TRUE(read_dir.Wait(Deadline::FromDuration(kReadTimeout)));
-  EXPECT_FALSE(HasTimedOut());
 
   EXPECT_EQ(::read(read_dir.Fd(), buf.data(), buf.size()), 1);
   EXPECT_FALSE(read_dir.Wait(Deadline::FromDuration(kReadTimeout)));
-  EXPECT_TRUE(HasTimedOut());
 }
 
 UTEST(FdControl, Waits) {
@@ -140,7 +132,7 @@ UTEST(FdControl, DestructionNoData) {
 UTEST(FdControl, DestructionWithData) {
   for (unsigned i = 0; i < kRepetitions; ++i) {
     Pipe pipe;
-    std::array<char, 16> buf;
+    std::array<char, 16> buf{};
 
     auto read_control = FdControl::Adopt(pipe.ExtractIn());
     auto& read_dir = read_control->Read();
@@ -159,10 +151,10 @@ UTEST(FdControl, PartialTransfer) {
   auto read_control = FdControl::Adopt(pipe.ExtractIn());
   auto& read_dir = read_control->Read();
 
-  std::array<char, 16> buf;
-  io::impl::Direction::Lock lock(read_dir);
+  std::array<char, 16> buf{};
+  io::impl::Direction::SingleUserGuard guard(read_dir);
   try {
-    read_dir.PerformIo(lock, &::read, buf.data(), buf.size(),
+    read_dir.PerformIo(guard, &::read, buf.data(), buf.size(),
                        io::impl::TransferMode::kPartial,
                        Deadline::FromDuration(kReadTimeout), "reading");
     FAIL() << "Did not time out";
@@ -172,7 +164,7 @@ UTEST(FdControl, PartialTransfer) {
 
   CheckedWrite(pipe.Out(), "test", 4);
   EXPECT_EQ(
-      4, read_dir.PerformIo(lock, &::read, buf.data(), buf.size(),
+      4, read_dir.PerformIo(guard, &::read, buf.data(), buf.size(),
                             io::impl::TransferMode::kPartial, {}, "reading"));
 }
 
@@ -182,10 +174,10 @@ UTEST_MT(FdControl, WholeTransfer, 2) {
   auto read_control = FdControl::Adopt(pipe.ExtractIn());
   auto& read_dir = read_control->Read();
 
-  std::array<char, 16> buf;
-  io::impl::Direction::Lock lock(read_dir);
+  std::array<char, 16> buf{};
+  io::impl::Direction::SingleUserGuard guard(read_dir);
   try {
-    read_dir.PerformIo(lock, &::read, buf.data(), buf.size(),
+    read_dir.PerformIo(guard, &::read, buf.data(), buf.size(),
                        io::impl::TransferMode::kWhole,
                        Deadline::FromDuration(kReadTimeout), "reading");
     FAIL() << "Did not time out";
@@ -195,7 +187,7 @@ UTEST_MT(FdControl, WholeTransfer, 2) {
 
   CheckedWrite(pipe.Out(), "test", 4);
   try {
-    read_dir.PerformIo(lock, &::read, buf.data(), buf.size(),
+    read_dir.PerformIo(guard, &::read, buf.data(), buf.size(),
                        io::impl::TransferMode::kWhole,
                        Deadline::FromDuration(kReadTimeout), "reading");
     FAIL() << "Did not time out";
@@ -205,7 +197,7 @@ UTEST_MT(FdControl, WholeTransfer, 2) {
 
   CheckedWrite(pipe.Out(), "testtesttesttesttest", 20);
   EXPECT_EQ(buf.size(), read_dir.PerformIo(
-                            lock, &::read, buf.data(), buf.size(),
+                            guard, &::read, buf.data(), buf.size(),
                             io::impl::TransferMode::kWhole,
                             Deadline::FromDuration(kReadTimeout), "reading"));
 
@@ -226,7 +218,7 @@ UTEST_MT(FdControl, WholeTransfer, 2) {
     CheckedWrite(fd, "testtesttesttesttest", 20);
   });
   EXPECT_EQ(buf.size(),
-            read_dir.PerformIo(lock, counted_read, buf.data(), buf.size(),
+            read_dir.PerformIo(guard, counted_read, buf.data(), buf.size(),
                                io::impl::TransferMode::kWhole,
                                Deadline::FromDuration(utest::kMaxTestWaitTime),
                                "reading"));

@@ -4,6 +4,8 @@
 #include <ctime>
 #include <optional>
 
+#include <sys/param.h>
+
 #include <cctz/time_zone.h>
 #include <boost/lexical_cast.hpp>
 
@@ -27,6 +29,9 @@ constexpr int64_t k100NanosecondsIntervalsBetweenDotNetAndPosixTimeStart =
 constexpr int64_t kNanosecondsIs100Nanoseconds = 100;
 
 cctz::time_zone GetTimezone(const std::string& tzname) {
+#if defined(BSD) && !defined(__APPLE__)
+  if (tzname == "GMT") return GetTimezone("UTC");
+#endif
   cctz::time_zone tz;
   if (!load_time_zone(tzname, &tz)) {
     throw TimezoneLookupError(tzname);
@@ -130,7 +135,7 @@ std::chrono::system_clock::time_point Stringtime(const std::string& timestring,
   return *optional_tp;
 }
 
-std::chrono::system_clock::time_point LocalTimezonetringtime(
+std::chrono::system_clock::time_point LocalTimezoneStringtime(
     const std::string& timestring, const std::string& format) {
   const auto optional_tp =
       OptionalStringtime(timestring, GetLocalTimezone(), format);

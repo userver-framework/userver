@@ -6,7 +6,6 @@
 #include <atomic>
 #include <chrono>
 #include <string>
-#include <unordered_map>
 
 #include <userver/logging/log_extra.hpp>
 

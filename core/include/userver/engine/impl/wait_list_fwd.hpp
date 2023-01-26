@@ -10,32 +10,13 @@ namespace engine::impl {
 class TaskContext;
 
 class WaitList;
-constexpr inline std::size_t kWaitListSize = compiler::SelectSize()
-                                                 .ForLibCpp64(88)
-                                                 .ForLibStdCpp64(64)
-                                                 .ForLibCpp32(88)
-                                                 .ForLibStdCpp32(64);
-
-using FastPimplWaitList =
-    utils::FastPimpl<WaitList, kWaitListSize, alignof(void*)>;
+using FastPimplWaitList = utils::FastPimpl<WaitList, 88, alignof(void*)>;
 
 class WaitListLight;
-using FastPimplWaitListLight =
-#ifndef NDEBUG
-    utils::FastPimpl<WaitListLight, 24, 8>;
-#else
-    utils::FastPimpl<WaitListLight, 16, 8>;
-#endif
+using FastPimplWaitListLight = utils::FastPimpl<WaitListLight, 16, 16>;
 
 class GenericWaitList;
-constexpr inline std::size_t kGenericWaitListSize = compiler::SelectSize()
-                                                        .ForLibCpp64(96)
-                                                        .ForLibStdCpp64(72)
-                                                        .ForLibCpp32(96)
-                                                        .ForLibStdCpp32(72);
-
-using FastPimplGenericWaitList =
-    utils::FastPimpl<GenericWaitList, kGenericWaitListSize, alignof(void*)>;
+using FastPimplGenericWaitList = utils::FastPimpl<GenericWaitList, 112, 16>;
 
 }  // namespace engine::impl
 

@@ -14,6 +14,7 @@ This tutorial shows you how to send and receive Flatbuffers over HTTP using user
 In this sample we use the @ref samples/flatbuf_service/flatbuffer_schema.fbs Flatbuffers scheme and compile it via the
 `flatc --cpp --gen-object-api --filename-suffix '.fbs' flatbuffer_schema.fbs` command.
 
+
 ### HTTP Flatbuffer handler component
 
 There are two ways to write a handler that deals with Flatbuffers:
@@ -38,7 +39,9 @@ After that, we just send the data and validate the response:
 
 @snippet samples/flatbuf_service/flatbuf_service.cpp Flatbuf service sample - request
 
-### Build
+
+### Build and Run
+
 To build the sample, execute the following build steps at the userver root directory:
 ```
 bash
@@ -48,7 +51,14 @@ cmake -DCMAKE_BUILD_TYPE=Release ..
 make userver-samples-flatbuf_service
 ```
 
-Start the server by running `./samples/flatbuf_service/userver-samples-flatbuf_service`.
+The sample could be started by running
+`make start-userver-samples-flatbuf_service`. The command would invoke
+@ref md_en_userver_functional_testing "testsuite start target" that sets proper
+paths in the configuration files and starts the service.
+
+To start the service manually run
+`./samples/flatbuf_service/userver-samples-flatbuf_service -c </path/to/static_config.yaml>`
+(do not forget to prepare the configuration files!).
 
 Now you can send a request to your server from another terminal:
 ```
@@ -77,11 +87,17 @@ $ echo "100000000c00180000000800100004000c00000014000000140000000000000016000000
 * Connection #0 to host localhost left intact
 ```
 
+
 ### Functional testing
 Naive @ref md_en_userver_functional_testing "functional tests" for the service
 could be implemented using the testsuite in the following way:
 
 @snippet samples/flatbuf_service/tests/test_flatbuf.py  Functional test
+
+Do not forget to add the plugin in conftest.py:
+
+@snippet samples/flatbuf_service/tests/conftest.py  registration
+
 
 ## Full sources
 
@@ -92,6 +108,12 @@ See the full example:
 * @ref samples/flatbuf_service/dynamic_config_fallback.json
 * @ref samples/flatbuf_service/CMakeLists.txt
 * @ref samples/flatbuf_service/tests/test_flatbuf.py
+
+----------
+
+@htmlonly <div class="bottom-nav"> @endhtmlonly
+⇦ @ref md_en_userver_tutorial_http_caching | @ref md_en_userver_tutorial_grpc_service ⇨
+@htmlonly </div> @endhtmlonly
 
 @example samples/flatbuf_service/flatbuf_service.cpp
 @example samples/flatbuf_service/flatbuffer_schema.fbs

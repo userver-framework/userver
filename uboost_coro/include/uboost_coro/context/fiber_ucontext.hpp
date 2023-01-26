@@ -32,6 +32,7 @@ extern "C" {
 
 #include <boost/assert.hpp>
 #include <boost/config.hpp>
+#include <boost/predef.h>
 
 #include <uboost_coro/context/detail/disable_overload.hpp>
 #if defined(BOOST_NO_CXX14_STD_EXCHANGE)
@@ -51,6 +52,10 @@ extern "C" {
 
 #ifdef BOOST_HAS_ABI_HEADERS
 # include BOOST_ABI_PREFIX
+#endif
+
+#ifdef BOOST_USE_TSAN
+#include <sanitizer/tsan_interface.h>
 #endif
 
 namespace boost {
@@ -82,6 +87,11 @@ struct BOOST_CONTEXT_DECL fiber_activation_record {
     std::size_t                                                 stack_size{ 0 };
 #endif
 
+#if defined(BOOST_USE_TSAN)
+    void * tsan_fiber{ nullptr };
+    bool destroy_tsan_fiber{ true };
+#endif
+
     static fiber_activation_record *& current() noexcept;
 
     // used for toplevel-context
@@ -92,6 +102,11 @@ struct BOOST_CONTEXT_DECL fiber_activation_record {
                     std::error_code( errno, std::system_category() ),
                     "getcontext() failed");
         }
+
+#if defined(BOOST_USE_TSAN)
+        tsan_fiber = __tsan_get_current_fiber();
+        destroy_tsan_fiber = false;
+#endif
     }
 
     fiber_activation_record( stack_context sctx_) noexcept :
@@ -100,6 +115,10 @@ struct BOOST_CONTEXT_DECL fiber_activation_record {
     } 
 
     virtual ~fiber_activation_record() {
+#if defined(BOOST_USE_TSAN)
+        if (destroy_tsan_fiber)
+            __tsan_destroy_fiber(tsan_fiber);
+#endif
 	}
 
     fiber_activation_record( fiber_activation_record const&) = delete;
@@ -125,6 +144,9 @@ struct BOOST_CONTEXT_DECL fiber_activation_record {
         } else {
             __sanitizer_start_switch_fiber( & from->fake_stack, stack_bottom, stack_size);
         }
+#endif
+#if defined (BOOST_USE_TSAN)
+        __tsan_switch_to_fiber(tsan_fiber, 0);
 #endif
         // context switch from parent context to `this`-context
         ::swapcontext( & from->uctx, & uctx);
@@ -185,6 +207,9 @@ struct BOOST_CONTEXT_DECL fiber_activation_record {
 #if defined(BOOST_USE_ASAN)
         __sanitizer_start_switch_fiber( & from->fake_stack, stack_bottom, stack_size);
 #endif
+#if defined (BOOST_USE_TSAN)
+        __tsan_switch_to_fiber(tsan_fiber, 0);
+#endif
         // context switch from parent context to `this`-context
         ::swapcontext( & from->uctx, & uctx);
 #if defined(BOOST_USE_ASAN)
@@ -210,19 +235,10 @@ struct BOOST_CONTEXT_DECL fiber_activation_record_initializer {
 
 struct forced_unwind {
     fiber_activation_record  *  from{ nullptr };
-#ifndef BOOST_ASSERT_IS_VOID
-    bool                        caught{ false };
-#endif
 
     forced_unwind( fiber_activation_record * from_) noexcept :
         from{ from_ } {
     }
-
-#ifndef BOOST_ASSERT_IS_VOID
-    ~forced_unwind() {
-        BOOST_ASSERT( caught);
-    }
-#endif
 };
 
 template< typename Ctx, typename StackAlloc, typename Fn >
@@ -268,9 +284,6 @@ public:
 #endif  
         } catch ( forced_unwind const& ex) {
             c = Ctx{ ex.from };
-#ifndef BOOST_ASSERT_IS_VOID
-            const_cast< forced_unwind & >( ex).caught = true;
-#endif
         }
         // this context has finished its task
 		from = nullptr;
@@ -305,7 +318,12 @@ static fiber_activation_record * create_fiber1( StackAlloc && salloc, Fn && fn) 
                 std::error_code( errno, std::system_category() ),
                 "getcontext() failed");
     }
+#if BOOST_OS_BSD_FREE
+    // because FreeBSD defines stack_t::ss_sp as char *
+    record->uctx.uc_stack.ss_sp = static_cast< char * >( stack_bottom);
+#else
     record->uctx.uc_stack.ss_sp = stack_bottom;
+#endif
     // 64byte gap between control structure and stack top
     record->uctx.uc_stack.ss_size = reinterpret_cast< uintptr_t >( storage) -
             reinterpret_cast< uintptr_t >( stack_bottom) - static_cast< uintptr_t >( 64);
@@ -314,6 +332,9 @@ static fiber_activation_record * create_fiber1( StackAlloc && salloc, Fn && fn) 
 #if defined(BOOST_USE_ASAN)
     record->stack_bottom = record->uctx.uc_stack.ss_sp;
     record->stack_size = record->uctx.uc_stack.ss_size;
+#endif
+#if defined (BOOST_USE_TSAN)
+    record->tsan_fiber = __tsan_create_fiber(0);
 #endif
     return record;
 }
@@ -340,7 +361,12 @@ static fiber_activation_record * create_fiber2( preallocated palloc, StackAlloc 
                 std::error_code( errno, std::system_category() ),
                 "getcontext() failed");
     }
+#if BOOST_OS_BSD_FREE
+    // because FreeBSD defines stack_t::ss_sp as char *
+    record->uctx.uc_stack.ss_sp = static_cast< char * >( stack_bottom);
+#else
     record->uctx.uc_stack.ss_sp = stack_bottom;
+#endif
     // 64byte gap between control structure and stack top
     record->uctx.uc_stack.ss_size = reinterpret_cast< uintptr_t >( storage) -
             reinterpret_cast< uintptr_t >( stack_bottom) - static_cast< uintptr_t >( 64);
@@ -349,6 +375,9 @@ static fiber_activation_record * create_fiber2( preallocated palloc, StackAlloc 
 #if defined(BOOST_USE_ASAN)
     record->stack_bottom = record->uctx.uc_stack.ss_sp;
     record->stack_size = record->uctx.uc_stack.ss_size;
+#endif
+#if defined (BOOST_USE_TSAN)
+    record->tsan_fiber = __tsan_create_fiber(0);
 #endif
     return record;
 }
@@ -482,6 +511,8 @@ public:
         return ptr_ < other.ptr_;
     }
 
+    #if !defined(BOOST_EMBTC)
+
     template< typename charT, class traitsT >
     friend std::basic_ostream< charT, traitsT > &
     operator<<( std::basic_ostream< charT, traitsT > & os, fiber const& other) {
@@ -492,10 +523,32 @@ public:
         }
     }
 
+    #else
+
+    template< typename charT, class traitsT >
+    friend std::basic_ostream< charT, traitsT > &
+    operator<<( std::basic_ostream< charT, traitsT > & os, fiber const& other);
+
+    #endif
+
     void swap( fiber & other) noexcept {
         std::swap( ptr_, other.ptr_);
     }
 };
+
+#if defined(BOOST_EMBTC)
+
+    template< typename charT, class traitsT >
+    inline std::basic_ostream< charT, traitsT > &
+    operator<<( std::basic_ostream< charT, traitsT > & os, fiber const& other) {
+        if ( nullptr != other.ptr_) {
+            return os << other.ptr_;
+        } else {
+            return os << "{not-a-context}";
+        }
+    }
+
+#endif
 
 inline
 void swap( fiber & l, fiber & r) noexcept {

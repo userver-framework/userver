@@ -177,9 +177,9 @@ ConnectionImpl::ConnectionImpl(
     throw InvalidConfig("max_prepared_cache_size is 0");
   }
 #if !LIBPQ_HAS_PIPELINING
-  if (IsPipelineEnabled()) {
+  if (settings_.pipeline_mode == PipelineMode::kEnabled) {
     LOG_LIMITED_WARNING() << "Pipeline mode is not supported, falling back";
-    settings_.pipeline_mode = ConnectionSettings::kPipelineDisabled;
+    settings_.pipeline_mode = PipelineMode::kDisabled;
   }
 #endif
 }
@@ -193,7 +193,9 @@ void ConnectionImpl::AsyncConnect(const Dsn& dsn, engine::Deadline deadline) {
       std::chrono::duration_cast<std::chrono::milliseconds>(
           deadline.TimeLeft()));
   conn_wrapper_.AsyncConnect(dsn, deadline, scope);
-  if (IsPipelineEnabled()) conn_wrapper_.EnterPipelineMode();
+  if (settings_.pipeline_mode == PipelineMode::kEnabled) {
+    conn_wrapper_.EnterPipelineMode();
+  }
   conn_wrapper_.FillSpanTags(span);
   scope.Reset(scopes::kGetConnectData);
   // We cannot handle exceptions here, so we let them got to the caller
@@ -290,8 +292,12 @@ bool ConnectionImpl::IsInTransaction() const {
   return GetConnectionState() > ConnectionState::kIdle;
 }
 
-bool ConnectionImpl::IsPipelineEnabled() const {
-  return settings_.pipeline_mode == ConnectionSettings::kPipelineEnabled;
+bool ConnectionImpl::IsPipelineActive() const {
+  return conn_wrapper_.IsPipelineActive();
+}
+
+ConnectionSettings const& ConnectionImpl::GetSettings() const {
+  return settings_;
 }
 
 CommandControl ConnectionImpl::GetDefaultCommandControl() const {
@@ -348,7 +354,7 @@ void ConnectionImpl::Begin(const TransactionOptions& options,
   stats_.trx_start_time = trx_start_time;
   stats_.work_start_time = SteadyClock::now();
   ++stats_.trx_total;
-  if (IsPipelineEnabled()) {
+  if (IsPipelineActive()) {
     SendCommandNoPrepare(BeginStatement(options), MakeCurrentDeadline());
   } else {
     ExecuteCommandNoPrepare(BeginStatement(options), MakeCurrentDeadline());
@@ -382,7 +388,7 @@ void ConnectionImpl::Rollback() {
   ResetTransactionCommandControl transaction_guard{*this};
 
   if (GetConnectionState() != ConnectionState::kTranActive ||
-      (IsPipelineEnabled() && !conn_wrapper_.IsSyncingPipeline())) {
+      (IsPipelineActive() && !conn_wrapper_.IsSyncingPipeline())) {
     ExecuteCommandNoPrepare("ROLLBACK", MakeCurrentDeadline());
   } else {
     LOG_DEBUG() << "Attempt to rollback transaction on a busy connection. "
@@ -548,7 +554,7 @@ void ConnectionImpl::MarkAsBroken() { conn_wrapper_.MarkAsBroken(); }
 
 void ConnectionImpl::CheckBusy() const {
   if ((GetConnectionState() == ConnectionState::kTranActive) &&
-      (!IsPipelineEnabled() || conn_wrapper_.IsSyncingPipeline())) {
+      (!IsPipelineActive() || conn_wrapper_.IsSyncingPipeline())) {
     throw ConnectionBusy("There is another query in flight");
   }
 }
@@ -673,6 +679,9 @@ const ConnectionImpl::PreparedStatementInfo& ConnectionImpl::PrepareStatement(
     conn_wrapper_.SendDescribePrepared(statement_name, scope);
     statement_info = prepared_.Get(query_id);
     auto res = conn_wrapper_.WaitResult(deadline, scope);
+    if (!res.pimpl_) {
+      throw CommandError("WaitResult() returned nullptr");
+    }
     FillBufferCategories(res);
     statement_info->description = res;
     // Ensure we've got binary format established
@@ -785,7 +794,7 @@ void ConnectionImpl::SetParameter(std::string_view name, std::string_view value,
               << (is_transaction_scope ? "transaction" : "session") << " scope";
   StaticQueryParameters<3> params;
   params.Write(db_types_, name, value, is_transaction_scope);
-  if (IsPipelineEnabled() && IsInTransaction()) {
+  if (IsPipelineActive() && IsInTransaction()) {
     SendCommandNoPrepare("SELECT set_config($1, $2, $3)",
                          detail::QueryParameters{params}, deadline);
   } else {
@@ -859,7 +868,7 @@ ResultSet ConnectionImpl::WaitResult(const std::string& statement,
     ++stats_.execute_timeout;
     LOG_LIMITED_WARNING() << "Statement `" << statement
                           << "` network timeout error: " << e << ". "
-                          << "Network timout was " << network_timeout.count()
+                          << "Network timeout was " << network_timeout.count()
                           << "ms";
     span.AddTag(tracing::kErrorFlag, true);
     throw;

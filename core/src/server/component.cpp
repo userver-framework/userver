@@ -1,17 +1,13 @@
 #include <userver/server/component.hpp>
 
+#include <server/server_config.hpp>
 #include <userver/components/component.hpp>
 #include <userver/components/statistics_storage.hpp>
-#include <userver/server/server_config.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace components {
-
-namespace {
-const auto kStatisticsName = "server";
-}  // namespace
 
 Server::Server(const components::ComponentConfig& component_config,
                const components::ComponentContext& component_context)
@@ -20,14 +16,20 @@ Server::Server(const components::ComponentConfig& component_config,
           component_config.As<server::ServerConfig>(), component_context)) {
   auto& statistics_storage =
       component_context.FindComponent<StatisticsStorage>().GetStorage();
-  statistics_holder_ = statistics_storage.RegisterExtender(
-      kStatisticsName,
-      [this](const utils::statistics::StatisticsRequest& request) {
+  server_statistics_holder_ = statistics_storage.RegisterExtender(
+      "server", [this](const utils::statistics::StatisticsRequest& request) {
         return ExtendStatistics(request);
+      });
+  handler_statistics_holder_ = statistics_storage.RegisterWriter(
+      "http.handler.total", [this](utils::statistics::Writer& writer) {
+        return server_->WriteTotalHandlerStatistics(writer);
       });
 }
 
-Server::~Server() { statistics_holder_.Unregister(); }
+Server::~Server() {
+  server_statistics_holder_.Unregister();
+  handler_statistics_holder_.Unregister();
+}
 
 void Server::OnAllComponentsLoaded() { server_->Start(); }
 
@@ -97,6 +99,27 @@ properties:
                 type: integer
                 description: max count of new coneections pending acceptance
                 defaultDescription: 1024
+            handler-defaults:
+                type: object
+                description: handler defaults options
+                additionalProperties: false
+                properties:
+                    max_url_size:
+                        type: integer
+                        description: max path/URL size in bytes
+                    max_request_size:
+                        type: integer
+                        description: max size of the whole data in bytes
+                    max_headers_size:
+                        type: integer
+                        description: max headers size in bytes
+                    parse_args_from_body:
+                        type: boolean
+                        description: optional field to parse request according to x-www-form-urlencoded rules and make parameters accessible as query parameters
+                    set_tracing_headers:
+                        type: boolean
+                        description: whether to set http tracing headers (X-YaTraceId, X-YaSpanId, X-RequestId)
+                        defaultDescription: true
             connection:
                 type: object
                 description: connection options
@@ -114,17 +137,6 @@ properties:
                         type: integer
                         description: timeout in seconds to drop connection if there's not data received from it
                         defaultDescription: 600
-                    request:
-                        type: object
-                        description: request options
-                        additionalProperties: false
-                        properties:
-                            type:
-                                type: string
-                                description: type of the request, only 'http' supported at the moment
-                                defaultDescription: http
-                                enum:
-                                  - http
             shards:
                 type: integer
                 description: how many concurrent tasks harvest data from a single socket; do not set if not sure what it is doing
@@ -169,17 +181,23 @@ properties:
                         type: integer
                         description: timeout in seconds to drop connection if there's not data received from it
                         defaultDescription: 600
-                    request:
-                        type: object
-                        description: request options
-                        additionalProperties: false
-                        properties:
-                            type:
-                                type: string
-                                description: type of the request, only 'http' supported at the moment
-                                defaultDescription: http
-                                enum:
-                                  - http
+            handler-defaults:
+                type: object
+                description: handler defaults options
+                additionalProperties: false
+                properties:
+                    max_url_size:
+                        type: integer
+                        description: max path/URL size in bytes
+                    max_request_size:
+                        type: integer
+                        description: max size of the whole data in bytes
+                    max_headers_size:
+                        type: integer
+                        description: max headers size in bytes
+                    parse_args_from_body:
+                        type: boolean
+                        description: optional field to parse request according to x-www-form-urlencoded rules and make parameters accessible as query parameters
             shards:
                 type: integer
                 description: how many concurrent tasks harvest data from a single socket; do not set if not sure what it is doing

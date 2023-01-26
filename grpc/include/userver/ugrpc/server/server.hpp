@@ -4,16 +4,18 @@
 /// @brief @copybrief ugrpc::server::Server
 
 #include <functional>
+#include <memory>
+#include <unordered_map>
 
 #include <grpcpp/completion_queue.h>
 #include <grpcpp/server_builder.h>
 
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/logging/level.hpp>
-#include <userver/utils/fast_pimpl.hpp>
 #include <userver/utils/statistics/fwd.hpp>
 #include <userver/yaml_config/fwd.hpp>
 
+#include <userver/ugrpc/impl/statistics.hpp>
 #include <userver/ugrpc/server/service_base.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -27,9 +29,16 @@ struct ServerConfig final {
   /// Server::WithServerBuilder.
   std::optional<int> port{};
 
+  /// Optional grpc-core channel args
+  /// @see https://grpc.github.io/grpc/core/group__grpc__arg__keys.html
+  std::unordered_map<std::string, std::string> channel_args{};
+
   /// The logging level override for the internal grpcpp library. Must be either
   /// `kDebug`, `kInfo` or `kError`.
   logging::Level native_log_level{logging::Level::kError};
+
+  /// Serve a web page with runtime info about gRPC connections
+  bool enable_channelz{false};
 };
 
 ServerConfig Parse(const yaml_config::YamlConfig& value,
@@ -55,6 +64,9 @@ class Server final {
   /// component is responsible for keeping `service` alive at least until `Stop`
   /// is called.
   void AddService(ServiceBase& service, engine::TaskProcessor& task_processor);
+
+  /// @brief Get names of all registered services
+  std::vector<std::string_view> GetServiceNames() const;
 
   /// @brief For advanced configuration of the gRPC server
   /// @note The ServerBuilder must not be stored and used outside of `setup`.
@@ -89,7 +101,7 @@ class Server final {
 
  private:
   class Impl;
-  utils::FastPimpl<Impl, 592, 8> impl_;
+  std::unique_ptr<Impl> impl_;
 };
 
 }  // namespace ugrpc::server

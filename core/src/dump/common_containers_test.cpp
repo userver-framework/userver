@@ -47,8 +47,8 @@ NonMovable Read(dump::Reader& reader, dump::To<NonMovable>) {
 }
 
 struct Dummy {
-  int id;
-  std::string name;
+  int id = 0;
+  std::string name{};
 };
 
 bool operator==(const Dummy& d1, const Dummy& d2) {

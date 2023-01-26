@@ -139,6 +139,13 @@ namespace storages::postgres {
 ///
 /// @endcode
 ///
+///
+/// ----------
+///
+/// @htmlonly <div class="bottom-nav"> @endhtmlonly
+/// ⇦ @ref pg_types | @ref pg_errors ⇨
+/// @htmlonly </div> @endhtmlonly
+
 template <typename T, typename ExtractionTag>
 class TypedResultSet {
  public:
@@ -197,6 +204,7 @@ class TypedResultSet {
   //@}
   /// @brief Access a row by index
   /// @throws RowIndexOutOfBounds if index is out of bounds
+  // NOLINTNEXTLINE(readability-const-return-type)
   reference operator[](size_type index) const {
     return result_[index].template As<value_type>(kExtractTag);
   }

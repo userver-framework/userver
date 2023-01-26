@@ -41,9 +41,10 @@ void PrintBuffer(std::ostream& os, const std::uint8_t* buffer,
   os << "Buffer size " << size << '\n';
   std::size_t b_no{0};
   std::ostringstream printable;
-  for (auto c = buffer; c != buffer + size; ++c) {
+  for (const std::uint8_t* c = buffer; c != buffer + size; ++c) {
     unsigned char byte = *c;
-    os << std::hex << std::setw(2) << std::setfill('0') << (int)byte;
+    os << std::hex << std::setw(2) << std::setfill('0')
+       << static_cast<int>(byte);
     printable << (std::isprint(*c) ? *c : '.');
     ++b_no;
     if (b_no % 16 == 0) {
@@ -67,6 +68,7 @@ void PrintBuffer(std::ostream& os, const std::string& buffer) {
 }
 
 PostgreSQLBase::PostgreSQLBase() {
+  // NOLINTNEXTLINE(concurrency-mt-unsafe)
   if (std::getenv(kPostgresLog)) {
     old_ = logging::SetDefaultLogger(logging::MakeStderrLogger(
         "cerr", logging::Format::kTskv, logging::Level::kDebug));
@@ -85,6 +87,7 @@ pg::Dsn PostgreSQLBase::GetDsnFromEnv() {
 }
 
 pg::DsnList PostgreSQLBase::GetDsnListFromEnv() {
+  // NOLINTNEXTLINE(concurrency-mt-unsafe)
   auto* conn_list_env = std::getenv(kPostgresDsn);
   if (!conn_list_env) {
     return {};
@@ -112,7 +115,7 @@ storages::postgres::detail::ConnectionPtr PostgreSQLBase::MakeConnection(
                        GetTestCmdCtls(), {}, {}))
       << "Connect to correct DSN";
   pg::detail::ConnectionPtr conn_ptr{std::move(conn)};
-  CheckConnection(conn_ptr);
+  if (conn_ptr) CheckConnection(conn_ptr);
   return conn_ptr;
 }
 

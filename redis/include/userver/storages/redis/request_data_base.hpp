@@ -17,7 +17,7 @@ namespace storages::redis {
 // RequestDataBase <- RequestDataImpl
 // RequestDataBase <- MockRequestDataBase <- UserMockRequestData
 
-template <typename Result, typename ReplyType>
+template <typename ReplyType>
 class RequestDataBase {
  public:
   virtual ~RequestDataBase() = default;

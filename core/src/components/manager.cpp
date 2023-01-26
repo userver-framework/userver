@@ -36,11 +36,11 @@ auto RunInCoro(engine::TaskProcessor& task_processor, Func&& func) {
                                          std::forward<Func>(func))
           .Get();
   }
-  std::packaged_task<std::result_of_t<Func()>()> task(
-      [&func] { return func(); });
-  auto future = task.get_future();
-  engine::CriticalAsyncNoSpan(task_processor, std::move(task)).Detach();
-  return future.get();
+
+  auto task =
+      engine::CriticalAsyncNoSpan(task_processor, std::forward<Func>(func));
+  task.BlockingWait();
+  return task.Get();
 }
 
 std::optional<size_t> GuessCpuLimit(const std::string& tp_name) {

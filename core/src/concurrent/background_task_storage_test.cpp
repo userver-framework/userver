@@ -7,7 +7,11 @@
 #include <userver/engine/single_consumer_event.hpp>
 #include <userver/engine/sleep.hpp>
 #include <userver/engine/task/cancel.hpp>
+#include <userver/engine/task/inherited_variable.hpp>
+#include <userver/engine/task/task_processor_utils.hpp>
 #include <userver/utils/lazy_prvalue.hpp>
+
+using namespace std::chrono_literals;
 
 USERVER_NAMESPACE_BEGIN
 
@@ -21,7 +25,8 @@ UTEST(BackgroundTaskStorage, TaskStart) {
 }
 
 UTEST(BackgroundTaskStorage, CancelAndWaitInDtr) {
-  std::atomic<bool> started{false}, cancelled{false};
+  std::atomic<bool> started{false};
+  std::atomic<bool> cancelled{false};
   auto shared = std::make_shared<int>(1);
   {
     concurrent::BackgroundTaskStorage bts;
@@ -34,7 +39,7 @@ UTEST(BackgroundTaskStorage, CancelAndWaitInDtr) {
     });
 
     engine::SingleConsumerEvent event;
-    EXPECT_FALSE(event.WaitForEventFor(std::chrono::milliseconds(50)));
+    EXPECT_FALSE(event.WaitForEventFor(50ms));
 
     EXPECT_EQ(shared.use_count(), 2);
   }
@@ -42,6 +47,38 @@ UTEST(BackgroundTaskStorage, CancelAndWaitInDtr) {
   EXPECT_TRUE(started);
   EXPECT_TRUE(cancelled);
   EXPECT_EQ(shared.use_count(), 1);
+}
+
+UTEST(BackgroundTaskStorage, Sample) {
+  constexpr auto kString = "a very-very-very-very long string";
+  const auto DoStuff = [] {
+    // Make sure the task starts
+    engine::Yield();
+  };
+
+  /// [Sample]
+  std::string x = kString;
+  std::string y;
+  {
+    // You must guarantee that 'x' and 'y' are alive during 'bts' lifetime.
+    concurrent::BackgroundTaskStorage bts;
+
+    bts.AsyncDetach("task", [&x, &y] {
+      engine::InterruptibleSleepFor(20s);
+      EXPECT_TRUE(engine::current_task::ShouldCancel());
+      y = std::move(x);
+    });
+
+    DoStuff();
+
+    // It is recommended to call CancelAndWait explicitly for the clarity of
+    // tasks' lifetime. BTS destructor calls CancelAndWait implicitly as well.
+    bts.CancelAndWait();
+  }
+  /// [Sample]
+
+  EXPECT_EQ(x, "");
+  EXPECT_EQ(y, kString);
 }
 
 UTEST(BackgroundTaskStorage, NoDeadlockWithUnstartedTasks) {
@@ -73,14 +110,14 @@ UTEST(BackgroundTaskStorage, ActiveTasksCounter) {
     bts.AsyncDetach("long-task", [] {
       engine::SingleConsumerEvent event;
 
-      EXPECT_FALSE(event.WaitForEventFor(std::chrono::seconds(2)));
+      EXPECT_FALSE(event.WaitForEventFor(2s));
     });
   }
 
   EXPECT_EQ(bts.ActiveTasksApprox(), kNoopTasks + kLongTasks);
 
   engine::SingleConsumerEvent event;
-  EXPECT_FALSE(event.WaitForEventFor(std::chrono::milliseconds(50)));
+  EXPECT_FALSE(event.WaitForEventFor(50ms));
 
   EXPECT_EQ(bts.ActiveTasksApprox(), kLongTasks);
 }
@@ -116,11 +153,11 @@ UTEST(BackgroundTaskStorage, CancelAndWait) {
 }
 
 UTEST(BackgroundTaskStorage, SleepWhileCancelled) {
-  concurrent::BackgroundTaskStorage bts;
+  concurrent::BackgroundTaskStorageCore bts;
   engine::SingleConsumerEvent event;
 
   bts.Detach(utils::CriticalAsync("", [&] {
-    engine::SleepFor(std::chrono::milliseconds{10});
+    engine::SleepFor(10ms);
     event.Send();
   }));
 
@@ -130,7 +167,7 @@ UTEST(BackgroundTaskStorage, SleepWhileCancelled) {
 
 UTEST(BackgroundTaskStorage, DetachWhileWaiting) {
   std::atomic<bool> finished{false};
-  concurrent::BackgroundTaskStorage bts;
+  concurrent::BackgroundTaskStorageCore bts;
 
   bts.Detach(utils::CriticalAsync("outer", [&] {
     // Make sure the main task enters CancelAndWait
@@ -146,6 +183,50 @@ UTEST(BackgroundTaskStorage, DetachWhileWaiting) {
 UTEST(BackgroundTaskStorage, Pimpl) {
   concurrent::BackgroundTaskStorageFastPimpl bts;
   EXPECT_EQ(bts->ActiveTasksApprox(), 0);
+}
+
+namespace {
+engine::TaskInheritedVariable<int> inherited_variable;
+}  // namespace
+
+UTEST(BackgroundTaskStorage, NoTaskInheritedVariables) {
+  inherited_variable.Set(42);
+  EXPECT_EQ(inherited_variable.Get(), 42);
+
+  concurrent::BackgroundTaskStorage bts;
+  bts.AsyncDetach("", [] { EXPECT_FALSE(inherited_variable.GetOptional()); });
+}
+
+TEST(BackgroundTaskStorage, CustomTaskProcessor) {
+  engine::TwoStandaloneTaskProcessors tp;
+  tp.RunBlocking([&] {
+    engine::SingleConsumerEvent finished;
+    concurrent::BackgroundTaskStorage bts(tp.GetSecondary());
+
+    bts.AsyncDetach("", [&] {
+      EXPECT_EQ(&engine::current_task::GetTaskProcessor(), &tp.GetSecondary());
+      finished.Send();
+    });
+
+    EXPECT_TRUE(finished.WaitForEvent());
+  });
+}
+
+TEST(BackgroundTaskStorage, StrongTaskProcessorBinding) {
+  engine::TwoStandaloneTaskProcessors tp;
+  tp.RunBlocking([&] {
+    engine::SingleConsumerEvent finished;
+    concurrent::BackgroundTaskStorage bts;
+
+    engine::AsyncNoSpan(tp.GetSecondary(), [&] {
+      bts.AsyncDetach("", [&] {
+        EXPECT_EQ(&engine::current_task::GetTaskProcessor(), &tp.GetMain());
+        finished.Send();
+      });
+    }).Get();
+
+    EXPECT_TRUE(finished.WaitForEvent());
+  });
 }
 
 USERVER_NAMESPACE_END

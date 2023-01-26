@@ -74,6 +74,13 @@ class MockClientBase : public Client,
                                std::vector<std::string> keys,
                                std::vector<std::string> args,
                                const CommandControl& command_control) override;
+  RequestEvalShaCommon EvalShaCommon(
+      std::string script, std::vector<std::string> keys,
+      std::vector<std::string> args,
+      const CommandControl& command_control) override;
+
+  RequestScriptLoad ScriptLoad(std::string script, size_t shard,
+                               const CommandControl& command_control) override;
 
   RequestExists Exists(std::string key,
                        const CommandControl& command_control) override;

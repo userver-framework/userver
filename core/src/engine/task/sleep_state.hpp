@@ -61,7 +61,7 @@ class AtomicSleepState final {
 
   template <std::memory_order Order>
   void ClearFlags(SleepState::Flags flags) noexcept {
-    impl_.fetch_and(static_cast<std::uint32_t>(~flags.GetValue()), Order);
+    impl_.fetch_and(~static_cast<std::uint64_t>(flags.GetValue()), Order);
   }
 
  private:

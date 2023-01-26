@@ -58,14 +58,12 @@ CacheUpdateTrait::Impl::Impl(CacheDependencies&& dependencies,
       config_(static_config_),
       cache_control_(dependencies.cache_control),
       name_(std::move(dependencies.name)),
+      task_processor_(dependencies.task_processor),
       periodic_update_enabled_(
           dependencies.cache_control.IsPeriodicUpdateEnabled(static_config_,
                                                              name_)),
-      task_processor_(dependencies.task_processor),
-      is_running_(false),
       periodic_task_flags_{utils::PeriodicTask::Flags::kChaotic,
                            utils::PeriodicTask::Flags::kCritical},
-      cache_modified_(false),
       dumpable_(customized_trait_),
       dumper_(dependencies.dump_config
                   ? std::optional<dump::Dumper>(
@@ -208,7 +206,6 @@ void CacheUpdateTrait::Impl::StopPeriodicUpdates() {
   }
 
   if (dumper_) {
-    engine::TaskCancellationBlocker blocker;
     dumper_->CancelWriteTaskAndWait();
   }
 }
@@ -231,8 +228,7 @@ rcu::ReadablePtr<Config> CacheUpdateTrait::Impl::GetConfig() const {
 }
 
 UpdateType CacheUpdateTrait::Impl::NextUpdateType(const Config& config) {
-  auto forced_update_type = std::exchange(forced_update_type_, {});
-  if (forced_update_type) return *forced_update_type;
+  if (forced_update_type_) return *forced_update_type_;
 
   if (last_update_ == dump::TimePoint{}) return UpdateType::kFull;
 
@@ -256,7 +252,10 @@ void CacheUpdateTrait::Impl::DoPeriodicUpdate() {
   const auto config = GetConfig();
 
   const auto is_first_update = !std::exchange(first_update_attempted_, true);
-  if (!config->updates_enabled && !is_first_update) {
+  // Skip updates if they are disabled by config.
+  // Ignore this skip if this is first update and cache required to be updated
+  if (!config->updates_enabled &&
+      (!is_first_update || static_config_.allow_first_update_failure)) {
     LOG_INFO() << "Periodic updates are disabled for cache " << Name();
     return;
   }
@@ -264,11 +263,10 @@ void CacheUpdateTrait::Impl::DoPeriodicUpdate() {
   const auto update_type = NextUpdateType(*config);
   try {
     DoUpdate(update_type);
-    if (dumper_) dumper_->WriteDumpAsync();
+    forced_update_type_ = {};
   } catch (const std::exception& ex) {
     LOG_WARNING() << "Error while updating cache " << name_
                   << ". Reason: " << ex;
-    if (dumper_) dumper_->WriteDumpAsync();
     throw;
   }
 }

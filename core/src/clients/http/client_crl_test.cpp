@@ -11,8 +11,8 @@
 #include <userver/fs/blocking/write.hpp>
 #include <userver/logging/log.hpp>
 
+#include <userver/internal/net/net_listener.hpp>
 #include <userver/utest/http_client.hpp>
-#include <userver/utest/net_listener.hpp>
 #include <userver/utest/simple_server.hpp>
 #include <userver/utest/utest.hpp>
 
@@ -313,8 +313,7 @@ EmOKfeOntrWGKRoDws82ckOkpBkZ0/9gsl8g18u+jFCcSUfmXH7FtGg=
 -----END X509 CRL-----)";
 
 struct TlsServer {
-  TlsServer()
-      : tcp_listener_(), port_(tcp_listener_.socket.Getsockname().Port()) {}
+  TlsServer() : port_(tcp_listener_.socket.Getsockname().Port()) {}
 
   void RecieveAndShutdown(std::initializer_list<crypto::Certificate> cas = {}) {
     auto deadline = engine::Deadline::FromDuration(utest::kMaxTestWaitTime);
@@ -343,7 +342,7 @@ struct TlsServer {
     EXPECT_TRUE(socket.IsValid());
   }
 
-  utest::TcpListener tcp_listener_;
+  internal::net::TcpListener tcp_listener_;
   int port_;
 };
 
@@ -354,6 +353,7 @@ auto InterceptCrlDistribution() {
   auto* sa = addr.template As<struct sockaddr_in6>();
   sa->sin6_family = AF_INET6;
   sa->sin6_addr = in6addr_loopback;
+  // NOLINTNEXTLINE(hicpp-no-assembler,readability-isolate-declaration)
   sa->sin6_port = htons(kCrlDistributionPort);
   listener.Bind(addr);
 

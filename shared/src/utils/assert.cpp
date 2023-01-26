@@ -4,7 +4,7 @@
 
 #include <fmt/format.h>
 #include <fmt/ostream.h>
-#include <boost/stacktrace.hpp>
+#include <boost/stacktrace/stacktrace.hpp>
 
 #include <userver/logging/log.hpp>
 #include <userver/utils/invariant_error.hpp>
@@ -15,13 +15,16 @@ namespace utils::impl {
 
 void UASSERT_failed(std::string_view expr, const char* file, unsigned int line,
                     const char* function, std::string_view msg) noexcept {
-  auto trace = boost::stacktrace::stacktrace();
+  auto trace = dump_stacktrace_on_assert_failure
+                   ? boost::stacktrace::stacktrace()
+                   : boost::stacktrace::stacktrace(0, 0);
 
   // Use fmt::format to output the message without interleaving with other logs.
   std::cerr << fmt::format(
       "ERROR at {}:{}:{}. Assertion '{}' failed{}{}. Stacktrace:\n{}\n", file,
       line, (function ? function : ""), expr,
-      (msg.empty() ? std::string_view{} : std::string_view{": "}), msg, trace);
+      (msg.empty() ? std::string_view{} : std::string_view{": "}), msg,
+      boost::stacktrace::to_string(trace));
 
   logging::LogFlush();
   abort();
@@ -35,6 +38,8 @@ void LogAndThrowInvariantError(std::string_view condition,
   LOG_ERROR() << err_str;
   throw InvariantError(err_str);
 }
+
+bool dump_stacktrace_on_assert_failure = true;
 
 }  // namespace utils::impl
 

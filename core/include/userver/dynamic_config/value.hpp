@@ -59,6 +59,8 @@ class ValueDict final {
   using const_iterator = typename DictType::const_iterator;
   using iterator = const_iterator;
   using value_type = typename DictType::value_type;
+  using key_type = std::string;
+  using mapped_type = ValueType;
 
   ValueDict() = default;
 
@@ -76,8 +78,9 @@ class ValueDict final {
 
   bool HasDefaultValue() const { return HasValue(kValueDictDefaultName); }
 
-  bool HasValue(const std::string& key) const {
-    return dict_.find(key) != dict_.end();
+  template <typename StringType>
+  bool HasValue(const StringType& key) const {
+    return dict_.find(ToStringKey(key)) != dict_.end();
   }
 
   const ValueType& GetDefaultValue() const {
@@ -89,30 +92,32 @@ class ValueDict final {
     return it->second;
   }
 
-  const ValueType& operator[](const std::string& key) const {
-    auto it = dict_.find(key);
+  template <typename StringType>
+  const ValueType& operator[](const StringType& key) const {
+    auto it = dict_.find(ToStringKey(key));
     if (it == dict_.end()) {
       it = dict_.find(kValueDictDefaultName);
       if (it == dict_.end())
-        throw std::runtime_error("no value for '" + key + '\'' +
+        throw std::runtime_error("no value for '" + ToStringKey(key) + '\'' +
                                  (name_.empty() ? "" : " in " + name_));
     }
     return it->second;
   }
 
-  const ValueType& operator[](const char* key) const {
-    return (*this)[std::string(key)];
-  }
-
-  const ValueType& operator[](const std::optional<std::string>& key) const {
+  template <typename StringType>
+  const ValueType& operator[](const std::optional<StringType>& key) const {
     if (key) return (*this)[*key];
     return GetDefaultValue();
   }
 
-  const ValueType& Get(const std::string& key) const { return (*this)[key]; }
+  template <typename StringType>
+  const ValueType& Get(const StringType& key) const {
+    return (*this)[key];
+  }
 
-  std::optional<ValueType> GetOptional(const std::string& key) const {
-    auto it = dict_.find(key);
+  template <typename StringType>
+  std::optional<ValueType> GetOptional(const StringType& key) const {
+    auto it = dict_.find(ToStringKey(key));
     if (it == dict_.end()) {
       it = dict_.find(kValueDictDefaultName);
       if (it == dict_.end()) return std::nullopt;
@@ -132,6 +137,13 @@ class ValueDict final {
   bool operator!=(const ValueDict& r) const { return !(*this == r); }
 
  private:
+  static const std::string& ToStringKey(const std::string& key) { return key; }
+
+  template <typename StringType>
+  static std::string ToStringKey(const StringType& key) {
+    return std::string{std::string_view{key}};
+  }
+
   std::string name_;
   DictType dict_;
 };

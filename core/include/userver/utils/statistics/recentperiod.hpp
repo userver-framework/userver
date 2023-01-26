@@ -103,6 +103,12 @@ class RecentPeriod {
 
   void UpdateEpochIfOld() { std::ignore = get_current_index(); }
 
+  void Reset() {
+    for (auto& item : items_) {
+      item.Reset();
+    }
+  }
+
  private:
   size_t get_current_index() const {
     while (true) {

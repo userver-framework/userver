@@ -111,6 +111,12 @@ a.titlelink {
   overflow: hidden;
 }
 
+/* Hide TOC on small screens */
+@media not (min-width: 1024px) {
+ .sidenav { display: none; }
+ .sidenav a { display: none; }
+}
+
 /* Set svg logo size */
 #projectlogo {
     width: 80px;
@@ -182,6 +188,11 @@ a.titlelink {
     width: 35%;
     float: right;
     text-align: justify;
+}
+
+.bottom-nav {
+    width: 100%;
+    text-align: center;
 }
 
 .landing-intro-center {

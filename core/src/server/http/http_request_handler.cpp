@@ -13,6 +13,7 @@
 #include <userver/logging/logger.hpp>
 #include <userver/server/http/http_request.hpp>
 #include <userver/server/http/http_response.hpp>
+#include <userver/utils/assert.hpp>
 #include "http_request_impl.hpp"
 
 USERVER_NAMESPACE_BEGIN
@@ -22,7 +23,10 @@ namespace {
 
 engine::TaskWithResult<void> StartFailsafeTask(
     std::shared_ptr<request::RequestBase> request) {
-  auto& http_request = dynamic_cast<http::HttpRequestImpl&>(*request);
+  UASSERT(dynamic_cast<http::HttpRequestImpl*>(&*request));
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
+  auto& http_request = static_cast<http::HttpRequestImpl&>(*request);
+
   const auto* handler = http_request.GetHttpHandler();
   static handlers::HttpRequestStatistics dummy_statistics;
 
@@ -85,6 +89,12 @@ CcCustomStatus ParseRuntimeCfg(const dynamic_config::DocsMap& docs_map) {
 
 constexpr dynamic_config::Key<ParseRuntimeCfg> kCcCustomStatus{};
 
+bool ParseStreamApiEnabled(const dynamic_config::DocsMap& docs_map) {
+  return docs_map.Get("USERVER_HANDLER_STREAM_API_ENABLED").As<bool>();
+}
+
+constexpr dynamic_config::Key<ParseStreamApiEnabled> kStreamApiEnabled{};
+
 utils::statistics::MetricTag<std::atomic<size_t>> kCcStatusCodeIsCustom{
     "congestion-control.rps.is-custom-status-activated"};
 
@@ -92,8 +102,11 @@ utils::statistics::MetricTag<std::atomic<size_t>> kCcStatusCodeIsCustom{
 
 engine::TaskWithResult<void> HttpRequestHandler::StartRequestTask(
     std::shared_ptr<request::RequestBase> request) const {
+  UASSERT(dynamic_cast<http::HttpRequestImpl*>(&*request));
   const auto& http_request =
-      dynamic_cast<const http::HttpRequestImpl&>(*request);
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
+      static_cast<const http::HttpRequestImpl&>(*request);
+
   auto& http_response = http_request.GetHttpResponse();
   http_response.SetHeader(USERVER_NAMESPACE::http::headers::kServer,
                           server_name_);
@@ -128,9 +141,9 @@ engine::TaskWithResult<void> HttpRequestHandler::StartRequestTask(
                            "limit via 'server.max_response_size_in_flight')";
     return StartFailsafeTask(std::move(request));
   }
+  const auto& config = config_source_.GetSnapshot();
 
   if (throttling_enabled && !rate_limit_.Obtain()) {
-    const auto& config = config_source_.GetSnapshot();
     auto config_var = config[kCcCustomStatus];
     const auto& delta = config_var.max_time_delta;
 
@@ -159,7 +172,7 @@ engine::TaskWithResult<void> HttpRequestHandler::StartRequestTask(
     return StartFailsafeTask(std::move(request));
   }
 
-  if (handler->GetConfig().response_body_stream) {
+  if (handler->GetConfig().response_body_stream && config[kStreamApiEnabled]) {
     http_response.SetStreamBody();
   }
 
@@ -169,8 +182,9 @@ engine::TaskWithResult<void> HttpRequestHandler::StartRequestTask(
     request::RequestContext context;
     handler->HandleRequest(*request, context);
 
-    request->SetResponseNotifyTime();
-    request->GetResponse().SetReady();
+    const auto now = std::chrono::steady_clock::now();
+    request->SetResponseNotifyTime(now);
+    request->GetResponse().SetReady(now);
   };
 
   if (!is_monitor_ && throttling_enabled) {

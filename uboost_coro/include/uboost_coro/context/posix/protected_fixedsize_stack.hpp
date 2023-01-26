@@ -20,6 +20,7 @@ extern "C" {
 
 #include <boost/assert.hpp>
 #include <boost/config.hpp>
+#include <boost/core/ignore_unused.hpp>
 
 #include <uboost_coro/context/detail/config.hpp>
 #include <uboost_coro/context/stack_context.hpp>
@@ -50,15 +51,13 @@ public:
 
     stack_context allocate() {
         // calculate how many pages are required
-        const std::size_t pages(        
-            static_cast< std::size_t >(
-                std::ceil(
-                    static_cast< float >( size_) / traits_type::page_size() ) ) );
+        const std::size_t pages = (size_ + traits_type::page_size() - 1) / traits_type::page_size();
         // add one page at bottom that will be used as guard-page
         const std::size_t size__ = ( pages + 1) * traits_type::page_size();
 
-        // conform to POSIX.4 (POSIX.1b-1993, _POSIX_C_SOURCE=199309L)
-#if defined(MAP_ANON)
+#if defined(BOOST_CONTEXT_USE_MAP_STACK)
+        void * vp = ::mmap( 0, size__, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON | MAP_STACK, -1, 0);
+#elif defined(MAP_ANON)
         void * vp = ::mmap( 0, size__, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON, -1, 0);
 #else
         void * vp = ::mmap( 0, size__, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
@@ -66,12 +65,9 @@ public:
         if ( MAP_FAILED == vp) throw std::bad_alloc();
 
         // conforming to POSIX.1-2001
-#if defined(BOOST_DISABLE_ASSERTS)
-        ::mprotect( vp, traits_type::page_size(), PROT_NONE);
-#else
-        [[maybe_unused]] const int result( ::mprotect( vp, traits_type::page_size(), PROT_NONE) );
+        const int result( ::mprotect( vp, traits_type::page_size(), PROT_NONE) );
+        boost::ignore_unused(result);
         BOOST_ASSERT( 0 == result);
-#endif
 
         stack_context sctx;
         sctx.size = size__;

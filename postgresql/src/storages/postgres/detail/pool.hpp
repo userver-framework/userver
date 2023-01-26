@@ -71,6 +71,8 @@ class ConnectionPool : public std::enable_shared_from_this<ConnectionPool> {
 
   void SetSettings(const PoolSettings& settings);
 
+  void SetConnectionSettings(const ConnectionSettings& settings);
+
   void SetStatementMetricsSettings(const StatementMetricsSettings& settings);
 
   const detail::StatementTimingsStorage& GetStatementTimingsStorage() const {
@@ -98,6 +100,7 @@ class ConnectionPool : public std::enable_shared_from_this<ConnectionPool> {
 
   void DeleteConnection(Connection* connection);
   void DeleteBrokenConnection(Connection* connection);
+  void DropOutdatedConnection(Connection* connection);
 
   void AccountConnectionStats(Connection::Statistics stats);
 
@@ -114,7 +117,7 @@ class ConnectionPool : public std::enable_shared_from_this<ConnectionPool> {
   clients::dns::Resolver* resolver_;
   std::string db_name_;
   rcu::Variable<PoolSettings> settings_;
-  ConnectionSettings conn_settings_;
+  rcu::Variable<ConnectionSettings> conn_settings_;
   engine::TaskProcessor& bg_task_processor_;
   USERVER_NAMESPACE::utils::PeriodicTask ping_task_;
   engine::Mutex wait_mutex_;

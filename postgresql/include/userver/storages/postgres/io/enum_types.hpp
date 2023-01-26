@@ -49,6 +49,12 @@ namespace storages::postgres::io {
 /// to the enumeration type for convenience of declaring pairs, as the
 /// enumeration can have a long qualified name.
 ///
+///
+/// ----------
+///
+/// @htmlonly <div class="bottom-nav"> @endhtmlonly
+/// ⇦ @ref pg_composite_types | @ref pg_range_types ⇨
+/// @htmlonly </div> @endhtmlonly
 
 namespace detail {
 

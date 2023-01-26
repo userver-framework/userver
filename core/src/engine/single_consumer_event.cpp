@@ -1,7 +1,5 @@
 #include <userver/engine/single_consumer_event.hpp>
 
-#include <userver/engine/task/cancel.hpp>
-
 #include <engine/impl/wait_list_light.hpp>
 #include <engine/task/task_context.hpp>
 
@@ -9,40 +7,34 @@ USERVER_NAMESPACE_BEGIN
 
 namespace engine {
 
-namespace {
-
-class EventWaitStrategy final : public impl::WaitStrategy {
+class SingleConsumerEvent::EventWaitStrategy final : public impl::WaitStrategy {
  public:
-  EventWaitStrategy(impl::WaitListLight& waiters,
-                    const std::atomic<bool>& signaled,
-                    impl::TaskContext& current, Deadline deadline)
-      : WaitStrategy(deadline),
-        waiters_(waiters),
-        is_signaled_(signaled),
-        current_(current) {}
+  EventWaitStrategy(SingleConsumerEvent& event, impl::TaskContext& current,
+                    Deadline deadline)
+      : WaitStrategy(deadline), event_(event), current_(current) {}
 
   void SetupWakeups() override {
-    waiters_.Append(&current_);
-    if (is_signaled_) waiters_.WakeupOne();
+    event_.waiters_->Append(&current_);
+    if (event_.is_signaled_.load()) event_.waiters_->WakeupOne();
   }
 
-  void DisableWakeups() override { waiters_.Remove(current_); }
+  void DisableWakeups() override { event_.waiters_->Remove(current_); }
 
  private:
-  impl::WaitListLight& waiters_;
-  const std::atomic<bool>& is_signaled_;
+  SingleConsumerEvent& event_;
   impl::TaskContext& current_;
 };
 
-}  // namespace
+SingleConsumerEvent::SingleConsumerEvent() noexcept = default;
 
-SingleConsumerEvent::SingleConsumerEvent() = default;
-
-SingleConsumerEvent::SingleConsumerEvent(NoAutoReset) : is_auto_reset_(false) {}
+SingleConsumerEvent::SingleConsumerEvent(NoAutoReset) noexcept
+    : is_auto_reset_(false) {}
 
 SingleConsumerEvent::~SingleConsumerEvent() = default;
 
-bool SingleConsumerEvent::IsAutoReset() const { return is_auto_reset_; }
+bool SingleConsumerEvent::IsAutoReset() const noexcept {
+  return is_auto_reset_;
+}
 
 bool SingleConsumerEvent::WaitForEvent() {
   return WaitForEventUntil(Deadline{});
@@ -56,17 +48,15 @@ bool SingleConsumerEvent::WaitForEventUntil(Deadline deadline) {
   impl::TaskContext& current = current_task::GetCurrentTaskContext();
   if (current.ShouldCancel()) return GetIsSignaled();
 
-  LOG_TRACE() << "WaitForEvent()";
-  impl::WaitListLight::SingleUserGuard guard(*lock_waiters_);
-  EventWaitStrategy wait_manager(*lock_waiters_, is_signaled_, current,
-                                 deadline);
+  LOG_TRACE() << "WaitForEventUntil()";
+  EventWaitStrategy wait_manager(*this, current, deadline);
 
   bool was_signaled = false;
   while (!(was_signaled = GetIsSignaled()) && !current.ShouldCancel()) {
     LOG_TRACE() << "iteration()";
 
-    if (current.Sleep(wait_manager) ==
-        impl::TaskContext::WakeupSource::kDeadlineTimer) {
+    if (current.Sleep(wait_manager) !=
+        impl::TaskContext::WakeupSource::kWaitList) {
       return false;
     }
   }
@@ -75,19 +65,24 @@ bool SingleConsumerEvent::WaitForEventUntil(Deadline deadline) {
   return was_signaled;
 }
 
-void SingleConsumerEvent::Reset() { is_signaled_ = false; }
+void SingleConsumerEvent::Reset() noexcept {
+  is_signaled_.exchange(false, std::memory_order_seq_cst);
+}
 
 void SingleConsumerEvent::Send() {
   is_signaled_.store(true, std::memory_order_release);
-
-  lock_waiters_->WakeupOne();
+  waiters_->WakeupOne();
 }
 
-bool SingleConsumerEvent::GetIsSignaled() {
+bool SingleConsumerEvent::IsReady() const noexcept {
+  return is_signaled_.load();
+}
+
+bool SingleConsumerEvent::GetIsSignaled() noexcept {
   if (is_auto_reset_) {
     return is_signaled_.exchange(false);
   } else {
-    return is_signaled_.load();
+    return is_signaled_.load(std::memory_order_acquire);
   }
 }
 

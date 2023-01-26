@@ -1,8 +1,9 @@
 #include <gtest/gtest.h>
 
-#include <logging/logging_test.hpp>
+#include <logging/socket_logging_test.hpp>
 #include <userver/logging/log.hpp>
-#include <userver/logging/log_helper_fwd.hpp>
+#include <userver/utest/utest.hpp>
+#include <userver/utils/async.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -17,7 +18,7 @@ TEST_F(LoggingTest, SwitchToTraceWorks) {
   logging::SetDefaultLoggerLevel(logging::Level::kInfo);
 
   logging::LogFlush();
-  const auto log_contents = sstream.str();
+  const auto log_contents = GetStreamString();
   size_t pos = 0;
   size_t entries = 0;
   while ((pos = log_contents.find("text=test", pos)) != std::string::npos) {
@@ -39,7 +40,7 @@ TEST_F(LoggingTest, LogExtraExtendType) {
   LOG_TRACE() << log_extra;
 
   logging::LogFlush();
-  const auto log_contents = sstream.str();
+  const auto log_contents = GetStreamString();
   EXPECT_NE(log_contents.find("key1=value1"), std::string::npos);
   EXPECT_NE(log_contents.find("key1=value2"), std::string::npos);
   EXPECT_EQ(log_contents.find("key1=value3"), std::string::npos);
@@ -69,11 +70,16 @@ TEST_F(LoggingTest, DocsData) {
   LOG_ERROR() << "This is unbelievable, fix me, please!";
   /// [Sample logging usage]
 
-  bool flag = true;
+  const bool flag = true;
   /// [Example set custom logging usage]
-  logging::Level level = flag ? logging::Level::kDebug : logging::Level::kInfo;
+  const auto level = flag ? logging::Level::kDebug : logging::Level::kInfo;
   LOG(level) << "some text";
   /// [Example set custom logging usage]
+}
+
+UTEST_F(SocketLoggingTest, Test) {
+  LOG_ERROR() << "test";
+  EXPECT_EQ("test", NextLoggedText());
 }
 
 USERVER_NAMESPACE_END

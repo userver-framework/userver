@@ -37,6 +37,22 @@ bool ShouldDeduplicate(
   UINVARIANT(false, "Invalid cache::UpdateType");
 }
 
+void CheckUnusedConfigs(
+    const dynamic_config::DocsMap& configs,
+    const std::unordered_set<std::string>& statically_required_configs) {
+  const auto& used_configs = configs.GetRequestedNames();
+  std::vector<std::string_view> extra_configs;
+  for (const auto& statically_required_config : statically_required_configs) {
+    if (used_configs.find(statically_required_config) == used_configs.end()) {
+      extra_configs.push_back(statically_required_config);
+    }
+  }
+  if (!extra_configs.empty()) {
+    LOG_INFO() << "Some statically required configs are unused: "
+               << extra_configs;
+  }
+}
+
 }  // namespace
 
 DynamicConfigClientUpdater::DynamicConfigClientUpdater(
@@ -63,8 +79,7 @@ DynamicConfigClientUpdater::DynamicConfigClientUpdater(
     fallback_config_.Parse(fallback_config_contents, false);
 
     // There are all required configs in the fallbacks file
-    auto docs_map_keys = docs_map_keys_.Lock();
-    *docs_map_keys = fallback_config_.GetNames();
+    docs_map_keys_ = fallback_config_.GetNames();
   } catch (const std::exception& ex) {
     throw std::runtime_error(
         std::string("Cannot load fallback dynamic config: ") + ex.what());
@@ -90,21 +105,13 @@ DynamicConfigClientUpdater::~DynamicConfigClientUpdater() {
 void DynamicConfigClientUpdater::StoreIfEnabled() {
   auto ptr = Get();
   if (store_enabled_) updater_.SetConfig(*ptr);
-
-  auto docs_map_keys = docs_map_keys_.Lock();
-  *docs_map_keys = ptr->GetRequestedNames();
-}
-
-DynamicConfigClientUpdater::DocsMapKeys
-DynamicConfigClientUpdater::GetStoredDocsMapKeys() const {
-  auto docs_map_keys = docs_map_keys_.Lock();
-  return *docs_map_keys;
+  CheckUnusedConfigs(*ptr, docs_map_keys_);
 }
 
 std::vector<std::string> DynamicConfigClientUpdater::GetDocsMapKeysToFetch(
     AdditionalDocsMapKeys& additional_docs_map_keys) {
   if (load_only_my_values_) {
-    auto docs_map_keys = GetStoredDocsMapKeys();
+    auto docs_map_keys = docs_map_keys_;
 
     for (auto it = additional_docs_map_keys.begin();
          it != additional_docs_map_keys.end();) {

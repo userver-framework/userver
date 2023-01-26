@@ -36,7 +36,7 @@ char GetSeparatorFromLogger(const LoggerPtr& logger_ptr) {
       return ':';
   }
 
-  UASSERT(false);
+  UINVARIANT(false, "Invalid logging::Format enum value");
 }
 
 }  // namespace
@@ -68,16 +68,25 @@ std::streamsize LogHelper::Impl::xsputn(const char_type* s, std::streamsize n) {
       msg_.append(s, s + n);
       break;
     case Encode::kValue:
-      msg_.reserve(msg_.size() + n);
-      utils::encoding::EncodeTskv(msg_, s, s + n,
-                                  utils::encoding::EncodeTskvMode::kValue,
-                                  PutCharFmtBuffer{});
+      if (!utils::encoding::ShouldValueBeEscaped({s, static_cast<size_t>(n)})) {
+        msg_.append(s, s + n);
+      } else {
+        msg_.reserve(msg_.size() + n);
+
+        utils::encoding::EncodeTskv(msg_, s, s + n,
+                                    utils::encoding::EncodeTskvMode::kValue,
+                                    PutCharFmtBuffer{});
+      }
       break;
     case Encode::kKeyReplacePeriod:
-      msg_.reserve(msg_.size() + n);
-      utils::encoding::EncodeTskv(
-          msg_, s, s + n, utils::encoding::EncodeTskvMode::kKeyReplacePeriod,
-          PutCharFmtBuffer{});
+      if (!utils::encoding::ShouldKeyBeEscaped({s, static_cast<size_t>(n)})) {
+        msg_.append(s, s + n);
+      } else {
+        msg_.reserve(msg_.size() + n);
+        utils::encoding::EncodeTskv(
+            msg_, s, s + n, utils::encoding::EncodeTskvMode::kKeyReplacePeriod,
+            PutCharFmtBuffer{});
+      }
       break;
   }
 

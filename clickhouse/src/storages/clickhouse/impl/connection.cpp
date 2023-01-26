@@ -84,7 +84,8 @@ ExecutionResult Connection::Execute(OptionalCommandControl optional_cc,
                                     const Query& query) {
   clickhouse_cpp::Query native_query{query.QueryText()};
   native_query.OnDataCancelable([]([[maybe_unused]] const auto& block) {
-    return engine::current_task::ShouldCancel();
+    // we must return 'true' if we don't want to cancel query
+    return !engine::current_task::ShouldCancel();
   });
 
   auto& span = tracing::Span::CurrentSpan();

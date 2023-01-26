@@ -29,9 +29,13 @@ StringBuilder::StringBuilder() = default;
 
 StringBuilder::~StringBuilder() = default;
 
-std::string StringBuilder::GetString() const {
+std::string_view StringBuilder::GetStringView() const {
   const auto& buffer = impl_->buffer;
   return {buffer.GetString(), buffer.GetLength()};
+}
+
+std::string StringBuilder::GetString() const {
+  return std::string{GetStringView()};
 }
 
 void StringBuilder::WriteNull() { impl_->writer.Null(); }

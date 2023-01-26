@@ -10,6 +10,24 @@ USERVER_NAMESPACE_BEGIN
 
 namespace utils {
 
+/// @brief Case sensitive ASCII hashing functor
+class StrCaseHash {
+ public:
+  /// Generates a new random hash seed for each hasher instance
+  StrCaseHash();
+
+  /// Uses the provided seed. Use with caution: a constant seed makes the hasher
+  /// vulnerable to HashDOS attacks when arbitrary keys are allowed.
+  explicit StrCaseHash(std::size_t seed) noexcept;
+
+  std::size_t operator()(std::string_view s) const& noexcept;
+
+  std::size_t GetSeed() const noexcept { return seed_; }
+
+ private:
+  std::size_t seed_;
+};
+
 /// @brief Case insensitive ASCII hashing functor
 class StrIcaseHash {
  public:

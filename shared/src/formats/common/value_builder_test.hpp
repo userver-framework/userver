@@ -1,9 +1,13 @@
+#pragma once
+
 #include <limits>
 #include <type_traits>
 
 #include <gtest/gtest.h>
+
 #include <userver/compiler/demangle.hpp>
 #include <userver/formats/common/type.hpp>
+#include <userver/utest/death_tests.hpp>
 #include <userver/utils/strong_typedef.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -32,13 +36,13 @@ inline void TestNanInfInstantiation() {
   ASSERT_THROW(ValueBuilder{-std::numeric_limits<Float>::infinity()}, Exception)
       << "Assertion failed for type " << compiler::GetTypeName<Float>();
 #else
-  ASSERT_DEATH(ValueBuilder{std::numeric_limits<Float>::signaling_NaN()}, "")
+  UEXPECT_DEATH(ValueBuilder{std::numeric_limits<Float>::signaling_NaN()}, "")
       << "Assertion failed for type " << compiler::GetTypeName<Float>();
-  ASSERT_DEATH(ValueBuilder{std::numeric_limits<Float>::quiet_NaN()}, "")
+  UEXPECT_DEATH(ValueBuilder{std::numeric_limits<Float>::quiet_NaN()}, "")
       << "Assertion failed for type " << compiler::GetTypeName<Float>();
-  ASSERT_DEATH(ValueBuilder{std::numeric_limits<Float>::infinity()}, "")
+  UEXPECT_DEATH(ValueBuilder{std::numeric_limits<Float>::infinity()}, "")
       << "Assertion failed for type " << compiler::GetTypeName<Float>();
-  ASSERT_DEATH(ValueBuilder{-std::numeric_limits<Float>::infinity()}, "")
+  UEXPECT_DEATH(ValueBuilder{-std::numeric_limits<Float>::infinity()}, "")
       << "Assertion failed for type " << compiler::GetTypeName<Float>();
 #endif
 }

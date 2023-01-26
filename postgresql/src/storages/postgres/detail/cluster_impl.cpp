@@ -24,6 +24,7 @@ ClusterHostType Fallback(ClusterHostType ht) {
     case ClusterHostType::kSyncSlave:
     case ClusterHostType::kSlave:
       return ClusterHostType::kMaster;
+    case ClusterHostType::kSlaveOrMaster:
     case ClusterHostType::kNone:
     case ClusterHostType::kRoundRobin:
     case ClusterHostType::kNearest:
@@ -280,6 +281,12 @@ void ClusterImpl::SetHandlersCommandControl(
 void ClusterImpl::SetQueriesCommandControl(
     const CommandControlByQueryMap& queries_command_control) {
   default_cmd_ctls_.UpdateQueriesCommandControl(queries_command_control);
+}
+
+void ClusterImpl::SetConnectionSettings(const ConnectionSettings& settings) {
+  for (const auto& pool : host_pools_) {
+    pool->SetConnectionSettings(settings);
+  }
 }
 
 void ClusterImpl::SetPoolSettings(const PoolSettings& settings) {

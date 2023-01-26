@@ -110,13 +110,10 @@ void HttpRequestConstructor::ParseUrl() {
   if (handler_info) {
     UASSERT(match_result.status == MatchRequestResult::Status::kOk);
     const auto& handler_config = handler_info->handler.GetConfig();
-    if (handler_config.max_url_size)
-      config_.max_url_size = *handler_config.max_url_size;
-    config_.max_request_size = handler_config.max_request_size;
-    if (handler_config.max_headers_size)
-      config_.max_headers_size = *handler_config.max_headers_size;
-    if (handler_config.parse_args_from_body)
-      config_.parse_args_from_body = *handler_config.parse_args_from_body;
+    config_.max_request_size = handler_config.request_config.max_request_size;
+    config_.max_headers_size = handler_config.request_config.max_headers_size;
+    config_.parse_args_from_body =
+        handler_config.request_config.parse_args_from_body;
     if (handler_config.decompress_request) config_.decompress_request = true;
 
     request_->SetTaskProcessor(handler_info->task_processor);

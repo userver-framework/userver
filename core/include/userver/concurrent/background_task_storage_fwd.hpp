@@ -6,6 +6,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace concurrent {
 
+class BackgroundTaskStorageCore;
 class BackgroundTaskStorage;
 
 using BackgroundTaskStorageFastPimpl =

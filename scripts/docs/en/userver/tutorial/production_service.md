@@ -84,6 +84,7 @@ Your server has the following utility handlers:
 * to @ref md_en_userver_memory_profile_running_service "profile memory usage" - server::handlers::Jemalloc
 * to @ref md_en_userver_log_level_running_service "change logging level at runtime" - server::handlers::LogLevel
   and server::handlers::DynamicDebugLog
+* to reopen log files after log rotation (you can also use @ref md_en_userver_os_signals "signals") - server::handlers::OnLogRotate 
 * to @ref md_en_userver_dns_control "control the DNS resolver" - server::handlers::DnsClientControl
 * to @ref md_en_userver_service_monitor "get statistics" from the service - server::handlers::ServerMonitor
 
@@ -240,6 +241,12 @@ See the full example at
 * @ref samples/production_service/tests/conftest.py
 * @ref samples/production_service/tests/test_ping.py
 * @ref samples/production_service/tests/test_production.py
+
+----------
+
+@htmlonly <div class="bottom-nav"> @endhtmlonly
+⇦ @ref md_en_userver_tutorial_config_service | @ref md_en_userver_tutorial_tcp_service ⇨
+@htmlonly </div> @endhtmlonly
 
 @example samples/production_service/production_service.cpp
 @example samples/production_service/static_config.yaml

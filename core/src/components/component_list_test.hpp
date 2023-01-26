@@ -2,7 +2,10 @@
 
 #include <string_view>
 
+#include <userver/engine/run_standalone.hpp>
 #include <userver/logging/log.hpp>
+#include <userver/tracing/opentracing.hpp>
+#include <userver/tracing/tracer.hpp>
 
 // allow this header usage only from tests
 #include <userver/utest/utest.hpp>
@@ -19,6 +22,7 @@ inline constexpr std::string_view kRuntimeConfig = R"~({
   "USERVER_CANCEL_HANDLE_REQUEST_BY_DEADLINE": false,
   "USERVER_HTTP_PROXY": "",
   "USERVER_NO_LOG_SPANS":{"names":[], "prefixes":[]},
+  "USERVER_HANDLER_STREAM_API_ENABLED": true,
   "USERVER_TASK_PROCESSOR_QOS": {
     "default-service": {
       "default-task-processor": {
@@ -31,6 +35,7 @@ inline constexpr std::string_view kRuntimeConfig = R"~({
     }
   },
   "USERVER_CACHES": {},
+  "USERVER_RPS_CCONTROL_ACTIVATED_FACTOR_METRIC": 5,
   "USERVER_LRU_CACHES": {},
   "USERVER_DUMPS": {},
   "HTTP_CLIENT_CONNECTION_POOL_SIZE": 1000,
@@ -94,14 +99,16 @@ components_manager:
 # /// [Sample dynamic config fallback component]
 config_vars: )";
 
-struct LogLevelGuard {
-  LogLevelGuard()
+struct DefaultLoggerGuard final {
+  DefaultLoggerGuard()
       : logger(logging::DefaultLogger()),
         level(logging::GetDefaultLoggerLevel()) {}
 
-  ~LogLevelGuard() {
+  ~DefaultLoggerGuard() {
     UASSERT(logger);
-    logging::SetDefaultLogger(logger);
+    if (logging::DefaultLoggerOptional() != logger) {
+      logging::SetDefaultLogger(logger);
+    }
     logging::SetDefaultLoggerLevel(level);
   }
 
@@ -109,6 +116,30 @@ struct LogLevelGuard {
   const logging::Level level;
 };
 
+struct TracingGuard final {
+  TracingGuard()
+      : opentracing_logger(tracing::OpentracingLogger()),
+        tracer(tracing::Tracer::GetTracer()) {}
+
+  ~TracingGuard() {
+    if (tracing::Tracer::GetTracer() != tracer ||
+        tracing::OpentracingLogger() != opentracing_logger) {
+      engine::RunStandalone([&] {
+        tracing::Tracer::SetTracer(tracer);
+        tracing::SetOpentracingLogger(opentracing_logger);
+      });
+    }
+  }
+
+  const logging::LoggerPtr opentracing_logger;
+  const tracing::TracerPtr tracer;
+};
+
 }  // namespace tests
+
+class ComponentList : public ::testing::Test {
+  tests::DefaultLoggerGuard default_logger_guard_;
+  tests::TracingGuard tracing_guard_;
+};
 
 USERVER_NAMESPACE_END

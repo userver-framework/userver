@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <optional>
 
+#include <userver/server/request/request_config.hpp>
 #include <userver/yaml_config/yaml_config.hpp>
 
 #include "connection_config.hpp"
@@ -13,6 +14,7 @@ namespace server::net {
 
 struct ListenerConfig {
   ConnectionConfig connection_config;
+  request::HttpRequestConfig handler_defaults;
   std::string unix_socket_path;
   uint16_t port = 0;
   int backlog = 1024;  // truncated to net.core.somaxconn

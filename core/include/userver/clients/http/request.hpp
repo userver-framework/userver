@@ -4,11 +4,14 @@
 /// @brief @copybrief clients::http::Request
 
 #include <memory>
+#include <string_view>
+#include <vector>
 
 #include <userver/clients/dns/resolver_fwd.hpp>
 #include <userver/clients/http/error.hpp>
 #include <userver/clients/http/response.hpp>
 #include <userver/clients/http/response_future.hpp>
+#include <userver/concurrent/queue.hpp>
 #include <userver/crypto/certificate.hpp>
 #include <userver/crypto/private_key.hpp>
 
@@ -18,12 +21,16 @@ USERVER_NAMESPACE_BEGIN
 namespace clients::http {
 
 class RequestState;
+class StreamedResponse;
+
 namespace impl {
 class EasyWrapper;
 }  // namespace impl
 
 /// HTTP request method
 enum class HttpMethod { kGet, kPost, kHead, kPut, kDelete, kPatch, kOptions };
+
+std::string_view ToStringView(HttpMethod method);
 
 /// HTTP version to use
 enum class HttpVersion {
@@ -59,7 +66,8 @@ struct EnforceTaskDeadlineConfig;
 class Request final : public std::enable_shared_from_this<Request> {
  public:
   /// Request cookies container type
-  using Cookies = std::unordered_map<std::string, std::string>;
+  using Cookies =
+      std::unordered_map<std::string, std::string, utils::StrCaseHash>;
 
   /// @cond
   // For internal use only.
@@ -67,7 +75,7 @@ class Request final : public std::enable_shared_from_this<Request> {
                    std::shared_ptr<RequestStats>&& req_stats,
                    const std::shared_ptr<DestinationStatistics>& dest_stats,
                    clients::dns::Resolver* resolver);
-  /// @cond
+  /// @endcond
 
   /// Specifies method
   std::shared_ptr<Request> method(HttpMethod method);
@@ -88,12 +96,12 @@ class Request final : public std::enable_shared_from_this<Request> {
   /// PUT request
   std::shared_ptr<Request> put();
   /// PUT request with url and data
-  std::shared_ptr<Request> put(const std::string& url, std::string data);
+  std::shared_ptr<Request> put(const std::string& url, std::string data = {});
 
   /// PATCH request
   std::shared_ptr<Request> patch();
   /// PATCH request with url and data
-  std::shared_ptr<Request> patch(const std::string& url, std::string data);
+  std::shared_ptr<Request> patch(const std::string& url, std::string data = {});
 
   /// DELETE request
   std::shared_ptr<Request> delete_method();
@@ -115,14 +123,23 @@ class Request final : public std::enable_shared_from_this<Request> {
   std::shared_ptr<Request> headers(
       std::initializer_list<std::pair<std::string_view, std::string_view>>
           headers);
+  /// Proxy headers for request as map
+  std::shared_ptr<Request> proxy_headers(const Headers& headers);
+  /// Proxy headers for request as list
+  std::shared_ptr<Request> proxy_headers(
+      std::initializer_list<std::pair<std::string_view, std::string_view>>
+          headers);
   /// Sets the User-Agent header
   std::shared_ptr<Request> user_agent(const std::string& value);
   /// Sets proxy to use. Example: [::1]:1080
   std::shared_ptr<Request> proxy(const std::string& value);
   /// Sets proxy auth type to use.
   std::shared_ptr<Request> proxy_auth_type(ProxyAuthType value);
-  /// Cookies for request as map
+  /// Cookies for request as HashDos-safe map
   std::shared_ptr<Request> cookies(const Cookies& cookies);
+  /// Cookies for request as map
+  std::shared_ptr<Request> cookies(
+      const std::unordered_map<std::string, std::string>& cookies);
   /// Follow redirects or not. Default: follow
   std::shared_ptr<Request> follow_redirects(bool follow = true);
   /// Set timeout in ms for request
@@ -176,6 +193,9 @@ class Request final : public std::enable_shared_from_this<Request> {
   std::shared_ptr<Request> SetTestsuiteConfig(
       const std::shared_ptr<const TestsuiteConfig>& config);
 
+  std::shared_ptr<Request> SetAllowedUrlsExtra(
+      const std::vector<std::string>& urls);
+
   // Set deadline propagation settings. For internal use only.
   std::shared_ptr<Request> SetEnforceTaskDeadline(
       EnforceTaskDeadlineConfig enforce_task_deadline);
@@ -201,6 +221,14 @@ class Request final : public std::enable_shared_from_this<Request> {
   /// ResponseFuture, all the setup holds:
   /// @snippet src/clients/http/client_test.cpp  HTTP Client - reuse async
   [[nodiscard]] ResponseFuture async_perform();
+
+  /// @brief Perform a request with streamed response body.
+  ///
+  /// The HTTP client uses queue producer.
+  /// StreamedResponse uses queue consumer.
+  /// @see src/clients/http/partial_pesponse.hpp
+  [[nodiscard]] StreamedResponse async_perform_stream_body(
+      const std::shared_ptr<concurrent::SpscQueue<std::string>>& queue);
 
   /// Calls async_perform and wait for timeout_ms on a future. Default time
   /// for waiting will be timeout value if it was setted. If error occured it

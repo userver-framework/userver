@@ -5,6 +5,7 @@
 Make sure that you can compile and run core tests and read a basic example
 @ref md_en_userver_tutorial_hello_service.
 
+
 ## Step by step guide
 
 Consider the case when you need to write an HTTP handler that greets a user.
@@ -16,6 +17,7 @@ them in a local cache.
 In this sample we show how to write and test a cache along with creating
 HTTP requests. If you wish to cache data from database prefer using
 @ref md_en_userver_caches "cache specializations for DB".
+
 
 ### Remote HTTP server description
 
@@ -170,7 +172,8 @@ and start the server with static configuration `kStaticConfig`.
 
 @snippet samples/http_caching/http_caching.cpp  HTTP caching sample - main
 
-### Build
+
+### Build and Run
 
 To build the sample, execute the following build steps at the userver root
 directory:
@@ -181,9 +184,21 @@ cmake -DCMAKE_BUILD_TYPE=Release ..
 make userver-samples-http_caching
 ```
 
-Start the server by running `./samples/http_caching/userver-samples-http_caching`. Not that
-you need a running translations service with bulk handlers. You could use the
+Note that
+you need a running translations service with bulk handlers to start the service.
+You could use the
 @ref md_en_userver_tutorial_mongo_service "mongo service" for that purpose.
+
+
+The sample could be started by running
+`make start-userver-samples-http_caching`. The command would invoke
+@ref md_en_userver_functional_testing "testsuite start target" that sets proper
+paths in the configuration files and starts the service.
+
+To start the service manually run
+`./samples/http_caching/userver-samples-http_caching -c </path/to/static_config.yaml>`
+(do not forget to prepare the configuration files!).
+
 
 Now you can send a request to your server from another terminal:
 ```
@@ -211,8 +226,7 @@ to the server::handlers::TestsControl handler.
 
 For example the following JSON forces incremental update of the
 `cache-http-translations` cache:
-```
-json
+```json
 {"invalidate_caches": {
     "update_type": "incremental",
     "names": ["cache-http-translations"]
@@ -228,16 +242,17 @@ provides all the required functionality via simpler to use Python functions.
 implemented using the testsuite. To do that you have to:
 
 * Mock the translations service data:
-@snippet samples/http_caching/tests/conftest.py translations
+  @snippet samples/http_caching/tests/conftest.py translations
 
 * Mock the translations service API:
-@snippet samples/http_caching/tests/conftest.py mockserver
+  @snippet samples/http_caching/tests/conftest.py mockserver
 
-* Teach testsuite how to patch the service config to use the mocked URL:
-@snippet samples/http_caching/tests/conftest.py patch configs
+* Import the pytest_userver.plugins.core plugin and teach testsuite how to
+  patch the service config to use the mocked URL:
+  @snippet samples/http_caching/tests/conftest.py patch configs
 
 * Write the test:
-@snippet samples/http_caching/tests/test_http_caching.py  Functional test
+  @snippet samples/http_caching/tests/test_http_caching.py  Functional test
 
 
 ## Full sources
@@ -249,6 +264,12 @@ See the full example:
 * @ref samples/http_caching/CMakeLists.txt
 * @ref samples/http_caching/tests/conftest.py
 * @ref samples/http_caching/tests/test_http_caching.py
+
+----------
+
+@htmlonly <div class="bottom-nav"> @endhtmlonly
+⇦ @ref md_en_userver_tutorial_tcp_full | @ref md_en_userver_tutorial_flatbuf_service ⇨
+@htmlonly </div> @endhtmlonly
 
 @example samples/http_caching/http_caching.cpp
 @example samples/http_caching/static_config.yaml

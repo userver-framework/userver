@@ -129,7 +129,7 @@ class DataPipeToEv final {
   }
 
  private:
-  std::array<Data, 2> double_buffer_;
+  std::array<Data, 2> double_buffer_{};
 
   impl::DoubleBufferingState state_;
 };

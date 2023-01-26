@@ -53,8 +53,6 @@ class DynamicConfigClient : public LoggableComponentBase {
   std::unique_ptr<dynamic_config::Client> config_client_;
 };
 
-using TaxiConfigClient = DynamicConfigClient;
-
 template <>
 inline constexpr bool kHasValidate<DynamicConfigClient> = true;
 

@@ -6,6 +6,7 @@
 
 #include <userver/engine/sleep.hpp>
 #include <userver/rcu/rcu_map.hpp>
+#include <userver/utils/algo.hpp>
 #include <userver/utils/async.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -205,7 +206,7 @@ UTEST(RcuMap, IterStability) {
   while (started_count < 2) engine::Yield();
 
   curr_val = 2;
-  for (auto& [k, v] : map) {
+  for (const auto& [k, v] : map) {
     *v = curr_val;
   }
   map.Erase(9);
@@ -251,6 +252,29 @@ UTEST(RcuMap, MapOfConst) {
     value_sum += *value;
   }
   EXPECT_EQ(value_sum, 30);
+}
+
+UTEST(RcuMap, StartWriteNoTearing) {
+  using Map = rcu::RcuMap<std::string, int>;
+  Map map;
+
+  auto checker = engine::AsyncNoSpan([&] {
+    Map::Snapshot snapshot;
+    while (true) {
+      snapshot = map.GetSnapshot();
+      if (!snapshot.empty()) break;
+    }
+    EXPECT_EQ(snapshot.size(), 2);
+    EXPECT_EQ(*snapshot.at("foo"), 10);
+    EXPECT_EQ(*snapshot.at("bar"), 20);
+  });
+
+  auto txn = map.StartWrite();
+  txn->emplace("foo", std::make_shared<int>(10));
+  txn->emplace("bar", std::make_shared<int>(20));
+  txn.Commit();
+
+  UEXPECT_NO_THROW(checker.Get());
 }
 
 USERVER_NAMESPACE_END

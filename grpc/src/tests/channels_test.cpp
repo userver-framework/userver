@@ -10,19 +10,18 @@
 #include <userver/ugrpc/client/queue_holder.hpp>
 #include <userver/ugrpc/server/server.hpp>
 
-#include "unit_test_client.usrv.pb.hpp"
-#include "unit_test_service.usrv.pb.hpp"
+#include <tests/unit_test_client.usrv.pb.hpp>
+#include <tests/unit_test_service.usrv.pb.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 using namespace std::chrono_literals;
-using namespace sample::ugrpc;
 
 namespace {
 
-class UnitTestServiceSimple final : public UnitTestServiceBase {
+class UnitTestServiceSimple final : public sample::ugrpc::UnitTestServiceBase {
  public:
-  void SayHello(SayHelloCall& call, GreetingRequest&& request) override {
+  void SayHello(SayHelloCall& call, sample::ugrpc::GreetingRequest&&) override {
     call.Finish({});
   }
 };
@@ -37,7 +36,9 @@ ugrpc::server::ServerConfig MakeServerConfig() {
 
 }  // namespace
 
-UTEST_MT(GrpcChannels, TryWaitForConnected, 2) {
+struct GrpcChannels : public ::testing::TestWithParam<std::size_t> {};
+
+UTEST_P_MT(GrpcChannels, TryWaitForConnected, 2) {
   constexpr auto kSmallTimeout = 100ms;
   constexpr auto kServerStartDelay = 100ms;
   constexpr auto kMaxServerStartTime = 500ms;
@@ -46,6 +47,7 @@ UTEST_MT(GrpcChannels, TryWaitForConnected, 2) {
   auto client_task = engine::AsyncNoSpan([&] {
     ugrpc::client::ClientFactoryConfig config;
     config.channel_args.SetInt("grpc.testing.fixed_reconnect_backoff_ms", 100);
+    config.channel_count = GetParam();
     ugrpc::client::QueueHolder client_queue;
 
     ugrpc::client::ClientFactory client_factory(
@@ -53,7 +55,9 @@ UTEST_MT(GrpcChannels, TryWaitForConnected, 2) {
         client_queue.GetQueue(), statistics_storage);
 
     const auto endpoint = fmt::format("[::1]:{}", kPort);
-    auto client = client_factory.MakeClient<UnitTestServiceClient>(endpoint);
+    auto client =
+        client_factory.MakeClient<sample::ugrpc::UnitTestServiceClient>(
+            endpoint);
 
     // TryWaitForConnected should wait for the server to start and return 'true'
     EXPECT_TRUE(ugrpc::client::TryWaitForConnected(
@@ -81,5 +85,8 @@ UTEST_MT(GrpcChannels, TryWaitForConnected, 2) {
   client_task.Get();
   server.Stop();
 }
+
+INSTANTIATE_UTEST_SUITE_P(Basic, GrpcChannels,
+                          ::testing::Values(std::size_t{1}, std::size_t{4}));
 
 USERVER_NAMESPACE_END

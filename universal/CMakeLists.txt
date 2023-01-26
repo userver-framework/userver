@@ -24,7 +24,6 @@ if(NOT TARGET userver-core)
   set(CMAKE_MODULE_PATH
     ${CMAKE_MODULE_PATH}
     ${CMAKE_CURRENT_SOURCE_DIR}/../cmake
-    ${CMAKE_BINARY_DIR}/cmake/generated
     ${CMAKE_BINARY_DIR}/cmake_generated
   )
 
@@ -75,15 +74,27 @@ find_package(Threads REQUIRED)
 find_package(Boost REQUIRED COMPONENTS program_options filesystem regex)
 find_package_required(ZLIB "zlib1g-dev")
 
-include(SetupGTest)
-include(SetupGBench)
-include(SetupCryptoPP)
-
 find_package(Iconv REQUIRED)
-find_package_required(libyamlcpp "libyaml-cpp-dev")
 find_package_required(OpenSSL "libssl-dev")
-include(SetupFmt)
-include(SetupCCTZ)
+
+if (USERVER_CONAN)
+  find_package(GTest REQUIRED)
+  find_package(benchmark REQUIRED)
+  find_package(cryptopp REQUIRED)
+  find_package(yaml-cpp REQUIRED)
+  find_package(fmt REQUIRED)
+  find_package(cctz REQUIRED)
+
+  find_package(RapidJSON REQUIRED)
+  target_compile_definitions(RapidJSON::RapidJSON INTERFACE RAPIDJSON_HAS_STDSTRING)
+else()
+  include(SetupGTest)
+  include(SetupGBench)
+  include(SetupCryptoPP)
+  find_package_required(libyamlcpp "libyaml-cpp-dev")
+  include(SetupFmt)
+  include(SetupCCTZ)
+endif()
 
 add_library(${PROJECT_NAME} STATIC ${SOURCES})
 set_target_properties(${PROJECT_NAME} PROPERTIES
@@ -96,12 +107,17 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
 
 # https://github.com/jemalloc/jemalloc/issues/820
 if (USERVER_FEATURE_JEMALLOC AND NOT USERVER_SANITIZE AND NOT MACOS)
-  if (USERVER_OPEN_SOURCE_BUILD)
+  if (USERVER_CONAN)
+    find_package(jemalloc REQUIRED)
+    target_link_libraries(${PROJECT_NAME} PUBLIC jemalloc::jemalloc)
+  elseif (USERVER_OPEN_SOURCE_BUILD)
     find_package_required(Jemalloc "libjemalloc-dev")
+    target_link_libraries(${PROJECT_NAME} PUBLIC Jemalloc)
   else()
     find_package_required(Jemalloc "libyandex-taxi-jemalloc-dev")
+    target_link_libraries(${PROJECT_NAME} PUBLIC Jemalloc)
   endif()
-  target_link_libraries(${PROJECT_NAME} PUBLIC Jemalloc)
+
   target_compile_definitions(${PROJECT_NAME} PRIVATE JEMALLOC_ENABLED)
 endif()
 
@@ -110,6 +126,10 @@ target_compile_definitions(${PROJECT_NAME} PUBLIC
   "USERVER_NAMESPACE=${USERVER_NAMESPACE}"
   "USERVER_NAMESPACE_BEGIN=${USERVER_NAMESPACE_BEGIN}"
   "USERVER_NAMESPACE_END=${USERVER_NAMESPACE_END}"
+)
+
+target_compile_definitions(${PROJECT_NAME} PRIVATE
+  CRYPTOPP_ENABLE_NAMESPACE_WEAK=1
 )
 
 # https://bugs.llvm.org/show_bug.cgi?id=16404
@@ -121,19 +141,36 @@ target_link_libraries(${PROJECT_NAME}
   PUBLIC
     Threads::Threads
     sanitize-target
-    libyamlcpp
-    fmt
-    cctz
-    userver-stacktrace
   PRIVATE
     Boost::filesystem
     Boost::program_options
     Boost::regex
-    CryptoPP
     OpenSSL::Crypto
     OpenSSL::SSL
     ZLIB::ZLIB
 )
+if (USERVER_CONAN)
+  target_link_libraries(${PROJECT_NAME}
+    PUBLIC
+      yaml-cpp
+      fmt::fmt
+      cctz::cctz
+      Boost::stacktrace
+    PRIVATE
+      cryptopp-static
+      RapidJSON::RapidJSON
+  )
+else()
+  target_link_libraries(${PROJECT_NAME}
+    PUBLIC
+      libyamlcpp
+      fmt
+      cctz
+      userver-stacktrace
+    PRIVATE
+      CryptoPP
+  )
+endif()
 
 set(UNIVERSAL_PUBLIC_INCLUDE_DIRS
   ${CMAKE_CURRENT_SOURCE_DIR}/../shared/include
@@ -163,12 +200,24 @@ if (USERVER_IS_THE_ROOT_PROJECT)
     )
     target_link_libraries(${PROJECT_NAME}_unittest
       PUBLIC
-        libgtest
-        libgmock
         ${PROJECT_NAME}
       PRIVATE
         Boost::program_options
     )
+    if (USERVER_CONAN)
+      target_link_libraries(${PROJECT_NAME}_unittest
+        PUBLIC
+          GTest::gtest
+          GTest::gmock
+          GTest::gtest_main
+      )
+    else()
+      target_link_libraries(${PROJECT_NAME}_unittest
+        PUBLIC
+          libgtest
+          libgmock
+      )
+    endif()
 
     # We keep testing deprecated functions, no need to warn about that
     target_compile_options(${PROJECT_NAME}_unittest PRIVATE "-Wno-deprecated-declarations")
@@ -178,14 +227,11 @@ if (USERVER_IS_THE_ROOT_PROJECT)
     target_include_directories (${PROJECT_NAME}_benchmark SYSTEM PRIVATE
         $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>
     )
-    target_link_libraries(${PROJECT_NAME}_benchmark
-      PUBLIC
-        libbenchmark
-        ${PROJECT_NAME}
-    )
+    target_link_libraries(${PROJECT_NAME}_benchmark PUBLIC ${PROJECT_NAME})
+    if (USERVER_CONAN)
+      target_link_libraries(${PROJECT_NAME}_benchmark PUBLIC benchmark::benchmark)
+    else()
+      target_link_libraries(${PROJECT_NAME}_benchmark PUBLIC libbenchmark)
+    endif()
     add_google_benchmark_tests(${PROJECT_NAME}_benchmark)
 endif()
-
-# Target with no need to use userver namespace, but includes require userver/
-add_library(yandex-${PROJECT_NAME} INTERFACE)
-target_link_libraries(yandex-${PROJECT_NAME} INTERFACE ${PROJECT_NAME})

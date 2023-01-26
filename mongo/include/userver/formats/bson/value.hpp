@@ -216,6 +216,7 @@ class Value {
   template <typename T, typename First, typename... Rest>
   T ConvertTo(First&& default_arg, Rest&&... more_default_args) const {
     if (IsMissing() || IsNull()) {
+      // NOLINTNEXTLINE(google-readability-casting)
       return T(std::forward<First>(default_arg),
                std::forward<Rest>(more_default_args)...);
     }

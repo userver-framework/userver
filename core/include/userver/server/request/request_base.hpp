@@ -5,9 +5,9 @@
 #include <string>
 #include <vector>
 
+// TODO: use fwd declarations
 #include <userver/logging/logger.hpp>
-
-#include "response_base.hpp"
+#include <userver/server/request/response_base.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -24,7 +24,6 @@ class RequestBase {
 
   virtual void WriteAccessLogs(const logging::LoggerPtr& logger_access,
                                const logging::LoggerPtr& logger_access_tskv,
-                               std::chrono::system_clock::time_point tp,
                                const std::string& remote_address) const = 0;
 
   virtual const std::string& GetRequestPath() const = 0;
@@ -32,6 +31,7 @@ class RequestBase {
   void SetTaskCreateTime();
   void SetTaskStartTime();
   void SetResponseNotifyTime();
+  void SetResponseNotifyTime(std::chrono::steady_clock::time_point now);
   void SetStartSendResponseTime();
   void SetFinishSendResponseTime();
 

@@ -61,10 +61,14 @@ namespace components {
 /// max_connections | max connections count to keep | 32768
 /// task_processor | task processor to process incomming requests | -
 /// backlog | max count of new coneections pending acceptance | 1024
+/// handler-defaults.max_url_size | max path/URL size or empty to not limit | 8192
+/// handler-defaults.max_request_size | max size of the whole request | 1024 * 1024
+/// handler-defaults.max_headers_size | max request headers size | 65536
+/// handler-defaults.parse_args_from_body | optional field to parse request according to x-www-form-urlencoded rules and make parameters accessible as query parameters | false
+/// handler-defaults.set_tracing_headers | whether to set http tracing headers (X-YaTraceId, X-YaSpanId, X-RequestId) | true
 /// connection.in_buffer_size | size of the buffer to preallocate for request receive: bigger values use more RAM and less CPU | 32 * 1024
 /// connection.requests_queue_size_threshold | drop requests from handlers that allow trottling if there's more pending requests than allowed by this value | 100
 /// connection.keepalive_timeout | timeout in seconds to drop connection if there's not data received from it | 600
-/// connection.request.type | type of the request, only 'http' supported at the moment | 'http'
 /// shards | how many concurrent tasks harvest data from a single socket; do not set if not sure what it is doing | -
 
 // clang-format on
@@ -96,7 +100,8 @@ class Server final : public LoggableComponentBase {
       const utils::statistics::StatisticsRequest& /*request*/);
 
   std::unique_ptr<server::Server> server_;
-  utils::statistics::Entry statistics_holder_;
+  utils::statistics::Entry server_statistics_holder_;
+  utils::statistics::Entry handler_statistics_holder_;
 };
 
 template <>

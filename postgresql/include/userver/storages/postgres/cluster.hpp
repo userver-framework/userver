@@ -12,6 +12,7 @@
 #include <userver/testsuite/postgres_control.hpp>
 
 #include <userver/storages/postgres/cluster_types.hpp>
+#include <userver/storages/postgres/database.hpp>
 #include <userver/storages/postgres/detail/non_transaction.hpp>
 #include <userver/storages/postgres/options.hpp>
 #include <userver/storages/postgres/query.hpp>
@@ -46,6 +47,13 @@
 /// After the initial check we know about master presence and RTT for each host.
 /// Master host is queried about synchronous replication status. We use this
 /// info to identify synchronous slaves and to detect "quorum commit" presence.
+///
+///
+/// ----------
+///
+/// @htmlonly <div class="bottom-nav"> @endhtmlonly
+/// ⇦ @ref pg_errors | @ref pg_user_types ⇨
+/// @htmlonly </div> @endhtmlonly
 
 USERVER_NAMESPACE_BEGIN
 
@@ -199,6 +207,11 @@ class Cluster {
   /// Updates default command control from global config (if not set by user)
   void ApplyGlobalCommandControlUpdate(CommandControl);
   /// @endcond
+
+  /// Replaces cluster connection settings.
+  ///
+  /// Connections with an old settings will be dropped and reestablished.
+  void SetConnectionSettings(const ConnectionSettings& settings);
 
   void SetPoolSettings(const PoolSettings& settings);
 

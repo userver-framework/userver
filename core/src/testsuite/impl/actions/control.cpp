@@ -16,9 +16,6 @@ Control::Control(const components::ComponentContext& component_context,
                  bool testpoint_supported)
     : testsuite_support_(
           component_context.FindComponent<components::TestsuiteSupport>()),
-      metrics_storage_(
-          component_context.FindComponent<components::StatisticsStorage>()
-              .GetMetricsStorage()),
       logging_component_(
           component_context.FindComponent<components::Logging>()),
       testpoint_supported_(testpoint_supported) {}
@@ -37,8 +34,13 @@ formats::json::Value Control::Perform(
         testpoints.As<std::unordered_set<std::string>>());
   }
 
-  if (request_body["reset_metrics"].As<bool>(false)) {
-    metrics_storage_->ResetMetrics();
+  auto http_allowed_urls_extra =
+      request_body["http_allowed_urls_extra"]
+          .As<std::optional<std::vector<std::string>>>(
+              std::optional<std::vector<std::string>>{});
+  if (http_allowed_urls_extra) {
+    testsuite_support_.GetHttpAllowedUrlsExtra().SetAllowedUrlsExtra(
+        std::move(*http_allowed_urls_extra));
   }
 
   const auto mock_now = request_body["mock_now"];
@@ -72,9 +74,7 @@ formats::json::Value Control::Perform(
           update_type,
           invalidate_caches["names"].As<std::unordered_set<std::string>>());
     } else {
-      testsuite_support_.GetCacheControl().InvalidateAllCaches(
-          update_type, invalidate_caches["names_blocklist"]
-                           .As<std::unordered_set<std::string>>({}));
+      testsuite_support_.GetCacheControl().InvalidateAllCaches(update_type);
       testsuite_support_.GetComponentControl().InvalidateComponents();
     }
   }

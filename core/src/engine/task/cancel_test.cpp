@@ -3,7 +3,6 @@
 #include <chrono>
 #include <stdexcept>
 
-#include <engine/task/task_context.hpp>
 #include <userver/engine/async.hpp>
 #include <userver/engine/deadline.hpp>
 #include <userver/engine/future.hpp>
@@ -67,8 +66,7 @@ UTEST(Cancel, CancelDuringInterruptibleSleep) {
 }
 
 UTEST(Cancel, CancelBeforeInterruptibleSleep) {
-  engine::current_task::GetCurrentTaskContext().RequestCancel(
-      engine::TaskCancellationReason::kUserRequest);
+  engine::current_task::GetCancellationToken().RequestCancel();
 
   // The task should wake up from this sleep immediately, because it is
   // already cancelled
@@ -106,6 +104,14 @@ void CheckNoDeadlineCompleted(engine::TaskWithResult<int>& task) {
   EXPECT_EQ(task.GetState(), engine::Task::State::kCompleted);
   EXPECT_EQ(task.CancellationReason(), engine::TaskCancellationReason::kNone);
   UEXPECT_NO_THROW(EXPECT_EQ(task.Get(), kTaskResult));
+}
+
+void CheckUserCancelled(engine::TaskWithResult<int>& task) {
+  UASSERT_NO_THROW(task.WaitFor(utest::kMaxTestWaitTime / 2));
+  EXPECT_EQ(task.GetState(), engine::Task::State::kCancelled);
+  EXPECT_EQ(task.CancellationReason(),
+            engine::TaskCancellationReason::kUserRequest);
+  UEXPECT_THROW(task.Get(), engine::TaskCancelledException);
 }
 
 }  // namespace
@@ -278,6 +284,68 @@ UTEST(Cancel, DeadlinePropagationNotChildToParent) {
             engine::TaskCancellationReason::kDeadline);
   UEXPECT_THROW(child_task.Get(), engine::WaitInterruptedException);
   EXPECT_FALSE(engine::current_task::IsCancelRequested());
+}
+
+UTEST(Cancel, CancellationTokenRequestCancel) {
+  engine::SingleConsumerEvent event;
+  auto task = engine::CriticalAsyncNoSpan([&event] {
+    EXPECT_FALSE(event.WaitForEvent());
+    engine::current_task::CancellationPoint();
+    return kTaskResult;
+  });
+
+  engine::TaskCancellationToken token{task};
+
+  token.RequestCancel();
+
+  CheckUserCancelled(task);
+}
+
+UTEST(Cancel, CancellationTokenDtorNoWait) {
+  engine::SingleConsumerEvent event;
+  auto task = engine::CriticalAsyncNoSpan([&event] {
+    EXPECT_TRUE(event.WaitForEvent());
+    return kTaskResult;
+  });
+
+  { engine::TaskCancellationToken token{task}; }
+  // destroying token neither waits for task, nor
+  // cancels the task
+  EXPECT_EQ(engine::TaskCancellationReason::kNone, task.CancellationReason());
+
+  // By special request from reviewer, this time we let the task complete
+  // successfully
+  event.Send();
+
+  EXPECT_EQ(kTaskResult, task.Get());
+}
+
+UTEST(Cancel, CancellationTokenCancelSelf) {
+  auto task = engine::CriticalAsyncNoSpan([] {
+    auto token = engine::current_task::GetCancellationToken();
+    token.RequestCancel();
+    engine::current_task::CancellationPoint();
+    return kTaskResult;
+  });
+
+  CheckUserCancelled(task);
+}
+
+UTEST(Cancel, CancellationTokenLifetime) {
+  // Check that token can outlive task
+  engine::TaskCancellationToken token;
+
+  {
+    auto task = engine::CriticalAsyncNoSpan([] { return kTaskResult; });
+
+    token = engine::TaskCancellationToken{task};
+    EXPECT_TRUE(token.IsValid());
+
+    EXPECT_EQ(kTaskResult, task.Get());
+  }
+
+  EXPECT_TRUE(token.IsValid());
+  token.RequestCancel();
 }
 
 USERVER_NAMESPACE_END

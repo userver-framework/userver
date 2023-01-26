@@ -6,38 +6,67 @@ includes:
     find:
       - names:
           - postgres_fe.h
+        paths:
+          - /usr/include/postgresql/12/server
+          - /usr/include/postgresql/13/server
+          - /usr/include/postgresql/14/server
+          - /usr/include/postgresql/15/server
+          - /usr/local/include/postgresql/server  # FreeBSD
+          - ${USERVER_PG_SERVER_INCLUDE_DIR}
         path-suffixes:
-          - postgresql/internal  # postgresql-server-dev
           - pgsql/server         # postgresql-server-devel
 
       - names:
           - libpq-int.h
+        paths:
+          - ${USERVER_PG_INCLUDE_DIR}/internal
+          - ${USERVER_PG_INCLUDE_DIR}/postgresql/internal
+          - /usr/local/include/postgresql/internal  # FreeBSD
         path-suffixes:
-          - postgresql/internal  # postgresql-server-dev
+          - postgresql/internal  # libpq-dev
           - pgsql/internal       # postgresql-private-devel
+
+      - names:
+          - libpq-fe.h
+        paths:
+          - ${USERVER_PG_INCLUDE_DIR}
+          - /usr/local/include  # FreeBSD
+        path-suffixes:
+          - postgresql
+          - pgsql
 
 libraries:
     find:
       - names:
           - libpq.a              # must be a static library as we use internal symbols
+        paths:
+          - ${USERVER_PG_LIBRARY_DIR}
+          - /usr/local/lib  # FreeBSD
       - names:
           - libpgcommon.a
         paths:
           - /usr/lib/postgresql/12/lib
           - /usr/lib/postgresql/13/lib
           - /usr/lib/postgresql/14/lib
+          - /usr/lib/postgresql/15/lib
+          - ${USERVER_PG_PKGLIB_DIR}
+          - ${USERVER_PG_LIBRARY_DIR}
       - names:
           - libpgport.a
         paths:
           - /usr/lib/postgresql/12/lib
           - /usr/lib/postgresql/13/lib
           - /usr/lib/postgresql/14/lib
+          - /usr/lib/postgresql/15/lib
+          - ${USERVER_PG_PKGLIB_DIR}
+          - ${USERVER_PG_LIBRARY_DIR}
 
 debian-names:
   - libpq-dev
-  - postgresql-12
   - postgresql-server-dev-12
-formula-name: postgres
+formula-name: postgresql@14
 rpm-names:
   - postgresql-server-devel
   - postgresql-static
+pkg-names:
+  - postgresql15-server

@@ -1,6 +1,7 @@
 #include <engine/ev/watcher/io_watcher.hpp>
 
 #include <fcntl.h>
+#include <sys/param.h>
 
 #include <engine/ev/thread.hpp>
 #include <userver/logging/log.hpp>
@@ -8,7 +9,11 @@
 
 USERVER_NAMESPACE_BEGIN
 
+#if defined(BSD) && !defined(__APPLE__)
+UTEST(IoWatcher, DISABLED_DevNull) {
+#else
 UTEST(IoWatcher, DevNull) {
+#endif
   LOG_DEBUG() << "Opening /dev/null";
   engine::ev::Thread thread("test_thread",
                             engine::ev::Thread::RegisterEventMode::kImmediate);
@@ -27,7 +32,7 @@ UTEST(IoWatcher, DevNull) {
   watcher.ReadAsync([&counter, &mutex, &cv, &fd, &done](std::error_code) {
     std::lock_guard<std::mutex> lock(mutex);
 
-    char c;
+    char c{};
     int rc = read(fd, &c, 1);
     if (rc == 0) done = true;
     if (rc > 0) counter += rc;

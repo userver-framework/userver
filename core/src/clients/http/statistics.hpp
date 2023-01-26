@@ -5,10 +5,11 @@
 #include <unordered_map>
 #include <vector>
 
-#include <userver/formats/json/value.hpp>
 #include <userver/utils/datetime.hpp>
 #include <userver/utils/statistics/percentile.hpp>
 #include <userver/utils/statistics/recentperiod.hpp>
+#include <userver/utils/statistics/writer.hpp>
+#include <utils/statistics/http_codes.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -61,7 +62,7 @@ using Percentile =
 
 class Statistics {
  public:
-  Statistics();
+  Statistics() = default;
 
   std::shared_ptr<RequestStats> CreateRequestStats() {
     return std::make_shared<RequestStats>(*this);
@@ -101,11 +102,7 @@ class Statistics {
 
   std::atomic<std::uint64_t> timeout_updated_by_deadline_{0};
   std::atomic<std::uint64_t> cancelled_by_deadline_{0};
-
-  static constexpr size_t kMinHttpStatus = 100;
-  static constexpr size_t kMaxHttpStatus = 600;
-  std::array<std::atomic_llong, kMaxHttpStatus - kMinHttpStatus>
-      reply_status_{};
+  utils::statistics::HttpCodes reply_status_;
 
   friend struct InstanceStatistics;
   friend class RequestStats;
@@ -114,9 +111,7 @@ class Statistics {
 struct InstanceStatistics {
   InstanceStatistics() = default;
 
-  static bool IsForcedStatusCode(int status);
-
-  InstanceStatistics(const Statistics& other);
+  explicit InstanceStatistics(const Statistics& other);
 
   uint64_t GetNotOkErrorCount() const;
 
@@ -131,11 +126,11 @@ struct InstanceStatistics {
   Percentile timings_percentile;
   std::array<uint64_t, Statistics::kErrorGroupCount> error_count{
       {0, 0, 0, 0, 0, 0, 0}};
-  std::unordered_map<int, uint64_t> reply_status;
   uint64_t retries{0};
 
   std::uint64_t timeout_updated_by_deadline{0};
   std::uint64_t cancelled_by_deadline{0};
+  utils::statistics::HttpCodes::Snapshot reply_status;
 
   MultiStats multi;
 };
@@ -149,11 +144,11 @@ enum class FormatMode {
   kModeDestination,
 };
 
-formats::json::ValueBuilder StatisticsToJson(
-    const InstanceStatistics& stats,
-    FormatMode format_mode = FormatMode::kModeAll);
+void DumpMetric(utils::statistics::Writer& writer,
+                const InstanceStatistics& stats,
+                FormatMode format_mode = FormatMode::kModeAll);
 
-formats::json::ValueBuilder PoolStatisticsToJson(const PoolStatistics& stats);
+void DumpMetric(utils::statistics::Writer& writer, const PoolStatistics& stats);
 
 }  // namespace clients::http
 

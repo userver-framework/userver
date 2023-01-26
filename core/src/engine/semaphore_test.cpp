@@ -6,6 +6,7 @@
 #include <userver/engine/sleep.hpp>
 #include <userver/utest/utest.hpp>
 #include <userver/utils/async.hpp>
+#include <userver/utils/fast_scope_guard.hpp>
 
 using namespace std::chrono_literals;
 
@@ -198,16 +199,20 @@ UTEST_MT(Semaphore, LockPassing, 4) {
 }
 
 UTEST_MT(Semaphore, LockFastPathRace, 5) {
-  constexpr std::size_t kLocksCount = 100000;
-
+  const auto test_deadline = engine::Deadline::FromDuration(100ms);
   engine::Semaphore sem{-1UL};
   std::vector<engine::TaskWithResult<void>> tasks;
+
   for (std::size_t i = 0; i < GetThreadCount(); ++i) {
     tasks.push_back(engine::AsyncNoSpan([&] {
-      for (std::size_t lock = 0; lock < kLocksCount; ++lock) {
+      std::size_t locks_taken = 0;
+      utils::FastScopeGuard unlock(
+          [&]() noexcept { sem.unlock_shared_count(locks_taken); });
+
+      while (!test_deadline.IsReached()) {
         ASSERT_TRUE(sem.try_lock_shared());
+        ++locks_taken;
       }
-      sem.unlock_shared_count(kLocksCount);
     }));
   }
 
@@ -370,6 +375,7 @@ UTEST_MT(SemaphoreLock, LockMoveCopyOwning, 2) {
   ASSERT_TRUE(lock.OwnsLock());
 
   engine::SemaphoreLock move_here{std::move(lock)};
+  // NOLINTNEXTLINE(bugprone-use-after-move,clang-analyzer-cplusplus.Move)
   EXPECT_FALSE(lock.OwnsLock());
   EXPECT_TRUE(move_here.OwnsLock());
 }
@@ -380,6 +386,7 @@ UTEST_MT(SemaphoreLock, LockMoveCopyEmpty, 2) {
   ASSERT_FALSE(empty_lock.OwnsLock());
 
   engine::SemaphoreLock move_here{std::move(empty_lock)};
+  // NOLINTNEXTLINE(bugprone-use-after-move,clang-analyzer-cplusplus.Move)
   EXPECT_FALSE(empty_lock.OwnsLock());
   EXPECT_FALSE(move_here.OwnsLock());
 }
@@ -391,6 +398,7 @@ UTEST_MT(SemaphoreLock, LockMoveAssignOwning, 2) {
 
   engine::SemaphoreLock move_here;
   move_here = std::move(lock);
+  // NOLINTNEXTLINE(bugprone-use-after-move,clang-analyzer-cplusplus.Move)
   EXPECT_FALSE(lock.OwnsLock());
   EXPECT_TRUE(move_here.OwnsLock());
 }
@@ -401,6 +409,7 @@ UTEST_MT(SemaphoreLock, LockMoveAssignEmpty, 2) {
 
   engine::SemaphoreLock move_here;
   move_here = std::move(empty_lock);
+  // NOLINTNEXTLINE(bugprone-use-after-move,clang-analyzer-cplusplus.Move)
   EXPECT_FALSE(empty_lock.OwnsLock());
   EXPECT_FALSE(move_here.OwnsLock());
 }

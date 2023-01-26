@@ -17,6 +17,12 @@ list(APPEND CLICKHOUSE_TEST_SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/src/storages/tests/utils_test.cpp
 )
 
+file(GLOB_RECURSE CH_FUNCTIONAL_TEST_SOURCES
+  ${CMAKE_CURRENT_SOURCE_DIR}/functional_tests/*
+)
+list(REMOVE_ITEM SOURCES ${CH_FUNCTIONAL_TEST_SOURCES})
+
+
 include(SetupClickhouseCPP)
 
 add_library(${PROJECT_NAME} STATIC ${SOURCES})
@@ -63,8 +69,6 @@ if (USERVER_IS_THE_ROOT_PROJECT)
   )
   set_tests_properties(${PROJECT_NAME}_chtest PROPERTIES ENVIRONMENT
           "TESTSUITE_CLICKHOUSE_SERVER_START_TIMEOUT=10.0")
-endif()
 
-# Target with no need to use userver namespace, but includes require userver/
-add_library(yandex-${PROJECT_NAME} INTERFACE)
-target_link_libraries(yandex-${PROJECT_NAME} INTERFACE ${PROJECT_NAME})
+  add_subdirectory(functional_tests)
+endif()

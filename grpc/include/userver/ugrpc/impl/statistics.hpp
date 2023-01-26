@@ -8,7 +8,6 @@
 
 #include <grpcpp/support/status.h>
 
-#include <userver/formats/json_fwd.hpp>
 #include <userver/utils/fixed_array.hpp>
 #include <userver/utils/statistics/fwd.hpp>
 #include <userver/utils/statistics/percentile.hpp>
@@ -24,6 +23,8 @@ class MethodStatistics final {
  public:
   MethodStatistics();
 
+  void AccountStarted() noexcept;
+
   void AccountStatus(grpc::StatusCode code) noexcept;
 
   void AccountTiming(std::chrono::milliseconds timing) noexcept;
@@ -37,7 +38,8 @@ class MethodStatistics final {
   // UNKNOWN status code is automatically returned in this case.
   void AccountInternalError() noexcept;
 
-  formats::json::Value ExtendStatistics() const;
+  friend void DumpMetric(utils::statistics::Writer& writer,
+                         const MethodStatistics& stats);
 
  private:
   using Percentile =
@@ -49,6 +51,7 @@ class MethodStatistics final {
   static constexpr std::size_t kCodesCount =
       static_cast<std::size_t>(grpc::StatusCode::UNAUTHENTICATED) + 1;
 
+  Counter started_{0};
   std::array<Counter, kCodesCount> status_codes_{};
   utils::statistics::RecentPeriod<Percentile, Percentile> timings_;
   Counter network_errors_{0};
@@ -62,13 +65,12 @@ class ServiceStatistics final {
   ~ServiceStatistics();
 
   MethodStatistics& GetMethodStatistics(std::size_t method_id);
+  const MethodStatistics& GetMethodStatistics(std::size_t method_id) const;
 
   const StaticServiceMetadata& GetMetadata() const;
 
-  formats::json::Value ExtendStatistics() const;
-
-  utils::statistics::Entry Register(
-      std::string prefix, utils::statistics::Storage& statistics_storage);
+  friend void DumpMetric(utils::statistics::Writer& writer,
+                         const ServiceStatistics& stats);
 
  private:
   const StaticServiceMetadata metadata_;

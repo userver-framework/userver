@@ -15,20 +15,13 @@ USERVER_NAMESPACE_BEGIN
 
 namespace {
 
-const auto kTmpDir = fs::blocking::TempDirectory::Create();
-const std::string kRuntimeConfingPath =
-    kTmpDir.GetPath() + "/runtime_config.json";
-const std::string kConfigVariablesPath =
-    kTmpDir.GetPath() + "/config_vars.json";
-
-const std::string kConfigVariables = fmt::format(
-    R"(
+constexpr std::string_view kConfigVarsTemplate = R"(
   userver-dumps-root: {0}
-  runtime_config_path: {1})",
-    kTmpDir.GetPath(), kRuntimeConfingPath);
+  runtime_config_path: {1}
+)";
 
 // BEWARE! No separate fs-task-processor. Testing almost single thread mode
-const std::string kStaticConfig = R"(
+constexpr std::string_view kStaticConfig = R"(
 components_manager:
   coro_pool:
     initial_size: 50
@@ -50,6 +43,7 @@ components_manager:
       loggers:
         default:
           file_path: '@stderr'
+          level: warning
     tracer:
         service-name: config-service
     statistics-storage:
@@ -117,7 +111,6 @@ components_manager:
       fs-task-processor: main-task-processor
     system-statistics-collector:
       fs-task-processor: main-task-processor
-      update-interval: 1m
       with-nginx: false
 # /// [Sample tests control component config]
 # yaml
@@ -150,7 +143,6 @@ components_manager:
         path: /ping
         method: GET
         task_processor: main-task-processor
-        max_url_size: 128
         max_request_size: 256
         max_headers_size: 256
         parse_args_from_body: false
@@ -177,6 +169,13 @@ components_manager:
         method: GET,PUT
         task_processor: monitor-task-processor
 # /// [Sample handler log level component config]
+# /// [Sample handler inspect requests component config]
+# yaml
+    handler-on-log-rotate:
+        path: /service/on-log-rotate/
+        method: POST
+        task_processor: monitor-task-processor
+# /// [Sample handler on log rotate component config]
 # /// [Sample handler inspect requests component config]
 # yaml
     handler-inspect-requests:
@@ -211,6 +210,9 @@ components_manager:
         path: /*
         method: GET
         task_processor: monitor-task-processor
+        common-labels:
+            application: sample application
+            zone: some
 # /// [Sample handler server monitor component config]
 # /// [Sample handler dynamic debug log component config]
     handler-dynamic-debug-log:
@@ -218,19 +220,24 @@ components_manager:
         method: GET,PUT,DELETE
         task_processor: monitor-task-processor
 # /// [Sample handler dynamic debug log component config]
-config_vars: )" + kConfigVariablesPath +
-                                  R"(
-)";
+config_vars: )";
 
 }  // namespace
 
-TEST(ServerCommonComponentList, Base) {
-  tests::LogLevelGuard logger_guard{};
-  fs::blocking::RewriteFileContents(kRuntimeConfingPath, tests::kRuntimeConfig);
-  fs::blocking::RewriteFileContents(kConfigVariablesPath, kConfigVariables);
+TEST_F(ComponentList, ServerCommon) {
+  const auto temp_root = fs::blocking::TempDirectory::Create();
+  const std::string runtime_config_path =
+      temp_root.GetPath() + "/runtime_config.json";
+  const std::string config_vars_path =
+      temp_root.GetPath() + "/config_vars.json";
+
+  fs::blocking::RewriteFileContents(runtime_config_path, tests::kRuntimeConfig);
+  fs::blocking::RewriteFileContents(
+      config_vars_path, fmt::format(kConfigVarsTemplate, temp_root.GetPath(),
+                                    runtime_config_path));
 
   components::RunOnce(
-      components::InMemoryConfig{kStaticConfig},
+      components::InMemoryConfig{std::string{kStaticConfig} + config_vars_path},
       components::CommonComponentList()
           .AppendComponentList(components::CommonServerComponentList())
           .Append<server::handlers::Ping>());

@@ -13,6 +13,10 @@
 
 USERVER_NAMESPACE_BEGIN
 
+namespace logging {
+class LogHelper;
+}
+
 namespace storages::redis {
 class Client;
 }  // namespace storages::redis
@@ -28,19 +32,24 @@ const int REDIS_ERR_MAX = REDIS_ERR_NOT_READY + 1;
 
 using Password = utils::NonLoggable<class PasswordTag, std::string>;
 
+enum class ConnectionSecurity { kNone, kTLS };
+
 struct ConnectionInfo {
   std::string host = "localhost";
   int port = 26379;
   Password password;
   bool read_only = false;
+  ConnectionSecurity connection_security = ConnectionSecurity::kNone;
 
   ConnectionInfo() = default;
   ConnectionInfo(std::string host, int port, Password password,
-                 bool read_only = false)
+                 bool read_only = false,
+                 ConnectionSecurity security = ConnectionSecurity::kNone)
       : host{std::move(host)},
         port{port},
         password{std::move(password)},
-        read_only{read_only} {}
+        read_only{read_only},
+        connection_security(security) {}
 };
 
 struct Stat {
@@ -71,8 +80,6 @@ class CmdArgs {
   template <typename... Args>
   CmdArgs& Then(Args&&... _args);
 
-  std::string ToString() const;
-
   CmdArgs Clone() const {
     CmdArgs r;
     r.args = args;
@@ -81,6 +88,8 @@ class CmdArgs {
 
   CmdArgsChain args;
 };
+
+logging::LogHelper& operator<<(logging::LogHelper& os, const CmdArgs& v);
 
 using ScanCursor = int64_t;
 
@@ -245,6 +254,29 @@ struct CommandsBufferingSettings {
 enum class ConnectionMode {
   kCommands,
   kSubscriber,
+};
+
+struct MetricsSettings {
+  bool timings_enabled{true};
+  bool command_timings_enabled{false};
+  bool request_sizes_enabled{false};
+  bool reply_sizes_enabled{false};
+
+  constexpr bool operator==(const MetricsSettings& rhs) const {
+    return timings_enabled == rhs.timings_enabled &&
+           command_timings_enabled == rhs.command_timings_enabled &&
+           request_sizes_enabled == rhs.request_sizes_enabled &&
+           reply_sizes_enabled == rhs.reply_sizes_enabled;
+  }
+
+  constexpr bool operator!=(const MetricsSettings& rhs) const {
+    return !(*this == rhs);
+  }
+};
+
+struct ReplicationMonitoringSettings {
+  bool enable_monitoring{false};
+  bool restrict_requests{false};
 };
 
 }  // namespace redis

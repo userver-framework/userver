@@ -4,9 +4,10 @@
 
 #include <grpcpp/channel.h>
 
-#include <userver/formats/json/value.hpp>
 #include <userver/utest/utest.hpp>
+#include <userver/utils/statistics/labels.hpp>
 #include <userver/utils/statistics/storage.hpp>
+#include <userver/utils/statistics/testing.hpp>
 
 #include <userver/ugrpc/client/client_factory.hpp>
 #include <userver/ugrpc/server/server.hpp>
@@ -23,7 +24,7 @@ class GrpcServiceFixture : public ::testing::Test {
   void RegisterService(ugrpc::server::ServiceBase& service);
 
   // Must be called after the services are registered
-  void StartServer();
+  void StartServer(ugrpc::client::ClientFactoryConfig&& config = {});
 
   // Must be called in the destructor of the derived fixture
   void StopServer() noexcept;
@@ -33,7 +34,9 @@ class GrpcServiceFixture : public ::testing::Test {
     return client_factory_->MakeClient<Client>(*endpoint_);
   }
 
-  formats::json::Value GetStatistics();
+  utils::statistics::Snapshot GetStatistics(
+      std::string prefix,
+      std::vector<utils::statistics::Label> require_labels = {});
 
   ugrpc::server::Server& GetServer() noexcept;
 
@@ -54,7 +57,31 @@ class GrpcServiceFixtureSimple : public GrpcServiceFixture {
     StartServer();
   }
 
-  ~GrpcServiceFixtureSimple() { StopServer(); }
+  ~GrpcServiceFixtureSimple() override { StopServer(); }
+
+  Service& GetService() { return service_; }
+
+ private:
+  Service service_{};
+};
+
+// Sets up a mini gRPC server using a single default-constructed service
+// implementation. Will create the client with number of connections greater
+// than one
+template <typename Service>
+// NOLINTNEXTLINE(fuchsia-multiple-inheritance)
+class GrpcServiceFixtureMultichannel
+    : public GrpcServiceFixture,
+      public testing::WithParamInterface<std::size_t> {
+ protected:
+  GrpcServiceFixtureMultichannel() {
+    RegisterService(service_);
+    ugrpc::client::ClientFactoryConfig client_factory_config{};
+    client_factory_config.channel_count = GetParam();
+    StartServer(std::move(client_factory_config));
+  }
+
+  ~GrpcServiceFixtureMultichannel() override { StopServer(); }
 
  private:
   Service service_{};

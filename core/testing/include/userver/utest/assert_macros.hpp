@@ -12,6 +12,7 @@
 
 #include <gtest/gtest.h>
 
+#include <userver/utest/death_tests.hpp>
 #include <userver/utils/invariant_error.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -132,5 +133,5 @@ USERVER_NAMESPACE_END
   UEXPECT_THROW(statement, USERVER_NAMESPACE::utils::InvariantError)
 #else
 // NOLINTNEXTLINE (cppcoreguidelines-macro-usage)
-#define EXPECT_UINVARIANT_FAILURE(statement) EXPECT_DEATH(statement, "")
+#define EXPECT_UINVARIANT_FAILURE(statement) UEXPECT_DEATH(statement, "")
 #endif

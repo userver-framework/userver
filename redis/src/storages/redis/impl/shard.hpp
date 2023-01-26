@@ -4,38 +4,49 @@
 #include <shared_mutex>
 #include <string>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 #include <userver/utils/swappingsmart.hpp>
 
+#include <storages/redis/impl/redis.hpp>
 #include <userver/storages/redis/impl/redis_stats.hpp>
-#include "redis.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
 namespace redis {
 
-class ConnectionInfoInt : public ConnectionInfo {
+class ConnectionInfoInt {
  public:
-  // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
-  std::string name;
+  ConnectionInfoInt() = default;
+  explicit ConnectionInfoInt(ConnectionInfo conn_info);
 
-  bool operator==(const ConnectionInfoInt& o) const {
-    return Fulltext() == o.Fulltext();
-  }
-  bool operator!=(const ConnectionInfoInt& o) const { return !(*this == o); }
-  bool operator<(const ConnectionInfoInt& o) const {
-    return Fulltext() < o.Fulltext();
-  }
+  const std::string& Name() const;
+  void SetName(std::string);
 
-  inline const std::string& Fulltext() const {
-    if (fulltext_.empty()) fulltext_ = host + ":" + std::to_string(port);
-    return fulltext_;
-  }
+  std::pair<std::string, int> HostPort() const;
+
+  void SetPassword(Password);
+
+  bool IsReadOnly() const;
+  void SetReadOnly(bool);
+
+  void SetConnectionSecurity(ConnectionSecurity value);
+  ConnectionSecurity GetConnectionSecurity() const;
+
+  const std::string& Fulltext() const;
+
+  void Connect(Redis&) const;
 
  private:
-  mutable std::string fulltext_;
+  ConnectionInfo conn_info_;
+  std::string name_;
+  std::string fulltext_;
 };
+
+bool operator==(const ConnectionInfoInt&, const ConnectionInfoInt&);
+bool operator!=(const ConnectionInfoInt&, const ConnectionInfoInt&);
+bool operator<(const ConnectionInfoInt&, const ConnectionInfoInt&);
 
 using ConnInfoMap = std::map<std::string, std::vector<ConnectionInfoInt>>;
 
@@ -73,7 +84,7 @@ class Shard {
   bool ProcessCreation(
       const std::shared_ptr<engine::ev::ThreadPool>& redis_thread_pool);
   bool ProcessStateUpdate();
-  bool SetConnectionInfo(const std::vector<ConnectionInfoInt>& info_array);
+  bool SetConnectionInfo(std::vector<ConnectionInfoInt> info_array);
   bool IsConnectedToAllServersDebug(bool allow_empty) const;
   ShardStatistics GetStatistics(bool master) const;
   size_t InstancesSize() const;
@@ -85,6 +96,8 @@ class Shard {
 
   void SetCommandsBufferingSettings(
       CommandsBufferingSettings commands_buffering_settings);
+  void SetReplicationMonitoringSettings(
+      const ReplicationMonitoringSettings& replication_monitoring_settings);
 
  private:
   std::vector<unsigned char> GetAvailableServers(
@@ -94,7 +107,7 @@ class Shard {
       const CommandControl& command_control, bool with_masters,
       bool with_slaves) const;
 
-  std::set<ConnectionInfoInt> GetConnectionInfosToCreate() const;
+  std::vector<ConnectionInfoInt> GetConnectionInfosToCreate() const;
   bool UpdateCleanWaitQueue(std::vector<ConnectionStatus>&& add_clean_wait);
 
   const std::string shard_name_;
@@ -102,7 +115,7 @@ class Shard {
   std::atomic_size_t current_{0};
 
   mutable std::shared_mutex mutex_;
-  std::set<ConnectionInfoInt> connection_infos_;
+  std::vector<ConnectionInfoInt> connection_infos_;
   std::vector<ConnectionStatus> instances_;
   std::vector<ConnectionStatus> clean_wait_;
   std::chrono::steady_clock::time_point last_connected_time_;

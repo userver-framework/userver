@@ -31,6 +31,14 @@ properties:
     port:
         type: integer
         description: the port to use for all gRPC services, or 0 to pick any available
+    channel-args:
+        type: object
+        description: a map of channel arguments, see gRPC Core docs
+        defaultDescription: '{}'
+        additionalProperties:
+            type: string
+            description: value of channel argument, must be string or integer
+        properties: {}
     native-log-level:
         type: string
         description: min log level for the native gRPC library
@@ -43,6 +51,9 @@ properties:
           - error
           - critical
           - none
+    enable-channelz:
+        type: boolean
+        description: enable channelz
 )");
 }
 

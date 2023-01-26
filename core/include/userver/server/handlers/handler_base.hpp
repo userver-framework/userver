@@ -27,9 +27,8 @@ namespace server::handlers {
 /// as_fallback | set to "implicit-http-options" and do not specify a path if this handler processes the OPTIONS requests for paths that do not process OPTIONS method | -
 /// task_processor | a task processor to execute the requests | -
 /// method | comma-separated list of allowed methods | -
-/// max_url_size | max request path/URL size or empty to not limit | -
 /// max_request_size | max size of the whole request | 1024 * 1024
-/// max_headers_size | max request headers size of empy to do not limit | -
+/// max_headers_size | max request headers size | 65536
 /// parse_args_from_body | optional field to parse request according to x-www-form-urlencoded rules and make parameters accessible as query parameters | false
 /// auth | server::handlers::auth::HandlerAuthConfig authorization config | -
 /// url_trailing_slash | 'both' to treat URLs with and without a trailing slash as equal, 'strict-match' otherwise | 'both'
@@ -40,6 +39,8 @@ namespace server::handlers {
 /// decompress_request | allow decompression of the requests | false
 /// throttling_enabled | allow throttling of the requests by components::Server , for more info see its `max_response_size_in_flight` and `requests_queue_size_threshold` options | true
 /// set-response-server-hostname | set to true to add the `X-YaTaxi-Server-Hostname` header with instance name, set to false to not add the header | <takes the value from components::Server config>
+/// monitor-handler | Overrides the in-code `is_monitor` flag that makes the handler run either on `server.listener` or on `server.listener-monitor` | --
+/// set_tracing_headers | whether to set http tracing headers (X-YaTraceId, X-YaSpanId, X-RequestId) | true
 
 // clang-format on
 class HandlerBase : public components::LoggableComponentBase {
@@ -76,8 +77,8 @@ class HandlerBase : public components::LoggableComponentBase {
   using InternalServerError = handlers::InternalServerError;
 
  private:
-  HandlerConfig config_;
   bool is_monitor_;
+  HandlerConfig config_;
 };
 
 }  // namespace server::handlers

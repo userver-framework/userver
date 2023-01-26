@@ -11,6 +11,8 @@ rpm-names:
   - c-ares-devel
 pacman-names:
   - c-ares
+pkg-config-names:
+  - libcares
 
 libraries:
     find:

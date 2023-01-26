@@ -16,17 +16,19 @@ utils::statistics::MetricTag<std::atomic<int>> kFooMetric{"foo-metric"};
 }  // namespace
 
 UTEST(MetricsStorage, Smoke) {
+  using utils::statistics::Request;
+
   // The second iteration checks that `MetricStorage` instances are independent
   for (int i = 0; i < 2; ++i) {
     utils::statistics::Storage storage;
     utils::statistics::MetricsStorage metrics_storage;
     const auto statistic_holders = metrics_storage.RegisterIn(storage);
 
-    EXPECT_EQ(storage.GetAsJson({"foo-metric"}).ExtractValue()["foo-metric"],
+    EXPECT_EQ(storage.GetAsJson()["foo-metric"],
               formats::json::ValueBuilder{0}.ExtractValue());
 
     metrics_storage.GetMetric(kFooMetric).store(42);
-    EXPECT_EQ(storage.GetAsJson({"foo-metric"}).ExtractValue()["foo-metric"],
+    EXPECT_EQ(storage.GetAsJson()["foo-metric"],
               formats::json::ValueBuilder{42}.ExtractValue());
   }
 }

@@ -57,7 +57,9 @@ struct SimpleTaskData {
   long sleep_ms = 0;
   bool throw_exception = false;
 
-  auto GetTaskFunction() { return std::bind(&SimpleTaskData::Run, this); }
+  auto GetTaskFunction() {
+    return [this] { Run(); };
+  }
 
   void Run() {
     engine::SleepFor(std::chrono::milliseconds(sleep_ms));
@@ -346,7 +348,7 @@ UTEST_F(PeriodicTaskLog, ErrorLog) {
                              [&simple]() { return simple.GetCount() > 0; }));
 
   std::vector<std::string> log_strings;
-  auto log = sstream.str();
+  auto log = GetStreamString();
   int error_msg = 0;
   boost::split(log_strings, log, [](char c) { return c == '\n'; });
   for (const auto& str : log_strings) {

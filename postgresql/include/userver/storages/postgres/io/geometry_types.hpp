@@ -72,7 +72,7 @@ struct Path {
   }
   bool operator!=(const Path& rhs) const { return !(*this == rhs); }
 
-  bool is_closed;
+  bool is_closed{false};
   std::vector<Point> points;
 };
 

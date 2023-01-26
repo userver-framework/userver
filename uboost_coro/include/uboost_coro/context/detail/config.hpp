@@ -30,6 +30,10 @@
 # define BOOST_CONTEXT_DECL
 #endif
 
+#if ! defined(BOOST_USE_UCONTEXT) && defined(__CYGWIN__)
+# define BOOST_USE_UCONTEXT
+#endif
+
 #if ! defined(BOOST_CONTEXT_SOURCE) && ! defined(BOOST_ALL_NO_LIB) && ! defined(BOOST_CONTEXT_NO_LIB)
 # define BOOST_LIB_NAME boost_context
 # if defined(BOOST_ALL_DYN_LINK) || defined(BOOST_CONTEXT_DYN_LINK)
@@ -122,6 +126,11 @@ static constexpr std::size_t prefetch_stride{ 4 * cacheline_length };
 
 #if defined( BOOST_CONTEXT_HAS_CXXABI_H )
 # include <cxxabi.h>
+#endif
+
+#if defined(__OpenBSD__)
+// stacks need mmap(2) with MAP_STACK
+# define BOOST_CONTEXT_USE_MAP_STACK
 #endif
 
 #endif // BOOST_CONTEXT_DETAIL_CONFIG_H

@@ -1,5 +1,7 @@
 #include <userver/utest/utest.hpp>
 
+#include <sys/param.h>
+
 #include <userver/concurrent/variable.hpp>
 #include <userver/dist_lock/dist_lock_settings.hpp>
 #include <userver/dist_lock/dist_lock_strategy.hpp>
@@ -32,7 +34,7 @@ dist_lock::DistLockSettings MakeSettings() {
 /// [Sample distlock strategy]
 class MockDistLockStrategy final : public dist_lock::DistLockStrategyBase {
  public:
-  ~MockDistLockStrategy() { EXPECT_FALSE(IsLocked()); }
+  ~MockDistLockStrategy() override { EXPECT_FALSE(IsLocked()); }
 
   void Acquire(std::chrono::milliseconds,
                const std::string& locker_id) override {
@@ -97,11 +99,11 @@ class DistLockWorkload {
     LOG_DEBUG() << "work begin after SetLocked(true)";
 
     try {
-      bool work_loop_on;
-      while ((work_loop_on = work_loop_on_) &&
-             !engine::current_task::IsCancelRequested()) {
+      bool work_loop_on = work_loop_on_;
+      while (work_loop_on && !engine::current_task::IsCancelRequested()) {
         LOG_DEBUG() << "work loop";
         engine::InterruptibleSleepFor(std::chrono::milliseconds(50));
+        work_loop_on = work_loop_on_;
       }
 
       if (work_loop_on && abort_on_cancel_)
@@ -192,7 +194,11 @@ UTEST_MT(LockedWorker, OkAfterFail, 3) {
 }
 
 // TODO: TAXICOMMON-1059
-UTEST_MT(LockedWorker, DISABLED_IN_MAC_OS_TEST_NAME(OkFailOk), 3) {
+#if defined(__APPLE__) || defined(BSD)
+UTEST_MT(LockedWorker, DISABLED_OkFailOk, 3) {
+#else
+UTEST_MT(LockedWorker, OkFailOk, 3) {
+#endif
   auto strategy = MakeMockStrategy();
   DistLockWorkload work;
   dist_lock::DistLockedWorker locked_worker(
@@ -244,7 +250,7 @@ UTEST_MT(LockedTask, Smoke, 3) {
   dist_lock::DistLockedTask locked_task(
       kWorkerName, [&] { work.Work(); }, strategy, MakeSettings());
 
-  EXPECT_EQ(0u, work.GetFinishedWorkCount());
+  EXPECT_EQ(0U, work.GetFinishedWorkCount());
   strategy->Allow(true);
   EXPECT_TRUE(work.WaitForLocked(true, kAttemptTimeout));
 
@@ -252,7 +258,7 @@ UTEST_MT(LockedTask, Smoke, 3) {
   strategy->Allow(false);
   locked_task.WaitFor(utest::kMaxTestWaitTime);
   EXPECT_TRUE(locked_task.GetState() == engine::Task::State::kCompleted);
-  EXPECT_EQ(1u, work.GetFinishedWorkCount());
+  EXPECT_EQ(1U, work.GetFinishedWorkCount());
 }
 
 UTEST_MT(LockedTask, SingleAttempt, 3) {
@@ -268,7 +274,7 @@ UTEST_MT(LockedTask, SingleAttempt, 3) {
       strategy, MakeSettings(), dist_lock::DistLockWaitingMode::kWait,
       dist_lock::DistLockRetryMode::kSingleAttempt);
 
-  EXPECT_EQ(0u, work.GetFinishedWorkCount());
+  EXPECT_EQ(0U, work.GetFinishedWorkCount());
   strategy->Allow(true);
 
   locked_task.WaitFor(utest::kMaxTestWaitTime);
@@ -281,7 +287,7 @@ UTEST_MT(LockedTask, SingleAttempt, 3) {
   }
   EXPECT_EQ(counter.load(), 1);
 
-  EXPECT_EQ(0u, work.GetFinishedWorkCount());
+  EXPECT_EQ(0U, work.GetFinishedWorkCount());
 }
 
 UTEST_MT(LockedTask, Fail, 3) {
@@ -293,8 +299,8 @@ UTEST_MT(LockedTask, Fail, 3) {
   dist_lock::DistLockedTask locked_task(
       kWorkerName, [&] { work.Work(); }, strategy, settings);
 
-  EXPECT_EQ(0u, work.GetStartedWorkCount());
-  EXPECT_EQ(0u, work.GetFinishedWorkCount());
+  EXPECT_EQ(0U, work.GetStartedWorkCount());
+  EXPECT_EQ(0U, work.GetFinishedWorkCount());
   strategy->Allow(true);
 
   EXPECT_TRUE(work.WaitForLocked(true, kAttemptTimeout));
@@ -303,8 +309,8 @@ UTEST_MT(LockedTask, Fail, 3) {
   EXPECT_TRUE(work.WaitForLocked(true, kAttemptTimeout));
   EXPECT_TRUE(work.WaitForLocked(false, utest::kMaxTestWaitTime));
 
-  EXPECT_LE(1u, work.GetStartedWorkCount());
-  EXPECT_EQ(0u, work.GetFinishedWorkCount());
+  EXPECT_LE(1U, work.GetStartedWorkCount());
+  EXPECT_EQ(0U, work.GetFinishedWorkCount());
 }
 
 UTEST_MT(LockedTask, NoWait, 3) {
@@ -323,8 +329,8 @@ UTEST_MT(LockedTask, NoWait, 3) {
   EXPECT_EQ(1, strategy->GetAttemptsCount());
 
   EXPECT_TRUE(locked_task.IsFinished());
-  EXPECT_EQ(0u, work.GetStartedWorkCount());
-  EXPECT_EQ(0u, work.GetFinishedWorkCount());
+  EXPECT_EQ(0U, work.GetStartedWorkCount());
+  EXPECT_EQ(0U, work.GetFinishedWorkCount());
   strategy->Release("me");
 }
 
@@ -332,7 +338,7 @@ UTEST_MT(LockedTask, NoWaitAquire, 3) {
   auto strategy = MakeMockStrategy();
   DistLockWorkload work;
 
-  EXPECT_EQ(0u, work.GetFinishedWorkCount());
+  EXPECT_EQ(0U, work.GetFinishedWorkCount());
   strategy->Allow(true);
 
   dist_lock::DistLockedTask locked_task(
@@ -345,7 +351,7 @@ UTEST_MT(LockedTask, NoWaitAquire, 3) {
   locked_task.WaitFor(utest::kMaxTestWaitTime);
 
   EXPECT_TRUE(locked_task.GetState() == engine::Task::State::kCompleted);
-  EXPECT_EQ(1u, work.GetFinishedWorkCount());
+  EXPECT_EQ(1U, work.GetFinishedWorkCount());
 }
 
 UTEST(LockedTask, MultipleWorkers) {

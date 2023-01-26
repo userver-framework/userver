@@ -1,0 +1,119 @@
+groups:
+  - library-yamls:
+      - core/library.yaml
+    fallbacks:
+      - clickhouse/functional_tests/metrics/dynamic_config_fallback.json
+      - samples/clickhouse_service/dynamic_config_fallback.json
+      - samples/config_service/dynamic_config_fallback.json
+      - samples/flatbuf_service/dynamic_config_fallback.json
+      - samples/hello_service/dynamic_config_fallback.json
+      - samples/http_caching/dynamic_config_fallback.json
+      - samples/production_service/dynamic_config_fallback.json
+      - samples/rabbitmq_service/dynamic_config_fallback.json
+      - samples/static_service/dynamic_config_fallback.json
+      - samples/tcp_full_duplex_service/dynamic_config_fallback.json
+      - samples/tcp_service/dynamic_config_fallback.json
+      - core/functional_tests/metrics/dynamic_config_fallback.json
+
+  - library-yamls:
+      - core/library.yaml
+    fallbacks:
+      - core/functional_tests/basic_chaos/dynamic_config_fallback.json
+    overrides:
+        USERVER_HANDLER_STREAM_API_ENABLED: true
+
+  - library-yamls:
+      - core/library.yaml
+    fallbacks:
+      - samples/testsuite-support/dynamic_config_fallback.json
+    overrides:
+        MEANING_OF_LIFE: 42
+
+  - library-yamls:
+      - core/library.yaml
+      - mongo/library.yaml
+    fallbacks:
+      - samples/mongo_service/dynamic_config_fallback.json
+      - samples/mongo-support/dynamic_config_fallback.json
+      - mongo/functional_tests/basic_chaos/dynamic_config_fallback.json
+
+  - library-yamls:
+      - core/library.yaml
+      - postgresql/library.yaml
+    fallbacks:
+      - samples/postgres_service/dynamic_config_fallback.json
+      - samples/postgres-support/dynamic_config_fallback.json
+      - postgresql/functional_tests/metrics/dynamic_config_fallback.json
+    overrides:
+        POSTGRES_CONNECTION_POOL_SETTINGS:
+            key-value-database:
+                max_pool_size: 15
+                max_queue_size: 200
+                min_pool_size: 8
+        POSTGRES_CONNECTION_SETTINGS:
+            key-value-database:
+                recent-errors-threshold: 100000
+        POSTGRES_DEFAULT_COMMAND_CONTROL:
+            network_timeout_ms: 750
+            statement_timeout_ms: 500
+        POSTGRES_HANDLERS_COMMAND_CONTROL:
+            /v1/key-value:
+                DELETE:
+                    network_timeout_ms: 500
+                    statement_timeout_ms: 250
+        POSTGRES_QUERIES_COMMAND_CONTROL:
+            sample_select_value:
+                network_timeout_ms: 70
+                statement_timeout_ms: 40
+            sample_transaction_insert_key_value:
+                network_timeout_ms: 200
+                statement_timeout_ms: 150
+        POSTGRES_STATEMENT_METRICS_SETTINGS:
+            key-value-database:
+                max_statement_metrics: 5
+
+  - library-yamls:
+      - core/library.yaml
+      - postgresql/library.yaml
+    fallbacks:
+      - postgresql/functional_tests/basic_chaos/dynamic_config_fallback.json
+    overrides:
+        # some tests close all the connections and wait for them to start
+        # again... no need to have too many connections 
+        POSTGRES_CONNECTION_POOL_SETTINGS:
+            key-value-database:
+                max_pool_size: 15
+                max_queue_size: 200
+                min_pool_size: 8
+        # chaos proxy is slow, initial connection setup takes quite some time
+        POSTGRES_DEFAULT_COMMAND_CONTROL:
+            network_timeout_ms: 750
+            statement_timeout_ms: 500
+        POSTGRES_CONNECTION_SETTINGS:
+            key-value-database:
+                recent-errors-threshold: 100000
+
+  - library-yamls:
+      - core/library.yaml
+      - grpc/library.yaml
+    fallbacks:
+      - samples/grpc_service/dynamic_config_fallback.json
+
+  - library-yamls:
+      - core/library.yaml
+      - redis/library.yaml
+    fallbacks:
+      - samples/redis_service/dynamic_config_fallback.json
+      - redis/functional_tests/integration_tests/dynamic_config_fallback.json
+      - redis/functional_tests/basic_chaos/dynamic_config_fallback.json
+      - redis/functional_tests/metrics/dynamic_config_fallback.json
+    overrides:
+        REDIS_METRICS_SETTINGS:
+            command-timings-enabled: true
+            reply-sizes-enabled: true
+            request-sizes-enabled: true
+            timings-enabled: true
+        REDIS_REPLICA_MONITORING_SETTINGS:
+            __default__:
+                enable-monitoring: true
+                forbid-requests-to-syncing-replicas: true

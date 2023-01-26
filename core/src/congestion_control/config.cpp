@@ -51,8 +51,10 @@ Policy Parse(const formats::json::Value& policy, formats::parse::To<Policy>) {
 namespace impl {
 
 RpsCcConfig RpsCcConfig::Parse(const dynamic_config::DocsMap& docs_map) {
-  return {docs_map.Get("USERVER_RPS_CCONTROL").As<Policy>(),
-          docs_map.Get("USERVER_RPS_CCONTROL_ENABLED").As<bool>()};
+  return {
+      docs_map.Get("USERVER_RPS_CCONTROL").As<Policy>(),
+      docs_map.Get("USERVER_RPS_CCONTROL_ENABLED").As<bool>(),
+      docs_map.Get("USERVER_RPS_CCONTROL_ACTIVATED_FACTOR_METRIC").As<int>()};
 }
 
 }  // namespace impl

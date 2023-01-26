@@ -100,7 +100,9 @@ and start the server with static config `kStaticConfig`.
 
 @snippet samples/postgres_service/postgres_service.cpp  Postgres service sample - main
 
-### Build
+
+### Build and Run
+
 To build the sample, execute the following build steps at the userver root directory:
 ```
 mkdir build_release
@@ -109,7 +111,16 @@ cmake -DCMAKE_BUILD_TYPE=Release ..
 make userver-samples-postgres_service
 ```
 
-Start the DB server and then start the service by running `./samples/postgres_service/userver-samples-postgres_service`.
+The sample could be started by running
+`make start-userver-samples-postgres_service`. The command would invoke
+@ref md_en_userver_functional_testing "testsuite start target" that sets proper
+paths in the configuration files, prepares and starts the DB, and starts the
+service.
+
+To start the service manually start the DB server and run
+`./samples/postgres_service/userver-samples-postgres_service -c </path/to/static_config.yaml>`
+(do not forget to prepare the configuration files!).
+
 Now you can send a request to your service from another terminal:
 ```
 bash
@@ -156,14 +167,16 @@ Content-Length: 1
 @ref md_en_userver_functional_testing "Functional tests" for the service could be
 implemented using the testsuite. To do that you have to:
 
-* Provide PostgreSQL schema to start the database:
-@snippet samples/postgres_service/tests/conftest.py psql prepare
-
-* Tell the testsuite to start the PostgreSQL database:
-@snippet samples/postgres_service/tests/conftest.py client_deps
+* Turn on the pytest_userver.plugins.postgresql plugin and provide PostgreSQL
+  schema to start the database:
+  @snippet samples/postgres_service/tests/conftest.py psql prepare
+  The @ref pytest_userver.plugins.service_client.auto_client_deps "auto_client_deps"
+  fixture already knows about the pgsql fixture, so there's no need to override
+  the @ref pytest_userver.plugins.service_client.extra_client_deps "extra_client_deps"
+  fixture.
 
 * Write the test:
-@snippet samples/postgres_service/tests/test_postgres.py  Functional test
+  @snippet samples/postgres_service/tests/test_postgres.py  Functional test
 
 
 ## Full sources
@@ -175,6 +188,12 @@ See the full example:
 * @ref samples/postgres_service/CMakeLists.txt
 * @ref samples/postgres_service/tests/conftest.py
 * @ref samples/postgres_service/tests/test_postgres.py
+
+----------
+
+@htmlonly <div class="bottom-nav"> @endhtmlonly
+⇦ @ref md_en_userver_tutorial_grpc_service | @ref md_en_userver_tutorial_mongo_service ⇨
+@htmlonly </div> @endhtmlonly
 
 @example samples/postgres_service/postgres_service.cpp
 @example samples/postgres_service/static_config.yaml

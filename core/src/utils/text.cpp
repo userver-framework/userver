@@ -1,5 +1,6 @@
 #include <userver/utils/text.hpp>
 
+#include <algorithm>
 #include <unordered_map>
 
 #include <boost/algorithm/string.hpp>
@@ -34,10 +35,25 @@ std::string Join(const std::vector<std::string>& strs, std::string_view sep) {
   return boost::algorithm::join(strs, sep);
 }
 
+namespace {
+
+const std::string kLocaleArabic = "ar";
+const std::string kLocaleArabicNumbersLatn = "ar@numbers=latn";
+
+}  // namespace
+
 std::string Format(double value, const std::string& locale, int ndigits,
                    bool is_fixed) {
   std::stringstream res;
-  res.imbue(GetLocale(locale));
+
+  // localization of arabic numerals is broken, fallback to latin (0-9)
+  if (locale == kLocaleArabic) {
+    // see: https://sites.google.com/site/icuprojectuserguide/locale
+    res.imbue(GetLocale(kLocaleArabicNumbersLatn));
+  } else {
+    res.imbue(GetLocale(locale));
+  }
+
   if (is_fixed) res.setf(std::ios::fixed, std::ios::floatfield);
   res.precision(ndigits);
 
@@ -64,6 +80,11 @@ bool StartsWith(std::string_view hay, std::string_view needle) {
 bool EndsWith(std::string_view hay, std::string_view needle) {
   return hay.size() >= needle.size() &&
          hay.substr(hay.size() - needle.size()) == needle;
+}
+
+std::string ToLower(std::string_view str, const std::string& locale) {
+  return boost::locale::to_lower(str.data(), str.data() + str.size(),
+                                 GetLocale(locale));
 }
 
 std::string Capitalize(std::string_view str, const std::string& locale) {
@@ -302,6 +323,32 @@ void TrimViewTruncatedEnding(std::string_view& view) {
   if (correct_size < view.size()) {
     view = std::string_view{view.data(), correct_size};
   }
+}
+
+std::size_t GetTextPosByCodePointPos(std::string_view text,
+                                     std::size_t pos) noexcept {
+  size_t text_pos = 0;
+  while (text_pos < text.size() && pos > 0) {
+    text_pos += CodePointLengthByFirstByte(text[text_pos]);
+    pos--;
+  }
+  return std::min(text_pos, text.length());
+}
+
+void RemovePrefix(std::string& text, std::size_t count) noexcept {
+  text.erase(0, GetTextPosByCodePointPos(text, count));
+}
+
+void RemoveViewPrefix(std::string_view& text, std::size_t count) noexcept {
+  text.remove_prefix(GetTextPosByCodePointPos(text, count));
+}
+
+void TakePrefix(std::string& text, std::size_t count) noexcept {
+  text.erase(GetTextPosByCodePointPos(text, count));
+}
+
+void TakeViewPrefix(std::string_view& text, std::size_t count) noexcept {
+  text = text.substr(0, GetTextPosByCodePointPos(text, count));
 }
 
 }  // namespace utf8

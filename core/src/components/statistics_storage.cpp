@@ -12,7 +12,11 @@ StatisticsStorage::StatisticsStorage(const ComponentConfig& config,
       metrics_storage_(std::make_shared<utils::statistics::MetricsStorage>()),
       metrics_storage_registration_(metrics_storage_->RegisterIn(storage_)) {}
 
-StatisticsStorage::~StatisticsStorage() = default;
+StatisticsStorage::~StatisticsStorage() {
+  for (auto& entry : metrics_storage_registration_) {
+    entry.Unregister();
+  }
+}
 
 void StatisticsStorage::OnAllComponentsLoaded() {
   storage_.StopRegisteringExtenders();

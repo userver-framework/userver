@@ -1,5 +1,6 @@
 #include <userver/server/handlers/http_handler_base.hpp>
 
+#include <fmt/core.h>
 #include <fmt/format.h>
 #include <boost/algorithm/string/split.hpp>
 
@@ -7,6 +8,7 @@
 #include <server/handlers/http_handler_base_statistics.hpp>
 #include <server/handlers/http_server_settings.hpp>
 #include <server/http/http_request_impl.hpp>
+#include <server/server_config.hpp>
 #include <userver/components/component.hpp>
 #include <userver/components/statistics_storage.hpp>
 #include <userver/dynamic_config/storage/component.hpp>
@@ -24,7 +26,6 @@
 #include <userver/server/http/http_method.hpp>
 #include <userver/server/http/http_response_body_stream.hpp>
 #include <userver/server/request/task_inherited_data.hpp>
-#include <userver/server/server_config.hpp>
 #include <userver/tracing/set_throttle_reason.hpp>
 #include <userver/tracing/span.hpp>
 #include <userver/tracing/tags.hpp>
@@ -83,6 +84,18 @@ void SetFormattedErrorResponse(http::HttpResponse& http_response,
   }
 }
 
+void SetFormattedErrorResponse(
+    server::http::ResponseBodyStream& response_body_stream,
+    FormattedErrorData&& formatted_error) {
+  if (formatted_error.content_type) {
+    response_body_stream.SetHeader(
+        USERVER_NAMESPACE::http::headers::kContentType,
+        std::move(formatted_error.content_type->ToString()));
+  }
+  response_body_stream.SetEndOfHeaders();
+  response_body_stream.PushBodyChunk(std::move(formatted_error.external_body));
+}
+
 const std::string kTracingTypeResponse = "response";
 const std::string kTracingTypeRequest = "request";
 const std::string kTracingBody = "body";
@@ -109,8 +122,10 @@ class RequestProcessor final {
     try {
       auto& span = tracing::Span::CurrentSpan();
       auto& response = http_request_.GetHttpResponse();
-      response.SetHeader(USERVER_NAMESPACE::http::headers::kXYaRequestId,
-                         span.GetLink());
+      if (handler_.GetConfig().set_tracing_headers) {
+        response.SetHeader(USERVER_NAMESPACE::http::headers::kXYaRequestId,
+                           span.GetLink());
+      }
 
       const auto status_code = response.GetStatus();
       span.SetLogLevel(handler_.GetLogLevelForResponseStatus(status_code));
@@ -159,6 +174,7 @@ class RequestProcessor final {
       auto level = handler_.GetLogLevelForResponseStatus(http_status);
       LOG(level) << "custom handler exception in '" << handler_.HandlerName()
                  << "' handler in " + step_name + ": msg=" << ex;
+
       response.SetStatus(http_status);
       if (ex.IsExternalErrorBodyFormatted()) {
         response.SetData(ex.GetExternalErrorBody());
@@ -257,19 +273,19 @@ void SetDeadlineTags(tracing::Span& span,
       engine::current_task::CancellationReason() ==
       engine::TaskCancellationReason::kDeadline;
 
-  span.AddNonInheritableTag("deadline-received", info.deadline.IsReachable());
-  span.AddNonInheritableTag("cancelled-by-deadline", cancelled_by_deadline);
+  span.AddNonInheritableTag("deadline_received", info.deadline.IsReachable());
+  span.AddNonInheritableTag("cancelled_by_deadline", cancelled_by_deadline);
 }
 
 std::string CutTrailingSlash(
-    std::string meta_type,
+    std::string&& meta_type,
     server::handlers::UrlTrailingSlashOption trailing_slash) {
   if (trailing_slash == UrlTrailingSlashOption::kBoth && meta_type.size() > 1 &&
       meta_type.back() == '/') {
     meta_type.pop_back();
   }
 
-  return meta_type;
+  return std::move(meta_type);
 }
 
 // Separate function to avoid heavy computations when the result is not going
@@ -353,26 +369,33 @@ HttpHandlerBase::HttpHandlerBase(const components::ComponentConfig& config,
     throw std::runtime_error(std::string("can't add handler to server: ") +
                              ex.what());
   }
-  /// TODO: unable to add prefix metadata ATM
 
-  const auto graphite_subpath = std::visit(
-      utils::Overloaded{[](const std::string& path) {
-                          return "by-path." + utils::graphite::EscapeName(path);
+  std::vector<utils::statistics::Label> labels{
+      {"http_handler", config.Name()},
+  };
+
+  auto prefix = std::visit(
+      utils::Overloaded{[&](const std::string& path) {
+                          labels.emplace_back(
+                              "http_path", utils::graphite::EscapeName(path));
+                          return std::string{"http"};
                         },
                         [](FallbackHandler fallback) {
-                          return "by-fallback." + ToString(fallback);
+                          return "http.by-fallback." + ToString(fallback);
                         }},
       GetConfig().path);
-  const auto graphite_path =
-      fmt::format("http.{}.by-handler.{}", graphite_subpath, config.Name());
 
   auto& statistics_storage =
       context.FindComponent<components::StatisticsStorage>().GetStorage();
-  statistics_holder_ = statistics_storage.RegisterExtender(
-      graphite_path,
-      [this](const utils::statistics::StatisticsRequest& request) {
-        return ExtendStatistics(request);
-      });
+  statistics_holder_ = statistics_storage.RegisterWriter(
+      std::move(prefix),
+      [this](utils::statistics::Writer& result) {
+        FormatStatistics(result["handler"], *handler_statistics_);
+        if constexpr (kIncludeServerHttpMetrics) {
+          FormatStatistics(result["request"], *request_statistics_);
+        }
+      },
+      std::move(labels));
 
   set_response_server_hostname_ =
       GetConfig().set_response_server_hostname.value_or(
@@ -383,9 +406,59 @@ HttpHandlerBase::HttpHandlerBase(const components::ComponentConfig& config,
 
 HttpHandlerBase::~HttpHandlerBase() { statistics_holder_.Unregister(); }
 
+void HttpHandlerBase::HandleRequestStream(
+    const http::HttpRequest& http_request, http::HttpResponse& response,
+    request::RequestContext& context) const {
+  utils::ScopeGuard scope([&response] { response.SetHeadersEnd(); });
+
+  auto& http_response = http_request.GetHttpResponse();
+  server::http::ResponseBodyStream response_body_stream{
+      response.GetBodyProducer(), http_response};
+
+  // Just in case HandleStreamRequest() throws an exception.
+  // Though it can be changed in HandleStreamRequest().
+  response_body_stream.SetStatusCode(500);
+
+  try {
+    HandleStreamRequest(http_request, context, response_body_stream);
+  } catch (const CustomHandlerException& e) {
+    response_body_stream.SetStatusCode(http::GetHttpStatus(e.GetCode()));
+
+    for (const auto& [name, value] : e.GetExtraHeaders()) {
+      response_body_stream.SetHeader(name, value);
+    }
+    if (e.IsExternalErrorBodyFormatted()) {
+      response_body_stream.SetEndOfHeaders();
+      response_body_stream.PushBodyChunk(std::string{e.GetExternalErrorBody()});
+    } else {
+      auto formatted_error = GetFormattedExternalErrorBody(e);
+      SetFormattedErrorResponse(response_body_stream,
+                                std::move(formatted_error));
+    }
+  } catch (const std::exception& e) {
+    if (engine::current_task::ShouldCancel()) {
+      LOG_WARNING() << "request task cancelled, exception in '" << HandlerName()
+                    << "' handler in handle_request: " << e;
+      response_body_stream.SetStatusCode(
+          http::HttpStatus::kClientClosedRequest);
+    } else {
+      LOG_ERROR() << "exception in '" << HandlerName()
+                  << "' handler in handle_request: " << e;
+      response_body_stream.SetStatusCode(500);
+      SetFormattedErrorResponse(response,
+                                GetFormattedExternalErrorBody({
+                                    ExternalBody{response.GetData()},
+                                    HandlerErrorCode::kServerSideError,
+                                }));
+    }
+  }
+}
+
 void HttpHandlerBase::HandleRequest(request::RequestBase& request,
                                     request::RequestContext& context) const {
-  auto& http_request_impl = dynamic_cast<http::HttpRequestImpl&>(request);
+  UASSERT(dynamic_cast<http::HttpRequestImpl*>(&request));
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
+  auto& http_request_impl = static_cast<http::HttpRequestImpl&>(request);
   http::HttpRequest http_request(http_request_impl);
   auto& response = http_request.GetHttpResponse();
 
@@ -410,13 +483,33 @@ void HttpHandlerBase::HandleRequest(request::RequestBase& request,
     const auto& parent_span_id =
         http_request.GetHeader(USERVER_NAMESPACE::http::headers::kXYaSpanId);
 
+    const auto& yandex_request_id =
+        http_request.GetHeader(USERVER_NAMESPACE::http::headers::kXRequestId);
+    const auto& yandex_backend_server = http_request.GetHeader(
+        USERVER_NAMESPACE::http::headers::kXBackendServer);
+    const auto& envoy_proxy = http_request.GetHeader(
+        USERVER_NAMESPACE::http::headers::kXTaxiEnvoyProxyDstVhost);
+
+    if (!yandex_request_id.empty() || !yandex_backend_server.empty() ||
+        !envoy_proxy.empty()) {
+      LOG_INFO() << fmt::format(
+          "Yandex tracing headers {}={}, {}={}, {}={}",
+          USERVER_NAMESPACE::http::headers::kXRequestId, yandex_request_id,
+          USERVER_NAMESPACE::http::headers::kXBackendServer,
+          yandex_backend_server,
+          USERVER_NAMESPACE::http::headers::kXTaxiEnvoyProxyDstVhost,
+          envoy_proxy);
+    }
+
     auto span = tracing::Span::MakeSpan(fmt::format("http/{}", HandlerName()),
                                         trace_id, parent_span_id);
 
-    response.SetHeader(USERVER_NAMESPACE::http::headers::kXYaTraceId,
-                       span.GetTraceId());
-    response.SetHeader(USERVER_NAMESPACE::http::headers::kXYaSpanId,
-                       span.GetSpanId());
+    if (config.set_tracing_headers) {
+      response.SetHeader(USERVER_NAMESPACE::http::headers::kXYaTraceId,
+                         span.GetTraceId());
+      response.SetHeader(USERVER_NAMESPACE::http::headers::kXYaSpanId,
+                         span.GetSpanId());
+    }
 
     span.SetLocalLogLevel(log_level_);
 
@@ -475,14 +568,7 @@ void HttpHandlerBase::HandleRequest(request::RequestBase& request,
     request_processor.ProcessRequestStep(
         kHandleRequestStep, [this, &response, &http_request, &context] {
           if (response.IsBodyStreamed()) {
-            auto& response = http_request.GetHttpResponse();
-            utils::ScopeGuard scope([&response] { response.SetHeadersEnd(); });
-
-            HandleStreamRequest(
-                http_request, context,
-                http::ResponseBodyStream{response.GetBodyProducer(),
-                                         http_request.GetHttpResponse()});
-            // BodyProducer is dead
+            HandleRequestStream(http_request, response, context);
           } else {
             // !IsBodyStreamed()
             response.SetData(HandleRequestThrow(http_request, context));
@@ -494,6 +580,7 @@ void HttpHandlerBase::HandleRequest(request::RequestBase& request,
 
   SetResponseAcceptEncoding(response);
   SetResponseServerHostname(response);
+  response.SetHeadersEnd();
 }
 
 void HttpHandlerBase::ThrowUnsupportedHttpMethod(
@@ -513,7 +600,7 @@ std::string HttpHandlerBase::HandleRequestThrow(
 
 void HttpHandlerBase::HandleStreamRequest(
     const server::http::HttpRequest&, server::request::RequestContext&,
-    server::http::ResponseBodyStream&&) const {
+    server::http::ResponseBodyStream&) const {
   throw std::runtime_error(
       "stream HandleStreamRequest() is executed, but the handler doesn't "
       "override HandleStreamRequest().");
@@ -522,7 +609,9 @@ void HttpHandlerBase::HandleStreamRequest(
 void HttpHandlerBase::ReportMalformedRequest(
     request::RequestBase& request) const {
   try {
-    auto& http_request_impl = dynamic_cast<http::HttpRequestImpl&>(request);
+    UASSERT(dynamic_cast<http::HttpRequestImpl*>(&request));
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
+    auto& http_request_impl = static_cast<http::HttpRequestImpl&>(request);
     const http::HttpRequest http_request(http_request_impl);
     auto& response = http_request.GetHttpResponse();
 
@@ -542,6 +631,10 @@ const std::string& HttpHandlerBase::HandlerName() const {
 const std::vector<http::HttpMethod>& HttpHandlerBase::GetAllowedMethods()
     const {
   return allowed_methods_;
+}
+
+HttpHandlerStatistics& HttpHandlerBase::GetHandlerStatistics() const {
+  return *handler_statistics_;
 }
 
 HttpRequestStatistics& HttpHandlerBase::GetRequestStatistics() const {
@@ -625,10 +718,11 @@ void HttpHandlerBase::DecompressRequestBody(
 
   try {
     if (content_encoding == "gzip") {
-      auto body = compression::gzip::Decompress(http_request.RequestBody(),
-                                                GetConfig().max_request_size);
+      auto body = compression::gzip::Decompress(
+          http_request.RequestBody(),
+          GetConfig().request_config.max_request_size);
       http_request.SetRequestBody(std::move(body));
-      if (GetConfig().parse_args_from_body.value_or(false)) {
+      if (GetConfig().request_config.parse_args_from_body) {
         http_request.ParseArgsFromBody();
       }
       return;
@@ -687,34 +781,16 @@ std::string HttpHandlerBase::GetResponseDataForLoggingChecked(
 }
 
 template <typename HttpStatistics>
-formats::json::ValueBuilder HttpHandlerBase::FormatStatistics(
-    const HttpStatistics& stats) {
-  formats::json::ValueBuilder result;
-  result["all-methods"] = stats.GetTotal();
-  utils::statistics::SolomonSkip(result["all-methods"]);
+void HttpHandlerBase::FormatStatistics(utils::statistics::Writer result,
+                                       const HttpStatistics& stats) {
+  result = stats.GetTotal();
 
   if (IsMethodStatisticIncluded()) {
-    formats::json::ValueBuilder by_method;
     for (auto method : GetAllowedMethods()) {
-      by_method[ToString(method)] = stats.GetByMethod(method);
+      result.ValueWithLabels(stats.GetByMethod(method),
+                             {"http_method", ToString(method)});
     }
-    utils::statistics::SolomonChildrenAreLabelValues(by_method, "http_method");
-    utils::statistics::SolomonSkip(by_method);
-    result["by-method"] = std::move(by_method);
   }
-  return result;
-}
-
-formats::json::ValueBuilder HttpHandlerBase::ExtendStatistics(
-    const utils::statistics::StatisticsRequest& /*request*/) {
-  formats::json::ValueBuilder result;
-  result["handler"] = FormatStatistics(*handler_statistics_);
-
-  if constexpr (kIncludeServerHttpMetrics) {
-    result["request"] = FormatStatistics(*request_statistics_);
-  }
-
-  return result;
 }
 
 void HttpHandlerBase::SetResponseAcceptEncoding(

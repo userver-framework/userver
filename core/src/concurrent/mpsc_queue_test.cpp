@@ -48,7 +48,7 @@ UTEST(MpscQueue, SampleMpscQueue) {
   auto consumer_task = utils::Async("consumer", [&] {
     for (;;) {
       // ...
-      int item;
+      int item{};
       if (consumer.Pop(item, engine::Deadline::FromDuration(kTimeout))) {
         // processing the queue element
         ASSERT_EQ(item, 1);
@@ -89,6 +89,9 @@ UTEST_MT(MpscQueue, MultiProducer, 3) {
   ASSERT_TRUE(consumer.Pop(value_2));
   // Don't know who (task1 or task2) woke up first.
   ASSERT_TRUE((value_1 == 3 && value_2 == 4) || (value_1 == 4 && value_2 == 3));
+
+  task1.Get();
+  task2.Get();
 
   EXPECT_EQ(queue->GetSizeApproximate(), 0);
 }

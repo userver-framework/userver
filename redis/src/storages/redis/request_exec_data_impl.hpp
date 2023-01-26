@@ -8,7 +8,7 @@ USERVER_NAMESPACE_BEGIN
 namespace storages::redis {
 
 class RequestExecDataImpl final : public RequestDataImplBase,
-                                  public RequestDataBase<ReplyData, void> {
+                                  public RequestDataBase<void> {
  public:
   RequestExecDataImpl(
       USERVER_NAMESPACE::redis::Request&& request,

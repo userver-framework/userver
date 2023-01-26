@@ -7,6 +7,7 @@
 #include <unordered_map>
 #include <unordered_set>
 
+#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include <boost/filesystem/path.hpp>
 
@@ -74,17 +75,18 @@ TEST_F(LoggingTest, TskvEncodeKeyWithDot) {
   logging::LogExtra le;
   le.Extend("http.port.ipv4", "4040");
   LOG_CRITICAL() << "line 1\nline 2" << le;
-  EXPECT_EQ(LoggedText(), "line 1\\nline 2\thttp_port_ipv4=4040");
+  EXPECT_THAT(GetStreamString(),
+              testing::HasSubstr("line 1\\nline 2\thttp_port_ipv4=4040"));
 }
 
 TEST_F(LoggingTest, FloatingPoint) {
-  constexpr float f = 3.1415f;
+  constexpr float f = 3.1415F;
   EXPECT_EQ(ToStringViaLogging(f), ToStringViaStreams(f));
 
   constexpr double d = 3.1415;
   EXPECT_EQ(ToStringViaLogging(d), ToStringViaStreams(d));
 
-  constexpr long double ld = 3.1415;
+  constexpr long double ld = 3.1415L;
   EXPECT_EQ(ToStringViaLogging(ld), ToStringViaStreams(ld));
 }
 
@@ -110,7 +112,7 @@ TEST_F(LoggingTest, UserStruct) {
 }
 
 TEST_F(LoggingTest, Pointer) {
-  const auto pointer = reinterpret_cast<int*>(0xDEADBEEF);
+  const auto* const pointer = reinterpret_cast<int*>(0xDEADBEEF);
   EXPECT_EQ(ToStringViaLogging(pointer), "0x00000000DEADBEEF");
 }
 
@@ -139,9 +141,9 @@ TEST_F(LoggingTest, TracefulExceptionDebug) {
 
   LOG_CRITICAL() << utils::TracefulException("traceful exception");
 
-  EXPECT_TRUE(LoggedTextContains("traceful exception"))
+  EXPECT_THAT(GetStreamString(), testing::HasSubstr("traceful exception"))
       << "traceful exception is missing its message";
-  EXPECT_TRUE(LoggedTextContains("\tstacktrace="))
+  EXPECT_THAT(GetStreamString(), testing::HasSubstr("\tstacktrace="))
       << "traceful exception is missing its trace";
 }
 
@@ -169,19 +171,20 @@ TEST_F(LoggingTest, AttachedException) {
       << "missing plain exception message";
   EXPECT_TRUE(LoggedTextContains("plain exception with additional info"))
       << "traceful exception message malformed";
-  EXPECT_TRUE(LoggedTextContains("\tstacktrace="))
+  EXPECT_THAT(GetStreamString(), testing::HasSubstr("\tstacktrace="))
       << "traceful exception missing its trace";
 }
 
 TEST_F(LoggingTest, IfExpressionWithoutBraces) {
-  if (true)
+  bool true_flag = true;
+  if (true_flag)
     LOG(logging::Level::kNone) << "test";
   else
     FAIL() << "Logging affected the else statement";
 
   {
     bool passed = false;
-    if (true)
+    if (true_flag)
       LOG_LIMITED_CRITICAL() << (passed = true);
     else
       FAIL() << "Logging affected the else statement";
@@ -190,7 +193,7 @@ TEST_F(LoggingTest, IfExpressionWithoutBraces) {
 
   {
     bool passed = false;
-    if (false)
+    if (!true_flag)
       LOG_LIMITED_CRITICAL() << "test";
     else
       passed = true;
@@ -199,13 +202,13 @@ TEST_F(LoggingTest, IfExpressionWithoutBraces) {
 
   {
     bool passed = false;
-    if (true) LOG_LIMITED_CRITICAL() << (passed = true);
+    if (true_flag) LOG_LIMITED_CRITICAL() << (passed = true);
     EXPECT_TRUE(passed);
   }
 
   {
     bool passed = true;
-    if (false) LOG_LIMITED_CRITICAL() << (passed = false);
+    if (!true_flag) LOG_LIMITED_CRITICAL() << (passed = false);
     EXPECT_TRUE(passed);
   }
 }
@@ -213,23 +216,25 @@ TEST_F(LoggingTest, IfExpressionWithoutBraces) {
 TEST_F(LoggingTest, CppModulePath) {
   LOG_CRITICAL();
   logging::LogFlush();
-  CheckModulePath(sstream.str(), "core/src/logging/log_message_test.cpp");
+  CheckModulePath(GetStreamString(), "core/src/logging/log_message_test.cpp");
 }
 
 TEST_F(LoggingTest, HppModulePath) {
   LoggingHeaderFunction();
   logging::LogFlush();
-  CheckModulePath(sstream.str(), "core/src/logging/log_message_test.hpp");
+  CheckModulePath(GetStreamString(), "core/src/logging/log_message_test.hpp");
 }
 
 TEST_F(LoggingTest, ExternalModulePath) {
   static const std::string kPath = "/somewhere_else/src/test.cpp";
 
-  logging::LogHelper(logging::DefaultLogger(), logging::Level::kCritical,
-                     kPath.c_str(), __LINE__, __func__);
+  {
+    logging::LogHelper a(logging::DefaultLogger(), logging::Level::kCritical,
+                         kPath.c_str(), __LINE__, __func__);
+  }
   logging::LogFlush();
 
-  CheckModulePath(sstream.str(), kPath);
+  CheckModulePath(GetStreamString(), kPath);
 }
 
 TEST_F(LoggingTest, LogHelperNullptr) {
@@ -243,7 +248,7 @@ TEST_F(LoggingTest, LogHelperNullptr) {
       << "Test";
   logging::LogFlush();
 
-  EXPECT_EQ(sstream.str(), "");
+  EXPECT_EQ(GetStreamString(), "");
 }
 
 TEST_F(LoggingTest, PartialPrefixModulePath) {
@@ -252,20 +257,22 @@ TEST_F(LoggingTest, PartialPrefixModulePath) {
       kRealPath.substr(0, kRealPath.find('/', 1) + 1) +
       "somewhere_else/src/test.cpp";
 
-  logging::LogHelper(logging::DefaultLogger(), logging::Level::kCritical,
-                     kPath.c_str(), __LINE__, __func__);
+  {
+    logging::LogHelper a(logging::DefaultLogger(), logging::Level::kCritical,
+                         kPath.c_str(), __LINE__, __func__);
+  }
   logging::LogFlush();
 
-  CheckModulePath(sstream.str(), kPath);
+  CheckModulePath(GetStreamString(), kPath);
 }
 
-TEST_F(LoggingTest, LogExtra_TAXICOMMON_1362) {
+TEST_F(LoggingTest, LogExtraTAXICOMMON1362) {
   const char* str = reinterpret_cast<const char*>(tskv_test::data_bin);
   std::string input(str, str + sizeof(tskv_test::data_bin));
 
   LOG_CRITICAL() << input;
   logging::LogFlush();
-  std::string result = sstream.str();
+  std::string result = GetStreamString();
 
   ASSERT_GT(result.size(), 1);
   EXPECT_EQ(result.back(), '\n');
@@ -285,13 +292,13 @@ TEST_F(LoggingTest, LogExtra_TAXICOMMON_1362) {
       << "Result: " << result;
 }
 
-TEST_F(LoggingTest, TAXICOMMON_1362) {
+TEST_F(LoggingTest, TAXICOMMON1362) {
   const char* str = reinterpret_cast<const char*>(tskv_test::data_bin);
   std::string input(str, str + sizeof(tskv_test::data_bin));
 
   LOG_CRITICAL() << logging::LogExtra{{"body", input}};
   logging::LogFlush();
-  std::string result = sstream.str();
+  std::string result = GetStreamString();
 
   const auto ascii_pos = result.find(tskv_test::ascii_part);
   EXPECT_TRUE(ascii_pos != std::string::npos) << "Result: " << result;
@@ -299,11 +306,10 @@ TEST_F(LoggingTest, TAXICOMMON_1362) {
   const auto body_pos = result.find("body=");
   EXPECT_TRUE(body_pos != std::string::npos) << "Result: " << result;
 
-  auto begin = result.begin() + body_pos;
-  auto end = result.begin() + ascii_pos;
-  EXPECT_EQ(0, std::count(begin, end, '\n')) << "Result: " << result;
-  EXPECT_EQ(0, std::count(begin, end, '\t')) << "Result: " << result;
-  EXPECT_EQ(0, std::count(begin, end, '\0')) << "Result: " << result;
+  EXPECT_EQ(result.substr(body_pos, ascii_pos - body_pos)
+                .find_first_of({'\n', '\t', '\0'}),
+            std::string::npos)
+      << "Result: " << result;
 }
 
 TEST_F(LoggingTest, Ranges) {
@@ -419,7 +425,7 @@ TEST_F(LoggingTest, StringEscaping) {
 }
 
 TEST_F(LoggingTest, Json) {
-  const auto json_str = R"({"a":"b","c":1,"d":0.25,"e":[],"f":{}})";
+  const auto* const json_str = R"({"a":"b","c":1,"d":0.25,"e":[],"f":{}})";
   EXPECT_EQ(ToStringViaLogging(formats::json::FromString(json_str)), json_str);
 }
 

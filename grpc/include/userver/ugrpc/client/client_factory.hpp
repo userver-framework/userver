@@ -3,6 +3,8 @@
 /// @file userver/ugrpc/client/client_factory.hpp
 /// @brief @copybrief ugrpc::client::ClientFactory
 
+#include <cstddef>
+
 #include <grpcpp/completion_queue.h>
 #include <grpcpp/security/credentials.h>
 #include <grpcpp/support/channel_arguments.h>
@@ -13,7 +15,7 @@
 #include <userver/yaml_config/fwd.hpp>
 
 #include <userver/ugrpc/client/impl/channel_cache.hpp>
-#include <userver/ugrpc/client/impl/statistics_storage.hpp>
+#include <userver/ugrpc/impl/statistics_storage.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -26,11 +28,16 @@ struct ClientFactoryConfig {
       grpc::InsecureChannelCredentials()};
 
   /// Optional grpc-core channel args
+  /// @see https://grpc.github.io/grpc/core/group__grpc__arg__keys.html
   grpc::ChannelArguments channel_args{};
 
   /// The logging level override for the internal grpcpp library. Must be either
   /// `kDebug`, `kInfo` or `kError`.
   logging::Level native_log_level{logging::Level::kError};
+
+  /// Number of underlying channels that will be created for every client
+  /// in this factory.
+  std::size_t channel_count{1};
 };
 
 ClientFactoryConfig Parse(const yaml_config::YamlConfig& value,
@@ -55,7 +62,7 @@ class ClientFactory final {
   engine::TaskProcessor& channel_task_processor_;
   grpc::CompletionQueue& queue_;
   impl::ChannelCache channel_cache_;
-  impl::StatisticsStorage client_statistics_storage_;
+  ugrpc::impl::StatisticsStorage client_statistics_storage_;
 };
 
 template <typename Client>

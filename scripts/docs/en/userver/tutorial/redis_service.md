@@ -106,7 +106,8 @@ config `kStaticConfig`.
 
 @snippet samples/redis_service/redis_service.cpp Redis service sample - main
 
-### Build
+
+### Build and Run
 
 To build the sample, execute the following build steps at the userver root
 directory:
@@ -118,8 +119,17 @@ cmake -DCMAKE_BUILD_TYPE=Release ..
 make userver-samples-redis_service
 ```
 
-Start the DB server and then start the service by
-running `./samples/redis_service/userver-samples-redis_service`. Now you can send a request to
+The sample could be started by running
+`make start-userver-samples-redis_service`. The command would invoke
+@ref md_en_userver_functional_testing "testsuite start target" that sets proper
+paths in the configuration files, prepares and starts the DB, and starts the
+service.
+
+To start the service manually start the DB server and run
+`./samples/redis_service/userver-samples-redis_service -c </path/to/static_config.yaml>`
+(do not forget to prepare the configuration files!).
+
+Now you can send a request to
 your service from another terminal:
 
 ```
@@ -155,17 +165,18 @@ Content-Length: 1
 @ref md_en_userver_functional_testing "Functional tests" for the service could be
 implemented using the testsuite. To do that you have to:
 
-* Provide Redis settings info:
-@snippet samples/redis_service/tests/conftest.py service_env value
+* Prepare the pytest by importing the pytest_userver.plugins.redis plugin:
+  @snippet samples/redis_service/tests/conftest.py redis setup
 
-* Add the above values to the service environment variable:
-@snippet samples/redis_service/tests/conftest.py service_env
-
-* Tell the testsuite to start the Redis database:
-@snippet samples/redis_service/tests/conftest.py client_deps
+* Add the Redis settings info to the service environment variable:
+  @snippet samples/redis_service/tests/conftest.py service_env
+  The @ref pytest_userver.plugins.service_client.auto_client_deps "auto_client_deps"
+  fixture already knows about the redis_store fixture, so there's no need to override
+  the @ref pytest_userver.plugins.service_client.extra_client_deps "extra_client_deps"
+  fixture.
 
 * Write the test:
-@snippet samples/redis_service/tests/test_redis.py  Functional test
+  @snippet samples/redis_service/tests/test_redis.py  Functional test
 
 
 ## Full sources
@@ -175,6 +186,12 @@ See the full example:
 * @ref samples/redis_service/static_config.yaml
 * @ref samples/redis_service/dynamic_config_fallback.json
 * @ref samples/redis_service/CMakeLists.txt
+
+----------
+
+@htmlonly <div class="bottom-nav"> @endhtmlonly
+⇦ @ref md_en_userver_tutorial_mongo_service | @ref md_en_userver_tutorial_auth_postgres ⇨
+@htmlonly </div> @endhtmlonly
 
 @example samples/redis_service/redis_service.cpp
 @example samples/redis_service/static_config.yaml

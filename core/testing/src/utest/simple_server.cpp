@@ -7,8 +7,8 @@
 #include <userver/engine/sleep.hpp>
 #include <userver/engine/task/cancel.hpp>
 #include <userver/engine/task/task.hpp>
+#include <userver/internal/net/net_listener.hpp>
 #include <userver/logging/log.hpp>
-#include <userver/utest/net_listener.hpp>
 #include <userver/utest/utest.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -121,7 +121,7 @@ class SimpleServer::Impl {
 
  private:
   OnRequest callback_;
-  TcpListener listener_;
+  internal::net::TcpListener listener_;
 
   concurrent::BackgroundTaskStorage client_tasks_storage_;
   engine::Task listener_task_;
@@ -131,8 +131,9 @@ class SimpleServer::Impl {
 
 SimpleServer::Impl::Impl(OnRequest callback, Protocol protocol)
     : callback_{std::move(callback)},
-      listener_{protocol == Protocol::kTcpIpV6 ? IpVersion::kV6
-                                               : IpVersion::kV4} {
+      listener_{protocol == Protocol::kTcpIpV6
+                    ? internal::net::IpVersion::kV6
+                    : internal::net::IpVersion::kV4} {
   EXPECT_TRUE(callback_)
       << "SimpleServer must be started with a request callback";
 

@@ -5,8 +5,9 @@ message(STATUS "C++ compiler: ${CMAKE_CXX_COMPILER}")
 
 set(CMAKE_MODULE_PATH
   ${CMAKE_MODULE_PATH}
-  ${CMAKE_CURRENT_LIST_DIR}
-  ${CMAKE_BINARY_DIR}/cmake_generated
+  "${CMAKE_CURRENT_LIST_DIR}"
+  "${CMAKE_BINARY_DIR}"
+  "${CMAKE_BINARY_DIR}/cmake_generated"
 )
 
 set (CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -35,7 +36,6 @@ add_compile_options ("-Wall" "-Wextra" "-Wpedantic")
 
 if (CMAKE_SYSTEM_NAME MATCHES "Darwin")
   set(MACOS found)
-  set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_LIST_DIR}/macos)
   # disable pkg-config as it's broken by homebrew -- TAXICOMMON-2264
   set(PKG_CONFIG_EXECUTABLE "")
 endif()
@@ -90,9 +90,9 @@ if(NOT HAS_CXX17_VARIANT)
   message(FATAL_ERROR "You have an outdated standard C++ library")
 endif(NOT HAS_CXX17_VARIANT)
 
-if (MACOS)
+if(MACOS AND NOT USERVER_CONAN)
     set(Boost_NO_BOOST_CMAKE ON)
-endif(MACOS)
+endif()
 find_package(Boost REQUIRED)
 
 add_cxx_compile_options_if_supported ("-ftemplate-backtrace-limit=0")
@@ -113,11 +113,11 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang"
   add_compile_options("-Wno-range-loop-analysis")
 endif()
 
+message (STATUS "boost: ${Boost_VERSION}")
 if (CLANG)
-  message (STATUS "boost: ${Boost_VERSION}")
   if (MACOS AND Boost_FOUND)
     # requires Boost_FOUND to make a valid expression
-    if (${Boost_VERSION} VERSION_LESS "106800")
+    if (${Boost_VERSION} VERSION_LESS "1.68")
       message(FATAL_ERROR "Boost Locale version less that 1.68 uses features deleted from standard. Please update your boost distribution.")
     endif()
   endif()

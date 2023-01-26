@@ -77,7 +77,6 @@ TEST(BsonValue, Array) {
     }
   }
 
-  i = 0;
   auto it = arr.rbegin();
   for (std::size_t i = 0; i < arr.GetSize(); ++i) {
     switch (i) {

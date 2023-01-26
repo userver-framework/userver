@@ -27,8 +27,7 @@ than 3 seconds.
 bash
 $ curl http://localhost:8085/internal/inspect-requests | jq
 ```
-```
-json
+```json
 [
   {
     "method": "GET",
@@ -54,8 +53,7 @@ In this example there are multiple in-flight request that actually have no body.
 bash
 $ curl http://localhost:8085/internal/inspect-requests?body=1 | jq
 ```
-```
-json
+```json
 [
   {
     "request-body": "",
@@ -107,3 +105,11 @@ json
   }
 ]
 ```
+
+
+----------
+
+@htmlonly <div class="bottom-nav"> @endhtmlonly
+⇦ @ref md_en_userver_log_level_running_service | @ref md_en_userver_service_monitor ⇨
+@htmlonly </div> @endhtmlonly
+

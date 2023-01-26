@@ -73,8 +73,7 @@ SentinelShardTest::SentinelShardTest(size_t sentinel_count, size_t shard_count,
   CreateSentinelClient();
 }
 
-std::vector<std::string> SentinelShardTest::InitRedisNames(
-    size_t shard_count) const {
+std::vector<std::string> SentinelShardTest::InitRedisNames(size_t shard_count) {
   assert(shard_count > 0);
   std::vector<std::string> result;
   for (size_t shard_idx = 0; shard_idx < shard_count; shard_idx++) {

@@ -26,12 +26,15 @@ Telegram support chats: [English-speaking](https://t.me/userver_en) |
 * @ref md_en_userver_tutorial_hello_service
 * @ref md_en_userver_tutorial_config_service
 * @ref md_en_userver_tutorial_production_service
+* @ref md_en_userver_tutorial_tcp_service
+* @ref md_en_userver_tutorial_tcp_full
 * @ref md_en_userver_tutorial_http_caching
 * @ref md_en_userver_tutorial_flatbuf_service
 * @ref md_en_userver_tutorial_grpc_service
 * @ref md_en_userver_tutorial_postgres_service
 * @ref md_en_userver_tutorial_mongo_service
 * @ref md_en_userver_tutorial_redis_service
+* @ref md_en_userver_tutorial_auth_postgres
 
 
 ## Generic development
@@ -48,6 +51,7 @@ Telegram support chats: [English-speaking](https://t.me/userver_en) |
 ## Testing and Benchmarking
 * @ref md_en_userver_testing
 * @ref md_en_userver_functional_testing
+* @ref md_en_userver_chaos_testing
 * @ref md_en_userver_profile_context_switches
 
 
@@ -56,6 +60,7 @@ Telegram support chats: [English-speaking](https://t.me/userver_en) |
 * HTTP:
     * @ref clients::http::Client "Client"
     * @ref components::Server "Server"
+* @ref rabbitmq_driver
 * Low level:
     * @ref engine::io::TlsWrapper "TLS client and server socket"
     * @ref engine::io::Socket "TCP and UDP sockets"
@@ -105,8 +110,9 @@ Telegram support chats: [English-speaking](https://t.me/userver_en) |
 ## Opensource
 * @ref md_en_userver_development_stability
 * @ref md_en_userver_development_releases
-* @ref CONTRIBUTING.md
 * @ref md_en_userver_driver_guide
+* @ref md_en_userver_publications
+* @ref CONTRIBUTING.md
 * @ref SECURITY.md
 * @ref md_en_userver_security_changelog
 * Distributed under [Apache-2.0 License](http://www.apache.org/licenses/LICENSE-2.0)

@@ -148,5 +148,11 @@ Starting up the components in unit tests is quite hard. Prefer moving out
 all the functionality from the component or testing the component with the
 help of @ref md_en_userver_functional_testing "testsuite functional tests".
 
+----------
+
+@htmlonly <div class="bottom-nav"> @endhtmlonly
+⇦ @ref md_en_userver_tutorial_auth_postgres | @ref userver_clients ⇨
+@htmlonly </div> @endhtmlonly
+
 @example components/component_sample_test.hpp
 @example components/component_sample_test.cpp

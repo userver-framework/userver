@@ -90,7 +90,9 @@ and start the server with static config `kStaticConfig`.
 
 @snippet samples/config_service/config_service.cpp  Config service sample - main
 
-### Build
+
+### Build and Run
+
 To build the sample, execute the following build steps at the userver root directory:
 ```
 bash
@@ -100,7 +102,15 @@ cmake -DCMAKE_BUILD_TYPE=Release ..
 make userver-samples-config_service
 ```
 
-Start the server by running `./samples/config_service/userver-samples-config_service`.
+The sample could be started by running
+`make start-userver-samples-config_service`. The command would invoke
+@ref md_en_userver_functional_testing "testsuite start target" that sets proper
+paths in the configuration files and starts the service.
+
+To start the service manually run
+`./samples/config_service/userver-samples-config_service -c </path/to/static_config.yaml>`
+(do not forget to prepare the configuration files!).
+
 Now you can send a request to your server from another terminal:
 ```
 bash
@@ -153,9 +163,14 @@ $ curl -X POST -d '{"ids":["USERVER_TASK_PROCESSOR_QOS"]}' 127.0.0.1:8083/config
 
 ### Functional testing
 @ref md_en_userver_functional_testing "Functional tests" for the service
-could be implemented using the testsuite in the following way:
+could be implemented using the @ref service_client "service_client fixture"
+in the following way:
 
 @snippet samples/config_service/tests/test_config.py  Functional test
+
+Do not forget to add the plugin in conftest.py:
+
+@snippet samples/config_service/tests/conftest.py  registration
 
 
 ## Ready to use uservice-dynconf
@@ -172,10 +187,20 @@ See the full example:
 * @ref samples/config_service/static_config.yaml
 * @ref samples/config_service/dynamic_config_fallback.json
 * @ref samples/config_service/CMakeLists.txt
+* @ref samples/config_service/tests/conftest.py
 * @ref samples/config_service/tests/test_config.py
+
+----------
+
+@htmlonly <div class="bottom-nav"> @endhtmlonly
+⇦ @ref md_en_userver_tutorial_hello_service | @ref md_en_userver_tutorial_production_service ⇨
+@htmlonly </div> @endhtmlonly
+
+
 
 @example samples/config_service/config_service.cpp
 @example samples/config_service/static_config.yaml
 @example samples/config_service/dynamic_config_fallback.json
 @example samples/config_service/CMakeLists.txt
+@example samples/config_service/tests/conftest.py
 @example samples/config_service/tests/test_config.py

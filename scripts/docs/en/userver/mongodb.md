@@ -44,13 +44,11 @@ Methods and options correspond to [the standard MongoDB Collections API](https:/
 
 It is recommended to set timeouts on the server side using
 storages::mongo::options::MaxServerTime as for other cancellation mechanisms
-MongoDB does not guarantee that the cancelled operation was not applied. 
+MongoDB does not guarantee that the cancelled operation was not applied.
 
-To interrupt a request on the client side, you can use
-@ref task_cancellation_intro "cancellation mechanism"
-to cancel the task that executes the Mongo request,
-but this leads to reopening of the connection (and possibly to errors in the logs).
-On the server side, the operation is not interrupted.
+For client-side timeouts consider setting socket and/or connection timeouts
+in pool configuration as native task cancellation is not supported in the
+current implementation.
 
 
 ### Write results
@@ -82,3 +80,9 @@ conversion functions between BSON and text formats by default, but they are
 available in <userver/formats/bson/serialize.hpp>. These functions are provided
 without guarantees for the stability of the conversion, and are primarily
 intended for debugging.
+
+----------
+
+@htmlonly <div class="bottom-nav"> @endhtmlonly
+⇦ @ref pg_bytea | @ref md_en_userver_redis ⇨
+@htmlonly </div> @endhtmlonly

@@ -1,12 +1,15 @@
 #include <userver/ugrpc/server/server.hpp>
 
 #include <algorithm>
+#include <cstdlib>
 #include <exception>
+#include <limits>
 #include <memory>
 #include <optional>
 #include <vector>
 
 #include <fmt/format.h>
+#include <grpcpp/ext/channelz_service_plugin.h>
 #include <grpcpp/server.h>
 
 #include <userver/engine/mutex.hpp>
@@ -19,6 +22,7 @@
 #include <ugrpc/impl/logging.hpp>
 #include <ugrpc/impl/to_string.hpp>
 #include <ugrpc/server/impl/queue_holder.hpp>
+#include <userver/ugrpc/impl/statistics_storage.hpp>
 #include <userver/ugrpc/server/impl/service_worker.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -26,6 +30,30 @@ USERVER_NAMESPACE_BEGIN
 namespace ugrpc::server {
 
 namespace {
+
+std::optional<int> ToOptionalInt(const std::string& str) {
+  char* str_end{};
+  const long result = strtol(str.c_str(), &str_end, 10);
+  if (str_end == str.data() + str.size() &&
+      result >= std::numeric_limits<int>::min() &&
+      result <= std::numeric_limits<int>::max()) {
+    return result;
+  } else {
+    return std::nullopt;
+  }
+}
+
+void ApplyChannelArgs(grpc::ServerBuilder& builder,
+                      const ServerConfig& config) {
+  for (const auto& [key, value] : config.channel_args) {
+    if (const auto int_value = ToOptionalInt(value)) {
+      builder.AddChannelArgument(ugrpc::impl::ToGrpcString(key), *int_value);
+    } else {
+      builder.AddChannelArgument(ugrpc::impl::ToGrpcString(key),
+                                 ugrpc::impl::ToGrpcString(value));
+    }
+  }
+}
 
 bool AreServicesUnique(
     const std::vector<std::unique_ptr<impl::ServiceWorker>>& workers) {
@@ -44,8 +72,11 @@ ServerConfig Parse(const yaml_config::YamlConfig& value,
                    formats::parse::To<ServerConfig>) {
   ServerConfig config;
   config.port = value["port"].As<std::optional<int>>();
+  config.channel_args =
+      value["channel-args"].As<decltype(config.channel_args)>({});
   config.native_log_level =
       value["native-log-level"].As<logging::Level>(logging::Level::kError);
+  config.enable_channelz = value["enable-channelz"].As<bool>(false);
   return config;
 }
 
@@ -56,6 +87,8 @@ class Server::Impl final {
   ~Impl();
 
   void AddService(ServiceBase& service, engine::TaskProcessor& task_processor);
+
+  std::vector<std::string_view> GetServiceNames() const;
 
   void WithServerBuilder(SetupHook&& setup);
 
@@ -86,18 +119,26 @@ class Server::Impl final {
   std::vector<std::unique_ptr<impl::ServiceWorker>> service_workers_;
   std::optional<impl::QueueHolder> queue_;
   std::unique_ptr<grpc::Server> server_;
-  engine::Mutex configuration_mutex_;
+  mutable engine::Mutex configuration_mutex_;
 
-  utils::statistics::Storage& statistics_storage_;
+  ugrpc::impl::StatisticsStorage statistics_storage_;
 };
 
 Server::Impl::Impl(ServerConfig&& config,
                    utils::statistics::Storage& statistics_storage)
-    : statistics_storage_(statistics_storage) {
+    : statistics_storage_(statistics_storage, "server") {
   LOG_INFO() << "Configuring the gRPC server";
   ugrpc::impl::SetupNativeLogging();
   ugrpc::impl::UpdateNativeLogLevel(config.native_log_level);
+  if (config.enable_channelz) {
+#ifdef USERVER_DISABLE_GRPC_CHANNELZ
+    UINVARIANT(false, "Channelz is disabled via USERVER_FEATURE_GRPC_CHANNELZ");
+#else
+    grpc::channelz::experimental::InitChannelzService();
+#endif
+  }
   server_builder_.emplace();
+  ApplyChannelArgs(*server_builder_, config);
   queue_.emplace(server_builder_->AddCompletionQueue());
   if (config.port) AddListeningPort(*config.port);
 }
@@ -132,6 +173,18 @@ void Server::Impl::AddService(ServiceBase& service,
 
   service_workers_.push_back(service.MakeWorker(impl::ServiceSettings{
       queue_->GetQueue(), task_processor, statistics_storage_}));
+}
+
+std::vector<std::string_view> Server::Impl::GetServiceNames() const {
+  std::vector<std::string_view> ret;
+
+  std::lock_guard lock(configuration_mutex_);
+
+  ret.reserve(service_workers_.size());
+  for (const auto& worker : service_workers_) {
+    ret.push_back(worker->GetMetadata().service_full_name);
+  }
+  return ret;
 }
 
 void Server::Impl::WithServerBuilder(SetupHook&& setup) {
@@ -216,13 +269,17 @@ void Server::Impl::DoStart() {
 
 Server::Server(ServerConfig&& config,
                utils::statistics::Storage& statistics_storage)
-    : impl_(std::move(config), statistics_storage) {}
+    : impl_(std::make_unique<Impl>(std::move(config), statistics_storage)) {}
 
 Server::~Server() = default;
 
 void Server::AddService(ServiceBase& service,
                         engine::TaskProcessor& task_processor) {
   impl_->AddService(service, task_processor);
+}
+
+std::vector<std::string_view> Server::GetServiceNames() const {
+  return impl_->GetServiceNames();
 }
 
 void Server::WithServerBuilder(SetupHook&& setup) {

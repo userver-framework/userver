@@ -15,7 +15,6 @@ namespace storages::postgres::detail {
 
 namespace {
 
-constexpr std::size_t kRecentErrorThreshold = 2;
 constexpr std::chrono::seconds kRecentErrorPeriod{15};
 
 // Part of max_pool that can be cancelled at once
@@ -126,26 +125,44 @@ void ConnectionPool::Init(InitMode mode) {
   LOG_INFO() << "Creating " << settings->min_size
              << " PostgreSQL connections to " << DsnCutPassword(dsn_)
              << (mode == InitMode::kAsync ? " async" : " sync");
+
   if (mode == InitMode::kAsync) {
-    for (size_t i = 0; i < settings->min_size; ++i) {
+    for (std::size_t i = 0; i < settings->min_size; ++i) {
       Connect(SharedSizeGuard{size_}).Detach();
     }
-  } else {
-    std::vector<engine::TaskWithResult<bool>> tasks;
-    tasks.reserve(settings->min_size);
-    for (size_t i = 0; i < settings->min_size; ++i) {
-      tasks.push_back(Connect(SharedSizeGuard{size_}));
-    }
-    for (auto& t : tasks) {
-      try {
-        t.Get();
-      } catch (const std::exception& e) {
-        LOG_ERROR() << "Failed to establish connection with PostgreSQL server "
-                    << DsnCutPassword(dsn_) << ": " << e;
+    LOG_INFO() << "Pool initialization is ongoing";
+    StartMaintainTask();
+    return;
+  }
+
+  std::vector<engine::TaskWithResult<bool>> tasks;
+  tasks.reserve(settings->min_size);
+  for (std::size_t i = size_->load(); i < settings->min_size; ++i) {
+    tasks.push_back(Connect(SharedSizeGuard{size_}));
+  }
+  for (auto& t : tasks) {
+    try {
+      const auto success = t.Get();
+      if (!success) {
+        LOG_ERROR() << "Failed to establish connection to PostgreSQL server";
       }
+    } catch (const std::exception& e) {
+      LOG_ERROR() << "Failed to establish connection with PostgreSQL server "
+                  << DsnCutPassword(dsn_) << ": " << e;
     }
   }
-  LOG_INFO() << "Pool initialized";
+
+  const auto connections_count = size_->load();
+  if (connections_count < settings->min_size) {
+    LOG_WARNING() << "Pool is poorly initialized, "
+                  << settings->min_size - connections_count
+                  << " connections have not been opened, " << connections_count
+                  << " connections are ready to use";
+  } else {
+    LOG_INFO() << "Pool initialized, " << connections_count
+               << " connections are ready to use";
+  }
+
   StartMaintainTask();
 }
 
@@ -322,6 +339,16 @@ void ConnectionPool::SetSettings(const PoolSettings& settings) {
   settings_.Assign(settings);
 }
 
+void ConnectionPool::SetConnectionSettings(const ConnectionSettings& settings) {
+  auto writer = conn_settings_.StartWrite();
+  if (*writer != settings) {
+    const auto old_version = writer->version;
+    *writer = settings;
+    writer->version = old_version + 1;
+    writer.Commit();
+  }
+}
+
 void ConnectionPool::SetStatementMetricsSettings(
     const StatementMetricsSettings& settings) {
   sts_.SetSettings(settings);
@@ -340,12 +367,13 @@ engine::TaskWithResult<bool> ConnectionPool::Connect(
       return false;
     }
     const uint32_t conn_id = ++shared_this->stats_.connection.open_total;
+    auto conn_settings = shared_this->conn_settings_.Read();
     std::unique_ptr<Connection> connection;
     Stopwatch st{shared_this->stats_.connection_percentile};
     try {
       connection = Connection::Connect(
           shared_this->dsn_, shared_this->resolver_,
-          shared_this->bg_task_processor_, conn_id, shared_this->conn_settings_,
+          shared_this->bg_task_processor_, conn_id, *conn_settings,
           shared_this->default_cmd_ctls_, shared_this->testsuite_pg_ctl_,
           shared_this->ei_settings_, std::move(sg));
     } catch (const ConnectionTimeoutError&) {
@@ -380,11 +408,13 @@ engine::TaskWithResult<bool> ConnectionPool::Connect(
 void ConnectionPool::TryCreateConnectionAsync() {
   SharedSizeGuard sg(size_);
   auto settings = settings_.Read();
+  auto conn_settings = conn_settings_.Read();
+
   if (sg.GetValue() <= settings->max_size) {
     // Checking errors is more expensive than incrementing an atomic, so we
     // check it only if we can start a new connection.
     if (recent_conn_errors_.GetStatsForPeriod(kRecentErrorPeriod, true) <
-        kRecentErrorThreshold) {
+        conn_settings->recent_errors_threshold) {
       // Create a new connection
       Connect(std::move(sg)).Detach();
     } else {
@@ -404,15 +434,17 @@ void ConnectionPool::CheckMinPoolSizeUnderflow() {
 }
 
 void ConnectionPool::Push(Connection* connection) {
-  if (queue_.push(connection)) {
+  auto conn_settings = conn_settings_.Read();
+  if (connection->GetSettings().version < conn_settings->version) {
+    DropOutdatedConnection(connection);
+  } else if (queue_.push(connection)) {
     conn_available_.NotifyOne();
-    return;
+  } else {
+    // TODO Reflect this as a statistics error
+    LOG_LIMITED_WARNING()
+        << "Couldn't push connection back to the pool. Deleting...";
+    DeleteConnection(connection);
   }
-
-  // TODO Reflect this as a statistics error
-  LOG_LIMITED_WARNING()
-      << "Couldn't push connection back to the pool. Deleting...";
-  DeleteConnection(connection);
 }
 
 Connection* ConnectionPool::Pop(engine::Deadline deadline) {
@@ -426,7 +458,12 @@ Connection* ConnectionPool::Pop(engine::Deadline deadline) {
   }
   Stopwatch st{stats_.acquire_percentile};
   Connection* connection = nullptr;
-  if (queue_.pop(connection)) {
+  auto conn_settings = conn_settings_.Read();
+  while (queue_.pop(connection)) {
+    if (connection->GetSettings().version < conn_settings->version) {
+      DropOutdatedConnection(connection);
+      continue;
+    }
     return connection;
   }
 
@@ -478,9 +515,19 @@ void ConnectionPool::DeleteBrokenConnection(Connection* connection) {
   DeleteConnection(connection);
 }
 
+void ConnectionPool::DropOutdatedConnection(Connection* connection) {
+  LOG_LIMITED_WARNING() << "Dropping connection with outdated settings";
+  DeleteConnection(connection);
+}
+
 Connection* ConnectionPool::AcquireImmediate() {
   Connection* conn = nullptr;
-  if (queue_.pop(conn)) {
+  auto conn_settings = conn_settings_.Read();
+  while (queue_.pop(conn)) {
+    if (conn->GetSettings().version < conn_settings->version) {
+      DropOutdatedConnection(conn);
+      continue;
+    }
     ++stats_.connection.used;
     return conn;
   }

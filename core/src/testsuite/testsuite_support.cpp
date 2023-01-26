@@ -20,6 +20,16 @@ testsuite::CacheControl::PeriodicUpdatesMode ParsePeriodicUpdatesMode(
                        : PeriodicUpdatesMode::kDisabled;
 }
 
+testsuite::DumpControl ParseDumpControl(
+    const components::ComponentConfig& config) {
+  using PeriodicsMode = testsuite::DumpControl::PeriodicsMode;
+  const auto periodics_mode =
+      config["testsuite-periodic-dumps-enabled"].As<bool>(true)
+          ? PeriodicsMode::kEnabled
+          : PeriodicsMode::kDisabled;
+  return testsuite::DumpControl{periodics_mode};
+}
+
 testsuite::PostgresControl ParsePostgresControl(
     const components::ComponentConfig& config) {
   return {
@@ -57,6 +67,7 @@ TestsuiteSupport::TestsuiteSupport(const components::ComponentConfig& config,
     : cache_control_(
           ParsePeriodicUpdatesMode(config["testsuite-periodic-update-enabled"]
                                        .As<std::optional<bool>>())),
+      dump_control_(ParseDumpControl(config)),
       postgres_control_(ParsePostgresControl(config)),
       redis_control_(ParseRedisControl(config)),
       testsuite_tasks_(ParseTestsuiteTasks(config, context)) {}
@@ -95,6 +106,10 @@ testsuite::TestsuiteTasks& TestsuiteSupport::GetTestsuiteTasks() {
   return *testsuite_tasks_;
 }
 
+testsuite::HttpAllowedUrlsExtra& TestsuiteSupport::GetHttpAllowedUrlsExtra() {
+  return http_allowed_urls_extra_;
+}
+
 yaml_config::Schema TestsuiteSupport::GetStaticConfigSchema() {
   return yaml_config::MergeSchemas<impl::ComponentBase>(R"(
 type: object
@@ -104,6 +119,10 @@ properties:
     testsuite-periodic-update-enabled:
         type: boolean
         description: whether caches update periodically
+        defaultDescription: true
+    testsuite-periodic-dumps-enabled:
+        type: boolean
+        description: whether dumpable components write dumps periodically
         defaultDescription: true
     testsuite-pg-execute-timeout:
         type: string

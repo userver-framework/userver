@@ -50,7 +50,7 @@ inline const storages::postgres::ConnectionSettings kPipelineEnabled{
     storages::postgres::ConnectionSettings::kUserTypesEnabled,
     storages::postgres::ConnectionSettings::kCheckUnused,
     storages::postgres::kDefaultMaxPreparedCacheSize,
-    storages::postgres::ConnectionSettings::kPipelineEnabled,
+    storages::postgres::PipelineMode::kEnabled,
 };
 
 engine::Deadline MakeDeadline();
@@ -81,13 +81,17 @@ class PostgreSQLBase : public ::testing::Test {
   logging::LoggerPtr old_;
 };
 
+// NOLINTNEXTLINE(fuchsia-multiple-inheritance)
 class PostgreConnection : public PostgreSQLBase,
                           public ::testing::WithParamInterface<
                               storages::postgres::ConnectionSettings> {
  protected:
   PostgreConnection();
-  ~PostgreConnection();
+  ~PostgreConnection() override;
 
+  storages::postgres::detail::ConnectionPtr& GetConn() { return conn; }
+
+ private:
   storages::postgres::detail::ConnectionPtr conn;
 };
 

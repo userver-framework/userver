@@ -4,19 +4,19 @@
 #include <memory>
 #include <string>
 
-#include <userver/server/request/request_base.hpp>
-
 #include <server/http/request_handler_base.hpp>
+#include <server/net/connection_config.hpp>
 #include <server/net/stats.hpp>
 #include <server/request/request_parser.hpp>
+
+#include <userver/concurrent/queue.hpp>
 #include <userver/engine/io/socket.hpp>
-#include <userver/engine/mpsc_queue.hpp>
 #include <userver/engine/single_consumer_event.hpp>
 #include <userver/engine/task/task.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/engine/task/task_with_result.hpp>
-
-#include "connection_config.hpp"
+#include <userver/server/request/request_base.hpp>
+#include <userver/server/request/request_config.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -32,6 +32,7 @@ class Connection final : public std::enable_shared_from_this<Connection> {
 
   static std::shared_ptr<Connection> Create(
       engine::TaskProcessor& task_processor, const ConnectionConfig& config,
+      const request::HttpRequestConfig& handler_defaults_config,
       engine::io::Socket peer_socket,
       const http::RequestHandlerBase& request_handler,
       std::shared_ptr<Stats> stats,
@@ -39,7 +40,9 @@ class Connection final : public std::enable_shared_from_this<Connection> {
 
   // Use Create instead of this constructor
   Connection(engine::TaskProcessor& task_processor,
-             const ConnectionConfig& config, engine::io::Socket peer_socket,
+             const ConnectionConfig& config,
+             const request::HttpRequestConfig& handler_defaults_config,
+             engine::io::Socket peer_socket,
              const http::RequestHandlerBase& request_handler,
              std::shared_ptr<Stats> stats,
              request::ResponseDataAccounter& data_accounter, EmplaceEnabler);
@@ -55,7 +58,7 @@ class Connection final : public std::enable_shared_from_this<Connection> {
  private:
   using QueueItem = std::pair<std::shared_ptr<request::RequestBase>,
                               engine::TaskWithResult<void>>;
-  using Queue = engine::MpscQueue<std::unique_ptr<QueueItem>>;
+  using Queue = concurrent::SpscQueue<QueueItem>;
 
   void Shutdown() noexcept;
 
@@ -71,6 +74,7 @@ class Connection final : public std::enable_shared_from_this<Connection> {
 
   engine::TaskProcessor& task_processor_;
   const ConnectionConfig& config_;
+  const request::HttpRequestConfig& handler_defaults_config_;
   engine::io::Socket peer_socket_;
   const http::RequestHandlerBase& request_handler_;
   const std::shared_ptr<Stats> stats_;

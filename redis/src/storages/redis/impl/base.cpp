@@ -4,6 +4,7 @@
 #include <sstream>
 #include <unordered_map>
 
+#include <userver/logging/log_helper.hpp>
 #include <userver/utils/text.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -96,32 +97,52 @@ void PutArg(CmdArgs::CmdArgsArray& args_,
   }
 }
 
-std::string CmdArgs::ToString() const {
-  if (args.empty()) return {};
-  std::ostringstream os;
-  if (args.size() > 1) os << "[";
+logging::LogHelper& operator<<(logging::LogHelper& os, const CmdArgs& v) {
+  constexpr std::size_t kArgSizeLimit = 1024;
+
+  if (v.args.size() > 1) os << "[";
   bool first = true;
-  for (const auto& arg_array : args) {
+  for (const auto& arg_array : v.args) {
     if (first)
       first = false;
     else
       os << ", ";
+
+    if (os.IsLimitReached()) {
+      os << "...";
+      break;
+    }
+
     os << "\"";
     bool first_arg = true;
     for (const auto& arg : arg_array) {
       if (first_arg)
         first_arg = false;
-      else
+      else {
         os << " ";
-      if (utils::text::IsUtf8(arg))
-        os << arg;
-      else
+        if (os.IsLimitReached()) {
+          os << "...";
+          break;
+        }
+      }
+
+      if (utils::text::IsUtf8(arg)) {
+        if (arg.size() <= kArgSizeLimit) {
+          os << arg;
+        } else {
+          std::string_view view{arg};
+          view = view.substr(0, kArgSizeLimit);
+          utils::text::utf8::TrimViewTruncatedEnding(view);
+          os << view << "<...>";
+        }
+      } else {
         os << "<bin:" << arg.size() << ">";
+      }
     }
     os << "\"";
   }
-  if (args.size() > 1) os << "]";
-  return os.str();
+  if (v.args.size() > 1) os << "]";
+  return os;
 }
 
 CommandControl::CommandControl(std::chrono::milliseconds timeout_single,

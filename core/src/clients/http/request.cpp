@@ -4,21 +4,20 @@
 #include <cstdlib>
 #include <map>
 #include <string>
+#include <string_view>
 #include <system_error>
-#include <unordered_map>
-
-#include <boost/algorithm/string/join.hpp>
-#include <boost/range/adaptor/map.hpp>
 
 #include <userver/clients/http/error.hpp>
 #include <userver/clients/http/form.hpp>
 #include <userver/clients/http/response_future.hpp>
+#include <userver/clients/http/streamed_response.hpp>
 #include <userver/engine/future.hpp>
 #include <userver/http/common_headers.hpp>
 #include <userver/http/url.hpp>
 #include <userver/tracing/span.hpp>
 #include <userver/tracing/tags.hpp>
 #include <userver/utils/str_icase.hpp>
+#include <userver/utils/trivial_map.hpp>
 
 #include <clients/http/destination_statistics.hpp>
 #include <clients/http/easy_wrapper.hpp>
@@ -42,24 +41,7 @@ constexpr long kEBBaseTime = 25;
 constexpr std::string_view kHeaderExpect = "Expect";
 
 std::string ToString(HttpMethod method) {
-  switch (method) {
-    case HttpMethod::kDelete:
-      return "DELETE";
-    case HttpMethod::kGet:
-      return "GET";
-    case HttpMethod::kHead:
-      return "HEAD";
-    case HttpMethod::kPost:
-      return "POST";
-    case HttpMethod::kPut:
-      return "PUT";
-    case HttpMethod::kPatch:
-      return "PATCH";
-    case HttpMethod::kOptions:
-      return "OPTIONS";
-  }
-
-  UINVARIANT(false, "Unexpected HTTP method");
+  return std::string{ToStringView(method)};
 }
 
 curl::easy::http_version_t ToNative(HttpVersion version) {
@@ -81,17 +63,18 @@ curl::easy::http_version_t ToNative(HttpVersion version) {
   UINVARIANT(false, "Unexpected HTTP version");
 }
 
-const std::unordered_map<std::string, ProxyAuthType, utils::StrIcaseHash,
-                         utils::StrIcaseEqual>
-    kAuthTypeMap = {{"basic", ProxyAuthType::kBasic},
-                    {"digest", ProxyAuthType::kDigest},
-                    {"digest_ie", ProxyAuthType::kDigestIE},
-                    {"bearer", ProxyAuthType::kBearer},
-                    {"negotiate", ProxyAuthType::kNegotiate},
-                    {"ntlm", ProxyAuthType::kNtlm},
-                    {"ntlm_wb", ProxyAuthType::kNtlmWb},
-                    {"any", ProxyAuthType::kAny},
-                    {"any_safe", ProxyAuthType::kAnySafe}};
+constexpr utils::TrivialBiMap kAuthTypeMap = [](auto selector) {
+  return selector()
+      .Case("basic", ProxyAuthType::kBasic)
+      .Case("digest", ProxyAuthType::kDigest)
+      .Case("digest_ie", ProxyAuthType::kDigestIE)
+      .Case("bearer", ProxyAuthType::kBearer)
+      .Case("negotiate", ProxyAuthType::kNegotiate)
+      .Case("ntlm", ProxyAuthType::kNtlm)
+      .Case("ntlm_wb", ProxyAuthType::kNtlmWb)
+      .Case("any", ProxyAuthType::kAny)
+      .Case("any_safe", ProxyAuthType::kAnySafe);
+};
 
 curl::easy::proxyauth_t ProxyAuthTypeToNative(ProxyAuthType value) {
   switch (value) {
@@ -156,17 +139,68 @@ void SetHeaders(curl::easy& easy, const Range& headers_range) {
   }
 }
 
+template <class Range>
+void SetCookies(curl::easy& easy, const Range& cookies_range) {
+  std::string cookie_str;
+  for (const auto& [name, value] : cookies_range) {
+    if (!cookie_str.empty()) cookie_str += "; ";
+    cookie_str += name;
+    cookie_str += '=';
+    cookie_str += value;
+  }
+  easy.set_cookie(cookie_str);
+}
+
+template <class Range>
+void SetProxyHeaders(curl::easy& easy, const Range& headers_range) {
+  for (const auto& [name, value] : headers_range) {
+    easy.add_proxy_header(name, value);
+  }
+}
+
+bool IsAllowedSchemaInUrl(std::string_view url) {
+  static constexpr std::string_view kAllowedSchemas[] = {"http://", "https://"};
+
+  for (std::string_view allowed_schema : kAllowedSchemas) {
+    if (utils::StrIcaseEqual{}(allowed_schema,
+                               url.substr(0, allowed_schema.size()))) {
+      return true;
+    }
+  }
+  return false;
+}
+
 }  // namespace
 
-ProxyAuthType ProxyAuthTypeFromString(const std::string& auth_name) {
-  auto it = kAuthTypeMap.find(auth_name);
-  if (it == kAuthTypeMap.end()) {
-    throw std::runtime_error(fmt::format(
-        "Unknown proxy auth type '{}' (must be one of '{}')", auth_name,
-        boost::algorithm::join(kAuthTypeMap | boost::adaptors::map_keys,
-                               "', '")));
+std::string_view ToStringView(HttpMethod method) {
+  switch (method) {
+    case HttpMethod::kDelete:
+      return "DELETE";
+    case HttpMethod::kGet:
+      return "GET";
+    case HttpMethod::kHead:
+      return "HEAD";
+    case HttpMethod::kPost:
+      return "POST";
+    case HttpMethod::kPut:
+      return "PUT";
+    case HttpMethod::kPatch:
+      return "PATCH";
+    case HttpMethod::kOptions:
+      return "OPTIONS";
   }
-  return it->second;
+
+  UINVARIANT(false, "Unexpected HTTP method");
+}
+
+ProxyAuthType ProxyAuthTypeFromString(const std::string& auth_name) {
+  auto value = kAuthTypeMap.TryFindICase(auth_name);
+  if (!value) {
+    throw std::runtime_error(
+        fmt::format("Unknown proxy auth type '{}' (must be one of {})",
+                    auth_name, kAuthTypeMap.DescribeFirst()));
+  }
+  return *value;
 }
 
 // Request implementation
@@ -177,7 +211,7 @@ Request::Request(std::shared_ptr<impl::EasyWrapper>&& wrapper,
                  clients::dns::Resolver* resolver)
     : pimpl_(std::make_shared<RequestState>(
           std::move(wrapper), std::move(req_stats), dest_stats, resolver)) {
-  LOG_DEBUG() << "Request::Request()";
+  LOG_TRACE() << "Request::Request()";
   // default behavior follow redirects and verify ssl
   pimpl_->follow_redirects(true);
   pimpl_->verify(true);
@@ -195,9 +229,22 @@ ResponseFuture Request::async_perform() {
           pimpl_};
 }
 
+StreamedResponse Request::async_perform_stream_body(
+    const std::shared_ptr<concurrent::SpscQueue<std::string>>& queue) {
+  LOG_DEBUG() << "Starting an async HTTP request with streamed response body";
+  pimpl_->async_perform_stream(queue);
+  auto deadline = engine::Deadline::FromDuration(
+      std::chrono::milliseconds(pimpl_->effective_timeout()));
+  return StreamedResponse(queue->GetConsumer(), deadline, pimpl_);
+}
+
 std::shared_ptr<Response> Request::perform() { return async_perform().Get(); }
 
 std::shared_ptr<Request> Request::url(const std::string& url) {
+  if (!IsAllowedSchemaInUrl(url)) {
+    throw BadArgumentException(curl::errc::EasyErrorCode::kUnsupportedProtocol,
+                               "Bad URL", url, {});
+  }
   std::error_code ec;
   pimpl_->easy().set_url(url, ec);
   if (ec) throw BadArgumentException(ec, "Bad URL", url, {});
@@ -288,6 +335,18 @@ std::shared_ptr<Request> Request::headers(
   return shared_from_this();
 }
 
+std::shared_ptr<Request> Request::proxy_headers(const Headers& headers) {
+  SetProxyHeaders(pimpl_->easy(), headers);
+  return shared_from_this();
+}
+
+std::shared_ptr<Request> Request::proxy_headers(
+    std::initializer_list<std::pair<std::string_view, std::string_view>>
+        headers) {
+  SetProxyHeaders(pimpl_->easy(), headers);
+  return shared_from_this();
+}
+
 std::shared_ptr<Request> Request::user_agent(const std::string& value) {
   pimpl_->easy().set_user_agent(value.c_str());
   return shared_from_this();
@@ -304,14 +363,13 @@ std::shared_ptr<Request> Request::proxy_auth_type(ProxyAuthType value) {
 }
 
 std::shared_ptr<Request> Request::cookies(const Cookies& cookies) {
-  std::string cookie_str;
-  for (const auto& [name, value] : cookies) {
-    if (!cookie_str.empty()) cookie_str += "; ";
-    cookie_str += name;
-    cookie_str += '=';
-    cookie_str += value;
-  }
-  pimpl_->easy().set_cookie(cookie_str);
+  SetCookies(pimpl_->easy(), cookies);
+  return shared_from_this();
+}
+
+std::shared_ptr<Request> Request::cookies(
+    const std::unordered_map<std::string, std::string>& cookies) {
+  SetCookies(pimpl_->easy(), cookies);
   return shared_from_this();
 }
 
@@ -406,6 +464,12 @@ std::shared_ptr<Request> Request::SetDestinationMetricName(
 std::shared_ptr<Request> Request::SetTestsuiteConfig(
     const std::shared_ptr<const TestsuiteConfig>& config) {
   pimpl_->SetTestsuiteConfig(config);
+  return shared_from_this();
+}
+
+std::shared_ptr<Request> Request::SetAllowedUrlsExtra(
+    const std::vector<std::string>& urls) {
+  pimpl_->SetAllowedUrlsExtra(urls);
   return shared_from_this();
 }
 

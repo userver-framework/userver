@@ -1,9 +1,11 @@
 #include <userver/utest/utest.hpp>
 
 #include <arpa/inet.h>
+#include <gtest/gtest.h>
 #include <sys/socket.h>
 #include <unistd.h>
 
+#include <array>
 #include <cerrno>
 #include <cstdlib>
 #include <string_view>
@@ -15,7 +17,7 @@
 #include <userver/engine/mutex.hpp>
 #include <userver/engine/single_consumer_event.hpp>
 #include <userver/engine/sleep.hpp>
-#include <userver/utest/net_listener.hpp>
+#include <userver/internal/net/net_listener.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -23,8 +25,8 @@ namespace {
 
 namespace io = engine::io;
 using Deadline = engine::Deadline;
-using TcpListener = utest::TcpListener;
-using UdpListener = utest::UdpListener;
+using TcpListener = internal::net::TcpListener;
+using UdpListener = internal::net::UdpListener;
 
 }  // namespace
 
@@ -35,9 +37,9 @@ UTEST(Socket, ConnectFail) {
   auto* sa = addr.As<sockaddr_in6>();
   sa->sin6_family = AF_INET6;
   sa->sin6_addr = in6addr_loopback;
-  sa->sin6_port =
-      htons(23);  // if you have telnet running, I have a few questions...
-
+  // if you have telnet running, I have a few questions...
+  // NOLINTNEXTLINE(hicpp-no-assembler,readability-isolate-declaration)
+  sa->sin6_port = htons(23);
   io::Socket telnet_socket{addr.Domain(), io::SocketType::kStream};
   try {
     telnet_socket.Connect(addr, test_deadline);
@@ -103,10 +105,10 @@ UTEST(Socket, ListenConnect) {
     EXPECT_EQ('1', c);
   });
 
-  io::Socket first_client{listener.addr.Domain(), listener.type};
+  io::Socket first_client{listener.addr.Domain(), TcpListener::type};
   EXPECT_TRUE(first_client.IsValid());
   first_client.Connect(listener.addr, test_deadline);
-  io::Socket second_client{listener.addr.Domain(), listener.type};
+  io::Socket second_client{listener.addr.Domain(), TcpListener::type};
   EXPECT_TRUE(second_client.IsValid());
   second_client.Connect(listener.addr, test_deadline);
 
@@ -130,14 +132,14 @@ UTEST(Socket, ReleaseReuse) {
 
   TcpListener listener;
 
-  io::Socket client{listener.addr.Domain(), listener.type};
+  io::Socket client{listener.addr.Domain(), TcpListener::type};
   client.Connect(listener.addr, test_deadline);
   const int old_fd = client.Fd();
 
   int fd = -1;
   while (fd != old_fd) {
     EXPECT_EQ(0, ::close(std::move(client).Release()));
-    client = engine::io::Socket{listener.addr.Domain(), listener.type};
+    client = engine::io::Socket{listener.addr.Domain(), TcpListener::type};
     UASSERT_NO_THROW(client.Connect(listener.addr, test_deadline));
     fd = client.Fd();
   }
@@ -148,6 +150,67 @@ UTEST(Socket, Closed) {
   EXPECT_FALSE(closed_socket.IsValid());
   EXPECT_EQ(io::kInvalidFd, closed_socket.Fd());
   EXPECT_EQ(io::kInvalidFd, std::move(closed_socket).Release());
+}
+
+UTEST(Socket, SendAllVector) {
+  const auto deadline = Deadline::FromDuration(utest::kMaxTestWaitTime);
+
+  TcpListener listener;
+  EXPECT_EQ("::1", listener.socket.Getsockname().PrimaryAddressString());
+  EXPECT_EQ(listener.port, listener.socket.Getsockname().Port());
+
+  size_t bytes_read = 0;
+  auto sockets = listener.MakeSocketPair(deadline);
+  auto listen_task = engine::AsyncNoSpan([&sockets, &deadline, &bytes_read] {
+    std::array<char, 18> buf = {};
+    bytes_read = sockets.first.ReadSome(buf.data(), buf.size(), deadline);
+    EXPECT_EQ(std::string(buf.data(), bytes_read), "datachunk 1chunk 2");
+  });
+
+  /// [send vector data in socket]
+  const auto bytes_sent = sockets.second.SendAll(
+      {{"data", 4}, {"chunk 1", 7}, {"chunk 2", 7}}, deadline);
+  /// [send vector data in socket]
+
+  listen_task.Get();
+  EXPECT_EQ(bytes_sent, bytes_read);
+}
+
+UTEST(Socket, SendAllVectorHeap) {
+  const auto deadline = Deadline::FromDuration(utest::kMaxTestWaitTime);
+
+  TcpListener listener;
+  EXPECT_EQ("::1", listener.socket.Getsockname().PrimaryAddressString());
+  EXPECT_EQ(listener.port, listener.socket.Getsockname().Port());
+
+  size_t bytes_read = 0;
+  auto sockets = listener.MakeSocketPair(deadline);
+  auto listen_task = engine::AsyncNoSpan([&sockets, &deadline, &bytes_read] {
+    std::array<char, 141> buf{};
+    bytes_read = sockets.first.ReadSome(buf.data(), buf.size(), deadline);
+    EXPECT_EQ(std::string(buf.data(), bytes_read),
+              "qqwqweqwerqwertqwertyqazqqwqweqwerqwertqwertyqazqqwqweqwerqwertq"
+              "wertyqazqqwqweqwerqwertqwertyqazqqwqweqwerqwertqwertyqazqqwqweqw"
+              "erqwert");
+  });
+
+  const auto bytes_sent = sockets.second.SendAll(
+      {
+          {"q", 1},      {"qw", 2},     {"qwe", 3},    {"qwer", 4},
+          {"qwert", 5},  {"qwerty", 6}, {"qaz", 3},    {"q", 1},
+          {"qw", 2},     {"qwe", 3},    {"qwer", 4},   {"qwert", 5},
+          {"qwerty", 6}, {"qaz", 3},    {"q", 1},      {"qw", 2},
+          {"qwe", 3},    {"qwer", 4},   {"qwert", 5},  {"qwerty", 6},
+          {"qaz", 3},    {"q", 1},      {"qw", 2},     {"qwe", 3},
+          {"qwer", 4},   {"qwert", 5},  {"qwerty", 6}, {"qaz", 3},
+          {"q", 1},      {"qw", 2},     {"qwe", 3},    {"qwer", 4},
+          {"qwert", 5},  {"qwerty", 6}, {"qaz", 3},    {"q", 1},
+          {"qw", 2},     {"qwe", 3},    {"qwer", 4},   {"qwert", 5},
+      },
+      deadline);
+
+  listen_task.Get();
+  EXPECT_EQ(bytes_sent, bytes_read);
 }
 
 UTEST(Socket, Cancel) {
@@ -202,7 +265,7 @@ UTEST(Socket, ErrorPeername) {
   const auto test_deadline = Deadline::FromDuration(utest::kMaxTestWaitTime);
 
   TcpListener listener;
-  engine::io::Socket client{listener.addr.Domain(), listener.type};
+  engine::io::Socket client{listener.addr.Domain(), TcpListener::type};
   client.Connect(listener.addr, test_deadline);
   listener.socket.Accept(test_deadline).Close();
 
@@ -232,7 +295,8 @@ UTEST(Socket, DomainMismatch) {
 
   UdpListener listener;
 
-  engine::io::Socket unix_socket{engine::io::AddrDomain::kUnix, listener.type};
+  engine::io::Socket unix_socket{engine::io::AddrDomain::kUnix,
+                                 UdpListener::type};
 
   UEXPECT_THROW(unix_socket.Connect(listener.addr, test_deadline),
                 io::AddrException);
@@ -268,7 +332,7 @@ UTEST(Socket, DgramBound) {
         1, server.SendAllTo(server_recvfrom.src_addr, "4", 1, test_deadline));
   });
 
-  engine::io::Socket client{listener.addr.Domain(), listener.type};
+  engine::io::Socket client{listener.addr.Domain(), UdpListener::type};
   client.Connect(listener.addr, test_deadline);
   client_port = client.Getsockname().Port();
   EXPECT_EQ(1, client.SendAll("1", 1, test_deadline));
@@ -309,7 +373,7 @@ UTEST(Socket, DgramUnbound) {
         1, server.SendAllTo(server_recvfrom.src_addr, "4", 1, test_deadline));
   });
 
-  engine::io::Socket client{listener.addr.Domain(), listener.type};
+  engine::io::Socket client{listener.addr.Domain(), UdpListener::type};
   UEXPECT_THROW(
       [[maybe_unused]] auto ret = client.SendAll("1", 1, test_deadline),
       io::IoSystemError);
@@ -324,6 +388,56 @@ UTEST(Socket, DgramUnbound) {
   EXPECT_EQ(fmt::to_string(listener.addr),
             fmt::to_string(client_recvfrom.src_addr));
   listen_task.Get();
+}
+
+UTEST_MT(Socket, ConcurrentReadWriteUdp, 2) {
+  const auto deadline = Deadline::FromDuration(utest::kMaxTestWaitTime);
+
+  UdpListener listener;
+  EXPECT_EQ("::1", listener.socket.Getsockname().PrimaryAddressString());
+  EXPECT_EQ(listener.port, listener.socket.Getsockname().Port());
+
+  /// [send self concurrent]
+  // Sending and receiving data from self on the same socket
+  engine::io::Socket& socket = listener.socket;
+  auto read_task = engine::AsyncNoSpan([&socket, &deadline] {
+    for (char expected_data = 0; expected_data <= 100; ++expected_data) {
+      char c = 0;
+      const auto recvfrom = socket.RecvSomeFrom(&c, 1, deadline);
+      EXPECT_EQ(1, recvfrom.bytes_received);
+      EXPECT_EQ(expected_data, c);
+    }
+  });
+
+  const auto& addr = socket.Getsockname();
+  for (char send_data = 0; send_data <= 100; ++send_data) {
+    const auto bytes_sent = socket.SendAllTo(addr, &send_data, 1, deadline);
+    EXPECT_EQ(bytes_sent, 1);
+  }
+
+  read_task.Get();
+  /// [send self concurrent]
+}
+
+UTEST(Socket, WriteALot) {
+  const auto deadline = Deadline::FromDuration(utest::kMaxTestWaitTime);
+
+  UdpListener listener;
+  EXPECT_EQ("::1", listener.socket.Getsockname().PrimaryAddressString());
+  EXPECT_EQ(listener.port, listener.socket.Getsockname().Port());
+  const std::size_t kPyaloadSize = 900;
+  const std::size_t kRepetitions = 1000;
+
+  std::string data(kPyaloadSize, '!');
+  engine::io::Socket& socket = listener.socket;
+  const auto& addr = socket.Getsockname();
+
+  // Attempt to provoke EWOULDBLOCK on send
+  for (std::size_t i = 0; i < kRepetitions; ++i) {
+    const auto bytes_sent =
+        socket.SendAllTo(addr, data.data(), kPyaloadSize, deadline);
+    EXPECT_EQ(bytes_sent, kPyaloadSize);
+  }
 }
 
 USERVER_NAMESPACE_END

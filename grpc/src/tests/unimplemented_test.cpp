@@ -3,12 +3,10 @@
 #include <userver/ugrpc/client/exceptions.hpp>
 
 #include <tests/service_fixture_test.hpp>
-#include "unit_test_client.usrv.pb.hpp"
-#include "unit_test_service.usrv.pb.hpp"
+#include <tests/unit_test_client.usrv.pb.hpp>
+#include <tests/unit_test_service.usrv.pb.hpp>
 
 USERVER_NAMESPACE_BEGIN
-
-using namespace sample::ugrpc;
 
 namespace {
 
@@ -29,14 +27,14 @@ class GrpcServerAllUnimplementedTest : public GrpcServiceFixture {
 };
 
 UTEST_F(GrpcServerAllUnimplementedTest, Unimplemented) {
-  auto client = MakeClient<UnitTestServiceClient>();
-  GreetingRequest out;
+  auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
+  sample::ugrpc::GreetingRequest out;
   out.set_name("userver");
   UEXPECT_THROW(client.SayHello(out, ContextWithDeadline()).Finish(),
                 ugrpc::client::UnimplementedError);
 }
 
-class ChatOnlyService final : public UnitTestServiceBase {
+class ChatOnlyService final : public sample::ugrpc::UnitTestServiceBase {
  public:
   void Chat(ChatCall& call) override { call.Finish(); }
 };
@@ -45,16 +43,16 @@ using GrpcServerSomeUnimplementedTest =
     GrpcServiceFixtureSimple<ChatOnlyService>;
 
 UTEST_F(GrpcServerSomeUnimplementedTest, Implemented) {
-  auto client = MakeClient<UnitTestServiceClient>();
+  auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
   auto call = client.Chat(ContextWithDeadline());
   UEXPECT_NO_THROW(call.WritesDone());
-  StreamGreetingResponse response;
+  sample::ugrpc::StreamGreetingResponse response;
   EXPECT_FALSE(call.Read(response));
 }
 
 UTEST_F(GrpcServerSomeUnimplementedTest, Unimplemented) {
-  auto client = MakeClient<UnitTestServiceClient>();
-  GreetingRequest out;
+  auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
+  sample::ugrpc::GreetingRequest out;
   out.set_name("userver");
   UEXPECT_THROW(client.SayHello(out, ContextWithDeadline()).Finish(),
                 ugrpc::client::UnimplementedError);

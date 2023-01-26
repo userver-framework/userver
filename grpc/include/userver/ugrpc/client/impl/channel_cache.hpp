@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
 #include <memory>
 #include <string>
@@ -10,6 +11,7 @@
 #include <grpcpp/support/channel_arguments.h>
 
 #include <userver/concurrent/variable.hpp>
+#include <userver/utils/fixed_array.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -18,7 +20,8 @@ namespace ugrpc::client::impl {
 class ChannelCache final {
  public:
   ChannelCache(std::shared_ptr<grpc::ChannelCredentials>&& credentials,
-               const grpc::ChannelArguments& channel_args);
+               const grpc::ChannelArguments& channel_args,
+               std::size_t channel_count);
 
   ~ChannelCache();
 
@@ -32,9 +35,10 @@ class ChannelCache final {
   struct CountedChannel final {
     CountedChannel(const std::string& endpoint,
                    const std::shared_ptr<grpc::ChannelCredentials>& credentials,
-                   const grpc::ChannelArguments& channel_args);
+                   const grpc::ChannelArguments& channel_args,
+                   std::size_t count);
 
-    std::shared_ptr<grpc::Channel> channel;
+    utils::FixedArray<std::shared_ptr<grpc::Channel>> channels;
     std::uint64_t counter{0};
   };
 
@@ -42,6 +46,7 @@ class ChannelCache final {
 
   const std::shared_ptr<grpc::ChannelCredentials> credentials_;
   const grpc::ChannelArguments channel_args_;
+  const std::size_t channel_count_;
   concurrent::Variable<Map> channels_;
 };
 
@@ -57,7 +62,10 @@ class ChannelCache::Token final {
   Token& operator=(Token&&) noexcept;
   ~Token();
 
-  const std::shared_ptr<grpc::Channel>& GetChannel() const noexcept;
+  std::size_t GetChannelCount() const noexcept;
+
+  const std::shared_ptr<grpc::Channel>& GetChannel(std::size_t index) const
+      noexcept;
 
  private:
   ChannelCache* cache_{nullptr};

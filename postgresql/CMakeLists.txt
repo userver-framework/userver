@@ -2,7 +2,6 @@ project(userver-postgresql CXX)
 
 find_package(Boost REQUIRED regex)
 
-
 option(USERVER_FEATURE_PATCH_LIBPQ "Apply patches to the libpq (add portals support)" ON)
 add_library(userver-libpq INTERFACE)
 if (USERVER_FEATURE_PATCH_LIBPQ)
@@ -14,11 +13,16 @@ else()
     PROPERTIES COMPILE_FLAGS -DUSERVER_NO_LIBPQ_PATCHES=1
   )
 
-  find_library(LIBPQ_LIBRARIES NAMES libpq.a libpq.so)
-  if (NOT LIBPQ_LIBRARIES)
-    message(FATAL_ERROR "Failed to find libpq")
+  if (USERVER_CONAN)
+    find_package(PostgreSQL REQUIRED)
+    target_link_libraries(userver-libpq INTERFACE PostgreSQL::PostgreSQL)
+  else()
+    find_library(LIBPQ_LIBRARIES NAMES libpq.a libpq.so)
+    if (NOT LIBPQ_LIBRARIES)
+      message(FATAL_ERROR "Failed to find libpq")
+    endif()
+    target_link_libraries(userver-libpq INTERFACE ${LIBPQ_LIBRARIES})
   endif()
-  target_link_libraries(userver-libpq INTERFACE ${LIBPQ_LIBRARIES})
 endif()
 
 file(GLOB_RECURSE SOURCES
@@ -34,6 +38,11 @@ file(GLOB_RECURSE PG_TEST_SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/*_pgtest.cpp
 )
 list(REMOVE_ITEM SOURCES ${PG_TEST_SOURCES})
+
+file(GLOB_RECURSE PG_FUNCTIONAL_TEST_SOURCES
+  ${CMAKE_CURRENT_SOURCE_DIR}/functional_tests/*
+)
+list(REMOVE_ITEM SOURCES ${PG_FUNCTIONAL_TEST_SOURCES})
 
 file(GLOB_RECURSE BENCH_SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/*_benchmark.cpp
@@ -106,8 +115,6 @@ if (USERVER_IS_THE_ROOT_PROJECT)
       $<TARGET_FILE:${PROJECT_NAME}_pgtest>
       --gtest_output=xml:${CMAKE_BINARY_DIR}/test-results/${PROJECT_NAME}_pgtest.xml
   )
-endif()
 
-# Target with no need to use userver namespace, but includes require userver/
-add_library(yandex-${PROJECT_NAME} INTERFACE)
-target_link_libraries(yandex-${PROJECT_NAME} INTERFACE ${PROJECT_NAME})
+  add_subdirectory(functional_tests)
+endif()

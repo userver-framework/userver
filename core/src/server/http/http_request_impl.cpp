@@ -15,6 +15,10 @@ USERVER_NAMESPACE_BEGIN
 
 namespace {
 
+constexpr size_t kBucketCount = 32;
+
+constexpr size_t kZeroAllocationBucketCount = 0;
+
 std::string EscapeLogString(const std::string& str,
                             const std::vector<uint8_t>& need_escape_map) {
   size_t esc_cnt = 0;
@@ -68,8 +72,18 @@ const std::vector<std::string> kEmptyVector{};
 
 namespace server::http {
 
+// Use hash_function() magic to pass out the same RNG seed among all
+// unordered_maps because we don't need different seeds and want to avoid its
+// overhead.
 HttpRequestImpl::HttpRequestImpl(request::ResponseDataAccounter& data_accounter)
-    : response_(*this, data_accounter) {}
+    : form_data_args_(kZeroAllocationBucketCount,
+                      request_args_.hash_function()),
+      path_args_by_name_index_(kZeroAllocationBucketCount,
+                               request_args_.hash_function()),
+      headers_(kBucketCount,
+               utils::StrIcaseHash(request_args_.hash_function().GetSeed())),
+      cookies_(kZeroAllocationBucketCount, request_args_.hash_function()),
+      response_(*this, data_accounter) {}
 
 HttpRequestImpl::~HttpRequestImpl() = default;
 
@@ -273,15 +287,18 @@ void HttpRequestImpl::SetHttpHandlerStatistics(
 void HttpRequestImpl::WriteAccessLogs(
     const logging::LoggerPtr& logger_access,
     const logging::LoggerPtr& logger_access_tskv,
-    std::chrono::system_clock::time_point tp,
     const std::string& remote_address) const {
+  if (!logger_access && !logger_access_tskv) return;
+
+  const auto tp = utils::datetime::WallCoarseClock::now();
   WriteAccessLog(logger_access, tp, remote_address);
   WriteAccessTskvLog(logger_access_tskv, tp, remote_address);
 }
 
-void HttpRequestImpl::WriteAccessLog(const logging::LoggerPtr& logger_access,
-                                     std::chrono::system_clock::time_point tp,
-                                     const std::string& remote_address) const {
+void HttpRequestImpl::WriteAccessLog(
+    const logging::LoggerPtr& logger_access,
+    utils::datetime::WallCoarseClock::time_point tp,
+    const std::string& remote_address) const {
   if (!logger_access) return;
 
   logger_access->ptr->info(
@@ -298,7 +315,7 @@ void HttpRequestImpl::WriteAccessLog(const logging::LoggerPtr& logger_access,
 
 void HttpRequestImpl::WriteAccessTskvLog(
     const logging::LoggerPtr& logger_access_tskv,
-    std::chrono::system_clock::time_point tp,
+    utils::datetime::WallCoarseClock::time_point tp,
     const std::string& remote_address) const {
   if (!logger_access_tskv) return;
 

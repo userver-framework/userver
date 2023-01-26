@@ -7,11 +7,12 @@
 #include <string>
 #include <unordered_map>
 
+#include <userver/concurrent/queue.hpp>
 #include <userver/engine/single_consumer_event.hpp>
 #include <userver/http/content_type.hpp>
 #include <userver/server/http/http_response_cookie.hpp>
 #include <userver/server/request/response_base.hpp>
-#include <userver/utils/projecting_view.hpp>
+#include <userver/utils/impl/projecting_view.hpp>
 #include <userver/utils/str_icase.hpp>
 
 #include "http_status.hpp"
@@ -22,7 +23,8 @@ namespace server::http {
 
 namespace impl {
 
-void OutputHeader(std::string& os, std::string_view key, std::string_view val);
+void OutputHeader(std::string& header, std::string_view key,
+                  std::string_view val);
 
 }
 
@@ -35,11 +37,11 @@ class HttpResponse final : public request::ResponseBase {
       std::unordered_map<std::string, std::string, utils::StrIcaseHash,
                          utils::StrIcaseEqual>;
 
-  using HeadersMapKeys = decltype(utils::MakeKeysView(HeadersMap()));
+  using HeadersMapKeys = decltype(utils::impl::MakeKeysView(HeadersMap()));
 
-  using CookiesMap = std::unordered_map<std::string_view, Cookie>;
+  using CookiesMap = Cookie::CookiesMap;
 
-  using CookiesMapKeys = decltype(utils::MakeKeysView(CookiesMap()));
+  using CookiesMapKeys = decltype(utils::impl::MakeKeysView(CookiesMap()));
 
   /// @cond
   HttpResponse(const HttpRequestImpl& request,
@@ -51,7 +53,9 @@ class HttpResponse final : public request::ResponseBase {
   /// @endcond
 
   /// @brief Add a new response header or rewrite an existing one.
-  void SetHeader(std::string name, std::string value);
+  /// @returns true if the header was set. Returns false if headers
+  /// were already sent for stream'ed response and the new header was not set.
+  bool SetHeader(std::string name, std::string value);
 
   /// @brief Add or rewrite the Content-Type header.
   void SetContentType(const USERVER_NAMESPACE::http::ContentType& type);
@@ -60,10 +64,14 @@ class HttpResponse final : public request::ResponseBase {
   void SetContentEncoding(std::string encoding);
 
   /// @brief Set the HTTP response status code.
-  void SetStatus(HttpStatus status);
+  /// @returns true if the status was set. Returns false if headers
+  /// were already sent for stream'ed response and the new status was not set.
+  bool SetStatus(HttpStatus status);
 
   /// @brief Remove all headers from response.
-  void ClearHeaders();
+  /// @returns true if the headers were cleared. Returns false if headers
+  /// were already sent for stream'ed response and the headers were not cleared.
+  bool ClearHeaders();
 
   /// @brief Sets a cookie if it was not set before.
   void SetCookie(Cookie cookie);
@@ -106,14 +114,16 @@ class HttpResponse final : public request::ResponseBase {
   bool WaitForHeadersEnd() override;
   void SetHeadersEnd() override;
 
+  using Queue = concurrent::SpscQueue<std::string>;
+
   void SetStreamBody();
   bool IsBodyStreamed() const override;
   // Can be called only once
   Queue::Producer GetBodyProducer();
 
  private:
-  void SetBodyStreamed(engine::io::Socket& socket, std::string& os);
-  void SetBodyNotstreamed(engine::io::Socket& socket, std::string& os);
+  void SetBodyStreamed(engine::io::Socket& socket, std::string& header);
+  void SetBodyNotstreamed(engine::io::Socket& socket, std::string& header);
 
   const HttpRequestImpl& request_;
   HttpStatus status_ = HttpStatus::kOk;
@@ -121,9 +131,8 @@ class HttpResponse final : public request::ResponseBase {
   CookiesMap cookies_;
 
   engine::SingleConsumerEvent headers_end_;
-  std::shared_ptr<Queue> body_queue_;
-  std::optional<QueueConsumer> body_stream_;
-  std::optional<QueueProducer> body_stream_producer_;
+  std::optional<Queue::Consumer> body_stream_;
+  std::optional<Queue::Producer> body_stream_producer_;
 };
 
 void SetThrottleReason(http::HttpResponse& http_response,

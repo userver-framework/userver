@@ -14,6 +14,7 @@
 #include <userver/storages/clickhouse/query.hpp>
 
 #include <userver/storages/secdist/component.hpp>
+#include <userver/storages/secdist/provider_component.hpp>
 
 #include <userver/utils/daemon_run.hpp>
 
@@ -67,22 +68,21 @@ std::string HandlerDb::HandleRequestThrow(
 
 int main(int argc, char* argv[]) {
   const auto components_list =
-      userver::components::MinimalServerComponentList()
+      components::MinimalServerComponentList()
           .Append<samples::clickhouse::HandlerDb>()
-          .Append<userver::components::ClickHouse>("clickhouse-database")
-          .Append<userver::clients::dns::Component>()
-          .Append<components::Secdist>();
+          .Append<components::ClickHouse>("clickhouse-database")
+          .Append<clients::dns::Component>()
+          .Append<components::Secdist>()
+          .Append<components::DefaultSecdistProvider>();
 
-  return userver::utils::DaemonMain(argc, argv, components_list);
+  return utils::DaemonMain(argc, argv, components_list);
 }
 
 USERVER_NAMESPACE_BEGIN
-namespace storages::clickhouse::io {
 
 template <>
-struct CppToClickhouse<samples::clickhouse::Result> {
+struct storages::clickhouse::io::CppToClickhouse<samples::clickhouse::Result> {
   using mapped_type = std::tuple<columns::StringColumn>;
 };
-USERVER_NAMESPACE_END
 
-}  // namespace storages::clickhouse::io
+USERVER_NAMESPACE_END

@@ -10,6 +10,9 @@ formula-name: googletest
 pacman-names:
   - gtest
 
+pkg-config-names:
+  - gtest
+
 libraries:
     find:
       - names:

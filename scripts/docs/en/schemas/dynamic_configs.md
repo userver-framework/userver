@@ -59,8 +59,7 @@ schema:
 ```
 
 **Example:**
-```
-json
+```json
 {
   "http-limit": 6000,
   "http-per-second": 1500,
@@ -120,8 +119,7 @@ schema:
 ```
 
 **Example:**
-```
-json
+```json
 {
   "cancel-request": false,
   "update-timeout": false
@@ -151,6 +149,26 @@ schema:
 Used by components::Mongo, components::MultiMongo.
 
 
+@anchor MONGO_DEADLINE_PROPAGATION_ENABLED
+## MONGO_DEADLINE_PROPAGATION_ENABLED
+
+Dynamic config that controls whether task-inherited deadline is accounted for
+while executing mongodb queries.
+
+```
+yaml
+schema:
+    type: boolean
+```
+
+**Example:**
+```json
+false
+```
+
+Used by components::Mongo, components::MultiMongo.
+
+
 @anchor POSTGRES_DEFAULT_COMMAND_CONTROL
 ## POSTGRES_DEFAULT_COMMAND_CONTROL
 
@@ -171,8 +189,7 @@ properties:
 ```
 
 **Example:**
-```
-json
+```json
 {
   "network_timeout_ms": 750,
   "statement_timeout_ms": 500
@@ -212,8 +229,7 @@ definitions:
 ```
 
 **Example:**
-```
-json
+```json
 {
   "/v2/rules/create": {
     "POST": {
@@ -262,8 +278,7 @@ definitions:
 ```
 
 **Example:**
-```
-json
+```json
 {
   "cleanup_processed_data": {
     "network_timeout_ms": 92000,
@@ -272,7 +287,7 @@ json
   "select_recent_users": {
     "network_timeout_ms": 70,
     "statement_timeout_ms": 30
-  },
+  }
 }
 ```
 
@@ -284,8 +299,7 @@ Used by components::Postgres.
 
 Dynamic config that controls connection pool settings of PostgreSQL driver.
 
-Take note that it overrides the static
-configuration values of the service!
+Take note that it overrides the static configuration values of the service!
 
 ```
 yaml
@@ -306,6 +320,9 @@ definitions:
       max_queue_size:
         type: integer
         minimum: 1
+      connecting_limit:
+        type: integer
+        minimum: 0
     required:
       - min_pool_size
       - max_pool_size
@@ -313,18 +330,19 @@ definitions:
 ```
 
 **Example:**
-```
-json
+```json
 {
   "__default__": {
     "min_pool_size": 4,
     "max_pool_size": 15,
-    "max_queue_size": 200
+    "max_queue_size": 200,
+    "connecting_limit": 10
   },
   "postgresql-orders": {
     "min_pool_size": 8,
     "max_pool_size": 50,
-    "max_queue_size": 200
+    "max_queue_size": 200,
+    "connecting_limit": 8
   }
 }
 ```
@@ -332,11 +350,79 @@ json
 Used by components::Postgres.
 
 
+@anchor POSTGRES_CONNECTION_SETTINGS
+## POSTGRES_CONNECTION_SETTINGS
+
+Dynamic config that controls settings for newly created connections of
+PostgreSQL driver.
+
+Take note that it overrides the static configuration values of the service!
+
+```
+yaml
+type: object
+additionalProperties: false
+properties:
+  persistent-prepared-statements:
+    type: boolean
+    default: true
+  user-types-enabled:
+    type: boolean
+    default: true
+  max-prepared-cache-size:
+    type: integer
+    minimum: 1
+    default: 5000
+  recent-errors-threshold:
+    type: integer
+    minimum: 1
+  ignore-unused-query-params:
+    type: boolean
+    default: false
+```
+
+**Example:**
+```json
+{
+  "__default__": {
+    "persistent-prepared-statements": true,
+    "user-types-enabled": true,
+    "max-prepared-cache-size": 5000,
+    "ignore-unused-query-params": false,
+    "recent-errors-threshold": 2
+  }
+}
+```
+
+Used by components::Postgres.
+
+
+@anchor POSTGRES_CONNECTION_PIPELINE_ENABLED
+## POSTGRES_CONNECTION_PIPELINE_ENABLED
+
+Dynamic config that enables pipeline mode for PostgreSQL connections.
+
+```
+yaml
+default: false
+schema:
+  type: boolean
+```
+
 @anchor POSTGRES_STATEMENT_METRICS_SETTINGS
 ## POSTGRES_STATEMENT_METRICS_SETTINGS
 
 Dynamic config that controls statement metrics settings for specific service.
-`max_statement_metrics == 0` disables metrics export.
+
+Dictionary keys can be either the service component names or `__default__`.
+The latter configuration will be applied for every PostgreSQL component of
+the service.
+
+The value of `max_statement_metrics` controls the maximum size of LRU-cache
+for named statement metrics. When set to 0 (default) no metrics are being
+exported.
+
+The exported data can be found as `postgresql.statement_timings`.
 
 ```
 yaml
@@ -353,16 +439,247 @@ definitions:
         minimum: 0
 ```
 
-```
-json
+```json
 {
-    "postgresql-grocery_orders": {
-        "max_statement_metrics": 50
-    }
+  "postgresql-database_name": {
+    "max_statement_metrics": 50
+  }
 }
 ```
 
 Used by components::Postgres.
+
+
+@anchor REDIS_COMMANDS_BUFFERING_SETTINGS
+## REDIS_COMMANDS_BUFFERING_SETTINGS
+
+Dynamic config that controls command buffering for specific service.
+
+Command buffering is disabled by default.
+
+```
+yaml
+type: object
+additionalProperties: false
+properties:
+  buffering_enabled:
+    type: boolean
+  commands_buffering_threshold:
+    type: integer
+    minimum: 1
+  watch_command_timer_interval_us:
+    type: integer
+    minimum: 0
+required:
+  - buffering_enabled
+  - watch_command_timer_interval_us
+```
+
+```json
+{
+  "buffering_enabled": true,
+  "commands_buffering_threshold": 10,
+  "watch_command_timer_interval_us": 1000
+}
+```
+
+Used by components::Redis.
+
+
+@anchor REDIS_DEFAULT_COMMAND_CONTROL
+## REDIS_DEFAULT_COMMAND_CONTROL
+
+Dynamic config that overrides the default timeouts, number of retries and
+server selection strategy for redis commands.
+
+```
+yaml
+type: object
+additionalProperties: false
+properties:
+  best_dc_count:
+    type: integer
+  max_ping_latency_ms:
+    type: integer
+  max_retries:
+    type: integer
+  strategy:
+    enum:
+      - default
+      - every_dc
+      - local_dc_conductor
+      - nearest_server_ping
+    type: string
+  timeout_all_ms:
+    type: integer
+  timeout_single_ms:
+    type: integer
+```
+
+```json
+{
+  "best_dc_count": 0,
+  "max_ping_latency_ms": 0,
+  "max_retries": 4,
+  "strategy": "default",
+  "timeout_all_ms": 2000,
+  "timeout_single_ms": 500
+}
+```
+
+Used by components::Redis.
+
+
+@anchor REDIS_METRICS_SETTINGS
+## REDIS_METRICS_SETTINGS
+
+Dynamic config that controls the metric settings for specific service.
+
+```
+yaml
+type: object
+additionalProperties:
+  $ref: "#/definitions/MetricsSettings"
+definitions:
+  MetricsSettings:
+    type: object
+    additionalProperties: false
+    properties:
+      timings-enabled:
+        type: boolean
+        default: true
+        description: enable timings statistics
+      command-timings-enabled:
+        type: boolean
+        default: false
+        description: enable statistics for individual commands
+      request-sizes-enabled:
+        type: boolean
+        default: false
+        description: enable request sizes statistics
+      reply-sizes-enabled:
+        type: boolean
+        default: false
+        description: enable response sizes statistics
+```
+
+```json
+{
+  "redis-database_name": {
+    "timings-enabled": true,
+    "command-timings-enabled": false,
+    "request-sizes-enabled": false,
+    "reply-sizes-enabled": false
+  }
+}
+```
+
+Used by components::Redis.
+
+
+@anchor REDIS_SUBSCRIBER_DEFAULT_COMMAND_CONTROL
+## REDIS_SUBSCRIBER_DEFAULT_COMMAND_CONTROL
+
+The same as @ref REDIS_DEFAULT_COMMAND_CONTROL but for subscription clients.
+
+
+```
+yaml
+type: object
+additionalProperties: false
+properties:
+  timeout_single_ms:
+    type: integer
+    minimum: 1
+  timeout_all_ms:
+    type: integer
+    minimum: 1
+  best_dc_count:
+    type: integer
+    minimum: 1
+  max_ping_latency_ms:
+    type: integer
+    minimum: 1
+  strategy:
+    type: string
+    enum:
+      - default
+      - every_dc
+      - local_dc_conductor
+      - nearest_server_ping
+```
+
+```json
+{
+  "best_dc_count": 0,
+  "max_ping_latency_ms": 0,
+  "strategy": "default",
+  "timeout_all_ms": 2000,
+  "timeout_single_ms": 500
+}
+```
+
+Used by components::Redis.
+
+
+@anchor REDIS_SUBSCRIPTIONS_REBALANCE_MIN_INTERVAL_SECONDS
+## REDIS_SUBSCRIPTIONS_REBALANCE_MIN_INTERVAL_SECONDS
+
+Dynamic config that controls the minimal interval between redis subscription
+clients rebalancing.
+
+
+```
+yaml
+minimum: 0
+type: integer
+default: 30
+```
+
+Used by components::Redis.
+
+
+@anchor REDIS_WAIT_CONNECTED
+## REDIS_WAIT_CONNECTED
+
+Dynamic config that controls if services will wait for connections with redis
+instances.
+
+
+```
+yaml
+type: object
+additionalProperties: false
+properties:
+  mode:
+    type: string
+    enum:
+      - no_wait
+      - master
+      - slave
+      - master_or_slave
+      - master_and_slave
+  throw_on_fail:
+    type: boolean
+  timeout-ms:
+    type: integer
+    minimum: 1
+    x-taxi-cpp-type: std::chrono::milliseconds
+required:
+  - mode
+  - throw_on_fail
+  - timeout-ms
+```
+
+```json
+{
+  "mode": "master_or_slave",
+  "throw_on_fail": false,
+  "timeout-ms": 11000
+}
+```
+
+Used by components::Redis.
 
 
 @anchor USERVER_CACHES
@@ -394,8 +711,7 @@ schema:
 ```
 
 **Example:**
-```
-json
+```json
 {
   "some-cache-name": {
     "full-update-interval-ms": 86400000,
@@ -467,8 +783,7 @@ schema:
 ```
 
 **Example:**
-```
-json
+```json
 {
   "some-cache-name": {
     "dumps-enabled": true,
@@ -565,8 +880,7 @@ schema:
 ```
 
 **Example:**
-```
-json
+```json
 {
   "some-cache-name": {
     "lifetime-ms": 5000,
@@ -607,8 +921,7 @@ schema:
 ```
 
 **Example:**
-```
-json
+```json
 {
   "names": [
     "mongo_find"
@@ -696,8 +1009,7 @@ schema:
 ```
 
 **Example:**
-```
-json
+```json
 {
   "down-level": 8,
   "down-rate-percent": 1,
@@ -768,8 +1080,7 @@ schema:
 ```
 
 **Example:**
-```
-json
+```json
 {
   "fs-task-processor": {
     "enabled": false,
@@ -845,8 +1156,7 @@ schema:
 ```
 
 **Example:**
-```
-json
+```json
 {
   "default-service": {
     "default-task-processor": {
@@ -862,3 +1172,40 @@ json
 ```
 
 Used by components::ManagerControllerComponent.
+
+@anchor USERVER_FILES_CONTENT_TYPE_MAP
+## USERVER_FILES_CONTENT_TYPE_MAP
+
+Dynamic config for mapping extension files with http header content type
+```
+yaml
+schema:
+    type: object
+    additionalProperties:
+        type: string
+```
+
+**Example:**
+```json
+{
+  ".css": "text/css",
+  ".gif": "image/gif",
+  ".htm": "text/html",
+  ".html": "text/html",
+  ".jpeg": "image/jpeg",
+  ".js": "application/javascript",
+  ".json": "application/json",
+  ".md": "text/markdown",
+  ".png": "image/png",
+  ".svg": "image/svg+xml",
+  "__default__": "text/plain"
+}
+```
+
+Used by server::handlers::HttpHandlerStatic
+
+----------
+
+@htmlonly <div class="bottom-nav"> @endhtmlonly
+⇦ @ref rabbitmq_driver | @ref md_en_userver_log_level_running_service ⇨
+@htmlonly </div> @endhtmlonly

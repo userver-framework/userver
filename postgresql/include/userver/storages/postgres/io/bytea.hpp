@@ -1,7 +1,7 @@
 #pragma once
 
 /// @file userver/storages/postgres/io/bytea.hpp
-/// @brief Bytea I/O support
+/// @brief storages::postgres::Bytea I/O support
 /// @ingroup userver_postgres_parse_and_format
 
 #include <string>
@@ -36,6 +36,11 @@ namespace storages::postgres {
  * trx.Execute("select $1", pg::Bytea(tp));
  * @endcode
  *
+ * ----------
+ *
+ * @htmlonly <div class="bottom-nav"> @endhtmlonly
+ * ⇦ @ref pg_arrays | @ref md_en_userver_mongodb ⇨
+ * @htmlonly </div> @endhtmlonly
  */
 
 namespace io::traits {

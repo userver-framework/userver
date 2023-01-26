@@ -5,6 +5,7 @@
 #include <bson/bson.h>
 
 #include <userver/formats/bson/exception.hpp>
+#include <userver/logging/log_helper.hpp>
 #include <userver/utils/text.hpp>
 
 #include <formats/bson/value_impl.hpp>
@@ -117,6 +118,16 @@ size_t JsonString::Size() const { return impl_->Size(); }
 
 std::ostream& operator<<(std::ostream& os, const JsonString& json) {
   return os.write(json.Data(), json.Size());
+}
+
+logging::LogHelper& operator<<(logging::LogHelper& lh, const JsonString& json) {
+  lh << json.GetView();
+  return lh;
+}
+
+logging::LogHelper& operator<<(logging::LogHelper& lh, const Document& bson) {
+  lh << ToRelaxedJsonString(bson);
+  return lh;
 }
 
 }  // namespace formats::bson
