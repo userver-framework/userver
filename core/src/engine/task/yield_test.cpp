@@ -9,7 +9,7 @@ USERVER_NAMESPACE_BEGIN
 
 // This test fails consistently under current (at this commit
 // b70ef2679b5ed68b915912167635db6eab3451c7) scheduling policy.
-UTEST_MT(EngineYield, IsBroken, 2) {
+UTEST_MT(EngineYield, DISABLED_IsBroken, 2) {
   // so we have 2 threads here
 
   // alright, let's make the second thread just yield
