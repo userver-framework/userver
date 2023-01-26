@@ -23,9 +23,6 @@ function to get the new sockets:
 instance of the class. Use @ref md_en_userver_synchronization "synchronization primitives"
 or do not modify shared data in `ProcessSocket`.
 
-Note that we read the "greeting" value in constructor and specialized the
-components::kHasValidate template valriable to force static config validation
-
 
 ### Static config
 

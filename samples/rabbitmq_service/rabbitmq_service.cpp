@@ -136,17 +136,6 @@ class RequestHandler final : public server::handlers::HttpHandlerJsonBase {
 
 }  // namespace samples::urabbitmq
 
-namespace userver::components {
-
-template <>
-inline constexpr bool kHasValidate<samples::urabbitmq::MyRabbitComponent> =
-    true;
-
-template <>
-inline constexpr bool kHasValidate<samples::urabbitmq::MyRabbitConsumer> = true;
-
-}  // namespace userver::components
-
 int main(int argc, char* argv[]) {
   const auto components_list =
       userver::components::MinimalServerComponentList()

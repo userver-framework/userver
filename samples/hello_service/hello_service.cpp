@@ -25,12 +25,6 @@ class Hello final : public server::handlers::HttpHandlerBase {
 }  // namespace samples::hello
 /// [Hello service sample - component]
 
-// This forces userver to validate provided static config of Hello handler
-// against the schema.
-template <>
-inline constexpr bool
-    USERVER_NAMESPACE::components::kHasValidate<samples::hello::Hello> = true;
-
 /// [Hello service sample - main]
 int main(int argc, char* argv[]) {
   const auto component_list =

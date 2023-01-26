@@ -136,7 +136,7 @@ properties:
                         OS scheduling mode for the task processor threads.
                         `idle` sets the lowest pririty.
                         `low-priority` sets the priority below `normal` but
-                        higher than `idle`.   
+                        higher than `idle`.
                     defaultDescription: normal
                     enum:
                       - normal
@@ -209,7 +209,7 @@ ManagerConfig Parse(const yaml_config::YamlConfig& value,
 
   config.validate_components_configs =
       value["static_config_validation"].As<ValidationMode>(
-          ValidationMode::kOnlyTurnedOn);
+          ValidationMode::kAll);
   return config;
 }
 

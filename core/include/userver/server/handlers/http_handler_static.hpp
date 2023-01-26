@@ -50,6 +50,8 @@ class HttpHandlerStatic final : public HttpHandlerBase {
   std::string HandleRequestThrow(const http::HttpRequest& request,
                                  request::RequestContext&) const override;
 
+  static yaml_config::Schema GetStaticConfigSchema();
+
  private:
   dynamic_config::Source config_;
   const fs::FsCacheClient& storage_;
