@@ -12,7 +12,6 @@
 #include <userver/formats/json/value.hpp>
 #include <userver/formats/json/value_builder.hpp>
 #include <userver/utils/meta.hpp>
-#include <userver/utils/statistics/writer.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -36,6 +35,14 @@ using HasDumpMetric = decltype(DumpMetric(std::declval<Metric&>()));
 template <typename Metric>
 using HasResetMetric = decltype(ResetMetric(std::declval<Metric&>()));
 
+template <typename Metric>
+typename std::enable_if<std::is_integral<Metric>::value,
+                        formats::json::ValueBuilder>::type
+DumpMetric(const Metric&) {
+  static_assert(!sizeof(Metric),
+                "Type is not atomic, use std::atomic<T> instead");
+}
+
 // TODO remove after C++20 atomic value-initialization
 template <typename T>
 void InitializeAtomic(T& /*value*/) {}
@@ -52,10 +59,6 @@ class MetricWrapperBase {
 
   virtual formats::json::ValueBuilder Dump() = 0;
 
-  virtual void Dump(utils::statistics::Writer& writer) = 0;
-
-  virtual bool HasWriterSupport() const noexcept = 0;
-
   virtual void Reset() = 0;
 };
 
@@ -64,33 +67,15 @@ class MetricWrapper final : public MetricWrapperBase {
   static_assert(std::is_default_constructible_v<Metric>,
                 "Metrics must be default-constructible");
 
-  static_assert(
-      meta::kIsDetected<HasDumpMetric, Metric> ||
-          kHasWriterSupport<Writer, Metric>,
-      "There is no `DumpMetric(utils::statistics::Writer&, const Metric&)`"
-      "or `DumpMetric(Metric& / const Metric&)`"
-      "in namespace of `Metric`.  "
-      "You have not provided a `DumpMetric` function overload.");
+  static_assert(meta::kIsDetected<HasDumpMetric, Metric>,
+                "There is no `DumpMetric(Metric& / const Metric&)` "
+                "in namespace of `Metric`.  "
+                "You have not provided a `DumpMetric` function overload.");
 
  public:
   MetricWrapper() : data_() { InitializeAtomic(data_); }
 
-  formats::json::ValueBuilder Dump() override {
-    if constexpr (!kHasWriterSupport<Writer, Metric>) {
-      return DumpMetric(data_);
-    }
-    return {};
-  }
-
-  void Dump(Writer& writer) override {
-    if constexpr (kHasWriterSupport<Writer, Metric>) {
-      writer = data_;
-    }
-  }
-
-  bool HasWriterSupport() const noexcept override {
-    return kHasWriterSupport<Writer, Metric>;
-  }
+  formats::json::ValueBuilder Dump() override { return DumpMetric(data_); }
 
   void Reset() override {
     if constexpr (meta::kIsDetected<HasResetMetric, Metric>) {

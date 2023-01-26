@@ -50,10 +50,12 @@ struct Stats {
 /// [TCP sample - Stats tag]
 const utils::statistics::MetricTag<Stats> kTcpEchoTag{"tcp-echo"};
 
-void DumpMetric(utils::statistics::Writer& writer, const Stats& stats) {
-  writer["sockets"]["opened"] = stats.opened_sockets.load();
-  writer["sockets"]["closed"] = stats.closed_sockets.load();
-  writer["bytes"]["read"] = stats.bytes_read.load();
+formats::json::ValueBuilder DumpMetric(const Stats& stats) {
+  formats::json::ValueBuilder value;
+  value["sockets"]["opened"] = stats.opened_sockets.load();
+  value["sockets"]["closed"] = stats.closed_sockets.load();
+  value["bytes"]["read"] = stats.bytes_read.load();
+  return value.ExtractValue();
 }
 
 void ResetMetric(Stats& stats) {

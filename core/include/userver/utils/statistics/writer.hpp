@@ -3,11 +3,9 @@
 /// @file userver/utils/statistics/writer.hpp
 /// @brief @copybrief utils::statistics::Writer
 
-#include <atomic>
 #include <string_view>
 #include <type_traits>
 
-#include <userver/utils/meta.hpp>
 #include <userver/utils/statistics/labels.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -18,30 +16,13 @@ namespace impl {
 
 struct WriterState;
 
-namespace dump {
 template <class Writer, class Metric>
 void DumpMetric(Writer&&, const Metric&) {
   static_assert(sizeof(Metric) == 0,
                 "Cast the metric to an arithmetic type or provide a "
-                "`void DumpMetric(utils::statistics::Writer& "
-                "writer, const Metric& value)` function for the Metric type");
+                "specialization of `void DumpMetric(utils::statistics::Writer& "
+                "writer, const Metric& value)` for the Metric type");
 }
-
-template <class Writer, class Metric>
-void DumpMetric(Writer& writer, const std::atomic<Metric>& m) {
-  static_assert(std::atomic<Metric>::is_always_lock_free, "std::atomic misuse");
-  writer = m.load();
-}
-
-}  // namespace dump
-
-template <class Writer, class Metric>
-using HasDumpMetricWriter =
-    decltype(DumpMetric(std::declval<Writer&>(), std::declval<Metric&>()));
-
-template <class Writer, class Metric>
-constexpr bool kHasWriterSupport =
-    meta::kIsDetected<HasDumpMetricWriter, Writer, Metric>;
 
 }  // namespace impl
 
@@ -75,7 +56,7 @@ class Writer final {
       Write(value);
     } else {
       if (state_) {
-        using impl::dump::DumpMetric;  // poison pill
+        using impl::DumpMetric;  // poison pill
         DumpMetric(*this, value);
       }
     }
