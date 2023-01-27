@@ -80,8 +80,8 @@ HttpRequestImpl::HttpRequestImpl(request::ResponseDataAccounter& data_accounter)
                       request_args_.hash_function()),
       path_args_by_name_index_(kZeroAllocationBucketCount,
                                request_args_.hash_function()),
-      headers_(kBucketCount,
-               utils::StrIcaseHash(request_args_.hash_function().GetSeed())),
+      /*headers_(kBucketCount,
+               utils::StrIcaseHash(request_args_.hash_function().GetSeed())),*/
       cookies_(kZeroAllocationBucketCount, request_args_.hash_function()),
       response_(*this, data_accounter) {}
 

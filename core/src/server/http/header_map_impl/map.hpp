@@ -28,16 +28,13 @@ struct Pos final {
 };
 
 struct Entry final {
-  std::string header_name;
-  std::string header_value;
+  Traits::Key header_name;
+  Traits::Value header_value;
 
-  Entry(std::string&& header_name, std::string&& header_value)
+  Entry(Traits::Key&& header_name, Traits::Value&& header_value)
       : header_name{std::move(header_name)},
         header_value{std::move(header_value)} {}
 };
-
-static_assert(std::is_same_v<decltype(Entry::header_name), Traits::Key>);
-static_assert(std::is_same_v<decltype(Entry::header_value), Traits::Value>);
 
 class Map final {
  public:
@@ -50,6 +47,10 @@ class Map final {
   Iterator Find(std::string_view key) const noexcept;
 
   void Insert(std::string key, std::string value);
+
+  void Erase(std::string_view key);
+
+  void Clear();
 
   Iterator Begin() const noexcept;
   Iterator End() const noexcept;
@@ -72,7 +73,17 @@ class Map final {
   void InsertEntry(Traits::Key&& key, Traits::Value&& value);
   std::size_t DoRobinhoodAtPosition(std::size_t idx, Pos old_pos);
 
-  Pos DoFind(std::string_view key) const noexcept;
+  struct FindResult final {
+    // Index in the 'indices' vector
+    Traits::Size probe;
+    // Index in the 'entries' vector
+    Traits::Size index;
+
+    bool IsSome() const noexcept;
+
+    static FindResult None() noexcept;
+  };
+  FindResult DoFind(std::string_view key) const noexcept;
 
   Traits::Size mask_{0};
   std::vector<Pos> indices_;

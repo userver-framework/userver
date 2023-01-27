@@ -14,6 +14,7 @@
 #include <userver/server/request/response_base.hpp>
 #include <userver/utils/impl/projecting_view.hpp>
 #include <userver/utils/str_icase.hpp>
+#include <userver/server/http/header_map.hpp>
 
 #include "http_status.hpp"
 
@@ -33,9 +34,9 @@ class HttpRequestImpl;
 /// @brief HTTP Response data
 class HttpResponse final : public request::ResponseBase {
  public:
-  using HeadersMap =
-      std::unordered_map<std::string, std::string, utils::StrIcaseHash,
-                         utils::StrIcaseEqual>;
+  using HeadersMap = HeaderMap;
+      /*std::unordered_map<std::string, std::string, utils::StrIcaseHash,
+                         utils::StrIcaseEqual>;*/
 
   using HeadersMapKeys = decltype(utils::impl::MakeKeysView(HeadersMap()));
 

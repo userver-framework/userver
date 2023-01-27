@@ -19,9 +19,31 @@ HeaderMap::HeaderMap() = default;
 
 HeaderMap::~HeaderMap() = default;
 
+HeaderMap::HeaderMap(const HeaderMap& other) = default;
+
+HeaderMap::HeaderMap(HeaderMap&& other) noexcept = default;
+
 std::size_t HeaderMap::size() const noexcept { return impl_->Size(); }
 
 bool HeaderMap::empty() const noexcept { return impl_->Empty(); }
+
+void HeaderMap::clear() {
+  impl_->Clear();
+}
+
+HeaderMap::Iterator HeaderMap::find(const std::string& key) const {
+  const auto lowercase = header_map_impl::ToLowerCase(key);
+  return Iterator{Iterator::UnderlyingIteratorImpl{impl_->Find(lowercase)}};
+}
+
+utils::CheckedPtr<std::string> HeaderMap::FindPrepared(
+    std::string_view key) const noexcept {
+  UASSERT(header_map_impl::IsLowerCase(key));
+
+  const auto it = impl_->Find(key);
+  return utils::MakeCheckedPtr(it == impl_->End() ? nullptr
+                                                  : &it->header_value);
+}
 
 void HeaderMap::Insert(std::string key, std::string value) {
   return InsertPrepared(header_map_impl::ToLowerCase(key), std::move(value));
@@ -33,17 +55,16 @@ void HeaderMap::InsertPrepared(std::string key, std::string value) {
   return impl_->Insert(std::move(key), std::move(value));
 }
 
-HeaderMap::Iterator HeaderMap::find(const std::string& key) const noexcept {
-  // TODO : lowercase
-  return Iterator{Iterator::UnderlyingIteratorImpl{impl_->Find(key)}};
+void HeaderMap::Erase(const std::string& key) {
+  const auto lowercase = header_map_impl::ToLowerCase(key);
+
+  ErasePrepared(lowercase);
 }
 
-utils::CheckedPtr<std::string> HeaderMap::FindPrepared(
-    std::string_view key) const noexcept {
+void HeaderMap::ErasePrepared(std::string_view key) {
   UASSERT(header_map_impl::IsLowerCase(key));
 
-  const auto it = impl_->Find(key);
-  return utils::MakeCheckedPtr(it == impl_->End() ? nullptr : &it->header_name);
+  impl_->Erase(key);
 }
 
 HeaderMap::Iterator::Iterator() = default;
@@ -117,7 +138,15 @@ HeaderMap::Iterator HeaderMap::begin() {
   return {Iterator::UnderlyingIteratorImpl{impl_->Begin()}};
 }
 
+HeaderMap::Iterator HeaderMap::begin() const {
+  return {Iterator::UnderlyingIteratorImpl{impl_->Begin()}};
+}
+
 HeaderMap::Iterator HeaderMap::end() {
+  return {Iterator::UnderlyingIteratorImpl{impl_->End()}};
+}
+
+HeaderMap::Iterator HeaderMap::end() const {
   return {Iterator::UnderlyingIteratorImpl{impl_->End()}};
 }
 

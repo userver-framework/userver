@@ -208,7 +208,8 @@ void HttpRequestConstructor::FinalizeImpl() {
                       [](const auto& arg) { return !arg.second.empty(); }));
 
   LOG_TRACE() << "request_args:" << request_->request_args_;
-  LOG_TRACE() << "headers:" << request_->headers_;
+  // TODO : fix
+  //LOG_TRACE() << "headers:" << request_->headers_;
 
   try {
     ParseCookies();
@@ -248,7 +249,7 @@ void HttpRequestConstructor::AddHeader() {
   UASSERT(header_field_flag_);
   auto it = request_->headers_.find(header_field_);
   if (it == request_->headers_.end()) {
-    request_->headers_.emplace(std::move(header_field_),
+    request_->headers_.Insert(std::move(header_field_),
                                std::move(header_value_));
   } else {
     it->second += ',';

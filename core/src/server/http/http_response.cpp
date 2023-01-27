@@ -112,7 +112,7 @@ bool HttpResponse::SetHeader(std::string name, std::string value) {
   CheckHeaderValue(value);
   const auto header_it = headers_.find(name);
   if (header_it == headers_.end()) {
-    headers_.emplace(std::move(name), std::move(value));
+    headers_.Insert(std::move(name), std::move(value));
   } else {
     header_it->second = std::move(value);
   }
@@ -171,7 +171,7 @@ HttpResponse::HeadersMapKeys HttpResponse::GetHeaderNames() const {
 
 const std::string& HttpResponse::GetHeader(
     const std::string& header_name) const {
-  return headers_.at(header_name);
+  return headers_.find(header_name)->second;
 }
 
 bool HttpResponse::HasHeader(const std::string& header_name) const {
@@ -206,8 +206,8 @@ void HttpResponse::SendResponse(engine::io::Socket& socket) {
   header.append(HttpStatusString(status_));
   header.append(kCrlf);
 
-  headers_.erase(USERVER_NAMESPACE::http::headers::kContentLength);
-  const auto end = headers_.cend();
+  headers_.Erase(USERVER_NAMESPACE::http::headers::kContentLength);
+  const auto end = headers_.end();
   if (headers_.find(USERVER_NAMESPACE::http::headers::kDate) == end) {
     header.append(USERVER_NAMESPACE::http::headers::kDate);
     header.append(kKeyValueHeaderSeparator);

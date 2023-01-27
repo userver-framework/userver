@@ -14,6 +14,7 @@
 #include <userver/server/http/http_response.hpp>
 #include <userver/utils/impl/projecting_view.hpp>
 #include <userver/utils/str_icase.hpp>
+#include <userver/server/http/header_map.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -25,9 +26,9 @@ class HttpRequestImpl;
 /// @brief HTTP Request data
 class HttpRequest final {
  public:
-  using HeadersMap =
-      std::unordered_map<std::string, std::string, utils::StrIcaseHash,
-                         utils::StrIcaseEqual>;
+  using HeadersMap = HeaderMap;
+      /*std::unordered_map<std::string, std::string, utils::StrIcaseHash,
+                         utils::StrIcaseEqual>;*/
 
   using HeadersMapKeys = decltype(utils::impl::MakeKeysView(HeadersMap()));
 

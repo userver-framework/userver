@@ -11,11 +11,18 @@ USERVER_NAMESPACE_BEGIN
 
 namespace {
 
-const server::http::HttpResponse::HeadersMap kHeaders = {
-    {"X-Header1", "value"}, {"X-Header2", "value"}, {"X-Header3", "value"},
-    {"X-Header4", "value"}, {"X-Header5", "value"}, {"X-Header6", "value"},
-    {"X-Header7", "value"},
-};
+const server::http::HttpResponse::HeadersMap kHeaders = []() {
+  server::http::HttpResponse::HeadersMap headers;
+  headers.Insert("X-Header1", "value");
+  headers.Insert("X-Header2", "value");
+  headers.Insert("X-Header3", "value");
+  headers.Insert("X-Header4", "value");
+  headers.Insert("X-Header5", "value");
+  headers.Insert("X-Header6", "value");
+  headers.Insert("X-Header7", "value");
+
+  return headers;
+}();
 
 void http_headers_serialization_no_ostreams(benchmark::State& state) {
   for (auto _ : state) {

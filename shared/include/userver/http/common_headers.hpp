@@ -8,6 +8,18 @@ USERVER_NAMESPACE_BEGIN
 /// Common HTTP headers
 namespace http::headers {
 
+namespace impl {
+constexpr bool IsLowerCase(std::string_view header) {
+  for (const auto c : header) {
+    if (c >= 'A' && c <= 'Z') {
+      return false;
+    }
+  }
+
+  return true;
+}
+}  // namespace impl
+
 // Headers from rfc7231
 
 /// @name Representation Metadata
@@ -119,13 +131,17 @@ inline constexpr char kConnection[] = "Connection";
 
 /// @name Tracing headers
 /// @{
-inline constexpr char kXYaRequestId[] = "X-YaRequestId";
-inline constexpr char kXYaTraceId[] = "X-YaTraceId";
-inline constexpr char kXYaSpanId[] = "X-YaSpanId";
+inline constexpr char kXYaRequestId[] = "x-yarequestid";
+inline constexpr char kXYaTraceId[] = "x-yatraceid";
+inline constexpr char kXYaSpanId[] = "x-yaspanid";
 inline constexpr char kXRequestId[] = "X-RequestId";
 inline constexpr char kXBackendServer[] = "X-Backend-Server";
 inline constexpr char kXTaxiEnvoyProxyDstVhost[] = "X-Taxi-EnvoyProxy-DstVhost";
 /// @}
+
+static_assert(impl::IsLowerCase(kXYaRequestId));
+static_assert(impl::IsLowerCase(kXYaTraceId));
+static_assert(impl::IsLowerCase(kXYaSpanId));
 
 /// @name Generic Yandex headers
 /// @{

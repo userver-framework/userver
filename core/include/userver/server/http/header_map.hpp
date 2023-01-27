@@ -62,25 +62,35 @@ class HeaderMap final {
     UnderlyingIteratorImpl it_;
     mutable std::optional<EntryProxy> current_value_;
   };
+  using iterator = Iterator;
+  using const_iterator = Iterator;
 
   HeaderMap();
   ~HeaderMap();
+  HeaderMap(const HeaderMap& other);
+  HeaderMap(HeaderMap&& other) noexcept;
 
   std::size_t size() const noexcept;
   bool empty() const noexcept;
+  void clear();
 
-  Iterator find(const std::string& key) const noexcept;
+  Iterator find(const std::string& key) const;
+  // Precondition: key is in lower case
+  utils::CheckedPtr<std::string> FindPrepared(
+      std::string_view key) const noexcept;
 
   void Insert(std::string key, std::string value);
   // Precondition: key is in lower case
   void InsertPrepared(std::string key, std::string value);
 
+  void Erase(const std::string& key);
   // Precondition: key is in lower case
-  utils::CheckedPtr<std::string> FindPrepared(
-      std::string_view key) const noexcept;
+  void ErasePrepared(std::string_view key);
 
   Iterator begin();
+  Iterator begin() const;
   Iterator end();
+  Iterator end() const;
 
  private:
   utils::FastPimpl<header_map_impl::Map, 80, 8> impl_;

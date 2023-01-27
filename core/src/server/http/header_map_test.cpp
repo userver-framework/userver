@@ -18,18 +18,30 @@ TEST(HeaderMap, Works) {
 
   map.Insert("asd", "we");
 
-  const auto it = map.find("asd");
+  {
+    const auto it = map.find("asd");
 
-  ASSERT_NE(it, map.end());
-  EXPECT_EQ(it->first, "asd");
-  EXPECT_EQ(it->second, "we");
+    ASSERT_NE(it, map.end());
+    EXPECT_EQ(it->first, "asd");
+    EXPECT_EQ(it->second, "we");
 
-  for (const auto& [k, v] : map) {
-    std::cout << k << " " << v << std::endl;
+    for (const auto& [k, v] : map) {
+      std::cout << k << " " << v << std::endl;
+    }
+    std::cout << "-------------";
+
+    Check(map);
   }
-  std::cout << "-------------";
+  {
+    const auto it = map.FindPrepared("asd");
+    ASSERT_TRUE(it);
+    EXPECT_EQ(*it, "weasd");
+  }
+  {
+    map.ErasePrepared("asd");
+    EXPECT_EQ(map.find("asd"), map.end());
+  }
 
-  Check(map);
 }
 
 USERVER_NAMESPACE_END
