@@ -4,6 +4,8 @@
 #include <userver/utils/rand.hpp>
 #include <userver/utils/str_icase.hpp>
 
+#include <server/http/header_map_impl/header_name.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace server::http::header_map_impl {
@@ -45,12 +47,15 @@ void Danger::ToRed() noexcept {
 
 std::size_t Danger::SafeHash(std::string_view key) const noexcept {
   UASSERT(hash_seed_ != 0);
+  UASSERT(IsLowerCase(key));
 
   // TODO : better hashing
   return utils::StrCaseHash{hash_seed_}(key);
 }
 
 std::size_t Danger::UnsafeHash(std::string_view key) noexcept {
+  UASSERT(IsLowerCase(key));
+
   // TODO : is MurMur good enough with power of 2 modulo?
   return std::hash<std::string_view>{}(key);
 }

@@ -33,12 +33,12 @@ TEST(HeaderMap, Works) {
     Check(map);
   }
   {
-    const auto it = map.FindPrepared("asd");
-    ASSERT_TRUE(it);
-    EXPECT_EQ(*it, "weasd");
+    const auto it = map.find("asd");
+    ASSERT_NE(it, map.end());
+    EXPECT_EQ(it->second, "weasd");
   }
   {
-    map.ErasePrepared("asd");
+    map.Erase("asd");
     EXPECT_EQ(map.find("asd"), map.end());
   }
 

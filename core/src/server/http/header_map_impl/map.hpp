@@ -46,7 +46,7 @@ class Map final {
 
   Iterator Find(std::string_view key) const noexcept;
 
-  void Insert(std::string key, std::string value);
+  void Insert(std::string key, std::string value, bool append);
 
   void Erase(std::string_view key);
 

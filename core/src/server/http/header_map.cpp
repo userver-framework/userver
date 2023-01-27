@@ -7,6 +7,18 @@ USERVER_NAMESPACE_BEGIN
 
 namespace server::http {
 
+namespace {
+
+std::string LowerCase(std::string&& key) {
+  if (header_map_impl::IsLowerCase(key)) {
+    return std::move(key);
+  }
+
+  return header_map_impl::ToLowerCase(key);
+}
+
+}  // namespace
+
 struct HeaderMap::Iterator::UnderlyingIterator final {
   UnderlyingIterator() = default;
   explicit UnderlyingIterator(header_map_impl::Map::Iterator it)
@@ -27,44 +39,36 @@ std::size_t HeaderMap::size() const noexcept { return impl_->Size(); }
 
 bool HeaderMap::empty() const noexcept { return impl_->Empty(); }
 
-void HeaderMap::clear() {
-  impl_->Clear();
-}
+void HeaderMap::clear() { impl_->Clear(); }
 
 HeaderMap::Iterator HeaderMap::find(const std::string& key) const {
-  const auto lowercase = header_map_impl::ToLowerCase(key);
-  return Iterator{Iterator::UnderlyingIteratorImpl{impl_->Find(lowercase)}};
-}
+  const auto do_find = [this, &key] {
+    if (header_map_impl::IsLowerCase(key)) {
+      return impl_->Find(key);
+    } else {
+      const auto lowercase = header_map_impl::ToLowerCase(key);
+      return impl_->Find(lowercase);
+    }
+  };
 
-utils::CheckedPtr<std::string> HeaderMap::FindPrepared(
-    std::string_view key) const noexcept {
-  UASSERT(header_map_impl::IsLowerCase(key));
-
-  const auto it = impl_->Find(key);
-  return utils::MakeCheckedPtr(it == impl_->End() ? nullptr
-                                                  : &it->header_value);
+  return Iterator{Iterator::UnderlyingIteratorImpl{do_find()}};
 }
 
 void HeaderMap::Insert(std::string key, std::string value) {
-  return InsertPrepared(header_map_impl::ToLowerCase(key), std::move(value));
+  impl_->Insert(LowerCase(std::move(key)), std::move(value), false);
 }
 
-void HeaderMap::InsertPrepared(std::string key, std::string value) {
-  UASSERT(header_map_impl::IsLowerCase(key));
-
-  return impl_->Insert(std::move(key), std::move(value));
+void HeaderMap::InsertOrAppend(std::string key, std::string value) {
+  impl_->Insert(LowerCase(std::move(key)), std::move(value), true);
 }
 
 void HeaderMap::Erase(const std::string& key) {
-  const auto lowercase = header_map_impl::ToLowerCase(key);
-
-  ErasePrepared(lowercase);
-}
-
-void HeaderMap::ErasePrepared(std::string_view key) {
-  UASSERT(header_map_impl::IsLowerCase(key));
-
-  impl_->Erase(key);
+  if (header_map_impl::IsLowerCase(key)) {
+    impl_->Erase(key);
+  } else {
+    const auto lowercase = header_map_impl::ToLowerCase(key);
+    impl_->Erase(lowercase);
+  }
 }
 
 HeaderMap::Iterator::Iterator() = default;

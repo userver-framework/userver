@@ -224,7 +224,7 @@ Map::FindResult Map::DoFind(std::string_view key) const noexcept {
   return res;
 }
 
-void Map::Insert(Traits::Key key, Traits::Value value) {
+void Map::Insert(Traits::Key key, Traits::Value value, bool append) {
   UASSERT(IsLowerCase(key));
 
   ReserveOne();
@@ -233,7 +233,8 @@ void Map::Insert(Traits::Key key, Traits::Value value) {
   const auto probe = DesiredPos(mask_, hash);
   std::size_t dist = 0;
 
-  const auto inserter = [this, &key, &value, &dist, hash](std::size_t probe) {
+  const auto inserter = [this, &key, &value, &dist, append,
+                         hash](std::size_t probe) {
     if (indices_[probe].IsSome()) {
       // The slot is already occupied, but check if it has a lower
       // displacement.
@@ -262,14 +263,20 @@ void Map::Insert(Traits::Key key, Traits::Value value) {
         return true;
       } else if (indices_[probe].hash == hash &&
                  entries_[indices_[probe].index].header_name == key) {
-        // TODO : do occupied, either append or replace
+        auto& header_value = entries_[indices_[probe].index].header_value;
+        if (append) {
+          header_value += ',';
+          header_value += value;
+        } else {
+          header_value = std::move(value);
+        }
 
         return true;
       }
     } else {
+      // TODO : think about danger here
       const auto danger = dist >= kForwardShiftThreshold && !danger_.IsRed();
 
-      // TODO : do vacant properly
       const auto index = entries_.size();
       InsertEntry(std::move(key), std::move(value));
       indices_[probe] = Pos{index, hash};

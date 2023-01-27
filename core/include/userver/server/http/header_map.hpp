@@ -75,17 +75,12 @@ class HeaderMap final {
   void clear();
 
   Iterator find(const std::string& key) const;
-  // Precondition: key is in lower case
-  utils::CheckedPtr<std::string> FindPrepared(
-      std::string_view key) const noexcept;
 
   void Insert(std::string key, std::string value);
-  // Precondition: key is in lower case
-  void InsertPrepared(std::string key, std::string value);
+  // TODO : think about `string_view value` here
+  void InsertOrAppend(std::string key, std::string value);
 
   void Erase(const std::string& key);
-  // Precondition: key is in lower case
-  void ErasePrepared(std::string_view key);
 
   Iterator begin();
   Iterator begin() const;

@@ -120,12 +120,15 @@ bool HttpResponse::SetHeader(std::string name, std::string value) {
 
   CheckHeaderName(name);
   CheckHeaderValue(value);
-  const auto header_it = headers_.find(name);
+
+  headers_.Insert(std::move(name), std::move(value));
+
+  /*const auto header_it = headers_.find(name);
   if (header_it == headers_.end()) {
     headers_.Insert(std::move(name), std::move(value));
   } else {
     header_it->second = std::move(value);
-  }
+  }*/
 
   return true;
 }

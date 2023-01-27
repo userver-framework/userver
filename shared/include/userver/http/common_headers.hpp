@@ -24,20 +24,24 @@ constexpr bool IsLowerCase(std::string_view header) {
 
 /// @name Representation Metadata
 /// @{
-inline constexpr char kContentType[] = "Content-Type";
+inline constexpr char kContentType[] = "content-type";
 inline constexpr char kContentEncoding[] = "Content-Encoding";
 inline constexpr char kContentLanguage[] = "Content-Language";
 inline constexpr char kContentLocation[] = "Content-Location";
 inline constexpr char kContentDisposition[] = "Content-Disposition";
 /// @}
 
+static_assert(impl::IsLowerCase(kContentType));
+
 /// @name Payload Semantics
 /// @{
-inline constexpr char kContentLength[] = "Content-Length";
+inline constexpr char kContentLength[] = "content-length";
 inline constexpr char kContentRange[] = "Content-Range";
 inline constexpr char kTrailer[] = "Trailer";
 inline constexpr char kTransferEncoding[] = "Transfer-Encoding";
 /// @}
+
+static_assert(impl::IsLowerCase(kContentLength));
 
 /// @name Request Headers - Controls
 /// @{
@@ -91,7 +95,7 @@ inline constexpr char kXRequestApplication[] = "X-Request-Application";
 /// @{
 inline constexpr char kAge[] = "Age";
 inline constexpr char kExpires[] = "Expires";
-inline constexpr char kDate[] = "Date";
+inline constexpr char kDate[] = "date";
 inline constexpr char kLocation[] = "Location";
 inline constexpr char kRetryAfter[] = "Retry-After";
 inline constexpr char kVary[] = "Vary";
@@ -99,6 +103,8 @@ inline constexpr char kWarning[] = "Warning";
 inline constexpr char kAccessControlAllowHeaders[] =
     "Access-Control-Allow-Headers";
 /// @}
+
+static_assert(impl::IsLowerCase(kDate));
 
 /// @name Validator Header Fields
 /// @{
@@ -126,8 +132,10 @@ inline constexpr char kSetCookie[] = "Set-Cookie";
 
 /// @name Extra headers
 /// @{
-inline constexpr char kConnection[] = "Connection";
+inline constexpr char kConnection[] = "connection";
 /// @}
+
+static_assert(impl::IsLowerCase(kConnection));
 
 /// @name Tracing headers
 /// @{

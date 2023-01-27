@@ -31,13 +31,13 @@ std::string ToLowerCase(const std::string& header_name) {
 }
 
 bool IsLowerCase(std::string_view header_name) {
+  bool fail = false;
+  // This is vectorized, with early return it's not.
   for (const auto c : header_name) {
-    if (c >= 'A' && c <= 'Z') {
-      return false;
-    }
+    fail |= c >= 'A' && c <= 'Z';
   }
 
-  return true;
+  return !fail;
 }
 
 }  // namespace server::http::header_map_impl
