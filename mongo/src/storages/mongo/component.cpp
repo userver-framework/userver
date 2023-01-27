@@ -132,6 +132,9 @@ properties:
         type: string
         description: changes the granularity of reported metrics
         defaultDescription: 'terse'
+        enum:
+          - terse
+          - full
     dns_resolver:
         type: string
         description: server hostname resolver type (getaddrinfo or async)

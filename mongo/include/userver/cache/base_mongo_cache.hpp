@@ -118,8 +118,8 @@ std::chrono::milliseconds GetMongoCacheUpdateCorrection(const ComponentConfig&);
 template <class MongoCacheTraits>
 class MongoCache
     : public CachingComponentBase<typename MongoCacheTraits::DataType> {
-  using CollectionsType = mongo_cache::impl::CollectionsType<decltype(
-      MongoCacheTraits::kMongoCollectionsField)>;
+  using CollectionsType = mongo_cache::impl::CollectionsType<
+      decltype(MongoCacheTraits::kMongoCollectionsField)>;
 
  public:
   static constexpr std::string_view kName = MongoCacheTraits::kName;

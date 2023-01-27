@@ -3,36 +3,33 @@
 #include <mutex>
 #include <string>
 
-// this header must be included before any spdlog headers
-// to override spdlog's level names
-#include <logging/spdlog.hpp>
-
 #include <spdlog/details/null_mutex.h>
 #include <spdlog/sinks/base_sink.h>
 
 USERVER_NAMESPACE_BEGIN
+
 namespace logging {
 
 namespace impl {
+
 class UnixSocketClient final {
  public:
   UnixSocketClient() = default;
 
   UnixSocketClient(const UnixSocketClient&) = delete;
   UnixSocketClient(UnixSocketClient&&) = default;
-
   UnixSocketClient& operator=(const UnixSocketClient&) = delete;
   UnixSocketClient& operator=(UnixSocketClient&&) = default;
+  ~UnixSocketClient();
 
   void connect(const spdlog::filename_t& filename);
   void send(const char* data, size_t n_bytes);
   void close();
 
-  ~UnixSocketClient();
-
  private:
   int socket_{-1};
 };
+
 }  // namespace impl
 
 template <typename Mutex>
@@ -41,7 +38,7 @@ class SocketSink final : public spdlog::sinks::base_sink<Mutex> {
   using filename_t = spdlog::filename_t;
   using sink = spdlog::sinks::base_sink<Mutex>;
 
-  SocketSink(filename_t filename) : filename_{std::move(filename)} {
+  explicit SocketSink(filename_t filename) : filename_{std::move(filename)} {
     client_.connect(filename_);
   }
 

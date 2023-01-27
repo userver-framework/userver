@@ -13,10 +13,15 @@ namespace logging::impl {
 
 class LoggerWithInfo final {
  public:
-  LoggerWithInfo(Format format, utils::SharedRef<spdlog::logger> ptr)
-      : format(format), ptr(std::move(ptr)) {}
+  LoggerWithInfo(Format format,
+                 std::shared_ptr<spdlog::details::thread_pool> thread_pool,
+                 utils::SharedRef<spdlog::logger> ptr)
+      : format(format),
+        thread_pool(std::move(thread_pool)),
+        ptr(std::move(ptr)) {}
 
   const Format format;
+  const std::shared_ptr<const spdlog::details::thread_pool> thread_pool;
   const utils::SharedRef<spdlog::logger> ptr;
 };
 

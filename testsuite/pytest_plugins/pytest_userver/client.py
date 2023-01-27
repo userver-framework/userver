@@ -6,6 +6,7 @@ testsuite; see @ref md_en_userver_functional_testing for an introduction.
 """
 
 import contextlib
+import copy
 import dataclasses
 import json
 import logging
@@ -20,6 +21,7 @@ from testsuite.utils import approx
 from testsuite.utils import http
 
 import pytest_userver.metrics as metric_module  # pylint: disable=import-error
+from pytest_userver.plugins import caches
 
 # @cond
 logger = logging.getLogger(__name__)
@@ -485,6 +487,7 @@ class AiohttpClient(service_client.AiohttpClient):
             log_capture_fixture,
             testpoint,
             testpoint_control,
+            cache_invalidation_state,
             span_id_header=None,
             api_coverage_report=None,
             periodic_tasks_state: typing.Optional[PeriodicTasksState] = None,
@@ -492,15 +495,14 @@ class AiohttpClient(service_client.AiohttpClient):
     ):
         super().__init__(base_url, span_id_header=span_id_header, **kwargs)
         self._config = config
-        self._mocked_time = mocked_time
         self._periodic_tasks = periodic_tasks_state
         self._testpoint = testpoint
-        self._testpoint_control = testpoint_control
         self._log_capture_fixture = log_capture_fixture
-        self._state_manager = StateManager(
+        self._state_manager = _StateManager(
             mocked_time=mocked_time,
-            testpoint=testpoint,
+            testpoint=self._testpoint,
             testpoint_control=testpoint_control,
+            invalidation_state=cache_invalidation_state,
         )
         self._api_coverage_report = api_coverage_report
 
@@ -852,25 +854,48 @@ class Client(ClientWrapper):
         await self._client.enable_testpoints(*args, **kwargs)
 
 
-@dataclasses.dataclass(frozen=True)
-class State:
-    caches_invalidated: bool = False
+@dataclasses.dataclass
+class _State:
+    """Reflects the (supposed) current service state."""
+
+    invalidation_state: caches.InvalidationState
     now: typing.Optional[str] = _UNKNOWN_STATE
     testpoints: typing.FrozenSet[str] = frozenset([_UNKNOWN_STATE])
 
 
-class StateManager:
-    def __init__(self, *, mocked_time, testpoint, testpoint_control):
-        self._state = State()
+class _StateManager:
+    """
+    Used for computing the requests that we need to automatically align
+    the service state with the test fixtures state.
+    """
+
+    def __init__(
+            self,
+            *,
+            mocked_time,
+            testpoint,
+            testpoint_control,
+            invalidation_state: caches.InvalidationState,
+    ):
+        self._state = _State(
+            invalidation_state=copy.deepcopy(invalidation_state),
+        )
         self._mocked_time = mocked_time
         self._testpoint = testpoint
         self._testpoint_control = testpoint_control
+        self._invalidation_state = invalidation_state
 
     @contextlib.contextmanager
-    def updating_state(self, body):
-        saved_state = self._state
+    def updating_state(self, body: typing.Dict[str, typing.Any]):
+        """
+        Whenever `tests_control` handler is invoked
+        (by the client itself during `prepare` or manually by the user),
+        we need to synchronize `_state` with the (supposed) service state.
+        The state update is decoded from the request body.
+        """
+        saved_state = copy.deepcopy(self._state)
         try:
-            self._state = self._update_state(body)
+            self._update_state(body)
             self._apply_new_state()
             yield
         except:  # noqa
@@ -879,55 +904,61 @@ class StateManager:
             raise
 
     def get_pending_update(self) -> typing.Dict[str, typing.Any]:
-        """Get arguments to be passed in ``POST testpoint`` to sync service
-        state with desired state
         """
-        state = self._get_desired_state()
+        Compose the body of the `tests_control` request required to completely
+        synchronize the service state with the state of test fixtures.
+        """
         body: typing.Dict[str, typing.Any] = {}
 
-        if self._state.caches_invalidated != state.caches_invalidated:
+        if self._invalidation_state.has_caches_to_update:
             body['invalidate_caches'] = {'update_type': 'full'}
+            if not self._invalidation_state.should_update_all_caches:
+                body['invalidate_caches']['names'] = list(
+                    self._invalidation_state.caches_to_update,
+                )
 
-        if self._state.testpoints != state.testpoints:
-            body['testpoints'] = sorted(state.testpoints)
+        desired_testpoints = self._testpoint.keys()
+        if self._state.testpoints != frozenset(desired_testpoints):
+            body['testpoints'] = sorted(desired_testpoints)
 
-        if self._state.now != state.now:
-            body['mock_now'] = state.now
+        desired_now = self._get_desired_now()
+        if self._state.now != desired_now:
+            body['mock_now'] = desired_now
 
         return body
 
-    def _update_state(self, body: dict) -> State:
-        update: typing.Dict[str, typing.Any] = {}
-
-        invalidate_caches = body.get('invalidate_caches', {})
-        update_type = invalidate_caches.get('update_type', 'full')
-        names = invalidate_caches.get('names', None)
-        if invalidate_caches and update_type == 'full' and not names:
-            update['caches_invalidated'] = True
+    def _update_state(self, body: typing.Dict[str, typing.Any]) -> None:
+        body_invalidate_caches = body.get('invalidate_caches', {})
+        update_type = body_invalidate_caches.get('update_type', 'full')
+        body_cache_names = body_invalidate_caches.get('names', None)
+        # An incremental update is considered insufficient to bring a cache
+        # to a known state.
+        if body_invalidate_caches and update_type == 'full':
+            if body_cache_names is None:
+                self._state.invalidation_state.on_all_caches_updated()
+            else:
+                self._state.invalidation_state.on_caches_updated(
+                    body_cache_names,
+                )
 
         if 'mock_now' in body:
-            update['now'] = body['mock_now']
+            self._state.now = body['mock_now']
 
-        testpoints = body.get('testpoints', None)
+        testpoints: typing.Optional[typing.List[str]] = body.get(
+            'testpoints', None,
+        )
         if testpoints is not None:
-            update['testpoints'] = frozenset(testpoints)
-
-        return dataclasses.replace(self._state, **update)
+            self._state.testpoints = frozenset(testpoints)
 
     def _apply_new_state(self):
         """Apply new state to related components."""
         self._testpoint_control.enabled_testpoints = self._state.testpoints
+        self._invalidation_state.assign_copy(self._state.invalidation_state)
 
-    def _get_desired_state(self) -> State:
+    def _get_desired_now(self) -> typing.Optional[str]:
         if self._mocked_time.is_enabled:
-            now = utils.timestring(self._mocked_time.now())
-        else:
-            now = None
-        return State(
-            caches_invalidated=True,
-            testpoints=frozenset(self._testpoint.keys()),
-            now=now,
-        )
+            return utils.timestring(self._mocked_time.now())
+        return None
 
 
 async def _task_check_response(name: str, response) -> dict:

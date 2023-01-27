@@ -35,15 +35,27 @@ All the components have the following options:
 @anchor static-configs-validation
 ### Static configs validation
 
-To validate static configs, define member function of your component 
-`GetStaticConfigSchema()` and specialize variable `components::kHasValidate`
+To validate static configs you only need to define member function of your component 
+`GetStaticConfigSchema()`
 
 @snippet components/component_sample_test.cpp  Sample user component schema
 
-@snippet components/component_sample_test.hpp  Sample kHasValidate specialization
-
 All schemas and sub-schemas must have `description` field and can have 
 `defaultDescription` field if they have a default value.
+
+Scope of static config validatoin can be specified by `validate_all_components` section of 
+`components_manager` config. To disable it use:
+
+```
+components_manager:
+    static_config_validation:
+        validate_all_components: false
+```
+
+You also can force static config validation of your component by adding `components::kHasValidate`
+
+@snippet components/component_sample_test.hpp  Sample kHasValidate specialization
+
 @note There are plans to use it to generate documentation.
 
 Supported types:

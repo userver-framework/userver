@@ -28,9 +28,6 @@ class Hello final : public components::TcpAcceptorBase {
 
 }  // namespace samples::tcp
 
-template <>
-inline constexpr bool components::kHasValidate<samples::tcp::Hello> = true;
-
 /// [TCP sample - component]
 
 namespace samples::tcp {

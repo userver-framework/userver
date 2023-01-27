@@ -14,17 +14,8 @@
 USERVER_NAMESPACE_BEGIN
 namespace {
 
-const auto kTmpDir = fs::blocking::TempDirectory::Create();
-const std::string kRuntimeConfingPath =
-    kTmpDir.GetPath() + "/runtime_config.json";
-const std::string kConfigVariablesPath =
-    kTmpDir.GetPath() + "/config_vars.json";
-
-const std::string kConfigVariables =
-    fmt::format("runtime_config_path: {}", kRuntimeConfingPath);
-
 // BEWARE! No separate fs-task-processor. Testing almost single thread mode
-const std::string kStaticConfig = R"(
+constexpr std::string_view kStaticConfigTemplate = R"(
 components_manager:
   coro_pool:
     initial_size: 50
@@ -68,8 +59,10 @@ components_manager:
       fs-task-processor: main-task-processor
     dynamic-config-fallbacks:
       fallback-path: $runtime_config_path
-config_vars: )" + kConfigVariablesPath +
-                                  R"(
+config_vars: {0})";
+
+constexpr std::string_view kConfigVarsTemplate = R"(
+  runtime_config_path: {0}
 )";
 
 void ValidateExampleCacheConfig(const formats::yaml::Value& static_config) {
@@ -81,22 +74,33 @@ void ValidateExampleCacheConfig(const formats::yaml::Value& static_config) {
 }  // namespace
 
 TEST_F(ComponentList, LruCacheComponentSample) {
+  const auto temp_root = fs::blocking::TempDirectory::Create();
+  const std::string dynamic_config_path =
+      temp_root.GetPath() + "/dynamic_config.json";
+  const std::string config_vars_path =
+      temp_root.GetPath() + "/config_vars.json";
+
+  const std::string static_config =
+      fmt::format(kStaticConfigTemplate, config_vars_path);
+  const std::string kConfigVariables =
+      fmt::format(kConfigVarsTemplate, dynamic_config_path);
+
   /// [Sample lru cache component registration]
   auto component_list = components::MinimalComponentList();
   component_list.Append<ExampleCacheComponent>();
   /// [Sample lru cache component registration]
   component_list.Append<components::TestsuiteSupport>();
 
-  fs::blocking::RewriteFileContents(kRuntimeConfingPath, tests::kRuntimeConfig);
-  fs::blocking::RewriteFileContents(kConfigVariablesPath, kConfigVariables);
+  fs::blocking::RewriteFileContents(dynamic_config_path, tests::kRuntimeConfig);
+  fs::blocking::RewriteFileContents(config_vars_path, kConfigVariables);
 
-  components::RunOnce(components::InMemoryConfig{kStaticConfig},
+  components::RunOnce(components::InMemoryConfig{static_config},
                       component_list);
 }
 
 TEST(StaticConfigValidator, ValidConfig) {
   ValidateExampleCacheConfig(formats::yaml::FromString(
-      kStaticConfig)["components_manager"]["components"]);
+      std::string{kStaticConfigTemplate})["components_manager"]["components"]);
 }
 
 TEST(StaticConfigValidator, InvalidFieldName) {

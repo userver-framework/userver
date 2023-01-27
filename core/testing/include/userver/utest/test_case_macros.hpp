@@ -235,8 +235,8 @@ USERVER_NAMESPACE_END
   /* The 'namespace' trick is used to make gtest use our 'test_launcher'       \
    * instead of 'test_suite_name' fixture */                                   \
   namespace IMPL_UTEST_NAMESPACE_NAME(test_suite_name) {                       \
-    IMPL_UTEST_HIDE_USER_FIXTURE_BY_TEST_LAUNCHER(test_suite_name,             \
-                                                  test_launcher_template)
+  IMPL_UTEST_HIDE_USER_FIXTURE_BY_TEST_LAUNCHER(test_suite_name,               \
+                                                test_launcher_template)
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define IMPL_UTEST_ANY_END(test_suite_name, test_name, thread_count) \

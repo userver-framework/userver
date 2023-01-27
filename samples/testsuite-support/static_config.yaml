@@ -46,7 +46,6 @@ components_manager:
 
         dynamic-config:
             fs-cache-path: ''
-            fs-task-processor: fs-task-processor
         dynamic-config-fallbacks:
             load-enabled: false
         dynamic-config-client:

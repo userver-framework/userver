@@ -6,7 +6,6 @@
 #include <string>
 #include <string_view>
 #include <system_error>
-#include <unordered_map>
 
 #include <userver/clients/http/error.hpp>
 #include <userver/clients/http/form.hpp>
@@ -138,6 +137,18 @@ void SetHeaders(curl::easy& easy, const Range& headers_range) {
       clients::http::SetUserAgent(easy, value);
     }
   }
+}
+
+template <class Range>
+void SetCookies(curl::easy& easy, const Range& cookies_range) {
+  std::string cookie_str;
+  for (const auto& [name, value] : cookies_range) {
+    if (!cookie_str.empty()) cookie_str += "; ";
+    cookie_str += name;
+    cookie_str += '=';
+    cookie_str += value;
+  }
+  easy.set_cookie(cookie_str);
 }
 
 template <class Range>
@@ -352,14 +363,13 @@ std::shared_ptr<Request> Request::proxy_auth_type(ProxyAuthType value) {
 }
 
 std::shared_ptr<Request> Request::cookies(const Cookies& cookies) {
-  std::string cookie_str;
-  for (const auto& [name, value] : cookies) {
-    if (!cookie_str.empty()) cookie_str += "; ";
-    cookie_str += name;
-    cookie_str += '=';
-    cookie_str += value;
-  }
-  pimpl_->easy().set_cookie(cookie_str);
+  SetCookies(pimpl_->easy(), cookies);
+  return shared_from_this();
+}
+
+std::shared_ptr<Request> Request::cookies(
+    const std::unordered_map<std::string, std::string>& cookies) {
+  SetCookies(pimpl_->easy(), cookies);
   return shared_from_this();
 }
 

@@ -265,6 +265,11 @@ void Sentinel::SetCommandsBufferingSettings(
   return impl_->SetCommandsBufferingSettings(commands_buffering_settings);
 }
 
+void Sentinel::SetReplicationMonitoringSettings(
+    const ReplicationMonitoringSettings& replication_monitoring_settings) {
+  impl_->SetReplicationMonitoringSettings(replication_monitoring_settings);
+}
+
 std::vector<Request> Sentinel::MakeRequests(
     CmdArgs&& args, bool master, const CommandControl& command_control,
     size_t replies_to_skip) {

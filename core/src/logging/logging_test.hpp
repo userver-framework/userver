@@ -1,34 +1,27 @@
 #pragma once
 
 #include <gtest/gtest.h>
-
-#include <logging/spdlog.hpp>
+#include <spdlog/sinks/ostream_sink.h>
 
 #include <logging/config.hpp>
 #include <logging/logger_with_info.hpp>
 #include <logging/spdlog_helpers.hpp>
 #include <logging/unix_socket_sink.hpp>
 
-#include <spdlog/sinks/ostream_sink.h>
-
-#include <userver/engine/condition_variable.hpp>
-#include <userver/engine/io/socket.hpp>
-#include <userver/engine/task/cancel.hpp>
 #include <userver/logging/format.hpp>
 #include <userver/logging/log.hpp>
-#include <userver/utils/async.hpp>
-#include <utils/check_syscall.hpp>
-
-#include <sys/socket.h>
-#include <sys/un.h>
 
 USERVER_NAMESPACE_BEGIN
 
 inline logging::LoggerPtr MakeLoggerFromSink(
     const std::string& logger_name,
     std::shared_ptr<spdlog::sinks::sink> sink_ptr, logging::Format format) {
-  return std::make_shared<logging::impl::LoggerWithInfo>(
-      format, utils::MakeSharedRef<spdlog::logger>(logger_name, sink_ptr));
+  auto logger = std::make_shared<logging::impl::LoggerWithInfo>(
+      format, std::shared_ptr<spdlog::details::thread_pool>{},
+      utils::MakeSharedRef<spdlog::logger>(logger_name, sink_ptr));
+  logger->ptr->set_pattern(logging::GetSpdlogPattern(format));
+  logger->ptr->set_level(spdlog::level::level_enum::info);
+  return logger;
 }
 
 inline logging::LoggerPtr MakeNamedStreamLogger(const std::string& logger_name,
@@ -38,155 +31,76 @@ inline logging::LoggerPtr MakeNamedStreamLogger(const std::string& logger_name,
   return MakeLoggerFromSink(logger_name, sink, format);
 }
 
-inline logging::LoggerPtr MakeSocketLogger(const std::string& logger_name,
-                                           std::string& filename,
-                                           logging::Format format) {
-  auto sink = std::make_shared<logging::SocketSinkST>(filename);
-  return MakeLoggerFromSink(logger_name, sink, format);
+inline std::string_view GetTextKey(logging::Format format) {
+  return format == logging::Format::kLtsv ? "text:" : "text=";
 }
 
-class SocketLoggingTest : public ::testing::Test {
- public:
-  static constexpr char socket_file[] = "socket";
-  static constexpr size_t buffer_size = 1024;
+inline std::string ParseLoggedText(std::string_view log_record,
+                                   logging::Format format) {
+  const auto text_key = GetTextKey(format);
 
-  std::string LoggedText() const {
-    logging::LogFlush();
-    std::string str(buffer_);
-    std::string text_key = "text=";
-
-    const auto text_begin = str.find(text_key);
-    const std::string from_text =
-        text_begin == std::string::npos
-            ? str
-            : str.substr(text_begin + text_key.length());
-
-    const auto text_end = from_text.find('\t');
-    return text_end == std::string::npos ? from_text
-                                         : from_text.substr(0, text_end);
+  const auto text_begin = log_record.find(text_key);
+  if (text_begin != std::string_view::npos) {
+    log_record.remove_prefix(text_begin + text_key.length());
   }
 
-  void Server(engine::ConditionVariable& cv) {
-    engine::io::Socket connection = socket_.Accept({});
-
-    starts_.store(true);
-    cv.NotifyOne();
-    while (!engine::current_task::ShouldCancel()) {
-      auto res = connection.RecvSome(buffer_ + bytes_read_,
-                                     buffer_size - bytes_read_, {});
-
-      bytes_read_ += static_cast<size_t>(res);
-      UASSERT(bytes_read_ < buffer_size);
-      cv.NotifyOne();
-    }
+  const auto text_end = log_record.find_first_of("\t\r\n");
+  if (text_end != std::string_view::npos) {
+    log_record = log_record.substr(0, text_end);
   }
 
-  bool IsStarts() const { return starts_.load(); }
-  bool IsRead() const { return bytes_read_.load() != 0; }
+  return std::string{log_record};
+}
 
+class DefaultLoggerFixture : public ::testing::Test {
  protected:
-  SocketLoggingTest()
-      : socket_(engine::io::AddrDomain::kUnix,
-                engine::io::SocketType::kStream) {
-    unlink(socket_file);
-
-    struct sockaddr_un addr {};
-    addr.sun_family = AF_UNIX;
-    std::strncpy(addr.sun_path, socket_file, std::strlen(socket_file));
-
-    socket_.Bind(engine::io::Sockaddr(static_cast<const void*>(&addr)));
-
-    socket_.Listen();
-  }
-
-  void SetUp() override {
-    static std::string logger_name = "socket_logger";
-    std::string filename(socket_file);
-    auto logger =
-        MakeSocketLogger(logger_name, filename, logging::Format::kTskv);
-    logger->ptr->set_pattern(logging::GetSpdlogPattern(logging::Format::kTskv));
-    logger->ptr->set_level(spdlog::level::level_enum::err);
-    old_ = logging::SetDefaultLogger(logger);
-
-    logging::LogFlush();
-    ClearLog();
-  }
-
-  void TearDown() override {
-    if (old_) {
-      // Discard logs from SetDefaultLogger
+  ~DefaultLoggerFixture() override {
+    if (old_logger_) {
+      // Discard logs from within SetDefaultLogger
       logging::SetDefaultLoggerLevel(logging::Level::kNone);
       logging::LogFlush();
 
-      logging::SetDefaultLogger(old_);
-      old_.reset();
+      logging::SetDefaultLogger(old_logger_);
+      old_logger_.reset();
     }
+  }
+
+  void SetDefaultLogger(logging::LoggerPtr new_logger) {
+    // Ignore clang-tidy request to make the method 'static'
+    [[maybe_unused]] auto* const self = this;
+
+    const auto old_level = logging::GetLoggerLevel(new_logger);
+    // Discard logs from within SetLoggerLevel itself
+    logging::SetLoggerLevel(new_logger, logging::Level::kNone);
+
+    logging::SetDefaultLogger(new_logger);
+    logging::SetLoggerLevel(new_logger, old_level);
   }
 
  private:
-  void ClearLog() { bytes_read_ = 0; }
-
-  engine::io::Socket socket_;
-  std::atomic<bool> starts_;
-
-  char buffer_[buffer_size]{};
-  std::atomic<size_t> bytes_read_{0};
-
-  logging::LoggerPtr old_;
+  logging::LoggerPtr old_logger_{logging::DefaultLogger()};
 };
 
-class LoggingTestBase : public ::testing::Test {
+class LoggingTestBase : public DefaultLoggerFixture {
  protected:
-  LoggingTestBase(logging::Format format, std::string_view text_key)
-      : format_(format), text_key_(text_key) {}
-
-  void SetUp() override {
-    old_ = logging::SetDefaultLogger(MakeStreamLogger(sstream));
-
-    // Discard logs from SetDefaultLogger
-    logging::LogFlush();
-    ClearLog();
-  }
-
-  void TearDown() override {
-    if (old_) {
-      // Discard logs from SetDefaultLogger
-      logging::SetDefaultLoggerLevel(logging::Level::kNone);
-      logging::LogFlush();
-
-      logging::SetDefaultLogger(old_);
-      old_.reset();
-    }
+  LoggingTestBase(logging::Format format) : format_(format) {
+    SetDefaultLogger(MakeStreamLogger(sstream_));
   }
 
   logging::LoggerPtr MakeStreamLogger(std::ostream& stream) const {
-    std::ostringstream os;
-    os << this;
-    auto logger = MakeNamedStreamLogger(os.str(), stream, format_);
-    logger->ptr->set_pattern(logging::GetSpdlogPattern(format_));
-    return logger;
+    return MakeNamedStreamLogger("test-stream-logger", stream, format_);
   }
 
   std::string LoggedText() const {
     logging::LogFlush();
-    const std::string str = sstream.str();
-
-    const auto text_begin = str.find(text_key_);
-    const std::string from_text =
-        text_begin == std::string::npos
-            ? str
-            : str.substr(text_begin + text_key_.length());
-
-    const auto text_end = from_text.rfind('\n');
-    return text_end == std::string::npos ? from_text
-                                         : from_text.substr(0, text_end);
+    return ParseLoggedText(sstream_.str(), format_);
   }
 
   bool LoggedTextContains(const std::string& str) const {
     return LoggedText().find(str) != std::string::npos;
   }
 
-  void ClearLog() { sstream.str({}); }
+  void ClearLog() { sstream_.str({}); }
 
   template <typename T>
   std::string ToStringViaLogging(const T& value) {
@@ -196,24 +110,21 @@ class LoggingTestBase : public ::testing::Test {
     return result;
   }
 
-  std::string GetStreamString() const { return sstream.str(); }
+  std::string GetStreamString() const { return sstream_.str(); }
 
  private:
   const logging::Format format_;
-  const std::string_view text_key_;
-  logging::LoggerPtr old_;
-
-  std::ostringstream sstream;
+  std::ostringstream sstream_;
 };
 
 class LoggingTest : public LoggingTestBase {
  protected:
-  LoggingTest() : LoggingTestBase(logging::Format::kTskv, "text=") {}
+  LoggingTest() : LoggingTestBase(logging::Format::kTskv) {}
 };
 
 class LoggingLtsvTest : public LoggingTestBase {
  protected:
-  LoggingLtsvTest() : LoggingTestBase(logging::Format::kLtsv, "text:") {}
+  LoggingLtsvTest() : LoggingTestBase(logging::Format::kLtsv) {}
 };
 
 USERVER_NAMESPACE_END

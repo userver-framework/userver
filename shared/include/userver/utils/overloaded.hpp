@@ -13,7 +13,7 @@ struct Overloaded : Ts... {  // NOLINT(fuchsia-multiple-inheritance)
   using Ts::operator()...;
 };
 template <class... Ts>
-Overloaded(Ts...)->Overloaded<Ts...>;
+Overloaded(Ts...) -> Overloaded<Ts...>;
 
 }  // namespace utils
 

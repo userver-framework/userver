@@ -7,6 +7,8 @@
 #include <string_view>
 #include <unordered_map>
 
+#include <userver/utils/str_icase.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace http {
@@ -18,10 +20,14 @@ UrlDecode(std::string_view range);
 /// @brief Encode as URL
 std::string UrlEncode(std::string_view input_string);
 
-using Args = std::unordered_map<std::string, std::string>;
+using Args = std::unordered_map<std::string, std::string, utils::StrCaseHash>;
 
 /// @brief Make an URL query
 std::string MakeQuery(const Args& query_args);
+
+/// @brief Make an URL query
+std::string MakeQuery(
+    const std::unordered_map<std::string, std::string>& query_args);
 
 /// @brief Make an URL query
 std::string MakeQuery(
@@ -30,6 +36,11 @@ std::string MakeQuery(
 
 /// @brief Make an URL with query arguments
 std::string MakeUrl(std::string_view path, const Args& query_args);
+
+/// @brief Make an URL with query arguments
+std::string MakeUrl(
+    std::string_view path,
+    const std::unordered_map<std::string, std::string>& query_args);
 
 /// @brief Make an URL with query arguments
 std::string MakeUrl(

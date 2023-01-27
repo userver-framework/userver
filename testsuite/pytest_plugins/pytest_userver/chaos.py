@@ -311,7 +311,7 @@ class _SocketsPaired:
 
         try:
             while True:
-                # Applies new inreceptors faster.
+                # Applies new interceptors faster.
                 #
                 # To avoid long awaiting on sock_recv in an outdated
                 # interceptor we wait for data before grabbing and applying

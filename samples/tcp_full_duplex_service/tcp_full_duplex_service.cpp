@@ -35,9 +35,6 @@ class Echo final : public components::TcpAcceptorBase {
 
 }  // namespace samples::tcp::echo
 
-template <>
-inline constexpr bool components::kHasValidate<samples::tcp::echo::Echo> = true;
-
 /// [TCP sample - component]
 
 namespace samples::tcp::echo {

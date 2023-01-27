@@ -346,7 +346,7 @@ TYPED_UTEST_P_MT(QueueFixture, ManyProducers, 4) {
   }
 
   for (std::size_t i = 0; i < kProducersCount; ++i) {
-    tasks.push_back(utils::Async("pusher", [& producer = producers[i], i] {
+    tasks.push_back(utils::Async("pusher", [&producer = producers[i], i] {
       for (std::size_t message = kMessageCount * i;
            message < (i + 1) * kMessageCount; ++message) {
         ASSERT_TRUE(producer.Push(static_cast<int>(message)));

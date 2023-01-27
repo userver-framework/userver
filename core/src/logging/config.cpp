@@ -52,8 +52,8 @@ LoggerConfig Parse(const yaml_config::YamlConfig& value,
       value["overflow_behavior"].As<LoggerConfig::QueueOveflowBehavior>(
           LoggerConfig::QueueOveflowBehavior::kDiscard);
 
-  config.fs_task_processor =
-      value["fs-task-processor"].As<std::optional<std::string>>();
+  config.thread_pool_size = value["thread_pool_size"].As<size_t>(
+      LoggerConfig::kDefaultThreadPoolSize);
 
   return config;
 }

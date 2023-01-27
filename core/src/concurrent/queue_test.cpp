@@ -115,7 +115,7 @@ UTEST_MT(NonFifoMpmcQueue, Mpmc, kProducersCount + kConsumersCount) {
   consumers_tasks.reserve(kConsumersCount);
   for (std::size_t i = 0; i < kConsumersCount; ++i) {
     consumers_tasks.push_back(utils::Async(
-        "consumer", [& consumer = consumers[i], &consumed_messages, &mutex] {
+        "consumer", [&consumer = consumers[i], &consumed_messages, &mutex] {
           std::size_t value{};
           while (consumer.Pop(value)) {
             std::lock_guard lock(mutex);
@@ -194,7 +194,7 @@ UTEST_MT(NonFifoSpmcQueue, Spmc, 1 + kConsumersCount) {
   consumers_tasks.reserve(kConsumersCount);
   for (std::size_t i = 0; i < kConsumersCount; ++i) {
     consumers_tasks.push_back(utils::Async(
-        "consumer", [& consumer = consumers[i], &consumed_messages, &mutex] {
+        "consumer", [&consumer = consumers[i], &consumed_messages, &mutex] {
           std::size_t value{};
           while (consumer.Pop(value)) {
             std::lock_guard lock(mutex);

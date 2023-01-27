@@ -26,8 +26,9 @@ namespace {
 LoggerPtr MakeSimpleLogger(const std::string& name, spdlog::sink_ptr sink,
                            spdlog::level::level_enum level, Format format) {
   auto spdlog_logger = utils::MakeSharedRef<spdlog::logger>(name, sink);
-  auto logger =
-      std::make_shared<impl::LoggerWithInfo>(format, std::move(spdlog_logger));
+  auto logger = std::make_shared<impl::LoggerWithInfo>(
+      format, std::shared_ptr<spdlog::details::thread_pool>{},
+      std::move(spdlog_logger));
 
   logger->ptr->set_pattern(GetSpdlogPattern(format));
   logger->ptr->set_level(level);

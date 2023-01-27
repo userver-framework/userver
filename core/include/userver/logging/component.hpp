@@ -42,7 +42,6 @@ namespace components {
 /// message_queue_size | the size of internal message queue, must be a power of 2 | 65536
 /// overflow_behavior | message handling policy while the queue is full: `discard` drops messages, `block` waits until message gets into the queue | discard
 /// testsuite-capture | if exists, setups additional TCP log sink for testing purposes | {}
-/// fs-task-processor | task processor for disk I/O operations for this logger | fs-task-processor of the loggers component
 ///
 /// ### Logs output
 /// You can specify logger output, in `file_path` option:

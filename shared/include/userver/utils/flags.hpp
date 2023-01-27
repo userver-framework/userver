@@ -101,7 +101,7 @@ class AtomicFlags final {
                              std::memory_order failure);
 
   Flags<Enum> operator|(Flags<Enum>) const;
-  Flags<Enum> operator&(Flags<Enum>)const;
+  Flags<Enum> operator&(Flags<Enum>) const;
 
   bool operator==(Flags<Enum>) const;
   bool operator!=(Flags<Enum>) const;

@@ -54,7 +54,7 @@ endif()
 option(USERVER_CONAN "Build with Conan packages" ${CONAN_EXPORTED})
 if (USERVER_CONAN)
   message(STATUS "Using Conan packages")
-  include(${CMAKE_BINARY_DIR}/conan_paths.cmake)
+  include(conan_paths)
 endif()
 
 option(USERVER_DOWNLOAD_PACKAGES "Download missing third party packages and use the downloaded versions" ${USERVER_OPEN_SOURCE_BUILD})

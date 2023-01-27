@@ -190,6 +190,7 @@ std::shared_ptr<Redis> Shard::GetInstance(
     const auto& cur_inst = instances_[instance_idx].instance;
     if (cur_inst && !cur_inst->IsDestroying() &&
         (cur_inst->GetState() == Redis::State::kConnected) &&
+        !cur_inst->IsSyncing() &&
         (!instance || instance->IsDestroying() ||
          cur_inst->GetRunningCommands() < instance->GetRunningCommands())) {
       if (pinstance_idx) *pinstance_idx = instance_idx;
@@ -286,12 +287,14 @@ bool Shard::ProcessCreation(
   // https://github.com/boostorg/signals2/issues/59
   // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDelete)
   for (const auto& id : need_to_create) {
+    const auto redis_settings = RedisCreationSettings{
+        id.GetConnectionSecurity(), cluster_mode_ && id.IsReadOnly()};
     ConnectionStatus entry{
         id, std::make_shared<Redis>(
                 redis_thread_pool,
                 // https://github.com/boostorg/signals2/issues/59
                 // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDelete)
-                cluster_mode_ && id.IsReadOnly(), id.GetConnectionSecurity())};
+                redis_settings)};
     if (auto commands_buffering_settings = commands_buffering_settings_.Get())
       entry.instance->SetCommandsBufferingSettings(
           *commands_buffering_settings);
@@ -435,6 +438,21 @@ void Shard::SetCommandsBufferingSettings(
 
   commands_buffering_settings_.Set(
       std::make_shared<CommandsBufferingSettings>(commands_buffering_settings));
+}
+
+void Shard::SetReplicationMonitoringSettings(
+    const ReplicationMonitoringSettings& replication_monitoring_settings) {
+  std::shared_lock lock(mutex_);
+
+  for (const auto& instance : instances_) {
+    instance.instance->SetReplicationMonitoringSettings(
+        replication_monitoring_settings);
+  }
+
+  for (const auto& instance : clean_wait_) {
+    instance.instance->SetReplicationMonitoringSettings(
+        replication_monitoring_settings);
+  }
 }
 
 std::vector<ConnectionInfoInt> Shard::GetConnectionInfosToCreate() const {

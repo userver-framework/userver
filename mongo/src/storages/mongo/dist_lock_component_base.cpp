@@ -115,9 +115,8 @@ properties:
         defaultDescription: main-task-processor
     testsuite-support:
         type: boolean
-        default: false
         description: Enable testsuite support
-        defaultDescription: true
+        defaultDescription: false
 )");
 }
 

@@ -91,6 +91,8 @@ class SentinelImpl {
 
   void SetCommandsBufferingSettings(
       CommandsBufferingSettings commands_buffering_settings);
+  void SetReplicationMonitoringSettings(
+      const ReplicationMonitoringSettings& replication_monitoring_settings);
 
  private:
   static constexpr const std::chrono::milliseconds cluster_slots_timeout_ =

@@ -256,7 +256,7 @@ properties:
                 description: enable error injection
                 defaultDescription: false
             probability:
-                type: double
+                type: number
                 description: thrown exception probability
                 defaultDescription: 0
             verdicts:

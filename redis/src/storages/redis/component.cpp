@@ -78,6 +78,8 @@ formats::json::ValueBuilder InstanceStatisticsToJson(
 
   if (real_instance) {
     result["last_ping_ms"] = stats.last_ping_ms;
+    result["is_syncing"] = static_cast<int>(stats.is_syncing);
+    result["offset_from_master"] = stats.offset_from_master;
 
     for (size_t i = 0;
          i <= static_cast<int>(redis::Redis::State::kDisconnectError); ++i) {
@@ -458,10 +460,14 @@ void Redis::OnConfigUpdate(const dynamic_config::Snapshot& cfg) {
   auto cc = std::make_shared<redis::CommandControl>(
       redis_config.default_command_control);
   for (auto& it : sentinels_) {
+    const auto& name = it.first;
     auto& client = it.second;
     client->SetConfigDefaultCommandControl(cc);
     client->SetCommandsBufferingSettings(
         redis_config.commands_buffering_settings);
+    client->SetReplicationMonitoringSettings(
+        redis_config.replication_monitoring_settings.GetOptional(name).value_or(
+            redis::ReplicationMonitoringSettings{}));
   }
 
   auto subscriber_cc = std::make_shared<redis::CommandControl>(

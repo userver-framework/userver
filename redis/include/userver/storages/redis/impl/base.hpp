@@ -274,6 +274,11 @@ struct MetricsSettings {
   }
 };
 
+struct ReplicationMonitoringSettings {
+  bool enable_monitoring{false};
+  bool restrict_requests{false};
+};
+
 }  // namespace redis
 
 USERVER_NAMESPACE_END
