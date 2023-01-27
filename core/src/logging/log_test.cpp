@@ -46,6 +46,21 @@ TEST_F(LoggingTest, LogExtraExtendType) {
   EXPECT_EQ(log_contents.find("key1=value3"), std::string::npos);
 }
 
+TEST_F(LoggingTest, MultipleFlushes) {
+  logging::SetDefaultLoggerLevel(logging::Level::kTrace);
+
+  // Make sure that multiple flush sequences is OK
+  LOG_TRACE() << "some message1";
+  for (unsigned i = 0; i < 100; ++i) {
+    logging::LogFlush();
+  }
+  LOG_TRACE() << "some message2";
+
+  const auto log_contents = GetStreamString();
+  EXPECT_NE(log_contents.find("text=some message1"), std::string::npos);
+  EXPECT_NE(log_contents.find("text=some message2"), std::string::npos);
+}
+
 TEST_F(LoggingTest, ChronoDuration) {
   using namespace std::literals::chrono_literals;
 
