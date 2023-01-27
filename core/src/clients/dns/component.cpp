@@ -63,14 +63,14 @@ clients::dns::Resolver& Component::GetResolver() { return resolver_; }
 
 void Component::Write(utils::statistics::Writer& writer) {
   const auto& counters = GetResolver().GetLookupSourceCounters();
-  writer.ValueWithLabels(counters.file.Load(), {kDnsReplySource, "file"});
-  writer.ValueWithLabels(counters.cached.Load(), {kDnsReplySource, "cached"});
-  writer.ValueWithLabels(counters.cached_stale.Load(),
+  writer.ValueWithLabels(counters.file, {kDnsReplySource, "file"});
+  writer.ValueWithLabels(counters.cached, {kDnsReplySource, "cached"});
+  writer.ValueWithLabels(counters.cached_stale,
                          {kDnsReplySource, "cached-stale"});
-  writer.ValueWithLabels(counters.cached_failure.Load(),
+  writer.ValueWithLabels(counters.cached_failure,
                          {kDnsReplySource, "cached-failure"});
-  writer.ValueWithLabels(counters.network.Load(), {kDnsReplySource, "network"});
-  writer.ValueWithLabels(counters.network_failure.Load(),
+  writer.ValueWithLabels(counters.network, {kDnsReplySource, "network"});
+  writer.ValueWithLabels(counters.network_failure,
                          {kDnsReplySource, "network-failure"});
 }
 

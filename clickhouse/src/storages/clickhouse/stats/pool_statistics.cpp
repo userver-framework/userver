@@ -17,18 +17,18 @@ void DumpMetric(USERVER_NAMESPACE::utils::statistics::Writer& writer,
 
 void DumpMetric(USERVER_NAMESPACE::utils::statistics::Writer& writer,
                 const PoolQueryStatistics& stats) {
-  writer["total"] = stats.total.Load();
-  writer["error"] = stats.error.Load();
+  writer["total"] = stats.total;
+  writer["error"] = stats.error;
   writer["timings"] = stats.timings.GetStatsForPeriod();
 }
 
 void DumpMetric(USERVER_NAMESPACE::utils::statistics::Writer& writer,
                 const PoolConnectionStatistics& stats) {
-  writer["closed"] = stats.closed.Load();
-  writer["created"] = stats.created.Load();
-  writer["overload"] = stats.overload.Load();
-  writer["active"] = stats.active.Load();
-  writer["busy"] = stats.busy.Load();
+  writer["closed"] = stats.closed;
+  writer["created"] = stats.created;
+  writer["overload"] = stats.overload;
+  writer["active"] = stats.active;
+  writer["busy"] = stats.busy;
 }
 
 }  // namespace storages::clickhouse::stats
