@@ -18,6 +18,8 @@ namespace {
 constexpr std::string_view kConfigVarsTemplate = R"(
   userver-dumps-root: {0}
   runtime_config_path: {1}
+  log_level: {2}
+  file_path: {3}
 )";
 
 // BEWARE! No separate fs-task-processor. Testing almost single thread mode
@@ -42,8 +44,10 @@ components_manager:
       fs-task-processor: main-task-processor
       loggers:
         default:
-          file_path: '@stderr'
-          level: warning
+          file_path: $file_path
+          level: $log_level
+          message_queue_size: 4  # small, to test queue overflows
+          overflow_behavior: discard
     tracer:
         service-name: config-service
     statistics-storage:
@@ -233,8 +237,48 @@ TEST_F(ComponentList, ServerCommon) {
 
   fs::blocking::RewriteFileContents(runtime_config_path, tests::kRuntimeConfig);
   fs::blocking::RewriteFileContents(
+      config_vars_path,
+      fmt::format(kConfigVarsTemplate, temp_root.GetPath(), runtime_config_path,
+                  "warning", "'@stderr'"));
+
+  components::RunOnce(
+      components::InMemoryConfig{std::string{kStaticConfig} + config_vars_path},
+      components::CommonComponentList()
+          .AppendComponentList(components::CommonServerComponentList())
+          .Append<server::handlers::Ping>());
+}
+
+TEST_F(ComponentList, ServerTraceLogging) {
+  const auto temp_root = fs::blocking::TempDirectory::Create();
+  const std::string runtime_config_path =
+      temp_root.GetPath() + "/runtime_config.json";
+  const std::string config_vars_path =
+      temp_root.GetPath() + "/config_vars.json";
+  const std::string logs_file = temp_root.GetPath() + "/logs.txt";
+
+  fs::blocking::RewriteFileContents(runtime_config_path, tests::kRuntimeConfig);
+  fs::blocking::RewriteFileContents(
       config_vars_path, fmt::format(kConfigVarsTemplate, temp_root.GetPath(),
-                                    runtime_config_path));
+                                    runtime_config_path, "trace", logs_file));
+
+  components::RunOnce(
+      components::InMemoryConfig{std::string{kStaticConfig} + config_vars_path},
+      components::CommonComponentList()
+          .AppendComponentList(components::CommonServerComponentList())
+          .Append<server::handlers::Ping>());
+}
+
+TEST_F(ComponentList, ServerNullLogging) {
+  const auto temp_root = fs::blocking::TempDirectory::Create();
+  const std::string runtime_config_path =
+      temp_root.GetPath() + "/runtime_config.json";
+  const std::string config_vars_path =
+      temp_root.GetPath() + "/config_vars.json";
+
+  fs::blocking::RewriteFileContents(runtime_config_path, tests::kRuntimeConfig);
+  fs::blocking::RewriteFileContents(
+      config_vars_path, fmt::format(kConfigVarsTemplate, temp_root.GetPath(),
+                                    runtime_config_path, "trace", "'@null'"));
 
   components::RunOnce(
       components::InMemoryConfig{std::string{kStaticConfig} + config_vars_path},
