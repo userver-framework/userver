@@ -12,6 +12,7 @@
 #include <userver/server/http/form_data_arg.hpp>
 #include <userver/server/http/http_method.hpp>
 #include <userver/server/http/http_response.hpp>
+#include <userver/server/http/http_special_headers.hpp>
 #include <userver/utils/impl/projecting_view.hpp>
 #include <userver/utils/str_icase.hpp>
 #include <userver/server/http/header_map.hpp>
@@ -136,6 +137,8 @@ class HttpRequest final {
   /// @return Value of the header with case insensitive name header_name, or an
   /// empty string if no such header.
   const std::string& GetHeader(const std::string& header_name) const;
+
+  const std::string& GetHeader(SpecialHeader header_name) const;
 
   /// @return true if header with case insensitive name header_name exists,
   /// false otherwise.

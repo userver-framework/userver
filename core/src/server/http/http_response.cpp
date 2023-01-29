@@ -11,6 +11,7 @@
 #include <userver/http/common_headers.hpp>
 #include <userver/http/content_type.hpp>
 #include <userver/logging/log.hpp>
+#include <userver/server/http/http_special_headers.hpp>
 #include <userver/tracing/set_throttle_reason.hpp>
 #include <userver/tracing/span.hpp>
 #include <userver/utils/assert.hpp>
@@ -123,12 +124,18 @@ bool HttpResponse::SetHeader(std::string name, std::string value) {
 
   headers_.Insert(std::move(name), std::move(value));
 
-  /*const auto header_it = headers_.find(name);
-  if (header_it == headers_.end()) {
-    headers_.Insert(std::move(name), std::move(value));
-  } else {
-    header_it->second = std::move(value);
-  }*/
+  return true;
+}
+
+bool HttpResponse::SetHeader(SpecialHeader header, std::string value) {
+  if (headers_end_.IsReady()) {
+    // Attempt to set headers for Stream'ed response after it is already set
+    return false;
+  }
+
+  CheckHeaderValue(value);
+
+  headers_.Insert(header, std::move(value));
 
   return true;
 }
@@ -219,22 +226,22 @@ void HttpResponse::SendResponse(engine::io::Socket& socket) {
   header.append(HttpStatusString(status_));
   header.append(kCrlf);
 
-  headers_.Erase(USERVER_NAMESPACE::http::headers::kContentLength);
+  headers_.Erase(server::http::kContentLengthHeader);
   const auto end = headers_.end();
-  if (headers_.find(USERVER_NAMESPACE::http::headers::kDate) == end) {
+  if (headers_.find(server::http::kDateHeader) == end) {
     header.append(USERVER_NAMESPACE::http::headers::kDate);
     header.append(kKeyValueHeaderSeparator);
     AppendCachedDate(header);
     header.append(kCrlf);
   }
-  if (headers_.find(USERVER_NAMESPACE::http::headers::kContentType) == end) {
+  if (headers_.find(server::http::kContentTypeHeader) == end) {
     impl::OutputHeader(header, USERVER_NAMESPACE::http::headers::kContentType,
                        kDefaultContentTypeString);
   }
   for (const auto& item : headers_) {
     impl::OutputHeader(header, item.first, item.second);
   }
-  if (headers_.find(USERVER_NAMESPACE::http::headers::kConnection) == end) {
+  if (headers_.find(server::http::kConnectionHeader) == end) {
     impl::OutputHeader(header, USERVER_NAMESPACE::http::headers::kConnection,
                        (request_.IsFinal() ? kClose : kKeepAlive));
   }

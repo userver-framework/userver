@@ -13,6 +13,7 @@
 #include <userver/logging/logger.hpp>
 #include <userver/server/http/http_request.hpp>
 #include <userver/server/http/http_response.hpp>
+#include <userver/server/http/http_special_headers.hpp>
 #include <userver/utils/assert.hpp>
 #include "http_request_impl.hpp"
 
@@ -108,8 +109,7 @@ engine::TaskWithResult<void> HttpRequestHandler::StartRequestTask(
       static_cast<const http::HttpRequestImpl&>(*request);
 
   auto& http_response = http_request.GetHttpResponse();
-  http_response.SetHeader(USERVER_NAMESPACE::http::headers::kServer,
-                          server_name_);
+  http_response.SetHeader(server::http::kServerHeader, server_name_);
   if (http_response.IsReady()) {
     // Request is broken somehow, user handler must not be called
     request->SetTaskCreateTime();

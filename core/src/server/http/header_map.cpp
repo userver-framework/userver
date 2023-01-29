@@ -54,12 +54,24 @@ HeaderMap::Iterator HeaderMap::find(const std::string& key) const {
   return Iterator{Iterator::UnderlyingIteratorImpl{do_find()}};
 }
 
+HeaderMap::Iterator HeaderMap::find(SpecialHeader key) const noexcept {
+  return Iterator{Iterator::UnderlyingIteratorImpl{impl_->Find(key.name)}};
+}
+
 void HeaderMap::Insert(std::string key, std::string value) {
   impl_->Insert(LowerCase(std::move(key)), std::move(value), false);
 }
 
+void HeaderMap::Insert(SpecialHeader key, std::string value) {
+  impl_->Insert(std::string{key.name}, std::move(value), false);
+}
+
 void HeaderMap::InsertOrAppend(std::string key, std::string value) {
   impl_->Insert(LowerCase(std::move(key)), std::move(value), true);
+}
+
+void HeaderMap::InsertOrAppend(SpecialHeader key, std::string value) {
+  impl_->Insert(std::string{key.name}, std::move(value), true);
 }
 
 void HeaderMap::Erase(const std::string& key) {
@@ -70,6 +82,8 @@ void HeaderMap::Erase(const std::string& key) {
     impl_->Erase(lowercase);
   }
 }
+
+void HeaderMap::Erase(SpecialHeader key) { impl_->Erase(key.name); }
 
 HeaderMap::Iterator::Iterator() = default;
 HeaderMap::Iterator::Iterator(UnderlyingIteratorImpl it)

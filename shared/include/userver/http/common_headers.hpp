@@ -47,12 +47,14 @@ static_assert(impl::IsLowerCase(kContentLength));
 /// @{
 inline constexpr char kCacheControl[] = "Cache-Control";
 inline constexpr char kExpect[] = "Expect";
-inline constexpr char kHost[] = "Host";
+inline constexpr char kHost[] = "host";
 inline constexpr char kMaxForwards[] = "Max-Forwards";
 inline constexpr char kPragma[] = "Pragma";
 inline constexpr char kRange[] = "Range";
 inline constexpr char kTE[] = "TE";
 /// @}
+
+static_assert(impl::IsLowerCase(kHost));
 
 /// @name Conditionals
 /// @{
@@ -65,11 +67,13 @@ inline constexpr char kIfRange[] = "If-Range";
 
 /// @name Content Negotiation
 /// @{
-inline constexpr char kAccept[] = "Accept";
+inline constexpr char kAccept[] = "accept";
 inline constexpr char kAcceptCharset[] = "Accept-Charset";
 inline constexpr char kAcceptEncoding[] = "Accept-Encoding";
 inline constexpr char kAcceptLanguage[] = "Accept-Language";
 /// @}
+
+static_assert(impl::IsLowerCase(kAccept));
 
 /// @name Authentication Credentials
 /// @{
@@ -83,11 +87,13 @@ inline constexpr char kExternalService[] = "X-YaTaxi-External-Service";
 /// @{
 inline constexpr char kFrom[] = "From";
 inline constexpr char kReferer[] = "Referer";
-inline constexpr char kUserAgent[] = "User-Agent";
+inline constexpr char kUserAgent[] = "user-agent";
 inline constexpr char kXTaxi[] = "X-Taxi";
 inline constexpr char kXRequestedUri[] = "X-Requested-Uri";
 inline constexpr char kXRequestApplication[] = "X-Request-Application";
 /// @}
+
+static_assert(impl::IsLowerCase(kUserAgent));
 
 // Response Header Fields
 
@@ -122,8 +128,10 @@ inline constexpr char kProxyAuthenticate[] = "Proxy-Authenticate";
 /// @{
 inline constexpr char kAcceptRanges[] = "Accept-Ranges";
 inline constexpr char kAllow[] = "Allow";
-inline constexpr char kServer[] = "Server";
+inline constexpr char kServer[] = "server";
 /// @}
+
+static_assert(impl::IsLowerCase(kServer));
 
 /// @name Cookie
 /// @{
@@ -142,9 +150,9 @@ static_assert(impl::IsLowerCase(kConnection));
 inline constexpr char kXYaRequestId[] = "x-yarequestid";
 inline constexpr char kXYaTraceId[] = "x-yatraceid";
 inline constexpr char kXYaSpanId[] = "x-yaspanid";
-inline constexpr char kXRequestId[] = "X-RequestId";
-inline constexpr char kXBackendServer[] = "X-Backend-Server";
-inline constexpr char kXTaxiEnvoyProxyDstVhost[] = "X-Taxi-EnvoyProxy-DstVhost";
+inline constexpr char kXRequestId[] = "x-requestid";
+inline constexpr char kXBackendServer[] = "x-backend-server";
+inline constexpr char kXTaxiEnvoyProxyDstVhost[] = "x-taxi-envoyproxy-dstvhost";
 /// @}
 
 static_assert(impl::IsLowerCase(kXYaRequestId));

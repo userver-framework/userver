@@ -11,6 +11,7 @@
 #include <userver/server/http/http_method.hpp>
 #include <userver/server/http/http_request.hpp>
 #include <userver/server/http/http_response.hpp>
+#include <userver/server/http/http_special_headers.hpp>
 #include <userver/server/request/request_base.hpp>
 #include <userver/utils/datetime/wall_coarse_clock.hpp>
 #include <userver/utils/str_icase.hpp>
@@ -65,6 +66,7 @@ class HttpRequestImpl final : public request::RequestBase {
   size_t PathArgCount() const;
 
   const std::string& GetHeader(const std::string& header_name) const;
+  const std::string& GetHeader(SpecialHeader header_name) const;
   bool HasHeader(const std::string& header_name) const;
   size_t HeaderCount() const;
   HttpRequest::HeadersMapKeys GetHeaderNames() const;

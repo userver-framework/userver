@@ -190,6 +190,12 @@ const std::string& HttpRequestImpl::GetHeader(
   return it->second;
 }
 
+const std::string& HttpRequestImpl::GetHeader(SpecialHeader header_name) const {
+  auto it = headers_.find(header_name);
+  if (it == headers_.end()) return kEmptyString;
+  return it->second;
+}
+
 bool HttpRequestImpl::HasHeader(const std::string& header_name) const {
   auto it = headers_.find(header_name);
   return (it != headers_.end());

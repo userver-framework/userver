@@ -110,6 +110,10 @@ const std::string& HttpRequest::GetHeader(
   return impl_.GetHeader(header_name);
 }
 
+const std::string& HttpRequest::GetHeader(SpecialHeader header_name) const {
+  return impl_.GetHeader(header_name);
+}
+
 bool HttpRequest::HasHeader(const std::string& header_name) const {
   return impl_.HasHeader(header_name);
 }

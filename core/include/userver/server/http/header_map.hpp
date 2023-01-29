@@ -7,6 +7,7 @@
 
 #include <userver/utils/checked_pointer.hpp>
 #include <userver/utils/fast_pimpl.hpp>
+#include <userver/server/http/http_special_headers.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -75,12 +76,16 @@ class HeaderMap final {
   void clear();
 
   Iterator find(const std::string& key) const;
+  Iterator find(SpecialHeader key) const noexcept;
 
   void Insert(std::string key, std::string value);
+  void Insert(SpecialHeader key, std::string value);
   // TODO : think about `string_view value` here
   void InsertOrAppend(std::string key, std::string value);
+  void InsertOrAppend(SpecialHeader key, std::string value);
 
   void Erase(const std::string& key);
+  void Erase(SpecialHeader key);
 
   Iterator begin();
   Iterator begin() const;

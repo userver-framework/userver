@@ -123,8 +123,7 @@ class RequestProcessor final {
       auto& span = tracing::Span::CurrentSpan();
       auto& response = http_request_.GetHttpResponse();
       if (handler_.GetConfig().set_tracing_headers) {
-        response.SetHeader(USERVER_NAMESPACE::http::headers::kXYaRequestId,
-                           span.GetLink());
+        response.SetHeader(server::http::kYaRequestIdHeader, span.GetLink());
       }
 
       const auto status_code = response.GetStatus();
@@ -477,18 +476,17 @@ void HttpHandlerBase::HandleRequest(request::RequestBase& request,
     request::kTaskInheritedData.Set(inherited_data);
 
     const auto& parent_link =
-        http_request.GetHeader(USERVER_NAMESPACE::http::headers::kXYaRequestId);
-    const auto& trace_id =
-        http_request.GetHeader(USERVER_NAMESPACE::http::headers::kXYaTraceId);
+        http_request.GetHeader(server::http::kYaRequestIdHeader);
+    const auto& trace_id = http_request.GetHeader(server::http::kTraceIdHeader);
     const auto& parent_span_id =
-        http_request.GetHeader(USERVER_NAMESPACE::http::headers::kXYaSpanId);
+        http_request.GetHeader(server::http::kSpanIdHeader);
 
     const auto& yandex_request_id =
-        http_request.GetHeader(USERVER_NAMESPACE::http::headers::kXRequestId);
-    const auto& yandex_backend_server = http_request.GetHeader(
-        USERVER_NAMESPACE::http::headers::kXBackendServer);
-    const auto& envoy_proxy = http_request.GetHeader(
-        USERVER_NAMESPACE::http::headers::kXTaxiEnvoyProxyDstVhost);
+        http_request.GetHeader(server::http::kRequestIdHeader);
+    const auto& yandex_backend_server =
+        http_request.GetHeader(server::http::kBackendServerHeader);
+    const auto& envoy_proxy =
+        http_request.GetHeader(server::http::kTaxiEnvoyProxyDstVhostHeader);
 
     if (!yandex_request_id.empty() || !yandex_backend_server.empty() ||
         !envoy_proxy.empty()) {
@@ -505,10 +503,8 @@ void HttpHandlerBase::HandleRequest(request::RequestBase& request,
                                         trace_id, parent_span_id);
 
     if (config.set_tracing_headers) {
-      response.SetHeader(USERVER_NAMESPACE::http::headers::kXYaTraceId,
-                         span.GetTraceId());
-      response.SetHeader(USERVER_NAMESPACE::http::headers::kXYaSpanId,
-                         span.GetSpanId());
+      response.SetHeader(server::http::kTraceIdHeader, span.GetTraceId());
+      response.SetHeader(server::http::kSpanIdHeader, span.GetSpanId());
     }
 
     span.SetLocalLogLevel(log_level_);

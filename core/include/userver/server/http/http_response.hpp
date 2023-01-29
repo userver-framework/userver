@@ -15,6 +15,7 @@
 #include <userver/utils/impl/projecting_view.hpp>
 #include <userver/utils/str_icase.hpp>
 #include <userver/server/http/header_map.hpp>
+#include <userver/server/http/http_special_headers.hpp>
 
 #include "http_status.hpp"
 
@@ -57,6 +58,8 @@ class HttpResponse final : public request::ResponseBase {
   /// @returns true if the header was set. Returns false if headers
   /// were already sent for stream'ed response and the new header was not set.
   bool SetHeader(std::string name, std::string value);
+
+  bool SetHeader(SpecialHeader header, std::string value);
 
   /// @brief Add or rewrite the Content-Type header.
   void SetContentType(const USERVER_NAMESPACE::http::ContentType& type);
