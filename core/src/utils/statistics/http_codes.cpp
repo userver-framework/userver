@@ -56,6 +56,8 @@ void DumpMetric(Writer& writer, const HttpCodes::Snapshot& snapshot) {
   }
 }
 
+static_assert(kHasWriterSupport<HttpCodes::Snapshot>);
+
 }  // namespace utils::statistics
 
 USERVER_NAMESPACE_END

@@ -285,7 +285,10 @@ class AiohttpClientMonitor(service_client.AiohttpClient):
 
     async def get_metric(self, metric_name):
         metrics = await self.get_metrics(metric_name)
-        assert metric_name in metrics, f'no metric with name {metric_name!r}'
+        assert metric_name in metrics, (
+            f'No metric with name {metric_name!r}. '
+            f'Use "single_metric" function instead of "get_metric"'
+        )
         return metrics[metric_name]
 
     async def metrics_raw(

@@ -65,8 +65,15 @@ std::vector<Entry> MetricsStorage::RegisterIn(Storage& statistics_storage) {
 
   for (auto& [key, metric_ptr] : metrics_) {
     auto& metric = *metric_ptr;
-    holders.push_back(statistics_storage.RegisterExtender(
-        key.path, [&metric](const auto& /*prefix*/) { return metric.Dump(); }));
+    if (metric.HasWriterSupport()) {
+      holders.push_back(statistics_storage.RegisterWriter(
+          key.path,
+          [&metric](utils::statistics::Writer& w) { metric.DumpToWriter(w); }));
+    } else {
+      holders.push_back(statistics_storage.RegisterExtender(
+          key.path,
+          [&metric](const auto&) { return metric.DeprecatedJsonDump(); }));
+    }
   }
 
   return holders;
