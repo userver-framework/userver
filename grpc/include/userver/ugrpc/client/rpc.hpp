@@ -28,23 +28,62 @@ class UnaryFuture {
   explicit UnaryFuture(impl::RpcData& data) noexcept;
   /// @endcond
 
-  ~UnaryFuture() noexcept;
-
-  UnaryFuture(UnaryFuture&&) noexcept;
+  UnaryFuture(UnaryFuture&&) noexcept = default;
   UnaryFuture& operator=(UnaryFuture&&) noexcept;
+
+  ~UnaryFuture() noexcept;
 
   /// @brief Await response
   ///
   /// Upon completion result is available in `response` when initiating the
   /// asynchronous operation, e.g. FinishAsync.
   ///
-  /// `Get` should not be called multiple times for the same RPC.
+  /// `Get` should not be called multiple times for the same UnaryFuture.
   ///
   /// @throws ugrpc::client::RpcError on an RPC error
   void Get();
 
+  /// @brief Checks if the asynchronous call has completed
+  ///        Note, that once user gets result, IsReady should not be called
+  /// @return true if result ready
+  [[nodiscard]] bool IsReady() const noexcept;
+
  private:
-  impl::RpcData* data_;
+  impl::FutureImpl impl_;
+};
+
+/// @brief StreamReadFuture for waiting a single read response from stream
+template <typename RPC>
+class StreamReadFuture {
+ public:
+  /// @cond
+  explicit StreamReadFuture(impl::RpcData& data,
+                            typename RPC::RawStream& stream) noexcept;
+  /// @endcond
+
+  StreamReadFuture(StreamReadFuture&& other) noexcept = default;
+  StreamReadFuture& operator=(StreamReadFuture&& other) noexcept;
+
+  ~StreamReadFuture() noexcept;
+
+  /// @brief Await response
+  ///
+  /// Upon completion the result is available in `response` that was
+  /// specified when initiating the asynchronous read
+  ///
+  /// `Get` should not be called multiple times for the same StreamReadFuture.
+  ///
+  ///  @throws ugrpc::client::RpcError on an RPC error
+  bool Get();
+
+  /// @brief Checks if the asynchronous call has completed
+  ///        Note, that once user gets result, IsReady should not be called
+  /// @return true if result ready
+  [[nodiscard]] bool IsReady() const noexcept;
+
+ private:
+  impl::FutureImpl impl_;
+  typename RPC::RawStream* stream_;
 };
 
 /// @brief Controls a single request -> single response RPC
@@ -127,6 +166,8 @@ class USERVER_NODISCARD InputStream final {
 
   /// @cond
   // For internal use only
+  using RawStream = grpc::ClientAsyncReader<Response>;
+
   template <typename Stub, typename Request>
   InputStream(Stub& stub, grpc::CompletionQueue& queue,
               impl::RawReaderPreparer<Stub, Request, Response> prepare_func,
@@ -184,6 +225,8 @@ class USERVER_NODISCARD OutputStream final {
 
   /// @cond
   // For internal use only
+  using RawStream = grpc::ClientAsyncWriter<Request>;
+
   template <typename Stub>
   OutputStream(Stub& stub, grpc::CompletionQueue& queue,
                impl::RawWriterPreparer<Stub, Request, Response> prepare_func,
@@ -226,6 +269,13 @@ class USERVER_NODISCARD BidirectionalStream final {
   /// @throws ugrpc::client::RpcError on an RPC error
   [[nodiscard]] bool Read(Response& response);
 
+  /// @brief Return future to read next incoming result
+  ///
+  /// @param response where to put response on success
+  /// @return StreamReadFuture future
+  [[nodiscard]] StreamReadFuture<BidirectionalStream> ReadAsync(
+      Response& response) noexcept;
+
   /// @brief Write the next outgoing message
   ///
   /// RPC will be performed immediately. No references to `request` are
@@ -247,6 +297,8 @@ class USERVER_NODISCARD BidirectionalStream final {
 
   /// @cond
   // For internal use only
+  using RawStream = grpc::ClientAsyncReaderWriter<Request, Response>;
+
   template <typename Stub>
   BidirectionalStream(
       Stub& stub, grpc::CompletionQueue& queue,
@@ -265,6 +317,51 @@ class USERVER_NODISCARD BidirectionalStream final {
 };
 
 // ========================== Implementation follows ==========================
+
+template <typename RPC>
+StreamReadFuture<RPC>::StreamReadFuture(
+    impl::RpcData& data, typename RPC::RawStream& stream) noexcept
+    : impl_(data), stream_(&stream) {}
+
+template <typename RPC>
+StreamReadFuture<RPC>::~StreamReadFuture() noexcept {
+  if (auto* const data = impl_.GetData()) {
+    impl::RpcData::AsyncMethodInvocationGuard guard(*data);
+    if (!data->GetAsyncMethodInvocation().Wait()) {
+      impl::Finish(*stream_, *data, false);
+    }
+  }
+}
+
+template <typename RPC>
+StreamReadFuture<RPC>& StreamReadFuture<RPC>::operator=(
+    StreamReadFuture<RPC>&& other) noexcept {
+  if (this == &other) return *this;
+  [[maybe_unused]] auto for_destruction = std::move(*this);
+  impl_ = std::move(other.impl_);
+  stream_ = other.stream_;
+  return *this;
+}
+
+template <typename RPC>
+bool StreamReadFuture<RPC>::Get() {
+  auto* const data = impl_.GetData();
+  UINVARIANT(data, "'Get' must be called only once");
+  impl::RpcData::AsyncMethodInvocationGuard guard(*data);
+  impl_.ClearData();
+  auto result = data->GetAsyncMethodInvocation().Wait();
+  if (!result) {
+    // Finish can only be called once all the data is read, otherwise the
+    // underlying gRPC driver hangs.
+    impl::Finish(*stream_, *data, true);
+  }
+  return result;
+}
+
+template <typename RPC>
+bool StreamReadFuture<RPC>::IsReady() const noexcept {
+  return impl_.IsReady();
+}
 
 template <typename Response>
 template <typename Stub, typename Request>
@@ -329,7 +426,7 @@ bool InputStream<Response>::Read(Response& response) {
   } else {
     // Finish can only be called once all the data is read, otherwise the
     // underlying gRPC driver hangs.
-    impl::Finish(*stream_, *data_);
+    impl::Finish(*stream_, *data_, true);
     return false;
   }
 }
@@ -370,7 +467,7 @@ Response OutputStream<Request, Response>::Finish() {
   // contrary to the documentation
   impl::WritesDone(*stream_, *data_);
 
-  impl::Finish(*stream_, *data_);
+  impl::Finish(*stream_, *data_, true);
 
   return std::move(*final_response_);
 }
@@ -394,15 +491,17 @@ grpc::ClientContext& BidirectionalStream<Request, Response>::GetContext() {
 }
 
 template <typename Request, typename Response>
+StreamReadFuture<BidirectionalStream<Request, Response>>
+BidirectionalStream<Request, Response>::ReadAsync(Response& response) noexcept {
+  impl::ReadAsync(*stream_, response, *data_);
+  return StreamReadFuture<BidirectionalStream<Request, Response>>{*data_,
+                                                                  *stream_};
+}
+
+template <typename Request, typename Response>
 bool BidirectionalStream<Request, Response>::Read(Response& response) {
-  if (impl::Read(*stream_, response, *data_)) {
-    return true;
-  } else {
-    // Finish can only be called once all the data is read, otherwise the
-    // underlying gRPC driver hangs.
-    impl::Finish(*stream_, *data_);
-    return false;
-  }
+  auto future = ReadAsync(response);
+  return future.Get();
 }
 
 template <typename Request, typename Response>

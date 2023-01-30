@@ -310,4 +310,26 @@ UTEST_F(GrpcWriteAndFinish, BidirectionalStream) {
   EXPECT_FALSE(is.Read(in));
 }
 
+UTEST_F(GrpcWriteAndFinish, BidirectionalStreamAsyncRead) {
+  auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
+  auto is = client.Chat(PrepareClientContext());
+
+  sample::ugrpc::StreamGreetingResponse in;
+  auto future_for_move = is.ReadAsync(in);
+  auto future = std::move(future_for_move);
+
+  bool result = false;
+  UEXPECT_NO_THROW((result = future.Get()));
+  EXPECT_TRUE(result);
+  EXPECT_EQ(in.number(), kNumber);
+  EXPECT_EQ(in.name(), "Hello");
+
+  auto future_last_read = is.ReadAsync(in);
+
+  bool is_ready = false;
+  UEXPECT_NO_THROW((is_ready = future_last_read.IsReady()));
+  UEXPECT_NO_THROW((result = future_last_read.Get()));
+  EXPECT_FALSE(result);
+}
+
 USERVER_NAMESPACE_END
