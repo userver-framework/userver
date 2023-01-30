@@ -53,8 +53,7 @@ class UnaryFuture {
 ///
 /// The RPC is cancelled on destruction unless `Finish` or `FinishAsync`. In
 /// that case the connection is not closed (it will be reused for new RPCs), and
-/// the server receives `RpcInterruptedError` immediately. Only one method of
-/// `Finish` or `FinishAsync`should be called for the same RPC.
+/// the server receives `RpcInterruptedError` immediately.
 template <typename Response>
 class USERVER_NODISCARD UnaryCall final {
  public:
@@ -80,13 +79,15 @@ class USERVER_NODISCARD UnaryCall final {
   /// @returns the `ClientContext` used for this RPC
   grpc::ClientContext& GetContext();
 
-  /// For internal use only
+  /// @cond
+  // For internal use only
   template <typename Stub, typename Request>
   UnaryCall(
       Stub& stub, grpc::CompletionQueue& queue,
       impl::RawResponseReaderPreparer<Stub, Request, Response> prepare_func,
       std::string_view call_name, std::unique_ptr<grpc::ClientContext> context,
       ugrpc::impl::MethodStatistics& statistics, const Request& req);
+  /// @endcond
 
   UnaryCall(UnaryCall&&) noexcept = default;
   UnaryCall& operator=(UnaryCall&&) noexcept = default;
@@ -102,9 +103,10 @@ class USERVER_NODISCARD UnaryCall final {
 /// This class is not thread-safe except for `GetContext`.
 ///
 /// The RPC is cancelled on destruction unless the stream is closed (`Read` has
-/// returned `false` or `Finish` has been called). In that case the connection
-/// is not closed (it will be reused for new RPCs), and the server receives
-/// `RpcInterruptedError` immediately.
+/// returned `false`). In that case the connection is not closed (it will be
+/// reused for new RPCs), and the server receives `RpcInterruptedError`
+/// immediately. gRPC provides no way to early-close a server-streaming RPC
+/// gracefully.
 ///
 /// If any method throws, further methods must not be called on the same stream,
 /// except for `GetContext`.
@@ -120,28 +122,18 @@ class USERVER_NODISCARD InputStream final {
   /// @throws ugrpc::client::RpcError on an RPC error
   [[nodiscard]] bool Read(Response& response);
 
-  /// @brief Complete the RPC successfully
-  ///
-  /// Should be called if `Read` has not returned `false`, but all the needed
-  /// data is read.
-  ///
-  /// `Finish` should not be called multiple times.
-  ///
-  /// The connection is not closed, it will be reused for new RPCs.
-  ///
-  /// @throws ugrpc::client::RpcError on an RPC error
-  void Finish();
-
   /// @returns the `ClientContext` used for this RPC
   grpc::ClientContext& GetContext();
 
-  /// For internal use only
+  /// @cond
+  // For internal use only
   template <typename Stub, typename Request>
   InputStream(Stub& stub, grpc::CompletionQueue& queue,
               impl::RawReaderPreparer<Stub, Request, Response> prepare_func,
               std::string_view call_name,
               std::unique_ptr<grpc::ClientContext> context,
               ugrpc::impl::MethodStatistics& statistics, const Request& req);
+  /// @endcond
 
   InputStream(InputStream&&) noexcept = default;
   InputStream& operator=(InputStream&&) noexcept = default;
@@ -190,13 +182,15 @@ class USERVER_NODISCARD OutputStream final {
   /// @returns the `ClientContext` used for this RPC
   grpc::ClientContext& GetContext();
 
-  /// For internal use only
+  /// @cond
+  // For internal use only
   template <typename Stub>
   OutputStream(Stub& stub, grpc::CompletionQueue& queue,
                impl::RawWriterPreparer<Stub, Request, Response> prepare_func,
                std::string_view call_name,
                std::unique_ptr<grpc::ClientContext> context,
                ugrpc::impl::MethodStatistics& statistics);
+  /// @endcond
 
   OutputStream(OutputStream&&) noexcept = default;
   OutputStream& operator=(OutputStream&&) noexcept = default;
@@ -213,9 +207,10 @@ class USERVER_NODISCARD OutputStream final {
 /// This class is not thread-safe except for `GetContext`.
 ///
 /// The RPC is cancelled on destruction unless the stream is closed (`Read` has
-/// returned `false` or `Finish` has been called). In that case the connection
-/// is not closed (it will be reused for new RPCs), and the server receives
-/// `RpcInterruptedError` immediately.
+/// returned `false`). In that case the connection is not closed (it will be
+/// reused for new RPCs), and the server receives `RpcInterruptedError`
+/// immediately. gRPC provides no way to early-close a server-streaming RPC
+/// gracefully.
 ///
 /// If any method throws, further methods must not be called on the same stream,
 /// except for `GetContext`.
@@ -247,28 +242,18 @@ class USERVER_NODISCARD BidirectionalStream final {
   /// @throws ugrpc::client::RpcError on an RPC error
   void WritesDone();
 
-  /// @brief Complete the RPC successfully
-  ///
-  /// Should be called if `Read` has not returned `false`, but all the needed
-  /// data is read.
-  ///
-  /// `Finish` should not be called multiple times.
-  ///
-  /// The connection is not closed, it will be reused for new RPCs.
-  ///
-  /// @throws ugrpc::client::RpcError on an RPC error
-  void Finish();
-
   /// @returns the `ClientContext` used for this RPC
   grpc::ClientContext& GetContext();
 
-  /// For internal use only
+  /// @cond
+  // For internal use only
   template <typename Stub>
   BidirectionalStream(
       Stub& stub, grpc::CompletionQueue& queue,
       impl::RawReaderWriterPreparer<Stub, Request, Response> prepare_func,
       std::string_view call_name, std::unique_ptr<grpc::ClientContext> context,
       ugrpc::impl::MethodStatistics& statistics);
+  /// @endcond
 
   BidirectionalStream(BidirectionalStream&&) noexcept = default;
   BidirectionalStream& operator=(BidirectionalStream&&) noexcept = default;
@@ -342,14 +327,11 @@ bool InputStream<Response>::Read(Response& response) {
   if (impl::Read(*stream_, response, *data_)) {
     return true;
   } else {
+    // Finish can only be called once all the data is read, otherwise the
+    // underlying gRPC driver hangs.
     impl::Finish(*stream_, *data_);
     return false;
   }
-}
-
-template <typename Response>
-void InputStream<Response>::Finish() {
-  impl::Finish(*stream_, *data_);
 }
 
 template <typename Request, typename Response>
@@ -416,6 +398,8 @@ bool BidirectionalStream<Request, Response>::Read(Response& response) {
   if (impl::Read(*stream_, response, *data_)) {
     return true;
   } else {
+    // Finish can only be called once all the data is read, otherwise the
+    // underlying gRPC driver hangs.
     impl::Finish(*stream_, *data_);
     return false;
   }
@@ -432,14 +416,6 @@ void BidirectionalStream<Request, Response>::Write(const Request& request) {
 template <typename Request, typename Response>
 void BidirectionalStream<Request, Response>::WritesDone() {
   impl::WritesDone(*stream_, *data_);
-}
-
-template <typename Request, typename Response>
-void BidirectionalStream<Request, Response>::Finish() {
-  if (data_->GetState() == impl::State::kOpen) {
-    impl::WritesDone(*stream_, *data_);
-  }
-  impl::Finish(*stream_, *data_);
 }
 
 }  // namespace ugrpc::client

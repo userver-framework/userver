@@ -83,7 +83,7 @@ UTEST_F(GrpcClientErrorTest, InputStream) {
   out.set_number(42);
   sample::ugrpc::StreamGreetingResponse in;
   auto call = client.ReadMany(out);
-  UEXPECT_THROW(call.Finish(), ugrpc::client::InternalError);
+  UEXPECT_THROW(static_cast<void>(call.Read(in)), ugrpc::client::InternalError);
 }
 
 UTEST_F(GrpcClientErrorTest, OutputStream) {
@@ -96,7 +96,7 @@ UTEST_F(GrpcClientErrorTest, BidirectionalStream) {
   auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
   sample::ugrpc::StreamGreetingResponse in;
   auto call = client.Chat();
-  UEXPECT_THROW(call.Finish(), ugrpc::client::InternalError);
+  UEXPECT_THROW(static_cast<void>(call.Read(in)), ugrpc::client::InternalError);
 }
 
 using GrpcClientWithDetailedErrorTest =
