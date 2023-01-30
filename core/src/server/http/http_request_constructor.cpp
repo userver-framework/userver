@@ -8,6 +8,7 @@
 #include <userver/utils/assert.hpp>
 #include <userver/utils/encoding/hex.hpp>
 #include <userver/utils/exception.hpp>
+#include <server/http/header_map_impl/special_header.hpp>
 
 #include "multipart_form_data_parser.hpp"
 
@@ -16,8 +17,6 @@ USERVER_NAMESPACE_BEGIN
 namespace server::http {
 
 namespace {
-
-const std::string kCookieHeader = "Cookie";
 
 inline void Strip(const char*& begin, const char*& end) {
   while (begin < end && isspace(*begin)) ++begin;
@@ -222,7 +221,7 @@ void HttpRequestConstructor::FinalizeImpl() {
   LOG_TRACE() << "cookies:" << request_->cookies_;
 
   const auto& content_type =
-      request_->GetHeader(USERVER_NAMESPACE::http::headers::kContentType);
+      request_->GetHeader(kContentTypeHeader);
   if (IsMultipartFormDataContentType(content_type)) {
     if (!ParseMultipartFormData(content_type, request_->RequestBody(),
                                 request_->form_data_args_)) {

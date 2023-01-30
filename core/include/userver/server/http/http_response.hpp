@@ -7,15 +7,16 @@
 #include <string>
 #include <unordered_map>
 
+#include <boost/container/small_vector.hpp>
+
 #include <userver/concurrent/queue.hpp>
 #include <userver/engine/single_consumer_event.hpp>
 #include <userver/http/content_type.hpp>
+#include <userver/server/http/header_map.hpp>
 #include <userver/server/http/http_response_cookie.hpp>
 #include <userver/server/request/response_base.hpp>
 #include <userver/utils/impl/projecting_view.hpp>
 #include <userver/utils/str_icase.hpp>
-#include <userver/server/http/header_map.hpp>
-#include <userver/server/http/http_special_headers.hpp>
 
 #include "http_status.hpp"
 
@@ -36,8 +37,8 @@ class HttpRequestImpl;
 class HttpResponse final : public request::ResponseBase {
  public:
   using HeadersMap = HeaderMap;
-      /*std::unordered_map<std::string, std::string, utils::StrIcaseHash,
-                         utils::StrIcaseEqual>;*/
+  /*std::unordered_map<std::string, std::string, utils::StrIcaseHash,
+                     utils::StrIcaseEqual>;*/
 
   using HeadersMapKeys = decltype(utils::impl::MakeKeysView(HeadersMap()));
 
@@ -126,8 +127,9 @@ class HttpResponse final : public request::ResponseBase {
   Queue::Producer GetBodyProducer();
 
  private:
-  void SetBodyStreamed(engine::io::Socket& socket, std::string& header);
-  void SetBodyNotstreamed(engine::io::Socket& socket, std::string& header);
+  using HeadersStorage = boost::container::small_vector<char, 1024>;
+  void SetBodyStreamed(engine::io::Socket& socket, HeadersStorage& header);
+  void SetBodyNotstreamed(engine::io::Socket& socket, HeadersStorage& header);
 
   const HttpRequestImpl& request_;
   HttpStatus status_ = HttpStatus::kOk;

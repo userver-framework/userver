@@ -69,11 +69,12 @@ inline constexpr char kIfRange[] = "If-Range";
 /// @{
 inline constexpr char kAccept[] = "accept";
 inline constexpr char kAcceptCharset[] = "Accept-Charset";
-inline constexpr char kAcceptEncoding[] = "Accept-Encoding";
+inline constexpr char kAcceptEncoding[] = "accept-encoding";
 inline constexpr char kAcceptLanguage[] = "Accept-Language";
 /// @}
 
 static_assert(impl::IsLowerCase(kAccept));
+static_assert(impl::IsLowerCase(kAcceptEncoding));
 
 /// @name Authentication Credentials
 /// @{
@@ -174,7 +175,7 @@ inline constexpr char kXYaTaxiAllowAuthRequest[] =
 inline constexpr char kXYaTaxiAllowAuthResponse[] =
     "X-YaTaxi-Allow-Auth-Response";
 inline constexpr char kXYaTaxiServerHostname[] = "X-YaTaxi-Server-Hostname";
-inline constexpr char kXYaTaxiClientTimeoutMs[] = "X-YaTaxi-Client-TimeoutMs";
+inline constexpr char kXYaTaxiClientTimeoutMs[] = "x-yaxaxi-client-timeoutms";
 inline constexpr char kXYaTaxiRatelimitedBy[] = "X-YaTaxi-Ratelimited-By";
 inline constexpr char kXYaTaxiRatelimitReason[] = "X-YaTaxi-Ratelimit-Reason";
 

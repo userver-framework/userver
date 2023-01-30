@@ -94,7 +94,7 @@ void Map::Grow(std::size_t new_capacity) {
     }
   }
 
-  std::vector<Pos> old_indices(new_capacity, Pos::None());
+  decltype(indices_) old_indices(new_capacity, Pos::None());
   std::swap(old_indices, indices_);
   mask_ = static_cast<Traits::Size>(new_capacity - 1);
 
@@ -127,9 +127,9 @@ void Map::ReserveOne() {
     }
   } else if (len == Capacity()) {
     if (len == 0) {
-      const auto new_raw_capacity = 8;
-      mask_ = 7U;
-      indices_ = std::vector<Pos>(new_raw_capacity, Pos::None());
+      const auto new_raw_capacity = 16U;
+      mask_ = new_raw_capacity - 1;
+      indices_.assign(new_raw_capacity, Pos::None());
       entries_.reserve(UsableCapacity(new_raw_capacity));
     } else {
       const auto raw_capacity = indices_.size();
@@ -176,29 +176,55 @@ std::size_t Map::ProbeLoop(std::size_t starting_position,
   }
 }
 
-Traits::HashValue Map::HashKey(std::string_view key) const noexcept {
+Traits::HashValue Map::MaskHash(std::size_t hash) noexcept {
   constexpr std::size_t kMask = Traits::kMaxSize - 1;
 
-  return static_cast<Traits::HashValue>(danger_.HashKey(key) & kMask);
+  return static_cast<Traits::HashValue>(hash & kMask);
+}
+
+Traits::HashValue Map::HashKey(std::string_view key) const noexcept {
+  return MaskHash(danger_.HashKey(key));
+}
+
+Traits::HashValue Map::HashKey(SpecialHeader header) const noexcept {
+  return MaskHash(danger_.HashKey(header));
 }
 
 void Map::InsertEntry(Traits::Key&& key, Traits::Value&& value) {
   entries_.emplace_back(std::move(key), std::move(value));
 }
 
-Map::Iterator Map::Find(std::string_view key) const noexcept {
-  const auto pos = DoFind(key);
+Map::ConstIterator Map::Find(std::string_view key) const noexcept {
+  const auto pos = DoFind(key, HashKey(key));
 
-  return pos.IsSome() ? (entries_ref_.begin() + pos.index) : entries_ref_.end();
+  return pos.IsSome() ? (entries_.cbegin() + pos.index) : entries_.cend();
 }
 
-Map::FindResult Map::DoFind(std::string_view key) const noexcept {
+Map::Iterator Map::Find(std::string_view key) noexcept {
+  const auto pos = DoFind(key, HashKey(key));
+
+  return pos.IsSome() ? (entries_.begin() + pos.index) : entries_.end();
+}
+
+Map::ConstIterator Map::Find(SpecialHeader header) const noexcept {
+  const auto pos = DoFind(header.name, HashKey(header));
+
+  return pos.IsSome() ? (entries_.cbegin() + pos.index) : entries_.cend();
+}
+
+Map::Iterator Map::Find(SpecialHeader header) noexcept {
+  const auto pos = DoFind(header.name, HashKey(header));
+
+  return pos.IsSome() ? (entries_.begin() + pos.index) : entries_.end();
+}
+
+Map::FindResult Map::DoFind(std::string_view key,
+                            Traits::HashValue hash) const noexcept {
   UASSERT(IsLowerCase(key));
   if (indices_.empty()) {
     return FindResult::None();
   }
 
-  const auto hash = HashKey(key);
   const auto probe = DesiredPos(mask_, hash);
 
   std::size_t dist = 0;
@@ -225,11 +251,20 @@ Map::FindResult Map::DoFind(std::string_view key) const noexcept {
 }
 
 void Map::Insert(Traits::Key key, Traits::Value value, bool append) {
+  const auto hash = HashKey(key);
+  DoInsert(std::move(key), hash, std::move(value), append);
+}
+
+void Map::Insert(SpecialHeader header, std::string value, bool append) {
+  DoInsert(std::string{header.name}, HashKey(header), std::move(value), append);
+}
+
+void Map::DoInsert(std::string key, Traits::HashValue hash, std::string value,
+                   bool append) {
   UASSERT(IsLowerCase(key));
 
   ReserveOne();
 
-  const auto hash = HashKey(key);
   const auto probe = DesiredPos(mask_, hash);
   std::size_t dist = 0;
 
@@ -291,8 +326,14 @@ void Map::Insert(Traits::Key key, Traits::Value value, bool append) {
   ProbeLoop(probe, inserter);
 }
 
-void Map::Erase(std::string_view key) {
-  const auto pos = DoFind(key);
+void Map::Erase(std::string_view key) { DoErase(key, HashKey(key)); }
+
+void Map::Erase(SpecialHeader header) { DoErase(header.name, HashKey(header)); }
+
+void Map::DoErase(std::string_view key, Traits::HashValue hash) {
+  UASSERT(IsLowerCase(key));
+
+  const auto pos = DoFind(key, hash);
   if (!pos.IsSome()) {
     return;
   }
@@ -310,10 +351,10 @@ void Map::Erase(std::string_view key) {
   if (index < entries_.size()) {
     // was not last element
     // examine new element in `index` and find it in indices
-    const auto hash = HashKey(entries_[index].header_name);
+    const auto entry_hash = HashKey(entries_[index].header_name);
     const auto probe = DesiredPos(mask_, hash);
 
-    ProbeLoop(probe, [this, index, entry_hash = hash](std::size_t idx) {
+    ProbeLoop(probe, [this, index, entry_hash](std::size_t idx) {
       if (indices_[idx].IsSome() && indices_[idx].index >= entries_.size()) {
         // found it
         indices_[idx] = Pos{index, entry_hash};
@@ -369,9 +410,11 @@ std::size_t Map::DoRobinhoodAtPosition(std::size_t idx, Pos old_pos) {
   return num_displaced;
 }
 
-Map::Iterator Map::Begin() const noexcept { return entries_ref_.begin(); }
+Map::Iterator Map::Begin() noexcept { return entries_.begin(); }
+Map::ConstIterator Map::Begin() const noexcept { return entries_.cbegin(); }
 
-Map::Iterator Map::End() const noexcept { return entries_ref_.end(); }
+Map::Iterator Map::End() noexcept { return entries_.end(); }
+Map::ConstIterator Map::End() const noexcept { return entries_.cend(); }
 
 }  // namespace server::http::header_map_impl
 

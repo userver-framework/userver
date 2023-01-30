@@ -2,6 +2,8 @@
 
 #include <server/http/header_map_impl/traits.hpp>
 
+#include <server/http/header_map_impl/special_header.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace server::http::header_map_impl {
@@ -9,6 +11,7 @@ namespace server::http::header_map_impl {
 class Danger final {
  public:
   std::size_t HashKey(std::string_view key) const noexcept;
+  std::size_t HashKey(http::SpecialHeader header) const noexcept;
 
   bool IsGreen() const noexcept;
   bool IsYellow() const noexcept;

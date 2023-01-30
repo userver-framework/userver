@@ -7,6 +7,7 @@
 #include <compression/gzip.hpp>
 #include <server/handlers/http_handler_base_statistics.hpp>
 #include <server/handlers/http_server_settings.hpp>
+#include <server/http/header_map_impl/special_header.hpp>
 #include <server/http/http_request_impl.hpp>
 #include <server/server_config.hpp>
 #include <userver/components/component.hpp>
@@ -224,8 +225,8 @@ class RequestProcessor final {
 
 std::optional<std::chrono::milliseconds> ParseTimeout(
     const http::HttpRequest& request) {
-  const auto& timeout_ms_str = request.GetHeader(
-      USERVER_NAMESPACE::http::headers::kXYaTaxiClientTimeoutMs);
+  const auto& timeout_ms_str =
+      request.GetHeader(server::http::kXYaTaxiClientTimeoutMsHeader);
   if (timeout_ms_str.empty()) return std::nullopt;
 
   LOG_DEBUG() << "Got client timeout_ms=" << timeout_ms_str;

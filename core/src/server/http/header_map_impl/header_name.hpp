@@ -9,7 +9,16 @@ namespace server::http::header_map_impl {
 
 std::string ToLowerCase(const std::string& header_name);
 
-bool IsLowerCase(std::string_view header_name);
+// TODO : think about this
+constexpr bool IsLowerCase(std::string_view header_name) {
+  bool fail = false;
+  // This is vectorized, with early return it's not.
+  for (const auto c : header_name) {
+    fail |= c >= 'A' && c <= 'Z';
+  }
+
+  return !fail;
+}
 
 }  // namespace server::http::header_map_impl
 

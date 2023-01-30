@@ -11,7 +11,6 @@
 #include <userver/server/http/http_method.hpp>
 #include <userver/server/http/http_request.hpp>
 #include <userver/server/http/http_response.hpp>
-#include <userver/server/http/http_special_headers.hpp>
 #include <userver/server/request/request_base.hpp>
 #include <userver/utils/datetime/wall_coarse_clock.hpp>
 #include <userver/utils/str_icase.hpp>

@@ -7,26 +7,6 @@ USERVER_NAMESPACE_BEGIN
 
 namespace server::http {
 
-namespace {
-
-std::string LowerCase(std::string&& key) {
-  if (header_map_impl::IsLowerCase(key)) {
-    return std::move(key);
-  }
-
-  return header_map_impl::ToLowerCase(key);
-}
-
-}  // namespace
-
-struct HeaderMap::Iterator::UnderlyingIterator final {
-  UnderlyingIterator() = default;
-  explicit UnderlyingIterator(header_map_impl::Map::Iterator it)
-      : underlying_iterator{it} {}
-
-  header_map_impl::Map::Iterator underlying_iterator{};
-};
-
 HeaderMap::HeaderMap() = default;
 
 HeaderMap::~HeaderMap() = default;
@@ -41,7 +21,7 @@ bool HeaderMap::empty() const noexcept { return impl_->Empty(); }
 
 void HeaderMap::clear() { impl_->Clear(); }
 
-HeaderMap::Iterator HeaderMap::find(const std::string& key) const {
+HeaderMapIterator HeaderMap::find(const std::string& key) {
   const auto do_find = [this, &key] {
     if (header_map_impl::IsLowerCase(key)) {
       return impl_->Find(key);
@@ -51,27 +31,52 @@ HeaderMap::Iterator HeaderMap::find(const std::string& key) const {
     }
   };
 
-  return Iterator{Iterator::UnderlyingIteratorImpl{do_find()}};
+  return HeaderMapIterator{do_find()};
 }
 
-HeaderMap::Iterator HeaderMap::find(SpecialHeader key) const noexcept {
-  return Iterator{Iterator::UnderlyingIteratorImpl{impl_->Find(key.name)}};
+HeaderMapConstIterator HeaderMap::find(const std::string& key) const {
+  const auto do_find = [this, &key] {
+    if (header_map_impl::IsLowerCase(key)) {
+      return impl_->Find(key);
+    } else {
+      const auto lowercase = header_map_impl::ToLowerCase(key);
+      return impl_->Find(lowercase);
+    }
+  };
+
+  return HeaderMapConstIterator{do_find()};
+}
+
+HeaderMapIterator HeaderMap::find(SpecialHeader key) noexcept {
+  return HeaderMapIterator{impl_->Find(key)};
+}
+
+HeaderMapConstIterator HeaderMap::find(SpecialHeader key) const noexcept {
+  return HeaderMapConstIterator{impl_->Find(key)};
 }
 
 void HeaderMap::Insert(std::string key, std::string value) {
-  impl_->Insert(LowerCase(std::move(key)), std::move(value), false);
+  if (header_map_impl::IsLowerCase(key)) {
+    impl_->Insert(std::move(key), std::move(value), false);
+  } else {
+    impl_->Insert(header_map_impl::ToLowerCase(key), std::move(value), false);
+  }
 }
 
 void HeaderMap::Insert(SpecialHeader key, std::string value) {
-  impl_->Insert(std::string{key.name}, std::move(value), false);
+  impl_->Insert(key, std::move(value), false);
 }
 
 void HeaderMap::InsertOrAppend(std::string key, std::string value) {
-  impl_->Insert(LowerCase(std::move(key)), std::move(value), true);
+  if (header_map_impl::IsLowerCase(key)) {
+    impl_->Insert(std::move(key), std::move(value), true);
+  } else {
+    impl_->Insert(header_map_impl::ToLowerCase(key), std::move(value), true);
+  }
 }
 
 void HeaderMap::InsertOrAppend(SpecialHeader key, std::string value) {
-  impl_->Insert(std::string{key.name}, std::move(value), true);
+  impl_->Insert(key, std::move(value), true);
 }
 
 void HeaderMap::Erase(const std::string& key) {
@@ -83,89 +88,26 @@ void HeaderMap::Erase(const std::string& key) {
   }
 }
 
-void HeaderMap::Erase(SpecialHeader key) { impl_->Erase(key.name); }
+void HeaderMap::Erase(SpecialHeader key) { impl_->Erase(key); }
 
-HeaderMap::Iterator::Iterator() = default;
-HeaderMap::Iterator::Iterator(UnderlyingIteratorImpl it)
-    : it_{it->underlying_iterator} {}
-HeaderMap::Iterator::~Iterator() = default;
-
-HeaderMap::Iterator::Iterator(const Iterator& other) = default;
-HeaderMap::Iterator::Iterator(Iterator&& other) noexcept
-    : it_{other.it_->underlying_iterator} {}
-HeaderMap::Iterator& HeaderMap::Iterator::operator=(const Iterator& other) {
-  if (this != &other) {
-    it_ = other.it_;
-    current_value_.reset();
-  }
-
-  return *this;
-}
-HeaderMap::Iterator& HeaderMap::Iterator::operator=(Iterator&& other) noexcept {
-  return *this = other;
+HeaderMapIterator HeaderMap::begin() noexcept {
+  return HeaderMapIterator{impl_->Begin()};
 }
 
-HeaderMap::Iterator& HeaderMap::Iterator::operator++() {
-  ++it_->underlying_iterator;
-  current_value_.reset();
+HeaderMapConstIterator HeaderMap::begin() const noexcept { return cbegin(); }
 
-  return *this;
-}
-HeaderMap::Iterator HeaderMap::Iterator::operator++(int) {
-  HeaderMap::Iterator copy{*this};
-  ++*this;
-  return copy;
+HeaderMapConstIterator HeaderMap::cbegin() const noexcept {
+  return HeaderMapConstIterator{impl_->Begin()};
 }
 
-HeaderMap::Iterator::reference HeaderMap::Iterator::operator*() {
-  UpdateCurrentValue();
-  return *current_value_;
+HeaderMapIterator HeaderMap::end() noexcept {
+  return HeaderMapIterator{impl_->End()};
 }
 
-HeaderMap::Iterator::const_reference HeaderMap::Iterator::operator*() const {
-  UpdateCurrentValue();
-  return *current_value_;
-}
+HeaderMapConstIterator HeaderMap::end() const noexcept { return cend(); }
 
-HeaderMap::Iterator::pointer HeaderMap::Iterator::operator->() {
-  UpdateCurrentValue();
-  return &*current_value_;
-}
-
-HeaderMap::Iterator::const_pointer HeaderMap::Iterator::operator->() const {
-  UpdateCurrentValue();
-  return &*current_value_;
-}
-
-bool HeaderMap::Iterator::operator==(const Iterator& other) const {
-  return it_->underlying_iterator == other.it_->underlying_iterator;
-}
-
-bool HeaderMap::Iterator::operator!=(const Iterator& other) const {
-  return it_->underlying_iterator != other.it_->underlying_iterator;
-}
-
-void HeaderMap::Iterator::UpdateCurrentValue() const {
-  if (!current_value_.has_value()) {
-    auto& value = *it_->underlying_iterator;
-    current_value_.emplace(EntryProxy{value.header_name, value.header_value});
-  }
-}
-
-HeaderMap::Iterator HeaderMap::begin() {
-  return {Iterator::UnderlyingIteratorImpl{impl_->Begin()}};
-}
-
-HeaderMap::Iterator HeaderMap::begin() const {
-  return {Iterator::UnderlyingIteratorImpl{impl_->Begin()}};
-}
-
-HeaderMap::Iterator HeaderMap::end() {
-  return {Iterator::UnderlyingIteratorImpl{impl_->End()}};
-}
-
-HeaderMap::Iterator HeaderMap::end() const {
-  return {Iterator::UnderlyingIteratorImpl{impl_->End()}};
+HeaderMapConstIterator HeaderMap::cend() const noexcept {
+  return HeaderMapConstIterator{impl_->End()};
 }
 
 }  // namespace server::http

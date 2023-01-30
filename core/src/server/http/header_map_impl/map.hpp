@@ -2,6 +2,8 @@
 
 #include <vector>
 
+#include <boost/container/small_vector.hpp>
+
 #include <userver/server/http/header_map.hpp>
 
 #include <userver/utils/assert.hpp>
@@ -44,16 +46,25 @@ class Map final {
   std::size_t Size() const noexcept;
   bool Empty() const noexcept;
 
-  Iterator Find(std::string_view key) const noexcept;
+  Iterator Find(std::string_view key) noexcept;
+  ConstIterator Find(std::string_view key) const noexcept;
+
+  Iterator Find(SpecialHeader header) noexcept;
+  ConstIterator Find(SpecialHeader header) const noexcept;
 
   void Insert(std::string key, std::string value, bool append);
+  void Insert(SpecialHeader header, std::string value, bool append);
 
   void Erase(std::string_view key);
+  void Erase(SpecialHeader header);
 
   void Clear();
 
-  Iterator Begin() const noexcept;
-  Iterator End() const noexcept;
+  Iterator Begin() noexcept;
+  ConstIterator Begin() const noexcept;
+
+  Iterator End() noexcept;
+  ConstIterator End() const noexcept;
 
  private:
   void ReserveOne();
@@ -68,7 +79,9 @@ class Map final {
   template <typename Fn>
   std::size_t ProbeLoop(std::size_t starting_position, Fn&& probe_body) const;
 
+  static Traits::HashValue MaskHash(std::size_t hash) noexcept;
   Traits::HashValue HashKey(std::string_view key) const noexcept;
+  Traits::HashValue HashKey(SpecialHeader header) const noexcept;
 
   void InsertEntry(Traits::Key&& key, Traits::Value&& value);
   std::size_t DoRobinhoodAtPosition(std::size_t idx, Pos old_pos);
@@ -83,15 +96,16 @@ class Map final {
 
     static FindResult None() noexcept;
   };
-  FindResult DoFind(std::string_view key) const noexcept;
+  FindResult DoFind(std::string_view key,
+                    Traits::HashValue hash) const noexcept;
+  void DoInsert(std::string key, Traits::HashValue hash, std::string value,
+                bool append);
+  void DoErase(std::string_view key, Traits::HashValue hash);
 
   Traits::Size mask_{0};
-  std::vector<Pos> indices_;
+  boost::container::small_vector<Pos, 16> indices_;
   std::vector<Entry> entries_;
   Danger danger_;
-
-  // To get non-const iterator from Find
-  std::vector<Entry>& entries_ref_{entries_};
 };
 
 }  // namespace server::http::header_map_impl

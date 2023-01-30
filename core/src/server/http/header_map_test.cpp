@@ -10,15 +10,6 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace {
-
-void Check(const server::http::HeaderMap& map) {
-  const auto it = map.find("asd");
-  it->second += "asd";
-}
-
-}  // namespace
-
 TEST(HeaderMap, Works) {
   server::http::HeaderMap map{};
 
@@ -36,7 +27,7 @@ TEST(HeaderMap, Works) {
     }
     std::cout << "-------------";
 
-    Check(map);
+    it->second += "asd";
   }
   {
     const auto it = map.find("asd");
@@ -49,24 +40,49 @@ TEST(HeaderMap, Works) {
   }
 }
 
+constexpr std::string_view kDefaultHeaders[] = {
+    http::headers::kHost,
+    http::headers::kUserAgent,
+    http::headers::kAccept,
+    http::headers::kAcceptEncoding,
+    http::headers::kXYaSpanId,
+    http::headers::kXYaTraceId,
+    http::headers::kXYaRequestId,
+    http::headers::kXYaTaxiClientTimeoutMs,
+    http::headers::kContentLength,
+    http::headers::kContentType,
+    "cookie",
+    http::headers::kXRequestId,
+    http::headers::kXBackendServer,
+    http::headers::kXTaxiEnvoyProxyDstVhost,
+    http::headers::kDate,
+    http::headers::kConnection};
+static_assert(std::size(kDefaultHeaders) <= 16);
+
 TEST(HeaderMap, DefaultHeadersHashDistribution) {
-  const server::http::header_map_impl::Danger danger{};
-  ASSERT_TRUE(danger.IsGreen());
+  std::unordered_set<std::string_view> st(std::begin(kDefaultHeaders),
+                                          std::end(kDefaultHeaders));
+  EXPECT_EQ(st.size(), std::size(kDefaultHeaders));
 
-  const auto h1 = danger.HashKey(http::headers::kServer) % 8;
-  const auto h2 = danger.HashKey(http::headers::kXYaTraceId) % 8;
-  const auto h3 = danger.HashKey(http::headers::kXYaSpanId) % 8;
-  const auto h4 = danger.HashKey(http::headers::kXYaRequestId) % 8;
-  const auto h5 = danger.HashKey(http::headers::kHost) % 8;
-  const auto h6 = danger.HashKey(http::headers::kUserAgent) % 8;
-  const auto h7 = danger.HashKey(http::headers::kAccept) % 8;
+  for (const auto sw : kDefaultHeaders) {
+    ASSERT_TRUE(server::http::header_map_impl::IsLowerCase(sw));
+  }
 
-  std::unordered_set<std::size_t> st{h1, h2, h3, h4, h5, h6, h7};
+  {
+    std::array<bool, 16> cnt{};
+    auto hasher = server::http::header_map_impl::RuntimeHasher{};
+    //hasher.SetSeed(seed);
+    for (const auto sw : kDefaultHeaders) {
+      cnt[hasher(sw.data(), sw.size()) % 16] = true;
+    }
 
-  std::cout << h1 << " " << h2 << " " << h3 << " " << h4 << " " << h5 << " "
-            << h6 << " " << h7 << std::endl;
+    bool ok = true;
+    for (const auto has : cnt) {
+      ok &= has;
+    }
 
-  EXPECT_EQ(st.size(), 7);
+    EXPECT_TRUE(ok);
+  }
 }
 
 USERVER_NAMESPACE_END

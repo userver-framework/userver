@@ -12,7 +12,6 @@
 #include <userver/server/http/form_data_arg.hpp>
 #include <userver/server/http/http_method.hpp>
 #include <userver/server/http/http_response.hpp>
-#include <userver/server/http/http_special_headers.hpp>
 #include <userver/utils/impl/projecting_view.hpp>
 #include <userver/utils/str_icase.hpp>
 #include <userver/server/http/header_map.hpp>
