@@ -12,20 +12,20 @@ static_assert((static_cast<std::size_t>('Z') | kUppercaseToLowerMask) == 'z');
 static_assert((static_cast<std::size_t>('a') | kUppercaseToLowerMask) == 'a');
 static_assert((static_cast<std::size_t>('z') | kUppercaseToLowerMask) == 'z');
 
-void DoLowerCase(std::string& header) {
+}  // namespace
+
+void ToLowerCaseInPlace(std::string& header_name) {
   // This loop is vectorized, no need to bother with SSE directly
-  for (char& c : header) {
+  for (char& c : header_name) {
     const char mask = (c >= 'A' && c <= 'Z') ? kUppercaseToLowerMask : 0;
     c |= mask;
   }
 }
 
-}  // namespace
-
 std::string ToLowerCase(const std::string& header_name) {
   std::string header{header_name};
 
-  DoLowerCase(header);
+  ToLowerCaseInPlace(header);
 
   return header;
 }

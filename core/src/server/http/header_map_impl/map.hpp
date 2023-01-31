@@ -52,8 +52,8 @@ class Map final {
   Iterator Find(SpecialHeader header) noexcept;
   ConstIterator Find(SpecialHeader header) const noexcept;
 
-  void Insert(std::string key, std::string value, bool append);
-  void Insert(SpecialHeader header, std::string value, bool append);
+  void Insert(std::string&& key, std::string&& value, bool append);
+  void Insert(SpecialHeader header, std::string&& value, bool append);
 
   void Erase(std::string_view key);
   void Erase(SpecialHeader header);
@@ -98,7 +98,7 @@ class Map final {
   };
   FindResult DoFind(std::string_view key,
                     Traits::HashValue hash) const noexcept;
-  void DoInsert(std::string key, Traits::HashValue hash, std::string value,
+  void DoInsert(std::string&& key, Traits::HashValue hash, std::string&& value,
                 bool append);
   void DoErase(std::string_view key, Traits::HashValue hash);
 

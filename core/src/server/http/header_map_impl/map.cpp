@@ -153,7 +153,10 @@ void Map::ReinsertEntryInOrder(Pos pos) {
   }
 }
 
-void Map::Rebuild() {}
+void Map::Rebuild() {
+  UASSERT(danger_.IsRed());
+  // TODO : do rebuild
+}
 
 std::size_t Map::Capacity() const noexcept {
   return UsableCapacity(indices_.size());
@@ -250,17 +253,17 @@ Map::FindResult Map::DoFind(std::string_view key,
   return res;
 }
 
-void Map::Insert(Traits::Key key, Traits::Value value, bool append) {
+void Map::Insert(Traits::Key&& key, Traits::Value&& value, bool append) {
   const auto hash = HashKey(key);
   DoInsert(std::move(key), hash, std::move(value), append);
 }
 
-void Map::Insert(SpecialHeader header, std::string value, bool append) {
+void Map::Insert(SpecialHeader header, std::string&& value, bool append) {
   DoInsert(std::string{header.name}, HashKey(header), std::move(value), append);
 }
 
-void Map::DoInsert(std::string key, Traits::HashValue hash, std::string value,
-                   bool append) {
+void Map::DoInsert(std::string&& key, Traits::HashValue hash,
+                   std::string&& value, bool append) {
   UASSERT(IsLowerCase(key));
 
   ReserveOne();

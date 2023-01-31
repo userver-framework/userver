@@ -7,6 +7,8 @@ USERVER_NAMESPACE_BEGIN
 
 namespace server::http::header_map_impl {
 
+void ToLowerCaseInPlace(std::string& header_name);
+
 std::string ToLowerCase(const std::string& header_name);
 
 // TODO : think about this

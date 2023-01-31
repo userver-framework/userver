@@ -7,8 +7,6 @@
 #include <string>
 #include <unordered_map>
 
-#include <boost/container/small_vector.hpp>
-
 #include <userver/concurrent/queue.hpp>
 #include <userver/engine/single_consumer_event.hpp>
 #include <userver/http/content_type.hpp>
@@ -127,9 +125,8 @@ class HttpResponse final : public request::ResponseBase {
   Queue::Producer GetBodyProducer();
 
  private:
-  using HeadersStorage = boost::container::small_vector<char, 1024>;
-  void SetBodyStreamed(engine::io::Socket& socket, HeadersStorage& header);
-  void SetBodyNotstreamed(engine::io::Socket& socket, HeadersStorage& header);
+  void SetBodyStreamed(engine::io::Socket& socket, std::string& header);
+  void SetBodyNotstreamed(engine::io::Socket& socket, std::string& header);
 
   const HttpRequestImpl& request_;
   HttpStatus status_ = HttpStatus::kOk;

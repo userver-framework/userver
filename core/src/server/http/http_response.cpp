@@ -19,8 +19,6 @@
 #include <server/http/header_map_impl/special_header.hpp>
 #include <server/http/http_cached_date.hpp>
 
-#include <boost/container/small_vector.hpp>
-
 #include "http_request_impl.hpp"
 
 USERVER_NAMESPACE_BEGIN
@@ -81,34 +79,8 @@ namespace server::http {
 
 namespace impl {
 
-void AppendToHeader(boost::container::small_vector_base<char>& header,
-                    std::string_view what) {
-  const auto old_size = header.size();
-  header.resize(old_size + what.size());
-
-  std::memcpy(header.data() + old_size, what.data(), what.size());
-}
-
 void OutputHeader(std::string& header, std::string_view key,
                   std::string_view val) {
-  const auto old_size = header.size();
-  header.resize(old_size + key.size() + kKeyValueHeaderSeparator.size() +
-                val.size() + kCrlf.size());
-
-  char* append_position = header.data() + old_size;
-  const auto append = [&append_position](std::string_view what) {
-    std::memcpy(append_position, what.data(), what.size());
-    append_position += what.size();
-  };
-
-  append(key);
-  append(kKeyValueHeaderSeparator);
-  append(val);
-  append(kCrlf);
-}
-
-void OutputHeader(boost::container::small_vector_base<char>& header,
-                  std::string_view key, std::string_view val) {
   const auto old_size = header.size();
   header.resize(old_size + key.size() + kKeyValueHeaderSeparator.size() +
                 val.size() + kCrlf.size());
@@ -244,16 +216,16 @@ void HttpResponse::SendResponse(engine::io::Socket& socket) {
   // Adjusting it to 1KiB to fit jemalloc size class
   static constexpr auto kTypicalHeadersSize = 1024;
 
-  // std::string header;
-  HeadersStorage header{};
+  // TODO : this could very well be small_vector<char> instead
+  std::string header;
   header.reserve(kTypicalHeadersSize);
 
-  impl::AppendToHeader(header, "HTTP/");
+  header.append("HTTP/");
   fmt::format_to(std::back_inserter(header), FMT_COMPILE("{}.{} {} "),
                  request_.GetHttpMajor(), request_.GetHttpMinor(),
                  static_cast<int>(status_));
-  impl::AppendToHeader(header, HttpStatusString(status_));
-  impl::AppendToHeader(header, kCrlf);
+  header.append(HttpStatusString(status_));
+  header.append(kCrlf);
 
   headers_.Erase(server::http::kContentLengthHeader);
   const auto end = headers_.end();
@@ -276,13 +248,12 @@ void HttpResponse::SendResponse(engine::io::Socket& socket) {
     impl::OutputHeader(header, USERVER_NAMESPACE::http::headers::kConnection,
                        (request_.IsFinal() ? kClose : kKeepAlive));
   }
-  // TODO : fix
-  /*for (const auto& cookie : cookies_) {
+  for (const auto& cookie : cookies_) {
     header.append(USERVER_NAMESPACE::http::headers::kSetCookie);
     header.append(kKeyValueHeaderSeparator);
     cookie.second.AppendToString(header);
     header.append(kCrlf);
-  }*/
+  }
 
   if (IsBodyStreamed() && GetData().empty()) {
     SetBodyStreamed(socket, header);
@@ -293,7 +264,7 @@ void HttpResponse::SendResponse(engine::io::Socket& socket) {
 }
 
 void HttpResponse::SetBodyNotstreamed(engine::io::Socket& socket,
-                                      HeadersStorage& header) {
+                                      std::string& header) {
   const bool is_body_forbidden = IsBodyForbiddenForStatus(status_);
   const bool is_head_request = request_.GetOrigMethod() == HttpMethod::kHead;
   const auto& data = GetData();
@@ -302,7 +273,7 @@ void HttpResponse::SetBodyNotstreamed(engine::io::Socket& socket,
     impl::OutputHeader(header, USERVER_NAMESPACE::http::headers::kContentLength,
                        fmt::format(FMT_COMPILE("{}"), data.size()));
   }
-  impl::AppendToHeader(header, kCrlf);
+  header.append(kCrlf);
 
   if (is_body_forbidden && !data.empty()) {
     LOG_LIMITED_WARNING()
@@ -326,13 +297,13 @@ void HttpResponse::SetBodyNotstreamed(engine::io::Socket& socket,
 }
 
 void HttpResponse::SetBodyStreamed(engine::io::Socket& socket,
-                                   HeadersStorage& header) {
+                                   std::string& header) {
   impl::OutputHeader(
       header, USERVER_NAMESPACE::http::headers::kTransferEncoding, "chunked");
 
   // send HTTP headers
   size_t sent_bytes = socket.SendAll(header.data(), header.size(), {});
-  HeadersStorage{}.swap(header);  // free memory before time consuming operation
+  std::string{}.swap(header);  // free memory before time-consuming operation
 
   // Transmit HTTP response body
   std::string body_part;

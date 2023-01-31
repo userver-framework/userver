@@ -81,7 +81,9 @@ class GccMurMurHasher final {
   }
 
  private:
-  // TODO : adjust seed
+  // Seed is chosen in such a way that 16 common userver headers all have
+  // different remainder modulo 16 and thus don't collide within default
+  // map size.
   std::size_t seed_{1114924};
 };
 

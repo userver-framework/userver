@@ -56,11 +56,10 @@ HeaderMapConstIterator HeaderMap::find(SpecialHeader key) const noexcept {
 }
 
 void HeaderMap::Insert(std::string key, std::string value) {
-  if (header_map_impl::IsLowerCase(key)) {
-    impl_->Insert(std::move(key), std::move(value), false);
-  } else {
-    impl_->Insert(header_map_impl::ToLowerCase(key), std::move(value), false);
-  }
+  // TODO : maybe it's better to lowercase unconditionally for SSO strings and
+  // check before for longer strings
+  header_map_impl::ToLowerCaseInPlace(key);
+  impl_->Insert(std::move(key), std::move(value), false);
 }
 
 void HeaderMap::Insert(SpecialHeader key, std::string value) {
@@ -68,11 +67,10 @@ void HeaderMap::Insert(SpecialHeader key, std::string value) {
 }
 
 void HeaderMap::InsertOrAppend(std::string key, std::string value) {
-  if (header_map_impl::IsLowerCase(key)) {
-    impl_->Insert(std::move(key), std::move(value), true);
-  } else {
-    impl_->Insert(header_map_impl::ToLowerCase(key), std::move(value), true);
-  }
+  // TODO : maybe it's better to lowercase unconditionally for SSO strings and
+  // check before for longer strings
+  header_map_impl::ToLowerCaseInPlace(key);
+  impl_->Insert(std::move(key), std::move(value), true);
 }
 
 void HeaderMap::InsertOrAppend(SpecialHeader key, std::string value) {
