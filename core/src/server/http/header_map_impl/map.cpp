@@ -163,18 +163,18 @@ std::size_t Map::Capacity() const noexcept {
 }
 
 template <typename Fn>
-std::size_t Map::ProbeLoop(std::size_t starting_position,
+std::size_t Map::ProbeLoop(std::size_t probe_position,
                            Fn&& probe_body) const {
   UASSERT(!indices_.empty());
 
   while (true) {
-    if (starting_position < indices_.size()) {
-      if (probe_body(starting_position)) {
-        return starting_position;
+    if (probe_position < indices_.size()) {
+      if (probe_body(probe_position)) {
+        return probe_position;
       }
-      ++starting_position;
+      ++probe_position;
     } else {
-      starting_position = 0;
+      probe_position = 0;
     }
   }
 }
@@ -233,7 +233,7 @@ Map::FindResult Map::DoFind(std::string_view key,
   std::size_t dist = 0;
 
   auto res = FindResult::None();
-  ProbeLoop(probe, [this, &key, hash, &dist, &res](std::size_t idx) {
+  ProbeLoop(probe, [this, key, hash, &dist, &res](std::size_t idx) {
     if (indices_[idx].IsNone()) {
       return true;
     }

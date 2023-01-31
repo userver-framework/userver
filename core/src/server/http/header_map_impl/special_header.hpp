@@ -59,7 +59,6 @@ class GccMurMurHasher final {
         if constexpr (AtCompileTime) {
           return impl::shift_mix(impl::load_bytes(p, 8) * mul) * mul;
         } else {
-          // TODO : check endianness
           return impl::shift_mix(impl::unaligned_load(p) * mul) * mul;
         }
       }();
@@ -74,10 +73,6 @@ class GccMurMurHasher final {
     hash = impl::shift_mix(hash) * mul;
     hash = impl::shift_mix(hash);
     return hash;
-  }
-
-  void SetSeed(std::size_t seed) {
-    seed_ = seed;
   }
 
  private:
@@ -100,43 +95,29 @@ constexpr SpecialHeader::SpecialHeader(std::string_view name)
   }
 }
 
-inline constexpr SpecialHeader kTraceIdHeader{
-    USERVER_NAMESPACE::http::headers::kXYaTraceId};
+namespace http_headers = USERVER_NAMESPACE::http::headers;
 
-inline constexpr SpecialHeader kSpanIdHeader{
-    USERVER_NAMESPACE::http::headers::kXYaSpanId};
+inline constexpr SpecialHeader kXYaTraceIdHeader{http_headers::kXYaTraceId};
+inline constexpr SpecialHeader kXYaSpanIdHeader{http_headers::kXYaSpanId};
+inline constexpr SpecialHeader kXYaRequestIdHeader{http_headers::kXYaRequestId};
 
-inline constexpr SpecialHeader kYaRequestIdHeader{
-    USERVER_NAMESPACE::http::headers::kXYaRequestId};
+inline constexpr SpecialHeader kXRequestIdHeader{http_headers::kXRequestId};
+inline constexpr SpecialHeader kXBackendServerHeader{
+    http_headers::kXBackendServer};
+inline constexpr SpecialHeader kXTaxiEnvoyProxyDstVhostHeader{
+    http_headers::kXTaxiEnvoyProxyDstVhost};
 
-inline constexpr SpecialHeader kRequestIdHeader{
-    USERVER_NAMESPACE::http::headers::kXRequestId};
-
-inline constexpr SpecialHeader kBackendServerHeader{
-    USERVER_NAMESPACE::http::headers::kXBackendServer};
-
-inline constexpr SpecialHeader kTaxiEnvoyProxyDstVhostHeader{
-    USERVER_NAMESPACE::http::headers::kXTaxiEnvoyProxyDstVhost};
-
-inline constexpr SpecialHeader kServerHeader{
-    USERVER_NAMESPACE::http::headers::kServer};
-
+inline constexpr SpecialHeader kServerHeader{http_headers::kServer};
 inline constexpr SpecialHeader kContentLengthHeader{
-    USERVER_NAMESPACE::http::headers::kContentLength};
-
-inline constexpr SpecialHeader kDateHeader{
-    USERVER_NAMESPACE::http::headers::kDate};
-
-inline constexpr SpecialHeader kContentTypeHeader{
-    USERVER_NAMESPACE::http::headers::kContentType};
-
-inline constexpr SpecialHeader kConnectionHeader{
-    USERVER_NAMESPACE::http::headers::kConnection};
+    http_headers::kContentLength};
+inline constexpr SpecialHeader kDateHeader{http_headers::kDate};
+inline constexpr SpecialHeader kContentTypeHeader{http_headers::kContentType};
+inline constexpr SpecialHeader kConnectionHeader{http_headers::kConnection};
 
 inline constexpr SpecialHeader kCookieHeader{"cookie"};
 
 inline constexpr SpecialHeader kXYaTaxiClientTimeoutMsHeader{
-    USERVER_NAMESPACE::http::headers::kXYaTaxiClientTimeoutMs};
+    http_headers::kXYaTaxiClientTimeoutMs};
 
 }  // namespace server::http
 

@@ -1,7 +1,6 @@
 #include <userver/server/handlers/http_handler_base.hpp>
 
 #include <fmt/core.h>
-#include <fmt/format.h>
 #include <boost/algorithm/string/split.hpp>
 
 #include <compression/gzip.hpp>
@@ -27,7 +26,6 @@
 #include <userver/server/http/http_method.hpp>
 #include <userver/server/http/http_response_body_stream.hpp>
 #include <userver/server/request/task_inherited_data.hpp>
-#include <userver/tracing/set_throttle_reason.hpp>
 #include <userver/tracing/span.hpp>
 #include <userver/tracing/tags.hpp>
 #include <userver/tracing/tracing.hpp>
@@ -37,7 +35,6 @@
 #include <userver/utils/log.hpp>
 #include <userver/utils/overloaded.hpp>
 #include <userver/utils/scope_guard.hpp>
-#include <userver/utils/statistics/metadata.hpp>
 #include <userver/utils/text.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
@@ -124,7 +121,7 @@ class RequestProcessor final {
       auto& span = tracing::Span::CurrentSpan();
       auto& response = http_request_.GetHttpResponse();
       if (handler_.GetConfig().set_tracing_headers) {
-        response.SetHeader(server::http::kYaRequestIdHeader, span.GetLink());
+        response.SetHeader(server::http::kXYaRequestIdHeader, span.GetLink());
       }
 
       const auto status_code = response.GetStatus();
@@ -477,17 +474,18 @@ void HttpHandlerBase::HandleRequest(request::RequestBase& request,
     request::kTaskInheritedData.Set(inherited_data);
 
     const auto& parent_link =
-        http_request.GetHeader(server::http::kYaRequestIdHeader);
-    const auto& trace_id = http_request.GetHeader(server::http::kTraceIdHeader);
+        http_request.GetHeader(server::http::kXYaRequestIdHeader);
+    const auto& trace_id =
+        http_request.GetHeader(server::http::kXYaTraceIdHeader);
     const auto& parent_span_id =
-        http_request.GetHeader(server::http::kSpanIdHeader);
+        http_request.GetHeader(server::http::kXYaSpanIdHeader);
 
     const auto& yandex_request_id =
-        http_request.GetHeader(server::http::kRequestIdHeader);
+        http_request.GetHeader(server::http::kXRequestIdHeader);
     const auto& yandex_backend_server =
-        http_request.GetHeader(server::http::kBackendServerHeader);
+        http_request.GetHeader(server::http::kXBackendServerHeader);
     const auto& envoy_proxy =
-        http_request.GetHeader(server::http::kTaxiEnvoyProxyDstVhostHeader);
+        http_request.GetHeader(server::http::kXTaxiEnvoyProxyDstVhostHeader);
 
     if (!yandex_request_id.empty() || !yandex_backend_server.empty() ||
         !envoy_proxy.empty()) {
@@ -504,8 +502,8 @@ void HttpHandlerBase::HandleRequest(request::RequestBase& request,
                                         trace_id, parent_span_id);
 
     if (config.set_tracing_headers) {
-      response.SetHeader(server::http::kTraceIdHeader, span.GetTraceId());
-      response.SetHeader(server::http::kSpanIdHeader, span.GetSpanId());
+      response.SetHeader(server::http::kXYaTraceIdHeader, span.GetTraceId());
+      response.SetHeader(server::http::kXYaSpanIdHeader, span.GetSpanId());
     }
 
     span.SetLocalLogLevel(log_level_);

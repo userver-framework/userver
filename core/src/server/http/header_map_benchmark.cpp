@@ -65,10 +65,10 @@ class MapWrapper<HeaderMap> final {
 
 template <typename Wrapper>
 void PrepareResponse(Wrapper& headers) {
-  headers.Insert(server::http::kTraceIdHeader,
+  headers.Insert(server::http::kXYaTraceIdHeader,
                  "18575ca478104b9fb81460875a2e0a2c");
-  headers.Insert(server::http::kSpanIdHeader, "dfea18ffa9c24597");
-  headers.Insert(server::http::kYaRequestIdHeader,
+  headers.Insert(server::http::kXYaSpanIdHeader, "dfea18ffa9c24597");
+  headers.Insert(server::http::kXYaRequestIdHeader,
                  "767e8d274faf489789cda8a030a98361");
   headers.Insert(server::http::kServerHeader, "userver at some version");
 }
@@ -87,17 +87,18 @@ void header_map_for_response(benchmark::State& state) {
     request_wrapper.Insert(server::http::kContentLengthHeader, "1");
 
     benchmark::DoNotOptimize(
-        request_wrapper.find(server::http::kYaRequestIdHeader));
+        request_wrapper.find(server::http::kXYaRequestIdHeader));
     benchmark::DoNotOptimize(
-        request_wrapper.find(server::http::kTraceIdHeader));
-    benchmark::DoNotOptimize(request_wrapper.find(server::http::kSpanIdHeader));
+        request_wrapper.find(server::http::kXYaTraceIdHeader));
+    benchmark::DoNotOptimize(
+        request_wrapper.find(server::http::kXYaSpanIdHeader));
 
     benchmark::DoNotOptimize(
-        request_wrapper.find(server::http::kRequestIdHeader));
+        request_wrapper.find(server::http::kXRequestIdHeader));
     benchmark::DoNotOptimize(
-        request_wrapper.find(server::http::kBackendServerHeader));
+        request_wrapper.find(server::http::kXBackendServerHeader));
     benchmark::DoNotOptimize(
-        request_wrapper.find(server::http::kTaxiEnvoyProxyDstVhostHeader));
+        request_wrapper.find(server::http::kXTaxiEnvoyProxyDstVhostHeader));
 
     PrepareResponse(wrapper);
 

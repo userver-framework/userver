@@ -77,7 +77,7 @@ class Map final {
   std::size_t Capacity() const noexcept;
 
   template <typename Fn>
-  std::size_t ProbeLoop(std::size_t starting_position, Fn&& probe_body) const;
+  std::size_t ProbeLoop(std::size_t probe_position, Fn&& probe_body) const;
 
   static Traits::HashValue MaskHash(std::size_t hash) noexcept;
   Traits::HashValue HashKey(std::string_view key) const noexcept;
