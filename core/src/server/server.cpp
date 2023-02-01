@@ -189,34 +189,22 @@ Server::~Server() = default;
 
 const ServerConfig& Server::GetConfig() const { return pimpl->config_; }
 
-formats::json::Value Server::GetMonitorData(
-    const utils::statistics::StatisticsRequest&) const {
-  formats::json::ValueBuilder json_data(formats::json::Type::kObject);
-
+void Server::WriteMonitorData(utils::statistics::Writer& writer) const {
   auto server_stats = pimpl->GetServerStats();
-  {
-    formats::json::ValueBuilder json_conn_stats(formats::json::Type::kObject);
-    json_conn_stats["active"] = server_stats.active_connections.load();
-    json_conn_stats["opened"] = server_stats.connections_created.load();
-    json_conn_stats["closed"] = server_stats.connections_closed.load();
-
-    json_data["connections"] = std::move(json_conn_stats);
+  if (auto json_conn_stats = writer["connections"]) {
+    json_conn_stats["active"] = server_stats.active_connections;
+    json_conn_stats["opened"] = server_stats.connections_created;
+    json_conn_stats["closed"] = server_stats.connections_closed;
   }
-  {
-    formats::json::ValueBuilder json_request_stats(
-        formats::json::Type::kObject);
-    json_request_stats["active"] = server_stats.active_request_count.load();
+
+  if (auto json_request_stats = writer["requests"]) {
+    json_request_stats["active"] = server_stats.active_request_count;
     json_request_stats["avg-lifetime-ms"] =
         pimpl->main_port_info_.data_accounter_.GetAvgRequestTime().count();
-    json_request_stats["processed"] =
-        server_stats.requests_processed_count.load();
+    json_request_stats["processed"] = server_stats.requests_processed_count;
     json_request_stats["parsing"] =
-        server_stats.parser_stats.parsing_request_count.load();
-
-    json_data["requests"] = std::move(json_request_stats);
+        server_stats.parser_stats.parsing_request_count;
   }
-
-  return json_data.ExtractValue();
 }
 
 void Server::WriteTotalHandlerStatistics(

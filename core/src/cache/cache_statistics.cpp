@@ -48,52 +48,43 @@ void CombineStatistics(const impl::UpdateStatistics& a,
 
 namespace impl {
 
-formats::json::Value Serialize(const UpdateStatistics& stats,
-                               formats::serialize::To<formats::json::Value>) {
-  formats::json::ValueBuilder result(formats::json::Type::kObject);
+void DumpMetric(utils::statistics::Writer& writer,
+                const UpdateStatistics& stats) {
+  if (auto update = writer["update"]) {
+    update["attempts_count"] = stats.update_attempt_count;
+    update["no_changes_count"] = stats.update_no_changes_count;
+    update["failures_count"] = stats.update_failures_count;
+  }
 
-  formats::json::ValueBuilder update(formats::json::Type::kObject);
-  update["attempts_count"] = stats.update_attempt_count.load();
-  update["no_changes_count"] = stats.update_no_changes_count.load();
-  update["failures_count"] = stats.update_failures_count.load();
-  result["update"] = update.ExtractValue();
+  if (auto documents = writer["documents"]) {
+    documents["read_count"] = stats.documents_read_count;
+    documents["parse_failures"] = stats.documents_parse_failures;
+  }
 
-  formats::json::ValueBuilder documents(formats::json::Type::kObject);
-  documents["read_count"] = stats.documents_read_count.load();
-  documents["parse_failures"] = stats.documents_parse_failures.load();
-  result["documents"] = documents.ExtractValue();
-
-  formats::json::ValueBuilder age(formats::json::Type::kObject);
-  age["time-from-last-update-start-ms"] =
-      TimeStampToMillisecondsFromNow(stats.last_update_start_time.load());
-  age["time-from-last-successful-start-ms"] = TimeStampToMillisecondsFromNow(
-      stats.last_successful_update_start_time.load());
-  age["last-update-duration-ms"] =
-      std::chrono::duration_cast<std::chrono::milliseconds>(
-          stats.last_update_duration.load())
-          .count();
-  result["time"] = age.ExtractValue();
-
-  return result.ExtractValue();
+  if (auto age = writer["time"]) {
+    age["time-from-last-update-start-ms"] =
+        TimeStampToMillisecondsFromNow(stats.last_update_start_time.load());
+    age["time-from-last-successful-start-ms"] = TimeStampToMillisecondsFromNow(
+        stats.last_successful_update_start_time.load());
+    age["last-update-duration-ms"] =
+        std::chrono::duration_cast<std::chrono::milliseconds>(
+            stats.last_update_duration.load())
+            .count();
+  }
 }
 
-formats::json::Value Serialize(const Statistics& stats,
-                               formats::serialize::To<formats::json::Value>) {
+void DumpMetric(utils::statistics::Writer& writer, const Statistics& stats) {
   const auto& full = stats.full_update;
   const auto& incremental = stats.incremental_update;
   UpdateStatistics any;
   cache::CombineStatistics(full, incremental, any);
 
-  formats::json::ValueBuilder builder;
-  utils::statistics::SolomonLabelValue(builder, "cache_name");
-  builder[cache::kStatisticsNameFull] = full;
-  builder[cache::kStatisticsNameIncremental] = incremental;
-  builder[cache::kStatisticsNameAny] = any;
+  writer[cache::kStatisticsNameFull] = full;
+  writer[cache::kStatisticsNameIncremental] = incremental;
+  writer[cache::kStatisticsNameAny] = any;
 
-  builder[cache::kStatisticsNameCurrentDocumentsCount] =
-      stats.documents_current_count.load();
-
-  return builder.ExtractValue();
+  writer[cache::kStatisticsNameCurrentDocumentsCount] =
+      stats.documents_current_count;
 }
 
 }  // namespace impl

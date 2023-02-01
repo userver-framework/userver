@@ -68,7 +68,7 @@ class HttpClient final : public LoggableComponentBase {
  private:
   void OnConfigUpdate(const dynamic_config::Snapshot& config);
 
-  void ExtendStatistics(utils::statistics::Writer& writer);
+  void WriteStatistics(utils::statistics::Writer& writer);
 
   const bool disable_pool_stats_;
   clients::http::Client http_client_;

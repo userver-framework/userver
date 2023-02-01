@@ -148,8 +148,6 @@ class Dumper::Impl {
 
   void OnConfigUpdate(const dynamic_config::Snapshot& config);
 
-  formats::json::Value ExtendStatistics() const;
-
   const Config static_config_;
   const std::string write_span_name_;
   const std::string read_span_name_;
@@ -188,9 +186,10 @@ Dumper::Impl::Impl(const Config& initial_config,
       dump_data_(static_config_, std::move(rw_factory), dumpable),
       update_data_(statistics_),
       testsuite_registration_(std::in_place, dump_control, self) {
-  statistics_holder_ = statistics_storage.RegisterExtender(
-      fmt::format("cache.{}.dump", Name()),
-      [this](auto&) { return ExtendStatistics(); });
+  statistics_holder_ = statistics_storage.RegisterWriter(
+      fmt::format("cache.dump"), [this](utils::statistics::Writer& writer) {
+        writer.ValueWithLabels(statistics_, {{"cache_name", Name()}});
+      });
   config_subscription_ = config_source.UpdateAndListen(this, "dump." + Name(),
                                                        &Impl::OnConfigUpdate);
   if (dump_control.GetPeriodicsMode() ==
@@ -400,10 +399,6 @@ void Dumper::Impl::OnConfigUpdate(const dynamic_config::Snapshot& config) {
     // acquire memory order.
     config_updated_signal_.Send();
   }
-}
-
-formats::json::Value Dumper::Impl::ExtendStatistics() const {
-  return formats::json::ValueBuilder{statistics_}.ExtractValue();
 }
 
 void Dumper::Impl::CancelWriteTaskAndWait() noexcept {

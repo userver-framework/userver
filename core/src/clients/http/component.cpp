@@ -85,7 +85,7 @@ HttpClient::HttpClient(const ComponentConfig& component_config,
       context.FindComponent<components::StatisticsStorage>().GetStorage();
   statistics_holder_ = storage.RegisterWriter(
       std::move(stats_name), [this](utils::statistics::Writer& writer) {
-        return ExtendStatistics(writer);
+        return WriteStatistics(writer);
       });
 }
 
@@ -100,7 +100,7 @@ void HttpClient::OnConfigUpdate(const dynamic_config::Snapshot& config) {
   http_client_.SetConfig(config.Get<clients::http::Config>());
 }
 
-void HttpClient::ExtendStatistics(utils::statistics::Writer& writer) {
+void HttpClient::WriteStatistics(utils::statistics::Writer& writer) {
   if (!disable_pool_stats_) {
     DumpMetric(writer, http_client_.GetPoolStatistics());
   }

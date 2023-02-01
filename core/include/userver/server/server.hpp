@@ -33,8 +33,7 @@ class Server final {
 
   const ServerConfig& GetConfig() const;
 
-  formats::json::Value GetMonitorData(
-      const utils::statistics::StatisticsRequest&) const;
+  void WriteMonitorData(utils::statistics::Writer& writer) const;
 
   void WriteTotalHandlerStatistics(utils::statistics::Writer& writer) const;
 
