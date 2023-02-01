@@ -285,7 +285,10 @@ class AiohttpClientMonitor(service_client.AiohttpClient):
 
     async def get_metric(self, metric_name):
         metrics = await self.get_metrics(metric_name)
-        assert metric_name in metrics, f'no metric with name {metric_name!r}'
+        assert metric_name in metrics, (
+            f'No metric with name {metric_name!r}. '
+            f'Use "single_metric" function instead of "get_metric"'
+        )
         return metrics[metric_name]
 
     async def metrics_raw(
@@ -812,15 +815,23 @@ class Client(ClientWrapper):
         return self._client.capture_logs()
 
     @_wrap_client_error
-    async def invalidate_caches(self, *args, **kwargs) -> None:
+    async def invalidate_caches(
+            self,
+            *,
+            clean_update: bool = True,
+            cache_names: typing.Optional[typing.List[str]] = None,
+    ) -> None:
         """
-        Send ``POST tests/control`` request to service to update caches
+        Send request to service to update caches.
 
         @param clean_update if False, service will do a faster incremental
                update of caches whenever possible.
-        @param cache_names which caches specifically should be updated
+        @param cache_names which caches specifically should be updated;
+               update all if None.
         """
-        await self._client.invalidate_caches(*args, **kwargs)
+        await self._client.invalidate_caches(
+            clean_update=clean_update, cache_names=cache_names,
+        )
 
     @_wrap_client_error
     async def tests_control(

@@ -54,6 +54,27 @@ void SetErrorForSpan(RpcData& data, std::string&& message) {
 
 }  // namespace
 
+FutureImpl::FutureImpl(RpcData& data) noexcept : data_(&data) {}
+
+FutureImpl::FutureImpl(FutureImpl&& other) noexcept
+    : data_(std::exchange(other.data_, nullptr)) {}
+
+FutureImpl& FutureImpl::operator=(FutureImpl&& other) noexcept {
+  if (this == &other) return *this;
+  data_ = std::exchange(other.data_, nullptr);
+  return *this;
+}
+
+bool FutureImpl::IsReady() const noexcept {
+  UINVARIANT(data_, "IsReady should be called only before 'Get'");
+  auto& method = data_->GetAsyncMethodInvocation();
+  return method.IsReady();
+}
+
+RpcData* FutureImpl::GetData() noexcept { return data_; }
+
+void FutureImpl::ClearData() noexcept { data_ = nullptr; }
+
 RpcData::RpcData(std::unique_ptr<grpc::ClientContext>&& context,
                  std::string_view call_name,
                  ugrpc::impl::MethodStatistics& statistics)
@@ -65,7 +86,8 @@ RpcData::RpcData(std::unique_ptr<grpc::ClientContext>&& context,
 }
 
 RpcData::~RpcData() {
-  UASSERT(!finish_.has_value());
+  UASSERT(!invocation_.has_value());
+
   if (context_ && state_ != impl::State::kFinished) {
     SetErrorForSpan(*this, "Abandoned");
     context_->TryCancel();
@@ -115,13 +137,14 @@ void RpcData::SetState(State new_state) noexcept {
 }
 
 void RpcData::EmplaceAsyncMethodInvocation() {
-  UINVARIANT(!finish_.has_value(), "'FinishAsync' already was called");
-  finish_.emplace();
+  UINVARIANT(!invocation_.has_value(),
+             "Another method is already running for this RPC concurrently");
+  invocation_.emplace();
 }
 
 AsyncMethodInvocation& RpcData::GetAsyncMethodInvocation() noexcept {
-  UASSERT(finish_.has_value());
-  return finish_.value();
+  UASSERT(invocation_.has_value());
+  return invocation_.value();
 }
 
 grpc::Status& RpcData::GetStatus() noexcept { return status_; }
@@ -131,8 +154,8 @@ RpcData::AsyncMethodInvocationGuard::AsyncMethodInvocationGuard(
     : data_(data) {}
 
 RpcData::AsyncMethodInvocationGuard::~AsyncMethodInvocationGuard() noexcept {
-  UASSERT(data_.finish_.has_value());
-  data_.finish_.reset();
+  UASSERT(data_.invocation_.has_value());
+  data_.invocation_.reset();
   data_.GetStatus() = grpc::Status{};
 }
 

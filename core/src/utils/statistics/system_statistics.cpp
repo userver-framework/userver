@@ -269,6 +269,8 @@ void DumpMetric(Writer& writer, const SystemStats& stats) {
   put_field("io_write_bytes", stats.io_write_bytes);
 }
 
+static_assert(kHasWriterSupport<SystemStats>);
+
 SystemStats GetSelfSystemStatistics() {
 #if defined(__linux__)
   return GetSystemStatisticsByProcPath("/proc/self");

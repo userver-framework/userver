@@ -114,8 +114,29 @@ class RpcData final {
   std::optional<tracing::InPlaceSpan> span_;
   ugrpc::impl::RpcStatisticsScope stats_scope_;
 
-  std::optional<AsyncMethodInvocation> finish_;
+  std::optional<AsyncMethodInvocation> invocation_;
   grpc::Status status_;
+};
+
+class FutureImpl final {
+ public:
+  explicit FutureImpl(RpcData& data) noexcept;
+
+  virtual ~FutureImpl() noexcept = default;
+
+  FutureImpl(FutureImpl&&) noexcept;
+  FutureImpl& operator=(FutureImpl&&) noexcept;
+
+  /// @brief Checks if the asynchronous call has completed
+  ///        Note, that once user gets result, IsReady should not be called
+  /// @return true if result ready
+  [[nodiscard]] bool IsReady() const noexcept;
+
+  RpcData* GetData() noexcept;
+  void ClearData() noexcept;
+
+ private:
+  RpcData* data_;
 };
 
 void CheckOk(RpcData& data, bool ok, std::string_view stage);
@@ -133,12 +154,12 @@ void ProcessFinishResult(RpcData& data, bool ok, grpc::Status& status,
                          bool throw_on_error);
 
 template <typename GrpcStream>
-void Finish(GrpcStream& stream, RpcData& data) {
+void Finish(GrpcStream& stream, RpcData& data, bool throw_on_error) {
   PrepareFinish(data);
   grpc::Status status;
   AsyncMethodInvocation finish;
   stream.Finish(&status, finish.GetTag());
-  ProcessFinishResult(data, finish.Wait(), status, true);
+  ProcessFinishResult(data, finish.Wait(), status, throw_on_error);
 }
 
 void PrepareRead(RpcData& data);
@@ -149,6 +170,14 @@ template <typename GrpcStream, typename Response>
   AsyncMethodInvocation read;
   stream.Read(&response, read.GetTag());
   return read.Wait();
+}
+
+template <typename GrpcStream, typename Response>
+void ReadAsync(GrpcStream& stream, Response& response, RpcData& data) noexcept {
+  PrepareRead(data);
+  data.EmplaceAsyncMethodInvocation();
+  auto& read = data.GetAsyncMethodInvocation();
+  stream.Read(&response, read.GetTag());
 }
 
 void PrepareWrite(RpcData& data);

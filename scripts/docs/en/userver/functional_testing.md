@@ -314,10 +314,11 @@ An example on testsuite tasks could be found here:
 * C++ code: @ref samples/testsuite-support/src/tasks.cpp
 * Testcase: @ref samples/testsuite-support/tests/test_tasks.py
 
-
+@anchor TESTSUITE_METRICS_TESTING
 #### Metrics
 
-Testsuite provides access to userver metrics via
+Testsuite provides access to userver metrics written by
+utils::statistics::Writer via
 @ref pytest_userver.plugins.service_client.monitor_client "monitor_client"
 , see @ref tutorial_metrics "tutorial on configuration".
 It allows to:

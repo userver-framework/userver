@@ -85,6 +85,10 @@ void SingleUseEvent::Reset() noexcept {
   state_ = kNotSignaledState;
 }
 
+bool SingleUseEvent::IsReady() const noexcept {
+  return state_ == kSignaledState;
+}
+
 }  // namespace engine
 
 USERVER_NAMESPACE_END

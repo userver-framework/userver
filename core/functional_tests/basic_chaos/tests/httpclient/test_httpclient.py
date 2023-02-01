@@ -61,3 +61,22 @@ async def test_close_after_headers(call, gate, mockserver):
     on = False
     response = await call()
     assert response.status == 200
+
+
+async def test_required_headers(call, gate, mock_test):
+    required_headers = ['X-YaRequestId', 'X-YaSpanId', 'X-YaTraceId']
+
+    response = await call()
+    assert response.status == 200
+    assert all(key in response.headers for key in required_headers)
+
+    await gate.stop_accepting()
+    await gate.sockets_close()  # close keepalive connections
+    assert gate.connections_count() == 0
+
+    response = await call()
+    assert response.status == 500
+    assert all(key in response.headers for key in required_headers)
+    assert gate.connections_count() == 0
+
+    gate.start_accepting()
