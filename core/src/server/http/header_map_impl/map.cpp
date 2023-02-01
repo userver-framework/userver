@@ -82,7 +82,8 @@ std::size_t Map::Size() const noexcept { return entries_.size(); }
 bool Map::Empty() const noexcept { return entries_.empty(); }
 
 void Map::Grow(std::size_t new_capacity) {
-  UINVARIANT(new_capacity <= Traits::kMaxSize, "Requested capacity too large");
+  UINVARIANT(new_capacity <= Traits::kMaxSize,
+             "Requested capacity is too large");
 
   std::size_t first_ideal = 0;
   for (std::size_t i = 0; i < indices_.size(); ++i) {
@@ -94,8 +95,9 @@ void Map::Grow(std::size_t new_capacity) {
     }
   }
 
-  decltype(indices_) old_indices(new_capacity, Pos::None());
-  std::swap(old_indices, indices_);
+  auto old_indices = indices_;
+  indices_.assign(new_capacity, Pos::None());
+
   mask_ = static_cast<Traits::Size>(new_capacity - 1);
 
   for (std::size_t i = first_ideal; i < old_indices.size(); ++i) {
@@ -155,7 +157,16 @@ void Map::ReinsertEntryInOrder(Pos pos) {
 
 void Map::Rebuild() {
   UASSERT(danger_.IsRed());
-  // TODO : do rebuild
+
+  indices_.assign(indices_.size(), Pos::None());
+
+  std::vector<Entry> entries;
+  std::swap(entries_, entries);
+  entries_.reserve(entries.size());
+
+  for (auto& entry : entries) {
+    Insert(std::move(entry.header_name), std::move(entry.header_value), false);
+  }
 }
 
 std::size_t Map::Capacity() const noexcept {
@@ -163,8 +174,7 @@ std::size_t Map::Capacity() const noexcept {
 }
 
 template <typename Fn>
-std::size_t Map::ProbeLoop(std::size_t probe_position,
-                           Fn&& probe_body) const {
+std::size_t Map::ProbeLoop(std::size_t probe_position, Fn&& probe_body) const {
   UASSERT(!indices_.empty());
 
   while (true) {
@@ -301,6 +311,7 @@ void Map::DoInsert(std::string&& key, Traits::HashValue hash,
         return true;
       } else if (indices_[probe].hash == hash &&
                  entries_[indices_[probe].index].header_name == key) {
+        // We don't account for danger here since it's not an actual insertion
         auto& header_value = entries_[indices_[probe].index].header_value;
         if (append) {
           header_value += ',';
@@ -312,12 +323,15 @@ void Map::DoInsert(std::string&& key, Traits::HashValue hash,
         return true;
       }
     } else {
-      // TODO : think about danger here
       const auto danger = dist >= kForwardShiftThreshold && !danger_.IsRed();
 
       const auto index = entries_.size();
       InsertEntry(std::move(key), std::move(value));
       indices_[probe] = Pos{index, hash};
+
+      if (danger) {
+        danger_.ToYellow();
+      }
 
       return true;
     }
@@ -375,8 +389,7 @@ void Map::DoErase(std::string_view key, Traits::HashValue hash) {
     ProbeLoop(last_probe + 1, [this, &last_probe](std::size_t idx) {
       if (indices_[idx].IsSome()) {
         if (ProbeDistance(mask_, indices_[idx].hash, idx) > 0) {
-          indices_[last_probe] = indices_[idx];
-          indices_[idx] = Pos::None();
+          indices_[last_probe] = std::exchange(indices_[idx], Pos::None());
         } else {
           return true;
         }
@@ -392,7 +405,9 @@ void Map::DoErase(std::string_view key, Traits::HashValue hash) {
 
 void Map::Clear() {
   indices_.assign(indices_.size(), Pos::None());
+
   entries_.clear();
+
   danger_ = Danger{};
 }
 

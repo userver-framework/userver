@@ -142,7 +142,7 @@ bool HttpResponse::SetHeader(SpecialHeader header, std::string value) {
 
 void HttpResponse::SetContentType(
     const USERVER_NAMESPACE::http::ContentType& type) {
-  SetHeader(USERVER_NAMESPACE::http::headers::kContentType, type.ToString());
+  SetHeader(kContentTypeHeader, type.ToString());
 }
 
 void HttpResponse::SetContentEncoding(std::string encoding) {
@@ -216,7 +216,8 @@ void HttpResponse::SendResponse(engine::io::Socket& socket) {
   // Adjusting it to 1KiB to fit jemalloc size class
   static constexpr auto kTypicalHeadersSize = 1024;
 
-  // TODO : this could very well be small_vector<char> instead
+  // TODO : this could very well be small_vector<char> instead, or we could
+  // pass a string from connection and reuse it.
   std::string header;
   header.reserve(kTypicalHeadersSize);
 

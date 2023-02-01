@@ -13,7 +13,6 @@ class Danger final {
   std::size_t HashKey(std::string_view key) const noexcept;
   std::size_t HashKey(http::SpecialHeader header) const noexcept;
 
-  bool IsGreen() const noexcept;
   bool IsYellow() const noexcept;
   bool IsRed() const noexcept;
 

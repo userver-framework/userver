@@ -26,24 +26,23 @@ std::size_t Danger::HashKey(http::SpecialHeader header) const noexcept {
   return SafeHash(header.name);
 }
 
-bool Danger::IsGreen() const noexcept { return state_ == State::kGreen; }
 bool Danger::IsYellow() const noexcept { return state_ == State::kYellow; }
 bool Danger::IsRed() const noexcept { return state_ == State::kRed; }
 
 void Danger::ToGreen() noexcept {
-  UASSERT(state_ == State::kYellow);
+  UASSERT(IsYellow());
 
   state_ = State::kGreen;
 }
 
 void Danger::ToYellow() noexcept {
-  UASSERT(state_ == State::kGreen);
-
-  state_ = State::kYellow;
+  if (state_ == State::kGreen) {
+    state_ = State::kYellow;
+  }
 }
 
 void Danger::ToRed() noexcept {
-  UASSERT(state_ == State::kYellow);
+  UASSERT(IsYellow());
 
   state_ = State::kRed;
 
