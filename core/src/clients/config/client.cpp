@@ -20,7 +20,9 @@ Client::~Client() = default;
 std::string Client::FetchConfigsValues(const std::string& body) {
   const auto timeout_ms = config_.timeout.count();
   const auto retries = config_.retries;
-  const auto url = config_.config_url + kConfigsValues;
+  const auto url = config_.append_path_to_url
+                       ? config_.config_url + kConfigsValues
+                       : config_.config_url;
 
   // Storing and overriding proxy below to avoid issues with concurrent update
   // of proxy runtime config.
