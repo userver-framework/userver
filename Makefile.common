@@ -1,4 +1,5 @@
 USERVER_ROOTDIR := $(dir $(realpath $(lastword $(MAKEFILE_LIST))))
+TAXI_TOOL ?= $(shell $(USERVER_ROOTDIR)/../../../ya tool tt --print-path)
 
 # NOTE: use Makefile.local for customization
 -include $(USERVER_ROOTDIR)/Makefile.local
@@ -105,15 +106,15 @@ teamcity-clang-tidy: cmake
 
 .PHONY: check-pep8
 check-pep8:
-	@${PYTHON3_BIN_DIR}check-pep8 $(CMAKE_DIR)
+	@$(TAXI_TOOL) check $(CMAKE_DIR)
 
 .PHONY: smart-check-pep8
 smart-check-pep8:
-	@${PYTHON3_BIN_DIR}check-pep8 --smart $(CMAKE_DIR)
+	@$(TAXI_TOOL) check --smart $(CMAKE_DIR)
 
 .PHONY: teamcity-check-pep8
 teamcity-check-pep8:
-	@${PYTHON3_BIN_DIR}check-pep8 --teamcity --jobs=$(TEAMCITY_LINT_JOBS_COUNT) -- $(CHANGED_DIRS) $(EXTRA_LINT_CHECK)
+	@$(TAXI_TOOL) check --teamcity --jobs=$(TEAMCITY_LINT_JOBS_COUNT) -- $(CHANGED_DIRS) $(EXTRA_LINT_CHECK)
 
 .PHONY: format
 format: check-yandex-env
