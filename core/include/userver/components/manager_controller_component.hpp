@@ -68,8 +68,7 @@ class ManagerControllerComponent final : public impl::ComponentBase {
   static constexpr std::string_view kName = "manager-controller";
 
  private:
-  formats::json::Value ExtendStatistics(
-      const utils::statistics::StatisticsRequest& /*request*/);
+  void WriteStatistics(utils::statistics::Writer& writer);
 
   void OnConfigUpdate(const dynamic_config::Snapshot& cfg);
 
