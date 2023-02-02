@@ -35,13 +35,68 @@ Changelog news also go to the
   * Provide a modern simple interface to write metrics
 * Add chaos tests for drivers
   * ✓ Chaos proxy implemented
+  * ✓ Mongo
+  * Redis
+  * Clickhouse
+  * Core
+  * gRPC
 * Enable PostgreSQL pipelining
 * Implement and enable Deadline Propagation
-* Implement streaming API for the HTTP
+* ✓ Implement streaming API for the HTTP
 * Add basic Kafka driver.
 
 
 ## Changelog
+
+
+### Beta (January 2023)
+
+* Unknown/mistyped values in static configs are now reported by default.
+  @ref static-configs-validation "Static configs validation" now could use
+  `minimum` and `maximum`.
+* gRPC clients now have ReadAsync() functions, that return a future and
+  allow to request multiple results from different RPCs at the same moment.
+* ugrpc::server::Server now can return a vector of gRPC service names.
+* To aid in asynchronous drivers development the engine::io::FdPoller is now
+  a part of the public API.
+* Added a blazing fast utils::TrivialBiMap.
+* HTTP Streaming is now considered production ready (docs to come soon).
+* Testsuite fixtures were improved:
+  * Fixtures for detecting service readiness now work out of the box for
+    services without server::handlers::Ping
+  * Known databases do no not require manual dependency registration any more
+  * Improved usage experience and testing of Metrics, see
+    @ref TESTSUITE_METRICS_TESTING "Testsuite metrics testing".
+  * Added fixtures to work with cache dumps.
+  * @ref pytest_userver.plugins.config.service_secdist_path "service_secdist_path"
+    and `--service-secdist` options simplify setup of the
+    components::Secdist in tests.
+  * Many fixtures were documented at
+    @ref userver_testsuite_fixtures, pytest plugins were documented in
+    tutorials and at @ref md_en_userver_functional_testing.
+* Optimizations:
+  * Now the engine does less random number generator invocations for HTTP
+    handling.
+  * Logging of tracing::Span became x2 faster
+  * IntrusiveMpscQueue is now used for engine internals, IO operations now
+    schedule faster.
+  * Writing HTTP headers became faster, thanks to
+    [Ivan Trofimov](https://github.com/itrofimow) for the PR.
+  * utils::TrivialBiMap is now used wherever it is possible.
+* Metrics:
+  * New interface for writing metrics utils::statistics::Writer is now
+    considered stable.
+  * More metrics were moved to a faster utils::statistics::Writer, including
+    utils::statistics::MetricTag.
+  * More metrics for Redis, including replica-syncing metrics.
+  * More tests for metrics.
+* FreeBSD build fixes.
+* Multiple documentation and diagnostics improvements.
+* Added `ToStringView(HttpMethod)` function, thanks to
+  [Фёдор Барков](https://github.com/hitsedesen) for the PR.
+* Added more engine::Yield tests, thanks to
+  [Ivan Trofimov](https://github.com/itrofimow) for the PR.
+
 
 ### Beta (December 2022)
 
