@@ -76,7 +76,9 @@ class NotNull {
     return std::move(ptr_);
   }
 
-  constexpr operator const T&() const& { return GetBase(); }
+  constexpr /*implicit*/ operator const T&() const& { return GetBase(); }
+
+  constexpr /*implicit*/ operator bool() = delete;
 
   constexpr decltype(auto) operator->() const& { return GetBase(); }
 

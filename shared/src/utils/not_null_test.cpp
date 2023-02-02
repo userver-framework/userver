@@ -105,4 +105,9 @@ TEST(NotNull, UniqueRef) {
   EXPECT_EQ(*ref, sample);
 }
 
+TEST(NotNull, BoolConversion) {
+  EXPECT_FALSE((std::is_convertible_v<utils::NotNull<int*>, bool>));
+  EXPECT_FALSE((std::is_constructible_v<bool, utils::NotNull<int*>>));
+}
+
 USERVER_NAMESPACE_END

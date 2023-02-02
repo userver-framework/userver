@@ -46,6 +46,8 @@ TEST(ScopeGuard, ExceptionPropagation) {
 }
 
 TEST(ScopeGuard, ExceptionSuppression) {
+  testing::FLAGS_gtest_death_test_style = "threadsafe";
+
   struct TestExceptionInner : std::exception {};
   struct TestExceptionOuter : std::exception {};
 

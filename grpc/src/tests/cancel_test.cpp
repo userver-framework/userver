@@ -13,8 +13,6 @@
 #include <tests/unit_test_client.usrv.pb.hpp>
 #include <tests/unit_test_service.usrv.pb.hpp>
 
-#include <tests/service_fixture_test.hpp>
-
 USERVER_NAMESPACE_BEGIN
 
 using namespace std::chrono_literals;
