@@ -1,5 +1,7 @@
 #include <userver/server/http/http_response_body_stream.hpp>
 
+#include <userver/utils/assert.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace server::http {
@@ -13,7 +15,8 @@ ResponseBodyStream::ResponseBodyStream(
 void ResponseBodyStream::PushBodyChunk(std::string&& chunk) {
   UASSERT_MSG(headers_ended_,
               "SetEndOfHeaders() was not called before PushBodyChunk()");
-  queue_producer_.Push(std::move(chunk));
+  const auto success = queue_producer_.Push(std::move(chunk));
+  UASSERT(success);
 }
 
 void ResponseBodyStream::SetHeader(const std::string& name,

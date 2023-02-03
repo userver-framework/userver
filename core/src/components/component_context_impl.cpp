@@ -278,6 +278,7 @@ void ComponentContext::Impl::ProcessAllComponentLifetimeStageSwitchings(
   std::vector<
       std::pair<impl::ComponentNameFromInfo, engine::TaskWithResult<void>>>
       tasks;
+  tasks.reserve(components_.size());
   for (auto& component_item : components_) {
     const auto& name = component_item.first;
     auto& component_info = component_item.second;
@@ -440,6 +441,7 @@ void ComponentContext::Impl::PrintAddingComponents() const {
 
   {
     auto data = shared_data_.Lock();
+    adding_components.reserve(data->task_to_component_map.size());
     for (const auto& elem : data->task_to_component_map) {
       const auto& name = elem.second;
       adding_components.push_back(name);

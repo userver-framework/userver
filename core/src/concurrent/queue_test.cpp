@@ -69,14 +69,14 @@ TYPED_TEST(NonCoroutineTest, PushPopNoblock) {
   EXPECT_TRUE(producer.PushNoblock(0));
   EXPECT_TRUE(producer.PushNoblock(1));
 
-  consumer.PopNoblock(value);
+  EXPECT_TRUE(consumer.PopNoblock(value));
   EXPECT_EQ(value, 0);
-  consumer.PopNoblock(value);
+  EXPECT_TRUE(consumer.PopNoblock(value));
   EXPECT_EQ(value, 1);
 
   EXPECT_TRUE(producer.PushNoblock(2));
 
-  consumer.PopNoblock(value);
+  EXPECT_TRUE(consumer.PopNoblock(value));
   EXPECT_EQ(value, 2);
 }
 

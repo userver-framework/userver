@@ -49,7 +49,7 @@ class Producer final {
   /// Try to push element into queue without blocking. May be used in
   /// non-coroutine environment
   /// @returns whether push succeeded.
-  bool PushNoblock(ValueType&& value) const {
+  [[nodiscard]] bool PushNoblock(ValueType&& value) const {
     UASSERT(queue_);
     return queue_->PushNoblock(token_, std::move(value));
   }
@@ -60,7 +60,9 @@ class Producer final {
   }
 
   /// Const access to source queue.
-  std::shared_ptr<const QueueType> Queue() const { return {queue_}; }
+  [[nodiscard]] std::shared_ptr<const QueueType> Queue() const {
+    return {queue_};
+  }
 
   /// @cond
   // For internal use only
@@ -100,19 +102,22 @@ class Consumer final {
   /// @returns whether something was popped before the deadline.
   /// @note `false` can be returned before the deadline
   /// when the producer is no longer alive.
-  bool Pop(ValueType& value, engine::Deadline deadline = {}) const {
+  [[nodiscard]] bool Pop(ValueType& value,
+                         engine::Deadline deadline = {}) const {
     return queue_->Pop(token_, value, deadline);
   }
 
   /// Try to pop element from queue without blocking. May be used in
   /// non-coroutine environment
   /// @return whether something was popped.
-  bool PopNoblock(ValueType& value) const {
+  [[nodiscard]] bool PopNoblock(ValueType& value) const {
     return queue_->PopNoblock(token_, value);
   }
 
   /// Const access to source queue.
-  std::shared_ptr<const QueueType> Queue() const { return {queue_}; }
+  [[nodiscard]] std::shared_ptr<const QueueType> Queue() const {
+    return {queue_};
+  }
 
   /// @cond
   // For internal use only
