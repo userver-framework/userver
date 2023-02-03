@@ -1153,6 +1153,39 @@ UTEST(HttpClient, BasicUsage) {
   EXPECT_EQ(response->headers()["XXX"], "good");
 }
 
+UTEST(HttpClient, GetWithBody) {
+  auto http_client_ptr = utest::CreateHttpClient();
+
+  const utest::SimpleServer http_server_final{
+      Response200WithHeader{"xxx: good"}};
+
+  const auto url = http_server_final.GetBaseUrl();
+  auto& http_client = *http_client_ptr;
+  std::string data{"body"};
+
+  const auto response = http_client.CreateRequest()
+                            ->data(std::move(data))
+                            ->get(url)
+                            ->timeout(std::chrono::seconds(1))
+                            ->perform();
+
+  EXPECT_TRUE(response->IsOk());
+  EXPECT_EQ(response->headers()["xxx"], "good");
+  EXPECT_EQ(response->headers()["XXX"], "good");
+
+  // Make shure it doesn't depend on order of get/data
+  std::string new_data{"body"};
+  const auto another_response = http_client.CreateRequest()
+                                    ->get(url)
+                                    ->data(std::move(new_data))
+                                    ->timeout(std::chrono::seconds(1))
+                                    ->perform();
+
+  EXPECT_TRUE(another_response->IsOk());
+  EXPECT_EQ(another_response->headers()["xxx"], "good");
+  EXPECT_EQ(another_response->headers()["XXX"], "good");
+}
+
 // Make sure that cURL was build with the fix:
 // https://github.com/curl/curl/commit/a12a16151aa33dfd5e7627d4bfc2dc1673a7bf8e
 UTEST(HttpClient, RedirectHeaders) {

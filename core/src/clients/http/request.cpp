@@ -375,13 +375,10 @@ std::shared_ptr<Request> Request::cookies(
 
 std::shared_ptr<Request> Request::method(HttpMethod method) {
   switch (method) {
+    case HttpMethod::kGet:
     case HttpMethod::kDelete:
     case HttpMethod::kOptions:
       pimpl_->easy().set_custom_request(ToString(method));
-      break;
-    case HttpMethod::kGet:
-      pimpl_->easy().set_http_get(true);
-      pimpl_->easy().set_custom_request(nullptr);
       break;
     case HttpMethod::kHead:
       pimpl_->easy().set_no_body(true);
