@@ -23,7 +23,7 @@ class Metric:
     """
 
     labels: typing.Dict[str, str]
-    value: int
+    value: float
 
     def __hash__(self) -> int:
         return hash(self.get_labels_tuple())

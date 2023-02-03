@@ -41,7 +41,7 @@ async def test_metrics_smoke(service_client, monitor_client):
 
 async def test_metrics_portability(service_client):
     warnings = await service_client.metrics_portability()
-    warnings.pop('label_name_missmatch')
+    warnings.pop('label_name_mismatch')
     assert not warnings
 
 

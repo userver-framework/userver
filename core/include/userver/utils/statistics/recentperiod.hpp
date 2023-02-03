@@ -5,6 +5,7 @@
 #include <tuple>
 #include <vector>
 
+#include <userver/utils/datetime.hpp>
 #include <userver/utils/statistics/recentperiod_detail.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -19,7 +20,7 @@ namespace utils::statistics {
  * @see utils::statistics::Percentile
  */
 template <typename Counter, typename Result,
-          typename Timer = std::chrono::steady_clock>
+          typename Timer = utils::datetime::SteadyClock>
 class RecentPeriod {
  public:
   using Duration = typename Timer::duration;

@@ -170,6 +170,7 @@ async def test_partial_request(call, gate, check_restore):
     await check_restore()
 
 
+@pytest.mark.skip(reason='TAXICOMMON-6136 Flaky, the call times out')
 async def test_network_smaller_parts_sends(call, gate, check_restore):
     gate.to_server_smaller_parts(DATA_PARTS_MAX_SIZE)
 

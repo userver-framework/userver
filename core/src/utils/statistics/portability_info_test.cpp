@@ -168,10 +168,10 @@ UTEST(MetricsPortabilityInfo, PathLong) {
 
 UTEST(MetricsPortabilityInfo, LabelsMissmatch) {
   Storage storage;
-  auto holder = storage.RegisterWriter("a.missmatch", [](Writer& writer) {
+  auto holder = storage.RegisterWriter("a.mismatch", [](Writer& writer) {
     writer.ValueWithLabels(42, {"a", "1"});
   });
-  auto holder2 = storage.RegisterWriter("a.missmatch", [](Writer& writer) {
+  auto holder2 = storage.RegisterWriter("a.mismatch", [](Writer& writer) {
     writer.ValueWithLabels(42, {"b", "1"});
   });
 
@@ -179,9 +179,9 @@ UTEST(MetricsPortabilityInfo, LabelsMissmatch) {
 
   ASSERT_EQ(1, warnings.size());
   const auto& [code, entries] = *warnings.begin();
-  EXPECT_EQ(WarningCode::kLabelNameMissmatch, code);
+  EXPECT_EQ(WarningCode::kLabelNameMismatch, code);
   ASSERT_EQ(1, entries.size());
-  EXPECT_EQ(entries[0].path, "a.missmatch");
+  EXPECT_EQ(entries[0].path, "a.mismatch");
 }
 
 }  // namespace utils::statistics
