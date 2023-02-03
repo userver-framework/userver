@@ -174,7 +174,25 @@ UTEST_F(GrpcClientTest, OutputStream) {
   out.set_name("userver");
   for (auto i = 0; i < kNumber; ++i) {
     out.set_number(i);
-    UEXPECT_NO_THROW(os.Write(out));
+    EXPECT_TRUE(os.Write(out));
+  }
+
+  sample::ugrpc::StreamGreetingResponse in;
+  UEXPECT_NO_THROW(in = os.Finish());
+  EXPECT_EQ(in.number(), kNumber);
+  CheckClientContext(os.GetContext());
+}
+
+UTEST_F(GrpcClientTest, OutputStreamWriteAndCheck) {
+  auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
+  auto os_for_move = client.WriteMany(PrepareClientContext());
+  auto os = std::move(os_for_move);  // test move operation
+
+  sample::ugrpc::StreamGreetingRequest out;
+  out.set_name("userver");
+  for (auto i = 0; i < kNumber; ++i) {
+    out.set_number(i);
+    UEXPECT_NO_THROW(os.WriteAndCheck(out));
   }
 
   sample::ugrpc::StreamGreetingResponse in;
@@ -205,11 +223,32 @@ UTEST_F(GrpcClientTest, BidirectionalStream) {
   for (auto i = 0; i < 42; ++i) {
     out.set_number(i);
     // NOLINTNEXTLINE(clang-analyzer-optin.cplusplus.UninitializedObject)
-    UEXPECT_NO_THROW(bs.Write(out));
+    EXPECT_TRUE(bs.Write(out));
     EXPECT_TRUE(bs.Read(in));
     EXPECT_EQ(in.number(), i + 1);
   }
-  UEXPECT_NO_THROW(bs.WritesDone());
+  EXPECT_TRUE(bs.WritesDone());
+  EXPECT_FALSE(bs.Read(in));
+  CheckClientContext(bs.GetContext());
+}
+
+UTEST_F(GrpcClientTest, BidirectionalStreamWriteAndCheck) {
+  auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
+  auto bs_for_move = client.Chat(PrepareClientContext());
+  auto bs = std::move(bs_for_move);  // test move operation
+
+  sample::ugrpc::StreamGreetingRequest out;
+  out.set_name("userver");
+  sample::ugrpc::StreamGreetingResponse in;
+
+  for (auto i = 0; i < 42; ++i) {
+    out.set_number(i);
+    // NOLINTNEXTLINE(clang-analyzer-optin.cplusplus.UninitializedObject)
+    UEXPECT_NO_THROW(bs.WriteAndCheck(out));
+    EXPECT_TRUE(bs.Read(in));
+    EXPECT_EQ(in.number(), i + 1);
+  }
+  EXPECT_TRUE(bs.WritesDone());
   EXPECT_FALSE(bs.Read(in));
   CheckClientContext(bs.GetContext());
 }
@@ -219,7 +258,7 @@ UTEST_F(GrpcClientTest, EmptyBidirectionalStream) {
   auto bs = client.Chat(PrepareClientContext());
 
   sample::ugrpc::StreamGreetingResponse in;
-  UEXPECT_NO_THROW(bs.WritesDone());
+  EXPECT_TRUE(bs.WritesDone());
   EXPECT_FALSE(bs.Read(in));
   CheckClientContext(bs.GetContext());
 }
@@ -308,28 +347,6 @@ UTEST_F(GrpcWriteAndFinish, BidirectionalStream) {
   EXPECT_EQ(in.number(), kNumber);
   EXPECT_EQ(in.name(), "Hello");
   EXPECT_FALSE(is.Read(in));
-}
-
-UTEST_F(GrpcWriteAndFinish, BidirectionalStreamAsyncRead) {
-  auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
-  auto is = client.Chat(PrepareClientContext());
-
-  sample::ugrpc::StreamGreetingResponse in;
-  auto future_for_move = is.ReadAsync(in);
-  auto future = std::move(future_for_move);
-
-  bool result = false;
-  UEXPECT_NO_THROW((result = future.Get()));
-  EXPECT_TRUE(result);
-  EXPECT_EQ(in.number(), kNumber);
-  EXPECT_EQ(in.name(), "Hello");
-
-  auto future_last_read = is.ReadAsync(in);
-
-  bool is_ready = false;
-  UEXPECT_NO_THROW((is_ready = future_last_read.IsReady()));
-  UEXPECT_NO_THROW((result = future_last_read.Get()));
-  EXPECT_FALSE(result);
 }
 
 USERVER_NAMESPACE_END

@@ -42,7 +42,7 @@ UTEST_F(GrpcCancel, TryCancel) {
   for (int i = 0; i < 2; ++i) {
     auto call = client.Chat();
 
-    UEXPECT_NO_THROW(call.Write({}));
+    EXPECT_TRUE(call.Write({}));
     sample::ugrpc::StreamGreetingResponse response;
     EXPECT_TRUE(call.Read(response));
 
@@ -99,7 +99,7 @@ UTEST_MT(GrpcServer, DestroyServerDuringReqest, 2) {
 
   auto call = client.Chat();
   // NOLINTNEXTLINE(clang-analyzer-optin.cplusplus.UninitializedObject)
-  call.Write({});
+  EXPECT_TRUE(call.Write({}));
 
   sample::ugrpc::StreamGreetingResponse response;
   EXPECT_TRUE(call.Read(response));
@@ -109,9 +109,9 @@ UTEST_MT(GrpcServer, DestroyServerDuringReqest, 2) {
     engine::SleepFor(50ms);
 
     // The server should wait for the ongoing RPC to complete
-    call.Write({});
+    EXPECT_TRUE(call.Write({}));
     UEXPECT_NO_THROW(EXPECT_TRUE(call.Read(response)));
-    UEXPECT_NO_THROW(call.WritesDone());
+    EXPECT_TRUE(call.WritesDone());
     UEXPECT_NO_THROW(EXPECT_FALSE(call.Read(response)));
   });
 

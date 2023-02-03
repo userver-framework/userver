@@ -1,5 +1,6 @@
 #pragma once
 
+#include <atomic>
 #include <memory>
 #include <optional>
 #include <string_view>
@@ -63,8 +64,6 @@ using RawReaderWriterPreparer = RawReaderWriter<Request, Response> (Stub::*)(
 
 using ugrpc::impl::AsyncMethodInvocation;
 
-enum class State { kOpen, kWritesDone, kFinished };
-
 class RpcData final {
  public:
   RpcData(std::unique_ptr<grpc::ClientContext>&& context,
@@ -87,9 +86,13 @@ class RpcData final {
 
   ugrpc::impl::RpcStatisticsScope& GetStatsScope() noexcept;
 
-  State GetState() const noexcept;
+  void SetWritesFinished() noexcept;
 
-  void SetState(State new_state) noexcept;
+  bool AreWritesFinished() const noexcept;
+
+  void SetFinished() noexcept;
+
+  bool IsFinished() const noexcept;
 
   void EmplaceAsyncMethodInvocation();
 
@@ -109,7 +112,8 @@ class RpcData final {
  private:
   std::unique_ptr<grpc::ClientContext> context_;
   std::string_view call_name_;
-  State state_{State::kOpen};
+  bool writes_finished_{false};
+  bool is_finished_{false};
 
   std::optional<tracing::InPlaceSpan> span_;
   ugrpc::impl::RpcStatisticsScope stats_scope_;
@@ -174,7 +178,6 @@ template <typename GrpcStream, typename Response>
 
 template <typename GrpcStream, typename Response>
 void ReadAsync(GrpcStream& stream, Response& response, RpcData& data) noexcept {
-  PrepareRead(data);
   data.EmplaceAsyncMethodInvocation();
   auto& read = data.GetAsyncMethodInvocation();
   stream.Read(&response, read.GetTag());
@@ -183,21 +186,34 @@ void ReadAsync(GrpcStream& stream, Response& response, RpcData& data) noexcept {
 void PrepareWrite(RpcData& data);
 
 template <typename GrpcStream, typename Request>
-void Write(GrpcStream& stream, const Request& request,
+bool Write(GrpcStream& stream, const Request& request,
            grpc::WriteOptions options, RpcData& data) {
   PrepareWrite(data);
   AsyncMethodInvocation write;
   stream.Write(request, options, write.GetTag());
-  CheckOk(data, write.Wait(), "Write");
+  auto result = write.Wait();
+  if (!result) {
+    data.SetWritesFinished();
+  }
+  return result;
+}
+
+template <typename GrpcStream, typename Request>
+void WriteAndCheck(GrpcStream& stream, const Request& request,
+                   grpc::WriteOptions options, RpcData& data) {
+  PrepareWrite(data);
+  AsyncMethodInvocation write;
+  stream.Write(request, options, write.GetTag());
+  CheckOk(data, write.Wait(), "WriteAndCheck");
 }
 
 template <typename GrpcStream>
-void WritesDone(GrpcStream& stream, RpcData& data) {
+bool WritesDone(GrpcStream& stream, RpcData& data) {
   PrepareWrite(data);
-  data.SetState(State::kWritesDone);
+  data.SetWritesFinished();
   AsyncMethodInvocation writes_done;
   stream.WritesDone(writes_done.GetTag());
-  CheckOk(data, writes_done.Wait(), "WritesDone");
+  return writes_done.Wait();
 }
 
 }  // namespace ugrpc::client::impl

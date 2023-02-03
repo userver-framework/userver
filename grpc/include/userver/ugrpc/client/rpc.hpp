@@ -22,7 +22,7 @@ USERVER_NAMESPACE_BEGIN
 namespace ugrpc::client {
 
 /// @brief UnaryFuture for waiting a single response RPC
-class UnaryFuture {
+class [[nodiscard]] UnaryFuture {
  public:
   /// @cond
   explicit UnaryFuture(impl::RpcData& data) noexcept;
@@ -54,7 +54,7 @@ class UnaryFuture {
 
 /// @brief StreamReadFuture for waiting a single read response from stream
 template <typename RPC>
-class StreamReadFuture {
+class [[nodiscard]] StreamReadFuture {
  public:
   /// @cond
   explicit StreamReadFuture(impl::RpcData& data,
@@ -73,7 +73,7 @@ class StreamReadFuture {
   ///
   /// `Get` should not be called multiple times for the same StreamReadFuture.
   ///
-  ///  @throws ugrpc::client::RpcError on an RPC error
+  /// @throws ugrpc::client::RpcError on an RPC error
   bool Get();
 
   /// @brief Checks if the asynchronous call has completed
@@ -204,8 +204,22 @@ class USERVER_NODISCARD OutputStream final {
   /// deallocated right after the call.
   ///
   /// @param request the next message to write
+  /// @return true if the data is going to the wire; false if the write
+  ///         operation failed, in which case no more writes will be accepted,
+  ///         and the error details can be fetched from Finish
+  [[nodiscard]] bool Write(const Request& request);
+
+  /// @brief Write the next outgoing message and check result
+  ///
+  /// `WriteAndCheck` doesn't store any references to `request`, so it can be
+  /// deallocated right after the call.
+  ///
+  /// `WriteAndCheck` verifies result of the write and generates exception
+  /// in case of issues.
+  ///
+  /// @param request the next message to write
   /// @throws ugrpc::client::RpcError on an RPC error
-  void Write(const Request& request);
+  void WriteAndCheck(const Request& request);
 
   /// @brief Complete the RPC successfully
   ///
@@ -247,7 +261,11 @@ class USERVER_NODISCARD OutputStream final {
 
 /// @brief Controls a request stream -> response stream RPC
 ///
-/// This class is not thread-safe except for `GetContext`.
+/// This class allows the following concurrent calls:
+///   - `GetContext`
+///   - Concurrent call of one of (`Read`, `ReadAsync`) with one of (`Write`,
+///     `WritesDone`)
+/// `WriteAndCheck` is not thread-safe
 ///
 /// The RPC is cancelled on destruction unless the stream is closed (`Read` has
 /// returned `false`). In that case the connection is not closed (it will be
@@ -255,8 +273,21 @@ class USERVER_NODISCARD OutputStream final {
 /// immediately. gRPC provides no way to early-close a server-streaming RPC
 /// gracefully.
 ///
-/// If any method throws, further methods must not be called on the same stream,
-/// except for `GetContext`.
+/// `Read` and `AsyncRead` can throw if error status is received from server.
+/// User MUST NOT call `Read` or `AsyncRead` again after failure of any of these
+/// operations.
+///
+/// `Write` and `WritesDone` methods do not throw, but indicate issues with
+/// the RPC by returning `false`.
+///
+/// `WriteAndCheck` is intended for ping-pong scenarios, when after write
+/// operation the user calls `Read` and vice versa.
+///
+/// If `Write` or `WritesDone` returns negative result, the user MUST NOT call
+/// any of these methods anymore.
+/// Instead the user SHOULD call `Read` method until the end of input. If
+/// `Write` or `WritesDone` finishes with negative result, finally `Read`
+/// will throw an exception.
 template <typename Request, typename Response>
 class USERVER_NODISCARD BidirectionalStream final {
  public:
@@ -273,8 +304,8 @@ class USERVER_NODISCARD BidirectionalStream final {
   ///
   /// @param response where to put response on success
   /// @return StreamReadFuture future
-  [[nodiscard]] StreamReadFuture<BidirectionalStream> ReadAsync(
-      Response& response) noexcept;
+  /// @throws ugrpc::client::RpcError on an RPC error
+  StreamReadFuture<BidirectionalStream> ReadAsync(Response& response) noexcept;
 
   /// @brief Write the next outgoing message
   ///
@@ -282,15 +313,31 @@ class USERVER_NODISCARD BidirectionalStream final {
   /// saved, so it can be deallocated right after the call.
   ///
   /// @param request the next message to write
+  /// @return true if the data is going to the wire; false if the write
+  ///         operation failed, in which case no more writes will be accepted,
+  ///         but Read may still have some data and status code available
+  [[nodiscard]] bool Write(const Request& request);
+
+  /// @brief Write the next outgoing message and check result
+  ///
+  /// `WriteAndCheck` doesn't store any references to `request`, so it can be
+  /// deallocated right after the call.
+  ///
+  /// `WriteAndCheck` verifies result of the write and generates exception
+  /// in case of issues.
+  ///
+  /// @param request the next message to write
   /// @throws ugrpc::client::RpcError on an RPC error
-  void Write(const Request& request);
+  void WriteAndCheck(const Request& request);
 
   /// @brief Announce end-of-output to the server
   ///
   /// Should be called to notify the server and receive the final response(s).
   ///
-  /// @throws ugrpc::client::RpcError on an RPC error
-  void WritesDone();
+  /// @return true if the data is going to the wire; false if the operation
+  ///         failed, but Read may still have some data and status code
+  ///         available
+  [[nodiscard]] bool WritesDone();
 
   /// @returns the `ClientContext` used for this RPC
   grpc::ClientContext& GetContext();
@@ -374,7 +421,7 @@ UnaryCall<Response>::UnaryCall(
                                             statistics)),
       reader_((stub.*prepare_func)(&data_->GetContext(), req, &queue)) {
   reader_->StartCall();
-  data_->SetState(impl::State::kWritesDone);
+  data_->SetWritesFinished();
 }
 
 template <typename Response>
@@ -411,7 +458,7 @@ InputStream<Response>::InputStream(
                                             statistics)),
       stream_((stub.*prepare_func)(&data_->GetContext(), req, &queue)) {
   impl::StartCall(*stream_, *data_);
-  data_->SetState(impl::State::kWritesDone);
+  data_->SetWritesFinished();
 }
 
 template <typename Response>
@@ -453,19 +500,32 @@ grpc::ClientContext& OutputStream<Request, Response>::GetContext() {
 }
 
 template <typename Request, typename Response>
-void OutputStream<Request, Response>::Write(const Request& request) {
+bool OutputStream<Request, Response>::Write(const Request& request) {
   // Don't buffer writes, otherwise in an event subscription scenario, events
   // may never actually be delivered
   grpc::WriteOptions write_options{};
 
-  impl::Write(*stream_, request, write_options, *data_);
+  return impl::Write(*stream_, request, write_options, *data_);
+}
+
+template <typename Request, typename Response>
+void OutputStream<Request, Response>::WriteAndCheck(const Request& request) {
+  // Don't buffer writes, otherwise in an event subscription scenario, events
+  // may never actually be delivered
+  grpc::WriteOptions write_options{};
+
+  if (!impl::Write(*stream_, request, write_options, *data_)) {
+    impl::Finish(*stream_, *data_, true);
+  }
 }
 
 template <typename Request, typename Response>
 Response OutputStream<Request, Response>::Finish() {
   // gRPC does not implicitly call `WritesDone` in `Finish`,
   // contrary to the documentation
-  impl::WritesDone(*stream_, *data_);
+  if (!data_->AreWritesFinished()) {
+    impl::WritesDone(*stream_, *data_);
+  }
 
   impl::Finish(*stream_, *data_, true);
 
@@ -505,16 +565,25 @@ bool BidirectionalStream<Request, Response>::Read(Response& response) {
 }
 
 template <typename Request, typename Response>
-void BidirectionalStream<Request, Response>::Write(const Request& request) {
+bool BidirectionalStream<Request, Response>::Write(const Request& request) {
   // Don't buffer writes, optimize for ping-pong-style interaction
   grpc::WriteOptions write_options{};
 
-  impl::Write(*stream_, request, write_options, *data_);
+  return impl::Write(*stream_, request, write_options, *data_);
 }
 
 template <typename Request, typename Response>
-void BidirectionalStream<Request, Response>::WritesDone() {
-  impl::WritesDone(*stream_, *data_);
+void BidirectionalStream<Request, Response>::WriteAndCheck(
+    const Request& request) {
+  // Don't buffer writes, optimize for ping-pong-style interaction
+  grpc::WriteOptions write_options{};
+
+  impl::WriteAndCheck(*stream_, request, write_options, *data_);
+}
+
+template <typename Request, typename Response>
+bool BidirectionalStream<Request, Response>::WritesDone() {
+  return impl::WritesDone(*stream_, *data_);
 }
 
 }  // namespace ugrpc::client
