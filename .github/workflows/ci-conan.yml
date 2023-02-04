@@ -14,7 +14,7 @@ env:
 jobs:
     build:
         runs-on: ubuntu-${{ matrix.ubuntu_version }}
-        name: Ubuntu-${{ matrix.ubuntu_version }}-shared-${{ matrix.shared }}
+        name: Ubuntu-${{ matrix.ubuntu_version }}
         strategy:
             fail-fast: false
             matrix:
@@ -49,4 +49,4 @@ jobs:
 
           - name: Run conan
             run: |
-                conan create . --build=missing -pr:b=default -o:shared=${{ matrix.shared }}
+                conan create . --build=missing -pr:b=default
