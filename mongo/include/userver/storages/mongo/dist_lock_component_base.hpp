@@ -49,7 +49,7 @@ namespace storages::mongo {
 /// -------------- | ------------ | -------------
 /// lockname       | name of the lock | --
 /// lock-ttl       | TTL of the lock; must be at least as long as the duration between subsequent cancellation checks, otherwise brain split is possible | --
-/// mongo-timeout  | timeout, must be at least 2*lock-ttl | --
+/// mongo-timeout  | timeout, must be less than lock-ttl / 2 | --
 /// restart-delay  | how much time to wait after failed task restart | 100ms
 /// task-processor | the name of the TaskProcessor for running DoWork | main-task-processor
 /// testsuite-support | Enable testsuite support | false
