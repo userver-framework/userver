@@ -14,12 +14,11 @@ env:
 jobs:
     build:
         runs-on: ubuntu-${{ matrix.ubuntu_version }}
-        name: Ubuntu-${{ matrix.ubuntu_version }}-shared-${{ matrix.shared }}
+        name: Ubuntu-${{ matrix.ubuntu_version }}
         strategy:
             fail-fast: false
             matrix:
                 ubuntu_version: [22.04]
-                shared: [false]
 
         steps:
           - name: Checkout
@@ -49,4 +48,4 @@ jobs:
 
           - name: Run conan
             run: |
-                conan create . --build=missing -pr:b=default -o:shared=${{ matrix.shared }}
+                conan create . --build=missing -pr:b=default -tf conan/test_package/
