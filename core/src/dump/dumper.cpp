@@ -154,6 +154,7 @@ class Dumper::Impl {
   rcu::Variable<DynamicConfig> dynamic_config_;
   engine::TaskProcessor& fs_task_processor_;
   Statistics statistics_;
+  std::atomic<bool> tried_to_read_dump_{false};
 
   engine::SingleConsumerEvent config_updated_signal_{NoAutoReset{}};
   engine::SingleConsumerEvent data_updated_signal_{NoAutoReset{}};
@@ -215,6 +216,12 @@ std::optional<TimePoint> Dumper::Impl::ReadDump() {
 }
 
 void Dumper::Impl::WriteDumpSyncDebug() {
+  if (!tried_to_read_dump_.load()) {
+    throw Error(fmt::format(
+        "{}: unable to write a dump, there was no attempt to read а dump",
+        Name()));
+  }
+
   const auto config = dynamic_config_.Read();
   if (!config->dumps_enabled) {
     throw Error(fmt::format("{}: not ready to write a dump, dumps are disabled",
@@ -431,6 +438,7 @@ void Dumper::Impl::DoWriteDump(TimePoint update_time, tracing::ScopeTime& scope,
 
 std::optional<TimePoint> Dumper::Impl::LoadFromDump(
     DumpData& dump_data, const DynamicConfig& config) {
+  tried_to_read_dump_.store(true);
   if (!config.dumps_enabled) {
     LOG_DEBUG() << Name()
                 << ": could not load a dump, because dumps are disabled for "

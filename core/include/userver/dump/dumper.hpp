@@ -163,7 +163,7 @@ class Dumper final {
          const components::ComponentContext& context, DumpableEntity& dumpable);
 
   class Impl;
-  utils::FastPimpl<Impl, 1040, 16> impl_;
+  utils::FastPimpl<Impl, 1056, 16> impl_;
 };
 
 }  // namespace dump
