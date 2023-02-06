@@ -288,18 +288,10 @@ class _SocketsPaired:
         self._to_server_intercept: Interceptor = to_server_intercept
         self._to_client_intercept: Interceptor = to_client_intercept
 
-        self._tasks: typing.Optional[asyncio.Task] = asyncio.create_task(
-            self._do_stream(),
-        )
-
-    async def _do_stream(self) -> None:
-        await asyncio.wait(
-            [
-                asyncio.create_task(self._do_pipe_channels(to_server=True)),
-                asyncio.create_task(self._do_pipe_channels(to_server=False)),
-            ],
-            return_when=asyncio.ALL_COMPLETED,
-        )
+        self._tasks: typing.List[asyncio.Task] = [
+            asyncio.create_task(self._do_pipe_channels(to_server=True)),
+            asyncio.create_task(self._do_pipe_channels(to_server=False)),
+        ]
 
     async def _do_pipe_channels(self, *, to_server: bool) -> None:
         if to_server:
@@ -359,11 +351,21 @@ class _SocketsPaired:
 
     async def shutdown(self) -> None:
         self._close_sockets()
-        await _cancel_and_join(self._tasks)
-        self._tasks = None
+        for task in self._tasks:
+            await _cancel_and_join(task)
+        self._tasks = []
 
     def is_active(self) -> bool:
         return bool(self._tasks)
+
+    def info(self) -> str:
+        if not self.is_active():
+            return '<inactive>'
+
+        return (
+            f'client fd={self._client.fileno()} <=> '
+            f'server fd={self._right.fileno()}'
+        )
 
 
 # @endcond
@@ -474,8 +476,12 @@ class TcpGate:
             sock.close()
 
         await self.stop_accepting()
+        logger.info('Before close() %s', self.info())
         await self.sockets_close()
+        assert not self._sockets
+
         self._accept_sockets.clear()
+        logger.info('Stopped. %s', self.info())
 
     def set_to_server_interceptor(self, interceptor: Interceptor) -> None:
         """
@@ -713,6 +719,15 @@ class TcpGate:
 
     def _collect_garbage(self) -> None:
         self._sockets = {x for x in self._sockets if x.is_active()}
+
+    def info(self) -> str:
+        """ Print info on open sockets """
+        if not self._sockets:
+            return f'"{self._route.name}" no active sockets'
+
+        return f'"{self._route.name}" active sockets:\n\t' + '\n\t'.join(
+            x.info() for x in self._sockets
+        )
 
     async def _do_accept(self, accept_sock: socket.socket) -> None:
         while accept_sock:

@@ -18,12 +18,12 @@
 namespace chaos {
 
 constexpr std::size_t kValuesCount = 10;
+constexpr std::string_view kSelectSmallTimeout = "select-small-timeout";
+constexpr std::string_view kPortalSmallTimeout = "portal-small-timeout";
 
-const storages::postgres::Query kInsertValue{
-    "INSERT INTO key_value_table (key, value) "
-    "VALUES ($1, $2) "
-    "ON CONFLICT DO NOTHING",
-    storages::postgres::Query::Name{"chaos_insert_value"},
+const storages::postgres::Query kSelectMany{
+    "SELECT generate_series(1, 100)",
+    storages::postgres::Query::Name{"chaos_select_many"},
 };
 
 constexpr int kPortalChunkSize = 4;
@@ -64,9 +64,10 @@ std::string PostgresHandler::HandleRequestThrow(
         server::handlers::ExternalBody{"No 'type' query argument"});
   }
 
-  if (type == "fill") {
-    storages::postgres::CommandControl cc{std::chrono::seconds(1),
-                                          std::chrono::seconds(1)};
+  if (type == "select" || type == kSelectSmallTimeout) {
+    const std::chrono::seconds timeout{type == kSelectSmallTimeout ? 1 : 30};
+
+    storages::postgres::CommandControl cc{timeout, timeout};
     TESTPOINT("before_trx_begin", {});
     auto transaction =
         pg_cluster_->Begin(storages::postgres::ClusterHostType::kMaster,
@@ -74,22 +75,33 @@ std::string PostgresHandler::HandleRequestThrow(
     TESTPOINT("after_trx_begin", {});
 
     for (std::size_t i = 0; i < kValuesCount; ++i) {
-      transaction.Execute(kInsertValue, fmt::format("key_{}", i),
-                          fmt::format("value_{}", i));
+      // Disk on CI could be overloaded, so we use a lightweight query.
+      //
+      // pgsql in testsuite works with sockets synchronously.
+      // We use non writing queries to avoid following deadlocks:
+      // 1) python test finished, connection is broken, postgres table is
+      //    write locked
+      // 2) pgsql starts the tables cleanup and hangs on a poll (because of a
+      //    write lock from 1)
+      // 3) C++ driver does an async cleanup and closes the connection
+      // 4) chaos proxy does not get a time slice (because of 2), the socket is
+      //    not closed by postgres, 2) hangs
+      transaction.Execute(cc, kSelectMany);
     }
 
     TESTPOINT("before_trx_commit", {});
     transaction.Commit();
     TESTPOINT("after_trx_commit", {});
     return {};
-  } else if (type == "portal") {
-    storages::postgres::CommandControl cc{std::chrono::seconds(3),
-                                          std::chrono::seconds(3)};
+  } else if (type == "portal" || type == kPortalSmallTimeout) {
+    const std::chrono::seconds timeout{type == kPortalSmallTimeout ? 3 : 25};
+
+    storages::postgres::CommandControl cc{timeout, timeout};
     auto transaction =
         pg_cluster_->Begin(storages::postgres::ClusterHostType::kMaster,
                            storages::postgres::TransactionOptions{}, cc);
 
-    auto portal = transaction.MakePortal(kPortalQuery);
+    auto portal = transaction.MakePortal(cc, kPortalQuery);
     TESTPOINT("after_make_portal", {});
 
     std::vector<int> result;
@@ -104,7 +116,8 @@ std::string PostgresHandler::HandleRequestThrow(
     transaction.Commit();
     return fmt::format("[{}]", fmt::join(result, ", "));
   } else {
-    UINVARIANT(false, "Unknown chaos test request type");
+    UINVARIANT(false,
+               fmt::format("Unknown chaos test request type '{}'", type));
   }
 
   return {};

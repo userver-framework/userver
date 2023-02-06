@@ -342,9 +342,12 @@ void ConnectionPool::SetSettings(const PoolSettings& settings) {
 void ConnectionPool::SetConnectionSettings(const ConnectionSettings& settings) {
   auto writer = conn_settings_.StartWrite();
   if (*writer != settings) {
-    const auto old_version = writer->version;
+    const auto old_settings = *writer;
+    const auto old_version = old_settings.version;
     *writer = settings;
-    writer->version = old_version + 1;
+    if (old_settings.RequiresConnectionReset(settings)) {
+      writer->version = old_version + 1;
+    }
     writer.Commit();
   }
 }
@@ -474,10 +477,9 @@ Connection* ConnectionPool::Pop(engine::Deadline deadline) {
     throw PoolError("Wait queue size exceeded");
   }
   // No connections found - create a new one if pool is not exhausted
-  auto timeout = std::chrono::duration_cast<std::chrono::milliseconds>(
-      deadline.TimeLeft());
-  LOG_DEBUG() << "No idle connections, waiting for one for " << timeout.count()
-              << "ms";
+  LOG_DEBUG() << "No idle connections, waiting for one for "
+              << deadline.TimeLeft();
+
   TryCreateConnectionAsync();
 
   {

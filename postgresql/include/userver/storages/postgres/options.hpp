@@ -247,6 +247,15 @@ struct ConnectionSettings {
   bool operator!=(const ConnectionSettings& rhs) const {
     return !(*this == rhs);
   }
+
+  bool RequiresConnectionReset(const ConnectionSettings& rhs) const {
+    // TODO: max_prepared_cache_size check could be relaxed
+    return prepared_statements != rhs.prepared_statements ||
+           user_types != rhs.user_types ||
+           ignore_unused_query_params != rhs.ignore_unused_query_params ||
+           max_prepared_cache_size != rhs.max_prepared_cache_size ||
+           pipeline_mode != rhs.pipeline_mode;
+  }
 };
 
 /// @brief PostgreSQL statements metrics options

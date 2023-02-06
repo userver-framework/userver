@@ -82,12 +82,12 @@ groups:
         # again... no need to have too many connections 
         POSTGRES_CONNECTION_POOL_SETTINGS:
             key-value-database:
-                max_pool_size: 15
+                max_pool_size: 4  # should be in sync with value in postgresql/functional_tests/basic_chaos/tests/utils.py
                 max_queue_size: 200
-                min_pool_size: 8
+                min_pool_size: 2
         # chaos proxy is slow, initial connection setup takes quite some time
         POSTGRES_DEFAULT_COMMAND_CONTROL:
-            network_timeout_ms: 750
+            network_timeout_ms: 30000
             statement_timeout_ms: 500
         POSTGRES_CONNECTION_SETTINGS:
             key-value-database:
