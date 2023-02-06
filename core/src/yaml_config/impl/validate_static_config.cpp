@@ -8,6 +8,7 @@
 #include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/yaml_config/schema.hpp>
+#include <utils/distances.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -85,8 +86,8 @@ void ValidateObject(const YamlConfig& object, const Schema& schema) {
   const auto& properties = schema.properties.value();
 
   for (const auto& [name, value] : Items(object)) {
-    if (const auto it = properties.find(RemoveFallbackSuffix(name));
-        it != properties.end()) {
+    const std::string search_name = RemoveFallbackSuffix(name);
+    if (const auto it = properties.find(search_name); it != properties.end()) {
       ValidateIfPresent(value, *it->second);
       continue;
     }
@@ -98,14 +99,16 @@ void ValidateObject(const YamlConfig& object, const Schema& schema) {
     } else if (std::get<bool>(additional_properties)) {
       continue;
     }
-    // additionalProperties: false
 
+    // additionalProperties: false
     throw std::runtime_error(fmt::format(
         "Error while validating static config against schema. "
         "Field '{}' is not declared in schema '{}' (declared: {}). "
         "You've probably "
-        "made a typo or forgot to define components' static config schema.",
-        value.GetPath(), schema.path, KeysAsString(properties)));
+        "made a typo or forgot to define components' static config schema.{}",
+        value.GetPath(), schema.path, KeysAsString(properties),
+        utils::SuggestNearestName(properties | boost::adaptors::map_keys,
+                                  search_name)));
   }
 }
 
