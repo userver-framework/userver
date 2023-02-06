@@ -104,7 +104,11 @@ class MetricsSnapshot:
         return self._values.values()
 
     def value_at(
-            self, path: str, labels: typing.Optional[typing.Dict] = None,
+            self,
+            path: str,
+            labels: typing.Optional[typing.Dict] = None,
+            *,
+            default: typing.Optional[float] = None,
     ) -> float:
         """
         Returns a single metric value at specified path. If a dict of labels
@@ -115,23 +119,40 @@ class MetricsSnapshot:
 
         @throws AssertionError if not one metric by path
         """
-        entry = self[path]
-        assert entry, f'No metrics found by path "{path}"'
+        entry = self.get(path, set())
+        assert entry or default, f'No metrics found by path "{path}"'
+
         if labels is not None:
             entry = {x for x in entry if x.labels == labels}
             assert (
-                entry
+                entry or default
             ), f'No metrics found by path "{path}" and labels {labels}'
-            assert len(entry) == 1, (
+            assert len(entry) <= 1, (
                 f'Multiple metrics found by path "{path}" and labels {labels}:'
                 f' {entry}'
             )
         else:
             assert (
-                len(entry) == 1
+                len(entry) <= 1
             ), f'Multiple metrics found by path "{path}": {entry}'
 
+        if default is not None and not entry:
+            return default
         return next(iter(entry)).value
+
+    def assert_equals(
+            self,
+            other: typing.Mapping[str, typing.Set[Metric]],
+            *,
+            ignore_zeros: bool = False,
+    ) -> None:
+        """
+        Compares the snapshot with a dict of metrics or with
+        another snapshot, displaying a nice diff on mismatch
+        """
+        lhs = _flatten_snapshot(self, ignore_zeros=ignore_zeros)
+        rhs = _flatten_snapshot(other, ignore_zeros=ignore_zeros)
+        assert lhs == rhs, _diff_metric_snapshots(lhs, rhs)
 
     @staticmethod
     def from_json(json_str: str) -> 'MetricsSnapshot':
@@ -152,3 +173,39 @@ class MetricsSnapshot:
         Serialize to a JSON string
         """
         return json.dumps(self._values, cls=_MetricsJSONEncoder)
+
+
+_FlattenedSnapshot = typing.Set[typing.Tuple[str, Metric]]
+
+
+def _flatten_snapshot(values, ignore_zeros: bool) -> _FlattenedSnapshot:
+    return set(
+        (path, metric)
+        for path, metrics in values.items()
+        for metric in metrics
+        if metric.value != 0 or not ignore_zeros
+    )
+
+
+def _diff_metric_snapshots(
+        lhs: _FlattenedSnapshot, rhs: _FlattenedSnapshot,
+) -> str:
+    def extra_metrics_message(extra, base):
+        return [
+            f'    path={path!r} labels={metric.labels!r} value={metric.value}'
+            for path, metric in extra
+            if (path, metric) not in base
+        ]
+
+    lines = ['left.assert_equals_ignore_zeros(right) failed']
+    actual_extra = extra_metrics_message(lhs, rhs)
+    if actual_extra:
+        lines.append('  extra in left:')
+        lines += actual_extra
+
+    actual_gt = extra_metrics_message(rhs, lhs)
+    if actual_gt:
+        lines.append('  missing in left:')
+        lines += actual_gt
+
+    return '\n'.join(lines)

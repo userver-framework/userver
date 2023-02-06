@@ -19,18 +19,6 @@ namespace impl {
 
 struct WriterState;
 
-namespace prevent_adl {
-
-template <class Metric>
-void DumpMetric(Writer&, const Metric&) {
-  static_assert(sizeof(Metric) == 0,
-                "Cast the metric to an arithmetic type or provide a "
-                "`void DumpMetric(utils::statistics::Writer& "
-                "writer, const Metric& value)` function for the `Metric` type");
-}
-
-}  // namespace prevent_adl
-
 template <class Metric>
 constexpr auto HasDumpMetricWriter() noexcept
     -> decltype(DumpMetric(std::declval<Writer&>(),
@@ -118,7 +106,10 @@ class Writer final {
       Write(value);
     } else {
       if (state_) {
-        using impl::prevent_adl::DumpMetric;  // poison pill
+        static_assert(kHasWriterSupport<T>,
+                      "Cast the metric to an arithmetic type or provide a "
+                      "`void DumpMetric(utils::statistics::Writer& writer, "
+                      "const Metric& value)` function for the `Metric` type");
         DumpMetric(*this, value);
       }
     }

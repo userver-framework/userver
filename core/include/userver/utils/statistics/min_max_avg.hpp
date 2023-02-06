@@ -124,6 +124,8 @@ class MinMaxAvg final {
     count_ = 0;
   }
 
+  bool IsEmpty() const noexcept { return count_.load() == 0; }
+
  private:
   std::atomic<ValueType> minimum_;
   std::atomic<ValueType> maximum_;

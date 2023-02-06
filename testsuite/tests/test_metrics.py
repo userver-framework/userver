@@ -19,15 +19,15 @@ def test_metrics_captured_basic():
     assert values.value_at('tcp-echo.bytes.read') == 334
     assert values.value_at('tcp-echo.bytes.read', {}) == 334
     with pytest.raises(AssertionError):
-        values.value_at('tcp-echo.bytes.read', {'label', 'value'})
+        values.value_at('tcp-echo.bytes.read', {'label': 'value'})
 
     assert values.value_at('tcp-echo.sockets.opened') == 1
     assert values.value_at('tcp-echo.sockets.opened', {}) == 1
     with pytest.raises(AssertionError):
-        values.value_at('tcp-echo.bytes.read', {'label', 'value'})
+        values.value_at('tcp-echo.bytes.read', {'label': 'value'})
 
     assert values.get('NON_EXISTING') is None
-    with pytest.raises(KeyError):
+    with pytest.raises(AssertionError):
         values.value_at('NON_EXISTING')
 
     assert values.value_at('tcp-echo.sockets.closed', {'a': 'b'}) == 0
@@ -35,6 +35,33 @@ def test_metrics_captured_basic():
         values.value_at('tcp-echo.sockets.closed', {})
 
     assert 'tcp-echo.sockets.opened' in values.keys()
+
+
+def test_metrics_value_at_default():
+    values = metrics.MetricsSnapshot(
+        {
+            'tcp-echo.bytes.read': {metrics.Metric(labels={}, value=334)},
+            'tcp-echo.sockets.closed': {
+                metrics.Metric(labels={'a': 'b'}, value=0),
+            },
+            'tickets.closed': {
+                metrics.Metric(labels={'a': 'b'}, value=10),
+                metrics.Metric(labels={'a': 'c'}, value=20),
+            },
+        },
+    )
+
+    assert values.value_at('tcp-echo.bytes.read', default=42) == 334
+    assert (
+        values.value_at('tcp-echo.sockets.closed', {'a': 'b'}, default=42) == 0
+    )
+    assert values.value_at('NON_EXISTING', default=42) == 42
+    assert (
+        values.value_at('tcp-echo.bytes.read', {'label': 'value'}, default=42)
+        == 42
+    )
+    with pytest.raises(AssertionError, match='Multiple metrics'):
+        values.value_at('tickets.closed', default=42)
 
 
 def test_metrics_list():
@@ -131,6 +158,95 @@ def test_metrics_list_sample():
         metrics.Metric(labels={'label': 'a'}, value=1),
     }
     # /// [values set]
+
+
+def test_equals_ignore_zeros():
+    values = metrics.MetricsSnapshot(
+        {
+            'sample': {
+                metrics.Metric(labels={'label': 'a'}, value=0),
+                metrics.Metric(labels={'label': 'b'}, value=3),
+                metrics.Metric(labels={'other_label': 'a'}, value=0),
+            },
+            'other_sample': {metrics.Metric(labels={'label': 'a'}, value=0)},
+        },
+    )
+
+    # equal to ethalon, old zero metrics removed, new zero metrics added
+    values.assert_equals(
+        {
+            'sample': {
+                metrics.Metric(labels={'label': 'c'}, value=0),
+                metrics.Metric(labels={'label': 'b'}, value=3),
+                metrics.Metric(labels={'another_label': 'a'}, value=0),
+            },
+            'another_sample': {metrics.Metric(labels={'label': 'a'}, value=0)},
+        },
+        ignore_zeros=True,
+    )
+
+    # equal to ethalon, old zero metrics removed
+    values.assert_equals(
+        {'sample': {metrics.Metric(labels={'label': 'b'}, value=3)}},
+        ignore_zeros=True,
+    )
+
+    # not equal to ethalon, old non-zero metric changed or removed
+    with pytest.raises(AssertionError):
+        values.assert_equals(
+            {
+                'sample': {
+                    metrics.Metric(labels={'label': 'b', 'x': 'x'}, value=5),
+                },
+            },
+            ignore_zeros=True,
+        )
+    with pytest.raises(AssertionError):
+        values.assert_equals(
+            {'sample': {metrics.Metric(labels={'label': 'b'}, value=5)}},
+            ignore_zeros=True,
+        )
+    with pytest.raises(AssertionError):
+        values.assert_equals(
+            {'sample': {metrics.Metric(labels={'label': 'b'}, value=0)}},
+            ignore_zeros=True,
+        )
+    with pytest.raises(AssertionError):
+        values.assert_equals({'sample': set()}, ignore_zeros=True)
+    with pytest.raises(AssertionError):
+        values.assert_equals({}, ignore_zeros=True)
+
+    # not equal to ethalon, new non-zero metrics added
+    with pytest.raises(AssertionError):
+        values.assert_equals(
+            {
+                'sample': {
+                    metrics.Metric(labels={'label': 'b'}, value=3),
+                    metrics.Metric(labels={'label': 'c'}, value=5),
+                },
+            },
+            ignore_zeros=True,
+        )
+    with pytest.raises(AssertionError):
+        values.assert_equals(
+            {
+                'sample': {
+                    metrics.Metric(labels={'label': 'b'}, value=3),
+                    metrics.Metric(labels={'another_label': 'c'}, value=5),
+                },
+            },
+            ignore_zeros=True,
+        )
+    with pytest.raises(AssertionError):
+        values.assert_equals(
+            {
+                'sample': {metrics.Metric(labels={'label': 'b'}, value=3)},
+                'another_sample': {
+                    metrics.Metric(labels={'label': 'c'}, value=5),
+                },
+            },
+            ignore_zeros=True,
+        )
 
 
 def test_metrics_captured_json():

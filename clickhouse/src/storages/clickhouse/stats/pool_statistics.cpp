@@ -19,7 +19,7 @@ void DumpMetric(USERVER_NAMESPACE::utils::statistics::Writer& writer,
                 const PoolQueryStatistics& stats) {
   writer["total"] = stats.total;
   writer["error"] = stats.error;
-  writer["timings"] = stats.timings.GetStatsForPeriod();
+  writer["timings"] = stats.timings;
 }
 
 void DumpMetric(USERVER_NAMESPACE::utils::statistics::Writer& writer,
