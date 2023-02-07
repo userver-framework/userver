@@ -129,6 +129,16 @@ RequestDel MockTransaction::Del(std::vector<std::string> keys) {
   return AddSubrequest(impl_->Del(std::move(keys)));
 }
 
+RequestUnlink MockTransaction::Unlink(std::string key) {
+  UpdateShard(key);
+  return AddSubrequest(impl_->Unlink(std::move(key)));
+}
+
+RequestUnlink MockTransaction::Unlink(std::vector<std::string> keys) {
+  UpdateShard(keys);
+  return AddSubrequest(impl_->Unlink(std::move(keys)));
+}
+
 RequestExists MockTransaction::Exists(std::string key) {
   UpdateShard(key);
   return AddSubrequest(impl_->Exists(std::move(key)));

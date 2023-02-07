@@ -147,6 +147,7 @@ class ScanRequest final {
 using RequestAppend = Request<size_t>;
 using RequestDbsize = Request<size_t>;
 using RequestDel = Request<size_t>;
+using RequestUnlink = Request<size_t>;
 using RequestEvalCommon = Request<ReplyData>;
 using RequestEvalShaCommon = Request<ReplyData>;
 using RequestScriptLoad = Request<std::string>;

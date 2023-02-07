@@ -82,6 +82,7 @@ const std::string_view kCommandTypes[] = {
     "time",
     "ttl",
     "type",
+    "unlink",
     "unsubscribe",
     "zadd",
     "zcard",

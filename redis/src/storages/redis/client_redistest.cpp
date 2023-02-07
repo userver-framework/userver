@@ -118,4 +118,24 @@ UTEST(RedisClient, Mget) {
   EXPECT_EQ(*result[1], "bar");
 }
 
+UTEST(RedisClient, Unlink) {
+  auto client = GetClient();
+  client->Set("key0", "foo", {}).Get();
+  client->Set("key1", "bar", {}).Get();
+  client->Hmset("key2", {{"field1", "value1"}, {"field2", "value2"}}, {}).Get();
+
+  // Remove single key
+  auto removed_count = client->Unlink("key0", {}).Get();
+  EXPECT_EQ(removed_count, 1);
+
+  // Remove multiple keys
+  removed_count =
+      client->Unlink(std::vector<std::string>{"key1", "key2"}, {}).Get();
+  EXPECT_EQ(removed_count, 2);
+
+  // Missing key, nothing removed
+  removed_count = client->Unlink("key1", {}).Get();
+  EXPECT_EQ(removed_count, 0);
+}
+
 USERVER_NAMESPACE_END

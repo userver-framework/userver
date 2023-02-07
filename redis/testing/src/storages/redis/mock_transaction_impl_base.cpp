@@ -29,6 +29,17 @@ RequestDel MockTransactionImplBase::Del(std::vector<std::string> /*keys*/) {
   return RequestDel{nullptr};
 }
 
+RequestUnlink MockTransactionImplBase::Unlink(std::string /*key*/) {
+  UASSERT_MSG(false, "redis method not mocked");
+  return RequestUnlink{nullptr};
+}
+
+RequestUnlink MockTransactionImplBase::Unlink(
+    std::vector<std::string> /*keys*/) {
+  UASSERT_MSG(false, "redis method not mocked");
+  return RequestUnlink{nullptr};
+}
+
 RequestExists MockTransactionImplBase::Exists(std::string /*key*/) {
   UASSERT_MSG(false, "redis method not mocked");
   return RequestExists{nullptr};

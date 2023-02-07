@@ -117,6 +117,25 @@ RequestDel ClientImpl::Del(std::vector<std::string> keys,
                   GetCommandControl(command_control)));
 }
 
+RequestUnlink ClientImpl::Unlink(std::string key,
+                                 const CommandControl& command_control) {
+  auto shard = ShardByKey(key, command_control);
+  return CreateRequest<RequestUnlink>(
+      MakeRequest(CmdArgs{"unlink", std::move(key)}, shard, true,
+                  GetCommandControl(command_control)));
+}
+
+RequestUnlink ClientImpl::Unlink(std::vector<std::string> keys,
+                                 const CommandControl& command_control) {
+  if (keys.empty())
+    return CreateDummyRequest<RequestUnlink>(
+        std::make_shared<Reply>("unlink", 0));
+  auto shard = ShardByKey(keys.at(0), command_control);
+  return CreateRequest<RequestUnlink>(
+      MakeRequest(CmdArgs{"unlink", std::move(keys)}, shard, true,
+                  GetCommandControl(command_control)));
+}
+
 RequestEvalCommon ClientImpl::EvalCommon(
     std::string script, std::vector<std::string> keys,
     std::vector<std::string> args, const CommandControl& command_control) {

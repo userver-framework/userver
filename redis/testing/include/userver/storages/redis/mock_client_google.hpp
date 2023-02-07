@@ -46,6 +46,15 @@ class GMockClient : public MockClientBase {
                const CommandControl& command_control),
               (override));
 
+  MOCK_METHOD(RequestUnlink, Unlink,
+              (std::string key, const CommandControl& command_control),
+              (override));
+
+  MOCK_METHOD(RequestUnlink, Unlink,
+              (std::vector<std::string> keys,
+               const CommandControl& command_control),
+              (override));
+
   MOCK_METHOD(RequestExists, Exists,
               (std::string key, const CommandControl& command_control),
               (override));

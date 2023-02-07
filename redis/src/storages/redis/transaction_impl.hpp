@@ -86,6 +86,10 @@ class TransactionImpl final : public Transaction {
 
   RequestDel Del(std::vector<std::string> keys) override;
 
+  RequestUnlink Unlink(std::string key) override;
+
+  RequestUnlink Unlink(std::vector<std::string> keys) override;
+
   RequestExists Exists(std::string key) override;
 
   RequestExists Exists(std::vector<std::string> keys) override;

@@ -70,6 +70,12 @@ class Client {
   virtual RequestDel Del(std::vector<std::string> keys,
                          const CommandControl& command_control) = 0;
 
+  virtual RequestUnlink Unlink(std::string key,
+                               const CommandControl& command_control) = 0;
+
+  virtual RequestUnlink Unlink(std::vector<std::string> keys,
+                               const CommandControl& command_control) = 0;
+
   template <typename ScriptResult, typename ReplyType = ScriptResult>
   RequestEval<ScriptResult, ReplyType> Eval(
       std::string script, std::vector<std::string> keys,

@@ -70,6 +70,12 @@ class MockClientBase : public Client,
   RequestDel Del(std::vector<std::string> keys,
                  const CommandControl& command_control) override;
 
+  RequestUnlink Unlink(std::string key,
+                       const CommandControl& command_control) override;
+
+  RequestUnlink Unlink(std::vector<std::string> keys,
+                       const CommandControl& command_control) override;
+
   RequestEvalCommon EvalCommon(std::string script,
                                std::vector<std::string> keys,
                                std::vector<std::string> args,

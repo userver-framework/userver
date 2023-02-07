@@ -71,6 +71,19 @@ RequestDel MockClientBase::Del(std::vector<std::string> /*keys*/,
   return RequestDel{nullptr};
 }
 
+RequestUnlink MockClientBase::Unlink(
+    std::string /*key*/, const CommandControl& /*command_control*/) {
+  UASSERT_MSG(false, "redis method not mocked");
+  return RequestUnlink{nullptr};
+}
+
+RequestUnlink MockClientBase::Unlink(
+    std::vector<std::string> /*keys*/,
+    const CommandControl& /*command_control*/) {
+  UASSERT_MSG(false, "redis method not mocked");
+  return RequestUnlink{nullptr};
+}
+
 RequestEvalCommon MockClientBase::EvalCommon(
     std::string /*script*/, std::vector<std::string> /*keys*/,
     std::vector<std::string> /*args*/,

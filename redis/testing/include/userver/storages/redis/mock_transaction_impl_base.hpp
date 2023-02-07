@@ -22,6 +22,10 @@ class MockTransactionImplBase {
 
   virtual RequestDel Del(std::vector<std::string> keys);
 
+  virtual RequestUnlink Unlink(std::string key);
+
+  virtual RequestUnlink Unlink(std::vector<std::string> keys);
+
   virtual RequestExists Exists(std::string key);
 
   virtual RequestExists Exists(std::vector<std::string> keys);

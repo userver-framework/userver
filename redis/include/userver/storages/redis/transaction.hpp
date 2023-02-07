@@ -52,6 +52,10 @@ class Transaction {
 
   virtual RequestDel Del(std::vector<std::string> keys) = 0;
 
+  virtual RequestUnlink Unlink(std::string key) = 0;
+
+  virtual RequestUnlink Unlink(std::vector<std::string> keys) = 0;
+
   virtual RequestExists Exists(std::string key) = 0;
 
   virtual RequestExists Exists(std::vector<std::string> keys) = 0;

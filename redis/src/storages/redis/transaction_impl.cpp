@@ -76,6 +76,16 @@ RequestDel TransactionImpl::Del(std::vector<std::string> keys) {
   return AddCmd<RequestDel>("del", std::move(keys));
 }
 
+RequestUnlink TransactionImpl::Unlink(std::string key) {
+  UpdateShard(key);
+  return AddCmd<RequestUnlink>("unlink", std::move(key));
+}
+
+RequestUnlink TransactionImpl::Unlink(std::vector<std::string> keys) {
+  UpdateShard(keys);
+  return AddCmd<RequestUnlink>("unlink", std::move(keys));
+}
+
 RequestExists TransactionImpl::Exists(std::string key) {
   UpdateShard(key);
   return AddCmd<RequestExists>("exists", std::move(key));
