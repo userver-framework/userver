@@ -189,6 +189,9 @@ install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/../shared/include/userver"
   PATTERN "*.h"
 )
 
+install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/src/components/manager_config.hpp"
+  DESTINATION "include/userver/components/")
+
 install(DIRECTORY "${USERVER_THIRD_PARTY_DIRS}/moodycamel/include/moodycamel"
   DESTINATION "include/userver"
   FILES_MATCHING
