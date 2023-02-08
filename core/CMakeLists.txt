@@ -179,6 +179,7 @@ target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE
 
 target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC
   $<BUILD_INTERFACE:${USERVER_THIRD_PARTY_DIRS}/moodycamel/include>
+  $<INSTALL_INTERFACE:include/userver>
   $<INSTALL_INTERFACE:include/userver/moodycamel>
 )
 
@@ -191,6 +192,15 @@ install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/../shared/include/userver"
 
 install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/src/components/manager_config.hpp"
   DESTINATION "include/userver/components/")
+
+install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/src/engine/coro/pool_config.hpp"
+  DESTINATION "include/engine/coro/")
+
+install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/src/engine/ev/thread_pool_config.hpp"
+  DESTINATION "include/engine/ev/")
+
+install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/src/engine/task/task_processor_config.hpp"
+  DESTINATION "include/engine/task/")
 
 install(DIRECTORY "${USERVER_THIRD_PARTY_DIRS}/moodycamel/include/moodycamel"
   DESTINATION "include/userver"
