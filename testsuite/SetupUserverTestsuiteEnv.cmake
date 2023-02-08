@@ -3,14 +3,14 @@ include(UserverTestsuite)
 # /// [testsuite - UserverTestsuite]
 
 if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-  set(TESTSUITE_REQUIREMENTS ${CMAKE_SOURCE_DIR}/testsuite/requirements-macos.txt)
+  set(TESTSUITE_REQUIREMENTS ${USERVER_ROOT_DIR}/testsuite/requirements-macos.txt)
 else()
-  set(TESTSUITE_REQUIREMENTS ${CMAKE_SOURCE_DIR}/testsuite/requirements.txt)
+  set(TESTSUITE_REQUIREMENTS ${USERVER_ROOT_DIR}/testsuite/requirements.txt)
 endif()
 
 if (USERVER_FEATURE_GRPC)
   list(APPEND TESTSUITE_REQUIREMENTS
-    ${CMAKE_SOURCE_DIR}/testsuite/requirements-grpc.txt)
+    ${USERVER_ROOT_DIR}/testsuite/requirements-grpc.txt)
 endif()
 
 userver_venv_setup(

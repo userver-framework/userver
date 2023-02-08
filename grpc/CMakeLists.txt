@@ -38,9 +38,10 @@ endif()
 
 execute_process(
     COMMAND
-        ${PYTHON} -m pip install -r ${CMAKE_CURRENT_SOURCE_DIR}/grpc/requirements.txt
-    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+        ${PYTHON} -m pip install -r ${USERVER_ROOT_DIR}/grpc/requirements.txt
+    WORKING_DIRECTORY ${USERVER_ROOT_DIR}
 )
+
 include(GrpcTargets)
 include(SetupGoogleProtoApis)
 
