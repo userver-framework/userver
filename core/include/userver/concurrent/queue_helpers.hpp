@@ -40,14 +40,25 @@ class Producer final {
   }
 
   /// Push element into queue. May wait asynchronously if the queue is full.
-  /// @returns whether push succeeded before the deadline.
-  bool Push(ValueType&& value, engine::Deadline deadline = {}) const {
+  /// Leaves the `value` unmodified if the operation does not succeed.
+  /// @returns whether push succeeded before the deadline and before the task
+  /// was canceled.
+  [[nodiscard]] bool Push(ValueType&& value, engine::Deadline deadline) const {
     UASSERT(queue_);
     return queue_->Push(token_, std::move(value), deadline);
   }
 
+  /// Push element into queue. May wait asynchronously if the queue is full.
+  /// Leaves the `value` unmodified if the operation does not succeed.
+  /// @returns whether push succeeded before the task was canceled.
+  bool Push(ValueType&& value) const {
+    UASSERT(queue_);
+    return queue_->Push(token_, std::move(value), {});
+  }
+
   /// Try to push element into queue without blocking. May be used in
-  /// non-coroutine environment
+  /// non-coroutine environment. Leaves the `value` unmodified if the operation
+  /// does not succeed.
   /// @returns whether push succeeded.
   [[nodiscard]] bool PushNoblock(ValueType&& value) const {
     UASSERT(queue_);
