@@ -7,6 +7,8 @@ components_manager:
             so_timeout: 20s
             queue_timeout: 7s
             stats_verbosity: full
+            initial_size: 2
+            max_size: 4
 
         handler-key-value:
             path: /v1/key-value

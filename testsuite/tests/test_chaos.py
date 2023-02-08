@@ -402,7 +402,7 @@ async def test_to_server_concat(tcp_client, gate, server_connection, loop):
 async def test_to_client_limit_bytes(
         tcp_client, gate, server_connection, tcp_server, loop,
 ):
-    gate.to_client_limit_bytes(8)
+    gate.to_client_limit_bytes(12)
     tcp_client2 = await _make_client(loop, gate)
     server_connection2 = await tcp_server.accept()
 
@@ -414,14 +414,27 @@ async def test_to_client_limit_bytes(
     data = await loop.sock_recv(tcp_client, 10)
     assert data == b'hello'
 
-    await loop.sock_sendall(server_connection2, b'die')
+    await loop.sock_sendall(server_connection2, b'die now')
     data = await loop.sock_recv(tcp_client2, 10)
-    assert data == b'die'
+    assert data == b'die now'
 
     await _assert_connection_dead(server_connection, loop)
     await _assert_connection_dead(tcp_client, loop)
     await _assert_connection_dead(server_connection2, loop)
     await _assert_connection_dead(tcp_client2, loop)
+
+    # Check that limit is reset after closing socket
+    tcp_client3 = await _make_client(loop, gate)
+    server_connection3 = await tcp_server.accept()
+    await _assert_data_from_to(tcp_client3, server_connection3, loop)
+    assert gate.connections_count() == 1
+
+    await loop.sock_sendall(server_connection3, b'XXXX die now')
+    data = await loop.sock_recv(tcp_client3, 12)
+    assert data == b'XXXX die now'
+
+    await _assert_connection_dead(server_connection3, loop)
+    await _assert_connection_dead(tcp_client3, loop)
 
 
 async def test_to_server_limit_bytes(

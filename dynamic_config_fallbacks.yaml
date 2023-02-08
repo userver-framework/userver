@@ -91,6 +91,7 @@ groups:
             statement_timeout_ms: 500
         POSTGRES_CONNECTION_SETTINGS:
             key-value-database:
+                user-types-enabled: false  # Not used in chaos tests
                 recent-errors-threshold: 100000
 
   - library-yamls:

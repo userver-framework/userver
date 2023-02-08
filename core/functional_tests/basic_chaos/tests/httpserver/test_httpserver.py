@@ -94,7 +94,7 @@ async def test_stop_accepting(call, gate, check_restore):
     await chaos_stop_accepting(gate)
 
     response = await call()
-    assert response == ErrorType.TIMEOUT
+    assert response == ErrorType.RESET_BY_PEER
     assert gate.connections_count() == 0
 
     gate.start_accepting()
@@ -107,7 +107,6 @@ async def test_close_during_request(call, gate, testpoint, check_restore):
     async def _hook(data):
         if on:
             await gate.sockets_close()
-            assert gate.connections_count() == 0
 
     on = True
     response = await call(tests_control=True)
@@ -140,10 +139,14 @@ async def test_corrupted_request(call, gate, check_restore):
     assert isinstance(response, http.ClientResponse)
     assert response.status == 400
 
-    # Server doesn't drop connection on his own, because it still can be used
-    # for responses
-    await gate.sockets_close()
-    assert gate.connections_count() == 0
+    gate.to_server_pass()
+
+    # Connection could be cached in testsuite client. Give it a few attempts
+    # to restore
+    for _ in range(15):
+        resp = await call()
+        if isinstance(resp, http.ClientResponse) and resp.status == 200:
+            break
 
     await check_restore()
 
@@ -170,7 +173,6 @@ async def test_partial_request(call, gate, check_restore):
     await check_restore()
 
 
-@pytest.mark.skip(reason='TAXICOMMON-6136 Flaky, the call times out')
 async def test_network_smaller_parts_sends(call, gate, check_restore):
     gate.to_server_smaller_parts(DATA_PARTS_MAX_SIZE)
 
