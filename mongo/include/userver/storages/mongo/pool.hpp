@@ -8,9 +8,9 @@
 
 #include <userver/clients/dns/resolver_fwd.hpp>
 #include <userver/dynamic_config/fwd.hpp>
-#include <userver/formats/json/value.hpp>
 #include <userver/storages/mongo/collection.hpp>
 #include <userver/storages/mongo/pool_config.hpp>
+#include <userver/utils/statistics/fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -58,11 +58,8 @@ class Pool {
   /// collections will attempt to re-create the database automatically.
   void DropDatabase();
 
-  /// Returns pool statistics JSON
-  formats::json::Value GetStatistics() const;
-
-  /// Returns verbose pool statistics JSON (with separate metrics for ops/RP/WC)
-  formats::json::Value GetVerboseStatistics() const;
+  /// Writes pool statistics
+  friend void DumpMetric(utils::statistics::Writer& writer, const Pool& pool);
 
  private:
   std::shared_ptr<impl::PoolImpl> impl_;

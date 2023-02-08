@@ -122,7 +122,7 @@ CDriverPoolImpl::CDriverPoolImpl(std::string id, const std::string& uri_string,
                                  const PoolConfig& config,
                                  clients::dns::Resolver* dns_resolver,
                                  dynamic_config::Source config_source)
-    : PoolImpl(std::move(id), config_source),
+    : PoolImpl(std::move(id), config, config_source),
       app_name_(config.app_name),
       init_data_{dns_resolver, {}},
       max_size_(config.max_size),
@@ -187,7 +187,7 @@ const std::string& CDriverPoolImpl::DefaultDatabaseName() const {
 }
 
 CDriverPoolImpl::BoundClientPtr CDriverPoolImpl::Acquire() {
-  stats::ConnectionWaitStopwatch conn_wait_sw(GetStatistics().pool);
+  const stats::ConnectionWaitStopwatch conn_wait_sw(GetStatistics().pool);
   return {Pop(), ClientPusher(this)};
 }
 
@@ -204,8 +204,8 @@ mongoc_client_t* CDriverPoolImpl::Pop() {
 
   auto* client = TryGetIdle();
   if (!client) {
-    engine::SemaphoreLock connecting_lock(connecting_semaphore_,
-                                          queue_deadline);
+    const engine::SemaphoreLock connecting_lock(connecting_semaphore_,
+                                                queue_deadline);
     queue_sw.Stop();
 
     // retry getting idle connection after the wait
@@ -266,8 +266,7 @@ mongoc_client_t* CDriverPoolImpl::Create() {
   // force topology refresh
   // XXX: Periodic task forcing topology refresh?
   MongoError error;
-  stats::OperationStopwatch ping_sw(GetStatistics().pool,
-                                    stats::PoolConnectStatistics::kPing);
+  stats::OperationStopwatch ping_sw(GetStatistics().pool->ping, "ping");
   const bson_t* native_cmd_bson_ptr = kPingCommand.GetBson().get();
   if (!mongoc_client_command_simple(client.get(), kPingDatabase,
                                     native_cmd_bson_ptr, kPingReadPrefs.Get(),

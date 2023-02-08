@@ -260,8 +260,29 @@ class CaseFirstDescriber final {
   }
 
   template <typename First, typename Second>
-  CaseFirstDescriber& Case(First first, Second) noexcept {
+  CaseFirstDescriber& Case(First first, Second /*second*/) noexcept {
     return Case(first);
+  }
+
+  [[nodiscard]] std::string Extract() && noexcept {
+    return std::move(description_);
+  }
+
+ private:
+  std::string description_{};
+};
+
+class CaseSecondDescriber final {
+ public:
+  template <typename First, typename Second>
+  CaseSecondDescriber& Case(First /*first*/, Second second) noexcept {
+    if (!description_.empty()) {
+      description_ += ", ";
+    }
+
+    description_ += fmt::format("'{}'", second);
+
+    return *this;
   }
 
   [[nodiscard]] std::string Extract() && noexcept {
@@ -384,6 +405,16 @@ class TrivialBiMap final {
     return func_([]() { return impl::CaseFirstDescriber{}; }).Extract();
   }
 
+  /// Returns a string of comma separated quoted values of second Case
+  /// parameters.
+  ///
+  /// \b Example: "'1', '2', '3'"
+  ///
+  /// Second parameters of Case should be formattable.
+  std::string DescribeSecond() const {
+    return func_([]() { return impl::CaseSecondDescriber{}; }).Extract();
+  }
+
  private:
   const BuilderFunc func_;
 };
@@ -442,6 +473,20 @@ class TrivialSet final {
  private:
   const BuilderFunc func_;
 };
+
+template <typename ExceptionType = void, typename Value, typename BuilderFunc>
+auto ParseFromValueString(const Value& value,
+                          const TrivialBiMap<BuilderFunc>& map) {
+  const auto string = value.template As<std::string>();
+  const auto parsed = map.TryFindBySecond(string);
+  if (parsed) return *parsed;
+
+  using Exception =
+      std::conditional_t<std::is_void_v<ExceptionType>,
+                         typename Value::ParseException, ExceptionType>;
+  throw Exception(fmt::format("Invalid value at '{}': '{}' is not one of {}",
+                              value.GetPath(), string, map.DescribeSecond()));
+}
 
 }  // namespace utils
 
