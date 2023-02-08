@@ -118,7 +118,7 @@ namespace components {
 /// min_pool_size           | number of connections created initially                   | 4
 /// max_pool_size           | limit of connections count                                | 15
 /// sync-start              | perform initial connections synchronously                 | false
-/// dns_resolver            | server hostname resolver type (getaddrinfo or async)      | 'getaddrinfo'
+/// dns_resolver            | server hostname resolver type (getaddrinfo or async)      | 'async'
 /// persistent-prepared-statements | cache prepared statements or not                   | true
 /// user-types-enabled      | disabling will disallow use of user-defined types         | true
 /// ignore_unused_query_params| disable check for not-NULL query params that are not used in query| false

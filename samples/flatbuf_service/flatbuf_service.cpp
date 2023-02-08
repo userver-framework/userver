@@ -2,6 +2,7 @@
 #include <userver/utils/async.hpp>
 #include <userver/utils/daemon_run.hpp>
 
+#include <userver/clients/dns/component.hpp>
 #include <userver/clients/http/component.hpp>
 
 #include <userver/utest/using_namespace_userver.hpp>
@@ -107,6 +108,7 @@ int main(int argc, char* argv[]) {
   auto component_list = components::MinimalServerComponentList()        //
                             .Append<samples::fbs_handle::FbsSumEcho>()  //
 
+                            .Append<clients::dns::Component>()            //
                             .Append<components::HttpClient>()             //
                             .Append<samples::fbs_request::FbsRequest>();  //
   return utils::DaemonMain(argc, argv, component_list);

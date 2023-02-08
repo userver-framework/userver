@@ -17,7 +17,7 @@
     }
   },
   "POSTGRES_CONNECTION_SETTINGS": {
-    "key-value-database": {
+    "__default__": {
       "recent-errors-threshold": 100000,
       "user-types-enabled": false
     }

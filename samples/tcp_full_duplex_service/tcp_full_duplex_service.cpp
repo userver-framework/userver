@@ -1,6 +1,7 @@
 #include <userver/utest/using_namespace_userver.hpp>
 
 /// [TCP sample - component]
+#include <userver/clients/dns/component.hpp>
 #include <userver/components/minimal_server_component_list.hpp>
 #include <userver/components/statistics_storage.hpp>
 #include <userver/components/tcp_acceptor_base.hpp>
@@ -138,6 +139,7 @@ int main(int argc, const char* const argv[]) {
                                   // Testuite components:
                                   .Append<server::handlers::TestsControl>()
                                   .Append<components::TestsuiteSupport>()
+                                  .Append<clients::dns::Component>()
                                   .Append<components::HttpClient>();
 
   return utils::DaemonMain(argc, argv, component_list);

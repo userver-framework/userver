@@ -53,6 +53,9 @@ components_manager:
             fs-task-processor: fs-task-processor
             user-agent: userver testsuite
 
+        dns-client:                     # Asynchronous DNS component
+            fs-task-processor: fs-task-processor
+
         congestion-control:
             load-enabled: true
             fake-mode: false

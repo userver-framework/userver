@@ -60,7 +60,7 @@ namespace components {
 /// max_replication_lag | replication lag limit for usable secondaries, min. 90s | -
 /// maintenance_period | pool maintenance period (idle connections pruning etc.) | 15s
 /// stats_verbosity | changes the granularity of reported metrics | 'terse'
-/// dns_resolver | server hostname resolver type (getaddrinfo or async) | 'getaddrinfo'
+/// dns_resolver | server hostname resolver type (getaddrinfo or async) | 'async'
 ///
 /// `stats_verbosity` accepts one of the following values:
 /// Value | Description
@@ -132,7 +132,7 @@ inline constexpr bool kHasValidate<Mongo> = true;
 /// local_threshold | latency window for instance selection | mongodb default
 /// max_replication_lag | replication lag limit for usable secondaries, min. 90s | -
 /// stats_verbosity | changes the granularity of reported metrics | 'terse'
-/// dns_resolver | server hostname resolver type (getaddrinfo or async) | 'getaddrinfo'
+/// dns_resolver | server hostname resolver type (getaddrinfo or async) | 'async'
 ///
 /// `stats_verbosity` accepts one of the following values:
 /// Value | Description

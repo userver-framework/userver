@@ -90,7 +90,7 @@ groups:
             network_timeout_ms: 30000
             statement_timeout_ms: 500
         POSTGRES_CONNECTION_SETTINGS:
-            key-value-database:
+            __default__:
                 user-types-enabled: false  # Not used in chaos tests
                 recent-errors-threshold: 100000
 
