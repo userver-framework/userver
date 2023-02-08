@@ -178,6 +178,7 @@ template <typename GrpcStream, typename Response>
 
 template <typename GrpcStream, typename Response>
 void ReadAsync(GrpcStream& stream, Response& response, RpcData& data) noexcept {
+  PrepareRead(data);
   data.EmplaceAsyncMethodInvocation();
   auto& read = data.GetAsyncMethodInvocation();
   stream.Read(&response, read.GetTag());
@@ -198,10 +199,12 @@ bool Write(GrpcStream& stream, const Request& request,
   return result;
 }
 
+void PrepareWriteAndCheck(RpcData& data);
+
 template <typename GrpcStream, typename Request>
 void WriteAndCheck(GrpcStream& stream, const Request& request,
                    grpc::WriteOptions options, RpcData& data) {
-  PrepareWrite(data);
+  PrepareWriteAndCheck(data);
   AsyncMethodInvocation write;
   stream.Write(request, options, write.GetTag());
   CheckOk(data, write.Wait(), "WriteAndCheck");

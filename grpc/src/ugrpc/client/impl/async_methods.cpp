@@ -128,7 +128,7 @@ ugrpc::impl::RpcStatisticsScope& RpcData::GetStatsScope() noexcept {
 
 void RpcData::SetFinished() noexcept {
   UASSERT(context_);
-  UASSERT(!is_finished_);
+  UINVARIANT(!is_finished_, "Tried to finish already finished call");
   is_finished_ = true;
 }
 
@@ -218,6 +218,12 @@ void PrepareRead(RpcData& data) {
 void PrepareWrite(RpcData& data) {
   UINVARIANT(!data.AreWritesFinished(),
              "'Write' called on a stream that is closed for writes");
+}
+
+void PrepareWriteAndCheck(RpcData& data) {
+  UINVARIANT(!data.AreWritesFinished(),
+             "'WriteAndCheck' called on a stream that is closed for writes");
+  UINVARIANT(!data.IsFinished(), "'WriteAndCheck' called on a finished call");
 }
 
 }  // namespace ugrpc::client::impl
