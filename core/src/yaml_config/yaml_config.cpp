@@ -88,13 +88,15 @@ YamlConfig YamlConfig::operator[](size_t index) const {
 
 std::size_t YamlConfig::GetSize() const { return yaml_.GetSize(); }
 
-bool YamlConfig::IsMissing() const { return yaml_.IsMissing(); }
+bool YamlConfig::IsMissing() const noexcept { return yaml_.IsMissing(); }
 
-bool YamlConfig::IsNull() const { return yaml_.IsNull(); }
+bool YamlConfig::IsNull() const noexcept { return yaml_.IsNull(); }
 
-bool YamlConfig::IsInt64() const { return yaml_.IsInt64(); }
+bool YamlConfig::IsInt64() const noexcept { return yaml_.IsInt64(); }
 
-bool YamlConfig::IsUInt64() const { return yaml_.IsUInt64(); }
+bool YamlConfig::IsUInt64() const noexcept { return yaml_.IsUInt64(); }
+
+bool YamlConfig::IsString() const noexcept { return yaml_.IsString(); }
 
 void YamlConfig::CheckArrayOrNull() const { yaml_.CheckArrayOrNull(); }
 

@@ -68,7 +68,7 @@ TEST(HttpCookie, Simple) {
 }
 
 TEST(HttpCookie, Validation) {
-  std::vector<std::pair<std::string, std::string>> goods = {
+  const std::vector<std::pair<std::string, std::string>> goods = {
       {"name", "value"},                               //
       {"a+b", "value"},                                //
       {"name", ""},                                    //
@@ -78,7 +78,7 @@ TEST(HttpCookie, Validation) {
       {"na%20%me%", "%20%"},                           //
   };
 
-  std::vector<std::pair<std::string, std::string>> bads = {
+  const std::vector<std::pair<std::string, std::string>> bads = {
       {"", "value"},      //
       {"a=b", "value"},   //
       {"a b", "value"},   //
@@ -143,7 +143,7 @@ TEST(HttpCookie, FromString) {
     EXPECT_EQ(cookie.value().ToString(), cookie_as_str);
   }
 
-  utils::StrIcaseEqual equal;
+  const utils::StrIcaseEqual equal;
   const std::vector<std::string> cookies_as_str_icase = {
       "name1=value1; Domain=domain.com; Path=/; Expires=Wed, 12 Jun 2019 "
       "16:51:45 GMT; Max-Age=3600; Secure; SameSite=None; HttpOnly",

@@ -7,6 +7,7 @@
 
 #include <userver/engine/async.hpp>
 #include <userver/logging/level_serialization.hpp>
+#include <userver/utils/trivial_map.hpp>
 #include <userver/yaml_config/yaml_config.hpp>
 
 #include <ugrpc/impl/logging.hpp>
@@ -45,14 +46,13 @@ enum class AuthType {
 
 AuthType Parse(const yaml_config::YamlConfig& value,
                formats::parse::To<AuthType>) {
-  const auto string = value.As<std::string>();
+  constexpr utils::TrivialBiMap kMap([](auto selector) {
+    return selector()
+        .Case(AuthType::kInsecure, "insecure")
+        .Case(AuthType::kSsl, "ssl");
+  });
 
-  if (string == "insecure") return AuthType::kInsecure;
-  if (string == "ssl") return AuthType::kSsl;
-
-  throw std::runtime_error(
-      fmt::format("Failed to parse AuthType from '{}' at path '{}'", string,
-                  value.GetPath()));
+  return utils::ParseFromValueString(value, kMap);
 }
 
 std::shared_ptr<grpc::ChannelCredentials> MakeDefaultCredentials(

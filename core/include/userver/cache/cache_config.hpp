@@ -30,11 +30,21 @@ enum class FirstUpdateMode {
   kSkip,
 };
 
+FirstUpdateMode Parse(const yaml_config::YamlConfig& config,
+                      formats::parse::To<FirstUpdateMode>);
+
+std::string_view ToString(FirstUpdateMode);
+
 enum class FirstUpdateType {
   kFull,
   kIncremental,
   kIncrementalThenAsyncFull,
 };
+
+FirstUpdateType Parse(const yaml_config::YamlConfig& config,
+                      formats::parse::To<FirstUpdateType>);
+
+std::string_view ToString(FirstUpdateType);
 
 struct ConfigPatch final {
   std::chrono::milliseconds update_interval;

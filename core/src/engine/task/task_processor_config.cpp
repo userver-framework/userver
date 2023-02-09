@@ -2,11 +2,10 @@
 
 #include <cstdint>
 
-#include <fmt/format.h>
-
 #include <userver/formats/json/value.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
+#include <userver/utils/trivial_map.hpp>
 #include <userver/yaml_config/yaml_config.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -15,17 +14,14 @@ namespace engine {
 
 OsScheduling Parse(const yaml_config::YamlConfig& value,
                    formats::parse::To<OsScheduling>) {
-  const auto str = value.As<std::string>();
-  if (str == "normal") {
-    return OsScheduling::kNormal;
-  } else if (str == "low-priority") {
-    return OsScheduling::kLowPriority;
-  } else if (str == "idle") {
-    return OsScheduling::kIdle;
-  }
+  static constexpr utils::TrivialBiMap kMap([](auto selector) {
+    return selector()
+        .Case(OsScheduling::kNormal, "normal")
+        .Case(OsScheduling::kLowPriority, "low-priority")
+        .Case(OsScheduling::kIdle, "idle");
+  });
 
-  throw std::logic_error(fmt::format(
-      "Invalid OsScheduling value '{}' at path '{}'", str, value.GetPath()));
+  return utils::ParseFromValueString(value, kMap);
 }
 
 TaskProcessorConfig Parse(const yaml_config::YamlConfig& value,
@@ -58,16 +54,13 @@ using OverloadAction = TaskProcessorSettings::OverloadAction;
 
 OverloadAction Parse(const formats::json::Value& value,
                      formats::parse::To<OverloadAction>) {
-  const auto string = value.As<std::string>();
-  if (string == "cancel") {
-    return OverloadAction::kCancel;
-  } else if (string == "ignore") {
-    return OverloadAction::kIgnore;
-  } else {
-    LOG_ERROR() << fmt::format("Unknown enum value at '{}': '{}'",
-                               value.GetPath(), string);
-    return OverloadAction::kIgnore;
-  }
+  static constexpr utils::TrivialBiMap kMap([](auto selector) {
+    return selector()
+        .Case(OverloadAction::kCancel, "cancel")
+        .Case(OverloadAction::kIgnore, "ignore");
+  });
+
+  return utils::ParseFromValueString(value, kMap);
 }
 
 TaskProcessorSettings Parse(const formats::json::Value& value,

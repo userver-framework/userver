@@ -12,6 +12,7 @@
 
 #include <fmt/format.h>
 
+#include <userver/compiler/demangle.hpp>
 #include <userver/utils/assert.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -474,19 +475,50 @@ class TrivialSet final {
   const BuilderFunc func_;
 };
 
+/// @brief Parses and returns whatever is specified by `map` from a
+/// `formats::*::Value`.
+/// @throws ExceptionType or `Value::Exception` by default, if `value` is not a
+/// string, or if `value` is not contained in `map`.
+/// @see @ref md_en_userver_formats
 template <typename ExceptionType = void, typename Value, typename BuilderFunc>
-auto ParseFromValueString(const Value& value,
-                          const TrivialBiMap<BuilderFunc>& map) {
+auto ParseFromValueString(const Value& value, TrivialBiMap<BuilderFunc> map) {
+  if constexpr (!std::is_void_v<ExceptionType>) {
+    if (!value.IsString()) {
+      throw ExceptionType(fmt::format(
+          "Invalid value at '{}': expected a string", value.GetPath()));
+    }
+  }
+
   const auto string = value.template As<std::string>();
-  const auto parsed = map.TryFindBySecond(string);
+  const auto parsed = map.TryFind(string);
   if (parsed) return *parsed;
 
   using Exception =
       std::conditional_t<std::is_void_v<ExceptionType>,
-                         typename Value::ParseException, ExceptionType>;
-  throw Exception(fmt::format("Invalid value at '{}': '{}' is not one of {}",
-                              value.GetPath(), string, map.DescribeSecond()));
+                         typename Value::Exception, ExceptionType>;
+  throw Exception(
+      fmt::format("Invalid value of {} at '{}': '{}' is not one of {}",
+                  compiler::GetTypeName<std::decay_t<decltype(*parsed)>>(),
+                  value.GetPath(), string, map.DescribeSecond()));
 }
+
+namespace impl {
+
+// @brief Converts `value` to `std::string_view` using `map`. If `value` is not
+// contained in `map`, then crashes the service in Debug builds, or throws
+// utils::InvariantError in Release builds.
+template <typename Enum, typename BuilderFunc>
+std::string_view EnumToStringView(Enum value, TrivialBiMap<BuilderFunc> map) {
+  static_assert(std::is_enum_v<Enum>);
+  if (const auto string = map.TryFind(value)) return *string;
+
+  UINVARIANT(
+      false,
+      fmt::format("Invalid value of enum {}: {}", compiler::GetTypeName<Enum>(),
+                  static_cast<std::underlying_type_t<Enum>>(value)));
+}
+
+}  // namespace impl
 
 }  // namespace utils
 

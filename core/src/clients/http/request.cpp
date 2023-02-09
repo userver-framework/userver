@@ -173,24 +173,18 @@ bool IsAllowedSchemaInUrl(std::string_view url) {
 }  // namespace
 
 std::string_view ToStringView(HttpMethod method) {
-  switch (method) {
-    case HttpMethod::kDelete:
-      return "DELETE";
-    case HttpMethod::kGet:
-      return "GET";
-    case HttpMethod::kHead:
-      return "HEAD";
-    case HttpMethod::kPost:
-      return "POST";
-    case HttpMethod::kPut:
-      return "PUT";
-    case HttpMethod::kPatch:
-      return "PATCH";
-    case HttpMethod::kOptions:
-      return "OPTIONS";
-  }
+  static constexpr utils::TrivialBiMap kMap([](auto selector) {
+    return selector()
+        .Case(HttpMethod::kDelete, "DELETE")
+        .Case(HttpMethod::kGet, "GET")
+        .Case(HttpMethod::kHead, "HEAD")
+        .Case(HttpMethod::kPost, "POST")
+        .Case(HttpMethod::kPut, "PUT")
+        .Case(HttpMethod::kPatch, "PATCH")
+        .Case(HttpMethod::kOptions, "OPTIONS");
+  });
 
-  UINVARIANT(false, "Unexpected HTTP method");
+  return utils::impl::EnumToStringView(method, kMap);
 }
 
 ProxyAuthType ProxyAuthTypeFromString(const std::string& auth_name) {

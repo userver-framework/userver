@@ -125,52 +125,6 @@ class DumpedCache final : public cache::CacheMockBase {
   cache::DataSourceMock<std::uint64_t>& data_source_;
 };
 
-std::string ToString(UpdateType update_type) {
-  switch (update_type) {
-    case UpdateType::kFull:
-      return "full";
-    case UpdateType::kIncremental:
-      return "incremental";
-  }
-  UINVARIANT(false, "Unexpected update type");
-}
-
-std::string ToString(AllowedUpdateTypes allowed_update_types) {
-  switch (allowed_update_types) {
-    case AllowedUpdateTypes::kFullAndIncremental:
-      return "full-and-incremental";
-    case AllowedUpdateTypes::kOnlyFull:
-      return "only-full";
-    case AllowedUpdateTypes::kOnlyIncremental:
-      return "only-incremental";
-  }
-  UINVARIANT(false, "Unexpected allowed update type");
-}
-
-std::string ToString(FirstUpdateMode first_update_mode) {
-  switch (first_update_mode) {
-    case FirstUpdateMode::kRequired:
-      return "required";
-    case FirstUpdateMode::kBestEffort:
-      return "best-effort";
-    case FirstUpdateMode::kSkip:
-      return "skip";
-  }
-  UINVARIANT(false, "Unexpected first update mode");
-}
-
-std::string ToString(FirstUpdateType first_update_type) {
-  switch (first_update_type) {
-    case FirstUpdateType::kFull:
-      return "full";
-    case FirstUpdateType::kIncremental:
-      return "incremental";
-    case FirstUpdateType::kIncrementalThenAsyncFull:
-      return "incremental-then-async-full";
-  }
-  UINVARIANT(false, "Unexpected first update type");
-}
-
 }  // namespace
 namespace cache {
 
