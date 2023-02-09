@@ -58,6 +58,11 @@ components_manager:
 
         dns-client:
             fs-task-processor: fs-task-processor
+
+        handler-server-monitor:
+            path: /service/monitor
+            method: GET
+            task_processor: main-task-processor
     coro_pool:
         initial_size: 500
         max_size: 1000

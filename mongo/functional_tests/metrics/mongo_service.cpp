@@ -11,7 +11,7 @@
 
 #include <userver/utest/using_namespace_userver.hpp>
 
-namespace chaos {
+namespace metrics {
 
 class KeyValue final : public server::handlers::HttpHandlerBase {
  public:
@@ -26,48 +26,26 @@ class KeyValue final : public server::handlers::HttpHandlerBase {
   std::string HandleRequestThrow(
       const server::http::HttpRequest& request,
       server::request::RequestContext&) const override {
-    switch (request.GetMethod()) {
-      case server::http::HttpMethod::kGet:
-        return GetValue(request);
-      case server::http::HttpMethod::kPut:
-        PutValue(request);
-        return {};
-      default:
-        ThrowUnsupportedHttpMethod(request);
+    const auto& key = request.GetArg("key");
+    const auto& value = request.GetArg("value");
+
+    using formats::bson::MakeDoc;
+    auto coll = pool_->GetCollection("test");
+    coll.InsertOne(MakeDoc("key", key, "value", value));
+
+    auto doc = coll.FindOne(MakeDoc("key", MakeDoc("$eq", key)));
+    if (!doc) {
+      throw server::handlers::ResourceNotFound{};
     }
+
+    return (*doc)["value"].As<std::string>();
   }
 
  private:
-  void PutValue(const server::http::HttpRequest& request) const;
-  std::string GetValue(const server::http::HttpRequest& request) const;
-
   storages::mongo::PoolPtr pool_;
 };
 
-void KeyValue::PutValue(const server::http::HttpRequest& request) const {
-  const auto& key = request.GetArg("key");
-  const auto& value = request.GetArg("value");
-
-  using formats::bson::MakeDoc;
-  auto coll = pool_->GetCollection("test");
-  coll.InsertOne(MakeDoc("key", key, "value", value));
-}
-
-std::string KeyValue::GetValue(const server::http::HttpRequest& request) const {
-  const auto& key = request.GetArg("key");
-
-  using formats::bson::MakeDoc;
-  auto coll = pool_->GetCollection("test");
-  auto doc = coll.FindOne(MakeDoc("key", MakeDoc("$eq", key)));
-
-  if (!doc) {
-    throw server::handlers::ResourceNotFound{};
-  }
-
-  return (*doc)["value"].As<std::string>();
-}
-
-}  // namespace chaos
+}  // namespace metrics
 
 int main(int argc, char* argv[]) {
   const auto component_list =
@@ -75,8 +53,9 @@ int main(int argc, char* argv[]) {
           .Append<clients::dns::Component>()
           .Append<components::HttpClient>()
           .Append<components::TestsuiteSupport>()
+          .Append<server::handlers::ServerMonitor>()
           .Append<server::handlers::TestsControl>()
           .Append<components::Mongo>("key-value-database")
-          .Append<chaos::KeyValue>();
+          .Append<metrics::KeyValue>();
   return utils::DaemonMain(argc, argv, component_list);
 }

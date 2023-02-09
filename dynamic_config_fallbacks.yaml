@@ -36,6 +36,7 @@ groups:
       - samples/mongo_service/dynamic_config_fallback.json
       - samples/mongo-support/dynamic_config_fallback.json
       - mongo/functional_tests/basic_chaos/dynamic_config_fallback.json
+      - mongo/functional_tests/metrics/dynamic_config_fallback.json
 
   - library-yamls:
       - core/library.yaml

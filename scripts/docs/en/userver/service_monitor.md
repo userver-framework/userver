@@ -85,7 +85,7 @@ additional metrics appear:
 
 With components::Mongo the following additional metrics appear:
 
-@include mongo/functional_tests/basic_chaos/tests/static/metrics_values.txt
+@include mongo/functional_tests/metrics/tests/static/metrics_values.txt
 
 
 With components::Redis the following additional metrics appear:

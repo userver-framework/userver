@@ -39,8 +39,6 @@ async def test_metrics(service_client, monitor_client, load):
     # Forcing statement timing metrics to appear
     response = await service_client.put('/v1/key-value?key=foo&value=bar')
     assert response.status == 200
-    response = await service_client.get('/v1/key-value?key=foo')
-    assert response.status == 200
     assert response.text == 'bar'
 
     ground_truth = _normalize_metrics(load('metrics_values.txt'))
