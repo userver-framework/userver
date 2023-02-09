@@ -3,7 +3,7 @@ import asyncio
 import logging
 
 SELECT_URL = '/chaos/postgres?type=select'
-MAX_POOL_SIZE = 4  # should be in sync with dynamic_config_fallbacks.yaml
+MAX_POOL_SIZE = 4  # should be in sync with ../static_config.yaml
 
 
 logger = logging.getLogger(__name__)

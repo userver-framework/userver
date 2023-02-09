@@ -79,13 +79,6 @@ groups:
     fallbacks:
       - postgresql/functional_tests/basic_chaos/dynamic_config_fallback.json
     overrides:
-        # some tests close all the connections and wait for them to start
-        # again... no need to have too many connections 
-        POSTGRES_CONNECTION_POOL_SETTINGS:
-            key-value-database:
-                max_pool_size: 4  # should be in sync with value in postgresql/functional_tests/basic_chaos/tests/utils.py
-                max_queue_size: 200
-                min_pool_size: 2
         # chaos proxy is slow, initial connection setup takes quite some time
         POSTGRES_DEFAULT_COMMAND_CONTROL:
             network_timeout_ms: 30000

@@ -48,11 +48,6 @@ async def test_sockets_close(service_client, gate, testpoint, tp_name):
 DELAY_SECS = 4.0
 
 
-@pytest.mark.config(
-    POSTGRES_CONNECTION_SETTINGS={
-        'key-value-database': {'recent-errors-threshold': 10000},
-    },
-)
 @pytest.mark.parametrize('tp_name', TESTPOINT_NAMES)
 async def test_timeout(service_client, gate, testpoint, tp_name):
     should_delay = True
