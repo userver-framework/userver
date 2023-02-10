@@ -272,7 +272,7 @@ class _SocketsPaired:
             route: GateRoute,
             loop: EvLoop,
             client: socket.socket,
-            right: socket.socket,
+            server: socket.socket,
             to_server_intercept: Interceptor,
             to_client_intercept: Interceptor,
     ) -> None:
@@ -280,7 +280,7 @@ class _SocketsPaired:
         self._loop = loop
 
         self._client = client
-        self._right = right
+        self._server = server
 
         self._to_server_intercept: Interceptor = to_server_intercept
         self._to_client_intercept: Interceptor = to_client_intercept
@@ -297,9 +297,9 @@ class _SocketsPaired:
     async def _do_pipe_channels(self, *, to_server: bool) -> None:
         if to_server:
             socket_from = self._client
-            socket_to = self._right
+            socket_to = self._server
         else:
-            socket_from = self._right
+            socket_from = self._server
             socket_to = self._client
 
         try:
@@ -331,7 +331,7 @@ class _SocketsPaired:
                 # returns only when the sockets are actually closed
                 logger.info('"%s" closes  %s', self._route.name, self.info())
                 self._close_socket(self._client)
-                self._close_socket(self._right)
+                self._close_socket(self._server)
             else:
                 assert self._finished_channels == 1
                 if to_server:
@@ -346,7 +346,7 @@ class _SocketsPaired:
         self._to_client_intercept = interceptor
 
     def _close_socket(self, self_socket: Socket) -> None:
-        assert self_socket in {self._client, self._right}
+        assert self_socket in {self._client, self._server}
         try:
             self_socket.close()
         except socket.error as exc:
@@ -372,7 +372,7 @@ class _SocketsPaired:
 
         return (
             f'client fd={self._client.fileno()} <=> '
-            f'server fd={self._right.fileno()}'
+            f'server fd={self._server.fileno()}'
         )
 
 
