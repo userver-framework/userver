@@ -1,9 +1,13 @@
 #include <storages/mongo/stats_serialize.hpp>
 
 #include <initializer_list>
+#include <stdexcept>
+#include <tuple>
 
+#include <storages/mongo/stats.hpp>
 #include <userver/utils/assert.hpp>
-#include <userver/utils/statistics/writer.hpp>
+#include <userver/utils/statistics/metadata.hpp>
+#include <userver/utils/statistics/percentile_format_json.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -13,65 +17,61 @@ namespace {
 constexpr std::initializer_list<double> kOperationsStatisticsPercentiles = {
     95, 98, 99, 100};
 
-struct OperationStatisticsSum final {
-  void Add(const OperationStatisticsItem& other) {
-    for (size_t i = 0; i < counters.size(); ++i) {
-      counters[i] += other.counters[i].GetStatsForPeriod();
+void Dump(const OperationStatisticsItem& item,
+          formats::json::ValueBuilder& builder) {
+  Counter::ValueType total_errors = 0;
+  auto errors_builder = builder["errors"];
+  for (size_t i = 1; i < item.counters.size(); ++i) {
+    const auto value = item.counters[i].Load();
+    if (value) {
+      auto type = static_cast<OperationStatisticsItem::ErrorType>(i);
+      errors_builder[ToString(type)] = value;
+      total_errors += value;
     }
-    timings.Add(other.timings.GetStatsForPeriod());
   }
-
-  void Add(const OperationStatisticsSum& other) {
-    for (size_t i = 0; i < counters.size(); ++i) {
-      counters[i] += other.counters[i];
-    }
-    timings.Add(other.timings);
-  }
-
-  std::array<std::uint64_t, kErrorTypesCount> counters{{}};
-  TimingsPercentile timings;
-};
-
-auto LoadCounter(const Aggregator<Counter>& counter) {
-  return counter.GetStatsForPeriod();
+  utils::statistics::SolomonChildrenAreLabelValues(errors_builder,
+                                                   "mongo_error");
+  builder["errors"]["total"] = total_errors;
+  builder["success"] = item.counters[0].Load();
+  builder["timings"] = utils::statistics::PercentileToJson(
+      item.timings, kOperationsStatisticsPercentiles);
 }
 
-auto LoadCounter(const std::uint64_t& counter) { return counter; }
+void Dump(const OperationStatisticsItem& item,
+          formats::json::ValueBuilder&& builder) {
+  Dump(item, builder);
+}
 
 template <typename OperationStatistics>
-void DumpOperationStatistics(utils::statistics::Writer& writer,
-                             const OperationStatistics& item) {
-  Counter::ValueType total_errors = 0;
-  {
-    auto errors_writer = writer["errors"];
-    for (size_t i = 1; i < item.counters.size(); ++i) {
-      const auto value = LoadCounter(item.counters[i]);
-      if (value) {
-        auto type = static_cast<ErrorType>(i);
-        errors_writer.ValueWithLabels(value, {"mongo_error", ToString(type)});
-        total_errors += value;
-      }
-    }
+OperationStatisticsItem DumpAndCombineOperation(
+    const OperationStatistics& op_stats,
+    formats::json::ValueBuilder&& builder) {
+  OperationStatisticsItem overall;
+  auto op_builder = builder["by-operation"];
+  for (const auto& [type, item_agg] : op_stats.items) {
+    const auto item = item_agg->GetStatsForPeriod();
+    Dump(item, op_builder[ToString(type)]);
+    overall.Add(item);
   }
-  writer["errors"].ValueWithLabels(total_errors, {"mongo_error", "total"});
-  writer["success"] = item.counters[0];
-  if (auto timings_writer = writer["timings"]) {
-    DumpMetric(timings_writer, item.timings, kOperationsStatisticsPercentiles);
-  }
+  utils::statistics::SolomonChildrenAreLabelValues(op_builder,
+                                                   "mongo_operation");
+  utils::statistics::SolomonSkip(op_builder);
+  Dump(overall, builder);
+  return overall;
 }
 
-void DumpMetric(utils::statistics::Writer& writer,
-                const OperationStatisticsSum& item) {
-  DumpOperationStatistics(writer, item);
-}
-
-bool IsRead(const OperationKey& key) {
-  return key.op_type >= OpType::kReadMin && key.op_type < OpType::kWriteMin;
+template <typename OperationStatistics>
+OperationStatisticsItem CombineOperation(const OperationStatistics& op_stats) {
+  OperationStatisticsItem overall;
+  for (const auto& [_, item_agg] : op_stats.items) {
+    overall.Add(item_agg->GetStatsForPeriod());
+  }
+  return overall;
 }
 
 struct CombinedCollectionStats {
-  OperationStatisticsSum read;
-  OperationStatisticsSum write;
+  OperationStatisticsItem read;
+  OperationStatisticsItem write;
 
   void Add(const CombinedCollectionStats& other) {
     read.Add(other.read);
@@ -79,108 +79,89 @@ struct CombinedCollectionStats {
   }
 };
 
-void DumpOperation(const OperationKey& op_key,
-                   const OperationStatisticsItem& op_stats,
-                   utils::statistics::Writer& writer) {
-  // TODO use the same label set for both read and write metrics,
-  //  to satisfy Prometeus metrics conventions
-  const std::string_view label =
-      IsRead(op_key) ? "mongo_read_preference" : "mongo_write_concern";
-  writer.ValueWithLabels(op_stats,
-                         {{label, op_key.diagnostic_label},
-                          {"mongo_operation", ToString(op_key.op_type)}});
+void Dump(const CombinedCollectionStats& combined_stats,
+          formats::json::ValueBuilder& builder) {
+  Dump(combined_stats.read, builder["read"]);
+  Dump(combined_stats.write, builder["write"]);
 }
 
-void CombineOperation(const OperationKey& op_key,
-                      const OperationStatisticsItem& op_stats,
-                      CombinedCollectionStats& overall) {
-  auto& combined = IsRead(op_key) ? overall.read : overall.write;
-  combined.Add(op_stats);
-}
-
-void DumpMetric(utils::statistics::Writer& writer,
-                const CombinedCollectionStats& combined_stats) {
-  writer["read"] = combined_stats.read;
-  writer["write"] = combined_stats.write;
-}
-
-struct FormattedCollectionStatistics final {
-  const CollectionStatistics& stats;
-  StatsVerbosity verbosity;
-  CombinedCollectionStats& overall_stats;
-};
-
-void DumpMetric(utils::statistics::Writer& writer,
-                const FormattedCollectionStatistics& coll_stats) {
+CombinedCollectionStats DumpAndCombine(const CollectionStatistics& coll_stats,
+                                       formats::json::ValueBuilder&& builder,
+                                       Verbosity verbosity) {
   CombinedCollectionStats overall;
 
-  std::unordered_map<std::string, OperationStatisticsSum> totals_by_label_read;
-  std::unordered_map<std::string, OperationStatisticsSum> totals_by_label_write;
+  switch (verbosity) {
+    case Verbosity::kTerse:
+      for (const auto& [_, stats_ptr] : coll_stats.read) {
+        overall.read.Add(CombineOperation(*stats_ptr));
+      }
+      for (const auto& [_, stats_ptr] : coll_stats.write) {
+        overall.write.Add(CombineOperation(*stats_ptr));
+      }
+      break;
+    case Verbosity::kFull: {
+      formats::json::ValueBuilder rp_builder(formats::json::Type::kObject);
+      for (const auto& [read_pref, stats_ptr] : coll_stats.read) {
+        auto rp_overall =
+            DumpAndCombineOperation(*stats_ptr, rp_builder[read_pref]);
+        overall.read.Add(rp_overall);
+      }
+      utils::statistics::SolomonChildrenAreLabelValues(rp_builder,
+                                                       "mongo_read_preference");
+      utils::statistics::SolomonSkip(rp_builder);
+      builder["by-read-preference"] = std::move(rp_builder);
 
-  for (const auto& [stats_key, stats_ptr] : coll_stats.stats.items) {
-    if (coll_stats.verbosity == StatsVerbosity::kFull) {
-      DumpOperation(stats_key, *stats_ptr, writer);
-
-      (IsRead(stats_key) ? totals_by_label_read
-                         : totals_by_label_write)[stats_key.diagnostic_label]
-          .Add(*stats_ptr);
+      formats::json::ValueBuilder wc_builder(formats::json::Type::kObject);
+      for (const auto& [write_concern, stats_ptr] : coll_stats.write) {
+        auto wc_overall =
+            DumpAndCombineOperation(*stats_ptr, wc_builder[write_concern]);
+        overall.write.Add(wc_overall);
+      }
+      utils::statistics::SolomonChildrenAreLabelValues(wc_builder,
+                                                       "mongo_write_concern");
+      utils::statistics::SolomonSkip(wc_builder);
+      builder["by-write-concern"] = std::move(wc_builder);
     }
-    CombineOperation(stats_key, *stats_ptr, overall);
   }
 
-  if (coll_stats.verbosity == StatsVerbosity::kFull) {
-    // TODO use different paths for detailed and overall metrics,
-    //  to satisfy Prometeus metrics conventions
-    for (const auto& [label, total] : totals_by_label_read) {
-      writer.ValueWithLabels(total, {"mongo_read_preference", label});
-    }
-    for (const auto& [label, total] : totals_by_label_write) {
-      writer.ValueWithLabels(total, {"mongo_write_concern", label});
-    }
-  }
+  Dump(overall, builder);
+  return overall;
+}
 
-  // TODO use different paths for detailed and overall metrics,
-  //  to satisfy Prometeus metrics conventions
-  writer = overall;
+void Dump(const PoolConnectStatistics& conn_stats,
+          formats::json::ValueBuilder&& builder) {
+  builder["conn-requests"] = conn_stats.requested.Load();
+  builder["conn-created"] = conn_stats.created.Load();
+  builder["conn-closed"] = conn_stats.closed.Load();
+  builder["overloads"] = conn_stats.overload.Load();
 
-  coll_stats.overall_stats.Add(overall);
+  Dump(conn_stats.items[0]->GetStatsForPeriod(), builder["conn-init"]);
+
+  builder["conn-request-timings"] = utils::statistics::PercentileToJson(
+      conn_stats.request_timings_agg.GetStatsForPeriod());
+  builder["queue-wait-timings"] = utils::statistics::PercentileToJson(
+      conn_stats.queue_wait_timings_agg.GetStatsForPeriod());
 }
 
 }  // namespace
 
-void DumpMetric(utils::statistics::Writer& writer,
-                const OperationStatisticsItem& item) {
-  DumpOperationStatistics(writer, item);
-}
-
-void DumpMetric(utils::statistics::Writer& writer,
-                const PoolConnectStatistics& conn_stats) {
-  writer["conn-requests"] = conn_stats.requested;
-  writer["conn-created"] = conn_stats.created;
-  writer["conn-closed"] = conn_stats.closed;
-  writer["overloads"] = conn_stats.overload;
-
-  writer["conn-init"] = *conn_stats.ping;
-
-  writer["conn-request-timings"] = conn_stats.request_timings_agg;
-  writer["queue-wait-timings"] = conn_stats.queue_wait_timings_agg;
-}
-
-void DumpMetric(utils::statistics::Writer& writer,
-                const PoolStatistics& pool_stats, StatsVerbosity verbosity) {
-  writer["pool"] = *pool_stats.pool;
+void PoolStatisticsToJson(const PoolStatistics& pool_stats,
+                          formats::json::ValueBuilder& builder,
+                          Verbosity verbosity) {
+  Dump(*pool_stats.pool, builder["pool"]);
 
   CombinedCollectionStats pool_overall;
+  formats::json::ValueBuilder coll_builder(formats::json::Type::kObject);
   for (const auto& [coll_name, coll_stats] : pool_stats.collections) {
-    UASSERT(coll_stats);
-    writer.ValueWithLabels(
-        FormattedCollectionStatistics{*coll_stats, verbosity, pool_overall},
-        {"mongo_collection", coll_name});
+    auto coll_overall =
+        DumpAndCombine(*coll_stats, coll_builder[coll_name], verbosity);
+    pool_overall.Add(coll_overall);
   }
-
-  // TODO use different paths for detailed and overall metrics,
-  //  to satisfy Prometeus metrics conventions
-  writer = pool_overall;
+  utils::statistics::SolomonChildrenAreLabelValues(coll_builder,
+                                                   "mongo_collection");
+  utils::statistics::SolomonSkip(coll_builder);
+  builder["by-collection"] = std::move(coll_builder);
+  Dump(pool_overall, builder);
 }
 
 }  // namespace storages::mongo::stats

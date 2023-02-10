@@ -1,9 +1,9 @@
 #include <userver/storages/mongo/multi_mongo.hpp>
 
+#include <userver/formats/json/value_builder.hpp>
 #include <userver/storages/mongo/exception.hpp>
 #include <userver/storages/secdist/exceptions.hpp>
 #include <userver/storages/secdist/secdist.hpp>
-#include <userver/utils/statistics/writer.hpp>
 
 #include <storages/mongo/dynamic_config.hpp>
 #include <storages/mongo/mongo_secdist.hpp>
@@ -31,7 +31,9 @@ MultiMongo::PoolSet& MultiMongo::PoolSet::operator=(PoolSet&&) noexcept =
     default;
 
 void MultiMongo::PoolSet::AddExistingPools() {
-  const auto pool_map = target_->pool_map_.Read();
+  auto pool_map = target_->pool_map_ptr_.Get();
+  UASSERT(pool_map);
+
   pool_map_ptr_->insert(pool_map->begin(), pool_map->end());
 }
 
@@ -53,7 +55,7 @@ bool MultiMongo::PoolSet::RemovePool(const std::string& dbalias) {
 }
 
 void MultiMongo::PoolSet::Activate() {
-  target_->pool_map_.Assign(*pool_map_ptr_);
+  target_->pool_map_ptr_.Set(pool_map_ptr_);
 }
 
 MultiMongo::MultiMongo(std::string name,
@@ -65,7 +67,8 @@ MultiMongo::MultiMongo(std::string name,
       secdist_(secdist),
       config_source_(config_source),
       pool_config_(std::move(pool_config)),
-      dns_resolver_(dns_resolver) {}
+      dns_resolver_(dns_resolver),
+      pool_map_ptr_(std::make_shared<PoolMap>()) {}
 
 storages::mongo::PoolPtr MultiMongo::GetPool(const std::string& dbalias) const {
   auto pool_ptr = FindPool(dbalias);
@@ -97,19 +100,23 @@ bool MultiMongo::RemovePool(const std::string& dbalias) {
 
 MultiMongo::PoolSet MultiMongo::NewPoolSet() { return PoolSet(*this); }
 
-void DumpMetric(utils::statistics::Writer& writer,
-                const MultiMongo& multi_mongo) {
-  const auto pool_map = multi_mongo.pool_map_.Read();
+formats::json::Value MultiMongo::GetStatistics(bool verbose) const {
+  formats::json::ValueBuilder builder(formats::json::Type::kObject);
+
+  auto pool_map = pool_map_ptr_.Get();
   for (const auto& [dbalias, pool] : *pool_map) {
-    UASSERT(pool);
-    writer.ValueWithLabels(*pool, {"mongo_database", dbalias});
+    builder[dbalias] =
+        verbose ? pool->GetVerboseStatistics() : pool->GetStatistics();
   }
+  return builder.ExtractValue();
 }
 
 storages::mongo::PoolPtr MultiMongo::FindPool(
     const std::string& dbalias) const {
-  const auto pool_map = pool_map_.Read();
-  const auto it = pool_map->find(dbalias);
+  auto pool_map = pool_map_ptr_.Get();
+  UASSERT(pool_map);
+
+  auto it = pool_map->find(dbalias);
   if (it == pool_map->end()) return {};
   return it->second;
 }

@@ -12,7 +12,6 @@
 #include <userver/storages/mongo/operations.hpp>
 
 #include <storages/mongo/cdriver/wrappers.hpp>
-#include <storages/mongo/stats.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -20,30 +19,23 @@ namespace storages::mongo::operations {
 
 extern const std::string kDefaultReadPrefDesc;
 extern const std::string kDefaultWriteConcernDesc;
-inline constexpr std::chrono::milliseconds kNoMaxServerTime{0};
-
-stats::OpType ToStatsOpType(operations::Update::Mode);
-
-stats::OpType ToStatsOpType(operations::Delete::Mode);
 
 class Count::Impl {
  public:
   explicit Impl(formats::bson::Document filter_) : filter(std::move(filter_)) {}
 
   formats::bson::Document filter;
-  stats::OperationKey op_key{kDefaultReadPrefDesc, stats::OpType::kCount};
+  std::string read_prefs_desc{kDefaultReadPrefDesc};
   impl::cdriver::ReadPrefsPtr read_prefs;
   std::optional<formats::bson::impl::BsonBuilder> options;
   bool use_new_count{true};
-  std::chrono::milliseconds max_server_time{kNoMaxServerTime};
 };
 
 class CountApprox::Impl {
  public:
-  stats::OperationKey op_key{kDefaultReadPrefDesc, stats::OpType::kCountApprox};
+  std::string read_prefs_desc{kDefaultReadPrefDesc};
   impl::cdriver::ReadPrefsPtr read_prefs;
   std::optional<formats::bson::impl::BsonBuilder> options;
-  std::chrono::milliseconds max_server_time{kNoMaxServerTime};
 };
 
 class Find::Impl {
@@ -51,11 +43,11 @@ class Find::Impl {
   explicit Impl(formats::bson::Document filter_) : filter(std::move(filter_)) {}
 
   formats::bson::Document filter;
-  stats::OperationKey op_key{kDefaultReadPrefDesc, stats::OpType::kFind};
+  std::string read_prefs_desc{kDefaultReadPrefDesc};
   impl::cdriver::ReadPrefsPtr read_prefs;
   std::optional<formats::bson::impl::BsonBuilder> options;
   bool has_comment_option{false};
-  std::chrono::milliseconds max_server_time{kNoMaxServerTime};
+  bool has_max_server_time_option{false};
 };
 
 class InsertOne::Impl {
@@ -64,8 +56,7 @@ class InsertOne::Impl {
       : document(std::move(document_)) {}
 
   formats::bson::Document document;
-  stats::OperationKey op_key{kDefaultWriteConcernDesc,
-                             stats::OpType::kInsertOne};
+  std::string write_concern_desc{kDefaultWriteConcernDesc};
   std::optional<formats::bson::impl::BsonBuilder> options;
   bool should_throw{true};
 };
@@ -78,8 +69,7 @@ class InsertMany::Impl {
       : documents(std::move(documents_)) {}
 
   std::vector<formats::bson::Document> documents;
-  stats::OperationKey op_key{kDefaultWriteConcernDesc,
-                             stats::OpType::kInsertMany};
+  std::string write_concern_desc{kDefaultWriteConcernDesc};
   std::optional<formats::bson::impl::BsonBuilder> options;
   bool should_throw{true};
 };
@@ -92,8 +82,7 @@ class ReplaceOne::Impl {
 
   formats::bson::Document selector;
   formats::bson::Document replacement;
-  stats::OperationKey op_key{kDefaultWriteConcernDesc,
-                             stats::OpType::kReplaceOne};
+  std::string write_concern_desc{kDefaultWriteConcernDesc};
   std::optional<formats::bson::impl::BsonBuilder> options;
   bool should_throw{true};
 };
@@ -111,7 +100,7 @@ class Update::Impl {
   bool should_retry_dupkey{false};
   formats::bson::Document selector;
   formats::bson::Document update;
-  stats::OperationKey op_key{kDefaultWriteConcernDesc, ToStatsOpType(mode)};
+  std::string write_concern_desc{kDefaultWriteConcernDesc};
   std::optional<formats::bson::impl::BsonBuilder> options;
 };
 
@@ -123,7 +112,7 @@ class Delete::Impl {
   Mode mode;
   bool should_throw{true};  // moved here for size optimization
   formats::bson::Document selector;
-  stats::OperationKey op_key{kDefaultWriteConcernDesc, ToStatsOpType(mode)};
+  std::string write_concern_desc{kDefaultWriteConcernDesc};
   std::optional<formats::bson::impl::BsonBuilder> options;
 };
 
@@ -132,11 +121,10 @@ class FindAndModify::Impl {
   explicit Impl(formats::bson::Document&& query_) : query(std::move(query_)) {}
 
   formats::bson::Document query;
-  stats::OperationKey op_key{kDefaultWriteConcernDesc,
-                             stats::OpType::kFindAndModify};
+  std::string write_concern_desc{kDefaultWriteConcernDesc};
   impl::cdriver::FindAndModifyOptsPtr options;
   bool should_retry_dupkey{false};
-  std::chrono::milliseconds max_server_time{kNoMaxServerTime};
+  bool has_max_server_time_option{false};
 };
 
 class FindAndRemove::Impl {
@@ -144,10 +132,9 @@ class FindAndRemove::Impl {
   explicit Impl(formats::bson::Document&& query_) : query(std::move(query_)) {}
 
   formats::bson::Document query;
-  stats::OperationKey op_key{kDefaultWriteConcernDesc,
-                             stats::OpType::kFindAndRemove};
+  std::string write_concern_desc{kDefaultWriteConcernDesc};
   impl::cdriver::FindAndModifyOptsPtr options;
-  std::chrono::milliseconds max_server_time{kNoMaxServerTime};
+  bool has_max_server_time_option{false};
 };
 
 class Bulk::Impl {
@@ -155,7 +142,7 @@ class Bulk::Impl {
   explicit Impl(Mode mode_) : mode(mode_) {}
 
   impl::cdriver::BulkOperationPtr bulk;
-  stats::OperationKey op_key{kDefaultWriteConcernDesc, stats::OpType::kBulk};
+  std::string write_concern_desc{kDefaultWriteConcernDesc};
   Mode mode;
   bool should_throw{true};
 };
@@ -166,11 +153,12 @@ class Aggregate::Impl {
       : pipeline(std::move(pipeline_)) {}
 
   formats::bson::Value pipeline;
+  std::string read_prefs_desc{kDefaultReadPrefDesc};
   impl::cdriver::ReadPrefsPtr read_prefs;
-  stats::OperationKey op_key{kDefaultReadPrefDesc, stats::OpType::kAggregate};
+  std::string write_concern_desc{kDefaultWriteConcernDesc};
   std::optional<formats::bson::impl::BsonBuilder> options;
   bool has_comment_option{false};
-  std::chrono::milliseconds max_server_time{kNoMaxServerTime};
+  bool has_max_server_time_option{false};
 };
 
 class Drop::Impl {
@@ -178,17 +166,15 @@ class Drop::Impl {
   Impl() = default;
 
   std::optional<formats::bson::impl::BsonBuilder> options;
-  stats::OperationKey op_key{kDefaultWriteConcernDesc, stats::OpType::kDrop};
+  std::string write_concern_desc{kDefaultWriteConcernDesc};
 };
 
 void AppendComment(formats::bson::impl::BsonBuilder& builder,
                    bool& has_comment_option, const options::Comment& comment);
 
-void AppendMaxServerTime(std::chrono::milliseconds& destination,
+void AppendMaxServerTime(formats::bson::impl::BsonBuilder& builder,
+                         bool& has_max_server_time_option,
                          const options::MaxServerTime& max_server_time);
-
-/// @throws InvalidQueryArgumentException on invalid @a max_server_time
-void VerifyMaxServerTime(std::chrono::milliseconds& max_server_time);
 
 }  // namespace storages::mongo::operations
 

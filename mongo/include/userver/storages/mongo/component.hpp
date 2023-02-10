@@ -4,6 +4,7 @@
 /// @brief @copybrief components::Mongo
 
 #include <userver/components/loggable_component_base.hpp>
+#include <userver/formats/json/value.hpp>
 #include <userver/storages/mongo/multi_mongo.hpp>
 #include <userver/storages/mongo/pool.hpp>
 #include <userver/storages/secdist/component.hpp>
@@ -84,6 +85,7 @@ class Mongo : public LoggableComponentBase {
   static yaml_config::Schema GetStaticConfigSchema();
 
  private:
+  const bool is_verbose_stats_enabled_;
   storages::mongo::PoolPtr pool_;
   utils::statistics::Entry statistics_holder_;
 };
@@ -179,6 +181,10 @@ class MultiMongo : public LoggableComponentBase {
 
  private:
   storages::mongo::MultiMongo multi_mongo_;
+
+  formats::json::Value GetStatistics() const;
+
+  const bool is_verbose_stats_enabled_;
   utils::statistics::Entry statistics_holder_;
 };
 

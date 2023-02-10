@@ -18,11 +18,23 @@ USERVER_NAMESPACE_BEGIN
 namespace components {
 
 namespace {
+
 const std::string kStandardMongoPrefix = "mongo-";
+
+bool ParseStatsVerbosity(const ComponentConfig& config) {
+  const auto verbosity_str = config["stats_verbosity"].As<std::string>("terse");
+  if (verbosity_str == "terse") return false;
+  if (verbosity_str == "full") return true;
+
+  throw storages::mongo::InvalidConfigException()
+      << "Invalid value '" << verbosity_str << "' for stats_verbosity";
+}
+
 }  // namespace
 
 Mongo::Mongo(const ComponentConfig& config, const ComponentContext& context)
-    : LoggableComponentBase(config, context) {
+    : LoggableComponentBase(config, context),
+      is_verbose_stats_enabled_(ParseStatsVerbosity(config)) {
   auto dbalias = config["dbalias"].As<std::string>("");
 
   std::string connection_string;
@@ -35,7 +47,7 @@ Mongo::Mongo(const ComponentConfig& config, const ComponentContext& context)
 
   auto* dns_resolver = clients::dns::GetResolverPtr(config, context);
 
-  const storages::mongo::PoolConfig pool_config(config);
+  storages::mongo::PoolConfig pool_config(config);
   auto config_source = context.FindComponent<DynamicConfig>().GetSource();
 
   pool_ = std::make_shared<storages::mongo::Pool>(
@@ -50,13 +62,11 @@ Mongo::Mongo(const ComponentConfig& config, const ComponentContext& context)
       section_name.size() != kStandardMongoPrefix.size()) {
     section_name = section_name.substr(kStandardMongoPrefix.size());
   }
-  statistics_holder_ = statistics_storage.GetStorage().RegisterWriter(
-      "mongo",
-      [this](utils::statistics::Writer& writer) {
-        UASSERT(pool_);
-        writer = *pool_;
-      },
-      {{"mongo_database", section_name}});
+  statistics_holder_ = statistics_storage.GetStorage().RegisterExtender(
+      "mongo." + section_name, [this](const auto&) {
+        return is_verbose_stats_enabled_ ? pool_->GetVerboseStatistics()
+                                         : pool_->GetStatistics();
+      });
 }
 
 Mongo::~Mongo() { statistics_holder_.Unregister(); }
@@ -64,7 +74,7 @@ Mongo::~Mongo() { statistics_holder_.Unregister(); }
 storages::mongo::PoolPtr Mongo::GetPool() const { return pool_; }
 
 yaml_config::Schema Mongo::GetStaticConfigSchema() {
-  return yaml_config::MergeSchemas<MultiMongo>(R"(
+  return yaml_config::MergeSchemas<LoggableComponentBase>(R"(
 type: object
 description: MongoDB client component
 additionalProperties: false
@@ -75,10 +85,60 @@ properties:
     dbconnection:
         type: string
         description: connection string (used if no dbalias specified)
+    appname:
+        type: string
+        description: application name for the DB server
+        defaultDescription: userver
+    conn_timeout:
+        type: string
+        description: connection timeout
+        defaultDescription: 2s
+    so_timeout:
+        type: string
+        description: socket timeout
+        defaultDescription: 10s
+    queue_timeout:
+        type: string
+        description: max connection queue wait time
+        defaultDescription: 1s
+    initial_size:
+        type: integer
+        description: number of connections created initially
+        defaultDescription: 16
+    max_size:
+        type: integer
+        description: limit for total connections number
+        defaultDescription: 128
+    idle_limit:
+        type: integer
+        description: limit for idle connections number
+        defaultDescription: 64
+    connecting_limit:
+        type: integer
+        description: limit for establishing connections number
+        defaultDescription: 8
+    local_threshold:
+        type: string
+        description: latency window for instance selection
+        defaultDescription: mongodb default
+    max_replication_lag:
+        type: string
+        description: replication lag limit for usable secondaries, min. 90s
     maintenance_period:
         type: string
         description: pool maintenance period (idle connections pruning etc.)
         defaultDescription: 15s
+    stats_verbosity:
+        type: string
+        description: changes the granularity of reported metrics
+        defaultDescription: 'terse'
+        enum:
+          - terse
+          - full
+    dns_resolver:
+        type: string
+        description: server hostname resolver type (getaddrinfo or async)
+        defaultDescription: 'getaddrinfo'
 )");
 }
 
@@ -88,12 +148,12 @@ MultiMongo::MultiMongo(const ComponentConfig& config,
       multi_mongo_(config.Name(), context.FindComponent<Secdist>().GetStorage(),
                    storages::mongo::PoolConfig(config),
                    clients::dns::GetResolverPtr(config, context),
-                   context.FindComponent<DynamicConfig>().GetSource()) {
+                   context.FindComponent<DynamicConfig>().GetSource()),
+      is_verbose_stats_enabled_(ParseStatsVerbosity(config)) {
   auto& statistics_storage =
       context.FindComponent<components::StatisticsStorage>();
-  statistics_holder_ = statistics_storage.GetStorage().RegisterWriter(
-      multi_mongo_.GetName(),
-      [this](utils::statistics::Writer& writer) { writer = multi_mongo_; });
+  statistics_holder_ = statistics_storage.GetStorage().RegisterExtender(
+      multi_mongo_.GetName(), [this](const auto&) { return GetStatistics(); });
 }
 
 MultiMongo::~MultiMongo() { statistics_holder_.Unregister(); }
@@ -112,6 +172,10 @@ bool MultiMongo::RemovePool(const std::string& dbalias) {
 
 storages::mongo::MultiMongo::PoolSet MultiMongo::NewPoolSet() {
   return multi_mongo_.NewPoolSet();
+}
+
+formats::json::Value MultiMongo::GetStatistics() const {
+  return multi_mongo_.GetStatistics(is_verbose_stats_enabled_);
 }
 
 yaml_config::Schema MultiMongo::GetStaticConfigSchema() {
@@ -163,9 +227,6 @@ properties:
         type: string
         description: changes the granularity of reported metrics
         defaultDescription: 'terse'
-        enum:
-          - terse
-          - full
     dns_resolver:
         type: string
         description: server hostname resolver type (getaddrinfo or async)

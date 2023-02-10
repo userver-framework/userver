@@ -14,13 +14,9 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::mongo {
 
-enum class StatsVerbosity {
-  kTerse,  ///< Only pool stats and read/write overalls by collection
-  kFull,   ///< Stats with separate metrics per operation type and label
-};
-
 /// MongoDB connection pool configuration
-struct PoolConfig final {
+class PoolConfig {
+ public:
   enum class DriverImpl {
     kMongoCDriver,
   };
@@ -79,9 +75,6 @@ struct PoolConfig final {
 
   /// Driver implementation to use
   DriverImpl driver_impl;
-
-  /// Whether to write detailed stats
-  StatsVerbosity stats_verbosity;
 };
 
 }  // namespace storages::mongo

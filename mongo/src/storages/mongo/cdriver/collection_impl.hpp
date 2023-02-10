@@ -33,19 +33,13 @@ class CDriverCollectionImpl : public CollectionImpl {
 
  private:
   cdriver::CDriverPoolImpl::BoundClientPtr GetCDriverClient() const;
-
   std::tuple<cdriver::CDriverPoolImpl::BoundClientPtr, cdriver::CollectionPtr>
   GetCDriverCollection() const;
-
-  std::chrono::milliseconds ComputeAdjustedMaxServerTime(
-      std::chrono::milliseconds user_max_server_time) const;
-
-  void SetMaxServerTime(
-      std::optional<formats::bson::impl::BsonBuilder>& builder,
-      std::chrono::milliseconds max_server_time) const;
-
-  void SetMaxServerTime(mongoc_find_and_modify_opts_t& options,
-                        std::chrono::milliseconds max_server_time) const;
+  std::chrono::milliseconds GetDefaultMaxServerTime() const;
+  void SetDefaultMaxServerTime(formats::bson::impl::BsonBuilder& builder,
+                               bool& has_max_server_time_option) const;
+  void SetDefaultMaxServerTime(mongoc_find_and_modify_opts_t* options,
+                               bool& has_max_server_time_option) const;
 
   PoolImplPtr pool_impl_;
   std::shared_ptr<stats::CollectionStatistics> statistics_;
