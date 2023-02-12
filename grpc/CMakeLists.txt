@@ -25,7 +25,7 @@ add_library(${PROJECT_NAME}-deps INTERFACE)
 target_include_directories(${PROJECT_NAME}-deps INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 if (USERVER_CONAN)
     target_link_libraries(${PROJECT_NAME}-deps INTERFACE
-        protobuf::protobuf gRPC::gRPC
+        protobuf::protobuf grpc::grpc
     )
     if ("${GRPC_LIBRARY_VERSION}" VERSION_GREATER_EQUAL "1.41")
         target_link_libraries(${PROJECT_NAME}-deps INTERFACE

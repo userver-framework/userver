@@ -86,7 +86,7 @@ if (USERVER_CONAN)
   find_package(cctz REQUIRED)
 
   find_package(RapidJSON REQUIRED)
-  target_compile_definitions(RapidJSON::RapidJSON INTERFACE RAPIDJSON_HAS_STDSTRING)
+  target_compile_definitions(rapidjson INTERFACE RAPIDJSON_HAS_STDSTRING)
 else()
   include(SetupGTest)
   include(SetupGBench)
@@ -155,7 +155,7 @@ if (USERVER_CONAN)
       Boost::stacktrace
     PRIVATE
       cryptopp-static
-      RapidJSON::RapidJSON
+      rapidjson
   )
 else()
   target_link_libraries(${PROJECT_NAME}

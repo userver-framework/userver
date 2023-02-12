@@ -96,7 +96,7 @@ if (USERVER_CONAN)
     find_package(libev REQUIRED)
 
     find_package(RapidJSON REQUIRED)
-    target_compile_definitions(RapidJSON::RapidJSON INTERFACE RAPIDJSON_HAS_STDSTRING)
+    target_compile_definitions(rapidjson INTERFACE RAPIDJSON_HAS_STDSTRING)
 
     find_package(concurrentqueue REQUIRED)
 else()
