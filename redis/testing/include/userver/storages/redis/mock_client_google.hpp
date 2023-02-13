@@ -7,6 +7,7 @@
 #include <userver/utest/utest.hpp>
 
 #include <userver/storages/redis/mock_client_base.hpp>
+#include "userver/storages/redis/command_options.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
@@ -448,6 +449,27 @@ class GMockClient : public MockClientBase {
   MOCK_METHOD(RequestEvalCommon, EvalCommon,
               (std::string script, std::vector<std::string> keys,
                std::vector<std::string> args,
+               const CommandControl& command_control),
+              (override));
+
+  MOCK_METHOD(RequestGeosearch, Geosearch,
+              (std::string key, std::string member, double radius,
+               const GeosearchOptions& geosearch_options,
+               const CommandControl& command_control),
+              (override));
+  MOCK_METHOD(RequestGeosearch, Geosearch,
+              (std::string key, std::string member, BoxWidth width,
+               BoxHeight height, const GeosearchOptions& geosearch_options,
+               const CommandControl& command_control),
+              (override));
+  MOCK_METHOD(RequestGeosearch, Geosearch,
+              (std::string key, Longitude lon, Latitude lat, double radius,
+               const GeosearchOptions& geosearch_options,
+               const CommandControl& command_control),
+              (override));
+  MOCK_METHOD(RequestGeosearch, Geosearch,
+              (std::string key, Longitude lon, Latitude lat, BoxWidth width,
+               BoxHeight height, const GeosearchOptions& geosearch_options,
                const CommandControl& command_control),
               (override));
 };

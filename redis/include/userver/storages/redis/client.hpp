@@ -121,9 +121,30 @@ class Client {
                                std::vector<GeoaddArg> point_members,
                                const CommandControl& command_control) = 0;
 
-  virtual RequestGeoradius Georadius(std::string key, double lon, double lat,
-                                     double radius,
+  virtual RequestGeoradius Georadius(std::string key, Longitude lon,
+                                     Latitude lat, double radius,
                                      const GeoradiusOptions& georadius_options,
+                                     const CommandControl& command_control) = 0;
+
+  virtual RequestGeosearch Geosearch(std::string key, std::string member,
+                                     double radius,
+                                     const GeosearchOptions& geosearch_options,
+                                     const CommandControl& command_control) = 0;
+
+  virtual RequestGeosearch Geosearch(std::string key, std::string member,
+                                     BoxWidth width, BoxHeight height,
+                                     const GeosearchOptions& geosearch_options,
+                                     const CommandControl& command_control) = 0;
+
+  virtual RequestGeosearch Geosearch(std::string key, Longitude lon,
+                                     Latitude lat, double radius,
+                                     const GeosearchOptions& geosearch_options,
+                                     const CommandControl& command_control) = 0;
+
+  virtual RequestGeosearch Geosearch(std::string key, Longitude lon,
+                                     Latitude lat, BoxWidth width,
+                                     BoxHeight height,
+                                     const GeosearchOptions& geosearch_options,
                                      const CommandControl& command_control) = 0;
 
   virtual RequestGet Get(std::string key,

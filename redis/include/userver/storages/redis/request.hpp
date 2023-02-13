@@ -156,6 +156,7 @@ using RequestExists = Request<size_t>;
 using RequestExpire = Request<ExpireReply>;
 using RequestGeoadd = Request<size_t>;
 using RequestGeoradius = Request<std::vector<GeoPoint>>;
+using RequestGeosearch = Request<std::vector<GeoPoint>>;
 using RequestGet = Request<std::optional<std::string>>;
 using RequestGetset = Request<std::optional<std::string>>;
 using RequestHdel = Request<size_t>;

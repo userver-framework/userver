@@ -6,6 +6,7 @@
 
 #include <userver/storages/redis/impl/transaction_subrequest_data.hpp>
 #include <userver/storages/redis/mock_client_base.hpp>
+#include "userver/storages/redis/command_options.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
@@ -167,11 +168,43 @@ RequestGeoadd MockTransaction::Geoadd(std::string key,
 }
 
 RequestGeoradius MockTransaction::Georadius(
-    std::string key, double lon, double lat, double radius,
+    std::string key, Longitude lon, Latitude lat, double radius,
     const GeoradiusOptions& georadius_options) {
   UpdateShard(key);
   return AddSubrequest(
       impl_->Georadius(std::move(key), lon, lat, radius, georadius_options));
+}
+
+RequestGeosearch MockTransaction::Geosearch(
+    std::string key, std::string member, double radius,
+    const GeosearchOptions& geosearch_options) {
+  UpdateShard(key);
+  return AddSubrequest(impl_->Geosearch(std::move(key), std::move(member),
+                                        radius, geosearch_options));
+}
+
+RequestGeosearch MockTransaction::Geosearch(
+    std::string key, std::string member, BoxWidth width, BoxHeight height,
+    const GeosearchOptions& geosearch_options) {
+  UpdateShard(key);
+  return AddSubrequest(impl_->Geosearch(std::move(key), std::move(member),
+                                        width, height, geosearch_options));
+}
+
+RequestGeosearch MockTransaction::Geosearch(
+    std::string key, Longitude lon, Latitude lat, double radius,
+    const GeosearchOptions& geosearch_options) {
+  UpdateShard(key);
+  return AddSubrequest(
+      impl_->Geosearch(std::move(key), lon, lat, radius, geosearch_options));
+}
+
+RequestGeosearch MockTransaction::Geosearch(
+    std::string key, Longitude lon, Latitude lat, BoxWidth width,
+    BoxHeight height, const GeosearchOptions& geosearch_options) {
+  UpdateShard(key);
+  return AddSubrequest(impl_->Geosearch(std::move(key), lon, lat, width, height,
+                                        geosearch_options));
 }
 
 RequestGet MockTransaction::Get(std::string key) {

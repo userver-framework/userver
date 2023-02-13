@@ -10,6 +10,11 @@ USERVER_NAMESPACE_BEGIN
 
 namespace redis {
 
+using Longitude = utils::StrongTypedef<struct LongitudeTag, double>;
+using Latitude = utils::StrongTypedef<struct LatitudeTag, double>;
+using BoxWidth = utils::StrongTypedef<struct BoxWidthTag, double>;
+using BoxHeight = utils::StrongTypedef<struct BoxHeightTag, double>;
+
 struct GeoaddArg {
   double lon;
   double lat;
@@ -17,6 +22,18 @@ struct GeoaddArg {
 };
 
 struct GeoradiusOptions {
+  enum class Sort { kNone, kAsc, kDesc };
+  enum class Unit { kM, kKm, kMi, kFt };
+
+  Unit unit = Unit::kM;
+  bool withcoord = false;
+  bool withdist = false;
+  bool withhash = false;
+  size_t count = 0;
+  Sort sort = Sort::kNone;
+};
+
+struct GeosearchOptions {
   enum class Sort { kNone, kAsc, kDesc };
   enum class Unit { kM, kKm, kMi, kFt };
 
@@ -80,6 +97,8 @@ void PutArg(CmdArgs::CmdArgsArray& args_, GeoaddArg arg);
 void PutArg(CmdArgs::CmdArgsArray& args_, std::vector<GeoaddArg> arg);
 
 void PutArg(CmdArgs::CmdArgsArray& args_, const GeoradiusOptions& arg);
+
+void PutArg(CmdArgs::CmdArgsArray& args_, const GeosearchOptions& arg);
 
 void PutArg(CmdArgs::CmdArgsArray& args_, const SetOptions& arg);
 

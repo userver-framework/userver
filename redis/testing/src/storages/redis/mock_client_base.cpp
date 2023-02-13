@@ -3,6 +3,7 @@
 #include <userver/utils/assert.hpp>
 
 #include <userver/storages/redis/mock_transaction.hpp>
+#include "userver/storages/redis/command_options.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
@@ -142,11 +143,44 @@ RequestGeoadd MockClientBase::Geoadd(
 }
 
 RequestGeoradius MockClientBase::Georadius(
-    std::string /*key*/, double /*lon*/, double /*lat*/, double /*radius*/,
+    std::string /*key*/, Longitude /*lon*/, Latitude /*lat*/, double /*radius*/,
     const GeoradiusOptions& /*georadius_options*/,
     const CommandControl& /*command_control*/) {
   UASSERT_MSG(false, "redis method not mocked");
   return RequestGeoradius{nullptr};
+}
+
+RequestGeosearch MockClientBase::Geosearch(
+    std::string /*key*/, std::string /*member*/, double /*radius*/,
+    const GeosearchOptions& /*geosearch_options*/,
+    const CommandControl& /*command_control*/) {
+  UASSERT_MSG(false, "redis method not mocked");
+  return RequestGeosearch{nullptr};
+}
+
+RequestGeosearch MockClientBase::Geosearch(
+    std::string /*key*/, std::string /*member*/, BoxWidth /*width*/,
+    BoxHeight /*height*/, const GeosearchOptions& /*geosearch_options*/,
+    const CommandControl& /*command_control*/) {
+  UASSERT_MSG(false, "redis method not mocked");
+  return RequestGeosearch{nullptr};
+}
+
+RequestGeosearch MockClientBase::Geosearch(
+    std::string /*key*/, Longitude /*lon*/, Latitude /*lat*/, double /*radius*/,
+    const GeosearchOptions& /*geosearch_options*/,
+    const CommandControl& /*command_control*/) {
+  UASSERT_MSG(false, "redis method not mocked");
+  return RequestGeosearch{nullptr};
+}
+
+RequestGeosearch MockClientBase::Geosearch(
+    std::string /*key*/, Longitude /*lon*/, Latitude /*lat*/,
+    BoxWidth /*width*/, BoxHeight /*height*/,
+    const GeosearchOptions& /*geosearch_options*/,
+    const CommandControl& /*command_control*/) {
+  UASSERT_MSG(false, "redis method not mocked");
+  return RequestGeosearch{nullptr};
 }
 
 RequestGet MockClientBase::Get(std::string /*key*/,

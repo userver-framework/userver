@@ -12,6 +12,7 @@
 #include <userver/storages/redis/transaction.hpp>
 
 #include "scan_reply.hpp"
+#include "userver/storages/redis/command_options.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
@@ -100,9 +101,28 @@ class ClientImpl final : public Client,
   RequestGeoadd Geoadd(std::string key, std::vector<GeoaddArg> point_members,
                        const CommandControl& command_control) override;
 
-  RequestGeoradius Georadius(std::string key, double lon, double lat,
+  RequestGeoradius Georadius(std::string key, Longitude lon, Latitude lat,
                              double radius,
                              const GeoradiusOptions& georadius_options,
+                             const CommandControl& command_control) override;
+
+  RequestGeosearch Geosearch(std::string key, std::string member, double radius,
+                             const GeosearchOptions& geosearch_options,
+                             const CommandControl& command_control) override;
+
+  RequestGeosearch Geosearch(std::string key, std::string member,
+                             BoxWidth width, BoxHeight height,
+                             const GeosearchOptions& geosearch_options,
+                             const CommandControl& command_control) override;
+
+  RequestGeosearch Geosearch(std::string key, Longitude lon, Latitude lat,
+                             double radius,
+                             const GeosearchOptions& geosearch_options,
+                             const CommandControl& command_control) override;
+
+  RequestGeosearch Geosearch(std::string key, Longitude lon, Latitude lat,
+                             BoxWidth width, BoxHeight height,
+                             const GeosearchOptions& geosearch_options,
                              const CommandControl& command_control) override;
 
   RequestGet Get(std::string key,

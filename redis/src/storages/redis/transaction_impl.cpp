@@ -6,6 +6,7 @@
 
 #include "client_impl.hpp"
 #include "request_exec_data_impl.hpp"
+#include "userver/storages/redis/command_options.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
@@ -116,11 +117,49 @@ RequestGeoadd TransactionImpl::Geoadd(std::string key,
 }
 
 RequestGeoradius TransactionImpl::Georadius(
-    std::string key, double lon, double lat, double radius,
+    std::string key, Longitude lon, Latitude lat, double radius,
     const GeoradiusOptions& georadius_options) {
   UpdateShard(key);
-  return AddCmd<RequestGeoradius>("georadius_ro", std::move(key), lon, lat,
+  return AddCmd<RequestGeoradius>("georadius_ro", std::move(key),
+                                  lon.GetUnderlying(), lat.GetUnderlying(),
                                   radius, georadius_options);
+}
+
+RequestGeosearch TransactionImpl::Geosearch(
+    std::string key, std::string member, double radius,
+    const GeosearchOptions& geosearch_options) {
+  UpdateShard(key);
+  return AddCmd<RequestGeosearch>("geosearch", std::move(key), "FROMMEMBER",
+                                  std::move(member), "BYRADIUS", radius,
+                                  geosearch_options);
+}
+
+RequestGeosearch TransactionImpl::Geosearch(
+    std::string key, std::string member, BoxWidth width, BoxHeight height,
+    const GeosearchOptions& geosearch_options) {
+  UpdateShard(key);
+  return AddCmd<RequestGeosearch>(
+      "geosearch", std::move(key), "FROMMEMBER", std::move(member), "BYBOX",
+      width.GetUnderlying(), height.GetUnderlying(), geosearch_options);
+}
+
+RequestGeosearch TransactionImpl::Geosearch(
+    std::string key, Longitude lon, Latitude lat, double radius,
+    const GeosearchOptions& geosearch_options) {
+  UpdateShard(key);
+  return AddCmd<RequestGeosearch>("geosearch", std::move(key), "FROMLONLAT",
+                                  lon.GetUnderlying(), lat.GetUnderlying(),
+                                  "BYRADIUS", radius, geosearch_options);
+}
+
+RequestGeosearch TransactionImpl::Geosearch(
+    std::string key, Longitude lon, Latitude lat, BoxWidth width,
+    BoxHeight height, const GeosearchOptions& geosearch_options) {
+  UpdateShard(key);
+  return AddCmd<RequestGeosearch>("geosearch", std::move(key), "FROMLONLAT",
+                                  lon.GetUnderlying(), lat.GetUnderlying(),
+                                  "BYBOX", width.GetUnderlying(),
+                                  height.GetUnderlying(), geosearch_options);
 }
 
 RequestGet TransactionImpl::Get(std::string key) {
