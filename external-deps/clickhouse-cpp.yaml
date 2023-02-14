@@ -9,11 +9,10 @@ formula-name: yandex-clickhouse-cpp
 libraries:
     find:
       - names:
+          - libclickhouse-cpp-lib.so
           - yandex-clickhousecpp
 
 includes:
     find:
       - names:
           - clickhouse/block.h
-        path-suffixes:
-          - yandex/clickhouse-cpp

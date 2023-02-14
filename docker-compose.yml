@@ -70,6 +70,34 @@ services:
         working_dir: /userver
         entrypoint: /tools/run_as_user.sh
 
+    userver-ubuntu:
+        image: ghcr.io/userver-framework/ubuntu-userver-build-base:v1
+        container_name: userver-ubuntu
+        networks:
+          - dockerbridge
+        environment:
+          - CC
+          - CXX
+          - BUILD_DIR=${BUILD_DIR:-/userver/build}
+          - BUILD_TYPE=${BUILD_TYPE:-Release}
+          - CCACHE_DIR=/userver/.ccache
+          - CCACHE_HASHDIR
+          - CCACHE_NOHASHDIR
+          - CCACHE_PREFIX
+          - CCACHE_SIZE=${CCACHE_SIZE:-10G}
+          - CMAKE_OPTS=${CMAKE_OPTS}
+          - DISTCC_HOSTS
+          - NPROCS
+          - LANG=${LANG:-en_US.UTF-8}
+          - CONTAINER_NAME=userver-ubuntu
+        volumes:
+          - .:/userver:rw
+          - ./tools/docker:/tools:rw
+        ports:
+          - 8080:8080
+        working_dir: /userver
+        entrypoint: /tools/run_as_user.sh
+
     userver-tests:
         image: ghcr.io/userver-framework/docker-userver-build-base:v1a
         container_name: userver-tests

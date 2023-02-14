@@ -13,11 +13,10 @@ add_library(${PROJECT_NAME} STATIC ${SOURCES})
 target_link_libraries(${PROJECT_NAME} PUBLIC userver-core)
 if (USERVER_CONAN)
   find_package(amqpcpp)
-  target_link_libraries(${PROJECT_NAME} PRIVATE amqpcpp)
 else()
   include(SetupAmqpCPP)
-  target_link_libraries(${PROJECT_NAME} PRIVATE amqp-cpp)
 endif()
+target_link_libraries(${PROJECT_NAME} PRIVATE amqpcpp)
 target_include_directories(
   ${PROJECT_NAME}
   PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include

@@ -31,3 +31,13 @@ opensource-docs:
 	  ) | doxygen -
 	@echo 'userver.tech' > $(DOCS_DIR)/html/CNAME
 
+.PHONY: docker-cmake docker-make docker-tests
+
+docker-cmake:
+	docker-compose run --rm userver-ubuntu bash -c 'cmake -DUSERVER_GOOGLE_COMMON_PROTOS=/app/api-common-protos -B./build -S./'
+
+docker-make: docker-cmake
+	docker-compose run --rm userver-ubuntu bash -c 'cd build && make -j $(nproc)'
+
+docker-tests: docker-make
+	docker-compose run --rm userver-ubuntu bash -c 'cd build && ulimit -n 4096 && ctest -V'

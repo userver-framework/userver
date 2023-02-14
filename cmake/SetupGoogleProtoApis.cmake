@@ -9,8 +9,11 @@ elseif (USERVER_GOOGLE_COMMON_PROTOS)
 endif()
 
 if (NOT api-common-protos_SOURCE_DIR)
-  include(FetchContent)
   set(api-common-protos_SOURCE_DIR ${USERVER_ROOT_DIR}/third_party/api-common-protos)
+endif()
+
+if (NOT EXISTS ${api-common-protos_SOURCE_DIR})
+  include(FetchContent)
 
   FetchContent_Declare(
     api-common-protos_external_project
