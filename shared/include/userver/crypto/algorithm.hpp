@@ -27,10 +27,10 @@ struct StringsEqualConstTimeComparator {
   auto operator()(const T& x, const T& y) const noexcept
       -> decltype(algorithm::AreStringsEqualConstTime(x.GetUnderlying(),
                                                       y.GetUnderlying())) {
-    static_assert(
-        noexcept(algorithm::AreStringsEqualConstTime(x.GetUnderlying(),
-                                                     y.GetUnderlying())),
-        "On some platforms for efficiency the comparator should not throw");
+    static_assert(noexcept(algorithm::AreStringsEqualConstTime(
+                      x.GetUnderlying(), y.GetUnderlying())),
+                  "The comparator should not throw as this affects efficiency "
+                  "on some platforms");
 
     return algorithm::AreStringsEqualConstTime(x.GetUnderlying(),
                                                y.GetUnderlying());
