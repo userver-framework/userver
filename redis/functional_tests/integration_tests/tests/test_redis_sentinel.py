@@ -15,7 +15,7 @@ async def test_happy_path(service_client):
     assert result.text == 'abc'
 
 
-async def test_hard_failover(service_client, redis_sentinel_docker_service):
+async def test_hard_failover(service_client, redis_sentinel_services):
     # Make a write operation to current master
     result = await service_client.post(
         '/redis-sentinel', params={'key': 'hf_key', 'value': 'abc'},
@@ -30,7 +30,7 @@ async def test_hard_failover(service_client, redis_sentinel_docker_service):
     assert result.text == 'abc'
 
     # Start the failover
-    redis_sentinel_docker_service.masters[0].kill()
+    redis_sentinel_services.masters[0].kill()
 
     # Failover starts in ~10 seconds
     for _ in range(FAILOVER_DEADLINE_SEC):
@@ -52,3 +52,7 @@ async def test_hard_failover(service_client, redis_sentinel_docker_service):
     assert (
         await service_client.get('/redis-sentinel', params={'key': 'hf_key2'})
     ).text == 'abcd'
+
+    # todo: TAXITOOLS-5772 check that containers are healthy before each test
+    redis_sentinel_services.masters[0].start()
+    await redis_sentinel_services.masters[0].is_healthy()

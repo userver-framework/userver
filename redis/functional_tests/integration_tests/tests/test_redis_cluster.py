@@ -48,12 +48,12 @@ async def _assert_read_all_slots(service_client, key_prefix, value):
     )
 
 
-async def test_hard_failover(service_client, redis_cluster_docker_service):
+async def test_hard_failover(service_client, redis_cluster_services):
     # Write enough different keys to have something in every slot
     assert await _check_write_all_slots(service_client, 'hf_key1', 'abc')
 
     # Start the failover
-    redis_cluster_docker_service.masters[0].kill()
+    redis_cluster_services.masters[0].kill()
 
     # Failover starts in ~10 seconds
     for _ in range(FAILOVER_DEADLINE_SEC):

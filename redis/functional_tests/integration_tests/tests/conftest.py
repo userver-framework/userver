@@ -10,18 +10,19 @@ pytest_plugins = [
     'pytest_userver.plugins.service',
     'pytest_userver.plugins.service_client',
     'taxi.integration_testing.pytest_plugin',
+    'taxi.uservices.testsuite.integration_testing.pytest_plugin',
 ]
 
 
 @pytest.fixture(scope='session')
-def service_env(_redis_sentinel_docker_service, _redis_cluster_docker_service):
+def service_env(redis_sentinel_services, redis_cluster_services):
     cluster_hosts = []
     cluster_shards = []
-    for index, _ in enumerate(_redis_cluster_docker_service.masters):
+    for index, _ in enumerate(redis_cluster_services.masters):
         cluster_hosts.append(
             {
                 'host': 'localhost',
-                'port': _redis_cluster_docker_service.master_port(index),
+                'port': redis_cluster_services.master_port(index),
             },
         )
         cluster_shards.append({'name': f'shard{index}'})
@@ -38,7 +39,7 @@ def service_env(_redis_sentinel_docker_service, _redis_cluster_docker_service):
                 'sentinels': [
                     {
                         'host': 'localhost',
-                        'port': _redis_sentinel_docker_service.sentinel_port(),
+                        'port': redis_sentinel_services.sentinel_port(),
                     },
                 ],
                 'shards': [{'name': 'shard0'}],
