@@ -14,9 +14,9 @@
 
 USERVER_NAMESPACE_BEGIN
 
-inline logging::LoggerPtr MakeSocketLogger(const std::string& logger_name,
-                                           std::string filename,
-                                           logging::Format format) {
+inline std::shared_ptr<logging::impl::TpLogger> MakeSocketLogger(
+    const std::string& logger_name, std::string filename,
+    logging::Format format) {
   auto sink = std::make_shared<logging::SocketSinkST>(std::move(filename));
   return MakeLoggerFromSink(logger_name, sink, format);
 }
@@ -90,7 +90,7 @@ class SocketLoggingTest : public DefaultLoggerFixture {
     const auto logger = MakeSocketLogger(
         "socket_logger", socket_file_.GetPath(), logging::Format::kTskv);
     // Discard logs from the network interaction.
-    logger->ptr->set_level(spdlog::level::err);
+    logger->SetLevel(logging::Level::kError);
     SetDefaultLogger(logger);
   }
 

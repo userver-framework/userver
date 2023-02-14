@@ -19,7 +19,12 @@ USERVER_NAMESPACE_BEGIN
 
 namespace logging {
 struct LoggerConfig;
+
+namespace impl {
+class TpLogger;
 }
+
+}  // namespace logging
 
 namespace components {
 
@@ -42,6 +47,7 @@ namespace components {
 /// message_queue_size | the size of internal message queue, must be a power of 2 | 65536
 /// overflow_behavior | message handling policy while the queue is full: `discard` drops messages, `block` waits until message gets into the queue | discard
 /// testsuite-capture | if exists, setups additional TCP log sink for testing purposes | {}
+/// fs-task-processor | task processor for disk I/O operations for this logger | fs-task-processor of the loggers component
 ///
 /// ### Logs output
 /// You can specify logger output, in `file_path` option:
@@ -103,7 +109,8 @@ class Logging final : public impl::ComponentBase {
   void FlushLogs();
 
   engine::TaskProcessor* fs_task_processor_;
-  std::unordered_map<std::string, logging::LoggerPtr> loggers_;
+  std::unordered_map<std::string, std::shared_ptr<logging::impl::TpLogger>>
+      loggers_;
   utils::PeriodicTask flush_task_;
   std::shared_ptr<TestsuiteCaptureSink> socket_sink_;
   os_signals::Subscriber signal_subscriber_;

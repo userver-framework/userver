@@ -212,16 +212,10 @@ TEST_F(ServerMinimalComponentList, MissingRuntimeConfigParam) {
                                     kRuntimeConfigMissingParam);
   fs::blocking::RewriteFileContents(GetConfigVarsPath(), config_vars);
 
-  try {
-    components::RunOnce(components::InMemoryConfig{GetStaticConfig()},
-                        components::MinimalServerComponentList());
-    FAIL() << "Missing runtime config value was not reported";
-  } catch (const std::runtime_error& e) {
-    EXPECT_NE(std::string_view{e.what()}.find("USERVER_LOG_REQUEST_HEADERS"),
-              std::string_view::npos)
-        << "'USERVER_LOG_REQUEST_HEADERS' is missing in error message: "
-        << e.what();
-  }
+  UEXPECT_THROW_MSG(
+      components::RunOnce(components::InMemoryConfig{GetStaticConfig()},
+                          components::MinimalServerComponentList()),
+      std::exception, "USERVER_LOG_REQUEST_HEADERS");
 }
 
 USERVER_NAMESPACE_END

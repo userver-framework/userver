@@ -20,6 +20,7 @@ constexpr std::string_view kConfigVarsTemplate = R"(
   runtime_config_path: {1}
   log_level: {2}
   file_path: {3}
+  overflow_behavior: {4}
 )";
 
 // BEWARE! No separate fs-task-processor. Testing almost single thread mode
@@ -47,7 +48,7 @@ components_manager:
           file_path: $file_path
           level: $log_level
           message_queue_size: 4  # small, to test queue overflows
-          overflow_behavior: discard
+          overflow_behavior: $overflow_behavior
     tracer:
         service-name: config-service
     statistics-storage:
@@ -239,7 +240,7 @@ TEST_F(ComponentList, ServerCommon) {
   fs::blocking::RewriteFileContents(
       config_vars_path,
       fmt::format(kConfigVarsTemplate, temp_root.GetPath(), runtime_config_path,
-                  "warning", "'@stderr'"));
+                  "warning", "'@stderr'", "discard"));
 
   components::RunOnce(
       components::InMemoryConfig{std::string{kStaticConfig} + config_vars_path},
@@ -258,8 +259,9 @@ TEST_F(ComponentList, ServerTraceLogging) {
 
   fs::blocking::RewriteFileContents(runtime_config_path, tests::kRuntimeConfig);
   fs::blocking::RewriteFileContents(
-      config_vars_path, fmt::format(kConfigVarsTemplate, temp_root.GetPath(),
-                                    runtime_config_path, "trace", logs_file));
+      config_vars_path,
+      fmt::format(kConfigVarsTemplate, temp_root.GetPath(), runtime_config_path,
+                  "trace", logs_file, "discard"));
 
   components::RunOnce(
       components::InMemoryConfig{std::string{kStaticConfig} + config_vars_path},
@@ -277,14 +279,38 @@ TEST_F(ComponentList, ServerNullLogging) {
 
   fs::blocking::RewriteFileContents(runtime_config_path, tests::kRuntimeConfig);
   fs::blocking::RewriteFileContents(
-      config_vars_path, fmt::format(kConfigVarsTemplate, temp_root.GetPath(),
-                                    runtime_config_path, "trace", "'@null'"));
+      config_vars_path,
+      fmt::format(kConfigVarsTemplate, temp_root.GetPath(), runtime_config_path,
+                  "trace", "'@null'", "discard"));
 
   components::RunOnce(
       components::InMemoryConfig{std::string{kStaticConfig} + config_vars_path},
       components::CommonComponentList()
           .AppendComponentList(components::CommonServerComponentList())
           .Append<server::handlers::Ping>());
+}
+
+TEST_F(ComponentList, BlockingDefaultLogger) {
+  const auto temp_root = fs::blocking::TempDirectory::Create();
+  const std::string runtime_config_path =
+      temp_root.GetPath() + "/runtime_config.json";
+  const std::string config_vars_path =
+      temp_root.GetPath() + "/config_vars.json";
+
+  fs::blocking::RewriteFileContents(runtime_config_path, tests::kRuntimeConfig);
+  fs::blocking::RewriteFileContents(
+      config_vars_path,
+      fmt::format(kConfigVarsTemplate, temp_root.GetPath(), runtime_config_path,
+                  "warning", "'@stderr'", "block"));
+
+  const components::InMemoryConfig config{std::string{kStaticConfig} +
+                                          config_vars_path};
+  const auto component_list =
+      components::CommonComponentList()
+          .AppendComponentList(components::CommonServerComponentList())
+          .Append<server::handlers::Ping>();
+  UEXPECT_THROW_MSG(components::RunOnce(config, component_list), std::exception,
+                    "efault logger");
 }
 
 USERVER_NAMESPACE_END
