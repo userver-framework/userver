@@ -14,9 +14,9 @@ components_manager:
             user-types-enabled: false  # Not used in chaos tests
             # some tests close all the connections and wait for them to start
             # again... no need to have too many connections
-            max_pool_size: 4  # should be in sync with value in ./tests/utils.py
+            max_pool_size: 1  # should be in sync with value in ./utils.py
             max_queue_size: 200
-            min_pool_size: 2
+            min_pool_size: 1
 
         testsuite-support:
 

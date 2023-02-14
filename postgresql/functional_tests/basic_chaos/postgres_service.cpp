@@ -17,7 +17,6 @@
 
 namespace chaos {
 
-constexpr std::size_t kValuesCount = 10;
 constexpr std::string_view kSelectSmallTimeout = "select-small-timeout";
 constexpr std::string_view kPortalSmallTimeout = "portal-small-timeout";
 
@@ -74,20 +73,18 @@ std::string PostgresHandler::HandleRequestThrow(
                            storages::postgres::TransactionOptions{}, cc);
     TESTPOINT("after_trx_begin", {});
 
-    for (std::size_t i = 0; i < kValuesCount; ++i) {
-      // Disk on CI could be overloaded, so we use a lightweight query.
-      //
-      // pgsql in testsuite works with sockets synchronously.
-      // We use non writing queries to avoid following deadlocks:
-      // 1) python test finished, connection is broken, postgres table is
-      //    write locked
-      // 2) pgsql starts the tables cleanup and hangs on a poll (because of a
-      //    write lock from 1)
-      // 3) C++ driver does an async cleanup and closes the connection
-      // 4) chaos proxy does not get a time slice (because of 2), the socket is
-      //    not closed by postgres, 2) hangs
-      transaction.Execute(cc, kSelectMany);
-    }
+    // Disk on CI could be overloaded, so we use a lightweight query.
+    //
+    // pgsql in testsuite works with sockets synchronously.
+    // We use non writing queries to avoid following deadlocks:
+    // 1) python test finished, connection is broken, postgres table is
+    //    write locked
+    // 2) pgsql starts the tables cleanup and hangs on a poll (because of a
+    //    write lock from 1)
+    // 3) C++ driver does an async cleanup and closes the connection
+    // 4) chaos proxy does not get a time slice (because of 2), the socket is
+    //    not closed by postgres, 2) hangs
+    transaction.Execute(cc, kSelectMany);
 
     TESTPOINT("before_trx_commit", {});
     transaction.Commit();
