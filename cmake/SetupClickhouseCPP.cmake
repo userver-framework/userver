@@ -3,7 +3,7 @@ set(CMAKE_POLICY_DEFAULT_CMP0069 NEW)
 option(USERVER_DOWNLOAD_PACKAGE_CLICKHOUSECPP "Download and setup clickhouse-cpp" ${USERVER_DOWNLOAD_PACKAGES})
 
 if (NOT USERVER_OPEN_SOURCE_BUILD)
-  find_package_required(clickhouse-cpp "yandex-clickhousecpp")
+  find_package_required(clickhouse-cpp "libyandex-clickhousecpp")
 elseif (USERVER_DOWNLOAD_PACKAGE_CLICKHOUSECPP)
   find_package(clickhouse-cpp)
 else()

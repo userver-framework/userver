@@ -16,3 +16,5 @@ includes:
     find:
       - names:
           - clickhouse/block.h
+        path-suffixes:
+          - yandex/clickhouse-cpp
