@@ -73,8 +73,7 @@ services:
     userver-ubuntu:
         image: ghcr.io/userver-framework/ubuntu-userver-build-base:v1
         container_name: userver-ubuntu
-        networks:
-          - none
+        network_mode: none
         environment:
           - CC
           - CXX
