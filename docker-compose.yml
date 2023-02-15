@@ -74,7 +74,7 @@ services:
         image: ghcr.io/userver-framework/ubuntu-userver-build-base:v1
         container_name: userver-ubuntu
         networks:
-          - dockerbridge
+          - none
         environment:
           - CC
           - CXX
