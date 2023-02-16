@@ -10,7 +10,6 @@
 #include <userver/storages/redis/transaction.hpp>
 
 #include "request_data_impl.hpp"
-#include "userver/storages/redis/command_options.hpp"
 
 USERVER_NAMESPACE_BEGIN
 

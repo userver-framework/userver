@@ -5,7 +5,6 @@
 
 #include "request_impl.hpp"
 #include "transaction_impl.hpp"
-#include "userver/storages/redis/command_options.hpp"
 
 USERVER_NAMESPACE_BEGIN
 

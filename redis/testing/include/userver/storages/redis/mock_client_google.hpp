@@ -7,7 +7,6 @@
 #include <userver/utest/utest.hpp>
 
 #include <userver/storages/redis/mock_client_base.hpp>
-#include "userver/storages/redis/command_options.hpp"
 
 USERVER_NAMESPACE_BEGIN
 

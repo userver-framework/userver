@@ -12,7 +12,6 @@
 #include <userver/storages/redis/transaction.hpp>
 
 #include "scan_reply.hpp"
-#include "userver/storages/redis/command_options.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
