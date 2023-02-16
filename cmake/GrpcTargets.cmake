@@ -5,7 +5,25 @@
 if(NOT USERVER_OPEN_SOURCE_BUILD)
   find_program(PROTOBUF_PROTOC NAMES yandex-taxi-protoc protoc)
 else()
+<<<<<<< HEAD
   find_program(PROTOBUF_PROTOC NAMES protoc)
+=======
+  if(NOT Protobuf_FOUND)
+    include(SetupProtobuf)
+  endif()
+  if(Protobuf_INCLUDE_DIR)
+    set(USERVER_PROTOBUF_IMPORT_DIR "${Protobuf_INCLUDE_DIR}")
+  else()
+    set(USERVER_PROTOBUF_IMPORT_DIR "${Protobuf_INCLUDE_DIRS}")
+  endif()
+
+  include(SetupGrpc)
+endif()
+find_program(PROTO_GRPC_CPP_PLUGIN grpc_cpp_plugin)
+
+if (NOT USERVER_PROTOBUF_IMPORT_DIR)
+  message(FATAL_ERROR "Invalid Protobuf package")
+>>>>>>> workaround for UserverGrpc linkage after install
 endif()
 find_program(PROTO_GRPC_CPP_PLUGIN grpc_cpp_plugin)
 
