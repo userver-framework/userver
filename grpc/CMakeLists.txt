@@ -10,6 +10,7 @@ endif()
 
 if(USERVER_OPEN_SOURCE_BUILD)
     find_package(UserverGrpc REQUIRED)
+    #set(INSTALL_GRPC_LIBRARIES_LINK ${UserverGrpc_LIBRARIES})
     find_package(UserverProtobuf REQUIRED)
     add_library(Grpc ALIAS UserverGrpc)  # Unify link names
     add_library(Protobuf ALIAS UserverProtobuf)  # Unify link names
@@ -19,6 +20,7 @@ if(USERVER_OPEN_SOURCE_BUILD)
     endif()
 else()
     find_package(Grpc REQUIRED)
+    #set(INSTALL_GRPC_LIBRARIES_LINK ${Grpc_LIBRARIES})
     find_package(Protobuf REQUIRED)
 
     if (USERVER_FEATURE_GRPC_CHANNELZ)
@@ -60,9 +62,19 @@ target_include_directories(${PROJECT_NAME}
     ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 
-target_link_libraries(${PROJECT_NAME} PUBLIC userver-core Grpc)
+target_link_libraries(${PROJECT_NAME} PUBLIC userver-core)
+
+# TO FIX : stupid workaround for cmake problem that it write UserverGrpc library into install dependency
+target_link_libraries(${PROJECT_NAME} PUBLIC
+  $<BUILD_INTERFACE:UserverGrpc>
+  $<INSTALL_INTERFACE:grpc>
+  $<INSTALL_INTERFACE:grpc++>
+  $<INSTALL_INTERFACE:gpr>
+  $<INSTALL_INTERFACE:absl_synchronization>
+  )
+
 if (USERVER_FEATURE_GRPC_CHANNELZ)
-    target_link_libraries(${PROJECT_NAME} PUBLIC GrpcChannelz)
+    target_link_libraries(${PROJECT_NAME} PRIVATE GrpcChannelz)
 endif()
 
 if (USERVER_IS_THE_ROOT_PROJECT)
