@@ -1,5 +1,6 @@
 #include <userver/utils/statistics/portability_info.hpp>
 
+#include <algorithm>
 #include <string_view>
 #include <unordered_map>
 #include <vector>
