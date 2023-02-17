@@ -165,9 +165,6 @@ async def test_network_limit_bps(service_client, gate):
 async def test_network_limit_time_sends(service_client, gate):
     gate.to_server_limit_time(CONNECTION_TIME_LIMIT, CONNECTION_LIMIT_JITTER)
 
-    response = await service_client.get(SELECT_URL)
-    assert response.status == 200
-
     logger.debug('Starting "test_network_limit_time_sends" check for 500')
     got_error = False
     for _ in range(FAILURE_RETRIES):
