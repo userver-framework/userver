@@ -119,6 +119,38 @@ TEST(TrivialBiMap, StaticConstexprContainsLocalType) {
   EXPECT_FALSE(kKnownTwos.Contains(IntsPair{9, 0}));
 }
 
+TEST(TrivialBiMap, StringToString) {
+  static constexpr utils::TrivialBiMap kEnglishToGerman = [](auto selector) {
+    return selector()
+        .Case("zero", "null")
+        .Case("one", "eins")
+        .Case("two", "zwei")
+        .Case("three", "drei");
+  };
+
+  EXPECT_EQ(*kEnglishToGerman.TryFindByFirst("zero"), "null");
+  EXPECT_EQ(*kEnglishToGerman.TryFindICaseByFirst("ZeRo"), "null");
+  EXPECT_EQ(*kEnglishToGerman.TryFindICaseByFirst("three"), "drei");
+  EXPECT_EQ(*kEnglishToGerman.TryFindICaseByFirst("Three"), "drei");
+
+  EXPECT_EQ(*kEnglishToGerman.TryFindBySecond("null"), "zero");
+  EXPECT_EQ(*kEnglishToGerman.TryFindICaseBySecond("NULL"), "zero");
+  EXPECT_EQ(*kEnglishToGerman.TryFindICaseBySecond("DrEi"), "three");
+  EXPECT_EQ(*kEnglishToGerman.TryFindICaseBySecond("Drei"), "three");
+}
+
+TEST(TrivialBiMap, FindICaseBySecond) {
+  static constexpr utils::TrivialBiMap kNumToGerman = [](auto selector) {
+    return selector().Case(0, "null").Case(1, "eins").Case(2, "zwei").Case(
+        3, "drei");
+  };
+
+  EXPECT_EQ(*kNumToGerman.TryFind("null"), 0);
+  EXPECT_EQ(*kNumToGerman.TryFindICase("NULL"), 0);
+  EXPECT_EQ(*kNumToGerman.TryFindICase("DrEi"), 3);
+  EXPECT_EQ(*kNumToGerman.TryFindICase("Drei"), 3);
+}
+
 constexpr utils::TrivialBiMap kICaseCheck = [](auto selector) {
   return selector()
       .Case("qwertyuiop[]asdfghjkl;'zxcvbnm,./`1234567890-=+_)(*&^%$#@!~==1", 1)

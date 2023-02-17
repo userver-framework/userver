@@ -141,6 +141,34 @@ class SwitchByFirstICase<void> final {
   bool found_{false};
 };
 
+template <typename First>
+class SwitchBySecondICase final {
+ public:
+  constexpr explicit SwitchBySecondICase(std::string_view search) noexcept
+      : search_(search) {}
+
+  constexpr SwitchBySecondICase& Case(First first,
+                                      std::string_view second) noexcept {
+    UASSERT_MSG(!impl::HasUppercaseAscii(second),
+                fmt::format("String literal '{}' in utils::Switch*::Case() "
+                            "should be in lower case",
+                            second));
+    if (!result_ && search_.size() == second.size() &&
+        impl::ICaseEqualLowercase(second, search_)) {
+      result_.emplace(first);
+    }
+    return *this;
+  }
+
+  [[nodiscard]] constexpr std::optional<First> Extract() noexcept {
+    return result_;
+  }
+
+ private:
+  const std::string_view search_;
+  std::optional<First> result_{};
+};
+
 template <typename First, typename Second>
 class SwitchBySecond final {
  public:
@@ -328,6 +356,12 @@ class TrivialBiMap final {
   using First = typename TypesPair::first_type;
   using Second = typename TypesPair::second_type;
 
+  /// Returns Second if T is convertible to First, otherwise returns Second
+  /// type.
+  template <class T>
+  using MappedTypeFor =
+      std::conditional_t<std::is_convertible_v<T, First>, Second, First>;
+
   constexpr TrivialBiMap(BuilderFunc&& func) noexcept : func_(std::move(func)) {
     static_assert(std::is_empty_v<BuilderFunc>,
                   "Mapping function should not capture variables");
@@ -353,9 +387,7 @@ class TrivialBiMap final {
   }
 
   template <class T>
-  constexpr auto TryFind(T value) const noexcept
-      -> std::conditional_t<std::is_convertible_v<T, First>,
-                            std::optional<Second>, std::optional<First>> {
+  constexpr std::optional<MappedTypeFor<T>> TryFind(T value) const noexcept {
     static_assert(
         !std::is_convertible_v<T, First> || !std::is_convertible_v<T, Second>,
         "Ambiguous conversion, use TryFindByFirst/TryFindBySecond instead");
@@ -371,18 +403,39 @@ class TrivialBiMap final {
   ///
   /// For efficiency reasons, first parameter in Case() should be lower case
   /// string literal.
-  constexpr std::conditional_t<std::is_convertible_v<std::string_view, First>,
-                               std::optional<Second>, std::optional<First>>
-  TryFindICase(std::string_view value) const noexcept {
-    static_assert(!std::is_convertible_v<std::string_view, First> ||
-                      !std::is_convertible_v<std::string_view, Second>,
-                  "Ambiguous conversion. TODO: implement "
-                  "TryFindByFirstICase/TryFindBySecondICase");
-
+  constexpr std::optional<Second> TryFindICaseByFirst(
+      std::string_view value) const noexcept {
     return func_([value]() { return impl::SwitchByFirstICase<Second>{value}; })
         .Extract();
   }
 
+  /// @brief Case insensitive search for value.
+  ///
+  /// For efficiency reasons, second parameter in Case() should be lower case
+  /// string literal.
+  constexpr std::optional<First> TryFindICaseBySecond(
+      std::string_view value) const noexcept {
+    return func_([value]() { return impl::SwitchBySecondICase<First>{value}; })
+        .Extract();
+  }
+
+  /// @brief Case insensitive search for value that calls either
+  /// TryFindICaseBySecond or TryFindICaseByFirst.
+  constexpr std::optional<MappedTypeFor<std::string_view>> TryFindICase(
+      std::string_view value) const noexcept {
+    static_assert(!std::is_convertible_v<std::string_view, First> ||
+                      !std::is_convertible_v<std::string_view, Second>,
+                  "Ambiguous conversion, use "
+                  "TryFindICaseByFirst/TryFindICaseBySecond");
+
+    if constexpr (std::is_convertible_v<std::string_view, First>) {
+      return TryFindICaseByFirst(value);
+    } else {
+      return TryFindICaseBySecond(value);
+    }
+  }
+
+  /// Retuns count of Case's in mapping
   constexpr std::size_t size() const noexcept {
     return func_([]() { return impl::CaseCounter{}; }).Extract();
   }
