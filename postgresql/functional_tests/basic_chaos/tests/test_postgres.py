@@ -65,14 +65,8 @@ async def test_pg_congestion_control(service_client, gate):
     # /// [test cc]
 
 
-@pytest.mark.skip
-@pytest.mark.config(
-    POSTGRES_CONNECTION_SETTINGS={
-        'key-value-database': {'recent-errors-threshold': 10000},
-    },
-)
 async def test_close_to_client_limit(service_client, gate):
-    for i in range(1000, 2500):
+    for i in range(100, 250, 50):
         gate.to_client_limit_bytes(i)
         response = await service_client.get(SELECT_SMALL_TIMEOUT_URL)
         assert response.status == 500, i
@@ -81,14 +75,8 @@ async def test_close_to_client_limit(service_client, gate):
     await _check_that_restores(service_client, gate)
 
 
-@pytest.mark.skip
-@pytest.mark.config(
-    POSTGRES_CONNECTION_SETTINGS={
-        'key-value-database': {'recent-errors-threshold': 10000},
-    },
-)
 async def test_close_to_server_limit(service_client, gate):
-    for i in range(2000):
+    for i in range(100, 250, 50):
         gate.to_server_limit_bytes(i)
         response = await service_client.get(SELECT_SMALL_TIMEOUT_URL)
         assert response.status == 500

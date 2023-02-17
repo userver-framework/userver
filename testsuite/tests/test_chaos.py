@@ -1,6 +1,7 @@
 import asyncio
 import errno
 import fcntl
+import logging
 import os
 import socket
 import time
@@ -11,6 +12,9 @@ from pytest_userver import chaos  # pylint: disable=import-error
 
 
 _NOTICEABLE_DELAY = 0.5
+
+
+logger = logging.getLogger(__name__)
 
 
 def _has_data(recv_socket: socket.socket) -> bool:
@@ -32,18 +36,24 @@ def _make_nonblocking(sock: socket.socket) -> None:
 async def _assert_data_from_to(
         sock_from: socket.socket, sock_to: socket.socket, loop,
 ) -> None:
+    logger.debug('_assert_data_from_to sendall to %s', sock_from.getsockname())
     expected = b'pong_' + uuid.uuid4().bytes
     await loop.sock_sendall(sock_from, expected)
+    logger.debug('_assert_data_from_to recv from %s', sock_to.getsockname())
     data = await loop.sock_recv(sock_to, len(expected))
     assert data == expected
+    logger.debug('_assert_data_from_to done')
 
 
 async def _assert_connection_dead(sock: socket.socket, loop) -> None:
     try:
+        logger.debug('_assert_connection_dead starting')
         data = await loop.sock_recv(sock, 1)
         assert not data
     except ConnectionResetError:
         pass
+    finally:
+        logger.debug('_assert_connection_dead done')
 
 
 async def _make_client(loop, gate: chaos.TcpGate):
