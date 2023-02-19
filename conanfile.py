@@ -1,12 +1,8 @@
 # pylint: disable=no-member
 
 from conan import ConanFile
-from conan.errors import ConanInvalidConfiguration
-from conan.tools.build import cross_building
 from conan.tools.cmake import CMake, CMakeDeps, CMakeToolchain, cmake_layout
-from conan.tools.env import VirtualBuildEnv, VirtualRunEnv
-from conan.tools.files import apply_conandata_patches, collect_libs, copy, export_conandata_patches, get, rename, replace_in_file, rmdir, save
-from conan.tools.microsoft import is_msvc, is_msvc_static_runtime
+from conan.tools.files import copy
 
 import os
 
