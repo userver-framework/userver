@@ -180,16 +180,22 @@ class UserverConan(ConanFile):
             copy(self, pattern='*', dst=os.path.join(self.package_folder, "include"), src=os.path.join(self.source_folder, "grpc", "include"), keep_path=True)
             copy(self, pattern='*.a', dst=os.path.join(self.package_folder, "lib"), src=os.path.join(self._build_subfolder,'grpc'), keep_path=False)
             copy(self, pattern='*.so', dst=os.path.join(self.package_folder, "lib"), src=os.path.join(self._build_subfolder, 'grpc'), keep_path=False)
+            copy(self,
+                pattern='GrpcTargets.cmake',
+                dst=os.path.join(self.package_folder, "cmake"),
+                src=os.path.join(self.source_folder, "cmake"),
+                keep_path=True,
+            )
         if self.options.with_utest:
-            self.copy(pattern='*', dst=os.path.join(self.package_folder, "include"), src=os.path.join(self.source_folder, "core", "testing", "include"), keep_path=True)
-            self.copy(pattern='*', dst=os.path.join(self.package_folder, "testsuite"), src='testsuite', keep_path=True)
-            self.copy(
+            copy(self, pattern='*', dst=os.path.join(self.package_folder, "include"), src=os.path.join(self.source_folder, "core", "testing", "include"), keep_path=True)
+            copy(self, pattern='*', dst=os.path.join(self.package_folder, "testsuite"), src='testsuite', keep_path=True)
+            copy(self, 
                 pattern='UserverTestsuite.cmake',
                 dst=os.path.join(self.package_folder, "cmake"),
                 src=os.path.join(self.source_folder, "cmake"),
                 keep_path=True,
             )
-            self.copy(
+            copy(self, 
                 pattern='AddGoogleTests.cmake',
                 dst=os.path.join(self.package_folder, "cmake"),
                 src=os.path.join(self.source_folder, "cmake"),
@@ -343,6 +349,9 @@ class UserverConan(ConanFile):
             os.path.join(self._cmake_subfolder, "AddGoogleTests.cmake"),
             os.path.join(self._cmake_subfolder, "UserverTestsuite.cmake")
         ]
+        if self.options.with_grpc:
+            build_modules.append(os.path.join(self._cmake_subfolder, "GrpcTargets.cmake"))
+
         self.cpp_info.set_property("cmake_build_modules", build_modules)
 
         self.cpp_info.filenames["cmake_find_package"] = "userver"
