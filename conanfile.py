@@ -169,63 +169,51 @@ class UserverConan(ConanFile):
     def package(self):
         self.copy(pattern='LICENSE', dst='licenses')
 
-        self.copy(
-            pattern='*', dst='include', src='core/include', keep_path=True,
-        )
-        self.copy(
-            pattern='*', dst='include', src='shared/include', keep_path=True,
-        )
-        print(self._build_subfolder)
+        copy(self, pattern='*', dst=os.path.join(self.package_folder, "include"), src=os.path.join(self.source_folder, "core", "include"), keep_path=True)
+        copy(self, pattern='*', dst=os.path.join(self.package_folder, "include"), src=os.path.join(self.source_folder, "shared", "include"), keep_path=True)
 
         if self.options.with_universal:
-            copy(self, pattern='*', dst='include', src='universal/include', keep_path=True)
+            copy(self, pattern='*', dst=os.path.join(self.package_folder, "include"), src=os.path.join(self.source_folder, "univesal", "include"), keep_path=True)
             copy(self, pattern='*.a', dst=os.path.join(self.package_folder, "lib"), src=os.path.join(self._build_subfolder,'universal'), keep_path=False)
             copy(self, pattern='*.so', dst=os.path.join(self.package_folder, "lib"), src=os.path.join(self._build_subfolder, 'universal'), keep_path=False)
         if self.options.with_grpc:
-            copy(self, pattern='*', dst='include', src='grpc/include', keep_path=True)
+            copy(self, pattern='*', dst=os.path.join(self.package_folder, "include"), src=os.path.join(self.source_folder, "grpc", "include"), keep_path=True)
             copy(self, pattern='*.a', dst=os.path.join(self.package_folder, "lib"), src=os.path.join(self._build_subfolder,'grpc'), keep_path=False)
             copy(self, pattern='*.so', dst=os.path.join(self.package_folder, "lib"), src=os.path.join(self._build_subfolder, 'grpc'), keep_path=False)
         if self.options.with_utest:
-            self.copy(
-                pattern='*',
-                dst='include',
-                src='core/testing/include',
-                keep_path=True,
-            )
-            self.copy(
-                pattern='*', dst='testsuite', src='testsuite', keep_path=True,
-            )
+            self.copy(pattern='*', dst=os.path.join(self.package_folder, "include"), src=os.path.join(self.source_folder, "core", "testing", "include"), keep_path=True)
+            self.copy(pattern='*', dst=os.path.join(self.package_folder, "testsuite"), src='testsuite', keep_path=True)
             self.copy(
                 pattern='UserverTestsuite.cmake',
-                dst='cmake',
-                src='cmake',
+                dst=os.path.join(self.package_folder, "cmake"),
+                src=os.path.join(self.source_folder, "cmake"),
                 keep_path=True,
             )
             self.copy(
                 pattern='AddGoogleTests.cmake',
-                dst='cmake',
-                src='cmake',
+                dst=os.path.join(self.package_folder, "cmake"),
+                src=os.path.join(self.source_folder, "cmake"),
                 keep_path=True,
             )
         if self.options.with_postgresql:
-            copy(self, pattern='*', dst='include', src='postgresql/include', keep_path=True)
+            copy(self, pattern='*', dst=os.path.join(self.package_folder, "include"), src=os.path.join(self.source_folder, "postgresql", "include"), keep_path=True)
             copy(self, pattern='*.a', dst=os.path.join(self.package_folder, "lib"), src=os.path.join(self._build_subfolder,'postgresql'), keep_path=False)
             copy(self, pattern='*.so', dst=os.path.join(self.package_folder, "lib"), src=os.path.join(self._build_subfolder, 'postgresql'), keep_path=False)
 
         if self.options.with_mongodb:
-            copy(self, pattern='*', dst='include', src='mongo/include', keep_path=True)
+            copy(self, pattern='*', dst=os.path.join(self.package_folder, "include"), src=os.path.join(self.source_folder, "mongo", "include"), keep_path=True)
             copy(self, pattern='*.a', dst=os.path.join(self.package_folder, "lib"), src=os.path.join(self._build_subfolder,'mongo'), keep_path=False)
             copy(self, pattern='*.so', dst=os.path.join(self.package_folder, "lib"), src=os.path.join(self._build_subfolder, 'mongo'), keep_path=False)
         if self.options.with_redis:
-            copy(self, pattern='*', dst='include', src='redis/include', keep_path=True)
+            copy(self, pattern='*', dst=os.path.join(self.package_folder, "include"), src=os.path.join(self.source_folder, "redis", "include"), keep_path=True)
             copy(self, pattern='*.a', dst=os.path.join(self.package_folder, "lib"), src=os.path.join(self._build_subfolder,'redis'), keep_path=False)
             copy(self, pattern='*.so', dst=os.path.join(self.package_folder, "lib"), src=os.path.join(self._build_subfolder, 'redis'), keep_path=False)
         if self.options.with_rabbitmq:
-            copy(self, pattern='*', dst='include', src='rabbitmq/include', keep_path=True)
+            copy(self, pattern='*', dst=os.path.join(self.package_folder, "include"), src=os.path.join(self.source_folder, "rabbitmq", "include"), keep_path=True)
             copy(self, pattern='*.a', dst=os.path.join(self.package_folder, "lib"), src=os.path.join(self._build_subfolder,'rabbitmq'), keep_path=False)
             copy(self, pattern='*.so', dst=os.path.join(self.package_folder, "lib"), src=os.path.join(self._build_subfolder, 'rabbitmq'), keep_path=False)
         if self.options.with_clickhouse:
-            copy(self, pattern='*', dst='include', src='clickhouse/include', keep_path=True)
+            copy(self, pattern='*', dst=os.path.join(self.package_folder, "include"), src=os.path.join(self.source_folder, "clickhouse", "include"), keep_path=True)
             copy(self, pattern='*.a', dst=os.path.join(self.package_folder, "lib"), src=os.path.join(self._build_subfolder,'clickhouse'), keep_path=False)
             copy(self, pattern='*.so', dst=os.path.join(self.package_folder, "lib"), src=os.path.join(self._build_subfolder, 'clickhouse'), keep_path=False)
 
