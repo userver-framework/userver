@@ -167,7 +167,7 @@ if (USERVER_CONAN)
         concurrentqueue::concurrentqueue
         Boost::stacktrace
       PRIVATE
-        cryptopp-static
+        cryptopp::cryptopp
         http_parser::http_parser
         libev::libev
 		libnghttp2::nghttp2

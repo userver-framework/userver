@@ -154,7 +154,7 @@ if (USERVER_CONAN)
       cctz::cctz
       Boost::stacktrace
     PRIVATE
-      cryptopp-static
+      cryptopp::cryptopp
       rapidjson
   )
 else()

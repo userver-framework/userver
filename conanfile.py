@@ -90,10 +90,10 @@ class UserverConan(ConanFile):
     def requirements(self):
         self.requires('boost/1.79.0')
         self.requires('c-ares/1.18.1')
+        self.requires('libcurl/7.86.0')
+        self.requires('cryptopp/8.7.0')
+        self.requires('yaml-cpp/0.7.0')
         self.requires('cctz/2.3')
-        self.requires('concurrentqueue/1.0.3')
-        self.requires('cryptopp/8.6.0')
-        self.requires('fmt/8.1.1')
         self.requires('http_parser/2.9.4')
         self.requires('libcurl/7.86.0')
         self.requires('libev/4.33')
