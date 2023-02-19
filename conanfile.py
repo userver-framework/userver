@@ -241,9 +241,12 @@ class UserverConan(ConanFile):
 
         def grpc():
             return ["grpc::grpc"] if self.options.with_grpc else []
-
         def fmt():
             return ["fmt::fmt"]
+        def curl():
+            return ["libcurl::libcurl"]
+        def cryptopp():
+            return ["cryptopp::cryptopp"]
         def cctz():
             return ["cctz::cctz"]
         def boost():
@@ -256,6 +259,8 @@ class UserverConan(ConanFile):
             return ["libev::libev"]
         def http_parser():
             return ["http_parser::http_parser"]    
+        def jemalloc():
+            return ["jemalloc::jemalloc"] if self.options.with_jemalloc else []
         def grpc():
             return ["grpc::grpc"] if self.options.with_grpc else []
         def postgresql():
@@ -265,15 +270,15 @@ class UserverConan(ConanFile):
         def benchmark():
             return ["benchmark::benchmark"] if self.options.with_utest else []            
         def mongo():
-            return ["mongo::mongoc_static"] if self.options.with_mongodb else []                                    
+            return ["mongo-c-driver::mongo-c-driver"] if self.options.with_mongodb else []                                    
         def hiredis():
             return ["hiredis::hiredis"] if self.options.with_redis else []
         def amqpcpp():
-            return ["amqpcpp"] if self.options.with_rabbitmq else []  
+            return ["amqp-cpp::amqp-cpp"] if self.options.with_rabbitmq else []  
 
         userver_components = [
             {"target": "userver-core-internal",       "lib": "core-internal",       "requires": [] },
-            {"target": "userver-core",       "lib": "core",       "requires": ["userver-core-internal"] + fmt() + cctz() + boost() + concurrentqueue() + yaml() + libev() + http_parser() }
+            {"target": "userver-core",       "lib": "core",       "requires": ["userver-core-internal"] + fmt() + cctz() + boost() + concurrentqueue() + yaml() + libev() + http_parser() + curl() + cryptopp() + jemalloc() }
         ]
         if self.options.with_universal:
             userver_components.extend([
@@ -301,10 +306,10 @@ class UserverConan(ConanFile):
             userver_components.extend([
                 {"target": "userver-redis", "lib": "redis", "requires": ["userver-core"] + hiredis() }
             ])       
-        # if self.options.with_rabbitmq:
-        #     userver_components.extend([
-        #         {"target": "userver-rabbitmq", "lib": "rabbitmq", "requires": ["userver-core"] + amqpcpp() }
-        #     ])                                            
+        if self.options.with_rabbitmq:
+            userver_components.extend([
+                {"target": "userver-rabbitmq", "lib": "rabbitmq", "requires": ["userver-core"] + amqpcpp() }
+            ])                                            
         return userver_components 
 
 
