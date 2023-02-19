@@ -22,3 +22,23 @@ add_executable(${PROJECT_NAME}_ubench test_ubench.cpp)
 
 target_link_libraries(${PROJECT_NAME}_ubench ${PROJECT_NAME}_objs userver-ubench)
 add_google_benchmark_tests(${PROJECT_NAME}_ubench)
+
+add_executable(${PROJECT_NAME}_postgresql test_postgresql.cpp)
+
+target_link_libraries(${PROJECT_NAME}_postgresql ${PROJECT_NAME}_objs userver-postgresql)
+
+add_executable(${PROJECT_NAME}_redis test_redis.cpp)
+
+target_link_libraries(${PROJECT_NAME}_redis ${PROJECT_NAME}_objs userver-redis)
+
+add_executable(${PROJECT_NAME}_rabbitmq test_rabbitmq.cpp)
+
+target_link_libraries(${PROJECT_NAME}_rabbitmq ${PROJECT_NAME}_objs userver-rabbitmq)
+
+add_executable(${PROJECT_NAME}_grpc test_grpc.cpp)
+
+target_link_libraries(${PROJECT_NAME}_grpc ${PROJECT_NAME}_objs userver-grpc)
+
+add_executable(${PROJECT_NAME}_mongo test_mongo.cpp)
+
+target_link_libraries(${PROJECT_NAME}_mongo ${PROJECT_NAME}_objs userver-mongo)
