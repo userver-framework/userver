@@ -5,7 +5,6 @@
 #include <userver/clients/http/component.hpp>
 #include <userver/server/handlers/tests_control.hpp>
 #include <userver/testsuite/testsuite_support.hpp>
-#include <userver/storages/redis/component.hpp>
 #include <userver/ugrpc/server/server_component.hpp>
 
 #include "hello.hpp"
