@@ -3,9 +3,22 @@ project(PackageTest CXX)
 
 find_package(userver REQUIRED)
 
+add_library(${PROJECT_NAME}_objs OBJECT
+    hello.hpp
+    hello.cpp
+)
+target_link_libraries(${PROJECT_NAME}_objs PUBLIC userver-core)
 
-add_executable(hello_service hello_service.cpp)
-set_property(TARGET hello_service PROPERTY CXX_STANDARD 17)
+add_executable(${PROJECT_NAME}_core test_core.cpp)
 
+target_link_libraries(${PROJECT_NAME}_core ${PROJECT_NAME}_objs userver-utest)
 
-target_link_libraries(hello_service PRIVATE userver-core)
+add_executable(${PROJECT_NAME}_utest test_utest.cpp)
+
+target_link_libraries(${PROJECT_NAME}_utest ${PROJECT_NAME}_objs userver-utest)
+add_google_tests(${PROJECT_NAME}_utest)
+
+add_executable(${PROJECT_NAME}_ubench test_ubench.cpp)
+
+target_link_libraries(${PROJECT_NAME}_ubench ${PROJECT_NAME}_objs userver-ubench)
+add_google_benchmark_tests(${PROJECT_NAME}_ubench)

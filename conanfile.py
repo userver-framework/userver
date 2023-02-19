@@ -239,8 +239,8 @@ class UserverConan(ConanFile):
     @property
     def _userver_components(self):
 
-        def grpc():
-            return ["grpc::grpc"] if self.options.with_grpc else []
+        def ares():
+            return ["c-ares::c-ares"]
         def fmt():
             return ["fmt::fmt"]
         def curl():
@@ -278,7 +278,7 @@ class UserverConan(ConanFile):
 
         userver_components = [
             {"target": "userver-core-internal",       "lib": "core-internal",       "requires": [] },
-            {"target": "userver-core",       "lib": "core",       "requires": ["userver-core-internal"] + fmt() + cctz() + boost() + concurrentqueue() + yaml() + libev() + http_parser() + curl() + cryptopp() + jemalloc() }
+            {"target": "userver-core",       "lib": "core",       "requires": ["userver-core-internal"] + fmt() + cctz() + boost() + concurrentqueue() + yaml() + libev() + http_parser() + curl() + cryptopp() + jemalloc() + ares() }
         ]
         if self.options.with_universal:
             userver_components.extend([
@@ -339,15 +339,6 @@ class UserverConan(ConanFile):
                 self.cpp_info.components[conan_component].names["cmake_find_package_multi"] = cmake_target
 
                 self.cpp_info.components[conan_component].requires = requires
-
-                if cmake_component != cmake_target:
-                    conan_component_alias = conan_component + "_alias"
-                    self.cpp_info.components[conan_component_alias].names["cmake_find_package"] = cmake_component
-                    self.cpp_info.components[conan_component_alias].names["cmake_find_package_multi"] = cmake_component
-                    self.cpp_info.components[conan_component_alias].requires = [conan_component]
-                    self.cpp_info.components[conan_component_alias].bindirs = []
-                    self.cpp_info.components[conan_component_alias].includedirs = []
-                    self.cpp_info.components[conan_component_alias].libdirs = []
 
 
         self.cpp_info.components["userver-core-internal"].defines.append(
