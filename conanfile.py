@@ -154,6 +154,7 @@ class UserverConan(ConanFile):
         tc.variables['USERVER_FEATURE_UNIVERSAL'] = self.options.with_universal
         tc.variables['USERVER_FEATURE_RABBITMQ'] = self.options.with_rabbitmq
         tc.variables['USERVER_FEATURE_UTEST'] = self.options.with_utest
+        tc.variables['USERVER_FEATURE_TESTSUITE'] = self.options.with_utest
 
         tc.generate()
 
@@ -163,6 +164,11 @@ class UserverConan(ConanFile):
         cmake = CMake(self)
         cmake.configure()
         cmake.build()
+
+    @property
+    def _cmake_subfolder(self):
+        return os.path.join(self.package_folder, 'cmake')
+
 
     def package(self):
         self.copy(pattern='LICENSE', dst='licenses')
@@ -287,10 +293,10 @@ class UserverConan(ConanFile):
             userver_components.extend([
                 {"target": "userver-postgresql", "lib": "postgresql", "requires": ["userver-core"] + postgresql() }
             ])
-        # if self.options.with_mongodb:
-        #     userver_components.extend([
-        #         {"target": "userver-mongo", "lib": "mongo", "requires": ["userver-core"] + mongo() }
-        #     ])
+        if self.options.with_mongodb:
+            userver_components.extend([
+                {"target": "userver-mongo", "lib": "mongo", "requires": ["userver-core"] + mongo() }
+            ])
         if self.options.with_redis:
             userver_components.extend([
                 {"target": "userver-redis", "lib": "redis", "requires": ["userver-core"] + hiredis() }
@@ -303,8 +309,7 @@ class UserverConan(ConanFile):
 
 
     def package_info(self):
-        print(self.folders)
-      #  self.cpp_info.libs = conans.tools.collect_libs(self)
+
         debug = "d" if self.settings.build_type == "Debug" and self.settings.os == "Windows" else ""
 
         def get_lib_name(module):
@@ -327,11 +332,9 @@ class UserverConan(ConanFile):
                 # TODO: to remove in conan v2 once cmake_find_package* generators removed
                 self.cpp_info.components[conan_component].names["cmake_find_package"] = cmake_target
                 self.cpp_info.components[conan_component].names["cmake_find_package_multi"] = cmake_target
-                print(self.cpp_info.components[conan_component].requires)
-                print(requires)
+
                 self.cpp_info.components[conan_component].requires = requires
-             #   self.cpp_info.components[conan_component].build_modules["cmake_find_package"] = [self._module_file_rel_path]
-             #   self.cpp_info.components[conan_component].build_modules["cmake_find_package_multi"] = [self._module_file_rel_path]
+
                 if cmake_component != cmake_target:
                     conan_component_alias = conan_component + "_alias"
                     self.cpp_info.components[conan_component_alias].names["cmake_find_package"] = cmake_component
@@ -340,6 +343,7 @@ class UserverConan(ConanFile):
                     self.cpp_info.components[conan_component_alias].bindirs = []
                     self.cpp_info.components[conan_component_alias].includedirs = []
                     self.cpp_info.components[conan_component_alias].libdirs = []
+
 
         self.cpp_info.components["userver-core-internal"].defines.append(
             f'USERVER_NAMESPACE={self.options.namespace}',
@@ -354,35 +358,15 @@ class UserverConan(ConanFile):
         self.cpp_info.set_property("cmake_file_name", "userver") 
 
         add_components(self._userver_components)
-        #self.cpp_info.components["core"].set_property("cmake_target_name", "userver-core")
-        #self.cpp_info.components["core"].libs = ["userver-core", "userver-core-internal"]
 
-        # self.cpp_info.components["universal"].set_property("cmake_target_name", "userver-universal")
-        # self.cpp_info.components["universal"].libs = ["userver-universal"]
-
-        # if self.options.with_grpc:
-        #     self.cpp_info.components["grpc"].set_property("cmake_target_name", "userver-grpc")
-        #     self.cpp_info.components["grpc"].libs = ["userver-grpc"]
-
-        # if self.options.with_utest:
-        #     self.cpp_info.components["utest"].set_property("cmake_target_name", "userver-utest")
-        #     self.cpp_info.components["utest"].libs = ["userver-utest"]
-        
-        # if self.options.with_postgresql:
-        #     self.cpp_info.components["postgresql"].set_property("cmake_target_name", "userver-postgresql")
-        #     self.cpp_info.components["postgresql"].libs = ["userver-postgresql"]
-            
-        # if self.options.with_mongodb:
-        #     self.cpp_info.components["mongo"].set_property("cmake_target_name", "userver-mongo")
-        #     self.cpp_info.components["mongo"].libs = ["userver-mongo"]
-
-        # if self.options.with_redis:
-        #     self.cpp_info.components["redis"].set_property("cmake_target_name", "userver-redis")
-        #     self.cpp_info.components["redis"].libs = ["userver-redis"]
-
-        # if self.options.with_rabbitmq:
-        #     self.cpp_info.components["rabbitmq"].set_property("cmake_target_name", "userver-rabbitmq")
-        #     self.cpp_info.components["rabbitmq"].libs = ["userver-rabbitmq"]
+        build_modules = [
+            os.path.join(self._cmake_subfolder, "AddGoogleTests.cmake"),
+            os.path.join(self._cmake_subfolder, "UserverTestsuite.cmake")
+        ]
+        self.cpp_info.set_property("cmake_build_modules", build_modules)
 
         self.cpp_info.filenames["cmake_find_package"] = "userver"
         self.cpp_info.filenames["cmake_find_package_multi"] = "userver"
+
+        for generator in ["cmake_find_package", "cmake_find_package_multi"]:
+            self.cpp_info.components["userver-utest"].build_modules[generator] = build_modules
