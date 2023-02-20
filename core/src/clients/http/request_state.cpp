@@ -867,12 +867,17 @@ void RequestState::ResolveTargetAddress(clients::dns::Resolver& resolver) {
     target.SetUrl(easy().get_original_url().c_str());
   }
 
-  const auto addrs = resolver.Resolve(target.GetHostPtr().get(), deadline);
+  const std::string hostname = target.GetHostPtr().get();
+
+  // CURLOPT_RESOLV hostnames cannot contain colons (as IPv6 addresses do), skip
+  if (hostname.find(':') != std::string::npos) return;
+
+  const auto addrs = resolver.Resolve(hostname, deadline);
   auto addr_strings =
       addrs | boost::adaptors::transformed(
                   [](const auto& addr) { return addr.PrimaryAddressString(); });
 
-  easy().add_resolve(target.GetHostPtr().get(), target.GetPortPtr().get(),
+  easy().add_resolve(hostname, target.GetPortPtr().get(),
                      fmt::to_string(fmt::join(addr_strings, ",")));
 }
 

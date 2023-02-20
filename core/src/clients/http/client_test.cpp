@@ -1295,6 +1295,28 @@ UTEST(HttpClient, UsingResolver) {
   EXPECT_EQ(res->body(), kTestData);
 }
 
+UTEST(HttpClient, UsingResolverWithIpv6Addrs) {
+  const utest::SimpleServer http_server{EchoCallback{},
+                                        utest::SimpleServer::kTcpIpV6};
+
+  ResolverWrapper resolver_wrapper;
+  auto http_client_ptr =
+      utest::CreateHttpClient(resolver_wrapper.fs_task_processor);
+  http_client_ptr->SetDnsResolver(&resolver_wrapper.resolver);
+
+  const auto server_url =
+      "http://[::1]:" + std::to_string(http_server.GetPort());
+  auto request = http_client_ptr->CreateRequest()
+                     ->post(server_url, kTestData)
+                     ->retry(1)
+                     ->verify(true)
+                     ->http_version(clients::http::HttpVersion::k11)
+                     ->timeout(kTimeout);
+
+  auto res = request->perform();
+  EXPECT_EQ(res->body(), kTestData);
+}
+
 UTEST(HttpClient, RequestReuseBasic) {
   EchoCallback shared_echo_callback;
   const utest::SimpleServer http_server{shared_echo_callback,
