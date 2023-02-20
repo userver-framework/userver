@@ -140,6 +140,14 @@ std::string MakeUrl(
   return MakeUrl(path, query_args.begin(), query_args.end());
 }
 
+std::string MakeUrl(std::string_view path, const Args& query_args,
+                    MultiArgs query_multiargs) {
+  for (const auto& [key, value] : query_args) {
+    query_multiargs.insert({key, value});
+  }
+  return MakeUrl(path, query_multiargs.begin(), query_multiargs.end());
+}
+
 std::string MakeUrl(
     std::string_view path,
     std::initializer_list<std::pair<std::string_view, std::string_view>>

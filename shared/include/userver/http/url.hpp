@@ -3,6 +3,7 @@
 /// @file userver/http/url.hpp
 /// @brief URL manipulation functions
 
+#include <map>
 #include <string>
 #include <string_view>
 #include <unordered_map>
@@ -21,6 +22,7 @@ UrlDecode(std::string_view range);
 std::string UrlEncode(std::string_view input_string);
 
 using Args = std::unordered_map<std::string, std::string, utils::StrCaseHash>;
+using MultiArgs = std::multimap<std::string, std::string>;
 
 /// @brief Make an URL query
 std::string MakeQuery(const Args& query_args);
@@ -41,6 +43,10 @@ std::string MakeUrl(std::string_view path, const Args& query_args);
 std::string MakeUrl(
     std::string_view path,
     const std::unordered_map<std::string, std::string>& query_args);
+
+/// @brief Make an URL with query arguments
+std::string MakeUrl(std::string_view path, const Args& query_args,
+                    MultiArgs query_multiargs);
 
 /// @brief Make an URL with query arguments
 std::string MakeUrl(
