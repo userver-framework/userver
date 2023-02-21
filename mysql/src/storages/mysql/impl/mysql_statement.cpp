@@ -342,11 +342,16 @@ bool MySQLStatementFetcher::FetchResult(io::ExtractorBase& extractor) {
       }
       extractor.CommitLastRow();
       // With this we make OutputBinder operate on MYSQL_BIND array stored in
-      // statement. sizeof(MYSQL_BIND) = 112 in 64bit mode, and without this
+      // statement.
+      // sizeof(MYSQL_BIND) = 112 in 64bit mode, and without this
       // trickery we would have to copy the whole array for each column with
       // mysql_stst_bind_result, and for say 10 columns and 10^6 rows that
       // accounts for 10 * 112 * 10^6 ~= 1Gb of memcpy (and 10^6 rows of 10 ints
       // is only about 40Mb)
+      //
+      // There's no API to access the field, but it surely isn't going anywhere,
+      // so we access it directly.
+      // https://jira.mariadb.org/browse/CONC-620
       extractor.UpdateBinds(statement_->native_statement_->bind);
     }
 
