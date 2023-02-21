@@ -16,10 +16,9 @@ Server::Server(const components::ComponentConfig& component_config,
           component_config.As<server::ServerConfig>(), component_context)) {
   auto& statistics_storage =
       component_context.FindComponent<StatisticsStorage>().GetStorage();
-  server_statistics_holder_ = statistics_storage.RegisterExtender(
-      "server", [this](const utils::statistics::StatisticsRequest& request) {
-        return ExtendStatistics(request);
-      });
+  server_statistics_holder_ = statistics_storage.RegisterWriter(
+      "server",
+      [this](utils::statistics::Writer& writer) { WriteStatistics(writer); });
   handler_statistics_holder_ = statistics_storage.RegisterWriter(
       "http.handler.total", [this](utils::statistics::Writer& writer) {
         return server_->WriteTotalHandlerStatistics(writer);
@@ -51,9 +50,8 @@ void Server::AddHandler(const server::handlers::HttpHandlerBase& handler,
   server_->AddHandler(handler, task_processor);
 }
 
-formats::json::Value Server::ExtendStatistics(
-    const utils::statistics::StatisticsRequest& request) {
-  return server_->GetMonitorData(request);
+void Server::WriteStatistics(utils::statistics::Writer& writer) {
+  server_->WriteMonitorData(writer);
 }
 
 yaml_config::Schema Server::GetStaticConfigSchema() {

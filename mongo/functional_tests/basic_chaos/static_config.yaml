@@ -3,6 +3,12 @@ components_manager:
     components:
         key-value-database:
             dbconnection: mongodb://localhost:27217/admin
+            conn_timeout: 15s
+            so_timeout: 20s
+            queue_timeout: 7s
+            stats_verbosity: full
+            initial_size: 2
+            max_size: 4
 
         handler-key-value:
             path: /v1/key-value
@@ -12,6 +18,13 @@ components_manager:
         server:
             listener:
                 port: 8090
+                task_processor: main-task-processor
+            listener-monitor:
+                port: $monitor-server-port
+                port#fallback: 8086
+                connection:
+                    in_buffer_size: 32768
+                    requests_queue_size_threshold: 100
                 task_processor: main-task-processor
         logging:
             fs-task-processor: fs-task-processor
@@ -28,6 +41,23 @@ components_manager:
             fs-cache-path: ''
         dynamic-config-fallbacks:
             fallback-path: /etc/mongo_basic_chaos/dynamic_config_fallback.json
+
+        testsuite-support:
+
+        http-client:
+            fs-task-processor: main-task-processor
+
+        tests-control:
+            method: POST
+            path: /tests/{action}
+            skip-unregistered-testpoints: true
+            task_processor: main-task-processor
+            testpoint-timeout: 10s
+            testpoint-url: $mockserver/testpoint
+            throttling_enabled: false
+
+        dns-client:
+            fs-task-processor: fs-task-processor
     coro_pool:
         initial_size: 500
         max_size: 1000

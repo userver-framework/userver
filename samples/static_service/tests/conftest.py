@@ -1,10 +1,10 @@
+# [Static service sample - config hook]
 import pathlib
 
 import pytest
 
-pytest_plugins = ['pytest_userver.plugins', 'pytest_userver.plugins.samples']
+pytest_plugins = ['pytest_userver.plugins.core']
 
-# [Static service sample - config hook]
 USERVER_CONFIG_HOOKS = ['static_config_hook']
 
 
@@ -18,6 +18,4 @@ def static_config_hook(service_source_dir):
             )
 
     return _patch_config
-
-
-# [Static service sample - config hook]
+    # [Static service sample - config hook]

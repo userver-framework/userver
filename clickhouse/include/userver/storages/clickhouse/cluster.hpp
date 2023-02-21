@@ -11,12 +11,12 @@
 #include <userver/clients/dns/resolver_fwd.hpp>
 #include <userver/components/component_fwd.hpp>
 
-#include <userver/formats/json_fwd.hpp>
 #include <userver/storages/clickhouse/fwd.hpp>
 #include <userver/storages/clickhouse/impl/insertion_request.hpp>
 #include <userver/storages/clickhouse/impl/pool.hpp>
 #include <userver/storages/clickhouse/options.hpp>
 #include <userver/storages/clickhouse/query.hpp>
+#include <userver/utils/statistics/writer.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -116,8 +116,9 @@ class Cluster final {
                   const std::vector<std::string_view>& column_names,
                   const Container& data) const;
 
-  /// Get cluster statistics
-  formats::json::Value GetStatistics() const;
+  /// Write cluster statistics
+  void WriteStatistics(
+      USERVER_NAMESPACE::utils::statistics::Writer& writer) const;
 
   /// Exception that is thrown if all specified endpoints are unavailable
   class NoAvailablePoolError : public std::runtime_error {

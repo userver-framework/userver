@@ -162,7 +162,6 @@ class _InterceptTimeLimit:
             self._sockets[socket_from] = expire_at
 
         if self._sockets[socket_from] <= time.monotonic():
-            socket_from.close()
             del self._sockets[socket_from]
             raise GateInterceptException('Socket hits the time limit')
 
@@ -229,6 +228,7 @@ class _InterceptBytesLimit:
         if self._bytes_remain <= len(data):
             await loop.sock_sendall(socket_to, data[0 : self._bytes_remain])
             await self._gate.sockets_close()
+            self._bytes_remain = self._bytes_limit
             raise GateInterceptException('Data transmission limit reached')
 
         self._bytes_remain -= len(data)
@@ -236,12 +236,9 @@ class _InterceptBytesLimit:
 
 
 class _InterceptSubstitute:
-    def __init__(
-            self, pattern: str, repl: str, gate: 'TcpGate', encoding='utf-8',
-    ):
+    def __init__(self, pattern: str, repl: str, encoding='utf-8'):
         self._pattern = re.compile(pattern)
         self._repl = repl
-        self._gate = gate
         self._encoding = encoding
 
     async def __call__(
@@ -266,7 +263,7 @@ async def _cancel_and_join(task: typing.Optional[asyncio.Task]) -> None:
     except asyncio.CancelledError:
         return
     except Exception as exc:  # pylint: disable=broad-except
-        logger.warning('Exception in _cancel_and_join: %s', exc)
+        logger.error('Exception in _cancel_and_join: %s', exc)
 
 
 class _SocketsPaired:
@@ -275,7 +272,7 @@ class _SocketsPaired:
             route: GateRoute,
             loop: EvLoop,
             client: socket.socket,
-            right: socket.socket,
+            server: socket.socket,
             to_server_intercept: Interceptor,
             to_client_intercept: Interceptor,
     ) -> None:
@@ -283,35 +280,31 @@ class _SocketsPaired:
         self._loop = loop
 
         self._client = client
-        self._right = right
+        self._server = server
 
         self._to_server_intercept: Interceptor = to_server_intercept
         self._to_client_intercept: Interceptor = to_client_intercept
 
-        self._tasks: typing.Optional[asyncio.Task] = asyncio.create_task(
-            self._do_stream(),
+        self._task_to_server = asyncio.create_task(
+            self._do_pipe_channels(to_server=True),
+        )
+        self._task_to_client = asyncio.create_task(
+            self._do_pipe_channels(to_server=False),
         )
 
-    async def _do_stream(self) -> None:
-        await asyncio.wait(
-            [
-                asyncio.create_task(self._do_pipe_channels(to_server=True)),
-                asyncio.create_task(self._do_pipe_channels(to_server=False)),
-            ],
-            return_when=asyncio.ALL_COMPLETED,
-        )
+        self._finished_channels = 0
 
     async def _do_pipe_channels(self, *, to_server: bool) -> None:
         if to_server:
             socket_from = self._client
-            socket_to = self._right
+            socket_to = self._server
         else:
-            socket_from = self._right
+            socket_from = self._server
             socket_to = self._client
 
         try:
             while True:
-                # Applies new inreceptors faster.
+                # Applies new interceptors faster.
                 #
                 # To avoid long awaiting on sock_recv in an outdated
                 # interceptor we wait for data before grabbing and applying
@@ -327,10 +320,24 @@ class _SocketsPaired:
 
                 await interceptor(self._loop, socket_from, socket_to)
                 await _yield()
-        except Exception as exc:  # pylint: disable=broad-except
-            logger.info('Exception in "%s": %s', self._route.name, exc)
+        except GateInterceptException as exc:
+            logger.info('In "%s": %s', self._route.name, exc)
+        except socket.error as exc:
+            logger.error('Exception in "%s": %s', self._route.name, exc)
         finally:
-            self._close_sockets()
+            self._finished_channels += 1
+            if self._finished_channels == 2:
+                # Closing the sockets here so that the self.shutdown()
+                # returns only when the sockets are actually closed
+                logger.info('"%s" closes  %s', self._route.name, self.info())
+                self._close_socket(self._client)
+                self._close_socket(self._server)
+            else:
+                assert self._finished_channels == 1
+                if to_server:
+                    self._task_to_client.cancel()
+                else:
+                    self._task_to_server.cancel()
 
     def set_to_server_interceptor(self, interceptor: Interceptor) -> None:
         self._to_server_intercept = interceptor
@@ -338,32 +345,35 @@ class _SocketsPaired:
     def set_to_client_interceptor(self, interceptor: Interceptor) -> None:
         self._to_client_intercept = interceptor
 
-    def _close_sockets(self) -> None:
+    def _close_socket(self, self_socket: Socket) -> None:
+        assert self_socket in {self._client, self._server}
         try:
-            self._client.close()
-        except Exception as exc:  # pylint: disable=broad-except
-            logger.warning(
-                'Exception in "%s" on closing client: %s',
+            self_socket.close()
+        except socket.error as exc:
+            logger.error(
+                'Exception in "%s" on closing %s: %s',
                 self._route.name,
-                exc,
-            )
-
-        try:
-            self._right.close()
-        except Exception as exc:  # pylint: disable=broad-except
-            logger.warning(
-                'Exception in "%s" on closing right: %s',
-                self._route.name,
+                'client' if self_socket == self._client else 'server',
                 exc,
             )
 
     async def shutdown(self) -> None:
-        self._close_sockets()
-        await _cancel_and_join(self._tasks)
-        self._tasks = None
+        for task in {self._task_to_client, self._task_to_server}:
+            await _cancel_and_join(task)
 
     def is_active(self) -> bool:
-        return bool(self._tasks)
+        return (
+            not self._task_to_client.done() or not self._task_to_server.done()
+        )
+
+    def info(self) -> str:
+        if not self.is_active():
+            return '<inactive>'
+
+        return (
+            f'client fd={self._client.fileno()} <=> '
+            f'server fd={self._server.fileno()}'
+        )
 
 
 # @endcond
@@ -402,7 +412,6 @@ class TcpGate:
 
     async def __aexit__(self, exc_type, exc_value, traceback) -> None:
         await self.stop()
-        await _yield()
 
     def start(self) -> None:
         """ Open the socket and start accepting connections from client """
@@ -474,8 +483,12 @@ class TcpGate:
             sock.close()
 
         await self.stop_accepting()
+        logger.info('Before close() %s', self.info())
         await self.sockets_close()
+        assert not self._sockets
+
         self._accept_sockets.clear()
+        logger.info('Stopped. %s', self.info())
 
     def set_to_server_interceptor(self, interceptor: Interceptor) -> None:
         """
@@ -632,24 +645,22 @@ class TcpGate:
         logging.debug(
             'to_server_substitute, pattern: %s, repl: %s', pattern, repl,
         )
-        self.set_to_server_interceptor(
-            _InterceptSubstitute(pattern, repl, self),
-        )
+        self.set_to_server_interceptor(_InterceptSubstitute(pattern, repl))
 
     def to_client_substitute(self, pattern: str, repl: str) -> None:
         """ Apply regex substitution to data from server """
         logging.debug(
             'to_client_substitute, pattern: %s, repl: %s', pattern, repl,
         )
-        self.set_to_client_interceptor(
-            _InterceptSubstitute(pattern, repl, self),
-        )
+        self.set_to_client_interceptor(_InterceptSubstitute(pattern, repl))
 
     def connections_count(self) -> int:
         """
         Returns maximal amount of connections going through the gate at
-        the moment. Some of the connection could be closing, use the value
-        with caution.
+        the moment.
+
+        @warning Some of the connections could be closing, or could be opened
+                 right before the function starts. Use with caution!
         """
         return len(self._sockets)
 
@@ -713,6 +724,15 @@ class TcpGate:
 
     def _collect_garbage(self) -> None:
         self._sockets = {x for x in self._sockets if x.is_active()}
+
+    def info(self) -> str:
+        """ Print info on open sockets """
+        if not self._sockets:
+            return f'"{self._route.name}" no active sockets'
+
+        return f'"{self._route.name}" active sockets:\n\t' + '\n\t'.join(
+            x.info() for x in self._sockets
+        )
 
     async def _do_accept(self, accept_sock: socket.socket) -> None:
         while accept_sock:

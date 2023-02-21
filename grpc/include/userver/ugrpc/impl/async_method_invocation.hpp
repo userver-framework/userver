@@ -13,7 +13,7 @@ class EventBase {
   virtual void Notify(bool ok) noexcept = 0;
 
   /// @brief For use from coroutines
-  /// @returns This object's `void* tag` for `grpc::CompletionQueue::Next`
+  /// @return This object's `void* tag` for `grpc::CompletionQueue::Next`
   void* GetTag() noexcept;
 
  protected:
@@ -29,8 +29,12 @@ class AsyncMethodInvocation final : public EventBase {
   void Notify(bool ok) noexcept override;
 
   /// @brief For use from coroutines
-  /// @returns `bool ok` returned by `grpc::CompletionQueue::Next`
+  /// @return `bool ok` returned by `grpc::CompletionQueue::Next`
   [[nodiscard]] bool Wait() noexcept;
+
+  /// @brief Checks if the asynchronous call has completed
+  /// @return true if event returned from `grpc::CompletionQueue::Next`
+  [[nodiscard]] bool IsReady() const noexcept;
 
  private:
   bool ok_{false};

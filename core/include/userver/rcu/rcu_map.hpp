@@ -408,7 +408,7 @@ auto RcuMapIterator<Key, Value, IterValue>::operator*() const -> reference {
 }
 
 template <typename Key, typename Value, typename IterValue>
-auto RcuMapIterator<Key, Value, IterValue>::operator-> () const -> pointer {
+auto RcuMapIterator<Key, Value, IterValue>::operator->() const -> pointer {
   return &current_;
 }
 

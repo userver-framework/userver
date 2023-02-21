@@ -5,7 +5,6 @@
 #include <userver/utils/assert.hpp>
 
 #include "sentinel_impl.hpp"
-#include "weak_bind.hpp"
 
 USERVER_NAMESPACE_BEGIN
 

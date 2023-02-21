@@ -24,38 +24,37 @@ namespace {
 
 const auto kServerControllerName = "server-main-tp-cc";
 
-formats::json::Value FormatStats(const Controller& c, size_t activated_factor) {
-  formats::json::ValueBuilder builder;
-  builder["is-enabled"] = c.IsEnabled() ? 1 : 0;
+void FormatStats(const Controller& c, size_t activated_factor,
+                 utils::statistics::Writer& writer) {
+  writer["is-enabled"] = c.IsEnabled() ? 1 : 0;
 
   auto limit = c.GetLimit();
-  builder["is-activated"] =
+  writer["is-activated"] =
       (limit.load_limit &&
        limit.current_load * activated_factor < *limit.load_limit)
           ? 1
           : 0;
   if (limit.load_limit) {
-    builder["limit"] = *limit.load_limit;
+    writer["limit"] = *limit.load_limit;
   }
 
   const auto& stats = c.GetStats();
-  formats::json::ValueBuilder builder_states;
-  builder_states["no-limit"] = stats.no_limit.load();
-  builder_states["not-overloaded-no-pressure"] =
-      stats.not_overload_no_pressure.load();
-  builder_states["not-overloaded-under-pressure"] =
-      stats.not_overload_pressure.load();
-  builder_states["overloaded-no-pressure"] = stats.overload_no_pressure.load();
-  builder_states["overloaded-under-pressure"] = stats.overload_pressure.load();
+  {
+    auto builder_states = writer["states"];
+    builder_states["no-limit"] = stats.no_limit;
+    builder_states["not-overloaded-no-pressure"] =
+        stats.not_overload_no_pressure;
+    builder_states["not-overloaded-under-pressure"] =
+        stats.not_overload_pressure;
+    builder_states["overloaded-no-pressure"] = stats.overload_no_pressure;
+    builder_states["overloaded-under-pressure"] = stats.overload_pressure;
+  }
 
   auto diff = std::chrono::steady_clock::now().time_since_epoch() -
               stats.last_overload_pressure.load();
-  builder["time-from-last-overloaded-under-pressure-secs"] =
+  writer["time-from-last-overloaded-under-pressure-secs"] =
       std::chrono::duration_cast<std::chrono::seconds>(diff).count();
-  builder["states"] = builder_states.ExtractValue();
-  builder["current-state"] = stats.current_state.load();
-
-  return builder.ExtractValue();
+  writer["current-state"] = stats.current_state;
 }
 
 }  // namespace
@@ -127,9 +126,9 @@ Component::Component(const components::ComponentConfig& config,
 
   auto& storage =
       context.FindComponent<components::StatisticsStorage>().GetStorage();
-  pimpl_->statistics_holder = storage.RegisterExtender(
+  pimpl_->statistics_holder = storage.RegisterWriter(
       std::string{kName},
-      [this](const auto& request) { return ExtendStatistics(request); });
+      [this](utils::statistics::Writer& writer) { ExtendWriter(writer); });
 }
 
 Component::~Component() {
@@ -165,14 +164,11 @@ void Component::OnAllComponentsLoaded() {
 
 void Component::OnAllComponentsAreStopping() { pimpl_->wd.Stop(); }
 
-formats::json::Value Component::ExtendStatistics(
-    const utils::statistics::StatisticsRequest& /*request*/) {
-  formats::json::ValueBuilder builder{formats::common::Type::kObject};
+void Component::ExtendWriter(utils::statistics::Writer& writer) {
   if (!pimpl_->force_disabled) {
-    builder["rps"] =
-        FormatStats(pimpl_->server_controller, pimpl_->last_activate_factor);
+    auto rps = writer["rps"];
+    FormatStats(pimpl_->server_controller, pimpl_->last_activate_factor, rps);
   }
-  return builder.ExtractValue();
 }
 
 yaml_config::Schema Component::GetStaticConfigSchema() {

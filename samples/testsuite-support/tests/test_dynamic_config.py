@@ -21,18 +21,14 @@ async def test_a_defaults(service_client, dynamic_config):
 async def test_set_values(service_client, dynamic_config):
     dynamic_config.set_values({TEST_CONFIG: CUSTOM_VALUE})
     assert dynamic_config.get(TEST_CONFIG) == CUSTOM_VALUE
-    # On first 'service_client' usage in the test, dynamic configs are loaded
+    # On each 'service_client' usage in the test, dynamic configs are loaded
     # automatically from the 'dynamic_config' fixture to the service.
     assert await get_service_config_value(service_client) == CUSTOM_VALUE
 
-    # However, subsequent changes are not synchronized automatically.
-    # TODO Always synchronize 'dynamic_config' with the service automatically.
     dynamic_config.set_values({TEST_CONFIG: SPECIAL_VALUE})
     assert dynamic_config.get(TEST_CONFIG) == SPECIAL_VALUE
-    assert await get_service_config_value(service_client) == CUSTOM_VALUE
-
-    # 'invalidate_caches' does the job of "uploading" updated configs.
-    await service_client.invalidate_caches()
+    # The config values changed again, so they are automatically synchronized
+    # again on the next 'service_client' usage.
     assert await get_service_config_value(service_client) == SPECIAL_VALUE
 
 

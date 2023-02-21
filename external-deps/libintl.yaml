@@ -1,0 +1,13 @@
+name: libintl
+
+helper-prefix: false
+includes:
+    find:
+      - names:
+          - stdio.h
+libraries:
+    find:
+      - names:
+          - libintl.a  # FreeBSD
+        paths:
+          - /usr/local/lib

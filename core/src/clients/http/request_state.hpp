@@ -126,6 +126,7 @@ class RequestState : public std::enable_shared_from_this<RequestState> {
 
   /// parse one header
   void parse_header(char* ptr, size_t size);
+  void ParseSingleCookie(const char* ptr, size_t size);
   /// simply run perform_request if there is now errors from timer
   void on_retry_timer(std::error_code err);
   /// run curl async_request

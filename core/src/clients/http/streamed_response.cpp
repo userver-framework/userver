@@ -62,6 +62,12 @@ const Headers& StreamedResponse::GetHeaders() {
   return headers;
 }
 
+const Response::CookiesMap& StreamedResponse::GetCookies() {
+  WaitForHeadersOrThrow(deadline_);
+  const auto& cookies = response_->cookies();
+  return cookies;
+}
+
 bool StreamedResponse::ReadChunk(std::string& output,
                                  engine::Deadline deadline) {
   WaitForHeadersOrThrow(deadline_);

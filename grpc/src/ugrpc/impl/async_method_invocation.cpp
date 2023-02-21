@@ -18,6 +18,10 @@ bool AsyncMethodInvocation::Wait() noexcept {
   return ok_;
 }
 
+bool AsyncMethodInvocation::IsReady() const noexcept {
+  return event_.IsReady();
+}
+
 }  // namespace ugrpc::impl
 
 USERVER_NAMESPACE_END

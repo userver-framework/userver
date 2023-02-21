@@ -73,15 +73,19 @@ After that, everything is ready to write chaos tests:
 @snippet postgresql/functional_tests/basic_chaos/tests/test_postgres.py  test cc
 
 Note that the most important part of the test is to make sure that the service
-restores functionality after the failures. Wait for connections to proxy make
-and sure that the service responses are fine:
+restores functionality after the failures. Touch the dead connections and make
+sure that the service restores:
+
+@snippet postgresql/functional_tests/basic_chaos/tests/utils.py  consume_dead_db_connections
 
 @snippet postgresql/functional_tests/basic_chaos/tests/test_postgres.py  restore
+
 
 ### Full Sources
 
 * @ref postgresql/functional_tests/basic_chaos/tests/test_postgres.py
 * @ref postgresql/functional_tests/basic_chaos/tests/conftest.py
+* @ref postgresql/functional_tests/basic_chaos/tests/utils.py
 * @ref postgresql/functional_tests/basic_chaos/postgres_service.cpp
 * @ref postgresql/functional_tests/basic_chaos/static_config.yaml
 * @ref postgresql/functional_tests/basic_chaos/schemas/postgresql/key_value.sql
@@ -95,6 +99,7 @@ and sure that the service responses are fine:
 @htmlonly </div> @endhtmlonly
 
 @example postgresql/functional_tests/basic_chaos/tests/conftest.py
+@example postgresql/functional_tests/basic_chaos/tests/utils.py
 @example postgresql/functional_tests/basic_chaos/tests/test_postgres.py
 @example postgresql/functional_tests/basic_chaos/postgres_service.cpp
 @example postgresql/functional_tests/basic_chaos/static_config.yaml

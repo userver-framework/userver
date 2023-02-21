@@ -3,8 +3,11 @@
 #include <atomic>
 #include <chrono>
 #include <tuple>
+#include <type_traits>
 #include <vector>
 
+#include <userver/utils/datetime.hpp>
+#include <userver/utils/statistics/fwd.hpp>
 #include <userver/utils/statistics/recentperiod_detail.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -19,7 +22,7 @@ namespace utils::statistics {
  * @see utils::statistics::Percentile
  */
 template <typename Counter, typename Result,
-          typename Timer = std::chrono::steady_clock>
+          typename Timer = utils::datetime::SteadyClock>
 class RecentPeriod {
  public:
   using Duration = typename Timer::duration;
@@ -171,6 +174,23 @@ class RecentPeriod {
   mutable std::atomic_size_t epoch_index_;
   mutable std::vector<EpochBucket> items_;
 };
+
+/// @brief @a Writer support for @a RecentPeriod. Forwards to `DumpMetric`
+/// overload for `Result`.
+///
+/// @param args if any, are forwarded to `DumpMetric` for `Result`
+template <typename Counter, typename Result, typename Timer, typename... Args>
+void DumpMetric(Writer& writer,
+                const RecentPeriod<Counter, Result, Timer>& recent_period,
+                const Args&... args) {
+  static_assert((true && ... && !std::is_pointer_v<Args>));
+  DumpMetric(writer, recent_period.GetStatsForPeriod(), args...);
+}
+
+template <typename Counter, typename Result, typename Timer>
+void ResetMetric(RecentPeriod<Counter, Result, Timer>& recent_period) {
+  recent_period.Reset();
+}
 
 }  // namespace utils::statistics
 

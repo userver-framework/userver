@@ -11,7 +11,6 @@
 
 #include <storages/redis/impl/redis.hpp>
 #include <userver/storages/redis/impl/redis_stats.hpp>
-#include "userver/storages/redis/impl/base.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
@@ -97,6 +96,8 @@ class Shard {
 
   void SetCommandsBufferingSettings(
       CommandsBufferingSettings commands_buffering_settings);
+  void SetReplicationMonitoringSettings(
+      const ReplicationMonitoringSettings& replication_monitoring_settings);
 
  private:
   std::vector<unsigned char> GetAvailableServers(

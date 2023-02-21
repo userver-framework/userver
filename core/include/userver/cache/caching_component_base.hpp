@@ -53,6 +53,7 @@ namespace components {
 /// first-update-fail-ok | whether first update failure is non-fatal | false
 /// task-processor | the name of the TaskProcessor for running DoWork | main-task-processor
 /// config-settings | enables dynamic reconfiguration with CacheConfigSet | true
+/// exception-interval | Used instead of `update-interval` in case of exception | update_interval
 /// additional-cleanup-interval | how often to run background RCU garbage collector | 10 seconds
 /// is-strong-period | whether to include Update execution time in update-interval | false
 /// testsuite-force-periodic-update | override testsuite-periodic-update-enabled in TestsuiteSupport component config | --
@@ -78,6 +79,9 @@ namespace components {
 ///
 /// @see `dump::Dumper` for more info on persistent cache dumps and
 /// corresponding config options.
+///
+/// @see pytest_userver.client.Client.invalidate_caches() for a function to
+/// force cache update from testsuite.
 
 // clang-format on
 

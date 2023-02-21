@@ -4,6 +4,7 @@
 #include <userver/components/component_context.hpp>
 #include <userver/dynamic_config/storage/component.hpp>
 #include <userver/dynamic_config/value.hpp>
+#include <userver/yaml_config/merge_schemas.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -42,6 +43,21 @@ std::string HttpHandlerStatic::HandleRequestThrow(
   }
   request.GetResponse().SetStatusNotFound();
   return "File not found";
+}
+
+yaml_config::Schema HttpHandlerStatic::GetStaticConfigSchema() {
+  return yaml_config::MergeSchemas<HttpHandlerBase>(R"(
+type: object
+description: |
+    Handler that returns HTTP 200 if file exist
+    and returns file data with mapped content/type
+additionalProperties: false
+properties:
+    fs-cache-component:
+        type: string
+        description: Name of the FsCache component
+        defaultDescription: fs-cache-component
+)");
 }
 
 }  // namespace server::handlers

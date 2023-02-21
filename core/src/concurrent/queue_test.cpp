@@ -25,6 +25,9 @@ auto GetProducerTask(const Producer& producer, std::size_t i) {
   });
 }
 
+template <typename T>
+class NonCoroutineTest : public ::testing::Test {};
+
 using TestMpmcTypes =
     testing::Types<concurrent::NonFifoMpmcQueue<int>,
                    concurrent::NonFifoMpmcQueue<std::unique_ptr<int>>,
@@ -33,6 +36,12 @@ using TestMpscTypes =
     testing::Types<concurrent::NonFifoMpscQueue<int>,
                    concurrent::NonFifoMpscQueue<std::unique_ptr<int>>,
                    concurrent::NonFifoMpscQueue<std::unique_ptr<RefCountData>>>;
+
+using TestQueueTypes = testing::Types<concurrent::NonFifoMpmcQueue<std::size_t>,
+                                      concurrent::NonFifoMpscQueue<std::size_t>,
+                                      concurrent::SpmcQueue<std::size_t>,
+                                      concurrent::SpscQueue<std::size_t>>;
+
 }  // namespace
 
 INSTANTIATE_TYPED_UTEST_SUITE_P(NonFifoMpmcQueue, QueueFixture,
@@ -46,6 +55,30 @@ INSTANTIATE_TYPED_UTEST_SUITE_P(NonFifoMpscQueue, QueueFixture,
 
 INSTANTIATE_TYPED_UTEST_SUITE_P(NonFifoMpscQueue, TypedQueueFixture,
                                 TestMpmcTypes);
+
+TYPED_TEST_SUITE(NonCoroutineTest, TestQueueTypes);
+
+TYPED_TEST(NonCoroutineTest, PushPopNoblock) {
+  auto queue = TypeParam::Create();
+
+  auto producer = queue->GetProducer();
+  auto consumer = queue->GetConsumer();
+
+  std::size_t value = 0;
+
+  EXPECT_TRUE(producer.PushNoblock(0));
+  EXPECT_TRUE(producer.PushNoblock(1));
+
+  EXPECT_TRUE(consumer.PopNoblock(value));
+  EXPECT_EQ(value, 0);
+  EXPECT_TRUE(consumer.PopNoblock(value));
+  EXPECT_EQ(value, 1);
+
+  EXPECT_TRUE(producer.PushNoblock(2));
+
+  EXPECT_TRUE(consumer.PopNoblock(value));
+  EXPECT_EQ(value, 2);
+}
 
 UTEST(NonFifoMpmcQueue, ConsumerIsDead) {
   auto queue = concurrent::NonFifoMpmcQueue<int>::Create();
@@ -82,7 +115,7 @@ UTEST_MT(NonFifoMpmcQueue, Mpmc, kProducersCount + kConsumersCount) {
   consumers_tasks.reserve(kConsumersCount);
   for (std::size_t i = 0; i < kConsumersCount; ++i) {
     consumers_tasks.push_back(utils::Async(
-        "consumer", [& consumer = consumers[i], &consumed_messages, &mutex] {
+        "consumer", [&consumer = consumers[i], &consumed_messages, &mutex] {
           std::size_t value{};
           while (consumer.Pop(value)) {
             std::lock_guard lock(mutex);
@@ -161,7 +194,7 @@ UTEST_MT(NonFifoSpmcQueue, Spmc, 1 + kConsumersCount) {
   consumers_tasks.reserve(kConsumersCount);
   for (std::size_t i = 0; i < kConsumersCount; ++i) {
     consumers_tasks.push_back(utils::Async(
-        "consumer", [& consumer = consumers[i], &consumed_messages, &mutex] {
+        "consumer", [&consumer = consumers[i], &consumed_messages, &mutex] {
           std::size_t value{};
           while (consumer.Pop(value)) {
             std::lock_guard lock(mutex);

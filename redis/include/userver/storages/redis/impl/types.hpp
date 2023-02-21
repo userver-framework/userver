@@ -10,6 +10,7 @@ class Reply;
 class ReplyData;
 class Sentinel;
 class SubscribeSentinel;
+// NOLINTNEXTLINE(bugprone-forward-declaration-namespace)
 class Request;
 struct Command;
 

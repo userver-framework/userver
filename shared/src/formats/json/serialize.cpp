@@ -4,6 +4,8 @@
 #include <array>
 #include <fstream>
 #include <memory>
+#include <string_view>
+#include <vector>
 
 #include <fmt/format.h>
 #include <rapidjson/document.h>
@@ -39,22 +41,24 @@ void CheckKeyUniqueness(const impl::Value* root) {
   stack.reserve(impl::kInitialStackDepth);
   stack.emplace_back();  // fake "top" frame to avoid extra checks for an empty
                          // stack inside walker loop
-
+  std::vector<std::string_view> keys;
   for (;;) {
     stack.back().Advance();
     if (value->IsObject()) {
-      // O(n²) just because our json objects are (hopefully) small
-      const int count = value->MemberCount();
+      const std::size_t count = value->MemberCount();
       const auto begin = value->MemberBegin();
-      for (int i = 1; i < count; i++) {
-        const std::string_view i_key = AsStringView(begin[i].name);
-        for (int j = 0; j < i; j++) {
-          const std::string_view j_key = AsStringView(begin[j].name);
-          if (i_key == j_key)
-            // TODO: add object path to message in TAXICOMMON-1658
-            throw ParseException("Duplicate key: " + std::string(i_key) +
-                                 " at " + impl::ExtractPath(stack));
-        }
+      if (count > keys.size()) {
+        keys.resize(count);
+      }
+      for (std::size_t i = 0; i < count; ++i) {
+        keys[i] = AsStringView(begin[i].name);
+      }
+      std::sort(keys.begin(), keys.begin() + count);
+      const auto* cons_eq_element =
+          std::adjacent_find(keys.data(), keys.data() + count);
+      if (cons_eq_element != keys.data() + count) {
+        throw ParseException("Duplicate key: " + std::string(*cons_eq_element) +
+                             " at " + impl::ExtractPath(stack));
       }
     }
 

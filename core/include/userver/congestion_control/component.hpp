@@ -54,8 +54,7 @@ class Component final : public components::LoggableComponentBase {
 
   void OnAllComponentsAreStopping() override;
 
-  formats::json::Value ExtendStatistics(
-      const utils::statistics::StatisticsRequest& /*request*/);
+  void ExtendWriter(utils::statistics::Writer& writer);
 
   struct Impl;
   utils::FastPimpl<Impl, 560, 8> pimpl_;

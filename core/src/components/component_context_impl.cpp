@@ -200,9 +200,10 @@ void ComponentContext::Impl::ThrowNonRegisteredComponent(
     std::string_view name, std::string_view type) const {
   auto data = shared_data_.Lock();
   throw std::runtime_error(fmt::format(
-      "Component '{}' requested component with non registered name '{}' of "
-      "type {}",
-      GetLoadingComponentName(*data).StringViewName(), name, type));
+      "Component '{}' requested component {} with name '{}'. That name is "
+      "missing in the static config or the '{}' static config section contains "
+      "'load-enabled: false'.",
+      GetLoadingComponentName(*data).StringViewName(), type, name, name));
 }
 
 void ComponentContext::Impl::ThrowComponentTypeMissmatch(
@@ -277,6 +278,7 @@ void ComponentContext::Impl::ProcessAllComponentLifetimeStageSwitchings(
   std::vector<
       std::pair<impl::ComponentNameFromInfo, engine::TaskWithResult<void>>>
       tasks;
+  tasks.reserve(components_.size());
   for (auto& component_item : components_) {
     const auto& name = component_item.first;
     auto& component_info = component_item.second;
@@ -439,6 +441,7 @@ void ComponentContext::Impl::PrintAddingComponents() const {
 
   {
     auto data = shared_data_.Lock();
+    adding_components.reserve(data->task_to_component_map.size());
     for (const auto& elem : data->task_to_component_map) {
       const auto& name = elem.second;
       adding_components.push_back(name);

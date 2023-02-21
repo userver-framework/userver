@@ -4,7 +4,6 @@
 
 #include <userver/storages/redis/impl/base.hpp>
 #include <userver/storages/redis/impl/types.hpp>
-#include <userver/utils/assert.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -14,15 +13,11 @@ using ReplyCallback =
     std::function<void(const CommandPtr& cmd, ReplyPtr reply)>;
 
 struct Command : public std::enable_shared_from_this<Command> {
-  Command(CmdArgs&& args, ReplyCallback callback, CommandControl control,
+  Command(CmdArgs&& _args, ReplyCallback callback, CommandControl control,
           int counter, bool asking, size_t instance_idx, bool redirected,
           bool read_only);
 
-  std::string GetName() {
-    UASSERT(!args.args.empty());
-    UASSERT(!args.args.front().empty());
-    return args.args.front().front();
-  }
+  const std::string& GetName() const { return name; }
 
   ReplyCallback Callback() const;
 
@@ -47,6 +42,7 @@ struct Command : public std::enable_shared_from_this<Command> {
   bool asking = false;
   bool redirected = false;
   bool read_only = false;
+  std::string name;
 };
 
 CommandPtr PrepareCommand(

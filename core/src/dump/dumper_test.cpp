@@ -5,6 +5,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include <dump/internal_helpers_test.hpp>
 #include <userver/components/loggable_component_base.hpp>
 #include <userver/dump/common.hpp>
 #include <userver/dump/common_containers.hpp>
@@ -17,13 +18,12 @@
 #include <userver/engine/task/task_with_result.hpp>
 #include <userver/rcu/rcu_map.hpp>
 #include <userver/testsuite/dump_control.hpp>
+#include <userver/utest/assert_macros.hpp>
 #include <userver/utest/utest.hpp>
 #include <userver/utils/async.hpp>
 #include <userver/utils/atomic.hpp>
 #include <userver/utils/mock_now.hpp>
 #include <userver/utils/statistics/storage.hpp>
-
-#include <dump/internal_helpers_test.hpp>
 
 using namespace std::chrono_literals;
 
@@ -69,11 +69,19 @@ max-age:  # unlimited
 max-count: 3
 )";
 
+struct DumperFixtureConfig final {
+  testsuite::DumpControl::PeriodicsMode periodics_mode{
+      testsuite::DumpControl::PeriodicsMode::kEnabled};
+};
+
 class DumperFixture : public ::testing::Test {
  protected:
-  DumperFixture()
+  DumperFixture() : DumperFixture(DumperFixtureConfig{}) {}
+
+  explicit DumperFixture(DumperFixtureConfig config)
       : root_(fs::blocking::TempDirectory::Create()),
-        config_(dump::ConfigFromYaml(kConfig, root_, DummyEntity::kName)) {}
+        config_(dump::ConfigFromYaml(kConfig, root_, DummyEntity::kName)),
+        control_(config.periodics_mode) {}
 
   dump::Dumper MakeDumper() {
     return dump::Dumper{
@@ -89,7 +97,7 @@ class DumperFixture : public ::testing::Test {
 
   const fs::blocking::TempDirectory& GetRoot() const { return root_; }
   const dump::Config& GetConfig() const { return config_; }
-
+  testsuite::DumpControl& GetDumpControl() { return control_; }
   DummyEntity& GetDumpable() { return dumpable_; }
 
  private:
@@ -110,6 +118,7 @@ dump::TimePoint Now() {
 
 UTEST_F(DumperFixture, MultipleBumps) {
   auto dumper = MakeDumper();
+  dumper.ReadDump();
   utils::datetime::MockNowSet({});
   EXPECT_EQ(GetDumpable().write_count, 0);
 
@@ -142,6 +151,7 @@ UTEST_F_MT(DumperFixture, ThreadSafety,
   };
 
   auto dumper = MakeDumper();
+  dumper.ReadDump();
   dumper.OnUpdateCompleted(get_now(), dump::UpdateType::kModified);
   dumper.WriteDumpSyncDebug();
 
@@ -263,6 +273,79 @@ UTEST_F(DumperFixture, UpdateTimeDetailed) {
   engine::Yield();
 
   EXPECT_EQ(dumper.ReadDump(), explicit_time);
+}
+
+UTEST_F(DumperFixture, ReadDumpChecking) {
+  auto dumper = MakeDumper();
+  UEXPECT_THROW_MSG(
+      dumper.WriteDumpSyncDebug(), dump::Error,
+      dumper.Name() +
+          ": unable to write a dump, there was no attempt to read а dump");
+}
+
+namespace {
+
+class DumperFixtureNonPeriodic : public DumperFixture {
+ protected:
+  DumperFixtureNonPeriodic()
+      : DumperFixture([] {
+          DumperFixtureConfig config;
+          config.periodics_mode =
+              testsuite::DumpControl::PeriodicsMode::kDisabled;
+          return config;
+        }()) {}
+};
+
+}  // namespace
+
+UTEST_F(DumperFixtureNonPeriodic, NormalWritesDisabled) {
+  auto dumper = MakeDumper();
+
+  for (int i = 0; i < 10; ++i) {
+    dumper.OnUpdateCompleted();
+
+    // An asynchronous write would be performed here if periodic dump writes
+    // were enabled.
+    engine::Yield();
+
+    EXPECT_EQ(GetDumpable().read_count, 0);
+    EXPECT_EQ(GetDumpable().write_count, 0);
+  }
+}
+
+UTEST_F(DumperFixtureNonPeriodic, ReadDumpChecking) {
+  auto dumper = MakeDumper();
+  UEXPECT_THROW_MSG(
+      dumper.WriteDumpSyncDebug(), dump::Error,
+      dumper.Name() +
+          ": unable to write a dump, there was no attempt to read а dump");
+}
+
+// This should not be important for any purpose. The test just documents the
+// current behavior.
+UTEST_F(DumperFixtureNonPeriodic, NormalReadsEnabled) {
+  dump::CreateDump(dump::ToBinary(42), GetConfig());
+  auto dumper = MakeDumper();
+  EXPECT_NE(dumper.ReadDump(), std::nullopt);
+  EXPECT_EQ(GetDumpable().read_count, 1);
+  EXPECT_EQ(GetDumpable().write_count, 0);
+}
+
+UTEST_F(DumperFixtureNonPeriodic, ForcedWritesEnabled) {
+  auto dumper = MakeDumper();
+  dumper.ReadDump();
+  dumper.OnUpdateCompleted();
+  GetDumpControl().WriteCacheDumps({dumper.Name()});
+  EXPECT_EQ(GetDumpable().read_count, 0);
+  EXPECT_EQ(GetDumpable().write_count, 1);
+}
+
+UTEST_F(DumperFixtureNonPeriodic, ForcedReadsEnabled) {
+  dump::CreateDump(dump::ToBinary(42), GetConfig());
+  auto dumper = MakeDumper();
+  GetDumpControl().ReadCacheDumps({dumper.Name()});
+  EXPECT_EQ(GetDumpable().read_count, 1);
+  EXPECT_EQ(GetDumpable().write_count, 0);
 }
 
 namespace {

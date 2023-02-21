@@ -5,14 +5,7 @@ from pytest_userver import chaos
 from testsuite.databases.mongo import connection
 
 
-pytest_plugins = [
-    'pytest_userver.plugins',
-    'pytest_userver.plugins.samples',
-    # Database related plugins
-    'testsuite.databases.mongo.pytest_plugin',
-]
-
-USERVER_CONFIG_HOOKS = ['hook_db_config']
+pytest_plugins = ['pytest_userver.plugins.mongo']
 
 MONGO_COLLECTIONS = {
     'translations': {
@@ -45,12 +38,12 @@ async def _gate_started(
 
 
 @pytest.fixture
-def client_deps(_gate_started, mongodb):
+def extra_client_deps(_gate_started):
     pass
 
 
 @pytest.fixture(scope='session')
-def hook_db_config(_gate_started):
+def userver_mongo_config(_gate_started):
     def _hook_db_config(config_yaml, config_vars):
         host, port = _gate_started.get_sockname_for_clients()
 

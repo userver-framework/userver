@@ -196,13 +196,13 @@ UTEST_DEATH(WaitAnyDeathTest, DuplicateTask) {
     tasks.push_back(engine::AsyncNoSpan([] { engine::SleepFor(10ms); }));
   }
 
-  EXPECT_DEATH(engine::WaitAny(tasks[0], tasks[1], tasks[0]), "");
-  EXPECT_DEATH(
+  UEXPECT_DEATH(engine::WaitAny(tasks[0], tasks[1], tasks[0]), "");
+  UEXPECT_DEATH(
       engine::WaitAnyFor(utest::kMaxTestWaitTime, tasks[0], tasks[1], tasks[0]),
       "");
-  EXPECT_DEATH(engine::WaitAnyUntil(engine::Deadline::FromDuration(42ms),
-                                    tasks[0], tasks[1], tasks[0]),
-               "");
+  UEXPECT_DEATH(engine::WaitAnyUntil(engine::Deadline::FromDuration(42ms),
+                                     tasks[0], tasks[1], tasks[0]),
+                "");
 }
 #endif
 

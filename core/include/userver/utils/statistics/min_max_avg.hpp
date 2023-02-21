@@ -11,6 +11,7 @@
 #include <userver/formats/json/inline.hpp>
 #include <userver/formats/serialize/to.hpp>
 #include <userver/utils/assert.hpp>
+#include <userver/utils/statistics/writer.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -123,6 +124,8 @@ class MinMaxAvg final {
     count_ = 0;
   }
 
+  bool IsEmpty() const noexcept { return count_.load() == 0; }
+
  private:
   std::atomic<ValueType> minimum_;
   std::atomic<ValueType> maximum_;
@@ -136,6 +139,15 @@ auto Serialize(const MinMaxAvg<ValueType, AverageType>& mma,
   const auto current = mma.GetCurrent();
   return formats::json::MakeObject("min", current.minimum, "max",
                                    current.maximum, "avg", current.average);
+}
+
+template <typename ValueType, typename AverageType>
+void DumpMetric(Writer& writer,
+                const MinMaxAvg<ValueType, AverageType>& value) {
+  const auto current = value.GetCurrent();
+  writer["min"] = current.minimum;
+  writer["max"] = current.maximum;
+  writer["avg"] = current.average;
 }
 
 }  // namespace utils::statistics

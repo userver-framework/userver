@@ -1,5 +1,6 @@
 #include <userver/utils/statistics/portability_info.hpp>
 
+#include <algorithm>
 #include <string_view>
 #include <unordered_map>
 #include <vector>
@@ -97,7 +98,7 @@ class PortabilityInfoCollector final
       path_labels_[path] = std::move(labels_store);
     } else if (it->second != labels_store) {
       ReportError(
-          info_[WarningCode::kLabelNameMissmatch], path, labels,
+          info_[WarningCode::kLabelNameMismatch], path, labels,
           fmt::format("Same path '{}' has metrics with different labels set: "
                       "'{}' vs '{}'",
                       path, fmt::join(it->second, ", "),
@@ -193,8 +194,8 @@ std::string_view ToString(WarningCode code) {
       return "label_value_length";
     case WarningCode::kPathLength:
       return "path_length";
-    case WarningCode::kLabelNameMissmatch:
-      return "label_name_missmatch";
+    case WarningCode::kLabelNameMismatch:
+      return "label_name_mismatch";
   }
 
   UINVARIANT(false, "Unhandled WarningCode value " +

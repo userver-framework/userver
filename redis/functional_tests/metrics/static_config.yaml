@@ -19,6 +19,8 @@ components_manager:
 
         http-client:
             fs-task-processor: main-task-processor
+        dns-client:
+            fs-task-processor: fs-task-processor
 
         tests-control:
             method: POST

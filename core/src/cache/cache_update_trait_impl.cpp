@@ -74,8 +74,10 @@ CacheUpdateTrait::Impl::Impl(CacheDependencies&& dependencies,
                         dependencies.statistics_storage,
                         dependencies.dump_control, dumpable_)
                   : std::nullopt) {
-  statistics_holder_ = dependencies.statistics_storage.RegisterExtender(
-      "cache." + Name(), [this](auto&) { return ExtendStatistics(); });
+  statistics_holder_ = dependencies.statistics_storage.RegisterWriter(
+      "cache", [this](utils::statistics::Writer& writer) {
+        writer.ValueWithLabels(statistics_, {"cache_name", Name()});
+      });
 
   if (dependencies.config.config_updates_enabled) {
     config_subscription_ =
@@ -208,10 +210,6 @@ void CacheUpdateTrait::Impl::StopPeriodicUpdates() {
   if (dumper_) {
     dumper_->CancelWriteTaskAndWait();
   }
-}
-
-formats::json::Value CacheUpdateTrait::Impl::ExtendStatistics() {
-  return formats::json::ValueBuilder{statistics_}.ExtractValue();
 }
 
 void CacheUpdateTrait::Impl::OnConfigUpdate(

@@ -22,6 +22,18 @@ class StrCaseHash {
 
   std::size_t operator()(std::string_view s) const& noexcept;
 
+  template <class StringStrongTypedef>
+  auto operator()(const StringStrongTypedef& s) const& noexcept
+      -> decltype(operator()(std::string_view{s.GetUnderlying()})) {
+    static_assert(noexcept((*this)(std::string_view{s.GetUnderlying()})),
+                  "GetUnderlying() should not throw as this affects efficiency "
+                  "on some platforms");
+
+    return (*this)(std::string_view{s.GetUnderlying()});
+  }
+
+  std::size_t GetSeed() const noexcept { return seed_; }
+
  private:
   std::size_t seed_;
 };

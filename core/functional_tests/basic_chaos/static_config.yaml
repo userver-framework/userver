@@ -12,6 +12,11 @@ components_manager:
             task_processor: main-task-processor
             method: GET,DELETE,POST
 
+        handler-chaos-httpserver:
+            path: /chaos/httpserver
+            task_processor: main-task-processor
+            method: GET,DELETE,POST
+
         testsuite-support:
 
         http-client:

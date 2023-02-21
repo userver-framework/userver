@@ -113,6 +113,8 @@ class BaseFormatBuilder {
 /// @ingroup userver_clients
 ///
 /// Storage of metrics, usually retrieved from components::StatisticsStorage.
+///
+/// See utils::statistics::Writer for an information on how to write metrics.
 class Storage final {
  public:
   Storage();
@@ -122,8 +124,8 @@ class Storage final {
   /// Creates new Json::Value and calls every deprecated registered extender
   /// func over it.
   ///
-  /// @warning Deprecated. Use VisitMetrics instead.
-  formats::json::Value GetAsJson(std::string_view prefix) const;
+  /// @deprecated Use VisitMetrics instead.
+  formats::json::Value GetAsJson() const;
 
   /// Visits all the metrics and calls `out.HandleMetric` for each metric.
   void VisitMetrics(BaseFormatBuilder& out, const Request& request = {}) const;
@@ -134,11 +136,12 @@ class Storage final {
   void StopRegisteringExtenders();
   /// @endcond
 
-  /// Add a writer function
+  /// @brief Add a writer function. Note that `func` is called concurrently with
+  /// other code, so it should be tharead\coroutine safe.
   Entry RegisterWriter(std::string common_prefix, WriterFunc func,
                        std::vector<Label> add_labels = {});
 
-  /// @warning Deprecated. Use RegisterWriter instead.
+  /// @deprecated Use RegisterWriter instead.
   Entry RegisterExtender(std::string prefix, ExtenderFunc func);
 
   void UnregisterExtender(impl::StorageIterator iterator) noexcept;

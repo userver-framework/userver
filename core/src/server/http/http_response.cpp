@@ -80,10 +80,20 @@ namespace impl {
 
 void OutputHeader(std::string& header, std::string_view key,
                   std::string_view val) {
-  header.append(key);
-  header.append(kKeyValueHeaderSeparator);
-  header.append(val);
-  header.append(kCrlf);
+  const auto old_size = header.size();
+  header.resize(old_size + key.size() + kKeyValueHeaderSeparator.size() +
+                val.size() + kCrlf.size());
+
+  char* append_position = header.data() + old_size;
+  const auto append = [&append_position](std::string_view what) {
+    std::memcpy(append_position, what.data(), what.size());
+    append_position += what.size();
+  };
+
+  append(key);
+  append(kKeyValueHeaderSeparator);
+  append(val);
+  append(kCrlf);
 }
 
 }  // namespace impl
@@ -183,7 +193,7 @@ HttpResponse::CookiesMapKeys HttpResponse::GetCookieNames() const {
 }
 
 const Cookie& HttpResponse::GetCookie(std::string_view cookie_name) const {
-  return cookies_.at(cookie_name);
+  return cookies_.at(cookie_name.data());
 }
 
 void HttpResponse::SetHeadersEnd() { headers_end_.Send(); }

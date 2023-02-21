@@ -2,11 +2,11 @@
 
 #include <algorithm>
 #include <iterator>
-#include <unordered_map>
 
 #include <fmt/compile.h>
 #include <fmt/format.h>
 
+#include <userver/utils/mock_now.hpp>
 #include <userver/utils/statistics/fmt.hpp>
 #include <userver/utils/statistics/storage.hpp>
 
@@ -29,11 +29,10 @@ void AppendGraphiteSafe(fmt::memory_buffer& out, std::string_view value) {
 class FormatBuilder final : public utils::statistics::BaseFormatBuilder {
  public:
   FormatBuilder()
-      : ending_(
-            fmt::format(FMT_COMPILE(" {}\n"),
-                        std::chrono::duration_cast<std::chrono::seconds>(
-                            std::chrono::system_clock::now().time_since_epoch())
-                            .count())) {}
+      : ending_(fmt::format(FMT_COMPILE(" {}\n"),
+                            std::chrono::duration_cast<std::chrono::seconds>(
+                                utils::datetime::MockNow().time_since_epoch())
+                                .count())) {}
 
   void HandleMetric(std::string_view path, utils::statistics::LabelsSpan labels,
                     const MetricValue& value) override {
@@ -60,7 +59,6 @@ class FormatBuilder final : public utils::statistics::BaseFormatBuilder {
 
   const std::string ending_;
   fmt::memory_buffer buf_;
-  std::unordered_map<std::string, std::string> metrics_;
 };
 
 }  // namespace

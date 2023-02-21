@@ -39,7 +39,7 @@ enum class WarningCode {
   kLabelNameLength,
   kLabelValueLength,
   kPathLength,
-  kLabelNameMissmatch,
+  kLabelNameMismatch,
 };
 
 std::string_view ToString(WarningCode code);

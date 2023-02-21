@@ -65,6 +65,9 @@ class Server final {
   /// is called.
   void AddService(ServiceBase& service, engine::TaskProcessor& task_processor);
 
+  /// @brief Get names of all registered services
+  std::vector<std::string_view> GetServiceNames() const;
+
   /// @brief For advanced configuration of the gRPC server
   /// @note The ServerBuilder must not be stored and used outside of `setup`.
   void WithServerBuilder(SetupHook&& setup);

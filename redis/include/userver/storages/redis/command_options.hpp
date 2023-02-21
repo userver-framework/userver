@@ -13,10 +13,15 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::redis {
 
+using Longitude = USERVER_NAMESPACE::redis::Longitude;
+using Latitude = USERVER_NAMESPACE::redis::Latitude;
+using BoxWidth = USERVER_NAMESPACE::redis::BoxWidth;
+using BoxHeight = USERVER_NAMESPACE::redis::BoxHeight;
 using CommandControl = USERVER_NAMESPACE::redis::CommandControl;
 using RangeOptions = USERVER_NAMESPACE::redis::RangeOptions;
 using GeoaddArg = USERVER_NAMESPACE::redis::GeoaddArg;
 using GeoradiusOptions = USERVER_NAMESPACE::redis::GeoradiusOptions;
+using GeosearchOptions = USERVER_NAMESPACE::redis::GeosearchOptions;
 using ZaddOptions = USERVER_NAMESPACE::redis::ZaddOptions;
 
 class ScanOptionsBase {

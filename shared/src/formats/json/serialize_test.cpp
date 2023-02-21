@@ -112,6 +112,30 @@ TEST(JsonToSortedString, KeysSortedLexicographically) {
       R"({"A":1,"Sam":1,"Sample":1,"SampleA":1,"SampleTest":1,"SampleZ":1,"Sz":1,"Z":1})");
 }
 
+TEST(JsonToSortedString, DuplicatedKeys) {
+  EXPECT_THROW(
+      formats::json::FromString(R"({"Key1":1,"Key2":2,"Key3":3, "Key1":2})"),
+      formats::json::ParseException);
+  try {
+    formats::json::FromString(R"({"Key1":1,"Key2":2,"Key3":3, "Key1":2})");
+  } catch (const formats::json::ParseException& e) {
+    EXPECT_EQ(std::string(e.what()), "Duplicate key: Key1 at /");
+  }
+}
+
+TEST(JsonToSortedString, DuplicatedKeysInObject) {
+  EXPECT_THROW(
+      formats::json::FromString(
+          R"({"Key1":{"Key4":1,"Key5":2,"Key4":1},"Key2":2,"Key3":3})"),
+      formats::json::ParseException);
+  try {
+    formats::json::FromString(
+        R"({"Key1":{"Key4":1,"Key5":2,"Key4":1},"Key2":2,"Key3":3})");
+  } catch (const formats::json::ParseException& e) {
+    EXPECT_EQ(std::string(e.what()), "Duplicate key: Key4 at Key1");
+  }
+}
+
 TEST(JsonToSortedString, NestedObjects) {
   const formats::json::Value example =
       formats::json::FromString(R"({"B":{"F":3,"D":1,"E":2},"A":1,"C":3})");

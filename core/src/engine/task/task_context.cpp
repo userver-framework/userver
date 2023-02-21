@@ -14,6 +14,7 @@
 #include <userver/utils/assert.hpp>
 #include <userver/utils/underlying_value.hpp>
 
+#include <compiler/tls.hpp>
 #include <engine/ev/thread_pool.hpp>
 #include <engine/impl/generic_wait_list.hpp>
 #include <engine/task/coro_unwinder.hpp>
@@ -37,6 +38,7 @@ void SetCurrentTaskContext(impl::TaskContext* context) {
 
 }  // namespace
 
+USERVER_PREVENT_TLS_CACHING
 impl::TaskContext& GetCurrentTaskContext() noexcept {
   if (!current_task_context_ptr) {
     // AbortWithStacktrace MUST be a separate function! Putting the body of this
@@ -51,6 +53,7 @@ impl::TaskContext& GetCurrentTaskContext() noexcept {
   return *current_task_context_ptr;
 }
 
+USERVER_PREVENT_TLS_CACHING
 impl::TaskContext* GetCurrentTaskContextUnchecked() noexcept {
   return current_task_context_ptr;
 }

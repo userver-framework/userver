@@ -148,6 +148,41 @@ void EncodeTskv(T& to, const char* str, size_t size, EncodeTskvMode mode,
 }
 /// @}
 
+inline bool ShouldValueBeEscaped(std::string_view key) {
+  for (char ch : key) {
+    switch (ch) {
+      case '\t':
+      case '\r':
+      case '\n':
+      case '\0':
+      case '\\':
+        return true;
+      default:
+        break;
+    }
+  }
+  return false;
+}
+
+inline bool ShouldKeyBeEscaped(std::string_view key) {
+  for (char ch : key) {
+    switch (ch) {
+      case '\t':
+      case '\r':
+      case '\n':
+      case '\0':
+      case '\\':
+      case '.':
+      case '=':
+        return true;
+      default:
+        if ('A' <= ch && ch <= 'Z') return true;
+        break;
+    }
+  }
+  return false;
+}
+
 }  // namespace utils::encoding
 
 USERVER_NAMESPACE_END

@@ -5,33 +5,46 @@ import pytest
 
 pytest_plugins = [
     'pytest_userver.plugins.base',
-    'pytest_userver.plugins.samples',
-    'pytest_userver.plugins.service_client',
     'pytest_userver.plugins.config',
+    'pytest_userver.plugins.dynamic_config',
     'pytest_userver.plugins.service',
+    'pytest_userver.plugins.service_client',
     'taxi.integration_testing.pytest_plugin',
+    'taxi.uservices.testsuite.integration_testing.pytest_plugin',
 ]
 
 
-@pytest.fixture
-def client_deps(
-        service_config_yaml,
-        _redis_service_settings,
-        redis_docker_service,
-        redis_slave_0_docker_service,
-):
-    config = service_config_yaml['components_manager']['components'][
-        'default-secdist-provider'
-    ]['config']
-    with open(config, 'r') as ffi:
-        contents = json.load(ffi)
+@pytest.fixture(scope='session')
+def service_env(redis_sentinel_services, redis_cluster_services):
+    cluster_hosts = []
+    cluster_shards = []
+    for index, _ in enumerate(redis_cluster_services.masters):
+        cluster_hosts.append(
+            {
+                'host': 'localhost',
+                'port': redis_cluster_services.master_port(index),
+            },
+        )
+        cluster_shards.append({'name': f'shard{index}'})
 
-    contents['redis_settings']['redis1']['sentinels'] = [
-        {
-            'host': _redis_service_settings.host,
-            'port': _redis_service_settings.sentinel_port,
+    secdist_config = {
+        'redis_settings': {
+            'redis-cluster': {
+                'password': '',
+                'sentinels': cluster_hosts,
+                'shards': cluster_shards,
+            },
+            'redis-sentinel': {
+                'password': '',
+                'sentinels': [
+                    {
+                        'host': 'localhost',
+                        'port': redis_sentinel_services.sentinel_port(),
+                    },
+                ],
+                'shards': [{'name': 'shard0'}],
+            },
         },
-    ]
+    }
 
-    with open(config, 'w') as ffo:
-        json.dump(contents, ffo, indent='  ')
+    return {'SECDIST_CONFIG': json.dumps(secdist_config)}

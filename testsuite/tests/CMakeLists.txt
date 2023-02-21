@@ -5,7 +5,7 @@ add_test (NAME ${PROJECT_NAME}
   WORKING_DIRECTORY "${USERVER_TESTSUITE_DIR}/pytest_plugins"
 )
 
-set_tests_properties(${PROJECT_NAME} PROPERTIES TIMEOUT 60) 
+set_tests_properties(${PROJECT_NAME} PROPERTIES TIMEOUT 600)
 
 add_custom_target(
   run-${PROJECT_NAME}

@@ -14,11 +14,10 @@ USERVER_NAMESPACE_BEGIN
 
 namespace utils::statistics {
 
-/* Timing values aggregated into buckets, each bucket is from 2**k to 2**(k+1)
- * Values out of range are put into last bucket
- */
+/// Timing values aggregated into buckets, each bucket is from 2**k to 2**(k+1)
+/// Values out of range are put into last bucket.
 template <size_t Length>
-struct AggregatedValues {
+struct AggregatedValues final {
   std::array<std::atomic_llong, Length> value{{}};
 
   AggregatedValues& operator=(const AggregatedValues& other) {

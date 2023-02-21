@@ -13,8 +13,6 @@
 #include <tests/unit_test_client.usrv.pb.hpp>
 #include <tests/unit_test_service.usrv.pb.hpp>
 
-#include <tests/service_fixture_test.hpp>
-
 USERVER_NAMESPACE_BEGIN
 
 using namespace std::chrono_literals;
@@ -44,7 +42,7 @@ UTEST_F(GrpcCancel, TryCancel) {
   for (int i = 0; i < 2; ++i) {
     auto call = client.Chat();
 
-    UEXPECT_NO_THROW(call.Write({}));
+    EXPECT_TRUE(call.Write({}));
     sample::ugrpc::StreamGreetingResponse response;
     EXPECT_TRUE(call.Read(response));
 
@@ -101,7 +99,7 @@ UTEST_MT(GrpcServer, DestroyServerDuringReqest, 2) {
 
   auto call = client.Chat();
   // NOLINTNEXTLINE(clang-analyzer-optin.cplusplus.UninitializedObject)
-  call.Write({});
+  EXPECT_TRUE(call.Write({}));
 
   sample::ugrpc::StreamGreetingResponse response;
   EXPECT_TRUE(call.Read(response));
@@ -111,9 +109,10 @@ UTEST_MT(GrpcServer, DestroyServerDuringReqest, 2) {
     engine::SleepFor(50ms);
 
     // The server should wait for the ongoing RPC to complete
-    call.Write({});
-    EXPECT_TRUE(call.Read(response));
-    UEXPECT_NO_THROW(call.Finish());
+    EXPECT_TRUE(call.Write({}));
+    UEXPECT_NO_THROW(EXPECT_TRUE(call.Read(response)));
+    EXPECT_TRUE(call.WritesDone());
+    UEXPECT_NO_THROW(EXPECT_FALSE(call.Read(response)));
   });
 
   server.Stop();
@@ -152,10 +151,10 @@ class UnitTestServiceCancelHello final
 
   void SayHello(SayHelloCall& call,
                 ::sample::ugrpc::GreetingRequest&&) override {
-    sample::ugrpc::GreetingResponse response;
+    const sample::ugrpc::GreetingResponse response;
 
     // Wait until cancelled.
-    bool success = wait_event_.WaitForEvent();
+    const bool success = wait_event_.WaitForEvent();
 
     finish_event_.Send();
     call.Finish(response);
@@ -176,8 +175,6 @@ class UnitTestServiceCancelHello final
 using GrpcCancelByClient = GrpcServiceFixtureSimple<UnitTestServiceCancelHello>;
 
 UTEST_F_MT(GrpcCancelByClient, CancelByClient, 3) {
-  UnitTestServiceCancelHello service;
-
   auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
 
   auto context = std::make_unique<grpc::ClientContext>();

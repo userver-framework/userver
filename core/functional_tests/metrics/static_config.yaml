@@ -87,8 +87,7 @@ components_manager:
             limited-logging-interval: 1s
 
         secdist: {}
-        default-secdist-provider:
-            config: $secdist-path
+        default-secdist-provider: {}
 
         server:
             listener:
@@ -138,6 +137,7 @@ components_manager:
             testpoint-url: $mockserver/testpoint
             throttling_enabled: false
         testsuite-support:
+            testsuite-periodic-dumps-enabled: $userver-dumps-periodic
         sample-cache:
             update-types: full-and-incremental
             full-update-interval: 1h
@@ -151,7 +151,7 @@ components_manager:
         sample-lru-cache:
             size: 1024
             ways: 32
-            lifetie: 1s
+            lifetime: 1s
         tracer:
             service-name: $service-name
             tracer: native

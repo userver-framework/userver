@@ -95,8 +95,9 @@ template <typename Enum, typename Enable = USERVER_NAMESPACE::utils::void_t<>>
 struct AreEnumeratorsDefined : std::false_type {};
 
 template <typename Enum>
-struct AreEnumeratorsDefined<Enum, USERVER_NAMESPACE::utils::void_t<decltype(
-                                       CppToUserPg<Enum>::enumerators)*>>
+struct AreEnumeratorsDefined<
+    Enum,
+    USERVER_NAMESPACE::utils::void_t<decltype(CppToUserPg<Enum>::enumerators)*>>
     : std::true_type {};
 
 template <typename Enum>

@@ -47,8 +47,8 @@ BENCHMARK(wrap_call_single);
 void wrap_call_multiple(benchmark::State& state) {
   engine::RunStandalone([&] {
     const auto empty_lambda = []() {};
-    using WrapPtr = decltype(
-        utils::impl::WrapCall(utils::impl::SpanLazyPrvalue(""), empty_lambda));
+    using WrapPtr = decltype(utils::impl::WrapCall(
+        utils::impl::SpanLazyPrvalue(""), empty_lambda));
     constexpr std::size_t kInMemoryInstancesCount = 100;
     for (auto _ : state) {
       std::array<WrapPtr, kInMemoryInstancesCount> a;

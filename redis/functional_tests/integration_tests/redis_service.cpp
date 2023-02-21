@@ -14,7 +14,9 @@
 #include <userver/storages/redis/client.hpp>
 #include <userver/storages/redis/component.hpp>
 #include <userver/storages/secdist/component.hpp>
+#include <userver/storages/secdist/provider_component.hpp>
 #include <userver/utils/daemon_run.hpp>
+#include <userver/yaml_config/merge_schemas.hpp>
 
 namespace chaos {
 
@@ -28,6 +30,8 @@ class KeyValue final : public server::handlers::HttpHandlerBase {
   std::string HandleRequestThrow(
       const server::http::HttpRequest& request,
       server::request::RequestContext&) const override;
+
+  static yaml_config::Schema GetStaticConfigSchema();
 
  private:
   std::string GetValue(std::string_view key,
@@ -45,7 +49,7 @@ KeyValue::KeyValue(const components::ComponentConfig& config,
     : server::handlers::HttpHandlerBase(config, context),
       redis_client_{
           context.FindComponent<components::Redis>("key-value-database")
-              .GetClient("redis1")} {}
+              .GetClient(config["db"].As<std::string>())} {}
 
 std::string KeyValue::HandleRequestThrow(
     const server::http::HttpRequest& request,
@@ -67,6 +71,18 @@ std::string KeyValue::HandleRequestThrow(
       throw server::handlers::ClientError(server::handlers::ExternalBody{
           fmt::format("Unsupported method {}", request.GetMethod())});
   }
+}
+
+yaml_config::Schema KeyValue::GetStaticConfigSchema() {
+  return yaml_config::MergeSchemas<HandlerBase>(R"(
+type: object
+description: KeyValue handler schema
+additionalProperties: false
+properties:
+    db:
+        type: string
+        description: redis database name
+)");
 }
 
 std::string KeyValue::GetValue(std::string_view key,
@@ -103,9 +119,11 @@ std::string KeyValue::DeleteValue(std::string_view key) const {
 int main(int argc, char* argv[]) {
   const auto component_list =
       components::MinimalServerComponentList()
-          .Append<chaos::KeyValue>()
+          .Append<chaos::KeyValue>("handler-cluster")
+          .Append<chaos::KeyValue>("handler-sentinel")
           .Append<components::HttpClient>()
           .Append<components::Secdist>()
+          .Append<components::DefaultSecdistProvider>()
           .Append<components::Redis>("key-value-database")
           .Append<components::TestsuiteSupport>()
           .Append<server::handlers::TestsControl>()

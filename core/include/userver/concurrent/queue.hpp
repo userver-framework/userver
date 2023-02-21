@@ -6,8 +6,8 @@
 
 #include <moodycamel/concurrentqueue.h>
 
-#include <userver/concurrent/impl/queue_helpers.hpp>
 #include <userver/concurrent/impl/semaphore_capacity_control.hpp>
+#include <userver/concurrent/queue_helpers.hpp>
 #include <userver/engine/deadline.hpp>
 #include <userver/engine/semaphore.hpp>
 #include <userver/engine/single_consumer_event.hpp>
@@ -36,6 +36,11 @@ template <typename T, bool MultipleProducer, bool MultipleConsumer>
 class GenericQueue final
     : public std::enable_shared_from_this<
           GenericQueue<T, MultipleProducer, MultipleConsumer>> {
+  struct EmplaceEnabler final {
+    // Disable {}-initialization in Queue's constructor
+    explicit EmplaceEnabler() = default;
+  };
+
   using ProducerToken =
       std::conditional_t<MultipleProducer, moodycamel::ProducerToken,
                          impl::NoToken>;
@@ -48,23 +53,25 @@ class GenericQueue final
       std::conditional_t<!MultipleProducer, moodycamel::ProducerToken,
                          impl::NoToken>;
 
-  friend class impl::Producer<GenericQueue, ProducerToken>;
-  friend class impl::Producer<GenericQueue, MultiProducerToken>;
-  friend class impl::Consumer<GenericQueue>;
+  friend class Producer<GenericQueue, ProducerToken, EmplaceEnabler>;
+  friend class Producer<GenericQueue, MultiProducerToken, EmplaceEnabler>;
+  friend class Consumer<GenericQueue, EmplaceEnabler>;
 
  public:
   using ValueType = T;
 
-  using Producer = impl::Producer<GenericQueue, ProducerToken>;
-  using Consumer = impl::Consumer<GenericQueue>;
-  using MultiProducer = impl::Producer<GenericQueue, MultiProducerToken>;
+  using Producer =
+      concurrent::Producer<GenericQueue, ProducerToken, EmplaceEnabler>;
+  using Consumer = concurrent::Consumer<GenericQueue, EmplaceEnabler>;
+  using MultiProducer =
+      concurrent::Producer<GenericQueue, MultiProducerToken, EmplaceEnabler>;
 
   static constexpr std::size_t kUnbounded =
       std::numeric_limits<std::size_t>::max() / 4;
 
   /// @cond
   // For internal use only
-  explicit GenericQueue(std::size_t max_size, impl::EmplaceEnabler /*unused*/)
+  explicit GenericQueue(std::size_t max_size, EmplaceEnabler /*unused*/)
       : queue_(),
         single_producer_token_(queue_),
         producer_side_(*this, std::min(max_size, kUnbounded)),
@@ -95,7 +102,7 @@ class GenericQueue final
   /// Create a new queue
   static std::shared_ptr<GenericQueue> Create(
       std::size_t max_size = kUnbounded) {
-    return std::make_shared<GenericQueue>(max_size, impl::EmplaceEnabler{});
+    return std::make_shared<GenericQueue>(max_size, EmplaceEnabler{});
   }
 
   /// Get a `Producer` which makes it possible to push items into the queue.
@@ -106,7 +113,7 @@ class GenericQueue final
   /// @note `Producer` may outlive the queue and consumers.
   Producer GetProducer() {
     PrepareProducer();
-    return Producer(this->shared_from_this(), impl::EmplaceEnabler{});
+    return Producer(this->shared_from_this(), EmplaceEnabler{});
   }
 
   /// Get a `MultiProducer` which makes it possible to push items into the
@@ -122,7 +129,7 @@ class GenericQueue final
     static_assert(MultipleProducer,
                   "Trying to obtain MultiProducer for a single-producer queue");
     PrepareProducer();
-    return MultiProducer(this->shared_from_this(), impl::EmplaceEnabler{});
+    return MultiProducer(this->shared_from_this(), EmplaceEnabler{});
   }
 
   /// Get a `Consumer` which makes it possible to read items from the queue.
@@ -142,7 +149,7 @@ class GenericQueue final
       producer_side_.ResumeBlockingOnPush();
     }
     UASSERT(MultipleConsumer || old_consumers_count != 1);
-    return Consumer(this->shared_from_this(), impl::EmplaceEnabler{});
+    return Consumer(this->shared_from_this(), EmplaceEnabler{});
   }
 
   /// @brief Sets the limit on the queue size, pushes over this limit will block
@@ -496,11 +503,15 @@ class GenericQueue<T, MP, MC>::MultiConsumerSide final {
 
  private:
   [[nodiscard]] bool DoPop(ConsumerToken& token, T& value) {
-    if (!queue_.DoPop(token, value)) {
-      size_.unlock_shared();
-      return false;
+    while (true) {
+      if (queue_.DoPop(token, value)) return true;
+      if (queue_.NoMoreProducers()) {
+        size_.unlock_shared();
+        return false;
+      }
+      // We can get here if another consumer steals our element, leaving another
+      // element in a Moodycamel sub-queue that we have already passed.
     }
-    return true;
   }
 
   GenericQueue& queue_;

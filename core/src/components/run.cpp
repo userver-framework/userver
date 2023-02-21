@@ -58,6 +58,7 @@ class LogScope final {
   ~LogScope() noexcept(false) {
     if (old_default_logger_) {
       logging::SetDefaultLogger(std::move(old_default_logger_));
+      old_default_logger_.reset();
     }
   }
 

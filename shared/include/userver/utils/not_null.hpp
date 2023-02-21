@@ -39,6 +39,10 @@ class NotNull {
   }
 
   template <typename U,
+            typename = std::enable_if_t<std::is_convertible_v<U*, T>>>
+  constexpr /*implicit*/ NotNull(U& u) : ptr_(std::addressof(u)) {}
+
+  template <typename U,
             typename = std::enable_if_t<std::is_convertible_v<U, T>>>
   constexpr NotNull(const NotNull<U>& other) : ptr_(other.GetBase()) {
     UASSERT_MSG(ptr_,
@@ -72,9 +76,11 @@ class NotNull {
     return std::move(ptr_);
   }
 
-  constexpr operator const T&() const& { return GetBase(); }
+  constexpr /*implicit*/ operator const T&() const& { return GetBase(); }
 
-  constexpr decltype(auto) operator-> () const& { return GetBase(); }
+  constexpr /*implicit*/ operator bool() = delete;
+
+  constexpr decltype(auto) operator->() const& { return GetBase(); }
 
   constexpr decltype(auto) operator*() const& { return *GetBase(); }
 

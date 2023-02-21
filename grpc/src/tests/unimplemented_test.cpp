@@ -45,7 +45,7 @@ using GrpcServerSomeUnimplementedTest =
 UTEST_F(GrpcServerSomeUnimplementedTest, Implemented) {
   auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
   auto call = client.Chat(ContextWithDeadline());
-  UEXPECT_NO_THROW(call.WritesDone());
+  EXPECT_TRUE(call.WritesDone());
   sample::ugrpc::StreamGreetingResponse response;
   EXPECT_FALSE(call.Read(response));
 }

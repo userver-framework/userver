@@ -46,7 +46,6 @@ components_manager:
 
         dynamic-config:
             fs-cache-path: ''
-            fs-task-processor: fs-task-processor
         dynamic-config-fallbacks:
             load-enabled: false
         dynamic-config-client:
@@ -72,6 +71,8 @@ components_manager:
         http-client:
             fs-task-processor: fs-task-processor
             user-agent: userver testsuite
+        dns-client:                     # Asynchronous DNS component
+            fs-task-processor: fs-task-processor
 
         congestion-control:
             load-enabled: true

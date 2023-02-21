@@ -4,6 +4,7 @@
 /// @brief @copybrief clients::http::Request
 
 #include <memory>
+#include <string_view>
 #include <vector>
 
 #include <userver/clients/dns/resolver_fwd.hpp>
@@ -28,6 +29,8 @@ class EasyWrapper;
 
 /// HTTP request method
 enum class HttpMethod { kGet, kPost, kHead, kPut, kDelete, kPatch, kOptions };
+
+std::string_view ToStringView(HttpMethod method);
 
 /// HTTP version to use
 enum class HttpVersion {
@@ -63,7 +66,8 @@ struct EnforceTaskDeadlineConfig;
 class Request final : public std::enable_shared_from_this<Request> {
  public:
   /// Request cookies container type
-  using Cookies = std::unordered_map<std::string, std::string>;
+  using Cookies =
+      std::unordered_map<std::string, std::string, utils::StrCaseHash>;
 
   /// @cond
   // For internal use only.
@@ -131,8 +135,11 @@ class Request final : public std::enable_shared_from_this<Request> {
   std::shared_ptr<Request> proxy(const std::string& value);
   /// Sets proxy auth type to use.
   std::shared_ptr<Request> proxy_auth_type(ProxyAuthType value);
-  /// Cookies for request as map
+  /// Cookies for request as HashDos-safe map
   std::shared_ptr<Request> cookies(const Cookies& cookies);
+  /// Cookies for request as map
+  std::shared_ptr<Request> cookies(
+      const std::unordered_map<std::string, std::string>& cookies);
   /// Follow redirects or not. Default: follow
   std::shared_ptr<Request> follow_redirects(bool follow = true);
   /// Set timeout in ms for request

@@ -34,6 +34,11 @@ if(CMAKE_SYSTEM_PROCESSOR MATCHES "^x86")
 	set(USERVER_BUILD_PLATFORM_X86 ON)
 endif()
 
+set(USERVER_MONGODB ${USERVER_BUILD_PLATFORM_X86})
+if(NOT MAC AND CMAKE_SYSTEM_NAME MATCHES "BSD")
+  set(USERVER_MONGODB OFF)
+endif()
+
 execute_process(
   COMMAND bash -c "(apt-key finger '7FCD11186050CD1A' | grep Yandex) || (brew tap | grep 'yandex')"
   RESULT_VARIABLE USERVER_NOT_YANDEX_ENV
@@ -49,6 +54,7 @@ endif()
 option(USERVER_CONAN "Build with Conan packages" ${CONAN_EXPORTED})
 if (USERVER_CONAN)
   message(STATUS "Using Conan packages")
+  include(conan_paths)
 endif()
 
 option(USERVER_DOWNLOAD_PACKAGES "Download missing third party packages and use the downloaded versions" ${USERVER_OPEN_SOURCE_BUILD})
@@ -63,7 +69,12 @@ if (NOT USERVER_FEATURE_CRYPTOPP_BASE64_URL)
   add_definitions("-DUSERVER_NO_CRYPTOPP_BASE64_URL=1")
 endif()
 
-option(USERVER_FEATURE_JEMALLOC "Enable linkage with jemalloc memory allocator" ON)
+if(CMAKE_SYSTEM_NAME MATCHES "BSD")
+  set(JEMALLOC_DEFAULT OFF)
+else()
+  set(JEMALLOC_DEFAULT ON)
+endif()
+option(USERVER_FEATURE_JEMALLOC "Enable linkage with jemalloc memory allocator" ${JEMALLOC_DEFAULT})
 
 option(USERVER_CHECK_PACKAGE_VERSIONS "Check package versions" ON)
 
@@ -78,11 +89,16 @@ include(FindPython)
 message(STATUS "Generating cmake files ...")
 execute_process(
     COMMAND
-        ${PYTHON} -u ${CMAKE_CURRENT_SOURCE_DIR}/plugins/external_deps/impl/cmake_generator.py
-        --repo-dir=${CMAKE_CURRENT_SOURCE_DIR}
+        ${PYTHON} -m pip install -r ${USERVER_ROOT_DIR}/scripts/external_deps/requirements.txt
+    WORKING_DIRECTORY ${USERVER_ROOT_DIR}
+)
+execute_process(
+    COMMAND
+        ${PYTHON} -u ${USERVER_ROOT_DIR}/scripts/external_deps/cmake_generator.py
+        --repo-dir=${USERVER_ROOT_DIR}
         --build-dir=${CMAKE_BINARY_DIR}
     RESULT_VARIABLE RESULT
-    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    WORKING_DIRECTORY ${USERVER_ROOT_DIR}
 )
 
 if (RESULT)
@@ -91,11 +107,11 @@ if (RESULT)
     )
 endif(RESULT)
 
-set(USERVER_THIRD_PARTY_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/third_party CACHE INTERNAL "")
+set(USERVER_THIRD_PARTY_DIRS ${USERVER_ROOT_DIR}/third_party CACHE INTERNAL "")
 
 init_debian_depends()
 
-option(USERVER_FEATURE_MONGODB "Provide asynchronous driver for MongoDB" ${USERVER_BUILD_PLATFORM_X86})
+option(USERVER_FEATURE_MONGODB "Provide asynchronous driver for MongoDB" ${USERVER_MONGODB})
 option(USERVER_FEATURE_POSTGRESQL "Provide asynchronous driver for PostgreSQL" ON)
 option(USERVER_FEATURE_REDIS "Provide asynchronous driver for Redis" ON)
 option(USERVER_FEATURE_GRPC "Provide asynchronous driver for gRPC" ON)

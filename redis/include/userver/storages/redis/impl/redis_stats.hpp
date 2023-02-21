@@ -4,8 +4,9 @@
 #include <atomic>
 #include <chrono>
 #include <map>
+#include <string_view>
+#include <unordered_map>
 
-#include <userver/concurrent/variable.hpp>
 #include <userver/storages/redis/impl/base.hpp>
 #include <userver/storages/redis/impl/types.hpp>
 #include <userver/utils/statistics/aggregated_values.hpp>
@@ -26,7 +27,7 @@ constexpr size_t TimingBucketCount = 15;
 
 class Statistics {
  public:
-  Statistics() = default;
+  Statistics();
 
   void AccountStateChanged(RedisState new_state);
   void AccountCommandSent(const CommandPtr& cmd);
@@ -45,7 +46,10 @@ class Statistics {
   RecentPeriod request_size_percentile;
   RecentPeriod reply_size_percentile;
   RecentPeriod timings_percentile;
+  std::unordered_map<std::string_view, RecentPeriod> command_timings_percentile;
   std::atomic_llong last_ping_ms{};
+  std::atomic_bool is_syncing = false;
+  std::atomic_size_t offset_from_master_bytes = 0;
 
   std::array<std::atomic_llong, REDIS_ERR_MAX + 1> error_count{{}};
 };
@@ -60,9 +64,17 @@ struct InstanceStatistics {
             other.request_size_percentile.GetStatsForPeriod()),
         reply_size_percentile(other.reply_size_percentile.GetStatsForPeriod()),
         timings_percentile(other.timings_percentile.GetStatsForPeriod()),
-        last_ping_ms(other.last_ping_ms.load(std::memory_order_relaxed)) {
+        last_ping_ms(other.last_ping_ms.load(std::memory_order_relaxed)),
+        is_syncing(other.is_syncing.load(std::memory_order_relaxed)),
+        offset_from_master(
+            other.offset_from_master_bytes.load(std::memory_order_relaxed)) {
     for (size_t i = 0; i < error_count.size(); i++)
       error_count[i] = other.error_count[i].load(std::memory_order_relaxed);
+    for (const auto& [command, timings] : other.command_timings_percentile) {
+      auto stats = timings.GetStatsForPeriod();
+      if (!stats.Count()) continue;
+      command_timings_percentile.emplace(command, std::move(stats));
+    }
   }
 
   InstanceStatistics() : InstanceStatistics(Statistics()) {}
@@ -75,6 +87,9 @@ struct InstanceStatistics {
 
     for (size_t i = 0; i < error_count.size(); i++)
       error_count[i] += other.error_count[i];
+
+    for (const auto& [command, timings] : other.command_timings_percentile)
+      command_timings_percentile[command].Add(timings);
   }
 
   RedisState state;
@@ -83,7 +98,11 @@ struct InstanceStatistics {
   Statistics::Percentile request_size_percentile;
   Statistics::Percentile reply_size_percentile;
   Statistics::Percentile timings_percentile;
+  std::unordered_map<std::string, Statistics::Percentile>
+      command_timings_percentile;
   long long last_ping_ms;
+  bool is_syncing;
+  long long offset_from_master;
 
   std::array<long long, REDIS_ERR_MAX + 1> error_count{{}};
 };

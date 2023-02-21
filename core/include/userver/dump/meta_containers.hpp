@@ -55,8 +55,8 @@ using InsertResult = decltype(dump::Insert(
 /// Check if a range is a container
 template <typename T>
 inline constexpr bool kIsContainer =
-    meta::kIsRange<T>&& std::is_default_constructible_v<T>&&
-        meta::kIsSizable<T>&& meta::kIsDetected<impl::InsertResult, T>;
+    meta::kIsRange<T> && std::is_default_constructible_v<T> &&
+    meta::kIsSizable<T> && meta::kIsDetected<impl::InsertResult, T>;
 
 }  // namespace dump
 

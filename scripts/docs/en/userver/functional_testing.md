@@ -51,6 +51,7 @@ Then create testsuite target:
 * REQUIREMENTS, list of reqirements.txt files used to populate `virtualenv`.
 * PYTHON_BINARY, path to existing Python binary.
 * VIRTUALENV_ARGS, list of extra arguments passed to `virtualenv`.
+* PRETTY_LOGS, set to `OFF` to disable pretty printing.
 
 ### Python environment
 
@@ -115,6 +116,20 @@ To use it add it to your `pytest_plugins` in root `conftest.py`:
 It requires extra PYTEST_ARGS to be passed:
 
 @snippet samples/testsuite-support/CMakeLists.txt testsuite - cmake
+
+The plugins match the userver cmake targets. For example, if the service links
+with `userver-core` its tests should use the pytest_userver.plugins.core
+plugin.
+
+| CMake target            | Matching plugin for testsuite     |
+|-------------------------|-----------------------------------|
+| userver-core            | pytest_userver.plugins.core       |
+| userver-grpc            | pytest_userver.plugins.grpc       |
+| userver-postgresql      | pytest_userver.plugins.postgresql |
+| userver-clickhouse      | pytest_userver.plugins.clickhouse |
+| userver-redis           | pytest_userver.plugins.redis      |
+| userver-mongo           | pytest_userver.plugins.mongo      |
+| userver-rabbitmq        | pytest_userver.plugins.rabbitmq   |
 
 
 ### Userver testsuite support
@@ -299,10 +314,11 @@ An example on testsuite tasks could be found here:
 * C++ code: @ref samples/testsuite-support/src/tasks.cpp
 * Testcase: @ref samples/testsuite-support/tests/test_tasks.py
 
-
+@anchor TESTSUITE_METRICS_TESTING
 #### Metrics
 
-Testsuite provides access to userver metrics via
+Testsuite provides access to userver metrics written by
+utils::statistics::Writer via
 @ref pytest_userver.plugins.service_client.monitor_client "monitor_client"
 , see @ref tutorial_metrics "tutorial on configuration".
 It allows to:
@@ -332,6 +348,11 @@ the metrics could be retrieved and reset as follows:
 For metrics with labels, they could be retrieved in the following way: 
 
 @snippet samples/testsuite-support/tests/test_metrics.py metrics labels
+
+The @ref pytest_userver.metrics.Metric "Metric" python type is hashable and
+comparable:
+
+@snippet testsuite/tests/test_metrics.py  values set
 
 * C++ code: @ref samples/testsuite-support/src/metrics.cpp
 * C++ header: @ref samples/testsuite-support/src/metrics.hpp

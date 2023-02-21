@@ -1,18 +1,28 @@
 # yaml
 components_manager:
     components:
-        handler-redis:
-            path: /redis
+        handler-sentinel:
+            db: redis-sentinel
+            path: /redis-sentinel
+            task_processor: main-task-processor
+            method: GET,DELETE,POST
+
+        handler-cluster:
+            db: redis-cluster
+            path: /redis-cluster
             task_processor: main-task-processor
             method: GET,DELETE,POST
 
         key-value-database:
             groups:
-              - config_name: redis1
-                db: redis1
+              - config_name: redis-sentinel
+                db: redis-sentinel
+              - config_name: redis-cluster
+                db: redis-cluster
+                sharding_strategy: RedisCluster
             subscribe_groups: []
             thread_pools:
-                redis_thread_pool_size: 1
+                redis_thread_pool_size: 2
                 sentinel_thread_pool_size: 1
 
         testsuite-support:
@@ -28,9 +38,12 @@ components_manager:
             testpoint-timeout: 10s
             testpoint-url: $mockserver/testpoint
             throttling_enabled: false
+
         secdist: {}
         default-secdist-provider:
+            config: /etc/redis_service/secure_data.json
             missing-ok: true
+            environment-secrets-key: SECDIST_CONFIG
 
         server:
             listener:

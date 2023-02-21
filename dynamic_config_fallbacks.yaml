@@ -2,6 +2,7 @@ groups:
   - library-yamls:
       - core/library.yaml
     fallbacks:
+      - clickhouse/functional_tests/metrics/dynamic_config_fallback.json
       - samples/clickhouse_service/dynamic_config_fallback.json
       - samples/config_service/dynamic_config_fallback.json
       - samples/flatbuf_service/dynamic_config_fallback.json
@@ -35,6 +36,7 @@ groups:
       - samples/mongo_service/dynamic_config_fallback.json
       - samples/mongo-support/dynamic_config_fallback.json
       - mongo/functional_tests/basic_chaos/dynamic_config_fallback.json
+      - mongo/functional_tests/metrics/dynamic_config_fallback.json
 
   - library-yamls:
       - core/library.yaml
@@ -42,7 +44,6 @@ groups:
     fallbacks:
       - samples/postgres_service/dynamic_config_fallback.json
       - samples/postgres-support/dynamic_config_fallback.json
-      - postgresql/functional_tests/basic_chaos/dynamic_config_fallback.json
       - postgresql/functional_tests/metrics/dynamic_config_fallback.json
     overrides:
         POSTGRES_CONNECTION_POOL_SETTINGS:
@@ -74,6 +75,21 @@ groups:
 
   - library-yamls:
       - core/library.yaml
+      - postgresql/library.yaml
+    fallbacks:
+      - postgresql/functional_tests/basic_chaos/dynamic_config_fallback.json
+    overrides:
+        # chaos proxy is slow, initial connection setup takes quite some time
+        POSTGRES_DEFAULT_COMMAND_CONTROL:
+            network_timeout_ms: 30000
+            statement_timeout_ms: 500
+        POSTGRES_CONNECTION_SETTINGS:
+            __default__:
+                user-types-enabled: false  # Not used in chaos tests
+                recent-errors-threshold: 100000
+
+  - library-yamls:
+      - core/library.yaml
       - grpc/library.yaml
     fallbacks:
       - samples/grpc_service/dynamic_config_fallback.json
@@ -86,3 +102,13 @@ groups:
       - redis/functional_tests/integration_tests/dynamic_config_fallback.json
       - redis/functional_tests/basic_chaos/dynamic_config_fallback.json
       - redis/functional_tests/metrics/dynamic_config_fallback.json
+    overrides:
+        REDIS_METRICS_SETTINGS:
+            command-timings-enabled: true
+            reply-sizes-enabled: true
+            request-sizes-enabled: true
+            timings-enabled: true
+        REDIS_REPLICA_MONITORING_SETTINGS:
+            __default__:
+                enable-monitoring: true
+                forbid-requests-to-syncing-replicas: true

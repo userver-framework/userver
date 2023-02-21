@@ -1,7 +1,12 @@
+#include <userver/clients/dns/component.hpp>
+#include <userver/clients/http/component.hpp>
 #include <userver/components/minimal_server_component_list.hpp>
 #include <userver/formats/bson/inline.hpp>
 #include <userver/server/handlers/http_handler_base.hpp>
+#include <userver/server/handlers/server_monitor.hpp>
+#include <userver/server/handlers/tests_control.hpp>
 #include <userver/storages/mongo/component.hpp>
+#include <userver/testsuite/testsuite_support.hpp>
 #include <userver/utils/daemon_run.hpp>
 
 #include <userver/utest/using_namespace_userver.hpp>
@@ -67,6 +72,10 @@ std::string KeyValue::GetValue(const server::http::HttpRequest& request) const {
 int main(int argc, char* argv[]) {
   const auto component_list =
       components::MinimalServerComponentList()
+          .Append<clients::dns::Component>()
+          .Append<components::HttpClient>()
+          .Append<components::TestsuiteSupport>()
+          .Append<server::handlers::TestsControl>()
           .Append<components::Mongo>("key-value-database")
           .Append<chaos::KeyValue>();
   return utils::DaemonMain(argc, argv, component_list);

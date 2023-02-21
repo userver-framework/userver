@@ -2,6 +2,7 @@
 Supply dynamic configs for the service in testsuite.
 """
 
+import copy
 import datetime
 import json
 import pathlib
@@ -9,10 +10,15 @@ import typing
 
 import pytest
 
+from pytest_userver.plugins import caches
+
 USERVER_CONFIG_HOOKS = [
+    'userver_config_dynconf_cache',
     'userver_config_dynconf_fallback',
     'userver_config_dynconf_url',
 ]
+
+_CONFIG_CACHES = ['dynamic-config-client-updater']
 
 
 class BaseError(Exception):
@@ -26,22 +32,33 @@ class DynamicConfigNotFoundError(BaseError):
 class DynamicConfig:
     """Simple dynamic config backend."""
 
-    def __init__(self):
-        self._values = {}
+    def __init__(
+            self,
+            *,
+            initial_values: typing.Dict[str, typing.Any],
+            config_cache_components: typing.Iterable[str],
+            cache_invalidation_state: caches.InvalidationState,
+    ):
+        self._values = copy.deepcopy(initial_values)
+        self._cache_invalidation_state = cache_invalidation_state
+        self._config_cache_components = config_cache_components
 
     def set_values(self, values):
         self._values.update(values)
+        self._sync_with_service()
 
     def get_values(self):
         return self._values.copy()
 
     def remove_values(self, keys):
+        extra_keys = set(keys).difference(self._values.keys())
+        if extra_keys:
+            raise DynamicConfigNotFoundError(
+                f'Attempting to remove nonexistent configs: {extra_keys}',
+            )
         for key in keys:
-            if key not in self._values:
-                raise DynamicConfigNotFoundError(
-                    f'param "{key}" is not found in config',
-                )
             self._values.pop(key)
+        self._sync_with_service()
 
     def set(self, **values):
         self.set_values(values)
@@ -50,13 +67,16 @@ class DynamicConfig:
         if key not in self._values:
             if default is not None:
                 return default
-            raise DynamicConfigNotFoundError(
-                'param "%s" is not found in config' % (key,),
-            )
+            raise DynamicConfigNotFoundError(f'Config {key!r} is not found')
         return self._values[key]
 
     def remove(self, key):
         return self.remove_values([key])
+
+    def _sync_with_service(self):
+        self._cache_invalidation_state.invalidate(
+            self._config_cache_components,
+        )
 
 
 @pytest.fixture
@@ -66,6 +86,7 @@ def dynamic_config(
         load_json,
         object_substitute,
         config_service_defaults,
+        cache_invalidation_state,
 ) -> DynamicConfig:
     """
     Fixture that allows to control dynamic config values used by the service.
@@ -79,7 +100,6 @@ def dynamic_config(
 
     @ingroup userver_testsuite_fixtures
     """
-    config = DynamicConfig()
     all_values = config_service_defaults.copy()
     for path in reversed(list(search_path('config.json'))):
         values = load_json(path)
@@ -87,8 +107,11 @@ def dynamic_config(
     for marker in request.node.iter_markers('config'):
         marker_json = object_substitute(marker.kwargs)
         all_values.update(marker_json)
-    config.set_values(all_values)
-    return config
+    return DynamicConfig(
+        initial_values=all_values,
+        config_cache_components=_CONFIG_CACHES,
+        cache_invalidation_state=cache_invalidation_state,
+    )
 
 
 @pytest.fixture
@@ -129,8 +152,38 @@ def config_service_defaults(
 
 
 @pytest.fixture(scope='session')
+def userver_config_dynconf_cache(service_tmpdir):
+    def patch_config(config, _config_vars) -> None:
+        components = config['components_manager']['components']
+        dynamic_config_component = components.get('dynamic-config', {})
+        if dynamic_config_component.get('fs-cache-path', '') == '':
+            return
+
+        cache_path = service_tmpdir / 'configs' / 'config_cache.json'
+
+        if cache_path.is_file():
+            # To avoid leaking dynamic config values between test sessions
+            cache_path.unlink()
+
+        dynamic_config_component['fs-cache-path'] = str(cache_path)
+
+    return patch_config
+
+
+@pytest.fixture(scope='session')
 def userver_config_dynconf_fallback(pytestconfig, config_fallback_path):
-    def patch_config(config_yaml, _config_vars):
+    """
+    Returns a function that adjusts the static configuration file for
+    the testsuite.
+    Sets the `fallback-path` of the `dynamic-config-fallbacks` and
+    `dynamic-config-fallbacks` to the value of
+    @ref pytest_userver.plugins.config.config_fallback_path
+    "config_fallback_path" fixture.
+
+    @ingroup userver_testsuite_fixtures
+    """
+
+    def _patch_config(config_yaml, _config_vars):
         components = config_yaml['components_manager']['components']
         for component_name in (
                 'dynamic-config-fallbacks',
@@ -143,25 +196,38 @@ def userver_config_dynconf_fallback(pytestconfig, config_fallback_path):
                 pytest.fail('Please run with --config-fallback=...')
             component['fallback-path'] = str(config_fallback_path)
 
-    return patch_config
+    return _patch_config
 
 
 @pytest.fixture(scope='session')
 def userver_config_dynconf_url(mockserver_info):
-    def patch_config(config, _config_vars) -> None:
+    """
+    Returns a function that adjusts the static configuration file for
+    the testsuite.
+    Sets the `dynamic-config-client.config-url` to the value of mockserver
+    configs-service, so that the
+    @ref pytest_userver.plugins.dynamic_config.mock_configs_service
+    "mock_configs_service" fixture could work.
+
+    @ingroup userver_testsuite_fixtures
+    """
+
+    def _patch_config(config, _config_vars) -> None:
         components = config['components_manager']['components']
         client = components.get('dynamic-config-client', None)
         if client:
             client['config-url'] = mockserver_info.url('configs-service')
 
-    return patch_config
+    return _patch_config
 
 
 @pytest.fixture
 def mock_configs_service(mockserver, dynamic_config) -> None:
     """
     Adds a mockserver handler that forwards dynamic_config to service's
-    dynamic-config-client component.
+    `dynamic-config-client` component.
+
+    @ingroup userver_testsuite_fixtures
     """
 
     def service_timestamp():

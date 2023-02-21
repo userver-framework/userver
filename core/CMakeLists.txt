@@ -205,7 +205,7 @@ else()
     )
 endif()
 
-if (NOT MACOS)
+if (NOT MACOS AND NOT ${CMAKE_SYSTEM_NAME} MATCHES "BSD")
   target_link_libraries(${PROJECT_NAME} PUBLIC atomic)
 endif()
 

@@ -116,7 +116,7 @@ properties:
         description: timeout, must be less than lock-ttl/2
     restart-delay:
         type: string
-        descritpion: how much time to wait after failed task restart
+        description: how much time to wait after failed task restart
         defaultDescription: 100ms
     autostart:
         type: boolean
@@ -128,9 +128,8 @@ properties:
         defaultDescription: main-task-processor
     testsuite-support:
         type: boolean
-        default: false
         description: Enable testsuite support
-        defaultDescription: true
+        defaultDescription: false
 )");
 }
 

@@ -1,8 +1,6 @@
-#include <userver/utest/utest.hpp>
-
-#include <userver/logging/log.hpp>
 #include <userver/logging/log_extra.hpp>
 
+#include <userver/logging/log.hpp>
 #include <userver/utest/utest.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -37,6 +35,8 @@ TEST(LogExtra, DocsData) {
 }
 
 TEST(LogExtraDeathTest, UsingTechnicalKeys) {
+  testing::FLAGS_gtest_death_test_style = "threadsafe";
+
   logging::LogExtra log_extra;
   for (const auto& key :
        {"timestamp", "level", "module", "task_id", "thread_id", "text"}) {

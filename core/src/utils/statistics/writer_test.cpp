@@ -1,7 +1,11 @@
 #include <userver/utest/utest.hpp>
 
+#include <userver/utils/statistics/graphite.hpp>
 #include <userver/utils/statistics/prometheus.hpp>
 #include <userver/utils/statistics/storage.hpp>
+
+#include <userver/rcu/rcu_map.hpp>
+#include <userver/utils/mock_now.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -10,6 +14,35 @@ using utils::statistics::Request;
 using utils::statistics::Storage;
 using utils::statistics::ToPrometheusFormatUntyped;
 using utils::statistics::Writer;
+
+/// [DumpMetric basic]
+struct ComponentMetricsNested {
+  std::atomic<int> nested1{17};
+  std::atomic<int> nested2{18};
+};
+
+void DumpMetric(utils::statistics::Writer& writer,
+                const ComponentMetricsNested& m) {
+  // Metric without labels
+  writer["nested1"] = m.nested1;
+
+  // Metric with label
+  writer["nested2"].ValueWithLabels(m.nested2, {"label_name", "label_value"});
+}
+/// [DumpMetric basic]
+
+/// [DumpMetric nested]
+struct ComponentMetrics {
+  rcu::RcuMap<std::string, ComponentMetricsNested> metrics;
+};
+
+void DumpMetric(utils::statistics::Writer& writer, const ComponentMetrics& m) {
+  for (const auto& [key, value] : m.metrics) {
+    UASSERT(value);
+    writer.ValueWithLabels(*value, {{"a_label", key}, {"b_label", "b"}});
+  }
+}
+/// [DumpMetric nested]
 
 struct MetricTypeThatMayBeDumped {};
 void DumpMetric(Writer& writer, MetricTypeThatMayBeDumped) { writer = 42; }
@@ -62,7 +95,25 @@ a{} 44
   EXPECT_EQ(expected_all, "\n" + ToPrometheusFormatUntyped(storage, Request{}));
 }
 
+struct NotDumpable {};
+
+namespace some {
+
+struct Dumpable1 {};
+void DumpMetric(utils::statistics::Writer&, const Dumpable1&) {}
+
+struct Dumpable2 {};
+void DumpMetric(utils::statistics::Writer&, Dumpable2) {}
+
+struct Dumpable3 {};
+
+}  // namespace some
+
 }  // namespace
+
+namespace utils::statistics {
+void DumpMetric(Writer&, some::Dumpable3) {}
+}  // namespace utils::statistics
 
 UTEST(MetricsWriter, Basic1) {
   Storage storage;
@@ -81,10 +132,51 @@ UTEST(MetricsWriter, Basic2) {
 
 UTEST(MetricsWriter, Basic3) {
   Storage storage;
-  auto holder = storage.RegisterWriter(
-      "prefix", [](Writer& writer) { writer["name"] = 42; });
+  auto holder = storage.RegisterWriter("prefix", [](Writer& writer) {
+    writer["name"] = 42;
+
+    writer["a"] = some::Dumpable1{};
+    writer["b"] = some::Dumpable2{};
+    writer["c"] = some::Dumpable3{};
+  });
 
   DoTestBasic(storage);
+}
+
+UTEST(MetricsWriter, Sample) {
+  Storage storage;
+
+  // The names mimic class member names, for the sample purposes
+  utils::statistics::Entry holder_;
+  ComponentMetrics component_metrics_;
+  component_metrics_.metrics.Insert("metric-in-map",
+                                    std::make_shared<ComponentMetricsNested>());
+  constexpr std::chrono::seconds kDuration{1674810371};
+  utils::datetime::MockNowSet(std::chrono::system_clock::time_point{kDuration});
+
+  /// [DumpMetric RegisterWriter]
+  holder_ = storage.RegisterWriter("begin-on-the-metric-path",
+                                   [&](Writer& writer) {
+                                     // Metric wihtout lables
+                                     writer["metric1"] = 42;
+
+                                     ComponentMetrics& metrics =
+                                         component_metrics_;
+                                     writer["more_metrics"] = metrics;
+                                   },
+                                   {{"label_for_all", "labell value"}});
+  /// [DumpMetric RegisterWriter]
+
+  auto result = utils::statistics::ToGraphiteFormat(
+      storage, Request::MakeWithPrefix("begin"));
+
+  constexpr std::string_view ethalon = /** [metrics graphite] */ R"(
+begin-on-the-metric-path.metric1;label_for_all=labell_value 42 1674810371
+begin-on-the-metric-path.more_metrics.nested1;label_for_all=labell_value;a_label=metric-in-map;b_label=b 17 1674810371
+begin-on-the-metric-path.more_metrics.nested2;label_for_all=labell_value;a_label=metric-in-map;b_label=b;label_name=label_value 18 1674810371
+)"; /** [metrics graphite] */
+
+  EXPECT_EQ(result, ethalon.substr(1));
 }
 
 #ifdef NDEBUG
@@ -331,6 +423,20 @@ UTEST(MetricsWriter, ComplexPathsStored) {
 
   const auto* const expected2 = "a_b_c_d_e{} 42\n";
   EXPECT_EQ(expected2, ToPrometheusFormatUntyped(storage));
+}
+
+UTEST(MetricsWriter, CustomizationPointChecks) {
+  EXPECT_TRUE(utils::statistics::kHasWriterSupport<std::atomic<int>>);
+  EXPECT_TRUE(utils::statistics::kHasWriterSupport<int>);
+  EXPECT_TRUE(utils::statistics::kHasWriterSupport<long double>);
+
+  EXPECT_FALSE(utils::statistics::kHasWriterSupport<NotDumpable>);
+  EXPECT_FALSE(utils::statistics::kHasWriterSupport<std::string>);
+  EXPECT_FALSE(utils::statistics::kHasWriterSupport<std::string_view>);
+
+  EXPECT_TRUE(utils::statistics::kHasWriterSupport<some::Dumpable1>);
+  EXPECT_TRUE(utils::statistics::kHasWriterSupport<some::Dumpable2>);
+  EXPECT_TRUE(utils::statistics::kHasWriterSupport<some::Dumpable3>);
 }
 
 USERVER_NAMESPACE_END

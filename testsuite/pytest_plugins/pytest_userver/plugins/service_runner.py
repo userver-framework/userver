@@ -52,7 +52,9 @@ class UserviceRunner:
 
 
 @pytest.mark.servicetest
-def test_service_default(service_client):
+def test_service_default(
+        service_client, service_baseurl, monitor_baseurl,
+) -> None:
     """
     This is default service runner testcase. Feel free to override it
     in your own tests, e.g.:
@@ -65,6 +67,13 @@ def test_service_default(service_client):
 
     @ingroup userver_testsuite
     """
+    # TODO: use service_client.base_url() and monitor_client.base_url()
+    delimiter = '=' * 100
+    message = f'\n{delimiter}\nStarted service at {service_baseurl}'
+    if monitor_baseurl:
+        message += f', configured monitor URL is {monitor_baseurl}'
+    message += f'\n{delimiter}\n'
+    print(message)
 
 
 def pytest_configure(config):

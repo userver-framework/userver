@@ -4,9 +4,9 @@ import sys
 
 import grpc
 import pytest
-# /// [Prepare modules]
 
-pytest_plugins = ['pytest_userver.plugins', 'pytest_userver.plugins.samples']
+pytest_plugins = ['pytest_userver.plugins.grpc']
+# /// [Prepare modules]
 
 # /// [Prepare configs]
 USERVER_CONFIG_HOOKS = ['prepare_service_config']

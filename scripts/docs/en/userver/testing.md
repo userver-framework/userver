@@ -74,7 +74,6 @@ Example usage:
 ### Mocked time
 
 - To mock time, use `utils::datetime::Now()` and `utils::datetime::SteadyNow()` from `<userver/utils/datetime.hpp>` instead of `std::chrono::system_clock::now()` and `std::chrono::steady_clock::now()`, respectively 
-- Enable mocked time controls by adding `MOCK_NOW=1` preprocessor definition to your test CMake target
 - Control the mocked time in tests using `<userver/utils/mock_now.hpp>`
 
 @snippet shared/src/utils/mock_now_test.cpp  Mocked time sample

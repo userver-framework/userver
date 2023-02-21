@@ -74,9 +74,7 @@ formats::json::Value Control::Perform(
           update_type,
           invalidate_caches["names"].As<std::unordered_set<std::string>>());
     } else {
-      testsuite_support_.GetCacheControl().InvalidateAllCaches(
-          update_type, invalidate_caches["names_blocklist"]
-                           .As<std::unordered_set<std::string>>({}));
+      testsuite_support_.GetCacheControl().InvalidateAllCaches(update_type);
       testsuite_support_.GetComponentControl().InvalidateComponents();
     }
   }

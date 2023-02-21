@@ -5,6 +5,7 @@
 #include <unordered_map>
 
 #include <userver/dynamic_config/source.hpp>
+#include <userver/storages/secdist/fwd.hpp>
 #include <userver/utils/swappingsmart.hpp>
 
 #include <userver/storages/mongo/pool.hpp>
@@ -12,13 +13,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace storages {
-
-namespace secdist {
-class Secdist;
-}  // namespace secdist
-
-namespace mongo {
+namespace storages::mongo {
 
 class MultiMongo {
   using PoolMap = std::unordered_map<std::string, storages::mongo::PoolPtr>;
@@ -98,7 +93,6 @@ class MultiMongo {
   utils::SwappingSmart<PoolMap> pool_map_ptr_;
 };
 
-}  // namespace mongo
-}  // namespace storages
+}  // namespace storages::mongo
 
 USERVER_NAMESPACE_END

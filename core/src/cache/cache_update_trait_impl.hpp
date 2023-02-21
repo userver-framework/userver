@@ -66,8 +66,6 @@ class CacheUpdateTrait::Impl final {
 
   void OnConfigUpdate(const dynamic_config::Snapshot& config);
 
-  formats::json::Value ExtendStatistics();
-
   class DumpableEntityProxy final : public dump::DumpableEntity {
    public:
     explicit DumpableEntityProxy(CacheUpdateTrait& cache);

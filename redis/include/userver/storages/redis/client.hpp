@@ -70,6 +70,12 @@ class Client {
   virtual RequestDel Del(std::vector<std::string> keys,
                          const CommandControl& command_control) = 0;
 
+  virtual RequestUnlink Unlink(std::string key,
+                               const CommandControl& command_control) = 0;
+
+  virtual RequestUnlink Unlink(std::vector<std::string> keys,
+                               const CommandControl& command_control) = 0;
+
   template <typename ScriptResult, typename ReplyType = ScriptResult>
   RequestEval<ScriptResult, ReplyType> Eval(
       std::string script, std::vector<std::string> keys,
@@ -115,9 +121,30 @@ class Client {
                                std::vector<GeoaddArg> point_members,
                                const CommandControl& command_control) = 0;
 
-  virtual RequestGeoradius Georadius(std::string key, double lon, double lat,
-                                     double radius,
+  virtual RequestGeoradius Georadius(std::string key, Longitude lon,
+                                     Latitude lat, double radius,
                                      const GeoradiusOptions& georadius_options,
+                                     const CommandControl& command_control) = 0;
+
+  virtual RequestGeosearch Geosearch(std::string key, std::string member,
+                                     double radius,
+                                     const GeosearchOptions& geosearch_options,
+                                     const CommandControl& command_control) = 0;
+
+  virtual RequestGeosearch Geosearch(std::string key, std::string member,
+                                     BoxWidth width, BoxHeight height,
+                                     const GeosearchOptions& geosearch_options,
+                                     const CommandControl& command_control) = 0;
+
+  virtual RequestGeosearch Geosearch(std::string key, Longitude lon,
+                                     Latitude lat, double radius,
+                                     const GeosearchOptions& geosearch_options,
+                                     const CommandControl& command_control) = 0;
+
+  virtual RequestGeosearch Geosearch(std::string key, Longitude lon,
+                                     Latitude lat, BoxWidth width,
+                                     BoxHeight height,
+                                     const GeosearchOptions& geosearch_options,
                                      const CommandControl& command_control) = 0;
 
   virtual RequestGet Get(std::string key,

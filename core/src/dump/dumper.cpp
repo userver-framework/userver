@@ -148,14 +148,13 @@ class Dumper::Impl {
 
   void OnConfigUpdate(const dynamic_config::Snapshot& config);
 
-  formats::json::Value ExtendStatistics() const;
-
   const Config static_config_;
   const std::string write_span_name_;
   const std::string read_span_name_;
   rcu::Variable<DynamicConfig> dynamic_config_;
   engine::TaskProcessor& fs_task_processor_;
   Statistics statistics_;
+  std::atomic<bool> tried_to_read_dump_{false};
 
   engine::SingleConsumerEvent config_updated_signal_{NoAutoReset{}};
   engine::SingleConsumerEvent data_updated_signal_{NoAutoReset{}};
@@ -188,13 +187,17 @@ Dumper::Impl::Impl(const Config& initial_config,
       dump_data_(static_config_, std::move(rw_factory), dumpable),
       update_data_(statistics_),
       testsuite_registration_(std::in_place, dump_control, self) {
-  statistics_holder_ = statistics_storage.RegisterExtender(
-      fmt::format("cache.{}.dump", Name()),
-      [this](auto&) { return ExtendStatistics(); });
+  statistics_holder_ = statistics_storage.RegisterWriter(
+      fmt::format("cache.dump"), [this](utils::statistics::Writer& writer) {
+        writer.ValueWithLabels(statistics_, {{"cache_name", Name()}});
+      });
   config_subscription_ = config_source.UpdateAndListen(this, "dump." + Name(),
                                                        &Impl::OnConfigUpdate);
-  periodic_task_ = engine::CriticalAsyncNoSpan(fs_task_processor_,
-                                               [this] { PeriodicWriteTask(); });
+  if (dump_control.GetPeriodicsMode() ==
+      testsuite::DumpControl::PeriodicsMode::kEnabled) {
+    periodic_task_ = engine::CriticalAsyncNoSpan(
+        fs_task_processor_, [this] { PeriodicWriteTask(); });
+  }
 }
 
 Dumper::Impl::~Impl() {
@@ -213,6 +216,12 @@ std::optional<TimePoint> Dumper::Impl::ReadDump() {
 }
 
 void Dumper::Impl::WriteDumpSyncDebug() {
+  if (!tried_to_read_dump_.load()) {
+    throw Error(fmt::format(
+        "{}: unable to write a dump, there was no attempt to read а dump",
+        Name()));
+  }
+
   const auto config = dynamic_config_.Read();
   if (!config->dumps_enabled) {
     throw Error(fmt::format("{}: not ready to write a dump, dumps are disabled",
@@ -389,7 +398,7 @@ void Dumper::Impl::OnConfigUpdate(const dynamic_config::Snapshot& config) {
   DynamicConfig new_config{static_config_, std::move(patch)};
   const auto old_config = dynamic_config_.Read();
 
-  dynamic_config_.Assign(std::move(new_config));
+  dynamic_config_.Assign(new_config);
 
   if (new_config != *old_config) {
     // synchronizes-with config_updated_signal_.Reset in
@@ -399,13 +408,11 @@ void Dumper::Impl::OnConfigUpdate(const dynamic_config::Snapshot& config) {
   }
 }
 
-formats::json::Value Dumper::Impl::ExtendStatistics() const {
-  return formats::json::ValueBuilder{statistics_}.ExtractValue();
-}
-
 void Dumper::Impl::CancelWriteTaskAndWait() noexcept {
   testsuite_registration_.reset();
-  periodic_task_.SyncCancel();
+  if (periodic_task_.IsValid()) {
+    periodic_task_.SyncCancel();
+  }
 }
 
 void Dumper::Impl::DoWriteDump(TimePoint update_time, tracing::ScopeTime& scope,
@@ -431,6 +438,7 @@ void Dumper::Impl::DoWriteDump(TimePoint update_time, tracing::ScopeTime& scope,
 
 std::optional<TimePoint> Dumper::Impl::LoadFromDump(
     DumpData& dump_data, const DynamicConfig& config) {
+  tried_to_read_dump_.store(true);
   if (!config.dumps_enabled) {
     LOG_DEBUG() << Name()
                 << ": could not load a dump, because dumps are disabled for "

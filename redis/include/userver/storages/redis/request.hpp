@@ -147,6 +147,7 @@ class ScanRequest final {
 using RequestAppend = Request<size_t>;
 using RequestDbsize = Request<size_t>;
 using RequestDel = Request<size_t>;
+using RequestUnlink = Request<size_t>;
 using RequestEvalCommon = Request<ReplyData>;
 using RequestEvalShaCommon = Request<ReplyData>;
 using RequestScriptLoad = Request<std::string>;
@@ -155,6 +156,7 @@ using RequestExists = Request<size_t>;
 using RequestExpire = Request<ExpireReply>;
 using RequestGeoadd = Request<size_t>;
 using RequestGeoradius = Request<std::vector<GeoPoint>>;
+using RequestGeosearch = Request<std::vector<GeoPoint>>;
 using RequestGet = Request<std::optional<std::string>>;
 using RequestGetset = Request<std::optional<std::string>>;
 using RequestHdel = Request<size_t>;

@@ -23,7 +23,7 @@ set(PROTO_GRPC_USRV_PLUGIN ${USERVER_DIR}/scripts/grpc/protoc_usrv_plugin)
 
 function(generate_grpc_files)
   set(options)
-  set(one_value_args CPP_FILES GENERATED_INCLUDES SOURCE_PATH)
+  set(one_value_args CPP_FILES CPP_USRV_FILES GENERATED_INCLUDES SOURCE_PATH)
   set(multi_value_args PROTOS INCLUDE_DIRECTORIES)
   cmake_parse_arguments(GEN_RPC "${options}" "${one_value_args}" "${multi_value_args}" ${ARGN})
 
@@ -37,6 +37,7 @@ function(generate_grpc_files)
           set(include ${CMAKE_SOURCE_DIR}/${include})
         endif()
       endif()
+      get_filename_component(include "${include}" REALPATH BASE_DIR "/")
       if(EXISTS ${include})
         list(APPEND include_options -I ${include})
       else()
@@ -46,6 +47,7 @@ function(generate_grpc_files)
   endif()
 
   set(GENERATED_PROTO_DIR ${CMAKE_CURRENT_BINARY_DIR}/proto)
+  get_filename_component(GENERATED_PROTO_DIR "${GENERATED_PROTO_DIR}" REALPATH BASE_DIR "/")
 
   if(NOT "${GEN_RPC_SOURCE_PATH}" STREQUAL "")
     if(NOT IS_ABSOLUTE ${GEN_RPC_SOURCE_PATH})
@@ -56,15 +58,30 @@ function(generate_grpc_files)
     set(root_path "${CMAKE_CURRENT_SOURCE_DIR}/proto")
   endif()
 
-  foreach (proto_file ${GEN_RPC_PROTOS})
-    if(NOT IS_ABSOLUTE ${proto_file})
-      get_filename_component(proto_file "${proto_file}" REALPATH BASE_DIR "${root_path}")
+  get_filename_component(root_path "${root_path}" REALPATH BASE_DIR "/")
+  message(STATUS "Generating sources for protos in ${root_path}:")
+
+  set(proto_dependencies_globs ${GEN_RPC_INCLUDE_DIRECTORIES})
+  list(TRANSFORM proto_dependencies_globs APPEND "/*.proto")
+  list(APPEND proto_dependencies_globs
+    "${root_path}/*.proto"
+    "${GRPC_PROTOBUF_INCLUDE_DIRS}/*.proto"
+    "${USERVER_ROOT_DIR}/scripts/grpc/*"
+  )
+  file(GLOB_RECURSE proto_dependencies ${proto_dependencies_globs})
+  list(GET proto_dependencies 0 newest_proto_dependency)
+  foreach(dependency ${proto_dependencies})
+    if("${dependency}" IS_NEWER_THAN "${newest_proto_dependency}")
+      set(newest_proto_dependency "${dependency}")
     endif()
+  endforeach()
+
+  foreach (proto_file ${GEN_RPC_PROTOS})
+    get_filename_component(proto_file "${proto_file}" REALPATH BASE_DIR "${root_path}")
 
     get_filename_component(path ${proto_file} DIRECTORY)
     get_filename_component(name_base ${proto_file} NAME_WE)
     file(RELATIVE_PATH rel_path "${root_path}" "${path}")
-    message(STATUS "Root path for ${proto_file} is ${root_path}. Rel path is '${rel_path}'")
 
     if(rel_path)
       set(path_base "${rel_path}/${name_base}")
@@ -72,23 +89,29 @@ function(generate_grpc_files)
       set(path_base "${name_base}")
     endif()
 
-    execute_process(
-      COMMAND mkdir -p proto
-      COMMAND ${PROTOBUF_PROTOC} ${include_options}
+    set(did_generate_proto_sources FALSE)
+    if("${newest_proto_dependency}" IS_NEWER_THAN "${GENERATED_PROTO_DIR}/${path_base}.pb.cc")
+      execute_process(
+        COMMAND mkdir -p proto
+        COMMAND ${PROTOBUF_PROTOC} ${include_options}
               --cpp_out=${GENERATED_PROTO_DIR}
               --grpc_out=${GENERATED_PROTO_DIR}
               --usrv_out=${GENERATED_PROTO_DIR}
               -I ${root_path}
+              -I ${GRPC_PROTOBUF_INCLUDE_DIRS}
               --plugin=protoc-gen-grpc=${PROTO_GRPC_CPP_PLUGIN}
               --plugin=protoc-gen-usrv=${PROTO_GRPC_USRV_PLUGIN}
               ${proto_file}
-      WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-      RESULT_VARIABLE execute_process_result
-    )
-    if(execute_process_result)
-      message(SEND_ERROR "Error while generating gRPC sources for ${path_base}.proto")
+        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+        RESULT_VARIABLE execute_process_result
+      )
+      if(execute_process_result)
+        message(SEND_ERROR "Error while generating gRPC sources for ${path_base}.proto")
+      else()
+        set(did_generate_proto_sources TRUE)
+      endif()
     else()
-      message(STATUS "Generated gRPC sources for ${path_base}.proto")
+      message(STATUS "Reused previously generated sources for ${path_base}.proto")
     endif()
 
     set(files
@@ -96,24 +119,28 @@ function(generate_grpc_files)
       ${GENERATED_PROTO_DIR}/${path_base}.pb.cc
     )
 
-    if(EXISTS ${GENERATED_PROTO_DIR}/${path_base}.grpc.pb.h)
-      list(APPEND files
-        ${GENERATED_PROTO_DIR}/${path_base}.grpc.pb.h
-        ${GENERATED_PROTO_DIR}/${path_base}.grpc.pb.cc
-      )
-    endif()
-
     if (EXISTS ${GENERATED_PROTO_DIR}/${path_base}_client.usrv.pb.hpp)
-      list(APPEND files
+      if(did_generate_proto_sources)
+        message(STATUS "Generated sources for ${path_base}.proto with gRPC")
+      endif()
+
+      set(usrv_files
         ${GENERATED_PROTO_DIR}/${path_base}_client.usrv.pb.hpp
         ${GENERATED_PROTO_DIR}/${path_base}_client.usrv.pb.cpp
         ${GENERATED_PROTO_DIR}/${path_base}_service.usrv.pb.hpp
         ${GENERATED_PROTO_DIR}/${path_base}_service.usrv.pb.cpp
       )
+      list(APPEND files
+        ${GENERATED_PROTO_DIR}/${path_base}.grpc.pb.h
+        ${GENERATED_PROTO_DIR}/${path_base}.grpc.pb.cc
+      )
+    elseif(did_generate_proto_sources)
+      message(STATUS "Generated sources for ${path_base}.proto")
     endif()
 
-    set_source_files_properties(${files} PROPERTIES GENERATED 1)
+    set_source_files_properties(${files} ${usrv_files} PROPERTIES GENERATED 1)
     list(APPEND generated_cpps ${files})
+    list(APPEND generated_usrv_cpps ${usrv_files})
   endforeach()
 
   if(GEN_RPC_GENERATED_INCLUDES)
@@ -121,6 +148,9 @@ function(generate_grpc_files)
   endif()
   if(GEN_RPC_CPP_FILES)
     set(${GEN_RPC_CPP_FILES} ${generated_cpps} PARENT_SCOPE)
+  endif()
+  if(GEN_RPC_CPP_USRV_FILES)
+    set(${GEN_RPC_CPP_USRV_FILES} ${generated_usrv_cpps} PARENT_SCOPE)
   endif()
 endfunction()
 
@@ -136,8 +166,9 @@ function(add_grpc_library NAME)
     SOURCE_PATH ${RPC_LIB_SOURCE_PATH}
     GENERATED_INCLUDES include_paths
     CPP_FILES generated_sources
+    CPP_USRV_FILES generated_usrv_sources
   )
-  add_library(${NAME} STATIC ${generated_sources})
+  add_library(${NAME} STATIC ${generated_sources} ${generated_usrv_sources})
   target_compile_options(${NAME} PUBLIC -Wno-unused-parameter)
   target_include_directories(${NAME} SYSTEM PUBLIC ${include_paths})
   target_link_libraries(${NAME} PUBLIC userver-grpc)

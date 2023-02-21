@@ -46,3 +46,6 @@ components_manager:
         http-client:                      # Component to do HTTP requests
             fs-task-processor: fs-task-processor
             user-agent: 'fbs-service 1.0'    # Set 'User-Agent' header to 'fbs-service 1.0'.
+
+        dns-client:                     # Asynchronous DNS component
+            fs-task-processor: fs-task-processor

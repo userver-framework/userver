@@ -2,9 +2,9 @@
 
 #include <array>
 #include <string>
-#include <unordered_map>
 
 #include <userver/logging/log.hpp>
+#include <userver/utils/trivial_map.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -32,18 +32,19 @@ void DisableUserverExperiment(UserverExperiment exp) {
 }
 
 void ParseUserverExperiments(const formats::yaml::Value& yaml) {
-  static const std::unordered_map<std::string, UserverExperiment>
-      kExperimentByName = {
-          {"jemalloc-bg-thread", UserverExperiment::kJemallocBgThread},
-      };
-
   if (yaml.IsMissing()) return;
 
+  static constexpr utils::TrivialBiMap kExperiments = [](auto selector) {
+    return selector().Case("jemalloc-bg-thread",
+                           UserverExperiment::kJemallocBgThread);
+  };
+
   for (const auto& exp : yaml) {
-    auto it = kExperimentByName.find(exp.As<std::string>());
-    if (it != kExperimentByName.end()) {
-      LOG_WARNING() << "Enabling userver experiment " << it->first;
-      EnableUserverExperiment(it->second);
+    auto value = exp.As<std::string>();
+    auto exp_enum = kExperiments.TryFind(value);
+    if (exp_enum) {
+      LOG_WARNING() << "Enabling userver experiment " << value;
+      EnableUserverExperiment(*exp_enum);
     }
   }
 }

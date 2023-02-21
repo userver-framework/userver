@@ -114,6 +114,8 @@ class Sentinel {
 
   void SetCommandsBufferingSettings(
       CommandsBufferingSettings commands_buffering_settings);
+  void SetReplicationMonitoringSettings(
+      const ReplicationMonitoringSettings& replication_monitoring_settings);
 
   // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
   boost::signals2::signal<void(size_t shard)> signal_instances_changed;

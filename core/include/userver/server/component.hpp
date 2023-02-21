@@ -96,8 +96,7 @@ class Server final : public LoggableComponentBase {
   static yaml_config::Schema GetStaticConfigSchema();
 
  private:
-  formats::json::Value ExtendStatistics(
-      const utils::statistics::StatisticsRequest& /*request*/);
+  void WriteStatistics(utils::statistics::Writer& writer);
 
   std::unique_ptr<server::Server> server_;
   utils::statistics::Entry server_statistics_holder_;

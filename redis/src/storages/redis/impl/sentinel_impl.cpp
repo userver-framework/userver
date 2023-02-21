@@ -490,6 +490,12 @@ void SentinelImpl::SetCommandsBufferingSettings(
     shard->SetCommandsBufferingSettings(commands_buffering_settings);
 }
 
+void SentinelImpl::SetReplicationMonitoringSettings(
+    const ReplicationMonitoringSettings& replication_monitoring_settings) {
+  for (auto& shard : master_shards_)
+    shard->SetReplicationMonitoringSettings(replication_monitoring_settings);
+}
+
 void SentinelImpl::RequestUpdateClusterSlots(size_t shard) {
   current_slots_shard_ = shard;
   ev_thread_.Send(watch_cluster_slots_);
@@ -968,18 +974,14 @@ void SentinelImpl::ShardInfo::UpdateHostPortToShard(
 
 void SentinelImpl::ConnectedStatus::SetMasterReady() {
   if (!master_ready_.exchange(true)) {
-    {
-      std::lock_guard<std::mutex> lock(mutex_);
-    }
+    { std::lock_guard<std::mutex> lock(mutex_); }
     cv_.NotifyAll();
   }
 }
 
 void SentinelImpl::ConnectedStatus::SetSlaveReady() {
   if (!slave_ready_.exchange(true)) {
-    {
-      std::lock_guard<std::mutex> lock(mutex_);
-    }
+    { std::lock_guard<std::mutex> lock(mutex_); }
     cv_.NotifyAll();
   }
 }

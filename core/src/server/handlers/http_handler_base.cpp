@@ -504,13 +504,6 @@ void HttpHandlerBase::HandleRequest(request::RequestBase& request,
     auto span = tracing::Span::MakeSpan(fmt::format("http/{}", HandlerName()),
                                         trace_id, parent_span_id);
 
-    if (config.set_tracing_headers) {
-      response.SetHeader(USERVER_NAMESPACE::http::headers::kXYaTraceId,
-                         span.GetTraceId());
-      response.SetHeader(USERVER_NAMESPACE::http::headers::kXYaSpanId,
-                         span.GetSpanId());
-    }
-
     span.SetLocalLogLevel(log_level_);
 
     if (!parent_link.empty()) span.SetParentLink(parent_link);
@@ -574,6 +567,13 @@ void HttpHandlerBase::HandleRequest(request::RequestBase& request,
             response.SetData(HandleRequestThrow(http_request, context));
           }
         });
+
+    if (config.set_tracing_headers) {
+      response.SetHeader(USERVER_NAMESPACE::http::headers::kXYaTraceId,
+                         span.GetTraceId());
+      response.SetHeader(USERVER_NAMESPACE::http::headers::kXYaSpanId,
+                         span.GetSpanId());
+    }
   } catch (const std::exception& ex) {
     LOG_ERROR() << "unable to handle request: " << ex;
   }

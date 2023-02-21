@@ -1153,6 +1153,39 @@ UTEST(HttpClient, BasicUsage) {
   EXPECT_EQ(response->headers()["XXX"], "good");
 }
 
+UTEST(HttpClient, GetWithBody) {
+  auto http_client_ptr = utest::CreateHttpClient();
+
+  const utest::SimpleServer http_server_final{
+      Response200WithHeader{"xxx: good"}};
+
+  const auto url = http_server_final.GetBaseUrl();
+  auto& http_client = *http_client_ptr;
+  std::string data{"body"};
+
+  const auto response = http_client.CreateRequest()
+                            ->data(std::move(data))
+                            ->get(url)
+                            ->timeout(std::chrono::seconds(1))
+                            ->perform();
+
+  EXPECT_TRUE(response->IsOk());
+  EXPECT_EQ(response->headers()["xxx"], "good");
+  EXPECT_EQ(response->headers()["XXX"], "good");
+
+  // Make shure it doesn't depend on order of get/data
+  std::string new_data{"body"};
+  const auto another_response = http_client.CreateRequest()
+                                    ->get(url)
+                                    ->data(std::move(new_data))
+                                    ->timeout(std::chrono::seconds(1))
+                                    ->perform();
+
+  EXPECT_TRUE(another_response->IsOk());
+  EXPECT_EQ(another_response->headers()["xxx"], "good");
+  EXPECT_EQ(another_response->headers()["XXX"], "good");
+}
+
 // Make sure that cURL was build with the fix:
 // https://github.com/curl/curl/commit/a12a16151aa33dfd5e7627d4bfc2dc1673a7bf8e
 UTEST(HttpClient, RedirectHeaders) {
@@ -1251,6 +1284,28 @@ UTEST(HttpClient, UsingResolver) {
 
   const auto server_url =
       "http://localhost:" + std::to_string(http_server.GetPort());
+  auto request = http_client_ptr->CreateRequest()
+                     ->post(server_url, kTestData)
+                     ->retry(1)
+                     ->verify(true)
+                     ->http_version(clients::http::HttpVersion::k11)
+                     ->timeout(kTimeout);
+
+  auto res = request->perform();
+  EXPECT_EQ(res->body(), kTestData);
+}
+
+UTEST(HttpClient, UsingResolverWithIpv6Addrs) {
+  const utest::SimpleServer http_server{EchoCallback{},
+                                        utest::SimpleServer::kTcpIpV6};
+
+  ResolverWrapper resolver_wrapper;
+  auto http_client_ptr =
+      utest::CreateHttpClient(resolver_wrapper.fs_task_processor);
+  http_client_ptr->SetDnsResolver(&resolver_wrapper.resolver);
+
+  const auto server_url =
+      "http://[::1]:" + std::to_string(http_server.GetPort());
   auto request = http_client_ptr->CreateRequest()
                      ->post(server_url, kTestData)
                      ->retry(1)
@@ -1410,19 +1465,19 @@ UTEST(HttpClient, DISABLED_TestsuiteAllowedUrls) {
     EXPECT_NO_THROW((void)http_client_ptr->CreateRequest()
                         ->get("http://126.0.0.1")
                         ->async_perform());
-    ASSERT_DEATH((void)http_client_ptr->CreateRequest()
-                     ->get("http://12.0.0.1")
-                     ->async_perform(),
-                 ".*");
+    UEXPECT_DEATH((void)http_client_ptr->CreateRequest()
+                      ->get("http://12.0.0.1")
+                      ->async_perform(),
+                  ".*");
 
     http_client_ptr->SetAllowedUrlsExtra({"http://12.0"});
     EXPECT_NO_THROW((void)http_client_ptr->CreateRequest()
                         ->get("http://12.0.0.1")
                         ->async_perform());
-    ASSERT_DEATH((void)http_client_ptr->CreateRequest()
-                     ->get("http://13.0.0.1")
-                     ->async_perform(),
-                 ".*");
+    UEXPECT_DEATH((void)http_client_ptr->CreateRequest()
+                      ->get("http://13.0.0.1")
+                      ->async_perform(),
+                  ".*");
   });
 
   task.Get();

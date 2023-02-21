@@ -4,11 +4,8 @@
 #include <cstdlib>
 #include <map>
 #include <string>
+#include <string_view>
 #include <system_error>
-#include <unordered_map>
-
-#include <boost/algorithm/string/join.hpp>
-#include <boost/range/adaptor/map.hpp>
 
 #include <userver/clients/http/error.hpp>
 #include <userver/clients/http/form.hpp>
@@ -20,6 +17,7 @@
 #include <userver/tracing/span.hpp>
 #include <userver/tracing/tags.hpp>
 #include <userver/utils/str_icase.hpp>
+#include <userver/utils/trivial_map.hpp>
 
 #include <clients/http/destination_statistics.hpp>
 #include <clients/http/easy_wrapper.hpp>
@@ -43,24 +41,7 @@ constexpr long kEBBaseTime = 25;
 constexpr std::string_view kHeaderExpect = "Expect";
 
 std::string ToString(HttpMethod method) {
-  switch (method) {
-    case HttpMethod::kDelete:
-      return "DELETE";
-    case HttpMethod::kGet:
-      return "GET";
-    case HttpMethod::kHead:
-      return "HEAD";
-    case HttpMethod::kPost:
-      return "POST";
-    case HttpMethod::kPut:
-      return "PUT";
-    case HttpMethod::kPatch:
-      return "PATCH";
-    case HttpMethod::kOptions:
-      return "OPTIONS";
-  }
-
-  UINVARIANT(false, "Unexpected HTTP method");
+  return std::string{ToStringView(method)};
 }
 
 curl::easy::http_version_t ToNative(HttpVersion version) {
@@ -82,17 +63,18 @@ curl::easy::http_version_t ToNative(HttpVersion version) {
   UINVARIANT(false, "Unexpected HTTP version");
 }
 
-const std::unordered_map<std::string, ProxyAuthType, utils::StrIcaseHash,
-                         utils::StrIcaseEqual>
-    kAuthTypeMap = {{"basic", ProxyAuthType::kBasic},
-                    {"digest", ProxyAuthType::kDigest},
-                    {"digest_ie", ProxyAuthType::kDigestIE},
-                    {"bearer", ProxyAuthType::kBearer},
-                    {"negotiate", ProxyAuthType::kNegotiate},
-                    {"ntlm", ProxyAuthType::kNtlm},
-                    {"ntlm_wb", ProxyAuthType::kNtlmWb},
-                    {"any", ProxyAuthType::kAny},
-                    {"any_safe", ProxyAuthType::kAnySafe}};
+constexpr utils::TrivialBiMap kAuthTypeMap = [](auto selector) {
+  return selector()
+      .Case("basic", ProxyAuthType::kBasic)
+      .Case("digest", ProxyAuthType::kDigest)
+      .Case("digest_ie", ProxyAuthType::kDigestIE)
+      .Case("bearer", ProxyAuthType::kBearer)
+      .Case("negotiate", ProxyAuthType::kNegotiate)
+      .Case("ntlm", ProxyAuthType::kNtlm)
+      .Case("ntlm_wb", ProxyAuthType::kNtlmWb)
+      .Case("any", ProxyAuthType::kAny)
+      .Case("any_safe", ProxyAuthType::kAnySafe);
+};
 
 curl::easy::proxyauth_t ProxyAuthTypeToNative(ProxyAuthType value) {
   switch (value) {
@@ -158,6 +140,18 @@ void SetHeaders(curl::easy& easy, const Range& headers_range) {
 }
 
 template <class Range>
+void SetCookies(curl::easy& easy, const Range& cookies_range) {
+  std::string cookie_str;
+  for (const auto& [name, value] : cookies_range) {
+    if (!cookie_str.empty()) cookie_str += "; ";
+    cookie_str += name;
+    cookie_str += '=';
+    cookie_str += value;
+  }
+  easy.set_cookie(cookie_str);
+}
+
+template <class Range>
 void SetProxyHeaders(curl::easy& easy, const Range& headers_range) {
   for (const auto& [name, value] : headers_range) {
     easy.add_proxy_header(name, value);
@@ -178,15 +172,29 @@ bool IsAllowedSchemaInUrl(std::string_view url) {
 
 }  // namespace
 
+std::string_view ToStringView(HttpMethod method) {
+  static constexpr utils::TrivialBiMap kMap([](auto selector) {
+    return selector()
+        .Case(HttpMethod::kDelete, "DELETE")
+        .Case(HttpMethod::kGet, "GET")
+        .Case(HttpMethod::kHead, "HEAD")
+        .Case(HttpMethod::kPost, "POST")
+        .Case(HttpMethod::kPut, "PUT")
+        .Case(HttpMethod::kPatch, "PATCH")
+        .Case(HttpMethod::kOptions, "OPTIONS");
+  });
+
+  return utils::impl::EnumToStringView(method, kMap);
+}
+
 ProxyAuthType ProxyAuthTypeFromString(const std::string& auth_name) {
-  auto it = kAuthTypeMap.find(auth_name);
-  if (it == kAuthTypeMap.end()) {
-    throw std::runtime_error(fmt::format(
-        "Unknown proxy auth type '{}' (must be one of '{}')", auth_name,
-        boost::algorithm::join(kAuthTypeMap | boost::adaptors::map_keys,
-                               "', '")));
+  auto value = kAuthTypeMap.TryFindICase(auth_name);
+  if (!value) {
+    throw std::runtime_error(
+        fmt::format("Unknown proxy auth type '{}' (must be one of {})",
+                    auth_name, kAuthTypeMap.DescribeFirst()));
   }
-  return it->second;
+  return *value;
 }
 
 // Request implementation
@@ -197,7 +205,7 @@ Request::Request(std::shared_ptr<impl::EasyWrapper>&& wrapper,
                  clients::dns::Resolver* resolver)
     : pimpl_(std::make_shared<RequestState>(
           std::move(wrapper), std::move(req_stats), dest_stats, resolver)) {
-  LOG_DEBUG() << "Request::Request()";
+  LOG_TRACE() << "Request::Request()";
   // default behavior follow redirects and verify ssl
   pimpl_->follow_redirects(true);
   pimpl_->verify(true);
@@ -349,26 +357,22 @@ std::shared_ptr<Request> Request::proxy_auth_type(ProxyAuthType value) {
 }
 
 std::shared_ptr<Request> Request::cookies(const Cookies& cookies) {
-  std::string cookie_str;
-  for (const auto& [name, value] : cookies) {
-    if (!cookie_str.empty()) cookie_str += "; ";
-    cookie_str += name;
-    cookie_str += '=';
-    cookie_str += value;
-  }
-  pimpl_->easy().set_cookie(cookie_str);
+  SetCookies(pimpl_->easy(), cookies);
+  return shared_from_this();
+}
+
+std::shared_ptr<Request> Request::cookies(
+    const std::unordered_map<std::string, std::string>& cookies) {
+  SetCookies(pimpl_->easy(), cookies);
   return shared_from_this();
 }
 
 std::shared_ptr<Request> Request::method(HttpMethod method) {
   switch (method) {
+    case HttpMethod::kGet:
     case HttpMethod::kDelete:
     case HttpMethod::kOptions:
       pimpl_->easy().set_custom_request(ToString(method));
-      break;
-    case HttpMethod::kGet:
-      pimpl_->easy().set_http_get(true);
-      pimpl_->easy().set_custom_request(nullptr);
       break;
     case HttpMethod::kHead:
       pimpl_->easy().set_no_body(true);

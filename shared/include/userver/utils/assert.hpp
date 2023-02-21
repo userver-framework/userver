@@ -22,6 +22,8 @@ inline constexpr bool kEnableAssert = false;
 inline constexpr bool kEnableAssert = true;
 #endif
 
+extern bool dump_stacktrace_on_assert_failure;
+
 }  // namespace utils::impl
 
 USERVER_NAMESPACE_END
@@ -31,12 +33,15 @@ USERVER_NAMESPACE_END
 ///
 /// @hideinitializer
 // NOLINTNEXTLINE (cppcoreguidelines-macro-usage)
-#define UASSERT_MSG(expr, msg)                                                 \
-  do {                                                                         \
-    if (USERVER_NAMESPACE::utils::impl::kEnableAssert && !(expr)) {            \
-      USERVER_NAMESPACE::utils::impl::UASSERT_failed(#expr, __FILE__,          \
-                                                     __LINE__, __func__, msg); \
-    }                                                                          \
+#define UASSERT_MSG(expr, msg)                           \
+  do {                                                   \
+    if (USERVER_NAMESPACE::utils::impl::kEnableAssert) { \
+      if (expr) {                                        \
+      } else {                                           \
+        USERVER_NAMESPACE::utils::impl::UASSERT_failed(  \
+            #expr, __FILE__, __LINE__, __func__, msg);   \
+      }                                                  \
+    }                                                    \
   } while (0)
 
 /// @brief Assertion macro that aborts execution in DEBUG builds and does
@@ -52,7 +57,8 @@ USERVER_NAMESPACE_END
 // NOLINTNEXTLINE (cppcoreguidelines-macro-usage)
 #define UINVARIANT(condition, message)                                        \
   do {                                                                        \
-    if (!(condition)) {                                                       \
+    if (condition) {                                                          \
+    } else {                                                                  \
       if constexpr (USERVER_NAMESPACE::utils::impl::kEnableAssert) {          \
         USERVER_NAMESPACE::utils::impl::UASSERT_failed(                       \
             #condition, __FILE__, __LINE__, __func__, message);               \

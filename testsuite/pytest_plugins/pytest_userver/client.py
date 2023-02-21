@@ -6,6 +6,7 @@ testsuite; see @ref md_en_userver_functional_testing for an introduction.
 """
 
 import contextlib
+import copy
 import dataclasses
 import json
 import logging
@@ -18,6 +19,9 @@ from testsuite import utils
 from testsuite.daemons import service_client
 from testsuite.utils import approx
 from testsuite.utils import http
+
+import pytest_userver.metrics as metric_module  # pylint: disable=import-error
+from pytest_userver.plugins import caches
 
 # @cond
 logger = logging.getLogger(__name__)
@@ -73,17 +77,7 @@ class TestsuiteClientConfig:
     server_monitor_path: typing.Optional[str] = None
 
 
-@dataclasses.dataclass(frozen=True)
-class Metric:
-    """
-    Metric type that contains the `labels: typing.Dict[str, str]` and
-    `value: int`.
-
-    @ingroup userver_testsuite
-    """
-
-    labels: typing.Dict[str, str]
-    value: int
+Metric = metric_module.Metric
 
 
 class ClientWrapper:
@@ -291,7 +285,10 @@ class AiohttpClientMonitor(service_client.AiohttpClient):
 
     async def get_metric(self, metric_name):
         metrics = await self.get_metrics(metric_name)
-        assert metric_name in metrics, f'no metric with name {metric_name!r}'
+        assert metric_name in metrics, (
+            f'No metric with name {metric_name!r}. '
+            f'Use "single_metric" function instead of "get_metric"'
+        )
         return metrics[metric_name]
 
     async def metrics_raw(
@@ -330,18 +327,11 @@ class AiohttpClientMonitor(service_client.AiohttpClient):
             path: str = None,
             prefix: str = None,
             labels: typing.Optional[typing.Dict[str, str]] = None,
-    ) -> typing.Dict[str, typing.List[Metric]]:
+    ) -> metric_module.MetricsSnapshot:
         response = await self.metrics_raw(
             output_format='json', path=path, prefix=prefix, labels=labels,
         )
-        json_data = json.loads(str(response))
-        return {
-            path: [
-                Metric(labels=element['labels'], value=element['value'])
-                for element in metrics_list
-            ]
-            for path, metrics_list in json_data.items()
-        }
+        return metric_module.MetricsSnapshot.from_json(str(response))
 
     async def single_metric_optional(
             self,
@@ -360,7 +350,7 @@ class AiohttpClientMonitor(service_client.AiohttpClient):
         if not metrics_list:
             return None
 
-        return metrics_list[0]
+        return next(iter(metrics_list))
 
     async def single_metric(
             self,
@@ -417,7 +407,7 @@ class ClientMonitor(ClientWrapper):
         @param output_format Metric output format. See
                server::handlers::ServerMonitor for a list of supported formats.
         @param path Optional full metric path
-        @param path Optional prefix on which the metric paths should start
+        @param prefix Optional prefix on which the metric paths should start
         @param labels Optional dictionary of labels that must be in the metric
         """
         return await self._client.metrics_raw(
@@ -434,12 +424,12 @@ class ClientMonitor(ClientWrapper):
             path: str = None,
             prefix: str = None,
             labels: typing.Optional[typing.Dict[str, str]] = None,
-    ) -> typing.Dict[str, Metric]:
+    ) -> metric_module.MetricsSnapshot:
         """
         Returns a dict of metric names to Metric.
 
         @param path Optional full metric path
-        @param path Optional prefix on which the metric paths should start
+        @param prefix Optional prefix on which the metric paths should start
         @param labels Optional dictionary of labels that must be in the metric
         """
         return await self._client.metrics(
@@ -500,24 +490,22 @@ class AiohttpClient(service_client.AiohttpClient):
             log_capture_fixture,
             testpoint,
             testpoint_control,
+            cache_invalidation_state,
             span_id_header=None,
-            cache_blocklist=None,
             api_coverage_report=None,
             periodic_tasks_state: typing.Optional[PeriodicTasksState] = None,
             **kwargs,
     ):
         super().__init__(base_url, span_id_header=span_id_header, **kwargs)
         self._config = config
-        self._mocked_time = mocked_time
         self._periodic_tasks = periodic_tasks_state
         self._testpoint = testpoint
-        self._testpoint_control = testpoint_control
         self._log_capture_fixture = log_capture_fixture
-        self._state_manager = StateManager(
+        self._state_manager = _StateManager(
             mocked_time=mocked_time,
-            testpoint=testpoint,
+            testpoint=self._testpoint,
             testpoint_control=testpoint_control,
-            cache_blocklist=cache_blocklist or [],
+            invalidation_state=cache_invalidation_state,
         )
         self._api_coverage_report = api_coverage_report
 
@@ -827,15 +815,23 @@ class Client(ClientWrapper):
         return self._client.capture_logs()
 
     @_wrap_client_error
-    async def invalidate_caches(self, *args, **kwargs) -> None:
+    async def invalidate_caches(
+            self,
+            *,
+            clean_update: bool = True,
+            cache_names: typing.Optional[typing.List[str]] = None,
+    ) -> None:
         """
-        Send ``POST tests/control`` request to service to update caches
+        Send request to service to update caches.
 
         @param clean_update if False, service will do a faster incremental
                update of caches whenever possible.
-        @param cache_names which caches specifically should be updated
+        @param cache_names which caches specifically should be updated;
+               update all if None.
         """
-        await self._client.invalidate_caches(*args, **kwargs)
+        await self._client.invalidate_caches(
+            clean_update=clean_update, cache_names=cache_names,
+        )
 
     @_wrap_client_error
     async def tests_control(
@@ -869,33 +865,48 @@ class Client(ClientWrapper):
         await self._client.enable_testpoints(*args, **kwargs)
 
 
-@dataclasses.dataclass(frozen=True)
-class State:
-    caches_invalidated: bool = False
+@dataclasses.dataclass
+class _State:
+    """Reflects the (supposed) current service state."""
+
+    invalidation_state: caches.InvalidationState
     now: typing.Optional[str] = _UNKNOWN_STATE
     testpoints: typing.FrozenSet[str] = frozenset([_UNKNOWN_STATE])
 
 
-class StateManager:
+class _StateManager:
+    """
+    Used for computing the requests that we need to automatically align
+    the service state with the test fixtures state.
+    """
+
     def __init__(
             self,
             *,
             mocked_time,
             testpoint,
             testpoint_control,
-            cache_blocklist: typing.List[str],
+            invalidation_state: caches.InvalidationState,
     ):
-        self._state = State()
+        self._state = _State(
+            invalidation_state=copy.deepcopy(invalidation_state),
+        )
         self._mocked_time = mocked_time
         self._testpoint = testpoint
         self._testpoint_control = testpoint_control
-        self._cache_blocklist = cache_blocklist
+        self._invalidation_state = invalidation_state
 
     @contextlib.contextmanager
-    def updating_state(self, body):
-        saved_state = self._state
+    def updating_state(self, body: typing.Dict[str, typing.Any]):
+        """
+        Whenever `tests_control` handler is invoked
+        (by the client itself during `prepare` or manually by the user),
+        we need to synchronize `_state` with the (supposed) service state.
+        The state update is decoded from the request body.
+        """
+        saved_state = copy.deepcopy(self._state)
         try:
-            self._state = self._update_state(body)
+            self._update_state(body)
             self._apply_new_state()
             yield
         except:  # noqa
@@ -904,58 +915,61 @@ class StateManager:
             raise
 
     def get_pending_update(self) -> typing.Dict[str, typing.Any]:
-        """Get arguments to be passed in ``POST testpoint`` to sync service
-        state with desired state
         """
-        state = self._get_desired_state()
+        Compose the body of the `tests_control` request required to completely
+        synchronize the service state with the state of test fixtures.
+        """
         body: typing.Dict[str, typing.Any] = {}
 
-        if self._state.caches_invalidated != state.caches_invalidated:
-            body['invalidate_caches'] = {
-                'update_type': 'full',
-                'names_blocklist': self._cache_blocklist,
-            }
+        if self._invalidation_state.has_caches_to_update:
+            body['invalidate_caches'] = {'update_type': 'full'}
+            if not self._invalidation_state.should_update_all_caches:
+                body['invalidate_caches']['names'] = list(
+                    self._invalidation_state.caches_to_update,
+                )
 
-        if self._state.testpoints != state.testpoints:
-            body['testpoints'] = sorted(state.testpoints)
+        desired_testpoints = self._testpoint.keys()
+        if self._state.testpoints != frozenset(desired_testpoints):
+            body['testpoints'] = sorted(desired_testpoints)
 
-        if self._state.now != state.now:
-            body['mock_now'] = state.now
+        desired_now = self._get_desired_now()
+        if self._state.now != desired_now:
+            body['mock_now'] = desired_now
 
         return body
 
-    def _update_state(self, body: dict) -> State:
-        update: typing.Dict[str, typing.Any] = {}
-
-        invalidate_caches = body.get('invalidate_caches', {})
-        update_type = invalidate_caches.get('update_type', 'full')
-        names = invalidate_caches.get('names', None)
-        if invalidate_caches and update_type == 'full' and not names:
-            update['caches_invalidated'] = True
+    def _update_state(self, body: typing.Dict[str, typing.Any]) -> None:
+        body_invalidate_caches = body.get('invalidate_caches', {})
+        update_type = body_invalidate_caches.get('update_type', 'full')
+        body_cache_names = body_invalidate_caches.get('names', None)
+        # An incremental update is considered insufficient to bring a cache
+        # to a known state.
+        if body_invalidate_caches and update_type == 'full':
+            if body_cache_names is None:
+                self._state.invalidation_state.on_all_caches_updated()
+            else:
+                self._state.invalidation_state.on_caches_updated(
+                    body_cache_names,
+                )
 
         if 'mock_now' in body:
-            update['now'] = body['mock_now']
+            self._state.now = body['mock_now']
 
-        testpoints = body.get('testpoints', None)
+        testpoints: typing.Optional[typing.List[str]] = body.get(
+            'testpoints', None,
+        )
         if testpoints is not None:
-            update['testpoints'] = frozenset(testpoints)
-
-        return dataclasses.replace(self._state, **update)
+            self._state.testpoints = frozenset(testpoints)
 
     def _apply_new_state(self):
         """Apply new state to related components."""
         self._testpoint_control.enabled_testpoints = self._state.testpoints
+        self._invalidation_state.assign_copy(self._state.invalidation_state)
 
-    def _get_desired_state(self) -> State:
+    def _get_desired_now(self) -> typing.Optional[str]:
         if self._mocked_time.is_enabled:
-            now = utils.timestring(self._mocked_time.now())
-        else:
-            now = None
-        return State(
-            caches_invalidated=True,
-            testpoints=frozenset(self._testpoint.keys()),
-            now=now,
-        )
+            return utils.timestring(self._mocked_time.now())
+        return None
 
 
 async def _task_check_response(name: str, response) -> dict:

@@ -59,20 +59,11 @@ constexpr std::string_view kRuntimeConfigMissingParam = R"~({
     "up-level": 2,
     "up-rate-percent": 1
   },
-  "USERVER_RPS_CCONTROL_CUSTOM_STATUS":{},
+  "USERVER_RPS_CCONTROL_CUSTOM_STATUS": {},
   "SAMPLE_INTEGER_FROM_RUNTIME_CONFIG": 42
 })~";
 
-const auto kTmpDir = fs::blocking::TempDirectory::Create();
-const std::string kRuntimeConfingPath =
-    kTmpDir.GetPath() + "/runtime_config.json";
-const std::string kConfigVariablesPath =
-    kTmpDir.GetPath() + "/config_vars.json";
-
-const std::string kConfigVariables =
-    fmt::format("runtime_config_path: {}", kRuntimeConfingPath);
-
-const std::string kStaticConfig = R"(
+constexpr std::string_view kStaticConfig = R"(
 components_manager:
   coro_pool:
     initial_size: 50
@@ -120,74 +111,111 @@ components_manager:
     statistics-storage: # Nothing
     auth-checker-settings: # Nothing
     manager-controller:  # Nothing
-config_vars: )" + kConfigVariablesPath +
-                                  R"(
-)";
+config_vars: )";
+
+class ServerMinimalComponentList : public ComponentList {
+ protected:
+  const std::string& GetTempRoot() const { return temp_root_.GetPath(); }
+
+  std::string GetRuntimeConfigPath() const {
+    return temp_root_.GetPath() + "/runtime_config.json";
+  }
+
+  std::string GetConfigVarsPath() const {
+    return temp_root_.GetPath() + "/config_vars.json";
+  }
+
+  const std::string& GetStaticConfig() const { return static_config_; }
+
+ private:
+  fs::blocking::TempDirectory temp_root_ =
+      fs::blocking::TempDirectory::Create();
+  std::string static_config_ = std::string{kStaticConfig} + GetConfigVarsPath();
+};
 
 }  // namespace
 
-TEST_F(ComponentList, ServerMinimal) {
-  fs::blocking::RewriteFileContents(kRuntimeConfingPath, tests::kRuntimeConfig);
-  fs::blocking::RewriteFileContents(kConfigVariablesPath, kConfigVariables);
+TEST_F(ServerMinimalComponentList, Basic) {
+  constexpr std::string_view kConfigVarsTemplate = R"(
+    runtime_config_path: {0}
+  )";
+  const auto config_vars =
+      fmt::format(kConfigVarsTemplate, GetRuntimeConfigPath());
 
-  components::RunOnce(components::InMemoryConfig{kStaticConfig},
+  fs::blocking::RewriteFileContents(GetRuntimeConfigPath(),
+                                    tests::kRuntimeConfig);
+  fs::blocking::RewriteFileContents(GetConfigVarsPath(), config_vars);
+
+  components::RunOnce(components::InMemoryConfig{GetStaticConfig()},
                       components::MinimalServerComponentList());
 }
 
-TEST_F(ComponentList, ServerMinimalTraceSwitching) {
-  fs::blocking::RewriteFileContents(kRuntimeConfingPath, tests::kRuntimeConfig);
-  const std::string kLogsPath = kTmpDir.GetPath() + "/tracing_log.txt";
-  fs::blocking::RewriteFileContents(
-      kConfigVariablesPath,
-      kConfigVariables + "\ntracer_log_path: " + kLogsPath);
+TEST_F(ServerMinimalComponentList, TraceSwitching) {
+  constexpr std::string_view kConfigVarsTemplate = R"(
+    runtime_config_path: {0}
+    tracer_log_path: {1}
+  )";
+  const std::string logs_path = GetTempRoot() + "/tracing_log.txt";
+  const auto config_vars =
+      fmt::format(kConfigVarsTemplate, GetRuntimeConfigPath(), logs_path);
 
-  components::RunOnce(components::InMemoryConfig{kStaticConfig},
+  fs::blocking::RewriteFileContents(GetRuntimeConfigPath(),
+                                    tests::kRuntimeConfig);
+  fs::blocking::RewriteFileContents(GetConfigVarsPath(), config_vars);
+
+  components::RunOnce(components::InMemoryConfig{GetStaticConfig()},
                       components::MinimalServerComponentList());
 
   logging::LogFlush();
 
-  const auto logs = fs::blocking::ReadFileContents(kLogsPath);
+  const auto logs = fs::blocking::ReadFileContents(logs_path);
   EXPECT_NE(logs.find(" changed state to kQueued"), std::string::npos);
   EXPECT_NE(logs.find(" changed state to kRunning"), std::string::npos);
   EXPECT_NE(logs.find(" changed state to kCompleted"), std::string::npos);
   EXPECT_EQ(logs.find("stacktrace= 0# "), std::string::npos);
 }
 
-TEST_F(ComponentList, ServerMinimalTraceStacktraces) {
-  fs::blocking::RewriteFileContents(kRuntimeConfingPath, tests::kRuntimeConfig);
-  const std::string kLogsPath = kTmpDir.GetPath() + "/tracing_st_log.txt";
-  fs::blocking::RewriteFileContents(
-      kConfigVariablesPath,
-      fmt::format("{}\ntracer_log_path: {}\ntracer_level: debug",
-                  kConfigVariables, kLogsPath));
+TEST_F(ServerMinimalComponentList, TraceStacktraces) {
+  constexpr std::string_view kConfigVarsTemplate = R"(
+    runtime_config_path: {0}
+    tracer_log_path: {1}
+    tracer_level: debug
+  )";
+  const std::string logs_path = GetTempRoot() + "/tracing_st_log.txt";
 
-  components::RunOnce(components::InMemoryConfig{kStaticConfig},
+  fs::blocking::RewriteFileContents(GetRuntimeConfigPath(),
+                                    tests::kRuntimeConfig);
+  fs::blocking::RewriteFileContents(
+      GetConfigVarsPath(),
+      fmt::format(kConfigVarsTemplate, GetRuntimeConfigPath(), logs_path));
+
+  components::RunOnce(components::InMemoryConfig{GetStaticConfig()},
                       components::MinimalServerComponentList());
 
   logging::LogFlush();
 
-  const auto logs = fs::blocking::ReadFileContents(kLogsPath);
+  const auto logs = fs::blocking::ReadFileContents(logs_path);
   EXPECT_NE(logs.find(" changed state to kQueued"), std::string::npos);
   EXPECT_NE(logs.find(" changed state to kRunning"), std::string::npos);
   EXPECT_NE(logs.find(" changed state to kCompleted"), std::string::npos);
   EXPECT_NE(logs.find("stacktrace= 0# "), std::string::npos);
 }
 
-TEST_F(ComponentList, ServerMinimalMissingRuntimeConfigParam) {
-  fs::blocking::RewriteFileContents(kRuntimeConfingPath,
-                                    kRuntimeConfigMissingParam);
-  fs::blocking::RewriteFileContents(kConfigVariablesPath, kConfigVariables);
+TEST_F(ServerMinimalComponentList, MissingRuntimeConfigParam) {
+  constexpr std::string_view kConfigVarsTemplate = R"(
+    runtime_config_path: {0}
+  )";
+  const auto config_vars =
+      fmt::format(kConfigVarsTemplate, GetRuntimeConfigPath());
 
-  try {
-    components::RunOnce(components::InMemoryConfig{kStaticConfig},
-                        components::MinimalServerComponentList());
-    FAIL() << "Missing runtime config value was not reported";
-  } catch (const std::runtime_error& e) {
-    EXPECT_NE(std::string_view{e.what()}.find("USERVER_LOG_REQUEST_HEADERS"),
-              std::string_view::npos)
-        << "'USERVER_LOG_REQUEST_HEADERS' is missing in error message: "
-        << e.what();
-  }
+  fs::blocking::RewriteFileContents(GetRuntimeConfigPath(),
+                                    kRuntimeConfigMissingParam);
+  fs::blocking::RewriteFileContents(GetConfigVarsPath(), config_vars);
+
+  UEXPECT_THROW_MSG(
+      components::RunOnce(components::InMemoryConfig{GetStaticConfig()},
+                          components::MinimalServerComponentList()),
+      std::exception, "USERVER_LOG_REQUEST_HEADERS");
 }
 
 USERVER_NAMESPACE_END

@@ -32,7 +32,8 @@ struct MockEnvironment final {
   fs::blocking::TempDirectory dump_root = fs::blocking::TempDirectory::Create();
   testsuite::CacheControl cache_control{
       testsuite::CacheControl::PeriodicUpdatesMode::kDisabled};
-  testsuite::DumpControl dump_control;
+  testsuite::DumpControl dump_control{
+      testsuite::DumpControl::PeriodicsMode::kDisabled};
 };
 
 class CacheMockBase : public CacheUpdateTrait {

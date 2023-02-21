@@ -99,4 +99,27 @@ TEST_F(FormatsJsonSpecificMemberAccess, CheckPrimitiveTypeExceptions) {
   EXPECT_THROW(doc_["key6"].rend(), TypeMismatchException);
 }
 
+TEST_F(FormatsJsonSpecificMemberAccess,
+       TypeMismatchExceptionAccessToAttributes) {
+  EXPECT_THROW(doc_["key1"].As<std::string>(), TypeMismatchException);
+  try {
+    doc_["key1"].As<std::string>();
+  } catch (const TypeMismatchException& e) {
+    EXPECT_EQ(e.GetActual(), "intValue");
+    EXPECT_EQ(e.GetExpected(), "stringValue");
+    EXPECT_EQ(e.GetPath(), "key1");
+  }
+}
+
+TEST_F(FormatsJsonSpecificMemberAccess,
+       OutOfBoundsExceptionAccessToAttributes) {
+  const auto arr = doc_["key4"];
+  EXPECT_THROW(arr[4], OutOfBoundsException);
+  try {
+    arr[4];
+  } catch (const OutOfBoundsException& e) {
+    EXPECT_EQ(e.GetPath(), "key4");
+  }
+}
+
 USERVER_NAMESPACE_END

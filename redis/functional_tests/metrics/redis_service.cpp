@@ -6,6 +6,7 @@
 
 #include <fmt/format.h>
 
+#include <userver/clients/dns/component.hpp>
 #include <userver/clients/http/component.hpp>
 #include <userver/components/minimal_server_component_list.hpp>
 #include <userver/server/handlers/http_handler_base.hpp>
@@ -38,7 +39,7 @@ class KeyValue final : public server::handlers::HttpHandlerBase {
   std::string DeleteValue(std::string_view key) const;
 
   storages::redis::ClientPtr redis_client_;
-  storages::redis::CommandControl redis_cc_;
+  storages::redis::CommandControl redis_cc_{};
 };
 
 KeyValue::KeyValue(const components::ComponentConfig& config,
@@ -46,7 +47,9 @@ KeyValue::KeyValue(const components::ComponentConfig& config,
     : server::handlers::HttpHandlerBase(config, context),
       redis_client_{
           context.FindComponent<components::Redis>("key-value-database")
-              .GetClient("metrics_test")} {}
+              .GetClient("metrics_test")} {
+  redis_cc_.force_request_to_master = true;
+}
 
 std::string KeyValue::HandleRequestThrow(
     const server::http::HttpRequest& request,
@@ -111,6 +114,7 @@ int main(int argc, char* argv[]) {
           .Append<components::Redis>("key-value-database")
           .Append<components::TestsuiteSupport>()
           .Append<components::HttpClient>()
+          .Append<clients::dns::Component>()
           .Append<server::handlers::TestsControl>();
   return utils::DaemonMain(argc, argv, component_list);
 }

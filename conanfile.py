@@ -16,7 +16,7 @@ class UserverConan(conans.ConanFile):
     homepage = 'https://userver.tech/'
     license = 'Apache-2.0'
     exports_sources = '*'
-    generators = 'cmake_find_package'
+    generators = ('cmake_find_package', 'cmake_paths')
 
     settings = 'os', 'arch', 'compiler', 'build_type'
     options = {

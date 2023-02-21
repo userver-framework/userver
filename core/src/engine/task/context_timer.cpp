@@ -13,7 +13,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace engine::impl {
 
-class ContextTimer::Impl final : public ev::AsyncPayloadBase {
+class ContextTimer::Impl final : public ev::MultiShotAsyncPayload<Impl> {
  public:
   Impl();
   ~Impl();
@@ -28,16 +28,24 @@ class ContextTimer::Impl final : public ev::AsyncPayloadBase {
 
   void Finalize();
 
+  void DoPerformAndRelease();
+
  private:
-  static void Release(ev::AsyncPayloadBase& base) noexcept;
-
-  ev::AsyncPayloadPtr SelfAsPayload() noexcept;
-
   void ArmTimerInEvThread();
   void StopTimerInEvThread() noexcept;
+  void DoFinalize();
 
   static void OnTimer(struct ev_loop*, ev_timer* w, int) noexcept;
   void DoOnTimer();
+
+  class Finalizer final : public ev::SingleShotAsyncPayload<Finalizer> {
+   public:
+    explicit Finalizer(Impl& owner) : owner_(owner) {}
+    void DoPerformAndRelease() { owner_.DoFinalize(); }
+
+   private:
+    Impl& owner_;
+  };
 
   struct Params {
     Func on_timer_func{};
@@ -48,12 +56,11 @@ class ContextTimer::Impl final : public ev::AsyncPayloadBase {
   std::optional<ev::ThreadControl> thread_control_;
   Params params_;
   ev_timer timer_{};
-
-  using ParamsPipe = ev::DataPipeToEv<Params>;
-  ParamsPipe params_pipe_to_ev_;
+  ev::DataPipeToEv<Params> params_pipe_to_ev_;
+  Finalizer finalizer_;
 };
 
-ContextTimer::Impl::Impl() : ev::AsyncPayloadBase(&Release) {
+ContextTimer::Impl::Impl() : finalizer_(*this) {
   timer_.data = this;
   // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast)
   ev_init(&timer_, OnTimer);
@@ -75,67 +82,38 @@ void ContextTimer::Impl::Start(boost::intrusive_ptr<TaskContext>&& context,
   UASSERT(!thread_control_);
   context_ = std::move(context);
   thread_control_.emplace(thread_control);
-  params_ = {std::move(on_timer_func), deadline};
 
-  thread_control_->RunInEvLoopDeferred(
-      [](ev::AsyncPayloadPtr&& data) {
-        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
-        auto& self = static_cast<Impl&>(*data);
-        self.ArmTimerInEvThread();
-      },
-      SelfAsPayload(), params_.deadline);
+  Restart(std::move(on_timer_func), deadline);
 }
 
 void ContextTimer::Impl::Restart(Func&& on_timer_func, Deadline deadline) {
   UASSERT(WasStarted());
+  UASSERT(on_timer_func);
+
   params_pipe_to_ev_.Push({std::move(on_timer_func), deadline});
-
-  thread_control_->RunInEvLoopDeferred(
-      [](ev::AsyncPayloadPtr&& data) {
-        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
-        auto& self = static_cast<Impl&>(*data);
-        auto params = self.params_pipe_to_ev_.TryPop();
-        if (!params) {
-          return;
-        }
-
-        self.params_ = std::move(*params);
-        self.ArmTimerInEvThread();
-      },
-      SelfAsPayload(), deadline);
+  if (PrepareEnqueue()) {
+    thread_control_->RunPayloadInEvLoopDeferred(*this, deadline);
+  }
 }
 
 void ContextTimer::Impl::Finalize() {
   if (!WasStarted()) return;
 
-  thread_control_->RunInEvLoopDeferred(
-      [](ev::AsyncPayloadPtr&& data) {
-        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
-        auto& self = static_cast<Impl&>(*data);
-        self.StopTimerInEvThread();
-
-        // We should reset 'on_timer_func' and params pipe, because they may
-        // hold resources in timer func closures.
-        self.params_.on_timer_func = {};
-        self.params_pipe_to_ev_.UnsafeReset();
-
-        // used as a flag for context release
-        self.thread_control_.reset();
-      },
-      SelfAsPayload(), {});
+  // We cannot use *this as payload here, because with MultiShotAsyncPayload,
+  // two ev runs with the same data can happen. The first run would drop
+  // 'context_', potentially destroying *this. The second run would
+  // use-after-free.
+  thread_control_->RunPayloadInEvLoopDeferred(finalizer_, {});
 }
 
-void ContextTimer::Impl::Release(ev::AsyncPayloadBase& base) noexcept {
-  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
-  auto& self = static_cast<Impl&>(base);
-  if (!self.thread_control_) {
-    self.context_.reset();
-    // ContextTimer may be destroyed at this point
+void ContextTimer::Impl::DoPerformAndRelease() {
+  auto params = params_pipe_to_ev_.TryPop();
+  if (!params) {
+    return;
   }
-}
 
-ev::AsyncPayloadPtr ContextTimer::Impl::SelfAsPayload() noexcept {
-  return ev::AsyncPayloadPtr{this};
+  params_ = std::move(*params);
+  ArmTimerInEvThread();
 }
 
 void ContextTimer::Impl::ArmTimerInEvThread() {
@@ -146,7 +124,7 @@ void ContextTimer::Impl::ArmTimerInEvThread() {
 
   LOG_TRACE() << "time_left=" << time_left;
   if (time_left <= 0.0) {
-    // Optimization for for small deadlines or high load
+    // Optimization for small deadlines or high load
     DoOnTimer();
     return;
   }
@@ -159,6 +137,17 @@ void ContextTimer::Impl::StopTimerInEvThread() noexcept {
   thread_control_->Stop(timer_);
 }
 
+void ContextTimer::Impl::DoFinalize() {
+  StopTimerInEvThread();
+
+  // We should reset params pipe, because it may hold resources
+  // in timer func closures.
+  params_pipe_to_ev_.UnsafeReset();
+
+  context_.reset();
+  // ContextTimer may be destroyed at this point
+}
+
 void ContextTimer::Impl::OnTimer(struct ev_loop*, ev_timer* w, int) noexcept {
   auto* ev_timer = static_cast<Impl*>(w->data);
   UASSERT(ev_timer != nullptr);
@@ -169,6 +158,7 @@ void ContextTimer::Impl::DoOnTimer() {
   try {
     // do not keep the function object around for much longer
     const auto on_timer_func = std::move(params_.on_timer_func);
+    UASSERT(on_timer_func);
     on_timer_func(*context_);  // called in event loop
   } catch (const std::exception& ex) {
     LOG_ERROR() << "exception in on_timer_func: " << ex;

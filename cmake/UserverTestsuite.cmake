@@ -74,7 +74,7 @@ endfunction()
 
 function(userver_testsuite_add)
   set(options)
-  set(oneValueArgs SERVICE_TARGET WORKING_DIRECTORY PYTHON_BINARY)
+  set(oneValueArgs SERVICE_TARGET WORKING_DIRECTORY PYTHON_BINARY PRETTY_LOGS)
   set(multiValueArgs PYTEST_ARGS REQUIREMENTS PYTHONPATH VIRTUALENV_ARGS)
   cmake_parse_arguments(
     ARG "${options}" "${oneValueArgs}" "${multiValueArgs}"  ${ARGN})
@@ -86,6 +86,10 @@ function(userver_testsuite_add)
 
   if (NOT ARG_WORKING_DIRECTORY)
     set(ARG_WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+  endif()
+
+  if (NOT DEFINED ARG_PRETTY_LOGS)
+    set(ARG_PRETTY_LOGS ON)
   endif()
 
   set(TESTSUITE_TARGET "testsuite-${ARG_SERVICE_TARGET}")
@@ -130,16 +134,20 @@ function(userver_testsuite_add)
     message(FATAL_ERROR "Failed to create testsuite runner")
   endif()
 
+  set(PRETTY_LOGS_MODE "")
+  if (ARG_PRETTY_LOGS)
+      set(PRETTY_LOGS_MODE "--service-logs-pretty")
+  endif()
+
+  # Without WORKING_DIRECTORY the `add_test` prints better diagnostic info
   add_test(
     NAME ${TESTSUITE_TARGET}
-    COMMAND ${TESTSUITE_RUNNER} -vv
-    WORKING_DIRECTORY ${ARG_WORKING_DIRECTORY}
+    COMMAND ${TESTSUITE_RUNNER} ${PRETTY_LOGS_MODE} -vv ${ARG_WORKING_DIRECTORY}
   )
 
   add_custom_target(
     start-${ARG_SERVICE_TARGET}
-    COMMAND ${TESTSUITE_RUNNER} --service-runner-mode -vvs
+    COMMAND ${TESTSUITE_RUNNER} --service-runner-mode ${PRETTY_LOGS_MODE} -vvs ${ARG_WORKING_DIRECTORY}
     DEPENDS ${TESTSUITE_RUNNER} ${ARG_SERVICE_TARGET}
-    WORKING_DIRECTORY ${ARG_WORKING_DIRECTORY}
   )
 endfunction()

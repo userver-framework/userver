@@ -1,16 +1,16 @@
-#include <gtest/gtest.h>
+#include <userver/formats/bson/serialize.hpp>
 
 #include <chrono>
 #include <cstdint>
 #include <limits>
 #include <string>
 
+#include <fmt/format.h>
 #include <boost/algorithm/string/replace.hpp>
 
 #include <userver/formats/bson.hpp>
-#include <userver/formats/bson/serialize.hpp>
 #include <userver/formats/json.hpp>
-#include <userver/utest/assert_macros.hpp>
+#include <userver/utest/utest.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -20,7 +20,15 @@ const std::string kJson = R"({
   "string": "test",
   "int": 1,
   "double": 1.0,
-  "date": { "$date": "1970-01-01T00:00:00.001Z" }
+  "date": {"$date": "1970-01-01T00:00:00.001Z"}
+})";
+
+const std::string kRelaxedJson = R"({
+  "string": "test",
+  "int": 1,
+  "double": 1.0,
+  "inf": {"$numberDouble": "Infinity"},
+  "date": {"$date": "1970-01-01T00:00:00.001Z"}
 })";
 
 const auto kTimePoint =
@@ -34,7 +42,14 @@ const std::string kArrayJson = R"([
   "test",
   1,
   1.0,
-  { "$date": "1970-01-01T00:00:00.001Z" }
+  {"$date": "1970-01-01T00:00:00.001Z"}
+])";
+
+const std::string kLegacyArrayJson = R"([
+  "test",
+  1,
+  1.0,
+  {"$date": 1}
 ])";
 
 const auto kArray =
@@ -149,6 +164,17 @@ TEST(Serialize, ToArrayJson) {
   EXPECT_DOUBLE_EQ(1.0, json[2].As<double>());
   ASSERT_TRUE(json[3]["$date"].IsInt64());
   EXPECT_EQ(1, json[3]["$date"].As<int64_t>());
+}
+
+TEST(Serialize, Fmt) {
+  const auto doc_as_json = fmt::to_string(kDoc);
+  EXPECT_EQ(formats::json::FromString(doc_as_json),
+            formats::json::FromString(kRelaxedJson));
+
+  const auto array_as_json =
+      fmt::to_string(formats::bson::ToArrayJsonString(kArray));
+  EXPECT_EQ(formats::json::FromString(array_as_json),
+            formats::json::FromString(kLegacyArrayJson));
 }
 
 USERVER_NAMESPACE_END

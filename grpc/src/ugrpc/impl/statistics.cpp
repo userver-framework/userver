@@ -39,7 +39,7 @@ void MethodStatistics::AccountInternalError() noexcept { ++internal_errors_; }
 
 void DumpMetric(utils::statistics::Writer& writer,
                 const MethodStatistics& stats) {
-  writer["timings"] = stats.timings_.GetStatsForPeriod();
+  writer["timings"] = stats.timings_;
 
   std::uint64_t total_requests = 0;
   std::uint64_t error_requests = 0;

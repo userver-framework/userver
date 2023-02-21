@@ -1,9 +1,6 @@
 #include "log_helper_impl.hpp"
 
-#include <logging/spdlog.hpp>
-
-#include <logging/logger_with_info.hpp>
-
+#include <userver/logging/impl/logger_base.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/encoding/tskv.hpp>
 
@@ -28,7 +25,7 @@ char GetSeparatorFromLogger(const LoggerPtr& logger_ptr) {
 
   const auto& logger = *logger_ptr;
 
-  switch (logger.format) {
+  switch (logger.GetFormat()) {
     case Format::kTskv:
     case Format::kRaw:
       return '=';
@@ -68,16 +65,25 @@ std::streamsize LogHelper::Impl::xsputn(const char_type* s, std::streamsize n) {
       msg_.append(s, s + n);
       break;
     case Encode::kValue:
-      msg_.reserve(msg_.size() + n);
-      utils::encoding::EncodeTskv(msg_, s, s + n,
-                                  utils::encoding::EncodeTskvMode::kValue,
-                                  PutCharFmtBuffer{});
+      if (!utils::encoding::ShouldValueBeEscaped({s, static_cast<size_t>(n)})) {
+        msg_.append(s, s + n);
+      } else {
+        msg_.reserve(msg_.size() + n);
+
+        utils::encoding::EncodeTskv(msg_, s, s + n,
+                                    utils::encoding::EncodeTskvMode::kValue,
+                                    PutCharFmtBuffer{});
+      }
       break;
     case Encode::kKeyReplacePeriod:
-      msg_.reserve(msg_.size() + n);
-      utils::encoding::EncodeTskv(
-          msg_, s, s + n, utils::encoding::EncodeTskvMode::kKeyReplacePeriod,
-          PutCharFmtBuffer{});
+      if (!utils::encoding::ShouldKeyBeEscaped({s, static_cast<size_t>(n)})) {
+        msg_.append(s, s + n);
+      } else {
+        msg_.reserve(msg_.size() + n);
+        utils::encoding::EncodeTskv(
+            msg_, s, s + n, utils::encoding::EncodeTskvMode::kKeyReplacePeriod,
+            PutCharFmtBuffer{});
+      }
       break;
   }
 
@@ -122,7 +128,7 @@ void LogHelper::Impl::LogTheMessage() const {
 
   UASSERT(logger_);
   std::string_view message(msg_.data(), msg_.size());
-  logger_->ptr->log(static_cast<spdlog::level::level_enum>(level_), message);
+  logger_->Log(level_, message);
 }
 
 void LogHelper::Impl::MarkTextBegin() {

@@ -89,7 +89,6 @@ void Semaphore::unlock_shared() { unlock_shared_count(1); }
 
 void Semaphore::unlock_shared_count(const Counter count) {
   UASSERT(count > 0);
-  LOG_TRACE() << "unlock_shared_count()";
 
   const auto old_acquired_locks =
       acquired_locks_.fetch_sub(count, std::memory_order_acq_rel);
@@ -111,7 +110,6 @@ void Semaphore::unlock_shared_count(const Counter count) {
 bool Semaphore::try_lock_shared() { return try_lock_shared_count(1); }
 
 bool Semaphore::try_lock_shared_count(const Counter count) {
-  LOG_TRACE() << "try_lock_shared_count()";
   return LockFastPath(count) == TryLockStatus::kSuccess;
 }
 
@@ -121,7 +119,6 @@ bool Semaphore::try_lock_shared_until(Deadline deadline) {
 
 bool Semaphore::try_lock_shared_until_count(Deadline deadline,
                                             const Counter count) {
-  LOG_TRACE() << "try_lock_shared_until_count()";
   const auto status = LockFastPath(count);
   if (status == TryLockStatus::kSuccess) return true;
   if (status == TryLockStatus::kPermanentFailure) return false;
@@ -145,19 +142,13 @@ Semaphore::TryLockStatus Semaphore::DoTryLock(const Counter count) {
 
 Semaphore::TryLockStatus Semaphore::LockFastPath(const Counter count) {
   UASSERT(count > 0);
-  LOG_TRACE() << "trying fast path";
 
   const auto status = DoTryLock(count);
-
-  if (status == TryLockStatus::kSuccess) {
-    LOG_TRACE() << "fast path succeeded";
-  }
   return status;
 }
 
 bool Semaphore::LockSlowPath(Deadline deadline, const Counter count) {
   UASSERT(count > 0);
-  LOG_TRACE() << "trying slow path";
 
   engine::TaskCancellationBlocker block_cancels;
   auto& current = current_task::GetCurrentTaskContext();
@@ -165,22 +156,13 @@ bool Semaphore::LockSlowPath(Deadline deadline, const Counter count) {
 
   TryLockStatus status{};
   while ((status = DoTryLock(count)) == TryLockStatus::kTransientFailure) {
-    LOG_TRACE() << "iteration()";
-
     if (current.Sleep(wait_manager) ==
         impl::TaskContext::WakeupSource::kDeadlineTimer) {
-      LOG_TRACE() << "deadline reached";
       return false;
     }
   }
 
-  if (status == TryLockStatus::kSuccess) {
-    LOG_TRACE() << "slow path succeeded";
-    return true;
-  } else {
-    LOG_TRACE() << "slow path failed";
-    return false;
-  }
+  return (status == TryLockStatus::kSuccess);
 }
 
 SemaphoreLock::SemaphoreLock(Semaphore& sem) : sem_(&sem), owns_lock_(true) {

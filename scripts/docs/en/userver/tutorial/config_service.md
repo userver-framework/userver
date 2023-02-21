@@ -168,6 +168,10 @@ in the following way:
 
 @snippet samples/config_service/tests/test_config.py  Functional test
 
+Do not forget to add the plugin in conftest.py:
+
+@snippet samples/config_service/tests/conftest.py  registration
+
 
 ## Ready to use uservice-dynconf
 
@@ -183,6 +187,7 @@ See the full example:
 * @ref samples/config_service/static_config.yaml
 * @ref samples/config_service/dynamic_config_fallback.json
 * @ref samples/config_service/CMakeLists.txt
+* @ref samples/config_service/tests/conftest.py
 * @ref samples/config_service/tests/test_config.py
 
 ----------
@@ -197,4 +202,5 @@ See the full example:
 @example samples/config_service/static_config.yaml
 @example samples/config_service/dynamic_config_fallback.json
 @example samples/config_service/CMakeLists.txt
+@example samples/config_service/tests/conftest.py
 @example samples/config_service/tests/test_config.py

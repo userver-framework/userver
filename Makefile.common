@@ -1,5 +1,5 @@
 USERVER_ROOTDIR := $(dir $(realpath $(lastword $(MAKEFILE_LIST))))
-TAXI_CLANG_FORMAT = $(shell which taxi-clang-format 2> /dev/null)
+TAXI_TOOL ?= $(shell $(USERVER_ROOTDIR)/../../../ya tool tt --print-path)
 
 # NOTE: use Makefile.local for customization
 -include $(USERVER_ROOTDIR)/Makefile.local
@@ -106,57 +106,41 @@ teamcity-clang-tidy: cmake
 
 .PHONY: check-pep8
 check-pep8:
-	@${PYTHON3_BIN_DIR}check-pep8 $(CMAKE_DIR)
+	@$(TAXI_TOOL) check $(CMAKE_DIR)
 
 .PHONY: smart-check-pep8
 smart-check-pep8:
-	@${PYTHON3_BIN_DIR}check-pep8 --smart $(CMAKE_DIR)
+	@$(TAXI_TOOL) check --smart $(CMAKE_DIR)
 
 .PHONY: teamcity-check-pep8
 teamcity-check-pep8:
-	@${PYTHON3_BIN_DIR}check-pep8 --teamcity --jobs=$(TEAMCITY_LINT_JOBS_COUNT) -- $(CHANGED_DIRS) $(EXTRA_LINT_CHECK)
+	@$(TAXI_TOOL) check --teamcity --jobs=$(TEAMCITY_LINT_JOBS_COUNT) -- $(CHANGED_DIRS) $(EXTRA_LINT_CHECK)
 
 .PHONY: format
 format: check-yandex-env
-ifneq ($(TAXI_CLANG_FORMAT),)
-	@taxi-format .
-else
-	$(error There is a new version of code-linters, please install)
-endif
+	@$(TAXI_TOOL) format .
 
 .PHONY: smart-format
 smart-format: check-yandex-env
-ifneq ($(TAXI_CLANG_FORMAT),)
-	@taxi-format --smart .
-else
-	$(error There is a new version of code-linters, please install)
-endif
+	@$(TAXI_TOOL) format --smart .
 
 .PHONY: teamcity-format
 teamcity-format: check-yandex-env
-	@taxi-format --teamcity --jobs=$(TEAMCITY_LINT_JOBS_COUNT) -- $(CHANGED_DIRS) $(EXTRA_LINT_CHECK)
+	@$(TAXI_TOOL) format --teamcity --jobs=$(TEAMCITY_LINT_JOBS_COUNT) -- $(CHANGED_DIRS) $(EXTRA_LINT_CHECK)
 
 $(foreach fmt,$(FORMATTERS),taxi-$(fmt)): taxi-%:
-	@taxi-$* -- .
+	@$(TAXI_TOOL) format -F $* -- .
 
 $(foreach fmt,$(FORMATTERS),smart-taxi-$(fmt)): smart-taxi-%:
-	@taxi-$* --smart -- .
+	@$(TAXI_TOOL) format --smart -F $* -- .
 
 .PHONY: clang-format
 clang-format: check-yandex-env
-ifneq ($(TAXI_CLANG_FORMAT),)
-	@taxi-clang-format .
-else
-	$(error There is a new version of code-linters, please install)
-endif
+	@$(TAXI_TOOL) format -F clang-format -- .
 
 .PHONY: smart-clang-format
 smart-clang-format: check-yandex-env
-ifneq ($(TAXI_CLANG_FORMAT),)
-	@taxi-clang-format --smart .
-else
-	$(error There is a new version of code-linters, please install)
-endif
+	@$(TAXI_TOOL) format --smart -F clang-format -- .
 
 .PHONY: clean-lto-cache
 clean-lto-cache:

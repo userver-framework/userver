@@ -9,6 +9,7 @@
 
 #include <userver/cache/update_type.hpp>
 #include <userver/formats/json_fwd.hpp>
+#include <userver/utils/statistics/writer.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -30,8 +31,8 @@ struct UpdateStatistics final {
   std::atomic<std::chrono::milliseconds> last_update_duration{{}};
 };
 
-formats::json::Value Serialize(const UpdateStatistics& stats,
-                               formats::serialize::To<formats::json::Value>);
+void DumpMetric(utils::statistics::Writer& writer,
+                const UpdateStatistics& stats);
 
 struct Statistics final {
   UpdateStatistics full_update;
@@ -39,8 +40,7 @@ struct Statistics final {
   std::atomic<std::size_t> documents_current_count{0};
 };
 
-formats::json::Value Serialize(const Statistics& stats,
-                               formats::serialize::To<formats::json::Value>);
+void DumpMetric(utils::statistics::Writer& writer, const Statistics& stats);
 
 }  // namespace impl
 

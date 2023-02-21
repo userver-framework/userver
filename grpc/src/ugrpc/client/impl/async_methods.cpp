@@ -7,6 +7,7 @@
 #include <userver/utils/assert.hpp>
 
 #include <ugrpc/impl/rpc_metadata_keys.hpp>
+#include <ugrpc/impl/status.hpp>
 #include <ugrpc/impl/to_string.hpp>
 #include <userver/ugrpc/impl/status_codes.hpp>
 
@@ -32,6 +33,19 @@ void SetupSpan(std::optional<tracing::InPlaceSpan>& span_holder,
                       ugrpc::impl::ToGrpcString(span.GetLink()));
 }
 
+void SetStatusDetailsForSpan(RpcData& data, grpc::Status& status,
+                             const std::optional<std::string>& message) {
+  data.GetSpan().AddTag(tracing::kErrorFlag, true);
+  data.GetSpan().AddTag(
+      "grpc_code", std::string{ugrpc::impl::ToString(status.error_code())});
+  if (message.has_value()) {
+    data.GetSpan().AddTag(tracing::kErrorMessage, *message);
+  } else {
+    data.GetSpan().AddTag(tracing::kErrorMessage, status.error_message());
+  }
+  data.ResetSpan();
+}
+
 void SetErrorForSpan(RpcData& data, std::string&& message) {
   data.GetSpan().AddTag(tracing::kErrorFlag, true);
   data.GetSpan().AddTag(tracing::kErrorMessage, std::move(message));
@@ -39,6 +53,27 @@ void SetErrorForSpan(RpcData& data, std::string&& message) {
 }
 
 }  // namespace
+
+FutureImpl::FutureImpl(RpcData& data) noexcept : data_(&data) {}
+
+FutureImpl::FutureImpl(FutureImpl&& other) noexcept
+    : data_(std::exchange(other.data_, nullptr)) {}
+
+FutureImpl& FutureImpl::operator=(FutureImpl&& other) noexcept {
+  if (this == &other) return *this;
+  data_ = std::exchange(other.data_, nullptr);
+  return *this;
+}
+
+bool FutureImpl::IsReady() const noexcept {
+  UINVARIANT(data_, "IsReady should be called only before 'Get'");
+  auto& method = data_->GetAsyncMethodInvocation();
+  return method.IsReady();
+}
+
+RpcData* FutureImpl::GetData() noexcept { return data_; }
+
+void FutureImpl::ClearData() noexcept { data_ = nullptr; }
 
 RpcData::RpcData(std::unique_ptr<grpc::ClientContext>&& context,
                  std::string_view call_name,
@@ -51,8 +86,9 @@ RpcData::RpcData(std::unique_ptr<grpc::ClientContext>&& context,
 }
 
 RpcData::~RpcData() {
-  UASSERT(!finish_.has_value());
-  if (context_ && state_ != impl::State::kFinished) {
+  UASSERT(!invocation_.has_value());
+
+  if (context_ && !IsFinished()) {
     SetErrorForSpan(*this, "Abandoned");
     context_->TryCancel();
   }
@@ -90,24 +126,37 @@ ugrpc::impl::RpcStatisticsScope& RpcData::GetStatsScope() noexcept {
   return stats_scope_;
 }
 
-State RpcData::GetState() const noexcept {
+void RpcData::SetFinished() noexcept {
   UASSERT(context_);
-  return state_;
+  UINVARIANT(!is_finished_, "Tried to finish already finished call");
+  is_finished_ = true;
 }
 
-void RpcData::SetState(State new_state) noexcept {
+bool RpcData::IsFinished() const noexcept {
   UASSERT(context_);
-  state_ = new_state;
+  return is_finished_;
+}
+
+void RpcData::SetWritesFinished() noexcept {
+  UASSERT(context_);
+  UASSERT(!writes_finished_);
+  writes_finished_ = true;
+}
+
+bool RpcData::AreWritesFinished() const noexcept {
+  UASSERT(context_);
+  return writes_finished_;
 }
 
 void RpcData::EmplaceAsyncMethodInvocation() {
-  UINVARIANT(!finish_.has_value(), "'FinishAsync' already was called");
-  finish_.emplace();
+  UINVARIANT(!invocation_.has_value(),
+             "Another method is already running for this RPC concurrently");
+  invocation_.emplace();
 }
 
 AsyncMethodInvocation& RpcData::GetAsyncMethodInvocation() noexcept {
-  UASSERT(finish_.has_value());
-  return finish_.value();
+  UASSERT(invocation_.has_value());
+  return invocation_.value();
 }
 
 grpc::Status& RpcData::GetStatus() noexcept { return status_; }
@@ -117,14 +166,14 @@ RpcData::AsyncMethodInvocationGuard::AsyncMethodInvocationGuard(
     : data_(data) {}
 
 RpcData::AsyncMethodInvocationGuard::~AsyncMethodInvocationGuard() noexcept {
-  UASSERT(data_.finish_.has_value());
-  data_.finish_.reset();
+  UASSERT(data_.invocation_.has_value());
+  data_.invocation_.reset();
   data_.GetStatus() = grpc::Status{};
 }
 
 void CheckOk(RpcData& data, bool ok, std::string_view stage) {
   if (!ok) {
-    data.SetState(State::kFinished);
+    data.SetFinished();
     data.GetStatsScope().OnNetworkError();
     SetErrorForSpan(data, fmt::format("Network error at '{}'", stage));
     throw RpcInterruptedError(data.GetCallName(), stage);
@@ -132,33 +181,49 @@ void CheckOk(RpcData& data, bool ok, std::string_view stage) {
 }
 
 void PrepareFinish(RpcData& data) {
-  UINVARIANT(data.GetState() != impl::State::kFinished,
-             "'Finish' called on a finished call");
-  data.SetState(State::kFinished);
+  UINVARIANT(!data.IsFinished(), "'Finish' called on a finished call");
+  data.SetFinished();
 }
 
-void ProcessFinishResult(RpcData& data, bool ok, grpc::Status& status) {
+void ProcessFinishResult(RpcData& data, bool ok, grpc::Status& status,
+                         bool throw_on_error) {
   UASSERT_MSG(ok,
               "ok=false in async Finish method invocation is prohibited "
               "by gRPC docs, see grpc::CompletionQueue::Next");
   data.GetStatsScope().OnExplicitFinish(status.error_code());
+
   if (!status.ok()) {
-    data.SetState(State::kFinished);
-    SetErrorForSpan(data,
-                    std::string{ugrpc::impl::ToString(status.error_code())});
-    return;
+    // extract error
+    std::optional<std::string> gstatus_string;
+
+    auto gstatus = ugrpc::impl::ToGoogleRpcStatus(status);
+    if (gstatus) {
+      gstatus_string = ugrpc::impl::GetGStatusLimitedMessage(*gstatus);
+    }
+
+    SetStatusDetailsForSpan(data, status, gstatus_string);
+    if (throw_on_error) {
+      impl::ThrowErrorWithStatus(data.GetCallName(), std::move(status),
+                                 std::move(gstatus), std::move(gstatus_string));
+    }
+  } else {
+    data.ResetSpan();
   }
-  data.ResetSpan();
 }
 
 void PrepareRead(RpcData& data) {
-  UINVARIANT(data.GetState() != impl::State::kFinished,
-             "'Read' called on a finished call");
+  UINVARIANT(!data.IsFinished(), "'Read' called on a finished call");
 }
 
 void PrepareWrite(RpcData& data) {
-  UINVARIANT(data.GetState() == impl::State::kOpen,
+  UINVARIANT(!data.AreWritesFinished(),
              "'Write' called on a stream that is closed for writes");
+}
+
+void PrepareWriteAndCheck(RpcData& data) {
+  UINVARIANT(!data.AreWritesFinished(),
+             "'WriteAndCheck' called on a stream that is closed for writes");
+  UINVARIANT(!data.IsFinished(), "'WriteAndCheck' called on a finished call");
 }
 
 }  // namespace ugrpc::client::impl

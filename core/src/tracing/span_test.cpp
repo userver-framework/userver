@@ -36,7 +36,7 @@ class OpentracingSpan : public Span {
     }
   }
 
-  void FlushOpentracing() { opentracing_logger_->ptr->flush(); }
+  void FlushOpentracing() { opentracing_logger_->Flush(); }
 
   static void CheckTagFormat(const formats::json::Value& tag) {
     EXPECT_TRUE(tag.HasMember("key"));

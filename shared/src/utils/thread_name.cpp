@@ -20,6 +20,8 @@ namespace {
 constexpr std::size_t kMaxThreadNameLen = 15;  // + '\0'
 #elif defined(__APPLE__)
 constexpr std::size_t kMaxThreadNameLen = 63;  // + '\0'
+#else
+constexpr std::size_t kMaxThreadNameLen = 15;  // + '\0'
 #endif
 
 }  // namespace

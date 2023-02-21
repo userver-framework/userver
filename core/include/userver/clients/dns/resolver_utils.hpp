@@ -20,7 +20,7 @@ enum class ResolverType {
 clients::dns::Resolver* GetResolverPtr(
     const components::ComponentConfig& config,
     const components::ComponentContext& context,
-    ResolverType default_type = ResolverType::kGetaddrinfo);
+    ResolverType default_type = ResolverType::kAsync);
 
 }  // namespace clients::dns
 

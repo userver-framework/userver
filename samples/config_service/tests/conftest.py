@@ -1,1 +1,3 @@
-pytest_plugins = ['pytest_userver.plugins', 'pytest_userver.plugins.samples']
+# /// [registration]
+pytest_plugins = ['pytest_userver.plugins.core']
+# /// [registration]

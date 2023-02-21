@@ -3,11 +3,16 @@ project(userver-samples CXX)
 add_custom_target(${PROJECT_NAME})
 
 function(userver_sample_testsuite_add)
+    set(PYTEST_ARGS_CONFIG_VARS "")
+
     set(CONFIG_VARS_PATH "${CMAKE_CURRENT_SOURCE_DIR}/config_vars.yaml")
     if (EXISTS "${CONFIG_VARS_PATH}")
-        set(PYTEST_ARGS_CONFIG_VARS "--service-config-vars=${CONFIG_VARS_PATH}")
-    else()
-        set(PYTEST_ARGS_CONFIG_VARS "")
+        set(PYTEST_ARGS_CONFIG_VARS ${PYTEST_ARGS_CONFIG_VARS} "--service-config-vars=${CONFIG_VARS_PATH}")
+    endif()
+
+    set(SECDIST_PATH "${CMAKE_CURRENT_SOURCE_DIR}/secure_data.json")
+    if (EXISTS "${SECDIST_PATH}")
+        set(PYTEST_ARGS_CONFIG_VARS ${PYTEST_ARGS_CONFIG_VARS} "--service-secdist=${SECDIST_PATH}")
     endif()
 
     userver_testsuite_add(

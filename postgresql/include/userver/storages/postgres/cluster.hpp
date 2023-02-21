@@ -211,15 +211,11 @@ class Cluster {
   /// Replaces cluster connection settings.
   ///
   /// Connections with an old settings will be dropped and reestablished.
-  ///
-  /// @warning It will overwrite pipeline mode settings set by SetPipelineMode.
   void SetConnectionSettings(const ConnectionSettings& settings);
 
   void SetPoolSettings(const PoolSettings& settings);
 
   void SetStatementMetricsSettings(const StatementMetricsSettings& settings);
-
-  void SetPipelineMode(PipelineMode mode);
 
  private:
   detail::NonTransaction Start(ClusterHostTypeFlags, OptionalCommandControl);

@@ -2,6 +2,7 @@
 Work with the configuration files of the service in testsuite.
 """
 
+import logging
 import pathlib
 import types
 import typing
@@ -9,14 +10,37 @@ import typing
 import pytest
 import yaml
 
+
+# flake8: noqa E266
+## Fixtures and functions in USERVER_CONFIG_HOOKS used to change the
+## static config or config_vars.yaml.
+##
+## Functions and fixtures that are listed in the USERVER_CONFIG_HOOKS variable
+## in your pytest-plugin are run before config is written to disk, so that the
+## service, the pytest_userver.plugins.config.service_config_yaml and
+## the pytest_userver.plugins.config.service_config_vars get the modified
+## values.
+##
+## Example of patching config:
+##
+## @snippet samples/grpc_service/tests/conftest.py Prepare configs
+##
+## @hideinitializer
 USERVER_CONFIG_HOOKS = [
     'userver_config_base',
     'userver_config_logging',
     'userver_config_testsuite',
+    'userver_config_secdist',
 ]
 
 
-class UserverConfigPlugin:
+# @cond
+
+
+logger = logging.getLogger(__name__)
+
+
+class _UserverConfigPlugin:
     def __init__(self):
         self._config_hooks = []
 
@@ -32,14 +56,16 @@ class UserverConfigPlugin:
             self._config_hooks.extend(uhooks)
 
 
-class UserverConfig(typing.NamedTuple):
+class _UserverConfig(typing.NamedTuple):
     config_yaml: dict
     config_vars: dict
 
 
 def pytest_configure(config):
-    config.pluginmanager.register(UserverConfigPlugin(), 'userver_config')
-    config.addinivalue_line('markers', 'config: per-test taxi config values')
+    config.pluginmanager.register(_UserverConfigPlugin(), 'userver_config')
+    config.addinivalue_line(
+        'markers', 'config: per-test dynamic config values',
+    )
 
 
 def pytest_addoption(parser) -> None:
@@ -61,10 +87,18 @@ def pytest_addoption(parser) -> None:
         help='Path to config_vars.yaml file.',
     )
     group.addoption(
+        '--service-secdist',
+        type=pathlib.Path,
+        help='Path to secure_data.json file.',
+    )
+    group.addoption(
         '--config-fallback',
         type=pathlib.Path,
         help='Path to dynamic config fallback file.',
     )
+
+
+# @endcond
 
 
 @pytest.fixture(scope='session')
@@ -95,6 +129,20 @@ def service_config_vars_path(pytestconfig) -> typing.Optional[pathlib.Path]:
 
 
 @pytest.fixture(scope='session')
+def service_secdist_path(pytestconfig) -> typing.Optional[pathlib.Path]:
+    """
+    Returns the path to secure_data.json file set by command line
+    `--service-secdist` option.
+
+    Override this fixture to change the way path to secure_data.json is
+    provided.
+
+    @ingroup userver_testsuite_fixtures
+    """
+    return pytestconfig.option.service_secdist
+
+
+@pytest.fixture(scope='session')
 def config_fallback_path(pytestconfig) -> pathlib.Path:
     """
     Returns the path to dynamic config fallback file set by command line
@@ -110,6 +158,13 @@ def config_fallback_path(pytestconfig) -> pathlib.Path:
 
 @pytest.fixture(scope='session')
 def service_tmpdir(service_binary, tmp_path_factory):
+    """
+    Returns the path for temporary files. The path is the same for the whole
+    session and files are not removed (at least by this fixture) between
+    tests.
+
+    @ingroup userver_testsuite_fixtures
+    """
     return tmp_path_factory.mktemp(pathlib.Path(service_binary).name)
 
 
@@ -117,18 +172,45 @@ def service_tmpdir(service_binary, tmp_path_factory):
 def service_config_path_temp(
         service_tmpdir, service_config_yaml,
 ) -> pathlib.Path:
+    """
+    Dumps the contents of the service_config_yaml into a static config for
+    testsuite and returns the path to the config file.
+
+    @ingroup userver_testsuite_fixtures
+    """
     dst_path = service_tmpdir / 'config.yaml'
-    dst_path.write_text(yaml.dump(service_config_yaml))
+
+    config_text = yaml.dump(service_config_yaml)
+    logger.debug(
+        'userver fixture "service_config_path_temp" writes the patched static '
+        'config to "%s":\n%s',
+        dst_path,
+        config_text,
+    )
+    dst_path.write_text(config_text)
+
     return dst_path
 
 
 @pytest.fixture(scope='session')
-def service_config_yaml(_service_config):
+def service_config_yaml(_service_config) -> dict:
+    """
+    Returns the static config values after the USERVER_CONFIG_HOOKS were
+    applied (if any).
+
+    @ingroup userver_testsuite_fixtures
+    """
     return _service_config.config_yaml
 
 
 @pytest.fixture(scope='session')
-def service_config_vars(_service_config):
+def service_config_vars(_service_config) -> dict:
+    """
+    Returns the static config variables (config_vars.yaml) values after the
+    USERVER_CONFIG_HOOKS were applied (if any).
+
+    @ingroup userver_testsuite_fixtures
+    """
     return _service_config.config_vars
 
 
@@ -139,7 +221,7 @@ def _service_config(
         service_tmpdir,
         service_config_path,
         service_config_vars_path,
-) -> UserverConfig:
+) -> _UserverConfig:
     config_vars: dict
     config_yaml: dict
 
@@ -164,14 +246,32 @@ def _service_config(
         config_yaml.pop('config_vars', None)
     else:
         config_vars_path = service_tmpdir / 'config_vars.yaml'
-        config_vars_path.write_text(yaml.dump(config_vars))
+        config_vars_text = yaml.dump(config_vars)
+        logger.debug(
+            'userver fixture "service_config" writes the patched static '
+            'config vars to "%s":\n%s',
+            config_vars_path,
+            config_vars_text,
+        )
+        config_vars_path.write_text(config_vars_text)
         config_yaml['config_vars'] = str(config_vars_path)
 
-    return UserverConfig(config_yaml=config_yaml, config_vars=config_vars)
+    return _UserverConfig(config_yaml=config_yaml, config_vars=config_vars)
 
 
 @pytest.fixture(scope='session')
 def userver_config_base(service_port, monitor_port):
+    """
+    Returns a function that adjusts the static configuration file for testsuite.
+    Sets the `server.listener.port` to listen on
+    @ref pytest_userver.plugins.base.service_port "service_port" fixture value;
+    sets the `server.listener-monitor.port` to listen on
+    @ref pytest_userver.plugins.base.monitor_port "monitor_port"
+    fixture value.
+
+    @ingroup userver_testsuite_fixtures
+    """
+
     def _patch_config(config_yaml, config_vars):
         components = config_yaml['components_manager']['components']
         if 'server' in components:
@@ -187,6 +287,13 @@ def userver_config_base(service_port, monitor_port):
 
 @pytest.fixture(scope='session')
 def userver_config_logging(pytestconfig):
+    """
+    Returns a function that adjusts the static configuration file for testsuite.
+    Sets the `logging.loggers.default` to log to `@stderr` with level set
+    from `--service-log-level` pytest configuration option.
+
+    @ingroup userver_testsuite_fixtures
+    """
     log_level = pytestconfig.option.service_log_level
 
     def _patch_config(config_yaml, config_vars):
@@ -206,6 +313,14 @@ def userver_config_logging(pytestconfig):
 
 @pytest.fixture(scope='session')
 def userver_config_testsuite(mockserver_info):
+    """
+    Returns a function that adjusts the static configuration file for testsuite.
+    Sets the `testsuite-enabled` in config_vars.yaml to `True`; sets the
+    `tests-control.testpoint-url` to mockserver URL.
+
+    @ingroup userver_testsuite_fixtures
+    """
+
     def _patch_config(config_yaml, config_vars):
         config_vars['testsuite-enabled'] = True
         components = config_yaml['components_manager']['components']
@@ -213,5 +328,37 @@ def userver_config_testsuite(mockserver_info):
             components['tests-control']['testpoint-url'] = mockserver_info.url(
                 'testpoint',
             )
+
+    return _patch_config
+
+
+@pytest.fixture(scope='session')
+def userver_config_secdist(service_secdist_path):
+    """
+    Returns a function that adjusts the static configuration file for testsuite.
+    Sets the `default-secdist-provider.config` to the value of
+    @ref pytest_userver.plugins.config.service_secdist_path "service_secdist_path"
+    fixture.
+
+    @ingroup userver_testsuite_fixtures
+    """
+
+    def _patch_config(config_yaml, config_vars):
+        if not service_secdist_path:
+            return
+
+        components = config_yaml['components_manager']['components']
+        if 'default-secdist-provider' not in components:
+            return
+
+        if not service_secdist_path.is_file():
+            raise ValueError(
+                f'"{service_secdist_path}" is not a file. Provide a '
+                f'"--service-secdist" pytest option or override the '
+                f'"service_secdist_path" fixture.',
+            )
+        components['default-secdist-provider']['config'] = str(
+            service_secdist_path,
+        )
 
     return _patch_config

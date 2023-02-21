@@ -94,6 +94,10 @@ could be implemented using the testsuite in the following way:
 
 @snippet samples/flatbuf_service/tests/test_flatbuf.py  Functional test
 
+Do not forget to add the plugin in conftest.py:
+
+@snippet samples/flatbuf_service/tests/conftest.py  registration
+
 
 ## Full sources
 

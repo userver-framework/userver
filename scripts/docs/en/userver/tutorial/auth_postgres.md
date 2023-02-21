@@ -1,4 +1,4 @@
-## Custom Authorization via PostgreSQL
+## Custom Authorization/Authentication via PostgreSQL
 
 ## Before you start
 

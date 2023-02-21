@@ -1431,7 +1431,7 @@ template <int Prec, typename RoundPolicy, typename Char>
 class fmt::formatter<USERVER_NAMESPACE::decimal64::Decimal<Prec, RoundPolicy>,
                      Char> {
  public:
-  constexpr auto parse(fmt::format_parse_context& ctx) {
+  constexpr auto parse(fmt::basic_format_parse_context<Char>& ctx) {
     const auto* it = ctx.begin();
     const auto* end = ctx.end();
 

@@ -26,7 +26,7 @@ inline constexpr auto kLevelMax = static_cast<int>(Level::kNone);
 
 /// @brief Converts lowercase level name to a corresponding Level, throws
 /// std::runtime_error if no matching log level found.
-Level LevelFromString(const std::string&);
+Level LevelFromString(std::string_view);
 
 /// @brief Returns a string representation of logging level
 std::string ToString(Level level);

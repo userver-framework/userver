@@ -346,7 +346,7 @@ TYPED_UTEST_P_MT(QueueFixture, ManyProducers, 4) {
   }
 
   for (std::size_t i = 0; i < kProducersCount; ++i) {
-    tasks.push_back(utils::Async("pusher", [& producer = producers[i], i] {
+    tasks.push_back(utils::Async("pusher", [&producer = producers[i], i] {
       for (std::size_t message = kMessageCount * i;
            message < (i + 1) * kMessageCount; ++message) {
         ASSERT_TRUE(producer.Push(static_cast<int>(message)));
@@ -371,8 +371,7 @@ TYPED_UTEST_P_MT(QueueFixture, ManyProducers, 4) {
   EXPECT_EQ(queue->GetSizeApproximate(), 0);
 }
 
-// TODO(TAXICOMMON-5519) Pop sometimes returns false for the MPMC queue
-TYPED_UTEST_P_MT(QueueFixture, DISABLED_MultiProducerToken, 4) {
+TYPED_UTEST_P_MT(QueueFixture, MultiProducerToken, 4) {
   constexpr std::size_t kProducersCount = 3;
   constexpr std::size_t kMessageCount = 1000;
 
@@ -413,6 +412,6 @@ TYPED_UTEST_P_MT(QueueFixture, DISABLED_MultiProducerToken, 4) {
 
 REGISTER_TYPED_UTEST_SUITE_P(QueueFixture, BlockMulti,
                              BlockConsumerWithProducer, ManyProducers,
-                             DISABLED_MultiProducerToken, ProducersCreation);
+                             MultiProducerToken, ProducersCreation);
 
 USERVER_NAMESPACE_END

@@ -7,6 +7,11 @@
 #include <thread>
 #include <type_traits>
 
+#include <fmt/core.h>
+
+#include <components/manager_config.hpp>
+#include <engine/task/task_processor.hpp>
+#include <engine/task/task_processor_pools.hpp>
 #include <userver/components/component_list.hpp>
 #include <userver/engine/async.hpp>
 #include <userver/hostinfo/cpu_limit.hpp>
@@ -14,11 +19,8 @@
 #include <userver/logging/log.hpp>
 #include <userver/os_signals/component.hpp>
 #include <userver/utils/async.hpp>
+#include <utils/distances.hpp>
 #include <utils/internal_tag.hpp>
-
-#include <engine/task/task_processor.hpp>
-#include <engine/task/task_processor_pools.hpp>
-#include "manager_config.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
@@ -237,10 +239,11 @@ void Manager::CreateComponentContext(const ComponentList& component_list) {
     const auto& name = component_config.Name();
     const auto it = loading_component_names.find(name);
     if (it == loading_component_names.cend()) {
-      throw std::runtime_error(
-          "component with name '" + name +
-          "' found in static config, but no component with "
-          "such name is registered in components::ComponentList in code");
+      throw std::runtime_error(fmt::format(
+          "Component with name '{}'"
+          " found in static config, but no component with "
+          "such name is registered in components::ComponentList in code.{}",
+          name, utils::SuggestNearestName(loading_component_names, name)));
     }
 
     // Delete component from context to make FindComponentOptional() work

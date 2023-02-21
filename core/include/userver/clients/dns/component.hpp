@@ -51,7 +51,7 @@ class Component final : public components::LoggableComponentBase {
   static yaml_config::Schema GetStaticConfigSchema();
 
  private:
-  formats::json::Value ExtendStatistics();
+  void Write(utils::statistics::Writer& writer);
 
   Resolver resolver_;
   utils::statistics::Entry statistics_holder_;

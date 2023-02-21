@@ -3,6 +3,10 @@
 #include <chrono>
 #include <stdexcept>
 
+#include <sys/param.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+
 #include <userver/compiler/demangle.hpp>
 #include <userver/engine/task/cancel.hpp>
 #include <userver/logging/log.hpp>
@@ -20,8 +24,6 @@ USERVER_NAMESPACE_BEGIN
 
 namespace engine::ev {
 namespace {
-
-const size_t kInitFuncQueueCapacity = 128;
 
 // We approach libev/OS timer resolution here
 constexpr std::chrono::milliseconds kPeriodicEventsDriverInterval{1};
@@ -72,7 +74,6 @@ Thread::Thread(const std::string& thread_name, bool use_ev_default_loop,
                RegisterEventMode register_event_mode)
     : use_ev_default_loop_(use_ev_default_loop),
       register_event_mode_(register_event_mode),
-      func_queue_(kInitFuncQueueCapacity),
       loop_(nullptr),
       lock_(loop_mutex_, std::defer_lock),
       name_{thread_name},
@@ -88,47 +89,40 @@ Thread::~Thread() {
   UASSERT(loop_ == nullptr);
 }
 
-void Thread::RunInEvLoopAsync(OnAsyncPayload* func, AsyncPayloadPtr&& data) {
-  RegisterInEvLoop(func, std::move(data));
+void Thread::RunInEvLoopAsync(AsyncPayloadBase& payload) noexcept {
+  RegisterInEvLoop(payload);
 
   if (!IsInEvThread()) {
     ev_async_send(loop_, &watch_update_);
   }
 }
 
-void Thread::RunInEvLoopDeferred(OnAsyncPayload* func, AsyncPayloadPtr&& data,
-                                 Deadline deadline) {
+void Thread::RunInEvLoopDeferred(AsyncPayloadBase& payload,
+                                 Deadline deadline) noexcept {
   switch (register_event_mode_) {
     case RegisterEventMode::kImmediate: {
-      RunInEvLoopAsync(func, std::move(data));
+      RunInEvLoopAsync(payload);
       return;
     }
     case RegisterEventMode::kDeferred: {
       if (deadline.IsReachable() &&
           deadline.TimeLeftApprox() < kEventImmediateSetupThreshold) {
-        RunInEvLoopAsync(func, std::move(data));
+        RunInEvLoopAsync(payload);
       } else {
-        RegisterInEvLoop(func, std::move(data));
+        RegisterInEvLoop(payload);
       }
       return;
     }
   }
 }
 
-void Thread::RegisterInEvLoop(OnAsyncPayload* func, AsyncPayloadPtr&& data) {
-  UASSERT(func);
-  UASSERT(data);
-
+void Thread::RegisterInEvLoop(AsyncPayloadBase& payload) {
   if (IsInEvThread()) {
-    func(std::move(data));
+    payload.PerformAndRelease();
     return;
   }
 
-  if (!func_queue_.push({func, data.get()})) {
-    LOG_ERROR() << "can't push func to queue";
-    throw std::runtime_error("can't push func to queue");
-  }
-  (void)data.release();
+  func_queue_.Push(payload);
 }
 
 bool Thread::IsInEvThread() const {
@@ -197,7 +191,7 @@ void Thread::StopEventLoop() {
   ev_async_send(loop_, &watch_break_);
   if (thread_.joinable()) thread_.join();
 
-  if (!func_queue_.empty()) {
+  if (func_queue_.TryPop()) {
     utils::impl::AbortWithStacktrace("Some work was enqueued on a dead Thread");
   }
 
@@ -238,13 +232,11 @@ void Thread::UpdateTimersWatcher(struct ev_loop* loop, ev_timer*,
 }
 
 void Thread::UpdateLoopWatcherImpl() {
-  QueueData queue_element{};
-  while (func_queue_.pop(queue_element)) {
-    AsyncPayloadPtr data(queue_element.data);
+  while (AsyncPayloadBase* payload = func_queue_.TryPop()) {
     LOG_TRACE() << "Thread::UpdateLoopWatcherImpl(), "
-                << compiler::GetTypeName(typeid(*queue_element.data));
+                << compiler::GetTypeName(typeid(*payload));
     try {
-      queue_element.func(std::move(data));
+      payload->PerformAndRelease();
     } catch (const std::exception& ex) {
       LOG_WARNING() << "exception in async thread func: " << ex;
     }
@@ -297,7 +289,7 @@ void Thread::ChildWatcherImpl(ev_child* w) {
       LOG_WARNING() << "Child process with pid=" << w->rpid
                     << " was stopped with signal=" << WSTOPSIG(w->rstatus);
     } else {
-      bool continued = WIFCONTINUED(w->rstatus);
+      const bool continued = WIFCONTINUED(w->rstatus);
       if (continued) {
         LOG_WARNING() << "Child process with pid=" << w->rpid << " was resumed";
       } else {

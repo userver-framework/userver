@@ -9,6 +9,7 @@
 #include <userver/logging/level.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
+#include <userver/utils/trivial_map.hpp>
 
 #include <fmt/format.h>
 #include <logging/log_extra_stacktrace.hpp>
@@ -37,6 +38,16 @@ LogExtra GetStacktrace(const logging::LoggerPtr& logger,
 
   return extra_stacktrace;
 }
+
+constexpr utils::TrivialSet kTechnicalKeys = [](auto selector) {
+  return selector()
+      .Case("timestamp")
+      .Case("level")
+      .Case("module")
+      .Case("task_id")
+      .Case("thread_id")
+      .Case("text");
+};
 
 }  // namespace
 
@@ -134,17 +145,13 @@ const LogExtra::Value& LogExtra::GetValue(std::string_view key) const {
   return it->second.GetValue();
 }
 
-namespace {
-const std::unordered_set<std::string> kTechnicalKeys{
-    "timestamp", "level", "module", "task_id", "thread_id", "text"};
-}  // namespace
-
 void LogExtra::Extend(std::string key, ProtectedValue protected_value,
                       ExtendType extend_type) {
-  UINVARIANT(kTechnicalKeys.find(key) == kTechnicalKeys.end(),
-             fmt::format("\"{}\" is technical key. Overwrite attempting  will "
-                         "result in incorrect logs",
-                         key));
+  UINVARIANT(
+      !kTechnicalKeys.Contains(key),
+      fmt::format("'{}' is one of the [{}] technical keys. Overwrite would "
+                  "produce incorrect logs",
+                  key, kTechnicalKeys.Describe()));
   auto* it = Find(key);
   if (!it) {
     extra_->emplace_back(
