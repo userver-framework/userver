@@ -6,13 +6,29 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::mysql::impl {
 
+namespace {
+
+constexpr std::chrono::milliseconds kDefaultStatementDeleteTimeout{200};
+
+}
+
 MySQLStatementsCache::MySQLStatementsCache(MySQLConnection& connection,
                                            std::size_t capacity)
     : connection_{connection}, capacity_{capacity} {
   UASSERT(capacity_ > 0);
 }
 
-MySQLStatementsCache::~MySQLStatementsCache() = default;
+MySQLStatementsCache::~MySQLStatementsCache() {
+  while (!queue_.empty()) {
+    // When we are here the connection to which this cache belongs is already
+    // closed, so no actual I/O is performed in statement destructor.
+    // However, we still set some sane deadline as a safety measure and to honor
+    // the invariant in statement dtor.
+    queue_.back().second.SetDestructionDeadline(
+        engine::Deadline::FromDuration(kDefaultStatementDeleteTimeout));
+    queue_.pop_back();
+  }
+}
 
 MySQLStatement& MySQLStatementsCache::PrepareStatement(
     const std::string& statement, engine::Deadline deadline) {

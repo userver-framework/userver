@@ -9,6 +9,7 @@
 #include <userver/components/component_context.hpp>
 #include <userver/storages/mysql/cluster.hpp>
 #include <userver/storages/mysql/component.hpp>
+#include <userver/yaml_config/merge_schemas.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -36,6 +37,8 @@ class MySQLCache final
 
   MySQLCache(const ComponentConfig& config, const ComponentContext& context);
   ~MySQLCache() override;
+
+  static yaml_config::Schema GetStaticConfigSchema();
 
  private:
   using CachedData = std::unique_ptr<DataType>;
@@ -156,6 +159,17 @@ MySQLCache<MySQLCachePolicy>::GetDataSnapshot(cache::UpdateType type,
     }
   }
   return std::make_unique<DataType>();
+}
+
+namespace impl {
+
+std::string GetMySQLCacheSchema();
+
+}
+
+template <typename MySQLCachePolicy>
+yaml_config::Schema MySQLCache<MySQLCachePolicy>::GetStaticConfigSchema() {
+  return yaml_config::MergeSchemas<BaseType>(impl::GetMySQLCacheSchema());
 }
 
 }  // namespace components

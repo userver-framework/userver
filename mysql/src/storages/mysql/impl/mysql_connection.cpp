@@ -1,7 +1,5 @@
 #include <storages/mysql/impl/mysql_connection.hpp>
 
-#include <stdexcept>
-
 #include <fmt/format.h>
 
 #include <userver/clients/dns/resolver.hpp>
@@ -9,6 +7,7 @@
 #include <userver/tracing/scope_time.hpp>
 #include <userver/utils/assert.hpp>
 
+#include <storages/mysql/impl/metadata/mysql_client_info.hpp>
 #include <storages/mysql/impl/metadata/mysql_server_info.hpp>
 #include <storages/mysql/impl/mysql_native_interface.hpp>
 #include <storages/mysql/impl/mysql_plain_query.hpp>
@@ -256,11 +255,16 @@ bool MySQLConnection::DoInitSocket(
   }
 
   if (!connect_res) {
-    // If we call mysql_close here - we SEGFAULT.
-    // If we don't - we leak.
-    // https://jira.mariadb.org/browse/CONC-622
-    // TODO : this must be fixed somehow
-    mysql_close(&mysql_);
+    if (metadata::MySQLClientInfo::Get().client_version_id <
+        metadata::MySQLSemVer{3, 3, 4}) {
+      // TODO : is this CRITICAL?
+      LOG_ERROR()
+          << "Can't clean up connection resources due to "
+             "https://jira.mariadb.org/browse/CONC-622, connection will "
+             "be leaked. Consider upgrading libmariadb3 to 3.3.4 or higher.";
+    } else {
+      mysql_close(&mysql_);
+    }
     LOG_WARNING() << GetNativeError("Failed to connect");
     return false;
   }

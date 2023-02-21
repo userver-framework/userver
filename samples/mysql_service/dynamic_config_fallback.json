@@ -9,6 +9,7 @@
     "update-timeout": false
   },
   "USERVER_CACHES": {},
+  "USERVER_HANDLER_STREAM_API_ENABLED": false,
   "USERVER_CANCEL_HANDLE_REQUEST_BY_DEADLINE": false,
   "USERVER_CHECK_AUTH_IN_HANDLERS": true,
   "USERVER_DUMPS": {},

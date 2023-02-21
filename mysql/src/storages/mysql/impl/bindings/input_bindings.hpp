@@ -19,7 +19,7 @@ class InputBindings final : public BindsStorageInterface<true> {
   InputBindings(const InputBindings& other) = delete;
   InputBindings(InputBindings&& other) noexcept;
 
-  using ParamsCallback = void (*)(void*, void*, std::size_t);
+  using ParamsCallback = my_bool (*)(void*, void*, std::size_t);
 
   void SetParamsCallback(ParamsCallback params_cb);
   ParamsCallback GetParamsCallback() const;

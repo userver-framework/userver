@@ -24,6 +24,8 @@ class MySQL final : public LoggableComponentBase {
 
   std::shared_ptr<storages::mysql::Cluster> GetCluster() const;
 
+  static yaml_config::Schema GetStaticConfigSchema();
+
  private:
   clients::dns::Component& dns_;
 

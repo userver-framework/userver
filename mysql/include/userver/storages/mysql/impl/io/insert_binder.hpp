@@ -32,7 +32,7 @@ class InsertBinderBase : public ParamsBinderBase {
 
  protected:
   void SetBindCallback(void* user_data,
-                       void (*param_cb)(void*, void*, std::size_t));
+                       char (*param_cb)(void*, void*, std::size_t));
 
   void UpdateBinds(void* binds_array);
 };
@@ -63,7 +63,7 @@ class InsertBinder final : public InsertBinderBase {
   static constexpr bool kIsMapped =
       !std::is_same_v<typename Container::value_type, Row>;
 
-  static void BindsRowCallback(void* user_data, void* binds_array,
+  static char BindsRowCallback(void* user_data, void* binds_array,
                                std::size_t row_number);
 
   void BindColumn() {
@@ -127,7 +127,7 @@ class InsertBinder final : public InsertBinderBase {
 };
 
 template <typename Container, typename MapTo>
-void InsertBinder<Container, MapTo>::BindsRowCallback(void* user_data,
+char InsertBinder<Container, MapTo>::BindsRowCallback(void* user_data,
                                                       void* binds_array,
                                                       std::size_t row_number) {
   auto* self = static_cast<InsertBinder*>(user_data);
@@ -137,6 +137,8 @@ void InsertBinder<Container, MapTo>::BindsRowCallback(void* user_data,
   self->UpdateCurrentRow(row_number);
 
   ++self->current_row_it_;
+
+  return 0;
 }
 
 }  // namespace storages::mysql::impl::io

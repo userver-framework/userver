@@ -7,6 +7,7 @@
 #include <userver/formats/serialize/common_containers.hpp>
 #include <userver/server/handlers/http_handler_json_base.hpp>
 #include <userver/storages/secdist/component.hpp>
+#include <userver/storages/secdist/provider_component.hpp>
 #include <userver/utils/daemon_run.hpp>
 
 #include <userver/storages/mysql.hpp>
@@ -139,14 +140,16 @@ formats::json::Value KeyValueCacheHandler::HandleRequestJsonThrow(
 }
 
 int main(int argc, char* argv[]) {
-  const auto component_list = components::MinimalServerComponentList()
-                                  .Append<KeyValueDbCache>()
-                                  .Append<KeyValue>()
-                                  .Append<KeyValueCacheHandler>()
-                                  .Append<components::MySQL>("test")
-                                  .Append<userver::components::Secdist>()
-                                  .Append<components::TestsuiteSupport>()
-                                  .Append<clients::dns::Component>();
+  const auto component_list =
+      components::MinimalServerComponentList()
+          .Append<KeyValueDbCache>()
+          .Append<KeyValue>()
+          .Append<KeyValueCacheHandler>()
+          .Append<components::MySQL>("test")
+          .Append<userver::components::Secdist>()
+          .Append<userver::components::DefaultSecdistProvider>()
+          .Append<components::TestsuiteSupport>()
+          .Append<clients::dns::Component>();
 
   return utils::DaemonMain(argc, argv, component_list);
 }

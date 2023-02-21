@@ -11,7 +11,7 @@ InsertBinderBase::InsertBinderBase(std::size_t size) : ParamsBinderBase{size} {}
 InsertBinderBase::~InsertBinderBase() = default;
 
 void InsertBinderBase::SetBindCallback(void* user_data,
-                                       void (*param_cb)(void*, void*,
+                                       char (*param_cb)(void*, void*,
                                                         std::size_t)) {
   GetBinds().SetUserData(user_data);
   GetBinds().SetParamsCallback(param_cb);

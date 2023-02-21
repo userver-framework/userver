@@ -285,6 +285,7 @@ MySQLStatementFetcher::MySQLStatementFetcher(MySQLStatement& statement)
 MySQLStatementFetcher::~MySQLStatementFetcher() {
   if (statement_) {
     try {
+      // TODO : Do we really need an additional roundtrip for every execute?
       statement_->Reset(parent_statement_deadline_);
     } catch (const std::exception& ex) {
       // Have to notify a connection here, otherwise it might be reused (and
