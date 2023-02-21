@@ -158,7 +158,7 @@ void MySQLStatement::Reset(engine::Deadline deadline) {
     // MySQL 8.0.31 seems to be buggy:
     // it doesn't send EOF_PACKET if we execute a statement without cursor
     // after we executed with cursor before, so we re-prepare the statement
-    // https://bugs.mysql.com/bug.php?id=109380
+    // https://bugs.mysql.com/bug.php?id=109380 (login required).
     if (connection_->GetServerInfo().server_type ==
         metadata::MySQLServerInfo::Type::kMySQL) {
       PrepareStatement(native_statement_, deadline);
@@ -285,7 +285,7 @@ MySQLStatementFetcher::MySQLStatementFetcher(MySQLStatement& statement)
 MySQLStatementFetcher::~MySQLStatementFetcher() {
   if (statement_) {
     try {
-      // TODO : Do we really need an additional roundtrip for every execute?
+      // Although stmt_free_result may do some I/O usually it doesn't.
       statement_->Reset(parent_statement_deadline_);
     } catch (const std::exception& ex) {
       // Have to notify a connection here, otherwise it might be reused (and
