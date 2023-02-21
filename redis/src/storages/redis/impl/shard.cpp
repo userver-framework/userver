@@ -385,15 +385,17 @@ bool Shard::SetConnectionInfo(std::vector<ConnectionInfoInt> info_array) {
   return true;
 }
 
-ShardStatistics Shard::GetStatistics(bool master) const {
+ShardStatistics Shard::GetStatistics(bool master,
+                                     const MetricsSettings& settings) const {
   std::shared_lock lock(mutex_);
-  ShardStatistics stats;
+  ShardStatistics stats(settings);
 
   for (const auto& instance : instances_) {
     if (!instance.instance || instance.info.IsReadOnly() == master) continue;
-    stats.instances.emplace(
-        instance.info.Fulltext(),
-        redis::InstanceStatistics(instance.instance->GetStatistics()));
+    auto inst_stats =
+        redis::InstanceStatistics(settings, instance.instance->GetStatistics());
+    stats.shard_total.Add(inst_stats);
+    stats.instances.emplace(instance.info.Fulltext(), std::move(inst_stats));
     if (instance.instance->GetState() == Redis::State::kConnected) {
       stats.is_ready = true;
     }

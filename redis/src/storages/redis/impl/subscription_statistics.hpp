@@ -1,11 +1,13 @@
 #pragma once
 
 #include <chrono>
+#include <optional>
 #include <string>
 #include <unordered_map>
 #include <vector>
 
 #include <userver/storages/redis/impl/base.hpp>
+#include <userver/utils/statistics/writer.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -17,7 +19,7 @@ struct PubsubChannelStatistics {
   size_t messages_size{0};
   size_t messages_alien_count{0};
 
-  ServerId server_id;
+  std::optional<ServerId> server_id;
 
   void AccountMessage(size_t message_size) {
     messages_count++;
@@ -44,7 +46,7 @@ struct RawPubsubClusterStatistics {
 };
 
 struct PubsubClusterStatistics {
-  std::map<std::string, PubsubShardStatistics> by_shard;
+  std::unordered_map<std::string, PubsubShardStatistics> by_shard;
 
   PubsubShardStatistics SumByShards() const {
     PubsubShardStatistics sum;
@@ -55,6 +57,15 @@ struct PubsubClusterStatistics {
     return sum;
   }
 };
+
+void DumpMetric(utils::statistics::Writer& writer,
+                const PubsubChannelStatistics& stats);
+
+void DumpMetric(utils::statistics::Writer& writer,
+                const PubsubShardStatistics& stats);
+
+void DumpMetric(utils::statistics::Writer& writer,
+                const PubsubClusterStatistics& stats);
 
 }  // namespace redis
 

@@ -55,8 +55,9 @@ class Statistics {
 };
 
 struct InstanceStatistics {
-  InstanceStatistics(const Statistics& other)
-      : state(other.state.load(std::memory_order_relaxed)),
+  InstanceStatistics(const MetricsSettings& settings, const Statistics& other)
+      : settings(settings),
+        state(other.state.load(std::memory_order_relaxed)),
         reconnects(other.reconnects.load(std::memory_order_relaxed)),
         session_start_time(
             other.session_start_time.load(std::memory_order_relaxed)),
@@ -77,7 +78,8 @@ struct InstanceStatistics {
     }
   }
 
-  InstanceStatistics() : InstanceStatistics(Statistics()) {}
+  InstanceStatistics(const MetricsSettings& settings)
+      : InstanceStatistics(settings, Statistics()) {}
 
   void Add(const InstanceStatistics& other) {
     reconnects += other.reconnects;
@@ -92,6 +94,7 @@ struct InstanceStatistics {
       command_timings_percentile[command].Add(timings);
   }
 
+  const MetricsSettings& settings;
   RedisState state;
   long long reconnects;
   std::chrono::milliseconds session_start_time;
@@ -108,8 +111,9 @@ struct InstanceStatistics {
 };
 
 struct ShardStatistics {
-  InstanceStatistics GetShardTotalStatistics() const;
+  ShardStatistics(const MetricsSettings& settings) : shard_total(settings) {}
 
+  InstanceStatistics shard_total;
   std::map<std::string, InstanceStatistics> instances;
   bool is_ready = false;
   std::chrono::steady_clock::time_point last_ready_time;
@@ -125,16 +129,27 @@ struct SentinelStatisticsInternal {
 };
 
 struct SentinelStatistics {
-  explicit SentinelStatistics(const SentinelStatisticsInternal internal)
-      : internal(internal) {}
+  SentinelStatistics(const MetricsSettings& settings,
+                     const SentinelStatisticsInternal internal)
+      : shard_group_total(settings), internal(internal) {}
 
   InstanceStatistics GetShardGroupTotalStatistics() const;
 
-  ShardStatistics sentinel;
+  std::optional<ShardStatistics> sentinel;
   std::map<std::string, ShardStatistics> masters;
   std::map<std::string, ShardStatistics> slaves;
+  InstanceStatistics shard_group_total;
   SentinelStatisticsInternal internal;
 };
+
+void DumpMetric(utils::statistics::Writer& writer,
+                const InstanceStatistics& stats, bool real_instance = true);
+
+void DumpMetric(utils::statistics::Writer& writer,
+                const ShardStatistics& stats);
+
+void DumpMetric(utils::statistics::Writer& writer,
+                const SentinelStatistics& stats);
 
 }  // namespace redis
 

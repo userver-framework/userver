@@ -19,6 +19,7 @@
 #include <userver/storages/redis/impl/exception.hpp>
 #include <userver/storages/redis/impl/reply.hpp>
 #include <userver/storages/redis/impl/sentinel.hpp>
+#include "userver/storages/redis/impl/base.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
@@ -820,15 +821,20 @@ void SentinelImpl::ProcessWaitingCommands() {
   }
 }
 
-SentinelStatistics SentinelImpl::GetStatistics() const {
-  SentinelStatistics stats(statistics_internal_);
+SentinelStatistics SentinelImpl::GetStatistics(
+    const MetricsSettings& settings) const {
+  SentinelStatistics stats(settings, statistics_internal_);
   std::lock_guard<std::mutex> lock(sentinels_mutex_);
   for (const auto& shard : master_shards_) {
     if (!shard) continue;
-    stats.masters[shard->ShardName()] = shard->GetStatistics(true);
-    stats.slaves[shard->ShardName()] = shard->GetStatistics(false);
+    auto master_stats = shard->GetStatistics(true, settings);
+    auto slave_stats = shard->GetStatistics(false, settings);
+    stats.shard_group_total.Add(master_stats.shard_total);
+    stats.shard_group_total.Add(slave_stats.shard_total);
+    stats.masters.emplace(shard->ShardName(), std::move(master_stats));
+    stats.slaves.emplace(shard->ShardName(), std::move(slave_stats));
   }
-  stats.sentinel = sentinels_->GetStatistics(true);
+  stats.sentinel.emplace(sentinels_->GetStatistics(true, settings));
   return stats;
 }
 

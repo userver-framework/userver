@@ -1,7 +1,9 @@
 #include <userver/storages/redis/impl/redis_stats.hpp>
 
 #include <storages/redis/impl/command.hpp>
+#include <storages/redis/impl/redis.hpp>
 #include <userver/logging/log.hpp>
+#include <userver/storages/redis/impl/base.hpp>
 #include <userver/storages/redis/impl/reply.hpp>
 #include <userver/utils/assert.hpp>
 
@@ -159,24 +161,92 @@ void Statistics::AccountPing(std::chrono::milliseconds ping) {
   last_ping_ms = ping.count();
 }
 
-InstanceStatistics ShardStatistics::GetShardTotalStatistics() const {
-  redis::InstanceStatistics shard_total;
-  for (const auto& it2 : instances) {
-    const auto& inst_stats = it2.second;
-    shard_total.Add(inst_stats);
-  }
-  return shard_total;
+InstanceStatistics SentinelStatistics::GetShardGroupTotalStatistics() const {
+  return shard_group_total;
 }
 
-InstanceStatistics SentinelStatistics::GetShardGroupTotalStatistics() const {
-  redis::InstanceStatistics shard_group_total;
-  for (const auto& it : masters) {
-    shard_group_total.Add(it.second.GetShardTotalStatistics());
+void DumpMetric(utils::statistics::Writer& writer,
+                const InstanceStatistics& stats, bool real_instance) {
+  writer["reconnects"] = stats.reconnects;
+
+  if (stats.settings.request_sizes_enabled) {
+    writer["request_sizes"] = stats.request_size_percentile;
   }
-  for (const auto& it : slaves) {
-    shard_group_total.Add(it.second.GetShardTotalStatistics());
+  if (stats.settings.reply_sizes_enabled) {
+    writer["reply_sizes"] = stats.reply_size_percentile;
   }
-  return shard_group_total;
+  if (stats.settings.timings_enabled) {
+    writer["timings"] = stats.timings_percentile;
+  }
+
+  if (stats.settings.command_timings_enabled &&
+      !stats.command_timings_percentile.empty()) {
+    for (const auto& [command, percentile] : stats.command_timings_percentile) {
+      writer["command_timings"].ValueWithLabels(percentile,
+                                                {"redis_command", command});
+    }
+  }
+
+  for (size_t i = 0; i <= REDIS_ERR_MAX; ++i) {
+    writer["errors"].ValueWithLabels(stats.error_count[i],
+                                     {"redis_error", Reply::StatusToString(i)});
+  }
+
+  if (real_instance) {
+    writer["last_ping_ms"] = stats.last_ping_ms;
+    writer["is_syncing"] = static_cast<int>(stats.is_syncing);
+    writer["offset_from_master"] = stats.offset_from_master;
+
+    for (size_t i = 0; i <= static_cast<int>(Redis::State::kDisconnectError);
+         ++i) {
+      const auto state = static_cast<Redis::State>(i);
+      writer["state"].ValueWithLabels(
+          static_cast<int>(stats.state == state),
+          {"redis_instance_state", redis::Redis::StateToString(state)});
+    }
+
+    long long session_time_ms =
+        stats.state == redis::Redis::State::kConnected
+            ? (redis::MillisecondsSinceEpoch() - stats.session_start_time)
+                  .count()
+            : 0;
+    writer["session-time-ms"] = session_time_ms;
+  }
+}
+
+void DumpMetric(utils::statistics::Writer& writer,
+                const ShardStatistics& stats) {
+  const auto not_ready =
+      std::chrono::duration_cast<std::chrono::milliseconds>(
+          std::chrono::steady_clock::now() - stats.last_ready_time)
+          .count();
+  writer["is_ready"] = stats.is_ready;
+  writer["not_ready_ms"] = stats.is_ready ? 0 : not_ready;
+  // writer["shard-total"] = stats.shard_total;
+  writer["instances_count"] = stats.instances.size();
+  DumpMetric(writer, stats.shard_total, false);
+  for (const auto& [inst_name, inst_stats] : stats.instances) {
+    writer.ValueWithLabels(inst_stats, {"redis_instance", inst_name});
+  }
+}
+
+void DumpMetric(utils::statistics::Writer& writer,
+                const SentinelStatistics& stats) {
+  DumpMetric(writer, stats.shard_group_total, false);
+  writer["errors"].ValueWithLabels(stats.internal.redis_not_ready.load(),
+                                   {"redis_error", "redis_not_ready"});
+  for (const auto& [shard_name, shard_stats] : stats.masters) {
+    writer.ValueWithLabels(shard_stats, {{"redis_instance_type", "masters"},
+                                         {"redis_shard", shard_name}});
+  }
+  for (const auto& [shard_name, shard_stats] : stats.slaves) {
+    writer.ValueWithLabels(shard_stats, {{"redis_instance_type", "slaves"},
+                                         {"redis_shard", shard_name}});
+  }
+  if (stats.sentinel) {
+    writer.ValueWithLabels(*stats.sentinel,
+                           {"redis_instance_type", "sentinels"});
+  }
 }
 
 }  // namespace redis
