@@ -22,6 +22,7 @@ class UserverConan(conans.ConanFile):
     options = {
         'shared': [True, False],
         'fPIC': [True, False],
+        'lto': [True, False],
         'with_jemalloc': [True, False],
         'with_mongodb': [True, False],
         'with_postgresql': [True, False],
@@ -40,6 +41,7 @@ class UserverConan(conans.ConanFile):
     default_options = {
         'shared': False,
         'fPIC': True,
+        'lto': True,
         'with_jemalloc': True,
         'with_mongodb': True,
         'with_postgresql': True,
@@ -128,6 +130,8 @@ class UserverConan(conans.ConanFile):
         ] = self.options.namespace_begin
         cmake.definitions['USERVER_NAMESPACE_END'] = self.options.namespace_end
 
+        if not self.options.lto:
+            cmake.definitions['USERVER_LTO'] = 'OFF'
         if not self.options.with_jemalloc:
             cmake.definitions['USERVER_FEATURE_JEMALLOC'] = 'OFF'
         if not self.options.with_mongodb:
