@@ -416,12 +416,14 @@ UTEST_F(LoggingTestCoro, TpLoggerFlush) {
   LOG_INFO_TO(logger) << "2";
   logger->Flush();
   LOG_INFO_TO(logger) << "3";
+  LOG_TO(logger, logging::Level::kNone) << "oops";
   LOG_INFO_TO(logger) << "4";
   logger->SwitchToSyncMode();
 
   EXPECT_THAT(GetStreamString(), testing::HasSubstr("text=1"));
   EXPECT_THAT(GetStreamString(), testing::HasSubstr("text=2"));
   EXPECT_THAT(GetStreamString(), testing::HasSubstr("text=3"));
+  EXPECT_THAT(GetStreamString(), testing::Not(testing::HasSubstr("text=oops")));
   EXPECT_THAT(GetStreamString(), testing::HasSubstr("text=4"));
 
   EXPECT_EQ(GetRecordsCount(), 4);

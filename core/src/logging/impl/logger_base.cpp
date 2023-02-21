@@ -15,7 +15,7 @@ void LoggerBase::SetLevel(Level level) { level_ = level; }
 Level LoggerBase::GetLevel() const noexcept { return level_; }
 
 bool LoggerBase::ShouldLog(Level level) const noexcept {
-  return level_ <= level;
+  return level_ <= level && level != Level::kNone;
 }
 
 void LoggerBase::SetFlushOn(Level level) { flush_level_ = level; }

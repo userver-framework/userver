@@ -448,9 +448,9 @@ TEST_F(LoggingTest, LogLimitedDisabled) {
 }
 
 TEST_F(LoggingTest, CustomLoggerLevel) {
-  std::ostringstream sstream;
-  sstream.str(std::string());
-  auto logger = MakeStreamLogger(sstream);
+  auto sstream_data = std::make_shared<LoggingSinkWithStream>();
+  auto logger = MakeNamedStreamLogger("other-logger", sstream_data,
+                                      logging::Format::kTskv);
 
   // LOG_*_TO() must use its own log level, not default logger's one
   logging::SetDefaultLoggerLevel(logging::Level::kCritical);
@@ -462,7 +462,7 @@ TEST_F(LoggingTest, CustomLoggerLevel) {
   LOG_LIMITED_DEBUG_TO(logger) << "most";
   logging::LogFlush(logger);
 
-  auto result = sstream.str();
+  auto result = sstream_data->sstream.str();
   EXPECT_NE(result.find("test"), std::string::npos);
   EXPECT_NE(result.find("mest"), std::string::npos);
   EXPECT_EQ(result.find("tost"), std::string::npos);

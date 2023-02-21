@@ -18,12 +18,14 @@ class Span : public LoggingTest {};
 class OpentracingSpan : public Span {
  protected:
   void SetUp() override {
-    opentracing_logger_ = MakeStreamLogger(opentracing_sstream);
+    opentracing_data_ = std::make_shared<LoggingSinkWithStream>();
+    opentracing_logger_ = MakeNamedStreamLogger(
+        "openstracing", opentracing_data_, logging::Format::kTskv);
     tracing::SetOpentracingLogger(opentracing_logger_);
 
     // Discard logs from SetOpentracingLogger
     logging::LogFlush(opentracing_logger_);
-    opentracing_sstream.str({});
+    opentracing_data_->sstream.str({});
 
     Span::SetUp();
   }
@@ -61,12 +63,13 @@ class OpentracingSpan : public Span {
     return formats::json::FromString(tags_str.substr(0, tags_end + 1));
   }
 
-  std::string GetOtStreamString() const { return opentracing_sstream.str(); }
+  std::string GetOtStreamString() const {
+    return opentracing_data_->sstream.str();
+  }
 
  private:
-  logging::LoggerPtr opentracing_logger_;
-
-  std::ostringstream opentracing_sstream;
+  std::shared_ptr<LoggingSinkWithStream> opentracing_data_;
+  std::shared_ptr<logging::impl::TpLogger> opentracing_logger_;
 };
 
 UTEST_F(Span, Ctr) {
