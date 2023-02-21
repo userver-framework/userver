@@ -26,8 +26,7 @@ thoroughly investigated by developers.
 🐙 userver is the part of the "The Yandex Bug Bounty" program. To report a
 potential vulnerability or weakness in userver please send the
 details about it to
-[https://yandex.com/bugbounty/i/report/](https://yandex.com/bugbounty/i/report/)
-or to [security@yandex-team.ru](mailto:security@yandex-team.ru).
+[https://yandex.com/bugbounty/i/report/](https://yandex.com/bugbounty/i/report/).
 
 
 ### When Should I Report a Vulnerability?
