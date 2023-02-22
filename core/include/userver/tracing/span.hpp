@@ -10,6 +10,7 @@
 #include <userver/logging/log_extra.hpp>
 #include <userver/tracing/scope_time.hpp>
 #include <userver/tracing/tracer_fwd.hpp>
+#include <userver/utils/impl/source_location.hpp>
 #include <userver/utils/internal_tag_fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -29,13 +30,17 @@ class Span final {
 
   explicit Span(TracerPtr tracer, std::string name, const Span* parent,
                 ReferenceType reference_type,
-                logging::Level log_level = logging::Level::kInfo);
+                logging::Level log_level = logging::Level::kInfo,
+                utils::impl::SourceLocation source_location =
+                    utils::impl::SourceLocation::Current());
 
   /* Use default tracer and implicit coro local storage for parent
    * identification */
   explicit Span(std::string name,
                 ReferenceType reference_type = ReferenceType::kChild,
-                logging::Level log_level = logging::Level::kInfo);
+                logging::Level log_level = logging::Level::kInfo,
+                utils::impl::SourceLocation source_location =
+                    utils::impl::SourceLocation::Current());
 
   /// @cond
   // For internal use only

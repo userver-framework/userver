@@ -92,12 +92,14 @@ const Span::Impl* GetParentSpanImpl() {
 }  // namespace
 
 Span::Impl::Impl(std::string name, ReferenceType reference_type,
-                 logging::Level log_level)
+                 logging::Level log_level,
+                 utils::impl::SourceLocation source_location)
     : Impl(tracing::Tracer::GetTracer(), std::move(name), GetParentSpanImpl(),
-           reference_type, log_level) {}
+           reference_type, log_level, source_location) {}
 
 Span::Impl::Impl(TracerPtr tracer, std::string name, const Span::Impl* parent,
-                 ReferenceType reference_type, logging::Level log_level)
+                 ReferenceType reference_type, logging::Level log_level,
+                 utils::impl::SourceLocation source_location)
     : name_(std::move(name)),
       is_no_log_span_(tracing::Tracer::IsNoLogSpan(name_)),
       log_level_(is_no_log_span_ ? logging::Level::kNone : log_level),
@@ -108,7 +110,8 @@ Span::Impl::Impl(TracerPtr tracer, std::string name, const Span::Impl* parent,
                        : utils::generators::GenerateUuid()),
       span_id_(GenerateSpanId()),
       parent_id_(GetParentIdForLogging(parent)),
-      reference_type_(reference_type) {
+      reference_type_(reference_type),
+      source_location_(source_location) {
   if (parent) {
     log_extra_inheritable_ = parent->log_extra_inheritable_;
     local_log_level_ = parent->local_log_level_;
@@ -120,7 +123,13 @@ Span::Impl::~Impl() {
     return;
   }
 
-  PutIntoLogger(DO_LOG_TO_NO_SPAN(logging::DefaultLogger(), log_level_));
+  const auto* file_path = source_location_.file_name();
+
+  PutIntoLogger(logging::LogHelper(logging::DefaultLogger(), log_level_,
+                                   file_path, source_location_.line(),
+                                   source_location_.function_name(),
+                                   logging::LogHelper::Mode::kNoSpan)
+                    .AsLvalue());
 }
 
 void Span::Impl::PutIntoLogger(logging::LogHelper& lh) {
@@ -221,19 +230,22 @@ Span::OptionalDeleter Span::OptionalDeleter::ShouldDelete() noexcept {
 }
 
 Span::Span(TracerPtr tracer, std::string name, const Span* parent,
-           ReferenceType reference_type, logging::Level log_level)
+           ReferenceType reference_type, logging::Level log_level,
+           utils::impl::SourceLocation source_location)
     : pimpl_(AllocateImpl(std::move(tracer), std::move(name),
                           parent ? parent->pimpl_.get() : nullptr,
-                          reference_type, log_level),
+                          reference_type, log_level, source_location),
              Span::OptionalDeleter{Span::OptionalDeleter::ShouldDelete()}) {
   AttachToCoroStack();
   pimpl_->span_ = this;
 }
 
 Span::Span(std::string name, ReferenceType reference_type,
-           logging::Level log_level)
+           logging::Level log_level,
+           utils::impl::SourceLocation source_location)
     : pimpl_(AllocateImpl(tracing::Tracer::GetTracer(), std::move(name),
-                          GetParentSpanImpl(), reference_type, log_level),
+                          GetParentSpanImpl(), reference_type, log_level,
+                          source_location),
              Span::OptionalDeleter{OptionalDeleter::ShouldDelete()}) {
   AttachToCoroStack();
   if (pimpl_->GetParentId().empty()) {

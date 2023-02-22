@@ -16,6 +16,7 @@
 #include <userver/tracing/scope_time.hpp>
 #include <userver/tracing/span.hpp>
 #include <userver/tracing/tracer.hpp>
+#include <userver/utils/impl/source_location.hpp>
 
 #include <tracing/time_storage.hpp>
 
@@ -39,10 +40,13 @@ class Span::Impl
  public:
   explicit Impl(std::string name,
                 ReferenceType reference_type = ReferenceType::kChild,
-                logging::Level log_level = logging::Level::kInfo);
+                logging::Level log_level = logging::Level::kInfo,
+                utils::impl::SourceLocation source_location =
+                    utils::impl::SourceLocation::Current());
 
   Impl(TracerPtr tracer, std::string name, const Span::Impl* parent,
-       ReferenceType reference_type, logging::Level log_level);
+       ReferenceType reference_type, logging::Level log_level,
+       utils::impl::SourceLocation source_location);
 
   Impl(Impl&&) = default;
 
@@ -101,6 +105,7 @@ class Span::Impl
   std::string span_id_;
   std::string parent_id_;
   const ReferenceType reference_type_;
+  utils::impl::SourceLocation source_location_;
 
   friend class Span;
 };
