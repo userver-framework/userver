@@ -45,7 +45,8 @@ services:
     userver-debian:
         image: ghcr.io/userver-framework/docker-userver-build-base:v1a
         container_name: userver-debian
-        network_mode: none
+        networks:
+          - dockerbridge
         environment:
           - CC
           - CXX
