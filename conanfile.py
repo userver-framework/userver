@@ -4,7 +4,7 @@ import os
 
 import conans  # pylint: disable=import-error
 
-required_conan_version = '>=1.51.0'  # pylint: disable=invalid-name
+required_conan_version = '>=1.51.0, <2.0.0'  # pylint: disable=invalid-name
 
 
 class UserverConan(conans.ConanFile):
