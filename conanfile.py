@@ -172,6 +172,8 @@ class UserverConan(ConanFile):
         copy(self, pattern='*', dst=os.path.join(self.package_folder, "include"), src=os.path.join(self.source_folder, "core", "include"), keep_path=True)
         copy(self, pattern='*', dst=os.path.join(self.package_folder, "include"), src=os.path.join(self.source_folder, "shared", "include"), keep_path=True)
 
+        copy(self, pattern='*', dst=os.path.join(self.package_folder, "scripts"), src=os.path.join(self.source_folder, "scripts"), keep_path=True)
+
         if self.options.with_universal:
             copy(self, pattern='*', dst=os.path.join(self.package_folder, "include"), src=os.path.join(self.source_folder, "univesal", "include"), keep_path=True)
             copy(self, pattern='*.a', dst=os.path.join(self.package_folder, "lib"), src=os.path.join(self._build_subfolder,'universal'), keep_path=False)
@@ -180,6 +182,12 @@ class UserverConan(ConanFile):
             copy(self, pattern='*', dst=os.path.join(self.package_folder, "include"), src=os.path.join(self.source_folder, "grpc", "include"), keep_path=True)
             copy(self, pattern='*.a', dst=os.path.join(self.package_folder, "lib"), src=os.path.join(self._build_subfolder,'grpc'), keep_path=False)
             copy(self, pattern='*.so', dst=os.path.join(self.package_folder, "lib"), src=os.path.join(self._build_subfolder, 'grpc'), keep_path=False)
+            copy(self,
+                pattern='grpcConan.cmake',
+                dst=os.path.join(self.package_folder, "cmake"),
+                src=os.path.join(self.source_folder, "cmake"),
+                keep_path=True,
+            )
             copy(self,
                 pattern='GrpcTargets.cmake',
                 dst=os.path.join(self.package_folder, "cmake"),
@@ -350,6 +358,7 @@ class UserverConan(ConanFile):
             os.path.join(self._cmake_subfolder, "UserverTestsuite.cmake")
         ]
         if self.options.with_grpc:
+            build_modules.append(os.path.join(self._cmake_subfolder, "GrpcConan.cmake"))
             build_modules.append(os.path.join(self._cmake_subfolder, "GrpcTargets.cmake"))
 
         self.cpp_info.set_property("cmake_build_modules", build_modules)
@@ -359,3 +368,7 @@ class UserverConan(ConanFile):
 
         for generator in ["cmake_find_package", "cmake_find_package_multi"]:
             self.cpp_info.components["userver-utest"].build_modules[generator] = build_modules
+
+        print(self.deps_cpp_info["grpc"].include_paths[-1])    
+        print(self.deps_cpp_info["grpc"].rootpath) 
+        

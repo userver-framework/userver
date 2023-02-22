@@ -1,10 +1,7 @@
 project(userver-grpc CXX)
 
 if (USERVER_CONAN)
-  find_package(gRPC REQUIRED)
-  find_package(Protobuf REQUIRED)
-  set(GRPC_LIBRARY_VERSION "${gRPC_VERSION}")
-  set(GRPC_PROTOBUF_INCLUDE_DIRS "${CONAN_PROTOBUF_ROOT}/include" CACHE PATH INTERNAL)
+  include(GrpcConan)
 else()
   find_package(UserverGrpc REQUIRED)
   find_package(UserverProtobuf REQUIRED)

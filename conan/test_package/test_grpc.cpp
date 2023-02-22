@@ -7,7 +7,42 @@
 #include <userver/testsuite/testsuite_support.hpp>
 #include <userver/ugrpc/server/server_component.hpp>
 
+#include <greeter_client.usrv.pb.hpp>
+#include <greeter_service.usrv.pb.hpp>
+
 #include "hello.hpp"
+
+namespace samples {
+
+
+
+class GreeterServiceComponent final
+    : public api::GreeterServiceBase::Component {
+public:
+    static constexpr std::string_view kName = "greeter-service";
+
+    GreeterServiceComponent(const userver::components::ComponentConfig& config,
+                            const userver::components::ComponentContext& context)
+        : api::GreeterServiceBase::Component(config, context),
+        prefix_(config["greeting-prefix"].As<std::string>()) {}
+
+    void SayHello(SayHelloCall& call, api::GreetingRequest&& request) override;
+
+private:
+    const std::string prefix_;
+};
+
+void GreeterServiceComponent::SayHello(
+    api::GreeterServiceBase::SayHelloCall& call,
+    api::GreetingRequest&& request) {
+
+    api::GreetingResponse response;
+    response.set_greeting(fmt::format("{}, {}!", prefix_, request.name()));
+
+    call.Finish(response);
+}
+
+}
 
 int main(int argc, char *argv[]) {
     auto component_list = userver::components::MinimalServerComponentList()
@@ -15,7 +50,8 @@ int main(int argc, char *argv[]) {
                               .Append<userver::components::TestsuiteSupport>()
                               .Append<userver::components::HttpClient>()
                               .Append<userver::server::handlers::TestsControl>()
-                              .Append<userver::ugrpc::server::ServerComponent>("");
+                              .Append<userver::ugrpc::server::ServerComponent>("")
+                              .Append<samples::GreeterServiceComponent>();
 
     service_template::AppendHello(component_list);
 

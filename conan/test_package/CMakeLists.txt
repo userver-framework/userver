@@ -37,7 +37,9 @@ target_link_libraries(${PROJECT_NAME}_rabbitmq ${PROJECT_NAME}_objs userver-rabb
 
 add_executable(${PROJECT_NAME}_grpc test_grpc.cpp)
 
-target_link_libraries(${PROJECT_NAME}_grpc ${PROJECT_NAME}_objs userver-grpc)
+add_grpc_library(${PROJECT_NAME}_proto PROTOS greeter.proto)
+
+target_link_libraries(${PROJECT_NAME}_grpc ${PROJECT_NAME}_objs userver-grpc ${PROJECT_NAME}_proto)
 
 add_executable(${PROJECT_NAME}_mongo test_mongo.cpp)
 
