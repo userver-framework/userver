@@ -368,7 +368,4 @@ class UserverConan(ConanFile):
 
         for generator in ["cmake_find_package", "cmake_find_package_multi"]:
             self.cpp_info.components["userver-utest"].build_modules[generator] = build_modules
-
-        print(self.deps_cpp_info["grpc"].include_paths[-1])    
-        print(self.deps_cpp_info["grpc"].rootpath) 
         
