@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.1)
 project(PackageTest CXX)
 
 find_package(userver REQUIRED)
+find_package (Python COMPONENTS Interpreter Development)
 
 add_library(${PROJECT_NAME}_objs OBJECT
     hello.hpp
@@ -44,3 +45,7 @@ target_link_libraries(${PROJECT_NAME}_grpc ${PROJECT_NAME}_objs userver-grpc ${P
 add_executable(${PROJECT_NAME}_mongo test_mongo.cpp)
 
 target_link_libraries(${PROJECT_NAME}_mongo ${PROJECT_NAME}_objs userver-mongo)
+
+set(PYTHON_BINARY ${Python_EXECUTABLE})
+set(TESTSUITE_PYTHON_BINARY ${Python_EXECUTABLE})
+add_subdirectory(../../samples/testsuite-support ${CMAKE_CURRENT_BINARY_DIR}/testsuite-support)

@@ -196,7 +196,7 @@ class UserverConan(ConanFile):
             )
         if self.options.with_utest:
             copy(self, pattern='*', dst=os.path.join(self.package_folder, "include"), src=os.path.join(self.source_folder, "core", "testing", "include"), keep_path=True)
-            copy(self, pattern='*', dst=os.path.join(self.package_folder, "testsuite"), src='testsuite', keep_path=True)
+            copy(self, pattern='*', dst=os.path.join(self.package_folder, "testsuite"), src=os.path.join(self.source_folder,"testsuite"), keep_path=True)
             copy(self, 
                 pattern='UserverTestsuite.cmake',
                 dst=os.path.join(self.package_folder, "cmake"),
