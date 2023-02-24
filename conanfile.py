@@ -350,6 +350,16 @@ class UserverConan(ConanFile):
             f'USERVER_NAMESPACE_END={self.options.namespace_end}',
         )
 
+        self.cpp_info.components["userver-universal"].defines.append(
+            f'USERVER_NAMESPACE={self.options.namespace}',
+        )
+        self.cpp_info.components["userver-universal"].defines.append(
+            f'USERVER_NAMESPACE_BEGIN={self.options.namespace_begin}',
+        )
+        self.cpp_info.components["userver-universal"].defines.append(
+            f'USERVER_NAMESPACE_END={self.options.namespace_end}',
+        )
+
         self.cpp_info.set_property("cmake_file_name", "userver") 
 
         add_components(self._userver_components)

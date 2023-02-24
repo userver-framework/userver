@@ -49,3 +49,5 @@ target_link_libraries(${PROJECT_NAME}_mongo ${PROJECT_NAME}_objs userver-mongo)
 set(PYTHON_BINARY ${Python_EXECUTABLE})
 set(TESTSUITE_PYTHON_BINARY ${Python_EXECUTABLE})
 add_subdirectory(../../samples/testsuite-support ${CMAKE_CURRENT_BINARY_DIR}/testsuite-support)
+
+add_subdirectory(../../tools/json2yaml ${CMAKE_CURRENT_BINARY_DIR}/json2yaml)
