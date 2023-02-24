@@ -169,19 +169,22 @@ class UserverConan(ConanFile):
     def package(self):
         self.copy(pattern='LICENSE', dst='licenses')
 
-        copy(self, pattern='*', dst=os.path.join(self.package_folder, "include"), src=os.path.join(self.source_folder, "core", "include"), keep_path=True)
+
         copy(self, pattern='*', dst=os.path.join(self.package_folder, "include"), src=os.path.join(self.source_folder, "shared", "include"), keep_path=True)
 
         copy(self, pattern='*', dst=os.path.join(self.package_folder, "scripts"), src=os.path.join(self.source_folder, "scripts"), keep_path=True)
 
+        def copy_component(component):
+            copy(self, pattern='*', dst=os.path.join(self.package_folder, "include"), src=os.path.join(self.source_folder, component, "include"), keep_path=True)
+            copy(self, pattern='*.a', dst=os.path.join(self.package_folder, "lib"), src=os.path.join(self._build_subfolder,component), keep_path=False)
+            copy(self, pattern='*.so', dst=os.path.join(self.package_folder, "lib"), src=os.path.join(self._build_subfolder, component), keep_path=False)
+ 
+        copy_component("core")
+
         if self.options.with_universal:
-            copy(self, pattern='*', dst=os.path.join(self.package_folder, "include"), src=os.path.join(self.source_folder, "univesal", "include"), keep_path=True)
-            copy(self, pattern='*.a', dst=os.path.join(self.package_folder, "lib"), src=os.path.join(self._build_subfolder,'universal'), keep_path=False)
-            copy(self, pattern='*.so', dst=os.path.join(self.package_folder, "lib"), src=os.path.join(self._build_subfolder, 'universal'), keep_path=False)
+            copy_component("universal")
         if self.options.with_grpc:
-            copy(self, pattern='*', dst=os.path.join(self.package_folder, "include"), src=os.path.join(self.source_folder, "grpc", "include"), keep_path=True)
-            copy(self, pattern='*.a', dst=os.path.join(self.package_folder, "lib"), src=os.path.join(self._build_subfolder,'grpc'), keep_path=False)
-            copy(self, pattern='*.so', dst=os.path.join(self.package_folder, "lib"), src=os.path.join(self._build_subfolder, 'grpc'), keep_path=False)
+            copy_component("grpc")
             copy(self,
                 pattern='grpcConan.cmake',
                 dst=os.path.join(self.package_folder, "cmake"),
@@ -210,29 +213,20 @@ class UserverConan(ConanFile):
                 keep_path=True,
             )
         if self.options.with_postgresql:
-            copy(self, pattern='*', dst=os.path.join(self.package_folder, "include"), src=os.path.join(self.source_folder, "postgresql", "include"), keep_path=True)
-            copy(self, pattern='*.a', dst=os.path.join(self.package_folder, "lib"), src=os.path.join(self._build_subfolder,'postgresql'), keep_path=False)
-            copy(self, pattern='*.so', dst=os.path.join(self.package_folder, "lib"), src=os.path.join(self._build_subfolder, 'postgresql'), keep_path=False)
+            copy_component("postgresql")
 
         if self.options.with_mongodb:
-            copy(self, pattern='*', dst=os.path.join(self.package_folder, "include"), src=os.path.join(self.source_folder, "mongo", "include"), keep_path=True)
-            copy(self, pattern='*.a', dst=os.path.join(self.package_folder, "lib"), src=os.path.join(self._build_subfolder,'mongo'), keep_path=False)
-            copy(self, pattern='*.so', dst=os.path.join(self.package_folder, "lib"), src=os.path.join(self._build_subfolder, 'mongo'), keep_path=False)
-        if self.options.with_redis:
-            copy(self, pattern='*', dst=os.path.join(self.package_folder, "include"), src=os.path.join(self.source_folder, "redis", "include"), keep_path=True)
-            copy(self, pattern='*.a', dst=os.path.join(self.package_folder, "lib"), src=os.path.join(self._build_subfolder,'redis'), keep_path=False)
-            copy(self, pattern='*.so', dst=os.path.join(self.package_folder, "lib"), src=os.path.join(self._build_subfolder, 'redis'), keep_path=False)
-        if self.options.with_rabbitmq:
-            copy(self, pattern='*', dst=os.path.join(self.package_folder, "include"), src=os.path.join(self.source_folder, "rabbitmq", "include"), keep_path=True)
-            copy(self, pattern='*.a', dst=os.path.join(self.package_folder, "lib"), src=os.path.join(self._build_subfolder,'rabbitmq'), keep_path=False)
-            copy(self, pattern='*.so', dst=os.path.join(self.package_folder, "lib"), src=os.path.join(self._build_subfolder, 'rabbitmq'), keep_path=False)
-        if self.options.with_clickhouse:
-            copy(self, pattern='*', dst=os.path.join(self.package_folder, "include"), src=os.path.join(self.source_folder, "clickhouse", "include"), keep_path=True)
-            copy(self, pattern='*.a', dst=os.path.join(self.package_folder, "lib"), src=os.path.join(self._build_subfolder,'clickhouse'), keep_path=False)
-            copy(self, pattern='*.so', dst=os.path.join(self.package_folder, "lib"), src=os.path.join(self._build_subfolder, 'clickhouse'), keep_path=False)
+            copy_component("mongo")
 
-        copy(self, pattern='*.a', dst=os.path.join(self.package_folder, "lib"), src=os.path.join(self._build_subfolder,'core'), keep_path=False)
-        copy(self, pattern='*.so', dst=os.path.join(self.package_folder, "lib"), src=os.path.join(self._build_subfolder, 'core'), keep_path=False)
+        if self.options.with_redis:
+            copy_component("redis")
+
+        if self.options.with_rabbitmq:
+            copy_component("rabbitmq")
+
+        if self.options.with_clickhouse:
+            copy_component("clickhouse")
+
 
     @property
     def _userver_components(self):
