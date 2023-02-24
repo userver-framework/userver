@@ -170,12 +170,12 @@ class UserverConan(ConanFile):
         self.copy(pattern='LICENSE', dst='licenses')
 
 
-        copy(self, pattern='*', dst=os.path.join(self.package_folder, "include"), src=os.path.join(self.source_folder, "shared", "include"), keep_path=True)
+        copy(self, pattern='*', dst=os.path.join(self.package_folder, "include", "shared"), src=os.path.join(self.source_folder, "shared", "include"), keep_path=True)
 
         copy(self, pattern='*', dst=os.path.join(self.package_folder, "scripts"), src=os.path.join(self.source_folder, "scripts"), keep_path=True)
 
         def copy_component(component):
-            copy(self, pattern='*', dst=os.path.join(self.package_folder, "include"), src=os.path.join(self.source_folder, component, "include"), keep_path=True)
+            copy(self, pattern='*', dst=os.path.join(self.package_folder,"include", component), src=os.path.join(self.source_folder, component, "include"), keep_path=True)
             copy(self, pattern='*.a', dst=os.path.join(self.package_folder, "lib"), src=os.path.join(self._build_subfolder,component), keep_path=False)
             copy(self, pattern='*.so', dst=os.path.join(self.package_folder, "lib"), src=os.path.join(self._build_subfolder, component), keep_path=False)
  
@@ -198,7 +198,7 @@ class UserverConan(ConanFile):
                 keep_path=True,
             )
         if self.options.with_utest:
-            copy(self, pattern='*', dst=os.path.join(self.package_folder, "include"), src=os.path.join(self.source_folder, "core", "testing", "include"), keep_path=True)
+            copy(self, pattern='*', dst=os.path.join(self.package_folder, "include", "utest"), src=os.path.join(self.source_folder, "core", "testing", "include"), keep_path=True)
             copy(self, pattern='*', dst=os.path.join(self.package_folder, "testsuite"), src=os.path.join(self.source_folder,"testsuite"), keep_path=True)
             copy(self, 
                 pattern='UserverTestsuite.cmake',
@@ -250,7 +250,9 @@ class UserverConan(ConanFile):
         def libev():
             return ["libev::libev"]
         def http_parser():
-            return ["http_parser::http_parser"]    
+            return ["http_parser::http_parser"]   
+        def openssl():
+            return ["openssl::openssl"] 
         def jemalloc():
             return ["jemalloc::jemalloc"] if self.options.with_jemalloc else []
         def grpc():
@@ -269,12 +271,11 @@ class UserverConan(ConanFile):
             return ["amqp-cpp::amqp-cpp"] if self.options.with_rabbitmq else []  
 
         userver_components = [
-            {"target": "userver-core-internal",       "lib": "core-internal",       "requires": [] },
             {"target": "userver-core",       "lib": "core",       "requires": ["userver-core-internal"] + fmt() + cctz() + boost() + concurrentqueue() + yaml() + libev() + http_parser() + curl() + cryptopp() + jemalloc() + ares() }
         ]
         if self.options.with_universal:
             userver_components.extend([
-                {"target": "userver-universal", "lib": "universal", "requires": ["userver-core"] }
+                {"target": "userver-universal", "lib": "universal", "requires": fmt() + cctz() + boost() + concurrentqueue() + yaml()  + cryptopp() + jemalloc() + openssl() }
             ])        
         if self.options.with_grpc:
             userver_components.extend([
@@ -323,6 +324,12 @@ class UserverConan(ConanFile):
                 #       see https://github.com/conan-io/conan/issues/10258
                 self.cpp_info.components[conan_component].set_property("cmake_target_name", cmake_target)
                 self.cpp_info.components[conan_component].libs = [lib_name]
+                if cmake_component=="core":
+                    self.cpp_info.components[conan_component].libs.append(get_lib_name("core-internal"))
+                if cmake_component!="ubench":
+                    self.cpp_info.components[conan_component].includedirs.append(os.path.join("include", cmake_component))
+                if cmake_component=="core" or cmake_component=="universal":
+                    self.cpp_info.components[conan_component].includedirs.append(os.path.join("include", "shared"))   
                 if self.settings.os == "Linux":
                     self.cpp_info.components[conan_component].system_libs = ["pthread"]
 
