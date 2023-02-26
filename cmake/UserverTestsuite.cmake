@@ -8,8 +8,8 @@ if (USERVER_FEATURE_TESTSUITE)
     COMMAND bash "-c" "command -v python3-config"
     OUTPUT_VARIABLE PYTHONCONFIG_FOUND
   )
-  if (NOT  PYTHONCONFIG_FOUND)
-    message(FATAL_ERROR "Python dev not found")
+  if (NOT PYTHONCONFIG_FOUND)
+    message(FATAL_ERROR "Python dev is not found")
   endif()
 endif()
 

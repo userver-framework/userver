@@ -45,4 +45,3 @@ class TestPackageConan(ConanFile):
             folder = os.path.join(self.recipe_folder, "..", "..", "samples", "testsuite-support", "tests")
             args = [bin_path, "--service-logs-pretty", "-vv", folder]
             self.run(command.join(args), env="conanrun")
-

@@ -402,4 +402,3 @@ class UserverConan(ConanFile):
             build_modules.append(os.path.join(self._cmake_subfolder, "GrpcTargets.cmake"))
 
         self.cpp_info.set_property("cmake_build_modules", build_modules)
-        
