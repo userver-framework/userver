@@ -170,14 +170,24 @@ class UserverConan(ConanFile):
         self.copy(pattern='LICENSE', dst='licenses')
 
 
-        copy(self, pattern='*', dst=os.path.join(self.package_folder, "include", "shared"), src=os.path.join(self.source_folder, "shared", "include"), keep_path=True)
+        copy(self, pattern='*', 
+             dst=os.path.join(self.package_folder, "include", "shared"), 
+             src=os.path.join(self.source_folder, "shared", "include"), keep_path=True)
 
-        copy(self, pattern='*', dst=os.path.join(self.package_folder, "scripts"), src=os.path.join(self.source_folder, "scripts"), keep_path=True)
+        copy(self, pattern='*', 
+             dst=os.path.join(self.package_folder, "scripts"), 
+             src=os.path.join(self.source_folder, "scripts"), keep_path=True)
 
         def copy_component(component):
-            copy(self, pattern='*', dst=os.path.join(self.package_folder,"include", component), src=os.path.join(self.source_folder, component, "include"), keep_path=True)
-            copy(self, pattern='*.a', dst=os.path.join(self.package_folder, "lib"), src=os.path.join(self._build_subfolder,component), keep_path=False)
-            copy(self, pattern='*.so', dst=os.path.join(self.package_folder, "lib"), src=os.path.join(self._build_subfolder, component), keep_path=False)
+            copy(self, pattern='*', 
+                 dst=os.path.join(self.package_folder,"include", component), 
+                 src=os.path.join(self.source_folder, component, "include"), keep_path=True)
+            copy(self, pattern='*.a', 
+                 dst=os.path.join(self.package_folder, "lib"), 
+                 src=os.path.join(self._build_subfolder,component), keep_path=False)
+            copy(self, pattern='*.so', 
+                 dst=os.path.join(self.package_folder, "lib"), 
+                 src=os.path.join(self._build_subfolder, component), keep_path=False)
  
         copy_component("core")
 
@@ -198,8 +208,12 @@ class UserverConan(ConanFile):
                 keep_path=True,
             )
         if self.options.with_utest:
-            copy(self, pattern='*', dst=os.path.join(self.package_folder, "include", "utest"), src=os.path.join(self.source_folder, "core", "testing", "include"), keep_path=True)
-            copy(self, pattern='*', dst=os.path.join(self.package_folder, "testsuite"), src=os.path.join(self.source_folder,"testsuite"), keep_path=True)
+            copy(self, pattern='*', 
+                 dst=os.path.join(self.package_folder, "include", "utest"), 
+                 src=os.path.join(self.source_folder, "core", "testing", "include"), keep_path=True)
+            copy(self, pattern='*', 
+                 dst=os.path.join(self.package_folder, "testsuite"), 
+                 src=os.path.join(self.source_folder,"testsuite"), keep_path=True)
             copy(self, 
                 pattern='UserverTestsuite.cmake',
                 dst=os.path.join(self.package_folder, "cmake"),
@@ -271,37 +285,58 @@ class UserverConan(ConanFile):
             return ["amqp-cpp::amqp-cpp"] if self.options.with_rabbitmq else []  
 
         userver_components = [
-            {"target": "userver-core",       "lib": "core",       "requires": ["userver-core-internal"] + fmt() + cctz() + boost() + concurrentqueue() + yaml() + libev() + http_parser() + curl() + cryptopp() + jemalloc() + ares() }
+            {"target": "userver-core",       
+             "lib": "core",       
+             "requires": ["userver-core-internal"] + fmt() + cctz() + boost() + concurrentqueue() + yaml() + libev() + http_parser() + curl() + cryptopp() + jemalloc() + ares() }
         ]
         if self.options.with_universal:
             userver_components.extend([
-                {"target": "userver-universal", "lib": "universal", "requires": fmt() + cctz() + boost() + concurrentqueue() + yaml()  + cryptopp() + jemalloc() + openssl() }
+                {"target": "userver-universal", 
+                 "lib": "universal", 
+                 "requires": fmt() + cctz() + boost() + concurrentqueue() + yaml()  + cryptopp() + jemalloc() + openssl() }
             ])        
         if self.options.with_grpc:
             userver_components.extend([
-                {"target": "userver-grpc", "lib": "grpc", "requires": ["userver-core"] + grpc() },
-                {"target": "userver-api-common-protos",      "lib": "api-common-protos",      "requires": ["userver-grpc"] }
+                {"target": "userver-grpc", 
+                 "lib": "grpc", 
+                 "requires": ["userver-core"] + grpc() },
+                {"target": 
+                 "userver-api-common-protos",      
+                 "lib": "api-common-protos",      
+                 "requires": ["userver-grpc"] }
             ])
         if self.options.with_utest:
             userver_components.extend([
-                {"target": "userver-utest", "lib": "utest", "requires": ["userver-core"] + gtest() },
-                {"target": "userver-ubench", "lib": "ubench", "requires": ["userver-core"] + benchmark() }
+                {"target": "userver-utest", 
+                 "lib": "utest", 
+                 "requires": ["userver-core"] + gtest() },
+                {"target": "userver-ubench", 
+                 "lib": "ubench", 
+                 "requires": ["userver-core"] + benchmark() }
             ])
         if self.options.with_postgresql:
             userver_components.extend([
-                {"target": "userver-postgresql", "lib": "postgresql", "requires": ["userver-core"] + postgresql() }
+                {"target": "userver-postgresql", 
+                 "lib": "postgresql", 
+                 "requires": ["userver-core"] + postgresql() }
             ])
         if self.options.with_mongodb:
             userver_components.extend([
-                {"target": "userver-mongo", "lib": "mongo", "requires": ["userver-core"] + mongo() }
+                {"target": "userver-mongo", 
+                 "lib": "mongo", 
+                 "requires": ["userver-core"] + mongo() }
             ])
         if self.options.with_redis:
             userver_components.extend([
-                {"target": "userver-redis", "lib": "redis", "requires": ["userver-core"] + hiredis() }
+                {"target": "userver-redis", 
+                 "lib": "redis", 
+                 "requires": ["userver-core"] + hiredis() }
             ])       
         if self.options.with_rabbitmq:
             userver_components.extend([
-                {"target": "userver-rabbitmq", "lib": "rabbitmq", "requires": ["userver-core"] + amqpcpp() }
+                {"target": "userver-rabbitmq", 
+                 "lib": "rabbitmq", 
+                 "requires": ["userver-core"] + amqpcpp() }
             ])                                            
         return userver_components 
 
@@ -330,12 +365,6 @@ class UserverConan(ConanFile):
                     self.cpp_info.components[conan_component].includedirs.append(os.path.join("include", cmake_component))
                 if cmake_component=="core" or cmake_component=="universal":
                     self.cpp_info.components[conan_component].includedirs.append(os.path.join("include", "shared"))   
-                if self.settings.os == "Linux":
-                    self.cpp_info.components[conan_component].system_libs = ["pthread"]
-
-                # TODO: to remove in conan v2 once cmake_find_package* generators removed
-                self.cpp_info.components[conan_component].names["cmake_find_package"] = cmake_target
-                self.cpp_info.components[conan_component].names["cmake_find_package_multi"] = cmake_target
 
                 self.cpp_info.components[conan_component].requires = requires
 
@@ -373,10 +402,4 @@ class UserverConan(ConanFile):
             build_modules.append(os.path.join(self._cmake_subfolder, "GrpcTargets.cmake"))
 
         self.cpp_info.set_property("cmake_build_modules", build_modules)
-
-        self.cpp_info.filenames["cmake_find_package"] = "userver"
-        self.cpp_info.filenames["cmake_find_package_multi"] = "userver"
-
-        for generator in ["cmake_find_package", "cmake_find_package_multi"]:
-            self.cpp_info.components["userver-utest"].build_modules[generator] = build_modules
         
