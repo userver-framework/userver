@@ -394,9 +394,10 @@ class UserverConan(ConanFile):
         add_components(self._userver_components)
 
         build_modules = [
-            os.path.join(self._cmake_subfolder, "AddGoogleTests.cmake"),
             os.path.join(self._cmake_subfolder, "UserverTestsuite.cmake")
         ]
+        if self.options.with_utest:
+            build_modules.append(os.path.join(self._cmake_subfolder, "AddGoogleTests.cmake"))
         if self.options.with_grpc:
             build_modules.append(os.path.join(self._cmake_subfolder, "GrpcConan.cmake"))
             build_modules.append(os.path.join(self._cmake_subfolder, "GrpcTargets.cmake"))
