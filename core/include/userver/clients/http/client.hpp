@@ -71,9 +71,13 @@ class Client final {
 
   /// @brief Returns a HTTP request builder type with preset values of
   /// User-Agent, Proxy and some of the Testsuite suff (if any).
+  ///
+  /// @note This method is thread-safe despite being non-const.
   std::shared_ptr<Request> CreateRequest();
 
   /// Providing CreateNonSignedRequest() function for the clients::Http alias.
+  ///
+  /// @note This method is thread-safe despite being non-const.
   std::shared_ptr<Request> CreateNotSignedRequest() { return CreateRequest(); }
 
   /// @cond
