@@ -82,7 +82,7 @@ groups:
         # chaos proxy is slow, initial connection setup takes quite some time
         POSTGRES_DEFAULT_COMMAND_CONTROL:
             network_timeout_ms: 30000
-            statement_timeout_ms: 500
+            statement_timeout_ms: 15000
         POSTGRES_CONNECTION_SETTINGS:
             __default__:
                 user-types-enabled: false  # Not used in chaos tests
