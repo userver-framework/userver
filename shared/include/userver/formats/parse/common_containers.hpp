@@ -58,9 +58,10 @@ ObjectType ParseObject(const Value& value, ExtractFunc&& extract_func) {
 
 }  // namespace impl
 
-template <class Value, typename T>
-std::unordered_set<T> Parse(const Value& value, To<std::unordered_set<T>>) {
-  return impl::ParseArray<std::unordered_set<T>, T>(
+template <class Value, typename T, typename Hash = std::hash<T>>
+std::unordered_set<T, Hash> Parse(const Value& value,
+                                  To<std::unordered_set<T, Hash>>) {
+  return impl::ParseArray<std::unordered_set<T, Hash>, T>(
       value, &impl::AsExtractor<T, Value>);
 }
 
@@ -75,10 +76,10 @@ std::vector<T> Parse(const Value& value, To<std::vector<T>>) {
                                              &impl::AsExtractor<T, Value>);
 }
 
-template <class Value, typename T>
-std::unordered_map<std::string, T> Parse(
-    const Value& value, To<std::unordered_map<std::string, T>>) {
-  return impl::ParseObject<std::unordered_map<std::string, T>, T>(
+template <class Value, typename T, typename Hash = std::hash<T>>
+std::unordered_map<std::string, T, Hash> Parse(
+    const Value& value, To<std::unordered_map<std::string, T, Hash>>) {
+  return impl::ParseObject<std::unordered_map<std::string, T, Hash>, T>(
       value, &impl::AsExtractor<T, Value>);
 }
 
