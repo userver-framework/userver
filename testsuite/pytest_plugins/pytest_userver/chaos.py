@@ -22,10 +22,10 @@ import typing
 @dataclasses.dataclass(frozen=True)
 class GateRoute:
     """
-    Class that describes the route for TcpGate.
+    Class that describes the route for TcpGate or UdpGate.
 
     Use `port_for_client == 0` to bind to some unused port. In that case the
-    actual address could be retrieved via TcpGate.get_sockname_for_clients().
+    actual address could be retrieved via BaseGate.get_sockname_for_clients().
 
     @ingroup userver_testsuite
     """
@@ -47,6 +47,7 @@ MAX_DELAY = 60.0
 logger = logging.getLogger(__name__)
 
 
+Address = typing.Tuple[str, int]
 EvLoop = typing.Any
 Socket = socket.socket
 Interceptor = typing.Callable[
@@ -67,15 +68,43 @@ async def _yield() -> None:
     await asyncio.sleep(_MIN_DELAY)
 
 
-def _incomming_data_size(recv_socket: Socket) -> int:
+def _try_get_message(
+        recv_socket: Socket,
+) -> typing.Tuple[typing.Optional[bytes], typing.Optional[Address]]:
+
     try:
-        data = recv_socket.recv(RECV_MAX_SIZE, socket.MSG_PEEK)
-        return len(data)
+        return recv_socket.recvfrom(RECV_MAX_SIZE, socket.MSG_PEEK)
     except socket.error as e:
         err = e.args[0]
         if err in {errno.EAGAIN, errno.EWOULDBLOCK}:
-            return 0
+            return None, None
         raise e
+
+
+async def _wait_for_message_task(
+        recv_socket: Socket,
+) -> typing.Tuple[bytes, Address]:
+    iteration = 0
+    _LOG_FREQUENCY = 100
+    while True:
+        if not iteration % _LOG_FREQUENCY:
+            logger.debug(
+                f'Wait for message on socket fd={recv_socket.fileno()}. '
+                f'Iteration {iteration}',
+            )
+        iteration += 1
+
+        msg, addr = _try_get_message(recv_socket)
+        if msg:
+            assert addr
+            return msg, addr
+
+        await _yield()
+
+
+def _incomming_data_size(recv_socket: Socket) -> int:
+    msg, _ = _try_get_message(recv_socket)
+    return len(msg) if msg else 0
 
 
 async def _intercept_ok(
@@ -215,7 +244,7 @@ class _InterceptConcatPackets:
 
 
 class _InterceptBytesLimit:
-    def __init__(self, bytes_limit: int, gate: 'TcpGate'):
+    def __init__(self, bytes_limit: int, gate: 'BaseGate'):
         assert bytes_limit >= 0
         self._bytes_limit = bytes_limit
         self._bytes_remain = self._bytes_limit
@@ -269,14 +298,14 @@ async def _cancel_and_join(task: typing.Optional[asyncio.Task]) -> None:
 class _SocketsPaired:
     def __init__(
             self,
-            route: GateRoute,
+            proxy_name: str,
             loop: EvLoop,
             client: socket.socket,
             server: socket.socket,
             to_server_intercept: Interceptor,
             to_client_intercept: Interceptor,
     ) -> None:
-        self._route = route
+        self._proxy_name = proxy_name
         self._loop = loop
 
         self._client = client
@@ -321,15 +350,15 @@ class _SocketsPaired:
                 await interceptor(self._loop, socket_from, socket_to)
                 await _yield()
         except GateInterceptException as exc:
-            logger.info('In "%s": %s', self._route.name, exc)
+            logger.info('In "%s": %s', self._proxy_name, exc)
         except socket.error as exc:
-            logger.error('Exception in "%s": %s', self._route.name, exc)
+            logger.error('Exception in "%s": %s', self._proxy_name, exc)
         finally:
             self._finished_channels += 1
             if self._finished_channels == 2:
                 # Closing the sockets here so that the self.shutdown()
                 # returns only when the sockets are actually closed
-                logger.info('"%s" closes  %s', self._route.name, self.info())
+                logger.info('"%s" closes  %s', self._proxy_name, self.info())
                 self._close_socket(self._client)
                 self._close_socket(self._server)
             else:
@@ -352,7 +381,7 @@ class _SocketsPaired:
         except socket.error as exc:
             logger.error(
                 'Exception in "%s" on closing %s: %s',
-                self._route.name,
+                self._proxy_name,
                 'client' if self_socket == self._client else 'server',
                 exc,
             )
@@ -379,20 +408,34 @@ class _SocketsPaired:
 # @endcond
 
 
-class TcpGate:
+class BaseGate:
     """
-    Accepts incoming client connections (host_for_client, port_for_client),
-    on each new connection on client connects to server
+    This base class maintain endpoints of two types:
+
+    Server-side endpoints to recieve messages from clients. Address of this
+    endpoint is described by (host_for_client, port_for_client).
+
+    Client-side endpoints to forward messages to server. Server must listen on
     (host_to_server, port_to_server).
 
     Asynchronously concurrently passes data from client to server and from
     server to client, allowing intercepting the data, injecting delays and
     dropping connections.
 
+    @warning Do not use this class itself. Use one of the specifications
+    TcpGate or UdpGate
+
     @ingroup userver_testsuite
+
+    @see @ref md_en_userver_chaos_testing
     """
 
-    def __init__(self, route: GateRoute, loop) -> None:
+    _NOT_IMPLEMENTED_MESSAGE = (
+        'Do not use BaseGate itself, use one of '
+        'specializations TcpGate or UdpGate'
+    )
+
+    def __init__(self, route: GateRoute, loop: EvLoop) -> None:
         self._route = route
         self._loop = loop
 
@@ -406,29 +449,22 @@ class TcpGate:
 
         self._sockets: typing.Set[_SocketsPaired] = set()
 
-    async def __aenter__(self) -> 'TcpGate':
+    async def __aenter__(self) -> 'BaseGate':
         self.start()
         return self
 
     async def __aexit__(self, exc_type, exc_value, traceback) -> None:
         await self.stop()
 
-    def start(self) -> None:
-        """ Open the socket and start accepting connections from client """
+    def _create_accepting_sockets(self) -> typing.List[Socket]:
+        raise NotImplementedError(self._NOT_IMPLEMENTED_MESSAGE)
+
+    def start(self):
+        """ Open the socket and start accepting tasks """
         if self._accept_sockets:
             return
 
-        for addr in socket.getaddrinfo(
-                self._route.host_for_client,
-                self._route.port_for_client,
-                type=socket.SOCK_STREAM,
-        ):
-            sock = socket.socket(addr[0], addr[1])
-            sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            sock.bind(addr[4])
-            sock.listen()
-            logger.debug(f'Accepting connections on {sock.getsockname()}')
-            self._accept_sockets.append(sock)
+        self._accept_sockets.extend(self._create_accepting_sockets())
 
         if not self._accept_sockets:
             raise GateException(
@@ -445,10 +481,10 @@ class TcpGate:
                 port_for_client=self._accept_sockets[0].getsockname()[1],
             )
 
-        self.start_accepting()
+        BaseGate.start_accepting(self)
 
     def start_accepting(self) -> None:
-        """ Start accepting incoming connections from client """
+        """ Start accepting tasks """
         assert self._accept_sockets
         if not all(tsk.done() for tsk in self._accept_tasks):
             return
@@ -461,8 +497,7 @@ class TcpGate:
 
     async def stop_accepting(self) -> None:
         """
-        Stop accepting incoming connections from client without closing
-        the accepting socket.
+        Stop accepting tasks without closing the accepting socket.
         """
         for tsk in self._accept_tasks:
             await _cancel_and_join(tsk)
@@ -470,10 +505,9 @@ class TcpGate:
 
     async def stop(self) -> None:
         """
-        Stop accepting incoming connections from client, close all the sockets
-        and connections
+        Stop accepting tasks, close all the sockets
         """
-        if not self._accept_sockets:
+        if not self._accept_sockets and not self._sockets:
             return
 
         self.to_server_pass()
@@ -482,13 +516,51 @@ class TcpGate:
         for sock in self._accept_sockets:
             sock.close()
 
-        await self.stop_accepting()
+        await BaseGate.stop_accepting(self)
         logger.info('Before close() %s', self.info())
         await self.sockets_close()
         assert not self._sockets
 
         self._accept_sockets.clear()
         logger.info('Stopped. %s', self.info())
+
+    async def sockets_close(
+            self, *, count: typing.Optional[int] = None,
+    ) -> None:
+        """ Close all the connection going through the gate """
+        for x in list(self._sockets)[0:count]:
+            await x.shutdown()
+        self._collect_garbage()
+
+    def get_sockname_for_clients(self) -> Address:
+        """
+        Returns the client socket address that the gate listens on.
+
+        This function allows to use 0 in GateRoute.port_for_client and retrieve
+        the actual port and host.
+        """
+        assert self._route.port_for_client != 0, (
+            'Gate was not started and the port_for_client is still 0',
+        )
+        return (self._route.host_for_client, self._route.port_for_client)
+
+    def info(self) -> str:
+        """ Print info on open sockets """
+        if not self._sockets:
+            return f'"{self._route.name}" no active sockets'
+
+        return f'"{self._route.name}" active sockets:\n\t' + '\n\t'.join(
+            x.info() for x in self._sockets
+        )
+
+    def _collect_garbage(self) -> None:
+        self._sockets = {x for x in self._sockets if x.is_active()}
+
+    async def _do_accept(self, accept_sock: Socket) -> None:
+        """
+        This task should wait for connections and create SocketPair
+        """
+        raise NotImplementedError(self._NOT_IMPLEMENTED_MESSAGE)
 
     def set_to_server_interceptor(self, interceptor: Interceptor) -> None:
         """
@@ -654,6 +726,21 @@ class TcpGate:
         )
         self.set_to_client_interceptor(_InterceptSubstitute(pattern, repl))
 
+
+class TcpGate(BaseGate):
+    """
+    Implements TCP chaos-proxy logic such as accepting incoming tcp client
+    connections. On each new connection new tcp client connects to server
+    (host_to_server, port_to_server).
+
+    @ingroup userver_testsuite
+
+    @see @ref md_en_userver_chaos_testing
+    """
+
+    def __init__(self, route: GateRoute, loop: EvLoop) -> None:
+        BaseGate.__init__(self, route, loop)
+
     def connections_count(self) -> int:
         """
         Returns maximal amount of connections going through the gate at
@@ -663,14 +750,6 @@ class TcpGate:
                  right before the function starts. Use with caution!
         """
         return len(self._sockets)
-
-    async def sockets_close(
-            self, *, count: typing.Optional[int] = None,
-    ) -> None:
-        """ Close all the connection going through the gate """
-        for x in list(self._sockets)[0:count]:
-            await x.shutdown()
-        self._collect_garbage()
 
     async def wait_for_connections(self, *, count=1, timeout=0.0) -> None:
         """
@@ -693,17 +772,21 @@ class TcpGate:
             )
             self._connected_event.clear()
 
-    def get_sockname_for_clients(self) -> typing.Tuple[str, int]:
-        """
-        Returns the client socket address that the gate listens on.
+    def _create_accepting_sockets(self) -> typing.List[Socket]:
+        res: typing.List[Socket] = []
+        for addr in socket.getaddrinfo(
+                self._route.host_for_client,
+                self._route.port_for_client,
+                type=socket.SOCK_STREAM,
+        ):
+            sock = Socket(addr[0], addr[1])
+            sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            sock.bind(addr[4])
+            sock.listen()
+            logger.debug(f'Accepting connections on {sock.getsockname()}')
+            res.append(sock)
 
-        This function allows to use 0 in GateRoute.port_for_client and retrieve
-        the actual port and host.
-        """
-        assert self._route.port_for_client != 0, (
-            'Gate was not started and the port_for_client is still 0',
-        )
-        return (self._route.host_for_client, self._route.port_for_client)
+        return res
 
     async def _connect_to_server(self):
         addrs = await self._loop.getaddrinfo(
@@ -712,7 +795,7 @@ class TcpGate:
             type=socket.SOCK_STREAM,
         )
         for addr in addrs:
-            server = socket.socket(addr[0], addr[1])
+            server = Socket(addr[0], addr[1])
             try:
                 await self._loop.sock_connect(server, addr[4])
                 server.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
@@ -722,19 +805,7 @@ class TcpGate:
             except Exception as exc:  # pylint: disable=broad-except
                 logging.warning('Could not connect to %s: %s', addr[4], exc)
 
-    def _collect_garbage(self) -> None:
-        self._sockets = {x for x in self._sockets if x.is_active()}
-
-    def info(self) -> str:
-        """ Print info on open sockets """
-        if not self._sockets:
-            return f'"{self._route.name}" no active sockets'
-
-        return f'"{self._route.name}" active sockets:\n\t' + '\n\t'.join(
-            x.info() for x in self._sockets
-        )
-
-    async def _do_accept(self, accept_sock: socket.socket) -> None:
+    async def _do_accept(self, accept_sock: Socket) -> None:
         while accept_sock:
             client, _ = await self._loop.sock_accept(accept_sock)
             client.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
@@ -744,7 +815,7 @@ class TcpGate:
             if server:
                 self._sockets.add(
                     _SocketsPaired(
-                        self._route,
+                        self._route.name,
                         self._loop,
                         client,
                         server,
@@ -757,3 +828,115 @@ class TcpGate:
                 client.close()
 
             self._collect_garbage()
+
+
+class UdpGate(BaseGate):
+    """
+    Implements UDP chaos-proxy logic such as waiting for first
+    message and setting up sockets for forwarding messages between
+    udp-client and udp-server
+
+    @ingroup userver_testsuite
+
+    @see @ref md_en_userver_chaos_testing
+    """
+
+    _NOT_IMPLEMENTED_IN_UDP = 'This method is not allowed in UDP gate'
+
+    def __init__(self, route: GateRoute, loop: EvLoop):
+        self._client_addr: typing.Optional[Address] = None
+        BaseGate.__init__(self, route, loop)
+
+    def is_connected(self) -> bool:
+        """
+        Returns True if there is active pair of sockets ready to transfer data
+        at the moment.
+        """
+        return len(self._sockets) > 0
+
+    def _create_accepting_sockets(self) -> typing.List[Socket]:
+        res: typing.List[Socket] = []
+        for addr in socket.getaddrinfo(
+                self._route.host_for_client,
+                self._route.port_for_client,
+                type=socket.SOCK_DGRAM,
+        ):
+            sock = socket.socket(addr[0], addr[1])
+            fcntl.fcntl(sock, fcntl.F_SETFL, os.O_NONBLOCK)
+            sock.bind(addr[4])
+            logger.debug(f'Accepting connections on {sock.getsockname()}')
+            res.append(sock)
+
+        return res
+
+    async def _connect_to_server(self):
+        addrs = await self._loop.getaddrinfo(
+            self._route.host_to_server,
+            self._route.port_to_server,
+            type=socket.SOCK_DGRAM,
+        )
+        for addr in addrs:
+            server = Socket(addr[0], addr[1])
+            try:
+                await self._loop.sock_connect(server, addr[4])
+                fcntl.fcntl(server, fcntl.F_SETFL, os.O_NONBLOCK)
+                logging.debug('Connected to %s', addr[4])
+                return server
+            except Exception as exc:  # pylint: disable=broad-except
+                logging.warning('Could not connect to %s: %s', addr[4], exc)
+
+    async def _do_accept(self, accept_sock: Socket):
+        if not accept_sock:
+            return
+
+        _, addr = await _wait_for_message_task(accept_sock)
+
+        self._client_addr = addr
+        try:
+            await self._loop.sock_connect(accept_sock, addr)
+        except Exception as exc:  # pylint: disable=broad-except
+            logging.warning('Could not connect to %s: %s', addr, exc)
+
+        server = await self._connect_to_server()
+        if server:
+            self._sockets.add(
+                _SocketsPaired(
+                    self._route.name,
+                    self._loop,
+                    accept_sock,
+                    server,
+                    self._to_server_intercept,
+                    self._to_client_intercept,
+                ),
+            )
+            self._connected_event.set()
+        else:
+            accept_sock.close()
+
+        self._collect_garbage()
+
+    def start_accepting(self) -> None:
+        raise NotImplementedError(
+            'Since UdpGate can only have one connection, you cannot start or '
+            'stop accepting tasks manually. Use start() and stop() mehtods to '
+            'stop data transfering',
+        )
+
+    async def stop_accepting(self) -> None:
+        raise NotImplementedError(
+            'Since UdpGate can only have one connection, you cannot start or '
+            'stop accepting tasks manually. Use start() and stop() mehtods to '
+            'stop data transfering',
+        )
+
+    def to_server_concat_packets(self, packet_size: int) -> None:
+        raise NotImplementedError('Udp packets cannot be concatinated')
+
+    def to_client_concat_packets(self, packet_size: int) -> None:
+        raise NotImplementedError('Udp packets cannot be concatinated')
+
+    def to_server_smaller_parts(self, max_size: int) -> None:
+        raise NotImplementedError('Udp packets cannot be splited')
+
+    def to_client_smaller_parts(self, max_size: int) -> None:
+        raise NotImplementedError('Udp packets cannot be splited')

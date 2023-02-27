@@ -307,7 +307,7 @@ async def test_to_client_limit_time(
     await asyncio.sleep(_NOTICEABLE_DELAY)
 
     await _assert_data_from_to(server_connection, tcp_client, loop)
-    await asyncio.sleep(_NOTICEABLE_DELAY)
+    await asyncio.sleep(_NOTICEABLE_DELAY * 2)
     await loop.sock_sendall(server_connection, b'die')
     await _assert_connection_dead(server_connection, loop)
     await _assert_connection_dead(tcp_client, loop)
@@ -331,7 +331,7 @@ async def test_to_server_limit_time(
     await asyncio.sleep(_NOTICEABLE_DELAY)
 
     await _assert_data_from_to(tcp_client, server_connection, loop)
-    await asyncio.sleep(_NOTICEABLE_DELAY)
+    await asyncio.sleep(_NOTICEABLE_DELAY * 2)
     await loop.sock_sendall(tcp_client, b'die')
     await _assert_connection_dead(server_connection, loop)
     await _assert_connection_dead(tcp_client, loop)
