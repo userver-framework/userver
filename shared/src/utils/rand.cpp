@@ -39,6 +39,11 @@ RandomBase& DefaultRandom() {
   return random;
 }
 
+RandomBase& impl::DefaultRandomForHashSeed() {
+  thread_local RandomImpl random;
+  return random;
+}
+
 uint32_t Rand() {
   return std::uniform_int_distribution<uint32_t>{0}(DefaultRandom());
 }
