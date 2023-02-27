@@ -7,6 +7,7 @@
 
 #include <fmt/format.h>
 
+#include <userver/compiler/demangle.hpp>
 #include <userver/components/component.hpp>
 #include <userver/dynamic_config/storage_mock.hpp>
 #include <userver/engine/condition_variable.hpp>
@@ -142,12 +143,15 @@ void DynamicConfig::Impl::WaitUntilLoaded() {
 void DynamicConfig::Impl::NotifyLoadingFailed(std::string_view updater,
                                               std::string_view error) {
   if (!Has()) {
-    std::string message;
+    std::string message = "Failed to fetch initial dynamic config values. ";
     if (!fs_loading_error_msg_.empty()) {
-      message +=
-          fmt::format("DynamicConfig error: {}. ", fs_loading_error_msg_);
+      message += fmt::format(
+          "We previously tried to load dynamic config from filesystem cache at "
+          "'{}', which failed with a NON-FATAL error: ({}). We then tried to "
+          "fetch up-to-date config values, which failed FATALLY as follows. ",
+          fs_cache_path_, fs_loading_error_msg_);
     }
-    message += fmt::format("Error from '{}' updater: {}", updater, error);
+    message += fmt::format("Error from '{}' updater: ({})", updater, error);
     throw std::runtime_error(message);
   }
 }
@@ -195,8 +199,9 @@ void DynamicConfig::Impl::ReadFsCache() {
   tracing::Span span("dynamic_config_fs_cache_read");
   try {
     if (!fs::FileExists(*fs_task_processor_, fs_cache_path_)) {
-      LOG_WARNING() << "No FS cache for config found, waiting until "
-                       "DynamicConfigClientUpdater fetches fresh configs";
+      fs_loading_error_msg_ = "No cache file found";
+      LOG_WARNING() << "No filesystem cache for dynamic config found, waiting "
+                       "until the updater fetches fresh configs";
       return;
     }
     const auto contents =
@@ -214,10 +219,10 @@ void DynamicConfig::Impl::ReadFsCache() {
      * 3) cache file is created by an old server version, it misses some
      * variables which are needed in current server version
      */
-    fs_loading_error_msg_ = fmt::format(
-        "Failed to load config from FS cache '{}'. ", fs_cache_path_);
-    LOG_WARNING() << fs_loading_error_msg_ << e;
-    fs_loading_error_msg_ += e.what();
+    fs_loading_error_msg_ =
+        fmt::format("{} ({})", e.what(), compiler::GetTypeName(typeid(e)));
+    LOG_WARNING() << "Failed to load dynamic config from filesystem cache at '"
+                  << fs_cache_path_ << "': " << e;
   }
 }
 
