@@ -64,16 +64,16 @@ auto native_log_level = logging::Level::kNone;
 
 }  // namespace
 
-void SetupNativeLogging() { ::gpr_set_log_function(&LogFunction); }
+void SetupNativeLogging() { /*::gpr_set_log_function(&LogFunction);*/ }
 
-void UpdateNativeLogLevel(logging::Level min_log_level_override) {
-  std::lock_guard lock(native_log_level_mutex);
+void UpdateNativeLogLevel(logging::Level /*min_log_level_override*/) {
+ /*std::lock_guard lock(native_log_level_mutex);
 
   if (utils::UnderlyingValue(min_log_level_override) <
       utils::UnderlyingValue(native_log_level)) {
     ::gpr_set_log_verbosity(ToGprLogSeverity(min_log_level_override));
     native_log_level = min_log_level_override;
-  }
+  }*/
 }
 
 }  // namespace ugrpc::impl
