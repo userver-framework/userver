@@ -76,7 +76,7 @@ std::vector<T> Parse(const Value& value, To<std::vector<T>>) {
                                              &impl::AsExtractor<T, Value>);
 }
 
-template <class Value, typename T, typename Hash = std::hash<T>>
+template <class Value, typename T, class Hash = std::hash<std::string>>
 std::unordered_map<std::string, T, Hash> Parse(
     const Value& value, To<std::unordered_map<std::string, T, Hash>>) {
   return impl::ParseObject<std::unordered_map<std::string, T, Hash>, T>(
