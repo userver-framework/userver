@@ -5,7 +5,6 @@
 /// statistics (includes utils::statistics::Entry and forward declarations).
 
 #include <userver/formats/json_fwd.hpp>
-#include <userver/utils/clang_format_workarounds.hpp>
 #include <userver/utils/fast_pimpl.hpp>
 #include <userver/utils/statistics/fwd.hpp>
 
@@ -17,7 +16,7 @@ namespace utils::statistics {
 /// before it is destroyed.
 ///
 /// See utils::statistics::Storage for info on registrations
-class USERVER_NODISCARD Entry final {
+class [[nodiscard]] Entry final {
  public:
   Entry();
 

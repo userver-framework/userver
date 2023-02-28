@@ -9,7 +9,7 @@ USERVER_NAMESPACE_BEGIN
 namespace storages::redis {
 
 template <typename ScriptResult, typename ReplyType = ScriptResult>
-class USERVER_NODISCARD RequestEval final {
+class [[nodiscard]] RequestEval final {
  public:
   explicit RequestEval(RequestEvalCommon&& request)
       : request_(std::move(request)) {}

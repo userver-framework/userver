@@ -8,8 +8,6 @@
 #include <vector>
 
 #include <userver/storages/redis/impl/exception.hpp>
-#include <userver/utils/clang_format_workarounds.hpp>
-
 #include <userver/storages/redis/reply_types.hpp>
 #include <userver/storages/redis/request_data_base.hpp>
 #include <userver/storages/redis/scan_tag.hpp>
@@ -22,7 +20,7 @@ template <ScanTag scan_tag>
 class RequestScanData;
 
 template <typename Result, typename ReplyType = Result>
-class USERVER_NODISCARD Request final {
+class [[nodiscard]] Request final {
  public:
   using Reply = ReplyType;
 
