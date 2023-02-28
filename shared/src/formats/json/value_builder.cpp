@@ -131,8 +131,8 @@ ValueBuilder::ValueBuilder(common::TransferTag, ValueBuilder&& value) noexcept
     : value_(std::move(value.value_)) {}
 
 ValueBuilder ValueBuilder::operator[](std::string key) {
-  return ValueBuilder{value_.WrapMember(
-      std::move(key), AddMember(key, CheckMemberExists::kYes))};
+  auto& member = AddMember(key, CheckMemberExists::kYes);
+  return ValueBuilder{value_.WrapMember(std::move(key), member)};
 }
 
 ValueBuilder ValueBuilder::operator[](std::size_t index) {
