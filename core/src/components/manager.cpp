@@ -178,7 +178,8 @@ Manager::Manager(std::unique_ptr<ManagerConfig>&& config,
     CreateComponentContext(component_list);
   });
 
-  LOG_INFO() << "Started components manager";
+  LOG_INFO() << "Started components manager. All the components have started "
+                "successfully.";
 }
 
 Manager::~Manager() {
@@ -348,7 +349,10 @@ void Manager::AddComponents(const ComponentList& component_list) {
         "were caught");
   }
 
-  LOG_INFO() << "All components created";
+  LOG_INFO() << "All components created. Constructors for all the components "
+                "have completed. Preparing to run OnAllComponentsLoaded "
+                "for each component.";
+
   try {
     component_context_.OnAllComponentsLoaded();
   } catch (const std::exception& ex) {
