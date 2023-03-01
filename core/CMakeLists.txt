@@ -110,7 +110,7 @@ else()
     include(SetupCAres)
     include(SetupCURL)
     include(SetupCryptoPP)
-    find_package_required(libyamlcpp "libyaml-cpp-dev")
+    find_package_required(yaml-cpp "libyaml-cpp-dev")
     include(SetupFmt)
     include(SetupSpdlog)
     include(SetupCCTZ)
@@ -213,6 +213,8 @@ set(USERVER_PUBLIC_INCLUDE_DIRS
   ${CMAKE_CURRENT_SOURCE_DIR}/include
   ${CMAKE_CURRENT_SOURCE_DIR}/../shared/include
   ${USERVER_THIRD_PARTY_DIRS}/pfr/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/src
+  ${CMAKE_CURRENT_SOURCE_DIR}/../uboost_coro/include
 )
 set(USERVER_GLIBC_INCLUDE_FIXES_DIR
   ${CMAKE_CURRENT_SOURCE_DIR}/libc_include_fixes
