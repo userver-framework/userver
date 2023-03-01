@@ -11,12 +11,15 @@
 #include <userver/tracing/tracer.hpp>
 #include <userver/utils/rand.hpp>
 
+#include <compiler/tls.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace utils {
 
 namespace {
 
+USERVER_PREVENT_TLS_CACHING
 std::minstd_rand& GetFastRandomBitsGenerator() {
   thread_local std::minstd_rand rand{utils::Rand()};
   return rand;
