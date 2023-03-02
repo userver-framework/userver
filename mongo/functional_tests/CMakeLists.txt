@@ -3,9 +3,18 @@ project(userver-mongo-tests CXX)
 add_custom_target(${PROJECT_NAME})
 
 function(userver_chaos_testsuite_add)
+    set(options)
+    set(oneValueArgs TESTS_DIRECTORY)
+    set(multiValueArgs)
+    cmake_parse_arguments(
+            ARG "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
+    if (NOT ARG_TESTS_DIRECTORY)
+        set(ARG_TESTS_DIRECTORY tests)
+    endif()
+
     userver_testsuite_add(
-      SERVICE_TARGET ${PROJECT_NAME}
-      WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests
+      SERVICE_TARGET ${PROJECT_NAME}-${ARG_TESTS_DIRECTORY}
+      WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/${ARG_TESTS_DIRECTORY}
       PYTHON_BINARY ${TESTSUITE_PYTHON_BINARY}
       PYTEST_ARGS
       --service-config=${CMAKE_CURRENT_SOURCE_DIR}/static_config.yaml

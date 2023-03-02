@@ -1,9 +1,9 @@
-async def test_metrics_smoke(monitor_client):
+async def test_metrics_smoke(monitor_client, force_metrics_to_appear):
     metrics = await monitor_client.metrics()
     assert len(metrics) > 1
 
 
-async def test_metrics_portability(service_client):
+async def test_metrics_portability(service_client, force_metrics_to_appear):
     warnings = await service_client.metrics_portability()
     # TODO use separate paths for total metrics
     warnings.pop('label_name_mismatch', None)
@@ -16,7 +16,7 @@ def _is_mongo_metric(line: str) -> bool:
 
     # These errors sometimes appear during service startup,
     # it's tedious to reproduce them for metrics tests.
-    if (
+    if 'mongo.pool.conn-init.errors' in line and (
             'mongo_error=network' in line
             or 'mongo_error=cluster-unavailable' in line
     ):
@@ -35,12 +35,7 @@ def _hide_metrics_values(metrics: str) -> str:
     return '\n'.join(line.rsplit(' ', 2)[0] for line in metrics.splitlines())
 
 
-async def test_metrics(service_client, monitor_client, load):
-    # Forcing statement timing metrics to appear
-    response = await service_client.put('/v1/key-value?key=foo&value=bar')
-    assert response.status == 200
-    assert response.text == 'bar'
-
+async def test_metrics(monitor_client, load, force_metrics_to_appear):
     ground_truth = _normalize_metrics(load('metrics_values.txt'))
     all_metrics = await monitor_client.metrics_raw(output_format='graphite')
     all_metrics = _normalize_metrics(all_metrics)

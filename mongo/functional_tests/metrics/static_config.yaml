@@ -12,7 +12,7 @@ components_manager:
 
         handler-key-value:
             path: /v1/key-value
-            method: GET,PUT
+            method: GET,PUT,DELETE
             task_processor: main-task-processor
 
         server:

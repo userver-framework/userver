@@ -120,12 +120,14 @@ class MetricsSnapshot:
         @throws AssertionError if not one metric by path
         """
         entry = self.get(path, set())
-        assert entry or default, f'No metrics found by path "{path}"'
+        assert (
+            entry or default is not None
+        ), f'No metrics found by path "{path}"'
 
         if labels is not None:
             entry = {x for x in entry if x.labels == labels}
             assert (
-                entry or default
+                entry or default is not None
             ), f'No metrics found by path "{path}" and labels {labels}'
             assert len(entry) <= 1, (
                 f'Multiple metrics found by path "{path}" and labels {labels}:'

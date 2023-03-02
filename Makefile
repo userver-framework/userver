@@ -16,9 +16,6 @@ bionic-%: check-yandex-env
 docker-bionic-pull: check-yandex-env
 	docker pull registry.yandex.net/taxi/taxi-integration-bionic-base
 
-build-release: check-yandex-env
-	$(MAKE) build BUILD_TYPE=Release
-
 .PHONY: opensource-docs
 opensource-docs:
 	@( \
