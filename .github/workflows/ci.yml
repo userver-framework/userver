@@ -83,9 +83,9 @@ jobs:
                   echo "deb https://apt-archive.postgresql.org/pub/repos/apt jammy-pgdg-archive main" | sudo tee /etc/apt/sources.list.d/pgdg.list
                   sudo apt update
                   sudo apt install --allow-downgrades -y \
-                    libpq5=14.5-0ubuntu0.22.04.1 libpq-dev=14.5-0ubuntu0.22.04.1 \
-                    postgresql-14=14.5-2.pgdg22.04+2 postgresql-client-14=14.5-2.pgdg22.04+2
-                  sudo apt install --allow-downgrades -y libpq5=14.5-0ubuntu0.22.04.1 libpq-dev=14.5-0ubuntu0.22.04.1
+                    libpq5=14.5 libpq-dev=14.5 \
+                    postgresql-14=14.5 postgresql-client-14=14.5
+                  sudo apt install --allow-downgrades -y libpq5=14.5 libpq-dev=14.5
                 fi
                 if [ "${{matrix.info}}" = "g++-8 + debug" ]; then
                   sudo apt install --allow-downgrades -y g++-8
