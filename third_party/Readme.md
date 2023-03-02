@@ -6,3 +6,4 @@ This folder contains source codes from following open source projects:
 * pfr: https://github.com/boostorg/pfr/releases/tag/2.0.3 with increased via `python misc/generate_cpp17.py 200 > include/boost/pfr/detail/core17_generated.hpp` fields count limit
 * moodycamel: https://github.com/cameron314/concurrentqueue/releases/tag/v1.0.3
 * rapidjson: https://github.com/Tencent/rapidjson/
+* date: https://github.com/HowardHinnant/date/tree/v3.0.1

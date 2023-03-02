@@ -185,6 +185,10 @@ target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE
   ${UNIVERSAL_THIRD_PARTY_DIR}/rapidjson/include
 )
 
+target_include_directories(${PROJECT_NAME} PUBLIC
+  ${UNIVERSAL_THIRD_PARTY_DIR}/date/include
+)
+
 target_include_directories(${PROJECT_NAME}
   PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/../shared/src/

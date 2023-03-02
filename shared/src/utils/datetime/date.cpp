@@ -1,6 +1,7 @@
 #include <userver/utils/datetime/date.hpp>
 
 #include <userver/logging/log.hpp>
+#include <userver/utils/datetime/cpp_20_calendar.hpp>
 #include <userver/utils/datetime/from_string_saturating.hpp>
 
 #include <cctz/time_zone.h>
@@ -14,24 +15,12 @@ const std::string kDateFormat = "%Y-%m-%d";
 const auto kUtcTz = cctz::utc_time_zone();
 
 // TODO: replace with C++20 std::chrono::days
-using Days = std::chrono::duration<
-    int, std::ratio_multiply<std::ratio<24>, std::chrono::hours::period>>;
+constexpr date::days to_days(int year, int month, int day) noexcept {
+  const date::year_month_day ymd{date::year{year},
+                                 date::month{static_cast<unsigned>(month)},
+                                 date::day{static_cast<unsigned>(day)}};
 
-// https://howardhinnant.github.io/date_algorithms.html#days_from_civil
-constexpr Days to_days(int year, int month, int day) noexcept {
-  static_assert(std::numeric_limits<unsigned>::digits >= 18);
-  static_assert(std::numeric_limits<int>::digits >= 20);
-
-  const auto yr = year - (month <= 2 /*February*/);
-  const auto mth = static_cast<unsigned>(month);
-  const auto dy = static_cast<unsigned>(day);
-
-  const auto era = (yr >= 0 ? yr : yr - 399) / 400;
-  const auto yoe = static_cast<unsigned>(yr - era * 400);  // [0, 399]
-  const auto doy =
-      (153 * (mth + (mth > 2 ? -3 : 9)) + 2) / 5 + dy - 1;  // [0, 365]
-  const auto doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;   // [0, 146096]
-  return Days{era * 146097 + static_cast<int>(doe) - 719468};
+  return date::sys_days{ymd}.time_since_epoch();
 }
 
 }  // namespace
