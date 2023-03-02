@@ -11,7 +11,7 @@ if (USERVER_OPEN_SOURCE_BUILD)
         find_package(UserverProtobuf REQUIRED)
         add_library(Grpc ALIAS UserverGrpc)  # Unify link names
         add_library(Protobuf ALIAS UserverProtobuf)  # Unify link names
-        set(GRPC_LIBRARY_VERSION "${UserverGrpc_VERSION}")
+		set(GRPC_LIBRARY_VERSION "${UserverGrpc_VERSION}")
         set(GRPC_PROTOBUF_INCLUDE_DIRS "${UserverProtobuf_INCLUDE_DIRS}" CACHE PATH INTERNAL)
     endif()
 else()
@@ -33,7 +33,7 @@ if (USERVER_CONAN)
         )
     endif()
 else()
-  target_link_libraries(${PROJECT_NAME}-deps INTERFACE Protobuf Grpc)
+	target_link_libraries(${PROJECT_NAME}-deps INTERFACE Protobuf Grpc)
 endif()
 
 include(GrpcTargets)
