@@ -20,6 +20,7 @@ endif()
 
 get_filename_component(USERVER_DIR ${CMAKE_CURRENT_LIST_DIR} DIRECTORY)
 set(PROTO_GRPC_USRV_PLUGIN ${USERVER_DIR}/scripts/grpc/protoc_usrv_plugin)
+set(USERVER_IMPL_GRPC_REQUIREMENTS_CHECKED OFF CACHE INTERNAL "")
 
 function(generate_grpc_files)
   set(options)
@@ -91,6 +92,18 @@ function(generate_grpc_files)
 
     set(did_generate_proto_sources FALSE)
     if("${newest_proto_dependency}" IS_NEWER_THAN "${GENERATED_PROTO_DIR}/${path_base}.pb.cc")
+      # We only check the system pip protobuf package version once,
+      # if we are going to run protoc during this Configure.
+      if(NOT USERVER_IMPL_GRPC_REQUIREMENTS_CHECKED)
+        execute_process(
+          COMMAND ${PYTHON}
+            -m pip install --disable-pip-version-check
+            -r ${USERVER_ROOT_DIR}/grpc/requirements.txt
+          WORKING_DIRECTORY ${USERVER_ROOT_DIR}
+        )
+        set(USERVER_IMPL_GRPC_REQUIREMENTS_CHECKED ON CACHE INTERNAL "")
+      endif()
+
       execute_process(
         COMMAND mkdir -p proto
         COMMAND ${PROTOBUF_PROTOC} ${include_options}

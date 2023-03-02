@@ -64,8 +64,9 @@ function(userver_venv_setup)
   list(TRANSFORM ARG_REQUIREMENTS PREPEND "--requirement="
     OUTPUT_VARIABLE PIP_REQUIREMENTS)
   execute_process(
-    COMMAND ${VENV_BIN_DIR}/pip install -U ${PIP_REQUIREMENTS} ${ARG_PIP_ARGS}
-	RESULT_VARIABLE STATUS
+    COMMAND ${VENV_BIN_DIR}/pip install --disable-pip-version-check
+      -U ${PIP_REQUIREMENTS} ${ARG_PIP_ARGS}
+    RESULT_VARIABLE STATUS
   )
   if (STATUS)
     message(FATAL_ERROR "Failed to install testsuite dependencies")
