@@ -81,10 +81,11 @@ jobs:
                 if [ "${{matrix.os}}" = "ubuntu-22.04" ]; then
                   sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 7FCC7D46ACCC4CF8
                   echo "deb https://apt-archive.postgresql.org/pub/repos/apt jammy-pgdg-archive main" | sudo tee /etc/apt/sources.list.d/pgdg.list
-                  sudo printf "Package: libpq5\nPin: version 14.5.*\nPin-Priority: 1000\n" >> /etc/apt/preferences.d/libpq5
-                  sudo printf "Package: libpq-dev\nPin: version 14.5.*\nPin-Priority: 1000\n" >> /etc/apt/preferences.d/libpq-dev
-                  sudo printf "Package: postgresql-14\nPin: version 14.5.*\nPin-Priority: 1000\n" >> /etc/apt/preferences.d/postgresql-14
-                  sudo printf "Package: postgresql-client-14\nPin: version 14.5.*\nPin-Priority: 1000\n" >> /etc/apt/preferences.d/postgresql-client-14
+                  sudo mkdir -p /etc/apt/preferences.d
+                  printf "Package: libpq5\nPin: version 14.5.*\nPin-Priority: 1000\n" | sudo tee /etc/apt/preferences.d/libpq5
+                  printf "Package: libpq-dev\nPin: version 14.5.*\nPin-Priority: 1000\n"| sudo tee /etc/apt/preferences.d/libpq-dev
+                  printf "Package: postgresql-14\nPin: version 14.5.*\nPin-Priority: 1000\n" | sudo tee /etc/apt/preferences.d/postgresql-14
+                  printf "Package: postgresql-client-14\nPin: version 14.5.*\nPin-Priority: 1000\n" | sudo tee /etc/apt/preferences.d/postgresql-client-14
 
                   sudo apt update
                   sudo apt install --allow-downgrades -y libpq5 libpq-dev postgresql-14 postgresql-client-14
