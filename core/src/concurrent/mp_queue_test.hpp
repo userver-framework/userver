@@ -4,6 +4,7 @@
 #include <userver/concurrent/queue.hpp>
 #include <userver/engine/single_consumer_event.hpp>
 #include <userver/engine/sleep.hpp>
+#include <userver/engine/task/cancel.hpp>
 #include <userver/utils/async.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -37,6 +38,7 @@ struct ValueHelper<int> {
   static int Unwrap(int tag) { return tag; }
   static bool HasMemoryLeakCheck() { return false; }
   static bool CheckMemoryOk() { return true; }
+  static bool CheckWasNotMovedOut(int) { return true; }
 };
 
 template <>
@@ -45,6 +47,9 @@ struct ValueHelper<std::unique_ptr<int>> {
   static auto Unwrap(const std::unique_ptr<int>& ptr) { return *ptr; }
   static bool HasMemoryLeakCheck() { return false; }
   static bool CheckMemoryOk() { return true; }
+  static bool CheckWasNotMovedOut(const std::unique_ptr<int>& ptr) {
+    return !!ptr;
+  }
 };
 
 template <>
@@ -58,6 +63,9 @@ struct ValueHelper<std::unique_ptr<RefCountData>> {
     return RefCountData::objects_count.load() == 0;
   }
   static bool HasMemoryLeakCheck() { return true; }
+  static bool CheckWasNotMovedOut(const std::unique_ptr<RefCountData>& ptr) {
+    return !!ptr;
+  }
 };
 
 template <typename T>
@@ -83,6 +91,9 @@ class TypedQueueFixture : public ::testing::Test {
   }
   static bool HasMemoryLeakCheck() {
     return ValueHelper<ValueType>::HasMemoryLeakCheck();
+  }
+  static bool CheckWasNotMovedOut(const ValueType& object) {
+    return ValueHelper<ValueType>::CheckWasNotMovedOut(object);
   }
 };
 
@@ -245,15 +256,37 @@ TYPED_UTEST_P(TypedQueueFixture, Noblock) {
     auto producer = queue->GetProducer();
     EXPECT_TRUE(producer.PushNoblock(this->Wrap(0)));
     EXPECT_TRUE(producer.PushNoblock(this->Wrap(1)));
-    EXPECT_FALSE(producer.PushNoblock(this->Wrap(2)));
+
+    auto value = this->Wrap(2);
+    EXPECT_FALSE(producer.PushNoblock(std::move(value)));
+    EXPECT_TRUE(this->CheckWasNotMovedOut(value));
   }
 
   consumer_task.Get();
 }
 
+TYPED_UTEST_P(TypedQueueFixture, NotMovedValueOnFalse) {
+  engine::SingleConsumerEvent wait_consumer_event_;
+  auto queue = TypeParam::Create();
+  queue->SetSoftMaxSize(2);
+
+  auto consumer = queue->GetConsumer();
+  auto producer = queue->GetProducer();
+  EXPECT_TRUE(producer.PushNoblock(this->Wrap(0)));
+  EXPECT_TRUE(producer.PushNoblock(this->Wrap(1)));
+
+  auto value = this->Wrap(2);
+  EXPECT_FALSE(producer.PushNoblock(std::move(value)));
+  EXPECT_TRUE(this->CheckWasNotMovedOut(value));
+
+  engine::current_task::GetCancellationToken().RequestCancel();
+  EXPECT_FALSE(producer.Push(std::move(value)));
+  EXPECT_TRUE(this->CheckWasNotMovedOut(value));
+}
+
 REGISTER_TYPED_UTEST_SUITE_P(TypedQueueFixture, Ctr, Consume, ConsumeMany,
                              ProducerIsDead, QueueDestroyed, QueueCleanUp,
-                             Block, Noblock);
+                             Block, Noblock, NotMovedValueOnFalse);
 
 TYPED_UTEST_P(QueueFixture, BlockMulti) {
   auto queue = TypeParam::Create();
