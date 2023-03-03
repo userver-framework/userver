@@ -64,8 +64,9 @@ class RecentPeriod {
    * Type Result must have method Add(Counter, Duration, Duration) or allow
    * addition of counter values
    */
-  Result GetStatsForPeriod(Duration duration = Duration::min(),
-                           bool with_current_epoch = false) const {
+  // NOLINTNEXTLINE(readability-const-return-type)
+  const Result GetStatsForPeriod(Duration duration = Duration::min(),
+                                 bool with_current_epoch = false) const {
     if (duration == Duration::min()) {
       duration = max_duration_;
     }
@@ -179,12 +180,10 @@ class RecentPeriod {
 /// overload for `Result`.
 ///
 /// @param args if any, are forwarded to `DumpMetric` for `Result`
-template <typename Counter, typename Result, typename Timer, typename... Args>
+template <typename Counter, typename Result, typename Timer>
 void DumpMetric(Writer& writer,
-                const RecentPeriod<Counter, Result, Timer>& recent_period,
-                const Args&... args) {
-  static_assert((true && ... && !std::is_pointer_v<Args>));
-  DumpMetric(writer, recent_period.GetStatsForPeriod(), args...);
+                const RecentPeriod<Counter, Result, Timer>& recent_period) {
+  writer = recent_period.GetStatsForPeriod();
 }
 
 template <typename Counter, typename Result, typename Timer>

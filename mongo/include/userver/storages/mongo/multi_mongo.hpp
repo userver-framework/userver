@@ -5,8 +5,9 @@
 #include <unordered_map>
 
 #include <userver/dynamic_config/source.hpp>
+#include <userver/rcu/rcu.hpp>
 #include <userver/storages/secdist/fwd.hpp>
-#include <userver/utils/swappingsmart.hpp>
+#include <userver/utils/statistics/fwd.hpp>
 
 #include <userver/storages/mongo/pool.hpp>
 #include <userver/storages/mongo/pool_config.hpp>
@@ -77,8 +78,9 @@ class MultiMongo {
   /// Creates an empty database set bound to the current MultiMongo instance
   PoolSet NewPoolSet();
 
-  /// Returns JSON with statistics
-  formats::json::Value GetStatistics(bool verbose) const;
+  /// Writes statistics
+  friend void DumpMetric(utils::statistics::Writer& writer,
+                         const MultiMongo& multi_mongo);
 
   const std::string& GetName() const { return name_; }
 
@@ -90,7 +92,7 @@ class MultiMongo {
   dynamic_config::Source config_source_;
   const storages::mongo::PoolConfig pool_config_;
   clients::dns::Resolver* dns_resolver_;
-  utils::SwappingSmart<PoolMap> pool_map_ptr_;
+  rcu::Variable<PoolMap> pool_map_;
 };
 
 }  // namespace storages::mongo

@@ -4,12 +4,12 @@
 #include <chrono>
 #include <cstdint>
 #include <functional>
-#include <ratio>
 #include <string>
 
 #include <userver/rcu/rcu_map.hpp>
 #include <userver/storages/mongo/mongo_error.hpp>
 #include <userver/tracing/scope_time.hpp>
+#include <userver/utils/not_null.hpp>
 #include <userver/utils/statistics/percentile.hpp>
 #include <userver/utils/statistics/recentperiod.hpp>
 #include <userver/utils/statistics/relaxed_counter.hpp>
@@ -23,92 +23,78 @@ using TimingsPercentile =
     utils::statistics::Percentile</*buckets =*/1000, uint32_t,
                                   /*extra_buckets=*/780,
                                   /*extra_bucket_size=*/50>;
+using AggregatedTimingsPercentile =
+    utils::statistics::RecentPeriod<TimingsPercentile, TimingsPercentile>;
+using AggregatedCounter = utils::statistics::RecentPeriod<Counter, uint64_t>;
 
-template <typename T>
-using Aggregator = utils::statistics::RecentPeriod<T, T>;
+enum class ErrorType : std::size_t {
+  kSuccess,
 
-struct OperationStatisticsItem {
-  enum ErrorType {
-    kSuccess,
+  kNetwork,
+  kClusterUnavailable,
+  kBadServerVersion,
+  kAuthFailure,
+  kBadQueryArgument,
+  kDuplicateKey,
+  kWriteConcern,
+  kServer,
+  kOther,
 
-    kNetwork,
-    kClusterUnavailable,
-    kBadServerVersion,
-    kAuthFailure,
-    kBadQueryArgument,
-    kDuplicateKey,
-    kWriteConcern,
-    kServer,
-    kOther,
+  kErrorTypesCount
+};
 
-    kErrorTypesCount
-  };
+inline constexpr auto kErrorTypesCount =
+    static_cast<std::size_t>(ErrorType::kErrorTypesCount);
 
-  OperationStatisticsItem() = default;
-  OperationStatisticsItem(const OperationStatisticsItem&);
-
-  template <typename Rep = int64_t, typename Period = std::ratio<1>>
-  void Add(const OperationStatisticsItem& other,
-           std::chrono::duration<Rep, Period> curr_duration = {},
-           std::chrono::duration<Rep, Period> past_duration = {});
+struct OperationStatisticsItem final {
+  void Account(ErrorType) noexcept;
 
   void Reset();
 
-  std::array<Counter, kErrorTypesCount> counters;
-  TimingsPercentile timings;
+  // TODO don't use RecentPeriod for monotonic counters
+  std::array<AggregatedCounter, kErrorTypesCount> counters;
+  AggregatedTimingsPercentile timings;
 };
 
-std::string ToString(OperationStatisticsItem::ErrorType type);
+std::string_view ToString(ErrorType type);
 
-struct ReadOperationStatistics {
-  enum OpType {
-    kCount,
-    kCountApprox,
-    kFind,
-    kGetMore,
-  };
+enum class OpType {
+  kInvalid,
 
-  rcu::RcuMap<OpType, Aggregator<OperationStatisticsItem>> items;
+  kReadMin,
+  kCount = kReadMin,
+  kCountApprox,
+  kFind,
+  kAggregate,
+
+  kWriteMin,
+  kInsertOne = kWriteMin,
+  kInsertMany,
+  kReplaceOne,
+  kUpdateOne,
+  kUpdateMany,
+  kDeleteOne,
+  kDeleteMany,
+  kFindAndModify,
+  kFindAndRemove,
+  kBulk,
+  kDrop,
 };
 
-std::string ToString(ReadOperationStatistics::OpType type);
+std::string_view ToString(OpType type);
 
-struct WriteOperationStatistics {
-  enum OpType {
-    kInsertOne,
-    kInsertMany,
-    kReplaceOne,
-    kUpdateOne,
-    kUpdateMany,
-    kDeleteOne,
-    kDeleteMany,
-    kFindAndModify,
-    kFindAndRemove,
-    kBulk,
-    kDrop,
-  };
+struct OperationKey final {
+  bool operator==(const OperationKey& other) const noexcept;
 
-  rcu::RcuMap<OpType, Aggregator<OperationStatisticsItem>> items;
+  std::string diagnostic_label;
+  OpType op_type{OpType::kInvalid};
 };
 
-std::string ToString(WriteOperationStatistics::OpType type);
-
-struct CollectionStatistics {
-  // read preference -> stats
-  rcu::RcuMap<std::string, ReadOperationStatistics> read;
-
-  // write concern -> stats
-  rcu::RcuMap<std::string, WriteOperationStatistics> write;
+struct CollectionStatistics final {
+  rcu::RcuMap<OperationKey, OperationStatisticsItem> items;
 };
 
 struct PoolConnectStatistics {
-  // for OperationStopwatch compatibility
-  enum OpType {
-    kPing,
-
-    kOpTypesCount
-  };
-
   PoolConnectStatistics();
 
   Counter requested;
@@ -116,45 +102,37 @@ struct PoolConnectStatistics {
   Counter closed;
   Counter overload;
 
-  std::array<std::shared_ptr<Aggregator<OperationStatisticsItem>>,
-             OpType::kOpTypesCount>
-      items;
+  utils::SharedRef<OperationStatisticsItem> ping;
 
-  Aggregator<TimingsPercentile> request_timings_agg;
-  Aggregator<TimingsPercentile> queue_wait_timings_agg;
+  AggregatedTimingsPercentile request_timings_agg;
+  AggregatedTimingsPercentile queue_wait_timings_agg;
 };
 
-std::string ToString(PoolConnectStatistics::OpType type);
-
 struct PoolStatistics {
-  PoolStatistics() : pool(std::make_shared<PoolConnectStatistics>()) {}
+  PoolStatistics() : pool(utils::MakeSharedRef<PoolConnectStatistics>()) {}
 
-  std::shared_ptr<PoolConnectStatistics> pool;
+  utils::SharedRef<PoolConnectStatistics> pool;
   rcu::RcuMap<std::string, CollectionStatistics> collections;
 };
 
-template <typename OperationStatistics>
 class OperationStopwatch {
  public:
-  OperationStopwatch();
-  OperationStopwatch(const std::shared_ptr<OperationStatistics>&,
-                     typename OperationStatistics::OpType);
-  ~OperationStopwatch();
+  explicit OperationStopwatch(std::shared_ptr<OperationStatisticsItem>);
+  OperationStopwatch(std::shared_ptr<OperationStatisticsItem>,
+                     std::string&& label);
 
   OperationStopwatch(const OperationStopwatch&) = delete;
   OperationStopwatch(OperationStopwatch&&) noexcept = default;
-
-  void Reset(const std::shared_ptr<OperationStatistics>&,
-             typename OperationStatistics::OpType);
+  ~OperationStopwatch();
 
   void AccountSuccess();
   void AccountError(MongoError::Kind);
   void Discard();
 
  private:
-  void Account(OperationStatisticsItem::ErrorType) noexcept;
+  void Account(ErrorType) noexcept;
 
-  std::shared_ptr<Aggregator<OperationStatisticsItem>> stats_item_agg_;
+  std::shared_ptr<OperationStatisticsItem> stats_item_;
   tracing::ScopeTime scope_time_;
 };
 
@@ -190,45 +168,8 @@ class ConnectionThrottleStopwatch {
 
 USERVER_NAMESPACE_END
 
-// Have to be defined at this point
-namespace std {
-
 template <>
-struct hash<USERVER_NAMESPACE::storages::mongo::stats::ReadOperationStatistics::
-                OpType> {
+struct std::hash<USERVER_NAMESPACE::storages::mongo::stats::OperationKey> {
   size_t operator()(
-      USERVER_NAMESPACE::storages::mongo::stats::ReadOperationStatistics::OpType
-          type) const {
-    return hash<int>()(static_cast<int>(type));
-  }
+      USERVER_NAMESPACE::storages::mongo::stats::OperationKey value) const;
 };
-
-template <>
-struct hash<USERVER_NAMESPACE::storages::mongo::stats::
-                WriteOperationStatistics::OpType> {
-  size_t operator()(USERVER_NAMESPACE::storages::mongo::stats::
-                        WriteOperationStatistics::OpType type) const {
-    return hash<int>()(static_cast<int>(type));
-  }
-};
-
-}  // namespace std
-
-USERVER_NAMESPACE_BEGIN
-
-namespace storages::mongo::stats {
-
-template <typename Rep, typename Period>
-void OperationStatisticsItem::Add(
-    const OperationStatisticsItem& other,
-    std::chrono::duration<Rep, Period> curr_duration,
-    std::chrono::duration<Rep, Period> past_duration) {
-  for (size_t i = 0; i < counters.size(); ++i) {
-    counters[i] += other.counters[i];
-  }
-  timings.Add(other.timings, curr_duration, past_duration);
-}
-
-}  // namespace storages::mongo::stats
-
-USERVER_NAMESPACE_END
