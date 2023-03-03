@@ -13,7 +13,6 @@
 #include <userver/engine/exception.hpp>
 #include <userver/engine/task/cancel.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
-#include <userver/utils/clang_format_workarounds.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -33,7 +32,7 @@ using TaskPayload = std::unique_ptr<utils::impl::WrappedCallBase>;
 }  // namespace impl
 
 /// Asynchronous task
-class USERVER_NODISCARD Task {
+class [[nodiscard]] Task {
  public:
   /// Task importance
   enum class Importance {

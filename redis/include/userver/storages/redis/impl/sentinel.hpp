@@ -110,7 +110,7 @@ class Sentinel {
   // letters for a given shard.
   const std::string& GetAnyKeyForShard(size_t shard_idx) const;
 
-  SentinelStatistics GetStatistics() const;
+  SentinelStatistics GetStatistics(const MetricsSettings& settings) const;
 
   void SetCommandsBufferingSettings(
       CommandsBufferingSettings commands_buffering_settings);

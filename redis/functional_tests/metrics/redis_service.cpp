@@ -1,6 +1,7 @@
 #include <userver/testsuite/testsuite_support.hpp>
 #include <userver/utest/using_namespace_userver.hpp>  // IWYU pragma: keep
 
+#include <atomic>
 #include <string>
 #include <string_view>
 
@@ -14,11 +15,14 @@
 #include <userver/server/handlers/tests_control.hpp>
 #include <userver/storages/redis/client.hpp>
 #include <userver/storages/redis/component.hpp>
+#include <userver/storages/redis/subscribe_client.hpp>
 #include <userver/storages/secdist/component.hpp>
 #include <userver/storages/secdist/provider_component.hpp>
 #include <userver/utils/daemon_run.hpp>
 
 namespace chaos {
+
+constexpr char kPostChannel[] = "post_channel0";
 
 class KeyValue final : public server::handlers::HttpHandlerBase {
  public:
@@ -26,6 +30,8 @@ class KeyValue final : public server::handlers::HttpHandlerBase {
 
   KeyValue(const components::ComponentConfig& config,
            const components::ComponentContext& context);
+
+  ~KeyValue() override;
 
   std::string HandleRequestThrow(
       const server::http::HttpRequest& request,
@@ -39,7 +45,10 @@ class KeyValue final : public server::handlers::HttpHandlerBase {
   std::string DeleteValue(std::string_view key) const;
 
   storages::redis::ClientPtr redis_client_;
+  storages::redis::SubscribeClientPtr subscribe_client_;
+  storages::redis::SubscriptionToken subscription_token_;
   storages::redis::CommandControl redis_cc_{};
+  std::atomic_int values_posted{0};
 };
 
 KeyValue::KeyValue(const components::ComponentConfig& config,
@@ -47,9 +56,20 @@ KeyValue::KeyValue(const components::ComponentConfig& config,
     : server::handlers::HttpHandlerBase(config, context),
       redis_client_{
           context.FindComponent<components::Redis>("key-value-database")
-              .GetClient("metrics_test")} {
+              .GetClient("metrics_test")},
+      subscribe_client_{
+          context.FindComponent<components::Redis>("key-value-database")
+              .GetSubscribeClient("metrics_test")} {
   redis_cc_.force_request_to_master = true;
+  subscription_token_ = subscribe_client_->Subscribe(
+      kPostChannel,
+      [&](const std::string& channel, const std::string& message) {
+        LOG_INFO() << channel << ": " << message;
+        ++values_posted;
+      });
 }
+
+KeyValue::~KeyValue() { subscription_token_.Unsubscribe(); }
 
 std::string KeyValue::HandleRequestThrow(
     const server::http::HttpRequest& request,
@@ -92,6 +112,8 @@ std::string KeyValue::PostValue(
     request.SetResponseStatus(server::http::HttpStatus::kConflict);
     return {};
   }
+
+  redis_client_->Publish(kPostChannel, value, redis_cc_);
 
   request.SetResponseStatus(server::http::HttpStatus::kCreated);
   return std::string{value};

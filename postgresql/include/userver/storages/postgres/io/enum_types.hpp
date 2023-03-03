@@ -12,6 +12,7 @@
 #include <userver/storages/postgres/io/pg_types.hpp>
 #include <userver/storages/postgres/io/type_mapping.hpp>
 #include <userver/storages/postgres/io/user_types.hpp>
+#include <userver/utils/trivial_map_fwd.hpp>
 
 #include <userver/storages/postgres/detail/string_hash.hpp>
 
@@ -29,7 +30,7 @@ namespace storages::postgres::io {
 /// and a PostgreSQL enum type:
 /// @code
 /// create type __pgtest.rainbow as enum (
-///  'red', 'orange', 'yellow', 'green', 'cyan', 'blue', 'violet'
+///  'red', 'orange', 'yellow', 'green', 'cyan'
 /// )
 /// @endcode
 /// all we need to do to declare the mapping between the C++ type and PosgtreSQL
@@ -49,6 +50,12 @@ namespace storages::postgres::io {
 /// to the enumeration type for convenience of declaring pairs, as the
 /// enumeration can have a long qualified name.
 ///
+/// There is an alternative way to specialize the CppToUserPg template using
+/// TrivialBiMap. This way is much more efficient, so it is preferable to use
+/// it. It also becomes possible to reuse an existing TrivialBiMap.
+///
+/// @snippet storages/postgres/tests/enums_pgtest.cpp C++ to Pg
+/// TrivialMap_mapping
 ///
 /// ----------
 ///
@@ -101,12 +108,20 @@ struct AreEnumeratorsDefined<
     : std::true_type {};
 
 template <typename Enum>
-class EnumerationMap {
+struct Enumerators {
   static_assert(std::is_enum<Enum>(), "Type must be an enumeration");
   static_assert(AreEnumeratorsDefined<Enum>(),
                 "CppToUserPg for an enumeration must contain a static "
-                "`enumerators` member");
+                "`enumerators` member of `utils::TrivialBiMap` type or "
+                "`storages::postgres::io::detail::Enumerator[]`");
+  using Type = decltype(CppToUserPg<Enum>::enumerators);
+};
 
+template <typename Enum, typename = typename Enumerators<Enum>::Type>
+class EnumerationMap;
+
+template <typename Enum, typename T>
+class EnumerationMap {
   using StringType = std::string_view;
   using EnumType = Enum;
   using MappingType = CppToUserPg<EnumType>;
@@ -159,6 +174,29 @@ class EnumerationMap {
     if (auto f = map.find(enumerator); f != map.end()) {
       return f->second;
     }
+    throw InvalidEnumerationValue{enumerator};
+  }
+};
+
+template <typename Enum, typename Func>
+class EnumerationMap<Enum, const USERVER_NAMESPACE::utils::TrivialBiMap<Func>> {
+  using StringType = std::string_view;
+  using EnumType = Enum;
+  using MappingType = CppToUserPg<EnumType>;
+
+ public:
+  static constexpr const auto& enumerators = MappingType::enumerators;
+  static constexpr std::size_t size = enumerators.size();
+  static constexpr EnumType GetEnumerator(StringType literal) {
+    auto enumerator = enumerators.TryFind(literal);
+    if (enumerator.has_value()) return *enumerator;
+    throw InvalidEnumerationLiteral{
+        compiler::GetTypeName<EnumType>(),
+        std::string{literal.data(), literal.size()}};
+  }
+  static constexpr StringType GetLiteral(EnumType enumerator) {
+    auto literal = enumerators.TryFind(enumerator);
+    if (literal.has_value()) return *literal;
     throw InvalidEnumerationValue{enumerator};
   }
 };

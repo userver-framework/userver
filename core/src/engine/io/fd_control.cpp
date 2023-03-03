@@ -69,7 +69,9 @@ Direction::Direction(Kind kind) : kind_(kind) {}
 
 Direction::~Direction() = default;
 
-bool Direction::Wait(Deadline deadline) { return poller_.Wait(deadline); }
+bool Direction::Wait(Deadline deadline) {
+  return poller_.Wait(deadline).has_value();
+}
 
 void Direction::Reset(int fd) { poller_.Reset(fd, kind_); }
 

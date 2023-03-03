@@ -10,6 +10,7 @@
 #include <userver/formats/parse/to.hpp>
 #include <userver/storages/mongo/exception.hpp>
 #include <userver/utils/text.hpp>
+#include <userver/utils/trivial_map.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -41,15 +42,29 @@ void CheckDuration(const std::chrono::milliseconds& timeout, const char* name,
   }
 }
 
+constexpr utils::TrivialBiMap kDriverImplMapping([](auto selector) {
+  return selector().Case(PoolConfig::DriverImpl::kMongoCDriver,
+                         "mongo-c-driver");
+});
+
+constexpr utils::TrivialBiMap kStatsVerbosityMapping([](auto selector) {
+  return selector()
+      .Case(StatsVerbosity::kTerse, "terse")
+      .Case(StatsVerbosity::kFull, "full");
+});
+
 }  // namespace
 
 static auto Parse(const yaml_config::YamlConfig& config,
                   formats::parse::To<PoolConfig::DriverImpl>) {
-  auto impl_str = config.As<std::string>();
-  if (impl_str == "mongo-c-driver") {
-    return PoolConfig::DriverImpl::kMongoCDriver;
-  }
-  throw InvalidConfigException("Unknown driver implementation: ") << impl_str;
+  return utils::ParseFromValueString<InvalidConfigException>(
+      config, kDriverImplMapping);
+}
+
+static auto Parse(const yaml_config::YamlConfig& config,
+                  formats::parse::To<StatsVerbosity>) {
+  return utils::ParseFromValueString<InvalidConfigException>(
+      config, kStatsVerbosityMapping);
 }
 
 PoolConfig::PoolConfig(const components::ComponentConfig& component_config)
@@ -74,8 +89,10 @@ PoolConfig::PoolConfig(const components::ComponentConfig& component_config)
       app_name(component_config["appname"].As<std::string>(kDefaultAppName)),
       max_replication_lag(component_config["max_replication_lag"]
                               .As<std::optional<std::chrono::seconds>>()),
-      driver_impl(component_config["driver"].As<DriverImpl>(
-          DriverImpl::kMongoCDriver)) {
+      driver_impl(
+          component_config["driver"].As<DriverImpl>(DriverImpl::kMongoCDriver)),
+      stats_verbosity(component_config["stats_verbosity"].As<StatsVerbosity>(
+          StatsVerbosity::kTerse)) {
   auto user_idle_limit =
       component_config["idle_limit"].As<std::optional<size_t>>();
   idle_limit = user_idle_limit ? *user_idle_limit
@@ -99,7 +116,8 @@ PoolConfig::PoolConfig()
       connecting_limit(kTestConnectingLimit),
       maintenance_period(kTestMaintenancePeriod),
       app_name(kDefaultAppName),
-      driver_impl(DriverImpl::kMongoCDriver) {
+      driver_impl(DriverImpl::kMongoCDriver),
+      stats_verbosity(StatsVerbosity::kTerse) {
   if (!IsValidAppName(app_name)) {
     throw InvalidConfigException("Invalid appname in test pool config");
   }

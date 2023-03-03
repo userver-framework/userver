@@ -31,7 +31,7 @@ endif()
 
 set(USERVER_BUILD_PLATFORM_X86 OFF)
 if(CMAKE_SYSTEM_PROCESSOR MATCHES "^x86")
-	set(USERVER_BUILD_PLATFORM_X86 ON)
+  set(USERVER_BUILD_PLATFORM_X86 ON)
 endif()
 
 set(USERVER_MONGODB ${USERVER_BUILD_PLATFORM_X86})
@@ -88,9 +88,10 @@ include(FindPython)
 
 message(STATUS "Generating cmake files ...")
 execute_process(
-    COMMAND
-        ${PYTHON} -m pip install -r ${USERVER_ROOT_DIR}/scripts/external_deps/requirements.txt
-    WORKING_DIRECTORY ${USERVER_ROOT_DIR}
+  COMMAND ${PYTHON}
+    -m pip install --disable-pip-version-check
+    -r ${USERVER_ROOT_DIR}/scripts/external_deps/requirements.txt
+  WORKING_DIRECTORY ${USERVER_ROOT_DIR}
 )
 execute_process(
     COMMAND

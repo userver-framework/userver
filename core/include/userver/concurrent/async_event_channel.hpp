@@ -17,7 +17,6 @@
 #include <userver/engine/task/cancel.hpp>
 #include <userver/engine/task/task_with_result.hpp>
 #include <userver/utils/async.hpp>
-#include <userver/utils/clang_format_workarounds.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

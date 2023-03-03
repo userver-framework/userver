@@ -97,6 +97,105 @@ TEST(JsonToSortedString, Null) {
   ASSERT_EQ(formats::json::ToStableString(example), "null");
 }
 
+namespace {
+
+struct NotSortedTestData {
+  std::string source;
+  std::string result;
+};
+
+struct CycleTestData {
+  std::string source;
+};
+
+class JsonToStringCycle : public ::testing::TestWithParam<CycleTestData> {};
+
+class NonSortedJsonToSortedString
+    : public ::testing::TestWithParam<NotSortedTestData> {};
+
+const auto global_json1 =
+    formats::json::FromString(R"({"b":{"b":{"b":1}},"c":{"c":{"c":1}},"a":1})");
+const auto global_json2 =
+    formats::json::FromString(R"({"c":1,"b":{"b":{"b":1,"a":1}},"a":1})");
+const auto global_json3 =
+    formats::json::FromString(R"({"b":{"b":{"b":1,"a":1}},"a":1,"c":1})");
+thread_local const auto thread_local_json1 = global_json1;
+thread_local const auto thread_local_json2 = global_json2;
+thread_local const auto thread_local_json3 = global_json3;
+
+}  // namespace
+
+TEST_P(NonSortedJsonToSortedString, NonDepthTree) {
+  const NotSortedTestData pair_data_res = GetParam();
+  const auto json = formats::json::FromString(pair_data_res.source);
+  EXPECT_EQ(formats::json::ToStableString(json), pair_data_res.result);
+}
+
+TEST_P(JsonToStringCycle, NonDepthTree) {
+  const CycleTestData data = GetParam();
+  const auto json = formats::json::FromString(data.source);
+  const auto json_str = formats::json::ToString(json);
+  const auto json_copy = formats::json::FromString(json_str);
+  EXPECT_EQ(formats::json::ToStableString(json_copy),
+            formats::json::ToStableString(json));
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    JsonToSortedString, NonSortedJsonToSortedString,
+    ::testing::Values(
+        NotSortedTestData{"null", "null"}, NotSortedTestData{"false", "false"},
+        NotSortedTestData{"true", "true"}, NotSortedTestData{"{}", "{}"},
+        NotSortedTestData{"[]", "[]"}, NotSortedTestData{"1", "1"},
+        NotSortedTestData{R"({"b":1,"a":1})", R"({"a":1,"b":1})"},
+        NotSortedTestData{R"({"b":1,"a":1,"c":1})", R"({"a":1,"b":1,"c":1})"},
+        NotSortedTestData{R"({"b":{"b":1,"a":1}, "a":1,"c":1})",
+                          R"({"a":1,"b":{"a":1,"b":1},"c":1})"},
+        NotSortedTestData{R"({"b":1,"a":1,"c":{"b":1,"a":1}})",
+                          R"({"a":1,"b":1,"c":{"a":1,"b":1}})"},
+        NotSortedTestData{R"({"b":{"b":{"b":1}},"a":1,"c":1})",
+                          R"({"a":1,"b":{"b":{"b":1}},"c":1})"},
+        NotSortedTestData{R"({"a":1,"c":1,"b":{"b":{"b":1}}})",
+                          R"({"a":1,"b":{"b":{"b":1}},"c":1})"},
+        NotSortedTestData{R"({"b":{"b":1},"a":{"a":1}})",
+                          R"({"a":{"a":1},"b":{"b":1}})"},
+        NotSortedTestData{R"({"c":{"b":1,"a":1},"b":{"b":1,"a":1},"a":1})",
+                          R"({"a":1,"b":{"a":1,"b":1},"c":{"a":1,"b":1}})"},
+        NotSortedTestData{R"({"b":1,"c":{"c":{"c":1}},"a":1})",
+                          R"({"a":1,"b":1,"c":{"c":{"c":1}}})"},
+        NotSortedTestData{R"({"b":{"b":{"b":1}},"a":{"a":1},"c":1})",
+                          R"({"a":{"a":1},"b":{"b":{"b":1}},"c":1})"},
+        NotSortedTestData{R"({"c":1,"b":{"b":{"b":1}},"a":{"a":1}})",
+                          R"({"a":{"a":1},"b":{"b":{"b":1}},"c":1})"},
+        NotSortedTestData{R"({"c":{"c":1},"a":1,"b":{"b":{"b":1}}})",
+                          R"({"a":1,"b":{"b":{"b":1}},"c":{"c":1}})"},
+        NotSortedTestData{R"({"b":{"b":{"b":1}},"c":{"c":{"c":1}},"a":1})",
+                          R"({"a":1,"b":{"b":{"b":1}},"c":{"c":{"c":1}}})"},
+        NotSortedTestData{R"({"b":{"b":{"b":1,"a":1}},"a":1,"c":1})",
+                          R"({"a":1,"b":{"b":{"a":1,"b":1}},"c":1})"},
+        NotSortedTestData{R"({"c":1,"b":{"b":{"b":1,"a":1}},"a":1})",
+                          R"({"a":1,"b":{"b":{"a":1,"b":1}},"c":1})"}));
+
+INSTANTIATE_TEST_SUITE_P(
+    JsonToString, JsonToStringCycle,
+    ::testing::Values(
+        CycleTestData{"null"}, CycleTestData{"false"}, CycleTestData{"true"},
+        CycleTestData{"{}"}, CycleTestData{"[]"}, CycleTestData{"1"},
+        CycleTestData{R"({"b":1,"a":1})"},
+        CycleTestData{R"({"b":1,"a":1,"c":1})"},
+        CycleTestData{R"({"b":{"b":1,"a":1}, "a":1,"c":1})"},
+        CycleTestData{R"({"b":1,"a":1,"c":{"b":1,"a":1}})"},
+        CycleTestData{R"({"b":{"b":{"b":1}},"a":1,"c":1})"},
+        CycleTestData{R"({"a":1,"c":1,"b":{"b":{"b":1}}})"},
+        CycleTestData{R"({"b":{"b":1},"a":{"a":1}})"},
+        CycleTestData{R"({"c":{"b":1,"a":1},"b":{"b":1,"a":1},"a":1})"},
+        CycleTestData{R"({"b":1,"c":{"c":{"c":1}},"a":1})"},
+        CycleTestData{R"({"b":{"b":{"b":1}},"a":{"a":1},"c":1})"},
+        CycleTestData{R"({"c":1,"b":{"b":{"b":1}},"a":{"a":1}})"},
+        CycleTestData{R"({"c":{"c":1},"a":1,"b":{"b":{"b":1}}})"},
+        CycleTestData{R"({"b":{"b":{"b":1}},"c":{"c":{"c":1}},"a":1})"},
+        CycleTestData{R"({"b":{"b":{"b":1,"a":1}},"a":1,"c":1})"},
+        CycleTestData{R"({"c":1,"b":{"b":{"b":1,"a":1}},"a":1})"}));
+
 TEST(JsonToSortedString, Object) {
   const formats::json::Value example =
       formats::json::FromString(R"({"D":{"C":2},"A":1,"B":"sample"})");

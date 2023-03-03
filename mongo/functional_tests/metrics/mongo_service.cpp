@@ -26,24 +26,57 @@ class KeyValue final : public server::handlers::HttpHandlerBase {
   std::string HandleRequestThrow(
       const server::http::HttpRequest& request,
       server::request::RequestContext&) const override {
-    const auto& key = request.GetArg("key");
-    const auto& value = request.GetArg("value");
-
-    using formats::bson::MakeDoc;
-    auto coll = pool_->GetCollection("test");
-    coll.InsertOne(MakeDoc("key", key, "value", value));
-
-    auto doc = coll.FindOne(MakeDoc("key", MakeDoc("$eq", key)));
-    if (!doc) {
-      throw server::handlers::ResourceNotFound{};
+    switch (request.GetMethod()) {
+      case server::http::HttpMethod::kGet:
+        return GetValue(request);
+      case server::http::HttpMethod::kPut:
+        PutValue(request);
+        return {};
+      case server::http::HttpMethod::kDelete:
+        DeleteValue(request);
+        return {};
+      default:
+        ThrowUnsupportedHttpMethod(request);
     }
-
-    return (*doc)["value"].As<std::string>();
   }
 
  private:
+  std::string GetValue(const server::http::HttpRequest& request) const;
+  void PutValue(const server::http::HttpRequest& request) const;
+  void DeleteValue(const server::http::HttpRequest& request) const;
+
   storages::mongo::PoolPtr pool_;
 };
+
+std::string KeyValue::GetValue(const server::http::HttpRequest& request) const {
+  const auto& key = request.GetArg("key");
+
+  using formats::bson::MakeDoc;
+  auto coll = pool_->GetCollection("test");
+
+  // Using 'count' instead of 'find', because Cursor may or may not provide
+  // metrics, depending on the mongoc version.
+  const auto count = coll.Count(MakeDoc("_id", MakeDoc("$eq", key)));
+
+  return std::to_string(count);
+}
+
+void KeyValue::PutValue(const server::http::HttpRequest& request) const {
+  const auto& key = request.GetArg("key");
+  const auto& value = request.GetArg("value");
+
+  using formats::bson::MakeDoc;
+  auto coll = pool_->GetCollection("test");
+  coll.InsertOne(MakeDoc("_id", key, "value", value));
+}
+
+void KeyValue::DeleteValue(const server::http::HttpRequest& request) const {
+  const auto& key = request.GetArg("key");
+
+  using formats::bson::MakeDoc;
+  auto coll = pool_->GetCollection("test");
+  coll.DeleteOne(MakeDoc("_id", key));
+}
 
 }  // namespace metrics
 

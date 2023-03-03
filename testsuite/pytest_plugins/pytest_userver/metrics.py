@@ -120,12 +120,14 @@ class MetricsSnapshot:
         @throws AssertionError if not one metric by path
         """
         entry = self.get(path, set())
-        assert entry or default, f'No metrics found by path "{path}"'
+        assert (
+            entry or default is not None
+        ), f'No metrics found by path "{path}"'
 
         if labels is not None:
             entry = {x for x in entry if x.labels == labels}
             assert (
-                entry or default
+                entry or default is not None
             ), f'No metrics found by path "{path}" and labels {labels}'
             assert len(entry) <= 1, (
                 f'Multiple metrics found by path "{path}" and labels {labels}:'
@@ -152,7 +154,7 @@ class MetricsSnapshot:
         """
         lhs = _flatten_snapshot(self, ignore_zeros=ignore_zeros)
         rhs = _flatten_snapshot(other, ignore_zeros=ignore_zeros)
-        assert lhs == rhs, _diff_metric_snapshots(lhs, rhs)
+        assert lhs == rhs, _diff_metric_snapshots(lhs, rhs, ignore_zeros)
 
     @staticmethod
     def from_json(json_str: str) -> 'MetricsSnapshot':
@@ -188,16 +190,19 @@ def _flatten_snapshot(values, ignore_zeros: bool) -> _FlattenedSnapshot:
 
 
 def _diff_metric_snapshots(
-        lhs: _FlattenedSnapshot, rhs: _FlattenedSnapshot,
+        lhs: _FlattenedSnapshot, rhs: _FlattenedSnapshot, ignore_zeros: bool,
 ) -> str:
     def extra_metrics_message(extra, base):
         return [
             f'    path={path!r} labels={metric.labels!r} value={metric.value}'
-            for path, metric in extra
+            for path, metric in sorted(extra, key=lambda pair: pair[0])
             if (path, metric) not in base
         ]
 
-    lines = ['left.assert_equals_ignore_zeros(right) failed']
+    if ignore_zeros:
+        lines = ['left.assert_equals(right, ignore_zeros=True) failed']
+    else:
+        lines = ['left.assert_equals(right) failed']
     actual_extra = extra_metrics_message(lhs, rhs)
     if actual_extra:
         lines.append('  extra in left:')

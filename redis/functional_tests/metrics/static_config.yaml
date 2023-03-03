@@ -11,6 +11,8 @@ components_manager:
               - config_name: metrics_test
                 db: metrics_test
             subscribe_groups:
+              - config_name: metrics_test
+                db: metrics_test
             thread_pools:
                 redis_thread_pool_size: 8
                 sentinel_thread_pool_size: 1

@@ -12,7 +12,6 @@
 #include <userver/engine/io/exception.hpp>
 #include <userver/engine/io/fd_control_holder.hpp>
 #include <userver/engine/io/sockaddr.hpp>
-#include <userver/utils/clang_format_workarounds.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -39,7 +38,7 @@ struct IoData final {
 /// thread-safe to concurrently write to socket. However it is safe to
 /// concurrently read and write into socket:
 /// @snippet src/engine/io/socket_test.cpp send self concurrent
-class USERVER_NODISCARD Socket final : public RwBase {
+class [[nodiscard]] Socket final : public RwBase {
  public:
   struct RecvFromResult {
     size_t bytes_received{0};

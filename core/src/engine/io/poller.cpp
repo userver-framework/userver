@@ -65,8 +65,16 @@ void Poller::Remove(int fd) {
   if (watcher_it == watchers_.end()) return;
   auto& watcher = watcher_it->second;
 
-  const auto old_events = watcher.awaited_events.Exchange({});
-  if (!old_events) return;
+  watcher.awaited_events = Event::kNone;
+
+  // At this point Poller::IoEventCb may be calling Stop() on watcher,
+  // Poller::EventsFilter may have been already called and
+  // awaited_events == Event::kNone.
+  //
+  // Have to call Stop() for watcher to avoid early return from this function,
+  // close of the fd and Watcher<ev_io>::StopImpl() reporting bad fd.
+  //
+  // Watching a bad fd results in EV_ERROR, which is an application bug.
 
   ++watcher.coro_epoch;
   watcher.ev_watcher.RunInBoundEvLoopSync([&watcher] {

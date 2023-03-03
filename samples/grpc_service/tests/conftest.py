@@ -1,5 +1,6 @@
 # /// [Prepare modules]
 # pylint: disable=no-member
+import pathlib
 import sys
 
 import grpc
@@ -43,7 +44,9 @@ def mock_grpc_greeter(mock_grpc_greeter_session):
 
 # /// [grpc load schemes]
 def pytest_configure(config):
-    sys.path.append(str(config.rootpath / 'grpc_service/proto/samples'))
+    sys.path.append(
+        str(pathlib.Path(config.rootdir) / 'grpc_service/proto/samples'),
+    )
 
 
 @pytest.fixture(scope='session')

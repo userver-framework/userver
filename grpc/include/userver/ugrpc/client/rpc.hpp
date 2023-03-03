@@ -10,7 +10,6 @@
 #include <grpcpp/impl/codegen/proto_utils.h>
 
 #include <userver/utils/assert.hpp>
-#include <userver/utils/clang_format_workarounds.hpp>
 
 #include <userver/ugrpc/client/exceptions.hpp>
 #include <userver/ugrpc/client/impl/async_methods.hpp>
@@ -94,7 +93,7 @@ class [[nodiscard]] StreamReadFuture {
 /// that case the connection is not closed (it will be reused for new RPCs), and
 /// the server receives `RpcInterruptedError` immediately.
 template <typename Response>
-class USERVER_NODISCARD UnaryCall final {
+class [[nodiscard]] UnaryCall final {
  public:
   /// @brief Await and read the response
   ///
@@ -150,7 +149,7 @@ class USERVER_NODISCARD UnaryCall final {
 /// If any method throws, further methods must not be called on the same stream,
 /// except for `GetContext`.
 template <typename Response>
-class USERVER_NODISCARD InputStream final {
+class [[nodiscard]] InputStream final {
  public:
   /// @brief Await and read the next incoming message
   ///
@@ -196,7 +195,7 @@ class USERVER_NODISCARD InputStream final {
 /// If any method throws, further methods must not be called on the same stream,
 /// except for `GetContext`.
 template <typename Request, typename Response>
-class USERVER_NODISCARD OutputStream final {
+class [[nodiscard]] OutputStream final {
  public:
   /// @brief Write the next outgoing message
   ///
@@ -289,7 +288,7 @@ class USERVER_NODISCARD OutputStream final {
 /// `Write` or `WritesDone` finishes with negative result, finally `Read`
 /// will throw an exception.
 template <typename Request, typename Response>
-class USERVER_NODISCARD BidirectionalStream final {
+class [[nodiscard]] BidirectionalStream final {
  public:
   /// @brief Await and read the next incoming message
   ///

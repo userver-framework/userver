@@ -12,7 +12,6 @@
 #include <userver/engine/mutex.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
-#include <userver/utils/clang_format_workarounds.hpp>
 #include <userver/utils/impl/wait_token_storage.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -77,7 +76,7 @@ uint64_t GetNextEpoch() noexcept;
 /// changed during ReadablePtr lifetime, it will not affect value referenced by
 /// ReadablePtr.
 template <typename T>
-class USERVER_NODISCARD ReadablePtr final {
+class [[nodiscard]] ReadablePtr final {
  public:
   explicit ReadablePtr(const Variable<T>& ptr)
       : hp_record_(&ptr.MakeHazardPointer()) {
@@ -197,7 +196,7 @@ class USERVER_NODISCARD ReadablePtr final {
 /// engine::Mutex, which must be unlocked in the same coroutine that was used to
 /// lock the mutex.
 template <typename T>
-class USERVER_NODISCARD WritablePtr final {
+class [[nodiscard]] WritablePtr final {
  public:
   /// For internal use only. Use `var.StartWrite()` instead
   explicit WritablePtr(Variable<T>& var)

@@ -256,8 +256,9 @@ const std::string& Sentinel::GetAnyKeyForShard(size_t shard_idx) const {
   return impl_->GetAnyKeyForShard(shard_idx);
 }
 
-SentinelStatistics Sentinel::GetStatistics() const {
-  return impl_->GetStatistics();
+SentinelStatistics Sentinel::GetStatistics(
+    const MetricsSettings& settings) const {
+  return impl_->GetStatistics(settings);
 }
 
 void Sentinel::SetCommandsBufferingSettings(

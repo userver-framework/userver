@@ -4,6 +4,7 @@
 /// @brief Low-level file descriptor r/w poller
 
 #include <memory>
+#include <optional>
 
 #include <userver/engine/deadline.hpp>
 #include <userver/utils/fast_pimpl.hpp>
@@ -58,7 +59,7 @@ class FdPoller final {
   /// operation (read/write) can already be handled, Wait() returns
   /// immediatelly. You have to call Reset() at least once before call to
   /// Wait().
-  [[nodiscard]] bool Wait(Deadline);
+  [[nodiscard]] std::optional<Kind> Wait(Deadline);
 
  private:
   friend class impl::Direction;
@@ -74,7 +75,7 @@ class FdPoller final {
   void SwitchStateToReadyToUse();
 
   struct Impl;
-  utils::FastPimpl<Impl, 128, 16> pimpl_;
+  utils::FastPimpl<Impl, 144, 16> pimpl_;
 };
 
 }  // namespace engine::io

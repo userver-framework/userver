@@ -10,7 +10,7 @@ USERVER_NAMESPACE_BEGIN
 namespace storages::redis {
 
 template <typename ScriptResult, typename ReplyType = ScriptResult>
-class USERVER_NODISCARD RequestEvalSha final {
+class [[nodiscard]] RequestEvalSha final {
  public:
   class EvalShaResult final {
    public:

@@ -112,11 +112,8 @@ class Redis : public LoggableComponentBase {
                const ComponentContext& component_context,
                const testsuite::RedisControl& testsuite_redis_control);
 
-  formats::json::Value ExtendStatisticsRedis(
-      const utils::statistics::StatisticsRequest& /*request*/);
-
-  formats::json::Value ExtendStatisticsRedisPubsub(
-      const utils::statistics::StatisticsRequest& /*request*/);
+  void WriteStatistics(utils::statistics::Writer& writer);
+  void WriteStatisticsPubsub(utils::statistics::Writer& writer);
 
   std::shared_ptr<redis::ThreadPools> thread_pools_;
   std::unordered_map<std::string, std::shared_ptr<redis::Sentinel>> sentinels_;

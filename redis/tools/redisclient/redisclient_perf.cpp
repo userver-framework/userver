@@ -6,6 +6,7 @@
 #include <userver/engine/async.hpp>
 #include <userver/engine/run_standalone.hpp>
 #include <userver/logging/log.hpp>
+#include <userver/storages/redis/impl/base.hpp>
 #include <userver/storages/redis/impl/reply.hpp>
 #include <userver/storages/redis/impl/sentinel.hpp>
 
@@ -107,7 +108,7 @@ void WaitForStop(engine::TaskProcessor& tp) {
 }
 
 void PrintStats(std::shared_ptr<redis::Sentinel> sentinel) {
-  const auto sentinel_stats = sentinel->GetStatistics();
+  const auto sentinel_stats = sentinel->GetStatistics(redis::MetricsSettings{});
   const auto total = sentinel_stats.GetShardGroupTotalStatistics();
 
   const auto& timings = total.timings_percentile;

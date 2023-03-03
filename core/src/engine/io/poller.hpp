@@ -9,7 +9,6 @@
 #include <userver/engine/deadline.hpp>
 #include <userver/engine/io/common.hpp>
 #include <userver/engine/mpsc_queue.hpp>
-#include <userver/utils/clang_format_workarounds.hpp>
 #include <userver/utils/flags.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -42,7 +41,7 @@ class Poller final {
   };
 
   /// Event retrieval status
-  enum class USERVER_NODISCARD Status {
+  enum class [[nodiscard]] Status {
     kSuccess,    ///< Received an event
     kInterrupt,  ///< Received an interrupt request
     kNoEvents,   ///< No new events available or task has been cancelled

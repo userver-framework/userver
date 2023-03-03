@@ -17,7 +17,8 @@ static_assert((static_cast<std::size_t>('a') | kUppercaseToLowerMask) == 'a');
 static_assert((static_cast<std::size_t>('z') | kUppercaseToLowerMask) == 'z');
 
 StrIcaseHash::StrIcaseHash()
-    : seed_(std::uniform_int_distribution<std::size_t>{}(DefaultRandom())) {}
+    : seed_(std::uniform_int_distribution<std::size_t>{}(
+          impl::DefaultRandomForHashSeed())) {}
 
 StrIcaseHash::StrIcaseHash(std::size_t seed) noexcept : seed_(seed) {}
 
@@ -34,7 +35,8 @@ std::size_t StrIcaseHash::operator()(std::string_view s) const& noexcept {
 }
 
 StrCaseHash::StrCaseHash()
-    : seed_(std::uniform_int_distribution<std::size_t>{}(DefaultRandom())) {}
+    : seed_(std::uniform_int_distribution<std::size_t>{}(
+          impl::DefaultRandomForHashSeed())) {}
 
 StrCaseHash::StrCaseHash(std::size_t seed) noexcept : seed_(seed) {}
 

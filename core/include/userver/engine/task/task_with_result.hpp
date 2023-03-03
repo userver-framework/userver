@@ -11,7 +11,6 @@
 #include <userver/engine/task/task.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/utils/assert.hpp>
-#include <userver/utils/clang_format_workarounds.hpp>
 #include <userver/utils/fast_scope_guard.hpp>
 #include <userver/utils/impl/wrapped_call.hpp>
 
@@ -27,7 +26,7 @@ namespace engine {
 ///
 /// @see @ref md_en_userver_synchronization
 template <typename T>
-class USERVER_NODISCARD TaskWithResult : public Task {
+class [[nodiscard]] TaskWithResult : public Task {
  public:
   /// @brief Default constructor
   ///

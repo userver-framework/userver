@@ -51,11 +51,17 @@ def test_metrics_value_at_default():
         },
     )
 
+    assert values.value_at('tcp-echo.bytes.read', default=0) == 334
     assert values.value_at('tcp-echo.bytes.read', default=42) == 334
     assert (
         values.value_at('tcp-echo.sockets.closed', {'a': 'b'}, default=42) == 0
     )
+    assert values.value_at('NON_EXISTING', default=0) == 0
     assert values.value_at('NON_EXISTING', default=42) == 42
+    assert (
+        values.value_at('tcp-echo.bytes.read', {'label': 'value'}, default=0)
+        == 0
+    )
     assert (
         values.value_at('tcp-echo.bytes.read', {'label': 'value'}, default=42)
         == 42

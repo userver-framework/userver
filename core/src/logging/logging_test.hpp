@@ -22,10 +22,15 @@ inline std::shared_ptr<logging::impl::TpLogger> MakeLoggerFromSink(
   return logger;
 }
 
+struct LoggingSinkWithStream {
+  std::ostringstream sstream;
+  spdlog::sinks::ostream_sink_mt sink{sstream};
+};
+
 inline std::shared_ptr<logging::impl::TpLogger> MakeNamedStreamLogger(
-    const std::string& logger_name, std::ostream& stream,
-    logging::Format format) {
-  auto sink = std::make_shared<spdlog::sinks::ostream_sink_mt>(stream);
+    const std::string& logger_name,
+    std::shared_ptr<LoggingSinkWithStream> stream, logging::Format format) {
+  std::shared_ptr<spdlog::sinks::ostream_sink_mt> sink(stream, &stream->sink);
   return MakeLoggerFromSink(logger_name, sink, format);
 }
 
@@ -65,7 +70,6 @@ class DefaultLoggerFixture : public ::testing::Test {
       logging::LogFlush();
 
       logging::SetDefaultLogger(old_logger_);
-      old_logger_.reset();
     }
   }
 
@@ -87,20 +91,22 @@ class DefaultLoggerFixture : public ::testing::Test {
 
 class LoggingTestBase : public DefaultLoggerFixture {
  protected:
-  LoggingTestBase(logging::Format format) : format_(format) {
-    stream_logger_ = MakeStreamLogger(sstream_);
-  }
+  LoggingTestBase(logging::Format format)
+      : format_(format),
+        sstream_data_{std::make_shared<LoggingSinkWithStream>()},
+        stream_logger_{MakeNamedStreamLogger("test-stream-logger",
+                                             sstream_data_, format_)} {}
 
   std::string LoggedText() const {
     logging::LogFlush();
-    return ParseLoggedText(sstream_.str(), format_);
+    return ParseLoggedText(GetStreamString(), format_);
   }
 
   bool LoggedTextContains(std::string_view str) const {
     return LoggedText().find(str) != std::string::npos;
   }
 
-  void ClearLog() { sstream_.str({}); }
+  void ClearLog() { sstream_data_->sstream.str({}); }
 
   template <typename T>
   std::string ToStringViaLogging(const T& value) {
@@ -110,15 +116,10 @@ class LoggingTestBase : public DefaultLoggerFixture {
     return result;
   }
 
-  std::shared_ptr<logging::impl::TpLogger> MakeStreamLogger(
-      std::ostream& stream) const {
-    return MakeNamedStreamLogger("test-stream-logger", stream, format_);
-  }
-
-  std::string GetStreamString() const { return sstream_.str(); }
+  std::string GetStreamString() const { return sstream_data_->sstream.str(); }
 
   std::size_t GetRecordsCount() const {
-    auto str = sstream_.str();
+    auto str = GetStreamString();
     return std::count(str.begin(), str.end(), '\n');
   }
 
@@ -127,10 +128,9 @@ class LoggingTestBase : public DefaultLoggerFixture {
   }
 
  private:
-  std::shared_ptr<logging::impl::TpLogger> stream_logger_;
-
   const logging::Format format_;
-  std::ostringstream sstream_;
+  const std::shared_ptr<LoggingSinkWithStream> sstream_data_;
+  const std::shared_ptr<logging::impl::TpLogger> stream_logger_;
 };
 
 class LoggingTest : public LoggingTestBase {

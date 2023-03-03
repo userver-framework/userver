@@ -48,6 +48,22 @@ int GetEvMode(FdPoller::Kind kind) {
   }
 }
 
+FdPoller::Kind GetUserMode(int ev_events) {
+  if ((ev_events & EV_READ) && (ev_events & EV_WRITE)) {
+    return FdPoller::Kind::kReadWrite;
+  }
+
+  if (ev_events & EV_READ) {
+    return FdPoller::Kind::kRead;
+  }
+
+  if (ev_events & EV_WRITE) {
+    return FdPoller::Kind::kWrite;
+  }
+
+  UINVARIANT(false, "Failed to recognize events that happened on the socket.");
+}
+
 }  // namespace
 
 namespace impl {
@@ -102,6 +118,7 @@ struct FdPoller::Impl {
   std::atomic<FdPoller::State> state_{FdPoller::State::kInvalid};
   engine::impl::FastPimplWaitListLight waiters_;
   ev::Watcher<ev_io> watcher_;
+  std::atomic<FdPoller::Kind> events_that_happened_{};
 };
 
 void FdPoller::Impl::WakeupWaiters() { waiters_->WakeupOne(); }
@@ -154,15 +171,21 @@ void FdPoller::Impl::StopWatcher() {
 
 void FdPoller::Impl::IoWatcherCb(struct ev_loop*, ev_io* watcher,
                                  int) noexcept {
+  const auto ev_events = watcher->events;
+
   UASSERT(watcher->active);
-  UASSERT((watcher->events & ~(EV_READ | EV_WRITE)) == 0);
+  UASSERT((ev_events & ~(EV_READ | EV_WRITE)) == 0);
 
   auto* self = static_cast<FdPoller::Impl*>(watcher->data);
 
   /* Cleanup watcher_ first, then awake the coroutine.
-   * Otherwise the coroutine may close watcher_'s fd before watcher_ is stopped.
+   * Otherwise, the coroutine may close watcher_'s fd
+   * before watcher_ is stopped.
    */
   self->watcher_.Stop();
+
+  self->events_that_happened_.store(GetUserMode(ev_events),
+                                    std::memory_order_relaxed);
   self->WakeupWaiters();
 }
 
@@ -180,9 +203,13 @@ bool FdPoller::IsValid() const noexcept { return pimpl_->IsValid(); }
 
 int FdPoller::GetFd() const { return pimpl_->fd_; }
 
-bool FdPoller::Wait(Deadline deadline) {
-  return pimpl_->DoWait(deadline) ==
-         engine::impl::TaskContext::WakeupSource::kWaitList;
+std::optional<FdPoller::Kind> FdPoller::Wait(Deadline deadline) {
+  if (pimpl_->DoWait(deadline) ==
+      engine::impl::TaskContext::WakeupSource::kWaitList) {
+    return pimpl_->events_that_happened_.load(std::memory_order_relaxed);
+  } else {
+    return std::nullopt;
+  }
 }
 
 void FdPoller::Reset(int fd, Kind kind) { pimpl_->Reset(fd, kind); }

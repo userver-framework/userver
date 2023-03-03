@@ -1,3 +1,8 @@
+import sys
+
+import pytest
+
+
 # /// [grpc client test]
 async def test_grpc_client(service_client, greeter_protos, mock_grpc_greeter):
     @mock_grpc_greeter('SayHello')
@@ -16,6 +21,9 @@ async def test_grpc_client(service_client, greeter_protos, mock_grpc_greeter):
     # /// [grpc client test]
 
 
+@pytest.mark.skipif(
+    sys.platform == 'darwin', reason='this test fails in old packages',
+)
 # /// [grpc server test]
 async def test_say_hello(greeter_protos, grpc_client):
     request = greeter_protos.GreetingRequest(name='Python')

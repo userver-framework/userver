@@ -310,6 +310,7 @@ def main():
           and not 'third_party/gtest/' in entry['file']
           and not 'third_party/spdlog/' in entry['file']
           and not 'third_party/amqp-cpp/' in entry['file']
+          and not 'third_party/date/' in entry['file']
       )
   ]
 

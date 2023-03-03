@@ -338,6 +338,15 @@ class ResourceNotFound
 };
 
 /**
+ * Base exception class for situations when conflict happens.
+ */
+class ConflictError : public server::handlers::ExceptionWithCode<
+                          server::handlers::HandlerErrorCode::kConflictState> {
+ public:
+  using BaseType::BaseType;
+};
+
+/**
  * Base exception class for situations when an exception occurred while
  * processing the request.
  */

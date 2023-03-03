@@ -49,7 +49,13 @@ SnapshotData::SnapshotData(const DocsMap& defaults,
   for (const auto [id, factory] : utils::enumerate(Registry())) {
     if (!user_configs_[id].has_value()) {
       relax.Relax(1);
-      user_configs_[id] = factory(defaults);
+      try {
+        user_configs_[id] = factory(defaults);
+      } catch (const std::exception& ex) {
+        throw std::runtime_error(
+            fmt::format("While parsing dynamic config values: {} ({})",
+                        ex.what(), compiler::GetTypeName(typeid(ex))));
+      }
     }
   }
 }

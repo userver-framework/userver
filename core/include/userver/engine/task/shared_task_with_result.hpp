@@ -12,7 +12,6 @@
 #include <userver/engine/task/task.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/utils/assert.hpp>
-#include <userver/utils/clang_format_workarounds.hpp>
 #include <userver/utils/impl/wrapped_call.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -32,7 +31,7 @@ namespace engine {
 // clang-format on
 
 template <typename T>
-class USERVER_NODISCARD SharedTaskWithResult : public Task {
+class [[nodiscard]] SharedTaskWithResult : public Task {
  public:
   /// @brief Default constructor
   ///

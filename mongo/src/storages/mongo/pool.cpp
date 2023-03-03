@@ -1,31 +1,15 @@
 #include <userver/storages/mongo/pool.hpp>
 
-#include <unordered_map>
-
-#include <userver/formats/json/value_builder.hpp>
-#include <userver/utils/statistics/metadata.hpp>
-
 #include <storages/mongo/cdriver/collection_impl.hpp>
 #include <storages/mongo/cdriver/pool_impl.hpp>
 #include <storages/mongo/database.hpp>
 #include <storages/mongo/stats_serialize.hpp>
+#include <userver/utils/statistics/writer.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::mongo {
 namespace {
-
-formats::json::Value GetPoolStatistics(const impl::PoolImpl& pool_impl,
-                                       stats::Verbosity verbosity) {
-  formats::json::ValueBuilder builder(formats::json::Type::kObject);
-  stats::PoolStatisticsToJson(pool_impl.GetStatistics(), builder, verbosity);
-  builder["pool"]["current-size"] = pool_impl.SizeApprox();
-  builder["pool"]["current-in-use"] = pool_impl.InUseApprox();
-  builder["pool"]["max-size"] = pool_impl.MaxSize();
-
-  utils::statistics::SolomonLabelValue(builder, "mongo_database");
-  return builder.ExtractValue();
-}
 
 const PoolConfig& ValidateConfig(const PoolConfig& config,
                                  const std::string& id) {
@@ -58,12 +42,14 @@ Collection Pool::GetCollection(std::string name) const {
       impl_, impl_->DefaultDatabaseName(), std::move(name)));
 }
 
-formats::json::Value Pool::GetStatistics() const {
-  return GetPoolStatistics(*impl_, stats::Verbosity::kTerse);
-}
-
-formats::json::Value Pool::GetVerboseStatistics() const {
-  return GetPoolStatistics(*impl_, stats::Verbosity::kFull);
+void DumpMetric(utils::statistics::Writer& writer, const Pool& pool) {
+  stats::DumpMetric(writer, pool.impl_->GetStatistics(),
+                    pool.impl_->GetStatsVerbosity());
+  if (auto pool_metrics = writer["pool"]) {
+    pool_metrics["current-size"] = pool.impl_->SizeApprox();
+    pool_metrics["current-in-use"] = pool.impl_->InUseApprox();
+    pool_metrics["max-size"] = pool.impl_->MaxSize();
+  }
 }
 
 }  // namespace storages::mongo

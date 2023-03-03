@@ -205,6 +205,10 @@ else()
     )
 endif()
 
+target_include_directories(${PROJECT_NAME} PUBLIC
+    ${USERVER_THIRD_PARTY_DIRS}/date/include
+)
+
 if (NOT MACOS AND NOT ${CMAKE_SYSTEM_NAME} MATCHES "BSD")
   target_link_libraries(${PROJECT_NAME} PUBLIC atomic)
 endif()

@@ -7,7 +7,6 @@
 #include <userver/engine/io/common.hpp>
 #include <userver/engine/io/exception.hpp>
 #include <userver/engine/io/fd_control_holder.hpp>
-#include <userver/utils/clang_format_workarounds.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

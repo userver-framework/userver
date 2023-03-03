@@ -122,9 +122,10 @@ void ConnectionPool::Init(InitMode mode) {
         "PostgreSQL pool max size is less than requested initial size");
   }
 
-  LOG_INFO() << "Creating " << settings->min_size
-             << " PostgreSQL connections to " << DsnCutPassword(dsn_)
-             << (mode == InitMode::kAsync ? " async" : " sync");
+  LOG_INFO() << (mode == InitMode::kAsync ? "Asynchronously" : "Synchronously")
+             << " initializing PostgreSQL connection pool, creating up to "
+             << settings->min_size << " connections to "
+             << DsnCutPassword(dsn_);
 
   if (mode == InitMode::kAsync) {
     for (std::size_t i = 0; i < settings->min_size; ++i) {

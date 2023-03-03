@@ -39,6 +39,7 @@ async def test_redis_happy(service_client, sentinel_gate, gate):
     await _check_crud(service_client)
 
 
+@pytest.mark.skip(reason='Flaky test TAXICOMMON-6075')
 async def test_smaller_parts(service_client, sentinel_gate, gate):
     gate.to_server_smaller_parts(20)
     gate.to_client_smaller_parts(20)

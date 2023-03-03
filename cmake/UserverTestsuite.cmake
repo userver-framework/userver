@@ -53,7 +53,7 @@ function(userver_venv_setup)
 
   if (NOT EXISTS ${VENV_DIR})
     execute_process(
-      COMMAND ${TESTSUITE_VIRTUALENV} --python=${PYTHON} ${VENV_DIR} ${ARG_VIRTUALENV_ARGS}
+      COMMAND ${TESTSUITE_VIRTUALENV} --system-site-packages --python=${PYTHON} ${VENV_DIR} ${ARG_VIRTUALENV_ARGS}
       RESULT_VARIABLE STATUS
     )
     if (STATUS)
@@ -64,7 +64,8 @@ function(userver_venv_setup)
   list(TRANSFORM ARG_REQUIREMENTS PREPEND "--requirement="
     OUTPUT_VARIABLE PIP_REQUIREMENTS)
   execute_process(
-    COMMAND ${VENV_BIN_DIR}/pip install -U ${PIP_REQUIREMENTS} ${ARG_PIP_ARGS}
+    COMMAND ${VENV_BIN_DIR}/pip install --disable-pip-version-check
+      -U ${PIP_REQUIREMENTS} ${ARG_PIP_ARGS}
     RESULT_VARIABLE STATUS
   )
   if (STATUS)
