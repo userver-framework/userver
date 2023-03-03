@@ -88,7 +88,7 @@ jobs:
                   printf "Package: postgresql-client-14\nPin: version 14.5.*\nPin-Priority: 1000\n" | sudo tee /etc/apt/preferences.d/postgresql-client-14
 
                   sudo apt update
-                  sudo apt install --allow-downgrades -y libpq5 libpq-dev postgresql-14 postgresql-client-14
+                  sudo apt install --reinstall -y libpq5 libpq-dev postgresql-14 postgresql-client-14
                 fi
                 if [ "${{matrix.info}}" = "g++-8 + debug" ]; then
                   sudo apt install --allow-downgrades -y g++-8
