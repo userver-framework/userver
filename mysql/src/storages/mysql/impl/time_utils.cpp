@@ -1,10 +1,12 @@
 #include <storages/mysql/impl/time_utils.hpp>
 
-#include <date.h>
+#include <userver/utils/datetime/cpp_20_calendar.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::mysql::impl {
+
+namespace date = utils::datetime::date;
 
 MYSQL_TIME TimeUtils::ToNativeTime(std::chrono::system_clock::time_point tp) {
   // https://stackoverflow.com/a/15958113/10508079
