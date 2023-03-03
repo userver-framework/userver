@@ -21,11 +21,6 @@ macro(userver_fetch_and_add_spdlog_subdirectory)
   userver_add_spdlog_subdirectory("third_party/spdlog")
 endmacro()
 
-if (NOT USERVER_OPEN_SOURCE_BUILD)
-  userver_add_spdlog_subdirectory("submodules/spdlog")
-  return()
-endif()
-
 option(USERVER_DOWNLOAD_PACKAGE_SPDLOG "Download and setup Spdlog if no Spdlog of matching version was found" ${USERVER_DOWNLOAD_PACKAGES})
 if (NOT USERVER_OPEN_SOURCE_BUILD)
   # A patched version is used: we backport

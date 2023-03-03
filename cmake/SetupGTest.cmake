@@ -23,11 +23,6 @@ macro(userver_fetch_and_add_gtest_subdirectory)
     userver_add_gtest_subdirectory("third_party/gtest")
 endmacro()
 
-if (NOT USERVER_OPEN_SOURCE_BUILD)
-    userver_add_gtest_subdirectory("submodules/googletest")
-    return()
-endif()
-
 option(USERVER_DOWNLOAD_PACKAGE_GTEST "Download and setup gtest if no gtest of matching version was found" ${USERVER_DOWNLOAD_PACKAGES})
 if (USERVER_DOWNLOAD_PACKAGE_GTEST)
     find_package(UserverGTest)
