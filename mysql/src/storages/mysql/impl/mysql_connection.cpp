@@ -257,8 +257,13 @@ bool MySQLConnection::DoInitSocket(
   if (!connect_res) {
     if (metadata::MySQLClientInfo::Get().client_version_id <
         metadata::MySQLSemVer{3, 3, 4}) {
-      // TODO : is this CRITICAL?
-      LOG_ERROR()
+      // This is absolutely critical, because in case of host maintenance
+      // (or any other unavailability) we will create and leak the connection
+      // every time pool is performing its maintenance.
+      // The decision was made to allow executing with <3.3.4 because 3.3.4 is
+      // very recent at the time of writing, and it's probably too restricting
+      // to refuse to start with lower versions.
+      LOG_CRITICAL()
           << "Can't clean up connection resources due to "
              "https://jira.mariadb.org/browse/CONC-622, connection will "
              "be leaked. Consider upgrading libmariadb3 to 3.3.4 or higher.";

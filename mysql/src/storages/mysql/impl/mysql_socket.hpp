@@ -1,8 +1,7 @@
 #pragma once
 
-#include <engine/ev/watcher.hpp>
 #include <userver/engine/deadline.hpp>
-#include <userver/engine/impl/wait_list_fwd.hpp>
+#include <userver/engine/io/fd_poller.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -13,9 +12,6 @@ class MySQLSocket final {
   MySQLSocket(int fd, int mysql_events);
   ~MySQLSocket();
 
-  bool ShouldWait() const;
-  int Wait(engine::Deadline deadline);
-  void SetEvents(int mysql_events);
   void SetFd(int fd);
 
   template <typename StartFn, typename ContFn>
@@ -25,13 +21,16 @@ class MySQLSocket final {
   bool IsValid() const;
 
  private:
-  static void WatcherCallback(struct ev_loop*, ev_io* watcher, int) noexcept;
+  bool ShouldWait() const;
+  int Wait(engine::Deadline deadline);
+  void SetEvents(int mysql_events);
+
+  void Reset();
 
   int fd_;
+  engine::io::FdPoller poller_;
 
-  std::atomic<int> mysql_events_to_wait_on_;
-  engine::impl::FastPimplWaitListLight waiters_;
-  engine::ev::Watcher<ev_io> watcher_;
+  int mysql_events_to_wait_on_;
 };
 
 template <typename StartFn, typename ContFn>

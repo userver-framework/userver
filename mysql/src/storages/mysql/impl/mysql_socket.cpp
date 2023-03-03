@@ -2,11 +2,6 @@
 
 #include <storages/mysql/impl/mariadb_include.hpp>
 
-#include <engine/impl/wait_list_light.hpp>
-#include <engine/task/task_context.hpp>
-#include <userver/engine/task/task.hpp>
-#include <userver/utils/assert.hpp>
-
 #include <userver/storages/mysql/exceptions.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -15,112 +10,79 @@ namespace storages::mysql::impl {
 
 namespace {
 
-class SocketWaitStrategy final : public engine::impl::WaitStrategy {
- public:
-  SocketWaitStrategy(engine::Deadline deadline,
-                     engine::impl::WaitListLight& waiters,
-                     engine::ev::Watcher<ev_io>& watcher,
-                     engine::impl::TaskContext& current)
-      : engine::impl::WaitStrategy(deadline),
-        waiters_{waiters},
-        watcher_{watcher},
-        current_{current} {}
+userver::engine::io::FdPoller::Kind ToUserverEvents(int mysql_events) {
+  const bool wants_write = (mysql_events & MYSQL_WAIT_WRITE);
+  const bool wants_read =
+      ((mysql_events & MYSQL_WAIT_READ) | (mysql_events & MYSQL_WAIT_EXCEPT));
 
-  void SetupWakeups() override {
-    waiters_.Append(&current_);
-    watcher_.StartAsync();
+  using Kind = userver::engine::io::FdPoller::Kind;
+
+  if (wants_read && wants_write) {
+    return Kind::kReadWrite;
+  }
+  if (wants_read) {
+    return Kind::kRead;
+  }
+  if (wants_write) {
+    return Kind::kWrite;
   }
 
-  void DisableWakeups() override {
-    waiters_.Remove(current_);
-    watcher_.StopAsync();
+  UINVARIANT(false, "Failed to recognize events that mysql wants to wait for.");
+}
+
+int ToMySQLEvents(engine::io::FdPoller::Kind kind) {
+  using Kind = engine::io::FdPoller::Kind;
+
+  switch (kind) {
+    case Kind::kReadWrite:
+      return MYSQL_WAIT_READ | MYSQL_WAIT_WRITE;
+    case Kind::kRead:
+      return MYSQL_WAIT_READ;
+    case Kind::kWrite:
+      return MYSQL_WAIT_WRITE;
   }
-
- private:
-  engine::impl::WaitListLight& waiters_;
-  engine::ev::Watcher<ev_io>& watcher_;
-  engine::impl::TaskContext& current_;
-};
-
-engine::impl::TaskContext::WakeupSource DoWait(
-    engine::Deadline deadline, engine::impl::WaitListLight& waiters,
-    engine::ev::Watcher<ev_io>& watcher) {
-  auto& current = engine::current_task::GetCurrentTaskContext();
-  if (current.ShouldCancel()) {
-    return engine::impl::TaskContext::WakeupSource::kCancelRequest;
-  }
-
-  SocketWaitStrategy wait_strategy{deadline, waiters, watcher, current};
-  auto ret = current.Sleep(wait_strategy);
-
-  watcher.Stop();
-  return ret;
 }
 
 }  // namespace
 
 MySQLSocket::MySQLSocket(int fd, int mysql_events)
-    : fd_{fd},
-      mysql_events_to_wait_on_{mysql_events},
-      watcher_{engine::current_task::GetEventThread(), this} {
-  watcher_.Init(&WatcherCallback);
-}
+    : fd_{fd}, mysql_events_to_wait_on_{mysql_events} {}
 
-MySQLSocket::~MySQLSocket() { watcher_.Stop(); }
-
-bool MySQLSocket::ShouldWait() const {
-  return mysql_events_to_wait_on_.load() != 0;
-}
-
-int MySQLSocket::Wait(engine::Deadline deadline) {
-  UASSERT(mysql_events_to_wait_on_.load() != 0);
-  UASSERT(IsValid());
-
-  int ev_events = 0;
-  const auto mysql_events = mysql_events_to_wait_on_.load();
-  if (mysql_events & MYSQL_WAIT_READ) ev_events |= EV_READ;
-  if (mysql_events & MYSQL_WAIT_EXCEPT) ev_events |= EV_READ;
-  if (mysql_events & MYSQL_WAIT_WRITE) ev_events |= EV_WRITE;
-  UASSERT_MSG(!(mysql_events & MYSQL_WAIT_TIMEOUT),
-              "Native timeouts shouldn't be used");
-
-  watcher_.RunInBoundEvLoopAsync(
-      [this, ev_events] { watcher_.Set(fd_, ev_events); });
-
-  using WakeupSource = engine::impl::TaskContext::WakeupSource;
-  auto ret = DoWait(deadline, *waiters_, watcher_);
-  if (ret != WakeupSource::kWaitList) {
-    if (ret == WakeupSource::kCancelRequest) {
-      throw MySQLIOException{0, "Canceled while waiting for IO event to occur"};
-    } else if (ret == WakeupSource::kDeadlineTimer) {
-      throw MySQLIOException{0,
-                             "Timed out while waiting for IO event to occur"};
-    }
-  }
-
-  return mysql_events_to_wait_on_.exchange(0);
-}
-
-void MySQLSocket::SetEvents(int mysql_events) {
-  mysql_events_to_wait_on_.store(mysql_events);
-}
+// Poller is Reset + Invalidated transactionally in Wait, so we don't need to
+// invalidate it in destructor.
+MySQLSocket::~MySQLSocket() = default;
 
 void MySQLSocket::SetFd(int fd) { fd_ = fd; }
 
 bool MySQLSocket::IsValid() const { return fd_ != -1; }
 
-void MySQLSocket::WatcherCallback(struct ev_loop*, ev_io* watcher,
-                                  int) noexcept {
-  auto* self = static_cast<MySQLSocket*>(watcher->data);
+bool MySQLSocket::ShouldWait() const { return mysql_events_to_wait_on_ != 0; }
 
-  int mysql_events = 0;
-  if (watcher->events & EV_READ) mysql_events |= MYSQL_WAIT_READ;
-  if (watcher->events & EV_WRITE) mysql_events |= MYSQL_WAIT_WRITE;
+int MySQLSocket::Wait(engine::Deadline deadline) {
+  UASSERT(mysql_events_to_wait_on_ != 0);
+  UASSERT(IsValid());
 
-  self->watcher_.Stop();
+  poller_.Reset(fd_, ToUserverEvents(mysql_events_to_wait_on_));
 
-  self->mysql_events_to_wait_on_.store(mysql_events);
-  self->waiters_->WakeupOne();
+  const auto wait_result = poller_.Wait(deadline);
+  Reset();
+
+  if (!wait_result.has_value()) {
+    throw MySQLIOException{
+        0, "Canceled or timed out while waiting for I/O event to occur"};
+  } else {
+    mysql_events_to_wait_on_ = 0;
+    return ToMySQLEvents(*wait_result);
+  }
+}
+
+void MySQLSocket::SetEvents(int mysql_events) {
+  mysql_events_to_wait_on_ = mysql_events;
+}
+
+void MySQLSocket::Reset() {
+  poller_.Invalidate();
+  mysql_events_to_wait_on_ = 0;
 }
 
 }  // namespace storages::mysql::impl
