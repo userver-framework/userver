@@ -89,6 +89,7 @@ jobs:
 
                   sudo apt update
                   apt policy libpq5
+                  apt policy apt
                   sudo apt install --reinstall -y libpq5 libpq-dev postgresql-14 postgresql-client-14
                 fi
                 if [ "${{matrix.info}}" = "g++-8 + debug" ]; then
