@@ -3,13 +3,10 @@
 #include <limits>
 
 #include <bson/bson.h>
-#include <fmt/chrono.h>
-#include <fmt/format.h>
 
 #include <userver/clients/dns/resolver.hpp>
 #include <userver/formats/bson.hpp>
 #include <userver/logging/log.hpp>
-#include <userver/server/request/task_inherited_data.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/traceful_exception.hpp>
 
@@ -119,33 +116,6 @@ mongoc_ssl_opt_t MakeSslOpt(const mongoc_uri_t* uri) {
   return ssl_opt;
 }
 
-std::string MakeQueueDeadlineMessage(
-    std::optional<engine::Deadline::Duration> inherited_timeout) {
-  if (!inherited_timeout) return {};
-  return fmt::format("Queue timeout set by deadline propagation: {}. ",
-                     std::chrono::duration_cast<std::chrono::milliseconds>(
-                         *inherited_timeout));
-}
-
-void HandleCancellations(
-    engine::Deadline& queue_deadline,
-    std::optional<engine::Deadline::Duration>& inherited_timeout) {
-  const auto inherited_deadline = server::request::GetTaskInheritedDeadline();
-
-  if (inherited_deadline < queue_deadline) {
-    queue_deadline = inherited_deadline;
-    inherited_timeout = inherited_deadline.TimeLeftApprox();
-    if (*inherited_timeout <= std::chrono::seconds{0}) {
-      throw CancelledException("Operation cancelled (deadline propagation)");
-    }
-  }
-
-  if (engine::current_task::ShouldCancel()) {
-    throw CancelledException("Operation cancelled: ")
-        << ToString(engine::current_task::CancellationReason());
-  }
-}
-
 }  // namespace
 
 CDriverPoolImpl::CDriverPoolImpl(std::string id, const std::string& uri_string,
@@ -223,21 +193,13 @@ CDriverPoolImpl::BoundClientPtr CDriverPoolImpl::Acquire() {
 
 mongoc_client_t* CDriverPoolImpl::Pop() {
   stats::ConnectionThrottleStopwatch queue_sw(GetStatistics().pool);
-
-  auto queue_deadline = engine::Deadline::FromDuration(queue_timeout_);
-  std::optional<engine::Deadline::Duration> inherited_timeout{};
-
-  const auto dynamic_config = GetConfig();
-  if (dynamic_config[kDeadlinePropagationEnabled]) {
-    HandleCancellations(queue_deadline, inherited_timeout);
-  }
+  const auto queue_deadline = engine::Deadline::FromDuration(queue_timeout_);
 
   engine::SemaphoreLock in_use_lock(in_use_semaphore_, queue_deadline);
   if (!in_use_lock) {
     ++GetStatistics().pool->overload;
     throw PoolOverloadException("Mongo pool '")
-        << Id() << "' has reached size limit: " << max_size_ << ". "
-        << MakeQueueDeadlineMessage(inherited_timeout);
+        << Id() << "' has reached size limit: " << max_size_;
   }
 
   auto* client = TryGetIdle();
@@ -251,9 +213,9 @@ mongoc_client_t* CDriverPoolImpl::Pop() {
     if (!client) {
       if (!connecting_lock) {
         ++GetStatistics().pool->overload;
+
         throw PoolOverloadException("Mongo pool '")
-            << Id() << "' has too many establishing connections. "
-            << MakeQueueDeadlineMessage(inherited_timeout);
+            << Id() << "' has too many establishing connections";
       }
       client = Create();
     }

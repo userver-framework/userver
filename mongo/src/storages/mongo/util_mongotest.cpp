@@ -5,10 +5,8 @@
 #include <fmt/format.h>
 
 #include <userver/clients/dns/resolver.hpp>
-#include <userver/engine/task/cancel.hpp>
 #include <userver/engine/task/task.hpp>
 #include <userver/logging/log.hpp>
-#include <userver/server/request/task_inherited_data.hpp>
 #include <userver/utils/text.hpp>
 
 #include <storages/mongo/dynamic_config.hpp>
@@ -57,9 +55,7 @@ clients::dns::Resolver MakeDnsResolver() {
 }
 
 dynamic_config::StorageMock MakeDynamicConfig() {
-  return dynamic_config::StorageMock{
-      {storages::mongo::kDefaultMaxTime, {}},
-      {storages::mongo::kDeadlinePropagationEnabled, false}};
+  return dynamic_config::StorageMock{{storages::mongo::kDefaultMaxTime, {}}};
 }
 
 MongoPoolFixture::MongoPoolFixture()
@@ -68,15 +64,12 @@ MongoPoolFixture::MongoPoolFixture()
       default_pool_(MakePool({}, {})) {}
 
 MongoPoolFixture::~MongoPoolFixture() {
-  const engine::TaskCancellationBlocker block_cancels;
-  // TODO block task-inherited deadline via TaskCancellationBlocker?
-  server::request::kTaskInheritedData.Erase();
-
   DropDatabase(default_pool_, kTestDatabaseDefaultName);
   used_db_names_.erase(kTestDatabaseDefaultName);
 
   for (const auto& db_name : used_db_names_) {
-    if (utils::text::StartsWith(db_name, kTestDatabaseNamePrefix)) {
+    if (utils::text::StartsWith(db_name, kTestDatabaseNamePrefix) &&
+        db_name != kTestDatabaseDefaultName) {
       auto pool = MakePool(db_name, {});
       DropDatabase(pool, db_name);
     }

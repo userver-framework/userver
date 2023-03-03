@@ -257,10 +257,6 @@ void Count::SetOption(options::ForceCountImpl count_impl) {
   impl_->use_new_count = (count_impl == options::ForceCountImpl::kAggregate);
 }
 
-void Count::SetOption(const options::MaxServerTime& max_server_time) {
-  AppendMaxServerTime(impl_->max_server_time, max_server_time);
-}
-
 CountApprox::CountApprox() = default;
 CountApprox::~CountApprox() = default;
 
@@ -289,10 +285,6 @@ void CountApprox::SetOption(options::Skip skip) {
 
 void CountApprox::SetOption(options::Limit limit) {
   AppendLimit(impl::EnsureBuilder(impl_->options), limit);
-}
-
-void CountApprox::SetOption(const options::MaxServerTime& max_server_time) {
-  AppendMaxServerTime(impl_->max_server_time, max_server_time);
 }
 
 Find::Find(formats::bson::Document filter) : impl_(std::move(filter)) {}

@@ -40,9 +40,6 @@ enum class ErrorType : std::size_t {
   kServer,
   kOther,
 
-  kCancelled,
-  kPoolOverload,
-
   kErrorTypesCount
 };
 
