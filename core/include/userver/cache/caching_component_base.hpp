@@ -32,12 +32,14 @@ namespace components {
 /// @brief Base class for caching components
 ///
 /// Provides facilities for creating periodically updated caches.
-/// You need to override CacheUpdateTrait::Update
-/// then call CacheUpdateTrait::StartPeriodicUpdates after setup
-/// and CacheUpdateTrait::StopPeriodicUpdates before teardown.
+/// You need to override cache::CacheUpdateTrait::Update
+/// then call cache::CacheUpdateTrait::StartPeriodicUpdates after setup
+/// and cache::CacheUpdateTrait::StopPeriodicUpdates before teardown.
 ///
 /// Caching components must be configured in service config (see options below)
 /// and may be reconfigured dynamically via components::DynamicConfig.
+///
+/// @ref md_en_userver_caches provide a more detailed introduction.
 ///
 /// ## Dynamic config
 /// * @ref USERVER_CACHES
@@ -80,8 +82,8 @@ namespace components {
 /// @see `dump::Dumper` for more info on persistent cache dumps and
 /// corresponding config options.
 ///
-/// @see pytest_userver.client.Client.invalidate_caches() for a function to
-/// force cache update from testsuite.
+/// @see @ref md_en_userver_caches. pytest_userver.client.Client.invalidate_caches()
+/// for a function to force cache update from testsuite.
 
 // clang-format on
 
