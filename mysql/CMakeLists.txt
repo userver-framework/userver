@@ -37,13 +37,7 @@ target_include_directories(
   PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include
   PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
-target_include_directories (${PROJECT_NAME} PRIVATE
-  $<TARGET_PROPERTY:userver-core,INCLUDE_DIRECTORIES>
-)
 
-target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE
-  ${USERVER_THIRD_PARTY_DIRS}/date/include
-)
 target_compile_definitions(${PROJECT_NAME} PUBLIC -DUSERVER_MYSQL_ASSERT_WHEN_IMPLEMENTED)
 
 if (USERVER_IS_THE_ROOT_PROJECT)
