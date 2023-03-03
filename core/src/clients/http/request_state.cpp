@@ -101,11 +101,6 @@ char* rfind_not_space(char* ptr, size_t size) {
   return ptr;
 }
 
-engine::Deadline GetTaskDeadline() {
-  const auto* const data = server::request::kTaskInheritedData.GetOptional();
-  return data ? data->deadline : engine::Deadline{};
-}
-
 void SetTracingHeader(curl::easy& e, std::string_view name,
                       std::string_view value) {
   e.add_header(name, value, curl::easy::EmptyHeaderAction::kDoNotSend,
@@ -139,7 +134,7 @@ RequestState::RequestState(
       dest_stats_(dest_stats),
       original_timeout_(kDefaultTimeout),
       effective_timeout_(original_timeout_),
-      deadline_(GetTaskDeadline()),
+      deadline_(server::request::GetTaskInheritedDeadline()),
       is_cancelled_(false),
       errorbuffer_(),
       resolver_{resolver} {

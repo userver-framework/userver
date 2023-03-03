@@ -48,6 +48,7 @@ class CDriverPoolImpl final : public PoolImpl {
   size_t SizeApprox() const override;
   size_t MaxSize() const override;
 
+  /// @throws CancelledException, PoolOverloadException
   BoundClientPtr Acquire();
 
  private:
