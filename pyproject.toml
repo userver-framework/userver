@@ -1,2 +1,0 @@
-[tool.black]
-exclude='(^/scripts/postgres/pg_sql_codes\.py$|^/submodules/google-benchmark/*$|^/submodules/googletest/*$|^/submodules/spdlog/*$)'
