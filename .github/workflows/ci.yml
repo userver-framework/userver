@@ -74,19 +74,7 @@ jobs:
 
                 sudo apt update
                 sudo apt install --allow-downgrades -y clickhouse-common-static $(cat scripts/docs/en/deps/${{matrix.os}}.md | tr '\n' ' ')
-                # GH Ubuntu image has libpq version 15.0 from pg's repo.
-                # So we downgrade libpq5 and libpq-dev to the ubuntu's
-                # versions to mock real ubuntu experience.
-                # We also downgrade postgresql-14, otherwise it gets uninstalled.
-                if [ "${{matrix.os}}" = "ubuntu-22.04" ]; then
-                  sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 7FCC7D46ACCC4CF8
-                  echo "deb https://apt-archive.postgresql.org/pub/repos/apt jammy-pgdg-archive main" | sudo tee /etc/apt/sources.list.d/pgdg.list
-                  sudo apt update
-                  sudo apt install --allow-downgrades -y \
-                    libpq5=14.5-0ubuntu0.22.04.1 libpq-dev=14.5-0ubuntu0.22.04.1 \
-                    postgresql-14=14.5-2.pgdg22.04+2 postgresql-client-14=14.5-2.pgdg22.04+2
-                  sudo apt install --allow-downgrades -y libpq5=14.5-0ubuntu0.22.04.1 libpq-dev=14.5-0ubuntu0.22.04.1
-                fi
+
                 if [ "${{matrix.info}}" = "g++-8 + debug" ]; then
                   sudo apt install --allow-downgrades -y g++-8
                 fi
