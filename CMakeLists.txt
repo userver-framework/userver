@@ -39,25 +39,13 @@ if(NOT MAC AND CMAKE_SYSTEM_NAME MATCHES "BSD")
   set(USERVER_MONGODB OFF)
 endif()
 
-execute_process(
-  COMMAND bash -c "(apt-key finger '7FCD11186050CD1A' | grep Yandex) || (brew tap | grep 'yandex')"
-  RESULT_VARIABLE USERVER_NOT_YANDEX_ENV
-  OUTPUT_QUIET
-  ERROR_QUIET
-)
-
-option(USERVER_OPEN_SOURCE_BUILD "Build without Yandex and MLU packages" ${USERVER_NOT_YANDEX_ENV})
-if (NOT USERVER_OPEN_SOURCE_BUILD)
-  message(STATUS "Using internal to Yandex build setup")
-endif()
-
 option(USERVER_CONAN "Build with Conan packages" ${CONAN_EXPORTED})
 if (USERVER_CONAN)
   message(STATUS "Using Conan packages")
   include(conan_paths)
 endif()
 
-option(USERVER_DOWNLOAD_PACKAGES "Download missing third party packages and use the downloaded versions" ${USERVER_OPEN_SOURCE_BUILD})
+option(USERVER_DOWNLOAD_PACKAGES "Download missing third party packages and use the downloaded versions" ON)
 
 option(USERVER_FEATURE_CRYPTOPP_BLAKE2 "Provide wrappers for blake2 algorithms of crypto++" ON)
 if (NOT USERVER_FEATURE_CRYPTOPP_BLAKE2)
@@ -117,7 +105,7 @@ option(USERVER_FEATURE_POSTGRESQL "Provide asynchronous driver for PostgreSQL" O
 option(USERVER_FEATURE_REDIS "Provide asynchronous driver for Redis" ON)
 option(USERVER_FEATURE_GRPC "Provide asynchronous driver for gRPC" ON)
 option(USERVER_FEATURE_CLICKHOUSE "Provide asynchronous driver for ClickHouse" ${USERVER_BUILD_PLATFORM_X86})
-option(USERVER_FEATURE_RABBITMQ "Provide asynchronous driver for RabbitMQ" ${USERVER_OPEN_SOURCE_BUILD})
+option(USERVER_FEATURE_RABBITMQ "Provide asynchronous driver for RabbitMQ" ON)
 option(USERVER_FEATURE_UNIVERSAL "Provide a universal utilities library that does not use coroutines" ON)
 
 if (USERVER_IS_THE_ROOT_PROJECT)

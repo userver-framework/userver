@@ -11,7 +11,7 @@ The following options could be used to control `cmake`:
 | USERVER_FEATURE_REDIS                  | Provide asynchronous driver for Redis                                        | ON                                               |
 | USERVER_FEATURE_CLICKHOUSE             | Provide asynchronous driver for ClickHouse                                   | ON if platform is x86\*; OFF otherwise           |
 | USERVER_FEATURE_GRPC                   | Provide asynchronous driver for gRPC                                         | ON                                               |
-| USERVER_FEATURE_RABBITMQ               | Provide asynchronous driver for RabbitMQ (AMQP 0-9-1)                        | ${USERVER_OPEN_SOURCE_BUILD}                     |
+| USERVER_FEATURE_RABBITMQ               | Provide asynchronous driver for RabbitMQ (AMQP 0-9-1)                        | ON                                               |
 | USERVER_FEATURE_UNIVERSAL              | Provide a universal utilities library that does not use coroutines           | ON                                               |
 | USERVER_FEATURE_UTEST                  | Provide 'utest' and 'ubench' for unit testing and benchmarking coroutines    | ON                                               |
 | USERVER_FEATURE_CRYPTOPP_BLAKE2        | Provide wrappers for blake2 algorithms of crypto++                           | ON                                               |
@@ -30,10 +30,9 @@ The following options could be used to control `cmake`:
 | USERVER_SANITIZE_BLACKLIST             | Path to file that is passed to the -fsanitize-blacklist option               | ''                                               |
 | USERVER_USE_LD                         | Linker to use, e.g. 'gold' or 'lld'                                          | ''                                               |
 | USERVER_LTO                            | Use link time optimizations                                                  | OFF for Debug build, ON for all the other builds |
-| USERVER_OPEN_SOURCE_BUILD              | Do not use internal Yandex packages                                          | auto-detects                                     |
-| USERVER_NO_WERROR                      | Do not treat warnings as errors                                              | ${USERVER_OPEN_SOURCE_BUILD}                     |
+| USERVER_NO_WERROR                      | Do not treat warnings as errors                                              | ON                                               |
 | USERVER_PYTHON_PATH                    | Path to the python3 binary for use in testsuite tests                        | python3                                          |
-| USERVER_DOWNLOAD_PACKAGES              | Download missing third party packages and use the downloaded versions        | ${USERVER_OPEN_SOURCE_BUILD}                     |
+| USERVER_DOWNLOAD_PACKAGES              | Download missing third party packages and use the downloaded versions        | ON                                               |
 | USERVER_DOWNLOAD_PACKAGE_CARES         | Download and setup c-ares if no c-ares of matching version was found         | ${USERVER_DOWNLOAD_PACKAGES}                     |
 | USERVER_DOWNLOAD_PACKAGE_CCTZ          | Download and setup cctz if no cctz of matching version was found             | ${USERVER_DOWNLOAD_PACKAGES}                     |
 | USERVER_DOWNLOAD_PACKAGE_CLICKHOUSECPP | Download and setup clickhouse-cpp                                            | ${USERVER_DOWNLOAD_PACKAGES}                     |

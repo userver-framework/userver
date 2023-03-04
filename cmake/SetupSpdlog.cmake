@@ -22,11 +22,7 @@ macro(userver_fetch_and_add_spdlog_subdirectory)
 endmacro()
 
 option(USERVER_DOWNLOAD_PACKAGE_SPDLOG "Download and setup Spdlog if no Spdlog of matching version was found" ${USERVER_DOWNLOAD_PACKAGES})
-if (NOT USERVER_OPEN_SOURCE_BUILD)
-  # A patched version is used: we backport
-  # https://github.com/gabime/spdlog/pull/2305
-  find_package(spdlog "1.6.0" REQUIRED)
-elseif (USERVER_DOWNLOAD_PACKAGE_SPDLOG)
+if (USERVER_DOWNLOAD_PACKAGE_SPDLOG)
   find_package(spdlog "1.9.0")
 else()
   find_package(spdlog "1.9.0" REQUIRED)

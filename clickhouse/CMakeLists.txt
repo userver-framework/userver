@@ -39,12 +39,11 @@ target_include_directories(
   PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include
   PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
-if(USERVER_OPEN_SOURCE_BUILD)
-  target_include_directories(${PROJECT_NAME} PRIVATE
-    ${USERVER_THIRD_PARTY_DIRS}/clickhouse-cpp
-    ${USERVER_THIRD_PARTY_DIRS}/clickhouse-cpp/contrib
-  )
-endif()
+
+target_include_directories(${PROJECT_NAME} PRIVATE
+  ${USERVER_THIRD_PARTY_DIRS}/clickhouse-cpp
+  ${USERVER_THIRD_PARTY_DIRS}/clickhouse-cpp/contrib
+)
 
 if (USERVER_IS_THE_ROOT_PROJECT)
   add_executable(${PROJECT_NAME}_unittest ${UNIT_TEST_SOURCES})
