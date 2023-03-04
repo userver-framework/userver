@@ -13,7 +13,7 @@ const std::string& GetSpdlogPattern(Format format) {
       "timestamp:%Y-%m-%dT%H:%M:%S.%f\tlevel:%l\t%v";
   static const std::string kSpdlogRawPattern = "%v";
   static const std::string kSpdlogJsonPattern =
-      R"({"timestamp": "%Y-%m-%dT%H:%M:%S.%f", "level": "%l", "message": "%v"})";
+      R"({"timestamp":"%Y-%m-%dT%H:%M:%S.%f", "level":"%l", "message":"%v"})";
 
   switch (format) {
     case Format::kTskv:
