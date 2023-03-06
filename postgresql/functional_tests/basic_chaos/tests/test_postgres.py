@@ -85,7 +85,9 @@ async def test_close_to_server_limit(service_client, gate):
     await _check_that_restores(service_client, gate)
 
 
-@pytest.mark.skip(reason='Rarely breaks the server')
+@pytest.mark.skip(
+    reason='Rarely breaks the server, and corrupted data can still be valid',
+)
 async def test_pg_corupted_response(service_client, gate):
     gate.to_client_corrupt_data()
 

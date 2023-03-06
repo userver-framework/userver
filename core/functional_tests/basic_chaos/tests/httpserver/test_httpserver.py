@@ -132,6 +132,7 @@ async def test_close_on_data(call, gate, check_restore):
     await check_restore()
 
 
+@pytest.mark.skip(reason='corrupted data can still be valid')
 async def test_corrupted_request(call, gate, check_restore):
     gate.to_server_corrupt_data()
 
