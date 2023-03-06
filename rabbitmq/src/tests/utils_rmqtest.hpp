@@ -31,7 +31,7 @@ class ClientWrapper final {
   engine::Deadline GetDeadline() const;
 
  private:
-  userver::clients::dns::Resolver resolver_;
+  clients::dns::Resolver resolver_;
   std::shared_ptr<urabbitmq::Client> client_;
 
   const urabbitmq::Exchange exchange_;

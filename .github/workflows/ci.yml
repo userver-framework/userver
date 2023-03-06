@@ -21,6 +21,10 @@ jobs:
                         -DCMAKE_CXX_COMPILER=clang++-14 -DCMAKE_C_COMPILER=clang-14
                         -DUSERVER_SANITIZE="ub addr"
                         -DCMAKE_BUILD_TYPE=Debug
+                        -DUSERVER_NAMESPACE=userver_ns
+                        -DUSERVER_NAMESPACE_BEGIN="namespace userver_ns { inline namespace
+                        v1 {"
+                        -DUSERVER_NAMESPACE_END="}}"
                     os: ubuntu-22.04
                     info: clang-14 + debug + sanitize addr+ub
                     tests-flags: ''
