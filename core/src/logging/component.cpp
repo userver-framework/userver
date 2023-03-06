@@ -64,12 +64,7 @@ std::optional<TestsuiteCaptureConfig> GetTestsuiteCaptureConfig(
   return config.As<TestsuiteCaptureConfig>();
 }
 
-void ReopenAll(const std::shared_ptr<logging::impl::LoggerBase>& logger_base) {
-  auto logger = std::dynamic_pointer_cast<logging::impl::TpLogger>(logger_base);
-  if (!logger) {
-    return;
-  }
-
+void ReopenAll(const std::shared_ptr<logging::impl::TpLogger>& logger) {
   for (const auto& s : logger->GetSinks()) {
     auto reop = std::dynamic_pointer_cast<logging::ReopeningFileSinkMT>(s);
     if (!reop) {
@@ -203,6 +198,16 @@ Logging::Logging(const ComponentConfig& config, const ComponentContext& context)
               .AddListener(this, kName, SIGUSR1, &Logging::OnLogRotate))
 /// [Signals sample - init]
 {
+  try {
+    Init(config, context);
+  } catch (const std::exception&) {
+    Stop();
+    throw;
+  }
+}
+
+void Logging::Init(const ComponentConfig& config,
+                   const ComponentContext& context) {
   const auto fs_task_processor_name =
       config["fs-task-processor"].As<std::string>();
   fs_task_processor_ = &context.GetTaskProcessor(fs_task_processor_name);
@@ -233,7 +238,12 @@ Logging::Logging(const ComponentConfig& config, const ComponentContext& context)
               GetTestsuiteCaptureConfig(logger_yaml)) {
         impl::AddSocketSink(*testsuite_config, socket_sink_, *logger);
       }
-      logging::SetDefaultLogger(logger);
+
+      logging::impl::SetDefaultLoggerRef(*logger);
+
+      // the default logger should outlive the component
+      static logging::LoggerPtr default_component_logger_holder{};
+      default_component_logger_holder = logger;
     }
 
     logger->StartAsync(context.GetTaskProcessor(tp_name),
@@ -254,7 +264,9 @@ Logging::Logging(const ComponentConfig& config, const ComponentContext& context)
                     GetTaskFunction());
 }
 
-Logging::~Logging() {
+Logging::~Logging() { Stop(); }
+
+void Logging::Stop() noexcept {
   /// [Signals sample - destr]
   signal_subscriber_.Unsubscribe();
   /// [Signals sample - destr]
@@ -307,12 +319,6 @@ void Logging::OnLogRotate() {
 void Logging::TryReopenFiles() {
   std::vector<engine::TaskWithResult<void>> tasks;
   tasks.reserve(loggers_.size() + 1);
-
-  // this must be a copy as the default logger may change
-  auto default_logger = logging::DefaultLogger();
-  tasks.push_back(engine::CriticalAsyncNoSpan(*fs_task_processor_, ReopenAll,
-                                              default_logger));
-
   for (const auto& item : loggers_) {
     tasks.push_back(engine::CriticalAsyncNoSpan(*fs_task_processor_, ReopenAll,
                                                 item.second));
@@ -336,7 +342,7 @@ void Logging::TryReopenFiles() {
 }
 
 void Logging::FlushLogs() {
-  logging::DefaultLogger()->Flush();
+  logging::LogFlush();
   for (auto& item : loggers_) {
     item.second->Flush();
   }

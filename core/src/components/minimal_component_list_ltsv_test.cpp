@@ -40,8 +40,6 @@ TEST_F(ComponentList, MinimalLtsvLogs) {
                       components::MinimalComponentList());
 
   logging::LogFlush();
-  auto logger = logging::DefaultLogger();
-  UASSERT(logger.use_count() == 2);
 
   const auto logs = fs::blocking::ReadFileContents(logs_path);
   EXPECT_EQ(logs.find("tskv\t"), std::string::npos) << logs;

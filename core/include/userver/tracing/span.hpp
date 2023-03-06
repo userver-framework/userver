@@ -67,7 +67,7 @@ class Span final {
   static Span& CurrentSpan();
 
   /// @brief Returns nullptr if called in non-coroutine context or from a task
-  /// with no alive Stan; otherwise returns the Span of the current task.
+  /// with no alive Span; otherwise returns the Span of the current task.
   static Span* CurrentSpanUnchecked();
 
   /// @return A new Span attached to current Span (if any).

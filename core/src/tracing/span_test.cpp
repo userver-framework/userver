@@ -24,7 +24,7 @@ class OpentracingSpan : public Span {
     tracing::SetOpentracingLogger(opentracing_logger_);
 
     // Discard logs from SetOpentracingLogger
-    logging::LogFlush(opentracing_logger_);
+    logging::LogFlush(*opentracing_logger_);
     opentracing_data_->sstream.str({});
 
     Span::SetUp();

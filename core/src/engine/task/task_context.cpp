@@ -709,10 +709,14 @@ void TaskContext::TraceStateTransition(Task::State state) {
   last_state_change_timepoint_ = now;
 
   auto logger = task_processor_.GetTaskTraceLogger();
-  LOG_INFO_TO(logger) << "Task " << logging::HexShort(GetTaskId())
-                      << " changed state to " << Task::GetStateName(state)
-                      << ", delay = " << diff_us << "us"
-                      << logging::LogExtra::Stacktrace(logger);
+  if (!logger) {
+    return;
+  }
+
+  LOG_INFO_TO(*logger) << "Task " << logging::HexShort(GetTaskId())
+                       << " changed state to " << Task::GetStateName(state)
+                       << ", delay = " << diff_us << "us"
+                       << logging::LogExtra::Stacktrace(*logger);
 }
 
 void TaskContext::ResetPayload() noexcept {

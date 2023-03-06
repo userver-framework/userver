@@ -103,12 +103,15 @@ class Logging final : public impl::ComponentBase {
   static yaml_config::Schema GetStaticConfigSchema();
 
  private:
+  void Init(const ComponentConfig&, const ComponentContext&);
+  void Stop() noexcept;
+
   auto GetTaskFunction() {
     return [this] { FlushLogs(); };
   }
   void FlushLogs();
 
-  engine::TaskProcessor* fs_task_processor_;
+  engine::TaskProcessor* fs_task_processor_{nullptr};
   std::unordered_map<std::string, std::shared_ptr<logging::impl::TpLogger>>
       loggers_;
   utils::PeriodicTask flush_task_;

@@ -23,9 +23,9 @@ TEST_F(LoggingTest, DynamicDebugBasic) {
 
   LOG_INFO() << "after";
 
-  EXPECT_FALSE(LoggedTextContains("before"));
-  EXPECT_TRUE(LoggedTextContains("123"));
-  EXPECT_FALSE(LoggedTextContains("after"));
+  EXPECT_THAT(GetStreamString(), testing::Not(testing::HasSubstr("before")));
+  EXPECT_THAT(GetStreamString(), testing::HasSubstr("123"));
+  EXPECT_THAT(GetStreamString(), testing::Not(testing::HasSubstr("after")));
 
   logging::SetDefaultLoggerLevel(logging::Level::kInfo);
 }

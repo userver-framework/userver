@@ -10,6 +10,7 @@
 
 #include <userver/logging/format.hpp>
 #include <userver/logging/log.hpp>
+#include <userver/utest/default_logger_fixture.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -61,33 +62,7 @@ inline std::string ParseLoggedText(std::string_view log_record,
   return std::string{log_record};
 }
 
-class DefaultLoggerFixture : public ::testing::Test {
- protected:
-  ~DefaultLoggerFixture() override {
-    if (old_logger_) {
-      // Discard logs from within SetDefaultLogger
-      logging::SetDefaultLoggerLevel(logging::Level::kNone);
-      logging::LogFlush();
-
-      logging::SetDefaultLogger(old_logger_);
-    }
-  }
-
-  void SetDefaultLogger(logging::LoggerPtr new_logger) {
-    // Ignore clang-tidy request to make the method 'static'
-    [[maybe_unused]] auto* const self = this;
-
-    const auto old_level = logging::GetLoggerLevel(new_logger);
-    // Discard logs from within SetLoggerLevel itself
-    logging::SetLoggerLevel(new_logger, logging::Level::kNone);
-
-    logging::SetDefaultLogger(new_logger);
-    logging::SetLoggerLevel(new_logger, old_level);
-  }
-
- private:
-  logging::LoggerPtr old_logger_{logging::DefaultLogger()};
-};
+using DefaultLoggerFixture = utest::DefaultLoggerFixture< ::testing::Test>;
 
 class LoggingTestBase : public DefaultLoggerFixture {
  protected:

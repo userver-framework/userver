@@ -14,6 +14,26 @@ USERVER_NAMESPACE_BEGIN
 
 namespace tests {
 
+namespace impl {
+
+class DefaultLoggerGuardTest {
+ public:
+  DefaultLoggerGuardTest() noexcept
+      : logger_prev_(logging::impl::DefaultLoggerRef()),
+        level_prev_(logging::GetDefaultLoggerLevel()) {}
+
+  ~DefaultLoggerGuardTest() {
+    logging::impl::SetDefaultLoggerRef(logger_prev_);
+    logging::SetDefaultLoggerLevel(level_prev_);
+  }
+
+ private:
+  logging::LoggerRef logger_prev_;
+  const logging::Level level_prev_;
+};
+
+}  // namespace impl
+
 inline constexpr std::string_view kRuntimeConfig = R"~({
   "USERVER_TASK_PROCESSOR_PROFILER_DEBUG": {},
   "USERVER_LOG_REQUEST": true,
@@ -99,23 +119,6 @@ components_manager:
 # /// [Sample dynamic config fallback component]
 config_vars: )";
 
-struct DefaultLoggerGuard final {
-  DefaultLoggerGuard()
-      : logger(logging::DefaultLogger()),
-        level(logging::GetDefaultLoggerLevel()) {}
-
-  ~DefaultLoggerGuard() {
-    UASSERT(logger);
-    if (logging::DefaultLoggerOptional() != logger) {
-      logging::SetDefaultLogger(logger);
-    }
-    logging::SetDefaultLoggerLevel(level);
-  }
-
-  const logging::LoggerPtr logger;
-  const logging::Level level;
-};
-
 struct TracingGuard final {
   TracingGuard()
       : opentracing_logger(tracing::OpentracingLogger()),
@@ -138,7 +141,7 @@ struct TracingGuard final {
 }  // namespace tests
 
 class ComponentList : public ::testing::Test {
-  tests::DefaultLoggerGuard default_logger_guard_;
+  tests::impl::DefaultLoggerGuardTest default_logger_guard_;
   tests::TracingGuard tracing_guard_;
 };
 

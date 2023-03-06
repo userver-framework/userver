@@ -32,7 +32,7 @@ bool ShouldLogStacktrace() noexcept;
 
 /// @brief Checks particular logger if Debug level logging is enabled since
 /// logging stacktrace is slow
-bool LoggerShouldLogStacktrace(const logging::LoggerPtr& logger) noexcept;
+bool LoggerShouldLogStacktrace(logging::LoggerCRef logger) noexcept;
 
 }  // namespace logging::impl
 
