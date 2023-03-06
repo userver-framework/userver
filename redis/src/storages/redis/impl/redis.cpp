@@ -24,8 +24,8 @@
 #include <storages/redis/impl/command.hpp>
 #include <storages/redis/impl/ev_wrapper.hpp>
 #include <storages/redis/impl/redis_info.hpp>
+#include <storages/redis/impl/redis_stats.hpp>
 #include <storages/redis/impl/tcp_socket.hpp>
-#include <userver/storages/redis/impl/redis_stats.hpp>
 #include <userver/storages/redis/impl/reply.hpp>
 
 USERVER_NAMESPACE_BEGIN

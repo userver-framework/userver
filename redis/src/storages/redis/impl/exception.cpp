@@ -2,6 +2,8 @@
 
 #include <fmt/format.h>
 
+#include <storages/redis/impl/reply_status_strings.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace redis {

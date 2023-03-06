@@ -4,9 +4,10 @@
 #include <mutex>
 #include <vector>
 
-#include <userver/storages/redis/impl/sentinel.hpp>
 #include <userver/testsuite/testsuite_support.hpp>
-#include "subscription_storage.hpp"
+
+#include <storages/redis/impl/sentinel.hpp>
+#include <storages/redis/impl/subscription_storage.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

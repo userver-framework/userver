@@ -1,11 +1,12 @@
 #include <storages/redis/util_benchmark.hpp>
 
-#include <storages/redis/client_impl.hpp>
-#include <storages/redis/redis_secdist.hpp>
 #include <userver/engine/run_standalone.hpp>
 #include <userver/engine/task/task.hpp>
-#include <userver/storages/redis/impl/sentinel.hpp>
 #include <userver/storages/redis/impl/thread_pools.hpp>
+
+#include <storages/redis/client_impl.hpp>
+#include <storages/redis/impl/sentinel.hpp>
+#include <storages/redis/redis_secdist.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

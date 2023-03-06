@@ -6,12 +6,13 @@
 #include <userver/engine/sleep.hpp>
 #include <userver/utils/text.hpp>
 
+#include <userver/storages/redis/impl/reply.hpp>
+
 #include <storages/redis/client_impl.hpp>
 #include <storages/redis/impl/command.hpp>
+#include <storages/redis/impl/sentinel.hpp>
 #include <storages/redis/impl/subscribe_sentinel.hpp>
 #include <storages/redis/util_redistest.hpp>
-#include <userver/storages/redis/impl/reply.hpp>
-#include <userver/storages/redis/impl/sentinel.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

@@ -1,4 +1,4 @@
-#include <userver/storages/redis/impl/sentinel.hpp>
+#include <storages/redis/impl/sentinel.hpp>
 
 #include <memory>
 #include <stdexcept>

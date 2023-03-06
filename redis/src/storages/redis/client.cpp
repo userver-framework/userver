@@ -1,6 +1,6 @@
 #include <userver/storages/redis/client.hpp>
 
-#include <userver/storages/redis/impl/sentinel.hpp>
+#include <storages/redis/impl/sentinel.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
