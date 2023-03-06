@@ -2,15 +2,14 @@
 
 #include <future>
 
-#include <engine/coro/pool.hpp>
 #include <engine/impl/generic_wait_list.hpp>
 #include <engine/task/task_context.hpp>
 #include <engine/task/task_processor.hpp>
 #include <engine/task/task_processor_pools.hpp>
 #include <userver/engine/async.hpp>
+#include <userver/engine/impl/task_context_holder.hpp>
 #include <userver/engine/task/cancel.hpp>
 #include <userver/utils/assert.hpp>
-#include <userver/utils/make_intrusive_ptr.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -18,12 +17,8 @@ namespace engine {
 
 Task::Task() = default;
 
-Task::Task(engine::TaskProcessor& task_processor, Task::Importance importance,
-           Task::WaitMode wait_mode, engine::Deadline deadline,
-           impl::TaskPayload&& payload)
-    : context_(utils::make_intrusive_ptr<impl::TaskContext>(
-          task_processor, importance, wait_mode, deadline,
-          std::move(payload))) {
+Task::Task(impl::TaskContextHolder&& context)
+    : context_(std::move(context).Extract()) {
   context_->Wakeup(impl::TaskContext::WakeupSource::kBootstrap,
                    impl::SleepState::Epoch{0});
 }
@@ -97,7 +92,7 @@ void Task::WaitUntil(Deadline deadline) const {
 
 void Task::Detach() && {
   if (context_) {
-    UASSERT(context_->use_count() > 0);
+    UASSERT(context_->UseCount() > 0);
     // If Adopt throws, the Task is kept in a consistent state
     context_->GetTaskProcessor().Adopt(*context_);
     context_.reset();

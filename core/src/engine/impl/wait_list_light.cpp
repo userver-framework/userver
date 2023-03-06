@@ -70,7 +70,7 @@ void WaitListLight::Append(boost::intrusive_ptr<TaskContext> context) noexcept {
 
   const Waiter new_waiter{context.get(), context->GetEpoch()};
   LOG_TRACE() << "Append waiter=" << fmt::to_string(new_waiter)
-              << " use_count=" << context->use_count();
+              << " use_count=" << context->UseCount();
 
   Waiter expected{};
   // seq_cst is important for the "Append-Check-Wakeup" sequence.
@@ -111,7 +111,7 @@ void WaitListLight::WakeupOne() {
                                                   /*add_ref=*/false};
 
   LOG_TRACE() << "WakeupOne waiter=" << fmt::to_string(old_waiter)
-              << " use_count=" << context->use_count();
+              << " use_count=" << context->UseCount();
   context->Wakeup(TaskContext::WakeupSource::kWaitList, old_waiter.epoch);
 }
 
@@ -133,7 +133,7 @@ void WaitListLight::Remove(TaskContext& context) noexcept {
   }
 
   LOG_TRACE() << "Remove waiter=" << fmt::to_string(expected)
-              << " use_count=" << context.use_count();
+              << " use_count=" << context.UseCount();
   intrusive_ptr_release(&context);
 }
 

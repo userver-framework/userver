@@ -9,6 +9,7 @@
 #include <engine/coro/pool.hpp>
 #include <logging/log_extra_stacktrace.hpp>
 #include <userver/engine/exception.hpp>
+#include <userver/engine/impl/task_context_factory.hpp>
 #include <userver/engine/task/cancel.hpp>
 #include <userver/logging/stacktrace_cache.hpp>
 #include <userver/utils/assert.hpp>
@@ -101,12 +102,13 @@ auto* const kFinishedDetachedToken =
 
 TaskContext::TaskContext(TaskProcessor& task_processor,
                          Task::Importance importance, Task::WaitMode wait_type,
-                         Deadline deadline, TaskPayload&& payload)
+                         Deadline deadline,
+                         utils::impl::WrappedCallBase& payload)
     : magic_(kMagic),
       task_processor_(task_processor),
       task_counter_token_(task_processor_.GetTaskCounter()),
       is_critical_(importance == Task::Importance::kCritical),
-      payload_(std::move(payload)),
+      payload_(&payload),
       state_(Task::State::kNew),
       detached_token_(nullptr),
       cancellation_reason_(TaskCancellationReason::kNone),
@@ -130,6 +132,8 @@ TaskContext::~TaskContext() noexcept {
   UASSERT(state_ == Task::State::kNew || IsFinished());
   UASSERT(detached_token_ == nullptr ||
           detached_token_ == kFinishedDetachedToken);
+
+  UASSERT(payload_ == nullptr);
 }
 
 utils::impl::WrappedCallBase& TaskContext::GetPayload() noexcept {
@@ -496,7 +500,7 @@ void TaskContext::CoroFunc(TaskPipe& task_pipe) {
       // to synchronize in its dtor (e.g. lambda closure).
       {
         LocalStorageGuard local_storage_guard(*context);
-        context->payload_.reset();
+        context->ResetPayload();
       }
       context->yield_reason_ = YieldReason::kTaskCancelled;
     } else {
@@ -560,6 +564,12 @@ void TaskContext::RethrowErrorResult() const {
     throw TaskCancelledException(CancellationReason());
   }
   payload_->RethrowErrorResult();
+}
+
+size_t TaskContext::UseCount() const noexcept {
+  // memory order could potentially be less restrictive, but it gets very
+  // complicated to reason about
+  return intrusive_refcount_.load(std::memory_order_seq_cst);
 }
 
 TaskContext::WakeupSource TaskContext::GetPrimaryWakeupSource(
@@ -703,6 +713,34 @@ void TaskContext::TraceStateTransition(Task::State state) {
                       << " changed state to " << Task::GetStateName(state)
                       << ", delay = " << diff_us << "us"
                       << logging::LogExtra::Stacktrace(logger);
+}
+
+void TaskContext::ResetPayload() noexcept {
+  if (!payload_) return;
+
+  std::destroy_at(std::exchange(payload_, nullptr));
+}
+
+void intrusive_ptr_add_ref(TaskContext* p) noexcept {
+  UASSERT(p);
+
+  // memory order could potentially be less restrictive, but it gets very
+  // complicated to reason about
+  p->intrusive_refcount_.fetch_add(1, std::memory_order_seq_cst);
+}
+
+void intrusive_ptr_release(TaskContext* p) noexcept {
+  UASSERT(p);
+
+  // memory order could potentially be less restrictive, but it gets very
+  // complicated to reason about
+  if (p->intrusive_refcount_.fetch_sub(1, std::memory_order_seq_cst) == 1) {
+    p->ResetPayload();
+
+    std::destroy_at(p);
+
+    DeleteFusedTaskContext(reinterpret_cast<std::byte*>(p));
+  }
 }
 
 }  // namespace impl
