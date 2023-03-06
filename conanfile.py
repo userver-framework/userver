@@ -122,8 +122,6 @@ class UserverConan(ConanFile):
             self.requires('gtest/1.12.1')
             self.requires('benchmark/1.6.2')
 
-
-
     def generate(self):
         tc = CMakeToolchain(self)
         tc.variables['CMAKE_FIND_DEBUG_MODE'] = False
@@ -285,58 +283,57 @@ class UserverConan(ConanFile):
             return ["amqp-cpp::amqp-cpp"] if self.options.with_rabbitmq else []  
 
         userver_components = [
-            {"target": "userver-core",       
+            {"target": "core",       
              "lib": "core",       
-             "requires": ["userver-core-internal"] + fmt() + cctz() + boost() + concurrentqueue() + yaml() + libev() + http_parser() + curl() + cryptopp() + jemalloc() + ares() }
+             "requires": ["core-internal"] + fmt() + cctz() + boost() + concurrentqueue() + yaml() + libev() + http_parser() + curl() + cryptopp() + jemalloc() + ares() }
         ]
         if self.options.with_universal:
             userver_components.extend([
-                {"target": "userver-universal", 
+                {"target": "universal", 
                  "lib": "universal", 
                  "requires": fmt() + cctz() + boost() + concurrentqueue() + yaml()  + cryptopp() + jemalloc() + openssl() }
             ])        
         if self.options.with_grpc:
             userver_components.extend([
-                {"target": "userver-grpc", 
+                {"target": "grpc", 
                  "lib": "grpc", 
-                 "requires": ["userver-core"] + grpc() },
-                {"target": 
-                 "userver-api-common-protos",      
+                 "requires": ["core"] + grpc() },
+                {"target": "api-common-protos",      
                  "lib": "api-common-protos",      
-                 "requires": ["userver-grpc"] }
+                 "requires": ["grpc"] }
             ])
         if self.options.with_utest:
             userver_components.extend([
-                {"target": "userver-utest", 
+                {"target": "utest", 
                  "lib": "utest", 
-                 "requires": ["userver-core"] + gtest() },
-                {"target": "userver-ubench", 
+                 "requires": ["core"] + gtest() },
+                {"target": "ubench", 
                  "lib": "ubench", 
-                 "requires": ["userver-core"] + benchmark() }
+                 "requires": ["core"] + benchmark() }
             ])
         if self.options.with_postgresql:
             userver_components.extend([
-                {"target": "userver-postgresql", 
+                {"target": "postgresql", 
                  "lib": "postgresql", 
-                 "requires": ["userver-core"] + postgresql() }
+                 "requires": ["core"] + postgresql() }
             ])
         if self.options.with_mongodb:
             userver_components.extend([
-                {"target": "userver-mongo", 
+                {"target": "mongo", 
                  "lib": "mongo", 
-                 "requires": ["userver-core"] + mongo() }
+                 "requires": ["core"] + mongo() }
             ])
         if self.options.with_redis:
             userver_components.extend([
-                {"target": "userver-redis", 
+                {"target": "redis", 
                  "lib": "redis", 
-                 "requires": ["userver-core"] + hiredis() }
+                 "requires": ["core"] + hiredis() }
             ])       
         if self.options.with_rabbitmq:
             userver_components.extend([
-                {"target": "userver-rabbitmq", 
+                {"target": "rabbitmq", 
                  "lib": "rabbitmq", 
-                 "requires": ["userver-core"] + amqpcpp() }
+                 "requires": ["core"] + amqpcpp() }
             ])                                            
         return userver_components 
 
@@ -357,7 +354,7 @@ class UserverConan(ConanFile):
                 requires = component["requires"]
                 # TODO: we should also define COMPONENTS names of each target for find_package() but not possible yet in CMakeDeps
                 #       see https://github.com/conan-io/conan/issues/10258
-                self.cpp_info.components[conan_component].set_property("cmake_target_name", cmake_target)
+                self.cpp_info.components[conan_component].set_property("cmake_target_name", "userver::" + cmake_target)
                 self.cpp_info.components[conan_component].libs = [lib_name]
                 if cmake_component=="core":
                     self.cpp_info.components[conan_component].libs.append(get_lib_name("core-internal"))
@@ -366,26 +363,28 @@ class UserverConan(ConanFile):
                 if cmake_component=="core" or cmake_component=="universal":
                     self.cpp_info.components[conan_component].includedirs.append(os.path.join("include", "shared"))   
 
+                print(component)
+                print(requires)
                 self.cpp_info.components[conan_component].requires = requires
 
 
-        self.cpp_info.components["userver-core-internal"].defines.append(
+        self.cpp_info.components["core-internal"].defines.append(
             f'USERVER_NAMESPACE={self.options.namespace}',
         )
-        self.cpp_info.components["userver-core-internal"].defines.append(
+        self.cpp_info.components["core-internal"].defines.append(
             f'USERVER_NAMESPACE_BEGIN={self.options.namespace_begin}',
         )
-        self.cpp_info.components["userver-core-internal"].defines.append(
+        self.cpp_info.components["core-internal"].defines.append(
             f'USERVER_NAMESPACE_END={self.options.namespace_end}',
         )
 
-        self.cpp_info.components["userver-universal"].defines.append(
+        self.cpp_info.components["universal"].defines.append(
             f'USERVER_NAMESPACE={self.options.namespace}',
         )
-        self.cpp_info.components["userver-universal"].defines.append(
+        self.cpp_info.components["universal"].defines.append(
             f'USERVER_NAMESPACE_BEGIN={self.options.namespace_begin}',
         )
-        self.cpp_info.components["userver-universal"].defines.append(
+        self.cpp_info.components["universal"].defines.append(
             f'USERVER_NAMESPACE_END={self.options.namespace_end}',
         )
 
