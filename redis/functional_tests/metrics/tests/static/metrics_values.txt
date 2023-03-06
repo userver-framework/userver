@@ -16,8 +16,6 @@ redis.errors;redis_database=metrics_test;redis_error=EOF 0 1672164016
 redis.errors;redis_database=metrics_test;redis_error=protocol_error 0 1672164016
 redis.errors;redis_database=metrics_test;redis_error=OOM 0 1672164016
 redis.errors;redis_database=metrics_test;redis_error=timeout 0 1672164016
-redis.errors;redis_database=metrics_test;redis_error=redis_driver_not_ready 0 1672164016
-redis.errors;redis_database=metrics_test;redis_error=unknown_status 0 1672164016
 redis.command_timings;redis_database=metrics_test;redis_command=set;percentile=p0 0 1672164016
 redis.command_timings;redis_database=metrics_test;redis_command=set;percentile=p50 0 1672164016
 redis.command_timings;redis_database=metrics_test;redis_command=set;percentile=p90 0 1672164016
@@ -92,8 +90,6 @@ redis.errors;redis_database=metrics_test;redis_instance_type=sentinels;redis_err
 redis.errors;redis_database=metrics_test;redis_instance_type=sentinels;redis_error=protocol_error 0 1672164016
 redis.errors;redis_database=metrics_test;redis_instance_type=sentinels;redis_error=OOM 0 1672164016
 redis.errors;redis_database=metrics_test;redis_instance_type=sentinels;redis_error=timeout 0 1672164016
-redis.errors;redis_database=metrics_test;redis_instance_type=sentinels;redis_error=redis_driver_not_ready 0 1672164016
-redis.errors;redis_database=metrics_test;redis_instance_type=sentinels;redis_error=unknown_status 0 1672164016
 redis.timings;redis_database=metrics_test;redis_instance_type=sentinels;percentile=p0 0 1672164016
 redis.timings;redis_database=metrics_test;redis_instance_type=sentinels;percentile=p50 0 1672164016
 redis.timings;redis_database=metrics_test;redis_instance_type=sentinels;percentile=p90 0 1672164016
@@ -145,8 +141,6 @@ redis.errors;redis_database=metrics_test;redis_instance_type=sentinels;redis_ins
 redis.errors;redis_database=metrics_test;redis_instance_type=sentinels;redis_instance=localhost_26379;redis_error=protocol_error 0 1672164016
 redis.errors;redis_database=metrics_test;redis_instance_type=sentinels;redis_instance=localhost_26379;redis_error=OOM 0 1672164016
 redis.errors;redis_database=metrics_test;redis_instance_type=sentinels;redis_instance=localhost_26379;redis_error=timeout 0 1672164016
-redis.errors;redis_database=metrics_test;redis_instance_type=sentinels;redis_instance=localhost_26379;redis_error=redis_driver_not_ready 0 1672164016
-redis.errors;redis_database=metrics_test;redis_instance_type=sentinels;redis_instance=localhost_26379;redis_error=unknown_status 0 1672164016
 redis.timings;redis_database=metrics_test;redis_instance_type=sentinels;redis_instance=localhost_26379;percentile=p0 0 1672164016
 redis.timings;redis_database=metrics_test;redis_instance_type=sentinels;redis_instance=localhost_26379;percentile=p50 0 1672164016
 redis.timings;redis_database=metrics_test;redis_instance_type=sentinels;redis_instance=localhost_26379;percentile=p90 0 1672164016
@@ -185,8 +179,6 @@ redis.errors;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=
 redis.errors;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_error=protocol_error 0 1672164016
 redis.errors;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_error=OOM 0 1672164016
 redis.errors;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_error=timeout 0 1672164016
-redis.errors;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_error=redis_driver_not_ready 0 1672164016
-redis.errors;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_error=unknown_status 0 1672164016
 redis.command_timings;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_command=get;percentile=p0 0 1672164016
 redis.command_timings;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_command=get;percentile=p50 0 1672164016
 redis.command_timings;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_command=get;percentile=p90 0 1672164016
@@ -239,8 +231,6 @@ redis.errors;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=
 redis.errors;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16381;redis_error=protocol_error 0 1672164016
 redis.errors;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16381;redis_error=OOM 0 1672164016
 redis.errors;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16381;redis_error=timeout 0 1672164016
-redis.errors;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16381;redis_error=redis_driver_not_ready 0 1672164016
-redis.errors;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16381;redis_error=unknown_status 0 1672164016
 redis.command_timings;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16381;redis_command=get;percentile=p0 0 1672164016
 redis.command_timings;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16381;redis_command=get;percentile=p50 0 1672164016
 redis.command_timings;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16381;redis_command=get;percentile=p90 0 1672164016
@@ -293,8 +283,6 @@ redis.errors;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=
 redis.errors;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16380;redis_error=protocol_error 0 1672164016
 redis.errors;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16380;redis_error=OOM 0 1672164016
 redis.errors;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16380;redis_error=timeout 0 1672164016
-redis.errors;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16380;redis_error=redis_driver_not_ready 0 1672164016
-redis.errors;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16380;redis_error=unknown_status 0 1672164016
 redis.timings;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16380;percentile=p0 0 1672164016
 redis.timings;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16380;percentile=p50 0 1672164016
 redis.timings;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16380;percentile=p90 0 1672164016
@@ -333,8 +321,6 @@ redis.errors;redis_database=metrics_test;redis_instance_type=masters;redis_shard
 redis.errors;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_error=protocol_error 0 1672164016
 redis.errors;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_error=OOM 0 1672164016
 redis.errors;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_error=timeout 0 1672164016
-redis.errors;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_error=redis_driver_not_ready 0 1672164016
-redis.errors;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_error=unknown_status 0 1672164016
 redis.command_timings;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_command=del;percentile=p0 0 1672164016
 redis.command_timings;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_command=del;percentile=p50 0 1672164016
 redis.command_timings;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_command=del;percentile=p90 0 1672164016
@@ -414,8 +400,6 @@ redis.errors;redis_database=metrics_test;redis_instance_type=masters;redis_shard
 redis.errors;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_instance=__1_16379;redis_error=protocol_error 0 1672164016
 redis.errors;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_instance=__1_16379;redis_error=OOM 0 1672164016
 redis.errors;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_instance=__1_16379;redis_error=timeout 0 1672164016
-redis.errors;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_instance=__1_16379;redis_error=redis_driver_not_ready 0 1672164016
-redis.errors;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_instance=__1_16379;redis_error=unknown_status 0 1672164016
 redis.command_timings;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_instance=__1_16379;redis_command=set;percentile=p0 0 1672164016
 redis.command_timings;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_instance=__1_16379;redis_command=set;percentile=p50 0 1672164016
 redis.command_timings;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_instance=__1_16379;redis_command=set;percentile=p90 0 1672164016

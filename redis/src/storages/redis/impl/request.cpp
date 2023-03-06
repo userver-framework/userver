@@ -111,7 +111,8 @@ ReplyPtr Request::Get() {
       return future_.get();
 
     case engine::FutureStatus::kTimeout:
-      return std::make_shared<Reply>(std::string(), nullptr, REDIS_ERR_TIMEOUT);
+      return std::make_shared<Reply>(std::string(), nullptr,
+                                     ReplyStatus::kTimeoutError);
 
     case engine::FutureStatus::kCancelled:
       throw RequestCancelledException(

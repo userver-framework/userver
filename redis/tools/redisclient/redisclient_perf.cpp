@@ -123,7 +123,8 @@ void PrintStats(std::shared_ptr<redis::Sentinel> sentinel) {
   const auto& errors = total.error_count;
   std::cout << "errors: ";
   for (size_t i = 0; i < errors.size(); i++)
-    std::cout << redis::Reply::StatusToString(i) << ": " << errors[i] << "  ";
+    std::cout << redis::ToString(static_cast<redis::ReplyStatus>(i)) << ": "
+              << errors[i] << "  ";
   std::cout << std::endl;
 }
 

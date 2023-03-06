@@ -42,6 +42,31 @@ const size_t kMissedPingStreakThresholdDefault = 3;
 // subscriber mode
 const std::string kSubscriberPingChannelName = "_ping_dummy_ch";
 
+// required for libhiredis < 1.0.0
+#ifndef REDIS_ERR_TIMEOUT
+#define REDIS_ERR_TIMEOUT 6
+#endif
+
+ReplyStatus NativeToReplyStatus(int status) {
+  constexpr utils::TrivialBiMap error_map = [](auto selector) {
+    return selector()
+        .Case(REDIS_ERR, ReplyStatus::kOtherError)
+        .Case(REDIS_OK, ReplyStatus::kOk)
+        .Case(REDIS_ERR_IO, ReplyStatus::kInputOutputError)
+        .Case(REDIS_ERR_OTHER, ReplyStatus::kOtherError)
+        .Case(REDIS_ERR_EOF, ReplyStatus::kEndOfFileError)
+        .Case(REDIS_ERR_PROTOCOL, ReplyStatus::kProtocolError)
+        .Case(REDIS_ERR_OOM, ReplyStatus::kOutOfMemoryError)
+        .Case(REDIS_ERR_TIMEOUT, ReplyStatus::kTimeoutError);
+  };
+  const auto reply_status = error_map.TryFindByFirst(status);
+  if (!reply_status) {
+    LOG_LIMITED_WARNING() << "Unsupported reply status=" << status;
+    return ReplyStatus::kOtherError;
+  }
+  return *reply_status;
+}
+
 inline bool AreStringsEqualIgnoreCase(const std::string& l,
                                       const std::string& r) {
   return l.size() == r.size() && !strcasecmp(l.c_str(), r.c_str());
@@ -163,11 +188,13 @@ class Redis::RedisImpl : public std::enable_shared_from_this<Redis::RedisImpl> {
   bool InitSecureConnection();
   void InvokeCommand(const CommandPtr& command, ReplyPtr&& reply);
   void InvokeCommandError(const CommandPtr& command, const std::string& name,
-                          int status);
+                          ReplyStatus status,
+                          const std::string& status_string = "");
 
   void OnNewCommandImpl();
   void CommandLoopImpl();
-  void OnRedisReplyImpl(redisReply* redis_reply, void* privdata);
+  void OnRedisReplyImpl(redisReply* redis_reply, void* privdata, int status,
+                        const char* errstr);
   void AccountPingLatency(std::chrono::milliseconds latency);
   void AccountRtt();
   void OnTimerPingImpl();
@@ -480,7 +507,7 @@ void Redis::RedisImpl::InvokeCommand(const CommandPtr& command,
   if (command->control.account_in_statistics)
     statistics_.AccountReplyReceived(reply, command);
   reply->server = server_;
-  if (reply->status == REDIS_ERR_TIMEOUT) {
+  if (reply->status == ReplyStatus::kTimeoutError) {
     auto timeout = std::chrono::duration_cast<std::chrono::milliseconds>(
                        command->control.timeout_single)
                        .count();
@@ -489,7 +516,7 @@ void Redis::RedisImpl::InvokeCommand(const CommandPtr& command,
 
   reply->server_id = server_id_;
   reply->log_extra.Extend("redis_server", server_);
-  reply->log_extra.Extend("reply_status", reply->status);
+  reply->log_extra.Extend("reply_status", ToString(reply->status));
 
   if (reply->IsLoggableError()) LogSocketErrorReply(command, reply);
 
@@ -510,15 +537,18 @@ void Redis::RedisImpl::InvokeCommand(const CommandPtr& command,
 }
 
 void Redis::RedisImpl::InvokeCommandError(const CommandPtr& command,
-                                          const std::string& name, int status) {
-  InvokeCommand(command, std::make_shared<Reply>(name, nullptr, status));
+                                          const std::string& name,
+                                          ReplyStatus status,
+                                          const std::string& status_string) {
+  InvokeCommand(command,
+                std::make_shared<Reply>(name, nullptr, status, status_string));
 }
 
 void Redis::RedisImpl::LogSocketErrorReply(const CommandPtr& command,
                                            const ReplyPtr& reply) {
   LOG_WARNING() << "Request to Redis server " << reply->server
                 << " failed with status " << reply->status << " ("
-                << reply->StatusString() << ")" << reply->GetLogExtra()
+                << reply->status_string << ")" << reply->GetLogExtra()
                 << command->log_extra;
 }
 
@@ -592,7 +622,7 @@ void Redis::RedisImpl::OnCommandTimeoutImpl(ev_timer* w) {
     UASSERT(w == &command.timer);
     reply_privdata_rev_.erase(&command.timer);
     command.invoke_disabled = true;
-    InvokeCommandError(command.meta, command.cmd, REDIS_ERR_TIMEOUT);
+    InvokeCommandError(command.meta, command.cmd, ReplyStatus::kTimeoutError);
   }
 }
 
@@ -802,7 +832,9 @@ void Redis::RedisImpl::FreeCommands() {
     commands_.pop_front();
     --commands_size_;
     for (const auto& args : command->args.args) {
-      InvokeCommandError(command, args[0], REDIS_ERR_NOT_READY);
+      InvokeCommandError(
+          command, args[0], ReplyStatus::kEndOfFileError,
+          "Disconnecting, killing commands still waiting in send queue");
     }
   }
 
@@ -810,8 +842,9 @@ void Redis::RedisImpl::FreeCommands() {
     ev_thread_control_.Stop(info.second->timer);
     if (!info.second->invoke_disabled) {
       info.second->invoke_disabled = true;
-      InvokeCommandError(info.second->meta, info.second->cmd,
-                         REDIS_ERR_NOT_READY);
+      InvokeCommandError(
+          info.second->meta, info.second->cmd, ReplyStatus::kEndOfFileError,
+          "Disconnecting, killing commands still waiting for reply");
     }
   }
   reply_privdata_.clear();
@@ -904,8 +937,7 @@ void Redis::RedisImpl::OnConnectImpl(int status) {
 
   if (status != REDIS_OK) {
     LOG_WARNING() << log_extra_ << "Connect to Redis failed. Status=" << status
-                  << " (" << Reply::StatusToString(status)
-                  << "). Hiredis errstr='"
+                  << ". Hiredis errstr='"
                   << (status == REDIS_ERR ? context_->errstr : "") << '\'';
     SetState(State::kDisconnected);
     return;
@@ -1003,8 +1035,8 @@ void Redis::RedisImpl::Authenticate() {
                                   << " msg=" << reply->data.ToDebugString();
             } else {
               LOG_LIMITED_ERROR()
-                  << "AUTH failed with status=" << reply->StatusString()
-                  << log_extra_;
+                  << "AUTH failed with status " << reply->status << " ("
+                  << reply->status_string << ") " << log_extra_;
             }
             Disconnect();
           }
@@ -1015,82 +1047,86 @@ void Redis::RedisImpl::Authenticate() {
 void Redis::RedisImpl::SendReadOnly() {
   LOG_DEBUG() << "Send READONLY command to slave "
               << GetServerId().GetDescription() << " in cluster mode";
-  ProcessCommand(PrepareCommand(
-      CmdArgs{"READONLY"}, [this](const CommandPtr&, ReplyPtr reply) {
-        if (*reply && reply->data.IsStatus()) {
-          SetState(State::kConnected);
-        } else {
-          if (*reply) {
-            LOG_LIMITED_ERROR()
-                << log_extra_ << "Sending READONLY failed: response type="
-                << reply->data.GetTypeString()
-                << " msg=" << reply->data.ToDebugString();
-          } else {
-            LOG_LIMITED_ERROR() << "Sending READONLY failed with status="
-                                << reply->StatusString() << log_extra_;
-          }
-          Disconnect();
-        }
-      }));
+  ProcessCommand(PrepareCommand(CmdArgs{"READONLY"}, [this](const CommandPtr&,
+                                                            ReplyPtr reply) {
+    if (*reply && reply->data.IsStatus()) {
+      SetState(State::kConnected);
+    } else {
+      if (*reply) {
+        LOG_LIMITED_ERROR()
+            << log_extra_
+            << "READONLY failed: response type=" << reply->data.GetTypeString()
+            << " msg=" << reply->data.ToDebugString();
+      } else {
+        LOG_LIMITED_ERROR()
+            << "READONLY failed with status=" << reply->status << " ("
+            << reply->status_string << ") " << log_extra_;
+      }
+      Disconnect();
+    }
+  }));
 }
 
 void Redis::RedisImpl::OnRedisReply(redisAsyncContext* c, void* r,
                                     void* privdata) noexcept {
   auto* impl = static_cast<Redis::RedisImpl*>(c->data);
   UASSERT(impl != nullptr);
+  UASSERT(r || c->err != REDIS_OK);
   try {
-    impl->OnRedisReplyImpl(static_cast<redisReply*>(r), privdata);
+    impl->OnRedisReplyImpl(static_cast<redisReply*>(r), privdata, c->err,
+                           c->errstr);
   } catch (const std::exception& ex) {
     LOG_ERROR() << "OnRedisReplyImpl() failed: " << ex;
   }
 }
 
-void Redis::RedisImpl::OnRedisReplyImpl(redisReply* redis_reply,
-                                        void* privdata) {
+void Redis::RedisImpl::OnRedisReplyImpl(redisReply* redis_reply, void* privdata,
+                                        int status, const char* errstr) {
   auto data = reply_privdata_.find(reinterpret_cast<size_t>(privdata));
-  if (data != reply_privdata_.end()) {
-    std::unique_ptr<SingleCommand> command_ptr;
-    SingleCommand* pcommand = nullptr;
+  if (data == reply_privdata_.end()) return;
 
-    ev_thread_control_.Stop(data->second->timer);
-    pcommand = data->second.get();
-    auto reply =
-        std::make_shared<Reply>(pcommand->cmd, redis_reply,
-                                redis_reply ? REDIS_OK : REDIS_ERR_NOT_READY);
+  std::unique_ptr<SingleCommand> command_ptr;
+  SingleCommand* pcommand = nullptr;
 
-    // After 'subscribe x' + 'unsubscribe x' + 'subscribe x' requests
-    // 'unsubscribe' reply can be received as a reply to the second subscribe
-    // request instead of the first (with 'privdata' related to second
-    // request). After that 'subscribe' and 'message' replies will be received
-    // as a reply to the second request. You must not send the second
-    // SUBSCRIBE request with the same channel name until the response to
-    // UNSUBSCRIBE request is received. shard_subscriber::Fsm checks it.
-    // TODO: add check in RedisImpl.
-    if (!subscriber_ || !redis_reply || IsUnsubscribeReply(reply)) {
-      command_ptr = std::move(data->second);
-      if (!subscriber_) --sent_count_;
+  ev_thread_control_.Stop(data->second->timer);
+  pcommand = data->second.get();
 
-      if (subscriber_) {
-        LOG_DEBUG() << "server_id=" << GetServerId().GetId()
-                    << " erase privdata=" << data->first
-                    << " unsub=" << IsUnsubscribeReply(reply);
-      }
-      if (!pcommand->invoke_disabled) {
-        UASSERT(reply_privdata_rev_.count(&pcommand->timer));
-        UASSERT(reply_privdata_rev_.at(&pcommand->timer) ==
-                reinterpret_cast<size_t>(privdata));
-        reply_privdata_rev_.erase(&pcommand->timer);
-      }
+  auto reply = std::make_shared<Reply>(pcommand->cmd, redis_reply,
+                                       NativeToReplyStatus(status),
+                                       errstr ? errstr : "");
 
-      reply_privdata_.erase(data);
+  // After 'subscribe x' + 'unsubscribe x' + 'subscribe x' requests
+  // 'unsubscribe' reply can be received as a reply to the second subscribe
+  // request instead of the first (with 'privdata' related to second
+  // request). After that 'subscribe' and 'message' replies will be received
+  // as a reply to the second request. You must not send the second
+  // SUBSCRIBE request with the same channel name until the response to
+  // UNSUBSCRIBE request is received. shard_subscriber::Fsm checks it.
+  // TODO: add check in RedisImpl.
+  if (!subscriber_ || !redis_reply || IsUnsubscribeReply(reply)) {
+    command_ptr = std::move(data->second);
+    if (!subscriber_) --sent_count_;
+
+    if (subscriber_) {
+      LOG_DEBUG() << "server_id=" << GetServerId().GetId()
+                  << " erase privdata=" << data->first
+                  << " unsub=" << IsUnsubscribeReply(reply);
     }
     if (!pcommand->invoke_disabled) {
-      // prevents double unsubscribe handling
-      if (subscriber_ &&
-          (!reply->IsOk() || !reply->data || !reply->data.IsArray()))
-        pcommand->invoke_disabled = true;
-      InvokeCommand(pcommand->meta, std::move(reply));
+      UASSERT(reply_privdata_rev_.count(&pcommand->timer));
+      UASSERT(reply_privdata_rev_.at(&pcommand->timer) ==
+              reinterpret_cast<size_t>(privdata));
+      reply_privdata_rev_.erase(&pcommand->timer);
     }
+
+    reply_privdata_.erase(data);
+  }
+  if (!pcommand->invoke_disabled) {
+    // prevents double unsubscribe handling
+    if (subscriber_ &&
+        (!reply->IsOk() || !reply->data || !reply->data.IsArray()))
+      pcommand->invoke_disabled = true;
+    InvokeCommand(pcommand->meta, std::move(reply));
   }
 }
 
@@ -1112,7 +1148,7 @@ void Redis::RedisImpl::ProcessCommand(const CommandPtr& command) {
 
     if (!context_) {
       LOG_ERROR() << log_extra_ << "no context";
-      InvokeCommandError(command, args[0], REDIS_ERR_OTHER);
+      InvokeCommandError(command, args[0], ReplyStatus::kOtherError);
       continue;
     }
 
@@ -1120,7 +1156,7 @@ void Redis::RedisImpl::ProcessCommand(const CommandPtr& command) {
     if (is_special) subscriber_ = true;
     if (subscriber_ && !is_special) {
       LOG_ERROR() << log_extra_ << "impossible for subscriber: " << args[0];
-      InvokeCommandError(command, args[0], REDIS_ERR_OTHER);
+      InvokeCommandError(command, args[0], ReplyStatus::kOtherError);
       continue;
     }
     if (is_special &&
@@ -1152,7 +1188,7 @@ void Redis::RedisImpl::ProcessCommand(const CommandPtr& command) {
                                 argv.data(), argv_len.data()) != REDIS_OK) {
         LOG_ERROR() << log_extra_
                     << "redisAsyncCommandArgv() failed on command " << args[0];
-        InvokeCommandError(command, args[0], REDIS_ERR_OTHER);
+        InvokeCommandError(command, args[0], ReplyStatus::kOtherError);
         continue;
       }
     }

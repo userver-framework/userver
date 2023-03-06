@@ -8,6 +8,7 @@
 #include <unordered_map>
 
 #include <userver/storages/redis/impl/base.hpp>
+#include <userver/storages/redis/impl/reply_status.hpp>
 #include <userver/storages/redis/impl/types.hpp>
 #include <userver/utils/statistics/aggregated_values.hpp>
 #include <userver/utils/statistics/percentile.hpp>
@@ -33,7 +34,7 @@ class Statistics {
   void AccountCommandSent(const CommandPtr& cmd);
   void AccountReplyReceived(const ReplyPtr& reply, const CommandPtr& cmd);
   void AccountPing(std::chrono::milliseconds ping);
-  void AccountError(int code);
+  void AccountError(ReplyStatus code);
 
   using Percentile = utils::statistics::Percentile<2048>;
   using RecentPeriod =
@@ -51,7 +52,7 @@ class Statistics {
   std::atomic_bool is_syncing = false;
   std::atomic_size_t offset_from_master_bytes = 0;
 
-  std::array<std::atomic_llong, REDIS_ERR_MAX + 1> error_count{{}};
+  std::array<std::atomic_llong, kReplyStatusMap.size()> error_count{{}};
 };
 
 struct InstanceStatistics {
@@ -107,7 +108,7 @@ struct InstanceStatistics {
   bool is_syncing;
   long long offset_from_master;
 
-  std::array<long long, REDIS_ERR_MAX + 1> error_count{{}};
+  std::array<long long, kReplyStatusMap.size()> error_count{{}};
 };
 
 struct ShardStatistics {

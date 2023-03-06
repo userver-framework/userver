@@ -4,6 +4,9 @@
 /// @brief redis-specific exceptions
 
 #include <stdexcept>
+#include <string_view>
+
+#include <userver/storages/redis/impl/reply_status.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -21,18 +24,19 @@ class InvalidArgumentException : public Exception {
   using Exception::Exception;
 };
 
-/// No reply from redis server
+/// Request execution failed
 class RequestFailedException : public Exception {
  public:
-  RequestFailedException(const std::string& request_description, int status);
+  RequestFailedException(const std::string& request_description,
+                         ReplyStatus status);
 
-  int GetStatus() const;
-  const std::string& GetStatusString() const;
+  ReplyStatus GetStatus() const;
+  std::string_view GetStatusString() const;
 
   bool IsTimeout() const;
 
  private:
-  int status_;
+  ReplyStatus status_;
 };
 
 /// Request was cancelled

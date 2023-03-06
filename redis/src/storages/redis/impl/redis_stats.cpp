@@ -149,12 +149,8 @@ void Statistics::AccountReplyReceived(const ReplyPtr& reply,
   AccountError(reply->status);
 }
 
-void Statistics::AccountError(int code) {
-  if (code >= 0 && code < static_cast<int>(error_count.size())) {
-    error_count[code]++;
-  } else {
-    error_count[REDIS_ERR_OTHER]++;
-  }
+void Statistics::AccountError(ReplyStatus code) {
+  error_count[static_cast<int>(code)]++;
 }
 
 void Statistics::AccountPing(std::chrono::milliseconds ping) {
@@ -187,9 +183,10 @@ void DumpMetric(utils::statistics::Writer& writer,
     }
   }
 
-  for (size_t i = 0; i <= REDIS_ERR_MAX; ++i) {
-    writer["errors"].ValueWithLabels(stats.error_count[i],
-                                     {"redis_error", Reply::StatusToString(i)});
+  for (size_t i = 0; i < kReplyStatusMap.size(); ++i) {
+    writer["errors"].ValueWithLabels(
+        stats.error_count[i],
+        {"redis_error", ToString(static_cast<ReplyStatus>(i))});
   }
 
   if (real_instance) {
