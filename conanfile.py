@@ -137,7 +137,7 @@ class UserverConan(ConanFile):
         ] = self.options.namespace_begin
         tc.variables['USERVER_NAMESPACE_END'] = self.options.namespace_end
 
-        tc,variables['USERVER_LTO'] = self.options.lto
+        tc.variables['USERVER_LTO'] = self.options.lto
         tc.variables['USERVER_FEATURE_JEMALLOC'] = self.options.with_jemalloc
         tc.variables['USERVER_FEATURE_MONGODB'] = self.options.with_mongodb
         tc.variables['USERVER_FEATURE_POSTGRESQL'] = self.options.with_postgresql
@@ -194,11 +194,14 @@ class UserverConan(ConanFile):
         if self.options.with_grpc:
             copy_component("grpc")
             copy(self,
-                pattern='grpcConan.cmake',
+                pattern='GrpcConan.cmake',
                 dst=os.path.join(self.package_folder, "cmake"),
                 src=os.path.join(self.source_folder, "cmake"),
                 keep_path=True,
             )
+            grpc_file = open(os.path.join(self.package_folder, "cmake", "GrpcConan.cmake"), 'a')
+            grpc_file.write('\nset(USERVER_IMPL_GRPC_REQUIREMENTS_CHECKED ON CACHE INTERNAL "")')
+            grpc_file.close()
             copy(self,
                 pattern='GrpcTargets.cmake',
                 dst=os.path.join(self.package_folder, "cmake"),
@@ -363,8 +366,6 @@ class UserverConan(ConanFile):
                 if cmake_component=="core" or cmake_component=="universal":
                     self.cpp_info.components[conan_component].includedirs.append(os.path.join("include", "shared"))   
 
-                print(component)
-                print(requires)
                 self.cpp_info.components[conan_component].requires = requires
 
 
