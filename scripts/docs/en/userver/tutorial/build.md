@@ -273,6 +273,7 @@ ulimit -n 4096
 Feel free to provide a PR with instructions for your favorite platform at https://github.com/userver-framework/userver.
 
 
+@anchor DOCKER_BUILD
 ### Docker
 
 @note Currently, only x86_64 and x86 architectures support ClickHouse and MongoDB drivers
@@ -326,6 +327,8 @@ cd build_release
 ctest -V
 ```
 
+If you need to edit or make your own docker image with custom configuration, read about 
+it @ref md_en_userver_docker "here"
 
 ----------
 
