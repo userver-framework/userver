@@ -14,6 +14,13 @@ else()
   set(GRPC_PROTOBUF_INCLUDE_DIRS "${UserverProtobuf_INCLUDE_DIRS}" CACHE PATH INTERNAL)
 endif()
 
+if (NOT GRPC_PROTOBUF_INCLUDE_DIRS)
+  message(FATAL_ERROR "Invalid Protobuf package")
+endif()
+if (NOT GRPC_LIBRARY_VERSION)
+  message(FATAL_ERROR "Invalid gRPC package")
+endif()
+
 add_library(${PROJECT_NAME}-deps INTERFACE)
 target_include_directories(${PROJECT_NAME}-deps INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 if (USERVER_CONAN)
