@@ -17,6 +17,12 @@ struct StrHash {
   }
 };
 
+struct KeyEqual {
+  bool operator()(const std::string& lhs, const std::string& rhs) const {
+    return lhs == rhs;
+  }
+};
+
 }  // namespace
 
 TEST(FormatsJson, HashCompile) {
@@ -33,6 +39,10 @@ TEST(FormatsJson, HashCompile) {
   EXPECT_EQ((std::unordered_map<std::string, int, StrHash>{{"1", 2}}),
             (formats::json::FromString("{\"1\": 2}")
                  .As<std::unordered_map<std::string, int, StrHash>>()));
+  EXPECT_EQ(
+      (std::unordered_map<std::string, int, StrHash, KeyEqual>{{"1", 2}}),
+      (formats::json::FromString("{\"1\": 2}")
+           .As<std::unordered_map<std::string, int, StrHash, KeyEqual>>()));
 }
 
 USERVER_NAMESPACE_END
