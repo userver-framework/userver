@@ -102,6 +102,7 @@ class StaticLogEntry final {
   StaticLogEntry& operator=(StaticLogEntry&&) = delete;
 
   bool ShouldLog() const noexcept;
+  bool ShouldNotLog(Level level) const noexcept;
 
  private:
   static constexpr std::size_t kContentSize =
@@ -134,15 +135,19 @@ struct EntryStorage final {
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define LOG(lvl)                                                             \
   __builtin_expect(                                                          \
-      !USERVER_NAMESPACE::logging::ShouldLog(lvl) && []() noexcept -> bool { \
+      [](USERVER_NAMESPACE::logging::Level level) -> bool {                  \
         struct NameHolder {                                                  \
           static constexpr const char* Get() noexcept {                      \
             return USERVER_FILEPATH;                                         \
           }                                                                  \
         };                                                                   \
-        return !USERVER_NAMESPACE::logging::impl::EntryStorage<              \
-                    NameHolder, __LINE__>::entry.ShouldLog();                \
-      }(),                                                                   \
+        const auto& entry =                                                  \
+            USERVER_NAMESPACE::logging::impl::EntryStorage<NameHolder,       \
+                                                           __LINE__>::entry; \
+        return (!USERVER_NAMESPACE::logging::ShouldLog(level) ||             \
+                entry.ShouldNotLog(level)) &&                                \
+               !entry.ShouldLog();                                           \
+      }(lvl),                                                                \
       static_cast<int>(lvl) <                                                \
           static_cast<int>(USERVER_NAMESPACE::logging::Level::kInfo))        \
       ? USERVER_NAMESPACE::logging::impl::Noop{}                             \

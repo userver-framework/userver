@@ -4,8 +4,13 @@
 #include <userver/components/impl/component_base.hpp>
 #include <userver/concurrent/async_event_source.hpp>
 #include <userver/dynamic_config/source.hpp>
+#include <userver/rcu/rcu.hpp>
 
 USERVER_NAMESPACE_BEGIN
+
+namespace logging {
+struct DynamicDebugConfig;
+}
 
 namespace components {
 
@@ -47,6 +52,7 @@ class LoggingConfigurator final : public impl::ComponentBase {
   void OnConfigUpdate(const dynamic_config::Snapshot& config);
 
   concurrent::AsyncEventSubscriberScope config_subscription_;
+  rcu::Variable<logging::DynamicDebugConfig> dynamic_debug_;
 };
 
 /// }@

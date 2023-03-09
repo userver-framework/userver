@@ -27,6 +27,10 @@
   },
   "USERVER_HANDLER_STREAM_API_ENABLED": false,
   "USERVER_HTTP_PROXY": "",
+  "USERVER_LOG_DYNAMIC_DEBUG": {
+    "force-disabled": [],
+    "force-enabled": []
+  },
   "USERVER_LOG_REQUEST": true,
   "USERVER_LOG_REQUEST_HEADERS": false,
   "USERVER_LRU_CACHES": {},

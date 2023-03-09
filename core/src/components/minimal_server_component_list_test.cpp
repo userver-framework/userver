@@ -21,6 +21,7 @@ constexpr std::string_view kRuntimeConfigMissingParam = R"~({
   "USERVER_HTTP_PROXY": "",
   "USERVER_CANCEL_HANDLE_REQUEST_BY_DEADLINE": false,
   "USERVER_NO_LOG_SPANS":{"names":[], "prefixes":[]},
+  "USERVER_LOG_DYNAMIC_DEBUG": {"force-enabled":[], "force-disabled":[]},
   "USERVER_TASK_PROCESSOR_QOS": {
     "default-service": {
       "default-task-processor": {

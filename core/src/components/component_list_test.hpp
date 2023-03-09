@@ -42,6 +42,7 @@ inline constexpr std::string_view kRuntimeConfig = R"~({
   "USERVER_CANCEL_HANDLE_REQUEST_BY_DEADLINE": false,
   "USERVER_HTTP_PROXY": "",
   "USERVER_NO_LOG_SPANS":{"names":[], "prefixes":[]},
+  "USERVER_LOG_DYNAMIC_DEBUG": {"force-enabled":[], "force-disabled":[]},
   "USERVER_HANDLER_STREAM_API_ENABLED": true,
   "USERVER_TASK_PROCESSOR_QOS": {
     "default-service": {

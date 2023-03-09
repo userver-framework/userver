@@ -8,7 +8,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-TEST_F(LoggingTest, DynamicDebugBasic) {
+TEST_F(LoggingTest, DynamicDebugEnable) {
   logging::SetDefaultLoggerLevel(logging::Level::kNone);
 
   LOG_INFO() << "before";
@@ -28,6 +28,21 @@ TEST_F(LoggingTest, DynamicDebugBasic) {
   EXPECT_THAT(GetStreamString(), testing::Not(testing::HasSubstr("after")));
 
   logging::SetDefaultLoggerLevel(logging::Level::kInfo);
+}
+
+TEST_F(LoggingTest, DynamicDebugDisable) {
+  logging::SetDefaultLoggerLevel(logging::Level::kInfo);
+
+  const std::string location = USERVER_FILEPATH;
+  logging::AddDynamicDebugLog(location, 10002,
+                              logging::EntryState::kForceDisabled);
+
+#line 10002
+  LOG_INFO() << "here";
+
+  logging::RemoveDynamicDebugLog(location, 10002);
+
+  EXPECT_FALSE(LoggedTextContains("here"));
 }
 
 TEST_F(LoggingTest, DynamicDebugAnyLine) {
