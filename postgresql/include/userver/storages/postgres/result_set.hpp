@@ -206,7 +206,7 @@ struct FieldDescription {
 /// @brief A wrapper for PGresult to access field descriptions.
 class RowDescription {
  public:
-  RowDescription(detail::ResultWrapperPtr res) : res_{res} {}
+  RowDescription(detail::ResultWrapperPtr res) : res_{std::move(res)} {}
 
   /// Check that all fields can be read in binary format
   /// @throw NoBinaryParser if any of the fields doesn't have a binary parser
@@ -290,7 +290,7 @@ class Field {
   friend class Row;
 
   Field(detail::ResultWrapperPtr res, size_type row, size_type col)
-      : res_{res}, row_index_{row}, field_index_{col} {}
+      : res_{std::move(res)}, row_index_{row}, field_index_{col} {}
 
   template <typename T>
   size_type ReadNullable(const io::FieldBuffer& fb, T&& val,
@@ -350,7 +350,7 @@ class ConstFieldIterator
   friend class Row;
 
   ConstFieldIterator(detail::ResultWrapperPtr res, size_type row, size_type col)
-      : ConstDataIterator(res, row, col) {}
+      : ConstDataIterator(std::move(res), row, col) {}
 };
 
 /// @brief Reverse iterator over fields in a result set's row
@@ -361,7 +361,7 @@ class ReverseConstFieldIterator
 
   ReverseConstFieldIterator(detail::ResultWrapperPtr res, size_type row,
                             size_type col)
-      : ConstDataIterator(res, row, col) {}
+      : ConstDataIterator(std::move(res), row, col) {}
 };
 
 /// Data row in a result set
@@ -509,7 +509,7 @@ class Row {
   friend class ResultSet;
 
   Row(detail::ResultWrapperPtr res, size_type row)
-      : res_{res}, row_index_{row} {}
+      : res_{std::move(res)}, row_index_{row} {}
 
   //@{
   /** @name Iteration support */
@@ -530,7 +530,7 @@ class ConstRowIterator
   friend class ResultSet;
 
   ConstRowIterator(detail::ResultWrapperPtr res, size_type row)
-      : ConstDataIterator(res, row) {}
+      : ConstDataIterator(std::move(res), row) {}
 };
 
 /// @name Reverse iterator over rows in a result set
@@ -540,7 +540,7 @@ class ReverseConstRowIterator
   friend class ResultSet;
 
   ReverseConstRowIterator(detail::ResultWrapperPtr res, size_type row)
-      : ConstDataIterator(res, row) {}
+      : ConstDataIterator(std::move(res), row) {}
 };
 
 /// @brief PostgreSQL result set
@@ -586,32 +586,50 @@ class ResultSet {
   /** @name Row container interface */
   //@{
   /** @name Forward iteration */
-  const_iterator cbegin() const;
-  const_iterator begin() const { return cbegin(); }
-  const_iterator cend() const;
-  const_iterator end() const { return cend(); }
+  const_iterator cbegin() const&;
+  const_iterator begin() const& { return cbegin(); }
+  const_iterator cend() const&;
+  const_iterator end() const& { return cend(); }
+
+  // One should store ResultSet before using its accessors
+  const_iterator cbegin() const&& = delete;
+  const_iterator begin() const&& = delete;
+  const_iterator cend() const&& = delete;
+  const_iterator end() const&& = delete;
   //@}
   //@{
   /** @name Reverse iteration */
-  const_reverse_iterator crbegin() const;
-  const_reverse_iterator rbegin() const { return crbegin(); }
-  const_reverse_iterator crend() const;
-  const_reverse_iterator rend() const { return crend(); }
+  const_reverse_iterator crbegin() const&;
+  const_reverse_iterator rbegin() const& { return crbegin(); }
+  const_reverse_iterator crend() const&;
+  const_reverse_iterator rend() const& { return crend(); }
+  // One should store ResultSet before using its accessors
+  const_reverse_iterator crbegin() const&& = delete;
+  const_reverse_iterator rbegin() const&& = delete;
+  const_reverse_iterator crend() const&& = delete;
+  const_reverse_iterator rend() const&& = delete;
   //@}
 
-  reference Front() const;
-  reference Back() const;
+  reference Front() const&;
+  reference Back() const&;
+  // One should store ResultSet before using its accessors
+  reference Front() const&& = delete;
+  reference Back() const&& = delete;
 
   /// @brief Access a row by index
   /// @throws RowIndexOutOfBounds if index is out of bounds
-  reference operator[](size_type index) const;
+  reference operator[](size_type index) const&;
+  // One should store ResultSet before using its accessors
+  reference operator[](size_type index) const&& = delete;
   //@}
 
   //@{
   /** @name ResultSet metadata access */
   // TODO ResultSet metadata access interface
   size_type FieldCount() const;
-  RowDescription GetRowDescription() const { return {pimpl_}; }
+  RowDescription GetRowDescription() const& { return {pimpl_}; }
+  // One should store ResultSet before using its accessors
+  RowDescription GetRowDescription() const&& = delete;
   //@}
 
   //@{
@@ -664,13 +682,40 @@ struct RowDataExtractorBase;
 template <std::size_t... Indexes, typename... T>
 struct RowDataExtractorBase<std::index_sequence<Indexes...>, T...> {
   static void ExtractValues(const Row& row, T&&... val) {
-    (row[Indexes].To(std::forward<T>(val)), ...);
+    static_assert(sizeof...(Indexes) == sizeof...(T));
+
+    // We do it this way instead of row[Indexes...] to avoid Row::operator[]
+    // overhead - it copies + destroys a shared_ptr to ResultSet
+    auto it = row.begin();
+    const auto perform = [&](auto&& arg) {
+      it->To(std::forward<decltype(arg)>(arg));
+      ++it;
+    };
+    (perform(std::forward<T>(val)), ...);
   }
   static void ExtractTuple(const Row& row, std::tuple<T...>& val) {
-    (row[Indexes].To(std::get<Indexes>(val)), ...);
+    static_assert(sizeof...(Indexes) == sizeof...(T));
+
+    // We do it this way instead of row[Indexes...] to avoid Row::operator[]
+    // overhead - it copies + destroys a shared_ptr to ResultSet
+    auto it = row.begin();
+    const auto perform = [&](auto& arg) {
+      it->To(arg);
+      ++it;
+    };
+    (perform(std::get<Indexes>(val)), ...);
   }
   static void ExtractTuple(const Row& row, std::tuple<T...>&& val) {
-    (row[Indexes].To(std::get<Indexes>(val)), ...);
+    static_assert(sizeof...(Indexes) == sizeof...(T));
+
+    // We do it this way instead of row[Indexes...] to avoid Row::operator[]
+    // overhead - it copies + destroys a shared_ptr to ResultSet
+    auto it = row.begin();
+    const auto perform = [&](auto& arg) {
+      it->To(arg);
+      ++it;
+    };
+    (perform(std::get<Indexes>(val)), ...);
   }
 
   static void ExtractValues(const Row& row,
