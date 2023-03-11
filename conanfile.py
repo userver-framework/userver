@@ -200,7 +200,8 @@ class UserverConan(ConanFile):
                 keep_path=True,
             )
             grpc_file = open(os.path.join(self.package_folder, "cmake", "GrpcConan.cmake"), 'a')
-            grpc_file.write('\nset(USERVER_CONAN True)')
+            grpc_file.write('\nset(USERVER_CONAN TRUE)')
+            grpc_file.write('\nset(PYTHON "python3")')
             grpc_file.close()
             copy(self,
                 pattern='GrpcTargets.cmake',

@@ -1,0 +1,9 @@
+{
+    "version": 4,
+    "vendor": {
+        "conan": {}
+    },
+    "include": [
+        "/home/atom/Documents/QtSrc/userver/conan/test_package/build/Release/generators/CMakePresets.json"
+    ]
+}

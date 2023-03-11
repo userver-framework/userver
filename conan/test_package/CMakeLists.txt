@@ -50,4 +50,7 @@ set(PYTHON_BINARY ${Python_EXECUTABLE})
 set(TESTSUITE_PYTHON_BINARY ${Python_EXECUTABLE})
 add_subdirectory(testsuite-support)
 
-add_subdirectory(json2yaml)
+
+add_executable(${PROJECT_NAME}_universal test_universal.cpp)
+
+target_link_libraries(${PROJECT_NAME}_universal ${PROJECT_NAME}_objs userver::universal)
