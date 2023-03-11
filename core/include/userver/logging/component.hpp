@@ -22,7 +22,8 @@ struct LoggerConfig;
 
 namespace impl {
 class TpLogger;
-}
+class TcpSocketSink;
+}  // namespace impl
 
 }  // namespace logging
 
@@ -98,8 +99,6 @@ class Logging final : public impl::ComponentBase {
   void OnLogRotate();
   void TryReopenFiles();
 
-  class TestsuiteCaptureSink;
-
   static yaml_config::Schema GetStaticConfigSchema();
 
  private:
@@ -115,7 +114,7 @@ class Logging final : public impl::ComponentBase {
   std::unordered_map<std::string, std::shared_ptr<logging::impl::TpLogger>>
       loggers_;
   utils::PeriodicTask flush_task_;
-  std::shared_ptr<TestsuiteCaptureSink> socket_sink_;
+  std::shared_ptr<logging::impl::TcpSocketSink> socket_sink_;
   os_signals::Subscriber signal_subscriber_;
 };
 
