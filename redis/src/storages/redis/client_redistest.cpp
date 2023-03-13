@@ -387,7 +387,7 @@ UTEST_F(RedisClientTest, Hset) {
   EXPECT_EQ(result.value(), "Hello");
   EXPECT_EQ(client->Hset("hash", "field", "World", {}).Get(),
             storages::redis::HsetReply::kUpdated);
-};
+}
 
 UTEST_F(RedisClientTest, Hsetnx) {
   auto client = GetClient();
