@@ -119,8 +119,4 @@ void Sketch<T, Hash, Policy::Bloom>::Clear() {
 
 }  // namespace cache::impl::sketch
 
-<<<<<<< HEAD
 USERVER_NAMESPACE_END
-=======
-USERVER_NAMESPACE_END
->>>>>>> 78c842ce (add: new implementation sketch counters)
