@@ -34,6 +34,7 @@ class Count {
   void SetOption(options::Skip);
   void SetOption(options::Limit);
   void SetOption(options::ForceCountImpl);
+  void SetOption(const options::MaxServerTime&);
 
  private:
   friend class storages::mongo::impl::cdriver::CDriverCollectionImpl;
@@ -61,6 +62,7 @@ class CountApprox {
   void SetOption(options::ReadConcern);
   void SetOption(options::Skip);
   void SetOption(options::Limit);
+  void SetOption(const options::MaxServerTime&);
 
  private:
   friend class storages::mongo::impl::cdriver::CDriverCollectionImpl;
