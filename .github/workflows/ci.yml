@@ -10,6 +10,7 @@ name: CI
 
 env:
     UBSAN_OPTIONS: print_stacktrace=1
+    ASAN_OPTIONS: detect_odr_violation=2
 
 jobs:
     posix:
@@ -140,6 +141,7 @@ jobs:
 
           - name: Run tests (universal)
             run: |
+                echo "UBSAN_OPTIONS=${UBSAN_OPTIONS} ASAN_OPTIONS=${ASAN_OPTIONS}"
                 cd build_debug
                 ./userver/universal/userver-universal_unittest ${{matrix.tests-flags}}
 
