@@ -46,22 +46,17 @@ void Transaction::Rollback() {
 }
 
 StatementResultSet Transaction::DoExecute(
-    const std::string& query, impl::io::ParamsBinderBase& params) const {
+    OptionalCommandControl, ClusterHostType, const Query& query,
+    impl::io::ParamsBinderBase& params,
+    std::optional<std::size_t> batch_size) const {
   AssertValid();
 
   tracing::Span execute_span{"mysql_execute"};
 
   return StatementResultSet{
-      (*connection_)->ExecuteStatement(query, params, deadline_, std::nullopt)};
-}
-
-void Transaction::DoInsert(const std::string& query,
-                           impl::io::ParamsBinderBase& params) const {
-  AssertValid();
-
-  tracing::Span insert_span{"mysql_insert"};
-
-  (*connection_)->ExecuteInsert(query, params, deadline_);
+      (*connection_)
+          ->ExecuteStatement(query.GetStatement(), params,
+                             /* TODO : deadline? */ deadline_, batch_size)};
 }
 
 void Transaction::AssertValid() const {

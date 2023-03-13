@@ -108,12 +108,6 @@ MySQLStatementFetcher MySQLConnection::ExecuteStatement(
   });
 }
 
-void MySQLConnection::ExecuteInsert(const std::string& insert_statement,
-                                    io::ParamsBinderBase& params,
-                                    engine::Deadline deadline) {
-  ExecuteStatement(insert_statement, params, deadline, std::nullopt);
-}
-
 void MySQLConnection::Ping(engine::Deadline deadline) {
   auto guard = GetBrokenGuard();
 

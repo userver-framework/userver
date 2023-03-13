@@ -3,7 +3,6 @@
 #include <atomic>
 #include <string>
 #include <string_view>
-#include <unordered_map>
 #include <vector>
 
 #include <userver/clients/dns/resolver_fwd.hpp>
@@ -48,9 +47,6 @@ class MySQLConnection final {
                                          io::ParamsBinderBase& params,
                                          engine::Deadline deadline,
                                          std::optional<std::size_t> batch_size);
-
-  void ExecuteInsert(const std::string& insert_statement,
-                     io::ParamsBinderBase& params, engine::Deadline deadline);
 
   void Ping(engine::Deadline deadline);
 

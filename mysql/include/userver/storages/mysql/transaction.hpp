@@ -5,9 +5,7 @@
 #include <userver/tracing/span.hpp>
 #include <userver/utils/fast_pimpl.hpp>
 
-#include <userver/storages/mysql/impl/bind_helper.hpp>
-#include <userver/storages/mysql/query.hpp>
-#include <userver/storages/mysql/statement_result_set.hpp>
+#include <userver/storages/mysql/client_interface.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -22,7 +20,7 @@ class ConnectionPtr;
 ///
 /// This type can't be constructed in user code and is always retrieved from
 /// storages::mysql::Cluster
-class Transaction final {
+class Transaction final : public IClientInterface {
  public:
   explicit Transaction(infra::ConnectionPtr&& connection,
                        engine::Deadline deadline);
@@ -33,18 +31,6 @@ class Transaction final {
   template <typename... Args>
   StatementResultSet Execute(const Query& query, const Args&... args) const;
 
-  template <typename T>
-  void InsertOne(const Query& insert_query, const T& row) const;
-
-  // only works with recent enough MariaDB as a server
-  template <typename Container>
-  void InsertMany(const Query& insert_query, const Container& rows,
-                  bool throw_on_empty_insert = true) const;
-
-  template <typename Container, typename MapTo>
-  void InsertManyMapped(const Query& insert_query, const Container& rows,
-                        bool throw_on_empty_insert = true) const;
-
   /// @brief Commit the transaction
   void Commit();
 
@@ -52,11 +38,10 @@ class Transaction final {
   void Rollback();
 
  private:
-  StatementResultSet DoExecute(const std::string& query,
-                               impl::io::ParamsBinderBase& params) const;
-
-  void DoInsert(const std::string& query,
-                impl::io::ParamsBinderBase& params) const;
+  StatementResultSet DoExecute(
+      OptionalCommandControl command_control, ClusterHostType host_type,
+      const Query& query, impl::io::ParamsBinderBase& params,
+      std::optional<std::size_t> batch_size) const override;
 
   void AssertValid() const;
 
@@ -70,48 +55,10 @@ StatementResultSet Transaction::Execute(const Query& query,
                                         const Args&... args) const {
   auto params_binder = impl::BindHelper::BindParams(args...);
 
-  return DoExecute(query.GetStatement(), params_binder);
-}
-
-template <typename T>
-void Transaction::InsertOne(const Query& insert_query, const T& row) const {
-  auto params_binder = impl::BindHelper::BindRowAsParams(row);
-
-  return DoInsert(insert_query.GetStatement(), params_binder);
-}
-
-template <typename Container>
-void Transaction::InsertMany(const Query& insert_query, const Container& rows,
-                             bool throw_on_empty_insert) const {
-  if (rows.empty()) {
-    if (throw_on_empty_insert) {
-      throw std::runtime_error{"Empty insert requested"};
-    } else {
-      return;
-    }
-  }
-
-  auto params_binder = impl::BindHelper::BindContainerAsParams(rows);
-
-  DoInsert(insert_query.GetStatement(), params_binder);
-}
-
-template <typename Container, typename MapTo>
-void Transaction::InsertManyMapped(const Query& insert_query,
-                                   const Container& rows,
-                                   bool throw_on_empty_insert) const {
-  if (rows.empty()) {
-    if (throw_on_empty_insert) {
-      throw std::runtime_error{"Empty insert requested"};
-    } else {
-      return;
-    }
-  }
-
-  auto params_binder =
-      impl::BindHelper::BindContainerAsParamsMapped<MapTo>(rows);
-
-  DoInsert(insert_query.GetStatement(), params_binder);
+  return DoExecute({},
+                   /* doesn't matter here, just conforming to the interface*/
+                   ClusterHostType::kMaster, query, params_binder,
+                   std::nullopt);
 }
 
 }  // namespace storages::mysql
