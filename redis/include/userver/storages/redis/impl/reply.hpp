@@ -8,6 +8,7 @@
 #include <userver/utils/assert.hpp>
 
 #include <userver/storages/redis/impl/base.hpp>
+#include <userver/storages/redis/impl/reply_status.hpp>
 
 struct redisReply;
 
@@ -238,15 +239,17 @@ class ReplyData final {
 
 class Reply final {
  public:
-  Reply(std::string cmd, redisReply* redis_reply, int status)
-      : cmd(std::move(cmd)), data(redis_reply), status(status) {}
+  Reply(std::string cmd, redisReply* redis_reply, ReplyStatus status);
+  Reply(std::string cmd, redisReply* redis_reply, ReplyStatus status,
+        std::string status_string);
   Reply(std::string cmd, ReplyData&& data);
 
   std::string server;
   ServerId server_id;
   std::string cmd;
   ReplyData data;
-  int status;
+  ReplyStatus status;
+  std::string status_string;
   double time = 0.0;
   logging::LogExtra log_extra;
 
@@ -257,8 +260,6 @@ class Reply final {
   bool IsUnusableInstanceError() const;
   bool IsReadonlyError() const;
   bool IsUnknownCommandError() const;
-  const std::string& StatusString() const;
-  static const std::string& StatusToString(int status);
   const logging::LogExtra& GetLogExtra() const;
   void FillSpanTags(tracing::Span& span) const;
 

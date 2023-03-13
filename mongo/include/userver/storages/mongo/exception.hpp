@@ -20,6 +20,12 @@ class InvalidConfigException : public MongoException {
   using MongoException::MongoException;
 };
 
+/// The current task has been cancelled, e.g. by deadline propagation
+class CancelledException : public MongoException {
+ public:
+  using MongoException::MongoException;
+};
+
 /// Nonexistent pool requested from the set
 class PoolNotFoundException : public MongoException {
   using MongoException::MongoException;

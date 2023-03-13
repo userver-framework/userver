@@ -186,30 +186,46 @@ class TypedResultSet {
   /** @name Row container interface */
   //@{
   /** @name Forward iteration */
-  const_iterator cbegin() const { return const_iterator{result_.pimpl_, 0}; }
-  const_iterator begin() const { return cbegin(); }
-  const_iterator cend() const { return const_iterator{result_.pimpl_, Size()}; }
-  const_iterator end() const { return cend(); }
+  const_iterator cbegin() const& { return const_iterator{result_.pimpl_, 0}; }
+  const_iterator begin() const& { return cbegin(); }
+  const_iterator cend() const& {
+    return const_iterator{result_.pimpl_, Size()};
+  }
+  const_iterator end() const& { return cend(); }
+  const_iterator cbegin() const&& { ReportMisuse(); }
+  const_iterator begin() const&& { ReportMisuse(); }
+  const_iterator cend() const&& { ReportMisuse(); }
+  const_iterator end() const&& { ReportMisuse(); }
   //@}
   //@{
   /** @name Reverse iteration */
-  const_reverse_iterator crbegin() const {
+  const_reverse_iterator crbegin() const& {
     return const_reverse_iterator(result_.pimpl_, Size() - 1);
   }
-  const_reverse_iterator rbegin() const { return crbegin(); }
-  const_reverse_iterator crend() const {
+  const_reverse_iterator rbegin() const& { return crbegin(); }
+  const_reverse_iterator crend() const& {
     return const_reverse_iterator(result_.pimpl_, npos);
   }
-  const_reverse_iterator rend() const { return crend(); }
+  const_reverse_iterator rend() const& { return crend(); }
+  const_reverse_iterator crbegin() const&& { ReportMisuse(); }
+  const_reverse_iterator rbegin() const&& { ReportMisuse(); }
+  const_reverse_iterator crend() const&& { ReportMisuse(); }
+  const_reverse_iterator rend() const&& { ReportMisuse(); }
   //@}
   /// @brief Access a row by index
   /// @throws RowIndexOutOfBounds if index is out of bounds
   // NOLINTNEXTLINE(readability-const-return-type)
-  reference operator[](size_type index) const {
+  reference operator[](size_type index) const& {
     return result_[index].template As<value_type>(kExtractTag);
   }
+  // NOLINTNEXTLINE(readability-const-return-type)
+  reference operator[](size_type) const&& { ReportMisuse(); }
   //@}
  private:
+  [[noreturn]] static void ReportMisuse() {
+    static_assert(!sizeof(T), "keep the TypedResultSet before using, please");
+  }
+
   ResultSet result_;
 };
 

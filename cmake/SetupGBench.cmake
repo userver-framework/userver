@@ -28,11 +28,6 @@ macro(userver_fetch_and_add_gbench_subdirectory)
     userver_add_gbench_subdirectory("third_party/gbench")
 endmacro()
 
-if (NOT USERVER_OPEN_SOURCE_BUILD)
-    userver_add_gbench_subdirectory("submodules/google-benchmark")
-    return()
-endif()
-
 option(USERVER_DOWNLOAD_PACKAGE_GBENCH "Download and setup gbench if no gbench of matching version was found" ${USERVER_DOWNLOAD_PACKAGES})
 if (USERVER_DOWNLOAD_PACKAGE_GBENCH)
     find_package(UserverGBench)

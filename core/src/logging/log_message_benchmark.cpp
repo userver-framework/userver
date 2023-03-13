@@ -1,5 +1,6 @@
 #include <benchmark/benchmark.h>
 
+#include <userver/logging/impl/logger_base.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/logging/logger.hpp>
 
@@ -9,17 +10,26 @@
 
 USERVER_NAMESPACE_BEGIN
 
+namespace {
+
+class NoopLogger final : public logging::impl::LoggerBase {
+ public:
+  NoopLogger() noexcept : LoggerBase(logging::Format::kRaw) {}
+  void Log(logging::Level, std::string_view) const override {}
+  void Flush() const override {}
+};
+
+}  // namespace
+
 class LogHelperBenchmark : public benchmark::Fixture {
   void SetUp(const benchmark::State&) override {
-    old_ = logging::SetDefaultLogger(logging::MakeNullLogger());
+    guard_.emplace(std::make_shared<NoopLogger>());
     logging::SetDefaultLoggerLevel(logging::Level::kInfo);
   }
 
-  void TearDown(const benchmark::State&) override {
-    if (old_) logging::SetDefaultLogger(std::exchange(old_, nullptr));
-  }
+  void TearDown(const benchmark::State&) override { guard_.reset(); }
 
-  logging::LoggerPtr old_;
+  std::optional<logging::DefaultLoggerGuard> guard_;
 };
 
 BENCHMARK_DEFINE_TEMPLATE_F(LogHelperBenchmark, LogNumber)

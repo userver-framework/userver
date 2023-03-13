@@ -144,7 +144,11 @@ ErrorMode Direction::TryHandleError(int error_code, size_t processed_bytes,
                                     Context&... context) {
   if (error_code == EINTR) {
     return ErrorMode::kProcessed;
-  } else if (error_code == EWOULDBLOCK || error_code == EAGAIN) {
+  } else if (error_code == EWOULDBLOCK
+#if EWOULDBLOCK != EAGAIN
+             || error_code == EAGAIN
+#endif
+  ) {
     if (processed_bytes != 0 && mode != TransferMode::kWhole) {
       return ErrorMode::kFatal;
     }

@@ -21,13 +21,13 @@ class RedisClientTransactionTest : public RedisClientTest {
     auto result = request.Get();
     transaction_ = GetClient()->Multi();
     return result;
-  };
+  }
 
   template <typename Result>
   void Get(storages::redis::Request<Result, void>&&) {
     transaction_->Exec(kDefaultCc).Get();
     transaction_ = GetClient()->Multi();
-  };
+  }
 
  private:
   storages::redis::TransactionPtr transaction_;
@@ -330,7 +330,7 @@ UTEST_F(RedisClientTransactionTest, Hset) {
   EXPECT_EQ(result.value(), "Hello");
   EXPECT_EQ(Get(client->Hset("hash", "field", "World")),
             storages::redis::HsetReply::kUpdated);
-};
+}
 
 UTEST_F(RedisClientTransactionTest, Hsetnx) {
   auto& client = GetTestClient();

@@ -21,7 +21,7 @@ Changelog news also go to the
 
 * Add web interface to the [uservice-dynconf](https://github.com/userver-framework/uservice-dynconf)
   * ✓ Add component to serve static pages
-* Migrate our internal CI to the github
+* ✓ Migrate userver-only related CI checks to the GithubCI
 * Migrate to upstream versions of formatters
 * ✓ Improve documentation
   * ✓ Improve @ref md_en_userver_framework_comparison
@@ -29,24 +29,59 @@ Changelog news also go to the
   * ✓ Add gRPC testsuite mock sample
   * ✓ Add reference sections for the Python fixtures
   * ✓ Add HTTP authentication sample
-* Improve experience with metrics
+* ✓ Improve experience with metrics
   * ✓ Add Prometheus metrics format
   * ✓ Add Graphite metrics format
-  * Provide a modern simple interface to write metrics
+  * ✓ Provide a modern simple interface to write metrics
 * Add chaos tests for drivers
-  * ✓ Chaos proxy implemented
+  * ✓ TCP chaos proxy implemented
+  * ✓ UDP chaos proxy implemented
   * ✓ Mongo
+  * ✓ HTTP Client
+  * DNS resolver
   * Redis
+  * PostgreSQL
   * Clickhouse
-  * Core
   * gRPC
 * Enable PostgreSQL pipelining
 * Implement and enable Deadline Propagation
+  * ✓ HTTP Client
+  * Mongo
+  * PostgreSQL
+  * Redis
+  * gRPC
 * ✓ Implement streaming API for the HTTP
 * Add basic Kafka driver.
 
 
 ## Changelog
+
+
+### Beta (February 2023)
+
+* tracing::Span now logs the location where it was constructed.
+* Now the string<>enum utils::TrivialBiMap mappings could be used within
+  storages::postgres::io::CppToUserPg. See @ref pg_enum for more info.
+* components::Logging now provides options for configuring the task processors
+  to do the asynchronous logging.
+* Redis driver now supports the `geosearch` and `unlink` commands.
+* DNS resolvers were switched to asynchronous mode by default.
+* UDP chaos proxy was implemented, see
+  @ref pytest_userver.chaos.UdpGate "chaos.UdpGate"
+* C++ Standard now could be explicitly controlled via the CMake
+  flag `CMAKE_CXX_STANDARD`.
+* Optimizations:
+  * Many metrics were moved to a faster utils::statistics::Writer.
+  * gRPC now allows concurrent execution of 1 Read and 1 Write on the same
+    Bidirectional stream.
+* Python dependencies for build are now automatically installed, thanks to
+  [Pavel Shuvalov](https://github.com/shuva10v) for the PR!
+* Added a Conan option to disable LTO, thanks to
+  [Oleg Burchakov](https://github.com/aarchetype) for the PR!
+* Diagnostic messages and docs were improved, including:
+  * In case of a typo in static config name the fixed name is now reported
+  * `error-injection` static option for components::Postgres was documented
+  * Fixed typos, thanks to [Ch0p1k3](https://github.com/Ch0p1k3) for the PR!
 
 
 ### Beta (January 2023)

@@ -125,10 +125,10 @@ Span::Impl::~Impl() {
 
   const auto* file_path = source_location_.file_name();
 
-  PutIntoLogger(logging::LogHelper(logging::DefaultLogger(), log_level_,
-                                   file_path, source_location_.line(),
-                                   source_location_.function_name(),
-                                   logging::LogHelper::Mode::kNoSpan)
+  PutIntoLogger(logging::LogHelper(
+                    logging::impl::DefaultLoggerRef(), log_level_, file_path,
+                    source_location_.line(), source_location_.function_name(),
+                    logging::LogHelper::Mode::kNoSpan)
                     .AsLvalue());
 }
 

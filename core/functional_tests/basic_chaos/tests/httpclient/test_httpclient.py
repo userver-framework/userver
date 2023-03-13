@@ -78,5 +78,3 @@ async def test_required_headers(call, gate, mock_test):
     assert response.status == 500
     assert all(key in response.headers for key in required_headers)
     assert gate.connections_count() == 0
-
-    gate.start_accepting()

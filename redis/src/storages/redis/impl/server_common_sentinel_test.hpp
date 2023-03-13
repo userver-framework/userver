@@ -1,8 +1,9 @@
 #pragma once
 
-#include <userver/storages/redis/impl/sentinel.hpp>
 #include <userver/storages/redis/impl/thread_pools.hpp>
-#include "mock_server_test.hpp"
+
+#include <storages/redis/impl/mock_server_test.hpp>
+#include <storages/redis/impl/sentinel.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

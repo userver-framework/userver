@@ -229,10 +229,6 @@ void TpLogger::Push(impl::async::Log&& action) const {
     UASSERT(overflow_policy_ == LoggerConfig::QueueOveflowBehavior::kDiscard ||
             !engine::current_task::GetCurrentTaskContextUnchecked());
 
-    // TODO: uncomment in TAXICOMMON-6088
-    // UASSERT_MSG(DefaultLogger().get() != this,
-    //            "Default logger should not be set to blocking mode");
-
     success = producer_.PushNoblock(std::move(action));
   }
 

@@ -3,6 +3,7 @@
 #include <gtest/gtest.h>
 
 #include <userver/logging/log.hpp>
+#include <userver/logging/logger.hpp>
 #include <userver/logging/stacktrace_cache.hpp>
 #include <userver/utils/mock_now.hpp>
 #include <utils/impl/static_registration.hpp>
@@ -35,6 +36,10 @@ void SetLogLevel(logging::Level log_level) {
     // A hack for avoiding Boost.Stacktrace memory leak
     logging::stacktrace_cache::GlobalEnableStacktrace(false);
   }
+
+  static logging::DefaultLoggerGuard logger{
+      logging::MakeStderrLogger("default", logging::Format::kTskv, log_level)};
+
   logging::SetDefaultLoggerLevel(log_level);
 }
 

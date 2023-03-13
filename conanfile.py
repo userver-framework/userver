@@ -120,7 +120,6 @@ class UserverConan(conans.ConanFile):
         cmake = conans.CMake(self)
         cmake.definitions['CMAKE_FIND_DEBUG_MODE'] = 'OFF'
 
-        cmake.definitions['USERVER_OPEN_SOURCE_BUILD'] = 'ON'
         cmake.definitions['USERVER_IS_THE_ROOT_PROJECT'] = 'OFF'
         cmake.definitions['USERVER_DOWNLOAD_PACKAGES'] = 'ON'
         cmake.definitions['USERVER_FEATURE_DWCAS'] = 'ON'

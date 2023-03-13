@@ -8,4 +8,5 @@ Various helper scripts and data that does not fit in other folders:
 * grpc - generators for the userver gRPC plugin
 * postgres - helper script to generate PostgreSQL headers from documentation
 * rabbitmq - installation scripts for the RabbitMQ server
-* redis - reddis commands generator (outdated?)
+* redis - redis commands generator (outdated?)
+* docker - make a docker image with all the dependencies for building userver

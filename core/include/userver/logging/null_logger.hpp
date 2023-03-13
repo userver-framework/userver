@@ -15,9 +15,18 @@ class LoggerBase;
 
 }  // namespace impl
 
+using LoggerRef = impl::LoggerBase&;
+using LoggerCRef = const impl::LoggerBase&;
 using LoggerPtr = std::shared_ptr<impl::LoggerBase>;
 
-/// @brief Creates a logger that drops all incoming messages
+/// @brief Returns a logger that drops all incoming messages
+/// @see components::Logging
+LoggerRef GetNullLogger() noexcept;
+
+/// @brief Creates a logger that drops all incoming messages.
+///
+/// Use GetNullLogger() is you need a reference to logger.
+///
 /// @see components::Logging
 LoggerPtr MakeNullLogger();
 

@@ -13,14 +13,14 @@
 #include <rapidjson/istreamwrapper.h>
 #include <rapidjson/ostreamwrapper.h>
 #include <rapidjson/writer.h>
+#include <boost/container/small_vector.hpp>
 
+#include <formats/json/impl/json_tree.hpp>
+#include <formats/json/impl/types_impl.hpp>
 #include <userver/formats/json/exception.hpp>
 #include <userver/formats/json/value.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
-
-#include <formats/json/impl/json_tree.hpp>
-#include <formats/json/impl/types_impl.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -35,13 +35,15 @@ std::string_view AsStringView(const impl::Value& jval) {
 }
 
 void CheckKeyUniqueness(const impl::Value* root) {
-  std::vector<impl::TreeIterFrame> stack;
+  using KeysStack = boost::container::small_vector<std::string_view,
+                                                   impl::kInitialStackDepth>;
+
+  impl::TreeStack stack;
   const impl::Value* value = root;
 
-  stack.reserve(impl::kInitialStackDepth);
   stack.emplace_back();  // fake "top" frame to avoid extra checks for an empty
                          // stack inside walker loop
-  std::vector<std::string_view> keys;
+  KeysStack keys;
   for (;;) {
     stack.back().Advance();
     if (value->IsObject()) {

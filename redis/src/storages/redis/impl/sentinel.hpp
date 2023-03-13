@@ -9,13 +9,14 @@
 
 #include <userver/storages/redis/impl/base.hpp>
 #include <userver/storages/redis/impl/command_options.hpp>
-#include <userver/storages/redis/impl/redis_stats.hpp>
+#include <userver/storages/redis/impl/keyshard.hpp>
 #include <userver/storages/redis/impl/request.hpp>
+#include <userver/storages/redis/impl/secdist_redis.hpp>
+#include <userver/storages/redis/impl/thread_pools.hpp>
 #include <userver/storages/redis/impl/types.hpp>
 #include <userver/storages/redis/impl/wait_connected_mode.hpp>
-#include "keyshard.hpp"
-#include "secdist_redis.hpp"
-#include "thread_pools.hpp"
+
+#include <storages/redis/impl/redis_stats.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

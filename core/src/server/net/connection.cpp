@@ -284,8 +284,9 @@ void Connection::HandleQueueItem(QueueItem& item) {
       auto request_task = std::move(item.second);
       request_task.Get();
     }
-  } catch (const engine::TaskCancelledException&) {
-    LOG_LIMITED_ERROR() << "Handler task was cancelled";
+  } catch (const engine::TaskCancelledException& e) {
+    LOG_LIMITED_ERROR() << "Handler task was cancelled with reason: "
+                        << ToString(e.Reason());
     auto& response = request.GetResponse();
     if (!response.IsReady()) {
       response.SetReady();

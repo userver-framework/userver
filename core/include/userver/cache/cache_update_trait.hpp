@@ -26,8 +26,11 @@ struct CacheDependencies;
 struct Config;
 
 /// @ingroup userver_base_classes
-/// @brief Base class for periodically updated caches
-/// @note Don't use directly, inherit from `CachingComponentBase` instead
+///
+/// @brief Base class for periodically updated caches.
+///
+/// @note Don't use directly, inherit from components::CachingComponentBase
+/// instead
 class CacheUpdateTrait {
  public:
   CacheUpdateTrait(CacheUpdateTrait&&) = delete;
@@ -37,6 +40,7 @@ class CacheUpdateTrait {
   /// @throws If `Update` throws
   void Update(UpdateType update_type);
 
+  /// @return name of the component
   const std::string& Name() const;
 
  protected:
@@ -82,10 +86,19 @@ class CacheUpdateTrait {
   engine::TaskProcessor& GetCacheTaskProcessor() const;
   /// @endcond
 
-  /// @brief Must override in a subclass
-  /// @note Must update statistics using `stats_scope`, and call
-  /// `CachingComponentBase::Set` if the cached data has changed
+  /// @brief Should be overridden in a derived class to implement the update
+  /// logic. The statistics should be updated using `stats_scope`, and call
+  /// `CachingComponentBase::Set` if the cached data has changed.
+  ///
+  /// @param type type of the update
+  /// @param last_update time of the last update (value of `now` from previous
+  /// invocation of Update or default constructed value if this is the first
+  /// Update).
+  /// @param now current time point
+  ///
   /// @throws Any `std::exception` on error
+  ///
+  /// @see @ref md_en_userver_caches
   virtual void Update(UpdateType type,
                       const std::chrono::system_clock::time_point& last_update,
                       const std::chrono::system_clock::time_point& now,

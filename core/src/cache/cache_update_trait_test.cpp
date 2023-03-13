@@ -45,9 +45,12 @@ class FakeCache final : public cache::CacheMockBase {
 
  private:
   void Update(cache::UpdateType type,
-              const std::chrono::system_clock::time_point&,
-              const std::chrono::system_clock::time_point&,
+              const std::chrono::system_clock::time_point& last_update,
+              const std::chrono::system_clock::time_point& now,
               cache::UpdateStatisticsScope&) override {
+    EXPECT_EQ(last_update, std::chrono::system_clock::time_point{})
+        << "Guarantee in docs of cache::CacheUpdateTrait::Update is broken";
+    EXPECT_NE(now, std::chrono::system_clock::time_point{});
     last_update_type_ = type;
   }
 

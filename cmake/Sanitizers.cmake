@@ -4,13 +4,7 @@ endif()
 
 set(USERVER_SANITIZE_ENUM "mem, addr, thread, ub")
 
-if (NOT USERVER_OPEN_SOURCE_BUILD)
-    set(SANITIZE "" CACHE STRING "Sanitizer, possible values: ${USERVER_SANITIZE_ENUM}")
-    set(USERVER_SANITIZE "${SANITIZE}" CACHE STRING "Sanitizer, possible values: ${USERVER_SANITIZE_ENUM}")
-else()
-    set(USERVER_SANITIZE "" CACHE STRING "Sanitizer, possible values: ${USERVER_SANITIZE_ENUM}")
-endif()
-
+set(USERVER_SANITIZE "" CACHE STRING "Sanitizer, possible values: ${USERVER_SANITIZE_ENUM}")
 
 add_library(sanitize-target INTERFACE)
 

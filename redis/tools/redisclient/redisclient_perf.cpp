@@ -2,17 +2,17 @@
 
 #include <boost/program_options.hpp>
 
-#include <storages/redis/impl/keyshard_impl.hpp>
+#include <engine/task/task_processor.hpp>
 #include <userver/engine/async.hpp>
 #include <userver/engine/run_standalone.hpp>
 #include <userver/logging/log.hpp>
+#include <userver/utest/using_namespace_userver.hpp>
+
 #include <userver/storages/redis/impl/base.hpp>
 #include <userver/storages/redis/impl/reply.hpp>
-#include <userver/storages/redis/impl/sentinel.hpp>
 
-#include <engine/task/task_processor.hpp>
-
-#include <userver/utest/using_namespace_userver.hpp>
+#include <storages/redis/impl/keyshard_impl.hpp>
+#include <storages/redis/impl/sentinel.hpp>
 
 struct Config {
   std::string log_level = "error";
@@ -123,7 +123,8 @@ void PrintStats(std::shared_ptr<redis::Sentinel> sentinel) {
   const auto& errors = total.error_count;
   std::cout << "errors: ";
   for (size_t i = 0; i < errors.size(); i++)
-    std::cout << redis::Reply::StatusToString(i) << ": " << errors[i] << "  ";
+    std::cout << redis::ToString(static_cast<redis::ReplyStatus>(i)) << ": "
+              << errors[i] << "  ";
   std::cout << std::endl;
 }
 

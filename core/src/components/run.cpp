@@ -39,31 +39,30 @@ namespace {
 
 class LogScope final {
  public:
-  LogScope(const std::string& init_log_path, logging::Format format) {
+  LogScope(const std::string& init_log_path, logging::Format format)
+      : guard_(MakeLogger(init_log_path, format)) {}
+
+ private:
+  static logging::LoggerPtr MakeLogger(const std::string& init_log_path,
+                                       logging::Format format) {
     if (init_log_path.empty()) {
-      return;
+      return logging::MakeStderrLogger("default", format);
     }
 
     try {
-      old_default_logger_ = logging::SetDefaultLogger(
-          logging::MakeFileLogger("default", init_log_path, format));
+      return logging::MakeFileLogger("default", init_log_path, format);
     } catch (const std::exception& e) {
       auto error_message = fmt::format(
-          "Setting initial logging path to '{}' failed. ", init_log_path);
-      LOG_ERROR() << error_message << e;
+          "Setting initial logging to '{}' failed. ", init_log_path);
+
+      LOG_ERROR_TO(logging::MakeStderrLogger("default", format))
+          << error_message << e;
+
       throw std::runtime_error(error_message + e.what());
     }
   }
 
-  ~LogScope() noexcept(false) {
-    if (old_default_logger_) {
-      logging::SetDefaultLogger(std::move(old_default_logger_));
-      old_default_logger_.reset();
-    }
-  }
-
- private:
-  logging::LoggerPtr old_default_logger_;
+  logging::DefaultLoggerGuard guard_;
 };
 
 void HandleJemallocSettings() {

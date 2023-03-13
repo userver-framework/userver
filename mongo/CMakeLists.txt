@@ -1,26 +1,15 @@
 project(userver-mongo CXX)
 
-if (USERVER_OPEN_SOURCE_BUILD)
-  if (USERVER_CONAN)
-    find_package(mongoc-1.0 REQUIRED)
-    set_target_properties(mongo::bson_static PROPERTIES IMPORTED_GLOBAL TRUE)
-    set_target_properties(mongo::mongoc_static PROPERTIES IMPORTED_GLOBAL TRUE)
-    add_library(bson ALIAS mongo::bson_static)
-    add_library(mongoc ALIAS mongo::mongoc_static)
-    find_package(cyrus-sasl REQUIRED)
-  else()
-    find_package(bson REQUIRED)
-    find_package(mongoc REQUIRED)
-  endif()
-else()
-  find_package(Helperbson-1.0)
-  find_package(Helpermongoc-1.0)
-
-  # Unify link names
+if (USERVER_CONAN)
+  find_package(mongoc-1.0 REQUIRED)
   set_target_properties(mongo::bson_static PROPERTIES IMPORTED_GLOBAL TRUE)
   set_target_properties(mongo::mongoc_static PROPERTIES IMPORTED_GLOBAL TRUE)
-  add_library(bson ALIAS mongo::bson_static)      
+  add_library(bson ALIAS mongo::bson_static)
   add_library(mongoc ALIAS mongo::mongoc_static)
+  find_package(cyrus-sasl REQUIRED)
+else()
+  find_package(bson REQUIRED)
+  find_package(mongoc REQUIRED)
 endif()
 
 file(GLOB_RECURSE SOURCES
@@ -75,12 +64,10 @@ if (USERVER_IS_THE_ROOT_PROJECT)
   )
   target_link_libraries(${PROJECT_NAME}_unittest userver-utest ${PROJECT_NAME})
 
-  if (USERVER_OPEN_SOURCE_BUILD)
-    target_compile_definitions(${PROJECT_NAME}_unittest
+  target_compile_definitions(${PROJECT_NAME}_unittest
       PUBLIC
         -DUSERVER_FEATURE_NO_PATCHED_BSON=1
-    )
-  endif()
+  )
 
   add_google_tests(${PROJECT_NAME}_unittest)
 

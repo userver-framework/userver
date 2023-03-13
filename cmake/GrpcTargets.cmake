@@ -2,25 +2,39 @@
 # wrappers. A separate target is required as GRPC generated headers require
 # relaxed compilation flags.
 
+get_filename_component(USERVER_DIR "${CMAKE_CURRENT_LIST_DIR}" DIRECTORY)
+set(PROTO_GRPC_USRV_PLUGIN "${USERVER_DIR}/scripts/grpc/protoc_usrv_plugin")
+
+# We only check the system pip protobuf package version once.
+if(NOT USERVER_IMPL_GRPC_REQUIREMENTS_CHECKED)
+  execute_process(
+    COMMAND "${PYTHON}"
+      -m pip install --disable-pip-version-check
+      -r "${USERVER_DIR}/scripts/grpc/requirements.txt"
+    RESULT_VARIABLE RESULT
+    WORKING_DIRECTORY "${USERVER_DIR}"
+  )
+  if(RESULT)
+    message(FATAL_ERROR "Protobuf requirements check failed")
+  endif(RESULT)
+  set(USERVER_IMPL_GRPC_REQUIREMENTS_CHECKED ON CACHE INTERNAL "")
+endif()
+
 if(USERVER_CONAN)
   # Can't use find_*, because it may find a system binary with a wrong version.
-  set(PROTOBUF_PROTOC ${Protobuf_PROTOC_EXECUTABLE})
-  if(NOT PROTOBUF_PROTOC)
-    message(FATAL_ERROR "protoc not found")
-  endif()
-  set(PROTO_GRPC_CPP_PLUGIN ${GRPC_CPP_PLUGIN_PROGRAM})
+  set(PROTOBUF_PROTOC "${Protobuf_PROTOC_EXECUTABLE}")
+  set(PROTO_GRPC_CPP_PLUGIN "${GRPC_CPP_PLUGIN_PROGRAM}")
 else()
-  if(NOT USERVER_OPEN_SOURCE_BUILD)
-    find_program(PROTOBUF_PROTOC NAMES yandex-taxi-protoc protoc)
-  else()
-    find_program(PROTOBUF_PROTOC NAMES protoc)
-  endif()
+  find_program(PROTOBUF_PROTOC NAMES protoc)
   find_program(PROTO_GRPC_CPP_PLUGIN grpc_cpp_plugin)
 endif()
 
-get_filename_component(USERVER_DIR ${CMAKE_CURRENT_LIST_DIR} DIRECTORY)
-set(PROTO_GRPC_USRV_PLUGIN ${USERVER_DIR}/scripts/grpc/protoc_usrv_plugin)
-set(USERVER_IMPL_GRPC_REQUIREMENTS_CHECKED OFF CACHE INTERNAL "")
+if(NOT PROTOBUF_PROTOC)
+  message(FATAL_ERROR "protoc not found")
+endif()
+if(NOT PROTO_GRPC_CPP_PLUGIN)
+  message(FATAL_ERROR "grpc_cpp_plugin not found")
+endif()
 
 function(generate_grpc_files)
   set(options)
@@ -67,7 +81,7 @@ function(generate_grpc_files)
   list(APPEND proto_dependencies_globs
     "${root_path}/*.proto"
     "${GRPC_PROTOBUF_INCLUDE_DIRS}/*.proto"
-    "${USERVER_ROOT_DIR}/scripts/grpc/*"
+    "${USERVER_DIR}/scripts/grpc/*"
   )
   file(GLOB_RECURSE proto_dependencies ${proto_dependencies_globs})
   list(GET proto_dependencies 0 newest_proto_dependency)
@@ -92,18 +106,6 @@ function(generate_grpc_files)
 
     set(did_generate_proto_sources FALSE)
     if("${newest_proto_dependency}" IS_NEWER_THAN "${GENERATED_PROTO_DIR}/${path_base}.pb.cc")
-      # We only check the system pip protobuf package version once,
-      # if we are going to run protoc during this Configure.
-      if(NOT USERVER_IMPL_GRPC_REQUIREMENTS_CHECKED)
-        execute_process(
-          COMMAND ${PYTHON}
-            -m pip install --disable-pip-version-check
-            -r ${USERVER_ROOT_DIR}/grpc/requirements.txt
-          WORKING_DIRECTORY ${USERVER_ROOT_DIR}
-        )
-        set(USERVER_IMPL_GRPC_REQUIREMENTS_CHECKED ON CACHE INTERNAL "")
-      endif()
-
       execute_process(
         COMMAND mkdir -p proto
         COMMAND ${PROTOBUF_PROTOC} ${include_options}

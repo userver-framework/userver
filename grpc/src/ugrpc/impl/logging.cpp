@@ -50,7 +50,7 @@ void LogFunction(::gpr_log_func_args* args) noexcept {
   const auto lvl = ToLogLevel(args->severity);
   if (!logging::ShouldLog(lvl)) return;
 
-  const auto logger = logging::DefaultLoggerOptional();
+  const auto& logger = logging::impl::DefaultLoggerRef();
   logging::LogHelper(logger, lvl, args->file, args->line, "") << args->message;
 
   if (lvl == logging::Level::kError) {

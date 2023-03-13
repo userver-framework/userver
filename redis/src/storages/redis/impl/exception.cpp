@@ -2,28 +2,27 @@
 
 #include <fmt/format.h>
 
-#include <userver/storages/redis/impl/base.hpp>
-#include <userver/storages/redis/impl/reply.hpp>
+#include <storages/redis/impl/reply_status_strings.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace redis {
 
 RequestFailedException::RequestFailedException(
-    const std::string& request_description, int status)
-    : Exception(fmt::format("{} request failed with status {} ({})",
-                            request_description, status,
-                            Reply::StatusToString(status))),
+    const std::string& request_description, ReplyStatus status)
+    : Exception(fmt::format("{} request failed with status '{}'",
+                            request_description,
+                            *kReplyStatusMap.TryFind(status))),
       status_(status) {}
 
-int RequestFailedException::GetStatus() const { return status_; }
+ReplyStatus RequestFailedException::GetStatus() const { return status_; }
 
-const std::string& RequestFailedException::GetStatusString() const {
-  return Reply::StatusToString(status_);
+std::string_view RequestFailedException::GetStatusString() const {
+  return *kReplyStatusMap.TryFind(status_);
 }
 
 bool RequestFailedException::IsTimeout() const {
-  return status_ == REDIS_ERR_TIMEOUT;
+  return status_ == ReplyStatus::kTimeoutError;
 }
 
 }  // namespace redis

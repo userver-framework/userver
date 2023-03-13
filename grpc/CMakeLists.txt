@@ -1,24 +1,24 @@
 project(userver-grpc CXX)
 
-if (USERVER_OPEN_SOURCE_BUILD)
-    if (USERVER_CONAN)
-        find_package(gRPC REQUIRED)
-        find_package(Protobuf REQUIRED)
-        set(GRPC_LIBRARY_VERSION "${gRPC_VERSION}")
-        set(GRPC_PROTOBUF_INCLUDE_DIRS "${CONAN_PROTOBUF_ROOT}/include" CACHE PATH INTERNAL)
-    else()
-        find_package(UserverGrpc REQUIRED)
-        find_package(UserverProtobuf REQUIRED)
-        add_library(Grpc ALIAS UserverGrpc)  # Unify link names
-        add_library(Protobuf ALIAS UserverProtobuf)  # Unify link names
-		set(GRPC_LIBRARY_VERSION "${UserverGrpc_VERSION}")
-        set(GRPC_PROTOBUF_INCLUDE_DIRS "${UserverProtobuf_INCLUDE_DIRS}" CACHE PATH INTERNAL)
-    endif()
+if (USERVER_CONAN)
+  find_package(gRPC REQUIRED)
+  find_package(Protobuf REQUIRED)
+  set(GRPC_LIBRARY_VERSION "${gRPC_VERSION}")
+  set(GRPC_PROTOBUF_INCLUDE_DIRS "${CONAN_PROTOBUF_ROOT}/include" CACHE PATH INTERNAL)
 else()
-    find_package(Grpc REQUIRED)
-    find_package(Protobuf REQUIRED)
-    set(GRPC_LIBRARY_VERSION "1.0.0")
-    set(GRPC_PROTOBUF_INCLUDE_DIRS "${Protobuf_INCLUDE_DIRS}" CACHE PATH INTERNAL)
+  find_package(UserverGrpc REQUIRED)
+  find_package(UserverProtobuf REQUIRED)
+  add_library(Grpc ALIAS UserverGrpc)  # Unify link names
+  add_library(Protobuf ALIAS UserverProtobuf)  # Unify link names
+  set(GRPC_LIBRARY_VERSION "${UserverGrpc_VERSION}")
+  set(GRPC_PROTOBUF_INCLUDE_DIRS "${UserverProtobuf_INCLUDE_DIRS}" CACHE PATH INTERNAL)
+endif()
+
+if (NOT GRPC_PROTOBUF_INCLUDE_DIRS)
+  message(FATAL_ERROR "Invalid Protobuf package")
+endif()
+if (NOT GRPC_LIBRARY_VERSION)
+  message(FATAL_ERROR "Invalid gRPC package")
 endif()
 
 add_library(${PROJECT_NAME}-deps INTERFACE)

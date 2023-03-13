@@ -1,5 +1,5 @@
 #include <storages/redis/impl/keyshard_impl.hpp>
-#include <userver/storages/redis/impl/sentinel.hpp>
+#include <storages/redis/impl/sentinel.hpp>
 
 #include <gtest/gtest.h>
 

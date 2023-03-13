@@ -909,6 +909,56 @@ UTEST_P(PostgreConnection, TransactionChunkedContainer) {
   trx.Commit();
 }
 
+namespace {
+/// [ExecuteDecomposeBulk]
+struct IdAndValue final {
+  int id{};
+  std::string value;
+};
+
+void InsertDecomposedInChunks(pg::Transaction& trx,
+                              const std::vector<IdAndValue>& rows) {
+  trx.ExecuteDecomposeBulk(
+      "INSERT INTO decomposed_chunked_array_test(id, value) "
+      "VALUES(UNNEST($1), UNNEST($2))",
+      rows);
+}
+/// [ExecuteDecomposeBulk]
+
+UTEST_P(PostgreConnection, TransactionDecomposedChunkedContainer) {
+  CheckConnection(GetConn());
+
+  GetConn()->Execute(
+      "create temporary table decomposed_chunked_array_test("
+      "id integer, value text)");
+
+  std::vector<IdAndValue> rows_to_insert(1001);
+  int index = 0;
+  std::generate(rows_to_insert.begin(), rows_to_insert.end(), [&index] {
+    const auto x = index++;
+    return IdAndValue{x, std::to_string(x)};
+  });
+
+  pg::Transaction trx{std::move(GetConn())};
+  UEXPECT_NO_THROW(InsertDecomposedInChunks(trx, rows_to_insert));
+  const auto inserted_rows =
+      trx.Execute("SELECT id, value FROM decomposed_chunked_array_test")
+          .AsContainer<std::vector<IdAndValue>>(pg::kRowTag);
+
+  // we don't define operator== on IdAndValue to not bloat the sample (and that
+  // operator could confuse people, like why is it needed there), so this
+  ASSERT_EQ(rows_to_insert.size(), inserted_rows.size());
+  for (std::size_t i = 0; i < rows_to_insert.size(); ++i) {
+    const auto eq = [](const auto& lhs, const auto& rhs) {
+      return lhs.id == rhs.id && lhs.value == rhs.value;
+    };
+    ASSERT_TRUE(eq(rows_to_insert[i], inserted_rows[i]));
+  }
+
+  trx.Commit();
+}
+}  // namespace
+
 }  // namespace
 
 USERVER_NAMESPACE_END

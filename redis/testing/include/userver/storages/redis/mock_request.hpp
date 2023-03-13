@@ -64,7 +64,8 @@ class MockRequestDataTimeout final : public RequestDataBase<ReplyType> {
 
   ReplyType Get(const std::string& request_description) override {
     throw USERVER_NAMESPACE::redis::RequestFailedException(
-        request_description, USERVER_NAMESPACE::redis::REDIS_ERR_TIMEOUT);
+        request_description,
+        USERVER_NAMESPACE::redis::ReplyStatus::kTimeoutError);
   }
 
   ReplyPtr GetRaw() override {

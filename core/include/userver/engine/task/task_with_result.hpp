@@ -8,6 +8,7 @@
 #include <utility>
 
 #include <userver/engine/exception.hpp>
+#include <userver/engine/impl/task_context_holder.hpp>
 #include <userver/engine/task/task.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/utils/assert.hpp>
@@ -32,19 +33,6 @@ class [[nodiscard]] TaskWithResult : public Task {
   ///
   /// Creates an invalid task.
   TaskWithResult() = default;
-
-  /// @brief Constructor, for internal use only
-  /// @param task_processor task processor used for execution of this task
-  /// @param importance specifies whether this task can be auto-cancelled
-  ///   in case of task processor overload
-  /// @param wrapped_call_ptr task body
-  /// @see Async()
-  TaskWithResult(
-      TaskProcessor& task_processor, Task::Importance importance,
-      Deadline deadline,
-      std::unique_ptr<utils::impl::WrappedCall<T>>&& wrapped_call_ptr)
-      : Task(task_processor, importance, Task::WaitMode::kSingleWaiter,
-             deadline, std::move(wrapped_call_ptr)) {}
 
   TaskWithResult(const TaskWithResult&) = delete;
   TaskWithResult& operator=(const TaskWithResult&) = delete;
@@ -71,6 +59,14 @@ class [[nodiscard]] TaskWithResult : public Task {
   }
 
   using Task::TryGetContextAccessor;
+
+  /// @cond
+  static constexpr WaitMode kWaitMode = WaitMode::kSingleWaiter;
+
+  // For internal use only.
+  explicit TaskWithResult(impl::TaskContextHolder&& context)
+      : Task(std::move(context)) {}
+  /// @endcond
 
  private:
   void EnsureValid() const {

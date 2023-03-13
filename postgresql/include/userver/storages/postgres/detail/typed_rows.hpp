@@ -109,7 +109,7 @@ class ConstTypedRowIterator : private Row {
   friend class TypedResultSet<T, ExtractionTag>;
 
   ConstTypedRowIterator(detail::ResultWrapperPtr res, size_type row)
-      : Row(res, row) {}
+      : Row{std::move(res), row} {}
   ConstTypedRowIterator& DoAdvance(difference_type distance) {
     this->Advance(distance * static_cast<int>(direction));
     return *this;

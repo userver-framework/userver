@@ -87,7 +87,7 @@ constexpr bool NeedsQuoteEscaping(char c) { return c == '\"' || c == '\\'; }
 
 }  // namespace
 
-LogHelper::LogHelper(LoggerPtr logger, Level level, std::string_view path,
+LogHelper::LogHelper(LoggerCRef logger, Level level, std::string_view path,
                      int line, std::string_view func, Mode mode) noexcept
     : pimpl_(Impl::Make(logger, level)) {
   try {
@@ -122,6 +122,12 @@ LogHelper::LogHelper(LoggerPtr logger, Level level, std::string_view path,
   }
 }
 
+LogHelper::LogHelper(const LoggerPtr& logger, Level level,
+                     std::string_view path, int line, std::string_view func,
+                     Mode mode) noexcept
+    : LogHelper(logger ? *logger : logging::GetNullLogger(), level, path, line,
+                func, mode) {}
+
 LogHelper::~LogHelper() {
   DoLog();
   ThreadLocalMemPool<Impl>::Push(std::move(pimpl_));
@@ -146,10 +152,10 @@ void LogHelper::DoLog() noexcept {
   }
 }
 
-std::unique_ptr<LogHelper::Impl> LogHelper::Impl::Make(LoggerPtr logger,
+std::unique_ptr<LogHelper::Impl> LogHelper::Impl::Make(LoggerCRef logger,
                                                        Level level) {
-  auto new_level = logger ? std::max(level, logger->GetLevel()) : level;
-  return {ThreadLocalMemPool<Impl>::Pop(std::move(logger), new_level)};
+  auto new_level = std::max(level, logger.GetLevel());
+  return {ThreadLocalMemPool<Impl>::Pop(logger, new_level)};
 }
 
 void LogHelper::InternalLoggingError(std::string_view message) noexcept {

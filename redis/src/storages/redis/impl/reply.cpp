@@ -260,10 +260,20 @@ void ReplyData::ExpectError(const std::string& request_description) const {
       ", got type=" + GetTypeString() + " data=" + ToDebugString());
 }
 
-Reply::Reply(std::string cmd, ReplyData&& data)
-    : cmd(std::move(cmd)), data(std::move(data)), status(REDIS_OK) {}
+Reply::Reply(std::string cmd, redisReply* redis_reply, ReplyStatus status)
+    : cmd(std::move(cmd)), data(redis_reply), status(status) {}
 
-bool Reply::IsOk() const { return status == REDIS_OK; }
+Reply::Reply(std::string cmd, redisReply* redis_reply, ReplyStatus status,
+             std::string status_string)
+    : cmd(std::move(cmd)),
+      data(redis_reply),
+      status(status),
+      status_string(std::move(status_string)) {}
+
+Reply::Reply(std::string cmd, ReplyData&& data)
+    : cmd(std::move(cmd)), data(std::move(data)), status(ReplyStatus::kOk) {}
+
+bool Reply::IsOk() const { return status == ReplyStatus::kOk; }
 
 bool Reply::IsLoggableError() const {
   /* In case of not loggable error just filter it out */
@@ -278,46 +288,6 @@ bool Reply::IsReadonlyError() const { return data.IsReadonlyError(); }
 
 bool Reply::IsUnknownCommandError() const {
   return data.IsUnknownCommandError();
-}
-
-const std::string& Reply::StatusString() const {
-  return StatusToString(status);
-}
-
-const std::string& Reply::StatusToString(int status) {
-  static const std::string kError = "error_from_hiredis";
-  static const std::string kOk = "OK";
-  static const std::string kOther = "other_error";
-  static const std::string kTimeout = "timeout";
-  static const std::string kNotReady = "redis_driver_not_ready";
-  static const std::string kUnknown = "unknown_status";
-  static const std::string kIo = "input_output_error";
-  static const std::string kEof = "EOF";
-  static const std::string kProtocol = "protocol_error";
-  static const std::string kOom = "OOM";
-
-  switch (status) {
-    case REDIS_ERR:
-      return kError;
-    case REDIS_OK:
-      return kOk;
-    case REDIS_ERR_OTHER:
-      return kOther;
-    case REDIS_ERR_IO:
-      return kIo;
-    case REDIS_ERR_EOF:
-      return kEof;
-    case REDIS_ERR_PROTOCOL:
-      return kProtocol;
-    case REDIS_ERR_OOM:
-      return kOom;
-    case REDIS_ERR_TIMEOUT:
-      return kTimeout;
-    case REDIS_ERR_NOT_READY:
-      return kNotReady;
-    default:
-      return kUnknown;
-  }
 }
 
 const logging::LogExtra& Reply::GetLogExtra() const { return log_extra; }

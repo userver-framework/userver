@@ -87,7 +87,7 @@ std::size_t Ins(storages::postgres::Transaction& tr, std::string_view key) {
 ---
 <div class="landing-container">
   <div class="landing-intro-center">
-      Speed of C++, simplicity of Python, coroutine model of Go.
+      Speed of C++, simplicity of Python.
   </div>
 
   <div class="landing-intro-center">

@@ -7,10 +7,10 @@
 
 #include <storages/redis/client_impl.hpp>
 #include <storages/redis/impl/keyshard_impl.hpp>
+#include <storages/redis/impl/sentinel.hpp>
 #include <storages/redis/impl/subscribe_sentinel.hpp>
 #include <storages/redis/subscribe_client_impl.hpp>
 #include <storages/redis/util_redistest.hpp>
-#include <userver/storages/redis/impl/sentinel.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -281,8 +281,7 @@ UTEST(ClientCluster, DISABLED_LongWork) {
         req.Get();
       } catch (const redis::RequestFailedException& ex) {
         ++num_write_errors;
-        std::cerr << "Set failed with status " << ex.GetStatus() << " ("
-                  << ex.GetStatusString() << ")";
+        std::cerr << "Set failed with status " << ex.GetStatusString();
       }
     }
 
@@ -292,8 +291,7 @@ UTEST(ClientCluster, DISABLED_LongWork) {
         req.Get();
       } catch (const redis::RequestFailedException& ex) {
         ++num_read_errors;
-        std::cerr << "Get failed with status " << ex.GetStatus() << " ("
-                  << ex.GetStatusString() << ")";
+        std::cerr << "Get failed with status " << ex.GetStatusString();
       }
     }
 
@@ -303,8 +301,7 @@ UTEST(ClientCluster, DISABLED_LongWork) {
         req.Get();
       } catch (const redis::RequestFailedException& ex) {
         ++num_write_errors;
-        std::cerr << "Del failed with status " << ex.GetStatus() << " ("
-                  << ex.GetStatusString() << ")";
+        std::cerr << "Del failed with status " << ex.GetStatusString();
       }
     }
 

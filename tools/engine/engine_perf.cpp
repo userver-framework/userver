@@ -124,10 +124,17 @@ void DoWork(const Config& config) {
 int main(int argc, char* argv[]) {
   const Config config = ParseConfig(argc, argv);
 
-  if (!config.logfile.empty())
-    logging::SetDefaultLogger(logging::MakeFileLogger(
-        "default", config.logfile, logging::Format::kTskv,
-        logging::LevelFromString(config.log_level)));
+  logging::LoggerPtr logger;
+  const auto level = logging::LevelFromString(config.log_level);
+  if (!config.logfile.empty()) {
+    logger = logging::MakeFileLogger("default", config.logfile,
+                                     logging::Format::kTskv, level);
+  } else {
+    logger =
+        logging::MakeStderrLogger("default", logging::Format::kTskv, level);
+  }
+  logging::DefaultLoggerGuard guard{logger};
+
   LOG_WARNING() << "Starting using requests=" << config.count
                 << " coroutines=" << config.coroutines;
 
