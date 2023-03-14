@@ -77,9 +77,9 @@ LruBase<T, U, Hash, Equal, CachePolicy::kSLRU>::LruBase(size_t max_size,
                                                         double probation_part)
     : probation_part_(probation_part),
       probation_size_(std::round(max_size * probation_part)),
+      protected_size_(std::round(max_size * (1. - probation_part))),
       probation_(static_cast<size_t>(std::round(max_size * probation_part)) + 1,
                  hash, equal),
-      protected_size_(std::round(max_size * (1. - probation_part))),
       protected_(
           static_cast<size_t>(std::round(max_size * (1 - probation_part))) + 1,
           hash, equal) {}

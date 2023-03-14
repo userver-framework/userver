@@ -236,8 +236,8 @@ LruCacheComponent<Key, Value, Hash, Equal, Policy>::GetStaticConfigSchema() {
   return impl::GetLruCacheComponentBaseSchema();
 }
 
-template <typename Key, typename Value, typename Hash, typename Equal>
-void LruCacheComponent<Key, Value, Hash, Equal>::GetAndWrite(
+template <typename Key, typename Value, typename Hash, typename Equal, CachePolicy Policy>
+void LruCacheComponent<Key, Value, Hash, Equal, Policy>::GetAndWrite(
     dump::Writer& writer) const {
   if constexpr (kCacheIsDumpable) {
     cache_->Write(writer);
@@ -246,8 +246,8 @@ void LruCacheComponent<Key, Value, Hash, Equal>::GetAndWrite(
   }
 }
 
-template <typename Key, typename Value, typename Hash, typename Equal>
-void LruCacheComponent<Key, Value, Hash, Equal>::ReadAndSet(
+template <typename Key, typename Value, typename Hash, typename Equal, CachePolicy Policy>
+void LruCacheComponent<Key, Value, Hash, Equal, Policy>::ReadAndSet(
     dump::Reader& reader) {
   if constexpr (kCacheIsDumpable) {
     cache_->Read(reader);

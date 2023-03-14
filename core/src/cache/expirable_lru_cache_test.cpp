@@ -50,7 +50,8 @@ TYPED_UTEST_SUITE(LruCacheWrapper, PolicyTypes);
 
 namespace {
 
-void WriteAndReadFromDump(SimpleCache& cache) {
+template <typename Cache>
+void WriteAndReadFromDump(Cache& cache) {
   const auto cache_size_before = cache.GetSizeApproximate();
   dump::MockWriter writer;
   cache.Write(writer);
@@ -260,6 +261,29 @@ TYPED_UTEST(ExpirableLruCache, Expire) {
   counter->Flush();
   EXPECT_EQ(2, cache.Get(key, UpdateValue(counter, 2)));
   EXPECT_EQ(Counter::One(), *counter);
+}
+
+TYPED_UTEST(ExpirableLruCache, DumpAndChangeMaxLiftime) {
+  auto counter = std::make_shared<Counter>();
+
+  auto cache = TestFixture::CreateSimpleCache();
+  cache.SetMaxLifetime(std::chrono::seconds(10));
+  SimpleCacheKey key = "my-key";
+
+  utils::datetime::MockNowSet(std::chrono::system_clock::now());
+
+  counter->Flush();
+  EXPECT_EQ(1, cache.Get(key, UpdateValue(counter, 1)));
+  EXPECT_EQ(Counter::One(), *counter);
+  WriteAndReadFromDump(cache);
+
+  EXPECT_EQ(1, cache.Get(key, UpdateNever()));
+
+  cache.SetMaxLifetime(std::chrono::seconds(1));
+  utils::datetime::MockSleep(std::chrono::seconds(2));
+  counter->Flush();
+  EXPECT_EQ(std::nullopt, cache.GetOptionalNoUpdate(key));
+  EXPECT_EQ(Counter::Zero(), *counter);
 }
 
 TYPED_UTEST(ExpirableLruCache, DefaultNoExpire) {
