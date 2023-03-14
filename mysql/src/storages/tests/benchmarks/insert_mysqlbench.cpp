@@ -28,7 +28,8 @@ void insert_retrieve(benchmark::State& state) {
       tests::TmpTable table{"Id INT NOT NULL PRIMARY KEY, Value TEXT NOT NULL"};
       state.ResumeTiming();
 
-      cluster->InsertMany(
+      cluster->ExecuteBulk(
+          ClusterHostType::kMaster,
           table.FormatWithTableName("INSERT INTO {} VALUES(?, ?)"),
           rows_to_insert);
 
@@ -88,7 +89,7 @@ void batch_insert(benchmark::State& state) {
       };
       state.ResumeTiming();
 
-      cluster->InsertMany(query, rows_to_insert);
+      cluster->ExecuteBulk(ClusterHostType::kMaster, query, rows_to_insert);
 
       state.PauseTiming();
       const auto db_rows =

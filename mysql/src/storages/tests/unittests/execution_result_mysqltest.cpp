@@ -39,8 +39,12 @@ UTEST(ExecutionResult, BatchInsert) {
   TmpTable table{"ID INT NOT NULL"};
 
   std::vector<std::int32_t> ids{1, 2, 3, 4, 5, 6, 7};
-  const auto res = cluster->InsertManyMapped<DbRow>(
-      table.FormatWithTableName("INSERT INTO {} VALUES(?)"), ids);
+  const auto res =
+      cluster
+          ->ExecuteBulkMapped<DbRow>(
+              ClusterHostType::kMaster,
+              table.FormatWithTableName("INSERT INTO {} VALUES(?)"), ids)
+          .AsExecutionResult();
 
   EXPECT_EQ(res.rows_affected, 7);
   EXPECT_EQ(res.last_insert_id, 0);
@@ -108,8 +112,13 @@ UTEST(ExecutionResult, BatchUpdate) {
     values.push_back(DbValue{"some text"});
   }
 
-  const auto insert_res = cluster->InsertMany(
-      table.FormatWithTableName("INSERT INTO {}(Value) VALUES(?)"), values);
+  const auto insert_res =
+      cluster
+          ->ExecuteBulk(
+              ClusterHostType::kMaster,
+              table.FormatWithTableName("INSERT INTO {}(Value) VALUES(?)"),
+              values)
+          .AsExecutionResult();
   EXPECT_EQ(insert_res.rows_affected, kRowsCount);
   // When performing a multi insert prepared statement, mysql_stmt_insert_id()
   // will return the value of the first row.
@@ -123,14 +132,18 @@ UTEST(ExecutionResult, BatchUpdate) {
   auto db_rows =
       table.DefaultExecute("SELECT Id, Value FROM {}").AsVector<DbRowIdValue>();
 
-  const auto no_update_res = cluster->InsertMany(upsert_query, db_rows);
+  const auto no_update_res =
+      cluster->ExecuteBulk(ClusterHostType::kMaster, upsert_query, db_rows)
+          .AsExecutionResult();
   EXPECT_EQ(no_update_res.rows_affected, 0);
   EXPECT_EQ(no_update_res.last_insert_id, 0);
 
   for (auto& [k, v] : db_rows) {
     v.push_back('a');
   }
-  const auto update_res = cluster->InsertMany(upsert_query, db_rows);
+  const auto update_res =
+      cluster->ExecuteBulk(ClusterHostType::kMaster, upsert_query, db_rows)
+          .AsExecutionResult();
   EXPECT_EQ(update_res.rows_affected, kRowsCount * 2);
   EXPECT_EQ(update_res.last_insert_id, kRowsCount);
 

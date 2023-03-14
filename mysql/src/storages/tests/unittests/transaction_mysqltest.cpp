@@ -129,7 +129,8 @@ UTEST(Transaction, InsertOne) {
     const Row row{1, "some text"};
 
     auto transaction = meta.table.Begin();
-    transaction.InsertOne(meta.GetInsertQuery(), row);
+    transaction.ExecuteDecompose(ClusterHostType::kMaster,
+                                 meta.GetInsertQuery(), row);
 
     EXPECT_EQ(transaction.Execute(meta.GetSelectQuery()).AsSingleRow<Row>(),
               row);
@@ -148,7 +149,8 @@ UTEST(Transaction, InsertMany) {
     const std::vector<Row> rows{{1, "some text"}, {2, "other text"}};
 
     auto transaction = meta.table.Begin();
-    transaction.InsertMany(meta.GetInsertQuery(), rows);
+    transaction.ExecuteBulk(ClusterHostType::kMaster, meta.GetInsertQuery(),
+                            rows);
 
     EXPECT_EQ(transaction.Execute(meta.GetSelectQuery()).AsVector<Row>(), rows);
 

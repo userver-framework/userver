@@ -125,7 +125,8 @@ UTEST(StreamedResult, Works) {
     rows_to_insert.push_back(
         {static_cast<std::int32_t>(i), utils::generators::GenerateUuid()});
 
-    cluster->InsertOne(
+    cluster->ExecuteDecompose(
+        ClusterHostType::kMaster,
         table.FormatWithTableName("INSERT INTO {}(Id, Value) VALUES(?, ?)"),
         rows_to_insert.back());
   }
@@ -182,7 +183,8 @@ UTEST(Cluster, InsertMany) {
         {i, fmt::format("{}: {}", i, long_string_to_avoid_sso)});
   }
 
-  cluster->InsertMany(
+  cluster->ExecuteBulk(
+      ClusterHostType::kMaster,
       table.FormatWithTableName("INSERT INTO {}(Id, Value) VALUES(?, ?)"),
       rows_to_insert);
 
@@ -207,7 +209,8 @@ UTEST(Cluster, UpdateMany) {
     rows_to_insert.push_back({i, long_string_to_avoid_sso});
   }
 
-  cluster->InsertMany(
+  cluster->ExecuteBulk(
+      ClusterHostType::kMaster,
       table.FormatWithTableName("INSERT INTO {}(Id, Value) VALUES(?, ?)"),
       rows_to_insert);
 
@@ -220,7 +223,8 @@ UTEST(Cluster, UpdateMany) {
   for (auto& row : rows_to_insert) {
     row.value = another_long_string;
   }
-  cluster->InsertMany(
+  cluster->ExecuteBulk(
+      ClusterHostType::kMaster,
       table.FormatWithTableName("INSERT INTO {}(Id, Value) VALUES(?, ?) ON "
                                 "DUPLICATE KEY UPDATE Value=VALUES(Value)"),
       rows_to_insert);
@@ -282,7 +286,8 @@ UTEST(ShowCase, BatchInsert) {
         {i, "i am just some random string, don't mind me"});
   }
 
-  cluster->InsertMany(
+  cluster->ExecuteBulk(
+      ClusterHostType::kMaster,
       table.FormatWithTableName("INSERT INTO {}(Id, Value) VALUES(?, ?)"),
       rows_to_insert);
 }
@@ -312,7 +317,8 @@ UTEST(Cluster, MappedBatchInsert) {
   TmpTable table{cluster, "Id INT NOT NULL, Username TEXT NOT NULL"};
   std::vector<UserRow> users{{1, "Ivan", "Trofimov"}, {2, "John", "Doe"}};
 
-  cluster->InsertManyMapped<DbRow>(
+  cluster->ExecuteBulkMapped<DbRow>(
+      ClusterHostType::kMaster,
       table.FormatWithTableName("INSERT INTO {}(Id, Username) VALUES(?, ?)"),
       users);
 

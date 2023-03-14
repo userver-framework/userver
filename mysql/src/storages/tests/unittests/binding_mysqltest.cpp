@@ -127,7 +127,8 @@ UTEST(OutputBinding, AllSupportedDates) {
 
   const AllSupportedDates row_to_insert{DateTime{now}, Date{now}, now};
 
-  cluster->InsertOne(
+  cluster->ExecuteDecompose(
+      ClusterHostType::kMaster,
       table.FormatWithTableName("INSERT INTO {} VALUES(?, ?, ?)"),
       row_to_insert);
 
@@ -166,9 +167,11 @@ UTEST(OutputBinding, AllSupportedStrings) {
   const AllSupportedStrings row_to_insert{
       "varchar", "varbinary",  "tinyblob",   "tinytext", "blob",
       "text",    "mediumblob", "mediumtext", "longblob", "longtext"};
-  cluster->InsertOne(table.FormatWithTableName(
-                         "INSERT INTO {} VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"),
-                     row_to_insert);
+  cluster->ExecuteDecompose(
+      ClusterHostType::kMaster,
+      table.FormatWithTableName(
+          "INSERT INTO {} VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"),
+      row_to_insert);
 
   const auto db_row =
       table

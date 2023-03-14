@@ -25,7 +25,7 @@ void select(benchmark::State& state) {
     const engine::Deadline deadline{};
     for (auto _ : state) {
       const auto rows =
-          cluster->Select(ClusterHostType::kMaster, query).AsVector<Row>();
+          cluster->Execute(ClusterHostType::kMaster, query).AsVector<Row>();
     }
   });
 }
@@ -67,7 +67,8 @@ void select_many_small_columns(benchmark::State& state) {
       boost::pfr::for_each_field(row, [i](auto& field) { field = i; });
     }
 
-    cluster->InsertMany(
+    cluster->ExecuteBulk(
+        ClusterHostType::kMaster,
         table.FormatWithTableName(
             "INSERT INTO {} VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"),
         rows_to_insert);
@@ -76,7 +77,7 @@ void select_many_small_columns(benchmark::State& state) {
         "SELECT a, b, c, d, e, f, g, h, j, k FROM {}");
     for (auto _ : state) {
       const auto rows =
-          cluster->Select(ClusterHostType::kMaster, query).AsVector<Row>();
+          cluster->Execute(ClusterHostType::kMaster, query).AsVector<Row>();
 
       state.PauseTiming();
       if (rows_to_insert != rows) {

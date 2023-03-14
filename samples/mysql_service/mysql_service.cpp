@@ -89,9 +89,9 @@ formats::json::Value KeyValue::HandleRequestJsonThrow(
 
 formats::json::Value KeyValue::InsertValues(
     const formats::json::Value& json_request) const {
-  mysql_->InsertMany({},
-                     "INSERT INTO key_value_table(`key`, value) VALUES(?, ?)",
-                     json_request["data"].As<std::vector<Row>>());
+  mysql_->ExecuteBulk(storages::mysql::ClusterHostType::kMaster,
+                      "INSERT INTO key_value_table(`key`, value) VALUES(?, ?)",
+                      json_request["data"].As<std::vector<Row>>());
 
   return {};
 }
@@ -100,8 +100,8 @@ formats::json::Value KeyValue::GetValues() const {
   formats::json::ValueBuilder builder{};
   builder["values"] =
       mysql_
-          ->Select(userver::storages::mysql::ClusterHostType::kMaster,
-                   "SELECT `key`, value FROM key_value_table")
+          ->Execute(userver::storages::mysql::ClusterHostType::kMaster,
+                    "SELECT `key`, value FROM key_value_table")
           .AsVector<Row>();
 
   return builder.ExtractValue();

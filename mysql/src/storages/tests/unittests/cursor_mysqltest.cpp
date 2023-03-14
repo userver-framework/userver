@@ -30,7 +30,8 @@ UTEST(Cursor, Works) {
     rows_to_insert.push_back(
         {static_cast<std::int32_t>(i), utils::generators::GenerateUuid()});
 
-    cluster->InsertOne(
+    cluster->ExecuteDecompose(
+        ClusterHostType::kMaster,
         table.FormatWithTableName("INSERT INTO {}(Id, Value) VALUES(?, ?)"),
         rows_to_insert.back());
   }
@@ -59,7 +60,8 @@ UTEST(Cursor, StatementReuseWorks) {
     rows_to_insert.push_back(
         {static_cast<std::int32_t>(i), utils::generators::GenerateUuid()});
 
-    cluster->InsertOne(
+    cluster->ExecuteDecompose(
+        ClusterHostType::kMaster,
         table.FormatWithTableName("INSERT INTO {}(Id, Value) VALUES(?, ?)"),
         rows_to_insert.back());
   }

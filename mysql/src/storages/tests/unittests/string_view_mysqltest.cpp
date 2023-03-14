@@ -22,7 +22,8 @@ UTEST(StringView, WorksWithSingleInsert) {
   TmpTable table{"Value TEXT NOT NULL"};
 
   const RowToInsert row_to_insert{"hi from std::string_view"};
-  table.GetCluster()->InsertOne(
+  table.GetCluster()->ExecuteDecompose(
+      ClusterHostType::kMaster,
       table.FormatWithTableName("INSERT INTO {} VALUES(?)"), row_to_insert);
 
   const auto db_row =
@@ -34,7 +35,8 @@ UTEST(StringView, WorksWithBatchInsert) {
   TmpTable table{"Value TEXT NOT NULL"};
 
   std::vector<RowToInsert> rows_to_insert{{"first value"}, {"second value"}};
-  table.GetCluster()->InsertMany(
+  table.GetCluster()->ExecuteBulk(
+      ClusterHostType::kMaster,
       table.FormatWithTableName("INSERT INTO {} VALUES(?)"), rows_to_insert);
 
   const auto db_rows =

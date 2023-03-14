@@ -20,10 +20,10 @@ UTEST(ShowCase, MainPage) {
   };
   std::vector<Developer> best_developers =
       cluster
-          ->Select(ClusterHostType::kMaster,
-                   "SELECT id, loc_written FROM Devs "
-                   "ORDER BY loc_written DESC LIMIT ?",
-                   3)
+          ->Execute(ClusterHostType::kMaster,
+                    "SELECT id, loc_written FROM Devs "
+                    "ORDER BY loc_written DESC LIMIT ?",
+                    3)
           .AsVector<Developer>();
   // your top 3 best devs are right here!
   /// [uMySQL usage sample - main page]

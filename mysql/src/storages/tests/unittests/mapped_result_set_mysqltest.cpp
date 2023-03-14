@@ -75,12 +75,13 @@ UTEST(MappedResultSet, MappedVectorWorks) {
       ClusterHostType::kMaster,
       "CREATE TABLE Users(first_name TEXT NOT NULL, last_name TEXT NOT NULL)");
 
-  cluster->InsertOne("INSERT INTO Users VALUES(?, ?)",
-                     DbUser{"Ivan", "Trofimov"});
+  cluster->ExecuteDecompose(ClusterHostType::kMaster,
+                            "INSERT INTO Users VALUES(?, ?)",
+                            DbUser{"Ivan", "Trofimov"});
 
   const auto users = cluster
-                         ->Select(ClusterHostType::kMaster,
-                                  "SELECT first_name, last_name FROM Users")
+                         ->Execute(ClusterHostType::kMaster,
+                                   "SELECT first_name, last_name FROM Users")
                          .MapFrom<DbUser>()
                          .AsVector<std::string>();
   ASSERT_EQ(users.size(), 1);
