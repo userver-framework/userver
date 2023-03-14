@@ -45,6 +45,9 @@ class LogScope final {
  private:
   static logging::LoggerPtr MakeLogger(const std::string& init_log_path,
                                        logging::Format format) {
+    if (init_log_path == "@null") {
+      return logging::MakeNullLogger();
+    }
     if (init_log_path.empty()) {
       return logging::MakeStderrLogger("default", format);
     }
