@@ -39,6 +39,8 @@ inline const ConfigId kConfigId = Register(&FactoryFor<Key>);
 
 class SnapshotData final {
  public:
+  SnapshotData() = default;
+
   SnapshotData(const std::vector<KeyValue>& config_variables);
 
   SnapshotData(const DocsMap& defaults, const std::vector<KeyValue>& overrides);
@@ -58,6 +60,8 @@ class SnapshotData final {
       impl::WrapGetError(ex, typeid(VariableType));
     }
   }
+
+  bool IsEmpty() const noexcept;
 
  private:
   const std::any& Get(impl::ConfigId id) const;
