@@ -298,7 +298,7 @@ SERVICE_NAME=hello_service docker-compose run --rm userver-service-sample
 - execute commands in userver dev environment:
 ```
 bash
-docker-compose run --rm userver-debian bash
+docker-compose run --rm userver-ubuntu bash
 ```
 
 
@@ -306,15 +306,15 @@ Each step of the `userver-tests` could be executed separately:
 
 Start CMake:
 ```
-docker-compose run --rm userver-debian bash -c 'cmake $CMAKE_OPTS -B./build -S./'
+docker-compose run --rm userver-ubuntu bash -c 'cmake $CMAKE_OPTS -B./build -S./'
 ```
 Build userver:
 ```
-docker-compose run --rm userver-debian bash -c 'cd /userver/build && make -j $(nproc)'
+docker-compose run --rm userver-ubuntu bash -c 'cd /userver/build && make -j $(nproc)'
 ```
 Run all test:
 ```
-docker-compose run --rm userver-debian bash -c 'cd /userver/build && ctest -V'
+docker-compose run --rm userver-ubuntu bash -c 'cd /userver/build && ctest -V'
 ```
 
 
