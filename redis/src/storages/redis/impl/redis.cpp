@@ -1071,10 +1071,15 @@ void Redis::RedisImpl::OnRedisReply(redisAsyncContext* c, void* r,
                                     void* privdata) noexcept {
   auto* impl = static_cast<Redis::RedisImpl*>(c->data);
   UASSERT(impl != nullptr);
-  UASSERT(r || c->err != REDIS_OK);
   try {
-    impl->OnRedisReplyImpl(static_cast<redisReply*>(r), privdata, c->err,
-                           c->errstr);
+    if (r || c->err != REDIS_OK) {
+      impl->OnRedisReplyImpl(static_cast<redisReply*>(r), privdata, c->err,
+                             c->errstr);
+    } else {
+      // redisAsyncDisconnect causes empty replies with OK status,
+      // translate to something sensible.
+      impl->OnRedisReplyImpl(nullptr, privdata, REDIS_ERR_EOF, "Disconnecting");
+    }
   } catch (const std::exception& ex) {
     LOG_ERROR() << "OnRedisReplyImpl() failed: " << ex;
   }

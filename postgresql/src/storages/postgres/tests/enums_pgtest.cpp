@@ -62,7 +62,7 @@ struct CppToUserPg<Rainbow> : EnumMappingBase<Rainbow> {
 
 // this is used as a code snippet in documentation, clang-format makes it ugly
 // clang-format off
-/*! [C++ to Pg TrivialMap_mapping] */
+/*! [C++ to Pg TrivialBiMap mapping] */
 namespace storages::postgres::io {
 // This specialization MUST go to the header together with the mapped type
 template <>
@@ -79,7 +79,7 @@ struct CppToUserPg<AnotherRainbow> : EnumMappingBase<AnotherRainbow> {
       };
 };
 }  // namespace storages::postgres::io
-/*! [C++ to Pg TrivialMap_mapping] */
+/*! [C++ to Pg TrivialBiMap mapping] */
 // clang-format on
 
 // Reopen the namespace not to get to the code snippet

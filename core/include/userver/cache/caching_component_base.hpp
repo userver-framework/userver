@@ -157,7 +157,11 @@ CachingComponentBase<T>::CachingComponentBase(const ComponentConfig& config,
                                               const ComponentContext& context)
     : LoggableComponentBase(config, context),
       cache::CacheUpdateTrait(config, context),
-      event_channel_(components::GetCurrentComponentName(config)) {
+      event_channel_(components::GetCurrentComponentName(config),
+                     [this](auto& function) {
+                       const auto ptr = cache_.ReadCopy();
+                       if (ptr) function(ptr);
+                     }) {
   const auto initial_config = GetConfig();
 }
 
