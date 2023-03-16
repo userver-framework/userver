@@ -1,6 +1,10 @@
 # main system for docker
 FROM ubuntu:22.04
 
+ARG TARGETARCH
+ARG TARGETVARIANT
+RUN echo "*********** ${TARGETARCH}/${TARGETVARIANT} **********"
+
 # Set UTC timezone
 ENV TZ=Etc/UTC
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
@@ -33,8 +37,6 @@ RUN apt-get update && apt-get install -y --allow-unauthenticated \
 	libcctz-dev \
 	libhttp-parser-dev \
 	libjemalloc-dev \
-	libmongoc-dev \
-	libbson-dev \
 	libldap2-dev \
 	libpq-dev \
 	postgresql-server-dev-all \
@@ -64,42 +66,47 @@ RUN apt-get update && apt-get install -y --allow-unauthenticated \
 	dirmngr \
 	libcrypto++-dev \
 	libabsl-dev \
-	liblz4-dev
+	liblz4-dev \
+	postgresql-common \
+	locales
 
-RUN apt-get clean all
+RUN if [[ $TARGETARCH == "amd64" ]]; then apt install -y \
+	libmongoc-dev libbson-dev else \
+	echo "Skip install mongoc and bson packages: not support '${TARGETARCH}/${TARGETVARIANT}'"; fi
+
+RUN apt clean all
 
 
 # add clickhouse repositories
-RUN sudo apt-get install -y apt-transport-https ca-certificates dirmngr
-RUN sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 8919F6BD2B48D754
-
-RUN echo "deb https://packages.clickhouse.com/deb stable main" | sudo tee \
-    /etc/apt/sources.list.d/clickhouse.list
+RUN if [[ $TARGETARCH == "amd64"]]; then \
+	apt get install -y apt-transport-https ca-certificates dirmngr \
+	&& apt key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 8919F6BD2B48D754 \
+	&& echo "deb https://packages.clickhouse.com/deb stable main" | sudo tee \
+    /etc/apt/sources.list.d/clickhouse.list; \
+	else echo "Skip add clickhouse repo: not supports"; fi
 
 # add mongodb repositories
-RUN wget -qO - https://www.mongodb.org/static/pgp/server-5.0.asc | sudo apt-key add -
+RUN if [[ $TARGETARCH == "amd64"]]; then \
+	wget -qO - https://www.mongodb.org/static/pgp/server-5.0.asc | sudo apt-key add - \
+	&& echo "deb [ arch=amd64 ] https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/6.0 multiverse" |\
+	sudo tee /etc/apt/sources.list.d/mongodb-org-6.0.list \
+	&& echo "deb http://security.ubuntu.com/ubuntu jammy-security main" | sudo tee /etc/apt/sources.list.d/jammy-security.list; \
+	else echo "Skip add mongo repo: arch not supports"; fi
 
-RUN echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu focal/mongodb-org/5.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-5.0.list
+RUN apt update && \
+    apt -o Dpkg::Options::="--force-confold" upgrade -q -y --force-yes && \
+    apt -o Dpkg::Options::="--force-confold" dist-upgrade -q -y --force-yes
 
-RUN echo "deb http://security.ubuntu.com/ubuntu focal-security main" | sudo tee /etc/apt/sources.list.d/focal-security.list
-
-RUN apt-get update && \
-    apt-get -o Dpkg::Options::="--force-confold" upgrade -q -y --force-yes && \
-    apt-get -o Dpkg::Options::="--force-confold" dist-upgrade -q -y --force-yes
-
-RUN apt update && apt install libssl1.1
-
-RUN apt-get install -y --allow-unauthenticated \
+RUN if [[ $TARGETARCH == "amd64"]]; then \
+	apt install -y --allow-unauthenticated \
     mongodb-org \
 	mongodb-org-database \
 	mongodb-org-server \
 	mongodb-org-shell \
 	mongodb-org-mongos \
 	mongodb-org-tools \
-	postgresql-common \
-	locales \
 	clickhouse-server \
-	clickhouse-client
+	clickhouse-client; else echo "skip install mongo and clickhouse"; fi
 
 
 # Generating locale
@@ -118,27 +125,33 @@ RUN chmod 777 /home/user
 RUN pip3 install pep8
 
 # convoluted setup of rabbitmq + erlang taken from https://www.rabbitmq.com/install-debian.html#apt-quick-start-packagecloud
+
 ## Team RabbitMQ's main signing key
 RUN curl -1sLf "https://keys.openpgp.org/vks/v1/by-fingerprint/0A9AF2115F4687BD29803A206B73A36E6026DFCA" | sudo gpg --dearmor | sudo tee /usr/share/keyrings/com.rabbitmq.team.gpg > /dev/null
-## Launchpad PPA that provides modern Erlang releases
-RUN curl -1sLf "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0xf77f1eda57ebb1cc" | sudo gpg --dearmor | sudo tee /usr/share/keyrings/net.launchpad.ppa.rabbitmq.erlang.gpg > /dev/null
-## PackageCloud RabbitMQ repository
-RUN curl -1sLf "https://packagecloud.io/rabbitmq/rabbitmq-server/gpgkey" | sudo gpg --dearmor | sudo tee /usr/share/keyrings/io.packagecloud.rabbitmq.gpg > /dev/null
+## Cloudsmith: modern Erlang repository
+RUN curl -1sLf https://dl.cloudsmith.io/public/rabbitmq/rabbitmq-erlang/gpg.E495BB49CC4BBE5B.key | sudo gpg --dearmor | sudo tee /usr/share/keyrings/io.cloudsmith.rabbitmq.E495BB49CC4BBE5B.gpg > /dev/null
+## Cloudsmith: RabbitMQ repository
+#RUN curl -1sLf https://dl.cloudsmith.io/public/rabbitmq/rabbitmq-server/gpg.9F4587F226208342.key | sudo gpg --dearmor | sudo tee /usr/share/keyrings/io.cloudsmith.rabbitmq.9F4587F226208342.gpg > /dev/null
+
 ## Add apt repositories maintained by Team RabbitMQ
-RUN printf "\
-deb [signed-by=/usr/share/keyrings/net.launchpad.ppa.rabbitmq.erlang.gpg] http://ppa.launchpad.net/rabbitmq/rabbitmq-erlang/ubuntu focal main \n\
-deb-src [signed-by=/usr/share/keyrings/net.launchpad.ppa.rabbitmq.erlang.gpg] http://ppa.launchpad.net/rabbitmq/rabbitmq-erlang/ubuntu focal main \n\
-deb [signed-by=/usr/share/keyrings/io.packagecloud.rabbitmq.gpg] https://packagecloud.io/rabbitmq/rabbitmq-server/ubuntu/ focal main \n\
-deb-src [signed-by=/usr/share/keyrings/io.packagecloud.rabbitmq.gpg] https://packagecloud.io/rabbitmq/rabbitmq-server/ubuntu/ focal main\n" \
-	| sudo tee /etc/apt/sources.list.d/rabbitmq.list
+RUN printf "deb [signed-by=/usr/share/keyrings/io.cloudsmith.rabbitmq.E495BB49CC4BBE5B.gpg] https://dl.cloudsmith.io/public/rabbitmq/rabbitmq-erlang/deb/ubuntu jammy main\n\
+deb-src [signed-by=/usr/share/keyrings/io.cloudsmith.rabbitmq.E495BB49CC4BBE5B.gpg] https://dl.cloudsmith.io/public/rabbitmq/rabbitmq-erlang/deb/ubuntu jammy main\n\
+#deb [signed-by=/usr/share/keyrings/io.cloudsmith.rabbitmq.9F4587F226208342.gpg] https://dl.cloudsmith.io/public/rabbitmq/rabbitmq-server/deb/ubuntu jammy main\n\
+#deb-src [signed-by=/usr/share/keyrings/io.cloudsmith.rabbitmq.9F4587F226208342.gpg] https://dl.cloudsmith.io/public/rabbitmq/rabbitmq-server/deb/ubuntu jammy main\n \
+" \
+ | tee /etc/apt/sources.list.d/rabbitmq.list
+
 ## Update package indices
-RUN sudo apt-get update -y
+RUN apt update -y
+
 ## Install Erlang packages
-RUN sudo apt-get install -y erlang-base \
-				erlang-asn1 erlang-crypto erlang-eldap erlang-ftp erlang-inets \
-				erlang-mnesia erlang-os-mon erlang-parsetools erlang-public-key \
-				erlang-runtime-tools erlang-snmp erlang-ssl \
-				erlang-syntax-tools erlang-tftp erlang-tools erlang-xmerl
+RUN apt install -y erlang-base \
+                        erlang-asn1 erlang-crypto erlang-eldap erlang-ftp erlang-inets \
+                        erlang-mnesia erlang-os-mon erlang-parsetools erlang-public-key \
+                        erlang-runtime-tools erlang-snmp erlang-ssl \
+                        erlang-syntax-tools erlang-tftp erlang-tools erlang-xmerl
+
+
 # hackery to disable autostart at installation https://askubuntu.com/questions/74061/install-packages-without-starting-background-processes-and-services
 RUN mkdir /tmp/fake && ln -s /bin/true/ /tmp/fake/initctl && \
 				ln -s /bin/true /tmp/fake/invoke-rc.d && \
@@ -148,7 +161,7 @@ RUN mkdir /tmp/fake && ln -s /bin/true/ /tmp/fake/initctl && \
 				ln -s /bin/true /tmp/fake/start-stop-daemon && \
 				ln -s /bin/true /tmp/fake/service && \
 				ln -s /bin/true /tmp/fake/deb-systemd-helper
-RUN sudo PATH=/tmp/fake:$PATH apt-get install -y rabbitmq-server
+RUN sudo PATH=/tmp/fake:$PATH apt-get install -y --allow-downgrades rabbitmq-server --fix-missing
 
 # add expose ports
 EXPOSE 8080-8100
@@ -161,8 +174,10 @@ COPY src/ /app
 RUN cd /app/amqp-cpp && mkdir build && \
     cd build && cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Release .. && make -j $(nproc) && make install
 
-RUN cd /app/clickhouse-cpp && mkdir build && \
-    cd build && cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Release .. && make -j $(nproc) && make install
+RUN if [[ $TARGETARCH == "amd64"]]; then \
+	cd /app/clickhouse-cpp && mkdir build && \
+    cd build && cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Release .. && make -j $(nproc) && make install; \
+	else echo "Skip make clickhouse"; fi
 
 RUN apt update && apt install libssl-dev openssl
 
