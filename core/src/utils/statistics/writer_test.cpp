@@ -147,8 +147,8 @@ UTEST(MetricsWriter, Sample) {
   Storage storage;
 
   // The names mimic class member names, for the sample purposes
-  utils::statistics::Entry holder_;
   ComponentMetrics component_metrics_;
+  utils::statistics::Entry holder_;
   component_metrics_.metrics.Insert("metric-in-map",
                                     std::make_shared<ComponentMetricsNested>());
   constexpr std::chrono::seconds kDuration{1674810371};
@@ -411,6 +411,12 @@ UTEST(MetricsWriter, CustomTypesOptimization) {
   const auto* const expected = "a_dump{} 42\n";
   EXPECT_EQ(expected, ToPrometheusFormatUntyped(
                           storage, Request::MakeWithPath("a.dump")));
+
+  // Manual unregister to avoid fake writer call when destroying a `Entry`
+  holder3.Unregister();
+  holder2.Unregister();
+  holder1.Unregister();
+  holder.Unregister();
 }
 
 UTEST(MetricsWriter, ComplexPathsStored) {
@@ -437,6 +443,43 @@ UTEST(MetricsWriter, CustomizationPointChecks) {
   EXPECT_TRUE(utils::statistics::kHasWriterSupport<some::Dumpable1>);
   EXPECT_TRUE(utils::statistics::kHasWriterSupport<some::Dumpable2>);
   EXPECT_TRUE(utils::statistics::kHasWriterSupport<some::Dumpable3>);
+}
+
+UTEST(MetricsWriter, AutomaticUnsubscribingCheckWriterData) {
+  Storage storage;
+  int counter = 0;
+  auto writer_func = [&counter](Writer& writer) {
+    writer = 1;
+    writer["a"] = 2;
+    counter++;
+  };
+
+  auto holder1 = storage.RegisterWriter("prefix1", writer_func);
+  { auto holder2 = storage.RegisterWriter("prefix2", writer_func); }
+
+#ifndef NDEBUG
+  EXPECT_EQ(counter, 0);
+#else
+  EXPECT_EQ(counter, 1);
+#endif
+}
+
+UTEST(MetricsWriter, AutomaticUnsubscribingCheckExtenderData) {
+  Storage storage;
+  int counter = 0;
+  auto extender_func = [&counter](const utils::statistics::StatisticsRequest&) {
+    counter++;
+    return formats::json::ValueBuilder{};
+  };
+
+  auto holder1 = storage.RegisterExtender("prefix1", extender_func);
+  { auto holder2 = storage.RegisterExtender("prefix2", extender_func); }
+
+#ifndef NDEBUG
+  EXPECT_EQ(counter, 0);
+#else
+  EXPECT_EQ(counter, 1);
+#endif
 }
 
 USERVER_NAMESPACE_END

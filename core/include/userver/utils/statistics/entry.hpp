@@ -12,6 +12,10 @@ USERVER_NAMESPACE_BEGIN
 
 namespace utils::statistics {
 
+namespace impl {
+enum class UnregisteringKind { kManual, kAutomatic };
+}
+
 /// @brief Statistics registration holder, used to unregister a metric source
 /// before it is destroyed.
 ///
