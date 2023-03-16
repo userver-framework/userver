@@ -43,6 +43,11 @@ endif()
 add_subdirectory(hello_service)
 add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-hello_service)
 
+if (USERVER_FEATURE_ETCD)
+    add_subdirectory(etcd_service)
+    add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-etcd_service)
+endif()
+
 add_subdirectory(tcp_service)
 add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-tcp_service)
 
