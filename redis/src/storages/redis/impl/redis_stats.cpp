@@ -64,6 +64,7 @@ const std::string_view kCommandTypes[] = {
     "ping",
     "psubscribe",
     "publish",
+    "punsubscribe",
     "readonly",
     "rename",
     "rpop",
