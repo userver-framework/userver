@@ -369,10 +369,13 @@ std::shared_ptr<Request> Request::cookies(
 
 std::shared_ptr<Request> Request::method(HttpMethod method) {
   switch (method) {
-    case HttpMethod::kGet:
     case HttpMethod::kDelete:
     case HttpMethod::kOptions:
       pimpl_->easy().set_custom_request(ToString(method));
+      break;
+    case HttpMethod::kGet:
+      pimpl_->easy().set_http_get(true);
+      pimpl_->easy().set_custom_request(nullptr);
       break;
     case HttpMethod::kHead:
       pimpl_->easy().set_no_body(true);
@@ -402,6 +405,16 @@ std::shared_ptr<Request> Request::patch() { return method(HttpMethod::kPatch); }
 
 std::shared_ptr<Request> Request::delete_method() {
   return method(HttpMethod::kDelete);
+}
+
+std::shared_ptr<Request> Request::set_custom_http_request_method(
+    std::string method) {
+  LOG_LIMITED_WARNING()
+      << "This method can cause unexpected effects in libcurl, i.e., timeouts, "
+         "changing of request type. Use it only if you need to make "
+         "GET-request with body.";
+  pimpl_->easy().set_custom_request(method);
+  return shared_from_this();
 }
 
 std::shared_ptr<Request> Request::get(const std::string& url) {

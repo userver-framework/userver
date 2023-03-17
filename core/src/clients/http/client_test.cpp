@@ -1157,15 +1157,22 @@ UTEST(HttpClient, GetWithBody) {
   auto http_client_ptr = utest::CreateHttpClient();
 
   const utest::SimpleServer http_server_final{
-      Response200WithHeader{"xxx: good"}};
+      [](const HttpRequest& request) -> HttpResponse {
+        EXPECT_NE(request.find("get_body_data"), std::string::npos);
+        return {
+            fmt::format(kResponse200WithHeaderPattern, "xxx: good"),
+            HttpResponse::kWriteAndClose,
+        };
+      }};
 
   const auto url = http_server_final.GetBaseUrl();
   auto& http_client = *http_client_ptr;
-  std::string data{"body"};
+  std::string data{"get_body_data"};
 
   const auto response = http_client.CreateRequest()
                             ->data(std::move(data))
-                            ->get(url)
+                            ->url(url)
+                            ->set_custom_http_request_method("GET")
                             ->timeout(std::chrono::seconds(1))
                             ->perform();
 
@@ -1174,9 +1181,10 @@ UTEST(HttpClient, GetWithBody) {
   EXPECT_EQ(response->headers()["XXX"], "good");
 
   // Make shure it doesn't depend on order of get/data
-  std::string new_data{"body"};
+  std::string new_data{"get_body_data"};
   const auto another_response = http_client.CreateRequest()
-                                    ->get(url)
+                                    ->url(url)
+                                    ->set_custom_http_request_method("GET")
                                     ->data(std::move(new_data))
                                     ->timeout(std::chrono::seconds(1))
                                     ->perform();

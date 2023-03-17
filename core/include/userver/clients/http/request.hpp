@@ -111,6 +111,9 @@ class Request final : public std::enable_shared_from_this<Request> {
   std::shared_ptr<Request> delete_method(const std::string& url,
                                          std::string data);
 
+  /// Set custom request method. Only replaces name of the HTTP method
+  std::shared_ptr<Request> set_custom_http_request_method(std::string method);
+
   /// url if you don't specify request type with url
   std::shared_ptr<Request> url(const std::string& url);
   /// data for POST request
