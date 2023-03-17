@@ -293,7 +293,7 @@ or
 bash
 SERVICE_NAME=hello_service docker-compose run --rm userver-service-sample
 ```
-- execute commands in userver dev environment:
+- execute commands in userver development environment:
 ```
 bash
 docker-compose run --rm userver-ubuntu bash
