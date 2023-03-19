@@ -316,4 +316,12 @@ using formats::common::Items;
 
 }  // namespace formats::yaml
 
+/// Although we provide user defined literals, please beware that
+/// 'using namespace ABC' may contradict code style of your company.
+namespace formats::literals {
+
+yaml::Value operator"" _yaml(const char* str, std::size_t len);
+
+}  // namespace formats::literals
+
 USERVER_NAMESPACE_END
