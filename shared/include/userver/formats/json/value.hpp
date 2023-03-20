@@ -274,6 +274,7 @@ class Value final {
   friend void Serialize(const formats::json::Value&, std::ostream&);
   friend std::string ToString(const formats::json::Value&);
   friend std::string ToStableString(const formats::json::Value&);
+  friend std::string ToStableString(formats::json::Value&&);
   friend logging::LogHelper& operator<<(logging::LogHelper&, const Value&);
 };
 
