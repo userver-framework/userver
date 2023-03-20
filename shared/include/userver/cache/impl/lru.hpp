@@ -25,6 +25,10 @@ template <class Key, class Value>
 // NOLINTNEXTLINE(fuchsia-multiple-inheritance)
 class LruNode final : public LruListHook, public LruHashSetHook {
  public:
+  template <typename... Args>
+  explicit LruNode(Key&& key, Args&&... args)
+      : key_(std::move(key)), value_(std::forward<Args>(args)...) {}
+
   explicit LruNode(Key&& key, Value&& value)
       : key_(std::move(key)), value_(std::move(value)) {}
 
@@ -196,7 +200,16 @@ template <typename... Args>
 U* LruBase<T, U, Hash, Eq>::Emplace(const T& key, Args&&... args) {
   auto* existing = Get(key);
   if (existing) return existing;
-  return &Add(key, U{std::forward<Args>(args)...});
+
+  if constexpr (std::is_move_assignable_v<U>) {
+    return &Add(key, U{std::forward<Args>(args)...});
+  } else {
+    auto node = std::make_unique<Node>(T{key}, std::forward<Args>(args)...);
+    if (buckets_.size() < map_.size()) {
+      ExtractNode(list_.begin());
+    }
+    return &InsertNode(std::move(node)).GetValue();
+  }
 }
 
 template <typename T, typename U, typename Hash, typename Eq>
