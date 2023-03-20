@@ -160,7 +160,7 @@ class AsyncEventChannel : public AsyncEventSource<Args...> {
 
     if (kind == UnsubscribingKind::kAutomatic) {
       impl::ReportUnsubscribingAutomatically(name_, iter->second.name);
-#ifdef NDEBUG
+#ifdef TAXICOMMON_6358
       // Fake listener call to check
       impl::CheckDataUsedByCallbackHasNotBeenDestroyedBeforeUnsubscribing(
           data->on_listener_removal, iter->second.callback, name_,

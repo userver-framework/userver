@@ -188,7 +188,7 @@ void Storage::UnregisterExtender(
     impl::StorageIterator iterator,
     [[maybe_unused]] impl::UnregisteringKind kind) noexcept {
   std::lock_guard lock(mutex_);
-#ifdef NDEBUG
+#ifdef TAXICOMMON_6358
   if (kind == impl::UnregisteringKind::kAutomatic) {
     // fake writer and extender call to check
     CheckDataUsedByCallbackHasNotBeenDestroyedBeforeUnregistering(*iterator);

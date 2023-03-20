@@ -109,7 +109,7 @@ UTEST(AsyncEventChannel, OnListenerRemoval) {
   }
 
   EXPECT_EQ(value1, 0);
-#ifndef NDEBUG
+#ifndef TAXICOMMON_6358
   EXPECT_EQ(value2, 0);
   EXPECT_EQ(counter, 0);
 #else
