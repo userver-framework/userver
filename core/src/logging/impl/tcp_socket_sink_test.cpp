@@ -122,4 +122,22 @@ UTEST(TcpSocketSink, SinkReadMoreV4) {
   listen_task.Get();
 }
 
+UTEST_MT(TcpSocketSink, ConcurentClose, 4) {
+  internal::net::TcpListener listener(internal::net::IpVersion::kV4);
+  auto socket_sink = logging::impl::TcpSocketSink({listener.addr});
+
+  auto log_task_1 = engine::AsyncNoSpan(
+      [&socket_sink] { EXPECT_NO_THROW(socket_sink.Close()); });
+
+  auto log_task_2 = engine::AsyncNoSpan(
+      [&socket_sink] { EXPECT_NO_THROW(socket_sink.Close()); });
+
+  auto log_task_3 = engine::AsyncNoSpan(
+      [&socket_sink] { EXPECT_NO_THROW(socket_sink.Close()); });
+
+  log_task_1.Get();
+  log_task_2.Get();
+  log_task_3.Get();
+}
+
 USERVER_NAMESPACE_END
