@@ -61,7 +61,9 @@ void CheckDataUsedByCallbackHasNotBeenDestroyedBeforeUnsubscribing(
 
 /// @ingroup userver_concurrency
 ///
-/// AsyncEventChannel is an in-process pub-sub with strict FIFO serialization.
+/// AsyncEventChannel is an in-process pub-sub with strict FIFO serialization,
+/// i.e. only after the event was processed a new event may appear for
+/// processing, same listener is never called concurrently.
 ///
 /// Example usage:
 /// @snippet concurrent/async_event_channel_test.cpp  AsyncEventChannel sample
@@ -106,6 +108,10 @@ class AsyncEventChannel : public AsyncEventSource<Args...> {
   }
 
   /// Send the next event and wait until all the listeners process it.
+  ///
+  /// Strict FIFO serialization is guaranteed, i.e. only after this event is
+  /// processed a new event may be delivered for the subscribers, same
+  /// listener/subscriber is never called concurrently.
   void SendEvent(Args... args) const {
     std::lock_guard lock(event_mutex_);
     auto data = data_.Lock();
