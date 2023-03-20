@@ -205,7 +205,7 @@ U* LruBase<T, U, Hash, Eq>::Emplace(const T& key, Args&&... args) {
     return &Add(key, U{std::forward<Args>(args)...});
   } else {
     auto node = std::make_unique<Node>(T{key}, std::forward<Args>(args)...);
-    if (buckets_.size() < map_.size()) {
+    if (map_.size() >= buckets_.size()) {
       ExtractNode(list_.begin());
     }
     return &InsertNode(std::move(node)).GetValue();

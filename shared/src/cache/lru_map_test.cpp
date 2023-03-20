@@ -201,13 +201,16 @@ TEST(Lru, Movable) {
 }
 
 TEST(Lru, NotMovable) {
-  cache::LruMap<int, NotMovable> cache{1};
+  cache::LruMap<int, NotMovable> cache{2};
 
   cache.Emplace(1, 2);
   cache.Emplace(3, 4);
   EXPECT_EQ(cache.Get(1)->value, 2);
   EXPECT_EQ(cache.Get(3)->value, 4);
   EXPECT_EQ(cache.GetLeastUsed()->value, 2);
+  cache.Emplace(5, 6);
+  EXPECT_EQ(cache.GetSize(), 2);
+  EXPECT_EQ(cache.GetLeastUsed()->value, 4);
 }
 
 USERVER_NAMESPACE_END
