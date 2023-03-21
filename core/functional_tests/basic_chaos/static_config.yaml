@@ -17,6 +17,16 @@ components_manager:
             task_processor: main-task-processor
             method: GET,DELETE,POST
 
+        handler-chaos-dns-resolver:
+            path: /chaos/resolver
+            task_processor: main-task-processor
+            method: GET,DELETE,POST
+            dns-server: 127.0.0.1:123
+            hosts-file: /etc/hosts
+            cache-max-ttl: 99999
+            cache-failure-ttl: 99999
+            cache-size-per-way: 100
+
         testsuite-support:
 
         http-client:

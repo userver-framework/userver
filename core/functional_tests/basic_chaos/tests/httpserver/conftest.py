@@ -9,15 +9,7 @@ from pytest_userver import chaos
 logger = logging.getLogger(__name__)
 
 
-@pytest.fixture(name='for_client_gate_port', scope='module')
-def _for_client_gate_port(request):
-    # This fixture might be defined in an outer scope.
-    if 'for_client_gate_port_override' in request.fixturenames:
-        return request.getfixturevalue('for_client_gate_port_override')
-    return 11433
-
-
-@pytest.fixture()
+@pytest.fixture
 def modified_service_client(
         service_client, service_port, for_client_gate_port,
 ):
