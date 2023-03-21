@@ -1,8 +1,8 @@
 #pragma once
 
 #include <userver/engine/deadline.hpp>
+#include <userver/engine/mutex.hpp>
 #include <userver/engine/semaphore.hpp>
-#include <userver/engine/single_waiting_task_mutex.hpp>
 
 #include <amqpcpp.h>
 
@@ -19,15 +19,14 @@ namespace urabbitmq::impl {
 
 class ConnectionLock final {
  public:
-  ConnectionLock(engine::SingleWaitingTaskMutex& mutex,
-                 engine::Deadline deadline);
+  ConnectionLock(engine::Mutex& mutex, engine::Deadline deadline);
   ~ConnectionLock();
 
   ConnectionLock(const ConnectionLock& other) = delete;
   ConnectionLock(ConnectionLock&& other) noexcept;
 
  private:
-  engine::SingleWaitingTaskMutex& mutex_;
+  engine::Mutex& mutex_;
   bool owns_;
 };
 
@@ -97,7 +96,9 @@ class AmqpConnection final {
   AMQP::Channel reliable_channel_;
   std::unique_ptr<ReliableChannel> reliable_;
 
-  engine::SingleWaitingTaskMutex mutex_{};
+  // This can't be SingleWaitingTaskMutex, because consumers might issue a lot
+  // of ack/nack in parallel.
+  engine::Mutex mutex_{};
   engine::Semaphore waiters_sema_;
 };
 
