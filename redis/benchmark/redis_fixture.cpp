@@ -1,4 +1,4 @@
-#include <storages/redis/util_benchmark.hpp>
+#include "redis_fixture.hpp"
 
 #include <userver/engine/run_standalone.hpp>
 #include <userver/engine/task/task.hpp>
@@ -14,6 +14,10 @@ namespace storages::redis::bench {
 
 namespace {
 
+constexpr std::size_t kMainWorkerThreads = 16;
+constexpr std::size_t kSentinelThreadPoolSize = 1;
+constexpr std::size_t kRedisThreadPoolSize = 3;
+
 constexpr const char* kTestsuiteSentinelPort = "TESTSUITE_REDIS_SENTINEL_PORT";
 constexpr const char* kDefaultSentinelPort = "26379";
 
@@ -22,8 +26,8 @@ constexpr std::string_view kRedisSettings = R"({{
     "taxi-test": {{
         "command_control": {{
             "max_retries": 1,
-            "timeout_all_ms": 30000,
-            "timeout_single_ms": 30000
+            "timeout_all_ms": 1000,
+            "timeout_single_ms": 1000
         }},
         "password": "",
         "sentinels": [{{"host": "localhost", "port": {}}}],
@@ -45,26 +49,24 @@ const USERVER_NAMESPACE::secdist::RedisSettings& GetTestsuiteRedisSettings() {
 
 }  // namespace
 
-void Redis::RunStandalone(std::size_t thread_count,
-                          std::function<void()> payload) {
-  engine::RunStandalone(thread_count, [&] {
+void Redis::RunStandalone(std::function<void()> payload) {
+  engine::RunStandalone(kMainWorkerThreads, [&] {
     auto thread_pools = std::make_shared<USERVER_NAMESPACE::redis::ThreadPools>(
-        USERVER_NAMESPACE::redis::kDefaultSentinelThreadPoolSize,
-        USERVER_NAMESPACE::redis::kDefaultRedisThreadPoolSize);
+        kSentinelThreadPoolSize, kRedisThreadPoolSize);
 
-    auto sentinel = USERVER_NAMESPACE::redis::Sentinel::CreateSentinel(
+    sentinel_ = USERVER_NAMESPACE::redis::Sentinel::CreateSentinel(
         std::move(thread_pools), GetTestsuiteRedisSettings(), "none", "pub",
         USERVER_NAMESPACE::redis::KeyShardFactory{""});
 
-    sentinel->WaitConnectedDebug();
-    sentinel->MakeRequest({"FLUSHDB"}, "none").Get();
+    sentinel_->WaitConnectedDebug();
+    sentinel_->MakeRequest({"FLUSHDB"}, "none").Get();
 
-    client_ =
-        std::make_shared<storages::redis::ClientImpl>(std::move(sentinel));
+    client_ = std::make_shared<storages::redis::ClientImpl>(sentinel_);
 
     payload();
 
     client_.reset();
+    sentinel_.reset();
   });
 }
 
