@@ -48,19 +48,22 @@ PeriodicTask::~PeriodicTask() {
 void PeriodicTask::Start(std::string name, Settings settings,
                          Callback callback) {
   UASSERT_MSG(!name.empty(), "Periodic task must have a name");
-  UASSERT_MSG(name_.empty() || name == name_,
+  auto name_ptr = name_.StartWrite();
+  UASSERT_MSG(name_ptr->empty() || name == *name_ptr,
               fmt::format("PeriodicTask name must not be changed "
                           "on the fly, old={}, new={}",
-                          name_, name));
+                          *name_ptr, name));
   Stop();
-  name_ = std::move(name);
+  *name_ptr = std::move(name);
+  name_ptr.Commit();
   settings_.Assign(std::move(settings));
   callback_ = std::move(callback);
   DoStart();
 }
 
 void PeriodicTask::DoStart() {
-  LOG_INFO() << "Starting PeriodicTask with name=" << name_;
+  const auto name_ptr = name_.Read();
+  LOG_INFO() << "Starting PeriodicTask with name=" << *name_ptr;
   auto settings_ptr = settings_.Read();
   auto& task_processor = settings_ptr->task_processor
                              ? *settings_ptr->task_processor
@@ -74,18 +77,20 @@ void PeriodicTask::DoStart() {
 }
 
 void PeriodicTask::Stop() noexcept {
+  const auto name_ptr = name_.Read();
   try {
     if (IsRunning()) {
-      LOG_INFO() << "Stopping PeriodicTask with name=" << name_;
+      LOG_INFO() << "Stopping PeriodicTask with name=" << *name_ptr;
       task_.SyncCancel();
       task_ = engine::TaskWithResult<void>();
-      LOG_INFO() << "Stopped PeriodicTask with name=" << name_;
+      LOG_INFO() << "Stopped PeriodicTask with name=" << *name_ptr;
     }
   } catch (std::exception& e) {
-    LOG_ERROR() << "Exception while stopping PeriodicTask with name=" << name_
-                << ": " << e;
+    LOG_ERROR() << "Exception while stopping PeriodicTask with name="
+                << *name_ptr << ": " << e;
   } catch (...) {
-    LOG_ERROR() << "Exception while stopping PeriodicTask with name=" << name_;
+    LOG_ERROR() << "Exception while stopping PeriodicTask with name="
+                << *name_ptr;
   }
 }
 
@@ -100,8 +105,9 @@ void PeriodicTask::SetSettings(Settings settings) {
   }
 
   if (has_changed) {
+    const auto name_ptr = name_.Read();
     LOG_DEBUG() << "periodic task settings have changed, signalling name="
-                << name_;
+                << *name_ptr;
     changed_event_.Send();
   }
 }
@@ -150,12 +156,14 @@ void PeriodicTask::Run() {
 bool PeriodicTask::DoStep() {
   auto settings_ptr = settings_.Read();
   const auto span_log_level = settings_ptr->span_level;
-  tracing::Span span(name_, tracing::ReferenceType::kChild, span_log_level);
+  const auto name_ptr = name_.Read();
+  tracing::Span span(*name_ptr, tracing::ReferenceType::kChild, span_log_level);
   try {
     callback_();
     return true;
   } catch (const std::exception& e) {
-    LOG_ERROR() << "Exception in PeriodicTask with name=" << name_ << ": " << e;
+    LOG_ERROR() << "Exception in PeriodicTask with name=" << *name_ptr << ": "
+                << e;
     return false;
   }
 }
@@ -164,7 +172,8 @@ bool PeriodicTask::Step() {
   std::lock_guard<engine::Mutex> lock_step(step_mutex_);
 
   if (suspend_state_.load() == SuspendState::kSuspended) {
-    LOG_INFO() << "Skipping suspended PeriodicTask with name=" << name_;
+    const auto name_ptr = name_.Read();
+    LOG_INFO() << "Skipping suspended PeriodicTask with name=" << *name_ptr;
     return true;
   }
 
@@ -200,20 +209,23 @@ void PeriodicTask::SuspendDebug() {
   std::lock_guard<engine::Mutex> lock_step(step_mutex_);
   auto prior_state = suspend_state_.exchange(SuspendState::kSuspended);
   if (prior_state != SuspendState::kSuspended) {
-    LOG_DEBUG() << "Periodic task " << name_ << " suspended";
+    const auto name_ptr = name_.Read();
+    LOG_DEBUG() << "Periodic task " << *name_ptr << " suspended";
   }
 }
 
 void PeriodicTask::ResumeDebug() {
   auto prior_state = suspend_state_.exchange(SuspendState::kRunning);
   if (prior_state != SuspendState::kRunning) {
-    LOG_DEBUG() << "Periodic task " << name_ << " resumed";
+    const auto name_ptr = name_.Read();
+    LOG_DEBUG() << "Periodic task " << *name_ptr << " resumed";
   }
 }
 
 void PeriodicTask::RegisterInTestsuite(
     testsuite::PeriodicTaskControl& periodic_task_control) {
-  registration_holder_.emplace(periodic_task_control, name_, *this);
+  const auto name_ptr = name_.Read();
+  registration_holder_.emplace(periodic_task_control, *name_ptr, *this);
 }
 
 PeriodicTask::Settings PeriodicTask::GetCurrentSettings() const {
