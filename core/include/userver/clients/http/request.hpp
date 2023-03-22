@@ -17,6 +17,10 @@
 
 USERVER_NAMESPACE_BEGIN
 
+namespace tracing {
+class TracingManagerBase;
+}  // namespace tracing
+
 /// HTTP client helpers
 namespace clients::http {
 
@@ -213,6 +217,9 @@ class Request final : public std::enable_shared_from_this<Request> {
 
   /// Disable auto add header with client timeout.
   std::shared_ptr<Request> DisableAddClientTimeoutHeader();
+
+  std::shared_ptr<Request> SetTracingManager(
+      const tracing::TracingManagerBase&);
 
   /// Perform request asynchronously.
   ///

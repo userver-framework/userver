@@ -28,6 +28,7 @@ namespace components {
 /// * components::AuthCheckerSettings
 /// * congestion_control::Component
 /// * components::HttpServerSettings
+/// * tracing::DefaultTracingManagerLocator
 ComponentList CommonServerComponentList();
 
 }  // namespace components

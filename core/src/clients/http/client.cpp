@@ -7,6 +7,7 @@
 #include <moodycamel/concurrentqueue.h>
 
 #include <userver/logging/log.hpp>
+#include <userver/tracing/manager.hpp>
 #include <userver/utils/async.hpp>
 #include <userver/utils/rand.hpp>
 #include <userver/utils/userver_info.hpp>
@@ -36,6 +37,14 @@ long ClampToLong(size_t value) {
   return std::min<size_t>(value, std::numeric_limits<long>::max());
 }
 
+const tracing::TracingManagerBase* GetTracingManager(
+    const ClientSettings& settings) {
+  if (settings.tracing_manager_) {
+    return settings.tracing_manager_;
+  }
+  return &tracing::kDefaultTracingManager;
+}
+
 }  // namespace
 
 ClientSettings Parse(const yaml_config::YamlConfig& value,
@@ -55,7 +64,8 @@ Client::Client(ClientSettings settings,
       statistics_(settings.io_threads),
       fs_task_processor_(fs_task_processor),
       user_agent_(utils::GetUserverIdentifier()),
-      connect_rate_limiter_(std::make_shared<curl::ConnectRateLimiter>()) {
+      connect_rate_limiter_(std::make_shared<curl::ConnectRateLimiter>()),
+      tracing_manager_(GetTracingManager(settings)) {
   const auto io_threads = settings.io_threads;
   const auto& thread_name_prefix = settings.thread_name_prefix;
 
@@ -147,6 +157,8 @@ std::shared_ptr<Request> Client::CreateRequest() {
   }
   auto urls = allowed_urls_extra_.Read();
   request->SetAllowedUrlsExtra(*urls);
+
+  request->SetTracingManager(*tracing_manager_.GetBase());
 
   if (user_agent_) {
     request->user_agent(*user_agent_);

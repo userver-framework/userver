@@ -26,10 +26,12 @@
 #include <userver/server/http/http_method.hpp>
 #include <userver/server/http/http_response_body_stream.hpp>
 #include <userver/server/request/task_inherited_data.hpp>
+#include <userver/tracing/manager_component.hpp>
 #include <userver/tracing/set_throttle_reason.hpp>
-#include <userver/tracing/span.hpp>
+#include <userver/tracing/span_builder.hpp>
 #include <userver/tracing/tags.hpp>
 #include <userver/tracing/tracing.hpp>
+#include <userver/utils/encoding/hex.hpp>
 #include <userver/utils/fast_scope_guard.hpp>
 #include <userver/utils/from_string.hpp>
 #include <userver/utils/graphite.hpp>
@@ -122,10 +124,6 @@ class RequestProcessor final {
     try {
       auto& span = tracing::Span::CurrentSpan();
       auto& response = http_request_.GetHttpResponse();
-      if (handler_.GetConfig().set_tracing_headers) {
-        response.SetHeader(USERVER_NAMESPACE::http::headers::kXYaRequestId,
-                           span.GetLink());
-      }
 
       const auto status_code = response.GetStatus();
       span.SetLogLevel(handler_.GetLogLevelForResponseStatus(status_code));
@@ -337,6 +335,9 @@ HttpHandlerBase::HttpHandlerBase(const components::ComponentConfig& config,
           context.FindComponent<components::DynamicConfig>().GetSource()),
       allowed_methods_(InitAllowedMethods(GetConfig())),
       handler_name_(config.Name()),
+      tracing_manager_(
+          context.FindComponent<tracing::DefaultTracingManagerLocator>()
+              .GetTracingManager()),
       handler_statistics_(std::make_unique<HttpHandlerStatistics>()),
       request_statistics_(std::make_unique<HttpRequestStatistics>()),
       auth_checkers_(auth::CreateAuthCheckers(
@@ -476,12 +477,13 @@ void HttpHandlerBase::HandleRequest(request::RequestBase& request,
                               server_settings, inherited_data);
     request::kTaskInheritedData.Set(inherited_data);
 
-    const auto& parent_link =
-        http_request.GetHeader(USERVER_NAMESPACE::http::headers::kXYaRequestId);
-    const auto& trace_id =
-        http_request.GetHeader(USERVER_NAMESPACE::http::headers::kXYaTraceId);
-    const auto& parent_span_id =
-        http_request.GetHeader(USERVER_NAMESPACE::http::headers::kXYaSpanId);
+    tracing::SpanBuilder span_builder(fmt::format("http/{}", HandlerName()));
+
+    tracing_manager_.TryFillSpanBuilderFromRequest(http_request, span_builder);
+
+    auto span = std::move(span_builder).Build();
+
+    span.SetLocalLogLevel(log_level_);
 
     const auto& yandex_request_id =
         http_request.GetHeader(USERVER_NAMESPACE::http::headers::kXRequestId);
@@ -500,13 +502,6 @@ void HttpHandlerBase::HandleRequest(request::RequestBase& request,
           USERVER_NAMESPACE::http::headers::kXTaxiEnvoyProxyDstVhost,
           envoy_proxy);
     }
-
-    auto span = tracing::Span::MakeSpan(fmt::format("http/{}", HandlerName()),
-                                        trace_id, parent_span_id);
-
-    span.SetLocalLogLevel(log_level_);
-
-    if (!parent_link.empty()) span.SetParentLink(parent_link);
 
     const auto meta_type = CutTrailingSlash(GetMetaType(http_request),
                                             GetConfig().url_trailing_slash);
@@ -569,10 +564,7 @@ void HttpHandlerBase::HandleRequest(request::RequestBase& request,
         });
 
     if (config.set_tracing_headers) {
-      response.SetHeader(USERVER_NAMESPACE::http::headers::kXYaTraceId,
-                         span.GetTraceId());
-      response.SetHeader(USERVER_NAMESPACE::http::headers::kXYaSpanId,
-                         span.GetSpanId());
+      tracing_manager_.FillResponseWithTracingContext(span, response);
     }
   } catch (const std::exception& ex) {
     LOG_ERROR() << "unable to handle request: " << ex;

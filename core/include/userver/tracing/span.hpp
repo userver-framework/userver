@@ -17,6 +17,8 @@ USERVER_NAMESPACE_BEGIN
 
 namespace tracing {
 
+class SpanBuilder;
+
 /// @brief Measures the execution time of the current code block, links it with
 /// the parent tracing::Spans and stores that info in the log.
 ///
@@ -189,8 +191,6 @@ class Span final {
   /// @endcond
 
  private:
-  std::string GetTag(std::string_view tag) const;
-
   struct OptionalDeleter {
     void operator()(Impl*) const noexcept;
 
@@ -203,6 +203,12 @@ class Span final {
 
     const bool do_delete;
   };
+
+  friend class SpanBuilder;
+
+  explicit Span(std::unique_ptr<Impl, OptionalDeleter>&& pimpl);
+
+  std::string GetTag(std::string_view tag) const;
 
   std::unique_ptr<Impl, OptionalDeleter> pimpl_;
 };

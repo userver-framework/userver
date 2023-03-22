@@ -3,6 +3,7 @@
 #include <optional>
 #include <string>
 #include <variant>
+#include <vector>
 
 #include <userver/server/handlers/auth/handler_auth_config.hpp>
 #include <userver/server/handlers/fallback_handlers.hpp>

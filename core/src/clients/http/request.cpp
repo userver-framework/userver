@@ -492,6 +492,12 @@ std::shared_ptr<Request> Request::DisableAddClientTimeoutHeader() {
   return shared_from_this();
 }
 
+std::shared_ptr<Request> Request::SetTracingManager(
+    const tracing::TracingManagerBase& tracing_manager) {
+  pimpl_->SetTracingManager(tracing_manager);
+  return shared_from_this();
+}
+
 std::shared_ptr<Request> Request::SetEnforceTaskDeadline(
     EnforceTaskDeadlineConfig enforce_task_deadline) {
   pimpl_->SetEnforceTaskDeadline(enforce_task_deadline);

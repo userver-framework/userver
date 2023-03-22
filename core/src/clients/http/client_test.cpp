@@ -6,9 +6,11 @@
 #include <boost/algorithm/string/split.hpp>
 #include <boost/algorithm/string/trim.hpp>
 
+#include <clients/http/client_utils_test.hpp>
 #include <clients/http/testsuite.hpp>
 #include <engine/task/task_processor.hpp>
 #include <userver/clients/dns/resolver.hpp>
+#include <userver/clients/http/request_tracing_editor.hpp>
 #include <userver/clients/http/streamed_response.hpp>
 #include <userver/crypto/certificate.hpp>
 #include <userver/crypto/private_key.hpp>
@@ -19,6 +21,7 @@
 #include <userver/fs/blocking/write.hpp>
 #include <userver/http/common_headers.hpp>
 #include <userver/logging/log.hpp>
+#include <userver/tracing/tracing.hpp>
 #include <userver/utils/async.hpp>
 #include <userver/utils/userver_info.hpp>
 
@@ -40,9 +43,6 @@ constexpr char kTestHeader[] = "X-Test-Header";
 constexpr char kTestHeaderMixedCase[] = "x-TEST-headeR";
 
 constexpr char kTestUserAgent[] = "correct/2.0 (user agent) taxi_userver/000f";
-
-constexpr char kResponse200WithHeaderPattern[] =
-    "HTTP/1.1 200 OK\r\nConnection: close\r\nContent-Length: 0\r\n{}\r\n\r\n";
 
 // Certifiacte for testing was generated via the following command:
 //   `openssl req -x509 -sha256 -nodes -newkey rsa:1024 -keyout priv.key -out
@@ -314,17 +314,6 @@ HttpResponse no_user_agent_validate_callback(const HttpRequest& request) {
       "0\r\n\r\n",
       HttpResponse::kWriteAndClose};
 }
-
-struct Response200WithHeader {
-  const std::string header;
-
-  HttpResponse operator()(const HttpRequest&) const {
-    return {
-        fmt::format(kResponse200WithHeaderPattern, header),
-        HttpResponse::kWriteAndClose,
-    };
-  }
-};
 
 struct Response301WithHeader {
   const std::string location;
@@ -1063,8 +1052,8 @@ UTEST(HttpClient, HeadersAndWhitespaces) {
   };
 
   for (const auto& header_value : header_values) {
-    const utest::SimpleServer http_server{
-        Response200WithHeader{std::string(kTestHeader) + ':' + header_value}};
+    const utest::SimpleServer http_server{clients::http::Response200WithHeader{
+        std::string(kTestHeader) + ':' + header_value}};
 
     const auto response = http_client_ptr->CreateRequest()
                               ->post(http_server.GetBaseUrl())
@@ -1135,7 +1124,7 @@ UTEST(HttpClient, BasicUsage) {
   auto http_client_ptr = utest::CreateHttpClient();
 
   const utest::SimpleServer http_server_final{
-      Response200WithHeader{"xxx: good"}};
+      clients::http::Response200WithHeader{"xxx: good"}};
 
   const auto url = http_server_final.GetBaseUrl();
   auto& http_client = *http_client_ptr;
@@ -1160,7 +1149,8 @@ UTEST(HttpClient, GetWithBody) {
       [](const HttpRequest& request) -> HttpResponse {
         EXPECT_NE(request.find("get_body_data"), std::string::npos);
         return {
-            fmt::format(kResponse200WithHeaderPattern, "xxx: good"),
+            fmt::format(clients::http::kResponse200WithHeaderPattern,
+                        "xxx: good"),
             HttpResponse::kWriteAndClose,
         };
       }};
@@ -1200,7 +1190,7 @@ UTEST(HttpClient, RedirectHeaders) {
   auto http_client_ptr = utest::CreateHttpClient();
 
   const utest::SimpleServer http_server_final{
-      Response200WithHeader{"xxx: good"}};
+      clients::http::Response200WithHeader{"xxx: good"}};
 
   const utest::SimpleServer http_server_redirect{
       Response301WithHeader{http_server_final.GetBaseUrl(), "xxx: bad"}};
