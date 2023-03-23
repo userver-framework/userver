@@ -12,11 +12,21 @@
 #include <userver/compiler/select.hpp>
 #include <userver/formats/bson/document.hpp>
 #include <userver/formats/bson/value.hpp>
+#include <userver/formats/json_fwd.hpp>
 #include <userver/logging/log_helper_fwd.hpp>
 #include <userver/utils/fast_pimpl.hpp>
 #include <userver/utils/fmt_compat.hpp>
 
 USERVER_NAMESPACE_BEGIN
+
+namespace formats::parse {
+
+formats::json::Value Convert(const formats::bson::Value& bson,
+                             formats::parse::To<formats::json::Value>);
+formats::bson::Value Convert(const formats::json::Value& json,
+                             formats::parse::To<formats::bson::Value>);
+
+}  // namespace formats::parse
 
 namespace formats::bson {
 
