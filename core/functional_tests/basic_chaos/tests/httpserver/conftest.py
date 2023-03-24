@@ -1,18 +1,15 @@
 # pylint: disable=protected-access
+import logging
+
 import pytest
 
 from pytest_userver import chaos
 
 
-@pytest.fixture(name='for_client_gate_port', scope='session')
-def _for_client_gate_port(request):
-    # This fixture might be defined in an outer scope.
-    if 'for_client_gate_port_override' in request.fixturenames:
-        return request.getfixturevalue('for_client_gate_port_override')
-    return 11433
+logger = logging.getLogger(__name__)
 
 
-@pytest.fixture()
+@pytest.fixture
 def modified_service_client(
         service_client, service_port, for_client_gate_port,
 ):
@@ -23,7 +20,7 @@ def modified_service_client(
     return service_client
 
 
-@pytest.fixture()
+@pytest.fixture(scope='module')
 async def _gate_started(loop, for_client_gate_port, service_port):
     gate_config = chaos.GateRoute(
         name='tcp proxy',
@@ -31,6 +28,11 @@ async def _gate_started(loop, for_client_gate_port, service_port):
         port_for_client=for_client_gate_port,
         host_to_server='localhost',
         port_to_server=service_port,
+    )
+    logger.info(
+        f'Create gate client -> ({gate_config.host_for_client}:'
+        f'{gate_config.port_for_client}); ({gate_config.host_to_server}:'
+        f'{gate_config.port_to_server} -> server)',
     )
     async with chaos.TcpGate(gate_config, loop) as proxy:
         yield proxy

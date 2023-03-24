@@ -10,6 +10,7 @@
 #include <userver/clients/dns/resolver_fwd.hpp>
 #include <userver/clients/http/error.hpp>
 #include <userver/clients/http/form.hpp>
+#include <userver/clients/http/request_tracing_editor.hpp>
 #include <userver/clients/http/response_future.hpp>
 #include <userver/concurrent/queue.hpp>
 #include <userver/crypto/certificate.hpp>
@@ -19,8 +20,10 @@
 #include <userver/http/common_headers.hpp>
 #include <userver/http/url.hpp>
 #include <userver/tracing/in_place_span.hpp>
+#include <userver/tracing/manager.hpp>
 #include <userver/tracing/span.hpp>
 #include <userver/tracing/tags.hpp>
+#include <userver/utils/not_null.hpp>
 
 #include <clients/http/destination_statistics.hpp>
 #include <clients/http/easy_wrapper.hpp>
@@ -112,6 +115,10 @@ class RequestState : public std::enable_shared_from_this<RequestState> {
 
   void SetLoggedUrl(std::string url);
 
+  void SetTracingManager(const tracing::TracingManagerBase&);
+
+  RequestTracingEditor GetEditableTracingInstance();
+
  private:
   /// final callback that calls user callback and set value in promise
   static void on_completed(std::shared_ptr<RequestState>, std::error_code err);
@@ -187,6 +194,7 @@ class RequestState : public std::enable_shared_from_this<RequestState> {
   EnforceTaskDeadlineConfig enforce_task_deadline_{};
   /// deadline from current task
   engine::Deadline deadline_;
+  utils::NotNull<const tracing::TracingManagerBase*> tracing_manager_;
   /// struct for reties
   struct {
     /// maximum number of retries

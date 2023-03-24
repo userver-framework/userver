@@ -8,12 +8,14 @@
 
 #include "httpclient_handlers.hpp"
 #include "httpserver_handlers.hpp"
+#include "resolver_handlers.hpp"
 
 int main(int argc, char* argv[]) {
   const auto component_list = components::MinimalServerComponentList()
                                   .Append<chaos::HttpClientHandler>()
                                   .Append<chaos::StreamHandler>()
                                   .Append<chaos::HttpServerHandler>()
+                                  .Append<chaos::ResolverHandler>()
                                   .Append<components::HttpClient>()
                                   .Append<components::TestsuiteSupport>()
                                   .Append<server::handlers::TestsControl>()

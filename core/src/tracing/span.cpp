@@ -22,8 +22,6 @@ namespace tracing {
 
 namespace {
 
-const std::string kLinkTag = "link";
-const std::string kParentLinkTag = "parent_link";
 using RealMilliseconds = std::chrono::duration<double, std::milli>;
 
 const std::string kStopWatchAttrName = "stopwatch_name";
@@ -82,13 +80,6 @@ logging::LogHelper& operator<<(logging::LogHelper& lh,
   return lh;
 }
 
-const Span::Impl* GetParentSpanImpl() {
-  if (!engine::current_task::GetCurrentTaskContextUnchecked()) return nullptr;
-
-  const auto* spans_ptr = task_local_spans.GetOptional();
-  return !spans_ptr || spans_ptr->empty() ? nullptr : &spans_ptr->back();
-}
-
 }  // namespace
 
 Span::Impl::Impl(std::string name, ReferenceType reference_type,
@@ -125,10 +116,10 @@ Span::Impl::~Impl() {
 
   const auto* file_path = source_location_.file_name();
 
-  PutIntoLogger(logging::LogHelper(logging::DefaultLogger(), log_level_,
-                                   file_path, source_location_.line(),
-                                   source_location_.function_name(),
-                                   logging::LogHelper::Mode::kNoSpan)
+  PutIntoLogger(logging::LogHelper(
+                    logging::impl::DefaultLoggerRef(), log_level_, file_path,
+                    source_location_.line(), source_location_.function_name(),
+                    logging::LogHelper::Mode::kNoSpan)
                     .AsLvalue());
 }
 
@@ -208,13 +199,6 @@ bool Span::Impl::ShouldLog() const {
          local_log_level_.value_or(logging::Level::kTrace) <= log_level_;
 }
 
-namespace {
-template <typename... Args>
-Span::Impl* AllocateImpl(Args&&... args) {
-  return new Span::Impl(std::forward<Args>(args)...);
-}
-}  // namespace
-
 void Span::OptionalDeleter::operator()(Span::Impl* impl) const noexcept {
   if (do_delete) {
     std::default_delete<Impl>{}(impl);
@@ -256,6 +240,11 @@ Span::Span(std::string name, ReferenceType reference_type,
 
 Span::Span(Span::Impl& impl)
     : pimpl_(&impl, Span::OptionalDeleter{OptionalDeleter::DoNotDelete()}) {
+  pimpl_->span_ = this;
+}
+
+Span::Span(std::unique_ptr<Span::Impl, OptionalDeleter>&& pimpl)
+    : pimpl_(std::move(pimpl)) {
   pimpl_->span_ = this;
 }
 
@@ -419,6 +408,13 @@ logging::LogHelper& operator<<(logging::LogHelper& lh,
                                const tracing::Span& span) {
   span.LogTo(lh);
   return lh;
+}
+
+const Span::Impl* GetParentSpanImpl() {
+  if (!engine::current_task::GetCurrentTaskContextUnchecked()) return nullptr;
+
+  const auto* spans_ptr = task_local_spans.GetOptional();
+  return !spans_ptr || spans_ptr->empty() ? nullptr : &spans_ptr->back();
 }
 
 }  // namespace tracing

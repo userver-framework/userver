@@ -78,7 +78,7 @@ class PostgreSQLBase : public ::testing::Test {
       storages::postgres::detail::ConnectionPtr conn);
 
  private:
-  logging::LoggerPtr old_;
+  std::optional<logging::DefaultLoggerGuard> old_;
 };
 
 // NOLINTNEXTLINE(fuchsia-multiple-inheritance)

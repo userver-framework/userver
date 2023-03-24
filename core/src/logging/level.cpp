@@ -6,8 +6,9 @@
 
 #include <fmt/format.h>
 
-#include <logging/get_should_log_cache.hpp>
 #include <logging/spdlog.hpp>
+
+#include <userver/logging/impl/logger_base.hpp>
 #include <userver/rcu/rcu.hpp>
 #include <userver/tracing/span.hpp>
 #include <userver/utils/trivial_map.hpp>
@@ -91,7 +92,7 @@ std::optional<Level> OptionalLevelFromString(
 }
 
 bool ShouldLogNospan(Level level) noexcept {
-  return GetShouldLogCache()[static_cast<size_t>(level)];
+  return impl::DefaultLoggerRef().ShouldLog(level);
 }
 
 bool ShouldLog(Level level) noexcept {

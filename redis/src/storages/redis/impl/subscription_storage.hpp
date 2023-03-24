@@ -4,7 +4,8 @@
 #include <mutex>
 #include <string>
 
-#include <userver/storages/redis/impl/sentinel.hpp>
+#include <storages/redis/impl/sentinel.hpp>
+
 #include "redis.hpp"
 #include "shard_subscription_fsm.hpp"
 #include "subscription_statistics.hpp"

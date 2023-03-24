@@ -70,16 +70,12 @@ void PrintBuffer(std::ostream& os, const std::string& buffer) {
 PostgreSQLBase::PostgreSQLBase() {
   // NOLINTNEXTLINE(concurrency-mt-unsafe)
   if (std::getenv(kPostgresLog)) {
-    old_ = logging::SetDefaultLogger(logging::MakeStderrLogger(
-        "cerr", logging::Format::kTskv, logging::Level::kDebug));
+    old_.emplace(logging::MakeStderrLogger("cerr", logging::Format::kTskv,
+                                           logging::Level::kDebug));
   }
 }
 
-PostgreSQLBase::~PostgreSQLBase() {
-  if (old_) {
-    logging::SetDefaultLogger(std::move(old_));
-  }
-}
+PostgreSQLBase::~PostgreSQLBase() = default;
 
 pg::Dsn PostgreSQLBase::GetDsnFromEnv() {
   auto dsn_list = GetDsnListFromEnv();

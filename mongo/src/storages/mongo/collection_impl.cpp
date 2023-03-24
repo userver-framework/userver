@@ -28,8 +28,8 @@ const std::string& CollectionImpl::GetCollectionName() const {
   return collection_name_;
 }
 
-tracing::Span CollectionImpl::MakeSpan(const std::string& name) const {
-  tracing::Span span(name);
+tracing::Span CollectionImpl::MakeSpan(std::string&& name) const {
+  tracing::Span span(std::move(name));
   span.AddTag(tracing::kDatabaseType, tracing::kDatabaseMongoType);
   span.AddTag(tracing::kDatabaseInstance, database_name_);
   span.AddTag(tracing::kDatabaseCollection, collection_name_);

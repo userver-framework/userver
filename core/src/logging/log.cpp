@@ -2,93 +2,89 @@
 
 #include <utility>
 
-#include <logging/get_should_log_cache.hpp>
+#include <engine/task/task_context.hpp>
 #include <logging/rate_limit.hpp>
-#include <userver/engine/run_standalone.hpp>
-#include <userver/engine/task/task.hpp>
 #include <userver/logging/impl/logger_base.hpp>
-#include <userver/rcu/rcu.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace logging {
 namespace {
 
-auto& DefaultLoggerInternal() {
-  static rcu::Variable<LoggerPtr> default_logger_ptr(
-      MakeStderrLogger("default", Format::kTskv));
+auto& NonOwningDefaultLoggerInternal() noexcept {
+  static std::atomic<impl::LoggerBase*> default_logger_ptr{&GetNullLogger()};
   return default_logger_ptr;
-}
-
-void UpdateLogLevelCache() {
-  const auto& logger = DefaultLogger();
-  for (int i = 0; i < kLevelMax + 1; i++)
-    GetShouldLogCache()[i] = LoggerShouldLog(logger, static_cast<Level>(i));
-
-  GetShouldLogCache()[static_cast<int>(Level::kNone)] = false;
 }
 
 constexpr bool IsPowerOf2(uint64_t n) { return (n & (n - 1)) == 0; }
 
 }  // namespace
 
-LoggerPtr DefaultLogger() { return DefaultLoggerInternal().ReadCopy(); }
+namespace impl {
 
-LoggerPtr DefaultLoggerOptional() noexcept {
-  try {
-    return DefaultLogger();
-  } catch (...) {
-    UASSERT(false);
-  }
-
-  return {};
+LoggerRef DefaultLoggerRef() noexcept {
+  return *NonOwningDefaultLoggerInternal().load();
 }
 
-LoggerPtr SetDefaultLogger(LoggerPtr logger) {
-  UASSERT(logger);
-  if (!engine::current_task::GetTaskProcessorOptional()) {
-    // TODO TAXICOMMON-4233 remove
-    engine::RunStandalone([&logger] { logger = SetDefaultLogger(logger); });
-    return logger;
-  }
+void SetDefaultLoggerRef(LoggerRef logger) noexcept {
+  NonOwningDefaultLoggerInternal() = &logger;
+}
 
-  auto ptr = DefaultLoggerInternal().StartWrite();
-  swap(*ptr, logger);
-  ptr.Commit();
+}  // namespace impl
 
-  UpdateLogLevelCache();
-  return logger;
+DefaultLoggerGuard::DefaultLoggerGuard(LoggerPtr new_default_logger) noexcept
+    : logger_prev_(impl::DefaultLoggerRef()),
+      level_prev_(GetDefaultLoggerLevel()),
+      logger_new_(std::move(new_default_logger)) {
+  UASSERT(logger_new_);
+  logging::impl::SetDefaultLoggerRef(*logger_new_);
+}
+
+DefaultLoggerGuard::~DefaultLoggerGuard() {
+  logging::impl::SetDefaultLoggerRef(logger_prev_);
+  logging::SetDefaultLoggerLevel(level_prev_);
+
+  UASSERT_MSG(
+      !engine::current_task::GetCurrentTaskContextUnchecked(),
+      "DefaultLoggerGuard with a new logger should outlive the coroutine "
+      "engine, because otherwise it could be in use right now, when the "
+      "~DefaultLoggerGuard() is called and the logger is destroyed. "
+      "Construct the DefaultLoggerGuard before calling engine::RunStandalone; "
+      "in tests use the utest::DefaultLoggerFixture.");
 }
 
 void SetDefaultLoggerLevel(Level level) {
-  DefaultLogger()->SetLevel(level);
-  UpdateLogLevelCache();
+  impl::DefaultLoggerRef().SetLevel(level);
 }
 
-void SetLoggerLevel(const LoggerPtr& logger, Level level) {
-  logger->SetLevel(level);
-  if (logger == DefaultLoggerOptional()) {
-    UpdateLogLevelCache();
-  }
+void SetLoggerLevel(LoggerRef logger, Level level) { logger.SetLevel(level); }
+
+Level GetDefaultLoggerLevel() noexcept {
+  static_assert(noexcept(impl::DefaultLoggerRef().GetLevel()));
+  return impl::DefaultLoggerRef().GetLevel();
 }
 
-Level GetDefaultLoggerLevel() {
-  return static_cast<Level>(DefaultLogger()->GetLevel());
+bool LoggerShouldLog(LoggerCRef logger, Level level) noexcept {
+  static_assert(noexcept(logger.ShouldLog(level)));
+  return logger.ShouldLog(level);
 }
 
-bool LoggerShouldLog(const LoggerPtr& logger, Level level) {
-  return logger && logger->ShouldLog(level);
+bool LoggerShouldLog(const LoggerPtr& logger, Level level) noexcept {
+  return logger && LoggerShouldLog(*logger, level);
 }
 
-Level GetLoggerLevel(const LoggerPtr& logger) { return logger->GetLevel(); }
+Level GetLoggerLevel(LoggerCRef logger) noexcept {
+  static_assert(noexcept(logger.GetLevel()));
+  return logger.GetLevel();
+}
 
-void LogFlush() { DefaultLogger()->Flush(); }
+void LogFlush() { impl::DefaultLoggerRef().Flush(); }
 
-void LogFlush(const LoggerPtr& logger) { logger->Flush(); }
+void LogFlush(LoggerCRef logger) { logger.Flush(); }
 
 namespace impl {
 
-RateLimiter::RateLimiter(LoggerPtr logger, RateLimitData& data,
+RateLimiter::RateLimiter(LoggerCRef logger, RateLimitData& data,
                          Level level) noexcept
     : level_(level) {
   try {

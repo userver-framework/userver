@@ -17,7 +17,6 @@ The following options could be used to control `cmake`:
 | USERVER_FEATURE_CRYPTOPP_BLAKE2        | Provide wrappers for blake2 algorithms of crypto++                           | ON                                               |
 | USERVER_FEATURE_PATCH_LIBPQ            | Apply patches to the libpq (add portals support), requires libpq.a           | ON                                               |
 | USERVER_FEATURE_CRYPTOPP_BASE64_URL    | Provide wrappers for Base64 URL decoding and encoding algorithms of crypto++ | ON                                               |
-| USERVER_FEATURE_SPDLOG_TCP_SINK        | Use tcp_sink.h of the spdlog library for testing logs                        | ON                                               |
 | USERVER_FEATURE_REDIS_HI_MALLOC        | Provide a `hi_malloc(unsigned long)` [issue][hi_malloc] workaround           | OFF                                              |
 | USERVER_FEATURE_REDIS_TLS              | SSL/TLS support for Redis driver                                             | OFF                                              |
 | USERVER_FEATURE_STACKTRACE             | Allow capturing stacktraces using boost::stacktrace                          | OFF if platform is not \*BSD; ON otherwise       |
@@ -273,6 +272,7 @@ ulimit -n 4096
 Feel free to provide a PR with instructions for your favorite platform at https://github.com/userver-framework/userver.
 
 
+@anchor DOCKER_BUILD
 ### Docker
 
 @note Currently, only x86_64 and x86 architectures support ClickHouse and MongoDB drivers
@@ -326,6 +326,8 @@ cd build_release
 ctest -V
 ```
 
+If you need to edit or make your own docker image with custom configuration, read about 
+it @ref md_en_userver_docker "here"
 
 ----------
 

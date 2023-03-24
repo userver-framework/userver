@@ -68,8 +68,7 @@ class DynamicConfig::Impl final {
   void ReadFsCache();
   void WriteFsCache(const dynamic_config::DocsMap&);
 
-  dynamic_config::impl::StorageData cache_{
-      dynamic_config::impl::SnapshotData{{}}};
+  dynamic_config::impl::StorageData cache_;
 
   const std::string fs_cache_path_;
   engine::TaskProcessor* fs_task_processor_;
@@ -83,8 +82,7 @@ class DynamicConfig::Impl final {
 
 DynamicConfig::Impl::Impl(const ComponentConfig& config,
                           const ComponentContext& context)
-    : cache_{dynamic_config::impl::SnapshotData{{}}},
-      fs_cache_path_(config["fs-cache-path"].As<std::string>()),
+    : fs_cache_path_(config["fs-cache-path"].As<std::string>()),
       fs_task_processor_(
           fs_cache_path_.empty()
               ? nullptr

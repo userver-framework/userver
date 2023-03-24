@@ -16,11 +16,16 @@
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/rcu/rcu.hpp>
 #include <userver/utils/fast_pimpl.hpp>
+#include <userver/utils/not_null.hpp>
 #include <userver/utils/periodic_task.hpp>
 #include <userver/utils/swappingsmart.hpp>
 #include <userver/yaml_config/fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
+
+namespace tracing {
+class TracingManagerBase;
+};
 
 namespace curl {
 class easy;
@@ -49,6 +54,7 @@ struct ClientSettings final {
   std::string thread_name_prefix;
   size_t io_threads = 8;
   bool defer_events = false;
+  const tracing::TracingManagerBase* tracing_manager_{nullptr};
 };
 
 ClientSettings Parse(const yaml_config::YamlConfig& value,
@@ -127,6 +133,8 @@ class Client final {
   /// (most likely getaddrinfo).
   void SetDnsResolver(clients::dns::Resolver* resolver);
 
+  void SetTracingManager(const tracing::TracingManagerBase&);
+
  private:
   void ReinitEasy();
 
@@ -173,6 +181,7 @@ class Client final {
   std::shared_ptr<curl::ConnectRateLimiter> connect_rate_limiter_;
 
   clients::dns::Resolver* resolver_{nullptr};
+  utils::NotNull<const tracing::TracingManagerBase*> tracing_manager_;
 };
 
 }  // namespace clients::http

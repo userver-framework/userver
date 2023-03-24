@@ -81,7 +81,7 @@ void Span::Impl::LogOpenTracing() const {
   if (!logger) {
     return;
   }
-  DoLogOpenTracing(DO_LOG_TO_NO_SPAN(logger, log_level_));
+  DoLogOpenTracing(DO_LOG_TO_NO_SPAN(*logger, log_level_));
 }
 
 void Span::Impl::DoLogOpenTracing(logging::LogHelper& lh) const {

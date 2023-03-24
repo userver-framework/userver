@@ -6,6 +6,30 @@
 
 USERVER_NAMESPACE_BEGIN
 
+namespace {
+struct Movable {
+  explicit Movable(int value) : value(value) {}
+
+  Movable(const Movable& other) = delete;
+  Movable& operator=(const Movable& other) noexcept = delete;
+  Movable(Movable&& other) = default;
+  Movable& operator=(Movable&& other) noexcept = default;
+
+  int value;
+};
+
+struct NotMovable {
+  explicit NotMovable(int value) : value(value) {}
+
+  NotMovable(const NotMovable& other) = delete;
+  NotMovable& operator=(const NotMovable& other) noexcept = delete;
+  NotMovable(NotMovable&& other) = delete;
+  NotMovable& operator=(NotMovable&& other) noexcept = delete;
+
+  int value;
+};
+}  // namespace
+
 using Lru = cache::LruMap<int, int>;
 
 TEST(Lru, SetGet) {
@@ -167,6 +191,26 @@ TEST(Lru, GetLeastUsed) {
   EXPECT_EQ(*cache.GetLeastUsed(), 10);
   cache.Get(1);
   EXPECT_EQ(*cache.GetLeastUsed(), 20);
+}
+
+TEST(Lru, Movable) {
+  cache::LruMap<int, Movable> cache{1};
+
+  cache.Emplace(1, 2);
+  EXPECT_EQ(cache.Get(1)->value, 2);
+}
+
+TEST(Lru, NotMovable) {
+  cache::LruMap<int, NotMovable> cache{2};
+
+  cache.Emplace(1, 2);
+  cache.Emplace(3, 4);
+  EXPECT_EQ(cache.Get(1)->value, 2);
+  EXPECT_EQ(cache.Get(3)->value, 4);
+  EXPECT_EQ(cache.GetLeastUsed()->value, 2);
+  cache.Emplace(5, 6);
+  EXPECT_EQ(cache.GetSize(), 2);
+  EXPECT_EQ(cache.GetLeastUsed()->value, 4);
 }
 
 USERVER_NAMESPACE_END

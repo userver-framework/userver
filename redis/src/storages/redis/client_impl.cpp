@@ -1,7 +1,8 @@
 #include "client_impl.hpp"
 
-#include <userver/storages/redis/impl/sentinel.hpp>
 #include <userver/utils/assert.hpp>
+
+#include <storages/redis/impl/sentinel.hpp>
 
 #include "request_impl.hpp"
 #include "transaction_impl.hpp"

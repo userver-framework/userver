@@ -16,10 +16,9 @@
 
 #include <storages/redis/impl/command.hpp>
 #include <storages/redis/impl/keyshard_impl.hpp>
+#include <storages/redis/impl/sentinel.hpp>
 #include <userver/storages/redis/impl/exception.hpp>
 #include <userver/storages/redis/impl/reply.hpp>
-#include <userver/storages/redis/impl/sentinel.hpp>
-#include "userver/storages/redis/impl/base.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
@@ -210,7 +209,7 @@ static inline void InvokeCommand(CommandPtr command, ReplyPtr&& reply) {
   if (reply->server_id.IsAny())
     reply->server_id = command->control.force_server_id;
   LOG_DEBUG() << "redis_request( " << CommandSpecialPrinter{command}
-              << " ):" << (reply->status == REDIS_OK ? '+' : '-') << ":"
+              << " ):" << (reply->status == ReplyStatus::kOk ? '+' : '-') << ":"
               << reply->time * 1000.0 << " cc: " << command->control.ToString()
               << command->log_extra;
   ++command->invoke_counter;
@@ -251,7 +250,7 @@ void SentinelImpl::AsyncCommand(const SentinelCommand& scommand,
         bool retry_to_master =
             !master && reply->data.IsNil() &&
             command->control.force_retries_to_master_on_nil_reply;
-        bool retry = retry_to_master || reply->status != REDIS_OK ||
+        bool retry = retry_to_master || reply->status != ReplyStatus::kOk ||
                      error_ask || error_moved ||
                      reply->IsUnusableInstanceError() ||
                      reply->IsReadonlyError();
@@ -462,8 +461,9 @@ void SentinelImpl::Stop() {
       auto command = commands_.back().command;
       for (const auto& args : command->args.args) {
         LOG_ERROR() << "Killing request: " << boost::join(args, ", ");
-        auto reply =
-            std::make_shared<Reply>(args[0], nullptr, REDIS_ERR_NOT_READY);
+        auto reply = std::make_shared<Reply>(
+            args[0], nullptr, ReplyStatus::kEndOfFileError,
+            "Stopping, killing commands remaining in send queue");
         statistics_internal_.redis_not_ready++;
         InvokeCommand(command, std::move(reply));
       }
@@ -811,13 +811,15 @@ void SentinelImpl::ProcessWaitingCommands() {
     const auto& command = scommand.command;
     if (scommand.start + command->control.timeout_all < now) {
       for (const auto& args : command->args.args) {
-        auto reply =
-            std::make_shared<Reply>(args[0], nullptr, REDIS_ERR_NOT_READY);
+        auto reply = std::make_shared<Reply>(
+            args[0], nullptr, ReplyStatus::kTimeoutError,
+            "Command in the send queue timed out");
         statistics_internal_.redis_not_ready++;
         InvokeCommand(command, std::move(reply));
       }
-    } else
+    } else {
       AsyncCommand(scommand);
+    }
   }
 }
 

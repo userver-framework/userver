@@ -28,7 +28,7 @@ class LoggerBase {
 
   Format GetFormat() const noexcept;
 
-  void SetLevel(Level level);
+  virtual void SetLevel(Level level);
   Level GetLevel() const noexcept;
   bool ShouldLog(Level level) const noexcept;
 

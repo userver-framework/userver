@@ -2,10 +2,11 @@
 
 #include <userver/tracing/in_place_span.hpp>
 
-#include <storages/redis/impl/command.hpp>
 #include <userver/storages/redis/impl/exception.hpp>
 #include <userver/storages/redis/impl/reply.hpp>
-#include <userver/storages/redis/impl/sentinel.hpp>
+
+#include <storages/redis/impl/command.hpp>
+#include <storages/redis/impl/sentinel.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -111,7 +112,8 @@ ReplyPtr Request::Get() {
       return future_.get();
 
     case engine::FutureStatus::kTimeout:
-      return std::make_shared<Reply>(std::string(), nullptr, REDIS_ERR_TIMEOUT);
+      return std::make_shared<Reply>(std::string(), nullptr,
+                                     ReplyStatus::kTimeoutError);
 
     case engine::FutureStatus::kCancelled:
       throw RequestCancelledException(

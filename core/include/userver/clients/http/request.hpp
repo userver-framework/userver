@@ -17,6 +17,10 @@
 
 USERVER_NAMESPACE_BEGIN
 
+namespace tracing {
+class TracingManagerBase;
+}  // namespace tracing
+
 /// HTTP client helpers
 namespace clients::http {
 
@@ -110,6 +114,9 @@ class Request final : public std::enable_shared_from_this<Request> {
   /// DELETE request with url and data
   std::shared_ptr<Request> delete_method(const std::string& url,
                                          std::string data);
+
+  /// Set custom request method. Only replaces name of the HTTP method
+  std::shared_ptr<Request> set_custom_http_request_method(std::string method);
 
   /// url if you don't specify request type with url
   std::shared_ptr<Request> url(const std::string& url);
@@ -210,6 +217,9 @@ class Request final : public std::enable_shared_from_this<Request> {
 
   /// Disable auto add header with client timeout.
   std::shared_ptr<Request> DisableAddClientTimeoutHeader();
+
+  std::shared_ptr<Request> SetTracingManager(
+      const tracing::TracingManagerBase&);
 
   /// Perform request asynchronously.
   ///

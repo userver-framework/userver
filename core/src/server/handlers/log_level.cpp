@@ -56,7 +56,8 @@ std::string LogLevel::ProcessGet(const http::HttpRequest& request,
   } else {
     const auto& logger = logging_component_.GetLogger(logger_name);
 
-    auto current_level = logging::GetLoggerLevel(logger);
+    UINVARIANT(logger, fmt::format("Logger '{}' is null", logger_name));
+    auto current_level = logging::GetLoggerLevel(*logger);
     auto [it, _] = data->init_levels.emplace(logger_name, current_level);
     response["init-log-level"] = ToString(it->second);
     response["current-log-level"] = ToString(current_level);
@@ -76,7 +77,8 @@ std::string LogLevel::ProcessPut(const http::HttpRequest& request,
   if (logger_name.empty()) {
     init_level = data->default_init_level;
   } else {
-    auto current_level = logging::GetLoggerLevel(logger);
+    UASSERT(logger);
+    auto current_level = logging::GetLoggerLevel(*logger);
     auto [it, _] = data->init_levels.emplace(logger_name, current_level);
     init_level = it->second;
   }
@@ -92,7 +94,8 @@ std::string LogLevel::ProcessPut(const http::HttpRequest& request,
   if (logger_name.empty()) {
     logging::SetDefaultLoggerLevel(level);
   } else {
-    logging::SetLoggerLevel(logger, level);
+    UASSERT(logger);
+    logging::SetLoggerLevel(*logger, level);
   }
 
   formats::json::ValueBuilder response;

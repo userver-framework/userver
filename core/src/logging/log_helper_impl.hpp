@@ -18,9 +18,9 @@ class LogHelper::Impl final {
   using char_type = std::streambuf::char_type;
   using int_type = std::streambuf::int_type;
 
-  static std::unique_ptr<LogHelper::Impl> Make(LoggerPtr logger, Level level);
+  static std::unique_ptr<LogHelper::Impl> Make(LoggerCRef logger, Level level);
 
-  explicit Impl(LoggerPtr logger, Level level) noexcept;
+  explicit Impl(LoggerCRef logger, Level level) noexcept;
 
   void SetEncoding(Encode encode_mode) noexcept { encode_mode_ = encode_mode; }
   Encode GetEncoding() const noexcept { return encode_mode_; }
@@ -71,7 +71,7 @@ class LogHelper::Impl final {
 
   static constexpr size_t kOptimalBufferSize = 1500;
 
-  LoggerPtr logger_;
+  const impl::LoggerBase* logger_;
   const Level level_;
   const char key_value_separator_;
   Encode encode_mode_{Encode::kNone};

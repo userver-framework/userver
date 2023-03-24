@@ -101,17 +101,6 @@ char* rfind_not_space(char* ptr, size_t size) {
   return ptr;
 }
 
-engine::Deadline GetTaskDeadline() {
-  const auto* const data = server::request::kTaskInheritedData.GetOptional();
-  return data ? data->deadline : engine::Deadline{};
-}
-
-void SetTracingHeader(curl::easy& e, std::string_view name,
-                      std::string_view value) {
-  e.add_header(name, value, curl::easy::EmptyHeaderAction::kDoNotSend,
-               curl::easy::DuplicateHeaderAction::kReplace);
-}
-
 bool IsTimeout(std::error_code ec) noexcept {
   return ec ==
          std::error_code(
@@ -139,7 +128,8 @@ RequestState::RequestState(
       dest_stats_(dest_stats),
       original_timeout_(kDefaultTimeout),
       effective_timeout_(original_timeout_),
-      deadline_(GetTaskDeadline()),
+      deadline_(server::request::GetTaskInheritedDeadline()),
+      tracing_manager_{&tracing::kDefaultTracingManager},
       is_cancelled_(false),
       errorbuffer_(),
       resolver_{resolver} {
@@ -825,12 +815,9 @@ void RequestState::StartNewSpan() {
 
   span_storage_.emplace(std::string{kTracingClientName});
   auto& span = span_storage_->Get();
-  SetTracingHeader(easy(), USERVER_NAMESPACE::http::headers::kXYaSpanId,
-                   span.GetSpanId());
-  SetTracingHeader(easy(), USERVER_NAMESPACE::http::headers::kXYaTraceId,
-                   span.GetTraceId());
-  SetTracingHeader(easy(), USERVER_NAMESPACE::http::headers::kXYaRequestId,
-                   span.GetLink());
+
+  tracing_manager_->FillRequestWithTracingContext(span,
+                                                  GetEditableTracingInstance());
 
   // effective url is not available yet
   span.AddTag(tracing::kHttpUrl,
@@ -879,6 +866,14 @@ void RequestState::ResolveTargetAddress(clients::dns::Resolver& resolver) {
 
   easy().add_resolve(hostname, target.GetPortPtr().get(),
                      fmt::to_string(fmt::join(addr_strings, ",")));
+}
+
+void RequestState::SetTracingManager(const tracing::TracingManagerBase& m) {
+  tracing_manager_ = m;
+}
+
+RequestTracingEditor RequestState::GetEditableTracingInstance() {
+  return RequestTracingEditor(easy());
 }
 
 }  // namespace clients::http

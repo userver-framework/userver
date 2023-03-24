@@ -1,14 +1,15 @@
 #pragma once
 
-#include <userver/utest/utest.hpp>
-
 #include <regex>
 #include <string>
 
-#include <storages/redis/client_impl.hpp>
-#include <storages/redis/util_redistest.hpp>
-#include <userver/storages/redis/impl/sentinel.hpp>
+#include <userver/utest/utest.hpp>
+
 #include <userver/storages/redis/impl/thread_pools.hpp>
+
+#include <storages/redis/client_impl.hpp>
+#include <storages/redis/impl/sentinel.hpp>
+#include <storages/redis/util_redistest.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

@@ -274,17 +274,17 @@ components::ComponentConfigMap Manager::MakeComponentConfigMap(
   component_config_map.reserve(component_count);
   empty_configs_.reserve(component_count);
 
+  for (const auto& component_config : config_->components) {
+    const auto& name = component_config.Name();
+    component_config_map.emplace(name, component_config);
+  }
+
   for (const auto& item : component_list) {
     if (component_config_map.count(item->GetComponentName()) == 0 &&
         item->GetConfigFileMode() == ConfigFileMode::kNotRequired) {
       const auto& val = empty_configs_.emplace_back(item->GetComponentName());
       component_config_map.emplace(item->GetComponentName(), val);
     }
-  }
-
-  for (const auto& component_config : config_->components) {
-    const auto& name = component_config.Name();
-    component_config_map.emplace(name, component_config);
   }
 
   return component_config_map;

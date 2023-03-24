@@ -9,6 +9,7 @@
 #include <userver/server/handlers/ping.hpp>
 #include <userver/storages/secdist/component.hpp>
 #include <userver/storages/secdist/provider_component.hpp>
+#include <userver/tracing/manager_component.hpp>
 #include <userver/utils/daemon_run.hpp>
 
 namespace functional_tests {

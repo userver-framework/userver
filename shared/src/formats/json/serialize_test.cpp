@@ -125,10 +125,17 @@ thread_local const auto thread_local_json3 = global_json3;
 
 }  // namespace
 
-TEST_P(NonSortedJsonToSortedString, NonDepthTree) {
+TEST_P(NonSortedJsonToSortedString, NonDepthTreeCopy) {
   const NotSortedTestData pair_data_res = GetParam();
   const auto json = formats::json::FromString(pair_data_res.source);
   EXPECT_EQ(formats::json::ToStableString(json), pair_data_res.result);
+}
+
+TEST_P(NonSortedJsonToSortedString, NonDepthTreeMove) {
+  const NotSortedTestData pair_data_res = GetParam();
+  auto json = formats::json::FromString(pair_data_res.source);
+  EXPECT_EQ(formats::json::ToStableString(std::move(json)),
+            pair_data_res.result);
 }
 
 TEST_P(JsonToStringCycle, NonDepthTree) {

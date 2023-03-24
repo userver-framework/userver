@@ -80,14 +80,6 @@ if (USERVER_FEATURE_UTEST)
     endif()
 endif()
 
-option(USERVER_FEATURE_SPDLOG_TCP_SINK "Use tcp_sink.h of the spdlog library for testing logs" ON)
-if (NOT USERVER_FEATURE_SPDLOG_TCP_SINK)
-  set_source_files_properties(
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/logging/component.cpp
-    PROPERTIES COMPILE_FLAGS -DUSERVER_FEATURE_NO_SPDLOG_TCP_SINK=1
-  )
-endif()
-
 find_package(Iconv REQUIRED)
 find_package_required(OpenSSL "libssl-dev")
 

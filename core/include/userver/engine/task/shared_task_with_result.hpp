@@ -9,6 +9,7 @@
 #include <utility>
 
 #include <userver/engine/exception.hpp>
+#include <userver/engine/impl/task_context_holder.hpp>
 #include <userver/engine/task/task.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/utils/assert.hpp>
@@ -38,19 +39,6 @@ class [[nodiscard]] SharedTaskWithResult : public Task {
   /// Creates an invalid task.
   SharedTaskWithResult() = default;
 
-  /// @brief Constructor
-  /// @param task_processor task processor used for execution of this task
-  /// @param importance specifies whether this task can be auto-cancelled
-  ///   in case of task processor overload
-  /// @param wrapped_call_ptr task body
-  /// @see SharedAsync()
-  SharedTaskWithResult(
-      TaskProcessor& task_processor, Task::Importance importance,
-      Deadline deadline,
-      std::unique_ptr<utils::impl::WrappedCall<T>>&& wrapped_call_ptr)
-      : Task(task_processor, importance, Task::WaitMode::kMultipleWaiters,
-             deadline, std::move(wrapped_call_ptr)) {}
-
   /// @brief Returns (or rethrows) the result of task invocation.
   /// Task remains valid after return from this method,
   /// thread(coro)-safe.
@@ -73,6 +61,14 @@ class [[nodiscard]] SharedTaskWithResult : public Task {
   std::add_lvalue_reference<const T> Get() && {
     static_assert(!sizeof(T*), "Store SharedTaskWithResult before using");
   }
+
+  /// @cond
+  static constexpr WaitMode kWaitMode = WaitMode::kMultipleWaiters;
+
+  // For internal use only.
+  explicit SharedTaskWithResult(impl::TaskContextHolder&& context)
+      : Task(std::move(context)) {}
+  /// @endcond
 };
 
 }  // namespace engine

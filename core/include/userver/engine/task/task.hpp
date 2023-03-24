@@ -25,10 +25,10 @@ namespace ev {
 class ThreadControl;
 }  // namespace ev
 namespace impl {
+class TaskContextHolder;
 class TaskContext;
 class DetachedTasksSyncBlock;
 class ContextAccessor;
-using TaskPayload = std::unique_ptr<utils::impl::WrappedCallBase>;
 }  // namespace impl
 
 /// Asynchronous task
@@ -158,16 +158,16 @@ class [[nodiscard]] Task {
   Task(const Task&);
   Task& operator=(const Task&);
 
-  /// Constructor for internal use
-  Task(TaskProcessor&, Task::Importance, Task::WaitMode, Deadline,
-       impl::TaskPayload&&);
+  // For internal use only.
+  explicit Task(impl::TaskContextHolder&& context);
 
-  /// Marks task as invalid
+  // Marks task as invalid. For internal use only.
   void Invalidate() noexcept;
 
+  // For internal use only.
   utils::impl::WrappedCallBase& GetPayload() const noexcept;
 
-  /// Internal helper for WaitAny/WaitAll
+  // Internal helper for WaitAny/WaitAll.
   impl::ContextAccessor* TryGetContextAccessor() noexcept;
   /// @endcond
 

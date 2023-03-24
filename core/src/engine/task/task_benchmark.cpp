@@ -11,7 +11,9 @@
 USERVER_NAMESPACE_BEGIN
 
 void engine_task_create(benchmark::State& state) {
-  engine::RunStandalone([&] {
+  // We use 2 threads to ensure that detached tasks are deallocated,
+  // otherwise this benchmark OOMs after some time.
+  engine::RunStandalone(2, [&] {
     for (auto _ : state) engine::AsyncNoSpan([]() {}).Detach();
   });
 }
@@ -33,6 +35,7 @@ BENCHMARK(engine_task_yield)->Arg(0)->RangeMultiplier(2)->Range(1, 10);
 void engine_task_yield_multiple_threads(benchmark::State& state) {
   engine::RunStandalone(state.range(0), [&] {
     std::vector<engine::TaskWithResult<void>> tasks;
+    tasks.reserve(state.range(0) - 1);
     for (int i = 0; i < state.range(0) - 1; i++)
       tasks.push_back(engine::AsyncNoSpan([]() {
         while (!engine::current_task::ShouldCancel()) engine::Yield();

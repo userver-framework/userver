@@ -34,6 +34,9 @@ class ValueBuilder;
 
 namespace tracing {
 
+inline const std::string kLinkTag = "link";
+inline const std::string kParentLinkTag = "parent_link";
+
 class Span::Impl
     : public boost::intrusive::list_base_hook<
           boost::intrusive::link_mode<boost::intrusive::auto_unlink>> {
@@ -108,7 +111,15 @@ class Span::Impl
   utils::impl::SourceLocation source_location_;
 
   friend class Span;
+  friend class SpanBuilder;
 };
+
+const Span::Impl* GetParentSpanImpl();
+
+template <typename... Args>
+Span::Impl* AllocateImpl(Args&&... args) {
+  return new Span::Impl(std::forward<Args>(args)...);
+}
 
 }  // namespace tracing
 

@@ -83,6 +83,11 @@ std::string_view ToString(ErrorType type) {
     case Type::kOther:
       return "other";
 
+    case Type::kCancelled:
+      return "cancelled";
+    case Type::kPoolOverload:
+      return "pool-overload";
+
     case Type::kErrorTypesCount:
       UINVARIANT(false, "Unexpected kErrorTypesCount");
   }

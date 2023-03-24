@@ -37,7 +37,7 @@ class CollectionImpl {
  protected:
   CollectionImpl(std::string&& database_name, std::string&& collection_name);
 
-  tracing::Span MakeSpan(const std::string& name) const;
+  tracing::Span MakeSpan(std::string&& name) const;
 
  private:
   const std::string database_name_;

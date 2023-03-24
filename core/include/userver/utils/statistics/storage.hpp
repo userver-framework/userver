@@ -143,7 +143,8 @@ class Storage final {
   /// @deprecated Use RegisterWriter instead.
   Entry RegisterExtender(std::string prefix, ExtenderFunc func);
 
-  void UnregisterExtender(impl::StorageIterator iterator) noexcept;
+  void UnregisterExtender(impl::StorageIterator iterator,
+                          impl::UnregisteringKind kind) noexcept;
 
  private:
   Entry DoRegisterExtender(impl::MetricsSource&& source);

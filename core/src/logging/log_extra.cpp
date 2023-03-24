@@ -28,7 +28,7 @@ LogExtra GetStacktrace(utils::Flags<impl::LogExtraStacktraceFlags> flags) {
   return ret;
 }
 
-LogExtra GetStacktrace(const logging::LoggerPtr& logger,
+LogExtra GetStacktrace(logging::LoggerCRef logger,
                        utils::Flags<impl::LogExtraStacktraceFlags> flags) {
   logging::LogExtra extra_stacktrace;
 
@@ -106,14 +106,13 @@ LogExtra LogExtra::StacktraceNocache() noexcept {
   return GetStacktrace(impl::LogExtraStacktraceFlags::kNoCache);
 }
 
-LogExtra LogExtra::StacktraceNocache(
-    const logging::LoggerPtr& logger) noexcept {
+LogExtra LogExtra::StacktraceNocache(logging::LoggerCRef logger) noexcept {
   return GetStacktrace(logger, impl::LogExtraStacktraceFlags::kNoCache);
 }
 
 LogExtra LogExtra::Stacktrace() noexcept { return GetStacktrace({}); }
 
-LogExtra LogExtra::Stacktrace(const logging::LoggerPtr& logger) noexcept {
+LogExtra LogExtra::Stacktrace(logging::LoggerCRef logger) noexcept {
   return GetStacktrace(logger, {});
 }
 

@@ -82,8 +82,10 @@ component is guaranteed to outlive the component that is being constructed.
 ## Components construction order
 utils::DaemonMain, components::Run or components::RunOnce
 start all the components from the passed components::ComponentList.
-Each component is constructed in a separate engine::Task which makes them
-initialize concurrently. This is a useful feature, for examples in cases
+Each component is constructed in a separate engine::Task on the default
+task processor and is initialized concurrently with other components.
+
+This is a useful feature, for examples in cases
 with multiple caches that slowly read from different databases.
 
 To make component *A* depend on component *B* just call

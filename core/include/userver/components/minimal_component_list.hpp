@@ -22,6 +22,7 @@ namespace components {
 /// * components::StatisticsStorage
 /// * components::DynamicConfig
 /// * components::DynamicConfigFallbacksComponent
+/// * tracing::DefaultTracingManagerLocator
 ComponentList MinimalComponentList();
 
 }  // namespace components

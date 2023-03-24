@@ -81,7 +81,7 @@ class LogExtra final {
 
   /// @brief Creates a LogExtra with current thread's stacktrace if the logger
   /// log level is less or equal to DEBUG
-  static LogExtra StacktraceNocache(const logging::LoggerPtr& logger) noexcept;
+  static LogExtra StacktraceNocache(logging::LoggerCRef logger) noexcept;
 
   /// @brief Creates a LogExtra with current thread's stacktrace if the logger
   /// log level is less or equal to DEBUG. Uses cache for
@@ -91,7 +91,7 @@ class LogExtra final {
   /// @brief Creates a LogExtra with current thread's stacktrace if the logger
   /// log level is less or equal to DEBUG. Uses cache for
   /// faster stacktrace symbolization.
-  static LogExtra Stacktrace(const logging::LoggerPtr& logger) noexcept;
+  static LogExtra Stacktrace(logging::LoggerCRef logger) noexcept;
 
   /// @brief Adds a range of key-value pairs
   template <typename Iterator>

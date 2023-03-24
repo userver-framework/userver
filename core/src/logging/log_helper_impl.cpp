@@ -18,13 +18,7 @@ class PutCharFmtBuffer final {
   }
 };
 
-char GetSeparatorFromLogger(const LoggerPtr& logger_ptr) {
-  if (!logger_ptr) {
-    return '?';  // Won't be logged
-  }
-
-  const auto& logger = *logger_ptr;
-
+char GetSeparatorFromLogger(LoggerCRef logger) {
   switch (logger.GetFormat()) {
     case Format::kTskv:
     case Format::kRaw:
@@ -47,13 +41,12 @@ std::streamsize LogHelper::Impl::BufferStd::xsputn(const char_type* s,
   return impl_.xsputn(s, n);
 }
 
-// SetDefaultLogger is called in components::Run and no logging happens before
-// that. So at this point the logging is initialized and
-// DefaultLogger()->name() shuld not throw.
-LogHelper::Impl::Impl(LoggerPtr logger, Level level) noexcept
-    : logger_(std::move(logger)),
+// Logging is setuped in components::Run and no logging happens before
+// that. So at this point the logging is initialized.
+LogHelper::Impl::Impl(LoggerCRef logger, Level level) noexcept
+    : logger_(&logger),
       level_(level),
-      key_value_separator_(GetSeparatorFromLogger(logger_)) {
+      key_value_separator_(GetSeparatorFromLogger(*logger_)) {
   static_assert(sizeof(LogHelper::Impl) < 4096,
                 "Structures with size more than 4096 would consume at least "
                 "8KB memory in allocator.");
@@ -136,7 +129,7 @@ void LogHelper::Impl::MarkTextBegin() {
   initial_length_ = msg_.size();
 }
 
-void LogHelper::Impl::MarkAsBroken() noexcept { logger_.reset(); }
+void LogHelper::Impl::MarkAsBroken() noexcept { logger_ = nullptr; }
 
 bool LogHelper::Impl::IsBroken() const noexcept { return !logger_; }
 

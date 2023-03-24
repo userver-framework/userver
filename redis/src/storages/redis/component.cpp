@@ -4,14 +4,11 @@
 #include <vector>
 
 #include <engine/ev/thread_pool.hpp>
-#include <storages/redis/impl/keyshard_impl.hpp>
-#include <storages/redis/impl/subscribe_sentinel.hpp>
 #include <userver/components/component.hpp>
 #include <userver/components/statistics_storage.hpp>
 #include <userver/dynamic_config/storage/component.hpp>
 #include <userver/formats/json/value_builder.hpp>
 #include <userver/logging/log.hpp>
-#include <userver/storages/redis/impl/sentinel.hpp>
 #include <userver/storages/redis/impl/thread_pools.hpp>
 #include <userver/storages/redis/reply.hpp>
 #include <userver/storages/secdist/component.hpp>
@@ -24,6 +21,10 @@
 #include <userver/storages/redis/client.hpp>
 #include <userver/storages/redis/redis_config.hpp>
 #include <userver/storages/redis/subscribe_client.hpp>
+
+#include <storages/redis/impl/keyshard_impl.hpp>
+#include <storages/redis/impl/sentinel.hpp>
+#include <storages/redis/impl/subscribe_sentinel.hpp>
 
 #include "client_impl.hpp"
 #include "redis_secdist.hpp"

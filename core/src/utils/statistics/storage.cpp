@@ -34,6 +34,39 @@ void RemoveAddedLabels(std::vector<Label>& labels,
                labels.end());
 }
 
+class FakeFormatBuilder final : public BaseFormatBuilder {
+ public:
+  void HandleMetric(std::string_view, LabelsSpan, const MetricValue&) override {
+  }
+};
+
+// During the `Entry::Unregister` call or destruction of `Entry`, all variables
+// used by the writer or extender callback must be valid (must not be
+// destroyed). A common cause of crashes in this place: there is no manual call
+// to `Unregister`. In this case, check the lifetime of the data used by the
+// callback.
+[[maybe_unused]] void
+CheckDataUsedByCallbackHasNotBeenDestroyedBeforeUnregistering(
+    impl::MetricsSource& source) noexcept {
+  static constexpr std::string_view fake_prefix = "fake_prefix";
+  try {
+    if (source.writer) {
+      FakeFormatBuilder builder;
+      Request request;
+      impl::WriterState state{builder, request, {}, {}};
+      auto writer = Writer{&state}[fake_prefix];
+      source.writer(writer);
+    }
+    if (source.extender) {
+      source.extender(StatisticsRequest{});
+    }
+  } catch (const std::exception& e) {
+    LOG_ERROR() << "Unhandled exception while statistics holder "
+                << source.prefix_path
+                << " is unregistering automatically: " << e.what();
+  }
+}
+
 }  // namespace
 
 Request Request::MakeWithPrefix(const std::string& prefix, AddLabels add_labels,
@@ -151,8 +184,16 @@ Entry Storage::DoRegisterExtender(impl::MetricsSource&& source) {
   return Entry(Entry::Impl{this, res});
 }
 
-void Storage::UnregisterExtender(impl::StorageIterator iterator) noexcept {
+void Storage::UnregisterExtender(
+    impl::StorageIterator iterator,
+    [[maybe_unused]] impl::UnregisteringKind kind) noexcept {
   std::lock_guard lock(mutex_);
+#ifdef TAXICOMMON_6358
+  if (kind == impl::UnregisteringKind::kAutomatic) {
+    // fake writer and extender call to check
+    CheckDataUsedByCallbackHasNotBeenDestroyedBeforeUnregistering(*iterator);
+  }
+#endif
   metrics_sources_.erase(iterator);
 }
 

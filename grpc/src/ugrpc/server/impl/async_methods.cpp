@@ -7,8 +7,7 @@ USERVER_NAMESPACE_BEGIN
 namespace ugrpc::server::impl {
 
 void ReportErrorWhileCancelling(std::string_view call_name) noexcept {
-  LOG_ERROR_TO(logging::DefaultLoggerOptional())
-      << "Connection error while cancelling call '" << call_name << "'";
+  LOG_ERROR() << "Connection error while cancelling call '" << call_name << "'";
 }
 
 const grpc::Status kUnimplementedStatus{grpc::StatusCode::UNIMPLEMENTED,

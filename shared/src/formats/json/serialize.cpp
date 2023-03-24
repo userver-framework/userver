@@ -14,13 +14,13 @@
 #include <rapidjson/ostreamwrapper.h>
 #include <rapidjson/writer.h>
 
+#include <formats/json/impl/accept.hpp>
+#include <formats/json/impl/json_tree.hpp>
+#include <formats/json/impl/types_impl.hpp>
 #include <userver/formats/json/exception.hpp>
 #include <userver/formats/json/value.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
-
-#include <formats/json/impl/json_tree.hpp>
-#include <formats/json/impl/types_impl.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -35,13 +35,15 @@ std::string_view AsStringView(const impl::Value& jval) {
 }
 
 void CheckKeyUniqueness(const impl::Value* root) {
-  std::vector<impl::TreeIterFrame> stack;
+  using KeysStack = boost::container::small_vector<std::string_view,
+                                                   impl::kInitialStackDepth>;
+
+  impl::TreeStack stack;
   const impl::Value* value = root;
 
-  stack.reserve(impl::kInitialStackDepth);
   stack.emplace_back();  // fake "top" frame to avoid extra checks for an empty
                          // stack inside walker loop
-  std::vector<std::string_view> keys;
+  KeysStack keys;
   for (;;) {
     stack.back().Advance();
     if (value->IsObject()) {
@@ -81,43 +83,6 @@ impl::VersionedValuePtr EnsureValid(impl::Document&& json) {
   CheckKeyUniqueness(&json);
 
   return impl::VersionedValuePtr::Create(std::move(json));
-}
-
-// Like `GenericValue.Accept`, but the order of the keys in objects is sorted
-template <typename Handler>
-bool AcceptStable(const impl::Value& origin, Handler& handler) {
-  switch (origin.GetType()) {
-    case rapidjson::kArrayType: {
-      if (!handler.StartArray()) return false;
-      for (const auto* v = origin.Begin(); v != origin.End(); v++) {
-        if (!AcceptStable(*v, handler)) return false;
-      }
-      return handler.EndArray(origin.Size());
-    }
-    case rapidjson::kObjectType: {
-      std::vector<std::pair<std::string, impl::Value::ConstMemberIterator>>
-          keys;
-      keys.reserve(origin.MemberCount());
-      if (!handler.StartObject()) return false;
-      for (auto m = origin.MemberBegin(); m != origin.MemberEnd(); ++m) {
-        UASSERT(m->name.IsString());
-        keys.emplace_back(m->name.GetString(), m);
-      }
-      std::sort(keys.begin(), keys.end(), [](const auto& lhs, const auto& rhs) {
-        return lhs.first < rhs.first;
-      });
-      for (const auto& elem : keys) {
-        if (!handler.Key(elem.second->name.GetString(),
-                         elem.second->name.GetStringLength()))
-          return false;
-        if (!AcceptStable(elem.second->value, handler)) return false;
-      }
-      return handler.EndObject(origin.MemberCount());
-    }
-    default: {
-      return origin.Accept(handler);
-    }
-  }
 }
 
 }  // namespace
@@ -171,7 +136,7 @@ Value FromStream(std::istream& is) {
 void Serialize(const Value& doc, std::ostream& os) {
   rapidjson::OStreamWrapper out{os};
   rapidjson::Writer writer(out);
-  doc.GetNative().Accept(writer);
+  AcceptNoRecursion(doc.GetNative(), writer);
   if (!os) {
     throw BadStreamException(os);
   }
@@ -180,21 +145,31 @@ void Serialize(const Value& doc, std::ostream& os) {
 std::string ToString(const Value& doc) {
   rapidjson::StringBuffer buffer;
   rapidjson::Writer writer(buffer);
-  doc.GetNative().Accept(writer);
+  AcceptNoRecursion(doc.GetNative(), writer);
   return std::string{buffer.GetString(), buffer.GetLength()};
 }
 
 std::string ToStableString(const Value& doc) {
-  rapidjson::StringBuffer buffer;
-  rapidjson::Writer writer(buffer);
-  AcceptStable(doc.GetNative(), writer);
-  return std::string{buffer.GetString(), buffer.GetLength()};
+  return ToStableString(doc.Clone());
+}
+
+std::string ToStableString(Value&& doc) {
+  if (doc.IsUniqueReference()) {
+    Value value = std::move(doc);
+
+    rapidjson::StringBuffer buffer;
+    rapidjson::Writer writer(buffer);
+    AcceptNoRecursion<ObjectProcessing::kInplaceSorting>(value.GetNative(),
+                                                         writer);
+    return std::string{buffer.GetString(), buffer.GetLength()};
+  }
+  return ToStableString(doc.Clone());
 }
 
 logging::LogHelper& operator<<(logging::LogHelper& lh, const Value& doc) {
   rapidjson::StringBuffer buffer;
   rapidjson::Writer writer(buffer);
-  doc.GetNative().Accept(writer);
+  AcceptNoRecursion(doc.GetNative(), writer);
   return lh << std::string_view{buffer.GetString(), buffer.GetLength()};
 }
 
@@ -220,7 +195,7 @@ struct StringBuffer::Impl final {
 
 StringBuffer::StringBuffer(const formats::json::Value& value) {
   rapidjson::Writer writer(pimpl_->buffer);
-  value.GetNative().Accept(writer);
+  AcceptNoRecursion(value.GetNative(), writer);
 }
 
 StringBuffer::~StringBuffer() = default;

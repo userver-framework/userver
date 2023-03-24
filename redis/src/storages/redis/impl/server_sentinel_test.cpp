@@ -50,29 +50,30 @@ UTEST(Redis, SentinelMastersChanging) {
   const size_t slave_count = 0;
   const size_t sentinel_count = 1;
   const int magic_value_add = 98;
-  size_t redis_idx{0};
+  size_t master_idx{0};
 
   SentinelTest sentinel_test(sentinel_count, master_count, slave_count,
                              magic_value_add);
   auto& sentinel = sentinel_test.SentinelClient();
 
-  const size_t req_count = master_count;
-  for (size_t i = 0; i < req_count; i++) {
-    auto old_redis_idx = redis_idx;
-    redis_idx = i * master_count / req_count;
-    if (redis_idx != old_redis_idx) {
-      sentinel_test.Sentinel().RegisterSentinelMastersHandler(
-          {{sentinel_test.RedisName(), kLocalhost,
-            sentinel_test.Master(redis_idx).GetPort()}});
+  for (size_t i = 0; i < master_count; i++) {
+    if (master_idx != i) {
+      master_idx = i;
+      auto masters_handler =
+          sentinel_test.Sentinel().RegisterSentinelMastersHandler(
+              {{sentinel_test.RedisName(), kLocalhost,
+                sentinel_test.Master(master_idx).GetPort()}});
       sentinel.ForceUpdateHosts();
-      EXPECT_TRUE(sentinel_test.Master(redis_idx).WaitForFirstPingReply(
-          kSentinelChangeHostsWaitingTime));
+      EXPECT_TRUE(masters_handler->WaitForFirstReply(kSmallPeriod));
+      EXPECT_TRUE(sentinel_test.Master(master_idx)
+                      .WaitForFirstPingReply(kSentinelChangeHostsWaitingTime));
     }
+
     auto res = MakeGetRequest(sentinel, "value").Get();
     LOG_DEBUG() << "got reply with type=" << res->data.GetTypeString()
                 << " data=" << res->data.ToDebugString();
     ASSERT_TRUE(res->data.IsInt());
-    EXPECT_EQ(redis_idx,
+    EXPECT_EQ(master_idx,
               static_cast<size_t>(res->data.GetInt() - magic_value_add))
         << " i=" << i;
   }
@@ -85,45 +86,51 @@ UTEST(Redis, SentinelMastersChangingErrors) {
   const size_t bad_redis_idx = 3;
   const int magic_value_add = 132;
   const size_t redis_thread_count = 3;
-  size_t redis_idx{0};
+  size_t master_idx{0};
 
   SentinelTest sentinel_test(sentinel_count, master_count, slave_count,
                              magic_value_add, 0, redis_thread_count);
   auto& sentinel = sentinel_test.SentinelClient();
 
-  const size_t req_count = master_count;
-  size_t expected_redis_idx_reply_from = redis_idx;
-  for (size_t i = 0; i < req_count; i++) {
-    auto old_redis_idx = redis_idx;
-    redis_idx = i * master_count / req_count;
-    if (redis_idx != old_redis_idx) {
+  size_t expected_redis_idx_reply_from = master_idx;
+  for (size_t i = 0; i < master_count; i++) {
+    if (master_idx != i) {
+      master_idx = i;
+      std::vector<MockRedisServer::HandlerPtr> masters_handlers;
       for (size_t sentinel_idx = 0; sentinel_idx < sentinel_count;
            sentinel_idx++) {
         size_t quorum = sentinel_count / 2 + 1;
-        if (redis_idx == bad_redis_idx && sentinel_idx < quorum) {
-          sentinel_test.Sentinel(sentinel_idx)
-              .RegisterErrorReplyHandler(
-                  "SENTINEL", {"MASTERS"},
-                  "some incorrect SENTINEL MASTERS reply");
+        if (master_idx == bad_redis_idx && sentinel_idx < quorum) {
+          masters_handlers.push_back(
+              sentinel_test.Sentinel(sentinel_idx)
+                  .RegisterErrorReplyHandler(
+                      "SENTINEL", {"MASTERS"},
+                      "some incorrect SENTINEL MASTERS reply"));
         } else {
-          sentinel_test.Sentinel(sentinel_idx)
-              .RegisterSentinelMastersHandler(
-                  {{sentinel_test.RedisName(), kLocalhost,
-                    sentinel_test.Master(redis_idx).GetPort()}});
+          masters_handlers.push_back(
+              sentinel_test.Sentinel(sentinel_idx)
+                  .RegisterSentinelMastersHandler(
+                      {{sentinel_test.RedisName(), kLocalhost,
+                        sentinel_test.Master(master_idx).GetPort()}}));
         }
       }
       sentinel.ForceUpdateHosts();
-      if (redis_idx == bad_redis_idx) {
+      for (auto& handler : masters_handlers) {
+        EXPECT_TRUE(handler->WaitForFirstReply(kSmallPeriod));
+      }
+      if (master_idx == bad_redis_idx) {
         PeriodicCheck(1, kSentinelChangeHostsWaitingTime, [&] {
-          return !sentinel_test.Master(redis_idx).WaitForFirstPingReply(
-              kSentinelChangeHostsWaitingTime);
+          return !sentinel_test.Master(master_idx)
+                      .WaitForFirstPingReply(kSentinelChangeHostsWaitingTime);
         });
       } else {
-        EXPECT_TRUE(sentinel_test.Master(redis_idx).WaitForFirstPingReply(
-            kSentinelChangeHostsWaitingTime));
-        expected_redis_idx_reply_from = redis_idx;
+        EXPECT_TRUE(
+            sentinel_test.Master(master_idx)
+                .WaitForFirstPingReply(kSentinelChangeHostsWaitingTime));
+        expected_redis_idx_reply_from = master_idx;
       }
     }
+
     auto res = MakeGetRequest(sentinel, "value").Get();
     LOG_DEBUG() << "got reply with type=" << res->data.GetTypeString()
                 << " data=" << res->data.ToDebugString();

@@ -81,12 +81,16 @@ class Secdist::Impl {
 
   SecdistConfig secdist_config_;
   rcu::Variable<storages::secdist::SecdistConfig> dynamic_secdist_config_;
-  concurrent::AsyncEventChannel<const SecdistConfig&> channel_{"secdist"};
+  concurrent::AsyncEventChannel<const SecdistConfig&> channel_;
   utils::PeriodicTask update_task_;
 };
 
 Secdist::Impl::Impl(SecdistConfig::Settings settings)
-    : settings_(std::move(settings)) {
+    : settings_(std::move(settings)),
+      channel_("secdist", [this](auto& function) {
+        const auto snapshot = dynamic_secdist_config_.Read();
+        function(*snapshot);
+      }) {
   dynamic_secdist_config_.Assign(storages::secdist::SecdistConfig(settings_));
 
   if (IsPeriodicUpdateEnabled()) {

@@ -68,7 +68,10 @@ SnapshotData::SnapshotData(const SnapshotData& defaults,
   }
 }
 
+bool SnapshotData::IsEmpty() const noexcept { return user_configs_.empty(); }
+
 const std::any& SnapshotData::Get(impl::ConfigId id) const {
+  UASSERT_MSG(id < user_configs_.size(), "SnapshotData is in an empty state.");
   const auto& config = user_configs_[id];
   if (!config.has_value()) {
     throw std::logic_error("This type is not registered as config");

@@ -19,9 +19,10 @@
 #include <userver/engine/impl/condition_variable_any.hpp>
 #include <userver/utils/swappingsmart.hpp>
 
-#include <userver/storages/redis/impl/redis_stats.hpp>
+#include <storages/redis/impl/redis_stats.hpp>
 #include <userver/storages/redis/impl/types.hpp>
 #include <userver/storages/redis/impl/wait_connected_mode.hpp>
+
 #include "ev_wrapper.hpp"
 #include "keys_for_shards.hpp"
 #include "keyshard_impl.hpp"

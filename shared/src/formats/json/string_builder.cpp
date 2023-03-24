@@ -3,16 +3,16 @@
 #include <cmath>
 #include <stdexcept>
 
+#include <rapidjson/document.h>
+#include <rapidjson/stringbuffer.h>
+#include <rapidjson/writer.h>
+
+#include <formats/common/validations.hpp>
+#include <formats/json/impl/accept.hpp>
 #include <userver/formats/json/impl/types.hpp>
 #include <userver/formats/json/value.hpp>
 #include <userver/utils/datetime.hpp>
 #include <userver/utils/fast_pimpl.hpp>
-
-#include <formats/common/validations.hpp>
-
-#include <rapidjson/document.h>
-#include <rapidjson/stringbuffer.h>
-#include <rapidjson/writer.h>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -64,7 +64,7 @@ void StringBuilder::WriteRawString(std::string_view value) {
 }
 
 void StringBuilder::WriteValue(const formats::json::Value& value) {
-  value.GetNative().Accept(impl_->writer);
+  formats::json::AcceptNoRecursion(value.GetNative(), impl_->writer);
 }
 
 void WriteToStream(bool value, StringBuilder& sw) { sw.WriteBool(value); }
