@@ -83,6 +83,14 @@ jobs:
                 if [ "${{matrix.info}}" = "g++-8 + debug" ]; then
                   sudo apt install --allow-downgrades -y g++-8
                 fi
+                ls /usr/include/postgresql
+                ls /usr/include/postgresql/14
+                ls /usr/include/postgresql/15
+                whereis libpq.so
+                ls /usr/lib/x86_64-linux-gnu/
+                ls -ls /usr/lib/x86_64-linux-gnu/libpq.so
+                
+                
 
           - name: Install RabbitMQ packages
             run: |
