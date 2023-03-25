@@ -364,8 +364,7 @@ class GenericQueue<T, MP, MC>::MultiProducerSide final {
   // shouldn't cancel and queue if full
   template <typename Token>
   [[nodiscard]] bool Push(Token& token, T&& value, engine::Deadline deadline) {
-    return !engine::current_task::ShouldCancel() &&
-           remaining_capacity_.try_lock_shared_until(deadline) &&
+    return remaining_capacity_.try_lock_shared_until(deadline) &&
            DoPush(token, std::move(value));
   }
 
@@ -406,7 +405,7 @@ class GenericQueue<T, MP, MC>::MultiProducerSide final {
   }
 
   GenericQueue& queue_;
-  engine::Semaphore remaining_capacity_;
+  engine::CancellableSemaphore remaining_capacity_;
   concurrent::impl::SemaphoreCapacityControl remaining_capacity_control_;
 };
 
@@ -515,7 +514,7 @@ class GenericQueue<T, MP, MC>::MultiConsumerSide final {
   }
 
   GenericQueue& queue_;
-  engine::Semaphore size_;
+  engine::CancellableSemaphore size_;
   concurrent::impl::SemaphoreCapacityControl size_control_;
 };
 

@@ -171,7 +171,7 @@ class MpscQueue final : public std::enable_shared_from_this<MpscQueue<T>> {
   // specialization. In that case, resolves to boost::lockfree::queue<T*>
   typename QueueHelper::LockFreeQueue queue_{1};
   engine::SingleConsumerEvent nonempty_event_;
-  engine::Semaphore remaining_capacity_;
+  engine::CancellableSemaphore remaining_capacity_;
   concurrent::impl::SemaphoreCapacityControl remaining_capacity_control_;
   std::atomic<bool> consumer_is_created_{false};
   std::atomic<bool> consumer_is_created_and_dead_{false};
@@ -247,8 +247,7 @@ size_t MpscQueue<T>::Size() const {
 template <typename T>
 bool MpscQueue<T>::Push(ProducerToken& token, T&& value,
                         engine::Deadline deadline) {
-  return !engine::current_task::ShouldCancel() &&
-         remaining_capacity_.try_lock_shared_until(deadline) &&
+  return remaining_capacity_.try_lock_shared_until(deadline) &&
          DoPush(token, std::move(value));
 }
 

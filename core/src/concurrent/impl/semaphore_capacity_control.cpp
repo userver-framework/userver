@@ -4,7 +4,8 @@ USERVER_NAMESPACE_BEGIN
 
 namespace concurrent::impl {
 
-SemaphoreCapacityControl::SemaphoreCapacityControl(engine::Semaphore& semaphore)
+SemaphoreCapacityControl::SemaphoreCapacityControl(
+    engine::CancellableSemaphore& semaphore)
     : semaphore_(semaphore), capacity_requested_(semaphore.GetCapacity()) {}
 
 void SemaphoreCapacityControl::SetCapacity(Counter capacity) {
