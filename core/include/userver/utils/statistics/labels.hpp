@@ -58,7 +58,7 @@ class Label final {
 bool operator<(const Label& x, const Label& y) noexcept;
 bool operator==(const Label& x, const Label& y) noexcept;
 
-/// @brief View over a continious range of LabelView.
+/// @brief View over a continuous range of LabelView.
 class LabelsSpan final {
  public:
   using iterator = const LabelView*;

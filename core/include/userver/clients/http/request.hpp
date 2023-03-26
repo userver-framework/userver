@@ -171,7 +171,7 @@ class Request final : public std::enable_shared_from_this<Request> {
   /// Set HTTP version
   std::shared_ptr<Request> http_version(HttpVersion version);
 
-  /// Specify number of retries on incorrect status, if on_failes is True
+  /// Specify number of retries on incorrect status, if on_fails is True
   /// retry on network error too. Retries = 3 means that maximum 3 request
   /// will be performed.
   ///
@@ -241,7 +241,7 @@ class Request final : public std::enable_shared_from_this<Request> {
       const std::shared_ptr<concurrent::SpscQueue<std::string>>& queue);
 
   /// Calls async_perform and wait for timeout_ms on a future. Default time
-  /// for waiting will be timeout value if it was setted. If error occured it
+  /// for waiting will be timeout value if it was set. If error occurred it
   /// will be thrown as exception.
   ///
   /// Request object could be reused after return from perform(), all the

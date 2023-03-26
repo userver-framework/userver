@@ -152,7 +152,7 @@ class HttpHandlerBase : public HandlerBase {
       const http::HttpRequest& request, request::RequestContext& context,
       const std::string& response_data) const;
 
-  /// For internal use. You don't need to override it. This method is overriden
+  /// For internal use. You don't need to override it. This method is overridden
   /// in format-specific base handlers.
   virtual void ParseRequestData(const http::HttpRequest&,
                                 request::RequestContext&) const {}

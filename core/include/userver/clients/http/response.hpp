@@ -62,7 +62,7 @@ class Response final {
   /// body as string_view
   std::string_view body_view() const { return response_; }
 
-  /// return referece to headers
+  /// return reference to headers
   const Headers& headers() const { return headers_; }
   Headers& headers() { return headers_; }
   const CookiesMap& cookies() const { return cookies_; }

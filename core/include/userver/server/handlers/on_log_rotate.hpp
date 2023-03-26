@@ -16,7 +16,7 @@ namespace server::handlers {
 
 /// @ingroup userver_components userver_http_handlers
 ///
-/// @brief Handler that controlls logging levels of all the loggers.
+/// @brief Handler that controls logging levels of all the loggers.
 ///
 /// The component has no service configuration except the
 /// @ref userver_http_handlers "common handler options".
@@ -27,9 +27,9 @@ namespace server::handlers {
 ///
 /// ## Scheme
 /// POST request reopens log file for all loggers.
-/// Returns 200 status code after successful operation. 
-/// If at least one of files was not successfully reopened returns 500 status code and 
-/// error messages separated by comma in response body
+/// Returns 200 status code after successful operation.
+/// If at least one of files was not successfully reopened returns 500 status
+/// code and error messages separated by comma in response body.
 
 // clang-format on
 class OnLogRotate final : public HttpHandlerBase {

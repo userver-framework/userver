@@ -57,8 +57,8 @@ class SubscriberSinkOptional final : public Subscriber<T>,
 /// Parser usually maintains its state as a field(s). Parse methods are called
 /// when a specific input token is read, and implementation updates the parser
 /// state. When finished, the parser calls SetResult() with the cooked value. It
-/// pops current parser from the parser stack and signals the subsriber with the
-/// result.
+/// pops current parser from the parser stack and signals the subscriber with
+/// the result.
 ///
 /// TypedParser may delegate part of its job to subparsers. It is very common to
 /// define a parser for an object/array and reuse field parsers for JSON object

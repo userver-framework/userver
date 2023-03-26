@@ -206,7 +206,7 @@ void ComponentContext::Impl::ThrowNonRegisteredComponent(
       GetLoadingComponentName(*data).StringViewName(), type, name, name));
 }
 
-void ComponentContext::Impl::ThrowComponentTypeMissmatch(
+void ComponentContext::Impl::ThrowComponentTypeMismatch(
     std::string_view name, std::string_view type,
     impl::ComponentBase* component) const {
   auto data = shared_data_.Lock();

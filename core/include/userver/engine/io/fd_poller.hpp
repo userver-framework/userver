@@ -57,7 +57,7 @@ class FdPoller final {
 
   /// Wait for an event kind that was passed in the latest Reset() call. If the
   /// operation (read/write) can already be handled, Wait() returns
-  /// immediatelly. You have to call Reset() at least once before call to
+  /// immediately. You have to call Reset() at least once before call to
   /// Wait().
   [[nodiscard]] std::optional<Kind> Wait(Deadline);
 

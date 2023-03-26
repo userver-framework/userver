@@ -15,7 +15,7 @@ namespace clients::http {
 
 class RequestState;
 
-/// @brief Auxilary entity that allows editing request to a client
+/// @brief Auxiliary entity that allows editing request to a client
 /// from a TracingManagerBase subclass
 class RequestTracingEditor final {
  public:

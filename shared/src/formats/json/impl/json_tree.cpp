@@ -32,7 +32,7 @@ std::size_t FastLookup(const TValue* member, const TValue* first,
 }
 
 /// Return `true` if member had been found in `container` and update `stack` so
-/// `member`'s path can be calulated
+/// `member`'s path can be calculated
 template <typename TValue, typename TValidateAddress>
 bool ProcessContainer(formats::json::impl::TreeStack& stack,
                       const Value* container, const TValue* member,

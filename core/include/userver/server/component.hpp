@@ -18,8 +18,8 @@ namespace components {
 
 /// @ingroup userver_components
 ///
-/// @brief Component that listens for incomming requests, manages
-/// incomming connections and passes the requests to the appropriate handler.
+/// @brief Component that listens for incoming requests, manages
+/// incoming connections and passes the requests to the appropriate handler.
 ///
 /// Starts listening and accepting connections only after **all** the
 /// components are loaded.
@@ -59,8 +59,8 @@ namespace components {
 /// port | port to listen on | 0
 /// unix-socket | unix socket to listen on instead of listening on a port | ''
 /// max_connections | max connections count to keep | 32768
-/// task_processor | task processor to process incomming requests | -
-/// backlog | max count of new coneections pending acceptance | 1024
+/// task_processor | task processor to process incoming requests | -
+/// backlog | max count of new connections pending acceptance | 1024
 /// handler-defaults.max_url_size | max path/URL size or empty to not limit | 8192
 /// handler-defaults.max_request_size | max size of the whole request | 1024 * 1024
 /// handler-defaults.max_headers_size | max request headers size | 65536

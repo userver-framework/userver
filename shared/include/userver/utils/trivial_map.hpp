@@ -435,7 +435,7 @@ class TrivialBiMap final {
     }
   }
 
-  /// Retuns count of Case's in mapping
+  /// Returns count of Case's in mapping
   constexpr std::size_t size() const noexcept {
     return func_([]() { return impl::CaseCounter{}; }).Extract();
   }

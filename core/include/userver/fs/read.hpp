@@ -1,7 +1,7 @@
 #pragma once
 
 /// @file userver/fs/read.hpp
-/// @brief functions for asyncronous file read operations
+/// @brief functions for asynchronous file read operations
 
 #include <memory>
 #include <string>

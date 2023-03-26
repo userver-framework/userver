@@ -59,7 +59,7 @@ class RecentPeriod {
    * @param duration Time range. Special value Duration::min() -> use
    *        whole RecentPeriod range.
    * @param with_current_epoch  Include current (possibly unfinished) counter
-   *        into agregation
+   *        into aggregation
    *
    * Type Result must have method Add(Counter, Duration, Duration) or allow
    * addition of counter values

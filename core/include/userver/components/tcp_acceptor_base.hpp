@@ -46,7 +46,7 @@ class TcpAcceptorBase : public LoggableComponentBase {
   static yaml_config::Schema GetStaticConfigSchema();
 
  protected:
-  /// Override this function to process incomming sockets.
+  /// Override this function to process incoming sockets.
   ///
   /// @warning The function is called concurrently from multiple threads on
   /// each new socket.

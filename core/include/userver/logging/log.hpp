@@ -18,7 +18,7 @@ namespace logging {
 namespace impl {
 
 /// Returns the default logger previously set by SetDefaultLogger. If the logger
-/// was not set - retuns a logger that does no logging.
+/// was not set - returns a logger that does no logging.
 LoggerRef DefaultLoggerRef() noexcept;
 
 void SetDefaultLoggerRef(LoggerRef new_logger) noexcept;

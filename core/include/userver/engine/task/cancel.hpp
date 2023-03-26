@@ -47,7 +47,7 @@ TaskCancellationReason CancellationReason() noexcept;
 /// @throws unspecified (non-std) exception if cancellation is pending and not
 /// blocked
 ///
-/// @warning cathching this exception whithout a rethrow in the same scope leads
+/// @warning cathching this exception without a rethrow in the same scope leads
 /// to undefined behavior.
 void CancellationPoint();
 

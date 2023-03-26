@@ -31,7 +31,7 @@ Level LevelFromString(std::string_view);
 /// @brief Returns a string representation of logging level
 std::string ToString(Level level);
 
-/// @brief Returns std::nullopt if level_name is std::nullopt, otherwaise
+/// @brief Returns std::nullopt if level_name is std::nullopt, otherwise
 /// behaves exactly like logging::LevelFromString.
 std::optional<Level> OptionalLevelFromString(
     const std::optional<std::string>& level_name);

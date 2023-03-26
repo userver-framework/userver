@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/concurrent/mpsc_queue.hpp
+/// @brief Multiple producer, single consumer queue
+
 #include <atomic>
 #include <limits>
 #include <memory>
@@ -39,8 +42,7 @@ struct QueueHelper {
                 "MpscQueue<std::unique_ptr<T>> instead of MpscQueue<T>");
 };
 
-/// This partial specialization is helper's raison d'être. It allows
-/// one to pass std::unique_ptr via Queue
+/// This partial specialization allows to use std::unique_ptr with Queue.
 template <typename T>
 struct QueueHelper<std::unique_ptr<T>> {
   using LockFreeQueue = boost::lockfree::queue<T*>;

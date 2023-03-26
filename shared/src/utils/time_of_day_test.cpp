@@ -75,8 +75,8 @@ TEST(TimeOfDay, StringConstruct) {
       << "Expect 2 digits for minutes";
   EXPECT_THROW(Milli{"1:100"}, std::runtime_error)
       << "Expect 2 digits for minutes";
-  EXPECT_THROW(Milli{"1:60"}, std::runtime_error) << "Excpect minutes < 60";
-  EXPECT_THROW(Milli{"1:60:00"}, std::runtime_error) << "Excpect minutes < 60";
+  EXPECT_THROW(Milli{"1:60"}, std::runtime_error) << "Expect minutes < 60";
+  EXPECT_THROW(Milli{"1:60:00"}, std::runtime_error) << "Expect minutes < 60";
   EXPECT_THROW(Milli{"1:00:"}, std::runtime_error)
       << "Expect 2 digits for seconds";
   EXPECT_THROW(Milli{"1:00:1"}, std::runtime_error)

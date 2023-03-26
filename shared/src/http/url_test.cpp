@@ -69,7 +69,7 @@ TEST(MakeUrl, QueryAndMultiquery) {
             http::MakeUrl("path", {{"k", "v"}}, {{"a", "b"}, {"a", "c"}}));
 }
 
-TEST(ExtractMetaTypeFromUrl, Emtpy) {
+TEST(ExtractMetaTypeFromUrl, Empty) {
   EXPECT_EQ("", http::ExtractMetaTypeFromUrl(""));
 }
 
