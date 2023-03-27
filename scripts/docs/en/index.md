@@ -9,7 +9,7 @@ avoid CPU-consuming context switches from OS, efficiently
 utilize the CPU with a small amount of execution threads.
 
 Telegram support chats: [English-speaking](https://t.me/userver_en) | 
-[Russian-speaking](https://t.me/userver_ru) | [News chanel](https://t.me/userver_news).
+[Russian-speaking](https://t.me/userver_ru) | [News channel](https://t.me/userver_news).
 
 
 ## Introduction

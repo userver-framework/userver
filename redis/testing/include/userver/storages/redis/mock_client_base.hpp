@@ -25,7 +25,7 @@ namespace storages::redis {
 /// Please create clients with `std::make_shared`.
 /// Otherwise `Multi()` command will not work in mocked client.
 /// You should override methods for redis commands used in test.
-/// In overriden methods you can use `CreateMockRequest*` helpers.
+/// In overridden methods you can use `CreateMockRequest*` helpers.
 /// Examples (for `Hget` command):
 /// `return storages::redis::CreateMockRequest<
 ///    storages::redis::RequestHget>(std::string{"value"});`

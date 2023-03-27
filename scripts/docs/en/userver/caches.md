@@ -164,7 +164,7 @@ recommended to use utils::CpuRelax rather than calling engine::Yield() manually.
 ## Specializations for DB
 
 Caches over DB are caching components that use a trait structure as a
-template argument for customization. Such componenets are:
+template argument for customization. Such components are:
 
 - components::MongoCache
 - components::PostgreCache

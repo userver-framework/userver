@@ -97,7 +97,7 @@ inline constexpr bool kHasValidate<Mongo> = true;
 ///
 /// @brief Dynamically configurable MongoDB client component
 ///
-/// Provides acces to a dynamically reconfigurable set of MongoDB databases.
+/// Provides access to a dynamically reconfigurable set of MongoDB databases.
 ///
 /// ## Dynamic options:
 /// * @ref MONGO_DEFAULT_MAX_TIME_MS

@@ -1145,8 +1145,8 @@ schema:
                                       - ignore
                                       - cancel
                                     description: |
-                                        Action to perform on taks on queue overload.
-                                        `cancel` - cancells the tasks
+                                        Action to perform on tasks on queue overload.
+                                        `cancel` - cancels the tasks
                                 sensor_time_limit_us:
                                     type: integer
                                     minimum: 0

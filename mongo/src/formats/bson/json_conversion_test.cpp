@@ -162,7 +162,7 @@ std::optional<std::string> CompareDocsWithReason(const fb::Value& arg,
     return "Mismatch types: expected array";
   }
   if (expected.GetSize() != arg.GetSize()) {
-    return "Array size missmatch";
+    return "Array size mismatch";
   }
   for (auto it = expected.begin(); it != expected.end(); ++it) {
     if (auto reason = CompareDocsWithReason(*it, arg[it.GetIndex()])) {

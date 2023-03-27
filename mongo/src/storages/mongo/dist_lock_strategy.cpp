@@ -58,7 +58,7 @@ void DistLockStrategy::Acquire(std::chrono::milliseconds lock_ttl,
                                           fields::kOwner, owner));
 
   try {
-    LOG_INFO() << "Owner " << owner << " try to aquire lock " << lock_name_;
+    LOG_INFO() << "Owner " << owner << " try to acquire lock " << lock_name_;
     auto lock = collection_
                     .FindAndModify(std::move(query), update, options::Upsert{},
                                    options::ReturnNew{})
