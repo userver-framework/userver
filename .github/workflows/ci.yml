@@ -7,7 +7,6 @@ name: CI
           - master
           - develop
           - feature/**
-          - feat-new-counters-implementation
 
 env:
     UBSAN_OPTIONS: print_stacktrace=1
