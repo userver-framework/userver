@@ -86,7 +86,7 @@ class ItemMutex final {
 /// Example:
 /// @snippet src/concurrent/mutex_set_test.cpp  Sample mutex set usage
 template <typename Key = std::string, typename Hash = std::hash<Key>,
-          typename Equal = std::equal_to<Key>>
+          typename Equal = std::equal_to<>>
 class MutexSet final : Hash {
  public:
   explicit MutexSet(size_t ways = 1, size_t way_size = 1,

@@ -26,8 +26,18 @@ class TinyLfu {
  public:
   explicit TinyLfu(std::size_t max_size, const Hash& hash, const Equal& equal);
 
-  TinyLfu(TinyLfu&& other) noexcept = default;
-  TinyLfu& operator=(TinyLfu&& other) noexcept = default;
+  TinyLfu(TinyLfu&& other) noexcept : counters_(std::move(other.counters_)), max_size_(std::move(max_size_)), main_(std::move(main_)) {
+  }
+
+  TinyLfu& operator=(TinyLfu&& other) noexcept {
+    if (this == &other) {
+      return *this;
+    }
+    counters_ = std::move(other.counters_);
+    max_size_ = other.max_size_;
+    main_ = std::move(main_);
+
+  }
   TinyLfu(const TinyLfu& lru) = delete;
   TinyLfu& operator=(const TinyLfu& lru) = delete;
 

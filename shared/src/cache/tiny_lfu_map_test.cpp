@@ -32,7 +32,7 @@ namespace {
 
 using Type = int;
 using Hash = std::hash<Type>;
-using Equal = std::equal_to<Type>;
+using Equal = std::equal_to<>;
 using Cache =
     cache::impl::TinyLfu<Type, int, Hash, Equal, cache::CachePolicy::kLRU,
                          std::hash<Type>, cache::impl::sketch::Policy::Trivial>;
@@ -47,7 +47,7 @@ std::vector<int> Get(Cache& cache) {
 }  // namespace
 
 TEST(TinyLfu, PutGet) {
-  Cache cache(256, Hash{}, std::equal_to<int>{});
+  Cache cache(256, Hash{}, std::equal_to<>{});
   int count = 0;
   for (int i = 0; i < 256; i++) count += cache.Put(i, i);
   EXPECT_EQ(count, 256);
@@ -65,7 +65,7 @@ TEST(TinyLfu, PutGet) {
 }
 
 TEST(TinyLfu, PutUpdate) {
-  Cache cache(256, Hash{}, std::equal_to<int>{});
+  Cache cache(256, Hash{}, std::equal_to<>{});
   // Fill
   for (int i = 1; i <= 100000; i++) {
     int key = utils::RandRange(1, 257);
@@ -81,7 +81,7 @@ TEST(TinyLfu, PutUpdate) {
 }
 
 TEST(TinyLfu, Get) {
-  Cache cache(256, Hash{}, std::equal_to<int>{});
+  Cache cache(256, Hash{}, std::equal_to<>{});
   cache.Put(0, 0);
   cache.Put(1, 1);
 
@@ -107,7 +107,7 @@ TEST(TinyLfu, Get) {
 }
 
 TEST(TinyLfu, Size2) {
-  Cache cache(2, Hash{}, std::equal_to<int>{});
+  Cache cache(2, Hash{}, std::equal_to<>{});
   cache.Put(1, 1);
   cache.Put(2, 2);
   EXPECT_TRUE(cache.Get(1));

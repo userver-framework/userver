@@ -77,7 +77,7 @@ std::vector<T> Parse(const Value& value, To<std::vector<T>>) {
 }
 
 template <class Value, typename T, class Hash = std::hash<std::string>,
-          class KeyEqual = std::equal_to<std::string>>
+          class KeyEqual = std::equal_to<>>
 std::unordered_map<std::string, T, Hash, KeyEqual> Parse(
     const Value& value,
     To<std::unordered_map<std::string, T, Hash, KeyEqual>>) {

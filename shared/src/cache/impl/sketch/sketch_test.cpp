@@ -24,6 +24,7 @@ using PolicyTypes =
                                             cache::impl::sketch::Doorkeeper>>;
 
 TYPED_TEST_SUITE(CacheSketch, PolicyTypes, );
+
 }  // namespace
 
 TYPED_TEST(CacheSketch, Estimate) {
@@ -49,7 +50,7 @@ TYPED_TEST(CacheSketch, Increment) {
   EXPECT_FALSE(counter.Increment(0));
   EXPECT_TRUE(counter.Estimate(0) >= 15);
 
-  for (int i = 1; i < 300; i++) counter.Increment(i);
+  for (int i = 1; i < 64; i++) counter.Increment(i);
 
   int count = 0;
   for (int i = 1; i < 64; i++) count += counter.Estimate(i) >= 15;

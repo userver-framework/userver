@@ -11,7 +11,7 @@ template <typename T>
 class NWayLRU : public ::testing::Test {
  public:
   using Hash = std::hash<int>;
-  using Equal = std::equal_to<int>;
+  using Equal = std::equal_to<>;
   using Cache = cache::NWayLRU<int, int, Hash, Equal, T::value>;
 };
 

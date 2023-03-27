@@ -6,7 +6,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-using Equal = std::equal_to<int>;
+using Equal = std::equal_to<>;
 using Hash = std::hash<int>;
 using SLRU =
     cache::impl::LruBase<int, int, Hash, Equal, cache::CachePolicy::kSLRU>;
@@ -27,7 +27,7 @@ std::vector<int> GetProtected(SLRU& slru) {
 
 // TODO: decompose
 TEST(SLRU, Put) {
-  SLRU slru(10, std::hash<int>{}, std::equal_to<int>{}, 0.8);
+  SLRU slru(10, std::hash<int>{}, std::equal_to<>{}, 0.8);
 
   for (int i = 0; i < 8; i++) EXPECT_TRUE(slru.Put(i, 0));
 
@@ -73,14 +73,14 @@ TEST(SLRU, Put) {
 }
 
 TEST(SLRU, PutFirst) {
-  SLRU slru(10, std::hash<int>{}, std::equal_to<int>{}, 0.8);
+  SLRU slru(10, std::hash<int>{}, std::equal_to<>{}, 0.8);
 
   EXPECT_TRUE(slru.Put(0, 0));
   EXPECT_EQ(slru.GetSize(), 1);
 }
 
 TEST(SLRU, Get) {
-  SLRU slru(10, std::hash<int>{}, std::equal_to<int>{}, 0.8);
+  SLRU slru(10, std::hash<int>{}, std::equal_to<>{}, 0.8);
   EXPECT_FALSE(slru.Get(0));
 
   for (int i = 0; i < 8; i++) slru.Put(i, i);
@@ -132,7 +132,7 @@ TEST(SLRU, Get) {
 }
 
 TEST(SLRU, Erase) {
-  SLRU slru(10, std::hash<int>{}, std::equal_to<int>{}, 0.8);
+  SLRU slru(10, std::hash<int>{}, std::equal_to<>{}, 0.8);
   for (int i = 0; i < 8; i++) slru.Put(i, i);
 
   slru.Get(2);
@@ -146,7 +146,7 @@ TEST(SLRU, Erase) {
 }
 
 TEST(SLRU, Size1) {
-  SLRU slru(1, std::hash<int>{}, std::equal_to<int>{}, 0.8);
+  SLRU slru(1, std::hash<int>{}, std::equal_to<>{}, 0.8);
   slru.Put(1, 1);
   slru.Put(2, 2);
   EXPECT_EQ(GetProbation(slru), (std::vector<int>{2}));
