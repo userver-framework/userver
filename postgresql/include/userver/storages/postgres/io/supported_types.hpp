@@ -12,7 +12,7 @@
 ///
 /// The fundamental PostgreSQL types support is provided by the driver. The
 /// table below shows supported Postgres types and their mapping to C++ types
-/// provided by the driver. Colum "Default" marks the Postgres type to which
+/// provided by the driver. Column "Default" marks the Postgres type to which
 /// a C++ type is mapped when used as a parameter. Where the C++ type is N/A
 /// it means that the PosgreSQL data type is not supported. When there is a
 /// C++ type in parenthesis, it is a data type that will be supported later

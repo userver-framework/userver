@@ -73,7 +73,7 @@ namespace storages::postgres {
 ///
 /// @par Queries without parameters
 ///
-/// Executing a query wihout any parameters is rather straightforward.
+/// Executing a query without any parameters is rather straightforward.
 /// @code
 /// auto trx = cluster->Begin(/* transaction options */);
 /// auto res = trx.Execute("select foo, bar from foobar");

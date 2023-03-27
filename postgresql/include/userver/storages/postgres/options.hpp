@@ -223,7 +223,7 @@ struct ConnectionSettings {
   /// Checks for not-NULL query params that are not used in query
   CheckQueryParamsOptions ignore_unused_query_params = kCheckUnused;
 
-  /// Limits the size or prepared statments cache
+  /// Limits the size or prepared statements cache
   size_t max_prepared_cache_size = kDefaultMaxPreparedCacheSize;
 
   /// Turns on connection pipeline mode

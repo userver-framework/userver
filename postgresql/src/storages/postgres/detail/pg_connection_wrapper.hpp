@@ -63,7 +63,7 @@ class PGConnectionWrapper {
   /// mode that might not be the case.
   bool IsSyncingPipeline() const;
 
-  /// Check if pipeline mode is currenty enabled
+  /// Check if pipeline mode is currently enabled
   bool IsPipelineActive() const;
 
   /// @brief Close the connection on a background task processor.
