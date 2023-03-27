@@ -5,7 +5,7 @@
 USERVER_NAMESPACE_BEGIN
 
 using WTinyLFU =
-    cache::impl::LruBase<int, int, std::hash<int>, std::equal_to<int>,
+    cache::impl::LruBase<int, int, std::hash<int>, std::equal_to<>,
                          cache::CachePolicy::kWTinyLFU>;
 
 // TODO: don't depend on SLRU probation_part which is 0.8 by default
@@ -38,7 +38,7 @@ using WTinyLFU =
 // }
 
 TEST(WTinyLFU, PutAlreadyInWindow) {
-  WTinyLFU cache(100, std::hash<int>{}, std::equal_to<int>{}, 0.03);
+  WTinyLFU cache(100, std::hash<int>{}, std::equal_to(), 0.03);
   for (int i = 0; i < 100; i++) cache.Put(i, i);
 
   int count_putted = 0;
@@ -73,7 +73,7 @@ TEST(WTinyLFU, PutAlreadyInWindow) {
 // }
 
 TEST(WTinyLFU, Get) {
-  WTinyLFU cache(100, std::hash<int>{}, std::equal_to<int>{}, 0.03);
+  WTinyLFU cache(100, std::hash<int>{}, std::equal_to(), 0.03);
   for (int i = 0; i < 100; i++) cache.Put(i, i);
   auto* res = cache.Get(98);
   EXPECT_TRUE(res);
@@ -84,7 +84,7 @@ TEST(WTinyLFU, Get) {
 }
 
 TEST(WTinyLFU, Erase) {
-  WTinyLFU cache(100, std::hash<int>{}, std::equal_to<int>{}, 0.03);
+  WTinyLFU cache(100, std::hash<int>{}, std::equal_to(), 0.03);
   for (int i = 0; i < 100; i++) cache.Put(i, i);
   cache.Erase(98);
   auto* res = cache.Get(98);

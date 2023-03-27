@@ -18,7 +18,7 @@ namespace cache {
 /// LRU key value storage (LRU cache), thread safety matches Standard Library
 /// thread safety
 template <typename T, typename U, typename Hash = std::hash<T>,
-          typename Equal = std::equal_to<T>,
+          typename Equal = std::equal_to<>,
           CachePolicy Policy = CachePolicy::kLRU>
 class LruMap final {
  public:

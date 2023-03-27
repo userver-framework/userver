@@ -60,7 +60,7 @@ impl::ExpirableValue<Value> Read(dump::Reader& reader,
 ///
 /// @snippet cache/expirable_lru_cache_test.cpp Sample ExpirableLruCache
 template <typename Key, typename Value, typename Hash = std::hash<Key>,
-          typename Equal = std::equal_to<Key>,
+          typename Equal = std::equal_to<>,
           CachePolicy Policy = CachePolicy::kLRU>
 class ExpirableLruCache final {
  public:
@@ -407,7 +407,7 @@ bool ExpirableLruCache<Key, Value, Hash, Equal, Policy>::ShouldUpdate(
 }
 
 template <typename Key, typename Value, typename Hash = std::hash<Key>,
-          typename Equal = std::equal_to<Key>,
+          typename Equal = std::equal_to<>,
           CachePolicy Policy = CachePolicy::kLRU>
 class LruCacheWrapper final {
  public:

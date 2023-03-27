@@ -15,7 +15,7 @@ namespace cache {
 
 /// @ingroup userver_containers
 template <typename T, typename U, typename Hash = std::hash<T>,
-          typename Equal = std::equal_to<T>,
+          typename Equal = std::equal_to<>,
           CachePolicy Policy = CachePolicy::kLRU>
 class NWayLRU final {
  public:

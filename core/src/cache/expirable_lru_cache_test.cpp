@@ -18,7 +18,7 @@ template <typename T>
 class ExpirableLruCache : public ::testing::Test {
  public:
   using Hash = std::hash<SimpleCacheKey>;
-  using Equal = std::equal_to<SimpleCacheKey>;
+  using Equal = std::equal_to<>;
   using SimpleCache =
       cache::ExpirableLruCache<SimpleCacheKey, SimpleCacheValue,
                                Hash,
@@ -32,7 +32,7 @@ template <typename T>
 class LruCacheWrapper : public ::testing::Test {
  public:
   using Hash = std::hash<SimpleCacheKey>;
-  using Equal = std::equal_to<SimpleCacheKey>;
+  using Equal = std::equal_to<>;
   using SimpleCache =
       cache::ExpirableLruCache<SimpleCacheKey, SimpleCacheValue,
                                Hash,

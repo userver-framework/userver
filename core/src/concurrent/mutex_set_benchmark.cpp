@@ -76,7 +76,7 @@ void mutex_set_lock_unlock_contention(benchmark::State& state) {
   engine::RunStandalone(state.range(0), [&] {
     concurrent::MutexSet<T> ms;
 
-    using Mutexes = std::array<concurrent::ItemMutex<T, std::equal_to<T>>, 5>;
+    using Mutexes = std::array<concurrent::ItemMutex<T, std::equal_to<>>, 5>;
 
     const auto make_mutexes = [&] {
       return Mutexes{{

@@ -58,7 +58,7 @@ const T& GetKey(const T& key) noexcept {
 }
 
 template <typename Key, typename Value, typename Hash = std::hash<Key>,
-          typename Equal = std::equal_to<Key>>
+          typename Equal = std::equal_to<>>
 class LfuBase final {
  public:
   explicit LfuBase(size_t max_size, const Hash& hash = Hash(),
