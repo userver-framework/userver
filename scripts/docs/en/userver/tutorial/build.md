@@ -240,7 +240,17 @@ cat scripts/docs/en/deps/arch.md | grep -- '-git' | while read ;\
 
 MacOS is recommended only for development as it may have performance issues in some cases.
 At least MacOS 10.15 required with [Xcode](https://apps.apple.com/us/app/xcode/id497799835) and [Homebrew](https://brew.sh/).
-
+Add the following environment variables:
+```bash
+export CPPFLAGS="-I$(brew --prefix)/include"
+export LDFLAGS="-L$(brew --prefix)/lib"
+export PATH="/opt/homebrew/opt/openssl@1.1/bin:$PATH"
+export MACOSX_DEPLOYMENT_TARGET=<YOUR_MAC_OS_VERSION>
+```
+Link OpenSSL 1.1 (OpenSSL 3 currently unsupported):
+```bash
+brew link --force openssl@1.1
+```
 Start with the following command:
 ```
 bash
