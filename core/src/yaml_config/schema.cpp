@@ -55,7 +55,7 @@ void CheckTypeSupportsField(const Schema& schema, std::string_view field_name,
                     schema.path, ToString(schema.type), field_name,
                     fmt::join(allowed_type_strings, " or ")));
   }
-};
+}
 
 void CheckSchemaStructure(const Schema& schema) {
   CheckTypeSupportsField(schema, "items", schema.items, {FieldType::kArray});
