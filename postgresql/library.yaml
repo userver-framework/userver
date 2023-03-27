@@ -6,8 +6,6 @@ maintainers:
 description: PostgreSQL driver
 
 libraries:
-  - Boost::regex
-  - PostgreSQL
   - userver-core
 
 configs:
