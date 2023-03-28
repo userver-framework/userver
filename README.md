@@ -7,7 +7,7 @@ The framework solves the problem of efficient I/O interactions transparently for
 the developers. Operations that would typically suspend the thread of 
 execution do not suspend it. Instead of that, the thread processes other
 requests and tasks and returns to the handling of the operation only when it is
-guaranteed to execute immediately: 
+guaranteed to execute immediately:
 
 ```cpp
 std::size_t Ins(storages::postgres::Transaction& tr, std::string_view key) {
