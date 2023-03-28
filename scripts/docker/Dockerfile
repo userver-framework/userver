@@ -101,6 +101,12 @@ RUN apt-get install -y --allow-unauthenticated \
 	clickhouse-server \
 	clickhouse-client
 
+# add mariadb repositories
+RUN wget https://downloads.mariadb.com/MariaDB/mariadb_repo_setup
+RUN chmod +x mariadb_repo_setup
+RUN ./mariadb_repo_setup
+
+RUN apt-get install -y libmariadb-dev
 
 # Generating locale
 RUN sed -i 's/^# *\(en_US.UTF-8\)/\1/' /etc/locale.gen
