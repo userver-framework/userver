@@ -10,6 +10,12 @@ USERVER_NAMESPACE_BEGIN
 
 namespace utils {
 
+/// The seed structure used by underlying hashing implementation
+struct HashSeed final {
+  std::uint64_t k0;
+  std::uint64_t k1;
+};
+
 /// @brief Case sensitive ASCII hashing functor
 class StrCaseHash {
  public:
@@ -18,7 +24,7 @@ class StrCaseHash {
 
   /// Uses the provided seed. Use with caution: a constant seed makes the hasher
   /// vulnerable to HashDOS attacks when arbitrary keys are allowed.
-  explicit StrCaseHash(std::size_t seed) noexcept;
+  explicit StrCaseHash(HashSeed seed) noexcept;
 
   std::size_t operator()(std::string_view s) const& noexcept;
 
@@ -32,10 +38,10 @@ class StrCaseHash {
     return (*this)(std::string_view{s.GetUnderlying()});
   }
 
-  std::size_t GetSeed() const noexcept { return seed_; }
+  HashSeed GetSeed() const noexcept { return seed_; }
 
  private:
-  std::size_t seed_;
+  HashSeed seed_;
 };
 
 /// @brief Case insensitive ASCII hashing functor
@@ -46,12 +52,12 @@ class StrIcaseHash {
 
   /// Uses the provided seed. Use with caution: a constant seed makes the hasher
   /// vulnerable to HashDOS attacks when arbitrary keys are allowed.
-  explicit StrIcaseHash(std::size_t seed) noexcept;
+  explicit StrIcaseHash(HashSeed seed) noexcept;
 
   std::size_t operator()(std::string_view s) const& noexcept;
 
  private:
-  std::size_t seed_;
+  HashSeed seed_;
 };
 
 /// Case insensitive ASCII 3-way comparison functor
