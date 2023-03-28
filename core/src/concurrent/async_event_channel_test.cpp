@@ -109,13 +109,13 @@ UTEST(AsyncEventChannel, OnListenerRemoval) {
   }
 
   EXPECT_EQ(value1, 0);
-#ifndef TAXICOMMON_6358
-  EXPECT_EQ(value2, 0);
-  EXPECT_EQ(counter, 0);
-#else
-  EXPECT_EQ(value2, 1);
-  EXPECT_EQ(counter, 1);
-#endif
+  if constexpr (concurrent::impl::kCheckSubscriptionUB) {
+    EXPECT_EQ(value2, 1);
+    EXPECT_EQ(counter, 1);
+  } else {
+    EXPECT_EQ(value2, 0);
+    EXPECT_EQ(counter, 0);
+  }
 }
 
 namespace {

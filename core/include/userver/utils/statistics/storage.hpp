@@ -14,6 +14,7 @@
 
 #include <userver/engine/shared_mutex.hpp>
 #include <userver/formats/json/value_builder.hpp>
+#include <userver/utils/assert.hpp>
 #include <userver/utils/statistics/entry.hpp>
 #include <userver/utils/statistics/metric_value.hpp>
 #include <userver/utils/statistics/writer.hpp>
@@ -98,6 +99,8 @@ struct MetricsSource final {
 
 using StorageData = std::list<MetricsSource>;
 using StorageIterator = StorageData::iterator;
+
+inline constexpr bool kCheckSubscriptionUB = utils::impl::kEnableAssert;
 
 }  // namespace impl
 

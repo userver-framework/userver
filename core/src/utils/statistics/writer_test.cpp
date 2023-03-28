@@ -457,11 +457,11 @@ UTEST(MetricsWriter, AutomaticUnsubscribingCheckWriterData) {
   auto holder1 = storage.RegisterWriter("prefix1", writer_func);
   { auto holder2 = storage.RegisterWriter("prefix2", writer_func); }
 
-#ifndef TAXICOMMON_6358
-  EXPECT_EQ(counter, 0);
-#else
-  EXPECT_EQ(counter, 1);
-#endif
+  if constexpr (utils::statistics::impl::kCheckSubscriptionUB) {
+    EXPECT_EQ(counter, 1);
+  } else {
+    EXPECT_EQ(counter, 0);
+  }
 }
 
 UTEST(MetricsWriter, AutomaticUnsubscribingCheckExtenderData) {
@@ -475,11 +475,11 @@ UTEST(MetricsWriter, AutomaticUnsubscribingCheckExtenderData) {
   auto holder1 = storage.RegisterExtender("prefix1", extender_func);
   { auto holder2 = storage.RegisterExtender("prefix2", extender_func); }
 
-#ifndef TAXICOMMON_6358
-  EXPECT_EQ(counter, 0);
-#else
-  EXPECT_EQ(counter, 1);
-#endif
+  if constexpr (utils::statistics::impl::kCheckSubscriptionUB) {
+    EXPECT_EQ(counter, 1);
+  } else {
+    EXPECT_EQ(counter, 0);
+  }
 }
 
 USERVER_NAMESPACE_END

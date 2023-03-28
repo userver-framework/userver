@@ -16,6 +16,7 @@
 #include <userver/engine/mutex.hpp>
 #include <userver/engine/task/cancel.hpp>
 #include <userver/engine/task/task_with_result.hpp>
+#include <userver/utils/assert.hpp>
 #include <userver/utils/async.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -39,6 +40,8 @@ void ReportErrorWhileUnsubscribing(std::string_view channel_name,
                                    std::string_view error) noexcept;
 
 std::string MakeAsyncChannelName(std::string_view base, std::string_view name);
+
+inline constexpr bool kCheckSubscriptionUB = utils::impl::kEnableAssert;
 
 // During the `AsyncEventSubscriberScope::Unsubscribe` call or destruction of
 // `AsyncEventSubscriberScope`, all variables used by callback must be valid
@@ -160,12 +163,12 @@ class AsyncEventChannel : public AsyncEventSource<Args...> {
 
     if (kind == UnsubscribingKind::kAutomatic) {
       impl::ReportUnsubscribingAutomatically(name_, iter->second.name);
-#ifdef TAXICOMMON_6358
-      // Fake listener call to check
-      impl::CheckDataUsedByCallbackHasNotBeenDestroyedBeforeUnsubscribing(
-          data->on_listener_removal, iter->second.callback, name_,
-          iter->second.name);
-#endif
+      if constexpr (impl::kCheckSubscriptionUB) {
+        // Fake listener call to check
+        impl::CheckDataUsedByCallbackHasNotBeenDestroyedBeforeUnsubscribing(
+            data->on_listener_removal, iter->second.callback, name_,
+            iter->second.name);
+      }
     }
     listeners.erase(iter);
   }

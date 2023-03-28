@@ -188,12 +188,12 @@ void Storage::UnregisterExtender(
     impl::StorageIterator iterator,
     [[maybe_unused]] impl::UnregisteringKind kind) noexcept {
   std::lock_guard lock(mutex_);
-#ifdef TAXICOMMON_6358
-  if (kind == impl::UnregisteringKind::kAutomatic) {
-    // fake writer and extender call to check
-    CheckDataUsedByCallbackHasNotBeenDestroyedBeforeUnregistering(*iterator);
+  if constexpr (impl::kCheckSubscriptionUB) {
+    if (kind == impl::UnregisteringKind::kAutomatic) {
+      // fake writer and extender call to check
+      CheckDataUsedByCallbackHasNotBeenDestroyedBeforeUnregistering(*iterator);
+    }
   }
-#endif
   metrics_sources_.erase(iterator);
 }
 
