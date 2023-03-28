@@ -334,7 +334,7 @@ UTEST_MT(LockedTask, NoWait, 3) {
   strategy->Release("me");
 }
 
-UTEST_MT(LockedTask, NoWaitAquire, 3) {
+UTEST_MT(LockedTask, NoWaitAcquire, 3) {
   auto strategy = MakeMockStrategy();
   DistLockWorkload work;
 

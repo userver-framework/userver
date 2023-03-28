@@ -24,7 +24,7 @@ class RequestsView final {
 
   std::vector<std::shared_ptr<request::RequestBase>> GetAllRequests();
 
-  void StartBackgroudWorker();
+  void StartBackgroundWorker();
 
   void StopBackgroundWorker();
 

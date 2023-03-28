@@ -233,7 +233,7 @@ UTEST(ExpirableLruCache, Expire) {
   EXPECT_EQ(Counter::One(), *counter);
 }
 
-UTEST(ExpirableLruCache, DumpAndChangeMaxLiftime) {
+UTEST(ExpirableLruCache, DumpAndChangeMaxLifetime) {
   auto counter = std::make_shared<Counter>();
 
   auto cache = CreateSimpleCache();

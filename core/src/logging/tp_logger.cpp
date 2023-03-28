@@ -48,7 +48,7 @@ TpLogger::TpLogger(Format format, std::string logger_name)
 
 void TpLogger::StartAsync(engine::TaskProcessor& task_processor,
                           std::size_t max_queue_size,
-                          LoggerConfig::QueueOveflowBehavior overflow_policy) {
+                          LoggerConfig::QueueOverflowBehavior overflow_policy) {
   const auto was_async = in_async_mode_.exchange(true);
   UINVARIANT(!was_async,
              "Attempt to switch logger to async mode, while it is already in "
@@ -221,12 +221,12 @@ void TpLogger::Push(impl::async::Log&& action) const {
   bool success = false;
 
   // Do not do blocking push if we are not in a coroutine context
-  if (overflow_policy_ == LoggerConfig::QueueOveflowBehavior::kBlock &&
+  if (overflow_policy_ == LoggerConfig::QueueOverflowBehavior::kBlock &&
       engine::current_task::GetCurrentTaskContextUnchecked()) {
     engine::TaskCancellationBlocker block_cancel;
     success = producer_.Push(std::move(action));
   } else {
-    UASSERT(overflow_policy_ == LoggerConfig::QueueOveflowBehavior::kDiscard ||
+    UASSERT(overflow_policy_ == LoggerConfig::QueueOverflowBehavior::kDiscard ||
             !engine::current_task::GetCurrentTaskContextUnchecked());
 
     success = producer_.PushNoblock(std::move(action));

@@ -160,7 +160,7 @@ void ServerImpl::StartPortInfos() {
 
   if (has_requests_view_watchers_.load()) {
     auto queue = requests_view_->GetQueue();
-    requests_view_->StartBackgroudWorker();
+    requests_view_->StartBackgroundWorker();
     auto hook = [queue](std::shared_ptr<request::RequestBase> request) {
       queue->enqueue(request);
     };

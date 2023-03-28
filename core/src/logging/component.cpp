@@ -186,13 +186,13 @@ void Logging::Init(const ComponentConfig& config,
 
     if (is_default_logger) {
       if (logger_config.queue_overflow_behavior ==
-          logging::LoggerConfig::QueueOveflowBehavior::kBlock) {
+          logging::LoggerConfig::QueueOverflowBehavior::kBlock) {
         throw std::runtime_error(
             "'default' logger should not be set to 'overflow_behavior: block'! "
             "Default loggerr is used by the userver internals, including the "
             "logging internals. Blocking inside the engine internals could "
             "lead "
-            "to hardly reproducable hangups in some border cases of error "
+            "to hardly reproducible hangups in some border cases of error "
             "reporting.");
       }
 
@@ -270,7 +270,7 @@ void Logging::OnLogRotate() {
     TryReopenFiles();
 
   } catch (const std::exception& e) {
-    LOG_ERROR() << "An error occured while ReopenAll: " << e;
+    LOG_ERROR() << "An error occurred while ReopenAll: " << e;
   }
 }
 

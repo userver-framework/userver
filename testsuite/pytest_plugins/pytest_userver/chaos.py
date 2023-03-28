@@ -102,7 +102,7 @@ async def _wait_for_message_task(
         await _yield()
 
 
-def _incomming_data_size(recv_socket: Socket) -> int:
+def _incoming_data_size(recv_socket: Socket) -> int:
     msg, _ = _try_get_message(recv_socket)
     return len(msg) if msg else 0
 
@@ -209,8 +209,8 @@ class _InterceptSmallerParts:
     async def __call__(
             self, loop: EvLoop, socket_from: Socket, socket_to: Socket,
     ) -> None:
-        incomming_size = _incomming_data_size(socket_from)
-        chunk_size = min(incomming_size, self._max_size)
+        incoming_size = _incoming_data_size(socket_from)
+        chunk_size = min(incoming_size, self._max_size)
         data = await loop.sock_recv(socket_from, chunk_size)
         await loop.sock_sendall(socket_to, data)
 
@@ -236,8 +236,8 @@ class _InterceptConcatPackets:
             )
             sys.exit(2)
 
-        incomming_size = _incomming_data_size(socket_from)
-        if incomming_size >= self._packet_size:
+        incoming_size = _incoming_data_size(socket_from)
+        if incoming_size >= self._packet_size:
             data = await loop.sock_recv(socket_from, RECV_MAX_SIZE)
             await loop.sock_sendall(socket_to, data)
             self._expire_at = None
@@ -338,7 +338,7 @@ class _SocketsPaired:
                 # To avoid long awaiting on sock_recv in an outdated
                 # interceptor we wait for data before grabbing and applying
                 # the interceptor.
-                if not _incomming_data_size(socket_from):
+                if not _incoming_data_size(socket_from):
                     await _yield()
                     continue
 
@@ -412,7 +412,7 @@ class BaseGate:
     """
     This base class maintain endpoints of two types:
 
-    Server-side endpoints to recieve messages from clients. Address of this
+    Server-side endpoints to receive messages from clients. Address of this
     endpoint is described by (host_for_client, port_for_client).
 
     Client-side endpoints to forward messages to server. Server must listen on
@@ -918,25 +918,25 @@ class UdpGate(BaseGate):
     def start_accepting(self) -> None:
         raise NotImplementedError(
             'Since UdpGate can only have one connection, you cannot start or '
-            'stop accepting tasks manually. Use start() and stop() mehtods to '
-            'stop data transfering',
+            'stop accepting tasks manually. Use start() and stop() methods to '
+            'stop data transferring',
         )
 
     async def stop_accepting(self) -> None:
         raise NotImplementedError(
             'Since UdpGate can only have one connection, you cannot start or '
-            'stop accepting tasks manually. Use start() and stop() mehtods to '
-            'stop data transfering',
+            'stop accepting tasks manually. Use start() and stop() methods to '
+            'stop data transferring',
         )
 
     def to_server_concat_packets(self, packet_size: int) -> None:
-        raise NotImplementedError('Udp packets cannot be concatinated')
+        raise NotImplementedError('Udp packets cannot be concatenated')
 
     def to_client_concat_packets(self, packet_size: int) -> None:
-        raise NotImplementedError('Udp packets cannot be concatinated')
+        raise NotImplementedError('Udp packets cannot be concatenated')
 
     def to_server_smaller_parts(self, max_size: int) -> None:
-        raise NotImplementedError('Udp packets cannot be splited')
+        raise NotImplementedError('Udp packets cannot be split')
 
     def to_client_smaller_parts(self, max_size: int) -> None:
-        raise NotImplementedError('Udp packets cannot be splited')
+        raise NotImplementedError('Udp packets cannot be split')

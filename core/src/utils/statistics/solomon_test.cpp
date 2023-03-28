@@ -125,16 +125,16 @@ UTEST(MetricsSolomon, SolomonChildrenLabel) {
   auto producer = [](const utils::statistics::StatisticsRequest&) {
     formats::json::ValueBuilder result;
     utils::statistics::SolomonChildrenAreLabelValues(result,
-                                                     "child_lable_name");
-    result["lable_value_1"]["ag"]["test"] = 76;
-    result["lable_value_1"]["ag"]["test1"] = 90;
+                                                     "child_label_name");
+    result["label_value_1"]["ag"]["test"] = 76;
+    result["label_value_1"]["ag"]["test1"] = 90;
 
-    result["lable_value_2"]["field1"] = 3;
-    result["lable_value_2"]["field2"] = 6.67;
+    result["label_value_2"]["field1"] = 3;
+    result["label_value_2"]["field2"] = 6.67;
 
-    utils::statistics::SolomonLabelValue(result["overriden_lable_value"],
-                                         "overriden_lable_name");
-    result["overriden_lable_value"]["field3"] = 9999;
+    utils::statistics::SolomonLabelValue(result["overridden_label_value"],
+                                         "overridden_label_name");
+    result["overridden_label_value"]["field3"] = 9999;
 
     return result;
   };
@@ -143,21 +143,21 @@ UTEST(MetricsSolomon, SolomonChildrenLabel) {
     "base_key": {
       "some_key": {
         "$meta": {
-          "solomon_children_labels": "child_lable_name"
+          "solomon_children_labels": "child_label_name"
         },
-        "lable_value_1": {
+        "label_value_1": {
           "ag": {
             "test": 76,
             "test1": 90
           }
         },
-        "lable_value_2": {
+        "label_value_2": {
           "field1": 3,
           "field2": 6.67
         },
-        "overriden_lable_value": {
+        "overridden_label_value": {
           "$meta": {
-            "solomon_label": "overriden_lable_name"
+            "solomon_label": "overridden_label_name"
           },
           "field3": 9999
         }
@@ -173,11 +173,11 @@ UTEST(MetricsSolomon, SolomonChildrenLabel) {
       statistics_storage.RegisterExtender("base_key.some_key", producer);
 
   const auto* const expected = R"([
-    {"labels": {"child_lable_name": "lable_value_1", "sensor": "base_key.some_key.ag.test"}, "value": 76},
-    {"labels": {"child_lable_name": "lable_value_1", "sensor": "base_key.some_key.ag.test1"}, "value": 90},
-    {"labels": {"child_lable_name": "lable_value_2", "sensor": "base_key.some_key.field1"}, "value": 3},
-    {"labels": {"child_lable_name": "lable_value_2", "sensor": "base_key.some_key.field2"}, "value": 6.67},
-    {"labels": {"overriden_lable_name": "overriden_lable_value", "sensor": "base_key.some_key.field3"}, "value": 9999}
+    {"labels": {"child_label_name": "label_value_1", "sensor": "base_key.some_key.ag.test"}, "value": 76},
+    {"labels": {"child_label_name": "label_value_1", "sensor": "base_key.some_key.ag.test1"}, "value": 90},
+    {"labels": {"child_label_name": "label_value_2", "sensor": "base_key.some_key.field1"}, "value": 3},
+    {"labels": {"child_label_name": "label_value_2", "sensor": "base_key.some_key.field2"}, "value": 6.67},
+    {"labels": {"overridden_label_name": "overridden_label_value", "sensor": "base_key.some_key.field3"}, "value": 9999}
   ])";
   TestToMetricsSolomon(statistics_storage, expected);
 }
@@ -186,17 +186,17 @@ UTEST(MetricsSolomon, SolomonChildrenLabelEscaping) {
   auto producer = [](const utils::statistics::StatisticsRequest&) {
     formats::json::ValueBuilder result;
     utils::statistics::SolomonChildrenAreLabelValues(
-        result, R"(child.lable.#$/\ _{}'"=name)");
-    result[R"(lable.value.#$/\ _{}'"1)"]["a.#$/\\ _{}g"]["test"] = 76;
-    result[R"(lable.value.#$/\ _{}'"1)"]["a.#$/\\ _{}g"]["test1"] = 90;
+        result, R"(child.label.#$/\ _{}'"=name)");
+    result[R"(label.value.#$/\ _{}'"1)"]["a.#$/\\ _{}g"]["test"] = 76;
+    result[R"(label.value.#$/\ _{}'"1)"]["a.#$/\\ _{}g"]["test1"] = 90;
 
-    result["lable.value.#$/\\ _{}2"]["field1"] = 3;
-    result["lable.value.#$/\\ _{}2"]["field2"] = 6.67;
+    result["label.value.#$/\\ _{}2"]["field1"] = 3;
+    result["label.value.#$/\\ _{}2"]["field2"] = 6.67;
 
     utils::statistics::SolomonLabelValue(
-        result[R"(overriden.lable.#$/\ _{}'"value)"],
-        R"(overriden.lable.#$/\ _{}'"=name)");
-    result[R"(overriden.lable.#$/\ _{}'"value)"]["field3"] = 9999;
+        result[R"(overridden.#$/\ _{}'"value)"],
+        R"(overridden.#$/\ _{}'"=name)");
+    result[R"(overridden.#$/\ _{}'"value)"]["field3"] = 9999;
 
     return result;
   };
@@ -205,21 +205,21 @@ UTEST(MetricsSolomon, SolomonChildrenLabelEscaping) {
     "base_key": {
       "some_key": {
         "$meta": {
-          "solomon_children_labels": "child.lable.#$/\\ _{}'\"=name"
+          "solomon_children_labels": "child.label.#$/\\ _{}'\"=name"
         },
-        "lable.value.#$/\\ _{}'\"1": {
+        "label.value.#$/\\ _{}'\"1": {
           "a.#$/\\ _{}g": {
             "test": 76,
             "test1": 90
           }
         },
-        "lable.value.#$/\\ _{}2": {
+        "label.value.#$/\\ _{}2": {
           "field1": 3,
           "field2": 6.67
         },
-        "overriden.lable.#$/\\ _{}'\"value": {
+        "overridden.#$/\\ _{}'\"value": {
           "$meta": {
-            "solomon_label": "overriden.lable.#$/\\ _{}'\"=name"
+            "solomon_label": "overridden.#$/\\ _{}'\"=name"
           },
           "field3": 9999
         }
@@ -235,11 +235,11 @@ UTEST(MetricsSolomon, SolomonChildrenLabelEscaping) {
       statistics_storage.RegisterExtender("base_key.some_key", producer);
 
   const auto* const expected = R"([
-    {"labels": {"child.lable.#$/\\ _{}'\"=name": "lable.value.#$/\\ _{}'\"1", "sensor": "base_key.some_key.a_#$/\\ _{}g.test"}, "value": 76},
-    {"labels": {"child.lable.#$/\\ _{}'\"=name": "lable.value.#$/\\ _{}'\"1", "sensor": "base_key.some_key.a_#$/\\ _{}g.test1"}, "value": 90},
-    {"labels": {"child.lable.#$/\\ _{}'\"=name": "lable.value.#$/\\ _{}2", "sensor": "base_key.some_key.field1"}, "value": 3},
-    {"labels": {"child.lable.#$/\\ _{}'\"=name": "lable.value.#$/\\ _{}2", "sensor": "base_key.some_key.field2"}, "value": 6.67},
-    {"labels": {"overriden.lable.#$/\\ _{}'\"=name": "overriden.lable.#$/\\ _{}'\"value", "sensor": "base_key.some_key.field3"}, "value": 9999}
+    {"labels": {"child.label.#$/\\ _{}'\"=name": "label.value.#$/\\ _{}'\"1", "sensor": "base_key.some_key.a_#$/\\ _{}g.test"}, "value": 76},
+    {"labels": {"child.label.#$/\\ _{}'\"=name": "label.value.#$/\\ _{}'\"1", "sensor": "base_key.some_key.a_#$/\\ _{}g.test1"}, "value": 90},
+    {"labels": {"child.label.#$/\\ _{}'\"=name": "label.value.#$/\\ _{}2", "sensor": "base_key.some_key.field1"}, "value": 3},
+    {"labels": {"child.label.#$/\\ _{}'\"=name": "label.value.#$/\\ _{}2", "sensor": "base_key.some_key.field2"}, "value": 6.67},
+    {"labels": {"overridden.#$/\\ _{}'\"=name": "overridden.#$/\\ _{}'\"value", "sensor": "base_key.some_key.field3"}, "value": 9999}
   ])";
   TestToMetricsSolomon(statistics_storage, expected);
 }

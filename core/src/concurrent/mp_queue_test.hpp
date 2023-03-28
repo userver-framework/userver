@@ -13,7 +13,7 @@ USERVER_NAMESPACE_BEGIN
 struct RefCountData final {
   int val{0};
 
-  // signed to allow for errorneous deletion to be detected.
+  // signed to allow for erroneous deletion to be detected.
   static inline std::atomic<std::int64_t> objects_count{0};
 
   RefCountData(int value = 0) : val(value) { objects_count.fetch_add(1); }

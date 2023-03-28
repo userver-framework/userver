@@ -122,7 +122,7 @@ UTEST(TcpSocketSink, SinkReadMoreV4) {
   listen_task.Get();
 }
 
-UTEST_MT(TcpSocketSink, ConcurentClose, 4) {
+UTEST_MT(TcpSocketSink, ConcurrentClose, 4) {
   internal::net::TcpListener listener(internal::net::IpVersion::kV4);
   auto socket_sink = logging::impl::TcpSocketSink({listener.addr});
 

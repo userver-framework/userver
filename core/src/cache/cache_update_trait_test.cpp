@@ -428,7 +428,7 @@ UTEST_P(CacheUpdateTraitDumpedFailureOk, Test) {
 // 1. Fails or not to load data from dump
 // 2. Requests a synchronous full update
 // 3. The synchronous full update fails
-// 4. Cache starts succesfully
+// 4. Cache starts successfully
 INSTANTIATE_UTEST_SUITE_P(
     UnnecessaryCacheStart, CacheUpdateTraitDumpedFailureOk,
     Combine(Values(AllowedUpdateTypes::kFullAndIncremental),

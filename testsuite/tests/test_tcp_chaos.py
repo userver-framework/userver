@@ -145,8 +145,8 @@ async def test_to_server_noop(tcp_client, gate, server_connection, loop):
     assert not _has_data(server_connection)
 
     gate.to_server_pass()
-    server_incomming_data = await loop.sock_recv(server_connection, 4)
-    assert server_incomming_data == b'ping'
+    server_incoming_data = await loop.sock_recv(server_connection, 4)
+    assert server_incoming_data == b'ping'
     await _assert_data_from_to(server_connection, tcp_client, loop)
     await _assert_data_from_to(tcp_client, server_connection, loop)
 

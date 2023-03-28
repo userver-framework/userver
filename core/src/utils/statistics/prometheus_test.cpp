@@ -153,16 +153,16 @@ UTEST(Converter, SolomonChildrenLabel) {
   auto producer = [](const utils::statistics::StatisticsRequest&) {
     formats::json::ValueBuilder result;
     utils::statistics::SolomonChildrenAreLabelValues(result,
-                                                     "child_lable_name");
-    result["lable_value_1"]["ag"]["test"] = 76;
-    result["lable_value_1"]["ag"]["test1"] = 90;
+                                                     "child_label_name");
+    result["label_value_1"]["ag"]["test"] = 76;
+    result["label_value_1"]["ag"]["test1"] = 90;
 
-    result["lable_value_2"]["field1"] = 3;
-    result["lable_value_2"]["field2"] = 6.67;
+    result["label_value_2"]["field1"] = 3;
+    result["label_value_2"]["field2"] = 6.67;
 
-    utils::statistics::SolomonLabelValue(result["overriden_lable_value"],
-                                         "overriden_lable_name");
-    result["overriden_lable_value"]["field3"] = 9999;
+    utils::statistics::SolomonLabelValue(result["overridden_label_value"],
+                                         "overridden_label_name");
+    result["overridden_label_value"]["field3"] = 9999;
 
     return result;
   };
@@ -171,21 +171,21 @@ UTEST(Converter, SolomonChildrenLabel) {
     "base_key": {
       "some_key": {
         "$meta": {
-          "solomon_children_labels": "child_lable_name"
+          "solomon_children_labels": "child_label_name"
         },
-        "lable_value_1": {
+        "label_value_1": {
           "ag": {
             "test": 76,
             "test1": 90
           }
         },
-        "lable_value_2": {
+        "label_value_2": {
           "field1": 3,
           "field2": 6.67
         },
-        "overriden_lable_value": {
+        "overridden_label_value": {
           "$meta": {
-            "solomon_label": "overriden_lable_name"
+            "solomon_label": "overridden_label_name"
           },
           "field3": 9999
         }
@@ -202,20 +202,20 @@ UTEST(Converter, SolomonChildrenLabel) {
 
   const auto* const expected =
       "# TYPE base_key_some_key_ag_test gauge\n"
-      "base_key_some_key_ag_test{application=\"processing\",child_lable_name="
-      "\"lable_value_1\"} 76\n"
+      "base_key_some_key_ag_test{application=\"processing\",child_label_name="
+      "\"label_value_1\"} 76\n"
       "# TYPE base_key_some_key_ag_test1 gauge\n"
-      "base_key_some_key_ag_test1{application=\"processing\",child_lable_name="
-      "\"lable_value_1\"} 90\n"
+      "base_key_some_key_ag_test1{application=\"processing\",child_label_name="
+      "\"label_value_1\"} 90\n"
       "# TYPE base_key_some_key_field1 gauge\n"
-      "base_key_some_key_field1{application=\"processing\",child_lable_name="
-      "\"lable_value_2\"} 3\n"
+      "base_key_some_key_field1{application=\"processing\",child_label_name="
+      "\"label_value_2\"} 3\n"
       "# TYPE base_key_some_key_field2 gauge\n"
-      "base_key_some_key_field2{application=\"processing\",child_lable_name="
-      "\"lable_value_2\"} 6.67\n"
+      "base_key_some_key_field2{application=\"processing\",child_label_name="
+      "\"label_value_2\"} 6.67\n"
       "# TYPE base_key_some_key_field3 gauge\n"
-      "base_key_some_key_field3{application=\"processing\",overriden_lable_"
-      "name=\"overriden_lable_value\"} 9999\n";
+      "base_key_some_key_field3{application=\"processing\",overridden_label_"
+      "name=\"overridden_label_value\"} 9999\n";
   TestToMetricsPrometheus(statistics_storage, expected, true);
 }
 
@@ -223,17 +223,17 @@ UTEST(Converter, SolomonChildrenLabelEscaping) {
   auto producer = [](const utils::statistics::StatisticsRequest&) {
     formats::json::ValueBuilder result;
     utils::statistics::SolomonChildrenAreLabelValues(
-        result, R"~(child.lable.#$/\ _{}'"=name)~");
-    result[R"~(lable.value.#$/\ _{}'"1)~"][R"~(a.#$/\ _{}g)~"]["test"] = 76;
-    result[R"~(lable.value.#$/\ _{}'"1)~"][R"~(a.#$/\ _{}g)~"]["test1"] = 90;
+        result, R"~(child.label.#$/\ _{}'"=name)~");
+    result[R"~(label.value.#$/\ _{}'"1)~"][R"~(a.#$/\ _{}g)~"]["test"] = 76;
+    result[R"~(label.value.#$/\ _{}'"1)~"][R"~(a.#$/\ _{}g)~"]["test1"] = 90;
 
-    result[R"~(lable.value.#$/\ _{}2)~"]["field1"] = 3;
-    result[R"~(lable.value.#$/\ _{}2)~"]["field2"] = 6.67;
+    result[R"~(label.value.#$/\ _{}2)~"]["field1"] = 3;
+    result[R"~(label.value.#$/\ _{}2)~"]["field2"] = 6.67;
 
     utils::statistics::SolomonLabelValue(
-        result[R"~(overriden.lable.#$/\ _{}'"value)~"],
-        R"~(overriden.lable.#$/\ _{}'"=name)~");
-    result[R"~(overriden.lable.#$/\ _{}'"value)~"]["field3"] = 9999;
+        result[R"~(overridden.label.#$/\ _{}'"value)~"],
+        R"~(overridden.label.#$/\ _{}'"=name)~");
+    result[R"~(overridden.label.#$/\ _{}'"value)~"]["field3"] = 9999;
 
     return result;
   };
@@ -242,21 +242,21 @@ UTEST(Converter, SolomonChildrenLabelEscaping) {
     "base_key": {
       "some_key": {
         "$meta": {
-          "solomon_children_labels": "child.lable.#$/\\ _{}'\"=name"
+          "solomon_children_labels": "child.label.#$/\\ _{}'\"=name"
         },
-        "lable.value.#$/\\ _{}'\"1": {
+        "label.value.#$/\\ _{}'\"1": {
           "a.#$/\\ _{}g": {
             "test": 76,
             "test1": 90
           }
         },
-        "lable.value.#$/\\ _{}2": {
+        "label.value.#$/\\ _{}2": {
           "field1": 3,
           "field2": 6.67
         },
-        "overriden.lable.#$/\\ _{}'\"value": {
+        "overridden.label.#$/\\ _{}'\"value": {
           "$meta": {
-            "solomon_label": "overriden.lable.#$/\\ _{}'\"=name"
+            "solomon_label": "overridden.label.#$/\\ _{}'\"=name"
           },
           "field3": 9999
         }
@@ -273,15 +273,15 @@ UTEST(Converter, SolomonChildrenLabelEscaping) {
 
   const auto* const expected =
       R"(# TYPE base_key_some_key_a_________g_test gauge
-base_key_some_key_a_________g_test{application="processing",child_lable____________name="lable.value.#$/\ _{}''1"} 76
+base_key_some_key_a_________g_test{application="processing",child_label____________name="label.value.#$/\ _{}''1"} 76
 # TYPE base_key_some_key_a_________g_test1 gauge
-base_key_some_key_a_________g_test1{application="processing",child_lable____________name="lable.value.#$/\ _{}''1"} 90
+base_key_some_key_a_________g_test1{application="processing",child_label____________name="label.value.#$/\ _{}''1"} 90
 # TYPE base_key_some_key_field1 gauge
-base_key_some_key_field1{application="processing",child_lable____________name="lable.value.#$/\ _{}2"} 3
+base_key_some_key_field1{application="processing",child_label____________name="label.value.#$/\ _{}2"} 3
 # TYPE base_key_some_key_field2 gauge
-base_key_some_key_field2{application="processing",child_lable____________name="lable.value.#$/\ _{}2"} 6.67
+base_key_some_key_field2{application="processing",child_label____________name="label.value.#$/\ _{}2"} 6.67
 # TYPE base_key_some_key_field3 gauge
-base_key_some_key_field3{application="processing",overriden_lable____________name="overriden.lable.#$/\ _{}''value"} 9999
+base_key_some_key_field3{application="processing",overridden_label____________name="overridden.label.#$/\ _{}''value"} 9999
 )";
   TestToMetricsPrometheus(statistics_storage, expected, true);
 }

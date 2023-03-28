@@ -69,7 +69,7 @@ properties:
         description: url for something
     fs-task-processor:
         type: string
-        description: name of the task processor to do some bloking FS syscalls
+        description: name of the task processor to do some blocking FS syscalls
 )");
 }
 

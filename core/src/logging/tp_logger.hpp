@@ -52,7 +52,7 @@ class TpLogger final : public LoggerBase {
 
   void StartAsync(engine::TaskProcessor& task_processor,
                   std::size_t max_queue_size,
-                  LoggerConfig::QueueOveflowBehavior overflow_policy);
+                  LoggerConfig::QueueOverflowBehavior overflow_policy);
 
   void SwitchToSyncMode();
 
@@ -83,7 +83,7 @@ class TpLogger final : public LoggerBase {
   std::atomic<bool> in_async_mode_{false};
   Queue::MultiProducer producer_;
   mutable std::atomic<std::size_t> pending_async_ops_{0};
-  LoggerConfig::QueueOveflowBehavior overflow_policy_{};
+  LoggerConfig::QueueOverflowBehavior overflow_policy_{};
   std::vector<impl::SinkPtr> sinks_;
 };
 

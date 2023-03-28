@@ -30,11 +30,11 @@ enum Status : uint16_t {
   ServiceUnavailable = 503,
   GatewayTimeout = 504,
   InsufficientStorage = 507,
-  BandwithLimitExceeded = 509,
+  BandwidthLimitExceeded = 509,
   WebServerIsDown = 520,
   ConnectionTimedOut = 522,
   OriginIsUnreachable = 523,
-  TimeoutOccured = 524,
+  TimeoutOccurred = 524,
   SslHandshakeFailed = 525,
   InvalidSslCertificate = 526,
 };

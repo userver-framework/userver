@@ -121,9 +121,9 @@ void AsyncRequestProcessor::FooAsync(Request&& request) {
 /// [AsyncBackground FooAsync]
 
 Response AsyncRequestProcessor::WaitAndGetAggregate() {
-  namespace ba = boost::adaptors;
+  using boost::adaptors::transformed;
   auto tasks = tasks_.Lock();
-  auto get_result = ba::transformed([](auto& task) { return task.Get(); });
+  auto get_result = transformed([](auto& task) { return task.Get(); });
   return boost::accumulate(*tasks | get_result, 0);
 }
 

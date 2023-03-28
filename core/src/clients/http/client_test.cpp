@@ -1170,7 +1170,7 @@ UTEST(HttpClient, GetWithBody) {
   EXPECT_EQ(response->headers()["xxx"], "good");
   EXPECT_EQ(response->headers()["XXX"], "good");
 
-  // Make shure it doesn't depend on order of get/data
+  // Make sure it doesn't depend on order of get/data
   std::string new_data{"get_body_data"};
   const auto another_response = http_client.CreateRequest()
                                     ->url(url)

@@ -76,16 +76,16 @@ void DoTestBasic(Storage& storage) {
   EXPECT_EQ(expected, ToPrometheusFormatUntyped(
                           storage, Request::MakeWithPath("prefix.name")));
 
-  const auto* const expected_labeld = "prefix_name{lab=\"foo\"} 42\n";
+  const auto* const expected_labeled = "prefix_name{lab=\"foo\"} 42\n";
   EXPECT_EQ(
-      expected_labeld,
+      expected_labeled,
       ToPrometheusFormatUntyped(
           storage, Request::MakeWithPrefix("prefix.name", {{"lab", "foo"}})));
 
-  EXPECT_EQ(expected_labeld, ToPrometheusFormatUntyped(
-                                 storage, Request::MakeWithPrefix(
-                                              "prefix.name", {{"lab", "foo"}},
-                                              {{"lab", "foo"}})));
+  EXPECT_EQ(expected_labeled, ToPrometheusFormatUntyped(
+                                  storage, Request::MakeWithPrefix(
+                                               "prefix.name", {{"lab", "foo"}},
+                                               {{"lab", "foo"}})));
   const auto* const expected_all = R"(
 prefix_name{} 42
 prefix{} 41
@@ -157,7 +157,7 @@ UTEST(MetricsWriter, Sample) {
   /// [DumpMetric RegisterWriter]
   holder_ = storage.RegisterWriter("begin-on-the-metric-path",
                                    [&](Writer& writer) {
-                                     // Metric wihtout lables
+                                     // Metric without labels
                                      writer["metric1"] = 42;
 
                                      ComponentMetrics& metrics =

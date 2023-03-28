@@ -92,10 +92,10 @@ properties:
                 defaultDescription: 32768
             task_processor:
                 type: string
-                description: task processor to process incomming requests
+                description: task processor to process incoming requests
             backlog:
                 type: integer
-                description: max count of new coneections pending acceptance
+                description: max count of new connections pending acceptance
                 defaultDescription: 1024
             handler-defaults:
                 type: object
@@ -157,10 +157,10 @@ properties:
                 defaultDescription: 32768
             task_processor:
                 type: string
-                description: task processor to process incomming requests
+                description: task processor to process incoming requests
             backlog:
                 type: integer
-                description: max count of new coneections pending acceptance
+                description: max count of new connections pending acceptance
                 defaultDescription: 1024
             connection:
                 type: object
