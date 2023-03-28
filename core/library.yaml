@@ -16,6 +16,7 @@ libraries:
   - CurlYandex
   - fmt
   - Http_Parser
+  - Nghttp2
   - LibEv
   - OpenSSL::Crypto
   - OpenSSL::SSL

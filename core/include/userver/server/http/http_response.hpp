@@ -15,18 +15,15 @@
 #include <userver/utils/impl/projecting_view.hpp>
 #include <userver/utils/str_icase.hpp>
 
+// TO DO: Figure how to not poision headers with nghttp2
+#include <nghttp2/nghttp2.h>
+#include <vector>
+
 #include "http_status.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
 namespace server::http {
-
-namespace impl {
-
-void OutputHeader(std::string& header, std::string_view key,
-                  std::string_view val);
-
-}
 
 class HttpRequestImpl;
 
@@ -103,6 +100,9 @@ class HttpResponse final : public request::ResponseBase {
   /// @cond
   // TODO: server internals. remove from public interface
   void SendResponse(engine::io::Socket& socket) override;
+  void SendResponseHttp2(engine::io::Socket& socket,
+                         concurrent::Variable<impl::SessionPtr>& session_holder,
+                         std::optional<Http2UpgradeData> upgrade_data) override;
   /// @endcond
 
   void SetStatusServiceUnavailable() override {
@@ -114,17 +114,20 @@ class HttpResponse final : public request::ResponseBase {
   bool WaitForHeadersEnd() override;
   void SetHeadersEnd() override;
 
+  void SetStreamBody();
+
   using Queue = concurrent::SpscQueue<std::string>;
 
-  void SetStreamBody();
   bool IsBodyStreamed() const override;
   // Can be called only once
   Queue::Producer GetBodyProducer();
 
- private:
-  void SetBodyStreamed(engine::io::Socket& socket, std::string& header);
-  void SetBodyNotstreamed(engine::io::Socket& socket, std::string& header);
+  template <typename T>
+  friend class HttpResponseWriter;
+  friend class Http1ResponseWriter;
+  friend class Http2ResponseWriter;
 
+ private:
   const HttpRequestImpl& request_;
   HttpStatus status_ = HttpStatus::kOk;
   HeadersMap headers_;

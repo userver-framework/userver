@@ -142,14 +142,17 @@ void Connection::ListenForRequests(Queue::Producer producer) noexcept {
   try {
     request_tasks_->SetSoftMaxSize(config_.requests_queue_size_threshold);
 
-    http::HttpRequestParser request_parser(
+    // TODO: get update data from configs
+    std::vector<nghttp2_settings_entry> server_settings;
+    http::Http2UpgradeData data{.server_settings = server_settings};
+    handler_base_.emplace(
         request_handler_.GetHandlerInfoIndex(), handler_defaults_config_,
         [this, &producer](RequestBasePtr&& request_ptr) {
           if (!NewRequest(std::move(request_ptr), producer)) {
             is_accepting_requests_ = false;
           }
         },
-        stats_->parser_stats, data_accounter_);
+        stats_->parser_stats, data_accounter_, data);
 
     std::vector<char> buf(config_.in_buffer_size);
     std::size_t last_bytes_read = 0;
@@ -190,7 +193,7 @@ void Connection::ListenForRequests(Queue::Producer producer) noexcept {
       LOG_TRACE() << "Received " << last_bytes_read << " byte(s) from "
                   << peer_socket_.Getpeername() << " on fd " << Fd();
 
-      if (!request_parser.Parse(buf.data(), last_bytes_read)) {
+      if (!handler_base_->Parse(buf.data(), last_bytes_read)) {
         LOG_DEBUG() << "Malformed request from " << peer_socket_.Getpeername()
                     << " on fd " << Fd();
 
@@ -225,6 +228,8 @@ void Connection::ListenForRequests(Queue::Producer producer) noexcept {
 
 bool Connection::NewRequest(std::shared_ptr<request::RequestBase>&& request_ptr,
                             Queue::Producer& producer) {
+  LOG_WARNING() << "New reqeust generated with stream_id "
+                << request_ptr->GetResponse().stream_id;
   if (!is_accepting_requests_) {
     /* In case of recv() of >1 requests it is possible to get here
      * after is_accepting_requests_ is set to true. Just ignore tail
@@ -237,6 +242,12 @@ bool Connection::NewRequest(std::shared_ptr<request::RequestBase>&& request_ptr,
     is_accepting_requests_ = false;
   }
 
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
+  auto& http_request = static_cast<http::HttpRequestImpl&>(*request_ptr);
+
+  // TODO check upgrade only for http1
+  handler_base_->CheckUpgrade(http_request);
+
   ++stats_->active_request_count;
   return producer.Push(
       {request_ptr, request_handler_.StartRequestTask(request_ptr)});
@@ -246,7 +257,11 @@ void Connection::ProcessResponses(Queue::Consumer& consumer) noexcept {
   try {
     QueueItem item;
     while (consumer.Pop(item)) {
+      LOG_DEBUG() << "try handle item with stream_id "
+                  << item.first->GetResponse().stream_id;
       HandleQueueItem(item);
+      LOG_DEBUG() << "item handled with stream_id "
+                  << item.first->GetResponse().stream_id;
 
       // now we must complete processing
       engine::TaskCancellationBlocker block_cancel;
@@ -308,7 +323,7 @@ void Connection::SendResponse(request::RequestBase& request) {
   if (is_response_chain_valid_ && peer_socket_) {
     try {
       // Might be a stream reading or a fully constructed response
-      response.SendResponse(peer_socket_);
+      handler_base_->SendResponse(peer_socket_, response);
     } catch (const engine::io::IoSystemError& ex) {
       // working with raw values because std::errc compares error_category
       // default_error_category() fixed only in GCC 9.1 (PR libstdc++/60555)

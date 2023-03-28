@@ -4,6 +4,7 @@
 #include <memory>
 #include <string>
 
+#include <server/http/http_handler_base.hpp>
 #include <server/http/request_handler_base.hpp>
 #include <server/net/connection_config.hpp>
 #include <server/net/stats.hpp>
@@ -72,6 +73,7 @@ class Connection final : public std::enable_shared_from_this<Connection> {
   void HandleQueueItem(QueueItem& item);
   void SendResponse(request::RequestBase& request);
 
+  std::optional<http::HTTPHandlerBase> handler_base_;
   engine::TaskProcessor& task_processor_;
   const ConnectionConfig& config_;
   const request::HttpRequestConfig& handler_defaults_config_;

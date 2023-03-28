@@ -80,7 +80,6 @@ class HttpRequestImpl final : public request::RequestBase {
   void SetResponseStatus(HttpStatus status) const {
     response_.SetStatus(status);
   }
-
   bool IsBodyCompressed() const;
 
   bool IsFinal() const override { return is_final_; }
@@ -114,7 +113,12 @@ class HttpRequestImpl final : public request::RequestBase {
   void SetTaskProcessor(engine::TaskProcessor& task_processor);
   engine::TaskProcessor* GetTaskProcessor() const;
 
+  void SetHasUpgradeHeaders(bool has_upgrade_headers);
+  bool HasUpgradeHeaders() const;
+
   void SetHttpHandlerStatistics(handlers::HttpRequestStatistics&);
+
+  void SetResponseStreamId(uint32_t);
 
   friend class HttpRequestConstructor;
 
@@ -138,6 +142,7 @@ class HttpRequestImpl final : public request::RequestBase {
   HttpRequest::HeadersMap headers_;
   HttpRequest::CookiesMap cookies_;
   bool is_final_{false};
+  bool has_upgrade_headers_{false};
 
   mutable HttpResponse response_;
   engine::TaskProcessor* task_processor_{nullptr};
