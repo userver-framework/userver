@@ -78,7 +78,7 @@ struct CaseInsensitiveSSEFetcher final {
 #if defined(__GNUC__) && !defined(__llvm__) && (__GNUC__ < 9)
     const auto value = CaseFetcher::Fetch8(data);
     return LowercaseBytes(
-               _mm_loadl_epi64(reinterpret_cast<const __m128i*>(value)))
+               _mm_loadl_epi64(reinterpret_cast<const __m128i*>(&value)))
         .first;
 #else
     return LowercaseBytes(_mm_loadu_si64(data)).first;
