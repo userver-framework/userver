@@ -70,6 +70,7 @@ struct Config final {
   std::optional<std::string> task_processor_name;
   std::chrono::milliseconds cleanup_interval;
   bool is_strong_period;
+  std::optional<std::uint64_t> failed_updates_before_expiration;
 
   FirstUpdateMode first_update_mode;
   FirstUpdateType first_update_type;

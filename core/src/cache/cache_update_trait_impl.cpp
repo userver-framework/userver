@@ -262,9 +262,21 @@ void CacheUpdateTrait::Impl::DoPeriodicUpdate() {
   try {
     DoUpdate(update_type);
     forced_update_type_ = {};
+    failed_updates_counter_ = 0;
   } catch (const std::exception& ex) {
     LOG_WARNING() << "Error while updating cache " << name_
                   << ". Reason: " << ex;
+
+    const auto failed_updates_before_expiration =
+        config->failed_updates_before_expiration;
+    failed_updates_counter_++;
+    if (failed_updates_counter_ == failed_updates_before_expiration) {
+      customized_trait_.MarkAsExpired();
+      LOG_WARNING()
+          << "Cache is marked as expired because the number of "
+             "failed updates has reached 'failed-updates-before-expiration' ("
+          << failed_updates_before_expiration << ")";
+    }
     throw;
   }
 }
