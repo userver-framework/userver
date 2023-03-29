@@ -1,7 +1,0 @@
-name: CurlYandex
-helper-prefix: true
-
-version: 7.68.0
-debian-names:
-  - libyandex-taxi-curl4-openssl-dev
-formula-name: curl

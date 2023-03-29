@@ -5,22 +5,6 @@ maintainers:
   - Common components
 description: userver core stuff
 
-libraries:
-  - Boost::filesystem
-  - Boost::locale
-  - Boost::program_options
-  - Boost::thread
-  - Boost::regex
-  - Boost::iostreams
-  - CryptoPP
-  - CurlYandex
-  - fmt
-  - Http_Parser
-  - LibEv
-  - OpenSSL::Crypto
-  - OpenSSL::SSL
-  - libyamlcpp
-
 configs:
     names:
       - HTTP_CLIENT_CONNECTION_POOL_SIZE
