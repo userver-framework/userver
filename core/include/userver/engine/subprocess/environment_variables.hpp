@@ -59,6 +59,14 @@ rcu::ReadablePtr<EnvironmentVariables> GetCurrentEnvironmentVariablesPtr();
 // For using in tests with `setenv()`
 void UpdateCurrentEnvironmentVariables();
 
+enum class Overwrite { kAllowed, kForbidden, kIgnored };
+
+void SetEnvironmentVariable(const std::string& variable_name,
+                            const std::string& value,
+                            Overwrite overwrite = Overwrite::kForbidden);
+
+void UnsetEnvironmentVariable(const std::string& variable_name);
+
 }  // namespace engine::subprocess
 
 USERVER_NAMESPACE_END

@@ -2,8 +2,10 @@
 
 #include <unistd.h>
 
+#include <cstdlib>
 #include <cstring>
 #include <stdexcept>
+#include <utility>
 
 extern char** environ;
 
@@ -78,6 +80,33 @@ rcu::ReadablePtr<EnvironmentVariables> GetCurrentEnvironmentVariablesPtr() {
 void UpdateCurrentEnvironmentVariables() {
   GetCurrentEnvironmentVariablesStorage().Assign(
       EnvironmentVariables{GetCurrentEnvironmentVariablesMap()});
+}
+
+void SetEnvironmentVariable(const std::string& variable_name,
+                            const std::string& value, Overwrite overwrite) {
+  const auto read_ptr = GetCurrentEnvironmentVariablesPtr();
+  const bool value_exist =
+      (read_ptr->GetValueOptional(variable_name) != nullptr);
+  if (value_exist) {
+    UINVARIANT(overwrite != Overwrite::kForbidden,
+               "variable with name= " + variable_name +
+                   " was set earlier and prohibits rewriting");
+    if (overwrite == Overwrite::kIgnored) {
+      return;
+    }
+  }
+
+  // NOLINTNEXTLINE(concurrency-mt-unsafe)
+  ::setenv(variable_name.c_str(), value.c_str(), 1);
+
+  UpdateCurrentEnvironmentVariables();
+}
+
+void UnsetEnvironmentVariable(const std::string& variable_name) {
+  // NOLINTNEXTLINE(concurrency-mt-unsafe)
+  ::unsetenv(variable_name.c_str());
+
+  UpdateCurrentEnvironmentVariables();
 }
 
 }  // namespace engine::subprocess
