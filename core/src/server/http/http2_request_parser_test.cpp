@@ -86,9 +86,7 @@ class Http2RequestParserTest : public ::testing::Test {
                               ->get(server_.GetBaseUrl())
                               ->perform();
 
-    std::cout << response->status_code() << std::endl;
     EXPECT_EQ(200, response->status_code());
-    std::cout << "first success" << std::endl;
   }
 
   const utest::SimpleServer& GetServer() const { return server_; }
@@ -138,16 +136,11 @@ class Http2RequestParserTest : public ::testing::Test {
     int rv = nghttp2_submit_response(session_ptr->get(), cur_stream_id_,
                                      hdrs.data(), hdrs.size(), nullptr);
 
-    std::cout << "submit response rv " << rv << std::endl;
     UASSERT(!rv);
-    std::cout << "after submit_response" << std::endl;
 
     while (nghttp2_session_want_write(session_ptr->get())) {
-      std::cout << "want write" << std::endl;
       const uint8_t* data_ptr{nullptr};
       ssize_t len = nghttp2_session_mem_send(session_ptr->get(), &data_ptr);
-      // UASSERT(*data_ptr);
-      std::cout << "after session_mem_send" << std::endl;
       response_buffer.append(reinterpret_cast<const char*>(data_ptr), len);
     }
   }
@@ -158,11 +151,9 @@ class Http2RequestParserTest : public ::testing::Test {
     if (!upgrade_completed_) {
       EXPECT_TRUE(DoUpgrade(request));
       response_buffer.append(kSwitchingProtocolResponse);
-      std::cout << "upgrade completed" << std::endl;
       upgrade_completed_ = true;
     } else {
       ParseHttp2Request(request);
-      std::cout << "data succesfully parsed" << std::endl;
     }
 
     CollectResponse(response_buffer);

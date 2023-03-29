@@ -1,7 +1,5 @@
 #include "http2_session_data.hpp"
 
-#include <iostream>
-
 USERVER_NAMESPACE_BEGIN
 
 namespace server::http {
@@ -17,15 +15,12 @@ Http2SessionData::Http2SessionData(
       on_new_request_cb_(on_new_request_cb) {}
 
 void Http2SessionData::RegisterStreamData(uint32_t stream_id) {
-  std::cout << "register stream data for stream_id " << stream_id << std::endl;
-
   // We don't need synchronization because nghttp2 is not thread safe and
   // only one request can be parsed at the same time
   auto [iter, success] = streams_.try_emplace(
       stream_id, config_, handler_info_index_, data_accounter_, stream_id);
 
   if (!success) {
-    std::cout << "error inserting" << std::endl;
     // TODO report error
   }
 

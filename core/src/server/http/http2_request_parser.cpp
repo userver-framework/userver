@@ -10,8 +10,6 @@
 #include "http2_request_parser.hpp"
 #include "http2_session_data.hpp"
 
-#include <iostream>
-
 USERVER_NAMESPACE_BEGIN
 
 namespace server::http {
@@ -45,28 +43,19 @@ namespace nghttp2_callbacks::recv {
 
 int OnFrameRecv(nghttp2_session* session, const nghttp2_frame* frame,
                 void* user_data) {
-  std::cout << "on_frame_recv callback for stream " << frame->hd.stream_id
-            << std::endl;
+  LOG_TRACE() << "on_frame_recv callback for stream " << frame->hd.stream_id;
   auto* session_data = reinterpret_cast<Http2SessionData*>(user_data);
 
   UASSERT(session_data);
-  // UASSERT(frame->hd.type == NGHTTP2_DATA || frame->hd.type ==
-  // NGHTTP2_HEADERS);
-  std::cout << "\tframe type " << static_cast<size_t>(frame->hd.type)
-            << std::endl;
+  LOG_TRACE() << "frame type " << static_cast<size_t>(frame->hd.type);
 
   if (frame->hd.type == NGHTTP2_RST_STREAM) {
-    std::cout << "\tclose stream reqeust. Error code "
-              << frame->rst_stream.error_code << std::endl;
+    LOG_TRACE() << "\tclose stream reqeust. Error code "
+              << frame->rst_stream.error_code ;
   }
 
   if (frame->hd.type == NGHTTP2_SETTINGS) {
-    // size_t count = frame->settings.niv;
-    // std::cout << "settings num " << count << std::endl;
-    // for (size_t i = 0; i < count; ++i) {
-    // std::cout << "settings id " << frame->settings.iv[i].settings_id
-    //<< " value " << frame->settings.iv[i].value << std::endl;
-    //}
+    // TODO handle client settings
   }
 
   // TODO GOAWAY -  stop recieving and finish existingd
@@ -76,7 +65,7 @@ int OnFrameRecv(nghttp2_session* session, const nghttp2_frame* frame,
   }
 
   if (frame->hd.type == NGHTTP2_DATA) {
-    std::cout << "\tdata frame padlen is " << frame->data.padlen << std::endl;
+    LOG_TRACE() << "\tdata frame padlen is " << frame->data.padlen ;
   }
 
   if (!(frame->hd.flags & NGHTTP2_FLAG_END_STREAM)) {
@@ -97,9 +86,8 @@ int OnFrameRecv(nghttp2_session* session, const nghttp2_frame* frame,
 int OnHeader(nghttp2_session* session, const nghttp2_frame* frame,
              const uint8_t* name, size_t namelen, const uint8_t* value,
              size_t valuelen, uint8_t /*flags*/, void* /*user_data*/) {
-  std::cout << "on_header callback" << std::endl;
-  // utils::ScopeGuard stats_guard([] { std::cout << "on_header callback exit";
-  // });
+  LOG_TRACE() << "on_header callback" ;
+  // utils::ScopeGuard stats_guard([] { LOG_TRACE() << "on_header callback exit"; });
 
   if (frame->hd.type != NGHTTP2_HEADERS) {
     return 0;
@@ -110,10 +98,8 @@ int OnHeader(nghttp2_session* session, const nghttp2_frame* frame,
     return 0;
   }
 
-  std::cout << "\ttry get stream_data for " << frame->hd.stream_id << std::endl;
   auto* stream_data = reinterpret_cast<StreamDataPtr>(
       nghttp2_session_get_stream_user_data(session, frame->hd.stream_id));
-  std::cout << "\tgot stream_data" << std::endl;
 
   if (!stream_data) {
     return 0;
@@ -121,7 +107,6 @@ int OnHeader(nghttp2_session* session, const nghttp2_frame* frame,
 
   std::string_view hname(reinterpret_cast<const char*>(name), namelen);
   std::string_view hvalue(reinterpret_cast<const char*>(value), valuelen);
-  std::cout << "\theader parsed " << hname << " : " << hvalue << std::endl;
 
   HttpRequestConstructor& ctor = stream_data->constructor;
   if (hname == http2::pseudo_headers::kMethod) {
@@ -142,7 +127,7 @@ int OnHeader(nghttp2_session* session, const nghttp2_frame* frame,
 
 int OnStreamClose(nghttp2_session* session, int32_t stream_id,
                   uint32_t error_code, void* user_data) {
-  std::cout << "on_stream_close " << stream_id << " callback" << std::endl;
+  LOG_TRACE() << "on_stream_close " << stream_id << " callback" ;
   auto* session_data = reinterpret_cast<Http2SessionData*>(user_data);
   auto* stream_data = reinterpret_cast<StreamDataPtr>(
       nghttp2_session_get_stream_user_data(session, stream_id));
@@ -164,7 +149,7 @@ int OnStreamClose(nghttp2_session* session, int32_t stream_id,
 
 int OnBeginHeaders(nghttp2_session* /*session*/, const nghttp2_frame* frame,
                    void* user_data) {
-  std::cout << "on_begin_headers callback" << std::endl;
+  LOG_TRACE() << "on_begin_headers callback" ;
   auto* session_data = reinterpret_cast<Http2SessionData*>(user_data);
 
   if (frame->hd.type != NGHTTP2_HEADERS ||
@@ -180,7 +165,7 @@ int OnBeginHeaders(nghttp2_session* /*session*/, const nghttp2_frame* frame,
 int OnDataChunkRecv(nghttp2_session* session, uint8_t /*flags*/,
                     int32_t stream_id, const uint8_t* data, size_t len,
                     void* /*user_data*/) {
-  std::cout << "on_data_chunk callback" << std::endl;
+  LOG_TRACE() << "on_data_chunk callback" ;
   // UASSERT(false);
   auto* stream_data = reinterpret_cast<StreamDataPtr>(
       nghttp2_session_get_stream_user_data(session, stream_id));
@@ -193,7 +178,8 @@ int OnDataChunkRecv(nghttp2_session* session, uint8_t /*flags*/,
 
 int ErrorCallback(nghttp2_session* /*session*/, int /*lib_error_code*/,
                   const char* /*msg*/, size_t /*len*/, void* /*user_data*/) {
-  std::cout << "error_callback" << std::endl;
+  LOG_TRACE() << "error_callback" ;
+  // TODO handle error
   UASSERT(false);
   return 0;
 }
@@ -201,7 +187,8 @@ int ErrorCallback(nghttp2_session* /*session*/, int /*lib_error_code*/,
 int OnExtensionChunk(nghttp2_session* /*session*/,
                      const nghttp2_frame_hd* /*hd*/, const uint8_t* /*data*/,
                      size_t /*len*/, void* /*user_data*/) {
-  std::cout << "on_extension_chunk" << std::endl;
+  LOG_TRACE() << "on_extension_chunk" ;
+  // TODO handle error
   UASSERT(false);
   return 0;
 }
@@ -209,7 +196,8 @@ int OnExtensionChunk(nghttp2_session* /*session*/,
 int OnInvalidFrameRecv(nghttp2_session* /*session*/,
                        const nghttp2_frame* /*frame*/, int /*lib_error_code*/,
                        void* /*user_data*/) {
-  std::cout << "on_extension_chunk" << std::endl;
+  LOG_TRACE() << "on_extension_chunk" ;
+  // TODO handle error
   UASSERT(false);
   return 0;
 }
@@ -217,12 +205,13 @@ int OnInvalidFrameRecv(nghttp2_session* /*session*/,
 int OnInvalidHeader(nghttp2_session*, const nghttp2_frame*, const uint8_t* name,
                     size_t namelen, const uint8_t* value, size_t valuelen,
                     uint8_t, void*) {
-  std::cout << "on_invalid_header callback" << std::endl;
-  UASSERT(false);
-  LOG_DEBUG() << "ERROR invalid header "
+  LOG_TRACE() << "on_invalid_header callback" ;
+  LOG_WARNING() << "ERROR invalid header "
               << std::string_view{reinterpret_cast<const char*>(name), namelen}
               << std::string_view{reinterpret_cast<const char*>(value),
                                   valuelen};
+  // TODO handle error
+  UASSERT(false);
   return 0;
 }
 
@@ -292,21 +281,17 @@ bool Http2RequestParser::Parse(const char* data, size_t size) {
 
   switch (ret) {
     case NGHTTP2_ERR_NOMEM:
-      std::cout << "err1" << std::endl;
       LOG_ERROR()
           << "Out of memory error was detected durig request processing";
       break;
     case NGHTTP2_ERR_CALLBACK_FAILURE:
-      std::cout << "err2" << std::endl;
       LOG_ERROR()
           << "Error in callback during request processing. See logs for reason";
       break;
     case NGHTTP2_ERR_BAD_CLIENT_MAGIC:
-      std::cout << "err3" << std::endl;
       LOG_ERROR() << "Bad client magic during reqeust processing";
       break;
     case NGHTTP2_ERR_FLOODED:
-      std::cout << "err4" << std::endl;
       LOG_ERROR() << "Flooding detected. Need to close session";
       break;
     default:
@@ -314,7 +299,6 @@ bool Http2RequestParser::Parse(const char* data, size_t size) {
   }
 
   if (ret >= 0 && ret < signed_size) {
-    std::cout << "err5" << std::endl;
     LOG_ERROR() << "parsed=" << ret << " size=" << signed_size;
   }
 
@@ -328,7 +312,7 @@ bool Http2RequestParser::ApplySettings(
   auto session_ptr = session_data_->GetSession().Lock();
 
   const auto settings_payload = crypto::base64::Base64UrlDecode(settings);
-  std::cout << "setting payload " << settings_payload.size() << std::endl;
+  LOG_TRACE() << "setting payload " << settings_payload.size() ;
   int rv = nghttp2_session_upgrade2(
       session_ptr->get(),
       reinterpret_cast<const uint8_t*>(settings_payload.data()),
