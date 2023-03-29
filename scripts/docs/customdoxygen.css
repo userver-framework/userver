@@ -29,7 +29,7 @@
     margin-top: 7px;
 }
 
-/* Sticky menue */
+/* Sticky menu */
 @media (min-width: 768px) {
     .stickyHeader {
       position: fixed;
@@ -218,7 +218,7 @@ a.titlelink {
     color: #F7F7F7;
 }
 
-/* Bigger font for menue */
+/* Bigger font for menu */
 #main-nav > ul > li > a {
     font-size: 18px;
 }

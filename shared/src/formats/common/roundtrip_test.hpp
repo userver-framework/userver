@@ -43,7 +43,7 @@ TYPED_TEST_P(Roundtrip, Uint64) { this->Check(uint64_t{1}); }
 TYPED_TEST_P(Roundtrip, Double) { this->Check(1.0); }
 
 TYPED_TEST_P(Roundtrip, Cstring) {
-  // cannot do As<char[]>(), test it manualy
+  // cannot do As<char[]>(), test it manually
   constexpr const char* kTest = "test";
   const auto value = TypeParam{kTest}.ExtractValue();
   EXPECT_EQ(kTest, value.template As<std::string>());

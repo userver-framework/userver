@@ -34,7 +34,7 @@ def call(service_client, gen_domain_name, dns_mock_stats):
         )
 
         if check_query == CheckQuery.FROM_MOCK:
-            # Plus two different reqeusts for IPv4 and IPv6
+            # Plus two different reqeuests for IPv4 and IPv6
             assert dns_mock_stats.get_stats() == dns_times_called + 2
             queries = dns_mock_stats.get_queries()
             assert queries[-1] == resolve

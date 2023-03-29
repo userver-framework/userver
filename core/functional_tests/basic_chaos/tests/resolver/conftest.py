@@ -51,7 +51,7 @@ class DnsServerProtocol:
         logger.info('Dns server lost connection')
 
     def datagram_received(self, data, addr):
-        logger.info(f'Dns server recieved {len(data)} bytes from {addr}')
+        logger.info(f'Dns server received {len(data)} bytes from {addr}')
         self.times_called += 1
 
         assert len(data) == 32
