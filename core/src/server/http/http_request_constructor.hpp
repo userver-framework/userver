@@ -45,6 +45,7 @@ class HttpRequestConstructor final : public request::RequestConstructor {
   void SetMethod(HttpMethod method);
   void SetHttpMajor(unsigned short http_major);
   void SetHttpMinor(unsigned short http_minor);
+  void SetHasUpgrade();
 
   void AppendUrl(const char* data, size_t size);
   void ParseUrl();
@@ -53,6 +54,9 @@ class HttpRequestConstructor final : public request::RequestConstructor {
   void AppendBody(const char* data, size_t size);
 
   void SetIsFinal(bool is_final);
+
+  // Just to make it work. TODO remove
+  void SetResponseStreamId(uint32_t);
 
   std::shared_ptr<request::RequestBase> Finalize() override;
 

@@ -13,6 +13,7 @@ libyaml-cpp-dev
 libssl-dev
 libcctz-dev
 libhttp-parser-dev
+libnghttp2-dev
 libjemalloc-dev
 libmongoc-dev
 libbson-dev

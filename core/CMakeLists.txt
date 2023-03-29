@@ -92,6 +92,7 @@ if (USERVER_CONAN)
     find_package(spdlog REQUIRED)
     find_package(cctz REQUIRED)
     find_package(http_parser REQUIRED)
+    find_package(nghttp2 REQUIRED)
     find_package(libev REQUIRED)
 
     find_package(RapidJSON REQUIRED)
@@ -107,6 +108,7 @@ else()
     include(SetupSpdlog)
     include(SetupCCTZ)
     find_package_required(Http_Parser "libhttp-parser-dev")
+    find_package_required(Nghttp2 "libnghttp2-dev")
     find_package_required(LibEv "libev-dev")
 endif()
 
@@ -182,6 +184,7 @@ else()
       PRIVATE
         CryptoPP
         Http_Parser
+        Nghttp2
         LibEv
         spdlog_header_only
     )

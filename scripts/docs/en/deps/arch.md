@@ -12,6 +12,7 @@ grpc
 gtest
 hiredis
 http-parser
+nghttp2
 jemalloc
 krb5
 libbacktrace-git

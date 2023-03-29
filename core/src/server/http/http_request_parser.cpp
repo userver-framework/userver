@@ -73,8 +73,6 @@ bool HttpRequestParser::Parse(const char* data, size_t size) {
   }
   if (parser_.upgrade) {
     LOG_WARNING() << "upgrade detected";
-    FinalizeRequest();
-    return false;
   }
   return true;
 }
@@ -201,9 +199,8 @@ int HttpRequestParser::OnBodyImpl(http_parser* p, const char* data,
 
 int HttpRequestParser::OnMessageCompleteImpl(http_parser* p) {
   UASSERT(request_constructor_);
-  if (p->upgrade) {
-    LOG_WARNING() << "upgrade detected";
-    return -1;  // error
+  if (parser_.upgrade) {
+    request_constructor_->SetHasUpgrade();
   }
   request_constructor_->SetIsFinal(!http_should_keep_alive(p));
   if (!CheckUrlComplete(p)) return -1;
@@ -245,9 +242,9 @@ bool HttpRequestParser::FinalizeRequest() {
 bool HttpRequestParser::FinalizeRequestImpl() {
   if (!request_constructor_) CreateRequestConstructor();
 
-  if (auto request = request_constructor_->Finalize())
+  if (auto request = request_constructor_->Finalize()) {
     on_new_request_cb_(std::move(request));
-  else {
+  } else {
     LOG_ERROR() << "request is null after Finalize()";
     return false;
   }

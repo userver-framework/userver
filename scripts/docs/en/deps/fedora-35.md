@@ -13,6 +13,7 @@ cryptopp-devel
 yaml-cpp-devel
 cctz-devel
 http-parser-devel
+nghttp2-devel
 jemalloc-devel
 virtualenv
 openldap-devel
