@@ -73,7 +73,16 @@ struct CaseFetcher final {
 #ifdef __SSE2__
 struct CaseInsensitiveSSEFetcher final {
   static inline std::uint64_t Fetch8(const uint8_t* data) noexcept {
+    // _mm_loadu_si64 is missing in gcc prior to version 9
+    // https://gcc.gnu.org/bugzilla/show_bug.cgi?id=78782
+#if defined(__GNUC__) && !defined(__llvm__) && (__GNUC__ < 9)
+    const auto value = CaseFetcher::Fetch8(data);
+    return LowercaseBytes(
+               _mm_loadl_epi64(reinterpret_cast<const __m128i*>(&value)))
+        .first;
+#else
     return LowercaseBytes(_mm_loadu_si64(data)).first;
+#endif
   }
 
   static inline std::pair<std::uint64_t, std::uint64_t> Fetch16(
