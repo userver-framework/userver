@@ -95,4 +95,20 @@ TEST(FileDescriptor, WriteTruncating) {
   EXPECT_EQ(fs::blocking::ReadFileContents(path), "bb");
 }
 
+TEST(FileDescriptor, WriteAppend) {
+  using fs::blocking::OpenFlag;
+
+  const auto dir = fs::blocking::TempDirectory::Create();
+  const auto path = dir.GetPath() + "/foo";
+
+  fs::blocking::RewriteFileContents(path, "aaa");
+
+  // Note: kAppend
+  FileDescriptor::Open(
+      path, {OpenFlag::kWrite, OpenFlag::kCreateIfNotExists, OpenFlag::kAppend})
+      .Write("bb");
+
+  EXPECT_EQ(fs::blocking::ReadFileContents(path), "aaabb");
+}
+
 USERVER_NAMESPACE_END

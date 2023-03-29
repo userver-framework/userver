@@ -4,9 +4,9 @@
 #include <spdlog/sinks/ostream_sink.h>
 
 #include <logging/config.hpp>
+#include <logging/impl/unix_socket_sink.hpp>
 #include <logging/spdlog_helpers.hpp>
 #include <logging/tp_logger.hpp>
-#include <logging/unix_socket_sink.hpp>
 
 #include <userver/logging/format.hpp>
 #include <userver/logging/log.hpp>

@@ -17,7 +17,8 @@ USERVER_NAMESPACE_BEGIN
 inline std::shared_ptr<logging::impl::TpLogger> MakeSocketLogger(
     const std::string& logger_name, std::string filename,
     logging::Format format) {
-  auto sink = std::make_shared<logging::SocketSinkST>(std::move(filename));
+  auto sink =
+      std::make_shared<logging::impl::UnixSocketSink>(std::move(filename));
   return MakeLoggerFromSink(logger_name, sink, format);
 }
 
