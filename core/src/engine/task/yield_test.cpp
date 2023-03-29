@@ -36,7 +36,7 @@ UTEST_MT(EngineYield, DISABLED_IsBroken, 2) {
                                                                      start);
       }).Get();
 
-  // One would expect that fast task will be executed withing some
+  // One would expect that fast task will be executed within some
   // moderate amount of time, because no matter which thread gets blocked
   // by the slow_task, there is another one which
   // is never blocked for more than 20ms

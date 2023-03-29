@@ -76,7 +76,7 @@ ugrpc::server::ServerConfig MakeServerConfig() {
 
 }  // namespace
 
-UTEST_MT(GrpcServer, DestroyServerDuringReqest, 2) {
+UTEST_MT(GrpcServer, DestroyServerDuringRequest, 2) {
   UnitTestServiceEcho service;
   utils::statistics::Storage statistics_storage;
 

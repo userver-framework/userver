@@ -32,7 +32,7 @@ constexpr std::chrono::seconds kConnectingTimeout{2};
 // Max idle connections that can be dropped in one run of maintenance task
 constexpr auto kIdleDropLimit = 1;
 
-// Practically unlimited number on concurrect establishing connections
+// Practically unlimited number on concurrent establishing connections
 constexpr auto kUnlimitedConnecting = std::numeric_limits<std::size_t>::max();
 
 class Stopwatch {

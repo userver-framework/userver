@@ -160,7 +160,7 @@ void FdPoller::Impl::Invalidate() {
   UINVARIANT(
       res,
       fmt::format(
-          "Socket missuse: expected socket state is '{}', actual state is '{}'",
+          "Socket misuse: expected socket state is '{}', actual state is '{}'",
           State::kReadyToUse, old_state));
 }
 

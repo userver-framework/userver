@@ -6,7 +6,6 @@ maintainers:
 description: Redis driver
 
 libraries:
-  - Hiredis
   - userver-core
 
 configs:

@@ -40,7 +40,7 @@ async def _assert_data_from_to(
     assert data == expected
 
 
-async def _assert_recieve_timeout(sock: socket.socket, loop) -> None:
+async def _assert_receive_timeout(sock: socket.socket, loop) -> None:
     try:
         data = await asyncio.wait_for(
             loop.sock_recv(sock, 1), _NOTICEABLE_DELAY,
@@ -230,8 +230,8 @@ async def test_to_server_noop(udp_client, gate, server_socket, loop):
     assert not _has_data(server_socket)
 
     gate.to_server_pass()
-    server_incomming_data = await loop.sock_recv(server_socket, 4)
-    assert server_incomming_data == b'ping'
+    server_incoming_data = await loop.sock_recv(server_socket, 4)
+    assert server_incoming_data == b'ping'
     await _assert_data_from_to(server_socket, udp_client, loop)
     await _assert_data_from_to(udp_client, server_socket, loop)
 
@@ -265,7 +265,7 @@ async def test_to_client_close_on_data(
     assert gate.is_connected()
     await loop.sock_sendall(server_socket, b'die')
 
-    await _assert_recieve_timeout(udp_client, loop)
+    await _assert_receive_timeout(udp_client, loop)
 
 
 async def test_to_server_close_on_data(
@@ -277,7 +277,7 @@ async def test_to_server_close_on_data(
     assert gate.is_connected()
     await loop.sock_sendall(udp_client, b'die')
 
-    await _assert_recieve_timeout(server_socket, loop)
+    await _assert_receive_timeout(server_socket, loop)
 
 
 async def test_to_client_corrupt_data(
@@ -365,7 +365,7 @@ async def test_to_client_limit_time(
     await _assert_data_from_to(server_socket, udp_client, loop)
     await asyncio.sleep(_NOTICEABLE_DELAY * 2)
     await loop.sock_sendall(server_socket, b'die')
-    await _assert_recieve_timeout(udp_client, loop)
+    await _assert_receive_timeout(udp_client, loop)
 
 
 async def test_to_server_limit_time(
@@ -381,7 +381,7 @@ async def test_to_server_limit_time(
     await _assert_data_from_to(udp_client, server_socket, loop)
     await asyncio.sleep(_NOTICEABLE_DELAY * 2)
     await loop.sock_sendall(udp_client, b'die')
-    await _assert_recieve_timeout(server_socket, loop)
+    await _assert_receive_timeout(server_socket, loop)
 
 
 async def test_to_client_limit_bytes(
@@ -402,7 +402,7 @@ async def test_to_client_limit_bytes(
 
     await loop.sock_sendall(server_socket, b'dead now')
 
-    await _assert_recieve_timeout(udp_client, loop)
+    await _assert_receive_timeout(udp_client, loop)
 
 
 async def test_to_server_limit_bytes(
@@ -421,7 +421,7 @@ async def test_to_server_limit_bytes(
     data = await loop.sock_recv(server_socket, 10)
     assert data == b'die after'
 
-    await _assert_recieve_timeout(server_socket, loop)
+    await _assert_receive_timeout(server_socket, loop)
 
 
 async def test_substitute(udp_client, gate, server_socket, udp_server, loop):
@@ -452,7 +452,7 @@ async def test_start_stop(udp_client, gate, server_socket, udp_server, loop):
     await gate.stop()
 
     await loop.sock_sendall(udp_client, b'hello')
-    await _assert_recieve_timeout(server_socket, loop)
+    await _assert_receive_timeout(server_socket, loop)
 
     gate.start()
     udp_client2 = await _make_client(loop, gate)

@@ -166,7 +166,7 @@ UTEST(MetricsPortabilityInfo, PathLong) {
   EXPECT_EQ(entries[0].path.substr(0, 7), "a.value");
 }
 
-UTEST(MetricsPortabilityInfo, LabelsMissmatch) {
+UTEST(MetricsPortabilityInfo, LabelsMismatch) {
   Storage storage;
   auto holder = storage.RegisterWriter("a.mismatch", [](Writer& writer) {
     writer.ValueWithLabels(42, {"a", "1"});

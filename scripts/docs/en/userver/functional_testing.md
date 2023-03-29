@@ -4,7 +4,7 @@
 
 🐙 **userver** has built-in support for functional service tests using
 [Yandex.Taxi Testsuite](https://pypi.org/project/yandex-taxi-testsuite/).
-Testsuite is based on [pytest](https://pytest.org/) and allows developers to test thier services
+Testsuite is based on [pytest](https://pytest.org/) and allows developers to test their services
 in isolated environment.
 It starts service binary with minimal database and all external services mocked then allows
 developer to call service handlers and test their result.
@@ -33,8 +33,8 @@ Its main purpose is:
   configs and waits for keyboard interruption to stop the service.
 
 
-@ref cmake/UserverTestsuite.cmake library is automatically addded to CMake path
-after userever enviroment setup. Add the following line to use it:
+@ref cmake/UserverTestsuite.cmake library is automatically added to CMake path
+after userever environment setup. Add the following line to use it:
 
 @snippet testsuite/SetupUserverTestsuiteEnv.cmake testsuite - UserverTestsuite
 
@@ -136,7 +136,7 @@ plugin.
 
 Userver has built-in support for testsuite.
 
-In order to use it you need to register correspoding components:
+In order to use it you need to register corresponding components:
 
 Headers:
 
@@ -150,7 +150,7 @@ Add testsuite components to `config.yaml`:
 
 @snippet samples/testsuite-support/static_config.yaml testsuite - config.yaml
 
-@warning Please note that the testsuite support must be disabled in production enviroment.
+@warning Please note that the testsuite support must be disabled in production environment.
 Testsuite sets the `testsuite-enabled` variable into `true` when runs the service.
 In the example above this variable controls whether or `tests-control` component is loaded.
 
@@ -170,7 +170,7 @@ Testsuite functions reference could be found at @ref userver_testsuite.
 `pytest_userver` uses config.yaml and config_vars.yaml passed to pytest to generate
 services configs.
 `pytest_userver` provides a way to modify this configs before startings service.
-You can decalre `USERVER_CONFIG_HOOKS` variable in your pytest-plugin it is list of
+You can declare `USERVER_CONFIG_HOOKS` variable in your pytest-plugin it is list of
 functions or pytest-fixtures that are run before config is written to disk.
 Example usage:
 
@@ -248,7 +248,7 @@ First of all you should include testpoint header:
 
 @snippet samples/testsuite-support/src/testpoint.cpp Testpoint - include
 
-It provides `TESTPOINT()` and family of `TESTPOINT_CALLBACK()` macroses that do nothing in
+It provides `TESTPOINT()` and family of `TESTPOINT_CALLBACK()` macros that do nothing in
 production environment and only work when run under testsuite.
 Under testsuite they only make sense when corresponding testsuite handler is installed.
 
@@ -273,7 +273,7 @@ This can be achieved using `service_client.update_server_state()` method e.g.:
 
 Accessing testpoint userver is not aware of will raise an exception:
 
-@snippet samples/testsuite-support/tests/test_testpoint.py Unregistred testpoint usage
+@snippet samples/testsuite-support/tests/test_testpoint.py Unregistered testpoint usage
 
 * C++ code: @ref samples/testsuite-support/src/testpoint.cpp
 * Testcase: @ref samples/testsuite-support/tests/test_testpoint.py
@@ -363,7 +363,7 @@ comparable:
 
 Different monitoring systems and time series databases have different
 limitations. To make sure that the metrics of your service could be used on
-most of the popular systems, thare is special action in
+most of the popular systems, there is special action in
 server::handlers::TestsControl.
 
 To use it you could just write the following test:
@@ -422,4 +422,4 @@ def test_service(service_client):
 @example samples/testsuite-support/tests/test_mocked_time.py
 @example samples/testsuite-support/tests/test_tasks.py
 @example samples/testsuite-support/tests/test_testpoint.py
-@exmaple samples/production_service/tests/test_production.py
+@example samples/production_service/tests/test_production.py

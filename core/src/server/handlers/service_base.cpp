@@ -49,7 +49,7 @@ properties:
         defaultDescription: 1024 * 1024
     max_headers_size:
         type: integer
-        description: max request headers size of empy to do not limit
+        description: max request headers size of empty to do not limit
     parse_args_from_body:
         type: boolean
         description: optional field to parse request according to x-www-form-urlencoded rules and make parameters accessible as query parameters

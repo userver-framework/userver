@@ -17,7 +17,7 @@ USERVER_NAMESPACE_BEGIN
 namespace server::handlers {
 
 /**
- * Enumeration that defines protocol-agnostic hander error condition codes,
+ * Enumeration that defines protocol-agnostic handler error condition codes,
  * used by server::handlers::CustomHandlerException.
  *
  * A handler for a specific protocol (e.g. http) should define mapping from
@@ -48,18 +48,18 @@ enum class HandlerErrorCode {
   // TODO More client-side error conditions here
   kServerSideError,  //!< kServerSideError An error occurred while processing
                      //!< the request
-  kBadGateway,  //!< kBadGateway An error occured while passing the request to
+  kBadGateway,  //!< kBadGateway An error occurred while passing the request to
                 //!< another service
 
-  kGatewayTimeout,  //!< kGatewayTimeout A timeout occured while passing the
+  kGatewayTimeout,  //!< kGatewayTimeout A timeout occurred while passing the
                     //!< request to another service
-  kUnsupportedMediaType,  //!< kUnsupportedMediaType Conten-Encoding or
+  kUnsupportedMediaType,  //!< kUnsupportedMediaType Content-Encoding or
                           //!< Content-Type is not supported
   // TODO More server-side error conditions
 };
 
 /**
- * Hasher class for HanderErrorCode
+ * Hasher class for HandlerErrorCode
  */
 struct HandlerErrorCodeHash {
   std::size_t operator()(HandlerErrorCode c) const {

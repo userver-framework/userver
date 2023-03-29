@@ -103,11 +103,11 @@ UTEST_P(PostgreConnection, TypedResult) {
       res = GetConn()->Execute("select $1, $2, $3", 42, "foobar", 3.14));
   ASSERT_FALSE(res.IsEmpty());
 
-  UEXPECT_THROW(res.AsSetOf<int>(), pg::NonSingleColumResultSet);
+  UEXPECT_THROW(res.AsSetOf<int>(), pg::NonSingleColumnResultSet);
 
-  UEXPECT_THROW(res.AsSetOf<MyTuple>(), pg::NonSingleColumResultSet);
-  UEXPECT_THROW(res.AsSetOf<MyStruct>(), pg::NonSingleColumResultSet);
-  UEXPECT_THROW(res.AsSetOf<MyClass>(), pg::NonSingleColumResultSet);
+  UEXPECT_THROW(res.AsSetOf<MyTuple>(), pg::NonSingleColumnResultSet);
+  UEXPECT_THROW(res.AsSetOf<MyStruct>(), pg::NonSingleColumnResultSet);
+  UEXPECT_THROW(res.AsSetOf<MyClass>(), pg::NonSingleColumnResultSet);
 
   auto tuples_res = res.AsSetOf<MyTuple>(pg::kRowTag);
   auto t = tuples_res[0];

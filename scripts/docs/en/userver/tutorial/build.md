@@ -51,8 +51,6 @@ To explicitly specialize the compiler use the cmake options `CMAKE_C_COMPILER` a
 For example to use clang-12 compiler install it and add the following options to cmake:
 `-DCMAKE_CXX_COMPILER=clang++-12 -DCMAKE_C_COMPILER=clang-12`
 
-Prefer avoiding Boost versions that are affected by the bug https://github.com/boostorg/lockfree/issues/59 (1.71 and above).
-
 
 ## Installation instructions
 
@@ -295,10 +293,10 @@ or
 bash
 SERVICE_NAME=hello_service docker-compose run --rm userver-service-sample
 ```
-- execute commands in userver dev environment:
+- execute commands in userver development environment:
 ```
 bash
-docker-compose run --rm userver-debian bash
+docker-compose run --rm userver-ubuntu bash
 ```
 
 
@@ -306,15 +304,15 @@ Each step of the `userver-tests` could be executed separately:
 
 Start CMake:
 ```
-docker-compose run --rm userver-debian bash -c 'cmake $CMAKE_OPTS -B./build -S./'
+docker-compose run --rm userver-ubuntu bash -c 'cmake $CMAKE_OPTS -B./build -S./'
 ```
 Build userver:
 ```
-docker-compose run --rm userver-debian bash -c 'cd /userver/build && make -j $(nproc)'
+docker-compose run --rm userver-ubuntu bash -c 'cd /userver/build && make -j $(nproc)'
 ```
 Run all test:
 ```
-docker-compose run --rm userver-debian bash -c 'cd /userver/build && ctest -V'
+docker-compose run --rm userver-ubuntu bash -c 'cd /userver/build && ctest -V'
 ```
 
 

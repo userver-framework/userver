@@ -216,11 +216,11 @@ Changelog news also go to the
 * [Ivan Trofimov](https://github.com/itrofimow) implemented the RabbitMQ driver.
 * Added navigation to the next and previous page in docs, thanks to multiple
   feature requests in [Telegram support chat](https://t.me/userver_ru).
-* Improved Task::Detach docs and added recomendation to use
+* Improved Task::Detach docs and added recommendation to use
   concurrent::BackgroundTaskStorage instead, thanks to
   [Ivan Trofimov](https://github.com/itrofimow) for the bugreport.
 * Added `start-` targets for the samples, to simplify experimenting with them.
-* Docs now support dark theme out ot the box.
+* Docs now support dark theme out of the box.
 * Fixed CMake issue with `-DUSERVER_FEATURE_TESTSUITE=0`, thanks to
   [Георгий Попов](https://github.com/JorgenPo) for the bugreport.
 * Fixed build on Arch Linux, thanks to [Mikhail K.](https://github.com/posidoni)
@@ -285,7 +285,7 @@ Changelog news also go to the
   optimize CPU and memory consumption during HTTP response sends.
 
 
-### Pre anounce (May-Jul 2022)
+### Pre announce (May-Jul 2022)
 
 * Fixed engine::io::TlsWrapper retries,
   thanks to [Ivan Trofimov](https://github.com/itrofimow) for the report.
@@ -319,7 +319,7 @@ Changelog news also go to the
   Thanks to [Ivan Trofimov](https://github.com/itrofimow) for the report.
 * Improved MacOS support, thanks to
   [Evgeny Medvedev](https://github.com/kargatpwnz).
-* Docker suport: [base image for developement](https://github.com/userver-framework/docker-userver-build-base/pkgs/container/docker-userver-build-base),
+* Docker support: [base image for development](https://github.com/userver-framework/docker-userver-build-base/pkgs/container/docker-userver-build-base),
   docker-compose.yaml for the userver with build and test targets.
   See @ref md_en_userver_tutorial_build
 * Docs improved: removed internal links; added

@@ -15,7 +15,7 @@ CacheUpdateTrait::CacheUpdateTrait(const components::ComponentConfig& config,
     : CacheUpdateTrait(CacheDependencies::Make(config, context)) {}
 
 CacheUpdateTrait::CacheUpdateTrait(CacheDependencies&& dependencies)
-    : impl_(std::move(dependencies), *this) {}
+    : impl_(std::make_unique<Impl>(std::move(dependencies), *this)) {}
 
 CacheUpdateTrait::~CacheUpdateTrait() = default;
 
@@ -48,6 +48,8 @@ rcu::ReadablePtr<Config> CacheUpdateTrait::GetConfig() const {
 engine::TaskProcessor& CacheUpdateTrait::GetCacheTaskProcessor() const {
   return impl_->GetCacheTaskProcessor();
 }
+
+void CacheUpdateTrait::MarkAsExpired() {}
 
 void CacheUpdateTrait::GetAndWrite(dump::Writer&) const {
   dump::ThrowDumpUnimplemented(Name());

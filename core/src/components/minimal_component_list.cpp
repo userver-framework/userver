@@ -7,6 +7,7 @@
 #include <userver/dynamic_config/storage/component.hpp>
 #include <userver/logging/component.hpp>
 #include <userver/os_signals/component.hpp>
+#include <userver/tracing/manager_component.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -20,7 +21,8 @@ ComponentList MinimalComponentList() {
       .Append<components::ManagerControllerComponent>()
       .Append<components::StatisticsStorage>()
       .Append<components::DynamicConfig>()
-      .Append<components::DynamicConfigFallbacks>();
+      .Append<components::DynamicConfigFallbacks>()
+      .Append<tracing::DefaultTracingManagerLocator>();
 }
 
 }  // namespace components

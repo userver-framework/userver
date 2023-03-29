@@ -16,7 +16,7 @@ namespace server::handlers {
 ///
 /// @brief Handler that returns statistics data.
 ///
-/// Additionaly to the
+/// Additionally to the
 /// @ref userver_http_handlers "common handler options" the component has
 /// 'common-labels' option that should be a map of label name to label value.
 /// Items of the map are added to each metric.
@@ -37,7 +37,7 @@ namespace server::handlers {
 ///   utils::statistics::ToSolomonFormat.
 /// * labels - filter out metrics without the provided labels. Parameter should
 ///   be a JSON dictionary in the form '{"label1":"value1", "label2":"value2"}'.
-/// * path - return metrics on for the following path 
+/// * path - return metrics on for the following path
 /// * prefix - return metrics whose path starts from the specified prefix.
 
 // clang-format on

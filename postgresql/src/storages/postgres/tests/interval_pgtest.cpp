@@ -120,7 +120,7 @@ UTEST_P(PostgreConnection, IntervalStored) {
   EXPECT_EQ(std::chrono::seconds{-1}, us);
 }
 
-UTEST_P(PostgreConnection, ParmsStoreSample) {
+UTEST_P(PostgreConnection, ParamsStoreSample) {
   CheckConnection(GetConn());
 
   UEXPECT_NO_THROW(

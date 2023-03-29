@@ -267,7 +267,7 @@ void ConnectionImpl::RefreshReplicaState(engine::Deadline deadline) {
         conn_wrapper_.GetParameterStatus("default_transaction_read_only");
     const auto param_is_read_only = is_in_recovery_ || (txn_ro_status != "off");
     if (is_read_only_ != param_is_read_only) {
-      LOG_LIMITED_INFO() << "Incosistent replica state report: "
+      LOG_LIMITED_INFO() << "Inconsistent replica state report: "
                             "current_setting('transaction_read_only')~"
                          << is_read_only_
                          << " while default_transaction_read_only~"
@@ -392,7 +392,7 @@ void ConnectionImpl::Rollback() {
     ExecuteCommandNoPrepare("ROLLBACK", MakeCurrentDeadline());
   } else {
     LOG_DEBUG() << "Attempt to rollback transaction on a busy connection. "
-                   "Probably a network error or a timeout happend";
+                   "Probably a network error or a timeout happened";
   }
 }
 

@@ -4,11 +4,12 @@
 #include <benchmark/benchmark.h>
 
 #include <storages/redis/client_impl.hpp>
-#include <storages/redis/util_benchmark.hpp>
 #include <userver/engine/run_standalone.hpp>
 #include <userver/storages/redis/impl/base.hpp>
 #include <userver/utils/rand.hpp>
 #include <utils/gbench_auxilary.hpp>
+
+#include "redis_fixture.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
@@ -23,7 +24,9 @@ struct Ping {
   ClientPtr client;
   CommandControl cc;
 
-  RequestType operator()(benchmark::State&) { return client->Ping(0, cc); }
+  RequestType operator()(benchmark::State&) const {
+    return client->Ping(0, cc);
+  }
 };
 
 struct Set {
@@ -31,8 +34,8 @@ struct Set {
   ClientPtr client;
   CommandControl cc;
 
-  RequestType operator()(benchmark::State& state) {
-    auto key = "key" + std::to_string(utils::Rand());
+  RequestType operator()(benchmark::State& state) const {
+    auto key = "key" + std::to_string(utils::Rand() % state.range(0));
     auto value = std::string(state.range(1), 'x');
     return client->Set(std::move(key), std::move(value), cc);
   }
@@ -41,7 +44,7 @@ struct Set {
 }  // namespace
 
 BENCHMARK_DEFINE_TEMPLATE_F(Redis, PipelineGrind)(benchmark::State& state) {
-  RunStandalone(state.range(0), [this, &state] {
+  RunStandalone([this, &state] {
     auto request_generator = T{GetClient(), {}};
     std::deque<typename T::RequestType> requests;
 
@@ -56,16 +59,23 @@ BENCHMARK_DEFINE_TEMPLATE_F(Redis, PipelineGrind)(benchmark::State& state) {
     }
 
     for (; !requests.empty(); requests.pop_front()) requests.front().Get();
+
+    const auto stats = GetSentinel()->GetStatistics({});
+    const auto total = stats.GetShardGroupTotalStatistics();
+    const auto& timings = total.timings_percentile;
+    for (auto p : {95, 99, 100}) {
+      state.counters["p" + std::to_string(p)] = timings.GetPercentile(p);
+    }
   });
 }
 
 BENCHMARK_INSTANTIATE_TEMPLATE_F(Redis, PipelineGrind, Ping)
     ->RangeMultiplier(2)
-    ->Range(1, 8);
+    ->Range(4, 32);
 
 BENCHMARK_INSTANTIATE_TEMPLATE_F(Redis, PipelineGrind, Set)
-    ->RangeMultiplier(2)
-    ->Ranges({{1, 4}, {256, 2 << 14}});
+    ->Args({16, 1024})
+    ->Args({32, 1024});
 
 }  // namespace storages::redis::bench
 

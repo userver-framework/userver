@@ -12,7 +12,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace {
 
-using QueueOveflowBehavior = logging::LoggerConfig::QueueOveflowBehavior;
+using QueueOverflowBehavior = logging::LoggerConfig::QueueOverflowBehavior;
 
 constexpr std::size_t kLoggingTestIterations = 400;
 constexpr std::size_t kLoggingRecursionDepth = 5;
@@ -35,9 +35,10 @@ class LoggingTestCoro : public LoggingTestBase {
  public:
   std::shared_ptr<logging::impl::TpLogger> StartAsyncLogger(
       std::size_t queue_size_max = 10,
-      QueueOveflowBehavior on_overflow = QueueOveflowBehavior::kDiscard) const {
+      QueueOverflowBehavior on_overflow =
+          QueueOverflowBehavior::kDiscard) const {
     UASSERT_MSG(engine::current_task::GetCurrentTaskContextUnchecked(),
-                "Mis-configured test. Should be run in coroutine environment");
+                "Misconfigured test. Should be run in coroutine environment");
 
     auto logger = GetStreamLogger();
     logger->StartAsync(engine::current_task::GetTaskProcessor(), queue_size_max,
@@ -130,7 +131,7 @@ class LoggingTestCoro : public LoggingTestBase {
 
 TEST_F(LoggingTest, TpLoggerNoop) {
   ASSERT_FALSE(engine::current_task::GetCurrentTaskContextUnchecked())
-      << "Mis-configured test. Should not be run in coroutine environment";
+      << "Misconfigured test. Should not be run in coroutine environment";
 
   GetStreamLogger();
   EXPECT_EQ(GetRecordsCount(), 0);
@@ -138,7 +139,7 @@ TEST_F(LoggingTest, TpLoggerNoop) {
 
 TEST_F(LoggingTest, TpLoggerBasic) {
   ASSERT_FALSE(engine::current_task::GetCurrentTaskContextUnchecked())
-      << "Mis-configured test. Should not be run in coroutine environment";
+      << "Misconfigured test. Should not be run in coroutine environment";
 
   auto logger = GetStreamLogger();
 
@@ -157,7 +158,7 @@ TEST_F(LoggingTest, TpLoggerBasic) {
 
 TEST_F(LoggingTest, TpLoggerBasicRecursive) {
   ASSERT_FALSE(engine::current_task::GetCurrentTaskContextUnchecked())
-      << "Mis-configured test. Should not be run in coroutine environment";
+      << "Misconfigured test. Should not be run in coroutine environment";
 
   auto logger = GetStreamLogger();
   LogRecursiveHelper(logger, 0, kLoggingRecursionDepth);
@@ -171,7 +172,7 @@ TEST_F(LoggingTest, TpLoggerBasicRecursive) {
 
 TEST_F(LoggingTest, TpLoggerBasicMT) {
   ASSERT_FALSE(engine::current_task::GetCurrentTaskContextUnchecked())
-      << "Mis-configured test. Should not be run in coroutine environment";
+      << "Misconfigured test. Should not be run in coroutine environment";
 
   auto logger = GetStreamLogger();
 
@@ -182,7 +183,7 @@ TEST_F(LoggingTest, TpLoggerBasicMT) {
   });
 
   ASSERT_TRUE(kLoggingTestIterations % kLoggingRecursionDepth == 0)
-      << "Test mis-configured";
+      << "Test Misconfigured";
   for (std::size_t i = 0; i < kLoggingTestIterations;
        i += kLoggingRecursionDepth) {
     LogRecursiveHelper(logger, i, i + kLoggingRecursionDepth);
@@ -200,7 +201,7 @@ TEST_F(LoggingTest, TpLoggerBasicMT) {
 
 TEST_F(LoggingTest, TpLoggerBasicFlushMT) {
   ASSERT_FALSE(engine::current_task::GetCurrentTaskContextUnchecked())
-      << "Mis-configured test. Should not be run in coroutine environment";
+      << "Misconfigured test. Should not be run in coroutine environment";
 
   auto logger = GetStreamLogger();
 
@@ -229,7 +230,7 @@ TEST_F(LoggingTest, TpLoggerBasicFlushMT) {
 
 TEST_F(LoggingTest, TpLoggerBasicToSyncNoop) {
   ASSERT_FALSE(engine::current_task::GetCurrentTaskContextUnchecked())
-      << "Mis-configured test. Should not be run in coroutine environment";
+      << "Misconfigured test. Should not be run in coroutine environment";
   auto logger = GetStreamLogger();
 
   logger->SwitchToSyncMode();
@@ -237,7 +238,7 @@ TEST_F(LoggingTest, TpLoggerBasicToSyncNoop) {
 
 TEST_F(LoggingTest, TpLoggerBasicToSyncNoopTwice) {
   ASSERT_FALSE(engine::current_task::GetCurrentTaskContextUnchecked())
-      << "Mis-configured test. Should not be run in coroutine environment";
+      << "Misconfigured test. Should not be run in coroutine environment";
   auto logger = GetStreamLogger();
 
   logger->SwitchToSyncMode();
@@ -246,14 +247,14 @@ TEST_F(LoggingTest, TpLoggerBasicToSyncNoopTwice) {
 
 UTEST_F(LoggingTestCoro, TpLoggerNoop) {
   ASSERT_TRUE(engine::current_task::GetCurrentTaskContextUnchecked())
-      << "Mis-configured test. Should be run in coroutine environment";
+      << "Misconfigured test. Should be run in coroutine environment";
   GetStreamLogger();
   EXPECT_EQ(GetRecordsCount(), 0);
 }
 
 UTEST_F(LoggingTestCoro, TpLoggerBasic) {
   ASSERT_TRUE(engine::current_task::GetCurrentTaskContextUnchecked())
-      << "Mis-configured test. Should be run in coroutine environment";
+      << "Misconfigured test. Should be run in coroutine environment";
   auto logger = GetStreamLogger();
 
   LOG_INFO_TO(logger) << "Some log";
@@ -390,11 +391,10 @@ UTEST_F(LoggingTestCoro, TpLoggerBasicAsyncOverflowFlushCancelled) {
 }
 
 UTEST_F(LoggingTestCoro, TpLoggerBasicAsyncOverflowBlocking) {
-  auto logger = StartAsyncLogger(2, QueueOveflowBehavior::kBlock);
+  auto logger = StartAsyncLogger(2, QueueOverflowBehavior::kBlock);
 
   // Tracing should not break the TpLogger
-  ASSERT_EQ(logger->GetLevel(), logging::Level::kTrace)
-      << "Mis-configured test";
+  ASSERT_EQ(logger->GetLevel(), logging::Level::kTrace) << "Misconfigured test";
 
   for (std::size_t i = 0; i < kLoggingTestIterations; ++i) {
     LOG_INFO_TO(logger) << i;
@@ -434,8 +434,7 @@ UTEST_F(LoggingTestCoro, TpLoggerFlushMultiple) {
   auto logger = StartAsyncLogger(kQueueSize);
 
   // Tracing should not break the TpLogger
-  ASSERT_EQ(logger->GetLevel(), logging::Level::kTrace)
-      << "Mis-configured test";
+  ASSERT_EQ(logger->GetLevel(), logging::Level::kTrace) << "Misconfigured test";
 
   for (std::size_t i = 0; i < kLoggingTestIterations; ++i) {
     LOG_INFO_TO(logger) << i;
@@ -457,7 +456,7 @@ UTEST_F_MT(LoggingTestCoro, TpLoggerLogMultipleMT, 4) {
   const std::size_t message_count =
       kLoggingTestIterations * (GetThreadCount() - 1);
   auto logger =
-      StartAsyncLogger(message_count * 10, QueueOveflowBehavior::kDiscard);
+      StartAsyncLogger(message_count * 10, QueueOverflowBehavior::kDiscard);
   LogTestMT(logger, GetThreadCount(), kTestLogging);
   EXPECT_EQ(GetRecordsCount(), message_count);
 }
@@ -466,7 +465,7 @@ UTEST_F_MT(LoggingTestCoro, TpLoggerLogMultipleDefaultMT, 4) {
   const std::size_t message_count =
       kLoggingTestIterations * (GetThreadCount() - 1);
   auto logger =
-      StartAsyncLogger(message_count * 10, QueueOveflowBehavior::kDiscard);
+      StartAsyncLogger(message_count * 10, QueueOverflowBehavior::kDiscard);
 
   // Make sure that tracing does not break the default TpLogger
   SetDefaultLogger(logger);
@@ -480,7 +479,7 @@ UTEST_F_MT(LoggingTestCoro, TpLoggerLogMultipleBlockingMT, 4) {
   const std::size_t message_count =
       kLoggingTestIterations * (GetThreadCount() - 1);
   auto logger =
-      StartAsyncLogger(message_count * 10, QueueOveflowBehavior::kBlock);
+      StartAsyncLogger(message_count * 10, QueueOverflowBehavior::kBlock);
   LogTestMT(logger, GetThreadCount(), kTestLogging);
   EXPECT_EQ(GetRecordsCount(), message_count);
 }
@@ -488,7 +487,7 @@ UTEST_F_MT(LoggingTestCoro, TpLoggerLogMultipleBlockingMT, 4) {
 UTEST_F_MT(LoggingTestCoro, TpLoggerLogMultipleFlushMT, 4) {
   const std::size_t message_count = kLoggingTestIterations * GetThreadCount();
   auto logger = StartAsyncLogger(GetThreadCount() * 2 /* log + flush */,
-                                 QueueOveflowBehavior::kDiscard);
+                                 QueueOverflowBehavior::kDiscard);
   LogTestMT(logger, GetThreadCount(), kTestLogFlush);
   EXPECT_EQ(GetRecordsCount(), message_count);
 }
@@ -497,7 +496,7 @@ UTEST_F_MT(LoggingTestCoro, TpLoggerLogMultipleSyncMT, 4) {
   const std::size_t message_count =
       kLoggingTestIterations * (GetThreadCount() - 1);
   auto logger =
-      StartAsyncLogger(message_count * 10, QueueOveflowBehavior::kDiscard);
+      StartAsyncLogger(message_count * 10, QueueOverflowBehavior::kDiscard);
   LogTestMT(logger, GetThreadCount(), kTestLogSync);
   EXPECT_EQ(GetRecordsCount(), message_count);
 }
@@ -505,7 +504,7 @@ UTEST_F_MT(LoggingTestCoro, TpLoggerLogMultipleSyncMT, 4) {
 UTEST_F_MT(LoggingTestCoro, TpLoggerLogMultipleFlushSyncMT, 4) {
   const std::size_t message_count = kLoggingTestIterations * GetThreadCount();
   auto logger =
-      StartAsyncLogger(message_count * 10, QueueOveflowBehavior::kDiscard);
+      StartAsyncLogger(message_count * 10, QueueOverflowBehavior::kDiscard);
   LogTestMT(logger, GetThreadCount(), kTestLogFlushSync);
   EXPECT_EQ(GetRecordsCount(), message_count);
 }
@@ -514,7 +513,7 @@ UTEST_F_MT(LoggingTestCoro, TpLoggerLogMultipleCancelMT, 4) {
   const std::size_t message_count =
       kLoggingTestIterations * (GetThreadCount() - 1);
   auto logger =
-      StartAsyncLogger(message_count * 10, QueueOveflowBehavior::kDiscard);
+      StartAsyncLogger(message_count * 10, QueueOverflowBehavior::kDiscard);
   LogTestMT(logger, GetThreadCount(), kTestLogCancel);
   EXPECT_EQ(GetRecordsCount(), message_count);
 }
@@ -522,7 +521,7 @@ UTEST_F_MT(LoggingTestCoro, TpLoggerLogMultipleCancelMT, 4) {
 UTEST_F_MT(LoggingTestCoro, TpLoggerLogMultipleFlushCancelMT, 4) {
   const std::size_t message_count = kLoggingTestIterations * GetThreadCount();
   auto logger =
-      StartAsyncLogger(message_count * 10, QueueOveflowBehavior::kDiscard);
+      StartAsyncLogger(message_count * 10, QueueOverflowBehavior::kDiscard);
   LogTestMT(logger, GetThreadCount(), kTestLogFlushCancel);
   EXPECT_EQ(GetRecordsCount(), message_count);
 }
@@ -530,7 +529,7 @@ UTEST_F_MT(LoggingTestCoro, TpLoggerLogMultipleFlushCancelMT, 4) {
 UTEST_F_MT(LoggingTestCoro, TpLoggerLogMultipleFlushSyncCancelMT, 4) {
   const std::size_t message_count = kLoggingTestIterations * GetThreadCount();
   auto logger =
-      StartAsyncLogger(message_count * 10, QueueOveflowBehavior::kDiscard);
+      StartAsyncLogger(message_count * 10, QueueOverflowBehavior::kDiscard);
   LogTestMT(logger, GetThreadCount(), kTestLogFlushSyncCancel);
   EXPECT_EQ(GetRecordsCount(), message_count);
 }
@@ -538,7 +537,7 @@ UTEST_F_MT(LoggingTestCoro, TpLoggerLogMultipleFlushSyncCancelMT, 4) {
 UTEST_F_MT(LoggingTestCoro, TpLoggerLogMultipleDefaultFlushMT, 4) {
   const std::size_t message_count = kLoggingTestIterations * GetThreadCount();
   auto logger =
-      StartAsyncLogger(message_count * 10, QueueOveflowBehavior::kDiscard);
+      StartAsyncLogger(message_count * 10, QueueOverflowBehavior::kDiscard);
 
   // Make sure that tracing does not break the default TpLogger
   SetDefaultLogger(logger);
@@ -551,7 +550,7 @@ UTEST_F_MT(LoggingTestCoro, TpLoggerLogMultipleDefaultFlushMT, 4) {
 UTEST_F_MT(LoggingTestCoro, TpLoggerLogMultipleDefaultFlushSyncMT, 4) {
   const std::size_t message_count = kLoggingTestIterations * GetThreadCount();
   auto logger =
-      StartAsyncLogger(message_count * 10, QueueOveflowBehavior::kDiscard);
+      StartAsyncLogger(message_count * 10, QueueOverflowBehavior::kDiscard);
 
   // Make sure that tracing does not break the default TpLogger
   SetDefaultLogger(logger);
@@ -564,7 +563,7 @@ UTEST_F_MT(LoggingTestCoro, TpLoggerLogMultipleDefaultFlushSyncMT, 4) {
 UTEST_F_MT(LoggingTestCoro, TpLoggerLogMultipleBlockingFlushMT, 4) {
   const std::size_t message_count = kLoggingTestIterations * GetThreadCount();
   auto logger = StartAsyncLogger(GetThreadCount() * 2 /* log + flush */,
-                                 QueueOveflowBehavior::kBlock);
+                                 QueueOverflowBehavior::kBlock);
   LogTestMT(logger, GetThreadCount(), kTestLogFlush);
   EXPECT_EQ(GetRecordsCount(), message_count);
 }
@@ -572,7 +571,7 @@ UTEST_F_MT(LoggingTestCoro, TpLoggerLogMultipleBlockingFlushMT, 4) {
 UTEST_F_MT(LoggingTestCoro, TpLoggerLogMultipleBlockingFlushSyncMT, 4) {
   const std::size_t message_count = kLoggingTestIterations * GetThreadCount();
   auto logger = StartAsyncLogger(GetThreadCount() * 2 /* log + flush */,
-                                 QueueOveflowBehavior::kBlock);
+                                 QueueOverflowBehavior::kBlock);
   LogTestMT(logger, GetThreadCount(), kTestLogFlushSync);
   EXPECT_EQ(GetRecordsCount(), message_count);
 }
@@ -581,7 +580,7 @@ UTEST_F_MT(LoggingTestCoro, TpLoggerLogMultipleBlockingSyncMT, 4) {
   const std::size_t message_count =
       kLoggingTestIterations * (GetThreadCount() - 1);
   auto logger =
-      StartAsyncLogger(message_count * 10, QueueOveflowBehavior::kBlock);
+      StartAsyncLogger(message_count * 10, QueueOverflowBehavior::kBlock);
   LogTestMT(logger, GetThreadCount(), kTestLogSync);
   EXPECT_EQ(GetRecordsCount(), message_count);
 }
@@ -590,7 +589,7 @@ UTEST_F_MT(LoggingTestCoro, TpLoggerLogMultipleBlockingCancelMT, 4) {
   const std::size_t message_count =
       kLoggingTestIterations * (GetThreadCount() - 1);
   auto logger =
-      StartAsyncLogger(message_count * 10, QueueOveflowBehavior::kBlock);
+      StartAsyncLogger(message_count * 10, QueueOverflowBehavior::kBlock);
   LogTestMT(logger, GetThreadCount(), kTestLogCancel);
   EXPECT_EQ(GetRecordsCount(), message_count);
 }
@@ -599,7 +598,7 @@ UTEST_F_MT(LoggingTestCoro, TpLoggerLogMultipleBlockingSyncCancelMT, 4) {
   const std::size_t message_count =
       kLoggingTestIterations * (GetThreadCount() - 1);
   auto logger =
-      StartAsyncLogger(message_count * 10, QueueOveflowBehavior::kBlock);
+      StartAsyncLogger(message_count * 10, QueueOverflowBehavior::kBlock);
   LogTestMT(logger, GetThreadCount(), kTestLogSyncCancel);
   EXPECT_EQ(GetRecordsCount(), message_count);
 }
@@ -607,7 +606,7 @@ UTEST_F_MT(LoggingTestCoro, TpLoggerLogMultipleBlockingSyncCancelMT, 4) {
 UTEST_F_MT(LoggingTestCoro, TpLoggerLogMultipleBlockingFlushSyncCancelMT, 4) {
   const std::size_t message_count = kLoggingTestIterations * GetThreadCount();
   auto logger = StartAsyncLogger(GetThreadCount() * 2 /* log + flush */,
-                                 QueueOveflowBehavior::kBlock);
+                                 QueueOverflowBehavior::kBlock);
   LogTestMT(logger, GetThreadCount(), kTestLogFlushSyncCancel);
   EXPECT_EQ(GetRecordsCount(), message_count);
 }
@@ -616,7 +615,7 @@ UTEST_F_MT(LoggingTestCoro, TpLoggerLogMultipleStdThreadMT, 4) {
   const std::size_t message_count =
       kLoggingTestIterations * (GetThreadCount() - 1);
   auto logger =
-      StartAsyncLogger(message_count * 10, QueueOveflowBehavior::kDiscard);
+      StartAsyncLogger(message_count * 10, QueueOverflowBehavior::kDiscard);
   LogTestMT(logger, GetThreadCount(), kTestLogStdThread);
   EXPECT_EQ(GetRecordsCount(), message_count);
 }
@@ -624,7 +623,7 @@ UTEST_F_MT(LoggingTestCoro, TpLoggerLogMultipleStdThreadMT, 4) {
 UTEST_F_MT(LoggingTestCoro, TpLoggerLogMultipleStdThreadFlushMT, 4) {
   const std::size_t message_count = kLoggingTestIterations * GetThreadCount();
   auto logger = StartAsyncLogger(GetThreadCount() * 2 /* log + flush */,
-                                 QueueOveflowBehavior::kDiscard);
+                                 QueueOverflowBehavior::kDiscard);
   LogTestMT(logger, GetThreadCount(), kTestLogStdThreadFlush);
   EXPECT_EQ(GetRecordsCount(), message_count);
 }
@@ -632,7 +631,7 @@ UTEST_F_MT(LoggingTestCoro, TpLoggerLogMultipleStdThreadFlushMT, 4) {
 UTEST_F_MT(LoggingTestCoro, TpLoggerLogMultipleStdThreadFlushSyncCancelMT, 4) {
   const std::size_t message_count = kLoggingTestIterations * GetThreadCount();
   auto logger =
-      StartAsyncLogger(message_count * 10, QueueOveflowBehavior::kDiscard);
+      StartAsyncLogger(message_count * 10, QueueOverflowBehavior::kDiscard);
   LogTestMT(logger, GetThreadCount(), kTestLogStdThreadFlushSyncCancel);
   EXPECT_EQ(GetRecordsCount(), message_count);
 }

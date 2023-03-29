@@ -31,7 +31,7 @@ namespace storages::mongo {
 /// Functions engine::current_task::ShouldCancel(),
 /// engine::InterruptibleSleepFor(), engine::InterruptibleSleepUntil() and
 /// engine::current_task::CancellationPoint() check for task cancellation.
-/// Overriden DistLockComponentBase::DoWork must use the above functions to
+/// Overridden DistLockComponentBase::DoWork must use the above functions to
 /// honour task cancellation and stop ASAP when
 /// it is cancelled.
 ///

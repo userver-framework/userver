@@ -76,16 +76,16 @@ void DoTestBasic(Storage& storage) {
   EXPECT_EQ(expected, ToPrometheusFormatUntyped(
                           storage, Request::MakeWithPath("prefix.name")));
 
-  const auto* const expected_labeld = "prefix_name{lab=\"foo\"} 42\n";
+  const auto* const expected_labeled = "prefix_name{lab=\"foo\"} 42\n";
   EXPECT_EQ(
-      expected_labeld,
+      expected_labeled,
       ToPrometheusFormatUntyped(
           storage, Request::MakeWithPrefix("prefix.name", {{"lab", "foo"}})));
 
-  EXPECT_EQ(expected_labeld, ToPrometheusFormatUntyped(
-                                 storage, Request::MakeWithPrefix(
-                                              "prefix.name", {{"lab", "foo"}},
-                                              {{"lab", "foo"}})));
+  EXPECT_EQ(expected_labeled, ToPrometheusFormatUntyped(
+                                  storage, Request::MakeWithPrefix(
+                                               "prefix.name", {{"lab", "foo"}},
+                                               {{"lab", "foo"}})));
   const auto* const expected_all = R"(
 prefix_name{} 42
 prefix{} 41
@@ -147,8 +147,8 @@ UTEST(MetricsWriter, Sample) {
   Storage storage;
 
   // The names mimic class member names, for the sample purposes
-  utils::statistics::Entry holder_;
   ComponentMetrics component_metrics_;
+  utils::statistics::Entry holder_;
   component_metrics_.metrics.Insert("metric-in-map",
                                     std::make_shared<ComponentMetricsNested>());
   constexpr std::chrono::seconds kDuration{1674810371};
@@ -157,7 +157,7 @@ UTEST(MetricsWriter, Sample) {
   /// [DumpMetric RegisterWriter]
   holder_ = storage.RegisterWriter("begin-on-the-metric-path",
                                    [&](Writer& writer) {
-                                     // Metric wihtout lables
+                                     // Metric without labels
                                      writer["metric1"] = 42;
 
                                      ComponentMetrics& metrics =
@@ -411,6 +411,12 @@ UTEST(MetricsWriter, CustomTypesOptimization) {
   const auto* const expected = "a_dump{} 42\n";
   EXPECT_EQ(expected, ToPrometheusFormatUntyped(
                           storage, Request::MakeWithPath("a.dump")));
+
+  // Manual unregister to avoid fake writer call when destroying a `Entry`
+  holder3.Unregister();
+  holder2.Unregister();
+  holder1.Unregister();
+  holder.Unregister();
 }
 
 UTEST(MetricsWriter, ComplexPathsStored) {
@@ -437,6 +443,43 @@ UTEST(MetricsWriter, CustomizationPointChecks) {
   EXPECT_TRUE(utils::statistics::kHasWriterSupport<some::Dumpable1>);
   EXPECT_TRUE(utils::statistics::kHasWriterSupport<some::Dumpable2>);
   EXPECT_TRUE(utils::statistics::kHasWriterSupport<some::Dumpable3>);
+}
+
+UTEST(MetricsWriter, AutomaticUnsubscribingCheckWriterData) {
+  Storage storage;
+  int counter = 0;
+  auto writer_func = [&counter](Writer& writer) {
+    writer = 1;
+    writer["a"] = 2;
+    counter++;
+  };
+
+  auto holder1 = storage.RegisterWriter("prefix1", writer_func);
+  { auto holder2 = storage.RegisterWriter("prefix2", writer_func); }
+
+  if constexpr (utils::statistics::impl::kCheckSubscriptionUB) {
+    EXPECT_EQ(counter, 1);
+  } else {
+    EXPECT_EQ(counter, 0);
+  }
+}
+
+UTEST(MetricsWriter, AutomaticUnsubscribingCheckExtenderData) {
+  Storage storage;
+  int counter = 0;
+  auto extender_func = [&counter](const utils::statistics::StatisticsRequest&) {
+    counter++;
+    return formats::json::ValueBuilder{};
+  };
+
+  auto holder1 = storage.RegisterExtender("prefix1", extender_func);
+  { auto holder2 = storage.RegisterExtender("prefix2", extender_func); }
+
+  if constexpr (utils::statistics::impl::kCheckSubscriptionUB) {
+    EXPECT_EQ(counter, 1);
+  } else {
+    EXPECT_EQ(counter, 0);
+  }
 }
 
 USERVER_NAMESPACE_END

@@ -59,7 +59,7 @@ TEST(Hex, FromHex) {
     std::string reference{"_+=15"};
     std::string result;
     EXPECT_FALSE(IsHexData(data));  // no, because one symbol is missing
-    // Add extra 2 elements to better check where output_last wil be
+    // Add extra 2 elements to better check where output_last will be
     result.reserve(FromHexUpperBound(data.size()));
     auto input_size = FromHex(data, result);
     // All input except last char should have been read

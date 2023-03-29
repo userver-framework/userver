@@ -11,6 +11,8 @@
 #include <userver/utils/datetime/steady_coarse_clock.hpp>
 #include <userver/utils/periodic_task.hpp>
 
+#include <userver/drivers/impl/connection_pool_base.hpp>
+
 #include <storages/clickhouse/impl/settings.hpp>
 #include <storages/clickhouse/stats/pool_statistics.hpp>
 #include <storages/clickhouse/stats/statement_timer.hpp>
@@ -39,7 +41,8 @@ class PoolAvailabilityMonitor {
   static_assert(std::atomic<TimePoint>::is_always_lock_free);
 };
 
-class PoolImpl final : public std::enable_shared_from_this<PoolImpl> {
+class PoolImpl final
+    : public drivers::impl::ConnectionPoolBase<Connection, PoolImpl> {
  public:
   PoolImpl(clients::dns::Resolver&, PoolSettings&& settings);
   ~PoolImpl();
@@ -59,14 +62,15 @@ class PoolImpl final : public std::enable_shared_from_this<PoolImpl> {
   stats::StatementTimer GetExecuteTimer();
 
  private:
-  Connection* Pop();
-  Connection* TryPop();
+  friend class drivers::impl::ConnectionPoolBase<Connection, PoolImpl>;
 
-  void DoRelease(Connection*) noexcept;
+  void AccountConnectionAcquired();
+  void AccountConnectionReleased();
+  void AccountConnectionCreated();
+  void AccountConnectionDestroyed() noexcept;
+  void AccountOverload();
 
-  Connection* Create();
-  void PushConnection();
-  void Drop(Connection*) noexcept;
+  ConnectionUniquePtr DoCreateConnection(engine::Deadline deadline);
 
   void StopMaintenance();
   void MaintainConnections();
@@ -75,12 +79,6 @@ class PoolImpl final : public std::enable_shared_from_this<PoolImpl> {
 
   clients::dns::Resolver& resolver_;
   const PoolSettings pool_settings_;
-
-  engine::Semaphore given_away_semaphore_;
-  engine::Semaphore connecting_semaphore_;
-
-  boost::lockfree::queue<Connection*> queue_;
-  std::atomic<size_t> size_{0};
 
   stats::PoolStatistics statistics_{};
 

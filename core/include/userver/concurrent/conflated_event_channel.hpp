@@ -23,7 +23,8 @@ namespace concurrent {
 /// don't want to slow down the pipeline.
 class ConflatedEventChannel : private AsyncEventChannel<> {
  public:
-  explicit ConflatedEventChannel(std::string name);
+  explicit ConflatedEventChannel(std::string name,
+                                 OnRemoveCallback on_listener_removal = {});
   ~ConflatedEventChannel() override;
 
   /// For convenient forwarding of events from other channels

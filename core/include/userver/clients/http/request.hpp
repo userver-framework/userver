@@ -17,6 +17,10 @@
 
 USERVER_NAMESPACE_BEGIN
 
+namespace tracing {
+class TracingManagerBase;
+}  // namespace tracing
+
 /// HTTP client helpers
 namespace clients::http {
 
@@ -111,6 +115,9 @@ class Request final : public std::enable_shared_from_this<Request> {
   std::shared_ptr<Request> delete_method(const std::string& url,
                                          std::string data);
 
+  /// Set custom request method. Only replaces name of the HTTP method
+  std::shared_ptr<Request> set_custom_http_request_method(std::string method);
+
   /// url if you don't specify request type with url
   std::shared_ptr<Request> url(const std::string& url);
   /// data for POST request
@@ -164,7 +171,7 @@ class Request final : public std::enable_shared_from_this<Request> {
   /// Set HTTP version
   std::shared_ptr<Request> http_version(HttpVersion version);
 
-  /// Specify number of retries on incorrect status, if on_failes is True
+  /// Specify number of retries on incorrect status, if on_fails is True
   /// retry on network error too. Retries = 3 means that maximum 3 request
   /// will be performed.
   ///
@@ -211,6 +218,9 @@ class Request final : public std::enable_shared_from_this<Request> {
   /// Disable auto add header with client timeout.
   std::shared_ptr<Request> DisableAddClientTimeoutHeader();
 
+  std::shared_ptr<Request> SetTracingManager(
+      const tracing::TracingManagerBase&);
+
   /// Perform request asynchronously.
   ///
   /// Works well with engine::WaitAny, engine::WaitAnyFor, and
@@ -231,7 +241,7 @@ class Request final : public std::enable_shared_from_this<Request> {
       const std::shared_ptr<concurrent::SpscQueue<std::string>>& queue);
 
   /// Calls async_perform and wait for timeout_ms on a future. Default time
-  /// for waiting will be timeout value if it was setted. If error occured it
+  /// for waiting will be timeout value if it was set. If error occurred it
   /// will be thrown as exception.
   ///
   /// Request object could be reused after return from perform(), all the

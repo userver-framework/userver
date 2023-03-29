@@ -25,19 +25,19 @@ class ServiceRunnerModule(pytest.Module):
 class UserviceRunner:
     @pytest.hookimpl(tryfirst=True)
     def pytest_collection_modifyitems(self, session, config, items):
-        pathes = set()
+        paths = set()
 
-        # Is there servicetest choosen
+        # Is there servicetest chosen
         for item in items:
-            pathes.add(pathlib.Path(item.module.__file__).parent)
+            paths.add(pathlib.Path(item.module.__file__).parent)
             for marker in item.own_markers:
                 if marker.name == 'servicetest':
                     return
 
-        if not pathes:
+        if not paths:
             return
 
-        tests_root = min(pathes, key=lambda p: len(p.parts))
+        tests_root = min(paths, key=lambda p: len(p.parts))
 
         module = ServiceRunnerModule.from_parent(
             parent=session, path=tests_root / '__service__',

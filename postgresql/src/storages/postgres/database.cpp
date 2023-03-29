@@ -1,10 +1,3 @@
-/*
- * database.cpp
- *
- *  Created on: Jun 4, 2019
- *      Author: ser-fedorov
- */
-
 #include <userver/storages/postgres/component.hpp>
 #include <userver/storages/postgres/exceptions.hpp>
 

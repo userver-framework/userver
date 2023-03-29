@@ -190,7 +190,7 @@ class PeriodicTask final {
 
   std::chrono::milliseconds MutatePeriod(std::chrono::milliseconds period);
 
-  std::string name_;
+  rcu::Variable<std::string> name_;
   Callback callback_;
   engine::TaskWithResult<void> task_;
   rcu::Variable<Settings> settings_;

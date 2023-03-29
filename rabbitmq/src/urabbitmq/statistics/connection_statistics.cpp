@@ -10,7 +10,9 @@ void ConnectionStatistics::AccountConnectionCreated() {
   ++connections_created_;
 }
 
-void ConnectionStatistics::AccountConnectionClosed() { ++connections_closed_; }
+void ConnectionStatistics::AccountConnectionClosed() noexcept {
+  ++connections_closed_;
+}
 
 void ConnectionStatistics::AccountWrite(size_t bytes_written) {
   bytes_sent_ += bytes_written;

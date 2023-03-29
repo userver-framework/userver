@@ -111,7 +111,7 @@ namespace storages::postgres {
  *       - InvalidInputBufferSize
  *       - InvalidParserCategory
  *       - InvalidTupleSizeRequested
- *       - NonSingleColumResultSet
+ *       - NonSingleColumnResultSet
  *       - NonSingleRowResultSet
  *       - NoBinaryParser
  *       - RowIndexOutOfBounds
@@ -726,10 +726,11 @@ class InvalidTupleSizeRequested : public ResultSetError {
 
 /// @brief A row or result set requested to be treated as a single column, but
 /// contains more than one column.
-class NonSingleColumResultSet : public ResultSetError {
+class NonSingleColumnResultSet : public ResultSetError {
  public:
-  NonSingleColumResultSet(std::size_t actual_size, const std::string& type_name,
-                          const std::string& func)
+  NonSingleColumnResultSet(std::size_t actual_size,
+                           const std::string& type_name,
+                           const std::string& func)
       : ResultSetError(
             "Parsing the row consisting of " + std::to_string(actual_size) +
             " columns as " + type_name +

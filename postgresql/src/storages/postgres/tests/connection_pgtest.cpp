@@ -335,7 +335,7 @@ UTEST_P(PostgreConnection, CommitOnBusyOeErroredConnection) {
   EXPECT_EQ(pg::ConnectionState::kIdle, GetConn()->GetState());
 }
 
-UTEST_P(PostgreConnection, StatementTimout) {
+UTEST_P(PostgreConnection, StatementTimeout) {
   CheckConnection(GetConn());
 
   EXPECT_EQ(pg::ConnectionState::kIdle, GetConn()->GetState());

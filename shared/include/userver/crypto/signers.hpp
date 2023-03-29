@@ -8,7 +8,10 @@
 #include <string>
 #include <string_view>
 
+#include <userver/utils/flags.hpp>
+
 #include <userver/crypto/basic_types.hpp>
+#include <userver/crypto/certificate.hpp>
 #include <userver/crypto/exception.hpp>
 #include <userver/crypto/private_key.hpp>
 
@@ -105,6 +108,44 @@ using SignerPs256 = DsaSigner<DsaType::kRsaPss, DigestSize::k256>;
 using SignerPs384 = DsaSigner<DsaType::kRsaPss, DigestSize::k384>;
 using SignerPs512 = DsaSigner<DsaType::kRsaPss, DigestSize::k512>;
 /// @}
+
+/// @name CMS signer per RFC 5652
+class CmsSigner final : public NamedAlgo {
+ public:
+  /// Signer flags
+  enum class Flags {
+    kNone = 0x0,
+    /// If set MIME headers for type text/plain are prepended to the data.
+    kText = 0x1,
+    /// If set the signer's certificate will not be included in the
+    /// resulting CMS structure. This can reduce the size of
+    /// the signature if the signers certificate can be obtained by other means:
+    /// for example a previously signed message.
+    kNoCerts = 0x2,
+    /// If set data being signed is omitted from the resulting CMS structure.
+    kDetached = 0x40,
+    /// Normally the supplied content is translated into MIME canonical format
+    /// (as required by the S/MIME specifications).
+    /// If set no translation occurs.
+    kBinary = 0x80
+  };
+
+  /// Output encoding
+  enum class OutForm { kDer, kPem, kSMime };
+
+  /// Construct from certificate and private key
+  CmsSigner(Certificate certificate, PrivateKey pkey);
+
+  ~CmsSigner() override;
+
+  /// Signs a raw message, returning as specified by flags
+  std::string Sign(std::initializer_list<std::string_view> data,
+                   utils::Flags<Flags> flags, OutForm out_form) const;
+
+ private:
+  Certificate cert_;
+  PrivateKey pkey_;
+};
 
 namespace weak {
 

@@ -12,6 +12,7 @@
 #include <clients/http/statistics.hpp>
 #include <clients/http/testsuite.hpp>
 #include <userver/clients/http/client.hpp>
+#include <userver/tracing/manager_component.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -22,6 +23,20 @@ namespace {
 
 constexpr size_t kDestinationMetricsAutoMaxSizeDefault = 100;
 
+clients::http::ClientSettings GetClientSettings(
+    const ComponentConfig& component_config, const ComponentContext& context) {
+  clients::http::ClientSettings settings;
+  settings = component_config.As<clients::http::ClientSettings>();
+  auto* tracing_locator =
+      context.FindComponentOptional<tracing::DefaultTracingManagerLocator>();
+  if (tracing_locator) {
+    settings.tracing_manager_ = &tracing_locator->GetTracingManager();
+  } else {
+    settings.tracing_manager_ = &tracing::kDefaultTracingManager;
+  }
+  return settings;
+}
+
 }  // namespace
 
 HttpClient::HttpClient(const ComponentConfig& component_config,
@@ -30,7 +45,7 @@ HttpClient::HttpClient(const ComponentConfig& component_config,
       disable_pool_stats_(
           component_config["pool-statistics-disable"].As<bool>(false)),
       http_client_(
-          component_config.As<clients::http::ClientSettings>(),
+          GetClientSettings(component_config, context),
           context.GetTaskProcessor(
               component_config["fs-task-processor"].As<std::string>())) {
   http_client_.SetDestinationMetricsAutoMaxSize(

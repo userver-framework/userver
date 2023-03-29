@@ -456,7 +456,7 @@ LogHelper::EncodingGuard::EncodingGuard(LogHelper& lh, Encode mode) noexcept
     : lh{lh} {
   UASSERT_MSG(lh.pimpl_->GetEncoding() == Encode::kNone,
               "~EncodingGuard() sets encoding to kNone, we are expecting to "
-              "have that encoding before seting the new one in guard");
+              "have that encoding before setting the new one in guard");
   UASSERT_MSG(mode != Encode::kNone, "Already in kNone mode");
 
   lh.pimpl_->SetEncoding(mode);

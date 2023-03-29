@@ -58,11 +58,16 @@ TcpSocketSink::TcpSocketSink(std::vector<engine::io::Sockaddr> addr)
     : client_{std::move(addr)},
       formatter_{std::make_unique<spdlog::pattern_formatter>()} {}
 
-void TcpSocketSink::Close() { client_.Close(); }
+void TcpSocketSink::Close() {
+  std::lock_guard lock{client_mutex_};
+  client_.Close();
+}
 
 void TcpSocketSink::log(const spdlog::details::log_msg& msg) {
   spdlog::memory_buf_t formatted;
   formatter_->format(msg, formatted);
+
+  std::lock_guard lock{client_mutex_};
   if (!client_.IsConnected()) {
     client_.Connect();
   }

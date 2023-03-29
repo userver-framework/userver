@@ -38,9 +38,9 @@ def userver_pg_config(pgsql_local):
             f'{list(pgsql_local.keys())}. '
             f'The "userver_pg_config" fixture supports '
             f'only one entry in "pgsql_local" fixture. The '
-            f'"userver_pg_config" fixture should be overriden and '
+            f'"userver_pg_config" fixture should be overridden and '
             f'the "dbconnection" for the components::Postgres '
-            f'components should be adjusted via the overriden fixture.',
+            f'components should be adjusted via the overridden fixture.',
         )
 
     uri = list(pgsql_local.values())[0].get_uri()
@@ -57,9 +57,9 @@ def userver_pg_config(pgsql_local):
             raise ValueError(
                 f'Found more than one components with "dbconnection": '
                 f'{list(postgre_dbs.keys())}. '
-                f'The "userver_pg_config" fixture should be overriden and '
+                f'The "userver_pg_config" fixture should be overridden and '
                 f'the "dbconnection" for the components::Postgres '
-                f'components should be adjusted via the overriden fixture.',
+                f'components should be adjusted via the overridden fixture.',
             )
 
         for config in postgre_dbs.values():

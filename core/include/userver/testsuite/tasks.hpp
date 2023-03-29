@@ -44,7 +44,7 @@ class TestsuiteTasks final {
 
   /// @brief Are testsuite tasks enabled or not
   ///
-  /// It is recommended to register tasks only for testsuite enviroment. Use
+  /// It is recommended to register tasks only for testsuite environment. Use
   /// this method to test weather or not you are running under testsuite:
   /// @code
   /// if (testsuite_tasks.IsEnabled()) {

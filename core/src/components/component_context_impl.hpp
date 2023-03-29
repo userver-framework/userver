@@ -49,7 +49,7 @@ struct ComponentContext::Impl {
 
   [[noreturn]] void ThrowNonRegisteredComponent(std::string_view name,
                                                 std::string_view type) const;
-  [[noreturn]] void ThrowComponentTypeMissmatch(
+  [[noreturn]] void ThrowComponentTypeMismatch(
       std::string_view name, std::string_view type,
       impl::ComponentBase* component) const;
 

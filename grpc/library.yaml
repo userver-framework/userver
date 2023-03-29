@@ -6,5 +6,4 @@ maintainers:
 description: Userver component for gRPC protocol
 
 libraries:
-  - Boost::regex
   - userver-core

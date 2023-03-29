@@ -233,7 +233,7 @@ bool Shard::AsyncCommand(CommandPtr command) {
 
     /* If we force specific server, use it, don't fallback to any other server.
      * If we don't force specific server:
-     * 1) use best servers at the first attemp;
+     * 1) use best servers at the first attempt;
      * 2) fallback to any alive server if (1) failed.
      */
     bool may_fallback_to_any =

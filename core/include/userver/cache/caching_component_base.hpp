@@ -59,6 +59,7 @@ namespace components {
 /// additional-cleanup-interval | how often to run background RCU garbage collector | 10 seconds
 /// is-strong-period | whether to include Update execution time in update-interval | false
 /// testsuite-force-periodic-update | override testsuite-periodic-update-enabled in TestsuiteSupport component config | --
+/// failed-updates-before-expiration | the number of consecutive failed updates for data expiration | --
 ///
 /// ### Update types
 ///  * `full-and-incremental`: both `update-interval` and `full-update-interval`
@@ -144,6 +145,8 @@ class CachingComponentBase : public LoggableComponentBase,
 
   void Cleanup() final;
 
+  void MarkAsExpired() final;
+
   void GetAndWrite(dump::Writer& writer) const final;
   void ReadAndSet(dump::Reader& reader) final;
 
@@ -157,7 +160,11 @@ CachingComponentBase<T>::CachingComponentBase(const ComponentConfig& config,
                                               const ComponentContext& context)
     : LoggableComponentBase(config, context),
       cache::CacheUpdateTrait(config, context),
-      event_channel_(components::GetCurrentComponentName(config)) {
+      event_channel_(components::GetCurrentComponentName(config),
+                     [this](auto& function) {
+                       const auto ptr = cache_.ReadCopy();
+                       if (ptr) function(ptr);
+                     }) {
   const auto initial_config = GetConfig();
 }
 
@@ -286,6 +293,11 @@ void CachingComponentBase<T>::OnAllComponentsLoaded() {
 template <typename T>
 void CachingComponentBase<T>::Cleanup() {
   cache_.Cleanup();
+}
+
+template <typename T>
+void CachingComponentBase<T>::MarkAsExpired() {
+  Set(std::unique_ptr<const T>{});
 }
 
 namespace impl {

@@ -31,7 +31,7 @@ yaml_config::Schema AuthCheckerSettings::GetStaticConfigSchema() {
 type: object
 description: >
   Component that loads auth configuration settings from a
-  components::Secdist componenet if the latter was registered in
+  components::Secdist component if the latter was registered in
   components::ComponentList.
 additionalProperties: false
 properties: {}

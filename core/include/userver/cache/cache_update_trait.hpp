@@ -3,6 +3,7 @@
 /// @file userver/cache/cache_update_trait.hpp
 /// @brief @copybrief cache::CacheUpdateTrait
 
+#include <memory>
 #include <string>
 
 #include <userver/cache/cache_statistics.hpp>
@@ -10,7 +11,6 @@
 #include <userver/components/component_fwd.hpp>
 #include <userver/dump/fwd.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
-#include <userver/utils/fast_pimpl.hpp>
 #include <userver/utils/flags.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -107,12 +107,14 @@ class CacheUpdateTrait {
  private:
   virtual void Cleanup() = 0;
 
+  virtual void MarkAsExpired();
+
   virtual void GetAndWrite(dump::Writer& writer) const;
 
   virtual void ReadAndSet(dump::Reader& reader);
 
   class Impl;
-  utils::FastPimpl<Impl, 2688, 16> impl_;
+  std::unique_ptr<Impl> impl_;
 };
 
 }  // namespace cache

@@ -172,13 +172,13 @@ class Value final {
   /// @brief Returns 0-based column number of this `Value` in the original
   /// document. Returns `-1` if `this->IsMissing()`. If `Value` was created
   /// using formats::yaml::ValueBuilder, returns `0`.
-  /// @note This method avaliable **only** for formats::yaml::Value.
+  /// @note This method available **only** for formats::yaml::Value.
   int GetColumn() const;
 
   /// @brief Returns 0-based line number of this `Value` in the original
   /// document. Returns `-1` if `this->IsMissing()`. If `Value` was created
   /// using formats::yaml::ValueBuilder, returns `0`.
-  /// @note This method avaliable **only** for formats::yaml::Value.
+  /// @note This method available **only** for formats::yaml::Value.
   int GetLine() const;
 
   /// @brief Returns new value that is an exact copy if the existing one
@@ -315,5 +315,13 @@ T Value::As(Value::DefaultConstructed) const {
 using formats::common::Items;
 
 }  // namespace formats::yaml
+
+/// Although we provide user defined literals, please beware that
+/// 'using namespace ABC' may contradict code style of your company.
+namespace formats::literals {
+
+yaml::Value operator"" _yaml(const char* str, std::size_t len);
+
+}  // namespace formats::literals
 
 USERVER_NAMESPACE_END

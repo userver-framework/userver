@@ -13,7 +13,7 @@ namespace server::handlers {
 
 /// @ingroup userver_components userver_http_handlers
 ///
-/// @brief Handler that controlls the jemalloc allocator.
+/// @brief Handler that controls the jemalloc allocator.
 ///
 /// The component has no service configuration except the
 /// @ref userver_http_handlers "common handler options".

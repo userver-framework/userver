@@ -73,7 +73,7 @@ namespace storages::postgres {
 ///
 /// @par Queries without parameters
 ///
-/// Executing a query wihout any parameters is rather straightforward.
+/// Executing a query without any parameters is rather straightforward.
 /// @code
 /// auto trx = cluster->Begin(/* transaction options */);
 /// auto res = trx.Execute("select foo, bar from foobar");
@@ -228,6 +228,37 @@ class Transaction {
                    const Container& args,
                    std::size_t chunk_rows = kDefaultRowsInChunk);
 
+  /// Execute statement that uses an array of arguments transforming that array
+  /// into N arrays of corresponding fields and executing the statement
+  /// with a chunk of each of these arrays values.
+  /// Basically, a column-wise ExecuteBulk.
+  ///
+  /// Useful for statements that unnest their arguments to avoid the need to
+  /// increase timeouts due to data amount growth, but providing an explicit
+  /// mapping from `Container::value_type` to PG type is infeasible for some
+  /// reason (otherwise, use ExecuteBulk).
+  ///
+  /// @snippet storages/postgres/tests/arrays_pgtest.cpp ExecuteDecomposeBulk
+  template <typename Container>
+  void ExecuteDecomposeBulk(const Query& query, const Container& args,
+                            std::size_t chunk_rows = kDefaultRowsInChunk);
+
+  /// Execute statement that uses an array of arguments transforming that array
+  /// into N arrays of corresponding fields and executing the statement
+  /// with a chunk of each of these arrays values.
+  /// Basically, a column-wise ExecuteBulk.
+  ///
+  /// Useful for statements that unnest their arguments to avoid the need to
+  /// increase timeouts due to data amount growth, but providing an explicit
+  /// mapping from `Container::value_type` to PG type is infeasible for some
+  /// reason (otherwise, use ExecuteBulk).
+  ///
+  /// @snippet storages/postgres/tests/arrays_pgtest.cpp ExecuteDecomposeBulk
+  template <typename Container>
+  void ExecuteDecomposeBulk(OptionalCommandControl statement_cmd_ctl,
+                            const Query& query, const Container& args,
+                            std::size_t chunk_rows = kDefaultRowsInChunk);
+
   /// Create a portal for fetching results of a statement with arbitrary
   /// parameters.
   template <typename... Args>
@@ -307,6 +338,27 @@ void Transaction::ExecuteBulk(OptionalCommandControl statement_cmd_ctl,
   for (auto&& chunk : split) {
     Execute(statement_cmd_ctl, query, chunk);
   }
+}
+
+template <typename Container>
+void Transaction::ExecuteDecomposeBulk(const Query& query,
+                                       const Container& args,
+                                       std::size_t chunk_rows) {
+  io::SplitContainerByColumns(args, chunk_rows)
+      .Perform([&query, this](const auto&... args) {
+        this->Execute(query, args...);
+      });
+}
+
+template <typename Container>
+void Transaction::ExecuteDecomposeBulk(OptionalCommandControl statement_cmd_ctl,
+                                       const Query& query,
+                                       const Container& args,
+                                       std::size_t chunk_rows) {
+  io::SplitContainerByColumns(args, chunk_rows)
+      .Perform([&query, &statement_cmd_ctl, this](const auto&... args) {
+        this->Execute(statement_cmd_ctl, query, args...);
+      });
 }
 
 }  // namespace storages::postgres

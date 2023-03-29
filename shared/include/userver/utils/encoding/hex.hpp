@@ -69,7 +69,7 @@ inline std::string ToHex(const void* encoded, size_t len) noexcept {
 /// how much it was able to process
 ///
 /// @param encoded input range to convert
-/// @param out Result will be writen into out. Previous value will be cleared.
+/// @param out Result will be written into out. Previous value will be cleared.
 /// @returns Number of characters successfully parsed.
 size_t FromHex(std::string_view encoded, std::string& out) noexcept;
 

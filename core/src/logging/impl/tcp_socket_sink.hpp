@@ -6,6 +6,7 @@
 
 #include <userver/engine/io/sockaddr.hpp>
 #include <userver/engine/io/socket.hpp>
+#include <userver/engine/mutex.hpp>
 
 #include <spdlog/common.h>
 #include <spdlog/sinks/base_sink.h>
@@ -56,6 +57,7 @@ class TcpSocketSink final : public spdlog::sinks::sink {
 
  private:
   impl::TcpSocketClient client_;
+  engine::Mutex client_mutex_;
   std::unique_ptr<spdlog::formatter> formatter_;
 };
 

@@ -82,7 +82,7 @@ Nuances:
 - Each thread has separate counters, so in practice there may be a little more logs
 - If the `template` function logs via `LOG_LIMITED_X`, then each specialization of the function template has a
   separate counter
-- If the same function with loging via `LOG_LIMITED_X` is called in different places, then all its calls
+- If the same function with logging via `LOG_LIMITED_X` is called in different places, then all its calls
   use the same counter
 
 ### Tags

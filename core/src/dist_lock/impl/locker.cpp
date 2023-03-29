@@ -113,6 +113,7 @@ void Locker::Run(LockerMode mode, dist_lock::DistLockWaitingMode waiting_mode,
         LOG_DEBUG() << "Started watchdog task";
       }
     } catch (const LockIsAcquiredByAnotherHostException&) {
+      LOG_INFO() << "Fail to acquire lock. It was acquired by another host";
       stats_.lock_failures++;
       if (is_locked_) {
         LOG_ERROR()

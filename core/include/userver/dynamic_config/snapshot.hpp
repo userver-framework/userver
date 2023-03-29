@@ -79,6 +79,7 @@ class Snapshot final {
 
   // for the constructor
   friend class Source;
+  friend struct impl::StorageData;
 
   struct Impl;
   utils::FastPimpl<Impl, 16, 8> impl_;

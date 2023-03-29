@@ -30,11 +30,11 @@ enum Status : uint16_t {
   ServiceUnavailable = 503,
   GatewayTimeout = 504,
   InsufficientStorage = 507,
-  BandwithLimitExceeded = 509,
+  BandwidthLimitExceeded = 509,
   WebServerIsDown = 520,
   ConnectionTimedOut = 522,
   OriginIsUnreachable = 523,
-  TimeoutOccured = 524,
+  TimeoutOccurred = 524,
   SslHandshakeFailed = 525,
   InvalidSslCertificate = 526,
 };
@@ -62,7 +62,7 @@ class Response final {
   /// body as string_view
   std::string_view body_view() const { return response_; }
 
-  /// return referece to headers
+  /// return reference to headers
   const Headers& headers() const { return headers_; }
   Headers& headers() { return headers_; }
   const CookiesMap& cookies() const { return cookies_; }

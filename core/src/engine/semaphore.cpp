@@ -43,18 +43,17 @@ class SemaphoreWaitStrategy final : public impl::WaitStrategy {
 
 }  // namespace
 
-Semaphore::Semaphore(Counter capacity)
+CancellableSemaphore::CancellableSemaphore(Counter capacity)
     : acquired_locks_(0), capacity_(capacity) {}
 
-Semaphore::~Semaphore() {
-  UASSERT_MSG(
-      acquired_locks_.load() == 0,
-      fmt::format(
-          "Semaphore is destroyed while in use (acquired={}, capacity={})",
-          acquired_locks_.load(), capacity_.load()));
+CancellableSemaphore::~CancellableSemaphore() {
+  UASSERT_MSG(acquired_locks_.load() == 0,
+              fmt::format("CancellableSemaphore is destroyed while in use "
+                          "(acquired={}, capacity={})",
+                          acquired_locks_.load(), capacity_.load()));
 }
 
-void Semaphore::SetCapacity(Counter capacity) {
+void CancellableSemaphore::SetCapacity(Counter capacity) {
   capacity_.store(capacity);
 
   if (lock_waiters_->GetCountOfSleepies()) {
@@ -63,31 +62,37 @@ void Semaphore::SetCapacity(Counter capacity) {
   }
 }
 
-Semaphore::Counter Semaphore::GetCapacity() const noexcept {
+CancellableSemaphore::Counter CancellableSemaphore::GetCapacity() const
+    noexcept {
   return capacity_.load();
 }
 
-std::size_t Semaphore::RemainingApprox() const {
+std::size_t CancellableSemaphore::RemainingApprox() const {
   const auto acquired = acquired_locks_.load(std::memory_order_relaxed);
   const auto capacity = capacity_.load(std::memory_order_relaxed);
   return capacity >= acquired ? capacity - acquired : 0;
 }
 
-void Semaphore::lock_shared() { lock_shared_count(1); }
+void CancellableSemaphore::lock_shared() { lock_shared_count(1); }
 
-void Semaphore::lock_shared_count(const Counter count) {
+void CancellableSemaphore::lock_shared_count(const Counter count) {
   const bool success = try_lock_shared_until_count(Deadline{}, count);
   if (!success) {
-    throw UnreachableSemaphoreLockError(
-        fmt::format("The amount of locks requested is greater than Semaphore "
-                    "capacity: count={}, capacity={}",
-                    count, capacity_.load()));
+    if (engine::current_task::ShouldCancel()) {
+      throw SemaphoreLockCancelledError(
+          "Semaphore lock is stopped by task cancellation");
+    } else {
+      throw UnreachableSemaphoreLockError(fmt::format(
+          "The amount of locks requested is greater than CancellableSemaphore "
+          "capacity: count={}, capacity={}",
+          count, capacity_.load()));
+    }
   }
 }
 
-void Semaphore::unlock_shared() { unlock_shared_count(1); }
+void CancellableSemaphore::unlock_shared() { unlock_shared_count(1); }
 
-void Semaphore::unlock_shared_count(const Counter count) {
+void CancellableSemaphore::unlock_shared_count(const Counter count) {
   UASSERT(count > 0);
 
   const auto old_acquired_locks =
@@ -107,25 +112,47 @@ void Semaphore::unlock_shared_count(const Counter count) {
   }
 }
 
-bool Semaphore::try_lock_shared() { return try_lock_shared_count(1); }
+bool CancellableSemaphore::try_lock_shared() {
+  return try_lock_shared_count(1);
+}
 
-bool Semaphore::try_lock_shared_count(const Counter count) {
+bool CancellableSemaphore::try_lock_shared_count(const Counter count) {
   return LockFastPath(count) == TryLockStatus::kSuccess;
 }
 
-bool Semaphore::try_lock_shared_until(Deadline deadline) {
+bool CancellableSemaphore::try_lock_shared_until(Deadline deadline) {
   return try_lock_shared_until_count(deadline, 1);
 }
 
-bool Semaphore::try_lock_shared_until_count(Deadline deadline,
-                                            const Counter count) {
+bool CancellableSemaphore::try_lock_shared_until_count(Deadline deadline,
+                                                       const Counter count) {
   const auto status = LockFastPath(count);
   if (status == TryLockStatus::kSuccess) return true;
   if (status == TryLockStatus::kPermanentFailure) return false;
   return LockSlowPath(deadline, count);
 }
 
-Semaphore::TryLockStatus Semaphore::DoTryLock(const Counter count) {
+bool CancellableSemaphore::LockSlowPath(Deadline deadline,
+                                        const Counter count) {
+  UASSERT(count > 0);
+
+  auto& current = current_task::GetCurrentTaskContext();
+  SemaphoreWaitStrategy wait_manager(*lock_waiters_, current, deadline);
+
+  TryLockStatus status{};
+  while ((status = DoTryLock(count)) == TryLockStatus::kTransientFailure) {
+    switch (current.Sleep(wait_manager)) {
+      case impl::TaskContext::WakeupSource::kDeadlineTimer:
+      case impl::TaskContext::WakeupSource::kCancelRequest:
+        return false;
+      default:;
+    }
+  }
+  return (status == TryLockStatus::kSuccess);
+}
+
+CancellableSemaphore::TryLockStatus CancellableSemaphore::DoTryLock(
+    const Counter count) {
   auto capacity = capacity_.load(std::memory_order_acquire);
   if (count > capacity) return TryLockStatus::kPermanentFailure;
 
@@ -140,29 +167,62 @@ Semaphore::TryLockStatus Semaphore::DoTryLock(const Counter count) {
   return success ? TryLockStatus::kSuccess : TryLockStatus::kTransientFailure;
 }
 
-Semaphore::TryLockStatus Semaphore::LockFastPath(const Counter count) {
+CancellableSemaphore::TryLockStatus CancellableSemaphore::LockFastPath(
+    const Counter count) {
   UASSERT(count > 0);
 
   const auto status = DoTryLock(count);
   return status;
 }
 
-bool Semaphore::LockSlowPath(Deadline deadline, const Counter count) {
-  UASSERT(count > 0);
+Semaphore::Semaphore(Counter capacity) : sem_(capacity) {}
 
-  engine::TaskCancellationBlocker block_cancels;
-  auto& current = current_task::GetCurrentTaskContext();
-  SemaphoreWaitStrategy wait_manager(*lock_waiters_, current, deadline);
+Semaphore::~Semaphore() = default;
 
-  TryLockStatus status{};
-  while ((status = DoTryLock(count)) == TryLockStatus::kTransientFailure) {
-    if (current.Sleep(wait_manager) ==
-        impl::TaskContext::WakeupSource::kDeadlineTimer) {
-      return false;
-    }
-  }
+void Semaphore::SetCapacity(Counter capacity) { sem_.SetCapacity(capacity); }
 
-  return (status == TryLockStatus::kSuccess);
+Semaphore::Counter Semaphore::GetCapacity() const noexcept {
+  return sem_.GetCapacity();
+}
+
+std::size_t Semaphore::RemainingApprox() const {
+  return sem_.RemainingApprox();
+}
+
+void Semaphore::lock_shared() {
+  engine::TaskCancellationBlocker blocker;
+  sem_.lock_shared();
+}
+
+void Semaphore::unlock_shared() { sem_.unlock_shared(); }
+
+bool Semaphore::try_lock_shared() {
+  engine::TaskCancellationBlocker blocker;
+  return sem_.try_lock_shared();
+}
+
+bool Semaphore::try_lock_shared_until(Deadline deadline) {
+  engine::TaskCancellationBlocker blocker;
+  return sem_.try_lock_shared_until(deadline);
+}
+
+void Semaphore::lock_shared_count(Counter count) {
+  engine::TaskCancellationBlocker blocker;
+  sem_.lock_shared_count(count);
+}
+
+void Semaphore::unlock_shared_count(Counter count) {
+  sem_.unlock_shared_count(count);
+}
+
+bool Semaphore::try_lock_shared_count(Counter count) {
+  engine::TaskCancellationBlocker blocker;
+  return sem_.try_lock_shared_count(count);
+}
+
+bool Semaphore::try_lock_shared_until_count(Deadline deadline, Counter count) {
+  engine::TaskCancellationBlocker blocker;
+  return sem_.try_lock_shared_until_count(deadline, count);
 }
 
 SemaphoreLock::SemaphoreLock(Semaphore& sem) : sem_(&sem), owns_lock_(true) {

@@ -26,6 +26,10 @@ std::string Trim(std::string&& str);
 /// Split string
 std::vector<std::string> Split(std::string_view str, std::string_view sep);
 
+/// Split string
+std::vector<std::string_view> SplitIntoStringViewVector(std::string_view str,
+                                                        std::string_view sep);
+
 /// Join string
 std::string Join(const std::vector<std::string>& strs, std::string_view sep);
 

@@ -69,7 +69,7 @@ formats::json::Value DoLoadFromFile(const std::string& path,
     } else {
       throw SecdistError(
           "Cannot load secdist config. File '" + path +
-          "' doesn't exist, unrechable or in invalid format:" + e.what());
+          "' doesn't exist, unreachable or in invalid format:" + e.what());
     }
   }
 

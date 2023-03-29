@@ -58,7 +58,7 @@ BytesPerSecond StringToBytesPerSecond(const std::string& data) {
       static constexpr auto kMax = std::numeric_limits<long long>::max();
       if (kMax / v.multiplier < new_to) {
         throw std::runtime_error(
-            data + " can not be represented as B/s wihtout precision loss");
+            data + " can not be represented as B/s without precision loss");
       }
 
       return BytesPerSecond{new_to * v.multiplier};

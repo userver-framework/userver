@@ -25,8 +25,12 @@ template <class BaseIterator, class Projection>
 class ProjectingIterator : Projection {
  public:
   using iterator_category = std::forward_iterator_tag;
-  using value_type = typename BaseIterator::value_type;
-  using difference_type = typename BaseIterator::difference_type;
+  using value_type = std::decay_t<std::invoke_result_t<
+      Projection, typename std::iterator_traits<BaseIterator>::value_type&>>;
+  using difference_type =
+      typename std::iterator_traits<BaseIterator>::difference_type;
+  using reference = value_type&;
+  using pointer = value_type*;
 
   ProjectingIterator() = default;
   explicit ProjectingIterator(BaseIterator it) : it_(std::move(it)) {}
@@ -61,6 +65,9 @@ class ProjectingView : private Projection {
   using BaseIterator =
       std::conditional_t<std::is_const_v<Container>, BaseConstIterator,
                          typename Container::iterator>;
+
+  using const_iterator = ProjectingIterator<BaseConstIterator, Projection>;
+  using value_type = typename const_iterator::value_type;
 
   explicit ProjectingView(Container& container) noexcept
       : container_(container) {}

@@ -1,8 +1,10 @@
 #include <userver/cache/cache_update_trait.hpp>
 
 #include <chrono>
+#include <exception>
 #include <optional>
 #include <utility>
+#include <vector>
 
 #include <fmt/format.h>
 #include <boost/filesystem.hpp>
@@ -428,7 +430,7 @@ UTEST_P(CacheUpdateTraitDumpedFailureOk, Test) {
 // 1. Fails or not to load data from dump
 // 2. Requests a synchronous full update
 // 3. The synchronous full update fails
-// 4. Cache starts succesfully
+// 4. Cache starts successfully
 INSTANTIATE_UTEST_SUITE_P(
     UnnecessaryCacheStart, CacheUpdateTraitDumpedFailureOk,
     Combine(Values(AllowedUpdateTypes::kFullAndIncremental),
@@ -579,6 +581,75 @@ UTEST_F(CacheUpdateTraitFaulty, TmpDoNotAccumulate) {
   UEXPECT_THROW(env_.dump_control.WriteCacheDumps({cache.Name()}),
                 cache::MockError);
   EXPECT_EQ(dump_count(), 1);
+}
+
+namespace {
+
+class ExpirableCache : public cache::CacheMockBase {
+ public:
+  static constexpr auto kName = "expirable-cache";
+
+  ExpirableCache(const yaml_config::YamlConfig& config,
+                 cache::MockEnvironment& environment,
+                 std::function<bool(std::uint64_t)> is_update_failed)
+      : CacheMockBase(kName, config, environment),
+        is_update_failed_(std::move(is_update_failed)) {
+    StartPeriodicUpdates();
+  }
+
+  ~ExpirableCache() override { StopPeriodicUpdates(); }
+
+  const auto& GetExpiredLog() const { return expired_log_; }
+
+ private:
+  void Update(cache::UpdateType /*type*/,
+              const std::chrono::system_clock::time_point& /*last_update*/,
+              const std::chrono::system_clock::time_point& /*now*/,
+              cache::UpdateStatisticsScope&) override {
+    expired_log_.emplace_back(is_expired_);
+    if (is_update_failed_(expired_log_.size())) throw cache::MockError();
+    is_expired_ = false;
+  }
+
+  void MarkAsExpired() override { is_expired_ = true; }
+
+  std::function<bool(std::uint64_t)> is_update_failed_;
+  std::vector<bool> expired_log_;
+  bool is_expired_ = false;
+};
+
+yaml_config::YamlConfig MakeExpirableCacheConfig(std::uint64_t expired_number) {
+  static constexpr std::string_view kConfigTemplate = R"(
+update-types: only-incremental
+update-interval: 1ms
+failed-updates-before-expiration: {}
+first-update-fail-ok: true
+)";
+  return {
+      formats::yaml::FromString(fmt::format(kConfigTemplate, expired_number)),
+      {}};
+}
+
+}  // namespace
+
+UTEST(ExpirableCacheUpdateTrait, TwoFailed) {
+  auto config = MakeExpirableCacheConfig(2);
+  cache::MockEnvironment environment(
+      testsuite::CacheControl::PeriodicUpdatesMode::kEnabled);
+  ExpirableCache cache(config, environment, [](auto i) -> bool {
+    std::vector<int> failed{1, 3, 4, 5, 7, 9, 10, 11};
+    return std::count(failed.begin(), failed.end(), i);
+  });
+
+  while (cache.GetExpiredLog().size() < 13) {
+    engine::Yield();
+  }
+
+  const auto& actual = cache.GetExpiredLog();
+  const std::vector<bool> expected{false, false, false, false, true,
+                                   true,  false, false, false, false,
+                                   true,  true,  false};
+  EXPECT_EQ(actual, expected);
 }
 
 USERVER_NAMESPACE_END

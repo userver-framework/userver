@@ -22,10 +22,9 @@ file(GLOB_RECURSE REDIS_TEST_SOURCES
 list(REMOVE_ITEM SOURCES ${REDIS_TEST_SOURCES})
 
 file(GLOB_RECURSE REDIS_BENCH_SOURCES
-  ${CMAKE_CURRENT_SOURCE_DIR}/*_benchmark.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/*_benchmark.hpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/benchmark/*.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/benchmark/*.hpp
 )
-list (REMOVE_ITEM SOURCES ${REDIS_BENCH_SOURCES})
 
 file(GLOB_RECURSE REDIS_FUNCTIONAL_TEST_SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/functional_tests/*.cpp
@@ -156,6 +155,5 @@ if (USERVER_IS_THE_ROOT_PROJECT)
       --benchmark_color=no
   )
 
-  add_subdirectory(tools/redisclient)
   add_subdirectory(functional_tests)
 endif()

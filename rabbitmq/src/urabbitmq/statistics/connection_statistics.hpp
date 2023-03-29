@@ -12,7 +12,7 @@ namespace urabbitmq::statistics {
 class ConnectionStatistics final {
  public:
   void AccountConnectionCreated();
-  void AccountConnectionClosed();
+  void AccountConnectionClosed() noexcept;
 
   void AccountWrite(size_t bytes_written);
   void AccountRead(size_t bytes_read);

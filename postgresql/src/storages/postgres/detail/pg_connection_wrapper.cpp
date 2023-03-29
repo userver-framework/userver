@@ -353,7 +353,7 @@ void PGConnectionWrapper::WaitConnectionFinish(Deadline deadline,
         break;
     }
 
-    // PQconnectPoll() may accesss /tmp/krb5cc* files
+    // PQconnectPoll() may access /tmp/krb5cc* files
     poll_res = engine::CriticalAsyncNoSpan(bg_task_processor_, [this] {
                  return PQconnectPoll(conn_);
                }).Get();
@@ -599,11 +599,12 @@ ResultSet PGConnectionWrapper::MakeResult(ResultHandle&& handle) {
     case PGRES_FATAL_ERROR: {
       Message msg{wrapper};
       if (!IsWhitelistedState(msg.GetSqlState())) {
-        PGCW_LOG_LIMITED_ERROR()
-            << "Fatal error occured: " << msg.GetMessage() << msg.GetLogExtra();
+        PGCW_LOG_LIMITED_ERROR() << "Fatal error occurred: " << msg.GetMessage()
+                                 << msg.GetLogExtra();
       } else {
         PGCW_LOG_LIMITED_WARNING()
-            << "Fatal error occured: " << msg.GetMessage() << msg.GetLogExtra();
+            << "Fatal error occurred: " << msg.GetMessage()
+            << msg.GetLogExtra();
       }
       LOG_DEBUG() << "Ready to throw";
       msg.ThrowException();

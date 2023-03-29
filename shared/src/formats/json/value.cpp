@@ -430,4 +430,12 @@ void Value::CheckInBounds(std::size_t index) const {
 }
 }  // namespace formats::json
 
+namespace formats::literals {
+
+json::Value operator"" _json(const char* str, size_t len) {
+  return json::FromString(std::string_view(str, len));
+}
+
+}  // namespace formats::literals
+
 USERVER_NAMESPACE_END

@@ -20,8 +20,13 @@
 #include <userver/server/http/http_response.hpp>
 #include <userver/server/http/http_response_body_stream_fwd.hpp>
 #include <userver/server/request/request_base.hpp>
+#include <userver/tracing/span.hpp>
 
 USERVER_NAMESPACE_BEGIN
+
+namespace tracing {
+class TracingManagerBase;
+}  // namespace tracing
 
 /// @brief Most common \ref userver_http_handlers "userver HTTP handlers"
 namespace server::handlers {
@@ -147,7 +152,7 @@ class HttpHandlerBase : public HandlerBase {
       const http::HttpRequest& request, request::RequestContext& context,
       const std::string& response_data) const;
 
-  /// For internal use. You don't need to override it. This method is overriden
+  /// For internal use. You don't need to override it. This method is overridden
   /// in format-specific base handlers.
   virtual void ParseRequestData(const http::HttpRequest&,
                                 request::RequestContext&) const {}
@@ -181,6 +186,7 @@ class HttpHandlerBase : public HandlerBase {
   const std::vector<http::HttpMethod> allowed_methods_;
   const std::string handler_name_;
   utils::statistics::Entry statistics_holder_;
+  const tracing::TracingManagerBase& tracing_manager_;
 
   std::unique_ptr<HttpHandlerStatistics> handler_statistics_;
   std::unique_ptr<HttpRequestStatistics> request_statistics_;

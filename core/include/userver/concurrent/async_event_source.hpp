@@ -93,7 +93,9 @@ class [[nodiscard]] AsyncEventSubscriberScope final {
 /// @ingroup userver_concurrency
 ///
 /// @brief The read-only side of an event channel. Events are delivered to
-/// listeners in a strict FIFO order.
+/// listeners in a strict FIFO order, i.e. only after the event was processed
+/// a new event may appear for processing, same listener is never called
+/// concurrently.
 template <typename... Args>
 class AsyncEventSource : public impl::AsyncEventSourceBase {
  public:

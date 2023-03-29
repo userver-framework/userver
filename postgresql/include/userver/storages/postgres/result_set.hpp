@@ -168,7 +168,7 @@ namespace storages::postgres {
 /// A result set can be represented as a set of user row types or extracted to
 /// a container. For more information see @ref pg_user_row_types
 ///
-/// @todo Interface for copying a ResultSet to an output interator.
+/// @todo Interface for copying a ResultSet to an output iterator.
 ///
 /// @par Non-select query results
 ///
@@ -421,7 +421,7 @@ class Row {
   ///
   /// If the user tries to read the first column into a variable, it must be the
   /// only column in the result set. If the result set contains more than one
-  /// column, the function will throw NotASingleColumResultSet. If the result
+  /// column, the function will throw NonSingleColumnResultSet. If the result
   /// set is OK to contain more than one columns, the first column value should
   /// be accessed via `row[0].To/As`.
   ///
@@ -795,7 +795,7 @@ void Row::To(T&& val, FieldTag) const {
     throw InvalidTupleSizeRequested{Size(), 1};
   }
   if (Size() > 1) {
-    throw NonSingleColumResultSet{Size(), compiler::GetTypeName<T>(), "As"};
+    throw NonSingleColumnResultSet{Size(), compiler::GetTypeName<T>(), "As"};
   }
   (*this)[0].To(std::forward<T>(val));
 }
@@ -882,8 +882,8 @@ auto ResultSet::AsSetOf(FieldTag) const {
                     io::traits::kIsCompositeType<ValueType>,
                 "This type is not mapped to a PostgreSQL type");
   if (FieldCount() > 1) {
-    throw NonSingleColumResultSet{FieldCount(), compiler::GetTypeName<T>(),
-                                  "AsSetOf"};
+    throw NonSingleColumnResultSet{FieldCount(), compiler::GetTypeName<T>(),
+                                   "AsSetOf"};
   }
   return TypedResultSet<T, FieldTag>{*this};
 }

@@ -20,6 +20,8 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::postgres::io {
 
+// clang-format off
+
 /// @page pg_enum uPg: Mapping a C++ enum to PostgreSQL enum type.
 ///
 /// A C++ enumeration can be mapped to a PostgreSQL enum type by providing a
@@ -54,14 +56,15 @@ namespace storages::postgres::io {
 /// TrivialBiMap. This way is much more efficient, so it is preferable to use
 /// it. It also becomes possible to reuse an existing TrivialBiMap.
 ///
-/// @snippet storages/postgres/tests/enums_pgtest.cpp C++ to Pg
-/// TrivialMap_mapping
+/// @snippet storages/postgres/tests/enums_pgtest.cpp C++ to Pg TrivialBiMap mapping
 ///
 /// ----------
 ///
 /// @htmlonly <div class="bottom-nav"> @endhtmlonly
 /// ⇦ @ref pg_composite_types | @ref pg_range_types ⇨
 /// @htmlonly </div> @endhtmlonly
+
+// clang-format on
 
 namespace detail {
 

@@ -98,6 +98,7 @@ class CacheUpdateTrait::Impl final {
   engine::Mutex update_mutex_;
   DumpableEntityProxy dumpable_;
   std::optional<dump::Dumper> dumper_;
+  std::uint64_t failed_updates_counter_{0};
 
   utils::statistics::Entry statistics_holder_;
   concurrent::AsyncEventSubscriberScope config_subscription_;

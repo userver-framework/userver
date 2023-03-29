@@ -89,8 +89,8 @@ class ComponentContext final {
     auto* component_base = DoFindComponent(name);
     T* ptr = dynamic_cast<T*>(component_base);
     if (!ptr) {
-      ThrowComponentTypeMissmatch(name, compiler::GetTypeName<T>(),
-                                  component_base);
+      ThrowComponentTypeMismatch(name, compiler::GetTypeName<T>(),
+                                 component_base);
     }
 
     return *ptr;
@@ -134,7 +134,7 @@ class ComponentContext final {
 
   /// @returns true if one of the components is in fatal state and can not
   /// work. A component is in fatal state if the
-  /// components::ComponentHealth::kFatal value is returned from the overriden
+  /// components::ComponentHealth::kFatal value is returned from the overridden
   /// components::LoggableComponentBase::GetComponentHealth().
   bool IsAnyComponentInFatalState() const;
 
@@ -186,7 +186,7 @@ class ComponentContext final {
 
   [[noreturn]] void ThrowNonRegisteredComponent(std::string_view name,
                                                 std::string_view type) const;
-  [[noreturn]] void ThrowComponentTypeMissmatch(
+  [[noreturn]] void ThrowComponentTypeMismatch(
       std::string_view name, std::string_view type,
       impl::ComponentBase* component) const;
 

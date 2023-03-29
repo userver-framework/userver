@@ -60,8 +60,36 @@ UTEST(Semaphore, LockAndCancel) {
   auto task = engine::AsyncNoSpan(
       [&s]() { std::shared_lock<engine::Semaphore> guard{s}; });
 
-  task.WaitFor(std::chrono::milliseconds(50));
+  task.WaitFor(std::chrono::milliseconds(100));
+  task.RequestCancel();
+  task.WaitFor(std::chrono::milliseconds(100));
   EXPECT_FALSE(task.IsFinished());
+  guard.unlock();
+}
+
+UTEST(CancellableSemaphore, LockAndCancel) {
+  engine::CancellableSemaphore s{1};
+  std::shared_lock guard{s};
+  auto task = engine::AsyncNoSpan([&s]() { std::shared_lock guard{s}; });
+
+  task.WaitFor(std::chrono::milliseconds(100));
+  task.RequestCancel();
+  task.WaitFor(std::chrono::milliseconds(utest::kMaxTestWaitTime));
+  EXPECT_TRUE(task.IsFinished());
+  guard.unlock();
+}
+
+UTEST(CancellableSemaphore, TryLockAndCancel) {
+  engine::CancellableSemaphore s{1};
+  std::shared_lock guard{s};
+  auto task = engine::AsyncNoSpan([&s]() {
+    [[maybe_unused]] auto tmp = s.try_lock_shared_for(utest::kMaxTestWaitTime);
+  });
+
+  task.WaitFor(std::chrono::milliseconds(100));
+  task.RequestCancel();
+  task.WaitFor(utest::kMaxTestWaitTime / 2);
+  EXPECT_TRUE(task.IsFinished());
   guard.unlock();
 }
 

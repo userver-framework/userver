@@ -263,7 +263,7 @@ TYPED_UTEST(ExpirableLruCache, Expire) {
   EXPECT_EQ(Counter::One(), *counter);
 }
 
-TYPED_UTEST(ExpirableLruCache, DumpAndChangeMaxLiftime) {
+TYPED_UTEST(ExpirableLruCache, DumpAndChangeMaxLifetime) {
   auto counter = std::make_shared<Counter>();
 
   auto cache = TestFixture::CreateSimpleCache();
