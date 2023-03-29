@@ -1,3 +1,5 @@
+#if 0
+
 #include <gtest/gtest.h>
 
 #include <unordered_map>
@@ -116,3 +118,5 @@ TEST(TinyLfu, Size2) {
 }
 
 USERVER_NAMESPACE_END
+
+#endif

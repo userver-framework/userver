@@ -4,6 +4,8 @@
 #include <cstdint>
 #include <vector>
 
+#include <userver/utils/assert.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace cache::impl {
@@ -28,7 +30,9 @@ class Doorkeeper {
 
 template <typename T, typename Hash>
 Doorkeeper<T, Hash>::Doorkeeper(size_t capacity, const Hash& hash)
-    : table_(capacity), hash_(hash) {}
+    : table_(capacity), hash_(hash) {
+  UINVARIANT(false, "not implemented yet");
+    }
 
 template <typename T, typename Hash>
 std::pair<uint32_t, uint32_t> Doorkeeper<T, Hash>::GetHash(const T& item) {

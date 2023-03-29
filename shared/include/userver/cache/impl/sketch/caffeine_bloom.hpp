@@ -46,6 +46,7 @@ Sketch<T, Hash, Policy::CaffeineBloom>::Sketch(size_t capacity,
                                                const Hash& hash,
                                                int access_count_limit_rate)
     : hash_(hash), access_count_limit_rate_(access_count_limit_rate) {
+  UINVARIANT(false, "not implemented yet");
   uint64_t ceiling_two_power = 1;
   while (ceiling_two_power < capacity) {
     ceiling_two_power <<= 1;
@@ -134,6 +135,7 @@ int32_t Sketch<T, Hash, Policy::CaffeineBloom>::Spread(u_int32_t x) {
   x = ((x >> 16) ^ x) * 0x45d9f3b;
   return (x >> 16) ^ x;
 }
+
 }  // namespace cache::impl::sketch
 
 USERVER_NAMESPACE_END

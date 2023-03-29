@@ -1,3 +1,5 @@
+#if 0
+
 #include <gtest/gtest.h>
 
 #include <vector>
@@ -136,3 +138,5 @@ TYPED_TEST(CacheSketch, HeavyHitters) {
 }
 
 USERVER_NAMESPACE_END
+
+#endif

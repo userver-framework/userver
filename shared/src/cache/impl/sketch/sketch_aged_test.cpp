@@ -1,3 +1,5 @@
+#if 0
+
 #include <gtest/gtest.h>
 
 #include <userver/cache/impl/sketch/aged.hpp>
@@ -51,3 +53,5 @@ TEST(CacheSketch, AgedHeavyHitters) {
 }
 
 USERVER_NAMESPACE_END
+
+#endif
