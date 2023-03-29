@@ -8,7 +8,26 @@
 #include <string>
 #include <unordered_map>
 
+#include <nghttp2/nghttp2.h>
+#include <userver/concurrent/variable.hpp>
+#include <userver/engine/shared_mutex.hpp>
+
 USERVER_NAMESPACE_BEGIN
+
+namespace server::http {
+
+struct Http2UpgradeData {
+  std::reference_wrapper<const std::vector<nghttp2_settings_entry>>
+      server_settings;
+};
+
+namespace impl {
+using SessionPtr =
+    std::unique_ptr<nghttp2_session,
+                    std::function<decltype(nghttp2_session_del)>>;
+}  // namespace impl
+
+}  // namespace server::http
 
 namespace engine::io {
 class Socket;
@@ -71,11 +90,17 @@ class ResponseBase {
   std::chrono::steady_clock::time_point SentTime() const { return sent_time_; }
 
   virtual void SendResponse(engine::io::Socket& socket) = 0;
+  virtual void SendResponseHttp2(
+      engine::io::Socket& socket,
+      concurrent::Variable<http::impl::SessionPtr>& session_holder,
+      std::optional<http::Http2UpgradeData> upgrade_data) = 0;
 
   virtual void SetStatusServiceUnavailable() = 0;
   virtual void SetStatusOk() = 0;
   virtual void SetStatusNotFound() = 0;
   /// @endcond
+  // NOLINTNEXTLINE
+  uint32_t stream_id{1};
 
  protected:
   void SetSent(size_t bytes_sent);
