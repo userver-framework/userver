@@ -5,6 +5,25 @@
 
 USERVER_NAMESPACE_BEGIN
 
+namespace http2::pseudo_headers {
+
+// Headers from rfc7540
+
+/// @name Request pseudo-headers
+/// @{
+inline constexpr char kMethod[] = ":method";
+inline constexpr char kScheme[] = ":scheme";
+inline constexpr char kAuthority[] = ":authority";
+inline constexpr char kPath[] = ":path";
+/// @}
+
+/// @name Response pseudo-headers
+/// @{
+inline constexpr char kStatus[] = ":status";
+/// @}
+
+}  // namespace http2::pseudo_headers
+
 /// Common HTTP headers
 namespace http::headers {
 

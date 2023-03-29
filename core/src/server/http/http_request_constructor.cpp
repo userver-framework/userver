@@ -340,6 +340,10 @@ void HttpRequestConstructor::AccountHeadersSize(size_t size) {
   }
 }
 
+void HttpRequestConstructor::SetResponseStreamId(uint32_t stream_id) {
+  request_->SetResponseStreamId(stream_id);
+}
+
 void HttpRequestConstructor::CheckStatus() const {
   switch (status_) {
     case Status::kOk:

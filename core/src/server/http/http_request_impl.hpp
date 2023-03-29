@@ -80,7 +80,6 @@ class HttpRequestImpl final : public request::RequestBase {
   void SetResponseStatus(HttpStatus status) const {
     response_.SetStatus(status);
   }
-
   bool IsBodyCompressed() const;
 
   bool IsFinal() const override { return is_final_; }
@@ -115,6 +114,8 @@ class HttpRequestImpl final : public request::RequestBase {
   engine::TaskProcessor* GetTaskProcessor() const;
 
   void SetHttpHandlerStatistics(handlers::HttpRequestStatistics&);
+
+  void SetResponseStreamId(uint32_t);
 
   friend class HttpRequestConstructor;
 

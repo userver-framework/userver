@@ -282,6 +282,10 @@ void HttpRequestImpl::SetHttpHandlerStatistics(
   request_statistics_ = &stats;
 }
 
+void HttpRequestImpl::SetResponseStreamId(uint32_t stream_id) {
+  response_.stream_id = stream_id;
+}
+
 void HttpRequestImpl::WriteAccessLogs(
     const logging::LoggerPtr& logger_access,
     const logging::LoggerPtr& logger_access_tskv,

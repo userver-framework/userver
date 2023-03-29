@@ -76,6 +76,8 @@ class ResponseBase {
   virtual void SetStatusOk() = 0;
   virtual void SetStatusNotFound() = 0;
   /// @endcond
+  // NOLINTNEXTLINE
+  uint32_t stream_id{0};
 
  protected:
   void SetSent(size_t bytes_sent);
