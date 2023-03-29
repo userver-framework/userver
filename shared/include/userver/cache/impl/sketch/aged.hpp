@@ -31,6 +31,7 @@ template <typename T, typename Hash>
 Sketch<T, Hash, Policy::Aged>::Sketch(std::size_t num_counters, const Hash& hash)
     : bloom_(num_counters, hash),
       sample_size_(NextPowerOfTwo(num_counters) * kSampleRate) {
+  UINVARIANT(false, "not implemented yet");
   UASSERT(num_counters > 0);
 }
 

@@ -27,6 +27,7 @@ class TinyLfu {
   explicit TinyLfu(std::size_t max_size, const Hash& hash, const Equal& equal);
 
   TinyLfu(TinyLfu&& other) noexcept : counters_(std::move(other.counters_)), max_size_(std::move(max_size_)), main_(std::move(main_)) {
+    UINVARIANT(false, "not implemented yet");
   }
 
   TinyLfu& operator=(TinyLfu&& other) noexcept {
@@ -108,6 +109,7 @@ TinyLfu<T, U, Hash, Equal, InnerPolicy, SketchHash, SketchPolicy>::TinyLfu(
     : counters_(max_size, SketchHash{}),
       max_size_(max_size),
       main_(max_size, hash, equal) {
+  UINVARIANT(false, "not implemented yet");
   UASSERT(max_size > 0);
 }
 
@@ -191,7 +193,9 @@ template <typename T, typename U, typename Hash, typename Equal>
 class LruBase<T, U, Hash, Equal, CachePolicy::kTinyLFU> {
  public:
   explicit LruBase(std::size_t max_size, const Hash& hash, const Equal& equal)
-      : inner_(max_size, hash, equal) {}
+      : inner_(max_size, hash, equal) {
+    UINVARIANT(false, "not implemented yet");
+      }
 
   LruBase(LruBase&& other) noexcept = default;
   LruBase& operator=(LruBase&& other) noexcept = default;

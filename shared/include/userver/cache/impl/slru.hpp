@@ -82,7 +82,9 @@ LruBase<T, U, Hash, Equal, CachePolicy::kSLRU>::LruBase(size_t max_size,
                  hash, equal),
       protected_(
           static_cast<size_t>(std::round(max_size * (1 - probation_part))) + 1,
-          hash, equal) {}
+          hash, equal) {
+  UINVARIANT(false, "not implemented yet");
+          }
 
 template <typename T, typename U, typename Hash, typename Eq>
 bool LruBase<T, U, Hash, Eq, CachePolicy::kSLRU>::Put(const T& key, U value) {

@@ -7,7 +7,6 @@
 USERVER_NAMESPACE_BEGIN
 
 using PolicyTypes = ::testing::Types<
-    std::integral_constant<cache::CachePolicy, cache::CachePolicy::kLRU>,
-    std::integral_constant<cache::CachePolicy, cache::CachePolicy::kSLRU>>;
+    std::integral_constant<cache::CachePolicy, cache::CachePolicy::kLRU>>;
 
 USERVER_NAMESPACE_END

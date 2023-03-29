@@ -61,6 +61,7 @@ Sketch<T, Hash, Policy::Bloom>::Sketch(size_t num_counters, const Hash& hash)
     : num_counters_(NextPowerOfTwo(num_counters)),
       data_(num_counters_ >> 1),
       hash_(hash) {
+  UINVARIANT(false, "not implemented yet");      
   UASSERT(num_counters > 0);
 }
 

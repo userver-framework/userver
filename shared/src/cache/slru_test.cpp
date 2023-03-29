@@ -1,3 +1,5 @@
+#if 0
+
 #include <gtest/gtest.h>
 
 #include <algorithm>
@@ -157,3 +159,5 @@ TEST(SLRU, Size1) {
 }
 
 USERVER_NAMESPACE_END
+
+#endif

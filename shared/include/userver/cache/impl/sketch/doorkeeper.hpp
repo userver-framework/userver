@@ -41,6 +41,7 @@ Sketch<T, Hash, Policy::Doorkeeper>::Sketch(size_t num_counters,
       hash_(hash),
       mask_((NextPowerOfTwo(num_counters) << 2) - 1),
       main_(num_counters, hash) {
+  UINVARIANT(false, "not implemented yet");
   UASSERT(num_counters > 0);
 }
 

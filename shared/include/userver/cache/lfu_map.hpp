@@ -1,15 +1,18 @@
 #pragma once
 
+#include <list>
+#include <memory>
+#include <tuple>
+#include <unordered_map>
+
 #include <boost/intrusive/link_mode.hpp>
 #include <boost/intrusive/list.hpp>
 #include <boost/intrusive/list_hook.hpp>
 #include <boost/intrusive/unordered_set.hpp>
 #include <boost/intrusive/unordered_set_hook.hpp>
 #include <boost/unordered_map.hpp>
-#include <list>
-#include <memory>
-#include <tuple>
-#include <unordered_map>
+
+#include <userver/utils/assert.hpp>
 
 using LinkMode = boost::intrusive::link_mode<boost::intrusive::safe_link>;
 using LfuListHook = boost::intrusive::list_base_hook<LinkMode>;
@@ -18,7 +21,9 @@ using LfuHashSetHook = boost::intrusive::unordered_set_base_hook<LinkMode>;
 template <typename Value>
 struct ValueFreq {
   ValueFreq(Value&& val, size_t freq = 1)
-      : value(std::move(val)), frequently(freq) {}
+      : value(std::move(val)), frequently(freq) {
+    UINVARIANT(false, "not implemented yet");
+  }
   Value value;
   size_t frequently;
   Value& GetValue() noexcept { return value; }
@@ -32,7 +37,9 @@ template <typename Key, typename Value>
 class LfuNode final : public LfuHashSetHook {
  public:
   explicit LfuNode(Key&& key, Value&& value)
-      : key_(std::move(key)), value_(ValueFreq(std::move(value))) {}
+      : key_(std::move(key)), value_(ValueFreq(std::move(value))) {
+    UINVARIANT(false, "not implemented yet");
+  }
   void SetKey(Key key) { key_ = std::move<Key>(key); }
   void SetValue(Value&& value) { value_ = ValueFreq<Value>(std::move(value)); }
   const Key& GetKey() const noexcept { return key_; }
@@ -228,4 +235,6 @@ template <typename Key, typename Value, typename Hash, typename Equal>
 LfuBase<Key, Value, Hash, Equal>::LfuBase(size_t max_size, const Hash& h,
                                           const Equal& e)
     : buckets_(max_size ? max_size : 1),
-      map_(BucketTraits(buckets_.data(), buckets_.size()), h, e) {}
+      map_(BucketTraits(buckets_.data(), buckets_.size()), h, e) {
+  UINVARIANT(false, "not implemented yet");
+}

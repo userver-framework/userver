@@ -1,126 +1,130 @@
-// #include <benchmark/benchmark.h>
+#if 0
 
-// #include <userver/cache/lru_map.hpp>
-// #include <userver/cache/lfu_map.hpp>
-// #include <userver/cache/impl/slru.hpp>
-// #include <userver/cache/impl/window_tiny_lfu.hpp>
+#include <benchmark/benchmark.h>
 
-// USERVER_NAMESPACE_BEGIN
+#include <userver/cache/lru_map.hpp>
+#include <userver/cache/lfu_map.hpp>
+#include <userver/cache/impl/slru.hpp>
+#include <userver/cache/impl/window_tiny_lfu.hpp>
 
-// namespace {
+USERVER_NAMESPACE_BEGIN
 
-// using Lru = cache::LruMap<unsigned, unsigned>;
-// using Lfu = LfuBase<unsigned, unsigned>;
-// using Slru = cache::LruMap<unsigned, unsigned, std::hash<unsigned>, std::equal_to<unsigned>, cache::CachePolicy::kSLRU>;
-// using TinyLfu = cache::LruMap<unsigned, unsigned, std::hash<unsigned>, std::equal_to<unsigned>, cache::CachePolicy::kTinyLFU>;
-// using WTinyLfu = cache::LruMap<unsigned, unsigned, std::hash<unsigned>, std::equal_to<unsigned>, cache::CachePolicy::kWTinyLFU>;
+namespace {
 
-// constexpr unsigned kElementsCount = 75000;
+using Lru = cache::LruMap<unsigned, unsigned>;
+using Lfu = LfuBase<unsigned, unsigned>;
+using Slru = cache::LruMap<unsigned, unsigned, std::hash<unsigned>, std::equal_to<unsigned>, cache::CachePolicy::kSLRU>;
+using TinyLfu = cache::LruMap<unsigned, unsigned, std::hash<unsigned>, std::equal_to<unsigned>, cache::CachePolicy::kTinyLFU>;
+using WTinyLfu = cache::LruMap<unsigned, unsigned, std::hash<unsigned>, std::equal_to<unsigned>, cache::CachePolicy::kWTinyLFU>;
 
-// template <typename CachePolicyContainer>
-// CachePolicyContainer FillLru(unsigned elements_count) {
-//   CachePolicyContainer lru(kElementsCount);
-//   for (unsigned i = 0; i < elements_count; ++i) {
-//     lru.Put(i, i);
-//   }
+constexpr unsigned kElementsCount = 75000;
 
-//   return lru;
-// }
+template <typename CachePolicyContainer>
+CachePolicyContainer FillLru(unsigned elements_count) {
+  CachePolicyContainer lru(kElementsCount);
+  for (unsigned i = 0; i < elements_count; ++i) {
+    lru.Put(i, i);
+  }
 
-// }  // namespace
+  return lru;
+}
 
-// template <typename CachePolicyContainer>
-// void Put(benchmark::State& state) {
-//   for (auto _ : state) {
-//     auto lru = FillLru<CachePolicyContainer>(kElementsCount);
-//     benchmark::DoNotOptimize(lru);
-//   }
-// }
-// BENCHMARK(Put<Lru>);
-// BENCHMARK(Put<Lfu>);
-// BENCHMARK(Put<WTinyLfu>);
+}  // namespace
 
-// template <typename CachePolicyContainer>
-// void Has(benchmark::State& state) {
-//   auto lru = FillLru<CachePolicyContainer>(kElementsCount);
-//   for (auto _ : state) {
-//     for (unsigned i = 0; i < kElementsCount; ++i) {
-//       benchmark::DoNotOptimize(lru.Get(i));
-//     }
-//   }
-// }
-// BENCHMARK(Has<Lru>);
-// BENCHMARK(Has<Lfu>);
+template <typename CachePolicyContainer>
+void Put(benchmark::State& state) {
+  for (auto _ : state) {
+    auto lru = FillLru<CachePolicyContainer>(kElementsCount);
+    benchmark::DoNotOptimize(lru);
+  }
+}
+BENCHMARK(Put<Lru>);
+BENCHMARK(Put<Lfu>);
+BENCHMARK(Put<WTinyLfu>);
 
-// template <typename CachePolicyContainer>
-// void PutOverflow(benchmark::State& state) {
-//   auto lru = FillLru<CachePolicyContainer>(kElementsCount);
-//   unsigned i = kElementsCount;
-//   for (auto _ : state) {
-//     for (unsigned j = 0; j < kElementsCount; ++j) {
-//       ++i;
-//       lru.Put(i, i);
-//     }
-//     benchmark::DoNotOptimize(lru);
-//   }
-// }
-// BENCHMARK(PutOverflow<Lru>);
-// BENCHMARK(PutOverflow<Lfu>);
+template <typename CachePolicyContainer>
+void Has(benchmark::State& state) {
+  auto lru = FillLru<CachePolicyContainer>(kElementsCount);
+  for (auto _ : state) {
+    for (unsigned i = 0; i < kElementsCount; ++i) {
+      benchmark::DoNotOptimize(lru.Get(i));
+    }
+  }
+}
+BENCHMARK(Has<Lru>);
+BENCHMARK(Has<Lfu>);
 
-// namespace {
-// template <>
-// Slru FillLru<Slru>(unsigned elements_count) {
-//   Slru lru(kElementsCount);
-//   auto probation_size = static_cast<unsigned>(elements_count * 0.8);
-//   for (unsigned i = 0; i < probation_size; ++i) {
-//     lru.Put(i, i);
-//   }
-//   for (unsigned i = 0; i < elements_count - probation_size; ++i) {
-//     lru.Put(i, i);
-//     lru.Put(i + probation_size, i);
-//   }
-//   return lru;
-// }
-// } // namespace
+template <typename CachePolicyContainer>
+void PutOverflow(benchmark::State& state) {
+  auto lru = FillLru<CachePolicyContainer>(kElementsCount);
+  unsigned i = kElementsCount;
+  for (auto _ : state) {
+    for (unsigned j = 0; j < kElementsCount; ++j) {
+      ++i;
+      lru.Put(i, i);
+    }
+    benchmark::DoNotOptimize(lru);
+  }
+}
+BENCHMARK(PutOverflow<Lru>);
+BENCHMARK(PutOverflow<Lfu>);
 
-// template<>
-// void PutOverflow<Slru>(benchmark::State& state) {
-//   auto lru = FillLru<Slru>(kElementsCount);
-//   auto protected_size = static_cast<unsigned>(kElementsCount * 0.2);
-//   unsigned i = protected_size;
-//   for (auto _ : state) {
-//     for (unsigned j = 0; j < protected_size; ++j) {
-//       ++i;
-//       lru.Put(i, i);
-//     }
-//     benchmark::DoNotOptimize(lru);
-//   }
-// }
+namespace {
+template <>
+Slru FillLru<Slru>(unsigned elements_count) {
+  Slru lru(kElementsCount);
+  auto probation_size = static_cast<unsigned>(elements_count * 0.8);
+  for (unsigned i = 0; i < probation_size; ++i) {
+    lru.Put(i, i);
+  }
+  for (unsigned i = 0; i < elements_count - probation_size; ++i) {
+    lru.Put(i, i);
+    lru.Put(i + probation_size, i);
+  }
+  return lru;
+}
+} // namespace
 
-// BENCHMARK(Put<Slru>);
-// BENCHMARK(PutOverflow<Slru>);
+template<>
+void PutOverflow<Slru>(benchmark::State& state) {
+  auto lru = FillLru<Slru>(kElementsCount);
+  auto protected_size = static_cast<unsigned>(kElementsCount * 0.2);
+  unsigned i = protected_size;
+  for (auto _ : state) {
+    for (unsigned j = 0; j < protected_size; ++j) {
+      ++i;
+      lru.Put(i, i);
+    }
+    benchmark::DoNotOptimize(lru);
+  }
+}
 
-// void TinyLfuDoorkeeper(benchmark::State& state) {
-//     for (auto _ : state) {
-//         auto lru = FillLru<TinyLfu>(kElementsCount);
-//         for (unsigned i = 0; i < kElementsCount; ++i) {
-//             lru.Put(i+kElementsCount, i);
-//         }
-//     }
-// }
-// BENCHMARK(TinyLfuDoorkeeper);
+BENCHMARK(Put<Slru>);
+BENCHMARK(PutOverflow<Slru>);
 
-// void TinyLfuBloom(benchmark::State& state) {
-//     for (auto _ : state) {
-//         auto lru = FillLru<TinyLfu>(kElementsCount);
-//         for (unsigned i = 0; i < kElementsCount; ++i) {
-//             lru.Get(i);
-//         }
-//         for (unsigned i = 0; i < kElementsCount; ++i) {
-//             lru.Put(i+kElementsCount, i);
-//         }
-//     }
-// }
-// BENCHMARK(TinyLfuBloom);
+void TinyLfuDoorkeeper(benchmark::State& state) {
+    for (auto _ : state) {
+        auto lru = FillLru<TinyLfu>(kElementsCount);
+        for (unsigned i = 0; i < kElementsCount; ++i) {
+            lru.Put(i+kElementsCount, i);
+        }
+    }
+}
+BENCHMARK(TinyLfuDoorkeeper);
 
-// USERVER_NAMESPACE_END
+void TinyLfuBloom(benchmark::State& state) {
+    for (auto _ : state) {
+        auto lru = FillLru<TinyLfu>(kElementsCount);
+        for (unsigned i = 0; i < kElementsCount; ++i) {
+            lru.Get(i);
+        }
+        for (unsigned i = 0; i < kElementsCount; ++i) {
+            lru.Put(i+kElementsCount, i);
+        }
+    }
+}
+BENCHMARK(TinyLfuBloom);
+
+USERVER_NAMESPACE_END
+
+#endif 

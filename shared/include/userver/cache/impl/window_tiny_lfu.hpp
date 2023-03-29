@@ -50,7 +50,9 @@ LruBase<T, U, Hash, Equal, CachePolicy::kWTinyLFU>::LruBase(
       window_size_(std::round(max_size * window_part) + 1),
       window_(std::round(max_size * window_part) + 1, hash, equal),
       main_size_(std::round(max_size * (1. - window_part))),
-      main_(std::round(max_size * (1. - window_part)), hash, equal) {}
+      main_(std::round(max_size * (1. - window_part)), hash, equal) {
+  UINVARIANT(false, "not implemented yet");
+}
 
 // TODO: size = 0
 // Access to bloom twice?? -- doorkeeper
