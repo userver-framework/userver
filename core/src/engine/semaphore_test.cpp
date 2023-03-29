@@ -64,7 +64,9 @@ UTEST(Semaphore, LockAndCancel) {
   task.RequestCancel();
   task.WaitFor(std::chrono::milliseconds(100));
   EXPECT_FALSE(task.IsFinished());
+
   guard.unlock();
+  UEXPECT_NO_THROW(task.Get());
 }
 
 UTEST(CancellableSemaphore, LockAndCancel) {
@@ -76,7 +78,7 @@ UTEST(CancellableSemaphore, LockAndCancel) {
   task.RequestCancel();
   task.WaitFor(std::chrono::milliseconds(utest::kMaxTestWaitTime));
   EXPECT_TRUE(task.IsFinished());
-  guard.unlock();
+  UEXPECT_THROW(task.Get(), engine::SemaphoreLockCancelledError);
 }
 
 UTEST(CancellableSemaphore, TryLockAndCancel) {
@@ -318,6 +320,9 @@ UTEST_MT(Semaphore, NotifyAndDeadlineRace, 2) {
     lock.unlock();
 
     ASSERT_TRUE(lock_acquired.WaitForEventFor(utest::kMaxTestWaitTime));
+
+    deadline_task.Get();
+    no_deadline_task.Get();
   }
 }
 

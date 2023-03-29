@@ -141,6 +141,7 @@ bool CancellableSemaphore::LockSlowPath(Deadline deadline,
 
   TryLockStatus status{};
   while ((status = DoTryLock(count)) == TryLockStatus::kTransientFailure) {
+    if (current.ShouldCancel()) return false;
     switch (current.Sleep(wait_manager)) {
       case impl::TaskContext::WakeupSource::kDeadlineTimer:
       case impl::TaskContext::WakeupSource::kCancelRequest:
