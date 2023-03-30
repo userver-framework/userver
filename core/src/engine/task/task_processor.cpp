@@ -4,6 +4,7 @@
 #include <csignal>
 
 #include <fmt/format.h>
+#include <boost/thread/latch.hpp>
 
 #include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
@@ -78,25 +79,17 @@ TaskProcessor::TaskProcessor(TaskProcessorConfig config,
     LOG_INFO() << "creating task_processor " << Name() << " "
                << "worker_threads=" << config_.worker_threads
                << " thread_name=" << config_.thread_name;
+    boost::latch workers_left{config_.worker_threads};
     workers_.reserve(config_.worker_threads);
     for (size_t i = 0; i < config_.worker_threads; ++i) {
-      workers_.emplace_back([this, i] {
-        switch (config_.os_scheduling) {
-          case OsScheduling::kNormal:
-            break;
-          case OsScheduling::kLowPriority:
-            utils::SetCurrentThreadLowPriorityScheduling();
-            break;
-          case OsScheduling::kIdle:
-            utils::SetCurrentThreadIdleScheduling();
-            break;
-        }
-
-        utils::SetCurrentThreadName(
-            fmt::format("{}_{}", config_.thread_name, i));
+      workers_.emplace_back([this, i, &workers_left] {
+        PrepareWorkerThread(i);
+        workers_left.count_down();
         ProcessTasks();
       });
     }
+
+    workers_left.wait();
   } catch (...) {
     Cleanup();
     throw;
@@ -252,9 +245,24 @@ void RegisterThreadStartedHook(std::function<void()> func) {
   ThreadStartedHooks().push_back(std::move(func));
 }
 
-void TaskProcessor::ProcessTasks() noexcept {
-  TaskProcessorThreadStartedHook();
+void TaskProcessor::PrepareWorkerThread(std::size_t index) noexcept {
+  switch (config_.os_scheduling) {
+    case OsScheduling::kNormal:
+      break;
+    case OsScheduling::kLowPriority:
+      utils::SetCurrentThreadLowPriorityScheduling();
+      break;
+    case OsScheduling::kIdle:
+      utils::SetCurrentThreadIdleScheduling();
+      break;
+  }
 
+  utils::SetCurrentThreadName(fmt::format("{}_{}", config_.thread_name, index));
+
+  TaskProcessorThreadStartedHook();
+}
+
+void TaskProcessor::ProcessTasks() noexcept {
   while (true) {
     // wrapping instance referenced in EnqueueTask
     boost::intrusive_ptr<impl::TaskContext> context(DequeueTask(),

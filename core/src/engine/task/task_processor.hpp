@@ -78,6 +78,8 @@ class TaskProcessor final {
 
   impl::TaskContext* DequeueTask();
 
+  void PrepareWorkerThread(std::size_t index) noexcept;
+
   void ProcessTasks() noexcept;
 
   void CheckWaitTime(impl::TaskContext& context);
