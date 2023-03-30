@@ -37,4 +37,6 @@ if (USERVER_IS_THE_ROOT_PROJECT)
     ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}_rmqtest
     --gtest_output=xml:${CMAKE_BINARY_DIR}/test-results/${PROJECT_NAME}_rmqtest.xml
   )
+  set_tests_properties(${PROJECT_NAME}_rmqtest PROPERTIES ENVIRONMENT
+          "TESTSUITE_RABBITMQ_SERVER_START_TIMEOUT=60.0")
 endif()
