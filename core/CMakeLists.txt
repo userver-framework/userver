@@ -92,6 +92,7 @@ if (USERVER_CONAN)
     find_package(spdlog REQUIRED)
     find_package(cctz REQUIRED)
     find_package(http_parser REQUIRED)
+    find_package(nghttp2 REQUIRED)
     find_package(libev REQUIRED)
 
     find_package(RapidJSON REQUIRED)
@@ -102,12 +103,13 @@ else()
     include(SetupCAres)
     include(SetupCURL)
     include(SetupCryptoPP)
-    find_package_required(libyamlcpp "libyaml-cpp-dev")
+    find_package(libyamlcpp REQUIRED)
     include(SetupFmt)
     include(SetupSpdlog)
     include(SetupCCTZ)
-    find_package_required(Http_Parser "libhttp-parser-dev")
-    find_package_required(LibEv "libev-dev")
+    find_package(Http_Parser REQUIRED)
+    find_package(Nghttp2 REQUIRED)
+    find_package(LibEv REQUIRED)
 endif()
 
 add_library(${PROJECT_NAME} STATIC ${SOURCES})
@@ -182,6 +184,7 @@ else()
       PRIVATE
         CryptoPP
         Http_Parser
+        Nghttp2
         LibEv
         spdlog_header_only
     )

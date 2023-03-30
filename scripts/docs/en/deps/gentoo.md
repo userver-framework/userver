@@ -27,6 +27,7 @@ net-misc/curl
 sys-libs/libbacktrace
 sys-libs/zlib
 net-libs/http-parser
+net-libs/nghttp2
 net-nds/openldap
 dev-libs/re2
 net-libs/grpc
