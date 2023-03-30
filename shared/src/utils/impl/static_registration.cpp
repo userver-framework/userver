@@ -1,8 +1,8 @@
-#include <utils/impl/static_registration.hpp>
+#include <userver/utils/impl/static_registration.hpp>
 
 #include <fmt/format.h>
 
-#include <utils/threads.hpp>
+#include <userver/utils/threads.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

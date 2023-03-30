@@ -8,10 +8,10 @@
 
 #include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
+#include <userver/utils/impl/static_registration.hpp>
 #include <userver/utils/rand.hpp>
 #include <userver/utils/thread_name.hpp>
-#include <utils/impl/static_registration.hpp>
-#include <utils/threads.hpp>
+#include <userver/utils/threads.hpp>
 
 #include <engine/task/task_context.hpp>
 #include <engine/task/task_processor_pools.hpp>

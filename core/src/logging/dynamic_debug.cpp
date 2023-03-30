@@ -5,7 +5,7 @@
 #include <fmt/format.h>
 
 #include <userver/utils/assert.hpp>
-#include <utils/impl/static_registration.hpp>
+#include <userver/utils/impl/static_registration.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

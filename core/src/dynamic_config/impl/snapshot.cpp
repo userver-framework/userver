@@ -6,7 +6,7 @@
 #include <userver/dynamic_config/storage_mock.hpp>
 #include <userver/utils/cpu_relax.hpp>
 #include <userver/utils/enumerate.hpp>
-#include <utils/impl/static_registration.hpp>
+#include <userver/utils/impl/static_registration.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

@@ -10,7 +10,7 @@
 #include <userver/compiler/demangle.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/impl/intrusive_link_mode.hpp>
-#include <utils/impl/static_registration.hpp>
+#include <userver/utils/impl/static_registration.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

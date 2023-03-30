@@ -5,8 +5,8 @@
 #include <userver/logging/log.hpp>
 #include <userver/logging/logger.hpp>
 #include <userver/logging/stacktrace_cache.hpp>
+#include <userver/utils/impl/static_registration.hpp>
 #include <userver/utils/mock_now.hpp>
-#include <utils/impl/static_registration.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

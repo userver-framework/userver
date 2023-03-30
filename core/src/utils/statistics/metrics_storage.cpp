@@ -8,8 +8,8 @@
 
 #include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
+#include <userver/utils/impl/static_registration.hpp>
 #include <userver/utils/statistics/storage.hpp>
-#include <utils/impl/static_registration.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
