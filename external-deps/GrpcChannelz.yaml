@@ -1,5 +1,4 @@
 name: GrpcChannelz
-helper-prefix: false
 
 debian-names:
   - libgrpc-dev

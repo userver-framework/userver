@@ -1,7 +1,6 @@
 common-name: Boost
 partials:
   - name: filesystem
-    helper-prefix: false
 
     includes:
         find:
@@ -22,7 +21,6 @@ partials:
       - boost
 
   - name: graph
-    helper-prefix: false
 
     includes:
         find:
@@ -43,7 +41,6 @@ partials:
       - boost
 
   - name: iostreams
-    helper-prefix: false
 
     includes:
         find:
@@ -64,7 +61,6 @@ partials:
       - boost
 
   - name: locale
-    helper-prefix: false
 
     includes:
         find:
@@ -85,7 +81,6 @@ partials:
       - boost
 
   - name: program_options
-    helper-prefix: false
 
     includes:
         find:
@@ -106,7 +101,6 @@ partials:
       - boost
 
   - name: regex
-    helper-prefix: false
 
     includes:
         find:
@@ -127,7 +121,6 @@ partials:
       - boost
 
   - name: thread
-    helper-prefix: false
 
     includes:
         find:
@@ -148,7 +141,6 @@ partials:
       - boost
 
   - name: gregorian
-    helper-prefix: false
 
     includes:
         find:

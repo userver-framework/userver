@@ -7,9 +7,8 @@ import yaml
 
 
 FIND_HELPER_TYPE = 'find-helper'
-EXTERNAL_PROJECT_TYPE = 'external-project'
 
-EXTERNAL_DEPS_TYPE = [FIND_HELPER_TYPE, EXTERNAL_PROJECT_TYPE]
+EXTERNAL_DEPS_TYPE = [FIND_HELPER_TYPE]
 
 LIB_SCHEMA = voluptuous.Schema(
     {
@@ -26,7 +25,6 @@ LIB_SCHEMA = voluptuous.Schema(
         # package managers.
         'pkg-config-names': [str],
         'version': voluptuous.Any(str, int),
-        voluptuous.Required('helper-prefix'): bool,
         'extra-cmake-vars': {str: str},
         'includes': {
             'enabled': bool,
@@ -44,25 +42,8 @@ LIB_SCHEMA = voluptuous.Schema(
             'find': [{'path-suffixes': list, 'paths': list, 'names': list}],
         },
         'fail-message': str,
-        'virtual': bool,
         'compile-definitions': {'names': list},
-        'source': {'repository': str, 'tag': str, 'dir': str},
-        'build-args': {'names': list},
-        'depends': [str],
-        'use-destdir': bool,
-        'commands': {
-            'list-separator': str,
-            'patch': str,
-            'download': str,
-            'install': str,
-            'update': str,
-        },
-        'log': {'download': bool, 'configure': bool, 'build': bool},
-        'targets': [
-            {'name': str, 'includes': [str], 'libs': [str], 'depends': [str]},
-        ],
         'checks': [{'expression': str, 'error': str}],
-        'ya-make': voluptuous.Schema({}, extra=voluptuous.ALLOW_EXTRA),
     },
 )
 CONFIG_SCHEMA = voluptuous.Schema(
@@ -88,74 +69,33 @@ def generate_cmake(name: str, value, renderer: jinja2.Environment):
     if fail_message:
         fail_message = fail_message.replace('\n', ' ')
 
-    helper_prefix = 'Helper' if value['helper-prefix'] else ''
     assert '::' not in name, f'Should be no "::" in "{name}"'
-    filename = f'Find{helper_prefix}{name}.cmake'
+    filename = f'Find{name}.cmake'
     cmake_type = value.get('type', FIND_HELPER_TYPE)
 
-    if value['helper-prefix'] and cmake_type == FIND_HELPER_TYPE:
-        use_find = value.keys() & {'includes', 'libraries', 'programs'}
-        if use_find:
-            raise RuntimeError(
-                f'{filename} would use '
-                f'"find_package_handle_standard_args" for "{name}" '
-                'wich would cause a CMake "-Wdev" warning. '
-                'To avoid that the external dep should have '
-                '"helper-prefix: false" or have no following keys: '
-                f'{use_find}',
-            )
-
-    if cmake_type == FIND_HELPER_TYPE:
-        result[filename] = renderer.get_template('FindHelper.jinja').render(
-            {
-                'name': name,
-                'package_name': value.get('package-name'),
-                'common_name': value.get('common-name'),
-                'debian_names': value.get('debian-names'),
-                'formula_name': value.get('formula-name'),
-                'rpm_names': value.get('rpm-names'),
-                'pacman_names': value.get('pacman-names'),
-                'pkg_names': value.get('pkg-names'),
-                'pkg_config_names': value.get('pkg-config-names'),
-                'version': value.get('version'),
-                'extra_cmake_vars': value.get('extra-cmake-vars', {}),
-                'includes': value.get('includes'),
-                'libraries': value.get('libraries'),
-                'programs': value.get('programs'),
-                'fail_message': fail_message,
-                'virtual': value.get('virtual', False),
-                'compile_definitions': value.get('compile-definitions'),
-                'checks': value.get('checks', []),
-            },
-        )
-
-    filename = f'Find{helper_prefix}{name}.cmake'
-    if value.get('type') == EXTERNAL_PROJECT_TYPE:
-        if 'repository' in value.get('source', {}):
-            log = value.setdefault('log', {})
-            if 'configure' not in log:
-                log['configure'] = False
-
-        if 'dir' in value.get('source', {}):
-            value['source']['dir'] = os.path.join(
-                '${USERVER_ROOT_DIR}', value['source']['dir'],
-            )
-
-        result[filename] = (
-            renderer.get_template('FindExternalProject.jinja').render(
-                {
-                    'name': name,
-                    'source': value.get('source', {}),
-                    'build_args': value.get('build-args', []),
-                    'use_destdir': value.get('use-destdir', False),
-                    'commands': value.get('commands', {}),
-                    'log': value.get('log', {}),
-                    'compile_definitions': value.get('compile-definitions'),
-                    'targets': value.get('targets', {}),
-                    'depends': value.get('depends', []),
-                },
-            )
-        )
+    assert cmake_type == FIND_HELPER_TYPE
+    result[filename] = renderer.get_template('FindHelper.jinja').render(
+        {
+            'name': name,
+            'package_name': value.get('package-name'),
+            'common_name': value.get('common-name'),
+            'debian_names': value.get('debian-names'),
+            'formula_name': value.get('formula-name'),
+            'rpm_names': value.get('rpm-names'),
+            'pacman_names': value.get('pacman-names'),
+            'pkg_names': value.get('pkg-names'),
+            'pkg_config_names': value.get('pkg-config-names'),
+            'version': value.get('version'),
+            'extra_cmake_vars': value.get('extra-cmake-vars', {}),
+            'includes': value.get('includes'),
+            'libraries': value.get('libraries'),
+            'programs': value.get('programs'),
+            'fail_message': fail_message,
+            'virtual': value.get('virtual', False),
+            'compile_definitions': value.get('compile-definitions'),
+            'checks': value.get('checks', []),
+        },
+    )
 
     return result
 

@@ -1,5 +1,4 @@
 name: Brotli
-helper-prefix: false
 
 debian-names:
   - libbrotli-dev

@@ -1,6 +1,5 @@
 name: PostgreSQL
 version: 12
-helper-prefix: false
 
 includes:
     find:

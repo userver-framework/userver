@@ -1,5 +1,4 @@
 name: Jemalloc
-helper-prefix: false
 
 checks:
   - expression: USERVER_SANITIZE

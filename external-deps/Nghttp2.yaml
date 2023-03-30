@@ -1,5 +1,4 @@
 name: Nghttp2
-helper-prefix: false
 
 includes:
     find:

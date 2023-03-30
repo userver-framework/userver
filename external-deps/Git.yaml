@@ -1,5 +1,4 @@
 name: Git
-helper-prefix: false
 
 includes:
     enabled: false

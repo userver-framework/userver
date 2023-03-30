@@ -1,6 +1,5 @@
 name: UserverGBench
 version: '1.5'  # libbenchmark_main.a appeared after 1.3
-helper-prefix: false
 
 debian-names:
   - libbenchmark-dev

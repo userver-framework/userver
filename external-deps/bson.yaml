@@ -1,6 +1,5 @@
 name: bson
 version: 1.16.0
-helper-prefix: false
 
 libraries:
     find:

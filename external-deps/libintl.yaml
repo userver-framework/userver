@@ -1,6 +1,5 @@
 name: libintl
 
-helper-prefix: false
 includes:
     find:
       - names:

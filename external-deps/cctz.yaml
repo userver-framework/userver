@@ -1,6 +1,5 @@
 name: cctz
 version: '2.3'
-helper-prefix: false
 
 debian-names:
   - libcctz-dev

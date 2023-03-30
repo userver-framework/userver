@@ -1,5 +1,4 @@
 name: libyamlcpp
-helper-prefix: false
 
 includes:
     find:

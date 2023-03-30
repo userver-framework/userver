@@ -1,6 +1,5 @@
 name: PostgreSQLInternal
 
-helper-prefix: false
 
 includes:
     find:

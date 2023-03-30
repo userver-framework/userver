@@ -2,7 +2,6 @@ common-name: OpenSSL
 partials:
   - name: Crypto
     package-name: OpenSSL
-    helper-prefix: false
 
     debian-names:
       - libssl-dev
@@ -21,7 +20,6 @@ partials:
         enabled: false
   - name: SSL
     package-name: OpenSSL
-    helper-prefix: false
 
     debian-names:
       - libssl-dev
