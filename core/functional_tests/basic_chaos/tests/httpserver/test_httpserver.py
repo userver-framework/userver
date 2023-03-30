@@ -177,6 +177,7 @@ async def test_partial_request(call, gate, check_restore):
 async def test_network_smaller_parts_sends(call, gate, check_restore):
     gate.to_server_smaller_parts(DATA_PARTS_MAX_SIZE)
 
-    response = await call()
+    # With debug enabled in python send works a little bit longer
+    response = await call(timeout=20.0)
     assert isinstance(response, http.ClientResponse)
     assert response.status == 200
