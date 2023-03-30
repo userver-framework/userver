@@ -162,7 +162,10 @@ class AsyncEventChannel : public AsyncEventSource<Args...> {
     }
 
     if (kind == UnsubscribingKind::kAutomatic) {
-      impl::ReportUnsubscribingAutomatically(name_, iter->second.name);
+      if (!data->on_listener_removal) {
+        impl::ReportUnsubscribingAutomatically(name_, iter->second.name);
+      }
+
       if constexpr (impl::kCheckSubscriptionUB) {
         // Fake listener call to check
         impl::CheckDataUsedByCallbackHasNotBeenDestroyedBeforeUnsubscribing(
