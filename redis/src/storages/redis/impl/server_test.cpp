@@ -52,7 +52,7 @@ TEST(Redis, NoPassword) {
   redis::RedisCreationSettings redis_settings;
   auto redis = std::make_shared<redis::Redis>(pool->GetRedisThreadPool(),
                                               redis_settings);
-  redis->Connect(kLocalhost, server.GetPort(), redis::Password(""));
+  redis->Connect({kLocalhost}, server.GetPort(), redis::Password(""));
 
   EXPECT_TRUE(ping_handler->WaitForFirstReply(kSmallPeriod));
 }
@@ -66,7 +66,7 @@ TEST(Redis, Auth) {
   redis::RedisCreationSettings redis_settings;
   auto redis = std::make_shared<redis::Redis>(pool->GetRedisThreadPool(),
                                               redis_settings);
-  redis->Connect(kLocalhost, server.GetPort(), redis::Password("password"));
+  redis->Connect({kLocalhost}, server.GetPort(), redis::Password("password"));
 
   EXPECT_TRUE(auth_handler->WaitForFirstReply(kSmallPeriod));
   EXPECT_TRUE(ping_handler->WaitForFirstReply(kSmallPeriod));
@@ -82,7 +82,7 @@ TEST(Redis, AuthFail) {
   redis::RedisCreationSettings redis_settings;
   auto redis = std::make_shared<redis::Redis>(pool->GetRedisThreadPool(),
                                               redis_settings);
-  redis->Connect(kLocalhost, server.GetPort(), redis::Password("password"));
+  redis->Connect({kLocalhost}, server.GetPort(), redis::Password("password"));
 
   EXPECT_TRUE(auth_error_handler->WaitForFirstReply(kSmallPeriod));
   PeriodicCheck([&] { return !IsConnected(*redis); });
@@ -99,7 +99,7 @@ TEST(Redis, AuthTimeout) {
   redis::RedisCreationSettings redis_settings;
   auto redis = std::make_shared<redis::Redis>(pool->GetRedisThreadPool(),
                                               redis_settings);
-  redis->Connect(kLocalhost, server.GetPort(), redis::Password("password"));
+  redis->Connect({kLocalhost}, server.GetPort(), redis::Password("password"));
 
   EXPECT_TRUE(
       auth_error_handler->WaitForFirstReply(sleep_period + kSmallPeriod));
@@ -116,7 +116,7 @@ TEST(Redis, SlaveREADONLY) {
   redis_settings.send_readonly = true;
   auto redis = std::make_shared<redis::Redis>(pool->GetRedisThreadPool(),
                                               redis_settings);
-  redis->Connect(kLocalhost, server.GetPort(), {});
+  redis->Connect({kLocalhost}, server.GetPort(), {});
 
   EXPECT_TRUE(readonly_handler->WaitForFirstReply(kSmallPeriod));
   PeriodicWait([&] { return IsConnected(*redis); });
@@ -132,7 +132,7 @@ TEST(Redis, SlaveREADONLYFail) {
   redis_settings.send_readonly = true;
   auto redis = std::make_shared<redis::Redis>(pool->GetRedisThreadPool(),
                                               redis_settings);
-  redis->Connect(kLocalhost, server.GetPort(), {});
+  redis->Connect({kLocalhost}, server.GetPort(), {});
 
   EXPECT_TRUE(readonly_handler->WaitForFirstReply(kSmallPeriod));
   PeriodicWait([&] { return !IsConnected(*redis); });
@@ -146,7 +146,7 @@ TEST(Redis, PingFail) {
   redis::RedisCreationSettings redis_settings;
   auto redis = std::make_shared<redis::Redis>(pool->GetRedisThreadPool(),
                                               redis_settings);
-  redis->Connect(kLocalhost, server.GetPort(), redis::Password(""));
+  redis->Connect({kLocalhost}, server.GetPort(), redis::Password(""));
 
   EXPECT_TRUE(ping_error_handler->WaitForFirstReply(kSmallPeriod));
   PeriodicWait([&] { return !IsConnected(*redis); });
@@ -171,7 +171,7 @@ TEST_P(RedisDisconnectingReplies, X) {
   redis::RedisCreationSettings redis_settings;
   auto redis = std::make_shared<redis::Redis>(pool->GetRedisThreadPool(),
                                               redis_settings);
-  redis->Connect(kLocalhost, server.GetPort(), redis::Password(""));
+  redis->Connect({kLocalhost}, server.GetPort(), redis::Password(""));
 
   EXPECT_TRUE(ping_handler->WaitForFirstReply(kSmallPeriod));
   PeriodicWait([&] { return IsConnected(*redis); });

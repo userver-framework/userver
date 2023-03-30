@@ -137,7 +137,8 @@ class Redis::RedisImpl : public std::enable_shared_from_this<Redis::RedisImpl> {
             const RedisCreationSettings& redis_settings);
   ~RedisImpl();
 
-  void Connect(const std::string& host, int port, const Password& password);
+  void Connect(const ConnectionInfo::HostVector& host_addrs, int port,
+               const Password& password);
   void Disconnect();
 
   bool AsyncCommand(const CommandPtr& command);
@@ -162,6 +163,14 @@ class Redis::RedisImpl : public std::enable_shared_from_this<Redis::RedisImpl> {
   void ResetRedisObj() { redis_obj_ = nullptr; }
 
  private:
+  struct SingleCommand {
+    std::string cmd;
+    CommandPtr meta;
+    ev_timer timer{};
+    std::shared_ptr<RedisImpl> redis_impl;
+    bool invoke_disabled = false;
+  };
+
   void DoDisconnect();
   void Attach();
   void Detach();
@@ -217,14 +226,6 @@ class Redis::RedisImpl : public std::enable_shared_from_this<Redis::RedisImpl> {
   static void LogInstanceErrorReply(const CommandPtr& command,
                                     const ReplyPtr& reply);
 
-  struct SingleCommand {
-    std::string cmd;
-    CommandPtr meta;
-    ev_timer timer{};
-    std::shared_ptr<RedisImpl> redis_impl;
-    bool invoke_disabled = false;
-  };
-
   bool SetDestroying() {
     std::lock_guard<std::mutex> lock(command_mutex_);
     if (destroying_) return false;
@@ -234,6 +235,8 @@ class Redis::RedisImpl : public std::enable_shared_from_this<Redis::RedisImpl> {
 
   static bool WatchCommandTimerEnabled(
       const CommandsBufferingSettings& commands_buffering_settings);
+
+  bool Connect(const std::string& host, int port, const Password& password);
 
   Redis* redis_obj_;
   engine::ev::ThreadControl ev_thread_control_;
@@ -328,9 +331,9 @@ Redis::~Redis() {
   });
 }
 
-void Redis::Connect(const std::string& host, int port,
+void Redis::Connect(const ConnectionInfo::HostVector& host_addrs, int port,
                     const Password& password) {
-  impl_->Connect(host, port, password);
+  impl_->Connect(host_addrs, port, password);
 }
 
 bool Redis::AsyncCommand(const CommandPtr& command) {
@@ -426,7 +429,17 @@ void Redis::RedisImpl::Detach() {
   attached_ = false;
 }
 
-void Redis::RedisImpl::Connect(const std::string& host, int port,
+void Redis::RedisImpl::Connect(const ConnectionInfo::HostVector& host_addrs,
+                               int port, const Password& password) {
+  for (const auto& host : host_addrs)
+    if (Connect(host, port, password)) return;
+
+  LOG_ERROR() << "error async connect to Redis server (host addrs ="
+              << host_addrs << ", port=" << port << ")";
+  SetState(State::kInitError);
+}
+
+bool Redis::RedisImpl::Connect(const std::string& host, int port,
                                const Password& password) {
   UASSERT(context_ == nullptr);
   UASSERT(state_ == State::kInit);
@@ -445,33 +458,34 @@ void Redis::RedisImpl::Connect(const std::string& host, int port,
   context_->data = this;
 
   if (context_->err) {
-    LOG_ERROR() << "error after redisAsyncConnect (host=" << host
-                << ", port=" << port << "): " << context_->errstr;
+    LOG_WARNING() << "error after redisAsyncConnect (host=" << host
+                  << ", port=" << port << "): " << context_->errstr;
     redisAsyncFree(context_);
     context_ = nullptr;
-    SetState(State::kInitError);
-  } else {
-    ev_thread_control_.RunInEvLoopBlocking([this]() {
-      bool err = false;
-      auto CheckError = [&err](int status, const std::string& name) {
-        if (status != REDIS_OK) {
-          err = true;
-          LOG_ERROR() << "error in " << name;
-        }
-      };
-      if (!err) Attach();
-      if (!err)
-        CheckError(redisLibevAttach(ev_thread_control_.GetEvLoop(), context_),
-                   "redisLibevAttach");
-      if (!err)
-        CheckError(redisAsyncSetConnectCallback(context_, OnConnect),
-                   "redisAsyncSetConnectCallback");
-      if (!err)
-        CheckError(redisAsyncSetDisconnectCallback(context_, OnDisconnect),
-                   "redisAsyncSetDisconnectCallback");
-      SetState(err ? State::kInitError : State::kInit);
-    });
+    return false;
   }
+
+  ev_thread_control_.RunInEvLoopBlocking([this, &host]() {
+    bool err = false;
+    auto CheckError = [&err, &host](int status, const std::string& name) {
+      if (status != REDIS_OK) {
+        err = true;
+        LOG_ERROR() << "error in " << name << " with host " << host;
+      }
+    };
+    if (!err) Attach();
+    if (!err)
+      CheckError(redisLibevAttach(ev_thread_control_.GetEvLoop(), context_),
+                 "redisLibevAttach");
+    if (!err)
+      CheckError(redisAsyncSetConnectCallback(context_, OnConnect),
+                 "redisAsyncSetConnectCallback");
+    if (!err)
+      CheckError(redisAsyncSetDisconnectCallback(context_, OnDisconnect),
+                 "redisAsyncSetDisconnectCallback");
+    SetState(err ? State::kInitError : State::kInit);
+  });
+  return true;
 }
 
 void Redis::RedisImpl::Disconnect() {

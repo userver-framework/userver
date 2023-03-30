@@ -4,6 +4,7 @@
 #include <vector>
 
 #include <engine/ev/thread_pool.hpp>
+#include <userver/clients/dns/resolver_utils.hpp>
 #include <userver/components/component.hpp>
 #include <userver/components/statistics_storage.hpp>
 #include <userver/dynamic_config/storage/component.hpp>
@@ -174,6 +175,9 @@ void Redis::Connect(const ComponentConfig& config,
       redis_pools.sentinel_thread_pool_size,
       redis_pools.redis_thread_pool_size);
 
+  clients::dns::Resolver* dns_resolver =
+      clients::dns::GetResolverPtr(config, component_context);
+
   const auto redis_groups = config["groups"].As<std::vector<RedisGroup>>();
   for (const RedisGroup& redis_group : redis_groups) {
     auto settings = GetSecdistSettings(secdist_component, redis_group);
@@ -185,7 +189,7 @@ void Redis::Connect(const ComponentConfig& config,
     auto sentinel = redis::Sentinel::CreateSentinel(
         thread_pools_, settings, redis_group.config_name, redis_group.db,
         redis::KeyShardFactory{redis_group.sharding_strategy}, command_control,
-        testsuite_redis_control);
+        testsuite_redis_control, dns_resolver);
     if (sentinel) {
       sentinels_.emplace(redis_group.db, sentinel);
       const auto& client =
@@ -213,7 +217,7 @@ void Redis::Connect(const ComponentConfig& config,
 
     auto sentinel = redis::SubscribeSentinel::Create(
         thread_pools_, settings, redis_group.config_name, redis_group.db,
-        is_cluster_mode, testsuite_redis_control);
+        is_cluster_mode, testsuite_redis_control, dns_resolver);
     if (sentinel)
       subscribe_clients_.emplace(
           redis_group.db,

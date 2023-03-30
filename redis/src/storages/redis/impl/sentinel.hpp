@@ -5,6 +5,7 @@
 
 #include <boost/signals2.hpp>
 
+#include <userver/clients/dns/resolver_fwd.hpp>
 #include <userver/utils/swappingsmart.hpp>
 
 #include <userver/storages/redis/impl/base.hpp>
@@ -78,14 +79,16 @@ class Sentinel {
       const secdist::RedisSettings& settings, std::string shard_group_name,
       const std::string& client_name, KeyShardFactory key_shard_factory,
       const CommandControl& command_control = kDefaultCommandControl,
-      const testsuite::RedisControl& testsuite_redis_control = {});
+      const testsuite::RedisControl& testsuite_redis_control = {},
+      clients::dns::Resolver* dns_resolver = nullptr);
   static std::shared_ptr<redis::Sentinel> CreateSentinel(
       const std::shared_ptr<ThreadPools>& thread_pools,
       const secdist::RedisSettings& settings, std::string shard_group_name,
       const std::string& client_name, ReadyChangeCallback ready_callback,
       KeyShardFactory key_shard_factory,
       const CommandControl& command_control = kDefaultCommandControl,
-      const testsuite::RedisControl& testsuite_redis_control = {});
+      const testsuite::RedisControl& testsuite_redis_control = {},
+      clients::dns::Resolver* dns_resolver = nullptr);
 
   void Restart();
 

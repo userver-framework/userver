@@ -6,6 +6,7 @@
 #include <string_view>
 
 /// [Redis service sample - component]
+#include <userver/clients/dns/component.hpp>
 #include <userver/components/minimal_server_component_list.hpp>
 #include <userver/server/handlers/http_handler_base.hpp>
 #include <userver/storages/redis/client.hpp>
@@ -211,7 +212,8 @@ int main(int argc, char* argv[]) {
           .Append<components::Secdist>()
           .Append<components::DefaultSecdistProvider>()
           .Append<components::Redis>("key-value-database")
-          .Append<components::TestsuiteSupport>();
+          .Append<components::TestsuiteSupport>()
+          .Append<clients::dns::Component>();
   return utils::DaemonMain(argc, argv, component_list);
 }
 /// [Redis service sample - main]
