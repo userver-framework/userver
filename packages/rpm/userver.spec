@@ -29,6 +29,17 @@ BuildRequires: compiler-rt
 BuildRequires: boost-devel >= 1.66.0
 BuildRequires: amqp-cpp-devel
 BuildRequires: clickhouse-cpp-devel
+BuildRequires: libatomic
+Requires: libatomic
+BuildRequires: cryptopp-devel
+Requires: cryptopp
+BuildRequires: libev-devel
+Requires: libev
+BuildRequires: re2-devel
+Requires: re2
+BuildRequires: libiconv-devel
+Requires: libiconv
+BuildRequires: python3-jinja2
 
 BuildRoot: %(mktemp -ud %{_tmppath}/%{name}-%{_version}-%{release}-XXXXXX)
 
