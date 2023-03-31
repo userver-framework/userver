@@ -12,12 +12,12 @@ grpc
 gtest
 hiredis
 http-parser
-nghttp2
 jemalloc
 krb5
 libbacktrace-git
 libev
 mongo-c-driver
+nghttp2
 openssl
 postgresql
 postgresql-libs
