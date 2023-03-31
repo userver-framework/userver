@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/components/logging_configurator.hpp
+/// @brief @copybrief components::LoggingConfigurator
+
 #include <userver/components/component_fwd.hpp>
 #include <userver/components/impl/component_base.hpp>
 #include <userver/concurrent/async_event_source.hpp>
@@ -24,6 +27,7 @@ namespace components {
 /// introduces circular dependency between Logger and DynamicConfig.
 ///
 /// ## Dynamic config
+/// * @ref USERVER_LOG_DYNAMIC_DEBUG
 /// * @ref USERVER_NO_LOG_SPANS
 ///
 /// ## Static options:

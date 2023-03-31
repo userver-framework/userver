@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/tracing/manager.hpp
+/// @brief @copybrief tracing::TracingManagerBase
+
 #include <userver/clients/http/request_tracing_editor.hpp>
 #include <userver/clients/http/response.hpp>
 #include <userver/tracing/span.hpp>
@@ -14,7 +17,11 @@ class HttpResponse;
 
 namespace tracing {
 
-/// @brief Base class for propagating trace context information in headers
+/// @ingroup userver_base_classes
+///
+/// @brief Base class for propagating trace context information in headers.
+///
+/// Mostly used by tracing::DefaultTracingManagerLocator.
 class TracingManagerBase {
  public:
   virtual ~TracingManagerBase() = default;

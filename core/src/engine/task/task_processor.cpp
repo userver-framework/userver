@@ -4,7 +4,6 @@
 #include <csignal>
 
 #include <fmt/format.h>
-#include <boost/thread/latch.hpp>
 
 #include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
@@ -79,17 +78,13 @@ TaskProcessor::TaskProcessor(TaskProcessorConfig config,
     LOG_INFO() << "creating task_processor " << Name() << " "
                << "worker_threads=" << config_.worker_threads
                << " thread_name=" << config_.thread_name;
-    boost::latch workers_left{config_.worker_threads};
     workers_.reserve(config_.worker_threads);
     for (size_t i = 0; i < config_.worker_threads; ++i) {
-      workers_.emplace_back([this, i, &workers_left] {
+      workers_.emplace_back([this, i] {
         PrepareWorkerThread(i);
-        workers_left.count_down();
         ProcessTasks();
       });
     }
-
-    workers_left.wait();
   } catch (...) {
     Cleanup();
     throw;

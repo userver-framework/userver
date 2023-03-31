@@ -817,6 +817,39 @@ localhost:8090
 
 Used by components::HttpClient, affects the behavior of clients::http::Client and all the clients that use it.
 
+@anchor USERVER_LOG_DYNAMIC_DEBUG
+## USERVER_LOG_DYNAMIC_DEBUG
+
+Logging per line and file overrides.
+ 
+```
+yaml
+default:
+    force-enabled: []
+    force-disabled: []
+
+schema:
+    type: object
+    additionalProperties: false
+    required:
+      - force-enabled
+      - force-disabled
+    properties:
+        force-enabled:
+            type: array
+            description: logs to turn on
+            items:
+                type: string
+
+        force-disabled:
+            type: array
+            description: logs to turn off
+            items:
+                type: string
+```
+
+Used by components::LoggingConfigurator.
+
 
 @anchor USERVER_LOG_REQUEST
 ## USERVER_LOG_REQUEST
