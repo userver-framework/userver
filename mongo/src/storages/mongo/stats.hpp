@@ -89,7 +89,7 @@ std::string_view ToString(OpType type);
 struct OperationKey final {
   bool operator==(const OperationKey& other) const noexcept;
 
-  std::string diagnostic_label;
+  // We might want to add an optional user-provided label here in the future.
   OpType op_type{OpType::kInvalid};
 };
 
@@ -173,6 +173,6 @@ USERVER_NAMESPACE_END
 
 template <>
 struct std::hash<USERVER_NAMESPACE::storages::mongo::stats::OperationKey> {
-  size_t operator()(
+  std::size_t operator()(
       USERVER_NAMESPACE::storages::mongo::stats::OperationKey value) const;
 };
