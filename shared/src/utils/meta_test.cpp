@@ -38,6 +38,8 @@ TEST(Meta, kIsInstantiationOf) {
 template <typename T>
 struct NonStdAllocator : std::allocator<T> {
   using std::allocator<T>::allocator;
+  template <typename U>
+  using rebind = NonStdAllocator<U>;
 };
 
 TEST(Meta, kIsVector) {
