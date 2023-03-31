@@ -94,7 +94,7 @@ class UserverConan(conans.ConanFile):
         self.requires('yaml-cpp/0.7.0')
         self.requires('cctz/2.3')
         self.requires('http_parser/2.9.4')
-        self.requires('nghttp2/1.28.0')
+        self.requires('libnghttp2/1.51.0')
         self.requires('openssl/1.1.1s')
         self.requires('rapidjson/cci.20220822')
         self.requires('concurrentqueue/1.0.3')
