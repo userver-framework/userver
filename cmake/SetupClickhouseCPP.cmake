@@ -19,7 +19,7 @@ FetchContent_Declare(
   clickhouse-cpp_external_project
   GIT_REPOSITORY https://github.com/ClickHouse/clickhouse-cpp.git
   TIMEOUT 10
-  GIT_TAG v2.1.0
+  GIT_TAG v2.3.0
   SOURCE_DIR ${USERVER_ROOT_DIR}/third_party/clickhouse-cpp
 )
 FetchContent_GetProperties(clickhouse-cpp_external_project)
@@ -30,6 +30,6 @@ endif()
 
 add_subdirectory(${USERVER_ROOT_DIR}/third_party/clickhouse-cpp "${CMAKE_BINARY_DIR}/third_party/clickhouse-cpp")
 add_library(clickhouse-cpp ALIAS clickhouse-cpp-lib-static)
-set(clickhouse-cpp_VERSION "2.1.0" CACHE STRING "Version of the clickhouse-cpp")
+set(clickhouse-cpp_VERSION "2.3.0" CACHE STRING "Version of the clickhouse-cpp")
 
 target_compile_options(absl-lib PUBLIC -Wno-pedantic)
