@@ -151,73 +151,6 @@ void EnableFlag(const impl::cdriver::FindAndModifyOptsPtr& fam_options,
   }
 }
 
-std::string MakeReadPrefsDescription(const options::ReadPreference::Mode mode) {
-  switch (mode) {
-    case options::ReadPreference::Mode::kPrimary:
-      return kDefaultReadPrefDesc;
-    case options::ReadPreference::Mode::kSecondary:
-      return "secondary";
-    case options::ReadPreference::Mode::kPrimaryPreferred:
-      return "primary-preferred";
-    case options::ReadPreference::Mode::kSecondaryPreferred:
-      return "secondary-preferred";
-    case options::ReadPreference::Mode::kNearest:
-      return "nearest";
-  }
-
-  UINVARIANT(false, "Unexpected ReadPreference::Mode to describe");
-}
-
-std::string MakeReadPrefsDescription(
-    const options::ReadPreference& read_prefs) {
-  std::string result = MakeReadPrefsDescription(read_prefs.GetMode());
-  if (!read_prefs.GetTags().empty()) result += "-tagged";
-  return result;
-}
-
-std::string MakeWriteConcernDescription(options::WriteConcern::Level level) {
-  switch (level) {
-    case options::WriteConcern::Level::kMajority:
-      return "majority";
-    case options::WriteConcern::Level::kUnacknowledged:
-      return "unacknowledged";
-  }
-
-  UINVARIANT(false, "Unexpected WriteConcern::Level");
-}
-
-std::string MakeWriteConcernDescription(
-    const options::WriteConcern& write_concern) {
-  std::string result;
-  if (write_concern.IsMajority()) {
-    result =
-        MakeWriteConcernDescription(options::WriteConcern::Level::kMajority);
-    if (write_concern.Timeout() !=
-        options::WriteConcern::kDefaultMajorityTimeout) {
-      result += "-timeout";
-    }
-  } else {
-    if (!write_concern.Tag().empty()) {
-      result = utils::graphite::EscapeName(write_concern.Tag());
-    } else if (!write_concern.NodesCount()) {
-      result = MakeWriteConcernDescription(
-          options::WriteConcern::Level::kUnacknowledged);
-    } else if (write_concern.NodesCount() == 1) {
-      result = kDefaultWriteConcernDesc;
-    } else {
-      result = "w" + std::to_string(write_concern.NodesCount());
-    }
-    if (write_concern.Timeout().count()) {
-      result += "-timeout";
-    }
-  }
-  if (write_concern.Journal()) {
-    result += "-j";
-    result += std::to_string(*write_concern.Journal());
-  }
-  return result;
-}
-
 }  // namespace
 
 const std::string kDefaultReadPrefDesc = "primary";
@@ -233,12 +166,10 @@ Count& Count::operator=(Count&&) noexcept = default;
 
 void Count::SetOption(const options::ReadPreference& read_prefs) {
   impl_->read_prefs = MakeCDriverReadPrefs(read_prefs);
-  impl_->op_key.diagnostic_label = MakeReadPrefsDescription(read_prefs);
 }
 
 void Count::SetOption(options::ReadPreference::Mode mode) {
   impl_->read_prefs = MakeCDriverReadPrefs(mode);
-  impl_->op_key.diagnostic_label = MakeReadPrefsDescription(mode);
 }
 
 void Count::SetOption(options::ReadConcern level) {
@@ -271,12 +202,10 @@ CountApprox& CountApprox::operator=(CountApprox&&) noexcept = default;
 
 void CountApprox::SetOption(const options::ReadPreference& read_prefs) {
   impl_->read_prefs = MakeCDriverReadPrefs(read_prefs);
-  impl_->op_key.diagnostic_label = MakeReadPrefsDescription(read_prefs);
 }
 
 void CountApprox::SetOption(options::ReadPreference::Mode mode) {
   impl_->read_prefs = MakeCDriverReadPrefs(mode);
-  impl_->op_key.diagnostic_label = MakeReadPrefsDescription(mode);
 }
 
 void CountApprox::SetOption(options::ReadConcern level) {
@@ -305,12 +234,10 @@ Find& Find::operator=(Find&&) noexcept = default;
 
 void Find::SetOption(const options::ReadPreference& read_prefs) {
   impl_->read_prefs = MakeCDriverReadPrefs(read_prefs);
-  impl_->op_key.diagnostic_label = MakeReadPrefsDescription(read_prefs);
 }
 
 void Find::SetOption(options::ReadPreference::Mode mode) {
   impl_->read_prefs = MakeCDriverReadPrefs(mode);
-  impl_->op_key.diagnostic_label = MakeReadPrefsDescription(mode);
 }
 
 void Find::SetOption(options::ReadConcern level) {
@@ -381,12 +308,10 @@ InsertOne& InsertOne::operator=(InsertOne&&) noexcept = default;
 
 void InsertOne::SetOption(options::WriteConcern::Level level) {
   AppendWriteConcern(impl::EnsureBuilder(impl_->options), level);
-  impl_->op_key.diagnostic_label = MakeWriteConcernDescription(level);
 }
 
 void InsertOne::SetOption(const options::WriteConcern& write_concern) {
   AppendWriteConcern(impl::EnsureBuilder(impl_->options), write_concern);
-  impl_->op_key.diagnostic_label = MakeWriteConcernDescription(write_concern);
 }
 
 void InsertOne::SetOption(options::SuppressServerExceptions) {
@@ -416,12 +341,10 @@ void InsertMany::SetOption(options::Unordered) {
 
 void InsertMany::SetOption(options::WriteConcern::Level level) {
   AppendWriteConcern(impl::EnsureBuilder(impl_->options), level);
-  impl_->op_key.diagnostic_label = MakeWriteConcernDescription(level);
 }
 
 void InsertMany::SetOption(const options::WriteConcern& write_concern) {
   AppendWriteConcern(impl::EnsureBuilder(impl_->options), write_concern);
-  impl_->op_key.diagnostic_label = MakeWriteConcernDescription(write_concern);
 }
 
 void InsertMany::SetOption(options::SuppressServerExceptions) {
@@ -445,12 +368,10 @@ void ReplaceOne::SetOption(options::Upsert) {
 
 void ReplaceOne::SetOption(options::WriteConcern::Level level) {
   AppendWriteConcern(impl::EnsureBuilder(impl_->options), level);
-  impl_->op_key.diagnostic_label = MakeWriteConcernDescription(level);
 }
 
 void ReplaceOne::SetOption(const options::WriteConcern& write_concern) {
   AppendWriteConcern(impl::EnsureBuilder(impl_->options), write_concern);
-  impl_->op_key.diagnostic_label = MakeWriteConcernDescription(write_concern);
 }
 
 void ReplaceOne::SetOption(options::SuppressServerExceptions) {
@@ -482,12 +403,10 @@ void Update::SetOption(options::RetryDuplicateKey) {
 
 void Update::SetOption(options::WriteConcern::Level level) {
   AppendWriteConcern(impl::EnsureBuilder(impl_->options), level);
-  impl_->op_key.diagnostic_label = MakeWriteConcernDescription(level);
 }
 
 void Update::SetOption(const options::WriteConcern& write_concern) {
   AppendWriteConcern(impl::EnsureBuilder(impl_->options), write_concern);
-  impl_->op_key.diagnostic_label = MakeWriteConcernDescription(write_concern);
 }
 
 void Update::SetOption(options::SuppressServerExceptions) {
@@ -506,12 +425,10 @@ Delete& Delete::operator=(Delete&&) noexcept = default;
 
 void Delete::SetOption(options::WriteConcern::Level level) {
   AppendWriteConcern(impl::EnsureBuilder(impl_->options), level);
-  impl_->op_key.diagnostic_label = MakeWriteConcernDescription(level);
 }
 
 void Delete::SetOption(const options::WriteConcern& write_concern) {
   AppendWriteConcern(impl::EnsureBuilder(impl_->options), write_concern);
-  impl_->op_key.diagnostic_label = MakeWriteConcernDescription(write_concern);
 }
 
 void Delete::SetOption(options::SuppressServerExceptions) {
@@ -569,7 +486,6 @@ void FindAndModify::SetOption(options::WriteConcern::Level level) {
                                           native_wc_bson_ptr)) {
     throw MongoException("Cannot set write concern");
   }
-  impl_->op_key.diagnostic_label = MakeWriteConcernDescription(level);
 }
 
 void FindAndModify::SetOption(const options::WriteConcern& write_concern) {
@@ -581,7 +497,6 @@ void FindAndModify::SetOption(const options::WriteConcern& write_concern) {
                                           native_wc_bson_ptr)) {
     throw MongoException("Cannot set write concern");
   }
-  impl_->op_key.diagnostic_label = MakeWriteConcernDescription(write_concern);
 }
 
 void FindAndModify::SetOption(const options::MaxServerTime& max_server_time) {
@@ -622,7 +537,6 @@ void FindAndRemove::SetOption(options::WriteConcern::Level level) {
                                           native_wc_bson_ptr)) {
     throw MongoException("Cannot set write concern");
   }
-  impl_->op_key.diagnostic_label = MakeWriteConcernDescription(level);
 }
 
 void FindAndRemove::SetOption(const options::WriteConcern& write_concern) {
@@ -634,7 +548,6 @@ void FindAndRemove::SetOption(const options::WriteConcern& write_concern) {
                                           native_wc_bson_ptr)) {
     throw MongoException("Cannot set write concern");
   }
-  impl_->op_key.diagnostic_label = MakeWriteConcernDescription(write_concern);
 }
 
 void FindAndRemove::SetOption(const options::MaxServerTime& max_server_time) {
@@ -661,12 +574,10 @@ Aggregate& Aggregate::operator=(Aggregate&&) noexcept = default;
 
 void Aggregate::SetOption(const options::ReadPreference& read_prefs) {
   impl_->read_prefs = MakeCDriverReadPrefs(read_prefs);
-  impl_->op_key.diagnostic_label = MakeReadPrefsDescription(read_prefs);
 }
 
 void Aggregate::SetOption(options::ReadPreference::Mode mode) {
   impl_->read_prefs = MakeCDriverReadPrefs(mode);
-  impl_->op_key.diagnostic_label = MakeReadPrefsDescription(mode);
 }
 
 void Aggregate::SetOption(options::ReadConcern level) {
@@ -675,12 +586,10 @@ void Aggregate::SetOption(options::ReadConcern level) {
 
 void Aggregate::SetOption(const options::WriteConcern& write_concern) {
   AppendWriteConcern(impl::EnsureBuilder(impl_->options), write_concern);
-  impl_->op_key.diagnostic_label = MakeWriteConcernDescription(write_concern);
 }
 
 void Aggregate::SetOption(options::WriteConcern::Level level) {
   AppendWriteConcern(impl::EnsureBuilder(impl_->options), level);
-  impl_->op_key.diagnostic_label = MakeWriteConcernDescription(level);
 }
 
 void Aggregate::SetOption(const options::Hint& hint) {
@@ -706,12 +615,10 @@ Drop& Drop::operator=(Drop&&) noexcept = default;
 
 void Drop::SetOption(options::WriteConcern::Level level) {
   AppendWriteConcern(impl::EnsureBuilder(impl_->options), level);
-  impl_->op_key.diagnostic_label = MakeWriteConcernDescription(level);
 }
 
 void Drop::SetOption(const options::WriteConcern& write_concern) {
   AppendWriteConcern(impl::EnsureBuilder(impl_->options), write_concern);
-  impl_->op_key.diagnostic_label = MakeWriteConcernDescription(write_concern);
 }
 
 }  // namespace storages::mongo::operations

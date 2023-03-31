@@ -31,7 +31,7 @@ class Count::Impl {
   explicit Impl(formats::bson::Document filter_) : filter(std::move(filter_)) {}
 
   formats::bson::Document filter;
-  stats::OperationKey op_key{kDefaultReadPrefDesc, stats::OpType::kCount};
+  stats::OperationKey op_key{stats::OpType::kCount};
   impl::cdriver::ReadPrefsPtr read_prefs;
   std::optional<formats::bson::impl::BsonBuilder> options;
   bool use_new_count{true};
@@ -40,7 +40,7 @@ class Count::Impl {
 
 class CountApprox::Impl {
  public:
-  stats::OperationKey op_key{kDefaultReadPrefDesc, stats::OpType::kCountApprox};
+  stats::OperationKey op_key{stats::OpType::kCountApprox};
   impl::cdriver::ReadPrefsPtr read_prefs;
   std::optional<formats::bson::impl::BsonBuilder> options;
   std::chrono::milliseconds max_server_time{kNoMaxServerTime};
@@ -51,7 +51,7 @@ class Find::Impl {
   explicit Impl(formats::bson::Document filter_) : filter(std::move(filter_)) {}
 
   formats::bson::Document filter;
-  stats::OperationKey op_key{kDefaultReadPrefDesc, stats::OpType::kFind};
+  stats::OperationKey op_key{stats::OpType::kFind};
   impl::cdriver::ReadPrefsPtr read_prefs;
   std::optional<formats::bson::impl::BsonBuilder> options;
   bool has_comment_option{false};
@@ -64,8 +64,7 @@ class InsertOne::Impl {
       : document(std::move(document_)) {}
 
   formats::bson::Document document;
-  stats::OperationKey op_key{kDefaultWriteConcernDesc,
-                             stats::OpType::kInsertOne};
+  stats::OperationKey op_key{stats::OpType::kInsertOne};
   std::optional<formats::bson::impl::BsonBuilder> options;
   bool should_throw{true};
 };
@@ -78,8 +77,7 @@ class InsertMany::Impl {
       : documents(std::move(documents_)) {}
 
   std::vector<formats::bson::Document> documents;
-  stats::OperationKey op_key{kDefaultWriteConcernDesc,
-                             stats::OpType::kInsertMany};
+  stats::OperationKey op_key{stats::OpType::kInsertMany};
   std::optional<formats::bson::impl::BsonBuilder> options;
   bool should_throw{true};
 };
@@ -92,8 +90,7 @@ class ReplaceOne::Impl {
 
   formats::bson::Document selector;
   formats::bson::Document replacement;
-  stats::OperationKey op_key{kDefaultWriteConcernDesc,
-                             stats::OpType::kReplaceOne};
+  stats::OperationKey op_key{stats::OpType::kReplaceOne};
   std::optional<formats::bson::impl::BsonBuilder> options;
   bool should_throw{true};
 };
@@ -111,7 +108,7 @@ class Update::Impl {
   bool should_retry_dupkey{false};
   formats::bson::Document selector;
   formats::bson::Document update;
-  stats::OperationKey op_key{kDefaultWriteConcernDesc, ToStatsOpType(mode)};
+  stats::OperationKey op_key{ToStatsOpType(mode)};
   std::optional<formats::bson::impl::BsonBuilder> options;
 };
 
@@ -123,7 +120,7 @@ class Delete::Impl {
   Mode mode;
   bool should_throw{true};  // moved here for size optimization
   formats::bson::Document selector;
-  stats::OperationKey op_key{kDefaultWriteConcernDesc, ToStatsOpType(mode)};
+  stats::OperationKey op_key{ToStatsOpType(mode)};
   std::optional<formats::bson::impl::BsonBuilder> options;
 };
 
@@ -132,8 +129,7 @@ class FindAndModify::Impl {
   explicit Impl(formats::bson::Document&& query_) : query(std::move(query_)) {}
 
   formats::bson::Document query;
-  stats::OperationKey op_key{kDefaultWriteConcernDesc,
-                             stats::OpType::kFindAndModify};
+  stats::OperationKey op_key{stats::OpType::kFindAndModify};
   impl::cdriver::FindAndModifyOptsPtr options;
   bool should_retry_dupkey{false};
   std::chrono::milliseconds max_server_time{kNoMaxServerTime};
@@ -144,8 +140,7 @@ class FindAndRemove::Impl {
   explicit Impl(formats::bson::Document&& query_) : query(std::move(query_)) {}
 
   formats::bson::Document query;
-  stats::OperationKey op_key{kDefaultWriteConcernDesc,
-                             stats::OpType::kFindAndRemove};
+  stats::OperationKey op_key{stats::OpType::kFindAndRemove};
   impl::cdriver::FindAndModifyOptsPtr options;
   std::chrono::milliseconds max_server_time{kNoMaxServerTime};
 };
@@ -155,7 +150,7 @@ class Bulk::Impl {
   explicit Impl(Mode mode_) : mode(mode_) {}
 
   impl::cdriver::BulkOperationPtr bulk;
-  stats::OperationKey op_key{kDefaultWriteConcernDesc, stats::OpType::kBulk};
+  stats::OperationKey op_key{stats::OpType::kBulk};
   Mode mode;
   bool should_throw{true};
 };
@@ -167,7 +162,7 @@ class Aggregate::Impl {
 
   formats::bson::Value pipeline;
   impl::cdriver::ReadPrefsPtr read_prefs;
-  stats::OperationKey op_key{kDefaultReadPrefDesc, stats::OpType::kAggregate};
+  stats::OperationKey op_key{stats::OpType::kAggregate};
   std::optional<formats::bson::impl::BsonBuilder> options;
   bool has_comment_option{false};
   std::chrono::milliseconds max_server_time{kNoMaxServerTime};
@@ -178,7 +173,7 @@ class Drop::Impl {
   Impl() = default;
 
   std::optional<formats::bson::impl::BsonBuilder> options;
-  stats::OperationKey op_key{kDefaultWriteConcernDesc, stats::OpType::kDrop};
+  stats::OperationKey op_key{stats::OpType::kDrop};
 };
 
 void AppendComment(formats::bson::impl::BsonBuilder& builder,

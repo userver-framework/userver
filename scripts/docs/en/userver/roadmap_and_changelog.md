@@ -38,10 +38,10 @@ Changelog news also go to the
   * ✓ UDP chaos proxy implemented
   * ✓ Mongo
   * ✓ HTTP Client
-  * DNS resolver
+  * ✓ DNS resolver
   * Redis
-  * PostgreSQL
-  * Clickhouse
+  * ✓ PostgreSQL
+  * ✓ Clickhouse
   * gRPC
 * Enable PostgreSQL pipelining
 * Implement and enable Deadline Propagation
@@ -55,6 +55,56 @@ Changelog news also go to the
 
 
 ## Changelog
+
+### Beta (March 2023)
+
+* Now logging of particular lines could be controlled by dynamic config. See
+  @ref USERVER_LOG_DYNAMIC_DEBUG for more info.
+* HTTP headers that contain the tracing context now could be customized,
+  both for handlers and HttpClient, by feeding tracing::TracingManagerBase
+  implementation into tracing::DefaultTracingManagerLocator (docs to come soon).
+* User defined literals for different formats are now available at formats::literals
+* Added crypto::CmsSigner and crypto::CmsVerifier as per RFC 5652.
+* cache::LruMap and cache::LruSet now work with non-movable types.
+* BSON<>JSON conversions now supported via
+  json_value.ConvertTo<formats::bson::Value>() and
+  bson_value.ConvertTo<formats::json::Value>().
+* engine::CancellableSemaphore was implemented.
+* Optimizations:
+  * Mongo driver switched to a faster utils::statistics::Writer.
+  * utils::Async functions now make 1 dynamic allocation less, thanks to
+    [Ivan Trofimov](https://github.com/itrofimow) for the PR.
+  * Getting the default logger now takes only a single atomic read. LOG_* 
+    macro now do two RMW atomic operations less and do not use RCU, that could
+    lead to a dynamic memory allocation in rare cases.
+  * PostgreSQL driver now does much less atomic operations due to wider usage 
+    of std::move on the internal std::shared_ptr.
+  * Added storages::postgres::Transaction::ExecuteDecomposeBulk function for
+    fast insertion of C++ array of structures as arrays of values.
+  * Str[I]caseHash now uses a 5-10 times faster SipHash13
+  * Redis driver now does an asynchronous DNS resolving, amount of heavy
+    system calls dropped down noticeably.
+* Build changes:
+  * CMake option `USERVER_OPEN_SOURCE_BUILD` was removed as the build is always
+    the same for in-house and public environments.
+  * CMake option `USERVER_FEATURE_SPDLOG_TCP_SINK` was removed as now the
+    implementation of the sink does not rely on spdlog implementation.
+  * Configuration step was made much faster.
+  * Makefile was simplified and only up-to-date targets were left.
+  * Added a script to prepare docker build, see @ref md_en_userver_docker for
+    more info.
+  * Scripts for generating CMakeLists were simplified and cleared from internal
+    stuff.
+  * Added missing dependencies to @ref md_en_deps_ubuntu_20_04 and sorted all
+    the dependencies, thanks to [Anatoly Shirokov](https://github.com/anatoly-spb)
+    for the PR.
+* Statistics and metrics now do additional lifetime checks in debug builds to
+  catch improper usages.
+* Push functions of concurrent::MpscQueue and other queues now have a
+  `[[nodiscard]]` for compile time misuse detection.
+* Significant improvement of Redis server-side errors diagnostic.
+* Improved diagnostics for distributed locking.
+* Fixed numerous typos in docs and samples.
 
 
 ### Beta (February 2023)

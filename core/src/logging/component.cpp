@@ -62,9 +62,13 @@ std::optional<TestsuiteCaptureConfig> GetTestsuiteCaptureConfig(
 }
 
 void ReopenAll(const std::shared_ptr<logging::impl::TpLogger>& logger) {
+  int index = -1;
   for (const auto& s : logger->GetSinks()) {
+    ++index;
     auto reop = std::dynamic_pointer_cast<logging::impl::FileSink>(s);
     if (!reop) {
+      LOG_INFO() << "Skipping rotation for sink #" << index << " from '"
+                 << logger->GetLoggerName() << "' logger";
       continue;
     }
 

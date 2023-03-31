@@ -6,7 +6,6 @@
 #include <boost/functional/hash.hpp>
 
 #include <userver/tracing/span.hpp>
-#include <userver/utils/underlying_value.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -136,8 +135,7 @@ std::string_view ToString(OpType type) {
 }
 
 bool OperationKey::operator==(const OperationKey& other) const noexcept {
-  return std::tie(diagnostic_label, op_type) ==
-         std::tie(other.diagnostic_label, other.op_type);
+  return op_type == other.op_type;
 }
 
 PoolConnectStatistics::PoolConnectStatistics()
@@ -220,9 +218,8 @@ void ConnectionThrottleStopwatch::Stop() noexcept {
 
 USERVER_NAMESPACE_END
 
-size_t
+std::size_t
 std::hash<USERVER_NAMESPACE::storages::mongo::stats::OperationKey>::operator()(
     USERVER_NAMESPACE::storages::mongo::stats::OperationKey value) const {
-  const auto op_type = USERVER_NAMESPACE::utils::UnderlyingValue(value.op_type);
-  return boost::hash_value(std::tie(value.diagnostic_label, op_type));
+  return static_cast<std::size_t>(value.op_type);
 }

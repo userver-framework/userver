@@ -80,6 +80,10 @@ bool IsRead(const OperationKey& key) {
   return key.op_type >= OpType::kReadMin && key.op_type < OpType::kWriteMin;
 }
 
+std::string_view GetDirection(const OperationKey& key) {
+  return IsRead(key) ? "read" : "write";
+}
+
 struct CombinedCollectionStats {
   OperationStatisticsSum read;
   OperationStatisticsSum write;
@@ -88,26 +92,11 @@ struct CombinedCollectionStats {
     read.Add(other.read);
     write.Add(other.write);
   }
+
+  OperationStatisticsSum& GetTotalForOperation(const OperationKey& key) {
+    return IsRead(key) ? read : write;
+  }
 };
-
-void DumpOperation(const OperationKey& op_key,
-                   const OperationStatisticsItem& op_stats,
-                   utils::statistics::Writer& writer) {
-  // TODO use the same label set for both read and write metrics,
-  //  to satisfy Prometeus metrics conventions
-  const std::string_view label =
-      IsRead(op_key) ? "mongo_read_preference" : "mongo_write_concern";
-  writer.ValueWithLabels(op_stats,
-                         {{label, op_key.diagnostic_label},
-                          {"mongo_operation", ToString(op_key.op_type)}});
-}
-
-void CombineOperation(const OperationKey& op_key,
-                      const OperationStatisticsItem& op_stats,
-                      CombinedCollectionStats& overall) {
-  auto& combined = IsRead(op_key) ? overall.read : overall.write;
-  combined.Add(op_stats);
-}
 
 void DumpMetric(utils::statistics::Writer& writer,
                 const CombinedCollectionStats& combined_stats) {
@@ -125,33 +114,17 @@ void DumpMetric(utils::statistics::Writer& writer,
                 const FormattedCollectionStatistics& coll_stats) {
   CombinedCollectionStats overall;
 
-  std::unordered_map<std::string, OperationStatisticsSum> totals_by_label_read;
-  std::unordered_map<std::string, OperationStatisticsSum> totals_by_label_write;
-
   for (const auto& [stats_key, stats_ptr] : coll_stats.stats.items) {
     if (coll_stats.verbosity == StatsVerbosity::kFull) {
-      DumpOperation(stats_key, *stats_ptr, writer);
+      writer[GetDirection(stats_key)].ValueWithLabels(
+          *stats_ptr, {"mongo_operation", ToString(stats_key.op_type)});
+    }
 
-      (IsRead(stats_key) ? totals_by_label_read
-                         : totals_by_label_write)[stats_key.diagnostic_label]
-          .Add(*stats_ptr);
-    }
-    CombineOperation(stats_key, *stats_ptr, overall);
-  }
-
-  if (coll_stats.verbosity == StatsVerbosity::kFull) {
-    // TODO use different paths for detailed and overall metrics,
-    //  to satisfy Prometeus metrics conventions
-    for (const auto& [label, total] : totals_by_label_read) {
-      writer.ValueWithLabels(total, {"mongo_read_preference", label});
-    }
-    for (const auto& [label, total] : totals_by_label_write) {
-      writer.ValueWithLabels(total, {"mongo_write_concern", label});
-    }
+    overall.GetTotalForOperation(stats_key).Add(*stats_ptr);
   }
 
   // TODO use different paths for detailed and overall metrics,
-  //  to satisfy Prometeus metrics conventions
+  //  to satisfy Prometheus metrics conventions
   writer = overall;
 
   coll_stats.overall_stats.Add(overall);
@@ -190,7 +163,7 @@ void DumpMetric(utils::statistics::Writer& writer,
   }
 
   // TODO use different paths for detailed and overall metrics,
-  //  to satisfy Prometeus metrics conventions
+  //  to satisfy Prometheus metrics conventions
   writer = pool_overall;
 }
 
