@@ -92,7 +92,7 @@ if (USERVER_CONAN)
     find_package(spdlog REQUIRED)
     find_package(cctz REQUIRED)
     find_package(http_parser REQUIRED)
-    find_package(nghttp2 REQUIRED)
+    find_package(libnghttp2 REQUIRED)
     find_package(libev REQUIRED)
 
     find_package(RapidJSON REQUIRED)
