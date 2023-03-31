@@ -140,4 +140,9 @@ else ()
   add_definitions(-D_FORTIFY_SOURCE=2)
 endif ()
 
+#if using conan
+if(USERVER_CONAN)
+  add_definitions(-DUSE_CONAN)
+endif()
+
 enable_testing ()
