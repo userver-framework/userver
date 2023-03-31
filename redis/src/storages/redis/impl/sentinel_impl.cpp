@@ -967,29 +967,20 @@ size_t SentinelImpl::ShardInfo::GetShard(const std::string& host,
 
 void SentinelImpl::ShardInfo::UpdateHostPortToShard(
     HostPortToShardMap&& host_port_to_shard_new) {
-  bool changed = false;
-
-  {
-    std::lock_guard<std::mutex> lock(mutex_);
-    changed = host_port_to_shard_new != host_port_to_shard_;
-  }
-
-  if (changed) {
-    std::lock_guard<std::mutex> lock(mutex_);
+  std::lock_guard<std::mutex> lock(mutex_);
+  if (host_port_to_shard_new != host_port_to_shard_) {
     host_port_to_shard_.swap(host_port_to_shard_new);
   }
 }
 
 void SentinelImpl::ConnectedStatus::SetMasterReady() {
   if (!master_ready_.exchange(true)) {
-    { std::lock_guard<std::mutex> lock(mutex_); }
     cv_.NotifyAll();
   }
 }
 
 void SentinelImpl::ConnectedStatus::SetSlaveReady() {
   if (!slave_ready_.exchange(true)) {
-    { std::lock_guard<std::mutex> lock(mutex_); }
     cv_.NotifyAll();
   }
 }
