@@ -203,8 +203,8 @@ size_t Direction::PerformIoV(SingleUserGuard&, IoFunc&& io_func,
         break;
       }
       std::size_t offset = chunk_size;
-      do {
-        std::size_t len = list->iov_len;
+      while (list_size > 0) {
+        const std::size_t len = list->iov_len;
         if (offset >= len) {
           ++list;
           offset -= len;
@@ -213,9 +213,9 @@ size_t Direction::PerformIoV(SingleUserGuard&, IoFunc&& io_func,
         } else {
           list->iov_len -= offset;
           list->iov_base = static_cast<char*>(list->iov_base) + offset;
-          offset = 0;
+          break;
         }
-      } while (offset != 0);
+      }
     } else if (!chunk_size ||
                TryHandleError(errno, processed_bytes, mode, deadline,
                               context...) == ErrorMode::kFatal) {
