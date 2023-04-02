@@ -170,7 +170,7 @@ if (USERVER_CONAN)
         cryptopp-static
         http_parser::http_parser
         libev::libev
-		libngttp2::nghttp2
+		libnghttp2::nghttp2
         spdlog::spdlog
         RapidJSON::RapidJSON
     )
