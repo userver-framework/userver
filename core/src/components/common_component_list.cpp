@@ -3,6 +3,7 @@
 #include <userver/clients/dns/component.hpp>
 #include <userver/clients/http/component.hpp>
 #include <userver/components/dump_configurator.hpp>
+#include <userver/components/headers_propagator_component.hpp>
 #include <userver/components/logging_configurator.hpp>
 #include <userver/components/manager_controller_component.hpp>
 #include <userver/components/statistics_storage.hpp>

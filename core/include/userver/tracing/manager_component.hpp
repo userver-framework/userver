@@ -14,6 +14,7 @@ USERVER_NAMESPACE_BEGIN
 namespace tracing {
 
 /// @brief Base component for implementing TracingManager component
+// NOLINTNEXTLINE(fuchsia-multiple-inheritance)
 class TracingManagerComponentBase : public components::LoggableComponentBase,
                                     public TracingManagerBase {
  public:

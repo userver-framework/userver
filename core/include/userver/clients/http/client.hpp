@@ -25,7 +25,11 @@ USERVER_NAMESPACE_BEGIN
 
 namespace tracing {
 class TracingManagerBase;
-};
+}  // namespace tracing
+
+namespace server::http {
+class HeadersPropagator;
+}  // namespace server::http
 
 namespace curl {
 class easy;
@@ -55,6 +59,7 @@ struct ClientSettings final {
   size_t io_threads = 8;
   bool defer_events = false;
   const tracing::TracingManagerBase* tracing_manager_{nullptr};
+  const server::http::HeadersPropagator* headers_propagator_{nullptr};
 };
 
 ClientSettings Parse(const yaml_config::YamlConfig& value,
@@ -182,6 +187,7 @@ class Client final {
 
   clients::dns::Resolver* resolver_{nullptr};
   utils::NotNull<const tracing::TracingManagerBase*> tracing_manager_;
+  const server::http::HeadersPropagator* headers_propagator_{nullptr};
 };
 
 }  // namespace clients::http

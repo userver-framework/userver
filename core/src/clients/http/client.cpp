@@ -6,6 +6,7 @@
 
 #include <moodycamel/concurrentqueue.h>
 
+#include <userver/components/headers_propagator_component.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/tracing/manager.hpp>
 #include <userver/utils/async.hpp>
@@ -22,6 +23,7 @@
 #include <curl-ev/multi.hpp>
 #include <curl-ev/ratelimit.hpp>
 #include <engine/ev/thread_pool.hpp>
+#include <server/http/headers_propagator.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -65,7 +67,8 @@ Client::Client(ClientSettings settings,
       fs_task_processor_(fs_task_processor),
       user_agent_(utils::GetUserverIdentifier()),
       connect_rate_limiter_(std::make_shared<curl::ConnectRateLimiter>()),
-      tracing_manager_(GetTracingManager(settings)) {
+      tracing_manager_(GetTracingManager(settings)),
+      headers_propagator_(settings.headers_propagator_) {
   const auto io_threads = settings.io_threads;
   const auto& thread_name_prefix = settings.thread_name_prefix;
 
@@ -159,6 +162,7 @@ std::shared_ptr<Request> Client::CreateRequest() {
   request->SetAllowedUrlsExtra(*urls);
 
   request->SetTracingManager(*tracing_manager_.GetBase());
+  request->SetHeadersPropagator(headers_propagator_);
 
   if (user_agent_) {
     request->user_agent(*user_agent_);

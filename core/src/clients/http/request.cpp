@@ -498,6 +498,12 @@ std::shared_ptr<Request> Request::SetTracingManager(
   return shared_from_this();
 }
 
+std::shared_ptr<Request> Request::SetHeadersPropagator(
+    const server::http::HeadersPropagator* headers_propagator) {
+  pimpl_->SetHeadersPropagator(headers_propagator);
+  return shared_from_this();
+}
+
 std::shared_ptr<Request> Request::SetEnforceTaskDeadline(
     EnforceTaskDeadlineConfig enforce_task_deadline) {
   pimpl_->SetEnforceTaskDeadline(enforce_task_deadline);

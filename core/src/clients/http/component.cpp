@@ -2,6 +2,7 @@
 
 #include <userver/clients/dns/resolver_utils.hpp>
 #include <userver/components/component.hpp>
+#include <userver/components/headers_propagator_component.hpp>
 #include <userver/components/statistics_storage.hpp>
 #include <userver/dynamic_config/storage/component.hpp>
 #include <userver/testsuite/testsuite_support.hpp>
@@ -33,6 +34,11 @@ clients::http::ClientSettings GetClientSettings(
     settings.tracing_manager_ = &tracing_locator->GetTracingManager();
   } else {
     settings.tracing_manager_ = &tracing::kDefaultTracingManager;
+  }
+  auto* propagator_component =
+      context.FindComponentOptional<components::HeadersPropagatorComponent>();
+  if (propagator_component) {
+    settings.headers_propagator_ = &propagator_component->Get();
   }
   return settings;
 }

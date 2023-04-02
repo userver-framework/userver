@@ -4,6 +4,7 @@
 #include <stdexcept>
 
 #include <server/handlers/http_handler_base_statistics.hpp>
+#include <server/request/task_inherited_request_impl.hpp>
 #include <userver/components/statistics_storage.hpp>
 #include <userver/dynamic_config/storage/component.hpp>
 #include <userver/dynamic_config/value.hpp>
@@ -13,6 +14,7 @@
 #include <userver/logging/logger.hpp>
 #include <userver/server/http/http_request.hpp>
 #include <userver/server/http/http_response.hpp>
+#include <userver/server/request/task_inherited_request.hpp>
 #include <userver/utils/assert.hpp>
 #include "http_request_impl.hpp"
 
@@ -177,6 +179,9 @@ engine::TaskWithResult<void> HttpRequestHandler::StartRequestTask(
   }
 
   auto payload = [request = std::move(request), handler] {
+    server::request::kTaskInheritedRequest.Set(
+        std::static_pointer_cast<HttpRequestImpl>(request));
+
     request->SetTaskStartTime();
 
     request::RequestContext context;

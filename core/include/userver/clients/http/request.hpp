@@ -21,6 +21,10 @@ namespace tracing {
 class TracingManagerBase;
 }  // namespace tracing
 
+namespace server::http {
+class HeadersPropagator;
+}  // namespace server::http
+
 /// HTTP client helpers
 namespace clients::http {
 
@@ -206,6 +210,9 @@ class Request final : public std::enable_shared_from_this<Request> {
   // Set deadline propagation settings. For internal use only.
   std::shared_ptr<Request> SetEnforceTaskDeadline(
       EnforceTaskDeadlineConfig enforce_task_deadline);
+
+  std::shared_ptr<Request> SetHeadersPropagator(
+      const server::http::HeadersPropagator*);
   /// @endcond
 
   /// Disable auto-decoding of received replies.

@@ -31,6 +31,7 @@
 #include <clients/http/testsuite.hpp>
 #include <crypto/helpers.hpp>
 #include <engine/ev/watcher/timer_watcher.hpp>
+#include <server/http/headers_propagator.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -116,6 +117,7 @@ class RequestState : public std::enable_shared_from_this<RequestState> {
   void SetLoggedUrl(std::string url);
 
   void SetTracingManager(const tracing::TracingManagerBase&);
+  void SetHeadersPropagator(const server::http::HeadersPropagator*);
 
   RequestTracingEditor GetEditableTracingInstance();
 
@@ -195,6 +197,7 @@ class RequestState : public std::enable_shared_from_this<RequestState> {
   /// deadline from current task
   engine::Deadline deadline_;
   utils::NotNull<const tracing::TracingManagerBase*> tracing_manager_;
+  const server::http::HeadersPropagator* headers_propagator_{nullptr};
   /// struct for reties
   struct {
     /// maximum number of retries

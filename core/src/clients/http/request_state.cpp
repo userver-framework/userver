@@ -816,8 +816,13 @@ void RequestState::StartNewSpan() {
   span_storage_.emplace(std::string{kTracingClientName});
   auto& span = span_storage_->Get();
 
+  auto request_editable_instance = GetEditableTracingInstance();
+
+  if (headers_propagator_) {
+    headers_propagator_->PropagateHeaders(request_editable_instance);
+  }
   tracing_manager_->FillRequestWithTracingContext(span,
-                                                  GetEditableTracingInstance());
+                                                  request_editable_instance);
 
   // effective url is not available yet
   span.AddTag(tracing::kHttpUrl,
@@ -870,6 +875,11 @@ void RequestState::ResolveTargetAddress(clients::dns::Resolver& resolver) {
 
 void RequestState::SetTracingManager(const tracing::TracingManagerBase& m) {
   tracing_manager_ = m;
+}
+
+void RequestState::SetHeadersPropagator(
+    const server::http::HeadersPropagator* propagator) {
+  headers_propagator_ = propagator;
 }
 
 RequestTracingEditor RequestState::GetEditableTracingInstance() {

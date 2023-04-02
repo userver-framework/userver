@@ -1,5 +1,6 @@
 #include <userver/components/minimal_component_list.hpp>
 
+#include <userver/components/headers_propagator_component.hpp>
 #include <userver/components/manager_controller_component.hpp>
 #include <userver/components/statistics_storage.hpp>
 #include <userver/components/tracer.hpp>
