@@ -30,6 +30,7 @@ struct Jenkins {
     return hash;
   }
 };
-} // namespace cache::impl::tools
+
+}  // namespace cache::impl::tools
 
 USERVER_NAMESPACE_END

@@ -2,10 +2,10 @@
 
 #include <benchmark/benchmark.h>
 
-#include <userver/cache/lru_map.hpp>
-#include <userver/cache/lfu_map.hpp>
 #include <userver/cache/impl/slru.hpp>
 #include <userver/cache/impl/window_tiny_lfu.hpp>
+#include <userver/cache/lfu_map.hpp>
+#include <userver/cache/lru_map.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -64,7 +64,6 @@ void PutOverflow(benchmark::State& state) {
       lru.Put(i, i);
     }
     benchmark::DoNotOptimize(lru);
-  }
 }
 BENCHMARK(PutOverflow<Lru>);
 BENCHMARK(PutOverflow<Lfu>);
@@ -127,4 +126,4 @@ BENCHMARK(TinyLfuBloom);
 
 USERVER_NAMESPACE_END
 
-#endif 
+#endif

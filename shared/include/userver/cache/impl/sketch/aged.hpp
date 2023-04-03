@@ -11,10 +11,11 @@ namespace cache::impl::sketch {
 template <typename T, typename Hash>
 class Sketch<T, Hash, Policy::Aged> {
  public:
-  explicit Sketch(size_t num_counters = kInitialCounters, const Hash& hash = Hash{});
+  explicit Sketch(size_t num_counters = kInitialCounters,
+                  const Hash& hash = Hash{});
   std::size_t Estimate(const T&);
   void Increment(const T&);
-  void Clear() { 
+  void Clear() {
     bloom_.Clear();
     size_ = 0;
   }
@@ -28,7 +29,8 @@ class Sketch<T, Hash, Policy::Aged> {
 };
 
 template <typename T, typename Hash>
-Sketch<T, Hash, Policy::Aged>::Sketch(std::size_t num_counters, const Hash& hash)
+Sketch<T, Hash, Policy::Aged>::Sketch(std::size_t num_counters,
+                                      const Hash& hash)
     : bloom_(num_counters, hash),
       sample_size_(NextPowerOfTwo(num_counters) * kSampleRate) {
   UINVARIANT(false, "not implemented yet");

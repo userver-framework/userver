@@ -443,20 +443,24 @@ class LruCacheWrapper final {
   typename Cache::UpdateValueFunc update_func_;
 };
 
-template <typename Key, typename Value, typename Hash, typename Equal, CachePolicy Policy>
+template <typename Key, typename Value, typename Hash, typename Equal,
+          CachePolicy Policy>
 void ExpirableLruCache<Key, Value, Hash, Equal, Policy>::Write(
     dump::Writer& writer) const {
   utils::impl::UpdateGlobalTime();
   lru_.Write(writer);
 }
 
-template <typename Key, typename Value, typename Hash, typename Equal, CachePolicy Policy>
-void ExpirableLruCache<Key, Value, Hash, Equal, Policy>::Read(dump::Reader& reader) {
+template <typename Key, typename Value, typename Hash, typename Equal,
+          CachePolicy Policy>
+void ExpirableLruCache<Key, Value, Hash, Equal, Policy>::Read(
+    dump::Reader& reader) {
   utils::impl::UpdateGlobalTime();
   lru_.Read(reader);
 }
 
-template <typename Key, typename Value, typename Hash, typename Equal, CachePolicy Policy>
+template <typename Key, typename Value, typename Hash, typename Equal,
+          CachePolicy Policy>
 void ExpirableLruCache<Key, Value, Hash, Equal, Policy>::SetDumper(
     std::shared_ptr<dump::Dumper> dumper) {
   lru_.SetDumper(std::move(dumper));

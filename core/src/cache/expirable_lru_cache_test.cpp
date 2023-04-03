@@ -19,10 +19,8 @@ class ExpirableLruCache : public ::testing::Test {
  public:
   using Hash = std::hash<SimpleCacheKey>;
   using Equal = std::equal_to<>;
-  using SimpleCache =
-      cache::ExpirableLruCache<SimpleCacheKey, SimpleCacheValue,
-                               Hash,
-                               Equal, T::value>;
+  using SimpleCache = cache::ExpirableLruCache<SimpleCacheKey, SimpleCacheValue,
+                                               Hash, Equal, T::value>;
   static SimpleCache CreateSimpleCache() { return SimpleCache(1, 1); }
 };
 
@@ -33,14 +31,10 @@ class LruCacheWrapper : public ::testing::Test {
  public:
   using Hash = std::hash<SimpleCacheKey>;
   using Equal = std::equal_to<>;
-  using SimpleCache =
-      cache::ExpirableLruCache<SimpleCacheKey, SimpleCacheValue,
-                               Hash,
-                               Equal, T::value>;
-  using SimpleWrapper =
-      cache::LruCacheWrapper<SimpleCacheKey, SimpleCacheValue,
-                             Hash,
-                             Equal, T::value>;
+  using SimpleCache = cache::ExpirableLruCache<SimpleCacheKey, SimpleCacheValue,
+                                               Hash, Equal, T::value>;
+  using SimpleWrapper = cache::LruCacheWrapper<SimpleCacheKey, SimpleCacheValue,
+                                               Hash, Equal, T::value>;
   static std::shared_ptr<SimpleCache> CreateSimpleCachePtr() {
     return std::make_shared<SimpleCache>(1, 1);
   }

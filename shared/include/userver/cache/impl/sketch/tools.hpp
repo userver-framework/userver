@@ -8,8 +8,8 @@ namespace cache::impl::sketch {
 
 template <typename T, typename Hash>
 class Hashes {
-    public:
-        Hashes(const T& element, Hash hash = Hash{});
+ public:
+  Hashes(const T& element, Hash hash = Hash{});
 };
 
 size_t NextPowerOfTwo(size_t n);

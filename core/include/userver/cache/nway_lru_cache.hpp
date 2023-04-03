@@ -179,7 +179,8 @@ NWayLRU<T, U, Hash, Eq, Policy>::GetWay(const T& key) {
   return caches_[n];
 }
 
-template <typename T, typename U, typename Hash, typename Equal, CachePolicy Policy>
+template <typename T, typename U, typename Hash, typename Equal,
+          CachePolicy Policy>
 void NWayLRU<T, U, Hash, Equal, Policy>::Write(dump::Writer& writer) const {
   writer.Write(caches_.size());
 
@@ -195,7 +196,8 @@ void NWayLRU<T, U, Hash, Equal, Policy>::Write(dump::Writer& writer) const {
   }
 }
 
-template <typename T, typename U, typename Hash, typename Equal, CachePolicy Policy>
+template <typename T, typename U, typename Hash, typename Equal,
+          CachePolicy Policy>
 void NWayLRU<T, U, Hash, Equal, Policy>::Read(dump::Reader& reader) {
   Invalidate();
 
@@ -210,14 +212,16 @@ void NWayLRU<T, U, Hash, Equal, Policy>::Read(dump::Reader& reader) {
   }
 }
 
-template <typename T, typename U, typename Hash, typename Equal, CachePolicy Policy>
+template <typename T, typename U, typename Hash, typename Equal,
+          CachePolicy Policy>
 void NWayLRU<T, U, Hash, Equal, Policy>::NotifyDumper() {
   if (dumper_ != nullptr) {
     dumper_->OnUpdateCompleted();
   }
 }
 
-template <typename T, typename U, typename Hash, typename Equal, CachePolicy Policy>
+template <typename T, typename U, typename Hash, typename Equal,
+          CachePolicy Policy>
 void NWayLRU<T, U, Hash, Equal, Policy>::SetDumper(
     std::shared_ptr<dump::Dumper> dumper) {
   dumper_ = std::move(dumper);

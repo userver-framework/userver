@@ -26,7 +26,10 @@ class TinyLfu {
  public:
   explicit TinyLfu(std::size_t max_size, const Hash& hash, const Equal& equal);
 
-  TinyLfu(TinyLfu&& other) noexcept : counters_(std::move(other.counters_)), max_size_(std::move(max_size_)), main_(std::move(main_)) {
+  TinyLfu(TinyLfu&& other) noexcept
+      : counters_(std::move(other.counters_)),
+        max_size_(std::move(max_size_)),
+        main_(std::move(main_)) {
     UINVARIANT(false, "not implemented yet");
   }
 
@@ -37,7 +40,6 @@ class TinyLfu {
     counters_ = std::move(other.counters_);
     max_size_ = other.max_size_;
     main_ = std::move(main_);
-
   }
   TinyLfu(const TinyLfu& lru) = delete;
   TinyLfu& operator=(const TinyLfu& lru) = delete;
@@ -195,7 +197,7 @@ class LruBase<T, U, Hash, Equal, CachePolicy::kTinyLFU> {
   explicit LruBase(std::size_t max_size, const Hash& hash, const Equal& equal)
       : inner_(max_size, hash, equal) {
     UINVARIANT(false, "not implemented yet");
-      }
+  }
 
   LruBase(LruBase&& other) noexcept = default;
   LruBase& operator=(LruBase&& other) noexcept = default;

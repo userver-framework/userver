@@ -24,7 +24,8 @@ namespace impl {
 formats::json::Value GetCacheStatisticsAsJson(
     const ExpirableLruCacheStatistics& stats, std::size_t size);
 
-template <typename Key, typename Value, typename Hash, typename Equal, CachePolicy Policy>
+template <typename Key, typename Value, typename Hash, typename Equal,
+          CachePolicy Policy>
 formats::json::Value GetCacheStatisticsAsJson(
     const ExpirableLruCache<Key, Value, Hash, Equal, Policy>& cache) {
   return GetCacheStatisticsAsJson(cache.GetStatistics(),
@@ -236,7 +237,8 @@ LruCacheComponent<Key, Value, Hash, Equal, Policy>::GetStaticConfigSchema() {
   return impl::GetLruCacheComponentBaseSchema();
 }
 
-template <typename Key, typename Value, typename Hash, typename Equal, CachePolicy Policy>
+template <typename Key, typename Value, typename Hash, typename Equal,
+          CachePolicy Policy>
 void LruCacheComponent<Key, Value, Hash, Equal, Policy>::GetAndWrite(
     dump::Writer& writer) const {
   if constexpr (kCacheIsDumpable) {
@@ -246,7 +248,8 @@ void LruCacheComponent<Key, Value, Hash, Equal, Policy>::GetAndWrite(
   }
 }
 
-template <typename Key, typename Value, typename Hash, typename Equal, CachePolicy Policy>
+template <typename Key, typename Value, typename Hash, typename Equal,
+          CachePolicy Policy>
 void LruCacheComponent<Key, Value, Hash, Equal, Policy>::ReadAndSet(
     dump::Reader& reader) {
   if constexpr (kCacheIsDumpable) {
