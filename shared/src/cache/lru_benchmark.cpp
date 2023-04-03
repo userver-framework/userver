@@ -63,6 +63,7 @@ void PutOverflow(benchmark::State& state) {
       ++i;
       lru.Put(i, i);
     }
+    benchmark::DoNotOptimize(lru);
 }
 BENCHMARK(PutOverflow<Lru>);
 BENCHMARK(PutOverflow<Lfu>);
