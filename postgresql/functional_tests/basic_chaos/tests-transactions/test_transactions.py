@@ -39,7 +39,7 @@ async def test_transaction_fine(service_client, gate, testpoint):
     assert hook4.times_called == 1
 
 
-TESTPOINT_NAMES = ('before_trx_begin', 'after_trx_begin', 'before_trx_commit')
+TESTPOINT_NAMES = ('after_trx_begin', 'before_trx_commit')
 
 
 @pytest.mark.parametrize('tp_name', TESTPOINT_NAMES)

@@ -7,6 +7,7 @@
 #include <boost/lockfree/queue.hpp>
 
 #include <userver/clients/dns/resolver_fwd.hpp>
+#include <userver/concurrent/background_task_storage.hpp>
 #include <userver/engine/condition_variable.hpp>
 #include <userver/engine/semaphore.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
@@ -81,14 +82,12 @@ class ConnectionPool : public std::enable_shared_from_this<ConnectionPool> {
 
  private:
   using SizeGuard = USERVER_NAMESPACE::utils::SizeGuard<std::atomic<size_t>>;
-  using SharedCounter = std::shared_ptr<std::atomic<size_t>>;
-  using SharedSizeGuard = USERVER_NAMESPACE::utils::SizeGuard<SharedCounter>;
 
   void Init(InitMode mode);
 
   TimeoutDuration GetExecuteTimeout(OptionalCommandControl) const;
 
-  [[nodiscard]] engine::TaskWithResult<bool> Connect(SharedSizeGuard&&);
+  [[nodiscard]] engine::TaskWithResult<bool> Connect();
 
   void TryCreateConnectionAsync();
   void CheckMinPoolSizeUnderflow();
@@ -98,6 +97,7 @@ class ConnectionPool : public std::enable_shared_from_this<ConnectionPool> {
 
   void Clear();
 
+  void CleanupConnection(Connection* connection);
   void DeleteConnection(Connection* connection);
   void DeleteBrokenConnection(Connection* connection);
   void DropOutdatedConnection(Connection* connection);
@@ -108,6 +108,7 @@ class ConnectionPool : public std::enable_shared_from_this<ConnectionPool> {
   void MaintainConnections();
   void StartMaintainTask();
   void StopMaintainTask();
+  void StopConnectTasks();
 
   using RecentCounter = USERVER_NAMESPACE::utils::statistics::RecentPeriod<
       USERVER_NAMESPACE::utils::statistics::RelaxedCounter<size_t>, size_t>;
@@ -119,11 +120,13 @@ class ConnectionPool : public std::enable_shared_from_this<ConnectionPool> {
   rcu::Variable<PoolSettings> settings_;
   rcu::Variable<ConnectionSettings> conn_settings_;
   engine::TaskProcessor& bg_task_processor_;
+  concurrent::BackgroundTaskStorageCore connect_task_storage_;
+  concurrent::BackgroundTaskStorageCore close_task_storage_;
   USERVER_NAMESPACE::utils::PeriodicTask ping_task_;
   engine::Mutex wait_mutex_;
   engine::ConditionVariable conn_available_;
   boost::lockfree::queue<Connection*> queue_;
-  SharedCounter size_;
+  engine::Semaphore size_semaphore_;
   engine::Semaphore connecting_semaphore_;
   std::atomic<size_t> wait_count_;
   DefaultCommandControls default_cmd_ctls_;

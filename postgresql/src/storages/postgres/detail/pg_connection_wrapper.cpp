@@ -10,6 +10,7 @@ auto PQXisBusy(PGconn* conn) { return ::PQisBusy(conn); }
 auto PQXgetResult(PGconn* conn) { return ::PQgetResult(conn); }
 #endif
 
+#include <userver/concurrent/background_task_storage.hpp>
 #include <userver/engine/task/cancel.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/tracing/tags.hpp>
@@ -103,17 +104,21 @@ void NoticeReceiver(void* conn_wrapper_ptr, PGresult const* pg_res) {
 
 }  // namespace
 
-PGConnectionWrapper::PGConnectionWrapper(engine::TaskProcessor& tp, uint32_t id,
-                                         SizeGuard&& size_guard)
+PGConnectionWrapper::PGConnectionWrapper(
+    engine::TaskProcessor& tp, concurrent::BackgroundTaskStorageCore& bts,
+    uint32_t id, engine::SemaphoreLock&& pool_size_lock)
     : bg_task_processor_{tp},
+      bg_task_storage_{bts},
       log_extra_{{tracing::kDatabaseType, tracing::kDatabasePostgresType},
                  {"pg_conn_id", id}},
-      size_guard_{std::move(size_guard)},
+      pool_size_lock_{std::move(pool_size_lock)},
       last_use_{std::chrono::steady_clock::now()} {
   // TODO add SSL initialization
 }
 
-PGConnectionWrapper::~PGConnectionWrapper() { Close().Detach(); }
+PGConnectionWrapper::~PGConnectionWrapper() {
+  bg_task_storage_.Detach(Close());
+}
 
 template <typename ExceptionType>
 void PGConnectionWrapper::CheckError(const std::string& cmd,
@@ -190,7 +195,7 @@ engine::Task PGConnectionWrapper::Close() {
   return engine::CriticalAsyncNoSpan(
       bg_task_processor_,
       [tmp_conn, socket = std::move(tmp_sock), is_broken = is_broken_,
-       sg = std::move(size_guard_)]() mutable {
+       sl = std::move(pool_size_lock_)]() mutable {
         int fd = -1;
         if (socket) {
           fd = std::move(socket).Release();

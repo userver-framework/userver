@@ -2,6 +2,7 @@
 
 #include <boost/algorithm/string.hpp>
 
+#include <userver/concurrent/background_task_storage.hpp>
 #include <userver/engine/task/task.hpp>
 
 #include <storages/postgres/default_command_controls.hpp>
@@ -107,8 +108,8 @@ storages::postgres::detail::ConnectionPtr PostgreSQLBase::MakeConnection(
   std::unique_ptr<pg::detail::Connection> conn;
 
   UEXPECT_NO_THROW(conn = pg::detail::Connection::Connect(
-                       dsn, nullptr, task_processor, kConnectionId, settings,
-                       GetTestCmdCtls(), {}, {}))
+                       dsn, nullptr, task_processor, GetTaskStorage(),
+                       kConnectionId, settings, GetTestCmdCtls(), {}, {}))
       << "Connect to correct DSN";
   pg::detail::ConnectionPtr conn_ptr{std::move(conn)};
   if (conn_ptr) CheckConnection(conn_ptr);
@@ -136,6 +137,11 @@ void PostgreSQLBase::FinalizeConnection(pg::detail::ConnectionPtr conn) {
 
 engine::TaskProcessor& PostgreSQLBase::GetTaskProcessor() {
   return engine::current_task::GetTaskProcessor();
+}
+
+concurrent::BackgroundTaskStorageCore& PostgreSQLBase::GetTaskStorage() {
+  static concurrent::BackgroundTaskStorageCore bts;
+  return bts;
 }
 
 PostgreConnection::PostgreConnection()

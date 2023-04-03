@@ -1,5 +1,6 @@
 #include <storages/postgres/util_benchmark.hpp>
 
+#include <userver/concurrent/background_task_storage.hpp>
 #include <userver/engine/task/task.hpp>
 
 #include <storages/postgres/default_command_controls.hpp>
@@ -36,11 +37,12 @@ void PgConnection::RunStandalone(benchmark::State& state,
                                  std::size_t thread_count,
                                  std::function<void()> payload) {
   engine::RunStandalone(thread_count, [&] {
+    auto bts = concurrent::BackgroundTaskStorageCore{};
     auto dsn = GetDsnFromEnv();
     if (!dsn.empty()) {
       conn_ = detail::Connection::Connect(
-          dsn, nullptr, engine::current_task::GetTaskProcessor(), kConnectionId,
-          {ConnectionSettings::kCachePreparedStatements},
+          dsn, nullptr, engine::current_task::GetTaskProcessor(), bts,
+          kConnectionId, {ConnectionSettings::kCachePreparedStatements},
           DefaultCommandControls(kBenchCmdCtl, {}, {}), {}, {});
     }
 

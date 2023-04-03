@@ -73,6 +73,10 @@ std::size_t CancellableSemaphore::RemainingApprox() const {
   return capacity >= acquired ? capacity - acquired : 0;
 }
 
+std::size_t CancellableSemaphore::UsedApprox() const {
+  return acquired_locks_.load(std::memory_order_relaxed);
+}
+
 void CancellableSemaphore::lock_shared() { lock_shared_count(1); }
 
 void CancellableSemaphore::lock_shared_count(const Counter count) {
@@ -189,6 +193,8 @@ Semaphore::Counter Semaphore::GetCapacity() const noexcept {
 std::size_t Semaphore::RemainingApprox() const {
   return sem_.RemainingApprox();
 }
+
+std::size_t Semaphore::UsedApprox() const { return sem_.UsedApprox(); }
 
 void Semaphore::lock_shared() {
   engine::TaskCancellationBlocker blocker;

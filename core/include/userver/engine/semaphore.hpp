@@ -67,6 +67,9 @@ class CancellableSemaphore final {
   /// Returns an approximate number of available locks, use only for statistics.
   std::size_t RemainingApprox() const;
 
+  /// Returns an approximate number of used locks, use only for statistics.
+  std::size_t UsedApprox() const;
+
   /// Decrements internal semaphore lock counter. Blocks if current counter is
   /// zero until the subsequent call to unlock_shared() by another coroutine.
   /// @note the user must eventually call unlock_shared() to increment the lock
@@ -154,6 +157,9 @@ class Semaphore final {
 
   /// Returns an approximate number of available locks, use only for statistics.
   std::size_t RemainingApprox() const;
+
+  /// Returns an approximate number of used locks, use only for statistics.
+  std::size_t UsedApprox() const;
 
   /// Decrements internal semaphore lock counter. Blocks if current counter is
   /// zero until the subsequent call to unlock_shared() by another coroutine.

@@ -68,3 +68,15 @@ async def _gate_ready(service_client, _gate_started):
     await _gate_started.wait_for_connections()
     yield _gate_started
     # /// [gate fixture]
+
+
+@pytest.fixture(
+    autouse=True,
+    params=[False, True],
+    ids=['pipeline_disabled', 'pipeline_enabled'],
+)
+async def pipeline_mode(request, service_client, dynamic_config):
+    dynamic_config.set_values(
+        {'POSTGRES_CONNECTION_PIPELINE_ENABLED': request.param},
+    )
+    await service_client.update_server_state()

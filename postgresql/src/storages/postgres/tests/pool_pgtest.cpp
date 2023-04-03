@@ -176,7 +176,7 @@ UTEST_F(PostgrePool, AsyncMinPool) {
       testsuite::PostgresControl{}, error_injection::Settings{});
   const auto& stats = pool->GetStatistics();
   EXPECT_EQ(0, stats.connection.open_total);
-  EXPECT_EQ(1, stats.connection.active);
+  EXPECT_EQ(0, stats.connection.active);
 }
 
 UTEST_F(PostgrePool, SyncMinPool) {
@@ -205,12 +205,14 @@ UTEST_F(PostgrePool, ConnectionCleanup) {
   {
     const auto& stats = pool->GetStatistics();
     EXPECT_EQ(0, stats.connection.open_total);
-    EXPECT_EQ(1, stats.connection.active);
+    EXPECT_EQ(0, stats.connection.active);
     EXPECT_EQ(0, stats.connection.error_total);
-
+  }
+  {
     pg::Transaction trx{pg::detail::ConnectionPtr(nullptr)};
     UEXPECT_NO_THROW(trx = pool->Begin({})) << "Start transaction in a pool";
 
+    const auto& stats = pool->GetStatistics();
     EXPECT_EQ(1, stats.connection.open_total);
     EXPECT_EQ(1, stats.connection.active);
     EXPECT_EQ(1, stats.connection.used);
@@ -254,6 +256,31 @@ UTEST_F(PostgrePool, QueryCancel) {
     EXPECT_EQ(0, stats.connection.drop_total);
     EXPECT_EQ(0, stats.connection.error_total);
   }
+}
+
+UTEST_F(PostgrePool, SetConnectionSettings) {
+  auto pool = pg::detail::ConnectionPool::Create(
+      GetDsnFromEnv(), nullptr, GetTaskProcessor(), "",
+      storages::postgres::InitMode::kAsync, {1, 1, 10},
+      kCachePreparedStatements, {}, GetTestCmdCtls(), {}, {});
+  pg::detail::ConnectionPtr conn(nullptr);
+
+  UASSERT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
+      << "Obtained connection from pool";
+  const auto old_settings_version = conn->GetSettings().version;
+  conn = pg::detail::ConnectionPtr{nullptr};
+
+  // force pool to recreate connection by assigning new settings
+  auto new_settings = kCachePreparedStatements;
+  ++new_settings.max_prepared_cache_size;
+  pool->SetConnectionSettings(new_settings);
+
+  UASSERT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
+      << "Obtained connection from pool";
+  const auto new_settings_version = conn->GetSettings().version;
+  EXPECT_EQ(new_settings_version, old_settings_version + 1);
+
+  CheckConnection(std::move(conn));
 }
 
 UTEST_F(PostgrePool, DefaultCmdCtl) {

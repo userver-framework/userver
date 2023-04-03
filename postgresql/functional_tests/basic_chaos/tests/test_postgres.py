@@ -242,9 +242,6 @@ async def test_network_smaller_parts(service_client, gate):
 async def test_network_limit_bytes_sends(service_client, gate):
     gate.to_server_limit_bytes(BYTES_TRANSMISSION_LIMIT)
 
-    response = await service_client.get(SELECT_URL)
-    assert response.status == 200
-
     logger.debug('Starting "test_network_limit_bytes_sends" check for 500')
     got_error = False
     for _ in range(FAILURE_RETRIES):

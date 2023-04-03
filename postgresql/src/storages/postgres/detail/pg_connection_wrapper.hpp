@@ -5,15 +5,16 @@
 
 #include <libpq-fe.h>
 
+#include <userver/concurrent/background_task_storage_fwd.hpp>
 #include <userver/engine/async.hpp>
 #include <userver/engine/io/socket.hpp>
 #include <userver/engine/task/task.hpp>
 #include <userver/logging/log_extra.hpp>
 #include <userver/tracing/span.hpp>
-#include <utils/size_guard.hpp>
 
 #include <storages/postgres/detail/connection.hpp>
 #include <storages/postgres/detail/result_wrapper.hpp>
+#include <userver/engine/semaphore.hpp>
 #include <userver/storages/postgres/dsn.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -25,11 +26,10 @@ class PGConnectionWrapper {
   using Deadline = engine::Deadline;
   using Duration = Deadline::TimePoint::clock::duration;
   using ResultHandle = detail::ResultWrapper::ResultHandle;
-  using SizeGuard =
-      USERVER_NAMESPACE::utils::SizeGuard<std::shared_ptr<std::atomic<size_t>>>;
 
-  PGConnectionWrapper(engine::TaskProcessor& tp, uint32_t id,
-                      SizeGuard&& size_guard);
+  PGConnectionWrapper(engine::TaskProcessor& tp,
+                      concurrent::BackgroundTaskStorageCore& bts, uint32_t id,
+                      engine::SemaphoreLock&& pool_size_lock);
   ~PGConnectionWrapper();
 
   PGConnectionWrapper(const PGConnectionWrapper&) = delete;
@@ -154,11 +154,12 @@ class PGConnectionWrapper {
   void UpdateLastUse();
 
   engine::TaskProcessor& bg_task_processor_;
+  concurrent::BackgroundTaskStorageCore& bg_task_storage_;
 
   PGconn* conn_{nullptr};
   engine::io::Socket socket_;
   logging::LogExtra log_extra_;
-  SizeGuard size_guard_;
+  engine::SemaphoreLock pool_size_lock_;
   std::chrono::steady_clock::time_point last_use_;
   bool is_broken_{false};
   bool is_syncing_pipeline_{false};

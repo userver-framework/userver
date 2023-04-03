@@ -6,6 +6,7 @@
 #include <cstdlib>
 #include <vector>
 
+#include <userver/concurrent/background_task_storage_fwd.hpp>
 #include <userver/engine/async.hpp>
 #include <userver/engine/task/task.hpp>
 #include <userver/logging/log.hpp>
@@ -66,6 +67,7 @@ class PostgreSQLBase : public ::testing::Test {
   static storages::postgres::Dsn GetDsnFromEnv();
   static storages::postgres::DsnList GetDsnListFromEnv();
   static engine::TaskProcessor& GetTaskProcessor();
+  static concurrent::BackgroundTaskStorageCore& GetTaskStorage();
 
   static storages::postgres::detail::ConnectionPtr MakeConnection(
       const storages::postgres::Dsn& dsn, engine::TaskProcessor& task_processor,

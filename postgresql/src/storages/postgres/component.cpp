@@ -75,11 +75,6 @@ Postgres::Postgres(const ComponentConfig& config,
     db_name_ = monitoring_dbalias;
   }
 
-  initial_settings_.statement_metrics_settings =
-      config.As<storages::postgres::StatementMetricsSettings>();
-
-  initial_settings_.pool_settings =
-      config.As<storages::postgres::PoolSettings>();
   initial_settings_.init_mode = config["sync-start"].As<bool>(true)
                                     ? storages::postgres::InitMode::kSync
                                     : storages::postgres::InitMode::kAsync;
@@ -89,8 +84,17 @@ Postgres::Postgres(const ComponentConfig& config,
       config["max_replication_lag"].As<std::chrono::milliseconds>(
           kDefaultMaxReplicationLag);
 
+  initial_settings_.pool_settings =
+      pg_config.pool_settings.GetOptional(name_).value_or(
+          config.As<storages::postgres::PoolSettings>());
   initial_settings_.conn_settings =
-      config.As<storages::postgres::ConnectionSettings>();
+      pg_config.connection_settings.GetOptional(name_).value_or(
+          config.As<storages::postgres::ConnectionSettings>());
+  initial_settings_.conn_settings.pipeline_mode =
+      initial_config[storages::postgres::kPipelineModeKey];
+  initial_settings_.statement_metrics_settings =
+      pg_config.statement_metrics_settings.GetOptional(name_).value_or(
+          config.As<storages::postgres::StatementMetricsSettings>());
 
   const auto task_processor_name =
       config["blocking_task_processor"].As<std::string>();
