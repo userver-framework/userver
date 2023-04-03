@@ -19,8 +19,9 @@ async def _gate_started(loop, for_client_gate_port, mockserver_info):
     )
     logger.info(
         f'Create gate client -> ({gate_config.host_for_client}:'
-        f'{gate_config.port_for_client}); ({gate_config.host_to_server}:'
-        f'{gate_config.port_to_server} -> server)',
+        f'{gate_config.port_for_client}); internal_client_socket -> '
+        f'server({gate_config.host_to_server}:'
+        f'{gate_config.port_to_server})',
     )
     async with chaos.TcpGate(gate_config, loop) as proxy:
         yield proxy

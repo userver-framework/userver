@@ -44,7 +44,8 @@ KeyValue::KeyValue(const components::ComponentConfig& config,
     : server::handlers::HttpHandlerBase(config, context),
       redis_client_{
           context.FindComponent<components::Redis>("key-value-database")
-              .GetClient("test")} {}
+              .GetClient("test")},
+      redis_cc_{std::chrono::seconds{15}, std::chrono::seconds{60}, 4} {}
 
 std::string KeyValue::HandleRequestThrow(
     const server::http::HttpRequest& request,

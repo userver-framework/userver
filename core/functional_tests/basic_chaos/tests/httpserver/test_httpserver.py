@@ -1,5 +1,6 @@
 import asyncio
 import enum
+import logging
 import typing
 
 from aiohttp import client_exceptions as exceptions
@@ -14,6 +15,8 @@ DEFAULT_TIMEOUT = 5.0
 DEFAULT_DATA = {'hello': 'world'}
 
 DATA_PARTS_MAX_SIZE = 10
+
+logger = logging.getLogger(__name__)
 
 
 class ErrorType(enum.Enum):
@@ -157,13 +160,14 @@ async def test_partial_request(call, gate, check_restore):
     fail: int = 0
     for bytes_count in range(1, 1000):
         gate.to_server_limit_bytes(bytes_count)
-        response = await call()
+        response = await call(data={'test': 'body'})
         if response == ErrorType.DISCONNECT:
             fail = fail + 1
         elif isinstance(response, http.ClientResponse):
             success = True
             break
         else:
+            logger.error(f'Got unexpected error {response}')
             assert False
 
     assert fail >= 250

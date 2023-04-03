@@ -8,6 +8,8 @@ SUCCESS_IPV4 = '77.88.55.55:0'
 SUCCESS_IPV6 = '[2a02:6b8:a::a]:0'
 SUCCESS_RESOLVE = f'{SUCCESS_IPV6}, {SUCCESS_IPV4}'
 
+DEFAULT_TIMEOUT = 15
+
 
 class CheckQuery(enum.Enum):
     FROM_MOCK = 1
@@ -76,7 +78,11 @@ def check_restore(gate, call, flush_resolver_cache, gen_domain_name):
         if not domain:
             domain = gen_domain_name()
 
-        response = await call(resolve=domain, check_query=CheckQuery.FROM_MOCK)
+        response = await call(
+            resolve=domain,
+            check_query=CheckQuery.FROM_MOCK,
+            timeout=DEFAULT_TIMEOUT,
+        )
 
         assert response.status == 200
         assert response.text == SUCCESS_RESOLVE
@@ -132,7 +138,7 @@ async def test_noop(call, gate, check_restore, gen_domain_name):
 
 
 async def test_delay(call, gate, check_restore):
-    gate.to_client_delay(delay=2)
+    gate.to_client_delay(delay=10)
 
     response = await call(timeout=1)
 

@@ -75,7 +75,8 @@ async def test_close_after_headers(call, gate, mockserver):
     assert response.status == 500
 
     on = False
-    response = await call()
+    # It takes some time in Arcadia CI to restore connection
+    response = await call(timeout=30)
     assert response.status == 200
     assert mock.times_called > 1
 

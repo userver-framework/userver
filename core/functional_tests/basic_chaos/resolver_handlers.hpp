@@ -18,7 +18,7 @@
 namespace chaos {
 
 static constexpr std::string_view kSeparator = ", ";
-static constexpr size_t kResolverTimeoutSecs = 3;
+static constexpr size_t kResolverTimeoutSecs = 15;
 
 class ResolverHandler final : public server::handlers::HttpHandlerBase {
  public:
@@ -59,6 +59,8 @@ class ResolverHandler final : public server::handlers::HttpHandlerBase {
     const std::chrono::seconds timeout_secs{
         timeout.empty() ? kResolverTimeoutSecs : std::stoi(timeout)};
     const auto& to_resolve = request.GetArg("host_to_resolve");
+    LOG_DEBUG() << "Timeout ms " << timeout_secs << " but should be "
+                << timeout;
     if (type == "resolve") {
       auto res = resolver_.Resolve(
           to_resolve, engine::Deadline::FromDuration(timeout_secs));
