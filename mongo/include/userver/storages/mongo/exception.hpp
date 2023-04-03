@@ -12,7 +12,9 @@ namespace storages::mongo {
 /// Generic mongo-related exception
 class MongoException : public utils::TracefulException {
  public:
-  using utils::TracefulException::TracefulException;
+  MongoException();
+
+  explicit MongoException(std::string_view what);
 };
 
 /// Config validation error
