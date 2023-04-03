@@ -228,14 +228,6 @@ void LruBase<T, U, Hash, Eq, CachePolicy::kLRU>::Erase(const T& key) {
 }
 
 template <typename T, typename U, typename Hash, typename Eq>
-U* LruBase<T, U, Hash, Eq, CachePolicy::kLRU>::Get(const T& key) {
-  auto it = map_.find(key, map_.hash_function(), map_.key_eq());
-  if (it == map_.end()) return nullptr;
-  MarkRecentlyUsed(*it);
-  return &it->GetValue();
-}
-
-template <typename T, typename U, typename Hash, typename Eq>
 const T* LruBase<T, U, Hash, Eq, CachePolicy::kLRU>::GetLeastUsedKey() {
   if (list_.empty()) return nullptr;
   return &list_.front().GetKey();

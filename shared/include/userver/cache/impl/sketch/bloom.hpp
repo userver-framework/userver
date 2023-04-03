@@ -1,11 +1,11 @@
 #pragma once
 
+#include <climits>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <iostream>
 #include <limits>
-#include <climits>
 
 #include <boost/container/small_vector.hpp>
 
@@ -17,10 +17,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace cache::impl::sketch {
 
-enum class CounterSize {
-  kHalfByte = 4,
-  kByte = 8
-};
+enum class CounterSize { kHalfByte = 4, kByte = 8 };
 
 constexpr std::size_t kInitialCounters = 32;
 
@@ -28,7 +25,8 @@ constexpr std::size_t kInitialCounters = 32;
 template <typename T, typename Hash>
 class Sketch<T, Hash, Policy::Bloom> {
  public:
-  explicit Sketch(std::size_t num_counters = kInitialCounters, const Hash& hash = Hash{});
+  explicit Sketch(std::size_t num_counters = kInitialCounters,
+                  const Hash& hash = Hash{});
   std::size_t Estimate(const T&);
   bool Increment(const T&);
   void Reset();
@@ -36,10 +34,14 @@ class Sketch<T, Hash, Policy::Bloom> {
 
  private:
   static constexpr CounterSize kCounterBitSize = CounterSize::kHalfByte;
-  static constexpr unsigned char kMaxFrequency = (1u << static_cast<int>(kCounterBitSize)) - 1;
-  static constexpr std::size_t kDataBytesCount = (kInitialCounters >> (static_cast<int>(CounterSize::kByte) / static_cast<int>(kCounterBitSize)));
+  static constexpr unsigned char kMaxFrequency =
+      (1u << static_cast<int>(kCounterBitSize)) - 1;
+  static constexpr std::size_t kDataBytesCount =
+      (kInitialCounters >> (static_cast<int>(CounterSize::kByte) /
+                            static_cast<int>(kCounterBitSize)));
   static constexpr std::size_t kNumHashers = 4;
-  static constexpr unsigned char kResetMask = (kCounterBitSize == CounterSize::kByte ? 0x7f : 0x77);
+  static constexpr unsigned char kResetMask =
+      (kCounterBitSize == CounterSize::kByte ? 0x7f : 0x77);
 
   uint64_t GetHash(const T& item, uint64_t seed);
   unsigned char Get(uint64_t hashed);
@@ -53,7 +55,6 @@ class Sketch<T, Hash, Policy::Bloom> {
   static constexpr uint64_t seeds[] = {0xc3a5c85c97cb3127L, 0xb492b66fbe98f273L,
                                        0x9ae16a3b2f90404fL,
                                        0xcbf29ce484222325L};
-
 };
 
 template <typename T, typename Hash>
@@ -61,7 +62,7 @@ Sketch<T, Hash, Policy::Bloom>::Sketch(size_t num_counters, const Hash& hash)
     : num_counters_(NextPowerOfTwo(num_counters)),
       data_(num_counters_ >> 1),
       hash_(hash) {
-  UINVARIANT(false, "not implemented yet");      
+  UINVARIANT(false, "not implemented yet");
   UASSERT(num_counters > 0);
 }
 
@@ -113,7 +114,10 @@ bool Sketch<T, Hash, Policy::Bloom>::TryIncrement(uint64_t hashed) {
   if constexpr (kCounterBitSize == CounterSize::kByte) {
     data_[counter_index]++;
   } else {
-    data_[counter_index >> 1] += (counter_index & 1) == 0 ? (1u << static_cast<int>(CounterSize::kHalfByte)) : 1;
+    data_[counter_index >> 1] +=
+        (counter_index & 1) == 0
+            ? (1u << static_cast<int>(CounterSize::kHalfByte))
+            : 1;
   }
   return true;
 }

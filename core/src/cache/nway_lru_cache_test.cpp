@@ -34,6 +34,7 @@ TYPED_UTEST(NWayLRU, Set) {
 
   cache.Put(2, 2);
   cache.Put(2, 2);
+  cache.Put(2, 2);
 
   EXPECT_EQ(2, cache.Get(2));
   EXPECT_EQ(1, cache.GetSize());
