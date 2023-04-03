@@ -43,6 +43,12 @@ target_link_libraries(${PROJECT_NAME}
     OpenSSL::SSL
     OpenSSL::Crypto
     GssApi
+    PostgreSQL
+    PostgreSQLInternal
+    ${LDAP_LIBRARY}
+    OpenSSL::SSL
+    OpenSSL::Crypto
+    GssApi
 )
 
 target_compile_options(
