@@ -23,7 +23,7 @@ TEST(CacheSketch, AgedReset) {
   for (std::size_t i = 0; i < 16; ++i) {
     agedCounters.Increment(1.0);
   }
-  
+
   EXPECT_TRUE(agedCounters.Estimate(1.0) != 16);
 }
 
