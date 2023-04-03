@@ -3,7 +3,7 @@
 # relaxed compilation flags.
 
 get_filename_component(USERVER_DIR "${CMAKE_CURRENT_LIST_DIR}" DIRECTORY)
-set(PROTO_GRPC_USRV_PLUGIN "${USERVER_DIR}/scripts/grpc/protoc_usrv_plugin")
+set(PROTO_GRPC_USRV_PLUGIN "${USERVER_DIR}/scripts/grpc/protoc_usrv_plugin.sh")
 
 # We only check the system pip protobuf package version once.
 if(NOT USERVER_IMPL_GRPC_REQUIREMENTS_CHECKED)
