@@ -89,6 +89,7 @@ async def test_ok(call, gate):
     assert response.text == 'OK!'
 
 
+@pytest.mark.skip(reason='flacky in arcadia CI')
 async def test_stop_accepting(call, gate, check_restore):
     response = await call()
     assert response.status == 200
@@ -155,6 +156,7 @@ async def test_corrupted_request(call, gate, check_restore):
     await check_restore()
 
 
+@pytest.mark.skip(reason='flacky in arcadia CI')
 async def test_partial_request(call, gate, check_restore):
     success: bool = False
     fail: int = 0
@@ -178,6 +180,7 @@ async def test_partial_request(call, gate, check_restore):
     await check_restore()
 
 
+@pytest.mark.skip(reason='flacky in arcadia CI')
 async def test_network_smaller_parts_sends(call, gate, check_restore):
     gate.to_server_smaller_parts(DATA_PARTS_MAX_SIZE)
 

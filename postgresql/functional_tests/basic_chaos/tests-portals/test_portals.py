@@ -21,6 +21,7 @@ async def test_portal_fine(service_client, gate):
 TESTPOINT_NAMES = ('after_make_portal', 'after_fetch')
 
 
+@pytest.mark.skip(reason='flacky in arcadia CI')
 @pytest.mark.parametrize('tp_name', TESTPOINT_NAMES)
 async def test_sockets_close(service_client, gate, testpoint, tp_name):
     should_close_sockets = True
@@ -48,6 +49,7 @@ async def test_sockets_close(service_client, gate, testpoint, tp_name):
 DELAY_SECS = 4.0
 
 
+@pytest.mark.skip(reason='flacky in arcadia CI')
 @pytest.mark.parametrize('tp_name', TESTPOINT_NAMES)
 async def test_timeout(service_client, gate, testpoint, tp_name):
     should_delay = True

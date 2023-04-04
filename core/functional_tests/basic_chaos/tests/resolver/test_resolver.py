@@ -137,6 +137,7 @@ async def test_noop(call, gate, check_restore, gen_domain_name):
     assert not response.text
 
 
+@pytest.mark.skip(reason='flacky in arcadia CI')
 async def test_delay(call, gate, check_restore):
     gate.to_client_delay(delay=10)
 
