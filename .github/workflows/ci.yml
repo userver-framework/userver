@@ -26,8 +26,8 @@ jobs:
                         -DUSERVER_NAMESPACE_BEGIN="namespace userver_ns { inline namespace
                         v1 {"
                         -DUSERVER_NAMESPACE_END="}}"
-                        -DUSERVER_PG_SERVER_INCLUDE_DIR=/usr/include/postgresql/14/server
-                        -DUSERVER_PG_SERVER_LIBRARY_DIR=/usr/lib/postgresql/14/lib
+                        -DUSERVER_PG_SERVER_INCLUDE_DIR=/usr/include/postgresql/15/server
+                        -DUSERVER_PG_SERVER_LIBRARY_DIR=/usr/lib/postgresql/15/lib
                     os: ubuntu-22.04
                     info: clang-14 + debug + sanitize addr+ub
                     tests-flags: ''
@@ -84,9 +84,7 @@ jobs:
 
                 if [ "${{matrix.os}}" = "ubuntu-22.04" ]; then
                   # GH Ubuntu image has libpq version 15+ from pg's repo that is API incompatible with postgresql-14.
-                  printf "Package: libpq5\nPin: version 14.5*\nPin-Priority: 1001\n" | sudo tee -a /etc/apt/preferences.d/libpq5
-                  printf "Package: libpq-dev\nPin: version 14.5*\nPin-Priority: 1001\n"| sudo tee -a /etc/apt/preferences.d/libpq-dev
-                  sudo apt install --allow-downgrades -y libpq5 libpq-dev
+                  sudo apt install --allow-downgrades -y postgresql-15 postgresql-client-15
                 fi
 
                 if [ "${{matrix.info}}" = "g++-8 + debug" ]; then
