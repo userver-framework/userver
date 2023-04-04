@@ -251,8 +251,8 @@ cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
       -DUSERVER_FEATURE_CLICKHOUSE=0 \
       -DUSERVER_FEATURE_RABBITMQ=0 \
       -DOPENSSL_ROOT_DIR=$(brew --prefix openssl@1.1) \
-      -DUSERVER_PG_INCLUDE_DIR=$(pg_config --includedir) -DUSERVER_PG_LIBRARY_DIR=$(pg_config --libdir) \
-      -DUSERVER_PG_PKGLIB_DIR=$(pg_config --pkglibdir) -DUSERVER_PG_SERVER_INCLUDE_DIR=$(pg_config --includedir-server) \
+      -DUSERVER_PG_LIBRARY_DIR=$(pg_config --libdir) -DUSERVER_PG_INCLUDE_DIR=$(pg_config --includedir) \
+      -DUSERVER_PG_SERVER_LIBRARY_DIR=$(pg_config --pkglibdir) -DUSERVER_PG_SERVER_INCLUDE_DIR=$(pg_config --includedir-server) \
       ..
 ```
 
