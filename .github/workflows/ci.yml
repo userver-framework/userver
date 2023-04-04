@@ -85,7 +85,7 @@ jobs:
                 if [ "${{matrix.os}}" = "ubuntu-22.04" ]; then
                   # GH Ubuntu image has libpq version 15+ from pg's repo that is API incompatible with postgresql-14.
                   printf "Package: libpq5\nPin: version 14.5*\nPin-Priority: 1001\n" | sudo tee -a /etc/apt/preferences.d/libpq5
-                  printf "Package: libpq-dev\nPin: version 14.5*\nPin-Priority: 1001\n"| sudo tee -a /etc/apt/preferences.d/libpq-dev1
+                  printf "Package: libpq-dev\nPin: version 14.5*\nPin-Priority: 1001\n"| sudo tee -a /etc/apt/preferences.d/libpq-dev
                   sudo apt install --allow-downgrades -y libpq5 libpq-dev
                 fi
 
