@@ -91,10 +91,10 @@ jobs:
                   #sudo mkdir -p /etc/apt/preferences.d
                   #printf "Package: postgresql-14\nPin: version 14.5*\nPin-Priority: 1001\n" | sudo tee -a /etc/apt/preferences.d/postgresql-14
                   #printf "Package: postgresql-client-14\nPin: version 14.5*\nPin-Priority: 1001\n" | sudo tee -a /etc/apt/preferences.d/postgresql-client-14
-                  sudo apt install --allow-downgrades -y postgresql-15 postgresql-client-15
-                  #printf "Package: libpq5\nPin: version 14.5*\nPin-Priority: 1001\n" | sudo tee -a /etc/apt/preferences.d/libpq5
-                  #printf "Package: libpq-dev\nPin: version 14.5*\nPin-Priority: 1001\n"| sudo tee -a /etc/apt/preferences.d/libpq-dev
-                  #sudo apt install --allow-downgrades -y libpq5 libpq-dev
+                  #sudo apt install --allow-downgrades -y postgresql-15 postgresql-client-15
+                  printf "Package: libpq5\nPin: version 14.5*\nPin-Priority: 1001\n" | sudo tee -a /etc/apt/preferences.d/libpq5
+                  printf "Package: libpq-dev\nPin: version 14.5*\nPin-Priority: 1001\n"| sudo tee -a /etc/apt/preferences.d/libpq-dev
+                  sudo apt install --allow-downgrades -y libpq5 libpq-dev
                 fi
 
                 if [ "${{matrix.info}}" = "g++-8 + debug" ]; then
