@@ -72,7 +72,7 @@ try_compile(
 if(NOT "${COMPILE_RESULT}")
   message(FATAL_ERROR "Error while compiling libpq patch:\n"
       "${COMPILE_OUTPUT}\n"
-      "If there are linkage errors up above then the versions of libpq, "
+      "If there are errors up above then the versions of libpq, "
       "libpgport and libpgcommon diverged: ${PQ_EXTRA_INITIAL_LIBRARIES_LIST}\n"
       "Install the same versions of PostgreSQL client and server libraries, "
       "use USERVER_PG_SERVER_INCLUDE_DIR, USERVER_PG_SERVER_LIBRARY_DIR, "
