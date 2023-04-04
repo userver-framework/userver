@@ -44,6 +44,10 @@ The following options could be used to control `cmake`:
 | USERVER_IS_THE_ROOT_PROJECT            | Build tests, samples and helper tools                                        | auto-detects if userver is the top level project |
 | USERVER_GOOGLE_COMMON_PROTOS_TARGET    | Name of cmake target preparing google common proto library                   | Builds userver-api-common-protos                 |
 | USERVER_GOOGLE_COMMON_PROTOS           | Path to the folder with google common proto files                            | Downloads to third_party automatically           |
+| USERVER_PG_SERVER_INCLUDE_DIR          | Path to the folder with @ref POSTGRES_LIBS "PostgreSQL server headers", for example /usr/include/postgresql/15/server | autodetected  |
+| USERVER_PG_SERVER_LIBRARY_DIR          | Path to the folder with @ref POSTGRES_LIBS "PostgreSQL server libraries", for example /usr/lib/postgresql/15/lib      | autodetected  |
+| USERVER_PG_INCLUDE_DIR                 | Path to the folder with @ref POSTGRES_LIBS "PostgreSQL libpq headers", for example /usr/local/include                 | autodetected  |
+| USERVER_PG_LIBRARY_DIR                 | Path to the folder with @ref POSTGRES_LIBS "PostgreSQL libpq libraries", for example /usr/local/lib                   | autodetected  |
 
 [hi_malloc]: https://bugs.launchpad.net/ubuntu/+source/hiredis/+bug/1888025
 
@@ -251,8 +255,8 @@ cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
       -DUSERVER_FEATURE_CLICKHOUSE=0 \
       -DUSERVER_FEATURE_RABBITMQ=0 \
       -DOPENSSL_ROOT_DIR=$(brew --prefix openssl@1.1) \
-      -DUSERVER_PG_INCLUDE_DIR=$(pg_config --includedir) -DUSERVER_PG_LIBRARY_DIR=$(pg_config --libdir) \
-      -DUSERVER_PG_PKGLIB_DIR=$(pg_config --pkglibdir) -DUSERVER_PG_SERVER_INCLUDE_DIR=$(pg_config --includedir-server) \
+      -DUSERVER_PG_LIBRARY_DIR=$(pg_config --libdir) -DUSERVER_PG_INCLUDE_DIR=$(pg_config --includedir) \
+      -DUSERVER_PG_SERVER_LIBRARY_DIR=$(pg_config --pkglibdir) -DUSERVER_PG_SERVER_INCLUDE_DIR=$(pg_config --includedir-server) \
       ..
 ```
 
@@ -269,6 +273,32 @@ ulimit -n 4096
 
 Feel free to provide a PR with instructions for your favorite platform at https://github.com/userver-framework/userver.
 
+
+@anchor POSTGRES_LIBS
+### PostgreSQL versions
+If CMake option `USERVER_FEATURE_PATCH_LIBPQ` is on, then the same developer
+version of libpq, libpgport and libpgcommon libraries should be available on
+the system. If there are multiple versions of those libraries use USERVER_PG_*
+CMake options to aid the build system in finding the right version.
+
+You could also install any version of the above libraries by explicitly pinning
+the version. For example in Debian/Ubuntu pinning to version 14 could be done
+via the following commands:
+```
+sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 7FCC7D46ACCC4CF8
+echo "deb https://apt-archive.postgresql.org/pub/repos/apt jammy-pgdg-archive main" | sudo tee /etc/apt/sources.list.d/pgdg.list
+sudo apt update
+
+sudo mkdir -p /etc/apt/preferences.d
+
+printf "Package: postgresql-14\nPin: version 14.5*\nPin-Priority: 1001\n" | sudo tee -a /etc/apt/preferences.d/postgresql-14
+printf "Package: postgresql-client-14\nPin: version 14.5*\nPin-Priority: 1001\n" | sudo tee -a /etc/apt/preferences.d/postgresql-client-14
+sudo apt install --allow-downgrades -y postgresql-14 postgresql-client-14
+
+printf "Package: libpq5\nPin: version 14.5*\nPin-Priority: 1001\n" | sudo tee -a /etc/apt/preferences.d/libpq5
+printf "Package: libpq-dev\nPin: version 14.5*\nPin-Priority: 1001\n"| sudo tee -a /etc/apt/preferences.d/libpq-dev
+sudo apt install --allow-downgrades -y libpq5 libpq-dev
+```
 
 @anchor DOCKER_BUILD
 ### Docker

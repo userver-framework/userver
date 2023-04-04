@@ -15,6 +15,7 @@ find_package(PostgreSQL REQUIRED)
 find_package(PostgreSQLInternal REQUIRED)
 find_package_required(OpenSSL "libssl-dev")
 find_package(GssApi REQUIRED)
+find_package(Threads REQUIRED)
 
 get_target_property(PQ_EXTRA_INITIAL_LIBRARIES_LIST
     PostgreSQLInternal INTERFACE_LINK_LIBRARIES
@@ -25,6 +26,7 @@ target_link_libraries(PostgreSQLInternal
     OpenSSL::SSL
     OpenSSL::Crypto
     GssApi
+    Threads::Threads
 )
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "BSD")
@@ -70,10 +72,12 @@ try_compile(
 if(NOT "${COMPILE_RESULT}")
   message(FATAL_ERROR "Error while compiling libpq patch:\n"
       "${COMPILE_OUTPUT}\n"
-      "If there are linkage errors up above then the versions of libpq, "
+      "If there are errors up above then the versions of libpq, "
       "libpgport and libpgcommon diverged: ${PQ_EXTRA_INITIAL_LIBRARIES_LIST}\n"
-      "Install the same versions of client and server "
-      "PostgreSQL libraries or disable libpq patching via "
+      "Install the same versions of PostgreSQL client and server libraries, "
+      "use USERVER_PG_SERVER_INCLUDE_DIR, USERVER_PG_SERVER_LIBRARY_DIR, "
+      "USERVER_PG_INCLUDE_DIR and USERVER_PG_LIBRARY_DIR CMake options "
+      "if needed; or disable libpq patching via "
       "CMake flag -DUSERVER_FEATURE_PATCH_LIBPQ=OFF."
   )
 endif()
