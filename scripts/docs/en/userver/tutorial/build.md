@@ -44,6 +44,10 @@ The following options could be used to control `cmake`:
 | USERVER_IS_THE_ROOT_PROJECT            | Build tests, samples and helper tools                                        | auto-detects if userver is the top level project |
 | USERVER_GOOGLE_COMMON_PROTOS_TARGET    | Name of cmake target preparing google common proto library                   | Builds userver-api-common-protos                 |
 | USERVER_GOOGLE_COMMON_PROTOS           | Path to the folder with google common proto files                            | Downloads to third_party automatically           |
+| USERVER_PG_SERVER_INCLUDE_DIR          | Path to the folder with PostgreSQL server headers, for example /usr/include/postgresql/15/server | autodetected                 |
+| USERVER_PG_SERVER_LIBRARY_DIR          | Path to the folder with PostgreSQL server libraries, for example /usr/lib/postgresql/15/lib      | autodetected                 |
+| USERVER_PG_INCLUDE_DIR                 | Path to the folder with PostgreSQL libpq headers, for example /usr/local/include    | autodetected                              |
+| USERVER_PG_LIBRARY_DIR                 | Path to the folder with PostgreSQL libpq libraries, for example /usr/local/lib      | autodetected                              |
 
 [hi_malloc]: https://bugs.launchpad.net/ubuntu/+source/hiredis/+bug/1888025
 
