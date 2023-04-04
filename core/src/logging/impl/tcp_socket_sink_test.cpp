@@ -1,5 +1,4 @@
 #include "tcp_socket_sink.hpp"
-#include "sink_helper_test.hpp"
 
 #include <userver/internal/net/net_listener.hpp>
 #include <userver/net/blocking/get_addr_info.hpp>
@@ -11,6 +10,12 @@
 #include <boost/regex.hpp>
 
 USERVER_NAMESPACE_BEGIN
+
+namespace {
+const boost::regex regexp_pattern{
+    R"(\[\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}.\d{3}\])"};
+const std::string result_pattern{"[DATETIME]"};
+}  // namespace
 
 UTEST(TcpSocketSink, SocketConnectErrorLocalhost) {
   auto addrs = net::blocking::GetAddrInfo("localhost", "8111");
@@ -51,10 +56,21 @@ UTEST(TcpSocketSink, SinkReadOnceV4) {
   internal::net::TcpListener listener(internal::net::IpVersion::kV4);
   auto socket_sink = logging::impl::TcpSocketSink({listener.addr});
 
+  auto read_sock = engine::io::Socket(listener.addr.Domain(),
+                                      engine::io::SocketType::kStream);
+
   auto listen_task = engine::AsyncNoSpan([&listener, &deadline] {
+    char buf[1];
+    std::string data{};
     auto sock = listener.socket.Accept(deadline);
-    const auto data = test::ReadFromSocket(std::move(sock));
-    EXPECT_EQ(data[0], "[datetime] [default] [warning] message");
+    while (size_t br = sock.RecvSome(buf, sizeof(buf), deadline) > 0) {
+      data.push_back(buf[0]);
+    }
+    auto data_expect =
+        boost::regex_replace(data, regexp_pattern, result_pattern,
+                             boost::match_default | boost::format_sed);
+    EXPECT_EQ(utils::text::ToLower(data_expect),
+              utils::text::ToLower("[DATETIME] [default] [WARNING] message\n"));
   });
 
   EXPECT_NO_THROW(socket_sink.log({"default", spdlog::level::warn, "message"}));
@@ -69,12 +85,33 @@ UTEST(TcpSocketSink, SinkReadMoreV4) {
   internal::net::TcpListener listener(internal::net::IpVersion::kV4);
   auto socket_sink = logging::impl::TcpSocketSink({listener.addr});
 
+  auto read_sock = engine::io::Socket(listener.addr.Domain(),
+                                      engine::io::SocketType::kStream);
+
   auto listen_task = engine::AsyncNoSpan([&listener, &deadline] {
+    char buf[1];
+    std::string data{};
     auto sock = listener.socket.Accept(deadline);
-    const auto logs = test::ReadFromSocket(std::move(sock));
-    EXPECT_EQ(logs[0], "[datetime] [default] [warning] message");
-    EXPECT_EQ(logs[1], "[datetime] [basic] [info] message 2");
-    EXPECT_EQ(logs[2], "[datetime] [current] [critical] message 3");
+    while (size_t br = sock.RecvSome(buf, sizeof(buf), deadline) > 0) {
+      data.push_back(buf[0]);
+    }
+    auto logs = utils::text::Split(data, "\n");
+    auto log_expect_1 =
+        boost::regex_replace(logs[0], regexp_pattern, result_pattern,
+                             boost::match_default | boost::format_sed);
+    auto log_expect_2 =
+        boost::regex_replace(logs[1], regexp_pattern, result_pattern,
+                             boost::match_default | boost::format_sed);
+    auto log_expect_3 =
+        boost::regex_replace(logs[2], regexp_pattern, result_pattern,
+                             boost::match_default | boost::format_sed);
+    EXPECT_EQ(utils::text::ToLower(log_expect_1),
+              utils::text::ToLower("[DATETIME] [default] [WARNING] message"));
+    EXPECT_EQ(utils::text::ToLower(log_expect_2),
+              utils::text::ToLower("[DATETIME] [basic] [INFO] message 2"));
+    EXPECT_EQ(
+        utils::text::ToLower(log_expect_3),
+        utils::text::ToLower("[DATETIME] [current] [CRITICAL] message 3"));
   });
 
   EXPECT_NO_THROW(socket_sink.log({"default", spdlog::level::warn, "message"}));

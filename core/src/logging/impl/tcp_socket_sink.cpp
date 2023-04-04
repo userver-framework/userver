@@ -9,8 +9,6 @@
 #include <cstring>
 #include <logging/log_helper_impl.hpp>
 
-#include <spdlog/pattern_formatter.h>
-
 USERVER_NAMESPACE_BEGIN
 
 namespace logging::impl {

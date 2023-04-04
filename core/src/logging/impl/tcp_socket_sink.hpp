@@ -3,14 +3,13 @@
 #include <chrono>
 #include <functional>
 #include <string>
-#include <vector>
 
 #include <userver/engine/io/sockaddr.hpp>
 #include <userver/engine/io/socket.hpp>
 #include <userver/engine/mutex.hpp>
 
 #include <spdlog/common.h>
-#include <spdlog/sinks/sink.h>
+#include <spdlog/sinks/base_sink.h>
 
 USERVER_NAMESPACE_BEGIN
 

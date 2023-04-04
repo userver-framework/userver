@@ -12,12 +12,13 @@
 
 #include <fmt/format.h>
 
-#include <logging/impl/fd_sink.hpp>
-#include <logging/impl/file_sink.hpp>
+#include <spdlog/sinks/stdout_sinks.h>
+
 #include <logging/impl/tcp_socket_sink.hpp>
-#include <logging/impl/unix_socket_sink.hpp>
+#include <logging/reopening_file_sink.hpp>
 #include <logging/spdlog_helpers.hpp>
 #include <logging/tp_logger.hpp>
+#include <logging/unix_socket_sink.hpp>
 #include <userver/components/component.hpp>
 #include <userver/engine/async.hpp>
 #include <userver/engine/sleep.hpp>
@@ -65,7 +66,7 @@ void ReopenAll(const std::shared_ptr<logging::impl::TpLogger>& logger) {
   int index = -1;
   for (const auto& s : logger->GetSinks()) {
     ++index;
-    auto reop = std::dynamic_pointer_cast<logging::impl::FileSink>(s);
+    auto reop = std::dynamic_pointer_cast<logging::ReopeningFileSinkMT>(s);
     if (!reop) {
       LOG_INFO() << "Skipping rotation for sink #" << index << " from '"
                  << logger->GetLoggerName() << "' logger";
@@ -73,7 +74,8 @@ void ReopenAll(const std::shared_ptr<logging::impl::TpLogger>& logger) {
     }
 
     try {
-      reop->Reopen(logging::impl::FileSink::ReopenMode::kAppend);
+      bool should_truncate = false;
+      reop->Reopen(should_truncate);
     } catch (const std::exception& e) {
       LOG_ERROR() << "Exception on log reopen: " << e;
     }
@@ -96,11 +98,11 @@ void CreateLogDirectory(const std::string& logger_name,
 spdlog::sink_ptr GetSinkFromFilename(const spdlog::filename_t& file_path) {
   if (boost::starts_with(file_path, unix_socket_prefix)) {
     // Use Unix-socket sink
-    return std::make_shared<logging::impl::UnixSocketSink>(
+    return std::make_shared<logging::SocketSinkMT>(
         file_path.substr(unix_socket_prefix.size()));
   } else {
     // Use File sink
-    return std::make_shared<logging::impl::FileSink>(file_path);
+    return std::make_shared<logging::ReopeningFileSinkMT>(file_path);
   }
 }
 
@@ -112,9 +114,9 @@ std::shared_ptr<logging::impl::TpLogger> CreateAsyncLogger(
   if (config.file_path == "@null") {
     // do nothing
   } else if (config.file_path == "@stderr") {
-    sink = std::make_shared<logging::impl::StderrSink>();
+    sink = std::make_shared<spdlog::sinks::stderr_sink_mt>();
   } else if (config.file_path == "@stdout") {
-    sink = std::make_shared<logging::impl::StdoutSink>();
+    sink = std::make_shared<spdlog::sinks::stdout_sink_mt>();
   } else {
     CreateLogDirectory(logger_name, config.file_path);
     sink = GetSinkFromFilename(config.file_path);

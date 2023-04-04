@@ -2,13 +2,14 @@
 
 #include <memory>
 
-#include <logging/impl/fd_sink.hpp>
-#include <logging/impl/file_sink.hpp>
-#include <logging/impl/unix_socket_sink.hpp>
+#include <logging/reopening_file_sink.hpp>
 #include <logging/spdlog.hpp>
 #include <logging/tp_logger.hpp>
+#include <logging/unix_socket_sink.hpp>
 
 #include <spdlog/formatter.h>
+#include <spdlog/sinks/null_sink.h>
+#include <spdlog/sinks/stdout_sinks.h>
 
 #include "config.hpp"
 
@@ -31,12 +32,12 @@ LoggerPtr MakeSimpleLogger(const std::string& name, spdlog::sink_ptr sink,
 }
 
 spdlog::sink_ptr MakeStderrSink() {
-  static auto sink = std::make_shared<impl::StderrSink>();
+  static auto sink = std::make_shared<spdlog::sinks::stderr_sink_mt>();
   return sink;
 }
 
 spdlog::sink_ptr MakeStdoutSink() {
-  static auto sink = std::make_shared<impl::StdoutSink>();
+  static auto sink = std::make_shared<spdlog::sinks::stdout_sink_mt>();
   return sink;
 }
 
@@ -54,8 +55,9 @@ LoggerPtr MakeStdoutLogger(const std::string& name, Format format,
 
 LoggerPtr MakeFileLogger(const std::string& name, const std::string& path,
                          Format format, Level level) {
-  return MakeSimpleLogger(name, std::make_shared<impl::FileSink>(path), level,
-                          format);
+  return MakeSimpleLogger(name,
+                          std::make_shared<logging::ReopeningFileSinkMT>(path),
+                          level, format);
 }
 
 namespace impl {
