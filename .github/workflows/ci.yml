@@ -18,10 +18,6 @@ jobs:
             fail-fast: false
             matrix:
                 include:
-                  # GH Ubuntu image has libpq version 15+ from pg's repo.
-                  # So we downgrade libpq5 and libpq-dev, otherwise build fails, because
-                  # postgresql-14 brings libpq5=15+, which has API breaks.
-                  # We also downgrade postgresql-14, otherwise it gets uninstalled.
                   - cmake-flags: >-
                         -DCMAKE_CXX_COMPILER=clang++-14 -DCMAKE_C_COMPILER=clang-14
                         -DUSERVER_SANITIZE="ub addr"
@@ -85,6 +81,21 @@ jobs:
 
                 sudo apt update
                 sudo apt install --allow-downgrades -y clickhouse-common-static $(cat scripts/docs/en/deps/${{matrix.os}}.md | tr '\n' ' ')
+
+                if [ "${{matrix.os}}" = "ubuntu-22.04" ]; then
+                  # GH Ubuntu image has libpq version 15+ from pg's repo.
+
+                  #sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 7FCC7D46ACCC4CF8
+                  #echo "deb https://apt-archive.postgresql.org/pub/repos/apt jammy-pgdg-archive main" | sudo tee /etc/apt/sources.list.d/pgdg.list
+                  #sudo apt update
+                  #sudo mkdir -p /etc/apt/preferences.d
+                  #printf "Package: postgresql-14\nPin: version 14.5*\nPin-Priority: 1001\n" | sudo tee -a /etc/apt/preferences.d/postgresql-14
+                  #printf "Package: postgresql-client-14\nPin: version 14.5*\nPin-Priority: 1001\n" | sudo tee -a /etc/apt/preferences.d/postgresql-client-14
+                  sudo apt install --allow-downgrades -y postgresql-15 postgresql-client-15
+                  #printf "Package: libpq5\nPin: version 14.5*\nPin-Priority: 1001\n" | sudo tee -a /etc/apt/preferences.d/libpq5
+                  #printf "Package: libpq-dev\nPin: version 14.5*\nPin-Priority: 1001\n"| sudo tee -a /etc/apt/preferences.d/libpq-dev
+                  #sudo apt install --allow-downgrades -y libpq5 libpq-dev
+                fi
 
                 if [ "${{matrix.info}}" = "g++-8 + debug" ]; then
                   sudo apt install --allow-downgrades -y g++-8
