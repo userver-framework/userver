@@ -87,7 +87,7 @@ jobs:
                   sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 7FCC7D46ACCC4CF8
                   echo "deb https://apt-archive.postgresql.org/pub/repos/apt jammy-pgdg-archive main" | sudo tee /etc/apt/sources.list.d/pgdg.list
                   sudo apt update
-                  sudo apt install -y postgresql-15 postgresql-client-15
+                  sudo apt install -y postgresql-15 postgresql-client-15 postgresql-server-dev-15
                 fi
 
                 if [ "${{matrix.info}}" = "g++-8 + debug" ]; then
