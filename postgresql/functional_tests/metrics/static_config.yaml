@@ -15,6 +15,15 @@ components_manager:
             pgcomponent: key-value-database
             update-interval: 10s
 
+        component-distlock-metrics:
+            cluster: key-value-database
+            table: table-distlocks
+            lockname: foo
+            pg-timeout: 1s
+            lock-ttl: 10s
+            autostart: true
+            testsuite-support: true
+
         testsuite-support:
 
         http-client:

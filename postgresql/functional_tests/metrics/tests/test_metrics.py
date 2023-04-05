@@ -4,7 +4,11 @@ import re
 def _normalize_metrics(metrics: str) -> str:
     result = []
     for line in metrics.splitlines():
-        if 'key-value-pg-cache' not in line and 'postgre' not in line:
+        if (
+                'key-value-pg-cache' not in line
+                and 'postgre' not in line
+                and 'distlock' not in line
+        ):
             continue
         left, _, _ = line.rsplit(' ', 2)
 

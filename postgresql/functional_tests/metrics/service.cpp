@@ -13,6 +13,7 @@
 
 #include <userver/storages/postgres/cluster.hpp>
 #include <userver/storages/postgres/component.hpp>
+#include <userver/storages/postgres/dist_lock_component_base.hpp>
 
 #include <userver/cache/base_postgres_cache.hpp>
 
@@ -119,6 +120,23 @@ std::string PostgresHandler::HandleRequestThrow(
   return {};
 }
 
+class DistlockMetrics final : public storages::postgres::DistLockComponentBase {
+ public:
+  static constexpr std::string_view kName = "component-distlock-metrics";
+
+  DistlockMetrics(const components::ComponentConfig& config,
+                  const components::ComponentContext& context)
+      : storages::postgres::DistLockComponentBase(config, context) {
+    AutostartDistLock();
+  }
+
+  ~DistlockMetrics() override { StopDistLock(); }
+
+  void DoWork() override {
+    // noop
+  }
+};
+
 }  // namespace pg::metrics
 
 int main(int argc, char* argv[]) {
@@ -127,6 +145,7 @@ int main(int argc, char* argv[]) {
           .Append<server::handlers::ServerMonitor>()
           .Append<pg::metrics::PostgresHandler>()
           .Append<pg::metrics::KeyValueCache>()
+          .Append<pg::metrics::DistlockMetrics>()
           .Append<components::HttpClient>()
           .Append<components::Postgres>("key-value-database")
           .Append<components::TestsuiteSupport>()
