@@ -6,6 +6,7 @@
 #include <userver/server/handlers/server_monitor.hpp>
 #include <userver/server/handlers/tests_control.hpp>
 #include <userver/storages/mongo/component.hpp>
+#include <userver/storages/mongo/dist_lock_component_base.hpp>
 #include <userver/testsuite/testsuite_support.hpp>
 #include <userver/utils/daemon_run.hpp>
 
@@ -78,6 +79,27 @@ void KeyValue::DeleteValue(const server::http::HttpRequest& request) const {
   coll.DeleteOne(MakeDoc("_id", key));
 }
 
+class DistlockMetrics final : public storages::mongo::DistLockComponentBase {
+ public:
+  static constexpr std::string_view kName = "component-distlock-metrics";
+
+  DistlockMetrics(const components::ComponentConfig& config,
+                  const components::ComponentContext& context)
+      : storages::mongo::DistLockComponentBase(
+            config, context,
+            context.FindComponent<components::Mongo>("key-value-database")
+                .GetPool()
+                ->GetCollection("distlocks")) {
+    Start();
+  }
+
+  ~DistlockMetrics() override { Stop(); }
+
+  void DoWork() override {
+    // noop
+  }
+};
+
 }  // namespace metrics
 
 int main(int argc, char* argv[]) {
@@ -89,6 +111,7 @@ int main(int argc, char* argv[]) {
           .Append<server::handlers::ServerMonitor>()
           .Append<server::handlers::TestsControl>()
           .Append<components::Mongo>("key-value-database")
-          .Append<metrics::KeyValue>();
+          .Append<metrics::KeyValue>()
+          .Append<metrics::DistlockMetrics>();
   return utils::DaemonMain(argc, argv, component_list);
 }

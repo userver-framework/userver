@@ -15,6 +15,12 @@ components_manager:
             method: GET,PUT,DELETE
             task_processor: main-task-processor
 
+        component-distlock-metrics:
+            testsuite-support: true
+            lockname: metrics-lock
+            lock-ttl: 60s
+            mongo-timeout: 10s
+
         server:
             listener:
                 port: 8090

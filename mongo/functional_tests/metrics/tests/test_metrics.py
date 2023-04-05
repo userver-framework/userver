@@ -11,7 +11,7 @@ async def test_metrics_portability(service_client, force_metrics_to_appear):
 
 
 def _is_mongo_metric(line: str) -> bool:
-    if 'mongo' not in line:
+    if 'mongo' not in line and 'distlock' not in line:
         return False
 
     # These errors sometimes appear during service startup,
