@@ -3,7 +3,9 @@
 /// @file userver/utils/not_null.hpp
 /// @brief @copybrief utils::NotNull
 
+#include <functional>
 #include <memory>
+#include <type_traits>
 #include <utility>
 
 #include <userver/utils/assert.hpp>
@@ -127,3 +129,14 @@ UniqueRef<U> MakeUniqueRef(Args&&... args) {
 }  // namespace utils
 
 USERVER_NAMESPACE_END
+
+template <typename T>
+// NOLINTNEXTLINE(cert-dcl58-cpp)
+struct std::hash<USERVER_NAMESPACE::utils::NotNull<T>> : public std::hash<T> {
+  using std::hash<T>::hash;
+
+  auto operator()(const USERVER_NAMESPACE::utils::NotNull<T>& value) const
+      noexcept(std::is_nothrow_invocable_v<const std::hash<T>&, const T&>) {
+    return this->std::hash<T>::operator()(value.GetBase());
+  }
+};

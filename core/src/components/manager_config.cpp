@@ -7,10 +7,10 @@
 #include <userver/formats/yaml/serialize.hpp>
 #include <userver/formats/yaml/value_builder.hpp>
 #include <userver/logging/log.hpp>
+#include <userver/utils/impl/userver_experiments.hpp>
 #include <userver/yaml_config/impl/validate_static_config.hpp>
 #include <userver/yaml_config/map_to_array.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
-#include <utils/userver_experiment.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -64,11 +64,13 @@ ManagerConfig ParseFromAny(
     config_vars = builder.ExtractValue();
   }
 
-  utils::ParseUserverExperiments(config_yaml[kUserverExperimentsField]);
+  auto result = yaml_config::YamlConfig(config_yaml[kManagerConfigField],
+                                        std::move(config_vars))
+                    .As<ManagerConfig>();
+  result.enabled_experiments = config_yaml[kUserverExperimentsField]
+                                   .As<utils::impl::UserverExperimentSet>({});
 
-  return yaml_config::YamlConfig(config_yaml[kManagerConfigField],
-                                 std::move(config_vars))
-      .As<ManagerConfig>();
+  return result;
 }
 
 yaml_config::Schema GetManagerConfigSchema() {
@@ -189,7 +191,6 @@ ManagerConfig Parse(const yaml_config::YamlConfig& value,
   yaml_config::impl::Validate(value, GetManagerConfigSchema());
 
   ManagerConfig config;
-  config.source = value;
 
   config.coro_pool = value["coro_pool"].As<engine::coro::PoolConfig>();
   config.event_thread_pool =

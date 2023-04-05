@@ -20,12 +20,13 @@
 #include <userver/logging/log.hpp>
 #include <userver/logging/logger.hpp>
 #include <userver/utils/assert.hpp>
+#include <userver/utils/impl/static_registration.hpp>
+#include <userver/utils/impl/userver_experiments.hpp>
 #include <userver/utils/traceful_exception.hpp>
 #include <utils/ignore_signal_scope.hpp>
 #include <utils/jemalloc.hpp>
 #include <utils/signal_catcher.hpp>
 #include <utils/strerror.hpp>
-#include <utils/userver_experiment.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -68,6 +69,8 @@ class LogScope final {
   logging::DefaultLoggerGuard guard_;
 };
 
+const utils::impl::UserverExperiment kJemallocBgThread{"jemalloc-bg-thread"};
+
 void HandleJemallocSettings() {
   static constexpr size_t kDefaultMaxBgThreads = 1;
 
@@ -77,8 +80,7 @@ void HandleJemallocSettings() {
                   << kDefaultMaxBgThreads;
   }
 
-  if (utils::IsUserverExperimentEnabled(
-          utils::UserverExperiment::kJemallocBgThread)) {
+  if (kJemallocBgThread.IsEnabled()) {
     utils::jemalloc::EnableBgThreads();
   }
 }
@@ -132,6 +134,8 @@ void DoRun(const PathOrConfig& config,
            const ComponentList& component_list,
            const std::string& init_log_path, logging::Format format,
            RunMode run_mode) {
+  utils::impl::FinishStaticRegistration();
+
   utils::SignalCatcher signal_catcher{SIGINT, SIGTERM, SIGQUIT, SIGUSR1,
                                       SIGUSR2};
   utils::IgnoreSignalScope ignore_sigpipe_scope(SIGPIPE);
@@ -156,6 +160,9 @@ void DoRun(const PathOrConfig& config,
       ConfigToManagerVisitor{config_vars_path, config_vars_override_path},
       config));
   LOG_INFO() << "Parsed configs";
+
+  utils::impl::UserverExperimentsScope experiments_scope;
+  experiments_scope.EnableOnly(parsed_config->enabled_experiments);
 
   HandleJemallocSettings();
   PreheatStacktraceCollector();
