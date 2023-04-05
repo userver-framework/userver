@@ -12,6 +12,7 @@
 #include <userver/moodycamel/concurrentqueue_fwd.h>
 
 #include <userver/clients/dns/resolver_fwd.hpp>
+#include <userver/clients/http/plugin.hpp>
 #include <userver/clients/http/request.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/rcu/rcu.hpp>
@@ -77,7 +78,8 @@ ClientSettings Parse(const yaml_config::YamlConfig& value,
 /// @snippet clients/http/client_test.cpp  Sample HTTP Client usage
 class Client final {
  public:
-  Client(ClientSettings settings, engine::TaskProcessor& fs_task_processor);
+  Client(ClientSettings settings, engine::TaskProcessor& fs_task_processor,
+         impl::PluginPipeline&& plugin_pipeline);
   ~Client();
 
   /// @brief Returns a HTTP request builder type with preset values of
@@ -188,6 +190,7 @@ class Client final {
   clients::dns::Resolver* resolver_{nullptr};
   utils::NotNull<const tracing::TracingManagerBase*> tracing_manager_;
   const server::http::HeadersPropagator* headers_propagator_{nullptr};
+  impl::PluginPipeline plugin_pipeline_;
 };
 
 }  // namespace clients::http

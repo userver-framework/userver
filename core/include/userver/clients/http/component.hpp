@@ -47,6 +47,7 @@ namespace components {
 /// testsuite-timeout | if set, force the request timeout regardless of the value passed in code | -
 /// testsuite-allowed-url-prefixes | if set, checks that all URLs start with any of the passed prefixes, asserts if not. Set for testing purposes only. | ''
 /// dns_resolver | server hostname resolver type (getaddrinfo or async) | 'async'
+/// plugins | Plugin names to apply. A plugin component is called "http-client-plugin-" plus the plugin name.
 ///
 /// ## Static configuration example:
 ///
@@ -69,6 +70,10 @@ class HttpClient final : public LoggableComponentBase {
   void OnConfigUpdate(const dynamic_config::Snapshot& config);
 
   void WriteStatistics(utils::statistics::Writer& writer);
+
+  static std::vector<utils::NotNull<clients::http::Plugin*>> FindPlugins(
+      const std::vector<std::string>& names,
+      const components::ComponentContext& context);
 
   const bool disable_pool_stats_;
   clients::http::Client http_client_;

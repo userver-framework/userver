@@ -9,6 +9,7 @@
 
 #include <userver/clients/dns/resolver_fwd.hpp>
 #include <userver/clients/http/error.hpp>
+#include <userver/clients/http/plugin.hpp>
 #include <userver/clients/http/response.hpp>
 #include <userver/clients/http/response_future.hpp>
 #include <userver/concurrent/queue.hpp>
@@ -82,7 +83,8 @@ class Request final : public std::enable_shared_from_this<Request> {
   explicit Request(std::shared_ptr<impl::EasyWrapper>&&,
                    std::shared_ptr<RequestStats>&& req_stats,
                    const std::shared_ptr<DestinationStatistics>& dest_stats,
-                   clients::dns::Resolver* resolver);
+                   clients::dns::Resolver* resolver,
+                   impl::PluginPipeline& plugin_pipeline);
   /// @endcond
 
   /// Specifies method

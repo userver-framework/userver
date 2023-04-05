@@ -101,3 +101,5 @@ CheckOptions:
     value:           '1'
   - key:             readability-redundant-access-specifiers.CheckFirstDeclaration
     value:           '1'
+  - key:             modernize-loop-convert.UseCxx20ReverseRanges
+    value:           'false'

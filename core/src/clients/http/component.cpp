@@ -13,6 +13,7 @@
 #include <clients/http/statistics.hpp>
 #include <clients/http/testsuite.hpp>
 #include <userver/clients/http/client.hpp>
+#include <userver/clients/http/plugin_component.hpp>
 #include <userver/tracing/manager_component.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
@@ -23,6 +24,7 @@ namespace components {
 namespace {
 
 constexpr size_t kDestinationMetricsAutoMaxSizeDefault = 100;
+constexpr std::string_view kHttpClientPluginPrefix = "http-client-plugin-";
 
 clients::http::ClientSettings GetClientSettings(
     const ComponentConfig& component_config, const ComponentContext& context) {
@@ -53,7 +55,10 @@ HttpClient::HttpClient(const ComponentConfig& component_config,
       http_client_(
           GetClientSettings(component_config, context),
           context.GetTaskProcessor(
-              component_config["fs-task-processor"].As<std::string>())) {
+              component_config["fs-task-processor"].As<std::string>()),
+          FindPlugins(component_config["plugins"].As<std::vector<std::string>>(
+                          std::vector<std::string>()),
+                      context)) {
   http_client_.SetDestinationMetricsAutoMaxSize(
       component_config["destination-metrics-auto-max-size"].As<size_t>(
           kDestinationMetricsAutoMaxSizeDefault));
@@ -108,6 +113,19 @@ HttpClient::HttpClient(const ComponentConfig& component_config,
       std::move(stats_name), [this](utils::statistics::Writer& writer) {
         return WriteStatistics(writer);
       });
+}
+
+std::vector<utils::NotNull<clients::http::Plugin*>> HttpClient::FindPlugins(
+    const std::vector<std::string>& names,
+    const components::ComponentContext& context) {
+  std::vector<utils::NotNull<clients::http::Plugin*>> plugins;
+  for (const auto& name : names) {
+    auto& component =
+        context.FindComponent<clients::http::plugin::ComponentBase>(
+            std::string{kHttpClientPluginPrefix} + name);
+    plugins.emplace_back(&component.GetPlugin());
+  }
+  return plugins;
 }
 
 HttpClient::~HttpClient() {
@@ -185,6 +203,12 @@ properties:
         enum:
           - getaddrinfo
           - async
+    plugins:
+        type: array
+        description: HTTP client plugin names
+        items:
+            type: string
+            description: plugin name
 )");
 }
 

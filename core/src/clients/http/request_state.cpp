@@ -45,12 +45,6 @@ constexpr Status kFakeHttpErrorCode{599};
 
 const std::string kTracingClientName = "external";
 
-const std::vector<std::string> ya_tracing_headers = {
-    USERVER_NAMESPACE::http::headers::kXRequestId,
-    USERVER_NAMESPACE::http::headers::kXBackendServer,
-    USERVER_NAMESPACE::http::headers::kXTaxiEnvoyProxyDstVhost,
-};
-
 const std::map<std::string, std::error_code> kTestsuiteActions = {
     {"timeout", {curl::errc::EasyErrorCode::kOperationTimedout}},
     {"network", {curl::errc::EasyErrorCode::kCouldNotConnect}}};
@@ -122,7 +116,7 @@ RequestState::RequestState(
     std::shared_ptr<impl::EasyWrapper>&& wrapper,
     std::shared_ptr<RequestStats>&& req_stats,
     const std::shared_ptr<DestinationStatistics>& dest_stats,
-    clients::dns::Resolver* resolver)
+    clients::dns::Resolver* resolver, impl::PluginPipeline& plugin_pipeline)
     : easy_(std::move(wrapper)),
       stats_(std::move(req_stats)),
       dest_stats_(dest_stats),
@@ -132,7 +126,8 @@ RequestState::RequestState(
       tracing_manager_{&tracing::kDefaultTracingManager},
       is_cancelled_(false),
       errorbuffer_(),
-      resolver_{resolver} {
+      resolver_{resolver},
+      plugin_pipeline_{plugin_pipeline} {
   // Libcurl calls sigaction(2)  way too frequently unless this option is used.
   easy().set_no_signal(true);
   easy().set_error_buffer(errorbuffer_.data());
@@ -345,18 +340,12 @@ void RequestState::on_completed(std::shared_ptr<RequestState> holder,
 
   const auto status_code = static_cast<Status>(easy.get_response_code());
 
-  const auto& headers = holder->response()->headers();
   if (holder->testsuite_config_ && !err) {
+    const auto& headers = holder->response()->headers();
     err = TestsuiteResponseHook(status_code, headers, span);
   }
 
-  for (const auto& header : ya_tracing_headers) {
-    const auto header_opt = utils::FindOptional(headers, header);
-    if (header_opt) {
-      LOG_INFO() << "Client response contains Ya tracing header " << header
-                 << "=" << *header_opt;
-    }
-  }
+  holder->plugin_pipeline_.HookOnCompleted(*holder, *holder->response());
 
   holder->AccountResponse(err);
   const auto sockets = easy.get_num_connects();
@@ -608,6 +597,8 @@ void RequestState::perform_request(curl::easy::handler_type handler) {
   }
   UpdateTimeoutHeader();
 
+  plugin_pipeline_.HookPerformRequest(*this);
+
   if (resolver_ && retry_.current == 1) {
     engine::AsyncNoSpan([this, holder = shared_from_this(),
                          handler = std::move(handler)]() mutable {
@@ -823,6 +814,7 @@ void RequestState::StartNewSpan() {
   }
   tracing_manager_->FillRequestWithTracingContext(span,
                                                   request_editable_instance);
+  plugin_pipeline_.HookCreateSpan(*this);
 
   // effective url is not available yet
   span.AddTag(tracing::kHttpUrl,

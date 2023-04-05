@@ -202,9 +202,11 @@ ProxyAuthType ProxyAuthTypeFromString(const std::string& auth_name) {
 Request::Request(std::shared_ptr<impl::EasyWrapper>&& wrapper,
                  std::shared_ptr<RequestStats>&& req_stats,
                  const std::shared_ptr<DestinationStatistics>& dest_stats,
-                 clients::dns::Resolver* resolver)
-    : pimpl_(std::make_shared<RequestState>(
-          std::move(wrapper), std::move(req_stats), dest_stats, resolver)) {
+                 clients::dns::Resolver* resolver,
+                 impl::PluginPipeline& plugin_pipeline)
+    : pimpl_(std::make_shared<RequestState>(std::move(wrapper),
+                                            std::move(req_stats), dest_stats,
+                                            resolver, plugin_pipeline)) {
   LOG_TRACE() << "Request::Request()";
   // default behavior follow redirects and verify ssl
   pimpl_->follow_redirects(true);

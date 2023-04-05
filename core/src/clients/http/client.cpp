@@ -61,14 +61,16 @@ ClientSettings Parse(const yaml_config::YamlConfig& value,
 }
 
 Client::Client(ClientSettings settings,
-               engine::TaskProcessor& fs_task_processor)
+               engine::TaskProcessor& fs_task_processor,
+               impl::PluginPipeline&& plugin_pipeline)
     : destination_statistics_(std::make_shared<DestinationStatistics>()),
       statistics_(settings.io_threads),
       fs_task_processor_(fs_task_processor),
       user_agent_(utils::GetUserverIdentifier()),
       connect_rate_limiter_(std::make_shared<curl::ConnectRateLimiter>()),
       tracing_manager_(GetTracingManager(settings)),
-      headers_propagator_(settings.headers_propagator_) {
+      headers_propagator_(settings.headers_propagator_),
+      plugin_pipeline_(std::move(plugin_pipeline)) {
   const auto io_threads = settings.io_threads;
   const auto& thread_name_prefix = settings.thread_name_prefix;
 
@@ -134,9 +136,9 @@ std::shared_ptr<Request> Client::CreateRequest() {
   if (easy) {
     auto idx = FindMultiIndex(easy->GetMulti());
     auto wrapper = std::make_shared<impl::EasyWrapper>(std::move(easy), *this);
-    request = std::make_shared<Request>(std::move(wrapper),
-                                        statistics_[idx].CreateRequestStats(),
-                                        destination_statistics_, resolver_);
+    request = std::make_shared<Request>(
+        std::move(wrapper), statistics_[idx].CreateRequestStats(),
+        destination_statistics_, resolver_, plugin_pipeline_);
   } else {
     auto i = utils::RandRange(multis_.size());
     auto& multi = multis_[i];
@@ -148,7 +150,7 @@ std::shared_ptr<Request> Client::CreateRequest() {
                       easy_.Get()->GetBoundBlocking(*multi), *this);
                   return std::make_shared<Request>(
                       std::move(wrapper), statistics_[i].CreateRequestStats(),
-                      destination_statistics_, resolver_);
+                      destination_statistics_, resolver_, plugin_pipeline_);
                 }).Get();
     } catch (engine::WaitInterruptedException&) {
       throw clients::http::CancelException();

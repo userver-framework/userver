@@ -10,6 +10,7 @@
 #include <userver/clients/dns/resolver_fwd.hpp>
 #include <userver/clients/http/error.hpp>
 #include <userver/clients/http/form.hpp>
+#include <userver/clients/http/plugin.hpp>
 #include <userver/clients/http/request_tracing_editor.hpp>
 #include <userver/clients/http/response_future.hpp>
 #include <userver/concurrent/queue.hpp>
@@ -44,7 +45,8 @@ class RequestState : public std::enable_shared_from_this<RequestState> {
   RequestState(std::shared_ptr<impl::EasyWrapper>&&,
                std::shared_ptr<RequestStats>&& req_stats,
                const std::shared_ptr<DestinationStatistics>& dest_stats,
-               clients::dns::Resolver* resolver);
+               clients::dns::Resolver* resolver,
+               impl::PluginPipeline& plugin_pipeline);
   ~RequestState();
 
   using Queue = concurrent::SpscQueue<std::string>;
@@ -115,6 +117,7 @@ class RequestState : public std::enable_shared_from_this<RequestState> {
   std::shared_ptr<Response> response_move() { return std::move(response_); }
 
   void SetLoggedUrl(std::string url);
+  void SetEasyTimeout(std::chrono::milliseconds timeout);
 
   void SetTracingManager(const tracing::TracingManagerBase&);
   void SetHeadersPropagator(const server::http::HeadersPropagator*);
@@ -141,7 +144,6 @@ class RequestState : public std::enable_shared_from_this<RequestState> {
   /// run curl async_request
   void perform_request(curl::easy::handler_type handler);
 
-  void SetEasyTimeout(std::chrono::milliseconds timeout);
   void UpdateTimeoutFromDeadline();
   void UpdateTimeoutHeader();
   std::exception_ptr PrepareDeadlineAlreadyPassedException();
@@ -218,6 +220,7 @@ class RequestState : public std::enable_shared_from_this<RequestState> {
 
   clients::dns::Resolver* resolver_{nullptr};
   std::string proxy_url_;
+  impl::PluginPipeline& plugin_pipeline_;
 
   struct StreamData {
     StreamData(Queue::Producer&& queue_producer)
