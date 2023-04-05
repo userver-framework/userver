@@ -25,10 +25,12 @@ template <typename StorageTag>
 inline std::size_t count{0};
 
 template <typename StorageTag>
-Offset RegisterData(std::size_t size) noexcept {
-  // TODO: alignment
+Offset RegisterData(std::size_t size, std::size_t alignment) noexcept {
+  data_offset<StorageTag> +=
+      (alignment - (data_offset<StorageTag> % alignment)) % alignment;
   Offset result = data_offset<StorageTag>;
   data_offset<StorageTag> += size;
+
   count<StorageTag> ++;
   return result;
 }
@@ -50,9 +52,12 @@ class AnyStorageDataTag final {
  public:
   AnyStorageDataTag() noexcept
       : number_(any_storage::impl::count<StorageTag>),
-        offset_(any_storage::impl::RegisterData<StorageTag>(sizeof(Data))) {
+        offset_(any_storage::impl::RegisterData<StorageTag>(sizeof(Data),
+                                                            alignof(Data))) {
     static_assert(!std::is_reference_v<Data>);
     static_assert(!std::is_const_v<Data>);
+    static_assert(__STDCPP_DEFAULT_NEW_ALIGNMENT__ >= alignof(Data),
+                  "Overaligned data members are not supported by AnyStorage");
 
     any_storage::impl::AssertStaticRegistrationAllowed();
   }
