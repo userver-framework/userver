@@ -41,7 +41,22 @@ namespace {
 class LogScope final {
  public:
   LogScope(const std::string& init_log_path, logging::Format format)
-      : guard_(MakeLogger(init_log_path, format)) {}
+      : logger_new_(MakeLogger(init_log_path, format)),
+        logger_prev_{logging::impl::DefaultLoggerRef()},
+        level_prev_{logging::GetDefaultLoggerLevel()} {
+    UASSERT(logger_new_);
+    logging::impl::SetDefaultLoggerRef(*logger_new_);
+  }
+
+  void Stop() {
+    UASSERT(logger_new_.get() != &logging::impl::DefaultLoggerRef());
+    logger_new_ = {};
+  }
+
+  ~LogScope() {
+    logging::impl::SetDefaultLoggerRef(logger_prev_);
+    logging::SetDefaultLoggerLevel(level_prev_);
+  }
 
  private:
   static logging::LoggerPtr MakeLogger(const std::string& init_log_path,
@@ -66,7 +81,9 @@ class LogScope final {
     }
   }
 
-  logging::DefaultLoggerGuard guard_;
+  logging::LoggerPtr logger_new_;
+  logging::LoggerRef logger_prev_;
+  const logging::Level level_prev_;
 };
 
 const utils::impl::UserverExperiment kJemallocBgThread{"jemalloc-bg-thread"};
@@ -174,6 +191,9 @@ void DoRun(const PathOrConfig& config,
     LOG_ERROR() << "Loading failed: " << ex;
     throw;
   }
+
+  // Close the inderlying sinks to allow file removal
+  log_scope.Stop();
 
   if (run_mode == RunMode::kOnce) return;
 

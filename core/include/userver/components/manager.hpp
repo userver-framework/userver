@@ -48,7 +48,12 @@ class Manager final {
   template <typename Component>
   void AddComponent(const components::ComponentConfigMap& config_map,
                     const std::string& name) {
-    static_assert(std::is_base_of_v<impl::ComponentBase, Component>);
+    // Using std::is_convertible_v because std::is_base_of_v returns true even
+    // if ComponentBase is a private, protected, or ambiguous base class.
+    static_assert(
+        std::is_convertible_v<Component*, components::impl::ComponentBase*>,
+        "Component must publicly inherit from "
+        "components::LoggableComponentBase");
     AddComponentImpl(config_map, name,
                      [](const components::ComponentConfig& config,
                         const components::ComponentContext& context) {
