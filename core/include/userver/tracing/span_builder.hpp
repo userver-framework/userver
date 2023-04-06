@@ -17,6 +17,7 @@ class SpanBuilder final {
   explicit SpanBuilder(std::string name);
 
   void SetTraceId(std::string trace_id);
+  const std::string& GetTraceId() const noexcept;
   void SetParentSpanId(std::string parent_span_id);
   void SetParentLink(std::string parent_link);
   void AddTagFrozen(std::string key, logging::LogExtra::Value value);
