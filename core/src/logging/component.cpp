@@ -205,6 +205,7 @@ void Logging::Init(const ComponentConfig& config,
         impl::AddSocketSink(*testsuite_config, socket_sink_, *logger);
       }
 
+      logging::LogFlush();
       logging::impl::SetDefaultLoggerRef(*logger);
 
       // the default logger should outlive the component

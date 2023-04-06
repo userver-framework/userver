@@ -154,25 +154,28 @@ class InitOpenFileChecker final : public components::LoggableComponentBase {
       return;
     }
 
+    // Log may not have been flushed, but the file is already open.
     const auto files = utest::CurrentProcessOpenFiles();
     UASSERT(std::find(files.begin(), files.end(), init_path_) != files.end());
+  }
+
+  void OnAllComponentsAreStopping() override {
+    if (init_path_.empty()) {
+      return;
+    }
+
+    const auto files = utest::CurrentProcessOpenFiles();
+    UASSERT_MSG(
+        std::find(files.begin(), files.end(), init_path_) == files.end(),
+        "Initial log file should be closed after the component system "
+        "started. Otherwise the open file descriptor prevents log file "
+        "deletion/rotation");
 
     const auto logs = fs::blocking::ReadFileContents(init_path_);
     EXPECT_NE(logs.find("Using config_vars from config.yaml."),
               std::string::npos)
         << "Initial logs were not written to the init log. Init log content: "
         << logs;
-  }
-
-  void OnAllComponentsAreStopping() override {
-    if (init_path_.empty()) {
-      const auto files = utest::CurrentProcessOpenFiles();
-      UASSERT_MSG(
-          std::find(files.begin(), files.end(), init_path_) == files.end(),
-          "Initial log file should be closed after the component system "
-          "started. Otherwise the open file descriptor prevents log file "
-          "deletion/rotation");
-    }
   }
 
   static void AssertFilesWereChecked() {
