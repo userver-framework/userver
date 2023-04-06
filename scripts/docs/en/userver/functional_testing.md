@@ -165,6 +165,7 @@ with a running service.
 
 Testsuite functions reference could be found at @ref userver_testsuite.
 
+@anchor config_hooks
 #### Service config generation
 
 `pytest_userver` uses config.yaml and config_vars.yaml passed to pytest to generate
@@ -217,6 +218,14 @@ Mockserver usage example:
 @snippet samples/http_caching/tests/conftest.py mockserver
 
 * Testcase: @ref samples/http_caching/tests/conftest.py
+
+In order connect your HTTP client to mockserver you can use the
+following scheme for base url **http://{mockserver}/{service_name}/**.
+
+This could be achievied patching config in runtime using @ref config_hooks "config hooks".
+Then you have to initialize client's url with mockserver address using [mockserver_info.url(path)](https://yandex.github.io/yandex-taxi-testsuite/mockserver/#testsuite.mockserver.classes.MockserverInfo.url):
+
+@snippet samples/http_caching/tests/conftest.py patch configs
 
 #### Mock time
 
