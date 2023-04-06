@@ -21,6 +21,7 @@
 #include <userver/storages/secdist/component.hpp>
 #include <userver/storages/secdist/exceptions.hpp>
 #include <userver/testsuite/postgres_control.hpp>
+#include <userver/testsuite/tasks.hpp>
 #include <userver/testsuite/testsuite_support.hpp>
 #include <userver/utils/enumerate.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
@@ -31,6 +32,13 @@ namespace components {
 namespace {
 
 constexpr auto kStatisticsName = "postgresql";
+
+storages::postgres::ConnlimitMode ParseConnlimitMode(const std::string& value) {
+  if (value == "manual") return storages::postgres::ConnlimitMode::kManual;
+  if (value == "auto") return storages::postgres::ConnlimitMode::kAuto;
+
+  UINVARIANT(false, "Unknown connlimit mode: " + value);
+}
 
 }  // namespace
 
@@ -79,6 +87,8 @@ Postgres::Postgres(const ComponentConfig& config,
                                     ? storages::postgres::InitMode::kSync
                                     : storages::postgres::InitMode::kAsync;
   initial_settings_.db_name = db_name_;
+  initial_settings_.connlimit_mode =
+      ParseConnlimitMode(config["connlimit_mode"].As<std::string>("manual"));
 
   initial_settings_.topology_settings.max_replication_lag =
       config["max_replication_lag"].As<std::chrono::milliseconds>(
@@ -118,6 +128,7 @@ Postgres::Postgres(const ComponentConfig& config,
   const auto& testsuite_pg_ctl =
       context.FindComponent<components::TestsuiteSupport>()
           .GetPostgresControl();
+  auto& testsuite_tasks = testsuite::GetTestsuiteTasks(context);
 
   auto* resolver = clients::dns::GetResolverPtr(config, context);
 
@@ -128,7 +139,7 @@ Postgres::Postgres(const ComponentConfig& config,
             pg_config.default_command_control,
             pg_config.handlers_command_control,
             pg_config.queries_command_control},
-        testsuite_pg_ctl, ei_settings);
+        testsuite_pg_ctl, ei_settings, testsuite_tasks);
     database_->clusters_.push_back(cluster);
   }
 
@@ -287,6 +298,12 @@ properties:
         type: integer
         description: limit for concurrent establishing connections number per pool (0 - unlimited)
         defaultDescription: 0
+    connlimit_mode:
+        type: string
+        enum:
+         - auto
+         - manual
+        description: how to learn a connection pool size
 )");
 }
 

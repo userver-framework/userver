@@ -42,7 +42,7 @@ void CheckRwTransaction(pg::Transaction trx) {
 
 pg::Cluster CreateCluster(
     const pg::Dsn& dsn, engine::TaskProcessor& bg_task_processor,
-    size_t max_size,
+    size_t max_size, testsuite::TestsuiteTasks& testsuite_tasks,
     pg::ConnectionSettings conn_settings = kCachePreparedStatements) {
   return pg::Cluster({dsn}, nullptr, bg_task_processor,
                      {{},
@@ -51,7 +51,7 @@ pg::Cluster CreateCluster(
                       conn_settings,
                       storages::postgres::InitMode::kAsync,
                       ""},
-                     {kTestCmdCtl, {}, {}}, {}, {});
+                     {kTestCmdCtl, {}, {}}, {}, {}, testsuite_tasks);
 }
 
 }  // namespace
@@ -59,13 +59,17 @@ pg::Cluster CreateCluster(
 class PostgreCluster : public PostgreSQLBase {};
 
 UTEST_F(PostgreCluster, ClusterEmptyPool) {
-  auto cluster = CreateCluster(GetDsnFromEnv(), GetTaskProcessor(), 0);
+  testsuite::TestsuiteTasks testsuite_tasks{true};
+  auto cluster =
+      CreateCluster(GetDsnFromEnv(), GetTaskProcessor(), 0, testsuite_tasks);
 
   UEXPECT_THROW(cluster.Begin({}), pg::PoolError);
 }
 
 UTEST_F(PostgreCluster, ClusterSlaveRW) {
-  auto cluster = CreateCluster(GetDsnFromEnv(), GetTaskProcessor(), 1);
+  testsuite::TestsuiteTasks testsuite_tasks{true};
+  auto cluster =
+      CreateCluster(GetDsnFromEnv(), GetTaskProcessor(), 1, testsuite_tasks);
 
   UEXPECT_THROW(cluster.Begin(pg::ClusterHostType::kSlave, {}),
                 pg::ClusterUnavailable);
@@ -90,7 +94,9 @@ UTEST_F(PostgreCluster, ClusterSlaveRW) {
 }
 
 UTEST_F(PostgreCluster, ClusterSyncSlaveRW) {
-  auto cluster = CreateCluster(GetDsnFromEnv(), GetTaskProcessor(), 1);
+  testsuite::TestsuiteTasks testsuite_tasks{true};
+  auto cluster =
+      CreateCluster(GetDsnFromEnv(), GetTaskProcessor(), 1, testsuite_tasks);
 
   UEXPECT_THROW(cluster.Begin(pg::ClusterHostType::kSyncSlave, {}),
                 pg::ClusterUnavailable);
@@ -100,7 +106,9 @@ UTEST_F(PostgreCluster, ClusterSyncSlaveRW) {
 }
 
 UTEST_F(PostgreCluster, ClusterMasterRW) {
-  auto cluster = CreateCluster(GetDsnFromEnv(), GetTaskProcessor(), 1);
+  testsuite::TestsuiteTasks testsuite_tasks{true};
+  auto cluster =
+      CreateCluster(GetDsnFromEnv(), GetTaskProcessor(), 1, testsuite_tasks);
 
   CheckRwTransaction(cluster.Begin({}));
   CheckRwTransaction(cluster.Begin(pg::Transaction::RW));
@@ -110,7 +118,9 @@ UTEST_F(PostgreCluster, ClusterMasterRW) {
 }
 
 UTEST_F(PostgreCluster, ClusterAnyRW) {
-  auto cluster = CreateCluster(GetDsnFromEnv(), GetTaskProcessor(), 1);
+  testsuite::TestsuiteTasks testsuite_tasks{true};
+  auto cluster =
+      CreateCluster(GetDsnFromEnv(), GetTaskProcessor(), 1, testsuite_tasks);
 
   CheckRwTransaction(cluster.Begin(
       {pg::ClusterHostType::kMaster, pg::ClusterHostType::kSlave}, {}));
@@ -149,7 +159,9 @@ UTEST_F(PostgreCluster, ClusterAnyRW) {
 }
 
 UTEST_F(PostgreCluster, ClusterSlaveRO) {
-  auto cluster = CreateCluster(GetDsnFromEnv(), GetTaskProcessor(), 1);
+  testsuite::TestsuiteTasks testsuite_tasks{true};
+  auto cluster =
+      CreateCluster(GetDsnFromEnv(), GetTaskProcessor(), 1, testsuite_tasks);
 
   CheckRoTransaction(cluster.Begin(pg::Transaction::RO));
   CheckRoTransaction(
@@ -169,21 +181,27 @@ UTEST_F(PostgreCluster, ClusterSlaveRO) {
 }
 
 UTEST_F(PostgreCluster, ClusterSyncSlaveRO) {
-  auto cluster = CreateCluster(GetDsnFromEnv(), GetTaskProcessor(), 1);
+  testsuite::TestsuiteTasks testsuite_tasks{true};
+  auto cluster =
+      CreateCluster(GetDsnFromEnv(), GetTaskProcessor(), 1, testsuite_tasks);
 
   CheckRoTransaction(
       cluster.Begin(pg::ClusterHostType::kSyncSlave, pg::Transaction::RO));
 }
 
 UTEST_F(PostgreCluster, ClusterMasterRO) {
-  auto cluster = CreateCluster(GetDsnFromEnv(), GetTaskProcessor(), 1);
+  testsuite::TestsuiteTasks testsuite_tasks{true};
+  auto cluster =
+      CreateCluster(GetDsnFromEnv(), GetTaskProcessor(), 1, testsuite_tasks);
 
   CheckRoTransaction(
       cluster.Begin(pg::ClusterHostType::kMaster, pg::Transaction::RO));
 }
 
 UTEST_F(PostgreCluster, ClusterAnyRO) {
-  auto cluster = CreateCluster(GetDsnFromEnv(), GetTaskProcessor(), 1);
+  testsuite::TestsuiteTasks testsuite_tasks{true};
+  auto cluster =
+      CreateCluster(GetDsnFromEnv(), GetTaskProcessor(), 1, testsuite_tasks);
 
   CheckRoTransaction(
       cluster.Begin({pg::ClusterHostType::kSlave, pg::ClusterHostType::kMaster},
@@ -206,7 +224,9 @@ UTEST_F(PostgreCluster, ClusterAnyRO) {
 }
 
 UTEST_F(PostgreCluster, SingleQuery) {
-  auto cluster = CreateCluster(GetDsnFromEnv(), GetTaskProcessor(), 1);
+  testsuite::TestsuiteTasks testsuite_tasks{true};
+  auto cluster =
+      CreateCluster(GetDsnFromEnv(), GetTaskProcessor(), 1, testsuite_tasks);
 
   UEXPECT_THROW(cluster.Execute({}, "select 1"), pg::LogicError);
 
@@ -227,7 +247,9 @@ UTEST_F(PostgreCluster, SingleQuery) {
 }
 
 UTEST_F(PostgreCluster, HostSelectionSingleQuery) {
-  auto cluster = CreateCluster(GetDsnFromEnv(), GetTaskProcessor(), 1);
+  testsuite::TestsuiteTasks testsuite_tasks{true};
+  auto cluster =
+      CreateCluster(GetDsnFromEnv(), GetTaskProcessor(), 1, testsuite_tasks);
 
   UEXPECT_THROW(cluster.Execute({pg::ClusterHostType::kRoundRobin}, "select 1"),
                 pg::LogicError);
@@ -272,7 +294,9 @@ UTEST_F(PostgreCluster, HostSelectionSingleQuery) {
 }
 
 UTEST_F(PostgreCluster, TransactionTimeouts) {
-  auto cluster = CreateCluster(GetDsnFromEnv(), GetTaskProcessor(), 1);
+  testsuite::TestsuiteTasks testsuite_tasks{true};
+  auto cluster =
+      CreateCluster(GetDsnFromEnv(), GetTaskProcessor(), 1, testsuite_tasks);
 
   {
     // Default transaction no timeout
@@ -316,7 +340,9 @@ UTEST_F(PostgreCluster, TransactionTimeouts) {
 }
 
 UTEST_F(PostgreCluster, NonTransactionExecuteWithParameterStore) {
-  auto cluster = CreateCluster(GetDsnFromEnv(), GetTaskProcessor(), 1);
+  testsuite::TestsuiteTasks testsuite_tasks{true};
+  auto cluster =
+      CreateCluster(GetDsnFromEnv(), GetTaskProcessor(), 1, testsuite_tasks);
 
   {
     auto res = cluster.Execute(pg::ClusterHostType::kMaster, "select $1",

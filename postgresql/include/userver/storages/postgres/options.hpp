@@ -276,6 +276,11 @@ enum class InitMode {
   kAsync,
 };
 
+enum class ConnlimitMode {
+  kManual = 0,
+  kAuto,
+};
+
 /// Settings for storages::postgres::Cluster
 struct ClusterSettings {
   /// settings for statements metrics
@@ -295,6 +300,9 @@ struct ClusterSettings {
 
   /// database name
   std::string db_name;
+
+  /// connection limit change mode
+  ConnlimitMode connlimit_mode = ConnlimitMode::kManual;
 };
 
 }  // namespace storages::postgres

@@ -25,6 +25,8 @@ std::string StateToString(logging::EntryState state) {
     case logging::EntryState::kDefault:
       return "0";
   }
+
+  UINVARIANT(false, "unknown state");
 }
 
 std::string ProcessGet(const http::HttpRequest& request,

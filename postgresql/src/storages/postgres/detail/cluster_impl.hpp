@@ -8,7 +8,9 @@
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/error_injection/settings.hpp>
 #include <userver/testsuite/postgres_control.hpp>
+#include <userver/testsuite/tasks.hpp>
 
+#include <storages/postgres/connlimit_watchdog.hpp>
 #include <storages/postgres/detail/pg_impl_types.hpp>
 #include <storages/postgres/detail/pool.hpp>
 #include <storages/postgres/detail/statement_timings_storage.hpp>
@@ -30,7 +32,9 @@ class ClusterImpl {
               const ClusterSettings& cluster_settings,
               const DefaultCommandControls& default_cmd_ctls,
               const testsuite::PostgresControl& testsuite_pg_ctl,
-              const error_injection::Settings& ei_settings);
+              const error_injection::Settings& ei_settings,
+              testsuite::TestsuiteTasks& testsuite_tasks);
+
   ~ClusterImpl();
 
   ClusterStatisticsPtr GetStatistics() const;
@@ -59,16 +63,22 @@ class ClusterImpl {
 
   OptionalCommandControl GetTaskDataHandlersCommandControl() const;
 
+  std::string GetDbName() const;
+
  private:
+  void OnConnlimitChanged();
+
   using ConnectionPoolPtr = std::shared_ptr<ConnectionPool>;
 
   ConnectionPoolPtr FindPool(ClusterHostTypeFlags);
 
   DefaultCommandControls default_cmd_ctls_;
+  rcu::Variable<ClusterSettings> cluster_settings_;
   std::unique_ptr<topology::TopologyBase> topology_;
   engine::TaskProcessor& bg_task_processor_;
   std::vector<ConnectionPoolPtr> host_pools_;
   std::atomic<uint32_t> rr_host_idx_;
+  ConnlimitWatchdog connlimit_watchdog_;
 };
 
 }  // namespace storages::postgres::detail

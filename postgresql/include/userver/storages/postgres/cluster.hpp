@@ -10,6 +10,7 @@
 #include <userver/engine/task/task_with_result.hpp>
 #include <userver/error_injection/settings_fwd.hpp>
 #include <userver/testsuite/postgres_control.hpp>
+#include <userver/testsuite/tasks.hpp>
 
 #include <userver/storages/postgres/cluster_types.hpp>
 #include <userver/storages/postgres/database.hpp>
@@ -102,7 +103,8 @@ class Cluster {
           const ClusterSettings& cluster_settings,
           DefaultCommandControls&& default_cmd_ctls,
           const testsuite::PostgresControl& testsuite_pg_ctl,
-          const error_injection::Settings& ei_settings);
+          const error_injection::Settings& ei_settings,
+          testsuite::TestsuiteTasks& testsuite_tasks);
   ~Cluster();
 
   /// Get cluster statistics

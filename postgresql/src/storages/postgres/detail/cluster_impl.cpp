@@ -66,10 +66,14 @@ ClusterImpl::ClusterImpl(DsnList dsns, clients::dns::Resolver* resolver,
                          const ClusterSettings& cluster_settings,
                          const DefaultCommandControls& default_cmd_ctls,
                          const testsuite::PostgresControl& testsuite_pg_ctl,
-                         const error_injection::Settings& ei_settings)
+                         const error_injection::Settings& ei_settings,
+                         testsuite::TestsuiteTasks& testsuite_tasks)
     : default_cmd_ctls_(default_cmd_ctls),
+      cluster_settings_(cluster_settings),
       bg_task_processor_(bg_task_processor),
-      rr_host_idx_(0) {
+      rr_host_idx_(0),
+      connlimit_watchdog_(*this, testsuite_tasks,
+                          [this]() { OnConnlimitChanged(); }) {
   if (dsns.empty()) {
     throw ClusterError("Cannot create a cluster from an empty DSN list");
   } else if (dsns.size() == 1) {
@@ -101,9 +105,12 @@ ClusterImpl::ClusterImpl(DsnList dsns, clients::dns::Resolver* resolver,
         testsuite_pg_ctl, ei_settings));
   }
   LOG_DEBUG() << "Pools initialized";
+
+  if (cluster_settings.connlimit_mode == ConnlimitMode::kAuto)
+    connlimit_watchdog_.Start();
 }
 
-ClusterImpl::~ClusterImpl() = default;
+ClusterImpl::~ClusterImpl() { connlimit_watchdog_.Stop(); }
 
 ClusterStatisticsPtr ClusterImpl::GetStatistics() const {
   auto cluster_stats = std::make_unique<ClusterStatistics>();
@@ -289,10 +296,36 @@ void ClusterImpl::SetConnectionSettings(const ConnectionSettings& settings) {
   }
 }
 
-void ClusterImpl::SetPoolSettings(const PoolSettings& settings) {
-  for (const auto& pool : host_pools_) {
-    pool->SetSettings(settings);
+void ClusterImpl::SetPoolSettings(const PoolSettings& new_settings) {
+  {
+    auto cluster = cluster_settings_.StartWrite();
+
+    cluster->pool_settings = new_settings;
+    auto& settings = cluster->pool_settings;
+    if (cluster->connlimit_mode == ConnlimitMode::kAuto) {
+      settings.max_size = connlimit_watchdog_.GetConnlimit();
+      if (settings.min_size > settings.max_size)
+        settings.min_size = settings.max_size;
+    }
+
+    cluster.Commit();
   }
+
+  auto cluster_settings = cluster_settings_.Read();
+  for (const auto& pool : host_pools_) {
+    pool->SetSettings(cluster_settings->pool_settings);
+  }
+}
+
+void ClusterImpl::OnConnlimitChanged() {
+  auto max_size = connlimit_watchdog_.GetConnlimit();
+  auto cluster = cluster_settings_.StartWrite();
+  if (cluster->pool_settings.max_size == max_size) return;
+  cluster->pool_settings.max_size = max_size;
+  cluster.Commit();
+
+  auto cluster_settings = cluster_settings_.Read();
+  SetPoolSettings(cluster_settings->pool_settings);
 }
 
 void ClusterImpl::SetStatementMetricsSettings(
@@ -314,6 +347,11 @@ OptionalCommandControl ClusterImpl::GetTaskDataHandlersCommandControl() const {
                                               task_data->method);
   }
   return std::nullopt;
+}
+
+std::string ClusterImpl::GetDbName() const {
+  auto cluster_settings = cluster_settings_.Read();
+  return cluster_settings->db_name;
 }
 
 }  // namespace storages::postgres::detail
