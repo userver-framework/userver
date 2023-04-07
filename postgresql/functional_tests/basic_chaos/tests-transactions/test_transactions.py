@@ -12,7 +12,6 @@ SELECT_SMALL_TIMEOUT_URL = '/chaos/postgres?type=select-small-timeout'
 logger = logging.getLogger(__name__)
 
 
-@pytest.mark.skip(reason='flacky in arcadia CI')
 async def test_transaction_fine(service_client, gate, testpoint):
     @testpoint('before_trx_begin')
     async def hook1(_data):
@@ -43,7 +42,6 @@ async def test_transaction_fine(service_client, gate, testpoint):
 TESTPOINT_NAMES = ('after_trx_begin', 'before_trx_commit')
 
 
-@pytest.mark.skip(reason='flacky in arcadia CI')
 @pytest.mark.parametrize('tp_name', TESTPOINT_NAMES)
 async def test_sockets_close(service_client, gate, testpoint, tp_name):
     should_close_sockets = True
@@ -67,7 +65,6 @@ async def test_sockets_close(service_client, gate, testpoint, tp_name):
     logger.debug('End of "test_sockets_close" check for 200')
 
 
-@pytest.mark.skip(reason='flacky in arcadia CI')
 async def test_after_trx_commit(service_client, gate, testpoint):
     @testpoint('after_trx_commit')
     async def _hook(_data):
@@ -83,7 +80,6 @@ async def test_after_trx_commit(service_client, gate, testpoint):
 DELAY_SECS = 4.0
 
 
-@pytest.mark.skip(reason='flacky in arcadia CI')
 @pytest.mark.parametrize('tp_name', TESTPOINT_NAMES)
 async def test_timeout(service_client, gate, testpoint, tp_name):
     should_delay = True

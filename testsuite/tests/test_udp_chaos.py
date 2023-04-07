@@ -237,7 +237,7 @@ async def test_to_server_noop(udp_client, gate, server_socket, loop):
 
 
 async def test_to_client_delay(udp_client, gate, server_socket, loop):
-    gate.to_client_delay(_NOTICEABLE_DELAY)
+    gate.to_client_delay(2 * _NOTICEABLE_DELAY)
 
     await _assert_data_from_to(udp_client, server_socket, loop)
 
@@ -247,7 +247,7 @@ async def test_to_client_delay(udp_client, gate, server_socket, loop):
 
 
 async def test_to_server_delay(udp_client, gate, server_socket, loop):
-    gate.to_server_delay(_NOTICEABLE_DELAY)
+    gate.to_server_delay(2 * _NOTICEABLE_DELAY)
 
     await _assert_data_from_to(server_socket, udp_client, loop)
 

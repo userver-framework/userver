@@ -102,7 +102,6 @@ async def test_timeout(call, gate, mockserver):
     assert mock.times_called > 1
 
 
-@pytest.mark.skip(reason='flacky in arcadia CI')
 async def test_network_failure(call, gate, mockserver):
     stop = True
 

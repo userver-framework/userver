@@ -109,6 +109,7 @@ async def _client(loop, gate):
 @pytest.fixture(name='server_connection', scope='function')
 async def _server_connection(loop, tcp_server, gate):
     sock = await tcp_server.accept()
+    await gate.wait_for_connections(count=1)
     assert gate.connections_count() >= 1
     yield sock
     sock.close()
@@ -152,7 +153,7 @@ async def test_to_server_noop(tcp_client, gate, server_connection, loop):
 
 
 async def test_to_client_delay(tcp_client, gate, server_connection, loop):
-    gate.to_client_delay(_NOTICEABLE_DELAY)
+    gate.to_client_delay(2 * _NOTICEABLE_DELAY)
 
     await _assert_data_from_to(tcp_client, server_connection, loop)
 
@@ -162,7 +163,7 @@ async def test_to_client_delay(tcp_client, gate, server_connection, loop):
 
 
 async def test_to_server_delay(tcp_client, gate, server_connection, loop):
-    gate.to_server_delay(_NOTICEABLE_DELAY)
+    gate.to_server_delay(2 * _NOTICEABLE_DELAY)
 
     await _assert_data_from_to(server_connection, tcp_client, loop)
 

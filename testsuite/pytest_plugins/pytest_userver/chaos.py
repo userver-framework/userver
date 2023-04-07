@@ -40,7 +40,7 @@ class GateRoute:
 # @cond
 
 # https://docs.python.org/3/library/socket.html#socket.socket.recv
-RECV_MAX_SIZE = 1024 * 1024 * 128
+RECV_MAX_SIZE = 4096
 MAX_DELAY = 60.0
 
 
@@ -64,7 +64,10 @@ class GateInterceptException(Exception):
 
 
 async def _yield() -> None:
-    _MIN_DELAY = 0.01
+    # Minamal delay can be 0. This will be fast path for coroutine switching
+    # https://docs.python.org/3/library/asyncio-task.html#sleeping
+
+    _MIN_DELAY = 0
     await asyncio.sleep(_MIN_DELAY)
 
 
@@ -772,6 +775,11 @@ class TcpGate(BaseGate):
             )
             self._connected_event.clear()
 
+    def _make_socket_nonblocking(self, sock: Socket) -> None:
+        sock.setblocking(False)
+        sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+        fcntl.fcntl(sock, fcntl.F_SETFL, os.O_NONBLOCK)
+
     def _create_accepting_sockets(self) -> typing.List[Socket]:
         res: typing.List[Socket] = []
         for addr in socket.getaddrinfo(
@@ -780,10 +788,14 @@ class TcpGate(BaseGate):
                 type=socket.SOCK_STREAM,
         ):
             sock = Socket(addr[0], addr[1])
+            self._make_socket_nonblocking(sock)
             sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             sock.bind(addr[4])
             sock.listen()
-            logger.debug(f'Accepting connections on {sock.getsockname()}')
+            logger.debug(
+                f'Accepting connections on {sock.getsockname()}, '
+                f'fd={sock.fileno()}',
+            )
             res.append(sock)
 
         return res
@@ -797,19 +809,18 @@ class TcpGate(BaseGate):
         for addr in addrs:
             server = Socket(addr[0], addr[1])
             try:
+                self._make_socket_nonblocking(server)
                 await self._loop.sock_connect(server, addr[4])
-                server.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-                fcntl.fcntl(server, fcntl.F_SETFL, os.O_NONBLOCK)
                 logging.debug('Connected to %s', addr[4])
                 return server
             except Exception as exc:  # pylint: disable=broad-except
+                server.close()
                 logging.warning('Could not connect to %s: %s', addr[4], exc)
 
     async def _do_accept(self, accept_sock: Socket) -> None:
         while accept_sock:
             client, _ = await self._loop.sock_accept(accept_sock)
-            client.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-            fcntl.fcntl(client, fcntl.F_SETFL, os.O_NONBLOCK)
+            self._make_socket_nonblocking(client)
 
             server = await self._connect_to_server()
             if server:
@@ -854,6 +865,10 @@ class UdpGate(BaseGate):
         """
         return len(self._sockets) > 0
 
+    def _make_socket_nonblocking(self, sock: Socket) -> None:
+        sock.setblocking(False)
+        fcntl.fcntl(sock, fcntl.F_SETFL, os.O_NONBLOCK)
+
     def _create_accepting_sockets(self) -> typing.List[Socket]:
         res: typing.List[Socket] = []
         for addr in socket.getaddrinfo(
@@ -862,7 +877,7 @@ class UdpGate(BaseGate):
                 type=socket.SOCK_DGRAM,
         ):
             sock = socket.socket(addr[0], addr[1])
-            fcntl.fcntl(sock, fcntl.F_SETFL, os.O_NONBLOCK)
+            self._make_socket_nonblocking(sock)
             sock.bind(addr[4])
             logger.debug(f'Accepting connections on {sock.getsockname()}')
             res.append(sock)
@@ -878,8 +893,8 @@ class UdpGate(BaseGate):
         for addr in addrs:
             server = Socket(addr[0], addr[1])
             try:
+                self._make_socket_nonblocking(server)
                 await self._loop.sock_connect(server, addr[4])
-                fcntl.fcntl(server, fcntl.F_SETFL, os.O_NONBLOCK)
                 logging.debug('Connected to %s', addr[4])
                 return server
             except Exception as exc:  # pylint: disable=broad-except
