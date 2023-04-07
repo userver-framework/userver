@@ -128,6 +128,11 @@ inline constexpr char kXTaxiEnvoyProxyDstVhost[] = "X-Taxi-EnvoyProxy-DstVhost";
 
 /// @}
 
+/// @name Baggage header
+/// @{
+inline constexpr char kXBaggage[] = "baggage";
+/// @}
+
 /// @name Generic Yandex headers
 /// @{
 inline constexpr char kXYandexUid[] = "X-Yandex-UID";

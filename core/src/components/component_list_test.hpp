@@ -35,6 +35,10 @@ class DefaultLoggerGuardTest {
 }  // namespace impl
 
 inline constexpr std::string_view kRuntimeConfig = R"~({
+  "USERVER_BAGGAGE_ENABLED": false,
+  "BAGGAGE_SETTINGS": {
+    "allowed_keys": []
+  },
   "USERVER_TASK_PROCESSOR_PROFILER_DEBUG": {},
   "USERVER_LOG_REQUEST": true,
   "USERVER_LOG_REQUEST_HEADERS": false,

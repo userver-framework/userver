@@ -14,6 +14,7 @@
 #include <boost/range/adaptor/transformed.hpp>
 
 #include <curl-ev/error_code.hpp>
+#include <userver/baggage/baggage.hpp>
 #include <userver/clients/dns/resolver.hpp>
 #include <userver/server/request/task_inherited_data.hpp>
 #include <userver/utils/algo.hpp>
@@ -93,6 +94,16 @@ char* rfind_not_space(char* ptr, size_t size) {
     return p + 1;
   }
   return ptr;
+}
+
+void SetBaggageHeader(curl::easy& e) {
+  const auto* baggage = baggage::kInheritedBaggage.GetOptional();
+  if (baggage != nullptr) {
+    LOG_DEBUG() << fmt::format("Send baggage: {}", baggage->ToString());
+    e.add_header(USERVER_NAMESPACE::http::headers::kXBaggage,
+                 baggage->ToString(), curl::easy::EmptyHeaderAction::kDoNotSend,
+                 curl::easy::DuplicateHeaderAction::kReplace);
+  }
 }
 
 bool IsTimeout(std::error_code ec) noexcept {
@@ -522,6 +533,7 @@ engine::Future<std::shared_ptr<Response>> RequestState::async_perform() {
   data_ = FullBufferedData{};
 
   StartNewSpan();
+  SetBaggageHeader(easy());
 
   auto& span = span_storage_->Get();
   span.AddTag("stream_api", "0");
@@ -548,6 +560,7 @@ void RequestState::async_perform_stream(const std::shared_ptr<Queue>& queue) {
   data_.emplace<StreamData>(queue->GetProducer());
 
   StartNewSpan();
+  SetBaggageHeader(easy());
 
   auto& span = span_storage_->Get();
   span.AddTag("stream_api", "1");

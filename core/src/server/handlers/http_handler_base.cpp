@@ -9,6 +9,8 @@
 #include <server/handlers/http_server_settings.hpp>
 #include <server/http/http_request_impl.hpp>
 #include <server/server_config.hpp>
+#include <userver/baggage/baggage.hpp>
+#include <userver/baggage/baggage_settings.hpp>
 #include <userver/components/component.hpp>
 #include <userver/components/statistics_storage.hpp>
 #include <userver/dynamic_config/storage/component.hpp>
@@ -484,6 +486,20 @@ void HttpHandlerBase::HandleRequest(request::RequestBase& request,
     auto span = std::move(span_builder).Build();
 
     span.SetLocalLogLevel(log_level_);
+
+    if (config_source_.GetCopy(baggage::kBaggageEnabled)) {
+      const auto snapshot = config_source_.GetSnapshot();
+      const auto& baggage_settings = snapshot[baggage::kBaggageSettings];
+
+      auto baggage_header =
+          http_request.GetHeader(USERVER_NAMESPACE::http::headers::kXBaggage);
+      LOG_DEBUG() << "Got baggage header: " << baggage_header;
+      auto baggage = baggage::TryMakeBaggage(std::move(baggage_header),
+                                             baggage_settings.allowed_keys);
+      if (baggage) {
+        baggage::kInheritedBaggage.Set(std::move(*baggage));
+      }
+    }
 
     const auto& yandex_request_id =
         http_request.GetHeader(USERVER_NAMESPACE::http::headers::kXRequestId);

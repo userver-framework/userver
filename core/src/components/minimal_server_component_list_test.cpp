@@ -19,6 +19,10 @@ USERVER_NAMESPACE_BEGIN
 namespace {
 
 constexpr std::string_view kRuntimeConfigMissingParam = R"~({
+  "USERVER_BAGGAGE_ENABLED": false,
+  "BAGGAGE_SETTINGS": {
+    "allowed_keys": []
+  },
   "USERVER_TASK_PROCESSOR_PROFILER_DEBUG": {},
   "USERVER_LOG_REQUEST": true,
   "USERVER_CHECK_AUTH_IN_HANDLERS": false,
