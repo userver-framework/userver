@@ -32,6 +32,7 @@ class ConnlimitWatchdog final {
   std::atomic<size_t> connlimit_;
   std::function<void()> on_new_connlimit_;
   testsuite::TestsuiteTasks& testsuite_tasks_;
+  int steps_with_errors_{0};
   USERVER_NAMESPACE::utils::PeriodicTask periodic_;
 };
 

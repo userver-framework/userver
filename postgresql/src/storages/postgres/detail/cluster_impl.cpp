@@ -2,20 +2,26 @@
 
 #include <fmt/format.h>
 
+#include <userver/dynamic_config/value.hpp>
 #include <userver/engine/async.hpp>
 #include <userver/server/request/task_inherited_data.hpp>
 #include <userver/utils/assert.hpp>
 
 #include <storages/postgres/detail/topology/hot_standby.hpp>
 #include <storages/postgres/detail/topology/standalone.hpp>
+#include <storages/postgres/postgres_config.hpp>
 #include <userver/storages/postgres/dsn.hpp>
 #include <userver/storages/postgres/exceptions.hpp>
+#include <userver/utils/impl/userver_experiments.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::postgres::detail {
 
 namespace {
+
+USERVER_NAMESPACE::utils::impl::UserverExperiment kConnlimitAutoExperiment(
+    "pg-connlimit-auto");
 
 ClusterHostType Fallback(ClusterHostType ht) {
   switch (ht) {
@@ -67,11 +73,13 @@ ClusterImpl::ClusterImpl(DsnList dsns, clients::dns::Resolver* resolver,
                          const DefaultCommandControls& default_cmd_ctls,
                          const testsuite::PostgresControl& testsuite_pg_ctl,
                          const error_injection::Settings& ei_settings,
-                         testsuite::TestsuiteTasks& testsuite_tasks)
+                         testsuite::TestsuiteTasks& testsuite_tasks,
+                         dynamic_config::Source config_source)
     : default_cmd_ctls_(default_cmd_ctls),
       cluster_settings_(cluster_settings),
       bg_task_processor_(bg_task_processor),
       rr_host_idx_(0),
+      config_source_(std::move(config_source)),
       connlimit_watchdog_(*this, testsuite_tasks,
                           [this]() { OnConnlimitChanged(); }) {
   if (dsns.empty()) {
@@ -106,8 +114,12 @@ ClusterImpl::ClusterImpl(DsnList dsns, clients::dns::Resolver* resolver,
   }
   LOG_DEBUG() << "Pools initialized";
 
-  if (cluster_settings.connlimit_mode == ConnlimitMode::kAuto)
+  // Do not use IsConnlimitModeAuto() here because we don't care about
+  // the current dynamic config value
+  if (cluster_settings.connlimit_mode == ConnlimitMode::kAuto &&
+      kConnlimitAutoExperiment.IsEnabled()) {
     connlimit_watchdog_.Start();
+  }
 }
 
 ClusterImpl::~ClusterImpl() { connlimit_watchdog_.Stop(); }
@@ -302,7 +314,7 @@ void ClusterImpl::SetPoolSettings(const PoolSettings& new_settings) {
 
     cluster->pool_settings = new_settings;
     auto& settings = cluster->pool_settings;
-    if (cluster->connlimit_mode == ConnlimitMode::kAuto) {
+    if (IsConnlimitModeAuto(*cluster)) {
       settings.max_size = connlimit_watchdog_.GetConnlimit();
       if (settings.min_size > settings.max_size)
         settings.min_size = settings.max_size;
@@ -320,12 +332,26 @@ void ClusterImpl::SetPoolSettings(const PoolSettings& new_settings) {
 void ClusterImpl::OnConnlimitChanged() {
   auto max_size = connlimit_watchdog_.GetConnlimit();
   auto cluster = cluster_settings_.StartWrite();
+  if (!IsConnlimitModeAuto(*cluster)) return;
+
   if (cluster->pool_settings.max_size == max_size) return;
   cluster->pool_settings.max_size = max_size;
   cluster.Commit();
 
   auto cluster_settings = cluster_settings_.Read();
   SetPoolSettings(cluster_settings->pool_settings);
+}
+
+bool ClusterImpl::IsConnlimitModeAuto(const ClusterSettings& settings) const {
+  if (settings.connlimit_mode == ConnlimitMode::kManual) return false;
+
+  if (!kConnlimitAutoExperiment.IsEnabled()) return false;
+
+  auto snapshot = config_source_.GetSnapshot();
+  // NOLINTNEXTLINE(readability-simplify-boolean-expr)
+  if (!snapshot[kConnlimitConfig].connlimit_mode_auto_enabled) return false;
+
+  return true;
 }
 
 void ClusterImpl::SetStatementMetricsSettings(

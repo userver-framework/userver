@@ -24,6 +24,7 @@
       "recent-errors-threshold": 100000
     }
   },
+  "POSTGRES_CONNLIMIT_MODE_AUTO_ENABLED": false,
   "POSTGRES_DEFAULT_COMMAND_CONTROL": {
     "network_timeout_ms": 750,
     "statement_timeout_ms": 500

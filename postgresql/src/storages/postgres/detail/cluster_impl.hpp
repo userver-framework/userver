@@ -5,6 +5,7 @@
 #include <vector>
 
 #include <userver/clients/dns/resolver_fwd.hpp>
+#include <userver/dynamic_config/source.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/error_injection/settings.hpp>
 #include <userver/testsuite/postgres_control.hpp>
@@ -33,7 +34,8 @@ class ClusterImpl {
               const DefaultCommandControls& default_cmd_ctls,
               const testsuite::PostgresControl& testsuite_pg_ctl,
               const error_injection::Settings& ei_settings,
-              testsuite::TestsuiteTasks& testsuite_tasks);
+              testsuite::TestsuiteTasks& testsuite_tasks,
+              dynamic_config::Source config_source);
 
   ~ClusterImpl();
 
@@ -68,6 +70,8 @@ class ClusterImpl {
  private:
   void OnConnlimitChanged();
 
+  bool IsConnlimitModeAuto(const ClusterSettings& settings) const;
+
   using ConnectionPoolPtr = std::shared_ptr<ConnectionPool>;
 
   ConnectionPoolPtr FindPool(ClusterHostTypeFlags);
@@ -78,6 +82,7 @@ class ClusterImpl {
   engine::TaskProcessor& bg_task_processor_;
   std::vector<ConnectionPoolPtr> host_pools_;
   std::atomic<uint32_t> rr_host_idx_;
+  dynamic_config::Source config_source_;
   ConnlimitWatchdog connlimit_watchdog_;
 };
 

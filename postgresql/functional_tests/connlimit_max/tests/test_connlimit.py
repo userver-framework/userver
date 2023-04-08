@@ -2,6 +2,7 @@ import pytest
 
 
 TESTSUITE_MAX_CONNECTIONS = 100 - 5
+STATIC_MAX_CONNECTIONS = 15
 
 
 @pytest.fixture(autouse=True)
@@ -25,12 +26,18 @@ async def periodic_step(service_client):
     await service_client.run_task('connlimit_watchdog_pg_key_value')
 
 
-async def test_single_client(monitor_client, service_client):
+async def test_single_client(monitor_client, service_client, taxi_config):
+    assert await get_max_connections(monitor_client) == STATIC_MAX_CONNECTIONS
+
+    taxi_config.set_values({'POSTGRES_CONNLIMIT_MODE_AUTO_ENABLED': True})
+    await periodic_step(service_client)
+
     assert (
         await get_max_connections(monitor_client) == TESTSUITE_MAX_CONNECTIONS
     )
 
 
+@pytest.mark.config(POSTGRES_CONNLIMIT_MODE_AUTO_ENABLED=True)
 async def test_second_client(monitor_client, service_client, pgsql):
     assert (
         await get_max_connections(monitor_client) == TESTSUITE_MAX_CONNECTIONS

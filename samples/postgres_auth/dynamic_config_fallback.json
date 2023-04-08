@@ -24,6 +24,7 @@
       "recent-errors-threshold": 100000
     }
   },
+  "POSTGRES_CONNLIMIT_MODE_AUTO_ENABLED": false,
   "POSTGRES_DEFAULT_COMMAND_CONTROL": {
     "network_timeout_ms": 750,
     "statement_timeout_ms": 500
@@ -71,6 +72,10 @@
   },
   "USERVER_HANDLER_STREAM_API_ENABLED": false,
   "USERVER_HTTP_PROXY": "",
+  "USERVER_LOG_DYNAMIC_DEBUG": {
+    "force-disabled": [],
+    "force-enabled": []
+  },
   "USERVER_LOG_REQUEST": true,
   "USERVER_LOG_REQUEST_HEADERS": false,
   "USERVER_LRU_CACHES": {},

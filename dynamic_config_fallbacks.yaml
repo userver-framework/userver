@@ -42,6 +42,7 @@ groups:
       - core/library.yaml
       - postgresql/library.yaml
     fallbacks:
+      - samples/postgres_auth/dynamic_config_fallback.json
       - samples/postgres_service/dynamic_config_fallback.json
       - samples/postgres-support/dynamic_config_fallback.json
       - postgresql/functional_tests/metrics/dynamic_config_fallback.json
@@ -78,6 +79,7 @@ groups:
       - postgresql/library.yaml
     fallbacks:
       - postgresql/functional_tests/basic_chaos/dynamic_config_fallback.json
+      - postgresql/functional_tests/connlimit_max/dynamic_config_fallback.json
     overrides:
         # chaos proxy is slow, initial connection setup takes quite some time
         POSTGRES_DEFAULT_COMMAND_CONTROL:

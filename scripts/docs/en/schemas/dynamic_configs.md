@@ -409,6 +409,22 @@ schema:
   type: boolean
 ```
 
+@anchor POSTGRES_CONNLIMIT_MODE_AUTO_ENABLED
+## POSTGRES_CONNLIMIT_MODE_AUTO_ENABLED
+
+Dynamic config that enables connlimit_mode: auto for PostgreSQL connections.
+Auto mode ignores static and dynamic max_connections configs and verifies
+that the cluster services use max_connections equals to PostgreSQL server's
+max_connections divided by service instance count.
+
+
+```
+yaml
+default: false
+schema:
+  type: boolean
+```
+
 @anchor POSTGRES_STATEMENT_METRICS_SETTINGS
 ## POSTGRES_STATEMENT_METRICS_SETTINGS
 
@@ -821,7 +837,7 @@ Used by components::HttpClient, affects the behavior of clients::http::Client an
 ## USERVER_LOG_DYNAMIC_DEBUG
 
 Logging per line and file overrides.
- 
+
 ```
 yaml
 default:

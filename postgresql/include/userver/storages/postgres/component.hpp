@@ -34,6 +34,7 @@ namespace components {
 /// * @ref POSTGRES_CONNECTION_SETTINGS
 /// * @ref POSTGRES_CONNECTION_PIPELINE_ENABLED
 /// * @ref POSTGRES_STATEMENT_METRICS_SETTINGS
+/// * @ref POSTGRES_CONNLIMIT_MODE_AUTO_ENABLED
 ///
 /// ## Static configuration example:
 ///

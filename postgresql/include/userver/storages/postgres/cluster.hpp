@@ -6,6 +6,7 @@
 #include <memory>
 
 #include <userver/clients/dns/resolver_fwd.hpp>
+#include <userver/dynamic_config/source.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/engine/task/task_with_result.hpp>
 #include <userver/error_injection/settings_fwd.hpp>
@@ -104,7 +105,8 @@ class Cluster {
           DefaultCommandControls&& default_cmd_ctls,
           const testsuite::PostgresControl& testsuite_pg_ctl,
           const error_injection::Settings& ei_settings,
-          testsuite::TestsuiteTasks& testsuite_tasks);
+          testsuite::TestsuiteTasks& testsuite_tasks,
+          dynamic_config::Source config_source);
   ~Cluster();
 
   /// Get cluster statistics

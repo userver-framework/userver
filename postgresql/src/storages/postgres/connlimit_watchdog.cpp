@@ -13,6 +13,9 @@ constexpr CommandControl kCommandControl{std::chrono::seconds(2),
                                          std::chrono::seconds(2)};
 constexpr size_t kTestsuiteConnlimit = 100;
 constexpr size_t kReservedConn = 5;
+
+constexpr size_t kMaxStepsWithError = 3;
+constexpr size_t kFallbackConnlimit = 20;
 }  // namespace
 
 ConnlimitWatchdog::ConnlimitWatchdog(detail::ClusterImpl& cluster,
@@ -46,33 +49,49 @@ void ConnlimitWatchdog::Start() {
 
 void ConnlimitWatchdog::Step() {
   static auto kHostname = hostinfo::blocking::GetRealHostName();
-  auto trx = cluster_.Begin({ClusterHostType::kMaster}, {}, kCommandControl);
-  auto max_connections = USERVER_NAMESPACE::utils::FromString<size_t>(
-      trx.Execute("SHOW max_connections;").AsSingleRow<std::string>());
+  try {
+    auto trx = cluster_.Begin({ClusterHostType::kMaster}, {}, kCommandControl);
+    auto max_connections = USERVER_NAMESPACE::utils::FromString<size_t>(
+        trx.Execute("SHOW max_connections;").AsSingleRow<std::string>());
 
-  if (max_connections > kReservedConn)
-    max_connections -= kReservedConn;
-  else
-    max_connections = 1;
+    if (max_connections > kReservedConn)
+      max_connections -= kReservedConn;
+    else
+      max_connections = 1;
 
-  trx.Execute(
-      "INSERT INTO u_clients (hostname, updated, max_connections) VALUES ($1, "
-      "NOW(), $2) ON CONFLICT (hostname) DO UPDATE SET updated = NOW(), "
-      "max_connections = $2",
-      kHostname, static_cast<int>(GetConnlimit()));
-  auto instances = trx.Execute(
-                          "SELECT count(*) FROM u_clients WHERE updated >= "
-                          "NOW() - make_interval(secs => 15)")
-                       .AsSingleRow<int>();
-  if (instances == 0) instances = 1;
+    trx.Execute(
+        "INSERT INTO u_clients (hostname, updated, max_connections) VALUES "
+        "($1, "
+        "NOW(), $2) ON CONFLICT (hostname) DO UPDATE SET updated = NOW(), "
+        "max_connections = $2",
+        kHostname, static_cast<int>(GetConnlimit()));
+    auto instances = trx.Execute(
+                            "SELECT count(*) FROM u_clients WHERE updated >= "
+                            "NOW() - make_interval(secs => 15)")
+                         .AsSingleRow<int>();
+    if (instances == 0) instances = 1;
 
-  auto connlimit = max_connections / instances;
-  if (connlimit == 0) connlimit = 1;
-  LOG_DEBUG() << "max_connections = " << max_connections
-              << ", instances = " << instances << ", connlimit = " << connlimit;
-  connlimit_ = connlimit;
+    auto connlimit = max_connections / instances;
+    if (connlimit == 0) connlimit = 1;
+    LOG_DEBUG() << "max_connections = " << max_connections
+                << ", instances = " << instances
+                << ", connlimit = " << connlimit;
+    connlimit_ = connlimit;
 
-  trx.Commit();
+    trx.Commit();
+    steps_with_errors_ = 0;
+  } catch (const Error& e) {
+    if (++steps_with_errors_ > kMaxStepsWithError) {
+      /*
+       * Something's wrong with PG server. Try to lower the load by lowering
+       * max connection to a small value. Active connections will be gracefully
+       * closed. When the server returns the response, we'll get the real
+       * connlimit value. The period with "too low max_connections" should be
+       * relatively small.
+       */
+      connlimit_ = kFallbackConnlimit;
+    }
+  }
 
   on_new_connlimit_();
 }

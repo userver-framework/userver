@@ -139,7 +139,7 @@ Postgres::Postgres(const ComponentConfig& config,
             pg_config.default_command_control,
             pg_config.handlers_command_control,
             pg_config.queries_command_control},
-        testsuite_pg_ctl, ei_settings, testsuite_tasks);
+        testsuite_pg_ctl, ei_settings, testsuite_tasks, config_source);
     database_->clusters_.push_back(cluster);
   }
 

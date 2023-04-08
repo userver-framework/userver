@@ -151,6 +151,10 @@ Config::Config(const dynamic_config::DocsMap& docs_map)
       statement_metrics_settings("POSTGRES_STATEMENT_METRICS_SETTINGS",
                                  docs_map) {}
 
+ConnlimitConfig ParseConnlimitConfig(const dynamic_config::DocsMap& docs_map) {
+  return {docs_map.Get("POSTGRES_CONNLIMIT_MODE_AUTO_ENABLED").As<bool>()};
+}
+
 }  // namespace storages::postgres
 
 USERVER_NAMESPACE_END
