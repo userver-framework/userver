@@ -165,13 +165,18 @@ with a running service.
 
 Testsuite functions reference could be found at @ref userver_testsuite.
 
+@anchor SERVICE_CONFIG_HOOKS
 #### Service config generation
 
-`pytest_userver` uses config.yaml and config_vars.yaml passed to pytest to generate
-services configs.
-`pytest_userver` provides a way to modify this configs before startings service.
-You can declare `USERVER_CONFIG_HOOKS` variable in your pytest-plugin it is list of
-functions or pytest-fixtures that are run before config is written to disk.
+`pytest_userver` modifies static configs `config.yaml` and `config_vars.yaml`
+passed to pytest before starting the userver based service.
+
+To apply additional modifications to the static config files
+declare `USERVER_CONFIG_HOOKS` variable in your pytest-plugin with a list of
+functions or pytest-fixtures that should be run before config is written to disk.
+USERVER_CONFIG_HOOKS values are collected across different files and all the
+collected functions and fixtures are applied.
+
 Example usage:
 
 @snippet samples/grpc_service/tests/conftest.py Prepare configs
@@ -217,6 +222,15 @@ Mockserver usage example:
 @snippet samples/http_caching/tests/conftest.py mockserver
 
 * Testcase: @ref samples/http_caching/tests/conftest.py
+
+To connect your HTTP client to the mockserver make the HTTP client use a base
+URL of the form **http://{mockserver}/{service_name}/**.
+
+This could be achieved by patching static config as described in
+@ref SERVICE_CONFIG_HOOKS "config hooks" and providing a mockserver address using
+[mockserver_info.url(path)](https://yandex.github.io/yandex-taxi-testsuite/mockserver/#testsuite.mockserver.classes.MockserverInfo.url):
+
+@snippet samples/http_caching/tests/conftest.py patch configs
 
 #### Mock time
 
