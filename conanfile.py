@@ -167,7 +167,6 @@ class UserverConan(ConanFile):
     def package(self):
         self.copy(pattern='LICENSE', dst='licenses')
 
-
         copy(self, pattern='*', 
              dst=os.path.join(self.package_folder, "include", "shared"), 
              src=os.path.join(self.source_folder, "shared", "include"), keep_path=True)
@@ -194,21 +193,15 @@ class UserverConan(ConanFile):
         if self.options.with_grpc:
             copy_component("grpc")
             copy(self,
-                pattern='GrpcConan.cmake',
-                dst=os.path.join(self.package_folder, "cmake"),
-                src=os.path.join(self.source_folder, "cmake"),
-                keep_path=True,
-            )
-            grpc_file = open(os.path.join(self.package_folder, "cmake", "GrpcConan.cmake"), 'a')
-            grpc_file.write('\nset(USERVER_CONAN TRUE)')
-            grpc_file.write('\nset(PYTHON "python3")')
-            grpc_file.close()
-            copy(self,
                 pattern='GrpcTargets.cmake',
                 dst=os.path.join(self.package_folder, "cmake"),
                 src=os.path.join(self.source_folder, "cmake"),
                 keep_path=True,
             )
+            grpc_file = open(os.path.join(self.package_folder, "cmake", "GrpcConan.cmake"), 'a+')
+            grpc_file.write('\nset(USERVER_CONAN TRUE)')
+            grpc_file.write('\nset(PYTHON "python3")')
+            grpc_file.close()
         if self.options.with_utest:
             copy(self, pattern='*', 
                  dst=os.path.join(self.package_folder, "include", "utest"), 
