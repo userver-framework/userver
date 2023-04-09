@@ -436,6 +436,13 @@ void ExpirableLruCache<Key, Value, Hash, Equal>::SetDumper(
   lru_.SetDumper(std::move(dumper));
 }
 
+template <typename Key, typename Value, typename Hash, typename Equal>
+void DumpMetric(utils::statistics::Writer& writer,
+                const ExpirableLruCache<Key, Value, Hash, Equal>& cache) {
+  writer["current-documents-count"] = cache.GetSizeApproximate();
+  writer = cache.GetStatistics();
+}
+
 }  // namespace cache
 
 USERVER_NAMESPACE_END

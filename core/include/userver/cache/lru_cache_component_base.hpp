@@ -12,7 +12,7 @@
 #include <userver/dump/operations.hpp>
 #include <userver/dynamic_config/source.hpp>
 #include <userver/testsuite/component_control.hpp>
-#include <userver/utils/statistics/storage.hpp>
+#include <userver/utils/statistics/storage.hpp>  // TODO: remove
 #include <userver/yaml_config/schema.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -20,16 +20,6 @@ USERVER_NAMESPACE_BEGIN
 namespace cache {
 
 namespace impl {
-
-formats::json::Value GetCacheStatisticsAsJson(
-    const ExpirableLruCacheStatistics& stats, std::size_t size);
-
-template <typename Key, typename Value, typename Hash, typename Equal>
-formats::json::Value GetCacheStatisticsAsJson(
-    const ExpirableLruCache<Key, Value, Hash, Equal>& cache) {
-  return GetCacheStatisticsAsJson(cache.GetStatistics(),
-                                  cache.GetSizeApproximate());
-}
 
 testsuite::ComponentControl& FindComponentControl(
     const components::ComponentContext& context);
@@ -161,10 +151,9 @@ LruCacheComponent<Key, Value, Hash, Equal>::LruCacheComponent(
     LOG_INFO() << "Dynamic LRU cache config is disabled, cache=" << name_;
   }
 
-  statistics_holder_ = impl::FindStatisticsStorage(context).RegisterExtender(
-      "cache." + name_, [this](const auto& /*request*/) {
-        return impl::GetCacheStatisticsAsJson(*cache_);
-      });
+  statistics_holder_ = impl::FindStatisticsStorage(context).RegisterWriter(
+      "cache", [this](utils::statistics::Writer& writer) { writer = *cache_; },
+      {{"cache_name", name_}});
 
   invalidator_holder_.emplace(
       impl::FindComponentControl(context), *this,
