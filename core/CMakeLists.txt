@@ -107,7 +107,11 @@ if (USERVER_CONAN)
 
     find_package(concurrentqueue REQUIRED)
 else()
+if (DEFINED GRPC_EXTERNAL_ENABLE)
+    message("Target c-ares added by external grpc")
+else()
     include(SetupCAres)
+endif()
     include(SetupCURL)
     include(SetupCryptoPP)
     find_package_required(yaml-cpp "libyaml-cpp-dev")
@@ -187,7 +191,7 @@ else()
       PUBLIC
         libyamlcpp
         fmt
-        c-ares
+        ${CARES_LIBRARY}
         cctz
         userver-stacktrace
       PRIVATE

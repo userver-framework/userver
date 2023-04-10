@@ -1,6 +1,8 @@
 project(userver-grpc CXX)
 
-if (USERVER_OPEN_SOURCE_BUILD)
+if (DEFINED GRPC_EXTERNAL_ENABLE)
+    message("Use external grpc")
+elseif (USERVER_OPEN_SOURCE_BUILD)
     if (USERVER_CONAN)
         find_package(gRPC REQUIRED)
         find_package(Protobuf REQUIRED)
@@ -23,17 +25,19 @@ endif()
 
 add_library(${PROJECT_NAME}-deps INTERFACE)
 target_include_directories(${PROJECT_NAME}-deps INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/include)
-if (USERVER_CONAN)
-    target_link_libraries(${PROJECT_NAME}-deps INTERFACE
-        protobuf::protobuf gRPC::gRPC
-    )
-    if ("${GRPC_LIBRARY_VERSION}" VERSION_GREATER_EQUAL "1.41")
+if (NOT DEFINED GRPC_EXTERNAL_ENABLE)
+    if (USERVER_CONAN)
         target_link_libraries(${PROJECT_NAME}-deps INTERFACE
-            absl::base absl::synchronization
+            protobuf::protobuf gRPC::gRPC
         )
+        if ("${GRPC_LIBRARY_VERSION}" VERSION_GREATER_EQUAL "1.41")
+            target_link_libraries(${PROJECT_NAME}-deps INTERFACE
+                absl::base absl::synchronization
+            )
+        endif()
+    else()
+        target_link_libraries(${PROJECT_NAME}-deps INTERFACE Protobuf Grpc)
     endif()
-else()
-  target_link_libraries(${PROJECT_NAME}-deps INTERFACE Protobuf Grpc)
 endif()
 
 execute_process(
@@ -88,19 +92,19 @@ endif()
 target_link_libraries(${PROJECT_NAME} PUBLIC userver-core)
 
 set(CHANNELZ_MIN_VERSION "1.17.0")
-if (${GRPC_LIBRARY_VERSION} VERSION_GREATER_EQUAL ${CHANNELZ_MIN_VERSION})
+if ((${GRPC_LIBRARY_VERSION} VERSION_GREATER_EQUAL ${CHANNELZ_MIN_VERSION}) AND (NOT DEFINED GRPC_EXTERNAL_ENABLE))
     set(HAS_CHANNELZ TRUE)
 else()
     set(HAS_CHANNELZ FALSE)
 endif()
 option(USERVER_FEATURE_GRPC_CHANNELZ "Enable Channelz for gRPC" ${HAS_CHANNELZ})
-if (${USERVER_FEATURE_GRPC_CHANNELZ} AND NOT ${HAS_CHANNELZ})
+if (${USERVER_FEATURE_GRPC_CHANNELZ} AND NOT ${HAS_CHANNELZ} AND (NOT DEFINED GRPC_EXTERNAL_ENABLE))
     message(FATAL_ERROR
         "For Channelz, install gRPC >= ${CHANNELZ_MIN_VERSION}"
         "(found: ${GRPC_LIBRARY_VERSION})")
 endif()
 
-if (USERVER_FEATURE_GRPC_CHANNELZ)
+if (USERVER_FEATURE_GRPC_CHANNELZ AND (NOT DEFINED GRPC_EXTERNAL_ENABLE))
     message(STATUS "gRPC Channelz enabled")
     if (USERVER_CONAN)
         target_link_libraries(${PROJECT_NAME} PUBLIC gRPC::grpcpp_channelz)
