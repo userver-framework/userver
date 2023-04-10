@@ -88,7 +88,7 @@ Postgres::Postgres(const ComponentConfig& config,
                                     : storages::postgres::InitMode::kAsync;
   initial_settings_.db_name = db_name_;
   initial_settings_.connlimit_mode =
-      ParseConnlimitMode(config["connlimit_mode"].As<std::string>("manual"));
+      ParseConnlimitMode(config["connlimit_mode"].As<std::string>("auto"));
 
   initial_settings_.topology_settings.max_replication_lag =
       config["max_replication_lag"].As<std::chrono::milliseconds>(

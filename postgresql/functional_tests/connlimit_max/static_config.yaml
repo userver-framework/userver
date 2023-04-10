@@ -9,7 +9,6 @@ components_manager:
             user-types-enabled: false  # Not used in chaos tests
             max_queue_size: 200
             min_pool_size: 1
-            connlimit_mode: auto
 
         testsuite-support:
 
