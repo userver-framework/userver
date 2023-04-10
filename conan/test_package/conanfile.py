@@ -41,9 +41,9 @@ class TestPackageConan(ConanFile):
 
             bin_path = os.path.join(
                 self.cpp.build.bindirs[0], 
-                "testsuite-support", 
-                "runtests-testsuite-userver-samples-testsuite-support")
+                "hello_service", 
+                "runtests-testsuite-userver-samples-hello_service")
             command = " "
-            folder = os.path.join(self.recipe_folder, "..", "..", "samples", "testsuite-support", "tests")
+            folder = os.path.join(self.recipe_folder, "..", "..", "samples", "hello_service", "tests")
             args = [bin_path, "--service-logs-pretty", "-vv", folder]
             self.run(command.join(args), env="conanrun")
