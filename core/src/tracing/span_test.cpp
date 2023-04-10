@@ -90,19 +90,10 @@ UTEST_F(Span, Ctr) {
 UTEST_F(Span, SourceLocation) {
   { tracing::Span span("span_name"); }
   logging::LogFlush();
-  if (std::string::npos !=
-      GetStreamString().find("module=TestBody ( userver/core/src/tracing")) {
-    // Yandex
-    EXPECT_NE(
-        std::string::npos,
-        GetStreamString().find("module=TestBody ( userver/core/src/tracing"))
-        << GetStreamString();
-  } else {
-    // OpenSource
-    EXPECT_NE(std::string::npos,
-              GetStreamString().find("module=TestBody ( core/src/tracing"))
-        << GetStreamString();
-  }
+  EXPECT_NE(
+      std::string::npos,
+      GetStreamString().find("module=TestBody ( userver/core/src/tracing"))
+      << GetStreamString();
 }
 
 UTEST_F(Span, Tag) {
