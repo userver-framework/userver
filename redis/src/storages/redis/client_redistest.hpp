@@ -9,10 +9,15 @@
 
 #include <storages/redis/client_impl.hpp>
 #include <storages/redis/impl/sentinel.hpp>
+#include <storages/redis/impl/subscribe_sentinel.hpp>
+#include <storages/redis/subscribe_client_impl.hpp>
 #include <storages/redis/util_redistest.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
+// This fixture is used for both Client and SubscribeClient tests, because
+// Publish() method is part of Client - not SubscribeClient. And without
+// Publish() there is no way to write proper unit tests for subscribing
 class RedisClientTest : public ::testing::Test {
  public:
   struct Version {
@@ -22,12 +27,14 @@ class RedisClientTest : public ::testing::Test {
   };
 
   void SetUp() override {
-    auto thread_pools = std::make_shared<redis::ThreadPools>(
+    thread_pools_ = std::make_shared<redis::ThreadPools>(
         redis::kDefaultSentinelThreadPoolSize,
         redis::kDefaultRedisThreadPoolSize);
+
     auto sentinel = redis::Sentinel::CreateSentinel(
-        std::move(thread_pools), GetTestsuiteRedisSettings(), "none", "pub",
+        thread_pools_, GetTestsuiteRedisSettings(), "none", "pub",
         redis::KeyShardFactory{""});
+
     sentinel->WaitConnectedDebug();
 
     sentinel
@@ -50,9 +57,21 @@ class RedisClientTest : public ::testing::Test {
 
     client_ =
         std::make_shared<storages::redis::ClientImpl>(std::move(sentinel));
+
+    /* Subscribe client */
+    auto subscribe_sentinel = redis::SubscribeSentinel::Create(
+        thread_pools_, GetTestsuiteRedisSettings(), "none", "pub", false, {},
+        nullptr);
+    subscribe_sentinel->WaitConnectedDebug();
+
+    subscribe_client_ = std::make_shared<storages::redis::SubscribeClientImpl>(
+        std::move(subscribe_sentinel));
   }
 
   storages::redis::ClientPtr GetClient() { return client_; }
+  std::shared_ptr<storages::redis::SubscribeClient> GetSubscribeClient() {
+    return subscribe_client_;
+  }
 
   bool CheckVersion(Version since) {
     return std::tie(since.major, since.minor, since.patch) <=
@@ -68,6 +87,8 @@ class RedisClientTest : public ::testing::Test {
  private:
   Version version_{};
   storages::redis::ClientPtr client_{};
+  std::shared_ptr<storages::redis::SubscribeClient> subscribe_client_{};
+  std::shared_ptr<redis::ThreadPools> thread_pools_{};
 
   static Version MakeVersion(std::string from) {
     std::regex rgx(R"((\d+).(\d+).(\d+))");

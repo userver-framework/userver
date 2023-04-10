@@ -48,6 +48,8 @@ class SubscriptionToken {
 
   SubscriptionToken& operator=(SubscriptionToken&&) noexcept;
 
+  /// There is a MPSC queue inside the connection. This parameter requlates
+  /// its maxiumum length. If it overflows, new messages are discarded.
   void SetMaxQueueLength(size_t length);
 
   /// Unsubscribe from the channel. This method is synchronous, once it

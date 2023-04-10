@@ -78,6 +78,38 @@ void PsubscriptionTokenImpl::ProcessMessages() {
   }
 }
 
+/// Non-queued variants
+
+UnqueuedSubscriptionTokenImpl::UnqueuedSubscriptionTokenImpl(
+    USERVER_NAMESPACE::redis::SubscribeSentinel& subscribe_sentinel,
+    std::string channel, OnMessageCb on_message_cb,
+    const USERVER_NAMESPACE::redis::CommandControl& command_control)
+    : subscription_token_(subscribe_sentinel.Subscribe(
+          std::move(channel), std::move(on_message_cb), command_control)) {}
+
+UnqueuedSubscriptionTokenImpl::~UnqueuedSubscriptionTokenImpl() {
+  Unsubscribe();
+}
+
+void UnqueuedSubscriptionTokenImpl::Unsubscribe() {
+  subscription_token_.Unsubscribe();
+}
+
+UnqueuedPsubscriptionTokenImpl::UnqueuedPsubscriptionTokenImpl(
+    USERVER_NAMESPACE::redis::SubscribeSentinel& subscribe_sentinel,
+    std::string pattern, OnPmessageCb on_pmessage_cb,
+    const USERVER_NAMESPACE::redis::CommandControl& command_control)
+    : subscription_token_(subscribe_sentinel.Psubscribe(
+          std::move(pattern), std::move(on_pmessage_cb), command_control)) {}
+
+UnqueuedPsubscriptionTokenImpl::~UnqueuedPsubscriptionTokenImpl() {
+  Unsubscribe();
+}
+
+void UnqueuedPsubscriptionTokenImpl::Unsubscribe() {
+  subscription_token_.Unsubscribe();
+}
+
 }  // namespace storages::redis
 
 USERVER_NAMESPACE_END
