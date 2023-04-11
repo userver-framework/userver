@@ -61,11 +61,12 @@ DistLockComponentBase::DistLockComponentBase(
 
   auto& statistics_storage =
       component_context.FindComponent<components::StatisticsStorage>();
-  statistics_holder_ = statistics_storage.GetStorage().RegisterExtender(
-      "distlock." + component_config.Name(),
-      [this](const USERVER_NAMESPACE::utils::statistics::StatisticsRequest&) {
-        return worker_->GetStatisticsJson();
-      });
+  statistics_holder_ = statistics_storage.GetStorage().RegisterWriter(
+      "distlock",
+      [this](USERVER_NAMESPACE::utils::statistics::Writer& writer) {
+        writer = *worker_;
+      },
+      {{"distlock_name", component_config.Name()}});
 
   if (component_config["testsuite-support"].As<bool>(false)) {
     auto& testsuite_tasks = testsuite::GetTestsuiteTasks(component_context);

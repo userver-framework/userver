@@ -1,10 +1,9 @@
 #include <userver/dist_lock/dist_locked_worker.hpp>
 
 #include <userver/engine/async.hpp>
-#include <userver/formats/json/value_builder.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
-#include <userver/utils/statistics/metadata.hpp>
+#include <userver/utils/statistics/writer.hpp>
 
 #include <dist_lock/impl/helpers.hpp>
 #include <dist_lock/impl/locker.hpp>
@@ -91,27 +90,24 @@ const Statistics& DistLockedWorker::GetStatistics() const {
   return locker_ptr_->GetStatistics();
 }
 
-formats::json::Value DistLockedWorker::GetStatisticsJson() const {
-  const auto& stats = GetStatistics();
-  bool running = IsRunning();
-  auto locked_duration = GetLockedDuration();
+void DumpMetric(utils::statistics::Writer& writer,
+                const DistLockedWorker& worker) {
+  const auto& stats = worker.GetStatistics();
+  const bool running = worker.IsRunning();
+  const auto locked_duration = worker.GetLockedDuration();
 
-  formats::json::ValueBuilder result;
-  result["running"] = running ? 1 : 0;
-  result["locked"] = locked_duration ? 1 : 0;
-  result["locked-for-ms"] =
+  writer["running"] = running ? 1 : 0;
+  writer["locked"] = locked_duration ? 1 : 0;
+  writer["locked-for-ms"] =
       std::chrono::duration_cast<std::chrono::milliseconds>(
           locked_duration.value_or(std::chrono::seconds(0)))
           .count();
 
-  result["successes"] = stats.lock_successes.Load();
-  result["failures"] = stats.lock_failures.Load();
-  result["watchdog-triggers"] = stats.watchdog_triggers.Load();
-  result["brain-splits"] = stats.brain_splits.Load();
-  result["task-failures"] = stats.task_failures.Load();
-  utils::statistics::SolomonLabelValue(result, "distlock_name");
-
-  return result.ExtractValue();
+  writer["successes"] = stats.lock_successes.Load();
+  writer["failures"] = stats.lock_failures.Load();
+  writer["watchdog-triggers"] = stats.watchdog_triggers.Load();
+  writer["brain-splits"] = stats.brain_splits.Load();
+  writer["task-failures"] = stats.task_failures.Load();
 }
 
 }  // namespace dist_lock

@@ -11,7 +11,7 @@
 #include <userver/dist_lock/statistics.hpp>
 #include <userver/engine/mutex.hpp>
 #include <userver/engine/task/task_with_result.hpp>
-#include <userver/formats/json/value.hpp>
+#include <userver/formats/json/value.hpp>  // TODO: remove
 
 USERVER_NAMESPACE_BEGIN
 
@@ -79,9 +79,6 @@ class DistLockedWorker final {
   /// Returns lock acquisition statistics.
   const Statistics& GetStatistics() const;
 
-  /// Return formatted statistics JSON
-  formats::json::Value GetStatisticsJson() const;
-
  private:
   engine::TaskProcessor& GetTaskProcessor() const noexcept;
 
@@ -92,6 +89,9 @@ class DistLockedWorker final {
 
   engine::TaskProcessor* const task_processor_;
 };
+
+void DumpMetric(utils::statistics::Writer& writer,
+                const DistLockedWorker& worker);
 
 }  // namespace dist_lock
 
