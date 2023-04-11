@@ -14,8 +14,10 @@ const TracingManagerBase& GetTracingManagerFromConfig(
     const components::ComponentConfig& config,
     const components::ComponentContext& context) {
   if (config.HasMember("component-name")) {
-    return context.FindComponent<TracingManagerBase>(
-        config["component-name"].As<std::string>());
+    auto tracing_manager_name = config["component-name"].As<std::string>();
+    if (!tracing_manager_name.empty()) {
+      return context.FindComponent<TracingManagerBase>(tracing_manager_name);
+    }
   }
   return kDefaultTracingManager;
 }
