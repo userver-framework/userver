@@ -10,6 +10,7 @@
 #include <userver/concurrent/variable.hpp>
 #include <userver/formats/json/serialize_container.hpp>
 #include <userver/server/handlers/http_handler_json_base.hpp>
+#include <userver/server/handlers/server_monitor.hpp>
 #include <userver/server/handlers/tests_control.hpp>
 #include <userver/storages/secdist/component.hpp>
 #include <userver/storages/secdist/provider_component.hpp>
@@ -143,6 +144,7 @@ int main(int argc, char* argv[]) {
                                    .Append<components::Secdist>()
                                    .Append<components::DefaultSecdistProvider>()
                                    .Append<components::TestsuiteSupport>()
+                                   .Append<server::handlers::ServerMonitor>()
                                    .Append<server::handlers::TestsControl>()
                                    .Append<components::HttpClient>();
 

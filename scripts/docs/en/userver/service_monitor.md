@@ -77,13 +77,15 @@ $ curl http://localhost:8086/service/monitor?format=graphite | sort
 @include core/functional_tests/metrics/tests/static/metrics_values.txt
 
 
-With components::Postgres and some components::PostgreCache the following
-additional metrics appear:
+With components::Postgres, some components::PostgreCache and some
+storages::postgres::DistLockComponentBase the following additional metrics
+appear:
 
 @include postgresql/functional_tests/metrics/tests/static/metrics_values.txt
 
 
-With components::Mongo the following additional metrics appear:
+With components::Mongo and some storages::mongo::DistLockComponentBase the
+following additional metrics appear:
 
 @include mongo/functional_tests/metrics/tests/static/metrics_values.txt
 
@@ -97,6 +99,10 @@ With components::ClickHouse the following additional metrics appear:
 
 @include clickhouse/functional_tests/metrics/tests/static/metrics_values.txt
 
+
+With components::RabbitMQ the following additional metrics appear:
+
+@include rabbitmq/functional_tests/metrics/tests/static/metrics_values.txt
 
 ----------
 

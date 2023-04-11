@@ -1,0 +1,6 @@
+rabbitmq.my-rabbit.localhost.bytes_read 5008 1681206416
+rabbitmq.my-rabbit.localhost.bytes_sent 3528 1681206416
+rabbitmq.my-rabbit.localhost.connections_closed 0 1681206416
+rabbitmq.my-rabbit.localhost.connections_created 5 1681206416
+rabbitmq.my-rabbit.localhost.messages_consumed 10 1681206416
+rabbitmq.my-rabbit.localhost.messages_published 10 1681206416

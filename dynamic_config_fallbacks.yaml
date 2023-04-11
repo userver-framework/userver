@@ -3,6 +3,7 @@ groups:
       - core/library.yaml
     fallbacks:
       - clickhouse/functional_tests/metrics/dynamic_config_fallback.json
+      - rabbitmq/functional_tests/metrics/dynamic_config_fallback.json
       - samples/clickhouse_service/dynamic_config_fallback.json
       - samples/config_service/dynamic_config_fallback.json
       - samples/flatbuf_service/dynamic_config_fallback.json

@@ -39,4 +39,6 @@ if (USERVER_IS_THE_ROOT_PROJECT)
   )
   set_tests_properties(${PROJECT_NAME}_rmqtest PROPERTIES ENVIRONMENT
           "TESTSUITE_RABBITMQ_SERVER_START_TIMEOUT=60.0")
+
+  add_subdirectory(functional_tests)
 endif()
