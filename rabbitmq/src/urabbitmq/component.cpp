@@ -36,9 +36,10 @@ RabbitMQ::RabbitMQ(const ComponentConfig& config,
 
   auto& statistics_storage =
       context.FindComponent<components::StatisticsStorage>();
-  statistics_holder_ = statistics_storage.GetStorage().RegisterExtender(
-      "rabbitmq." + config.Name(),
-      [this](const auto&) { return client_->GetStatistics(); });
+  statistics_holder_ = statistics_storage.GetStorage().RegisterWriter(
+      "rabbitmq." + config.Name(), [this](utils::statistics::Writer& writer) {
+        return client_->WriteStatistics(writer);
+      });
 }
 
 RabbitMQ::~RabbitMQ() { statistics_holder_.Unregister(); }

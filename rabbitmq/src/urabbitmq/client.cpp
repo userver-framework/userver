@@ -89,8 +89,8 @@ ReliableChannel Client::GetReliableChannel(engine::Deadline deadline) {
   return {impl_->GetConnection(deadline)};
 }
 
-formats::json::Value Client::GetStatistics() const {
-  return impl_->GetStatistics();
+void Client::WriteStatistics(utils::statistics::Writer& writer) const {
+  return impl_->WriteStatistics(writer);
 }
 
 }  // namespace urabbitmq

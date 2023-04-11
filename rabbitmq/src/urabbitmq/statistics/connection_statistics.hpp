@@ -2,8 +2,8 @@
 
 #include <cstddef>
 
-#include <userver/formats/json/serialize.hpp>
 #include <userver/utils/statistics/relaxed_counter.hpp>
+#include <userver/utils/statistics/writer.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -45,8 +45,8 @@ class ConnectionStatistics final {
   utils::statistics::RelaxedCounter<size_t> messages_consumed_{0};
 };
 
-formats::json::Value Serialize(const ConnectionStatistics::Frozen& value,
-                               formats::serialize::To<formats::json::Value>);
+void DumpMetric(utils::statistics::Writer& writer,
+                const ConnectionStatistics::Frozen& value);
 
 }  // namespace urabbitmq::statistics
 
