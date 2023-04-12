@@ -30,6 +30,8 @@ class KeyValue final : public server::handlers::HttpHandlerBase {
       server::request::RequestContext&) const override;
 
  private:
+  static constexpr std::chrono::milliseconds kDefaultTimeout{2000};
+
   std::string GetValue(std::string_view key,
                        const server::http::HttpRequest& request) const;
   std::string PostValue(std::string_view key,
@@ -37,7 +39,7 @@ class KeyValue final : public server::handlers::HttpHandlerBase {
   std::string DeleteValue(std::string_view key) const;
 
   storages::clickhouse::ClusterPtr clickhouse_client_;
-  storages::clickhouse::CommandControl cc_{std::chrono::seconds{5}};
+  storages::clickhouse::CommandControl cc_{kDefaultTimeout};
 };
 
 KeyValue::KeyValue(const components::ComponentConfig& config,

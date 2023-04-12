@@ -8,7 +8,7 @@ components_manager:
         clickhouse-database:
             secdist_alias: clickhouse-database-alias
             initial_pool_size: 1
-            max_pool_size: 200
+            max_pool_size: 1
             queue_timeout: 10s
             use_secure_connection: false
 
