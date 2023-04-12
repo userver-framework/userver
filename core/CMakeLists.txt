@@ -96,7 +96,7 @@ if (USERVER_CONAN)
     find_package(libev REQUIRED)
 
     find_package(RapidJSON REQUIRED)
-    target_compile_definitions(RapidJSON::RapidJSON INTERFACE RAPIDJSON_HAS_STDSTRING)
+    target_compile_definitions(rapidjson INTERFACE RAPIDJSON_HAS_STDSTRING)
 
     find_package(concurrentqueue REQUIRED)
 else()
@@ -167,12 +167,12 @@ if (USERVER_CONAN)
         concurrentqueue::concurrentqueue
         Boost::stacktrace
       PRIVATE
-        cryptopp-static
+        cryptopp::cryptopp
         http_parser::http_parser
         libev::libev
-		libnghttp2::nghttp2
-        spdlog::spdlog
-        RapidJSON::RapidJSON
+        libnghttp2::nghttp2
+        spdlog::spdlog_header_only
+        rapidjson
     )
 else()
     target_link_libraries(${PROJECT_NAME}

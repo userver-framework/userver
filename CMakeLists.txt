@@ -40,10 +40,6 @@ if(NOT MAC AND CMAKE_SYSTEM_NAME MATCHES "BSD")
 endif()
 
 option(USERVER_CONAN "Build with Conan packages" ${CONAN_EXPORTED})
-if (USERVER_CONAN)
-  message(STATUS "Using Conan packages")
-  include(conan_paths)
-endif()
 
 option(USERVER_DOWNLOAD_PACKAGES "Download missing third party packages and use the downloaded versions" ON)
 

@@ -2,6 +2,27 @@
 # wrappers. A separate target is required as GRPC generated headers require
 # relaxed compilation flags.
 
+if (USERVER_CONAN)
+  find_package(gRPC REQUIRED)
+  find_package(Protobuf REQUIRED)
+  set(GRPC_LIBRARY_VERSION "${gRPC_VERSION}")
+  set(GRPC_PROTOBUF_INCLUDE_DIRS "${protobuf_INCLUDE_DIR}" CACHE PATH INTERNAL)
+else()
+  find_package(UserverGrpc REQUIRED)
+  find_package(UserverProtobuf REQUIRED)
+  add_library(Grpc ALIAS UserverGrpc)  # Unify link names
+  add_library(Protobuf ALIAS UserverProtobuf)  # Unify link names
+  set(GRPC_LIBRARY_VERSION "${UserverGrpc_VERSION}")
+  set(GRPC_PROTOBUF_INCLUDE_DIRS "${UserverProtobuf_INCLUDE_DIRS}" CACHE PATH INTERNAL)
+endif()
+
+if (NOT GRPC_PROTOBUF_INCLUDE_DIRS)
+  message(FATAL_ERROR "Invalid Protobuf package")
+endif()
+if (NOT GRPC_LIBRARY_VERSION)
+  message(FATAL_ERROR "Invalid gRPC package")
+endif()
+
 get_filename_component(USERVER_DIR "${CMAKE_CURRENT_LIST_DIR}" DIRECTORY)
 set(PROTO_GRPC_USRV_PLUGIN "${USERVER_DIR}/scripts/grpc/protoc_usrv_plugin.sh")
 
@@ -15,7 +36,7 @@ if(NOT USERVER_IMPL_GRPC_REQUIREMENTS_CHECKED)
     WORKING_DIRECTORY "${USERVER_DIR}"
   )
   if(RESULT)
-    message(FATAL_ERROR "Protobuf requirements check failed")
+    message(FATAL_ERROR "Protobuf requirements check failed: PYTHON "${PYTHON}" USERVER_DIR ${USERVER_DIR} RESULT ${RESULT}")
   endif(RESULT)
   set(USERVER_IMPL_GRPC_REQUIREMENTS_CHECKED ON CACHE INTERNAL "")
 endif()
@@ -186,5 +207,9 @@ function(add_grpc_library NAME)
   add_library(${NAME} STATIC ${generated_sources} ${generated_usrv_sources})
   target_compile_options(${NAME} PUBLIC -Wno-unused-parameter)
   target_include_directories(${NAME} SYSTEM PUBLIC ${include_paths})
-  target_link_libraries(${NAME} PUBLIC userver-grpc)
+  if(USERVER_CONAN)
+    target_link_libraries(${NAME} PUBLIC userver::grpc)
+  else()
+    target_link_libraries(${NAME} PUBLIC userver-grpc)
+  endif()
 endfunction()

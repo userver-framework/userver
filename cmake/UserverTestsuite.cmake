@@ -2,8 +2,15 @@ include(CTest)
 include(FindPython)
 
 option(USERVER_FEATURE_TESTSUITE "Enable functional tests via testsuite" ON)
-if (USERVER_FEATURE_TESTSUITE)
-  find_package(PythonDev REQUIRED)  # required by virtualenv
+if (USERVER_FEATURE_TESTSUITE) 
+  # find package python3-dev required by virtualenv
+  execute_process(
+    COMMAND bash "-c" "command -v python3-config"
+    OUTPUT_VARIABLE PYTHONCONFIG_FOUND
+  )
+  if (NOT PYTHONCONFIG_FOUND)
+    message(FATAL_ERROR "Python dev is not found")
+  endif()
 endif()
 
 get_filename_component(

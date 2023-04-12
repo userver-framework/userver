@@ -1,31 +1,12 @@
 project(userver-grpc CXX)
 
-if (USERVER_CONAN)
-  find_package(gRPC REQUIRED)
-  find_package(Protobuf REQUIRED)
-  set(GRPC_LIBRARY_VERSION "${gRPC_VERSION}")
-  set(GRPC_PROTOBUF_INCLUDE_DIRS "${CONAN_PROTOBUF_ROOT}/include" CACHE PATH INTERNAL)
-else()
-  find_package(UserverGrpc REQUIRED)
-  find_package(UserverProtobuf REQUIRED)
-  add_library(Grpc ALIAS UserverGrpc)  # Unify link names
-  add_library(Protobuf ALIAS UserverProtobuf)  # Unify link names
-  set(GRPC_LIBRARY_VERSION "${UserverGrpc_VERSION}")
-  set(GRPC_PROTOBUF_INCLUDE_DIRS "${UserverProtobuf_INCLUDE_DIRS}" CACHE PATH INTERNAL)
-endif()
-
-if (NOT GRPC_PROTOBUF_INCLUDE_DIRS)
-  message(FATAL_ERROR "Invalid Protobuf package")
-endif()
-if (NOT GRPC_LIBRARY_VERSION)
-  message(FATAL_ERROR "Invalid gRPC package")
-endif()
+include(GrpcTargets)
 
 add_library(${PROJECT_NAME}-deps INTERFACE)
 target_include_directories(${PROJECT_NAME}-deps INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 if (USERVER_CONAN)
     target_link_libraries(${PROJECT_NAME}-deps INTERFACE
-        protobuf::protobuf gRPC::gRPC
+        protobuf::protobuf grpc::grpc
     )
     if ("${GRPC_LIBRARY_VERSION}" VERSION_GREATER_EQUAL "1.41")
         target_link_libraries(${PROJECT_NAME}-deps INTERFACE
@@ -36,7 +17,7 @@ else()
 	target_link_libraries(${PROJECT_NAME}-deps INTERFACE Protobuf Grpc)
 endif()
 
-include(GrpcTargets)
+
 include(SetupGoogleProtoApis)
 
 file(GLOB_RECURSE SOURCES
