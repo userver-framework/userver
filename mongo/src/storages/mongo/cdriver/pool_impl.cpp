@@ -10,6 +10,7 @@
 #include <userver/formats/bson.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/server/request/task_inherited_data.hpp>
+#include <userver/tracing/span.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/traceful_exception.hpp>
 
@@ -179,6 +180,7 @@ CDriverPoolImpl::CDriverPoolImpl(std::string id, const std::string& uri_string,
   init_data_.ssl_opt = MakeSslOpt(uri_.get());
 
   try {
+    tracing::Span span("mongo_prepopulate");
     LOG_INFO() << "Creating " << config.initial_size << " mongo connections";
     for (size_t i = 0; i < config.initial_size; ++i) {
       engine::SemaphoreLock lock(in_use_semaphore_);
@@ -197,6 +199,7 @@ CDriverPoolImpl::CDriverPoolImpl(std::string id, const std::string& uri_string,
 }
 
 CDriverPoolImpl::~CDriverPoolImpl() {
+  tracing::Span span("mongo_destroy");
   maintenance_task_.Stop();
 
   const ClientDeleter deleter;

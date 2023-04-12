@@ -27,6 +27,8 @@
 #include <userver/engine/task/local_variable.hpp>
 #include <userver/engine/task/task_with_result.hpp>
 #include <userver/logging/log.hpp>
+#include <userver/tracing/span.hpp>
+#include <userver/tracing/tags.hpp>
 #include <userver/utils/assert.hpp>
 
 #include <storages/mongo/cdriver/async_stream_poller.hpp>
@@ -72,6 +74,8 @@ class AsyncStream : public mongoc_stream_t {
 
   static cdriver::StreamPtr Create(engine::io::Socket);
 
+  void SetCreated() { is_created_ = true; }
+
  private:
   AsyncStream(engine::io::Socket) noexcept;
 
@@ -106,6 +110,7 @@ class AsyncStream : public mongoc_stream_t {
   AsyncStreamPoller::WatcherPtr read_watcher_;
   AsyncStreamPoller::WatcherPtr write_watcher_;
   bool is_timed_out_{false};
+  bool is_created_{false};
 
   size_t send_buffer_bytes_used_{0};
   size_t recv_buffer_bytes_used_{0};
@@ -348,6 +353,8 @@ mongoc_stream_t* MakeAsyncStream(const mongoc_uri_t* uri,
 
   // enable read buffering
   UASSERT(stream);
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
+  static_cast<AsyncStream*>(&*stream)->SetCreated();
   return stream.release();
 }
 
@@ -541,6 +548,19 @@ ssize_t AsyncStream::Writev(mongoc_stream_t* stream, mongoc_iovec_t* iov,
     error = EINVAL;
     bytes_sent = -1;
   }
+
+  if (self->is_created_) {
+    tracing::Span* span = tracing::Span::CurrentSpanUnchecked();
+    if (span) {
+      try {
+        span->AddTag(tracing::kPeerAddress,
+                     self->socket_.Getpeername().PrimaryAddressString());
+      } catch (const std::exception&) {
+        // Getpeername() may throw
+      }
+    }
+  }
+
   // libmongoc expects restored errno
   errno = error;
   return bytes_sent;
