@@ -74,6 +74,7 @@ PostgreSQLBase::PostgreSQLBase() {
     old_.emplace(logging::MakeStderrLogger("cerr", logging::Format::kTskv,
                                            logging::Level::kDebug));
   }
+  experiments_.Set(pg::kPipelineExperiment, true);
 }
 
 PostgreSQLBase::~PostgreSQLBase() = default;

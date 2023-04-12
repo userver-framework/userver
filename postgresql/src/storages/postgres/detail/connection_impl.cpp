@@ -10,6 +10,7 @@
 #include <userver/utils/uuid4.hpp>
 
 #include <storages/postgres/detail/tracing_tags.hpp>
+#include <storages/postgres/experiments.hpp>
 #include <storages/postgres/io/pg_type_parsers.hpp>
 #include <userver/storages/postgres/exceptions.hpp>
 
@@ -179,7 +180,8 @@ ConnectionImpl::ConnectionImpl(
     throw InvalidConfig("max_prepared_cache_size is 0");
   }
 #if !LIBPQ_HAS_PIPELINING
-  if (settings_.pipeline_mode == PipelineMode::kEnabled) {
+  if (settings_.pipeline_mode == PipelineMode::kEnabled &&
+      kPipelineExperiment.IsEnabled()) {
     LOG_LIMITED_WARNING() << "Pipeline mode is not supported, falling back";
     settings_.pipeline_mode = PipelineMode::kDisabled;
   }
@@ -195,7 +197,8 @@ void ConnectionImpl::AsyncConnect(const Dsn& dsn, engine::Deadline deadline) {
       std::chrono::duration_cast<std::chrono::milliseconds>(
           deadline.TimeLeft()));
   conn_wrapper_.AsyncConnect(dsn, deadline, scope);
-  if (settings_.pipeline_mode == PipelineMode::kEnabled) {
+  if (settings_.pipeline_mode == PipelineMode::kEnabled &&
+      kPipelineExperiment.IsEnabled()) {
     conn_wrapper_.EnterPipelineMode();
   }
   conn_wrapper_.FillSpanTags(span);

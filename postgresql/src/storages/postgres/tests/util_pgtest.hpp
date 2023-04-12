@@ -14,6 +14,7 @@
 
 #include <storages/postgres/default_command_controls.hpp>
 #include <storages/postgres/detail/connection.hpp>
+#include <storages/postgres/experiments.hpp>
 #include <userver/storages/postgres/detail/connection_ptr.hpp>
 #include <userver/storages/postgres/dsn.hpp>
 
@@ -81,6 +82,7 @@ class PostgreSQLBase : public ::testing::Test {
 
  private:
   std::optional<logging::DefaultLoggerGuard> old_;
+  utils::impl::UserverExperimentsScope experiments_;
 };
 
 // NOLINTNEXTLINE(fuchsia-multiple-inheritance)
