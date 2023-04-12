@@ -8,6 +8,7 @@
 #include <userver/testsuite/testsuite_support.hpp>
 #include <userver/utils/statistics/metadata.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
+#include <userver/yaml_config/schema.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -19,9 +20,12 @@ testsuite::ComponentControl& FindComponentControl(
       .GetComponentControl();
 }
 
-utils::statistics::Storage& FindStatisticsStorage(
-    const components::ComponentContext& context) {
-  return context.FindComponent<components::StatisticsStorage>().GetStorage();
+utils::statistics::Entry RegisterOnStatisticsStorage(
+    const components::ComponentContext& context, const std::string& name,
+    std::function<void(utils::statistics::Writer&)> func) {
+  return context.FindComponent<components::StatisticsStorage>()
+      .GetStorage()
+      .RegisterWriter("cache", std::move(func), {{"cache_name", name}});
 }
 
 dynamic_config::Source FindDynamicConfigSource(

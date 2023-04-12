@@ -29,12 +29,6 @@ using LoggerPtr = std::shared_ptr<impl::LoggerBase>;
 LoggerPtr MakeStderrLogger(const std::string& name, Format format,
                            Level level = Level::kInfo);
 
-// TODO: remove after userver up
-inline LoggerPtr MakeStderrLogger(const std::string& name,
-                                  Level level = Level::kInfo) {
-  return logging::MakeStderrLogger(name, Format::kTskv, level);
-}
-
 /// @brief Creates synchronous stdout logger with default tskv pattern
 /// @param name logger name, for internal use, must be unique
 /// @see components::Logging

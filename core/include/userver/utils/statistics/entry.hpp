@@ -4,7 +4,6 @@
 /// @brief Header with all the types required in component header to use
 /// statistics (includes utils::statistics::Entry and forward declarations).
 
-#include <userver/formats/json_fwd.hpp>
 #include <userver/utils/fast_pimpl.hpp>
 #include <userver/utils/statistics/fwd.hpp>
 

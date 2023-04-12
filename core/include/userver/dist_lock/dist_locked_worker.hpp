@@ -11,7 +11,6 @@
 #include <userver/dist_lock/statistics.hpp>
 #include <userver/engine/mutex.hpp>
 #include <userver/engine/task/task_with_result.hpp>
-#include <userver/formats/json/value.hpp>  // TODO: remove
 
 USERVER_NAMESPACE_BEGIN
 

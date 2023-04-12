@@ -18,9 +18,6 @@
 #include <userver/utils/impl/cached_time.hpp>
 #include <userver/utils/impl/wait_token_storage.hpp>
 
-// TODO remove
-#include <userver/logging/log.hpp>
-
 USERVER_NAMESPACE_BEGIN
 
 namespace cache {

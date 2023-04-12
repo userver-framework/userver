@@ -3,6 +3,8 @@
 /// @file userver/cache/lru_cache_component_base.hpp
 /// @brief @copybrief cache::LruCacheComponent
 
+#include <functional>
+
 #include <userver/cache/expirable_lru_cache.hpp>
 #include <userver/cache/lru_cache_config.hpp>
 #include <userver/components/loggable_component_base.hpp>
@@ -11,8 +13,9 @@
 #include <userver/dump/meta.hpp>
 #include <userver/dump/operations.hpp>
 #include <userver/dynamic_config/source.hpp>
+#include <userver/logging/log.hpp>
 #include <userver/testsuite/component_control.hpp>
-#include <userver/utils/statistics/storage.hpp>  // TODO: remove
+#include <userver/utils/statistics/entry.hpp>
 #include <userver/yaml_config/schema.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -24,8 +27,9 @@ namespace impl {
 testsuite::ComponentControl& FindComponentControl(
     const components::ComponentContext& context);
 
-utils::statistics::Storage& FindStatisticsStorage(
-    const components::ComponentContext& context);
+utils::statistics::Entry RegisterOnStatisticsStorage(
+    const components::ComponentContext& context, const std::string& name,
+    std::function<void(utils::statistics::Writer&)> func);
 
 dynamic_config::Source FindDynamicConfigSource(
     const components::ComponentContext& context);
@@ -151,9 +155,9 @@ LruCacheComponent<Key, Value, Hash, Equal>::LruCacheComponent(
     LOG_INFO() << "Dynamic LRU cache config is disabled, cache=" << name_;
   }
 
-  statistics_holder_ = impl::FindStatisticsStorage(context).RegisterWriter(
-      "cache", [this](utils::statistics::Writer& writer) { writer = *cache_; },
-      {{"cache_name", name_}});
+  statistics_holder_ = impl::RegisterOnStatisticsStorage(
+      context, name_,
+      [this](utils::statistics::Writer& writer) { writer = *cache_; });
 
   invalidator_holder_.emplace(
       impl::FindComponentControl(context), *this,
