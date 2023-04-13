@@ -1,5 +1,7 @@
 #pragma once
 
+#include <mutex>
+
 #include <spdlog/sinks/sink.h>
 
 #include <logging/impl/open_file_helper.hpp>
