@@ -1,6 +1,8 @@
 #pragma once
 
+#if (__cplusplus >= 202002L)  // C++20
 #include <version>
+#endif
 
 #if defined(__cpp_lib_latch)
 
