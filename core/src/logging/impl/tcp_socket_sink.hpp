@@ -3,13 +3,13 @@
 #include <chrono>
 #include <functional>
 #include <string>
+#include <vector>
 
+#include <logging/impl/base_sink.hpp>
 #include <userver/engine/io/sockaddr.hpp>
 #include <userver/engine/io/socket.hpp>
-#include <userver/engine/mutex.hpp>
 
 #include <spdlog/common.h>
-#include <spdlog/sinks/base_sink.h>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -35,10 +35,8 @@ class TcpSocketClient final {
   engine::io::Socket socket_;
 };
 
-class TcpSocketSink final : public spdlog::sinks::sink {
+class TcpSocketSink final : public BaseSink {
  public:
-  using spdlog::sinks::sink::sink;
-
   explicit TcpSocketSink(std::vector<engine::io::Sockaddr> addr);
 
   TcpSocketSink() = delete;
@@ -47,18 +45,11 @@ class TcpSocketSink final : public spdlog::sinks::sink {
 
   ~TcpSocketSink() override = default;
 
-  void log(const spdlog::details::log_msg& msg) final;
-
-  void flush() final;
-
-  void set_pattern(const std::string& pattern) final;
-
-  void set_formatter(std::unique_ptr<spdlog::formatter> sink_formatter) final;
+ protected:
+  void Write(std::string_view log) final;
 
  private:
   impl::TcpSocketClient client_;
-  engine::Mutex client_mutex_;
-  std::unique_ptr<spdlog::formatter> formatter_;
 };
 
 }  // namespace logging::impl

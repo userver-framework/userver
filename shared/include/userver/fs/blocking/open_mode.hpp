@@ -32,6 +32,10 @@ enum class OpenFlag {
   /// Used together with `kWrite` to clear the contents of the file in case it
   /// already exists.
   kTruncate = 1 << 4,
+
+  /// Used together with `kWrite` to open file for writing to the end of the
+  /// file.
+  kAppend = 1 << 5,
 };
 
 /// A set of OpenFlags

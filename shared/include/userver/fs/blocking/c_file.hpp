@@ -35,8 +35,14 @@ class CFile final {
         boost::filesystem::perms perms = boost::filesystem::perms::owner_read |
                                          boost::filesystem::perms::owner_write);
 
+  /// @brief Use the `std::FILE*` directly
+  explicit CFile(std::FILE* file) noexcept;
+
   /// Checks if the file is open
   bool IsOpen() const;
+
+  // Passes the ownerwhip of the file to the caller
+  std::FILE* Release() &&;
 
   /// @brief Closes the file manually
   /// @throws std::runtime_error

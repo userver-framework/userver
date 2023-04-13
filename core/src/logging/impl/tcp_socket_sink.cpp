@@ -7,7 +7,6 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <cstring>
-#include <logging/log_helper_impl.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -55,34 +54,18 @@ bool TcpSocketClient::IsConnected() { return socket_.Fd() != -1; }
 TcpSocketClient::~TcpSocketClient() { socket_.Close(); }
 
 TcpSocketSink::TcpSocketSink(std::vector<engine::io::Sockaddr> addr)
-    : client_{std::move(addr)},
-      formatter_{std::make_unique<spdlog::pattern_formatter>()} {}
+    : client_{std::move(addr)} {}
 
 void TcpSocketSink::Close() {
-  std::lock_guard lock{client_mutex_};
+  std::lock_guard lock{GetMutex()};
   client_.Close();
 }
 
-void TcpSocketSink::log(const spdlog::details::log_msg& msg) {
-  spdlog::memory_buf_t formatted;
-  formatter_->format(msg, formatted);
-
-  std::lock_guard lock{client_mutex_};
+void TcpSocketSink::Write(std::string_view log) {
   if (!client_.IsConnected()) {
     client_.Connect();
   }
-  client_.Send(formatted.data(), formatted.size());
-}
-
-void TcpSocketSink::flush() {}
-
-void TcpSocketSink::set_pattern(const std::string& pattern) {
-  set_formatter(std::make_unique<spdlog::pattern_formatter>(pattern));
-}
-
-void TcpSocketSink::set_formatter(
-    std::unique_ptr<spdlog::formatter> sink_formatter) {
-  formatter_ = std::move(sink_formatter);
+  client_.Send(log.data(), log.size());
 }
 
 }  // namespace logging::impl

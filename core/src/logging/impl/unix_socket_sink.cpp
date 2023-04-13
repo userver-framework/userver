@@ -15,10 +15,10 @@ USERVER_NAMESPACE_BEGIN
 
 namespace logging::impl {
 
-void UnixSocketClient::connect(const spdlog::filename_t& filename) {
+void UnixSocketClient::connect(std::string_view filename) {
   struct sockaddr_un addr {};
   addr.sun_family = AF_UNIX;
-  std::strncpy(addr.sun_path, filename.data(), filename.length());
+  std::strncpy(addr.sun_path, filename.data(), filename.size());
 
   socket_ =
       utils::CheckSyscall(::socket(AF_UNIX, SOCK_STREAM, 0), "create socket");
@@ -29,11 +29,11 @@ void UnixSocketClient::connect(const spdlog::filename_t& filename) {
       "connect to server by unix-socket");
 }
 
-void UnixSocketClient::send(const char* data, size_t n_bytes) {
+void UnixSocketClient::send(std::string_view message) {
   size_t bytes_sent = 0;
-  while (bytes_sent < n_bytes) {
-    auto write_res =
-        ::send(socket_, data + bytes_sent, n_bytes - bytes_sent, 0);
+  while (bytes_sent < message.size()) {
+    auto write_res = ::send(socket_, message.data() + bytes_sent,
+                            message.size() - bytes_sent, 0);
 
     if (write_res < 0) {
       const auto old_errno = errno;
@@ -58,6 +58,13 @@ void UnixSocketClient::close() {
 }
 
 UnixSocketClient::~UnixSocketClient() { close(); }
+
+void UnixSocketSink::Write(std::string_view log) { client_.send(log); }
+
+void UnixSocketSink::Close() {
+  std::lock_guard lock(GetMutex());
+  client_.close();
+}
 
 }  // namespace logging::impl
 

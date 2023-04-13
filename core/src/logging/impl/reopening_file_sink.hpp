@@ -17,7 +17,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace logging {
+namespace logging::impl {
 
 template <typename Mutex>
 class ReopeningFileSink final : public spdlog::sinks::base_sink<Mutex> {
@@ -58,6 +58,6 @@ class ReopeningFileSink final : public spdlog::sinks::base_sink<Mutex> {
 using ReopeningFileSinkST = ReopeningFileSink<spdlog::details::null_mutex>;
 using ReopeningFileSinkMT = ReopeningFileSink<std::mutex>;
 
-}  // namespace logging
+}  // namespace logging::impl
 
 USERVER_NAMESPACE_END
