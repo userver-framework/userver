@@ -4,7 +4,7 @@
 
 #include <userver/utils/rand.hpp>
 
-#include <utils/impl/siphash.hpp>
+#include <utils/impl/byte_utils.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
