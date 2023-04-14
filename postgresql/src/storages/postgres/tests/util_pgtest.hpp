@@ -67,6 +67,7 @@ class PostgreSQLBase : public ::testing::Test {
 
   static storages::postgres::Dsn GetDsnFromEnv();
   static storages::postgres::DsnList GetDsnListFromEnv();
+  static storages::postgres::Dsn GetUnavailableDsn();
   static engine::TaskProcessor& GetTaskProcessor();
   static concurrent::BackgroundTaskStorageCore& GetTaskStorage();
 

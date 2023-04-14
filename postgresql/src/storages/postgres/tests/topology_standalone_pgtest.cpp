@@ -14,11 +14,8 @@ namespace pg = storages::postgres;
 class Standalone : public PostgreSQLBase {};
 
 UTEST_F(Standalone, Smoke) {
-  const auto& dsns = GetDsnListFromEnv();
-  if (dsns.size() != 1) return;
-
   pg::detail::topology::Standalone sa(
-      GetTaskProcessor(), dsns, nullptr,
+      GetTaskProcessor(), GetDsnListFromEnv(), nullptr,
       pg::TopologySettings{utest::kMaxTestWaitTime}, pg::ConnectionSettings{},
       GetTestCmdCtls(), testsuite::PostgresControl{},
       error_injection::Settings{});

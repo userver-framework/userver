@@ -81,14 +81,14 @@ PostgreSQLBase::~PostgreSQLBase() = default;
 
 pg::Dsn PostgreSQLBase::GetDsnFromEnv() {
   auto dsn_list = GetDsnListFromEnv();
-  return dsn_list.empty() ? pg::Dsn{"postgresql://"} : std::move(dsn_list[0]);
+  return std::move(dsn_list[0]);
 }
 
 pg::DsnList PostgreSQLBase::GetDsnListFromEnv() {
   // NOLINTNEXTLINE(concurrency-mt-unsafe)
   auto* conn_list_env = std::getenv(kPostgresDsn);
   if (!conn_list_env) {
-    return {};
+    return {pg::Dsn{"postgresql://"}};
   }
 
   std::vector<std::string> conn_list;
@@ -101,6 +101,10 @@ pg::DsnList PostgreSQLBase::GetDsnListFromEnv() {
     dsn_list.insert(dsn_list.end(), pg::Dsn{std::move(conn)});
   }
   return dsn_list;
+}
+
+pg::Dsn PostgreSQLBase::GetUnavailableDsn() {
+  return pg::Dsn{"postgresql://testsuite@localhost:2345/postgres"};
 }
 
 storages::postgres::detail::ConnectionPtr PostgreSQLBase::MakeConnection(
