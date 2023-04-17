@@ -41,6 +41,10 @@ void CacheUpdateTrait::AssertPeriodicUpdateStarted() {
 
 void CacheUpdateTrait::OnCacheModified() { impl_->OnCacheModified(); }
 
+bool CacheUpdateTrait::HasPreAssignCheck() const {
+  return impl_->HasPreAssignCheck();
+}
+
 rcu::ReadablePtr<Config> CacheUpdateTrait::GetConfig() const {
   return impl_->GetConfig();
 }

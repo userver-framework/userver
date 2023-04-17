@@ -67,6 +67,7 @@ struct Config final {
   bool allow_first_update_failure;
   std::optional<bool> force_periodic_update;
   bool config_updates_enabled;
+  bool has_pre_assign_check;
   std::optional<std::string> task_processor_name;
   std::chrono::milliseconds cleanup_interval;
   bool is_strong_period;

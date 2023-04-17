@@ -289,6 +289,10 @@ void CacheUpdateTrait::Impl::AssertPeriodicUpdateStarted() {
 
 void CacheUpdateTrait::Impl::OnCacheModified() { cache_modified_ = true; }
 
+bool CacheUpdateTrait::Impl::HasPreAssignCheck() const {
+  return static_config_.has_pre_assign_check;
+}
+
 engine::TaskProcessor& CacheUpdateTrait::Impl::GetCacheTaskProcessor() const {
   return task_processor_;
 }

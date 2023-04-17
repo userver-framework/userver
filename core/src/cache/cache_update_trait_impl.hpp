@@ -50,6 +50,8 @@ class CacheUpdateTrait::Impl final {
 
   void OnCacheModified();
 
+  bool HasPreAssignCheck() const;
+
   rcu::ReadablePtr<Config> GetConfig() const;
 
   engine::TaskProcessor& GetCacheTaskProcessor() const;

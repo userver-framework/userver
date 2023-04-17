@@ -7,8 +7,11 @@
 #include <string>
 #include <utility>
 
+#include <fmt/format.h>
+
 #include <userver/cache/cache_update_trait.hpp>
 #include <userver/cache/exceptions.hpp>
+#include <userver/compiler/demangle.hpp>
 #include <userver/components/component_fwd.hpp>
 #include <userver/components/loggable_component_base.hpp>
 #include <userver/concurrent/async_event_channel.hpp>
@@ -17,7 +20,9 @@
 #include <userver/dump/operations.hpp>
 #include <userver/engine/async.hpp>
 #include <userver/rcu/rcu.hpp>
+#include <userver/utils/assert.hpp>
 #include <userver/utils/impl/wait_token_storage.hpp>
+#include <userver/utils/meta.hpp>
 #include <userver/utils/shared_readable_ptr.hpp>
 #include <userver/yaml_config/schema.hpp>
 
@@ -35,6 +40,8 @@ namespace components {
 /// You need to override cache::CacheUpdateTrait::Update
 /// then call cache::CacheUpdateTrait::StartPeriodicUpdates after setup
 /// and cache::CacheUpdateTrait::StopPeriodicUpdates before teardown.
+/// You can also override cache::CachingComponentBase::PreAssignCheck and set
+/// has-pre-assign-check: true in the static config to enable check.
 ///
 /// Caching components must be configured in service config (see options below)
 /// and may be reconfigured dynamically via components::DynamicConfig.
@@ -60,6 +67,7 @@ namespace components {
 /// is-strong-period | whether to include Update execution time in update-interval | false
 /// testsuite-force-periodic-update | override testsuite-periodic-update-enabled in TestsuiteSupport component config | --
 /// failed-updates-before-expiration | the number of consecutive failed updates for data expiration | --
+/// has-pre-assign-check | enables the check before changing the value in the cache, by default it is the check that the new value is not empty | false
 ///
 /// ### Update types
 ///  * `full-and-incremental`: both `update-interval` and `full-update-interval`
@@ -150,6 +158,12 @@ class CachingComponentBase : public LoggableComponentBase,
   void GetAndWrite(dump::Writer& writer) const final;
   void ReadAndSet(dump::Reader& reader) final;
 
+  /// @brief If the option has-pre-assign-check is set true in static config,
+  /// this function is called before assigning the new value to the cache
+  /// @note old_value_ptr and new_value_ptr can be nullptr.
+  virtual void PreAssignCheck(const T* old_value_ptr,
+                              const T* new_value_ptr) const;
+
   rcu::Variable<std::shared_ptr<const T>> cache_;
   concurrent::AsyncEventChannel<const std::shared_ptr<const T>&> event_channel_;
   utils::impl::WaitTokenStorage wait_token_storage_;
@@ -226,6 +240,12 @@ void CachingComponentBase<T>::Set(std::unique_ptr<const T> value_ptr) {
 
   const std::shared_ptr<const T> new_value(value_ptr.release(),
                                            std::move(deleter));
+
+  if (HasPreAssignCheck()) {
+    auto old_value = cache_.Read();
+    PreAssignCheck(old_value->get(), new_value.get());
+  }
+
   cache_.Assign(new_value);
   event_channel_.SendEvent(new_value);
   OnCacheModified();
@@ -309,6 +329,23 @@ yaml_config::Schema GetCachingComponentBaseSchema();
 template <typename T>
 yaml_config::Schema CachingComponentBase<T>::GetStaticConfigSchema() {
   return impl::GetCachingComponentBaseSchema();
+}
+
+template <typename T>
+void CachingComponentBase<T>::PreAssignCheck(const T*,
+                                             const T* new_value_ptr) const {
+  UINVARIANT(
+      meta::kIsSizable<T>,
+      fmt::format("{} type does not support std::size(), add implementation of "
+                  "the method size() for this type or "
+                  "override cache::CachingComponentBase::PreAssignCheck.",
+                  compiler::GetTypeName<T>()));
+
+  if constexpr (meta::kIsSizable<T>) {
+    if (!new_value_ptr || std::size(*new_value_ptr) == 0) {
+      throw cache::EmptyDataError(Name());
+    }
+  }
 }
 
 }  // namespace components

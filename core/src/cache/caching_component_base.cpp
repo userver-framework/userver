@@ -52,6 +52,10 @@ properties:
         type: boolean
         description: whether to include Update execution time in update-interval
         defaultDescription: false
+    has-pre-assign-check:
+        type: boolean
+        description: enables the check before changing the value in the cache, by default it is the check that the new value is not empty
+        defaultDescription: false
     testsuite-force-periodic-update:
         type: boolean
         description: override testsuite-periodic-update-enabled in TestsuiteSupport component config

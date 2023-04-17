@@ -1,0 +1,18 @@
+# yaml
+server-name: test-cache-update 1.0
+service-name: test_cache_update
+logger-level: info
+
+config-server-url: http://localhost:8083/
+server-port: 8185
+monitor-server-port: 8186
+
+testsuite-enabled: false
+
+userver-dumps-root: /var/cache/test_cache_update/userver-dumps/
+access-log-path: /var/log/test_cache_update/access.log
+access-tskv-log-path: /var/log/test_cache_update/access_tskv.log
+default-log-path: /var/log/test_cache_update/server.log
+
+config-cache: /var/cache/test_cache_update/config_cache.json
+config-fallback: /etc/test_cache_update/dynamic_config_fallback.json

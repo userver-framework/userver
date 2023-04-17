@@ -33,6 +33,7 @@ constexpr std::string_view kFullUpdateInterval = "full-update-interval";
 constexpr std::string_view kExceptionInterval = "exception-interval";
 constexpr std::string_view kCleanupInterval = "additional-cleanup-interval";
 constexpr std::string_view kIsStrongPeriod = "is-strong-period";
+constexpr std::string_view kHasPreAssignCheck = "has-pre-assign-check";
 
 constexpr std::string_view kFirstUpdateFailOk = "first-update-fail-ok";
 constexpr std::string_view kUpdateTypes = "update-types";
@@ -132,6 +133,7 @@ Config::Config(const yaml_config::YamlConfig& config,
       force_periodic_update(
           config[kForcePeriodicUpdates].As<std::optional<bool>>()),
       config_updates_enabled(config[kConfigSettings].As<bool>(true)),
+      has_pre_assign_check(config[kHasPreAssignCheck].As<bool>(false)),
       task_processor_name(
           config[kTaskProcessor].As<std::optional<std::string>>()),
       cleanup_interval(config[kCleanupInterval].As<std::chrono::milliseconds>(

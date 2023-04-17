@@ -81,6 +81,9 @@ class CacheUpdateTrait {
   // For internal use only
   rcu::ReadablePtr<Config> GetConfig() const;
 
+  /// Checks for the presence of the flag for pre-assign check
+  bool HasPreAssignCheck() const;
+
   // For internal use only
   // TODO remove after TAXICOMMON-3959
   engine::TaskProcessor& GetCacheTaskProcessor() const;
