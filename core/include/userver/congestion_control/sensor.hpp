@@ -27,6 +27,33 @@ class Sensor {
   virtual Data FetchCurrent() = 0;
 };
 
+namespace v2 {
+
+class Sensor {
+ public:
+  struct Data {
+    std::size_t total{0};
+    std::size_t timeouts{0};
+
+    std::size_t current_limit{0};
+
+    double GetRate() const {
+      return static_cast<double>(timeouts) / (total ? total : 1);
+    }
+
+    void operator+=(const Data& other) {
+      total += other.total;
+      timeouts += other.timeouts;
+    }
+  };
+
+  virtual ~Sensor() = default;
+
+  virtual Data GetCurrent() = 0;
+};
+
+}  // namespace v2
+
 }  // namespace congestion_control
 
 USERVER_NAMESPACE_END

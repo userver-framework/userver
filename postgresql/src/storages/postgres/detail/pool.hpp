@@ -19,7 +19,10 @@
 #include <userver/utils/token_bucket.hpp>
 #include <utils/size_guard.hpp>
 
+#include <storages/postgres/congestion_control/limiter.hpp>
+#include <storages/postgres/congestion_control/sensor.hpp>
 #include <storages/postgres/default_command_controls.hpp>
+#include <userver/congestion_control/controllers/linear.hpp>
 #include <userver/storages/postgres/detail/connection_ptr.hpp>
 #include <userver/storages/postgres/detail/non_transaction.hpp>
 #include <userver/storages/postgres/options.hpp>
@@ -80,6 +83,8 @@ class ConnectionPool : public std::enable_shared_from_this<ConnectionPool> {
     return sts_;
   }
 
+  void SetMaxConnectionsCc(std::size_t max_connections);
+
  private:
   using SizeGuard = USERVER_NAMESPACE::utils::SizeGuard<std::atomic<size_t>>;
 
@@ -135,6 +140,12 @@ class ConnectionPool : public std::enable_shared_from_this<ConnectionPool> {
   RecentCounter recent_conn_errors_;
   USERVER_NAMESPACE::utils::TokenBucket cancel_limit_;
   detail::StatementTimingsStorage sts_;
+
+  // Congestion control stuff
+  cc::Sensor cc_sensor_;
+  cc::Limiter cc_limiter_;
+  congestion_control::v2::LinearController cc_controller_;
+  std::atomic<std::size_t> cc_max_connections_;
 };
 
 }  // namespace storages::postgres::detail

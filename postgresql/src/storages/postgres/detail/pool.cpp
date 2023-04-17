@@ -8,12 +8,15 @@
 #include <userver/logging/log.hpp>
 #include <userver/storages/postgres/detail/time_types.hpp>
 #include <userver/storages/postgres/exceptions.hpp>
+#include <userver/utils/impl/userver_experiments.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::postgres::detail {
 
 namespace {
+
+USERVER_NAMESPACE::utils::impl::UserverExperiment kCcExperiment("pg-cc");
 
 constexpr std::chrono::seconds kRecentErrorPeriod{15};
 
@@ -83,7 +86,14 @@ ConnectionPool::ConnectionPool(
       ei_settings_(std::move(ei_settings)),
       cancel_limit_{std::max(std::size_t{1}, settings.max_size / kCancelRatio),
                     {1, kCancelPeriod}},
-      sts_{statement_metrics_settings} {}
+      sts_{statement_metrics_settings},
+      cc_sensor_(*this),
+      cc_limiter_(*this),
+      cc_controller_(cc_sensor_, cc_limiter_) {
+  if (kCcExperiment.IsEnabled()) {
+    cc_controller_.Start();
+  }
+}
 
 ConnectionPool::~ConnectionPool() {
   StopMaintainTask();
@@ -288,16 +298,25 @@ CommandControl ConnectionPool::GetDefaultCommandControl() const {
 }
 
 void ConnectionPool::SetSettings(const PoolSettings& settings) {
+  auto max_connections = settings.max_size;
+  auto cc_max_connections = cc_max_connections_.load();
+  if (cc_max_connections_ > 0 && cc_max_connections < max_connections)
+    max_connections = cc_max_connections;
+
   auto reader = settings_.Read();
   if (*reader == settings) return;
-  if (reader->max_size != settings.max_size) {
-    size_semaphore_.SetCapacity(settings.max_size);
+  if (reader->max_size != max_connections) {
+    size_semaphore_.SetCapacity(max_connections);
   }
   if (reader->connecting_limit != settings.connecting_limit)
     connecting_semaphore_.SetCapacity(settings.connecting_limit
                                           ? settings.connecting_limit
                                           : kUnlimitedConnecting);
-  settings_.Assign(settings);
+
+  auto writer = settings_.StartWrite();
+  *writer = settings;
+  writer->max_size = max_connections;
+  writer.Commit();
 }
 
 void ConnectionPool::SetConnectionSettings(const ConnectionSettings& settings) {
@@ -316,6 +335,10 @@ void ConnectionPool::SetConnectionSettings(const ConnectionSettings& settings) {
 void ConnectionPool::SetStatementMetricsSettings(
     const StatementMetricsSettings& settings) {
   sts_.SetSettings(settings);
+}
+
+void ConnectionPool::SetMaxConnectionsCc(std::size_t max_connections) {
+  cc_max_connections_ = max_connections;
 }
 
 engine::TaskWithResult<bool> ConnectionPool::Connect() {
