@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include <regex>
 #include <string>
 
@@ -26,22 +27,24 @@ class RedisClientTest : public ::testing::Test {
     int patch{};
   };
 
+  RedisClientTest()
+      : thread_pools_(std::make_shared<redis::ThreadPools>(
+            redis::kDefaultSentinelThreadPoolSize,
+            redis::kDefaultRedisThreadPoolSize)),
+        sentinel_([&]() {
+          auto sentinel = redis::Sentinel::CreateSentinel(
+              thread_pools_, GetTestsuiteRedisSettings(), "none", "pub",
+              redis::KeyShardFactory{""});
+          sentinel->WaitConnectedDebug();
+          return sentinel;
+        }()){};
+
   void SetUp() override {
-    thread_pools_ = std::make_shared<redis::ThreadPools>(
-        redis::kDefaultSentinelThreadPoolSize,
-        redis::kDefaultRedisThreadPoolSize);
-
-    auto sentinel = redis::Sentinel::CreateSentinel(
-        thread_pools_, GetTestsuiteRedisSettings(), "none", "pub",
-        redis::KeyShardFactory{""});
-
-    sentinel->WaitConnectedDebug();
-
-    sentinel
+    sentinel_
         ->MakeRequest({"flushdb"}, "none", true, redis::kDefaultCommandControl)
         .Get();
 
-    auto info_reply = sentinel
+    auto info_reply = sentinel_
                           ->MakeRequest({"info", "server"}, "none", false,
                                         redis::kDefaultCommandControl)
                           .Get();
@@ -55,8 +58,7 @@ class RedisClientTest : public ::testing::Test {
         std::regex_search(info, redis_version_matches, redis_version_regex));
     version_ = MakeVersion(redis_version_matches[1]);
 
-    client_ =
-        std::make_shared<storages::redis::ClientImpl>(std::move(sentinel));
+    client_ = std::make_shared<storages::redis::ClientImpl>(sentinel_);
 
     /* Subscribe client */
     auto subscribe_sentinel = redis::SubscribeSentinel::Create(
@@ -67,6 +69,8 @@ class RedisClientTest : public ::testing::Test {
     subscribe_client_ = std::make_shared<storages::redis::SubscribeClientImpl>(
         std::move(subscribe_sentinel));
   }
+
+  std::shared_ptr<redis::Sentinel> GetSentinel() { return sentinel_; }
 
   storages::redis::ClientPtr GetClient() { return client_; }
   std::shared_ptr<storages::redis::SubscribeClient> GetSubscribeClient() {
@@ -85,10 +89,11 @@ class RedisClientTest : public ::testing::Test {
   }
 
  private:
+  std::shared_ptr<redis::ThreadPools> thread_pools_;
+  std::shared_ptr<redis::Sentinel> sentinel_;
   Version version_{};
   storages::redis::ClientPtr client_{};
   std::shared_ptr<storages::redis::SubscribeClient> subscribe_client_{};
-  std::shared_ptr<redis::ThreadPools> thread_pools_{};
 
   static Version MakeVersion(std::string from) {
     std::regex rgx(R"((\d+).(\d+).(\d+))");

@@ -27,9 +27,6 @@ namespace storages::redis {
 /// before calling `Get()` method on `RequestExec` object.
 class Transaction {
  public:
-  template <typename Request>
-  using ProcessResultCallback = std::function<void(Request request)>;
-
   enum class CheckShards { kNo, kSame };
 
   virtual ~Transaction() = default;

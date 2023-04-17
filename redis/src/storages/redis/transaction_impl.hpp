@@ -334,13 +334,14 @@ class TransactionImpl final : public Transaction {
   Request<Result, ReplyType> DoAddCmd(To<Request<Result, ReplyType>>);
 
   template <typename Request, typename... Args>
-  Request AddCmd(std::string command, Args&&... args);
+  Request AddCmd(std::string command, bool master, Args&&... args);
 
   std::shared_ptr<ClientImpl> client_;
   const CheckShards check_shards_;
 
   std::optional<size_t> shard_;
 
+  bool master_{};
   USERVER_NAMESPACE::redis::CmdArgs cmd_args_;
   std::vector<ResultPromise> result_promises_;
 };

@@ -1,16 +1,18 @@
 #include <userver/utest/utest.hpp>
 
+#include <algorithm>
+
 #include <storages/redis/client_redistest.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace {
-redis::CommandControl kDefaultCc(std::chrono::milliseconds(300),
-                                 std::chrono::milliseconds(300), 1);
+redis::CommandControl kDefaultCc(std::chrono::milliseconds(500),
+                                 std::chrono::milliseconds(500), 1);
 
 class RedisClientTransactionTest : public RedisClientTest {
  public:
-  auto& GetTestClient() {
+  auto& GetTransactionClient() {
     transaction_ = GetClient()->Multi();
     return transaction_;
   }
@@ -35,7 +37,7 @@ class RedisClientTransactionTest : public RedisClientTest {
 }  // namespace
 
 UTEST_F(RedisClientTransactionTest, Lrem) {
-  auto& client = GetTestClient();
+  auto& client = GetTransactionClient();
 
   EXPECT_EQ(Get(client->Rpush("testlist", "a")), 1);
   EXPECT_EQ(Get(client->Rpush("testlist", "b")), 2);
@@ -55,7 +57,7 @@ UTEST_F(RedisClientTransactionTest, Lrem) {
 }
 
 UTEST_F(RedisClientTransactionTest, Lpushx) {
-  auto& client = GetTestClient();
+  auto& client = GetTransactionClient();
   // Missing array - does nothing
   EXPECT_EQ(Get(client->Lpushx("pushx_testlist", "a")), 0);
   EXPECT_EQ(Get(client->Rpushx("pushx_testlist", "a")), 0);
@@ -67,13 +69,13 @@ UTEST_F(RedisClientTransactionTest, Lpushx) {
 }
 
 UTEST_F(RedisClientTransactionTest, SetGet) {
-  auto& client = GetTestClient();
+  auto& client = GetTransactionClient();
   UEXPECT_NO_THROW(Get(client->Set("key0", "foo")));
   EXPECT_EQ(Get(client->Get("key0")), "foo");
 }
 
 UTEST_F(RedisClientTransactionTest, Mget) {
-  auto& client = GetTestClient();
+  auto& client = GetTransactionClient();
   Get(client->Set("key0", "foo"));
   Get(client->Set("key1", "bar"));
 
@@ -91,7 +93,7 @@ UTEST_F(RedisClientTransactionTest, Mget) {
 }
 
 UTEST_F(RedisClientTransactionTest, Unlink) {
-  auto& client = GetTestClient();
+  auto& client = GetTransactionClient();
   Get(client->Set("key0", "foo"));
   Get(client->Set("key1", "bar"));
   Get(client->Hmset("key2", {{"field1", "value1"}, {"field2", "value2"}}));
@@ -114,7 +116,7 @@ UTEST_F(RedisClientTransactionTest, Geosearch) {
   if (!CheckVersion(since))
     GTEST_SKIP() << SkipMsgByVersion("Geosearch", since);
 
-  auto& client = GetTestClient();
+  auto& client = GetTransactionClient();
   Get(client->Geoadd("Sicily", {13.361389, 38.115556, "Palermo"}));
   Get(client->Geoadd("Sicily", {15.087269, 37.502669, "Catania"}));
 
@@ -148,7 +150,7 @@ UTEST_F(RedisClientTransactionTest, Geosearch) {
 }
 
 UTEST_F(RedisClientTransactionTest, Append) {
-  auto& client = GetTestClient();
+  auto& client = GetTransactionClient();
   EXPECT_EQ(Get(client->Exists("key")), 0);
   EXPECT_EQ(Get(client->Append("key", "Hello")), 5);
   EXPECT_EQ(Get(client->Append("key", " World")), 11);
@@ -156,12 +158,12 @@ UTEST_F(RedisClientTransactionTest, Append) {
 }
 
 UTEST_F(RedisClientTransactionTest, Dbsize) {
-  auto& client = GetTestClient();
+  auto& client = GetTransactionClient();
   EXPECT_EQ(Get(client->Dbsize(0)), 0);
 }
 
 UTEST_F(RedisClientTransactionTest, Del) {
-  auto& client = GetTestClient();
+  auto& client = GetTransactionClient();
   Get(client->Set("key1", "Hello"));
   EXPECT_EQ(Get(client->Del("key1")), 1);
   Get(client->Set("key1", "Hello"));
@@ -170,7 +172,7 @@ UTEST_F(RedisClientTransactionTest, Del) {
 }
 
 UTEST_F(RedisClientTransactionTest, Exists) {
-  auto& client = GetTestClient();
+  auto& client = GetTransactionClient();
   Get(client->Set("key1", "Hello"));
   EXPECT_EQ(Get(client->Exists("key1")), 1);
   EXPECT_EQ(Get(client->Exists("nosuchkey")), 0);
@@ -181,7 +183,7 @@ UTEST_F(RedisClientTransactionTest, Exists) {
 }
 
 UTEST_F(RedisClientTransactionTest, Expire) {
-  auto& client = GetTestClient();
+  auto& client = GetTransactionClient();
   Get(client->Set("mykey", "Hello"));
   EXPECT_EQ(Get(client->Expire("mykey", std::chrono::seconds(10))),
             storages::redis::ExpireReply::kTimeoutWasSet);
@@ -191,7 +193,7 @@ UTEST_F(RedisClientTransactionTest, Expire) {
 }
 
 UTEST_F(RedisClientTransactionTest, Georadius) {
-  auto& client = GetTestClient();
+  auto& client = GetTransactionClient();
   Get(client->Geoadd("Sicily", {{13.361389, 38.115556, "Palermo"},
                                 {15.087269, 37.502669, "Catania"}}));
 
@@ -213,14 +215,14 @@ UTEST_F(RedisClientTransactionTest, Georadius) {
 }
 
 UTEST_F(RedisClientTransactionTest, Getset) {
-  auto& client = GetTestClient();
+  auto& client = GetTransactionClient();
   EXPECT_EQ(Get(client->Incr("key")), 1);
   EXPECT_EQ(Get(client->Getset("key", "0")), "1");
   EXPECT_EQ(Get(client->Get("key")), "0");
 }
 
 UTEST_F(RedisClientTransactionTest, Hdel) {
-  auto& client = GetTestClient();
+  auto& client = GetTransactionClient();
   // EXPECT_EQ(Get(client->Hset("hash", "field1", "foo")),
   //           storages::redis::HsetReply::kCreated);
   Get(client->Hset("hash", "field1", "foo"));
@@ -230,7 +232,7 @@ UTEST_F(RedisClientTransactionTest, Hdel) {
 }
 
 UTEST_F(RedisClientTransactionTest, HdelMultiple) {
-  auto& client = GetTestClient();
+  auto& client = GetTransactionClient();
   EXPECT_EQ(Get(client->Hset("hash", "field1", "foo")),
             storages::redis::HsetReply::kCreated);
   EXPECT_EQ(
@@ -239,14 +241,14 @@ UTEST_F(RedisClientTransactionTest, HdelMultiple) {
 }
 
 UTEST_F(RedisClientTransactionTest, Hexists) {
-  auto& client = GetTestClient();
+  auto& client = GetTransactionClient();
   Get(client->Hset("hash", "field1", "foo"));
   EXPECT_EQ(Get(client->Hexists("hash", "field1")), 1);
   EXPECT_EQ(Get(client->Hexists("hash", "field2")), 0);
 }
 
 UTEST_F(RedisClientTransactionTest, Hget) {
-  auto& client = GetTestClient();
+  auto& client = GetTransactionClient();
   Get(client->Hset("hash", "field1", "foo"));
   auto result = Get(client->Hget("hash", "field1"));
   EXPECT_TRUE(result.has_value());
@@ -255,7 +257,7 @@ UTEST_F(RedisClientTransactionTest, Hget) {
 }
 
 UTEST_F(RedisClientTransactionTest, Hgetall) {
-  auto& client = GetTestClient();
+  auto& client = GetTransactionClient();
   Get(client->Hset("hash", "field1", "Hello"));
   Get(client->Hset("hash", "field2", "World"));
   auto result = Get(client->Hgetall("hash"));
@@ -265,19 +267,19 @@ UTEST_F(RedisClientTransactionTest, Hgetall) {
 }
 
 UTEST_F(RedisClientTransactionTest, Hincrby) {
-  auto& client = GetTestClient();
+  auto& client = GetTransactionClient();
   Get(client->Hset("hash", "field1", "5"));
   EXPECT_EQ(Get(client->Hincrby("hash", "field1", 10)), 15);
 }
 
 UTEST_F(RedisClientTransactionTest, Hincrbyfloat) {
-  auto& client = GetTestClient();
+  auto& client = GetTransactionClient();
   Get(client->Hset("hash", "field1", "10.5"));
   EXPECT_EQ(Get(client->Hincrbyfloat("hash", "field1", 0.1)), 10.6);
 }
 
 UTEST_F(RedisClientTransactionTest, Hkeys) {
-  auto& client = GetTestClient();
+  auto& client = GetTransactionClient();
   Get(client->Hset("hash", "field1", "Hello"));
   Get(client->Hset("hash", "field2", "World"));
   auto result = Get(client->Hkeys("hash"));
@@ -287,14 +289,14 @@ UTEST_F(RedisClientTransactionTest, Hkeys) {
 }
 
 UTEST_F(RedisClientTransactionTest, Hlen) {
-  auto& client = GetTestClient();
+  auto& client = GetTransactionClient();
   Get(client->Hset("hash", "field1", "Hello"));
   Get(client->Hset("hash", "field2", "World"));
   EXPECT_EQ(Get(client->Hlen("hash")), 2);
 }
 
 UTEST_F(RedisClientTransactionTest, Hmget) {
-  auto& client = GetTestClient();
+  auto& client = GetTransactionClient();
   Get(client->Hset("hash", "field1", "Hello"));
   Get(client->Hset("hash", "field2", "World"));
   auto result = Get(client->Hmget(
@@ -308,7 +310,7 @@ UTEST_F(RedisClientTransactionTest, Hmget) {
 }
 
 UTEST_F(RedisClientTransactionTest, Hmset) {
-  auto& client = GetTestClient();
+  auto& client = GetTransactionClient();
   UEXPECT_NO_THROW(Get(
       client->Hmset("hash", std::vector<std::pair<std::string, std::string>>{
                                 {"field1", "1"}, {"field2", "2"}})));
@@ -321,7 +323,7 @@ UTEST_F(RedisClientTransactionTest, Hmset) {
 }
 
 UTEST_F(RedisClientTransactionTest, Hset) {
-  auto& client = GetTestClient();
+  auto& client = GetTransactionClient();
 
   EXPECT_EQ(Get(client->Hset("hash", "field", "Hello")),
             storages::redis::HsetReply::kCreated);
@@ -333,7 +335,7 @@ UTEST_F(RedisClientTransactionTest, Hset) {
 }
 
 UTEST_F(RedisClientTransactionTest, Hsetnx) {
-  auto& client = GetTestClient();
+  auto& client = GetTransactionClient();
 
   EXPECT_TRUE(Get(client->Hsetnx("hash", "field", "Hello")));
   EXPECT_FALSE(Get(client->Hsetnx("hash", "field", "World")));
@@ -343,7 +345,7 @@ UTEST_F(RedisClientTransactionTest, Hsetnx) {
 }
 
 UTEST_F(RedisClientTransactionTest, Hvals) {
-  auto& client = GetTestClient();
+  auto& client = GetTransactionClient();
 
   Get(client->Hset("hash", "field1", "Hello"));
   Get(client->Hset("hash", "field2", "World"));
@@ -354,7 +356,7 @@ UTEST_F(RedisClientTransactionTest, Hvals) {
 }
 
 UTEST_F(RedisClientTransactionTest, Incr) {
-  auto& client = GetTestClient();
+  auto& client = GetTransactionClient();
 
   Get(client->Set("key", "10"));
   Get(client->Incr("key"));
@@ -364,7 +366,7 @@ UTEST_F(RedisClientTransactionTest, Incr) {
 }
 
 UTEST_F(RedisClientTransactionTest, Lindex) {
-  auto& client = GetTestClient();
+  auto& client = GetTransactionClient();
 
   Get(client->Lpush("list", "World"));
   Get(client->Lpush("list", "Hello"));
@@ -379,7 +381,7 @@ UTEST_F(RedisClientTransactionTest, Lindex) {
 }
 
 UTEST_F(RedisClientTransactionTest, Llen) {
-  auto& client = GetTestClient();
+  auto& client = GetTransactionClient();
 
   Get(client->Lpush("list", "World"));
   Get(client->Lpush("list", "Hello"));
@@ -388,7 +390,7 @@ UTEST_F(RedisClientTransactionTest, Llen) {
 }
 
 UTEST_F(RedisClientTransactionTest, Lpop) {
-  auto& client = GetTestClient();
+  auto& client = GetTransactionClient();
 
   Get(client->Rpush("list", {"1", "2", "3", "4"}));
   auto result = Get(client->Lpop("list"));
@@ -398,7 +400,7 @@ UTEST_F(RedisClientTransactionTest, Lpop) {
 }
 
 UTEST_F(RedisClientTransactionTest, Lpush) {
-  auto& client = GetTestClient();
+  auto& client = GetTransactionClient();
 
   EXPECT_EQ(Get(client->Lpush("list", "World")), 1);
   EXPECT_EQ(Get(client->Lpush("list", "Hello")), 2);
@@ -411,7 +413,7 @@ UTEST_F(RedisClientTransactionTest, Lpush) {
 }
 
 UTEST_F(RedisClientTransactionTest, Lrange) {
-  auto& client = GetTestClient();
+  auto& client = GetTransactionClient();
 
   Get(client->Rpush("list", "one"));
   Get(client->Rpush("list", "two"));
@@ -423,7 +425,7 @@ UTEST_F(RedisClientTransactionTest, Lrange) {
 }
 
 UTEST_F(RedisClientTransactionTest, Ltrim) {
-  auto& client = GetTestClient();
+  auto& client = GetTransactionClient();
 
   Get(client->Rpush("list", "one"));
   Get(client->Rpush("list", "two"));
@@ -436,7 +438,7 @@ UTEST_F(RedisClientTransactionTest, Ltrim) {
 }
 
 UTEST_F(RedisClientTransactionTest, Mset) {
-  auto& client = GetTestClient();
+  auto& client = GetTransactionClient();
 
   EXPECT_NO_THROW(Get(client->Mset({{"key1", "value1"}, {"key2", "value2"}})));
   auto result = Get(client->Get("key1"));
@@ -447,7 +449,7 @@ UTEST_F(RedisClientTransactionTest, Mset) {
 // multi
 
 UTEST_F(RedisClientTransactionTest, Persist) {
-  auto& client = GetTestClient();
+  auto& client = GetTransactionClient();
 
   Get(client->Set("key", "Hello"));
   Get(client->Expire("key", std::chrono::seconds{10}));
@@ -458,7 +460,7 @@ UTEST_F(RedisClientTransactionTest, Persist) {
 }
 
 UTEST_F(RedisClientTransactionTest, Pexpire) {
-  auto& client = GetTestClient();
+  auto& client = GetTransactionClient();
 
   Get(client->Set("key", "Hello"));
   EXPECT_EQ(Get(client->Pexpire("key", std::chrono::milliseconds{1999})),
@@ -467,7 +469,7 @@ UTEST_F(RedisClientTransactionTest, Pexpire) {
 }
 
 UTEST_F(RedisClientTransactionTest, Ping) {
-  auto& client = GetTestClient();
+  auto& client = GetTransactionClient();
 
   EXPECT_NO_THROW(Get(client->Ping(0)));
   EXPECT_EQ(Get(client->PingMessage(0, "Ping")), "Ping");
@@ -476,7 +478,7 @@ UTEST_F(RedisClientTransactionTest, Ping) {
 // Publish test
 
 UTEST_F(RedisClientTransactionTest, Rename) {
-  auto& client = GetTestClient();
+  auto& client = GetTransactionClient();
 
   Get(client->Set("key", "value"));
   EXPECT_NO_THROW(Get(client->Rename("key", "new key")));
@@ -485,7 +487,7 @@ UTEST_F(RedisClientTransactionTest, Rename) {
 }
 
 UTEST_F(RedisClientTransactionTest, Rpop) {
-  auto& client = GetTestClient();
+  auto& client = GetTransactionClient();
 
   Get(client->Rpush("list", std::vector<std::string>{"1", "2"}));
   auto result = Get(client->Rpop("list"));
@@ -497,7 +499,7 @@ UTEST_F(RedisClientTransactionTest, Rpop) {
 }
 
 UTEST_F(RedisClientTransactionTest, Rpush) {
-  auto& client = GetTestClient();
+  auto& client = GetTransactionClient();
 
   EXPECT_EQ(Get(client->Rpush("list", std::vector<std::string>{"1", "2"})), 2);
   EXPECT_EQ(Get(client->Rpush("list", "3")), 3);
@@ -506,7 +508,7 @@ UTEST_F(RedisClientTransactionTest, Rpush) {
 }
 
 UTEST_F(RedisClientTransactionTest, Rpushx) {
-  auto& client = GetTestClient();
+  auto& client = GetTransactionClient();
 
   Get(client->Rpush("list", "1"));
   EXPECT_EQ(Get(client->Rpushx("list", "2")), 2);
@@ -514,7 +516,7 @@ UTEST_F(RedisClientTransactionTest, Rpushx) {
 }
 
 UTEST_F(RedisClientTransactionTest, Sadd) {
-  auto& client = GetTestClient();
+  auto& client = GetTransactionClient();
 
   EXPECT_EQ(Get(client->Sadd("set", "hello")), 1);
   EXPECT_EQ(
@@ -524,7 +526,7 @@ UTEST_F(RedisClientTransactionTest, Sadd) {
 }
 
 UTEST_F(RedisClientTransactionTest, Scard) {
-  auto& client = GetTestClient();
+  auto& client = GetTransactionClient();
 
   Get(client->Sadd("set", "hello"));
   Get(client->Sadd("set", "set"));
@@ -532,7 +534,7 @@ UTEST_F(RedisClientTransactionTest, Scard) {
 }
 
 UTEST_F(RedisClientTransactionTest, Set) {
-  auto& client = GetTestClient();
+  auto& client = GetTransactionClient();
 
   EXPECT_NO_THROW(Get(client->Set("key", "value")));
   auto result = Get(client->Get("key"));
@@ -548,14 +550,14 @@ UTEST_F(RedisClientTransactionTest, Set) {
 }
 
 UTEST_F(RedisClientTransactionTest, Setex) {
-  auto& client = GetTestClient();
+  auto& client = GetTransactionClient();
 
   EXPECT_NO_THROW(Get(client->Setex("key", std::chrono::seconds{10}, "value")));
   EXPECT_EQ(Get(client->Ttl("key")).GetExpireSeconds(), 10);
 }
 
 UTEST_F(RedisClientTransactionTest, Sismember) {
-  auto& client = GetTestClient();
+  auto& client = GetTransactionClient();
 
   Get(client->Sadd("key", "one"));
   EXPECT_EQ(Get(client->Sismember("key", "one")), 1);
@@ -563,7 +565,7 @@ UTEST_F(RedisClientTransactionTest, Sismember) {
 }
 
 UTEST_F(RedisClientTransactionTest, Smembers) {
-  auto& client = GetTestClient();
+  auto& client = GetTransactionClient();
 
   Get(client->Sadd("set", std::vector<std::string>{"world", "world", "hello"}));
   auto result = Get(client->Smembers("set"));
@@ -571,7 +573,7 @@ UTEST_F(RedisClientTransactionTest, Smembers) {
 }
 
 UTEST_F(RedisClientTransactionTest, Srandmember) {
-  auto& client = GetTestClient();
+  auto& client = GetTransactionClient();
 
   Get(client->Sadd("set", std::vector<std::string>{"one", "two", "three"}));
   auto result1 = Get(client->Srandmember("set"));
@@ -585,7 +587,7 @@ UTEST_F(RedisClientTransactionTest, Srandmember) {
 }
 
 UTEST_F(RedisClientTransactionTest, Srem) {
-  auto& client = GetTestClient();
+  auto& client = GetTransactionClient();
 
   Get(client->Sadd("set",
                    std::vector<std::string>{"one", "two", "three", "four"}));
@@ -597,7 +599,7 @@ UTEST_F(RedisClientTransactionTest, Srem) {
 }
 
 UTEST_F(RedisClientTransactionTest, Strlen) {
-  auto& client = GetTestClient();
+  auto& client = GetTransactionClient();
 
   Get(client->Set("key", "value"));
   EXPECT_EQ(Get(client->Strlen("key")), 5);
@@ -605,13 +607,13 @@ UTEST_F(RedisClientTransactionTest, Strlen) {
 }
 
 UTEST_F(RedisClientTransactionTest, Time) {
-  auto& client = GetTestClient();
+  auto& client = GetTransactionClient();
 
   Get(client->Time(0));
 }
 
 UTEST_F(RedisClientTransactionTest, Type) {
-  auto& client = GetTestClient();
+  auto& client = GetTransactionClient();
 
   Get(client->Set("key1", "value"));
   Get(client->Lpush("key2", "value"));
@@ -620,7 +622,7 @@ UTEST_F(RedisClientTransactionTest, Type) {
 }
 
 UTEST_F(RedisClientTransactionTest, Zadd) {
-  auto& client = GetTestClient();
+  auto& client = GetTransactionClient();
 
   EXPECT_EQ(Get(client->Zadd("zset", 1., "one")), 1);
   storages::redis::ZaddOptions options;
@@ -644,14 +646,14 @@ UTEST_F(RedisClientTransactionTest, Zadd) {
 }
 
 UTEST_F(RedisClientTransactionTest, Zcard) {
-  auto& client = GetTestClient();
+  auto& client = GetTransactionClient();
 
   Get(client->Zadd("zset", {{2., "two"}, {3., "three"}}));
   EXPECT_EQ(Get(client->Zcard("zset")), 2);
 }
 
 UTEST_F(RedisClientTransactionTest, Zrange) {
-  auto& client = GetTestClient();
+  auto& client = GetTransactionClient();
 
   Get(client->Zadd("zset", {{2., "two"}, {3., "three"}, {1., "one"}}));
   auto result = Get(client->Zrange("zset", 0, -1));
@@ -663,7 +665,7 @@ UTEST_F(RedisClientTransactionTest, Zrange) {
 }
 
 UTEST_F(RedisClientTransactionTest, Zrangebyscore) {
-  auto& client = GetTestClient();
+  auto& client = GetTransactionClient();
 
   Get(client->Zadd(
       "zset",
@@ -690,7 +692,7 @@ UTEST_F(RedisClientTransactionTest, Zrangebyscore) {
 }
 
 UTEST_F(RedisClientTransactionTest, ZrangebyscoreString) {
-  auto& client = GetTestClient();
+  auto& client = GetTransactionClient();
 
   Get(client->Zadd(
       "zset",
@@ -717,7 +719,7 @@ UTEST_F(RedisClientTransactionTest, ZrangebyscoreString) {
 }
 
 UTEST_F(RedisClientTransactionTest, Zrem) {
-  auto& client = GetTestClient();
+  auto& client = GetTransactionClient();
 
   Get(client->Zadd(
       "zset",
@@ -731,7 +733,7 @@ UTEST_F(RedisClientTransactionTest, Zrem) {
 }
 
 UTEST_F(RedisClientTransactionTest, Zremrangebyrank) {
-  auto& client = GetTestClient();
+  auto& client = GetTransactionClient();
 
   Get(client->Zadd("zset", {{2., "two"}, {3., "three"}, {1., "one"}}));
   EXPECT_EQ(Get(client->Zremrangebyrank("zset", 0, 1)), 2);
@@ -741,7 +743,7 @@ UTEST_F(RedisClientTransactionTest, Zremrangebyrank) {
 }
 
 UTEST_F(RedisClientTransactionTest, Zremrangebyscore) {
-  auto& client = GetTestClient();
+  auto& client = GetTransactionClient();
 
   Get(client->Zadd("zset", {{2., "two"}, {3., "three"}, {1., "one"}}));
   EXPECT_EQ(Get(client->Zremrangebyscore("zset", 1., 2.)), 2);
@@ -757,10 +759,96 @@ UTEST_F(RedisClientTransactionTest, Zremrangebyscore) {
 }
 
 UTEST_F(RedisClientTransactionTest, Zscore) {
-  auto& client = GetTestClient();
+  auto& client = GetTransactionClient();
 
   Get(client->Zadd("zset", 2., "two"));
   EXPECT_EQ(Get(client->Zscore("zset", "two")), 2.);
+}
+
+namespace {
+
+std::uint64_t GetCommandCount(
+    std::map<std::string, redis::ShardStatistics>& stat) {
+  std::uint64_t command_count = 0;
+  std::for_each(stat.begin(), stat.end(), [&](auto& shard) {
+    command_count +=
+        shard.second.shard_total
+            .error_count[static_cast<std::size_t>(redis::ReplyStatus::kOk)];
+  });
+  return command_count;
+}
+
+}  // namespace
+
+UTEST_F(RedisClientTransactionTest, NotReadOnlySetSet) {
+  auto client = GetClient();
+  auto sentinel = GetSentinel();
+
+  auto before = sentinel->GetStatistics({});
+
+  auto transaction = client->Multi();
+  auto set0 = transaction->Set("key", "value");
+  auto set1 = transaction->Set("key", "value");
+  transaction->Exec(kDefaultCc).Get();
+
+  auto after = sentinel->GetStatistics({});
+  std::uint64_t master_command_count =
+      GetCommandCount(after.masters) - GetCommandCount(before.masters);
+  std::uint64_t slave_command_count =
+      GetCommandCount(after.slaves) - GetCommandCount(before.slaves);
+
+  EXPECT_EQ(master_command_count, 4);
+  EXPECT_EQ(slave_command_count, 0);
+}
+
+UTEST_F(RedisClientTransactionTest, NotReadOnlySetGet) {
+  auto client = GetClient();
+  auto sentinel = GetSentinel();
+
+  auto before = sentinel->GetStatistics({});
+
+  {
+    auto transaction = client->Multi();
+    auto set = transaction->Set("key", "value");
+    auto get = transaction->Get("key");
+    transaction->Exec(kDefaultCc).Get();
+  }
+  {
+    auto transaction = client->Multi();
+    auto get = transaction->Get("key");
+    auto set = transaction->Set("key", "value");
+    transaction->Exec(kDefaultCc).Get();
+  }
+
+  auto after = sentinel->GetStatistics({});
+  std::uint64_t master_command_count =
+      GetCommandCount(after.masters) - GetCommandCount(before.masters);
+  std::uint64_t slave_command_count =
+      GetCommandCount(after.slaves) - GetCommandCount(before.slaves);
+
+  EXPECT_EQ(master_command_count, 8);
+  EXPECT_EQ(slave_command_count, 0);
+}
+
+UTEST_F(RedisClientTransactionTest, ReadOnlyGetGet) {
+  auto client = GetClient();
+  auto sentinel = GetSentinel();
+
+  auto before = sentinel->GetStatistics({});
+
+  auto transaction = client->Multi();
+  auto get0 = transaction->Get("key");
+  auto get1 = transaction->Get("key");
+  transaction->Exec(kDefaultCc).Get();
+
+  auto after = sentinel->GetStatistics({});
+  std::uint64_t master_command_count =
+      GetCommandCount(after.masters) - GetCommandCount(before.masters);
+  std::uint64_t slave_command_count =
+      GetCommandCount(after.slaves) - GetCommandCount(before.slaves);
+
+  EXPECT_EQ(master_command_count, 0);
+  EXPECT_EQ(slave_command_count, 4);
 }
 
 USERVER_NAMESPACE_END
