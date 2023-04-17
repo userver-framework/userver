@@ -10,7 +10,7 @@
 
 \htmlonly
 <div class="landing-logo" id='landing_logo_id'>
-  <a href="d6/d2f/md_en_index.html"><img src='Stiker-3.svg' alt='userver logo fancy'/></a>
+  <a href="d6/d2f/md_en_index.html"><img src='logo.svg' alt='userver logo big'/></a>
 </div>
 \endhtmlonly
 
