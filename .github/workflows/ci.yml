@@ -163,6 +163,7 @@ jobs:
 
           - name: Run tests (mysql)
             run: |
+                sudo apt install mariadb-server
                 cd build_debug
                 mkdir userver/mysql || :
                 cd userver/mysql
