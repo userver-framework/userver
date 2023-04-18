@@ -1,105 +1,95 @@
 #include <userver/utest/utest.hpp>
 
+#include <userver/dynamic_config/storage_mock.hpp>
+#include <userver/dynamic_config/test_helpers.hpp>
+#include <userver/formats/json.hpp>
+
 #include <userver/baggage/baggage_manager.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace {
 
-inline std::string kBaggageCfg = R"~({
-  "BAGGAGE_SETTINGS": {
-    "allowed_keys": [
-      "key1",
-      "key2",
-      "key3",
-      "key4",
-      "key5"
-    ]
-  }
-})~";
+class BaggageManagerTest : public ::testing::Test {
+ protected:
+  dynamic_config::StorageMock storage_{
+      {baggage::kBaggageSettings, {{"key1", "key2", "key3", "key4", "key5"}}}};
+  dynamic_config::Source source_ = storage_.GetSource();
+  baggage::BaggageManager baggage_manager_ = baggage::BaggageManager(source_);
+};
 
-baggage::BaggageManager CreateBaggageManager() {
-  dynamic_config::DocsMap docs_map;
-  docs_map.Parse(kBaggageCfg, false);
-  auto settings = baggage::BaggageSettings::Parse(docs_map);
-
-  return baggage::BaggageManager(settings);
-}
-
-void CreateInheritedVariable() {
+void SetBaggageForTests(const baggage::BaggageManager& baggage_manager) {
   std::string header =
       "key1=value1,  key2 = value2  ; property1; PropertyKey2 "
       "=PropertyValue2; property3  ,key3 =  value3  ;\t property4 ;PropertyKey5"
       " =  PropertyValue5";
-
-  auto baggage = baggage::TryMakeBaggage(
-      std::move(header), {"key1", "key2", "key3", "key4", "key5"});
-  baggage::kInheritedBaggage.Set(std::move(*baggage));
+  baggage_manager.SetBaggage(std::move(header));
 }
+
 }  // namespace
 
 // Test getter
-UTEST(BaggageManager, GetInheritedBaggage) {
-  UEXPECT_THROW(baggage::BaggageManager::GetBaggage(), std::runtime_error);
-  auto baggage_manager = CreateBaggageManager();
-  CreateInheritedVariable();
+UTEST_F(BaggageManagerTest, GetInheritedBaggage) {
+  ASSERT_EQ(baggage::BaggageManager::TryGetBaggage(), nullptr);
 
-  const auto& baggage = baggage::BaggageManager::GetBaggage();
-  ASSERT_EQ(baggage.ToString(),
+  SetBaggageForTests(baggage_manager_);
+
+  const auto& baggage = baggage::BaggageManager::TryGetBaggage();
+  EXPECT_NE(baggage, nullptr);
+  ASSERT_EQ(baggage->ToString(),
             "key1=value1,key2=value2;property1;PropertyKey2"
             "=PropertyValue2;property3,key3=value3;property4;PropertyKey5=Prope"
             "rtyValue5");
 }
 
 // Test setter
-UTEST(BaggageManager, SetInheritedBaggage) {
-  auto baggage_manager = CreateBaggageManager();
+UTEST_F(BaggageManagerTest, SetInheritedBaggage) {
   std::string new_header = "key1=value2;property1";
-  baggage_manager.SetBaggage(std::move(new_header));
+  baggage_manager_.SetBaggage(std::move(new_header));
 
-  const auto& baggage = baggage::BaggageManager::GetBaggage();
-  ASSERT_EQ(baggage.ToString(), "key1=value2;property1");
+  const auto& baggage = baggage::BaggageManager::TryGetBaggage();
+  EXPECT_NE(baggage, nullptr);
+  ASSERT_EQ(baggage->ToString(), "key1=value2;property1");
 }
 
 // Test AddEntry and successful allocation
-UTEST(BaggageManager, AddEntry) {
-  CreateInheritedVariable();
-  auto baggage_manager = CreateBaggageManager();
+UTEST_F(BaggageManagerTest, AddEntry) {
+  SetBaggageForTests(baggage_manager_);
 
-  baggage_manager.AddEntry(
+  baggage_manager_.AddEntry(
       "key4", "value4",
       {{"PropertyKey6", {"PropertyValue6"}}, {"property7", {}}});
 
-  const auto& baggage = baggage::BaggageManager::GetBaggage();
-  ASSERT_EQ(baggage.ToString(),
+  const auto& baggage = baggage::BaggageManager::TryGetBaggage();
+  EXPECT_NE(baggage, nullptr);
+  ASSERT_EQ(baggage->ToString(),
             "key1=value1,key2=value2;property1;PropertyKey2"
             "=PropertyValue2;property3,key3=value3;property4;PropertyKey5=Prope"
             "rtyValue5,key4=value4;PropertyKey6=PropertyValue6;property7");
 
-  baggage_manager.AddEntry(
+  baggage_manager_.AddEntry(
       "key5", "value5",
       {{"property8", {}}, {"PropertyKey9", {"PropertyValue9"}}});
 
-  const auto& last_baggage = baggage::BaggageManager::GetBaggage();
-  ASSERT_EQ(last_baggage.ToString(),
+  const auto& last_baggage = baggage::BaggageManager::TryGetBaggage();
+  EXPECT_NE(baggage, nullptr);
+  ASSERT_EQ(last_baggage->ToString(),
             "key1=value1,key2=value2;property1;PropertyKey2"
             "=PropertyValue2;property3,key3=value3;property4;PropertyKey5=Prope"
             "rtyValue5,key4=value4;PropertyKey6=PropertyValue6;property7,key5=v"
             "alue5;property8;PropertyKey9=PropertyValue9");
 
-  UEXPECT_THROW(baggage_manager.AddEntry("key20", "value4", {}),
+  UEXPECT_THROW(baggage_manager_.AddEntry("key20", "value4", {}),
                 baggage::BaggageException);
 }
 
 // Test Reset
-UTEST(BaggageManager, ResetBaggage) {
-  CreateInheritedVariable();
-  auto baggage_manager = CreateBaggageManager();
+UTEST_F(BaggageManagerTest, ResetBaggage) {
+  SetBaggageForTests(baggage_manager_);
 
-  baggage_manager.ResetBaggage();
-
-  const auto& baggage = baggage::BaggageManager::GetBaggage();
-  ASSERT_EQ(baggage.ToString(), "");
+  baggage::BaggageManager::ResetBaggage();
+  const auto& baggage = baggage::BaggageManager::TryGetBaggage();
+  ASSERT_EQ(baggage, nullptr);
 }
 
 USERVER_NAMESPACE_END

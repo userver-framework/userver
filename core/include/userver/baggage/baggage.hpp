@@ -81,11 +81,8 @@ class BaggageEntry {
 /// For more details check official site https://w3c.github.io/baggage/
 class Baggage {
  public:
-  Baggage(std::string header,
-          const std::unordered_set<std::string>& allowed_keys);
-
+  Baggage(std::string header, std::unordered_set<std::string> allowed_keys);
   Baggage(const Baggage&) noexcept;
-
   Baggage(Baggage&&) noexcept;
 
   std::string ToString() const;
@@ -103,15 +100,15 @@ class Baggage {
   /// @brief entry's key validation
   bool IsValidEntry(const std::string& key) const;
 
-  /// @brief get available entries
-  std::unordered_set<std::string> GetAvailableEntries() const;
-
   /// @brief Add entry to baggage header.
   /// @throws BaggageException If key, value or properties
   /// don't match with requirements or if allowed_keys
   /// don't contain selected key
   void AddEntry(std::string key, std::string value,
                 BaggageProperties properties);
+
+  /// @brief get baggage allowed keys
+  std::unordered_set<std::string> GetAllowedKeys() const;
 
  protected:
   /// @brief parsers
@@ -143,7 +140,7 @@ class Baggage {
 
 /// @brief Parsing function
 std::optional<Baggage> TryMakeBaggage(
-    std::string header, const std::unordered_set<std::string>& allowed_keys);
+    std::string header, std::unordered_set<std::string> allowed_keys);
 
 template <typename T>
 bool HasInvalidSymbols(const T& obj) {

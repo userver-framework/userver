@@ -16,6 +16,11 @@ bool ParseBaggageEnabled(const dynamic_config::DocsMap& docs_map) {
   return docs_map.Get("USERVER_BAGGAGE_ENABLED").As<bool>();
 }
 
+BaggageSettings Parse(const formats::json::Value& value,
+                      formats::parse::To<BaggageSettings>) {
+  return {value["allowed_keys"].As<std::unordered_set<std::string>>()};
+}
+
 }  // namespace baggage
 
 USERVER_NAMESPACE_END

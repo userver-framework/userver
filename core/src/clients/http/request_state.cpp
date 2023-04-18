@@ -96,6 +96,7 @@ char* rfind_not_space(char* ptr, size_t size) {
   return ptr;
 }
 
+// TODO: very low-level, do it in another place
 void SetBaggageHeader(curl::easy& e) {
   const auto* baggage = baggage::kInheritedBaggage.GetOptional();
   if (baggage != nullptr) {

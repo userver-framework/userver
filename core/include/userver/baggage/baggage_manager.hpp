@@ -14,7 +14,10 @@ namespace baggage {
 
 class BaggageManager final {
  public:
-  explicit BaggageManager(const BaggageSettings& settings);
+  explicit BaggageManager(const dynamic_config::Source& config_source);
+
+  /// @brief Returns if baggage is enabled
+  bool IsEnabled() const;
 
   /// @brief Add entry to baggage header.
   /// @throws BaggageException If key, value or properties
@@ -23,17 +26,17 @@ class BaggageManager final {
   void AddEntry(std::string key, std::string value,
                 BaggageProperties properties) const;
 
-  /// @brief Get const reference to baggage value from task inherited variable
-  static const Baggage& GetBaggage();
+  /// @brief Get const pointer to baggage value from task inherited variable
+  static const Baggage* TryGetBaggage();
 
   /// @brief Set new baggage value to task inherited variable
   void SetBaggage(std::string header) const;
 
-  /// @brief Clear header's data.
-  void ResetBaggage() const;
+  /// @brief Delete header from task inherited variable
+  static void ResetBaggage();
 
  private:
-  BaggageSettings settings_;
+  dynamic_config::Source config_source_;
 };
 
 /// @brief manager for relationship with header baggage.
@@ -44,12 +47,12 @@ class BaggageManagerComponent final : public components::LoggableComponentBase {
   BaggageManagerComponent(const components::ComponentConfig& config,
                           const components::ComponentContext& context);
 
-  BaggageManager GetManager();
+  BaggageManager& GetManager();
 
   static yaml_config::Schema GetStaticConfigSchema();
 
  private:
-  dynamic_config::Source config_source_;
+  BaggageManager baggage_manager_;
 };
 
 }  // namespace baggage

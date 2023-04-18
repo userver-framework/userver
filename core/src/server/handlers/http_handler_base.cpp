@@ -488,16 +488,17 @@ void HttpHandlerBase::HandleRequest(request::RequestBase& request,
     span.SetLocalLogLevel(log_level_);
 
     if (config_source_.GetCopy(baggage::kBaggageEnabled)) {
-      const auto snapshot = config_source_.GetSnapshot();
-      const auto& baggage_settings = snapshot[baggage::kBaggageSettings];
-
       auto baggage_header =
           http_request.GetHeader(USERVER_NAMESPACE::http::headers::kXBaggage);
-      LOG_DEBUG() << "Got baggage header: " << baggage_header;
-      auto baggage = baggage::TryMakeBaggage(std::move(baggage_header),
-                                             baggage_settings.allowed_keys);
-      if (baggage) {
-        baggage::kInheritedBaggage.Set(std::move(*baggage));
+      if (!baggage_header.empty()) {
+        LOG_DEBUG() << "Got baggage header: " << baggage_header;
+        auto snapshot = config_source_.GetSnapshot();
+        const auto& baggage_settings = snapshot[baggage::kBaggageSettings];
+        auto baggage = baggage::TryMakeBaggage(std::move(baggage_header),
+                                               baggage_settings.allowed_keys);
+        if (baggage) {
+          baggage::kInheritedBaggage.Set(std::move(*baggage));
+        }
       }
     }
 

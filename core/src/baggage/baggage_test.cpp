@@ -177,7 +177,7 @@ UTEST(Baggage, AvailableEntries) {
   ASSERT_EQ(baggage->IsValidEntry("key6"), false);
 
   // get available entries
-  for (const auto& valid_entry : baggage->GetAvailableEntries()) {
+  for (const auto& valid_entry : baggage->GetAllowedKeys()) {
     ASSERT_EQ(kAllowedKeys.count(valid_entry), 1);
   }
 }

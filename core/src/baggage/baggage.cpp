@@ -1,19 +1,23 @@
 #include <userver/baggage/baggage.hpp>
 
+#include <algorithm>
+
 #include <fmt/format.h>
+
+#include <userver/baggage/baggage_settings.hpp>
 #include <userver/http/parser/http_request_parse_args.hpp>
 #include <userver/http/url.hpp>
 #include <userver/logging/log.hpp>
 
-#include <algorithm>
-
 USERVER_NAMESPACE_BEGIN
 
 namespace baggage {
+
 namespace {
 
 const int kEntitiesLimit = 64;
 const int kHeaderLengthLimit = 8192;
+
 }  // namespace
 
 BaggageEntryProperty::BaggageEntryProperty(
@@ -117,8 +121,8 @@ const BaggageEntry& Baggage::GetEntry(const std::string& key) const {
 }
 
 Baggage::Baggage(std::string header,
-                 const std::unordered_set<std::string>& allowed_keys)
-    : header_value_(std::move(header)), allowed_keys_(allowed_keys) {
+                 std::unordered_set<std::string> allowed_keys)
+    : header_value_(std::move(header)), allowed_keys_(std::move(allowed_keys)) {
   header_value_.erase(
       std::remove_if(header_value_.begin(), header_value_.end(),
                      [](unsigned char x) { return std::isspace(x); }),
@@ -219,7 +223,7 @@ bool Baggage::IsValidEntry(const std::string& key) const {
   return allowed_keys_.count(key);
 }
 
-std::unordered_set<std::string> Baggage::GetAvailableEntries() const {
+std::unordered_set<std::string> Baggage::GetAllowedKeys() const {
   return allowed_keys_;
 }
 
@@ -371,14 +375,15 @@ std::optional<BaggageEntryProperty> Baggage::TryMakeBaggageEntryProperty(
 }
 
 std::optional<Baggage> TryMakeBaggage(
-    std::string header, const std::unordered_set<std::string>& allowed_keys) {
+    std::string header, std::unordered_set<std::string> allowed_keys) {
   if (header.size() > kHeaderLengthLimit) {
     LOG_LIMITED_WARNING() << fmt::format(
         "Exceeded the limit of header length: {}", kHeaderLengthLimit);
     return std::nullopt;
   }
 
-  return std::make_optional<Baggage>({std::move(header), allowed_keys});
+  return std::make_optional<Baggage>(
+      {std::move(header), std::move(allowed_keys)});
 }
 
 }  // namespace baggage
