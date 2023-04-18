@@ -90,3 +90,8 @@ if (USERVER_FEATURE_RABBITMQ)
     add_subdirectory(rabbitmq_service)
     add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-rabbitmq_service)
 endif()
+
+if (USERVER_FEATURE_MYSQL)
+    add_subdirectory(mysql_service)
+    add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-mysql_service)
+endif()

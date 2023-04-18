@@ -102,6 +102,7 @@ option(USERVER_FEATURE_REDIS "Provide asynchronous driver for Redis" ON)
 option(USERVER_FEATURE_GRPC "Provide asynchronous driver for gRPC" ON)
 option(USERVER_FEATURE_CLICKHOUSE "Provide asynchronous driver for ClickHouse" ${USERVER_BUILD_PLATFORM_X86})
 option(USERVER_FEATURE_RABBITMQ "Provide asynchronous driver for RabbitMQ" ON)
+option(USERVER_FEATURE_MYSQL "Provide asynchronous driver for MariaDB/MySQL" OFF)
 option(USERVER_FEATURE_UNIVERSAL "Provide a universal utilities library that does not use coroutines" ON)
 
 if (USERVER_IS_THE_ROOT_PROJECT)
@@ -150,6 +151,10 @@ endif()
 
 if (USERVER_FEATURE_RABBITMQ)
     add_subdirectory(rabbitmq "${CMAKE_BINARY_DIR}/userver/rabbitmq")
+endif()
+
+if (USERVER_FEATURE_MYSQL)
+    add_subdirectory(mysql "${CMAKE_BINARY_DIR}/userver/mysql")
 endif()
 
 if (USERVER_FEATURE_UNIVERSAL)

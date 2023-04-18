@@ -32,13 +32,20 @@ def extra_client_deps() -> None:
 def auto_client_deps(request) -> None:
     """
     Service client dependencies hook that knows about pgsql, mongodb,
-    clickhouse, rabbitmq, redis_store dependencies.
+    clickhouse, rabbitmq, redis_store and mysql dependencies.
     To add some other dependencies prefer overriding the
-    client_deps() fixture.
+    extra_client_deps() fixture.
 
     @ingroup userver_testsuite_fixtures
     """
-    known_deps = {'pgsql', 'mongodb', 'clickhouse', 'rabbitmq', 'redis_store'}
+    known_deps = {
+        'pgsql',
+        'mongodb',
+        'clickhouse',
+        'rabbitmq',
+        'redis_store',
+        'mysql',
+    }
 
     try:
         FixtureLookupError = pytest.FixtureLookupError

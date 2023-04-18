@@ -121,15 +121,16 @@ The plugins match the userver cmake targets. For example, if the service links
 with `userver-core` its tests should use the pytest_userver.plugins.core
 plugin.
 
-| CMake target            | Matching plugin for testsuite     |
-|-------------------------|-----------------------------------|
-| userver-core            | pytest_userver.plugins.core       |
-| userver-grpc            | pytest_userver.plugins.grpc       |
-| userver-postgresql      | pytest_userver.plugins.postgresql |
-| userver-clickhouse      | pytest_userver.plugins.clickhouse |
-| userver-redis           | pytest_userver.plugins.redis      |
-| userver-mongo           | pytest_userver.plugins.mongo      |
-| userver-rabbitmq        | pytest_userver.plugins.rabbitmq   |
+| CMake target       | Matching plugin for testsuite     |
+|--------------------|-----------------------------------|
+| userver-core       | pytest_userver.plugins.core       |
+| userver-grpc       | pytest_userver.plugins.grpc       |
+| userver-postgresql | pytest_userver.plugins.postgresql |
+| userver-clickhouse | pytest_userver.plugins.clickhouse |
+| userver-redis      | pytest_userver.plugins.redis      |
+| userver-mongo      | pytest_userver.plugins.mongo      |
+| userver-rabbitmq   | pytest_userver.plugins.rabbitmq   |
+| userver-mysql      | pytest_userver.plugins.mysql      |
 
 
 ### Userver testsuite support

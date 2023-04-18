@@ -139,6 +139,8 @@ class LruBase final {
   U& InsertNode(NodeType&& node) noexcept;
   NodeType ExtractNode(const T& key) noexcept;
 
+  std::size_t GetCapacity() const;
+
  private:
   using Node = LruNode<T, U>;
   using List =
@@ -288,6 +290,11 @@ void LruBase<T, U, Hash, Eq>::VisitAll(Function&& func) {
 template <typename T, typename U, typename Hash, typename Eq>
 size_t LruBase<T, U, Hash, Eq>::GetSize() const {
   return map_.size();
+}
+
+template <typename T, typename U, typename Hash, typename Eq>
+std::size_t LruBase<T, U, Hash, Eq>::GetCapacity() const {
+  return buckets_.size();
 }
 
 template <typename T, typename U, typename Hash, typename Eq>
