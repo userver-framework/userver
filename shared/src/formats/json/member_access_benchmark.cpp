@@ -110,7 +110,17 @@ void json_object_append(benchmark::State& state) {
     benchmark::DoNotOptimize(Build(size));
   }
 }
-BENCHMARK(json_object_append)->RangeMultiplier(2)->Range(1, 128);
+BENCHMARK(json_object_append)->RangeMultiplier(2)->Range(1, 10240);
+
+void json_object_compare(benchmark::State& state) {
+  const auto size = state.range(0);
+  const auto a = Build(size).ExtractValue();
+  const auto b = Build(size).ExtractValue();
+  for (auto _ : state) {
+    benchmark::DoNotOptimize(a == b);
+  }
+}
+BENCHMARK(json_object_compare)->RangeMultiplier(2)->Range(1, 1024);
 
 formats::json::ValueBuilder BuildNocheck(size_t count) {
   formats::json::ValueBuilder builder;
