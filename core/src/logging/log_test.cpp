@@ -1,9 +1,12 @@
 #include <gtest/gtest.h>
 
+#include <optional>
+
 #include <logging/socket_logging_test.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/utest/utest.hpp>
 #include <userver/utils/async.hpp>
+#include <userver/utils/datetime/date.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -90,6 +93,15 @@ TEST_F(LoggingTest, DocsData) {
   const auto level = flag ? logging::Level::kDebug : logging::Level::kInfo;
   LOG(level) << "some text";
   /// [Example set custom logging usage]
+}
+
+TEST_F(LoggingTest, DatetimeDate) {
+  const auto date = utils::datetime::Date(2023, 4, 8);
+  EXPECT_EQ("2023-04-08", ToStringViaLogging(date));
+  EXPECT_EQ("(none)",
+            ToStringViaLogging(std::optional<utils::datetime::Date>{}));
+  EXPECT_EQ("2023-04-08",
+            ToStringViaLogging(std::optional<utils::datetime::Date>{date}));
 }
 
 UTEST_F(SocketLoggingTest, Test) {
