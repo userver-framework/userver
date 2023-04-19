@@ -231,6 +231,32 @@ ValueBuilder ValueBuilder::operator[](
   return (*this)[std::move(key.GetUnderlying())];
 }
 
+/// Optimized maps of StrongTypedefs serialization for JSON
+template <typename T>
+std::enable_if_t<meta::kIsUniqueMap<T> &&
+                     utils::IsStrongTypedefLoggable(T::key_type::kOps),
+                 Value>
+Serialize(const T& value, formats::serialize::To<Value>) {
+  json::ValueBuilder builder(formats::common::Type::kObject);
+  for (const auto& [key, value] : value) {
+    builder.EmplaceNocheck(key.GetUnderlying(), value);
+  }
+  return builder.ExtractValue();
+}
+
+/// Optimized maps serialization for JSON
+template <typename T>
+std::enable_if_t<meta::kIsUniqueMap<T> &&
+                     std::is_convertible_v<typename T::key_type, std::string>,
+                 Value>
+Serialize(const T& value, formats::serialize::To<Value>) {
+  json::ValueBuilder builder(formats::common::Type::kObject);
+  for (const auto& [key, value] : value) {
+    builder.EmplaceNocheck(key, value);
+  }
+  return builder.ExtractValue();
+}
+
 }  // namespace formats::json
 
 USERVER_NAMESPACE_END

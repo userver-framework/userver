@@ -4,6 +4,8 @@
 #include <userver/formats/json/serialize.hpp>
 #include <userver/formats/json/value_builder.hpp>
 
+#include <userver/formats/serialize/common_containers.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace {
@@ -137,5 +139,32 @@ void json_object_append_nocheck(benchmark::State& state) {
   }
 }
 BENCHMARK(json_object_append_nocheck)->RangeMultiplier(2)->Range(1, 128);
+
+void json_object_from_unordered(benchmark::State& state) {
+  const auto size = state.range(0);
+
+  std::unordered_map<std::string, int> map;
+  for (int i = 0; i < size; i++) map[std::to_string(i)] = i;
+
+  for (auto _ : state) {
+    benchmark::DoNotOptimize(formats::json::ValueBuilder(map));
+  }
+}
+BENCHMARK(json_object_from_unordered)->RangeMultiplier(2)->Range(1, 1024);
+
+void json_object_from_unordered_strong_typedef(benchmark::State& state) {
+  const auto size = state.range(0);
+
+  using MyString = utils::StrongTypedef<class Tag, std::string>;
+  std::unordered_map<MyString, int> map;
+  for (int i = 0; i < size; i++) map[MyString{std::to_string(i)}] = i;
+
+  for (auto _ : state) {
+    benchmark::DoNotOptimize(formats::json::ValueBuilder(map));
+  }
+}
+BENCHMARK(json_object_from_unordered_strong_typedef)
+    ->RangeMultiplier(2)
+    ->Range(1, 1024);
 
 USERVER_NAMESPACE_END

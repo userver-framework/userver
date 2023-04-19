@@ -116,6 +116,10 @@ template <typename T>
 using ReserveResult = decltype(std::declval<T&>().reserve(1));
 
 template <typename T>
+using AtResult =
+    decltype(std::declval<const T&>().at(std::declval<typename T::key_type>()));
+
+template <typename T>
 using PushBackResult = decltype(std::declval<T&>().push_back({}));
 
 template <typename T>
@@ -148,10 +152,16 @@ inline constexpr bool kIsVector = kIsInstantiationOf<std::vector, T>;
 template <typename T>
 inline constexpr bool kIsRange = kIsDetected<impl::IsRange, T>;
 
+/// Returns true if T is an ordered or unordered map or multimap
 template <typename T>
 inline constexpr bool kIsMap =
     kIsDetected<impl::IsRange, T> && kIsDetected<impl::KeyType, T> &&
     kIsDetected<impl::MappedType, T>;
+
+/// Returns true if T is a map (but not a multimap!)
+template <typename T>
+inline constexpr bool kIsUniqueMap =
+    kIsMap<T> && kIsDetected<impl::AtResult, T>;  // no at() in multimaps
 
 template <typename T>
 using MapKeyType = DetectedType<impl::KeyType, T>;

@@ -96,6 +96,7 @@ struct MyMap {
 
   auto begin() { return impl.begin(); }
   auto end() { return impl.end(); }
+  auto at(int i) const { return impl[i]; }
 };
 
 TEST(Meta, kIsMap) {
