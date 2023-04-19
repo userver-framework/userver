@@ -11,14 +11,10 @@
 #include <userver/components/component_fwd.hpp>
 #include <userver/dump/fwd.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
+#include <userver/rcu/fwd.hpp>
 #include <userver/utils/flags.hpp>
 
 USERVER_NAMESPACE_BEGIN
-
-namespace rcu {
-template <typename T>
-class ReadablePtr;
-}  // namespace rcu
 
 namespace cache {
 

@@ -36,8 +36,7 @@ constexpr dynamic_config::Key<ParseDynamicDebug> kDynamicDebugConfig{};
 }  // namespace
 
 LoggingConfigurator::LoggingConfigurator(const ComponentConfig& config,
-                                         const ComponentContext& context)
-    : dynamic_debug_({}) {
+                                         const ComponentContext& context) {
   logging::impl::SetLogLimitedEnable(
       config["limited-logging-enable"].As<bool>());
   logging::impl::SetLogLimitedInterval(

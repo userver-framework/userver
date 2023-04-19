@@ -1,15 +1,61 @@
-#include <userver/utest/utest.hpp>
+#include <userver/rcu/rcu_map.hpp>
 
 #include <array>
 #include <atomic>
+#include <chrono>
 #include <cstdint>
+#include <future>
+#include <mutex>
+#include <thread>
 
 #include <userver/engine/sleep.hpp>
-#include <userver/rcu/rcu_map.hpp>
+#include <userver/utest/utest.hpp>
 #include <userver/utils/algo.hpp>
 #include <userver/utils/async.hpp>
 
 USERVER_NAMESPACE_BEGIN
+
+namespace {
+
+template <typename Key, typename Value>
+struct RcuTraitsStdMutex : rcu::DefaultRcuMapTraits<Key, Value> {
+  using MutexType = std::mutex;
+};
+
+using StdMutexRcuMap =
+    rcu::RcuMap<std::string, int, RcuTraitsStdMutex<std::string, int>>;
+
+}  // namespace
+
+TEST(RcuMap, StdMutexBase) {
+  StdMutexRcuMap map;
+  const auto& cmap = map;
+
+  UEXPECT_THROW(cmap["any"], rcu::MissingKeyException);
+  EXPECT_FALSE(map.Get("any"));
+  EXPECT_FALSE(cmap.Get("any"));
+  EXPECT_FALSE(map.Erase("any"));
+  EXPECT_FALSE(map.Pop("any"));
+
+  UEXPECT_NO_THROW(*map["any"] = 1);
+}
+
+TEST(RcuMap, StdMutexConcurentWrites) {
+  StdMutexRcuMap map;
+  std::atomic<bool> thread_started_write{false};
+
+  auto write_ptr = map.StartWrite();
+  auto thread = std::async([&map, &thread_started_write] {
+    auto write_ptr = map.StartWrite();
+    thread_started_write.store(true);
+  });
+  std::this_thread::sleep_for(std::chrono::milliseconds(10));
+  ASSERT_FALSE(thread_started_write.load());
+  write_ptr.Commit();
+
+  thread.get();
+  ASSERT_TRUE(thread_started_write.load());
+}
 
 UTEST(RcuMap, Empty) {
   rcu::RcuMap<std::string, int> map;
