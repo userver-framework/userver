@@ -1,13 +1,13 @@
 #pragma once
 
+/// @file userver/engine/task/cancel.hpp
+/// @brief Task cancellation helpers
+
 #include <string>
 
 #include <boost/smart_ptr/intrusive_ptr.hpp>
 
 #include <userver/engine/deadline.hpp>
-
-/// @file userver/engine/task/cancel.hpp
-/// @brief Task cancellation helpers
 
 USERVER_NAMESPACE_BEGIN
 
@@ -22,7 +22,7 @@ enum class TaskCancellationReason {
   kUserRequest,  ///< User request
   kDeadline,     ///< Deadline
   kOverload,     ///< Task processor overload
-  kAbandoned,    ///< Task destruction before finish
+  kAbandoned,    ///< Task destructor is called before the payload finished
   kShutdown,     ///< Task processor shutdown
 };
 
@@ -78,7 +78,7 @@ class TaskCancellationBlocker final {
 };
 
 /// Returns a string representation of a cancellation reason
-std::string ToString(TaskCancellationReason reason);
+std::string_view ToString(TaskCancellationReason reason) noexcept;
 
 /// @brief Cancellation token to given task object
 ///

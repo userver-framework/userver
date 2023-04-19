@@ -73,28 +73,23 @@ TaskCancellationBlocker::~TaskCancellationBlocker() {
   context_.SetCancellable(was_allowed_);
 }
 
-std::string ToString(TaskCancellationReason reason) {
-  static const std::string kNone = "Not cancelled";
-  static const std::string kUserRequest = "User request";
-  static const std::string kDeadline = "Task deadline reached";
-  static const std::string kOverload = "Task processor overload";
-  static const std::string kAbandoned = "Task destruction before finish";
-  static const std::string kShutdown = "Task processor shutdown";
+std::string_view ToString(TaskCancellationReason reason) noexcept {
   switch (reason) {
     case TaskCancellationReason::kNone:
-      return kNone;
+      return "Not cancelled";
     case TaskCancellationReason::kUserRequest:
-      return kUserRequest;
+      return "User request";
     case TaskCancellationReason::kDeadline:
-      return kDeadline;
+      return "Task deadline reached";
     case TaskCancellationReason::kOverload:
-      return kOverload;
+      return "Task processor overload";
     case TaskCancellationReason::kAbandoned:
-      return kAbandoned;
+      return "Task destructor is called before the payload finished execution";
     case TaskCancellationReason::kShutdown:
-      return kShutdown;
+      return "Task processor shutdown";
   }
-  return fmt::format("unknown({})", static_cast<int>(reason));
+
+  UASSERT_MSG(false, fmt::format("unknown({})", static_cast<int>(reason)));
 }
 
 TaskCancellationToken::TaskCancellationToken() noexcept = default;
