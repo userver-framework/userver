@@ -6,8 +6,11 @@
 #include <initializer_list>
 #include <limits>
 #include <memory>
+#include <optional>
 #include <tuple>
+#include <type_traits>
 #include <utility>
+#include <variant>
 
 #include <fmt/format.h>
 
@@ -674,6 +677,36 @@ class ResultSet {
 
 namespace detail {
 
+template <typename T>
+struct IsOptionalFromOptional : std::false_type {};
+
+template <typename T>
+struct IsOptionalFromOptional<std::optional<std::optional<T>>>
+    : std::true_type {};
+
+template <typename T>
+struct IsOneVariant : std::false_type {};
+
+template <typename T>
+struct IsOneVariant<std::variant<T>> : std::true_type {};
+
+template <typename... Args>
+constexpr void AssertSaneTypeToDeserialize() {
+  static_assert(
+      !(IsOptionalFromOptional<
+            std::remove_const_t<std::remove_reference_t<Args>>>::value ||
+        ...),
+      "Attempt to get an optional<optional<T>> was detected. Such "
+      "optional-from-optional types are very error prone, obfuscate code and "
+      "are ambiguous to deserialize. Change the type to just optional<T>");
+  static_assert(
+      !(IsOneVariant<
+            std::remove_const_t<std::remove_reference_t<Args>>>::value ||
+        ...),
+      "Attempt to get an variant<T> was detected. Such variant from one type "
+      "obfuscates code. Change the type to just T");
+}
+
 //@{
 /** @name Sequental field extraction */
 template <typename IndexTuple, typename... T>
@@ -763,6 +796,7 @@ void Row::To(T&& val) const {
 
 template <typename T>
 void Row::To(T&& val, RowTag) const {
+  detail::AssertSaneTypeToDeserialize<T>();
   // Convert the val into a writable tuple and extract the data
   using ValueType = std::decay_t<T>;
   static_assert(io::traits::kIsRowType<ValueType>,
@@ -785,6 +819,7 @@ void Row::To(T&& val, RowTag) const {
 
 template <typename T>
 void Row::To(T&& val, FieldTag) const {
+  detail::AssertSaneTypeToDeserialize<T>();
   using ValueType = std::decay_t<T>;
   // composite types can be parsed without an explicit mapping
   static_assert(io::traits::kIsMappedToPg<ValueType> ||
@@ -802,6 +837,7 @@ void Row::To(T&& val, FieldTag) const {
 
 template <typename... T>
 void Row::To(T&&... val) const {
+  detail::AssertSaneTypeToDeserialize<T...>();
   if (sizeof...(T) > Size()) {
     throw InvalidTupleSizeRequested(Size(), sizeof...(T));
   }
@@ -822,6 +858,7 @@ auto Row::As() const {
 template <typename... T>
 void Row::To(const std::initializer_list<std::string>& names,
              T&&... val) const {
+  detail::AssertSaneTypeToDeserialize<T...>();
   if (sizeof...(T) != names.size()) {
     throw FieldTupleMismatch(names.size(), sizeof...(T));
   }
@@ -843,6 +880,7 @@ std::tuple<T...> Row::As(
 template <typename... T>
 void Row::To(const std::initializer_list<size_type>& indexes,
              T&&... val) const {
+  detail::AssertSaneTypeToDeserialize<T...>();
   if (sizeof...(T) != indexes.size()) {
     throw FieldTupleMismatch(indexes.size(), sizeof...(T));
   }
@@ -868,6 +906,7 @@ auto ResultSet::AsSetOf() const {
 
 template <typename T>
 auto ResultSet::AsSetOf(RowTag) const {
+  detail::AssertSaneTypeToDeserialize<T>();
   using ValueType = std::decay_t<T>;
   static_assert(io::traits::kIsRowType<ValueType>,
                 "This type cannot be used as a row type");
@@ -876,6 +915,7 @@ auto ResultSet::AsSetOf(RowTag) const {
 
 template <typename T>
 auto ResultSet::AsSetOf(FieldTag) const {
+  detail::AssertSaneTypeToDeserialize<T>();
   using ValueType = std::decay_t<T>;
   // composite types can be parsed without an explicit mapping
   static_assert(io::traits::kIsMappedToPg<ValueType> ||
@@ -890,6 +930,7 @@ auto ResultSet::AsSetOf(FieldTag) const {
 
 template <typename Container>
 Container ResultSet::AsContainer() const {
+  detail::AssertSaneTypeToDeserialize<Container>();
   using ValueType = typename Container::value_type;
   Container c;
   if constexpr (io::traits::kCanReserve<Container>) {
@@ -902,6 +943,7 @@ Container ResultSet::AsContainer() const {
 
 template <typename Container>
 Container ResultSet::AsContainer(RowTag) const {
+  detail::AssertSaneTypeToDeserialize<Container>();
   using ValueType = typename Container::value_type;
   Container c;
   if constexpr (io::traits::kCanReserve<Container>) {
@@ -919,6 +961,7 @@ auto ResultSet::AsSingleRow() const {
 
 template <typename T>
 auto ResultSet::AsSingleRow(RowTag) const {
+  detail::AssertSaneTypeToDeserialize<T>();
   if (Size() != 1) {
     throw NonSingleRowResultSet{Size()};
   }
@@ -927,6 +970,7 @@ auto ResultSet::AsSingleRow(RowTag) const {
 
 template <typename T>
 auto ResultSet::AsSingleRow(FieldTag) const {
+  detail::AssertSaneTypeToDeserialize<T>();
   if (Size() != 1) {
     throw NonSingleRowResultSet{Size()};
   }
