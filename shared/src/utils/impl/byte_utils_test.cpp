@@ -249,8 +249,8 @@ namespace {
 
 const std::string kAllPossibleBytesString = [] {
   // 256 for all possible values,
-  // +7 to stress the "gather leftovers" step.
-  constexpr std::size_t len = 256 + 7;
+  // +15 to stress the "gather leftovers" step.
+  constexpr std::size_t len = 256 + 15;
   std::string result(len, 0);
   for (std::size_t i = 0; i < len; ++i) {
     result[i] = static_cast<char>(i & 0xff);
@@ -304,6 +304,68 @@ void TestSipHashAgainstReference() {
   }
 }
 
+template <typename Eq>
+void TestCaseInsensitiveEqual() {
+  const Eq cmp{};
+
+  // test for equality, strings are byte-wise equal
+  {
+    const auto all_possible_bytes_three_times = kAllPossibleBytesString +
+                                                kAllPossibleBytesString +
+                                                kAllPossibleBytesString;
+    for (std::size_t len = 1; len <= kAllPossibleBytesString.size(); ++len) {
+      for (std::size_t start = 0; start < kAllPossibleBytesString.size();
+           ++start) {
+        const auto lhs =
+            std::string_view{all_possible_bytes_three_times}.substr(start, len);
+        const auto rhs =
+            std::string_view{all_possible_bytes_three_times}.substr(
+                start + kAllPossibleBytesString.size(), len);
+        ASSERT_TRUE(cmp(lhs, rhs));
+      }
+    }
+  }
+
+  // test for inequality
+  {
+    for (std::size_t len = 1; len <= kAllPossibleBytesString.size(); ++len) {
+      auto rhs = kAllPossibleBytesString;
+      for (std::size_t diff_at = 0; diff_at < len; ++diff_at) {
+        rhs[diff_at] ^= 1;
+        ASSERT_FALSE(cmp(kAllPossibleBytesString, rhs));
+        rhs[diff_at] ^= 1;
+      }
+    }
+  }
+
+  // test for equality, strings differ in case in some positions
+  {
+    const auto switch_case = [] {
+      auto all_possible_bytes = kAllPossibleBytesString;
+      for (auto& c : all_possible_bytes) {
+        if (c >= 'a' && c <= 'z') {
+          c = 'A' + (c - 'a');
+        } else if (c >= 'A' && c <= 'Z') {
+          c = 'a' + (c - 'A');
+        }
+      }
+
+      return all_possible_bytes;
+    }();
+
+    for (std::size_t start = 0; start < kAllPossibleBytesString.size();
+         ++start) {
+      for (std::size_t len = 1; start + len < kAllPossibleBytesString.size();
+           ++len) {
+        const auto lhs =
+            std::string_view{kAllPossibleBytesString}.substr(start, len);
+        const auto rhs = std::string_view{switch_case}.substr(start, len);
+        ASSERT_TRUE(cmp(lhs, rhs));
+      }
+    }
+  }
+}
+
 }  // namespace
 
 TEST(SipHashCase, MatchesReferenceImplementation) {
@@ -318,6 +380,14 @@ TEST(SipHashCaseInsensitive, MatchesReferenceImplementation) {
 TEST(SipHashCaseInsensitiveNoSse, MatchesReferenceImplementation) {
   TestSipHashAgainstReference<utils::impl::CaseInsensitiveSipHasherNoSse,
                               ReferenceNoCaseHash>();
+}
+
+TEST(CaseInsensitiveEqual, Correctness) {
+  TestCaseInsensitiveEqual<utils::impl::CaseInsensitiveEqual>();
+}
+
+TEST(CaseInsensitiveEqualNoSse, Correctness) {
+  TestCaseInsensitiveEqual<utils::impl::CaseInsensitiveEqualNoSse>();
 }
 
 USERVER_NAMESPACE_END

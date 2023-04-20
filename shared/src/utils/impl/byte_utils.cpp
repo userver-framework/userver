@@ -1,7 +1,7 @@
 #include <utils/impl/byte_utils.hpp>
 
 #ifdef __SSE2__
-#include <immintrin.h>
+#include <emmintrin.h>
 #endif
 
 #include <array>
@@ -23,6 +23,8 @@ inline std::uint64_t RotateLeft(std::uint64_t x, std::uint64_t b) noexcept {
 struct CaseFetcher final {
   static inline std::uint64_t Fetch8(const std::uint8_t* data) noexcept {
     std::uint64_t result{};
+    // NOTE: implies LE, because we use this function from siphash, which
+    // requires this fetch to be in LE.
     std::memcpy(&result, data, 8);
     return result;
   }
@@ -72,26 +74,16 @@ struct CaseFetcher final {
 
 #ifdef __SSE2__
 struct CaseInsensitiveSSEFetcher final {
-  static inline std::uint64_t Fetch8(const uint8_t* data) noexcept {
-    // _mm_loadu_si64 is missing in gcc prior to version 9
-    // https://gcc.gnu.org/bugzilla/show_bug.cgi?id=78782
-#if defined(__GNUC__) && !defined(__llvm__) && (__GNUC__ < 9)
-    const auto value = CaseFetcher::Fetch8(data);
-    return LowercaseBytes(
-               _mm_loadl_epi64(reinterpret_cast<const __m128i*>(&value)))
-        .first;
-#else
-    return LowercaseBytes(_mm_loadu_si64(data)).first;
-#endif
+  static inline std::uint64_t Fetch8(const std::uint8_t* data) noexcept {
+    return LowercaseBytes(Load8(data)).first;
   }
 
   static inline std::pair<std::uint64_t, std::uint64_t> Fetch16(
       const uint8_t* data) noexcept {
-    return LowercaseBytes(
-        _mm_loadu_si128(reinterpret_cast<const __m128i*>(data)));
+    return LowercaseBytes(Load16(data));
   }
 
-  static inline std::uint64_t FetchN(const uint8_t* data,
+  static inline std::uint64_t FetchN(const std::uint8_t* data,
                                      std::size_t n) noexcept {
     const auto value = CaseFetcher::FetchN(data, n);
     return LowercaseBytes(
@@ -99,9 +91,70 @@ struct CaseInsensitiveSSEFetcher final {
         .first;
   }
 
+  static inline bool FailFastCompare8(const std::uint8_t* lhs,
+                                      const std::uint8_t* rhs) noexcept {
+    return FailFastCompare(Load8(lhs), Load8(rhs));
+  }
+
+  static inline bool FailFastCompare16(const std::uint8_t* lhs,
+                                       const std::uint8_t* rhs) noexcept {
+    return FailFastCompare(Load16(lhs), Load16(rhs));
+  }
+
  private:
+  static inline __m128i Load8(const std::uint8_t* data) noexcept {
+    // _mm_loadu_si64 is missing in gcc prior to version 9
+    // https://gcc.gnu.org/bugzilla/show_bug.cgi?id=78782
+#if defined(__GNUC__) && !defined(__llvm__) && (__GNUC__ < 9)
+    const auto value = CaseFetcher::Fetch8(data);
+    return _mm_loadl_epi64(reinterpret_cast<const __m128i*>(&value));
+#else
+    return _mm_loadu_si64(data);
+#endif
+  }
+
+  static inline __m128i Load16(const std::uint8_t* data) noexcept {
+    return _mm_loadu_si128(reinterpret_cast<const __m128i*>(data));
+  }
+
+  static inline bool FailFastCompare(__m128i lhs, __m128i rhs) noexcept {
+    const auto is_zero_vector = [](__m128i value) {
+      std::array<std::uint64_t, 2> tmp{};
+      std::memcpy(tmp.data(), &value, 16);
+
+      return (tmp[0] | tmp[1]) == 0;
+    };
+
+    // if lhs[i] ^ rhs[i] is neither 0 nor 32 it means that our values
+    // definitely don't compare equal, so we branch here to avoid further
+    // lower-casing.
+    // It's debatable whether we need this or not, because
+    // case-insensitive compare is mostly used in headers hashtable and chances
+    // are string are equal when their KeyEq is invoked, but let it be for now.
+    const auto diff = _mm_xor_si128(lhs, rhs);
+    const auto not_lower_upper_diff_mask =
+        // is any bit other than 32 set?
+        _mm_and_si128(diff, _mm_set1_epi8(~32));
+    if (!is_zero_vector(not_lower_upper_diff_mask)) {
+      return false;
+    }
+
+    const auto lowercase_diff =
+        _mm_xor_si128(DoLowercaseBytes(lhs), DoLowercaseBytes(rhs));
+
+    return is_zero_vector(lowercase_diff);
+  }
+
   static inline std::pair<std::uint64_t, std::uint64_t> LowercaseBytes(
       __m128i value) noexcept {
+    const auto lowercase = DoLowercaseBytes(value);
+
+    std::array<std::uint64_t, 2> result{};
+    std::memcpy(result.data(), &lowercase, 16);
+    return {result[0], result[1]};
+  }
+
+  static inline __m128i DoLowercaseBytes(__m128i value) noexcept {
     const auto kMaskA = _mm_set1_epi8('A');
     const auto kMaskZ = _mm_set1_epi8('Z');
     const auto kMask32 = _mm_set1_epi8(32);
@@ -123,11 +176,7 @@ struct CaseInsensitiveSSEFetcher final {
 
     // set 6-th bit to 1 for uppercase characters
     const auto lowercase_mask = _mm_andnot_si128(mask_az, kMask32);
-    const auto lowercase = _mm_or_si128(value, lowercase_mask);
-
-    std::array<std::uint64_t, 2> result{};
-    std::memcpy(result.data(), &lowercase, 16);
-    return {result[0], result[1]};
+    return _mm_or_si128(value, lowercase_mask);
   }
 };
 #endif
@@ -156,11 +205,21 @@ struct CaseInsensitiveFetcher final {
     return CaseFetcher::FetchN(lowercase.data(), n);
   }
 
+  static inline bool FailFastCompare8(const std::uint8_t* lhs,
+                                      const std::uint8_t* rhs) noexcept {
+    return Fetch8(lhs) == Fetch8(rhs);
+  }
+
+  static inline bool FailFastCompare16(const std::uint8_t* lhs,
+                                       const std::uint8_t* rhs) noexcept {
+    return Fetch16(lhs) == Fetch16(rhs);
+  }
+
  private:
   static inline void Lowercase(std::uint8_t* dst, const std::uint8_t* src,
                                std::size_t len) noexcept {
     for (std::size_t i = 0; i < len; ++i) {
-      const char c = src[i];
+      const std::uint8_t c = src[i];
       const char mask = (c >= 'A' && c <= 'Z') ? 32 : 0;
       dst[i] = c | mask;
     }
@@ -202,9 +261,31 @@ std::uint64_t SipHash13(std::uint64_t k0, std::uint64_t k1,
     v0 ^= m;
   };
 
+  const auto finalize = [&v2, &sip_round] {
+    v2 ^= 0xff;
+    sip_round();
+    sip_round();
+    sip_round();
+  };
+
+  // the switch in FetchN is hard to optimize further (and it gets even worse
+  // with lowercase fetcher), so we return early for short strings, and for
+  // strings > 8 we gather the leftover suffix as 8 bytes and shift it to the
+  // right. NOTE: this implies LE.
+  if (data.size() < 8) {
+    b |= Fetcher::FetchN(reinterpret_cast<const std::uint8_t*>(data.data()),
+                         data.size());
+    data_round(b);
+
+    finalize();
+    return v0 ^ v1 ^ v2 ^ v3;
+  }
+
+  const auto original_data = data;
+
   // This is just an unrolled version of while (data.size() >= 8).
-  // We use SSE2 to lower-case data, and lower-casing 8 bytes takes exactly the
-  // same amount of instructions as lower-casing 16 bytes, so why not.
+  // We use SSE2 to lower-case data, and lower-casing 8 bytes takes exactly
+  // the same amount of instructions as lower-casing 16 bytes, so why not.
   while (data.size() >= 16) {
     const auto [m1, m2] =
         Fetcher::Fetch16(reinterpret_cast<const std::uint8_t*>(data.data()));
@@ -222,16 +303,91 @@ std::uint64_t SipHash13(std::uint64_t k0, std::uint64_t k1,
     data = data.substr(8);
   }
 
-  b |= Fetcher::FetchN(reinterpret_cast<const std::uint8_t*>(data.data()),
-                       data.size());
+  if (!data.empty()) {
+    UASSERT(original_data.size() > 8);
+    const std::size_t overtake = 8UL - (original_data.size() & 7UL);
+    UASSERT(overtake != 0 && overtake != 8);
+    // take the 8 bytes suffix and shift it to the right. Implies LE.
+    b |= Fetcher::Fetch8(reinterpret_cast<const std::uint8_t*>(
+             original_data.data() + original_data.size() - 8)) >>
+         (overtake * 8);
+  }
   data_round(b);
 
-  v2 ^= 0xff;
-  sip_round();
-  sip_round();
-  sip_round();
-
+  finalize();
   return v0 ^ v1 ^ v2 ^ v3;
+}
+
+template <typename Fetcher, std::size_t SixteenOrEight>
+inline bool CompareAndAdvance(std::string_view& lhs,
+                              std::string_view& rhs) noexcept {
+  static_assert(SixteenOrEight == 8 || SixteenOrEight == 16);
+
+  UASSERT(lhs.size() == rhs.size() && lhs.size() >= SixteenOrEight);
+
+  const auto to_uint8_ptr = [](std::string_view data) {
+    return reinterpret_cast<const std::uint8_t*>(data.data());
+  };
+
+  const bool are_equal = [lhs, rhs, &to_uint8_ptr] {
+    if constexpr (SixteenOrEight == 16) {
+      return Fetcher::FailFastCompare16(to_uint8_ptr(lhs), to_uint8_ptr(rhs));
+    } else {
+      return Fetcher::FailFastCompare8(to_uint8_ptr(lhs), to_uint8_ptr(rhs));
+    }
+  }();
+
+  lhs = lhs.substr(SixteenOrEight);
+  rhs = rhs.substr(SixteenOrEight);
+
+  return are_equal;
+}
+
+inline bool CompareNaive(std::string_view lhs, std::string_view rhs) noexcept {
+  UASSERT(lhs.size() == rhs.size());
+  for (std::size_t i = 0; i < lhs.size(); ++i) {
+    unsigned char a = lhs[i];
+    unsigned char b = rhs[i];
+
+    if (a == b) continue;
+    if ('A' <= a && a <= 'Z') a |= 32;
+    if ('A' <= b && b <= 'Z') b |= 32;
+    if (a == b) continue;
+
+    return false;
+  }
+
+  return true;
+}
+
+template <typename Fetcher>
+inline bool NoCaseEqual(std::string_view lhs, std::string_view rhs) noexcept {
+  if (lhs.size() != rhs.size()) {
+    return false;
+  }
+
+  if (lhs.size() < 8) {
+    // we can't do SSE for short strings, so this is actually decently fast.
+    return CompareNaive(lhs, rhs);
+  }
+
+  auto lhs_suffix = lhs.substr(lhs.size() - 8, 8);
+  auto rhs_suffix = rhs.substr(rhs.size() - 8, 8);
+
+  while (lhs.size() >= 16) {
+    if (!CompareAndAdvance<Fetcher, 16>(lhs, rhs)) {
+      return false;
+    }
+  }
+
+  if (lhs.size() >= 8) {
+    if (!CompareAndAdvance<Fetcher, 8>(lhs, rhs)) {
+      return false;
+    }
+  }
+
+  // compare 8 bytes suffixes
+  return lhs.empty() || CompareAndAdvance<Fetcher, 8>(lhs_suffix, rhs_suffix);
 }
 
 }  // namespace
@@ -263,6 +419,21 @@ CaseInsensitiveSipHasherNoSse::CaseInsensitiveSipHasherNoSse(
 std::uint64_t CaseInsensitiveSipHasherNoSse::operator()(
     std::string_view data) const noexcept {
   return SipHash13<CaseInsensitiveFetcher>(k0_, k1_, data);
+}
+
+bool CaseInsensitiveEqual::operator()(std::string_view lhs,
+                                      std::string_view rhs) const noexcept {
+#ifdef __SSE2__
+  return NoCaseEqual<CaseInsensitiveSSEFetcher>(lhs, rhs);
+#else
+  return CaseInsensitiveEqualNoSse{}(lhs, rhs);
+#endif
+}
+
+bool CaseInsensitiveEqualNoSse::operator()(std::string_view lhs,
+                                           std::string_view rhs) const
+    noexcept {
+  return NoCaseEqual<CaseInsensitiveFetcher>(lhs, rhs);
 }
 
 }  // namespace utils::impl

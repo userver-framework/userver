@@ -37,16 +37,18 @@ void HashLowercaseString(benchmark::State& state) {
   const auto data = GenerateRandomLowercaseString(state.range(0));
 
   for (auto _ : state) {
-    benchmark::DoNotOptimize(hasher(data));
+    for (std::size_t i = 0; i < 20; ++i) {
+      benchmark::DoNotOptimize(hasher(data));
+    }
   }
 }
 
 BENCHMARK_TEMPLATE(HashLowercaseString, std::hash<std::string>)
     ->DenseRange(8, 64, 4);
 BENCHMARK_TEMPLATE(HashLowercaseString, utils::StrCaseHash)
-    ->DenseRange(8, 64, 4);
+    ->DenseRange(8, 64, 2);
 BENCHMARK_TEMPLATE(HashLowercaseString, utils::StrIcaseHash)
-    ->DenseRange(8, 64, 4);
+    ->DenseRange(8, 40, 1);
 
 template <typename Hasher>
 void HashRandomCaseString(benchmark::State& state) {
@@ -69,11 +71,57 @@ void HashRandomCaseString(benchmark::State& state) {
     const auto real_index = (offset + index) & 1023;
     ++index;
 
-    benchmark::DoNotOptimize(hasher(random_strings[real_index]));
+    for (std::size_t i = 0; i < 20; ++i) {
+      benchmark::DoNotOptimize(hasher(random_strings[real_index]));
+    }
   }
 }
 
 BENCHMARK_TEMPLATE(HashRandomCaseString, utils::StrIcaseHash)
-    ->DenseRange(8, 64, 4);
+    ->DenseRange(8, 65, 3);
+
+void CaseInsensitiveCompareEqualStrings(benchmark::State& state) {
+  const auto len = state.range(0);
+
+  const auto first = GenerateRandomString(len);
+  const auto second = std::string{first};
+  const auto cmp = utils::StrIcaseEqual{};
+
+  for (auto _ : state) {
+    for (std::size_t i = 0; i < 20; ++i) {
+      benchmark::DoNotOptimize(cmp(first, second));
+    }
+  }
+}
+
+template <std::size_t StrLen>
+void CaseInsensitiveCompareDifferentStrings(benchmark::State& state) {
+  const auto diff_at = state.range(0) - 1;
+  if (static_cast<std::size_t>(diff_at) >= StrLen) {
+    state.SkipWithError("diff_at is bigger than string length");
+    return;
+  }
+
+  auto first = GenerateRandomString(StrLen);
+  first[diff_at] = 'a';
+  std::string second{first};
+  second[diff_at] = 'b';
+
+  const auto cmp = utils::StrIcaseEqual{};
+
+  for (auto _ : state) {
+    for (std::size_t i = 0; i < 20; ++i) {
+      benchmark::DoNotOptimize(cmp(first, second));
+    }
+  }
+}
+
+BENCHMARK(CaseInsensitiveCompareEqualStrings)->DenseRange(1, 31, 3);
+BENCHMARK_TEMPLATE(CaseInsensitiveCompareDifferentStrings, 31)
+    ->DenseRange(1, 31, 3);
+BENCHMARK_TEMPLATE(CaseInsensitiveCompareDifferentStrings, 15)
+    ->DenseRange(1, 15, 2);
+BENCHMARK_TEMPLATE(CaseInsensitiveCompareDifferentStrings, 7)
+    ->DenseRange(1, 7, 1);
 
 USERVER_NAMESPACE_END

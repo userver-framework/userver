@@ -34,7 +34,8 @@ class CaseInsensitiveSipHasher final {
 
 // SipHash13 implementation with uppercase ASCII symbols ('A' - 'Z') being
 // treated as their lowercase counterpart.
-// Same as CaseInsensitiveSipHasher, but doesn't rely on SSE2.
+// Same as CaseInsensitiveSipHasher, but doesn't explicitly use SSE2
+// even if it's available.
 class CaseInsensitiveSipHasherNoSse final {
  public:
   CaseInsensitiveSipHasherNoSse(std::uint64_t k0, std::uint64_t k1) noexcept;
@@ -44,6 +45,16 @@ class CaseInsensitiveSipHasherNoSse final {
  private:
   const std::uint64_t k0_;
   const std::uint64_t k1_;
+};
+
+class CaseInsensitiveEqual final {
+ public:
+  bool operator()(std::string_view lhs, std::string_view rhs) const noexcept;
+};
+
+class CaseInsensitiveEqualNoSse final {
+ public:
+  bool operator()(std::string_view lhs, std::string_view rhs) const noexcept;
 };
 
 }  // namespace utils::impl

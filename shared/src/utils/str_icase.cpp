@@ -69,9 +69,7 @@ int StrIcaseCompareThreeWay::operator()(std::string_view lhs,
 
 bool StrIcaseEqual::operator()(std::string_view lhs, std::string_view rhs) const
     noexcept {
-  if (lhs.size() != rhs.size()) return false;
-  // TODO : optimize this
-  return StrIcaseCompareThreeWay{}(lhs, rhs) == 0;
+  return impl::CaseInsensitiveEqual{}(lhs, rhs);
 }
 
 bool StrIcaseLess::operator()(std::string_view lhs, std::string_view rhs) const
