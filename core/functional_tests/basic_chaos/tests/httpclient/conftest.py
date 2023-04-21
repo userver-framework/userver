@@ -28,7 +28,7 @@ async def _gate_started(loop, for_client_gate_port, mockserver_info):
 
 
 @pytest.fixture
-def client_deps(_gate_started):
+def extra_client_deps(_gate_started):
     pass
 
 

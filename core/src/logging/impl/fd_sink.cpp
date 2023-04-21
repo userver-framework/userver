@@ -34,12 +34,12 @@ void StdoutSink::flush() {}
 void StderrSink::flush() {}
 
 StdoutSink::~StdoutSink() {
-  // we do not close STDOUT descriptior
+  // we do not close STDOUT descriptor
   std::move(GetFd()).Release();
 }
 
 StderrSink::~StderrSink() {
-  // we do not close STDERR descriptior
+  // we do not close STDERR descriptor
   std::move(GetFd()).Release();
 }
 

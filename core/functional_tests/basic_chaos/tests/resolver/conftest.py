@@ -159,7 +159,7 @@ async def _gate_started(loop, for_dns_gate_port, dns_info, dns_mock):
 
 
 @pytest.fixture
-def client_deps(_gate_started):
+def extra_client_deps(_gate_started):
     pass
 
 

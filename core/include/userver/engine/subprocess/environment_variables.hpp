@@ -12,7 +12,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace engine::subprocess {
 
-/// Iterable evironment variables wrapper to update values.
+/// Iterable environment variables wrapper to update values.
 class EnvironmentVariablesUpdate {
  public:
   using Map = std::unordered_map<std::string, std::string>;
@@ -101,7 +101,7 @@ void UpdateCurrentEnvironmentVariables();
 /// Overwrite modes
 enum class Overwrite {
   kAllowed,    ///< Overwrites or creates the environment variable
-  kForbidden,  ///< Creates new enviroment variable, else throws
+  kForbidden,  ///< Creates new environment variable, else throws
                ///< std::runtime_error
   kIgnored     ///< Does not overwrite the environment variable if the variable
                ///< exists

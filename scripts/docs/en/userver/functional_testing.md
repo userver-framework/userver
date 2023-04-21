@@ -205,10 +205,18 @@ to provide extra environment variables for your service:
 
 #### Extra client dependencies
 
-Use @ref pytest_userver.plugins.service_client.client_deps "client_deps" fixture
-to provide extra fixtures that your service depends on:
+Use @ref pytest_userver.plugins.service_client.extra_client_deps "extra_client_deps"
+fixture to provide extra fixtures that your service depends on:
 
-@snippet samples/postgres_service/tests/conftest.py client_deps
+@code{.py}
+@pytest.fixture
+def extra_client_deps(some_fixture_that_required_by_service, some_other_fixture):
+    pass
+@endcode
+
+Note that @ref pytest_userver.plugins.service_client.auto_client_deps "auto_client_deps"
+fixture already knows about the userver supported databases and clients, so
+usually you do not need to manually register any dependencies.
 
 #### Mockserver
 
