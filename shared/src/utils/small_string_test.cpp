@@ -133,4 +133,15 @@ TEST(SmallString, Data) {
   EXPECT_EQ(std::string_view(s.data(), 4), str);
 }
 
+TEST(SmallString, Indexing) {
+  utils::SmallString<3> str("abcd");
+  str[2] = 'x';
+  EXPECT_EQ(str, "abxd");
+  char c = str[2];
+  EXPECT_EQ(c, 'x');
+
+  const auto& s = str;
+  EXPECT_EQ(std::string_view(s.data(), 4), str);
+}
+
 USERVER_NAMESPACE_END

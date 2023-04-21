@@ -156,6 +156,16 @@ bool operator!=(const SmallString<N>& str1, const SmallString<N>& str2) {
 }
 
 template <std::size_t N>
+const char& SmallString<N>::operator[](std::size_t pos) const {
+  return data_[pos];
+}
+
+template <std::size_t N>
+char& SmallString<N>::operator[](std::size_t pos) {
+  return data_[pos];
+}
+
+template <std::size_t N>
 const char& SmallString<N>::at(std::size_t pos) const {
   if (size() <= pos) throw std::out_of_range("at");
   return data_[pos];
