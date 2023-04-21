@@ -4,6 +4,10 @@
 
 USERVER_NAMESPACE_BEGIN
 
+namespace {
+constexpr size_t kArraySize = 1000;
+}
+
 std::string GenerateString(size_t size) {
   std::string_view chars{"0123456789"};
   std::string result;
@@ -32,45 +36,73 @@ BENCHMARK(SmallString_Small)->Range(2, 2 << 10);
 static void SmallString_Std_Copy(benchmark::State& state) {
   auto s = GenerateString(state.range(0));
   for ([[maybe_unused]] auto _ : state) {
-    std::string str{s};
-    std::string str2{str};
+    std::array<std::string, kArraySize> str;
+    for (auto& x : str) x = s;
+    state.ResumeTiming();
+
+    std::array<std::string, kArraySize> str2;
+    for (size_t i = 0; i < str.size(); i++) str2[i] = str[i];
     benchmark::DoNotOptimize(str);
     benchmark::DoNotOptimize(str2);
+    state.PauseTiming();
   }
 }
-BENCHMARK(SmallString_Std_Copy)->Range(2, 2 << 10);
+BENCHMARK(SmallString_Std_Copy)
+    ->Range(2, 2 << 10)
+    ->Unit(benchmark::kMicrosecond);
 
 static void SmallString_Small_Copy(benchmark::State& state) {
   auto s = GenerateString(state.range(0));
   for ([[maybe_unused]] auto _ : state) {
-    utils::SmallString<1000> str{s};
-    utils::SmallString<1000> str2{str};
+    std::array<utils::SmallString<1000>, kArraySize> str;
+    for (auto& x : str) x = s;
+    state.ResumeTiming();
+
+    std::array<utils::SmallString<1000>, kArraySize> str2;
+    for (size_t i = 0; i < str.size(); i++) str2[i] = str[i];
     benchmark::DoNotOptimize(str);
     benchmark::DoNotOptimize(str2);
+    state.PauseTiming();
   }
 }
-BENCHMARK(SmallString_Small_Copy)->Range(2, 2 << 10);
+BENCHMARK(SmallString_Small_Copy)
+    ->Range(2, 2 << 10)
+    ->Unit(benchmark::kMicrosecond);
 
 static void SmallString_Std_Move(benchmark::State& state) {
   auto s = GenerateString(state.range(0));
   for ([[maybe_unused]] auto _ : state) {
-    std::string str{s};
-    std::string str2{std::move(str)};
+    std::array<std::string, kArraySize> str;
+    for (auto& x : str) x = s;
+    state.ResumeTiming();
+
+    std::array<std::string, kArraySize> str2;
+    for (size_t i = 0; i < str.size(); i++) str2[i] = std::move(str[i]);
     benchmark::DoNotOptimize(str);
     benchmark::DoNotOptimize(str2);
+    state.PauseTiming();
   }
 }
-BENCHMARK(SmallString_Std_Move)->Range(2, 2 << 10);
+BENCHMARK(SmallString_Std_Move)
+    ->Range(2, 2 << 10)
+    ->Unit(benchmark::kMicrosecond);
 
 static void SmallString_Small_Move(benchmark::State& state) {
   auto s = GenerateString(state.range(0));
   for ([[maybe_unused]] auto _ : state) {
-    utils::SmallString<1000> str{s};
-    utils::SmallString<1000> str2{std::move(str)};
+    std::array<utils::SmallString<1000>, kArraySize> str;
+    for (auto& x : str) x = s;
+    state.ResumeTiming();
+
+    std::array<utils::SmallString<1000>, kArraySize> str2;
+    for (size_t i = 0; i < str.size(); i++) str2[i] = std::move(str[i]);
     benchmark::DoNotOptimize(str);
     benchmark::DoNotOptimize(str2);
+    state.PauseTiming();
   }
 }
-BENCHMARK(SmallString_Small_Move)->Range(2, 2 << 10);
+BENCHMARK(SmallString_Small_Move)
+    ->Range(2, 2 << 10)
+    ->Unit(benchmark::kMicrosecond);
 
 USERVER_NAMESPACE_END
