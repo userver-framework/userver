@@ -62,7 +62,7 @@ inline constexpr bool kHasWriterSupport = impl::HasDumpMetricWriter<Metric>();
 ///
 /// @snippet core/src/utils/statistics/writer_test.cpp  DumpMetric RegisterWriter
 ///
-/// The above metrics in Grphite format would look like:
+/// The above metrics in Graphite format would look like:
 /// @snippet core/src/utils/statistics/writer_test.cpp  metrics graphite
 ///
 /// The Writer is usable by the utils::statistics::MetricTag. For example, for

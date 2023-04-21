@@ -139,7 +139,7 @@ class Storage final {
   /// @endcond
 
   /// @brief Add a writer function. Note that `func` is called concurrently with
-  /// other code, so it should be tharead\coroutine safe.
+  /// other code, so it should be thread\coroutine safe.
   Entry RegisterWriter(std::string common_prefix, WriterFunc func,
                        std::vector<Label> add_labels = {});
 
