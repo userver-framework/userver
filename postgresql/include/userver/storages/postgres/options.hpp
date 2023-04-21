@@ -193,7 +193,7 @@ static constexpr size_t kDefaultMaxPreparedCacheSize = 5000;
 
 /// Pipeline mode configuration
 ///
-/// Dynamic option @ref POSTGRES_CONNECTION_PIPELINE_ENABLED
+/// Dynamic option @ref POSTGRES_CONNECTION_PIPELINE_MODE_ENABLED
 enum class PipelineMode { kDisabled, kEnabled };
 
 /// PostgreSQL connection options

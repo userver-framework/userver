@@ -397,8 +397,8 @@ properties:
 Used by components::Postgres.
 
 
-@anchor POSTGRES_CONNECTION_PIPELINE_ENABLED
-## POSTGRES_CONNECTION_PIPELINE_ENABLED
+@anchor POSTGRES_CONNECTION_PIPELINE_MODE_ENABLED
+## POSTGRES_CONNECTION_PIPELINE_MODE_ENABLED
 
 Dynamic config that enables pipeline mode for PostgreSQL connections.
 

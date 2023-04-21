@@ -77,6 +77,6 @@ async def _gate_ready(service_client, _gate_started):
 )
 async def pipeline_mode(request, service_client, dynamic_config):
     dynamic_config.set_values(
-        {'POSTGRES_CONNECTION_PIPELINE_ENABLED': request.param},
+        {'POSTGRES_CONNECTION_PIPELINE_MODE_ENABLED': request.param},
     )
     await service_client.update_server_state()

@@ -11,7 +11,7 @@
     "cancel-request": false,
     "update-timeout": false
   },
-  "POSTGRES_CONNECTION_PIPELINE_ENABLED": false,
+  "POSTGRES_CONNECTION_PIPELINE_MODE_ENABLED": false,
   "POSTGRES_CONNECTION_POOL_SETTINGS": {
     "key-value-database": {
       "max_pool_size": 15,
