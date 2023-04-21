@@ -34,6 +34,8 @@ ManagerConfig ParseFromAny(
   static const std::string kConfigVarsField = "config_vars";
   static const std::string kManagerConfigField = "components_manager";
   static const std::string kUserverExperimentsField = "userver_experiments";
+  static const std::string kUserverExperimentsForceEnabledField =
+      "userver_experiments_force_enabled";
 
   formats::yaml::Value config_yaml;
   try {
@@ -64,11 +66,13 @@ ManagerConfig ParseFromAny(
     config_vars = builder.ExtractValue();
   }
 
-  auto result = yaml_config::YamlConfig(config_yaml[kManagerConfigField],
-                                        std::move(config_vars))
-                    .As<ManagerConfig>();
-  result.enabled_experiments = config_yaml[kUserverExperimentsField]
-                                   .As<utils::impl::UserverExperimentSet>({});
+  auto config = yaml_config::YamlConfig(config_yaml, std::move(config_vars));
+  auto result = config[kManagerConfigField].As<ManagerConfig>();
+  result.enabled_experiments =
+      config[kUserverExperimentsField].As<utils::impl::UserverExperimentSet>(
+          {});
+  result.experiments_force_enabled =
+      config[kUserverExperimentsForceEnabledField].As<bool>(false);
 
   return result;
 }

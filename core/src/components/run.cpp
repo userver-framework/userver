@@ -179,7 +179,8 @@ void DoRun(const PathOrConfig& config,
   LOG_INFO() << "Parsed configs";
 
   utils::impl::UserverExperimentsScope experiments_scope;
-  experiments_scope.EnableOnly(parsed_config->enabled_experiments);
+  experiments_scope.EnableOnly(parsed_config->enabled_experiments,
+                               parsed_config->experiments_force_enabled);
 
   HandleJemallocSettings();
   PreheatStacktraceCollector();

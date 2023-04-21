@@ -17,6 +17,7 @@ namespace utils::impl {
 
 struct UserverExperimentSetter final {
   static void Set(UserverExperiment& experiment, bool value) noexcept {
+    if (value) LOG_INFO() << "Enabled experiment " << experiment.GetName();
     experiment.enabled_ = value;
   }
 };
@@ -49,7 +50,9 @@ auto GetEnabledUserverExperiments() {
 
 }  // namespace
 
-UserverExperiment::UserverExperiment(std::string name) noexcept {
+UserverExperiment::UserverExperiment(std::string name,
+                                     bool force_enabled) noexcept
+    : name_(name), force_enabled_(force_enabled) {
   RegisterExperiment(std::move(name), *this);
 }
 
@@ -74,7 +77,7 @@ void UserverExperimentsScope::Set(UserverExperiment& experiment,
 
 // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
 void UserverExperimentsScope::EnableOnly(
-    const UserverExperimentSet& enabled_experiments) {
+    const UserverExperimentSet& enabled_experiments, bool force_enable) {
   utils::impl::AssertStaticRegistrationFinished();
 
   const auto& exp_map = GetExperimentsInfo();
@@ -86,12 +89,9 @@ void UserverExperimentsScope::EnableOnly(
   }
 
   for (const auto& [name, experiment] : exp_map) {
-    UserverExperimentSetter::Set(*experiment,
-                                 enabled_experiments.count(name) != 0);
-  }
-
-  if (!enabled_experiments.empty()) {
-    LOG_WARNING() << "Enabled userver experiments: " << enabled_experiments;
+    UserverExperimentSetter::Set(
+        *experiment, enabled_experiments.count(name) != 0 ||
+                         (experiment->ForceEnabled() && force_enable));
   }
 }
 

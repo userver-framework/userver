@@ -25,6 +25,7 @@ struct ManagerConfig {
   std::string default_task_processor;
   ValidationMode validate_components_configs{};
   utils::impl::UserverExperimentSet enabled_experiments;
+  bool experiments_force_enabled{false};
 
   static ManagerConfig FromString(
       const std::string&, const std::optional<std::string>& config_vars_path,
