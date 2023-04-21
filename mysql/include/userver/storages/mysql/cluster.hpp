@@ -49,22 +49,26 @@ class Cluster final {
   /// @brief Executes a statement on a host of host_type with default deadline.
   /// Fills placeholders of the statement with args..., `Args` are expected to
   /// be of supported types.
-  /// See @ref userver_mysql_types for better understanding of `Args`
-  /// requirements.
+  /// See @ref md_en_userver_mysql_supported_types for better understanding of
+  /// `Args` requirements.
   ///
   /// UINVARIANTs on params count mismatch doesn't validate types.
   template <typename... Args>
   StatementResultSet Execute(ClusterHostType host_type, const Query& query,
                              const Args&... args) const;
 
+  // clang-format off
   /// @brief Executes a statement on a host of host_type with provided
   /// CommandControl.
   /// Fills placeholders of the statement with args..., `Args` are expected to
   /// be of supported types.
-  /// See @ref userver_mysql_types for better understanding of `Args`
+  /// See @ref md_en_userver_mysql_supported_types for better understanding of `Args`
   /// requirements.
   ///
   /// UINVARIANTs on params count mismatch doesn't validate types.
+  ///
+  /// @snippet storages/tests/unittests/cluster_mysqltest.cpp uMySQL usage sample - Cluster Execute
+  // clang-format on
   template <typename... Args>
   StatementResultSet Execute(OptionalCommandControl command_control,
                              ClusterHostType host_type, const Query& query,
@@ -75,22 +79,27 @@ class Cluster final {
   /// Basically an alias for Execute(host_type, query, AsArgs<T>(row)),
   /// where AsArgs is an imaginary function which passes fields of T as
   /// variadic params. Handy for one-liner inserts.
-  /// See @ref userver_mysql_types for better understanding of `T` requirements.
+  /// See @ref md_en_userver_mysql_supported_types for better understanding of
+  /// `T` requirements.
   ///
   /// UINVARIANTs on params count mismatch, doesn't validate types.
   template <typename T>
   StatementResultSet ExecuteDecompose(ClusterHostType host_type,
                                       const Query& query, const T& row) const;
 
+  // clang-format off
   /// @brief Executes a statement on a host of host_type with provided
   /// CommandControl.
   ///
   /// Basically an alias for Execute(command_control, host_type, query,
   /// AsArgs<T>(row)), where AsArgs is an imaginary function which passes
   /// fields of T as variadic params. Handy for one-liner inserts.
-  /// See @ref userver_mysql_types for better understanding of `T` requirements.
+  /// See @ref md_en_userver_mysql_supported_types for better understanding of `T` requirements.
   ///
   /// UINVARIANTs on params count mismatch, doesn't validate types.
+  ///
+  /// @snippet storages/tests/unittests/cluster_mysqltest.cpp uMySQL usage sample - Cluster ExecuteDecompose
+  // clang-format on
   template <typename T>
   StatementResultSet ExecuteDecompose(OptionalCommandControl command_control,
                                       ClusterHostType host_type,
@@ -101,7 +110,7 @@ class Cluster final {
   /// bulk-manner.
   /// Container is expected to be a std::Container, Container::value_type is
   /// expected to be an aggregate of supported types.
-  /// See @ref userver_mysql_types for better understanding of
+  /// See @ref md_en_userver_mysql_supported_types for better understanding of
   /// `Container::value_type` requirements.
   ///
   /// @note Requires MariaDB 10.2.6+ as a server
@@ -112,19 +121,22 @@ class Cluster final {
   StatementResultSet ExecuteBulk(ClusterHostType host_type, const Query& query,
                                  const Container& params) const;
 
+  // clang-format off
   /// @brief Executes a statement on a host of host_type with provided
   /// CommandControl.
   /// Fills placeholders of the statements with
   /// Container::value_type in a bulk-manner.
   /// Container is expected to be a std::Container, Container::value_type is
   /// expected to be an aggregate of supported types.
-  /// See @ref userver_mysql_types for better understanding of
+  /// See @ref md_en_userver_mysql_supported_types for better understanding of
   /// `Container::value_type` requirements.
   ///
   /// @note Requires MariaDB 10.2.6+ as a server
   ///
   /// UINVARIANTs on params count missmatch, doesn't validate types.
   /// UINVARIANTs on empty params container.
+  /// @snippet storages/tests/unittests/cluster_mysqltest.cpp uMySQL usage sample - Cluster ExecuteBulk
+  // clang-format on
   template <typename Container>
   StatementResultSet ExecuteBulk(OptionalCommandControl command_control,
                                  ClusterHostType host_type, const Query& query,
@@ -136,7 +148,7 @@ class Cluster final {
   /// on the flight remapping from `Container::value_type` to `MapTo`.
   /// `Container` is expected to be a std::Container of whatever type pleases
   /// you, `MapTo` is expected to be an aggregate of supported types.
-  /// See @ref userver_mysql_types for better understanding of `MapTo` requirements.
+  /// See @ref md_en_userver_mysql_supported_types for better understanding of `MapTo` requirements.
   /// You are expected to provide a converter function
   /// `MapTo Convert(const Container::value_type&, storages::mysql::convert::To<MapTo>)`
   /// in namespace of `MapTo` or storages::mysql::convert.
@@ -158,7 +170,7 @@ class Cluster final {
   /// to `MapTo`.
   /// `Container` is expected to be a std::Container of whatever type pleases
   /// you, `MapTo` is expected to be an aggregate of supported types.
-  /// See @ref userver_mysql_types for better understanding of `MapTo` requirements.
+  /// See @ref md_en_userver_mysql_supported_types for better understanding of `MapTo` requirements.
   /// You are expected to provide a converter function
   /// `MapTo Convert(const Container::value_type&, storages::mysql::convert::To<MapTo>)`
   /// in namespace of `MapTo` or storages::mysql::convert.
@@ -167,6 +179,8 @@ class Cluster final {
   ///
   /// UINVARIANTs on params count mismatch, doesn't validate types.
   /// UINVARIANTs on empty params container.
+  ///
+  /// @snippet storages/tests/unittests/cluster_mysqltest.cpp uMySQL usage sample - Cluster ExecuteBulkMapped
   // clang-format on
   template <typename MapTo, typename Container>
   StatementResultSet ExecuteBulkMapped(OptionalCommandControl command_control,
@@ -198,12 +212,16 @@ class Cluster final {
   CommandResultSet ExecuteCommand(ClusterHostType host_type,
                                   const Query& command) const;
 
+  // clang-format off
   /// @brief Executes a command on host of type host_type over plan-text
   /// protocol, with provided CommandControl.
   ///
   /// This method is intended to be used for statements that cannot be prepared
   /// or as an escape hatch from typed parsing if you really need to, but such
   /// use is neither recommended nor optimized for.
+  ///
+  /// @snippet storages/tests/unittests/cluster_mysqltest.cpp uMySQL usage sample - Cluster ExecuteCommand
+  // clang-format on
   CommandResultSet ExecuteCommand(OptionalCommandControl command_control,
                                   ClusterHostType host_type,
                                   const Query& command) const;
@@ -211,8 +229,8 @@ class Cluster final {
   /// @brief Executes a statement with default deadline on a host of host_type,
   /// filling statements placeholders with `args...`, and returns a read-only
   /// cursor which fetches `batch_count` rows in each next fetch request.
-  /// See @ref userver_mysql_types for better understanding of `Args`
-  /// requirements.
+  /// See @ref md_en_userver_mysql_supported_types for better understanding of
+  /// `Args` requirements.
   ///
   /// @note Deadline is processing-wide, not just for initial cursor creation.
   ///
@@ -221,16 +239,21 @@ class Cluster final {
   CursorResultSet<T> GetCursor(ClusterHostType host_type,
                                std::size_t batch_size, const Query& query,
                                const Args&... args) const;
+
+  // clang-format off
   /// @brief Executes a statement with provided CommandControl on
   /// a host of host_type, filling statements placeholders with `args...`, and
   /// returns a read-only cursor which fetches `batch_count` rows in each next
   /// fetch request.
-  /// See @ref userver_mysql_types for better understanding of `Args`
+  /// See @ref md_en_userver_mysql_supported_types for better understanding of `Args`
   /// requirements.
   ///
   /// @note Deadline is processing-wide, not just for initial cursor creation.
   ///
   /// UINVARIANTs on params count mismatch, doesn't validate types.
+  ///
+  /// @snippet storages/tests/unittests/cluster_mysqltest.cpp uMySQL usage sample - Cluster GetCursor
+  // clang-format on
   template <typename T, typename... Args>
   CursorResultSet<T> GetCursor(OptionalCommandControl command_control,
                                ClusterHostType host_type,

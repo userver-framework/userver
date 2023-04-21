@@ -11,9 +11,9 @@ USERVER_NAMESPACE_BEGIN
 namespace storages::mysql::impl::io {
 
 template <typename Container>
-class IdentityStorage final {
+class InPlaceStorage final {
  public:
-  explicit IdentityStorage(ResultBinder& binder);
+  explicit InPlaceStorage(ResultBinder& binder);
 
   void Reserve(std::size_t size);
 
@@ -32,9 +32,9 @@ class IdentityStorage final {
 };
 
 template <typename Container, typename MapFrom>
-class MappedStorage final {
+class ProxyingStorage final {
  public:
-  explicit MappedStorage(ResultBinder& binder);
+  explicit ProxyingStorage(ResultBinder& binder);
 
   void Reserve(std::size_t size);
 
@@ -48,6 +48,9 @@ class MappedStorage final {
   Container&& ExtractData();
 
  private:
+  static constexpr bool kIsMapped =
+      !std::is_same_v<typename Container::value_type, MapFrom>;
+
   MapFrom row_;
   Container data_;
   ResultBinder& binder_;
@@ -114,8 +117,8 @@ class TypedExtractor final : public ExtractorBase {
   // Otherwise, we can emplace_back and bind that new instance.
   using InternalStorageType =
       std::conditional_t<!kIsMapped && kCanBindInPlace,
-                         IdentityStorage<Container>,
-                         MappedStorage<Container, MapFrom>>;
+                         InPlaceStorage<Container>,
+                         ProxyingStorage<Container, MapFrom>>;
   InternalStorageType storage_;
 };
 
@@ -158,11 +161,11 @@ Container&& TypedExtractor<Container, MapFrom, ExtractionTag>::ExtractData() {
 }
 
 template <typename Container>
-IdentityStorage<Container>::IdentityStorage(ResultBinder& binder)
+InPlaceStorage<Container>::InPlaceStorage(ResultBinder& binder)
     : binder_{binder} {}
 
 template <typename Container>
-void IdentityStorage<Container>::Reserve(std::size_t size) {
+void InPlaceStorage<Container>::Reserve(std::size_t size) {
   // +1 because we over-commit one row and then rollback it in default execution
   // path
   data_.reserve(size + 1);
@@ -170,32 +173,32 @@ void IdentityStorage<Container>::Reserve(std::size_t size) {
 
 template <typename Container>
 template <typename ExtractionTag>
-impl::bindings::OutputBindings& IdentityStorage<Container>::BindNextRow() {
+impl::bindings::OutputBindings& InPlaceStorage<Container>::BindNextRow() {
   data_.emplace_back();
   return binder_.BindTo(data_.back(), ExtractionTag{});
 }
 
 template <typename Container>
-void IdentityStorage<Container>::CommitLastRow() {
+void InPlaceStorage<Container>::CommitLastRow() {
   // no-op, already committed
 }
 
 template <typename Container>
-void IdentityStorage<Container>::RollbackLastRow() {
+void InPlaceStorage<Container>::RollbackLastRow() {
   data_.pop_back();
 }
 
 template <typename Container>
-Container&& IdentityStorage<Container>::ExtractData() {
+Container&& InPlaceStorage<Container>::ExtractData() {
   return std::move(data_);
 }
 
 template <typename Container, typename MapFrom>
-MappedStorage<Container, MapFrom>::MappedStorage(ResultBinder& binder)
+ProxyingStorage<Container, MapFrom>::ProxyingStorage(ResultBinder& binder)
     : binder_{binder} {}
 
 template <typename Container, typename MapFrom>
-void MappedStorage<Container, MapFrom>::Reserve(std::size_t size) {
+void ProxyingStorage<Container, MapFrom>::Reserve(std::size_t size) {
   if constexpr (meta::kIsReservable<Container>) {
     data_.reserve(size);
   }
@@ -204,24 +207,28 @@ void MappedStorage<Container, MapFrom>::Reserve(std::size_t size) {
 template <typename Container, typename MapFrom>
 template <typename ExtractionTag>
 impl::bindings::OutputBindings&
-MappedStorage<Container, MapFrom>::BindNextRow() {
+ProxyingStorage<Container, MapFrom>::BindNextRow() {
   return binder_.BindTo(row_, ExtractionTag{});
 }
 
 template <typename Container, typename MapFrom>
-void MappedStorage<Container, MapFrom>::CommitLastRow() {
-  *meta::Inserter(data_) =
-      storages::mysql::convert::DoConvert<typename Container::value_type>(
-          std::move(row_));
+void ProxyingStorage<Container, MapFrom>::CommitLastRow() {
+  if constexpr (kIsMapped) {
+    *meta::Inserter(data_) =
+        storages::mysql::convert::DoConvert<typename Container::value_type>(
+            std::move(row_));
+  } else {
+    *meta::Inserter(data_) = std::move(row_);
+  }
 }
 
 template <typename Container, typename MapFrom>
-void MappedStorage<Container, MapFrom>::RollbackLastRow() {
+void ProxyingStorage<Container, MapFrom>::RollbackLastRow() {
   // no-op, because either this function or commit is called, not both
 }
 
 template <typename Container, typename MapFrom>
-Container&& MappedStorage<Container, MapFrom>::ExtractData() {
+Container&& ProxyingStorage<Container, MapFrom>::ExtractData() {
   return std::move(data_);
 }
 

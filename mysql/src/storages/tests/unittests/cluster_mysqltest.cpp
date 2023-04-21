@@ -222,6 +222,239 @@ UTEST(Cluster, MappedBatchInsert) {
   EXPECT_EQ(db_rows[1].username, "John Doe");
 }
 
+namespace {
+/// [uMySQL usage sample - Cluster ExecuteCommand]
+void PrepareExampleTable(const Cluster& cluster) {
+  constexpr std::chrono::milliseconds kTimeout{1750};
+  cluster.ExecuteCommand(ClusterHostType::kPrimary,
+                         "DROP TABLE IF EXISTS SampleTable");
+  cluster.ExecuteCommand(CommandControl{kTimeout}, ClusterHostType::kPrimary,
+                         "CREATE TABLE SampleTable("
+                         "Id INT PRIMARY KEY AUTO_INCREMENT,"
+                         "title TEXT NOT NULL,"
+                         "amount INT NOT NULL,"
+                         "created TIMESTAMP NOT NULL)");
+}
+/// [uMySQL usage sample - Cluster ExecuteCommand]
+}  // namespace
+
+namespace execute_sample {
+
+/// [uMySQL usage sample - Cluster Execute]
+void PerformExecute(const Cluster& cluster, std::chrono::milliseconds timeout,
+                    const std::string& title, int amount) {
+  const auto insertion_result =
+      cluster
+          .Execute(CommandControl{timeout}, ClusterHostType::kPrimary,
+                   "INSERT INTO SampleTable(title, amount, created) "
+                   "VALUES(?, ?, ?)",
+                   title, amount, std::chrono::system_clock::now())
+          .AsExecutionResult();
+
+  EXPECT_EQ(insertion_result.rows_affected, 1);
+  EXPECT_EQ(insertion_result.last_insert_id, 1);
+}
+/// [uMySQL usage sample - Cluster Execute]
+
+UTEST(Cluster, Execute) {
+  const ClusterWrapper cluster{};
+
+  PrepareExampleTable(*cluster);
+
+  PerformExecute(*cluster, std::chrono::milliseconds{1750}, "title", 1);
+}
+
+}  // namespace execute_sample
+
+namespace execute_decompose_sample {
+
+/// [uMySQL usage sample - Cluster ExecuteDecompose]
+struct SampleRow final {
+  std::string title;
+  int amount;
+  std::chrono::system_clock::time_point created;
+};
+
+void PerformExecuteDecompose(const Cluster& cluster,
+                             std::chrono::milliseconds timeout,
+                             const SampleRow& row) {
+  const auto insertion_result =
+      cluster
+          .ExecuteDecompose(CommandControl{timeout}, ClusterHostType::kPrimary,
+                            "INSERT INTO SampleTable(title, amount, created) "
+                            "VALUES(?, ?, ?)",
+                            row)
+          .AsExecutionResult();
+
+  EXPECT_EQ(insertion_result.rows_affected, 1);
+  EXPECT_EQ(insertion_result.last_insert_id, 1);
+}
+/// [uMySQL usage sample - Cluster ExecuteDecompose]
+
+UTEST(Cluster, ExecuteDecompose) {
+  const ClusterWrapper cluster{};
+
+  PrepareExampleTable(*cluster);
+
+  PerformExecuteDecompose(
+      *cluster, std::chrono::milliseconds{1750},
+      SampleRow{"title", 2, std::chrono::system_clock::now()});
+}
+
+}  // namespace execute_decompose_sample
+
+namespace execute_bulk_sample {
+
+/// [uMySQL usage sample - Cluster ExecuteBulk]
+struct SampleRow final {
+  std::string title;
+  int amount;
+  std::chrono::system_clock::time_point created;
+};
+
+void PerformExecuteBulk(const Cluster& cluster,
+                        std::chrono::milliseconds timeout,
+                        const std::vector<SampleRow>& rows) {
+  const auto bulk_insertion_result =
+      cluster
+          .ExecuteBulk(CommandControl{timeout}, ClusterHostType::kPrimary,
+                       "INSERT INTO SampleTable(title, amount, created) "
+                       "VALUES(?, ?, ?)",
+                       rows)
+          .AsExecutionResult();
+
+  // When performing a multi insert prepared statement, mysql_stmt_insert_id()
+  // will return the value of the first row.
+  EXPECT_EQ(bulk_insertion_result.last_insert_id, 1);
+  EXPECT_EQ(bulk_insertion_result.rows_affected, rows.size());
+}
+/// [uMySQL usage sample - Cluster ExecuteBulk]
+
+UTEST(Cluster, ExecuteBulk) {
+  const ClusterWrapper cluster{};
+
+  PrepareExampleTable(*cluster);
+
+  constexpr std::size_t kRowsCount = 7;
+  std::vector<SampleRow> rows;
+  rows.reserve(kRowsCount);
+  for (std::size_t i = 0; i < kRowsCount; ++i) {
+    rows.push_back(
+        SampleRow{std::to_string(i), 1, std::chrono::system_clock::now()});
+  }
+
+  PerformExecuteBulk(*cluster, std::chrono::milliseconds{1750}, rows);
+}
+
+}  // namespace execute_bulk_sample
+
+namespace execute_bulk_mapped_sample {
+
+/// [uMySQL usage sample - Cluster ExecuteBulkMapped]
+struct SampleUserStruct final {
+  std::string name;
+  std::string description;
+  int amount;
+};
+
+struct SampleRow final {
+  std::string title;
+  int amount;
+  std::chrono::system_clock::time_point created;
+};
+
+SampleRow Convert(const SampleUserStruct& data, convert::To<SampleRow>) {
+  return {
+      fmt::format("{} {}", data.name, data.description),  // title
+      data.amount,                                        // amount
+      std::chrono::system_clock::now()                    // created
+  };
+}
+
+void PerformExecuteBulkMapped(const Cluster& cluster,
+                              std::chrono::milliseconds timeout,
+                              const std::vector<SampleUserStruct>& data) {
+  const auto bulk_insertion_result =
+      cluster
+          .ExecuteBulkMapped<SampleRow>(
+              CommandControl{timeout}, ClusterHostType::kPrimary,
+              "INSERT INTO SampleTable(title, amount, created) "
+              "VALUES(?, ?, ?)",
+              data)
+          .AsExecutionResult();
+
+  // When performing a multi insert prepared statement, mysql_stmt_insert_id()
+  // will return the value of the first row.
+  EXPECT_EQ(bulk_insertion_result.last_insert_id, 1);
+  EXPECT_EQ(bulk_insertion_result.rows_affected, data.size());
+}
+/// [uMySQL usage sample - Cluster ExecuteBulkMapped]
+
+UTEST(Cluster, ExecuteBulkMapped) {
+  const ClusterWrapper cluster{};
+
+  PrepareExampleTable(*cluster);
+
+  constexpr std::size_t kRowsCount = 7;
+  std::vector<SampleUserStruct> data;
+  data.reserve(kRowsCount);
+  for (std::size_t i = 0; i < kRowsCount; ++i) {
+    data.push_back({"name", std::to_string(i), 2});
+  }
+
+  PerformExecuteBulkMapped(*cluster, std::chrono::milliseconds{1750}, data);
+}
+
+}  // namespace execute_bulk_mapped_sample
+
+namespace get_cursor_sample {
+
+/// [uMySQL usage sample - Cluster GetCursor]
+struct SampleRow final {
+  std::string title;
+  int amount;
+  std::chrono::system_clock::time_point created;
+};
+
+void PerformGetCursor(const Cluster& cluster,
+                      std::chrono::milliseconds timeout) {
+  const std::size_t batch_size = 5;
+  const auto deadline = engine::Deadline::FromDuration(timeout);
+
+  std::int64_t total = 0;
+  cluster
+      .GetCursor<SampleRow>(CommandControl{timeout},
+                            ClusterHostType::kSecondary, batch_size,
+                            "SELECT title, amount, created FROM SampleTable")
+      .ForEach([&total](SampleRow&& row) { total += row.amount; }, deadline);
+
+  // There are 9 rows in the table with amount from 1 to 9
+  EXPECT_EQ(total, 45);
+}
+/// [uMySQL usage sample - Cluster GetCursor]
+
+UTEST(Cluster, GetCursor) {
+  const ClusterWrapper cluster{};
+
+  PrepareExampleTable(*cluster);
+
+  {
+    constexpr std::size_t kRowsCount = 9;
+    std::vector<execute_bulk_sample::SampleRow> rows{};
+    rows.reserve(kRowsCount);
+    for (std::size_t i = 1; i <= kRowsCount; ++i) {
+      rows.push_back({std::to_string(i), static_cast<int>(i),
+                      std::chrono::system_clock::now()});
+    }
+    execute_bulk_sample::PerformExecuteBulk(
+        *cluster, std::chrono::milliseconds{1750}, rows);
+  }
+
+  PerformGetCursor(*cluster, std::chrono::milliseconds{1750});
+}
+
+}  // namespace get_cursor_sample
+
 }  // namespace storages::mysql::tests
 
 USERVER_NAMESPACE_END

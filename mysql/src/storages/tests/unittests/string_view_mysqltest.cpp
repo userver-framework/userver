@@ -45,6 +45,16 @@ UTEST(StringView, WorksWithBatchInsert) {
   EXPECT_EQ(rows_to_insert[1].value, db_rows[1].value);
 }
 
+UTEST(StringView, FromConstCharNullptr) {
+  TmpTable table{"VALUE TEXT"};
+
+  const auto do_execute = [&table](const char* data) {
+    table.DefaultExecute("INSERT INTO {} VALUES(?)", data);
+  };
+
+  do_execute(nullptr);
+}
+
 }  // namespace storages::mysql::tests
 
 USERVER_NAMESPACE_END
