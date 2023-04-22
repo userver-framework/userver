@@ -36,7 +36,7 @@ struct HandlerConfig {
   UrlTrailingSlashOption url_trailing_slash{UrlTrailingSlashOption::kDefault};
   std::optional<size_t> max_requests_in_flight;
   std::optional<size_t> max_requests_per_second;
-  bool decompress_request{false};
+  bool decompress_request{true};
   bool throttling_enabled{true};
   bool response_body_stream{false};
   std::optional<bool> set_response_server_hostname;

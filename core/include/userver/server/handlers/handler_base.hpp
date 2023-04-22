@@ -36,7 +36,7 @@ namespace server::handlers {
 /// request_body_size_log_limit | trim request to this size before logging | 512
 /// response_data_size_log_limit | trim responses to this size before logging | 512
 /// max_requests_per_second | integer to limit RPS to this handler | <no limit>
-/// decompress_request | allow decompression of the requests | false
+/// decompress_request | allow decompression of the requests | true
 /// throttling_enabled | allow throttling of the requests by components::Server , for more info see its `max_response_size_in_flight` and `requests_queue_size_threshold` options | true
 /// set-response-server-hostname | set to true to add the `X-YaTaxi-Server-Hostname` header with instance name, set to false to not add the header | <takes the value from components::Server config>
 /// monitor-handler | Overrides the in-code `is_monitor` flag that makes the handler run either on `server.listener` or on `server.listener-monitor` | --
