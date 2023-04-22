@@ -46,7 +46,8 @@ function(userver_venv_setup)
     message(FATAL_ERROR
       "No virtualenv binary found, try to install:\n"
       "Debian: sudo apt install virtualenv\n"
-      "MacOS: brew install virtualenv")
+      "MacOS: brew install virtualenv\n"
+      "ArchLinux: sudo pacman -S python-virtualenv")
   endif()
 
   set(VENV_DIR ${CMAKE_CURRENT_BINARY_DIR}/${VENV_NAME})
