@@ -21,8 +21,8 @@ endif()
 include(SetupGoogleProtoApis)
 
 file(GLOB_RECURSE SOURCES
-  ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/*.hpp)
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/*pp
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/*pp)
 
 if (USERVER_IS_THE_ROOT_PROJECT)
     add_grpc_library(${PROJECT_NAME}_unittest_proto
@@ -34,6 +34,7 @@ if (USERVER_IS_THE_ROOT_PROJECT)
         tests/same_service_and_method_name.proto
       INCLUDE_DIRECTORIES ${CMAKE_CURRENT_SOURCE_DIR}/proto
     )
+    add_subdirectory(functional_tests)
 endif()
 
 file(GLOB_RECURSE UNIT_TEST_SOURCES
