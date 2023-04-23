@@ -15,6 +15,7 @@
 #include <userver/concurrent/queue.hpp>
 #include <userver/crypto/certificate.hpp>
 #include <userver/crypto/private_key.hpp>
+#include <userver/utils/impl/source_location.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -239,7 +240,9 @@ class Request final : public std::enable_shared_from_this<Request> {
   /// Request object could be reused after retrieval of data from
   /// ResponseFuture, all the setup holds:
   /// @snippet src/clients/http/client_test.cpp  HTTP Client - reuse async
-  [[nodiscard]] ResponseFuture async_perform();
+  [[nodiscard]] ResponseFuture async_perform(
+      utils::impl::SourceLocation location =
+          utils::impl::SourceLocation::Current());
 
   /// @brief Perform a request with streamed response body.
   ///
@@ -247,7 +250,9 @@ class Request final : public std::enable_shared_from_this<Request> {
   /// StreamedResponse uses queue consumer.
   /// @see src/clients/http/partial_pesponse.hpp
   [[nodiscard]] StreamedResponse async_perform_stream_body(
-      const std::shared_ptr<concurrent::SpscQueue<std::string>>& queue);
+      const std::shared_ptr<concurrent::SpscQueue<std::string>>& queue,
+      utils::impl::SourceLocation location =
+          utils::impl::SourceLocation::Current());
 
   /// Calls async_perform and wait for timeout_ms on a future. Default time
   /// for waiting will be timeout value if it was set. If error occurred it
@@ -256,7 +261,9 @@ class Request final : public std::enable_shared_from_this<Request> {
   /// Request object could be reused after return from perform(), all the
   /// setup holds:
   /// @snippet src/clients/http/client_test.cpp  HTTP Client - request reuse
-  [[nodiscard]] std::shared_ptr<Response> perform();
+  [[nodiscard]] std::shared_ptr<Response> perform(
+      utils::impl::SourceLocation location =
+          utils::impl::SourceLocation::Current());
 
   /// Returns a reference to the original URL of a request
   const std::string& GetUrl() const;

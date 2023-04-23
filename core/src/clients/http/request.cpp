@@ -218,23 +218,27 @@ Request::Request(std::shared_ptr<impl::EasyWrapper>&& wrapper,
   }
 }
 
-ResponseFuture Request::async_perform() {
-  return {pimpl_->async_perform(),
+ResponseFuture Request::async_perform(utils::impl::SourceLocation location) {
+  return {pimpl_->async_perform(location),
           std::chrono::milliseconds(
               complete_timeout(pimpl_->timeout(), pimpl_->retries())),
           pimpl_};
 }
 
 StreamedResponse Request::async_perform_stream_body(
-    const std::shared_ptr<concurrent::SpscQueue<std::string>>& queue) {
+    const std::shared_ptr<concurrent::SpscQueue<std::string>>& queue,
+    utils::impl::SourceLocation location) {
   LOG_DEBUG() << "Starting an async HTTP request with streamed response body";
-  pimpl_->async_perform_stream(queue);
+  pimpl_->async_perform_stream(queue, location);
   auto deadline = engine::Deadline::FromDuration(
       std::chrono::milliseconds(pimpl_->effective_timeout()));
   return StreamedResponse(queue->GetConsumer(), deadline, pimpl_);
 }
 
-std::shared_ptr<Response> Request::perform() { return async_perform().Get(); }
+std::shared_ptr<Response> Request::perform(
+    utils::impl::SourceLocation location) {
+  return async_perform(location).Get();
+}
 
 std::shared_ptr<Request> Request::url(const std::string& url) {
   if (!IsAllowedSchemaInUrl(url)) {

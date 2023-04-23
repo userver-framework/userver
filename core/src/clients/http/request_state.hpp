@@ -57,8 +57,13 @@ class RequestState : public std::enable_shared_from_this<RequestState> {
   };
 
   /// Perform async http request
-  engine::Future<std::shared_ptr<Response>> async_perform();
-  void async_perform_stream(const std::shared_ptr<Queue>& queue);
+  engine::Future<std::shared_ptr<Response>> async_perform(
+      utils::impl::SourceLocation location =
+          utils::impl::SourceLocation::Current());
+
+  void async_perform_stream(const std::shared_ptr<Queue>& queue,
+                            utils::impl::SourceLocation location =
+                                utils::impl::SourceLocation::Current());
 
   /// set redirect flags
   void follow_redirects(bool follow);
@@ -160,7 +165,7 @@ class RequestState : public std::enable_shared_from_this<RequestState> {
 
   engine::Future<std::shared_ptr<Response>> StartNewPromise();
   void ApplyTestsuiteConfig();
-  void StartNewSpan();
+  void StartNewSpan(utils::impl::SourceLocation location);
   void StartStats();
 
   template <typename Func>

@@ -530,10 +530,11 @@ void RequestState::parse_header(char* ptr, size_t size) try {
 
 void RequestState::SetLoggedUrl(std::string url) { log_url_ = std::move(url); }
 
-engine::Future<std::shared_ptr<Response>> RequestState::async_perform() {
+engine::Future<std::shared_ptr<Response>> RequestState::async_perform(
+    utils::impl::SourceLocation location) {
   data_ = FullBufferedData{};
 
-  StartNewSpan();
+  StartNewSpan(location);
   SetBaggageHeader(easy());
 
   auto& span = span_storage_->Get();
@@ -557,10 +558,11 @@ engine::Future<std::shared_ptr<Response>> RequestState::async_perform() {
   return future;
 }
 
-void RequestState::async_perform_stream(const std::shared_ptr<Queue>& queue) {
+void RequestState::async_perform_stream(const std::shared_ptr<Queue>& queue,
+                                        utils::impl::SourceLocation location) {
   data_.emplace<StreamData>(queue->GetProducer());
 
-  StartNewSpan();
+  StartNewSpan(location);
   SetBaggageHeader(easy());
 
   auto& span = span_storage_->Get();
@@ -813,12 +815,12 @@ void RequestState::ApplyTestsuiteConfig() {
   easy().add_header(kTestsuiteSupportedErrorsKey, kTestsuiteSupportedErrors);
 }
 
-void RequestState::StartNewSpan() {
+void RequestState::StartNewSpan(utils::impl::SourceLocation location) {
   UINVARIANT(
       !span_storage_,
       "Attempt to reuse request while the previous one has not finished");
 
-  span_storage_.emplace(std::string{kTracingClientName});
+  span_storage_.emplace(std::string{kTracingClientName}, location);
   auto& span = span_storage_->Get();
 
   auto request_editable_instance = GetEditableTracingInstance();
