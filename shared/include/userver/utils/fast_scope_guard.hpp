@@ -19,7 +19,7 @@ namespace utils {
 /// use ScopeGuard.
 ///
 /// Usage example:
-/// @sample shared/src/utils/fast_scope_guard_test.cpp  FastScopeGuard example
+/// @snippet shared/src/utils/fast_scope_guard_test.cpp  FastScopeGuard example
 ///
 /// @see ScopeGuard for type-erasure and throwing functor support
 template <typename Callback>

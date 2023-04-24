@@ -18,7 +18,7 @@ async def _gate(loop, tcp_service_port):
 
 
 async def test_chaos_concat_packets(service_client, loop, gate):
-    gate.to_client_concat_packets(4)
+    gate.to_client_concat_packets(10)
 
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.connect(gate.get_sockname_for_clients())
