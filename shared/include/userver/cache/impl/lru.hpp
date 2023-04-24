@@ -120,7 +120,7 @@ class LruBase final {
 
   U* Get(const T& key);
 
-  const T* GetLeastUsedKey();
+  const T* GetLeastUsedKey() const;
 
   U* GetLeastUsedValue();
 
@@ -235,7 +235,7 @@ U* LruBase<T, U, Hash, Eq>::Get(const T& key) {
 }
 
 template <typename T, typename U, typename Hash, typename Eq>
-const T* LruBase<T, U, Hash, Eq>::GetLeastUsedKey() {
+const T* LruBase<T, U, Hash, Eq>::GetLeastUsedKey() const {
   if (list_.empty()) return nullptr;
   return &list_.front().GetKey();
 }
@@ -341,9 +341,9 @@ U& LruBase<T, U, Hash, Eq>::InsertNode(
 template <typename T, typename U, typename Hash, typename Eq>
 typename LruBase<T, U, Hash, Eq>::NodeType LruBase<T, U, Hash, Eq>::ExtractNode(
     const T& key) noexcept {
-  auto it = map_.find(key);
+  auto it = map_.find(key, map_.hash_function(), map_.key_eq());
   if (it == map_.end()) {
-    return std::unique_ptr<typename LruBase<T, U, Hash, Eq>::NodeType>();
+    return NodeType();
   }
 
   return ExtractNode(list_.iterator_to(*it));
