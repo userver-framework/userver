@@ -17,6 +17,7 @@ groups:
       - core/functional_tests/metrics/dynamic_config_fallback.json
       - conan/test_package/hello_service/dynamic_config_fallback.json
       - core/functional_tests/cache_update/dynamic_config_fallback.json
+      - core/testing/dynamic_config_fallback.json
 
   - library-yamls:
       - core/library.yaml
@@ -40,6 +41,7 @@ groups:
       - samples/mongo-support/dynamic_config_fallback.json
       - mongo/functional_tests/basic_chaos/dynamic_config_fallback.json
       - mongo/functional_tests/metrics/dynamic_config_fallback.json
+      - monge/tests/dynamic_config_fallback.json
 
   - library-yamls:
       - core/library.yaml
@@ -49,6 +51,7 @@ groups:
       - samples/postgres_service/dynamic_config_fallback.json
       - samples/postgres-support/dynamic_config_fallback.json
       - postgresql/functional_tests/metrics/dynamic_config_fallback.json
+      - postgresql/tests/dynamic_config_fallback.json
     overrides:
         POSTGRES_CONNECTION_POOL_SETTINGS:
             key-value-database:

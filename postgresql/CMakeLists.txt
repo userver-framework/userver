@@ -82,6 +82,10 @@ if (USERVER_IS_THE_ROOT_PROJECT)
   )
   add_google_tests(${PROJECT_NAME}_unittest)
 
+  target_compile_definitions(${PROJECT_NAME}_unittest PRIVATE
+      DEFAULT_DYNAMIC_CONFIG_FILENAME="${CMAKE_SOURCE_DIR}/postgresql/tests/dynamic_config_fallback.json"
+  )
+
   add_executable(${PROJECT_NAME}_benchmark ${BENCH_SOURCES})
   target_link_libraries(${PROJECT_NAME}_benchmark PRIVATE
       userver-ubench

@@ -64,6 +64,9 @@ if (USERVER_IS_THE_ROOT_PROJECT)
   )
   target_link_libraries(${PROJECT_NAME}_unittest userver-utest ${PROJECT_NAME})
 
+  target_compile_definitions(${PROJECT_NAME}_unittest PRIVATE
+      DEFAULT_DYNAMIC_CONFIG_FILENAME="${CMAKE_SOURCE_DIR}/mongo/tests/dynamic_config_fallback.json"
+  )
   target_compile_definitions(${PROJECT_NAME}_unittest
       PUBLIC
         -DUSERVER_FEATURE_NO_PATCHED_BSON=1

@@ -300,6 +300,10 @@ if (USERVER_IS_THE_ROOT_PROJECT)
       userver-core-internal
     )
 
+    target_compile_definitions(${PROJECT_NAME}_unittest PRIVATE
+      DEFAULT_DYNAMIC_CONFIG_FILENAME="${CMAKE_SOURCE_DIR}/core/tests/dynamic_config_fallback.json"
+    )
+
     # We keep testing deprecated functions, no need to warn about that
     target_compile_options(${PROJECT_NAME}_unittest PRIVATE "-Wno-deprecated-declarations")
     add_google_tests(${PROJECT_NAME}_unittest)

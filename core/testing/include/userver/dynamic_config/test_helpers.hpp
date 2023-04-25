@@ -2,6 +2,10 @@
 
 #include <userver/dynamic_config/impl/test_helpers.hpp>
 
+#ifdef ARCADIA_ROOT
+#include "default_config_path.hpp"
+#endif
+
 USERVER_NAMESPACE_BEGIN
 
 namespace dynamic_config {
