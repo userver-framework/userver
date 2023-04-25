@@ -36,9 +36,8 @@ UTEST(LazyValues, SingleCoroutine) {
 
 UTEST(LazyValues, MutableLambda) {
   int count = 0;
-  concurrent::LazyValue<int> value([&count, x = 1]() mutable {
+  concurrent::LazyValue<int> value([&count]() mutable {
     count++;
-    x++;
     return 1;
   });
 
