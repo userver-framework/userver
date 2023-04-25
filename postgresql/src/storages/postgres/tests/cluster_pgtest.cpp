@@ -60,7 +60,9 @@ pg::Cluster CreateCluster(
                       {0, max_size, max_size},
                       conn_settings,
                       storages::postgres::InitMode::kAsync,
-                      ""},
+                      "",
+                      {},
+                      {}},
                      {kTestCmdCtl, {}, {}}, {}, {}, testsuite_tasks, source);
 }
 

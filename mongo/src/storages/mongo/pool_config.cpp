@@ -92,7 +92,10 @@ PoolConfig::PoolConfig(const components::ComponentConfig& component_config)
       driver_impl(
           component_config["driver"].As<DriverImpl>(DriverImpl::kMongoCDriver)),
       stats_verbosity(component_config["stats_verbosity"].As<StatsVerbosity>(
-          StatsVerbosity::kTerse)) {
+          StatsVerbosity::kTerse)),
+      cc_config(
+          component_config["congestion_control"]
+              .As<congestion_control::v2::LinearController::StaticConfig>()) {
   auto user_idle_limit =
       component_config["idle_limit"].As<std::optional<size_t>>();
   idle_limit = user_idle_limit ? *user_idle_limit

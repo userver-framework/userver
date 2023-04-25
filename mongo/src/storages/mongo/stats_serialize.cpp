@@ -153,6 +153,7 @@ void DumpMetric(utils::statistics::Writer& writer,
 void DumpMetric(utils::statistics::Writer& writer,
                 const PoolStatistics& pool_stats, StatsVerbosity verbosity) {
   writer["pool"] = *pool_stats.pool;
+  writer["congestion-control"] = pool_stats.congestion_control;
 
   CombinedCollectionStats pool_overall;
   for (const auto& [coll_name, coll_stats] : pool_stats.collections) {

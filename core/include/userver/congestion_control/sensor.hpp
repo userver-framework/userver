@@ -2,6 +2,7 @@
 
 #include <chrono>
 #include <cstdint>
+#include <string>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -35,16 +36,13 @@ class Sensor {
     std::size_t total{0};
     std::size_t timeouts{0};
 
-    std::size_t current_limit{0};
+    std::size_t current_load{0};
 
     double GetRate() const {
       return static_cast<double>(timeouts) / (total ? total : 1);
     }
 
-    void operator+=(const Data& other) {
-      total += other.total;
-      timeouts += other.timeouts;
-    }
+    std::string ToLogString();
   };
 
   virtual ~Sensor() = default;

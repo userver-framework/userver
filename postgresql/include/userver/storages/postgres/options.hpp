@@ -9,6 +9,7 @@
 #include <string>
 #include <unordered_map>
 
+#include <userver/congestion_control/controllers/linear.hpp>
 #include <userver/storages/postgres/postgres_fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -303,6 +304,9 @@ struct ClusterSettings {
 
   /// connection limit change mode
   ConnlimitMode connlimit_mode = ConnlimitMode::kManual;
+
+  /// congestion control settings
+  congestion_control::v2::LinearController::StaticConfig cc_config;
 };
 
 }  // namespace storages::postgres

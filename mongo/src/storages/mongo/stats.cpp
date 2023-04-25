@@ -49,7 +49,10 @@ auto GetMilliseconds(const std::chrono::duration<Rep, Period>& duration) {
 
 void OperationStatisticsItem::Account(ErrorType error_type) noexcept {
   ++counters[static_cast<std::size_t>(error_type)].GetCurrentCounter();
+  if (error_type == ErrorType::kNetwork) ++network_errors;
 }
+
+void OperationStatisticsItem::EnterQuery() { ++total_queries; }
 
 void OperationStatisticsItem::Reset() {
   for (auto& counter : counters) {

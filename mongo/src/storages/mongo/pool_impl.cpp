@@ -1,14 +1,27 @@
 #include <storages/mongo/pool_impl.hpp>
 
+#include <userver/utils/impl/userver_experiments.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::mongo::impl {
+
+USERVER_NAMESPACE::utils::impl::UserverExperiment kCcExperiment(
+    "mongo-congestion-control");
 
 PoolImpl::PoolImpl(std::string&& id, const PoolConfig& static_config,
                    dynamic_config::Source config_source)
     : id_(std::move(id)),
       stats_verbosity_(static_config.stats_verbosity),
-      config_source_(config_source) {}
+      config_source_(config_source),
+      cc_sensor_(*this),
+      cc_limiter_(*this),
+      cc_controller_("mongo" + id_, cc_sensor_, cc_limiter_,
+                     statistics_.congestion_control, static_config.cc_config) {
+  if (kCcExperiment.IsEnabled()) {
+    cc_controller_.Start();
+  }
+}
 
 const std::string& PoolImpl::Id() const { return id_; }
 

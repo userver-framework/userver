@@ -9,6 +9,7 @@
 #include <string>
 
 #include <userver/components/component_fwd.hpp>
+#include <userver/congestion_control/controllers/linear.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -82,6 +83,9 @@ struct PoolConfig final {
 
   /// Whether to write detailed stats
   StatsVerbosity stats_verbosity;
+
+  /// Congestion control config
+  congestion_control::v2::LinearController::StaticConfig cc_config;
 };
 
 }  // namespace storages::mongo

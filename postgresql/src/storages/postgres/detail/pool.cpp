@@ -68,7 +68,8 @@ ConnectionPool::ConnectionPool(
     const StatementMetricsSettings& statement_metrics_settings,
     const DefaultCommandControls& default_cmd_ctls,
     const testsuite::PostgresControl& testsuite_pg_ctl,
-    error_injection::Settings ei_settings)
+    error_injection::Settings ei_settings,
+    const congestion_control::v2::LinearController::StaticConfig& cc_config)
     : dsn_{std::move(dsn)},
       resolver_{resolver},
       db_name_{db_name},
@@ -89,7 +90,8 @@ ConnectionPool::ConnectionPool(
       sts_{statement_metrics_settings},
       cc_sensor_(*this),
       cc_limiter_(*this),
-      cc_controller_(cc_sensor_, cc_limiter_) {
+      cc_controller_("postgres" + db_name, cc_sensor_, cc_limiter_,
+                     stats_.congestion_control, cc_config) {
   if (kCcExperiment.IsEnabled()) {
     cc_controller_.Start();
   }
@@ -109,13 +111,14 @@ std::shared_ptr<ConnectionPool> ConnectionPool::Create(
     const StatementMetricsSettings& statement_metrics_settings,
     const DefaultCommandControls& default_cmd_ctls,
     const testsuite::PostgresControl& testsuite_pg_ctl,
-    error_injection::Settings ei_settings) {
+    error_injection::Settings ei_settings,
+    const congestion_control::v2::LinearController::StaticConfig& cc_config) {
   // FP?: pointer magic in boost.lockfree
   // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks)
   auto impl = std::make_shared<ConnectionPool>(
       EmplaceEnabler{}, std::move(dsn), resolver, bg_task_processor, db_name,
       pool_settings, conn_settings, statement_metrics_settings,
-      default_cmd_ctls, testsuite_pg_ctl, std::move(ei_settings));
+      default_cmd_ctls, testsuite_pg_ctl, std::move(ei_settings), cc_config);
   // Init() uses shared_from_this for connections and cannot be called from ctor
   impl->Init(init_mode);
   return impl;

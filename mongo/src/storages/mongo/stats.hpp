@@ -6,6 +6,7 @@
 #include <functional>
 #include <string>
 
+#include <userver/congestion_control/controllers/v2.hpp>
 #include <userver/rcu/rcu_map.hpp>
 #include <userver/storages/mongo/mongo_error.hpp>
 #include <userver/tracing/scope_time.hpp>
@@ -52,10 +53,14 @@ inline constexpr auto kErrorTypesCount =
 struct OperationStatisticsItem final {
   void Account(ErrorType) noexcept;
 
+  void EnterQuery();
+
   void Reset();
 
   // TODO don't use RecentPeriod for monotonic counters
   std::array<AggregatedCounter, kErrorTypesCount> counters;
+  std::atomic<size_t> total_queries{0};
+  std::atomic<size_t> network_errors{0};
   AggregatedTimingsPercentile timings;
 };
 
@@ -116,6 +121,7 @@ struct PoolStatistics {
 
   utils::SharedRef<PoolConnectStatistics> pool;
   rcu::RcuMap<std::string, CollectionStatistics> collections;
+  congestion_control::v2::Stats congestion_control;
 };
 
 class OperationStopwatch {

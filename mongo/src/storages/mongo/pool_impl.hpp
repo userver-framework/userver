@@ -5,7 +5,11 @@
 
 #include <userver/dynamic_config/source.hpp>
 
+#include <storages/mongo/congestion_control/limiter.hpp>
+#include <storages/mongo/congestion_control/sensor.hpp>
 #include <storages/mongo/stats.hpp>
+
+#include <userver/congestion_control/controllers/linear.hpp>
 #include <userver/storages/mongo/pool_config.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -27,6 +31,7 @@ class PoolImpl {
   virtual size_t InUseApprox() const = 0;
   virtual size_t SizeApprox() const = 0;
   virtual size_t MaxSize() const = 0;
+  virtual void SetMaxSize(size_t max_size) = 0;
 
  protected:
   PoolImpl(std::string&& id, const PoolConfig& static_config,
@@ -37,6 +42,11 @@ class PoolImpl {
   const StatsVerbosity stats_verbosity_;
   const dynamic_config::Source config_source_;
   stats::PoolStatistics statistics_;
+
+  // congestion control stuff
+  cc::Sensor cc_sensor_;
+  cc::Limiter cc_limiter_;
+  congestion_control::v2::LinearController cc_controller_;
 };
 
 using PoolImplPtr = std::shared_ptr<PoolImpl>;

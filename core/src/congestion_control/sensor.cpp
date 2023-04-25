@@ -1,5 +1,7 @@
 #include <userver/congestion_control/sensor.hpp>
 
+#include <fmt/format.h>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace congestion_control {
@@ -12,6 +14,14 @@ double Sensor::Data::GetLoadPercent() const {
     return 0;
 }
 
+namespace v2 {
+
+std::string Sensor::Data::ToLogString() {
+  return fmt::format("total={} events={} current_load={}", total, timeouts,
+                     current_load);
+}
+
+}  // namespace v2
 }  // namespace congestion_control
 
 USERVER_NAMESPACE_END

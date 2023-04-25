@@ -558,6 +558,8 @@ RequestContext CDriverCollectionImpl::MakeRequestContext(
     throw CancelledException("Operation cancelled (deadline propagation)");
   }
 
+  stats->EnterQuery();
+
   auto client = GetClient(*stats);
   cdriver::CollectionPtr collection(mongoc_client_get_collection(
       client.get(), GetDatabaseName().c_str(), GetCollectionName().c_str()));

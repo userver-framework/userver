@@ -47,6 +47,7 @@ class CDriverPoolImpl final : public PoolImpl {
   size_t InUseApprox() const override;
   size_t SizeApprox() const override;
   size_t MaxSize() const override;
+  void SetMaxSize(size_t max_size) override;
 
   /// @throws CancelledException, PoolOverloadException
   BoundClientPtr Acquire();
@@ -66,7 +67,7 @@ class CDriverPoolImpl final : public PoolImpl {
   UriPtr uri_;
   AsyncStreamInitiatorData init_data_;
 
-  const size_t max_size_;
+  std::atomic<size_t> max_size_;
   const size_t idle_limit_;
   const std::chrono::milliseconds queue_timeout_;
   std::atomic<size_t> size_;

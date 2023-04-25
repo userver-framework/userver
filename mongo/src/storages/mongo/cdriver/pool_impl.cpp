@@ -216,12 +216,20 @@ CDriverPoolImpl::~CDriverPoolImpl() {
 }
 
 size_t CDriverPoolImpl::InUseApprox() const {
-  return max_size_ - in_use_semaphore_.RemainingApprox();
+  auto max_size = max_size_.load();
+  auto remaining = in_use_semaphore_.RemainingApprox();
+  if (max_size < remaining) {
+    // Possible during max_size_ change
+    max_size = remaining;
+  }
+  return max_size - remaining;
 }
 
 size_t CDriverPoolImpl::SizeApprox() const { return size_.load(); }
 
-size_t CDriverPoolImpl::MaxSize() const { return max_size_; }
+size_t CDriverPoolImpl::MaxSize() const { return max_size_.load(); }
+
+void CDriverPoolImpl::SetMaxSize(size_t max_size) { max_size_ = max_size; }
 
 const std::string& CDriverPoolImpl::DefaultDatabaseName() const {
   return default_database_;
@@ -247,7 +255,7 @@ mongoc_client_t* CDriverPoolImpl::Pop() {
   if (!in_use_lock) {
     ++GetStatistics().pool->overload;
     throw PoolOverloadException("Mongo pool '")
-        << Id() << "' has reached size limit: " << max_size_ << ". "
+        << Id() << "' has reached size limit: " << max_size_.load() << ". "
         << MakeQueueDeadlineMessage(inherited_timeout);
   }
 

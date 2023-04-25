@@ -13,9 +13,11 @@ Sensor::Data Sensor::GetCurrent() {
   auto new_timeouts =
       stats.transaction.execute_timeout + stats.connection.error_timeout;
   auto diff_timeouts = new_timeouts - last_timeouted_queries;
+  last_timeouted_queries = new_timeouts;
 
   auto new_total = stats.transaction.total;
   auto diff_total = new_total - last_total_queries;
+  last_total_queries = new_total;
   if (diff_total == 0) diff_total = 1;
 
   auto timeout_rate = static_cast<double>(diff_timeouts) / diff_total;

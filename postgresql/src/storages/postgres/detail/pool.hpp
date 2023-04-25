@@ -41,14 +41,15 @@ class ConnectionPool : public std::enable_shared_from_this<ConnectionPool> {
   class EmplaceEnabler;
 
  public:
-  ConnectionPool(EmplaceEnabler, Dsn dsn, clients::dns::Resolver* resolver,
-                 engine::TaskProcessor& bg_task_processor,
-                 const std::string& db_name, const PoolSettings& settings,
-                 const ConnectionSettings& conn_settings,
-                 const StatementMetricsSettings& statement_metrics_settings,
-                 const DefaultCommandControls& default_cmd_ctls,
-                 const testsuite::PostgresControl& testsuite_pg_ctl,
-                 error_injection::Settings ei_settings);
+  ConnectionPool(
+      EmplaceEnabler, Dsn dsn, clients::dns::Resolver* resolver,
+      engine::TaskProcessor& bg_task_processor, const std::string& db_name,
+      const PoolSettings& settings, const ConnectionSettings& conn_settings,
+      const StatementMetricsSettings& statement_metrics_settings,
+      const DefaultCommandControls& default_cmd_ctls,
+      const testsuite::PostgresControl& testsuite_pg_ctl,
+      error_injection::Settings ei_settings,
+      const congestion_control::v2::LinearController::StaticConfig& cc_config);
 
   ~ConnectionPool();
 
@@ -60,7 +61,8 @@ class ConnectionPool : public std::enable_shared_from_this<ConnectionPool> {
       const StatementMetricsSettings& statement_metrics_settings,
       const DefaultCommandControls& default_cmd_ctls,
       const testsuite::PostgresControl& testsuite_pg_ctl,
-      error_injection::Settings ei_settings);
+      error_injection::Settings ei_settings,
+      const congestion_control::v2::LinearController::StaticConfig& cc_config);
 
   [[nodiscard]] ConnectionPtr Acquire(engine::Deadline);
   void Release(Connection* connection);
