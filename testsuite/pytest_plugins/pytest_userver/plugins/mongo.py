@@ -47,5 +47,6 @@ def userver_mongo_config(mongo_connection_info):
                 params['dbconnection'] = uri
                 params['conn_timeout'] = '30s'
                 params['so_timeout'] = '30s'
+                params.pop('dbalias', None)
 
     return _patch_config

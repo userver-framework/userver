@@ -64,5 +64,6 @@ def userver_pg_config(pgsql_local):
 
         for config in postgre_dbs.values():
             config['dbconnection'] = uri
+            config.pop('dbalias', None)
 
     return _patch_config
