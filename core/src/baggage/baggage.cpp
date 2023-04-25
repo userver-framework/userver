@@ -178,7 +178,13 @@ void Baggage::AddEntry(std::string key, std::string value,
     throw BaggageException(
         fmt::format("Exceeded the limit of entries: {}", kEntitiesLimit));
   }
-  std::string entry = ',' + encoded_key + '=' + encoded_value;
+
+  std::string entry;
+  if (!entries_.empty()) {
+    entry += ',';
+  }
+  entry += encoded_key + '=' + encoded_value;
+
   for (auto&& property : properties) {
     auto encoded_property_key = http::UrlEncode(property.first);
     entry += ';' + encoded_property_key;

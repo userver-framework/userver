@@ -13,7 +13,8 @@ namespace {
 class BaggageManagerTest : public ::testing::Test {
  protected:
   dynamic_config::StorageMock storage_{
-      {baggage::kBaggageSettings, {{"key1", "key2", "key3", "key4", "key5"}}}};
+      {baggage::kBaggageSettings, {{"key1", "key2", "key3", "key4", "key5"}}},
+      {baggage::kBaggageEnabled, true}};
   dynamic_config::Source source_ = storage_.GetSource();
   baggage::BaggageManager baggage_manager_ = baggage::BaggageManager(source_);
 };
@@ -72,7 +73,7 @@ UTEST_F(BaggageManagerTest, AddEntry) {
       {{"property8", {}}, {"PropertyKey9", {"PropertyValue9"}}});
 
   const auto& last_baggage = baggage::BaggageManager::TryGetBaggage();
-  EXPECT_NE(baggage, nullptr);
+  EXPECT_NE(last_baggage, nullptr);
   ASSERT_EQ(last_baggage->ToString(),
             "key1=value1,key2=value2;property1;PropertyKey2"
             "=PropertyValue2;property3,key3=value3;property4;PropertyKey5=Prope"

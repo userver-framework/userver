@@ -56,6 +56,9 @@ bool BaggageManager::IsEnabled() const {
 
 void BaggageManager::AddEntry(std::string key, std::string value,
                               BaggageProperties properties) const {
+  if (!IsEnabled()) {
+    return;
+  }
   const auto* current_baggage = TryGetBaggage();
 
   auto baggage = current_baggage
@@ -72,6 +75,9 @@ const Baggage* BaggageManager::TryGetBaggage() {
 }
 
 void BaggageManager::SetBaggage(std::string header) const {
+  if (!IsEnabled()) {
+    return;
+  }
   const auto* current_baggage = TryGetBaggage();
   auto current_allowed_keys =
       ChooseCurrentAllowedKeys(current_baggage, config_source_);
