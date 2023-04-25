@@ -2,6 +2,8 @@
 
 #include <thread>
 
+#include <userver/engine/sleep.hpp>
+
 #include "server_common_sentinel_test.hpp"
 
 USERVER_NAMESPACE_BEGIN
@@ -9,7 +11,8 @@ USERVER_NAMESPACE_BEGIN
 namespace {
 
 // 100ms should be enough, but valgrind is too slow
-const auto kSentinelChangeHostsWaitingTime = std::chrono::milliseconds(500);
+constexpr auto kSentinelChangeHostsWaitingTime = std::chrono::milliseconds(500);
+constexpr auto kSentinelChangeHostsMaxAttempts = 10;
 
 auto MakeGetRequest(redis::Sentinel& sentinel, const std::string& key,
                     redis::CommandControl cc = {}) {
@@ -17,13 +20,17 @@ auto MakeGetRequest(redis::Sentinel& sentinel, const std::string& key,
                               sentinel.GetCommandControl(cc));
 }
 
-template <typename Predicate>
-void PeriodicCheck(int check_count, std::chrono::milliseconds wait_period,
-                   Predicate predicate) {
-  for (int i = 0; i < check_count; i++) {
-    EXPECT_TRUE(predicate());
-    std::this_thread::sleep_for(wait_period);
+bool CheckMasterChanged(redis::Sentinel& sentinel, const size_t expected_idx,
+                        int magic_value) {
+  for (auto i = 0; i < kSentinelChangeHostsMaxAttempts; ++i) {
+    auto res = MakeGetRequest(sentinel, "value").Get();
+    LOG_DEBUG() << "got reply with type=" << res->data.GetTypeString()
+                << " data=" << res->data.ToDebugString();
+    if (static_cast<size_t>(res->data.GetInt() - magic_value) == expected_idx)
+      return true;
+    engine::SleepFor(kSentinelChangeHostsWaitingTime);
   }
+  return false;
 }
 
 }  // namespace
@@ -69,13 +76,7 @@ UTEST(Redis, SentinelMastersChanging) {
                       .WaitForFirstPingReply(kSentinelChangeHostsWaitingTime));
     }
 
-    auto res = MakeGetRequest(sentinel, "value").Get();
-    LOG_DEBUG() << "got reply with type=" << res->data.GetTypeString()
-                << " data=" << res->data.ToDebugString();
-    ASSERT_TRUE(res->data.IsInt());
-    EXPECT_EQ(master_idx,
-              static_cast<size_t>(res->data.GetInt() - magic_value_add))
-        << " i=" << i;
+    ASSERT_TRUE(CheckMasterChanged(sentinel, master_idx, magic_value_add));
   }
 }
 
@@ -119,10 +120,9 @@ UTEST(Redis, SentinelMastersChangingErrors) {
         EXPECT_TRUE(handler->WaitForFirstReply(kSmallPeriod));
       }
       if (master_idx == bad_redis_idx) {
-        PeriodicCheck(1, kSentinelChangeHostsWaitingTime, [&] {
-          return !sentinel_test.Master(master_idx)
-                      .WaitForFirstPingReply(kSentinelChangeHostsWaitingTime);
-        });
+        EXPECT_FALSE(
+            sentinel_test.Master(master_idx)
+                .WaitForFirstPingReply(kSentinelChangeHostsWaitingTime));
       } else {
         EXPECT_TRUE(
             sentinel_test.Master(master_idx)
@@ -131,13 +131,8 @@ UTEST(Redis, SentinelMastersChangingErrors) {
       }
     }
 
-    auto res = MakeGetRequest(sentinel, "value").Get();
-    LOG_DEBUG() << "got reply with type=" << res->data.GetTypeString()
-                << " data=" << res->data.ToDebugString();
-    ASSERT_TRUE(res->data.IsInt());
-    EXPECT_EQ(expected_redis_idx_reply_from,
-              static_cast<size_t>(res->data.GetInt() - magic_value_add))
-        << " i=" << i;
+    ASSERT_TRUE(CheckMasterChanged(sentinel, expected_redis_idx_reply_from,
+                                   magic_value_add));
   }
 }
 
