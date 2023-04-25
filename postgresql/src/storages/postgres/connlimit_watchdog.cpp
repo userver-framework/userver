@@ -51,8 +51,15 @@ void ConnlimitWatchdog::Step() {
   static auto kHostname = hostinfo::blocking::GetRealHostName();
   try {
     auto trx = cluster_.Begin({ClusterHostType::kMaster}, {}, kCommandControl);
-    auto max_connections = USERVER_NAMESPACE::utils::FromString<size_t>(
+
+    auto max_connections1 = USERVER_NAMESPACE::utils::FromString<ssize_t>(
         trx.Execute("SHOW max_connections;").AsSingleRow<std::string>());
+    auto max_connections2 =
+        trx.Execute(
+               "SELECT rolconnlimit FROM pg_roles WHERE rolname = current_user")
+            .AsSingleRow<ssize_t>();
+    if (max_connections2 < 0) max_connections2 = max_connections1;
+    size_t max_connections = std::min(max_connections1, max_connections2);
 
     if (max_connections > kReservedConn)
       max_connections -= kReservedConn;
