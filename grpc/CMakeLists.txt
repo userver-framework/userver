@@ -107,4 +107,9 @@ if (USERVER_IS_THE_ROOT_PROJECT)
         ${PROJECT_NAME}_unittest_proto
     )
     add_google_tests(${PROJECT_NAME}_unittest)
+
+    target_compile_definitions(${PROJECT_NAME}_unittest PRIVATE
+      DEFAULT_DYNAMIC_CONFIG_FILENAME="${CMAKE_SOURCE_DIR}/grpc/tests/dynamic_config_fallback.json"
+    )
+
 endif()

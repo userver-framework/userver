@@ -17,7 +17,7 @@ groups:
       - core/functional_tests/metrics/dynamic_config_fallback.json
       - conan/test_package/hello_service/dynamic_config_fallback.json
       - core/functional_tests/cache_update/dynamic_config_fallback.json
-      - core/testing/dynamic_config_fallback.json
+      - core/tests/dynamic_config_fallback.json
 
   - library-yamls:
       - core/library.yaml
@@ -101,6 +101,7 @@ groups:
       - grpc/library.yaml
     fallbacks:
       - samples/grpc_service/dynamic_config_fallback.json
+      - grpc/tests/dynamic_config_fallback.json
 
   - library-yamls:
       - core/library.yaml
@@ -120,3 +121,11 @@ groups:
             __default__:
                 enable-monitoring: true
                 forbid-requests-to-syncing-replicas: true
+
+  - library-yamls:
+      - core/library.yaml
+      - clickhouse/library.yaml
+    fallbacks:
+      - clickhouse/functional_tests/basic_chaos/dynamic_config_fallback.json
+      - clickhouse/functional_tests/metrics/dynamic_config_fallback.json
+      - clickhouse/tests/dynamic_config_fallback.json
