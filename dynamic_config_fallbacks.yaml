@@ -41,7 +41,7 @@ groups:
       - samples/mongo-support/dynamic_config_fallback.json
       - mongo/functional_tests/basic_chaos/dynamic_config_fallback.json
       - mongo/functional_tests/metrics/dynamic_config_fallback.json
-      - monge/tests/dynamic_config_fallback.json
+      - mongo/tests/dynamic_config_fallback.json
 
   - library-yamls:
       - core/library.yaml
@@ -111,6 +111,7 @@ groups:
       - redis/functional_tests/integration_tests/dynamic_config_fallback.json
       - redis/functional_tests/basic_chaos/dynamic_config_fallback.json
       - redis/functional_tests/metrics/dynamic_config_fallback.json
+      - redis/tests/dynamic_config_fallback.json
     overrides:
         REDIS_METRICS_SETTINGS:
             command-timings-enabled: true
@@ -121,6 +122,7 @@ groups:
             __default__:
                 enable-monitoring: true
                 forbid-requests-to-syncing-replicas: true
+        REDIS_DEADLINE_PROPAGATION_ENABLED: true
 
   - library-yamls:
       - core/library.yaml

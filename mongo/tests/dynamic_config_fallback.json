@@ -4,13 +4,7 @@
   },
   "HTTP_CLIENT_CONNECTION_POOL_SIZE": 1000,
   "HTTP_CLIENT_CONNECT_THROTTLE": {
-    "http-limit": 6000,
-    "http-per-second": 1500,
-    "https-limit": 100,
-    "https-per-second": 25,
     "max-size": 100,
-    "per-host-limit": 3000,
-    "per-host-per-second": 500,
     "token-update-interval-ms": 0
   },
   "HTTP_CLIENT_ENFORCE_TASK_DEADLINE": {
@@ -19,7 +13,6 @@
   },
   "MONGO_DEADLINE_PROPAGATION_ENABLED": false,
   "MONGO_DEFAULT_MAX_TIME_MS": 0,
-  "SAMPLE_INTEGER_FROM_RUNTIME_CONFIG": 42,
   "USERVER_BAGGAGE_ENABLED": false,
   "USERVER_CACHES": {},
   "USERVER_CANCEL_HANDLE_REQUEST_BY_DEADLINE": false,

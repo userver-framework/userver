@@ -8,12 +8,14 @@
 
 #include <userver/clients/dns/component.hpp>
 #include <userver/components/minimal_server_component_list.hpp>
+#include <userver/engine/sleep.hpp>
 #include <userver/server/handlers/http_handler_base.hpp>
 #include <userver/storages/redis/client.hpp>
 #include <userver/storages/redis/component.hpp>
 #include <userver/storages/secdist/component.hpp>
 #include <userver/storages/secdist/provider_component.hpp>
 #include <userver/utils/daemon_run.hpp>
+#include <userver/utils/from_string.hpp>
 
 namespace chaos {
 
@@ -56,6 +58,13 @@ std::string KeyValue::HandleRequestThrow(
         server::handlers::ExternalBody{"No 'key' query argument"});
   }
 
+  auto sleep_ms = request.GetArg("sleep_ms");
+  if (!sleep_ms.empty()) {
+    LOG_DEBUG() << "Sleep for " << sleep_ms << "ms";
+    const std::chrono::milliseconds ms{utils::FromString<int>(sleep_ms)};
+    engine::SleepFor(ms);
+  }
+
   switch (request.GetMethod()) {
     case server::http::HttpMethod::kGet:
       return GetValue(key, request);
@@ -71,26 +80,46 @@ std::string KeyValue::HandleRequestThrow(
 
 std::string KeyValue::GetValue(std::string_view key,
                                const server::http::HttpRequest& request) const {
-  const auto result = redis_client_->Get(std::string{key}, redis_cc_).Get();
-  if (!result) {
-    request.SetResponseStatus(server::http::HttpStatus::kNotFound);
-    return {};
+  auto redis_request = redis_client_->Get(std::string{key}, redis_cc_);
+  try {
+    const auto result = redis_request.Get();
+    if (!result) {
+      request.SetResponseStatus(server::http::HttpStatus::kNotFound);
+      return {};
+    }
+    return *result;
+  } catch (const redis::RequestFailedException& e) {
+    if (e.GetStatus() == redis::ReplyStatus::kTimeoutError) {
+      request.SetResponseStatus(server::http::HttpStatus::kServiceUnavailable);
+      return "timeout";
+    }
+
+    throw;
   }
-  return *result;
 }
 
 std::string KeyValue::PostValue(
     std::string_view key, const server::http::HttpRequest& request) const {
   const auto& value = request.GetArg("value");
-  const auto result =
-      redis_client_->SetIfNotExist(std::string{key}, value, redis_cc_).Get();
-  if (!result) {
-    request.SetResponseStatus(server::http::HttpStatus::kConflict);
-    return {};
-  }
+  auto redis_request =
+      redis_client_->SetIfNotExist(std::string{key}, value, redis_cc_);
+  try {
+    const auto result = redis_request.Get();
+    if (!result) {
+      request.SetResponseStatus(server::http::HttpStatus::kConflict);
+      return {};
+    }
 
-  request.SetResponseStatus(server::http::HttpStatus::kCreated);
-  return std::string{value};
+    request.SetResponseStatus(server::http::HttpStatus::kCreated);
+    return std::string{value};
+  } catch (const redis::RequestFailedException& e) {
+    if (e.GetStatus() == redis::ReplyStatus::kTimeoutError) {
+      request.SetResponseStatus(server::http::HttpStatus::kServiceUnavailable);
+      return "timeout";
+    }
+
+    throw;
+  }
 }
 
 std::string KeyValue::DeleteValue(std::string_view key) const {

@@ -2,10 +2,12 @@
 
 #include <memory>
 
+#include <userver/dynamic_config/test_helpers.hpp>
 #include <userver/engine/deadline.hpp>
 #include <userver/engine/sleep.hpp>
 
 #include <storages/redis/client_impl.hpp>
+#include <storages/redis/dynamic_config.hpp>
 #include <storages/redis/impl/keyshard_impl.hpp>
 #include <storages/redis/impl/sentinel.hpp>
 #include <storages/redis/impl/subscribe_sentinel.hpp>
@@ -25,7 +27,8 @@ auto GetThreadPools() {
 storages::redis::ClientPtr GetClient() {
   auto sentinel = redis::Sentinel::CreateSentinel(
       GetThreadPools(), GetTestsuiteRedisClusterSettings(), "cluster-test",
-      "cluster-test-client_name", redis::KeyShardFactory{redis::kRedisCluster});
+      dynamic_config::GetDefaultSource(), "cluster-test-client_name",
+      redis::KeyShardFactory{redis::kRedisCluster});
   sentinel->WaitConnectedOnce({redis::WaitConnectedMode::kMasterAndSlave, false,
                                std::chrono::milliseconds(2000)});
 
@@ -35,7 +38,7 @@ storages::redis::ClientPtr GetClient() {
 storages::redis::SubscribeClientPtr GetSubscribeClient() {
   auto sentinel = redis::SubscribeSentinel::Create(
       GetThreadPools(), GetTestsuiteRedisClusterSettings(), "cluster-test",
-      "cluster-test-client_name", true, {});
+      dynamic_config::GetDefaultSource(), "cluster-test-client_name", true, {});
   sentinel->WaitConnectedOnce({redis::WaitConnectedMode::kMasterAndSlave, false,
                                std::chrono::milliseconds(2000)});
 

@@ -58,6 +58,7 @@ Sentinel::Sentinel(
     const std::vector<ConnectionInfo>& conns, std::string shard_group_name,
     const std::string& client_name, const Password& password,
     ConnectionSecurity connection_security, ReadyChangeCallback ready_callback,
+    dynamic_config::Source dynamic_config_source,
     std::unique_ptr<KeyShard>&& key_shard, CommandControl command_control,
     const testsuite::RedisControl& testsuite_redis_control, ConnectionMode mode)
     : thread_pools_(thread_pools),
@@ -77,7 +78,7 @@ Sentinel::Sentinel(
         *sentinel_thread_control_, thread_pools_->GetRedisThreadPool(), *this,
         shards, conns, std::move(shard_group_name), client_name, password,
         connection_security, std::move(ready_callback), std::move(key_shard),
-        mode);
+        dynamic_config_source, mode);
   });
 }
 
@@ -103,6 +104,7 @@ void Sentinel::ForceUpdateHosts() { impl_->ForceUpdateHosts(); }
 std::shared_ptr<Sentinel> Sentinel::CreateSentinel(
     const std::shared_ptr<ThreadPools>& thread_pools,
     const secdist::RedisSettings& settings, std::string shard_group_name,
+    dynamic_config::Source dynamic_config_source,
     const std::string& client_name, KeyShardFactory key_shard_factory,
     const CommandControl& command_control,
     const testsuite::RedisControl& testsuite_redis_control,
@@ -114,14 +116,15 @@ std::shared_ptr<Sentinel> Sentinel::CreateSentinel(
                << "  ready = " << (ready ? "true" : "false");
   };
   return CreateSentinel(thread_pools, settings, std::move(shard_group_name),
-                        client_name, std::move(ready_callback),
-                        std::move(key_shard_factory), command_control,
-                        testsuite_redis_control, dns_resolver);
+                        dynamic_config_source, client_name,
+                        std::move(ready_callback), std::move(key_shard_factory),
+                        command_control, testsuite_redis_control, dns_resolver);
 }
 
 std::shared_ptr<Sentinel> Sentinel::CreateSentinel(
     const std::shared_ptr<ThreadPools>& thread_pools,
     const secdist::RedisSettings& settings, std::string shard_group_name,
+    dynamic_config::Source dynamic_config_source,
     const std::string& client_name,
     Sentinel::ReadyChangeCallback ready_callback,
     KeyShardFactory key_shard_factory, const CommandControl& command_control,
@@ -161,7 +164,8 @@ std::shared_ptr<Sentinel> Sentinel::CreateSentinel(
     client = std::make_shared<redis::Sentinel>(
         thread_pools, shards, conns, std::move(shard_group_name), client_name,
         password, settings.secure_connection, std::move(ready_callback),
-        std::move(key_shard), command_control, testsuite_redis_control);
+        dynamic_config_source, std::move(key_shard), command_control,
+        testsuite_redis_control);
     client->Start();
   }
 

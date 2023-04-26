@@ -6,6 +6,7 @@
 #include <boost/signals2.hpp>
 
 #include <userver/clients/dns/resolver_fwd.hpp>
+#include <userver/dynamic_config/source.hpp>
 #include <userver/utils/swappingsmart.hpp>
 
 #include <userver/storages/redis/impl/base.hpp>
@@ -50,6 +51,7 @@ class Sentinel {
            std::string shard_group_name, const std::string& client_name,
            const Password& password, ConnectionSecurity connection_security,
            ReadyChangeCallback ready_callback,
+           dynamic_config::Source dynamic_config_source,
            std::unique_ptr<KeyShard>&& key_shard = nullptr,
            CommandControl command_control = kDefaultCommandControl,
            const testsuite::RedisControl& testsuite_redis_control = {},
@@ -77,6 +79,7 @@ class Sentinel {
   static std::shared_ptr<redis::Sentinel> CreateSentinel(
       const std::shared_ptr<ThreadPools>& thread_pools,
       const secdist::RedisSettings& settings, std::string shard_group_name,
+      dynamic_config::Source dynamic_config_source,
       const std::string& client_name, KeyShardFactory key_shard_factory,
       const CommandControl& command_control = kDefaultCommandControl,
       const testsuite::RedisControl& testsuite_redis_control = {},
@@ -84,6 +87,7 @@ class Sentinel {
   static std::shared_ptr<redis::Sentinel> CreateSentinel(
       const std::shared_ptr<ThreadPools>& thread_pools,
       const secdist::RedisSettings& settings, std::string shard_group_name,
+      dynamic_config::Source dynamic_config_source,
       const std::string& client_name, ReadyChangeCallback ready_callback,
       KeyShardFactory key_shard_factory,
       const CommandControl& command_control = kDefaultCommandControl,

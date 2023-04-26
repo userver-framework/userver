@@ -6,9 +6,11 @@
 #include <userver/engine/sleep.hpp>
 #include <userver/utils/text.hpp>
 
+#include <userver/dynamic_config/test_helpers.hpp>
 #include <userver/storages/redis/impl/reply.hpp>
 
 #include <storages/redis/client_impl.hpp>
+#include <storages/redis/dynamic_config.hpp>
 #include <storages/redis/impl/command.hpp>
 #include <storages/redis/impl/sentinel.hpp>
 #include <storages/redis/impl/subscribe_sentinel.hpp>
@@ -25,7 +27,8 @@ class SentinelTest : public ::testing::Test {
             redis::kDefaultSentinelThreadPoolSize,
             redis::kDefaultRedisThreadPoolSize)),
         sentinel_(redis::Sentinel::CreateSentinel(
-            thread_pools_, GetTestsuiteRedisSettings(), "none", "pub",
+            thread_pools_, GetTestsuiteRedisSettings(), "none",
+            dynamic_config::GetDefaultSource(), "pub",
             redis::KeyShardFactory{""})) {
     sentinel_->WaitConnectedDebug();
   }

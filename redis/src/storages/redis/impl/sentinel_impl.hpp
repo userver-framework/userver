@@ -15,6 +15,7 @@
 
 #include <engine/ev/thread_control.hpp>
 #include <engine/ev/thread_pool.hpp>
+#include <userver/dynamic_config/source.hpp>
 #include <userver/engine/deadline.hpp>
 #include <userver/engine/impl/condition_variable_any.hpp>
 #include <userver/utils/swappingsmart.hpp>
@@ -47,6 +48,7 @@ class SentinelImpl {
                const Password& password, ConnectionSecurity connection_security,
                ReadyChangeCallback ready_callback,
                std::unique_ptr<KeyShard>&& key_shard,
+               dynamic_config::Source dynamic_config_source,
                ConnectionMode mode = ConnectionMode::kCommands);
   ~SentinelImpl();
 
@@ -75,6 +77,7 @@ class SentinelImpl {
         : command(command), master(master), shard(shard), start(start) {}
   };
 
+  bool AdjustDeadline(const SentinelCommand& scommand);
   void AsyncCommand(const SentinelCommand& scommand,
                     size_t prev_instance_idx = -1);
   void AsyncCommandToSentinel(CommandPtr command);
@@ -228,6 +231,7 @@ class SentinelImpl {
   SentinelStatisticsInternal statistics_internal_;
   utils::SwappingSmart<KeysForShards> keys_for_shards_;
   std::optional<CommandsBufferingSettings> commands_buffering_settings_;
+  dynamic_config::Source dynamic_config_source_;
 };
 
 }  // namespace redis

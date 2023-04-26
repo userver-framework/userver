@@ -169,6 +169,9 @@ void Redis::Connect(const ComponentConfig& config,
                     const testsuite::RedisControl& testsuite_redis_control) {
   auto& secdist_component = component_context.FindComponent<Secdist>();
 
+  auto config_source =
+      component_context.FindComponent<DynamicConfig>().GetSource();
+
   const auto redis_pools = config["thread_pools"].As<RedisPools>();
 
   thread_pools_ = std::make_shared<redis::ThreadPools>(
@@ -187,9 +190,9 @@ void Redis::Connect(const ComponentConfig& config,
         redis_group.allow_reads_from_master;
 
     auto sentinel = redis::Sentinel::CreateSentinel(
-        thread_pools_, settings, redis_group.config_name, redis_group.db,
-        redis::KeyShardFactory{redis_group.sharding_strategy}, command_control,
-        testsuite_redis_control, dns_resolver);
+        thread_pools_, settings, redis_group.config_name, config_source,
+        redis_group.db, redis::KeyShardFactory{redis_group.sharding_strategy},
+        command_control, testsuite_redis_control, dns_resolver);
     if (sentinel) {
       sentinels_.emplace(redis_group.db, sentinel);
       const auto& client =
@@ -216,8 +219,8 @@ void Redis::Connect(const ComponentConfig& config,
         redis_group.sharding_strategy);
 
     auto sentinel = redis::SubscribeSentinel::Create(
-        thread_pools_, settings, redis_group.config_name, redis_group.db,
-        is_cluster_mode, testsuite_redis_control, dns_resolver);
+        thread_pools_, settings, redis_group.config_name, config_source,
+        redis_group.db, is_cluster_mode, testsuite_redis_control, dns_resolver);
     if (sentinel)
       subscribe_clients_.emplace(
           redis_group.db,

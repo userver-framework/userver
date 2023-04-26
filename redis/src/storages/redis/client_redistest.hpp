@@ -9,10 +9,13 @@
 #include <userver/storages/redis/impl/thread_pools.hpp>
 
 #include <storages/redis/client_impl.hpp>
+#include <storages/redis/dynamic_config.hpp>
 #include <storages/redis/impl/sentinel.hpp>
 #include <storages/redis/impl/subscribe_sentinel.hpp>
 #include <storages/redis/subscribe_client_impl.hpp>
 #include <storages/redis/util_redistest.hpp>
+#include <userver/dynamic_config/storage_mock.hpp>
+#include <userver/dynamic_config/test_helpers.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -32,12 +35,12 @@ class RedisClientTest : public ::testing::Test {
         redis::kDefaultSentinelThreadPoolSize,
         redis::kDefaultRedisThreadPoolSize);
     sentinel_ = redis::Sentinel::CreateSentinel(
-        thread_pools_, GetTestsuiteRedisSettings(), "none", "pub",
-        redis::KeyShardFactory{""});
+        thread_pools_, GetTestsuiteRedisSettings(), "none",
+        dynamic_config::GetDefaultSource(), "pub", redis::KeyShardFactory{""});
     sentinel_->WaitConnectedDebug();
     subscribe_sentinel_ = redis::SubscribeSentinel::Create(
-        thread_pools_, GetTestsuiteRedisSettings(), "none", "pub", false, {},
-        nullptr);
+        thread_pools_, GetTestsuiteRedisSettings(), "none",
+        dynamic_config::GetDefaultSource(), "pub", false, {}, nullptr);
     subscribe_sentinel_->WaitConnectedDebug();
 
     auto info_reply = sentinel_
@@ -97,7 +100,6 @@ class RedisClientTest : public ::testing::Test {
   static std::shared_ptr<redis::Sentinel> sentinel_;
   static std::shared_ptr<redis::SubscribeSentinel> subscribe_sentinel_;
   static Version version_;
-
   storages::redis::ClientPtr client_{};
   std::shared_ptr<storages::redis::SubscribeClient> subscribe_client_{};
 

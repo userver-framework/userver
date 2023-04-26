@@ -1,6 +1,8 @@
 #include <userver/utest/utest.hpp>
 
+#include <storages/redis/dynamic_config.hpp>
 #include <userver/clients/dns/resolver.hpp>
+#include <userver/dynamic_config/test_helpers.hpp>
 #include <userver/engine/task/task.hpp>
 #include <userver/storages/redis/impl/thread_pools.hpp>
 #include <userver/utils/enumerate.hpp>
@@ -19,8 +21,9 @@ storages::redis::ClientPtr GetClientWithResolver(
       redis::kDefaultSentinelThreadPoolSize,
       redis::kDefaultRedisThreadPoolSize);
   auto sentinel = redis::Sentinel::CreateSentinel(
-      std::move(thread_pools), GetTestsuiteRedisSettings(), "none", "pub",
-      redis::KeyShardFactory{""}, redis::kDefaultCommandControl, {}, resolver);
+      std::move(thread_pools), GetTestsuiteRedisSettings(), "none",
+      dynamic_config::GetDefaultSource(), "pub", redis::KeyShardFactory{""},
+      redis::kDefaultCommandControl, {}, resolver);
   sentinel->WaitConnectedDebug();
   return std::make_shared<storages::redis::ClientImpl>(std::move(sentinel));
 }
@@ -56,7 +59,8 @@ std::shared_ptr<redis::Sentinel> CreateSentinelCustomResolve(
     client = std::make_shared<redis::Sentinel>(
         thread_pools, shards, conns, std::move(shard_group_name), client_name,
         password, settings.secure_connection, std::move(ready_callback),
-        std::move(key_shard), command_control, testsuite_redis_control,
+        dynamic_config::GetDefaultSource(), std::move(key_shard),
+        command_control, testsuite_redis_control,
         redis::ConnectionMode::kCommands);
     client->Start();
   }

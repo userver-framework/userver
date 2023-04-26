@@ -14,16 +14,22 @@
 #include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
 
+#include <storages/redis/dynamic_config.hpp>
 #include <storages/redis/impl/command.hpp>
 #include <storages/redis/impl/keyshard_impl.hpp>
 #include <storages/redis/impl/sentinel.hpp>
+#include <userver/server/request/task_inherited_data.hpp>
 #include <userver/storages/redis/impl/exception.hpp>
 #include <userver/storages/redis/impl/reply.hpp>
+#include <userver/utils/impl/userver_experiments.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace redis {
 namespace {
+
+utils::impl::UserverExperiment kDeadlinePropagationExperiment{
+    "redis-deadline-propagation", true};
 
 bool CheckQuorum(size_t requests_sent, size_t responses_parsed) {
   size_t quorum = requests_sent / 2 + 1;
@@ -59,7 +65,8 @@ SentinelImpl::SentinelImpl(
     const std::vector<ConnectionInfo>& conns, std::string shard_group_name,
     const std::string& client_name, const Password& password,
     ConnectionSecurity connection_security, ReadyChangeCallback ready_callback,
-    std::unique_ptr<KeyShard>&& key_shard, ConnectionMode mode)
+    std::unique_ptr<KeyShard>&& key_shard,
+    dynamic_config::Source dynamic_config_source, ConnectionMode mode)
     : sentinel_obj_(sentinel),
       ev_thread_(sentinel_thread_control),
       shard_group_name_(std::move(shard_group_name)),
@@ -73,7 +80,8 @@ SentinelImpl::SentinelImpl(
       cluster_mode_failed_(false),
       key_shard_(std::move(key_shard)),
       connection_mode_(mode),
-      slot_info_(IsInClusterMode() ? std::make_unique<SlotInfo>() : nullptr) {
+      slot_info_(IsInClusterMode() ? std::make_unique<SlotInfo>() : nullptr),
+      dynamic_config_source_(dynamic_config_source) {
   for (size_t i = 0; i < init_shards_->size(); ++i) {
     shards_[(*init_shards_)[i]] = i;
     connected_statuses_.push_back(std::make_unique<ConnectedStatus>());
@@ -224,8 +232,50 @@ static inline void InvokeCommand(CommandPtr command, ReplyPtr&& reply) {
   }
 }
 
+std::optional<std::chrono::milliseconds> GetDeadlineTimeLeft(
+    const dynamic_config::Snapshot& config) {
+  if (!engine::current_task::GetTaskProcessorOptional()) return std::nullopt;
+
+  if (!kDeadlinePropagationExperiment.IsEnabled()) return std::nullopt;
+
+  if (config[kDeadlinePropagationEnabled]) {
+    const auto inherited_deadline = server::request::GetTaskInheritedDeadline();
+    if (inherited_deadline.IsReachable()) {
+      const auto inherited_timeout =
+          std::chrono::duration_cast<std::chrono::milliseconds>(
+              inherited_deadline.TimeLeftApprox());
+      return inherited_timeout;
+    }
+  }
+  return std::nullopt;
+}
+
+bool SentinelImpl::AdjustDeadline(const SentinelCommand& scommand) {
+  const auto inherited_deadline =
+      GetDeadlineTimeLeft(dynamic_config_source_.GetSnapshot());
+  if (!inherited_deadline) return true;
+
+  if (*inherited_deadline <= std::chrono::seconds{0}) {
+    return false;
+  }
+
+  auto& command = *scommand.command;
+  auto& cc = command.control;
+  cc.timeout_single = std::min(cc.timeout_single, *inherited_deadline);
+  cc.timeout_all = std::min(cc.timeout_all, *inherited_deadline);
+
+  return true;
+}
+
 void SentinelImpl::AsyncCommand(const SentinelCommand& scommand,
                                 size_t prev_instance_idx) {
+  if (!AdjustDeadline(scommand)) {
+    auto reply = std::make_shared<Reply>("", ReplyData::CreateNil());
+    reply->status = ReplyStatus::kTimeoutError;
+    InvokeCommand(scommand.command, std::move(reply));
+    return;
+  }
+
   CommandPtr command = scommand.command;
   size_t shard = scommand.shard;
   bool master = scommand.master;

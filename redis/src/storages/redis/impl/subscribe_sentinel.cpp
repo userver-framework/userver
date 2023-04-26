@@ -37,6 +37,7 @@ SubscribeSentinel::SubscribeSentinel(
     const std::shared_ptr<ThreadPools>& thread_pools,
     const std::vector<std::string>& shards,
     const std::vector<ConnectionInfo>& conns, std::string shard_group_name,
+    dynamic_config::Source dynamic_config_source,
     const std::string& client_name, const Password& password,
     ConnectionSecurity connection_security, ReadyChangeCallback ready_callback,
     std::unique_ptr<KeyShard>&& key_shard, bool is_cluster_mode,
@@ -44,8 +45,8 @@ SubscribeSentinel::SubscribeSentinel(
     const testsuite::RedisControl& testsuite_redis_control)
     : Sentinel(thread_pools, shards, conns, std::move(shard_group_name),
                client_name, password, connection_security, ready_callback,
-               std::move(key_shard), command_control, testsuite_redis_control,
-               ConnectionMode::kSubscriber),
+               dynamic_config_source, std::move(key_shard), command_control,
+               testsuite_redis_control, ConnectionMode::kSubscriber),
       storage_(std::make_shared<SubscriptionStorage>(
           thread_pools, shards.size(), is_cluster_mode)),
       stopper_(std::make_shared<Stopper>()) {
@@ -75,6 +76,7 @@ SubscribeSentinel::~SubscribeSentinel() {
 std::shared_ptr<SubscribeSentinel> SubscribeSentinel::Create(
     const std::shared_ptr<ThreadPools>& thread_pools,
     const secdist::RedisSettings& settings, std::string shard_group_name,
+    dynamic_config::Source dynamic_config_source,
     const std::string& client_name, bool is_cluster_mode,
     const testsuite::RedisControl& testsuite_redis_control,
     clients::dns::Resolver* dns_resolver) {
@@ -87,13 +89,14 @@ std::shared_ptr<SubscribeSentinel> SubscribeSentinel::Create(
   // https://github.com/boostorg/signals2/issues/59
   // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDelete)
   return Create(thread_pools, settings, std::move(shard_group_name),
-                client_name, std::move(ready_callback), is_cluster_mode,
-                testsuite_redis_control, dns_resolver);
+                dynamic_config_source, client_name, std::move(ready_callback),
+                is_cluster_mode, testsuite_redis_control, dns_resolver);
 }
 
 std::shared_ptr<SubscribeSentinel> SubscribeSentinel::Create(
     const std::shared_ptr<ThreadPools>& thread_pools,
     const secdist::RedisSettings& settings, std::string shard_group_name,
+    dynamic_config::Source dynamic_config_source,
     const std::string& client_name, ReadyChangeCallback ready_callback,
     bool is_cluster_mode,
     const testsuite::RedisControl& testsuite_redis_control,
@@ -126,8 +129,9 @@ std::shared_ptr<SubscribeSentinel> SubscribeSentinel::Create(
               << "ms; max_retries = " << command_control.max_retries;
 
   auto subscribe_sentinel = std::make_shared<SubscribeSentinel>(
-      thread_pools, shards, conns, std::move(shard_group_name), client_name,
-      password, settings.secure_connection, std::move(ready_callback),
+      thread_pools, shards, conns, std::move(shard_group_name),
+      dynamic_config_source, client_name, password, settings.secure_connection,
+      std::move(ready_callback),
       (is_cluster_mode ? nullptr : std::make_unique<KeyShardZero>()),
       is_cluster_mode, command_control, testsuite_redis_control);
   subscribe_sentinel->Start();
