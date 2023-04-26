@@ -14,6 +14,7 @@ pytest_plugins = [
 USERVER_CONFIG_HOOKS = ['prepare_service_config']
 
 
+# port for client -> TcpChaos
 @pytest.fixture(name='for_client_gate_port', scope='session')
 def _for_client_gate_port(request) -> int:
     # This fixture might be defined in an outer scope.
@@ -22,6 +23,7 @@ def _for_client_gate_port(request) -> int:
     return 8099
 
 
+# port for TcpChaos -> server
 @pytest.fixture(name='grpc_server_port', scope='session')
 def _grpc_server_port(request) -> int:
     # This fixture might be defined in an outer scope.
