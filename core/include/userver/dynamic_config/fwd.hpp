@@ -14,6 +14,7 @@ class DynamicConfig;
 
 namespace dynamic_config {
 
+struct Diff;
 class DocsMap;
 class KeyValue;
 class Snapshot;  // NOLINT(bugprone-forward-declaration-namespace)

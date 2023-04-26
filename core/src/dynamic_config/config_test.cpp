@@ -1,5 +1,7 @@
 #include <userver/utest/utest.hpp>
 
+#include <vector>
+
 #include <userver/dynamic_config/snapshot.hpp>
 #include <userver/dynamic_config/source.hpp>
 #include <userver/dynamic_config/storage_mock.hpp>
@@ -191,6 +193,235 @@ UTEST(DynamicConfig, Extend2) {
   EXPECT_EQ(config[kDummyConfig].foo, 42);
   EXPECT_EQ(config[kDummyConfig].bar, kLongString);
   EXPECT_EQ(config[kIntConfig], 5);
+}
+
+namespace {
+
+class Subscriber final {
+ public:
+  void OnConfigUpdate(const dynamic_config::Snapshot&) { counter_++; }
+  int GetCounter() const { return counter_; }
+
+ private:
+  int counter_{};
+};
+
+}  // namespace
+
+[[maybe_unused]] bool operator==(const DummyConfig& lhs,
+                                 const DummyConfig& rhs) {
+  return lhs.foo == rhs.foo && lhs.bar == rhs.bar;
+}
+
+UTEST(DynamicConfig, SingleSubscription) {
+  std::vector<dynamic_config::KeyValue> vars1{
+      {kDummyConfig, {0, "bar"}}, {kIntConfig, 1}, {kBoolConfig, false}};
+  std::vector<dynamic_config::KeyValue> vars2{
+      {kDummyConfig, {0, "foo"}}, {kIntConfig, 2}, {kBoolConfig, false}};
+  std::vector<dynamic_config::KeyValue> vars3{
+      {kDummyConfig, {1, "foo"}}, {kIntConfig, 2}, {kBoolConfig, true}};
+
+  dynamic_config::StorageMock storage;
+  auto source = storage.GetSource();
+  Subscriber subscribers[3];
+  concurrent::AsyncEventSubscriberScope scopes[3];
+
+  scopes[0] = source.UpdateAndListen(&subscribers[0], "",
+                                     &Subscriber::OnConfigUpdate, kDummyConfig);
+  scopes[1] = source.UpdateAndListen(&subscribers[1], "",
+                                     &Subscriber::OnConfigUpdate, kIntConfig);
+  scopes[2] = source.UpdateAndListen(&subscribers[2], "",
+                                     &Subscriber::OnConfigUpdate, kBoolConfig);
+
+  EXPECT_EQ(subscribers[0].GetCounter(), 1);
+  EXPECT_EQ(subscribers[1].GetCounter(), 1);
+  EXPECT_EQ(subscribers[2].GetCounter(), 1);
+
+  storage.Extend(vars1);
+  EXPECT_EQ(subscribers[0].GetCounter(), 2);
+  EXPECT_EQ(subscribers[1].GetCounter(), 2);
+  EXPECT_EQ(subscribers[2].GetCounter(), 2);
+
+  storage.Extend(vars1);
+  EXPECT_EQ(subscribers[0].GetCounter(), 2);
+  EXPECT_EQ(subscribers[1].GetCounter(), 2);
+  EXPECT_EQ(subscribers[2].GetCounter(), 2);
+
+  storage.Extend(vars2);
+  EXPECT_EQ(subscribers[0].GetCounter(), 3);
+  EXPECT_EQ(subscribers[1].GetCounter(), 3);
+  EXPECT_EQ(subscribers[2].GetCounter(), 2);
+
+  storage.Extend(vars3);
+  EXPECT_EQ(subscribers[0].GetCounter(), 4);
+  EXPECT_EQ(subscribers[1].GetCounter(), 3);
+  EXPECT_EQ(subscribers[2].GetCounter(), 3);
+}
+
+UTEST(DynamicConfig, GetEventChannel) {
+  std::vector<dynamic_config::KeyValue> vars1{{kIntConfig, 1},
+                                              {kBoolConfig, false}};
+  std::vector<dynamic_config::KeyValue> vars2{{kIntConfig, 1},
+                                              {kBoolConfig, true}};
+  std::vector<dynamic_config::KeyValue> vars3{{kIntConfig, 2},
+                                              {kBoolConfig, true}};
+
+  dynamic_config::StorageMock storage;
+  storage.Extend(vars1);
+  auto source = storage.GetSource();
+  Subscriber subscribers[4];
+  concurrent::AsyncEventSubscriberScope scopes[4];
+
+  scopes[0] =
+      source.UpdateAndListen(&subscribers[0], "", &Subscriber::OnConfigUpdate);
+  scopes[1] = source.UpdateAndListen(&subscribers[1], "",
+                                     &Subscriber::OnConfigUpdate, kIntConfig);
+  scopes[2] = source.UpdateAndListen(&subscribers[2], "",
+                                     &Subscriber::OnConfigUpdate, kBoolConfig);
+
+  storage.Extend(vars2);
+  EXPECT_EQ(subscribers[0].GetCounter(), 2);
+  EXPECT_EQ(subscribers[1].GetCounter(), 1);
+  EXPECT_EQ(subscribers[2].GetCounter(), 2);
+
+  auto& mainChannel = source.GetEventChannel();
+  scopes[3] =
+      mainChannel.AddListener(concurrent::FunctionId(&subscribers[3]), "",
+                              [&](const dynamic_config::Snapshot& snapshot) {
+                                subscribers[3].OnConfigUpdate(snapshot);
+                                subscribers[3].OnConfigUpdate(snapshot);
+                              });
+
+  storage.Extend(vars3);
+  EXPECT_EQ(subscribers[0].GetCounter(), 3);
+  EXPECT_EQ(subscribers[1].GetCounter(), 2);
+  EXPECT_EQ(subscribers[2].GetCounter(), 2);
+  EXPECT_EQ(subscribers[3].GetCounter(), 2);
+}
+
+UTEST(DynamicConfig, SubsetSubscription) {
+  std::vector<dynamic_config::KeyValue> vars1{
+      {kDummyConfig, {0, "bar"}}, {kIntConfig, 1}, {kBoolConfig, false}};
+  std::vector<dynamic_config::KeyValue> vars2{
+      {kDummyConfig, {0, "foo"}}, {kIntConfig, 1}, {kBoolConfig, true}};
+  std::vector<dynamic_config::KeyValue> vars3{
+      {kDummyConfig, {0, "foo"}}, {kIntConfig, 0}, {kBoolConfig, true}};
+
+  dynamic_config::StorageMock storage;
+  auto source = storage.GetSource();
+  Subscriber subscribers[2];
+  concurrent::AsyncEventSubscriberScope scopes[2];
+
+  scopes[0] =
+      source.UpdateAndListen(&subscribers[0], "", &Subscriber::OnConfigUpdate,
+                             kIntConfig, kBoolConfig);
+  scopes[1] =
+      source.UpdateAndListen(&subscribers[1], "", &Subscriber::OnConfigUpdate,
+                             kDummyConfig, kBoolConfig);
+
+  EXPECT_EQ(subscribers[0].GetCounter(), 1);
+  EXPECT_EQ(subscribers[1].GetCounter(), 1);
+
+  storage.Extend(vars1);
+  EXPECT_EQ(subscribers[0].GetCounter(), 2);
+  EXPECT_EQ(subscribers[1].GetCounter(), 2);
+
+  storage.Extend(vars2);
+  EXPECT_EQ(subscribers[0].GetCounter(), 3);
+  EXPECT_EQ(subscribers[1].GetCounter(), 3);
+
+  storage.Extend(vars3);
+  EXPECT_EQ(subscribers[0].GetCounter(), 4);
+  EXPECT_EQ(subscribers[1].GetCounter(), 3);
+
+  storage.Extend(vars3);
+  EXPECT_EQ(subscribers[0].GetCounter(), 4);
+  EXPECT_EQ(subscribers[1].GetCounter(), 3);
+}
+
+namespace {
+
+class CustomSubscriber final {
+ public:
+  void OnConfigUpdate(const dynamic_config::Diff&) { counter_++; }
+  int GetCounter() const { return counter_; }
+
+ private:
+  int counter_{};
+};
+
+}  // namespace
+
+UTEST(DynamicConfig, CustomSubscription) {
+  dynamic_config::StorageMock storage;
+  auto source = storage.GetSource();
+  CustomSubscriber subscriber;
+
+  auto scope = source.UpdateAndListen(&subscriber, "",
+                                      &CustomSubscriber::OnConfigUpdate);
+  EXPECT_EQ(subscriber.GetCounter(), 1);
+
+  storage.Extend({});
+  EXPECT_EQ(subscriber.GetCounter(), 2);
+}
+
+namespace {
+
+class ConfigSubscriber final {
+ public:
+  /*! [Custom subscription for dynamic config update] */
+  void OnConfigUpdate(const dynamic_config::Diff& diff_data) {
+    if (!diff_data.previous) return;
+
+    const auto& previous = *diff_data.previous;
+    const auto& current = diff_data.current;
+    if (previous[kBoolConfig] != current[kBoolConfig]) {
+      OnBoolConfigChanged();
+    }
+    if (previous[kDummyConfig].foo != current[kDummyConfig].foo) {
+      OnFooChanged();
+    }
+  }
+  void OnBoolConfigChanged() { bool_config_change_counter_++; }
+  void OnFooChanged() { foo_interesting_event_counter_++; }
+  /*! [Custom subscription for dynamic config update] */
+
+  std::size_t GetBoolConfigChangeCounter() const {
+    return bool_config_change_counter_;
+  }
+  std::size_t GetFooInterestingEventCounter() const {
+    return foo_interesting_event_counter_;
+  }
+
+ private:
+  std::size_t bool_config_change_counter_{};
+  std::size_t foo_interesting_event_counter_{};
+};
+
+}  // namespace
+
+UTEST(DynamicConfigSubscription, Snippet) {
+  dynamic_config::StorageMock storage;
+  auto source = storage.GetSource();
+  ConfigSubscriber subscriber;
+
+  auto scope = source.UpdateAndListen(&subscriber, "",
+                                      &ConfigSubscriber::OnConfigUpdate);
+
+  storage.Extend(
+      {{kIntConfig, 1}, {kBoolConfig, false}, {kDummyConfig, {1, "bar"}}});
+  EXPECT_EQ(subscriber.GetBoolConfigChangeCounter(), 0);
+  EXPECT_EQ(subscriber.GetFooInterestingEventCounter(), 0);
+
+  storage.Extend(
+      {{kIntConfig, 0}, {kBoolConfig, true}, {kDummyConfig, {1, "bar"}}});
+  EXPECT_EQ(subscriber.GetBoolConfigChangeCounter(), 1);
+  EXPECT_EQ(subscriber.GetFooInterestingEventCounter(), 0);
+
+  storage.Extend(
+      {{kIntConfig, 1}, {kBoolConfig, true}, {kDummyConfig, {0, "bar"}}});
+  EXPECT_EQ(subscriber.GetBoolConfigChangeCounter(), 1);
+  EXPECT_EQ(subscriber.GetFooInterestingEventCounter(), 1);
 }
 
 }  // namespace

@@ -4,10 +4,12 @@
 /// @brief @copybrief dynamic_config::Source
 
 #include <string_view>
+#include <tuple>
 #include <utility>
 
 #include <userver/concurrent/async_event_source.hpp>
 #include <userver/dynamic_config/snapshot.hpp>
+#include <userver/utils/assert.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -46,6 +48,18 @@ class VariableSnapshotPtr final {
   const VariableOfKey<Key>& variable_;
 };
 
+/// @brief Helper class for subscribing to dynamic-config updates with a custom
+/// callback.
+///
+/// Stores information about the last update that occurred.
+///
+/// @param previous `dynamic_config::Snapshot` of the previous config or
+/// `std::nullopt` if this update event is the first for the subscriber.
+struct Diff final {
+  std::optional<Snapshot> previous;
+  Snapshot current;
+};
+
 // clang-format off
 
 /// @ingroup userver_clients
@@ -63,7 +77,8 @@ class VariableSnapshotPtr final {
 // clang-format on
 class Source final {
  public:
-  using EventSource = concurrent::AsyncEventSource<const Snapshot&>;
+  using SnapshotEventSource = concurrent::AsyncEventSource<const Snapshot&>;
+  using DiffEventSource = concurrent::AsyncEventSource<const Diff&>;
 
   /// For internal use only. Obtain using components::DynamicConfig or
   /// dynamic_config::StorageMock instead.
@@ -88,7 +103,11 @@ class Source final {
 
   /// Subscribes to dynamic-config updates using a member function, named
   /// `OnConfigUpdate` by convention. Also immediately invokes the function with
-  /// the current config snapshot.
+  /// the current config snapshot (this invocation will be executed
+  /// synchronously).
+  ///
+  /// @note Callbacks occur in full accordance with
+  /// `components::DynamicConfigClientUpdater` options.
   template <typename Class>
   concurrent::AsyncEventSubscriberScope UpdateAndListen(
       Class* obj, std::string_view name,
@@ -100,12 +119,93 @@ class Source final {
         });
   }
 
-  EventSource& GetEventChannel();
+  // clang-format off
+
+  /// @brief Subscribes to dynamic-config updates with information about the
+  /// current and previous states.
+  ///
+  /// Subscribes to dynamic-config updates using a member function, named
+  /// `OnConfigUpdate` by convention. Also constructs `dynamic_config::Diff`
+  /// object using `std::nullopt` and current config snapshot, then immediately
+  /// invokes the function with it (this invocation will be executed
+  /// synchronously).
+  ///
+  /// @note Callbacks occur in full accordance with
+  /// `components::DynamicConfigClientUpdater` options.
+  ///
+  /// @warning In debug mode the last notification for any subscriber will be
+  /// called with `std::nullopt` and current config snapshot.
+  ///
+  /// Example usage:
+  /// @snippet dynamic_config/config_test.cpp Custom subscription for dynamic config update
+  ///
+  /// @see dynamic_config::Diff
+
+  // clang-format on
+  template <typename Class>
+  concurrent::AsyncEventSubscriberScope UpdateAndListen(
+      Class* obj, std::string_view name,
+      void (Class::*func)(const dynamic_config::Diff& diff)) {
+    return DoUpdateAndListen(
+        concurrent::FunctionId(obj), name,
+        [obj, func](const dynamic_config::Diff& diff) { (obj->*func)(diff); });
+  }
+
+  /// @brief Subscribes to updates of a subset of all configs.
+  ///
+  /// Subscribes to dynamic-config updates using a member function, named
+  /// `OnConfigUpdate` by convention. The function will be invoked if at least
+  /// one of the configs has been changed since the previous invocation. So at
+  /// the first time immediately invokes the function with the current config
+  /// snapshot (this invocation will be executed synchronously).
+  ///
+  /// @note Сallbacks occur only if one of the passed config is changed. This is
+  /// true under any components::DynamicConfigClientUpdater options.
+  ///
+  /// @warning To use this function, configs must have the `operator==`.
+  ///
+  /// @param keys config objects, specializations of `dynamic_config::Key`.
+  template <typename Class, typename... Keys>
+  concurrent::AsyncEventSubscriberScope UpdateAndListen(
+      Class* obj, std::string_view name,
+      void (Class::*func)(const dynamic_config::Snapshot& config),
+      Keys... keys) {
+    auto wrapper = [obj, func,
+                    keys = std::make_tuple(keys...)](const Diff& diff) {
+      const auto args = std::tuple_cat(std::tie(diff), keys);
+      if (!std::apply(HasChanged<Keys...>, args)) return;
+      (obj->*func)(diff.current);
+    };
+    return DoUpdateAndListen(concurrent::FunctionId(obj), name,
+                             std::move(wrapper));
+  }
+
+  SnapshotEventSource& GetEventChannel();
 
  private:
+  template <typename... Keys>
+  static bool HasChanged(const Diff& diff, Keys... keys) {
+    if (!diff.previous) return true;
+
+    const auto& previous = *diff.previous;
+    const auto& current = diff.current;
+
+    UINVARIANT(!current.GetData().IsEmpty(),
+               "current SnapshotData is in an empty state");
+    UINVARIANT(!previous.GetData().IsEmpty(),
+               "previous SnapshotData is in an empty state");
+
+    const bool is_equal = (true && ... && (previous[keys] == current[keys]));
+    return !is_equal;
+  }
+
   concurrent::AsyncEventSubscriberScope DoUpdateAndListen(
       concurrent::FunctionId id, std::string_view name,
-      EventSource::Function&& func);
+      SnapshotEventSource::Function&& func);
+
+  concurrent::AsyncEventSubscriberScope DoUpdateAndListen(
+      concurrent::FunctionId id, std::string_view name,
+      DiffEventSource::Function&& func);
 
   impl::StorageData* storage_;
 };

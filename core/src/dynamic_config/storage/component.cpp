@@ -50,7 +50,7 @@ class DynamicConfig::Impl final {
   Impl(const ComponentConfig&, const ComponentContext&);
 
   dynamic_config::Source GetSource();
-  auto& GetChannel() { return cache_.channel; }
+  auto& GetChannel() { return cache_.GetChannel(); }
 
   void OnLoadingCancelled();
 
@@ -155,14 +155,15 @@ void DynamicConfig::Impl::NotifyLoadingFailed(std::string_view updater,
 }
 
 void DynamicConfig::Impl::DoSetConfig(const dynamic_config::DocsMap& value) {
-  auto config = dynamic_config::impl::SnapshotData(value, {});
-  {
-    std::lock_guard lock(loaded_mutex_);
-    cache_.config.Assign(std::move(config));
-    is_loaded_ = true;
-  }
-  loaded_cv_.NotifyAll();
-  cache_.channel.SendEvent(dynamic_config::Source{cache_}.GetSnapshot());
+  dynamic_config::impl::SnapshotData config(value, {});
+  auto after_assign_hook = [&] {
+    {
+      std::lock_guard lock(loaded_mutex_);
+      is_loaded_ = true;
+    }
+    loaded_cv_.NotifyAll();
+  };
+  cache_.Update(std::move(config), std::move(after_assign_hook));
 }
 
 void DynamicConfig::Impl::SetConfig(std::string_view updater,

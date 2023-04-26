@@ -213,6 +213,27 @@ UTEST(AsyncEventChannel, AddListenerSample) {
 }
 /// [AddListener sample]
 
+UTEST(AsyncEventChannel, OnListenerRemovalSample) {
+  /*! [OnListenerRemoval sample] */
+  auto on_remove = [](std::function<void(int)> func) { func(1); };
+
+  concurrent::AsyncEventChannel<int> channel("channel", on_remove);
+
+  int value = 0;
+  {
+    concurrent::AsyncEventSubscriberScope sub =
+        channel.AddListener(concurrent::FunctionId(&sub), "sub",
+                            [&value](int new_value) { value = new_value; });
+  }
+
+  if constexpr (concurrent::impl::kCheckSubscriptionUB) {
+    EXPECT_EQ(value, 1);
+  } else {
+    EXPECT_EQ(value, 0);
+  }
+  /*! [OnListenerRemoval sample] */
+}
+
 }  // namespace
 
 USERVER_NAMESPACE_END

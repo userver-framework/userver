@@ -276,7 +276,7 @@ properties:
     deduplicate-update-types:
         type: string
         description: config update types for best-effort deduplication
-        defaultDescription: none
+        defaultDescription: full-and-incremental
         enum:
           - none
           - only-full

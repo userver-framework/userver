@@ -78,8 +78,28 @@ class AsyncEventChannel : public AsyncEventSource<Args...> {
 
   /// @brief The primary constructor
   /// @param name used for diagnostic purposes and is also accessible with Name
-  explicit AsyncEventChannel(std::string name,
-                             OnRemoveCallback on_listener_removal = {})
+  explicit AsyncEventChannel(std::string name)
+      : name_(std::move(name)), data_(ListenersData{{}, {}}) {}
+
+  /// @brief The constructor with `AsyncEventSubscriberScope` usage checking.
+  ///
+  /// The constructor with a callback that is called on listener removal. The
+  /// callback takes a reference to `Function' as input. This is useful for
+  /// checking the lifetime of data captured by the listener update function.
+  ///
+  /// @note Works only in debug mode.
+  ///
+  /// @warning Data captured by `on_listener_removal` function must be valid
+  /// until the `AsyncEventChannel` object is completely destroyed.
+  ///
+  /// Example usage:
+  /// @snippet concurrent/async_event_channel_test.cpp OnListenerRemoval sample
+  ///
+  /// @param name used for diagnostic purposes and is also accessible with Name
+  /// @param on_listener_removal the callback used for check
+  ///
+  /// @see impl::CheckDataUsedByCallbackHasNotBeenDestroyedBeforeUnsubscribing
+  AsyncEventChannel(std::string name, OnRemoveCallback on_listener_removal)
       : name_(std::move(name)),
         data_(ListenersData{{}, std::move(on_listener_removal)}) {}
 

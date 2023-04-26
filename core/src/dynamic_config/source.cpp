@@ -1,5 +1,8 @@
-#include <dynamic_config/storage_data.hpp>
 #include <userver/dynamic_config/source.hpp>
+
+#include <optional>
+
+#include <dynamic_config/storage_data.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -9,14 +12,20 @@ Source::Source(impl::StorageData& storage) : storage_(&storage) {}
 
 Snapshot Source::GetSnapshot() const { return Snapshot{*storage_}; }
 
-Source::EventSource& Source::GetEventChannel() { return storage_->channel; }
+Source::SnapshotEventSource& Source::GetEventChannel() {
+  return storage_->GetChannel();
+}
 
 concurrent::AsyncEventSubscriberScope Source::DoUpdateAndListen(
     concurrent::FunctionId id, std::string_view name,
-    EventSource::Function&& func) {
-  auto func_copy = func;
-  return storage_->channel.DoUpdateAndListen(id, name, std::move(func),
-                                             [&] { func_copy(GetSnapshot()); });
+    SnapshotEventSource::Function&& func) {
+  return storage_->DoUpdateAndListen(id, name, std::move(func));
+}
+
+concurrent::AsyncEventSubscriberScope Source::DoUpdateAndListen(
+    concurrent::FunctionId id, std::string_view name,
+    DiffEventSource::Function&& func) {
+  return storage_->DoUpdateAndListen(id, name, std::move(func));
 }
 
 }  // namespace dynamic_config

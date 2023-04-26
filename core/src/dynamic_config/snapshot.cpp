@@ -1,16 +1,16 @@
 #include <userver/dynamic_config/snapshot.hpp>
 
-#include <dynamic_config/storage_data.hpp>
 #include <userver/dynamic_config/storage_mock.hpp>
 #include <userver/rcu/rcu.hpp>
+
+#include <dynamic_config/storage_data.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace dynamic_config {
 
 struct Snapshot::Impl final {
-  explicit Impl(const impl::StorageData& storage)
-      : data_ptr(storage.config.Read()) {}
+  explicit Impl(const impl::StorageData& storage) : data_ptr(storage.Read()) {}
 
   rcu::ReadablePtr<impl::SnapshotData> data_ptr;
 };
