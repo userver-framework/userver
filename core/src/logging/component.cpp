@@ -27,11 +27,13 @@
 #include <userver/logging/logger.hpp>
 #include <userver/os_signals/component.hpp>
 #include <userver/utils/algo.hpp>
+#include <userver/utils/statistics/writer.hpp>
 #include <userver/utils/thread_name.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
 #include <userver/net/blocking/get_addr_info.hpp>
 #include "config.hpp"
+#include "userver/components/statistics_storage.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
@@ -177,6 +179,13 @@ Logging::Logging(const ComponentConfig& config, const ComponentContext& context)
               .AddListener(this, kName, SIGUSR1, &Logging::OnLogRotate))
 /// [Signals sample - init]
 {
+  auto& storage =
+      context.FindComponent<components::StatisticsStorage>().GetStorage();
+  statistics_holder_ = storage.RegisterWriter(
+      "logger", [this](utils::statistics::Writer& writer) {
+        return WriteStatistics(writer);
+      });
+
   try {
     Init(config, context);
   } catch (const std::exception&) {
@@ -314,6 +323,13 @@ void Logging::TryReopenFiles() {
 
   if (!result_messages.empty()) {
     throw std::runtime_error("ReopenAll errors: " + result_messages);
+  }
+}
+
+void Logging::WriteStatistics(utils::statistics::Writer& writer) const {
+  for (const auto& [name, logger] : loggers_) {
+    writer.ValueWithLabels(logger->GetStatistics(),
+                           {"logger", logger->GetLoggerName()});
   }
 }
 

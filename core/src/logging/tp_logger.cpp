@@ -131,7 +131,11 @@ void TpLogger::Flush() const {
   }
 }
 
+statistics::LogStatistics& TpLogger::GetStatistics() noexcept { return stats_; }
+
 void TpLogger::Log(Level level, std::string_view msg) const {
+  ++stats_.by_level[static_cast<std::size_t>(level)];
+
   if (GetSinks().empty()) {
     return;
   }
@@ -233,6 +237,7 @@ void TpLogger::Push(impl::async::Log&& action) const {
   }
 
   if (!success) {
+    ++stats_.dropped;
     --pending_async_ops_;
   }
 }

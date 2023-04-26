@@ -3,6 +3,7 @@
 #include <components/component_list_test.hpp>
 #include <userver/components/loggable_component_base.hpp>
 #include <userver/components/run.hpp>
+#include <userver/components/statistics_storage.hpp>
 #include <userver/components/tracer.hpp>
 #include <userver/logging/component.hpp>
 #include <userver/os_signals/component.hpp>
@@ -82,6 +83,7 @@ constexpr std::string_view kCustomGreetingConfig = R"(
 components::ComponentList MakeComponentList() {
   return components::ComponentList()
       .Append<os_signals::ProcessorComponent>()
+      .Append<components::StatisticsStorage>()
       .Append<components::Logging>()
       .Append<components::Tracer>()
       .Append<ConfigNotRequiredComponent>();

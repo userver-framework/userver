@@ -356,6 +356,15 @@ http.handler.total.timings;percentile=p99_9 2 1668196220
 http.handler.total.too-many-requests-in-flight 0 1668196220
 io_read_bytes 0 1668196220
 io_write_bytes 0 1668196220
+logger.by_level;logger=default;level=critical 0 111111
+logger.by_level;logger=default;level=debug 0 222222
+logger.by_level;logger=default;level=error 0 333333
+logger.by_level;logger=default;level=info 0 444444
+logger.by_level;logger=default;level=trace 0 666666
+logger.by_level;logger=default;level=warning 0 777777
+logger.by_level;logger=default;level=none 0 888888
+logger.dropped;logger=default 0 888888
+logger.total;logger=default 0 999999
 major_pagefaults 0 1668196220
 open_files 79 1668196220
 rss_kb 77372 1668196220

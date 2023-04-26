@@ -3,7 +3,8 @@
 /// @file userver/components/statistics_storage.hpp
 /// @brief @copybrief components::StatisticsStorage
 
-#include <userver/components/loggable_component_base.hpp>
+#include <userver/components/component_fwd.hpp>
+#include <userver/components/impl/component_base.hpp>
 #include <userver/utils/statistics/metrics_storage.hpp>
 #include <userver/utils/statistics/storage.hpp>
 
@@ -28,7 +29,7 @@ namespace components {
 /// @snippet components/common_component_list_test.cpp  Sample statistics storage component config
 
 // clang-format on
-class StatisticsStorage final : public LoggableComponentBase {
+class StatisticsStorage final : public impl::ComponentBase {
  public:
   static constexpr auto kName = "statistics-storage";
 

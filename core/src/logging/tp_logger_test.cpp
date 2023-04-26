@@ -1,9 +1,13 @@
 #include <logging/tp_logger.hpp>
 
 #include <gmock/gmock.h>
+#include <boost/algorithm/string.hpp>
 
 #include <userver/engine/task/cancel.hpp>
 #include <userver/utest/utest.hpp>
+#include <userver/utils/statistics/pretty_format.hpp>
+#include <userver/utils/statistics/storage.hpp>
+#include <userver/utils/statistics/testing.hpp>
 
 #include <engine/task/task_context.hpp>
 #include <logging/logging_test.hpp>
@@ -27,29 +31,7 @@ std::string_view LogRecursiveHelper(
 }
 
 class LoggingTestCoro : public LoggingTestBase {
- protected:
-  LoggingTestCoro() : LoggingTestBase(logging::Format::kTskv) {
-    logging::SetDefaultLoggerLevel(logging::Level::kError);
-  }
-
  public:
-  std::shared_ptr<logging::impl::TpLogger> StartAsyncLogger(
-      std::size_t queue_size_max = 10,
-      QueueOverflowBehavior on_overflow =
-          QueueOverflowBehavior::kDiscard) const {
-    UASSERT_MSG(engine::current_task::GetCurrentTaskContextUnchecked(),
-                "Misconfigured test. Should be run in coroutine environment");
-
-    auto logger = GetStreamLogger();
-    logger->StartAsync(engine::current_task::GetTaskProcessor(), queue_size_max,
-                       on_overflow);
-
-    // Tracing should not break the TpLogger
-    logger->SetLevel(logging::Level::kTrace);
-
-    return logger;
-  }
-
   enum LogTestMTMode {
     kTestLogging = 0,
     kTestLogFlush = 1,
@@ -64,6 +46,39 @@ class LoggingTestCoro : public LoggingTestBase {
     kTestLogStdThreadFlushSyncCancel =
         kTestLogStdThread | kTestLogFlushSyncCancel,
   };
+
+  std::shared_ptr<logging::impl::TpLogger> StartAsyncLogger(
+      std::size_t queue_size_max = 10,
+      QueueOverflowBehavior on_overflow = QueueOverflowBehavior::kDiscard) {
+    UASSERT_MSG(engine::current_task::GetCurrentTaskContextUnchecked(),
+                "Misconfigured test. Should be run in coroutine environment");
+
+    auto logger = GetStreamLogger();
+
+    stats_holder_ = stats_storage_.RegisterWriter(
+        "logger", [&logger](utils::statistics::Writer& writer) {
+          writer = logger->GetStatistics();
+        });
+
+    logger->StartAsync(engine::current_task::GetTaskProcessor(), queue_size_max,
+                       on_overflow);
+
+    // Tracing should not break the TpLogger
+    logger->SetLevel(logging::Level::kTrace);
+
+    return logger;
+  }
+
+  int64_t GetMetric(std::string metric = {},
+                    utils::statistics::Label label = {}) {
+    std::vector<utils::statistics::Label> labels{};
+    if (!label.Name().empty()) {
+      labels.push_back(label);
+    }
+    const auto snapshot =
+        utils::statistics::Snapshot(stats_storage_, "logger", labels);
+    return snapshot.SingleMetric(metric).AsInt();
+  }
 
   void LogTestMT(std::shared_ptr<logging::impl::TpLogger> logger,
                  std::size_t thread_count, LogTestMTMode mode) const {
@@ -125,6 +140,17 @@ class LoggingTestCoro : public LoggingTestBase {
       }
     }
   }
+
+ protected:
+  LoggingTestCoro() : LoggingTestBase(logging::Format::kTskv) {
+    logging::SetDefaultLoggerLevel(logging::Level::kError);
+  }
+
+  ~LoggingTestCoro() override { stats_holder_.Unregister(); }
+
+ private:
+  utils::statistics::Storage stats_storage_{};
+  utils::statistics::Entry stats_holder_;
 };
 
 }  // namespace
@@ -289,6 +315,67 @@ UTEST_F(LoggingTestCoro, TpLoggerBasicAsync) {
   EXPECT_THAT(LoggedText(), testing::HasSubstr("Some log"));
   logger->SwitchToSyncMode();
   EXPECT_EQ(GetRecordsCount(), 1);
+
+  EXPECT_EQ(GetMetric("total"), 1);
+  EXPECT_EQ(GetMetric("dropped"), 0);
+  EXPECT_EQ(GetMetric("by_level", {"level", "info"}), 1);
+  EXPECT_EQ(GetMetric("by_level", {"level", "debug"}), 0);
+  EXPECT_EQ(GetMetric("by_level", {"level", "warning"}), 0);
+  EXPECT_EQ(GetMetric("by_level", {"level", "critical"}), 0);
+  EXPECT_EQ(GetMetric("by_level", {"level", "error"}), 0);
+  EXPECT_EQ(GetMetric("by_level", {"level", "trace"}), 0);
+}
+
+UTEST_F(LoggingTestCoro, TpLoggerBasicAsyncMetrics) {
+  auto logger = StartAsyncLogger();
+
+  LOG_INFO_TO(logger) << "Some log";
+  LOG_INFO_TO(logger) << "Some log";
+  LOG_INFO_TO(logger) << "Some log";
+  LOG_INFO_TO(logger) << "Some log";
+  LOG_INFO_TO(logger) << "Some log";
+  LOG_INFO_TO(logger) << "Some log";
+  LOG_INFO_TO(logger) << "Some log";
+  LOG_INFO_TO(logger) << "Some log";
+
+  logger->Flush();
+
+  LOG_CRITICAL_TO(logger) << "Critical log";
+  LOG_CRITICAL_TO(logger) << "Critical log";
+  LOG_CRITICAL_TO(logger) << "Critical log";
+  LOG_CRITICAL_TO(logger) << "Critical log";
+  LOG_CRITICAL_TO(logger) << "Critical log";
+  LOG_CRITICAL_TO(logger) << "Critical log";
+
+  LOG_ERROR_TO(logger) << "Error log";
+  LOG_ERROR_TO(logger) << "Error log";
+  LOG_ERROR_TO(logger) << "Error log";
+  LOG_ERROR_TO(logger) << "Error log";
+  LOG_ERROR_TO(logger) << "Error log";
+
+  LOG_DEBUG_TO(logger) << "Debug log";
+  LOG_DEBUG_TO(logger) << "Debug log";
+  LOG_DEBUG_TO(logger) << "Debug log";
+  LOG_DEBUG_TO(logger) << "Debug log";
+
+  LOG_WARNING_TO(logger) << "Warning log";
+  LOG_WARNING_TO(logger) << "Warning log";
+  LOG_WARNING_TO(logger) << "Warning log";
+
+  LOG_TRACE_TO(logger) << "Trace log";
+  LOG_TRACE_TO(logger) << "Trace log";
+
+  logger->Flush();
+  logger->SwitchToSyncMode();
+  EXPECT_EQ(GetRecordsCount(), 18);
+  EXPECT_EQ(GetMetric("total"), 28);
+  EXPECT_EQ(GetMetric("dropped"), 10);
+  EXPECT_EQ(GetMetric("by_level", {"level", "info"}), 8);
+  EXPECT_EQ(GetMetric("by_level", {"level", "debug"}), 4);
+  EXPECT_EQ(GetMetric("by_level", {"level", "warning"}), 3);
+  EXPECT_EQ(GetMetric("by_level", {"level", "critical"}), 6);
+  EXPECT_EQ(GetMetric("by_level", {"level", "error"}), 5);
+  EXPECT_EQ(GetMetric("by_level", {"level", "trace"}), 2);
 }
 
 UTEST_F(LoggingTestCoro, TpLoggerBasicAsyncToSyncBeforeLog) {
@@ -298,6 +385,15 @@ UTEST_F(LoggingTestCoro, TpLoggerBasicAsyncToSyncBeforeLog) {
   LOG_INFO_TO(logger) << "Some log";
   logger->Flush();
   EXPECT_THAT(LoggedText(), testing::HasSubstr("Some log"));
+
+  EXPECT_EQ(GetMetric("total"), 1);
+  EXPECT_EQ(GetMetric("dropped"), 0);
+  EXPECT_EQ(GetMetric("by_level", {"level", "info"}), 1);
+  EXPECT_EQ(GetMetric("by_level", {"level", "debug"}), 0);
+  EXPECT_EQ(GetMetric("by_level", {"level", "warning"}), 0);
+  EXPECT_EQ(GetMetric("by_level", {"level", "critical"}), 0);
+  EXPECT_EQ(GetMetric("by_level", {"level", "error"}), 0);
+  EXPECT_EQ(GetMetric("by_level", {"level", "trace"}), 0);
 }
 
 UTEST_F(LoggingTestCoro, TpLoggerBasicAsyncToSyncBeforeFlush) {
@@ -307,6 +403,15 @@ UTEST_F(LoggingTestCoro, TpLoggerBasicAsyncToSyncBeforeFlush) {
   logger->SwitchToSyncMode();
   logger->Flush();
   EXPECT_THAT(LoggedText(), testing::HasSubstr("Some log"));
+
+  EXPECT_EQ(GetMetric("total"), 1);
+  EXPECT_EQ(GetMetric("dropped"), 0);
+  EXPECT_EQ(GetMetric("by_level", {"level", "info"}), 1);
+  EXPECT_EQ(GetMetric("by_level", {"level", "debug"}), 0);
+  EXPECT_EQ(GetMetric("by_level", {"level", "warning"}), 0);
+  EXPECT_EQ(GetMetric("by_level", {"level", "critical"}), 0);
+  EXPECT_EQ(GetMetric("by_level", {"level", "error"}), 0);
+  EXPECT_EQ(GetMetric("by_level", {"level", "trace"}), 0);
 }
 
 UTEST_F(LoggingTestCoro, TpLoggerBasicAsyncToSyncAfterFlush) {
@@ -316,6 +421,15 @@ UTEST_F(LoggingTestCoro, TpLoggerBasicAsyncToSyncAfterFlush) {
   logger->Flush();
   logger->SwitchToSyncMode();
   EXPECT_THAT(LoggedText(), testing::HasSubstr("Some log"));
+
+  EXPECT_EQ(GetMetric("total"), 1);
+  EXPECT_EQ(GetMetric("dropped"), 0);
+  EXPECT_EQ(GetMetric("by_level", {"level", "info"}), 1);
+  EXPECT_EQ(GetMetric("by_level", {"level", "debug"}), 0);
+  EXPECT_EQ(GetMetric("by_level", {"level", "warning"}), 0);
+  EXPECT_EQ(GetMetric("by_level", {"level", "critical"}), 0);
+  EXPECT_EQ(GetMetric("by_level", {"level", "error"}), 0);
+  EXPECT_EQ(GetMetric("by_level", {"level", "trace"}), 0);
 }
 
 UTEST_F(LoggingTestCoro, TpLoggerBasicAsyncToSyncFlushOverflow) {
@@ -328,6 +442,15 @@ UTEST_F(LoggingTestCoro, TpLoggerBasicAsyncToSyncFlushOverflow) {
   }
   logger->SwitchToSyncMode();
   EXPECT_THAT(LoggedText(), testing::HasSubstr("Some log"));
+
+  EXPECT_EQ(GetMetric("total"), 1);
+  EXPECT_EQ(GetMetric("dropped"), 0);
+  EXPECT_EQ(GetMetric("by_level", {"level", "info"}), 1);
+  EXPECT_EQ(GetMetric("by_level", {"level", "debug"}), 0);
+  EXPECT_EQ(GetMetric("by_level", {"level", "warning"}), 0);
+  EXPECT_EQ(GetMetric("by_level", {"level", "critical"}), 0);
+  EXPECT_EQ(GetMetric("by_level", {"level", "error"}), 0);
+  EXPECT_EQ(GetMetric("by_level", {"level", "trace"}), 0);
 }
 
 UTEST_F(LoggingTestCoro, TpLoggerBasicSyncFlushOverflow) {
@@ -340,6 +463,15 @@ UTEST_F(LoggingTestCoro, TpLoggerBasicSyncFlushOverflow) {
     logger->Flush();
   }
   EXPECT_THAT(LoggedText(), testing::HasSubstr("Some log"));
+
+  EXPECT_EQ(GetMetric("total"), 1);
+  EXPECT_EQ(GetMetric("dropped"), 0);
+  EXPECT_EQ(GetMetric("by_level", {"level", "info"}), 1);
+  EXPECT_EQ(GetMetric("by_level", {"level", "debug"}), 0);
+  EXPECT_EQ(GetMetric("by_level", {"level", "warning"}), 0);
+  EXPECT_EQ(GetMetric("by_level", {"level", "critical"}), 0);
+  EXPECT_EQ(GetMetric("by_level", {"level", "error"}), 0);
+  EXPECT_EQ(GetMetric("by_level", {"level", "trace"}), 0);
 }
 
 UTEST_F(LoggingTestCoro, TpLoggerBasicAsyncOverflow) {
@@ -352,6 +484,15 @@ UTEST_F(LoggingTestCoro, TpLoggerBasicAsyncOverflow) {
 
   EXPECT_GE(GetRecordsCount(), 1) << "Nothing was logged";
   EXPECT_LT(GetRecordsCount(), kLoggingTestIterations) << "Nothing was skipped";
+
+  EXPECT_EQ(GetMetric("total"), 400);
+  EXPECT_EQ(GetMetric("dropped"), 398);
+  EXPECT_EQ(GetMetric("by_level", {"level", "info"}), 400);
+  EXPECT_EQ(GetMetric("by_level", {"level", "debug"}), 0);
+  EXPECT_EQ(GetMetric("by_level", {"level", "warning"}), 0);
+  EXPECT_EQ(GetMetric("by_level", {"level", "critical"}), 0);
+  EXPECT_EQ(GetMetric("by_level", {"level", "error"}), 0);
+  EXPECT_EQ(GetMetric("by_level", {"level", "trace"}), 0);
 }
 
 UTEST_F(LoggingTestCoro, TpLoggerBasicAsyncOverflowCancelled) {
@@ -368,6 +509,15 @@ UTEST_F(LoggingTestCoro, TpLoggerBasicAsyncOverflowCancelled) {
 
   EXPECT_GE(GetRecordsCount(), 1) << "Nothing was logged";
   EXPECT_LT(GetRecordsCount(), kLoggingTestIterations) << "Nothing was skipped";
+
+  EXPECT_EQ(GetMetric("total"), 400);
+  EXPECT_EQ(GetMetric("dropped"), 398);
+  EXPECT_EQ(GetMetric("by_level", {"level", "info"}), 400);
+  EXPECT_EQ(GetMetric("by_level", {"level", "debug"}), 0);
+  EXPECT_EQ(GetMetric("by_level", {"level", "warning"}), 0);
+  EXPECT_EQ(GetMetric("by_level", {"level", "critical"}), 0);
+  EXPECT_EQ(GetMetric("by_level", {"level", "error"}), 0);
+  EXPECT_EQ(GetMetric("by_level", {"level", "trace"}), 0);
 }
 
 UTEST_F(LoggingTestCoro, TpLoggerBasicAsyncOverflowFlushCancelled) {

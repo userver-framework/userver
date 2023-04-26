@@ -12,6 +12,8 @@
 #include <userver/os_signals/component.hpp>
 
 #include <userver/utils/periodic_task.hpp>
+#include <userver/utils/statistics/entry.hpp>
+#include <userver/utils/statistics/writer.hpp>
 
 #include "logger.hpp"
 
@@ -99,6 +101,8 @@ class Logging final : public impl::ComponentBase {
   void OnLogRotate();
   void TryReopenFiles();
 
+  void WriteStatistics(utils::statistics::Writer& writer) const;
+
   static yaml_config::Schema GetStaticConfigSchema();
 
  private:
@@ -116,6 +120,7 @@ class Logging final : public impl::ComponentBase {
   utils::PeriodicTask flush_task_;
   std::shared_ptr<logging::impl::TcpSocketSink> socket_sink_;
   os_signals::Subscriber signal_subscriber_;
+  utils::statistics::Entry statistics_holder_;
 };
 
 template <>

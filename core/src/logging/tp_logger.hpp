@@ -10,6 +10,8 @@
 #include <userver/logging/format.hpp>
 #include <userver/logging/impl/logger_base.hpp>
 
+#include <logging/statistics/log_stats.hpp>
+
 #include "config.hpp"
 
 namespace spdlog::sinks {
@@ -65,6 +67,8 @@ class TpLogger final : public LoggerBase {
 
   std::string_view GetLoggerName() const noexcept;
 
+  statistics::LogStatistics& GetStatistics() noexcept;
+
  private:
   using Queue = concurrent::NonFifoMpmcQueue<impl::async::Action>;
 
@@ -85,6 +89,7 @@ class TpLogger final : public LoggerBase {
   mutable std::atomic<std::size_t> pending_async_ops_{0};
   LoggerConfig::QueueOverflowBehavior overflow_policy_{};
   std::vector<impl::SinkPtr> sinks_;
+  mutable statistics::LogStatistics stats_{};
 };
 
 }  // namespace logging::impl
