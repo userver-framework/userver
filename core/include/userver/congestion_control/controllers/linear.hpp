@@ -5,6 +5,7 @@
 #include <userver/congestion_control/controllers/v2.hpp>
 #include <userver/congestion_control/limiter.hpp>
 #include <userver/utils/periodic_task.hpp>
+#include <userver/utils/smoothed_value.hpp>
 #include <userver/yaml_config/yaml_config.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -25,6 +26,7 @@ class LinearController final : public Controller {
 
  private:
   StaticConfig config_;
+  utils::SmoothedValue<int64_t> current_load_;
   std::optional<size_t> current_limit_;
 };
 

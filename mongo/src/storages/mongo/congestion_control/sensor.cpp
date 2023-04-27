@@ -43,7 +43,7 @@ Sensor::Data Sensor::GetCurrent() {
   auto timeout_rate = static_cast<double>(diff_timeouts) / diff_total;
   LOG_DEBUG() << "timeout rate = " << timeout_rate;
 
-  auto current_load = pool_.InUseApprox();
+  auto current_load = pool_.SizeApprox();
   return {diff_total, diff_timeouts, current_load};
 }
 

@@ -35,6 +35,10 @@ void Controller::Step() {
     LOG_ERROR() << fmt::format(
         "Congestion Control {} is active, sensor ({}), limiter ({})", name_,
         current.ToLogString(), limit.ToLogString());
+  } else {
+    LOG_TRACE() << fmt::format(
+        "Congestion Control {} is not active, sensor ({})", name_,
+        current.ToLogString());
   }
 
   if (limit.load_limit.has_value()) stats_.enabled_epochs++;

@@ -16,7 +16,7 @@ PoolImpl::PoolImpl(std::string&& id, const PoolConfig& static_config,
       config_source_(config_source),
       cc_sensor_(*this),
       cc_limiter_(*this),
-      cc_controller_("mongo" + id_, cc_sensor_, cc_limiter_,
+      cc_controller_(id_, cc_sensor_, cc_limiter_,
                      statistics_.congestion_control, static_config.cc_config) {
   if (kCcExperiment.IsEnabled()) {
     cc_controller_.Start();

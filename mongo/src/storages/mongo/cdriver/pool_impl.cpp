@@ -285,7 +285,17 @@ mongoc_client_t* CDriverPoolImpl::Pop() {
 
 void CDriverPoolImpl::Push(mongoc_client_t* client) noexcept {
   UASSERT(client);
-  if (!queue_.bounded_push(client)) Drop(client);
+  if (SizeApprox() > MaxSize()) {
+    /*
+     * We might get many connections, and after that make the max_size lower
+     * (e.g. due to congestion control). In this case extra connections must be
+     * dropped.
+     */
+    Drop(client);
+    client = nullptr;
+  }
+  if (client && !queue_.bounded_push(client)) Drop(client);
+
   in_use_semaphore_.unlock_shared();
 }
 
