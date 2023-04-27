@@ -488,8 +488,10 @@ ResultSet PGConnectionWrapper::WaitResult(Deadline deadline,
   Flush(deadline);
   auto handle = MakeResultHandle(nullptr);
   ConsumeInput(deadline);
+  auto null_counter{0};
   do {
     while (auto* pg_res = PQXgetResult(conn_)) {
+      null_counter = 0;
       if (handle && !is_syncing_pipeline_) {
         // TODO Decide about the severity of this situation
         PGCW_LOG_LIMITED_INFO()
@@ -511,6 +513,15 @@ ResultSet PGConnectionWrapper::WaitResult(Deadline deadline,
       }
 #endif
       handle = std::move(next_handle);
+    }
+    if (++null_counter > 1) {
+      logging::LogExtra conn_extra;
+      conn_extra.Extend("conn_status", PQstatus(conn_));
+      conn_extra.Extend("transaction_status", PQtransactionStatus(conn_));
+      conn_extra.Extend("is_syncing_pipeline", is_syncing_pipeline_);
+      PGCW_LOG_LIMITED_WARNING()
+          << conn_extra << "PQXgetResult unexpectedly returned nothing";
+      is_syncing_pipeline_ = false;
     }
   } while (is_syncing_pipeline_ && PQstatus(conn_) != CONNECTION_BAD);
 
