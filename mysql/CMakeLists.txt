@@ -65,4 +65,6 @@ if (USERVER_IS_THE_ROOT_PROJECT)
   target_link_libraries(${PROJECT_NAME}_benchmark PRIVATE userver-ubench ${PROJECT_NAME}
           mariadb
     )
+
+  add_subdirectory(functional_tests)
 endif()

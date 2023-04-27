@@ -17,10 +17,9 @@ constexpr std::size_t kMaxSimultaneouslyConnectingClients{5};
 
 constexpr std::chrono::milliseconds kConnectionSetupTimeout{2000};
 
-constexpr std::chrono::milliseconds kPoolSizeMonitorInterval{51000};
+constexpr std::chrono::milliseconds kPoolSizeMonitorInterval{2000};
 
-// TODO : think about these values
-constexpr std::chrono::milliseconds kPingerInterval{51330};
+constexpr std::chrono::milliseconds kPingerInterval{1000};
 constexpr std::chrono::milliseconds kPingTimeout{200};
 
 }  // namespace
