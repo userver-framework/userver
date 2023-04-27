@@ -195,6 +195,10 @@ bool HttpRequestImpl::HasHeader(const std::string& header_name) const {
 
 size_t HttpRequestImpl::HeaderCount() const { return headers_.size(); }
 
+void HttpRequestImpl::RemoveHeader(const std::string& header_name) {
+  headers_.erase(header_name);
+}
+
 HttpRequest::HeadersMapKeys HttpRequestImpl::GetHeaderNames() const {
   return HttpRequest::HeadersMapKeys{headers_};
 }

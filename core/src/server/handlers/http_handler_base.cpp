@@ -724,6 +724,7 @@ void HttpHandlerBase::DecompressRequestBody(
   if (!http_request.IsBodyCompressed()) return;
 
   const auto& content_encoding = http_request.GetHeader("Content-Encoding");
+  http_request.RemoveHeader("Content-Encoding");
 
   try {
     if (content_encoding == "gzip") {

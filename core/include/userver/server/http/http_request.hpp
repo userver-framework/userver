@@ -146,6 +146,8 @@ class HttpRequest final {
   /// @return List of headers names.
   HeadersMapKeys GetHeaderNames() const;
 
+  void RemoveHeader(const std::string& header_name);
+
   /// @return Value of the cookie with case sensitive name cookie_name, or an
   /// empty string if no such cookie exists.
   const std::string& GetCookie(const std::string& cookie_name) const;

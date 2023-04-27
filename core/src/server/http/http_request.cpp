@@ -120,6 +120,10 @@ HttpRequest::HeadersMapKeys HttpRequest::GetHeaderNames() const {
   return impl_.GetHeaderNames();
 }
 
+void HttpRequest::RemoveHeader(const std::string& header_name) {
+  impl_.RemoveHeader(header_name);
+}
+
 const std::string& HttpRequest::GetCookie(
     const std::string& cookie_name) const {
   return impl_.GetCookie(cookie_name);
