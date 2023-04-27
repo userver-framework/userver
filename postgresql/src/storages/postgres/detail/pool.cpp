@@ -1,5 +1,6 @@
 #include <storages/postgres/detail/pool.hpp>
 
+#include <storages/postgres/deadline.hpp>
 #include <storages/postgres/detail/statement_timings_storage.hpp>
 
 #include <userver/engine/async.hpp>
@@ -69,7 +70,8 @@ ConnectionPool::ConnectionPool(
     const DefaultCommandControls& default_cmd_ctls,
     const testsuite::PostgresControl& testsuite_pg_ctl,
     error_injection::Settings ei_settings,
-    const congestion_control::v2::LinearController::StaticConfig& cc_config)
+    const congestion_control::v2::LinearController::StaticConfig& cc_config,
+    dynamic_config::Source config_source)
     : dsn_{std::move(dsn)},
       resolver_{resolver},
       db_name_{db_name},
@@ -88,6 +90,7 @@ ConnectionPool::ConnectionPool(
       cancel_limit_{std::max(std::size_t{1}, settings.max_size / kCancelRatio),
                     {1, kCancelPeriod}},
       sts_{statement_metrics_settings},
+      config_source_(config_source),
       cc_sensor_(*this),
       cc_limiter_(*this),
       cc_controller_("postgres" + db_name, cc_sensor_, cc_limiter_,
@@ -112,14 +115,17 @@ std::shared_ptr<ConnectionPool> ConnectionPool::Create(
     const DefaultCommandControls& default_cmd_ctls,
     const testsuite::PostgresControl& testsuite_pg_ctl,
     error_injection::Settings ei_settings,
-    const congestion_control::v2::LinearController::StaticConfig& cc_config) {
+    const congestion_control::v2::LinearController::StaticConfig& cc_config,
+    dynamic_config::Source config_source) {
   // FP?: pointer magic in boost.lockfree
   // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks)
   auto impl = std::make_shared<ConnectionPool>(
       EmplaceEnabler{}, std::move(dsn), resolver, bg_task_processor, db_name,
       pool_settings, conn_settings, statement_metrics_settings,
-      default_cmd_ctls, testsuite_pg_ctl, std::move(ei_settings), cc_config);
-  // Init() uses shared_from_this for connections and cannot be called from ctor
+      default_cmd_ctls, testsuite_pg_ctl, std::move(ei_settings), cc_config,
+      config_source);
+  // Init() uses shared_from_this for connections and cannot be called from
+  // ctor
   impl->Init(init_mode);
   return impl;
 }
@@ -184,7 +190,12 @@ void ConnectionPool::Init(InitMode mode) {
 ConnectionPtr ConnectionPool::Acquire(engine::Deadline deadline) {
   // Obtain smart pointer first to prolong lifetime of this object
   auto shared_this = shared_from_this();
+
+  auto config = GetConfigSource().GetSnapshot();
+  CheckDeadlineIsExpired(config);
   ConnectionPtr connection{Pop(deadline), std::move(shared_this)};
+  CheckDeadlineIsExpired(config);
+
   ++stats_.connection.used;
   connection->UpdateDefaultCommandControl();
   return connection;
@@ -250,8 +261,8 @@ void ConnectionPool::Release(Connection* connection) {
   if (!connection->IsConnected()) {
     DeleteBrokenConnection(connection);
   } else {
-    // Connection cleanup is done asynchronously while returning control to the
-    // user
+    // Connection cleanup is done asynchronously while returning control to
+    // the user
     close_task_storage_.Detach(engine::CriticalAsyncNoSpan(
         [this, connection, dec_cnt = std::move(dg)] {
           LOG_LIMITED_WARNING()
@@ -342,6 +353,10 @@ void ConnectionPool::SetStatementMetricsSettings(
 
 void ConnectionPool::SetMaxConnectionsCc(std::size_t max_connections) {
   cc_max_connections_ = max_connections;
+}
+
+dynamic_config::Source ConnectionPool::GetConfigSource() const {
+  return config_source_;
 }
 
 engine::TaskWithResult<bool> ConnectionPool::Connect() {
@@ -587,9 +602,10 @@ void ConnectionPool::MaintainConnections() {
         // Close synchronously
         conn->Close();
       } else {
-        // Cannot use ConnectionPtr here as we must not use shared_from_this()
-        // here (this would prolong pool's lifetime and can cause a deadlock on
-        // the periodic task). But we can be sure that `this` outlives the task.
+        // Cannot use ConnectionPtr here as we must not use
+        // shared_from_this() here (this would prolong pool's lifetime and
+        // can cause a deadlock on the periodic task). But we can be sure
+        // that `this` outlives the task.
         const auto releaser = [this](Connection* c) { Release(c); };
         std::unique_ptr<Connection, decltype(releaser)> capture(conn.release(),
                                                                 releaser);

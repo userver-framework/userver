@@ -110,6 +110,9 @@ if (USERVER_IS_THE_ROOT_PROJECT)
   target_include_directories (${PROJECT_NAME}_pgtest PRIVATE
       $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>
   )
+  target_compile_definitions(${PROJECT_NAME}_pgtest PRIVATE
+      DEFAULT_DYNAMIC_CONFIG_FILENAME="${CMAKE_CURRENT_SOURCE_DIR}/tests/dynamic_config_fallback.json"
+  )
   target_link_libraries(${PROJECT_NAME}_pgtest userver-utest ${PROJECT_NAME})
   add_test(NAME ${PROJECT_NAME}_pgtest COMMAND env
       POSTGRES_TEST_DSN=postgresql://testsuite@localhost:15433/postgres

@@ -8,6 +8,9 @@ namespace storages::postgres {
 
 extern USERVER_NAMESPACE::utils::impl::UserverExperiment kPipelineExperiment;
 
+extern USERVER_NAMESPACE::utils::impl::UserverExperiment
+    kDeadlinePropagationExperiment;
+
 }  // namespace storages::postgres
 
 USERVER_NAMESPACE_END

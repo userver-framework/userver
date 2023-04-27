@@ -6,7 +6,7 @@
 
 #include <storages/postgres/detail/connection.hpp>
 #include <storages/postgres/postgres_config.hpp>
-#include <userver/dynamic_config/storage_mock.hpp>
+#include <userver/dynamic_config/test_helpers.hpp>
 #include <userver/storages/postgres/cluster.hpp>
 #include <userver/storages/postgres/dsn.hpp>
 #include <userver/storages/postgres/exceptions.hpp>
@@ -42,18 +42,11 @@ void CheckRwTransaction(pg::Transaction trx) {
   CheckTransaction(std::move(trx), CheckTxnType::kRw);
 }
 
-dynamic_config::StorageMock MakeDynamicConfig() {
-  return dynamic_config::StorageMock{
-      {storages::postgres::kConnlimitConfig, {false}},
-  };
-}
-
 pg::Cluster CreateCluster(
     const pg::DsnList& dsns, engine::TaskProcessor& bg_task_processor,
     size_t max_size, testsuite::TestsuiteTasks& testsuite_tasks,
     pg::ConnectionSettings conn_settings = kCachePreparedStatements) {
-  auto config = MakeDynamicConfig();
-  auto source = config.GetSource();
+  auto source = dynamic_config::GetDefaultSource();
   return pg::Cluster(dsns, nullptr, bg_task_processor,
                      {{},
                       {utest::kMaxTestWaitTime},

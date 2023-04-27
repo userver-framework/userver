@@ -8,6 +8,7 @@
 
 #include <userver/clients/dns/resolver_fwd.hpp>
 #include <userver/concurrent/background_task_storage.hpp>
+#include <userver/dynamic_config/source.hpp>
 #include <userver/engine/condition_variable.hpp>
 #include <userver/engine/semaphore.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
@@ -49,7 +50,8 @@ class ConnectionPool : public std::enable_shared_from_this<ConnectionPool> {
       const DefaultCommandControls& default_cmd_ctls,
       const testsuite::PostgresControl& testsuite_pg_ctl,
       error_injection::Settings ei_settings,
-      const congestion_control::v2::LinearController::StaticConfig& cc_config);
+      const congestion_control::v2::LinearController::StaticConfig& cc_config,
+      dynamic_config::Source config_source);
 
   ~ConnectionPool();
 
@@ -62,7 +64,8 @@ class ConnectionPool : public std::enable_shared_from_this<ConnectionPool> {
       const DefaultCommandControls& default_cmd_ctls,
       const testsuite::PostgresControl& testsuite_pg_ctl,
       error_injection::Settings ei_settings,
-      const congestion_control::v2::LinearController::StaticConfig& cc_config);
+      const congestion_control::v2::LinearController::StaticConfig& cc_config,
+      dynamic_config::Source config_source);
 
   [[nodiscard]] ConnectionPtr Acquire(engine::Deadline);
   void Release(Connection* connection);
@@ -86,6 +89,8 @@ class ConnectionPool : public std::enable_shared_from_this<ConnectionPool> {
   }
 
   void SetMaxConnectionsCc(std::size_t max_connections);
+
+  dynamic_config::Source GetConfigSource() const;
 
  private:
   using SizeGuard = USERVER_NAMESPACE::utils::SizeGuard<std::atomic<size_t>>;
@@ -142,6 +147,7 @@ class ConnectionPool : public std::enable_shared_from_this<ConnectionPool> {
   RecentCounter recent_conn_errors_;
   USERVER_NAMESPACE::utils::TokenBucket cancel_limit_;
   detail::StatementTimingsStorage sts_;
+  dynamic_config::Source config_source_;
 
   // Congestion control stuff
   cc::Sensor cc_sensor_;

@@ -8,6 +8,8 @@
 
 #include <storages/postgres/detail/connection.hpp>
 #include <storages/postgres/detail/pool.hpp>
+#include <storages/postgres/postgres_config.hpp>
+#include <userver/dynamic_config/test_helpers.hpp>
 #include <userver/storages/postgres/dsn.hpp>
 #include <userver/storages/postgres/exceptions.hpp>
 
@@ -49,7 +51,8 @@ class PostgrePool : public PostgreSQLBase,
 UTEST_P(PostgrePool, ConnectionPool) {
   auto pool = pg::detail::ConnectionPool::Create(
       GetDsnFromEnv(), nullptr, GetTaskProcessor(), "", GetParam(), {1, 10, 10},
-      kCachePreparedStatements, {}, GetTestCmdCtls(), {}, {}, {});
+      kCachePreparedStatements, {}, GetTestCmdCtls(), {}, {}, {},
+      dynamic_config::GetDefaultSource());
   pg::detail::ConnectionPtr conn(nullptr);
 
   UASSERT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
@@ -60,7 +63,8 @@ UTEST_P(PostgrePool, ConnectionPool) {
 UTEST_P(PostgrePool, ConnectionPoolInitiallyEmpty) {
   auto pool = pg::detail::ConnectionPool::Create(
       GetDsnFromEnv(), nullptr, GetTaskProcessor(), "", GetParam(), {0, 1, 10},
-      kCachePreparedStatements, {}, GetTestCmdCtls(), {}, {}, {});
+      kCachePreparedStatements, {}, GetTestCmdCtls(), {}, {}, {},
+      dynamic_config::GetDefaultSource());
   pg::detail::ConnectionPtr conn(nullptr);
 
   UASSERT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
@@ -71,7 +75,8 @@ UTEST_P(PostgrePool, ConnectionPoolInitiallyEmpty) {
 UTEST_P(PostgrePool, ConnectionPoolReachedMaxSize) {
   auto pool = pg::detail::ConnectionPool::Create(
       GetDsnFromEnv(), nullptr, GetTaskProcessor(), "", GetParam(), {1, 1, 10},
-      kCachePreparedStatements, {}, GetTestCmdCtls(), {}, {}, {});
+      kCachePreparedStatements, {}, GetTestCmdCtls(), {}, {}, {},
+      dynamic_config::GetDefaultSource());
   pg::detail::ConnectionPtr conn(nullptr);
 
   UASSERT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
@@ -86,7 +91,8 @@ UTEST_P(PostgrePool, ConnectionPoolReachedMaxSize) {
 UTEST_P(PostgrePool, BlockWaitingOnAvailableConnection) {
   auto pool = pg::detail::ConnectionPool::Create(
       GetDsnFromEnv(), nullptr, GetTaskProcessor(), "", GetParam(), {1, 1, 10},
-      kCachePreparedStatements, {}, GetTestCmdCtls(), {}, {}, {});
+      kCachePreparedStatements, {}, GetTestCmdCtls(), {}, {}, {},
+      dynamic_config::GetDefaultSource());
   pg::detail::ConnectionPtr conn(nullptr);
 
   UASSERT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
@@ -108,11 +114,12 @@ UTEST_P(PostgrePool, BlockWaitingOnAvailableConnection) {
 }
 
 UTEST_P(PostgrePool, PoolInitialSizeExceedMaxSize) {
-  UEXPECT_THROW(pg::detail::ConnectionPool::Create(
-                    GetDsnFromEnv(), nullptr, GetTaskProcessor(), "",
-                    GetParam(), {2, 1, 10}, kCachePreparedStatements, {},
-                    GetTestCmdCtls(), {}, {}, {}),
-                pg::InvalidConfig)
+  UEXPECT_THROW(
+      pg::detail::ConnectionPool::Create(
+          GetDsnFromEnv(), nullptr, GetTaskProcessor(), "", GetParam(),
+          {2, 1, 10}, kCachePreparedStatements, {}, GetTestCmdCtls(), {}, {},
+          {}, dynamic_config::GetDefaultSource()),
+      pg::InvalidConfig)
       << "Pool reached max size";
 }
 
@@ -121,7 +128,8 @@ UTEST_P(PostgrePool, PoolServerUnavailable) {
   UASSERT_NO_THROW(pool = pg::detail::ConnectionPool::Create(
                        GetUnavailableDsn(), nullptr, GetTaskProcessor(), "",
                        GetParam(), {1, 10, 10}, kCachePreparedStatements, {},
-                       GetTestCmdCtls(), {}, {}, {}));
+                       GetTestCmdCtls(), {}, {}, {},
+                       dynamic_config::GetDefaultSource()));
   UEXPECT_THROW(pg::detail::ConnectionPtr conn = pool->Acquire(MakeDeadline()),
                 pg::PoolError)
       << "Empty pool";
@@ -134,7 +142,8 @@ UTEST_P(PostgrePool, PoolServerUnavailable) {
 UTEST_P(PostgrePool, PoolTransaction) {
   auto pool = pg::detail::ConnectionPool::Create(
       GetDsnFromEnv(), nullptr, GetTaskProcessor(), "", GetParam(), {1, 10, 10},
-      kCachePreparedStatements, {}, GetTestCmdCtls(), {}, {}, {});
+      kCachePreparedStatements, {}, GetTestCmdCtls(), {}, {}, {},
+      dynamic_config::GetDefaultSource());
   PoolTransaction(pool);
 }
 
@@ -142,7 +151,8 @@ UTEST_P(PostgrePool, PoolAliveIfConnectionExists) {
   auto pool = pg::detail::ConnectionPool::Create(
       GetDsnFromEnv(), nullptr, GetTaskProcessor(), "", GetParam(), {1, 1, 10},
       kCachePreparedStatements, {}, GetTestCmdCtls(),
-      testsuite::PostgresControl{}, error_injection::Settings{}, {});
+      testsuite::PostgresControl{}, error_injection::Settings{}, {},
+      dynamic_config::GetDefaultSource());
   pg::detail::ConnectionPtr conn(nullptr);
 
   UASSERT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
@@ -155,7 +165,8 @@ UTEST_P(PostgrePool, ConnectionPtrWorks) {
   auto pool = pg::detail::ConnectionPool::Create(
       GetDsnFromEnv(), nullptr, GetTaskProcessor(), "", GetParam(), {2, 2, 10},
       kCachePreparedStatements, {}, GetTestCmdCtls(),
-      testsuite::PostgresControl{}, error_injection::Settings{}, {});
+      testsuite::PostgresControl{}, error_injection::Settings{}, {},
+      dynamic_config::GetDefaultSource());
   pg::detail::ConnectionPtr conn(nullptr);
 
   UASSERT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
@@ -182,7 +193,8 @@ UTEST_P(PostgrePool, MinPool) {
   auto pool = pg::detail::ConnectionPool::Create(
       GetDsnFromEnv(), nullptr, GetTaskProcessor(), "", GetParam(), {1, 1, 10},
       kCachePreparedStatements, {}, GetTestCmdCtls(),
-      testsuite::PostgresControl{}, error_injection::Settings{}, {});
+      testsuite::PostgresControl{}, error_injection::Settings{}, {},
+      dynamic_config::GetDefaultSource());
   const auto& stats = pool->GetStatistics();
   EXPECT_EQ(GetParam() == pg::InitMode::kAsync ? 0 : 1,
             stats.connection.open_total);
@@ -199,7 +211,8 @@ UTEST_P(PostgrePool, ConnectionCleanup) {
           pg::CommandControl{std::chrono::milliseconds{100},
                              std::chrono::seconds{1}},
           {}, {}),
-      testsuite::PostgresControl{}, error_injection::Settings{}, {});
+      testsuite::PostgresControl{}, error_injection::Settings{}, {},
+      dynamic_config::GetDefaultSource());
 
   {
     const auto& stats = pool->GetStatistics();
@@ -239,7 +252,8 @@ UTEST_P(PostgrePool, QueryCancel) {
           pg::CommandControl{std::chrono::milliseconds{100},
                              std::chrono::milliseconds{10}},
           {}, {}),
-      testsuite::PostgresControl{}, error_injection::Settings{}, {});
+      testsuite::PostgresControl{}, error_injection::Settings{}, {},
+      dynamic_config::GetDefaultSource());
   {
     pg::Transaction trx{pg::detail::ConnectionPtr(nullptr)};
     UEXPECT_NO_THROW(trx = pool->Begin({})) << "Start transaction in a pool";
@@ -261,7 +275,8 @@ UTEST_P(PostgrePool, QueryCancel) {
 UTEST_P(PostgrePool, SetConnectionSettings) {
   auto pool = pg::detail::ConnectionPool::Create(
       GetDsnFromEnv(), nullptr, GetTaskProcessor(), "", GetParam(), {1, 1, 10},
-      kCachePreparedStatements, {}, GetTestCmdCtls(), {}, {}, {});
+      kCachePreparedStatements, {}, GetTestCmdCtls(), {}, {}, {},
+      dynamic_config::GetDefaultSource());
   pg::detail::ConnectionPtr conn(nullptr);
 
   UASSERT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
@@ -291,7 +306,8 @@ UTEST_P(PostgrePool, DefaultCmdCtl) {
 
   auto pool = pg::detail::ConnectionPool::Create(
       GetDsnFromEnv(), nullptr, GetTaskProcessor(), "", GetParam(), {1, 1, 10},
-      kCachePreparedStatements, {}, default_cmd_ctls, {}, {}, {});
+      kCachePreparedStatements, {}, default_cmd_ctls, {}, {}, {},
+      dynamic_config::GetDefaultSource());
 
   EXPECT_EQ(kTestCmdCtl, pool->GetDefaultCommandControl());
 

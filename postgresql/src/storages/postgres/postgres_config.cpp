@@ -156,6 +156,10 @@ ConnlimitConfig ParseConnlimitConfig(const dynamic_config::DocsMap& docs_map) {
   return {docs_map.Get("POSTGRES_CONNLIMIT_MODE_AUTO_ENABLED").As<bool>()};
 }
 
+bool ParseDeadlinePropagation(const dynamic_config::DocsMap& docs_map) {
+  return docs_map.Get("POSTGRES_DEADLINE_PROPAGATION_ENABLED").As<bool>(false);
+}
+
 }  // namespace storages::postgres
 
 USERVER_NAMESPACE_END

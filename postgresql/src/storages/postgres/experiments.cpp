@@ -7,6 +7,9 @@ namespace storages::postgres {
 USERVER_NAMESPACE::utils::impl::UserverExperiment kPipelineExperiment(
     "pg-connection-pipeline-enabled");
 
+USERVER_NAMESPACE::utils::impl::UserverExperiment
+    kDeadlinePropagationExperiment("pg-deadline-propagation", true);
+
 }  // namespace storages::postgres
 
 USERVER_NAMESPACE_END

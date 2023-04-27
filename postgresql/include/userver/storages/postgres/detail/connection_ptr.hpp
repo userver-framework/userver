@@ -2,6 +2,9 @@
 
 #include <cstddef>
 #include <memory>
+#include <optional>
+
+#include <userver/dynamic_config/source.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -29,6 +32,7 @@ class ConnectionPtr {
   Connection* operator->() const noexcept;
 
   const StatementTimingsStorage* GetStatementTimingsStorage() const;
+  std::optional<dynamic_config::Source> GetConfigSource() const;
 
  private:
   void Reset(std::unique_ptr<Connection> conn,
