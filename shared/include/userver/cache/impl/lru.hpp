@@ -124,6 +124,8 @@ class LruBase final {
 
   U* GetLeastUsedValue();
 
+  NodeType ExtractLeastUsedNode();
+
   void SetMaxSize(size_t new_max_size);
 
   void Clear() noexcept;
@@ -244,6 +246,13 @@ template <typename T, typename U, typename Hash, typename Eq>
 U* LruBase<T, U, Hash, Eq>::GetLeastUsedValue() {
   if (list_.empty()) return nullptr;
   return &list_.front().GetValue();
+}
+
+template <typename T, typename U, typename Hash, typename Eq>
+typename LruBase<T, U, Hash, Eq>::NodeType
+LruBase<T, U, Hash, Eq>::ExtractLeastUsedNode() {
+  if (list_.empty()) return std::unique_ptr<LruNode<T, U>>();
+  return ExtractNode(list_.begin());
 }
 
 template <typename T, typename U, typename Hash, typename Eq>
