@@ -199,11 +199,14 @@ void ValueBuilder::Resize(std::size_t size) {
 
   if (native.IsNull()) native.SetArray();
 
-  if (size > native.Capacity()) {
-    native.Reserve(size, g_allocator);
-    value_.OnMembersChange();
-  }
+  const auto old_capacity = native.Capacity();
 
+  if (size > old_capacity) {
+    native.Reserve(size, g_allocator);
+    if (old_capacity) {
+      value_.OnMembersChange();
+    }
+  }
   for (size_t curr_size = native.Size(); curr_size > size; --curr_size) {
     native.PopBack();
   }

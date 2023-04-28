@@ -124,6 +124,19 @@ TEST(JsonValueBuilder, ExampleCustomization) {
   ASSERT_EQ(json["example"]["field2"].As<int>(), 1);
 }
 
+TEST(JsonValueBuilder, Resize) {
+  formats::json::ValueBuilder builder;
+  constexpr std::size_t new_size = 10;
+  builder.Resize(new_size);
+  for (std::size_t i = 0; i < new_size; ++i) {
+    builder[i] = i;
+  }
+  const auto value = builder.ExtractValue();
+  for (std::size_t i = 0; i < new_size; ++i) {
+    EXPECT_EQ(i, value[i].As<std::size_t>());
+  }
+}
+
 }  // namespace my_namespace
 
 /// [Sample Customization formats::json::ValueBuilder usage]
