@@ -313,7 +313,9 @@ void HttpRequestConstructor::AccountRequestSize(size_t size) {
     utils::LogErrorAndThrow(
         "request is too large, " + std::to_string(request_size_) + ">" +
         std::to_string(config_.max_request_size) +
-        " (enforced by 'max_request_size' handler limit in config.yaml)");
+        " (enforced by 'max_request_size' handler limit in config.yaml)" +
+        ", url: " + (url_parsed_ ? request_->GetUrl() : "not parsed yet") +
+        ", added size " + std::to_string(size));
   }
 }
 
@@ -336,7 +338,9 @@ void HttpRequestConstructor::AccountHeadersSize(size_t size) {
                             std::to_string(headers_size_) + ">" +
                             std::to_string(config_.max_headers_size) +
                             " (enforced by 'max_headers_size' handler limit in "
-                            "config.yaml)");
+                            "config.yaml)" +
+                            ", url: " + request_->GetUrl() + ", added size " +
+                            std::to_string(size));
   }
 }
 
