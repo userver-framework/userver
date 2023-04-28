@@ -11,7 +11,7 @@
     "cancel-request": false,
     "update-timeout": false
   },
-  "MONGO_DEADLINE_PROPAGATION_ENABLED": false,
+  "MONGO_DEADLINE_PROPAGATION_ENABLED_V2": true,
   "MONGO_DEFAULT_MAX_TIME_MS": 0,
   "USERVER_BAGGAGE_ENABLED": false,
   "USERVER_CACHES": {},

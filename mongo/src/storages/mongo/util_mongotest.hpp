@@ -9,6 +9,7 @@
 
 #include <userver/clients/dns/resolver.hpp>
 #include <userver/dynamic_config/storage_mock.hpp>
+#include <userver/utils/impl/userver_experiments.hpp>
 
 #include <userver/storages/mongo/pool.hpp>
 #include <userver/storages/mongo/pool_config.hpp>
@@ -39,6 +40,7 @@ class MongoPoolFixture : public ::testing::Test {
   void SetDynamicConfig(const std::vector<dynamic_config::KeyValue>& config);
 
  private:
+  utils::impl::UserverExperimentsScope experiments_;
   clients::dns::Resolver default_resolver_;
   dynamic_config::StorageMock dynamic_config_storage_;
   std::unordered_set<std::string> used_db_names_;

@@ -95,6 +95,9 @@ void UserverExperimentsScope::EnableOnly(
   }
 }
 
+UserverExperiment kMongoDeadlinePropagationExperiment{
+    "mongo-deadline-propagation"};
+
 }  // namespace utils::impl
 
 USERVER_NAMESPACE_END

@@ -64,8 +64,6 @@ UTEST_F(DeadlinePropagation, PoolOverloadDeadlinePropagation) {
   // Cursor holds the only available connection.
   auto cursor = coll.Find(bson::MakeDoc("foo", 42));
 
-  SetDynamicConfig({{mongo::kDeadlinePropagationEnabled, true}});
-
   server::request::kTaskInheritedData.Set(
       MakeRequestData(engine::Deadline::FromDuration(500ms)));
 
@@ -78,8 +76,6 @@ UTEST_F(DeadlinePropagation, PoolOverloadDeadlinePropagation) {
 UTEST_F(DeadlinePropagation, CancelledByDeadline) {
   auto coll = GetDefaultPool().GetCollection("dp");
 
-  SetDynamicConfig({{mongo::kDeadlinePropagationEnabled, true}});
-
   server::request::kTaskInheritedData.Set(
       MakeRequestData(engine::Deadline::FromDuration(-1s)));
 
@@ -89,8 +85,6 @@ UTEST_F(DeadlinePropagation, CancelledByDeadline) {
 
 UTEST_F(DeadlinePropagation, AlreadyCancelled) {
   auto coll = GetDefaultPool().GetCollection("dp");
-
-  SetDynamicConfig({{mongo::kDeadlinePropagationEnabled, true}});
 
   engine::current_task::GetCancellationToken().RequestCancel();
 

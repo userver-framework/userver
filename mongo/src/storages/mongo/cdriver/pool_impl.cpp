@@ -13,6 +13,7 @@
 #include <userver/tracing/span.hpp>
 #include <userver/tracing/tags.hpp>
 #include <userver/utils/assert.hpp>
+#include <userver/utils/impl/userver_experiments.hpp>
 #include <userver/utils/traceful_exception.hpp>
 
 #include <storages/mongo/cdriver/async_stream.hpp>
@@ -273,7 +274,8 @@ mongoc_client_t* CDriverPoolImpl::Pop() {
   std::optional<engine::Deadline::Duration> inherited_timeout{};
 
   const auto dynamic_config = GetConfig();
-  if (dynamic_config[kDeadlinePropagationEnabled]) {
+  if (utils::impl::kMongoDeadlinePropagationExperiment.IsEnabled() &&
+      dynamic_config[kDeadlinePropagationEnabled]) {
     HandleCancellations(queue_deadline, inherited_timeout);
   }
 

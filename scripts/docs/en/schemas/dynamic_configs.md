@@ -149,8 +149,8 @@ schema:
 Used by components::Mongo, components::MultiMongo.
 
 
-@anchor MONGO_DEADLINE_PROPAGATION_ENABLED
-## MONGO_DEADLINE_PROPAGATION_ENABLED
+@anchor MONGO_DEADLINE_PROPAGATION_ENABLED_V2
+## MONGO_DEADLINE_PROPAGATION_ENABLED_V2
 
 Dynamic config that controls whether task-inherited deadline is accounted for
 while executing mongodb queries.

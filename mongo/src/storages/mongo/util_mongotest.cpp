@@ -5,6 +5,7 @@
 #include <fmt/format.h>
 
 #include <userver/clients/dns/resolver.hpp>
+#include <userver/dynamic_config/test_helpers.hpp>
 #include <userver/engine/task/cancel.hpp>
 #include <userver/engine/task/task.hpp>
 #include <userver/logging/log.hpp>
@@ -57,15 +58,15 @@ clients::dns::Resolver MakeDnsResolver() {
 }
 
 dynamic_config::StorageMock MakeDynamicConfig() {
-  return dynamic_config::StorageMock{
-      {storages::mongo::kDefaultMaxTime, {}},
-      {storages::mongo::kDeadlinePropagationEnabled, false}};
+  return dynamic_config::MakeDefaultStorage({});
 }
 
 MongoPoolFixture::MongoPoolFixture()
     : default_resolver_(MakeDnsResolver()),
       dynamic_config_storage_(MakeDynamicConfig()),
-      default_pool_(MakePool({}, {})) {}
+      default_pool_(MakePool({}, {})) {
+  experiments_.Set(utils::impl::kMongoDeadlinePropagationExperiment, true);
+}
 
 MongoPoolFixture::~MongoPoolFixture() {
   const engine::TaskCancellationBlocker block_cancels;

@@ -10,6 +10,7 @@
 #include <userver/storages/mongo/mongo_error.hpp>
 #include <userver/tracing/span.hpp>
 #include <userver/utils/assert.hpp>
+#include <userver/utils/impl/userver_experiments.hpp>
 #include <userver/utils/text.hpp>
 
 #include <formats/bson/wrappers.hpp>
@@ -107,7 +108,8 @@ impl::cdriver::FindAndModifyOptsPtr CopyFindAndModifyOptions(
 
 std::optional<std::chrono::milliseconds> GetDeadlineTimeLeft(
     const dynamic_config::Snapshot& config) {
-  if (config[kDeadlinePropagationEnabled]) {
+  if (utils::impl::kMongoDeadlinePropagationExperiment.IsEnabled() &&
+      config[kDeadlinePropagationEnabled]) {
     const auto inherited_deadline = server::request::GetTaskInheritedDeadline();
     if (inherited_deadline.IsReachable()) {
       const auto inherited_timeout =

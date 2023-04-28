@@ -83,6 +83,9 @@ if (USERVER_IS_THE_ROOT_PROJECT)
     $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>
   )
   target_link_libraries(${PROJECT_NAME}_mongotest userver-utest ${PROJECT_NAME})
+  target_compile_definitions(${PROJECT_NAME}_mongotest PRIVATE
+      DEFAULT_DYNAMIC_CONFIG_FILENAME="${CMAKE_SOURCE_DIR}/mongo/tests/dynamic_config_fallback.json"
+  )
   add_test(NAME ${PROJECT_NAME}_mongotest COMMAND env
     ${CMAKE_BINARY_DIR}/testsuite/env
     --databases=mongo
