@@ -8,6 +8,7 @@
 #include <type_traits>
 
 #include <userver/utils/statistics/labels.hpp>
+#include <userver/utils/statistics/rate.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -102,7 +103,8 @@ class Writer final {
   /// function.
   template <class T>
   void operator=(const T& value) {
-    if constexpr (std::is_arithmetic_v<T>) {
+    if constexpr (std::is_arithmetic_v<T> ||
+                  std::is_same_v<std::decay_t<T>, Rate>) {
       Write(value);
     } else {
       if (state_) {
@@ -154,6 +156,7 @@ class Writer final {
   void Write(unsigned long long value);
   void Write(long long value);
   void Write(double value);
+  void Write(Rate value);
 
   void Write(float value) { Write(static_cast<double>(value)); }
 

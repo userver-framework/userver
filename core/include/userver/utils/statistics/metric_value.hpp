@@ -6,6 +6,8 @@
 #include <cstdint>
 #include <variant>
 
+#include <userver/utils/statistics/rate.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace utils::statistics {
@@ -14,7 +16,7 @@ namespace utils::statistics {
 /// allowed.
 class MetricValue final {
  public:
-  using RawType = std::variant<std::int64_t, double>;
+  using RawType = std::variant<std::int64_t, double, Rate>;
 
   MetricValue(const MetricValue&) = default;
   MetricValue& operator=(const MetricValue&) = default;
@@ -26,6 +28,13 @@ class MetricValue final {
   /// @brief Retrieve the value of a floating-point metric.
   /// @throws std::exception on type mismatch.
   double AsFloat() const { return std::get<double>(value_); }
+
+  /// @brief Retrieve the value of a Rate metric.
+  /// @throws std::exception on type mismatch.
+  Rate AsRate() const { return std::get<Rate>(value_); }
+
+  /// @brief Returns whether metric is Rate metric
+  bool IsRate() const noexcept { return std::holds_alternative<Rate>(value_); }
 
   /// @brief Calls @p visitor with either a `std::int64_t` or a `double` value.
   /// @returns Whatever @p visitor returns.

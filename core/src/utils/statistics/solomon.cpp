@@ -31,6 +31,11 @@ class SolomonJsonBuilder final : public utils::statistics::BaseFormatBuilder {
     DumpLabels(path, labels);
     builder_.Key("value");
     value.Visit([this](auto x) { WriteToStream(x, builder_); });
+
+    if (value.IsRate()) {
+      builder_.Key("type");
+      builder_.WriteString("RATE");
+    }
   }
 
   void AddCommonLabels(

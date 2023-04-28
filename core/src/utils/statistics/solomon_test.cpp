@@ -380,6 +380,23 @@ UTEST(MetricsSolomon, SimpleParentSkipped) {
   }
 }
 
+UTEST(MetricsSolomon, RateMetric) {
+  auto producer = [](Writer& writer) {
+    writer["rate-metric"] = Rate{5};
+    writer["dgauge-metric"] = 6;
+  };
+
+  utils::statistics::Storage statistics_storage;
+  auto statistics_holder =
+      statistics_storage.RegisterWriter("test_rate_metric", producer);
+
+  const auto* const expected = R"([
+    {"labels": {"sensor": "test_rate_metric.rate-metric"}, "value": 5, "type": "RATE"},
+    {"labels": {"sensor": "test_rate_metric.dgauge-metric"}, "value": 6}
+  ])";
+  TestToMetricsSolomon(statistics_storage, expected);
+}
+
 }  // namespace utils::statistics::impl
 
 USERVER_NAMESPACE_END

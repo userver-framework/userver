@@ -16,6 +16,7 @@
 #include <userver/utils/overloaded.hpp>
 #include <userver/utils/statistics/labels.hpp>
 #include <userver/utils/statistics/metric_value.hpp>
+#include <userver/utils/statistics/rate.hpp>
 
 template <>
 struct fmt::formatter<USERVER_NAMESPACE::utils::statistics::LabelView> {
@@ -51,12 +52,31 @@ struct fmt::formatter<USERVER_NAMESPACE::utils::statistics::LabelsSpan> {
 };
 
 template <>
+class fmt::formatter<USERVER_NAMESPACE::utils::statistics::Rate> {
+ public:
+  constexpr auto parse(format_parse_context& ctx) {
+    return rate_format_.parse(ctx);
+  }
+
+  template <typename FormatCtx>
+  auto format(const USERVER_NAMESPACE::utils::statistics::Rate& rate,
+              FormatCtx& ctx) {
+    return rate_format_.format(rate.value, ctx);
+  }
+
+ private:
+  fmt::formatter<USERVER_NAMESPACE::utils::statistics::Rate::ValueType>
+      rate_format_;
+};
+
+template <>
 class fmt::formatter<USERVER_NAMESPACE::utils::statistics::MetricValue> {
  public:
   constexpr auto parse(format_parse_context& ctx) {
     // To avoid including heavy <algorithm> header.
     const auto max = [](auto a, auto b) { return a > b ? a : b; };
-    return max(int_format_.parse(ctx), float_format_.parse(ctx));
+    return max(int_format_.parse(ctx),
+               max(float_format_.parse(ctx), rate_format_.parse(ctx)));
   }
 
   template <typename FormatContext>
@@ -64,10 +84,15 @@ class fmt::formatter<USERVER_NAMESPACE::utils::statistics::MetricValue> {
               FormatContext& ctx) USERVER_FMT_CONST {
     return value.Visit(USERVER_NAMESPACE::utils::Overloaded{
         [&](std::int64_t x) { return int_format_.format(x, ctx); },
+        [&](USERVER_NAMESPACE::utils::statistics::Rate x) {
+          return rate_format_.format(x.value, ctx);
+        },
         [&](double x) { return float_format_.format(x, ctx); }});
   }
 
  private:
   fmt::formatter<std::int64_t> int_format_;
+  fmt::formatter<USERVER_NAMESPACE::utils::statistics::Rate::ValueType>
+      rate_format_;
   fmt::formatter<double> float_format_;
 };

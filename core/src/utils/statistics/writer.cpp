@@ -69,7 +69,7 @@ bool CanSubPathSucceedStartsWith(std::string_view current_path,
 }
 
 void CheckAndWrite(impl::WriterState& state,
-                   std::variant<std::int64_t, double> value) {
+                   std::variant<std::int64_t, double, Rate> value) {
   UINVARIANT(!state.path.empty(),
              "Detected an attempt to write a metric by empty path");
 
@@ -150,6 +150,13 @@ void Writer::Write(long long value) {
 }
 
 void Writer::Write(double value) {
+  if (state_) {
+    ValidateUsage();
+    CheckAndWrite(*state_, value);
+  }
+}
+
+void Writer::Write(Rate value) {
   if (state_) {
     ValidateUsage();
     CheckAndWrite(*state_, value);
