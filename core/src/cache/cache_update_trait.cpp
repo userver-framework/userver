@@ -23,6 +23,10 @@ void CacheUpdateTrait::Update(UpdateType update_type) {
   impl_->Update(update_type);
 }
 
+void CacheUpdateTrait::InvalidateAsync(UpdateType update_type) {
+  impl_->InvalidateAsync(update_type);
+}
+
 const std::string& CacheUpdateTrait::Name() const { return impl_->Name(); }
 
 AllowedUpdateTypes CacheUpdateTrait::GetAllowedUpdateTypes() const {

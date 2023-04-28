@@ -247,6 +247,96 @@ UTEST(PeriodicTask, SetSettingsInstant) {
   task.Stop();
 }
 
+UTEST(PeriodicTask, SetSettingsFirstIteration) {
+  SimpleTaskData simple;
+
+  const std::chrono::milliseconds period1(50);
+
+  utils::PeriodicTask task("task", period1, simple.GetTaskFunction());
+
+  const std::chrono::seconds period2(120);
+  task.SetSettings(period2);
+
+  EXPECT_TRUE(simple.WaitFor(period1 * kSlowRatio,
+                             [&simple]() { return simple.GetCount() == 0; }));
+
+  task.Stop();
+}
+
+UTEST(PeriodicTask, ForceStepAsync) {
+  SimpleTaskData simple;
+
+  const std::chrono::milliseconds period(100);
+  const utils::PeriodicTask::Settings settings(
+      period, utils::PeriodicTask::Flags::kNow);
+  utils::PeriodicTask task("task", settings, simple.GetTaskFunction());
+
+  simple.WaitFor(period * kSlowRatio,
+                 [&simple]() { return simple.GetCount() > 0; });
+
+  const std::size_t n = 30;
+  const std::chrono::milliseconds kSyncDuration(10);
+  for (std::size_t i = 0; i != n; i++) {
+    engine::SleepFor(kSyncDuration);
+    task.ForceStepAsync();
+  }
+
+  EXPECT_TRUE(simple.WaitFor(
+      period * kSlowRatio, [&simple]() { return simple.GetCount() >= n + 2; }));
+}
+
+UTEST(PeriodicTask, ForceStepAsyncInstant) {
+  SimpleTaskData simple;
+
+  const std::chrono::seconds period(120);
+  const utils::PeriodicTask::Settings settings(
+      period, utils::PeriodicTask::Flags::kNow);
+  utils::PeriodicTask task("task", settings, simple.GetTaskFunction());
+
+  const std::chrono::milliseconds kSyncDuration(100);
+  engine::SleepFor(kSyncDuration);
+
+  task.ForceStepAsync();
+
+  EXPECT_TRUE(simple.WaitFor(std::chrono::milliseconds(100),
+                             [&simple]() { return simple.GetCount() == 1; }));
+  task.Stop();
+}
+
+UTEST(PeriodicTask, ForceStepAsyncFirstIteration) {
+  SimpleTaskData simple;
+
+  const std::chrono::seconds period(120);
+  utils::PeriodicTask task("task", period, simple.GetTaskFunction());
+
+  task.ForceStepAsync();
+
+  EXPECT_TRUE(simple.WaitFor(std::chrono::milliseconds(100),
+                             [&simple]() { return simple.GetCount() == 1; }));
+  task.Stop();
+}
+
+UTEST(PeriodicTask, ForceStepAsyncPeriod) {
+  SimpleTaskData simple;
+
+  const std::chrono::milliseconds period(50);
+  const utils::PeriodicTask::Settings settings(
+      period, utils::PeriodicTask::Flags::kNow);
+  utils::PeriodicTask task("task", settings, simple.GetTaskFunction());
+
+  const std::size_t n = 60;
+  const std::chrono::milliseconds kSyncDuration(10);
+  for (std::size_t i = 0; i != n; i++) {
+    engine::SleepFor(kSyncDuration);
+    task.ForceStepAsync();
+  }
+
+  EXPECT_FALSE(simple.WaitFor(period * kSlowRatio, [&simple]() {
+    return simple.GetCount() >= n + 11;
+  }));
+  task.Stop();
+}
+
 UTEST(PeriodicTask, StopStop) {
   SimpleTaskData simple;
 

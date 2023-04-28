@@ -101,13 +101,22 @@ class Source final {
     return snapshot[key];
   }
 
-  /// Subscribes to dynamic-config updates using a member function, named
-  /// `OnConfigUpdate` by convention. Also immediately invokes the function with
-  /// the current config snapshot (this invocation will be executed
-  /// synchronously).
+  /// Subscribes to dynamic-config updates using a member function. Also
+  /// immediately invokes the function with the current config snapshot (this
+  /// invocation will be executed synchronously).
   ///
   /// @note Callbacks occur in full accordance with
   /// `components::DynamicConfigClientUpdater` options.
+  ///
+  /// @param obj the subscriber, which is the owner of the listener method, and
+  /// is also used as the unique identifier of the subscription
+  /// @param name the name of the subscriber, for diagnostic purposes
+  /// @param func the listener method, named `OnConfigUpdate` by convention.
+  /// @returns a `concurrent::AsyncEventSubscriberScope` controlling the
+  /// subscription, which should be stored as a member in the subscriber;
+  /// `Unsubscribe` should be called explicitly
+  ///
+  /// @see based on concurrent::AsyncEventSource engine
   template <typename Class>
   concurrent::AsyncEventSubscriberScope UpdateAndListen(
       Class* obj, std::string_view name,
@@ -139,6 +148,16 @@ class Source final {
   /// Example usage:
   /// @snippet dynamic_config/config_test.cpp Custom subscription for dynamic config update
   ///
+  /// @param obj the subscriber, which is the owner of the listener method, and
+  /// is also used as the unique identifier of the subscription
+  /// @param name the name of the subscriber, for diagnostic purposes
+  /// @param func the listener method, named `OnConfigUpdate` by convention.
+  /// @returns a `concurrent::AsyncEventSubscriberScope` controlling the
+  /// subscription, which should be stored as a member in the subscriber;
+  /// `Unsubscribe` should be called explicitly
+  ///
+  /// @see based on concurrent::AsyncEventSource engine
+  ///
   /// @see dynamic_config::Diff
 
   // clang-format on
@@ -164,7 +183,16 @@ class Source final {
   ///
   /// @warning To use this function, configs must have the `operator==`.
   ///
+  /// @param obj the subscriber, which is the owner of the listener method, and
+  /// is also used as the unique identifier of the subscription
+  /// @param name the name of the subscriber, for diagnostic purposes
+  /// @param func the listener method, named `OnConfigUpdate` by convention.
   /// @param keys config objects, specializations of `dynamic_config::Key`.
+  /// @returns a `concurrent::AsyncEventSubscriberScope` controlling the
+  /// subscription, which should be stored as a member in the subscriber;
+  /// `Unsubscribe` should be called explicitly
+  ///
+  /// @see based on concurrent::AsyncEventSource engine
   template <typename Class, typename... Keys>
   concurrent::AsyncEventSubscriberScope UpdateAndListen(
       Class* obj, std::string_view name,
@@ -190,10 +218,8 @@ class Source final {
     const auto& previous = *diff.previous;
     const auto& current = diff.current;
 
-    UINVARIANT(!current.GetData().IsEmpty(),
-               "current SnapshotData is in an empty state");
-    UINVARIANT(!previous.GetData().IsEmpty(),
-               "previous SnapshotData is in an empty state");
+    UASSERT(!current.GetData().IsEmpty());
+    UASSERT(!previous.GetData().IsEmpty());
 
     const bool is_equal = (true && ... && (previous[keys] == current[keys]));
     return !is_equal;

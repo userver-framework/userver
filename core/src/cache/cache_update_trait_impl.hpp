@@ -36,6 +36,8 @@ class CacheUpdateTrait::Impl final {
 
   ~Impl();
 
+  void InvalidateAsync(UpdateType update_type);
+
   void Update(UpdateType update_type);
 
   const std::string& Name() const;
@@ -57,17 +59,6 @@ class CacheUpdateTrait::Impl final {
   engine::TaskProcessor& GetCacheTaskProcessor() const;
 
  private:
-  UpdateType NextUpdateType(const Config& config);
-
-  void DoPeriodicUpdate();
-
-  // Throws if `Update` throws
-  void DoUpdate(UpdateType type);
-
-  utils::PeriodicTask::Settings GetPeriodicTaskSettings(const Config& config);
-
-  void OnConfigUpdate(const dynamic_config::Snapshot& config);
-
   class DumpableEntityProxy final : public dump::DumpableEntity {
    public:
     explicit DumpableEntityProxy(CacheUpdateTrait& cache);
@@ -79,6 +70,19 @@ class CacheUpdateTrait::Impl final {
    private:
     CacheUpdateTrait& cache_;
   };
+
+  enum class FirstUpdateInvalidation { kNo, kYes, kFinished };
+
+  UpdateType NextUpdateType(const Config& config);
+
+  void DoPeriodicUpdate();
+
+  // Throws if `Update` throws
+  void DoUpdate(UpdateType type);
+
+  utils::PeriodicTask::Settings GetPeriodicTaskSettings(const Config& config);
+
+  void OnConfigUpdate(const dynamic_config::Snapshot& config);
 
   CacheUpdateTrait& customized_trait_;
   impl::Statistics statistics_;
@@ -93,7 +97,6 @@ class CacheUpdateTrait::Impl final {
   std::atomic<bool> cache_modified_{false};
   utils::PeriodicTask update_task_;
   utils::PeriodicTask cleanup_task_;
-  std::optional<UpdateType> forced_update_type_;
   utils::Flags<utils::PeriodicTask::Flags> periodic_task_flags_;
   dump::TimePoint last_update_;
   std::chrono::steady_clock::time_point last_full_update_;
@@ -101,6 +104,14 @@ class CacheUpdateTrait::Impl final {
   DumpableEntityProxy dumpable_;
   std::optional<dump::Dumper> dumper_;
   std::uint64_t failed_updates_counter_{0};
+  std::atomic<FirstUpdateInvalidation> first_update_invalidation_{
+      FirstUpdateInvalidation::kNo};
+
+  // `dump_first_update_type_` has the highest priority.
+  // This means that if `dump_first_update_type_` is equal to `kIncremental` and
+  // `force_full_update_` is true, the `kIncremental` update will be performed.
+  std::optional<UpdateType> dump_first_update_type_;
+  std::atomic<bool> force_full_update_{false};
 
   utils::statistics::Entry statistics_holder_;
   concurrent::AsyncEventSubscriberScope config_subscription_;

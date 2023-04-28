@@ -25,6 +25,7 @@
 #include <userver/testsuite/cache_control.hpp>
 #include <userver/testsuite/dump_control.hpp>
 #include <userver/utest/utest.hpp>
+#include <userver/utils/enumerate.hpp>
 #include <userver/yaml_config/yaml_config.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -649,6 +650,190 @@ UTEST(ExpirableCacheUpdateTrait, TwoFailed) {
   const std::vector<bool> expected{false, false, false, false, true,
                                    true,  false, false, false, false,
                                    true,  true,  false};
+  EXPECT_EQ(actual, expected);
+}
+
+namespace {
+
+using InvalidateBeforeStartPeriodicUpdates =
+    utils::StrongTypedef<struct InvalidateBeforeStartPeriodicUpdatesTag, bool>;
+using InvalidateAtFirstUpdate =
+    utils::StrongTypedef<struct InvalidateAtFirstUpdateTag, bool>;
+using FirstSyncUpdate = utils::StrongTypedef<struct SyncFirstUpdateTag, bool>;
+
+class ForcedUpdateCache : public cache::CacheMockBase {
+ public:
+  static constexpr auto kName = "forced-update-cache";
+
+  struct Settings {
+    InvalidateBeforeStartPeriodicUpdates
+        invalidate_before_start_periodic_updates{false};
+    InvalidateAtFirstUpdate invalidate_at_first_update{false};
+    FirstSyncUpdate first_sync_update{false};
+  };
+
+  ForcedUpdateCache(const yaml_config::YamlConfig& config,
+                    cache::MockEnvironment& environment, Settings settings)
+      : CacheMockBase(kName, config, environment),
+        settings_(std::move(settings)) {
+    if (settings_.invalidate_before_start_periodic_updates) {
+      InvalidateAsync(UpdateType::kFull);
+      InvalidateAsync(UpdateType::kFull);
+    }
+    auto flag = Flag::kNone;
+    if (!settings_.first_sync_update) {
+      flag = Flag::kNoFirstUpdate;
+    }
+    StartPeriodicUpdates(flag);
+  }
+
+  ~ForcedUpdateCache() override {
+    StopPeriodicUpdates();
+    const std::size_t before = GetUpdatesCount();
+    InvalidateAsync(UpdateType::kFull);
+    InvalidateAsync(UpdateType::kFull);
+    EXPECT_EQ(GetUpdatesCount() - before, 0);
+  }
+
+  auto GetLastUpdateType() const { return last_update_type_; }
+  std::size_t GetFullUpdatesCount() const { return full_updates_count_; }
+  std::size_t GetIncrementalUpdatesCount() const {
+    return incremental_updates_count_;
+  }
+  std::size_t GetUpdatesCount() const {
+    return GetIncrementalUpdatesCount() + GetFullUpdatesCount();
+  }
+
+ private:
+  void Update(cache::UpdateType type,
+              const std::chrono::system_clock::time_point& /*last_update*/,
+              const std::chrono::system_clock::time_point& /*now*/,
+              cache::UpdateStatisticsScope&) override {
+    if (settings_.invalidate_at_first_update && GetUpdatesCount() == 0) {
+      InvalidateAsync(UpdateType::kFull);
+      InvalidateAsync(UpdateType::kFull);
+    }
+
+    if (type == cache::UpdateType::kFull) {
+      full_updates_count_++;
+    } else if (type == cache::UpdateType::kIncremental) {
+      incremental_updates_count_++;
+    }
+    last_update_type_ = type;
+  }
+
+  std::size_t full_updates_count_{};
+  std::size_t incremental_updates_count_{};
+  std::optional<UpdateType> last_update_type_;
+  const Settings settings_;
+};
+
+yaml_config::YamlConfig MakeForcedUpdateCacheConfig() {
+  static const std::string kConfig = R"(
+update-types: full-and-incremental
+full-update-interval: 10s
+update-interval: 10s
+)";
+  return {formats::yaml::FromString(kConfig), {}};
+}
+
+void YieldNTimes(std::size_t n) {
+  for (std::size_t i = 0; i < n; i++) {
+    engine::Yield();
+  }
+}
+
+}  // namespace
+
+UTEST(CacheInvalidateAsync, UpdateType) {
+  cache::MockEnvironment environment(
+      testsuite::CacheControl::PeriodicUpdatesMode::kEnabled);
+  ForcedUpdateCache cache(MakeForcedUpdateCacheConfig(), environment, {});
+
+  for (const auto update_type :
+       {cache::UpdateType::kFull, cache::UpdateType::kIncremental}) {
+    cache.InvalidateAsync(update_type);
+    YieldNTimes(10);
+    EXPECT_EQ(cache.GetLastUpdateType(), update_type);
+  }
+  EXPECT_EQ(cache.GetFullUpdatesCount(), 1);
+  EXPECT_EQ(cache.GetIncrementalUpdatesCount(), 1);
+
+  cache.InvalidateAsync(cache::UpdateType::kFull);
+  cache.InvalidateAsync(cache::UpdateType::kIncremental);
+  YieldNTimes(10);
+  EXPECT_EQ(cache.GetFullUpdatesCount(), 2);
+  EXPECT_EQ(cache.GetIncrementalUpdatesCount(), 1);
+}
+
+UTEST(CacheInvalidateAsync, BeforeStartPeriodicUpdates) {
+  cache::MockEnvironment environment(
+      testsuite::CacheControl::PeriodicUpdatesMode::kEnabled);
+  const ForcedUpdateCache::Settings settings{
+      InvalidateBeforeStartPeriodicUpdates{true},
+      InvalidateAtFirstUpdate{false}, FirstSyncUpdate{false}};
+  ForcedUpdateCache cache(MakeForcedUpdateCacheConfig(), environment, settings);
+
+  YieldNTimes(10);
+
+  EXPECT_EQ(cache.GetFullUpdatesCount(), 1);
+  EXPECT_EQ(cache.GetIncrementalUpdatesCount(), 0);
+}
+
+UTEST(CacheInvalidateAsync, PeriodicUpdatesNotEnabled) {
+  cache::MockEnvironment environment;
+  ForcedUpdateCache cache(MakeForcedUpdateCacheConfig(), environment, {});
+
+  for (auto update_type :
+       {cache::UpdateType::kFull, cache::UpdateType::kIncremental}) {
+    cache.InvalidateAsync(update_type);
+    YieldNTimes(10);
+  }
+
+  EXPECT_EQ(cache.GetUpdatesCount(), 1);
+}
+
+namespace {
+
+auto SimulateCacheStartup(ForcedUpdateCache::Settings settings) {
+  std::vector<std::size_t> actual;
+
+  cache::MockEnvironment environment(
+      testsuite::CacheControl::PeriodicUpdatesMode::kEnabled);
+  ForcedUpdateCache cache(MakeForcedUpdateCacheConfig(), environment, settings);
+  actual.push_back(cache.GetUpdatesCount());
+  YieldNTimes(10);
+  actual.push_back(cache.GetUpdatesCount());
+  cache.InvalidateAsync(UpdateType::kFull);
+  YieldNTimes(10);
+  actual.push_back(cache.GetUpdatesCount());
+
+  return actual;
+}
+
+}  // namespace
+
+UTEST(CacheInvalidateAsync, AtStartup) {
+  cache::MockEnvironment environment(
+      testsuite::CacheControl::PeriodicUpdatesMode::kEnabled);
+  ForcedUpdateCache::Settings settings;
+
+  settings = {InvalidateBeforeStartPeriodicUpdates{true},
+              InvalidateAtFirstUpdate{true}, FirstSyncUpdate{true}};
+  std::vector<std::size_t> actual = SimulateCacheStartup(settings);
+  std::vector<std::size_t> expected{1, 2, 3};
+  EXPECT_EQ(actual, expected);
+
+  settings = {InvalidateBeforeStartPeriodicUpdates{false},
+              InvalidateAtFirstUpdate{true}, FirstSyncUpdate{true}};
+  actual = SimulateCacheStartup(settings);
+  expected = {1, 2, 3};
+  EXPECT_EQ(actual, expected);
+
+  settings = {InvalidateBeforeStartPeriodicUpdates{true},
+              InvalidateAtFirstUpdate{false}, FirstSyncUpdate{true}};
+  actual = SimulateCacheStartup(settings);
+  expected = {1, 1, 2};
   EXPECT_EQ(actual, expected);
 }
 

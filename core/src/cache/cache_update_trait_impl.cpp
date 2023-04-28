@@ -33,6 +33,27 @@ T CheckNotNull(T ptr) {
 
 }  // namespace
 
+void CacheUpdateTrait::Impl::InvalidateAsync(UpdateType update_type) {
+  const auto config = GetConfig();
+  if (config->allowed_update_types == AllowedUpdateTypes::kOnlyFull &&
+      update_type == UpdateType::kIncremental) {
+    LOG_WARNING() << "Requested incremental update for cache '" << name_
+                  << "' while only full updates were allowed";
+    update_type = UpdateType::kFull;
+  }
+
+  if (update_type == UpdateType::kFull) {
+    force_full_update_ = true;
+  }
+
+  auto actual = FirstUpdateInvalidation::kNo;
+  first_update_invalidation_.compare_exchange_strong(
+      actual, FirstUpdateInvalidation::kYes);
+  if (actual == FirstUpdateInvalidation::kFinished) {
+    update_task_.ForceStepAsync();
+  }
+}
+
 void CacheUpdateTrait::Impl::Update(UpdateType update_type) {
   std::lock_guard lock(update_mutex_);
   const auto config = GetConfig();
@@ -121,9 +142,10 @@ void CacheUpdateTrait::Impl::StartPeriodicUpdates(
     const auto dump_time = dumper_ ? dumper_->ReadDump() : std::nullopt;
     if (dump_time) {
       last_update_ = *dump_time;
-      forced_update_type_ = config->first_update_type == FirstUpdateType::kFull
-                                ? UpdateType::kFull
-                                : UpdateType::kIncremental;
+      dump_first_update_type_ =
+          config->first_update_type == FirstUpdateType::kFull
+              ? UpdateType::kFull
+              : UpdateType::kIncremental;
     }
 
     if ((!dump_time || config->first_update_mode != FirstUpdateMode::kSkip) &&
@@ -135,6 +157,9 @@ void CacheUpdateTrait::Impl::StartPeriodicUpdates(
       // Force first update, do it synchronously
       tracing::Span span("first-update/" + name_);
       try {
+        // `InvalidateAsync` called up to this point should not result in an
+        // extra update
+        first_update_invalidation_ = FirstUpdateInvalidation::kNo;
         DoPeriodicUpdate();
       } catch (const std::exception& e) {
         if (dump_time &&
@@ -155,7 +180,7 @@ void CacheUpdateTrait::Impl::StartPeriodicUpdates(
 
     if (dump_time && config->first_update_type ==
                          FirstUpdateType::kIncrementalThenAsyncFull) {
-      forced_update_type_ = UpdateType::kFull;
+      dump_first_update_type_ = UpdateType::kFull;
       periodic_task_flags_ |= utils::PeriodicTask::Flags::kNow;
     }
 
@@ -164,6 +189,13 @@ void CacheUpdateTrait::Impl::StartPeriodicUpdates(
     }
 
     if (periodic_update_enabled_) {
+      const auto first_update_invalidation =
+          first_update_invalidation_.exchange(
+              FirstUpdateInvalidation::kFinished);
+      if (first_update_invalidation == FirstUpdateInvalidation::kYes) {
+        update_task_.ForceStepAsync();
+      }
+
       update_task_.Start("update-task/" + name_,
                          GetPeriodicTaskSettings(*config),
                          [this] { DoPeriodicUpdate(); });
@@ -226,9 +258,15 @@ rcu::ReadablePtr<Config> CacheUpdateTrait::Impl::GetConfig() const {
 }
 
 UpdateType CacheUpdateTrait::Impl::NextUpdateType(const Config& config) {
-  if (forced_update_type_) return *forced_update_type_;
+  if (dump_first_update_type_) {
+    return *dump_first_update_type_;
+  } else if (last_update_ == dump::TimePoint{}) {
+    return UpdateType::kFull;
+  }
 
-  if (last_update_ == dump::TimePoint{}) return UpdateType::kFull;
+  if (force_full_update_) {
+    return UpdateType::kFull;
+  }
 
   switch (config.allowed_update_types) {
     case AllowedUpdateTypes::kOnlyFull:
@@ -261,7 +299,10 @@ void CacheUpdateTrait::Impl::DoPeriodicUpdate() {
   const auto update_type = NextUpdateType(*config);
   try {
     DoUpdate(update_type);
-    forced_update_type_ = {};
+    if (update_type == UpdateType::kFull) {
+      force_full_update_ = false;
+    }
+    dump_first_update_type_ = {};
     failed_updates_counter_ = 0;
   } catch (const std::exception& ex) {
     LOG_WARNING() << "Error while updating cache " << name_

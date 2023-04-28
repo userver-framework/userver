@@ -143,6 +143,23 @@ class PeriodicTask final {
   /// Set all settings except flags. All flags must be set at the start.
   void SetSettings(Settings settings);
 
+  /// @brief Non-blocking force next iteration.
+  ///
+  /// Returns immediately, without waiting for Step() to finish.
+  ///
+  /// - If PeriodicTask isn't running, then a Step() will be performed at the
+  /// start.
+  /// - If the PeriodicTask is waiting for the next iteration, then the wait is
+  /// interrupted and the next Step() is executed.
+  /// - If Step() is being executed, the current iteration will be completed and
+  /// only after that a new iteration will be called. Reason: the current
+  /// iteration is considered to be using stale data.
+  ///
+  /// @note If 'ForceStepAsync' is called multiple times while Step() is
+  /// being executed, all events will be conflated (one extra Step() call will
+  /// be executed).
+  void ForceStepAsync();
+
   /// Force next DoStep() iteration. It is guaranteed that there is at least one
   /// call to DoStep() during SynchronizeDebug() execution. DoStep() is executed
   /// as usual in the PeriodicTask's task (NOT in current task).
@@ -195,6 +212,7 @@ class PeriodicTask final {
   engine::TaskWithResult<void> task_;
   rcu::Variable<Settings> settings_;
   engine::SingleConsumerEvent changed_event_;
+  std::atomic<bool> should_force_step_{false};
 
   // For kNow only
   engine::Mutex step_mutex_;

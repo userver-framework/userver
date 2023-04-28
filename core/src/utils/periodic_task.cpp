@@ -82,6 +82,8 @@ void PeriodicTask::Stop() noexcept {
     if (IsRunning()) {
       LOG_INFO() << "Stopping PeriodicTask with name=" << *name_ptr;
       task_.SyncCancel();
+      changed_event_.Reset();
+      should_force_step_ = false;
       task_ = engine::TaskWithResult<void>();
       LOG_INFO() << "Stopped PeriodicTask with name=" << *name_ptr;
     }
@@ -112,6 +114,11 @@ void PeriodicTask::SetSettings(Settings settings) {
   }
 }
 
+void PeriodicTask::ForceStepAsync() {
+  should_force_step_ = true;
+  changed_event_.Send();
+}
+
 bool PeriodicTask::SynchronizeDebug(bool preserve_span) {
   if (!IsRunning()) {
     return false;
@@ -123,16 +130,23 @@ bool PeriodicTask::SynchronizeDebug(bool preserve_span) {
 bool PeriodicTask::IsRunning() const { return task_.IsValid(); }
 
 void PeriodicTask::Run() {
+  bool skip_step = false;
   {
     auto settings = settings_.Read();
-    if (!(settings->flags & Flags::kNow))
-      engine::InterruptibleSleepFor(MutatePeriod(settings->period));
+    if (!(settings->flags & Flags::kNow)) {
+      skip_step = true;
+    }
   }
 
   while (!engine::current_task::ShouldCancel()) {
     const auto before = std::chrono::steady_clock::now();
-    bool no_exception = Step();
-    auto settings = settings_.Read();
+    bool no_exception = true;
+
+    if (!std::exchange(skip_step, false)) {
+      no_exception = Step();
+    }
+
+    const auto settings = settings_.Read();
     auto period = settings->period;
     const auto exception_period = settings->exception_period.value_or(period);
 
@@ -146,9 +160,14 @@ void PeriodicTask::Run() {
     }
 
     while (changed_event_.WaitForEventUntil(start + MutatePeriod(period))) {
+      if (should_force_step_.exchange(false)) {
+        break;
+      }
       // The config variable value has been changed, reload
-      auto settings = settings_.Read();
+      const auto settings = settings_.Read();
       period = settings->period;
+      const auto exception_period = settings->exception_period.value_or(period);
+      if (!no_exception) period = exception_period;
     }
   }
 }
