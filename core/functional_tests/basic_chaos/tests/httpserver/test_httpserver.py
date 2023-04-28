@@ -1,5 +1,6 @@
 import asyncio
 import enum
+import gzip
 import logging
 import typing
 
@@ -31,17 +32,20 @@ class ErrorType(enum.Enum):
 def call(modified_service_client):
     async def _call(
             htype: str = 'common',
-            data: typing.Optional[typing.Dict] = None,
+            data: typing.Any = None,
             timeout: float = DEFAULT_TIMEOUT,
             tests_control: bool = False,
+            headers: typing.Optional[typing.Dict[str, str]] = None,
             **args,
     ) -> typing.Union[http.ClientResponse, ErrorType]:
         try:
             if not data:
                 data = DEFAULT_DATA
+            if headers is None:
+                headers = HEADERS
             return await modified_service_client.get(
                 '/chaos/httpserver',
-                headers=HEADERS,
+                headers=headers,
                 timeout=timeout,
                 params={'type': htype},
                 data=data,
@@ -85,6 +89,15 @@ async def chaos_stop_accepting(gate: chaos.TcpGate) -> None:
 
 async def test_ok(call, gate):
     response = await call()
+    assert response.status == 200
+    assert response.text == 'OK!'
+
+
+async def test_ok_compressed(call, gate):
+    response = await call(
+        headers={'content-encoding': 'gzip'},
+        data=gzip.compress('abcd'.encode()),
+    )
     assert response.status == 200
     assert response.text == 'OK!'
 

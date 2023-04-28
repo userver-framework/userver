@@ -723,11 +723,11 @@ void HttpHandlerBase::DecompressRequestBody(
     http::HttpRequest& http_request) const {
   if (!http_request.IsBodyCompressed()) return;
 
-  const auto& content_encoding = http_request.GetHeader("Content-Encoding");
-  http_request.RemoveHeader("Content-Encoding");
+  const auto content_encoding = http_request.GetHeader("Content-Encoding");
 
   try {
     if (content_encoding == "gzip") {
+      http_request.RemoveHeader("Content-Encoding");
       auto body = compression::gzip::Decompress(
           http_request.RequestBody(),
           GetConfig().request_config.max_request_size);
