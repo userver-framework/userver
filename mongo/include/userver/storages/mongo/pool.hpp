@@ -58,6 +58,8 @@ class Pool {
   /// collections will attempt to re-create the database automatically.
   void DropDatabase();
 
+  void Ping();
+
   /// Writes pool statistics
   friend void DumpMetric(utils::statistics::Writer& writer, const Pool& pool);
 

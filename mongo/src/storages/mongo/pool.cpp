@@ -32,6 +32,8 @@ void Pool::DropDatabase() {
   impl::Database(impl_, impl_->DefaultDatabaseName()).DropDatabase();
 }
 
+void Pool::Ping() { impl_->Ping(); }
+
 bool Pool::HasCollection(const std::string& name) const {
   return impl::Database(impl_, impl_->DefaultDatabaseName())
       .HasCollection(name);

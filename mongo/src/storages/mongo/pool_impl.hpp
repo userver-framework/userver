@@ -28,6 +28,8 @@ class PoolImpl {
 
   virtual const std::string& DefaultDatabaseName() const = 0;
 
+  virtual void Ping() = 0;
+
   virtual size_t InUseApprox() const = 0;
   virtual size_t SizeApprox() const = 0;
   virtual size_t MaxSize() const = 0;

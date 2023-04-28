@@ -11,6 +11,7 @@
 #include <userver/logging/log.hpp>
 #include <userver/server/request/task_inherited_data.hpp>
 #include <userver/tracing/span.hpp>
+#include <userver/tracing/tags.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/traceful_exception.hpp>
 
@@ -233,6 +234,31 @@ void CDriverPoolImpl::SetMaxSize(size_t max_size) { max_size_ = max_size; }
 
 const std::string& CDriverPoolImpl::DefaultDatabaseName() const {
   return default_database_;
+}
+
+void CDriverPoolImpl::Ping() {
+  static const char* kPingDatabase = "admin";
+  static const auto kPingCommand = formats::bson::MakeDoc("ping", 1);
+  static const ReadPrefsPtr kPingReadPrefs(MONGOC_READ_NEAREST);
+
+  tracing::Span span("mongo_ping");
+  span.AddTag(tracing::kDatabaseType, tracing::kDatabaseMongoType);
+  span.AddTag(tracing::kDatabaseInstance, kPingDatabase);
+
+  // Do not mess with error stats
+  auto client = Acquire();
+
+  MongoError error;
+  stats::OperationStopwatch ping_sw(GetStatistics().pool->ping, "ping");
+  const bson_t* native_cmd_bson_ptr = kPingCommand.GetBson().get();
+  if (!mongoc_client_command_simple(client.get(), kPingDatabase,
+                                    native_cmd_bson_ptr, kPingReadPrefs.Get(),
+                                    nullptr, error.GetNative())) {
+    ping_sw.AccountError(error.GetKind());
+    error.Throw("Ping failed");
+  }
+
+  ping_sw.AccountSuccess();
 }
 
 CDriverPoolImpl::BoundClientPtr CDriverPoolImpl::Acquire() {

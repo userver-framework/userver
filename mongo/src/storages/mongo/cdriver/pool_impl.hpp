@@ -44,6 +44,8 @@ class CDriverPoolImpl final : public PoolImpl {
 
   const std::string& DefaultDatabaseName() const override;
 
+  void Ping() override;
+
   size_t InUseApprox() const override;
   size_t SizeApprox() const override;
   size_t MaxSize() const override;
