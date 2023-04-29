@@ -87,16 +87,7 @@ def _try_get_message(
 async def _wait_for_message_task(
         recv_socket: Socket,
 ) -> typing.Tuple[bytes, Address]:
-    iteration = 0
-    _LOG_FREQUENCY = 100
     while True:
-        if not iteration % _LOG_FREQUENCY:
-            logger.debug(
-                f'Wait for message on socket fd={recv_socket.fileno()}. '
-                f'Iteration {iteration}',
-            )
-        iteration += 1
-
         msg, addr = _try_get_message(recv_socket)
         if msg:
             assert addr
