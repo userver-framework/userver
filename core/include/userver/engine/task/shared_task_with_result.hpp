@@ -10,7 +10,7 @@
 
 #include <userver/engine/exception.hpp>
 #include <userver/engine/impl/task_context_holder.hpp>
-#include <userver/engine/task/task.hpp>
+#include <userver/engine/task/shared_task.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/impl/wrapped_call.hpp>
@@ -21,7 +21,7 @@ namespace engine {
 
 // clang-format off
 
-/// Asynchronous task with result
+/// @brief Asynchronous task with result that has a shared ownership of payload
 ///
 /// ## Example usage:
 ///
@@ -32,12 +32,38 @@ namespace engine {
 // clang-format on
 
 template <typename T>
-class [[nodiscard]] SharedTaskWithResult : public Task {
+class [[nodiscard]] SharedTaskWithResult : public SharedTask {
  public:
   /// @brief Default constructor
   ///
   /// Creates an invalid task.
   SharedTaskWithResult() = default;
+
+  /// @brief If the task is still valid and is not finished and this is the last
+  /// shared owner of the payload, cancels the task and waits until it finishes.
+  ~SharedTaskWithResult() = default;
+
+  /// @brief Assigns the other task into this.
+  SharedTaskWithResult(const SharedTaskWithResult& other) = default;
+
+  /// @brief If this task is still valid and is not finished and other task is
+  /// not the same task as this and this is the
+  /// last shared owner of the payload, cancels the task and waits until it
+  /// finishes before assigning the other. Otherwise just assigns the other task
+  /// into this.
+  SharedTaskWithResult& operator=(const SharedTaskWithResult& other) = default;
+
+  /// @brief Moves the other task into this, leaving the other in an invalid
+  /// state.
+  SharedTaskWithResult(SharedTaskWithResult&& other) noexcept = default;
+
+  /// @brief If this task is still valid and is not finished and other task is
+  /// not the same task as this and this is the
+  /// last shared owner of the payload, cancels the task and waits until it
+  /// finishes before move assigning the other. Otherwise just move assigns the
+  /// other task into this, leaving the other in an invalid state.
+  SharedTaskWithResult& operator=(SharedTaskWithResult&& other) noexcept =
+      default;
 
   /// @brief Returns (or rethrows) the result of task invocation.
   /// Task remains valid after return from this method,
@@ -67,7 +93,7 @@ class [[nodiscard]] SharedTaskWithResult : public Task {
 
   // For internal use only.
   explicit SharedTaskWithResult(impl::TaskContextHolder&& context)
-      : Task(std::move(context)) {}
+      : SharedTask(std::move(context)) {}
   /// @endcond
 };
 

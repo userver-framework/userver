@@ -37,8 +37,8 @@ DistLockedTask::DistLockedTask(engine::TaskProcessor& task_processor,
 DistLockedTask::DistLockedTask(engine::TaskProcessor& task_processor,
                                std::shared_ptr<impl::Locker> locker_ptr,
                                DistLockWaitingMode mode)
-    : TaskWithResult(locker_ptr->RunAsync(task_processor,
-                                          impl::LockerMode::kOneshot, mode)),
+    : TaskBase(locker_ptr->RunAsync(task_processor, impl::LockerMode::kOneshot,
+                                    mode)),
       locker_ptr_(std::move(locker_ptr)) {}
 
 DistLockedTask::~DistLockedTask() {
@@ -53,6 +53,21 @@ DistLockedTask::~DistLockedTask() {
 std::optional<std::chrono::steady_clock::duration>
 DistLockedTask::GetLockedDuration() const {
   return locker_ptr_->GetLockedDuration();
+}
+
+void DistLockedTask::Get() noexcept(false) {
+  UINVARIANT(IsValid(),
+             "DistLockedTask::Get was called on an invalid task. Note that "
+             "Get invalidates self, so it must be called at most once "
+             "per task");
+
+  Wait();
+  if (GetState() == State::kCancelled) {
+    throw engine::TaskCancelledException(CancellationReason());
+  }
+
+  utils::FastScopeGuard invalidate([this]() noexcept { Invalidate(); });
+  utils::impl::CastWrappedCall<void>(GetPayload()).Retrieve();
 }
 
 }  // namespace dist_lock

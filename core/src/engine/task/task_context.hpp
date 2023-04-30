@@ -183,6 +183,9 @@ class TaskContext final : public ContextAccessor {
 
   size_t UseCount() const noexcept;
 
+  std::size_t DecrementFetchSharedTaskUsages() noexcept;
+  std::size_t IncrementFetchSharedTaskUsages() noexcept;
+
  private:
   class LocalStorageGuard;
 
@@ -243,6 +246,10 @@ class TaskContext final : public ContextAccessor {
 
   std::optional<task_local::Storage> local_storage_;
 
+  // refcounter for task abandonning (cancellation) in engine::SharedTask
+  std::atomic<std::size_t> shared_task_usages_{1};
+
+  // refcounter for resources and memory dealocation
   std::atomic<std::size_t> intrusive_refcount_{1};
   friend void intrusive_ptr_add_ref(TaskContext* p) noexcept;
   friend void intrusive_ptr_release(TaskContext* p) noexcept;

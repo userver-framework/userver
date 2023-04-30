@@ -572,6 +572,14 @@ size_t TaskContext::UseCount() const noexcept {
   return intrusive_refcount_.load(std::memory_order_seq_cst);
 }
 
+std::size_t TaskContext::DecrementFetchSharedTaskUsages() noexcept {
+  return --shared_task_usages_;
+}
+
+std::size_t TaskContext::IncrementFetchSharedTaskUsages() noexcept {
+  return ++shared_task_usages_;
+}
+
 TaskContext::WakeupSource TaskContext::GetPrimaryWakeupSource(
     SleepState::Flags sleep_flags) {
   static constexpr std::pair<SleepState::Flags, WakeupSource> l[] = {

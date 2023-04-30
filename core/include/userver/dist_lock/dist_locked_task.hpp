@@ -11,8 +11,8 @@
 
 #include <userver/dist_lock/dist_lock_settings.hpp>
 #include <userver/dist_lock/dist_lock_strategy.hpp>
+#include <userver/engine/task/task_base.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
-#include <userver/engine/task/task_with_result.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -36,7 +36,7 @@ class Locker;
 
 // clang-format on
 
-class DistLockedTask final : public engine::TaskWithResult<void> {
+class DistLockedTask final : public engine::TaskBase {
  public:
   using WorkerFunc = std::function<void()>;
 
@@ -44,7 +44,13 @@ class DistLockedTask final : public engine::TaskWithResult<void> {
   /// Creates an invalid task.
   DistLockedTask() = default;
 
-  ~DistLockedTask() override;
+  DistLockedTask(DistLockedTask&&) = delete;
+  DistLockedTask& operator=(DistLockedTask&&) = delete;
+
+  DistLockedTask(const DistLockedTask&) = delete;
+  DistLockedTask& operator=(const DistLockedTask&&) = delete;
+
+  ~DistLockedTask();
 
   /// Creates a DistLockedTask.
   /// @param name name of the task
@@ -73,6 +79,8 @@ class DistLockedTask final : public engine::TaskWithResult<void> {
   /// Returns for how long the lock is held (if held at all). Returned value
   /// may be less than the real duration.
   std::optional<std::chrono::steady_clock::duration> GetLockedDuration() const;
+
+  void Get() noexcept(false);
 
  private:
   DistLockedTask(engine::TaskProcessor&, std::shared_ptr<impl::Locker>,

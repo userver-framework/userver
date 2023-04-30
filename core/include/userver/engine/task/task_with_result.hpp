@@ -37,8 +37,14 @@ class [[nodiscard]] TaskWithResult : public Task {
   TaskWithResult(const TaskWithResult&) = delete;
   TaskWithResult& operator=(const TaskWithResult&) = delete;
 
-  TaskWithResult(TaskWithResult&&) noexcept = default;
-  TaskWithResult& operator=(TaskWithResult&&) noexcept = default;
+  /// @brief Moves the other task into this, leaving the other in an invalid
+  /// state.
+  TaskWithResult(TaskWithResult&& other) noexcept = default;
+
+  /// @brief If this Task is still valid and is not finished, cancels it and
+  /// waits until it finishes before moving the other. Otherwise just moves the
+  /// other task into this, leaving the other in invalid state.
+  TaskWithResult& operator=(TaskWithResult&& other) noexcept = default;
 
   /// @brief Returns (or rethrows) the result of task invocation.
   /// After return from this method the task is not valid.

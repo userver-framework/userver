@@ -34,6 +34,7 @@ UTEST(Task, WaitFor) {
   EXPECT_TRUE(task.IsFinished());
   EXPECT_EQ(engine::Task::State::kCompleted, task.GetState());
 }
+
 UTEST(Task, EarlyCancel) {
   auto task = engine::AsyncNoSpan(
       [] { ADD_FAILURE() << "Cancelled task has started"; });
@@ -117,12 +118,78 @@ UTEST(Task, CancelWithPoint) {
 }
 
 UTEST(Task, AutoCancel) {
-  auto task = engine::AsyncNoSpan([] {
+  bool initial_task_was_canceled = false;
+  {
+    auto task = engine::AsyncNoSpan([&initial_task_was_canceled] {
+      engine::InterruptibleSleepFor(utest::kMaxTestWaitTime);
+      EXPECT_TRUE(engine::current_task::IsCancelRequested());
+      initial_task_was_canceled = engine::current_task::IsCancelRequested();
+    });
+    engine::Yield();
+    EXPECT_FALSE(task.IsFinished());
+    EXPECT_FALSE(initial_task_was_canceled);
+  }
+  EXPECT_TRUE(initial_task_was_canceled);
+}
+
+UTEST(Task, AutoCancelOnAssignInvalid) {
+  bool initial_task_was_canceled = false;
+
+  auto task = engine::AsyncNoSpan([&initial_task_was_canceled] {
     engine::InterruptibleSleepFor(utest::kMaxTestWaitTime);
     EXPECT_TRUE(engine::current_task::IsCancelRequested());
+    initial_task_was_canceled = engine::current_task::IsCancelRequested();
   });
   engine::Yield();
   EXPECT_FALSE(task.IsFinished());
+  EXPECT_FALSE(initial_task_was_canceled);
+
+  task = {};
+  EXPECT_FALSE(task.IsValid());
+  EXPECT_TRUE(initial_task_was_canceled);
+}
+
+UTEST(Task, AutoCancelOnMoveAssign) {
+  bool initial_task_was_cancelled = false;
+  auto task = engine::AsyncNoSpan([&initial_task_was_cancelled] {
+    engine::InterruptibleSleepFor(utest::kMaxTestWaitTime);
+    EXPECT_TRUE(engine::current_task::IsCancelRequested());
+    initial_task_was_cancelled = engine::current_task::IsCancelRequested();
+  });
+  engine::Yield();
+  EXPECT_FALSE(task.IsFinished());
+  EXPECT_FALSE(initial_task_was_cancelled);
+
+  bool was_invoked = false;
+  task = engine::AsyncNoSpan([&was_invoked] { was_invoked = true; });
+  EXPECT_TRUE(initial_task_was_cancelled);
+  EXPECT_EQ(was_invoked, task.IsFinished());
+  EXPECT_TRUE(task.IsValid());
+  engine::Yield();
+  EXPECT_TRUE(was_invoked);
+  EXPECT_TRUE(task.IsFinished());
+  EXPECT_TRUE(task.IsValid());
+}
+
+UTEST(Task, MoveConstructor) {
+  bool initial_task_was_cancelled = false;
+  {
+    auto task = engine::AsyncNoSpan([&initial_task_was_cancelled] {
+      engine::InterruptibleSleepFor(utest::kMaxTestWaitTime);
+      EXPECT_TRUE(engine::current_task::IsCancelRequested());
+      initial_task_was_cancelled = engine::current_task::IsCancelRequested();
+    });
+    engine::Yield();
+    EXPECT_FALSE(task.IsFinished());
+    EXPECT_FALSE(initial_task_was_cancelled);
+
+    auto task_new = std::move(task);
+    // NOLINTNEXTLINE(clang-analyzer-cplusplus.Move)
+    EXPECT_FALSE(task.IsValid());
+    EXPECT_TRUE(task_new.IsValid());
+    EXPECT_FALSE(initial_task_was_cancelled);
+  }
+  EXPECT_TRUE(initial_task_was_cancelled);
 }
 
 UTEST(Task, Get) {
