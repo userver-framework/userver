@@ -16,6 +16,49 @@ namespace mongo = storages::mongo;
 
 namespace {
 class Options : public MongoPoolFixture {};
+
+bool IsWriteConcernTimeoutResult(const storages::mongo::WriteResult& result) {
+  constexpr std::size_t kWriteConcernTimeoutMongoCode = 64;
+
+  EXPECT_EQ(0, result.ServerErrors().size())
+      << result.ServerErrors()[0].Message();
+
+  auto wc_errors = result.WriteConcernErrors();
+  for (const auto& error : wc_errors) {
+    if (error.Code() == kWriteConcernTimeoutMongoCode) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+bool IsCollectionWriteConcernTimeout(mongo::Collection& collection,
+                                     const mongo::options::WriteConcern& conc) {
+  constexpr std::size_t kMaxAttempts = 1000;
+
+  mongo::operations::InsertMany insert_op({bson::MakeDoc("_id", 0)});
+  for (std::size_t id = 1; id < 1000; ++id) {
+    insert_op.Append(bson::MakeDoc("_id", id));
+  }
+  insert_op.SetOption(mongo::options::SuppressServerExceptions{});
+  insert_op.SetOption(conc);
+
+  using mongo::operations::Delete;
+  Delete delete_op(Delete::Mode::kMulti, {});
+  delete_op.SetOption(mongo::options::SuppressServerExceptions{});
+  delete_op.SetOption(conc);
+
+  for (std::size_t attempt = 0; attempt < kMaxAttempts; ++attempt) {
+    if (IsWriteConcernTimeoutResult(collection.Execute(insert_op)) ||
+        IsWriteConcernTimeoutResult(collection.Execute(delete_op))) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 }  // namespace
 
 UTEST_F(Options, ReadPreference) {
@@ -665,6 +708,23 @@ UTEST_F(Options, WriteConcern) {
   UEXPECT_THROW(
       coll.FindAndModify({}, {}, mongo::options::WriteConcern{"test"}),
       mongo::ServerException);
+}
+
+UTEST_F(Options, WriteConcernTimeout) {
+  auto coll = GetDefaultPool().GetCollection("write_timeout");
+  auto conc =
+      mongo::options::WriteConcern(2).SetTimeout(std::chrono::milliseconds{1});
+
+  EXPECT_TRUE(IsCollectionWriteConcernTimeout(coll, conc));
+}
+
+UTEST_F(Options, WriteConcernMajorityTimeout) {
+  auto coll = GetDefaultPool().GetCollection("write_majority_timeout");
+  auto conc =
+      mongo::options::WriteConcern(mongo::options::WriteConcern::kMajority)
+          .SetTimeout(std::chrono::milliseconds{1});
+
+  EXPECT_TRUE(IsCollectionWriteConcernTimeout(coll, conc));
 }
 
 UTEST_F(Options, Unordered) {

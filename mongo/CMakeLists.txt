@@ -94,5 +94,8 @@ if (USERVER_IS_THE_ROOT_PROJECT)
     --gtest_output=xml:${CMAKE_BINARY_DIR}/test-results/${PROJECT_NAME}_mongotest.xml
   )
 
+  # Tests that use IsCollectionWriteConcernTimeout require multi-instance mongo
+  set_property(TEST ${PROJECT_NAME}_mongotest PROPERTY ENVIRONMENT "TESTSUITE_MONGO_RS_INSTANCE_COUNT=5")
+
   add_subdirectory(functional_tests)
 endif()
