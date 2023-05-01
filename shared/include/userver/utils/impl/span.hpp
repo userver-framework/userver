@@ -46,6 +46,22 @@ class Span final {
     return begin_[index];
   }
 
+  constexpr Span<T> first(std::size_t count) const noexcept {
+    UASSERT(count <= size());
+    return Span{begin_, begin_ + count};
+  }
+
+  constexpr Span<T> last(std::size_t count) const noexcept {
+    UASSERT(count <= size());
+    return Span{end_ - count, end_};
+  }
+
+  constexpr Span<T> subspan(std::size_t offset,
+                            std::size_t count) const noexcept {
+    UASSERT(offset + count <= size());
+    return Span{begin_ + offset, begin_ + offset + count};
+  }
+
  private:
   T* begin_;
   T* end_;
