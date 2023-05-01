@@ -143,6 +143,14 @@ const std::string& HttpRequest::RequestBody() const {
   return impl_.RequestBody();
 }
 
+const HttpRequest::HeadersMap& HttpRequest::RequestHeaders() const {
+  return impl_.GetHeaders();
+}
+
+const HttpRequest::CookiesMap& HttpRequest::RequestCookies() const {
+  return impl_.GetCookies();
+}
+
 void HttpRequest::SetRequestBody(std::string body) {
   impl_.SetRequestBody(std::move(body));
 }  // namespace server::http

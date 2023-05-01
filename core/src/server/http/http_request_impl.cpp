@@ -203,6 +203,10 @@ HttpRequest::HeadersMapKeys HttpRequestImpl::GetHeaderNames() const {
   return HttpRequest::HeadersMapKeys{headers_};
 }
 
+const HttpRequest::HeadersMap& HttpRequestImpl::GetHeaders() const {
+  return headers_;
+}
+
 const std::string& HttpRequestImpl::GetCookie(
     const std::string& cookie_name) const {
   auto it = cookies_.find(cookie_name);
@@ -218,6 +222,10 @@ size_t HttpRequestImpl::CookieCount() const { return cookies_.size(); }
 
 HttpRequest::CookiesMapKeys HttpRequestImpl::GetCookieNames() const {
   return HttpRequest::CookiesMapKeys{cookies_};
+}
+
+const HttpRequest::CookiesMap& HttpRequestImpl::GetCookies() const {
+  return cookies_;
 }
 
 void HttpRequestImpl::SetRequestBody(std::string body) {

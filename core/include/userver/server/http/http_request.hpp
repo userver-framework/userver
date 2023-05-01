@@ -165,6 +165,12 @@ class HttpRequest final {
   /// @return HTTP body.
   const std::string& RequestBody() const;
 
+  /// @return HTTP headers.
+  const HeadersMap& RequestHeaders() const;
+
+  /// @return HTTP cookies.
+  const CookiesMap& RequestCookies() const;
+
   /// @cond
   void SetRequestBody(std::string body);
   void ParseArgsFromBody();
