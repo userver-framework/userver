@@ -121,8 +121,19 @@ TaskBase::~TaskBase() = default;
 
 TaskBase::TaskBase(TaskBase&&) noexcept = default;
 TaskBase& TaskBase::operator=(TaskBase&&) noexcept = default;
-TaskBase::TaskBase(const TaskBase&) noexcept = default;
-TaskBase& TaskBase::operator=(const TaskBase&) noexcept = default;
+
+// NOLINTNEXTLINE(hicpp-use-equals-default,modernize-use-equals-default)
+TaskBase::TaskBase(const TaskBase& other) noexcept : context_(other.context_) {}
+
+// clang-format off
+// NOLINTNEXTLINE(hicpp-use-equals-default,modernize-use-equals-default,cert-oop54-cpp)
+TaskBase& TaskBase::operator=(const TaskBase& other) noexcept {
+  if (context_ != other.context_) {
+    context_ = other.context_;
+  }
+  return *this;
+}
+// clang-format on
 
 utils::impl::WrappedCallBase& TaskBase::GetPayload() const noexcept {
   UASSERT(context_);
