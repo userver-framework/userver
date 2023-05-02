@@ -18,27 +18,49 @@ void DumpMetric(utils::statistics::Writer& writer, const Stats& stats) {
 }
 
 Controller::Controller(const std::string& name, Sensor& sensor,
-                       Limiter& limiter, Stats& stats)
-    : name_(name), sensor_(sensor), limiter_(limiter), stats_(stats) {}
+                       Limiter& limiter, Stats& stats, const Config& config)
+    : name_(name),
+      sensor_(sensor),
+      limiter_(limiter),
+      stats_(stats),
+      config_(config) {}
 
 void Controller::Start() {
-  LOG_INFO() << fmt::format("Congestion controller {} has started", name_);
-  periodic_.Start("congestion_control", {kStepPeriod}, [this] { Step(); });
+  if (config_.enabled) {
+    LOG_INFO() << fmt::format("Congestion controller {} has started", name_);
+    periodic_.Start("congestion_control", {kStepPeriod}, [this] { Step(); });
+  } else {
+    LOG_INFO() << fmt::format(
+        "Congestion controller {} is disabled via static config, not starting",
+        name_);
+  }
+}
+
+std::string_view Controller::LogFakeMode() const {
+  if (config_.fake_mode)
+    return " (fake mode)";
+  else
+    return "";
 }
 
 void Controller::Step() {
   auto current = sensor_.GetCurrent();
   auto limit = Update(current);
-  limiter_.SetLimit(limit);
+  if (!config_.fake_mode) {
+    limiter_.SetLimit(limit);
+  }
 
   if (limit.load_limit) {
-    LOG_ERROR() << fmt::format(
-        "Congestion Control {} is active, sensor ({}), limiter ({})", name_,
-        current.ToLogString(), limit.ToLogString());
+    LOG_ERROR()
+        << fmt::format(
+               "Congestion Control {} is active, sensor ({}), limiter ({})",
+               name_, current.ToLogString(), limit.ToLogString())
+        << LogFakeMode();
   } else {
     LOG_TRACE() << fmt::format(
-        "Congestion Control {} is not active, sensor ({})", name_,
-        current.ToLogString());
+                       "Congestion Control {} is not active, sensor ({})",
+                       name_, current.ToLogString())
+                << LogFakeMode();
   }
 
   if (limit.load_limit.has_value()) stats_.enabled_epochs++;

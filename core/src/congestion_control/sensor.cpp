@@ -17,8 +17,8 @@ double Sensor::Data::GetLoadPercent() const {
 namespace v2 {
 
 std::string Sensor::Data::ToLogString() {
-  return fmt::format("total={} events={} current_load={}", total, timeouts,
-                     current_load);
+  return fmt::format("events={}/{} timings_avg={}ms current_load={}", timeouts,
+                     total, timings_avg_ms, current_load);
 }
 
 }  // namespace v2

@@ -10,27 +10,47 @@ namespace {
 constexpr double kTimeoutThreshold = 5.0;  // 5%
 constexpr size_t kSafeDeltaLimit = 10;
 constexpr size_t kCurrentLoadEpochs = 3;
+constexpr size_t kLongTimingsEpochs = 30;
+constexpr size_t kTimingsBurstThreshold = 5;
+constexpr size_t kMinTimingsMs = 20;
+constexpr size_t kMinLimit = 10;
 }  // namespace
 
 LinearController::LinearController(const std::string& name, v2::Sensor& sensor,
                                    Limiter& limiter, Stats& stats,
                                    const StaticConfig& config)
-    : Controller(name, sensor, limiter, stats),
+    : Controller(name, sensor, limiter, stats,
+                 {config.fake_mode, config.enabled}),
       config_(config),
-      current_load_(kCurrentLoadEpochs) {
+      current_load_(kCurrentLoadEpochs),
+      long_timings_(kLongTimingsEpochs) {
   LOG_DEBUG() << "Linear Congestion-Control is created with the following "
                  "config: safe_limit="
               << config_.safe_limit
               << ", threshold_percent=" << config_.threshold_percent;
 }
 
-Limit LinearController::Update(Sensor::Data& current) {
+Limit LinearController::Update(const Sensor::Data& current) {
   auto rate = current.GetRate();
 
   current_load_.Update(current.current_load);
   auto current_load = current_load_.GetSmoothed();
 
-  if (100 * rate > config_.threshold_percent) {
+  bool overloaded = 100 * rate > config_.threshold_percent;
+
+  if (epochs_passed_++ < kLongTimingsEpochs) {
+    long_timings_.Update(current.timings_avg_ms);
+  } else {
+    size_t divisor = long_timings_.GetSmoothed();
+    if (divisor < kMinTimingsMs) divisor = kMinTimingsMs;
+    if (current.timings_avg_ms > kTimingsBurstThreshold * divisor) {
+      overloaded = true;
+    } else {
+      long_timings_.Update(current.timings_avg_ms);
+    }
+  }
+
+  if (overloaded) {
     if (current_limit_) {
       *current_limit_ = *current_limit_ * 0.95;
     } else {
@@ -52,6 +72,10 @@ Limit LinearController::Update(Sensor::Data& current) {
     }
   }
 
+  if (current_limit_.has_value() && current_limit_ < kMinLimit) {
+    current_limit_ = kMinLimit;
+  }
+
   return {current_limit_, current.current_load};
 }
 
@@ -62,6 +86,8 @@ LinearController::StaticConfig Parse(
   config.safe_limit = value["safe-limit"].As<int64_t>(kSafeDeltaLimit);
   config.threshold_percent =
       value["threshold-percent"].As<double>(kTimeoutThreshold);
+  config.fake_mode = value["fake-mode"].As<bool>(false);
+  config.enabled = value["enabled"].As<bool>(true);
   return config;
 }
 

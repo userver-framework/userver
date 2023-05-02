@@ -21,8 +21,13 @@ void DumpMetric(utils::statistics::Writer& writer, const Stats& stats);
 
 class Controller {
  public:
+  struct Config {
+    bool fake_mode{false};
+    bool enabled{true};
+  };
+
   Controller(const std::string& name, v2::Sensor& sensor, Limiter& limiter,
-             Stats& stats);
+             Stats& stats, const Config& config);
 
   virtual ~Controller() = default;
 
@@ -33,16 +38,19 @@ class Controller {
   const std::string& GetName() const;
 
  protected:
-  virtual Limit Update(v2::Sensor::Data& data) = 0;
+  virtual Limit Update(const v2::Sensor::Data& data) = 0;
 
   // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
   std::optional<size_t> current_limit_;
 
  private:
+  std::string_view LogFakeMode() const;
+
   const std::string name_;
   Sensor& sensor_;
   congestion_control::Limiter& limiter_;
   Stats& stats_;
+  const Config config_;
   USERVER_NAMESPACE::utils::PeriodicTask periodic_;
 };
 

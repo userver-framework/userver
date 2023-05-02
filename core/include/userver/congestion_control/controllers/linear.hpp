@@ -17,17 +17,22 @@ class LinearController final : public Controller {
   struct StaticConfig {
     int64_t safe_limit{100};
     double threshold_percent{5.0};
+
+    bool fake_mode{false};
+    bool enabled{true};
   };
 
   LinearController(const std::string& name, v2::Sensor& sensor,
                    Limiter& limiter, Stats& stats, const StaticConfig& config);
 
-  Limit Update(Sensor::Data& current) override;
+  Limit Update(const Sensor::Data& current) override;
 
  private:
   StaticConfig config_;
   utils::SmoothedValue<int64_t> current_load_;
+  utils::SmoothedValue<int64_t> long_timings_;
   std::optional<size_t> current_limit_;
+  size_t epochs_passed_{0};
 };
 
 LinearController::StaticConfig Parse(

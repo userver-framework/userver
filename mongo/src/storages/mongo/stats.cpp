@@ -175,8 +175,9 @@ void OperationStopwatch::Account(ErrorType error_type) noexcept {
 
   try {
     stats_item->Account(error_type);
-    stats_item->timings.GetCurrentCounter().Account(
-        GetMilliseconds(scope_time_.Reset()));
+    auto ms = GetMilliseconds(scope_time_.Reset());
+    stats_item->timings.GetCurrentCounter().Account(ms);
+    stats_item->timings_sum += ms;
   } catch (const std::exception&) {
     // ignore
   }

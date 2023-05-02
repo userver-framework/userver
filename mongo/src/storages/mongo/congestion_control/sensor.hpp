@@ -24,6 +24,7 @@ class Sensor final : public congestion_control::v2::Sensor {
   impl::PoolImpl& pool_;
   int64_t last_total_queries{};
   int64_t last_timeouted_queries{};
+  int64_t last_timings_sum{};
 };
 
 }  // namespace cc

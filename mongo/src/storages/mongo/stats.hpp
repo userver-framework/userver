@@ -59,8 +59,11 @@ struct OperationStatisticsItem final {
 
   // TODO don't use RecentPeriod for monotonic counters
   std::array<AggregatedCounter, kErrorTypesCount> counters;
+
   std::atomic<size_t> total_queries{0};
   std::atomic<size_t> network_errors{0};
+  std::atomic<size_t> timings_sum{0};
+
   AggregatedTimingsPercentile timings;
 };
 
