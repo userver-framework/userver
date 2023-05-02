@@ -9,6 +9,7 @@
 #include <string_view>
 #include <type_traits>
 #include <utility>
+#include <variant>
 
 #include <fmt/format.h>
 
@@ -48,51 +49,187 @@ constexpr bool ICaseEqualLowercase(std::string_view lowercase,
   return true;
 }
 
+struct Found final {
+  constexpr explicit Found(std::size_t value) noexcept { UASSERT(value == 0); }
+
+  constexpr explicit operator std::size_t() const noexcept { return 0; }
+};
+
+template <typename Key, typename Value, typename Enabled = void>
+class SearchState final {
+ public:
+  constexpr explicit SearchState(Key key) noexcept
+      : key_or_result_(std::in_place_index<0>, key) {}
+
+  constexpr bool IsFound() const noexcept {
+    return key_or_result_.index() != 0;
+  }
+
+  constexpr Key GetKey() const noexcept {
+    UASSERT(!IsFound());
+    return std::get<0>(key_or_result_);
+  }
+
+  constexpr void SetValue(Value value) noexcept {
+    key_or_result_ = std::variant<Key, Value>(std::in_place_index<1>, value);
+  }
+
+  [[nodiscard]] constexpr std::optional<Value> Extract() noexcept {
+    if (key_or_result_.index() == 1) {
+      return std::get<1>(key_or_result_);
+    } else {
+      return std::nullopt;
+    }
+  }
+
+ private:
+  std::variant<Key, Value> key_or_result_;
+};
+
+inline constexpr std::size_t kInvalidSize = -1;
+
+template <typename Payload>
+inline constexpr bool kFitsInStringOrPayload =
+    sizeof(Payload) <= sizeof(const char*) &&
+    (std::is_integral_v<Payload> || std::is_enum_v<Payload> ||
+     std::is_same_v<Payload, Found>);
+
+// A compacted std::variant<std::string_view, Payload>
+template <typename Payload>
+class StringOrPayload final {
+ public:
+  constexpr explicit StringOrPayload(std::string_view string) noexcept
+      : data_or_payload_(string.data()), size_(string.size()) {
+#if defined(__clang__)
+    __builtin_assume(size_ != kInvalidSize);
+#elif defined(__GNUC__)
+    if (size_ == kInvalidSize) __builtin_unreachable();
+#endif
+  }
+
+  constexpr explicit StringOrPayload(Payload payload) noexcept
+      : data_or_payload_(payload), size_(kInvalidSize) {}
+
+  constexpr bool HasPayload() const noexcept { return size_ == kInvalidSize; }
+
+  constexpr std::string_view GetString() const noexcept {
+    UASSERT(!HasPayload());
+    return std::string_view{data_or_payload_.data, size_};
+  }
+
+  constexpr Payload GetPayload() const noexcept {
+    UASSERT(HasPayload());
+    return data_or_payload_.payload;
+  }
+
+ private:
+  static_assert(kFitsInStringOrPayload<Payload>);
+
+  union DataOrPayload {
+    constexpr explicit DataOrPayload(const char* data) noexcept : data(data) {}
+
+    constexpr explicit DataOrPayload(Payload payload) noexcept
+        : payload(payload) {}
+
+    const char* data{};
+    Payload payload;
+  };
+
+  DataOrPayload data_or_payload_;
+  std::size_t size_;
+};
+
+template <typename Value>
+class SearchState<std::string_view, Value,
+                  std::enable_if_t<kFitsInStringOrPayload<Value>>>
+    final {
+ public:
+  constexpr explicit SearchState(std::string_view key) noexcept : state_(key) {}
+
+  constexpr bool IsFound() const noexcept { return state_.HasPayload(); }
+
+  constexpr std::string_view GetKey() const noexcept {
+    return state_.GetString();
+  }
+
+  constexpr void SetValue(Value value) noexcept {
+    state_ = StringOrPayload{value};
+  }
+
+  [[nodiscard]] constexpr std::optional<Value> Extract() noexcept {
+    return IsFound() ? std::optional{state_.GetPayload()} : std::nullopt;
+  }
+
+ private:
+  StringOrPayload<Value> state_;
+};
+
+template <typename Key>
+class SearchState<Key, std::string_view,
+                  std::enable_if_t<kFitsInStringOrPayload<Key>>>
+    final {
+ public:
+  constexpr explicit SearchState(Key key) noexcept : state_(key) {}
+
+  constexpr bool IsFound() const noexcept { return !state_.HasPayload(); }
+
+  constexpr Key GetKey() const noexcept { return state_.GetPayload(); }
+
+  constexpr void SetValue(std::string_view value) noexcept {
+    state_ = StringOrPayload<Key>{value};
+  }
+
+  [[nodiscard]] constexpr std::optional<std::string_view> Extract() noexcept {
+    return IsFound() ? std::optional{state_.GetString()} : std::nullopt;
+  }
+
+ private:
+  StringOrPayload<Key> state_;
+};
+
 template <typename First, typename Second>
 class SwitchByFirst final {
  public:
-  constexpr explicit SwitchByFirst(First search) noexcept : search_(search) {}
+  constexpr explicit SwitchByFirst(First search) noexcept : state_(search) {}
 
   constexpr SwitchByFirst& Case(First first, Second second) noexcept {
-    if (!result_ && search_ == first) {
-      result_.emplace(second);
+    if (!state_.IsFound() && state_.GetKey() == first) {
+      state_.SetValue(second);
     }
     return *this;
   }
 
   [[nodiscard]] constexpr std::optional<Second> Extract() noexcept {
-    return result_;
+    return state_.Extract();
   }
 
  private:
-  const First search_;
-  std::optional<Second> result_{};
+  SearchState<First, Second> state_;
 };
 
 template <typename First>
 class SwitchByFirst<First, void> final {
  public:
-  constexpr explicit SwitchByFirst(First search) noexcept : search_(search) {}
+  constexpr explicit SwitchByFirst(First search) noexcept : state_(search) {}
 
   constexpr SwitchByFirst& Case(First first) noexcept {
-    if (!found_ && search_ == first) {
-      found_ = true;
+    if (!state_.IsFound() && state_.GetKey() == first) {
+      state_.SetValue(Found{0});
     }
     return *this;
   }
 
-  [[nodiscard]] constexpr bool Extract() noexcept { return found_; }
+  [[nodiscard]] constexpr bool Extract() noexcept { return state_.IsFound(); }
 
  private:
-  const First search_;
-  bool found_{false};
+  SearchState<First, Found> state_;
 };
 
 template <typename Second>
 class SwitchByFirstICase final {
  public:
   constexpr explicit SwitchByFirstICase(std::string_view search) noexcept
-      : search_(search) {}
+      : state_(search) {}
 
   constexpr SwitchByFirstICase& Case(std::string_view first,
                                      Second second) noexcept {
@@ -100,52 +237,52 @@ class SwitchByFirstICase final {
                 fmt::format("String literal '{}' in utils::Switch*::Case() "
                             "should be in lower case",
                             first));
-    if (!result_ && search_.size() == first.size() &&
-        impl::ICaseEqualLowercase(first, search_)) {
-      result_.emplace(second);
+    if (!state_.IsFound() && state_.GetKey().size() == first.size() &&
+        impl::ICaseEqualLowercase(first, state_.GetKey())) {
+      state_.SetValue(second);
     }
     return *this;
   }
 
   [[nodiscard]] constexpr std::optional<Second> Extract() noexcept {
-    return result_;
+    return state_.Extract();
   }
 
  private:
-  const std::string_view search_;
-  std::optional<Second> result_{};
+  SearchState<std::string_view, Second> state_;
 };
 
 template <>
 class SwitchByFirstICase<void> final {
  public:
   constexpr explicit SwitchByFirstICase(std::string_view search) noexcept
-      : search_(search) {}
+      : state_(search) {}
 
   constexpr SwitchByFirstICase& Case(std::string_view first) noexcept {
     UASSERT_MSG(!impl::HasUppercaseAscii(first),
                 fmt::format("String literal '{}' in utils::Switch*::Case() "
                             "should be in lower case",
                             first));
-    if (!found_ && search_.size() == first.size() &&
-        impl::ICaseEqualLowercase(first, search_)) {
-      found_ = true;
+    if (!state_.IsFound() && state_.GetKey().size() == first.size() &&
+        impl::ICaseEqualLowercase(first, state_.GetKey())) {
+      state_.SetValue(Found{0});
     }
     return *this;
   }
 
-  [[nodiscard]] constexpr bool Extract() const noexcept { return found_; }
+  [[nodiscard]] constexpr bool Extract() const noexcept {
+    return state_.IsFound();
+  }
 
  private:
-  const std::string_view search_;
-  bool found_{false};
+  SearchState<std::string_view, Found> state_;
 };
 
 template <typename First>
 class SwitchBySecondICase final {
  public:
   constexpr explicit SwitchBySecondICase(std::string_view search) noexcept
-      : search_(search) {}
+      : state_(search) {}
 
   constexpr SwitchBySecondICase& Case(First first,
                                       std::string_view second) noexcept {
@@ -153,41 +290,39 @@ class SwitchBySecondICase final {
                 fmt::format("String literal '{}' in utils::Switch*::Case() "
                             "should be in lower case",
                             second));
-    if (!result_ && search_.size() == second.size() &&
-        impl::ICaseEqualLowercase(second, search_)) {
-      result_.emplace(first);
+    if (!state_.IsFound() && state_.GetKey().size() == second.size() &&
+        impl::ICaseEqualLowercase(second, state_.GetKey())) {
+      state_.SetValue(first);
     }
     return *this;
   }
 
   [[nodiscard]] constexpr std::optional<First> Extract() noexcept {
-    return result_;
+    return state_.Extract();
   }
 
  private:
-  const std::string_view search_;
-  std::optional<First> result_{};
+  SearchState<std::string_view, First> state_;
 };
 
 template <typename First, typename Second>
 class SwitchBySecond final {
  public:
-  constexpr explicit SwitchBySecond(Second search) noexcept : search_(search) {}
+  constexpr explicit SwitchBySecond(Second search) noexcept : state_(search) {}
 
   constexpr SwitchBySecond& Case(First first, Second second) noexcept {
-    if (!result_ && search_ == second) {
-      result_.emplace(first);
+    if (!state_.IsFound() && state_.GetKey() == second) {
+      state_.SetValue(first);
     }
     return *this;
   }
 
   [[nodiscard]] constexpr std::optional<First> Extract() noexcept {
-    return result_;
+    return state_.Extract();
   }
 
  private:
-  const Second search_;
-  std::optional<First> result_{};
+  SearchState<Second, First> state_;
 };
 
 template <typename First, typename Second>

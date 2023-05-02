@@ -24,6 +24,14 @@ TEST(TrivialBiMap, StringBasic) {
 }
 /// [sample string bimap]
 
+TEST(TrivialBiMap, StringBasicConstexpr) {
+  static_assert(kToInt.TryFind(42) == std::nullopt);
+  static_assert(kToInt.TryFind(2) == "two");
+
+  static_assert(kToInt.TryFind("ten") == std::nullopt);
+  static_assert(kToInt.TryFind("one") == 1);
+}
+
 TEST(TrivialBiMap, StringBasicDescribe) {
   EXPECT_EQ(kToInt.Describe(),
             "('zero', '0'), ('one', '1'), ('two', '2'), ('three', '3'), "
@@ -56,6 +64,14 @@ TEST(TrivialBiMap, EnumToEnum) {
             ThirdPartyColor::kOrange);
 }
 /// [sample bidir bimap]
+
+TEST(TrivialBiMap, EnumToEnumConstexpr) {
+  static_assert(kColorSwitch.TryFind(ThirdPartyColor::kRed) == Colors::kRed);
+  static_assert(kColorSwitch.TryFind(Colors::kRed) == ThirdPartyColor::kRed);
+
+  static_assert(!kColorSwitch.TryFind(static_cast<ThirdPartyColor>(6)));
+  static_assert(!kColorSwitch.TryFind(static_cast<Colors>(6)));
+}
 
 /// [sample contains switch]
 constexpr utils::TrivialSet kKnownLanguages = [](auto selector) {

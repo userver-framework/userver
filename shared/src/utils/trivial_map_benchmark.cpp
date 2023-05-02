@@ -10,9 +10,11 @@
 
 USERVER_NAMESPACE_BEGIN
 
-static std::string_view MyLaunder(std::string_view value) {
-  return Launder(value);
-}
+namespace {
+
+// We use this instead of Launder to cast the input to std::string_view
+// and hide the string size from the optimizer.
+std::string_view MyLaunder(std::string_view value) { return Launder(value); }
 
 constexpr utils::TrivialBiMap kSmallTrivialBiMap = [](auto selector) {
   return selector().Case("hello", 1).Case("world", 2).Case("z", 42);
@@ -104,6 +106,105 @@ const auto kHugeUnorderedMapping = std::unordered_map<std::string_view, int>{
     {"aaaaaaaaaaaaaaaa_x7", 42},   {"aaaaaaaaaaaaaaaa_x8", 42},
     {"aaaaaaaaaaaaaaaa_x9", 42},
 };
+
+enum class Enum1 {
+  C1,
+  C2,
+  C3,
+  C4,
+  C5,
+  C6,
+  C7,
+  C8,
+  C9,
+  C10,
+  C11,
+  C12,
+  C13,
+  C14,
+  C15,
+  C16,
+};
+
+enum class Enum2 {
+  C1,
+  C2,
+  C3,
+  C4,
+  C5,
+  C6,
+  C7,
+  C8,
+  C9,
+  C10,
+  C11,
+  C12,
+  C13,
+  C14,
+  C15,
+  C16,
+};
+
+constexpr utils::TrivialBiMap kEnumTrivialBiMap = [](auto selector) {
+  return selector()
+      .Case(Enum1::C1, Enum2::C10)
+      .Case(Enum1::C2, Enum2::C14)
+      .Case(Enum1::C3, Enum2::C2)
+      .Case(Enum1::C4, Enum2::C1)
+      .Case(Enum1::C5, Enum2::C16)
+      .Case(Enum1::C6, Enum2::C9)
+      .Case(Enum1::C7, Enum2::C5)
+      .Case(Enum1::C8, Enum2::C7)
+      .Case(Enum1::C9, Enum2::C4)
+      .Case(Enum1::C10, Enum2::C3)
+      .Case(Enum1::C11, Enum2::C11)
+      .Case(Enum1::C12, Enum2::C6)
+      .Case(Enum1::C13, Enum2::C12)
+      .Case(Enum1::C14, Enum2::C15)
+      .Case(Enum1::C15, Enum2::C8)
+      .Case(Enum1::C16, Enum2::C13);
+};
+
+std::optional<Enum1> Enum1From2Switch(Enum2 value) {
+  switch (value) {
+    case Enum2::C10:
+      return Enum1::C1;
+    case Enum2::C14:
+      return Enum1::C2;
+    case Enum2::C2:
+      return Enum1::C3;
+    case Enum2::C1:
+      return Enum1::C4;
+    case Enum2::C16:
+      return Enum1::C5;
+    case Enum2::C9:
+      return Enum1::C6;
+    case Enum2::C5:
+      return Enum1::C7;
+    case Enum2::C7:
+      return Enum1::C8;
+    case Enum2::C4:
+      return Enum1::C9;
+    case Enum2::C3:
+      return Enum1::C10;
+    case Enum2::C11:
+      return Enum1::C11;
+    case Enum2::C6:
+      return Enum1::C12;
+    case Enum2::C12:
+      return Enum1::C13;
+    case Enum2::C15:
+      return Enum1::C14;
+    case Enum2::C8:
+      return Enum1::C15;
+    case Enum2::C13:
+      return Enum1::C16;
+    default:
+      return {};
+  }
+}
+
+}  // namespace
 
 void MappingSmallTrivialBiMap(benchmark::State& state) {
   auto hello = MyLaunder("hello");
@@ -292,5 +393,23 @@ void MappingHugeUnorderedLast(benchmark::State& state) {
   }
 }
 BENCHMARK(MappingHugeUnorderedLast);
+
+void MappingEnumsTrivialBiMap(benchmark::State& state) {
+  const auto enum2 = Launder(Enum2::C7);
+
+  for (auto _ : state) {
+    benchmark::DoNotOptimize(kEnumTrivialBiMap.TryFind(enum2));
+  }
+}
+BENCHMARK(MappingEnumsTrivialBiMap);
+
+void MappingEnumsSwitch(benchmark::State& state) {
+  const auto enum2 = Launder(Enum2::C7);
+
+  for (auto _ : state) {
+    benchmark::DoNotOptimize(Enum1From2Switch(enum2));
+  }
+}
+BENCHMARK(MappingEnumsSwitch);
 
 USERVER_NAMESPACE_END
