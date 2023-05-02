@@ -107,6 +107,21 @@ TYPED_TEST_P(CommonValueBuilderTests, StringStrongTypedef) {
   }
 }
 
-REGISTER_TYPED_TEST_SUITE_P(CommonValueBuilderTests, StringStrongTypedef);
+TYPED_TEST_P(CommonValueBuilderTests, Resize) {
+  using ValueBuilder = typename TestFixture::ValueBuilder;
+  ValueBuilder builder;
+  constexpr std::size_t new_size = 10;
+  builder.Resize(new_size);
+  for (std::size_t i = 0; i < new_size; ++i) {
+    builder[i] = i;
+  }
+  const auto value = builder.ExtractValue();
+  for (std::size_t i = 0; i < new_size; ++i) {
+    EXPECT_EQ(i, value[i].template As<std::size_t>());
+  }
+}
+
+REGISTER_TYPED_TEST_SUITE_P(CommonValueBuilderTests, StringStrongTypedef,
+                            Resize);
 
 USERVER_NAMESPACE_END
