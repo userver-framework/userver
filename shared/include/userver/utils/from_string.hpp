@@ -32,7 +32,7 @@ std::enable_if_t<std::is_floating_point_v<T>, T> FromString(const char* str) {
   static_assert(!std::is_reference_v<T>);
 
   if (str == nullptr) {
-    impl::ThrowFromStringException("nullptr string", str, typeid(T));
+    impl::ThrowFromStringException("nullptr string", "<null>", typeid(T));
   }
   if (str[0] == '\0') {
     impl::ThrowFromStringException("empty string", str, typeid(T));

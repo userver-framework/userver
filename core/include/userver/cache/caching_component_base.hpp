@@ -332,8 +332,8 @@ yaml_config::Schema CachingComponentBase<T>::GetStaticConfigSchema() {
 }
 
 template <typename T>
-void CachingComponentBase<T>::PreAssignCheck(const T*,
-                                             const T* new_value_ptr) const {
+void CachingComponentBase<T>::PreAssignCheck(
+    const T*, [[maybe_unused]] const T* new_value_ptr) const {
   UINVARIANT(
       meta::kIsSizable<T>,
       fmt::format("{} type does not support std::size(), add implementation of "

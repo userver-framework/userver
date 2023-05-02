@@ -22,9 +22,9 @@ void ConstFromString(benchmark::State& state) {
   }
 }
 
-BENCHMARK(ConstFromString<std::uint64_t>)->DenseRange(1, 20, 1);
-BENCHMARK(ConstFromString<std::uint32_t>)->DenseRange(1, 10, 1);
-BENCHMARK(ConstFromString<std::uint16_t>)->DenseRange(1, 5, 1);
-BENCHMARK(ConstFromString<double>)->DenseRange(1, 10, 1);
+BENCHMARK_TEMPLATE(ConstFromString, std::uint64_t)->DenseRange(1, 20, 1);
+BENCHMARK_TEMPLATE(ConstFromString, std::uint32_t)->DenseRange(1, 10, 1);
+BENCHMARK_TEMPLATE(ConstFromString, std::uint16_t)->DenseRange(1, 5, 1);
+BENCHMARK_TEMPLATE(ConstFromString, double)->DenseRange(1, 10, 1);
 
 USERVER_NAMESPACE_END

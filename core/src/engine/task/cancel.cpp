@@ -11,6 +11,7 @@
 
 #include <engine/task/coro_unwinder.hpp>
 #include <engine/task/task_context.hpp>
+#include <utils/impl/assert_extra.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -89,7 +90,8 @@ std::string_view ToString(TaskCancellationReason reason) noexcept {
       return "Task processor shutdown";
   }
 
-  UASSERT_MSG(false, fmt::format("unknown({})", static_cast<int>(reason)));
+  utils::impl::AbortWithStacktrace(fmt::format(
+      "Garbage task cancellation reason: {}", utils::UnderlyingValue(reason)));
 }
 
 TaskCancellationToken::TaskCancellationToken() noexcept = default;

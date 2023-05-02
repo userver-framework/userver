@@ -26,8 +26,11 @@ struct alignas(8) Waiter32 final {
 struct alignas(16) Waiter64 final {
   TaskContext* context{nullptr};
   SleepState::Epoch epoch{0};
-  [[maybe_unused]] std::uint32_t padding_dont_use{0};
+  std::uint32_t padding_dont_use{0};
 };
+
+// Silence 'unused' warning.
+static_assert(sizeof(Waiter64::padding_dont_use) != 0);
 
 using Waiter = std::conditional_t<sizeof(void*) == 8, Waiter64, Waiter32>;
 
