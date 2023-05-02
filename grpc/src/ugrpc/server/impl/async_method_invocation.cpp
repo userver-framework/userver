@@ -13,8 +13,8 @@ RpcFinishedEvent::RpcFinishedEvent(
 void RpcFinishedEvent::Wait() noexcept { event_.WaitNonCancellable(); }
 
 void RpcFinishedEvent::Notify(bool ok) noexcept {
-  /// From the documentation to Grpc: Server-side AsyncNotifyWhenDone: ok should
-  /// always be true
+  // From the documentation to grpcpp: Server-side AsyncNotifyWhenDone:
+  // ok should always be true
   UASSERT(ok);
   if (server_ctx_.IsCancelled()) {
     cancellation_token_.RequestCancel();
