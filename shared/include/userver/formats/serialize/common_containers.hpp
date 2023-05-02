@@ -37,7 +37,8 @@ Serialize(const T& value, To<Value>) {
 
 /// Mappings serialization
 template <typename T, typename Value>
-std::enable_if_t<meta::kIsMap<T>, Value> Serialize(const T& value, To<Value>) {
+std::enable_if_t<meta::kIsUniqueMap<T>, Value> Serialize(const T& value,
+                                                         To<Value>) {
   typename Value::Builder builder(formats::common::Type::kObject);
   for (const auto& [key, value] : value) {
     builder[key] = value;

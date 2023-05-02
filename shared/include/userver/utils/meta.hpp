@@ -120,6 +120,10 @@ using AtResult =
     decltype(std::declval<const T&>().at(std::declval<typename T::key_type>()));
 
 template <typename T>
+using SubscriptOperatorResult =
+    decltype(std::declval<T>()[std::declval<typename T::key_type>()]);
+
+template <typename T>
 using PushBackResult = decltype(std::declval<T&>().push_back({}));
 
 template <typename T>
@@ -161,7 +165,8 @@ inline constexpr bool kIsMap =
 /// Returns true if T is a map (but not a multimap!)
 template <typename T>
 inline constexpr bool kIsUniqueMap =
-    kIsMap<T> && kIsDetected<impl::AtResult, T>;  // no at() in multimaps
+    kIsMap<T> && kIsDetected<impl::SubscriptOperatorResult,
+                             T>;  // no operator[] in multimaps
 
 template <typename T>
 using MapKeyType = DetectedType<impl::KeyType, T>;
