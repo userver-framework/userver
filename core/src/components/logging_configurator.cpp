@@ -57,30 +57,34 @@ void LoggingConfigurator::OnConfigUpdate(
   (void)this;  // silence clang-tidy
   tracing::Tracer::SetNoLogSpans(tracing::NoLogSpans{config[kNoLogSpans]});
 
-  const auto& dd = config[kDynamicDebugConfig];
-  auto old_dd = dynamic_debug_.Read();
-  if (!(*old_dd == dd)) {
-    auto lock = dynamic_debug_.StartWrite();
-    *lock = dd;
+  try {
+    const auto& dd = config[kDynamicDebugConfig];
+    auto old_dd = dynamic_debug_.Read();
+    if (!(*old_dd == dd)) {
+      auto lock = dynamic_debug_.StartWrite();
+      *lock = dd;
 
-    /* There is a race between multiple AddDynamicDebugLog(), thus some logs
-     * may be logged or not logged by mistake. This is on purpose as logging
-     * locking would be too slow and heavy.
-     */
+      /* There is a race between multiple AddDynamicDebugLog(), thus some logs
+       * may be logged or not logged by mistake. This is on purpose as logging
+       * locking would be too slow and heavy.
+       */
 
-    // Flush
-    AddDynamicDebugLog("", logging::kAnyLine, logging::EntryState::kDefault);
+      // Flush
+      AddDynamicDebugLog("", logging::kAnyLine, logging::EntryState::kDefault);
 
-    for (const auto& location : dd.force_disabled) {
-      AddDynamicDebugLog(location, logging::kAnyLine,
-                         logging::EntryState::kForceDisabled);
+      for (const auto& location : dd.force_disabled) {
+        AddDynamicDebugLog(location, logging::kAnyLine,
+                           logging::EntryState::kForceDisabled);
+      }
+      for (const auto& location : dd.force_enabled) {
+        AddDynamicDebugLog(location, logging::kAnyLine,
+                           logging::EntryState::kForceEnabled);
+      }
+
+      lock.Commit();
     }
-    for (const auto& location : dd.force_enabled) {
-      AddDynamicDebugLog(location, logging::kAnyLine,
-                         logging::EntryState::kForceEnabled);
-    }
-
-    lock.Commit();
+  } catch (const std::exception& e) {
+    LOG_ERROR() << "Failed to set dynamic debug logs from config: " << e;
   }
 }
 

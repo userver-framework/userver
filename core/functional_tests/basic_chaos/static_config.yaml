@@ -41,6 +41,10 @@ components_manager:
             testpoint-url: $mockserver/testpoint
             throttling_enabled: false
 
+        logging-configurator:
+            limited-logging-enable: false
+            limited-logging-interval: 10s
+
         server:
             listener:
                 port: 8187

@@ -33,7 +33,9 @@
   "USERVER_HTTP_PROXY": "",
   "USERVER_LOG_DYNAMIC_DEBUG": {
     "force-disabled": [],
-    "force-enabled": []
+    "force-enabled": [
+      "garbage"
+    ]
   },
   "USERVER_LOG_REQUEST": true,
   "USERVER_LOG_REQUEST_HEADERS": false,
