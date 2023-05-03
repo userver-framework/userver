@@ -41,12 +41,9 @@ file(GLOB_RECURSE SOURCES
   ${api-common-protos_SOURCE_DIR}/*.proto)
 
 generate_grpc_files(
-  PROTOS
-   ${SOURCES}
-  INCLUDE_DIRECTORIES
-    ${api-common-protos_SOURCE_DIR}
-  SOURCE_PATH
-    ${api-common-protos_SOURCE_DIR}
+  PROTOS ${SOURCES}
+  INCLUDE_DIRECTORIES ${api-common-protos_SOURCE_DIR}
+  SOURCE_PATH ${api-common-protos_SOURCE_DIR}
   GENERATED_INCLUDES include_paths
   CPP_FILES generated_sources
   CPP_USRV_FILES generated_usrv_sources

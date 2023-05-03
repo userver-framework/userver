@@ -1,5 +1,5 @@
-# Functions to create a target consisting of generated GRPC files and their
-# wrappers. A separate target is required as GRPC generated headers require
+# Functions to create a target consisting of generated gRPC files and their
+# wrappers. A separate target is required as gRPC generated headers require
 # relaxed compilation flags.
 
 if (USERVER_CONAN)
@@ -8,16 +8,25 @@ if (USERVER_CONAN)
   set(GRPC_LIBRARY_VERSION "${gRPC_VERSION}")
   set(GRPC_PROTOBUF_INCLUDE_DIRS "${protobuf_INCLUDE_DIR}" CACHE PATH INTERNAL)
 else()
+  # Use the builtin CMake FindProtobuf
+  find_package(Protobuf)
+  if(NOT Protobuf_FOUND)
+    message(FATAL_ERROR
+        "userver failed to find Protobuf compiler.\n"
+        "Please install the packages required for your system:\n\n"
+        "  Debian:    sudo apt install protobuf-compiler python3-protobuf\n"
+        "  macOS:     brew install protobuf\n"
+        "  ArchLinux: sudo pacman -S protobuf\n"
+        "  FreeBSD:   pkg install protobuf\n")
+  endif()
+  set(PROTOBUF_LIBRARY_VERSION "${Protobuf_VERSION}")
+  set(GRPC_PROTOBUF_INCLUDE_DIRS "${Protobuf_INCLUDE_DIRS}" CACHE PATH INTERNAL)
+
   find_package(UserverGrpc REQUIRED)
-  find_package(UserverProtobuf REQUIRED)
   if(NOT TARGET Grpc)
     add_library(Grpc ALIAS UserverGrpc)
   endif()
-  if(NOT TARGET Protobuf)
-    add_library(Protobuf ALIAS UserverProtobuf)
-  endif()
   set(GRPC_LIBRARY_VERSION "${UserverGrpc_VERSION}")
-  set(GRPC_PROTOBUF_INCLUDE_DIRS "${UserverProtobuf_INCLUDE_DIRS}" CACHE PATH INTERNAL)
 endif()
 
 if (NOT GRPC_PROTOBUF_INCLUDE_DIRS)
@@ -30,6 +39,12 @@ endif()
 get_filename_component(USERVER_DIR "${CMAKE_CURRENT_LIST_DIR}" DIRECTORY)
 set(PROTO_GRPC_USRV_PLUGIN "${USERVER_DIR}/scripts/grpc/protoc_usrv_plugin.sh")
 
+if(NOT USERVER_GRPC_VERSIONS_PRINTED)
+  message(STATUS "Protobuf version: ${Protobuf_VERSION}")
+  message(STATUS "gRPC version: ${GRPC_LIBRARY_VERSION}")
+  set(USERVER_GRPC_VERSIONS_PRINTED ON)
+endif()
+
 # We only check the system pip protobuf package version once.
 if(NOT USERVER_IMPL_GRPC_REQUIREMENTS_CHECKED)
   execute_process(
@@ -40,17 +55,18 @@ if(NOT USERVER_IMPL_GRPC_REQUIREMENTS_CHECKED)
     WORKING_DIRECTORY "${USERVER_DIR}"
   )
   if(RESULT)
-    message(FATAL_ERROR "Protobuf requirements check failed: PYTHON ${PYTHON} USERVER_DIR ${USERVER_DIR} RESULT ${RESULT}")
+    message(FATAL_ERROR
+        "Protobuf requirements check failed: "
+        "PYTHON ${PYTHON} USERVER_DIR ${USERVER_DIR} RESULT ${RESULT}")
   endif(RESULT)
   set(USERVER_IMPL_GRPC_REQUIREMENTS_CHECKED ON CACHE INTERNAL "")
 endif()
 
+set(PROTOBUF_PROTOC "${Protobuf_PROTOC_EXECUTABLE}")
 if(USERVER_CONAN)
   # Can't use find_*, because it may find a system binary with a wrong version.
-  set(PROTOBUF_PROTOC "${Protobuf_PROTOC_EXECUTABLE}")
   set(PROTO_GRPC_CPP_PLUGIN "${GRPC_CPP_PLUGIN_PROGRAM}")
 else()
-  find_program(PROTOBUF_PROTOC NAMES protoc)
   find_program(PROTO_GRPC_CPP_PLUGIN grpc_cpp_plugin)
 endif()
 
