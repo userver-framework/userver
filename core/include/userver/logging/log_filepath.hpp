@@ -23,11 +23,11 @@ static constexpr std::size_t PathBaseSize(std::string_view path) noexcept {
 #ifdef USERVER_LOG_PREFIX_PATH_BASE
            USERVER_LOG_FILEPATH_STRINGIZE(USERVER_LOG_PREFIX_PATH_BASE),
 #endif
-#ifdef USERVER_LOG_BUILD_PATH_BASE
-           USERVER_LOG_FILEPATH_STRINGIZE(USERVER_LOG_BUILD_PATH_BASE),
-#endif
 #ifdef USERVER_LOG_SOURCE_PATH_BASE
            USERVER_LOG_FILEPATH_STRINGIZE(USERVER_LOG_SOURCE_PATH_BASE),
+#endif
+#ifdef USERVER_LOG_BUILD_PATH_BASE
+           USERVER_LOG_FILEPATH_STRINGIZE(USERVER_LOG_BUILD_PATH_BASE),
 #endif
            ""  // default in case none were defined
        }) {

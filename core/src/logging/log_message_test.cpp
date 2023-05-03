@@ -30,15 +30,9 @@ std::string ToStringViaStreams(const T& value) {
 }
 
 void CheckModulePath(const std::string& message, const std::string& expected) {
-  static const std::string kUservicesUserverRoot = "userver/";
-
   auto module_pos = message.find("module=");
   ASSERT_NE(std::string::npos, module_pos) << "no module logged";
-  auto path_pos = message.find("( " + expected + ':', module_pos);
-  if (path_pos == std::string::npos) {
-    path_pos =
-        message.find("( " + kUservicesUserverRoot + expected + ':', module_pos);
-  }
+  auto path_pos = message.find(expected + ':', module_pos);
   auto delim_pos = message.find('\t', module_pos);
   ASSERT_LT(path_pos, delim_pos)
       << "module mismatch, expected path '" << expected << "', found '"
@@ -216,13 +210,15 @@ TEST_F(LoggingTest, IfExpressionWithoutBraces) {
 TEST_F(LoggingTest, CppModulePath) {
   LOG_CRITICAL();
   logging::LogFlush();
-  CheckModulePath(GetStreamString(), "core/src/logging/log_message_test.cpp");
+  CheckModulePath(GetStreamString(),
+                  "userver/core/src/logging/log_message_test.cpp");
 }
 
 TEST_F(LoggingTest, HppModulePath) {
   LoggingHeaderFunction();
   logging::LogFlush();
-  CheckModulePath(GetStreamString(), "core/src/logging/log_message_test.hpp");
+  CheckModulePath(GetStreamString(),
+                  "userver/core/src/logging/log_message_test.hpp");
 }
 
 TEST_F(LoggingTest, ExternalModulePath) {

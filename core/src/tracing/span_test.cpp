@@ -90,9 +90,10 @@ UTEST_F(Span, Ctr) {
 UTEST_F(Span, SourceLocation) {
   { tracing::Span span("span_name"); }
   logging::LogFlush();
-  EXPECT_NE(
-      std::string::npos,
-      GetStreamString().find("module=TestBody ( userver/core/src/tracing"))
+  EXPECT_NE(std::string::npos, GetStreamString().find("module=TestBody ( "))
+      << GetStreamString();
+  EXPECT_NE(std::string::npos,
+            GetStreamString().find("userver/core/src/tracing"))
       << GetStreamString();
 }
 
