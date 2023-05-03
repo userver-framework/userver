@@ -1,5 +1,7 @@
 # pylint: disable=protected-access
 import logging
+import asyncio
+import grpc
 
 import pytest
 from pytest_userver import chaos
@@ -44,6 +46,32 @@ async def _gate_ready(service_client, _gate_started):
     await _gate_started.sockets_close()  # close keepalive connections
 
     yield _gate_started
+
+
+@pytest.fixture(scope='function')
+async def _grpc_session_channel(grpc_service_endpoint):
+    async with grpc.aio.insecure_channel(grpc_service_endpoint) as channel:
+        yield channel
+
+
+@pytest.fixture
+async def grpc_channel(
+        grpc_service_endpoint,
+        grpc_service_deps,
+        grpc_service_timeout,
+        _grpc_session_channel,
+):
+    try:
+        await asyncio.wait_for(
+            _grpc_session_channel.channel_ready(),
+            timeout=grpc_service_timeout,
+        )
+    except asyncio.TimeoutError:
+        raise RuntimeError(
+            f'Failed to connect to remote gRPC server by '
+            f'address {grpc_service_endpoint}',
+        )
+    return _grpc_session_channel
 
 
 @pytest.fixture(scope='function')
