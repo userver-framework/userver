@@ -13,14 +13,17 @@ namespace utils::impl {
 
 class UserverExperiment final {
  public:
+  // Setting 'userver_experiments_force_enabled: true' in the static config
+  // root results in batch-enabling the experiments created with
+  // 'force_enabling_allowed = true'.
   explicit UserverExperiment(std::string name,
-                             bool force_enabled = false) noexcept;
+                             bool force_enabling_allowed = false);
 
   UserverExperiment(UserverExperiment&&) = delete;
   UserverExperiment& operator=(UserverExperiment&&) = delete;
 
   bool IsEnabled() const noexcept { return enabled_; }
-  bool ForceEnabled() const { return force_enabled_; }
+  bool IsForceEnablingAllowed() const { return force_enabling_allowed_; }
   const std::string& GetName() const { return name_; }
 
  private:
@@ -28,7 +31,7 @@ class UserverExperiment final {
 
   std::string name_;
   bool enabled_{false};
-  bool force_enabled_{false};
+  bool force_enabling_allowed_{false};
 };
 
 class InvalidUserverExperiments final : public std::runtime_error {

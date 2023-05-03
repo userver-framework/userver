@@ -27,18 +27,18 @@ namespace {
 using ExperimentPtr = utils::NotNull<UserverExperiment*>;
 
 auto& GetExperimentsInfo() noexcept {
-  static std::unordered_map<std::string, ExperimentPtr> experiments_info;
+  static std::unordered_map<std::string_view, ExperimentPtr> experiments_info;
   return experiments_info;
 }
 
-void RegisterExperiment(std::string&& name, UserverExperiment& experiment) {
+void RegisterExperiment(UserverExperiment& experiment) {
   utils::impl::AssertStaticRegistrationAllowed("UserverExperiment creation");
   const auto [_, success] =
-      GetExperimentsInfo().try_emplace(std::move(name), experiment);
+      GetExperimentsInfo().try_emplace(experiment.GetName(), experiment);
   UINVARIANT(
       success,
       fmt::format("userver experiment with name '{}' is already registered",
-                  name));
+                  experiment.GetName()));
 }
 
 auto GetEnabledUserverExperiments() {
@@ -51,9 +51,9 @@ auto GetEnabledUserverExperiments() {
 }  // namespace
 
 UserverExperiment::UserverExperiment(std::string name,
-                                     bool force_enabled) noexcept
-    : name_(name), force_enabled_(force_enabled) {
-  RegisterExperiment(std::move(name), *this);
+                                     bool force_enabling_allowed)
+    : name_(name), force_enabling_allowed_(force_enabling_allowed) {
+  RegisterExperiment(*this);
 }
 
 UserverExperimentsScope::UserverExperimentsScope()
@@ -88,10 +88,11 @@ void UserverExperimentsScope::EnableOnly(
     }
   }
 
-  for (const auto& [name, experiment] : exp_map) {
-    UserverExperimentSetter::Set(
-        *experiment, enabled_experiments.count(name) != 0 ||
-                         (experiment->ForceEnabled() && force_enable));
+  for (const auto& [_, experiment] : exp_map) {
+    const bool enabled = enabled_experiments.count(experiment->GetName()) != 0;
+    const bool force_enabled =
+        experiment->IsForceEnablingAllowed() && force_enable;
+    UserverExperimentSetter::Set(*experiment, enabled || force_enabled);
   }
 }
 
