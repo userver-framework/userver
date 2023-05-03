@@ -44,3 +44,8 @@ async def _gate_ready(service_client, _gate_started):
     await _gate_started.sockets_close()  # close keepalive connections
 
     yield _gate_started
+
+
+@pytest.fixture(scope='function')
+def grpc_client(grpc_channel, greeter_services, service_client, gate):
+    return greeter_services.GreeterServiceStub(grpc_channel)

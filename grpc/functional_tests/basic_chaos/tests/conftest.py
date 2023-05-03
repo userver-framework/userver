@@ -58,8 +58,3 @@ def greeter_protos():
 @pytest.fixture(scope='session')
 def greeter_services():
     return grpc.services('greeter.proto')
-
-
-@pytest.fixture(scope='function')
-def grpc_client(grpc_channel, greeter_services, service_client):
-    return greeter_services.GreeterServiceStub(grpc_channel)
