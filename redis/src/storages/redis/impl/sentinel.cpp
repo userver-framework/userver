@@ -25,7 +25,7 @@ namespace redis {
 namespace {
 
 void ThrowIfCancelled() {
-  if (engine::current_task::GetTaskProcessorOptional() &&
+  if (engine::current_task::IsTaskProcessorThread() &&
       engine::current_task::ShouldCancel()) {
     throw RequestCancelledException(
         "Failed to make redis request due to task cancellation");

@@ -19,15 +19,13 @@ SharedTask::~SharedTask() { DecrementSharedUsages(); }
 
 SharedTask::SharedTask(const SharedTask& other) noexcept
     : TaskBase(static_cast<const TaskBase&>(other)) {
-  UASSERT(context_ == other.context_);
   IncrementSharedUsages();
 }
 
-// NOLINTNEXTLINE(cert-oop54-cpp)
 SharedTask& SharedTask::operator=(const SharedTask& other) noexcept {
-  if (context_ != other.context_) {
+  if (&other != this) {
     DecrementSharedUsages();
-    context_ = other.context_;
+    TaskBase::operator=(other);
     IncrementSharedUsages();
   }
   return *this;
@@ -35,27 +33,24 @@ SharedTask& SharedTask::operator=(const SharedTask& other) noexcept {
 
 SharedTask::SharedTask(SharedTask&& other) noexcept
     : TaskBase(static_cast<TaskBase&&>(other)) {
-  UASSERT(!other.context_);
   UASSERT(!other.IsValid());
 }
 
-// NOLINTNEXTLINE(cert-oop54-cpp)
 SharedTask& SharedTask::operator=(SharedTask&& other) noexcept {
-  if (context_ != other.context_) {
+  if (&other != this) {
     DecrementSharedUsages();
-    context_ = std::move(other.context_);
-    UASSERT(!other.context_);
+    TaskBase::operator=(std::move(other));
     UASSERT(!other.IsValid());
   }
   return *this;
 }
 
 void SharedTask::DecrementSharedUsages() noexcept {
-  if (!context_) {
+  if (!IsValid()) {
     return;
   }
 
-  const auto usages = context_->DecrementFetchSharedTaskUsages();
+  const auto usages = GetContext().DecrementFetchSharedTaskUsages();
   UASSERT_MSG(usages != std::numeric_limits<decltype(usages)>::max(),
               "Underflow of reference counter in SharedTask");
   if (usages == 0) {
@@ -64,14 +59,15 @@ void SharedTask::DecrementSharedUsages() noexcept {
 }
 
 void SharedTask::IncrementSharedUsages() noexcept {
-  if (!context_) {
+  if (!IsValid()) {
     return;
   }
 
-  const auto usages = context_->IncrementFetchSharedTaskUsages();
+  [[maybe_unused]] const auto usages =
+      GetContext().IncrementFetchSharedTaskUsages();
   UASSERT_MSG(
       usages >= 2,
-      "Copied SharedTask from a task that has no alive refereces to it");
+      "Copied SharedTask from a task that has no alive references to it");
 }
 
 }  // namespace engine

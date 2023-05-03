@@ -32,7 +32,7 @@ class ContextAccessor;
 }  // namespace impl
 
 /// @brief Base class for all the asynchronous tasks
-/// (engine::Task, engine::SharedTask, engine::SharedTaskWithresult,
+/// (engine::Task, engine::SharedTask, engine::SharedTaskWithResult,
 /// engine::TaskWithResult, dist_lock::DistLockedTask, ...).
 class [[nodiscard]] TaskBase {
  public:
@@ -134,51 +134,51 @@ class [[nodiscard]] TaskBase {
   // For internal use only.
   TaskBase();
 
+  // For internal use only.
+  explicit TaskBase(impl::TaskContextHolder&& context);
+
   // The following special functions must remain protected to forbid slicing
   // and force those methods implementation in derived classes.
-  ~TaskBase();
   TaskBase(TaskBase&&) noexcept;
   TaskBase& operator=(TaskBase&&) noexcept;
   TaskBase(const TaskBase&) noexcept;
   TaskBase& operator=(const TaskBase&) noexcept;
-
-  utils::impl::WrappedCallBase& GetPayload() const noexcept;
+  ~TaskBase();
 
   // For internal use only.
-  explicit TaskBase(impl::TaskContextHolder&& context);
+  impl::TaskContext& GetContext() const noexcept;
+
+  utils::impl::WrappedCallBase& GetPayload() const noexcept;
 
   // Marks task as invalid. For internal use only.
   void Invalidate() noexcept;
 
   void Terminate(TaskCancellationReason) noexcept;
+  /// @endcond
 
+ private:
   friend class impl::DetachedTasksSyncBlock;
   friend class TaskCancellationToken;
 
-  // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
   boost::intrusive_ptr<impl::TaskContext> context_;
-  /// @endcond
 };
 
 namespace current_task {
 
+/// Returns true only when running in userver coroutine environment,
+/// i.e. in an engine::TaskProcessor thread.
+bool IsTaskProcessorThread() noexcept;
+
 /// Returns reference to the task processor executing the caller
 TaskProcessor& GetTaskProcessor();
 
-/// Returns a pointer to the task processor executing the caller, or nullptr if
-/// running outside of coroutine environment
-TaskProcessor* GetTaskProcessorOptional() noexcept;
+/// Returns task coroutine stack size
+std::size_t GetStackSize();
 
 /// @cond
-/// Returns ev thread handle, internal use only
+// Returns ev thread handle, internal use only
 ev::ThreadControl& GetEventThread();
-
-/// Updates spurious wakeup statistics, internal use only
-void AccountSpuriousWakeup();
 /// @endcond
-
-/// Returns task coroutine stack size
-size_t GetStackSize();
 
 }  // namespace current_task
 

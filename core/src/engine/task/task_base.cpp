@@ -93,13 +93,13 @@ TaskCancellationReason TaskBase::CancellationReason() const {
 
 void TaskBase::BlockingWait() const {
   UASSERT(context_);
-  UASSERT(current_task::GetCurrentTaskContextUnchecked() == nullptr);
+  UASSERT(!current_task::IsTaskProcessorThread());
 
   auto& context = *context_;
   if (context.IsFinished()) return;
 
   std::packaged_task<void()> task([&context] {
-    TaskCancellationBlocker block_cancels;
+    const TaskCancellationBlocker block_cancels;
     context.Wait();
   });
   auto future = task.get_future();
@@ -122,18 +122,13 @@ TaskBase::~TaskBase() = default;
 TaskBase::TaskBase(TaskBase&&) noexcept = default;
 TaskBase& TaskBase::operator=(TaskBase&&) noexcept = default;
 
-// NOLINTNEXTLINE(hicpp-use-equals-default,modernize-use-equals-default)
-TaskBase::TaskBase(const TaskBase& other) noexcept : context_(other.context_) {}
+TaskBase::TaskBase(const TaskBase& other) noexcept = default;
+TaskBase& TaskBase::operator=(const TaskBase& other) noexcept = default;
 
-// clang-format off
-// NOLINTNEXTLINE(hicpp-use-equals-default,modernize-use-equals-default,cert-oop54-cpp)
-TaskBase& TaskBase::operator=(const TaskBase& other) noexcept {
-  if (context_ != other.context_) {
-    context_ = other.context_;
-  }
-  return *this;
+impl::TaskContext& TaskBase::GetContext() const noexcept {
+  UASSERT(context_);
+  return *context_;
 }
-// clang-format on
 
 utils::impl::WrappedCallBase& TaskBase::GetPayload() const noexcept {
   UASSERT(context_);
@@ -147,38 +142,34 @@ void TaskBase::Terminate(TaskCancellationReason reason) noexcept {
     // e.g. between global event thread pool and task processor
     context_->RequestCancel(reason);
 
-    TaskCancellationBlocker cancel_blocker;
+    const TaskCancellationBlocker cancel_blocker;
     Wait();
   }
 }
 
 namespace current_task {
 
+bool IsTaskProcessorThread() noexcept {
+  return GetCurrentTaskContextUnchecked() != nullptr;
+}
+
 TaskProcessor& GetTaskProcessor() {
   return GetCurrentTaskContext().GetTaskProcessor();
 }
 
-TaskProcessor* GetTaskProcessorOptional() noexcept {
-  auto* const context = GetCurrentTaskContextUnchecked();
-  return context ? &context->GetTaskProcessor() : nullptr;
-}
-
-ev::ThreadControl& GetEventThread() {
-  return GetTaskProcessor().EventThreadPool().NextThread();
-}
-
-void AccountSpuriousWakeup() {
-  return GetTaskProcessor().GetTaskCounter().AccountSpuriousWakeup();
-}
-
-size_t GetStackSize() {
+std::size_t GetStackSize() {
   return GetTaskProcessor()
       .GetTaskProcessorPools()
       ->GetCoroPool()
       .GetStackSize();
 }
 
+ev::ThreadControl& GetEventThread() {
+  return GetTaskProcessor().EventThreadPool().NextThread();
+}
+
 }  // namespace current_task
+
 }  // namespace engine
 
 USERVER_NAMESPACE_END

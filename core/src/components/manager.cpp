@@ -30,15 +30,7 @@ constexpr std::size_t kDefaultHwThreadsEstimate = 512;
 
 template <typename Func>
 auto RunInCoro(engine::TaskProcessor& task_processor, Func&& func) {
-  if (auto* current_tp = engine::current_task::GetTaskProcessorOptional()) {
-    if (&task_processor == current_tp)
-      return func();
-    else
-      return engine::CriticalAsyncNoSpan(task_processor,
-                                         std::forward<Func>(func))
-          .Get();
-  }
-
+  UASSERT(!engine::current_task::IsTaskProcessorThread());
   auto task =
       engine::CriticalAsyncNoSpan(task_processor, std::forward<Func>(func));
   task.BlockingWait();

@@ -41,7 +41,7 @@ void CpuRelax::Relax() {
     pause_.Pause();
     LOG_TRACE() << fmt::format("CPU relax: yielding after {} iterations",
                                every_iterations_);
-    if (engine::current_task::GetTaskProcessorOptional()) {
+    if (engine::current_task::IsTaskProcessorThread()) {
       engine::Yield();
     }
     pause_.Unpause();
@@ -72,7 +72,7 @@ void StreamingCpuRelax::Relax(std::uint64_t bytes_processed) {
                   << " of CPU time";
 
       last_yield_time_ = now;
-      if (engine::current_task::GetTaskProcessorOptional()) {
+      if (engine::current_task::IsTaskProcessorThread()) {
         engine::Yield();
       }
       pause_.Unpause();

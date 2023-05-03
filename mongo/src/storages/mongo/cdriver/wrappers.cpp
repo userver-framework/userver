@@ -24,7 +24,7 @@ namespace {
 
 [[maybe_unused]] void MongocCoroFrieldlyUsleep(int64_t usec, void*) noexcept {
   UASSERT(usec >= 0);
-  if (engine::current_task::GetTaskProcessorOptional()) {
+  if (engine::current_task::IsTaskProcessorThread()) {
     // we're not sure how it'll behave with interruptible sleeps
     engine::SleepFor(std::chrono::microseconds{usec});
   } else {

@@ -80,7 +80,7 @@ void WaitTokenStorage::WaitForAllTokens() noexcept {
 
   if (--tokens_ == 0) event_.Send();
 
-  if (engine::current_task::GetTaskProcessorOptional()) {
+  if (engine::current_task::IsTaskProcessorThread()) {
     event_.WaitNonCancellable();
   } else {
     // RCU is being destroyed outside of coroutine context. In this case, we

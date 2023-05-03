@@ -19,7 +19,7 @@ logging::LoggerPtr OpentracingLogger() {
 }
 
 void SetOpentracingLogger(logging::LoggerPtr logger) {
-  if (!engine::current_task::GetTaskProcessorOptional()) {
+  if (!engine::current_task::IsTaskProcessorThread()) {
     // TODO TAXICOMMON-4233 remove
     engine::RunStandalone([&logger] { SetOpentracingLogger(logger); });
     return;

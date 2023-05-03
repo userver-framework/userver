@@ -4,6 +4,7 @@
 
 #include <engine/task/task_context.hpp>
 #include <logging/rate_limit.hpp>
+#include <userver/engine/task/task.hpp>
 #include <userver/logging/impl/logger_base.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -45,7 +46,7 @@ DefaultLoggerGuard::~DefaultLoggerGuard() {
   logging::SetDefaultLoggerLevel(level_prev_);
 
   UASSERT_MSG(
-      !engine::current_task::GetCurrentTaskContextUnchecked(),
+      !engine::current_task::IsTaskProcessorThread(),
       "DefaultLoggerGuard with a new logger should outlive the coroutine "
       "engine, because otherwise it could be in use right now, when the "
       "~DefaultLoggerGuard() is called and the logger is destroyed. "

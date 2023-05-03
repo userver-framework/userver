@@ -24,14 +24,12 @@ Task::Task() { UASSERT(!IsValid()); }
 Task::Task(impl::TaskContextHolder&& context) : TaskBase(std::move(context)) {}
 
 Task::Task(Task&& other) noexcept : TaskBase(static_cast<TaskBase&&>(other)) {
-  UASSERT(!other.context_);
   UASSERT(!other.IsValid());
 }
 
 Task& Task::operator=(Task&& other) noexcept {
   Terminate(TaskCancellationReason::kAbandoned);
-  context_ = std::move(other.context_);
-  UASSERT(!other.context_);
+  TaskBase::operator=(std::move(other));
   UASSERT(!other.IsValid());
   return *this;
 }
@@ -39,17 +37,16 @@ Task& Task::operator=(Task&& other) noexcept {
 Task::~Task() { Terminate(TaskCancellationReason::kAbandoned); }
 
 void Task::Detach() && {
-  if (context_) {
-    UASSERT(context_->UseCount() > 0);
+  if (IsValid()) {
+    UASSERT(GetContext().UseCount() > 0);
     // If Adopt throws, the Task is kept in a consistent state
-    context_->GetTaskProcessor().Adopt(*context_);
-    context_.reset();
+    GetContext().GetTaskProcessor().Adopt(GetContext());
+    TaskBase::operator=(Task{});
   }
 }
 
 impl::ContextAccessor* Task::TryGetContextAccessor() noexcept {
-  // Not just context_.get(): upcasting nullptr may produce non-nullptr
-  return context_ ? context_.get() : nullptr;
+  return IsValid() ? &GetContext() : nullptr;
 }
 
 }  // namespace engine

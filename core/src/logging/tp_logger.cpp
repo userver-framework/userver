@@ -12,7 +12,6 @@
 #include <userver/logging/log.hpp>
 #include <userver/utils/overloaded.hpp>
 
-#include <engine/task/task_context.hpp>
 #include <logging/spdlog_helpers.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -104,7 +103,7 @@ void TpLogger::Flush() const {
   // message by an explicit producer_.Push to avoid losing the message
   // on overflow.
 
-  if (engine::current_task::GetCurrentTaskContextUnchecked()) {
+  if (engine::current_task::IsTaskProcessorThread()) {
     impl::async::FlushCoro action{};
     auto future = action.promise.get_future();
 
@@ -226,12 +225,12 @@ void TpLogger::Push(impl::async::Log&& action) const {
 
   // Do not do blocking push if we are not in a coroutine context
   if (overflow_policy_ == LoggerConfig::QueueOverflowBehavior::kBlock &&
-      engine::current_task::GetCurrentTaskContextUnchecked()) {
+      engine::current_task::IsTaskProcessorThread()) {
     engine::TaskCancellationBlocker block_cancel;
     success = producer_.Push(std::move(action));
   } else {
     UASSERT(overflow_policy_ == LoggerConfig::QueueOverflowBehavior::kDiscard ||
-            !engine::current_task::GetCurrentTaskContextUnchecked());
+            !engine::current_task::IsTaskProcessorThread());
 
     success = producer_.PushNoblock(std::move(action));
   }
