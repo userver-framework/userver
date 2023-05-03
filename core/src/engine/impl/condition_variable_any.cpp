@@ -66,16 +66,13 @@ CvStatus ConditionVariableAny<MutexType>::WaitUntil(
   }
 
   auto& current = current_task::GetCurrentTaskContext();
-  if (current.ShouldCancel()) {
-    return CvStatus::kCancelled;
-  }
 
   auto wakeup_source = TaskContext::WakeupSource::kNone;
   {
     CvWaitStrategy<MutexType> wait_manager(deadline, *waiters_, current, lock);
     wakeup_source = current.Sleep(wait_manager);
   }
-  // relock the mutex after it's been released in SetupWakeups()
+  // re-lock the mutex after it's been released in SetupWakeups()
   lock.lock();
 
   switch (wakeup_source) {

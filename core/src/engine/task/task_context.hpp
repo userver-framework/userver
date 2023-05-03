@@ -143,7 +143,6 @@ class TaskContext final : public ContextAccessor {
   // causes this to yield and wait for wakeup
   // must only be called from this context
   // "spurious wakeups" may be caused by wakeup queueing
-  // does not check for prior cancellations - the caller must check for them
   WakeupSource Sleep(WaitStrategy& wait_strategy);
 
   // sleep epoch increments after each wakeup
@@ -264,6 +263,8 @@ class TaskContext final : public ContextAccessor {
 
 void intrusive_ptr_add_ref(TaskContext* p) noexcept;
 void intrusive_ptr_release(TaskContext* p) noexcept;
+
+bool HasWaitSucceeded(TaskContext::WakeupSource) noexcept;
 
 }  // namespace impl
 

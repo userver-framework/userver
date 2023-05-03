@@ -116,8 +116,8 @@ bool MutexImpl<Waiters>::LockSlowPath(TaskContext& current, Deadline deadline) {
     UINVARIANT(expected != &current,
                "MutexImpl is locked twice from the same task");
 
-    if (current.Sleep(wait_manager) ==
-        TaskContext::WakeupSource::kDeadlineTimer) {
+    const auto wakeup_source = current.Sleep(wait_manager);
+    if (!HasWaitSucceeded(wakeup_source)) {
       return false;
     }
 

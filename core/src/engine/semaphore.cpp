@@ -143,17 +143,17 @@ bool CancellableSemaphore::LockSlowPath(Deadline deadline,
   auto& current = current_task::GetCurrentTaskContext();
   SemaphoreWaitStrategy wait_manager(*lock_waiters_, current, deadline);
 
-  TryLockStatus status{};
-  while ((status = DoTryLock(count)) == TryLockStatus::kTransientFailure) {
-    if (current.ShouldCancel()) return false;
-    switch (current.Sleep(wait_manager)) {
-      case impl::TaskContext::WakeupSource::kDeadlineTimer:
-      case impl::TaskContext::WakeupSource::kCancelRequest:
-        return false;
-      default:;
+  while (true) {
+    const auto status = DoTryLock(count);
+    if (status != TryLockStatus::kTransientFailure) {
+      return status == TryLockStatus::kSuccess;
+    }
+
+    const auto wakeup_source = current.Sleep(wait_manager);
+    if (!impl::HasWaitSucceeded(wakeup_source)) {
+      return false;
     }
   }
-  return (status == TryLockStatus::kSuccess);
 }
 
 CancellableSemaphore::TryLockStatus CancellableSemaphore::DoTryLock(
@@ -197,24 +197,24 @@ std::size_t Semaphore::RemainingApprox() const {
 std::size_t Semaphore::UsedApprox() const { return sem_.UsedApprox(); }
 
 void Semaphore::lock_shared() {
-  engine::TaskCancellationBlocker blocker;
+  const engine::TaskCancellationBlocker blocker;
   sem_.lock_shared();
 }
 
 void Semaphore::unlock_shared() { sem_.unlock_shared(); }
 
 bool Semaphore::try_lock_shared() {
-  engine::TaskCancellationBlocker blocker;
+  const engine::TaskCancellationBlocker blocker;
   return sem_.try_lock_shared();
 }
 
 bool Semaphore::try_lock_shared_until(Deadline deadline) {
-  engine::TaskCancellationBlocker blocker;
+  const engine::TaskCancellationBlocker blocker;
   return sem_.try_lock_shared_until(deadline);
 }
 
 void Semaphore::lock_shared_count(Counter count) {
-  engine::TaskCancellationBlocker blocker;
+  const engine::TaskCancellationBlocker blocker;
   sem_.lock_shared_count(count);
 }
 
@@ -223,12 +223,12 @@ void Semaphore::unlock_shared_count(Counter count) {
 }
 
 bool Semaphore::try_lock_shared_count(Counter count) {
-  engine::TaskCancellationBlocker blocker;
+  const engine::TaskCancellationBlocker blocker;
   return sem_.try_lock_shared_count(count);
 }
 
 bool Semaphore::try_lock_shared_until_count(Deadline deadline, Counter count) {
-  engine::TaskCancellationBlocker blocker;
+  const engine::TaskCancellationBlocker blocker;
   return sem_.try_lock_shared_until_count(deadline, count);
 }
 

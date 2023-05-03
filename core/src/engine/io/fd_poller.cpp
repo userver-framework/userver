@@ -135,10 +135,6 @@ engine::impl::TaskContext::WakeupSource FdPoller::Impl::DoWait(
 
   auto& current = current_task::GetCurrentTaskContext();
 
-  if (current.ShouldCancel()) {
-    return engine::impl::TaskContext::WakeupSource::kCancelRequest;
-  }
-
   impl::DirectionWaitStrategy wait_manager(deadline, *waiters_, watcher_,
                                            current);
   auto ret = current.Sleep(wait_manager);

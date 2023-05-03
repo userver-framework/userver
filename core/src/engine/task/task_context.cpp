@@ -206,10 +206,6 @@ void TaskContext::WaitUntil(Deadline deadline) const {
   auto& current = current_task::GetCurrentTaskContext();
   if (&current == this) ReportDeadlock();
 
-  if (current.ShouldCancel()) {
-    throw WaitInterruptedException(current.cancellation_reason_);
-  }
-
   LockedWaitStrategy wait_manager(deadline, *finish_waiters_, current, *this);
   current.Sleep(wait_manager);
 
@@ -317,6 +313,10 @@ TaskContext::WakeupSource TaskContext::Sleep(WaitStrategy& wait_strategy) {
     UASSERT_MSG(std::exchange(within_sleep_, false),
                 "within_sleep_ should report being in Sleep");
   }};
+
+  // If the previous Sleep woke up due to both kCancelRequest and kWaitList, the
+  // cancellation signal would be lost, so we must check it here.
+  if (ShouldCancel()) return TaskContext::WakeupSource::kCancelRequest;
 
   wait_strategy.SetupWakeups();
 
@@ -753,6 +753,25 @@ void intrusive_ptr_release(TaskContext* p) noexcept {
 
     DeleteFusedTaskContext(reinterpret_cast<std::byte*>(p));
   }
+}
+
+bool HasWaitSucceeded(TaskContext::WakeupSource wakeup_source) noexcept {
+  // Typical synchronization primitives sleep in a WaitList until woken up
+  // (which is counted as a success), or they can sometimes wake themselves up
+  // using kWaitList.
+  switch (wakeup_source) {
+    case TaskContext::WakeupSource::kWaitList:
+      return true;
+    case TaskContext::WakeupSource::kDeadlineTimer:
+    case TaskContext::WakeupSource::kCancelRequest:
+      return false;
+    case TaskContext::WakeupSource::kNone:
+    case TaskContext::WakeupSource::kBootstrap:
+      UASSERT(false);
+  }
+
+  // Assume that bugs with an unexpected WakeupSource don't reach production.
+  return false;
 }
 
 }  // namespace impl
