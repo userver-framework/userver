@@ -344,16 +344,34 @@ docker-compose run --rm userver-ubuntu bash -c 'cd /userver/build && make -j $(n
 ```
 Run all test:
 ```
-docker-compose run --rm userver-ubuntu bash -c 'cd /userver/build && ctest -V'
+docker-compose run --rm userver-ubuntu bash -c 'cd /userver/build && ulimit -n 4096 && ctest -V'
 ```
 
+##### Using make, you can build a userver easier
 
-## Run framework tests
+Add additional flags in `Makefile.local`
+```
+echo 'CMAKE_COMMON_FLAGS += -DUserverGrpc_VERSION=1.54.0' >> Makefile.local
+```
+Start cmake:
+```
+make docker-cmake-debug
+```
+Build userver:
+```
+make docker-build-debug
+```
+Run tests:
+```
+make docker-test-debug
+```
+You can replace the debug with a release
+
+### Run framework tests
 To run tests and make sure that the framework works fine use the following command:
 ```
 bash
-cd build_release
-ctest -V
+cd build_release && ulimit -n 4096 && ctest -V
 ```
 
 If you need to edit or make your own docker image with custom configuration, read about 
