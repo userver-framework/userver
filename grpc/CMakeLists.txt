@@ -14,7 +14,7 @@ if (USERVER_CONAN)
         )
     endif()
 else()
-	target_link_libraries(${PROJECT_NAME}-deps INTERFACE Protobuf Grpc)
+    target_link_libraries(${PROJECT_NAME}-deps INTERFACE protobuf::libprotobuf Grpc)
 endif()
 
 
@@ -111,5 +111,4 @@ if (USERVER_IS_THE_ROOT_PROJECT)
     target_compile_definitions(${PROJECT_NAME}_unittest PRIVATE
       DEFAULT_DYNAMIC_CONFIG_FILENAME="${CMAKE_SOURCE_DIR}/grpc/tests/dynamic_config_fallback.json"
     )
-
 endif()
