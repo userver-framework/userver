@@ -36,7 +36,7 @@ def extra_client_deps(_gate_started):
     pass
 
 
-@pytest.fixture(name='gate')
+@pytest.fixture(name='gate', scope='function')
 async def _gate_ready(service_client, _gate_started):
     _gate_started.to_server_pass()
     _gate_started.to_client_pass()
