@@ -56,7 +56,7 @@ class EnvironmentVariables {
   EnvironmentVariables& UpdateWith(EnvironmentVariablesUpdate update);
 
   /// @brief Returns the value of the variable.
-  /// @warning Throws std::runtime_eror if there is no variable.
+  /// @warning Throws std::runtime_error if there is no variable.
   const std::string& GetValue(const std::string& variable_name) const;
 
   /// Returns the pointer to the value of the variable or
@@ -95,7 +95,7 @@ EnvironmentVariables GetCurrentEnvironmentVariables();
 rcu::ReadablePtr<EnvironmentVariables> GetCurrentEnvironmentVariablesPtr();
 
 /// Fetches current environment variables for getting via
-/// GetCurrentEnvironmentVariables or GetCurrentEnvrionmentVariablesPtr.
+/// GetCurrentEnvironmentVariables or GetCurrentEnvironmentVariablesPtr.
 void UpdateCurrentEnvironmentVariables();
 
 /// Overwrite modes

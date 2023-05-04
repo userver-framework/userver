@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file storages/secdist/provider.hpp
+/// @file userver/storages/secdist/provider.hpp
 
 #include <userver/formats/json_fwd.hpp>
 

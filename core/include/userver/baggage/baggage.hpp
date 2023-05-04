@@ -1,6 +1,9 @@
 #pragma once
 
-#include <algorithm>
+/// @file userver/baggage/baggage.hpp
+/// @brief @copybrief baggage::Baggage
+
+#include <algorithm>  // TODO: remove
 #include <optional>
 #include <stdexcept>
 #include <string>
@@ -78,7 +81,11 @@ class BaggageEntry {
 };
 
 /// @brief Baggage header. Contains entries (key, value, optional<properties>).
-/// For more details check official site https://w3c.github.io/baggage/
+///
+/// For more details on header check the official site
+/// https://w3c.github.io/baggage/
+///
+/// @see baggage::BaggageManagerComponent
 class Baggage {
  public:
   Baggage(std::string header, std::unordered_set<std::string> allowed_keys);

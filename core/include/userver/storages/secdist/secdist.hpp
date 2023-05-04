@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file storages/secdist/secdist.hpp
+/// @file userver/storages/secdist/secdist.hpp
 /// @brief @copybrief storages::secdist::SecdistConfig
 
 #include <any>

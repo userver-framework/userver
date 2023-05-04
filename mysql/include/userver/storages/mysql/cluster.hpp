@@ -133,7 +133,7 @@ class Cluster final {
   ///
   /// @note Requires MariaDB 10.2.6+ as a server
   ///
-  /// UINVARIANTs on params count missmatch, doesn't validate types.
+  /// UINVARIANTs on params count mismatch, doesn't validate types.
   /// UINVARIANTs on empty params container.
   /// @snippet storages/tests/unittests/cluster_mysqltest.cpp uMySQL usage sample - Cluster ExecuteBulk
   // clang-format on

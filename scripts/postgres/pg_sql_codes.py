@@ -195,10 +195,10 @@ class ErrorClass:
 def main():
     parser = argparse.ArgumentParser(description='SqlCode enum generator')
     parser.add_argument(
-        '-o', '--header', help='Outuput header', metavar='out.hpp',
+        '-o', '--header', help='Output header', metavar='out.hpp',
     )
     parser.add_argument(
-        '-s', '--source', help='Outuput source', metavar='out.cpp',
+        '-s', '--source', help='Output source', metavar='out.cpp',
     )
     parser.add_argument(
         '-t', '--test', help='Generate test', metavar='test.cpp',

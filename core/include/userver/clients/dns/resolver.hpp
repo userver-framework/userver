@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/clients/dns/resolver.hpp
+/// @brief @copybrief clients::dns::Resolver
+
 #include <userver/clients/dns/common.hpp>
 #include <userver/clients/dns/config.hpp>
 #include <userver/clients/dns/exception.hpp>
@@ -9,14 +12,15 @@
 #include <userver/utils/fast_pimpl.hpp>
 #include <userver/utils/statistics/relaxed_counter.hpp>
 
-/// @file clients/dns/resolver.hpp
-/// @brief @copybrief clients::dns::Resolver
-
 USERVER_NAMESPACE_BEGIN
 
 namespace clients::dns {
 
-/// Caching DNS resolver implementation.
+/// @ingroup userver_clients
+///
+/// @brief Caching DNS resolver implementation.
+///
+/// Usually retrieved from clients::dns::Component.
 ///
 /// Combines file-based (/etc/hosts) name resolution with network-based one.
 class Resolver {

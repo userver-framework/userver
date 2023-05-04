@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file storages/secdist/component.hpp
+/// @file userver/storages/secdist/component.hpp
 /// @brief @copybrief components::DefaultSecdistProvider
 
 #include <string>

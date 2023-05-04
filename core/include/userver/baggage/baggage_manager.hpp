@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/baggage/baggage_manager.hpp
+/// @brief Baggage manipulation client and component.
+
 #include <userver/baggage/baggage.hpp>
 #include <userver/baggage/baggage_settings.hpp>
 
@@ -12,6 +15,11 @@ USERVER_NAMESPACE_BEGIN
 
 namespace baggage {
 
+/// @ingroup userver_clients
+///
+/// Client for manipulation with Baggage header content.
+///
+/// Usually retrieved from baggage::BaggageManagerComponent.
 class BaggageManager final {
  public:
   explicit BaggageManager(const dynamic_config::Source& config_source);
@@ -39,7 +47,12 @@ class BaggageManager final {
   dynamic_config::Source config_source_;
 };
 
-/// @brief manager for relationship with header baggage.
+/// @ingroup userver_components
+///
+/// @brief Component for relationship with header baggage.
+///
+/// ## Static options:
+/// Inherits options from components::LoggableComponentBase.
 class BaggageManagerComponent final : public components::LoggableComponentBase {
  public:
   static constexpr const char* kName = "baggage-manager";

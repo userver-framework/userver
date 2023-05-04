@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file storages/secdist/fwd.hpp
+/// @file userver/storages/secdist/fwd.hpp
 /// @brief Forward declarations of components::Secdist,
 /// storages::secdist::Secdist and storages::secdist::SecdistConfig
 

@@ -39,7 +39,7 @@ Changelog news also go to the
   * ✓ Mongo
   * ✓ HTTP Client
   * ✓ DNS resolver
-  * Redis
+  * ✓ Redis
   * ✓ PostgreSQL
   * ✓ Clickhouse
   * gRPC
@@ -55,6 +55,54 @@ Changelog news also go to the
 
 
 ## Changelog
+
+### Beta (April 2023)
+
+* MySQL driver was added, see @ref mysql_driver.
+* Experimental support for HTTP "Baggage" header is implemented, including
+  verification, forwarding from HTTP handlers to client, baggage manipulation.
+  See baggage::BaggageManagerComponent for more info.
+* Redis driver now supports non-queued variants for pubsub.
+* Redis driver now supports read-only transactions.
+* utils::FilterBloom was merged in along with initial SLRU cache implementations.
+  The work is a part of the
+  [backend development school](https://academy.yandex.ru/schools/backend)
+  course project by [Leonid Faktorovich](https://github.com/LeonidFaktorovich),
+  [Alexandr Starovoytov](https://github.com/stewkk),
+  [Ruslan](https://github.com/raslboyy), Egor Chistyakov from
+  [PR #262](https://github.com/userver-framework/userver/pull/262).
+* HTTP request decompression is now ON by default in
+  server::handlers::HandlerBase.
+* dynamic_config::Source now allows subscribing to a particular dynamic config
+  variable changes.
+* Initial support for utils::statistics::Rate metrics type.
+* Human-readable "pretty" format (utils::statistics::ToPrettyFormat) for metrics
+  output was added to the server::handlers::ServerMonitor.
+* Optimizations:
+  * Don't issue tail `writev` for empty `io_vec` on bulk socket writes.
+  * All the userver metrics are now written via the fast
+    utils::statistics::Writer.
+  * x2-x50 faster serialization of unique maps into formats::json::ValueBuilder.
+  * utils::StrIcaseHash became slightly faster.
+  * engine::Task now does not have a virtual destructor. New engine::TaskBase
+    based hierarchy does not use RTTI, resulting in smaller binaries.
+  * Mongo driver does not capture stack traces in release builds in case of
+    errors. The error path become slightly faster, server is more responsive
+    in case of Mongo problems.
+* Build:
+  * Improved support for Conan 2.0, many thanks to
+    [Anton](https://github.com/Jihadist) for the PR.
+  * `.gitattributes` now handles line endings automatically for files detected
+    as text. This simplifies WSL builds. Thanks to
+    [Anatoly Shirokov](https://github.com/anatoly-spb) for the PR.
+  * PostgreSQL libs selection is now possible in CMake if the platform has
+    multiple versions installed, see
+    @ref POSTGRES_LIBS "PostgreSQL versions" for more info.
+  * Improved support for Arch Linux, many thanks to
+    [Konstantin Goncharik](https://github.com/botanegg) for the PR.
+* Multiple improvements for docs, including mockserver clarifications from
+  [Victor Makarov](https://github.com/vitek).
+
 
 ### Beta (March 2023)
 
