@@ -93,6 +93,14 @@ std::chrono::duration<double> HttpRequestImpl::GetResponseTime() const {
   return GetResponse().ReadyTime() - StartTime();
 }
 
+std::string_view HttpRequestImpl::GetScheme() const {
+  const auto pos = url_.find(':');
+  if (pos == std::string::npos) {
+    return {};
+  }
+  return std::string_view{url_.data(), pos};
+}
+
 const std::string& HttpRequestImpl::GetHost() const {
   return GetHeader(USERVER_NAMESPACE::http::headers::kHost);
 }

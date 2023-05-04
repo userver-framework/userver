@@ -44,6 +44,7 @@ std::chrono::duration<double> HttpRequest::GetResponseTime() const {
   return impl_.GetResponseTime();
 }
 
+std::string_view HttpRequest::GetScheme() const { return impl_.GetScheme(); }
 const std::string& HttpRequest::GetHost() const { return impl_.GetHost(); }
 
 const std::string& HttpRequest::GetArg(const std::string& arg_name) const {

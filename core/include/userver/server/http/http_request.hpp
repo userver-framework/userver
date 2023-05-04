@@ -5,6 +5,7 @@
 
 #include <chrono>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <vector>
 
@@ -68,6 +69,9 @@ class HttpRequest final {
 
   std::chrono::duration<double> GetRequestTime() const;
   std::chrono::duration<double> GetResponseTime() const;
+
+  /// @return Scheme from the URL.
+  std::string_view GetScheme() const;
 
   /// @return Host from the URL.
   const std::string& GetHost() const;

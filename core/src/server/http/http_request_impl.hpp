@@ -3,6 +3,7 @@
 #include <chrono>
 #include <memory>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <vector>
 
@@ -42,6 +43,7 @@ class HttpRequestImpl final : public request::RequestBase {
   std::chrono::duration<double> GetRequestTime() const;
   std::chrono::duration<double> GetResponseTime() const;
 
+  std::string_view GetScheme() const;
   const std::string& GetHost() const;
 
   const std::string& GetArg(const std::string& arg_name) const;
