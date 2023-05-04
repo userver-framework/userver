@@ -92,15 +92,37 @@ bool YamlConfig::IsMissing() const noexcept { return yaml_.IsMissing(); }
 
 bool YamlConfig::IsNull() const noexcept { return yaml_.IsNull(); }
 
+bool YamlConfig::IsBool() const noexcept { return yaml_.IsBool(); }
+
+bool YamlConfig::IsInt() const noexcept { return yaml_.IsInt(); }
+
 bool YamlConfig::IsInt64() const noexcept { return yaml_.IsInt64(); }
 
 bool YamlConfig::IsUInt64() const noexcept { return yaml_.IsUInt64(); }
 
+bool YamlConfig::IsDouble() const noexcept { return yaml_.IsDouble(); }
+
 bool YamlConfig::IsString() const noexcept { return yaml_.IsString(); }
+
+bool YamlConfig::IsArray() const noexcept { return yaml_.IsArray(); }
+
+bool YamlConfig::IsObject() const noexcept { return yaml_.IsObject(); }
+
+void YamlConfig::CheckNotMissing() const { return yaml_.CheckNotMissing(); }
+
+void YamlConfig::CheckArray() const { return yaml_.CheckArray(); }
 
 void YamlConfig::CheckArrayOrNull() const { yaml_.CheckArrayOrNull(); }
 
 void YamlConfig::CheckObjectOrNull() const { yaml_.CheckObjectOrNull(); }
+
+void YamlConfig::CheckObject() const { yaml_.CheckObject(); }
+
+void YamlConfig::CheckString() const { yaml_.CheckString(); }
+
+void YamlConfig::CheckObjectOrArrayOrNull() const {
+  yaml_.CheckObjectOrArrayOrNull();
+}
 
 bool YamlConfig::HasMember(std::string_view key) const {
   return yaml_.HasMember(key);
