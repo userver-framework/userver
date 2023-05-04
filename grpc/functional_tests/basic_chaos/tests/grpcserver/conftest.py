@@ -49,7 +49,7 @@ async def _gate_ready(service_client, _gate_started):
 
 
 @pytest.fixture(scope='function')
-async def _grpc_session_channel(grpc_service_endpoint):
+async def _grpc_session_channel(grpc_service_endpoint, gate):
     async with grpc.aio.insecure_channel(grpc_service_endpoint) as channel:
         yield channel
 
