@@ -13,6 +13,7 @@ namespace congestion_control::v2 {
 
 struct Stats {
   std::atomic<bool> is_enabled{false};
+  std::atomic<bool> is_fake_mode{false};
   std::atomic<int64_t> current_limit{0};
   std::atomic<int64_t> enabled_epochs{0};
 };

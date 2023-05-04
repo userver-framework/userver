@@ -13,6 +13,7 @@ constexpr std::chrono::seconds kStepPeriod{1};
 
 void DumpMetric(utils::statistics::Writer& writer, const Stats& stats) {
   writer["is-enabled"] = stats.is_enabled ? 1 : 0;
+  writer["is-fake-mode"] = stats.is_fake_mode ? 1 : 0;
   if (stats.current_limit) writer["current-limit"] = stats.current_limit;
   writer["enabled-seconds"] = stats.enabled_epochs;
 }
@@ -27,7 +28,8 @@ Controller::Controller(const std::string& name, Sensor& sensor,
 
 void Controller::Start() {
   if (config_.enabled) {
-    LOG_INFO() << fmt::format("Congestion controller {} has started", name_);
+    LOG_INFO() << fmt::format("Congestion controller {} has started", name_)
+               << LogFakeMode();
     periodic_.Start("congestion_control", {kStepPeriod}, [this] { Step(); });
   } else {
     LOG_INFO() << fmt::format(
@@ -66,6 +68,7 @@ void Controller::Step() {
   if (limit.load_limit.has_value()) stats_.enabled_epochs++;
   stats_.current_limit = limit.load_limit.value_or(0);
   stats_.is_enabled = limit.load_limit.has_value();
+  stats_.is_fake_mode = config_.fake_mode;
 }
 
 const std::string& Controller::GetName() const { return name_; }

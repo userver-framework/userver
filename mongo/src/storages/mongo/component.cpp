@@ -79,19 +79,6 @@ properties:
         type: string
         description: pool maintenance period (idle connections pruning etc.)
         defaultDescription: 15s
-    congestion_control:
-        description: congestion control settings
-        type: object
-        additionalProperties: false
-        properties:
-            fake-mode:
-                type: boolean
-                description: whether CC limiter is actually working
-                defaultDescription: false
-            enabled:
-                type: boolean
-                description: whether CC is enabled for the database
-                defaultDescription: true
 )");
 }
 
@@ -186,6 +173,19 @@ properties:
         enum:
           - getaddrinfo
           - async
+    congestion_control:
+        description: congestion control settings
+        type: object
+        additionalProperties: false
+        properties:
+            fake-mode:
+                type: boolean
+                description: whether CC limiter is actually working
+                defaultDescription: false
+            enabled:
+                type: boolean
+                description: whether CC is enabled for the database
+                defaultDescription: true
 )");
 }
 

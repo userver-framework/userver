@@ -14,6 +14,7 @@ constexpr size_t kLongTimingsEpochs = 30;
 constexpr size_t kTimingsBurstThreshold = 5;
 constexpr size_t kMinTimingsMs = 20;
 constexpr size_t kMinLimit = 10;
+constexpr size_t kMinQps = 10;
 }  // namespace
 
 LinearController::LinearController(const std::string& name, v2::Sensor& sensor,
@@ -32,14 +33,20 @@ LinearController::LinearController(const std::string& name, v2::Sensor& sensor,
 
 Limit LinearController::Update(const Sensor::Data& current) {
   auto rate = current.GetRate();
+  auto timings_avg_ms = current.timings_avg_ms;
 
   current_load_.Update(current.current_load);
   auto current_load = current_load_.GetSmoothed();
 
   bool overloaded = 100 * rate > config_.threshold_percent;
 
-  if (epochs_passed_++ < kLongTimingsEpochs) {
-    long_timings_.Update(current.timings_avg_ms);
+  if (epochs_passed_ < kLongTimingsEpochs) {
+    if (current.total > kMinQps) {
+      epochs_passed_++;
+      long_timings_.Update(timings_avg_ms);
+    } else {
+      // Too little QPS, timings avg data is VERY noisy, skip it
+    }
   } else {
     size_t divisor = long_timings_.GetSmoothed();
     if (divisor < kMinTimingsMs) divisor = kMinTimingsMs;

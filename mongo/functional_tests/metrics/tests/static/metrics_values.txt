@@ -8,6 +8,7 @@ distlock.task-failures;distlock_name=component-distlock-metrics 1 100
 distlock.watchdog-triggers;distlock_name=component-distlock-metrics 1 100
 mongo.congestion-control.enabled-seconds;mongo_database=key-value-database
 mongo.congestion-control.is-enabled;mongo_database=key-value-database
+mongo.congestion-control.is-fake-mode;mongo_database=key-value-database
 mongo.pool.conn-closed;mongo_database=key-value-database 0 100
 mongo.pool.conn-created;mongo_database=key-value-database 2 100
 mongo.pool.conn-init.errors;mongo_database=key-value-database;mongo_error=total 0 100

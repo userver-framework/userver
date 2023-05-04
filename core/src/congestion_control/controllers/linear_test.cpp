@@ -35,6 +35,7 @@ TEST(CCLinear, FirstSeconds) {
   for (size_t i = 0; i < 30; i++) {
     congestion_control::v2::Sensor::Data data;
     data.timings_avg_ms = 10000;
+    data.total = 100;
 
     auto limit = controller.Update(data);
     EXPECT_EQ(limit.load_limit, std::nullopt) << i;
@@ -49,6 +50,7 @@ TEST(CCLinear, ExtraLoad) {
   for (size_t i = 0; i < 31; i++) {
     congestion_control::v2::Sensor::Data data;
     data.timings_avg_ms = 100;
+    data.total = 100;
 
     auto limit = controller.Update(data);
     EXPECT_EQ(limit.load_limit, std::nullopt) << i;
@@ -58,6 +60,7 @@ TEST(CCLinear, ExtraLoad) {
   for (size_t i = 0; i < 100; i++) {
     congestion_control::v2::Sensor::Data data;
     data.timings_avg_ms = 501;
+    data.total = 100;
 
     auto limit = controller.Update(data);
     EXPECT_NE(limit.load_limit, std::nullopt) << i;
@@ -67,6 +70,7 @@ TEST(CCLinear, ExtraLoad) {
   for (size_t i = 0; i < 100; i++) {
     congestion_control::v2::Sensor::Data data;
     data.timings_avg_ms = 100;
+    data.total = 100;
 
     controller.Update(data);
   }
@@ -75,6 +79,7 @@ TEST(CCLinear, ExtraLoad) {
   for (size_t i = 0; i < 1000; i++) {
     congestion_control::v2::Sensor::Data data;
     data.timings_avg_ms = 100;
+    data.total = 100;
 
     auto limit = controller.Update(data);
     EXPECT_EQ(limit.load_limit, std::nullopt) << i;
