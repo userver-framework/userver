@@ -1,0 +1,19 @@
+# yaml
+server-name: test-core-uctl 1.0
+service-name: test_core_uctl
+logger-level: info
+
+config-server-url: http://localhost:8083/
+server-port: 8185
+monitor-server-port: 8186
+
+testsuite-enabled: false
+
+userver-dumps-root: /var/cache/test_core_uctl/userver-dumps/
+access-log-path: /var/log/test_core_uctl/access.log
+access-tskv-log-path: /var/log/test_core_uctl/access_tskv.log
+default-log-path: /var/log/test_core_uctl/server.log
+secdist-path: /etc/test_core_uctl/secure_data.json
+
+config-cache: /var/cache/test_core_uctl/config_cache.json
+config-fallback: /etc/test_core_uctl/dynamic_config_fallback.json

@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
 
 import argparse
+import asyncio
 import json
-import yaml
 import os
-import requests
 import sys
 import typing
 
+import aiohttp
+import yaml
+
 
 CONFIG_BASEPATH = '/etc/yandex/taxi/'
-
-base_url = ''
 
 
 class Client:
@@ -19,65 +19,84 @@ class Client:
         self.args = args
         self.read_config_yaml(self.args.config)
         self.monitor_url = self.read_monitor_url()
+        self.session = aiohttp.ClientSession()
 
-    def client_send(
+    async def client_send(
             self,
             path: str,
             method: str,
             params: typing.Optional[typing.Dict[str, str]] = None,
     ) -> str:
-        call = getattr(requests, method)
-        response = call(self.monitor_url + path, params=params)
+        call = getattr(self.session, method)
+        response = await call(self.monitor_url + path, params=params)
         response.raise_for_status()
-        return response.text
+        return await response.text()
 
-    def dns_reload_hosts(self) -> None:
-        self.client_send(path='/service/dnsclient/reload_hosts', method='post')
+    async def dns_reload_hosts(self) -> None:
+        await self.client_send(
+            path='/service/dnsclient/reload_hosts', method='post',
+        )
 
-    def dns_flush_cache(self) -> None:
-        self.client_send(
+    async def dns_flush_cache(self) -> None:
+        await self.client_send(
             path='/service/dnsclient/flush_cache',
             method='post',
             params={'name': self.args.dns_name},
         )
 
-    def dns_flush_cache_full(self) -> None:
-        self.client_send(path='/service/dnsclient/flush_cache_full', method='post')
+    async def dns_flush_cache_full(self) -> None:
+        await self.client_send(
+            path='/service/dnsclient/flush_cache_full', method='post',
+        )
 
-    def log_set_level(self) -> None:
-        self.client_send(path=f'/service/log-level/{self.args.level}', method='put')
+    async def log_set_level(self) -> None:
+        await self.client_send(
+            path=f'/service/log-level/{self.args.level}', method='put',
+        )
 
-    def log_get_level(self) -> None:
-        data = self.client_send(path='/service/log-level/', method='get')
+    async def log_get_level(self) -> None:
+        data = await self.client_send(path='/service/log-level/', method='get')
         level = json.loads(data)['current-log-level']
         print(level)
+        return level
 
-    def on_logrotate(self) -> None:
-        self.client_send(path='/service/on-log-rotate', method='post')
+    async def on_logrotate(self) -> None:
+        await self.client_send(path='/service/on-log-rotate', method='post')
 
-    def log_dynamic_debug_list(self) -> None:
-        data = self.client_send(path='/log/dynamic-debug', method='get')
+    async def log_dynamic_debug_list(self) -> str:
+        data = await self.client_send(path='/log/dynamic-debug', method='get')
         print(data, end='')
+        return data
 
-    def stats(self) -> None:
-        data = self.client_send(path='/', method='get', params={'format': 'pretty'})
+    async def stats(self) -> str:
+        data = await self.client_send(
+            path='/', method='get', params={'format': 'pretty'},
+        )
         print(data, end='')
+        return data
 
-    def inspect_requests(self) -> None:
-        data = self.client_send(path='/service/inspect-requests', method='get')
+    async def inspect_requests(self) -> str:
+        data = await self.client_send(
+            path='/service/inspect-requests', method='get',
+        )
         print(data)
+        return data
 
     def read_config_yaml(self, config_yaml: str) -> None:
         try:
-            with open(config_yaml, 'r') as fi:
-                self.config_yaml = yaml.load(fi)
+            with open(config_yaml, 'r') as ifile:
+                self.config_yaml = yaml.safe_load(ifile)
         except FileNotFoundError:
-            print('File "config.yaml" not found, maybe you forgot to pass --config?')
+            print(
+                'File "config.yaml" not found, maybe you forgot '
+                'to pass --config?',
+                file=sys.stderr,
+            )
             sys.exit(1)
 
         config_vars_path = self.config_yaml['config_vars']
-        with open(config_vars_path, 'r') as fi:
-            self.config_vars = yaml.load(fi)
+        with open(config_vars_path, 'r') as ifile:
+            self.config_vars = yaml.load(ifile)
 
     def config_yaml_read(self, path: typing.List[str]) -> str:
         data = self.config_yaml
@@ -85,7 +104,7 @@ class Client:
             data = data[path[0]]
             path = path[1:]
 
-        value: str = data[path[0]]
+        value: str = str(data[path[0]])
         if not value.startswith('$'):
             return value
 
@@ -102,7 +121,7 @@ class Client:
                 'server',
                 'listener-monitor',
                 'port',
-            ]
+            ],
         )
         return f'http://localhost:{port}'
 
@@ -114,6 +133,8 @@ def guess_config_yaml() -> str:
         basename = os.path.basename(argv0)
         if basename.endswith('-ctl'):
             basename = basename[: -len('-ctl')]
+        elif basename.endswith('-ctl.py'):
+            basename = basename[: -len('-ctl.py')]
 
         config_yaml = os.path.join(CONFIG_BASEPATH, basename, 'config.yaml')
         return config_yaml
@@ -194,14 +215,14 @@ def parse_args(args: typing.List[str]):
     return opts
 
 
-def main() -> None:
-    global base_url
-    args = parse_args(sys.argv[1:])
+async def main(argv: typing.List[str]) -> str:
+    args = parse_args(argv)
     if hasattr(args, 'func'):
-        args.func(Client(args))
-    else:
-        parse_args(sys.argv[1:] + ['--help'])
+        return await args.func(Client(args)) or ''
+
+    parse_args(argv + ['--help'])
+    return ''
 
 
 if __name__ == '__main__':
-    main()
+    asyncio.run(main(sys.argv[1:]))
