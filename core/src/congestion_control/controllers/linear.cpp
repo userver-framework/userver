@@ -40,13 +40,14 @@ Limit LinearController::Update(const Sensor::Data& current) {
 
   bool overloaded = 100 * rate > config_.threshold_percent;
 
+  if (current.total < kMinQps) {
+    // Too little QPS, timings avg data is VERY noisy, EPS is noisy
+    return {current_limit_, current.current_load};
+  }
+
   if (epochs_passed_ < kLongTimingsEpochs) {
-    if (current.total > kMinQps) {
-      epochs_passed_++;
-      long_timings_.Update(timings_avg_ms);
-    } else {
-      // Too little QPS, timings avg data is VERY noisy, skip it
-    }
+    epochs_passed_++;
+    long_timings_.Update(timings_avg_ms);
   } else {
     size_t divisor = long_timings_.GetSmoothed();
     if (divisor < kMinTimingsMs) divisor = kMinTimingsMs;
