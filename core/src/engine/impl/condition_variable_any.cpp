@@ -7,13 +7,14 @@
 
 #include <engine/impl/wait_list.hpp>
 #include <engine/task/task_context.hpp>
+#include <engine/task/task_processor.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace engine::impl {
 
 void OnConditionVariableSpuriousWakeup() {
-  current_task::AccountSpuriousWakeup();
+  current_task::GetTaskProcessor().GetTaskCounter().AccountSpuriousWakeup();
 }
 
 template <typename MutexType>

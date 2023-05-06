@@ -7,20 +7,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace utils::impl {
-class WrappedCallBase;
-}  // namespace utils::impl
-
 namespace engine {
-namespace ev {
-class ThreadControl;
-}  // namespace ev
-namespace impl {
-class TaskContextHolder;
-class TaskContext;
-class DetachedTasksSyncBlock;
-class ContextAccessor;
-}  // namespace impl
 
 /// @brief Asynchronous task that has a unique ownership of the payload.
 ///
@@ -62,12 +49,15 @@ class [[nodiscard]] Task : public TaskBase {
   void Detach() &&;
 
   /// @cond
+  // For internal use only.
   impl::ContextAccessor* TryGetContextAccessor() noexcept;
   /// @endcond
 
  protected:
+  /// @cond
   // For internal use only.
   explicit Task(impl::TaskContextHolder&& context);
+  /// @endcond
 };
 
 }  // namespace engine

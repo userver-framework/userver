@@ -411,7 +411,7 @@ logging::LogHelper& operator<<(logging::LogHelper& lh,
 }
 
 const Span::Impl* GetParentSpanImpl() {
-  if (!engine::current_task::GetCurrentTaskContextUnchecked()) return nullptr;
+  if (!engine::current_task::IsTaskProcessorThread()) return nullptr;
 
   const auto* spans_ptr = task_local_spans.GetOptional();
   return !spans_ptr || spans_ptr->empty() ? nullptr : &spans_ptr->back();

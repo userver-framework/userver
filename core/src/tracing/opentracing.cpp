@@ -17,6 +17,7 @@ logging::LoggerPtr OpentracingLogger() {
 }
 
 void SetOpentracingLogger(logging::LoggerPtr logger) {
+  UASSERT(engine::current_task::IsTaskProcessorThread());
   OpentracingLoggerInternal().Assign(logger);
 }
 

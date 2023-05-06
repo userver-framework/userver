@@ -59,7 +59,7 @@ int Convert(utils::Flags<Exchange::Flags> flags) {
 }
 
 AMQP::Table CreateHeaders() {
-  UASSERT(engine::current_task::GetTaskProcessorOptional() != nullptr);
+  UASSERT(engine::current_task::IsTaskProcessorThread());
 
   auto* span = tracing::Span::CurrentSpanUnchecked();
   if (span == nullptr) return {};

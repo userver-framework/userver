@@ -234,7 +234,7 @@ static inline void InvokeCommand(CommandPtr command, ReplyPtr&& reply) {
 
 std::optional<std::chrono::milliseconds> GetDeadlineTimeLeft(
     const dynamic_config::Snapshot& config) {
-  if (!engine::current_task::GetTaskProcessorOptional()) return std::nullopt;
+  if (!engine::current_task::IsTaskProcessorThread()) return std::nullopt;
 
   if (!kDeadlinePropagationExperiment.IsEnabled()) return std::nullopt;
 
