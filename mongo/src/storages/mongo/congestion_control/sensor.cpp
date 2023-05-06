@@ -48,10 +48,10 @@ Sensor::Data Sensor::GetCurrent() {
   if (diff_total == 0) diff_total = 1;
 
   auto timings_sum_rate = diff_timings_sum / diff_total;
-  LOG_DEBUG() << "timings avg = " << timings_sum_rate << "ms";
+  LOG_TRACE() << "timings avg = " << timings_sum_rate << "ms";
 
   auto timeout_rate = static_cast<double>(diff_timeouts) / diff_total;
-  LOG_DEBUG() << "timeout rate = " << timeout_rate;
+  LOG_TRACE() << "timeout rate = " << timeout_rate;
 
   auto current_load = pool_.SizeApprox();
   return {diff_total, diff_timeouts, timings_sum_rate, current_load};
