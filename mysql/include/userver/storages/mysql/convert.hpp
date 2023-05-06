@@ -1,6 +1,9 @@
 #pragma once
 
-#include <userver/utils/meta.hpp>
+#include <type_traits>
+#include <utility>
+
+#include <userver/utils/meta_light.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

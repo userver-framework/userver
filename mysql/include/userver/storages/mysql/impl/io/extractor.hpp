@@ -2,6 +2,8 @@
 
 #include <vector>
 
+#include <userver/utils/meta.hpp>
+
 #include <userver/storages/mysql/impl/io/result_binder.hpp>
 
 #include <userver/storages/mysql/convert.hpp>

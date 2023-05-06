@@ -83,6 +83,7 @@ using HasCorrectFindOperation = meta::ExpectSame<
         std::declval<const std::chrono::system_clock::time_point&>(),
         std::declval<const std::chrono::system_clock::time_point&>(),
         std::declval<const std::chrono::system_clock::duration&>()))>;
+
 template <typename T>
 inline constexpr bool kHasCorrectFindOperation =
     meta::kIsDetected<HasCorrectFindOperation, T>;

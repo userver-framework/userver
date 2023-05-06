@@ -5,6 +5,7 @@
 #include <boost/pfr/core.hpp>
 
 #include <userver/utils/assert.hpp>
+#include <userver/utils/meta.hpp>
 
 #include <userver/storages/mysql/convert.hpp>
 #include <userver/storages/mysql/impl/io/binder_declarations.hpp>

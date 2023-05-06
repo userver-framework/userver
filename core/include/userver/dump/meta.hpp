@@ -6,7 +6,7 @@
 #include <type_traits>
 
 #include <userver/dump/fwd.hpp>
-#include <userver/utils/meta.hpp>
+#include <userver/utils/meta_light.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
