@@ -22,7 +22,7 @@ _uctl_complete()
     return
   fi
 
-  cmdline=$(echo ${COMP_LINE} | sed 's/^[^ ]* //')
+  cmdline=$(echo ${COMP_LINE} | sed 's/^[^ ]*//;s/^[^ ]* //')
 
   guess=()
   for i in ${!_uctl_commands[@]}; do
