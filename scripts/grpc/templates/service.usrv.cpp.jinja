@@ -32,6 +32,7 @@ void {{service.name}}Base::{{method.name}}(
     {{method.name}}Call& call,
     [[maybe_unused]] {{ method.input_type | grpc_to_cpp_name }}&& request) {
     {% endif %}
+  UASSERT_MSG(false, "Called not implemented {{proto.package_prefix}}{{service.name}}/{{method.name}}");
   call.FinishWithError(USERVER_NAMESPACE::ugrpc::server::impl::kUnimplementedStatus);
 }
 {% endfor %}

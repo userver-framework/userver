@@ -50,7 +50,8 @@ UTEST_F(GrpcServerSomeUnimplementedTest, Implemented) {
   EXPECT_FALSE(call.Read(response));
 }
 
-UTEST_F(GrpcServerSomeUnimplementedTest, Unimplemented) {
+UTEST_F(GrpcServerSomeUnimplementedTest,
+        DISABLED_IN_DEBUG_TEST_NAME(Unimplemented)) {
   auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
   sample::ugrpc::GreetingRequest out;
   out.set_name("userver");

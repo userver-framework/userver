@@ -22,6 +22,11 @@ class UnitTestServiceForStatistics final
     call.FinishWithError(
         {grpc::StatusCode::INVALID_ARGUMENT, "message", "details"});
   }
+
+  void Chat(ChatCall& call) override {
+    call.FinishWithError(
+        {grpc::StatusCode::UNIMPLEMENTED, "message", "details"});
+  }
 };
 
 }  // namespace

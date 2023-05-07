@@ -67,6 +67,14 @@ void PrintTo(const Decimal<Prec, RoundPolicy>& v, std::ostream* os) {
 
 USERVER_NAMESPACE_END
 
+#ifndef NDEBUG
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+#define DISABLED_IN_DEBUG_TEST_NAME(name) DISABLED_##name
+#else
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+#define DISABLED_IN_DEBUG_TEST_NAME(name) name
+#endif
+
 #ifdef __APPLE__
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define DISABLED_IN_MAC_OS_TEST_NAME(name) DISABLED_##name
