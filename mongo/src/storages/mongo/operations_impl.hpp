@@ -18,8 +18,6 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::mongo::operations {
 
-extern const std::string kDefaultReadPrefDesc;
-extern const std::string kDefaultWriteConcernDesc;
 inline constexpr std::chrono::milliseconds kNoMaxServerTime{0};
 
 stats::OpType ToStatsOpType(operations::Update::Mode);

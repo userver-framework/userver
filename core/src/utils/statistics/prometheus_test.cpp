@@ -118,35 +118,27 @@ UTEST(MetricsPrometheus, Tvm2TicketsCache) {
       producer({}).ExtractValue(),
       formats::json::FromString(statistics)["cache"]["tvm2-tickets-cache"]);
 
-  const auto* const expected =
-      "# TYPE cache_current_documents_count gauge\n"
-      "cache_current_documents_count{application=\"processing\",cache_name="
-      "\"tvm2-tickets-cache\"} 8\n"
-      "# TYPE cache_full_time_time_from_last_update_start_ms gauge\n"
-      "cache_full_time_time_from_last_update_start_ms{application="
-      "\"processing\",cache_name=\"tvm2-tickets-cache\"} 2521742\n"
-      "# TYPE cache_full_time_time_from_last_successful_start_ms gauge\n"
-      "cache_full_time_time_from_last_successful_start_ms{application="
-      "\"processing\",cache_name=\"tvm2-tickets-cache\"} 2521742\n"
-      "# TYPE cache_full_time_last_update_duration_ms gauge\n"
-      "cache_full_time_last_update_duration_ms{application=\"processing\","
-      "cache_name=\"tvm2-tickets-cache\"} 58\n"
-      "# TYPE cache_full_documents_read_count gauge\n"
-      "cache_full_documents_read_count{application=\"processing\",cache_name="
-      "\"tvm2-tickets-cache\"} 432\n"
-      "# TYPE cache_full_documents_parse_failures gauge\n"
-      "cache_full_documents_parse_failures{application=\"processing\",cache_"
-      "name=\"tvm2-tickets-cache\"} 0\n"
-      "# TYPE cache_full_update_attempts_count gauge\n"
-      "cache_full_update_attempts_count{application=\"processing\",cache_name="
-      "\"tvm2-tickets-cache\"} 56\n"
-      "# TYPE cache_full_update_no_changes_count gauge\n"
-      "cache_full_update_no_changes_count{application=\"processing\",cache_"
-      "name=\"tvm2-tickets-cache\"} 0\n"
-      "# TYPE cache_full_update_failures_count gauge\n"
-      "cache_full_update_failures_count{application=\"processing\",cache_name="
-      "\"tvm2-tickets-cache\"} 0\n";
-  TestToMetricsPrometheus(statistics_storage, expected);
+  constexpr std::string_view expected = R"(
+# TYPE cache_current_documents_count gauge
+cache_current_documents_count{application="processing",cache_name="tvm2-tickets-cache"} 8
+# TYPE cache_full_time_time_from_last_update_start_ms gauge
+cache_full_time_time_from_last_update_start_ms{application="processing",cache_name="tvm2-tickets-cache"} 2521742
+# TYPE cache_full_time_time_from_last_successful_start_ms gauge
+cache_full_time_time_from_last_successful_start_ms{application="processing",cache_name="tvm2-tickets-cache"} 2521742
+# TYPE cache_full_time_last_update_duration_ms gauge
+cache_full_time_last_update_duration_ms{application="processing",cache_name="tvm2-tickets-cache"} 58
+# TYPE cache_full_documents_read_count gauge
+cache_full_documents_read_count{application="processing",cache_name="tvm2-tickets-cache"} 432
+# TYPE cache_full_documents_parse_failures gauge
+cache_full_documents_parse_failures{application="processing",cache_name="tvm2-tickets-cache"} 0
+# TYPE cache_full_update_attempts_count gauge
+cache_full_update_attempts_count{application="processing",cache_name="tvm2-tickets-cache"} 56
+# TYPE cache_full_update_no_changes_count gauge
+cache_full_update_no_changes_count{application="processing",cache_name="tvm2-tickets-cache"} 0
+# TYPE cache_full_update_failures_count gauge
+cache_full_update_failures_count{application="processing",cache_name="tvm2-tickets-cache"} 0
+)";
+  TestToMetricsPrometheus(statistics_storage, expected.substr(1));
 }
 
 UTEST(Converter, SolomonChildrenLabel) {
@@ -200,23 +192,19 @@ UTEST(Converter, SolomonChildrenLabel) {
   auto statistics_holder =
       statistics_storage.RegisterExtender("base_key.some_key", producer);
 
-  const auto* const expected =
-      "# TYPE base_key_some_key_ag_test gauge\n"
-      "base_key_some_key_ag_test{application=\"processing\",child_label_name="
-      "\"label_value_1\"} 76\n"
-      "# TYPE base_key_some_key_ag_test1 gauge\n"
-      "base_key_some_key_ag_test1{application=\"processing\",child_label_name="
-      "\"label_value_1\"} 90\n"
-      "# TYPE base_key_some_key_field1 gauge\n"
-      "base_key_some_key_field1{application=\"processing\",child_label_name="
-      "\"label_value_2\"} 3\n"
-      "# TYPE base_key_some_key_field2 gauge\n"
-      "base_key_some_key_field2{application=\"processing\",child_label_name="
-      "\"label_value_2\"} 6.67\n"
-      "# TYPE base_key_some_key_field3 gauge\n"
-      "base_key_some_key_field3{application=\"processing\",overridden_label_"
-      "name=\"overridden_label_value\"} 9999\n";
-  TestToMetricsPrometheus(statistics_storage, expected, true);
+  constexpr std::string_view expected = R"(
+# TYPE base_key_some_key_ag_test gauge
+base_key_some_key_ag_test{application="processing",child_label_name="label_value_1"} 76
+# TYPE base_key_some_key_ag_test1 gauge
+base_key_some_key_ag_test1{application="processing",child_label_name="label_value_1"} 90
+# TYPE base_key_some_key_field1 gauge
+base_key_some_key_field1{application="processing",child_label_name="label_value_2"} 3
+# TYPE base_key_some_key_field2 gauge
+base_key_some_key_field2{application="processing",child_label_name="label_value_2"} 6.67
+# TYPE base_key_some_key_field3 gauge
+base_key_some_key_field3{application="processing",overridden_label_name="overridden_label_value"} 9999
+)";
+  TestToMetricsPrometheus(statistics_storage, expected.substr(1), true);
 }
 
 UTEST(Converter, SolomonChildrenLabelEscaping) {
@@ -271,8 +259,8 @@ UTEST(Converter, SolomonChildrenLabelEscaping) {
   auto statistics_holder =
       statistics_storage.RegisterExtender("base_key.some_key", producer);
 
-  const auto* const expected =
-      R"(# TYPE base_key_some_key_a_________g_test gauge
+  constexpr std::string_view expected = R"(
+# TYPE base_key_some_key_a_________g_test gauge
 base_key_some_key_a_________g_test{application="processing",child_label____________name="label.value.#$/\ _{}''1"} 76
 # TYPE base_key_some_key_a_________g_test1 gauge
 base_key_some_key_a_________g_test1{application="processing",child_label____________name="label.value.#$/\ _{}''1"} 90
@@ -283,7 +271,7 @@ base_key_some_key_field2{application="processing",child_label____________name="l
 # TYPE base_key_some_key_field3 gauge
 base_key_some_key_field3{application="processing",overridden_label____________name="overridden.label.#$/\ _{}''value"} 9999
 )";
-  TestToMetricsPrometheus(statistics_storage, expected, true);
+  TestToMetricsPrometheus(statistics_storage, expected.substr(1), true);
 }
 
 UTEST(MetricsPrometheus, SimpleStatistics) {
@@ -312,21 +300,22 @@ UTEST(MetricsPrometheus, SimpleStatistics) {
   EXPECT_EQ(producer2({}).ExtractValue(),
             formats::json::FromString(statistics));
 
-  const auto* expected =
-      "# TYPE parent_child1 gauge\n"
-      "parent_child1{application=\"processing\"} 1\n"
-      "# TYPE parent_child2 gauge\n"
-      "parent_child2{application=\"processing\"} 2\n";
+  constexpr std::string_view expected = R"(
+# TYPE parent_child1 gauge
+parent_child1{application="processing"} 1
+# TYPE parent_child2 gauge
+parent_child2{application="processing"} 2
+)";
   {
     utils::statistics::Storage statistics_storage;
     auto statistics_holder =
         statistics_storage.RegisterExtender("parent", producer1);
-    TestToMetricsPrometheus(statistics_storage, expected);
+    TestToMetricsPrometheus(statistics_storage, expected.substr(1));
   }
   {
     utils::statistics::Storage statistics_storage;
     auto statistics_holder = statistics_storage.RegisterExtender({}, producer2);
-    TestToMetricsPrometheus(statistics_storage, expected);
+    TestToMetricsPrometheus(statistics_storage, expected.substr(1));
   }
 }
 
@@ -360,19 +349,20 @@ UTEST(MetricsPrometheus, SimpleParentRenamed) {
   EXPECT_EQ(producer2({}).ExtractValue(),
             formats::json::FromString(statistics));
 
-  const auto* expected =
-      "# TYPE parent_child gauge\n"
-      "parent_child{application=\"processing\"} 8\n";
+  constexpr std::string_view expected = R"(
+# TYPE parent_child gauge
+parent_child{application="processing"} 8
+)";
   {
     utils::statistics::Storage statistics_storage;
     auto statistics_holder =
         statistics_storage.RegisterExtender("parent", producer1);
-    TestToMetricsPrometheus(statistics_storage, expected);
+    TestToMetricsPrometheus(statistics_storage, expected.substr(1));
   }
   {
     utils::statistics::Storage statistics_storage;
     auto statistics_holder = statistics_storage.RegisterExtender({}, producer2);
-    TestToMetricsPrometheus(statistics_storage, expected);
+    TestToMetricsPrometheus(statistics_storage, expected.substr(1));
   }
 }
 
@@ -406,19 +396,20 @@ UTEST(MetricsPrometheus, SimpleParentSkipped) {
   EXPECT_EQ(producer2({}).ExtractValue(),
             formats::json::FromString(statistics));
 
-  const auto* expected =
-      "# TYPE child gauge\n"
-      "child{application=\"processing\"} 8\n";
+  constexpr std::string_view expected = R"(
+# TYPE child gauge
+child{application="processing"} 8
+)";
   {
     utils::statistics::Storage statistics_storage;
     auto statistics_holder =
         statistics_storage.RegisterExtender("parent_skipped", producer1);
-    TestToMetricsPrometheus(statistics_storage, expected);
+    TestToMetricsPrometheus(statistics_storage, expected.substr(1));
   }
   {
     utils::statistics::Storage statistics_storage;
     auto statistics_holder = statistics_storage.RegisterExtender({}, producer2);
-    TestToMetricsPrometheus(statistics_storage, expected);
+    TestToMetricsPrometheus(statistics_storage, expected.substr(1));
   }
 }
 

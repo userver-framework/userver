@@ -11,15 +11,19 @@ USERVER_NAMESPACE_BEGIN
 
 namespace utils::statistics {
 
-// clang-format off
-
-// Output `statistics` in format:
-// `"metric-path: some-label=label-value, some-other-label=other-label-value\t42`
+/// @brief Output `statistics` in a human-readable, compact format, useful for
+/// visual inspection.
+///
+/// @warning This format is unstable, we reserve the right to change it at any
+/// point. Don't use it in scripts, use utils::statistics::ToJsonFormat instead!
+///
+/// The current version of this unstable format is:
+/// @code
+/// metric-path: some-label=label-value, other-label=other-label-value\tRATE\t42
+/// @endcode
 std::string ToPrettyFormat(
     const utils::statistics::Storage& statistics,
     const utils::statistics::Request& statistics_request = {});
-
-// clang-format on
 
 }  // namespace utils::statistics
 

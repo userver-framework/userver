@@ -22,7 +22,8 @@ UTEST(MetricsPrettyFormat, CheckFormat) {
   const auto request =
       utils::statistics::Request::MakeWithPrefix("best_prefix");
   constexpr auto expected =
-      "best_prefix: label_1=value_1, label_2=value_2, label_3=value_3\t42\n";
+      "best_prefix: label_1=value_1, label_2=value_2, "
+      "label_3=value_3\tGAUGE\t42\n";
   const std::string result_str =
       utils::statistics::ToPrettyFormat(storage, request);
   EXPECT_EQ(result_str, expected);
@@ -43,7 +44,8 @@ UTEST(MetricsPrettyFormat, CheckSortingInFormat) {
   const auto request =
       utils::statistics::Request::MakeWithPrefix("best_prefix");
   constexpr auto expected =
-      "best_prefix: label_1=value_1, label_2=value_2, label_3=value_3\t42\n";
+      "best_prefix: label_1=value_1, label_2=value_2, "
+      "label_3=value_3\tGAUGE\t42\n";
   const std::string result_str =
       utils::statistics::ToPrettyFormat(storage, request);
   EXPECT_EQ(result_str, expected);
@@ -59,7 +61,25 @@ UTEST(MetricsPrettyFormat, NoLabels) {
 
   const auto request =
       utils::statistics::Request::MakeWithPrefix("best_prefix");
-  constexpr auto expected = "best_prefix:\t42\n";
+  constexpr auto expected = "best_prefix:\tGAUGE\t42\n";
+  const std::string result_str =
+      utils::statistics::ToPrettyFormat(storage, request);
+  EXPECT_EQ(result_str, expected);
+}
+
+UTEST(MetricsPrettyFormat, Rate) {
+  utils::statistics::Storage storage;
+
+  const auto entry =
+      storage.RegisterWriter("best_prefix",
+                             [](utils::statistics::Writer& writer) {
+                               writer = utils::statistics::Rate{42};
+                             },
+                             {});
+
+  const auto request =
+      utils::statistics::Request::MakeWithPrefix("best_prefix");
+  constexpr auto expected = "best_prefix:\tRATE\t42\n";
   const std::string result_str =
       utils::statistics::ToPrettyFormat(storage, request);
   EXPECT_EQ(result_str, expected);

@@ -21,6 +21,14 @@ class MetricValue final {
   MetricValue(const MetricValue&) = default;
   MetricValue& operator=(const MetricValue&) = default;
 
+  bool operator==(const MetricValue& other) const noexcept {
+    return value_ == other.value_;
+  }
+
+  bool operator!=(const MetricValue& other) const noexcept {
+    return value_ != other.value_;
+  }
+
   /// @brief Retrieve the value of an integer metric.
   /// @throws std::exception on type mismatch.
   std::int64_t AsInt() const { return std::get<std::int64_t>(value_); }

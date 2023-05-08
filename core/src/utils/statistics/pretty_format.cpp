@@ -8,7 +8,7 @@
 #include <fmt/format.h>
 #include <boost/container/small_vector.hpp>
 
-#include <userver/formats/json/value_builder.hpp>
+#include <userver/utils/overloaded.hpp>
 #include <userver/utils/statistics/fmt.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -42,7 +42,11 @@ class FormatBuilder final : public utils::statistics::BaseFormatBuilder {
       }
     }
 
-    fmt::format_to(std::back_inserter(buf_), FMT_COMPILE("\t{}\n"), value);
+    const auto type = value.Visit(utils::Overloaded{
+        [](const Rate&) -> std::string_view { return "RATE"; },
+        [](const auto&) -> std::string_view { return "GAUGE"; }});
+    fmt::format_to(std::back_inserter(buf_), FMT_COMPILE("\t{}\t{}\n"), type,
+                   value);
   }
 
   std::string Release() { return fmt::to_string(buf_); }

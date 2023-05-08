@@ -69,6 +69,8 @@ class RateCounter final {
 
 void DumpMetric(Writer& writer, const RateCounter& value);
 
+void ResetMetric(RateCounter& value);
+
 }  // namespace utils::statistics
 
 USERVER_NAMESPACE_END

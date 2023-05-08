@@ -153,9 +153,6 @@ void EnableFlag(const impl::cdriver::FindAndModifyOptsPtr& fam_options,
 
 }  // namespace
 
-const std::string kDefaultReadPrefDesc = "primary";
-const std::string kDefaultWriteConcernDesc = "default";
-
 Count::Count(formats::bson::Document filter) : impl_(std::move(filter)) {}
 Count::~Count() = default;
 

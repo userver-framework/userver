@@ -1,9 +1,5 @@
 #pragma once
 
-#if defined(__cpp_impl_three_way_comparison)
-#include <compare>
-#endif
-
 /// @file userver/utils/statistics/rate.hpp
 /// @brief @copybrief utils::statistics::Rate
 
@@ -15,23 +11,21 @@ USERVER_NAMESPACE_BEGIN
 
 namespace utils::statistics {
 
-// Several monitoring systems can differentiate between plain counter
-// and 'rate' counter, where 'rate' values are given special treatment
-// with regards to maintaining proper non-negative derivative.
+/// `Rate` metrics (or "counter" metrics) are metrics that only monotonically
+/// increase or are reset to zero on restart. Some monitoring systems give them
+/// special treatment with regard to maintaining proper non-negative derivative.
 struct Rate {
   using ValueType = std::uint64_t;
 
-  ValueType value;
+  ValueType value{0};
 
   inline Rate& operator+=(Rate other) noexcept {
     value += other.value;
     return *this;
   }
 
-#if defined(__cpp_impl_three_way_comparison) && \
-    __cpp_impl_three_way_comparison >= 201907L
-  auto operator<=>(const Rate& other) const noexcept = default;
-#else
+  explicit operator bool() const noexcept { return value != 0; }
+
   bool operator==(const Rate& other) const noexcept {
     return value == other.value;
   }
@@ -39,7 +33,6 @@ struct Rate {
   bool operator!=(const Rate& other) const noexcept {
     return !(*this == other);
   }
-#endif
 };
 
 inline Rate operator+(Rate first, Rate second) noexcept {

@@ -19,6 +19,8 @@ struct HashSeed final {
 /// @brief Case sensitive ASCII hashing functor
 class StrCaseHash {
  public:
+  using is_transparent [[maybe_unused]] = void;
+
   /// Generates a new random hash seed for each hasher instance
   StrCaseHash();
 
@@ -47,6 +49,8 @@ class StrCaseHash {
 /// @brief Case insensitive ASCII hashing functor
 class StrIcaseHash {
  public:
+  using is_transparent [[maybe_unused]] = void;
+
   /// Generates a new random hash seed for each hasher instance
   StrIcaseHash();
 
@@ -64,24 +68,15 @@ class StrIcaseHash {
 class StrIcaseCompareThreeWay {
  public:
   // TODO: std::weak_ordering
-  /// @returns integer <0 when `lhs < rhs`, >0 when `lhs > rhs` and 0 otherwise
-  /// @{
-  int operator()(const std::string& lhs, const std::string& rhs) const
-      noexcept {
-    return (*this)(std::string_view{lhs}, std::string_view{rhs});
-  }
 
+  /// @returns integer <0 when `lhs < rhs`, >0 when `lhs > rhs` and 0 otherwise
   int operator()(std::string_view lhs, std::string_view rhs) const noexcept;
-  /// @}
 };
 
 /// Case insensitive ASCII equality comparison functor
 class StrIcaseEqual {
  public:
-  bool operator()(const std::string& lhs, const std::string& rhs) const
-      noexcept {
-    return (*this)(std::string_view{lhs}, std::string_view{rhs});
-  }
+  using is_transparent [[maybe_unused]] = void;
 
   bool operator()(std::string_view lhs, std::string_view rhs) const noexcept;
 };
@@ -89,10 +84,7 @@ class StrIcaseEqual {
 /// Case insensitive ASCII less comparison functor
 class StrIcaseLess {
  public:
-  bool operator()(const std::string& lhs, const std::string& rhs) const
-      noexcept {
-    return (*this)(std::string_view{lhs}, std::string_view{rhs});
-  }
+  using is_transparent [[maybe_unused]] = void;
 
   bool operator()(std::string_view lhs, std::string_view rhs) const noexcept;
 };
