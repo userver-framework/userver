@@ -1,16 +1,35 @@
+import os
+import subprocess
 import typing
 
 import pytest
 
-import taxi.uservices.userver.scripts.uctl.uctl as uctl
+
+try:
+    import yatest.common.runtime
+    UCTL_BIN = yatest.common.runtime.build_path(
+        'taxi/uservices/userver/scripts/uctl/uctl',
+    )
+except ModuleNotFoundError:
+    UCTL_BIN = os.path.join(
+        os.path.dirname(__file__),
+        '..',
+        '..',
+        '..',
+        '..',
+        'scripts',
+        'uctl',
+        'uctl.py',
+    )
 
 
 @pytest.fixture(scope='session')
 def run_uctl(service_config_path_temp):
     async def _uctl(cmdline: typing.List[str]) -> str:
-        return await uctl.main(
-            ['--config', str(service_config_path_temp)] + cmdline,
-        )
+        return subprocess.check_output(
+            [UCTL_BIN, '--config', str(service_config_path_temp)] + cmdline,
+            encoding='utf-8',
+        ).strip()
 
     return _uctl
 

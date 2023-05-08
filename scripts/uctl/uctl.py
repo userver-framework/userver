@@ -215,14 +215,18 @@ def parse_args(args: typing.List[str]):
     return opts
 
 
-async def main(argv: typing.List[str]) -> str:
+async def run(argv: typing.List[str]) -> None:
     args = parse_args(argv)
-    if hasattr(args, 'func'):
-        return await args.func(Client(args)) or ''
+    if not hasattr(args, 'func'):
+        parse_args(argv + ['--help'])
+        return
 
-    parse_args(argv + ['--help'])
-    return ''
+    await args.func(Client(args))
+
+
+def main() -> None:
+    asyncio.run(run(sys.argv[1:]))
 
 
 if __name__ == '__main__':
-    asyncio.run(main(sys.argv[1:]))
+    main()
