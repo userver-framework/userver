@@ -14,6 +14,7 @@ _uctl_commands=(
   'log-level set none'
   'log-level set default'
   'on-logrotate'
+  'access-top'
 )
 
 _uctl_complete()

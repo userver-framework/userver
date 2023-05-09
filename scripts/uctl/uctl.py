@@ -4,6 +4,7 @@ import argparse
 import asyncio
 import json
 import os
+import subprocess
 import sys
 import typing
 
@@ -58,29 +59,35 @@ class Client:
         data = await self.client_send(path='/service/log-level/', method='get')
         level = json.loads(data)['current-log-level']
         print(level)
-        return level
 
     async def on_logrotate(self) -> None:
         await self.client_send(path='/service/on-log-rotate', method='post')
 
-    async def log_dynamic_debug_list(self) -> str:
+    async def log_dynamic_debug_list(self) -> None:
         data = await self.client_send(path='/log/dynamic-debug', method='get')
         print(data, end='')
-        return data
 
-    async def stats(self) -> str:
+    async def stats(self) -> None:
         data = await self.client_send(
             path='/', method='get', params={'format': 'pretty'},
         )
         print(data, end='')
-        return data
 
-    async def inspect_requests(self) -> str:
+    async def inspect_requests(self) -> None:
         data = await self.client_send(
             path='/service/inspect-requests', method='get',
         )
         print(data)
-        return data
+
+    async def access_top(self) -> None:
+        components = self.config_yaml['components_manager']['components']
+        logger_path = components['logging']['loggers']['default']['file_path']
+        if logger_path.startswith('$'):
+            logger_path = self.config_vars[logger_path[1:]]
+
+        subprocess.check_call(
+            ['access-top', '--service_log_filepath', logger_path],
+        )
 
     def read_config_yaml(self, config_yaml: str) -> None:
         try:
@@ -210,6 +217,9 @@ def parse_args(args: typing.List[str]):
 
     parser_inspect_requests = subparsers.add_parser('inspect-requests')
     parser_inspect_requests.set_defaults(func=Client.inspect_requests)
+
+    parser_access_top = subparsers.add_parser('access-top')
+    parser_access_top.set_defaults(func=Client.access_top)
 
     opts = parser.parse_args(args)
     return opts
