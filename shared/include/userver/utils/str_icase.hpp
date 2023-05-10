@@ -3,6 +3,7 @@
 /// @file userver/utils/str_icase.hpp
 /// @brief Case insensitive ASCII comparators and hashers
 
+#include <cstdint>
 #include <string>
 #include <string_view>
 
