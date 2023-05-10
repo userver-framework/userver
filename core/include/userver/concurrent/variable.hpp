@@ -1,6 +1,7 @@
 #pragma once
 
 #include <mutex>
+#include <cstdlib>
 #include <optional>
 #include <shared_mutex>  // for shared_lock
 
