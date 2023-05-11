@@ -4,17 +4,13 @@ include(GrpcTargets)
 
 add_library(${PROJECT_NAME}-deps INTERFACE)
 target_include_directories(${PROJECT_NAME}-deps INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/include)
-if (USERVER_CONAN)
+target_link_libraries(${PROJECT_NAME}-deps INTERFACE
+    protobuf::libprotobuf gRPC::grpc++
+)
+if(USERVER_CONAN AND "${GRPC_LIBRARY_VERSION}" VERSION_GREATER_EQUAL "1.41")
     target_link_libraries(${PROJECT_NAME}-deps INTERFACE
-        protobuf::protobuf grpc::grpc
+        protobuf::libprotobuf gRPC::grpc++
     )
-    if ("${GRPC_LIBRARY_VERSION}" VERSION_GREATER_EQUAL "1.41")
-        target_link_libraries(${PROJECT_NAME}-deps INTERFACE
-            absl::base absl::synchronization
-        )
-    endif()
-else()
-    target_link_libraries(${PROJECT_NAME}-deps INTERFACE protobuf::libprotobuf Grpc)
 endif()
 
 
@@ -78,12 +74,13 @@ endif()
 
 if (USERVER_FEATURE_GRPC_CHANNELZ)
     message(STATUS "gRPC Channelz enabled")
-    if (USERVER_CONAN)
-        target_link_libraries(${PROJECT_NAME} PUBLIC gRPC::grpcpp_channelz)
-    else()
+    if(GRPC_USE_SYSTEM_PACKAGE)
         find_package(GrpcChannelz REQUIRED)
-        target_link_libraries(${PROJECT_NAME} PUBLIC GrpcChannelz)
+        if(NOT TARGET gRPC::grpcpp_channelz)
+            add_library(gRPC::grpcpp_channelz ALIAS GrpcChannelz)
+        endif()
     endif()
+    target_link_libraries(${PROJECT_NAME} PUBLIC gRPC::grpcpp_channelz)
 else()
     message(STATUS "gRPC Channelz disabled, install gRPC >= ${CHANNELZ_MIN_VERSION} to enable")
     target_compile_definitions(${PROJECT_NAME} PRIVATE

@@ -3,7 +3,8 @@ set(CMAKE_POLICY_DEFAULT_CMP0069 NEW)
 option(USERVER_DOWNLOAD_PACKAGE_AMQPCPP "Download and setup amqp-cpp" ${USERVER_DOWNLOAD_PACKAGES})
 
 if(NOT USERVER_IMPL_USE_DOWNLOADED_AMQPCPP)
-  find_package(amqpcpp)
+  # QUIET because there is no system package we can advise to install.
+  find_package(amqpcpp QUIET)
   if (amqpcpp_FOUND)
     return()
   endif()
