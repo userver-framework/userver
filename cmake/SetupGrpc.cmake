@@ -1,15 +1,11 @@
-if(TARGET gRPC::grpc++)
-  return()
-endif()
-
 find_package(gRPC QUIET)
+
 if(gRPC_FOUND)
+  # Use the found CMake-enabled gRPC package
   get_target_property(PROTO_GRPC_CPP_PLUGIN gRPC::grpc_cpp_plugin LOCATION)
   set(PROTO_GRPC_CPP_PLUGIN "${PROTO_GRPC_CPP_PLUGIN}" CACHE INTERNAL "")
-  return()
-endif()
-
-if(USERVER_FEATURE_DOWNLOAD_GRPC)
+elseif(USERVER_FEATURE_DOWNLOAD_GRPC)
+  # Download gRPC library from GitHub and use as a submodule
   message(FATAL_ERROR "Unsupported")
 else()
   # Find the system gRPC package

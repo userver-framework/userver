@@ -21,9 +21,7 @@ else()
   endif()
   set(GRPC_PROTOBUF_INCLUDE_DIRS "${Protobuf_INCLUDE_DIRS}")
 
-  if(NOT TARGET gRPC::grpc++)
-    include(SetupGrpc)
-  endif()
+  include(SetupGrpc)
 endif()
 
 if (NOT GRPC_PROTOBUF_INCLUDE_DIRS)
