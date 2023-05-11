@@ -9,10 +9,10 @@ if(USERVER_FEATURE_DOWNLOAD_GRPC)
   message(FATAL_ERROR "Unsupported")
 else()
   # Find the system gRPC package
-  set(GRPC_USE_SYSTEM_PACKAGE ON CACHE INTERNAL)
+  set(GRPC_USE_SYSTEM_PACKAGE ON CACHE INTERNAL "")
 
   find_package(UserverGrpc REQUIRED)
-  set(gRPC_VERSION "${UserverGrpc_VERSION}" CACHE INTERNAL)
+  set(gRPC_VERSION "${UserverGrpc_VERSION}" CACHE INTERNAL "")
 
   if(NOT TARGET gRPC::grpc++)
     add_library(gRPC::grpc++ ALIAS UserverGrpc)
