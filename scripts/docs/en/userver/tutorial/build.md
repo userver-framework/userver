@@ -36,12 +36,12 @@ The following options could be used to control `cmake`:
 | USERVER_DOWNLOAD_PACKAGE_CARES         | Download and setup c-ares if no c-ares of matching version was found                                                  | ${USERVER_DOWNLOAD_PACKAGES}                     |
 | USERVER_DOWNLOAD_PACKAGE_CCTZ          | Download and setup cctz if no cctz of matching version was found                                                      | ${USERVER_DOWNLOAD_PACKAGES}                     |
 | USERVER_DOWNLOAD_PACKAGE_CLICKHOUSECPP | Download and setup clickhouse-cpp                                                                                     | ${USERVER_DOWNLOAD_PACKAGES}                     |
+| USERVER_DOWNLOAD_PACKAGE_CRYPTOPP      | Download and setup CryptoPP if no CryptoPP of matching version was found                                              | ${USERVER_DOWNLOAD_PACKAGES}                     |
 | USERVER_DOWNLOAD_PACKAGE_CURL          | Download and setup libcurl if no libcurl of matching version was found                                                | ${USERVER_DOWNLOAD_PACKAGES}                     |
 | USERVER_DOWNLOAD_PACKAGE_FMT           | Download and setup Fmt if no Fmt of matching version was found                                                        | ${USERVER_DOWNLOAD_PACKAGES}                     |
 | USERVER_DOWNLOAD_PACKAGE_GTEST         | Download and setup gtest if no gtest of matching version was found                                                    | ${USERVER_DOWNLOAD_PACKAGES}                     |
 | USERVER_DOWNLOAD_PACKAGE_GBENCH        | Download and setup gbench if no gbench of matching version was found                                                  | ${USERVER_DOWNLOAD_PACKAGES}                     |
 | USERVER_DOWNLOAD_PACKAGE_SPDLOG        | Download and setup Spdlog if no Spdlog of matching version was found                                                  | ${USERVER_DOWNLOAD_PACKAGES}                     |
-| USERVER_DOWNLOAD_PACKAGE_CRYPTOPP      | Download and setup CryptoPP if no CryptoPP of matching version was found                                              | ${USERVER_DOWNLOAD_PACKAGES}                     |
 | USERVER_IS_THE_ROOT_PROJECT            | Build tests, samples and helper tools                                                                                 | auto-detects if userver is the top level project |
 | USERVER_GOOGLE_COMMON_PROTOS_TARGET    | Name of cmake target preparing google common proto library                                                            | Builds userver-api-common-protos                 |
 | USERVER_GOOGLE_COMMON_PROTOS           | Path to the folder with google common proto files                                                                     | Downloads to third_party automatically           |
@@ -347,12 +347,8 @@ Run all test:
 docker-compose run --rm userver-ubuntu bash -c 'cd /userver/build && ulimit -n 4096 && ctest -V'
 ```
 
-##### Using make, you can build a userver easier
+##### Using make, you can build the service easier
 
-Add additional flags in `Makefile.local`
-```
-echo 'CMAKE_COMMON_FLAGS += -DUserverGrpc_VERSION=1.54.0' >> Makefile.local
-```
 Start cmake:
 ```
 make docker-cmake-debug

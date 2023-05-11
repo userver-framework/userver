@@ -5,8 +5,8 @@
 if (USERVER_CONAN)
   find_package(gRPC REQUIRED)
   find_package(Protobuf REQUIRED)
-  set(GRPC_LIBRARY_VERSION "${gRPC_VERSION}")
-  set(GRPC_PROTOBUF_INCLUDE_DIRS "${protobuf_INCLUDE_DIR}" CACHE PATH INTERNAL)
+  set(GRPC_PROTOBUF_INCLUDE_DIRS "${protobuf_INCLUDE_DIR}")
+  get_target_property(PROTO_GRPC_CPP_PLUGIN gRPC::grpc_cpp_plugin LOCATION)
 else()
   # Use the builtin CMake FindProtobuf
   find_package(Protobuf)
@@ -19,20 +19,15 @@ else()
         "  ArchLinux: sudo pacman -S protobuf\n"
         "  FreeBSD:   pkg install protobuf\n")
   endif()
-  set(PROTOBUF_LIBRARY_VERSION "${Protobuf_VERSION}")
-  set(GRPC_PROTOBUF_INCLUDE_DIRS "${Protobuf_INCLUDE_DIRS}" CACHE PATH INTERNAL)
+  set(GRPC_PROTOBUF_INCLUDE_DIRS "${Protobuf_INCLUDE_DIRS}")
 
-  find_package(UserverGrpc REQUIRED)
-  if(NOT TARGET Grpc)
-    add_library(Grpc ALIAS UserverGrpc)
-  endif()
-  set(GRPC_LIBRARY_VERSION "${UserverGrpc_VERSION}")
+  include(SetupGrpc)
 endif()
 
 if (NOT GRPC_PROTOBUF_INCLUDE_DIRS)
   message(FATAL_ERROR "Invalid Protobuf package")
 endif()
-if (NOT GRPC_LIBRARY_VERSION)
+if (NOT gRPC_VERSION)
   message(FATAL_ERROR "Invalid gRPC package")
 endif()
 
@@ -41,7 +36,7 @@ set(PROTO_GRPC_USRV_PLUGIN "${USERVER_DIR}/scripts/grpc/protoc_usrv_plugin.sh")
 
 if(NOT USERVER_GRPC_VERSIONS_PRINTED)
   message(STATUS "Protobuf version: ${Protobuf_VERSION}")
-  message(STATUS "gRPC version: ${GRPC_LIBRARY_VERSION}")
+  message(STATUS "gRPC version: ${gRPC_VERSION}")
   set(USERVER_GRPC_VERSIONS_PRINTED ON)
 endif()
 
@@ -63,16 +58,10 @@ if(NOT USERVER_IMPL_GRPC_REQUIREMENTS_CHECKED)
 endif()
 
 set(PROTOBUF_PROTOC "${Protobuf_PROTOC_EXECUTABLE}")
-if(USERVER_CONAN)
-  # Can't use find_*, because it may find a system binary with a wrong version.
-  set(PROTO_GRPC_CPP_PLUGIN "${GRPC_CPP_PLUGIN_PROGRAM}")
-else()
-  find_program(PROTO_GRPC_CPP_PLUGIN grpc_cpp_plugin)
-endif()
-
 if(NOT PROTOBUF_PROTOC)
   message(FATAL_ERROR "protoc not found")
 endif()
+
 if(NOT PROTO_GRPC_CPP_PLUGIN)
   message(FATAL_ERROR "grpc_cpp_plugin not found")
 endif()
