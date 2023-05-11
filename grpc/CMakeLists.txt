@@ -7,10 +7,11 @@ target_include_directories(${PROJECT_NAME}-deps INTERFACE ${CMAKE_CURRENT_SOURCE
 target_link_libraries(${PROJECT_NAME}-deps INTERFACE
     protobuf::libprotobuf gRPC::grpc++
 )
-if(USERVER_CONAN AND "${GRPC_LIBRARY_VERSION}" VERSION_GREATER_EQUAL "1.41")
-    target_link_libraries(${PROJECT_NAME}-deps INTERFACE
-        protobuf::libprotobuf gRPC::grpc++
-    )
+if(USERVER_CONAN AND "${gRPC_VERSION}" VERSION_GREATER_EQUAL "1.41")
+  target_link_libraries(
+      ${PROJECT_NAME}-deps INTERFACE
+      absl::base absl::synchronization
+  )
 endif()
 
 
@@ -60,7 +61,7 @@ endif()
 target_link_libraries(${PROJECT_NAME} PUBLIC userver-core)
 
 set(CHANNELZ_MIN_VERSION "1.17.0")
-if (${GRPC_LIBRARY_VERSION} VERSION_GREATER_EQUAL ${CHANNELZ_MIN_VERSION})
+if (${gRPC_VERSION} VERSION_GREATER_EQUAL ${CHANNELZ_MIN_VERSION})
     set(HAS_CHANNELZ TRUE)
 else()
     set(HAS_CHANNELZ FALSE)
@@ -69,7 +70,7 @@ option(USERVER_FEATURE_GRPC_CHANNELZ "Enable Channelz for gRPC" ${HAS_CHANNELZ})
 if (${USERVER_FEATURE_GRPC_CHANNELZ} AND NOT ${HAS_CHANNELZ})
     message(FATAL_ERROR
         "For Channelz, install gRPC >= ${CHANNELZ_MIN_VERSION}"
-        "(found: ${GRPC_LIBRARY_VERSION})")
+        "(found: ${gRPC_VERSION})")
 endif()
 
 if (USERVER_FEATURE_GRPC_CHANNELZ)
