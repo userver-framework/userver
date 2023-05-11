@@ -6,6 +6,7 @@ if (USERVER_CONAN)
   find_package(gRPC REQUIRED)
   find_package(Protobuf REQUIRED)
   set(GRPC_PROTOBUF_INCLUDE_DIRS "${protobuf_INCLUDE_DIR}")
+  get_target_property(PROTO_GRPC_CPP_PLUGIN gRPC::grpc_cpp_plugin LOCATION)
 else()
   # Use the builtin CMake FindProtobuf
   find_package(Protobuf)
@@ -24,8 +25,6 @@ else()
     include(SetupGrpc)
   endif()
 endif()
-
-get_target_property(PROTO_GRPC_CPP_PLUGIN gRPC::grpc_cpp_plugin LOCATION)
 
 if (NOT GRPC_PROTOBUF_INCLUDE_DIRS)
   message(FATAL_ERROR "Invalid Protobuf package")
