@@ -253,6 +253,9 @@ target_compile_definitions(${PROJECT_NAME} PUBLIC
   "USERVER_NAMESPACE_END=${USERVER_NAMESPACE_END}"
 )
 
+# Suppress OpenSSL 3 warnings: we still primarily support OpenSSL 1.1.x
+target_compile_definitions(${PROJECT_NAME} PRIVATE OPENSSL_SUPPRESS_DEPRECATED=)
+
 add_library(userver-core-internal STATIC ${INTERNAL_SOURCES})
 target_compile_definitions(userver-core-internal PUBLIC $<TARGET_PROPERTY:${PROJECT_NAME},COMPILE_DEFINITIONS>)
 target_include_directories(userver-core-internal PUBLIC

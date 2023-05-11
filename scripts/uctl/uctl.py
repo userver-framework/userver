@@ -11,7 +11,6 @@ import typing
 import aiohttp
 import yaml
 
-
 CONFIG_BASEPATH = '/etc/yandex/taxi/'
 
 
@@ -21,6 +20,8 @@ class Client:
         self.read_config_yaml(self.args.config)
         self.monitor_url = self.read_monitor_url()
         self.session = aiohttp.ClientSession()
+        self.config_yaml: typing.Any = None
+        self.config_vars: typing.Any = None
 
     async def client_send(
             self,
@@ -103,7 +104,7 @@ class Client:
 
         config_vars_path = self.config_yaml['config_vars']
         with open(config_vars_path, 'r') as ifile:
-            self.config_vars = yaml.load(ifile)
+            self.config_vars = yaml.full_load(ifile)
 
     def config_yaml_read(self, path: typing.List[str]) -> str:
         data = self.config_yaml
