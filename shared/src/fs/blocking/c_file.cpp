@@ -103,9 +103,13 @@ void CFile::Write(std::string_view data) {
 }
 
 void CFile::Flush() {
+  FlushLight();
+  utils::CheckSyscall(::fsync(impl_->GetFileDescriptor()), "calling ::fsync");
+}
+
+void CFile::FlushLight() {
   UASSERT(IsOpen());
   utils::CheckSyscall(std::fflush(impl_->handle.get()), "calling fflush");
-  utils::CheckSyscall(::fsync(impl_->GetFileDescriptor()), "calling ::fsync");
 }
 
 std::uint64_t CFile::GetPosition() const {

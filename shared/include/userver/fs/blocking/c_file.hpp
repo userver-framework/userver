@@ -64,6 +64,11 @@ class CFile final {
   /// @throws std::runtime_error
   void Flush();
 
+  /// @brief Synchronizes the written data with the file on disk
+  /// without fsync
+  /// @throws std::runtime_error
+  void FlushLight();
+
   /// @brief Fetches the current position in the file
   /// @throws std::runtime_error
   std::uint64_t GetPosition() const;
