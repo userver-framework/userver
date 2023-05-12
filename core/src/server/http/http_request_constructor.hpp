@@ -54,6 +54,9 @@ class HttpRequestConstructor final : public request::RequestConstructor {
 
   void SetIsFinal(bool is_final);
 
+  // Just to make it work. TODO remove
+  void SetResponseStreamId(uint32_t);
+
   std::shared_ptr<request::RequestBase> Finalize() override;
 
  private:

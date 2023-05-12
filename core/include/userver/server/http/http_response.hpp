@@ -114,9 +114,10 @@ class HttpResponse final : public request::ResponseBase {
   bool WaitForHeadersEnd() override;
   void SetHeadersEnd() override;
 
+  void SetStreamBody();
+
   using Queue = concurrent::SpscQueue<std::string>;
 
-  void SetStreamBody();
   bool IsBodyStreamed() const override;
   // Can be called only once
   Queue::Producer GetBodyProducer();
