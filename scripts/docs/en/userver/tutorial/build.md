@@ -237,7 +237,7 @@ cat scripts/docs/en/deps/arch.md | grep -oP '^makepkg\|\K.*' | while read ;\
   bash
   mkdir build_release
   cd build_release
-  cmake -DUSERVER_FEATURE_PATCH_LIBPQ=0 -DCMAKE_BUILD_TYPE=Release ..
+  cmake -DUSERVER_FEATURE_PATCH_LIBPQ=0 -DUSERVER_FEATURE_SEARCH_FOR_SYSTEM_GRPC_CMAKE=0 -DCMAKE_BUILD_TYPE=Release ..
   make -j$(nproc)
   ```
 

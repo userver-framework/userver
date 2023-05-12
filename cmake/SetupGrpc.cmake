@@ -1,4 +1,7 @@
-find_package(gRPC QUIET)
+option(USERVER_FEATURE_SEARCH_FOR_SYSTEM_GRPC_CMAKE "Try searching for gRPC cmake in system" ON)
+if(USERVER_FEATURE_SEARCH_FOR_SYSTEM_GRPC_CMAKE)
+  find_package(gRPC QUIET)
+endif()
 
 if(gRPC_FOUND)
   # Use the found CMake-enabled gRPC package
