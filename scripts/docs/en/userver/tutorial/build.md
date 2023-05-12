@@ -215,13 +215,13 @@ Follow the platforms specific instructions:
     * Using an AUR helper (pikaur in this example)
 ```
 bash
-pikaur -S $(cat scripts/docs/en/deps/arch.md | tr '\n' ' ')
+pikaur -S $(cat scripts/docs/en/deps/arch.md | sed 's/^makepkg|//g' | tr '\n' ' ')
 ```
     * No AUR helper
 ```
 bash
-sudo pacman -S $(cat scripts/docs/en/deps/arch.md | grep -v -- '-git' | tr '\n' ' ')
-cat scripts/docs/en/deps/arch.md | grep -- '-git' | while read ;\
+sudo pacman -S $(cat scripts/docs/en/deps/arch.md | grep -v -- 'makepkg|' | tr '\n' ' ')
+cat scripts/docs/en/deps/arch.md | grep -oP '^makepkg\|\K.*' | while read ;\
   do \
     DIR=$(mktemp -d) ;\
     git clone https://aur.archlinux.org/$REPLY.git $DIR ;\
