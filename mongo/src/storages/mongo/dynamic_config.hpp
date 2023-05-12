@@ -19,6 +19,11 @@ bool ParseDeadlinePropagationEnabled(const dynamic_config::DocsMap& docs_map);
 inline constexpr dynamic_config::Key<ParseDeadlinePropagationEnabled>
     kDeadlinePropagationEnabled;
 
+bool ParseCongestionControlEnabled(const dynamic_config::DocsMap& docs_map);
+
+inline constexpr dynamic_config::Key<ParseCongestionControlEnabled>
+    kCongestionControlEnabled;
+
 }  // namespace storages::mongo
 
 USERVER_NAMESPACE_END

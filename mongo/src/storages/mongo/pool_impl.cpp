@@ -1,5 +1,6 @@
 #include <storages/mongo/pool_impl.hpp>
 
+#include <storages/mongo/dynamic_config.hpp>
 #include <userver/utils/impl/userver_experiments.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -21,6 +22,13 @@ PoolImpl::PoolImpl(std::string&& id, const PoolConfig& static_config,
   if (kCcExperiment.IsEnabled()) {
     cc_controller_.Start();
   }
+
+  config_subscriber_ = config_source_.UpdateAndListen(
+      this, "mongo_pool", &PoolImpl::OnConfigUpdate);
+}
+
+void PoolImpl::OnConfigUpdate(const dynamic_config::Snapshot& config) {
+  cc_controller_.SetEnabled(config[kCongestionControlEnabled]);
 }
 
 const std::string& PoolImpl::Id() const { return id_; }

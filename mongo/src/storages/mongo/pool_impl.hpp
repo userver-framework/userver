@@ -40,15 +40,20 @@ class PoolImpl {
            dynamic_config::Source config_source);
 
  private:
+  void OnConfigUpdate(const dynamic_config::Snapshot& config);
+
   const std::string id_;
   const StatsVerbosity stats_verbosity_;
-  const dynamic_config::Source config_source_;
+  dynamic_config::Source config_source_;
   stats::PoolStatistics statistics_;
 
   // congestion control stuff
   cc::Sensor cc_sensor_;
   cc::Limiter cc_limiter_;
   congestion_control::v2::LinearController cc_controller_;
+
+  // Must be the last field due to fields' RAII destruction order
+  concurrent::AsyncEventSubscriberScope config_subscriber_;
 };
 
 using PoolImplPtr = std::shared_ptr<PoolImpl>;

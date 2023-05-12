@@ -41,6 +41,8 @@ void Controller::Start() {
 std::string_view Controller::LogFakeMode() const {
   if (config_.fake_mode)
     return " (fake mode)";
+  else if (!enabled_)
+    return " (disabled via config)";
   else
     return "";
 }
@@ -49,7 +51,11 @@ void Controller::Step() {
   auto current = sensor_.GetCurrent();
   auto limit = Update(current);
   if (!config_.fake_mode) {
-    limiter_.SetLimit(limit);
+    if (enabled_) {
+      limiter_.SetLimit(limit);
+    } else {
+      limiter_.SetLimit({});
+    }
   }
 
   if (limit.load_limit) {
@@ -72,6 +78,8 @@ void Controller::Step() {
 }
 
 const std::string& Controller::GetName() const { return name_; }
+
+void Controller::SetEnabled(bool enabled) { enabled_ = enabled; }
 
 }  // namespace congestion_control::v2
 

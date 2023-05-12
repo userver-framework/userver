@@ -1,5 +1,6 @@
 #pragma once
 
+#include <atomic>
 #include <optional>
 
 #include <userver/congestion_control/limiter.hpp>
@@ -38,6 +39,8 @@ class Controller {
 
   const std::string& GetName() const;
 
+  void SetEnabled(bool enabled);
+
  protected:
   virtual Limit Update(const v2::Sensor::Data& data) = 0;
 
@@ -53,6 +56,7 @@ class Controller {
   Stats& stats_;
   const Config config_;
   USERVER_NAMESPACE::utils::PeriodicTask periodic_;
+  std::atomic<bool> enabled_{true};
 };
 
 }  // namespace congestion_control::v2
