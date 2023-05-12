@@ -250,7 +250,7 @@ class Request final : public std::enable_shared_from_this<Request> {
   /// StreamedResponse uses queue consumer.
   /// @see src/clients/http/partial_pesponse.hpp
   [[nodiscard]] StreamedResponse async_perform_stream_body(
-      const std::shared_ptr<concurrent::SpscQueue<std::string>>& queue,
+      const std::shared_ptr<concurrent::StringStreamQueue>& queue,
       utils::impl::SourceLocation location =
           utils::impl::SourceLocation::Current());
 

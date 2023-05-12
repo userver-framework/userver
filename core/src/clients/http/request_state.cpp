@@ -411,7 +411,7 @@ void RequestState::on_completed(std::shared_ptr<RequestState> holder,
                      buffered_data.promise_.set_value(holder->response_move());
                    },
                    [](StreamData& stream_data) {
-                     std::move(stream_data.queue_producer).Release();
+                     std::move(stream_data.queue_producer).Reset();
                    }},
                holder->data_);
   }

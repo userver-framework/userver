@@ -12,6 +12,7 @@
 #include <userver/clients/dns/resolver.hpp>
 #include <userver/clients/http/request_tracing_editor.hpp>
 #include <userver/clients/http/streamed_response.hpp>
+#include <userver/concurrent/queue.hpp>
 #include <userver/crypto/certificate.hpp>
 #include <userver/crypto/private_key.hpp>
 #include <userver/engine/async.hpp>
@@ -463,7 +464,7 @@ std::string DifferentUrlsRetryStreamResponseBody(
 
   for (const auto& url : urls_list) {
     request->url(url);  // set URL
-    auto queue = concurrent::SpscQueue<std::string>::Create();
+    auto queue = concurrent::StringStreamQueue::Create();
 
     try {
       auto stream_response = request->async_perform_stream_body(queue);

@@ -3,7 +3,9 @@
 #include <userver/clients/http/component.hpp>
 #include <userver/clients/http/streamed_response.hpp>
 #include <userver/components/component_context.hpp>
+#include <userver/concurrent/queue.hpp>
 #include <userver/dynamic_config/storage/component.hpp>
+#include <userver/engine/deadline.hpp>
 #include <userver/server/handlers/http_handler_base.hpp>
 #include <userver/server/http/http_response_body_stream.hpp>
 #include <userver/testsuite/testpoint.hpp>
@@ -87,7 +89,7 @@ class StreamHandler : public server::handlers::HttpHandlerBase {
                                 ->retry(retries);
 
     // TODO: add settings for the queue size TAXICOMMON-5611
-    auto queue = concurrent::SpscQueue<std::string>::Create();
+    auto queue = concurrent::StringStreamQueue::Create();
     auto client_response =
         external_request->async_perform_stream_body(std::move(queue));
 
@@ -112,7 +114,8 @@ class StreamHandler : public server::handlers::HttpHandlerBase {
     auto deadline = engine::Deadline::FromDuration(std::chrono::seconds(10));
     while (client_response.ReadChunk(body_part, deadline)) {
       TESTPOINT("stream_after_read_chunk", {});
-      response_body_stream.PushBodyChunk(std::move(body_part));
+      response_body_stream.PushBodyChunk(std::move(body_part),
+                                         engine::Deadline());
       TESTPOINT("stream_after_push_body_chunk", {});
     }
   }

@@ -49,7 +49,7 @@ class RequestState : public std::enable_shared_from_this<RequestState> {
                impl::PluginPipeline& plugin_pipeline);
   ~RequestState();
 
-  using Queue = concurrent::SpscQueue<std::string>;
+  using Queue = concurrent::StringStreamQueue;
 
   enum class AsyncType {
     kFullyBuffered,
