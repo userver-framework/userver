@@ -61,7 +61,11 @@ if (USERVER_SANITIZE)
 
     # https://clang.llvm.org/docs/AddressSanitizer.html
     set(SANITIZE_ASAN_ENABLED ON)
-    set(SANITIZE_BUILD_FLAGS ${SANITIZE_BUILD_FLAGS} -fsanitize=address)
+    if (CLANG)
+      set(SANITIZE_BUILD_FLAGS ${SANITIZE_BUILD_FLAGS} -fsanitize=address)
+    else()
+      set(SANITIZE_BUILD_FLAGS ${SANITIZE_BUILD_FLAGS} -fsanitize=address -static-libasan)
+    endif()
     set(SANITIZE_CXX_FLAGS -fno-omit-frame-pointer)
   endif()
 
