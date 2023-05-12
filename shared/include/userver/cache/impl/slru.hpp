@@ -217,10 +217,10 @@ typename SlruBase<T, U, Hash, Equal>::NodeType
 SlruBase<T, U, Hash, Equal>::ExtractNode(const T& key) noexcept {
   auto protected_node = protected_part_.ExtractNode(key);
   if (protected_node) {
-    return std::move(protected_node);
+    return protected_node;
   }
 
-  return std::move(probation_part_.ExtractNode(key));
+  return probation_part_.ExtractNode(key);
 }
 
 }  // namespace cache::impl
