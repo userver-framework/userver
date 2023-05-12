@@ -16,22 +16,13 @@
 #include <userver/utils/assert.hpp>
 #include <userver/utils/datetime/wall_coarse_clock.hpp>
 
-#include <server/http/http_cached_date.hpp>
+#include "http_response_writer.hpp"
 
 #include "http_request_impl.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
 namespace {
-
-constexpr std::string_view kCrlf = "\r\n";
-constexpr std::string_view kKeyValueHeaderSeparator = ": ";
-
-const auto kDefaultContentTypeString =
-    http::ContentType{"text/html; charset=utf-8"}.ToString();
-
-constexpr std::string_view kClose = "close";
-constexpr std::string_view kKeepAlive = "keep-alive";
 
 const std::string kHostname = hostinfo::blocking::GetRealHostName();
 
@@ -66,37 +57,9 @@ void CheckHeaderValue(std::string_view value) {
   }
 }
 
-bool IsBodyForbiddenForStatus(server::http::HttpStatus status) {
-  return status == server::http::HttpStatus::kNoContent ||
-         status == server::http::HttpStatus::kNotModified ||
-         (static_cast<int>(status) >= 100 && static_cast<int>(status) < 200);
-}
-
 }  // namespace
 
 namespace server::http {
-
-namespace impl {
-
-void OutputHeader(std::string& header, std::string_view key,
-                  std::string_view val) {
-  const auto old_size = header.size();
-  header.resize(old_size + key.size() + kKeyValueHeaderSeparator.size() +
-                val.size() + kCrlf.size());
-
-  char* append_position = header.data() + old_size;
-  const auto append = [&append_position](std::string_view what) {
-    std::memcpy(append_position, what.data(), what.size());
-    append_position += what.size();
-  };
-
-  append(key);
-  append(kKeyValueHeaderSeparator);
-  append(val);
-  append(kCrlf);
-}
-
-}  // namespace impl
 
 HttpResponse::HttpResponse(const HttpRequestImpl& request,
                            request::ResponseDataAccounter& data_accounter)
@@ -201,121 +164,14 @@ void HttpResponse::SetHeadersEnd() { headers_end_.Send(); }
 bool HttpResponse::WaitForHeadersEnd() { return headers_end_.WaitForEvent(); }
 
 void HttpResponse::SendResponse(engine::io::Socket& socket) {
-  // According to https://www.chromium.org/spdy/spdy-whitepaper/
-  // "typical header sizes of 700-800 bytes is common"
-  // Adjusting it to 1KiB to fit jemalloc size class
-  static constexpr auto kTypicalHeadersSize = 1024;
-
-  std::string header;
-  header.reserve(kTypicalHeadersSize);
-
-  header.append("HTTP/");
-  fmt::format_to(std::back_inserter(header), FMT_COMPILE("{}.{} {} "),
-                 request_.GetHttpMajor(), request_.GetHttpMinor(),
-                 static_cast<int>(status_));
-  header.append(HttpStatusString(status_));
-  header.append(kCrlf);
-
-  headers_.erase(USERVER_NAMESPACE::http::headers::kContentLength);
-  const auto end = headers_.cend();
-  if (headers_.find(USERVER_NAMESPACE::http::headers::kDate) == end) {
-    header.append(USERVER_NAMESPACE::http::headers::kDate);
-    header.append(kKeyValueHeaderSeparator);
-    AppendCachedDate(header);
-    header.append(kCrlf);
-  }
-  if (headers_.find(USERVER_NAMESPACE::http::headers::kContentType) == end) {
-    impl::OutputHeader(header, USERVER_NAMESPACE::http::headers::kContentType,
-                       kDefaultContentTypeString);
-  }
-  for (const auto& item : headers_) {
-    impl::OutputHeader(header, item.first, item.second);
-  }
-  if (headers_.find(USERVER_NAMESPACE::http::headers::kConnection) == end) {
-    impl::OutputHeader(header, USERVER_NAMESPACE::http::headers::kConnection,
-                       (request_.IsFinal() ? kClose : kKeepAlive));
-  }
-  for (const auto& cookie : cookies_) {
-    header.append(USERVER_NAMESPACE::http::headers::kSetCookie);
-    header.append(kKeyValueHeaderSeparator);
-    cookie.second.AppendToString(header);
-    header.append(kCrlf);
-  }
-
-  if (IsBodyStreamed() && GetData().empty()) {
-    SetBodyStreamed(socket, header);
-  } else {
-    // e.g. a CustomHandlerException
-    SetBodyNotstreamed(socket, header);
-  }
+  WriteHttp1Response(socket, *this);
 }
 
-void HttpResponse::SetBodyNotstreamed(engine::io::Socket& socket,
-                                      std::string& header) {
-  const bool is_body_forbidden = IsBodyForbiddenForStatus(status_);
-  const bool is_head_request = request_.GetOrigMethod() == HttpMethod::kHead;
-  const auto& data = GetData();
-
-  if (!is_body_forbidden) {
-    impl::OutputHeader(header, USERVER_NAMESPACE::http::headers::kContentLength,
-                       fmt::format(FMT_COMPILE("{}"), data.size()));
-  }
-  header.append(kCrlf);
-
-  if (is_body_forbidden && !data.empty()) {
-    LOG_LIMITED_WARNING()
-        << "Non-empty body provided for response with HTTP code "
-        << static_cast<int>(status_)
-        << " which does not allow one, it will be dropped";
-  }
-
-  ssize_t sent_bytes = 0;
-  if (!is_head_request && !is_body_forbidden) {
-    sent_bytes = socket.SendAll(
-        {{header.data(), header.size()}, {data.data(), data.size()}},
-        engine::Deadline{});
-  } else {
-    sent_bytes =
-        socket.SendAll(header.data(), header.size(), engine::Deadline{});
-  }
-
-  SetSentTime(std::chrono::steady_clock::now());
-  SetSent(sent_bytes);
-}
-
-void HttpResponse::SetBodyStreamed(engine::io::Socket& socket,
-                                   std::string& header) {
-  impl::OutputHeader(
-      header, USERVER_NAMESPACE::http::headers::kTransferEncoding, "chunked");
-
-  // send HTTP headers
-  size_t sent_bytes = socket.SendAll(header.data(), header.size(), {});
-  std::string().swap(header);  // free memory before time consuming operation
-
-  // Transmit HTTP response body
-  std::string body_part;
-  while (body_stream_->Pop(body_part)) {
-    if (body_part.empty()) {
-      LOG_DEBUG() << "Zero size body_part in http_response.cpp";
-      continue;
-    }
-
-    auto size = fmt::format("\r\n{:x}\r\n", body_part.size());
-    sent_bytes += socket.SendAll(
-        {{size.data(), size.size()}, {body_part.data(), body_part.size()}},
-        engine::Deadline{});
-  }
-
-  const constexpr std::string_view terminating_chunk{"\r\n0\r\n\r\n"};
-  sent_bytes +=
-      socket.SendAll(terminating_chunk.data(), terminating_chunk.size(), {});
-
-  // TODO: exceptions?
-  body_stream_producer_.reset();
-  body_stream_.reset();
-
-  SetSentTime(std::chrono::steady_clock::now());
-  SetSent(sent_bytes);
+void HttpResponse::SendResponseHttp2(
+    engine::io::Socket& socket,
+    concurrent::Variable<impl::SessionPtr>& session_holder,
+    std::optional<Http2UpgradeData> upgrade_data) {
+  WriteHttp2Response(socket, *this, session_holder, std::move(upgrade_data));
 }
 
 void SetThrottleReason(http::HttpResponse& http_response,

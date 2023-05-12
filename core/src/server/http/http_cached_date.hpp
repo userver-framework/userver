@@ -17,14 +17,14 @@ namespace impl {
 /// in headers for benchmarking purposes only.
 std::string MakeHttpDate(std::chrono::system_clock::time_point date);
 
+}  // namespace impl
+
 /// @brief Returns string_view of http-formatted current date (with timezone
 /// being UTC).
 ///
 /// @note Resulting string_view should not cross thread boundaries, otherwise
 /// it's UB. You are not expected to use this function directly.
 std::string_view GetCachedDate();
-
-}  // namespace impl
 
 /// @brief Appends http-formatted current date (with timezone in UTC) to
 /// provided string
