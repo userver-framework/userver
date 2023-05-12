@@ -99,6 +99,8 @@ void UserverExperimentsScope::EnableOnly(
 UserverExperiment kMongoDeadlinePropagationExperiment{
     "mongo-deadline-propagation"};
 
+UserverExperiment kPhdrCacheExperiment{"phdr-cache"};
+
 }  // namespace utils::impl
 
 USERVER_NAMESPACE_END

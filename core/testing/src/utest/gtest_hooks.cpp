@@ -2,10 +2,12 @@
 
 #include <gtest/gtest.h>
 
+#include <engine/task/exception_hacks.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/logging/logger.hpp>
 #include <userver/logging/stacktrace_cache.hpp>
 #include <userver/utils/impl/static_registration.hpp>
+#include <userver/utils/impl/userver_experiments.hpp>
 #include <userver/utils/mock_now.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -41,6 +43,19 @@ void SetLogLevel(logging::Level log_level) {
       logging::MakeStderrLogger("default", logging::Format::kTskv, log_level)};
 
   logging::SetDefaultLoggerLevel(log_level);
+}
+
+void InitPhdrCache() {
+  static USERVER_NAMESPACE::utils::impl::UserverExperimentsScope
+      phdr_cache_scope{};
+  phdr_cache_scope.Set(USERVER_NAMESPACE::utils::impl::kPhdrCacheExperiment,
+                       true);
+
+  USERVER_NAMESPACE::engine::impl::InitPhdrCacheAndDisableDynamicLoading();
+}
+
+void TeardownPhdrCache() {
+  USERVER_NAMESPACE::engine::impl::TeardownPhdrCacheAndEnableDynamicLoading();
 }
 
 }  // namespace utest::impl

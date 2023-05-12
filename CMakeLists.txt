@@ -60,6 +60,8 @@ else()
 endif()
 option(USERVER_FEATURE_JEMALLOC "Enable linkage with jemalloc memory allocator" ${JEMALLOC_DEFAULT})
 
+option(USERVER_DISABLE_PHDR_CACHE "Disable caching of dl_phdr_info items, which interferes with dlopen" OFF)
+
 option(USERVER_CHECK_PACKAGE_VERSIONS "Check package versions" ON)
 
 include(cmake/SetupEnvironment.cmake)

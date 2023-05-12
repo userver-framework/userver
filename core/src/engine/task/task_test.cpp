@@ -325,4 +325,33 @@ TEST(Task, DISABLED_UseLargeStack) {
   });
 }
 
+// This test doesn't really test anything on its own, but shows how bad locking
+// in glibc dl_iterate_phdr is when multiple threads are
+// unwinding simultaneously.
+//
+// sudo perf stat -e 'syscalls:sys_enter_futex' ./userver-core_unittest \
+//     --gtest_filter='Task.ExceptionStorm'
+//
+// We use this manually to validate that our caching override
+// of dl_iterate_phdr (see exception_hacks.cpp) fixes the issue.
+UTEST_MT(Task, ExceptionStorm, 8) {
+  std::vector<engine::TaskWithResult<void>> tasks;
+  tasks.reserve(8);
+
+  for (std::size_t i = 0; i < 8; ++i) {
+    tasks.push_back(engine::AsyncNoSpan([] {
+      for (std::size_t i = 0; i < 1'000; ++i) {
+        try {
+          throw std::runtime_error{"42"};
+        } catch (const std::exception&) {
+        }
+      }
+    }));
+  }
+
+  for (auto& task : tasks) {
+    task.Get();
+  }
+}
+
 USERVER_NAMESPACE_END

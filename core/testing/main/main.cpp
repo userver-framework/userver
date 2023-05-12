@@ -8,6 +8,7 @@
 #include <boost/program_options.hpp>
 
 #include <userver/logging/level.hpp>
+#include <userver/utils/fast_scope_guard.hpp>
 
 namespace testing::internal {
 // from gtest.cc
@@ -46,6 +47,13 @@ Config ParseConfig(int argc, char** argv) {
   return config;
 }
 
+class PhdrCacheScope final {
+ public:
+  PhdrCacheScope() { USERVER_NAMESPACE::utest::impl::InitPhdrCache(); }
+
+  ~PhdrCacheScope() { USERVER_NAMESPACE::utest::impl::TeardownPhdrCache(); }
+};
+
 }  // namespace
 
 int main(int argc, char** argv) {
@@ -59,5 +67,6 @@ int main(int argc, char** argv) {
 
   USERVER_NAMESPACE::utest::impl::SetLogLevel(config.log_level);
 
+  const PhdrCacheScope phdr_cache_scope{};
   return RUN_ALL_TESTS();
 }

@@ -10,6 +10,7 @@
 #include <fmt/core.h>
 
 #include <components/manager_config.hpp>
+#include <engine/task/exception_hacks.hpp>
 #include <engine/task/task_processor.hpp>
 #include <engine/task/task_processor_pools.hpp>
 #include <userver/components/component_list.hpp>
@@ -170,12 +171,17 @@ Manager::Manager(std::unique_ptr<ManagerConfig>&& config,
     CreateComponentContext(component_list);
   });
 
+  engine::impl::InitPhdrCacheAndDisableDynamicLoading();
+
   LOG_INFO() << "Started components manager. All the components have started "
                 "successfully.";
 }
 
 Manager::~Manager() {
   LOG_INFO() << "Stopping components manager";
+
+  engine::impl::TeardownPhdrCacheAndEnableDynamicLoading();
+
   LOG_TRACE() << "Stopping component context";
   try {
     RunInCoro(*default_task_processor_, [this]() { ClearComponents(); });
@@ -185,6 +191,7 @@ Manager::~Manager() {
   component_context_.Reset();
   LOG_TRACE() << "Stopped component context";
   task_processors_storage_.Reset();
+
   LOG_INFO() << "Stopped components manager";
 }
 
