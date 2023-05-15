@@ -16,18 +16,33 @@ components_manager:
         dynamic-config-fallbacks:
             fallback-path: /etc/grpc_service/dynamic_config_fallback.json
 
+        # gRPC server and service
         grpc-server:
             port: 8091
-
         greeter-service:
             task-processor: main-task-processor
             greeting-prefix: Hello
 
+        # gRPC client
+        grpc-client-factory:
+            task-processor: grpc-blocking-task-processor
+            channel-args: {}
+        greeter-client:
+            endpoint: '[::]:8081'
+
+        # http server
         server:
             listener:
                 port: 8092
                 task_processor: main-task-processor
         auth-checker-settings:
+
+        # http handler for test case
+        greeter-http-handler:
+            path: /hello
+            method: POST
+            task_processor: main-task-processor
+
 
     default_task_processor: main-task-processor
     task_processors:

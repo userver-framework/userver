@@ -7,6 +7,7 @@ if (USERVER_CONAN)
   find_package(Protobuf REQUIRED)
   set(GRPC_PROTOBUF_INCLUDE_DIRS "${protobuf_INCLUDE_DIR}")
   get_target_property(PROTO_GRPC_CPP_PLUGIN gRPC::grpc_cpp_plugin LOCATION)
+  get_target_property(PROTO_GRPC_PYTHON_PLUGIN gRPC::grpc_python_plugin LOCATION)
 else()
   # Use the builtin CMake FindProtobuf
   find_package(Protobuf)
@@ -58,12 +59,17 @@ if(NOT USERVER_IMPL_GRPC_REQUIREMENTS_CHECKED)
 endif()
 
 set(PROTOBUF_PROTOC "${Protobuf_PROTOC_EXECUTABLE}")
+
 if(NOT PROTOBUF_PROTOC)
   message(FATAL_ERROR "protoc not found")
 endif()
 
 if(NOT PROTO_GRPC_CPP_PLUGIN)
   message(FATAL_ERROR "grpc_cpp_plugin not found")
+endif()
+
+if(NOT PROTO_GRPC_PYTHON_PLUGIN)
+  message(FATAL_ERROR "grpc_python_plugin not found")
 endif()
 
 function(generate_grpc_files)
@@ -142,10 +148,14 @@ function(generate_grpc_files)
               --cpp_out=${GENERATED_PROTO_DIR}
               --grpc_out=${GENERATED_PROTO_DIR}
               --usrv_out=${GENERATED_PROTO_DIR}
+              --python_out=${GENERATED_PROTO_DIR}
+              --pyi_out=${GENERATED_PROTO_DIR}
+              --grpc_python_out=${GENERATED_PROTO_DIR}
               -I ${root_path}
               -I ${GRPC_PROTOBUF_INCLUDE_DIRS}
               --plugin=protoc-gen-grpc=${PROTO_GRPC_CPP_PLUGIN}
               --plugin=protoc-gen-usrv=${PROTO_GRPC_USRV_PLUGIN}
+              --plugin=protoc-gen-grpc_python=${PROTO_GRPC_PYTHON_PLUGIN}
               ${proto_file}
         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
         RESULT_VARIABLE execute_process_result
@@ -153,6 +163,8 @@ function(generate_grpc_files)
       if(execute_process_result)
         message(SEND_ERROR "Error while generating gRPC sources for ${path_base}.proto")
       else()
+        message(STATUS "Success generated in directory ${GENERATED_PROTO_DIR}")
+        file(TOUCH ${CMAKE_CURRENT_BINARY_DIR}/proto/${rel_path}/__init__.py)
         set(did_generate_proto_sources TRUE)
       endif()
     else()

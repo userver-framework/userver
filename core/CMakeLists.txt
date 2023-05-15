@@ -183,7 +183,7 @@ else()
       PUBLIC
         libyamlcpp
         fmt
-        c-ares
+        c-ares::cares
         cctz
         userver-stacktrace
       PRIVATE
