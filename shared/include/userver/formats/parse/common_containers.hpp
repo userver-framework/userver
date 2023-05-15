@@ -58,10 +58,11 @@ ObjectType ParseObject(const Value& value, ExtractFunc&& extract_func) {
 
 }  // namespace impl
 
-template <class Value, typename T, typename Hash = std::hash<T>>
-std::unordered_set<T, Hash> Parse(const Value& value,
-                                  To<std::unordered_set<T, Hash>>) {
-  return impl::ParseArray<std::unordered_set<T, Hash>, T>(
+template <class Value, typename T, typename Hash = std::hash<T>,
+          typename Equal = std::equal_to<>>
+std::unordered_set<T, Hash, Equal> Parse(
+    const Value& value, To<std::unordered_set<T, Hash, Equal>>) {
+  return impl::ParseArray<std::unordered_set<T, Hash, Equal>, T>(
       value, &impl::AsExtractor<T, Value>);
 }
 

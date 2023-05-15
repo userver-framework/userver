@@ -59,6 +59,21 @@ auto* FindTransparentOrNullptr(TransparentMap& map, const Key& key) {
   return iterator == map.end() ? nullptr : &iterator->second;
 }
 
+template <typename TransparentContainer, typename Key>
+auto FindTransparent(const TransparentContainer& container, const Key& key) {
+#if __cpp_lib_generic_unordered_lookup >= 201811L
+  return container.find(key);
+#else
+  return container.find(key, container.hash_function(), container.key_eq());
+#endif
+}
+
+template <typename TransparentMap, typename Key>
+auto* FindTransparentOrNullptr(const TransparentMap& map, const Key& key) {
+  const auto iterator = FindTransparent(map, key);
+  return iterator == map.end() ? nullptr : &iterator->second;
+}
+
 }  // namespace utils::impl
 
 USERVER_NAMESPACE_END
