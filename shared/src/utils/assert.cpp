@@ -19,14 +19,19 @@ void UASSERT_failed(std::string_view expr, const char* file, unsigned int line,
                    ? boost::stacktrace::stacktrace()
                    : boost::stacktrace::stacktrace(0, 0);
 
-  // Use fmt::format to output the message without interleaving with other logs.
-  std::cerr << fmt::format(
-      "ERROR at {}:{}:{}. Assertion '{}' failed{}{}. Stacktrace:\n{}\n", file,
-      line, (function ? function : ""), expr,
-      (msg.empty() ? std::string_view{} : std::string_view{": "}), msg,
-      boost::stacktrace::to_string(trace));
-
+  // TODO pass file, line, function to LogHelper
+  const auto message = fmt::format(
+      "ERROR at {}:{}:{}. Assertion '{}' failed{}{}", file, line,
+      (function ? function : ""), expr,
+      (msg.empty() ? std::string_view{} : std::string_view{": "}), msg);
+  LOG_CRITICAL() << message;
   logging::LogFlush();
+
+  // Use fmt::format to output the message without interleaving with other logs.
+  std::cerr << fmt::format("{}. Stacktrace:\n{}\n", message,
+                           boost::stacktrace::to_string(trace))
+            << std::flush;
+
   abort();
 }
 
