@@ -1,5 +1,6 @@
 #include <benchmark/benchmark.h>
 
+#include <cstdint>
 #include <string>
 
 #include <userver/utils/from_string.hpp>
