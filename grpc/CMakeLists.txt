@@ -1,4 +1,4 @@
-project(userver-grpc CXX)
+project(userver-grpc-internal CXX)
 
 include(GrpcTargets)
 
@@ -35,7 +35,7 @@ if (USERVER_IS_THE_ROOT_PROJECT)
 endif()
 
 file(GLOB_RECURSE UNIT_TEST_SOURCES
-  ${CMAKE_CURRENT_SOURCE_DIR}/*_test.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/*_test.cpp
 )
 list(REMOVE_ITEM SOURCES ${UNIT_TEST_SOURCES})
 
@@ -110,3 +110,9 @@ if (USERVER_IS_THE_ROOT_PROJECT)
       DEFAULT_DYNAMIC_CONFIG_FILENAME="${CMAKE_SOURCE_DIR}/grpc/tests/dynamic_config_fallback.json"
     )
 endif()
+
+add_subdirectory(handlers)
+
+add_library(userver-grpc INTERFACE)
+target_link_libraries(userver-grpc INTERFACE userver-grpc-handlers)
+target_link_libraries(userver-grpc INTERFACE userver-grpc-internal)
