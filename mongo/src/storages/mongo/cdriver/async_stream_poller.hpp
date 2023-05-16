@@ -3,9 +3,9 @@
 #include <mutex>
 #include <unordered_map>
 
+#include <userver/concurrent/mpsc_queue.hpp>
 #include <userver/engine/deadline.hpp>
 #include <userver/engine/io/common.hpp>
-#include <userver/engine/mpsc_queue.hpp>
 
 #include <engine/ev/watcher.hpp>
 
@@ -42,7 +42,8 @@ class AsyncStreamPoller final {
   bool NextEventNoblock(Event&);
 
  private:
-  explicit AsyncStreamPoller(const std::shared_ptr<engine::MpscQueue<Event>>&);
+  explicit AsyncStreamPoller(
+      const std::shared_ptr<concurrent::MpscQueue<Event>>&);
 
   void StopRead(int fd);
   void StopWrite(int fd);
@@ -50,8 +51,8 @@ class AsyncStreamPoller final {
 
   static void IoEventCb(struct ev_loop*, ev_io*, int) noexcept;
 
-  engine::MpscQueue<Event>::Consumer event_consumer_;
-  engine::MpscQueue<Event>::Producer event_producer_;
+  concurrent::MpscQueue<Event>::Consumer event_consumer_;
+  concurrent::MpscQueue<Event>::Producer event_producer_;
   std::mutex read_watchers_mutex_;
   WatchersMap read_watchers_;
   std::mutex write_watchers_mutex_;

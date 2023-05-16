@@ -68,7 +68,7 @@ struct QueueHelper<std::unique_ptr<T>> {
 ///
 /// ## Example usage:
 ///
-/// @snippet engine/mpsc_queue_test.cpp  Sample engine::MpscQueue usage
+/// @snippet concurrent/mpsc_queue_test.cpp  Sample concurrent::MpscQueue usage
 ///
 /// @see @ref md_en_userver_synchronization
 template <typename T>
@@ -149,14 +149,6 @@ class MpscQueue final : public std::enable_shared_from_this<MpscQueue<T>> {
   /// @brief Gets the approximate size of queue
   [[nodiscard]] size_t GetSizeApproximate() const;
 
-  /// @cond
-  [[deprecated("Use SetSoftMaxSize instead")]] void SetMaxLength(size_t length);
-
-  [[deprecated("Use GetSoftMaxSize instead")]] size_t GetMaxLength() const;
-
-  [[deprecated("Use GetSizeApproximate instead")]] size_t Size() const;
-  /// @endcond
-
  private:
   bool Push(ProducerToken&, T&&, engine::Deadline);
   bool PushNoblock(ProducerToken&, T&&);
@@ -229,21 +221,6 @@ size_t MpscQueue<T>::GetSoftMaxSize() const {
 template <typename T>
 size_t MpscQueue<T>::GetSizeApproximate() const {
   return size_;
-}
-
-template <typename T>
-void MpscQueue<T>::SetMaxLength(size_t length) {
-  SetSoftMaxSize(length);
-}
-
-template <typename T>
-size_t MpscQueue<T>::GetMaxLength() const {
-  return GetSoftMaxSize();
-}
-
-template <typename T>
-size_t MpscQueue<T>::Size() const {
-  return GetSizeApproximate();
 }
 
 template <typename T>

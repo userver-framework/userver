@@ -4,7 +4,7 @@
 #include <string>
 
 #include <storages/redis/impl/subscribe_sentinel.hpp>
-#include <userver/engine/mpsc_queue.hpp>
+#include <userver/concurrent/mpsc_queue.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -62,7 +62,7 @@ class SubscriptionQueue {
       std::string pattern,
       const USERVER_NAMESPACE::redis::CommandControl& command_control);
 
-  using Queue = engine::MpscQueue<std::unique_ptr<Item>>;
+  using Queue = concurrent::MpscQueue<std::unique_ptr<Item>>;
 
   std::shared_ptr<Queue> queue_;
   typename Queue::Producer producer_;

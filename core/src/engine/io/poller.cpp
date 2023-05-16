@@ -32,9 +32,12 @@ utils::Flags<Poller::Event::Type> FromEvEvents(int ev_events) {
 
 }  // namespace
 
-Poller::Poller() : Poller(MpscQueue<Event>::Create()) {}
+Poller::Poller()
+    : Poller(USERVER_NAMESPACE::concurrent::MpscQueue<Event>::Create()) {}
 
-Poller::Poller(const std::shared_ptr<MpscQueue<Event>>& queue)
+Poller::Poller(
+    const std::shared_ptr<USERVER_NAMESPACE::concurrent::MpscQueue<Event>>&
+        queue)
     : event_consumer_(queue->GetConsumer()),
       event_producer_(queue->GetProducer()) {}
 
