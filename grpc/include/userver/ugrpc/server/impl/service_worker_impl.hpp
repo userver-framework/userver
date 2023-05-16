@@ -28,6 +28,7 @@
 #include <userver/ugrpc/server/impl/async_service.hpp>
 #include <userver/ugrpc/server/impl/call_traits.hpp>
 #include <userver/ugrpc/server/impl/service_worker.hpp>
+#include <userver/ugrpc/server/middleware_base.hpp>
 #include <userver/ugrpc/server/rpc.hpp>
 #include <userver/ugrpc/server/service_base.hpp>
 #include <userver/utils/statistics/entry.hpp>
@@ -148,15 +149,28 @@ class CallData final {
     utils::FastScopeGuard destroy_span([&]() noexcept { span_.reset(); });
 
     ugrpc::impl::RpcStatisticsScope statistics_scope(method_data_.statistics);
+
     Call responder(context_, call_name, raw_responder_, statistics_scope,
                    span_->Get());
-
-    try {
+    auto do_call = [&] {
       if constexpr (std::is_same_v<InitialRequest, NoInitialRequest>) {
         (service.*service_method)(responder);
       } else {
         (service.*service_method)(responder, std::move(initial_request_));
       }
+    };
+
+    try {
+      ::google::protobuf::Message* initial_request = nullptr;
+      if constexpr (!std::is_same_v<InitialRequest, NoInitialRequest>) {
+        initial_request = &initial_request_;
+      }
+
+      // TODO: pass responder as function_ref?
+      auto& middlewares = method_data_.service_data.settings.middlewares;
+      MiddlewareCallContext middleware_context(middlewares, responder, do_call,
+                                               initial_request);
+      middleware_context.Next();
     } catch (const RpcInterruptedError& ex) {
       ReportNetworkError(ex, call_name, span_->Get());
       statistics_scope.OnNetworkError();

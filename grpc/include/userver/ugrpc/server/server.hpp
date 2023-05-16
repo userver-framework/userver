@@ -16,6 +16,7 @@
 #include <userver/yaml_config/fwd.hpp>
 
 #include <userver/ugrpc/impl/statistics.hpp>
+#include <userver/ugrpc/server/middleware_base.hpp>
 #include <userver/ugrpc/server/service_base.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -61,9 +62,10 @@ class Server final {
   ~Server();
 
   /// @brief Register a service implementation in the server. The user or the
-  /// component is responsible for keeping `service` alive at least until `Stop`
-  /// is called.
-  void AddService(ServiceBase& service, engine::TaskProcessor& task_processor);
+  /// component is responsible for keeping `service` and `middlewares` alive at
+  /// least until `Stop` is called.
+  void AddService(ServiceBase& service, engine::TaskProcessor& task_processor,
+                  const Middlewares& middlewares);
 
   /// @brief Get names of all registered services
   std::vector<std::string_view> GetServiceNames() const;

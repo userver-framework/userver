@@ -80,7 +80,8 @@ UTEST_P_MT(GrpcChannels, TryWaitForConnected, 2) {
 
   UnitTestServiceSimple service;
   ugrpc::server::Server server(MakeServerConfig(), statistics_storage);
-  server.AddService(service, engine::current_task::GetTaskProcessor());
+  ugrpc::server::Middlewares mws;
+  server.AddService(service, engine::current_task::GetTaskProcessor(), mws);
   server.Start();
   client_task.Get();
   server.Stop();

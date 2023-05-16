@@ -81,7 +81,8 @@ UTEST_MT(GrpcServer, DestroyServerDuringRequest, 2) {
   utils::statistics::Storage statistics_storage;
 
   ugrpc::server::Server server(MakeServerConfig(), statistics_storage);
-  server.AddService(service, engine::current_task::GetTaskProcessor());
+  ugrpc::server::Middlewares mws;
+  server.AddService(service, engine::current_task::GetTaskProcessor(), mws);
   server.Start();
 
   // A separate client queue is necessary, since the client stops after the

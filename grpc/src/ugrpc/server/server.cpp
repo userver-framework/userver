@@ -86,7 +86,8 @@ class Server::Impl final {
                 utils::statistics::Storage& statistics_storage);
   ~Impl();
 
-  void AddService(ServiceBase& service, engine::TaskProcessor& task_processor);
+  void AddService(ServiceBase& service, engine::TaskProcessor& task_processor,
+                  const Middlewares& middlewares = {});
 
   std::vector<std::string_view> GetServiceNames() const;
 
@@ -167,12 +168,13 @@ void Server::Impl::AddListeningPort(int port) {
 }
 
 void Server::Impl::AddService(ServiceBase& service,
-                              engine::TaskProcessor& task_processor) {
+                              engine::TaskProcessor& task_processor,
+                              const Middlewares& middlewares) {
   std::lock_guard lock(configuration_mutex_);
   UASSERT(state_ == State::kConfiguration);
 
   service_workers_.push_back(service.MakeWorker(impl::ServiceSettings{
-      queue_->GetQueue(), task_processor, statistics_storage_}));
+      queue_->GetQueue(), task_processor, statistics_storage_, middlewares}));
 }
 
 std::vector<std::string_view> Server::Impl::GetServiceNames() const {
@@ -274,8 +276,9 @@ Server::Server(ServerConfig&& config,
 Server::~Server() = default;
 
 void Server::AddService(ServiceBase& service,
-                        engine::TaskProcessor& task_processor) {
-  impl_->AddService(service, task_processor);
+                        engine::TaskProcessor& task_processor,
+                        const Middlewares& middlewares) {
+  impl_->AddService(service, task_processor, middlewares);
 }
 
 std::vector<std::string_view> Server::GetServiceNames() const {

@@ -22,7 +22,8 @@ GrpcServiceFixture::GrpcServiceFixture()
 GrpcServiceFixture::~GrpcServiceFixture() = default;
 
 void GrpcServiceFixture::RegisterService(ugrpc::server::ServiceBase& service) {
-  server_.AddService(service, engine::current_task::GetTaskProcessor());
+  static ugrpc::server::Middlewares mws;
+  server_.AddService(service, engine::current_task::GetTaskProcessor(), mws);
 }
 
 void GrpcServiceFixture::StartServer(

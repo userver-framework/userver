@@ -13,6 +13,7 @@
 
 #include <userver/ugrpc/impl/static_metadata.hpp>
 #include <userver/ugrpc/impl/statistics_storage.hpp>
+#include <userver/ugrpc/server/middleware_base.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -23,6 +24,7 @@ struct ServiceSettings final {
   grpc::ServerCompletionQueue& queue;
   engine::TaskProcessor& task_processor;
   ugrpc::impl::StatisticsStorage& statistics_storage;
+  const Middlewares& middlewares;
 };
 
 /// @brief Listens to requests for a gRPC service, forwarding them to a
