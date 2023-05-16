@@ -132,6 +132,10 @@ function(generate_grpc_files)
     set(pyi_out_param "--pyi_out=${GENERATED_PROTO_DIR}")
   endif()
 
+  if(Protobuf_VERSION LESS "3.20.0")
+	set(ENV PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION python)
+  endif()
+
   foreach (proto_file ${GEN_RPC_PROTOS})
     get_filename_component(proto_file "${proto_file}" REALPATH BASE_DIR "${root_path}")
 
