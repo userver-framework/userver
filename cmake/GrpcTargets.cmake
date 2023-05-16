@@ -127,6 +127,11 @@ function(generate_grpc_files)
     endif()
   endforeach()
 
+  set(pyi_out_param "")
+  if(gRPC_VERSION GREATER "1.47.0")
+    set(pyi_out_param "--pyi_out=${GENERATED_PROTO_DIR}")
+  endif()
+
   foreach (proto_file ${GEN_RPC_PROTOS})
     get_filename_component(proto_file "${proto_file}" REALPATH BASE_DIR "${root_path}")
 
@@ -149,8 +154,8 @@ function(generate_grpc_files)
               --grpc_out=${GENERATED_PROTO_DIR}
               --usrv_out=${GENERATED_PROTO_DIR}
               --python_out=${GENERATED_PROTO_DIR}
-              --pyi_out=${GENERATED_PROTO_DIR}
               --grpc_python_out=${GENERATED_PROTO_DIR}
+              ${pyi_out_param}
               -I ${root_path}
               -I ${GRPC_PROTOBUF_INCLUDE_DIRS}
               --plugin=protoc-gen-grpc=${PROTO_GRPC_CPP_PLUGIN}
