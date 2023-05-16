@@ -72,6 +72,22 @@ if(NOT PROTO_GRPC_PYTHON_PLUGIN)
   message(FATAL_ERROR "grpc_python_plugin not found")
 endif()
 
+if(Protobuf_VERSION LESS "3.20.0")
+  execute_process(
+    COMMAND "${PYTHON}"
+      -m pip install --disable-pip-version-check
+      -r "${USERVER_DIR}/scripts/grpc/requirements_old.txt"
+    RESULT_VARIABLE RESULT
+    WORKING_DIRECTORY "${USERVER_DIR}"
+  )
+  if(RESULT)
+    message(FATAL_ERROR
+        "Protobuf requirements check failed: "
+        "PYTHON ${PYTHON} USERVER_DIR ${USERVER_DIR} RESULT ${RESULT}")
+  endif()
+endif()
+
+
 function(generate_grpc_files)
   set(options)
   set(one_value_args CPP_FILES CPP_USRV_FILES GENERATED_INCLUDES SOURCE_PATH)
@@ -130,10 +146,6 @@ function(generate_grpc_files)
   set(pyi_out_param "")
   if(gRPC_VERSION GREATER "1.47.0")
     set(pyi_out_param "--pyi_out=${GENERATED_PROTO_DIR}")
-  endif()
-
-  if(Protobuf_VERSION LESS "3.20.0")
-	set(ENV{PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION} python)
   endif()
 
   foreach (proto_file ${GEN_RPC_PROTOS})
