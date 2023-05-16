@@ -133,7 +133,7 @@ function(generate_grpc_files)
   endif()
 
   if(Protobuf_VERSION LESS "3.20.0")
-	set(ENV PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION python)
+	set(ENV{PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION} python)
   endif()
 
   foreach (proto_file ${GEN_RPC_PROTOS})
