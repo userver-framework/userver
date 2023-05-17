@@ -33,6 +33,8 @@ TaskProcessorConfig Parse(const yaml_config::YamlConfig& value,
   config.thread_name = value["thread_name"].As<std::string>();
   config.os_scheduling =
       value["os-scheduling"].As<OsScheduling>(config.os_scheduling);
+  config.spinning_iterations =
+      value["spinning-iterations"].As<int>(config.spinning_iterations);
 
   const auto task_trace = value["task-trace"];
   if (!task_trace.IsMissing()) {

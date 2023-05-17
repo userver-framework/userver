@@ -140,7 +140,7 @@ properties:
                     type: string
                     description: |
                         OS scheduling mode for the task processor threads.
-                        `idle` sets the lowest pririty.
+                        `idle` sets the lowest priority.
                         `low-priority` sets the priority below `normal` but
                         higher than `idle`.
                     defaultDescription: normal
@@ -148,6 +148,12 @@ properties:
                       - normal
                       - low-priority
                       - idle
+                spinning-iterations:
+                    type: integer
+                    description: |
+                        tunes the number of spin-wait iterations in case of
+                        an empty task queue before threads go to sleep
+                    defaultDescription: 10000
                 task-trace:
                     type: object
                     description: .
@@ -174,15 +180,6 @@ properties:
         additionalProperties: false
         properties:
             validate_all_components:
-                type: boolean
-                description: if true, all components configs are validated
-    # TODO: remove
-    static_config_validator:
-        type: object
-        description: settings for basic syntax validation in config.yaml
-        additionalProperties: false
-        properties:
-            default_value:
                 type: boolean
                 description: if true, all components configs are validated
 )");

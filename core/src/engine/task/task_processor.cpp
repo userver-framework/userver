@@ -72,6 +72,7 @@ TaskProcessor::TaskProcessor(TaskProcessorConfig config,
       pools_(std::move(pools)),
       is_shutting_down_(false),
       detached_contexts_(impl::DetachedTasksSyncBlock::StopMode::kCancel),
+      task_queue_(config_),
       max_task_queue_wait_time_(std::chrono::microseconds(0)),
       max_task_queue_wait_length_(0),
       task_trace_logger_{nullptr} {
@@ -105,7 +106,7 @@ void TaskProcessor::Cleanup() noexcept {
   // Some tasks may be bound but not scheduled yet
   task_counter_.WaitForExhaustion(std::chrono::milliseconds(10));
 
-  task_queue_.enqueue(nullptr);
+  task_queue_.StopProcessing();
 
   for (auto& w : workers_) {
     w.join();
@@ -136,12 +137,7 @@ void TaskProcessor::Schedule(impl::TaskContext* context) {
 
   SetTaskQueueWaitTimepoint(context);
 
-  // having native support for intrusive ptrs in lockfree would've been great
-  // but oh well
-  intrusive_ptr_add_ref(context);
-
-  task_queue_.enqueue(context);
-  // NOTE: task may be executed at this point
+  task_queue_.Push(context);
 }
 
 void TaskProcessor::Adopt(impl::TaskContext& context) {
@@ -221,25 +217,6 @@ logging::LoggerPtr TaskProcessor::GetTaskTraceLogger() const {
   return task_trace_logger_;
 }
 
-impl::TaskContext* TaskProcessor::DequeueTask() {
-  impl::TaskContext* buf = nullptr;
-
-  /* Current thread handles only a single TaskProcessor, so it's safe to store
-   * a token for the task processor in a thread-local variable.
-   */
-  thread_local moodycamel::ConsumerToken token(task_queue_);
-
-  task_queue_.wait_dequeue(token, buf);
-  GetTaskCounter().AccountTaskSwitchSlow();
-
-  if (!buf) {
-    // return "stop" token back
-    task_queue_.enqueue(nullptr);
-  }
-
-  return buf;
-}
-
 void RegisterThreadStartedHook(std::function<void()> func) {
   utils::impl::AssertStaticRegistrationAllowed(
       "Calling engine::RegisterThreadStartedHook()");
@@ -265,11 +242,10 @@ void TaskProcessor::PrepareWorkerThread(std::size_t index) noexcept {
 
 void TaskProcessor::ProcessTasks() noexcept {
   while (true) {
-    // wrapping instance referenced in EnqueueTask
-    boost::intrusive_ptr<impl::TaskContext> context(DequeueTask(),
-                                                    /* add_ref =*/false);
+    auto context = task_queue_.PopBlocking();
     if (!context) break;
 
+    GetTaskCounter().AccountTaskSwitchSlow();
     CheckWaitTime(*context);
 
     bool has_failed = false;
