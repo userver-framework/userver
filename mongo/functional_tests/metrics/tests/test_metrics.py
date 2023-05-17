@@ -32,12 +32,12 @@ def _normalize_metrics(metrics: str) -> str:
 
 
 def _hide_metrics_values(metrics: str) -> str:
-    return '\n'.join(line.rsplit(' ', 2)[0] for line in metrics.splitlines())
+    return '\n'.join(line.rsplit('\t', 1)[0] for line in metrics.splitlines())
 
 
 async def test_metrics(monitor_client, load, force_metrics_to_appear):
-    ground_truth = _normalize_metrics(load('metrics_values.txt'))
-    all_metrics = await monitor_client.metrics_raw(output_format='graphite')
+    ground_truth = load('metrics_values.txt')
+    all_metrics = await monitor_client.metrics_raw(output_format='pretty')
     all_metrics = _normalize_metrics(all_metrics)
     all_metrics_paths = _hide_metrics_values(all_metrics)
     ground_truth_paths = _hide_metrics_values(ground_truth)

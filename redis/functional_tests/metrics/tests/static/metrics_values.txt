@@ -1,473 +1,327 @@
-redis.ev_threads.cpu_load_percent;ev_thread_name=redis_client_4 0 1676658691
-redis.ev_threads.cpu_load_percent;ev_thread_name=redis_client_5 0 1676658691
-redis.ev_threads.cpu_load_percent;ev_thread_name=redis_client_6 0 1676658691
-redis.ev_threads.cpu_load_percent;ev_thread_name=redis_client_7 0 1676658691
-redis.ev_threads.cpu_load_percent;ev_thread_name=redis_client_0 0 1676658691
-redis.ev_threads.cpu_load_percent;ev_thread_name=redis_client_1 0 1676658691
-redis.ev_threads.cpu_load_percent;ev_thread_name=redis_client_2 0 1676658691
-redis.ev_threads.cpu_load_percent;ev_thread_name=redis_client_3 0 1676658691
-redis.ev_threads.cpu_load_percent;ev_thread_name=redis_sentinel_0 0 1676658691
-redis.errors;redis_database=metrics_test;redis_error=redis_not_ready 0 1672164016
-redis.reconnects;redis_database=metrics_test 3 1672164016
-redis.errors;redis_database=metrics_test;redis_error=OK 3 1672164016
-redis.errors;redis_database=metrics_test;redis_error=input_output_error 0 1672164016
-redis.errors;redis_database=metrics_test;redis_error=other_error 0 1672164016
-redis.errors;redis_database=metrics_test;redis_error=EOF 0 1672164016
-redis.errors;redis_database=metrics_test;redis_error=protocol_error 0 1672164016
-redis.errors;redis_database=metrics_test;redis_error=OOM 0 1672164016
-redis.errors;redis_database=metrics_test;redis_error=timeout 0 1672164016
-redis.command_timings;redis_database=metrics_test;redis_command=set;percentile=p0 0 1672164016
-redis.command_timings;redis_database=metrics_test;redis_command=set;percentile=p50 0 1672164016
-redis.command_timings;redis_database=metrics_test;redis_command=set;percentile=p90 0 1672164016
-redis.command_timings;redis_database=metrics_test;redis_command=set;percentile=p95 0 1672164016
-redis.command_timings;redis_database=metrics_test;redis_command=set;percentile=p98 0 1672164016
-redis.command_timings;redis_database=metrics_test;redis_command=set;percentile=p99 0 1672164016
-redis.command_timings;redis_database=metrics_test;redis_command=set;percentile=p99_6 0 1672164016
-redis.command_timings;redis_database=metrics_test;redis_command=set;percentile=p99_9 0 1672164016
-redis.command_timings;redis_database=metrics_test;redis_command=set;percentile=p100 0 1672164016
-redis.command_timings;redis_database=metrics_test;redis_command=del;percentile=p0 0 1672164016
-redis.command_timings;redis_database=metrics_test;redis_command=del;percentile=p50 0 1672164016
-redis.command_timings;redis_database=metrics_test;redis_command=del;percentile=p90 0 1672164016
-redis.command_timings;redis_database=metrics_test;redis_command=del;percentile=p95 0 1672164016
-redis.command_timings;redis_database=metrics_test;redis_command=del;percentile=p98 0 1672164016
-redis.command_timings;redis_database=metrics_test;redis_command=del;percentile=p99 0 1672164016
-redis.command_timings;redis_database=metrics_test;redis_command=del;percentile=p99_6 0 1672164016
-redis.command_timings;redis_database=metrics_test;redis_command=del;percentile=p99_9 0 1672164016
-redis.command_timings;redis_database=metrics_test;redis_command=del;percentile=p100 0 1672164016
-redis.command_timings;redis_database=metrics_test;redis_command=publish;percentile=p0 0 1676921576
-redis.command_timings;redis_database=metrics_test;redis_command=publish;percentile=p50 0 1676921576
-redis.command_timings;redis_database=metrics_test;redis_command=publish;percentile=p90 0 1676921576
-redis.command_timings;redis_database=metrics_test;redis_command=publish;percentile=p95 0 1676921576
-redis.command_timings;redis_database=metrics_test;redis_command=publish;percentile=p98 0 1676921576
-redis.command_timings;redis_database=metrics_test;redis_command=publish;percentile=p99 0 1676921576
-redis.command_timings;redis_database=metrics_test;redis_command=publish;percentile=p99_6 0 1676921576
-redis.command_timings;redis_database=metrics_test;redis_command=publish;percentile=p99_9 0 1676921576
-redis.command_timings;redis_database=metrics_test;redis_command=publish;percentile=p100 0 1676921576
-redis.command_timings;redis_database=metrics_test;redis_command=get;percentile=p0 0 1672164016
-redis.command_timings;redis_database=metrics_test;redis_command=get;percentile=p50 0 1672164016
-redis.command_timings;redis_database=metrics_test;redis_command=get;percentile=p90 0 1672164016
-redis.command_timings;redis_database=metrics_test;redis_command=get;percentile=p95 0 1672164016
-redis.command_timings;redis_database=metrics_test;redis_command=get;percentile=p98 0 1672164016
-redis.command_timings;redis_database=metrics_test;redis_command=get;percentile=p99 0 1672164016
-redis.command_timings;redis_database=metrics_test;redis_command=get;percentile=p99_6 0 1672164016
-redis.command_timings;redis_database=metrics_test;redis_command=get;percentile=p99_9 0 1672164016
-redis.command_timings;redis_database=metrics_test;redis_command=get;percentile=p100 0 1672164016
-redis.timings;redis_database=metrics_test;percentile=p0 0 1672164016
-redis.timings;redis_database=metrics_test;percentile=p50 0 1672164016
-redis.timings;redis_database=metrics_test;percentile=p90 0 1672164016
-redis.timings;redis_database=metrics_test;percentile=p95 0 1672164016
-redis.timings;redis_database=metrics_test;percentile=p98 0 1672164016
-redis.timings;redis_database=metrics_test;percentile=p99 0 1672164016
-redis.timings;redis_database=metrics_test;percentile=p99_6 0 1672164016
-redis.timings;redis_database=metrics_test;percentile=p99_9 0 1672164016
-redis.timings;redis_database=metrics_test;percentile=p100 0 1672164016
-redis.reply_sizes;redis_database=metrics_test;percentile=p0 0 1672164016
-redis.reply_sizes;redis_database=metrics_test;percentile=p50 2 1672164016
-redis.reply_sizes;redis_database=metrics_test;percentile=p90 8 1672164016
-redis.reply_sizes;redis_database=metrics_test;percentile=p95 8 1672164016
-redis.reply_sizes;redis_database=metrics_test;percentile=p98 8 1672164016
-redis.reply_sizes;redis_database=metrics_test;percentile=p99 8 1672164016
-redis.reply_sizes;redis_database=metrics_test;percentile=p99_6 8 1672164016
-redis.reply_sizes;redis_database=metrics_test;percentile=p99_9 8 1672164016
-redis.reply_sizes;redis_database=metrics_test;percentile=p100 8 1672164016
-redis.request_sizes;redis_database=metrics_test;percentile=p0 8 1672164016
-redis.request_sizes;redis_database=metrics_test;percentile=p50 8 1672164016
-redis.request_sizes;redis_database=metrics_test;percentile=p90 10 1672164016
-redis.request_sizes;redis_database=metrics_test;percentile=p95 10 1672164016
-redis.request_sizes;redis_database=metrics_test;percentile=p98 10 1672164016
-redis.request_sizes;redis_database=metrics_test;percentile=p99 10 1672164016
-redis.request_sizes;redis_database=metrics_test;percentile=p99_6 10 1672164016
-redis.request_sizes;redis_database=metrics_test;percentile=p99_9 10 1672164016
-redis.request_sizes;redis_database=metrics_test;percentile=p100 10 1672164016
-redis.instances_count;redis_database=metrics_test;redis_instance_type=sentinels 1 1672164016
-redis.is_ready;redis_database=metrics_test;redis_instance_type=sentinels 1 1672164016
-redis.not_ready_ms;redis_database=metrics_test;redis_instance_type=sentinels 0 1672164016
-redis.reconnects;redis_database=metrics_test;redis_instance_type=sentinels 1 1672164016
-redis.errors;redis_database=metrics_test;redis_instance_type=sentinels;redis_error=OK 4 1672164016
-redis.errors;redis_database=metrics_test;redis_instance_type=sentinels;redis_error=input_output_error 0 1672164016
-redis.errors;redis_database=metrics_test;redis_instance_type=sentinels;redis_error=other_error 0 1672164016
-redis.errors;redis_database=metrics_test;redis_instance_type=sentinels;redis_error=EOF 0 1672164016
-redis.errors;redis_database=metrics_test;redis_instance_type=sentinels;redis_error=protocol_error 0 1672164016
-redis.errors;redis_database=metrics_test;redis_instance_type=sentinels;redis_error=OOM 0 1672164016
-redis.errors;redis_database=metrics_test;redis_instance_type=sentinels;redis_error=timeout 0 1672164016
-redis.timings;redis_database=metrics_test;redis_instance_type=sentinels;percentile=p0 0 1672164016
-redis.timings;redis_database=metrics_test;redis_instance_type=sentinels;percentile=p50 0 1672164016
-redis.timings;redis_database=metrics_test;redis_instance_type=sentinels;percentile=p90 0 1672164016
-redis.timings;redis_database=metrics_test;redis_instance_type=sentinels;percentile=p95 0 1672164016
-redis.timings;redis_database=metrics_test;redis_instance_type=sentinels;percentile=p98 0 1672164016
-redis.timings;redis_database=metrics_test;redis_instance_type=sentinels;percentile=p99 0 1672164016
-redis.timings;redis_database=metrics_test;redis_instance_type=sentinels;percentile=p99_6 0 1672164016
-redis.timings;redis_database=metrics_test;redis_instance_type=sentinels;percentile=p99_9 0 1672164016
-redis.timings;redis_database=metrics_test;redis_instance_type=sentinels;percentile=p100 0 1672164016
-redis.reply_sizes;redis_database=metrics_test;redis_instance_type=sentinels;percentile=p0 0 1672164016
-redis.reply_sizes;redis_database=metrics_test;redis_instance_type=sentinels;percentile=p50 0 1672164016
-redis.reply_sizes;redis_database=metrics_test;redis_instance_type=sentinels;percentile=p90 0 1672164016
-redis.reply_sizes;redis_database=metrics_test;redis_instance_type=sentinels;percentile=p95 0 1672164016
-redis.reply_sizes;redis_database=metrics_test;redis_instance_type=sentinels;percentile=p98 0 1672164016
-redis.reply_sizes;redis_database=metrics_test;redis_instance_type=sentinels;percentile=p99 0 1672164016
-redis.reply_sizes;redis_database=metrics_test;redis_instance_type=sentinels;percentile=p99_6 0 1672164016
-redis.reply_sizes;redis_database=metrics_test;redis_instance_type=sentinels;percentile=p99_9 0 1672164016
-redis.reply_sizes;redis_database=metrics_test;redis_instance_type=sentinels;percentile=p100 0 1672164016
-redis.request_sizes;redis_database=metrics_test;redis_instance_type=sentinels;percentile=p0 0 1672164016
-redis.request_sizes;redis_database=metrics_test;redis_instance_type=sentinels;percentile=p50 0 1672164016
-redis.request_sizes;redis_database=metrics_test;redis_instance_type=sentinels;percentile=p90 0 1672164016
-redis.request_sizes;redis_database=metrics_test;redis_instance_type=sentinels;percentile=p95 0 1672164016
-redis.request_sizes;redis_database=metrics_test;redis_instance_type=sentinels;percentile=p98 0 1672164016
-redis.request_sizes;redis_database=metrics_test;redis_instance_type=sentinels;percentile=p99 0 1672164016
-redis.request_sizes;redis_database=metrics_test;redis_instance_type=sentinels;percentile=p99_6 0 1672164016
-redis.request_sizes;redis_database=metrics_test;redis_instance_type=sentinels;percentile=p99_9 0 1672164016
-redis.request_sizes;redis_database=metrics_test;redis_instance_type=sentinels;percentile=p100 0 1672164016
-redis.reconnects;redis_database=metrics_test;redis_instance_type=sentinels;redis_instance=localhost_26379 1 1672164016
-redis.last_ping_ms;redis_database=metrics_test;redis_instance_type=sentinels;redis_instance=localhost_26379 0 1672164016
-redis.session-time-ms;redis_database=metrics_test;redis_instance_type=sentinels;redis_instance=localhost_26379 1401 1672164016
-redis.is_syncing;redis_database=metrics_test;redis_instance_type=sentinels;redis_instance=localhost_26379 0 1672164016
-redis.offset_from_master;redis_database=metrics_test;redis_instance_type=sentinels;redis_instance=localhost_26379 0 1672164016
-redis.is_syncing;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16381 0 1672164016
-redis.offset_from_master;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16381 0 1672164016
-redis.is_syncing;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16380 0 1672164016
-redis.offset_from_master;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16380 0 1672164016
-redis.is_syncing;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_instance=__1_16379 0 1672164016
-redis.offset_from_master;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_instance=__1_16379 0 1672164016
-redis.state;redis_database=metrics_test;redis_instance_type=sentinels;redis_instance=localhost_26379;redis_instance_state=init 0 1672164016
-redis.state;redis_database=metrics_test;redis_instance_type=sentinels;redis_instance=localhost_26379;redis_instance_state=init_error 0 1672164016
-redis.state;redis_database=metrics_test;redis_instance_type=sentinels;redis_instance=localhost_26379;redis_instance_state=connected 1 1672164016
-redis.state;redis_database=metrics_test;redis_instance_type=sentinels;redis_instance=localhost_26379;redis_instance_state=disconnecting 0 1672164016
-redis.state;redis_database=metrics_test;redis_instance_type=sentinels;redis_instance=localhost_26379;redis_instance_state=disconnected 0 1672164016
-redis.state;redis_database=metrics_test;redis_instance_type=sentinels;redis_instance=localhost_26379;redis_instance_state=disconnect_error 0 1672164016
-redis.errors;redis_database=metrics_test;redis_instance_type=sentinels;redis_instance=localhost_26379;redis_error=OK 4 1672164016
-redis.errors;redis_database=metrics_test;redis_instance_type=sentinels;redis_instance=localhost_26379;redis_error=input_output_error 0 1672164016
-redis.errors;redis_database=metrics_test;redis_instance_type=sentinels;redis_instance=localhost_26379;redis_error=other_error 0 1672164016
-redis.errors;redis_database=metrics_test;redis_instance_type=sentinels;redis_instance=localhost_26379;redis_error=EOF 0 1672164016
-redis.errors;redis_database=metrics_test;redis_instance_type=sentinels;redis_instance=localhost_26379;redis_error=protocol_error 0 1672164016
-redis.errors;redis_database=metrics_test;redis_instance_type=sentinels;redis_instance=localhost_26379;redis_error=OOM 0 1672164016
-redis.errors;redis_database=metrics_test;redis_instance_type=sentinels;redis_instance=localhost_26379;redis_error=timeout 0 1672164016
-redis.timings;redis_database=metrics_test;redis_instance_type=sentinels;redis_instance=localhost_26379;percentile=p0 0 1672164016
-redis.timings;redis_database=metrics_test;redis_instance_type=sentinels;redis_instance=localhost_26379;percentile=p50 0 1672164016
-redis.timings;redis_database=metrics_test;redis_instance_type=sentinels;redis_instance=localhost_26379;percentile=p90 0 1672164016
-redis.timings;redis_database=metrics_test;redis_instance_type=sentinels;redis_instance=localhost_26379;percentile=p95 0 1672164016
-redis.timings;redis_database=metrics_test;redis_instance_type=sentinels;redis_instance=localhost_26379;percentile=p98 0 1672164016
-redis.timings;redis_database=metrics_test;redis_instance_type=sentinels;redis_instance=localhost_26379;percentile=p99 0 1672164016
-redis.timings;redis_database=metrics_test;redis_instance_type=sentinels;redis_instance=localhost_26379;percentile=p99_6 0 1672164016
-redis.timings;redis_database=metrics_test;redis_instance_type=sentinels;redis_instance=localhost_26379;percentile=p99_9 0 1672164016
-redis.timings;redis_database=metrics_test;redis_instance_type=sentinels;redis_instance=localhost_26379;percentile=p100 0 1672164016
-redis.reply_sizes;redis_database=metrics_test;redis_instance_type=sentinels;redis_instance=localhost_26379;percentile=p0 0 1672164016
-redis.reply_sizes;redis_database=metrics_test;redis_instance_type=sentinels;redis_instance=localhost_26379;percentile=p50 0 1672164016
-redis.reply_sizes;redis_database=metrics_test;redis_instance_type=sentinels;redis_instance=localhost_26379;percentile=p90 0 1672164016
-redis.reply_sizes;redis_database=metrics_test;redis_instance_type=sentinels;redis_instance=localhost_26379;percentile=p95 0 1672164016
-redis.reply_sizes;redis_database=metrics_test;redis_instance_type=sentinels;redis_instance=localhost_26379;percentile=p98 0 1672164016
-redis.reply_sizes;redis_database=metrics_test;redis_instance_type=sentinels;redis_instance=localhost_26379;percentile=p99 0 1672164016
-redis.reply_sizes;redis_database=metrics_test;redis_instance_type=sentinels;redis_instance=localhost_26379;percentile=p99_6 0 1672164016
-redis.reply_sizes;redis_database=metrics_test;redis_instance_type=sentinels;redis_instance=localhost_26379;percentile=p99_9 0 1672164016
-redis.reply_sizes;redis_database=metrics_test;redis_instance_type=sentinels;redis_instance=localhost_26379;percentile=p100 0 1672164016
-redis.request_sizes;redis_database=metrics_test;redis_instance_type=sentinels;redis_instance=localhost_26379;percentile=p0 0 1672164016
-redis.request_sizes;redis_database=metrics_test;redis_instance_type=sentinels;redis_instance=localhost_26379;percentile=p50 0 1672164016
-redis.request_sizes;redis_database=metrics_test;redis_instance_type=sentinels;redis_instance=localhost_26379;percentile=p90 0 1672164016
-redis.request_sizes;redis_database=metrics_test;redis_instance_type=sentinels;redis_instance=localhost_26379;percentile=p95 0 1672164016
-redis.request_sizes;redis_database=metrics_test;redis_instance_type=sentinels;redis_instance=localhost_26379;percentile=p98 0 1672164016
-redis.request_sizes;redis_database=metrics_test;redis_instance_type=sentinels;redis_instance=localhost_26379;percentile=p99 0 1672164016
-redis.request_sizes;redis_database=metrics_test;redis_instance_type=sentinels;redis_instance=localhost_26379;percentile=p99_6 0 1672164016
-redis.request_sizes;redis_database=metrics_test;redis_instance_type=sentinels;redis_instance=localhost_26379;percentile=p99_9 0 1672164016
-redis.request_sizes;redis_database=metrics_test;redis_instance_type=sentinels;redis_instance=localhost_26379;percentile=p100 0 1672164016
-redis.instances_count;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0 2 1672164016
-redis.is_ready;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0 1 1672164016
-redis.not_ready_ms;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0 0 1672164016
-redis.reconnects;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0 2 1672164016
-redis.errors;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_error=OK 1 1672164016
-redis.errors;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_error=input_output_error 0 1672164016
-redis.errors;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_error=other_error 0 1672164016
-redis.errors;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_error=EOF 0 1672164016
-redis.errors;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_error=protocol_error 0 1672164016
-redis.errors;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_error=OOM 0 1672164016
-redis.errors;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_error=timeout 0 1672164016
-redis.command_timings;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_command=get;percentile=p0 0 1672164016
-redis.command_timings;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_command=get;percentile=p50 0 1672164016
-redis.command_timings;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_command=get;percentile=p90 0 1672164016
-redis.command_timings;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_command=get;percentile=p95 0 1672164016
-redis.command_timings;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_command=get;percentile=p98 0 1672164016
-redis.command_timings;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_command=get;percentile=p99 0 1672164016
-redis.command_timings;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_command=get;percentile=p99_6 0 1672164016
-redis.command_timings;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_command=get;percentile=p99_9 0 1672164016
-redis.command_timings;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_command=get;percentile=p100 0 1672164016
-redis.timings;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;percentile=p0 0 1672164016
-redis.timings;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;percentile=p50 0 1672164016
-redis.timings;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;percentile=p90 0 1672164016
-redis.timings;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;percentile=p95 0 1672164016
-redis.timings;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;percentile=p98 0 1672164016
-redis.timings;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;percentile=p99 0 1672164016
-redis.timings;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;percentile=p99_6 0 1672164016
-redis.timings;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;percentile=p99_9 0 1672164016
-redis.timings;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;percentile=p100 0 1672164016
-redis.reply_sizes;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;percentile=p0 0 1672164016
-redis.reply_sizes;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;percentile=p50 0 1672164016
-redis.reply_sizes;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;percentile=p90 0 1672164016
-redis.reply_sizes;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;percentile=p95 0 1672164016
-redis.reply_sizes;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;percentile=p98 0 1672164016
-redis.reply_sizes;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;percentile=p99 0 1672164016
-redis.reply_sizes;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;percentile=p99_6 0 1672164016
-redis.reply_sizes;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;percentile=p99_9 0 1672164016
-redis.reply_sizes;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;percentile=p100 0 1672164016
-redis.request_sizes;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;percentile=p0 8 1672164016
-redis.request_sizes;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;percentile=p50 8 1672164016
-redis.request_sizes;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;percentile=p90 8 1672164016
-redis.request_sizes;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;percentile=p95 8 1672164016
-redis.request_sizes;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;percentile=p98 8 1672164016
-redis.request_sizes;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;percentile=p99 8 1672164016
-redis.request_sizes;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;percentile=p99_6 8 1672164016
-redis.request_sizes;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;percentile=p99_9 8 1672164016
-redis.request_sizes;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;percentile=p100 8 1672164016
-redis.reconnects;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16381 1 1672164016
-redis.last_ping_ms;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16381 0 1672164016
-redis.session-time-ms;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16381 1197 1672164016
-redis.state;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16381;redis_instance_state=init 0 1672164016
-redis.state;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16381;redis_instance_state=init_error 0 1672164016
-redis.state;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16381;redis_instance_state=connected 1 1672164016
-redis.state;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16381;redis_instance_state=disconnecting 0 1672164016
-redis.state;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16381;redis_instance_state=disconnected 0 1672164016
-redis.state;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16381;redis_instance_state=disconnect_error 0 1672164016
-redis.errors;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16381;redis_error=OK 1 1672164016
-redis.errors;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16381;redis_error=input_output_error 0 1672164016
-redis.errors;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16381;redis_error=other_error 0 1672164016
-redis.errors;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16381;redis_error=EOF 0 1672164016
-redis.errors;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16381;redis_error=protocol_error 0 1672164016
-redis.errors;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16381;redis_error=OOM 0 1672164016
-redis.errors;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16381;redis_error=timeout 0 1672164016
-redis.command_timings;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16381;redis_command=get;percentile=p0 0 1672164016
-redis.command_timings;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16381;redis_command=get;percentile=p50 0 1672164016
-redis.command_timings;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16381;redis_command=get;percentile=p90 0 1672164016
-redis.command_timings;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16381;redis_command=get;percentile=p95 0 1672164016
-redis.command_timings;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16381;redis_command=get;percentile=p98 0 1672164016
-redis.command_timings;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16381;redis_command=get;percentile=p99 0 1672164016
-redis.command_timings;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16381;redis_command=get;percentile=p99_6 0 1672164016
-redis.command_timings;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16381;redis_command=get;percentile=p99_9 0 1672164016
-redis.command_timings;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16381;redis_command=get;percentile=p100 0 1672164016
-redis.timings;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16381;percentile=p0 0 1672164016
-redis.timings;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16381;percentile=p50 0 1672164016
-redis.timings;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16381;percentile=p90 0 1672164016
-redis.timings;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16381;percentile=p95 0 1672164016
-redis.timings;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16381;percentile=p98 0 1672164016
-redis.timings;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16381;percentile=p99 0 1672164016
-redis.timings;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16381;percentile=p99_6 0 1672164016
-redis.timings;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16381;percentile=p99_9 0 1672164016
-redis.timings;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16381;percentile=p100 0 1672164016
-redis.reply_sizes;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16381;percentile=p0 0 1672164016
-redis.reply_sizes;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16381;percentile=p50 0 1672164016
-redis.reply_sizes;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16381;percentile=p90 0 1672164016
-redis.reply_sizes;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16381;percentile=p95 0 1672164016
-redis.reply_sizes;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16381;percentile=p98 0 1672164016
-redis.reply_sizes;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16381;percentile=p99 0 1672164016
-redis.reply_sizes;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16381;percentile=p99_6 0 1672164016
-redis.reply_sizes;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16381;percentile=p99_9 0 1672164016
-redis.reply_sizes;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16381;percentile=p100 0 1672164016
-redis.request_sizes;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16381;percentile=p0 8 1672164016
-redis.request_sizes;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16381;percentile=p50 8 1672164016
-redis.request_sizes;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16381;percentile=p90 8 1672164016
-redis.request_sizes;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16381;percentile=p95 8 1672164016
-redis.request_sizes;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16381;percentile=p98 8 1672164016
-redis.request_sizes;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16381;percentile=p99 8 1672164016
-redis.request_sizes;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16381;percentile=p99_6 8 1672164016
-redis.request_sizes;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16381;percentile=p99_9 8 1672164016
-redis.request_sizes;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16381;percentile=p100 8 1672164016
-redis.reconnects;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16380 1 1672164016
-redis.last_ping_ms;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16380 0 1672164016
-redis.session-time-ms;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16380 1249 1672164016
-redis.state;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16380;redis_instance_state=init 0 1672164016
-redis.state;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16380;redis_instance_state=init_error 0 1672164016
-redis.state;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16380;redis_instance_state=connected 1 1672164016
-redis.state;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16380;redis_instance_state=disconnecting 0 1672164016
-redis.state;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16380;redis_instance_state=disconnected 0 1672164016
-redis.state;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16380;redis_instance_state=disconnect_error 0 1672164016
-redis.errors;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16380;redis_error=OK 0 1672164016
-redis.errors;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16380;redis_error=input_output_error 0 1672164016
-redis.errors;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16380;redis_error=other_error 0 1672164016
-redis.errors;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16380;redis_error=EOF 0 1672164016
-redis.errors;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16380;redis_error=protocol_error 0 1672164016
-redis.errors;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16380;redis_error=OOM 0 1672164016
-redis.errors;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16380;redis_error=timeout 0 1672164016
-redis.timings;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16380;percentile=p0 0 1672164016
-redis.timings;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16380;percentile=p50 0 1672164016
-redis.timings;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16380;percentile=p90 0 1672164016
-redis.timings;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16380;percentile=p95 0 1672164016
-redis.timings;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16380;percentile=p98 0 1672164016
-redis.timings;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16380;percentile=p99 0 1672164016
-redis.timings;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16380;percentile=p99_6 0 1672164016
-redis.timings;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16380;percentile=p99_9 0 1672164016
-redis.timings;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16380;percentile=p100 0 1672164016
-redis.reply_sizes;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16380;percentile=p0 0 1672164016
-redis.reply_sizes;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16380;percentile=p50 0 1672164016
-redis.reply_sizes;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16380;percentile=p90 0 1672164016
-redis.reply_sizes;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16380;percentile=p95 0 1672164016
-redis.reply_sizes;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16380;percentile=p98 0 1672164016
-redis.reply_sizes;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16380;percentile=p99 0 1672164016
-redis.reply_sizes;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16380;percentile=p99_6 0 1672164016
-redis.reply_sizes;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16380;percentile=p99_9 0 1672164016
-redis.reply_sizes;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16380;percentile=p100 0 1672164016
-redis.request_sizes;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16380;percentile=p0 0 1672164016
-redis.request_sizes;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16380;percentile=p50 0 1672164016
-redis.request_sizes;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16380;percentile=p90 0 1672164016
-redis.request_sizes;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16380;percentile=p95 0 1672164016
-redis.request_sizes;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16380;percentile=p98 0 1672164016
-redis.request_sizes;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16380;percentile=p99 0 1672164016
-redis.request_sizes;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16380;percentile=p99_6 0 1672164016
-redis.request_sizes;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16380;percentile=p99_9 0 1672164016
-redis.request_sizes;redis_database=metrics_test;redis_instance_type=slaves;redis_shard=test_master0;redis_instance=__1_16380;percentile=p100 0 1672164016
-redis.instances_count;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0 1 1672164016
-redis.is_ready;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0 1 1672164016
-redis.not_ready_ms;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0 0 1672164016
-redis.reconnects;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0 1 1672164016
-redis.errors;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_error=OK 2 1672164016
-redis.errors;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_error=input_output_error 0 1672164016
-redis.errors;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_error=other_error 0 1672164016
-redis.errors;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_error=EOF 0 1672164016
-redis.errors;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_error=protocol_error 0 1672164016
-redis.errors;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_error=OOM 0 1672164016
-redis.errors;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_error=timeout 0 1672164016
-redis.command_timings;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_command=del;percentile=p0 0 1672164016
-redis.command_timings;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_command=del;percentile=p50 0 1672164016
-redis.command_timings;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_command=del;percentile=p90 0 1672164016
-redis.command_timings;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_command=del;percentile=p95 0 1672164016
-redis.command_timings;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_command=del;percentile=p98 0 1672164016
-redis.command_timings;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_command=del;percentile=p99 0 1672164016
-redis.command_timings;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_command=del;percentile=p99_6 0 1672164016
-redis.command_timings;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_command=del;percentile=p99_9 0 1672164016
-redis.command_timings;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_command=del;percentile=p100 0 1672164016
-redis.command_timings;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_command=publish;percentile=p0 0 1676921576
-redis.command_timings;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_command=publish;percentile=p50 0 1676921576
-redis.command_timings;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_command=publish;percentile=p90 0 1676921576
-redis.command_timings;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_command=publish;percentile=p95 0 1676921576
-redis.command_timings;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_command=publish;percentile=p98 0 1676921576
-redis.command_timings;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_command=publish;percentile=p99 0 1676921576
-redis.command_timings;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_command=publish;percentile=p99_6 0 1676921576
-redis.command_timings;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_command=publish;percentile=p99_9 0 1676921576
-redis.command_timings;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_command=publish;percentile=p100 0 1676921576
-redis.command_timings;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_command=set;percentile=p0 0 1672164016
-redis.command_timings;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_command=set;percentile=p50 0 1672164016
-redis.command_timings;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_command=set;percentile=p90 0 1672164016
-redis.command_timings;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_command=set;percentile=p95 0 1672164016
-redis.command_timings;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_command=set;percentile=p98 0 1672164016
-redis.command_timings;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_command=set;percentile=p99 0 1672164016
-redis.command_timings;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_command=set;percentile=p99_6 0 1672164016
-redis.command_timings;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_command=set;percentile=p99_9 0 1672164016
-redis.command_timings;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_command=set;percentile=p100 0 1672164016
-redis.command_timings;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_command=get;percentile=p0 0 1672164016
-redis.command_timings;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_command=get;percentile=p100 0 1672164016
-redis.command_timings;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_command=get;percentile=p50 0 1672164016
-redis.command_timings;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_command=get;percentile=p90 0 1672164016
-redis.command_timings;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_command=get;percentile=p95 0 1672164016
-redis.command_timings;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_command=get;percentile=p98 0 1672164016
-redis.command_timings;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_command=get;percentile=p99 0 1672164016
-redis.command_timings;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_command=get;percentile=p99_6 0 1672164016
-redis.command_timings;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_command=get;percentile=p99_9 0 1672164016
-redis.timings;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;percentile=p0 0 1672164016
-redis.timings;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;percentile=p50 0 1672164016
-redis.timings;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;percentile=p90 0 1672164016
-redis.timings;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;percentile=p95 0 1672164016
-redis.timings;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;percentile=p98 0 1672164016
-redis.timings;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;percentile=p99 0 1672164016
-redis.timings;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;percentile=p99_6 0 1672164016
-redis.timings;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;percentile=p99_9 0 1672164016
-redis.timings;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;percentile=p100 0 1672164016
-redis.reply_sizes;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;percentile=p0 2 1672164016
-redis.reply_sizes;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;percentile=p50 8 1672164016
-redis.reply_sizes;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;percentile=p90 8 1672164016
-redis.reply_sizes;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;percentile=p95 8 1672164016
-redis.reply_sizes;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;percentile=p98 8 1672164016
-redis.reply_sizes;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;percentile=p99 8 1672164016
-redis.reply_sizes;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;percentile=p99_6 8 1672164016
-redis.reply_sizes;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;percentile=p99_9 8 1672164016
-redis.reply_sizes;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;percentile=p100 8 1672164016
-redis.request_sizes;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;percentile=p0 8 1672164016
-redis.request_sizes;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;percentile=p50 10 1672164016
-redis.request_sizes;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;percentile=p90 10 1672164016
-redis.request_sizes;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;percentile=p95 10 1672164016
-redis.request_sizes;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;percentile=p98 10 1672164016
-redis.request_sizes;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;percentile=p99 10 1672164016
-redis.request_sizes;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;percentile=p99_6 10 1672164016
-redis.request_sizes;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;percentile=p99_9 10 1672164016
-redis.request_sizes;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;percentile=p100 10 1672164016
-redis.reconnects;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_instance=__1_16379 1 1672164016
-redis.last_ping_ms;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_instance=__1_16379 0 1672164016
-redis.session-time-ms;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_instance=__1_16379 1253 1672164016
-redis.state;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_instance=__1_16379;redis_instance_state=init 0 1672164016
-redis.state;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_instance=__1_16379;redis_instance_state=init_error 0 1672164016
-redis.state;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_instance=__1_16379;redis_instance_state=connected 1 1672164016
-redis.state;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_instance=__1_16379;redis_instance_state=disconnecting 0 1672164016
-redis.state;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_instance=__1_16379;redis_instance_state=disconnected 0 1672164016
-redis.state;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_instance=__1_16379;redis_instance_state=disconnect_error 0 1672164016
-redis.errors;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_instance=__1_16379;redis_error=OK 2 1672164016
-redis.errors;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_instance=__1_16379;redis_error=input_output_error 0 1672164016
-redis.errors;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_instance=__1_16379;redis_error=other_error 0 1672164016
-redis.errors;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_instance=__1_16379;redis_error=EOF 0 1672164016
-redis.errors;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_instance=__1_16379;redis_error=protocol_error 0 1672164016
-redis.errors;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_instance=__1_16379;redis_error=OOM 0 1672164016
-redis.errors;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_instance=__1_16379;redis_error=timeout 0 1672164016
-redis.command_timings;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_instance=__1_16379;redis_command=set;percentile=p0 0 1672164016
-redis.command_timings;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_instance=__1_16379;redis_command=set;percentile=p50 0 1672164016
-redis.command_timings;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_instance=__1_16379;redis_command=set;percentile=p90 0 1672164016
-redis.command_timings;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_instance=__1_16379;redis_command=set;percentile=p95 0 1672164016
-redis.command_timings;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_instance=__1_16379;redis_command=set;percentile=p98 0 1672164016
-redis.command_timings;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_instance=__1_16379;redis_command=set;percentile=p99 0 1672164016
-redis.command_timings;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_instance=__1_16379;redis_command=set;percentile=p99_6 0 1672164016
-redis.command_timings;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_instance=__1_16379;redis_command=set;percentile=p99_9 0 1672164016
-redis.command_timings;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_instance=__1_16379;redis_command=set;percentile=p100 0 1672164016
-redis.command_timings;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_instance=__1_16379;redis_command=del;percentile=p0 0 1672164016
-redis.command_timings;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_instance=__1_16379;redis_command=del;percentile=p50 0 1672164016
-redis.command_timings;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_instance=__1_16379;redis_command=del;percentile=p90 0 1672164016
-redis.command_timings;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_instance=__1_16379;redis_command=del;percentile=p95 0 1672164016
-redis.command_timings;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_instance=__1_16379;redis_command=del;percentile=p98 0 1672164016
-redis.command_timings;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_instance=__1_16379;redis_command=del;percentile=p99 0 1672164016
-redis.command_timings;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_instance=__1_16379;redis_command=del;percentile=p99_6 0 1672164016
-redis.command_timings;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_instance=__1_16379;redis_command=del;percentile=p99_9 0 1672164016
-redis.command_timings;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_instance=__1_16379;redis_command=del;percentile=p100 0 1672164016
-redis.command_timings;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_instance=__1_163794;redis_command=publish;percentile=p0 0 1676921576
-redis.command_timings;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_instance=__1_163794;redis_command=publish;percentile=p50 0 1676921576
-redis.command_timings;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_instance=__1_163794;redis_command=publish;percentile=p90 0 1676921576
-redis.command_timings;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_instance=__1_163794;redis_command=publish;percentile=p95 0 1676921576
-redis.command_timings;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_instance=__1_163794;redis_command=publish;percentile=p98 0 1676921576
-redis.command_timings;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_instance=__1_163794;redis_command=publish;percentile=p99 0 1676921576
-redis.command_timings;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_instance=__1_163794;redis_command=publish;percentile=p99_6 0 1676921576
-redis.command_timings;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_instance=__1_163794;redis_command=publish;percentile=p99_9 0 1676921576
-redis.command_timings;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_instance=__1_163794;redis_command=publish;percentile=p100 0 1676921576
-redis.command_timings;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_instance=__1_16379;redis_command=get;percentile=p0 0 1672164016
-redis.command_timings;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_instance=__1_16379;redis_command=get;percentile=p100 0 1672164016
-redis.command_timings;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_instance=__1_16379;redis_command=get;percentile=p50 0 1672164016
-redis.command_timings;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_instance=__1_16379;redis_command=get;percentile=p90 0 1672164016
-redis.command_timings;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_instance=__1_16379;redis_command=get;percentile=p95 0 1672164016
-redis.command_timings;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_instance=__1_16379;redis_command=get;percentile=p98 0 1672164016
-redis.command_timings;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_instance=__1_16379;redis_command=get;percentile=p99 0 1672164016
-redis.command_timings;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_instance=__1_16379;redis_command=get;percentile=p99_6 0 1672164016
-redis.command_timings;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_instance=__1_16379;redis_command=get;percentile=p99_9 0 1672164016
-redis.timings;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_instance=__1_16379;percentile=p0 0 1672164016
-redis.timings;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_instance=__1_16379;percentile=p50 0 1672164016
-redis.timings;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_instance=__1_16379;percentile=p90 0 1672164016
-redis.timings;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_instance=__1_16379;percentile=p95 0 1672164016
-redis.timings;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_instance=__1_16379;percentile=p98 0 1672164016
-redis.timings;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_instance=__1_16379;percentile=p99 0 1672164016
-redis.timings;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_instance=__1_16379;percentile=p99_6 0 1672164016
-redis.timings;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_instance=__1_16379;percentile=p99_9 0 1672164016
-redis.timings;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_instance=__1_16379;percentile=p100 0 1672164016
-redis.reply_sizes;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_instance=__1_16379;percentile=p0 2 1672164016
-redis.reply_sizes;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_instance=__1_16379;percentile=p50 8 1672164016
-redis.reply_sizes;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_instance=__1_16379;percentile=p90 8 1672164016
-redis.reply_sizes;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_instance=__1_16379;percentile=p95 8 1672164016
-redis.reply_sizes;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_instance=__1_16379;percentile=p98 8 1672164016
-redis.reply_sizes;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_instance=__1_16379;percentile=p99 8 1672164016
-redis.reply_sizes;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_instance=__1_16379;percentile=p99_6 8 1672164016
-redis.reply_sizes;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_instance=__1_16379;percentile=p99_9 8 1672164016
-redis.reply_sizes;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_instance=__1_16379;percentile=p100 8 1672164016
-redis.request_sizes;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_instance=__1_16379;percentile=p0 8 1672164016
-redis.request_sizes;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_instance=__1_16379;percentile=p50 10 1672164016
-redis.request_sizes;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_instance=__1_16379;percentile=p90 10 1672164016
-redis.request_sizes;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_instance=__1_16379;percentile=p95 10 1672164016
-redis.request_sizes;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_instance=__1_16379;percentile=p98 10 1672164016
-redis.request_sizes;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_instance=__1_16379;percentile=p99 10 1672164016
-redis.request_sizes;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_instance=__1_16379;percentile=p99_6 10 1672164016
-redis.request_sizes;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_instance=__1_16379;percentile=p99_9 10 1672164016
-redis.request_sizes;redis_database=metrics_test;redis_instance_type=masters;redis_shard=test_master0;redis_instance=__1_16379;percentile=p100 10 1672164016
-redis-pubsub.messages.count;redis_database=metrics_test;redis_pubsub_channel=post_channel0 1 1672164016
-redis-pubsub.messages.alien-count;redis_database=metrics_test;redis_pubsub_channel=post_channel0 0 1672164016
-redis-pubsub.messages.size;redis_database=metrics_test;redis_pubsub_channel=post_channel0 0 1672164016
-redis-pubsub.subscribed-ms;redis_database=metrics_test;redis_shard=test_master0;redis_pubsub_channel=post_channel0 1425 1672164016
-redis-pubsub;redis_database=metrics_test;redis_shard=test_master0;redis_pubsub_channel=post_channel0;redis_instance=127.0.0.1_5915 1 1672164016
-redis-pubsub.messages.count;redis_database=metrics_test;redis_shard=test_master0;redis_pubsub_channel=post_channel0 1 1672164016
-redis-pubsub.messages.alien-count;redis_database=metrics_test;redis_shard=test_master0;redis_pubsub_channel=post_channel0 0 1672164016
-redis-pubsub.messages.size;redis_database=metrics_test;redis_shard=test_master0;redis_pubsub_channel=post_channel0 0 1672164016
+redis-pubsub.messages.alien-count: redis_database=metrics_test, redis_pubsub_channel=post_channel0	GAUGE	0	0
+redis-pubsub.messages.alien-count: redis_database=metrics_test, redis_pubsub_channel=post_channel0, redis_shard=test_master0	GAUGE	0	0
+redis-pubsub.messages.count: redis_database=metrics_test, redis_pubsub_channel=post_channel0	GAUGE	0	0
+redis-pubsub.messages.count: redis_database=metrics_test, redis_pubsub_channel=post_channel0, redis_shard=test_master0	GAUGE	0	0
+redis-pubsub.messages.size: redis_database=metrics_test, redis_pubsub_channel=post_channel0	GAUGE	0	0
+redis-pubsub.messages.size: redis_database=metrics_test, redis_pubsub_channel=post_channel0, redis_shard=test_master0	GAUGE	0	0
+redis-pubsub.subscribed-ms: redis_database=metrics_test, redis_pubsub_channel=post_channel0, redis_shard=test_master0	GAUGE	0	0
+redis-pubsub: redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_pubsub_channel=post_channel0, redis_shard=test_master0	GAUGE	0	0
+redis.command_timings: percentile=p0, redis_command=del, redis_database=metrics_test	GAUGE	0	0
+redis.command_timings: percentile=p0, redis_command=del, redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.command_timings: percentile=p0, redis_command=del, redis_database=metrics_test, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.command_timings: percentile=p0, redis_command=get, redis_database=metrics_test	GAUGE	0	0
+redis.command_timings: percentile=p0, redis_command=get, redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.command_timings: percentile=p0, redis_command=get, redis_database=metrics_test, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.command_timings: percentile=p0, redis_command=publish, redis_database=metrics_test	GAUGE	0	0
+redis.command_timings: percentile=p0, redis_command=publish, redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.command_timings: percentile=p0, redis_command=publish, redis_database=metrics_test, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.command_timings: percentile=p0, redis_command=set, redis_database=metrics_test	GAUGE	0	0
+redis.command_timings: percentile=p0, redis_command=set, redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.command_timings: percentile=p0, redis_command=set, redis_database=metrics_test, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.command_timings: percentile=p100, redis_command=del, redis_database=metrics_test	GAUGE	0	0
+redis.command_timings: percentile=p100, redis_command=del, redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.command_timings: percentile=p100, redis_command=del, redis_database=metrics_test, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.command_timings: percentile=p100, redis_command=get, redis_database=metrics_test	GAUGE	0	0
+redis.command_timings: percentile=p100, redis_command=get, redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.command_timings: percentile=p100, redis_command=get, redis_database=metrics_test, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.command_timings: percentile=p100, redis_command=publish, redis_database=metrics_test	GAUGE	0	0
+redis.command_timings: percentile=p100, redis_command=publish, redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.command_timings: percentile=p100, redis_command=publish, redis_database=metrics_test, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.command_timings: percentile=p100, redis_command=set, redis_database=metrics_test	GAUGE	0	0
+redis.command_timings: percentile=p100, redis_command=set, redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.command_timings: percentile=p100, redis_command=set, redis_database=metrics_test, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.command_timings: percentile=p50, redis_command=del, redis_database=metrics_test	GAUGE	0	0
+redis.command_timings: percentile=p50, redis_command=del, redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.command_timings: percentile=p50, redis_command=del, redis_database=metrics_test, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.command_timings: percentile=p50, redis_command=get, redis_database=metrics_test	GAUGE	0	0
+redis.command_timings: percentile=p50, redis_command=get, redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.command_timings: percentile=p50, redis_command=get, redis_database=metrics_test, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.command_timings: percentile=p50, redis_command=publish, redis_database=metrics_test	GAUGE	0	0
+redis.command_timings: percentile=p50, redis_command=publish, redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.command_timings: percentile=p50, redis_command=publish, redis_database=metrics_test, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.command_timings: percentile=p50, redis_command=set, redis_database=metrics_test	GAUGE	0	0
+redis.command_timings: percentile=p50, redis_command=set, redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.command_timings: percentile=p50, redis_command=set, redis_database=metrics_test, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.command_timings: percentile=p90, redis_command=del, redis_database=metrics_test	GAUGE	0	0
+redis.command_timings: percentile=p90, redis_command=del, redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.command_timings: percentile=p90, redis_command=del, redis_database=metrics_test, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.command_timings: percentile=p90, redis_command=get, redis_database=metrics_test	GAUGE	0	0
+redis.command_timings: percentile=p90, redis_command=get, redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.command_timings: percentile=p90, redis_command=get, redis_database=metrics_test, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.command_timings: percentile=p90, redis_command=publish, redis_database=metrics_test	GAUGE	0	0
+redis.command_timings: percentile=p90, redis_command=publish, redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.command_timings: percentile=p90, redis_command=publish, redis_database=metrics_test, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.command_timings: percentile=p90, redis_command=set, redis_database=metrics_test	GAUGE	0	0
+redis.command_timings: percentile=p90, redis_command=set, redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.command_timings: percentile=p90, redis_command=set, redis_database=metrics_test, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.command_timings: percentile=p95, redis_command=del, redis_database=metrics_test	GAUGE	0	0
+redis.command_timings: percentile=p95, redis_command=del, redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.command_timings: percentile=p95, redis_command=del, redis_database=metrics_test, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.command_timings: percentile=p95, redis_command=get, redis_database=metrics_test	GAUGE	0	0
+redis.command_timings: percentile=p95, redis_command=get, redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.command_timings: percentile=p95, redis_command=get, redis_database=metrics_test, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.command_timings: percentile=p95, redis_command=publish, redis_database=metrics_test	GAUGE	0	0
+redis.command_timings: percentile=p95, redis_command=publish, redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.command_timings: percentile=p95, redis_command=publish, redis_database=metrics_test, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.command_timings: percentile=p95, redis_command=set, redis_database=metrics_test	GAUGE	0	0
+redis.command_timings: percentile=p95, redis_command=set, redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.command_timings: percentile=p95, redis_command=set, redis_database=metrics_test, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.command_timings: percentile=p98, redis_command=del, redis_database=metrics_test	GAUGE	0	0
+redis.command_timings: percentile=p98, redis_command=del, redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.command_timings: percentile=p98, redis_command=del, redis_database=metrics_test, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.command_timings: percentile=p98, redis_command=get, redis_database=metrics_test	GAUGE	0	0
+redis.command_timings: percentile=p98, redis_command=get, redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.command_timings: percentile=p98, redis_command=get, redis_database=metrics_test, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.command_timings: percentile=p98, redis_command=publish, redis_database=metrics_test	GAUGE	0	0
+redis.command_timings: percentile=p98, redis_command=publish, redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.command_timings: percentile=p98, redis_command=publish, redis_database=metrics_test, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.command_timings: percentile=p98, redis_command=set, redis_database=metrics_test	GAUGE	0	0
+redis.command_timings: percentile=p98, redis_command=set, redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.command_timings: percentile=p98, redis_command=set, redis_database=metrics_test, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.command_timings: percentile=p99, redis_command=del, redis_database=metrics_test	GAUGE	0	0
+redis.command_timings: percentile=p99, redis_command=del, redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.command_timings: percentile=p99, redis_command=del, redis_database=metrics_test, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.command_timings: percentile=p99, redis_command=get, redis_database=metrics_test	GAUGE	0	0
+redis.command_timings: percentile=p99, redis_command=get, redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.command_timings: percentile=p99, redis_command=get, redis_database=metrics_test, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.command_timings: percentile=p99, redis_command=publish, redis_database=metrics_test	GAUGE	0	0
+redis.command_timings: percentile=p99, redis_command=publish, redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.command_timings: percentile=p99, redis_command=publish, redis_database=metrics_test, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.command_timings: percentile=p99, redis_command=set, redis_database=metrics_test	GAUGE	0	0
+redis.command_timings: percentile=p99, redis_command=set, redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.command_timings: percentile=p99, redis_command=set, redis_database=metrics_test, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.command_timings: percentile=p99_6, redis_command=del, redis_database=metrics_test	GAUGE	0	0
+redis.command_timings: percentile=p99_6, redis_command=del, redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.command_timings: percentile=p99_6, redis_command=del, redis_database=metrics_test, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.command_timings: percentile=p99_6, redis_command=get, redis_database=metrics_test	GAUGE	0	0
+redis.command_timings: percentile=p99_6, redis_command=get, redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.command_timings: percentile=p99_6, redis_command=get, redis_database=metrics_test, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.command_timings: percentile=p99_6, redis_command=publish, redis_database=metrics_test	GAUGE	0	0
+redis.command_timings: percentile=p99_6, redis_command=publish, redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.command_timings: percentile=p99_6, redis_command=publish, redis_database=metrics_test, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.command_timings: percentile=p99_6, redis_command=set, redis_database=metrics_test	GAUGE	0	0
+redis.command_timings: percentile=p99_6, redis_command=set, redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.command_timings: percentile=p99_6, redis_command=set, redis_database=metrics_test, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.command_timings: percentile=p99_9, redis_command=del, redis_database=metrics_test	GAUGE	0	0
+redis.command_timings: percentile=p99_9, redis_command=del, redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.command_timings: percentile=p99_9, redis_command=del, redis_database=metrics_test, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.command_timings: percentile=p99_9, redis_command=get, redis_database=metrics_test	GAUGE	0	0
+redis.command_timings: percentile=p99_9, redis_command=get, redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.command_timings: percentile=p99_9, redis_command=get, redis_database=metrics_test, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.command_timings: percentile=p99_9, redis_command=publish, redis_database=metrics_test	GAUGE	0	0
+redis.command_timings: percentile=p99_9, redis_command=publish, redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.command_timings: percentile=p99_9, redis_command=publish, redis_database=metrics_test, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.command_timings: percentile=p99_9, redis_command=set, redis_database=metrics_test	GAUGE	0	0
+redis.command_timings: percentile=p99_9, redis_command=set, redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.command_timings: percentile=p99_9, redis_command=set, redis_database=metrics_test, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.errors: redis_database=metrics_test, redis_error=EOF	GAUGE	0	0
+redis.errors: redis_database=metrics_test, redis_error=EOF, redis_instance=127.0.0.1:00000, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.errors: redis_database=metrics_test, redis_error=EOF, redis_instance=127.0.0.1:00000, redis_instance_type=sentinels	GAUGE	0	0
+redis.errors: redis_database=metrics_test, redis_error=EOF, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.errors: redis_database=metrics_test, redis_error=EOF, redis_instance_type=sentinels	GAUGE	0	0
+redis.errors: redis_database=metrics_test, redis_error=OK	GAUGE	0	0
+redis.errors: redis_database=metrics_test, redis_error=OK, redis_instance=127.0.0.1:00000, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.errors: redis_database=metrics_test, redis_error=OK, redis_instance=127.0.0.1:00000, redis_instance_type=sentinels	GAUGE	0	0
+redis.errors: redis_database=metrics_test, redis_error=OK, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.errors: redis_database=metrics_test, redis_error=OK, redis_instance_type=sentinels	GAUGE	0	0
+redis.errors: redis_database=metrics_test, redis_error=OOM	GAUGE	0	0
+redis.errors: redis_database=metrics_test, redis_error=OOM, redis_instance=127.0.0.1:00000, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.errors: redis_database=metrics_test, redis_error=OOM, redis_instance=127.0.0.1:00000, redis_instance_type=sentinels	GAUGE	0	0
+redis.errors: redis_database=metrics_test, redis_error=OOM, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.errors: redis_database=metrics_test, redis_error=OOM, redis_instance_type=sentinels	GAUGE	0	0
+redis.errors: redis_database=metrics_test, redis_error=input_output_error	GAUGE	0	0
+redis.errors: redis_database=metrics_test, redis_error=input_output_error, redis_instance=127.0.0.1:00000, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.errors: redis_database=metrics_test, redis_error=input_output_error, redis_instance=127.0.0.1:00000, redis_instance_type=sentinels	GAUGE	0	0
+redis.errors: redis_database=metrics_test, redis_error=input_output_error, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.errors: redis_database=metrics_test, redis_error=input_output_error, redis_instance_type=sentinels	GAUGE	0	0
+redis.errors: redis_database=metrics_test, redis_error=other_error	GAUGE	0	0
+redis.errors: redis_database=metrics_test, redis_error=other_error, redis_instance=127.0.0.1:00000, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.errors: redis_database=metrics_test, redis_error=other_error, redis_instance=127.0.0.1:00000, redis_instance_type=sentinels	GAUGE	0	0
+redis.errors: redis_database=metrics_test, redis_error=other_error, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.errors: redis_database=metrics_test, redis_error=other_error, redis_instance_type=sentinels	GAUGE	0	0
+redis.errors: redis_database=metrics_test, redis_error=protocol_error	GAUGE	0	0
+redis.errors: redis_database=metrics_test, redis_error=protocol_error, redis_instance=127.0.0.1:00000, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.errors: redis_database=metrics_test, redis_error=protocol_error, redis_instance=127.0.0.1:00000, redis_instance_type=sentinels	GAUGE	0	0
+redis.errors: redis_database=metrics_test, redis_error=protocol_error, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.errors: redis_database=metrics_test, redis_error=protocol_error, redis_instance_type=sentinels	GAUGE	0	0
+redis.errors: redis_database=metrics_test, redis_error=redis_not_ready	GAUGE	0	0
+redis.errors: redis_database=metrics_test, redis_error=timeout	GAUGE	0	0
+redis.errors: redis_database=metrics_test, redis_error=timeout, redis_instance=127.0.0.1:00000, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.errors: redis_database=metrics_test, redis_error=timeout, redis_instance=127.0.0.1:00000, redis_instance_type=sentinels	GAUGE	0	0
+redis.errors: redis_database=metrics_test, redis_error=timeout, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.errors: redis_database=metrics_test, redis_error=timeout, redis_instance_type=sentinels	GAUGE	0	0
+redis.ev_threads.cpu_load_percent: ev_thread_name=redis_client_0	GAUGE	0	0
+redis.ev_threads.cpu_load_percent: ev_thread_name=redis_client_1	GAUGE	0	0
+redis.ev_threads.cpu_load_percent: ev_thread_name=redis_client_2	GAUGE	0	0
+redis.ev_threads.cpu_load_percent: ev_thread_name=redis_client_3	GAUGE	0	0
+redis.ev_threads.cpu_load_percent: ev_thread_name=redis_client_4	GAUGE	0	0
+redis.ev_threads.cpu_load_percent: ev_thread_name=redis_client_5	GAUGE	0	0
+redis.ev_threads.cpu_load_percent: ev_thread_name=redis_client_6	GAUGE	0	0
+redis.ev_threads.cpu_load_percent: ev_thread_name=redis_client_7	GAUGE	0	0
+redis.ev_threads.cpu_load_percent: ev_thread_name=redis_sentinel_0	GAUGE	0	0
+redis.instances_count: redis_database=metrics_test, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.instances_count: redis_database=metrics_test, redis_instance_type=sentinels	GAUGE	0	0
+redis.is_ready: redis_database=metrics_test, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.is_ready: redis_database=metrics_test, redis_instance_type=sentinels	GAUGE	0	0
+redis.is_syncing: redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.is_syncing: redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_type=sentinels	GAUGE	0	0
+redis.last_ping_ms: redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.last_ping_ms: redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_type=sentinels	GAUGE	0	0
+redis.not_ready_ms: redis_database=metrics_test, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.not_ready_ms: redis_database=metrics_test, redis_instance_type=sentinels	GAUGE	0	0
+redis.offset_from_master: redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.offset_from_master: redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_type=sentinels	GAUGE	0	0
+redis.reconnects: redis_database=metrics_test	GAUGE	0	0
+redis.reconnects: redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.reconnects: redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_type=sentinels	GAUGE	0	0
+redis.reconnects: redis_database=metrics_test, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.reconnects: redis_database=metrics_test, redis_instance_type=sentinels	GAUGE	0	0
+redis.reply_sizes: percentile=p0, redis_database=metrics_test	GAUGE	0	0
+redis.reply_sizes: percentile=p0, redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.reply_sizes: percentile=p0, redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_type=sentinels	GAUGE	0	0
+redis.reply_sizes: percentile=p0, redis_database=metrics_test, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.reply_sizes: percentile=p0, redis_database=metrics_test, redis_instance_type=sentinels	GAUGE	0	0
+redis.reply_sizes: percentile=p100, redis_database=metrics_test	GAUGE	0	0
+redis.reply_sizes: percentile=p100, redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.reply_sizes: percentile=p100, redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_type=sentinels	GAUGE	0	0
+redis.reply_sizes: percentile=p100, redis_database=metrics_test, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.reply_sizes: percentile=p100, redis_database=metrics_test, redis_instance_type=sentinels	GAUGE	0	0
+redis.reply_sizes: percentile=p50, redis_database=metrics_test	GAUGE	0	0
+redis.reply_sizes: percentile=p50, redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.reply_sizes: percentile=p50, redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_type=sentinels	GAUGE	0	0
+redis.reply_sizes: percentile=p50, redis_database=metrics_test, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.reply_sizes: percentile=p50, redis_database=metrics_test, redis_instance_type=sentinels	GAUGE	0	0
+redis.reply_sizes: percentile=p90, redis_database=metrics_test	GAUGE	0	0
+redis.reply_sizes: percentile=p90, redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.reply_sizes: percentile=p90, redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_type=sentinels	GAUGE	0	0
+redis.reply_sizes: percentile=p90, redis_database=metrics_test, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.reply_sizes: percentile=p90, redis_database=metrics_test, redis_instance_type=sentinels	GAUGE	0	0
+redis.reply_sizes: percentile=p95, redis_database=metrics_test	GAUGE	0	0
+redis.reply_sizes: percentile=p95, redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.reply_sizes: percentile=p95, redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_type=sentinels	GAUGE	0	0
+redis.reply_sizes: percentile=p95, redis_database=metrics_test, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.reply_sizes: percentile=p95, redis_database=metrics_test, redis_instance_type=sentinels	GAUGE	0	0
+redis.reply_sizes: percentile=p98, redis_database=metrics_test	GAUGE	0	0
+redis.reply_sizes: percentile=p98, redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.reply_sizes: percentile=p98, redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_type=sentinels	GAUGE	0	0
+redis.reply_sizes: percentile=p98, redis_database=metrics_test, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.reply_sizes: percentile=p98, redis_database=metrics_test, redis_instance_type=sentinels	GAUGE	0	0
+redis.reply_sizes: percentile=p99, redis_database=metrics_test	GAUGE	0	0
+redis.reply_sizes: percentile=p99, redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.reply_sizes: percentile=p99, redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_type=sentinels	GAUGE	0	0
+redis.reply_sizes: percentile=p99, redis_database=metrics_test, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.reply_sizes: percentile=p99, redis_database=metrics_test, redis_instance_type=sentinels	GAUGE	0	0
+redis.reply_sizes: percentile=p99_6, redis_database=metrics_test	GAUGE	0	0
+redis.reply_sizes: percentile=p99_6, redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.reply_sizes: percentile=p99_6, redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_type=sentinels	GAUGE	0	0
+redis.reply_sizes: percentile=p99_6, redis_database=metrics_test, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.reply_sizes: percentile=p99_6, redis_database=metrics_test, redis_instance_type=sentinels	GAUGE	0	0
+redis.reply_sizes: percentile=p99_9, redis_database=metrics_test	GAUGE	0	0
+redis.reply_sizes: percentile=p99_9, redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.reply_sizes: percentile=p99_9, redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_type=sentinels	GAUGE	0	0
+redis.reply_sizes: percentile=p99_9, redis_database=metrics_test, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.reply_sizes: percentile=p99_9, redis_database=metrics_test, redis_instance_type=sentinels	GAUGE	0	0
+redis.request_sizes: percentile=p0, redis_database=metrics_test	GAUGE	0	0
+redis.request_sizes: percentile=p0, redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.request_sizes: percentile=p0, redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_type=sentinels	GAUGE	0	0
+redis.request_sizes: percentile=p0, redis_database=metrics_test, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.request_sizes: percentile=p0, redis_database=metrics_test, redis_instance_type=sentinels	GAUGE	0	0
+redis.request_sizes: percentile=p100, redis_database=metrics_test	GAUGE	0	0
+redis.request_sizes: percentile=p100, redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.request_sizes: percentile=p100, redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_type=sentinels	GAUGE	0	0
+redis.request_sizes: percentile=p100, redis_database=metrics_test, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.request_sizes: percentile=p100, redis_database=metrics_test, redis_instance_type=sentinels	GAUGE	0	0
+redis.request_sizes: percentile=p50, redis_database=metrics_test	GAUGE	0	0
+redis.request_sizes: percentile=p50, redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.request_sizes: percentile=p50, redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_type=sentinels	GAUGE	0	0
+redis.request_sizes: percentile=p50, redis_database=metrics_test, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.request_sizes: percentile=p50, redis_database=metrics_test, redis_instance_type=sentinels	GAUGE	0	0
+redis.request_sizes: percentile=p90, redis_database=metrics_test	GAUGE	0	0
+redis.request_sizes: percentile=p90, redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.request_sizes: percentile=p90, redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_type=sentinels	GAUGE	0	0
+redis.request_sizes: percentile=p90, redis_database=metrics_test, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.request_sizes: percentile=p90, redis_database=metrics_test, redis_instance_type=sentinels	GAUGE	0	0
+redis.request_sizes: percentile=p95, redis_database=metrics_test	GAUGE	0	0
+redis.request_sizes: percentile=p95, redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.request_sizes: percentile=p95, redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_type=sentinels	GAUGE	0	0
+redis.request_sizes: percentile=p95, redis_database=metrics_test, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.request_sizes: percentile=p95, redis_database=metrics_test, redis_instance_type=sentinels	GAUGE	0	0
+redis.request_sizes: percentile=p98, redis_database=metrics_test	GAUGE	0	0
+redis.request_sizes: percentile=p98, redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.request_sizes: percentile=p98, redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_type=sentinels	GAUGE	0	0
+redis.request_sizes: percentile=p98, redis_database=metrics_test, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.request_sizes: percentile=p98, redis_database=metrics_test, redis_instance_type=sentinels	GAUGE	0	0
+redis.request_sizes: percentile=p99, redis_database=metrics_test	GAUGE	0	0
+redis.request_sizes: percentile=p99, redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.request_sizes: percentile=p99, redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_type=sentinels	GAUGE	0	0
+redis.request_sizes: percentile=p99, redis_database=metrics_test, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.request_sizes: percentile=p99, redis_database=metrics_test, redis_instance_type=sentinels	GAUGE	0	0
+redis.request_sizes: percentile=p99_6, redis_database=metrics_test	GAUGE	0	0
+redis.request_sizes: percentile=p99_6, redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.request_sizes: percentile=p99_6, redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_type=sentinels	GAUGE	0	0
+redis.request_sizes: percentile=p99_6, redis_database=metrics_test, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.request_sizes: percentile=p99_6, redis_database=metrics_test, redis_instance_type=sentinels	GAUGE	0	0
+redis.request_sizes: percentile=p99_9, redis_database=metrics_test	GAUGE	0	0
+redis.request_sizes: percentile=p99_9, redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.request_sizes: percentile=p99_9, redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_type=sentinels	GAUGE	0	0
+redis.request_sizes: percentile=p99_9, redis_database=metrics_test, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.request_sizes: percentile=p99_9, redis_database=metrics_test, redis_instance_type=sentinels	GAUGE	0	0
+redis.session-time-ms: redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.session-time-ms: redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_type=sentinels	GAUGE	0	0
+redis.state: redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_state=connected, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.state: redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_state=connected, redis_instance_type=sentinels	GAUGE	0	0
+redis.state: redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_state=disconnect_error, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.state: redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_state=disconnect_error, redis_instance_type=sentinels	GAUGE	0	0
+redis.state: redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_state=disconnected, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.state: redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_state=disconnected, redis_instance_type=sentinels	GAUGE	0	0
+redis.state: redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_state=disconnecting, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.state: redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_state=disconnecting, redis_instance_type=sentinels	GAUGE	0	0
+redis.state: redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_state=init, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.state: redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_state=init, redis_instance_type=sentinels	GAUGE	0	0
+redis.state: redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_state=init_error, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.state: redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_state=init_error, redis_instance_type=sentinels	GAUGE	0	0
+redis.timings: percentile=p0, redis_database=metrics_test	GAUGE	0	0
+redis.timings: percentile=p0, redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.timings: percentile=p0, redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_type=sentinels	GAUGE	0	0
+redis.timings: percentile=p0, redis_database=metrics_test, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.timings: percentile=p0, redis_database=metrics_test, redis_instance_type=sentinels	GAUGE	0	0
+redis.timings: percentile=p100, redis_database=metrics_test	GAUGE	0	0
+redis.timings: percentile=p100, redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.timings: percentile=p100, redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_type=sentinels	GAUGE	0	0
+redis.timings: percentile=p100, redis_database=metrics_test, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.timings: percentile=p100, redis_database=metrics_test, redis_instance_type=sentinels	GAUGE	0	0
+redis.timings: percentile=p50, redis_database=metrics_test	GAUGE	0	0
+redis.timings: percentile=p50, redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.timings: percentile=p50, redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_type=sentinels	GAUGE	0	0
+redis.timings: percentile=p50, redis_database=metrics_test, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.timings: percentile=p50, redis_database=metrics_test, redis_instance_type=sentinels	GAUGE	0	0
+redis.timings: percentile=p90, redis_database=metrics_test	GAUGE	0	0
+redis.timings: percentile=p90, redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.timings: percentile=p90, redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_type=sentinels	GAUGE	0	0
+redis.timings: percentile=p90, redis_database=metrics_test, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.timings: percentile=p90, redis_database=metrics_test, redis_instance_type=sentinels	GAUGE	0	0
+redis.timings: percentile=p95, redis_database=metrics_test	GAUGE	0	0
+redis.timings: percentile=p95, redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.timings: percentile=p95, redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_type=sentinels	GAUGE	0	0
+redis.timings: percentile=p95, redis_database=metrics_test, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.timings: percentile=p95, redis_database=metrics_test, redis_instance_type=sentinels	GAUGE	0	0
+redis.timings: percentile=p98, redis_database=metrics_test	GAUGE	0	0
+redis.timings: percentile=p98, redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.timings: percentile=p98, redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_type=sentinels	GAUGE	0	0
+redis.timings: percentile=p98, redis_database=metrics_test, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.timings: percentile=p98, redis_database=metrics_test, redis_instance_type=sentinels	GAUGE	0	0
+redis.timings: percentile=p99, redis_database=metrics_test	GAUGE	0	0
+redis.timings: percentile=p99, redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.timings: percentile=p99, redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_type=sentinels	GAUGE	0	0
+redis.timings: percentile=p99, redis_database=metrics_test, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.timings: percentile=p99, redis_database=metrics_test, redis_instance_type=sentinels	GAUGE	0	0
+redis.timings: percentile=p99_6, redis_database=metrics_test	GAUGE	0	0
+redis.timings: percentile=p99_6, redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.timings: percentile=p99_6, redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_type=sentinels	GAUGE	0	0
+redis.timings: percentile=p99_6, redis_database=metrics_test, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.timings: percentile=p99_6, redis_database=metrics_test, redis_instance_type=sentinels	GAUGE	0	0
+redis.timings: percentile=p99_9, redis_database=metrics_test	GAUGE	0	0
+redis.timings: percentile=p99_9, redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.timings: percentile=p99_9, redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_type=sentinels	GAUGE	0	0
+redis.timings: percentile=p99_9, redis_database=metrics_test, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0	0
+redis.timings: percentile=p99_9, redis_database=metrics_test, redis_instance_type=sentinels	GAUGE	0	0

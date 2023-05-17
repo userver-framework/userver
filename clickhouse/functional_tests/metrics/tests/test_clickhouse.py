@@ -4,11 +4,10 @@ import re
 def _normalize_metrics(metrics: str) -> str:
     result = []
     for line in metrics.splitlines():
-        left, _, _ = line.rsplit(' ', 2)
-
-        left = re.sub('localhost_\\d+', 'localhost_00000', left)
-        result.append(left)
-
+        left, _ = line.rsplit('\t', 1)
+        result.append(
+            re.sub('localhost_\\d+', 'localhost_00000', left + '\t' + '0'),
+        )
     result.sort()
     return '\n'.join(result)
 
@@ -46,7 +45,7 @@ async def test_metrics(service_client, monitor_client, load):
     ethalon = _normalize_metrics(load('metrics_values.txt'))
     all_metrics = _normalize_metrics(
         await monitor_client.metrics_raw(
-            output_format='graphite', prefix='clickhouse.',
+            output_format='pretty', prefix='clickhouse.',
         ),
     )
     assert all_metrics == ethalon
