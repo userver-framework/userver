@@ -74,7 +74,7 @@ endif()
 
 
 if(Protobuf_VERSION VERSION_LESS 3.19.0)
-	set(ENV{PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION} "python")
+	set(ENV_PARAMS_FOR_PROTOC "${CMAKE_COMMAND} -E env PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python")
 	message(STATUS "Usage old version protobuf, env for gen: $ENV{PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION}")
 endif()
 
@@ -155,7 +155,7 @@ function(generate_grpc_files)
     if("${newest_proto_dependency}" IS_NEWER_THAN "${GENERATED_PROTO_DIR}/${path_base}.pb.cc")
       execute_process(
         COMMAND mkdir -p proto
-        COMMAND ${PROTOBUF_PROTOC} ${include_options}
+        COMMAND ${ENV_PARAMS_FOR_PROTOC} ${PROTOBUF_PROTOC} ${include_options}
               --cpp_out=${GENERATED_PROTO_DIR}
               --grpc_out=${GENERATED_PROTO_DIR}
               --usrv_out=${GENERATED_PROTO_DIR}
