@@ -34,6 +34,12 @@ T CheckNotNull(T ptr) {
 }  // namespace
 
 void CacheUpdateTrait::Impl::InvalidateAsync(UpdateType update_type) {
+  if (!periodic_update_enabled_) {
+    // We are in testsuite, update synchronously for repeatability.
+    UpdateSyncDebug(update_type);
+    return;
+  }
+
   const auto config = GetConfig();
   if (config->allowed_update_types == AllowedUpdateTypes::kOnlyFull &&
       update_type == UpdateType::kIncremental) {
@@ -54,7 +60,7 @@ void CacheUpdateTrait::Impl::InvalidateAsync(UpdateType update_type) {
   }
 }
 
-void CacheUpdateTrait::Impl::Update(UpdateType update_type) {
+void CacheUpdateTrait::Impl::UpdateSyncDebug(UpdateType update_type) {
   std::lock_guard lock(update_mutex_);
   const auto config = GetConfig();
 

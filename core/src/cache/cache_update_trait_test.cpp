@@ -737,6 +737,16 @@ update-interval: 10s
   return {formats::yaml::FromString(kConfig), {}};
 }
 
+yaml_config::YamlConfig MakeForcedUpdateDisabledCacheConfig() {
+  static const std::string kConfig = R"(
+update-types: full-and-incremental
+full-update-interval: 10s
+update-interval: 10s
+updates-enabled: false
+)";
+  return {formats::yaml::FromString(kConfig), {}};
+}
+
 void YieldNTimes(std::size_t n) {
   for (std::size_t i = 0; i < n; i++) {
     engine::Yield();
@@ -781,8 +791,10 @@ UTEST(CacheInvalidateAsync, BeforeStartPeriodicUpdates) {
 }
 
 UTEST(CacheInvalidateAsync, PeriodicUpdatesNotEnabled) {
-  cache::MockEnvironment environment;
-  ForcedUpdateCache cache(MakeForcedUpdateCacheConfig(), environment, {});
+  cache::MockEnvironment environment(
+      testsuite::CacheControl::PeriodicUpdatesMode::kEnabled);
+  ForcedUpdateCache cache(MakeForcedUpdateDisabledCacheConfig(), environment,
+                          {});
 
   for (auto update_type :
        {cache::UpdateType::kFull, cache::UpdateType::kIncremental}) {

@@ -38,7 +38,7 @@ class CacheUpdateTrait::Impl final {
 
   void InvalidateAsync(UpdateType update_type);
 
-  void Update(UpdateType update_type);
+  void UpdateSyncDebug(UpdateType update_type);
 
   const std::string& Name() const;
 

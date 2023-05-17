@@ -64,8 +64,8 @@ class HandlerCacheState final : public server::handlers::HttpHandlerBase {
   std::string HandleRequestThrow(
       const server::http::HttpRequest&,
       server::request::RequestContext&) const override {
-    cache_.cache::CacheUpdateTrait::Update(cache::UpdateType::kIncremental);
-    cache_.cache::CacheUpdateTrait::Update(cache::UpdateType::kIncremental);
+    cache_.UpdateSyncDebug(cache::UpdateType::kIncremental);
+    cache_.UpdateSyncDebug(cache::UpdateType::kIncremental);
 
     auto data = cache_.Get();
     if (*data == Data{{42, 42}}) {

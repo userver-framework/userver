@@ -19,8 +19,8 @@ CacheUpdateTrait::CacheUpdateTrait(CacheDependencies&& dependencies)
 
 CacheUpdateTrait::~CacheUpdateTrait() = default;
 
-void CacheUpdateTrait::Update(UpdateType update_type) {
-  impl_->Update(update_type);
+void CacheUpdateTrait::UpdateSyncDebug(UpdateType update_type) {
+  impl_->UpdateSyncDebug(update_type);
 }
 
 void CacheUpdateTrait::InvalidateAsync(UpdateType update_type) {

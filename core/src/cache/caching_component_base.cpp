@@ -26,6 +26,10 @@ properties:
         type: string
         description: max. amount of time by which interval may be adjusted for requests dispersal
         defaultDescription: update_interval / 10
+    updates-enabled:
+        type: boolean
+        description: if false, cache updates are disabled (except for the first one if !first-update-fail-ok)
+        defaultDescription: true
     full-update-interval:
         type: string
         description: interval between full updates

@@ -32,13 +32,13 @@ class CacheUpdateTrait {
   CacheUpdateTrait(CacheUpdateTrait&&) = delete;
   CacheUpdateTrait& operator=(CacheUpdateTrait&&) = delete;
 
-  /// @brief Forces a cache update of specified type
-  /// @throws If `Update` throws
-  void Update(UpdateType update_type);
-
   /// @brief Non-blocking forced cache update of specified type
   /// @see PeriodicTask::ForceStepAsync for behavior details
   void InvalidateAsync(UpdateType update_type);
+
+  /// @brief Forces a cache update of specified type
+  /// @throws If `Update` throws
+  void UpdateSyncDebug(UpdateType update_type);
 
   /// @return name of the component
   const std::string& Name() const;
