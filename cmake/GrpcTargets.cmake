@@ -155,18 +155,18 @@ function(generate_grpc_files)
     if("${newest_proto_dependency}" IS_NEWER_THAN "${GENERATED_PROTO_DIR}/${path_base}.pb.cc")
       execute_process(
         COMMAND mkdir -p proto
-		COMMAND bash -c "${ENV_PARAMS_FOR_PROTOC} ${PROTOBUF_PROTOC} ${include_options}
-              --cpp_out=${GENERATED_PROTO_DIR}
-              --grpc_out=${GENERATED_PROTO_DIR}
-              --usrv_out=${GENERATED_PROTO_DIR}
-              --python_out=${GENERATED_PROTO_DIR}
-              --grpc_python_out=${GENERATED_PROTO_DIR}
-              ${pyi_out_param}
-              -I ${root_path}
-              -I ${GRPC_PROTOBUF_INCLUDE_DIRS}
-              --plugin=protoc-gen-grpc=${PROTO_GRPC_CPP_PLUGIN}
-              --plugin=protoc-gen-usrv=${PROTO_GRPC_USRV_PLUGIN}
-              --plugin=protoc-gen-grpc_python=${PROTO_GRPC_PYTHON_PLUGIN}
+		COMMAND bash -c "${ENV_PARAMS_FOR_PROTOC} ${PROTOBUF_PROTOC} ${include_options} \
+              --cpp_out=${GENERATED_PROTO_DIR} \
+              --grpc_out=${GENERATED_PROTO_DIR} \
+              --usrv_out=${GENERATED_PROTO_DIR} \
+              --python_out=${GENERATED_PROTO_DIR} \
+              --grpc_python_out=${GENERATED_PROTO_DIR} \
+              ${pyi_out_param} \
+              -I ${root_path} \
+              -I ${GRPC_PROTOBUF_INCLUDE_DIRS} \
+              --plugin=protoc-gen-grpc=${PROTO_GRPC_CPP_PLUGIN} \
+              --plugin=protoc-gen-usrv=${PROTO_GRPC_USRV_PLUGIN} \
+              --plugin=protoc-gen-grpc_python=${PROTO_GRPC_PYTHON_PLUGIN} \
               ${proto_file}"
         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
         RESULT_VARIABLE execute_process_result
