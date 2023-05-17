@@ -135,7 +135,11 @@ function(generate_grpc_files)
   endif()
 
   if(Protobuf_VERSION VERSION_LESS 3.19.0)
-	  set(ENV{PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION} python)
+      execute_process(
+        COMMAND "${USERVER_DIR}/script/grpc/set_env.sh"
+        RESULT_VARIABLE RESULT
+        WORKING_DIRECTORY "${USERVER_DIR}"
+      )
 	  message(STATUS "Usage old version protobuf, env for gen: $ENV{PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION}")
   endif()
 
