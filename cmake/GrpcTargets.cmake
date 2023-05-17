@@ -168,7 +168,7 @@ function(generate_grpc_files)
               --plugin=protoc-gen-grpc=${PROTO_GRPC_CPP_PLUGIN}
               --plugin=protoc-gen-usrv=${PROTO_GRPC_USRV_PLUGIN}
               --plugin=protoc-gen-grpc_python=${PROTO_GRPC_PYTHON_PLUGIN}
-              ${proto_file}"
+              ${proto_file}
         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
         RESULT_VARIABLE execute_process_result
       )
