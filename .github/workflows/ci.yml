@@ -113,7 +113,7 @@ jobs:
             run: |
                 mkdir build_debug
                 cd build_debug
-                PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python cmake ${{matrix.cmake-flags}} ..
+                cmake ${{matrix.cmake-flags}} ..
 
           - name: Run clang-tidy
             if: matrix.info == 'clang-14 + debug + sanitize addr+ub'
@@ -143,7 +143,7 @@ jobs:
                 cd build_debug
                 mkdir userver/grpc || :
                 cd userver/grpc
-                ctest -V
+                PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python ctest -V
 
           - name: Run tests (universal)
             run: |
