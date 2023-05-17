@@ -154,6 +154,8 @@ function(generate_grpc_files)
 
     set(did_generate_proto_sources FALSE)
     if("${newest_proto_dependency}" IS_NEWER_THAN "${GENERATED_PROTO_DIR}/${path_base}.pb.cc")
+	  message(STATUS "PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION: $ENV{PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION}")
+
       execute_process(
         COMMAND mkdir -p proto
 		COMMAND ${PROTOBUF_PROTOC} ${include_options}
