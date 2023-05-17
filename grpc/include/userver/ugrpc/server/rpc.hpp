@@ -20,6 +20,7 @@ namespace ugrpc::server {
 
 /// @brief A non-typed base class for any gRPC call
 class CallAnyBase {
+ public:
   /// @brief Complete the RPC with an error
   ///
   /// `Finish` must not be called multiple times for the same RPC.
