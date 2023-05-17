@@ -43,15 +43,10 @@ endif()
 
 # We only check the system pip protobuf package version once.
 if(NOT USERVER_IMPL_GRPC_REQUIREMENTS_CHECKED)
-  set(requirements_file "requirements_old.txt")
-  if(Protobuf_VERSION VERSION_GREATER 3.20.0)
-    set(requirements_file "requirements.txt")
-  endif()
-  message(STATUS "Using files for pip install: ${requirements_file}")
   execute_process(
     COMMAND "${PYTHON}"
       -m pip install --disable-pip-version-check
-      -r "${USERVER_DIR}/scripts/grpc/${requirements_file}"
+      -r "${USERVER_DIR}/scripts/grpc/requirements.txt"
     RESULT_VARIABLE RESULT
     WORKING_DIRECTORY "${USERVER_DIR}"
   )
@@ -75,6 +70,12 @@ endif()
 
 if(NOT PROTO_GRPC_PYTHON_PLUGIN)
   message(FATAL_ERROR "grpc_python_plugin not found")
+endif()
+
+
+if(Protobuf_VERSION VERSION_LESS 3.19.0)
+	set(ENV{PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION} "python")
+	message(STATUS "Usage old version protobuf, env for gen: $ENV{PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION}")
 endif()
 
 function(generate_grpc_files)
