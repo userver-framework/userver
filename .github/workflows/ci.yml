@@ -113,7 +113,7 @@ jobs:
             run: |
                 mkdir build_debug
                 cd build_debug
-                cmake ${{matrix.cmake-flags}} ..
+                PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python cmake ${{matrix.cmake-flags}} ..
 
           - name: Run clang-tidy
             if: matrix.info == 'clang-14 + debug + sanitize addr+ub'
