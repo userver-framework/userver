@@ -14,7 +14,7 @@ function(userver_chaos_testsuite_add)
       SERVICE_TARGET ${PROJECT_NAME}
       WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests
       PYTHON_BINARY ${TESTSUITE_PYTHON_BINARY}
-      PYTHONPATH ${CMAKE_CURRENT_BINARY_DIR}/proto
+      PYTHONPATH ${CMAKE_CURRENT_BINARY_DIR}/../../proto
       PYTEST_ARGS
       --service-config=${CMAKE_CURRENT_SOURCE_DIR}/static_config.yaml
       --service-source-dir=${CMAKE_CURRENT_SOURCE_DIR}
@@ -24,5 +24,5 @@ function(userver_chaos_testsuite_add)
     )
 endfunction()
 
-add_subdirectory(basic_chaos)
-add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-basic-chaos)
+add_subdirectory(health)
+add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-health)

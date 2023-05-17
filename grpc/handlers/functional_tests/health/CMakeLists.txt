@@ -1,4 +1,4 @@
-project(userver-grpc-handlers-tests-basic-chaos CXX)
+project(userver-grpc-handlers-tests-health CXX)
 
 add_executable(${PROJECT_NAME} service.cpp)
 target_link_libraries(${PROJECT_NAME} userver-grpc-handlers)

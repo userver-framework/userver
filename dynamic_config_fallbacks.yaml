@@ -118,7 +118,7 @@ groups:
       - samples/grpc_service/dynamic_config_fallback.json
       - grpc/tests/dynamic_config_fallback.json
       - grpc/functional_tests/basic_chaos/dynamic_config_fallback.json
-      - grpc/handlers/functional_tests/basic_chaos/dynamic_config_fallback.json
+      - grpc/handlers/functional_tests/health/dynamic_config_fallback.json
 
   - library-yamls:
       - core/library.yaml
