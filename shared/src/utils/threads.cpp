@@ -2,13 +2,12 @@
 
 #include <sched.h>
 #include <sys/param.h>
+#include <sys/resource.h>
 
 #ifdef __APPLE__
 #include <pthread.h>
-#include <sys/resource.h>
 #elif defined(BSD)
 #include <pthread_np.h>
-#include <sys/resource.h>
 #include <sys/time.h>
 #include <unistd.h>
 #else
@@ -33,30 +32,14 @@ namespace {
 pid_t GetTid() { return static_cast<pid_t>(syscall(SYS_gettid)); }
 #endif
 
-struct LowPriorityParams {
-  int policy;
-  struct sched_param params;
-};
+int QueryLowPriorityParam() {
+  // -20 - highest priority, 19 - lowest priority
+  constexpr int kLowestPriority = 19;
 
-LowPriorityParams QueryLowPriorityParams() {
-  LowPriorityParams result{};
-
-  utils::CheckSyscall(
-      ::pthread_getschedparam(::pthread_self(), &result.policy, &result.params),
-      "getting thread scheduling parameters");
-
-  const auto min_priority = ::sched_get_priority_min(result.policy);
-  const auto current_priority = result.params.sched_priority;
-
-  result.params.sched_priority = (current_priority + min_priority - 1) / 2;
-  if (current_priority == result.params.sched_priority) {
-    throw std::runtime_error(fmt::format(
-        "Failed to lower thread priority to {}: current thread "
-        "priority is {}, minimal priority is {}",
-        result.params.sched_priority, current_priority, min_priority));
-  }
-
-  return result;
+  const int current_priority = ::getpriority(PRIO_PROCESS, 0);
+  // errno is 0 because an error can only occur if the arguments for getpriority
+  // are not correct
+  return (kLowestPriority + current_priority + 1) / 2;
 }
 
 }  // namespace
@@ -90,12 +73,10 @@ void SetCurrentThreadIdleScheduling() {
 }
 
 void SetCurrentThreadLowPriorityScheduling() {
-  static const auto kLowPriority = QueryLowPriorityParams();
+  static const auto kLowPriority = QueryLowPriorityParam();
 
-  utils::CheckSyscall(
-      ::pthread_setschedparam(::pthread_self(), kLowPriority.policy,
-                              &kLowPriority.params),
-      "setting thread scheduling parameters");
+  utils::CheckSyscall(::setpriority(PRIO_PROCESS, 0, kLowPriority),
+                      "setting thread scheduling parameters");
 }
 
 }  // namespace utils
