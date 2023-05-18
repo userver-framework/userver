@@ -60,6 +60,15 @@ std::unique_ptr<testsuite::TestsuiteTasks> ParseTestsuiteTasks(
   return std::make_unique<testsuite::TestsuiteTasks>(is_enabled);
 }
 
+testsuite::GrpcControl ParseGrpcControl(
+    const components::ComponentConfig& config) {
+  bool is_tls_enabled{config["testsuite-grpc-is-tls-enabled"].As<bool>(false)};
+  std::chrono::milliseconds timeout{
+      config["testsuite-grpc-client-timeout-ms"].As<int>(30000)};
+
+  return testsuite::GrpcControl(timeout, is_tls_enabled);
+}
+
 }  // namespace
 
 TestsuiteSupport::TestsuiteSupport(const components::ComponentConfig& config,
@@ -70,7 +79,8 @@ TestsuiteSupport::TestsuiteSupport(const components::ComponentConfig& config,
       dump_control_(ParseDumpControl(config)),
       postgres_control_(ParsePostgresControl(config)),
       redis_control_(ParseRedisControl(config)),
-      testsuite_tasks_(ParseTestsuiteTasks(config, context)) {}
+      testsuite_tasks_(ParseTestsuiteTasks(config, context)),
+      grpc_control_(ParseGrpcControl(config)) {}
 
 TestsuiteSupport::~TestsuiteSupport() = default;
 
@@ -110,6 +120,10 @@ testsuite::HttpAllowedUrlsExtra& TestsuiteSupport::GetHttpAllowedUrlsExtra() {
   return http_allowed_urls_extra_;
 }
 
+testsuite::GrpcControl& TestsuiteSupport::GetGrpcControl() {
+  return grpc_control_;
+}
+
 yaml_config::Schema TestsuiteSupport::GetStaticConfigSchema() {
   return yaml_config::MergeSchemas<impl::ComponentBase>(R"(
 type: object
@@ -143,6 +157,12 @@ properties:
     testsuite-redis-timeout-all:
         type: string
         description: minimum command timeout for redis
+    testsuite-grpc-is-tls-enabled:
+        type: boolean
+        description: whether TLS should be enabled
+    testsuite-grpc-client-timeout-ms:
+        type: integer
+        description: forced timeout on client requests
     testsuite-tasks-enabled:
         type: boolean
         description: |

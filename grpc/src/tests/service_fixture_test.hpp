@@ -43,6 +43,7 @@ class GrpcServiceFixture : public ::testing::Test {
  private:
   utils::statistics::Storage statistics_storage_;
   ugrpc::server::Server server_;
+  testsuite::GrpcControl ts_;
   std::optional<std::string> endpoint_;
   std::optional<ugrpc::client::ClientFactory> client_factory_;
 };

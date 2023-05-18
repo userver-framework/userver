@@ -87,11 +87,14 @@ ClientFactoryConfig Parse(const yaml_config::YamlConfig& value,
 ClientFactory::ClientFactory(ClientFactoryConfig&& config,
                              engine::TaskProcessor& channel_task_processor,
                              grpc::CompletionQueue& queue,
-                             utils::statistics::Storage& statistics_storage)
+                             utils::statistics::Storage& statistics_storage,
+                             testsuite::GrpcControl& testsuite_grpc)
     : channel_task_processor_(channel_task_processor),
       queue_(queue),
-      channel_cache_(std::move(config.credentials), config.channel_args,
-                     config.channel_count),
+      channel_cache_(testsuite_grpc.IsTlsEnabled()
+                         ? config.credentials
+                         : grpc::InsecureChannelCredentials(),
+                     config.channel_args, config.channel_count),
       client_statistics_storage_(statistics_storage, "client") {
   ugrpc::impl::SetupNativeLogging();
   ugrpc::impl::UpdateNativeLogLevel(config.native_log_level);

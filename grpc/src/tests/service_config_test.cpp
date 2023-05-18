@@ -53,9 +53,10 @@ UTEST(GrpcClient, DefaultServiceConfig) {
   auto config = yaml_config.As<ugrpc::client::ClientFactoryConfig>();
   ugrpc::client::QueueHolder client_queue;
 
+  testsuite::GrpcControl ts({}, false);
   ugrpc::client::ClientFactory client_factory(
       std::move(config), engine::current_task::GetTaskProcessor(),
-      client_queue.GetQueue(), statistics_storage);
+      client_queue.GetQueue(), statistics_storage, ts);
   const std::string endpoint{"[::]:50051"};
   auto client =
       client_factory.MakeClient<sample::ugrpc::UnitTestServiceClient>(endpoint);

@@ -28,9 +28,10 @@ UTEST(GrpcClient, ChannelsCount) {
   ugrpc::client::QueueHolder client_queue;
   utils::statistics::Storage statistics_storage;
 
+  testsuite::GrpcControl ts({}, false);
   ugrpc::client::ClientFactory client_factory(
       std::move(config), engine::current_task::GetTaskProcessor(),
-      client_queue.GetQueue(), statistics_storage);
+      client_queue.GetQueue(), statistics_storage, ts);
 
   const std::string endpoint{"[::]:50051"};
   auto client =

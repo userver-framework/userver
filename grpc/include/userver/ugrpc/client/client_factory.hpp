@@ -11,6 +11,7 @@
 
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/logging/level.hpp>
+#include <userver/testsuite/grpc_control.hpp>
 #include <userver/utils/statistics/fwd.hpp>
 #include <userver/yaml_config/fwd.hpp>
 
@@ -51,7 +52,8 @@ class ClientFactory final {
   ClientFactory(ClientFactoryConfig&& config,
                 engine::TaskProcessor& channel_task_processor,
                 grpc::CompletionQueue& queue,
-                utils::statistics::Storage& statistics_storage);
+                utils::statistics::Storage& statistics_storage,
+                testsuite::GrpcControl& testsuite_grpc);
 
   template <typename Client>
   Client MakeClient(const std::string& endpoint);

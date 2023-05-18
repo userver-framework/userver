@@ -49,6 +49,7 @@ components_manager:
             method: POST
             task_processor: main-task-processor
 
+        testsuite-support:
 
     default_task_processor: main-task-processor
     task_processors:
