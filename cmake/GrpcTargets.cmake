@@ -66,8 +66,6 @@ if(NOT PROTO_GRPC_PYTHON_PLUGIN)
   message(FATAL_ERROR "grpc_python_plugin not found")
 endif()
 
-
-
 function(generate_grpc_files)
   set(options)
   set(one_value_args CPP_FILES CPP_USRV_FILES GENERATED_INCLUDES SOURCE_PATH)
@@ -124,7 +122,7 @@ function(generate_grpc_files)
   endforeach()
 
   set(pyi_out_param "")
-  if(${gRPC_VERSION} VERSION_GREATER "1.47.0")
+  if(gRPC_VERSION VERSION_GREATER "1.47.0")
     set(pyi_out_param "--pyi_out=${GENERATED_PROTO_DIR}")
   endif()
 
