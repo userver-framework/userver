@@ -136,15 +136,6 @@ jobs:
                 cd build_debug
                 make -j$(nproc)
 
-          - name: Run tests (gRPC)
-            # TODO: Sanitizer detects bool with value other than 1 or 0
-            if: matrix.info != 'clang-14 + debug + sanitize addr+ub'
-            run: |
-                cd build_debug
-                mkdir userver/grpc || :
-                cd userver/grpc
-                ctest -V
-
           - name: Run tests (universal)
             run: |
                 echo "UBSAN_OPTIONS=${UBSAN_OPTIONS} ASAN_OPTIONS=${ASAN_OPTIONS}"
@@ -200,3 +191,12 @@ jobs:
                 if [ -f ./userver-mongo_unittest ]; then ./userver-mongo_unittest ; fi
                 # Mongo is not available on Ubuntu 22.04 from default repos
                 if [ "${{matrix.os}}" != "ubuntu-22.04" ]; then ctest -V -R userver-mongo_mongotest ; fi
+
+          - name: Run tests (gRPC)
+            # TODO: Sanitizer detects bool with value other than 1 or 0
+            if: matrix.info != 'clang-14 + debug + sanitize addr+ub'
+            run: |
+                cd build_debug
+                mkdir userver/grpc || :
+                cd userver/grpc
+                ctest -V

@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file userver/engine/io/socket.hpp SSS
+/// @file userver/engine/io/socket.hpp
 /// @brief @copybrief engine::io::Socket
 
 #include <sys/socket.h>

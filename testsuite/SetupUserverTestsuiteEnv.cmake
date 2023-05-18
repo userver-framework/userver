@@ -9,7 +9,6 @@ else()
 endif()
 
 if (USERVER_FEATURE_GRPC)
-    find_package(Protobuf)
     if(Protobuf_FOUND)
       if(Protobuf_VERSION VERSION_GREATER 3.20.0)
         list(APPEND TESTSUITE_REQUIREMENTS
