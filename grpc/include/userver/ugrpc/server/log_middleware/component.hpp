@@ -3,6 +3,8 @@
 /// @file userver/ugrpc/server/log_middleware/component.hpp
 /// @brief @copybrief ugrpc::server::log_middleware::Component
 
+#include <optional>
+
 #include <userver/ugrpc/server/middleware_base.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -37,7 +39,8 @@ class Component final : public MiddlewareComponentBase {
 
  private:
   std::size_t max_size_;
-  logging::Level log_level_;
+  logging::Level msg_log_level_;
+  std::optional<logging::Level> local_log_level_;
 };
 
 }  // namespace ugrpc::server::log_middleware

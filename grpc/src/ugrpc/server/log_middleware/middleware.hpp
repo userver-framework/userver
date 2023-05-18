@@ -10,7 +10,8 @@ class Middleware final : public MiddlewareBase {
  public:
   struct Settings {
     size_t max_msg_size;
-    logging::Level log_level;
+    logging::Level msg_log_level;
+    std::optional<logging::Level> local_log_level;
   };
 
   explicit Middleware(const Settings& settings);
