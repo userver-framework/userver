@@ -143,7 +143,7 @@ jobs:
                 cd build_debug
                 mkdir userver/grpc || :
                 cd userver/grpc
-                PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python ctest -V
+                ctest -V
 
           - name: Run tests (universal)
             run: |

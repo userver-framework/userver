@@ -43,10 +43,15 @@ endif()
 
 # We only check the system pip protobuf package version once.
 if(NOT USERVER_IMPL_GRPC_REQUIREMENTS_CHECKED)
+    set(file_requirements_protobuf "requirements.txt")
+  if(Protobuf_VERSION VERSION_LESS 3.20.0)
+    message(STATUS "Usege old version protobuf")
+    set(file_requirements_protobuf "requirements_old.txt")
+  endif()
   execute_process(
     COMMAND "${PYTHON}"
       -m pip install --disable-pip-version-check
-      -r "${USERVER_DIR}/scripts/grpc/requirements.txt"
+      -r "${USERVER_DIR}/scripts/grpc/${file_requirements_protobuf}"
     RESULT_VARIABLE RESULT
     WORKING_DIRECTORY "${USERVER_DIR}"
   )
@@ -134,15 +139,6 @@ function(generate_grpc_files)
     set(pyi_out_param "--pyi_out=${GENERATED_PROTO_DIR}")
   endif()
 
-  if(Protobuf_VERSION VERSION_LESS 3.19.0)
-      execute_process(
-        COMMAND "${USERVER_DIR}/script/grpc/set_env.sh"
-        RESULT_VARIABLE RESULT
-        WORKING_DIRECTORY "${USERVER_DIR}"
-      )
-	  message(STATUS "Usage old version protobuf, env for gen: $ENV{PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION}")
-  endif()
-
   foreach (proto_file ${GEN_RPC_PROTOS})
     get_filename_component(proto_file "${proto_file}" REALPATH BASE_DIR "${root_path}")
 
@@ -158,11 +154,9 @@ function(generate_grpc_files)
 
     set(did_generate_proto_sources FALSE)
     if("${newest_proto_dependency}" IS_NEWER_THAN "${GENERATED_PROTO_DIR}/${path_base}.pb.cc")
-	  message(STATUS "PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION: $ENV{PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION}")
-
       execute_process(
         COMMAND mkdir -p proto
-		COMMAND ${PROTOBUF_PROTOC} ${include_options}
+        COMMAND ${PROTOBUF_PROTOC} ${include_options}
               --cpp_out=${GENERATED_PROTO_DIR}
               --grpc_out=${GENERATED_PROTO_DIR}
               --usrv_out=${GENERATED_PROTO_DIR}
