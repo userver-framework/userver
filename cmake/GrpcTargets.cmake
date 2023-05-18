@@ -32,7 +32,7 @@ endif()
 
 # We only check the system pip protobuf package version once.
 if(NOT USERVER_IMPL_GRPC_REQUIREMENTS_CHECKED)
-    set(file_requirements_protobuf "requirements.txt")
+  set(file_requirements_protobuf "requirements.txt")
   if(Protobuf_VERSION VERSION_LESS 3.20.0)
     message(STATUS "Usege old version protobuf")
     set(file_requirements_protobuf "requirements_old.txt")
