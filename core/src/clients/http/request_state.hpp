@@ -85,6 +85,8 @@ class RequestState : public std::enable_shared_from_this<RequestState> {
   void retry(short retries, bool on_fails);
   /// set unix socket as transport instead of TCP
   void unix_socket_path(const std::string& path);
+  /// set connect_to option
+  void connect_to(const std::string& path);
   /// sets proxy to use
   void proxy(const std::string& value);
   /// sets proxy auth type to use

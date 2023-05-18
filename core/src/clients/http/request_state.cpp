@@ -243,6 +243,10 @@ void RequestState::unix_socket_path(const std::string& path) {
   easy().set_unix_socket_path(path);
 }
 
+void RequestState::connect_to(const std::string& path) {
+  easy().set_connect_to(path);
+}
+
 void RequestState::proxy(const std::string& value) {
   proxy_url_ = value;
   easy().set_proxy(value);

@@ -309,6 +309,11 @@ std::shared_ptr<Request> Request::unix_socket_path(const std::string& path) {
   return shared_from_this();
 }
 
+std::shared_ptr<Request> Request::connect_to(const std::string& path) {
+  pimpl_->connect_to(path);
+  return shared_from_this();
+}
+
 std::shared_ptr<Request> Request::data(std::string data) {
   if (!data.empty())
     pimpl_->easy().add_header(kHeaderExpect, "",
