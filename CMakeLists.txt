@@ -107,6 +107,10 @@ option(USERVER_FEATURE_RABBITMQ "Provide asynchronous driver for RabbitMQ" ON)
 option(USERVER_FEATURE_MYSQL "Provide asynchronous driver for MariaDB/MySQL" OFF)
 option(USERVER_FEATURE_UNIVERSAL "Provide a universal utilities library that does not use coroutines" ON)
 
+if (USERVER_FEATURE_GRPC)
+    include(cmake/SetupProtobuf.cmake)
+endif()
+
 if (USERVER_IS_THE_ROOT_PROJECT)
     include(testsuite/SetupUserverTestsuiteEnv.cmake)
     add_subdirectory(testsuite)

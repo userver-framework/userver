@@ -4,22 +4,11 @@
 
 if (USERVER_CONAN)
   find_package(gRPC REQUIRED)
-  find_package(Protobuf REQUIRED)
   set(GRPC_PROTOBUF_INCLUDE_DIRS "${protobuf_INCLUDE_DIR}")
   get_target_property(PROTO_GRPC_CPP_PLUGIN gRPC::grpc_cpp_plugin LOCATION)
   get_target_property(PROTO_GRPC_PYTHON_PLUGIN gRPC::grpc_python_plugin LOCATION)
 else()
   # Use the builtin CMake FindProtobuf
-  find_package(Protobuf)
-  if(NOT Protobuf_FOUND)
-    message(FATAL_ERROR
-        "userver failed to find Protobuf compiler.\n"
-        "Please install the packages required for your system:\n\n"
-        "  Debian:    sudo apt install protobuf-compiler python3-protobuf\n"
-        "  macOS:     brew install protobuf\n"
-        "  ArchLinux: sudo pacman -S protobuf\n"
-        "  FreeBSD:   pkg install protobuf\n")
-  endif()
   set(GRPC_PROTOBUF_INCLUDE_DIRS "${Protobuf_INCLUDE_DIRS}")
 
   include(SetupGrpc)
@@ -43,10 +32,15 @@ endif()
 
 # We only check the system pip protobuf package version once.
 if(NOT USERVER_IMPL_GRPC_REQUIREMENTS_CHECKED)
+  set(file_requirements_protobuf "requirements.txt")
+  if(Protobuf_VERSION VERSION_LESS 3.20.0)
+    message(STATUS "Forcing old protobuf version for python")
+    set(file_requirements_protobuf "requirements_old.txt")
+  endif()
   execute_process(
     COMMAND "${PYTHON}"
       -m pip install --disable-pip-version-check
-      -r "${USERVER_DIR}/scripts/grpc/requirements.txt"
+      -r "${USERVER_DIR}/scripts/grpc/${file_requirements_protobuf}"
     RESULT_VARIABLE RESULT
     WORKING_DIRECTORY "${USERVER_DIR}"
   )
@@ -128,7 +122,7 @@ function(generate_grpc_files)
   endforeach()
 
   set(pyi_out_param "")
-  if(gRPC_VERSION GREATER "1.47.0")
+  if(gRPC_VERSION VERSION_GREATER "1.47.0")
     set(pyi_out_param "--pyi_out=${GENERATED_PROTO_DIR}")
   endif()
 
