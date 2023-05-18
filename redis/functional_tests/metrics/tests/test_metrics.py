@@ -29,7 +29,12 @@ def _normalize_metrics(metrics: str) -> str:
         left = re.sub('localhost:\\d+', '127.0.0.1:00000', left + '\t' + '0')
         left = re.sub('127.0.0.1:\\d+', '127.0.0.1:00000', left)
         left = re.sub('::1:\\d+', '127.0.0.1:00000', left)
-        result.append(left + '\t' + '0')
+        left = re.sub(
+            '[a-f0-9]*:[a-f0-9]*:[a-f0-9]*:[a-f0-9]*:[a-f0-9]*:[a-f0-9]*',
+            '127.0.0.1:00000',
+            left,
+        )
+        result.append(left)
     result.sort()
     return '\n'.join(result) + '\n'
 
