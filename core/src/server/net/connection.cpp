@@ -238,8 +238,8 @@ bool Connection::NewRequest(std::shared_ptr<request::RequestBase>&& request_ptr,
   }
 
   ++stats_->active_request_count;
-  return producer.Push(
-      {request_ptr, request_handler_.StartRequestTask(request_ptr)});
+  auto task = request_handler_.StartRequestTask(request_ptr);
+  return producer.Push({std::move(request_ptr), std::move(task)});
 }
 
 void Connection::ProcessResponses(Queue::Consumer& consumer) noexcept {
@@ -263,7 +263,7 @@ void Connection::ProcessResponses(Queue::Consumer& consumer) noexcept {
   }
 }
 
-void Connection::HandleQueueItem(QueueItem& item) {
+void Connection::HandleQueueItem(QueueItem& item) noexcept {
   auto& request = *item.first;
 
   if (engine::current_task::IsCancelRequested()) {
@@ -317,6 +317,7 @@ void Connection::SendResponse(request::RequestBase& request) {
               ? logging::Level::kWarning
               : logging::Level::kError;
       LOG(log_level) << "I/O error while sending data: " << ex;
+      response.SetSendFailed(std::chrono::steady_clock::now());
     } catch (const std::exception& ex) {
       LOG_ERROR() << "Error while sending data: " << ex;
       response.SetSendFailed(std::chrono::steady_clock::now());

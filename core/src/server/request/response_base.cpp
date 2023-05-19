@@ -48,7 +48,11 @@ ResponseBase::ResponseBase(ResponseDataAccounter& data_accounter)
   guard_.emplace(accounter_, create_time_, data_.size());
 }
 
-ResponseBase::~ResponseBase() noexcept = default;
+ResponseBase::~ResponseBase() noexcept {
+  UASSERT_MSG(!is_sent_ || !guard_,
+              "SetDone must be called explicitly within Server's lifetime, "
+              "otherwise guard_ may violate Server's lifetime");
+}
 
 void ResponseBase::SetData(std::string data) {
   create_time_ = std::chrono::steady_clock::now();
@@ -69,18 +73,17 @@ bool ResponseBase::IsLimitReached() const {
 
 void ResponseBase::SetSendFailed(
     std::chrono::steady_clock::time_point failure_time) {
-  SetSentTime(failure_time);
-  SetSent(0);
+  SetSent(0, failure_time);
 }
 
-void ResponseBase::SetSent(size_t bytes_sent) {
-  bytes_sent_ = bytes_sent;
+void ResponseBase::SetSent(std::size_t bytes_sent,
+                           std::chrono::steady_clock::time_point sent_time) {
+  UASSERT(!is_sent_);
+  UASSERT(guard_);
   is_sent_ = true;
-}
-
-void ResponseBase::SetSentTime(
-    std::chrono::steady_clock::time_point sent_time) {
+  bytes_sent_ = bytes_sent;
   sent_time_ = sent_time;
+  guard_.reset();
 }
 
 }  // namespace server::request

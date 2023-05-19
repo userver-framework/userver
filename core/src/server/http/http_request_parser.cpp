@@ -245,9 +245,9 @@ bool HttpRequestParser::FinalizeRequest() {
 bool HttpRequestParser::FinalizeRequestImpl() {
   if (!request_constructor_) CreateRequestConstructor();
 
-  if (auto request = request_constructor_->Finalize())
+  if (auto request = request_constructor_->Finalize()) {
     on_new_request_cb_(std::move(request));
-  else {
+  } else {
     LOG_ERROR() << "request is null after Finalize()";
     return false;
   }

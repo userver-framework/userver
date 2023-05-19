@@ -2,6 +2,7 @@
 #include <vector>
 
 #include <fmt/format.h>
+#include <gmock/gmock.h>
 
 #include <server/http/http_request_impl.hpp>
 #include <userver/engine/async.hpp>
@@ -43,6 +44,43 @@ UTEST(HttpResponse, Smoke) {
 
   EXPECT_EQ(reply.substr(reply.size() - 4 - kBody.size()),
             fmt::format("\r\n\r\n{}", kBody));
+}
+
+UTEST(HttpResponse, AccounterLifetimeIfNotSent) {
+  auto accounter = std::make_unique<server::request::ResponseDataAccounter>();
+  const server::http::HttpRequestImpl request{*accounter};
+  request.GetHttpResponse().SetSendFailed(std::chrono::steady_clock::now());
+  accounter.reset();
+  // Now we just should not crash
+}
+
+UTEST(HttpResponse, AccounterLifetimeIfSent) {
+  const auto test_deadline =
+      engine::Deadline::FromDuration(utest::kMaxTestWaitTime);
+  auto accounter = std::make_unique<server::request::ResponseDataAccounter>();
+
+  const server::http::HttpRequestImpl request{*accounter};
+  auto& response = request.GetHttpResponse();
+
+  constexpr std::string_view kBody = "test data";
+  response.SetData(std::string{kBody});
+  response.SetStatus(server::http::HttpStatus::kOk);
+
+  auto [server, client] =
+      internal::net::TcpListener{}.MakeSocketPair(test_deadline);
+  auto send_task = engine::AsyncNoSpan(
+      [](auto&& response, auto&& socket) { response.SendResponse(socket); },
+      std::ref(response), std::move(server));
+
+  std::string buffer(4096, '\0');
+  const auto reply_size =
+      client.RecvAll(buffer.data(), buffer.size(), test_deadline);
+  buffer.resize(reply_size);
+
+  EXPECT_THAT(buffer, testing::HasSubstr(kBody));
+
+  accounter.reset();
+  // Now we just should not crash
 }
 
 class HttpResponseBody : public testing::TestWithParam<int> {};

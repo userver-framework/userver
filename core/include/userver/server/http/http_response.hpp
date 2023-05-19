@@ -122,8 +122,12 @@ class HttpResponse final : public request::ResponseBase {
   Queue::Producer GetBodyProducer();
 
  private:
-  void SetBodyStreamed(engine::io::Socket& socket, std::string& header);
-  void SetBodyNotstreamed(engine::io::Socket& socket, std::string& header);
+  // Returns total size of the response
+  std::size_t SetBodyStreamed(engine::io::Socket& socket, std::string& header);
+
+  // Returns total size of the response
+  std::size_t SetBodyNotStreamed(engine::io::Socket& socket,
+                                 std::string& header);
 
   const HttpRequestImpl& request_;
   HttpStatus status_ = HttpStatus::kOk;
