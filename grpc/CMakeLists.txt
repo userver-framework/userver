@@ -114,5 +114,5 @@ endif()
 add_subdirectory(handlers)
 
 add_library(userver-grpc INTERFACE)
-target_link_libraries(userver-grpc INTERFACE userver-grpc-internal)
 target_link_libraries(userver-grpc INTERFACE userver-grpc-handlers)
+target_link_libraries(userver-grpc INTERFACE userver-grpc-internal)
