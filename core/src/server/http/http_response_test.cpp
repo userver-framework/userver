@@ -62,8 +62,8 @@ UTEST(HttpResponse, AccounterLifetimeIfSent) {
   const server::http::HttpRequestImpl request{*accounter};
   auto& response = request.GetHttpResponse();
 
-  constexpr std::string_view kBody = "test data";
-  response.SetData(std::string{kBody});
+  const std::string body = "test data";
+  response.SetData(body);
   response.SetStatus(server::http::HttpStatus::kOk);
 
   auto [server, client] =
@@ -77,7 +77,7 @@ UTEST(HttpResponse, AccounterLifetimeIfSent) {
       client.RecvAll(buffer.data(), buffer.size(), test_deadline);
   buffer.resize(reply_size);
 
-  EXPECT_THAT(buffer, testing::HasSubstr(kBody));
+  EXPECT_THAT(buffer, testing::HasSubstr(body));
 
   accounter.reset();
   // Now we just should not crash
