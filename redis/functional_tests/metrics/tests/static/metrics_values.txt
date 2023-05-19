@@ -6,6 +6,7 @@ redis-pubsub.messages.size: redis_database=metrics_test, redis_pubsub_channel=po
 redis-pubsub.messages.size: redis_database=metrics_test, redis_pubsub_channel=post_channel0, redis_shard=test_master0	GAUGE	0
 redis-pubsub.subscribed-ms: redis_database=metrics_test, redis_pubsub_channel=post_channel0, redis_shard=test_master0	GAUGE	0
 redis-pubsub: redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_pubsub_channel=post_channel0, redis_shard=test_master0	GAUGE	0
+
 redis.command_timings: percentile=p0, redis_command=del, redis_database=metrics_test	GAUGE	0
 redis.command_timings: percentile=p0, redis_command=del, redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0
 redis.command_timings: percentile=p0, redis_command=del, redis_database=metrics_test, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0
@@ -114,6 +115,7 @@ redis.command_timings: percentile=p99_9, redis_command=publish, redis_database=m
 redis.command_timings: percentile=p99_9, redis_command=set, redis_database=metrics_test	GAUGE	0
 redis.command_timings: percentile=p99_9, redis_command=set, redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0
 redis.command_timings: percentile=p99_9, redis_command=set, redis_database=metrics_test, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0
+
 redis.errors: redis_database=metrics_test, redis_error=EOF	GAUGE	0
 redis.errors: redis_database=metrics_test, redis_error=EOF, redis_instance=127.0.0.1:00000, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0
 redis.errors: redis_database=metrics_test, redis_error=EOF, redis_instance=127.0.0.1:00000, redis_instance_type=sentinels	GAUGE	0
@@ -150,6 +152,8 @@ redis.errors: redis_database=metrics_test, redis_error=timeout, redis_instance=1
 redis.errors: redis_database=metrics_test, redis_error=timeout, redis_instance=127.0.0.1:00000, redis_instance_type=sentinels	GAUGE	0
 redis.errors: redis_database=metrics_test, redis_error=timeout, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0
 redis.errors: redis_database=metrics_test, redis_error=timeout, redis_instance_type=sentinels	GAUGE	0
+
+# Redis uses a separate pool of ev-threads. Following metrics show the ev-threads CPU usage
 redis.ev_threads.cpu_load_percent: ev_thread_name=redis_client_0	GAUGE	0
 redis.ev_threads.cpu_load_percent: ev_thread_name=redis_client_1	GAUGE	0
 redis.ev_threads.cpu_load_percent: ev_thread_name=redis_client_2	GAUGE	0
@@ -159,6 +163,7 @@ redis.ev_threads.cpu_load_percent: ev_thread_name=redis_client_5	GAUGE	0
 redis.ev_threads.cpu_load_percent: ev_thread_name=redis_client_6	GAUGE	0
 redis.ev_threads.cpu_load_percent: ev_thread_name=redis_client_7	GAUGE	0
 redis.ev_threads.cpu_load_percent: ev_thread_name=redis_sentinel_0	GAUGE	0
+
 redis.instances_count: redis_database=metrics_test, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0
 redis.instances_count: redis_database=metrics_test, redis_instance_type=sentinels	GAUGE	0
 redis.is_ready: redis_database=metrics_test, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0
@@ -280,6 +285,7 @@ redis.state: redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_
 redis.state: redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_state=init, redis_instance_type=sentinels	GAUGE	0
 redis.state: redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_state=init_error, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0
 redis.state: redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_state=init_error, redis_instance_type=sentinels	GAUGE	0
+
 redis.timings: percentile=p0, redis_database=metrics_test	GAUGE	0
 redis.timings: percentile=p0, redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0
 redis.timings: percentile=p0, redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_type=sentinels	GAUGE	0

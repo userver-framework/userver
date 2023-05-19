@@ -65,13 +65,18 @@ engine.load-ms 160 1665765043
 ```
 
 
-### Get all the metrics in Graphite format
+### Metrics Description
 
 The amount of metrics depends on components count, threads count,
 utils::statistics::MetricTag usage and configuration options.
 ```
 bash
-$ curl http://localhost:8086/service/monitor?format=graphite | sort
+$ curl http://localhost:8086/service/monitor?format=pretty | sort
+```
+
+Each metric is written in human readable format:
+```
+metric-path: label1=value1, label2=value2 METRIC_TYPE value
 ```
 
 @include core/functional_tests/metrics/tests/static/metrics_values.txt

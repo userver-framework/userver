@@ -21,6 +21,10 @@ def _is_redis_metrics(line: str) -> bool:
 def _normalize_metrics(metrics: str) -> str:
     result = []
     for line in metrics.splitlines():
+        line = line.strip()
+        if line.startswith('#') or not line:
+            continue
+
         if not _is_redis_metrics(line):
             continue
 
@@ -62,7 +66,8 @@ async def test_metrics(service_client, monitor_client, load, mocked_time):
     mocked_time.sleep(10)
     await service_client.invalidate_caches()
 
-    ethalon = load('metrics_values.txt')
+    ethalon = _normalize_metrics(load('metrics_values.txt'))
+    assert ethalon
     all_metrics = _normalize_metrics(
         await monitor_client.metrics_raw(output_format='pretty'),
     )

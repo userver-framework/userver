@@ -1,6 +1,10 @@
 def _normalize_metrics(metrics: str) -> str:
     result = []
     for line in metrics.splitlines():
+        line = line.strip()
+        if line.startswith('#') or not line:
+            continue
+
         left, _ = line.rsplit('\t', 1)
         result.append(left + '\t' + '0')
     return '\n'.join(result) + '\n'

@@ -6,6 +6,7 @@ distlock.running: distlock_name=component-distlock-metrics	GAUGE	0
 distlock.successes: distlock_name=component-distlock-metrics	GAUGE	0
 distlock.task-failures: distlock_name=component-distlock-metrics	GAUGE	0
 distlock.watchdog-triggers: distlock_name=component-distlock-metrics	GAUGE	0
+
 mongo.congestion-control.enabled-seconds: mongo_database=key-value-database	GAUGE	0
 mongo.congestion-control.is-enabled: mongo_database=key-value-database	GAUGE	0
 mongo.congestion-control.is-fake-mode: mongo_database=key-value-database	GAUGE	0

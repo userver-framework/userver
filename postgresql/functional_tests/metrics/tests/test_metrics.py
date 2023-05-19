@@ -4,7 +4,7 @@ import re
 def _is_postgresql_metrics(line: str) -> bool:
     if (
             'key-value-pg-cache' not in line
-            and 'postgre' not in line
+            and 'postgresql' not in line
             and 'distlock' not in line
     ):
         return False
@@ -14,6 +14,10 @@ def _is_postgresql_metrics(line: str) -> bool:
 def _normalize_metrics(metrics: str) -> str:
     result = []
     for line in metrics.splitlines():
+        line = line.strip()
+        if line.startswith('#') or not line:
+            continue
+
         if not _is_postgresql_metrics(line):
             continue
         left, _ = line.rsplit('\t', 1)
@@ -44,6 +48,7 @@ async def test_metrics(service_client, monitor_client, load):
     assert response.status == 200
 
     ethalon = _normalize_metrics(load('metrics_values.txt'))
+    assert ethalon
     all_metrics = _normalize_metrics(
         await monitor_client.metrics_raw(output_format='pretty'),
     )

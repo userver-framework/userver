@@ -23,6 +23,7 @@ cache.incremental.time.time-from-last-update-start-ms: cache_name=key-value-pg-c
 cache.incremental.update.attempts_count: cache_name=key-value-pg-cache	GAUGE	0
 cache.incremental.update.failures_count: cache_name=key-value-pg-cache	GAUGE	0
 cache.incremental.update.no_changes_count: cache_name=key-value-pg-cache	GAUGE	0
+
 distlock.brain-splits: distlock_name=component-distlock-metrics	GAUGE	0
 distlock.failures: distlock_name=component-distlock-metrics	GAUGE	0
 distlock.locked-for-ms: distlock_name=component-distlock-metrics	GAUGE	0
@@ -31,24 +32,7 @@ distlock.running: distlock_name=component-distlock-metrics	GAUGE	0
 distlock.successes: distlock_name=component-distlock-metrics	GAUGE	0
 distlock.task-failures: distlock_name=component-distlock-metrics	GAUGE	0
 distlock.watchdog-triggers: distlock_name=component-distlock-metrics	GAUGE	0
-http.handler.cancelled-by-deadline: http_handler=handler-metrics-postgres, http_path=/metrics/postgres	GAUGE	0
-http.handler.deadline-received: http_handler=handler-metrics-postgres, http_path=/metrics/postgres	GAUGE	0
-http.handler.in-flight: http_handler=handler-metrics-postgres, http_path=/metrics/postgres	GAUGE	0
-http.handler.rate-limit-reached: http_handler=handler-metrics-postgres, http_path=/metrics/postgres	GAUGE	0
-http.handler.reply-codes: http_code=200, http_handler=handler-metrics-postgres, http_path=/metrics/postgres	GAUGE	0
-http.handler.reply-codes: http_code=300, http_handler=handler-metrics-postgres, http_path=/metrics/postgres	GAUGE	0
-http.handler.reply-codes: http_code=500, http_handler=handler-metrics-postgres, http_path=/metrics/postgres	GAUGE	0
-http.handler.reply-codes: http_code=501, http_handler=handler-metrics-postgres, http_path=/metrics/postgres	GAUGE	0
-http.handler.timings: http_handler=handler-metrics-postgres, http_path=/metrics/postgres, percentile=p0	GAUGE	0
-http.handler.timings: http_handler=handler-metrics-postgres, http_path=/metrics/postgres, percentile=p100	GAUGE	0
-http.handler.timings: http_handler=handler-metrics-postgres, http_path=/metrics/postgres, percentile=p50	GAUGE	0
-http.handler.timings: http_handler=handler-metrics-postgres, http_path=/metrics/postgres, percentile=p90	GAUGE	0
-http.handler.timings: http_handler=handler-metrics-postgres, http_path=/metrics/postgres, percentile=p95	GAUGE	0
-http.handler.timings: http_handler=handler-metrics-postgres, http_path=/metrics/postgres, percentile=p98	GAUGE	0
-http.handler.timings: http_handler=handler-metrics-postgres, http_path=/metrics/postgres, percentile=p99	GAUGE	0
-http.handler.timings: http_handler=handler-metrics-postgres, http_path=/metrics/postgres, percentile=p99_6	GAUGE	0
-http.handler.timings: http_handler=handler-metrics-postgres, http_path=/metrics/postgres, percentile=p99_9	GAUGE	0
-http.handler.too-many-requests-in-flight: http_handler=handler-metrics-postgres, http_path=/metrics/postgres	GAUGE	0
+
 postgresql.connections.active: postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
 postgresql.connections.busy: postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
 postgresql.connections.closed: postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
