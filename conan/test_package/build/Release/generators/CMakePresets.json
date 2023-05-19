@@ -1,0 +1,37 @@
+{
+    "version": 3,
+    "vendor": {
+        "conan": {}
+    },
+    "cmakeMinimumRequired": {
+        "major": 3,
+        "minor": 15,
+        "patch": 0
+    },
+    "configurePresets": [
+        {
+            "name": "release",
+            "displayName": "'release' config",
+            "description": "'release' configure using 'Unix Makefiles' generator",
+            "generator": "Unix Makefiles",
+            "cacheVariables": {
+                "CMAKE_POLICY_DEFAULT_CMP0091": "NEW",
+                "CMAKE_BUILD_TYPE": "Release"
+            },
+            "toolchainFile": "/Users/alexiprof/opt/userver/conan/test_package/build/Release/generators/conan_toolchain.cmake",
+            "binaryDir": "/Users/alexiprof/opt/userver/conan/test_package/build/Release"
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "release",
+            "configurePreset": "release"
+        }
+    ],
+    "testPresets": [
+        {
+            "name": "release",
+            "configurePreset": "release"
+        }
+    ]
+}
