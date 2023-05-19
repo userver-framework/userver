@@ -17,6 +17,8 @@ namespace ugrpc::server {
 
 class Server;
 
+// clang-format off
+
 /// @ingroup userver_components userver_base_classes
 ///
 /// @brief Base class for all the gRPC service components.
@@ -25,6 +27,10 @@ class Server;
 /// Name | Description | Default value
 /// ---- | ----------- | -------------
 /// task-processor | the task processor to use for responses | -
+/// middlewares | middleware component names to use for each RPC call, can be empty array ([]) | -
+
+// clang-format on
+
 class ServiceComponentBase : public components::LoggableComponentBase {
  public:
   ServiceComponentBase(const components::ComponentConfig& config,

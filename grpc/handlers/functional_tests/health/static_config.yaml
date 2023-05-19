@@ -27,6 +27,7 @@ components_manager:
 
         grpc-health:
             task-processor: main-task-processor
+            middlewares: []
 
     default_task_processor: main-task-processor
     task_processors:
