@@ -15,6 +15,7 @@ auto PQXgetResult(PGconn* conn) { return ::PQgetResult(conn); }
 #include <userver/logging/log.hpp>
 #include <userver/tracing/tags.hpp>
 #include <userver/utils/assert.hpp>
+#include <utils/impl/assert_extra.hpp>
 #include <utils/internal_tag.hpp>
 #include <utils/strerror.hpp>
 
@@ -487,10 +488,9 @@ ResultSet PGConnectionWrapper::WaitResult(Deadline deadline,
   scope.Reset(scopes::kLibpqWaitResult);
   Flush(deadline);
   auto handle = MakeResultHandle(nullptr);
-  ConsumeInput(deadline);
   auto null_counter{0};
   do {
-    while (auto* pg_res = PQXgetResult(conn_)) {
+    while (auto* pg_res = ReadResult(deadline)) {
       null_counter = 0;
       if (handle && !is_syncing_pipeline_) {
         // TODO Decide about the severity of this situation
@@ -498,7 +498,6 @@ ResultSet PGConnectionWrapper::WaitResult(Deadline deadline,
             << "Query returned several result sets, a result set is discarded";
       }
       auto next_handle = MakeResultHandle(pg_res);
-      ConsumeInput(deadline);
 #if LIBPQ_HAS_PIPELINING
       if (is_syncing_pipeline_) {
         switch (PQresultStatus(next_handle.get())) {
@@ -514,14 +513,18 @@ ResultSet PGConnectionWrapper::WaitResult(Deadline deadline,
 #endif
       handle = std::move(next_handle);
     }
-    if (++null_counter > 1) {
+    if (++null_counter > 2) {
       logging::LogExtra conn_extra;
       conn_extra.Extend("conn_status", PQstatus(conn_));
       conn_extra.Extend("transaction_status", PQtransactionStatus(conn_));
       conn_extra.Extend("is_syncing_pipeline", is_syncing_pipeline_);
-      PGCW_LOG_LIMITED_WARNING()
-          << conn_extra << "PQXgetResult unexpectedly returned nothing";
-      is_syncing_pipeline_ = false;
+      if (handle)
+        conn_extra.Extend("handle_status", PQresultStatus(handle.get()));
+      PGCW_LOG_ERROR() << conn_extra
+                       << "PQXgetResult unexpectedly returned nothing";
+      if (null_counter > 10)
+        USERVER_NAMESPACE::utils::impl::AbortWithStacktrace(
+            "It seems we got ourselves an infinite PQXgetResult loop");
     }
   } while (is_syncing_pipeline_ && PQstatus(conn_) != CONNECTION_BAD);
 
@@ -531,11 +534,9 @@ ResultSet PGConnectionWrapper::WaitResult(Deadline deadline,
 void PGConnectionWrapper::DiscardInput(Deadline deadline) {
   Flush(deadline);
   auto handle = MakeResultHandle(nullptr);
-  ConsumeInput(deadline);
   do {
-    while (auto* pg_res = PQXgetResult(conn_)) {
+    while (auto* pg_res = ReadResult(deadline)) {
       handle = MakeResultHandle(pg_res);
-      ConsumeInput(deadline);
 #if LIBPQ_HAS_PIPELINING
       if (is_syncing_pipeline_ &&
           PQresultStatus(handle.get()) == PGRES_PIPELINE_SYNC) {
@@ -543,11 +544,16 @@ void PGConnectionWrapper::DiscardInput(Deadline deadline) {
       }
 #endif
     }
-  } while (is_syncing_pipeline_);
+  } while (is_syncing_pipeline_ && PQstatus(conn_) != CONNECTION_BAD);
 }
 
 void PGConnectionWrapper::FillSpanTags(tracing::Span& span) const {
   span.AddTags(log_extra_, USERVER_NAMESPACE::utils::InternalTag{});
+}
+
+PGresult* PGConnectionWrapper::ReadResult(Deadline deadline) {
+  ConsumeInput(deadline);
+  return PQXgetResult(conn_);
 }
 
 ResultSet PGConnectionWrapper::MakeResult(ResultHandle&& handle) {

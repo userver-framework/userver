@@ -141,6 +141,8 @@ class PGConnectionWrapper {
 
   void Flush(Deadline deadline);
 
+  PGresult* ReadResult(Deadline deadline);
+
   ResultSet MakeResult(ResultHandle&& handle);
 
   template <typename ExceptionType>
