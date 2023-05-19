@@ -402,6 +402,16 @@ class UserverConan(ConanFile):
                         'lib': 'api-common-protos',
                         'requires': ['grpc'],
                     },
+                    {
+                        'target': 'grpc-internal',
+                        'lib': 'grpc-internal',
+                        'requires': ['grpc'],
+                    },
+                    {
+                        'target': 'grpc-handlers',
+                        'lib': 'grpc-handlers',
+                        'requires': ['grpc-internal'],
+                    },
                 ],
             )
         if self.options.with_utest:

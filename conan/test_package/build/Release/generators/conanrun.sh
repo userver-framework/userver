@@ -1,0 +1,1 @@
+. "/Users/alexiprof/opt/userver/conan/test_package/build/Release/generators/conanrunenv-release-x86_64.sh"
