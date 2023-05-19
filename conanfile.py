@@ -398,6 +398,11 @@ class UserverConan(ConanFile):
                         'requires': ['core'] + grpc(),
                     },
                     {
+                        'target': 'grpc-handlers',
+                        'lib': 'grpc-handlers',
+                        'requires': ['grpc'],
+                    },
+                    {
                         'target': 'api-common-protos',
                         'lib': 'api-common-protos',
                         'requires': ['grpc'],
