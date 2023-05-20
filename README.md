@@ -1,5 +1,11 @@
 # userver <img src="./scripts/docs/logo.svg" align='right' width="30%">
 
+| Service Templates | Status |
+|------------------------|-----|
+| [Core](https://github.com/userver-framework/service_template) | [![CI](https://github.com/userver-framework/service_template/actions/workflows/ci.yml/badge.svg)](https://github.com/userver-framework/service_template/actions/workflows/ci.yml) [![Docker build](https://github.com/userver-framework/service_template/actions/workflows/docker.yaml/badge.svg)](https://github.com/userver-framework/service_template/actions/workflows/docker.yaml) |
+| [PostgreSQL](https://github.com/userver-framework/pg_service_template) | [![CI](https://github.com/userver-framework/pg_service_template/actions/workflows/ci.yml/badge.svg)](https://github.com/userver-framework/pg_service_template/actions/workflows/ci.yml) [![Docker build](https://github.com/userver-framework/pg_service_template/actions/workflows/docker.yaml/badge.svg)](https://github.com/userver-framework/pg_service_template/actions/workflows/docker.yaml) |
+| [gRPC+PostgreSQL](https://github.com/userver-framework/pg_grpc_service_template) | [![CI](https://github.com/userver-framework/pg_grpc_service_template/actions/workflows/ci.yml/badge.svg)](https://github.com/userver-framework/pg_grpc_service_template/actions/workflows/ci.yml) [![Docker build](https://github.com/userver-framework/pg_grpc_service_template/actions/workflows/docker.yaml/badge.svg)](https://github.com/userver-framework/pg_grpc_service_template/actions/workflows/docker.yaml) |
+
 **userver** is an open source asynchronous framework with a rich set of abstractions
 for fast and comfortable creation of C++ microservices, services and utilities.
 
