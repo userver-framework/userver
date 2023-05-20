@@ -1,4 +1,4 @@
-#include <userver/components/manager.hpp>
+#include <components/manager.hpp>
 
 #include <chrono>
 #include <future>

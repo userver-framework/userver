@@ -4,7 +4,6 @@
 #include <components/manager_controller_component_config.hpp>
 #include <engine/task/task_processor.hpp>
 #include <engine/task/task_processor_pools.hpp>
-#include <userver/components/manager.hpp>
 #include <userver/components/statistics_storage.hpp>
 #include <userver/dynamic_config/storage/component.hpp>
 #include <userver/dynamic_config/value.hpp>
@@ -12,6 +11,8 @@
 #include <userver/formats/json/value_builder.hpp>
 #include <userver/logging/component.hpp>
 #include <userver/utils/statistics/metadata.hpp>
+
+#include <components/manager.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

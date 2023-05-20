@@ -1,5 +1,6 @@
 #include <userver/clients/dns/component.hpp>
 #include <userver/clients/http/component.hpp>
+#include <userver/components/component.hpp>
 #include <userver/components/minimal_server_component_list.hpp>
 #include <userver/formats/bson/inline.hpp>
 #include <userver/server/handlers/http_handler_base.hpp>

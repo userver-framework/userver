@@ -5,7 +5,6 @@
 
 #include <fmt/format.h>
 
-#include <userver/components/manager.hpp>
 #include <userver/concurrent/variable.hpp>
 #include <userver/engine/task/task_with_result.hpp>
 #include <userver/logging/log.hpp>
@@ -15,6 +14,7 @@
 
 #include <components/component_context_component_info.hpp>
 #include <components/impl/component_name_from_info.hpp>
+#include <components/manager.hpp>
 #include <engine/task/task_context.hpp>
 
 USERVER_NAMESPACE_BEGIN

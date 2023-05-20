@@ -1,3 +1,4 @@
+#include <userver/components/component.hpp>
 #include <userver/components/minimal_server_component_list.hpp>
 #include <userver/utils/async.hpp>
 #include <userver/utils/daemon_run.hpp>

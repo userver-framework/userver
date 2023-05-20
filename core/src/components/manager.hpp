@@ -10,6 +10,7 @@
 
 #include <userver/components/component_context.hpp>
 #include <userver/components/component_fwd.hpp>
+#include <userver/components/component_list.hpp>
 #include <userver/components/impl/component_base.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 
@@ -45,22 +46,6 @@ class Manager final {
   GetTaskProcessorPools() const;
   const TaskProcessorsMap& GetTaskProcessorsMap() const;
 
-  template <typename Component>
-  void AddComponent(const components::ComponentConfigMap& config_map,
-                    const std::string& name) {
-    // Using std::is_convertible_v because std::is_base_of_v returns true even
-    // if ComponentBase is a private, protected, or ambiguous base class.
-    static_assert(
-        std::is_convertible_v<Component*, components::impl::ComponentBase*>,
-        "Component must publicly inherit from "
-        "components::LoggableComponentBase");
-    AddComponentImpl(config_map, name,
-                     [](const components::ComponentConfig& config,
-                        const components::ComponentContext& context) {
-                       return std::make_unique<Component>(config, context);
-                     });
-  }
-
   void OnSignal(int signum);
 
   std::chrono::steady_clock::time_point GetStartTime() const;
@@ -94,6 +79,11 @@ class Manager final {
 
   void CreateComponentContext(const ComponentList& component_list);
   void AddComponents(const ComponentList& component_list);
+
+  friend void impl::AddComponentImpl(
+      Manager& manager, const components::ComponentConfigMap& config_map,
+      const std::string& name, impl::ComponentBaseFactory factory);
+
   void AddComponentImpl(
       const components::ComponentConfigMap& config_map, const std::string& name,
       std::function<std::unique_ptr<components::impl::ComponentBase>(
