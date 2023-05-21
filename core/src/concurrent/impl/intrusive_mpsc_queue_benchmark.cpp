@@ -6,6 +6,7 @@
 #include <moodycamel/concurrentqueue.h>
 #include <boost/lockfree/queue.hpp>
 
+#include <compiler/relax_cpu.hpp>
 #include <concurrent/impl/intrusive_mpsc_queue.hpp>
 #include <userver/utils/fixed_array.hpp>
 
@@ -126,9 +127,10 @@ void MpscQueueProduce(benchmark::State& state) {
   }
 
   auto consumer = std::async([&] {
+    compiler::RelaxCpu relax;
     while (keep_running) {
       if (!queue.TryConsume()) {
-        __builtin_ia32_pause();
+        relax();
       }
     }
   });
