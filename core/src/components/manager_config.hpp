@@ -26,6 +26,7 @@ struct ManagerConfig {
   ValidationMode validate_components_configs{};
   utils::impl::UserverExperimentSet enabled_experiments;
   bool experiments_force_enabled{false};
+  bool mlock_debug_info{false};
 
   static ManagerConfig FromString(
       const std::string&, const std::optional<std::string>& config_vars_path,

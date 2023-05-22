@@ -51,7 +51,8 @@ void InitPhdrCache() {
   phdr_cache_scope.Set(USERVER_NAMESPACE::utils::impl::kPhdrCacheExperiment,
                        true);
 
-  USERVER_NAMESPACE::engine::impl::InitPhdrCacheAndDisableDynamicLoading();
+  USERVER_NAMESPACE::engine::impl::InitPhdrCacheAndDisableDynamicLoading(
+      USERVER_NAMESPACE::engine::impl::DebugInfoAction::kLockInMemory);
 }
 
 void TeardownPhdrCache() {

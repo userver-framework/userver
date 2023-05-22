@@ -171,7 +171,12 @@ Manager::Manager(std::unique_ptr<ManagerConfig>&& config,
     CreateComponentContext(component_list);
   });
 
-  engine::impl::InitPhdrCacheAndDisableDynamicLoading();
+  {
+    const auto debug_info_action =
+        config_->mlock_debug_info ? engine::impl::DebugInfoAction::kLockInMemory
+                                  : engine::impl::DebugInfoAction::kLeaveAsIs;
+    engine::impl::InitPhdrCacheAndDisableDynamicLoading(debug_info_action);
+  }
 
   LOG_INFO() << "Started components manager. All the components have started "
                 "successfully.";

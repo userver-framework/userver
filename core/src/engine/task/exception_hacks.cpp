@@ -17,12 +17,14 @@
 
 #include <dlfcn.h>
 #include <link.h>
+#include <sys/mman.h>
 
 #include <atomic>
 #include <vector>
 
 #include <fmt/format.h>
 
+#include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/impl/userver_experiments.hpp>
 #include <utils/impl/assert_extra.hpp>
@@ -46,6 +48,77 @@ DlIterateFn GetOriginalDlIteratePhdr() {
   return reinterpret_cast<DlIterateFn>(func);
 }
 
+class MlockProcessDebugInfoScope final {
+ public:
+  void Initialize(const dl_phdr_info& self) {
+    if (!Bootstrap(self)) {
+      Teardown();
+      LOG_WARNING() << "Failed to mlock(2) process debug info";
+    } else {
+      LOG_INFO() << "mlock(2)-ed approx " << mlocked_size_approx_
+                 << " of process debug info";
+    }
+  }
+
+  void Teardown() { MUnlockAndClear(); }
+
+  ~MlockProcessDebugInfoScope() { Teardown(); }
+
+ private:
+  bool Bootstrap(const dl_phdr_info& self) {
+    // we're fine with exceptions here and further down
+    mlocked_sections_.reserve(self.dlpi_phnum);
+
+    const auto image_base = self.dlpi_addr;
+    for (decltype(self.dlpi_phnum) i = 0; i < self.dlpi_phnum; ++i) {
+      const auto& phdr = self.dlpi_phdr[i];
+
+      if (phdr.p_type == PT_LOAD || phdr.p_type == PT_GNU_EH_FRAME) {
+        const void* start =
+            reinterpret_cast<const void*>(image_base + phdr.p_vaddr);
+        const auto len = phdr.p_memsz;
+
+        if (!DoMlock(start, len)) {
+          return false;
+        } else {
+          mlocked_sections_.push_back({start, len});
+          mlocked_size_approx_ += len;
+        }
+      }
+    }
+
+    return true;
+  }
+
+  void MUnlockAndClear() {
+    for (const auto& [start, len] : mlocked_sections_) {
+      munlock(start, len);
+    }
+    mlocked_sections_.clear();
+    mlocked_size_approx_ = 0;
+  }
+
+  static bool DoMlock(const void* start, std::size_t len) {
+    if (mlock(start, len)) {
+      const auto err = errno;
+
+      LOG_WARNING() << "Failed to mlock(2) " << len << " bytes starting at "
+                    << start << ", errno = " << err;
+      return false;
+    }
+
+    return true;
+  }
+
+  struct Section final {
+    const void* start;
+    std::size_t len;
+  };
+
+  std::size_t mlocked_size_approx_{0};
+  std::vector<Section> mlocked_sections_;
+};
+
 using PhdrCacheStorage = std::vector<dl_phdr_info>;
 std::atomic<PhdrCacheStorage*> phdr_cache_ptr{nullptr};
 
@@ -55,6 +128,7 @@ class PhdrCache final {
     if (!utils::impl::kPhdrCacheExperiment.IsEnabled()) {
       return;
     }
+    LOG_INFO() << "Initializing phdr cache";
 
     GetOriginalDlIteratePhdr()(
         [](dl_phdr_info* info, size_t /* size */, void* data) {
@@ -65,6 +139,8 @@ class PhdrCache final {
 
     [[maybe_unused]] const auto* old_cache = phdr_cache_ptr.exchange(&cache_);
     UASSERT(!old_cache);
+
+    LOG_INFO() << "Initialized phdr cache for " << cache_.size() << " objects";
   }
 
   static void Teardown() { phdr_cache_ptr.store(nullptr); }
@@ -79,6 +155,7 @@ class PhdrCache final {
   PhdrCacheStorage cache_{};
 };
 PhdrCache phdr_cache{};
+MlockProcessDebugInfoScope mlock_debug_info_scope{};
 
 int DlIteratePhdr(DlIterateCb callback, void* data) {
   auto* current_phdr_cache = phdr_cache_ptr.load();
@@ -133,9 +210,25 @@ void AssertDlFunctionFound(void* function, std::string_view dl_function_name) {
 
 }  // namespace
 
-void InitPhdrCacheAndDisableDynamicLoading() { phdr_cache.Initialize(); }
+void InitPhdrCacheAndDisableDynamicLoading(DebugInfoAction debug_info_action) {
+  phdr_cache.Initialize();
 
-void TeardownPhdrCacheAndEnableDynamicLoading() { PhdrCache::Teardown(); }
+  if (debug_info_action == DebugInfoAction::kLockInMemory) {
+    DlIteratePhdr(
+        [](struct dl_phdr_info* info, size_t, void*) {
+          mlock_debug_info_scope.Initialize(*info);
+          // we are only interested in the first dl_phdr_info,
+          // so stop iteration right away.
+          return 1;
+        },
+        nullptr);
+  }
+}
+
+void TeardownPhdrCacheAndEnableDynamicLoading() {
+  PhdrCache::Teardown();
+  mlock_debug_info_scope.Teardown();
+}
 
 }  // namespace engine::impl
 
@@ -203,7 +296,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace engine::impl {
 
-void InitPhdrCacheAndDisableDynamicLoading() {}
+void InitPhdrCacheAndDisableDynamicLoading(DebugInfoAction) {}
 
 void TeardownPhdrCacheAndEnableDynamicLoading() {}
 

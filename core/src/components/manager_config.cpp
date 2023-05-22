@@ -174,6 +174,10 @@ properties:
     default_task_processor:
         type: string
         description: name of the default task processor to use in components
+    mlock_debug_info:
+        type: boolean
+        description: whether to mlock(2) process debug info
+        defaultDescription: false
     static_config_validation:
         type: object
         description: settings for basic syntax validation in config.yaml
@@ -212,6 +216,8 @@ ManagerConfig Parse(const yaml_config::YamlConfig& value,
   config.validate_components_configs =
       value["static_config_validation"].As<ValidationMode>(
           ValidationMode::kAll);
+  config.mlock_debug_info =
+      value["mlock_debug_info"].As<bool>(config.mlock_debug_info);
   return config;
 }
 
