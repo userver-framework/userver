@@ -124,6 +124,42 @@ TEST(JsonValueBuilder, ExampleCustomization) {
   ASSERT_EQ(json["example"]["field2"].As<int>(), 1);
 }
 
+TEST(JsonValueBuilder, StringViewRemove) {
+  formats::json::ValueBuilder builder;
+  const std::string str = "ab";
+  builder["a"] = 1;
+  builder[str] = 2;
+  builder.Remove(std::string_view(str.data(), 1));
+
+  EXPECT_EQ(1, builder.GetSize());
+
+  const auto value = builder.ExtractValue();
+  EXPECT_EQ(2, value[str].As<int>());
+}
+
+TEST(JsonValueBuilder, StringViewHasMember) {
+  formats::json::ValueBuilder main_builder;
+  const std::string str = "ab";
+  main_builder[str] = 2;
+  EXPECT_EQ(false, main_builder.HasMember("a"));
+  EXPECT_EQ(false, main_builder.HasMember(std::string_view(str.data(), 1)));
+  EXPECT_EQ(true, main_builder.HasMember(std::string_view(str.data(), 2)));
+}
+
+TEST(JsonValueBuilder, StringViewEmplaceNocheck) {
+  formats::json::ValueBuilder main_builder;
+  const std::string str = "ab";
+  main_builder.EmplaceNocheck(std::string_view(str.data(), 1), 1);
+  main_builder.EmplaceNocheck(std::string_view(str.data(), 2), 2);
+  main_builder.EmplaceNocheck(std::string_view(std::string(1024, 'a') + 'b'),
+                              1025);
+
+  const auto value = main_builder.ExtractValue();
+  EXPECT_EQ(1, value["a"].As<int>());
+  EXPECT_EQ(2, value["ab"].As<int>());
+  EXPECT_EQ(1025, value[std::string(1024, 'a') + 'b'].As<int>());
+}
+
 }  // namespace my_namespace
 
 /// [Sample Customization formats::json::ValueBuilder usage]

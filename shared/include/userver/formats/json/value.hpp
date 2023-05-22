@@ -27,6 +27,10 @@ class InlineObjectBuilder;
 class InlineArrayBuilder;
 class MutableValueWrapper;
 class StringBuffer;
+
+// do not make a copy of string
+impl::Value MakeJsonStringViewValue(std::string_view view);
+
 }  // namespace impl
 
 class ValueBuilder;

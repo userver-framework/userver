@@ -6,6 +6,7 @@
 #include <rapidjson/writer.h>
 
 #include <userver/formats/json/exception.hpp>
+#include <userver/formats/json/value.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/datetime.hpp>
 
@@ -140,13 +141,13 @@ ValueBuilder ValueBuilder::operator[](std::size_t index) {
   return ValueBuilder{value_.WrapElement(index)};
 }
 
-void ValueBuilder::EmplaceNocheck(const std::string& key, ValueBuilder value) {
+void ValueBuilder::EmplaceNocheck(std::string_view key, ValueBuilder value) {
   Move(AddMember(key, CheckMemberExists::kNo), std::move(value));
 }
 
-void ValueBuilder::Remove(const std::string& key) {
+void ValueBuilder::Remove(std::string_view key) {
   value_->CheckObject();
-  if (value_->GetNative().RemoveMember(key)) {
+  if (value_->GetNative().RemoveMember(impl::MakeJsonStringViewValue(key))) {
     value_.OnMembersChange();
   }
 }
@@ -183,11 +184,7 @@ bool ValueBuilder::IsObject() const noexcept { return value_->IsObject(); }
 
 std::size_t ValueBuilder::GetSize() const { return value_->GetSize(); }
 
-bool ValueBuilder::HasMember(const char* key) const {
-  return value_->HasMember(key);
-}
-
-bool ValueBuilder::HasMember(const std::string& key) const {
+bool ValueBuilder::HasMember(std::string_view key) const {
   return value_->HasMember(key);
 }
 
@@ -260,7 +257,7 @@ void ValueBuilder::Move(impl::Value& to, ValueBuilder&& from) {
   }
 }
 
-impl::Value& ValueBuilder::AddMember(const std::string& key,
+impl::Value& ValueBuilder::AddMember(std::string_view key,
                                      CheckMemberExists check_exists) {
   value_->CheckObjectOrNull();
   auto& native = value_->GetNative();
@@ -268,7 +265,7 @@ impl::Value& ValueBuilder::AddMember(const std::string& key,
   if (native.IsNull()) {
     native.SetObject();
   } else if (check_exists == CheckMemberExists::kYes) {
-    auto it = native.FindMember(key);
+    auto it = native.FindMember(impl::MakeJsonStringViewValue(key));
     if (it != native.MemberEnd()) {
       return it->value;
     }
@@ -276,7 +273,8 @@ impl::Value& ValueBuilder::AddMember(const std::string& key,
 
   // notify wrapper when members capacity (and thus location) changes
   const auto old_capacity = native.MemberCapacity();
-  native.AddMember(impl::Value{key, g_allocator}, impl::Value{}, g_allocator);
+  native.AddMember(impl::Value(key.data(), key.size(), g_allocator),
+                   impl::Value{}, g_allocator);
   if (old_capacity && old_capacity != native.MemberCapacity()) {
     value_.OnMembersChange();
   }

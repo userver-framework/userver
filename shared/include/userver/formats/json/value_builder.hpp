@@ -102,11 +102,11 @@ class ValueBuilder final {
   /// @brief Emplaces new member w/o a check whether the key already exists.
   /// @warning May create invalid JSON with duplicate key.
   /// @throw `TypeMismatchException` if not object or null value.
-  void EmplaceNocheck(const std::string& key, ValueBuilder value);
+  void EmplaceNocheck(std::string_view key, ValueBuilder value);
 
   /// @brief Remove key from object. If key is missing nothing happens.
   /// @throw `TypeMismatchException` if value is not an object.
-  void Remove(const std::string& key);
+  void Remove(std::string_view key);
 
   iterator begin();
   iterator end();
@@ -147,12 +147,8 @@ class ValueBuilder final {
   std::size_t GetSize() const;
 
   /// @brief Returns true if value holds a `key`.
-  /// @throw `TypeMismatchException` if not an object or null.
-  bool HasMember(const char* key) const;
-
-  /// @brief Returns true if value holds a `key`.
   /// @throw `TypeMismatchException` if `*this` is not a map or null.
-  bool HasMember(const std::string& key) const;
+  bool HasMember(std::string_view key) const;
 
   /// @brief Returns full path to this value.
   std::string GetPath() const;
@@ -188,7 +184,7 @@ class ValueBuilder final {
   static void Copy(impl::Value& to, const ValueBuilder& from);
   static void Move(impl::Value& to, ValueBuilder&& from);
 
-  impl::Value& AddMember(const std::string& key, CheckMemberExists);
+  impl::Value& AddMember(std::string_view key, CheckMemberExists);
 
   template <typename T>
   static Value DoSerialize(const T& t);

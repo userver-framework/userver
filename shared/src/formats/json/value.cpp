@@ -64,6 +64,14 @@ bool IsNonOverflowingIntegral(const double val) {
 }
 }  // namespace
 
+namespace impl {
+
+impl::Value MakeJsonStringViewValue(std::string_view view) {
+  return impl::Value(view.data(), view.size());
+}
+
+}  // namespace impl
+
 Value::Value(impl::VersionedValuePtr root) noexcept
     : root_(std::move(root)), value_ptr_(root_.Get()) {}
 
