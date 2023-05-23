@@ -394,7 +394,7 @@ void LogHelper::Put(std::string_view value) {
   pimpl_->xsputn(value.data(), value.size());
 }
 
-void LogHelper::Put(char value) { pimpl_->xsputn(&value, 1); }
+void LogHelper::Put(char value) { pimpl_->Put(value); }
 
 void LogHelper::PutException(const std::exception& ex) {
   if (!impl::ShouldLogStacktrace()) {

@@ -10,14 +10,6 @@ namespace logging {
 
 namespace {
 
-class PutCharFmtBuffer final {
- public:
-  template <size_t Size>
-  void operator()(fmt::basic_memory_buffer<char, Size>& to, char ch) const {
-    to.push_back(ch);
-  }
-};
-
 char GetSeparatorFromLogger(LoggerCRef logger) {
   switch (logger.GetFormat()) {
     case Format::kTskv:
@@ -57,25 +49,18 @@ std::streamsize LogHelper::Impl::xsputn(const char_type* s, std::streamsize n) {
     case Encode::kNone:
       msg_.append(s, s + n);
       break;
-    case Encode::kValue:
-      if (!utils::encoding::ShouldValueBeEscaped({s, static_cast<size_t>(n)})) {
-        msg_.append(s, s + n);
-      } else {
-        msg_.reserve(msg_.size() + n);
-
-        utils::encoding::EncodeTskv(msg_, s, s + n,
-                                    utils::encoding::EncodeTskvMode::kValue,
-                                    PutCharFmtBuffer{});
-      }
+    case Encode::kValue: {
+      utils::encoding::EncodeTskv(msg_, std::string_view(s, n),
+                                  utils::encoding::EncodeTskvMode::kValue);
       break;
+    }
     case Encode::kKeyReplacePeriod:
       if (!utils::encoding::ShouldKeyBeEscaped({s, static_cast<size_t>(n)})) {
         msg_.append(s, s + n);
       } else {
-        msg_.reserve(msg_.size() + n);
         utils::encoding::EncodeTskv(
-            msg_, s, s + n, utils::encoding::EncodeTskvMode::kKeyReplacePeriod,
-            PutCharFmtBuffer{});
+            msg_, std::string_view(s, n),
+            utils::encoding::EncodeTskvMode::kKeyReplacePeriod);
       }
       break;
   }
@@ -85,25 +70,26 @@ std::streamsize LogHelper::Impl::xsputn(const char_type* s, std::streamsize n) {
 
 LogHelper::Impl::int_type LogHelper::Impl::overflow(int_type c) {
   if (c == std::streambuf::traits_type::eof()) return c;
+  Put(c);
+  return c;
+}
 
+void LogHelper::Impl::Put(char_type c) {
   switch (encode_mode_) {
     case Encode::kNone:
       msg_.push_back(c);
       break;
     case Encode::kValue:
-      utils::encoding::EncodeTskv(msg_, static_cast<char>(c),
-                                  utils::encoding::EncodeTskvMode::kValue,
-                                  PutCharFmtBuffer{});
+      utils::encoding::EncodeTskv(std::back_inserter(msg_),
+                                  static_cast<char>(c),
+                                  utils::encoding::EncodeTskvMode::kValue);
       break;
     case Encode::kKeyReplacePeriod:
       utils::encoding::EncodeTskv(
-          msg_, static_cast<char>(c),
-          utils::encoding::EncodeTskvMode::kKeyReplacePeriod,
-          PutCharFmtBuffer{});
+          std::back_inserter(msg_), static_cast<char>(c),
+          utils::encoding::EncodeTskvMode::kKeyReplacePeriod);
       break;
   }
-
-  return c;
 }
 
 LogHelper::Impl::LazyInitedStream& LogHelper::Impl::GetLazyInitedStream() {
@@ -120,7 +106,7 @@ void LogHelper::Impl::LogTheMessage() const {
   }
 
   UASSERT(logger_);
-  std::string_view message(msg_.data(), msg_.size());
+  const std::string_view message(msg_.data(), msg_.size());
   logger_->Log(level_, message);
 }
 

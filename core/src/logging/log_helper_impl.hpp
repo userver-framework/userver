@@ -37,7 +37,8 @@ class LogHelper::Impl final {
   std::streamsize xsputn(const char_type* s, std::streamsize n);
   int_type overflow(int_type c);
 
-  void PutKeyValueSeparator() { xsputn(&key_value_separator_, 1); }
+  void Put(char_type c);
+  void PutKeyValueSeparator() { Put(key_value_separator_); }
 
   void LogTheMessage() const;
 

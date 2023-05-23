@@ -56,6 +56,7 @@ BENCHMARK_DEFINE_F(LogHelperBenchmark, LogString)(benchmark::State& state) {
 BENCHMARK_REGISTER_F(LogHelperBenchmark, LogString)
     ->RangeMultiplier(2)
     ->Range(8, 8 << 10)
+    ->Arg(768)  // Just above initial_capacity/2
     ->Complexity();
 
 BENCHMARK_DEFINE_F(LogHelperBenchmark, LogChar)(benchmark::State& state) {
