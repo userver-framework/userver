@@ -61,6 +61,10 @@ class RateCounter final {
     return *this;
   }
 
+  RateCounter& operator+=(RateCounter arg) noexcept {
+    return *this += arg.Load();
+  }
+
  private:
   static_assert(std::atomic<Rate::ValueType>::is_always_lock_free);
 

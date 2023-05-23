@@ -29,6 +29,15 @@ UTEST(RateCounter, Basic) {
     test1 += Rate{10};
     EXPECT_EQ(Rate{20}, test1.Load());
   }
+
+  {
+    RateCounter test1;
+    test1.Store(Rate{10});
+    RateCounter test2;
+    test2.Store(Rate{20});
+    test1 += test2;
+    EXPECT_EQ(Rate{30}, test1.Load());
+  }
 }
 
 UTEST(RateCounter, DumpMetric) {
