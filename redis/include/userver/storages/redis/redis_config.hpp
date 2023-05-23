@@ -29,6 +29,9 @@ MetricsSettings Parse(const formats::json::Value& elem,
 ReplicationMonitoringSettings Parse(
     const formats::json::Value& elem,
     formats::parse::To<ReplicationMonitoringSettings>);
+
+PubsubMetricsSettings Parse(const formats::json::Value& elem,
+                            formats::parse::To<PubsubMetricsSettings>);
 }  // namespace redis
 
 namespace storages::redis {
@@ -46,6 +49,8 @@ class Config {
       commands_buffering_settings;
   dynamic_config::Value<USERVER_NAMESPACE::redis::MetricsSettings>
       metrics_settings;
+  dynamic_config::Value<USERVER_NAMESPACE::redis::PubsubMetricsSettings>
+      pubsub_metrics_settings;
   dynamic_config::ValueDict<
       USERVER_NAMESPACE::redis::ReplicationMonitoringSettings>
       replication_monitoring_settings;
@@ -60,6 +65,7 @@ class Config {
         commands_buffering_settings{"REDIS_COMMANDS_BUFFERING_SETTINGS",
                                     docs_map},
         metrics_settings{"REDIS_METRICS_SETTINGS", docs_map},
+        pubsub_metrics_settings{"REDIS_PUBSUB_METRICS_SETTINGS", docs_map},
         replication_monitoring_settings{"REDIS_REPLICA_MONITORING_SETTINGS",
                                         docs_map} {}
 };

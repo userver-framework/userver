@@ -46,6 +46,10 @@ struct RawPubsubClusterStatistics {
 };
 
 struct PubsubClusterStatistics {
+  PubsubClusterStatistics(const PubsubMetricsSettings& settings)
+      : settings(settings) {}
+
+  const PubsubMetricsSettings& settings;
   std::unordered_map<std::string, PubsubShardStatistics> by_shard;
 
   PubsubShardStatistics SumByShards() const {

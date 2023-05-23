@@ -593,6 +593,38 @@ definitions:
 Used by components::Redis.
 
 
+@anchor REDIS_PUBSUB_METRICS_SETTINGS
+## REDIS_PUBSUB_METRICS_SETTINGS
+
+Dynamic config that controls the redis pubsub metric settings for specific service.
+
+```
+yaml
+type: object
+additionalProperties:
+  $ref: "#/definitions/PubsubMetricsSettings"
+definitions:
+  PubsubMetricsSettings:
+    type: object
+    additionalProperties: false
+    properties:
+      per-shard-stats-enabled:
+        type: boolean
+        default: true
+        description: enable collecting statistics by shard
+```
+
+```json
+{
+  "redis-database_name": {
+    "per-shard-stats-enabled": true
+  }
+}
+```
+
+Used by components::Redis.
+
+
 @anchor REDIS_SUBSCRIBER_DEFAULT_COMMAND_CONTROL
 ## REDIS_SUBSCRIBER_DEFAULT_COMMAND_CONTROL
 

@@ -121,6 +121,14 @@ ReplicationMonitoringSettings Parse(
   return result;
 }
 
+PubsubMetricsSettings Parse(const formats::json::Value& elem,
+                            formats::parse::To<PubsubMetricsSettings>) {
+  PubsubMetricsSettings result;
+  result.per_shard_stats_enabled =
+      elem["per-shard-stats-enabled"].As<bool>(result.per_shard_stats_enabled);
+  return result;
+}
+
 }  // namespace redis
 
 USERVER_NAMESPACE_END

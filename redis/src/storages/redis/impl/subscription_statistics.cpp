@@ -30,8 +30,10 @@ void DumpMetric(utils::statistics::Writer& writer,
 
 void DumpMetric(utils::statistics::Writer& writer,
                 const PubsubClusterStatistics& stats) {
-  for (const auto& [name, shard_stats] : stats.by_shard) {
-    writer.ValueWithLabels(shard_stats, {"redis_shard", name});
+  if (stats.settings.per_shard_stats_enabled) {
+    for (const auto& [name, shard_stats] : stats.by_shard) {
+      writer.ValueWithLabels(shard_stats, {"redis_shard", name});
+    }
   }
   writer = stats.SumByShards();
 }

@@ -259,9 +259,11 @@ void Redis::WriteStatistics(utils::statistics::Writer& writer) {
 }
 
 void Redis::WriteStatisticsPubsub(utils::statistics::Writer& writer) {
+  auto settings = pubsub_metrics_settings_.Read();
   for (const auto& [name, redis] : subscribe_clients_) {
-    writer.ValueWithLabels(redis->GetNative().GetSubscriberStatistics(),
-                           {"redis_database", name});
+    writer.ValueWithLabels(
+        redis->GetNative().GetSubscriberStatistics(*settings),
+        {"redis_database", name});
   }
 }
 
@@ -296,6 +298,11 @@ void Redis::OnConfigUpdate(const dynamic_config::Snapshot& cfg) {
   auto metrics_settings = metrics_settings_.Read();
   if (*metrics_settings != redis_config.metrics_settings) {
     metrics_settings_.Assign(redis_config.metrics_settings);
+  }
+
+  auto pubsub_metrics_settings = pubsub_metrics_settings_.Read();
+  if (*pubsub_metrics_settings != redis_config.pubsub_metrics_settings) {
+    pubsub_metrics_settings_.Assign(redis_config.pubsub_metrics_settings);
   }
 }
 

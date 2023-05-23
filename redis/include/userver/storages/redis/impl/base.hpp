@@ -278,6 +278,18 @@ struct MetricsSettings {
   }
 };
 
+struct PubsubMetricsSettings {
+  bool per_shard_stats_enabled{true};
+
+  constexpr bool operator==(const PubsubMetricsSettings& rhs) const {
+    return per_shard_stats_enabled == rhs.per_shard_stats_enabled;
+  }
+
+  constexpr bool operator!=(const PubsubMetricsSettings& rhs) const {
+    return !(*this == rhs);
+  }
+};
+
 struct ReplicationMonitoringSettings {
   bool enable_monitoring{false};
   bool restrict_requests{false};

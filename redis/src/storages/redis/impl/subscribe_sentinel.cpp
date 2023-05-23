@@ -156,12 +156,13 @@ SubscriptionToken SubscribeSentinel::Psubscribe(
   return token;
 }
 
-PubsubClusterStatistics SubscribeSentinel::GetSubscriberStatistics() const {
+PubsubClusterStatistics SubscribeSentinel::GetSubscriberStatistics(
+    const PubsubMetricsSettings& settings) const {
   auto raw = storage_->GetStatistics();
   auto shards = GetMasterShards();
   UASSERT(raw.by_shard.size() == shards.size());
 
-  PubsubClusterStatistics result;
+  PubsubClusterStatistics result(settings);
   for (size_t i = 0; i < shards.size(); i++)
     result.by_shard.emplace(shards[i]->ShardName(), std::move(raw.by_shard[i]));
   return result;

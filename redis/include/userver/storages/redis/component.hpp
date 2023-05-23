@@ -50,6 +50,7 @@ namespace components {
 /// * @ref REDIS_WAIT_CONNECTED
 /// * @ref REDIS_COMMANDS_BUFFERING_SETTINGS
 /// * @ref REDIS_METRICS_SETTINGS
+/// * @ref REDIS_PUBSUB_METRICS_SETTINGS
 ///
 /// ## Static options:
 /// Name | Description | Default value
@@ -130,6 +131,7 @@ class Redis : public LoggableComponentBase {
   utils::statistics::Entry subscribe_statistics_holder_;
 
   rcu::Variable<redis::MetricsSettings> metrics_settings_;
+  rcu::Variable<redis::PubsubMetricsSettings> pubsub_metrics_settings_;
 };
 
 template <>

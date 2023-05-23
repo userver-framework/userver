@@ -54,7 +54,8 @@ class SubscribeSentinel : protected Sentinel {
       const Sentinel::UserPmessageCallback& message_callback,
       CommandControl control = CommandControl());
 
-  PubsubClusterStatistics GetSubscriberStatistics() const;
+  PubsubClusterStatistics GetSubscriberStatistics(
+      const PubsubMetricsSettings& settings) const;
 
   void RebalanceSubscriptions(size_t shard_idx);
 
