@@ -1,10 +1,11 @@
-#include <userver/engine/async.hpp>
 #include <userver/engine/condition_variable.hpp>
+
+#include <atomic>
+
+#include <userver/engine/async.hpp>
 #include <userver/engine/sleep.hpp>
 #include <userver/engine/task/cancel.hpp>
 #include <userver/utest/utest.hpp>
-
-#include <atomic>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -383,6 +384,19 @@ UTEST(ConditionVariable, CancelledOnTaskDeadline) {
   UEXPECT_NO_THROW(task.WaitFor(utest::kMaxTestWaitTime / 2));
   EXPECT_EQ(task.GetState(), engine::Task::State::kCompleted);
   UEXPECT_NO_THROW(task.Get());
+}
+
+UTEST(ConditionVariable, AlreadyCancelled) {
+  engine::Mutex mutex;
+  engine::ConditionVariable cv;
+
+  engine::current_task::GetCancellationToken().RequestCancel();
+
+  std::unique_lock lock(mutex);
+  UEXPECT_NO_THROW(EXPECT_EQ(cv.WaitFor(lock, utest::kMaxTestWaitTime),
+                             engine::CvStatus::kCancelled));
+  UEXPECT_NO_THROW(EXPECT_FALSE(
+      cv.WaitFor(lock, utest::kMaxTestWaitTime, [] { return false; })));
 }
 
 USERVER_NAMESPACE_END

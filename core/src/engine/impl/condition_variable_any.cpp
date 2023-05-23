@@ -74,7 +74,8 @@ CvStatus ConditionVariableAny<MutexType>::WaitUntil(
     wakeup_source = current.Sleep(wait_manager);
   }
   // re-lock the mutex after it's been released in SetupWakeups()
-  lock.lock();
+  // !lock can occur on an immediate cancellation
+  if (!lock) lock.lock();
 
   switch (wakeup_source) {
     case TaskContext::WakeupSource::kCancelRequest:
