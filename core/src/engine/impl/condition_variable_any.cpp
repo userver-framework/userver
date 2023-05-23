@@ -62,6 +62,8 @@ ConditionVariableAny<MutexType>::~ConditionVariableAny() = default;
 template <typename MutexType>
 CvStatus ConditionVariableAny<MutexType>::WaitUntil(
     std::unique_lock<MutexType>& lock, Deadline deadline) {
+  UASSERT(lock.owns_lock());
+
   if (deadline.IsReached()) {
     return CvStatus::kTimeout;
   }
@@ -74,7 +76,7 @@ CvStatus ConditionVariableAny<MutexType>::WaitUntil(
     wakeup_source = current.Sleep(wait_manager);
   }
   // re-lock the mutex after it's been released in SetupWakeups()
-  // !lock can occur on an immediate cancellation
+  // lock.owns_lock() can occur on an immediate cancellation
   if (!lock) lock.lock();
 
   switch (wakeup_source) {
