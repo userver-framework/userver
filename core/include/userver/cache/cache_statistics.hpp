@@ -8,8 +8,8 @@
 #include <cstddef>
 
 #include <userver/cache/update_type.hpp>
-#include <userver/formats/json_fwd.hpp>
-#include <userver/utils/statistics/writer.hpp>
+#include <userver/utils/internal_tag_fwd.hpp>
+#include <userver/utils/statistics/fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -42,6 +42,8 @@ struct Statistics final {
 
 void DumpMetric(utils::statistics::Writer& writer, const Statistics& stats);
 
+enum class UpdateState { kNotFinished, kSuccess, kFailure };
+
 }  // namespace impl
 
 /// @brief Allows a specific cache to fill cache statistics during an `Update`
@@ -55,14 +57,19 @@ class UpdateStatisticsScope final {
   UpdateStatisticsScope(impl::Statistics& stats, cache::UpdateType type);
 
   ~UpdateStatisticsScope();
+
+  impl::UpdateState GetState(utils::InternalTag) const;
   /// @endcond
 
   /// @brief Mark that the `Update` has finished with changes
   /// @param documents_count the new total number of items stored in the cache
-  void Finish(std::size_t documents_count);
+  void Finish(std::size_t total_documents_count);
 
   /// @brief Mark that the `Update` has finished without changes
   void FinishNoChanges();
+
+  /// @brief Mark that the `Update` failed
+  void FinishWithError();
 
   /// @brief Each item received from the data source should be accounted with
   /// this function
@@ -77,9 +84,11 @@ class UpdateStatisticsScope final {
   void IncreaseDocumentsParseFailures(std::size_t add);
 
  private:
+  void DoFinish(impl::UpdateState new_state);
+
   impl::Statistics& stats_;
   impl::UpdateStatistics& update_stats_;
-  bool finished_{false};
+  impl::UpdateState state_{impl::UpdateState::kNotFinished};
   const std::chrono::steady_clock::time_point update_start_time_;
 };
 

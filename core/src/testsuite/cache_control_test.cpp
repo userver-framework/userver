@@ -21,6 +21,7 @@ namespace {
 const std::string kCacheName = "test_cache";
 const std::string kCacheNameAlternative = "test_cache_alternative";
 const std::string kDumpToRead = "2015-03-22T090000.000000Z-v0";
+constexpr std::size_t kDummyDocumentsCount = 42;
 
 class FakeCache final : public cache::CacheMockBase {
  public:
@@ -40,11 +41,12 @@ class FakeCache final : public cache::CacheMockBase {
   void Update(cache::UpdateType type,
               const std::chrono::system_clock::time_point&,
               const std::chrono::system_clock::time_point&,
-              cache::UpdateStatisticsScope&) override {
+              cache::UpdateStatisticsScope& stats_scope) override {
     ++updates_count_;
     last_update_type_ = type;
     value_ = "foo";
     OnCacheModified();
+    stats_scope.Finish(kDummyDocumentsCount);
   }
 
   void GetAndWrite(dump::Writer& writer) const override {

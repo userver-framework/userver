@@ -1,8 +1,8 @@
 #include <userver/cache/cache_statistics.hpp>
 
-#include <userver/formats/json/value.hpp>
-#include <userver/formats/json/value_builder.hpp>
-#include <userver/utils/statistics/metadata.hpp>
+#include <userver/utils/assert.hpp>
+#include <userver/utils/statistics/writer.hpp>
+#include <utils/internal_tag.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -101,31 +101,53 @@ UpdateStatisticsScope::UpdateStatisticsScope(impl::Statistics& stats,
 }
 
 UpdateStatisticsScope::~UpdateStatisticsScope() {
-  if (!finished_) ++update_stats_.update_failures_count;
+  if (state_ == impl::UpdateState::kNotFinished) {
+    FinishWithError();
+  }
 }
 
-void UpdateStatisticsScope::Finish(size_t documents_count) {
-  const auto update_stop_time = std::chrono::steady_clock::now();
-  update_stats_.last_successful_update_start_time = update_start_time_;
-  update_stats_.last_update_duration =
-      std::chrono::duration_cast<std::chrono::milliseconds>(update_stop_time -
-                                                            update_start_time_);
-  stats_.documents_current_count = documents_count;
+impl::UpdateState UpdateStatisticsScope::GetState(utils::InternalTag) const {
+  return state_;
+}
 
-  finished_ = true;
+void UpdateStatisticsScope::Finish(std::size_t total_documents_count) {
+  stats_.documents_current_count = total_documents_count;
+  DoFinish(impl::UpdateState::kSuccess);
 }
 
 void UpdateStatisticsScope::FinishNoChanges() {
   ++update_stats_.update_no_changes_count;
-  Finish(stats_.documents_current_count.load());
+  DoFinish(impl::UpdateState::kSuccess);
 }
 
-void UpdateStatisticsScope::IncreaseDocumentsReadCount(size_t add) {
+void UpdateStatisticsScope::FinishWithError() {
+  ++update_stats_.update_failures_count;
+  DoFinish(impl::UpdateState::kFailure);
+}
+
+void UpdateStatisticsScope::IncreaseDocumentsReadCount(std::size_t add) {
   update_stats_.documents_read_count += add;
 }
 
-void UpdateStatisticsScope::IncreaseDocumentsParseFailures(size_t add) {
+void UpdateStatisticsScope::IncreaseDocumentsParseFailures(std::size_t add) {
   update_stats_.documents_parse_failures += add;
+}
+
+void UpdateStatisticsScope::DoFinish(impl::UpdateState new_state) {
+  UASSERT(new_state != impl::UpdateState::kNotFinished);
+  // TODO Some production caches call Finish multiple times. We should fix those
+  //  and add an UASSERT here.
+  if (state_ != impl::UpdateState::kNotFinished) return;
+
+  const auto update_stop_time = std::chrono::steady_clock::now();
+  if (new_state == impl::UpdateState::kSuccess) {
+    update_stats_.last_successful_update_start_time = update_start_time_;
+  }
+  update_stats_.last_update_duration =
+      std::chrono::duration_cast<std::chrono::milliseconds>(update_stop_time -
+                                                            update_start_time_);
+
+  state_ = new_state;
 }
 
 }  // namespace cache

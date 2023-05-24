@@ -5,7 +5,6 @@
 #include <userver/dist_lock/dist_lock_settings.hpp>
 #include <userver/storages/postgres/component.hpp>
 #include <userver/testsuite/tasks.hpp>
-#include <userver/utils/statistics/metadata.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
 USERVER_NAMESPACE_BEGIN

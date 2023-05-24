@@ -89,9 +89,24 @@ class CacheUpdateTrait {
   engine::TaskProcessor& GetCacheTaskProcessor() const;
   /// @endcond
 
-  /// @brief Should be overridden in a derived class to implement the update
-  /// logic. The statistics should be updated using `stats_scope`, and call
-  /// `CachingComponentBase::Set` if the cached data has changed.
+  /// @brief Should be overridden in a derived class to align the stored data
+  /// with some data source.
+  ///
+  /// `Update` implementation should do one of the following:
+  ///
+  /// A. If the update succeeded and has changes...
+  ///    1. call CachingComponentBase::Set to update the stored value and send a
+  ///    notification to subscribers
+  ///    2. call UpdateStatisticsScope::Finish
+  ///    3. return normally (an exception is allowed in edge cases)
+  /// B. If the update succeeded and verified that there are no changes...
+  ///    1. DON'T call CachingComponentBase::Set
+  ///    2. call UpdateStatisticsScope::FinishNoChanges
+  ///    3. return normally (an exception is allowed in edge cases)
+  /// C. If the update failed...
+  ///    1. DON'T call CachingComponentBase::Set
+  ///    2. call UpdateStatisticsScope::FinishWithError, or...
+  ///    3. throw an exception, which will be logged nicely
   ///
   /// @param type type of the update
   /// @param last_update time of the last update (value of `now` from previous
@@ -99,7 +114,7 @@ class CacheUpdateTrait {
   /// Update).
   /// @param now current time point
   ///
-  /// @throws Any `std::exception` on error
+  /// @throws std::exception on update failure
   ///
   /// @see @ref md_en_userver_caches
   virtual void Update(UpdateType type,

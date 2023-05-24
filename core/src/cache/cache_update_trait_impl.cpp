@@ -1,5 +1,7 @@
 #include <cache/cache_update_trait_impl.hpp>
 
+#include <fmt/format.h>
+
 #include <userver/components/component.hpp>
 #include <userver/components/dump_configurator.hpp>
 #include <userver/dynamic_config/source.hpp>
@@ -18,6 +20,7 @@
 #include <dump/dump_locator.hpp>
 #include <userver/dump/factory.hpp>
 #include <userver/testsuite/testsuite_support.hpp>
+#include <utils/internal_tag.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -61,17 +64,16 @@ void CacheUpdateTrait::Impl::InvalidateAsync(UpdateType update_type) {
 }
 
 void CacheUpdateTrait::Impl::UpdateSyncDebug(UpdateType update_type) {
-  std::lock_guard lock(update_mutex_);
-  const auto config = GetConfig();
+  const std::lock_guard lock(update_mutex_);
 
-  if (config->allowed_update_types == AllowedUpdateTypes::kOnlyFull &&
+  if (static_config_.allowed_update_types == AllowedUpdateTypes::kOnlyFull &&
       update_type == UpdateType::kIncremental) {
     LOG_WARNING() << "Requested incremental update for cache '" << name_
                   << "' while only full updates were allowed";
     update_type = UpdateType::kFull;
   }
 
-  utils::CriticalAsync(task_processor_, "update-task/" + name_, [&] {
+  utils::CriticalAsync(task_processor_, update_task_name_, [this, update_type] {
     DoUpdate(update_type);
   }).Get();
 }
@@ -85,22 +87,23 @@ CacheUpdateTrait::Impl::Impl(CacheDependencies&& dependencies,
       config_(static_config_),
       cache_control_(dependencies.cache_control),
       name_(std::move(dependencies.name)),
+      update_task_name_("update-task/" + name_),
       task_processor_(dependencies.task_processor),
       periodic_update_enabled_(
           dependencies.cache_control.IsPeriodicUpdateEnabled(static_config_,
                                                              name_)),
       periodic_task_flags_{utils::PeriodicTask::Flags::kChaotic,
                            utils::PeriodicTask::Flags::kCritical},
-      dumpable_(customized_trait_),
-      dumper_(dependencies.dump_config
-                  ? std::optional<dump::Dumper>(
-                        std::in_place, *dependencies.dump_config,
-                        CheckNotNull(std::move(dependencies.dump_rw_factory)),
-                        *CheckNotNull(dependencies.fs_task_processor),
-                        *CheckNotNull(dependencies.config_source),
-                        dependencies.statistics_storage,
-                        dependencies.dump_control, dumpable_)
-                  : std::nullopt) {
+      dumpable_(customized_trait_) {
+  if (dependencies.dump_config) {
+    dumper_.emplace(*dependencies.dump_config,
+                    CheckNotNull(std::move(dependencies.dump_rw_factory)),
+                    *CheckNotNull(dependencies.fs_task_processor),
+                    *CheckNotNull(dependencies.config_source),
+                    dependencies.statistics_storage, dependencies.dump_control,
+                    dumpable_);
+  }
+
   statistics_holder_ = dependencies.statistics_storage.RegisterWriter(
       "cache", [this](utils::statistics::Writer& writer) {
         writer.ValueWithLabels(statistics_, {"cache_name", Name()});
@@ -136,15 +139,9 @@ void CacheUpdateTrait::Impl::StartPeriodicUpdates(
     return;
   }
 
-  const auto config = GetConfig();
-
-  // CacheInvalidatorHolder is created here to achieve that cache invalidators
-  // are registered in the order of cache component dependency.
-  // We exploit the fact that StartPeriodicUpdates is called at the end
-  // of all concrete cache component constructors.
-  cache_invalidator_holder_.emplace(cache_control_, customized_trait_);
-
   try {
+    const auto config = GetConfig();
+
     const auto dump_time = dumper_ ? dumper_->ReadDump() : std::nullopt;
     if (dump_time) {
       last_update_ = *dump_time;
@@ -154,18 +151,20 @@ void CacheUpdateTrait::Impl::StartPeriodicUpdates(
               : UpdateType::kIncremental;
     }
 
-    if ((!dump_time || config->first_update_mode != FirstUpdateMode::kSkip) &&
+    if ((last_update_ == std::chrono::system_clock::time_point{} ||
+         config->first_update_mode != FirstUpdateMode::kSkip) &&
         (!(flags & CacheUpdateTrait::Flag::kNoFirstUpdate) ||
          !periodic_update_enabled_)) {
       // ignore kNoFirstUpdate if !periodic_update_enabled_
       // because some components require caches to be updated at least once
 
+      // `InvalidateAsync` called up to this point should not result in an
+      // extra update
+      first_update_invalidation_ = FirstUpdateInvalidation::kNo;
+
       // Force first update, do it synchronously
-      tracing::Span span("first-update/" + name_);
+      const tracing::Span span("first-update/" + name_);
       try {
-        // `InvalidateAsync` called up to this point should not result in an
-        // extra update
-        first_update_invalidation_ = FirstUpdateInvalidation::kNo;
         DoPeriodicUpdate();
       } catch (const std::exception& e) {
         if (dump_time &&
@@ -202,8 +201,7 @@ void CacheUpdateTrait::Impl::StartPeriodicUpdates(
         update_task_.ForceStepAsync();
       }
 
-      update_task_.Start("update-task/" + name_,
-                         GetPeriodicTaskSettings(*config),
+      update_task_.Start(update_task_name_, GetPeriodicTaskSettings(*config),
                          [this] { DoPeriodicUpdate(); });
 
       utils::PeriodicTask::Settings cleanup_settings(config->cleanup_interval);
@@ -220,6 +218,12 @@ void CacheUpdateTrait::Impl::StartPeriodicUpdates(
     is_running_ = false;  // update_task_ is not started, don't check it in dtr
     throw;
   }
+
+  // CacheInvalidatorHolder is created here to achieve that cache invalidators
+  // are registered in the order of cache component dependency.
+  // We exploit the fact that StartPeriodicUpdates is called at the end
+  // of all concrete cache component constructors.
+  cache_invalidator_holder_.emplace(cache_control_, customized_trait_);
 }
 
 void CacheUpdateTrait::Impl::StopPeriodicUpdates() {
@@ -290,7 +294,7 @@ UpdateType CacheUpdateTrait::Impl::NextUpdateType(const Config& config) {
 }
 
 void CacheUpdateTrait::Impl::DoPeriodicUpdate() {
-  std::lock_guard lock(update_mutex_);
+  const std::lock_guard lock(update_mutex_);
   const auto config = GetConfig();
 
   const auto is_first_update = !std::exchange(first_update_attempted_, true);
@@ -305,26 +309,26 @@ void CacheUpdateTrait::Impl::DoPeriodicUpdate() {
   const auto update_type = NextUpdateType(*config);
   try {
     DoUpdate(update_type);
-    if (update_type == UpdateType::kFull) {
-      force_full_update_ = false;
-    }
-    dump_first_update_type_ = {};
-    failed_updates_counter_ = 0;
+    // Note: "on update success" logic goes inside DoUpdate
   } catch (const std::exception& ex) {
     LOG_WARNING() << "Error while updating cache " << name_
-                  << ". Reason: " << ex;
-
-    const auto failed_updates_before_expiration =
-        config->failed_updates_before_expiration;
-    failed_updates_counter_++;
-    if (failed_updates_counter_ == failed_updates_before_expiration) {
-      customized_trait_.MarkAsExpired();
-      LOG_WARNING()
-          << "Cache is marked as expired because the number of "
-             "failed updates has reached 'failed-updates-before-expiration' ("
-          << failed_updates_before_expiration << ")";
-    }
+                  << " (update_type=" << ToString(update_type)
+                  << "). Reason: " << ex;
+    OnPeriodicUpdateFailure();
     throw;
+  }
+}
+
+void CacheUpdateTrait::Impl::OnPeriodicUpdateFailure() {
+  const auto failed_updates_before_expiration =
+      static_config_.failed_updates_before_expiration;
+  failed_updates_counter_++;
+  if (failed_updates_counter_ == failed_updates_before_expiration) {
+    customized_trait_.MarkAsExpired();
+    LOG_WARNING()
+        << "Cache is marked as expired because the number of "
+           "failed updates has reached 'failed-updates-before-expiration' ("
+        << failed_updates_before_expiration << ")";
   }
 }
 
@@ -349,22 +353,44 @@ void CacheUpdateTrait::Impl::DoUpdate(UpdateType update_type) {
   const auto now =
       std::chrono::round<dump::TimePoint::duration>(utils::datetime::Now());
 
-  const auto* update_type_str =
-      update_type == UpdateType::kFull ? "full" : "incremental";
-  tracing::Span::CurrentSpan().AddTag("update_type", update_type_str);
+  const auto update_type_str = ToString(update_type);
+  tracing::Span::CurrentSpan().AddTag("update_type",
+                                      std::string{update_type_str});
 
   UpdateStatisticsScope stats(statistics_, update_type);
   LOG_INFO() << "Updating cache update_type=" << update_type_str
              << " name=" << name_;
 
   customized_trait_.Update(update_type, last_update_, now, stats);
-  LOG_INFO() << "Updated cache update_type=" << update_type_str
-             << " name=" << name_;
 
-  last_update_ = now;
+  switch (stats.GetState(utils::InternalTag{})) {
+    case impl::UpdateState::kNotFinished:
+      // TODO add UASSERT
+      LOG_ERROR() << fmt::format(
+          "Cache {} has an incorrect implementation of Update "
+          "method: it returned successfully, but did not update "
+          "cache::UpdateStatisticsScope. Please read the docs "
+          "on cache::CacheUpdateTrait::Update",
+          Name());
+      // TODO count kNotFinished as a failure in production
+      [[fallthrough]];
+    case impl::UpdateState::kSuccess:
+      LOG_INFO() << "Updated cache update_type=" << update_type_str
+                 << " name=" << name_;
+      break;
+    case impl::UpdateState::kFailure:
+      throw std::runtime_error("FinishWithError");
+  }
+
+  // Update success
   if (update_type == UpdateType::kFull) {
+    force_full_update_ = false;
     last_full_update_ = steady_now;
   }
+  dump_first_update_type_ = {};
+  failed_updates_counter_ = 0;
+
+  last_update_ = now;
   if (dumper_) {
     dumper_->OnUpdateCompleted(now, cache_modified_.exchange(false)
                                         ? dump::UpdateType::kModified
