@@ -1,3 +1,4 @@
+# pylint: disable=broad-except
 import asyncio
 import enum
 import gzip
@@ -59,7 +60,8 @@ def call(modified_service_client):
             return ErrorType.RESET_BY_PEER
         except exceptions.ClientResponseError:
             return ErrorType.BAD_REQUEST
-        else:
+        except Exception as ex:
+            logger.error(f'Unknown exception {ex}')
             return ErrorType.UNKNOWN
 
     return _call
