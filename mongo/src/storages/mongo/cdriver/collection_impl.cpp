@@ -9,6 +9,7 @@
 #include <userver/storages/mongo/exception.hpp>
 #include <userver/storages/mongo/mongo_error.hpp>
 #include <userver/tracing/span.hpp>
+#include <userver/tracing/tags.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/impl/userver_experiments.hpp>
 #include <userver/utils/text.hpp>
@@ -168,6 +169,8 @@ void SetMaxServerTime(mongoc_find_and_modify_opts_t& options,
     throw MongoException("Cannot set max server time");
   }
 }
+
+const std::string kCancelledByDeadlineTag = "cancelled_by_deadline";
 
 }  // namespace
 
@@ -541,6 +544,7 @@ cdriver::CDriverPoolImpl::BoundClientPtr CDriverCollectionImpl::GetClient(
     return static_cast<cdriver::CDriverPoolImpl*>(pool_impl_.get())->Acquire();
   } catch (const CancelledException& /*ex*/) {
     stats.Account(stats::ErrorType::kCancelled);
+    tracing::Span::CurrentSpan().AddTag(kCancelledByDeadlineTag, true);
     throw;
   } catch (const PoolOverloadException& /*ex*/) {
     stats.Account(stats::ErrorType::kPoolOverload);
@@ -557,10 +561,15 @@ RequestContext CDriverCollectionImpl::MakeRequestContext(
   const auto inherited_deadline = GetDeadlineTimeLeft(dynamic_config);
   if (inherited_deadline && inherited_deadline <= std::chrono::seconds{0}) {
     stats->Account(stats::ErrorType::kCancelled);
+    span.AddTag(kCancelledByDeadlineTag, true);
     throw CancelledException("Operation cancelled (deadline propagation)");
   }
 
   stats->EnterQuery();
+
+  if (inherited_deadline) {
+    span.AddTag(tracing::kTimeoutMs, inherited_deadline->count());
+  }
 
   auto client = GetClient(*stats);
   cdriver::CollectionPtr collection(mongoc_client_get_collection(
