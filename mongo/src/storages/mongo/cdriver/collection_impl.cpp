@@ -26,6 +26,9 @@ USERVER_NAMESPACE_BEGIN
 namespace storages::mongo::impl::cdriver {
 namespace {
 
+const std::string kCancelledByDeadlineTag = "cancelled_by_deadline";
+const std::string kMaxTimeMsTag = "max_time_ms";
+
 class WriteResultHelper {
  public:
   bson_t* GetNative() { return bson_.Get(); }
@@ -145,6 +148,10 @@ std::chrono::milliseconds ComputeAdjustedMaxServerTime(
     }
   }
 
+  if (max_server_time != operations::kNoMaxServerTime) {
+    tracing::Span::CurrentSpan().AddTag(kMaxTimeMsTag, max_server_time.count());
+  }
+
   return max_server_time;
 }
 
@@ -169,8 +176,6 @@ void SetMaxServerTime(mongoc_find_and_modify_opts_t& options,
     throw MongoException("Cannot set max server time");
   }
 }
-
-const std::string kCancelledByDeadlineTag = "cancelled_by_deadline";
 
 }  // namespace
 
