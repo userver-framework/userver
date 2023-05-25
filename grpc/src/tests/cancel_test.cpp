@@ -90,14 +90,15 @@ UTEST_MT(GrpcServer, DestroyServerDuringRequest, 2) {
   ugrpc::client::QueueHolder client_queue;
 
   testsuite::GrpcControl ts({}, false);
+  ugrpc::client::MiddlewareFactories mwfs;
   ugrpc::client::ClientFactory client_factory(
       ugrpc::client::ClientFactoryConfig{},
-      engine::current_task::GetTaskProcessor(), client_queue.GetQueue(),
+      engine::current_task::GetTaskProcessor(), mwfs, client_queue.GetQueue(),
       statistics_storage, ts);
 
   const std::string endpoint = fmt::format("[::1]:{}", server.GetPort());
-  auto client =
-      client_factory.MakeClient<sample::ugrpc::UnitTestServiceClient>(endpoint);
+  auto client = client_factory.MakeClient<sample::ugrpc::UnitTestServiceClient>(
+      "test", endpoint);
 
   auto call = client.Chat();
   // NOLINTNEXTLINE(clang-analyzer-optin.cplusplus.UninitializedObject)
@@ -127,13 +128,14 @@ UTEST(GrpcServer, DeadlineAffectsWaitForReady) {
   const std::string endpoint = "[::1]:1234";
 
   testsuite::GrpcControl ts({}, false);
+  ugrpc::client::MiddlewareFactories mws;
   ugrpc::client::ClientFactory client_factory(
       ugrpc::client::ClientFactoryConfig{},
-      engine::current_task::GetTaskProcessor(), client_queue.GetQueue(),
+      engine::current_task::GetTaskProcessor(), mws, client_queue.GetQueue(),
       statistics_storage, ts);
 
-  auto client =
-      client_factory.MakeClient<sample::ugrpc::UnitTestServiceClient>(endpoint);
+  auto client = client_factory.MakeClient<sample::ugrpc::UnitTestServiceClient>(
+      "test", endpoint);
 
   auto context = std::make_unique<grpc::ClientContext>();
   context->set_deadline(engine::Deadline::FromDuration(100ms));

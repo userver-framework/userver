@@ -25,11 +25,13 @@ class ClientData final {
   ClientData() = delete;
 
   template <typename Service>
-  ClientData(impl::ChannelCache::Token channel_token,
+  ClientData(std::string_view client_name,
+             impl::ChannelCache::Token channel_token,
              grpc::CompletionQueue& queue,
              ugrpc::impl::ServiceStatistics& statistics,
              std::in_place_type_t<Service>)
-      : channel_token_(std::move(channel_token)),
+      : client_name_(client_name),
+        channel_token_(std::move(channel_token)),
         queue_(&queue),
         statistics_(&statistics) {
     const std::size_t channel_count = channel_token_.GetChannelCount();
@@ -60,6 +62,8 @@ class ClientData final {
 
   ChannelCache::Token& GetChannelToken() { return channel_token_; }
 
+  std::string_view GetClientName() const { return client_name_; }
+
  private:
   using StubDeleterType = void (*)(void*);
   using StubPtr = std::unique_ptr<void, StubDeleterType>;
@@ -69,6 +73,7 @@ class ClientData final {
     delete static_cast<Stub<Service>*>(ptr);
   }
 
+  std::string client_name_;
   impl::ChannelCache::Token channel_token_;
   utils::FixedArray<StubPtr> stubs_;
   grpc::CompletionQueue* queue_;

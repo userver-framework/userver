@@ -75,13 +75,16 @@ RpcData* FutureImpl::GetData() noexcept { return data_; }
 
 void FutureImpl::ClearData() noexcept { data_ = nullptr; }
 
-RpcData::RpcData(std::unique_ptr<grpc::ClientContext>&& context,
+RpcData::RpcData(std::string_view client_name,
+                 std::unique_ptr<grpc::ClientContext>&& context,
                  std::string_view call_name,
                  ugrpc::impl::MethodStatistics& statistics)
     : context_(std::move(context)),
+      client_name_(client_name),
       call_name_(call_name),
       stats_scope_(statistics) {
   UASSERT(context_);
+  UASSERT(!client_name_.empty());
   SetupSpan(span_, *context_, call_name_);
 }
 
@@ -107,6 +110,11 @@ grpc::ClientContext& RpcData::GetContext() noexcept {
 std::string_view RpcData::GetCallName() const noexcept {
   UASSERT(context_);
   return call_name_;
+}
+
+std::string_view RpcData::GetClientName() const noexcept {
+  UASSERT(context_);
+  return client_name_;
 }
 
 tracing::Span& RpcData::GetSpan() noexcept {

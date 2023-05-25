@@ -39,7 +39,7 @@ class GreeterClient final : public components::LoggableComponentBase {
                 .GetFactory()),
         // The client needs a fixed endpoint
         client_(client_factory_.MakeClient<api::GreeterServiceClient>(
-            config["endpoint"].As<std::string>())) {}
+            "greeter", config["endpoint"].As<std::string>())) {}
 
   std::string SayHello(std::string name);
 

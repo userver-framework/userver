@@ -1,6 +1,7 @@
 #include <userver/ugrpc/client/rpc.hpp>
 
 #include <userver/ugrpc/client/exceptions.hpp>
+#include <userver/ugrpc/client/middleware_base.hpp>
 #include <userver/utils/fast_scope_guard.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -35,6 +36,28 @@ void UnaryFuture::Get() {
 }
 
 bool UnaryFuture::IsReady() const noexcept { return impl_.IsReady(); }
+
+void CallMiddlewares(const Middlewares& mws, CallAnyBase& call,
+                     std::function<void()> user_call,
+                     const ::google::protobuf::Message* request) {
+  MiddlewareCallContext mw_ctx(mws, call, std::move(user_call), request);
+  mw_ctx.Next();
+}
+
+grpc::ClientContext& CallAnyBase::GetContext() { return data_->GetContext(); }
+
+impl::RpcData& CallAnyBase::GetData() {
+  UASSERT(data_);
+  return *data_;
+}
+
+std::string_view CallAnyBase::GetCallName() const {
+  return data_->GetCallName();
+}
+
+std::string_view CallAnyBase::GetClientName() const {
+  return data_->GetClientName();
+}
 
 }  // namespace ugrpc::client
 

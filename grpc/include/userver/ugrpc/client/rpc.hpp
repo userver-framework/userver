@@ -6,6 +6,7 @@
 #include <memory>
 #include <string_view>
 #include <utility>
+#include <vector>
 
 #include <grpcpp/impl/codegen/proto_utils.h>
 
@@ -13,12 +14,16 @@
 
 #include <userver/ugrpc/client/exceptions.hpp>
 #include <userver/ugrpc/client/impl/async_methods.hpp>
+#include <userver/ugrpc/client/impl/channel_cache.hpp>
 #include <userver/ugrpc/impl/deadline_timepoint.hpp>
 #include <userver/ugrpc/impl/statistics_scope.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::client {
+
+class MiddlewareBase;
+using Middlewares = std::vector<std::shared_ptr<const MiddlewareBase>>;
 
 /// @brief UnaryFuture for waiting a single response RPC
 class [[nodiscard]] UnaryFuture {
@@ -85,6 +90,35 @@ class [[nodiscard]] StreamReadFuture {
   typename RPC::RawStream* stream_;
 };
 
+/// @brief Base class for any RPC
+class CallAnyBase {
+ protected:
+  /// @cond
+  CallAnyBase(std::string_view client_name,
+              std::unique_ptr<grpc::ClientContext>&& context,
+              std::string_view call_name,
+              ugrpc::impl::MethodStatistics& statistics)
+      : data_(std::make_unique<impl::RpcData>(client_name, std::move(context),
+                                              call_name, statistics)) {}
+  /// @endcond
+
+ public:
+  /// @returns the `ClientContext` used for this RPC
+  grpc::ClientContext& GetContext();
+
+  /// @returns client name
+  std::string_view GetClientName() const;
+
+  /// @returns RPC name
+  std::string_view GetCallName() const;
+
+ protected:
+  impl::RpcData& GetData();
+
+ private:
+  std::unique_ptr<impl::RpcData> data_;
+};
+
 /// @brief Controls a single request -> single response RPC
 ///
 /// This class is not thread-safe except for `GetContext`.
@@ -93,7 +127,7 @@ class [[nodiscard]] StreamReadFuture {
 /// that case the connection is not closed (it will be reused for new RPCs), and
 /// the server receives `RpcInterruptedError` immediately.
 template <typename Response>
-class [[nodiscard]] UnaryCall final {
+class [[nodiscard]] UnaryCall final : public CallAnyBase {
  public:
   /// @brief Await and read the response
   ///
@@ -114,16 +148,14 @@ class [[nodiscard]] UnaryCall final {
   /// @returns the future for the single response
   UnaryFuture FinishAsync(Response& response);
 
-  /// @returns the `ClientContext` used for this RPC
-  grpc::ClientContext& GetContext();
-
   /// @cond
   // For internal use only
   template <typename Stub, typename Request>
   UnaryCall(
-      Stub& stub, grpc::CompletionQueue& queue,
+      std::string_view client_name, Stub& stub, grpc::CompletionQueue& queue,
       impl::RawResponseReaderPreparer<Stub, Request, Response> prepare_func,
-      std::string_view call_name, std::unique_ptr<grpc::ClientContext> context,
+      std::string_view call_name, const Middlewares& mws,
+      std::unique_ptr<grpc::ClientContext> context,
       ugrpc::impl::MethodStatistics& statistics, const Request& req);
   /// @endcond
 
@@ -132,7 +164,6 @@ class [[nodiscard]] UnaryCall final {
   ~UnaryCall() = default;
 
  private:
-  std::unique_ptr<impl::RpcData> data_;
   impl::RawResponseReader<Response> reader_;
 };
 
@@ -149,7 +180,7 @@ class [[nodiscard]] UnaryCall final {
 /// If any method throws, further methods must not be called on the same stream,
 /// except for `GetContext`.
 template <typename Response>
-class [[nodiscard]] InputStream final {
+class [[nodiscard]] InputStream final : public CallAnyBase {
  public:
   /// @brief Await and read the next incoming message
   ///
@@ -160,17 +191,15 @@ class [[nodiscard]] InputStream final {
   /// @throws ugrpc::client::RpcError on an RPC error
   [[nodiscard]] bool Read(Response& response);
 
-  /// @returns the `ClientContext` used for this RPC
-  grpc::ClientContext& GetContext();
-
   /// @cond
   // For internal use only
   using RawStream = grpc::ClientAsyncReader<Response>;
 
   template <typename Stub, typename Request>
-  InputStream(Stub& stub, grpc::CompletionQueue& queue,
+  InputStream(std::string_view client_name, Stub& stub,
+              grpc::CompletionQueue& queue,
               impl::RawReaderPreparer<Stub, Request, Response> prepare_func,
-              std::string_view call_name,
+              std::string_view call_name, const Middlewares& mws,
               std::unique_ptr<grpc::ClientContext> context,
               ugrpc::impl::MethodStatistics& statistics, const Request& req);
   /// @endcond
@@ -195,7 +224,7 @@ class [[nodiscard]] InputStream final {
 /// If any method throws, further methods must not be called on the same stream,
 /// except for `GetContext`.
 template <typename Request, typename Response>
-class [[nodiscard]] OutputStream final {
+class [[nodiscard]] OutputStream final : public CallAnyBase {
  public:
   /// @brief Write the next outgoing message
   ///
@@ -233,17 +262,15 @@ class [[nodiscard]] OutputStream final {
   /// @throws ugrpc::client::RpcError on an RPC error
   Response Finish();
 
-  /// @returns the `ClientContext` used for this RPC
-  grpc::ClientContext& GetContext();
-
   /// @cond
   // For internal use only
   using RawStream = grpc::ClientAsyncWriter<Request>;
 
   template <typename Stub>
-  OutputStream(Stub& stub, grpc::CompletionQueue& queue,
+  OutputStream(std::string_view client_name, Stub& stub,
+               grpc::CompletionQueue& queue,
                impl::RawWriterPreparer<Stub, Request, Response> prepare_func,
-               std::string_view call_name,
+               std::string_view call_name, const Middlewares& mws,
                std::unique_ptr<grpc::ClientContext> context,
                ugrpc::impl::MethodStatistics& statistics);
   /// @endcond
@@ -288,7 +315,7 @@ class [[nodiscard]] OutputStream final {
 /// `Write` or `WritesDone` finishes with negative result, finally `Read`
 /// will throw an exception.
 template <typename Request, typename Response>
-class [[nodiscard]] BidirectionalStream final {
+class [[nodiscard]] BidirectionalStream final : public CallAnyBase {
  public:
   /// @brief Await and read the next incoming message
   ///
@@ -338,18 +365,16 @@ class [[nodiscard]] BidirectionalStream final {
   ///         available
   [[nodiscard]] bool WritesDone();
 
-  /// @returns the `ClientContext` used for this RPC
-  grpc::ClientContext& GetContext();
-
   /// @cond
   // For internal use only
   using RawStream = grpc::ClientAsyncReaderWriter<Request, Response>;
 
   template <typename Stub>
   BidirectionalStream(
-      Stub& stub, grpc::CompletionQueue& queue,
+      std::string_view client_name, Stub& stub, grpc::CompletionQueue& queue,
       impl::RawReaderWriterPreparer<Stub, Request, Response> prepare_func,
-      std::string_view call_name, std::unique_ptr<grpc::ClientContext> context,
+      std::string_view call_name, const Middlewares& mws,
+      std::unique_ptr<grpc::ClientContext> context,
       ugrpc::impl::MethodStatistics& statistics);
   /// @endcond
 
@@ -361,6 +386,10 @@ class [[nodiscard]] BidirectionalStream final {
   std::unique_ptr<impl::RpcData> data_;
   impl::RawReaderWriter<Request, Response> stream_;
 };
+
+void CallMiddlewares(const Middlewares& mws, CallAnyBase& call,
+                     std::function<void()> user_call,
+                     const ::google::protobuf::Message* request);
 
 // ========================== Implementation follows ==========================
 
@@ -412,20 +441,20 @@ bool StreamReadFuture<RPC>::IsReady() const noexcept {
 template <typename Response>
 template <typename Stub, typename Request>
 UnaryCall<Response>::UnaryCall(
-    Stub& stub, grpc::CompletionQueue& queue,
+    std::string_view client_name, Stub& stub, grpc::CompletionQueue& queue,
     impl::RawResponseReaderPreparer<Stub, Request, Response> prepare_func,
-    std::string_view call_name, std::unique_ptr<grpc::ClientContext> context,
+    std::string_view call_name, const Middlewares& mws,
+    std::unique_ptr<grpc::ClientContext> context,
     ugrpc::impl::MethodStatistics& statistics, const Request& req)
-    : data_(std::make_unique<impl::RpcData>(std::move(context), call_name,
-                                            statistics)),
-      reader_((stub.*prepare_func)(&data_->GetContext(), req, &queue)) {
-  reader_->StartCall();
-  data_->SetWritesFinished();
-}
-
-template <typename Response>
-grpc::ClientContext& UnaryCall<Response>::GetContext() {
-  return data_->GetContext();
+    : CallAnyBase(client_name, std::move(context), call_name, statistics) {
+  CallMiddlewares(
+      mws, *this,
+      [&] {
+        reader_ = (stub.*prepare_func)(&GetData().GetContext(), req, &queue);
+        reader_->StartCall();
+      },
+      &req);
+  GetData().SetWritesFinished();
 }
 
 template <typename Response>
@@ -438,41 +467,38 @@ Response UnaryCall<Response>::Finish() {
 
 template <typename Response>
 UnaryFuture UnaryCall<Response>::FinishAsync(Response& response) {
-  PrepareFinish(*data_);
-  data_->EmplaceAsyncMethodInvocation();
-  auto& finish = data_->GetAsyncMethodInvocation();
-  auto& status = data_->GetStatus();
+  UASSERT(reader_);
+  PrepareFinish(GetData());
+  GetData().EmplaceAsyncMethodInvocation();
+  auto& finish = GetData().GetAsyncMethodInvocation();
+  auto& status = GetData().GetStatus();
   reader_->Finish(&response, &status, finish.GetTag());
-  return UnaryFuture{*data_};
+  return UnaryFuture{GetData()};
 }
 
 template <typename Response>
 template <typename Stub, typename Request>
 InputStream<Response>::InputStream(
-    Stub& stub, grpc::CompletionQueue& queue,
+    std::string_view client_name, Stub& stub, grpc::CompletionQueue& queue,
     impl::RawReaderPreparer<Stub, Request, Response> prepare_func,
-    std::string_view call_name, std::unique_ptr<grpc::ClientContext> context,
+    std::string_view call_name, const Middlewares& mws,
+    std::unique_ptr<grpc::ClientContext> context,
     ugrpc::impl::MethodStatistics& statistics, const Request& req)
-    : data_(std::make_unique<impl::RpcData>(std::move(context), call_name,
-                                            statistics)),
-      stream_((stub.*prepare_func)(&data_->GetContext(), req, &queue)) {
-  impl::StartCall(*stream_, *data_);
-  data_->SetWritesFinished();
-}
-
-template <typename Response>
-grpc::ClientContext& InputStream<Response>::GetContext() {
-  return data_->GetContext();
+    : CallAnyBase(client_name, std::move(context), call_name, statistics),
+      stream_((stub.*prepare_func)(&GetData().GetContext(), req, &queue)) {
+  CallMiddlewares(
+      mws, *this, [this] { impl::StartCall(*stream_, GetData()); }, &req);
+  GetData().SetWritesFinished();
 }
 
 template <typename Response>
 bool InputStream<Response>::Read(Response& response) {
-  if (impl::Read(*stream_, response, *data_)) {
+  if (impl::Read(*stream_, response, GetData())) {
     return true;
   } else {
     // Finish can only be called once all the data is read, otherwise the
     // underlying gRPC driver hangs.
-    impl::Finish(*stream_, *data_, true);
+    impl::Finish(*stream_, GetData(), true);
     return false;
   }
 }
@@ -480,22 +506,18 @@ bool InputStream<Response>::Read(Response& response) {
 template <typename Request, typename Response>
 template <typename Stub>
 OutputStream<Request, Response>::OutputStream(
-    Stub& stub, grpc::CompletionQueue& queue,
+    std::string_view client_name, Stub& stub, grpc::CompletionQueue& queue,
     impl::RawWriterPreparer<Stub, Request, Response> prepare_func,
-    std::string_view call_name, std::unique_ptr<grpc::ClientContext> context,
+    std::string_view call_name, const Middlewares& mws,
+    std::unique_ptr<grpc::ClientContext> context,
     ugrpc::impl::MethodStatistics& statistics)
-    : data_(std::make_unique<impl::RpcData>(std::move(context), call_name,
-                                            statistics)),
+    : CallAnyBase(client_name, std::move(context), call_name, statistics),
       final_response_(std::make_unique<Response>()),
       // 'final_response_' will be filled upon successful 'Finish' async call
-      stream_((stub.*prepare_func)(&data_->GetContext(), final_response_.get(),
-                                   &queue)) {
-  impl::StartCall(*stream_, *data_);
-}
-
-template <typename Request, typename Response>
-grpc::ClientContext& OutputStream<Request, Response>::GetContext() {
-  return data_->GetContext();
+      stream_((stub.*prepare_func)(&GetData().GetContext(),
+                                   final_response_.get(), &queue)) {
+  CallMiddlewares(
+      mws, *this, [this] { impl::StartCall(*stream_, GetData()); }, nullptr);
 }
 
 template <typename Request, typename Response>
@@ -504,7 +526,7 @@ bool OutputStream<Request, Response>::Write(const Request& request) {
   // may never actually be delivered
   grpc::WriteOptions write_options{};
 
-  return impl::Write(*stream_, request, write_options, *data_);
+  return impl::Write(*stream_, request, write_options, GetData());
 }
 
 template <typename Request, typename Response>
@@ -513,8 +535,8 @@ void OutputStream<Request, Response>::WriteAndCheck(const Request& request) {
   // may never actually be delivered
   grpc::WriteOptions write_options{};
 
-  if (!impl::Write(*stream_, request, write_options, *data_)) {
-    impl::Finish(*stream_, *data_, true);
+  if (!impl::Write(*stream_, request, write_options, GetData())) {
+    impl::Finish(*stream_, GetData(), true);
   }
 }
 
@@ -522,11 +544,11 @@ template <typename Request, typename Response>
 Response OutputStream<Request, Response>::Finish() {
   // gRPC does not implicitly call `WritesDone` in `Finish`,
   // contrary to the documentation
-  if (!data_->AreWritesFinished()) {
-    impl::WritesDone(*stream_, *data_);
+  if (!GetData().AreWritesFinished()) {
+    impl::WritesDone(*stream_, GetData());
   }
 
-  impl::Finish(*stream_, *data_, true);
+  impl::Finish(*stream_, GetData(), true);
 
   return std::move(*final_response_);
 }
@@ -534,26 +556,22 @@ Response OutputStream<Request, Response>::Finish() {
 template <typename Request, typename Response>
 template <typename Stub>
 BidirectionalStream<Request, Response>::BidirectionalStream(
-    Stub& stub, grpc::CompletionQueue& queue,
+    std::string_view client_name, Stub& stub, grpc::CompletionQueue& queue,
     impl::RawReaderWriterPreparer<Stub, Request, Response> prepare_func,
-    std::string_view call_name, std::unique_ptr<grpc::ClientContext> context,
+    std::string_view call_name, const Middlewares& mws,
+    std::unique_ptr<grpc::ClientContext> context,
     ugrpc::impl::MethodStatistics& statistics)
-    : data_(std::make_unique<impl::RpcData>(std::move(context), call_name,
-                                            statistics)),
-      stream_((stub.*prepare_func)(&data_->GetContext(), &queue)) {
-  impl::StartCall(*stream_, *data_);
-}
-
-template <typename Request, typename Response>
-grpc::ClientContext& BidirectionalStream<Request, Response>::GetContext() {
-  return data_->GetContext();
+    : CallAnyBase(client_name, std::move(context), call_name, statistics),
+      stream_((stub.*prepare_func)(&GetData().GetContext(), &queue)) {
+  CallMiddlewares(
+      mws, *this, [this] { impl::StartCall(*stream_, GetData()); }, nullptr);
 }
 
 template <typename Request, typename Response>
 StreamReadFuture<BidirectionalStream<Request, Response>>
 BidirectionalStream<Request, Response>::ReadAsync(Response& response) noexcept {
-  impl::ReadAsync(*stream_, response, *data_);
-  return StreamReadFuture<BidirectionalStream<Request, Response>>{*data_,
+  impl::ReadAsync(*stream_, response, GetData());
+  return StreamReadFuture<BidirectionalStream<Request, Response>>{GetData(),
                                                                   *stream_};
 }
 
@@ -568,7 +586,7 @@ bool BidirectionalStream<Request, Response>::Write(const Request& request) {
   // Don't buffer writes, optimize for ping-pong-style interaction
   grpc::WriteOptions write_options{};
 
-  return impl::Write(*stream_, request, write_options, *data_);
+  return impl::Write(*stream_, request, write_options, GetData());
 }
 
 template <typename Request, typename Response>
@@ -577,12 +595,12 @@ void BidirectionalStream<Request, Response>::WriteAndCheck(
   // Don't buffer writes, optimize for ping-pong-style interaction
   grpc::WriteOptions write_options{};
 
-  impl::WriteAndCheck(*stream_, request, write_options, *data_);
+  impl::WriteAndCheck(*stream_, request, write_options, GetData());
 }
 
 template <typename Request, typename Response>
 bool BidirectionalStream<Request, Response>::WritesDone() {
-  return impl::WritesDone(*stream_, *data_);
+  return impl::WritesDone(*stream_, GetData());
 }
 
 }  // namespace ugrpc::client

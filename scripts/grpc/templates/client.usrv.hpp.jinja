@@ -16,7 +16,9 @@ class {{service.name}}Client final {
  public:
   // For internal use only
   {{service.name}}Client(
+      std::string_view client_name,
       USERVER_NAMESPACE::ugrpc::client::impl::ChannelCache::Token&& channel_token,
+      const USERVER_NAMESPACE::ugrpc::client::Middlewares& mws,
       ::grpc::CompletionQueue& queue,
       USERVER_NAMESPACE::ugrpc::impl::ServiceStatistics& statistics);
   {% for method in service.method %}
@@ -57,6 +59,7 @@ class {{service.name}}Client final {
   friend USERVER_NAMESPACE::ugrpc::client::impl::ClientData&
   USERVER_NAMESPACE::ugrpc::client::impl::GetClientData(Client& client);
 
+  USERVER_NAMESPACE::ugrpc::client::Middlewares mws_;
   USERVER_NAMESPACE::ugrpc::client::impl::ClientData impl_;
 };
 {% endfor %}

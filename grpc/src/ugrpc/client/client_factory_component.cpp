@@ -34,8 +34,15 @@ ClientFactoryComponent::ClientFactoryComponent(
   auto& testsuite_grpc =
       context.FindComponent<components::TestsuiteSupport>().GetGrpcControl();
 
-  factory_.emplace(config.As<ClientFactoryConfig>(), task_processor, *queue,
-                   statistics_storage, testsuite_grpc);
+  MiddlewareFactories mws;
+  auto middleware_names =
+      config["middlewares"].As<std::vector<std::string>>({});
+  for (const auto& name : middleware_names) {
+    auto& component = context.FindComponent<MiddlewareComponentBase>(name);
+    mws.push_back(component.GetMiddlewareFactory());
+  }
+  factory_.emplace(config.As<ClientFactoryConfig>(), task_processor, mws,
+                   *queue, statistics_storage, testsuite_grpc);
 }
 
 ClientFactory& ClientFactoryComponent::GetFactory() { return *factory_; }
@@ -85,6 +92,13 @@ properties:
         description: |
             Number of channels created for each endpoint.
         defaultDescription: 1
+    middlewares:
+        type: array
+        items:
+            type: string
+            description: middleware name
+        description: middlewares names
+        defaultDescription: '[]'
 )");
 }
 

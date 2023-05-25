@@ -51,14 +51,15 @@ UTEST_P_MT(GrpcChannels, TryWaitForConnected, 2) {
     ugrpc::client::QueueHolder client_queue;
 
     testsuite::GrpcControl ts({}, false);
+    ugrpc::client::MiddlewareFactories mws;
     ugrpc::client::ClientFactory client_factory(
-        std::move(config), engine::current_task::GetTaskProcessor(),
+        std::move(config), engine::current_task::GetTaskProcessor(), mws,
         client_queue.GetQueue(), statistics_storage, ts);
 
     const auto endpoint = fmt::format("[::1]:{}", kPort);
     auto client =
         client_factory.MakeClient<sample::ugrpc::UnitTestServiceClient>(
-            endpoint);
+            "test", endpoint);
 
     // TryWaitForConnected should wait for the server to start and return 'true'
     EXPECT_TRUE(ugrpc::client::TryWaitForConnected(

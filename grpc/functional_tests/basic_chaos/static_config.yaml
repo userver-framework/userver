@@ -33,6 +33,8 @@ components_manager:
         grpc-client-factory:
             task-processor: grpc-blocking-task-processor
             channel-args: {}
+            middlewares:
+              - grpc-client-logging
         greeter-client:
             endpoint: '[::]:8081'
 
@@ -50,6 +52,7 @@ components_manager:
             task_processor: main-task-processor
 
         testsuite-support:
+        grpc-client-logging:
 
     default_task_processor: main-task-processor
     task_processors:

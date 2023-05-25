@@ -86,10 +86,12 @@ ClientFactoryConfig Parse(const yaml_config::YamlConfig& value,
 
 ClientFactory::ClientFactory(ClientFactoryConfig&& config,
                              engine::TaskProcessor& channel_task_processor,
+                             MiddlewareFactories mws,
                              grpc::CompletionQueue& queue,
                              utils::statistics::Storage& statistics_storage,
                              testsuite::GrpcControl& testsuite_grpc)
     : channel_task_processor_(channel_task_processor),
+      mws_(mws),
       queue_(queue),
       channel_cache_(testsuite_grpc.IsTlsEnabled()
                          ? config.credentials

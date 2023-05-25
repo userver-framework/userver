@@ -66,7 +66,8 @@ using ugrpc::impl::AsyncMethodInvocation;
 
 class RpcData final {
  public:
-  RpcData(std::unique_ptr<grpc::ClientContext>&& context,
+  RpcData(std::string_view client_name,
+          std::unique_ptr<grpc::ClientContext>&& context,
           std::string_view call_name,
           ugrpc::impl::MethodStatistics& statistics);
 
@@ -79,6 +80,8 @@ class RpcData final {
   grpc::ClientContext& GetContext() noexcept;
 
   std::string_view GetCallName() const noexcept;
+
+  std::string_view GetClientName() const noexcept;
 
   tracing::Span& GetSpan() noexcept;
 
@@ -111,6 +114,7 @@ class RpcData final {
 
  private:
   std::unique_ptr<grpc::ClientContext> context_;
+  std::string client_name_;
   std::string_view call_name_;
   bool writes_finished_{false};
   bool is_finished_{false};

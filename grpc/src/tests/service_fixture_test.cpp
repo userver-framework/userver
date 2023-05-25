@@ -17,7 +17,7 @@ ugrpc::server::ServerConfig MakeServerConfig() {
 }  // namespace
 
 GrpcServiceFixture::GrpcServiceFixture()
-    : server_(MakeServerConfig(), statistics_storage_), ts_({}, false) {}
+    : server_(MakeServerConfig(), statistics_storage_), testsuite_({}, false) {}
 
 GrpcServiceFixture::~GrpcServiceFixture() = default;
 
@@ -32,8 +32,8 @@ void GrpcServiceFixture::StartServer(
   endpoint_ = fmt::format("[::1]:{}", server_.GetPort());
   client_factory_.emplace(std::move(client_factory_config),
                           engine::current_task::GetTaskProcessor(),
-                          server_.GetCompletionQueue(), statistics_storage_,
-                          ts_);
+                          middleware_factories_, server_.GetCompletionQueue(),
+                          statistics_storage_, testsuite_);
 }
 
 void GrpcServiceFixture::StopServer() noexcept {
@@ -50,6 +50,11 @@ utils::statistics::Snapshot GrpcServiceFixture::GetStatistics(
 
 ugrpc::server::Server& GrpcServiceFixture::GetServer() noexcept {
   return server_;
+}
+
+ugrpc::client::MiddlewareFactories&
+GrpcServiceFixture::GetMiddlewareFactories() {
+  return middleware_factories_;
 }
 
 USERVER_NAMESPACE_END

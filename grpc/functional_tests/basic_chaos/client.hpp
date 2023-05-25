@@ -24,7 +24,7 @@ class GreeterClient final : public components::LoggableComponentBase {
             context.FindComponent<ugrpc::client::ClientFactoryComponent>()
                 .GetFactory()),
         client_(client_factory_.MakeClient<api::GreeterServiceClient>(
-            config["endpoint"].As<std::string>())) {}
+            "greeter", config["endpoint"].As<std::string>())) {}
 
   inline std::string SayHello(std::string name);
 

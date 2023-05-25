@@ -37,8 +37,8 @@ class SimpleClientComponent final : public SimpleClientComponentAny {
                         config["factory-component"].As<std::string>(
                             ClientFactoryComponent::kName))
                     .GetFactory()
-                    .MakeClient<Client>(config["endpoint"].As<std::string>())) {
-  }
+                    .MakeClient<Client>(
+                        config.Name(), config["endpoint"].As<std::string>())) {}
 
   /// @@brief Get gRPC service client
   Client& GetClient() { return client_; }

@@ -31,7 +31,7 @@ class GrpcServiceFixture : public ::testing::Test {
 
   template <typename Client>
   Client MakeClient() {
-    return client_factory_->MakeClient<Client>(*endpoint_);
+    return client_factory_->MakeClient<Client>("test", *endpoint_);
   }
 
   utils::statistics::Snapshot GetStatistics(
@@ -40,10 +40,13 @@ class GrpcServiceFixture : public ::testing::Test {
 
   ugrpc::server::Server& GetServer() noexcept;
 
+  ugrpc::client::MiddlewareFactories& GetMiddlewareFactories();
+
  private:
   utils::statistics::Storage statistics_storage_;
   ugrpc::server::Server server_;
-  testsuite::GrpcControl ts_;
+  ugrpc::client::MiddlewareFactories middleware_factories_;
+  testsuite::GrpcControl testsuite_;
   std::optional<std::string> endpoint_;
   std::optional<ugrpc::client::ClientFactory> client_factory_;
 };
