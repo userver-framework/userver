@@ -253,13 +253,10 @@ void ConnectionPool::Release(Connection* connection) {
     AccountConnectionStats(connection->GetStatsAndReset());
   }
 
-  if (connection->IsIdle()) {
-    Push(connection);
-    return;
-  }
-
-  if (!connection->IsConnected()) {
+  if (!connection->IsConnected() || connection->IsBroken()) {
     DeleteBrokenConnection(connection);
+  } else if (connection->IsIdle()) {
+    Push(connection);
   } else {
     // Connection cleanup is done asynchronously while returning control to
     // the user

@@ -301,6 +301,8 @@ bool ConnectionImpl::IsPipelineActive() const {
   return conn_wrapper_.IsPipelineActive();
 }
 
+bool ConnectionImpl::IsBroken() const { return conn_wrapper_.IsBroken(); }
+
 ConnectionSettings const& ConnectionImpl::GetSettings() const {
   return settings_;
 }

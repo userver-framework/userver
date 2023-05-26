@@ -158,6 +158,8 @@ class Connection {
   /// Check if the connection is currently idle (IsConnected &&
   /// !IsInTransaction)
   bool IsIdle() const;
+  /// Check if the connection is in unusable state
+  bool IsBroken() const;
 
   /// The result is formed by multiplying the server's major version number by
   /// 10000 and adding the minor version number. -- docs

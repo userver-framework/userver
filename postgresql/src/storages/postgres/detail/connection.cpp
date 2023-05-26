@@ -67,6 +67,8 @@ bool Connection::IsConnected() const { return pimpl_->IsConnected(); }
 
 bool Connection::IsIdle() const { return pimpl_->IsIdle(); }
 
+bool Connection::IsBroken() const { return pimpl_->IsBroken(); }
+
 int Connection::GetServerVersion() const { return pimpl_->GetServerVersion(); }
 
 bool Connection::IsInTransaction() const { return pimpl_->IsInTransaction(); }

@@ -488,10 +488,10 @@ ResultSet PGConnectionWrapper::WaitResult(Deadline deadline,
   scope.Reset(scopes::kLibpqWaitResult);
   Flush(deadline);
   auto handle = MakeResultHandle(nullptr);
-  auto null_counter{0};
+  auto null_res_counter{0};
   do {
     while (auto* pg_res = ReadResult(deadline)) {
-      null_counter = 0;
+      null_res_counter = 0;
       if (handle && !is_syncing_pipeline_) {
         // TODO Decide about the severity of this situation
         PGCW_LOG_LIMITED_INFO()
@@ -513,18 +513,13 @@ ResultSet PGConnectionWrapper::WaitResult(Deadline deadline,
 #endif
       handle = std::move(next_handle);
     }
-    if (++null_counter > 2) {
-      logging::LogExtra conn_extra;
-      conn_extra.Extend("conn_status", PQstatus(conn_));
-      conn_extra.Extend("transaction_status", PQtransactionStatus(conn_));
-      conn_extra.Extend("is_syncing_pipeline", is_syncing_pipeline_);
-      if (handle)
-        conn_extra.Extend("handle_status", PQresultStatus(handle.get()));
-      PGCW_LOG_ERROR() << conn_extra
-                       << "PQXgetResult unexpectedly returned nothing";
-      if (null_counter > 10)
-        USERVER_NAMESPACE::utils::impl::AbortWithStacktrace(
-            "It seems we got ourselves an infinite PQXgetResult loop");
+    // There is an issue with libpq when db shuts down we may receive an error
+    // instead of PGRES_PIPELINE_SYNC and never get out of this cycle, hence
+    // this counter.
+    if (++null_res_counter > 2) {
+      MarkAsBroken();
+      if (!handle) throw RuntimeError{"Empty result"};
+      is_syncing_pipeline_ = false;
     }
   } while (is_syncing_pipeline_ && PQstatus(conn_) != CONNECTION_BAD);
 
@@ -534,8 +529,10 @@ ResultSet PGConnectionWrapper::WaitResult(Deadline deadline,
 void PGConnectionWrapper::DiscardInput(Deadline deadline) {
   Flush(deadline);
   auto handle = MakeResultHandle(nullptr);
+  auto null_res_counter{0};
   do {
     while (auto* pg_res = ReadResult(deadline)) {
+      null_res_counter = 0;
       handle = MakeResultHandle(pg_res);
 #if LIBPQ_HAS_PIPELINING
       if (is_syncing_pipeline_ &&
@@ -543,6 +540,11 @@ void PGConnectionWrapper::DiscardInput(Deadline deadline) {
         is_syncing_pipeline_ = false;
       }
 #endif
+    }
+    // Same issue as with WaitResult
+    if (++null_res_counter > 2) {
+      MarkAsBroken();
+      is_syncing_pipeline_ = false;
     }
   } while (is_syncing_pipeline_ && PQstatus(conn_) != CONNECTION_BAD);
 }
@@ -794,6 +796,8 @@ TimeoutDuration PGConnectionWrapper::GetIdleDuration() const {
 }
 
 void PGConnectionWrapper::MarkAsBroken() { is_broken_ = true; }
+
+bool PGConnectionWrapper::IsBroken() const { return is_broken_; }
 
 }  // namespace storages::postgres::detail
 

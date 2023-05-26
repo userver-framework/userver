@@ -122,6 +122,8 @@ class PGConnectionWrapper {
 
   void MarkAsBroken();
 
+  bool IsBroken() const;
+
  private:
   PGTransactionStatusType GetTransactionStatus() const;
 
