@@ -6,6 +6,7 @@
 #include <userver/cache/base_postgres_cache_fwd.hpp>
 
 #include <chrono>
+#include <map>
 #include <string_view>
 #include <type_traits>
 #include <unordered_map>

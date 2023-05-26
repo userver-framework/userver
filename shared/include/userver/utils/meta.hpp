@@ -116,7 +116,7 @@ using RangeValueType = DetectedType<impl::RangeValueType, T>;
 
 template <typename T>
 inline constexpr bool kIsRecursiveRange =
-    std::is_same_v<DetectedType<RangeValueType, T>, T>;
+    std::is_same_v<DetectedType<impl::RangeValueType, T>, T>;
 
 template <typename T>
 inline constexpr bool kIsOptional = kIsInstantiationOf<std::optional, T>;

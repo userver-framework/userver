@@ -1,5 +1,8 @@
 #include <gtest/gtest.h>
 
+#include <unordered_map>
+#include <unordered_set>
+
 #include <userver/formats/json/serialize.hpp>
 #include <userver/formats/parse/common_containers.hpp>
 

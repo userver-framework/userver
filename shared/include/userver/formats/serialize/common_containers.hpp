@@ -6,7 +6,6 @@
 
 #include <optional>
 #include <type_traits>
-#include <vector>
 
 #include <userver/formats/common/type.hpp>
 #include <userver/formats/serialize/to.hpp>
