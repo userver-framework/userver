@@ -273,8 +273,6 @@ void Redis::OnConfigUpdate(const dynamic_config::Snapshot& cfg) {
 
   auto cc = std::make_shared<redis::CommandControl>(
       redis_config.default_command_control);
-  const auto auto_topology =
-      redis_config.redis_cluster_autotopology_enabled.Get();
   for (auto& it : sentinels_) {
     const auto& name = it.first;
     auto& client = it.second;
@@ -284,7 +282,6 @@ void Redis::OnConfigUpdate(const dynamic_config::Snapshot& cfg) {
     client->SetReplicationMonitoringSettings(
         redis_config.replication_monitoring_settings.GetOptional(name).value_or(
             redis::ReplicationMonitoringSettings{}));
-    client->SetClusterAutoTopology(auto_topology);
   }
 
   auto subscriber_cc = std::make_shared<redis::CommandControl>(

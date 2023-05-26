@@ -288,7 +288,6 @@ bool Shard::ProcessCreation(
   // again in UpdateCleanWaitQueue() these fields will remain unchanged.
 
   std::vector<ConnectionStatus> add_clean_wait;
-  add_clean_wait.reserve(need_to_create.size());
 
   // https://github.com/boostorg/signals2/issues/59
   // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDelete)
@@ -352,7 +351,6 @@ bool Shard::ProcessStateUpdate() {
         case Redis::State::kDisconnected:
         case Redis::State::kDisconnectError:
         case Redis::State::kInitError:
-          /// elements will be destructed later outside of mutex scope
           erase_clean_wait.emplace_back(std::move(*info));
           info = clean_wait_.erase(info);
           break;

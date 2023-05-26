@@ -35,10 +35,8 @@ const int kDefaultSentinelThreadPoolSize = 1;
 const int kDefaultRedisThreadPoolSize = 8;
 
 const auto kSentinelGetHostsCheckInterval = std::chrono::seconds(3);
-const auto kProcessWaitingCommandsInterval = std::chrono::seconds(3);
 
 // Forward declarations
-class SentinelImplBase;
 class SentinelImpl;
 class Shard;
 
@@ -126,7 +124,6 @@ class Sentinel {
       CommandsBufferingSettings commands_buffering_settings);
   void SetReplicationMonitoringSettings(
       const ReplicationMonitoringSettings& replication_monitoring_settings);
-  void SetClusterAutoTopology(bool auto_topology);
 
   // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
   boost::signals2::signal<void(size_t shard)> signal_instances_changed;
@@ -183,7 +180,7 @@ class Sentinel {
   std::vector<std::shared_ptr<const Shard>> GetMasterShards() const;
 
   // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
-  std::unique_ptr<SentinelImplBase> impl_;
+  std::unique_ptr<SentinelImpl> impl_;
 
  public:
   static void OnSubscribeReply(MessageCallback message_callback,

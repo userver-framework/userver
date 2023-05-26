@@ -145,9 +145,8 @@ class Redis::RedisImpl : public std::enable_shared_from_this<Redis::RedisImpl> {
 
   static logging::Level StateChangeToLogLevel(State old_state, State new_state);
   State GetState() const;
-  const std::string& GetServer() const { return server_; }
-  const std::string& GetHost() const { return host_; }
-  uint16_t GetPort() const { return port_; }
+  const std::string& GetServer() { return server_; }
+  const std::string& GetHost() { return host_; }
   const Statistics& GetStatistics() const { return statistics_; }
   ServerId GetServerId() const { return server_id_; }
   size_t GetRunningCommands() const;
@@ -255,7 +254,6 @@ class Redis::RedisImpl : public std::enable_shared_from_this<Redis::RedisImpl> {
 #endif
   std::atomic<State> state_{State::kInit};
   std::string host_;
-  uint16_t port_ = 0;
   std::string server_;
   Password password_{std::string()};
   std::atomic<size_t> commands_size_ = 0;
@@ -362,8 +360,6 @@ bool Redis::IsSyncing() const { return impl_->IsSyncing(); }
 
 std::string Redis::GetServerHost() const { return impl_->GetHost(); }
 
-uint16_t Redis::GetServerPort() const { return impl_->GetPort(); }
-
 void Redis::SetCommandsBufferingSettings(
     CommandsBufferingSettings commands_buffering_settings) {
   impl_->SetCommandsBufferingSettings(commands_buffering_settings);
@@ -451,7 +447,6 @@ bool Redis::RedisImpl::Connect(const std::string& host, int port,
   server_ = host + ":" + std::to_string(port);
   server_id_.SetDescription(server_);
   host_ = host;
-  port_ = port;
   log_extra_.Extend("redis_server", GetServer());
   log_extra_.Extend("server_id", GetServerId().GetId());
   password_ = password;
