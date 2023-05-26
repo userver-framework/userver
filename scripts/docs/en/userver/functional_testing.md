@@ -335,6 +335,7 @@ Example on logs capture usage could be found here:
 * C++ code: @ref samples/testsuite-support/src/logcapture.cpp
 * Testcase: @ref samples/testsuite-support/tests/test_logcapture.py
 
+@anchor TESTSUITE_TASKS
 #### Testsuite tasks
 
 Testsuite tasks facility allows to register a custom function and call it by name from testsuite.

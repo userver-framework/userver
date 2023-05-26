@@ -450,6 +450,6 @@ Changelog news also go to the
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref md_en_userver_beta_state | @ref md_en_userver_tutorial_hello_service ⇨
+⇦ @ref md_en_userver_beta_state | @ref md_en_userver_faq ⇨
 @htmlonly </div> @endhtmlonly
 

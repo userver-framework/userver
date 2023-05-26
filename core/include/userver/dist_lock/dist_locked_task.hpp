@@ -26,13 +26,22 @@ class Locker;
 // clang-format off
 
 /// @ingroup userver_concurrency
-/// A task that tries to acquire a distributed lock and runs user callback once
-/// while the lock is held.
-/// @see AlwaysBusyDistLockStrategy
+///
+/// @brief A task that tries to acquire a distributed lock and runs user
+/// callback once while the lock is held.
+///
+/// When dist lock starts, the lock worker tries to take a lock in the
+/// loop. If succeeded, a task is launched that executes the user code.
+/// In the background, dist lock tries to extend the lock. In case of loss of
+/// the lock, the user task is canceled.
+///
 /// ## Example with retrying
 /// @snippet dist_lock/dist_lock_test.cpp Sample distributed locked task Retry
 /// ## Example without retrying
 /// @snippet dist_lock/dist_lock_test.cpp Sample distributed locked task SingleAttempt
+///
+/// @see @ref md_en_userver_periodics
+/// @see AlwaysBusyDistLockStrategy
 
 // clang-format on
 

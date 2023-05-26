@@ -16,6 +16,7 @@ cache::LruCacheComponent. Sections below describe the features of
 components::CachingComponentBase. For information on cache::LruCacheComponent
 refer to @ref md_en_userver_lru_cache.
 
+
 ## Update Modes
 
 Caches have two update modes:
@@ -113,7 +114,7 @@ you will get an empty smart pointer (`nullptr`).
 ## Access synchronization, versioning, memory consumption
 
 Cache implementation does not block
-numerous concurrent cache readers while doing a background
+multiple concurrent cache readers while doing a background
 cache update. In case of time consuming work with cache data, users may encounter
 the fact that different readers work with different versions of the data. As a
 result, more than two versions of the cache data can coexist at the same time.
@@ -193,49 +194,36 @@ See @ref md_en_userver_tutorial_http_caching for a detailed introduction.
 ## Parallel loading
 
 Cache components, like other components, are loaded in parallel. This allows
-you to speed up the loading of the service in the case of numerous heavy caches.
+you to speed up the loading of the service in the case of multiple heavy caches.
 
 
 ## Metrics
 
-Each cache automatically collects metrics:
-```
-...
-cache.simple-dumped-cache.dump.is-loaded-from-dump 1
-cache.simple-dumped-cache.dump.is-current-from-dump 0
-cache.simple-dumped-cache.dump.last-nontrivial-write.duration-ms 17
-cache.simple-dumped-cache.dump.last-nontrivial-write.size-kb 0
-cache.simple-dumped-cache.dump.last-nontrivial-write.time-from-start-ms 927
-cache.simple-dumped-cache.dump.load-duration-ms 9
-...
-cache.dynamic-config.any.documents.parse_failures 0
-cache.dynamic-config.any.documents.read_count 1257984
-cache.dynamic-config.any.time.last-update-duration-ms 45
-cache.dynamic-config.any.time.time-from-last-successful-start-ms 4687
-cache.dynamic-config.any.time.time-from-last-update-start-ms 4687
-cache.dynamic-config.any.update.attempts_count 12290
-cache.dynamic-config.any.update.failures_count 0
-cache.dynamic-config.any.update.no_changes_count 11294
-cache.dynamic-config.current-documents-count 1271
-cache.dynamic-config.dump.is-loaded-from-dump 0
-cache.dynamic-config.full.documents.parse_failures 0
-cache.dynamic-config.full.documents.read_count 1249139
-cache.dynamic-config.full.time.last-update-duration-ms 45
-cache.dynamic-config.full.time.time-from-last-successful-start-ms 39832
-cache.dynamic-config.full.time.time-from-last-update-start-ms 39832
-cache.dynamic-config.full.update.attempts_count 989
-cache.dynamic-config.full.update.failures_count 0
-cache.dynamic-config.full.update.no_changes_count 0
-cache.dynamic-config.incremental.documents.parse_failures 0
-cache.dynamic-config.incremental.documents.read_count 8845
-cache.dynamic-config.incremental.time.last-update-duration-ms 1
-cache.dynamic-config.incremental.time.time-from-last-successful-start-ms 4687
-cache.dynamic-config.incremental.time.time-from-last-update-start-ms 4687
-cache.dynamic-config.incremental.update.attempts_count 11301
-cache.dynamic-config.incremental.update.failures_count 0
-cache.dynamic-config.incremental.update.no_changes_count 11294
-...
-```
+Each cache automatically collects metrics. See
+@ref md_en_userver_service_monitor for a list of metrics with some descriptions. 
+
+
+## Common misuses
+
+* Non-const (mutable) data in cache without synchronization:
+  ```
+  struct CacheData {
+    int integer;                        // fine
+    std::shared_ptr<std::string> name;  // bad, `const CacheData` allows mutating content of `*name`
+  };
+  ```
+  Users of the cache could harm themselves by concurrently mutating thread-unsafe
+  types. A fixed varsion of the above structure would be:
+  ```
+  struct CacheData {
+    int integer;
+    std::shared_ptr<const std::string> name;  // now const!
+  };
+  ```
+* Storing a large number of independent std::unordered_maps in the cache at
+  once. If you need to get 3 different groups of data from 3 different sources,
+  make 3 independent caches. This allows them to update independently,
+  use standard cache metrics, etc.
 
 
 ----------

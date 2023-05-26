@@ -126,7 +126,7 @@ See the full example at:
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref md_en_userver_roadmap_and_changelog | @ref md_en_userver_tutorial_config_service ⇨
+⇦ @ref md_en_userver_faq | @ref md_en_userver_tutorial_config_service ⇨
 @htmlonly </div> @endhtmlonly
 
 

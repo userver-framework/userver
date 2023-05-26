@@ -153,5 +153,5 @@ in `<userver/dynamic_config/benchmark_helpers.hpp>`.
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref md_en_userver_task_processors_guide | @ref md_en_userver_functional_testing ⇨
+⇦ @ref md_en_userver_periodics | @ref md_en_userver_functional_testing ⇨
 @htmlonly </div> @endhtmlonly

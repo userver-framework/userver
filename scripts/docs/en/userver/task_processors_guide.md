@@ -131,5 +131,5 @@ Make sure that tasks execute faster than they arrive.
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref md_en_userver_logging | @ref md_en_userver_testing ⇨
+⇦ @ref md_en_userver_logging | @ref md_en_userver_periodics ⇨
 @htmlonly </div> @endhtmlonly

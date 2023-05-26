@@ -30,12 +30,14 @@ synchronization primitives.
 | `std::this_thread::sleep_for()`   | `engine::SleepFor()`                            |
 | `std::this_thread::sleep_until()` | `engine::SleepUntil()`                          |
 | `std::mutex`                      | `engine::Mutex`                                 |
+| `std::shared_mutex`               | `engine::SharedMutex`                           |
 | `std::condition_variable`         | `engine::ConditionVariable`                     |
 | `std::future<T>`                  | `engine::TaskWithResult<T>` or `engine::Future` |
 | `std::async()`                    | `utils::Async()`                                |
 | `std::thread`                     | `utils::Async()`                                |
+| `std::counting_semaphore`         | `engine::Semaphore`                             |
 | network sockets                   | `engine::io::Socket`                            |
-| `std::filesystem:`                | `::fs::*` (but not `::fs::blocking::*`!)        |
+| `std::filesystem::`                | `::fs::*` (but not `::fs::blocking::*`!)        |
 | `std::cout`                       | `LOG_INFO()`                                    |
 | `std::cerr`                       | `LOG_WARNING()` and `LOG_ERROR()`               |
 

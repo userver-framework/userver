@@ -81,6 +81,8 @@ postgresql.transactions.timings.acquire-connection: percentile=p98, postgresql_c
 postgresql.transactions.timings.acquire-connection: percentile=p99, postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
 postgresql.transactions.timings.acquire-connection: percentile=p99_6, postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
 postgresql.transactions.timings.acquire-connection: percentile=p99_9, postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
+
+# Roundtrip timings of the request
 postgresql.transactions.timings.busy: percentile=p0, postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
 postgresql.transactions.timings.busy: percentile=p100, postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
 postgresql.transactions.timings.busy: percentile=p50, postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
@@ -90,6 +92,7 @@ postgresql.transactions.timings.busy: percentile=p98, postgresql_cluster_host_ty
 postgresql.transactions.timings.busy: percentile=p99, postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
 postgresql.transactions.timings.busy: percentile=p99_6, postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
 postgresql.transactions.timings.busy: percentile=p99_9, postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
+
 postgresql.transactions.timings.connect: percentile=p0, postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
 postgresql.transactions.timings.connect: percentile=p100, postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
 postgresql.transactions.timings.connect: percentile=p50, postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
