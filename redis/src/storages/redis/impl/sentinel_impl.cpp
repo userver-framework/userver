@@ -250,9 +250,11 @@ std::optional<std::chrono::milliseconds> GetDeadlineTimeLeft(
   return std::nullopt;
 }
 
-bool SentinelImpl::AdjustDeadline(const SentinelCommand& scommand) {
+bool SentinelImplBase::AdjustDeadline(
+    const SentinelCommand& scommand,
+    const dynamic_config::Source& dynamic_config_source) {
   const auto inherited_deadline =
-      GetDeadlineTimeLeft(dynamic_config_source_.GetSnapshot());
+      GetDeadlineTimeLeft(dynamic_config_source.GetSnapshot());
   if (!inherited_deadline) return true;
 
   if (*inherited_deadline <= std::chrono::seconds{0}) {
@@ -269,7 +271,7 @@ bool SentinelImpl::AdjustDeadline(const SentinelCommand& scommand) {
 
 void SentinelImpl::AsyncCommand(const SentinelCommand& scommand,
                                 size_t prev_instance_idx) {
-  if (!AdjustDeadline(scommand)) {
+  if (!AdjustDeadline(scommand, dynamic_config_source_)) {
     auto reply = std::make_shared<Reply>("", ReplyData::CreateNil());
     reply->status = ReplyStatus::kTimeoutError;
     InvokeCommand(scommand.command, std::move(reply));
@@ -500,28 +502,28 @@ void SentinelImpl::Stop() {
     ev_thread_.Stop(watch_update_);
     ev_thread_.Stop(watch_create_);
     if (IsInClusterMode()) ev_thread_.Stop(watch_cluster_slots_);
-  });
 
-  auto clean_shards = [](std::vector<std::shared_ptr<Shard>>& shards) {
-    for (auto& shard : shards) shard->Clean();
-  };
-  {
-    std::lock_guard<std::mutex> lock(command_mutex_);
-    while (!commands_.empty()) {
-      auto command = commands_.back().command;
-      for (const auto& args : command->args.args) {
-        LOG_ERROR() << "Killing request: " << boost::join(args, ", ");
-        auto reply = std::make_shared<Reply>(
-            args[0], nullptr, ReplyStatus::kEndOfFileError,
-            "Stopping, killing commands remaining in send queue");
-        statistics_internal_.redis_not_ready++;
-        InvokeCommand(command, std::move(reply));
+    auto clean_shards = [](std::vector<std::shared_ptr<Shard>>& shards) {
+      for (auto& shard : shards) shard->Clean();
+    };
+    {
+      std::lock_guard<std::mutex> lock(command_mutex_);
+      while (!commands_.empty()) {
+        auto command = commands_.back().command;
+        for (const auto& args : command->args.args) {
+          LOG_ERROR() << "Killing request: " << boost::join(args, ", ");
+          auto reply = std::make_shared<Reply>(
+              args[0], nullptr, ReplyStatus::kEndOfFileError,
+              "Stopping, killing commands remaining in send queue");
+          statistics_internal_.redis_not_ready++;
+          InvokeCommand(command, std::move(reply));
+        }
+        commands_.pop_back();
       }
-      commands_.pop_back();
     }
-  }
-  clean_shards(master_shards_);
-  sentinels_->Clean();
+    clean_shards(master_shards_);
+    sentinels_->Clean();
+  });
 }
 
 std::vector<std::shared_ptr<const Shard>> SentinelImpl::GetMasterShards()
@@ -868,7 +870,7 @@ void SentinelImpl::ProcessWaitingCommands() {
         InvokeCommand(command, std::move(reply));
       }
     } else {
-      AsyncCommand(scommand);
+      AsyncCommand(scommand, kDefaultPrevInstanceIdx);
     }
   }
 }

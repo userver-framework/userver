@@ -43,6 +43,7 @@ def auto_client_deps(request) -> None:
         'mongodb',
         'clickhouse',
         'rabbitmq',
+        'redis_cluster_store',
         'redis_store',
         'mysql',
     }

@@ -54,6 +54,7 @@ class Config {
   dynamic_config::ValueDict<
       USERVER_NAMESPACE::redis::ReplicationMonitoringSettings>
       replication_monitoring_settings;
+  dynamic_config::Value<bool> redis_cluster_autotopology_enabled;
 
   Config(const dynamic_config::DocsMap& docs_map)
       : default_command_control{"REDIS_DEFAULT_COMMAND_CONTROL", docs_map},
@@ -67,7 +68,9 @@ class Config {
         metrics_settings{"REDIS_METRICS_SETTINGS", docs_map},
         pubsub_metrics_settings{"REDIS_PUBSUB_METRICS_SETTINGS", docs_map},
         replication_monitoring_settings{"REDIS_REPLICA_MONITORING_SETTINGS",
-                                        docs_map} {}
+                                        docs_map},
+        redis_cluster_autotopology_enabled{"REDIS_CLUSTER_AUTOTOPOLOGY_ENABLED",
+                                           docs_map} {}
 };
 
 }  // namespace storages::redis
