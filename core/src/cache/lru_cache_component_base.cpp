@@ -4,6 +4,7 @@
 #include <userver/components/component_context.hpp>
 #include <userver/components/statistics_storage.hpp>
 #include <userver/dump/config.hpp>
+#include <userver/dump/dumper.hpp>
 #include <userver/dynamic_config/storage/component.hpp>
 #include <userver/testsuite/testsuite_support.hpp>
 #include <userver/utils/statistics/metadata.hpp>
@@ -49,7 +50,7 @@ bool IsDumpSupportEnabled(const components::ComponentConfig& config) {
 }
 
 yaml_config::Schema GetLruCacheComponentBaseSchema() {
-  return yaml_config::MergeSchemas<components::LoggableComponentBase>(R"(
+  return yaml_config::MergeSchemas<dump::Dumper>(R"(
 type: object
 description: Base class for LRU-cache components
 additionalProperties: false

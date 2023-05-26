@@ -14,6 +14,7 @@
 #include <userver/dynamic_config/fwd.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/utils/fast_pimpl.hpp>
+#include <userver/yaml_config/fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -157,6 +158,10 @@ class Dumper final {
   ///
   /// After calling this method, OnUpdateCompleted calls have no effect.
   void CancelWriteTaskAndWait();
+
+  /// @brief Returns the static config schema for a
+  /// components::LoggableComponentBase with an added `dump` sub-section.
+  static yaml_config::Schema GetStaticConfigSchema();
 
  private:
   Dumper(const Config& initial_config,

@@ -1,5 +1,6 @@
 #include <userver/cache/caching_component_base.hpp>
 
+#include <userver/dump/dumper.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -7,7 +8,7 @@ USERVER_NAMESPACE_BEGIN
 namespace components::impl {
 
 yaml_config::Schema GetCachingComponentBaseSchema() {
-  return yaml_config::MergeSchemas<LoggableComponentBase>(R"(
+  return yaml_config::MergeSchemas<dump::Dumper>(R"(
 type: object
 description: Base class for caching components
 additionalProperties: false
@@ -68,35 +69,6 @@ properties:
         description: manages dumps
         additionalProperties: false
         properties:
-            enable:
-                type: boolean
-                description: Whether this `Dumper` should actually read and write dumps
-            world-readable:
-                type: boolean
-                description: If true, dumps are created with access 0444, otherwise with access 0400
-            format-version:
-                type: integer
-                description: Allows to ignore dumps written with an obsolete format-version
-            max-age:
-                type: string
-                description: Overdue dumps are ignored
-                defaultDescription: null
-            max-count:
-                type: integer
-                description: Old dumps over the limit are removed from disk
-                defaultDescription: 1
-            min-interval:
-                type: string
-                description: "`WriteDumpAsync` calls performed in a fast succession are ignored"
-                defaultDescription: 0s
-            fs-task-processor:
-                type: string
-                description: "`TaskProcessor` for blocking disk IO"
-                defaultDescription: fs-task-processor
-            encrypted:
-                type: boolean
-                description: Whether to encrypt the dump
-                defaultDescription: false
             first-update-mode:
                 type: string
                 description: specifies whether required or best-effort first update will be used

@@ -4,6 +4,7 @@
 #include <boost/filesystem/operations.hpp>
 
 #include <userver/components/component.hpp>
+#include <userver/components/loggable_component_base.hpp>
 #include <userver/components/statistics_storage.hpp>
 #include <userver/concurrent/variable.hpp>
 #include <userver/dynamic_config/snapshot.hpp>
@@ -25,6 +26,8 @@
 #include <userver/utils/atomic.hpp>
 #include <userver/utils/datetime.hpp>
 #include <userver/utils/statistics/storage.hpp>
+#include <userver/yaml_config/merge_schemas.hpp>
+#include <userver/yaml_config/schema.hpp>
 
 #include <dump/dump_locator.hpp>
 #include <dump/statistics.hpp>
@@ -530,6 +533,49 @@ void Dumper::OnUpdateCompleted(TimePoint update_time, UpdateType update_type) {
 }
 
 void Dumper::CancelWriteTaskAndWait() { impl_->CancelWriteTaskAndWait(); }
+
+yaml_config::Schema Dumper::GetStaticConfigSchema() {
+  return yaml_config::MergeSchemas<components::LoggableComponentBase>(R"(
+type: object
+description: Dumper sub-schema
+additionalProperties: false
+properties:
+    dump:
+        type: object
+        description: manages dumps
+        additionalProperties: false
+        properties:
+            enable:
+                type: boolean
+                description: Whether this `Dumper` should actually read and write dumps
+            world-readable:
+                type: boolean
+                description: If true, dumps are created with access 0444, otherwise with access 0400
+            format-version:
+                type: integer
+                description: Allows to ignore dumps written with an obsolete format-version
+            max-age:
+                type: string
+                description: Overdue dumps are ignored
+                defaultDescription: null
+            max-count:
+                type: integer
+                description: Old dumps over the limit are removed from disk
+                defaultDescription: 1
+            min-interval:
+                type: string
+                description: "`WriteDumpAsync` calls performed in a fast succession are ignored"
+                defaultDescription: 0s
+            fs-task-processor:
+                type: string
+                description: "`TaskProcessor` for blocking disk IO"
+                defaultDescription: fs-task-processor
+            encrypted:
+                type: boolean
+                description: Whether to encrypt the dump
+                defaultDescription: false
+)");
+}
 
 }  // namespace dump
 

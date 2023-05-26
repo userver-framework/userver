@@ -24,6 +24,7 @@
 #include <userver/utils/atomic.hpp>
 #include <userver/utils/mock_now.hpp>
 #include <userver/utils/statistics/storage.hpp>
+#include <userver/yaml_config/schema.hpp>
 
 using namespace std::chrono_literals;
 
@@ -379,6 +380,10 @@ class SampleComponentWithDumps final : public components::LoggableComponentBase,
     // Writes a new dump if enough time has passed since the last one
     dumper_.OnUpdateCompleted();
     return value;
+  }
+
+  static yaml_config::Schema GetStaticConfigSchema() {
+    return dump::Dumper::GetStaticConfigSchema();
   }
 
  private:
