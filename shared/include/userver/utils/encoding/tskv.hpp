@@ -21,6 +21,9 @@
 
 #include <userver/utils/assert.hpp>
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+#define USERVER_IMPL_FORCE_INLINE __attribute__((always_inline)) inline
+
 USERVER_NAMESPACE_BEGIN
 
 namespace utils::encoding {
@@ -53,8 +56,8 @@ void EncodeTskv(Container& container, std::string_view str,
 
 // always_inline to eliminate 'mode' checks
 template <typename OutIter>
-__attribute__((always_inline)) OutIter EncodeTskv(OutIter destination, char ch,
-                                                  EncodeTskvMode mode) {
+USERVER_IMPL_FORCE_INLINE OutIter EncodeTskv(OutIter destination, char ch,
+                                             EncodeTskvMode mode) {
   const bool is_key_encoding = (mode == EncodeTskvMode::kKey ||
                                 mode == EncodeTskvMode::kKeyReplacePeriod);
   const auto append = [&destination](char ch) { *(destination++) = ch; };
@@ -134,14 +137,15 @@ __attribute__((always_inline)) OutIter EncodeTskv(OutIter destination, char ch,
 namespace impl::tskv {
 
 template <std::size_t Alignment, typename T>
-T* AlignDown(T* ptr) noexcept {
+USERVER_IMPL_FORCE_INLINE T* AlignDown(T* ptr) noexcept {
   static_assert(Alignment % sizeof(T) == 0);
   return reinterpret_cast<T*>(reinterpret_cast<std::uintptr_t>(ptr) /
                               Alignment * Alignment);
 }
 
 template <std::size_t Alignment>
-const char* AssumeAligned(const char* block) noexcept {
+USERVER_IMPL_FORCE_INLINE const char* AssumeAligned(
+    const char* block) noexcept {
   UASSERT(reinterpret_cast<std::uintptr_t>(block) % Alignment == 0);
   return static_cast<const char*>(__builtin_assume_aligned(block, Alignment));
 }
@@ -161,20 +165,21 @@ struct EncoderStd final {
   // Address sanitizer is disabled within the function, because the SIMD loads
   // may intentionally wander to uninitialized memory. The loads never touch
   // memory outside "our" cache lines, though.
-  __attribute__((no_sanitize_address)) static auto LoadBlock(
+  __attribute__((no_sanitize_address)) inline static auto LoadBlock(
       const char* block) noexcept {
     block = AssumeAligned<kBlockSize>(block);
     return *reinterpret_cast<const Block*>(block);
   }
 
-  static void CopyBlock(Block block, std::size_t offset,
-                        char* destination) noexcept {
+  USERVER_IMPL_FORCE_INLINE static void CopyBlock(Block block,
+                                                  std::size_t offset,
+                                                  char* destination) noexcept {
     const auto cut_block = block >> (offset * 8);
     std::memcpy(destination, &cut_block, sizeof(cut_block));
   }
 
-  static bool MayNeedValueEscaping(Block block, std::size_t offset,
-                                   std::size_t count) noexcept {
+  USERVER_IMPL_FORCE_INLINE static bool MayNeedValueEscaping(
+      Block block, std::size_t offset, std::size_t count) noexcept {
     char buffer[kBlockSize]{};
     std::memcpy(&buffer, &block, sizeof(block));
     for (const char c : std::string_view(buffer + offset, count)) {
@@ -192,14 +197,15 @@ struct EncoderSse2 {
   // Address sanitizer is disabled within the function, because the SIMD loads
   // may intentionally wander to uninitialized memory. The loads never touch
   // memory outside "our" cache lines, though.
-  __attribute__((no_sanitize_address)) static Block LoadBlock(
+  __attribute__((no_sanitize_address)) inline static Block LoadBlock(
       const char* block) noexcept {
     block = AssumeAligned<kBlockSize>(block);
     return _mm_load_si128(reinterpret_cast<const Block*>(block));
   }
 
-  static void CopyBlock(Block block_contents, std::size_t offset,
-                        char* destination) noexcept {
+  USERVER_IMPL_FORCE_INLINE static void CopyBlock(Block block_contents,
+                                                  std::size_t offset,
+                                                  char* destination) noexcept {
     alignas(kBlockSize * 2) char storage[kBlockSize * 2]{};
     _mm_store_si128(reinterpret_cast<Block*>(&storage), block_contents);
     const auto cut_block =
@@ -207,8 +213,8 @@ struct EncoderSse2 {
     _mm_storeu_si128(reinterpret_cast<__m128i_u*>(destination), cut_block);
   }
 
-  static bool MayNeedValueEscaping(Block block, std::size_t offset,
-                                   std::size_t count) noexcept {
+  USERVER_IMPL_FORCE_INLINE static bool MayNeedValueEscaping(
+      Block block, std::size_t offset, std::size_t count) noexcept {
     // 'char c' may need TSKV value escaping iff c <= '\r' || c == '\\'
     // 16 lower bits of the mask contain may-need-escaping flag per block's char
     const auto may_need_escaping_mask = _mm_movemask_epi8(
@@ -223,8 +229,9 @@ struct EncoderSse2 {
 
 #ifdef __SSSE3__
 struct EncoderSsse3 final : public EncoderSse2 {
-  static void CopyBlock(Block block, std::size_t offset,
-                        char* destination) noexcept {
+  USERVER_IMPL_FORCE_INLINE static void CopyBlock(Block block,
+                                                  std::size_t offset,
+                                                  char* destination) noexcept {
     static constexpr auto kShuffleIdx = MakeShuffleIndicesForRightShift();
     const auto pos = _mm_loadu_si128(
         reinterpret_cast<const __m128i_u*>(&kShuffleIdx[offset]));
@@ -242,14 +249,15 @@ struct EncoderAvx2 final {
   // Address sanitizer is disabled within the function, because the SIMD loads
   // may intentionally wander to uninitialized memory. The loads never touch
   // memory outside "our" cache lines, though.
-  __attribute__((no_sanitize_address)) static Block LoadBlock(
+  __attribute__((no_sanitize_address)) inline static Block LoadBlock(
       const char* block) noexcept {
     block = AssumeAligned<kBlockSize>(block);
     return _mm256_load_si256(reinterpret_cast<const Block*>(block));
   }
 
-  static void CopyBlock(Block block, std::size_t offset,
-                        char* destination) noexcept {
+  USERVER_IMPL_FORCE_INLINE static void CopyBlock(Block block,
+                                                  std::size_t offset,
+                                                  char* destination) noexcept {
     alignas(kBlockSize * 2) char storage[kBlockSize * 2]{};
     _mm256_store_si256(reinterpret_cast<Block*>(&storage), block);
     const auto cut_block =
@@ -257,8 +265,8 @@ struct EncoderAvx2 final {
     _mm256_storeu_si256(reinterpret_cast<__m256i_u*>(destination), cut_block);
   }
 
-  static bool MayNeedValueEscaping(Block block, std::size_t offset,
-                                   std::size_t count) noexcept {
+  USERVER_IMPL_FORCE_INLINE static bool MayNeedValueEscaping(
+      Block block, std::size_t offset, std::size_t count) noexcept {
     // 'char c' may need TSKV value escaping iff c <= '\r' || c == '\\'
     // 32 lower bits of the mask contain may-need-escaping flag per block's char
     const auto may_need_escaping_mask = _mm256_movemask_epi8(
@@ -292,15 +300,17 @@ constexpr std::size_t PaddingSize() {
 template <typename Encoder>
 struct BufferPtr final {
   char* current{nullptr};
-
-  __attribute__((always_inline)) void AppendBlock(typename Encoder::Block block,
-                                                  std::size_t offset,
-                                                  std::size_t count) noexcept {
-    char* const old_current = current;
-    current += count;
-    Encoder::CopyBlock(block, offset, old_current);
-  }
 };
+
+template <typename Encoder>
+USERVER_IMPL_FORCE_INLINE BufferPtr<Encoder> AppendBlock(
+    BufferPtr<Encoder> destination, typename Encoder::Block block,
+    std::size_t offset, std::size_t count) noexcept {
+  char* const old_current = destination.current;
+  destination.current += count;
+  Encoder::CopyBlock(block, offset, old_current);
+  return destination;
+}
 
 // noinline to avoid code duplication for a cold path
 template <typename Encoder>
@@ -314,9 +324,9 @@ template <typename Encoder>
 }
 
 template <typename Encoder>
-[[nodiscard]] __attribute__((always_inline)) BufferPtr<Encoder>
-EncodeValueBlock(BufferPtr<Encoder> destination, const char* block,
-                 std::size_t offset, std::size_t count) {
+[[nodiscard]] USERVER_IMPL_FORCE_INLINE BufferPtr<Encoder> EncodeValueBlock(
+    BufferPtr<Encoder> destination, const char* block, std::size_t offset,
+    std::size_t count) {
   UASSERT(offset < Encoder::kBlockSize);
   UASSERT(offset + count <= Encoder::kBlockSize);
   block = AssumeAligned<Encoder::kBlockSize>(block);
@@ -329,7 +339,7 @@ EncodeValueBlock(BufferPtr<Encoder> destination, const char* block,
         destination, std::string_view(block + offset, count));
   } else {
     // happy path: the whole block does not need escaping
-    destination.AppendBlock(block_contents, offset, count);
+    destination = tskv::AppendBlock(destination, block_contents, offset, count);
   }
 
   return destination;
@@ -435,3 +445,5 @@ inline bool ShouldKeyBeEscaped(std::string_view key) noexcept {
 }  // namespace utils::encoding
 
 USERVER_NAMESPACE_END
+
+#undef USERVER_IMPL_FORCE_INLINE
