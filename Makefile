@@ -36,7 +36,7 @@ docs:
 	  ) | doxygen -
 	@echo 'userver.tech' > docs/html/CNAME
 	@cp docs/html/df/d86/md_en_userver_404.html docs/html/404.html
-	@sed -i 's/\.\.\/\.\.\//\.\//g' docs/html/404.html
+	@sed -i 's|\.\./\.\./|/|g' docs/html/404.html
 
 # Debug cmake configuration
 build_debug/Makefile:
