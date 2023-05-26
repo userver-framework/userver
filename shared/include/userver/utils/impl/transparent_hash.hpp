@@ -45,7 +45,8 @@ using TransparentSet = boost::unordered_set<Key, Hash, Equal>;
 #endif
 
 template <typename TransparentContainer, typename Key>
-auto FindTransparent(TransparentContainer& container, const Key& key) {
+auto FindTransparent(TransparentContainer&& container, const Key& key) {
+  static_assert(!std::is_rvalue_reference_v<TransparentContainer>, "Dangling");
 #if __cpp_lib_generic_unordered_lookup >= 201811L
   return container.find(key);
 #else
@@ -54,24 +55,32 @@ auto FindTransparent(TransparentContainer& container, const Key& key) {
 }
 
 template <typename TransparentMap, typename Key>
-auto* FindTransparentOrNullptr(TransparentMap& map, const Key& key) {
+auto* FindTransparentOrNullptr(TransparentMap&& map, const Key& key) {
+  static_assert(!std::is_rvalue_reference_v<TransparentMap>, "Dangling");
   const auto iterator = FindTransparent(map, key);
   return iterator == map.end() ? nullptr : &iterator->second;
 }
 
-template <typename TransparentContainer, typename Key>
-auto FindTransparent(const TransparentContainer& container, const Key& key) {
+template <typename TransparentMap, typename Key, typename Value>
+void TransparentInsertOrAssign(TransparentMap& map, Key&& key, Value&& value) {
+  using StoredKey = typename TransparentMap::key_type;
+  using ForwardedKey =
+      std::conditional_t<std::is_same_v<std::decay_t<Key>, StoredKey>, Key&&,
+                         StoredKey>;
 #if __cpp_lib_generic_unordered_lookup >= 201811L
-  return container.find(key);
+  // Still no heterogeneous support in insert_or_assign - this will result in
+  // an extra copy of 'key' if 'key' is already present. See wg21.link/P2363.
+  map.insert_or_assign(static_cast<ForwardedKey>(key),
+                       std::forward<Value>(value));
 #else
-  return container.find(key, container.hash_function(), container.key_eq());
+  const auto iterator = map.find(key, map.hash_function(), map.key_eq());
+  if (iterator != map.end()) {
+    iterator->second = std::forward<Value>(value);
+  } else {
+    // Performs an extra lookup. Oh well, Boost has no insert_or_assign support.
+    map.emplace(static_cast<ForwardedKey>(key), std::forward<Value>(value));
+  }
 #endif
-}
-
-template <typename TransparentMap, typename Key>
-auto* FindTransparentOrNullptr(const TransparentMap& map, const Key& key) {
-  const auto iterator = FindTransparent(map, key);
-  return iterator == map.end() ? nullptr : &iterator->second;
 }
 
 }  // namespace utils::impl

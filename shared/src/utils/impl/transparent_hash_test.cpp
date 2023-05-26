@@ -11,6 +11,7 @@ namespace {
 
 using utils::impl::FindTransparent;
 using utils::impl::FindTransparentOrNullptr;
+using utils::impl::TransparentInsertOrAssign;
 
 struct StringViewable final {
   std::string_view value;
@@ -116,6 +117,29 @@ TEST(TransparentMap, CustomTransparentHash) {
   EXPECT_EQ(*FindTransparentOrNullptr(map, "Foo"), expected);
   EXPECT_EQ(*FindTransparentOrNullptr(map, "FOO"), expected);
   EXPECT_EQ(FindTransparentOrNullptr(map, "bar"), nullptr);
+}
+
+TEST(TransparentMap, TransparentInsertOrAssign) {
+  utils::impl::TransparentMap<std::string, std::unique_ptr<int>> map;
+  TransparentInsertOrAssign(map, std::string_view{"foo"},
+                            std::make_unique<int>(4));
+  EXPECT_EQ(**FindTransparentOrNullptr(map, "foo"), 4);
+
+  TransparentInsertOrAssign(map, std::string_view{"foo"},
+                            std::make_unique<int>(5));
+  EXPECT_EQ(**FindTransparentOrNullptr(map, "foo"), 5);
+
+  TransparentInsertOrAssign(map, std::string{"bar"}, std::make_unique<int>(4));
+  EXPECT_EQ(**FindTransparentOrNullptr(map, "bar"), 4);
+
+  TransparentInsertOrAssign(map, std::string{"bar"}, std::make_unique<int>(5));
+  EXPECT_EQ(**FindTransparentOrNullptr(map, "bar"), 5);
+
+  constexpr std::string_view kLongString = "a string that does not fit in SSO";
+  std::string not_moved_key{kLongString};
+  TransparentInsertOrAssign(map, not_moved_key, std::make_unique<int>(4));
+  EXPECT_EQ(**FindTransparentOrNullptr(map, not_moved_key), 4);
+  EXPECT_EQ(not_moved_key, kLongString);
 }
 
 USERVER_NAMESPACE_END
