@@ -26,6 +26,7 @@ gen:
 
 .PHONY: docs
 docs:
+	@rm -rf docs/*
 	@( \
 	    cat scripts/docs/doxygen.conf; \
 	    echo "LAYOUT_FILE = scripts/docs/layout_opensource.xml"; \

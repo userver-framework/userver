@@ -377,5 +377,5 @@ it @ref md_en_userver_docker "here"
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref md_en_userver_supported_platforms | @ref md_en_userver_beta_state ⇨
+⇦ @ref md_en_userver_supported_platforms | @ref md_en_userver_deploy_env ⇨
 @htmlonly </div> @endhtmlonly

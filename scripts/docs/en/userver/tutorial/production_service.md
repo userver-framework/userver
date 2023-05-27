@@ -13,7 +13,9 @@ A good production ready service should have functionality for various cases:
 * Metrics and Logs
 * Functional testing
 
-This tutorial shows a configuration of a typical production ready service.
+This tutorial shows a configuration of a typical production ready service. For
+information about service interactions with other utilities and services in
+container see @ref md_en_userver_deploy_env.
 
 
 ## Before you start
