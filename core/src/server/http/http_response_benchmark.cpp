@@ -56,8 +56,8 @@ void http_headers_serialization_ostreams(benchmark::State& state) {
 
     if (kHeaders.find(USERVER_NAMESPACE::http::headers::kContentLength) ==
         kHeaders.end()) {
-      os << USERVER_NAMESPACE::http::headers::kContentLength << ": " << 1024
-         << "\r\n";
+      os << std::string_view{USERVER_NAMESPACE::http::headers::kContentLength}
+         << ": " << 1024 << "\r\n";
     }
 
     auto data = os.str();

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <userver/http/predefined_header.hpp>
+
 /// @file userver/http/common_headers.hpp
 /// @brief Common HTTP header names
 
@@ -12,153 +14,159 @@ namespace http::headers {
 
 /// @name Representation Metadata
 /// @{
-inline constexpr char kContentType[] = "Content-Type";
-inline constexpr char kContentEncoding[] = "Content-Encoding";
-inline constexpr char kContentLanguage[] = "Content-Language";
-inline constexpr char kContentLocation[] = "Content-Location";
-inline constexpr char kContentDisposition[] = "Content-Disposition";
+inline constexpr PredefinedHeader kContentType{"Content-Type"};
+inline constexpr PredefinedHeader kContentEncoding{"Content-Encoding"};
+inline constexpr PredefinedHeader kContentLanguage{"Content-Language"};
+inline constexpr PredefinedHeader kContentLocation{"Content-Location"};
+inline constexpr PredefinedHeader kContentDisposition{"Content-Disposition"};
 /// @}
 
 /// @name Payload Semantics
 /// @{
-inline constexpr char kContentLength[] = "Content-Length";
-inline constexpr char kContentRange[] = "Content-Range";
-inline constexpr char kTrailer[] = "Trailer";
-inline constexpr char kTransferEncoding[] = "Transfer-Encoding";
+inline constexpr PredefinedHeader kContentLength{"Content-Length"};
+inline constexpr PredefinedHeader kContentRange{"Content-Range"};
+inline constexpr PredefinedHeader kTrailer{"Trailer"};
+inline constexpr PredefinedHeader kTransferEncoding{"Transfer-Encoding"};
 /// @}
 
 /// @name Request Headers - Controls
 /// @{
-inline constexpr char kCacheControl[] = "Cache-Control";
-inline constexpr char kExpect[] = "Expect";
-inline constexpr char kHost[] = "Host";
-inline constexpr char kMaxForwards[] = "Max-Forwards";
-inline constexpr char kPragma[] = "Pragma";
-inline constexpr char kRange[] = "Range";
-inline constexpr char kTE[] = "TE";
+inline constexpr PredefinedHeader kCacheControl{"Cache-Control"};
+inline constexpr PredefinedHeader kExpect{"Expect"};
+inline constexpr PredefinedHeader kHost{"Host"};
+inline constexpr PredefinedHeader kMaxForwards{"Max-Forwards"};
+inline constexpr PredefinedHeader kPragma{"Pragma"};
+inline constexpr PredefinedHeader kRange{"Range"};
+inline constexpr PredefinedHeader kTE{"TE"};
 /// @}
 
 /// @name Conditionals
 /// @{
-inline constexpr char kIfMatch[] = "If-Match";
-inline constexpr char kIfNoneMatch[] = "If-None-Match";
-inline constexpr char kIfModifiedSince[] = "If-Modified-Since";
-inline constexpr char kIfUnmodifiedSince[] = "If-Unmodified-Since";
-inline constexpr char kIfRange[] = "If-Range";
+inline constexpr PredefinedHeader kIfMatch{"If-Match"};
+inline constexpr PredefinedHeader kIfNoneMatch{"If-None-Match"};
+inline constexpr PredefinedHeader kIfModifiedSince{"If-Modified-Since"};
+inline constexpr PredefinedHeader kIfUnmodifiedSince{"If-Unmodified-Since"};
+inline constexpr PredefinedHeader kIfRange{"If-Range"};
 /// @}
 
 /// @name Content Negotiation
 /// @{
-inline constexpr char kAccept[] = "Accept";
-inline constexpr char kAcceptCharset[] = "Accept-Charset";
-inline constexpr char kAcceptEncoding[] = "Accept-Encoding";
-inline constexpr char kAcceptLanguage[] = "Accept-Language";
+inline constexpr PredefinedHeader kAccept{"Accept"};
+inline constexpr PredefinedHeader kAcceptCharset{"Accept-Charset"};
+inline constexpr PredefinedHeader kAcceptEncoding{"Accept-Encoding"};
+inline constexpr PredefinedHeader kAcceptLanguage{"Accept-Language"};
 /// @}
 
 /// @name Authentication Credentials
 /// @{
-inline constexpr char kAuthorization[] = "Authorization";
-inline constexpr char kProxyAuthorization[] = "Proxy-Authorization";
-inline constexpr char kApiKey[] = "X-YaTaxi-API-Key";
-inline constexpr char kExternalService[] = "X-YaTaxi-External-Service";
+inline constexpr PredefinedHeader kAuthorization{"Authorization"};
+inline constexpr PredefinedHeader kProxyAuthorization{"Proxy-Authorization"};
+inline constexpr PredefinedHeader kApiKey{"X-YaTaxi-API-Key"};
+inline constexpr PredefinedHeader kExternalService{"X-YaTaxi-External-Service"};
 /// @}
 
 /// @name Request Context
 /// @{
-inline constexpr char kFrom[] = "From";
-inline constexpr char kReferer[] = "Referer";
-inline constexpr char kUserAgent[] = "User-Agent";
-inline constexpr char kXTaxi[] = "X-Taxi";
-inline constexpr char kXRequestedUri[] = "X-Requested-Uri";
-inline constexpr char kXRequestApplication[] = "X-Request-Application";
+inline constexpr PredefinedHeader kFrom{"From"};
+inline constexpr PredefinedHeader kReferer{"Referer"};
+inline constexpr PredefinedHeader kUserAgent{"User-Agent"};
+inline constexpr PredefinedHeader kXTaxi{"X-Taxi"};
+inline constexpr PredefinedHeader kXRequestedUri{"X-Requested-Uri"};
+inline constexpr PredefinedHeader kXRequestApplication{"X-Request-Application"};
 /// @}
 
 // Response Header Fields
 
 /// @name Control Data
 /// @{
-inline constexpr char kAge[] = "Age";
-inline constexpr char kExpires[] = "Expires";
-inline constexpr char kDate[] = "Date";
-inline constexpr char kLocation[] = "Location";
-inline constexpr char kRetryAfter[] = "Retry-After";
-inline constexpr char kVary[] = "Vary";
-inline constexpr char kWarning[] = "Warning";
-inline constexpr char kAccessControlAllowHeaders[] =
-    "Access-Control-Allow-Headers";
+inline constexpr PredefinedHeader kAge{"Age"};
+inline constexpr PredefinedHeader kExpires{"Expires"};
+inline constexpr PredefinedHeader kDate{"Date"};
+inline constexpr PredefinedHeader kLocation{"Location"};
+inline constexpr PredefinedHeader kRetryAfter{"Retry-After"};
+inline constexpr PredefinedHeader kVary{"Vary"};
+inline constexpr PredefinedHeader kWarning{"Warning"};
+inline constexpr PredefinedHeader kAccessControlAllowHeaders{
+    "Access-Control-Allow-Headers"};
 /// @}
 
 /// @name Validator Header Fields
 /// @{
-inline constexpr char kETag[] = "ETag";
-inline constexpr char kLastModified[] = "Last-Modified";
+inline constexpr PredefinedHeader kETag{"ETag"};
+inline constexpr PredefinedHeader kLastModified{"Last-Modified"};
 /// @}
 
 /// @name Authentication Challenges
 /// @{
-inline constexpr char kWWWAuthenticate[] = "WWW-Authenticate";
-inline constexpr char kProxyAuthenticate[] = "Proxy-Authenticate";
+inline constexpr PredefinedHeader kWWWAuthenticate{"WWW-Authenticate"};
+inline constexpr PredefinedHeader kProxyAuthenticate{"Proxy-Authenticate"};
 /// @}
 
 /// @name Response Context
 /// @{
-inline constexpr char kAcceptRanges[] = "Accept-Ranges";
-inline constexpr char kAllow[] = "Allow";
-inline constexpr char kServer[] = "Server";
+inline constexpr PredefinedHeader kAcceptRanges{"Accept-Ranges"};
+inline constexpr PredefinedHeader kAllow{"Allow"};
+inline constexpr PredefinedHeader kServer{"Server"};
 /// @}
 
 /// @name Cookie
 /// @{
-inline constexpr char kSetCookie[] = "Set-Cookie";
+inline constexpr PredefinedHeader kSetCookie{"Set-Cookie"};
 /// @}
 
 /// @name Extra headers
 /// @{
-inline constexpr char kConnection[] = "Connection";
+inline constexpr PredefinedHeader kConnection{"Connection"};
+inline constexpr PredefinedHeader kCookie{"Cookie"};
 /// @}
 
 /// @name Tracing headers
 /// @{
-inline constexpr char kXYaRequestId[] = "X-YaRequestId";
-inline constexpr char kXYaTraceId[] = "X-YaTraceId";
-inline constexpr char kXYaSpanId[] = "X-YaSpanId";
-inline constexpr char kXRequestId[] = "X-RequestId";
-inline constexpr char kXBackendServer[] = "X-Backend-Server";
-inline constexpr char kXTaxiEnvoyProxyDstVhost[] = "X-Taxi-EnvoyProxy-DstVhost";
-
+inline constexpr PredefinedHeader kXYaRequestId{"X-YaRequestId"};
+inline constexpr PredefinedHeader kXYaTraceId{"X-YaTraceId"};
+inline constexpr PredefinedHeader kXYaSpanId{"X-YaSpanId"};
+inline constexpr PredefinedHeader kXRequestId{"X-RequestId"};
+inline constexpr PredefinedHeader kXBackendServer{"X-Backend-Server"};
+inline constexpr PredefinedHeader kXTaxiEnvoyProxyDstVhost{
+    "X-Taxi-EnvoyProxy-DstVhost"};
 /// @}
 
 /// @name Baggage header
 /// @{
-inline constexpr char kXBaggage[] = "baggage";
+inline constexpr PredefinedHeader kXBaggage{"baggage"};
 /// @}
 
 /// @name Generic Yandex headers
 /// @{
-inline constexpr char kXYandexUid[] = "X-Yandex-UID";
+inline constexpr PredefinedHeader kXYandexUid{"X-Yandex-UID"};
 
 // IP address of mobile client, not an IP address of single-hop client.
-inline constexpr char kXRemoteIp[] = "X-Remote-IP";
+inline constexpr PredefinedHeader kXRemoteIp{"X-Remote-IP"};
 /// @}
 
 /// @name Generic Yandex/MLU headers
 /// @{
-inline constexpr char kXYaTaxiAllowAuthRequest[] =
-    "X-YaTaxi-Allow-Auth-Request";
-inline constexpr char kXYaTaxiAllowAuthResponse[] =
-    "X-YaTaxi-Allow-Auth-Response";
-inline constexpr char kXYaTaxiServerHostname[] = "X-YaTaxi-Server-Hostname";
-inline constexpr char kXYaTaxiClientTimeoutMs[] = "X-YaTaxi-Client-TimeoutMs";
-inline constexpr char kXYaTaxiRatelimitedBy[] = "X-YaTaxi-Ratelimited-By";
-inline constexpr char kXYaTaxiRatelimitReason[] = "X-YaTaxi-Ratelimit-Reason";
+inline constexpr PredefinedHeader kXYaTaxiAllowAuthRequest{
+    "X-YaTaxi-Allow-Auth-Request"};
+inline constexpr PredefinedHeader kXYaTaxiAllowAuthResponse{
+    "X-YaTaxi-Allow-Auth-Response"};
+inline constexpr PredefinedHeader kXYaTaxiServerHostname{
+    "X-YaTaxi-Server-Hostname"};
+inline constexpr PredefinedHeader kXYaTaxiClientTimeoutMs{
+    "X-YaTaxi-Client-TimeoutMs"};
+inline constexpr PredefinedHeader kXYaTaxiRatelimitedBy{
+    "X-YaTaxi-Ratelimited-By"};
+inline constexpr PredefinedHeader kXYaTaxiRatelimitReason{
+    "X-YaTaxi-Ratelimit-Reason"};
 
 namespace ratelimit_reason {
-inline constexpr char kCC[] = "congestion-control";
-inline constexpr char kMaxResponseSizeInFlight[] =
-    "max-response-size-in-flight";
-inline constexpr char kMaxPendingResponses[] = "too-many-pending-responses";
-inline constexpr char kGlobal[] = "global-ratelimit";
-inline constexpr char kInFlight[] = "max-requests-in-flight";
+inline constexpr std::string_view kCC{"congestion-control"};
+inline constexpr std::string_view kMaxResponseSizeInFlight{
+    "max-response-size-in-flight"};
+inline constexpr std::string_view kMaxPendingResponses{
+    "too-many-pending-responses"};
+inline constexpr std::string_view kGlobal{"global-ratelimit"};
+inline constexpr std::string_view kInFlight{"max-requests-in-flight"};
 }  // namespace ratelimit_reason
 /// @}
 

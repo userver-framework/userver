@@ -105,12 +105,23 @@ bool HttpRequest::HasPathArg(size_t index) const {
 
 size_t HttpRequest::PathArgCount() const { return impl_.PathArgCount(); }
 
-const std::string& HttpRequest::GetHeader(
-    const std::string& header_name) const {
+const std::string& HttpRequest::GetHeader(std::string_view header_name) const {
   return impl_.GetHeader(header_name);
 }
 
-bool HttpRequest::HasHeader(const std::string& header_name) const {
+const std::string& HttpRequest::GetHeader(
+    const USERVER_NAMESPACE::http::headers::PredefinedHeader& header_name)
+    const {
+  return impl_.GetHeader(header_name);
+}
+
+bool HttpRequest::HasHeader(std::string_view header_name) const {
+  return impl_.HasHeader(header_name);
+}
+
+bool HttpRequest::HasHeader(
+    const USERVER_NAMESPACE::http::headers::PredefinedHeader& header_name)
+    const {
   return impl_.HasHeader(header_name);
 }
 
@@ -120,7 +131,12 @@ HttpRequest::HeadersMapKeys HttpRequest::GetHeaderNames() const {
   return impl_.GetHeaderNames();
 }
 
-void HttpRequest::RemoveHeader(const std::string& header_name) {
+void HttpRequest::RemoveHeader(std::string_view header_name) {
+  impl_.RemoveHeader(header_name);
+}
+
+void HttpRequest::RemoveHeader(
+    const USERVER_NAMESPACE::http::headers::PredefinedHeader& header_name) {
   impl_.RemoveHeader(header_name);
 }
 

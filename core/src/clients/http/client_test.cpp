@@ -40,8 +40,8 @@ constexpr char kTestData[] = "Test Data";
 constexpr unsigned kRepetitions = 200;
 constexpr unsigned kFewRepetitions = 8;
 
-constexpr char kTestHeader[] = "X-Test-Header";
-constexpr char kTestHeaderMixedCase[] = "x-TEST-headeR";
+constexpr std::string_view kTestHeader = "X-Test-Header";
+constexpr std::string_view kTestHeaderMixedCase = "x-TEST-headeR";
 
 constexpr char kTestUserAgent[] = "correct/2.0 (user agent) taxi_userver/000f";
 
@@ -1136,8 +1136,8 @@ UTEST(HttpClient, BasicUsage) {
 
   EXPECT_TRUE(response->IsOk());
   /// [Sample HTTP Client usage]
-  EXPECT_EQ(response->headers()["xxx"], "good");
-  EXPECT_EQ(response->headers()["XXX"], "good");
+  EXPECT_EQ(response->headers()[std::string_view{"xxx"}], "good");
+  EXPECT_EQ(response->headers()[std::string_view{"XXX"}], "good");
 }
 
 UTEST(HttpClient, GetWithBody) {
@@ -1165,8 +1165,8 @@ UTEST(HttpClient, GetWithBody) {
                             ->perform();
 
   EXPECT_TRUE(response->IsOk());
-  EXPECT_EQ(response->headers()["xxx"], "good");
-  EXPECT_EQ(response->headers()["XXX"], "good");
+  EXPECT_EQ(response->headers()[std::string_view{"xxx"}], "good");
+  EXPECT_EQ(response->headers()[std::string_view{"XXX"}], "good");
 
   // Make sure it doesn't depend on order of get/data
   std::string new_data{"get_body_data"};
@@ -1178,8 +1178,8 @@ UTEST(HttpClient, GetWithBody) {
                                     ->perform();
 
   EXPECT_TRUE(another_response->IsOk());
-  EXPECT_EQ(another_response->headers()["xxx"], "good");
-  EXPECT_EQ(another_response->headers()["XXX"], "good");
+  EXPECT_EQ(another_response->headers()[std::string_view{"xxx"}], "good");
+  EXPECT_EQ(another_response->headers()[std::string_view{"XXX"}], "good");
 }
 
 // Make sure that cURL was build with the fix:
@@ -1205,8 +1205,8 @@ UTEST(HttpClient, RedirectHeaders) {
       << "Looks like you have an outdated version of cURL library. Update "
          "to version 7.72.0 or above is recommended";
 
-  EXPECT_EQ(response->headers()["xxx"], "good");
-  EXPECT_EQ(response->headers()["XXX"], "good");
+  EXPECT_EQ(response->headers()[std::string_view{"xxx"}], "good");
+  EXPECT_EQ(response->headers()[std::string_view{"XXX"}], "good");
 }
 
 UTEST(HttpClient, BadUrl) {

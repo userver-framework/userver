@@ -18,8 +18,8 @@ UTEST(HttpServerMock, Ctr) {
       [](const utest::HttpServerMock::HttpRequest& request) {
         EXPECT_EQ(clients::http::HttpMethod::kPost, request.method);
         EXPECT_EQ("/", request.path);
-        EXPECT_EQ("value1", request.headers.at("a"));
-        EXPECT_EQ("value2", request.headers.at("header"));
+        EXPECT_EQ("value1", request.headers.at(std::string_view{"a"}));
+        EXPECT_EQ("value2", request.headers.at(std::string_view{"header"}));
 
         EXPECT_EQ((std::unordered_map<std::string, std::string>{
                       {"arg1", "val1"}, {"arg2", "val2"}}),

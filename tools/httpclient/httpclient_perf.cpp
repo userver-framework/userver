@@ -12,9 +12,9 @@
 
 #include <userver/utest/using_namespace_userver.hpp>
 
-namespace http = clients::http;
-
 namespace {
+
+namespace http = clients::http;
 
 struct Config {
   std::string log_level = "error";
@@ -182,8 +182,6 @@ void Worker(WorkerContext& context) {
   LOG_INFO() << "Worker stopped";
 }
 
-}  // namespace
-
 void DoWork(const Config& config, const std::vector<std::string>& urls) {
   LOG_INFO() << "Starting thread " << std::this_thread::get_id();
 
@@ -223,6 +221,8 @@ void DoWork(const Config& config, const std::vector<std::string>& urls) {
                  << " sum response body size = " << worker_context.response_len
                  << " average RPS = " << rps;
 }
+
+}  // namespace
 
 int main(int argc, char* argv[]) {
   const Config config = ParseConfig(argc, argv);

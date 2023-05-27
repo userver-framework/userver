@@ -9,6 +9,7 @@
 
 #include <userver/clients/http/error.hpp>
 #include <userver/clients/http/local_stats.hpp>
+#include <userver/http/header_map.hpp>
 #include <userver/server/http/http_response_cookie.hpp>
 #include <userver/utils/str_icase.hpp>
 
@@ -42,8 +43,7 @@ enum Status : uint16_t {
 std::ostream& operator<<(std::ostream& os, Status s);
 
 /// Headers container type
-using Headers = std::unordered_map<std::string, std::string,
-                                   utils::StrIcaseHash, utils::StrIcaseEqual>;
+using Headers = USERVER_NAMESPACE::http::headers::HeaderMap;
 
 /// Class that will be returned for successful request
 class Response final {

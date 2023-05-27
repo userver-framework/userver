@@ -11,10 +11,11 @@ USERVER_NAMESPACE_BEGIN
 namespace clients::http::plugins::yandex_tracing {
 
 namespace {
-const std::vector<std::string> kYaTracingHeaders = {
-    USERVER_NAMESPACE::http::headers::kXRequestId,
-    USERVER_NAMESPACE::http::headers::kXBackendServer,
-    USERVER_NAMESPACE::http::headers::kXTaxiEnvoyProxyDstVhost,
+constexpr USERVER_NAMESPACE::http::headers::PredefinedHeader
+    kYaTracingHeaders[] = {
+        USERVER_NAMESPACE::http::headers::kXRequestId,
+        USERVER_NAMESPACE::http::headers::kXBackendServer,
+        USERVER_NAMESPACE::http::headers::kXTaxiEnvoyProxyDstVhost,
 };
 
 const std::string kName = "yandex-tracing";

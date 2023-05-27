@@ -72,6 +72,8 @@ bool IsBodyForbiddenForStatus(server::http::HttpStatus status) {
          (static_cast<int>(status) >= 100 && static_cast<int>(status) < 200);
 }
 
+const std::string kEmptyString{};
+
 }  // namespace
 
 namespace server::http {
@@ -120,12 +122,27 @@ bool HttpResponse::SetHeader(std::string name, std::string value) {
 
   CheckHeaderName(name);
   CheckHeaderValue(value);
-  const auto header_it = headers_.find(name);
-  if (header_it == headers_.end()) {
-    headers_.emplace(std::move(name), std::move(value));
-  } else {
-    header_it->second = std::move(value);
+
+  headers_.insert_or_assign(std::move(name), std::move(value));
+
+  return true;
+}
+
+bool HttpResponse::SetHeader(std::string_view name, std::string value) {
+  return SetHeader(std::string{name}, std::move(value));
+}
+
+bool HttpResponse::SetHeader(
+    const USERVER_NAMESPACE::http::headers::PredefinedHeader& header,
+    std::string value) {
+  if (headers_end_.IsReady()) {
+    // Attempt to set headers for Stream'ed response after it is already set
+    return false;
   }
+
+  CheckHeaderValue(value);
+
+  headers_.insert_or_assign(header, std::move(value));
 
   return true;
 }
@@ -179,12 +196,27 @@ HttpResponse::HeadersMapKeys HttpResponse::GetHeaderNames() const {
   return HttpResponse::HeadersMapKeys{headers_};
 }
 
-const std::string& HttpResponse::GetHeader(
-    const std::string& header_name) const {
-  return headers_.at(header_name);
+const std::string& HttpResponse::GetHeader(std::string_view header_name) const {
+  auto it = headers_.find(header_name);
+  if (it == headers_.end()) return kEmptyString;
+  return it->second;
 }
 
-bool HttpResponse::HasHeader(const std::string& header_name) const {
+const std::string& HttpResponse::GetHeader(
+    const USERVER_NAMESPACE::http::headers::PredefinedHeader& header_name)
+    const {
+  auto it = headers_.find(header_name);
+  if (it == headers_.end()) return kEmptyString;
+  return it->second;
+}
+
+bool HttpResponse::HasHeader(std::string_view header_name) const {
+  return headers_.find(header_name) != headers_.end();
+}
+
+bool HttpResponse::HasHeader(
+    const USERVER_NAMESPACE::http::headers::PredefinedHeader& header_name)
+    const {
   return headers_.find(header_name) != headers_.end();
 }
 
@@ -206,6 +238,8 @@ void HttpResponse::SendResponse(engine::io::Socket& socket) {
   // Adjusting it to 1KiB to fit jemalloc size class
   static constexpr auto kTypicalHeadersSize = 1024;
 
+  // TODO : this could very well be small_vector<char> instead, or we could
+  // pass a string from connection and reuse it.
   std::string header;
   header.reserve(kTypicalHeadersSize);
 
@@ -217,20 +251,17 @@ void HttpResponse::SendResponse(engine::io::Socket& socket) {
   header.append(kCrlf);
 
   headers_.erase(USERVER_NAMESPACE::http::headers::kContentLength);
-  const auto end = headers_.cend();
+  const auto end = headers_.end();
   if (headers_.find(USERVER_NAMESPACE::http::headers::kDate) == end) {
-    header.append(USERVER_NAMESPACE::http::headers::kDate);
-    header.append(kKeyValueHeaderSeparator);
-    AppendCachedDate(header);
-    header.append(kCrlf);
+    impl::OutputHeader(header, USERVER_NAMESPACE::http::headers::kDate,
+                       // impl::GetCachedDate() must not cross thread boundaries
+                       impl::GetCachedDate());
   }
   if (headers_.find(USERVER_NAMESPACE::http::headers::kContentType) == end) {
     impl::OutputHeader(header, USERVER_NAMESPACE::http::headers::kContentType,
                        kDefaultContentTypeString);
   }
-  for (const auto& item : headers_) {
-    impl::OutputHeader(header, item.first, item.second);
-  }
+  headers_.OutputInHttpFormat(header);
   if (headers_.find(USERVER_NAMESPACE::http::headers::kConnection) == end) {
     impl::OutputHeader(header, USERVER_NAMESPACE::http::headers::kConnection,
                        (request_.IsFinal() ? kClose : kKeepAlive));
@@ -293,7 +324,7 @@ std::size_t HttpResponse::SetBodyStreamed(engine::io::Socket& socket,
 
   // send HTTP headers
   size_t sent_bytes = socket.SendAll(header.data(), header.size(), {});
-  std::string().swap(header);  // free memory before time consuming operation
+  std::string{}.swap(header);  // free memory before time-consuming operation
 
   // Transmit HTTP response body
   std::string body_part;

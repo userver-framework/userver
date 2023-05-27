@@ -117,4 +117,13 @@ UTEST_P(HttpResponseBody, ForbiddenBody) {
 INSTANTIATE_UTEST_SUITE_P(HttpResponseForbiddenBody, HttpResponseBody,
                           testing::Values(100, 101, 150, 199, 304, 204));
 
+TEST(HttpResponse, GetHeaderDoesntThrow) {
+  server::request::ResponseDataAccounter accounter{};
+  const server::http::HttpRequestImpl request_impl{accounter};
+  const server::http::HttpResponse response{request_impl, accounter};
+
+  const auto& header = response.GetHeader("nonexistent-header");
+  EXPECT_TRUE(header.empty());
+}
+
 USERVER_NAMESPACE_END

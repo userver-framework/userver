@@ -66,7 +66,11 @@ file(GLOB_RECURSE BENCH_SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/../shared/*_benchmark.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/*_benchmark.cpp
 )
-list(REMOVE_ITEM SOURCES ${UNIT_TEST_SOURCES} ${BENCH_SOURCES})
+file(GLOB_RECURSE INTERNAL_SOURCES
+  ${CMAKE_CURRENT_SOURCE_DIR}/../shared/internal/*.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/../shared/internal/*.hpp
+)
+list(REMOVE_ITEM SOURCES ${UNIT_TEST_SOURCES} ${BENCH_SOURCES} ${INTERNAL_SOURCES})
 
 set(CMAKE_THREAD_PREFER_PTHREAD ON)
 set(THREADS_PREFER_PTHREAD_FLAG ON)
@@ -196,6 +200,18 @@ target_include_directories(${PROJECT_NAME}
     ${CMAKE_CURRENT_BINARY_DIR}
 )
 
+option(USERVER_HEADER_MAP_AGAINST_OTHERS_BENCHMARK "build HeaderMap benchmarks against abseil and boost" OFF)
+
+add_library(userver-shared-internal STATIC ${INTERNAL_SOURCES})
+target_compile_definitions(userver-shared-internal PUBLIC $<TARGET_PROPERTY:${PROJECT_NAME},COMPILE_DEFINITIONS>)
+target_include_directories(userver-shared-internal PUBLIC
+  $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>
+  ${CMAKE_CURRENT_SOURCE_DIR}/../shared/internal/include
+)
+target_link_libraries(userver-shared-internal
+  PUBLIC
+  ${PROJECT_NAME}
+)
 
 if (USERVER_IS_THE_ROOT_PROJECT)
     add_executable(${PROJECT_NAME}_unittest ${UNIT_TEST_SOURCES})
@@ -205,6 +221,7 @@ if (USERVER_IS_THE_ROOT_PROJECT)
     target_link_libraries(${PROJECT_NAME}_unittest
       PUBLIC
         ${PROJECT_NAME}
+        userver-shared-internal
       PRIVATE
         Boost::program_options
     )
@@ -228,14 +245,23 @@ if (USERVER_IS_THE_ROOT_PROJECT)
     add_google_tests(${PROJECT_NAME}_unittest)
 
     add_executable(${PROJECT_NAME}_benchmark ${BENCH_SOURCES})
+    #    find_package(absl REQUIRED)
+
     target_include_directories (${PROJECT_NAME}_benchmark SYSTEM PRIVATE
         $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>
     )
-    target_link_libraries(${PROJECT_NAME}_benchmark PUBLIC ${PROJECT_NAME})
+    target_link_libraries(${PROJECT_NAME}_benchmark PUBLIC ${PROJECT_NAME} userver-shared-internal)
     if (USERVER_CONAN)
       target_link_libraries(${PROJECT_NAME}_benchmark PUBLIC benchmark::benchmark)
     else()
       target_link_libraries(${PROJECT_NAME}_benchmark PUBLIC libbenchmark)
     endif()
+
+    if (USERVER_HEADER_MAP_AGAINST_OTHERS_BENCHMARK)
+      find_package(absl REQUIRED)
+      target_link_libraries(${PROJECT_NAME}_benchmark PRIVATE absl::raw_hash_set)
+      target_compile_definitions(${PROJECT_NAME}_benchmark PRIVATE HEADER_MAP_AGAINST_OTHERS_BENCHMARK)
+    endif()
+
     add_google_benchmark_tests(${PROJECT_NAME}_benchmark)
 endif()

@@ -54,6 +54,8 @@ list (REMOVE_ITEM SOURCES ${BENCH_SOURCES} ${LIBUBENCH_SOURCES})
 file(GLOB_RECURSE INTERNAL_SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/internal/*.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/internal/*.hpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/../shared/internal/*.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/../shared/internal/*.hpp
 )
 
 list (REMOVE_ITEM SOURCES ${INTERNAL_SOURCES})
@@ -265,6 +267,7 @@ target_compile_definitions(userver-core-internal PUBLIC $<TARGET_PROPERTY:${PROJ
 target_include_directories(userver-core-internal PUBLIC
   $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>
   ${CMAKE_CURRENT_SOURCE_DIR}/internal/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/../shared/internal/include
 )
 target_link_libraries(userver-core-internal
   PUBLIC
@@ -336,10 +339,13 @@ endif()
 
 if (USERVER_IS_THE_ROOT_PROJECT)
     add_executable(${PROJECT_NAME}_benchmark ${BENCH_SOURCES})
+    #    find_package(absl REQUIRED)
+
     target_link_libraries(${PROJECT_NAME}_benchmark
       PUBLIC
         userver-ubench
       PRIVATE
+      #        absl::raw_hash_set
         userver-core-internal
     )
     add_google_benchmark_tests(${PROJECT_NAME}_benchmark)

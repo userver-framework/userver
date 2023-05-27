@@ -1,7 +1,6 @@
 #include <userver/server/handlers/http_handler_base.hpp>
 
 #include <fmt/core.h>
-#include <fmt/format.h>
 #include <boost/algorithm/string/split.hpp>
 
 #include <compression/gzip.hpp>
@@ -41,7 +40,6 @@
 #include <userver/utils/log.hpp>
 #include <userver/utils/overloaded.hpp>
 #include <userver/utils/scope_guard.hpp>
-#include <userver/utils/statistics/metadata.hpp>
 #include <userver/utils/text.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
@@ -697,7 +695,8 @@ void HttpHandlerBase::CheckRatelimit(
                     GetConfig().max_requests_per_second.value_or(0));
     SetThrottleReason(
         http_response, std::move(log_reason),
-        USERVER_NAMESPACE::http::headers::ratelimit_reason::kGlobal);
+        std::string{
+            USERVER_NAMESPACE::http::headers::ratelimit_reason::kGlobal});
     statistics.IncrementRateLimitReached();
     total_statistics.IncrementRateLimitReached();
 
@@ -713,7 +712,8 @@ void HttpHandlerBase::CheckRatelimit(
                                   *max_requests_in_flight);
     SetThrottleReason(
         http_response, std::move(log_reason),
-        USERVER_NAMESPACE::http::headers::ratelimit_reason::kInFlight);
+        std::string{
+            USERVER_NAMESPACE::http::headers::ratelimit_reason::kInFlight});
 
     statistics.IncrementTooManyRequestsInFlight();
     total_statistics.IncrementTooManyRequestsInFlight();
@@ -726,7 +726,12 @@ void HttpHandlerBase::DecompressRequestBody(
     http::HttpRequest& http_request) const {
   if (!http_request.IsBodyCompressed()) return;
 
-  const auto content_encoding = http_request.GetHeader("Content-Encoding");
+  const auto& content_encoding = http_request.GetHeader(
+      USERVER_NAMESPACE::http::headers::kContentEncoding);
+  const utils::FastScopeGuard encoding_remove_guard{[&http_request]() noexcept {
+    http_request.RemoveHeader(
+        USERVER_NAMESPACE::http::headers::kContentEncoding);
+  }};
 
   try {
     if (content_encoding == "gzip") {

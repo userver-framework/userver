@@ -133,8 +133,8 @@ engine::TaskWithResult<void> HttpRequestHandler::StartRequestTask(
 
   if (throttling_enabled && http_response.IsLimitReached()) {
     SetThrottleReason(http_response, "Too many pending responses",
-                      USERVER_NAMESPACE::http::headers::ratelimit_reason::
-                          kMaxPendingResponses);
+                      std::string{USERVER_NAMESPACE::http::headers::
+                                      ratelimit_reason::kMaxPendingResponses});
 
     http_request.SetResponseStatus(HttpStatus::kTooManyRequests);
     http_request.GetHttpResponse().SetReady();
@@ -158,8 +158,9 @@ engine::TaskWithResult<void> HttpRequestHandler::StartRequestTask(
       metrics_->GetMetric(kCcStatusCodeIsCustom) = 0;
     }
 
-    SetThrottleReason(http_response, "congestion-control",
-                      USERVER_NAMESPACE::http::headers::ratelimit_reason::kCC);
+    SetThrottleReason(
+        http_response, "congestion-control",
+        std::string{USERVER_NAMESPACE::http::headers::ratelimit_reason::kCC});
 
     http_response.SetStatus(status);
     http_response.SetReady();

@@ -64,10 +64,17 @@ class HttpRequestImpl final : public request::RequestBase {
   bool HasPathArg(size_t index) const;
   size_t PathArgCount() const;
 
-  const std::string& GetHeader(const std::string& header_name) const;
-  bool HasHeader(const std::string& header_name) const;
+  const std::string& GetHeader(std::string_view header_name) const;
+  const std::string& GetHeader(
+      const USERVER_NAMESPACE::http::headers::PredefinedHeader& header_name)
+      const;
+  bool HasHeader(std::string_view header_name) const;
+  bool HasHeader(const USERVER_NAMESPACE::http::headers::PredefinedHeader&
+                     header_name) const;
   size_t HeaderCount() const;
-  void RemoveHeader(const std::string& header_name);
+  void RemoveHeader(std::string_view header_name);
+  void RemoveHeader(
+      const USERVER_NAMESPACE::http::headers::PredefinedHeader& header_name);
   HttpRequest::HeadersMapKeys GetHeaderNames() const;
   const HttpRequest::HeadersMap& GetHeaders() const;
 

@@ -4,6 +4,8 @@
 
 #include <algorithm>
 
+#include <userver/http/common_headers.hpp>
+
 namespace samples::pg {
 
 class AuthCheckerBearer final : public server::handlers::auth::AuthCheckerBase {
@@ -30,7 +32,7 @@ class AuthCheckerBearer final : public server::handlers::auth::AuthCheckerBase {
 AuthCheckerBearer::AuthCheckResult AuthCheckerBearer::CheckAuth(
     const server::http::HttpRequest& request,
     server::request::RequestContext& request_context) const {
-  const auto& auth_value = request.GetHeader("Authorization");
+  const auto& auth_value = request.GetHeader(http::headers::kAuthorization);
   if (auth_value.empty()) {
     return AuthCheckResult{AuthCheckResult::Status::kTokenNotFound,
                            {},

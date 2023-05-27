@@ -105,7 +105,7 @@ class StreamHandler : public server::handlers::HttpHandlerBase {
     auto status_code = client_response.StatusCode();
     response_body_stream.SetStatusCode(status_code);
 
-    response_body_stream.SetHeader("abc", "def");
+    response_body_stream.SetHeader(std::string{"abc"}, std::string{"def"});
     response_body_stream.SetEndOfHeaders();
 
     TESTPOINT("stream_after_set_end_of_headers", {});

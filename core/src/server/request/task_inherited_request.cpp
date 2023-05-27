@@ -9,9 +9,9 @@ namespace server::request {
 
 namespace {
 const std::string kEmptyHeader{};
-}  // namespace
 
-const std::string& GetTaskInheritedHeader(const std::string& header_name) {
+template <typename Header>
+const std::string& DoGetTaskInheritedHeader(const Header& header_name) {
   const auto* request = kTaskInheritedRequest.GetOptional();
   if (request == nullptr) {
     return kEmptyHeader;
@@ -19,12 +19,33 @@ const std::string& GetTaskInheritedHeader(const std::string& header_name) {
   return (*request)->GetHeader(header_name);
 }
 
-bool HasTaskInheritedHeader(const std::string& header_name) {
+template <typename Header>
+bool DoHasTaskInheritedHeader(const Header& header_name) {
   const auto* request = kTaskInheritedRequest.GetOptional();
   if (request == nullptr) {
     return false;
   }
   return (*request)->HasHeader(header_name);
+}
+
+}  // namespace
+
+const std::string& GetTaskInheritedHeader(std::string_view header_name) {
+  return DoGetTaskInheritedHeader(header_name);
+}
+
+const std::string& GetTaskInheritedHeader(
+    const USERVER_NAMESPACE::http::headers::PredefinedHeader& header_name) {
+  return DoGetTaskInheritedHeader(header_name);
+}
+
+bool HasTaskInheritedHeader(std::string_view header_name) {
+  return DoHasTaskInheritedHeader(header_name);
+}
+
+bool HasTaskInheritedHeader(
+    const USERVER_NAMESPACE::http::headers::PredefinedHeader& header_name) {
+  return DoHasTaskInheritedHeader(header_name);
 }
 
 }  // namespace server::request

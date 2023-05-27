@@ -13,7 +13,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace {
 
-constexpr size_t kBucketCount = 32;
+constexpr size_t kBucketCount = 16;
 
 constexpr size_t kZeroAllocationBucketCount = 0;
 
@@ -78,8 +78,7 @@ HttpRequestImpl::HttpRequestImpl(request::ResponseDataAccounter& data_accounter)
                       request_args_.hash_function()),
       path_args_by_name_index_(kZeroAllocationBucketCount,
                                request_args_.hash_function()),
-      headers_(kBucketCount,
-               utils::StrIcaseHash(request_args_.hash_function().GetSeed())),
+      headers_(kBucketCount),
       cookies_(kZeroAllocationBucketCount, request_args_.hash_function()),
       response_(*this, data_accounter) {}
 
@@ -182,20 +181,38 @@ bool HttpRequestImpl::HasPathArg(size_t index) const {
 size_t HttpRequestImpl::PathArgCount() const { return path_args_.size(); }
 
 const std::string& HttpRequestImpl::GetHeader(
-    const std::string& header_name) const {
+    std::string_view header_name) const {
   auto it = headers_.find(header_name);
   if (it == headers_.end()) return kEmptyString;
   return it->second;
 }
 
-bool HttpRequestImpl::HasHeader(const std::string& header_name) const {
+const std::string& HttpRequestImpl::GetHeader(
+    const USERVER_NAMESPACE::http::headers::PredefinedHeader& header_name)
+    const {
   auto it = headers_.find(header_name);
-  return (it != headers_.end());
+  if (it == headers_.end()) return kEmptyString;
+  return it->second;
+}
+
+bool HttpRequestImpl::HasHeader(std::string_view header_name) const {
+  return headers_.count(header_name) != 0;
+}
+
+bool HttpRequestImpl::HasHeader(
+    const USERVER_NAMESPACE::http::headers::PredefinedHeader& header_name)
+    const {
+  return headers_.count(header_name) != 0;
 }
 
 size_t HttpRequestImpl::HeaderCount() const { return headers_.size(); }
 
-void HttpRequestImpl::RemoveHeader(const std::string& header_name) {
+void HttpRequestImpl::RemoveHeader(std::string_view header_name) {
+  headers_.erase(header_name);
+}
+
+void HttpRequestImpl::RemoveHeader(
+    const USERVER_NAMESPACE::http::headers::PredefinedHeader& header_name) {
   headers_.erase(header_name);
 }
 
@@ -237,7 +254,8 @@ void HttpRequestImpl::ParseArgsFromBody() {
 }
 
 bool HttpRequestImpl::IsBodyCompressed() const {
-  auto encoding = GetHeader(USERVER_NAMESPACE::http::headers::kContentEncoding);
+  const auto& encoding =
+      GetHeader(USERVER_NAMESPACE::http::headers::kContentEncoding);
   return !encoding.empty() && encoding != "identity";
 }
 

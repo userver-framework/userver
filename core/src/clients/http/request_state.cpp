@@ -57,7 +57,7 @@ std::error_code TestsuiteResponseHook(Status status_code,
                                       const Headers& headers,
                                       tracing::Span& span) {
   if (status_code == kFakeHttpErrorCode) {
-    const auto it = headers.find("X-Testsuite-Error");
+    const auto it = headers.find(std::string_view{"X-Testsuite-Error"});
 
     if (headers.end() != it) {
       LOG_INFO() << "Mockserver faked error of type " << it->second << span;

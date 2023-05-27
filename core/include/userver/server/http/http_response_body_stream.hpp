@@ -23,6 +23,8 @@ class ResponseBodyStream final {
 
   void SetHeader(const std::string&, const std::string&);
 
+  void SetHeader(std::string_view, const std::string&);
+
   void SetEndOfHeaders();
 
   void SetStatusCode(int status_code);

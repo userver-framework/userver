@@ -10,6 +10,7 @@
 #include <userver/concurrent/queue.hpp>
 #include <userver/engine/single_consumer_event.hpp>
 #include <userver/http/content_type.hpp>
+#include <userver/http/header_map.hpp>
 #include <userver/server/http/http_response_cookie.hpp>
 #include <userver/server/request/response_base.hpp>
 #include <userver/utils/impl/projecting_view.hpp>
@@ -33,9 +34,7 @@ class HttpRequestImpl;
 /// @brief HTTP Response data
 class HttpResponse final : public request::ResponseBase {
  public:
-  using HeadersMap =
-      std::unordered_map<std::string, std::string, utils::StrIcaseHash,
-                         utils::StrIcaseEqual>;
+  using HeadersMap = USERVER_NAMESPACE::http::headers::HeaderMap;
 
   using HeadersMapKeys = decltype(utils::impl::MakeKeysView(HeadersMap()));
 
@@ -56,6 +55,16 @@ class HttpResponse final : public request::ResponseBase {
   /// @returns true if the header was set. Returns false if headers
   /// were already sent for stream'ed response and the new header was not set.
   bool SetHeader(std::string name, std::string value);
+
+  /// @brief Add a new response header or rewrite an existing one.
+  /// @returns true if the header was set. Returns false if headers
+  /// were already sent for stream'ed response and the new header was not set.
+  bool SetHeader(std::string_view name, std::string value);
+
+  /// @overload
+  bool SetHeader(
+      const USERVER_NAMESPACE::http::headers::PredefinedHeader& header,
+      std::string value);
 
   /// @brief Add or rewrite the Content-Type header.
   void SetContentType(const USERVER_NAMESPACE::http::ContentType& type);
@@ -87,11 +96,18 @@ class HttpResponse final : public request::ResponseBase {
 
   /// @return Value of the header with case insensitive name header_name, or an
   /// empty string if no such header.
-  const std::string& GetHeader(const std::string& header_name) const;
+  const std::string& GetHeader(std::string_view header_name) const;
+  /// @overload
+  const std::string& GetHeader(
+      const USERVER_NAMESPACE::http::headers::PredefinedHeader& header_name)
+      const;
 
   /// @return true if header with case insensitive name header_name exists,
   /// false otherwise.
-  bool HasHeader(const std::string& header_name) const;
+  bool HasHeader(std::string_view header_name) const;
+  /// @overload
+  bool HasHeader(const USERVER_NAMESPACE::http::headers::PredefinedHeader&
+                     header_name) const;
 
   /// @return List of cookies names.
   CookiesMapKeys GetCookieNames() const;

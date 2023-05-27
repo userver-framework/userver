@@ -130,7 +130,8 @@ std::string ImplicitOptionsHttpHandler::HandleRequestThrow(
         check_status.value_or(kUnknownChecker));
     response.SetHeader(
         USERVER_NAMESPACE::http::headers::kAccessControlAllowHeaders,
-        USERVER_NAMESPACE::http::headers::kXYaTaxiAllowAuthResponse);
+        std::string{
+            USERVER_NAMESPACE::http::headers::kXYaTaxiAllowAuthResponse});
   }
 
   static const std::string kEmpty;
