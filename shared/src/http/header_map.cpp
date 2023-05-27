@@ -238,12 +238,18 @@ HeaderMap::Iterator::Iterator(UnderlyingIterator it) : it_{it} {}
 HeaderMap::Iterator::~Iterator() = default;
 
 HeaderMap::Iterator::Iterator(const HeaderMap::Iterator& other) = default;
-HeaderMap::Iterator::Iterator(HeaderMap::Iterator&& other) noexcept = default;
+// NOLINTNEXTLINE(hicpp-use-equals-default,modernize-use-equals-default)
+HeaderMap::Iterator::Iterator(HeaderMap::Iterator&& other) noexcept : it_{other.it_} {}
 
 HeaderMap::Iterator& HeaderMap::Iterator::operator=(
     const HeaderMap::Iterator& other) = default;
+// NOLINTNEXTLINE(hicpp-use-equals-default,modernize-use-equals-default)
 HeaderMap::Iterator& HeaderMap::Iterator::operator=(
-    HeaderMap::Iterator&& other) noexcept = default;
+    HeaderMap::Iterator&& other) noexcept {
+ it_ = other.it_;
+
+ return *this;
+}
 
 HeaderMap::Iterator& HeaderMap::Iterator::operator++() {
   ++it_;
@@ -291,13 +297,18 @@ HeaderMap::ConstIterator::ConstIterator(UnderlyingIterator it) : it_{it} {}
 HeaderMap::ConstIterator::~ConstIterator() = default;
 
 HeaderMap::ConstIterator::ConstIterator(const ConstIterator& other) = default;
-HeaderMap::ConstIterator::ConstIterator(ConstIterator&& other) noexcept =
-    default;
+// NOLINTNEXTLINE(hicpp-use-equals-default,modernize-use-equals-default)
+HeaderMap::ConstIterator::ConstIterator(ConstIterator&& other) noexcept : it_{other.it_} {}
 
 HeaderMap::ConstIterator& HeaderMap::ConstIterator::operator=(
     const ConstIterator& other) = default;
+// NOLINTNEXTLINE(hicpp-use-equals-default,modernize-use-equals-default)
 HeaderMap::ConstIterator& HeaderMap::ConstIterator::operator=(
-    ConstIterator&& other) noexcept = default;
+    ConstIterator&& other) noexcept {
+  it_ = other.it_;
+
+  return *this;
+}
 
 HeaderMap::ConstIterator& HeaderMap::ConstIterator::operator++() {
   ++it_;
