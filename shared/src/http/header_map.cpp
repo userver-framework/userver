@@ -61,11 +61,17 @@ HeaderMap::~HeaderMap() = default;
 
 HeaderMap::HeaderMap(const HeaderMap& other) = default;
 
-HeaderMap::HeaderMap(HeaderMap&& other) noexcept = default;
+// NOLINTNEXTLINE(hicpp-use-equals-default,modernize-use-equals-default)
+HeaderMap::HeaderMap(HeaderMap&& other) noexcept : impl_{std::move(other.impl_)} {}
 
 HeaderMap& HeaderMap::operator=(const HeaderMap& other) = default;
 
-HeaderMap& HeaderMap::operator=(HeaderMap&& other) noexcept = default;
+// NOLINTNEXTLINE(hicpp-use-equals-default,modernize-use-equals-default)
+HeaderMap& HeaderMap::operator=(HeaderMap&& other) noexcept {
+  impl_ = std::move(other.impl_);
+
+  return *this;
+}
 
 void HeaderMap::reserve(std::size_t capacity) { impl_->Reserve(capacity); }
 
