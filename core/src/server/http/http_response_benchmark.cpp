@@ -12,11 +12,11 @@ USERVER_NAMESPACE_BEGIN
 namespace {
 
 const server::http::HttpResponse::HeadersMap kHeaders = [] {
-	server::http::HttpResponse::HeadersMap map{};
-	for (std::size_t i = 1; i <= 7; ++i) {
-		map[fmt::format("X-Header{}", i)] = "value";
-	}
-	return map;
+  server::http::HttpResponse::HeadersMap map{};
+  for (std::size_t i = 1; i <= 7; ++i) {
+    map[fmt::format("X-Header{}", i)] = "value";
+  }
+  return map;
 }();
 
 void http_headers_serialization_no_ostreams(benchmark::State& state) {
