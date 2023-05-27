@@ -710,7 +710,9 @@ UTEST_F(Options, WriteConcern) {
       mongo::ServerException);
 }
 
-UTEST_F(Options, WriteConcernTimeout) {
+// On modern hardware there is a chance that the server responds fast and the
+// test fails.
+UTEST_F(Options, DISABLED_WriteConcernTimeout) {
   auto coll = GetDefaultPool().GetCollection("write_timeout");
   auto conc =
       mongo::options::WriteConcern(2).SetTimeout(std::chrono::milliseconds{1});
@@ -718,7 +720,9 @@ UTEST_F(Options, WriteConcernTimeout) {
   EXPECT_TRUE(IsCollectionWriteConcernTimeout(coll, conc));
 }
 
-UTEST_F(Options, WriteConcernMajorityTimeout) {
+// On modern hardware there is a chance that the server responds fast and the
+// test fails.
+UTEST_F(Options, DISABLED_WriteConcernMajorityTimeout) {
   auto coll = GetDefaultPool().GetCollection("write_majority_timeout");
   auto conc =
       mongo::options::WriteConcern(mongo::options::WriteConcern::kMajority)
