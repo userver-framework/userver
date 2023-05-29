@@ -43,8 +43,7 @@ void CacheUpdateTrait::Impl::InvalidateAsync(UpdateType update_type) {
     return;
   }
 
-  const auto config = GetConfig();
-  if (config->allowed_update_types == AllowedUpdateTypes::kOnlyFull &&
+  if (static_config_.allowed_update_types == AllowedUpdateTypes::kOnlyFull &&
       update_type == UpdateType::kIncremental) {
     LOG_WARNING() << "Requested incremental update for cache '" << name_
                   << "' while only full updates were allowed";
@@ -71,6 +70,12 @@ void CacheUpdateTrait::Impl::UpdateSyncDebug(UpdateType update_type) {
     LOG_WARNING() << "Requested incremental update for cache '" << name_
                   << "' while only full updates were allowed";
     update_type = UpdateType::kFull;
+  }
+
+  const auto config = GetConfig();
+  if (!config->updates_enabled) {
+    LOG_INFO() << "Periodic updates are disabled for cache " << Name();
+    return;
   }
 
   utils::CriticalAsync(task_processor_, update_task_name_, [this, update_type] {
