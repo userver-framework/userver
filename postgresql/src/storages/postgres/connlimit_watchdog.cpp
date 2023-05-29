@@ -20,11 +20,13 @@ constexpr size_t kFallbackConnlimit = 20;
 
 ConnlimitWatchdog::ConnlimitWatchdog(detail::ClusterImpl& cluster,
                                      testsuite::TestsuiteTasks& testsuite_tasks,
+                                     int shard_number,
                                      std::function<void()> on_new_connlimit)
     : cluster_(cluster),
       connlimit_(0),
       on_new_connlimit_(std::move(on_new_connlimit)),
-      testsuite_tasks_(testsuite_tasks) {}
+      testsuite_tasks_(testsuite_tasks),
+      shard_number_(shard_number) {}
 
 void ConnlimitWatchdog::Start() {
   auto trx = cluster_.Begin({ClusterHostType::kMaster}, {}, kCommandControl);
@@ -36,8 +38,10 @@ void ConnlimitWatchdog::Start() {
 
   if (testsuite_tasks_.IsEnabled()) {
     connlimit_ = kTestsuiteConnlimit;
-    testsuite_tasks_.RegisterTask("connlimit_watchdog_" + cluster_.GetDbName(),
-                                  [this] { Step(); });
+    testsuite_tasks_.RegisterTask(
+        fmt::format("connlimit_watchdog_{}_{}", cluster_.GetDbName(),
+                    shard_number_),
+        [this] { Step(); });
   } else {
     periodic_.Start("connlimit_watchdog",
                     {std::chrono::seconds(2),

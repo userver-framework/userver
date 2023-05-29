@@ -106,7 +106,7 @@ class Cluster {
           const testsuite::PostgresControl& testsuite_pg_ctl,
           const error_injection::Settings& ei_settings,
           testsuite::TestsuiteTasks& testsuite_tasks,
-          dynamic_config::Source config_source);
+          dynamic_config::Source config_source, int shard_number);
   ~Cluster();
 
   /// Get cluster statistics

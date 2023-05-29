@@ -14,11 +14,11 @@ Cluster::Cluster(DsnList dsns, clients::dns::Resolver* resolver,
                  const testsuite::PostgresControl& testsuite_pg_ctl,
                  const error_injection::Settings& ei_settings,
                  testsuite::TestsuiteTasks& testsuite_tasks,
-                 dynamic_config::Source config_source) {
+                 dynamic_config::Source config_source, int shard_number) {
   pimpl_ = std::make_unique<detail::ClusterImpl>(
       std::move(dsns), resolver, bg_task_processor, cluster_settings,
       std::move(default_cmd_ctls), testsuite_pg_ctl, ei_settings,
-      testsuite_tasks, std::move(config_source));
+      testsuite_tasks, std::move(config_source), shard_number);
 }
 
 Cluster::~Cluster() = default;

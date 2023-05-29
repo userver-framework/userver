@@ -23,7 +23,7 @@ async def get_max_connections(monitor_client) -> int:
 
 
 async def periodic_step(service_client):
-    await service_client.run_task('connlimit_watchdog_pg_key_value')
+    await service_client.run_task('connlimit_watchdog_pg_key_value_0')
 
 
 async def test_single_client(monitor_client, service_client, taxi_config):

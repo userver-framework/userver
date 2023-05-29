@@ -56,7 +56,7 @@ pg::Cluster CreateCluster(
                       "",
                       {},
                       {}},
-                     {kTestCmdCtl, {}, {}}, {}, {}, testsuite_tasks, source);
+                     {kTestCmdCtl, {}, {}}, {}, {}, testsuite_tasks, source, 0);
 }
 
 }  // namespace

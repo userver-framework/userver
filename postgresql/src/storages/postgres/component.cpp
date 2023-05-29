@@ -132,6 +132,7 @@ Postgres::Postgres(const ComponentConfig& config,
 
   auto* resolver = clients::dns::GetResolverPtr(config, context);
 
+  int shard_number = 0;
   for (auto& dsns : cluster_desc) {
     auto cluster = std::make_shared<pg::Cluster>(
         std::move(dsns), resolver, *bg_task_processor, initial_settings_,
@@ -139,7 +140,8 @@ Postgres::Postgres(const ComponentConfig& config,
             pg_config.default_command_control,
             pg_config.handlers_command_control,
             pg_config.queries_command_control},
-        testsuite_pg_ctl, ei_settings, testsuite_tasks, config_source);
+        testsuite_pg_ctl, ei_settings, testsuite_tasks, config_source,
+        shard_number++);
     database_->clusters_.push_back(cluster);
   }
 

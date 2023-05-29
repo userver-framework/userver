@@ -74,13 +74,13 @@ ClusterImpl::ClusterImpl(DsnList dsns, clients::dns::Resolver* resolver,
                          const testsuite::PostgresControl& testsuite_pg_ctl,
                          const error_injection::Settings& ei_settings,
                          testsuite::TestsuiteTasks& testsuite_tasks,
-                         dynamic_config::Source config_source)
+                         dynamic_config::Source config_source, int shard_number)
     : default_cmd_ctls_(default_cmd_ctls),
       cluster_settings_(cluster_settings),
       bg_task_processor_(bg_task_processor),
       rr_host_idx_(0),
       config_source_(std::move(config_source)),
-      connlimit_watchdog_(*this, testsuite_tasks,
+      connlimit_watchdog_(*this, testsuite_tasks, shard_number,
                           [this]() { OnConnlimitChanged(); }) {
   if (dsns.empty()) {
     throw ClusterError("Cannot create a cluster from an empty DSN list");
