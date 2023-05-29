@@ -1,2 +1,2 @@
 pymongo >= 4.0.0
-yandex-taxi-testsuite[mongodb,postgresql,redis,clickhouse,rabbitmq,mysql] >= 0.1.10
+yandex-taxi-testsuite[mongodb,postgresql,redis,clickhouse,rabbitmq,mysql] >= 0.1.12

@@ -12,9 +12,9 @@ fi
 # You could override those versions from command line
 # Example: AMQP_VERSION=v4.3.17 ./prepare_image.sh
 AMQP_VERSION=${AMQP_VERSION:=v4.3.18}
-CLICKHOUSE_VERSION=${CLICKHOUSE_VERSION:=v2.4.0}
-API_COMMON_PROTOS_VERSION=${API_COMMON_PROTOS_VERSION:=v.1.50.0}
-GRPC_VERSION=${GRPC_VERSION:=v1.54.0}
+CLICKHOUSE_VERSION=${CLICKHOUSE_VERSION:=v2.3.0}
+API_COMMON_PROTOS_VERSION=${API_COMMON_PROTOS_VERSION:=1.50.0}
+GRPC_VERSION=${GRPC_VERSION:=v1.54.2}
 
 
 current_dir=$(pwd)
@@ -36,7 +36,7 @@ cd $current_dir/src && git clone https://github.com/grpc/grpc.git \
 echo 'voluptuous >= 0.11.1
 Jinja2 >= 2.10
 PyYAML >= 3.13
-yandex-taxi-testsuite[mongodb,postgresql-binary,redis,clickhouse,rabbitmq] >= 0.1.10
+yandex-taxi-testsuite[mongodb,postgresql-binary,redis,clickhouse,rabbitmq] >= 0.1.12
 grpcio >= 1.50.0
 grpcio-tools >= 1.50.0
 psycopg2 >= 2.7.5
