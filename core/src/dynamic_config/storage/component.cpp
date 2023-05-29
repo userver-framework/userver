@@ -176,7 +176,8 @@ void DynamicConfig::Impl::SetConfig(std::string_view updater,
 void DynamicConfig::Impl::OnLoadingCancelled() {
   if (Has()) return;
 
-  LOG_ERROR() << "Config was set to nullptr, config load cancelled";
+  LOG_WARNING() << "Components load was cancelled before DynamicConfig was "
+                   "loaded. Please see previous logs for the failure reason";
   {
     std::lock_guard<engine::Mutex> lock(loaded_mutex_);
     config_load_cancelled_ = true;
