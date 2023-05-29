@@ -7,6 +7,8 @@ from conan.tools.cmake import cmake_layout
 from conan.tools.cmake import CMakeDeps
 from conan.tools.cmake import CMakeToolchain
 from conan.tools.files import copy
+from conan.tools.files import replace_in_file
+
 required_conan_version = '>=1.51.0, <2.0.0'  # pylint: disable=invalid-name
 
 
@@ -229,11 +231,29 @@ class UserverConan(ConanFile):
             copy_component('grpc')
             copy(
                 self,
+                pattern='*',
+                dst=os.path.join(self.package_folder, 'include', 'grpc'),
+                src=os.path.join(
+                    self.source_folder, 'grpc', 'handlers', 'include',
+                ),
+                keep_path=True,
+            )
+            copy(
+                self,
                 pattern='GrpcTargets.cmake',
                 dst=os.path.join(self.package_folder, 'cmake'),
                 src=os.path.join(self.source_folder, 'cmake'),
                 keep_path=True,
             )
+            replace_in_file(
+                self,
+                os.path.join(
+                    self.package_folder, 'cmake', 'GrpcTargets.cmake',
+                ),
+                'userver-grpc',
+                'userver::grpc',
+            )
+
             grpc_file = open(
                 os.path.join(self.package_folder, 'cmake', 'GrpcConan.cmake'),
                 'a+',
@@ -398,6 +418,16 @@ class UserverConan(ConanFile):
                         'requires': ['core'] + grpc(),
                     },
                     {
+                        'target': 'grpc-handlers',
+                        'lib': 'grpc-handlers',
+                        'requires': ['core'] + grpc(),
+                    },
+                    {
+                        'target': 'grpc-handlers_proto',
+                        'lib': 'grpc-handlers_proto',
+                        'requires': ['core'] + grpc(),
+                    },
+                    {
                         'target': 'api-common-protos',
                         'lib': 'api-common-protos',
                         'requires': ['grpc'],
@@ -486,7 +516,12 @@ class UserverConan(ConanFile):
                 self.cpp_info.components[conan_component].set_property(
                     'cmake_target_name', 'userver::' + cmake_target,
                 )
-                self.cpp_info.components[conan_component].libs = [lib_name]
+                if cmake_component == 'grpc':
+                    self.cpp_info.components[conan_component].libs.append(
+                        get_lib_name('grpc-internal'),
+                    )
+                else:
+                    self.cpp_info.components[conan_component].libs = [lib_name]
                 if cmake_component == 'core':
                     self.cpp_info.components[conan_component].libs.append(
                         get_lib_name('core-internal'),
