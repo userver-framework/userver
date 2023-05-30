@@ -14,9 +14,11 @@ from testsuite.utils import http
 
 HEADERS = {'Connection': 'keep-alive'}
 DEFAULT_TIMEOUT = 5.0
+INCREASED_TIMEOUT = 20.0
 DEFAULT_DATA = {'hello': 'world'}
 
 DATA_PARTS_MAX_SIZE = 10
+BYTES_PER_SECOND_LIMIT = 10
 
 logger = logging.getLogger(__name__)
 
@@ -197,6 +199,17 @@ async def test_network_smaller_parts_sends(call, gate, check_restore):
     gate.to_server_smaller_parts(DATA_PARTS_MAX_SIZE)
 
     # With debug enabled in python send works a little bit longer
-    response = await call(timeout=20.0)
+    response = await call(timeout=INCREASED_TIMEOUT)
     assert isinstance(response, http.ClientResponse)
     assert response.status == 200
+
+
+async def test_deadline_immediately_expired(call, gate, check_restore):
+    gate.to_server_smaller_parts(DATA_PARTS_MAX_SIZE, sleep_per_packet=0.03)
+
+    response = await call(
+        headers={'X-YaTaxi-Client-TimeoutMs': '20'}, timeout=INCREASED_TIMEOUT,
+    )
+    assert isinstance(response, http.ClientResponse)
+    assert response.status == 504
+    assert 'Deadline expired' in response.text

@@ -28,6 +28,10 @@ class Deadline final {
   /// Returns whether the deadline is reached
   bool IsReached() const noexcept;
 
+  /// Returns whether the deadline is reached. Will report false-negatives, will
+  /// never report false-positives.
+  bool IsSurelyReachedApprox() const noexcept;
+
   /// Returns the duration of time left before the reachable deadline
   Duration TimeLeft() const noexcept;
 

@@ -6,8 +6,6 @@
 
 #include <server/http/handler_methods.hpp>
 #include <userver/engine/deadline.hpp>
-#include <userver/engine/task/cancel.hpp>
-#include <userver/formats/json_fwd.hpp>
 #include <userver/server/handlers/http_handler_base.hpp>
 #include <userver/server/http/http_status.hpp>
 #include <userver/utils/statistics/aggregated_values.hpp>
@@ -24,8 +22,7 @@ struct HttpHandlerStatisticsEntry final {
   http::HttpStatus code{http::HttpStatus::kInternalServerError};
   std::chrono::milliseconds timing{};
   engine::Deadline deadline{};
-  engine::TaskCancellationReason cancellation{
-      engine::TaskCancellationReason::kNone};
+  bool cancelled_by_deadline{false};
 };
 
 class HttpHandlerMethodStatistics final {
@@ -123,9 +120,6 @@ class HttpRequestMethodStatistics final {
       timings_;
 };
 
-formats::json::Value Serialize(const HttpRequestMethodStatistics& stats,
-                               formats::serialize::To<formats::json::Value>);
-
 bool IsOkMethod(http::HttpMethod method) noexcept;
 
 std::size_t HttpMethodToIndex(http::HttpMethod method) noexcept;
@@ -176,11 +170,16 @@ class HttpHandlerStatisticsScope final {
 
   ~HttpHandlerStatisticsScope();
 
+  // TODO(TAXICOMMON-6584) detect automatically?
+  //  symptom: we didn't send a normal response due to deadline expiration
+  void OnCancelledByDeadline() noexcept;
+
  private:
   HttpHandlerStatistics& stats_;
   const http::HttpMethod method_;
   const std::chrono::steady_clock::time_point start_time_;
   server::http::HttpResponse& response_;
+  bool cancelled_by_deadline_{false};
 };
 
 }  // namespace server::handlers

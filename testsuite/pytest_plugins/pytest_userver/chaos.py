@@ -196,9 +196,10 @@ class _InterceptTimeLimit:
 
 
 class _InterceptSmallerParts:
-    def __init__(self, max_size: int):
+    def __init__(self, max_size: int, sleep_per_packet: float):
         assert max_size > 0
         self._max_size = max_size
+        self._sleep_per_packet = sleep_per_packet
 
     async def __call__(
             self, loop: EvLoop, socket_from: Socket, socket_to: Socket,
@@ -206,6 +207,7 @@ class _InterceptSmallerParts:
         incoming_size = _incoming_data_size(socket_from)
         chunk_size = min(incoming_size, self._max_size)
         data = await loop.sock_recv(socket_from, chunk_size)
+        await asyncio.sleep(self._sleep_per_packet)
         await loop.sock_sendall(socket_to, data)
 
 
@@ -662,23 +664,33 @@ class BaseGate:
         )
         self.set_to_client_interceptor(_InterceptTimeLimit(timeout, jitter))
 
-    def to_server_smaller_parts(self, max_size: int) -> None:
+    def to_server_smaller_parts(
+            self, max_size: int, *, sleep_per_packet: float = 0,
+    ) -> None:
         """
         Pass data to server in smaller parts
 
         @param max_size Max packet size to send to server
+        @param sleep_per_packet Optional sleep interval per packet, seconds
         """
         logging.debug('to_server_smaller_parts, max_size: %s', max_size)
-        self.set_to_server_interceptor(_InterceptSmallerParts(max_size))
+        self.set_to_server_interceptor(
+            _InterceptSmallerParts(max_size, sleep_per_packet),
+        )
 
-    def to_client_smaller_parts(self, max_size: int) -> None:
+    def to_client_smaller_parts(
+            self, max_size: int, *, sleep_per_packet: float = 0,
+    ) -> None:
         """
         Pass data to client in smaller parts
 
         @param max_size Max packet size to send to client
+        @param sleep_per_packet Optional sleep interval per packet, seconds
         """
         logging.debug('to_client_smaller_parts, max_size: %s', max_size)
-        self.set_to_client_interceptor(_InterceptSmallerParts(max_size))
+        self.set_to_client_interceptor(
+            _InterceptSmallerParts(max_size, sleep_per_packet),
+        )
 
     def to_server_concat_packets(self, packet_size: int) -> None:
         """
@@ -941,8 +953,12 @@ class UdpGate(BaseGate):
     def to_client_concat_packets(self, packet_size: int) -> None:
         raise NotImplementedError('Udp packets cannot be concatenated')
 
-    def to_server_smaller_parts(self, max_size: int) -> None:
+    def to_server_smaller_parts(
+            self, max_size: int, *, sleep_per_packet: float = 0,
+    ) -> None:
         raise NotImplementedError('Udp packets cannot be split')
 
-    def to_client_smaller_parts(self, max_size: int) -> None:
+    def to_client_smaller_parts(
+            self, max_size: int, *, sleep_per_packet: float = 0,
+    ) -> None:
         raise NotImplementedError('Udp packets cannot be split')

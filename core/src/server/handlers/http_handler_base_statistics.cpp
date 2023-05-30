@@ -1,8 +1,6 @@
 #include <server/handlers/http_handler_base_statistics.hpp>
 
 #include <userver/server/request/task_inherited_data.hpp>
-#include <userver/utils/statistics/metadata.hpp>
-#include <userver/utils/statistics/percentile_format_json.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -14,9 +12,7 @@ void HttpHandlerMethodStatistics::Account(
       static_cast<utils::statistics::HttpCodes::Code>(stats.code));
   timings_.GetCurrentCounter().Account(stats.timing.count());
   if (stats.deadline.IsReachable()) ++deadline_received_;
-  if (stats.cancellation == engine::TaskCancellationReason::kDeadline) {
-    ++cancelled_by_deadline_;
-  }
+  if (stats.cancelled_by_deadline) ++cancelled_by_deadline_;
 }
 
 void DumpMetric(utils::statistics::Writer& writer,
@@ -61,20 +57,6 @@ void HttpRequestMethodStatistics::Account(
   timings_.GetCurrentCounter().Account(stats.timing.count());
 }
 
-formats::json::Value Serialize(const HttpRequestMethodStatistics& stats,
-                               formats::serialize::To<formats::json::Value>) {
-  formats::json::ValueBuilder result;
-  formats::json::ValueBuilder total;
-
-  total["timings"]["1min"] =
-      utils::statistics::PercentileToJson(stats.GetTimings());
-  utils::statistics::SolomonSkip(total["timings"]["1min"]);
-
-  utils::statistics::SolomonSkip(total);
-  result["total"] = std::move(total);
-  return result.ExtractValue();
-}
-
 bool IsOkMethod(http::HttpMethod method) noexcept {
   return static_cast<std::size_t>(method) <= http::kHandlerMethodsMax;
 }
@@ -105,12 +87,15 @@ HttpHandlerStatisticsScope::~HttpHandlerStatisticsScope() {
   stats.timing = std::chrono::duration_cast<std::chrono::milliseconds>(
       finish_time - start_time_);
   stats.deadline = data ? data->deadline : engine::Deadline{};
-  stats.cancellation = engine::current_task::CancellationReason();
   stats_.Account(method_, stats);
 
   stats_.ForMethodAndTotal(method_, [&](HttpHandlerMethodStatistics& stats) {
     stats.DecrementInFlight();
   });
+}
+
+void HttpHandlerStatisticsScope::OnCancelledByDeadline() noexcept {
+  cancelled_by_deadline_ = true;
 }
 
 }  // namespace server::handlers

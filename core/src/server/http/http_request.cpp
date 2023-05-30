@@ -1,6 +1,6 @@
 #include <userver/server/http/http_request.hpp>
 
-#include "http_request_impl.hpp"
+#include <server/http/http_request_impl.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -172,6 +172,10 @@ void HttpRequest::SetRequestBody(std::string body) {
 }  // namespace server::http
 
 void HttpRequest::ParseArgsFromBody() { impl_.ParseArgsFromBody(); }
+
+std::chrono::steady_clock::time_point HttpRequest::GetStartTime() const {
+  return impl_.StartTime();
+}
 
 void HttpRequest::SetResponseStatus(HttpStatus status) const {
   return impl_.SetResponseStatus(status);

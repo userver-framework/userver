@@ -6,7 +6,7 @@ namespace server::http {
 
 namespace {
 
-struct HttpMethodStrigs {
+struct HttpMethodStrings {
   const std::string kDelete = "DELETE";
   const std::string kGet = "GET";
   const std::string kHead = "HEAD";
@@ -19,15 +19,15 @@ struct HttpMethodStrigs {
 };
 
 // Modern SSO could hold 7 chars without dynamic allocation
-const HttpMethodStrigs& GetHttpMethodStrigs() noexcept {
-  static const HttpMethodStrigs values{};
+const HttpMethodStrings& GetHttpMethodStrings() noexcept {
+  static const HttpMethodStrings values{};
   return values;
 }
 
 }  // namespace
 
 HttpMethod HttpMethodFromString(std::string_view method_str) {
-  const auto& strings = GetHttpMethodStrigs();
+  const auto& strings = GetHttpMethodStrings();
 
   HttpMethod result = HttpMethod::kUnknown;
   if (method_str.size() >= 3) {
@@ -72,7 +72,7 @@ HttpMethod HttpMethodFromString(std::string_view method_str) {
 }
 
 const std::string& ToString(HttpMethod method) noexcept {
-  const auto& strings = GetHttpMethodStrigs();
+  const auto& strings = GetHttpMethodStrings();
 
   switch (method) {
     case HttpMethod::kDelete:

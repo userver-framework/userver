@@ -80,3 +80,6 @@ components_manager:
             worker_threads: 2
 
     default_task_processor: main-task-processor
+
+userver_experiments:
+  - handler-cancel-on-immediate-deadline-expiration

@@ -219,7 +219,7 @@ struct CustomHandlerExceptionData final {
 /**
  * @brief Base class for handler exceptions.
  *
- * For consructing the body of an exception a special message builder type could be
+ * For constructing the body of an exception a special message builder type could be
  * used. Message builder should satisfy the following requirements:
  * - has an optional `kIsExternalBodyFormatted` set to true to forbid changing the external body
  * - has an optional `GetServiceCode()` function to return machine readable error code
@@ -233,7 +233,7 @@ struct CustomHandlerExceptionData final {
 // clang-format on
 class CustomHandlerException : public std::runtime_error {
  public:
-  // Type aliases for usage in descenant classes that are in other namespaces
+  // Type aliases for usage in descendent classes that are in other namespaces
   using HandlerErrorCode = handlers::HandlerErrorCode;
   using ServiceErrorCode = handlers::ServiceErrorCode;
   using InternalMessage = handlers::InternalMessage;

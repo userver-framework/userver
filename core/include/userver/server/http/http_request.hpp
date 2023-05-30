@@ -184,6 +184,8 @@ class HttpRequest final {
   /// @cond
   void SetRequestBody(std::string body);
   void ParseArgsFromBody();
+
+  std::chrono::steady_clock::time_point GetStartTime() const;
   /// @endcond
 
   /// @brief Set the response status code.

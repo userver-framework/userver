@@ -168,6 +168,9 @@ class HttpHandlerBase : public HandlerBase {
       const http::HttpRequest& request, request::RequestContext& context,
       const std::string& request_body) const;
 
+  tracing::Span MakeSpan(const http::HttpRequest& http_request,
+                         const std::string& meta_type) const;
+
   void CheckAuth(const http::HttpRequest& http_request,
                  request::RequestContext& context) const;
 
