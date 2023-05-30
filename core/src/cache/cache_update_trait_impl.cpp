@@ -144,6 +144,18 @@ void CacheUpdateTrait::Impl::StartPeriodicUpdates(
     return;
   }
 
+  // CacheInvalidatorHolder is created here to achieve that cache invalidators
+  // are registered in the order of cache component dependency.
+  // We exploit the fact that StartPeriodicUpdates is called at the end
+  // of all concrete cache component constructors.
+  //
+  // Registration is performed *before* the first update so that caches,
+  // which indirectly wait for the artifacts of this update, are always
+  // registered after this cache. This allows e.g. DynamicConfigClientUpdater
+  // to always be CacheControl-updated before the caches that use
+  // DynamicConfig::GetSource in their constructor.
+  cache_invalidator_holder_.emplace(cache_control_, customized_trait_);
+
   try {
     const auto config = GetConfig();
 
@@ -223,12 +235,6 @@ void CacheUpdateTrait::Impl::StartPeriodicUpdates(
     is_running_ = false;  // update_task_ is not started, don't check it in dtr
     throw;
   }
-
-  // CacheInvalidatorHolder is created here to achieve that cache invalidators
-  // are registered in the order of cache component dependency.
-  // We exploit the fact that StartPeriodicUpdates is called at the end
-  // of all concrete cache component constructors.
-  cache_invalidator_holder_.emplace(cache_control_, customized_trait_);
 }
 
 void CacheUpdateTrait::Impl::StopPeriodicUpdates() {
