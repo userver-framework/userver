@@ -5,6 +5,7 @@
 #include <userver/tracing/tags.hpp>
 #include <userver/utils/algo.hpp>
 #include <userver/utils/assert.hpp>
+#include <userver/utils/impl/source_location.hpp>
 
 #include <ugrpc/impl/rpc_metadata_keys.hpp>
 #include <ugrpc/impl/status.hpp>
@@ -20,7 +21,8 @@ namespace {
 void SetupSpan(std::optional<tracing::InPlaceSpan>& span_holder,
                grpc::ClientContext& context, std::string_view call_name) {
   UASSERT(!span_holder);
-  span_holder.emplace(utils::StrCat("grpc/", call_name));
+  span_holder.emplace(utils::StrCat("grpc/", call_name),
+                      utils::impl::SourceLocation::Current());
   auto& span = span_holder->Get();
 
   span.DetachFromCoroStack();

@@ -9,11 +9,11 @@ USERVER_NAMESPACE_BEGIN
 
 namespace tracing {
 
-SpanBuilder::SpanBuilder(std::string name)
+SpanBuilder::SpanBuilder(std::string name,
+                         const utils::impl::SourceLocation& location)
     : pimpl_(AllocateImpl(tracing::Tracer::GetTracer(), std::move(name),
                           GetParentSpanImpl(), ReferenceType::kChild,
-                          logging::Level::kInfo,
-                          utils::impl::SourceLocation::Current()),
+                          logging::Level::kInfo, location),
              Span::OptionalDeleter{Span::OptionalDeleter::ShouldDelete()}) {
   pimpl_->AttachToCoroStack();
   if (pimpl_->GetParentId().empty()) {

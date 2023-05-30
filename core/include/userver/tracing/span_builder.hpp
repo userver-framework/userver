@@ -6,6 +6,7 @@
 #include <string>
 
 #include <userver/tracing/span.hpp>
+#include <userver/utils/impl/source_location.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -14,7 +15,9 @@ namespace tracing {
 /// @brief Provides interface for editing Span, before final building.
 class SpanBuilder final {
  public:
-  explicit SpanBuilder(std::string name);
+  explicit SpanBuilder(std::string name,
+                       const utils::impl::SourceLocation& location =
+                           utils::impl::SourceLocation::Current());
 
   void SetTraceId(std::string trace_id);
   const std::string& GetTraceId() const noexcept;
