@@ -99,6 +99,10 @@ properties:
         type: boolean
         description: make additional attempts to retrieve configs by bypassing proxy that is set in USERVER_HTTP_PROXY runtime variable
         defaultDescription: true
+    append-path-to-url:
+        type: boolean
+        description: add default path '/configs/values' to 'config-url'
+        defaultDescription: true
 )");
 }
 
