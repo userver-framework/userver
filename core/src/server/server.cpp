@@ -1,7 +1,12 @@
 #include <userver/server/server.hpp>
 
 #include <atomic>
+#include <shared_mutex>
 #include <stdexcept>
+
+#include <userver/engine/sleep.hpp>
+#include <userver/logging/log.hpp>
+#include <userver/utils/assert.hpp>
 
 #include <engine/ev/thread_pool.hpp>
 #include <engine/task/task_processor.hpp>
@@ -13,9 +18,6 @@
 #include <server/net/stats.hpp>
 #include <server/requests_view.hpp>
 #include <server/server_config.hpp>
-#include <userver/engine/sleep.hpp>
-#include <userver/logging/log.hpp>
-#include <userver/utils/assert.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -28,6 +30,7 @@ class ServerImpl final {
   ~ServerImpl();
 
   net::Stats GetServerStats() const;
+  void WriteTotalHandlerStatistics(utils::statistics::Writer& writer) const;
 
   const ServerConfig config_;
 
@@ -56,7 +59,7 @@ class ServerImpl final {
   PortInfo main_port_info_, monitor_port_info_;
   std::atomic<size_t> handlers_count_{0};
 
-  mutable std::shared_timed_mutex stat_mutex_;
+  mutable std::shared_mutex stat_mutex_;
   bool is_stopping_{false};
 
   std::atomic<bool> started_{false};
@@ -119,7 +122,7 @@ ServerImpl::~ServerImpl() { Stop(); }
 
 void ServerImpl::Stop() {
   {
-    std::unique_lock<std::shared_timed_mutex> lock(stat_mutex_);
+    std::unique_lock lock{stat_mutex_};
     if (is_stopping_) return;
     is_stopping_ = true;
   }
@@ -149,6 +152,8 @@ void ServerImpl::InitPortInfo(
   const auto& event_thread_pool = task_processor.EventThreadPool();
   size_t listener_shards = listener_config.shards ? *listener_config.shards
                                                   : event_thread_pool.GetSize();
+
+  info.listeners_.reserve(listener_shards);
   while (listener_shards--) {
     info.listeners_.emplace_back(info.endpoint_info_, task_processor,
                                  info.data_accounter_);
@@ -209,17 +214,7 @@ void Server::WriteMonitorData(utils::statistics::Writer& writer) const {
 
 void Server::WriteTotalHandlerStatistics(
     utils::statistics::Writer& writer) const {
-  const auto& handlers =
-      pimpl->main_port_info_.request_handler_->GetHandlerInfoIndex()
-          .GetHandlers();
-
-  handlers::HttpHandlerStatisticsSnapshot total;
-  for (const auto handler_ptr : handlers) {
-    const auto& statistics = handler_ptr->GetHandlerStatistics().GetTotal();
-    total.Add(handlers::HttpHandlerStatisticsSnapshot{statistics});
-  }
-
-  writer = total;
+  pimpl->WriteTotalHandlerStatistics(writer);
 }
 
 net::Stats Server::GetServerStats() const { return pimpl->GetServerStats(); }
@@ -293,13 +288,36 @@ void Server::SetRpsRatelimitStatusCode(http::HttpStatus status_code) {
 net::Stats ServerImpl::GetServerStats() const {
   net::Stats summary;
 
-  std::shared_lock<std::shared_timed_mutex> lock(stat_mutex_);
+  std::shared_lock lock{stat_mutex_};
   if (is_stopping_) return summary;
   for (const auto& listener : main_port_info_.listeners_) {
     summary += listener.GetStats();
   }
 
   return summary;
+}
+
+void ServerImpl::WriteTotalHandlerStatistics(
+    utils::statistics::Writer& writer) const {
+  handlers::HttpHandlerStatisticsSnapshot total;
+
+  {
+    // Protect against pimpl->main_port_info_.request_handler_.reset() in Stop()
+    std::shared_lock lock{stat_mutex_};
+    if (is_stopping_) {
+      return;
+    }
+
+    const auto& handlers =
+        main_port_info_.request_handler_->GetHandlerInfoIndex().GetHandlers();
+
+    for (const auto handler_ptr : handlers) {
+      const auto& statistics = handler_ptr->GetHandlerStatistics().GetTotal();
+      total.Add(handlers::HttpHandlerStatisticsSnapshot{statistics});
+    }
+  }
+
+  writer = total;
 }
 
 }  // namespace server
