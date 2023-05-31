@@ -57,7 +57,9 @@ async def test_hard_failover(service_client, redis_cluster_services):
 
     # Failover starts in ~10 seconds
     for _ in range(FAILOVER_DEADLINE_SEC):
-        write_ok = _check_write_all_slots(service_client, 'hf_key2', 'cde')
+        write_ok = await _check_write_all_slots(
+            service_client, 'hf_key2', 'cde',
+        )
         if not write_ok:
             await asyncio.sleep(1)
             continue
@@ -67,5 +69,5 @@ async def test_hard_failover(service_client, redis_cluster_services):
 
     # Now that one of the replicas has become the master,
     # check reading from the remaining replica
-    assert _assert_read_all_slots(service_client, 'hf_key1', 'abc')
-    assert _assert_read_all_slots(service_client, 'hf_key2', 'cde')
+    await _assert_read_all_slots(service_client, 'hf_key1', 'abc')
+    await _assert_read_all_slots(service_client, 'hf_key2', 'cde')

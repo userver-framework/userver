@@ -42,6 +42,7 @@ class Redis {
   std::chrono::milliseconds GetPingLatency() const;
   bool IsDestroying() const;
   std::string GetServerHost() const;
+  uint16_t GetServerPort() const;
   bool IsSyncing() const;
 
   State GetState() const;

@@ -11,6 +11,7 @@
     "cancel-request": false,
     "update-timeout": false
   },
+  "REDIS_CLUSTER_AUTOTOPOLOGY_ENABLED": false,
   "REDIS_COMMANDS_BUFFERING_SETTINGS": {
     "buffering_enabled": false,
     "watch_command_timer_interval_us": 0

@@ -90,6 +90,9 @@ struct SlotInterval {
       : slot_min(slot_min), slot_max(slot_max) {}
 
   bool operator<(const SlotInterval& r) const { return slot_min < r.slot_min; }
+  bool operator==(const SlotInterval& r) const {
+    return slot_min == r.slot_min && slot_max == r.slot_max;
+  }
 };
 
 struct ClusterShardHostInfo {

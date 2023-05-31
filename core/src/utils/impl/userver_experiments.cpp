@@ -98,6 +98,8 @@ void UserverExperimentsScope::EnableOnly(
 
 UserverExperiment kMongoDeadlinePropagationExperiment{
     "mongo-deadline-propagation"};
+UserverExperiment kRedisClusterAutoTopologyExperiment{
+    "redis-cluster-autotopology"};
 
 UserverExperiment kPhdrCacheExperiment{"phdr-cache"};
 
