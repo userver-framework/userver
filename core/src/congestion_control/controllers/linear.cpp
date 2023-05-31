@@ -10,6 +10,7 @@ namespace {
 constexpr double kTimeoutThreshold = 5.0;  // 5%
 constexpr size_t kSafeDeltaLimit = 10;
 constexpr size_t kCurrentLoadEpochs = 3;
+constexpr size_t kShortTimingsEpochs = 3;
 constexpr size_t kLongTimingsEpochs = 30;
 constexpr size_t kTimingsBurstThreshold = 5;
 constexpr size_t kMinTimingsMs = 20;
@@ -24,7 +25,8 @@ LinearController::LinearController(const std::string& name, v2::Sensor& sensor,
                  {config.fake_mode, config.enabled}),
       config_(config),
       current_load_(kCurrentLoadEpochs),
-      long_timings_(kLongTimingsEpochs) {
+      long_timings_(kLongTimingsEpochs),
+      short_timings_(kShortTimingsEpochs) {
   LOG_DEBUG() << "Linear Congestion-Control is created with the following "
                  "config: safe_limit="
               << config_.safe_limit
@@ -33,7 +35,8 @@ LinearController::LinearController(const std::string& name, v2::Sensor& sensor,
 
 Limit LinearController::Update(const Sensor::Data& current) {
   auto rate = current.GetRate();
-  auto timings_avg_ms = current.timings_avg_ms;
+
+  short_timings_.Update(current.timings_avg_ms);
 
   current_load_.Update(current.current_load);
   auto current_load = current_load_.GetSmoothed();
@@ -48,15 +51,19 @@ Limit LinearController::Update(const Sensor::Data& current) {
   if (epochs_passed_ < kLongTimingsEpochs) {
     // First seconds of service life might be too noisy
     epochs_passed_++;
-    long_timings_.Update(timings_avg_ms);
+    long_timings_.Update(current.timings_avg_ms);
+    return {std::nullopt, current.current_load};
+  }
+
+  size_t divisor = long_timings_.GetSmoothed();
+  if (divisor < kMinTimingsMs) divisor = kMinTimingsMs;
+
+  if (static_cast<size_t>(short_timings_.GetSmoothed()) >
+      kTimingsBurstThreshold * divisor) {
+    // Do not update long_timings_, it is sticky to "good" timings
+    overloaded = true;
   } else {
-    size_t divisor = long_timings_.GetSmoothed();
-    if (divisor < kMinTimingsMs) divisor = kMinTimingsMs;
-    if (current.timings_avg_ms > kTimingsBurstThreshold * divisor) {
-      overloaded = true;
-    } else {
-      long_timings_.Update(current.timings_avg_ms);
-    }
+    long_timings_.Update(current.timings_avg_ms);
   }
 
   if (overloaded) {

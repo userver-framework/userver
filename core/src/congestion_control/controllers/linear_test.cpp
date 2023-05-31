@@ -66,6 +66,39 @@ TEST(CCLinear, SmallRps) {
   }
 }
 
+TEST(CCLinear, SmallSpike) {
+  congestion_control::v2::LinearController controller("test", sensor, limiter,
+                                                      stats, {});
+  // First seconds
+  for (size_t i = 0; i < 30; i++) {
+    congestion_control::v2::Sensor::Data data;
+    data.timings_avg_ms = 100;
+    data.total = 100;
+
+    auto limit = controller.Update(data);
+    EXPECT_EQ(limit.load_limit, std::nullopt) << i;
+  }
+
+  // Extra Load
+  congestion_control::v2::Sensor::Data data;
+  data.timings_avg_ms = 1000;
+  data.total = 1;
+
+  auto limit = controller.Update(data);
+  EXPECT_EQ(limit.load_limit, std::nullopt) << 0;
+
+  // Back to normal
+  data.timings_avg_ms = 100;
+  limit = controller.Update(data);
+  EXPECT_EQ(limit.load_limit, std::nullopt) << 1;
+
+  limit = controller.Update(data);
+  EXPECT_EQ(limit.load_limit, std::nullopt) << 2;
+
+  limit = controller.Update(data);
+  EXPECT_EQ(limit.load_limit, std::nullopt) << 3;
+}
+
 TEST(CCLinear, ExtraLoad) {
   congestion_control::v2::LinearController controller("test", sensor, limiter,
                                                       stats, {});
@@ -83,7 +116,7 @@ TEST(CCLinear, ExtraLoad) {
   // Extra load
   for (size_t i = 0; i < 100; i++) {
     congestion_control::v2::Sensor::Data data;
-    data.timings_avg_ms = 501;
+    data.timings_avg_ms = 5001;
     data.total = 100;
 
     auto limit = controller.Update(data);
