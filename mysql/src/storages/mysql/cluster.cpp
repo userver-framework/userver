@@ -20,7 +20,7 @@ namespace storages::mysql {
 
 namespace {
 
-constexpr std::chrono::milliseconds kDefaultStatementTimeout{1750};
+constexpr std::chrono::seconds kDefaultStatementTimeout{10};
 
 engine::Deadline GetDeadline(OptionalCommandControl optional_cc,
                              CommandControl default_cc) {

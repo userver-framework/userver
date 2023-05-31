@@ -78,9 +78,7 @@ std::chrono::system_clock::time_point ToMariaDBPrecision(
 ClusterWrapper::ClusterWrapper()
     : resolver_(engine::current_task::GetTaskProcessor(), {}),
       cluster_{CreateCluster(resolver_)},
-      // TODO : return to normal
-      deadline_{engine::Deadline::FromDuration(std::chrono::seconds{500})} {}
-// deadline_{engine::Deadline::FromDuration(utest::kMaxTestWaitTime)} {
+      deadline_{engine::Deadline::FromDuration(std::chrono::seconds{20})} {}
 
 ClusterWrapper::~ClusterWrapper() = default;
 
