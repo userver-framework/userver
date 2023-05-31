@@ -144,6 +144,8 @@ inline constexpr bool kHasValidate<Mongo> = true;
 
 class MultiMongo : public LoggableComponentBase {
  public:
+  /// @ingroup userver_component_names
+  /// @brief The default name of components::MultiMongo
   static constexpr std::string_view kName = "multi-mongo";
 
   /// Component constructor

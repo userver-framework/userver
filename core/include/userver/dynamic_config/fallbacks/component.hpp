@@ -35,6 +35,8 @@ namespace components {
 // clang-format on
 class DynamicConfigFallbacks final : public LoggableComponentBase {
  public:
+  /// @ingroup userver_component_names
+  /// @brief The default name of components::DynamicConfigFallbacks
   static constexpr std::string_view kName = "dynamic-config-fallbacks";
 
   DynamicConfigFallbacks(const ComponentConfig&, const ComponentContext&);

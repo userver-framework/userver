@@ -43,6 +43,8 @@ void CheckRegistered(bool registered);
 // clang-format on
 class DynamicConfig final : public LoggableComponentBase {
  public:
+  /// @ingroup userver_component_names
+  /// @brief The default name of components::DynamicConfig
   static constexpr std::string_view kName = "dynamic-config";
 
   DynamicConfig(const ComponentConfig&, const ComponentContext&);

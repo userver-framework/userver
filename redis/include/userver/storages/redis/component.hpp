@@ -93,6 +93,8 @@ class Redis : public LoggableComponentBase {
 
   ~Redis() override;
 
+  /// @ingroup userver_component_names
+  /// @brief The default name of components::Redis
   static constexpr std::string_view kName = "redis";
 
   std::shared_ptr<storages::redis::Client> GetClient(

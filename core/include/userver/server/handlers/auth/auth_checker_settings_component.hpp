@@ -28,6 +28,8 @@ class AuthCheckerSettings final : public LoggableComponentBase {
  public:
   AuthCheckerSettings(const ComponentConfig&, const ComponentContext&);
 
+  /// @ingroup userver_component_names
+  /// @brief The default name of components::AuthCheckerSettings
   static constexpr std::string_view kName = "auth-checker-settings";
 
   const server::handlers::auth::AuthCheckerSettings& Get() const {

@@ -46,6 +46,8 @@ class ServerMonitor final : public HttpHandlerBase {
   ServerMonitor(const components::ComponentConfig& config,
                 const components::ComponentContext& component_context);
 
+  /// @ingroup userver_component_names
+  /// @brief The default name of server::handlers::ServerMonitor
   static constexpr std::string_view kName = "handler-server-monitor";
 
   std::string HandleRequestThrow(const http::HttpRequest& request,

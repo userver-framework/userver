@@ -40,6 +40,8 @@ namespace server::handlers {
 
 class HttpHandlerStatic final : public HttpHandlerBase {
  public:
+  /// @ingroup userver_component_names
+  /// @brief The default name of server::handlers::HttpHandlerStatic
   static constexpr std::string_view kName = "handler-static";
 
   using HttpHandlerBase::HttpHandlerBase;

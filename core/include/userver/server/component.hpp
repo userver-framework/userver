@@ -75,6 +75,8 @@ namespace components {
 
 class Server final : public LoggableComponentBase {
  public:
+  /// @ingroup userver_component_names
+  /// @brief The default name of components::Server component
   static constexpr std::string_view kName = "server";
 
   Server(const components::ComponentConfig& component_config,

@@ -41,6 +41,8 @@ namespace components {
 // clang-format on
 class DynamicConfigClient : public LoggableComponentBase {
  public:
+  /// @ingroup userver_component_names
+  /// @brief The default name of components::DynamicConfigClient
   static constexpr std::string_view kName = "dynamic-config-client";
 
   DynamicConfigClient(const ComponentConfig&, const ComponentContext&);

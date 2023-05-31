@@ -41,6 +41,8 @@ class TracingManagerComponentBase : public components::LoggableComponentBase,
 class DefaultTracingManagerLocator final
     : public components::LoggableComponentBase {
  public:
+  /// @ingroup userver_component_names
+  /// @brief The default name of tracing::DefaultTracingManagerLocator
   static constexpr std::string_view kName = "tracing-manager-locator";
 
   DefaultTracingManagerLocator(const components::ComponentConfig&,

@@ -37,6 +37,8 @@ namespace components {
 
 class SystemStatisticsCollector final : public LoggableComponentBase {
  public:
+  /// @ingroup userver_component_names
+  /// @brief The default name of components::SystemStatisticsCollector
   static constexpr std::string_view kName = "system-statistics-collector";
 
   SystemStatisticsCollector(const ComponentConfig&, const ComponentContext&);

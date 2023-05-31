@@ -51,6 +51,8 @@ namespace components {
 
 class TestsuiteSupport final : public components::impl::ComponentBase {
  public:
+  /// @ingroup userver_component_names
+  /// @brief The default name of components::TestsuiteSupport
   static constexpr std::string_view kName = "testsuite-support";
 
   TestsuiteSupport(const components::ComponentConfig& component_config,

@@ -70,6 +70,8 @@ namespace components {
 class DynamicConfigClientUpdater
     : public CachingComponentBase<dynamic_config::DocsMap> {
  public:
+  /// @ingroup userver_component_names
+  /// @brief The default name of components::DynamicConfigClientUpdater
   static constexpr std::string_view kName = "dynamic-config-client-updater";
 
   DynamicConfigClientUpdater(const ComponentConfig&, const ComponentContext&);

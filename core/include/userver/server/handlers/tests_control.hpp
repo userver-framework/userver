@@ -67,6 +67,8 @@ class TestsControl final : public HttpHandlerJsonBase {
                const components::ComponentContext& component_context);
   ~TestsControl() override;
 
+  /// @ingroup userver_component_names
+  /// @brief The default name of server::handlers::TestsControl
   static constexpr std::string_view kName = "tests-control";
 
   formats::json::Value HandleRequestJsonThrow(

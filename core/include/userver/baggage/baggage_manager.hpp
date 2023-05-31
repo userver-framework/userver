@@ -55,6 +55,8 @@ class BaggageManager final {
 /// Inherits options from components::LoggableComponentBase.
 class BaggageManagerComponent final : public components::LoggableComponentBase {
  public:
+  /// @ingroup userver_component_names
+  /// @brief The default name of baggage::BaggageManagerComponent
   static constexpr const char* kName = "baggage-manager";
 
   BaggageManagerComponent(const components::ComponentConfig& config,

@@ -41,6 +41,8 @@ namespace clients::dns {
 // clang-format on
 class Component final : public components::LoggableComponentBase {
  public:
+  /// @ingroup userver_component_names
+  /// @brief The default name of clients::dns::Component component
   static constexpr auto kName = "dns-client";
 
   Component(const components::ComponentConfig&,

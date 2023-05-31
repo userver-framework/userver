@@ -33,6 +33,9 @@ namespace components {
 class HeadersPropagatorComponent final
     : public components::LoggableComponentBase {
  public:
+  /// @ingroup userver_component_names
+  /// @brief The default name of components::HeadersPropagatorComponent
+  /// component
   static constexpr std::string_view kName = "headers-propagator";
 
   HeadersPropagatorComponent(const components::ComponentConfig&,

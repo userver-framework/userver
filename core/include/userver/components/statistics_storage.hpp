@@ -31,7 +31,9 @@ namespace components {
 // clang-format on
 class StatisticsStorage final : public impl::ComponentBase {
  public:
-  static constexpr auto kName = "statistics-storage";
+  /// @ingroup userver_component_names
+  /// @brief The default name of components::StatisticsStorage component
+  static constexpr std::string_view kName = "statistics-storage";
 
   StatisticsStorage(const ComponentConfig& config,
                     const ComponentContext& context);

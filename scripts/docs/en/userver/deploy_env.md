@@ -406,7 +406,7 @@ components:
       # A sidecar doesn't want detailed HTTP client statistics
       http-client:
           destination-metrics-auto-max-size: 0
-          pool-statistics-disable': true
+          pool-statistics-disable: true
           threads: 1
 
       # Sidecars should not upload system statistics

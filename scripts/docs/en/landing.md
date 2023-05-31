@@ -10,7 +10,7 @@
 
 \htmlonly
 <div class="landing-logo" id='landing_logo_id'>
-  <a href="d6/d2f/md_en_index.html"><img src='logo.svg' alt='userver logo big'/></a>
+  <a href="d6/d2f/md_en_index.html"><img src='/logo.svg' alt='userver logo big'/></a>
 </div>
 \endhtmlonly
 
@@ -95,11 +95,11 @@ std::size_t Ins(storages::postgres::Transaction& tr, std::string_view key) {
   
     \htmlonly
     <a href="https://github.com/userver-framework/" rel="noopener" target="_blank" class="titlelink">
-      <img src="github_logo.svg"  width="48" height="48" style="filter: invert(100%);" alt="Github"/>
+      <img src="/github_logo.svg"  width="48" height="48" style="filter: invert(100%);" alt="Github"/>
     </a>
     &nbsp;
     <a href="https://t.me/userver_en" rel="noopener" id='telegram_channel' target="_blank" class="titlelink">
-      <img src="telegram_logo.svg"  width="48" height="48" alt="Telegram"/>
+      <img src="/telegram_logo.svg"  width="48" height="48" alt="Telegram"/>
     </a>
     \endhtmlonly
   </div>

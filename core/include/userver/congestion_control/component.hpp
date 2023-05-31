@@ -38,6 +38,8 @@ namespace congestion_control {
 
 class Component final : public components::LoggableComponentBase {
  public:
+  /// @ingroup userver_component_names
+  /// @brief The default name of congestion_control::Component component
   static constexpr std::string_view kName = "congestion-control";
 
   Component(const components::ComponentConfig&,

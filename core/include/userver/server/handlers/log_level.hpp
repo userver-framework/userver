@@ -51,6 +51,8 @@ class LogLevel final : public HttpHandlerBase {
   LogLevel(const components::ComponentConfig& config,
            const components::ComponentContext& component_context);
 
+  /// @ingroup userver_component_names
+  /// @brief The default name of server::handlers::LogLevel
   static constexpr std::string_view kName = "handler-log-level";
 
   std::string HandleRequestThrow(const http::HttpRequest& request,

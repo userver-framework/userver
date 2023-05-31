@@ -76,7 +76,8 @@ namespace components {
 
 class Logging final : public impl::ComponentBase {
  public:
-  /// The default name of this component
+  /// @ingroup userver_component_names
+  /// @brief The default name of components::Logging component
   static constexpr std::string_view kName = "logging";
 
   /// The component constructor

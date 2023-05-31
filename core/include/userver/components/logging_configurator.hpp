@@ -43,7 +43,9 @@ namespace components {
 // clang-format on
 class LoggingConfigurator final : public impl::ComponentBase {
  public:
-  static constexpr auto kName = "logging-configurator";
+  /// @ingroup userver_component_names
+  /// @brief The default name of components::LoggingConfigurator component
+  static constexpr std::string_view kName = "logging-configurator";
 
   LoggingConfigurator(const ComponentConfig& config,
                       const ComponentContext& context);

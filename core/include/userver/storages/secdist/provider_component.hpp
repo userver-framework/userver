@@ -56,6 +56,8 @@ namespace components {
 class DefaultSecdistProvider final : public LoggableComponentBase,
                                      public storages::secdist::SecdistProvider {
  public:
+  /// @ingroup userver_component_names
+  /// @brief The default name of components::DefaultSecdistProvider
   static constexpr std::string_view kName = "default-secdist-provider";
 
   DefaultSecdistProvider(const ComponentConfig&, const ComponentContext&);

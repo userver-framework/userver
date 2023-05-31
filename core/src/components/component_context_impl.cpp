@@ -5,6 +5,7 @@
 
 #include <fmt/format.h>
 
+#include <userver/compiler/demangle.hpp>
 #include <userver/concurrent/variable.hpp>
 #include <userver/engine/task/task_with_result.hpp>
 #include <userver/logging/log.hpp>
@@ -117,8 +118,16 @@ impl::ComponentBase* ComponentContext::Impl::AddComponent(
                              " multiple times");
 
   component_info.SetComponent(factory(context));
-
-  return component_info.GetComponent();
+  auto* component = component_info.GetComponent();
+  if (component) {
+    // Call the following command on logs to get the component dependencies:
+    // sed -n 's/^.*component deps: \(.*\)$/\1/p'
+    LOG_TRACE() << "component deps: "
+                << fmt::format("\"{0}\" [label=\"{0}\n{1}\"]; ", name,
+                               compiler::GetTypeName(typeid(*component)))
+                << component_info.GetDependencies();
+  }
+  return component;
 }
 
 void ComponentContext::Impl::OnAllComponentsLoaded() {

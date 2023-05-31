@@ -36,6 +36,8 @@ class Jemalloc final : public HttpHandlerBase {
   Jemalloc(const components::ComponentConfig&,
            const components::ComponentContext&);
 
+  /// @ingroup userver_component_names
+  /// @brief The default name of server::handlers::Jemalloc
   static constexpr std::string_view kName = "handler-jemalloc";
 
   std::string HandleRequestThrow(const http::HttpRequest&,
