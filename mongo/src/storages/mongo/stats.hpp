@@ -12,21 +12,20 @@
 #include <userver/tracing/scope_time.hpp>
 #include <userver/utils/not_null.hpp>
 #include <userver/utils/statistics/percentile.hpp>
+#include <userver/utils/statistics/rate_counter.hpp>
 #include <userver/utils/statistics/recentperiod.hpp>
-#include <userver/utils/statistics/relaxed_counter.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::mongo::stats {
 
-using Counter = utils::statistics::RelaxedCounter<uint64_t>;
+using Counter = utils::statistics::RateCounter;
 using TimingsPercentile =
     utils::statistics::Percentile</*buckets =*/1000, uint32_t,
                                   /*extra_buckets=*/780,
                                   /*extra_bucket_size=*/50>;
 using AggregatedTimingsPercentile =
     utils::statistics::RecentPeriod<TimingsPercentile, TimingsPercentile>;
-using AggregatedCounter = utils::statistics::RecentPeriod<Counter, uint64_t>;
 
 enum class ErrorType : std::size_t {
   kSuccess,
@@ -57,9 +56,9 @@ struct OperationStatisticsItem final {
 
   void Reset();
 
-  // TODO don't use RecentPeriod for monotonic counters
-  std::array<AggregatedCounter, kErrorTypesCount> counters;
+  std::array<Counter, kErrorTypesCount> counters;
 
+  // TODO(TAXICOMMON-6404) remove
   std::atomic<size_t> total_queries{0};
   std::atomic<size_t> network_errors{0};
   std::atomic<size_t> timings_sum{0};

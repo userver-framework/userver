@@ -60,10 +60,11 @@ async def test_metrics_values(service_client, collect_metrics):
 
     assert (
         snapshot.value_at(
-            path='mongo.write.errors',
+            path='mongo.by-operation.errors',
             labels={
                 'mongo_database': 'key-value-database',
                 'mongo_collection': 'test',
+                'mongo_direction': 'write',
                 'mongo_operation': 'insert-one',
                 'mongo_error': 'duplicate-key',
             },
@@ -74,10 +75,11 @@ async def test_metrics_values(service_client, collect_metrics):
 
     assert (
         snapshot.value_at(
-            path='mongo.write.errors',
+            path='mongo.by-operation.errors-total',
             labels={
                 'mongo_database': 'key-value-database',
                 'mongo_collection': 'test',
+                'mongo_direction': 'write',
                 'mongo_operation': 'insert-one',
                 'mongo_error': 'total',
             },
@@ -88,10 +90,11 @@ async def test_metrics_values(service_client, collect_metrics):
 
     assert (
         snapshot.value_at(
-            path='mongo.write.errors',
+            path='mongo.by-collection.errors',
             labels={
                 'mongo_database': 'key-value-database',
                 'mongo_collection': 'test',
+                'mongo_direction': 'write',
                 'mongo_error': 'duplicate-key',
             },
             default=0,
@@ -101,10 +104,11 @@ async def test_metrics_values(service_client, collect_metrics):
 
     assert (
         snapshot.value_at(
-            path='mongo.write.errors',
+            path='mongo.by-collection.errors-total',
             labels={
                 'mongo_database': 'key-value-database',
                 'mongo_collection': 'test',
+                'mongo_direction': 'write',
                 'mongo_error': 'total',
             },
             default=0,
@@ -114,9 +118,10 @@ async def test_metrics_values(service_client, collect_metrics):
 
     assert (
         snapshot.value_at(
-            path='mongo.write.errors',
+            path='mongo.by-database.errors',
             labels={
                 'mongo_database': 'key-value-database',
+                'mongo_direction': 'write',
                 'mongo_error': 'duplicate-key',
             },
             default=0,
@@ -126,9 +131,10 @@ async def test_metrics_values(service_client, collect_metrics):
 
     assert (
         snapshot.value_at(
-            path='mongo.write.errors',
+            path='mongo.by-database.errors-total',
             labels={
                 'mongo_database': 'key-value-database',
+                'mongo_direction': 'write',
                 'mongo_error': 'total',
             },
             default=0,
@@ -138,10 +144,11 @@ async def test_metrics_values(service_client, collect_metrics):
 
     assert (
         snapshot.value_at(
-            path='mongo.write.success',
+            path='mongo.by-operation.success',
             labels={
                 'mongo_database': 'key-value-database',
                 'mongo_collection': 'test',
+                'mongo_direction': 'write',
                 'mongo_operation': 'insert-one',
             },
             default=0,
@@ -151,10 +158,11 @@ async def test_metrics_values(service_client, collect_metrics):
 
     assert (
         snapshot.value_at(
-            path='mongo.write.success',
+            path='mongo.by-operation.success',
             labels={
                 'mongo_database': 'key-value-database',
                 'mongo_collection': 'test',
+                'mongo_direction': 'write',
                 'mongo_operation': 'delete-one',
             },
             default=0,
@@ -164,10 +172,11 @@ async def test_metrics_values(service_client, collect_metrics):
 
     assert (
         snapshot.value_at(
-            path='mongo.read.success',
+            path='mongo.by-operation.success',
             labels={
                 'mongo_database': 'key-value-database',
                 'mongo_collection': 'test',
+                'mongo_direction': 'read',
                 'mongo_operation': 'count',
             },
             default=0,
@@ -177,10 +186,11 @@ async def test_metrics_values(service_client, collect_metrics):
 
     assert (
         snapshot.value_at(
-            path='mongo.write.success',
+            path='mongo.by-collection.success',
             labels={
                 'mongo_database': 'key-value-database',
                 'mongo_collection': 'test',
+                'mongo_direction': 'write',
             },
             default=0,
         )
@@ -189,10 +199,11 @@ async def test_metrics_values(service_client, collect_metrics):
 
     assert (
         snapshot.value_at(
-            path='mongo.read.success',
+            path='mongo.by-collection.success',
             labels={
                 'mongo_database': 'key-value-database',
                 'mongo_collection': 'test',
+                'mongo_direction': 'read',
             },
             default=0,
         )
@@ -201,8 +212,11 @@ async def test_metrics_values(service_client, collect_metrics):
 
     assert (
         snapshot.value_at(
-            path='mongo.write.success',
-            labels={'mongo_database': 'key-value-database'},
+            path='mongo.by-database.success',
+            labels={
+                'mongo_database': 'key-value-database',
+                'mongo_direction': 'write',
+            },
             default=0,
         )
         == 2
@@ -210,8 +224,11 @@ async def test_metrics_values(service_client, collect_metrics):
 
     assert (
         snapshot.value_at(
-            path='mongo.read.success',
-            labels={'mongo_database': 'key-value-database'},
+            path='mongo.by-database.success',
+            labels={
+                'mongo_database': 'key-value-database',
+                'mongo_direction': 'read',
+            },
             default=0,
         )
         == 2

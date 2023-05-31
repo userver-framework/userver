@@ -48,7 +48,7 @@ auto GetMilliseconds(const std::chrono::duration<Rep, Period>& duration) {
 }  // namespace
 
 void OperationStatisticsItem::Account(ErrorType error_type) noexcept {
-  ++counters[static_cast<std::size_t>(error_type)].GetCurrentCounter();
+  ++counters[static_cast<std::size_t>(error_type)];
   if (error_type == ErrorType::kNetwork ||
       error_type == ErrorType::kClusterUnavailable)
     ++network_errors;
@@ -58,7 +58,7 @@ void OperationStatisticsItem::EnterQuery() { ++total_queries; }
 
 void OperationStatisticsItem::Reset() {
   for (auto& counter : counters) {
-    counter.Reset();
+    ResetMetric(counter);
   }
   timings.Reset();
 }

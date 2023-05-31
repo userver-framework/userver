@@ -13,10 +13,12 @@ namespace {
 constexpr std::initializer_list<double> kOperationsStatisticsPercentiles = {
     95, 98, 99, 100};
 
+using Rate = utils::statistics::Rate;
+
 struct OperationStatisticsSum final {
   void Add(const OperationStatisticsItem& other) {
-    for (size_t i = 0; i < counters.size(); ++i) {
-      counters[i] += other.counters[i].GetStatsForPeriod();
+    for (std::size_t i = 0; i < counters.size(); ++i) {
+      counters[i] += other.counters[i].Load();
     }
     timings.Add(other.timings.GetStatsForPeriod());
   }
@@ -28,15 +30,13 @@ struct OperationStatisticsSum final {
     timings.Add(other.timings);
   }
 
-  std::array<std::uint64_t, kErrorTypesCount> counters{{}};
+  std::array<Rate, kErrorTypesCount> counters{{}};
   TimingsPercentile timings;
 };
 
-auto LoadCounter(const AggregatedCounter& counter) {
-  return counter.GetStatsForPeriod();
-}
+Rate LoadCounter(const Counter& counter) { return counter.Load(); }
 
-auto LoadCounter(const std::uint64_t& counter) { return counter; }
+Rate LoadCounter(const Rate& counter) { return counter; }
 
 void WriteOperationTimings(utils::statistics::Writer& writer,
                            const AggregatedTimingsPercentile& counter) {
@@ -52,7 +52,7 @@ void WriteOperationTimings(utils::statistics::Writer& writer,
 template <typename OperationStatistics>
 void DumpOperationStatistics(utils::statistics::Writer& writer,
                              const OperationStatistics& item) {
-  Counter::ValueType total_errors = 0;
+  Rate total_errors{0};
   {
     auto errors_writer = writer["errors"];
     for (size_t i = 1; i < item.counters.size(); ++i) {
@@ -64,9 +64,10 @@ void DumpOperationStatistics(utils::statistics::Writer& writer,
       }
     }
   }
-  writer["errors"].ValueWithLabels(total_errors, {"mongo_error", "total"});
+  writer["errors-total"].ValueWithLabels(total_errors,
+                                         {"mongo_error", "total"});
   writer["success"] = item.counters[0];
-  if (auto timings_writer = writer["timings"]) {
+  if (auto timings_writer = writer["timings-1min"]) {
     WriteOperationTimings(timings_writer, item.timings);
   }
 }
@@ -100,8 +101,8 @@ struct CombinedCollectionStats {
 
 void DumpMetric(utils::statistics::Writer& writer,
                 const CombinedCollectionStats& combined_stats) {
-  writer["read"] = combined_stats.read;
-  writer["write"] = combined_stats.write;
+  writer.ValueWithLabels(combined_stats.read, {"mongo_direction", "read"});
+  writer.ValueWithLabels(combined_stats.write, {"mongo_direction", "write"});
 }
 
 struct FormattedCollectionStatistics final {
@@ -112,22 +113,25 @@ struct FormattedCollectionStatistics final {
 
 void DumpMetric(utils::statistics::Writer& writer,
                 const FormattedCollectionStatistics& coll_stats) {
-  CombinedCollectionStats overall;
+  CombinedCollectionStats coll_overall;
 
-  for (const auto& [stats_key, stats_ptr] : coll_stats.stats.items) {
-    if (coll_stats.verbosity == StatsVerbosity::kFull) {
-      writer[GetDirection(stats_key)].ValueWithLabels(
-          *stats_ptr, {"mongo_operation", ToString(stats_key.op_type)});
+  {
+    auto by_operation_writer = writer["by-operation"];
+
+    for (const auto& [stats_key, stats_ptr] : coll_stats.stats.items) {
+      if (coll_stats.verbosity == StatsVerbosity::kFull) {
+        by_operation_writer.ValueWithLabels(
+            *stats_ptr, {{"mongo_operation", ToString(stats_key.op_type)},
+                         {"mongo_direction", GetDirection(stats_key)}});
+      }
+
+      coll_overall.GetTotalForOperation(stats_key).Add(*stats_ptr);
     }
-
-    overall.GetTotalForOperation(stats_key).Add(*stats_ptr);
   }
 
-  // TODO use different paths for detailed and overall metrics,
-  //  to satisfy Prometheus metrics conventions
-  writer = overall;
+  writer["by-collection"] = coll_overall;
 
-  coll_stats.overall_stats.Add(overall);
+  coll_stats.overall_stats.Add(coll_overall);
 }
 
 }  // namespace
@@ -146,8 +150,8 @@ void DumpMetric(utils::statistics::Writer& writer,
 
   writer["conn-init"] = *conn_stats.ping;
 
-  writer["conn-request-timings"] = conn_stats.request_timings_agg;
-  writer["queue-wait-timings"] = conn_stats.queue_wait_timings_agg;
+  writer["conn-request-timings-1min"] = conn_stats.request_timings_agg;
+  writer["queue-wait-timings-1min"] = conn_stats.queue_wait_timings_agg;
 }
 
 void DumpMetric(utils::statistics::Writer& writer,
@@ -163,9 +167,7 @@ void DumpMetric(utils::statistics::Writer& writer,
         {"mongo_collection", coll_name});
   }
 
-  // TODO use different paths for detailed and overall metrics,
-  //  to satisfy Prometheus metrics conventions
-  writer = pool_overall;
+  writer["by-database"] = pool_overall;
 }
 
 }  // namespace storages::mongo::stats
