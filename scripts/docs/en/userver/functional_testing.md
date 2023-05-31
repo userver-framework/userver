@@ -53,6 +53,21 @@ Then create testsuite target:
 * VIRTUALENV_ARGS, list of extra arguments passed to `virtualenv`.
 * PRETTY_LOGS, set to `OFF` to disable pretty printing.
 
+Some of the most useful arguments for PYTEST_ARGS:
+
+| Argument                        | Description                             |
+|---------------------------------|-----------------------------------------|
+| `-v`                            | Increase verbosity                      |
+| `-s`                            | Do not intercept `stdout` and `stderr`  |
+| `-x`                            | Stop on first error                     |
+| `-k EXPRESSION`                 | Filter tests by expression              |
+| `--service-logs-pretty`         | Enable logs coloring                    |
+| `--service-logs-pretty-disable` | Disable logs coloring                   |
+| `--service-log-level=LEVEL`     | Set the log level for the service. Possible values: `trace`, `debug`, `info`, `warning`, `error`, `critical` |
+| `--service-wait`                | With this argument the testsuite will wait for the service start by user. For example under gdb. Testsuite outputs a hint on starting the service |
+| `-rf`                           | Show a summary of failed tests          |
+
+
 ### Python environment
 
 You may want to create new virtual environment with its own set of packages. Or reuse existing one.

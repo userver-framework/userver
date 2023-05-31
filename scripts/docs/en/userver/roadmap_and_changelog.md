@@ -56,6 +56,58 @@ Changelog news also go to the
 
 ## Changelog
 
+
+### May (April 2023)
+
+* New scripts/uctl/uctl console script for administration of the running service
+  was added.
+* Improved compile times by removing multiple includes from userver headers
+  including templating the serializers of different formats.
+* Implemented ugrpc::server::HealthComponent handler, a gRPC alternative to
+  server::handlers::Ping.
+* gRPC server and clients now support middlewares - a customization plugins that
+  could be shared by different handlers.
+* Invalid implementations of CacheUpdateTrait::Update are now detected and
+  logged.
+  
+* Optimizations:
+  * Significant improvements in HTTP handling due to
+    new http::headers::HeaderMap usage instead of std::unordered_map.
+  * Improved performance of utils::TrivialBiMap by an order of magnitude
+    for enum-to-enum mappings,
+    thanks to [Vlad Tytskiy](https://github.com/Tytskiy) for the bug report!
+  * utils::FromString now uses std::from_chars for better performance.
+  * TESTPOINT and other testpoint related macro now imply zero overhead if
+    testpoints were disabled in static config.
+  * More functions of formats::json::ValueBuilder now accept std::string_view,
+    resulting in less std::string constructions and better performance.
+  * TSKV escaping was optimized via SIMD, resulting in up to x10 speedup on
+    long logs.
+  * `mlock_debug_info` static configuration option of
+    components::ManagerControllerComponent now allows to lock exception
+    unwinding information in memory. It improves responsiveness of the
+    service under heavy load on low memory and bad hard drives.
+
+* Docs:
+  * Some metrics were documented, a human-readable format of metrics
+    is now used in documentation. See @ref md_en_userver_service_monitor.
+  * Custom @ref md_en_userver_404 "404 page".
+  * New pages, including @ref md_en_userver_faq, @ref md_en_userver_periodics
+    and @ref md_en_userver_deploy_env.
+
+* Build:
+  * Arch Linux instructions were improved, thanks to
+    [Kirill Zimnikov](https://github.com/lirik90) for the PR!
+  * Fixed Conan based builds, thanks to [Anton](https://github.com/Jihadist)
+    for the PR.
+  * Clickhouse-cpp version was raised to 2.4.0, thanks to
+    [Kirill Zimnikov](https://github.com/lirik90) for the PR!
+  * Fixed build on libstdc++ from GCC-13, thanks to
+    [Kirill Zimnikov](https://github.com/lirik90) for the PR!
+  * Fixed benchmarks build on non x86 targets.
+  * Rewrite of Protobuf and gRPC locating logic.
+
+
 ### Beta (April 2023)
 
 * MySQL driver was added, see @ref mysql_driver.
@@ -297,8 +349,7 @@ Changelog news also go to the
   * Faster async cancellations for PostgreSQL;
   * Avoid using dynamic_cast in multiple places;
   * Avoid calling `std::chrono::steady_clock::now()` in multiple places.
-* gRPC mockserver support (docs will be updated soon at
-  @ref md_en_userver_tutorial_grpc_service).
+* gRPC mockserver support (see @ref md_en_userver_tutorial_grpc_service).
 * gRPC now provides an efficient API for async execution of requests without
   additional `utils::Async` invocations.
 * Build fixes for older platforms, thanks to

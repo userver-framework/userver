@@ -22,7 +22,12 @@
 * 🎥 Generic async engine implementation: [Анатомия асинхронных движков](https://youtu.be/MiE22pTvnPs)
 * 🎥 Description of utils::FastPimpl, formats::parse::To and logging implementation: [C++ трюки из Такси](https://youtu.be/_AkF8SpUV3k)
 * 🎥 Description of cache::LruSet implementation and optimizations: [Ещё чуть быстрее делаем свой контейнер](https://youtu.be/60XhYzkXu1M)
+* 🎥 Monolyth vs. Microservices architecture and how userver works around their issues
+  [Монолит vs Микросервисы, и Как эффективно работать с последними в C++](https://youtu.be/5QtAFKgS938)
 
+
+## Fun
+* 📖 Half a year in open-source [userver — что мы узнали за полгода в open-source](https://habr.com/ru/companies/yandex/articles/729588/)
 
 ----------
 
