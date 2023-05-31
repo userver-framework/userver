@@ -8,6 +8,7 @@
 #include <userver/components/component_fwd.hpp>
 #include <userver/components/loggable_component_base.hpp>
 #include <userver/dynamic_config/storage/component.hpp>
+#include <userver/dynamic_config/updates_sink/component.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -22,7 +23,9 @@ namespace components {
 /// ## Static options:
 /// Name | Description | Default value
 /// ---- | ----------- | -------------
-/// fallback-path | a path to the fallback config to load the required config names from it | -
+/// updates-sink | name of the component derived from components::DynamicConfigUpdatesSinkBase to be used for storing fallback config | dynamic-config
+/// fallback-path | a path to the fallback config | -
+/// overrides-path | a path to the file containing overrides for a subset of fallback config parameters | -
 ///
 /// If you use this component, you have to disable loading of other updaters
 /// (like DynamicConfigClientUpdater) as there must be only a single component
@@ -44,7 +47,7 @@ class DynamicConfigFallbacks final : public LoggableComponentBase {
   static yaml_config::Schema GetStaticConfigSchema();
 
  private:
-  DynamicConfig::Updater<DynamicConfigFallbacks> updater_;
+  DynamicConfigUpdatesSinkBase& updates_sink_;
 };
 
 template <>

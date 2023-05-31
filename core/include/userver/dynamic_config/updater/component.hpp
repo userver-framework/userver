@@ -18,6 +18,7 @@
 #include <userver/dynamic_config/snapshot.hpp>
 #include <userver/dynamic_config/storage/component.hpp>
 #include <userver/dynamic_config/updater/additional_keys_token.hpp>
+#include <userver/dynamic_config/updates_sink/component.hpp>
 #include <userver/engine/mutex.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -54,7 +55,8 @@ namespace components {
 /// ## Static options:
 /// Name | Description | Default value
 /// ---- | ----------- | -------------
-/// store-enabled | store the retrieved values into the components::dynamicConfig | -
+/// updates-sink | name of the component derived from components::DynamicConfigUpdatesSinkBase to be used for storing received updates | dynamic-config
+/// store-enabled | store the retrieved values into the updates sink determined by the `updates-sink` option | -
 /// load-only-my-values | request from the client only the values used by this service | -
 /// fallback-path | a path to the fallback config to load the required config names from it | -
 /// fs-task-processor | name of the task processor to run the blocking file write operations | -
@@ -108,7 +110,7 @@ class DynamicConfigClientUpdater
   dynamic_config::DocsMap fallback_config_;
   dynamic_config::Client::Timestamp server_timestamp_;
 
-  components::DynamicConfig::Updater<DynamicConfigClientUpdater> updater_;
+  DynamicConfigUpdatesSinkBase& updates_sink_;
 
   const bool load_only_my_values_;
   const bool store_enabled_;

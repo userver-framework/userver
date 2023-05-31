@@ -1,3 +1,5 @@
+#include <unordered_map>
+
 #include <benchmark/benchmark.h>
 
 #include <userver/formats/json/exception.hpp>

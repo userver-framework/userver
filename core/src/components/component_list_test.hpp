@@ -86,7 +86,8 @@ inline constexpr std::string_view kRuntimeConfig = R"~({
     "up-level": 2,
     "up-rate-percent": 1
   },
-  "SAMPLE_INTEGER_FROM_RUNTIME_CONFIG": 42
+  "SAMPLE_INTEGER_FROM_RUNTIME_CONFIG": 42,
+  "DYNAMIC_CONFIG_UPDATES_SINK_CHAIN": ""
 })~";
 
 // BEWARE! No separate fs-task-processor. Testing almost single thread mode

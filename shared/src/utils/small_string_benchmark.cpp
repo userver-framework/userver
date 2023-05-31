@@ -1,5 +1,7 @@
 #include <userver/utils/small_string.hpp>
 
+#include <array>
+
 #include <benchmark/benchmark.h>
 
 USERVER_NAMESPACE_BEGIN

@@ -4,6 +4,7 @@
 #include <userver/clients/http/component.hpp>
 #include <userver/components/component.hpp>
 #include <userver/dynamic_config/client/component.hpp>
+#include <userver/dynamic_config/updates_sink/find.hpp>
 #include <userver/formats/json/serialize.hpp>
 #include <userver/fs/read.hpp>
 #include <userver/utils/string_to_duration.hpp>
@@ -59,7 +60,8 @@ DynamicConfigClientUpdater::DynamicConfigClientUpdater(
     const ComponentConfig& component_config,
     const ComponentContext& component_context)
     : CachingComponentBase(component_config, component_context),
-      updater_(component_context),
+      updates_sink_(
+          dynamic_config::FindUpdatesSink(component_config, component_context)),
       load_only_my_values_(component_config["load-only-my-values"].As<bool>()),
       store_enabled_(component_config["store-enabled"].As<bool>()),
       deduplicate_update_types_(ParseDeduplicateUpdateTypes(
@@ -89,7 +91,7 @@ DynamicConfigClientUpdater::DynamicConfigClientUpdater(
     StartPeriodicUpdates();
   } catch (const std::exception& e) {
     LOG_ERROR() << "Config client updater initialization failed: " << e;
-    updater_.NotifyLoadingFailed(e.what());
+    updates_sink_.NotifyLoadingFailed(kName, e.what());
     /* Start PeriodicTask without the 1st update:
      * DynamicConfig has been initialized with
      * config cached in FS. Components loading will continue.
@@ -104,7 +106,7 @@ DynamicConfigClientUpdater::~DynamicConfigClientUpdater() {
 
 void DynamicConfigClientUpdater::StoreIfEnabled() {
   auto ptr = Get();
-  if (store_enabled_) updater_.SetConfig(*ptr);
+  if (store_enabled_) updates_sink_.SetConfig(kName, *ptr);
   CheckUnusedConfigs(*ptr, docs_map_keys_);
 }
 
@@ -261,9 +263,13 @@ type: object
 description: Component that does a periodic update of runtime configs.
 additionalProperties: false
 properties:
+    updates-sink:
+        type: string
+        description: components::DynamicConfigUpdatesSinkBase descendant to be used for storing received updates
+        defaultDescription: dynamic-config
     store-enabled:
         type: boolean
-        description: store the retrieved values into the components::DynamicConfig
+        description: store the retrieved values into the updates sink component
     load-only-my-values:
         type: boolean
         description: request from the client only the values used by this service

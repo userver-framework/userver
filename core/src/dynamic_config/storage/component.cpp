@@ -10,6 +10,7 @@
 #include <userver/compiler/demangle.hpp>
 #include <userver/components/component.hpp>
 #include <userver/dynamic_config/storage_mock.hpp>
+#include <userver/dynamic_config/updates_sink/find.hpp>
 #include <userver/engine/condition_variable.hpp>
 #include <userver/engine/mutex.hpp>
 #include <userver/fs/read.hpp>
@@ -27,23 +28,7 @@ namespace components {
 namespace {
 
 constexpr std::chrono::seconds kWaitInterval(5);
-
-std::unordered_set<std::string>& AllConfigUpdaters() {
-  // There may be components with the same name, but the component system would
-  // not allow to use them at the same time. No need to register them twice.
-  static std::unordered_set<std::string> config_updaters;
-  return config_updaters;
-}
-
 }  // namespace
-
-namespace impl {
-
-void CheckRegistered(bool registered) {
-  UINVARIANT(registered, "DynamicConfig update validation is broken");
-}
-
-}  // namespace impl
 
 class DynamicConfig::Impl final {
  public:
@@ -88,26 +73,10 @@ DynamicConfig::Impl::Impl(const ComponentConfig& config,
               ? nullptr
               : &context.GetTaskProcessor(
                     config["fs-task-processor"].As<std::string>())) {
-  std::vector<std::string> active_updaters;
-  for (const auto& name : AllConfigUpdaters()) {
-    if (context.Contains(name)) {
-      active_updaters.push_back(name);
-    }
-  }
-
-  UINVARIANT(active_updaters.size() < 2,
-             fmt::format("Only one dynamic config updater should be "
-                         "enabled, but multiple detected: {}",
-                         fmt::join(active_updaters, ", ")));
-
-  UINVARIANT(!active_updaters.empty(),
-             fmt::format("There is no instance of a DynamicConfig::Updater. "
-                         "At least one dynamic config updater should be "
-                         "enabled to update the uninitialized DynamicConfig! "
-                         "Add one of the updaters into the static "
-                         "config: {}",
-                         fmt::join(AllConfigUpdaters(), ", ")));
-
+  UINVARIANT(dynamic_config::impl::has_updater,
+             fmt::format("At least one dynamic config updater component "
+                         "responsible for DynamicConfig initialization should "
+                         "be defined in a static config!"));
   ReadFsCache();
 }
 
@@ -260,25 +229,19 @@ DynamicConfig::NoblockSubscriber::GetEventSource() noexcept {
 
 DynamicConfig::DynamicConfig(const ComponentConfig& config,
                              const ComponentContext& context)
-    : LoggableComponentBase(config, context),
+    : DynamicConfigUpdatesSinkBase(config, context),
       impl_(std::make_unique<Impl>(config, context)) {}
 
 DynamicConfig::~DynamicConfig() = default;
 
 dynamic_config::Source DynamicConfig::GetSource() { return impl_->GetSource(); }
 
-bool DynamicConfig::RegisterUpdaterName(std::string_view name) {
-  auto& names = AllConfigUpdaters();
-  names.emplace(name);
-  return !names.empty();
-}
-
-DynamicConfig& DynamicConfig::GetDynamicConfig(
-    const ComponentContext& context) {
-  return context.FindComponent<components::DynamicConfig>();
-}
-
 void DynamicConfig::OnLoadingCancelled() { impl_->OnLoadingCancelled(); }
+
+void DynamicConfig::SetConfig(std::string_view updater,
+                              dynamic_config::DocsMap&& value) {
+  impl_->SetConfig(updater, value);
+}
 
 void DynamicConfig::SetConfig(std::string_view updater,
                               const dynamic_config::DocsMap& value) {

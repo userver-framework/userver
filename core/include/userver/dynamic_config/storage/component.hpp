@@ -11,15 +11,12 @@
 #include <userver/concurrent/async_event_source.hpp>
 #include <userver/dynamic_config/snapshot.hpp>
 #include <userver/dynamic_config/source.hpp>
+#include <userver/dynamic_config/updates_sink/component.hpp>
 #include <userver/utils/fast_pimpl.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace components {
-
-namespace impl {
-void CheckRegistered(bool registered);
-}  // namespace impl
 
 // clang-format off
 
@@ -41,11 +38,13 @@ void CheckRegistered(bool registered);
 /// @snippet components/component_sample_test.cpp  Sample user component runtime config source
 
 // clang-format on
-class DynamicConfig final : public LoggableComponentBase {
+class DynamicConfig final : public DynamicConfigUpdatesSinkBase {
  public:
   /// @ingroup userver_component_names
   /// @brief The default name of components::DynamicConfig
   static constexpr std::string_view kName = "dynamic-config";
+
+  class NoblockSubscriber;
 
   DynamicConfig(const ComponentConfig&, const ComponentContext&);
   ~DynamicConfig() override;
@@ -54,53 +53,22 @@ class DynamicConfig final : public LoggableComponentBase {
   /// something special on config updates
   dynamic_config::Source GetSource();
 
-  template <typename UpdaterComponent>
-  class Updater;
-
-  class NoblockSubscriber;
-
   static yaml_config::Schema GetStaticConfigSchema();
 
  private:
-  static bool RegisterUpdaterName(std::string_view name);
-  static DynamicConfig& GetDynamicConfig(const ComponentContext&);
-
   void OnLoadingCancelled() override;
 
   void SetConfig(std::string_view updater,
-                 const dynamic_config::DocsMap& value);
-  void NotifyLoadingFailed(std::string_view updater, std::string_view error);
+                 dynamic_config::DocsMap&& value) override;
+
+  void SetConfig(std::string_view updater,
+                 const dynamic_config::DocsMap& value) override;
+
+  void NotifyLoadingFailed(std::string_view updater,
+                           std::string_view error) override;
 
   class Impl;
   std::unique_ptr<Impl> impl_;
-};
-
-/// @brief Class that provides update functionality for the config
-template <typename UpdaterComponent>
-class DynamicConfig::Updater final {
- public:
-  /// Constructor to use in updaters
-  explicit Updater(const ComponentContext& context)
-      : config_to_update_(GetDynamicConfig(context)) {
-    static_assert(std::is_base_of_v<impl::ComponentBase, UpdaterComponent>);
-    impl::CheckRegistered(kRegistered);
-  }
-
-  /// @brief Set up-to-date config
-  void SetConfig(const dynamic_config::DocsMap& value_ptr) {
-    config_to_update_.SetConfig(UpdaterComponent::kName, value_ptr);
-  }
-
-  /// @brief call this method from updater component to notify about errors
-  void NotifyLoadingFailed(std::string_view error) {
-    config_to_update_.NotifyLoadingFailed(UpdaterComponent::kName, error);
-  }
-
- private:
-  DynamicConfig& config_to_update_;
-
-  static inline const bool kRegistered =
-      DynamicConfig::RegisterUpdaterName(UpdaterComponent::kName);
 };
 
 /// @brief Allows to subscribe to `DynamicConfig` updates without waiting for

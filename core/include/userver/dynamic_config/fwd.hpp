@@ -9,6 +9,7 @@ namespace components {
 
 // NOLINTNEXTLINE(bugprone-forward-declaration-namespace)
 class DynamicConfig;
+class DynamicConfigUpdatesSinkBase;
 
 }  // namespace components
 
