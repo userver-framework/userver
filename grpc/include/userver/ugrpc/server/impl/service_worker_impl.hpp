@@ -1,5 +1,6 @@
 #pragma once
 
+#include <chrono>
 #include <exception>
 #include <functional>
 #include <string>
@@ -14,6 +15,7 @@
 #include <userver/engine/async.hpp>
 #include <userver/engine/task/cancel.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
+#include <userver/server/request/task_inherited_data.hpp>
 #include <userver/tracing/in_place_span.hpp>
 #include <userver/tracing/span.hpp>
 #include <userver/utils/assert.hpp>
@@ -47,6 +49,10 @@ void ReportNetworkError(const RpcInterruptedError& ex,
 void SetupSpan(std::optional<tracing::InPlaceSpan>& span_holder,
                grpc::ServerContext& context, std::string_view call_name);
 
+bool CheckAndSetupDeadline(tracing::Span&, grpc::ServerContext&,
+                           const std::string&, const std::string&,
+                           ugrpc::impl::RpcStatisticsScope&);
+
 /// Per-gRPC-service data
 template <typename GrpcppService>
 struct ServiceData final {
@@ -76,6 +82,9 @@ struct MethodData final {
 
   std::string_view call_name{
       service_data.metadata.method_full_names[method_id]};
+  // Remove name of the service and slash
+  std::string_view method_name{
+      call_name.substr(service_data.metadata.service_full_name.size() + 1)};
   ugrpc::impl::MethodStatistics& statistics{
       service_data.statistics.GetMethodStatistics(method_id)};
 };
@@ -145,6 +154,11 @@ class CallData final {
     auto& service = method_data_.service;
     const auto service_method = method_data_.service_method;
 
+    // Should be alive until the end of the RPC
+    std::string service_name{
+        method_data_.service_data.metadata.service_full_name};
+    std::string method_name{method_data_.method_name};
+
     SetupSpan(span_, context_, call_name);
     utils::FastScopeGuard destroy_span([&]() noexcept { span_.reset(); });
 
@@ -161,6 +175,16 @@ class CallData final {
     };
 
     try {
+      if (!CheckAndSetupDeadline(span_->Get(), context_, service_name,
+                                 method_name, statistics_scope)) {
+        // Can throw RpcInterruptedError, therefore should be placed in try
+        // block
+        responder.FinishWithError(grpc::Status{
+            grpc::StatusCode::DEADLINE_EXCEEDED,
+            "Deadline propagation: Not enough time to handle this call"});
+        return;
+      }
+
       ::google::protobuf::Message* initial_request = nullptr;
       if constexpr (!std::is_same_v<InitialRequest, NoInitialRequest>) {
         initial_request = &initial_request_;

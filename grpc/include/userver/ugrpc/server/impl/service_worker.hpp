@@ -8,6 +8,7 @@
 #include <grpcpp/completion_queue.h>
 #include <grpcpp/impl/service_type.h>
 
+#include <userver/dynamic_config/source.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/utils/statistics/fwd.hpp>
 
@@ -25,6 +26,7 @@ struct ServiceSettings final {
   engine::TaskProcessor& task_processor;
   ugrpc::impl::StatisticsStorage& statistics_storage;
   const Middlewares& middlewares;
+  const dynamic_config::Source config_source;
 };
 
 /// @brief Listens to requests for a gRPC service, forwarding them to a

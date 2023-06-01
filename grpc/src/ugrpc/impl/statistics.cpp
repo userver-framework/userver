@@ -37,6 +37,14 @@ void MethodStatistics::AccountNetworkError() noexcept { ++network_errors_; }
 
 void MethodStatistics::AccountInternalError() noexcept { ++internal_errors_; }
 
+void MethodStatistics::AccountCancelledByDeadlinePropagation() noexcept {
+  ++deadline_cancelled_;
+}
+
+void MethodStatistics::AccountDeadlinePropagated() noexcept {
+  ++deadline_updated_;
+}
+
 void DumpMetric(utils::statistics::Writer& writer,
                 const MethodStatistics& stats) {
   writer["timings"] = stats.timings_;
@@ -57,6 +65,7 @@ void DumpMetric(utils::statistics::Writer& writer,
 
   const auto network_errors_value = stats.network_errors_.load();
   const auto abandoned_errors_value = stats.internal_errors_.load();
+  const auto deadline_cancelled_value = stats.deadline_cancelled_.load();
 
   // 'total_requests' and 'error_requests' originally only count RPCs that
   // finished with a status code. 'network_errors' are RPCs that finished
@@ -65,12 +74,19 @@ void DumpMetric(utils::statistics::Writer& writer,
   total_requests += network_errors_value;
   error_requests += network_errors_value;
 
+  // Same for deadline propagation cancelation
+  total_requests += deadline_cancelled_value;
+  error_requests += deadline_cancelled_value;
+
   writer["active"] = stats.started_.load() - total_requests;
   writer["rps"] = total_requests;
   writer["eps"] = error_requests;
 
   writer["network-error"] = network_errors_value;
   writer["abandoned-error"] = abandoned_errors_value;
+
+  writer["deadline_propagated"] = stats.deadline_updated_.load();
+  writer["cancelled_by_deadline_propagation"] = deadline_cancelled_value;
 }
 
 ServiceStatistics::~ServiceStatistics() = default;

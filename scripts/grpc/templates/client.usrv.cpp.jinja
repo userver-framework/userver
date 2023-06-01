@@ -24,13 +24,8 @@ constexpr std::string_view k{{service.name}}MethodNames[] = {
 {% for service in proto.services %}
 
 {{service.name}}Client::{{service.name}}Client(
-    std::string_view client_name,
-    USERVER_NAMESPACE::ugrpc::client::impl::ChannelCache::Token&& channel_token,
-    const USERVER_NAMESPACE::ugrpc::client::Middlewares& mws,
-    ::grpc::CompletionQueue& queue,
-    USERVER_NAMESPACE::ugrpc::impl::ServiceStatistics& statistics)
-    : mws_(mws),
-      impl_(client_name, std::move(channel_token), queue, statistics,
+    USERVER_NAMESPACE::ugrpc::client::impl::ClientParams&& client_params)
+    : impl_(std::move(client_params),
             std::in_place_type<{{proto.namespace}}::{{service.name}}>) {}
   {% for method in service.method %}
   {% set method_id = loop.index0 %}
@@ -43,9 +38,10 @@ constexpr std::string_view k{{service.name}}MethodNames[] = {
     std::unique_ptr<::grpc::ClientContext> context) const {
   return {impl_.GetClientName(), impl_.NextStub<{{proto.namespace}}::{{service.name}}>(),
           impl_.GetQueue(),
+          impl_.GetConfigSnapshot(),
           &{{proto.namespace}}::{{service.name}}::Stub::PrepareAsync{{method.name}},
           k{{service.name}}MethodNames[{{method_id}}],
-	  mws_,
+	      impl_.GetMiddlewares(),
           {% if method.client_streaming %}
           std::move(context), impl_.GetStatistics({{method_id}})};
           {% else %}

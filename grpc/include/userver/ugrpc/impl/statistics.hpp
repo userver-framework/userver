@@ -38,6 +38,10 @@ class MethodStatistics final {
   // UNKNOWN status code is automatically returned in this case.
   void AccountInternalError() noexcept;
 
+  void AccountCancelledByDeadlinePropagation() noexcept;
+
+  void AccountDeadlinePropagated() noexcept;
+
   friend void DumpMetric(utils::statistics::Writer& writer,
                          const MethodStatistics& stats);
 
@@ -56,6 +60,9 @@ class MethodStatistics final {
   utils::statistics::RecentPeriod<Percentile, Percentile> timings_;
   Counter network_errors_{0};
   Counter internal_errors_{0};
+
+  Counter deadline_updated_{0};
+  Counter deadline_cancelled_{0};
 };
 
 class ServiceStatistics final {

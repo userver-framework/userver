@@ -83,7 +83,8 @@ ServerConfig Parse(const yaml_config::YamlConfig& value,
 class Server::Impl final {
  public:
   explicit Impl(ServerConfig&& config,
-                utils::statistics::Storage& statistics_storage);
+                utils::statistics::Storage& statistics_storage,
+                dynamic_config::Source);
   ~Impl();
 
   void AddService(ServiceBase& service, engine::TaskProcessor& task_processor,
@@ -123,11 +124,14 @@ class Server::Impl final {
   mutable engine::Mutex configuration_mutex_;
 
   ugrpc::impl::StatisticsStorage statistics_storage_;
+  const dynamic_config::Source config_source_;
 };
 
 Server::Impl::Impl(ServerConfig&& config,
-                   utils::statistics::Storage& statistics_storage)
-    : statistics_storage_(statistics_storage, "server") {
+                   utils::statistics::Storage& statistics_storage,
+                   dynamic_config::Source config_source)
+    : statistics_storage_(statistics_storage, "server"),
+      config_source_(config_source) {
   LOG_INFO() << "Configuring the gRPC server";
   ugrpc::impl::SetupNativeLogging();
   ugrpc::impl::UpdateNativeLogLevel(config.native_log_level);
@@ -173,8 +177,9 @@ void Server::Impl::AddService(ServiceBase& service,
   std::lock_guard lock(configuration_mutex_);
   UASSERT(state_ == State::kConfiguration);
 
-  service_workers_.push_back(service.MakeWorker(impl::ServiceSettings{
-      queue_->GetQueue(), task_processor, statistics_storage_, middlewares}));
+  service_workers_.push_back(service.MakeWorker(
+      impl::ServiceSettings{queue_->GetQueue(), task_processor,
+                            statistics_storage_, middlewares, config_source_}));
 }
 
 std::vector<std::string_view> Server::Impl::GetServiceNames() const {
@@ -270,8 +275,10 @@ void Server::Impl::DoStart() {
 }
 
 Server::Server(ServerConfig&& config,
-               utils::statistics::Storage& statistics_storage)
-    : impl_(std::make_unique<Impl>(std::move(config), statistics_storage)) {}
+               utils::statistics::Storage& statistics_storage,
+               dynamic_config::Source config_source)
+    : impl_(std::make_unique<Impl>(std::move(config), statistics_storage,
+                                   config_source)) {}
 
 Server::~Server() = default;
 

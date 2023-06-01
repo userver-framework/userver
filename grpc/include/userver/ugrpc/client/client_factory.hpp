@@ -9,6 +9,7 @@
 #include <grpcpp/security/credentials.h>
 #include <grpcpp/support/channel_arguments.h>
 
+#include <userver/dynamic_config/source.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/logging/level.hpp>
 #include <userver/testsuite/grpc_control.hpp>
@@ -16,6 +17,7 @@
 #include <userver/yaml_config/fwd.hpp>
 
 #include <userver/ugrpc/client/impl/channel_cache.hpp>
+#include <userver/ugrpc/client/impl/client_data.hpp>
 #include <userver/ugrpc/client/middleware_base.hpp>
 #include <userver/ugrpc/impl/statistics_storage.hpp>
 
@@ -54,7 +56,8 @@ class ClientFactory final {
                 engine::TaskProcessor& channel_task_processor,
                 MiddlewareFactories mws, grpc::CompletionQueue& queue,
                 utils::statistics::Storage& statistics_storage,
-                testsuite::GrpcControl& testsuite_grpc);
+                testsuite::GrpcControl& testsuite_grpc,
+                dynamic_config::Source source);
 
   template <typename Client>
   Client MakeClient(const std::string& client_name,
@@ -68,6 +71,7 @@ class ClientFactory final {
   grpc::CompletionQueue& queue_;
   impl::ChannelCache channel_cache_;
   ugrpc::impl::StatisticsStorage client_statistics_storage_;
+  const dynamic_config::Source config_source_;
 };
 
 template <typename Client>
@@ -81,8 +85,9 @@ Client ClientFactory::MakeClient(const std::string& client_name,
   for (const auto& mw_factory : mws_)
     mws.push_back(mw_factory->GetMiddleware(client_name));
 
-  return Client(client_name, GetChannel(endpoint), std::move(mws), queue_,
-                statistics);
+  return Client(impl::ClientParams{client_name, std::move(mws), queue_,
+                                   statistics, GetChannel(endpoint),
+                                   config_source_});
 }
 
 }  // namespace ugrpc::client

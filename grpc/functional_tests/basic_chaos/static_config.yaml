@@ -68,3 +68,5 @@ components_manager:
     coro_pool:
         initial_size: 500
         max_size: 1000
+userver_experiments:
+  - grpc-deadline-propagation

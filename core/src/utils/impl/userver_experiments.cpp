@@ -103,6 +103,9 @@ UserverExperiment kRedisClusterAutoTopologyExperiment{
 
 UserverExperiment kPhdrCacheExperiment{"phdr-cache"};
 
+UserverExperiment kGrpcDeadlinePropagationExperiment{
+    "grpc-deadline-propagation"};
+
 }  // namespace utils::impl
 
 USERVER_NAMESPACE_END

@@ -10,6 +10,7 @@
 #include <grpcpp/completion_queue.h>
 #include <grpcpp/server_builder.h>
 
+#include <userver/dynamic_config/source.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/logging/level.hpp>
 #include <userver/utils/statistics/fwd.hpp>
@@ -55,7 +56,8 @@ class Server final {
 
   /// @brief Start building the server
   explicit Server(ServerConfig&& config,
-                  utils::statistics::Storage& statistics_storage);
+                  utils::statistics::Storage& statistics_storage,
+                  dynamic_config::Source config_source);
 
   Server(Server&&) = delete;
   Server& operator=(Server&&) = delete;

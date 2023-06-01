@@ -86,7 +86,9 @@ class Source final {
 
   // trivially copyable
   Source(const Source&) = default;
+  Source(Source&&) = default;
   Source& operator=(const Source&) = default;
+  Source& operator=(Source&&) = default;
 
   Snapshot GetSnapshot() const;
 

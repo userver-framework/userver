@@ -12,8 +12,10 @@
 #include <grpcpp/impl/codegen/async_unary_call.h>
 #include <grpcpp/impl/codegen/status.h>
 
+#include <userver/dynamic_config/fwd.hpp>
 #include <userver/tracing/in_place_span.hpp>
 #include <userver/tracing/span.hpp>
+
 #include <userver/ugrpc/client/exceptions.hpp>
 #include <userver/ugrpc/impl/async_method_invocation.hpp>
 #include <userver/ugrpc/impl/statistics_scope.hpp>
@@ -62,14 +64,20 @@ using RawReaderWriterPreparer = RawReaderWriter<Request, Response> (Stub::*)(
     grpc::ClientContext*, grpc::CompletionQueue*);
 /// @}
 
+struct RpcConfigValues final {
+  explicit RpcConfigValues(const dynamic_config::Snapshot& config);
+
+  bool enforce_task_deadline;
+};
+
 using ugrpc::impl::AsyncMethodInvocation;
 
 class RpcData final {
  public:
   RpcData(std::string_view client_name,
           std::unique_ptr<grpc::ClientContext>&& context,
-          std::string_view call_name,
-          ugrpc::impl::MethodStatistics& statistics);
+          std::string_view call_name, ugrpc::impl::MethodStatistics& statistics,
+          dynamic_config::Snapshot&& config);
 
   RpcData(RpcData&&) noexcept = delete;
   RpcData& operator=(RpcData&&) noexcept = delete;
@@ -85,6 +93,8 @@ class RpcData final {
 
   tracing::Span& GetSpan() noexcept;
 
+  const RpcConfigValues& GetConfigValues() const noexcept;
+
   void ResetSpan() noexcept;
 
   ugrpc::impl::RpcStatisticsScope& GetStatsScope() noexcept;
@@ -96,6 +106,10 @@ class RpcData final {
   void SetFinished() noexcept;
 
   bool IsFinished() const noexcept;
+
+  bool IsDeadlinePropagated() const noexcept;
+
+  void SetDeadlinePropagated() noexcept;
 
   void EmplaceAsyncMethodInvocation();
 
@@ -118,9 +132,11 @@ class RpcData final {
   std::string_view call_name_;
   bool writes_finished_{false};
   bool is_finished_{false};
+  bool is_deadline_propagated_{false};
 
   std::optional<tracing::InPlaceSpan> span_;
   ugrpc::impl::RpcStatisticsScope stats_scope_;
+  RpcConfigValues config_values_;
 
   std::optional<AsyncMethodInvocation> invocation_;
   grpc::Status status_;

@@ -2,6 +2,7 @@
 
 #include <userver/components/component.hpp>
 #include <userver/components/statistics_storage.hpp>
+#include <userver/dynamic_config/storage/component.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -13,8 +14,8 @@ ServerComponent::ServerComponent(const components::ComponentConfig& config,
     : LoggableComponentBase(config, context),
       server_(
           config.As<ServerConfig>(),
-          context.FindComponent<components::StatisticsStorage>().GetStorage()) {
-}
+          context.FindComponent<components::StatisticsStorage>().GetStorage(),
+          context.FindComponent<components::DynamicConfig>().GetSource()) {}
 
 Server& ServerComponent::GetServer() noexcept { return server_; }
 

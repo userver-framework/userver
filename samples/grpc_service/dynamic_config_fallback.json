@@ -29,6 +29,7 @@
     ".svg": "image/svg+xml",
     "__default__": "text/plain"
   },
+  "USERVER_GRPC_CLIENT_ENABLE_DEADLINE_PROPAGATION": true,
   "USERVER_HANDLER_STREAM_API_ENABLED": false,
   "USERVER_HTTP_PROXY": "",
   "USERVER_LOG_DYNAMIC_DEBUG": {

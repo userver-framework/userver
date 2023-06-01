@@ -1,5 +1,7 @@
 #include <userver/ugrpc/client/channels.hpp>
 
+#include <userver/dynamic_config/storage_mock.hpp>
+#include <userver/dynamic_config/test_helpers.hpp>
 #include <userver/engine/async.hpp>
 #include <userver/engine/sleep.hpp>
 #include <userver/engine/task/task.hpp>
@@ -43,6 +45,8 @@ UTEST_P_MT(GrpcChannels, TryWaitForConnected, 2) {
   constexpr auto kServerStartDelay = 100ms;
   constexpr auto kMaxServerStartTime = 500ms;
   utils::statistics::Storage statistics_storage;
+  dynamic_config::StorageMock config_storage{
+      dynamic_config::MakeDefaultStorage({})};
 
   auto client_task = engine::AsyncNoSpan([&] {
     ugrpc::client::ClientFactoryConfig config;
@@ -54,7 +58,8 @@ UTEST_P_MT(GrpcChannels, TryWaitForConnected, 2) {
     ugrpc::client::MiddlewareFactories mws;
     ugrpc::client::ClientFactory client_factory(
         std::move(config), engine::current_task::GetTaskProcessor(), mws,
-        client_queue.GetQueue(), statistics_storage, ts);
+        client_queue.GetQueue(), statistics_storage, ts,
+        config_storage.GetSource());
 
     const auto endpoint = fmt::format("[::1]:{}", kPort);
     auto client =
@@ -81,7 +86,8 @@ UTEST_P_MT(GrpcChannels, TryWaitForConnected, 2) {
   engine::SleepFor(kServerStartDelay);
 
   UnitTestServiceSimple service;
-  ugrpc::server::Server server(MakeServerConfig(), statistics_storage);
+  ugrpc::server::Server server(MakeServerConfig(), statistics_storage,
+                               config_storage.GetSource());
   ugrpc::server::Middlewares mws;
   server.AddService(service, engine::current_task::GetTaskProcessor(), mws);
   server.Start();

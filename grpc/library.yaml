@@ -7,3 +7,7 @@ description: Userver component for gRPC protocol
 
 libraries:
   - userver-core
+
+configs:
+    names:
+      - USERVER_GRPC_CLIENT_ENABLE_DEADLINE_PROPAGATION

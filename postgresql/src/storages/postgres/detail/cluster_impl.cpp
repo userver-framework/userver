@@ -111,7 +111,7 @@ ClusterImpl::ClusterImpl(DsnList dsns, clients::dns::Resolver* resolver,
         cluster_settings.conn_settings,
         cluster_settings.statement_metrics_settings, default_cmd_ctls_,
         testsuite_pg_ctl, ei_settings, cluster_settings.cc_config,
-        config_source));
+        config_source_));
   }
   LOG_DEBUG() << "Pools initialized";
 

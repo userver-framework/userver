@@ -1,9 +1,12 @@
 #include <userver/utest/utest.hpp>
 
+#include <userver/dynamic_config/storage_mock.hpp>
+#include <userver/dynamic_config/test_helpers.hpp>
 #include <userver/engine/async.hpp>
 #include <userver/engine/single_consumer_event.hpp>
 #include <userver/engine/sleep.hpp>
 
+#include <ugrpc/client/impl/client_configs.hpp>
 #include <userver/ugrpc/client/client_factory.hpp>
 #include <userver/ugrpc/client/exceptions.hpp>
 #include <userver/ugrpc/client/queue_holder.hpp>
@@ -68,22 +71,12 @@ class UnitTestServiceEcho final : public sample::ugrpc::UnitTestServiceBase {
   }
 };
 
-ugrpc::server::ServerConfig MakeServerConfig() {
-  ugrpc::server::ServerConfig config;
-  config.port = 0;
-  return config;
-}
+using GrpcServerEcho = GrpcServiceFixtureSimple<UnitTestServiceEcho>;
 
 }  // namespace
 
-UTEST_MT(GrpcServer, DestroyServerDuringRequest, 2) {
-  UnitTestServiceEcho service;
+UTEST_F_MT(GrpcServerEcho, DestroyServerDuringRequest, 2) {
   utils::statistics::Storage statistics_storage;
-
-  ugrpc::server::Server server(MakeServerConfig(), statistics_storage);
-  ugrpc::server::Middlewares mws;
-  server.AddService(service, engine::current_task::GetTaskProcessor(), mws);
-  server.Start();
 
   // A separate client queue is necessary, since the client stops after the
   // server in this test.
@@ -94,9 +87,9 @@ UTEST_MT(GrpcServer, DestroyServerDuringRequest, 2) {
   ugrpc::client::ClientFactory client_factory(
       ugrpc::client::ClientFactoryConfig{},
       engine::current_task::GetTaskProcessor(), mwfs, client_queue.GetQueue(),
-      statistics_storage, ts);
+      statistics_storage, ts, GetConfigSource());
 
-  const std::string endpoint = fmt::format("[::1]:{}", server.GetPort());
+  const std::string endpoint = fmt::format("[::1]:{}", GetServer().GetPort());
   auto client = client_factory.MakeClient<sample::ugrpc::UnitTestServiceClient>(
       "test", endpoint);
 
@@ -117,12 +110,13 @@ UTEST_MT(GrpcServer, DestroyServerDuringRequest, 2) {
     UEXPECT_NO_THROW(EXPECT_FALSE(call.Read(response)));
   });
 
-  server.Stop();
   complete_rpc.Get();
 }
 
 UTEST(GrpcServer, DeadlineAffectsWaitForReady) {
   utils::statistics::Storage statistics_storage;
+  dynamic_config::StorageMock config_storage{
+      dynamic_config::MakeDefaultStorage({})};
   ugrpc::client::QueueHolder client_queue;
   const std::string endpoint = "[::1]:1234";
 
@@ -131,7 +125,7 @@ UTEST(GrpcServer, DeadlineAffectsWaitForReady) {
   ugrpc::client::ClientFactory client_factory(
       ugrpc::client::ClientFactoryConfig{},
       engine::current_task::GetTaskProcessor(), mws, client_queue.GetQueue(),
-      statistics_storage, ts);
+      statistics_storage, ts, config_storage.GetSource());
 
   auto client = client_factory.MakeClient<sample::ugrpc::UnitTestServiceClient>(
       "test", endpoint);

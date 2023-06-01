@@ -1,15 +1,23 @@
 #include <userver/ugrpc/client/impl/async_methods.hpp>
 
 #include <fmt/format.h>
+#include <grpcpp/support/status.h>
 
+#include <userver/dynamic_config/snapshot.hpp>
+#include <userver/engine/deadline.hpp>
+#include <userver/server/request/task_inherited_data.hpp>
 #include <userver/tracing/tags.hpp>
 #include <userver/utils/algo.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/impl/source_location.hpp>
+#include <userver/utils/impl/userver_experiments.hpp>
 
+#include <ugrpc/client/impl/client_configs.hpp>
 #include <ugrpc/impl/rpc_metadata_keys.hpp>
 #include <ugrpc/impl/status.hpp>
 #include <ugrpc/impl/to_string.hpp>
+#include <userver/ugrpc/client/exceptions.hpp>
+#include <userver/ugrpc/impl/deadline_timepoint.hpp>
 #include <userver/ugrpc/impl/status_codes.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -54,7 +62,49 @@ void SetErrorForSpan(RpcData& data, std::string&& message) {
   data.ResetSpan();
 }
 
+void UpdateDeadline(RpcData& data) {
+  // Disable by experiment
+  if (!utils::impl::kGrpcDeadlinePropagationExperiment.IsEnabled()) {
+    return;
+  }
+
+  // Disable by config
+  if (!data.GetConfigValues().enforce_task_deadline) {
+    return;
+  }
+
+  auto& span = data.GetSpan();
+  auto& context = data.GetContext();
+
+  const auto context_deadline =
+      engine::Deadline::FromTimePoint(context.deadline());
+  const engine::Deadline task_deadline =
+      server::request::GetTaskInheritedDeadline();
+
+  if (!task_deadline.IsReachable() && !context_deadline.IsReachable()) {
+    return;
+  }
+
+  engine::Deadline result_deadline{context_deadline};
+
+  if (task_deadline < context_deadline) {
+    span.AddTag("deadline_updated", true);
+    data.SetDeadlinePropagated();
+    result_deadline = task_deadline;
+  }
+
+  auto result_deadline_ms =
+      std::chrono::duration_cast<std::chrono::milliseconds>(
+          result_deadline.TimeLeft());
+
+  context.set_deadline(result_deadline);
+  span.AddTag(tracing::kTimeoutMs, result_deadline_ms.count());
+}
+
 }  // namespace
+
+RpcConfigValues::RpcConfigValues(const dynamic_config::Snapshot& config)
+    : enforce_task_deadline(config[kEnforceClientTaskDeadline]) {}
 
 FutureImpl::FutureImpl(RpcData& data) noexcept : data_(&data) {}
 
@@ -80,14 +130,17 @@ void FutureImpl::ClearData() noexcept { data_ = nullptr; }
 RpcData::RpcData(std::string_view client_name,
                  std::unique_ptr<grpc::ClientContext>&& context,
                  std::string_view call_name,
-                 ugrpc::impl::MethodStatistics& statistics)
+                 ugrpc::impl::MethodStatistics& statistics,
+                 dynamic_config::Snapshot&& config)
     : context_(std::move(context)),
       client_name_(client_name),
       call_name_(call_name),
-      stats_scope_(statistics) {
+      stats_scope_(statistics),
+      config_values_(std::move(config)) {
   UASSERT(context_);
   UASSERT(!client_name_.empty());
   SetupSpan(span_, *context_, call_name_);
+  UpdateDeadline(*this);
 }
 
 RpcData::~RpcData() {
@@ -107,6 +160,10 @@ const grpc::ClientContext& RpcData::GetContext() const noexcept {
 grpc::ClientContext& RpcData::GetContext() noexcept {
   UASSERT(context_);
   return *context_;
+}
+
+const RpcConfigValues& RpcData::GetConfigValues() const noexcept {
+  return config_values_;
 }
 
 std::string_view RpcData::GetCallName() const noexcept {
@@ -145,6 +202,17 @@ void RpcData::SetFinished() noexcept {
 bool RpcData::IsFinished() const noexcept {
   UASSERT(context_);
   return is_finished_;
+}
+
+void RpcData::SetDeadlinePropagated() noexcept {
+  UASSERT(context_);
+  stats_scope_.OnDeadlinePropagated();
+  is_deadline_propagated_ = true;
+}
+
+bool RpcData::IsDeadlinePropagated() const noexcept {
+  UASSERT(context_);
+  return is_deadline_propagated_;
 }
 
 void RpcData::SetWritesFinished() noexcept {
@@ -212,6 +280,11 @@ void ProcessFinishResult(RpcData& data, bool ok, grpc::Status& status,
     }
 
     SetStatusDetailsForSpan(data, status, gstatus_string);
+    if (status.error_code() == grpc::StatusCode::DEADLINE_EXCEEDED &&
+        data.IsDeadlinePropagated()) {
+      data.GetStatsScope().CancelledByDeadlinePropagation();
+    }
+
     if (throw_on_error) {
       impl::ThrowErrorWithStatus(data.GetCallName(), std::move(status),
                                  std::move(gstatus), std::move(gstatus_string));

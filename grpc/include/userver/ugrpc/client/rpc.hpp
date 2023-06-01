@@ -10,6 +10,7 @@
 
 #include <grpcpp/impl/codegen/proto_utils.h>
 
+#include <userver/dynamic_config/snapshot.hpp>
 #include <userver/utils/assert.hpp>
 
 #include <userver/ugrpc/client/exceptions.hpp>
@@ -97,9 +98,11 @@ class CallAnyBase {
   CallAnyBase(std::string_view client_name,
               std::unique_ptr<grpc::ClientContext>&& context,
               std::string_view call_name,
-              ugrpc::impl::MethodStatistics& statistics)
+              ugrpc::impl::MethodStatistics& statistics,
+              dynamic_config::Snapshot&& config)
       : data_(std::make_unique<impl::RpcData>(client_name, std::move(context),
-                                              call_name, statistics)) {}
+                                              call_name, statistics,
+                                              std::move(config))) {}
   /// @endcond
 
  public:
@@ -153,6 +156,7 @@ class [[nodiscard]] UnaryCall final : public CallAnyBase {
   template <typename Stub, typename Request>
   UnaryCall(
       std::string_view client_name, Stub& stub, grpc::CompletionQueue& queue,
+      dynamic_config::Snapshot&& config,
       impl::RawResponseReaderPreparer<Stub, Request, Response> prepare_func,
       std::string_view call_name, const Middlewares& mws,
       std::unique_ptr<grpc::ClientContext> context,
@@ -197,7 +201,7 @@ class [[nodiscard]] InputStream final : public CallAnyBase {
 
   template <typename Stub, typename Request>
   InputStream(std::string_view client_name, Stub& stub,
-              grpc::CompletionQueue& queue,
+              grpc::CompletionQueue& queue, dynamic_config::Snapshot&& config,
               impl::RawReaderPreparer<Stub, Request, Response> prepare_func,
               std::string_view call_name, const Middlewares& mws,
               std::unique_ptr<grpc::ClientContext> context,
@@ -268,7 +272,7 @@ class [[nodiscard]] OutputStream final : public CallAnyBase {
 
   template <typename Stub>
   OutputStream(std::string_view client_name, Stub& stub,
-               grpc::CompletionQueue& queue,
+               grpc::CompletionQueue& queue, dynamic_config::Snapshot&& config,
                impl::RawWriterPreparer<Stub, Request, Response> prepare_func,
                std::string_view call_name, const Middlewares& mws,
                std::unique_ptr<grpc::ClientContext> context,
@@ -372,6 +376,7 @@ class [[nodiscard]] BidirectionalStream final : public CallAnyBase {
   template <typename Stub>
   BidirectionalStream(
       std::string_view client_name, Stub& stub, grpc::CompletionQueue& queue,
+      dynamic_config::Snapshot&& config,
       impl::RawReaderWriterPreparer<Stub, Request, Response> prepare_func,
       std::string_view call_name, const Middlewares& mws,
       std::unique_ptr<grpc::ClientContext> context,
@@ -442,11 +447,13 @@ template <typename Response>
 template <typename Stub, typename Request>
 UnaryCall<Response>::UnaryCall(
     std::string_view client_name, Stub& stub, grpc::CompletionQueue& queue,
+    dynamic_config::Snapshot&& config,
     impl::RawResponseReaderPreparer<Stub, Request, Response> prepare_func,
     std::string_view call_name, const Middlewares& mws,
     std::unique_ptr<grpc::ClientContext> context,
     ugrpc::impl::MethodStatistics& statistics, const Request& req)
-    : CallAnyBase(client_name, std::move(context), call_name, statistics) {
+    : CallAnyBase(client_name, std::move(context), call_name, statistics,
+                  std::move(config)) {
   CallMiddlewares(
       mws, *this,
       [&] {
@@ -480,11 +487,13 @@ template <typename Response>
 template <typename Stub, typename Request>
 InputStream<Response>::InputStream(
     std::string_view client_name, Stub& stub, grpc::CompletionQueue& queue,
+    dynamic_config::Snapshot&& config,
     impl::RawReaderPreparer<Stub, Request, Response> prepare_func,
     std::string_view call_name, const Middlewares& mws,
     std::unique_ptr<grpc::ClientContext> context,
     ugrpc::impl::MethodStatistics& statistics, const Request& req)
-    : CallAnyBase(client_name, std::move(context), call_name, statistics),
+    : CallAnyBase(client_name, std::move(context), call_name, statistics,
+                  std::move(config)),
       stream_((stub.*prepare_func)(&GetData().GetContext(), req, &queue)) {
   CallMiddlewares(
       mws, *this, [this] { impl::StartCall(*stream_, GetData()); }, &req);
@@ -507,11 +516,13 @@ template <typename Request, typename Response>
 template <typename Stub>
 OutputStream<Request, Response>::OutputStream(
     std::string_view client_name, Stub& stub, grpc::CompletionQueue& queue,
+    dynamic_config::Snapshot&& config,
     impl::RawWriterPreparer<Stub, Request, Response> prepare_func,
     std::string_view call_name, const Middlewares& mws,
     std::unique_ptr<grpc::ClientContext> context,
     ugrpc::impl::MethodStatistics& statistics)
-    : CallAnyBase(client_name, std::move(context), call_name, statistics),
+    : CallAnyBase(client_name, std::move(context), call_name, statistics,
+                  std::move(config)),
       final_response_(std::make_unique<Response>()),
       // 'final_response_' will be filled upon successful 'Finish' async call
       stream_((stub.*prepare_func)(&GetData().GetContext(),
@@ -557,11 +568,13 @@ template <typename Request, typename Response>
 template <typename Stub>
 BidirectionalStream<Request, Response>::BidirectionalStream(
     std::string_view client_name, Stub& stub, grpc::CompletionQueue& queue,
+    dynamic_config::Snapshot&& config,
     impl::RawReaderWriterPreparer<Stub, Request, Response> prepare_func,
     std::string_view call_name, const Middlewares& mws,
     std::unique_ptr<grpc::ClientContext> context,
     ugrpc::impl::MethodStatistics& statistics)
-    : CallAnyBase(client_name, std::move(context), call_name, statistics),
+    : CallAnyBase(client_name, std::move(context), call_name, statistics,
+                  std::move(config)),
       stream_((stub.*prepare_func)(&GetData().GetContext(), &queue)) {
   CallMiddlewares(
       mws, *this, [this] { impl::StartCall(*stream_, GetData()); }, nullptr);

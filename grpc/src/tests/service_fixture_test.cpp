@@ -2,6 +2,7 @@
 
 #include <fmt/format.h>
 
+#include <userver/dynamic_config/test_helpers.hpp>
 #include <userver/engine/task/task.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -17,7 +18,10 @@ ugrpc::server::ServerConfig MakeServerConfig() {
 }  // namespace
 
 GrpcServiceFixture::GrpcServiceFixture()
-    : server_(MakeServerConfig(), statistics_storage_), testsuite_({}, false) {}
+    : config_storage_(dynamic_config::MakeDefaultStorage({})),
+      server_(MakeServerConfig(), statistics_storage_,
+              config_storage_.GetSource()),
+      testsuite_({}, false) {}
 
 GrpcServiceFixture::~GrpcServiceFixture() = default;
 
@@ -33,7 +37,8 @@ void GrpcServiceFixture::StartServer(
   client_factory_.emplace(std::move(client_factory_config),
                           engine::current_task::GetTaskProcessor(),
                           middleware_factories_, server_.GetCompletionQueue(),
-                          statistics_storage_, testsuite_);
+                          statistics_storage_, testsuite_,
+                          config_storage_.GetSource());
 }
 
 void GrpcServiceFixture::StopServer() noexcept {
@@ -48,6 +53,11 @@ utils::statistics::Snapshot GrpcServiceFixture::GetStatistics(
                                      std::move(require_labels)};
 }
 
+void GrpcServiceFixture::ExtendDynamicConfig(
+    const std::vector<dynamic_config::KeyValue>& overrides) {
+  config_storage_.Extend(overrides);
+}
+
 ugrpc::server::Server& GrpcServiceFixture::GetServer() noexcept {
   return server_;
 }
@@ -55,6 +65,10 @@ ugrpc::server::Server& GrpcServiceFixture::GetServer() noexcept {
 ugrpc::client::MiddlewareFactories&
 GrpcServiceFixture::GetMiddlewareFactories() {
   return middleware_factories_;
+}
+
+dynamic_config::Source GrpcServiceFixture::GetConfigSource() const {
+  return config_storage_.GetSource();
 }
 
 USERVER_NAMESPACE_END

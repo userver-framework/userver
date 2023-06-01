@@ -89,7 +89,8 @@ ClientFactory::ClientFactory(ClientFactoryConfig&& config,
                              MiddlewareFactories mws,
                              grpc::CompletionQueue& queue,
                              utils::statistics::Storage& statistics_storage,
-                             testsuite::GrpcControl& testsuite_grpc)
+                             testsuite::GrpcControl& testsuite_grpc,
+                             dynamic_config::Source source)
     : channel_task_processor_(channel_task_processor),
       mws_(mws),
       queue_(queue),
@@ -97,7 +98,8 @@ ClientFactory::ClientFactory(ClientFactoryConfig&& config,
                          ? config.credentials
                          : grpc::InsecureChannelCredentials(),
                      config.channel_args, config.channel_count),
-      client_statistics_storage_(statistics_storage, "client") {
+      client_statistics_storage_(statistics_storage, "client"),
+      config_source_(source) {
   ugrpc::impl::SetupNativeLogging();
   ugrpc::impl::UpdateNativeLogLevel(config.native_log_level);
 }
