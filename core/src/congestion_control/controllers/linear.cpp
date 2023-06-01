@@ -102,7 +102,7 @@ LinearController::StaticConfig Parse(
   config.safe_limit = value["safe-limit"].As<int64_t>(kSafeDeltaLimit);
   config.threshold_percent =
       value["threshold-percent"].As<double>(kTimeoutThreshold);
-  config.fake_mode = value["fake-mode"].As<bool>(false);
+  config.fake_mode = value["fake-mode"].As<bool>(true);
   config.enabled = value["enabled"].As<bool>(true);
   return config;
 }
