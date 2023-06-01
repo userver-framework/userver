@@ -2,19 +2,26 @@
 # wrappers. A separate target is required as gRPC generated headers require
 # relaxed compilation flags.
 
-if (USERVER_CONAN)
+if(USERVER_CONAN)
   find_package(gRPC REQUIRED)
-  set(GRPC_PROTOBUF_INCLUDE_DIRS "${protobuf_INCLUDE_DIR}")
+  set(USERVER_PROTOBUF_IMPORT_DIR "${protobuf_INCLUDE_DIR}")
   get_target_property(PROTO_GRPC_CPP_PLUGIN gRPC::grpc_cpp_plugin LOCATION)
   get_target_property(PROTO_GRPC_PYTHON_PLUGIN gRPC::grpc_python_plugin LOCATION)
 else()
-  # Use the builtin CMake FindProtobuf
-  set(GRPC_PROTOBUF_INCLUDE_DIRS "${Protobuf_INCLUDE_DIRS}")
+  # Relying on having found Protobuf in root userver CMakeLists.txt
+  if(Protobuf_INCLUDE_DIR)
+    set(USERVER_PROTOBUF_IMPORT_DIR "${Protobuf_INCLUDE_DIR}")
+  else()
+    set(USERVER_PROTOBUF_IMPORT_DIR "${Protobuf_INCLUDE_DIRS}")
+  endif()
 
+  if(NOT Protobuf_FOUND)
+    include(SetupProtobuf)
+  endif()
   include(SetupGrpc)
 endif()
 
-if (NOT GRPC_PROTOBUF_INCLUDE_DIRS)
+if (NOT USERVER_PROTOBUF_IMPORT_DIR)
   message(FATAL_ERROR "Invalid Protobuf package")
 endif()
 if (NOT gRPC_VERSION)
@@ -110,7 +117,7 @@ function(generate_grpc_files)
   list(TRANSFORM proto_dependencies_globs APPEND "/*.proto")
   list(APPEND proto_dependencies_globs
     "${root_path}/*.proto"
-    "${GRPC_PROTOBUF_INCLUDE_DIRS}/*.proto"
+    "${USERVER_PROTOBUF_IMPORT_DIR}/*.proto"
     "${USERVER_DIR}/scripts/grpc/*"
   )
   file(GLOB_RECURSE proto_dependencies ${proto_dependencies_globs})
@@ -151,7 +158,7 @@ function(generate_grpc_files)
               --grpc_python_out=${GENERATED_PROTO_DIR}
               ${pyi_out_param}
               -I ${root_path}
-              -I ${GRPC_PROTOBUF_INCLUDE_DIRS}
+              -I ${USERVER_PROTOBUF_IMPORT_DIR}
               --plugin=protoc-gen-grpc=${PROTO_GRPC_CPP_PLUGIN}
               --plugin=protoc-gen-usrv=${PROTO_GRPC_USRV_PLUGIN}
               --plugin=protoc-gen-grpc_python=${PROTO_GRPC_PYTHON_PLUGIN}
