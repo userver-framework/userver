@@ -396,19 +396,6 @@ properties:
 
 Used by components::Postgres.
 
-
-@anchor POSTGRES_CONNECTION_PIPELINE_MODE_ENABLED
-## POSTGRES_CONNECTION_PIPELINE_MODE_ENABLED
-
-Dynamic config that enables pipeline mode for PostgreSQL connections.
-
-```
-yaml
-default: false
-schema:
-  type: boolean
-```
-
 @anchor POSTGRES_CONNLIMIT_MODE_AUTO_ENABLED
 ## POSTGRES_CONNLIMIT_MODE_AUTO_ENABLED
 

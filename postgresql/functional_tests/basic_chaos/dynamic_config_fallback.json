@@ -11,7 +11,7 @@
     "cancel-request": false,
     "update-timeout": false
   },
-  "POSTGRES_CONNECTION_PIPELINE_MODE_ENABLED": false,
+  "POSTGRES_CONNECTION_PIPELINE_EXPERIMENT": 0,
   "POSTGRES_CONNECTION_POOL_SETTINGS": {},
   "POSTGRES_CONNECTION_SETTINGS": {
     "__default__": {

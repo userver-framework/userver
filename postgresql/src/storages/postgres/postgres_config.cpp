@@ -2,6 +2,7 @@
 
 #include <userver/logging/log.hpp>
 
+#include <storages/postgres/experiments.hpp>
 #include <userver/storages/postgres/component.hpp>
 #include <userver/storages/postgres/exceptions.hpp>
 
@@ -137,8 +138,8 @@ StatementMetricsSettings Parse(const yaml_config::YamlConfig& config,
 }
 
 PipelineMode ParsePipelineMode(const dynamic_config::DocsMap& docs_map) {
-  return docs_map.Get("POSTGRES_CONNECTION_PIPELINE_MODE_ENABLED")
-                 .As<bool>(false)
+  return docs_map.Get("POSTGRES_CONNECTION_PIPELINE_EXPERIMENT").As<int>(0) ==
+                 kPipelineExperimentVersion
              ? PipelineMode::kEnabled
              : PipelineMode::kDisabled;
 }
