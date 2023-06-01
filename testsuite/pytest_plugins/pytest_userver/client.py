@@ -379,45 +379,6 @@ class ClientMonitor(ClientWrapper):
     """
 
     @_wrap_client_error
-    async def get_metrics(self, prefix=None):
-        """
-        @deprecated Use metrics() or single_metric() instead
-        """
-        return await self._client.get_metrics(prefix=prefix)
-
-    @_wrap_client_error
-    async def get_metric(self, metric_name):
-        """
-        @deprecated Use metrics() or single_metric() instead
-        """
-        return await self._client.get_metric(metric_name)
-
-    @_wrap_client_error
-    async def metrics_raw(
-            self,
-            output_format: str,
-            *,
-            path: str = None,
-            prefix: str = None,
-            labels: typing.Optional[typing.Dict[str, str]] = None,
-    ) -> typing.Dict[str, Metric]:
-        """
-        Low level function that returns metrics in a specific format.
-
-        @param output_format Metric output format. See
-               server::handlers::ServerMonitor for a list of supported formats.
-        @param path Optional full metric path
-        @param prefix Optional prefix on which the metric paths should start
-        @param labels Optional dictionary of labels that must be in the metric
-        """
-        return await self._client.metrics_raw(
-            output_format=output_format,
-            path=path,
-            prefix=prefix,
-            labels=labels,
-        )
-
-    @_wrap_client_error
     async def metrics(
             self,
             *,
@@ -469,6 +430,46 @@ class ClientMonitor(ClientWrapper):
         @throws AssertionError if more than one metric or no metric found
         """
         return await self._client.single_metric(path, labels=labels)
+
+    @_wrap_client_error
+    async def metrics_raw(
+            self,
+            output_format: str,
+            *,
+            path: str = None,
+            prefix: str = None,
+            labels: typing.Optional[typing.Dict[str, str]] = None,
+    ) -> typing.Dict[str, Metric]:
+        """
+        Low level function that returns metrics in a specific format.
+        Use `metrics` and `single_metric` instead if possible.
+
+        @param output_format Metric output format. See
+               server::handlers::ServerMonitor for a list of supported formats.
+        @param path Optional full metric path
+        @param prefix Optional prefix on which the metric paths should start
+        @param labels Optional dictionary of labels that must be in the metric
+        """
+        return await self._client.metrics_raw(
+            output_format=output_format,
+            path=path,
+            prefix=prefix,
+            labels=labels,
+        )
+
+    @_wrap_client_error
+    async def get_metrics(self, prefix=None):
+        """
+        @deprecated Use metrics() or single_metric() instead
+        """
+        return await self._client.get_metrics(prefix=prefix)
+
+    @_wrap_client_error
+    async def get_metric(self, metric_name):
+        """
+        @deprecated Use metrics() or single_metric() instead
+        """
+        return await self._client.get_metric(metric_name)
 
 
 # @cond

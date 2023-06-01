@@ -4,6 +4,7 @@
 
 #include <userver/formats/json/value_builder.hpp>
 #include <userver/utils/assert.hpp>
+#include <userver/utils/overloaded.hpp>
 #include <userver/utils/statistics/storage.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -19,8 +20,11 @@ class JsonFormat final : public utils::statistics::BaseFormatBuilder {
   void HandleMetric(std::string_view path, utils::statistics::LabelsSpan labels,
                     const MetricValue& value) override {
     formats::json::ValueBuilder node;
-    value.Visit([&node](auto v) { node["value"] = v; });
+    value.Visit([&node](const auto& v) { node["value"] = v; });
     node["labels"] = BuildLabels(labels);
+    node["type"] = value.Visit(utils::Overloaded{
+        [](const Rate&) -> std::string_view { return "RATE"; },
+        [](const auto&) -> std::string_view { return "GAUGE"; }});
 
     builder_[std::string{path}].PushBack(std::move(node));
   }
