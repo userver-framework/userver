@@ -19,6 +19,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::mongo::stats {
 
+using Rate = utils::statistics::Rate;
 using Counter = utils::statistics::RateCounter;
 using TimingsPercentile =
     utils::statistics::Percentile</*buckets =*/1000, uint32_t,
@@ -52,17 +53,14 @@ inline constexpr auto kErrorTypesCount =
 struct OperationStatisticsItem final {
   void Account(ErrorType) noexcept;
 
-  void EnterQuery();
-
   void Reset();
 
+  Rate GetCounter(ErrorType) const noexcept;
+
+  Rate GetTotalQueries() const noexcept;
+
   std::array<Counter, kErrorTypesCount> counters;
-
-  // TODO(TAXICOMMON-6404) remove
-  std::atomic<size_t> total_queries{0};
-  std::atomic<size_t> network_errors{0};
-  std::atomic<size_t> timings_sum{0};
-
+  Counter timings_sum{0};
   AggregatedTimingsPercentile timings;
 };
 

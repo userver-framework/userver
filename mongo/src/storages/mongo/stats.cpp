@@ -49,18 +49,25 @@ auto GetMilliseconds(const std::chrono::duration<Rep, Period>& duration) {
 
 void OperationStatisticsItem::Account(ErrorType error_type) noexcept {
   ++counters[static_cast<std::size_t>(error_type)];
-  if (error_type == ErrorType::kNetwork ||
-      error_type == ErrorType::kClusterUnavailable)
-    ++network_errors;
 }
-
-void OperationStatisticsItem::EnterQuery() { ++total_queries; }
 
 void OperationStatisticsItem::Reset() {
   for (auto& counter : counters) {
     ResetMetric(counter);
   }
   timings.Reset();
+}
+
+Rate OperationStatisticsItem::GetCounter(ErrorType error_type) const noexcept {
+  return counters[static_cast<std::size_t>(error_type)].Load();
+}
+
+Rate OperationStatisticsItem::GetTotalQueries() const noexcept {
+  utils::statistics::Rate result;
+  for (const auto& counter : counters) {
+    result += counter.Load();
+  }
+  return result;
 }
 
 std::string_view ToString(ErrorType type) {
@@ -176,8 +183,10 @@ void OperationStopwatch::Account(ErrorType error_type) noexcept {
   try {
     stats_item->Account(error_type);
     auto ms = GetMilliseconds(scope_time_.Reset());
+    UASSERT(ms >= 0);
     stats_item->timings.GetCurrentCounter().Account(ms);
-    stats_item->timings_sum += ms;
+    stats_item->timings_sum += utils::statistics::Rate{
+        static_cast<utils::statistics::Rate::ValueType>(ms)};
   } catch (const std::exception&) {
     // ignore
   }

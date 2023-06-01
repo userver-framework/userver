@@ -570,8 +570,6 @@ RequestContext CDriverCollectionImpl::MakeRequestContext(
     throw CancelledException("Operation cancelled (deadline propagation)");
   }
 
-  stats->EnterQuery();
-
   if (inherited_deadline) {
     span.AddTag(tracing::kTimeoutMs, inherited_deadline->count());
   }

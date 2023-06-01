@@ -5,8 +5,6 @@ async def test_metrics_smoke(monitor_client, force_metrics_to_appear):
 
 async def test_metrics_portability(service_client, force_metrics_to_appear):
     warnings = await service_client.metrics_portability()
-    # TODO use separate paths for total metrics
-    warnings.pop('label_name_mismatch', None)
     assert not warnings
 
 

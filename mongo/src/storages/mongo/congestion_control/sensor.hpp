@@ -14,6 +14,15 @@ class PoolImpl;
 
 namespace cc {
 
+struct AccumulatedData final {
+  std::uint64_t total_queries{0};
+  std::uint64_t timeouts{0};
+  std::uint64_t timings_sum{0};
+};
+
+AccumulatedData operator-(const AccumulatedData& lhs,
+                          const AccumulatedData& rhs) noexcept;
+
 class Sensor final : public congestion_control::v2::Sensor {
  public:
   explicit Sensor(impl::PoolImpl& pool);
@@ -22,9 +31,7 @@ class Sensor final : public congestion_control::v2::Sensor {
 
  private:
   impl::PoolImpl& pool_;
-  int64_t last_total_queries{};
-  int64_t last_timeouted_queries{};
-  int64_t last_timings_sum{};
+  AccumulatedData last_data_;
 };
 
 }  // namespace cc
