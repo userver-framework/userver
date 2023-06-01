@@ -334,7 +334,7 @@ IsCancelledByDeadline SetUpInheritedData(
   const auto timeout = ParseTimeout(processor.GetRequest());
   if (timeout) {
     auto& span = tracing::Span::CurrentSpan();
-    span.AddNonInheritableTag("deadline_received", timeout->count());
+    span.AddNonInheritableTag("deadline_received_ms", timeout->count());
 
     const auto deadline = engine::Deadline::FromTimePoint(
         processor.GetRequest().GetStartTime() + *timeout);
