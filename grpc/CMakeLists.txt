@@ -1,4 +1,4 @@
-project(userver-grpc-internal CXX)
+project(userver-grpc CXX)
 
 include(GrpcTargets)
 
@@ -43,11 +43,11 @@ if (api-common-proto_USRV_SOURCES)
   list(APPEND SOURCES ${api-common-proto_USRV_SOURCES})
 endif()
 
-add_library(${PROJECT_NAME} STATIC ${SOURCES})
+add_library(${PROJECT_NAME}-internal STATIC ${SOURCES})
 
-set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
+set_target_properties(${PROJECT_NAME}-internal PROPERTIES LINKER_LANGUAGE CXX)
 
-target_include_directories(${PROJECT_NAME}
+target_include_directories(${PROJECT_NAME}-internal
   PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/include
   PRIVATE
@@ -55,10 +55,10 @@ target_include_directories(${PROJECT_NAME}
 )
 
 if (DEFINED api-common-proto_LIBRARY)
-  target_link_libraries(${PROJECT_NAME} PUBLIC ${api-common-proto_LIBRARY})
+  target_link_libraries(${PROJECT_NAME}-internal PUBLIC ${api-common-proto_LIBRARY})
 endif()
 
-target_link_libraries(${PROJECT_NAME} PUBLIC userver-core)
+target_link_libraries(${PROJECT_NAME}-internal PUBLIC userver-core)
 
 set(CHANNELZ_MIN_VERSION "1.17.0")
 if (${gRPC_VERSION} VERSION_GREATER_EQUAL ${CHANNELZ_MIN_VERSION})
@@ -81,15 +81,15 @@ if (USERVER_FEATURE_GRPC_CHANNELZ)
             add_library(gRPC::grpcpp_channelz ALIAS GrpcChannelz)
         endif()
     endif()
-    target_link_libraries(${PROJECT_NAME} PUBLIC gRPC::grpcpp_channelz)
+    target_link_libraries(${PROJECT_NAME}-internal PUBLIC gRPC::grpcpp_channelz)
 else()
     message(STATUS "gRPC Channelz disabled, install gRPC >= ${CHANNELZ_MIN_VERSION} to enable")
-    target_compile_definitions(${PROJECT_NAME} PRIVATE
+    target_compile_definitions(${PROJECT_NAME}-internal PRIVATE
         "USERVER_DISABLE_GRPC_CHANNELZ=1"
     )
 endif()
 
-target_link_libraries(${PROJECT_NAME} PUBLIC ${PROJECT_NAME}-deps)
+target_link_libraries(${PROJECT_NAME}-internal PUBLIC ${PROJECT_NAME}-deps)
 
 if (USERVER_IS_THE_ROOT_PROJECT)
     add_executable(${PROJECT_NAME}_unittest ${UNIT_TEST_SOURCES})
@@ -99,7 +99,7 @@ if (USERVER_IS_THE_ROOT_PROJECT)
     )
     target_link_libraries(${PROJECT_NAME}_unittest
       PUBLIC
-        ${PROJECT_NAME}
+        ${PROJECT_NAME}-internal
         userver-utest
       PRIVATE
         ${PROJECT_NAME}_unittest_proto
@@ -113,6 +113,6 @@ endif()
 
 add_subdirectory(handlers)
 
-add_library(userver-grpc INTERFACE)
-target_link_libraries(userver-grpc INTERFACE userver-grpc-handlers)
-target_link_libraries(userver-grpc INTERFACE userver-grpc-internal)
+add_library(${PROJECT_NAME} INTERFACE)
+target_link_libraries(${PROJECT_NAME} INTERFACE ${PROJECT_NAME}-handlers)
+target_link_libraries(${PROJECT_NAME} INTERFACE ${PROJECT_NAME}-internal)
