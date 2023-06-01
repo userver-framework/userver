@@ -48,7 +48,7 @@ using GrpcAsyncClientTest = GrpcServiceFixtureSimple<AsyncTestService>;
 UTEST_F(GrpcAsyncClientErrorTest, DISABLED_BidirectionalStreamAsyncRead) {
   auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
   sample::ugrpc::StreamGreetingResponse in;
-  sample::ugrpc::StreamGreetingRequest out;
+  sample::ugrpc::StreamGreetingRequest out{};
   auto call = client.Chat();
   // This future will never complete with a response, because the service writes
   // nothing
@@ -56,7 +56,6 @@ UTEST_F(GrpcAsyncClientErrorTest, DISABLED_BidirectionalStreamAsyncRead) {
 
   out.set_name("userver");
   out.set_number(42);
-  // NOLINTNEXTLINE(clang-analyzer-optin.cplusplus.UninitializedObject)
   EXPECT_TRUE(call.Write(out));
 
   auto write_result = true;
@@ -64,7 +63,6 @@ UTEST_F(GrpcAsyncClientErrorTest, DISABLED_BidirectionalStreamAsyncRead) {
   while (!deadline.IsReached()) {
     out.set_name("write_fail");
     out.set_number(0xDEAD);
-    // NOLINTNEXTLINE(clang-analyzer-optin.cplusplus.UninitializedObject);
     write_result = call.Write(out);
     if (!write_result) {
       break;
@@ -73,7 +71,6 @@ UTEST_F(GrpcAsyncClientErrorTest, DISABLED_BidirectionalStreamAsyncRead) {
   }
 
   EXPECT_FALSE(write_result);
-  // NOLINTNEXTLINE(clang-analyzer-optin.cplusplus.UninitializedObject)
   UEXPECT_THROW(static_cast<void>(future.Get()), ugrpc::client::InternalError);
 }
 

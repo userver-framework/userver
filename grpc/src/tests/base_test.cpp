@@ -216,13 +216,12 @@ UTEST_F(GrpcClientTest, BidirectionalStream) {
   auto bs_for_move = client.Chat(PrepareClientContext());
   auto bs = std::move(bs_for_move);  // test move operation
 
-  sample::ugrpc::StreamGreetingRequest out;
+  sample::ugrpc::StreamGreetingRequest out{};
   out.set_name("userver");
   sample::ugrpc::StreamGreetingResponse in;
 
   for (auto i = 0; i < 42; ++i) {
     out.set_number(i);
-    // NOLINTNEXTLINE(clang-analyzer-optin.cplusplus.UninitializedObject)
     EXPECT_TRUE(bs.Write(out));
     EXPECT_TRUE(bs.Read(in));
     EXPECT_EQ(in.number(), i + 1);
@@ -237,13 +236,12 @@ UTEST_F(GrpcClientTest, BidirectionalStreamWriteAndCheck) {
   auto bs_for_move = client.Chat(PrepareClientContext());
   auto bs = std::move(bs_for_move);  // test move operation
 
-  sample::ugrpc::StreamGreetingRequest out;
+  sample::ugrpc::StreamGreetingRequest out{};
   out.set_name("userver");
   sample::ugrpc::StreamGreetingResponse in;
 
   for (auto i = 0; i < 42; ++i) {
     out.set_number(i);
-    // NOLINTNEXTLINE(clang-analyzer-optin.cplusplus.UninitializedObject)
     UEXPECT_NO_THROW(bs.WriteAndCheck(out));
     EXPECT_TRUE(bs.Read(in));
     EXPECT_EQ(in.number(), i + 1);

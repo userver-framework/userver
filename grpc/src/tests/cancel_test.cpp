@@ -101,7 +101,6 @@ UTEST_MT(GrpcServer, DestroyServerDuringRequest, 2) {
       "test", endpoint);
 
   auto call = client.Chat();
-  // NOLINTNEXTLINE(clang-analyzer-optin.cplusplus.UninitializedObject)
   EXPECT_TRUE(call.Write({}));
 
   sample::ugrpc::StreamGreetingResponse response;

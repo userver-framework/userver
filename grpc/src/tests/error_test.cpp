@@ -100,7 +100,7 @@ UTEST_F(GrpcClientErrorTest, OutputStream) {
 UTEST_F(GrpcClientErrorTest, DISABLED_OutputStreamErrorOnWrite) {
   auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
   auto call = client.WriteMany();
-  sample::ugrpc::StreamGreetingRequest out;
+  sample::ugrpc::StreamGreetingRequest out{};
   out.set_name("userver");
   out.set_number(42);
   EXPECT_TRUE(call.Write(out));
@@ -110,7 +110,6 @@ UTEST_F(GrpcClientErrorTest, DISABLED_OutputStreamErrorOnWrite) {
   while (!deadline.IsReached()) {
     out.set_name("write_fail");
     out.set_number(0xDEAD);
-    // NOLINTNEXTLINE(clang-analyzer-optin.cplusplus.UninitializedObject);
     write_result = call.Write(out);
     if (!write_result) {
       break;
