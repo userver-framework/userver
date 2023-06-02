@@ -71,6 +71,7 @@ class Span::Impl
   std::string GetParentId() && noexcept { return std::move(parent_id_); }
 
   void SetTraceId(std::string&& id) noexcept { trace_id_ = std::move(id); }
+  void SetSpanId(std::string&& id) noexcept { span_id_ = std::move(id); }
   void SetParentId(std::string&& id) noexcept { parent_id_ = std::move(id); }
 
   ReferenceType GetReferenceType() const noexcept { return reference_type_; }

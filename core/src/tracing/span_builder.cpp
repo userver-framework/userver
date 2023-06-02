@@ -21,6 +21,10 @@ SpanBuilder::SpanBuilder(std::string name,
   }
 }
 
+void SpanBuilder::SetSpanId(std::string parent_span_id) {
+  pimpl_->SetSpanId(std::move(parent_span_id));
+}
+
 void SpanBuilder::SetParentSpanId(std::string parent_span_id) {
   pimpl_->SetParentId(std::move(parent_span_id));
 }
