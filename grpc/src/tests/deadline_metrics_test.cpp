@@ -14,6 +14,7 @@
 #include <userver/utils/impl/userver_experiments.hpp>
 
 #include <ugrpc/client/impl/client_configs.hpp>
+#include <ugrpc/server/impl/server_configs.hpp>
 #include <userver/ugrpc/client/exceptions.hpp>
 
 #include <tests/messages.pb.h>
@@ -58,8 +59,12 @@ class DeadlineStatsTests
   DeadlineStatsTests() {
     ExtendDynamicConfig({
         {ugrpc::client::impl::kEnforceClientTaskDeadline, true},
+        {ugrpc::server::impl::kServerCancelTaskByDeadline, true},
     });
-    experiments_.Set(utils::impl::kGrpcDeadlinePropagationExperiment, true);
+    experiments_.Set(utils::impl::kGrpcClientDeadlinePropagationExperiment,
+                     true);
+    experiments_.Set(utils::impl::kGrpcServerDeadlinePropagationExperiment,
+                     true);
   }
 
   void BeSlow() { GetService().SetWaitDeadline(true); }

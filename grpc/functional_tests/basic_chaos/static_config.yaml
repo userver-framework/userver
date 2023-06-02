@@ -69,4 +69,5 @@ components_manager:
         initial_size: 500
         max_size: 1000
 userver_experiments:
-  - grpc-deadline-propagation
+  - grpc-client-deadline-propagation
+  - grpc-server-deadline-propagation

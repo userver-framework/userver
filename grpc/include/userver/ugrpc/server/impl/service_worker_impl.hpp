@@ -51,7 +51,8 @@ void SetupSpan(std::optional<tracing::InPlaceSpan>& span_holder,
 
 bool CheckAndSetupDeadline(tracing::Span&, grpc::ServerContext&,
                            const std::string&, const std::string&,
-                           ugrpc::impl::RpcStatisticsScope&);
+                           ugrpc::impl::RpcStatisticsScope&,
+                           dynamic_config::Snapshot);
 
 /// Per-gRPC-service data
 template <typename GrpcppService>
@@ -175,8 +176,10 @@ class CallData final {
     };
 
     try {
-      if (!CheckAndSetupDeadline(span_->Get(), context_, service_name,
-                                 method_name, statistics_scope)) {
+      if (!CheckAndSetupDeadline(
+              span_->Get(), context_, service_name, method_name,
+              statistics_scope,
+              method_data_.service_data.settings.config_source.GetSnapshot())) {
         // Can throw RpcInterruptedError, therefore should be placed in try
         // block
         responder.FinishWithError(grpc::Status{

@@ -9,9 +9,11 @@
 #include <userver/utils/algo.hpp>
 #include <userver/utils/from_string.hpp>
 #include <userver/utils/impl/source_location.hpp>
+#include <userver/utils/impl/userver_experiments.hpp>
 
 #include <ugrpc/impl/rpc_metadata_keys.hpp>
 #include <ugrpc/impl/to_string.hpp>
+#include <ugrpc/server/impl/server_configs.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -82,7 +84,8 @@ void SetupSpan(std::optional<tracing::InPlaceSpan>& span_holder,
 bool CheckAndSetupDeadline(tracing::Span& span, grpc::ServerContext& context,
                            const std::string& service_name,
                            const std::string& method_name,
-                           ugrpc::impl::RpcStatisticsScope& statistics_scope) {
+                           ugrpc::impl::RpcStatisticsScope& statistics_scope,
+                           dynamic_config::Snapshot config) {
   auto opt_deadline = TryExtractDeadline(context.deadline());
   if (!opt_deadline) {
     return true;
@@ -97,7 +100,10 @@ bool CheckAndSetupDeadline(tracing::Span& span, grpc::ServerContext& context,
   statistics_scope.OnDeadlinePropagated();
   span.AddNonInheritableTag("cancelled_by_deadline", cancel_by_deadline);
 
-  if (cancel_by_deadline) {
+  if (cancel_by_deadline &&
+      utils::impl::kGrpcServerDeadlinePropagationExperiment.IsEnabled() &&
+      config[kServerCancelTaskByDeadline]) {
+    // Experiment and config are enabled
     statistics_scope.CancelledByDeadlinePropagation();
     return false;
   }

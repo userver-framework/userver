@@ -66,7 +66,8 @@ extern UserverExperiment kRedisClusterAutoTopologyExperiment;
 extern UserverExperiment kPhdrCacheExperiment;
 
 // TODO move to userver/grpc once the issues with linker are resolved.
-extern UserverExperiment kGrpcDeadlinePropagationExperiment;
+extern UserverExperiment kGrpcClientDeadlinePropagationExperiment;
+extern UserverExperiment kGrpcServerDeadlinePropagationExperiment;
 
 }  // namespace utils::impl
 

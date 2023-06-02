@@ -12,6 +12,7 @@
 #include <userver/utils/impl/userver_experiments.hpp>
 
 #include <ugrpc/client/impl/client_configs.hpp>
+#include <ugrpc/server/impl/server_configs.hpp>
 #include <userver/ugrpc/client/exceptions.hpp>
 #include <userver/ugrpc/client/queue_holder.hpp>
 
@@ -136,9 +137,14 @@ class GrpcDeadlinePropagation
         long_deadline_(engine::Deadline::FromDuration(helpers::kLongTimeout)),
         client_(MakeClient<ClientType>()) {
     helpers::InitTaskInheritedDeadline(client_deadline_);
-    ExtendDynamicConfig(
-        {{ugrpc::client::impl::kEnforceClientTaskDeadline, true}});
-    experiments_.Set(utils::impl::kGrpcDeadlinePropagationExperiment, true);
+    ExtendDynamicConfig({
+        {ugrpc::client::impl::kEnforceClientTaskDeadline, true},
+        {ugrpc::server::impl::kServerCancelTaskByDeadline, true},
+    });
+    experiments_.Set(utils::impl::kGrpcClientDeadlinePropagationExperiment,
+                     true);
+    experiments_.Set(utils::impl::kGrpcServerDeadlinePropagationExperiment,
+                     true);
   }
 
   ClientType& Client() { return client_; }

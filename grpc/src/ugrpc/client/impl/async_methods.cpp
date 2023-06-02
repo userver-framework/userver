@@ -64,7 +64,7 @@ void SetErrorForSpan(RpcData& data, std::string&& message) {
 
 void UpdateDeadline(RpcData& data) {
   // Disable by experiment
-  if (!utils::impl::kGrpcDeadlinePropagationExperiment.IsEnabled()) {
+  if (!utils::impl::kGrpcClientDeadlinePropagationExperiment.IsEnabled()) {
     return;
   }
 
