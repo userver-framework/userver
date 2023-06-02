@@ -61,7 +61,7 @@ Telegram support chats: [English-speaking](https://t.me/userver_en) |
 * @ref md_en_userver_grpc
 * HTTP:
     * @ref clients::http::Client "Client"
-    * @ref components::Server "Server"
+    * @ref md_en_userver_http_server
 * @ref rabbitmq_driver
 * Low level:
     * @ref engine::io::TlsWrapper "TLS client and server socket"

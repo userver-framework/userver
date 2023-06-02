@@ -65,6 +65,7 @@ class StreamHandler : public server::handlers::HttpHandlerBase {
         config_source_(
             context.FindComponent<components::DynamicConfig>().GetSource()) {}
 
+  /// [HandleStreamRequest]
   void HandleStreamRequest(
       const server::http::HttpRequest& request,
       server::request::RequestContext&,
@@ -88,7 +89,6 @@ class StreamHandler : public server::handlers::HttpHandlerBase {
                                 ->timeout(timeout_secs)
                                 ->retry(retries);
 
-    // TODO: add settings for the queue size TAXICOMMON-5611
     auto queue = concurrent::StringStreamQueue::Create();
     auto client_response =
         external_request->async_perform_stream_body(std::move(queue));
@@ -119,6 +119,7 @@ class StreamHandler : public server::handlers::HttpHandlerBase {
       TESTPOINT("stream_after_push_body_chunk", {});
     }
   }
+  /// [HandleStreamRequest]
 
  private:
   clients::http::Client& http_client_;

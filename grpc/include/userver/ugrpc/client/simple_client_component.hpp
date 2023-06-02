@@ -19,6 +19,8 @@ class SimpleClientComponentAny : public components::LoggableComponentBase {
   static yaml_config::Schema GetStaticConfigSchema();
 };
 
+// clang-format off
+
 /// @ingroup userver_components
 ///
 /// @brief Template class for a simple gRPC client
@@ -26,6 +28,28 @@ class SimpleClientComponentAny : public components::LoggableComponentBase {
 /// The component is used as a storage of a gRPC client if you're OK with
 /// generated client and don't need to wrap it. The client can be fetched using
 /// `GetClient` method.
+///
+/// Example usage:
+///
+/// ```cpp
+/// int main(...)
+/// {
+///    ...
+///    component_list.Append<ugrpc::client::SimpleClientComponent<MyClient>>();
+///    ...
+/// }
+///
+/// MyComponent::MyComponent(const components::ComponentConfig& config,
+///                          const components::ComponentContext& context)
+/// {
+///    auto& component = context.FindComponent<ugrpc::client::SimpleClientComponent<MyClient>>();
+///    MyClient& client = component.GetClient();
+///    ... use client ...
+/// }
+/// ```
+
+// clang-format on
+
 template <typename Client>
 class SimpleClientComponent final : public SimpleClientComponentAny {
  public:
