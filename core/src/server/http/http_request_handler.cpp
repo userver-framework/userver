@@ -200,13 +200,14 @@ engine::TaskWithResult<void> HttpRequestHandler::StartRequestTask(
   }
 }  // namespace http
 
-void HttpRequestHandler::DisableAddHandler() { add_handler_disabled_ = true; }
+void HttpRequestHandler::DisableAddHandler() {
+  const auto was_enabled = !add_handler_disabled_.exchange(true);
+  UASSERT(was_enabled);
+}
 
 void HttpRequestHandler::AddHandler(const handlers::HttpHandlerBase& handler,
                                     engine::TaskProcessor& task_processor) {
-  if (add_handler_disabled_) {
-    throw std::runtime_error("handler adding disabled");
-  }
+  UASSERT_MSG(!add_handler_disabled_, "handler adding disabled");
   if (is_monitor_ != handler.IsMonitor()) {
     throw std::runtime_error(
         std::string("adding ") + (handler.IsMonitor() ? "" : "non-") +
@@ -217,11 +218,14 @@ void HttpRequestHandler::AddHandler(const handlers::HttpHandlerBase& handler,
   handler_info_index_.AddHandler(handler, task_processor);
 }
 
+bool HttpRequestHandler::IsAddHandlerDisabled() const noexcept {
+  return add_handler_disabled_.load();
+}
+
 const HandlerInfoIndex& HttpRequestHandler::GetHandlerInfoIndex() const {
-  if (!add_handler_disabled_) {
-    throw std::runtime_error(
-        "handler adding must be disabled before GetHandlerInfoIndex() call");
-  }
+  UASSERT_MSG(
+      add_handler_disabled_,
+      "handler adding must be disabled before GetHandlerInfoIndex() call");
   return handler_info_index_;
 }
 

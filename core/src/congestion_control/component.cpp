@@ -151,11 +151,11 @@ void Component::OnConfigUpdate(const dynamic_config::Snapshot& cfg) {
 }
 
 void Component::OnAllComponentsLoaded() {
-  LOG_DEBUG() << "Found " << pimpl_->server.GetRegisteredHandlersCount()
-              << " registered HTTP handlers";
-  if (pimpl_->server.GetRegisteredHandlersCount() == 0) {
+  LOG_DEBUG() << "Found " << pimpl_->server.GetThrottlableHandlersCount()
+              << " registered HTTP handlers with enabled trottling";
+  if (pimpl_->server.GetThrottlableHandlersCount() == 0) {
     pimpl_->force_disabled = true;
-    LOG_WARNING() << "No HTTP handlers registered, disabling";
+    LOG_WARNING() << "No throttlable HTTP handlers registered, disabling";
 
     // apply fake_mode
     OnConfigUpdate(pimpl_->dynamic_config.GetSnapshot());
