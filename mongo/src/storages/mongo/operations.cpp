@@ -110,8 +110,9 @@ void AppendWriteConcern(formats::bson::impl::BsonBuilder& builder,
 }
 
 void AppendUint64Option(formats::bson::impl::BsonBuilder& builder,
-                        const std::string& name, uint64_t value) {
-  if (value > std::numeric_limits<int64_t>::max()) {
+                        const std::string& name, std::uint64_t value) {
+  if (value >
+      static_cast<std::uint64_t>(std::numeric_limits<std::int64_t>::max())) {
     throw InvalidQueryArgumentException("Value ")
         << value << " of '" << name << "' is too high";
   }

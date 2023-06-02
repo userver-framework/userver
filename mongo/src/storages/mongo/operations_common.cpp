@@ -46,7 +46,8 @@ cdriver::WriteConcernPtr MakeCDriverWriteConcern(
 
 cdriver::WriteConcernPtr MakeCDriverWriteConcern(
     const options::WriteConcern& wc_option) {
-  if (wc_option.NodesCount() > std::numeric_limits<int32_t>::max()) {
+  if (wc_option.NodesCount() >
+      static_cast<std::size_t>(std::numeric_limits<std::int32_t>::max())) {
     throw InvalidQueryArgumentException("Value ")
         << wc_option.NodesCount()
         << " of write concern nodes count is too high";
@@ -67,8 +68,9 @@ cdriver::WriteConcernPtr MakeCDriverWriteConcern(
     mongoc_write_concern_set_wtimeout_int64(write_concern.get(), timeout_ms);
   }
 
-  if (wc_option.Journal()) {
-    mongoc_write_concern_set_journal(write_concern.get(), *wc_option.Journal());
+  const auto journal = wc_option.Journal();
+  if (journal) {
+    mongoc_write_concern_set_journal(write_concern.get(), *journal);
   }
 
   return write_concern;
