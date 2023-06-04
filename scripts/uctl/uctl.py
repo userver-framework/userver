@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# pylint: disable=invalid-name
 
 import argparse
 import asyncio
@@ -28,9 +29,12 @@ class Client:
             path: str,
             method: str,
             params: typing.Optional[typing.Dict[str, str]] = None,
+            body: typing.Optional[str] = None,
     ) -> str:
         call = getattr(self.session, method)
-        response = await call(self.monitor_url + path, params=params)
+        response = await call(
+            self.monitor_url + path, params=params, data=body,
+        )
         response.raise_for_status()
         return await response.text()
 
@@ -67,6 +71,29 @@ class Client:
     async def log_dynamic_debug_list(self) -> None:
         data = await self.client_send(path='/log/dynamic-debug', method='get')
         print(data, end='')
+
+    async def log_dynamic_debug_force_on(self) -> None:
+        await self.client_send(
+            path='/log/dynamic-debug',
+            method='put',
+            params={'location': self.args.location},
+            body='1',
+        )
+
+    async def log_dynamic_debug_force_off(self) -> None:
+        await self.client_send(
+            path='/log/dynamic-debug',
+            method='put',
+            params={'location': self.args.location},
+            body='-1',
+        )
+
+    async def log_dynamic_debug_set_default(self) -> None:
+        await self.client_send(
+            path='/log/dynamic-debug',
+            method='delete',
+            params={'location': self.args.location},
+        )
 
     async def stats(self) -> None:
         data = await self.client_send(
@@ -180,7 +207,38 @@ def parse_args(args: typing.List[str]):
     parser_log_dynamic_debug = subparsers.add_parser(
         'log-dynamic-debug', help='Dynamic debug log level',
     )
-    parser_log_dynamic_debug.set_defaults(func=Client.log_dynamic_debug_list)
+    subparsers_log_dynamic = parser_log_dynamic_debug.add_subparsers()
+
+    parser_log_dynamic_debug_list = subparsers_log_dynamic.add_parser(
+        'list', help='list log entries',
+    )
+    parser_log_dynamic_debug_list.set_defaults(
+        func=Client.log_dynamic_debug_list,
+    )
+
+    parser_log_dynamic_debug_force_on = subparsers_log_dynamic.add_parser(
+        'force-on', help='force enable log entry',
+    )
+    parser_log_dynamic_debug_force_on.add_argument('location')
+    parser_log_dynamic_debug_force_on.set_defaults(
+        func=Client.log_dynamic_debug_force_on,
+    )
+
+    parser_log_dynamic_debug_force_off = subparsers_log_dynamic.add_parser(
+        'force-off', help='force disable log entry',
+    )
+    parser_log_dynamic_debug_force_off.add_argument('location')
+    parser_log_dynamic_debug_force_off.set_defaults(
+        func=Client.log_dynamic_debug_force_off,
+    )
+
+    parser_log_dynamic_debug_set_default = subparsers_log_dynamic.add_parser(
+        'set-default', help='drop dynamic debug log entry',
+    )
+    parser_log_dynamic_debug_set_default.add_argument('location')
+    parser_log_dynamic_debug_set_default.set_defaults(
+        func=Client.log_dynamic_debug_set_default,
+    )
 
     parser_log = subparsers.add_parser('log-level', help='Logs operations')
     subparsers_log = parser_log.add_subparsers()
@@ -232,7 +290,9 @@ async def run(argv: typing.List[str]) -> None:
         parse_args(argv + ['--help'])
         return
 
-    await args.func(Client(args))
+    client = Client(args)
+    await args.func(client)
+    await client.session.close()
 
 
 def main() -> None:
