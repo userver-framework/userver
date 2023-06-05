@@ -1,4 +1,7 @@
 {
+  "BAGGAGE_SETTINGS": {
+    "allowed_keys": []
+  },
   "HTTP_CLIENT_CONNECTION_POOL_SIZE": 1000,
   "HTTP_CLIENT_CONNECT_THROTTLE": {
     "max-size": 100,
@@ -21,6 +24,8 @@
       "recent-errors-threshold": 100000
     }
   },
+  "POSTGRES_CONNLIMIT_MODE_AUTO_ENABLED": false,
+  "POSTGRES_DEADLINE_PROPAGATION_ENABLED": false,
   "POSTGRES_DEFAULT_COMMAND_CONTROL": {
     "network_timeout_ms": 750,
     "statement_timeout_ms": 500
@@ -48,6 +53,7 @@
       "max_statement_metrics": 5
     }
   },
+  "USERVER_BAGGAGE_ENABLED": false,
   "USERVER_CACHES": {},
   "USERVER_CANCEL_HANDLE_REQUEST_BY_DEADLINE": false,
   "USERVER_CHECK_AUTH_IN_HANDLERS": true,
@@ -67,6 +73,10 @@
   },
   "USERVER_HANDLER_STREAM_API_ENABLED": false,
   "USERVER_HTTP_PROXY": "",
+  "USERVER_LOG_DYNAMIC_DEBUG": {
+    "force-disabled": [],
+    "force-enabled": []
+  },
   "USERVER_LOG_REQUEST": true,
   "USERVER_LOG_REQUEST_HEADERS": false,
   "USERVER_LRU_CACHES": {},

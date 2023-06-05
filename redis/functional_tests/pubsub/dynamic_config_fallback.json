@@ -1,4 +1,7 @@
 {
+  "BAGGAGE_SETTINGS": {
+    "allowed_keys": []
+  },
   "HTTP_CLIENT_CONNECTION_POOL_SIZE": 1000,
   "HTTP_CLIENT_CONNECT_THROTTLE": {
     "max-size": 100,
@@ -8,16 +11,21 @@
     "cancel-request": false,
     "update-timeout": false
   },
+  "REDIS_CLUSTER_AUTOTOPOLOGY_ENABLED": false,
   "REDIS_COMMANDS_BUFFERING_SETTINGS": {
     "buffering_enabled": false,
     "watch_command_timer_interval_us": 0
   },
+  "REDIS_DEADLINE_PROPAGATION_ENABLED": true,
   "REDIS_DEFAULT_COMMAND_CONTROL": {},
   "REDIS_METRICS_SETTINGS": {
     "command-timings-enabled": true,
     "reply-sizes-enabled": true,
     "request-sizes-enabled": true,
     "timings-enabled": true
+  },
+  "REDIS_PUBSUB_METRICS_SETTINGS": {
+    "per-shard-stats-enabled": true
   },
   "REDIS_REPLICA_MONITORING_SETTINGS": {
     "__default__": {
@@ -32,6 +40,7 @@
     "throw_on_fail": false,
     "timeout-ms": 11000
   },
+  "USERVER_BAGGAGE_ENABLED": false,
   "USERVER_CACHES": {},
   "USERVER_CANCEL_HANDLE_REQUEST_BY_DEADLINE": false,
   "USERVER_CHECK_AUTH_IN_HANDLERS": true,

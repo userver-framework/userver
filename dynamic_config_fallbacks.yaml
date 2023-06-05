@@ -67,6 +67,7 @@ groups:
       - samples/postgres_service/dynamic_config_fallback.json
       - samples/postgres-support/dynamic_config_fallback.json
       - postgresql/functional_tests/metrics/dynamic_config_fallback.json
+      - postgresql/functional_tests/integration_tests/dynamic_config_fallback.json
       - postgresql/tests/dynamic_config_fallback.json
     overrides:
         POSTGRES_CONNECTION_POOL_SETTINGS:
@@ -135,6 +136,8 @@ groups:
       - redis/functional_tests/integration_tests/dynamic_config_fallback.json
       - redis/functional_tests/basic_chaos/dynamic_config_fallback.json
       - redis/functional_tests/metrics/dynamic_config_fallback.json
+      - redis/functional_tests/pubsub/dynamic_config_fallback.json
+      - redis/functional_tests/cluster_auto_topology_test/dynamic_config_fallback.json
       - redis/tests/dynamic_config_fallback.json
     overrides:
         REDIS_METRICS_SETTINGS:
