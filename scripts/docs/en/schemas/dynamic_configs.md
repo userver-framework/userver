@@ -830,6 +830,21 @@ schema:
 
 Used by dump::Dumper, especially by all the caches derived from components::CachingComponentBase.
 
+@anchor USERVER_HANDLER_STREAM_API_ENABLED
+## USERVER_HANDLER_STREAM_API_ENABLED
+
+Sets whether Stream API should be enabled for HTTP handlers.
+
+```
+yaml
+schema:
+    type: boolean
+```
+
+**Example:**
+```
+true
+```
 
 @anchor USERVER_HTTP_PROXY
 ## USERVER_HTTP_PROXY
