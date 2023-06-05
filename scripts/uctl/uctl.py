@@ -2,14 +2,13 @@
 # pylint: disable=invalid-name
 
 import argparse
-import asyncio
 import json
 import os
 import subprocess
 import sys
 import typing
 
-import aiohttp
+import requests
 import yaml
 
 CONFIG_BASEPATH = '/etc/yandex/taxi/'
@@ -20,94 +19,87 @@ class Client:
         self.args = args
         self.read_config_yaml(self.args.config)
         self.monitor_url = self.read_monitor_url()
-        self.session = aiohttp.ClientSession()
         self.config_yaml: typing.Any = None
         self.config_vars: typing.Any = None
 
-    async def client_send(
+    def client_send(
             self,
             path: str,
             method: str,
             params: typing.Optional[typing.Dict[str, str]] = None,
             body: typing.Optional[str] = None,
     ) -> str:
-        call = getattr(self.session, method)
-        response = await call(
-            self.monitor_url + path, params=params, data=body,
-        )
+        call = getattr(requests, method)
+        response = call(self.monitor_url + path, params=params, data=body)
         response.raise_for_status()
-        return await response.text()
+        return response.text
 
-    async def dns_reload_hosts(self) -> None:
-        await self.client_send(
-            path='/service/dnsclient/reload_hosts', method='post',
-        )
+    def dns_reload_hosts(self) -> None:
+        self.client_send(path='/service/dnsclient/reload_hosts', method='post')
 
-    async def dns_flush_cache(self) -> None:
-        await self.client_send(
+    def dns_flush_cache(self) -> None:
+        self.client_send(
             path='/service/dnsclient/flush_cache',
             method='post',
             params={'name': self.args.dns_name},
         )
 
-    async def dns_flush_cache_full(self) -> None:
-        await self.client_send(
+    def dns_flush_cache_full(self) -> None:
+        self.client_send(
             path='/service/dnsclient/flush_cache_full', method='post',
         )
 
-    async def log_set_level(self) -> None:
-        await self.client_send(
+    def log_set_level(self) -> None:
+        self.client_send(
             path=f'/service/log-level/{self.args.level}', method='put',
         )
 
-    async def log_get_level(self) -> None:
-        data = await self.client_send(path='/service/log-level/', method='get')
+    def log_get_level(self) -> None:
+        data = self.client_send(path='/service/log-level/', method='get')
         level = json.loads(data)['current-log-level']
         print(level)
 
-    async def on_logrotate(self) -> None:
-        await self.client_send(path='/service/on-log-rotate', method='post')
+    def on_logrotate(self) -> None:
+        self.client_send(path='/service/on-log-rotate', method='post')
 
-    async def log_dynamic_debug_list(self) -> None:
-        data = await self.client_send(path='/log/dynamic-debug', method='get')
+    def log_dynamic_debug_list(self) -> None:
+        data = self.client_send(path='/log/dynamic-debug', method='get')
         print(data, end='')
 
-    async def log_dynamic_debug_force_on(self) -> None:
-        await self.client_send(
+    def log_dynamic_debug_force_on(self) -> None:
+        self.client_send(
             path='/log/dynamic-debug',
             method='put',
             params={'location': self.args.location},
             body='1',
         )
 
-    async def log_dynamic_debug_force_off(self) -> None:
-        await self.client_send(
+    def log_dynamic_debug_force_off(self) -> None:
+        self.client_send(
             path='/log/dynamic-debug',
             method='put',
             params={'location': self.args.location},
             body='-1',
         )
 
-    async def log_dynamic_debug_set_default(self) -> None:
-        await self.client_send(
+    def log_dynamic_debug_set_default(self) -> None:
+        self.client_send(
             path='/log/dynamic-debug',
             method='delete',
             params={'location': self.args.location},
         )
 
-    async def stats(self) -> None:
-        data = await self.client_send(
+    def stats(self) -> None:
+        data = self.client_send(
             path='/', method='get', params={'format': 'pretty'},
         )
         print(data, end='')
 
-    async def inspect_requests(self) -> None:
-        data = await self.client_send(
-            path='/service/inspect-requests', method='get',
-        )
+    def inspect_requests(self) -> None:
+        data = self.client_send(path='/service/inspect-requests', method='get')
         print(data)
 
-    async def access_top(self) -> None:
+    def access_top(self) -> None:
         components = self.config_yaml['components_manager']['components']
         logger_path = components['logging']['loggers']['default']['file_path']
         if logger_path.startswith('$'):
@@ -131,7 +123,7 @@ class Client:
 
         config_vars_path = self.config_yaml['config_vars']
         with open(config_vars_path, 'r') as ifile:
-            self.config_vars = yaml.full_load(ifile)
+            self.config_vars = yaml.load(ifile)
 
     def config_yaml_read(self, path: typing.List[str]) -> str:
         data = self.config_yaml
@@ -284,19 +276,17 @@ def parse_args(args: typing.List[str]):
     return opts
 
 
-async def run(argv: typing.List[str]) -> None:
+def run(argv: typing.List[str]) -> None:
     args = parse_args(argv)
     if not hasattr(args, 'func'):
         parse_args(argv + ['--help'])
         return
 
-    client = Client(args)
-    await args.func(client)
-    await client.session.close()
+    args.func(Client(args))
 
 
 def main() -> None:
-    asyncio.run(run(sys.argv[1:]))
+    run(sys.argv[1:])
 
 
 if __name__ == '__main__':
