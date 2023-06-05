@@ -3,6 +3,7 @@
 /// @file userver/utils/statistics/testing_utils.hpp
 /// @brief Utilities for analyzing emitted metrics in unit tests
 
+#include <iosfwd>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -48,9 +49,16 @@ class Snapshot final {
                            std::vector<Label> require_labels = {}) const;
 
  private:
+  friend void PrintTo(const Snapshot& data, std::ostream*);
+  friend std::ostream& operator<<(std::ostream&, const Snapshot& data);
+
   Request request_;
   utils::SharedRef<const impl::SnapshotData> data_;
 };
+
+// Support for PrintTo method in google tests
+void PrintTo(const Snapshot& data, std::ostream*);
+std::ostream& operator<<(std::ostream&, const Snapshot& data);
 
 }  // namespace utils::statistics
 

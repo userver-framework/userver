@@ -1,6 +1,7 @@
 #include <userver/utils/statistics/testing.hpp>
 
 #include <algorithm>
+#include <iostream>
 #include <unordered_map>
 #include <utility>
 
@@ -120,6 +121,20 @@ MetricValue Snapshot::SingleMetric(std::string path,
   auto result = statistics::GetSingle(*data_, path, require_labels);
   return result.value;
 }
+
+std::ostream& operator<<(std::ostream& out, const Snapshot& data) {
+  out << "{";
+  for (const auto& [path, entry] : data.data_->metrics) {
+    out << fmt::format("{};{} {}", path, fmt::join(entry.labels, ";"),
+                       entry.value);
+    out << ";" << std::endl;
+  }
+  out << "}";
+
+  return out;
+}
+
+void PrintTo(const Snapshot& data, std::ostream* out) { *out << data; }
 
 }  // namespace utils::statistics
 
