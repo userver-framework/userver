@@ -24,7 +24,9 @@ Pool::Pool(std::string id, const std::string& uri,
            dynamic_config::Source config_source)
     : impl_(std::make_shared<impl::cdriver::CDriverPoolImpl>(
           std::move(id), uri, ValidateConfig(pool_config, id), dns_resolver,
-          config_source)) {}
+          config_source)) {
+  impl_->Start();
+}
 
 Pool::~Pool() = default;
 

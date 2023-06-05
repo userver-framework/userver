@@ -19,13 +19,11 @@ PoolImpl::PoolImpl(std::string&& id, const PoolConfig& static_config,
       cc_limiter_(*this),
       cc_controller_(id_, cc_sensor_, cc_limiter_,
                      statistics_.congestion_control, static_config.cc_config) {
-  if (kCcExperiment.IsEnabled()) {
-    cc_controller_.Start();
-  }
-
   config_subscriber_ = config_source_.UpdateAndListen(
       this, "mongo_pool", &PoolImpl::OnConfigUpdate);
 }
+
+void PoolImpl::Start() { cc_controller_.Start(); }
 
 void PoolImpl::OnConfigUpdate(const dynamic_config::Snapshot& config) {
   cc_controller_.SetEnabled(config[kCongestionControlEnabled]);
