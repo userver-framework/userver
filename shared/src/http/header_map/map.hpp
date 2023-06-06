@@ -41,44 +41,6 @@ class Pos final {
   Traits::HeaderIndex header_index_;
 };
 
-class MapEntry final {
- public:
-  MapEntry();
-  ~MapEntry();
-
-  MapEntry(std::string&& key, std::string&& value);
-
-  MapEntry(const MapEntry& other);
-  MapEntry& operator=(const MapEntry& other);
-  MapEntry(MapEntry&& other) noexcept;
-  MapEntry& operator=(MapEntry&& other) noexcept;
-
-  std::pair<const std::string, std::string>& Get();
-  const std::pair<const std::string, std::string>& Get() const;
-
-  std::pair<std::string, std::string>& GetMutable();
-
-  bool operator==(const MapEntry& other) const;
-
- private:
-  // The interface requires std::pair<CONST std::string, std::string>, but we
-  // don't want to copy where move would do, so this.
-  // Only 'mutable_value' is ever the active member of 'Slot', but we still
-  // can access it through `value` due to
-  // https://eel.is/c++draft/class.union.general#note-1
-  // The idea was taken from abseil:
-  // https://github.com/abseil/abseil-cpp/blob/1ae9b71c474628d60eb251a3f62967fe64151bb2/absl/container/internal/container_memory.h#L302
-  union Slot {
-    Slot();
-    ~Slot();
-
-    std::pair<std::string, std::string> mutable_value;
-    std::pair<const std::string, std::string> value;
-  };
-
-  Slot slot_{};
-};
-
 class MaybeOwnedKey final {
  public:
   explicit MaybeOwnedKey(std::string& key);
