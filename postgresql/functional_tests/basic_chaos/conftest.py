@@ -34,6 +34,20 @@ def extra_client_deps(_gate_started):
     pass
 
 
+@pytest.fixture(name='userver_config_testsuite_support', scope='session')
+def _userver_config_testsuite_support(userver_config_testsuite_support):
+    def patch_config(config_yaml, config_vars):
+        userver_config_testsuite_support(config_yaml, config_vars)
+
+        components: dict = config_yaml['components_manager']['components']
+        testsuite_support = components['testsuite-support']
+        testsuite_support.pop('testsuite-pg-execute-timeout')
+        testsuite_support.pop('testsuite-pg-statement-timeout')
+        testsuite_support.pop('testsuite-pg-readonly-master-expected')
+
+    return patch_config
+
+
 @pytest.fixture(scope='session')
 def userver_pg_config(pgsql_local, _gate_started):
     def _hook_db_config(config_yaml, config_vars):

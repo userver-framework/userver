@@ -16,6 +16,7 @@ namespace utils::statistics {
 /// {
 ///   "metric-path": [
 ///     {
+///       "type": "GAUGE",
 ///       "value": 42,
 ///       "labels": {
 ///         "some-label": "label-value",
@@ -23,6 +24,7 @@ namespace utils::statistics {
 ///       }
 ///     },
 ///     {
+///       "type": "RATE",
 ///       "value": 43,
 ///       "labels": {
 ///         "another-label": "another-value"

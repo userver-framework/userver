@@ -1,8 +1,6 @@
 import pytest
 
-
 pytest_plugins = ['pytest_userver.plugins.core', 'pytest_userver.plugins']
-
 
 USERVER_CONFIG_HOOKS = ['_userver_config_dns_link']
 
@@ -31,5 +29,23 @@ def _userver_config_dns_link(for_dns_gate_port):
         component = 'handler-chaos-dns-resolver'
         if component in components:
             components[component]['dns-server'] = f'[::1]:{for_dns_gate_port}'
+
+    return patch_config
+
+
+@pytest.fixture(name='userver_config_http_client', scope='session')
+def _userver_config_http_client(userver_config_http_client):
+    def patch_config(config_yaml, config_vars) -> None:
+        userver_config_http_client(config_yaml, config_vars)
+
+        components = config_yaml['components_manager']['components']
+        http_client = components['http-client']
+        # There are tests in this module that specifically want to force
+        # http-client timeouts.
+        http_client.pop('testsuite-timeout')
+        prefixes = http_client['testsuite-allowed-url-prefixes']
+        # HACK: we'd like to write 'for_client_gate_port' here, but it has to
+        # have 'module' scope. So we just allow the tests to go anywhere.
+        prefixes.append('http://localhost')
 
     return patch_config

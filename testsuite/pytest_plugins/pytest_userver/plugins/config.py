@@ -27,9 +27,11 @@ import yaml
 ##
 ## @hideinitializer
 USERVER_CONFIG_HOOKS = [
-    'userver_config_base',
+    'userver_config_http_server',
+    'userver_config_http_client',
     'userver_config_logging',
     'userver_config_testsuite',
+    'userver_config_testsuite_support',
     'userver_config_secdist',
 ]
 
@@ -260,7 +262,7 @@ def _service_config(
 
 
 @pytest.fixture(scope='session')
-def userver_config_base(service_port, monitor_port):
+def userver_config_http_server(service_port, monitor_port):
     """
     Returns a function that adjusts the static configuration file for testsuite.
     Sets the `server.listener.port` to listen on
@@ -283,6 +285,33 @@ def userver_config_base(service_port, monitor_port):
                 server['listener-monitor']['port'] = monitor_port
 
     return _patch_config
+
+
+@pytest.fixture(scope='session')
+def userver_config_http_client(mockserver_info, mockserver_ssl_info):
+    """
+    Returns a function that adjusts the static configuration file for testsuite.
+    Sets increased timeout and limits allowed URLs for `http-client` component.
+
+    @ingroup userver_testsuite_fixtures
+    """
+
+    def patch_config(config, config_vars):
+        components: dict = config['components_manager']['components']
+        if not {'http-client', 'testsuite-support'}.issubset(
+                components.keys(),
+        ):
+            return
+        http_client = components['http-client'] or {}
+        http_client['testsuite-enabled'] = True
+        http_client['testsuite-timeout'] = '10s'
+
+        allowed_urls = [mockserver_info.base_url]
+        if mockserver_ssl_info:
+            allowed_urls.append(mockserver_ssl_info.base_url)
+        http_client['testsuite-allowed-url-prefixes'] = allowed_urls
+
+    return patch_config
 
 
 @pytest.fixture(scope='session')
@@ -330,6 +359,48 @@ def userver_config_testsuite(mockserver_info):
             )
 
     return _patch_config
+
+
+@pytest.fixture(scope='session')
+def userver_config_testsuite_support(pytestconfig):
+    """
+    Returns a function that adjusts the static configuration file for testsuite.
+    Sets up `testsuite-support` component, which:
+
+    - increases timeouts for userver drivers
+    - disables periodic cache updates
+    - enables testsuite tasks
+
+    @ingroup userver_testsuite_fixtures
+    """
+
+    def _set_postgresql_options(testsuite_support: dict) -> None:
+        testsuite_support['testsuite-pg-execute-timeout'] = '35s'
+        testsuite_support['testsuite-pg-statement-timeout'] = '30s'
+        testsuite_support['testsuite-pg-readonly-master-expected'] = True
+
+    def _set_redis_timeout(testsuite_support: dict) -> None:
+        testsuite_support['testsuite-redis-timeout-connect'] = '40s'
+        testsuite_support['testsuite-redis-timeout-single'] = '30s'
+        testsuite_support['testsuite-redis-timeout-all'] = '30s'
+
+    def _disable_cache_periodic_update(testsuite_support: dict) -> None:
+        testsuite_support['testsuite-periodic-update-enabled'] = False
+
+    def patch_config(config, config_vars) -> None:
+        components: dict = config['components_manager']['components']
+        if 'testsuite-support' not in components:
+            return
+        testsuite_support = components['testsuite-support'] or {}
+        _set_postgresql_options(testsuite_support)
+        _set_redis_timeout(testsuite_support)
+        service_runner = pytestconfig.getoption('--service-runner-mode', False)
+        if not service_runner:
+            _disable_cache_periodic_update(testsuite_support)
+        testsuite_support['testsuite-tasks-enabled'] = not service_runner
+        components['testsuite-support'] = testsuite_support
+
+    return patch_config
 
 
 @pytest.fixture(scope='session')
