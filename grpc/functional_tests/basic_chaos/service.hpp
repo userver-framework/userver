@@ -55,7 +55,6 @@ void GreeterServiceComponent::SayHello(
     api::GreetingRequest&& request) {
   api::GreetingResponse response;
   response.set_greeting(fmt::format("{}, {}!", prefix_, request.name()));
-
   call.Finish(response);
 }
 

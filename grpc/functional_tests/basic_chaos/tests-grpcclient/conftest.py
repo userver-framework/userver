@@ -69,7 +69,8 @@ async def _gate_ready(service_client, _gate_started):
     _gate_started.to_server_pass()
     _gate_started.to_client_pass()
     _gate_started.start_accepting()
-    await _gate_started.sockets_close()  # close keepalive connections
+
+    await _gate_started.sockets_close()
 
     yield _gate_started
 
