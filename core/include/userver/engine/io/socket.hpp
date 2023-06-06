@@ -13,6 +13,8 @@
 #include <userver/engine/io/fd_control_holder.hpp>
 #include <userver/engine/io/sockaddr.hpp>
 
+struct iovec;
+
 USERVER_NAMESPACE_BEGIN
 
 namespace engine::io {
@@ -96,6 +98,11 @@ class [[nodiscard]] Socket final : public RwBase {
   /// @brief Sends exactly list_size IoData to the socket.
   /// @note Can return less than len if socket is closed by peer.
   [[nodiscard]] size_t SendAll(const IoData* list, std::size_t list_size,
+                               Deadline deadline);
+
+  /// @brief Sends exactly list_size iovec to the socket.
+  /// @note Can return less than len if socket is closed by peer.
+  [[nodiscard]] size_t SendAll(const struct iovec* list, std::size_t list_size,
                                Deadline deadline);
 
   /// @brief Sends exactly len bytes to the socket.

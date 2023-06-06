@@ -79,11 +79,6 @@ class AsyncStream : public mongoc_stream_t {
  private:
   AsyncStream(engine::io::Socket) noexcept;
 
-  // mongoc_stream_buffered does not provide write buffering
-  // NOTE: returns number of bytes sent, not buffered!
-  size_t BufferedSend(const void* data, size_t size, engine::Deadline deadline);
-  size_t FlushSendBuffer(engine::Deadline);
-
   // mongoc_stream_buffered resizes itself indiscriminately
   // NOTE: returns number of bytes stored to data, not buffered!
   size_t BufferedRecv(void* data, size_t size, size_t min_bytes,
@@ -112,19 +107,14 @@ class AsyncStream : public mongoc_stream_t {
   bool is_timed_out_{false};
   bool is_created_{false};
 
-  size_t send_buffer_bytes_used_{0};
   size_t recv_buffer_bytes_used_{0};
   size_t recv_buffer_pos_{0};
 
   // buffer sizes are adjusted for better heap utilization and aligned for copy
   static constexpr size_t kAlignment = 256;
   static_assert(kBufferSize % kAlignment == 0);
-  alignas(kAlignment) std::array<char, kBufferSize - kAlignment> send_buffer_;
   alignas(kAlignment) std::array<char, kBufferSize - kAlignment> recv_buffer_;
 };
-static_assert(sizeof(AsyncStream) <= 2 * kBufferSize &&
-                  sizeof(AsyncStream) >= (kBufferSize + 3 * kBufferSize / 4),
-              "AsyncStream has suboptimal size");
 
 engine::Deadline DeadlineFromTimeoutMs(int32_t timeout_ms) {
   if (timeout_ms < 0) return {};
@@ -376,51 +366,6 @@ AsyncStream::AsyncStream(engine::io::Socket socket) noexcept
   should_retry = &ShouldRetry;
 }
 
-size_t AsyncStream::BufferedSend(const void* data, size_t size,
-                                 engine::Deadline deadline) {
-  size_t bytes_sent = 0;
-
-  size_t bytes_left = size;
-  const char* pos = static_cast<const char*>(data);
-  try {
-    while (bytes_left) {
-      size_t batch_size = 0;
-      if (!send_buffer_bytes_used_ && bytes_left >= send_buffer_.size()) {
-        // no pending data and will overflow the buffer, stream directly
-        batch_size = bytes_left - bytes_left % send_buffer_.size();
-        bytes_sent += socket_.SendAll(pos, batch_size, deadline);
-      } else {
-        // data pending or can be buffered
-        UASSERT(send_buffer_bytes_used_ <= send_buffer_.size());
-        batch_size = std::min<size_t>(
-            bytes_left, send_buffer_.size() - send_buffer_bytes_used_);
-
-        std::memcpy(send_buffer_.data() + send_buffer_bytes_used_, pos,
-                    batch_size);
-        send_buffer_bytes_used_ += batch_size;
-      }
-      UASSERT(batch_size);
-      bytes_left -= batch_size;
-      pos += batch_size;
-
-      UASSERT(send_buffer_bytes_used_ <= send_buffer_.size());
-      if (send_buffer_bytes_used_ == send_buffer_.size()) {
-        bytes_sent += FlushSendBuffer(deadline);
-      }
-    }
-  } catch (const engine::io::IoTimeout& timeout_ex) {
-    // adjust the counter
-    throw engine::io::IoTimeout{bytes_sent + timeout_ex.BytesTransferred()};
-  }
-  return bytes_sent;
-}
-
-size_t AsyncStream::FlushSendBuffer(engine::Deadline deadline) {
-  const size_t bytes_to_send = std::exchange(send_buffer_bytes_used_, 0);
-  if (!bytes_to_send) return 0;
-  return socket_.SendAll(send_buffer_.data(), bytes_to_send, deadline);
-}
-
 size_t AsyncStream::BufferedRecv(void* data, size_t size, size_t min_bytes,
                                  engine::Deadline deadline) {
   size_t bytes_stored = 0;
@@ -523,12 +468,8 @@ ssize_t AsyncStream::Writev(mongoc_stream_t* stream, mongoc_iovec_t* iov,
 
   ssize_t bytes_sent = 0;
   try {
-    engine::TaskCancellationBlocker block_cancel;
-    for (size_t i = 0; i < iovcnt; ++i) {
-      bytes_sent +=
-          self->BufferedSend(iov[i].iov_base, iov[i].iov_len, deadline);
-    }
-    bytes_sent += self->FlushSendBuffer(deadline);
+    const engine::TaskCancellationBlocker block_cancel{};
+    bytes_sent = self->socket_.SendAll(iov, iovcnt, deadline);
   } catch (const engine::io::IoCancelled&) {
     UASSERT_MSG(false,
                 "Cancellation is not supported in cdriver implementation");
