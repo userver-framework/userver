@@ -99,7 +99,8 @@ class ConnectionPool : public std::enable_shared_from_this<ConnectionPool> {
 
   TimeoutDuration GetExecuteTimeout(OptionalCommandControl) const;
 
-  [[nodiscard]] engine::TaskWithResult<bool> Connect();
+  [[nodiscard]] engine::TaskWithResult<bool> Connect(engine::SemaphoreLock);
+  bool DoConnect(engine::SemaphoreLock);
 
   void TryCreateConnectionAsync();
   void CheckMinPoolSizeUnderflow();

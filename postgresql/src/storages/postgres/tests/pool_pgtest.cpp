@@ -6,6 +6,7 @@
 #include <userver/engine/mutex.hpp>
 #include <userver/engine/sleep.hpp>
 
+#include <engine/task/task_processor.hpp>
 #include <storages/postgres/detail/connection.hpp>
 #include <storages/postgres/detail/pool.hpp>
 #include <storages/postgres/postgres_config.hpp>
@@ -84,6 +85,36 @@ UTEST_P(PostgrePool, ConnectionPoolReachedMaxSize) {
   UEXPECT_THROW(pg::detail::ConnectionPtr conn2 = pool->Acquire(MakeDeadline()),
                 pg::PoolError)
       << "Pool reached max size";
+
+  CheckConnection(std::move(conn));
+}
+
+UTEST_P(PostgrePool, ConnectionPoolHighDemand) {
+  auto pool = pg::detail::ConnectionPool::Create(
+      GetDsnFromEnv(), nullptr, GetTaskProcessor(), "", GetParam(), {1, 1, 10},
+      kCachePreparedStatements, {}, GetTestCmdCtls(), {}, {}, {},
+      dynamic_config::GetDefaultSource());
+  pg::detail::ConnectionPtr conn(nullptr);
+  UASSERT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
+      << "Obtained connection from pool";
+
+  const auto n_tasks = GetTaskProcessor().GetTaskCounter().GetCreatedTasks();
+
+  const auto n_acquire_tasks = 10;
+  const auto n_pending_tasks = 2;
+  concurrent::BackgroundTaskStorage ts{GetTaskProcessor()};
+  for (auto i = 0; i < n_acquire_tasks; ++i) {
+    ts.AsyncDetach("acquire", [&pool]() {
+      UEXPECT_THROW(
+          pg::detail::ConnectionPtr conn = pool->Acquire(MakeDeadline()),
+          pg::PoolError);
+    });
+  }
+  engine::SleepFor(std::chrono::milliseconds{100});
+  ts.CancelAndWait();
+
+  EXPECT_LE(GetTaskProcessor().GetTaskCounter().GetCreatedTasks(),
+            n_tasks + n_acquire_tasks + n_pending_tasks);
 
   CheckConnection(std::move(conn));
 }
@@ -198,8 +229,7 @@ UTEST_P(PostgrePool, MinPool) {
   const auto& stats = pool->GetStatistics();
   EXPECT_EQ(GetParam() == pg::InitMode::kAsync ? 0 : 1,
             stats.connection.open_total);
-  EXPECT_EQ(GetParam() == pg::InitMode::kAsync ? 0 : 1,
-            stats.connection.active);
+  EXPECT_EQ(1, stats.connection.active);
   EXPECT_EQ(0, stats.connection.error_total);
 }
 
@@ -218,8 +248,7 @@ UTEST_P(PostgrePool, ConnectionCleanup) {
     const auto& stats = pool->GetStatistics();
     EXPECT_EQ(GetParam() == pg::InitMode::kAsync ? 0 : 1,
               stats.connection.open_total);
-    EXPECT_EQ(GetParam() == pg::InitMode::kAsync ? 0 : 1,
-              stats.connection.active);
+    EXPECT_EQ(1, stats.connection.active);
     EXPECT_EQ(0, stats.connection.error_total);
   }
   {

@@ -32,6 +32,7 @@ constexpr std::chrono::seconds kMaxIdleDuration{15};
 constexpr const char* kMaintainTaskName = "pg_maintain";
 
 constexpr std::chrono::seconds kConnectingTimeout{2};
+constexpr auto kPendingConnectsMax{1};
 
 // Max idle connections that can be dropped in one run of maintenance task
 constexpr auto kIdleDropLimit = 1;
@@ -149,7 +150,8 @@ void ConnectionPool::Init(InitMode mode) {
 
   if (mode == InitMode::kAsync) {
     for (std::size_t i = 0; i < settings->min_size; ++i) {
-      connect_task_storage_.Detach(Connect());
+      connect_task_storage_.Detach(
+          Connect(engine::SemaphoreLock{size_semaphore_, std::try_to_lock}));
     }
     LOG_INFO() << "Pool initialization is ongoing";
     StartMaintainTask();
@@ -159,7 +161,8 @@ void ConnectionPool::Init(InitMode mode) {
   std::vector<engine::TaskWithResult<bool>> tasks;
   tasks.reserve(settings->min_size);
   for (std::size_t i = 0; i < settings->min_size; ++i) {
-    tasks.push_back(Connect());
+    tasks.push_back(
+        Connect(engine::SemaphoreLock{size_semaphore_, std::try_to_lock}));
   }
   for (auto& t : tasks) {
     try {
@@ -356,54 +359,61 @@ dynamic_config::Source ConnectionPool::GetConfigSource() const {
   return config_source_;
 }
 
-engine::TaskWithResult<bool> ConnectionPool::Connect() {
-  return engine::AsyncNoSpan([this]() mutable {
-    engine::SemaphoreLock size_lock{size_semaphore_, kConnectingTimeout};
-    if (!size_lock) return false;
-    LOG_TRACE() << "Creating PostgreSQL connection, current pool size: "
-                << size_semaphore_.UsedApprox();
-    engine::SemaphoreLock connecting_lock{connecting_semaphore_,
-                                          kConnectingTimeout};
-    if (!connecting_lock) {
-      LOG_LIMITED_WARNING() << "Pool has too many establishing connections";
-      return false;
+engine::TaskWithResult<bool> ConnectionPool::Connect(
+    engine::SemaphoreLock lock) {
+  return engine::AsyncNoSpan([this, size_lock = std::move(lock)]() mutable {
+    if (!size_lock) {
+      size_lock = engine::SemaphoreLock{size_semaphore_, kConnectingTimeout};
     }
-    const uint32_t conn_id = ++stats_.connection.open_total;
-    auto conn_settings = conn_settings_.Read();
-    std::unique_ptr<Connection> connection;
-    Stopwatch st{stats_.connection_percentile};
-    try {
-      connection = Connection::Connect(
-          dsn_, resolver_, bg_task_processor_, close_task_storage_, conn_id,
-          *conn_settings, default_cmd_ctls_, testsuite_pg_ctl_, ei_settings_,
-          std::move(size_lock));
-    } catch (const ConnectionTimeoutError&) {
-      // No problem if it's connection error
-      ++stats_.connection.error_timeout;
-      ++stats_.connection.error_total;
-      ++stats_.connection.drop_total;
-      ++recent_conn_errors_.GetCurrentCounter();
-      return false;
-    } catch (const ConnectionError&) {
-      // No problem if it's connection error
-      ++stats_.connection.error_total;
-      ++stats_.connection.drop_total;
-      ++recent_conn_errors_.GetCurrentCounter();
-      return false;
-    } catch (const Error& ex) {
-      ++stats_.connection.error_total;
-      ++stats_.connection.drop_total;
-      LOG_LIMITED_WARNING() << "Connection creation failed with error: " << ex;
-      throw;
-    }
-    LOG_TRACE() << "PostgreSQL connection created";
-
-    // Clean up the statistics and not account it
-    [[maybe_unused]] const auto& stats = connection->GetStatsAndReset();
-
-    Push(connection.release());
-    return true;
+    return DoConnect(std::move(size_lock));
   });
+}
+
+bool ConnectionPool::DoConnect(engine::SemaphoreLock size_lock) {
+  if (!size_lock) return false;
+  LOG_TRACE() << "Creating PostgreSQL connection, current pool size: "
+              << size_semaphore_.UsedApprox();
+  engine::SemaphoreLock connecting_lock{connecting_semaphore_,
+                                        kConnectingTimeout};
+  if (!connecting_lock) {
+    LOG_LIMITED_WARNING() << "Pool has too many establishing connections";
+    return false;
+  }
+  const uint32_t conn_id = ++stats_.connection.open_total;
+  auto conn_settings = conn_settings_.Read();
+  std::unique_ptr<Connection> connection;
+  Stopwatch st{stats_.connection_percentile};
+  try {
+    connection = Connection::Connect(
+        dsn_, resolver_, bg_task_processor_, close_task_storage_, conn_id,
+        *conn_settings, default_cmd_ctls_, testsuite_pg_ctl_, ei_settings_,
+        std::move(size_lock));
+  } catch (const ConnectionTimeoutError&) {
+    // No problem if it's connection error
+    ++stats_.connection.error_timeout;
+    ++stats_.connection.error_total;
+    ++stats_.connection.drop_total;
+    ++recent_conn_errors_.GetCurrentCounter();
+    return false;
+  } catch (const ConnectionError&) {
+    // No problem if it's connection error
+    ++stats_.connection.error_total;
+    ++stats_.connection.drop_total;
+    ++recent_conn_errors_.GetCurrentCounter();
+    return false;
+  } catch (const Error& ex) {
+    ++stats_.connection.error_total;
+    ++stats_.connection.drop_total;
+    LOG_LIMITED_WARNING() << "Connection creation failed with error: " << ex;
+    throw;
+  }
+  LOG_TRACE() << "PostgreSQL connection created";
+
+  // Clean up the statistics and not account it
+  [[maybe_unused]] const auto& stats = connection->GetStatsAndReset();
+
+  Push(connection.release());
+  return true;
 }
 
 void ConnectionPool::TryCreateConnectionAsync() {
@@ -412,8 +422,11 @@ void ConnectionPool::TryCreateConnectionAsync() {
   // check it only if we can start a new connection.
   if (recent_conn_errors_.GetStatsForPeriod(kRecentErrorPeriod, true) <
       conn_settings->recent_errors_threshold) {
-    // Create a new connection
-    connect_task_storage_.Detach(Connect());
+    engine::SemaphoreLock size_lock{size_semaphore_, std::try_to_lock};
+    if (size_lock ||
+        connect_task_storage_.ActiveTasksApprox() <= kPendingConnectsMax) {
+      connect_task_storage_.Detach(Connect(std::move(size_lock)));
+    }
   } else {
     LOG_DEBUG() << "Too many connection errors in recent period";
   }
