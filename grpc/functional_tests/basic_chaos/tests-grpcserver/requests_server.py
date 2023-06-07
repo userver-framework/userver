@@ -116,4 +116,5 @@ def check_ok_for(case):
 async def close_connection(gate):
     gate.to_server_pass()
     gate.to_client_pass()
+    gate.start_accepting()
     await gate.sockets_close()
