@@ -7,7 +7,7 @@ USERVER_NAMESPACE_BEGIN
 namespace storages::postgres {
 
 extern USERVER_NAMESPACE::utils::impl::UserverExperiment kPipelineExperiment;
-constexpr auto kPipelineExperimentVersion = 1;
+constexpr auto kPipelineExperimentVersion = 2;
 
 extern USERVER_NAMESPACE::utils::impl::UserverExperiment
     kDeadlinePropagationExperiment;

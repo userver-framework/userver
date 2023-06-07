@@ -391,6 +391,10 @@ void ConnectionImpl::Rollback() {
   if (!IsInTransaction()) {
     throw NotInTransaction();
   }
+  if (IsBroken()) {
+    throw RuntimeError{"Attempted to rollback a broken connection"};
+  }
+
   CountRollback count_rollback(stats_);
   ResetTransactionCommandControl transaction_guard{*this};
 
