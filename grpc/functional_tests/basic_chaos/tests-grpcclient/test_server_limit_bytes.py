@@ -9,5 +9,5 @@ async def test_serveer_limit_bytes(grpc_ch, service_client, gate, case):
         gate.to_server_limit_bytes(i)
         await requests_client.unavailable_request(service_client, gate, case)
 
-    await requests_client.close_connection(gate)
+    gate.to_server_pass()
     await requests_client.check_200_for(case)(grpc_ch, service_client, gate)
