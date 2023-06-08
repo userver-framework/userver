@@ -79,7 +79,7 @@ jobs:
           - name: Free disk space
             run: |
                 sudo apt purge aria2 -yq ansible azure-cli \
-                  ghc-* cabal-install-* \
+                  ghc-* \
                   mono-complete php7.* php-* powershell \
                   ruby-full || true
                 sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc || true
