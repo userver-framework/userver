@@ -1,3 +1,5 @@
+import asyncio
+
 ALL_CASES = [
     'say_hello',
     'say_hello_response_stream',
@@ -124,7 +126,8 @@ def check_200_for(case):
     return _REQUESTS[case]
 
 
-async def close_connection(gate):
+async def close_connection(gate, grpc_ch):
     gate.to_server_pass()
     gate.to_client_pass()
     await gate.sockets_close()
+    await asyncio.wait_for(grpc_ch.channel_ready(), timeout=10)
