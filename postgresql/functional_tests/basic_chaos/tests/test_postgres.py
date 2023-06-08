@@ -1,6 +1,9 @@
 import logging
+import socket
 
 import pytest
+
+from pytest_userver import chaos
 
 import utils
 
@@ -290,4 +293,48 @@ async def test_network_limit_bytes(service_client, gate):
 
     assert got_error, 'Previous steps unexpectedly finished with success'
 
+    await _check_that_restores(service_client, gate)
+
+
+async def _intercept_server_terminated(
+        loop, socket_from: socket.socket, socket_to: socket.socket,
+) -> None:
+    error_msg = (
+        b'E\x00\x00\x00tSFATAL\x00VFATAL\x00C57P01\x00'
+        b'Mterminating connection due to administrator command\x00'
+        b'Fpostgres.c\x00L3218\x00RProcessInterrupts\x00\x00'
+    )
+    ready_for_query = b'Z\x00\x00\x00\x05'
+
+    # Wait until we get the entire server response,
+    # then send an error message instead of 'Z' and
+    # close the socket immediately after that.
+    data = b''
+    n = -1
+    while n < 0:
+        data += await loop.sock_recv(socket_from, 4096)
+        n = data.find(ready_for_query)
+    await loop.sock_sendall(socket_to, data[:n])
+    await loop.sock_sendall(socket_to, error_msg)
+    raise chaos.GateInterceptException('Closing socket after error')
+
+
+async def test_close_with_error(service_client, gate, testpoint):
+    should_close = False
+
+    @testpoint('after_trx_begin')
+    async def _hook(_data):
+        if should_close:
+            gate.set_to_client_interceptor(_intercept_server_terminated)
+
+    response = await service_client.get(SELECT_SMALL_TIMEOUT_URL)
+    assert response.status == 200
+
+    should_close = True
+    gate.set_to_client_interceptor(_intercept_server_terminated)
+
+    response = await service_client.get(SELECT_SMALL_TIMEOUT_URL)
+    assert response.status == 500
+
+    should_close = False
     await _check_that_restores(service_client, gate)
