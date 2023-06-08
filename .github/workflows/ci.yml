@@ -75,6 +75,15 @@ jobs:
                     ${{matrix.os}} ${{matrix.info}} ccache-dir ${{github.ref}} run-'
                     ${{matrix.os}} ${{matrix.info}} ccache-
 
+
+          - name: Free disk space
+            run: |
+                sudo apt purge aria2 -yq ansible azure-cli \
+                  ghc-* cabal-install-* \
+                  mono-complete php7.* php-* powershell \
+                  ruby-full >/dev/null 2>&1 || true
+                sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc || true
+
           - name: Install packages
             run: |
                 # Instructions from https://clickhouse.com/docs/en/getting-started/install/
