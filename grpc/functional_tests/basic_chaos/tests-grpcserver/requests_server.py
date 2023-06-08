@@ -1,6 +1,10 @@
 import asyncio
+import logging
 
+import grpc
 import samples.greeter_pb2 as greeter_pb2  # noqa: E402, E501
+
+logger = logging.getLogger(__name__)
 
 # Bidirection is not thread-safe TAXICOMMON-6729
 CASES_WITHOUT_INDEPT_STREAMS = [
@@ -11,6 +15,8 @@ CASES_WITHOUT_INDEPT_STREAMS = [
 ]
 
 ALL_CASES = CASES_WITHOUT_INDEPT_STREAMS + ['say_hello_indept_streams']
+
+COUNT_TRYING = 5
 
 
 async def _say_hello(grpc_client, gate):
@@ -109,8 +115,26 @@ _REQUESTS = {
 }
 
 
-def check_ok_for(case):
-    return _REQUESTS[case]
+async def check_ok_for(case, grpc_client, gate):
+    for i in range(COUNT_TRYING):
+        try:
+            await _REQUESTS[case](grpc_client, gate)
+            logging.info(f'Request {case} OK, by trying: {i}')
+            return
+        except grpc.RpcError as error:
+            logger.warning(
+                f'Error request {case}, by trying {i}: {error.code()}'
+            )
+        await asyncio.sleep(0.5)
+    assert False, f'{case}: all attempts failed'
+
+
+async def check_unavailable_for(case, grpc_client, gate):
+    try:
+        await _REQUESTS[case](grpc_client, gate)
+        assert False, 'Server must be return UNAVAILABLE'
+    except grpc.RpcError as error:
+        assert grpc.StatusCode.UNAVAILABLE == error.code()
 
 
 async def close_connection(gate):
