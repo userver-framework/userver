@@ -15,16 +15,15 @@
 
 #include <userver/ugrpc/client/exceptions.hpp>
 #include <userver/ugrpc/client/impl/async_methods.hpp>
+#include <userver/ugrpc/client/impl/call_params.hpp>
 #include <userver/ugrpc/client/impl/channel_cache.hpp>
+#include <userver/ugrpc/client/middleware_fwd.hpp>
 #include <userver/ugrpc/impl/deadline_timepoint.hpp>
 #include <userver/ugrpc/impl/statistics_scope.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::client {
-
-class MiddlewareBase;
-using Middlewares = std::vector<std::shared_ptr<const MiddlewareBase>>;
 
 /// @brief UnaryFuture for waiting a single response RPC
 class [[nodiscard]] UnaryFuture {
@@ -95,14 +94,8 @@ class [[nodiscard]] StreamReadFuture {
 class CallAnyBase {
  protected:
   /// @cond
-  CallAnyBase(std::string_view client_name,
-              std::unique_ptr<grpc::ClientContext>&& context,
-              std::string_view call_name,
-              ugrpc::impl::MethodStatistics& statistics,
-              dynamic_config::Snapshot&& config)
-      : data_(std::make_unique<impl::RpcData>(client_name, std::move(context),
-                                              call_name, statistics,
-                                              std::move(config))) {}
+  CallAnyBase(impl::CallParams&& params)
+      : data_(std::make_unique<impl::RpcData>(std::move(params))) {}
   /// @endcond
 
  public:
@@ -155,12 +148,9 @@ class [[nodiscard]] UnaryCall final : public CallAnyBase {
   // For internal use only
   template <typename Stub, typename Request>
   UnaryCall(
-      std::string_view client_name, Stub& stub, grpc::CompletionQueue& queue,
-      dynamic_config::Snapshot&& config,
+      impl::CallParams&& params, Stub& stub,
       impl::RawResponseReaderPreparer<Stub, Request, Response> prepare_func,
-      std::string_view call_name, const Middlewares& mws,
-      std::unique_ptr<grpc::ClientContext> context,
-      ugrpc::impl::MethodStatistics& statistics, const Request& req);
+      const Request& req);
   /// @endcond
 
   UnaryCall(UnaryCall&&) noexcept = default;
@@ -200,12 +190,9 @@ class [[nodiscard]] InputStream final : public CallAnyBase {
   using RawStream = grpc::ClientAsyncReader<Response>;
 
   template <typename Stub, typename Request>
-  InputStream(std::string_view client_name, Stub& stub,
-              grpc::CompletionQueue& queue, dynamic_config::Snapshot&& config,
+  InputStream(impl::CallParams&& params, Stub& stub,
               impl::RawReaderPreparer<Stub, Request, Response> prepare_func,
-              std::string_view call_name, const Middlewares& mws,
-              std::unique_ptr<grpc::ClientContext> context,
-              ugrpc::impl::MethodStatistics& statistics, const Request& req);
+              const Request& req);
   /// @endcond
 
   InputStream(InputStream&&) noexcept = default;
@@ -271,12 +258,8 @@ class [[nodiscard]] OutputStream final : public CallAnyBase {
   using RawStream = grpc::ClientAsyncWriter<Request>;
 
   template <typename Stub>
-  OutputStream(std::string_view client_name, Stub& stub,
-               grpc::CompletionQueue& queue, dynamic_config::Snapshot&& config,
-               impl::RawWriterPreparer<Stub, Request, Response> prepare_func,
-               std::string_view call_name, const Middlewares& mws,
-               std::unique_ptr<grpc::ClientContext> context,
-               ugrpc::impl::MethodStatistics& statistics);
+  OutputStream(impl::CallParams&& params, Stub& stub,
+               impl::RawWriterPreparer<Stub, Request, Response> prepare_func);
   /// @endcond
 
   OutputStream(OutputStream&&) noexcept = default;
@@ -375,12 +358,8 @@ class [[nodiscard]] BidirectionalStream final : public CallAnyBase {
 
   template <typename Stub>
   BidirectionalStream(
-      std::string_view client_name, Stub& stub, grpc::CompletionQueue& queue,
-      dynamic_config::Snapshot&& config,
-      impl::RawReaderWriterPreparer<Stub, Request, Response> prepare_func,
-      std::string_view call_name, const Middlewares& mws,
-      std::unique_ptr<grpc::ClientContext> context,
-      ugrpc::impl::MethodStatistics& statistics);
+      impl::CallParams&& params, Stub& stub,
+      impl::RawReaderWriterPreparer<Stub, Request, Response> prepare_func);
   /// @endcond
 
   BidirectionalStream(BidirectionalStream&&) noexcept = default;
@@ -446,18 +425,15 @@ bool StreamReadFuture<RPC>::IsReady() const noexcept {
 template <typename Response>
 template <typename Stub, typename Request>
 UnaryCall<Response>::UnaryCall(
-    std::string_view client_name, Stub& stub, grpc::CompletionQueue& queue,
-    dynamic_config::Snapshot&& config,
+    impl::CallParams&& params, Stub& stub,
     impl::RawResponseReaderPreparer<Stub, Request, Response> prepare_func,
-    std::string_view call_name, const Middlewares& mws,
-    std::unique_ptr<grpc::ClientContext> context,
-    ugrpc::impl::MethodStatistics& statistics, const Request& req)
-    : CallAnyBase(client_name, std::move(context), call_name, statistics,
-                  std::move(config)) {
+    const Request& req)
+    : CallAnyBase(std::move(params)) {
   CallMiddlewares(
-      mws, *this,
+      GetData().GetMiddlewares(), *this,
       [&] {
-        reader_ = (stub.*prepare_func)(&GetData().GetContext(), req, &queue);
+        reader_ = (stub.*prepare_func)(&GetData().GetContext(), req,
+                                       &GetData().GetQueue());
         reader_->StartCall();
       },
       &req);
@@ -486,17 +462,15 @@ UnaryFuture UnaryCall<Response>::FinishAsync(Response& response) {
 template <typename Response>
 template <typename Stub, typename Request>
 InputStream<Response>::InputStream(
-    std::string_view client_name, Stub& stub, grpc::CompletionQueue& queue,
-    dynamic_config::Snapshot&& config,
+    impl::CallParams&& params, Stub& stub,
     impl::RawReaderPreparer<Stub, Request, Response> prepare_func,
-    std::string_view call_name, const Middlewares& mws,
-    std::unique_ptr<grpc::ClientContext> context,
-    ugrpc::impl::MethodStatistics& statistics, const Request& req)
-    : CallAnyBase(client_name, std::move(context), call_name, statistics,
-                  std::move(config)),
-      stream_((stub.*prepare_func)(&GetData().GetContext(), req, &queue)) {
+    const Request& req)
+    : CallAnyBase(std::move(params)),
+      stream_((stub.*prepare_func)(&GetData().GetContext(), req,
+                                   &GetData().GetQueue())) {
   CallMiddlewares(
-      mws, *this, [this] { impl::StartCall(*stream_, GetData()); }, &req);
+      GetData().GetMiddlewares(), *this,
+      [this] { impl::StartCall(*stream_, GetData()); }, &req);
   GetData().SetWritesFinished();
 }
 
@@ -515,20 +489,17 @@ bool InputStream<Response>::Read(Response& response) {
 template <typename Request, typename Response>
 template <typename Stub>
 OutputStream<Request, Response>::OutputStream(
-    std::string_view client_name, Stub& stub, grpc::CompletionQueue& queue,
-    dynamic_config::Snapshot&& config,
-    impl::RawWriterPreparer<Stub, Request, Response> prepare_func,
-    std::string_view call_name, const Middlewares& mws,
-    std::unique_ptr<grpc::ClientContext> context,
-    ugrpc::impl::MethodStatistics& statistics)
-    : CallAnyBase(client_name, std::move(context), call_name, statistics,
-                  std::move(config)),
+    impl::CallParams&& params, Stub& stub,
+    impl::RawWriterPreparer<Stub, Request, Response> prepare_func)
+    : CallAnyBase(std::move(params)),
       final_response_(std::make_unique<Response>()),
       // 'final_response_' will be filled upon successful 'Finish' async call
       stream_((stub.*prepare_func)(&GetData().GetContext(),
-                                   final_response_.get(), &queue)) {
+                                   final_response_.get(),
+                                   &GetData().GetQueue())) {
   CallMiddlewares(
-      mws, *this, [this] { impl::StartCall(*stream_, GetData()); }, nullptr);
+      GetData().GetMiddlewares(), *this,
+      [this] { impl::StartCall(*stream_, GetData()); }, nullptr);
 }
 
 template <typename Request, typename Response>
@@ -567,17 +538,14 @@ Response OutputStream<Request, Response>::Finish() {
 template <typename Request, typename Response>
 template <typename Stub>
 BidirectionalStream<Request, Response>::BidirectionalStream(
-    std::string_view client_name, Stub& stub, grpc::CompletionQueue& queue,
-    dynamic_config::Snapshot&& config,
-    impl::RawReaderWriterPreparer<Stub, Request, Response> prepare_func,
-    std::string_view call_name, const Middlewares& mws,
-    std::unique_ptr<grpc::ClientContext> context,
-    ugrpc::impl::MethodStatistics& statistics)
-    : CallAnyBase(client_name, std::move(context), call_name, statistics,
-                  std::move(config)),
-      stream_((stub.*prepare_func)(&GetData().GetContext(), &queue)) {
+    impl::CallParams&& params, Stub& stub,
+    impl::RawReaderWriterPreparer<Stub, Request, Response> prepare_func)
+    : CallAnyBase(std::move(params)),
+      stream_((stub.*prepare_func)(&GetData().GetContext(),
+                                   &GetData().GetQueue())) {
   CallMiddlewares(
-      mws, *this, [this] { impl::StartCall(*stream_, GetData()); }, nullptr);
+      GetData().GetMiddlewares(), *this,
+      [this] { impl::StartCall(*stream_, GetData()); }, nullptr);
 }
 
 template <typename Request, typename Response>

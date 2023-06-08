@@ -127,16 +127,14 @@ RpcData* FutureImpl::GetData() noexcept { return data_; }
 
 void FutureImpl::ClearData() noexcept { data_ = nullptr; }
 
-RpcData::RpcData(std::string_view client_name,
-                 std::unique_ptr<grpc::ClientContext>&& context,
-                 std::string_view call_name,
-                 ugrpc::impl::MethodStatistics& statistics,
-                 dynamic_config::Snapshot&& config)
-    : context_(std::move(context)),
-      client_name_(client_name),
-      call_name_(call_name),
-      stats_scope_(statistics),
-      config_values_(std::move(config)) {
+RpcData::RpcData(impl::CallParams&& params)
+    : context_(std::move(params.context)),
+      client_name_(params.call_name),
+      call_name_(params.call_name),
+      stats_scope_(params.statistics),
+      queue_(params.queue),
+      config_values_(params.config),
+      mws_(params.mws) {
   UASSERT(context_);
   UASSERT(!client_name_.empty());
   SetupSpan(span_, *context_, call_name_);
@@ -162,8 +160,19 @@ grpc::ClientContext& RpcData::GetContext() noexcept {
   return *context_;
 }
 
+grpc::CompletionQueue& RpcData::GetQueue() const noexcept {
+  UASSERT(context_);
+  return queue_;
+}
+
 const RpcConfigValues& RpcData::GetConfigValues() const noexcept {
+  UASSERT(context_);
   return config_values_;
+}
+
+const Middlewares& RpcData::GetMiddlewares() const noexcept {
+  UASSERT(context_);
+  return mws_;
 }
 
 std::string_view RpcData::GetCallName() const noexcept {

@@ -6,6 +6,7 @@
 #include <memory>
 #include <vector>
 
+#include <userver/ugrpc/client/middleware_fwd.hpp>
 #include <userver/ugrpc/client/rpc.hpp>
 
 #include <userver/components/loggable_component_base.hpp>
@@ -13,11 +14,6 @@
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::client {
-
-class MiddlewareBase;
-
-/// @brief A chain of middlewares
-using Middlewares = std::vector<std::shared_ptr<const MiddlewareBase>>;
 
 /// @brief Context for middleware-specific data during gRPC call
 ///

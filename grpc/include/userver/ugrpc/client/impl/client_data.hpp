@@ -9,7 +9,8 @@
 
 #include <userver/dynamic_config/source.hpp>
 #include <userver/ugrpc/client/impl/channel_cache.hpp>
-#include <userver/ugrpc/client/middleware_base.hpp>
+#include <userver/ugrpc/client/middleware_fwd.hpp>
+#include <userver/ugrpc/impl/static_metadata.hpp>
 #include <userver/ugrpc/impl/statistics.hpp>
 #include <userver/utils/fixed_array.hpp>
 #include <userver/utils/rand.hpp>
@@ -36,8 +37,9 @@ class ClientData final {
   ClientData() = delete;
 
   template <typename Service>
-  ClientData(ClientParams&& params, std::in_place_type_t<Service>)
-      : params_(std::move(params)) {
+  ClientData(ClientParams&& params, ugrpc::impl::StaticServiceMetadata metadata,
+             std::in_place_type_t<Service>)
+      : params_(std::move(params)), metadata_(metadata) {
     const std::size_t channel_count = GetChannelToken().GetChannelCount();
     stubs_ = utils::GenerateFixedArray(channel_count, [&](std::size_t index) {
       return StubPtr(
@@ -47,7 +49,7 @@ class ClientData final {
   }
 
   ClientData(ClientData&&) noexcept = default;
-  ClientData& operator=(ClientData&&) noexcept = default;
+  ClientData& operator=(ClientData&&) = delete;
 
   ClientData(const ClientData&) = delete;
   ClientData& operator=(const ClientData&) = delete;
@@ -74,6 +76,10 @@ class ClientData final {
 
   const Middlewares& GetMiddlewares() const { return params_.mws; }
 
+  const ugrpc::impl::StaticServiceMetadata& GetMetadata() const {
+    return metadata_;
+  }
+
  private:
   using StubDeleterType = void (*)(void*);
   using StubPtr = std::unique_ptr<void, StubDeleterType>;
@@ -84,6 +90,7 @@ class ClientData final {
   }
 
   ClientParams params_;
+  ugrpc::impl::StaticServiceMetadata metadata_;
   utils::FixedArray<StubPtr> stubs_;
 };
 

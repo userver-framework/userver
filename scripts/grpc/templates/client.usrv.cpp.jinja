@@ -25,7 +25,7 @@ constexpr std::string_view k{{service.name}}MethodNames[] = {
 
 {{service.name}}Client::{{service.name}}Client(
     USERVER_NAMESPACE::ugrpc::client::impl::ClientParams&& client_params)
-    : impl_(std::move(client_params),
+    : impl_(std::move(client_params), GetMetadata(),
             std::in_place_type<{{proto.namespace}}::{{service.name}}>) {}
   {% for method in service.method %}
   {% set method_id = loop.index0 %}
@@ -36,17 +36,17 @@ constexpr std::string_view k{{service.name}}MethodNames[] = {
     const {{ method.input_type | grpc_to_cpp_name }}& request,
     {% endif %}
     std::unique_ptr<::grpc::ClientContext> context) const {
-  return {impl_.GetClientName(), impl_.NextStub<{{proto.namespace}}::{{service.name}}>(),
-          impl_.GetQueue(),
-          impl_.GetConfigSnapshot(),
-          &{{proto.namespace}}::{{service.name}}::Stub::PrepareAsync{{method.name}},
-          k{{service.name}}MethodNames[{{method_id}}],
-	      impl_.GetMiddlewares(),
-          {% if method.client_streaming %}
-          std::move(context), impl_.GetStatistics({{method_id}})};
-          {% else %}
-          std::move(context), impl_.GetStatistics({{method_id}}), request};
-          {% endif %}
+    return {
+        USERVER_NAMESPACE::ugrpc::client::impl::CreateCallParams(
+            impl_, {{method_id}}, std::move(context)
+        ),
+        impl_.NextStub<{{proto.namespace}}::{{service.name}}>(),
+        &{{proto.namespace}}::{{service.name}}::Stub::PrepareAsync{{method.name}}
+        {% if method.client_streaming %}
+	    };
+        {% else %}
+        ,request};
+        {% endif %}
 }
   {% endfor %}
 

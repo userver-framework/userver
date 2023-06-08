@@ -17,6 +17,7 @@
 #include <userver/tracing/span.hpp>
 
 #include <userver/ugrpc/client/exceptions.hpp>
+#include <userver/ugrpc/client/impl/call_params.hpp>
 #include <userver/ugrpc/impl/async_method_invocation.hpp>
 #include <userver/ugrpc/impl/statistics_scope.hpp>
 
@@ -74,10 +75,7 @@ using ugrpc::impl::AsyncMethodInvocation;
 
 class RpcData final {
  public:
-  RpcData(std::string_view client_name,
-          std::unique_ptr<grpc::ClientContext>&& context,
-          std::string_view call_name, ugrpc::impl::MethodStatistics& statistics,
-          dynamic_config::Snapshot&& config);
+  explicit RpcData(CallParams&&);
 
   RpcData(RpcData&&) noexcept = delete;
   RpcData& operator=(RpcData&&) noexcept = delete;
@@ -93,7 +91,11 @@ class RpcData final {
 
   tracing::Span& GetSpan() noexcept;
 
+  grpc::CompletionQueue& GetQueue() const noexcept;
+
   const RpcConfigValues& GetConfigValues() const noexcept;
+
+  const Middlewares& GetMiddlewares() const noexcept;
 
   void ResetSpan() noexcept;
 
@@ -136,7 +138,9 @@ class RpcData final {
 
   std::optional<tracing::InPlaceSpan> span_;
   ugrpc::impl::RpcStatisticsScope stats_scope_;
+  grpc::CompletionQueue& queue_;
   RpcConfigValues config_values_;
+  const Middlewares& mws_;
 
   std::optional<AsyncMethodInvocation> invocation_;
   grpc::Status status_;
