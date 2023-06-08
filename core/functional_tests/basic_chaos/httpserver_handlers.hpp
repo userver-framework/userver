@@ -2,6 +2,7 @@
 
 #include <userver/components/component_context.hpp>
 #include <userver/dynamic_config/storage/component.hpp>
+#include <userver/engine/sleep.hpp>
 #include <userver/server/handlers/http_handler_base.hpp>
 #include <userver/server/http/http_response_body_stream.hpp>
 #include <userver/testsuite/testpoint.hpp>
@@ -25,6 +26,12 @@ class HttpServerHandler final : public server::handlers::HttpHandlerBase {
     const auto& type = request.GetArg("type");
 
     if (type == "common") {
+      TESTPOINT("testpoint_request", {});
+      return kDefaultAnswer;
+    }
+
+    if (type == "sleep") {
+      engine::SleepFor(std::chrono::milliseconds{200});
       TESTPOINT("testpoint_request", {});
       return kDefaultAnswer;
     }

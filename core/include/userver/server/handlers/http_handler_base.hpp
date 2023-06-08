@@ -161,7 +161,6 @@ class HttpHandlerBase : public HandlerBase {
 
  private:
   void HandleRequestStream(const http::HttpRequest& http_request,
-                           http::HttpResponse& response,
                            request::RequestContext& context) const;
 
   std::string GetRequestBodyForLoggingChecked(

@@ -207,6 +207,8 @@ class RequestProcessor final {
     DoProcessRequestStep(step_name, process_step_func);
   }
 
+  void FinishProcessing() noexcept { process_finished_ = true; }
+
   void HandleCustomException(std::string_view step_name,
                              const CustomHandlerException& ex) {
     process_finished_ = true;
@@ -231,6 +233,8 @@ class RequestProcessor final {
   const http::HttpRequest& GetRequest() { return http_request_; }
 
   const HttpHandlerBase& GetHandler() const { return handler_; }
+
+  request::RequestContext& GetContext() { return context_; }
 
   const dynamic_config::Snapshot& GetDynamicConfig() const {
     return config_snapshot_;
@@ -322,8 +326,20 @@ constexpr std::string_view kDeadlinePropagationStep =
 utils::impl::UserverExperiment handler_cancel_on_immediate_deadline_expiration{
     "handler-cancel-on-immediate-deadline-expiration", true};
 
-IsCancelledByDeadline SetUpInheritedData(
-    RequestProcessor& processor, HttpHandlerStatisticsScope& stats_scope) {
+utils::impl::UserverExperiment handler_override_response_on_deadline{
+    "handler-override-response-on-deadline", true};
+
+void HandleDeadlineExpired(const http::HttpRequest& request,
+                           IsCancelledByDeadline& is_cancelled) {
+  auto& response = request.GetHttpResponse();
+  response.SetStatus(http::HttpStatus::kGatewayTimeout);
+  response.SetContentType(USERVER_NAMESPACE::http::content_type::kTextPlain);
+  response.SetData("Deadline expired");
+  is_cancelled = IsCancelledByDeadline{true};
+}
+
+void SetUpInheritedData(RequestProcessor& processor,
+                        IsCancelledByDeadline& is_cancelled) {
   request::TaskInheritedData inherited_data{
       std::get_if<std::string>(&processor.GetHandler().GetConfig().path),
       processor.GetRequest().GetMethodStr(),
@@ -342,14 +358,9 @@ IsCancelledByDeadline SetUpInheritedData(
 
     if (handler_cancel_on_immediate_deadline_expiration.IsEnabled() &&
         deadline.IsSurelyReachedApprox()) {
-      stats_scope.OnCancelledByDeadline();
       request::kTaskInheritedData.Set(std::move(inherited_data));
-      processor.HandleCustomException(
-          kDeadlinePropagationStep,
-          ExceptionWithCode<HandlerErrorCode::kGatewayTimeout>(
-              InternalMessage{"Immediate timeout (deadline propagation)"},
-              ExternalBody{"Deadline expired"}));
-      return IsCancelledByDeadline{true};
+      HandleDeadlineExpired(processor.GetRequest(), is_cancelled);
+      processor.FinishProcessing();
     }
 
     const auto& server_settings =
@@ -360,20 +371,38 @@ IsCancelledByDeadline SetUpInheritedData(
   }
 
   request::kTaskInheritedData.Set(std::move(inherited_data));
-  return IsCancelledByDeadline{false};
 }
 
-void SetTrailingDeadlinePropagationTags(
-    tracing::Span& span, IsCancelledByDeadline is_cancelled_by_deadline) {
+void CompleteDeadlinePropagation(RequestProcessor& processor,
+                                 IsCancelledByDeadline& is_cancelled) {
+  const auto& request = processor.GetRequest();
+  auto& response = request.GetHttpResponse();
+
   const auto& inherited_data = request::kTaskInheritedData.Get();
   if (!inherited_data.deadline.IsReachable()) return;
 
   const bool cancelled_by_deadline =
       engine::current_task::CancellationReason() ==
           engine::TaskCancellationReason::kDeadline ||
-      static_cast<bool>(is_cancelled_by_deadline);
+      inherited_data.deadline.IsReached();
 
+  auto& span = tracing::Span::CurrentSpan();
   span.AddNonInheritableTag("cancelled_by_deadline", cancelled_by_deadline);
+
+  if (handler_override_response_on_deadline.IsEnabled() &&
+      cancelled_by_deadline && !static_cast<bool>(is_cancelled)) {
+    const auto& original_body = response.GetData();
+    if (!original_body.empty() && span.ShouldLogDefault()) {
+      span.AddNonInheritableTag("dp_original_body_size", original_body.size());
+      if (processor.GetServerSettings().need_log_request) {
+        span.AddNonInheritableTag(
+            "dp_original_body",
+            processor.GetHandler().GetResponseDataForLoggingChecked(
+                request, processor.GetContext(), response.GetData()));
+      }
+    }
+    HandleDeadlineExpired(request, is_cancelled);
+  }
 }
 
 std::string CutTrailingSlash(
@@ -509,8 +538,9 @@ HttpHandlerBase::HttpHandlerBase(const components::ComponentConfig& config,
 HttpHandlerBase::~HttpHandlerBase() { statistics_holder_.Unregister(); }
 
 void HttpHandlerBase::HandleRequestStream(
-    const http::HttpRequest& http_request, http::HttpResponse& response,
+    const http::HttpRequest& http_request,
     request::RequestContext& context) const {
+  auto& response = http_request.GetHttpResponse();
   const utils::ScopeGuard scope([&response] { response.SetHeadersEnd(); });
 
   auto& http_response = http_request.GetHttpResponse();
@@ -569,6 +599,7 @@ void HttpHandlerBase::HandleRequest(request::RequestBase& request,
   try {
     HttpHandlerStatisticsScope stats_scope(*handler_statistics_,
                                            http_request.GetMethod(), response);
+    IsCancelledByDeadline is_cancelled_by_deadline{false};
 
     const auto meta_type = CutTrailingSlash(GetMetaType(http_request),
                                             GetConfig().url_trailing_slash);
@@ -585,14 +616,10 @@ void HttpHandlerBase::HandleRequest(request::RequestBase& request,
         "check_ratelimit",
         [this, &http_request] { CheckRatelimit(http_request); });
 
-    // TODO(TAXICOMMON-6584) trigger cancellation by deadline
-    //  not only on immediate deadline expiration
-    IsCancelledByDeadline is_cancelled_by_deadline{false};
     request_processor.ProcessRequestStepNoScopeTime(
         kDeadlinePropagationStep,
-        [&request_processor, &stats_scope, &is_cancelled_by_deadline] {
-          is_cancelled_by_deadline =
-              SetUpInheritedData(request_processor, stats_scope);
+        [&request_processor, &is_cancelled_by_deadline] {
+          SetUpInheritedData(request_processor, is_cancelled_by_deadline);
         });
 
     request_processor.ProcessRequestStep(
@@ -629,18 +656,20 @@ void HttpHandlerBase::HandleRequest(request::RequestBase& request,
     request_processor.ProcessRequestStep(
         "handle_request", [this, &response, &http_request, &context] {
           if (response.IsBodyStreamed()) {
-            HandleRequestStream(http_request, response, context);
+            HandleRequestStream(http_request, context);
           } else {
             // !IsBodyStreamed()
             response.SetData(HandleRequestThrow(http_request, context));
           }
         });
 
-    auto& span = *span_storage;
+    CompleteDeadlinePropagation(request_processor, is_cancelled_by_deadline);
     if (GetConfig().set_tracing_headers) {
-      tracing_manager_.FillResponseWithTracingContext(span, response);
+      tracing_manager_.FillResponseWithTracingContext(*span_storage, response);
     }
-    SetTrailingDeadlinePropagationTags(span, is_cancelled_by_deadline);
+    if (static_cast<bool>(is_cancelled_by_deadline)) {
+      stats_scope.OnCancelledByDeadline();
+    }
   } catch (const std::exception& ex) {
     LOG_ERROR() << "unable to handle request: " << ex;
   }

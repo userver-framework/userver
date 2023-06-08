@@ -32,14 +32,13 @@ class ErrorType(enum.Enum):
 
 
 @pytest.fixture
-def call(modified_service_client):
+def call(modified_service_client, gate):
     async def _call(
             htype: str = 'common',
             data: typing.Any = None,
             timeout: float = DEFAULT_TIMEOUT,
-            tests_control: bool = False,
+            testsuite_skip_prepare: bool = False,
             headers: typing.Optional[typing.Dict[str, str]] = None,
-            **args,
     ) -> typing.Union[http.ClientResponse, ErrorType]:
         try:
             if not data:
@@ -52,7 +51,7 @@ def call(modified_service_client):
                 timeout=timeout,
                 params={'type': htype},
                 data=data,
-                testsuite_skip_prepare=not tests_control,
+                testsuite_skip_prepare=testsuite_skip_prepare,
             )
         except asyncio.TimeoutError:
             return ErrorType.TIMEOUT
@@ -76,7 +75,7 @@ def check_restore(gate, call):
         gate.to_client_pass()
         gate.start_accepting()
 
-        response = await call()
+        response = await call(testsuite_skip_prepare=True)
 
         assert isinstance(response, http.ClientResponse)
         assert response.status == 200
@@ -91,29 +90,30 @@ async def chaos_stop_accepting(gate: chaos.TcpGate) -> None:
     assert gate.connections_count() == 0
 
 
-async def test_ok(call, gate):
-    response = await call()
+async def test_ok(call):
+    response = await call(testsuite_skip_prepare=True)
     assert response.status == 200
     assert response.text == 'OK!'
 
 
-async def test_ok_compressed(call, gate):
+async def test_ok_compressed(call):
     response = await call(
         headers={'content-encoding': 'gzip'},
         data=gzip.compress('abcd'.encode()),
+        testsuite_skip_prepare=True,
     )
     assert response.status == 200
     assert response.text == 'OK!'
 
 
 async def test_stop_accepting(call, gate, check_restore):
-    response = await call()
+    response = await call(testsuite_skip_prepare=True)
     assert response.status == 200
     assert gate.connections_count() >= 1
 
     await chaos_stop_accepting(gate)
 
-    response = await call()
+    response = await call(testsuite_skip_prepare=True)
     assert isinstance(response, ErrorType)
     assert gate.connections_count() == 0
 
@@ -122,14 +122,14 @@ async def test_stop_accepting(call, gate, check_restore):
     await check_restore()
 
 
-async def test_close_during_request(call, gate, testpoint, check_restore):
+async def test_close_during_request(call, gate, testpoint):
     @testpoint('testpoint_request')
-    async def _hook(data):
+    async def _hook(_data):
         if on:
             await gate.sockets_close()
 
     on = True
-    response = await call(tests_control=True)
+    response = await call()
     assert response == ErrorType.DISCONNECT
 
     on = False
@@ -139,14 +139,14 @@ async def test_close_during_request(call, gate, testpoint, check_restore):
 
 
 async def test_close_on_data(call, gate, check_restore):
-    response = await call()
+    response = await call(testsuite_skip_prepare=True)
     assert response.status == 200
 
     gate.to_server_close_on_data()
 
     assert gate.connections_count() >= 1
     for _ in range(gate.connections_count()):
-        response = await call()
+        response = await call(testsuite_skip_prepare=True)
         assert response == ErrorType.RESET_BY_PEER
 
     await check_restore()
@@ -156,7 +156,7 @@ async def test_close_on_data(call, gate, check_restore):
 async def test_corrupted_request(call, gate, check_restore):
     gate.to_server_corrupt_data()
 
-    response = await call()
+    response = await call(testsuite_skip_prepare=True)
     assert isinstance(response, http.ClientResponse)
     assert response.status == 400
 
@@ -165,7 +165,7 @@ async def test_corrupted_request(call, gate, check_restore):
     # Connection could be cached in testsuite client. Give it a few attempts
     # to restore
     for _ in range(15):
-        resp = await call()
+        resp = await call(testsuite_skip_prepare=True)
         if isinstance(resp, http.ClientResponse) and resp.status == 200:
             break
 
@@ -177,7 +177,9 @@ async def test_partial_request(call, gate, check_restore):
     fail: int = 0
     for bytes_count in range(1, 1000):
         gate.to_server_limit_bytes(bytes_count)
-        response = await call(data={'test': 'body'})
+        response = await call(
+            data={'test': 'body'}, testsuite_skip_prepare=True,
+        )
         if response == ErrorType.DISCONNECT:
             fail = fail + 1
         elif isinstance(response, http.ClientResponse):
@@ -195,16 +197,24 @@ async def test_partial_request(call, gate, check_restore):
     await check_restore()
 
 
-async def test_network_smaller_parts_sends(call, gate, check_restore):
+async def test_network_smaller_parts_sends(call, gate):
     gate.to_server_smaller_parts(DATA_PARTS_MAX_SIZE)
 
     # With debug enabled in python send works a little bit longer
-    response = await call(timeout=INCREASED_TIMEOUT)
+    response = await call(
+        timeout=INCREASED_TIMEOUT, testsuite_skip_prepare=True,
+    )
     assert isinstance(response, http.ClientResponse)
     assert response.status == 200
 
 
-async def test_deadline_immediately_expired(call, gate, check_restore):
+async def test_deadline_immediately_expired(call, gate, testpoint):
+    testpoint_data = []
+
+    @testpoint('testpoint_request')
+    async def _hook(data):
+        testpoint_data.append(data)
+
     gate.to_server_smaller_parts(DATA_PARTS_MAX_SIZE, sleep_per_packet=0.03)
 
     response = await call(
@@ -213,3 +223,22 @@ async def test_deadline_immediately_expired(call, gate, check_restore):
     assert isinstance(response, http.ClientResponse)
     assert response.status == 504
     assert 'Deadline expired' in response.text
+    assert not testpoint_data, 'Control flow should NOT enter the handler body'
+
+
+async def test_deadline_expired(call, testpoint):
+    testpoint_data = []
+
+    @testpoint('testpoint_request')
+    async def _hook(data):
+        testpoint_data.append(data)
+
+    response = await call(
+        htype='sleep',
+        headers={'X-YaTaxi-Client-TimeoutMs': '150'},
+        timeout=INCREASED_TIMEOUT,
+    )
+    assert isinstance(response, http.ClientResponse)
+    assert response.status == 504
+    assert 'Deadline expired' in response.text
+    assert testpoint_data, 'Control flow SHOULD enter the handler body'

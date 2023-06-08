@@ -83,3 +83,4 @@ components_manager:
 
 userver_experiments:
   - handler-cancel-on-immediate-deadline-expiration
+  - handler-override-response-on-deadline
