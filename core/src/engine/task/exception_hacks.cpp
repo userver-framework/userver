@@ -4,6 +4,10 @@
 #if __has_feature(thread_sanitizer)
 #define HAS_TSAN 1
 #endif
+#if __has_feature(memory_sanitizer)
+#include <sanitizer/msan_interface.h>
+#define HAS_MSAN 1
+#endif
 #endif
 
 // Thread Sanitizer uses dl_iterate_phdr function on initialization and fails if
@@ -38,14 +42,38 @@ namespace {
 using DlIterateCb = int (*)(struct dl_phdr_info* info, size_t size, void* data);
 using DlIterateFn = int (*)(DlIterateCb callback, void* data);
 
-DlIterateFn GetOriginalDlIteratePhdr() {
+inline auto GetOriginalDlIteratePhdr() {
   static void* func = dlsym(RTLD_NEXT, "dl_iterate_phdr");
   if (!func) {
     utils::impl::AbortWithStacktrace(
         "Cannot find dl_iterate_phdr function with dlsym");
   }
 
-  return reinterpret_cast<DlIterateFn>(func);
+  auto* original_func = reinterpret_cast<DlIterateFn>(func);
+
+#ifdef HAS_MSAN
+  // `dl_iterate_phdr` is not instrumented by MSAN. Returning our lambda
+  // that unpoisons data before passing it to callback.
+  return [original_func](DlIterateCb callback, void* data) {
+    struct DataHolder {
+      DlIterateCb callback;
+      void* data;
+    };
+
+    DataHolder data_holder{callback, data};
+    auto unpoisoning_callback = [](struct dl_phdr_info* info, size_t size,
+                                   void* data) {
+      __msan_unpoison(info, sizeof(*info));
+      auto* data_holder = static_cast<DataHolder*>(data);
+      UASSERT(data_holder);
+      return data_holder->callback(info, size, data_holder->data);
+    };
+
+    return original_func(unpoisoning_callback, &data_holder);
+  };
+#else
+  return original_func;
+#endif
 }
 
 class MlockProcessDebugInfoScope final {
@@ -154,8 +182,11 @@ class PhdrCache final {
  private:
   PhdrCacheStorage cache_{};
 };
-PhdrCache phdr_cache{};
-MlockProcessDebugInfoScope mlock_debug_info_scope{};
+
+MlockProcessDebugInfoScope& GetMlockProcessDebugInfoScope() noexcept {
+  static MlockProcessDebugInfoScope mlock_debug_info_scope{};
+  return mlock_debug_info_scope;
+}
 
 int DlIteratePhdr(DlIterateCb callback, void* data) {
   auto* current_phdr_cache = phdr_cache_ptr.load();
@@ -211,12 +242,13 @@ void AssertDlFunctionFound(void* function, std::string_view dl_function_name) {
 }  // namespace
 
 void InitPhdrCacheAndDisableDynamicLoading(DebugInfoAction debug_info_action) {
+  static PhdrCache phdr_cache{};
   phdr_cache.Initialize();
 
   if (debug_info_action == DebugInfoAction::kLockInMemory) {
     DlIteratePhdr(
         [](struct dl_phdr_info* info, size_t, void*) {
-          mlock_debug_info_scope.Initialize(*info);
+          GetMlockProcessDebugInfoScope().Initialize(*info);
           // we are only interested in the first dl_phdr_info,
           // so stop iteration right away.
           return 1;
@@ -227,7 +259,7 @@ void InitPhdrCacheAndDisableDynamicLoading(DebugInfoAction debug_info_action) {
 
 void TeardownPhdrCacheAndEnableDynamicLoading() {
   PhdrCache::Teardown();
-  mlock_debug_info_scope.Teardown();
+  GetMlockProcessDebugInfoScope().Teardown();
 }
 
 }  // namespace engine::impl

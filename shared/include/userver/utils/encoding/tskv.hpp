@@ -162,11 +162,11 @@ struct EncoderStd final {
   using Block = std::uint64_t;
   static constexpr std::size_t kBlockSize = sizeof(Block);
 
-  // Address sanitizer is disabled within the function, because the SIMD loads
+  // Sanitizers are disabled within the function, because the SIMD loads
   // may intentionally wander to uninitialized memory. The loads never touch
   // memory outside "our" cache lines, though.
-  __attribute__((no_sanitize_address)) inline static auto LoadBlock(
-      const char* block) noexcept {
+  __attribute__((no_sanitize_address, no_sanitize_memory)) inline static auto
+  LoadBlock(const char* block) noexcept {
     block = AssumeAligned<kBlockSize>(block);
     return *reinterpret_cast<const Block*>(block);
   }
@@ -194,11 +194,11 @@ struct EncoderSse2 {
   using Block = __m128i;
   static constexpr std::size_t kBlockSize = sizeof(Block);
 
-  // Address sanitizer is disabled within the function, because the SIMD loads
+  // Sanitizers are disabled within the function, because the SIMD loads
   // may intentionally wander to uninitialized memory. The loads never touch
   // memory outside "our" cache lines, though.
-  __attribute__((no_sanitize_address)) inline static Block LoadBlock(
-      const char* block) noexcept {
+  __attribute__((no_sanitize_address, no_sanitize_memory)) inline static Block
+  LoadBlock(const char* block) noexcept {
     block = AssumeAligned<kBlockSize>(block);
     return _mm_load_si128(reinterpret_cast<const Block*>(block));
   }
@@ -246,11 +246,11 @@ struct EncoderAvx2 final {
   using Block = __m256i;
   static constexpr std::size_t kBlockSize = sizeof(Block);
 
-  // Address sanitizer is disabled within the function, because the SIMD loads
+  // Sanitizers are disabled within the function, because the SIMD loads
   // may intentionally wander to uninitialized memory. The loads never touch
   // memory outside "our" cache lines, though.
-  __attribute__((no_sanitize_address)) inline static Block LoadBlock(
-      const char* block) noexcept {
+  __attribute__((no_sanitize_address, no_sanitize_memory)) inline static Block
+  LoadBlock(const char* block) noexcept {
     block = AssumeAligned<kBlockSize>(block);
     return _mm256_load_si256(reinterpret_cast<const Block*>(block));
   }
@@ -279,7 +279,7 @@ struct EncoderAvx2 final {
 };
 #endif
 
-#ifdef __AVX2__
+#if defined(__AVX2__)
 using SystemEncoder = EncoderAvx2;
 #elif defined(__SSSE3__)
 using SystemEncoder = EncoderSsse3;

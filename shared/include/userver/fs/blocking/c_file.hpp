@@ -79,7 +79,7 @@ class CFile final {
 
  private:
   struct Impl;
-  utils::FastPimpl<Impl, sizeof(char*), sizeof(char*)> impl_;
+  utils::FastPimpl<Impl, sizeof(char*), alignof(char*)> impl_;
 };
 
 }  // namespace fs::blocking
