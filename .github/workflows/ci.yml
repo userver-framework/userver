@@ -75,6 +75,12 @@ jobs:
                     ${{matrix.os}} ${{matrix.info}} ccache-dir ${{github.ref}} run-'
                     ${{matrix.os}} ${{matrix.info}} ccache-
 
+          - name: Free disk space
+            run: |
+                df -h
+                sudo rm -rf /usr/share/dotnet /usr/local/lib/android /usr/lib/php* /opt/ghc || true
+                df -h
+
           - name: Install packages
             run: |
                 # Instructions from https://clickhouse.com/docs/en/getting-started/install/
