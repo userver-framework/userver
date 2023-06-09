@@ -138,6 +138,7 @@ class ComponentContext final {
   /// components::LoggableComponentBase::GetComponentHealth().
   bool IsAnyComponentInFatalState() const;
 
+ private:
   /// @returns true if there is a component with the specified name and it
   /// could be found via FindComponent()
   bool Contains(std::string_view name) const noexcept;
@@ -147,7 +148,6 @@ class ComponentContext final {
     return ReportMisuse<T>();
   }
 
- private:
   template <class T>
   decltype(auto) ReportMisuse() {
     static_assert(!sizeof(T),

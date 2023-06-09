@@ -1,7 +1,6 @@
 #include <userver/testsuite/testsuite_support.hpp>
 
 #include <userver/components/component.hpp>
-#include <userver/server/handlers/tests_control.hpp>
 #include <userver/testsuite/tasks.hpp>
 #include <userver/utils/periodic_task.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
@@ -51,12 +50,8 @@ testsuite::RedisControl ParseRedisControl(
 }
 
 std::unique_ptr<testsuite::TestsuiteTasks> ParseTestsuiteTasks(
-    const components::ComponentConfig& config,
-    const components::ComponentContext& context) {
-  bool handler_available =
-      context.Contains(server::handlers::TestsControl::kName);
-  bool is_enabled =
-      config["testsuite-tasks-enabled"].As<bool>(handler_available);
+    const components::ComponentConfig& config) {
+  const bool is_enabled = config["testsuite-tasks-enabled"].As<bool>(false);
   return std::make_unique<testsuite::TestsuiteTasks>(is_enabled);
 }
 
@@ -72,14 +67,14 @@ testsuite::GrpcControl ParseGrpcControl(
 }  // namespace
 
 TestsuiteSupport::TestsuiteSupport(const components::ComponentConfig& config,
-                                   const components::ComponentContext& context)
+                                   const components::ComponentContext&)
     : cache_control_(
           ParsePeriodicUpdatesMode(config["testsuite-periodic-update-enabled"]
                                        .As<std::optional<bool>>())),
       dump_control_(ParseDumpControl(config)),
       postgres_control_(ParsePostgresControl(config)),
       redis_control_(ParseRedisControl(config)),
-      testsuite_tasks_(ParseTestsuiteTasks(config, context)),
+      testsuite_tasks_(ParseTestsuiteTasks(config)),
       grpc_control_(ParseGrpcControl(config)) {}
 
 TestsuiteSupport::~TestsuiteSupport() = default;
@@ -165,9 +160,8 @@ properties:
         description: forced timeout on client requests
     testsuite-tasks-enabled:
         type: boolean
-        description: |
-            Weather or not testsuite tasks are enabled. By default is true
-            if server::handlers::TestsuiteTasks component is available.
+        description: Weather or not testsuite tasks are enabled
+        defaultDescription: false
 )");
 }
 

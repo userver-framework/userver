@@ -37,8 +37,9 @@ void TestsuiteTasks::RegisterTask(const std::string& name,
   auto locked_tasks = tasks_.Lock();
   auto it = locked_tasks->find(name);
   if (it != locked_tasks->end()) {
-    LOG_ERROR() << "Testsuite task " << name << " already registered";
-    throw std::runtime_error("Task already registered");
+    LOG_ERROR() << "Testsuite task '" << name << "' already registered";
+    throw std::runtime_error(
+        fmt::format("Testsuite task '{}' already registered", name));
   }
   LOG_INFO() << "Testsuite task " << name << " registered";
 
@@ -53,7 +54,8 @@ void TestsuiteTasks::UnregisterTask(const std::string& name) {
 
   if (it == locked_tasks->end()) {
     LOG_ERROR() << "Testsuite task " << name << " is not registered";
-    throw std::runtime_error("Task is not registered");
+    throw std::runtime_error(
+        fmt::format("Testsuite task '{}' is not registered", name));
   }
   LOG_INFO() << "Testsuite task " << name << " unregistered";
 
@@ -63,8 +65,9 @@ void TestsuiteTasks::UnregisterTask(const std::string& name) {
 void TestsuiteTasks::RunTask(const std::string& name) {
   auto entry = GetEntryFor(name);
 
-  if (entry->running_flag.exchange(true))
-    throw TaskAlreadyRunning("Task is already running");
+  if (entry->running_flag.exchange(true)) {
+    throw TaskAlreadyRunning(fmt::format("Task '{}' is already running", name));
+  }
 
   FlagClearer clearer(entry->running_flag);
   entry->callback();
@@ -74,8 +77,10 @@ std::string TestsuiteTasks::SpawnTask(const std::string& name) {
   std::string task_id = utils::generators::GenerateUuid();
   auto entry = GetEntryFor(name);
 
-  if (entry->running_flag.exchange(true))
-    throw TaskAlreadyRunning("Task is already running");
+  if (entry->running_flag.exchange(true)) {
+    throw TaskAlreadyRunning(
+        fmt::format("Testsuite task '{}' is already running", name));
+  }
 
   auto spawned = std::make_shared<SpawnedTask>();
   spawned->name = name;
@@ -92,8 +97,9 @@ std::string TestsuiteTasks::SpawnTask(const std::string& name) {
 void TestsuiteTasks::StopSpawnedTask(const std::string& task_id) {
   auto spawned = GetSpawnedFor(task_id);
 
-  if (spawned->busy_flag.exchange(true))
-    throw TaskAlreadyRunning("Spawned task is locked");
+  if (spawned->busy_flag.exchange(true)) {
+    throw TaskAlreadyRunning("Spawned testsuite task is locked");
+  }
 
   FlagClearer clearer(spawned->busy_flag);
   bool is_finished = spawned->task.IsFinished();
@@ -117,7 +123,17 @@ std::shared_ptr<TestsuiteTasks::Entry> TestsuiteTasks::GetEntryFor(
     const std::string& name) {
   auto locked = tasks_.Lock();
   auto it = locked->find(name);
-  if (it == locked->end()) throw TaskNotFound("Task not found");
+  if (it == locked->end()) {
+    if (!is_enabled_) {
+      throw TaskNotFound(
+          fmt::format("Testsuite task '{}' not found probably due to "
+                      "'testsuite-support.testsuite-tasks-enabled' is 'false' "
+                      "in static config, ",
+                      name));
+    } else {
+      throw TaskNotFound(fmt::format("Testsuite task '{}' not found", name));
+    }
+  }
   return it->second;
 }
 
@@ -125,7 +141,9 @@ std::shared_ptr<TestsuiteTasks::SpawnedTask> TestsuiteTasks::GetSpawnedFor(
     const std::string& task_id) {
   auto locked = spawned_.Lock();
   auto it = locked->find(task_id);
-  if (it == locked->end()) throw TaskNotFound("Spawned task not found");
+  if (it == locked->end()) {
+    throw TaskNotFound("Spawned testsuite task not found");
+  }
   return it->second;
 }
 
@@ -135,7 +153,7 @@ void TestsuiteTasks::CheckNoRunningTasks() noexcept {
     for (const auto& it : *locked_tasks) {
       if (it.second->running_flag) {
         utils::impl::AbortWithStacktrace(
-            fmt::format("Testsuite task {} is still running", it.first));
+            fmt::format("Testsuite task '{}' is still running", it.first));
       }
     }
   }
@@ -144,7 +162,7 @@ void TestsuiteTasks::CheckNoRunningTasks() noexcept {
     auto locked = spawned_.Lock();
     for (const auto& it : *locked) {
       utils::impl::AbortWithStacktrace(fmt::format(
-          "Spawned testsuite task {} is till running", it.second->name));
+          "Spawned testsuite task '{}' is still running", it.second->name));
     }
   }
 }

@@ -41,7 +41,7 @@ namespace components {
 /// testsuite-redis-timeout-connect | minimum connection timeout for redis | -
 /// testsuite-redis-timeout-single | minimum single shard timeout for redis | -
 /// testsuite-redis-timeout-all | minimum command timeout for redis | -
-/// testsuite-tasks-enabled | enable testsuite tasks facility | true if the corresponding testsuite component is available
+/// testsuite-tasks-enabled | enable testsuite tasks facility | false
 ///
 /// ## Static configuration example:
 ///
