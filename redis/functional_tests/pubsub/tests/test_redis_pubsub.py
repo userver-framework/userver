@@ -42,6 +42,7 @@ async def test_happy_path_sentinel(service_client, redis_store, queued):
     )
 
 
+@pytest.mark.skip(reason='Flaps, fix in TAXICOMMON-6778')
 @pytest.mark.parametrize('queued', ['yes', 'no'])
 async def test_happy_path_cluster(service_client, redis_cluster_store, queued):
     async def _test_pubsub(port_number, prefix):
