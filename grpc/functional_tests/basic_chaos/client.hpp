@@ -43,6 +43,9 @@ class GreeterClient final : public components::LoggableComponentBase {
   inline static yaml_config::Schema GetStaticConfigSchema();
 
  private:
+  inline static std::unique_ptr<grpc::ClientContext> CreateClientContext(
+      bool is_small_timeout);
+
   ugrpc::client::ClientFactory& client_factory_;
   api::GreeterServiceClient client_;
 };
@@ -63,15 +66,21 @@ properties:
 )");
 }
 
+std::unique_ptr<grpc::ClientContext> GreeterClient::CreateClientContext(
+    bool is_small_timeout) {
+  auto context = std::make_unique<grpc::ClientContext>();
+  context->set_deadline(engine::Deadline::FromDuration(
+      std::chrono::seconds{is_small_timeout ? 1 : 20}));
+  context->set_wait_for_ready(true);
+  return context;
+}
+
 std::string GreeterClient::SayHello(std::string name, bool is_small_timeout) {
   api::GreetingRequest request;
   request.set_name(std::move(name));
 
-  auto context = std::make_unique<grpc::ClientContext>();
-  context->set_deadline(engine::Deadline::FromDuration(
-      std::chrono::seconds{is_small_timeout ? 1 : 20}));
-
-  auto stream = client_.SayHello(request, std::move(context));
+  auto stream =
+      client_.SayHello(request, CreateClientContext(is_small_timeout));
 
   api::GreetingResponse response = stream.Finish();
 
@@ -84,11 +93,8 @@ std::string GreeterClient::SayHelloResponseStream(std::string name,
   api::GreetingRequest request;
   request.set_name(std::move(name));
 
-  auto context = std::make_unique<grpc::ClientContext>();
-  context->set_deadline(engine::Deadline::FromDuration(
-      std::chrono::seconds{is_small_timeout ? 1 : 20}));
-
-  auto stream = client_.SayHelloResponseStream(request, std::move(context));
+  auto stream = client_.SayHelloResponseStream(
+      request, CreateClientContext(is_small_timeout));
   api::GreetingResponse response;
   while (stream.Read(response)) {
     result.append(response.greeting());
@@ -100,10 +106,8 @@ std::string GreeterClient::SayHelloResponseStream(std::string name,
 std::string GreeterClient::SayHelloRequestStream(
     const std::vector<std::string>& names, bool is_small_timeout) {
   std::string result{};
-  auto context = std::make_unique<grpc::ClientContext>();
-  context->set_deadline(engine::Deadline::FromDuration(
-      std::chrono::seconds{is_small_timeout ? 1 : 20}));
-  auto stream = client_.SayHelloRequestStream(std::move(context));
+  auto stream =
+      client_.SayHelloRequestStream(CreateClientContext(is_small_timeout));
   for (const auto& name : names) {
     api::GreetingRequest request;
     request.set_name(grpc::string(name));
@@ -118,10 +122,7 @@ std::string GreeterClient::SayHelloRequestStream(
 std::string GreeterClient::SayHelloStreams(
     const std::vector<std::string>& names, bool is_small_timeout) {
   std::string result{};
-  auto context = std::make_unique<grpc::ClientContext>();
-  context->set_deadline(engine::Deadline::FromDuration(
-      std::chrono::seconds{is_small_timeout ? 1 : 20}));
-  auto stream = client_.SayHelloStreams(std::move(context));
+  auto stream = client_.SayHelloStreams(CreateClientContext(is_small_timeout));
   for (const auto& name : names) {
     api::GreetingRequest request;
     request.set_name(grpc::string(name));
@@ -138,10 +139,8 @@ std::string GreeterClient::SayHelloStreams(
 std::string GreeterClient::SayHelloIndependentStreams(
     const std::vector<std::string>& names, bool is_small_timeout) {
   std::string result{};
-  auto context = std::make_unique<grpc::ClientContext>();
-  context->set_deadline(engine::Deadline::FromDuration(
-      std::chrono::seconds{is_small_timeout ? 1 : 20}));
-  auto stream = client_.SayHelloIndependentStreams(std::move(context));
+  auto stream =
+      client_.SayHelloIndependentStreams(CreateClientContext(is_small_timeout));
   auto write_task = engine::AsyncNoSpan([&stream, &names] {
     for (const auto& name : names) {
       api::GreetingRequest request;
