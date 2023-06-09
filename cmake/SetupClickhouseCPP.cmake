@@ -3,7 +3,7 @@ set(CMAKE_POLICY_DEFAULT_CMP0069 NEW)
 option(USERVER_DOWNLOAD_PACKAGE_CLICKHOUSECPP "Download and setup clickhouse-cpp" ${USERVER_DOWNLOAD_PACKAGES})
 
 if (USERVER_DOWNLOAD_PACKAGE_CLICKHOUSECPP)
-  find_package(clickhouse-cpp)
+  find_package(clickhouse-cpp QUIET)
 else()
   find_package(clickhouse-cpp REQUIRED)
 endif()
