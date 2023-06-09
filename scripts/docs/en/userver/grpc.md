@@ -97,8 +97,8 @@ Middlewares to use are indicated in static config in section `middlewares` of `u
 
 ## Metrics
 
-* Client metrics are put inside `grpc.client.by-destination.FULL_SERVICE_NAME/METHOD_NAME`
-* Server metrics are put inside `grpc.server.by-destination.FULL_SERVICE_NAME/METHOD_NAME`
+* Client metrics are put inside `grpc.client.by-destination {grpc_destination=FULL_SERVICE_NAME/METHOD_NAME}`
+* Server metrics are put inside `grpc.server.by-destination {grpc_destination=FULL_SERVICE_NAME/METHOD_NAME}`
 
 These are the metrics provided for each gRPC method:
 

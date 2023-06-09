@@ -29,8 +29,8 @@ namespace {
 
 using ClientType = sample::ugrpc::UnitTestServiceClient;
 
-constexpr auto kDeadlinePropagated = "deadline_propagated";
-constexpr auto kCancelledByDp = "cancelled_by_deadline_propagation";
+constexpr auto kDeadlinePropagated = "deadline-propagated";
+constexpr auto kCancelledByDp = "cancelled-by-deadline-propagation";
 
 class UnitTestDeadlineStatsService final
     : public sample::ugrpc::UnitTestServiceBase {

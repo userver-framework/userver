@@ -74,7 +74,7 @@ void DumpMetric(utils::statistics::Writer& writer,
   total_requests += network_errors_value;
   error_requests += network_errors_value;
 
-  // Same for deadline propagation cancelation
+  // Same for deadline propagation cancellation
   total_requests += deadline_cancelled_value;
   error_requests += deadline_cancelled_value;
 
@@ -85,8 +85,8 @@ void DumpMetric(utils::statistics::Writer& writer,
   writer["network-error"] = network_errors_value;
   writer["abandoned-error"] = abandoned_errors_value;
 
-  writer["deadline_propagated"] = stats.deadline_updated_.load();
-  writer["cancelled_by_deadline_propagation"] = deadline_cancelled_value;
+  writer["deadline-propagated"] = stats.deadline_updated_.load();
+  writer["cancelled-by-deadline-propagation"] = deadline_cancelled_value;
 }
 
 ServiceStatistics::~ServiceStatistics() = default;
