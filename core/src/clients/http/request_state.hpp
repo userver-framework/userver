@@ -154,6 +154,7 @@ class RequestState : public std::enable_shared_from_this<RequestState> {
   void UpdateTimeoutFromDeadline();
   void UpdateTimeoutHeader();
   std::exception_ptr PrepareDeadlineAlreadyPassedException();
+  const std::string& GetLoggedOriginalUrl() const noexcept;
 
   static size_t StreamWriteFunction(char* ptr, size_t size, size_t nmemb,
                                     void* userdata);
@@ -201,7 +202,7 @@ class RequestState : public std::enable_shared_from_this<RequestState> {
   std::chrono::milliseconds effective_timeout_;
 
   bool add_client_timeout_header_{true};
-  bool report_timeout_as_cancellation_{false};
+  bool timeout_updated_by_deadline_{false};
   EnforceTaskDeadlineConfig enforce_task_deadline_{};
   /// deadline from current task
   engine::Deadline deadline_;

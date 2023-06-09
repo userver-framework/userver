@@ -534,6 +534,11 @@ void RequestState::parse_header(char* ptr, size_t size) try {
 
 void RequestState::SetLoggedUrl(std::string url) { log_url_ = std::move(url); }
 
+const std::string& RequestState::GetLoggedOriginalUrl() const noexcept {
+  // We may want to use original_url if effective_url is not available yet.
+  return log_url_ ? *log_url_ : easy().get_original_url();
+}
+
 engine::Future<std::shared_ptr<Response>> RequestState::async_perform(
     utils::impl::SourceLocation location) {
   data_ = FullBufferedData{};
@@ -578,7 +583,7 @@ void RequestState::async_perform_stream(const std::shared_ptr<Queue>& queue,
   is_cancelled_ = false;
   retry_.current = 1;
   effective_timeout_ = original_timeout_;
-  report_timeout_as_cancellation_ = false;
+  timeout_updated_by_deadline_ = false;
 
   easy().set_write_function(&RequestState::StreamWriteFunction);
   easy().set_write_data(this);
@@ -665,7 +670,7 @@ void RequestState::UpdateTimeoutFromDeadline() {
       effective_timeout_ = timeout_from_deadline;
 
       if (enforce_task_deadline_.cancel_request) {
-        report_timeout_as_cancellation_ = true;
+        timeout_updated_by_deadline_ = true;
       }
       WithRequestStats(
           [](RequestStats& stats) { stats.AccountTimeoutUpdatedByDeadline(); });
@@ -697,7 +702,9 @@ void RequestState::UpdateTimeoutHeader() {
 }
 
 std::exception_ptr RequestState::PrepareDeadlineAlreadyPassedException() {
-  const auto& url = easy().get_original_url();  // no effective_url yet
+  WithRequestStats(
+      [](RequestStats& stats) { stats.AccountCancelledByDeadline(); });
+  const auto& url = GetLoggedOriginalUrl();
 
   if (enforce_task_deadline_.cancel_request) {
     return PrepareDeadlinePassedException(url);
@@ -725,8 +732,12 @@ void RequestState::AccountResponse(std::error_code err) {
 }
 
 std::exception_ptr RequestState::PrepareException(std::error_code err) {
-  if (report_timeout_as_cancellation_ && IsTimeout(err)) {
-    return PrepareDeadlinePassedException(easy().get_effective_url());
+  if (timeout_updated_by_deadline_ && IsTimeout(err)) {
+    WithRequestStats(
+        [](RequestStats& stats) { stats.AccountCancelledByDeadline(); });
+    if (enforce_task_deadline_.cancel_request) {
+      return PrepareDeadlinePassedException(easy().get_effective_url());
+    }
   }
 
   return http::PrepareException(err, easy().get_effective_url(),
@@ -735,9 +746,6 @@ std::exception_ptr RequestState::PrepareException(std::error_code err) {
 
 std::exception_ptr RequestState::PrepareDeadlinePassedException(
     std::string_view url) {
-  WithRequestStats(
-      [](RequestStats& stats) { stats.AccountCancelledByDeadline(); });
-
   return std::make_exception_ptr(CancelException(
       fmt::format("Timeout happened (deadline propagation), url: {}", url),
       easy().get_local_stats()));
@@ -753,7 +761,7 @@ engine::Future<std::shared_ptr<Response>> RequestState::StartNewPromise() {
   is_cancelled_ = false;
   retry_.current = 1;
   effective_timeout_ = original_timeout_;
-  report_timeout_as_cancellation_ = false;
+  timeout_updated_by_deadline_ = false;
 
   return buffered_data->promise_.get_future();
 }
@@ -835,10 +843,7 @@ void RequestState::StartNewSpan(utils::impl::SourceLocation location) {
   tracing_manager_->FillRequestWithTracingContext(span,
                                                   request_editable_instance);
   plugin_pipeline_.HookCreateSpan(*this);
-
-  // effective url is not available yet
-  span.AddTag(tracing::kHttpUrl,
-              log_url_ ? *log_url_ : easy().get_original_url());
+  span.AddTag(tracing::kHttpUrl, GetLoggedOriginalUrl());
 
   // Span is local to a Request, it is not related to current coroutine
   span.DetachFromCoroStack();
