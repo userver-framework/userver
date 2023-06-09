@@ -68,6 +68,8 @@ class ClusterSentinelImpl : public SentinelImplBase {
       const ReplicationMonitoringSettings& replication_monitoring_settings)
       override;
 
+  static size_t GetClusterSlotsCalledCounter();
+
  private:
   void AsyncCommandFailed(const SentinelCommand& scommand);
   void EnqueueCommand(const SentinelCommand& command);

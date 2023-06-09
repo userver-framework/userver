@@ -140,7 +140,7 @@ if (USERVER_IS_THE_ROOT_PROJECT)
   add_test(${PROJECT_NAME}_redistest
     env
       ${CMAKE_BINARY_DIR}/testsuite/env
-      --databases=redis
+      --databases=redis,redis-cluster
       run --
       ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}_redistest
       --gtest_output=xml:${CMAKE_BINARY_DIR}/test-results/${PROJECT_NAME}_redistest.xml

@@ -1,12 +1,14 @@
 #include "cluster_sentinel_impl.hpp"
 
 #include <fmt/format.h>
+#include <atomic>
 #include <boost/crc.hpp>
 
 #include <userver/concurrent/variable.hpp>
 #include <userver/rcu/rcu.hpp>
 #include <userver/storages/redis/impl/exception.hpp>
 #include <userver/storages/redis/impl/reply.hpp>
+#include <userver/utils/scope_guard.hpp>
 #include <userver/utils/text.hpp>
 
 #include <engine/ev/watcher.hpp>
@@ -245,6 +247,10 @@ class ClusterTopologyHolder {
     }
   }
 
+  static size_t GetClusterSlotsCalledCounter() {
+    return cluster_slots_call_counter_.load(std::memory_order_relaxed);
+  }
+
  private:
   void ProcessStateUpdate() { sentinels_->ProcessStateUpdate(); }
   std::shared_ptr<Redis> CreateRedisInstance(const std::string& host_port);
@@ -290,7 +296,11 @@ class ClusterTopologyHolder {
       commands_buffering_settings_;
   concurrent::Variable<ReplicationMonitoringSettings, std::mutex>
       monitoring_settings_;
+
+  static std::atomic<size_t> cluster_slots_call_counter_;
 };
+
+std::atomic<size_t> ClusterTopologyHolder::cluster_slots_call_counter_(0);
 
 namespace {
 enum class ClusterNodesResponseStatus {
@@ -338,6 +348,7 @@ ClusterNodesResponseStatus ParseCLusterNodesResponse(
 
   return ClusterNodesResponseStatus::kOk;
 }
+
 }  // namespace
 
 void ClusterTopologyHolder::ExploreNodes() {
@@ -476,6 +487,10 @@ void ClusterTopologyHolder::UpdateClusterTopology() {
             << "Parsing response from cluster slots: shard_infos.size(): "
             << shard_infos.size() << ", requests_sent=" << requests_sent
             << ", responses_parsed=" << responses_parsed;
+        auto defered = utils::ScopeGuard([&] {
+          update_cluster_slots_flag_ = false;
+          ++cluster_slots_call_counter_;
+        });
         if (is_non_cluster_error) {
           LOG_DEBUG() << "Non cluster error: shard_infos.size(): "
                       << shard_infos.size();
@@ -501,7 +516,6 @@ void ClusterTopologyHolder::UpdateClusterTopology() {
             ++current_topology_version_, std::chrono::steady_clock::now(),
             std::move(shard_infos), password_, redis_thread_pool_, nodes_));
         is_topology_received_ = true;
-        update_cluster_slots_flag_ = false;
 
         LOG_DEBUG() << "Cluster topology updated to version"
                     << current_topology_version_.load();
@@ -560,7 +574,10 @@ ClusterSentinelImpl::GetAvailableServersWeighted(
 }
 
 void ClusterSentinelImpl::WaitConnectedDebug(bool /*allow_empty_slaves*/) {
-  throw std::runtime_error(std::string(__func__) + " Unimplemented yet");
+  const RedisWaitConnected wait_connected{WaitConnectedMode::kMasterAndSlave,
+                                          false,
+                                          kRedisWaitConnectedDefaultTimeout};
+  WaitConnectedOnce(wait_connected);
 }
 
 void ClusterSentinelImpl::WaitConnectedOnce(RedisWaitConnected wait_connected) {
@@ -615,13 +632,11 @@ void ClusterSentinelImpl::AsyncCommand(const SentinelCommand& scommand,
           auto topology = topology_holder_->GetTopology();
 
           const auto& args = ccommand->args.args;
-          const auto slot = HashSlot(args.front()[1]);
           LOG_DEBUG() << "MOVED" << reply->status_string
                       << " c.instance_idx:" << ccommand->instance_idx
                       << " shard: " << shard
                       << " movedto:" << ParseMovedShard(reply->data.GetError())
-                      << " args:" << args << " HashSlot: " << slot
-                      << " shard_index:" << topology->GetShardIndexBySlot(slot);
+                      << " args:" << args;
           this->topology_holder_->SendUpdateClusterTopology();
         }
         const bool retry_to_master =
@@ -777,6 +792,10 @@ void ClusterSentinelImpl::EnqueueCommand(const SentinelCommand& command) {
 size_t ClusterSentinelImpl::ShardsCount() const {
   const auto ptr = topology_holder_->GetTopology();
   return ptr->GetShardsCount();
+}
+
+size_t ClusterSentinelImpl::GetClusterSlotsCalledCounter() {
+  return ClusterTopologyHolder::GetClusterSlotsCalledCounter();
 }
 
 }  // namespace redis
