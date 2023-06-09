@@ -140,7 +140,13 @@ def generate(
         )
 
     jinja_env = jinja2.Environment(
-        loader=loader, trim_blocks=True, lstrip_blocks=True,
+        loader=loader,
+        trim_blocks=True,
+        lstrip_blocks=True,
+        # We do not render HTML pages with Jinja. However the gRPC data could
+        # be shown on web. Assuming that the generation should not deal with
+        # HTML special characters, it is safer to turn on autoescaping.
+        autoescape=True,
     )
     jinja_env.filters['grpc_to_cpp_name'] = _grpc_to_cpp_name
 

@@ -146,6 +146,9 @@ def main(argv=None):
         loader=jinja2.FileSystemLoader([template_path]),
         undefined=jinja2.StrictUndefined,
         extensions=['jinja2.ext.loopcontrols'],
+        # We do not generate HTML pages. The output could be shown in web by
+        # CI/CD which should escape the messages on its own.
+        autoescape=False,
     )
     for key, value in dependencies.items():
         for filename, data in generate_cmake(key, value, renderer).items():

@@ -283,7 +283,7 @@ class HalfRoundPolicyBase {
   [[nodiscard]] static constexpr int64_t DivRounded(int64_t a, int64_t b,
                                                     bool extra_odd_quotient) {
     if (HalfPolicy::ShouldRoundAwayFromZeroDiv(a, b, extra_odd_quotient)) {
-      const int64_t quotient_sign = impl::Sign(a) * impl::Sign(b);
+      const auto quotient_sign = impl::Sign(a) * impl::Sign(b);
       return (a / b) + quotient_sign;  // round away from 0
     } else {
       return a / b;  // round towards 0
