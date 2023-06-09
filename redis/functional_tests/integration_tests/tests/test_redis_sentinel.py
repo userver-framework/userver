@@ -15,7 +15,7 @@ async def test_happy_path(service_client):
     assert result.text == 'abc'
 
 
-async def test_hard_failover(service_client, redis_sentinel_services):
+async def test_failover(service_client, redis_sentinel):
     # Make a write operation to current master
     result = await service_client.post(
         '/redis-sentinel', params={'key': 'hf_key', 'value': 'abc'},
@@ -30,18 +30,17 @@ async def test_hard_failover(service_client, redis_sentinel_services):
     assert result.text == 'abc'
 
     # Start the failover
-    redis_sentinel_services.masters[0].kill()
+    redis_sentinel.sentinel_failover('test_master1')
+    await asyncio.sleep(1)
 
     # Failover starts in ~10 seconds
     for _ in range(FAILOVER_DEADLINE_SEC):
         result = await service_client.post(
             '/redis-sentinel', params={'key': 'hf_key2', 'value': 'abcd'},
         )
-        if result.status == 500:
-            await asyncio.sleep(1)
-            continue
-
-        break
+        if result.status == 201:
+            break
+        await asyncio.sleep(1)
     assert result.status == 201
 
     # Now that one of the replicas has become the master,
@@ -52,7 +51,3 @@ async def test_hard_failover(service_client, redis_sentinel_services):
     assert (
         await service_client.get('/redis-sentinel', params={'key': 'hf_key2'})
     ).text == 'abcd'
-
-    # todo: TAXITOOLS-5772 check that containers are healthy before each test
-    redis_sentinel_services.masters[0].start()
-    await redis_sentinel_services.masters[0].is_healthy()
