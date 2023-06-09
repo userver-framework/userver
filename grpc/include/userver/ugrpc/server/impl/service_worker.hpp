@@ -26,6 +26,7 @@ struct ServiceSettings final {
   engine::TaskProcessor& task_processor;
   ugrpc::impl::StatisticsStorage& statistics_storage;
   const Middlewares& middlewares;
+  const logging::LoggerPtr access_tskv_logger;
   const dynamic_config::Source config_source;
 };
 

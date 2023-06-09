@@ -5,6 +5,7 @@
 #include <userver/engine/async.hpp>
 #include <userver/engine/sleep.hpp>
 #include <userver/engine/task/task.hpp>
+#include <userver/logging/null_logger.hpp>
 #include <userver/utest/utest.hpp>
 #include <userver/utils/statistics/storage.hpp>
 
@@ -87,6 +88,7 @@ UTEST_P_MT(GrpcChannels, TryWaitForConnected, 2) {
 
   UnitTestServiceSimple service;
   ugrpc::server::Server server(MakeServerConfig(), statistics_storage,
+                               logging::MakeNullLogger(),
                                config_storage.GetSource());
   ugrpc::server::Middlewares mws;
   server.AddService(service, engine::current_task::GetTaskProcessor(), mws);

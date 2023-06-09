@@ -382,6 +382,10 @@ void Span::DetachFromCoroStack() {
 
 void Span::AttachToCoroStack() { pimpl_->AttachToCoroStack(); }
 
+std::chrono::system_clock::time_point Span::GetStartSystemTime() const {
+  return pimpl_->start_system_time_;
+}
+
 const std::string& Span::GetTraceId() const { return pimpl_->GetTraceId(); }
 
 const std::string& Span::GetSpanId() const { return pimpl_->GetSpanId(); }

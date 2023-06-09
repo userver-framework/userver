@@ -4,6 +4,7 @@
 
 #include <userver/dynamic_config/test_helpers.hpp>
 #include <userver/engine/task/task.hpp>
+#include <userver/logging/null_logger.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -20,7 +21,7 @@ ugrpc::server::ServerConfig MakeServerConfig() {
 GrpcServiceFixture::GrpcServiceFixture()
     : config_storage_(dynamic_config::MakeDefaultStorage({})),
       server_(MakeServerConfig(), statistics_storage_,
-              config_storage_.GetSource()),
+              logging::MakeNullLogger(), config_storage_.GetSource()),
       testsuite_({}, false) {}
 
 GrpcServiceFixture::~GrpcServiceFixture() = default;

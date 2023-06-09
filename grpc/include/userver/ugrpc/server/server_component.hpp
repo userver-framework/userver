@@ -48,6 +48,7 @@ class ServerComponent final : public components::LoggableComponentBase {
 
   void OnAllComponentsAreStopping() override;
 
+  ServerConfig config_;
   Server server_;
 };
 

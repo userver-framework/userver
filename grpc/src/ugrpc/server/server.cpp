@@ -77,14 +77,16 @@ ServerConfig Parse(const yaml_config::YamlConfig& value,
   config.native_log_level =
       value["native-log-level"].As<logging::Level>(logging::Level::kError);
   config.enable_channelz = value["enable-channelz"].As<bool>(false);
+  config.access_log_logger_name =
+      value["access-tskv-logger"].As<std::string>({});
   return config;
 }
 
 class Server::Impl final {
  public:
-  explicit Impl(ServerConfig&& config,
+  explicit Impl(const ServerConfig& config,
                 utils::statistics::Storage& statistics_storage,
-                dynamic_config::Source);
+                logging::LoggerPtr access_tskv_logger, dynamic_config::Source);
   ~Impl();
 
   void AddService(ServiceBase& service, engine::TaskProcessor& task_processor,
@@ -125,13 +127,16 @@ class Server::Impl final {
 
   ugrpc::impl::StatisticsStorage statistics_storage_;
   const dynamic_config::Source config_source_;
+  logging::LoggerPtr access_tskv_logger_;
 };
 
-Server::Impl::Impl(ServerConfig&& config,
+Server::Impl::Impl(const ServerConfig& config,
                    utils::statistics::Storage& statistics_storage,
+                   logging::LoggerPtr access_tskv_logger,
                    dynamic_config::Source config_source)
     : statistics_storage_(statistics_storage, "server"),
-      config_source_(config_source) {
+      config_source_(config_source),
+      access_tskv_logger_(access_tskv_logger) {
   LOG_INFO() << "Configuring the gRPC server";
   ugrpc::impl::SetupNativeLogging();
   ugrpc::impl::UpdateNativeLogLevel(config.native_log_level);
@@ -177,9 +182,9 @@ void Server::Impl::AddService(ServiceBase& service,
   std::lock_guard lock(configuration_mutex_);
   UASSERT(state_ == State::kConfiguration);
 
-  service_workers_.push_back(service.MakeWorker(
-      impl::ServiceSettings{queue_->GetQueue(), task_processor,
-                            statistics_storage_, middlewares, config_source_}));
+  service_workers_.push_back(service.MakeWorker(impl::ServiceSettings{
+      queue_->GetQueue(), task_processor, statistics_storage_, middlewares,
+      access_tskv_logger_, config_source_}));
 }
 
 std::vector<std::string_view> Server::Impl::GetServiceNames() const {
@@ -274,11 +279,12 @@ void Server::Impl::DoStart() {
   }
 }
 
-Server::Server(ServerConfig&& config,
+Server::Server(const ServerConfig& config,
                utils::statistics::Storage& statistics_storage,
+               logging::LoggerPtr access_tskv_logger,
                dynamic_config::Source config_source)
-    : impl_(std::make_unique<Impl>(std::move(config), statistics_storage,
-                                   config_source)) {}
+    : impl_(std::make_unique<Impl>(config, statistics_storage,
+                                   access_tskv_logger, config_source)) {}
 
 Server::~Server() = default;
 

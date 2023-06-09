@@ -3,18 +3,34 @@
 #include <userver/components/component.hpp>
 #include <userver/components/statistics_storage.hpp>
 #include <userver/dynamic_config/storage/component.hpp>
+#include <userver/logging/component.hpp>
+#include <userver/logging/null_logger.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::server {
 
+namespace {
+
+logging::LoggerPtr GetLogger(const components::ComponentContext& context,
+                             const ServerConfig config) {
+  if (config.access_log_logger_name.empty()) return logging::MakeNullLogger();
+
+  return context.FindComponent<components::Logging>().GetLogger(
+      config.access_log_logger_name);
+}
+
+}  // namespace
+
 ServerComponent::ServerComponent(const components::ComponentConfig& config,
                                  const components::ComponentContext& context)
     : LoggableComponentBase(config, context),
+      config_(config.As<ServerConfig>()),
       server_(
-          config.As<ServerConfig>(),
+          config_,
           context.FindComponent<components::StatisticsStorage>().GetStorage(),
+          GetLogger(context, config_),
           context.FindComponent<components::DynamicConfig>().GetSource()) {}
 
 Server& ServerComponent::GetServer() noexcept { return server_; }
@@ -40,6 +56,9 @@ properties:
             type: string
             description: value of channel argument, must be string or integer
         properties: {}
+    access-tskv-logger:
+        type: string
+        description: name of 'access-tskv.log' logger
     native-log-level:
         type: string
         description: min log level for the native gRPC library

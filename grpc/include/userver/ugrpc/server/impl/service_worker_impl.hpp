@@ -165,8 +165,10 @@ class CallData final {
 
     ugrpc::impl::RpcStatisticsScope statistics_scope(method_data_.statistics);
 
+    auto& access_tskv_logger =
+        method_data_.service_data.settings.access_tskv_logger;
     Call responder(context_, call_name, raw_responder_, statistics_scope,
-                   span_->Get());
+                   *access_tskv_logger, span_->Get());
     auto do_call = [&] {
       if constexpr (std::is_same_v<InitialRequest, NoInitialRequest>) {
         (service.*service_method)(responder);

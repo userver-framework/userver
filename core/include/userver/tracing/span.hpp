@@ -184,6 +184,8 @@ class Span final {
   /// by CurrentSpan().
   void AttachToCoroStack();
 
+  std::chrono::system_clock::time_point GetStartSystemTime() const;
+
   /// @cond
   void AddTags(const logging::LogExtra&, utils::InternalTag);
 

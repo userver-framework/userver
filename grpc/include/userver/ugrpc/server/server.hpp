@@ -41,6 +41,9 @@ struct ServerConfig final {
 
   /// Serve a web page with runtime info about gRPC connections
   bool enable_channelz{false};
+
+  /// Name of 'access-tskv.log' logger
+  std::string access_log_logger_name;
 };
 
 ServerConfig Parse(const yaml_config::YamlConfig& value,
@@ -55,8 +58,9 @@ class Server final {
   using SetupHook = std::function<void(grpc::ServerBuilder&)>;
 
   /// @brief Start building the server
-  explicit Server(ServerConfig&& config,
+  explicit Server(const ServerConfig& config,
                   utils::statistics::Storage& statistics_storage,
+                  logging::LoggerPtr access_tskv_logger,
                   dynamic_config::Source config_source);
 
   Server(Server&&) = delete;
