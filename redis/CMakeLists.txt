@@ -68,7 +68,7 @@ if (USERVER_CONAN)
   find_package(hiredis REQUIRED)
   target_link_libraries(${PROJECT_NAME} PUBLIC hiredis::hiredis)
 else()
-  find_package(Hiredis)
+  find_package(Hiredis REQUIRED)
   target_link_libraries(${PROJECT_NAME} PUBLIC Hiredis)
 endif()
 
