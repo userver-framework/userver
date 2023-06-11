@@ -132,15 +132,14 @@ std::vector<std::string> ReadUrls(const Config& config) {
   return urls;
 }
 
-std::shared_ptr<http::Request> CreateRequest(http::Client& http_client,
-                                             const Config& config,
-                                             const std::string& url) {
+http::Request CreateRequest(http::Client& http_client, const Config& config,
+                            const std::string& url) {
   return http_client.CreateRequest()
-      ->get(url)
-      ->timeout(config.timeout_ms)
-      ->retry()
-      ->verify(false)
-      ->http_version(config.http_version);
+      .get(url)
+      .timeout(config.timeout_ms)
+      .retry()
+      .verify(false)
+      .http_version(config.http_version);
 }
 
 void Worker(WorkerContext& context) {
@@ -154,12 +153,11 @@ void Worker(WorkerContext& context) {
 
     try {
       auto ts1 = std::chrono::system_clock::now();
-      const std::shared_ptr<http::Request> request =
-          CreateRequest(context.http_client, context.config, url);
+      auto request = CreateRequest(context.http_client, context.config, url);
       auto ts2 = std::chrono::system_clock::now();
       LOG_DEBUG() << "CreateRequest";
 
-      auto response = request->perform();
+      auto response = request.perform();
       context.response_len += response->body().size();
       LOG_DEBUG() << "Got response body_size=" << response->body().size();
       auto ts3 = std::chrono::system_clock::now();

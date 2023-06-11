@@ -83,13 +83,13 @@ clients::http::ResponseFuture CreateRequest(
     clients::http::Client& http_client, engine::io::Socket& request_socket,
     ConnectionHeader header = ConnectionHeader::kKeepAlive) {
   auto ret = http_client.CreateRequest()
-                 ->get(HttpConnectionUriFromSocket(request_socket))
-                 ->retry(1)
-                 ->timeout(std::chrono::milliseconds(100));
+                 .get(HttpConnectionUriFromSocket(request_socket))
+                 .retry(1)
+                 .timeout(std::chrono::milliseconds(100));
   if (header == ConnectionHeader::kClose) {
-    ret->headers({{"Connection", "close"}});
+    ret.headers({{"Connection", "close"}});
   }
-  return ret->async_perform();
+  return ret.async_perform();
 }
 
 net::ListenerConfig CreateConfig() {

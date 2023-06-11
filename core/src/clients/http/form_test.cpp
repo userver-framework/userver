@@ -117,12 +117,12 @@ UTEST(CurlFormTest, MultipartFileWithContentType) {
                  kImageJpeg);
 
   auto resp = http_client_ptr->CreateRequest()
-                  ->post(http_server.GetBaseUrl(), form)
-                  ->retry(1)
-                  ->verify(true)
-                  ->http_version(clients::http::HttpVersion::k11)
-                  ->timeout(std::chrono::milliseconds(100))
-                  ->perform();
+                  .post(http_server.GetBaseUrl(), form)
+                  .retry(1)
+                  .verify(true)
+                  .http_version(clients::http::HttpVersion::k11)
+                  .timeout(std::chrono::milliseconds(100))
+                  .perform();
 
   EXPECT_EQ(resp->status_code(), clients::http::Status::OK);
 }
@@ -139,12 +139,12 @@ UTEST(CurlFormTest, FilesWithContentType) {
                  std::make_shared<std::string>(kOtherTestData), kImageBmp);
 
   auto resp = http_client_ptr->CreateRequest()
-                  ->post(http_server.GetBaseUrl(), form)
-                  ->retry(1)
-                  ->verify(true)
-                  ->http_version(clients::http::HttpVersion::k11)
-                  ->timeout(std::chrono::milliseconds(100))
-                  ->perform();
+                  .post(http_server.GetBaseUrl(), form)
+                  .retry(1)
+                  .verify(true)
+                  .http_version(clients::http::HttpVersion::k11)
+                  .timeout(std::chrono::milliseconds(100))
+                  .perform();
 
   EXPECT_EQ(resp->status_code(), clients::http::Status::OK);
 }

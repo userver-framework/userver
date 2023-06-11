@@ -90,10 +90,9 @@ constexpr char kResponse301WithHeaderPattern[] =
 class RequestMethodTestData final {
  public:
   using Request = clients::http::Request;
-  using TwoArgsFunction = std::shared_ptr<Request> (Request::*)(
-      const std::string& url, std::string data_);
-  using OneArgFunction =
-      std::shared_ptr<Request> (Request::*)(const std::string& url);
+  using TwoArgsFunction = Request& (Request::*)(const std::string& url,
+                                                std::string data_);
+  using OneArgFunction = Request& (Request::*)(const std::string& url);
 
   RequestMethodTestData(const char* method_name, const char* data,
                         TwoArgsFunction func)
@@ -105,19 +104,19 @@ class RequestMethodTestData final {
 
   template <class Callback>
   auto PrepareRequest(const std::string& url, const Callback& callback,
-                      std::shared_ptr<clients::http::Request> request) const {
+                      clients::http::Request request) const {
     *callback.method_name = method_name_;
     *callback.data = data_;
 
     if (func_two_args_) {
-      request = (request.get()->*func_two_args_)(url, data_);
+      request = (request.*func_two_args_)(url, data_);
     } else {
-      request = (request.get()->*func_one_arg_)(url);
+      request = (request.*func_one_arg_)(url);
     }
 
-    return request->verify(true)
-        ->http_version(clients::http::HttpVersion::k11)
-        ->timeout(kTimeout);
+    return request.verify(true)
+        .http_version(clients::http::HttpVersion::k11)
+        .timeout(kTimeout);
   }
 
   const char* GetMethodName() const { return method_name_; }
@@ -427,17 +426,17 @@ namespace sample {
 std::string DifferentUrlsRetry(std::string data, clients::http::Client& http,
                                std::initializer_list<std::string> urls_list) {
   auto request = http.CreateRequest()
-                     ->post()
-                     ->data(std::move(data))  // no copying
-                     ->retry(1)
-                     ->http_version(clients::http::HttpVersion::k11)
-                     ->timeout(kTimeout);
+                     .post()
+                     .data(std::move(data))  // no copying
+                     .retry(1)
+                     .http_version(clients::http::HttpVersion::k11)
+                     .timeout(kTimeout);
 
   for (const auto& url : urls_list) {
-    request->url(url);  // set URL
+    request.url(url);  // set URL
 
     try {
-      auto res = request->perform();
+      auto res = request.perform();
       if (res->IsOk()) {
         return std::move(*res).body();  // no copying
       }
@@ -453,18 +452,18 @@ std::string DifferentUrlsRetryStreamResponseBody(
     std::string data, clients::http::Client& http,
     std::initializer_list<std::string> urls_list) {
   auto request = http.CreateRequest()
-                     ->post()
-                     ->data(std::move(data))  // no copying
-                     ->retry(1)
-                     ->http_version(clients::http::HttpVersion::k11)
-                     ->timeout(kTimeout);
+                     .post()
+                     .data(std::move(data))  // no copying
+                     .retry(1)
+                     .http_version(clients::http::HttpVersion::k11)
+                     .timeout(kTimeout);
 
   for (const auto& url : urls_list) {
-    request->url(url);  // set URL
+    request.url(url);  // set URL
     auto queue = concurrent::StringStreamQueue::Create();
 
     try {
-      auto stream_response = request->async_perform_stream_body(queue);
+      auto stream_response = request.async_perform_stream_body(queue);
       const auto status_code = stream_response.StatusCode();
 
       if (static_cast<int>(status_code) == 200) {
@@ -491,15 +490,15 @@ namespace sample2 {
 std::string DifferentUrlsRetry(std::string data, clients::http::Client& http,
                                std::initializer_list<std::string> urls_list) {
   auto request = http.CreateRequest()
-                     ->post()
-                     ->data(std::move(data))  // no copying
-                     ->retry(1)
-                     ->http_version(clients::http::HttpVersion::k11)
-                     ->timeout(kTimeout);
+                     .post()
+                     .data(std::move(data))  // no copying
+                     .retry(1)
+                     .http_version(clients::http::HttpVersion::k11)
+                     .timeout(kTimeout);
 
   for (const auto& url : urls_list) {
-    request->url(url);  // set URL
-    auto future = request->async_perform();
+    request.url(url);  // set URL
+    auto future = request.async_perform();
 
     // ... do something while the request if being performed
 
@@ -525,14 +524,14 @@ UTEST(HttpClient, PostEcho) {
   const utest::SimpleServer http_server{cb};
   auto http_client_ptr = utest::CreateHttpClient();
 
-  const auto request = http_client_ptr->CreateRequest()
-                           ->post(http_server.GetBaseUrl(), kTestData)
-                           ->retry(1)
-                           ->verify(true)
-                           ->http_version(clients::http::HttpVersion::k11)
-                           ->timeout(kTimeout);
+  auto request = http_client_ptr->CreateRequest()
+                     .post(http_server.GetBaseUrl(), kTestData)
+                     .retry(1)
+                     .verify(true)
+                     .http_version(clients::http::HttpVersion::k11)
+                     .timeout(kTimeout);
   {
-    const auto res = request->perform();
+    const auto res = request.perform();
 
     EXPECT_EQ(res->body(), kTestData);
 
@@ -548,7 +547,7 @@ UTEST(HttpClient, PostEcho) {
     EXPECT_EQ(*cb.responses_200, 1);
   }
   {
-    const auto res2 = request->perform();
+    const auto res2 = request.perform();
 
     EXPECT_EQ(res2->body(), kTestData);
 
@@ -570,15 +569,15 @@ UTEST(HttpClient, StatsOnTimeout) {
   const utest::SimpleServer http_server{&sleep_callback};
   auto http_client_ptr = utest::CreateHttpClient();
 
-  const auto request = http_client_ptr->CreateRequest()
-                           ->post(http_server.GetBaseUrl(), kTestData)
-                           ->retry(kRetries)
-                           ->verify(true)
-                           ->http_version(clients::http::HttpVersion::k11)
-                           ->timeout(kTimeout);
+  auto request = http_client_ptr->CreateRequest()
+                     .post(http_server.GetBaseUrl(), kTestData)
+                     .retry(kRetries)
+                     .verify(true)
+                     .http_version(clients::http::HttpVersion::k11)
+                     .timeout(kTimeout);
 
   try {
-    auto res = request->perform();
+    auto res = request.perform();
     FAIL() << "Must throw, but returned " << res->status_code();
   } catch (const clients::http::BaseException& e) {
     EXPECT_EQ(e.GetStats().retries_count, kRetries - 1);
@@ -589,7 +588,7 @@ UTEST(HttpClient, StatsOnTimeout) {
   }
 
   try {
-    auto res = request->perform();
+    auto res = request.perform();
     FAIL() << "Must throw again, but returned " << res->status_code();
   } catch (const clients::http::BaseException& e) {
     EXPECT_EQ(e.GetStats().retries_count, (kRetries - 1) * 2);
@@ -619,13 +618,13 @@ UTEST(HttpClient, CancelPost) {
     const utest::SimpleServer http_server{EchoCallback{}};
     auto http_client_ptr = utest::CreateHttpClient();
 
-    const auto request = http_client_ptr->CreateRequest()
-                             ->post(http_server.GetBaseUrl(), kTestData)
-                             ->timeout(kTimeout);
+    auto request = http_client_ptr->CreateRequest()
+                       .post(http_server.GetBaseUrl(), kTestData)
+                       .timeout(kTimeout);
 
     engine::current_task::GetCancellationToken().RequestCancel();
 
-    auto future = request->async_perform();
+    auto future = request.async_perform();
     UEXPECT_THROW(future.Wait(), clients::http::CancelException);
   });
 
@@ -658,12 +657,12 @@ UTEST(HttpClient, CancelRetries) {
   const auto start_create_request_time = std::chrono::steady_clock::now();
   auto future = std::make_unique<clients::http::ResponseFuture>(
       http_client_ptr->CreateRequest()
-          ->post(http_server.GetBaseUrl(), kTestData)
-          ->retry(kRetriesCount)
-          ->verify(true)
-          ->http_version(clients::http::HttpVersion::k11)
-          ->timeout(kTimeout)
-          ->async_perform());
+          .post(http_server.GetBaseUrl(), kTestData)
+          .retry(kRetriesCount)
+          .verify(true)
+          .http_version(clients::http::HttpVersion::k11)
+          .timeout(kTimeout)
+          .async_perform());
 
   ASSERT_TRUE(enough_retries_event.WaitForEventFor(utest::kMaxTestWaitTime));
 
@@ -716,12 +715,12 @@ UTEST(HttpClient, PostShutdownWithPendingRequest) {
 
   for (unsigned i = 0; i < kRepetitions; ++i)
     http_client_ptr->CreateRequest()
-        ->post(http_server.GetBaseUrl(), kTestData)
-        ->retry(1)
-        ->verify(true)
-        ->http_version(clients::http::HttpVersion::k11)
-        ->timeout(kTimeout)
-        ->async_perform()
+        .post(http_server.GetBaseUrl(), kTestData)
+        .retry(1)
+        .verify(true)
+        .http_version(clients::http::HttpVersion::k11)
+        .timeout(kTimeout)
+        .async_perform()
         .Detach();  // Do not do like this in production code!
 }
 
@@ -739,12 +738,12 @@ UTEST(HttpClient, PostShutdownWithPendingRequestHuge) {
 
   for (unsigned i = 0; i < kRepetitions; ++i)
     http_client_ptr->CreateRequest()
-        ->post(http_server.GetBaseUrl(), request)
-        ->retry(1)
-        ->verify(true)
-        ->http_version(clients::http::HttpVersion::k11)
-        ->timeout(kTimeout)
-        ->async_perform()
+        .post(http_server.GetBaseUrl(), request)
+        .retry(1)
+        .verify(true)
+        .http_version(clients::http::HttpVersion::k11)
+        .timeout(kTimeout)
+        .async_perform()
         .Detach();  // Do not do like this in production code!
 }
 
@@ -752,29 +751,29 @@ UTEST(HttpClient, PutEcho) {
   const utest::SimpleServer http_server{EchoCallback{}};
   auto http_client_ptr = utest::CreateHttpClient();
 
-  const auto request = http_client_ptr->CreateRequest()
-                           ->put(http_server.GetBaseUrl(), kTestData)
-                           ->retry(1)
-                           ->verify(true)
-                           ->http_version(clients::http::HttpVersion::k11)
-                           ->timeout(kTimeout);
-  EXPECT_EQ(request->perform()->body(), kTestData);
-  EXPECT_EQ(request->perform()->body(), kTestData);
+  auto request = http_client_ptr->CreateRequest()
+                     .put(http_server.GetBaseUrl(), kTestData)
+                     .retry(1)
+                     .verify(true)
+                     .http_version(clients::http::HttpVersion::k11)
+                     .timeout(kTimeout);
+  EXPECT_EQ(request.perform()->body(), kTestData);
+  EXPECT_EQ(request.perform()->body(), kTestData);
 }
 
 UTEST(HttpClient, PutValidateHeader) {
   const utest::SimpleServer http_server{&put_validate_callback};
   auto http_client_ptr = utest::CreateHttpClient();
 
-  const auto request = http_client_ptr->CreateRequest()
-                           ->put(http_server.GetBaseUrl(), kTestData)
-                           ->retry(1)
-                           ->verify(true)
-                           ->http_version(clients::http::HttpVersion::k11)
-                           ->timeout(kTimeout);
+  auto request = http_client_ptr->CreateRequest()
+                     .put(http_server.GetBaseUrl(), kTestData)
+                     .retry(1)
+                     .verify(true)
+                     .http_version(clients::http::HttpVersion::k11)
+                     .timeout(kTimeout);
 
-  EXPECT_TRUE(request->perform()->IsOk());
-  EXPECT_TRUE(request->perform()->IsOk());
+  EXPECT_TRUE(request.perform()->IsOk());
+  EXPECT_TRUE(request.perform()->IsOk());
 }
 
 UTEST(HttpClient, PutShutdownWithPendingRequest) {
@@ -783,12 +782,12 @@ UTEST(HttpClient, PutShutdownWithPendingRequest) {
 
   for (unsigned i = 0; i < kRepetitions; ++i)
     http_client_ptr->CreateRequest()
-        ->put(http_server.GetBaseUrl(), kTestData)
-        ->retry(1)
-        ->verify(true)
-        ->http_version(clients::http::HttpVersion::k11)
-        ->timeout(kTimeout)
-        ->async_perform()
+        .put(http_server.GetBaseUrl(), kTestData)
+        .retry(1)
+        .verify(true)
+        .http_version(clients::http::HttpVersion::k11)
+        .timeout(kTimeout)
+        .async_perform()
         .Detach();  // Do not do like this in production code!
 }
 
@@ -806,12 +805,12 @@ UTEST(HttpClient, PutShutdownWithPendingRequestHuge) {
 
   for (unsigned i = 0; i < kRepetitions; ++i)
     http_client_ptr->CreateRequest()
-        ->put(http_server.GetBaseUrl(), request)
-        ->retry(1)
-        ->verify(true)
-        ->http_version(clients::http::HttpVersion::k11)
-        ->timeout(kTimeout)
-        ->async_perform()
+        .put(http_server.GetBaseUrl(), request)
+        .retry(1)
+        .verify(true)
+        .http_version(clients::http::HttpVersion::k11)
+        .timeout(kTimeout)
+        .async_perform()
         .Detach();  // Do not do like this in production code!
 }
 
@@ -821,12 +820,12 @@ UTEST(HttpClient, PutShutdownWithHugeResponse) {
 
   for (unsigned i = 0; i < kRepetitions; ++i)
     http_client_ptr->CreateRequest()
-        ->put(http_server.GetBaseUrl(), kTestData)
-        ->retry(1)
-        ->verify(true)
-        ->http_version(clients::http::HttpVersion::k11)
-        ->timeout(kTimeout)
-        ->async_perform()
+        .put(http_server.GetBaseUrl(), kTestData)
+        .retry(1)
+        .verify(true)
+        .http_version(clients::http::HttpVersion::k11)
+        .timeout(kTimeout)
+        .async_perform()
         .Detach();  // Do not do like this in production code!
 }
 
@@ -856,14 +855,14 @@ UTEST(HttpClient, MethodsMix) {
       const bool ok1 = method1
                            .PrepareRequest(http_server.GetBaseUrl(), callback,
                                            http_client->CreateRequest())
-                           ->perform()
+                           .perform()
                            ->IsOk();
       EXPECT_TRUE(ok1) << "Failed to perform " << method1.GetMethodName();
 
       const auto ok2 = method2
                            .PrepareRequest(http_server.GetBaseUrl(), callback,
                                            http_client->CreateRequest())
-                           ->perform()
+                           .perform()
                            ->IsOk();
       EXPECT_TRUE(ok2) << "Failed to perform " << method2.GetMethodName()
                        << " after " << method1.GetMethodName();
@@ -896,12 +895,12 @@ UTEST(HttpClient, MethodsMixReuseRequest) {
     for (const auto& method2 : tests) {
       auto request = method1.PrepareRequest(http_server.GetBaseUrl(), callback,
                                             http_client->CreateRequest());
-      EXPECT_TRUE(request->perform()->IsOk())
+      EXPECT_TRUE(request.perform()->IsOk())
           << "Failed to perform " << method1.GetMethodName();
 
       request =
           method2.PrepareRequest(http_server.GetBaseUrl(), callback, request);
-      EXPECT_TRUE(request->perform()->IsOk())
+      EXPECT_TRUE(request.perform()->IsOk())
           << "Failed to perform " << method2.GetMethodName() << " after "
           << method1.GetMethodName();
     }
@@ -916,7 +915,7 @@ UTEST(HttpClient, MethodsMixReuseRequestData) {
   const utest::SimpleServer http_server{callback};
   const auto http_client = utest::CreateHttpClient();
 
-  using ZeroArgsMemberFunction = std::shared_ptr<Request> (Request::*)();
+  using ZeroArgsMemberFunction = Request& (Request::*)();
   struct TestData {
     std::string_view method_name;
     ZeroArgsMemberFunction function;
@@ -929,20 +928,20 @@ UTEST(HttpClient, MethodsMixReuseRequestData) {
   };
 
   auto request = http_client->CreateRequest()
-                     ->url(http_server.GetBaseUrl())
-                     ->verify(true)
-                     ->http_version(clients::http::HttpVersion::k11)
-                     ->timeout(kTimeout)
-                     ->data(kTestData);
+                     .url(http_server.GetBaseUrl())
+                     .verify(true)
+                     .http_version(clients::http::HttpVersion::k11)
+                     .timeout(kTimeout)
+                     .data(kTestData);
 
   for (const auto& [method1, func1] : tests) {
     for (const auto& [method2, func2] : tests) {
       *callback.method_name = method1;
-      const auto response1 = (request.get()->*func1)()->perform();
+      const auto response1 = (request.*func1)().perform();
       EXPECT_TRUE(response1->IsOk()) << "Failed to perform " << method1;
 
       *callback.method_name = method2;
-      const auto response2 = (request.get()->*func2)()->perform();
+      const auto response2 = (request.*func2)().perform();
       EXPECT_TRUE(response2->IsOk())
           << "Failed to perform " << method2 << " after " << method1;
     }
@@ -958,16 +957,16 @@ UTEST(HttpClient, Headers) {
   headers.emplace(kTestHeaderMixedCase, "notest");  // should be ignored
 
   for (unsigned i = 0; i < kRepetitions; ++i) {
-    const auto request = http_client_ptr->CreateRequest()
-                             ->post(http_server.GetBaseUrl(), kTestData)
-                             ->retry(1)
-                             ->headers(headers)
-                             ->verify(true)
-                             ->http_version(clients::http::HttpVersion::k11)
-                             ->timeout(kTimeout);
+    auto request = http_client_ptr->CreateRequest()
+                       .post(http_server.GetBaseUrl(), kTestData)
+                       .retry(1)
+                       .headers(headers)
+                       .verify(true)
+                       .http_version(clients::http::HttpVersion::k11)
+                       .timeout(kTimeout);
 
-    EXPECT_TRUE(request->perform()->IsOk());
-    EXPECT_TRUE(request->perform()->IsOk());
+    EXPECT_TRUE(request.perform()->IsOk());
+    EXPECT_TRUE(request.perform()->IsOk());
   }
 }
 
@@ -976,40 +975,39 @@ UTEST(HttpClient, HeadersUserAgent) {
   const utest::SimpleServer http_server_no_ua{&no_user_agent_validate_callback};
   auto http_client_ptr = utest::CreateHttpClient();
 
-  const auto request =
-      http_client_ptr->CreateRequest()
-          ->post(http_server.GetBaseUrl(), kTestData)
-          ->retry(1)
-          ->headers({{http::headers::kUserAgent, kTestUserAgent}})
-          ->verify(true)
-          ->http_version(clients::http::HttpVersion::k11)
-          ->timeout(kTimeout);
+  auto request = http_client_ptr->CreateRequest()
+                     .post(http_server.GetBaseUrl(), kTestData)
+                     .retry(1)
+                     .headers({{http::headers::kUserAgent, kTestUserAgent}})
+                     .verify(true)
+                     .http_version(clients::http::HttpVersion::k11)
+                     .timeout(kTimeout);
 
-  auto response = request->perform();
+  auto response = request.perform();
   EXPECT_TRUE(response->IsOk());
 
-  response = request->perform();
-  EXPECT_TRUE(response->IsOk());
-
-  response = http_client_ptr->CreateRequest()
-                 ->post(http_server.GetBaseUrl(), kTestData)
-                 ->retry(1)
-                 ->verify(true)
-                 ->http_version(clients::http::HttpVersion::k11)
-                 ->timeout(kTimeout)
-                 ->headers({{http::headers::kUserAgent, "Header to override"}})
-                 ->headers({{http::headers::kUserAgent, kTestUserAgent}})
-                 ->perform();
-
+  response = request.perform();
   EXPECT_TRUE(response->IsOk());
 
   response = http_client_ptr->CreateRequest()
-                 ->post(http_server_no_ua.GetBaseUrl(), kTestData)
-                 ->retry(1)
-                 ->verify(true)
-                 ->http_version(clients::http::HttpVersion::k11)
-                 ->timeout(kTimeout)
-                 ->perform();
+                 .post(http_server.GetBaseUrl(), kTestData)
+                 .retry(1)
+                 .verify(true)
+                 .http_version(clients::http::HttpVersion::k11)
+                 .timeout(kTimeout)
+                 .headers({{http::headers::kUserAgent, "Header to override"}})
+                 .headers({{http::headers::kUserAgent, kTestUserAgent}})
+                 .perform();
+
+  EXPECT_TRUE(response->IsOk());
+
+  response = http_client_ptr->CreateRequest()
+                 .post(http_server_no_ua.GetBaseUrl(), kTestData)
+                 .retry(1)
+                 .verify(true)
+                 .http_version(clients::http::HttpVersion::k11)
+                 .timeout(kTimeout)
+                 .perform();
   EXPECT_TRUE(response->IsOk());
 }
 
@@ -1020,13 +1018,13 @@ UTEST(HttpClient, Cookies) {
     auto http_client_ptr = utest::CreateHttpClient();
     for (unsigned i = 0; i < kRepetitions; ++i) {
       const auto response = http_client_ptr->CreateRequest()
-                                ->get(http_server.GetBaseUrl())
-                                ->retry(1)
-                                ->cookies(cookies)
-                                ->verify(true)
-                                ->http_version(clients::http::HttpVersion::k11)
-                                ->timeout(kTimeout)
-                                ->perform();
+                                .get(http_server.GetBaseUrl())
+                                .retry(1)
+                                .cookies(cookies)
+                                .verify(true)
+                                .http_version(clients::http::HttpVersion::k11)
+                                .timeout(kTimeout)
+                                .perform();
       EXPECT_TRUE(response->IsOk());
     }
   };
@@ -1054,9 +1052,9 @@ UTEST(HttpClient, HeadersAndWhitespaces) {
         std::string(kTestHeader) + ':' + header_value}};
 
     const auto response = http_client_ptr->CreateRequest()
-                              ->post(http_server.GetBaseUrl())
-                              ->timeout(kTimeout)
-                              ->perform();
+                              .post(http_server.GetBaseUrl())
+                              .timeout(kTimeout)
+                              .perform();
 
     EXPECT_TRUE(response->IsOk()) << "Header value is '" << header_value << "'";
     ASSERT_TRUE(response->headers().count(kTestHeader))
@@ -1091,10 +1089,10 @@ UTEST(HttpClient, DISABLED_IN_MAC_OS_TEST_NAME(HttpsWithCert)) {
   // with a cert succeeds and do not break other request types.
   for (unsigned i = 0; i < 2; ++i) {
     auto response_future = http_client_ptr->CreateRequest()
-                               ->post(ssl_url)
-                               ->timeout(kTimeout)
-                               ->client_key_cert(pkey, cert)
-                               ->async_perform();
+                               .post(ssl_url)
+                               .timeout(kTimeout)
+                               .client_key_cert(pkey, cert)
+                               .async_perform();
 
     response_future.Wait();
     UEXPECT_THROW(response_future.Get(), std::exception)
@@ -1102,17 +1100,15 @@ UTEST(HttpClient, DISABLED_IN_MAC_OS_TEST_NAME(HttpsWithCert)) {
            "succeeded";
 
     auto response = http_client_ptr->CreateRequest()
-                        ->post(url)
-                        ->timeout(kTimeout)
-                        ->client_key_cert(pkey, cert)
-                        ->perform();
+                        .post(url)
+                        .timeout(kTimeout)
+                        .client_key_cert(pkey, cert)
+                        .perform();
 
     EXPECT_TRUE(response->IsOk());
 
-    response = http_client_ptr->CreateRequest()
-                   ->post(url)
-                   ->timeout(kTimeout)
-                   ->perform();
+    response =
+        http_client_ptr->CreateRequest().post(url).timeout(kTimeout).perform();
 
     EXPECT_TRUE(response->IsOk());
   }
@@ -1130,9 +1126,9 @@ UTEST(HttpClient, BasicUsage) {
 
   /// [Sample HTTP Client usage]
   const auto response = http_client.CreateRequest()
-                            ->post(url, data)
-                            ->timeout(std::chrono::seconds(1))
-                            ->perform();
+                            .post(url, data)
+                            .timeout(std::chrono::seconds(1))
+                            .perform();
 
   EXPECT_TRUE(response->IsOk());
   /// [Sample HTTP Client usage]
@@ -1158,11 +1154,11 @@ UTEST(HttpClient, GetWithBody) {
   std::string data{"get_body_data"};
 
   const auto response = http_client.CreateRequest()
-                            ->data(std::move(data))
-                            ->url(url)
-                            ->set_custom_http_request_method("GET")
-                            ->timeout(std::chrono::seconds(1))
-                            ->perform();
+                            .data(std::move(data))
+                            .url(url)
+                            .set_custom_http_request_method("GET")
+                            .timeout(std::chrono::seconds(1))
+                            .perform();
 
   EXPECT_TRUE(response->IsOk());
   EXPECT_EQ(response->headers()[std::string_view{"xxx"}], "good");
@@ -1171,11 +1167,11 @@ UTEST(HttpClient, GetWithBody) {
   // Make sure it doesn't depend on order of get/data
   std::string new_data{"get_body_data"};
   const auto another_response = http_client.CreateRequest()
-                                    ->url(url)
-                                    ->set_custom_http_request_method("GET")
-                                    ->data(std::move(new_data))
-                                    ->timeout(std::chrono::seconds(1))
-                                    ->perform();
+                                    .url(url)
+                                    .set_custom_http_request_method("GET")
+                                    .data(std::move(new_data))
+                                    .timeout(std::chrono::seconds(1))
+                                    .perform();
 
   EXPECT_TRUE(another_response->IsOk());
   EXPECT_EQ(another_response->headers()[std::string_view{"xxx"}], "good");
@@ -1197,9 +1193,9 @@ UTEST(HttpClient, RedirectHeaders) {
   std::string data{};
 
   const auto response = http_client.CreateRequest()
-                            ->post(url, data)
-                            ->timeout(std::chrono::seconds(1))
-                            ->perform();
+                            .post(url, data)
+                            .timeout(std::chrono::seconds(1))
+                            .perform();
 
   EXPECT_TRUE(response->IsOk())
       << "Looks like you have an outdated version of cURL library. Update "
@@ -1214,7 +1210,7 @@ UTEST(HttpClient, BadUrl) {
   auto request = http_client_ptr->CreateRequest();
 
   const auto check = [&](const std::string& url) {
-    [[maybe_unused]] auto response = request->url(url)->perform();
+    [[maybe_unused]] auto response = request.url(url).perform();
     // recreate request if reached here
     request = http_client_ptr->CreateRequest();
   };
@@ -1241,10 +1237,10 @@ UTEST(HttpClient, Retry) {
   const utest::SimpleServer unavail_server{Response503WithConnDrop{}};
 
   auto response = http_client_ptr->CreateRequest()
-                      ->get(unavail_server.GetBaseUrl())
-                      ->timeout(kTimeout)
-                      ->retry(3)
-                      ->perform();
+                      .get(unavail_server.GetBaseUrl())
+                      .timeout(kTimeout)
+                      .retry(3)
+                      .perform();
 
   EXPECT_FALSE(response->IsOk());
   EXPECT_EQ(503, response->status_code());
@@ -1257,12 +1253,12 @@ UTEST(HttpClient, TinyTimeout) {
 
   for (unsigned i = 0; i < kRepetitions; ++i) {
     auto response_future = http_client_ptr->CreateRequest()
-                               ->post(http_server.GetBaseUrl(), kTestData)
-                               ->retry(1)
-                               ->verify(true)
-                               ->http_version(clients::http::HttpVersion::k11)
-                               ->timeout(std::chrono::milliseconds(1))
-                               ->async_perform();
+                               .post(http_server.GetBaseUrl(), kTestData)
+                               .retry(1)
+                               .verify(true)
+                               .http_version(clients::http::HttpVersion::k11)
+                               .timeout(std::chrono::milliseconds(1))
+                               .async_perform();
 
     response_future.Wait();
     UEXPECT_THROW(response_future.Get(), std::exception);
@@ -1281,13 +1277,13 @@ UTEST(HttpClient, UsingResolver) {
   const auto server_url =
       "http://localhost:" + std::to_string(http_server.GetPort());
   auto request = http_client_ptr->CreateRequest()
-                     ->post(server_url, kTestData)
-                     ->retry(1)
-                     ->verify(true)
-                     ->http_version(clients::http::HttpVersion::k11)
-                     ->timeout(kTimeout);
+                     .post(server_url, kTestData)
+                     .retry(1)
+                     .verify(true)
+                     .http_version(clients::http::HttpVersion::k11)
+                     .timeout(kTimeout);
 
-  auto res = request->perform();
+  auto res = request.perform();
   EXPECT_EQ(res->body(), kTestData);
 }
 
@@ -1303,13 +1299,13 @@ UTEST(HttpClient, UsingResolverWithIpv6Addrs) {
   const auto server_url =
       "http://[::1]:" + std::to_string(http_server.GetPort());
   auto request = http_client_ptr->CreateRequest()
-                     ->post(server_url, kTestData)
-                     ->retry(1)
-                     ->verify(true)
-                     ->http_version(clients::http::HttpVersion::k11)
-                     ->timeout(kTimeout);
+                     .post(server_url, kTestData)
+                     .retry(1)
+                     .verify(true)
+                     .http_version(clients::http::HttpVersion::k11)
+                     .timeout(kTimeout);
 
-  auto res = request->perform();
+  auto res = request.perform();
   EXPECT_EQ(res->body(), kTestData);
 }
 
@@ -1328,15 +1324,15 @@ UTEST(HttpClient, RequestReuseBasic) {
   const auto server_url =
       "http://localhost:" + std::to_string(http_server.GetPort());
   auto request = http_client_ptr->CreateRequest()
-                     ->post(server_url, data)
-                     ->retry(1)
-                     ->verify(true)
-                     ->http_version(clients::http::HttpVersion::k11)
-                     ->timeout(kTimeout);
+                     .post(server_url, data)
+                     .retry(1)
+                     .verify(true)
+                     .http_version(clients::http::HttpVersion::k11)
+                     .timeout(kTimeout);
 
   std::shared_ptr<clients::http::Response> res;
   for (unsigned i = 0; i < kFewRepetitions; ++i) {
-    UEXPECT_NO_THROW(res = request->perform())
+    UEXPECT_NO_THROW(res = request.perform())
         << "Probably your version of cURL is outdated";
 
     if (i == 0) engine::SleepFor(kTimeout * 2);
@@ -1417,21 +1413,21 @@ UTEST(HttpClient, RequestReuseDifferentUrlAndTimeout) {
   auto http_client_ptr = utest::CreateHttpClient();
 
   auto request = http_client_ptr->CreateRequest()
-                     ->post(http_sleep_server.GetBaseUrl(), kTestData)
-                     ->retry(1)
-                     ->verify(true)
-                     ->http_version(clients::http::HttpVersion::k11)
-                     ->timeout(std::chrono::milliseconds(1));
+                     .post(http_sleep_server.GetBaseUrl(), kTestData)
+                     .retry(1)
+                     .verify(true)
+                     .http_version(clients::http::HttpVersion::k11)
+                     .timeout(std::chrono::milliseconds(1));
 
-  UEXPECT_THROW(request->perform()->status_code(), std::exception);
-  EXPECT_EQ(request->GetUrl(), http_sleep_server.GetBaseUrl());
-  EXPECT_EQ(request->GetData(), kTestData);
+  UEXPECT_THROW(request.perform()->status_code(), std::exception);
+  EXPECT_EQ(request.GetUrl(), http_sleep_server.GetBaseUrl());
+  EXPECT_EQ(request.GetData(), kTestData);
 
-  request = request->url(http_echo_server.GetBaseUrl())->timeout(kTimeout);
-  EXPECT_EQ(request->GetUrl(), http_echo_server.GetBaseUrl());
+  request = request.url(http_echo_server.GetBaseUrl()).timeout(kTimeout);
+  EXPECT_EQ(request.GetUrl(), http_echo_server.GetBaseUrl());
 
   for (unsigned i = 0; i < kFewRepetitions; ++i) {
-    auto res = request->perform();
+    auto res = request.perform();
 
     if (i == 0) engine::SleepFor(kTimeout);
 
@@ -1441,12 +1437,12 @@ UTEST(HttpClient, RequestReuseDifferentUrlAndTimeout) {
 
   EXPECT_EQ(*shared_echo_callback.responses_200, kFewRepetitions);
 
-  EXPECT_EQ(request->GetUrl(), http_echo_server.GetBaseUrl());
-  EXPECT_EQ(request->GetData(), kTestData);
-  EXPECT_EQ(request->ExtractData(), kTestData);
-  EXPECT_EQ(request->ExtractData(), std::string{});
+  EXPECT_EQ(request.GetUrl(), http_echo_server.GetBaseUrl());
+  EXPECT_EQ(request.GetData(), kTestData);
+  EXPECT_EQ(request.ExtractData(), kTestData);
+  EXPECT_EQ(request.ExtractData(), std::string{});
 
-  auto res = request->data("test")->perform();
+  auto res = request.data("test").perform();
   EXPECT_EQ(res->body(), "test");
   EXPECT_EQ(200, res->status_code());
   EXPECT_EQ(*shared_echo_callback.responses_200, kFewRepetitions + 1);
@@ -1459,20 +1455,20 @@ UTEST(HttpClient, DISABLED_TestsuiteAllowedUrls) {
     http_client_ptr->SetTestsuiteConfig({{"http://126.0.0.1"}, {}});
 
     EXPECT_NO_THROW((void)http_client_ptr->CreateRequest()
-                        ->get("http://126.0.0.1")
-                        ->async_perform());
+                        .get("http://126.0.0.1")
+                        .async_perform());
     UEXPECT_DEATH((void)http_client_ptr->CreateRequest()
-                      ->get("http://12.0.0.1")
-                      ->async_perform(),
+                      .get("http://12.0.0.1")
+                      .async_perform(),
                   ".*");
 
     http_client_ptr->SetAllowedUrlsExtra({"http://12.0"});
     EXPECT_NO_THROW((void)http_client_ptr->CreateRequest()
-                        ->get("http://12.0.0.1")
-                        ->async_perform());
+                        .get("http://12.0.0.1")
+                        .async_perform());
     UEXPECT_DEATH((void)http_client_ptr->CreateRequest()
-                      ->get("http://13.0.0.1")
-                      ->async_perform(),
+                      .get("http://13.0.0.1")
+                      .async_perform(),
                   ".*");
   });
 
@@ -1481,17 +1477,17 @@ UTEST(HttpClient, DISABLED_TestsuiteAllowedUrls) {
 
 UTEST(HttpClient, CheckSchema) {
   auto http_client_ptr = utest::CreateHttpClient();
-  UEXPECT_NO_THROW(http_client_ptr->CreateRequest()->url("http://localhost"));
-  UEXPECT_NO_THROW(http_client_ptr->CreateRequest()->url("https://localhost"));
-  UEXPECT_NO_THROW(http_client_ptr->CreateRequest()->url("httpS://localhost"));
-  UEXPECT_NO_THROW(http_client_ptr->CreateRequest()->url("HTTP://LOCALHOST"));
-  UEXPECT_THROW(http_client_ptr->CreateRequest()->url("dict://localhost"),
+  UEXPECT_NO_THROW(http_client_ptr->CreateRequest().url("http://localhost"));
+  UEXPECT_NO_THROW(http_client_ptr->CreateRequest().url("https://localhost"));
+  UEXPECT_NO_THROW(http_client_ptr->CreateRequest().url("httpS://localhost"));
+  UEXPECT_NO_THROW(http_client_ptr->CreateRequest().url("HTTP://LOCALHOST"));
+  UEXPECT_THROW(http_client_ptr->CreateRequest().url("dict://localhost"),
                 clients::http::BadArgumentException);
-  UEXPECT_THROW(http_client_ptr->CreateRequest()->url("file://localhost"),
+  UEXPECT_THROW(http_client_ptr->CreateRequest().url("file://localhost"),
                 clients::http::BadArgumentException);
-  UEXPECT_THROW(http_client_ptr->CreateRequest()->url("smtp://localhost"),
+  UEXPECT_THROW(http_client_ptr->CreateRequest().url("smtp://localhost"),
                 clients::http::BadArgumentException);
-  UEXPECT_THROW(http_client_ptr->CreateRequest()->url("telnet://localhost"),
+  UEXPECT_THROW(http_client_ptr->CreateRequest().url("telnet://localhost"),
                 clients::http::BadArgumentException);
 }
 

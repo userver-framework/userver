@@ -37,10 +37,10 @@ UTEST(DestinationStatistics, Ok) {
   auto url = http_server.GetBaseUrl();
 
   auto response = client->CreateRequest()
-                      ->post(url)
-                      ->retry(1)
-                      ->timeout(std::chrono::milliseconds(100))
-                      ->perform();
+                      .post(url)
+                      .retry(1)
+                      .timeout(std::chrono::milliseconds(100))
+                      .perform();
 
   const auto& dest_stats = client->GetDestinationStatistics();
   size_t size = 0;
@@ -74,15 +74,15 @@ UTEST(DestinationStatistics, Multiple) {
   auto url2 = http_server2.GetBaseUrl();
 
   auto response = client->CreateRequest()
-                      ->post(url)
-                      ->retry(1)
-                      ->timeout(std::chrono::milliseconds(100))
-                      ->perform();
+                      .post(url)
+                      .retry(1)
+                      .timeout(std::chrono::milliseconds(100))
+                      .perform();
   response = client->CreateRequest()
-                 ->post(url2)
-                 ->retry(1)
-                 ->timeout(std::chrono::milliseconds(100))
-                 ->perform();
+                 .post(url2)
+                 .retry(1)
+                 .timeout(std::chrono::milliseconds(100))
+                 .perform();
 
   const auto& dest_stats = client->GetDestinationStatistics();
   size_t size = 0;

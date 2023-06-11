@@ -55,10 +55,10 @@ UTEST(TracingManagerBase, TracingManagerCorrectCalls) {
   MockTracingManager tracing_manager;
 
   const auto response = http_client.CreateRequest()
-                            ->post(url, data)
-                            ->timeout(std::chrono::seconds(1))
-                            ->SetTracingManager(tracing_manager)
-                            ->perform();
+                            .post(url, data)
+                            .timeout(std::chrono::seconds(1))
+                            .SetTracingManager(tracing_manager)
+                            .perform();
 
   EXPECT_TRUE(response->IsOk());
   EXPECT_EQ(tracing_manager.GetCreateNewSpanCounter(), 0);

@@ -40,11 +40,11 @@ UTEST(HttpServerMock, Ctr) {
   for (int i = 0; i < 2; i++) {
     auto response =
         http_client_ptr->CreateRequest()
-            ->post(mock.GetBaseUrl() + "?arg1=val1&arg2=val2", kRequestBody)
-            ->headers(headers)
-            ->retry(1)
-            ->timeout(utest::kMaxTestWaitTime)
-            ->perform();
+            .post(mock.GetBaseUrl() + "?arg1=val1&arg2=val2", kRequestBody)
+            .headers(headers)
+            .retry(1)
+            .timeout(utest::kMaxTestWaitTime)
+            .perform();
 
     EXPECT_EQ(287, response->status_code());
     EXPECT_EQ(kResponseBody, response->body());

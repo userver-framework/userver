@@ -31,11 +31,11 @@ std::string Client::FetchConfigsValues(const std::string& body) {
   std::exception_ptr exception;
   try {
     auto reply = http_client_.CreateRequest()
-                     ->post(url, body)
-                     ->timeout(timeout_ms)
-                     ->retry(retries)
-                     ->proxy(proxy)
-                     ->perform();
+                     .post(url, body)
+                     .timeout(timeout_ms)
+                     .retry(retries)
+                     .proxy(proxy)
+                     .perform();
     reply->raise_for_status();
     return std::move(*reply).body();
   } catch (const clients::http::BaseException& /*e*/) {
@@ -47,11 +47,11 @@ std::string Client::FetchConfigsValues(const std::string& body) {
 
   try {
     auto no_proxy_reply = http_client_.CreateRequest()
-                              ->proxy({})
-                              ->post(url, body)
-                              ->timeout(timeout_ms)
-                              ->retry(retries)
-                              ->perform();
+                              .proxy({})
+                              .post(url, body)
+                              .timeout(timeout_ms)
+                              .retry(retries)
+                              .perform();
 
     if (no_proxy_reply->IsOk()) {
       LOG_WARNING() << "Using non proxy response in config client";

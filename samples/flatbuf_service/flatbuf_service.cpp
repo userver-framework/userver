@@ -79,10 +79,10 @@ void FbsRequest::KeepRequesting() const {
 
   // Send it
   const auto response = http_client_.CreateRequest()
-                            ->post("http://localhost:8084/fbs", std::move(data))
-                            ->timeout(std::chrono::seconds(1))
-                            ->retry(10)
-                            ->perform();
+                            .post("http://localhost:8084/fbs", std::move(data))
+                            .timeout(std::chrono::seconds(1))
+                            .retry(10)
+                            .perform();
 
   // Response code should be 200 (use proper error handling in real code!)
   UASSERT_MSG(response->IsOk(), "Sample should work well in tests");
