@@ -73,7 +73,7 @@ struct TestsuiteConfig;
 struct EnforceTaskDeadlineConfig;
 
 /// Class for creating and performing new http requests
-class Request final : public std::enable_shared_from_this<Request> {
+class Request final {
  public:
   /// Request cookies container type
   using Cookies =
@@ -89,94 +89,91 @@ class Request final : public std::enable_shared_from_this<Request> {
   /// @endcond
 
   /// Specifies method
-  std::shared_ptr<Request> method(HttpMethod method);
+  Request& method(HttpMethod method);
   /// GET request
-  std::shared_ptr<Request> get();
+  Request& get();
   /// GET request with url
-  std::shared_ptr<Request> get(const std::string& url);
+  Request& get(const std::string& url);
   /// HEAD request
-  std::shared_ptr<Request> head();
+  Request& head();
   /// HEAD request with url
-  std::shared_ptr<Request> head(const std::string& url);
+  Request& head(const std::string& url);
   /// POST request
-  std::shared_ptr<Request> post();
+  Request& post();
   /// POST request with url and data
-  std::shared_ptr<Request> post(const std::string& url, std::string data = {});
+  Request& post(const std::string& url, std::string data = {});
   /// POST request with url and multipart/form-data
-  std::shared_ptr<Request> post(const std::string& url, const Form& form);
+  Request& post(const std::string& url, const Form& form);
   /// PUT request
-  std::shared_ptr<Request> put();
+  Request& put();
   /// PUT request with url and data
-  std::shared_ptr<Request> put(const std::string& url, std::string data = {});
+  Request& put(const std::string& url, std::string data = {});
 
   /// PATCH request
-  std::shared_ptr<Request> patch();
+  Request& patch();
   /// PATCH request with url and data
-  std::shared_ptr<Request> patch(const std::string& url, std::string data = {});
+  Request& patch(const std::string& url, std::string data = {});
 
   /// DELETE request
-  std::shared_ptr<Request> delete_method();
+  Request& delete_method();
   /// DELETE request with url
-  std::shared_ptr<Request> delete_method(const std::string& url);
+  Request& delete_method(const std::string& url);
   /// DELETE request with url and data
-  std::shared_ptr<Request> delete_method(const std::string& url,
-                                         std::string data);
+  Request& delete_method(const std::string& url, std::string data);
 
   /// Set custom request method. Only replaces name of the HTTP method
-  std::shared_ptr<Request> set_custom_http_request_method(std::string method);
+  Request& set_custom_http_request_method(std::string method);
 
   /// url if you don't specify request type with url
-  std::shared_ptr<Request> url(const std::string& url);
+  Request& url(const std::string& url);
   /// data for POST request
-  std::shared_ptr<Request> data(std::string data);
+  Request& data(std::string data);
   /// form for POST request
-  std::shared_ptr<Request> form(const Form& form);
+  Request& form(const Form& form);
   /// Headers for request as map
-  std::shared_ptr<Request> headers(const Headers& headers);
+  Request& headers(const Headers& headers);
   /// Headers for request as list
-  std::shared_ptr<Request> headers(
+  Request& headers(
       std::initializer_list<std::pair<std::string_view, std::string_view>>
           headers);
   /// Proxy headers for request as map
-  std::shared_ptr<Request> proxy_headers(const Headers& headers);
+  Request& proxy_headers(const Headers& headers);
   /// Proxy headers for request as list
-  std::shared_ptr<Request> proxy_headers(
+  Request& proxy_headers(
       std::initializer_list<std::pair<std::string_view, std::string_view>>
           headers);
   /// Sets the User-Agent header
-  std::shared_ptr<Request> user_agent(const std::string& value);
+  Request& user_agent(const std::string& value);
   /// Sets proxy to use. Example: [::1]:1080
-  std::shared_ptr<Request> proxy(const std::string& value);
+  Request& proxy(const std::string& value);
   /// Sets proxy auth type to use.
-  std::shared_ptr<Request> proxy_auth_type(ProxyAuthType value);
+  Request& proxy_auth_type(ProxyAuthType value);
   /// Cookies for request as HashDos-safe map
-  std::shared_ptr<Request> cookies(const Cookies& cookies);
+  Request& cookies(const Cookies& cookies);
   /// Cookies for request as map
-  std::shared_ptr<Request> cookies(
-      const std::unordered_map<std::string, std::string>& cookies);
+  Request& cookies(const std::unordered_map<std::string, std::string>& cookies);
   /// Follow redirects or not. Default: follow
-  std::shared_ptr<Request> follow_redirects(bool follow = true);
+  Request& follow_redirects(bool follow = true);
   /// Set timeout in ms for request
-  std::shared_ptr<Request> timeout(long timeout_ms);
-  std::shared_ptr<Request> timeout(std::chrono::milliseconds timeout_ms) {
+  Request& timeout(long timeout_ms);
+  Request& timeout(std::chrono::milliseconds timeout_ms) {
     return timeout(timeout_ms.count());
   }
   /// Verify host and peer or not. Default: verify
-  std::shared_ptr<Request> verify(bool verify = true);
+  Request& verify(bool verify = true);
   /// Set file holding one or more certificates to verify the peer with
-  std::shared_ptr<Request> ca_info(const std::string& file_path);
+  Request& ca_info(const std::string& file_path);
   /// Set CA
-  std::shared_ptr<Request> ca(crypto::Certificate cert);
+  Request& ca(crypto::Certificate cert);
   /// Set CRL-file
-  std::shared_ptr<Request> crl_file(const std::string& file_path);
+  Request& crl_file(const std::string& file_path);
   /// Set private client key and certificate for request.
   ///
   /// @warning Do not use this function on MacOS as it may cause Segmentation
   /// Fault on that platform.
-  std::shared_ptr<Request> client_key_cert(crypto::PrivateKey pkey,
-                                           crypto::Certificate cert);
+  Request& client_key_cert(crypto::PrivateKey pkey, crypto::Certificate cert);
   /// Set HTTP version
-  std::shared_ptr<Request> http_version(HttpVersion version);
+  Request& http_version(HttpVersion version);
 
   /// Specify number of retries on incorrect status, if on_fails is True
   /// retry on network error too. Retries = 3 means that maximum 3 request
@@ -184,55 +181,51 @@ class Request final : public std::enable_shared_from_this<Request> {
   ///
   /// Retries use exponential backoff - an exponentially increasing delay
   /// is added before each retry of this request.
-  std::shared_ptr<Request> retry(short retries = 3, bool on_fails = true);
+  Request& retry(short retries = 3, bool on_fails = true);
 
   /// Set unix domain socket as connection endpoint and provide path to it
   /// When enabled, request will connect to the Unix domain socket instead
   /// of establishing a TCP connection to a host.
-  std::shared_ptr<Request> unix_socket_path(const std::string& path);
+  Request& unix_socket_path(const std::string& path);
 
   /// Set CURLOPT_CONNECT_TO option
-  std::shared_ptr<Request> connect_to(const std::string& path);
+  Request& connect_to(const std::string& path);
 
   /// Override log URL. Usefull for "there's a secret in the query".
   /// @warning The query might be logged by other intermediate HTTP agents
   ///          (nginx, L7 balancer, etc.).
-  std::shared_ptr<Request> SetLoggedUrl(std::string url);
+  Request& SetLoggedUrl(std::string url);
 
   /// Set destination name in metric "httpclient.destinations.<name>".
   /// If not set, defaults to HTTP path.  Should be called for all requests
   /// with parameters in HTTP path.
-  std::shared_ptr<Request> SetDestinationMetricName(
-      const std::string& destination);
+  Request& SetDestinationMetricName(const std::string& destination);
 
   /// @cond
   // Set testsuite related settings. For internal use only.
-  std::shared_ptr<Request> SetTestsuiteConfig(
+  Request& SetTestsuiteConfig(
       const std::shared_ptr<const TestsuiteConfig>& config);
 
-  std::shared_ptr<Request> SetAllowedUrlsExtra(
-      const std::vector<std::string>& urls);
+  Request& SetAllowedUrlsExtra(const std::vector<std::string>& urls);
 
   // Set deadline propagation settings. For internal use only.
-  std::shared_ptr<Request> SetEnforceTaskDeadline(
+  Request& SetEnforceTaskDeadline(
       EnforceTaskDeadlineConfig enforce_task_deadline);
 
-  std::shared_ptr<Request> SetHeadersPropagator(
-      const server::http::HeadersPropagator*);
+  Request& SetHeadersPropagator(const server::http::HeadersPropagator*);
   /// @endcond
 
   /// Disable auto-decoding of received replies.
   /// Useful to proxy replies 'as is'.
-  std::shared_ptr<Request> DisableReplyDecoding();
+  Request& DisableReplyDecoding();
 
   /// Enable auto add header with client timeout.
-  std::shared_ptr<Request> EnableAddClientTimeoutHeader();
+  Request& EnableAddClientTimeoutHeader();
 
   /// Disable auto add header with client timeout.
-  std::shared_ptr<Request> DisableAddClientTimeoutHeader();
+  Request& DisableAddClientTimeoutHeader();
 
-  std::shared_ptr<Request> SetTracingManager(
-      const tracing::TracingManagerBase&);
+  Request& SetTracingManager(const tracing::TracingManagerBase&);
 
   /// Perform request asynchronously.
   ///

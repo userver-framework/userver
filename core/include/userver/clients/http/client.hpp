@@ -86,12 +86,12 @@ class Client final {
   /// User-Agent, Proxy and some of the Testsuite suff (if any).
   ///
   /// @note This method is thread-safe despite being non-const.
-  std::shared_ptr<Request> CreateRequest();
+  Request CreateRequest();
 
   /// Providing CreateNonSignedRequest() function for the clients::Http alias.
   ///
   /// @note This method is thread-safe despite being non-const.
-  std::shared_ptr<Request> CreateNotSignedRequest() { return CreateRequest(); }
+  Request CreateNotSignedRequest() { return CreateRequest(); }
 
   /// @cond
   // For internal use only.

@@ -129,54 +129,58 @@ Client::~Client() {
   thread_pool_.reset();
 }
 
-std::shared_ptr<Request> Client::CreateRequest() {
-  std::shared_ptr<Request> request;
+Request Client::CreateRequest() {
+  auto request = [&] {
+    auto easy = TryDequeueIdle();
+    if (easy) {
+      auto idx = FindMultiIndex(easy->GetMulti());
+      auto wrapper =
+          std::make_shared<impl::EasyWrapper>(std::move(easy), *this);
+      return Request{std::move(wrapper), statistics_[idx].CreateRequestStats(),
+                     destination_statistics_, resolver_, plugin_pipeline_};
+    } else {
+      auto i = utils::RandRange(multis_.size());
+      auto& multi = multis_[i];
 
-  auto easy = TryDequeueIdle();
-  if (easy) {
-    auto idx = FindMultiIndex(easy->GetMulti());
-    auto wrapper = std::make_shared<impl::EasyWrapper>(std::move(easy), *this);
-    request = std::make_shared<Request>(
-        std::move(wrapper), statistics_[idx].CreateRequestStats(),
-        destination_statistics_, resolver_, plugin_pipeline_);
-  } else {
-    auto i = utils::RandRange(multis_.size());
-    auto& multi = multis_[i];
-
-    try {
-      request = engine::AsyncNoSpan(fs_task_processor_, [this, &multi, &i] {
-                  // GetBound() calls blocking Curl_resolver_init()
-                  auto wrapper = std::make_shared<impl::EasyWrapper>(
-                      easy_.Get()->GetBoundBlocking(*multi), *this);
-                  return std::make_shared<Request>(
-                      std::move(wrapper), statistics_[i].CreateRequestStats(),
-                      destination_statistics_, resolver_, plugin_pipeline_);
-                }).Get();
-    } catch (engine::WaitInterruptedException&) {
-      throw clients::http::CancelException();
+      try {
+        return engine::AsyncNoSpan(
+                   fs_task_processor_,
+                   [this, &multi, &i] {
+                     // GetBound() calls blocking Curl_resolver_init()
+                     auto wrapper = std::make_shared<impl::EasyWrapper>(
+                         easy_.Get()->GetBoundBlocking(*multi), *this);
+                     return Request{std::move(wrapper),
+                                    statistics_[i].CreateRequestStats(),
+                                    destination_statistics_, resolver_,
+                                    plugin_pipeline_};
+                   })
+            .Get();
+      } catch (engine::WaitInterruptedException&) {
+        throw clients::http::CancelException();
+      }
     }
-  }
+  }();
 
   if (testsuite_config_) {
-    request->SetTestsuiteConfig(testsuite_config_);
+    request.SetTestsuiteConfig(testsuite_config_);
   }
   auto urls = allowed_urls_extra_.Read();
-  request->SetAllowedUrlsExtra(*urls);
+  request.SetAllowedUrlsExtra(*urls);
 
-  request->SetTracingManager(*tracing_manager_.GetBase());
-  request->SetHeadersPropagator(headers_propagator_);
+  request.SetTracingManager(*tracing_manager_.GetBase());
+  request.SetHeadersPropagator(headers_propagator_);
 
   if (user_agent_) {
-    request->user_agent(*user_agent_);
+    request.user_agent(*user_agent_);
   }
 
   {
     // Even if proxy is an empty string we should set it, because empty proxy
     // for CURL disables the use of *_proxy env variables.
     auto proxy_value = proxy_.Read();
-    request->proxy(*proxy_value);
+    request.proxy(*proxy_value);
   }
-  request->SetEnforceTaskDeadline(enforce_task_deadline_.ReadCopy());
+  request.SetEnforceTaskDeadline(enforce_task_deadline_.ReadCopy());
 
   return request;
 }

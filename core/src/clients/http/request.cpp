@@ -241,7 +241,7 @@ std::shared_ptr<Response> Request::perform(
   return async_perform(location).Get();
 }
 
-std::shared_ptr<Request> Request::url(const std::string& url) {
+Request& Request::url(const std::string& url) {
   if (!IsAllowedSchemaInUrl(url)) {
     throw BadArgumentException(curl::errc::EasyErrorCode::kUnsupportedProtocol,
                                "Bad URL", url, {});
@@ -252,134 +252,134 @@ std::shared_ptr<Request> Request::url(const std::string& url) {
 
   pimpl_->SetDestinationMetricNameAuto(
       USERVER_NAMESPACE::http::ExtractMetaTypeFromUrl(url));
-  return shared_from_this();
+  return *this;
 }
 
-std::shared_ptr<Request> Request::timeout(long timeout_ms) {
+Request& Request::timeout(long timeout_ms) {
   pimpl_->set_timeout(timeout_ms);
-  return shared_from_this();
+  return *this;
 }
 
-std::shared_ptr<Request> Request::follow_redirects(bool follow) {
+Request& Request::follow_redirects(bool follow) {
   pimpl_->follow_redirects(follow);
-  return shared_from_this();
+  return *this;
 }
 
-std::shared_ptr<Request> Request::verify(bool verify) {
+Request& Request::verify(bool verify) {
   pimpl_->verify(verify);
-  return shared_from_this();
+  return *this;
 }
 
-std::shared_ptr<Request> Request::ca_info(const std::string& file_path) {
+Request& Request::ca_info(const std::string& file_path) {
   pimpl_->ca_info(file_path);
-  return shared_from_this();
+  return *this;
 }
 
-std::shared_ptr<Request> Request::ca(crypto::Certificate cert) {
+Request& Request::ca(crypto::Certificate cert) {
   pimpl_->ca(std::move(cert));
-  return shared_from_this();
+  return *this;
 }
 
-std::shared_ptr<Request> Request::crl_file(const std::string& file_path) {
+Request& Request::crl_file(const std::string& file_path) {
   pimpl_->crl_file(file_path);
-  return shared_from_this();
+  return *this;
 }
 
-std::shared_ptr<Request> Request::client_key_cert(crypto::PrivateKey pkey,
-                                                  crypto::Certificate cert) {
+Request& Request::client_key_cert(crypto::PrivateKey pkey,
+                                  crypto::Certificate cert) {
   pimpl_->client_key_cert(std::move(pkey), std::move(cert));
-  return shared_from_this();
+  return *this;
 }
 
-std::shared_ptr<Request> Request::http_version(HttpVersion version) {
+Request& Request::http_version(HttpVersion version) {
   pimpl_->http_version(ToNative(version));
-  return shared_from_this();
+  return *this;
 }
 
-std::shared_ptr<Request> Request::retry(short retries, bool on_fails) {
+Request& Request::retry(short retries, bool on_fails) {
   UASSERT_MSG(retries >= 0, "retires < 0 (" + std::to_string(retries) +
                                 "), uninitialized variable?");
   if (retries <= 0) retries = 1;
   pimpl_->retry(retries, on_fails);
-  return shared_from_this();
+  return *this;
 }
 
-std::shared_ptr<Request> Request::unix_socket_path(const std::string& path) {
+Request& Request::unix_socket_path(const std::string& path) {
   pimpl_->unix_socket_path(path);
-  return shared_from_this();
+  return *this;
 }
 
-std::shared_ptr<Request> Request::connect_to(const std::string& path) {
+Request& Request::connect_to(const std::string& path) {
   pimpl_->connect_to(path);
-  return shared_from_this();
+  return *this;
 }
 
-std::shared_ptr<Request> Request::data(std::string data) {
+Request& Request::data(std::string data) {
   if (!data.empty())
     pimpl_->easy().add_header(kHeaderExpect, "",
                               curl::easy::EmptyHeaderAction::kDoNotSend);
   pimpl_->easy().set_post_fields(std::move(data));
-  return shared_from_this();
+  return *this;
 }
 
-std::shared_ptr<Request> Request::form(const Form& form) {
+Request& Request::form(const Form& form) {
   pimpl_->easy().set_http_post(form.GetNative());
   pimpl_->easy().add_header(kHeaderExpect, "",
                             curl::easy::EmptyHeaderAction::kDoNotSend);
-  return shared_from_this();
+  return *this;
 }
 
-std::shared_ptr<Request> Request::headers(const Headers& headers) {
+Request& Request::headers(const Headers& headers) {
   SetHeaders(pimpl_->easy(), headers);
-  return shared_from_this();
+  return *this;
 }
 
-std::shared_ptr<Request> Request::headers(
+Request& Request::headers(
     std::initializer_list<std::pair<std::string_view, std::string_view>>
         headers) {
   SetHeaders(pimpl_->easy(), headers);
-  return shared_from_this();
+  return *this;
 }
 
-std::shared_ptr<Request> Request::proxy_headers(const Headers& headers) {
+Request& Request::proxy_headers(const Headers& headers) {
   SetProxyHeaders(pimpl_->easy(), headers);
-  return shared_from_this();
+  return *this;
 }
 
-std::shared_ptr<Request> Request::proxy_headers(
+Request& Request::proxy_headers(
     std::initializer_list<std::pair<std::string_view, std::string_view>>
         headers) {
   SetProxyHeaders(pimpl_->easy(), headers);
-  return shared_from_this();
+  return *this;
 }
 
-std::shared_ptr<Request> Request::user_agent(const std::string& value) {
+Request& Request::user_agent(const std::string& value) {
   pimpl_->easy().set_user_agent(value.c_str());
-  return shared_from_this();
+  return *this;
 }
 
-std::shared_ptr<Request> Request::proxy(const std::string& value) {
+Request& Request::proxy(const std::string& value) {
   pimpl_->proxy(value);
-  return shared_from_this();
+  return *this;
 }
 
-std::shared_ptr<Request> Request::proxy_auth_type(ProxyAuthType value) {
+Request& Request::proxy_auth_type(ProxyAuthType value) {
   pimpl_->proxy_auth_type(ProxyAuthTypeToNative(value));
-  return shared_from_this();
+  return *this;
 }
 
-std::shared_ptr<Request> Request::cookies(const Cookies& cookies) {
+Request& Request::cookies(const Cookies& cookies) {
   SetCookies(pimpl_->easy(), cookies);
-  return shared_from_this();
+  return *this;
 }
 
-std::shared_ptr<Request> Request::cookies(
+Request& Request::cookies(
     const std::unordered_map<std::string, std::string>& cookies) {
   SetCookies(pimpl_->easy(), cookies);
-  return shared_from_this();
+  return *this;
 }
 
-std::shared_ptr<Request> Request::method(HttpMethod method) {
+Request& Request::method(HttpMethod method) {
   switch (method) {
     case HttpMethod::kDelete:
     case HttpMethod::kOptions:
@@ -402,124 +402,110 @@ std::shared_ptr<Request> Request::method(HttpMethod method) {
       if (!pimpl_->easy().has_post_data()) data({});
       break;
   };
-  return shared_from_this();
+  return *this;
 }
 
-std::shared_ptr<Request> Request::get() { return method(HttpMethod::kGet); }
+Request& Request::get() { return method(HttpMethod::kGet); }
 
-std::shared_ptr<Request> Request::head() { return method(HttpMethod::kHead); }
+Request& Request::head() { return method(HttpMethod::kHead); }
 
-std::shared_ptr<Request> Request::post() { return method(HttpMethod::kPost); }
+Request& Request::post() { return method(HttpMethod::kPost); }
 
-std::shared_ptr<Request> Request::put() { return method(HttpMethod::kPut); }
+Request& Request::put() { return method(HttpMethod::kPut); }
 
-std::shared_ptr<Request> Request::patch() { return method(HttpMethod::kPatch); }
+Request& Request::patch() { return method(HttpMethod::kPatch); }
 
-std::shared_ptr<Request> Request::delete_method() {
-  return method(HttpMethod::kDelete);
-}
+Request& Request::delete_method() { return method(HttpMethod::kDelete); }
 
-std::shared_ptr<Request> Request::set_custom_http_request_method(
-    std::string method) {
+Request& Request::set_custom_http_request_method(std::string method) {
   LOG_LIMITED_WARNING()
       << "This method can cause unexpected effects in libcurl, i.e., timeouts, "
          "changing of request type. Use it only if you need to make "
          "GET-request with body.";
   pimpl_->easy().set_custom_request(method);
-  return shared_from_this();
+  return *this;
 }
 
-std::shared_ptr<Request> Request::get(const std::string& url) {
-  return get()->url(url);
+Request& Request::get(const std::string& url) { return get().url(url); }
+
+Request& Request::head(const std::string& url) { return head().url(url); }
+
+Request& Request::post(const std::string& url, const Form& form) {
+  return this->url(url).form(form);
 }
 
-std::shared_ptr<Request> Request::head(const std::string& url) {
-  return head()->url(url);
+Request& Request::post(const std::string& url, std::string data) {
+  return this->url(url).data(std::move(data)).post();
 }
 
-std::shared_ptr<Request> Request::post(const std::string& url,
-                                       const Form& form) {
-  return this->url(url)->form(form);
+Request& Request::put(const std::string& url, std::string data) {
+  return this->url(url).data(std::move(data)).put();
 }
 
-std::shared_ptr<Request> Request::post(const std::string& url,
-                                       std::string data) {
-  return this->url(url)->data(std::move(data))->post();
+Request& Request::patch(const std::string& url, std::string data) {
+  return this->url(url).data(std::move(data)).patch();
 }
 
-std::shared_ptr<Request> Request::put(const std::string& url,
-                                      std::string data) {
-  return this->url(url)->data(std::move(data))->put();
+Request& Request::delete_method(const std::string& url) {
+  return this->url(url).delete_method();
 }
 
-std::shared_ptr<Request> Request::patch(const std::string& url,
-                                        std::string data) {
-  return this->url(url)->data(std::move(data))->patch();
+Request& Request::delete_method(const std::string& url, std::string data) {
+  return this->url(url).data(std::move(data)).delete_method();
 }
 
-std::shared_ptr<Request> Request::delete_method(const std::string& url) {
-  return this->url(url)->delete_method();
-}
-
-std::shared_ptr<Request> Request::delete_method(const std::string& url,
-                                                std::string data) {
-  return this->url(url)->data(std::move(data))->delete_method();
-}
-
-std::shared_ptr<Request> Request::SetLoggedUrl(std::string url) {
+Request& Request::SetLoggedUrl(std::string url) {
   pimpl_->SetLoggedUrl(std::move(url));
-  return shared_from_this();
+  return *this;
 }
 
-std::shared_ptr<Request> Request::SetDestinationMetricName(
-    const std::string& destination) {
+Request& Request::SetDestinationMetricName(const std::string& destination) {
   pimpl_->SetDestinationMetricName(destination);
-  return shared_from_this();
+  return *this;
 }
 
-std::shared_ptr<Request> Request::SetTestsuiteConfig(
+Request& Request::SetTestsuiteConfig(
     const std::shared_ptr<const TestsuiteConfig>& config) {
   pimpl_->SetTestsuiteConfig(config);
-  return shared_from_this();
+  return *this;
 }
 
-std::shared_ptr<Request> Request::SetAllowedUrlsExtra(
-    const std::vector<std::string>& urls) {
+Request& Request::SetAllowedUrlsExtra(const std::vector<std::string>& urls) {
   pimpl_->SetAllowedUrlsExtra(urls);
-  return shared_from_this();
+  return *this;
 }
 
-std::shared_ptr<Request> Request::DisableReplyDecoding() {
+Request& Request::DisableReplyDecoding() {
   pimpl_->DisableReplyDecoding();
-  return shared_from_this();
+  return *this;
 }
 
-std::shared_ptr<Request> Request::EnableAddClientTimeoutHeader() {
+Request& Request::EnableAddClientTimeoutHeader() {
   pimpl_->EnableAddClientTimeoutHeader();
-  return shared_from_this();
+  return *this;
 }
 
-std::shared_ptr<Request> Request::DisableAddClientTimeoutHeader() {
+Request& Request::DisableAddClientTimeoutHeader() {
   pimpl_->DisableAddClientTimeoutHeader();
-  return shared_from_this();
+  return *this;
 }
 
-std::shared_ptr<Request> Request::SetTracingManager(
+Request& Request::SetTracingManager(
     const tracing::TracingManagerBase& tracing_manager) {
   pimpl_->SetTracingManager(tracing_manager);
-  return shared_from_this();
+  return *this;
 }
 
-std::shared_ptr<Request> Request::SetHeadersPropagator(
+Request& Request::SetHeadersPropagator(
     const server::http::HeadersPropagator* headers_propagator) {
   pimpl_->SetHeadersPropagator(headers_propagator);
-  return shared_from_this();
+  return *this;
 }
 
-std::shared_ptr<Request> Request::SetEnforceTaskDeadline(
+Request& Request::SetEnforceTaskDeadline(
     EnforceTaskDeadlineConfig enforce_task_deadline) {
   pimpl_->SetEnforceTaskDeadline(enforce_task_deadline);
-  return shared_from_this();
+  return *this;
 }
 
 const std::string& Request::GetUrl() const {

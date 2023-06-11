@@ -36,10 +36,10 @@ class HttpClientHandler final : public server::handlers::HttpHandlerBase {
     if (type == "common") {
       auto url = fmt::format("http://localhost:{}/test", port);
       auto response = client_.CreateNotSignedRequest()
-                          ->get(url)
-                          ->timeout(timeout_secs)
-                          ->retry(1)
-                          ->perform();
+                          .get(url)
+                          .timeout(timeout_secs)
+                          .retry(1)
+                          .perform();
       response->raise_for_status();
       return response->body();
     }
@@ -84,14 +84,14 @@ class StreamHandler : public server::handlers::HttpHandlerBase {
     const auto retries = 1;
 
     auto external_request = http_client_.CreateNotSignedRequest()
-                                ->get(url)
-                                ->headers(std::move(headers))
-                                ->timeout(timeout_secs)
-                                ->retry(retries);
+                                .get(url)
+                                .headers(std::move(headers))
+                                .timeout(timeout_secs)
+                                .retry(retries);
 
     auto queue = concurrent::StringStreamQueue::Create();
     auto client_response =
-        external_request->async_perform_stream_body(std::move(queue));
+        external_request.async_perform_stream_body(std::move(queue));
 
     TESTPOINT("stream_after_start", {});
 

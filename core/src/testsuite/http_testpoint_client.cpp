@@ -40,11 +40,11 @@ void HttpTestpointClient::Execute(const std::string& name,
 
   auto response =
       http_client_.CreateRequest()
-          ->post(url_, std::move(request_str))
-          ->headers({{http::headers::kContentType,
-                      http::content_type::kApplicationJson.ToString()}})
-          ->timeout(timeout_)
-          ->perform();
+          .post(url_, std::move(request_str))
+          .headers({{http::headers::kContentType,
+                     http::content_type::kApplicationJson.ToString()}})
+          .timeout(timeout_)
+          .perform();
   response->raise_for_status();
 
   if (callback) {

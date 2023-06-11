@@ -140,12 +140,11 @@ void HttpCachedTranslations::Update(
 
 /// [HTTP caching sample - GetAllData]
 formats::json::Value HttpCachedTranslations::GetAllData() const {
-  auto response =
-      http_client_.CreateRequest()
-          ->get(translations_url_)  // HTTP GET translations_url_ URL
-          ->retry(2)                // retry once in case of error
-          ->timeout(std::chrono::milliseconds{500})
-          ->perform();  // start performing the request
+  auto response = http_client_.CreateRequest()
+                      .get(translations_url_)  // HTTP GET translations_url_ URL
+                      .retry(2)                // retry once in case of error
+                      .timeout(std::chrono::milliseconds{500})
+                      .perform();  // start performing the request
   response->raise_for_status();
   return formats::json::FromString(response->body_view());
 }
@@ -156,10 +155,10 @@ formats::json::Value HttpCachedTranslations::GetUpdatedData() const {
   const auto url =
       http::MakeUrl(translations_url_, {{"last_update", last_update_remote_}});
   auto response = http_client_.CreateRequest()
-                      ->get(url)
-                      ->retry(2)
-                      ->timeout(std::chrono::milliseconds{500})
-                      ->perform();
+                      .get(url)
+                      .retry(2)
+                      .timeout(std::chrono::milliseconds{500})
+                      .perform();
   response->raise_for_status();
   return formats::json::FromString(response->body_view());
 }
