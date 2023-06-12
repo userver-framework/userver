@@ -177,7 +177,7 @@ properties:
     mlock_debug_info:
         type: boolean
         description: whether to mlock(2) process debug info
-        defaultDescription: false
+        defaultDescription: true
     static_config_validation:
         type: object
         description: settings for basic syntax validation in config.yaml
