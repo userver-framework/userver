@@ -32,7 +32,7 @@ struct CheckedInt {
     EXPECT_NE(x, 0) << "UB detected, possibly use-after-free";
   }
 
-  concurrent::impl::IntrusiveStackHook<CheckedInt> stack_hook;
+  concurrent::impl::SinglyLinkedHook<CheckedInt> stack_hook;
   concurrent::impl::IntrusiveWalkablePoolHook<CheckedInt> pool_hook;
 
   int x;

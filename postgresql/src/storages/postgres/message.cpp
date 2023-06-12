@@ -4,6 +4,7 @@
 
 #include <storages/postgres/detail/result_wrapper.hpp>
 #include <userver/storages/postgres/exceptions.hpp>
+#include <userver/utils/trivial_map.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -11,15 +12,18 @@ namespace storages::postgres {
 
 namespace {
 
-const std::unordered_map<std::string_view, Message::Severity> kStringToSeverity{
-    {"LOG", Message::Severity::kLog},
-    {"DEBUG", Message::Severity::kDebug},
-    {"INFO", Message::Severity::kInfo},
-    {"NOTICE", Message::Severity::kNotice},
-    {"WARNING", Message::Severity::kWarning},
-    {"ERROR", Message::Severity::kError},
-    {"FATAL", Message::Severity::kFatal},
-    {"PANIC", Message::Severity::kPanic}};
+constexpr USERVER_NAMESPACE::utils::TrivialBiMap kStringToSeverity =
+    [](auto selector) {
+      return selector()
+          .Case("LOG", Message::Severity::kLog)
+          .Case("DEBUG", Message::Severity::kDebug)
+          .Case("INFO", Message::Severity::kInfo)
+          .Case("NOTICE", Message::Severity::kNotice)
+          .Case("WARNING", Message::Severity::kWarning)
+          .Case("ERROR", Message::Severity::kError)
+          .Case("FATAL", Message::Severity::kFatal)
+          .Case("PANIC", Message::Severity::kPanic);
+    };
 
 }  // namespace
 
@@ -225,9 +229,9 @@ void Message::ThrowException() const {
 }
 
 Message::Severity Message::SeverityFromString(std::string_view str) {
-  auto f = kStringToSeverity.find(str);
-  if (f != kStringToSeverity.end()) {
-    return f->second;
+  auto f = kStringToSeverity.TryFind(str);
+  if (f) {
+    return *f;
   }
 
   LOG_WARNING() << "Unknown severity string '" << str << '\'';

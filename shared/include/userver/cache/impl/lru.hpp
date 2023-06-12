@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include <vector>
 
 #include <boost/intrusive/link_mode.hpp>
@@ -25,6 +26,10 @@ template <class Key, class Value>
 // NOLINTNEXTLINE(fuchsia-multiple-inheritance)
 class LruNode final : public LruListHook, public LruHashSetHook {
  public:
+  template <typename... Args>
+  explicit LruNode(Key&& key, Args&&... args)
+      : key_(std::move(key)), value_(std::forward<Args>(args)...) {}
+
   explicit LruNode(Key&& key, Value&& value)
       : key_(std::move(key)), value_(std::move(value)) {}
 
@@ -79,6 +84,8 @@ template <typename T, typename U, typename Hash = std::hash<T>,
           typename Equal = std::equal_to<T>>
 class LruBase final {
  public:
+  using NodeType = std::unique_ptr<LruNode<T, U>>;
+
   explicit LruBase(size_t max_size, const Hash& hash, const Equal& equal);
   ~LruBase() { Clear(); }
 
@@ -113,9 +120,11 @@ class LruBase final {
 
   U* Get(const T& key);
 
-  const T* GetLeastUsedKey();
+  const T* GetLeastUsedKey() const;
 
   U* GetLeastUsedValue();
+
+  NodeType ExtractLeastUsedNode();
 
   void SetMaxSize(size_t new_max_size);
 
@@ -128,6 +137,11 @@ class LruBase final {
   void VisitAll(Function&& func);
 
   size_t GetSize() const;
+
+  U& InsertNode(NodeType&& node) noexcept;
+  NodeType ExtractNode(const T& key) noexcept;
+
+  std::size_t GetCapacity() const;
 
  private:
   using Node = LruNode<T, U>;
@@ -163,7 +177,6 @@ class LruBase final {
   U& Add(const T& key, U value);
   void MarkRecentlyUsed(Node& node) noexcept;
   std::unique_ptr<Node> ExtractNode(typename List::iterator it) noexcept;
-  Node& InsertNode(std::unique_ptr<Node>&& node) noexcept;
 
   std::vector<BucketType> buckets_;
   Map map_;
@@ -196,7 +209,16 @@ template <typename... Args>
 U* LruBase<T, U, Hash, Eq>::Emplace(const T& key, Args&&... args) {
   auto* existing = Get(key);
   if (existing) return existing;
-  return &Add(key, U{std::forward<Args>(args)...});
+
+  if constexpr (std::is_move_assignable_v<U>) {
+    return &Add(key, U{std::forward<Args>(args)...});
+  } else {
+    auto node = std::make_unique<Node>(T{key}, std::forward<Args>(args)...);
+    if (map_.size() >= buckets_.size()) {
+      ExtractNode(list_.begin());
+    }
+    return &InsertNode(std::move(node));
+  }
 }
 
 template <typename T, typename U, typename Hash, typename Eq>
@@ -215,7 +237,7 @@ U* LruBase<T, U, Hash, Eq>::Get(const T& key) {
 }
 
 template <typename T, typename U, typename Hash, typename Eq>
-const T* LruBase<T, U, Hash, Eq>::GetLeastUsedKey() {
+const T* LruBase<T, U, Hash, Eq>::GetLeastUsedKey() const {
   if (list_.empty()) return nullptr;
   return &list_.front().GetKey();
 }
@@ -224,6 +246,13 @@ template <typename T, typename U, typename Hash, typename Eq>
 U* LruBase<T, U, Hash, Eq>::GetLeastUsedValue() {
   if (list_.empty()) return nullptr;
   return &list_.front().GetValue();
+}
+
+template <typename T, typename U, typename Hash, typename Eq>
+typename LruBase<T, U, Hash, Eq>::NodeType
+LruBase<T, U, Hash, Eq>::ExtractLeastUsedNode() {
+  if (list_.empty()) return std::unique_ptr<LruNode<T, U>>();
+  return ExtractNode(list_.begin());
 }
 
 template <typename T, typename U, typename Hash, typename Eq>
@@ -273,16 +302,21 @@ size_t LruBase<T, U, Hash, Eq>::GetSize() const {
 }
 
 template <typename T, typename U, typename Hash, typename Eq>
+std::size_t LruBase<T, U, Hash, Eq>::GetCapacity() const {
+  return buckets_.size();
+}
+
+template <typename T, typename U, typename Hash, typename Eq>
 U& LruBase<T, U, Hash, Eq>::Add(const T& key, U value) {
   if (map_.size() < buckets_.size()) {
     auto node = std::make_unique<Node>(T{key}, std::move(value));
-    return InsertNode(std::move(node)).GetValue();
+    return InsertNode(std::move(node));
   }
 
   auto node = ExtractNode(list_.begin());
   node->SetKey(key);
   node->SetValue(std::move(value));
-  return InsertNode(std::move(node)).GetValue();
+  return InsertNode(std::move(node));
 }
 
 template <typename T, typename U, typename Hash, typename Eq>
@@ -302,15 +336,26 @@ std::unique_ptr<LruNode<T, U>> LruBase<T, U, Hash, Eq>::ExtractNode(
 }
 
 template <typename T, typename U, typename Hash, typename Eq>
-LruNode<T, U>& LruBase<T, U, Hash, Eq>::InsertNode(
-    std::unique_ptr<impl::LruNode<T, U>>&& node) noexcept {
+U& LruBase<T, U, Hash, Eq>::InsertNode(
+    LruBase<T, U, Hash, Eq>::NodeType&& node) noexcept {
   UASSERT(node);
 
   auto [it, ok] = map_.insert(*node);  // noexcept
   UASSERT(ok);
   list_.insert(list_.end(), *node);  // noexcept
 
-  return *node.release();
+  return node.release()->GetValue();
+}
+
+template <typename T, typename U, typename Hash, typename Eq>
+typename LruBase<T, U, Hash, Eq>::NodeType LruBase<T, U, Hash, Eq>::ExtractNode(
+    const T& key) noexcept {
+  auto it = map_.find(key, map_.hash_function(), map_.key_eq());
+  if (it == map_.end()) {
+    return NodeType();
+  }
+
+  return ExtractNode(list_.iterator_to(*it));
 }
 
 }  // namespace cache::impl

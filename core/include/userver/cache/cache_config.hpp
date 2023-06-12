@@ -30,11 +30,21 @@ enum class FirstUpdateMode {
   kSkip,
 };
 
+FirstUpdateMode Parse(const yaml_config::YamlConfig& config,
+                      formats::parse::To<FirstUpdateMode>);
+
+std::string_view ToString(FirstUpdateMode);
+
 enum class FirstUpdateType {
   kFull,
   kIncremental,
   kIncrementalThenAsyncFull,
 };
+
+FirstUpdateType Parse(const yaml_config::YamlConfig& config,
+                      formats::parse::To<FirstUpdateType>);
+
+std::string_view ToString(FirstUpdateType);
 
 struct ConfigPatch final {
   std::chrono::milliseconds update_interval;
@@ -57,9 +67,11 @@ struct Config final {
   bool allow_first_update_failure;
   std::optional<bool> force_periodic_update;
   bool config_updates_enabled;
+  bool has_pre_assign_check;
   std::optional<std::string> task_processor_name;
   std::chrono::milliseconds cleanup_interval;
   bool is_strong_period;
+  std::optional<std::uint64_t> failed_updates_before_expiration;
 
   FirstUpdateMode first_update_mode;
   FirstUpdateType first_update_type;

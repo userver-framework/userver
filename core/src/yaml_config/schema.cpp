@@ -1,8 +1,12 @@
 #include <userver/yaml_config/schema.hpp>
 
+#include <boost/range/adaptor/transformed.hpp>
+#include <boost/range/algorithm/count.hpp>
+
 #include <userver/formats/parse/common_containers.hpp>
 #include <userver/formats/yaml/serialize.hpp>
 #include <userver/utils/assert.hpp>
+#include <userver/utils/trivial_map.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -10,54 +14,61 @@ namespace yaml_config {
 
 namespace {
 
-const std::unordered_map<std::string, FieldType> kNamesToTypes{
-    {"integer", FieldType::kInt},   {"string", FieldType::kString},
-    {"boolean", FieldType::kBool},  {"double", FieldType::kDouble},
-    {"object", FieldType::kObject}, {"array", FieldType::kArray}};
-
-const std::unordered_set<std::string> kSchemaFields{
-    "type",
-    "description",
-    "defaultDescription",
-    "additionalProperties",
-    "properties",
-    "items",
-    "enum",
-};
-
 void CheckFieldsNames(const formats::yaml::Value& yaml_schema) {
+  static constexpr utils::TrivialSet kFieldNames = [](auto selector) {
+    return selector()
+        .Case("type")
+        .Case("description")
+        .Case("defaultDescription")
+        .Case("additionalProperties")
+        .Case("properties")
+        .Case("items")
+        .Case("enum")
+        .Case("minimum")
+        .Case("maximum");
+  };
+
   for (const auto& [name, value] : Items(yaml_schema)) {
-    if (kSchemaFields.find(name) == kSchemaFields.end()) {
+    const auto found = kFieldNames.Contains(name);
+
+    if (!found) {
       throw std::runtime_error(
-          fmt::format("Schema field name must be one of [type, description, "
-                      "defaultDescription, additionalProperties, properties, "
-                      "items, enum], but '{}' was given. Schema path: '{}'",
-                      name, yaml_schema.GetPath()));
+          fmt::format("Schema field name must be one of [{}], but '{}' was "
+                      "given. Schema path: '{}'",
+                      kFieldNames.Describe(), name, yaml_schema.GetPath()));
     }
   }
 }
 
-void CheckSchemaStructure(const Schema& schema) {
-  if (schema.items.has_value() && schema.type != FieldType::kArray) {
+template <typename Field>
+void CheckTypeSupportsField(const Schema& schema, std::string_view field_name,
+                            const std::optional<Field>& optional_field,
+                            std::initializer_list<FieldType> allowed_types) {
+  if (optional_field.has_value() &&
+      boost::count(allowed_types, schema.type) == 0) {
+    const auto allowed_type_strings = boost::adaptors::transform(
+        allowed_types,
+        [](FieldType type) { return fmt::format("'{}'", ToString(type)); });
     throw std::runtime_error(
-        fmt::format("Schema field '{}' of type '{}' can not have field "
-                    "'items', because its type is not 'array'",
-                    schema.path, ToString(schema.type)));
+        fmt::format("Schema field '{}' of type '{}' can not have field '{}', "
+                    "because its type is not {}",
+                    schema.path, ToString(schema.type), field_name,
+                    fmt::join(allowed_type_strings, " or ")));
   }
-  if (schema.type != FieldType::kObject) {
-    if (schema.properties.has_value()) {
-      throw std::runtime_error(
-          fmt::format("Schema field '{}' of type '{}' can not have field "
-                      "'properties', because its type is not 'object'",
-                      schema.path, ToString(schema.type)));
-    }
-    if (schema.additional_properties.has_value()) {
-      throw std::runtime_error(fmt::format(
-          "Schema field '{}' of type '{}' can not have field "
-          "'additionalProperties', because its type is not 'object'",
-          schema.path, ToString(schema.type)));
-    }
-  }
+}
+
+void CheckSchemaStructure(const Schema& schema) {
+  CheckTypeSupportsField(schema, "items", schema.items, {FieldType::kArray});
+  CheckTypeSupportsField(schema, "properties", schema.properties,
+                         {FieldType::kObject});
+  CheckTypeSupportsField(schema, "additionalProperties",
+                         schema.additional_properties, {FieldType::kObject});
+  CheckTypeSupportsField(schema, "enum", schema.enum_values,
+                         {FieldType::kString});
+  CheckTypeSupportsField(schema, "minimum", schema.minimum,
+                         {FieldType::kInteger, FieldType::kNumber});
+  CheckTypeSupportsField(schema, "maximum", schema.maximum,
+                         {FieldType::kInteger, FieldType::kNumber});
 
   if (schema.type == FieldType::kObject) {
     if (!schema.properties.has_value()) {
@@ -79,48 +90,38 @@ void CheckSchemaStructure(const Schema& schema) {
           schema.path));
     }
   }
-  if (schema.enum_values.has_value() && schema.type != FieldType::kString) {
-    throw std::runtime_error(
-        fmt::format("Schema field '{}' of type '{}' can not have field 'enum', "
-                    "because its type is not 'string'",
-                    schema.path, ToString(schema.type)));
-  }
 }
+
+constexpr utils::TrivialBiMap kFieldTypes = [](auto selector) {
+  return selector()
+      .Case("boolean", FieldType::kBool)
+      .Case("integer", FieldType::kInteger)
+      .Case("number", FieldType::kNumber)
+      .Case("string", FieldType::kString)
+      .Case("object", FieldType::kObject)
+      .Case("array", FieldType::kArray);
+};
 
 }  // namespace
 
 std::string ToString(FieldType type) {
-  switch (type) {
-    case FieldType::kInt:
-      return "integer";
-    case FieldType::kString:
-      return "string";
-    case FieldType::kBool:
-      return "boolean";
-    case FieldType::kDouble:
-      return "double";
-    case FieldType::kObject:
-      return "object";
-    case FieldType::kArray:
-      return "array";
-    default:
-      UINVARIANT(false, "Incorrect field type");
-  }
+  auto value = kFieldTypes.TryFind(type);
+  UINVARIANT(value, "Incorrect field type");
+  return std::string{*value};
 }
 
 FieldType Parse(const formats::yaml::Value& type,
                 formats::parse::To<FieldType>) {
   const std::string as_string = type.As<std::string>();
-  const auto it = kNamesToTypes.find(as_string);
+  auto value = kFieldTypes.TryFind(as_string);
 
-  if (it != kNamesToTypes.end()) {
-    return it->second;
+  if (value) {
+    return *value;
   }
 
-  throw std::runtime_error(
-      fmt::format("Schema field 'type' must be one of ['integer', "
-                  "'string' 'boolean', 'object', 'array']), but '{}' was given",
-                  as_string));
+  throw std::runtime_error(fmt::format(
+      "Schema field 'type' must be one of [{}]), but '{}' was given",
+      kFieldTypes.DescribeFirst(), as_string));
 }
 
 SchemaPtr Parse(const formats::yaml::Value& schema,
@@ -158,6 +159,8 @@ Schema Parse(const formats::yaml::Value& schema, formats::parse::To<Schema>) {
   result.items = schema["items"].As<std::optional<SchemaPtr>>();
   result.enum_values =
       schema["enum"].As<std::optional<std::unordered_set<std::string>>>();
+  result.minimum = schema["minimum"].As<std::optional<double>>();
+  result.maximum = schema["maximum"].As<std::optional<double>>();
 
   CheckFieldsNames(schema);
 

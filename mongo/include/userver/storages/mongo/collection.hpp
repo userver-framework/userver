@@ -32,7 +32,10 @@ class CollectionImpl;
 /// @snippet storages/mongo/collection_mongotest.hpp  Sample Mongo usage
 class Collection {
  public:
+  /// @cond
+  // For internal use only.
   explicit Collection(std::shared_ptr<impl::CollectionImpl>);
+  /// @endcond
 
   /// @brief Returns the number of documents matching the query
   /// @warning Unless explicitly overridden, runs CountApprox for empty filters
@@ -104,6 +107,10 @@ class Collection {
   WriteResult FindAndRemove(formats::bson::Document query,
                             Options&&... options);
 
+  /// Drop collection
+  template <typename... Options>
+  void Drop(Options&&... options);
+
   /// Efficiently executes multiple operations in order, stops on error
   template <typename... Options>
   operations::Bulk MakeOrderedBulk(Options&&... options);
@@ -131,6 +138,7 @@ class Collection {
   WriteResult Execute(const operations::FindAndRemove&);
   WriteResult Execute(operations::Bulk&&);
   Cursor Execute(const operations::Aggregate&);
+  void Execute(const operations::Drop&);
   /// @}
  private:
   std::shared_ptr<impl::CollectionImpl> impl_;
@@ -261,6 +269,13 @@ WriteResult Collection::FindAndRemove(formats::bson::Document query,
   operations::FindAndRemove fam_op(std::move(query));
   (fam_op.SetOption(std::forward<Options>(options)), ...);
   return Execute(fam_op);
+}
+
+template <typename... Options>
+void Collection::Drop(Options&&... options) {
+  operations::Drop drop_op;
+  (drop_op.SetOption(std::forward<Options>(options)), ...);
+  return Execute(drop_op);
 }
 
 template <typename... Options>

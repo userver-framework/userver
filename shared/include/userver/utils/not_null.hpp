@@ -3,7 +3,9 @@
 /// @file userver/utils/not_null.hpp
 /// @brief @copybrief utils::NotNull
 
+#include <functional>
 #include <memory>
+#include <type_traits>
 #include <utility>
 
 #include <userver/utils/assert.hpp>
@@ -39,6 +41,10 @@ class NotNull {
   }
 
   template <typename U,
+            typename = std::enable_if_t<std::is_convertible_v<U*, T>>>
+  constexpr /*implicit*/ NotNull(U& u) : ptr_(std::addressof(u)) {}
+
+  template <typename U,
             typename = std::enable_if_t<std::is_convertible_v<U, T>>>
   constexpr NotNull(const NotNull<U>& other) : ptr_(other.GetBase()) {
     UASSERT_MSG(ptr_,
@@ -47,8 +53,7 @@ class NotNull {
 
   template <typename U,
             typename = std::enable_if_t<std::is_convertible_v<U, T>>>
-  constexpr explicit NotNull(NotNull<U>&& other)
-      : ptr_(std::move(other.GetBase())) {
+  constexpr NotNull(NotNull<U>&& other) : ptr_(std::move(other).GetBase()) {
     UASSERT_MSG(ptr_,
                 "Trying to construct NotNull from null (moved-from) NotNull");
   }
@@ -73,9 +78,11 @@ class NotNull {
     return std::move(ptr_);
   }
 
-  constexpr operator const T&() const& { return GetBase(); }
+  constexpr /*implicit*/ operator const T&() const& { return GetBase(); }
 
-  constexpr decltype(auto) operator-> () const& { return GetBase(); }
+  constexpr /*implicit*/ operator bool() = delete;
+
+  constexpr decltype(auto) operator->() const& { return GetBase(); }
 
   constexpr decltype(auto) operator*() const& { return *GetBase(); }
 
@@ -122,3 +129,14 @@ UniqueRef<U> MakeUniqueRef(Args&&... args) {
 }  // namespace utils
 
 USERVER_NAMESPACE_END
+
+template <typename T>
+// NOLINTNEXTLINE(cert-dcl58-cpp)
+struct std::hash<USERVER_NAMESPACE::utils::NotNull<T>> : public std::hash<T> {
+  using std::hash<T>::hash;
+
+  auto operator()(const USERVER_NAMESPACE::utils::NotNull<T>& value) const
+      noexcept(std::is_nothrow_invocable_v<const std::hash<T>&, const T&>) {
+    return this->std::hash<T>::operator()(value.GetBase());
+  }
+};

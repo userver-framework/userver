@@ -165,17 +165,18 @@ Content-Length: 1
 @ref md_en_userver_functional_testing "Functional tests" for the service could be
 implemented using the testsuite. To do that you have to:
 
-* Provide Redis settings info:
-@snippet samples/redis_service/tests/conftest.py service_env value
+* Prepare the pytest by importing the pytest_userver.plugins.redis plugin:
+  @snippet samples/redis_service/tests/conftest.py redis setup
 
-* Add the above values to the service environment variable:
-@snippet samples/redis_service/tests/conftest.py service_env
-
-* Tell the testsuite to start the Redis database:
-@snippet samples/redis_service/tests/conftest.py client_deps
+* Add the Redis settings info to the service environment variable:
+  @snippet samples/redis_service/tests/conftest.py service_env
+  The @ref pytest_userver.plugins.service_client.auto_client_deps "auto_client_deps"
+  fixture already knows about the redis_store fixture, so there's no need to override
+  the @ref pytest_userver.plugins.service_client.extra_client_deps "extra_client_deps"
+  fixture.
 
 * Write the test:
-@snippet samples/redis_service/tests/test_redis.py  Functional test
+  @snippet samples/redis_service/tests/test_redis.py  Functional test
 
 
 ## Full sources
@@ -189,7 +190,7 @@ See the full example:
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref md_en_userver_tutorial_mongo_service | @ref md_en_userver_component_system ⇨
+⇦ @ref md_en_userver_tutorial_mongo_service | @ref md_en_userver_tutorial_auth_postgres ⇨
 @htmlonly </div> @endhtmlonly
 
 @example samples/redis_service/redis_service.cpp

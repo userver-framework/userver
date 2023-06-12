@@ -8,10 +8,10 @@
 #include <utility>
 
 #include <userver/engine/exception.hpp>
+#include <userver/engine/impl/task_context_holder.hpp>
 #include <userver/engine/task/task.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/utils/assert.hpp>
-#include <userver/utils/clang_format_workarounds.hpp>
 #include <userver/utils/fast_scope_guard.hpp>
 #include <userver/utils/impl/wrapped_call.hpp>
 
@@ -27,31 +27,24 @@ namespace engine {
 ///
 /// @see @ref md_en_userver_synchronization
 template <typename T>
-class USERVER_NODISCARD TaskWithResult : public Task {
+class [[nodiscard]] TaskWithResult : public Task {
  public:
   /// @brief Default constructor
   ///
   /// Creates an invalid task.
   TaskWithResult() = default;
 
-  /// @brief Constructor, for internal use only
-  /// @param task_processor task processor used for execution of this task
-  /// @param importance specifies whether this task can be auto-cancelled
-  ///   in case of task processor overload
-  /// @param wrapped_call_ptr task body
-  /// @see Async()
-  TaskWithResult(
-      TaskProcessor& task_processor, Task::Importance importance,
-      Deadline deadline,
-      std::unique_ptr<utils::impl::WrappedCall<T>>&& wrapped_call_ptr)
-      : Task(task_processor, importance, Task::WaitMode::kSingleWaiter,
-             deadline, std::move(wrapped_call_ptr)) {}
-
   TaskWithResult(const TaskWithResult&) = delete;
   TaskWithResult& operator=(const TaskWithResult&) = delete;
 
-  TaskWithResult(TaskWithResult&&) noexcept = default;
-  TaskWithResult& operator=(TaskWithResult&&) noexcept = default;
+  /// @brief Moves the other task into this, leaving the other in an invalid
+  /// state.
+  TaskWithResult(TaskWithResult&& other) noexcept = default;
+
+  /// @brief If this Task is still valid and is not finished, cancels it and
+  /// waits until it finishes before moving the other. Otherwise just moves the
+  /// other task into this, leaving the other in invalid state.
+  TaskWithResult& operator=(TaskWithResult&& other) noexcept = default;
 
   /// @brief Returns (or rethrows) the result of task invocation.
   /// After return from this method the task is not valid.
@@ -72,6 +65,14 @@ class USERVER_NODISCARD TaskWithResult : public Task {
   }
 
   using Task::TryGetContextAccessor;
+
+  /// @cond
+  static constexpr WaitMode kWaitMode = WaitMode::kSingleWaiter;
+
+  // For internal use only.
+  explicit TaskWithResult(impl::TaskContextHolder&& context)
+      : Task(std::move(context)) {}
+  /// @endcond
 
  private:
   void EnsureValid() const {

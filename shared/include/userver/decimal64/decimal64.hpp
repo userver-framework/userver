@@ -38,7 +38,7 @@
 #include <userver/formats/common/meta.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/flags.hpp>
-#include <userver/utils/meta.hpp>
+#include <userver/utils/meta_light.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -283,7 +283,7 @@ class HalfRoundPolicyBase {
   [[nodiscard]] static constexpr int64_t DivRounded(int64_t a, int64_t b,
                                                     bool extra_odd_quotient) {
     if (HalfPolicy::ShouldRoundAwayFromZeroDiv(a, b, extra_odd_quotient)) {
-      const int64_t quotient_sign = impl::Sign(a) * impl::Sign(b);
+      const auto quotient_sign = impl::Sign(a) * impl::Sign(b);
       return (a / b) + quotient_sign;  // round away from 0
     } else {
       return a / b;  // round towards 0
@@ -1431,7 +1431,7 @@ template <int Prec, typename RoundPolicy, typename Char>
 class fmt::formatter<USERVER_NAMESPACE::decimal64::Decimal<Prec, RoundPolicy>,
                      Char> {
  public:
-  constexpr auto parse(fmt::format_parse_context& ctx) {
+  constexpr auto parse(fmt::basic_format_parse_context<Char>& ctx) {
     const auto* it = ctx.begin();
     const auto* end = ctx.end();
 

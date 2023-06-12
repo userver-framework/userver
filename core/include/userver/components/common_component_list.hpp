@@ -15,18 +15,20 @@ namespace components {
 /// updates and HTTP client.
 ///
 /// The list contains:
-/// * components::LoggingConfigurator
-/// * components::TestsuiteSupport
-/// * components::HttpClient (default and "http-client-statistics")
-/// * components::DynamicConfigClient
-/// * components::DynamicConfigClientUpdater
 /// * os_signals::ProcessorComponent
 /// * components::Logging
 /// * components::Tracer
 /// * components::ManagerControllerComponent
 /// * components::StatisticsStorage
-/// * components::SystemStatisticsCollector
 /// * components::DynamicConfig
+/// * components::LoggingConfigurator
+/// * components::DumpConfigurator
+/// * components::TestsuiteSupport
+/// * components::SystemStatisticsCollector
+/// * components::HttpClient (default and "http-client-statistics")
+/// * clients::dns::Component
+/// * components::DynamicConfigClient
+/// * components::DynamicConfigClientUpdater
 ComponentList CommonComponentList();
 
 }  // namespace components

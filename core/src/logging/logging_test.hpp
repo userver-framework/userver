@@ -1,78 +1,87 @@
+#pragma once
+
 #include <gtest/gtest.h>
-
-#include <logging/spdlog.hpp>
-
-#include <logging/config.hpp>
-#include <logging/logger_with_info.hpp>
-#include <logging/spdlog_helpers.hpp>
-
 #include <spdlog/sinks/ostream_sink.h>
 
+#include <logging/config.hpp>
+#include <logging/impl/unix_socket_sink.hpp>
+#include <logging/spdlog_helpers.hpp>
+#include <logging/tp_logger.hpp>
+
+#include <userver/logging/format.hpp>
 #include <userver/logging/log.hpp>
+#include <userver/utest/default_logger_fixture.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
-inline logging::LoggerPtr MakeNamedStreamLogger(const std::string& logger_name,
-                                                std::ostream& stream,
-                                                logging::Format format) {
-  auto sink = std::make_shared<spdlog::sinks::ostream_sink_st>(stream);
-  return std::make_shared<logging::impl::LoggerWithInfo>(
-      format, std::shared_ptr<spdlog::details::thread_pool>{},
-      utils::MakeSharedRef<spdlog::logger>(logger_name, sink));
+inline std::shared_ptr<logging::impl::TpLogger> MakeLoggerFromSink(
+    const std::string& logger_name,
+    std::shared_ptr<spdlog::sinks::sink> sink_ptr, logging::Format format) {
+  auto logger = std::make_shared<logging::impl::TpLogger>(format, logger_name);
+  logger->AddSink(std::move(sink_ptr));
+  logger->SetPattern(logging::GetSpdlogPattern(format));
+  return logger;
 }
 
-class LoggingTestBase : public ::testing::Test {
+struct LoggingSinkWithStream {
+  std::ostringstream sstream;
+  spdlog::sinks::ostream_sink_mt sink{sstream};
+};
+
+inline std::shared_ptr<logging::impl::TpLogger> MakeNamedStreamLogger(
+    const std::string& logger_name,
+    std::shared_ptr<LoggingSinkWithStream> stream, logging::Format format) {
+  std::shared_ptr<spdlog::sinks::ostream_sink_mt> sink(stream, &stream->sink);
+  return MakeLoggerFromSink(logger_name, sink, format);
+}
+
+inline std::string_view GetTextKey(logging::Format format) {
+  return format == logging::Format::kLtsv ? "text:" : "text=";
+}
+
+inline std::string ParseLoggedText(std::string_view log_record,
+                                   logging::Format format) {
+  const auto text_key = GetTextKey(format);
+
+  const auto text_begin = log_record.find(text_key);
+  if (text_begin != std::string_view::npos) {
+    log_record.remove_prefix(text_begin + text_key.length());
+  }
+
+  const auto log_end = log_record.find_first_of("\r\n");
+  if (log_end != std::string_view::npos &&
+      log_record.substr(log_end).size() > 2) {
+    throw std::runtime_error("The log contains multiple log records");
+  }
+
+  const auto text_end = log_record.find_first_of("\t\r\n");
+  if (text_end != std::string_view::npos) {
+    log_record = log_record.substr(0, text_end);
+  }
+
+  return std::string{log_record};
+}
+
+using DefaultLoggerFixture = utest::DefaultLoggerFixture< ::testing::Test>;
+
+class LoggingTestBase : public DefaultLoggerFixture {
  protected:
-  LoggingTestBase(logging::Format format, std::string_view text_key)
-      : format_(format), text_key_(text_key) {}
-
-  void SetUp() override {
-    old_ = logging::SetDefaultLogger(MakeStreamLogger(sstream));
-
-    // Discard logs from SetDefaultLogger
-    logging::LogFlush();
-    ClearLog();
-  }
-
-  void TearDown() override {
-    if (old_) {
-      // Discard logs from SetDefaultLogger
-      logging::SetDefaultLoggerLevel(logging::Level::kNone);
-      logging::LogFlush();
-
-      logging::SetDefaultLogger(old_);
-      old_.reset();
-    }
-  }
-
-  logging::LoggerPtr MakeStreamLogger(std::ostream& stream) const {
-    std::ostringstream os;
-    os << this;
-    auto logger = MakeNamedStreamLogger(os.str(), stream, format_);
-    logger->ptr->set_pattern(logging::GetSpdlogPattern(format_));
-    return logger;
-  }
+  LoggingTestBase(logging::Format format)
+      : format_(format),
+        sstream_data_{std::make_shared<LoggingSinkWithStream>()},
+        stream_logger_{MakeNamedStreamLogger("test-stream-logger",
+                                             sstream_data_, format_)} {}
 
   std::string LoggedText() const {
     logging::LogFlush();
-    const std::string str = sstream.str();
-
-    const auto text_begin = str.find(text_key_);
-    const std::string from_text =
-        text_begin == std::string::npos
-            ? str
-            : str.substr(text_begin + text_key_.length());
-
-    const auto text_end = from_text.rfind('\n');
-    return text_end == std::string::npos ? from_text
-                                         : from_text.substr(0, text_end);
+    return ParseLoggedText(GetStreamString(), format_);
   }
 
-  bool LoggedTextContains(const std::string& str) const {
+  bool LoggedTextContains(std::string_view str) const {
     return LoggedText().find(str) != std::string::npos;
   }
 
-  void ClearLog() { sstream.str({}); }
+  void ClearLog() { sstream_data_->sstream.str({}); }
 
   template <typename T>
   std::string ToStringViaLogging(const T& value) {
@@ -82,24 +91,35 @@ class LoggingTestBase : public ::testing::Test {
     return result;
   }
 
-  std::string GetStreamString() const { return sstream.str(); }
+  std::string GetStreamString() const { return sstream_data_->sstream.str(); }
+
+  std::size_t GetRecordsCount() const {
+    auto str = GetStreamString();
+    return std::count(str.begin(), str.end(), '\n');
+  }
+
+  std::shared_ptr<logging::impl::TpLogger> GetStreamLogger() const {
+    return stream_logger_;
+  }
 
  private:
   const logging::Format format_;
-  const std::string_view text_key_;
-  logging::LoggerPtr old_;
-
-  std::ostringstream sstream;
+  const std::shared_ptr<LoggingSinkWithStream> sstream_data_;
+  const std::shared_ptr<logging::impl::TpLogger> stream_logger_;
 };
 
 class LoggingTest : public LoggingTestBase {
  protected:
-  LoggingTest() : LoggingTestBase(logging::Format::kTskv, "text=") {}
+  LoggingTest() : LoggingTestBase(logging::Format::kTskv) {
+    SetDefaultLogger(GetStreamLogger());
+  }
 };
 
 class LoggingLtsvTest : public LoggingTestBase {
  protected:
-  LoggingLtsvTest() : LoggingTestBase(logging::Format::kLtsv, "text:") {}
+  LoggingLtsvTest() : LoggingTestBase(logging::Format::kLtsv) {
+    SetDefaultLogger(GetStreamLogger());
+  }
 };
 
 USERVER_NAMESPACE_END

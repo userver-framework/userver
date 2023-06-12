@@ -1,43 +1,62 @@
 #include <userver/ugrpc/client/rpc.hpp>
 
 #include <userver/ugrpc/client/exceptions.hpp>
+#include <userver/ugrpc/client/middleware_base.hpp>
 #include <userver/utils/fast_scope_guard.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::client {
 
-UnaryFuture::UnaryFuture(impl::RpcData& data) noexcept : data_(&data) {}
+UnaryFuture::UnaryFuture(impl::RpcData& data) noexcept : impl_(data) {}
 
 UnaryFuture::~UnaryFuture() noexcept {
-  if (data_) {
-    impl::RpcData::AsyncMethodInvocationGuard guard(*data_);
-    impl::ProcessFinishResult(*data_, data_->GetAsyncMethodInvocation().Wait(),
-                              data_->GetStatus());
+  if (auto* const data = impl_.GetData()) {
+    impl::RpcData::AsyncMethodInvocationGuard guard(*data);
+    impl::ProcessFinishResult(*data, data->GetAsyncMethodInvocation().Wait(),
+                              data->GetStatus(), false);
   }
 }
-
-UnaryFuture::UnaryFuture(UnaryFuture&& other) noexcept
-    : data_(std::exchange(other.data_, nullptr)) {}
 
 UnaryFuture& UnaryFuture::operator=(UnaryFuture&& other) noexcept {
   if (this == &other) return *this;
   [[maybe_unused]] auto for_destruction = std::move(*this);
-  data_ = std::exchange(other.data_, nullptr);
+  impl_ = std::move(other.impl_);
   return *this;
 }
 
 void UnaryFuture::Get() {
-  UINVARIANT(data_, "'Get' must be called only once");
-  impl::RpcData::AsyncMethodInvocationGuard guard(*data_);
-  auto& data = *std::exchange(data_, nullptr);
-  auto& status = data.GetStatus();
-  impl::ProcessFinishResult(data, data.GetAsyncMethodInvocation().Wait(),
-                            status);
-  if (!status.ok()) {
-    std::string call_name{data.GetCallName()};
-    impl::ThrowErrorWithStatus(std::move(call_name), std::move(status));
-  }
+  auto* const data = impl_.GetData();
+  UINVARIANT(data, "'Get' must be called only once");
+  impl::RpcData::AsyncMethodInvocationGuard guard(*data);
+  impl_.ClearData();
+  auto& status = data->GetStatus();
+  impl::ProcessFinishResult(*data, data->GetAsyncMethodInvocation().Wait(),
+                            status, true);
+}
+
+bool UnaryFuture::IsReady() const noexcept { return impl_.IsReady(); }
+
+void CallMiddlewares(const Middlewares& mws, CallAnyBase& call,
+                     std::function<void()> user_call,
+                     const ::google::protobuf::Message* request) {
+  MiddlewareCallContext mw_ctx(mws, call, std::move(user_call), request);
+  mw_ctx.Next();
+}
+
+grpc::ClientContext& CallAnyBase::GetContext() { return data_->GetContext(); }
+
+impl::RpcData& CallAnyBase::GetData() {
+  UASSERT(data_);
+  return *data_;
+}
+
+std::string_view CallAnyBase::GetCallName() const {
+  return data_->GetCallName();
+}
+
+std::string_view CallAnyBase::GetClientName() const {
+  return data_->GetClientName();
 }
 
 }  // namespace ugrpc::client

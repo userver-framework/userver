@@ -73,9 +73,7 @@ class Sockaddr final {
   }
 
   /// Native socket address structure pointer.
-  struct sockaddr* Data() {
-    return As<struct sockaddr>();
-  }
+  struct sockaddr* Data() { return As<struct sockaddr>(); }
 
   /// Native socket address structure pointer.
   const struct sockaddr* Data() const { return As<struct sockaddr>(); }

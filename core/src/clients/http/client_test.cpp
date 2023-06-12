@@ -6,11 +6,13 @@
 #include <boost/algorithm/string/split.hpp>
 #include <boost/algorithm/string/trim.hpp>
 
+#include <clients/http/client_utils_test.hpp>
 #include <clients/http/testsuite.hpp>
-#include <engine/task/task_context.hpp>
 #include <engine/task/task_processor.hpp>
 #include <userver/clients/dns/resolver.hpp>
+#include <userver/clients/http/request_tracing_editor.hpp>
 #include <userver/clients/http/streamed_response.hpp>
+#include <userver/concurrent/queue.hpp>
 #include <userver/crypto/certificate.hpp>
 #include <userver/crypto/private_key.hpp>
 #include <userver/engine/async.hpp>
@@ -20,6 +22,7 @@
 #include <userver/fs/blocking/write.hpp>
 #include <userver/http/common_headers.hpp>
 #include <userver/logging/log.hpp>
+#include <userver/tracing/tracing.hpp>
 #include <userver/utils/async.hpp>
 #include <userver/utils/userver_info.hpp>
 
@@ -37,13 +40,10 @@ constexpr char kTestData[] = "Test Data";
 constexpr unsigned kRepetitions = 200;
 constexpr unsigned kFewRepetitions = 8;
 
-constexpr char kTestHeader[] = "X-Test-Header";
-constexpr char kTestHeaderMixedCase[] = "x-TEST-headeR";
+constexpr std::string_view kTestHeader = "X-Test-Header";
+constexpr std::string_view kTestHeaderMixedCase = "x-TEST-headeR";
 
 constexpr char kTestUserAgent[] = "correct/2.0 (user agent) taxi_userver/000f";
-
-constexpr char kResponse200WithHeaderPattern[] =
-    "HTTP/1.1 200 OK\r\nConnection: close\r\nContent-Length: 0\r\n{}\r\n\r\n";
 
 // Certifiacte for testing was generated via the following command:
 //   `openssl req -x509 -sha256 -nodes -newkey rsa:1024 -keyout priv.key -out
@@ -316,17 +316,6 @@ HttpResponse no_user_agent_validate_callback(const HttpRequest& request) {
       HttpResponse::kWriteAndClose};
 }
 
-struct Response200WithHeader {
-  const std::string header;
-
-  HttpResponse operator()(const HttpRequest&) const {
-    return {
-        fmt::format(kResponse200WithHeaderPattern, header),
-        HttpResponse::kWriteAndClose,
-    };
-  }
-};
-
 struct Response301WithHeader {
   const std::string location;
   const std::string header;
@@ -399,16 +388,13 @@ struct ResolverWrapper {
           return file;
         }()},
         fs_task_processor{
-            {
-                "fs-task-processor",
-                false,
-                1,
-                "fs-worker",
-                engine::OsScheduling::kNormal,
-                1000,
-                0,
-                "",
-            },
+            [] {
+              engine::TaskProcessorConfig config;
+              config.name = "fs-task-processor";
+              config.worker_threads = 1;
+              config.thread_name = "fs-worker";
+              return config;
+            }(),
             engine::current_task::GetTaskProcessor().GetTaskProcessorPools()},
         resolver{fs_task_processor, [=] {
                    clients::dns::ResolverConfig config;
@@ -475,7 +461,7 @@ std::string DifferentUrlsRetryStreamResponseBody(
 
   for (const auto& url : urls_list) {
     request->url(url);  // set URL
-    auto queue = concurrent::SpscQueue<std::string>::Create();
+    auto queue = concurrent::StringStreamQueue::Create();
 
     try {
       auto stream_response = request->async_perform_stream_body(queue);
@@ -619,8 +605,7 @@ UTEST(HttpClient, CancelPre) {
     const utest::SimpleServer http_server{EchoCallback{}};
     auto http_client_ptr = utest::CreateHttpClient();
 
-    engine::current_task::GetCurrentTaskContext().RequestCancel(
-        engine::TaskCancellationReason::kUserRequest);
+    engine::current_task::GetCancellationToken().RequestCancel();
 
     UEXPECT_THROW(http_client_ptr->CreateRequest(),
                   clients::http::CancelException);
@@ -638,8 +623,7 @@ UTEST(HttpClient, CancelPost) {
                              ->post(http_server.GetBaseUrl(), kTestData)
                              ->timeout(kTimeout);
 
-    engine::current_task::GetCurrentTaskContext().RequestCancel(
-        engine::TaskCancellationReason::kUserRequest);
+    engine::current_task::GetCancellationToken().RequestCancel();
 
     auto future = request->async_perform();
     UEXPECT_THROW(future.Wait(), clients::http::CancelException);
@@ -684,8 +668,7 @@ UTEST(HttpClient, CancelRetries) {
   ASSERT_TRUE(enough_retries_event.WaitForEventFor(utest::kMaxTestWaitTime));
 
   const auto cancellation_start_time = std::chrono::steady_clock::now();
-  engine::current_task::GetCurrentTaskContext().RequestCancel(
-      engine::TaskCancellationReason::kUserRequest);
+  engine::current_task::GetCancellationToken().RequestCancel();
 
   const auto request_creation_duration =
       cancellation_start_time - start_create_request_time;
@@ -1067,8 +1050,8 @@ UTEST(HttpClient, HeadersAndWhitespaces) {
   };
 
   for (const auto& header_value : header_values) {
-    const utest::SimpleServer http_server{
-        Response200WithHeader{std::string(kTestHeader) + ':' + header_value}};
+    const utest::SimpleServer http_server{clients::http::Response200WithHeader{
+        std::string(kTestHeader) + ':' + header_value}};
 
     const auto response = http_client_ptr->CreateRequest()
                               ->post(http_server.GetBaseUrl())
@@ -1139,7 +1122,7 @@ UTEST(HttpClient, BasicUsage) {
   auto http_client_ptr = utest::CreateHttpClient();
 
   const utest::SimpleServer http_server_final{
-      Response200WithHeader{"xxx: good"}};
+      clients::http::Response200WithHeader{"xxx: good"}};
 
   const auto url = http_server_final.GetBaseUrl();
   auto& http_client = *http_client_ptr;
@@ -1153,8 +1136,50 @@ UTEST(HttpClient, BasicUsage) {
 
   EXPECT_TRUE(response->IsOk());
   /// [Sample HTTP Client usage]
-  EXPECT_EQ(response->headers()["xxx"], "good");
-  EXPECT_EQ(response->headers()["XXX"], "good");
+  EXPECT_EQ(response->headers()[std::string_view{"xxx"}], "good");
+  EXPECT_EQ(response->headers()[std::string_view{"XXX"}], "good");
+}
+
+UTEST(HttpClient, GetWithBody) {
+  auto http_client_ptr = utest::CreateHttpClient();
+
+  const utest::SimpleServer http_server_final{
+      [](const HttpRequest& request) -> HttpResponse {
+        EXPECT_NE(request.find("get_body_data"), std::string::npos);
+        return {
+            fmt::format(clients::http::kResponse200WithHeaderPattern,
+                        "xxx: good"),
+            HttpResponse::kWriteAndClose,
+        };
+      }};
+
+  const auto url = http_server_final.GetBaseUrl();
+  auto& http_client = *http_client_ptr;
+  std::string data{"get_body_data"};
+
+  const auto response = http_client.CreateRequest()
+                            ->data(std::move(data))
+                            ->url(url)
+                            ->set_custom_http_request_method("GET")
+                            ->timeout(std::chrono::seconds(1))
+                            ->perform();
+
+  EXPECT_TRUE(response->IsOk());
+  EXPECT_EQ(response->headers()[std::string_view{"xxx"}], "good");
+  EXPECT_EQ(response->headers()[std::string_view{"XXX"}], "good");
+
+  // Make sure it doesn't depend on order of get/data
+  std::string new_data{"get_body_data"};
+  const auto another_response = http_client.CreateRequest()
+                                    ->url(url)
+                                    ->set_custom_http_request_method("GET")
+                                    ->data(std::move(new_data))
+                                    ->timeout(std::chrono::seconds(1))
+                                    ->perform();
+
+  EXPECT_TRUE(another_response->IsOk());
+  EXPECT_EQ(another_response->headers()[std::string_view{"xxx"}], "good");
+  EXPECT_EQ(another_response->headers()[std::string_view{"XXX"}], "good");
 }
 
 // Make sure that cURL was build with the fix:
@@ -1163,7 +1188,7 @@ UTEST(HttpClient, RedirectHeaders) {
   auto http_client_ptr = utest::CreateHttpClient();
 
   const utest::SimpleServer http_server_final{
-      Response200WithHeader{"xxx: good"}};
+      clients::http::Response200WithHeader{"xxx: good"}};
 
   const utest::SimpleServer http_server_redirect{
       Response301WithHeader{http_server_final.GetBaseUrl(), "xxx: bad"}};
@@ -1180,8 +1205,8 @@ UTEST(HttpClient, RedirectHeaders) {
       << "Looks like you have an outdated version of cURL library. Update "
          "to version 7.72.0 or above is recommended";
 
-  EXPECT_EQ(response->headers()["xxx"], "good");
-  EXPECT_EQ(response->headers()["XXX"], "good");
+  EXPECT_EQ(response->headers()[std::string_view{"xxx"}], "good");
+  EXPECT_EQ(response->headers()[std::string_view{"XXX"}], "good");
 }
 
 UTEST(HttpClient, BadUrl) {
@@ -1255,6 +1280,28 @@ UTEST(HttpClient, UsingResolver) {
 
   const auto server_url =
       "http://localhost:" + std::to_string(http_server.GetPort());
+  auto request = http_client_ptr->CreateRequest()
+                     ->post(server_url, kTestData)
+                     ->retry(1)
+                     ->verify(true)
+                     ->http_version(clients::http::HttpVersion::k11)
+                     ->timeout(kTimeout);
+
+  auto res = request->perform();
+  EXPECT_EQ(res->body(), kTestData);
+}
+
+UTEST(HttpClient, UsingResolverWithIpv6Addrs) {
+  const utest::SimpleServer http_server{EchoCallback{},
+                                        utest::SimpleServer::kTcpIpV6};
+
+  ResolverWrapper resolver_wrapper;
+  auto http_client_ptr =
+      utest::CreateHttpClient(resolver_wrapper.fs_task_processor);
+  http_client_ptr->SetDnsResolver(&resolver_wrapper.resolver);
+
+  const auto server_url =
+      "http://[::1]:" + std::to_string(http_server.GetPort());
   auto request = http_client_ptr->CreateRequest()
                      ->post(server_url, kTestData)
                      ->retry(1)
@@ -1414,19 +1461,19 @@ UTEST(HttpClient, DISABLED_TestsuiteAllowedUrls) {
     EXPECT_NO_THROW((void)http_client_ptr->CreateRequest()
                         ->get("http://126.0.0.1")
                         ->async_perform());
-    ASSERT_DEATH((void)http_client_ptr->CreateRequest()
-                     ->get("http://12.0.0.1")
-                     ->async_perform(),
-                 ".*");
+    UEXPECT_DEATH((void)http_client_ptr->CreateRequest()
+                      ->get("http://12.0.0.1")
+                      ->async_perform(),
+                  ".*");
 
     http_client_ptr->SetAllowedUrlsExtra({"http://12.0"});
     EXPECT_NO_THROW((void)http_client_ptr->CreateRequest()
                         ->get("http://12.0.0.1")
                         ->async_perform());
-    ASSERT_DEATH((void)http_client_ptr->CreateRequest()
-                     ->get("http://13.0.0.1")
-                     ->async_perform(),
-                 ".*");
+    UEXPECT_DEATH((void)http_client_ptr->CreateRequest()
+                      ->get("http://13.0.0.1")
+                      ->async_perform(),
+                  ".*");
   });
 
   task.Get();

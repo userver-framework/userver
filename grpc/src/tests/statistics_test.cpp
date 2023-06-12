@@ -22,6 +22,11 @@ class UnitTestServiceForStatistics final
     call.FinishWithError(
         {grpc::StatusCode::INVALID_ARGUMENT, "message", "details"});
   }
+
+  void Chat(ChatCall& call) override {
+    call.FinishWithError(
+        {grpc::StatusCode::UNIMPLEMENTED, "message", "details"});
+  }
 };
 
 }  // namespace
@@ -36,24 +41,22 @@ UTEST_F(GrpcStatistics, LongRequest) {
                 ugrpc::client::InvalidArgumentError);
   GetServer().StopDebug();
 
-  const auto statistics = GetStatistics();
-
   for (const auto& domain : {"client", "server"}) {
-    EXPECT_EQ("grpc_destination", statistics["grpc"][domain]["by-destination"]
-                                            ["$meta"]["solomon_children_labels"]
-                                                .As<std::string>())
-        << formats::json::ToString(statistics["grpc"][domain]);
+    const auto stats = GetStatistics(
+        fmt::format("grpc.{}.by-destination", domain),
+        {{"grpc_destination", "sample.ugrpc.UnitTestService/SayHello"}});
 
-    const auto hello_statistics =
-        statistics["grpc"][domain]["by-destination"]
-                  ["sample.ugrpc.UnitTestService/SayHello"];
-    EXPECT_EQ(hello_statistics["status"]["OK"].As<int>(), 0);
-    EXPECT_EQ(hello_statistics["status"]["INVALID_ARGUMENT"].As<int>(), 1);
-    EXPECT_EQ(hello_statistics["status"]["ALREADY_EXISTS"].As<int>(), 0);
-    EXPECT_EQ(hello_statistics["rps"].As<int>(), 1);
-    EXPECT_EQ(hello_statistics["eps"].As<int>(), 1);
-    EXPECT_EQ(hello_statistics["network-error"].As<int>(), 0);
-    EXPECT_EQ(hello_statistics["abandoned-error"].As<int>(), 0);
+    const auto get_status_code_count = [&](const std::string& code) {
+      return stats.SingleMetric("status", {{"grpc_code", code}}).AsInt();
+    };
+
+    EXPECT_EQ(get_status_code_count("OK"), 0);
+    EXPECT_EQ(get_status_code_count("INVALID_ARGUMENT"), 1);
+    EXPECT_EQ(get_status_code_count("ALREADY_EXISTS"), 0);
+    EXPECT_EQ(stats.SingleMetric("rps").AsInt(), 1);
+    EXPECT_EQ(stats.SingleMetric("eps").AsInt(), 1);
+    EXPECT_EQ(stats.SingleMetric("network-error").AsInt(), 0);
+    EXPECT_EQ(stats.SingleMetric("abandoned-error").AsInt(), 0);
   }
 }
 
@@ -83,28 +86,28 @@ UTEST_F_MT(GrpcStatistics, Multithreaded, 2) {
   engine::GetAll(say_hello_task, chat_task);
   GetServer().StopDebug();
 
-  const auto statistics = GetStatistics();
-
   for (const auto& domain : {"client", "server"}) {
-    const auto destination_statistics =
-        statistics["grpc"][domain]["by-destination"];
+    const auto status =
+        GetStatistics(fmt::format("grpc.{}.by-destination.status", domain));
+    const utils::statistics::Label say_hello_label{
+        "grpc_destination", "sample.ugrpc.UnitTestService/SayHello"};
+    const utils::statistics::Label chat_label{
+        "grpc_destination", "sample.ugrpc.UnitTestService/Chat"};
 
-    const auto say_hello_statistics =
-        destination_statistics["sample.ugrpc.UnitTestService/SayHello"];
-    const auto chat_statistics =
-        destination_statistics["sample.ugrpc.UnitTestService/Chat"];
+    const auto get_status_code_count = [&](const auto& label, auto code) {
+      return status.SingleMetric("", {label, {"grpc_code", code}}).AsInt();
+    };
 
     // TODO(TAXICOMMON-5134) It must always be equal to kIterations
     //  Maybe investigate overall statistics on failure?
     const auto say_hello_invalid_argument =
-        say_hello_statistics["status"]["INVALID_ARGUMENT"].As<int>();
+        get_status_code_count(say_hello_label, "INVALID_ARGUMENT");
     EXPECT_GE(say_hello_invalid_argument, 0);
     EXPECT_LE(say_hello_invalid_argument, kIterations);
 
-    EXPECT_EQ(say_hello_statistics["status"]["UNIMPLEMENTED"].As<int>(), 0);
-    EXPECT_EQ(chat_statistics["status"]["INVALID_ARGUMENT"].As<int>(), 0);
-    EXPECT_EQ(chat_statistics["status"]["UNIMPLEMENTED"].As<int>(),
-              kIterations);
+    EXPECT_EQ(get_status_code_count(say_hello_label, "UNIMPLEMENTED"), 0);
+    EXPECT_EQ(get_status_code_count(chat_label, "INVALID_ARGUMENT"), 0);
+    EXPECT_EQ(get_status_code_count(chat_label, "UNIMPLEMENTED"), kIterations);
   }
 }
 

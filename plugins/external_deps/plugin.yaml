@@ -1,5 +1,0 @@
-name: external-deps
-plugins:
-  - scope: repo
-    templates_path: templates
-    generator: RepositoryGenerator

@@ -14,6 +14,8 @@ class Database {
  public:
   Database(PoolImplPtr pool, std::string database_name);
 
+  void DropDatabase();
+
   bool HasCollection(const std::string& collection_name) const;
 
   Collection GetCollection(std::string collection_name) const;

@@ -5,6 +5,8 @@
 #include <string>
 
 #include <userver/clients/dns/resolver_fwd.hpp>
+#include <userver/concurrent/background_task_storage_fwd.hpp>
+#include <userver/engine/semaphore.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/error_injection/settings.hpp>
 #include <userver/testsuite/postgres_control.hpp>
@@ -131,12 +133,13 @@ class Connection {
   // clang-format on
   static std::unique_ptr<Connection> Connect(
       const Dsn& dsn, clients::dns::Resolver* resolver,
-      engine::TaskProcessor& bg_task_processor, uint32_t id,
+      engine::TaskProcessor& bg_task_processor,
+      concurrent::BackgroundTaskStorageCore& bg_task_storage, uint32_t id,
       ConnectionSettings settings,
       const DefaultCommandControls& default_cmd_ctls,
       const testsuite::PostgresControl& testsuite_pg_ctl,
       const error_injection::Settings& ei_settings,
-      SizeGuard&& size_guard = SizeGuard{});
+      engine::SemaphoreLock&& size_lock = engine::SemaphoreLock{});
 
   /// Close the connection
   /// TODO When called from another thread/coroutine will wait for current
@@ -155,6 +158,8 @@ class Connection {
   /// Check if the connection is currently idle (IsConnected &&
   /// !IsInTransaction)
   bool IsIdle() const;
+  /// Check if the connection is in unusable state
+  bool IsBroken() const;
 
   /// The result is formed by multiplying the server's major version number by
   /// 10000 and adding the minor version number. -- docs

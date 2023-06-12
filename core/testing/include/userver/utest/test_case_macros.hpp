@@ -18,7 +18,6 @@ class EnrichedTestBase {
   virtual void SetUp() = 0;
   virtual void TearDown() = 0;
   virtual void TestBody() = 0;
-  virtual bool IsTestCancelled() = 0;
 
   std::size_t GetThreadCount() const { return utest_thread_count_; }
   void SetThreadCount(std::size_t count) { utest_thread_count_ = count; }
@@ -55,10 +54,6 @@ class EnrichedFixture : public UserFixture, public EnrichedTestBase {
  private:
   using EnrichedTestBase::SetThreadCount;
   using EnrichedTestBase::TestBody;
-
-  bool IsTestCancelled() final {
-    return UserFixture::HasFatalFailure() || UserFixture::IsSkipped();
-  }
 };
 
 template <typename Base, typename UserFixture>
@@ -240,8 +235,8 @@ USERVER_NAMESPACE_END
   /* The 'namespace' trick is used to make gtest use our 'test_launcher'       \
    * instead of 'test_suite_name' fixture */                                   \
   namespace IMPL_UTEST_NAMESPACE_NAME(test_suite_name) {                       \
-    IMPL_UTEST_HIDE_USER_FIXTURE_BY_TEST_LAUNCHER(test_suite_name,             \
-                                                  test_launcher_template)
+  IMPL_UTEST_HIDE_USER_FIXTURE_BY_TEST_LAUNCHER(test_suite_name,               \
+                                                test_launcher_template)
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define IMPL_UTEST_ANY_END(test_suite_name, test_name, thread_count) \

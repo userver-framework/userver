@@ -29,7 +29,7 @@ TEST(FormatsYaml, NativeLocation) {
   EXPECT_EQ(LocationPair(yaml["missing_value"]), std::pair(-1, -1));
 }
 
-TEST(FormatsYaml, ValueBuilderLocaiton) {
+TEST(FormatsYaml, ValueBuilderLocation) {
   formats::yaml::ValueBuilder builderExample;
   builderExample["field1"] = "one";
   builderExample["field2"] = 1;

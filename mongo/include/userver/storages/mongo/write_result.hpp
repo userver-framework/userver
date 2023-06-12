@@ -40,7 +40,14 @@ class WriteResult {
   /// The document returned by FindAnd* operation if any
   std::optional<formats::bson::Document> FoundDocument() const;
 
-  /// @brief Map of server errors by operation (document) index
+  /// @brief Map of server errors by operation (document) index.
+  ///
+  /// For example, storages::mongo::Collection::InsertMany() with
+  /// storages::mongo::options::Unordered and
+  /// storages::mongo::options::SuppressServerExceptions option would produce a
+  /// WriteResult with WriteResult::ServerErrors() containing information about
+  /// failed insertions.
+  ///
   /// @see options::SuppressServerExceptions
   std::unordered_map<size_t, MongoError> ServerErrors() const;
 

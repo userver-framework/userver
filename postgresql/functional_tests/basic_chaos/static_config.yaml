@@ -10,6 +10,13 @@ components_manager:
             dbconnection: 'postgresql://testsuite@localhost:11433/pg_key_value'
             blocking_task_processor: fs-task-processor
             dns_resolver: async
+            sync-start: true
+            user-types-enabled: false  # Not used in chaos tests
+            # some tests close all the connections and wait for them to start
+            # again... no need to have too many connections
+            max_pool_size: 1  # should be in sync with value in ./utils.py
+            max_queue_size: 200
+            min_pool_size: 1
 
         testsuite-support:
 
@@ -43,7 +50,20 @@ components_manager:
         dynamic-config:
             fs-cache-path: ''
         dynamic-config-fallbacks:
-            fallback-path: /etc/postgres_basic_chaos/dynamic_config_fallback.json
+            load-enabled: false
+        dynamic-config-client:
+            config-url: $config-server-url
+            http-retries: 5
+            http-timeout: 20s
+            service-name: testsuite-support
+        dynamic-config-client-updater:
+            config-settings: false
+            fallback-path: $config-fallback
+            full-update-interval: 1m
+            load-only-my-values: true
+            store-enabled: true
+            update-interval: 5s
+
         dns-client:
             fs-task-processor: fs-task-processor
     coro_pool:
@@ -60,3 +80,7 @@ components_manager:
             worker_threads: 4
 
     default_task_processor: main-task-processor
+
+userver_experiments:
+  - pg-connection-pipeline-enabled
+  - pg-deadline-propagation

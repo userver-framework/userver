@@ -15,12 +15,16 @@ CacheUpdateTrait::CacheUpdateTrait(const components::ComponentConfig& config,
     : CacheUpdateTrait(CacheDependencies::Make(config, context)) {}
 
 CacheUpdateTrait::CacheUpdateTrait(CacheDependencies&& dependencies)
-    : impl_(std::move(dependencies), *this) {}
+    : impl_(std::make_unique<Impl>(std::move(dependencies), *this)) {}
 
 CacheUpdateTrait::~CacheUpdateTrait() = default;
 
-void CacheUpdateTrait::Update(UpdateType update_type) {
-  impl_->Update(update_type);
+void CacheUpdateTrait::UpdateSyncDebug(UpdateType update_type) {
+  impl_->UpdateSyncDebug(update_type);
+}
+
+void CacheUpdateTrait::InvalidateAsync(UpdateType update_type) {
+  impl_->InvalidateAsync(update_type);
 }
 
 const std::string& CacheUpdateTrait::Name() const { return impl_->Name(); }
@@ -41,6 +45,10 @@ void CacheUpdateTrait::AssertPeriodicUpdateStarted() {
 
 void CacheUpdateTrait::OnCacheModified() { impl_->OnCacheModified(); }
 
+bool CacheUpdateTrait::HasPreAssignCheck() const {
+  return impl_->HasPreAssignCheck();
+}
+
 rcu::ReadablePtr<Config> CacheUpdateTrait::GetConfig() const {
   return impl_->GetConfig();
 }
@@ -48,6 +56,8 @@ rcu::ReadablePtr<Config> CacheUpdateTrait::GetConfig() const {
 engine::TaskProcessor& CacheUpdateTrait::GetCacheTaskProcessor() const {
   return impl_->GetCacheTaskProcessor();
 }
+
+void CacheUpdateTrait::MarkAsExpired() {}
 
 void CacheUpdateTrait::GetAndWrite(dump::Writer&) const {
   dump::ThrowDumpUnimplemented(Name());

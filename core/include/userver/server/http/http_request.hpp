@@ -8,6 +8,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include <userver/http/header_map.hpp>
 #include <userver/logging/log_helper_fwd.hpp>
 #include <userver/server/http/form_data_arg.hpp>
 #include <userver/server/http/http_method.hpp>
@@ -25,13 +26,12 @@ class HttpRequestImpl;
 /// @brief HTTP Request data
 class HttpRequest final {
  public:
-  using HeadersMap =
-      std::unordered_map<std::string, std::string, utils::StrIcaseHash,
-                         utils::StrIcaseEqual>;
+  using HeadersMap = USERVER_NAMESPACE::http::headers::HeaderMap;
 
   using HeadersMapKeys = decltype(utils::impl::MakeKeysView(HeadersMap()));
 
-  using CookiesMap = std::unordered_map<std::string, std::string>;
+  using CookiesMap =
+      std::unordered_map<std::string, std::string, utils::StrCaseHash>;
 
   using CookiesMapKeys = decltype(utils::impl::MakeKeysView(CookiesMap()));
 
@@ -133,17 +133,30 @@ class HttpRequest final {
 
   /// @return Value of the header with case insensitive name header_name, or an
   /// empty string if no such header.
-  const std::string& GetHeader(const std::string& header_name) const;
+  const std::string& GetHeader(std::string_view header_name) const;
+  /// @overload
+  const std::string& GetHeader(
+      const USERVER_NAMESPACE::http::headers::PredefinedHeader& header_name)
+      const;
 
   /// @return true if header with case insensitive name header_name exists,
   /// false otherwise.
-  bool HasHeader(const std::string& header_name) const;
+  bool HasHeader(std::string_view header_name) const;
+  /// @overload
+  bool HasHeader(const USERVER_NAMESPACE::http::headers::PredefinedHeader&
+                     header_name) const;
 
   /// @return Number of headers.
   size_t HeaderCount() const;
 
   /// @return List of headers names.
   HeadersMapKeys GetHeaderNames() const;
+
+  /// Removes the header with case insensitive name header_name.
+  void RemoveHeader(std::string_view header_name);
+  /// @overload
+  void RemoveHeader(
+      const USERVER_NAMESPACE::http::headers::PredefinedHeader& header_name);
 
   /// @return Value of the cookie with case sensitive name cookie_name, or an
   /// empty string if no such cookie exists.
@@ -162,9 +175,17 @@ class HttpRequest final {
   /// @return HTTP body.
   const std::string& RequestBody() const;
 
+  /// @return HTTP headers.
+  const HeadersMap& RequestHeaders() const;
+
+  /// @return HTTP cookies.
+  const CookiesMap& RequestCookies() const;
+
   /// @cond
   void SetRequestBody(std::string body);
   void ParseArgsFromBody();
+
+  std::chrono::steady_clock::time_point GetStartTime() const;
   /// @endcond
 
   /// @brief Set the response status code.

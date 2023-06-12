@@ -31,6 +31,8 @@ Checks:
   ,-clang-analyzer-core.uninitialized.Assign\
   ,-clang-analyzer-optin.cplusplus.VirtualCall\
   ,-cppcoreguidelines-avoid-c-arrays\
+  ,-cppcoreguidelines-avoid-const-or-ref-data-members\
+  ,-cppcoreguidelines-avoid-do-while\
   ,-cppcoreguidelines-avoid-goto\
   ,-cppcoreguidelines-avoid-magic-numbers\
   ,-cppcoreguidelines-avoid-non-const-global-variables\
@@ -97,7 +99,9 @@ Checks:
 WarningsAsErrors: '*'
 HeaderFilterRegex: '/userver/(build|clickhouse|core|grpc|mongo|postgresql|redis|shared|tools)/'
 CheckOptions:
-  - key:             misc-non-private-member-variables-in-classes.IgnoreClassesWithAllMemberVariablesBeingPublic
-    value:           '1'
-  - key:             readability-redundant-access-specifiers.CheckFirstDeclaration
-    value:           '1'
+  - key: misc-non-private-member-variables-in-classes.IgnoreClassesWithAllMemberVariablesBeingPublic
+    value: '1'
+  - key: readability-redundant-access-specifiers.CheckFirstDeclaration
+    value: '1'
+  - key: modernize-loop-convert.UseCxx20ReverseRanges
+    value: 'false'

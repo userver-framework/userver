@@ -22,9 +22,15 @@ enum class Verdict {
   Skip,  ///< no error
 };
 
+/// Artificial error injection settings
 struct Settings final {
+  /// error injection enabled
   bool enabled{false};
+
+  /// error probability from range [0, 1]
   double probability{0};
+
+  /// possible verdicts, will be chosen randomly, Verdict::Error if unspecified
   std::vector<Verdict> possible_verdicts;
 };
 

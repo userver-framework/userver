@@ -16,8 +16,8 @@
 #include <userver/engine/mutex.hpp>
 #include <userver/engine/task/cancel.hpp>
 #include <userver/engine/task/task_with_result.hpp>
+#include <userver/utils/assert.hpp>
 #include <userver/utils/async.hpp>
-#include <userver/utils/clang_format_workarounds.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -35,13 +35,38 @@ void ReportNotSubscribed(std::string_view channel_name) noexcept;
 void ReportUnsubscribingAutomatically(std::string_view channel_name,
                                       std::string_view listener_name) noexcept;
 
+void ReportErrorWhileUnsubscribing(std::string_view channel_name,
+                                   std::string_view listener_name,
+                                   std::string_view error) noexcept;
+
 std::string MakeAsyncChannelName(std::string_view base, std::string_view name);
+
+inline constexpr bool kCheckSubscriptionUB = utils::impl::kEnableAssert;
+
+// During the `AsyncEventSubscriberScope::Unsubscribe` call or destruction of
+// `AsyncEventSubscriberScope`, all variables used by callback must be valid
+// (must not be destroyed). A common cause of crashes in this place: there is no
+// manual call to `Unsubscribe`. In this case check the declaration order of the
+// struct fields.
+template <typename Func>
+void CheckDataUsedByCallbackHasNotBeenDestroyedBeforeUnsubscribing(
+    std::function<void(Func&)>& on_listener_removal, Func& listener_func,
+    std::string_view channel_name, std::string_view listener_name) noexcept {
+  if (!on_listener_removal) return;
+  try {
+    on_listener_removal(listener_func);
+  } catch (const std::exception& e) {
+    ReportErrorWhileUnsubscribing(channel_name, listener_name, e.what());
+  }
+}
 
 }  // namespace impl
 
 /// @ingroup userver_concurrency
 ///
-/// AsyncEventChannel is an in-process pub-sub with strict FIFO serialization.
+/// AsyncEventChannel is an in-process pub-sub with strict FIFO serialization,
+/// i.e. only after the event was processed a new event may appear for
+/// processing, same listener is never called concurrently.
 ///
 /// Example usage:
 /// @snippet concurrent/async_event_channel_test.cpp  AsyncEventChannel sample
@@ -49,10 +74,34 @@ template <typename... Args>
 class AsyncEventChannel : public AsyncEventSource<Args...> {
  public:
   using Function = typename AsyncEventSource<Args...>::Function;
+  using OnRemoveCallback = std::function<void(Function&)>;
 
   /// @brief The primary constructor
   /// @param name used for diagnostic purposes and is also accessible with Name
-  explicit AsyncEventChannel(std::string name) : name_(std::move(name)) {}
+  explicit AsyncEventChannel(std::string name)
+      : name_(std::move(name)), data_(ListenersData{{}, {}}) {}
+
+  /// @brief The constructor with `AsyncEventSubscriberScope` usage checking.
+  ///
+  /// The constructor with a callback that is called on listener removal. The
+  /// callback takes a reference to `Function' as input. This is useful for
+  /// checking the lifetime of data captured by the listener update function.
+  ///
+  /// @note Works only in debug mode.
+  ///
+  /// @warning Data captured by `on_listener_removal` function must be valid
+  /// until the `AsyncEventChannel` object is completely destroyed.
+  ///
+  /// Example usage:
+  /// @snippet concurrent/async_event_channel_test.cpp OnListenerRemoval sample
+  ///
+  /// @param name used for diagnostic purposes and is also accessible with Name
+  /// @param on_listener_removal the callback used for check
+  ///
+  /// @see impl::CheckDataUsedByCallbackHasNotBeenDestroyedBeforeUnsubscribing
+  AsyncEventChannel(std::string name, OnRemoveCallback on_listener_removal)
+      : name_(std::move(name)),
+        data_(ListenersData{{}, std::move(on_listener_removal)}) {}
 
   /// @brief For use in `UpdateAndListen` of specific event channels
   ///
@@ -82,21 +131,26 @@ class AsyncEventChannel : public AsyncEventSource<Args...> {
   }
 
   /// Send the next event and wait until all the listeners process it.
+  ///
+  /// Strict FIFO serialization is guaranteed, i.e. only after this event is
+  /// processed a new event may be delivered for the subscribers, same
+  /// listener/subscriber is never called concurrently.
   void SendEvent(Args... args) const {
     std::lock_guard lock(event_mutex_);
-    auto listeners = listeners_.Lock();
+    auto data = data_.Lock();
+    auto& listeners = data->listeners;
 
     std::vector<engine::TaskWithResult<void>> tasks;
-    tasks.reserve(listeners->size());
+    tasks.reserve(listeners.size());
 
-    for (const auto& [_, listener] : *listeners) {
+    for (const auto& [_, listener] : listeners) {
       tasks.push_back(utils::Async(
           listener.task_name,
           [&, &callback = listener.callback] { callback(args...); }));
     }
 
     std::size_t i = 0;
-    for (const auto& [_, listener] : *listeners) {
+    for (const auto& [_, listener] : listeners) {
       impl::WaitForTask(listener.name, tasks[i++]);
     }
   }
@@ -111,36 +165,50 @@ class AsyncEventChannel : public AsyncEventSource<Args...> {
     std::string task_name;
   };
 
+  struct ListenersData final {
+    std::unordered_map<FunctionId, Listener, FunctionId::Hash> listeners;
+    OnRemoveCallback on_listener_removal;
+  };
+
   void RemoveListener(FunctionId id, UnsubscribingKind kind) noexcept final {
     engine::TaskCancellationBlocker blocker;
-    auto listeners = listeners_.Lock();
-    const auto iter = listeners->find(id);
+    auto data = data_.Lock();
+    auto& listeners = data->listeners;
+    const auto iter = listeners.find(id);
 
-    if (iter == listeners->end()) {
+    if (iter == listeners.end()) {
       impl::ReportNotSubscribed(Name());
       return;
     }
 
     if (kind == UnsubscribingKind::kAutomatic) {
-      impl::ReportUnsubscribingAutomatically(name_, iter->second.name);
+      if (!data->on_listener_removal) {
+        impl::ReportUnsubscribingAutomatically(name_, iter->second.name);
+      }
+
+      if constexpr (impl::kCheckSubscriptionUB) {
+        // Fake listener call to check
+        impl::CheckDataUsedByCallbackHasNotBeenDestroyedBeforeUnsubscribing(
+            data->on_listener_removal, iter->second.callback, name_,
+            iter->second.name);
+      }
     }
-    listeners->erase(iter);
+    listeners.erase(iter);
   }
 
   AsyncEventSubscriberScope DoAddListener(FunctionId id, std::string_view name,
                                           Function&& func) final {
-    auto listeners = listeners_.Lock();
+    auto data = data_.Lock();
+    auto& listeners = data->listeners;
     auto task_name = impl::MakeAsyncChannelName(name_, name);
-    const auto [iterator, success] = listeners->emplace(
+    const auto [iterator, success] = listeners.emplace(
         id, Listener{std::string{name}, std::move(func), std::move(task_name)});
     if (!success) impl::ReportAlreadySubscribed(Name(), name);
     return AsyncEventSubscriberScope(*this, id);
   }
 
   const std::string name_;
-  concurrent::Variable<
-      std::unordered_map<FunctionId, Listener, FunctionId::Hash>>
-      listeners_;
+  concurrent::Variable<ListenersData> data_;
   mutable engine::Mutex event_mutex_;
 };
 

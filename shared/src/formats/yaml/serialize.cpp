@@ -17,7 +17,7 @@ namespace formats::yaml {
 
 formats::yaml::Value FromString(const std::string& doc) {
   if (doc.empty()) {
-    throw ParseException("JSON document is empty");
+    throw ParseException("YAML document is empty");
   }
 
   try {

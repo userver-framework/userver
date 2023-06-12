@@ -66,3 +66,5 @@ components_manager:
             task_processor: main-task-processor
         http-client:
             fs-task-processor: fs-task-processor
+        dns-client:                     # Asynchronous DNS component
+            fs-task-processor: fs-task-processor

@@ -8,7 +8,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace dynamic_config {
 
-StorageMock::StorageMock() : StorageMock(std::initializer_list<KeyValue>{}) {}
+StorageMock::StorageMock() : storage_(new impl::StorageData{}) {}
 
 StorageMock::StorageMock(std::initializer_list<KeyValue> config_variables)
     : storage_(new impl::StorageData{impl::SnapshotData{config_variables}}) {}
@@ -36,9 +36,8 @@ Snapshot StorageMock::GetSnapshot() const& { return GetSource().GetSnapshot(); }
 
 void StorageMock::Extend(const std::vector<KeyValue>& overrides) {
   UASSERT(storage_);
-  const auto old_config = storage_->config.Read();
-  storage_->config.Assign(impl::SnapshotData{*old_config, overrides});
-  storage_->channel.SendEvent(GetSnapshot());
+  const auto old_config = storage_->Read();
+  storage_->Update(impl::SnapshotData{*old_config, overrides}, [] {});
 }
 
 }  // namespace dynamic_config

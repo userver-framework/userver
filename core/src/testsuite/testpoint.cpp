@@ -8,6 +8,7 @@
 #include <userver/testsuite/testpoint_control.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/async.hpp>
+#include <userver/utils/impl/transparent_hash.hpp>
 #include <userver/utils/overloaded.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -16,7 +17,7 @@ namespace testsuite {
 
 namespace {
 
-using EnableOnly = std::unordered_set<std::string>;
+using EnableOnly = utils::impl::TransparentSet<std::string>;
 struct EnableAll {};
 using EnabledTestpoints = std::variant<EnableOnly, EnableAll>;
 
@@ -50,12 +51,13 @@ const TestpointClientBase& TestpointScope::GetClient() const noexcept {
   return *impl_->client;
 }
 
-bool IsTestpointEnabled(const std::string& name) {
+bool IsTestpointEnabled(std::string_view name) {
   if (!client_instance) return false;
   const auto enabled_names = enabled_testpoints.Read();
   return std::visit(utils::Overloaded{[](const EnableAll&) { return true; },
                                       [&](const EnableOnly& names) {
-                                        return names.count(name) > 0;
+                                        return utils::impl::FindTransparent(
+                                                   names, name) != names.end();
                                       }},
                     *enabled_names);
 }
@@ -101,7 +103,12 @@ TestpointControl::~TestpointControl() {
 
 void TestpointControl::SetEnabledNames(std::unordered_set<std::string> names) {
   (void)this;  // silence clang-tidy
-  enabled_testpoints.Assign(EnableOnly{std::move(names)});
+  EnableOnly enable_names;
+  while (!names.empty()) {
+    auto node = names.extract(names.begin());
+    enable_names.insert(std::move(node.value()));
+  }
+  enabled_testpoints.Assign(std::move(enable_names));
 }
 
 void TestpointControl::SetAllEnabled() {

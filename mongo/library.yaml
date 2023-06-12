@@ -6,14 +6,10 @@ maintainers:
 description: MongoDB serialization helpers
 
 libraries:
-  - bson-1.0
-  - mongoc-1.0
   - userver-core
-
-debian:
-    build_dependencies:
-      - libyandex-taxi-mongo-c-driver-dev
 
 configs:
     names:
+      - MONGO_CONGESTION_CONTROL_ENABLED
+      - MONGO_DEADLINE_PROPAGATION_ENABLED_V2
       - MONGO_DEFAULT_MAX_TIME_MS

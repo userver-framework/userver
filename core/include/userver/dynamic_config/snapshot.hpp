@@ -3,6 +3,7 @@
 /// @file userver/dynamic_config/snapshot.hpp
 /// @brief @copybrief dynamic_config::Snapshot
 
+#include <optional>
 #include <type_traits>
 
 #include <userver/dynamic_config/impl/snapshot.hpp>
@@ -21,7 +22,7 @@ struct Key final {
 
 /// Get the type of a config variable, given its key
 template <typename Key>
-using VariableOfKey = decltype(Key::Parse(std::declval<const DocsMap&>()));
+using VariableOfKey = impl::VariableOfKey<Key>;
 
 // clang-format off
 
@@ -79,6 +80,7 @@ class Snapshot final {
 
   // for the constructor
   friend class Source;
+  friend class impl::StorageData;
 
   struct Impl;
   utils::FastPimpl<Impl, 16, 8> impl_;

@@ -1,5 +1,4 @@
 name: PythonDev
-helper-prefix: false
 
 includes:
     find:

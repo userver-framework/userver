@@ -58,6 +58,46 @@ TEST(Text, EndsWith) {
   EXPECT_TRUE(utils::text::EndsWith("", ""));
 }
 
+TEST(Text, SplitSV) {
+  {
+    std::string input = "1,22,333";
+    std::vector<std::string_view> tokens =
+        utils::text::SplitIntoStringViewVector(input, ",");
+    ASSERT_EQ(input.data(), tokens[0].data());
+    ASSERT_EQ(tokens.size(), 3);
+    EXPECT_EQ(tokens[0], "1");
+    EXPECT_EQ(tokens[1], "22");
+    EXPECT_EQ(tokens[2], "333");
+  }
+  {
+    std::string input;
+    std::vector<std::string_view> tokens =
+        utils::text::SplitIntoStringViewVector(input, ",");
+    ASSERT_EQ(tokens.size(), 1);
+  }
+  {
+    std::string input = ",";
+    std::vector<std::string_view> tokens =
+        utils::text::SplitIntoStringViewVector(input, ",");
+    ASSERT_EQ(tokens.size(), 2);
+  }
+  {
+    std::string input = ",,";
+    std::vector<std::string_view> tokens =
+        utils::text::SplitIntoStringViewVector(input, ",");
+    ASSERT_EQ(tokens.size(), 3);
+  }
+  {
+    std::string input = ",0,";
+    std::vector<std::string_view> tokens =
+        utils::text::SplitIntoStringViewVector(input, ",");
+    ASSERT_EQ(tokens.size(), 3);
+    EXPECT_EQ(tokens[0], "");
+    EXPECT_EQ(tokens[1], "0");
+    EXPECT_EQ(tokens[2], "");
+  }
+}
+
 TEST(TestIsAscii, IsAscii) {
   EXPECT_TRUE(utils::text::IsAscii("valid ascii"));
 

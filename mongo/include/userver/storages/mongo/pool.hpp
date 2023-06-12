@@ -7,10 +7,10 @@
 #include <string>
 
 #include <userver/clients/dns/resolver_fwd.hpp>
-#include <userver/formats/json/value.hpp>
-#include <userver/rcu/rcu.hpp>
+#include <userver/dynamic_config/fwd.hpp>
 #include <userver/storages/mongo/collection.hpp>
 #include <userver/storages/mongo/pool_config.hpp>
+#include <userver/utils/statistics/fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -19,8 +19,6 @@ namespace storages::mongo {
 namespace impl {
 class PoolImpl;
 }  // namespace impl
-
-class Config;
 
 /// @ingroup userver_clients
 ///
@@ -35,13 +33,20 @@ class Config;
 /// @snippet storages/mongo/collection_mongotest.hpp  Sample Mongo usage
 class Pool {
  public:
-  /// Client pool constructor
-  /// @param id pool identificaton string
+  /// @cond
+
+  /// Client pool constructor, for internal use only
+  /// @param id pool identification string
   /// @param uri database connection string
-  /// @param config pool configuration
+  /// @param pool_config static config
+  /// @param dns_resolver asynchronous resolver or `nullptr`
+  /// @param config_source dynamic config
   Pool(std::string id, const std::string& uri, const PoolConfig& pool_config,
-       clients::dns::Resolver* dns_resolver, const Config& mongo_config);
+       clients::dns::Resolver* dns_resolver,
+       dynamic_config::Source config_source);
+
   ~Pool();
+  /// @endcond
 
   /// Checks whether a collection exists
   bool HasCollection(const std::string& name) const;
@@ -49,13 +54,14 @@ class Pool {
   /// Returns a handle for the specified collection
   Collection GetCollection(std::string name) const;
 
-  /// Returns pool statistics JSON
-  formats::json::Value GetStatistics() const;
+  /// Drops the associated database if it exists. New modifications of
+  /// collections will attempt to re-create the database automatically.
+  void DropDatabase();
 
-  /// Returns verbose pool statistics JSON (with separate metrics for ops/RP/WC)
-  formats::json::Value GetVerboseStatistics() const;
+  void Ping();
 
-  void SetConfig(const Config& config);
+  /// Writes pool statistics
+  friend void DumpMetric(utils::statistics::Writer& writer, const Pool& pool);
 
  private:
   std::shared_ptr<impl::PoolImpl> impl_;

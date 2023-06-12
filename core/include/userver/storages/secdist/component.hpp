@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file storages/secdist/component.hpp
+/// @file userver/storages/secdist/component.hpp
 /// @brief @copybrief components::Secdist
 
 #include <string>
@@ -33,6 +33,8 @@ namespace components {
 
 class Secdist final : public LoggableComponentBase {
  public:
+  /// @ingroup userver_component_names
+  /// @brief The default name of components::Secdist
   static constexpr std::string_view kName = "secdist";
 
   Secdist(const ComponentConfig&, const ComponentContext&);

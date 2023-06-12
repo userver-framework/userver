@@ -5,7 +5,11 @@
 
 #include <chrono>
 #include <memory>
+#include <optional>
 #include <string>
+#include <unordered_map>
+
+#include <userver/utils/str_icase.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -16,6 +20,11 @@ namespace server::http {
 /// @brief HTTP response cookie
 class Cookie final {
  public:
+  using CookiesMap =
+      std::unordered_map<std::string, Cookie, utils::StrCaseHash>;
+
+  static std::optional<Cookie> FromString(std::string_view cookie_str);
+
   Cookie(std::string name, std::string value);
   Cookie(Cookie&& cookie) noexcept;
   Cookie(const Cookie& cookie);
@@ -47,6 +56,9 @@ class Cookie final {
 
   std::chrono::seconds MaxAge() const;
   Cookie& SetMaxAge(std::chrono::seconds value);
+
+  std::string SameSite() const;
+  Cookie& SetSameSite(std::string value);
 
   std::string ToString() const;
 

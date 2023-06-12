@@ -6,6 +6,7 @@
 
 #include <userver/compiler/demangle.hpp>
 #include <userver/formats/yaml/exception.hpp>
+#include <userver/formats/yaml/serialize.hpp>
 
 #include "exttypes.hpp"
 #include "string_view_support.hpp"
@@ -325,5 +326,13 @@ void Value::CheckInBounds(std::size_t index) const {
 }
 
 }  // namespace formats::yaml
+
+namespace formats::literals {
+
+yaml::Value operator"" _yaml(const char* str, size_t len) {
+  return yaml::FromString(std::string(str, len));
+}
+
+}  // namespace formats::literals
 
 USERVER_NAMESPACE_END

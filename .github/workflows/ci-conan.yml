@@ -14,12 +14,11 @@ env:
 jobs:
     build:
         runs-on: ubuntu-${{ matrix.ubuntu_version }}
-        name: Ubuntu-${{ matrix.ubuntu_version }}-shared-${{ matrix.shared }}
+        name: Ubuntu-${{ matrix.ubuntu_version }}
         strategy:
             fail-fast: false
             matrix:
                 ubuntu_version: [22.04]
-                shared: [true, false]
 
         steps:
           - name: Checkout
@@ -38,8 +37,8 @@ jobs:
 
           - name: Install packages
             run: |
-                sudo apt-get install -y gcc g++ cmake wget git python3 python3-pip ccache
-                pip install jinja2 voluptuous pyyaml conan
+                sudo apt-get install -y gcc g++ cmake wget git python3 python3-pip ccache virtualenv
+                pip install jinja2 voluptuous pyyaml "conan>=1.51.0,<2.0.0" protobuf
                 conan profile new --detect default && conan profile update settings.compiler.libcxx=libstdc++11 default
 
           - name: Setup ccache
@@ -49,4 +48,4 @@ jobs:
 
           - name: Run conan
             run: |
-                conan create . --build=missing -pr:b=default -o:shared=${{ matrix.shared }}                 
+                conan create . --build=missing -pr:b=default -tf conan/test_package/

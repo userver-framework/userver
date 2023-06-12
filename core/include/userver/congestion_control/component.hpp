@@ -38,6 +38,8 @@ namespace congestion_control {
 
 class Component final : public components::LoggableComponentBase {
  public:
+  /// @ingroup userver_component_names
+  /// @brief The default name of congestion_control::Component component
   static constexpr std::string_view kName = "congestion-control";
 
   Component(const components::ComponentConfig&,
@@ -54,8 +56,7 @@ class Component final : public components::LoggableComponentBase {
 
   void OnAllComponentsAreStopping() override;
 
-  formats::json::Value ExtendStatistics(
-      const utils::statistics::StatisticsRequest& /*request*/);
+  void ExtendWriter(utils::statistics::Writer& writer);
 
   struct Impl;
   utils::FastPimpl<Impl, 560, 8> pimpl_;

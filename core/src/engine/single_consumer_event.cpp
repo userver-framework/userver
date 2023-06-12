@@ -46,32 +46,36 @@ bool SingleConsumerEvent::WaitForEventUntil(Deadline deadline) {
   }
 
   impl::TaskContext& current = current_task::GetCurrentTaskContext();
-  if (current.ShouldCancel()) return GetIsSignaled();
-
   LOG_TRACE() << "WaitForEventUntil()";
   EventWaitStrategy wait_manager(*this, current, deadline);
 
-  bool was_signaled = false;
-  while (!(was_signaled = GetIsSignaled()) && !current.ShouldCancel()) {
+  while (true) {
+    if (GetIsSignaled()) {
+      LOG_TRACE() << "success";
+      return true;
+    }
+
     LOG_TRACE() << "iteration()";
 
-    if (current.Sleep(wait_manager) !=
-        impl::TaskContext::WakeupSource::kWaitList) {
+    const auto wakeup_source = current.Sleep(wait_manager);
+    if (!impl::HasWaitSucceeded(wakeup_source)) {
+      LOG_TRACE() << "failure";
       return false;
     }
   }
-  LOG_TRACE() << "exit";
-
-  return was_signaled;
 }
 
 void SingleConsumerEvent::Reset() noexcept {
-  is_signaled_.store(false, std::memory_order_release);
+  is_signaled_.exchange(false, std::memory_order_seq_cst);
 }
 
 void SingleConsumerEvent::Send() {
   is_signaled_.store(true, std::memory_order_release);
   waiters_->WakeupOne();
+}
+
+bool SingleConsumerEvent::IsReady() const noexcept {
+  return is_signaled_.load();
 }
 
 bool SingleConsumerEvent::GetIsSignaled() noexcept {

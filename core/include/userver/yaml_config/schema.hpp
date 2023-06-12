@@ -20,12 +20,12 @@ namespace yaml_config {
 struct Schema;
 
 enum class FieldType {
-  kInt,
-  kString,
   kBool,
-  kDouble,
-  kObject,
+  kInteger,
+  kNumber,
+  kString,
   kArray,
+  kObject,
 };
 
 std::string ToString(FieldType type);
@@ -58,6 +58,8 @@ struct Schema final {
   std::optional<std::unordered_map<std::string, SchemaPtr>> properties;
   std::optional<SchemaPtr> items;
   std::optional<std::unordered_set<std::string>> enum_values;
+  std::optional<double> minimum;
+  std::optional<double> maximum;
 };
 
 Schema Parse(const formats::yaml::Value& schema, formats::parse::To<Schema>);

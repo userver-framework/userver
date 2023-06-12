@@ -2,6 +2,7 @@
 
 #include <array>
 #include <cstdlib>
+#include <memory>
 #include <optional>
 #include <string>
 #include <system_error>
@@ -9,6 +10,8 @@
 #include <userver/clients/dns/resolver_fwd.hpp>
 #include <userver/clients/http/error.hpp>
 #include <userver/clients/http/form.hpp>
+#include <userver/clients/http/plugin.hpp>
+#include <userver/clients/http/request_tracing_editor.hpp>
 #include <userver/clients/http/response_future.hpp>
 #include <userver/concurrent/queue.hpp>
 #include <userver/crypto/certificate.hpp>
@@ -18,8 +21,10 @@
 #include <userver/http/common_headers.hpp>
 #include <userver/http/url.hpp>
 #include <userver/tracing/in_place_span.hpp>
+#include <userver/tracing/manager.hpp>
 #include <userver/tracing/span.hpp>
 #include <userver/tracing/tags.hpp>
+#include <userver/utils/not_null.hpp>
 
 #include <clients/http/destination_statistics.hpp>
 #include <clients/http/easy_wrapper.hpp>
@@ -27,6 +32,7 @@
 #include <clients/http/testsuite.hpp>
 #include <crypto/helpers.hpp>
 #include <engine/ev/watcher/timer_watcher.hpp>
+#include <server/http/headers_propagator.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -39,10 +45,11 @@ class RequestState : public std::enable_shared_from_this<RequestState> {
   RequestState(std::shared_ptr<impl::EasyWrapper>&&,
                std::shared_ptr<RequestStats>&& req_stats,
                const std::shared_ptr<DestinationStatistics>& dest_stats,
-               clients::dns::Resolver* resolver);
+               clients::dns::Resolver* resolver,
+               impl::PluginPipeline& plugin_pipeline);
   ~RequestState();
 
-  using Queue = concurrent::SpscQueue<std::string>;
+  using Queue = concurrent::StringStreamQueue;
 
   enum class AsyncType {
     kFullyBuffered,
@@ -50,8 +57,13 @@ class RequestState : public std::enable_shared_from_this<RequestState> {
   };
 
   /// Perform async http request
-  engine::Future<std::shared_ptr<Response>> async_perform();
-  void async_perform_stream(const std::shared_ptr<Queue>& queue);
+  engine::Future<std::shared_ptr<Response>> async_perform(
+      utils::impl::SourceLocation location =
+          utils::impl::SourceLocation::Current());
+
+  void async_perform_stream(const std::shared_ptr<Queue>& queue,
+                            utils::impl::SourceLocation location =
+                                utils::impl::SourceLocation::Current());
 
   /// set redirect flags
   void follow_redirects(bool follow);
@@ -73,6 +85,8 @@ class RequestState : public std::enable_shared_from_this<RequestState> {
   void retry(short retries, bool on_fails);
   /// set unix socket as transport instead of TCP
   void unix_socket_path(const std::string& path);
+  /// set connect_to option
+  void connect_to(const std::string& path);
   /// sets proxy to use
   void proxy(const std::string& value);
   /// sets proxy auth type to use
@@ -80,6 +94,8 @@ class RequestState : public std::enable_shared_from_this<RequestState> {
 
   /// get timeout value in milliseconds
   long timeout() const { return original_timeout_.count(); }
+  /// get final timeout value in milliseconds
+  long effective_timeout() const { return effective_timeout_.count(); }
   /// get retries count
   short retries() const { return retry_.retries; }
 
@@ -108,6 +124,12 @@ class RequestState : public std::enable_shared_from_this<RequestState> {
   std::shared_ptr<Response> response_move() { return std::move(response_); }
 
   void SetLoggedUrl(std::string url);
+  void SetEasyTimeout(std::chrono::milliseconds timeout);
+
+  void SetTracingManager(const tracing::TracingManagerBase&);
+  void SetHeadersPropagator(const server::http::HeadersPropagator*);
+
+  RequestTracingEditor GetEditableTracingInstance();
 
  private:
   /// final callback that calls user callback and set value in promise
@@ -123,15 +145,16 @@ class RequestState : public std::enable_shared_from_this<RequestState> {
 
   /// parse one header
   void parse_header(char* ptr, size_t size);
+  void ParseSingleCookie(const char* ptr, size_t size);
   /// simply run perform_request if there is now errors from timer
   void on_retry_timer(std::error_code err);
   /// run curl async_request
   void perform_request(curl::easy::handler_type handler);
 
-  void SetEasyTimeout(std::chrono::milliseconds timeout);
   void UpdateTimeoutFromDeadline();
   void UpdateTimeoutHeader();
   std::exception_ptr PrepareDeadlineAlreadyPassedException();
+  const std::string& GetLoggedOriginalUrl() const noexcept;
 
   static size_t StreamWriteFunction(char* ptr, size_t size, size_t nmemb,
                                     void* userdata);
@@ -145,7 +168,7 @@ class RequestState : public std::enable_shared_from_this<RequestState> {
 
   engine::Future<std::shared_ptr<Response>> StartNewPromise();
   void ApplyTestsuiteConfig();
-  void StartNewSpan();
+  void StartNewSpan(utils::impl::SourceLocation location);
   void StartStats();
 
   template <typename Func>
@@ -179,10 +202,12 @@ class RequestState : public std::enable_shared_from_this<RequestState> {
   std::chrono::milliseconds effective_timeout_;
 
   bool add_client_timeout_header_{true};
-  bool report_timeout_as_cancellation_{false};
+  bool timeout_updated_by_deadline_{false};
   EnforceTaskDeadlineConfig enforce_task_deadline_{};
   /// deadline from current task
   engine::Deadline deadline_;
+  utils::NotNull<const tracing::TracingManagerBase*> tracing_manager_;
+  const server::http::HeadersPropagator* headers_propagator_{nullptr};
   /// struct for reties
   struct {
     /// maximum number of retries
@@ -203,13 +228,16 @@ class RequestState : public std::enable_shared_from_this<RequestState> {
 
   clients::dns::Resolver* resolver_{nullptr};
   std::string proxy_url_;
+  impl::PluginPipeline& plugin_pipeline_;
 
   struct StreamData {
     StreamData(Queue::Producer&& queue_producer)
         : queue_producer(std::move(queue_producer)),
+          headers_promise_set(false),
           headers_future(headers_promise.get_future()) {}
 
     Queue::Producer queue_producer;
+    std::atomic<bool> headers_promise_set;
     engine::Promise<void> headers_promise;
     engine::Future<void> headers_future;
   };

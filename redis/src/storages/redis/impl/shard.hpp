@@ -10,8 +10,7 @@
 #include <userver/utils/swappingsmart.hpp>
 
 #include <storages/redis/impl/redis.hpp>
-#include <userver/storages/redis/impl/redis_stats.hpp>
-#include "userver/storages/redis/impl/base.hpp"
+#include <storages/redis/impl/redis_stats.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -87,7 +86,8 @@ class Shard {
   bool ProcessStateUpdate();
   bool SetConnectionInfo(std::vector<ConnectionInfoInt> info_array);
   bool IsConnectedToAllServersDebug(bool allow_empty) const;
-  ShardStatistics GetStatistics(bool master) const;
+  ShardStatistics GetStatistics(bool master,
+                                const MetricsSettings& settings) const;
   size_t InstancesSize() const;
   const std::string& ShardName() const;
   boost::signals2::signal<void(ServerId, Redis::State)>&
@@ -97,6 +97,8 @@ class Shard {
 
   void SetCommandsBufferingSettings(
       CommandsBufferingSettings commands_buffering_settings);
+  void SetReplicationMonitoringSettings(
+      const ReplicationMonitoringSettings& replication_monitoring_settings);
 
  private:
   std::vector<unsigned char> GetAvailableServers(

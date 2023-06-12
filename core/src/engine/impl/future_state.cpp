@@ -61,7 +61,6 @@ FutureStatus FutureStateBase::WaitUntil(Deadline deadline) {
   if (deadline.IsReached()) return FutureStatus::kTimeout;
 
   auto& context = current_task::GetCurrentTaskContext();
-  if (context.ShouldCancel()) return FutureStatus::kCancelled;
 
   WaitStrategy wait_strategy{*this, context, deadline};
   const auto wakeup_source = context.Sleep(wait_strategy);

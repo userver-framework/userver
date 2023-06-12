@@ -5,14 +5,14 @@
   <ul>
     $navpath
     <li class="footer">$generatedby
-    <a href="http://www.doxygen.org/index.html">Doxygen</a> $doxygenversion</li>
+    <a href="https://www.doxygen.org/index.html">Doxygen</a> $doxygenversion</li>
   </ul>
 </div>
 <!--END GENERATE_TREEVIEW-->
 <!--BEGIN !GENERATE_TREEVIEW-->
 <hr class="footer"/>
 <address class="footer"><small>
-$generatedby <a href="http://www.doxygen.org/index.html">Doxygen</a> $doxygenversion
+$generatedby <a href="https://www.doxygen.org/index.html">Doxygen</a> $doxygenversion
 </small></address>
 <!--END !GENERATE_TREEVIEW-->
 
@@ -94,7 +94,7 @@ function highlight_code() {
         const node = $(this);
         let data = '';
         let language = '';
-        let requires_higlighting = true;
+        let requires_highlighting = true;
 
         node.children('div.line').each(function(i) {
             line = $(this).text();
@@ -111,7 +111,7 @@ function highlight_code() {
                     language = line;
                     return true;
                 } else {
-                    requires_higlighting = false;
+                    requires_highlighting = false;
                     return false;
                 }
             }
@@ -119,7 +119,7 @@ function highlight_code() {
             data += line + '\n';
         });
 
-        if (requires_higlighting === false) {
+        if (requires_highlighting === false) {
             return;
         }
 
@@ -194,7 +194,7 @@ function telegram_channel_language() {
 }
 
 // We do not use $(function() { ... }); because
-// * all the elements (except menue parts) are already parsed up above
+// * all the elements (except menu parts) are already parsed up above
 // * skipping it speedups page load
 // * with it Firefox does not scroll to a JS generated anchor links
 telegram_channel_language();

@@ -28,9 +28,9 @@ namespace impl {
 template <typename T, typename Value>
 void CheckInBounds(const Value& value, T x, T min, T max) {
   if (x < min || x > max) {
-    throw typename Value::ParseException(fmt::format(
-        FMT_STRING("Value of '{}' is out of bounds ({} <= {} <= {})"),
-        value.GetPath(), min, x, max));
+    throw typename Value::ParseException(
+        fmt::format("Value of '{}' is out of bounds ({} <= {} <= {})",
+                    value.GetPath(), min, x, max));
   }
 }
 
@@ -59,8 +59,8 @@ std::chrono::seconds ToSeconds(const std::string& data, const Value& value) {
   const auto converted = std::chrono::duration_cast<std::chrono::seconds>(ms);
   if (converted != ms) {
     throw typename Value::ParseException(
-        fmt::format(FMT_STRING("Value of '{}' = {}ms cannot be represented as "
-                               "'std::chrono::seconds' without precision loss"),
+        fmt::format("Value of '{}' = {}ms cannot be represented as "
+                    "'std::chrono::seconds' without precision loss",
                     value.GetPath(), ms.count()));
   }
   return converted;

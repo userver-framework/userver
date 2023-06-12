@@ -21,8 +21,8 @@ class Form final {
   Form& operator=(const Form&) = delete;
   Form& operator=(Form&&) = delete;
 
-  void AddContent(const std::string& key, const std::string& content);
-  void AddContent(const std::string& key, const std::string& content,
+  void AddContent(std::string_view key, std::string_view content);
+  void AddContent(std::string_view key, std::string_view content,
                   const std::string& content_type);
 
   void AddBuffer(const std::string& key, const std::string& file_name,

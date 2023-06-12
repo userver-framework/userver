@@ -14,7 +14,7 @@ class AuthCheckerBase;
 
 namespace server::auth {
 
-/// @brief Authorization enviroments for users
+/// @brief Authorization environments for users
 enum class UserEnv : int {
   kProd,
   kTest,

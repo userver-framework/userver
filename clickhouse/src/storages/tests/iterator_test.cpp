@@ -20,11 +20,11 @@ struct IteratorDefaultConstructorInstantiator final {
 };
 
 [[maybe_unused]] const IteratorDefaultConstructorInstantiator<
-    columns::Int8Column, columns::UInt8Column, columns::UInt32Column,
-    columns::UInt64Column, columns::UuidColumn, columns::DateTimeColumn,
-    columns::DateTime64ColumnMilli, columns::DateTime64ColumnMicro,
-    columns::DateTime64ColumnNano, columns::StringColumn,
-    columns::Float32Column, columns::Float64Column>
+    columns::Int8Column, columns::UInt8Column, columns::UInt16Column,
+    columns::UInt32Column, columns::UInt64Column, columns::UuidColumn,
+    columns::DateTimeColumn, columns::DateTime64ColumnMilli,
+    columns::DateTime64ColumnMicro, columns::DateTime64ColumnNano,
+    columns::StringColumn, columns::Float32Column, columns::Float64Column>
     validator{};
 
 }  // namespace

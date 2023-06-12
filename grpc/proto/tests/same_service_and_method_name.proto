@@ -1,0 +1,10 @@
+syntax = "proto3";
+
+package sample.ugrpc;
+
+message Empty {
+}
+
+service SameServiceAndMethodName {
+  rpc SameServiceAndMethodName(Empty) returns(Empty) {}
+}

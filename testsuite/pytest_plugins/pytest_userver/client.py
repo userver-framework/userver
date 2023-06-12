@@ -1,4 +1,12 @@
+"""
+Python module that provides clients for functional tests with
+testsuite; see @ref md_en_userver_functional_testing for an introduction.
+
+@ingroup userver_testsuite
+"""
+
 import contextlib
+import copy
 import dataclasses
 import json
 import logging
@@ -12,9 +20,12 @@ from testsuite.daemons import service_client
 from testsuite.utils import approx
 from testsuite.utils import http
 
+import pytest_userver.metrics as metric_module  # pylint: disable=import-error
+from pytest_userver.plugins import caches
 
+# @cond
 logger = logging.getLogger(__name__)
-
+# @endcond
 
 _UNKNOWN_STATE = '__UNKNOWN__'
 
@@ -66,16 +77,16 @@ class TestsuiteClientConfig:
     server_monitor_path: typing.Optional[str] = None
 
 
-@dataclasses.dataclass(frozen=True)
-class Metric:
-    labels: typing.Dict[str, str]
-    value: int
+Metric = metric_module.Metric
 
 
 class ClientWrapper:
     """
-    Base wrapped asyncio client uservice client class for compatibility
-    with werkzeug interface.
+    Base asyncio userver client that implements HTTP requests to service.
+
+    Compatible with werkzeug interface.
+
+    @ingroup userver_testsuite
     """
 
     def __init__(self, client):
@@ -92,6 +103,9 @@ class ClientWrapper:
             headers: typing.Optional[typing.Dict[str, str]] = None,
             **kwargs,
     ) -> http.ClientResponse:
+        """
+        Make a HTTP POST request
+        """
         response = await self._client.post(
             path,
             json=json,
@@ -115,6 +129,9 @@ class ClientWrapper:
             headers: typing.Optional[typing.Dict[str, str]] = None,
             **kwargs,
     ) -> http.ClientResponse:
+        """
+        Make a HTTP PUT request
+        """
         response = await self._client.put(
             path,
             json=json,
@@ -138,6 +155,9 @@ class ClientWrapper:
             headers: typing.Optional[typing.Dict[str, str]] = None,
             **kwargs,
     ) -> http.ClientResponse:
+        """
+        Make a HTTP PATCH request
+        """
         response = await self._client.patch(
             path,
             json=json,
@@ -158,6 +178,9 @@ class ClientWrapper:
             x_real_ip: typing.Optional[str] = None,
             **kwargs,
     ) -> http.ClientResponse:
+        """
+        Make a HTTP GET request
+        """
         response = await self._client.get(
             path,
             headers=headers,
@@ -175,6 +198,9 @@ class ClientWrapper:
             x_real_ip: typing.Optional[str] = None,
             **kwargs,
     ) -> http.ClientResponse:
+        """
+        Make a HTTP DELETE request
+        """
         response = await self._client.delete(
             path,
             headers=headers,
@@ -192,6 +218,9 @@ class ClientWrapper:
             x_real_ip: typing.Optional[str] = None,
             **kwargs,
     ) -> http.ClientResponse:
+        """
+        Make a HTTP OPTIONS request
+        """
         response = await self._client.options(
             path,
             headers=headers,
@@ -204,6 +233,9 @@ class ClientWrapper:
     async def request(
             self, http_method: str, path: str, **kwargs,
     ) -> http.ClientResponse:
+        """
+        Make a HTTP request with the specified method
+        """
         response = await self._client.request(http_method, path, **kwargs)
         return await self._wrap_client_response(response)
 
@@ -211,6 +243,9 @@ class ClientWrapper:
             self, response: aiohttp.ClientResponse,
     ) -> typing.Awaitable[http.ClientResponse]:
         return http.wrap_client_response(response)
+
+
+# @cond
 
 
 def _wrap_client_error(func):
@@ -226,8 +261,6 @@ def _wrap_client_error(func):
 
 
 class AiohttpClientMonitor(service_client.AiohttpClient):
-    """Asyncio client for services with monitor support."""
-
     _config: TestsuiteClientConfig
 
     def __init__(self, base_url, *, config: TestsuiteClientConfig, **kwargs):
@@ -252,22 +285,26 @@ class AiohttpClientMonitor(service_client.AiohttpClient):
 
     async def get_metric(self, metric_name):
         metrics = await self.get_metrics(metric_name)
-        assert metric_name in metrics, f'no metric with name {metric_name!r}'
+        assert metric_name in metrics, (
+            f'No metric with name {metric_name!r}. '
+            f'Use "single_metric" function instead of "get_metric"'
+        )
         return metrics[metric_name]
 
-    async def metrics(
+    async def metrics_raw(
             self,
+            output_format,
             *,
             path: str = None,
             prefix: str = None,
             labels: typing.Optional[typing.Dict[str, str]] = None,
-    ) -> typing.Dict[str, typing.List[Metric]]:
+    ) -> str:
         if not self._config.server_monitor_path:
             raise ConfigurationError(
                 'handler-server-monitor component is not configured',
             )
 
-        params = {'format': 'json'}
+        params = {'format': output_format}
         if prefix:
             params['prefix'] = prefix
 
@@ -282,16 +319,21 @@ class AiohttpClientMonitor(service_client.AiohttpClient):
         )
         async with response:
             response.raise_for_status()
-            json_data = await response.json(content_type=None)
-            return {
-                path: [
-                    Metric(labels=element['labels'], value=element['value'])
-                    for element in metrics_list
-                ]
-                for path, metrics_list in json_data.items()
-            }
+            return await response.text()
 
-    async def single_metric(
+    async def metrics(
+            self,
+            *,
+            path: str = None,
+            prefix: str = None,
+            labels: typing.Optional[typing.Dict[str, str]] = None,
+    ) -> metric_module.MetricsSnapshot:
+        response = await self.metrics_raw(
+            output_format='json', path=path, prefix=prefix, labels=labels,
+        )
+        return metric_module.MetricsSnapshot.from_json(str(response))
+
+    async def single_metric_optional(
             self,
             path: str,
             *,
@@ -308,22 +350,33 @@ class AiohttpClientMonitor(service_client.AiohttpClient):
         if not metrics_list:
             return None
 
-        return metrics_list[0]
+        return next(iter(metrics_list))
+
+    async def single_metric(
+            self,
+            path: str,
+            *,
+            labels: typing.Optional[typing.Dict[str, str]] = None,
+    ) -> Metric:
+        value = await self.single_metric_optional(path, labels=labels)
+        assert value is not None, (
+            f'No metric was found for path {path} and labels {labels}',
+        )
+        return value
+
+
+# @endcond
 
 
 class ClientMonitor(ClientWrapper):
     """
-    Wrapped asyncio client for services with monitor support for
-    compatibility with werkzeug interface.
+    Asyncio userver client for monitor listeners, typically retrieved from
+    plugins.service_client.monitor_client fixture.
+
+    Compatible with werkzeug interface.
+
+    @ingroup userver_testsuite
     """
-
-    @_wrap_client_error
-    async def get_metrics(self, prefix=None):
-        return await self._client.get_metrics(prefix=prefix)
-
-    @_wrap_client_error
-    async def get_metric(self, metric_name):
-        return await self._client.get_metric(metric_name)
 
     @_wrap_client_error
     async def metrics(
@@ -332,10 +385,34 @@ class ClientMonitor(ClientWrapper):
             path: str = None,
             prefix: str = None,
             labels: typing.Optional[typing.Dict[str, str]] = None,
-    ) -> typing.Dict[str, Metric]:
+    ) -> metric_module.MetricsSnapshot:
+        """
+        Returns a dict of metric names to Metric.
+
+        @param path Optional full metric path
+        @param prefix Optional prefix on which the metric paths should start
+        @param labels Optional dictionary of labels that must be in the metric
+        """
         return await self._client.metrics(
             path=path, prefix=prefix, labels=labels,
         )
+
+    @_wrap_client_error
+    async def single_metric_optional(
+            self,
+            path: str,
+            *,
+            labels: typing.Optional[typing.Dict[str, str]] = None,
+    ) -> typing.Optional[Metric]:
+        """
+        Either return a Metric or None if there's no such metric.
+
+        @param path Full metric path
+        @param labels Optional dictionary of labels that must be in the metric
+
+        @throws AssertionError if more than one metric returned
+        """
+        return await self._client.single_metric_optional(path, labels=labels)
 
     @_wrap_client_error
     async def single_metric(
@@ -344,12 +421,61 @@ class ClientMonitor(ClientWrapper):
             *,
             labels: typing.Optional[typing.Dict[str, str]] = None,
     ) -> typing.Optional[Metric]:
+        """
+        Returns the Metric.
+
+        @param path Full metric path
+        @param labels Optional dictionary of labels that must be in the metric
+
+        @throws AssertionError if more than one metric or no metric found
+        """
         return await self._client.single_metric(path, labels=labels)
+
+    @_wrap_client_error
+    async def metrics_raw(
+            self,
+            output_format: str,
+            *,
+            path: str = None,
+            prefix: str = None,
+            labels: typing.Optional[typing.Dict[str, str]] = None,
+    ) -> typing.Dict[str, Metric]:
+        """
+        Low level function that returns metrics in a specific format.
+        Use `metrics` and `single_metric` instead if possible.
+
+        @param output_format Metric output format. See
+               server::handlers::ServerMonitor for a list of supported formats.
+        @param path Optional full metric path
+        @param prefix Optional prefix on which the metric paths should start
+        @param labels Optional dictionary of labels that must be in the metric
+        """
+        return await self._client.metrics_raw(
+            output_format=output_format,
+            path=path,
+            prefix=prefix,
+            labels=labels,
+        )
+
+    @_wrap_client_error
+    async def get_metrics(self, prefix=None):
+        """
+        @deprecated Use metrics() or single_metric() instead
+        """
+        return await self._client.get_metrics(prefix=prefix)
+
+    @_wrap_client_error
+    async def get_metric(self, metric_name):
+        """
+        @deprecated Use metrics() or single_metric() instead
+        """
+        return await self._client.get_metric(metric_name)
+
+
+# @cond
 
 
 class AiohttpClient(service_client.AiohttpClient):
-    """Asyncio client uservice client class."""
-
     PeriodicTaskFailed = PeriodicTaskFailed
     TestsuiteActionFailed = TestsuiteActionFailed
     TestsuiteTaskNotFound = TestsuiteTaskNotFound
@@ -365,24 +491,22 @@ class AiohttpClient(service_client.AiohttpClient):
             log_capture_fixture,
             testpoint,
             testpoint_control,
+            cache_invalidation_state,
             span_id_header=None,
-            cache_blocklist=None,
             api_coverage_report=None,
             periodic_tasks_state: typing.Optional[PeriodicTasksState] = None,
             **kwargs,
     ):
         super().__init__(base_url, span_id_header=span_id_header, **kwargs)
         self._config = config
-        self._mocked_time = mocked_time
         self._periodic_tasks = periodic_tasks_state
         self._testpoint = testpoint
-        self._testpoint_control = testpoint_control
         self._log_capture_fixture = log_capture_fixture
-        self._state_manager = StateManager(
+        self._state_manager = _StateManager(
             mocked_time=mocked_time,
-            testpoint=testpoint,
+            testpoint=self._testpoint,
             testpoint_control=testpoint_control,
-            cache_blocklist=cache_blocklist or [],
+            invalidation_state=cache_invalidation_state,
         )
         self._api_coverage_report = api_coverage_report
 
@@ -420,6 +544,13 @@ class AiohttpClient(service_client.AiohttpClient):
 
     async def reset_metrics(self) -> None:
         await self._testsuite_action('reset_metrics')
+
+    async def metrics_portability(
+            self, *, prefix: typing.Optional[str] = None,
+    ) -> typing.Dict[str, typing.List[typing.Dict[str, str]]]:
+        return await self._testsuite_action(
+            'metrics_portability', prefix=prefix,
+        )
 
     async def list_tasks(self) -> typing.List[str]:
         response = await self._do_testsuite_action('tasks_list')
@@ -474,13 +605,6 @@ class AiohttpClient(service_client.AiohttpClient):
             clean_update: bool = True,
             cache_names: typing.Optional[typing.List[str]] = None,
     ) -> None:
-        """
-        Send ``POST tests/control`` request to service to update caches
-
-        :param clean_update: if False, service will do a faster incremental
-               update of caches whenever possible.
-        :param cache_names: which caches specifically should be updated
-        """
         await self.tests_control(
             invalidate_caches=True,
             clean_update=clean_update,
@@ -493,7 +617,6 @@ class AiohttpClient(service_client.AiohttpClient):
             invalidate_caches: bool = True,
             clean_update: bool = True,
             cache_names: typing.Optional[typing.List[str]] = None,
-            reset_metrics: bool = False,
             http_allowed_urls_extra=None,
     ) -> typing.Dict[str, typing.Any]:
         body: typing.Dict[
@@ -515,32 +638,14 @@ class AiohttpClient(service_client.AiohttpClient):
             }
             if cache_names:
                 body['invalidate_caches']['names'] = cache_names
-        if reset_metrics:
-            body['reset_metrics'] = True
         if http_allowed_urls_extra is not None:
             body['http_allowed_urls_extra'] = http_allowed_urls_extra
         return await self._tests_control(body)
 
     async def update_server_state(self) -> None:
-        """
-        Update service-side state through http call to 'tests/control':
-        - clear dirty (from other tests) caches
-        - set service-side mocked time,
-        - resume / suspend periodic tasks
-        - enable testpoints
-        If service is up-to-date, does nothing.
-        """
         await self._prepare()
 
     async def enable_testpoints(self, *, no_auto_cache_cleanup=False) -> None:
-        """
-        Send list of handled testpoint pats to service. For these paths service
-        will no more skip http calls from TESTPOINT(...) macro.
-        :param no_auto_cache_cleanup: prevent automatic cache cleanup.
-        When calling service client first time in scope of current test, client
-        makes additional http call to `tests/control` to update caches, to get
-        rid of data from previous test.
-        """
         if not self._testpoint:
             return
         if no_auto_cache_cleanup:
@@ -627,10 +732,18 @@ class AiohttpClient(service_client.AiohttpClient):
         return response
 
 
+# @endcond
+
+
 class Client(ClientWrapper):
     """
-    Wrapped asyncio client uservice client class for compatibility with
-    werkzeug interface.
+    Asyncio userver client, typically retrieved from
+    @ref service_client "plugins.service_client.service_client"
+    fixture.
+
+    Compatible with werkzeug interface.
+
+    @ingroup userver_testsuite
     """
 
     PeriodicTaskFailed = PeriodicTaskFailed
@@ -677,7 +790,21 @@ class Client(ClientWrapper):
         await self._client.run_distlock_task(name)
 
     async def reset_metrics(self) -> None:
+        """
+        Calls `ResetMetric(metric);` for each metric that has such C++ function
+        """
         await self._client.reset_metrics()
+
+    async def metrics_portability(
+            self, *, prefix: typing.Optional[str] = None,
+    ) -> typing.Dict[str, typing.List[typing.Dict[str, str]]]:
+        """
+        Reports metrics related issues that could be encountered on
+        different monitoring systems.
+
+        @sa @ref utils::statistics::GetPortabilityInfo
+        """
+        return await self._client.metrics_portability(prefix=prefix)
 
     def list_tasks(self) -> typing.List[str]:
         return self._client.list_tasks()
@@ -689,8 +816,23 @@ class Client(ClientWrapper):
         return self._client.capture_logs()
 
     @_wrap_client_error
-    async def invalidate_caches(self, *args, **kwargs) -> None:
-        await self._client.invalidate_caches(*args, **kwargs)
+    async def invalidate_caches(
+            self,
+            *,
+            clean_update: bool = True,
+            cache_names: typing.Optional[typing.List[str]] = None,
+    ) -> None:
+        """
+        Send request to service to update caches.
+
+        @param clean_update if False, service will do a faster incremental
+               update of caches whenever possible.
+        @param cache_names which caches specifically should be updated;
+               update all if None.
+        """
+        await self._client.invalidate_caches(
+            clean_update=clean_update, cache_names=cache_names,
+        )
 
     @_wrap_client_error
     async def tests_control(
@@ -700,40 +842,72 @@ class Client(ClientWrapper):
 
     @_wrap_client_error
     async def update_server_state(self) -> None:
+        """
+        Update service-side state through http call to 'tests/control':
+        - clear dirty (from other tests) caches
+        - set service-side mocked time,
+        - resume / suspend periodic tasks
+        - enable testpoints
+        If service is up-to-date, does nothing.
+        """
         await self._client.update_server_state()
 
     @_wrap_client_error
     async def enable_testpoints(self, *args, **kwargs) -> None:
+        """
+        Send list of handled testpoint pats to service. For these paths service
+        will no more skip http calls from TESTPOINT(...) macro.
+
+        @param no_auto_cache_cleanup prevent automatic cache cleanup.
+        When calling service client first time in scope of current test, client
+        makes additional http call to `tests/control` to update caches, to get
+        rid of data from previous test.
+        """
         await self._client.enable_testpoints(*args, **kwargs)
 
 
-@dataclasses.dataclass(frozen=True)
-class State:
-    caches_invalidated: bool = False
+@dataclasses.dataclass
+class _State:
+    """Reflects the (supposed) current service state."""
+
+    invalidation_state: caches.InvalidationState
     now: typing.Optional[str] = _UNKNOWN_STATE
     testpoints: typing.FrozenSet[str] = frozenset([_UNKNOWN_STATE])
 
 
-class StateManager:
+class _StateManager:
+    """
+    Used for computing the requests that we need to automatically align
+    the service state with the test fixtures state.
+    """
+
     def __init__(
             self,
             *,
             mocked_time,
             testpoint,
             testpoint_control,
-            cache_blocklist: typing.List[str],
+            invalidation_state: caches.InvalidationState,
     ):
-        self._state = State()
+        self._state = _State(
+            invalidation_state=copy.deepcopy(invalidation_state),
+        )
         self._mocked_time = mocked_time
         self._testpoint = testpoint
         self._testpoint_control = testpoint_control
-        self._cache_blocklist = cache_blocklist
+        self._invalidation_state = invalidation_state
 
     @contextlib.contextmanager
-    def updating_state(self, body):
-        saved_state = self._state
+    def updating_state(self, body: typing.Dict[str, typing.Any]):
+        """
+        Whenever `tests_control` handler is invoked
+        (by the client itself during `prepare` or manually by the user),
+        we need to synchronize `_state` with the (supposed) service state.
+        The state update is decoded from the request body.
+        """
+        saved_state = copy.deepcopy(self._state)
         try:
-            self._state = self._update_state(body)
+            self._update_state(body)
             self._apply_new_state()
             yield
         except:  # noqa
@@ -742,58 +916,61 @@ class StateManager:
             raise
 
     def get_pending_update(self) -> typing.Dict[str, typing.Any]:
-        """Get arguments to be passed in ``POST testpoint`` to sync service
-        state with desired state
         """
-        state = self._get_desired_state()
+        Compose the body of the `tests_control` request required to completely
+        synchronize the service state with the state of test fixtures.
+        """
         body: typing.Dict[str, typing.Any] = {}
 
-        if self._state.caches_invalidated != state.caches_invalidated:
-            body['invalidate_caches'] = {
-                'update_type': 'full',
-                'names_blocklist': self._cache_blocklist,
-            }
+        if self._invalidation_state.has_caches_to_update:
+            body['invalidate_caches'] = {'update_type': 'full'}
+            if not self._invalidation_state.should_update_all_caches:
+                body['invalidate_caches']['names'] = list(
+                    self._invalidation_state.caches_to_update,
+                )
 
-        if self._state.testpoints != state.testpoints:
-            body['testpoints'] = sorted(state.testpoints)
+        desired_testpoints = self._testpoint.keys()
+        if self._state.testpoints != frozenset(desired_testpoints):
+            body['testpoints'] = sorted(desired_testpoints)
 
-        if self._state.now != state.now:
-            body['mock_now'] = state.now
+        desired_now = self._get_desired_now()
+        if self._state.now != desired_now:
+            body['mock_now'] = desired_now
 
         return body
 
-    def _update_state(self, body: dict) -> State:
-        update: typing.Dict[str, typing.Any] = {}
-
-        invalidate_caches = body.get('invalidate_caches', {})
-        update_type = invalidate_caches.get('update_type', 'full')
-        names = invalidate_caches.get('names', None)
-        if invalidate_caches and update_type == 'full' and not names:
-            update['caches_invalidated'] = True
+    def _update_state(self, body: typing.Dict[str, typing.Any]) -> None:
+        body_invalidate_caches = body.get('invalidate_caches', {})
+        update_type = body_invalidate_caches.get('update_type', 'full')
+        body_cache_names = body_invalidate_caches.get('names', None)
+        # An incremental update is considered insufficient to bring a cache
+        # to a known state.
+        if body_invalidate_caches and update_type == 'full':
+            if body_cache_names is None:
+                self._state.invalidation_state.on_all_caches_updated()
+            else:
+                self._state.invalidation_state.on_caches_updated(
+                    body_cache_names,
+                )
 
         if 'mock_now' in body:
-            update['now'] = body['mock_now']
+            self._state.now = body['mock_now']
 
-        testpoints = body.get('testpoints', None)
+        testpoints: typing.Optional[typing.List[str]] = body.get(
+            'testpoints', None,
+        )
         if testpoints is not None:
-            update['testpoints'] = frozenset(testpoints)
-
-        return dataclasses.replace(self._state, **update)
+            self._state.testpoints = frozenset(testpoints)
 
     def _apply_new_state(self):
         """Apply new state to related components."""
         self._testpoint_control.enabled_testpoints = self._state.testpoints
+        self._invalidation_state.assign_copy(self._state.invalidation_state)
 
-    def _get_desired_state(self) -> State:
+    def _get_desired_now(self) -> typing.Optional[str]:
         if self._mocked_time.is_enabled:
-            now = utils.timestring(self._mocked_time.now())
-        else:
-            now = None
-        return State(
-            caches_invalidated=True,
-            testpoints=frozenset(self._testpoint.keys()),
-            now=now,
-        )
+            return utils.timestring(self._mocked_time.now())
+        return None
 
 
 async def _task_check_response(name: str, response) -> dict:

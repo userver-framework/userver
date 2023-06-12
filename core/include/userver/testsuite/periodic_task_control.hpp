@@ -3,6 +3,7 @@
 /// @file userver/testsuite/periodic_task_control.hpp
 /// @brief @copybrief testsuite::PeriodicTaskControl
 
+#include <string>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>

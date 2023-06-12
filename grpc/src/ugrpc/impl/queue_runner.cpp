@@ -21,7 +21,7 @@ void ProcessQueue(grpc::CompletionQueue& queue,
   bool ok = false;
 
   while (queue.Next(&tag, &ok)) {
-    auto* call = static_cast<AsyncMethodInvocation*>(tag);
+    auto* call = static_cast<EventBase*>(tag);
     UASSERT(call != nullptr);
     call->Notify(ok);
   }

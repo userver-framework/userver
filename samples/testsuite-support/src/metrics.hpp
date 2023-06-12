@@ -6,12 +6,12 @@
 
 namespace tests::handlers {
 
-class Metrics final : public userver::server::handlers::HttpHandlerJsonBase {
+class Metrics final : public server::handlers::HttpHandlerJsonBase {
  public:
   static constexpr std::string_view kName = "handler-metrics";
 
-  Metrics(const userver::components::ComponentConfig&,
-          const userver::components::ComponentContext&);
+  Metrics(const components::ComponentConfig&,
+          const components::ComponentContext&);
 
   formats::json::Value HandleRequestJsonThrow(
       const server::http::HttpRequest& request,

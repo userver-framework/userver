@@ -69,7 +69,7 @@ class Connection final : public std::enable_shared_from_this<Connection> {
                   Queue::Producer&);
 
   void ProcessResponses(Queue::Consumer&) noexcept;
-  void HandleQueueItem(QueueItem& item);
+  void HandleQueueItem(QueueItem& item) noexcept;
   void SendResponse(request::RequestBase& request);
 
   engine::TaskProcessor& task_processor_;

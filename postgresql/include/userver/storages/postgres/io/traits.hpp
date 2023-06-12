@@ -17,11 +17,6 @@ class UserTypes;
 
 namespace io {
 
-/// @page pg_io uPg: Parsers and Formatters
-///
-/// @todo Decribe the system of parser, formatters and their customization
-///
-
 /// Category of buffer contents.
 ///
 /// Applied to binary parsers and deduced from field's data type.

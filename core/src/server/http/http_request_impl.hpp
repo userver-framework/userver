@@ -13,6 +13,7 @@
 #include <userver/server/http/http_response.hpp>
 #include <userver/server/request/request_base.hpp>
 #include <userver/utils/datetime/wall_coarse_clock.hpp>
+#include <userver/utils/str_icase.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -63,15 +64,25 @@ class HttpRequestImpl final : public request::RequestBase {
   bool HasPathArg(size_t index) const;
   size_t PathArgCount() const;
 
-  const std::string& GetHeader(const std::string& header_name) const;
-  bool HasHeader(const std::string& header_name) const;
+  const std::string& GetHeader(std::string_view header_name) const;
+  const std::string& GetHeader(
+      const USERVER_NAMESPACE::http::headers::PredefinedHeader& header_name)
+      const;
+  bool HasHeader(std::string_view header_name) const;
+  bool HasHeader(const USERVER_NAMESPACE::http::headers::PredefinedHeader&
+                     header_name) const;
   size_t HeaderCount() const;
+  void RemoveHeader(std::string_view header_name);
+  void RemoveHeader(
+      const USERVER_NAMESPACE::http::headers::PredefinedHeader& header_name);
   HttpRequest::HeadersMapKeys GetHeaderNames() const;
+  const HttpRequest::HeadersMap& GetHeaders() const;
 
   const std::string& GetCookie(const std::string& cookie_name) const;
   bool HasCookie(const std::string& cookie_name) const;
   size_t CookieCount() const;
   HttpRequest::CookiesMapKeys GetCookieNames() const;
+  const HttpRequest::CookiesMap& GetCookies() const;
 
   const std::string& RequestBody() const { return request_body_; }
   void SetRequestBody(std::string body);
@@ -127,10 +138,13 @@ class HttpRequestImpl final : public request::RequestBase {
   std::string request_path_;
   std::string request_body_;
   std::string path_suffix_;
-  std::unordered_map<std::string, std::vector<std::string>> request_args_;
-  std::unordered_map<std::string, std::vector<FormDataArg>> form_data_args_;
+  std::unordered_map<std::string, std::vector<std::string>, utils::StrCaseHash>
+      request_args_;
+  std::unordered_map<std::string, std::vector<FormDataArg>, utils::StrCaseHash>
+      form_data_args_;
   std::vector<std::string> path_args_;
-  std::unordered_map<std::string, size_t> path_args_by_name_index_;
+  std::unordered_map<std::string, size_t, utils::StrCaseHash>
+      path_args_by_name_index_;
   HttpRequest::HeadersMap headers_;
   HttpRequest::CookiesMap cookies_;
   bool is_final_{false};

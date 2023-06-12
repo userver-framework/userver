@@ -22,7 +22,7 @@ class SemaphoreCapacityControl final {
   using Counter = engine::Semaphore::Counter;
   static constexpr Counter kOverrideDisabled = -1;
 
-  explicit SemaphoreCapacityControl(engine::Semaphore& semaphore);
+  explicit SemaphoreCapacityControl(engine::CancellableSemaphore& semaphore);
 
   // These methods may be called concurrently from N threads.
   void SetCapacity(Counter capacity);
@@ -36,7 +36,7 @@ class SemaphoreCapacityControl final {
  private:
   void UpdateSemaphoreCapacity() const;
 
-  engine::Semaphore& semaphore_;
+  engine::CancellableSemaphore& semaphore_;
   std::atomic<Counter> capacity_requested_;
   std::atomic<Counter> capacity_override_{kOverrideDisabled};
 };

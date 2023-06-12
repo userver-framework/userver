@@ -1,0 +1,87 @@
+{
+  "BAGGAGE_SETTINGS": {
+    "allowed_keys": []
+  },
+  "DYNAMIC_CONFIG_UPDATES_SINK_CHAIN": "",
+  "HTTP_CLIENT_CONNECTION_POOL_SIZE": 1000,
+  "HTTP_CLIENT_CONNECT_THROTTLE": {
+    "http-limit": 6000,
+    "http-per-second": 1500,
+    "https-limit": 100,
+    "https-per-second": 25,
+    "max-size": 100,
+    "per-host-limit": 3000,
+    "per-host-per-second": 500,
+    "token-update-interval-ms": 0
+  },
+  "HTTP_CLIENT_ENFORCE_TASK_DEADLINE": {
+    "cancel-request": false,
+    "update-timeout": false
+  },
+  "SAMPLE_INTEGER_FROM_RUNTIME_CONFIG": 42,
+  "USERVER_BAGGAGE_ENABLED": false,
+  "USERVER_CACHES": {},
+  "USERVER_CANCEL_HANDLE_REQUEST_BY_DEADLINE": false,
+  "USERVER_CHECK_AUTH_IN_HANDLERS": true,
+  "USERVER_DUMPS": {},
+  "USERVER_FILES_CONTENT_TYPE_MAP": {
+    ".css": "text/css",
+    ".gif": "image/gif",
+    ".htm": "text/html",
+    ".html": "text/html",
+    ".jpeg": "image/jpeg",
+    ".js": "application/javascript",
+    ".json": "application/json",
+    ".md": "text/markdown",
+    ".png": "image/png",
+    ".svg": "image/svg+xml",
+    "__default__": "text/plain"
+  },
+  "USERVER_HANDLER_STREAM_API_ENABLED": false,
+  "USERVER_HTTP_PROXY": "",
+  "USERVER_LOG_DYNAMIC_DEBUG": {
+    "force-disabled": [],
+    "force-enabled": []
+  },
+  "USERVER_LOG_REQUEST": true,
+  "USERVER_LOG_REQUEST_HEADERS": false,
+  "USERVER_LRU_CACHES": {},
+  "USERVER_NO_LOG_SPANS": {
+    "names": [],
+    "prefixes": []
+  },
+  "USERVER_RPS_CCONTROL": {
+    "down-level": 1,
+    "down-rate-percent": 2,
+    "min-limit": 10,
+    "no-limit-seconds": 1000,
+    "overload-off-seconds": 3,
+    "overload-on-seconds": 3,
+    "up-level": 2,
+    "up-rate-percent": 2
+  },
+  "USERVER_RPS_CCONTROL_ACTIVATED_FACTOR_METRIC": 5,
+  "USERVER_RPS_CCONTROL_CUSTOM_STATUS": {},
+  "USERVER_RPS_CCONTROL_ENABLED": false,
+  "USERVER_TASK_PROCESSOR_PROFILER_DEBUG": {
+    "fs-task-processor": {
+      "enabled": false,
+      "execution-slice-threshold-us": 1000000
+    },
+    "main-task-processor": {
+      "enabled": false,
+      "execution-slice-threshold-us": 2000
+    }
+  },
+  "USERVER_TASK_PROCESSOR_QOS": {
+    "default-service": {
+      "default-task-processor": {
+        "wait_queue_overload": {
+          "action": "ignore",
+          "length_limit": 5000,
+          "time_limit_us": 3000
+        }
+      }
+    }
+  }
+}

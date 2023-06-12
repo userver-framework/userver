@@ -2,6 +2,7 @@
 
 #include <chrono>
 #include <cstdint>
+#include <string>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -26,6 +27,32 @@ class Sensor {
   /// @note Can be called both from coroutine and non-coroutine context
   virtual Data FetchCurrent() = 0;
 };
+
+namespace v2 {
+
+class Sensor {
+ public:
+  struct Data {
+    std::size_t total{0};
+    std::size_t timeouts{0};
+
+    std::size_t timings_avg_ms{0};
+
+    std::size_t current_load{0};
+
+    double GetRate() const {
+      return static_cast<double>(timeouts) / (total ? total : 1);
+    }
+
+    std::string ToLogString();
+  };
+
+  virtual ~Sensor() = default;
+
+  virtual Data GetCurrent() = 0;
+};
+
+}  // namespace v2
 
 }  // namespace congestion_control
 

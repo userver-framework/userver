@@ -4,9 +4,6 @@
 /// @brief @copybrief components::Mongo
 
 #include <userver/components/loggable_component_base.hpp>
-#include <userver/concurrent/async_event_source.hpp>
-#include <userver/dynamic_config/snapshot.hpp>
-#include <userver/formats/json/value.hpp>
 #include <userver/storages/mongo/multi_mongo.hpp>
 #include <userver/storages/mongo/pool.hpp>
 #include <userver/storages/secdist/component.hpp>
@@ -63,7 +60,7 @@ namespace components {
 /// max_replication_lag | replication lag limit for usable secondaries, min. 90s | -
 /// maintenance_period | pool maintenance period (idle connections pruning etc.) | 15s
 /// stats_verbosity | changes the granularity of reported metrics | 'terse'
-/// dns_resolver | server hostname resolver type (getaddrinfo or async) | 'getaddrinfo'
+/// dns_resolver | server hostname resolver type (getaddrinfo or async) | 'async'
 ///
 /// `stats_verbosity` accepts one of the following values:
 /// Value | Description
@@ -87,12 +84,8 @@ class Mongo : public LoggableComponentBase {
   static yaml_config::Schema GetStaticConfigSchema();
 
  private:
-  void OnConfigUpdate(const dynamic_config::Snapshot& cfg);
-
-  const bool is_verbose_stats_enabled_;
   storages::mongo::PoolPtr pool_;
   utils::statistics::Entry statistics_holder_;
-  concurrent::AsyncEventSubscriberScope config_subscription_;
 };
 
 template <>
@@ -104,7 +97,7 @@ inline constexpr bool kHasValidate<Mongo> = true;
 ///
 /// @brief Dynamically configurable MongoDB client component
 ///
-/// Provides acces to a dynamically reconfigurable set of MongoDB databases.
+/// Provides access to a dynamically reconfigurable set of MongoDB databases.
 ///
 /// ## Dynamic options:
 /// * @ref MONGO_DEFAULT_MAX_TIME_MS
@@ -139,7 +132,7 @@ inline constexpr bool kHasValidate<Mongo> = true;
 /// local_threshold | latency window for instance selection | mongodb default
 /// max_replication_lag | replication lag limit for usable secondaries, min. 90s | -
 /// stats_verbosity | changes the granularity of reported metrics | 'terse'
-/// dns_resolver | server hostname resolver type (getaddrinfo or async) | 'getaddrinfo'
+/// dns_resolver | server hostname resolver type (getaddrinfo or async) | 'async'
 ///
 /// `stats_verbosity` accepts one of the following values:
 /// Value | Description
@@ -151,6 +144,8 @@ inline constexpr bool kHasValidate<Mongo> = true;
 
 class MultiMongo : public LoggableComponentBase {
  public:
+  /// @ingroup userver_component_names
+  /// @brief The default name of components::MultiMongo
   static constexpr std::string_view kName = "multi-mongo";
 
   /// Component constructor
@@ -180,21 +175,13 @@ class MultiMongo : public LoggableComponentBase {
   /// Creates an empty database set bound to the component
   storages::mongo::MultiMongo::PoolSet NewPoolSet();
 
-  /// Returns component statistics JSON
-  formats::json::Value GetStatistics() const;
-
   using PoolSet = storages::mongo::MultiMongo::PoolSet;
 
   static yaml_config::Schema GetStaticConfigSchema();
 
  private:
-  void OnConfigUpdate(const dynamic_config::Snapshot& cfg);
-
   storages::mongo::MultiMongo multi_mongo_;
-
-  const bool is_verbose_stats_enabled_;
   utils::statistics::Entry statistics_holder_;
-  concurrent::AsyncEventSubscriberScope config_subscription_;
 };
 
 template <>

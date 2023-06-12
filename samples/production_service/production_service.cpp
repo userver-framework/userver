@@ -5,6 +5,7 @@
 #include <userver/components/common_server_component_list.hpp>
 #include <userver/server/handlers/ping.hpp>
 #include <userver/storages/secdist/component.hpp>
+#include <userver/storages/secdist/provider_component.hpp>
 #include <userver/utils/daemon_run.hpp>
 
 int main(int argc, char* argv[]) {
@@ -13,6 +14,7 @@ int main(int argc, char* argv[]) {
           .AppendComponentList(components::CommonComponentList())
           .AppendComponentList(components::CommonServerComponentList())
           .Append<components::Secdist>()
+          .Append<components::DefaultSecdistProvider>()
           .Append<server::handlers::Ping>()
 
       // Put your handlers and components here

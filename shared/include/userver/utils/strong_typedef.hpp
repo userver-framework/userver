@@ -113,8 +113,7 @@ using EnableTransparentCompare = std::enable_if_t<
 struct StrongTypedefTag {};
 
 template <typename T>
-struct IsStrongTypedef
-    : std::is_base_of<impl::strong_typedef::StrongTypedefTag, T> {};
+using IsStrongTypedef = std::is_base_of<StrongTypedefTag, T>;
 
 // For 'std::string', begin-end methods are not forwarded, because otherwise
 // it might get serialized as an array.

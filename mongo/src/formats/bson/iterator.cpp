@@ -64,14 +64,14 @@ Iterator<ValueType, Direction>& Iterator<ValueType, Direction>::operator++() {
 
 template <typename ValueType, IteratorDirection Direction>
 typename Iterator<ValueType, Direction>::reference
-    Iterator<ValueType, Direction>::operator*() const {
+Iterator<ValueType, Direction>::operator*() const {
   UpdateValue();
   return *current_;
 }
 
 template <typename ValueType, IteratorDirection Direction>
 typename Iterator<ValueType, Direction>::pointer
-    Iterator<ValueType, Direction>::operator->() const {
+Iterator<ValueType, Direction>::operator->() const {
   return &**this;
 }
 

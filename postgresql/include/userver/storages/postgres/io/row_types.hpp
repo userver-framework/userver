@@ -43,9 +43,10 @@ template <typename T, typename = USERVER_NAMESPACE::utils::void_t<>>
 struct HasConstIntrospection : std::false_type {};
 
 template <typename T>
-struct HasConstIntrospection<T, USERVER_NAMESPACE::utils::void_t<decltype(
-                                    std::declval<const T&>().Introspect())>>
-    : std::true_type {};
+struct HasConstIntrospection<
+    T, USERVER_NAMESPACE::utils::void_t<
+           decltype(std::declval<const T&>().Introspect())>> : std::true_type {
+};
 
 template <typename T, typename = USERVER_NAMESPACE::utils::void_t<>>
 struct HasNonConstIntrospection : std::false_type {
@@ -55,8 +56,9 @@ struct HasNonConstIntrospection : std::false_type {
 };
 
 template <typename T>
-struct HasNonConstIntrospection<T, USERVER_NAMESPACE::utils::void_t<decltype(
-                                       std::declval<T&>().Introspect())>>
+struct HasNonConstIntrospection<
+    T,
+    USERVER_NAMESPACE::utils::void_t<decltype(std::declval<T&>().Introspect())>>
     : std::true_type {
   static_assert(IsTuple<decltype(std::declval<T&>().Introspect())>::value,
                 "Introspect() should return a std::tuple. "

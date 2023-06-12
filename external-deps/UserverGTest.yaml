@@ -1,5 +1,4 @@
 name: UserverGTest
-helper-prefix: false
 
 debian-names:
   - libgtest-dev

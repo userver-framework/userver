@@ -14,6 +14,7 @@ dev-libs/libev
 dev-libs/libfmt
 dev-libs/mongo-c-driver
 dev-libs/openssl
+dev-libs/re2
 dev-libs/spdlog
 dev-python/jinja
 dev-python/pip
@@ -23,10 +24,10 @@ dev-util/ccache
 dev-util/cmake
 dev-vcs/git
 net-dns/c-ares
+net-libs/grpc
+net-libs/http-parser
+net-libs/nghttp2
 net-misc/curl
+net-nds/openldap
 sys-libs/libbacktrace
 sys-libs/zlib
-net-libs/http-parser
-net-nds/openldap
-dev-libs/re2
-net-libs/grpc

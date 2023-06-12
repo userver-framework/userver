@@ -2,12 +2,12 @@
 
 #include <algorithm>
 #include <iterator>
-#include <unordered_map>
 
 #include <fmt/compile.h>
 #include <fmt/format.h>
 
-#include <userver/utils/algo.hpp>
+#include <userver/utils/mock_now.hpp>
+#include <userver/utils/statistics/fmt.hpp>
 #include <userver/utils/statistics/storage.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -29,11 +29,10 @@ void AppendGraphiteSafe(fmt::memory_buffer& out, std::string_view value) {
 class FormatBuilder final : public utils::statistics::BaseFormatBuilder {
  public:
   FormatBuilder()
-      : ending_(
-            fmt::format(FMT_COMPILE(" {}\n"),
-                        std::chrono::duration_cast<std::chrono::seconds>(
-                            std::chrono::system_clock::now().time_since_epoch())
-                            .count())) {}
+      : ending_(fmt::format(FMT_COMPILE(" {}\n"),
+                            std::chrono::duration_cast<std::chrono::seconds>(
+                                utils::datetime::MockNow().time_since_epoch())
+                                .count())) {}
 
   void HandleMetric(std::string_view path, utils::statistics::LabelsSpan labels,
                     const MetricValue& value) override {
@@ -43,11 +42,7 @@ class FormatBuilder final : public utils::statistics::BaseFormatBuilder {
       PutLabel(label);
     }
 
-    std::visit(
-        [this](const auto& v) {
-          fmt::format_to(std::back_inserter(buf_), FMT_COMPILE(" {}"), v);
-        },
-        value);
+    fmt::format_to(std::back_inserter(buf_), FMT_COMPILE(" {}"), value);
     buf_.append(ending_);
   }
 
@@ -64,14 +59,12 @@ class FormatBuilder final : public utils::statistics::BaseFormatBuilder {
 
   const std::string ending_;
   fmt::memory_buffer buf_;
-  std::unordered_map<std::string, std::string> metrics_;
 };
 
 }  // namespace
 
-std::string ToGraphiteFormat(
-    const utils::statistics::Storage& statistics,
-    const utils::statistics::StatisticsRequest& request) {
+std::string ToGraphiteFormat(const utils::statistics::Storage& statistics,
+                             const utils::statistics::Request& request) {
   FormatBuilder builder{};
   statistics.VisitMetrics(builder, request);
   return builder.Release();

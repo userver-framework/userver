@@ -10,6 +10,7 @@
 #include <userver/utils/uuid4.hpp>
 
 #include <storages/postgres/detail/tracing_tags.hpp>
+#include <storages/postgres/experiments.hpp>
 #include <storages/postgres/io/pg_type_parsers.hpp>
 #include <userver/storages/postgres/exceptions.hpp>
 
@@ -161,13 +162,15 @@ struct ConnectionImpl::ResetTransactionCommandControl {
 };
 
 ConnectionImpl::ConnectionImpl(
-    engine::TaskProcessor& bg_task_processor, uint32_t id,
+    engine::TaskProcessor& bg_task_processor,
+    concurrent::BackgroundTaskStorageCore& bg_task_storage, uint32_t id,
     ConnectionSettings settings, const DefaultCommandControls& default_cmd_ctls,
     const testsuite::PostgresControl& testsuite_pg_ctl,
     const error_injection::Settings& ei_settings,
-    Connection::SizeGuard&& size_guard)
+    engine::SemaphoreLock&& size_lock)
     : uuid_{USERVER_NAMESPACE::utils::generators::GenerateUuid()},
-      conn_wrapper_{bg_task_processor, id, std::move(size_guard)},
+      conn_wrapper_{bg_task_processor, bg_task_storage, id,
+                    std::move(size_lock)},
       prepared_{settings.max_prepared_cache_size},
       settings_{settings},
       default_cmd_ctls_(default_cmd_ctls),
@@ -177,7 +180,8 @@ ConnectionImpl::ConnectionImpl(
     throw InvalidConfig("max_prepared_cache_size is 0");
   }
 #if !LIBPQ_HAS_PIPELINING
-  if (settings_.pipeline_mode == PipelineMode::kEnabled) {
+  if (settings_.pipeline_mode == PipelineMode::kEnabled &&
+      kPipelineExperiment.IsEnabled()) {
     LOG_LIMITED_WARNING() << "Pipeline mode is not supported, falling back";
     settings_.pipeline_mode = PipelineMode::kDisabled;
   }
@@ -193,7 +197,8 @@ void ConnectionImpl::AsyncConnect(const Dsn& dsn, engine::Deadline deadline) {
       std::chrono::duration_cast<std::chrono::milliseconds>(
           deadline.TimeLeft()));
   conn_wrapper_.AsyncConnect(dsn, deadline, scope);
-  if (settings_.pipeline_mode == PipelineMode::kEnabled) {
+  if (settings_.pipeline_mode == PipelineMode::kEnabled &&
+      kPipelineExperiment.IsEnabled()) {
     conn_wrapper_.EnterPipelineMode();
   }
   conn_wrapper_.FillSpanTags(span);
@@ -267,7 +272,7 @@ void ConnectionImpl::RefreshReplicaState(engine::Deadline deadline) {
         conn_wrapper_.GetParameterStatus("default_transaction_read_only");
     const auto param_is_read_only = is_in_recovery_ || (txn_ro_status != "off");
     if (is_read_only_ != param_is_read_only) {
-      LOG_LIMITED_INFO() << "Incosistent replica state report: "
+      LOG_LIMITED_INFO() << "Inconsistent replica state report: "
                             "current_setting('transaction_read_only')~"
                          << is_read_only_
                          << " while default_transaction_read_only~"
@@ -295,6 +300,8 @@ bool ConnectionImpl::IsInTransaction() const {
 bool ConnectionImpl::IsPipelineActive() const {
   return conn_wrapper_.IsPipelineActive();
 }
+
+bool ConnectionImpl::IsBroken() const { return conn_wrapper_.IsBroken(); }
 
 ConnectionSettings const& ConnectionImpl::GetSettings() const {
   return settings_;
@@ -384,6 +391,10 @@ void ConnectionImpl::Rollback() {
   if (!IsInTransaction()) {
     throw NotInTransaction();
   }
+  if (IsBroken()) {
+    throw RuntimeError{"Attempted to rollback a broken connection"};
+  }
+
   CountRollback count_rollback(stats_);
   ResetTransactionCommandControl transaction_guard{*this};
 
@@ -392,7 +403,7 @@ void ConnectionImpl::Rollback() {
     ExecuteCommandNoPrepare("ROLLBACK", MakeCurrentDeadline());
   } else {
     LOG_DEBUG() << "Attempt to rollback transaction on a busy connection. "
-                   "Probably a network error or a timeout happend";
+                   "Probably a network error or a timeout happened";
   }
 }
 
@@ -679,6 +690,9 @@ const ConnectionImpl::PreparedStatementInfo& ConnectionImpl::PrepareStatement(
     conn_wrapper_.SendDescribePrepared(statement_name, scope);
     statement_info = prepared_.Get(query_id);
     auto res = conn_wrapper_.WaitResult(deadline, scope);
+    if (!res.pimpl_) {
+      throw CommandError("WaitResult() returned nullptr");
+    }
     FillBufferCategories(res);
     statement_info->description = res;
     // Ensure we've got binary format established
@@ -865,7 +879,7 @@ ResultSet ConnectionImpl::WaitResult(const std::string& statement,
     ++stats_.execute_timeout;
     LOG_LIMITED_WARNING() << "Statement `" << statement
                           << "` network timeout error: " << e << ". "
-                          << "Network timout was " << network_timeout.count()
+                          << "Network timeout was " << network_timeout.count()
                           << "ms";
     span.AddTag(tracing::kErrorFlag, true);
     throw;

@@ -28,14 +28,19 @@ struct InPlaceSpan::Impl final {
   tracing::Span span;
 };
 
-InPlaceSpan::InPlaceSpan(std::string&& name) : impl_(std::move(name)) {
+InPlaceSpan::InPlaceSpan(std::string&& name,
+                         utils::impl::SourceLocation source_location)
+    : impl_(std::move(name), ReferenceType::kChild, logging::Level::kInfo,
+            std::move(source_location)) {
   impl_->span.AttachToCoroStack();
   SetLinkIfRoot(impl_->span);
 }
 
 InPlaceSpan::InPlaceSpan(std::string&& name, std::string&& trace_id,
-                         std::string&& parent_span_id)
-    : impl_(std::move(name)) {
+                         std::string&& parent_span_id,
+                         utils::impl::SourceLocation source_location)
+    : impl_(std::move(name), ReferenceType::kChild, logging::Level::kInfo,
+            std::move(source_location)) {
   impl_->span.AttachToCoroStack();
   impl_->span_impl.SetTraceId(std::move(trace_id));
   impl_->span_impl.SetParentId(std::move(parent_span_id));

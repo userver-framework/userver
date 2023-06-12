@@ -24,7 +24,6 @@ if(NOT TARGET userver-core)
   set(CMAKE_MODULE_PATH
     ${CMAKE_MODULE_PATH}
     ${CMAKE_CURRENT_SOURCE_DIR}/../cmake
-    ${CMAKE_BINARY_DIR}/cmake/generated
     ${CMAKE_BINARY_DIR}/cmake_generated
   )
 
@@ -67,7 +66,11 @@ file(GLOB_RECURSE BENCH_SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/../shared/*_benchmark.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/*_benchmark.cpp
 )
-list(REMOVE_ITEM SOURCES ${UNIT_TEST_SOURCES} ${BENCH_SOURCES})
+file(GLOB_RECURSE INTERNAL_SOURCES
+  ${CMAKE_CURRENT_SOURCE_DIR}/../shared/internal/*.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/../shared/internal/*.hpp
+)
+list(REMOVE_ITEM SOURCES ${UNIT_TEST_SOURCES} ${BENCH_SOURCES} ${INTERNAL_SOURCES})
 
 set(CMAKE_THREAD_PREFER_PTHREAD ON)
 set(THREADS_PREFER_PTHREAD_FLAG ON)
@@ -85,6 +88,25 @@ find_package_required(OpenSSL "libssl-dev")
 include(SetupFmt)
 include(SetupCCTZ)
 
+if (USERVER_CONAN)
+  find_package(GTest REQUIRED)
+  find_package(benchmark REQUIRED)
+  find_package(cryptopp REQUIRED)
+  find_package(yaml-cpp REQUIRED)
+  find_package(fmt REQUIRED)
+  find_package(cctz REQUIRED)
+
+  find_package(RapidJSON REQUIRED)
+  target_compile_definitions(rapidjson INTERFACE RAPIDJSON_HAS_STDSTRING)
+else()
+  include(SetupGTest)
+  include(SetupGBench)
+  include(SetupCryptoPP)
+  find_package_required(libyamlcpp "libyaml-cpp-dev")
+  include(SetupFmt)
+  include(SetupCCTZ)
+endif()
+
 userver_add_library(${PROJECT_NAME} SOURCES ${SOURCES})
 set_target_properties(${PROJECT_NAME} PROPERTIES
   LINKER_LANGUAGE CXX
@@ -96,12 +118,14 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
 
 # https://github.com/jemalloc/jemalloc/issues/820
 if (USERVER_FEATURE_JEMALLOC AND NOT USERVER_SANITIZE AND NOT MACOS)
-  if (USERVER_OPEN_SOURCE_BUILD)
-    find_package_required(Jemalloc "libjemalloc-dev")
+  if (USERVER_CONAN)
+    find_package(jemalloc REQUIRED)
+    target_link_libraries(${PROJECT_NAME} PUBLIC jemalloc::jemalloc)
   else()
-    find_package_required(Jemalloc "libyandex-taxi-jemalloc-dev")
+    find_package_required(Jemalloc "libjemalloc-dev")
+    target_link_libraries(${PROJECT_NAME} PUBLIC Jemalloc)
   endif()
-  target_link_libraries(${PROJECT_NAME} PUBLIC Jemalloc)
+
   target_compile_definitions(${PROJECT_NAME} PRIVATE JEMALLOC_ENABLED)
 endif()
 
@@ -111,6 +135,13 @@ target_compile_definitions(${PROJECT_NAME} PUBLIC
   "USERVER_NAMESPACE_BEGIN=${USERVER_NAMESPACE_BEGIN}"
   "USERVER_NAMESPACE_END=${USERVER_NAMESPACE_END}"
 )
+
+target_compile_definitions(${PROJECT_NAME} PRIVATE
+  CRYPTOPP_ENABLE_NAMESPACE_WEAK=1
+)
+
+# Suppress OpenSSL 3 warnings: we still primarily support OpenSSL 1.1.x
+target_compile_definitions(${PROJECT_NAME} PRIVATE OPENSSL_SUPPRESS_DEPRECATED=)
 
 # https://bugs.llvm.org/show_bug.cgi?id=16404
 if (USERVER_SANITIZE AND NOT CMAKE_BUILD_TYPE MATCHES "^Rel")
@@ -135,6 +166,33 @@ userver_target_link_libraries(${PROJECT_NAME}
     OpenSSL::SSL
     ZLIB::ZLIB
 )
+if (USERVER_CONAN)
+  target_link_libraries(${PROJECT_NAME}
+    PUBLIC
+      yaml-cpp
+      fmt::fmt
+      cctz::cctz
+      Boost::stacktrace
+    PRIVATE
+      cryptopp::cryptopp
+      rapidjson
+  )
+else()
+  target_link_libraries(${PROJECT_NAME}
+    PUBLIC
+      libyamlcpp
+      fmt
+      cctz
+      userver-stacktrace
+    PRIVATE
+      CryptoPP
+  )
+endif()
+
+set(UNIVERSAL_PUBLIC_INCLUDE_DIRS
+  ${CMAKE_CURRENT_SOURCE_DIR}/../shared/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
 
 target_include_directories(${PROJECT_NAME} PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../shared/include>
@@ -146,6 +204,10 @@ target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE
   ${UNIVERSAL_THIRD_PARTY_DIR}/rapidjson/include
 )
 
+target_include_directories(${PROJECT_NAME} PUBLIC
+  ${UNIVERSAL_THIRD_PARTY_DIR}/date/include
+)
+
 target_include_directories(${PROJECT_NAME}
   PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/../shared/src/
@@ -153,6 +215,18 @@ target_include_directories(${PROJECT_NAME}
     ${CMAKE_CURRENT_BINARY_DIR}
 )
 
+option(USERVER_HEADER_MAP_AGAINST_OTHERS_BENCHMARK "build HeaderMap benchmarks against abseil and boost" OFF)
+
+add_library(userver-shared-internal STATIC ${INTERNAL_SOURCES})
+target_compile_definitions(userver-shared-internal PUBLIC $<TARGET_PROPERTY:${PROJECT_NAME},COMPILE_DEFINITIONS>)
+target_include_directories(userver-shared-internal PUBLIC
+  $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>
+  ${CMAKE_CURRENT_SOURCE_DIR}/../shared/internal/include
+)
+target_link_libraries(userver-shared-internal
+  PUBLIC
+  ${PROJECT_NAME}
+)
 
 if (USERVER_IS_THE_ROOT_PROJECT)
     add_executable(${PROJECT_NAME}_unittest ${UNIT_TEST_SOURCES})
@@ -164,23 +238,48 @@ if (USERVER_IS_THE_ROOT_PROJECT)
         libgtest
         libgmock
         ${PROJECT_NAME}
+        userver-shared-internal
       PRIVATE
         Boost::program_options
     )
+    if (USERVER_CONAN)
+      target_link_libraries(${PROJECT_NAME}_unittest
+        PUBLIC
+          GTest::gtest
+          GTest::gmock
+          GTest::gtest_main
+      )
+    else()
+      target_link_libraries(${PROJECT_NAME}_unittest
+        PUBLIC
+          libgtest
+          libgmock
+      )
+    endif()
 
     # We keep testing deprecated functions, no need to warn about that
     target_compile_options(${PROJECT_NAME}_unittest PRIVATE "-Wno-deprecated-declarations")
     add_google_tests(${PROJECT_NAME}_unittest)
 
     add_executable(${PROJECT_NAME}_benchmark ${BENCH_SOURCES})
+    #    find_package(absl REQUIRED)
+
     target_include_directories (${PROJECT_NAME}_benchmark SYSTEM PRIVATE
         $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>
     )
-    target_link_libraries(${PROJECT_NAME}_benchmark
-      PUBLIC
-        libbenchmark
-        ${PROJECT_NAME}
-    )
+    target_link_libraries(${PROJECT_NAME}_benchmark PUBLIC ${PROJECT_NAME} userver-shared-internal)
+    if (USERVER_CONAN)
+      target_link_libraries(${PROJECT_NAME}_benchmark PUBLIC benchmark::benchmark)
+    else()
+      target_link_libraries(${PROJECT_NAME}_benchmark PUBLIC libbenchmark)
+    endif()
+
+    if (USERVER_HEADER_MAP_AGAINST_OTHERS_BENCHMARK)
+      find_package(absl REQUIRED)
+      target_link_libraries(${PROJECT_NAME}_benchmark PRIVATE absl::raw_hash_set)
+      target_compile_definitions(${PROJECT_NAME}_benchmark PRIVATE HEADER_MAP_AGAINST_OTHERS_BENCHMARK)
+    endif()
+
     add_google_benchmark_tests(${PROJECT_NAME}_benchmark)
 endif()
 

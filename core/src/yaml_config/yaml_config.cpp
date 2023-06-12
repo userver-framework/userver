@@ -88,17 +88,41 @@ YamlConfig YamlConfig::operator[](size_t index) const {
 
 std::size_t YamlConfig::GetSize() const { return yaml_.GetSize(); }
 
-bool YamlConfig::IsMissing() const { return yaml_.IsMissing(); }
+bool YamlConfig::IsMissing() const noexcept { return yaml_.IsMissing(); }
 
-bool YamlConfig::IsNull() const { return yaml_.IsNull(); }
+bool YamlConfig::IsNull() const noexcept { return yaml_.IsNull(); }
 
-bool YamlConfig::IsInt64() const { return yaml_.IsInt64(); }
+bool YamlConfig::IsBool() const noexcept { return yaml_.IsBool(); }
 
-bool YamlConfig::IsUInt64() const { return yaml_.IsUInt64(); }
+bool YamlConfig::IsInt() const noexcept { return yaml_.IsInt(); }
+
+bool YamlConfig::IsInt64() const noexcept { return yaml_.IsInt64(); }
+
+bool YamlConfig::IsUInt64() const noexcept { return yaml_.IsUInt64(); }
+
+bool YamlConfig::IsDouble() const noexcept { return yaml_.IsDouble(); }
+
+bool YamlConfig::IsString() const noexcept { return yaml_.IsString(); }
+
+bool YamlConfig::IsArray() const noexcept { return yaml_.IsArray(); }
+
+bool YamlConfig::IsObject() const noexcept { return yaml_.IsObject(); }
+
+void YamlConfig::CheckNotMissing() const { return yaml_.CheckNotMissing(); }
+
+void YamlConfig::CheckArray() const { return yaml_.CheckArray(); }
 
 void YamlConfig::CheckArrayOrNull() const { yaml_.CheckArrayOrNull(); }
 
 void YamlConfig::CheckObjectOrNull() const { yaml_.CheckObjectOrNull(); }
+
+void YamlConfig::CheckObject() const { yaml_.CheckObject(); }
+
+void YamlConfig::CheckString() const { yaml_.CheckString(); }
+
+void YamlConfig::CheckObjectOrArrayOrNull() const {
+  yaml_.CheckObjectOrArrayOrNull();
+}
 
 bool YamlConfig::HasMember(std::string_view key) const {
   return yaml_.HasMember(key);
@@ -148,8 +172,8 @@ std::chrono::seconds Parse(const YamlConfig& value,
 
   if (as_seconds != as_milliseconds) {
     throw ParseException(
-        fmt::format(FMT_STRING("While parsing '{}': '{}' cannot be represented "
-                               "as milliseconds without precision loss"),
+        fmt::format("While parsing '{}': '{}' cannot be represented "
+                    "as milliseconds without precision loss",
                     value.GetPath(), value.As<std::string>()));
   }
 
@@ -162,8 +186,8 @@ std::chrono::milliseconds Parse(const YamlConfig& value,
   try {
     return utils::StringToDuration(as_string);
   } catch (const std::exception& ex) {
-    throw ParseException(fmt::format(FMT_STRING("While parsing '{}': {}"),
-                                     value.GetPath(), ex.what()));
+    throw ParseException(
+        fmt::format("While parsing '{}': {}", value.GetPath(), ex.what()));
   }
 }
 

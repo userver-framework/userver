@@ -17,7 +17,7 @@
 
 #include <userver/dump/operations.hpp>
 #include <userver/dump/unsafe.hpp>
-#include <userver/utils/meta.hpp>
+#include <userver/utils/meta_light.hpp>
 
 namespace boost::uuids {
 struct uuid;

@@ -3,28 +3,29 @@
 #include <stdexcept>
 #include <vector>
 
-#include <storages/redis/impl/keyshard_impl.hpp>
-#include <storages/redis/impl/subscribe_sentinel.hpp>
+#include <engine/ev/thread_pool.hpp>
+#include <userver/clients/dns/resolver_utils.hpp>
 #include <userver/components/component.hpp>
 #include <userver/components/statistics_storage.hpp>
 #include <userver/dynamic_config/storage/component.hpp>
 #include <userver/formats/json/value_builder.hpp>
 #include <userver/logging/log.hpp>
-#include <userver/storages/redis/impl/sentinel.hpp>
 #include <userver/storages/redis/impl/thread_pools.hpp>
 #include <userver/storages/redis/reply.hpp>
 #include <userver/storages/secdist/component.hpp>
 #include <userver/storages/secdist/exceptions.hpp>
 #include <userver/storages/secdist/secdist.hpp>
 #include <userver/testsuite/testsuite_support.hpp>
-#include <userver/utils/statistics/aggregated_values.hpp>
-#include <userver/utils/statistics/metadata.hpp>
-#include <userver/utils/statistics/percentile_format_json.hpp>
+#include <userver/utils/statistics/writer.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
 #include <userver/storages/redis/client.hpp>
 #include <userver/storages/redis/redis_config.hpp>
 #include <userver/storages/redis/subscribe_client.hpp>
+
+#include <storages/redis/impl/keyshard_impl.hpp>
+#include <storages/redis/impl/sentinel.hpp>
+#include <storages/redis/impl/subscribe_sentinel.hpp>
 
 #include "client_impl.hpp"
 #include "redis_secdist.hpp"
@@ -37,176 +38,12 @@ namespace {
 const auto kStatisticsName = "redis";
 const auto kSubscribeStatisticsName = "redis-pubsub";
 
-// request/reply sizes are almost useless (were never actually used for
-// diagnostics/postmortem analysis), but cost much in Solomon
-constexpr bool kShouldDumpSizeStatistics = false;
-
-formats::json::ValueBuilder InstanceStatisticsToJson(
-    const redis::InstanceStatistics& stats, bool real_instance) {
-  formats::json::ValueBuilder result(formats::json::Type::kObject);
-  formats::json::ValueBuilder errors(formats::json::Type::kObject);
-  formats::json::ValueBuilder states(formats::json::Type::kObject);
-
-  if constexpr (kShouldDumpSizeStatistics) {
-    result["request-sizes"]["1min"] =
-        utils::statistics::PercentileToJson(stats.request_size_percentile);
-    utils::statistics::SolomonSkip(result["request-sizes"]["1min"]);
-    result["reply-sizes"]["1min"] =
-        utils::statistics::PercentileToJson(stats.reply_size_percentile);
-    utils::statistics::SolomonSkip(result["reply-sizes"]["1min"]);
+void DumpThreadPoolMetric(utils::statistics::Writer& writer,
+                          engine::ev::ThreadPool& pool) {
+  for (const auto* thread : pool.NextThreads(pool.GetSize())) {
+    writer.ValueWithLabels(thread->GetCurrentLoadPercent(),
+                           {"ev_thread_name", thread->GetName()});
   }
-
-  result["timings"]["1min"] =
-      utils::statistics::PercentileToJson(stats.timings_percentile);
-  utils::statistics::SolomonSkip(result["timings"]["1min"]);
-
-  result["reconnects"] = stats.reconnects;
-
-  for (size_t i = 0; i <= redis::REDIS_ERR_MAX; ++i)
-    errors[storages::redis::Reply::StatusToString(i)] = stats.error_count[i];
-  utils::statistics::SolomonChildrenAreLabelValues(errors, "redis_error");
-  result["errors"] = errors;
-
-  if (real_instance) {
-    result["last_ping_ms"] = stats.last_ping_ms;
-
-    for (size_t i = 0;
-         i <= static_cast<int>(redis::Redis::State::kDisconnectError); ++i) {
-      auto state = static_cast<redis::Redis::State>(i);
-      states[redis::Redis::StateToString(state)] = stats.state == state ? 1 : 0;
-    }
-    utils::statistics::SolomonChildrenAreLabelValues(states,
-                                                     "redis_instance_state");
-    result["state"] = states;
-
-    long long session_time_ms =
-        stats.state == redis::Redis::State::kConnected
-            ? (redis::MillisecondsSinceEpoch() - stats.session_start_time)
-                  .count()
-            : 0;
-    result["session-time-ms"] = session_time_ms;
-  }
-
-  return result;
-}
-
-formats::json::ValueBuilder ShardStatisticsToJson(
-    const redis::ShardStatistics& shard_stats) {
-  formats::json::ValueBuilder result(formats::json::Type::kObject);
-  formats::json::ValueBuilder insts(formats::json::Type::kObject);
-  for (const auto& it2 : shard_stats.instances) {
-    const auto& inst_name = it2.first;
-    const auto& inst_stats = it2.second;
-    insts[inst_name] = InstanceStatisticsToJson(inst_stats, true);
-  }
-  utils::statistics::SolomonChildrenAreLabelValues(insts, "redis_instance");
-  utils::statistics::SolomonSkip(insts);
-  result["instances"] = insts;
-  result["instances_count"] = shard_stats.instances.size();
-
-  result["shard-total"] =
-      InstanceStatisticsToJson(shard_stats.GetShardTotalStatistics(), false);
-  utils::statistics::SolomonSkip(result["shard-total"]);
-
-  result["is_ready"] = shard_stats.is_ready ? 1 : 0;
-
-  long long not_ready =
-      std::chrono::duration_cast<std::chrono::milliseconds>(
-          std::chrono::steady_clock::now() - shard_stats.last_ready_time)
-          .count();
-  result["not_ready_ms"] = shard_stats.is_ready ? 0 : not_ready;
-  return result;
-}
-
-formats::json::ValueBuilder RedisStatisticsToJson(
-    const std::shared_ptr<redis::Sentinel>& redis) {
-  formats::json::ValueBuilder result(formats::json::Type::kObject);
-  formats::json::ValueBuilder masters(formats::json::Type::kObject);
-  formats::json::ValueBuilder slaves(formats::json::Type::kObject);
-  auto stats = redis->GetStatistics();
-
-  for (const auto& it : stats.masters) {
-    const auto& shard_name = it.first;
-    const auto& shard_stats = it.second;
-    masters[shard_name] = ShardStatisticsToJson(shard_stats);
-  }
-  utils::statistics::SolomonChildrenAreLabelValues(masters, "redis_shard");
-  utils::statistics::SolomonLabelValue(masters, "redis_instance_type");
-  result["masters"] = masters;
-  for (const auto& it : stats.slaves) {
-    const auto& shard_name = it.first;
-    const auto& shard_stats = it.second;
-    slaves[shard_name] = ShardStatisticsToJson(shard_stats);
-  }
-  utils::statistics::SolomonChildrenAreLabelValues(slaves, "redis_shard");
-  utils::statistics::SolomonLabelValue(slaves, "redis_instance_type");
-  result["slaves"] = slaves;
-  result["sentinels"] = ShardStatisticsToJson(stats.sentinel);
-  utils::statistics::SolomonLabelValue(result["sentinels"],
-                                       "redis_instance_type");
-
-  result["shard-group-total"] =
-      InstanceStatisticsToJson(stats.GetShardGroupTotalStatistics(), false);
-  utils::statistics::SolomonSkip(result["shard-group-total"]);
-
-  result["errors"] = formats::json::Type::kObject;
-  result["errors"]["redis_not_ready"] = stats.internal.redis_not_ready.load();
-  utils::statistics::SolomonChildrenAreLabelValues(result["errors"],
-                                                   "redis_error");
-  return result;
-}
-
-formats::json::ValueBuilder PubsubChannelStatisticsToJson(
-    const redis::PubsubChannelStatistics& stats, bool extra) {
-  formats::json::ValueBuilder json(formats::json::Type::kObject);
-  json["messages"]["count"] = stats.messages_count;
-  json["messages"]["alien-count"] = stats.messages_alien_count;
-  json["messages"]["size"] = stats.messages_size;
-
-  if (extra) {
-    auto diff = std::chrono::steady_clock::now() - stats.subscription_timestamp;
-    json["subscribed-ms"] =
-        std::chrono::duration_cast<std::chrono::milliseconds>(diff).count();
-
-    auto inst_name = stats.server_id.GetDescription();
-    if (inst_name.empty()) inst_name = "unknown";
-    auto insts = json["instances"];
-    insts[inst_name] = 1;
-    utils::statistics::SolomonChildrenAreLabelValues(insts, "redis_instance");
-    utils::statistics::SolomonSkip(insts);
-  }
-  return json;
-}
-
-formats::json::ValueBuilder PubsubShardStatisticsToJson(
-    const redis::PubsubShardStatistics& stats, bool extra) {
-  formats::json::ValueBuilder json(formats::json::Type::kObject);
-  for (const auto& [ch_name, ch_stats] : stats.by_channel) {
-    json[ch_name] = PubsubChannelStatisticsToJson(ch_stats, extra);
-  }
-  utils::statistics::SolomonChildrenAreLabelValues(json,
-                                                   "redis_pubsub_channel");
-  return json;
-}
-
-formats::json::ValueBuilder RedisSubscribeStatisticsToJson(
-    const redis::SubscribeSentinel& redis) {
-  auto stats = redis.GetSubscriberStatistics();
-  formats::json::ValueBuilder result(formats::json::Type::kObject);
-
-  formats::json::ValueBuilder by_shard(formats::json::Type::kObject);
-  for (auto& it : stats.by_shard) {
-    by_shard[it.first] = PubsubShardStatisticsToJson(it.second, true);
-  }
-  utils::statistics::SolomonChildrenAreLabelValues(by_shard, "redis_shard");
-  utils::statistics::SolomonSkip(by_shard);
-  result["by-shard"] = std::move(by_shard);
-
-  auto total_stats = stats.SumByShards();
-  result["shard-group-total"] = PubsubShardStatisticsToJson(total_stats, false);
-  utils::statistics::SolomonSkip(result["shard-group-total"]);
-
-  return result;
 }
 
 template <typename RedisGroup>
@@ -290,16 +127,13 @@ Redis::Redis(const ComponentConfig& config,
       component_context.FindComponent<components::StatisticsStorage>()
           .GetStorage();
 
-  statistics_holder_ = statistics_storage.RegisterExtender(
+  statistics_holder_ = statistics_storage.RegisterWriter(
       kStatisticsName,
-      [this](const utils::statistics::StatisticsRequest& request) {
-        return ExtendStatisticsRedis(request);
-      });
+      [this](utils::statistics::Writer& writer) { WriteStatistics(writer); });
 
-  subscribe_statistics_holder_ = statistics_storage.RegisterExtender(
-      kSubscribeStatisticsName,
-      [this](const utils::statistics::StatisticsRequest& request) {
-        return ExtendStatisticsRedisPubsub(request);
+  subscribe_statistics_holder_ = statistics_storage.RegisterWriter(
+      kSubscribeStatisticsName, [this](utils::statistics::Writer& writer) {
+        WriteStatisticsPubsub(writer);
       });
 }
 
@@ -335,11 +169,17 @@ void Redis::Connect(const ComponentConfig& config,
                     const testsuite::RedisControl& testsuite_redis_control) {
   auto& secdist_component = component_context.FindComponent<Secdist>();
 
+  auto config_source =
+      component_context.FindComponent<DynamicConfig>().GetSource();
+
   const auto redis_pools = config["thread_pools"].As<RedisPools>();
 
   thread_pools_ = std::make_shared<redis::ThreadPools>(
       redis_pools.sentinel_thread_pool_size,
       redis_pools.redis_thread_pool_size);
+
+  clients::dns::Resolver* dns_resolver =
+      clients::dns::GetResolverPtr(config, component_context);
 
   const auto redis_groups = config["groups"].As<std::vector<RedisGroup>>();
   for (const RedisGroup& redis_group : redis_groups) {
@@ -350,9 +190,9 @@ void Redis::Connect(const ComponentConfig& config,
         redis_group.allow_reads_from_master;
 
     auto sentinel = redis::Sentinel::CreateSentinel(
-        thread_pools_, settings, redis_group.config_name, redis_group.db,
-        redis::KeyShardFactory{redis_group.sharding_strategy}, command_control,
-        testsuite_redis_control);
+        thread_pools_, settings, redis_group.config_name, config_source,
+        redis_group.db, redis::KeyShardFactory{redis_group.sharding_strategy},
+        command_control, testsuite_redis_control, dns_resolver);
     if (sentinel) {
       sentinels_.emplace(redis_group.db, sentinel);
       const auto& client =
@@ -379,8 +219,8 @@ void Redis::Connect(const ComponentConfig& config,
         redis_group.sharding_strategy);
 
     auto sentinel = redis::SubscribeSentinel::Create(
-        thread_pools_, settings, redis_group.config_name, redis_group.db,
-        is_cluster_mode, testsuite_redis_control);
+        thread_pools_, settings, redis_group.config_name, config_source,
+        redis_group.db, is_cluster_mode, testsuite_redis_control, dns_resolver);
     if (sentinel)
       subscribe_clients_.emplace(
           redis_group.db,
@@ -402,40 +242,29 @@ void Redis::Connect(const ComponentConfig& config,
 }
 
 Redis::~Redis() {
-  try {
-    statistics_holder_.Unregister();
-    subscribe_statistics_holder_.Unregister();
-    config_subscription_.Unsubscribe();
-  } catch (std::exception const& e) {
-    LOG_ERROR() << "exception while destroying Redis component: " << e;
-  } catch (...) {
-    LOG_ERROR() << "non-standard exception while destroying Redis component";
-  }
+  statistics_holder_.Unregister();
+  subscribe_statistics_holder_.Unregister();
+  config_subscription_.Unsubscribe();
 }
 
-formats::json::Value Redis::ExtendStatisticsRedis(
-    const utils::statistics::StatisticsRequest& /*request*/) {
-  formats::json::ValueBuilder json(formats::json::Type::kObject);
-  for (const auto& client : sentinels_) {
-    const auto& name = client.first;
-    const auto& redis = client.second;
-    json[name] = RedisStatisticsToJson(redis);
+void Redis::WriteStatistics(utils::statistics::Writer& writer) {
+  auto settings = metrics_settings_.Read();
+  for (const auto& [name, redis] : sentinels_) {
+    writer.ValueWithLabels(redis->GetStatistics(*settings),
+                           {"redis_database", name});
   }
-  utils::statistics::SolomonChildrenAreLabelValues(json, "redis_database");
-  return json.ExtractValue();
+  auto threads_writer = writer["ev_threads"]["cpu_load_percent"];
+  DumpThreadPoolMetric(threads_writer, *thread_pools_->GetRedisThreadPool());
+  DumpThreadPoolMetric(threads_writer, thread_pools_->GetSentinelThreadPool());
 }
 
-formats::json::Value Redis::ExtendStatisticsRedisPubsub(
-    const utils::statistics::StatisticsRequest& /*request*/) {
-  formats::json::ValueBuilder subscribe_json(formats::json::Type::kObject);
-  for (const auto& client : subscribe_clients_) {
-    const auto& name = client.first;
-    const auto& redis = client.second->GetNative();
-    subscribe_json[name] = RedisSubscribeStatisticsToJson(redis);
+void Redis::WriteStatisticsPubsub(utils::statistics::Writer& writer) {
+  auto settings = pubsub_metrics_settings_.Read();
+  for (const auto& [name, redis] : subscribe_clients_) {
+    writer.ValueWithLabels(
+        redis->GetNative().GetSubscriberStatistics(*settings),
+        {"redis_database", name});
   }
-  utils::statistics::SolomonChildrenAreLabelValues(subscribe_json,
-                                                   "redis_database");
-  return subscribe_json.ExtractValue();
 }
 
 void Redis::OnConfigUpdate(const dynamic_config::Snapshot& cfg) {
@@ -444,11 +273,18 @@ void Redis::OnConfigUpdate(const dynamic_config::Snapshot& cfg) {
 
   auto cc = std::make_shared<redis::CommandControl>(
       redis_config.default_command_control);
+  const auto auto_topology =
+      redis_config.redis_cluster_autotopology_enabled.Get();
   for (auto& it : sentinels_) {
+    const auto& name = it.first;
     auto& client = it.second;
     client->SetConfigDefaultCommandControl(cc);
     client->SetCommandsBufferingSettings(
         redis_config.commands_buffering_settings);
+    client->SetReplicationMonitoringSettings(
+        redis_config.replication_monitoring_settings.GetOptional(name).value_or(
+            redis::ReplicationMonitoringSettings{}));
+    client->SetClusterAutoTopology(auto_topology);
   }
 
   auto subscriber_cc = std::make_shared<redis::CommandControl>(
@@ -460,6 +296,16 @@ void Redis::OnConfigUpdate(const dynamic_config::Snapshot& cfg) {
     subscribe_client.SetConfigDefaultCommandControl(subscriber_cc);
     subscribe_client.SetRebalanceMinInterval(
         subscriptions_rebalance_min_interval);
+  }
+
+  auto metrics_settings = metrics_settings_.Read();
+  if (*metrics_settings != redis_config.metrics_settings) {
+    metrics_settings_.Assign(redis_config.metrics_settings);
+  }
+
+  auto pubsub_metrics_settings = pubsub_metrics_settings_.Read();
+  if (*pubsub_metrics_settings != redis_config.pubsub_metrics_settings) {
+    pubsub_metrics_settings_.Assign(redis_config.pubsub_metrics_settings);
   }
 }
 

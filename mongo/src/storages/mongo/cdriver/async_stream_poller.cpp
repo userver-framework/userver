@@ -35,7 +35,7 @@ void StopWatchers(AsyncStreamPoller::WatchersMap& watchers) {
 }  // namespace
 
 AsyncStreamPoller::AsyncStreamPoller()
-    : AsyncStreamPoller(engine::MpscQueue<Event>::Create()) {}
+    : AsyncStreamPoller(concurrent::MpscQueue<Event>::Create()) {}
 
 AsyncStreamPoller::~AsyncStreamPoller() {
   // ResetWatchers() acquires a lock and avoids race between watchers.find(fd);
@@ -44,7 +44,7 @@ AsyncStreamPoller::~AsyncStreamPoller() {
 }
 
 AsyncStreamPoller::AsyncStreamPoller(
-    const std::shared_ptr<engine::MpscQueue<Event>>& queue)
+    const std::shared_ptr<concurrent::MpscQueue<Event>>& queue)
     : event_consumer_(queue->GetConsumer()),
       event_producer_(queue->GetProducer()) {}
 

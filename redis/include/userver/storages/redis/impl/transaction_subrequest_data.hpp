@@ -13,9 +13,8 @@ namespace storages::redis::impl {
 
 [[noreturn]] void ThrowTransactionNotStarted(std::string_view description);
 
-template <typename Result, typename ReplyType>
-class TransactionSubrequestDataImpl final
-    : public RequestDataBase<Result, ReplyType> {
+template <typename ReplyType>
+class TransactionSubrequestDataImpl final : public RequestDataBase<ReplyType> {
  public:
   TransactionSubrequestDataImpl(engine::Future<ReplyType> future)
       : future_(std::move(future)) {}

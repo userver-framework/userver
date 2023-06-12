@@ -5,6 +5,7 @@
 
 #include <boost/algorithm/string.hpp>
 #include <boost/locale.hpp>
+#include <boost/range/adaptor/transformed.hpp>
 
 #include <userver/engine/shared_mutex.hpp>
 #include <userver/utils/assert.hpp>
@@ -28,6 +29,22 @@ std::vector<std::string> Split(std::string_view str, std::string_view sep) {
   // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks)
   boost::algorithm::split(result, str, boost::algorithm::is_any_of(sep),
                           boost::token_compress_on);
+  return result;
+}
+
+std::vector<std::string_view> SplitIntoStringViewVector(std::string_view str,
+                                                        std::string_view sep) {
+  using string_view_split_iterator =
+      boost::split_iterator<std::string_view::const_iterator>;
+
+  std::vector<std::string_view> result;
+  auto it =
+      boost::make_split_iterator(str, boost::token_finder([&sep](const char c) {
+                                   return sep.find(c) != std::string_view::npos;
+                                 }));
+  for (; it != string_view_split_iterator(); ++it) {
+    result.emplace_back(it->begin(), it->size());
+  }
   return result;
 }
 
@@ -80,6 +97,11 @@ bool StartsWith(std::string_view hay, std::string_view needle) {
 bool EndsWith(std::string_view hay, std::string_view needle) {
   return hay.size() >= needle.size() &&
          hay.substr(hay.size() - needle.size()) == needle;
+}
+
+std::string ToLower(std::string_view str, const std::string& locale) {
+  return boost::locale::to_lower(str.data(), str.data() + str.size(),
+                                 GetLocale(locale));
 }
 
 std::string Capitalize(std::string_view str, const std::string& locale) {

@@ -4,9 +4,11 @@
 
 #include <grpcpp/channel.h>
 
-#include <userver/formats/json/value.hpp>
+#include <userver/dynamic_config/storage_mock.hpp>
 #include <userver/utest/utest.hpp>
+#include <userver/utils/statistics/labels.hpp>
 #include <userver/utils/statistics/storage.hpp>
+#include <userver/utils/statistics/testing.hpp>
 
 #include <userver/ugrpc/client/client_factory.hpp>
 #include <userver/ugrpc/server/server.hpp>
@@ -30,16 +32,27 @@ class GrpcServiceFixture : public ::testing::Test {
 
   template <typename Client>
   Client MakeClient() {
-    return client_factory_->MakeClient<Client>(*endpoint_);
+    return client_factory_->MakeClient<Client>("test", *endpoint_);
   }
 
-  formats::json::Value GetStatistics();
+  utils::statistics::Snapshot GetStatistics(
+      std::string prefix,
+      std::vector<utils::statistics::Label> require_labels = {});
+
+  dynamic_config::Source GetConfigSource() const;
 
   ugrpc::server::Server& GetServer() noexcept;
 
+  ugrpc::client::MiddlewareFactories& GetMiddlewareFactories();
+
+  void ExtendDynamicConfig(const std::vector<dynamic_config::KeyValue>&);
+
  private:
   utils::statistics::Storage statistics_storage_;
+  dynamic_config::StorageMock config_storage_;
   ugrpc::server::Server server_;
+  ugrpc::client::MiddlewareFactories middleware_factories_;
+  testsuite::GrpcControl testsuite_;
   std::optional<std::string> endpoint_;
   std::optional<ugrpc::client::ClientFactory> client_factory_;
 };
@@ -55,6 +68,8 @@ class GrpcServiceFixtureSimple : public GrpcServiceFixture {
   }
 
   ~GrpcServiceFixtureSimple() override { StopServer(); }
+
+  Service& GetService() { return service_; }
 
  private:
   Service service_{};

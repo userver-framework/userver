@@ -28,24 +28,6 @@ macro(userver_fetch_and_add_gbench_subdirectory)
     userver_add_gbench_subdirectory("third_party/gbench")
 endmacro()
 
-if (NOT USERVER_OPEN_SOURCE_BUILD)
-    if (EXISTS "${USERVER_ROOT_DIR}/submodules/google-benchmark")
-      userver_add_gbench_subdirectory("submodules/google-benchmark")
-      return()
-    endif()
-
-    include(FetchContent)
-    FetchContent_Declare(
-      gbench_external_project
-      GIT_REPOSITORY git@bb.yandex-team.ru:taxi-external/google-benchmark.git
-      TIMEOUT 10
-      GIT_TAG master
-      SOURCE_DIR ${USERVER_ROOT_DIR}/third_party/gbench
-    )
-    userver_fetch_and_add_gbench_subdirectory()
-    return()
-endif()
-
 option(USERVER_DOWNLOAD_PACKAGE_GBENCH "Download and setup gbench if no gbench of matching version was found" ${USERVER_DOWNLOAD_PACKAGES})
 if (USERVER_DOWNLOAD_PACKAGE_GBENCH)
     find_package(UserverGBench)

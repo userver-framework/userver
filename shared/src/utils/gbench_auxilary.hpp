@@ -1,5 +1,8 @@
 #pragma once
 
+#include <mutex>
+#include <optional>
+
 #include <benchmark/benchmark.h>
 
 // Additional macros for google benchmark
@@ -24,3 +27,23 @@
     }                                                             \
   };                                                              \
   BENCHMARK_PRIVATE_REGISTER_F(BaseClass##_##Method##_Benchmark_##Type)
+
+// Prevents compiler optimizations based on source data being constant in a
+// benchmark, such as constant folding.
+template <typename T>
+inline T Launder(T value) {
+  static std::mutex mutex;
+  static std::optional<T> storage;
+  {
+    const std::lock_guard lock(mutex);
+    storage.emplace(std::move(value));
+  }
+  // Here another thread is given a *theoretical* opportunity to steal
+  // 'storage', so the compiler is not allowed to assume 'storage' still
+  // contains 'value'.
+  benchmark::ClobberMemory();
+  {
+    const std::lock_guard lock(mutex);
+    return std::move(*storage);
+  }
+}

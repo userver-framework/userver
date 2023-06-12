@@ -57,6 +57,11 @@ CFile& CFile::operator=(CFile&&) noexcept = default;
 
 CFile::~CFile() = default;
 
+CFile::CFile(std::FILE* file) noexcept {
+  UASSERT_MSG(file != nullptr, "This file is not valid");
+  impl_->handle.reset(file);
+}
+
 CFile::CFile(const std::string& path, OpenMode flags,
              boost::filesystem::perms perms) {
   auto fd = FileDescriptor::Open(path, flags, perms);
@@ -66,6 +71,8 @@ CFile::CFile(const std::string& path, OpenMode flags,
 }
 
 bool CFile::IsOpen() const { return static_cast<bool>(impl_->handle); }
+
+std::FILE* CFile::Release() && { return impl_->handle.release(); }
 
 void CFile::Close() && {
   UASSERT(IsOpen());
@@ -96,9 +103,13 @@ void CFile::Write(std::string_view data) {
 }
 
 void CFile::Flush() {
+  FlushLight();
+  utils::CheckSyscall(::fsync(impl_->GetFileDescriptor()), "calling ::fsync");
+}
+
+void CFile::FlushLight() {
   UASSERT(IsOpen());
   utils::CheckSyscall(std::fflush(impl_->handle.get()), "calling fflush");
-  utils::CheckSyscall(::fsync(impl_->GetFileDescriptor()), "calling ::fsync");
 }
 
 std::uint64_t CFile::GetPosition() const {

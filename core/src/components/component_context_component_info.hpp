@@ -70,6 +70,8 @@ class ComponentInfo final {
   ComponentLifetimeStage GetStage() const;
   void WaitStage(ComponentLifetimeStage stage, std::string method_name) const;
 
+  std::string GetDependencies() const;
+
  private:
   bool HasComponent() const;
   std::unique_ptr<ComponentBase> ExtractComponent();

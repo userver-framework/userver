@@ -58,6 +58,7 @@ void DistLockStrategy::Acquire(std::chrono::milliseconds lock_ttl,
                                           fields::kOwner, owner));
 
   try {
+    LOG_INFO() << "Owner " << owner << " try to acquire lock " << lock_name_;
     auto lock = collection_
                     .FindAndModify(std::move(query), update, options::Upsert{},
                                    options::ReturnNew{})
@@ -66,6 +67,8 @@ void DistLockStrategy::Acquire(std::chrono::milliseconds lock_ttl,
       throw dist_lock::LockIsAcquiredByAnotherHostException();
     }
   } catch (const DuplicateKeyException& exc) {
+    LOG_INFO() << "Lock " << lock_name_
+               << " has not been acqired because of key duplication";
     throw dist_lock::LockIsAcquiredByAnotherHostException();
   } catch (const MongoException& exc) {
     LOG_WARNING() << "owner " << owner << " could not acquire a lock "

@@ -418,14 +418,14 @@ UTEST_P(PostgreConnection, OptionalCompositeTypeRoundtrip) {
                        "select ROW(42, 'foobar', 3.14, ARRAY[-1, 0, 1], "
                        "ARRAY['a', 'b', 'c'])::__pgtest.foobar"));
   {
-    auto fo = res.Front().As<pgtest::FooBarOpt>();
-    EXPECT_TRUE(!!fo) << "Non-empty optional result expected";
+    auto foo_opt = res.Front().As<pgtest::FooBarOpt>();
+    EXPECT_TRUE(!!foo_opt) << "Non-empty optional result expected";
   }
 
   UEXPECT_NO_THROW(res = GetConn()->Execute("select null::__pgtest.foobar"));
   {
-    auto fo = res.Front().As<pgtest::FooBarOpt>();
-    EXPECT_TRUE(!fo) << "Empty optional result expected";
+    auto foo_opt = res.Front().As<pgtest::FooBarOpt>();
+    EXPECT_TRUE(!foo_opt) << "Empty optional result expected";
   }
 
   UEXPECT_NO_THROW(GetConn()->Execute(kDropTestSchema)) << "Drop schema";
@@ -572,14 +572,14 @@ UTEST_P(PostgreConnection, OptionalCompositeTypeRoundtripAsRecord) {
           "SELECT fb.* FROM (SELECT ROW(42, 'foobar', 3.14, ARRAY[-1, 0, 1], "
           "ARRAY['a', 'b', 'c'])::__pgtest.foobar) fb"));
   {
-    auto fo = res.Front().As<pgtest::FooBarOpt>();
-    EXPECT_TRUE(!!fo) << "Non-empty optional result expected";
+    auto foo_opt = res.Front().As<pgtest::FooBarOpt>();
+    EXPECT_TRUE(!!foo_opt) << "Non-empty optional result expected";
   }
 
   UEXPECT_NO_THROW(res = GetConn()->Execute("select null::record"));
   {
-    auto fo = res.Front().As<pgtest::FooBarOpt>();
-    EXPECT_TRUE(!fo) << "Empty optional result expected";
+    auto foo_opt = res.Front().As<pgtest::FooBarOpt>();
+    EXPECT_TRUE(!foo_opt) << "Empty optional result expected";
   }
 
   UEXPECT_NO_THROW(GetConn()->Execute(kDropTestSchema)) << "Drop schema";

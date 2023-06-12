@@ -5,6 +5,9 @@ components_manager:
         mongo-tr:     # Matches component registration and component retrieval strings
             dbconnection: mongodb://localhost:27217/admin
 
+        dns-client:                     # Asynchronous DNS component
+            fs-task-processor: fs-task-processor
+
         handler-translations:
             path: /v1/translations
             method: GET,PATCH

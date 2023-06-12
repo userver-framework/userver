@@ -29,12 +29,12 @@ class form {
 
   inline native::curl_httppost* native_handle() { return post_; };
 
-  void add_content(const std::string& key, const std::string& content);
-  void add_content(const std::string& key, const std::string& content,
+  void add_content(std::string_view key, std::string_view content);
+  void add_content(std::string_view key, std::string_view content,
                    std::error_code& ec);
-  void add_content(const std::string& key, const std::string& content,
+  void add_content(std::string_view key, std::string_view content,
                    const std::string& content_type);
-  void add_content(const std::string& key, const std::string& content,
+  void add_content(std::string_view key, std::string_view content,
                    const std::string& content_type, std::error_code& ec);
 
   void add_buffer(const std::string& key, const std::string& file_name,

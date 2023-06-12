@@ -1,0 +1,86 @@
+# yaml
+components_manager:
+    components:
+        handler-chaos-httpclient:
+            path: /chaos/httpclient
+            task_processor: main-task-processor
+            method: GET,DELETE,POST
+
+        handler-chaos-stream:
+            response-body-stream: true
+            path: /chaos/httpclient/stream
+            task_processor: main-task-processor
+            method: GET,DELETE,POST
+
+        handler-chaos-httpserver:
+            path: /chaos/httpserver
+            task_processor: main-task-processor
+            method: GET,DELETE,POST
+
+        handler-chaos-dns-resolver:
+            path: /chaos/resolver
+            task_processor: main-task-processor
+            method: GET,DELETE,POST
+            dns-server: 127.0.0.1:123
+            hosts-file: /etc/hosts
+            cache-max-ttl: 99999
+            cache-failure-ttl: 99999
+            cache-size-per-way: 100
+
+        testsuite-support:
+
+        http-client:
+            fs-task-processor: main-task-processor
+
+        tests-control:
+            method: POST
+            path: /tests/{action}
+            skip-unregistered-testpoints: true
+            task_processor: main-task-processor
+            testpoint-timeout: 10s
+            testpoint-url: $mockserver/testpoint
+            throttling_enabled: false
+
+        logging-configurator:
+            limited-logging-enable: false
+            limited-logging-interval: 10s
+
+        server:
+            listener:
+                port: 8187
+                task_processor: main-task-processor
+        logging:
+            fs-task-processor: fs-task-processor
+            loggers:
+                default:
+                    file_path: '@stderr'
+                    level: debug
+                    overflow_behavior: discard
+
+        tracer:
+            service-name: postgres-basic-chaos
+
+        dynamic-config:
+            fs-cache-path: ''
+        dynamic-config-fallbacks:
+            fallback-path: /etc/postgres_basic_chaos/dynamic_config_fallback.json
+        dns-client:
+            fs-task-processor: fs-task-processor
+    coro_pool:
+        initial_size: 500
+        max_size: 1000
+
+    task_processors:
+        main-task-processor:
+            worker_threads: 4
+            thread_name: main-worker
+
+        fs-task-processor:
+            thread_name: fs-worker
+            worker_threads: 2
+
+    default_task_processor: main-task-processor
+
+userver_experiments:
+  - handler-cancel-on-immediate-deadline-expiration
+  - handler-override-response-on-deadline

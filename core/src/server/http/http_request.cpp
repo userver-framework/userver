@@ -1,6 +1,6 @@
 #include <userver/server/http/http_request.hpp>
 
-#include "http_request_impl.hpp"
+#include <server/http/http_request_impl.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -105,12 +105,23 @@ bool HttpRequest::HasPathArg(size_t index) const {
 
 size_t HttpRequest::PathArgCount() const { return impl_.PathArgCount(); }
 
-const std::string& HttpRequest::GetHeader(
-    const std::string& header_name) const {
+const std::string& HttpRequest::GetHeader(std::string_view header_name) const {
   return impl_.GetHeader(header_name);
 }
 
-bool HttpRequest::HasHeader(const std::string& header_name) const {
+const std::string& HttpRequest::GetHeader(
+    const USERVER_NAMESPACE::http::headers::PredefinedHeader& header_name)
+    const {
+  return impl_.GetHeader(header_name);
+}
+
+bool HttpRequest::HasHeader(std::string_view header_name) const {
+  return impl_.HasHeader(header_name);
+}
+
+bool HttpRequest::HasHeader(
+    const USERVER_NAMESPACE::http::headers::PredefinedHeader& header_name)
+    const {
   return impl_.HasHeader(header_name);
 }
 
@@ -118,6 +129,15 @@ size_t HttpRequest::HeaderCount() const { return impl_.HeaderCount(); }
 
 HttpRequest::HeadersMapKeys HttpRequest::GetHeaderNames() const {
   return impl_.GetHeaderNames();
+}
+
+void HttpRequest::RemoveHeader(std::string_view header_name) {
+  impl_.RemoveHeader(header_name);
+}
+
+void HttpRequest::RemoveHeader(
+    const USERVER_NAMESPACE::http::headers::PredefinedHeader& header_name) {
+  impl_.RemoveHeader(header_name);
 }
 
 const std::string& HttpRequest::GetCookie(
@@ -139,11 +159,23 @@ const std::string& HttpRequest::RequestBody() const {
   return impl_.RequestBody();
 }
 
+const HttpRequest::HeadersMap& HttpRequest::RequestHeaders() const {
+  return impl_.GetHeaders();
+}
+
+const HttpRequest::CookiesMap& HttpRequest::RequestCookies() const {
+  return impl_.GetCookies();
+}
+
 void HttpRequest::SetRequestBody(std::string body) {
   impl_.SetRequestBody(std::move(body));
 }  // namespace server::http
 
 void HttpRequest::ParseArgsFromBody() { impl_.ParseArgsFromBody(); }
+
+std::chrono::steady_clock::time_point HttpRequest::GetStartTime() const {
+  return impl_.StartTime();
+}
 
 void HttpRequest::SetResponseStatus(HttpStatus status) const {
   return impl_.SetResponseStatus(status);

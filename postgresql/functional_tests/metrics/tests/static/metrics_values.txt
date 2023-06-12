@@ -1,0 +1,141 @@
+cache.any.documents.parse_failures: cache_name=key-value-pg-cache	GAUGE	0
+cache.any.documents.read_count: cache_name=key-value-pg-cache	GAUGE	0
+cache.any.time.last-update-duration-ms: cache_name=key-value-pg-cache	GAUGE	0
+cache.any.time.time-from-last-successful-start-ms: cache_name=key-value-pg-cache	GAUGE	0
+cache.any.time.time-from-last-update-start-ms: cache_name=key-value-pg-cache	GAUGE	0
+cache.any.update.attempts_count: cache_name=key-value-pg-cache	GAUGE	0
+cache.any.update.failures_count: cache_name=key-value-pg-cache	GAUGE	0
+cache.any.update.no_changes_count: cache_name=key-value-pg-cache	GAUGE	0
+cache.current-documents-count: cache_name=key-value-pg-cache	GAUGE	0
+cache.full.documents.parse_failures: cache_name=key-value-pg-cache	GAUGE	0
+cache.full.documents.read_count: cache_name=key-value-pg-cache	GAUGE	0
+cache.full.time.last-update-duration-ms: cache_name=key-value-pg-cache	GAUGE	0
+cache.full.time.time-from-last-successful-start-ms: cache_name=key-value-pg-cache	GAUGE	0
+cache.full.time.time-from-last-update-start-ms: cache_name=key-value-pg-cache	GAUGE	0
+cache.full.update.attempts_count: cache_name=key-value-pg-cache	GAUGE	0
+cache.full.update.failures_count: cache_name=key-value-pg-cache	GAUGE	0
+cache.full.update.no_changes_count: cache_name=key-value-pg-cache	GAUGE	0
+cache.incremental.documents.parse_failures: cache_name=key-value-pg-cache	GAUGE	0
+cache.incremental.documents.read_count: cache_name=key-value-pg-cache	GAUGE	0
+cache.incremental.time.last-update-duration-ms: cache_name=key-value-pg-cache	GAUGE	0
+cache.incremental.time.time-from-last-successful-start-ms: cache_name=key-value-pg-cache	GAUGE	0
+cache.incremental.time.time-from-last-update-start-ms: cache_name=key-value-pg-cache	GAUGE	0
+cache.incremental.update.attempts_count: cache_name=key-value-pg-cache	GAUGE	0
+cache.incremental.update.failures_count: cache_name=key-value-pg-cache	GAUGE	0
+cache.incremental.update.no_changes_count: cache_name=key-value-pg-cache	GAUGE	0
+
+distlock.brain-splits: distlock_name=component-distlock-metrics	GAUGE	0
+distlock.failures: distlock_name=component-distlock-metrics	GAUGE	0
+distlock.locked-for-ms: distlock_name=component-distlock-metrics	GAUGE	0
+distlock.locked: distlock_name=component-distlock-metrics	GAUGE	0
+distlock.running: distlock_name=component-distlock-metrics	GAUGE	0
+distlock.successes: distlock_name=component-distlock-metrics	GAUGE	0
+distlock.task-failures: distlock_name=component-distlock-metrics	GAUGE	0
+distlock.watchdog-triggers: distlock_name=component-distlock-metrics	GAUGE	0
+
+postgresql.connections.active: postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
+postgresql.connections.busy: postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
+postgresql.connections.closed: postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
+postgresql.connections.max-queue-size: postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
+postgresql.connections.max: postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
+postgresql.connections.opened: postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
+postgresql.connections.waiting: postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
+postgresql.errors: postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_error=connection, postgresql_instance=localhost:00000	GAUGE	0
+postgresql.errors: postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_error=connection-timeout, postgresql_instance=localhost:00000	GAUGE	0
+postgresql.errors: postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_error=duplicate-prepared-statement, postgresql_instance=localhost:00000	GAUGE	0
+postgresql.errors: postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_error=pool, postgresql_instance=localhost:00000	GAUGE	0
+postgresql.errors: postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_error=query-exec, postgresql_instance=localhost:00000	GAUGE	0
+postgresql.errors: postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_error=query-timeout, postgresql_instance=localhost:00000	GAUGE	0
+postgresql.errors: postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_error=queue, postgresql_instance=localhost:00000	GAUGE	0
+postgresql.prepared-per-connection.avg: postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
+postgresql.prepared-per-connection.max: postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
+postgresql.prepared-per-connection.min: postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
+postgresql.queries.executed: postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
+postgresql.queries.parsed: postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
+postgresql.queries.portals-bound: postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
+postgresql.queries.replies: postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
+postgresql.replication-lag.avg: postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
+postgresql.replication-lag.max: postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
+postgresql.replication-lag.min: postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
+postgresql.roundtrip-time.avg: postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
+postgresql.roundtrip-time.max: postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
+postgresql.roundtrip-time.min: postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
+postgresql.statement_timings: percentile=p0, postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000, postgresql_query=metrics_insert_value	GAUGE	0
+postgresql.statement_timings: percentile=p100, postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000, postgresql_query=metrics_insert_value	GAUGE	0
+postgresql.statement_timings: percentile=p50, postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000, postgresql_query=metrics_insert_value	GAUGE	0
+postgresql.statement_timings: percentile=p90, postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000, postgresql_query=metrics_insert_value	GAUGE	0
+postgresql.statement_timings: percentile=p95, postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000, postgresql_query=metrics_insert_value	GAUGE	0
+postgresql.statement_timings: percentile=p98, postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000, postgresql_query=metrics_insert_value	GAUGE	0
+postgresql.statement_timings: percentile=p99, postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000, postgresql_query=metrics_insert_value	GAUGE	0
+postgresql.statement_timings: percentile=p99_6, postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000, postgresql_query=metrics_insert_value	GAUGE	0
+postgresql.statement_timings: percentile=p99_9, postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000, postgresql_query=metrics_insert_value	GAUGE	0
+postgresql.transactions.committed: postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
+postgresql.transactions.no-tran: postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
+postgresql.transactions.rolled-back: postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
+postgresql.transactions.timings.acquire-connection: percentile=p0, postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
+postgresql.transactions.timings.acquire-connection: percentile=p100, postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
+postgresql.transactions.timings.acquire-connection: percentile=p50, postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
+postgresql.transactions.timings.acquire-connection: percentile=p90, postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
+postgresql.transactions.timings.acquire-connection: percentile=p95, postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
+postgresql.transactions.timings.acquire-connection: percentile=p98, postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
+postgresql.transactions.timings.acquire-connection: percentile=p99, postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
+postgresql.transactions.timings.acquire-connection: percentile=p99_6, postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
+postgresql.transactions.timings.acquire-connection: percentile=p99_9, postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
+
+# Roundtrip timings of the request
+postgresql.transactions.timings.busy: percentile=p0, postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
+postgresql.transactions.timings.busy: percentile=p100, postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
+postgresql.transactions.timings.busy: percentile=p50, postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
+postgresql.transactions.timings.busy: percentile=p90, postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
+postgresql.transactions.timings.busy: percentile=p95, postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
+postgresql.transactions.timings.busy: percentile=p98, postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
+postgresql.transactions.timings.busy: percentile=p99, postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
+postgresql.transactions.timings.busy: percentile=p99_6, postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
+postgresql.transactions.timings.busy: percentile=p99_9, postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
+
+postgresql.transactions.timings.connect: percentile=p0, postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
+postgresql.transactions.timings.connect: percentile=p100, postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
+postgresql.transactions.timings.connect: percentile=p50, postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
+postgresql.transactions.timings.connect: percentile=p90, postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
+postgresql.transactions.timings.connect: percentile=p95, postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
+postgresql.transactions.timings.connect: percentile=p98, postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
+postgresql.transactions.timings.connect: percentile=p99, postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
+postgresql.transactions.timings.connect: percentile=p99_6, postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
+postgresql.transactions.timings.connect: percentile=p99_9, postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
+postgresql.transactions.timings.full: percentile=p0, postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
+postgresql.transactions.timings.full: percentile=p100, postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
+postgresql.transactions.timings.full: percentile=p50, postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
+postgresql.transactions.timings.full: percentile=p90, postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
+postgresql.transactions.timings.full: percentile=p95, postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
+postgresql.transactions.timings.full: percentile=p98, postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
+postgresql.transactions.timings.full: percentile=p99, postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
+postgresql.transactions.timings.full: percentile=p99_6, postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
+postgresql.transactions.timings.full: percentile=p99_9, postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
+postgresql.transactions.timings.return-to-pool: percentile=p0, postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
+postgresql.transactions.timings.return-to-pool: percentile=p100, postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
+postgresql.transactions.timings.return-to-pool: percentile=p50, postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
+postgresql.transactions.timings.return-to-pool: percentile=p90, postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
+postgresql.transactions.timings.return-to-pool: percentile=p95, postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
+postgresql.transactions.timings.return-to-pool: percentile=p98, postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
+postgresql.transactions.timings.return-to-pool: percentile=p99, postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
+postgresql.transactions.timings.return-to-pool: percentile=p99_6, postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
+postgresql.transactions.timings.return-to-pool: percentile=p99_9, postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
+postgresql.transactions.timings.wait-end: percentile=p0, postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
+postgresql.transactions.timings.wait-end: percentile=p100, postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
+postgresql.transactions.timings.wait-end: percentile=p50, postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
+postgresql.transactions.timings.wait-end: percentile=p90, postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
+postgresql.transactions.timings.wait-end: percentile=p95, postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
+postgresql.transactions.timings.wait-end: percentile=p98, postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
+postgresql.transactions.timings.wait-end: percentile=p99, postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
+postgresql.transactions.timings.wait-end: percentile=p99_6, postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
+postgresql.transactions.timings.wait-end: percentile=p99_9, postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
+postgresql.transactions.timings.wait-start: percentile=p0, postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
+postgresql.transactions.timings.wait-start: percentile=p100, postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
+postgresql.transactions.timings.wait-start: percentile=p50, postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
+postgresql.transactions.timings.wait-start: percentile=p90, postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
+postgresql.transactions.timings.wait-start: percentile=p95, postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
+postgresql.transactions.timings.wait-start: percentile=p98, postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
+postgresql.transactions.timings.wait-start: percentile=p99, postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
+postgresql.transactions.timings.wait-start: percentile=p99_6, postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
+postgresql.transactions.timings.wait-start: percentile=p99_9, postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
+postgresql.transactions.total: postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0

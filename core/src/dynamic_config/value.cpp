@@ -1,22 +1,23 @@
 #include <userver/dynamic_config/value.hpp>
 
-#include <type_traits>
+#include <stdexcept>
+
+#include <fmt/format.h>
 
 #include <userver/formats/json/serialize.hpp>
 #include <userver/formats/json/value_builder.hpp>
-#include <userver/logging/logger.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace dynamic_config {
 
-formats::json::Value DocsMap::Get(const std::string& name) const {
-  const auto it = docs_.find(name);
+formats::json::Value DocsMap::Get(std::string_view name) const {
+  const auto it = utils::impl::FindTransparent(docs_, name);
   if (it == docs_.end()) {
-    throw std::runtime_error("Can't find doc for '" + name + "'");
+    throw std::runtime_error(fmt::format("Can't find doc for '{}'", name));
   }
 
-  requested_names_.insert(name);
+  requested_names_.emplace(name);
   return it->second;
 }
 
@@ -65,13 +66,8 @@ std::unordered_set<std::string> DocsMap::GetNames() const {
 }
 
 std::string DocsMap::AsJsonString() const {
-  formats::json::ValueBuilder body_builder(formats::json::Type::kObject);
-
-  for (const auto& [key, value] : docs_) {
-    body_builder[key] = value;
-  }
-
-  return formats::json::ToString(body_builder.ExtractValue());
+  return formats::json::ToString(
+      formats::json::ValueBuilder{docs_}.ExtractValue());
 }
 
 bool DocsMap::AreContentsEqual(const DocsMap& other) const {
@@ -79,6 +75,16 @@ bool DocsMap::AreContentsEqual(const DocsMap& other) const {
 }
 
 const std::string kValueDictDefaultName = "__default__";
+
+namespace impl {
+
+[[noreturn]] void ThrowNoValueException(std::string_view dict_name,
+                                        std::string_view key) {
+  throw std::runtime_error(
+      fmt::format("no value for '{}' in dict '{}'", key, dict_name));
+}
+
+}  // namespace impl
 
 }  // namespace dynamic_config
 

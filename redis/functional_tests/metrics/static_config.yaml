@@ -1,0 +1,88 @@
+# yaml
+components_manager:
+    components:
+        handler-metrics:
+            path: /v1/metrics
+            task_processor: main-task-processor
+            method: GET,DELETE,POST
+
+        key-value-database:
+            groups:
+              - config_name: metrics_test
+                db: metrics_test
+            subscribe_groups:
+              - config_name: metrics_test
+                db: metrics_test
+            thread_pools:
+                redis_thread_pool_size: 8
+                sentinel_thread_pool_size: 1
+
+        testsuite-support:
+
+        http-client:
+            fs-task-processor: main-task-processor
+        dns-client:
+            fs-task-processor: fs-task-processor
+
+        tests-control:
+            method: POST
+            path: /tests/{action}
+            skip-unregistered-testpoints: true
+            task_processor: main-task-processor
+            testpoint-timeout: 10s
+            testpoint-url: $mockserver/testpoint
+            throttling_enabled: false
+
+        server:
+            listener:
+                port: 8187
+                task_processor: main-task-processor
+            listener-monitor:
+                port: $monitor-server-port
+                port#fallback: 8086
+                connection:
+                    in_buffer_size: 32768
+                    requests_queue_size_threshold: 100
+                task_processor: main-task-processor
+        logging:
+            fs-task-processor: fs-task-processor
+            loggers:
+                default:
+                    file_path: '@stderr'
+                    level: debug
+                    overflow_behavior: discard
+
+        handler-server-monitor:
+            path: /service/monitor
+            method: GET
+            task_processor: main-task-processor
+
+        tracer:
+            service-name: redis-metrics
+
+        dynamic-config:
+            fs-cache-path: ''
+
+        dynamic-config-fallbacks:
+            fallback-path: /etc/redis_metrics/dynamic_config_fallback.json
+
+        secdist: {}
+        default-secdist-provider:
+            config: /etc/redis_service/secure_data.json
+            missing-ok: true
+            environment-secrets-key: SECDIST_CONFIG
+
+    coro_pool:
+        initial_size: 500
+        max_size: 1000
+
+    task_processors:
+        main-task-processor:
+            worker_threads: 4
+            thread_name: main-worker
+
+        fs-task-processor:
+            thread_name: fs-worker
+            worker_threads: 4
+
+    default_task_processor: main-task-processor

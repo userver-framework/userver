@@ -62,24 +62,55 @@ class YamlConfig {
   /// @brief Returns true if *this holds nothing. When `IsMissing()` returns
   /// `true` any attempt to get the actual value or iterate over *this will
   /// throw MemberMissingException.
-  bool IsMissing() const;
+  bool IsMissing() const noexcept;
 
   /// @brief Returns true if *this holds 'null'.
-  bool IsNull() const;
+  bool IsNull() const noexcept;
+
+  /// @brief Returns true if *this is convertible to bool.
+  bool IsBool() const noexcept;
+
+  /// @brief Returns true if *this is convertible to int.
+  bool IsInt() const noexcept;
 
   /// @brief Returns true if *this is convertible to int64_t.
-  /// @throw Nothing.
-  bool IsInt64() const;
+  bool IsInt64() const noexcept;
 
   /// @brief Returns true if *this is convertible to uint64_t.
-  /// @throw Nothing.
-  bool IsUInt64() const;
+  bool IsUInt64() const noexcept;
+
+  /// @brief Returns true if *this is convertible to double.
+  bool IsDouble() const noexcept;
+
+  /// @brief Returns true if *this is convertible to std::string.
+  bool IsString() const noexcept;
+
+  /// @brief Returns true if *this is an array (Type::kArray).
+  bool IsArray() const noexcept;
+
+  /// @brief Returns true if *this is a map (Type::kObject).
+  bool IsObject() const noexcept;
+
+  /// @throw MemberMissingException if `this->IsMissing()`.
+  void CheckNotMissing() const;
+
+  /// @throw MemberMissingException if `*this` is not an array.
+  void CheckArray() const;
 
   /// @throw MemberMissingException if `*this` is not an array or Null.
   void CheckArrayOrNull() const;
 
   /// @throw TypeMismatchException if `*this` is not a map or Null.
   void CheckObjectOrNull() const;
+
+  /// @throw TypeMismatchException if `*this` is not a map.
+  void CheckObject() const;
+
+  /// @throw TypeMismatchException if `*this` is not convertible to std::string.
+  void CheckString() const;
+
+  /// @throw TypeMismatchException if `*this` is not a map, array or Null.
+  void CheckObjectOrArrayOrNull() const;
 
   /// @brief Returns value of *this converted to T.
   /// @throw Anything derived from std::exception.

@@ -3,11 +3,16 @@ project(userver-samples CXX)
 add_custom_target(${PROJECT_NAME})
 
 function(userver_sample_testsuite_add)
+    set(PYTEST_ARGS_CONFIG_VARS "")
+
     set(CONFIG_VARS_PATH "${CMAKE_CURRENT_SOURCE_DIR}/config_vars.yaml")
     if (EXISTS "${CONFIG_VARS_PATH}")
-        set(PYTEST_ARGS_CONFIG_VARS "--service-config-vars=${CONFIG_VARS_PATH}")
-    else()
-        set(PYTEST_ARGS_CONFIG_VARS "")
+        set(PYTEST_ARGS_CONFIG_VARS ${PYTEST_ARGS_CONFIG_VARS} "--service-config-vars=${CONFIG_VARS_PATH}")
+    endif()
+
+    set(SECDIST_PATH "${CMAKE_CURRENT_SOURCE_DIR}/secure_data.json")
+    if (EXISTS "${SECDIST_PATH}")
+        set(PYTEST_ARGS_CONFIG_VARS ${PYTEST_ARGS_CONFIG_VARS} "--service-secdist=${SECDIST_PATH}")
     endif()
 
     userver_testsuite_add(
@@ -28,12 +33,6 @@ add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-config_service)
 
 add_subdirectory(testsuite-support)
 add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-testsuite-support)
-
-# TODO: detect flatbuf support with --filename-suffix
-if (NOT USERVER_OPEN_SOURCE_BUILD)
-    add_subdirectory(flatbuf_service)
-    add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-flatbuf_service)
-endif()
 
 if (USERVER_FEATURE_GRPC)
     add_subdirectory(grpc_service)
@@ -64,6 +63,9 @@ if (USERVER_FEATURE_POSTGRESQL)
     add_subdirectory(postgres_service)
     add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-postgres_service)
 
+    add_subdirectory(postgres_auth)
+    add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-postgres_auth)
+
     add_subdirectory(postgres-support)
     add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-postgres-support)
 endif()
@@ -87,4 +89,9 @@ endif()
 if (USERVER_FEATURE_RABBITMQ)
     add_subdirectory(rabbitmq_service)
     add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-rabbitmq_service)
+endif()
+
+if (USERVER_FEATURE_MYSQL)
+    add_subdirectory(mysql_service)
+    add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-mysql_service)
 endif()

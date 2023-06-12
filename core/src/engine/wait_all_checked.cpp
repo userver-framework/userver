@@ -14,7 +14,6 @@ FutureStatus DoWaitAllChecked(utils::impl::Span<ContextAccessor*> targets,
   UASSERT_MSG(AreUniqueValues(targets),
               "Same tasks/futures were detected in WaitAny* call");
   auto& current = current_task::GetCurrentTaskContext();
-  if (current.ShouldCancel()) return FutureStatus::kCancelled;
 
   WaitAnyWaitStrategy wait_strategy(deadline, targets, current);
   while (true) {

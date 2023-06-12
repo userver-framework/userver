@@ -32,8 +32,8 @@ auto TestInvalid(const std::string& input) {
       << "\"";
 }
 
-template <typename T>
-auto TestConverts(const std::string& input, T expectedResult) {
+template <typename StringType, typename T>
+auto CheckConverts(StringType input, T expectedResult) {
   T actualResult{};
   ASSERT_NO_THROW(actualResult = utils::FromString<T>(input))
       << "type = " << compiler::GetTypeName<T>() << ", input = \"" << input
@@ -41,6 +41,13 @@ auto TestConverts(const std::string& input, T expectedResult) {
   ASSERT_EQ(actualResult, expectedResult)
       << "type = " << compiler::GetTypeName<T>() << ", input = \"" << input
       << "\"";
+}
+
+template <typename T>
+auto TestConverts(const std::string& input, T expectedResult) {
+  CheckConverts(input.data(), expectedResult);
+  CheckConverts(input, expectedResult);
+  CheckConverts(std::string_view{input}, expectedResult);
 }
 
 template <typename T>
@@ -170,6 +177,8 @@ TYPED_TEST(FromStringTest, ExtraGarbage) {
   TestInvalid<T>("1-");
   TestInvalid<T>("a1");
   TestInvalid<T>("1a");
+  TestInvalid<T>("+-1");
+  TestInvalid<T>("+-0");
 
   if constexpr (!std::is_floating_point_v<T>) {
     TestInvalid<T>("1.0");
@@ -210,6 +219,33 @@ TYPED_TEST(FromStringTest, ExceptionDetails) {
   ASSERT_FALSE(what.empty());
   ASSERT_NE(what.find(".blah"), std::string::npos);
   ASSERT_NE(what.find(compiler::GetTypeName<T>()), std::string::npos);
+}
+
+TEST(FromString, StringViewToFloatingPointSmall) {
+  char buffer[5];
+  for (int i = 1; i <= 5; i++) {
+    buffer[i - 1] = '0' + i;
+  }
+  const std::string_view str(buffer, 4);
+  const double expected = 1234;
+  CheckConverts(str, expected);
+}
+
+TEST(FromString, StringViewToFloatingPointBig) {
+  char buffer[33];
+  std::fill(buffer, buffer + 33, '0');
+
+  buffer[1] = '.';
+  buffer[32] = '9';
+  std::string_view str(buffer, 32);
+  long double expected = 0;
+  CheckConverts(str, expected);
+
+  buffer[1] = '0';
+  buffer[31] = '9';
+  str = std::string_view{buffer, 32};
+  expected = 9;
+  CheckConverts(str, expected);
 }
 
 USERVER_NAMESPACE_END

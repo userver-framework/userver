@@ -37,6 +37,7 @@ class Manager;
 /// components | dictionary of "component name": "options" | -
 /// default_task_processor | name of the default task processor to use in components | -
 /// task_processors.*NAME*.*OPTIONS* | dictionary of task processors to create and their options. See description below | -
+/// mlock_debug_info | whether to mlock(2) process debug info to prevent major page faults on unwinding | false
 ///
 /// ## Static task_processor options:
 /// Name | Description | Default value
@@ -44,7 +45,8 @@ class Manager;
 /// guess-cpu-limit | guess optimal threads count | false
 /// thread_name | set OS thread name to this value | -
 /// worker_threads | threads count for the task processor | -
-/// os-scheduling | OS scheduling mode for the task processor threads. 'idle' sets the lowest pririty. 'low-priority' sets the priority below 'normal' but higher than 'idle'. | normal
+/// os-scheduling | OS scheduling mode for the task processor threads. 'idle' sets the lowest priority. 'low-priority' sets the priority below 'normal' but higher than 'idle'. | normal
+/// spinning-iterations | tunes the number of spin-wait iterations in case of an empty task queue before threads go to sleep | 10000
 /// task-trace | optional dictionary of tracing options | empty (disabled)
 /// task-trace.every | set N to trace each Nth task | 1000
 /// task-trace.max-context-switch-count | set upper limit of context switches to trace for a single task | 1000
@@ -68,8 +70,7 @@ class ManagerControllerComponent final : public impl::ComponentBase {
   static constexpr std::string_view kName = "manager-controller";
 
  private:
-  formats::json::Value ExtendStatistics(
-      const utils::statistics::StatisticsRequest& /*request*/);
+  void WriteStatistics(utils::statistics::Writer& writer);
 
   void OnConfigUpdate(const dynamic_config::Snapshot& cfg);
 

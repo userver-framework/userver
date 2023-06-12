@@ -7,7 +7,9 @@
 #include <fmt/compile.h>
 #include <fmt/format.h>
 
-#include <userver/utils/algo.hpp>
+#include <userver/utils/impl/transparent_hash.hpp>
+#include <userver/utils/overloaded.hpp>
+#include <userver/utils/statistics/fmt.hpp>
 #include <userver/utils/statistics/storage.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -27,32 +29,36 @@ class FormatBuilder final : public utils::statistics::BaseFormatBuilder {
 
   void HandleMetric(std::string_view path, utils::statistics::LabelsSpan labels,
                     const MetricValue& value) override {
-    DumpMetricName(std::string{path});
+    DumpMetricNameAndType(path, value);
     DumpLabels(labels);
-    std::visit(
-        [this](const auto& v) {
-          fmt::format_to(std::back_inserter(buf_), FMT_COMPILE(" {}"), v);
-        },
-        value);
-    buf_.push_back('\n');
+    fmt::format_to(std::back_inserter(buf_), FMT_COMPILE(" {}\n"), value);
   }
 
   std::string Release() { return fmt::to_string(buf_); }
 
  private:
-  void DumpMetricName(const std::string& name) {
-    if (auto* converted = utils::FindOrNullptr(metrics_, name)) {
+  void DumpMetricNameAndType(std::string_view name, const MetricValue& value) {
+    if (const auto* const converted =
+            utils::impl::FindTransparentOrNullptr(metrics_, name)) {
       buf_.append(*converted);
       return;
     }
 
     auto prometheus_name = impl::ToPrometheusName(name);
-    metrics_.emplace(name, prometheus_name);
-    if constexpr (IsTyped == Typed::kYes) {
-      fmt::format_to(std::back_inserter(buf_), FMT_COMPILE("# TYPE {} gauge\n"),
-                     prometheus_name);
-    }
+    DumpMetricType(prometheus_name, value);
     buf_.append(prometheus_name);
+    metrics_.emplace(name, std::move(prometheus_name));
+  }
+
+  void DumpMetricType([[maybe_unused]] std::string_view prometheus_name,
+                      [[maybe_unused]] const MetricValue& value) {
+    if constexpr (IsTyped == Typed::kYes) {
+      const auto type = value.Visit(utils::Overloaded{
+          [](const Rate&) -> std::string_view { return "counter"; },
+          [](const auto&) -> std::string_view { return "gauge"; }});
+      fmt::format_to(std::back_inserter(buf_), FMT_COMPILE("# TYPE {} {}\n"),
+                     prometheus_name, type);
+    }
   }
 
   void DumpLabels(utils::statistics::LabelsSpan labels) {
@@ -74,7 +80,7 @@ class FormatBuilder final : public utils::statistics::BaseFormatBuilder {
   }
 
   fmt::memory_buffer buf_;
-  std::unordered_map<std::string, std::string> metrics_;
+  utils::impl::TransparentMap<std::string, std::string> metrics_;
 };
 
 }  // namespace
@@ -111,9 +117,8 @@ std::string ToPrometheusLabel(std::string_view name) {
 
 }  // namespace impl
 
-std::string ToPrometheusFormat(
-    const utils::statistics::Storage& statistics,
-    const utils::statistics::StatisticsRequest& request) {
+std::string ToPrometheusFormat(const utils::statistics::Storage& statistics,
+                               const utils::statistics::Request& request) {
   impl::FormatBuilder<impl::Typed::kYes> builder{};
   statistics.VisitMetrics(builder, request);
   return builder.Release();
@@ -121,7 +126,7 @@ std::string ToPrometheusFormat(
 
 std::string ToPrometheusFormatUntyped(
     const utils::statistics::Storage& statistics,
-    const utils::statistics::StatisticsRequest& request) {
+    const utils::statistics::Request& request) {
   impl::FormatBuilder<impl::Typed::kNo> builder{};
   statistics.VisitMetrics(builder, request);
   return builder.Release();

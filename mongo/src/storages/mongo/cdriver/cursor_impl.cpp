@@ -27,10 +27,10 @@ namespace storages::mongo::impl::cdriver {
 
 CDriverCursorImpl::CDriverCursorImpl(
     cdriver::CDriverPoolImpl::BoundClientPtr client, cdriver::CursorPtr cursor,
-    std::shared_ptr<stats::ReadOperationStatistics> stats_ptr)
+    std::shared_ptr<stats::OperationStatisticsItem> find_stats)
     : client_(std::move(client)),
       cursor_(std::move(cursor)),
-      stats_ptr_(std::move(stats_ptr)) {
+      find_stats_(std::move(find_stats)) {
   Next();  // prime the cursor
 }
 
@@ -56,10 +56,7 @@ void CDriverCursorImpl::Next() {
 
   UASSERT(client_ && cursor_);
   const auto batch_num_before = mongoc_cursor_get_batch_num(cursor_.get());
-  stats::OperationStopwatch<stats::ReadOperationStatistics> cursor_next_sw(
-      stats_ptr_, batch_num_before == -1
-                      ? stats::ReadOperationStatistics::kFind
-                      : stats::ReadOperationStatistics::kGetMore);
+  stats::OperationStopwatch cursor_next_sw(find_stats_, "find");
 
   const bson_t* current_bson = nullptr;
   MongoError error;

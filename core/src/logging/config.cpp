@@ -10,14 +10,14 @@ USERVER_NAMESPACE_BEGIN
 
 namespace logging {
 
-LoggerConfig::QueueOveflowBehavior Parse(
+LoggerConfig::QueueOverflowBehavior Parse(
     const yaml_config::YamlConfig& value,
-    formats::parse::To<LoggerConfig::QueueOveflowBehavior>) {
+    formats::parse::To<LoggerConfig::QueueOverflowBehavior>) {
   const auto overflow_behavior_name = value.As<std::string>();
   if (overflow_behavior_name == "discard")
-    return LoggerConfig::QueueOveflowBehavior::kDiscard;
+    return LoggerConfig::QueueOverflowBehavior::kDiscard;
   if (overflow_behavior_name == "block")
-    return LoggerConfig::QueueOveflowBehavior::kBlock;
+    return LoggerConfig::QueueOverflowBehavior::kBlock;
   throw std::runtime_error("Unknown queue overflow behavior '" +
                            overflow_behavior_name +
                            "' (must be one of 'block', 'discard')");
@@ -49,11 +49,11 @@ LoggerConfig Parse(const yaml_config::YamlConfig& value,
   }
 
   config.queue_overflow_behavior =
-      value["overflow_behavior"].As<LoggerConfig::QueueOveflowBehavior>(
-          LoggerConfig::QueueOveflowBehavior::kDiscard);
+      value["overflow_behavior"].As<LoggerConfig::QueueOverflowBehavior>(
+          LoggerConfig::QueueOverflowBehavior::kDiscard);
 
-  config.thread_pool_size = value["thread_pool_size"].As<size_t>(
-      LoggerConfig::kDefaultThreadPoolSize);
+  config.fs_task_processor =
+      value["fs-task-processor"].As<std::optional<std::string>>();
 
   return config;
 }

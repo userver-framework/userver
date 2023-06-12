@@ -16,13 +16,12 @@ Server::Server(const components::ComponentConfig& component_config,
           component_config.As<server::ServerConfig>(), component_context)) {
   auto& statistics_storage =
       component_context.FindComponent<StatisticsStorage>().GetStorage();
-  server_statistics_holder_ = statistics_storage.RegisterExtender(
-      "server", [this](const utils::statistics::StatisticsRequest& request) {
-        return ExtendStatistics(request);
-      });
+  server_statistics_holder_ = statistics_storage.RegisterWriter(
+      "server",
+      [this](utils::statistics::Writer& writer) { WriteStatistics(writer); });
   handler_statistics_holder_ = statistics_storage.RegisterWriter(
-      "http.handler.total", [this](utils::statistics::Writer writer) {
-        return server_->WriteTotalHandlerStatistics(std::move(writer));
+      "http.handler.total", [this](utils::statistics::Writer& writer) {
+        return server_->WriteTotalHandlerStatistics(writer);
       });
 }
 
@@ -51,9 +50,8 @@ void Server::AddHandler(const server::handlers::HttpHandlerBase& handler,
   server_->AddHandler(handler, task_processor);
 }
 
-formats::json::Value Server::ExtendStatistics(
-    const utils::statistics::StatisticsRequest& request) {
-  return server_->GetMonitorData(request);
+void Server::WriteStatistics(utils::statistics::Writer& writer) {
+  server_->WriteMonitorData(writer);
 }
 
 yaml_config::Schema Server::GetStaticConfigSchema() {
@@ -94,10 +92,10 @@ properties:
                 defaultDescription: 32768
             task_processor:
                 type: string
-                description: task processor to process incomming requests
+                description: task processor to process incoming requests
             backlog:
                 type: integer
-                description: max count of new coneections pending acceptance
+                description: max count of new connections pending acceptance
                 defaultDescription: 1024
             handler-defaults:
                 type: object
@@ -116,6 +114,10 @@ properties:
                     parse_args_from_body:
                         type: boolean
                         description: optional field to parse request according to x-www-form-urlencoded rules and make parameters accessible as query parameters
+                    set_tracing_headers:
+                        type: boolean
+                        description: whether to set http tracing headers (X-YaTraceId, X-YaSpanId, X-RequestId)
+                        defaultDescription: true
             connection:
                 type: object
                 description: connection options
@@ -155,10 +157,10 @@ properties:
                 defaultDescription: 32768
             task_processor:
                 type: string
-                description: task processor to process incomming requests
+                description: task processor to process incoming requests
             backlog:
                 type: integer
-                description: max count of new coneections pending acceptance
+                description: max count of new connections pending acceptance
                 defaultDescription: 1024
             connection:
                 type: object

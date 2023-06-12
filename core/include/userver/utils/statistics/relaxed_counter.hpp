@@ -5,6 +5,8 @@
 
 #include <atomic>
 
+#include <userver/utils/statistics/fwd.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace utils::statistics {
@@ -73,6 +75,11 @@ class RelaxedCounter final {
 
   std::atomic<T> val_{T{}};
 };
+
+template <typename T>
+void DumpMetric(Writer& writer, const RelaxedCounter<T>& value) {
+  writer = value.Load();
+}
 
 }  // namespace utils::statistics
 

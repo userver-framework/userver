@@ -25,5 +25,5 @@ needs. If there's something missing, please fill a
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref md_en_userver_tutorial_build | @ref md_en_userver_roadmap_and_changelog ⇨
+⇦ @ref md_en_userver_deploy_env | @ref md_en_userver_roadmap_and_changelog ⇨
 @htmlonly </div> @endhtmlonly

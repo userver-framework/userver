@@ -14,7 +14,7 @@ namespace {
 
 const std::chrono::milliseconds kThreadPoolWaitingSleepTime{20};
 
-const std::string kSentinelThreadName = "redis_sent";
+const std::string kSentinelThreadName = "redis_sentinel";
 const std::string kRedisThreadName = "redis_client";
 
 }  // namespace

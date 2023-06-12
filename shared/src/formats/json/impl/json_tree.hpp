@@ -3,6 +3,7 @@
 #include <vector>
 
 #include <rapidjson/document.h>
+#include <boost/container/small_vector.hpp>
 
 #include <userver/formats/json/impl/types.hpp>
 #include <userver/utils/assert.hpp>
@@ -10,7 +11,7 @@
 USERVER_NAMESPACE_BEGIN
 
 namespace formats::json::impl {
-constexpr int kInitialStackDepth = 32;
+constexpr std::size_t kInitialStackDepth = 32;
 
 /// Artificial "stack frame" for tree iterator
 class TreeIterFrame {
@@ -66,10 +67,13 @@ class TreeIterFrame {
   std::size_t end_ = 0;
 };
 
+using TreeStack =
+    boost::container::small_vector<TreeIterFrame, kInitialStackDepth>;
+
 /// Build path to `node` by recursively traversing `root`
 std::string MakePath(const Value* root, const Value* node, int node_depth);
 /// Transform nodes onto stack into string
-std::string ExtractPath(const std::vector<TreeIterFrame>& stack);
+std::string ExtractPath(const TreeStack& stack);
 }  // namespace formats::json::impl
 
 USERVER_NAMESPACE_END

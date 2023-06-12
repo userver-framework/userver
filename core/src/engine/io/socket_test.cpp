@@ -235,7 +235,7 @@ UTEST(Socket, Cancel) {
       return ::testing::AssertionSuccess();
     } catch (const std::exception&) {
       return ::testing::AssertionFailure()
-             << "io operaton " << io_op_text
+             << "io operation " << io_op_text
              << " did throw something other than IoCancelled";
     }
     return ::testing::AssertionFailure()

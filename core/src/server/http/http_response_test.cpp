@@ -2,6 +2,7 @@
 #include <vector>
 
 #include <fmt/format.h>
+#include <gmock/gmock.h>
 
 #include <server/http/http_request_impl.hpp>
 #include <userver/engine/async.hpp>
@@ -45,6 +46,43 @@ UTEST(HttpResponse, Smoke) {
             fmt::format("\r\n\r\n{}", kBody));
 }
 
+UTEST(HttpResponse, AccounterLifetimeIfNotSent) {
+  auto accounter = std::make_unique<server::request::ResponseDataAccounter>();
+  const server::http::HttpRequestImpl request{*accounter};
+  request.GetHttpResponse().SetSendFailed(std::chrono::steady_clock::now());
+  accounter.reset();
+  // Now we just should not crash
+}
+
+UTEST(HttpResponse, AccounterLifetimeIfSent) {
+  const auto test_deadline =
+      engine::Deadline::FromDuration(utest::kMaxTestWaitTime);
+  auto accounter = std::make_unique<server::request::ResponseDataAccounter>();
+
+  const server::http::HttpRequestImpl request{*accounter};
+  auto& response = request.GetHttpResponse();
+
+  const std::string body = "test data";
+  response.SetData(body);
+  response.SetStatus(server::http::HttpStatus::kOk);
+
+  auto [server, client] =
+      internal::net::TcpListener{}.MakeSocketPair(test_deadline);
+  auto send_task = engine::AsyncNoSpan(
+      [](auto&& response, auto&& socket) { response.SendResponse(socket); },
+      std::ref(response), std::move(server));
+
+  std::string buffer(4096, '\0');
+  const auto reply_size =
+      client.RecvAll(buffer.data(), buffer.size(), test_deadline);
+  buffer.resize(reply_size);
+
+  EXPECT_THAT(buffer, testing::HasSubstr(body));
+
+  accounter.reset();
+  // Now we just should not crash
+}
+
 class HttpResponseBody : public testing::TestWithParam<int> {};
 
 UTEST_P(HttpResponseBody, ForbiddenBody) {
@@ -78,5 +116,14 @@ UTEST_P(HttpResponseBody, ForbiddenBody) {
 
 INSTANTIATE_UTEST_SUITE_P(HttpResponseForbiddenBody, HttpResponseBody,
                           testing::Values(100, 101, 150, 199, 304, 204));
+
+TEST(HttpResponse, GetHeaderDoesntThrow) {
+  server::request::ResponseDataAccounter accounter{};
+  const server::http::HttpRequestImpl request_impl{accounter};
+  const server::http::HttpResponse response{request_impl, accounter};
+
+  const auto& header = response.GetHeader("nonexistent-header");
+  EXPECT_TRUE(header.empty());
+}
 
 USERVER_NAMESPACE_END

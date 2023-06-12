@@ -26,9 +26,16 @@ TEST(Hex, FromHexUpperBound) {
 }
 
 TEST(Hex, ToHex) {
-  std::string data{"_+=156"};
-  std::string reference{"5f2b3d313536"};
-  std::string result = ToHex(data);
+  constexpr std::string_view data{"_+=156"};
+  constexpr std::string_view reference{"5f2b3d313536"};
+  const std::string result = ToHex(data);
+  EXPECT_EQ(reference, result);
+}
+
+TEST(Hex, ToHexLong) {
+  constexpr std::string_view data{"21e30c92afe54396"};
+  constexpr std::string_view reference{"32316533306339326166653534333936"};
+  const std::string result = ToHex(data);
   EXPECT_EQ(reference, result);
 }
 
@@ -52,7 +59,7 @@ TEST(Hex, FromHex) {
     std::string reference{"_+=15"};
     std::string result;
     EXPECT_FALSE(IsHexData(data));  // no, because one symbol is missing
-    // Add extra 2 elements to better check where output_last wil be
+    // Add extra 2 elements to better check where output_last will be
     result.reserve(FromHexUpperBound(data.size()));
     auto input_size = FromHex(data, result);
     // All input except last char should have been read

@@ -4,7 +4,7 @@
 
 #include <userver/formats/parse/to.hpp>
 #include <userver/formats/serialize/to.hpp>
-#include <userver/utils/meta.hpp>
+#include <userver/utils/meta_light.hpp>
 
 /// @file userver/formats/common/meta.hpp
 /// @brief Metaprogramming helpers for converters detection.

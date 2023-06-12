@@ -12,9 +12,9 @@
 
 #include <userver/utest/using_namespace_userver.hpp>
 
-namespace http = clients::http;
-
 namespace {
+
+namespace http = clients::http;
 
 struct Config {
   std::string log_level = "error";
@@ -182,13 +182,14 @@ void Worker(WorkerContext& context) {
   LOG_INFO() << "Worker stopped";
 }
 
-}  // namespace
-
 void DoWork(const Config& config, const std::vector<std::string>& urls) {
   LOG_INFO() << "Starting thread " << std::this_thread::get_id();
 
   auto& tp = engine::current_task::GetTaskProcessor();
-  http::Client http_client{{"", config.io_threads, config.defer_events}, tp};
+  http::Client http_client{
+      {"", config.io_threads, config.defer_events},
+      tp,
+      std::vector<utils::NotNull<clients::http::Plugin*>>{}};
   LOG_INFO() << "Client created";
 
   http_client.SetMultiplexingEnabled(config.multiplexing);
@@ -221,15 +222,22 @@ void DoWork(const Config& config, const std::vector<std::string>& urls) {
                  << " average RPS = " << rps;
 }
 
+}  // namespace
+
 int main(int argc, char* argv[]) {
   const Config config = ParseConfig(argc, argv);
 
-  if (!config.logfile.empty())
-    logging::SetDefaultLogger(logging::MakeFileLogger(
-        "default", config.logfile, logging::Format::kTskv,
-        logging::LevelFromString(config.log_level)));
-  else
-    logging::SetDefaultLoggerLevel(logging::LevelFromString(config.log_level));
+  logging::LoggerPtr logger;
+  const auto level = logging::LevelFromString(config.log_level);
+  if (!config.logfile.empty()) {
+    logger = logging::MakeFileLogger("default", config.logfile,
+                                     logging::Format::kTskv, level);
+  } else {
+    logger =
+        logging::MakeStderrLogger("default", logging::Format::kTskv, level);
+  }
+  logging::DefaultLoggerGuard guard{logger};
+
   LOG_WARNING() << "Starting using requests=" << config.count
                 << " coroutines=" << config.coroutines
                 << " timeout=" << config.timeout_ms << "ms";

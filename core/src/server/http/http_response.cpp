@@ -72,6 +72,8 @@ bool IsBodyForbiddenForStatus(server::http::HttpStatus status) {
          (static_cast<int>(status) >= 100 && static_cast<int>(status) < 200);
 }
 
+const std::string kEmptyString{};
+
 }  // namespace
 
 namespace server::http {
@@ -80,10 +82,20 @@ namespace impl {
 
 void OutputHeader(std::string& header, std::string_view key,
                   std::string_view val) {
-  header.append(key);
-  header.append(kKeyValueHeaderSeparator);
-  header.append(val);
-  header.append(kCrlf);
+  const auto old_size = header.size();
+  header.resize(old_size + key.size() + kKeyValueHeaderSeparator.size() +
+                val.size() + kCrlf.size());
+
+  char* append_position = header.data() + old_size;
+  const auto append = [&append_position](std::string_view what) {
+    std::memcpy(append_position, what.data(), what.size());
+    append_position += what.size();
+  };
+
+  append(key);
+  append(kKeyValueHeaderSeparator);
+  append(val);
+  append(kCrlf);
 }
 
 }  // namespace impl
@@ -102,15 +114,37 @@ void HttpResponse::SetSendFailed(
   request::ResponseBase::SetSendFailed(failure_time);
 }
 
-void HttpResponse::SetHeader(std::string name, std::string value) {
+bool HttpResponse::SetHeader(std::string name, std::string value) {
+  if (headers_end_.IsReady()) {
+    // Attempt to set headers for Stream'ed response after it is already set
+    return false;
+  }
+
   CheckHeaderName(name);
   CheckHeaderValue(value);
-  const auto header_it = headers_.find(name);
-  if (header_it == headers_.end()) {
-    headers_.emplace(std::move(name), std::move(value));
-  } else {
-    header_it->second = std::move(value);
+
+  headers_.insert_or_assign(std::move(name), std::move(value));
+
+  return true;
+}
+
+bool HttpResponse::SetHeader(std::string_view name, std::string value) {
+  return SetHeader(std::string{name}, std::move(value));
+}
+
+bool HttpResponse::SetHeader(
+    const USERVER_NAMESPACE::http::headers::PredefinedHeader& header,
+    std::string value) {
+  if (headers_end_.IsReady()) {
+    // Attempt to set headers for Stream'ed response after it is already set
+    return false;
   }
+
+  CheckHeaderValue(value);
+
+  headers_.insert_or_assign(header, std::move(value));
+
+  return true;
 }
 
 void HttpResponse::SetContentType(
@@ -123,9 +157,25 @@ void HttpResponse::SetContentEncoding(std::string encoding) {
             std::move(encoding));
 }
 
-void HttpResponse::SetStatus(HttpStatus status) { status_ = status; }
+bool HttpResponse::SetStatus(HttpStatus status) {
+  if (headers_end_.IsReady()) {
+    // Attempt to set headers for Stream'ed response after it is already set
+    return false;
+  }
 
-void HttpResponse::ClearHeaders() { headers_.clear(); }
+  status_ = status;
+  return true;
+}
+
+bool HttpResponse::ClearHeaders() {
+  if (headers_end_.IsReady()) {
+    // Attempt to set headers for Stream'ed response after it is already set
+    return false;
+  }
+
+  headers_.clear();
+  return true;
+}
 
 void HttpResponse::SetCookie(Cookie cookie) {
   CheckHeaderValue(cookie.Name());
@@ -146,12 +196,27 @@ HttpResponse::HeadersMapKeys HttpResponse::GetHeaderNames() const {
   return HttpResponse::HeadersMapKeys{headers_};
 }
 
-const std::string& HttpResponse::GetHeader(
-    const std::string& header_name) const {
-  return headers_.at(header_name);
+const std::string& HttpResponse::GetHeader(std::string_view header_name) const {
+  auto it = headers_.find(header_name);
+  if (it == headers_.end()) return kEmptyString;
+  return it->second;
 }
 
-bool HttpResponse::HasHeader(const std::string& header_name) const {
+const std::string& HttpResponse::GetHeader(
+    const USERVER_NAMESPACE::http::headers::PredefinedHeader& header_name)
+    const {
+  auto it = headers_.find(header_name);
+  if (it == headers_.end()) return kEmptyString;
+  return it->second;
+}
+
+bool HttpResponse::HasHeader(std::string_view header_name) const {
+  return headers_.find(header_name) != headers_.end();
+}
+
+bool HttpResponse::HasHeader(
+    const USERVER_NAMESPACE::http::headers::PredefinedHeader& header_name)
+    const {
   return headers_.find(header_name) != headers_.end();
 }
 
@@ -160,7 +225,7 @@ HttpResponse::CookiesMapKeys HttpResponse::GetCookieNames() const {
 }
 
 const Cookie& HttpResponse::GetCookie(std::string_view cookie_name) const {
-  return cookies_.at(cookie_name);
+  return cookies_.at(cookie_name.data());
 }
 
 void HttpResponse::SetHeadersEnd() { headers_end_.Send(); }
@@ -173,6 +238,8 @@ void HttpResponse::SendResponse(engine::io::Socket& socket) {
   // Adjusting it to 1KiB to fit jemalloc size class
   static constexpr auto kTypicalHeadersSize = 1024;
 
+  // TODO : this could very well be small_vector<char> instead, or we could
+  // pass a string from connection and reuse it.
   std::string header;
   header.reserve(kTypicalHeadersSize);
 
@@ -184,20 +251,17 @@ void HttpResponse::SendResponse(engine::io::Socket& socket) {
   header.append(kCrlf);
 
   headers_.erase(USERVER_NAMESPACE::http::headers::kContentLength);
-  const auto end = headers_.cend();
+  const auto end = headers_.end();
   if (headers_.find(USERVER_NAMESPACE::http::headers::kDate) == end) {
-    header.append(USERVER_NAMESPACE::http::headers::kDate);
-    header.append(kKeyValueHeaderSeparator);
-    AppendCachedDate(header);
-    header.append(kCrlf);
+    impl::OutputHeader(header, USERVER_NAMESPACE::http::headers::kDate,
+                       // impl::GetCachedDate() must not cross thread boundaries
+                       impl::GetCachedDate());
   }
   if (headers_.find(USERVER_NAMESPACE::http::headers::kContentType) == end) {
     impl::OutputHeader(header, USERVER_NAMESPACE::http::headers::kContentType,
                        kDefaultContentTypeString);
   }
-  for (const auto& item : headers_) {
-    impl::OutputHeader(header, item.first, item.second);
-  }
+  headers_.OutputInHttpFormat(header);
   if (headers_.find(USERVER_NAMESPACE::http::headers::kConnection) == end) {
     impl::OutputHeader(header, USERVER_NAMESPACE::http::headers::kConnection,
                        (request_.IsFinal() ? kClose : kKeepAlive));
@@ -209,14 +273,20 @@ void HttpResponse::SendResponse(engine::io::Socket& socket) {
     header.append(kCrlf);
   }
 
-  if (IsBodyStreamed())
-    SetBodyStreamed(socket, header);
-  else
-    SetBodyNotstreamed(socket, header);
+  std::size_t sent_bytes{};
+
+  if (IsBodyStreamed() && GetData().empty()) {
+    sent_bytes = SetBodyStreamed(socket, header);
+  } else {
+    // e.g. a CustomHandlerException
+    sent_bytes = SetBodyNotStreamed(socket, header);
+  }
+
+  SetSent(sent_bytes, std::chrono::steady_clock::now());
 }
 
-void HttpResponse::SetBodyNotstreamed(engine::io::Socket& socket,
-                                      std::string& header) {
+std::size_t HttpResponse::SetBodyNotStreamed(engine::io::Socket& socket,
+                                             std::string& header) {
   const bool is_body_forbidden = IsBodyForbiddenForStatus(status_);
   const bool is_head_request = request_.GetOrigMethod() == HttpMethod::kHead;
   const auto& data = GetData();
@@ -244,23 +314,20 @@ void HttpResponse::SetBodyNotstreamed(engine::io::Socket& socket,
         socket.SendAll(header.data(), header.size(), engine::Deadline{});
   }
 
-  SetSentTime(std::chrono::steady_clock::now());
-  SetSent(sent_bytes);
+  return sent_bytes;
 }
 
-void HttpResponse::SetBodyStreamed(engine::io::Socket& socket,
-                                   std::string& header) {
+std::size_t HttpResponse::SetBodyStreamed(engine::io::Socket& socket,
+                                          std::string& header) {
   impl::OutputHeader(
       header, USERVER_NAMESPACE::http::headers::kTransferEncoding, "chunked");
 
   // send HTTP headers
   size_t sent_bytes = socket.SendAll(header.data(), header.size(), {});
-
-  std::string().swap(header);  // free memory before time consuming operation
+  std::string{}.swap(header);  // free memory before time-consuming operation
 
   // Transmit HTTP response body
   std::string body_part;
-
   while (body_stream_->Pop(body_part)) {
     if (body_part.empty()) {
       LOG_DEBUG() << "Zero size body_part in http_response.cpp";
@@ -281,8 +348,7 @@ void HttpResponse::SetBodyStreamed(engine::io::Socket& socket,
   body_stream_producer_.reset();
   body_stream_.reset();
 
-  SetSentTime(std::chrono::steady_clock::now());
-  SetSent(sent_bytes);
+  return sent_bytes;
 }
 
 void SetThrottleReason(http::HttpResponse& http_response,

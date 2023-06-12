@@ -1,3 +1,7 @@
+"""
+Capture and work with logs.
+"""
+
 # pylint: disable=redefined-outer-name
 import asyncio
 import contextlib
@@ -67,8 +71,7 @@ class CaptureControl:
                     )
 
     @compat.asynccontextmanager
-    async def start_server(self, *, hostname='localhost', port=0, loop=None):
-        sock = net_utils.bind_socket(hostname, port)
+    async def start_server(self, *, sock, loop=None):
         extra = {}
         if sys.version_info < (3, 8):
             extra['loop'] = loop
@@ -118,24 +121,31 @@ def _userver_capture_control():
 
 
 @pytest.fixture(scope='session')
-async def _userver_capture_server(
-        _userver_capture_control: CaptureControl, pytestconfig, loop,
-):
+def _userver_log_capture_socket(pytestconfig):
+    host = pytestconfig.option.logs_capture_host
     port = pytestconfig.option.logs_capture_port
     if pytestconfig.option.service_wait or pytestconfig.option.service_disable:
         port = port or DEFAULT_PORT
+    with net_utils.bind_socket(host, port) as socket:
+        yield socket
+
+
+@pytest.fixture(scope='session')
+async def _userver_capture_server(
+        _userver_capture_control: CaptureControl,
+        _userver_log_capture_socket,
+        loop,
+):
     async with _userver_capture_control.start_server(
-            hostname=pytestconfig.option.logs_capture_host,
-            port=port,
-            loop=loop,
+            sock=_userver_log_capture_socket, loop=loop,
     ) as server:
         yield server
 
 
 @pytest.fixture(scope='session')
-def _userver_config_logs_capture(_userver_capture_server):
-    def patch_config(config, config_vars) -> None:
-        sockname = _userver_capture_server.sockets[0].getsockname()
+def _userver_config_logs_capture(_userver_log_capture_socket):
+    def patch_config(config, _config_vars) -> None:
+        sockname = _userver_log_capture_socket.getsockname()
         logging_config = config['components_manager']['components']['logging']
         logging_config['loggers']['default']['testsuite-capture'] = {
             'host': sockname[0],

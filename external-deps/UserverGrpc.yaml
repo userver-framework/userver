@@ -1,5 +1,4 @@
 name: UserverGrpc
-helper-prefix: false
 
 debian-names:
   - libgrpc-dev

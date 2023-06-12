@@ -103,10 +103,15 @@ Hello world!
 ### Functional testing
 
 @ref md_en_userver_functional_testing "Functional tests" for the service could be
-implemented using the testsuite in the following way:
+implemented using the @ref service_client "service_client" fixture from
+pytest_userver.plugins.core in the
+following way:
 
 @snippet samples/hello_service/tests/test_hello.py  Functional test
 
+Do not forget to add the plugin in conftest.py:
+
+@snippet samples/hello_service/tests/conftest.py  registration
 
 ## Full sources
 
@@ -115,12 +120,13 @@ See the full example at:
 * @ref samples/hello_service/static_config.yaml
 * @ref samples/hello_service/dynamic_config_fallback.json
 * @ref samples/hello_service/CMakeLists.txt
+* @ref samples/hello_service/tests/conftest.py
 * @ref samples/hello_service/tests/test_hello.py
 
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref md_en_userver_roadmap_and_changelog | @ref md_en_userver_tutorial_config_service ⇨
+⇦ @ref md_en_userver_faq | @ref md_en_userver_tutorial_config_service ⇨
 @htmlonly </div> @endhtmlonly
 
 
@@ -128,5 +134,6 @@ See the full example at:
 @example samples/hello_service/static_config.yaml
 @example samples/hello_service/dynamic_config_fallback.json
 @example samples/hello_service/CMakeLists.txt
+@example samples/hello_service/tests/conftest.py
 @example samples/hello_service/tests/test_hello.py
 

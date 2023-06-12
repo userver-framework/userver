@@ -1,8 +1,12 @@
 #include <gtest/gtest.h>
 
-#include <logging/logging_test.hpp>
+#include <optional>
+
+#include <logging/socket_logging_test.hpp>
 #include <userver/logging/log.hpp>
-#include <userver/logging/log_helper_fwd.hpp>
+#include <userver/utest/utest.hpp>
+#include <userver/utils/async.hpp>
+#include <userver/utils/datetime/date.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -45,6 +49,21 @@ TEST_F(LoggingTest, LogExtraExtendType) {
   EXPECT_EQ(log_contents.find("key1=value3"), std::string::npos);
 }
 
+TEST_F(LoggingTest, MultipleFlushes) {
+  logging::SetDefaultLoggerLevel(logging::Level::kTrace);
+
+  // Make sure that multiple flush sequences is OK
+  LOG_TRACE() << "some message1";
+  for (unsigned i = 0; i < 100; ++i) {
+    logging::LogFlush();
+  }
+  LOG_TRACE() << "some message2";
+
+  const auto log_contents = GetStreamString();
+  EXPECT_NE(log_contents.find("text=some message1"), std::string::npos);
+  EXPECT_NE(log_contents.find("text=some message2"), std::string::npos);
+}
+
 TEST_F(LoggingTest, ChronoDuration) {
   using namespace std::literals::chrono_literals;
 
@@ -69,11 +88,25 @@ TEST_F(LoggingTest, DocsData) {
   LOG_ERROR() << "This is unbelievable, fix me, please!";
   /// [Sample logging usage]
 
-  bool flag = true;
+  const bool flag = true;
   /// [Example set custom logging usage]
-  logging::Level level = flag ? logging::Level::kDebug : logging::Level::kInfo;
+  const auto level = flag ? logging::Level::kDebug : logging::Level::kInfo;
   LOG(level) << "some text";
   /// [Example set custom logging usage]
+}
+
+TEST_F(LoggingTest, DatetimeDate) {
+  const auto date = utils::datetime::Date(2023, 4, 8);
+  EXPECT_EQ("2023-04-08", ToStringViaLogging(date));
+  EXPECT_EQ("(none)",
+            ToStringViaLogging(std::optional<utils::datetime::Date>{}));
+  EXPECT_EQ("2023-04-08",
+            ToStringViaLogging(std::optional<utils::datetime::Date>{date}));
+}
+
+UTEST_F(SocketLoggingTest, Test) {
+  LOG_ERROR() << "test";
+  EXPECT_EQ("test", NextLoggedText());
 }
 
 USERVER_NAMESPACE_END

@@ -136,12 +136,31 @@ std::string MakeUrl(std::string_view path, const Args& query_args) {
 
 std::string MakeUrl(
     std::string_view path,
+    const std::unordered_map<std::string, std::string>& query_args) {
+  return MakeUrl(path, query_args.begin(), query_args.end());
+}
+
+std::string MakeUrl(std::string_view path, const Args& query_args,
+                    MultiArgs query_multiargs) {
+  for (const auto& [key, value] : query_args) {
+    query_multiargs.insert({key, value});
+  }
+  return MakeUrl(path, query_multiargs.begin(), query_multiargs.end());
+}
+
+std::string MakeUrl(
+    std::string_view path,
     std::initializer_list<std::pair<std::string_view, std::string_view>>
         query_args) {
   return MakeUrl(path, query_args.begin(), query_args.end());
 }
 
 std::string MakeQuery(const Args& query_args) {
+  return DoMakeQuery(query_args.begin(), query_args.end());
+}
+
+std::string MakeQuery(
+    const std::unordered_map<std::string, std::string>& query_args) {
   return DoMakeQuery(query_args.begin(), query_args.end());
 }
 

@@ -12,11 +12,19 @@ namespace storages::mongo {
 /// Generic mongo-related exception
 class MongoException : public utils::TracefulException {
  public:
-  using utils::TracefulException::TracefulException;
+  MongoException();
+
+  explicit MongoException(std::string_view what);
 };
 
 /// Config validation error
 class InvalidConfigException : public MongoException {
+  using MongoException::MongoException;
+};
+
+/// The current task has been cancelled, e.g. by deadline propagation
+class CancelledException : public MongoException {
+ public:
   using MongoException::MongoException;
 };
 

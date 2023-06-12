@@ -7,16 +7,18 @@
 // to override spdlog's level names
 #include <logging/spdlog.hpp>
 
+#include <boost/algorithm/string/predicate.hpp>
 #include <boost/filesystem/operations.hpp>
 
 #include <fmt/format.h>
 
-#include <spdlog/async.h>
-#include <spdlog/sinks/stdout_sinks.h>
-
-#include <logging/logger_with_info.hpp>
-#include <logging/reopening_file_sink.hpp>
+#include <logging/impl/buffered_file_sink.hpp>
+#include <logging/impl/fd_sink.hpp>
+#include <logging/impl/reopening_file_sink.hpp>
+#include <logging/impl/tcp_socket_sink.hpp>
+#include <logging/impl/unix_socket_sink.hpp>
 #include <logging/spdlog_helpers.hpp>
+#include <logging/tp_logger.hpp>
 #include <userver/components/component.hpp>
 #include <userver/engine/async.hpp>
 #include <userver/engine/sleep.hpp>
@@ -25,14 +27,13 @@
 #include <userver/logging/logger.hpp>
 #include <userver/os_signals/component.hpp>
 #include <userver/utils/algo.hpp>
+#include <userver/utils/statistics/writer.hpp>
 #include <userver/utils/thread_name.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
+#include <userver/net/blocking/get_addr_info.hpp>
 #include "config.hpp"
-
-#ifndef USERVER_FEATURE_NO_SPDLOG_TCP_SINK
-#include <spdlog/sinks/tcp_sink.h>
-#endif
+#include "userver/components/statistics_storage.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
@@ -41,6 +42,7 @@ namespace components {
 namespace {
 
 constexpr std::chrono::seconds kDefaultFlushInterval{2};
+constexpr std::string_view unix_socket_prefix = "unix:";
 
 struct TestsuiteCaptureConfig {
   std::string host;
@@ -62,18 +64,30 @@ std::optional<TestsuiteCaptureConfig> GetTestsuiteCaptureConfig(
   return config.As<TestsuiteCaptureConfig>();
 }
 
-void ReopenAll(std::vector<spdlog::sink_ptr>& sinks) {
-  for (const auto& s : sinks) {
-    auto reop = std::dynamic_pointer_cast<logging::ReopeningFileSinkMT>(s);
-    if (!reop) {
-      continue;
-    }
-
-    try {
-      bool should_truncate = false;
-      reop->Reopen(should_truncate);
-    } catch (const std::exception& e) {
-      LOG_ERROR() << "Exception on log reopen: " << e;
+void ReopenAll(const std::shared_ptr<logging::impl::TpLogger>& logger) {
+  int index = -1;
+  for (const auto& s : logger->GetSinks()) {
+    ++index;
+    if (auto reop = std::dynamic_pointer_cast<logging::impl::BaseSink>(s);
+        reop) {
+      try {
+        reop->Reopen(logging::impl::ReopenMode::kAppend);
+      } catch (const std::exception& e) {
+        LOG_ERROR() << "Exception on log reopen: " << e;
+      }
+    } else if (auto reop = std::dynamic_pointer_cast<
+                   logging::impl::ReopeningFileSinkMT>(s);
+               reop) {
+      // TODO: Remove with condition after close experiments with new sink
+      try {
+        bool should_truncate = false;
+        reop->Reopen(should_truncate);
+      } catch (const std::exception& e) {
+        LOG_ERROR() << "Exception on log reopen: " << e;
+      }
+    } else {
+      LOG_INFO() << "Skipping rotation for sink #" << index << " from '"
+                 << logger->GetLoggerName() << "' logger";
     }
   }
 }
@@ -91,94 +105,71 @@ void CreateLogDirectory(const std::string& logger_name,
   }
 }
 
-std::shared_ptr<logging::impl::LoggerWithInfo> CreateAsyncLogger(
-    const std::string& logger_name,
-    const logging::LoggerConfig& logger_config) {
-  if (logger_config.file_path == "@null")
-    return logging::MakeNullLogger(logger_name);
-  if (logger_config.file_path == "@stderr")
-    return logging::MakeStderrLogger(logger_name, logger_config.format,
-                                     logger_config.level);
-  if (logger_config.file_path == "@stdout")
-    return logging::MakeStdoutLogger(logger_name, logger_config.format,
-                                     logger_config.level);
+spdlog::sink_ptr GetSinkFromFilename(const spdlog::filename_t& file_path) {
+  if (boost::starts_with(file_path, unix_socket_prefix)) {
+    // Use Unix-socket sink
+    return std::make_shared<logging::impl::UnixSocketSink>(
+        file_path.substr(unix_socket_prefix.size()));
+  } else {
+    // Use File sink
+    // TODO: Set On experiment in prod
+    if (logging::impl::kUseUserverSinks.IsEnabled()) {
+      return std::make_shared<logging::impl::BufferedFileSink>(file_path);
+    } else {
+      return std::make_shared<logging::impl::ReopeningFileSinkMT>(file_path);
+    }
+  }
+}
 
-  auto overflow_policy = spdlog::async_overflow_policy::overrun_oldest;
-  if (logger_config.queue_overflow_behavior ==
-      logging::LoggerConfig::QueueOveflowBehavior::kBlock) {
-    overflow_policy = spdlog::async_overflow_policy::block;
+std::shared_ptr<logging::impl::TpLogger> CreateAsyncLogger(
+    const std::string& logger_name, const logging::LoggerConfig& config) {
+  auto logger =
+      std::make_shared<logging::impl::TpLogger>(config.format, logger_name);
+  spdlog::sink_ptr sink;
+  if (config.file_path == "@null") {
+    // do nothing
+  } else if (config.file_path == "@stderr") {
+    sink = std::make_shared<logging::impl::BufferedStderrFileSink>();
+  } else if (config.file_path == "@stdout") {
+    sink = std::make_shared<logging::impl::BufferedStdoutFileSink>();
+  } else {
+    CreateLogDirectory(logger_name, config.file_path);
+    sink = GetSinkFromFilename(config.file_path);
   }
 
-  CreateLogDirectory(logger_name, logger_config.file_path);
+  if (sink) {
+    logger->AddSink(std::move(sink));
+  }
 
-  auto file_sink =
-      std::make_shared<logging::ReopeningFileSinkMT>(logger_config.file_path);
-  auto tp = std::make_shared<spdlog::details::thread_pool>(
-      logger_config.message_queue_size, logger_config.thread_pool_size,
-      [thread_name = "log/" + logger_name] {
-        utils::SetCurrentThreadName(thread_name);
-      });
+  logger->SetLevel(config.level);
+  logger->SetPattern(config.pattern);
+  logger->SetFlushOn(config.flush_level);
 
-  return std::make_shared<logging::impl::LoggerWithInfo>(
-      logger_config.format, tp,
-      utils::MakeSharedRef<spdlog::async_logger>(
-          logger_name, std::move(file_sink), tp, overflow_policy));
+  return logger;
 }
 
 }  // namespace
 
-#ifdef USERVER_FEATURE_NO_SPDLOG_TCP_SINK
-
 namespace impl {
 
-template <class Sink, class SinksVector>
-void AddSocketSink(const TestsuiteCaptureConfig&, Sink&, SinksVector&) {
-  throw std::runtime_error(
-      "TCP Sinks are disabled by the cmake option "
-      "'USERVER_FEATURE_SPDLOG_TCP_SINK'. "
-      "Static option 'testsuite-capture' should not be set");
-}
-
-}  // namespace impl
-
-#else
-
-// Inheritance is needed to access client_ and remove a race between
-// the user and the async logger.
-class Logging::TestsuiteCaptureSink final : public spdlog::sinks::tcp_sink_mt {
- public:
-  using spdlog::sinks::tcp_sink_mt::tcp_sink_mt;
-
-  void close() {
-    // the mutex protects against the client_'s parallel access
-    // from spdlog::sinks::base_sink::log() and other close() callers
-    std::lock_guard<std::mutex> lock(mutex_);
-    client_.close();
-  }
-};
-
-namespace impl {
-
-template <class Sink, class SinksVector>
+template <class Sink>
 void AddSocketSink(const TestsuiteCaptureConfig& config, Sink& socket_sink,
-                   SinksVector& sinks) {
-  spdlog::sinks::tcp_sink_config spdlog_config{
-      config.host,
-      config.port,
-  };
-  spdlog_config.lazy_connect = true;
+                   logging::impl::TpLogger& logger) {
+  auto addrs = net::blocking::GetAddrInfo(config.host,
+                                          std::to_string(config.port).c_str());
 
   socket_sink =
-      std::make_shared<Logging::TestsuiteCaptureSink>(std::move(spdlog_config));
+      std::make_shared<logging::impl::TcpSocketSink>(std::move(addrs));
+
+  logger.AddSink(socket_sink);
+
+  // AddSink applies the logger level and patterns to the sink. Overwriting
+  /// those.
   socket_sink->set_pattern(logging::GetSpdlogPattern(logging::Format::kTskv));
   socket_sink->set_level(spdlog::level::off);
-
-  sinks.push_back(socket_sink);
 }
 
 }  // namespace impl
-
-#endif  // #ifdef USERVER_FEATURE_NO_SPDLOG_TCP_SINK
 
 /// [Signals sample - init]
 Logging::Logging(const ComponentConfig& config, const ComponentContext& context)
@@ -188,6 +179,23 @@ Logging::Logging(const ComponentConfig& config, const ComponentContext& context)
               .AddListener(this, kName, SIGUSR1, &Logging::OnLogRotate))
 /// [Signals sample - init]
 {
+  auto& storage =
+      context.FindComponent<components::StatisticsStorage>().GetStorage();
+  statistics_holder_ = storage.RegisterWriter(
+      "logger", [this](utils::statistics::Writer& writer) {
+        return WriteStatistics(writer);
+      });
+
+  try {
+    Init(config, context);
+  } catch (const std::exception&) {
+    Stop();
+    throw;
+  }
+}
+
+void Logging::Init(const ComponentConfig& config,
+                   const ComponentContext& context) {
   const auto fs_task_processor_name =
       config["fs-task-processor"].As<std::string>();
   fs_task_processor_ = &context.GetTaskProcessor(fs_task_processor_name);
@@ -198,27 +206,43 @@ Logging::Logging(const ComponentConfig& config, const ComponentContext& context)
     const bool is_default_logger = logger_name == "default";
 
     const auto logger_config = logger_yaml.As<logging::LoggerConfig>();
+    const auto tp_name =
+        logger_config.fs_task_processor.value_or(fs_task_processor_name);
     auto logger = CreateAsyncLogger(logger_name, logger_config);
 
-    logger->ptr->set_level(
-        static_cast<spdlog::level::level_enum>(logger_config.level));
-    logger->ptr->set_pattern(logger_config.pattern);
-    logger->ptr->flush_on(
-        static_cast<spdlog::level::level_enum>(logger_config.flush_level));
-
     if (is_default_logger) {
+      if (logger_config.queue_overflow_behavior ==
+          logging::LoggerConfig::QueueOverflowBehavior::kBlock) {
+        throw std::runtime_error(
+            "'default' logger should not be set to 'overflow_behavior: block'! "
+            "Default loggerr is used by the userver internals, including the "
+            "logging internals. Blocking inside the engine internals could "
+            "lead "
+            "to hardly reproducible hangups in some border cases of error "
+            "reporting.");
+      }
+
       if (const auto& testsuite_config =
               GetTestsuiteCaptureConfig(logger_yaml)) {
-        impl::AddSocketSink(*testsuite_config, socket_sink_,
-                            logger->ptr->sinks());
+        impl::AddSocketSink(*testsuite_config, socket_sink_, *logger);
       }
-      logging::SetDefaultLogger(logger);
-    } else {
-      auto insertion_result = loggers_.emplace(logger_name, std::move(logger));
-      if (!insertion_result.second) {
-        throw std::runtime_error("duplicate logger '" +
-                                 insertion_result.first->first + '\'');
-      }
+
+      logging::LogFlush();
+      logging::impl::SetDefaultLoggerRef(*logger);
+
+      // the default logger should outlive the component
+      static logging::LoggerPtr default_component_logger_holder{};
+      default_component_logger_holder = logger;
+    }
+
+    logger->StartAsync(context.GetTaskProcessor(tp_name),
+                       logger_config.message_queue_size,
+                       logger_config.queue_overflow_behavior);
+
+    auto insertion_result = loggers_.emplace(logger_name, std::move(logger));
+    if (!insertion_result.second) {
+      throw std::runtime_error("duplicate logger '" +
+                               insertion_result.first->first + '\'');
     }
   }
   flush_task_.Start("log_flusher",
@@ -229,11 +253,19 @@ Logging::Logging(const ComponentConfig& config, const ComponentContext& context)
                     GetTaskFunction());
 }
 
-Logging::~Logging() {
+Logging::~Logging() { Stop(); }
+
+void Logging::Stop() noexcept {
   /// [Signals sample - destr]
   signal_subscriber_.Unsubscribe();
   /// [Signals sample - destr]
   flush_task_.Stop();
+
+  // Loggers could be used from non coroutine environments and should be
+  // available even after task processors are down.
+  for (const auto& [logger_name, logger] : loggers_) {
+    logger->SwitchToSyncMode();
+  }
 }
 
 logging::LoggerPtr Logging::GetLogger(const std::string& name) {
@@ -249,18 +281,15 @@ logging::LoggerPtr Logging::GetLoggerOptional(const std::string& name) {
 }
 
 void Logging::StartSocketLoggingDebug() {
-#ifndef USERVER_FEATURE_NO_SPDLOG_TCP_SINK
   UASSERT(socket_sink_);
   socket_sink_->set_level(spdlog::level::trace);
-#endif
 }
 
 void Logging::StopSocketLoggingDebug() {
-#ifndef USERVER_FEATURE_NO_SPDLOG_TCP_SINK
   UASSERT(socket_sink_);
+  logging::LogFlush();
   socket_sink_->set_level(spdlog::level::off);
-  socket_sink_->close();
-#endif
+  socket_sink_->Close();
 }
 
 void Logging::OnLogRotate() {
@@ -268,22 +297,16 @@ void Logging::OnLogRotate() {
     TryReopenFiles();
 
   } catch (const std::exception& e) {
-    LOG_ERROR() << "An error occured while ReopenAll: " << e;
+    LOG_ERROR() << "An error occurred while ReopenAll: " << e;
   }
 }
 
 void Logging::TryReopenFiles() {
   std::vector<engine::TaskWithResult<void>> tasks;
   tasks.reserve(loggers_.size() + 1);
-
-  // this must be a copy as the default logger may change
-  auto default_logger = logging::DefaultLogger();
-  tasks.push_back(engine::CriticalAsyncNoSpan(
-      *fs_task_processor_, ReopenAll, std::ref(default_logger->ptr->sinks())));
-
   for (const auto& item : loggers_) {
-    tasks.push_back(engine::CriticalAsyncNoSpan(
-        *fs_task_processor_, ReopenAll, std::ref(item.second->ptr->sinks())));
+    tasks.push_back(engine::CriticalAsyncNoSpan(*fs_task_processor_, ReopenAll,
+                                                item.second));
   }
 
   std::string result_messages;
@@ -303,10 +326,17 @@ void Logging::TryReopenFiles() {
   }
 }
 
+void Logging::WriteStatistics(utils::statistics::Writer& writer) const {
+  for (const auto& [name, logger] : loggers_) {
+    writer.ValueWithLabels(logger->GetStatistics(),
+                           {"logger", logger->GetLoggerName()});
+  }
+}
+
 void Logging::FlushLogs() {
-  logging::DefaultLogger()->ptr->flush();
+  logging::LogFlush();
   for (auto& item : loggers_) {
-    item.second->ptr->flush();
+    item.second->Flush();
   }
 }
 
@@ -358,6 +388,10 @@ properties:
                     enum:
                       - discard
                       - block
+                fs-task-processor:
+                    type: string
+                    description: task processor for disk I/O operations for this logger
+                    defaultDescription: fs-task-processor of the loggers component
                 testsuite-capture:
                     type: object
                     description: if exists, setups additional TCP log sink for testing purposes

@@ -6,8 +6,8 @@
 #include <memory>
 
 #include <userver/clients/dns/resolver_fwd.hpp>
-#include <userver/formats/json_fwd.hpp>
 #include <userver/utils/fast_pimpl.hpp>
+#include <userver/utils/statistics/writer.hpp>
 
 #include <userver/rabbitmq_fwd.hpp>
 #include <userver/urabbitmq/broker_interface.hpp>
@@ -104,8 +104,8 @@ class Client : public std::enable_shared_from_this<Client>,
   /// @param deadline deadline for connection acquisition from the pool
   ReliableChannel GetReliableChannel(engine::Deadline deadline);
 
-  /// Get cluster statistics
-  formats::json::Value GetStatistics() const;
+  /// Write cluster statistics
+  void WriteStatistics(utils::statistics::Writer& writer) const;
 
  protected:
   Client(clients::dns::Resolver& resolver, const ClientSettings& settings);

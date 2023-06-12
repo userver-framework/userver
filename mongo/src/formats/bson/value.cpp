@@ -7,6 +7,7 @@
 #include <formats/bson/wrappers.hpp>
 #include <userver/formats/bson/bson_builder.hpp>
 #include <userver/formats/bson/document.hpp>
+#include <userver/formats/bson/serialize.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -306,5 +307,13 @@ Document Value::GetInternalArrayDocument() const {
 const impl::BsonHolder& Value::GetBson() const { return impl_->GetBson(); }
 
 }  // namespace formats::bson
+
+namespace formats::literals {
+
+bson::Value operator"" _bson(const char* str, size_t len) {
+  return bson::FromJsonString(std::string(str, len));
+}
+
+}  // namespace formats::literals
 
 USERVER_NAMESPACE_END

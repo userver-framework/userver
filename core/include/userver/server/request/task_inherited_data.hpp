@@ -46,6 +46,13 @@ struct TaskInheritedData final {
 /// @see concurrent::BackgroundTaskStorage::AsyncDetach does it by default.
 inline engine::TaskInheritedVariable<TaskInheritedData> kTaskInheritedData;
 
+/// @brief Returns TaskInheritedData::deadline, or an unreachable
+/// engine::Deadline if none was set.
+inline engine::Deadline GetTaskInheritedDeadline() noexcept {
+  const auto* data = kTaskInheritedData.GetOptional();
+  return data ? data->deadline : engine::Deadline{};
+}
+
 }  // namespace server::request
 
 USERVER_NAMESPACE_END

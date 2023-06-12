@@ -2,6 +2,7 @@
 
 #include <fmt/compile.h>
 #include <fmt/format.h>
+#include <boost/container/small_vector.hpp>
 #include <boost/stacktrace/stacktrace.hpp>
 
 #include <userver/logging/log.hpp>
@@ -89,9 +90,15 @@ void AddTypeBufferCategories(Oid data_type, const UserTypes& types,
 
 }  // namespace
 
+struct ResultWrapper::CachedFieldBufferCategories final {
+  boost::container::small_vector<io::BufferCategory, 16> data;
+};
+
 ResultWrapper::ResultWrapper(ResultHandle&& res) : handle_{std::move(res)} {
   UASSERT(handle_);
 }
+
+ResultWrapper::~ResultWrapper() = default;
 
 void ResultWrapper::FillBufferCategories(const UserTypes& types) {
   buffer_categories_.clear();
@@ -103,6 +110,16 @@ void ResultWrapper::FillBufferCategories(const UserTypes& types) {
         fmt::format("result set field `{}`", GetFieldName(f_no))};
 
     AddTypeBufferCategories(data_type, types, buffer_categories_, context);
+  }
+
+  cached_buffer_categories_->data.resize(n_fields);
+  for (std::size_t f_no = 0; f_no < n_fields; ++f_no) {
+    const auto data_type = GetFieldTypeOid(f_no);
+    const auto f = buffer_categories_.find(data_type);
+
+    cached_buffer_categories_->data[f_no] =
+        (f == buffer_categories_.end() ? io::BufferCategory::kNoParser
+                                       : f->second);
   }
 }
 
@@ -173,12 +190,7 @@ Oid ResultWrapper::GetFieldTypeOid(std::size_t col) const {
 
 io::BufferCategory ResultWrapper::GetFieldBufferCategory(
     std::size_t col) const {
-  auto data_type = GetFieldTypeOid(col);
-  if (auto f = buffer_categories_.find(data_type);
-      f != buffer_categories_.end()) {
-    return f->second;
-  }
-  return io::BufferCategory::kNoParser;
+  return cached_buffer_categories_->data[col];
 }
 
 std::size_t ResultWrapper::GetFieldLength(std::size_t row,

@@ -90,6 +90,9 @@ UTEST_MT(MpscQueue, MultiProducer, 3) {
   // Don't know who (task1 or task2) woke up first.
   ASSERT_TRUE((value_1 == 3 && value_2 == 4) || (value_1 == 4 && value_2 == 3));
 
+  task1.Get();
+  task2.Get();
+
   EXPECT_EQ(queue->GetSizeApproximate(), 0);
 }
 
@@ -107,7 +110,7 @@ UTEST_MT(MpscQueue, FifoTest, kProducersCount + 1) {
   producers_tasks.reserve(kProducersCount);
   for (std::size_t i = 0; i < kProducersCount; ++i) {
     producers_tasks.push_back(
-        utils::Async("producer", [& producer = producers[i], i] {
+        utils::Async("producer", [&producer = producers[i], i] {
           for (std::size_t message = i * kMessageCount;
                message < (i + 1) * kMessageCount; ++message) {
             ASSERT_TRUE(producer.Push(std::size_t{message}));

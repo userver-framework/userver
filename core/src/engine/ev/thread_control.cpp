@@ -60,20 +60,25 @@ void ThreadControl::Stop(ev_io& w) noexcept {
   ev_io_stop(GetEvLoop(), &w);
 }
 
-void ThreadControl::RunInEvLoopAsync(OnAsyncPayload* func,
-                                     AsyncPayloadPtr&& data) {
-  thread_.RunInEvLoopAsync(func, std::move(data));
+void ThreadControl::RunPayloadInEvLoopAsync(
+    AsyncPayloadBase& payload) noexcept {
+  thread_.RunInEvLoopAsync(payload);
 }
 
-void ThreadControl::RunInEvLoopDeferred(OnAsyncPayload* func,
-                                        AsyncPayloadPtr&& data,
-                                        Deadline deadline) {
-  thread_.RunInEvLoopDeferred(func, std::move(data), deadline);
+void ThreadControl::RunPayloadInEvLoopDeferred(AsyncPayloadBase& payload,
+                                               Deadline deadline) noexcept {
+  thread_.RunInEvLoopDeferred(payload, deadline);
 }
 
 bool ThreadControl::IsInEvThread() const noexcept {
   return thread_.IsInEvThread();
 }
+
+std::uint8_t ThreadControl::GetCurrentLoadPercent() const {
+  return thread_.GetCurrentLoadPercent();
+}
+
+const std::string& ThreadControl::GetName() const { return thread_.GetName(); }
 
 }  // namespace engine::ev
 

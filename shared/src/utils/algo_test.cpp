@@ -108,7 +108,7 @@ TEST(UtilsAlgo, AsContainer) {
             (std::vector<int>{1, 2, 3}));
 
   std::vector<std::string> vs = {"123", "456", "789"};
-  const auto ss = utils::AsContainer<std::set<std::string>>(move(vs));
+  const auto ss = utils::AsContainer<std::set<std::string>>(std::move(vs));
   EXPECT_EQ(ss, (std::set<std::string>{"123", "456", "789"}));
 }
 

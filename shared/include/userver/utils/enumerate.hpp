@@ -54,7 +54,7 @@ namespace utils {
 /// @brief Implementation of python-style enumerate function for range-for loops
 /// @param iterable: Container to iterate
 /// @returns ContainerWrapper, which iterator after dereference returns tuple
-/// of index and (!!!)non-const reference to element(it seems imposible to make
+/// of index and (!!!)non-const reference to element(it seems impossible to make
 /// this reference const). It can be used in "range based for loop" with
 /// "structured binding" like this
 /// @code

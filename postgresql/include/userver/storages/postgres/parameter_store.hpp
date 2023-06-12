@@ -17,7 +17,7 @@ namespace storages::postgres {
 /// @brief Class for dynamic PostgreSQL parameter list construction.
 ///
 /// Typical use case for this container is to keep parameters around while the
-/// query is being contructed on the fly:
+/// query is being constructed on the fly:
 /// @snippet storages/postgres/tests/interval_pgtest.cpp Parameters store sample
 ///
 /// Note that storages::postgres::Cluster::Execute with explicitly provided

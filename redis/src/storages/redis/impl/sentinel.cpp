@@ -1,21 +1,28 @@
-#include <userver/storages/redis/impl/sentinel.hpp>
+#include <storages/redis/impl/sentinel.hpp>
 
 #include <memory>
 #include <stdexcept>
 
-#include <userver/logging/log.hpp>
-
 #include <engine/ev/thread_control.hpp>
-#include <userver/engine/task/cancel.hpp>
-#include <userver/testsuite/testsuite_support.hpp>
-#include <userver/utils/assert.hpp>
 
+#include <userver/clients/dns/resolver.hpp>
+#include <userver/dynamic_config/value.hpp>
+#include <userver/engine/task/cancel.hpp>
+#include <userver/logging/log.hpp>
+#include <userver/storages/redis/impl/base.hpp>
 #include <userver/storages/redis/impl/exception.hpp>
 #include <userver/storages/redis/impl/reply.hpp>
-#include "redis.hpp"
-#include "sentinel_impl.hpp"
-#include "subscribe_sentinel.hpp"
-#include "userver/storages/redis/impl/base.hpp"
+#include <userver/testsuite/testsuite_support.hpp>
+#include <userver/utils/assert.hpp>
+#include <userver/utils/impl/userver_experiments.hpp>
+
+#include <storages/redis/dynamic_config.hpp>
+#include <storages/redis/impl/cluster_sentinel_impl.hpp>
+#include <storages/redis/impl/command.hpp>
+#include <storages/redis/impl/redis.hpp>
+#include <storages/redis/impl/sentinel_impl.hpp>
+#include <storages/redis/impl/sentinel_impl_switcher.hpp>
+#include <storages/redis/impl/subscribe_sentinel.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -23,11 +30,29 @@ namespace redis {
 namespace {
 
 void ThrowIfCancelled() {
-  if (engine::current_task::GetTaskProcessorOptional() &&
+  if (engine::current_task::IsTaskProcessorThread() &&
       engine::current_task::ShouldCancel()) {
     throw RequestCancelledException(
         "Failed to make redis request due to task cancellation");
   }
+}
+
+constexpr std::chrono::milliseconds kResolveTimeout{500};
+
+ConnectionInfo::HostVector ResolveDns(const std::string& host,
+                                      clients::dns::Resolver* resolver) {
+  if (!resolver) return {};
+  ConnectionInfo::HostVector result;
+  try {
+    auto addrs = resolver->Resolve(
+        host, engine::Deadline::FromDuration(kResolveTimeout));
+    std::transform(addrs.begin(), addrs.end(), std::back_inserter(result),
+                   [](auto addr) { return addr.PrimaryAddressString(); });
+  } catch (const std::exception& e) {
+    LOG_WARNING() << "exception occurred during dns resolving for host " << host
+                  << ": " << e;
+  }
+  return result;
 }
 
 }  // namespace
@@ -38,6 +63,7 @@ Sentinel::Sentinel(
     const std::vector<ConnectionInfo>& conns, std::string shard_group_name,
     const std::string& client_name, const Password& password,
     ConnectionSecurity connection_security, ReadyChangeCallback ready_callback,
+    dynamic_config::Source dynamic_config_source,
     std::unique_ptr<KeyShard>&& key_shard, CommandControl command_control,
     const testsuite::RedisControl& testsuite_redis_control, ConnectionMode mode)
     : thread_pools_(thread_pools),
@@ -52,12 +78,29 @@ Sentinel::Sentinel(
   sentinel_thread_control_ = std::make_unique<engine::ev::ThreadControl>(
       thread_pools_->GetSentinelThreadPool().NextThread());
 
+  const bool use_cluster_sentinel =
+      mode == ConnectionMode::kCommands && !key_shard &&
+      utils::impl::kRedisClusterAutoTopologyExperiment.IsEnabled();
   sentinel_thread_control_->RunInEvLoopBlocking([&]() {
-    impl_ = std::make_unique<SentinelImpl>(
-        *sentinel_thread_control_, thread_pools_->GetRedisThreadPool(), *this,
-        shards, conns, std::move(shard_group_name), client_name, password,
-        connection_security, std::move(ready_callback), std::move(key_shard),
-        mode);
+    if (use_cluster_sentinel) {
+      auto switcher = std::make_unique<ClusterSentinelImplSwitcher>(
+          *sentinel_thread_control_, thread_pools_->GetRedisThreadPool(), *this,
+          shards, conns, std::move(shard_group_name), client_name, password,
+          connection_security, std::move(ready_callback), std::move(key_shard),
+          dynamic_config_source, mode);
+      const auto config_snapshot = dynamic_config_source.GetSnapshot();
+      const auto enabled_by_config = config_snapshot[kRedisAutoTopologyEnabled];
+
+      switcher->SetEnabledByConfig(enabled_by_config);
+      switcher->UpdateImpl(false, false);
+      impl_ = std::move(switcher);
+    } else {
+      impl_ = std::make_unique<SentinelImpl>(
+          *sentinel_thread_control_, thread_pools_->GetRedisThreadPool(), *this,
+          shards, conns, std::move(shard_group_name), client_name, password,
+          connection_security, std::move(ready_callback), std::move(key_shard),
+          dynamic_config_source, mode);
+    }
   });
 }
 
@@ -83,9 +126,11 @@ void Sentinel::ForceUpdateHosts() { impl_->ForceUpdateHosts(); }
 std::shared_ptr<Sentinel> Sentinel::CreateSentinel(
     const std::shared_ptr<ThreadPools>& thread_pools,
     const secdist::RedisSettings& settings, std::string shard_group_name,
+    dynamic_config::Source dynamic_config_source,
     const std::string& client_name, KeyShardFactory key_shard_factory,
     const CommandControl& command_control,
-    const testsuite::RedisControl& testsuite_redis_control) {
+    const testsuite::RedisControl& testsuite_redis_control,
+    clients::dns::Resolver* dns_resolver) {
   auto ready_callback = [](size_t shard, const std::string& shard_name,
                            bool ready) {
     LOG_INFO() << "redis: ready_callback:"
@@ -93,18 +138,20 @@ std::shared_ptr<Sentinel> Sentinel::CreateSentinel(
                << "  ready = " << (ready ? "true" : "false");
   };
   return CreateSentinel(thread_pools, settings, std::move(shard_group_name),
-                        client_name, std::move(ready_callback),
-                        std::move(key_shard_factory), command_control,
-                        testsuite_redis_control);
+                        dynamic_config_source, client_name,
+                        std::move(ready_callback), std::move(key_shard_factory),
+                        command_control, testsuite_redis_control, dns_resolver);
 }
 
 std::shared_ptr<Sentinel> Sentinel::CreateSentinel(
     const std::shared_ptr<ThreadPools>& thread_pools,
     const secdist::RedisSettings& settings, std::string shard_group_name,
+    dynamic_config::Source dynamic_config_source,
     const std::string& client_name,
     Sentinel::ReadyChangeCallback ready_callback,
     KeyShardFactory key_shard_factory, const CommandControl& command_control,
-    const testsuite::RedisControl& testsuite_redis_control) {
+    const testsuite::RedisControl& testsuite_redis_control,
+    clients::dns::Resolver* dns_resolver) {
   const auto& password = settings.password;
 
   const std::vector<std::string>& shards = settings.shards;
@@ -124,7 +171,8 @@ std::shared_ptr<Sentinel> Sentinel::CreateSentinel(
     // sentinels in cluster mode.
     conns.emplace_back(sentinel.host, sentinel.port,
                        (key_shard ? Password("") : password), false,
-                       settings.secure_connection);
+                       settings.secure_connection,
+                       ResolveDns(sentinel.host, dns_resolver));
   }
 
   LOG_DEBUG() << "redis command_control:"
@@ -138,7 +186,8 @@ std::shared_ptr<Sentinel> Sentinel::CreateSentinel(
     client = std::make_shared<redis::Sentinel>(
         thread_pools, shards, conns, std::move(shard_group_name), client_name,
         password, settings.secure_connection, std::move(ready_callback),
-        std::move(key_shard), command_control, testsuite_redis_control);
+        dynamic_config_source, std::move(key_shard), command_control,
+        testsuite_redis_control);
     client->Start();
   }
 
@@ -178,7 +227,8 @@ void Sentinel::AsyncCommand(CommandPtr command, bool master, size_t shard) {
   CheckShardIdx(shard);
   try {
     impl_->AsyncCommand(
-        {command, master, shard, std::chrono::steady_clock::now()});
+        {command, master, shard, std::chrono::steady_clock::now()},
+        SentinelImplBase::kDefaultPrevInstanceIdx);
   } catch (const std::exception& ex) {
     LOG_WARNING() << "exception in " << __func__ << " '" << ex.what() << "'";
   }
@@ -202,7 +252,8 @@ void Sentinel::AsyncCommand(CommandPtr command, const std::string& key,
   CheckShardIdx(shard);
   try {
     impl_->AsyncCommand(
-        {command, master, shard, std::chrono::steady_clock::now()});
+        {command, master, shard, std::chrono::steady_clock::now()},
+        SentinelImplBase::kDefaultPrevInstanceIdx);
   } catch (const std::exception& ex) {
     LOG_WARNING() << "exception in " << __func__ << " '" << ex.what() << "'";
   }
@@ -255,13 +306,23 @@ const std::string& Sentinel::GetAnyKeyForShard(size_t shard_idx) const {
   return impl_->GetAnyKeyForShard(shard_idx);
 }
 
-SentinelStatistics Sentinel::GetStatistics() const {
-  return impl_->GetStatistics();
+SentinelStatistics Sentinel::GetStatistics(
+    const MetricsSettings& settings) const {
+  return impl_->GetStatistics(settings);
 }
 
 void Sentinel::SetCommandsBufferingSettings(
     CommandsBufferingSettings commands_buffering_settings) {
   return impl_->SetCommandsBufferingSettings(commands_buffering_settings);
+}
+
+void Sentinel::SetReplicationMonitoringSettings(
+    const ReplicationMonitoringSettings& replication_monitoring_settings) {
+  impl_->SetReplicationMonitoringSettings(replication_monitoring_settings);
+}
+
+void Sentinel::SetClusterAutoTopology(bool auto_topology) {
+  impl_->SetClusterAutoTopology(auto_topology);
 }
 
 std::vector<Request> Sentinel::MakeRequests(

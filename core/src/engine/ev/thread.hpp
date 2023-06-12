@@ -7,11 +7,12 @@
 #include <thread>
 
 #include <ev.h>
-#include <boost/lockfree/queue.hpp>
-#include <boost/smart_ptr/intrusive_ptr.hpp>
 
-#include <engine/ev/async_payload_base.hpp>
 #include <userver/engine/deadline.hpp>
+
+#include <concurrent/impl/intrusive_mpsc_queue.hpp>
+#include <engine/ev/async_payload_base.hpp>
+#include <utils/statistics/thread_statistics.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -37,29 +38,30 @@ class Thread final {
   Thread(const std::string& thread_name, UseDefaultEvLoop, RegisterEventMode);
   ~Thread();
 
-  struct ev_loop* GetEvLoop() const {
-    return loop_;
-  }
+  struct ev_loop* GetEvLoop() const { return loop_; }
 
   // Callbacks passed to RunInEvLoopAsync() are serialized.
-  // All successfully registered callbacks are guaranteed to execute.
-  void RunInEvLoopAsync(OnAsyncPayload* func, AsyncPayloadPtr&& data);
+  // All callbacks are guaranteed to execute.
+  void RunInEvLoopAsync(AsyncPayloadBase& payload) noexcept;
 
   // Callbacks passed to RunInEvLoopDeferred() are serialized.
   // Same as RunInEvLoopAsync but doesn't force the wakeup of ev-loop, adding
   // delay up to ~1ms.
-  void RunInEvLoopDeferred(OnAsyncPayload* func, AsyncPayloadPtr&& data,
-                           Deadline deadline);
+  void RunInEvLoopDeferred(AsyncPayloadBase& payload,
+                           Deadline deadline) noexcept;
 
   bool IsInEvThread() const;
+
+  std::uint8_t GetCurrentLoadPercent() const;
+  const std::string& GetName() const;
 
  private:
   Thread(const std::string& thread_name, bool use_ev_default_loop,
          RegisterEventMode register_event_mode);
 
-  void RegisterInEvLoop(OnAsyncPayload* func, AsyncPayloadPtr&& data);
+  void RegisterInEvLoop(AsyncPayloadBase& payload);
 
-  void Start(const std::string& name);
+  void Start();
 
   void StopEventLoop();
   void RunEvLoop();
@@ -77,15 +79,10 @@ class Thread final {
   void AcquireImpl() noexcept;
   void ReleaseImpl() noexcept;
 
+  concurrent::impl::IntrusiveMpscQueue<AsyncPayloadBase> func_queue_;
+
   bool use_ev_default_loop_;
   RegisterEventMode register_event_mode_;
-
-  struct QueueData {
-    OnAsyncPayload* func;
-    AsyncPayloadBase* data;
-  };
-
-  boost::lockfree::queue<QueueData> func_queue_;
 
   struct ev_loop* loop_;
   std::thread thread_;
@@ -93,9 +90,13 @@ class Thread final {
   std::unique_lock<std::mutex> lock_;
 
   ev_timer timers_driver_{};
+  ev_timer stats_timer_{};
   ev_async watch_update_{};
   ev_async watch_break_{};
   ev_child watch_child_{};
+
+  const std::string name_;
+  utils::statistics::ThreadCpuStatsStorage cpu_stats_storage_;
 
   bool is_running_;
 };

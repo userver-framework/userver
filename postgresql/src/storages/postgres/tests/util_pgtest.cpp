@@ -2,6 +2,7 @@
 
 #include <boost/algorithm/string.hpp>
 
+#include <userver/concurrent/background_task_storage.hpp>
 #include <userver/engine/task/task.hpp>
 
 #include <storages/postgres/default_command_controls.hpp>
@@ -70,27 +71,24 @@ void PrintBuffer(std::ostream& os, const std::string& buffer) {
 PostgreSQLBase::PostgreSQLBase() {
   // NOLINTNEXTLINE(concurrency-mt-unsafe)
   if (std::getenv(kPostgresLog)) {
-    old_ = logging::SetDefaultLogger(logging::MakeStderrLogger(
-        "cerr", logging::Format::kTskv, logging::Level::kDebug));
+    old_.emplace(logging::MakeStderrLogger("cerr", logging::Format::kTskv,
+                                           logging::Level::kDebug));
   }
+  experiments_.Set(pg::kPipelineExperiment, true);
 }
 
-PostgreSQLBase::~PostgreSQLBase() {
-  if (old_) {
-    logging::SetDefaultLogger(std::move(old_));
-  }
-}
+PostgreSQLBase::~PostgreSQLBase() = default;
 
 pg::Dsn PostgreSQLBase::GetDsnFromEnv() {
   auto dsn_list = GetDsnListFromEnv();
-  return dsn_list.empty() ? pg::Dsn{"postgresql://"} : std::move(dsn_list[0]);
+  return std::move(dsn_list[0]);
 }
 
 pg::DsnList PostgreSQLBase::GetDsnListFromEnv() {
   // NOLINTNEXTLINE(concurrency-mt-unsafe)
   auto* conn_list_env = std::getenv(kPostgresDsn);
   if (!conn_list_env) {
-    return {};
+    return {pg::Dsn{"postgresql://"}};
   }
 
   std::vector<std::string> conn_list;
@@ -105,17 +103,21 @@ pg::DsnList PostgreSQLBase::GetDsnListFromEnv() {
   return dsn_list;
 }
 
+pg::Dsn PostgreSQLBase::GetUnavailableDsn() {
+  return pg::Dsn{"postgresql://testsuite@localhost:2345/postgres"};
+}
+
 storages::postgres::detail::ConnectionPtr PostgreSQLBase::MakeConnection(
     const storages::postgres::Dsn& dsn, engine::TaskProcessor& task_processor,
     storages::postgres::ConnectionSettings settings) {
   std::unique_ptr<pg::detail::Connection> conn;
 
   UEXPECT_NO_THROW(conn = pg::detail::Connection::Connect(
-                       dsn, nullptr, task_processor, kConnectionId, settings,
-                       GetTestCmdCtls(), {}, {}))
+                       dsn, nullptr, task_processor, GetTaskStorage(),
+                       kConnectionId, settings, GetTestCmdCtls(), {}, {}))
       << "Connect to correct DSN";
   pg::detail::ConnectionPtr conn_ptr{std::move(conn)};
-  CheckConnection(conn_ptr);
+  if (conn_ptr) CheckConnection(conn_ptr);
   return conn_ptr;
 }
 
@@ -140,6 +142,11 @@ void PostgreSQLBase::FinalizeConnection(pg::detail::ConnectionPtr conn) {
 
 engine::TaskProcessor& PostgreSQLBase::GetTaskProcessor() {
   return engine::current_task::GetTaskProcessor();
+}
+
+concurrent::BackgroundTaskStorageCore& PostgreSQLBase::GetTaskStorage() {
+  static concurrent::BackgroundTaskStorageCore bts;
+  return bts;
 }
 
 PostgreConnection::PostgreConnection()

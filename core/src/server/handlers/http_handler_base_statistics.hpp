@@ -6,8 +6,6 @@
 
 #include <server/http/handler_methods.hpp>
 #include <userver/engine/deadline.hpp>
-#include <userver/engine/task/cancel.hpp>
-#include <userver/formats/json_fwd.hpp>
 #include <userver/server/handlers/http_handler_base.hpp>
 #include <userver/server/http/http_status.hpp>
 #include <userver/utils/statistics/aggregated_values.hpp>
@@ -24,16 +22,15 @@ struct HttpHandlerStatisticsEntry final {
   http::HttpStatus code{http::HttpStatus::kInternalServerError};
   std::chrono::milliseconds timing{};
   engine::Deadline deadline{};
-  engine::TaskCancellationReason cancellation{
-      engine::TaskCancellationReason::kNone};
+  bool cancelled_by_deadline{false};
 };
 
 class HttpHandlerMethodStatistics final {
  public:
   void Account(const HttpHandlerStatisticsEntry& stats) noexcept;
 
-  utils::statistics::HttpCodes::Snapshot GetReplyCodes() const {
-    return reply_codes_.GetSnapshot();
+  const utils::statistics::HttpCodes& GetReplyCodes() const {
+    return reply_codes_;
   }
 
   using Percentile = utils::statistics::Percentile<2048, unsigned int, 120>;
@@ -80,7 +77,7 @@ class HttpHandlerMethodStatistics final {
   std::atomic<std::uint64_t> cancelled_by_deadline_{0};
 };
 
-void DumpMetric(utils::statistics::Writer writer,
+void DumpMetric(utils::statistics::Writer& writer,
                 const HttpHandlerMethodStatistics& stats);
 
 struct HttpHandlerStatisticsSnapshot final {
@@ -100,7 +97,7 @@ struct HttpHandlerStatisticsSnapshot final {
   std::uint64_t cancelled_by_deadline{0};
 };
 
-void DumpMetric(utils::statistics::Writer writer,
+void DumpMetric(utils::statistics::Writer& writer,
                 const HttpHandlerStatisticsSnapshot& stats);
 
 // Statistics for a single request from the overall server or the external
@@ -122,9 +119,6 @@ class HttpRequestMethodStatistics final {
                                   utils::datetime::SteadyClock>
       timings_;
 };
-
-formats::json::Value Serialize(const HttpRequestMethodStatistics& stats,
-                               formats::serialize::To<formats::json::Value>);
 
 bool IsOkMethod(http::HttpMethod method) noexcept;
 
@@ -176,11 +170,16 @@ class HttpHandlerStatisticsScope final {
 
   ~HttpHandlerStatisticsScope();
 
+  // TODO(TAXICOMMON-6584) detect automatically?
+  //  symptom: we didn't send a normal response due to deadline expiration
+  void OnCancelledByDeadline() noexcept;
+
  private:
   HttpHandlerStatistics& stats_;
   const http::HttpMethod method_;
   const std::chrono::steady_clock::time_point start_time_;
   server::http::HttpResponse& response_;
+  bool cancelled_by_deadline_{false};
 };
 
 }  // namespace server::handlers

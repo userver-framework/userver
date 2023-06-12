@@ -171,13 +171,13 @@ bool ValueBuilder::HasMember(const std::string& key) const {
 void ValueBuilder::Resize(std::size_t size) {
   value_.CheckArrayOrNull();
 
-  auto sequence_lengh = value_.GetNative().size();
-  if (sequence_lengh == size) {
+  auto sequence_length = value_.GetNative().size();
+  if (sequence_length == size) {
     return;
   }
 
-  if (sequence_lengh < size) {
-    for (; sequence_lengh != size; ++sequence_lengh) {
+  if (sequence_length < size) {
+    for (; sequence_length != size; ++sequence_length) {
       value_.GetNative().push_back(YAML::Node{});
     }
   } else {

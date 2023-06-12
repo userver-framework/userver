@@ -15,11 +15,11 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::mongo::impl::cdriver {
 
-class CDriverCursorImpl : public CursorImpl {
+class CDriverCursorImpl final : public CursorImpl {
  public:
   CDriverCursorImpl(cdriver::CDriverPoolImpl::BoundClientPtr,
                     cdriver::CursorPtr,
-                    std::shared_ptr<stats::ReadOperationStatistics>);
+                    std::shared_ptr<stats::OperationStatisticsItem> find_stats);
 
   bool IsValid() const override;
   bool HasMore() const override;
@@ -31,7 +31,7 @@ class CDriverCursorImpl : public CursorImpl {
   std::optional<formats::bson::Document> current_;
   cdriver::CDriverPoolImpl::BoundClientPtr client_;
   cdriver::CursorPtr cursor_;
-  std::shared_ptr<stats::ReadOperationStatistics> stats_ptr_;
+  const std::shared_ptr<stats::OperationStatisticsItem> find_stats_;
 };
 
 }  // namespace storages::mongo::impl::cdriver

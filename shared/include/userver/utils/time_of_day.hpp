@@ -12,6 +12,8 @@
 
 #include <fmt/format.h>
 
+#include <userver/utils/fmt_compat.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace logging {
@@ -363,22 +365,24 @@ class TimeOfDayParser {
 };
 
 /// Format string used for format key `%H`, two-digit 24-hour left-padded by 0
-inline constexpr auto kLongHourFormat = "{0:0>#2d}";
+inline constexpr std::string_view kLongHourFormat = "{0:0>#2d}";
 /// Format string used for minutes, key `%M`, no variations
-inline constexpr auto kMinutesFormat = "{1:0>#2d}";
+inline constexpr std::string_view kMinutesFormat = "{1:0>#2d}";
 /// Format string used for seconds, key `%S`, no variations
-inline constexpr auto kSecondsFormat = "{2:0>#2d}";
+inline constexpr std::string_view kSecondsFormat = "{2:0>#2d}";
 /// Format string for subseconds, keys not yet assigned
-inline constexpr auto kSubsecondsFormat = "{3}";
+inline constexpr std::string_view kSubsecondsFormat = "{3}";
 
 template <typename Ratio>
-constexpr inline auto kSubsecondsPreformat = ".0";
+constexpr inline std::string_view kSubsecondsPreformat = ".0";
 template <>
-inline constexpr auto kSubsecondsPreformat<std::milli> = ".{:0>#3d}";
+inline constexpr std::string_view kSubsecondsPreformat<std::milli> =
+    ".{:0>#3d}";
 template <>
-inline constexpr auto kSubsecondsPreformat<std::micro> = ".{:0>#6d}";
+inline constexpr std::string_view kSubsecondsPreformat<std::micro> =
+    ".{:0>#6d}";
 template <>
-inline constexpr auto kSubsecondsPreformat<std::nano> = ".{:0>#9d}";
+inline constexpr std::string_view kSubsecondsPreformat<std::nano> = ".{:0>#9d}";
 
 // Default format for formatting is HH:MM:SS
 template <typename Ratio>
@@ -513,7 +517,7 @@ USERVER_NAMESPACE_END
 namespace fmt {
 
 template <typename Duration>
-struct formatter<USERVER_NAMESPACE::utils::datetime::TimeOfDay<Duration>> {
+class formatter<USERVER_NAMESPACE::utils::datetime::TimeOfDay<Duration>> {
   /// Format string used for format key `%H`, two-digit 24-hour left-padded by 0
   static constexpr auto kLongHourFormat =
       USERVER_NAMESPACE::utils::datetime::detail::kLongHourFormat;
@@ -532,7 +536,7 @@ struct formatter<USERVER_NAMESPACE::utils::datetime::TimeOfDay<Duration>> {
       USERVER_NAMESPACE::utils::datetime::detail::kSubsecondsPreformat<
           typename Duration::period>;
 
-  static constexpr auto kLiteralPercent = "%";
+  static constexpr std::string_view kLiteralPercent = "%";
 
   static constexpr auto kDefaultFormat =
       USERVER_NAMESPACE::utils::datetime::detail::kDefaultFormat<
@@ -552,6 +556,7 @@ struct formatter<USERVER_NAMESPACE::utils::datetime::TimeOfDay<Duration>> {
     }
   }
 
+ public:
   constexpr auto parse(format_parse_context& ctx) {
     enum { kChar, kPercent, kKey } state = kChar;
     const auto* it = ctx.begin();
@@ -562,22 +567,22 @@ struct formatter<USERVER_NAMESPACE::utils::datetime::TimeOfDay<Duration>> {
     std::size_t size = 0;
     for (; it != end && *it != '}'; ++it) {
       if (!custom_format) {
-        representation.clear();
+        representation_size_ = 0;
         custom_format = true;
       }
       if (*it == '%') {
         if (state == kPercent) {
-          representation.emplace_back(kLiteralPercent);
+          PushBackFmt(kLiteralPercent);
           state = kKey;
         } else {
           if (state == kChar && size > 0) {
-            representation.emplace_back(begin, size);
+            PushBackFmt({begin, size});
           }
           state = kPercent;
         }
       } else {
         if (state == kPercent) {
-          representation.emplace_back(GetFormatForKey(*it));
+          PushBackFmt(GetFormatForKey(*it));
           state = kKey;
         } else if (state == kKey) {
           // start new literal
@@ -589,9 +594,14 @@ struct formatter<USERVER_NAMESPACE::utils::datetime::TimeOfDay<Duration>> {
         }
       }
     }
+    if (!custom_format) {
+      for (const auto fmt : kDefaultFormat) {
+        PushBackFmt(fmt);
+      }
+    }
     if (state == kChar) {
       if (size > 0) {
-        representation.emplace_back(begin, size);
+        PushBackFmt({begin, size});
       }
     } else if (state == kPercent) {
       throw format_error{"No format key after percent character"};
@@ -617,10 +627,10 @@ struct formatter<USERVER_NAMESPACE::utils::datetime::TimeOfDay<Duration>> {
         2;
     char subseconds[buffer_size];
     subseconds[0] = 0;
-    if (ss > 0 || !truncate_trailing_subseconds) {
+    if (ss > 0 || !truncate_trailing_subseconds_) {
       format_to(subseconds, kSubsecondsPreformat, ss);
       subseconds[buffer_size - 1] = 0;
-      if (truncate_trailing_subseconds) {
+      if (truncate_trailing_subseconds_) {
         // Truncate trailing zeros
         for (auto last = buffer_size - 2; last > 0 && subseconds[last] == '0';
              --last)
@@ -629,15 +639,27 @@ struct formatter<USERVER_NAMESPACE::utils::datetime::TimeOfDay<Duration>> {
     }
 
     auto res = ctx.out();
-    for (auto fmt : representation) {
-      res = format_to(ctx.out(), fmt, hours, mins, secs, subseconds);
+    for (std::size_t i = 0; i < representation_size_; ++i) {
+      res = format_to(ctx.out(), fmt::runtime(representation_[i]), hours, mins,
+                      secs, subseconds);
     }
     return res;
   }
 
-  std::vector<std::string_view> representation{kDefaultFormat.begin(),
-                                               kDefaultFormat.end()};
-  bool truncate_trailing_subseconds{true};
+ private:
+  constexpr void PushBackFmt(std::string_view fmt) {
+    if (representation_size_ >= kRepresentationCapacity) {
+      throw format_error("Format string complexity exceeds TimeOfDay limits");
+    }
+    representation_[representation_size_++] = fmt;
+  }
+
+  // Enough for hours, minutes, seconds, text and some % literals.
+  static constexpr std::size_t kRepresentationCapacity = 10;
+
+  std::string_view representation_[kRepresentationCapacity]{};
+  std::size_t representation_size_{0};
+  bool truncate_trailing_subseconds_{true};
 };
 
 }  // namespace fmt

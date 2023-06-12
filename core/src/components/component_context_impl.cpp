@@ -5,7 +5,7 @@
 
 #include <fmt/format.h>
 
-#include <userver/components/manager.hpp>
+#include <userver/compiler/demangle.hpp>
 #include <userver/concurrent/variable.hpp>
 #include <userver/engine/task/task_with_result.hpp>
 #include <userver/logging/log.hpp>
@@ -15,6 +15,7 @@
 
 #include <components/component_context_component_info.hpp>
 #include <components/impl/component_name_from_info.hpp>
+#include <components/manager.hpp>
 #include <engine/task/task_context.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -117,8 +118,16 @@ impl::ComponentBase* ComponentContext::Impl::AddComponent(
                              " multiple times");
 
   component_info.SetComponent(factory(context));
-
-  return component_info.GetComponent();
+  auto* component = component_info.GetComponent();
+  if (component) {
+    // Call the following command on logs to get the component dependencies:
+    // sed -n 's/^.*component deps: \(.*\)$/\1/p'
+    LOG_TRACE() << "component deps: "
+                << fmt::format("\"{0}\" [label=\"{0}\n{1}\"]; ", name,
+                               compiler::GetTypeName(typeid(*component)))
+                << component_info.GetDependencies();
+  }
+  return component;
 }
 
 void ComponentContext::Impl::OnAllComponentsLoaded() {
@@ -200,12 +209,13 @@ void ComponentContext::Impl::ThrowNonRegisteredComponent(
     std::string_view name, std::string_view type) const {
   auto data = shared_data_.Lock();
   throw std::runtime_error(fmt::format(
-      "Component '{}' requested component with non registered name '{}' of "
-      "type {}",
-      GetLoadingComponentName(*data).StringViewName(), name, type));
+      "Component '{}' requested component {} with name '{}'. That name is "
+      "missing in the static config or the '{}' static config section contains "
+      "'load-enabled: false'.",
+      GetLoadingComponentName(*data).StringViewName(), type, name, name));
 }
 
-void ComponentContext::Impl::ThrowComponentTypeMissmatch(
+void ComponentContext::Impl::ThrowComponentTypeMismatch(
     std::string_view name, std::string_view type,
     impl::ComponentBase* component) const {
   auto data = shared_data_.Lock();
@@ -277,6 +287,7 @@ void ComponentContext::Impl::ProcessAllComponentLifetimeStageSwitchings(
   std::vector<
       std::pair<impl::ComponentNameFromInfo, engine::TaskWithResult<void>>>
       tasks;
+  tasks.reserve(components_.size());
   for (auto& component_item : components_) {
     const auto& name = component_item.first;
     auto& component_info = component_item.second;
@@ -439,6 +450,7 @@ void ComponentContext::Impl::PrintAddingComponents() const {
 
   {
     auto data = shared_data_.Lock();
+    adding_components.reserve(data->task_to_component_map.size());
     for (const auto& elem : data->task_to_component_map) {
       const auto& name = elem.second;
       adding_components.push_back(name);

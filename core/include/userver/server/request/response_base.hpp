@@ -78,9 +78,10 @@ class ResponseBase {
   /// @endcond
 
  protected:
-  void SetSent(size_t bytes_sent);
-  void SetSentTime(std::chrono::steady_clock::time_point sent_time);
+  void SetSent(std::size_t bytes_sent,
+               std::chrono::steady_clock::time_point sent_time);
 
+ private:
   class Guard final {
    public:
     Guard(ResponseDataAccounter& accounter,
@@ -97,7 +98,6 @@ class ResponseBase {
     size_t size_;
   };
 
- private:
   ResponseDataAccounter& accounter_;
   std::optional<Guard> guard_;
   std::string data_;

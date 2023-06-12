@@ -1,5 +1,8 @@
 #pragma once
 
+#include <cstddef>
+#include <string>
+
 #include <userver/storages/redis/impl/types.hpp>
 
 USERVER_NAMESPACE_BEGIN

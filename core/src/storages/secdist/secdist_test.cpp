@@ -12,6 +12,7 @@
 #include <userver/utest/using_namespace_userver.hpp>
 
 /// [UserPasswords]
+#include <userver/storages/secdist/provider_component.hpp>
 #include <userver/storages/secdist/secdist.hpp>
 
 #include <userver/crypto/algorithm.hpp>
@@ -65,10 +66,10 @@ TEST(SecdistConfig, Sample) {
   auto temp_file = fs::blocking::TempFile::Create();
   fs::blocking::RewriteFileContents(temp_file.GetPath(), kSecdistJson);
 
-  storages::secdist::SecdistConfig secdist_config(
+  storages::secdist::DefaultLoader provider{
       {temp_file.GetPath(), storages::secdist::SecdistFormat::kJson, false,
-       std::nullopt});
-
+       std::nullopt}};
+  storages::secdist::SecdistConfig secdist_config{{&provider}};
   /// [Secdist Usage Sample - SecdistConfig]
   const auto& user_passwords = secdist_config.Get<UserPasswords>();
 
@@ -82,9 +83,10 @@ TEST(SecdistYamlConfig, Sample) {
   auto temp_file = fs::blocking::TempFile::Create();
   fs::blocking::RewriteFileContents(temp_file.GetPath(), kSecdistYaml);
 
-  storages::secdist::SecdistConfig secdist_config(
+  storages::secdist::DefaultLoader provider{
       {temp_file.GetPath(), storages::secdist::SecdistFormat::kYaml, false,
-       std::nullopt});
+       std::nullopt}};
+  storages::secdist::SecdistConfig secdist_config{{&provider}};
 
   /// [Secdist Usage Sample - SecdistConfig]
   const auto& user_passwords = secdist_config.Get<UserPasswords>();
@@ -104,8 +106,9 @@ UTEST(SecdistConfig, EnvironmentVariable) {
   ASSERT_EQ(setenv(kVarName.c_str(), kSecdistJson.c_str(), 1), 0);
   engine::subprocess::UpdateCurrentEnvironmentVariables();
 
-  storages::secdist::SecdistConfig secdist_config(
-      {"", storages::secdist::SecdistFormat::kJson, false, kVarName});
+  storages::secdist::DefaultLoader provider{
+      {"", storages::secdist::SecdistFormat::kJson, false, kVarName}};
+  storages::secdist::SecdistConfig secdist_config{{&provider}};
 
   const auto& user_passwords = secdist_config.Get<UserPasswords>();
 
@@ -146,9 +149,10 @@ UTEST(SecdistConfig, FileAndEnvironmentVariable) {
   ASSERT_EQ(setenv(kVarName.c_str(), kSecdistEnvVarJson.c_str(), 1), 0);
   engine::subprocess::UpdateCurrentEnvironmentVariables();
 
-  storages::secdist::SecdistConfig secdist_config(
+  storages::secdist::DefaultLoader provider{
       {temp_file.GetPath(), storages::secdist::SecdistFormat::kJson, false,
-       kVarName});
+       kVarName}};
+  storages::secdist::SecdistConfig secdist_config{{&provider}};
 
   const auto& user_passwords = secdist_config.Get<UserPasswords>();
 
@@ -169,9 +173,10 @@ UTEST(Secdist, WithoutUpdates) {
   auto temp_file = fs::blocking::TempFile::Create();
   fs::blocking::RewriteFileContents(temp_file.GetPath(), kSecdistJson);
 
-  storages::secdist::Secdist secdist({temp_file.GetPath(),
-                                      storages::secdist::SecdistFormat::kJson,
-                                      false, std::nullopt});
+  storages::secdist::DefaultLoader provider{
+      {temp_file.GetPath(), storages::secdist::SecdistFormat::kJson, false,
+       std::nullopt}};
+  storages::secdist::Secdist secdist{{&provider}};
 
   const auto& secdist_config = secdist.Get();
 
@@ -225,10 +230,12 @@ UTEST(Secdist, DynamicUpdate) {
   auto temp_file = fs::blocking::TempFile::Create();
   fs::blocking::RewriteFileContents(temp_file.GetPath(), kSecdistInitJson);
 
-  storages::secdist::Secdist secdist(
+  storages::secdist::DefaultLoader provider{
       {temp_file.GetPath(), storages::secdist::SecdistFormat::kJson, false,
-       std::nullopt, std::chrono::milliseconds(100),
-       &engine::current_task::GetTaskProcessor()});
+       std::nullopt, &engine::current_task::GetTaskProcessor()}};
+  storages::secdist::Secdist secdist{
+      {&provider, std::chrono::milliseconds(100)}};
+
   auto subscriber = secdist.UpdateAndListen(
       &storage, "test/update_secdist", &SecdistConfigStorage::OnSecdistUpdate);
   EXPECT_EQ(storage.updates_counter.load(), 1);

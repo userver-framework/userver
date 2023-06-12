@@ -17,6 +17,9 @@ enum class OsScheduling {
   kIdle,
 };
 
+OsScheduling Parse(const yaml_config::YamlConfig& value,
+                   formats::parse::To<OsScheduling>);
+
 struct TaskProcessorConfig {
   std::string name;
 
@@ -24,6 +27,7 @@ struct TaskProcessorConfig {
   std::size_t worker_threads{6};
   std::string thread_name;
   OsScheduling os_scheduling{OsScheduling::kNormal};
+  int spinning_iterations{10000};
 
   std::size_t task_trace_every{1000};
   std::size_t task_trace_max_csw{0};

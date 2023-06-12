@@ -3,12 +3,15 @@
 #include <sstream>
 
 #include <fmt/format.h>
+#include <hiredis/hiredis.h>
 
+#include <userver/logging/log.hpp>
+#include <userver/utils/assert.hpp>
+
+#include <storages/redis/impl/command.hpp>
 #include <storages/redis/impl/sentinel_impl.hpp>
 #include <storages/redis/impl/shard.hpp>
-#include <userver/logging/log.hpp>
 #include <userver/storages/redis/impl/reply.hpp>
-#include <userver/utils/assert.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -40,14 +43,14 @@ bool ParseSentinelResponse(
     const CommandPtr& command, const ReplyPtr& reply, bool allow_empty,
     std::vector<std::map<std::string, std::string>>& res) {
   const auto& reply_data = reply->data;
-  int status = reply->status;
+  auto status = reply->status;
   res.clear();
-  if (!reply_data || status != REDIS_OK ||
+  if (!reply_data || status != ReplyStatus::kOk ||
       reply_data.GetType() != ReplyData::Type::kArray ||
       (!allow_empty && reply_data.GetArray().empty())) {
     std::stringstream ss;
-    if (status != REDIS_OK) {
-      ss << "request to sentinel failed with status=" << reply->StatusString();
+    if (status != ReplyStatus::kOk) {
+      ss << "request to sentinel failed with status=" << reply->status;
     } else {
       ss << "can't parse sentinel response. type=" << reply_data.GetTypeString()
          << " msg=" << reply_data.ToDebugString();
@@ -230,7 +233,7 @@ ClusterSlotsResponseStatus ParseClusterSlotsResponse(
   LOG_TRACE() << "Got reply to CLUSTER SLOTS: " << reply->data.ToDebugString();
   if (reply->IsUnknownCommandError())
     return ClusterSlotsResponseStatus::kNonCluster;
-  if (reply->status != REDIS_OK || !reply->data.IsArray())
+  if (reply->status != ReplyStatus::kOk || !reply->data.IsArray())
     return ClusterSlotsResponseStatus::kFail;
   for (const auto& reply_interval : reply->data.GetArray()) {
     if (!reply_interval.IsArray()) return ClusterSlotsResponseStatus::kFail;

@@ -1,13 +1,17 @@
 #include <userver/crypto/verifiers.hpp>
 
 #include <cryptopp/dsa.h>
+
+#include <openssl/pem.h>
+// keep these two headers in this order
+#include <openssl/cms.h>
+
 #include <openssl/crypto.h>
 #include <openssl/evp.h>
-#include <openssl/rsa.h>
+#include <openssl/x509.h>
 
 #include <crypto/helpers.hpp>
 #include <crypto/openssl.hpp>
-#include <userver/crypto/hash.hpp>
 #include <userver/utils/assert.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -36,6 +40,54 @@ std::vector<unsigned char> ConvertEcSignature(std::string_view raw_signature) {
   }
   der_signature.resize(siglen);
   return der_signature;
+}
+
+int ToNativeCmsFlags(utils::Flags<CmsVerifier::Flags> flags) {
+  int native = 0;
+
+  using VerifyFlags = CmsVerifier::Flags;
+  if (flags & VerifyFlags::kNoSignerCertVerify) {
+    native |= CMS_NO_SIGNER_CERT_VERIFY;
+  }
+
+  return native;
+}
+
+std::unique_ptr<CMS_ContentInfo, decltype(&CMS_ContentInfo_free)>
+ReadCmsContent(BIO& from, CmsVerifier::InForm in_form) {
+  using InForm = CmsVerifier::InForm;
+
+  std::unique_ptr<CMS_ContentInfo, decltype(&CMS_ContentInfo_free)> cms{
+      nullptr, CMS_ContentInfo_free};
+  switch (in_form) {
+    case InForm::kDer: {
+      cms.reset(d2i_CMS_bio(&from, nullptr));
+      if (!cms) {
+        throw VerificationError{
+            FormatSslError("Failed to verify: d2i_CMS_bio")};
+      }
+      break;
+    }
+    case InForm::kPem: {
+      cms.reset(PEM_read_bio_CMS(&from, nullptr, nullptr, nullptr));
+      if (!cms) {
+        throw VerificationError{
+            FormatSslError("Failed to verify: PEM_read_bio_CMS")};
+      }
+      break;
+    }
+    case InForm::kSMime: {
+      cms.reset(SMIME_read_CMS(&from, nullptr));
+      if (!cms) {
+        throw VerificationError{
+            FormatSslError("Failed to verify: SMIME_read_CMS")};
+      }
+      break;
+    }
+  }
+
+  UASSERT(cms);
+  return cms;
 }
 
 }  // namespace
@@ -225,6 +277,49 @@ template class DsaVerifier<DsaType::kRsaPss, DigestSize::k160>;
 template class DsaVerifier<DsaType::kRsaPss, DigestSize::k256>;
 template class DsaVerifier<DsaType::kRsaPss, DigestSize::k384>;
 template class DsaVerifier<DsaType::kRsaPss, DigestSize::k512>;
+
+CmsVerifier::CmsVerifier(Certificate certificate)
+    : NamedAlgo{"CMS"}, cert_{std::move(certificate)} {}
+
+CmsVerifier::~CmsVerifier() = default;
+
+void CmsVerifier::Verify(std::initializer_list<std::string_view> data,
+                         utils::Flags<Flags> flags, InForm in_form) const {
+  const auto native_flags = ToNativeCmsFlags(flags);
+
+  const auto data_string = InitListToString(data);
+  const auto bio_data = MakeBioString(data_string);
+  if (!bio_data) {
+    throw VerificationError{FormatSslError("Failed to verify: MakeBioString")};
+  }
+
+  const auto cms_content = ReadCmsContent(*bio_data, in_form);
+
+  using CertStack = STACK_OF(X509);
+  // sk_X509_free is a macros in libssl 3.0+,
+  // thus decltype(&sk_X509_free) doesn't work, so this.
+  const auto stack_deleter = [](STACK_OF(X509) * sk) { sk_X509_free(sk); };
+  const std::unique_ptr<CertStack, decltype(stack_deleter)> certs{
+      sk_X509_new_reserve(nullptr, 1), stack_deleter};
+  if (!certs) {
+    throw VerificationError{
+        FormatSslError("Failed to verify: sk_X509_new_reserve")};
+  }
+
+  if (sk_X509_push(certs.get(), cert_.GetNative()) != 1) {
+    // openssl guarantees that this can't happen if new_reserve succeeds,
+    // but we're better off checking anyway.
+    throw VerificationError{FormatSslError("Failed to verify: sk_X509_push")};
+  }
+
+  if (1 != CMS_verify(cms_content.get(), certs.get(),                 //
+                      nullptr /* store */,                            //
+                      nullptr /* dcont, detached content that is */,  //
+                      nullptr /* out */,                              //
+                      native_flags)) {
+    throw VerificationError{FormatSslError("Failed to verify: CMS_verify")};
+  }
+}
 
 }  // namespace crypto
 

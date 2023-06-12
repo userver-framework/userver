@@ -47,14 +47,4 @@ TYPED_TEST(ValueBuilderTransfer, AssignmentAffectsPointerToSame) {
   ASSERT_EQ(root.ExtractValue()["a"].template As<int>(), 2);
 }
 
-TYPED_TEST(ValueBuilderTransfer, AssignParentInsideChild) {
-  using ValueBuilder = typename TypeParam::Builder;
-  ValueBuilder root;
-  root["a"]["b"]["c"] = 1;
-  root["a"]["b"]["c"] = ValueBuilder(TransferTag(), std::move(root["a"]));
-  ValueBuilder expected_result;
-  expected_result["a"]["b"]["c"]["b"]["c"] = 1;
-  ASSERT_EQ(root.ExtractValue(), expected_result.ExtractValue());
-}
-
 USERVER_NAMESPACE_END

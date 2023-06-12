@@ -136,7 +136,7 @@ void MockRedisServerBase::OnRead(boost::system::error_code ec, size_t count) {
   while (redisReaderGetReply(reader_.get(), &hiredis_reply) == REDIS_OK &&
          hiredis_reply) {
     auto reply = std::make_shared<redis::Reply>(
-        "", static_cast<redisReply*>(hiredis_reply), REDIS_OK);
+        "", static_cast<redisReply*>(hiredis_reply), redis::ReplyStatus::kOk);
     LOG_DEBUG() << "command: " << reply->data.ToDebugString();
 
     OnCommand(reply);

@@ -80,7 +80,7 @@ HandlerConfig ParseHandlerConfigsWithDefaults(
           kLogRequestDataSizeDefaultLimit);
   config.max_requests_per_second =
       value["max_requests_per_second"].As<std::optional<size_t>>();
-  config.decompress_request = value["decompress_request"].As<bool>(false);
+  config.decompress_request = value["decompress_request"].As<bool>(true);
   config.throttling_enabled = value["throttling_enabled"].As<bool>(true);
   config.set_response_server_hostname =
       value["set-response-server-hostname"].As<std::optional<bool>>();
@@ -93,6 +93,9 @@ HandlerConfig ParseHandlerConfigsWithDefaults(
         "max_requests_per_second should be greater than 0, current value is " +
         std::to_string(config.max_requests_per_second.value()));
   }
+
+  config.set_tracing_headers = value["set_tracing_headers"].As<bool>(
+      handler_defaults.set_tracing_headers);
 
   return config;
 }

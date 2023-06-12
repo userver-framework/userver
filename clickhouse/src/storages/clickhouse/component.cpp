@@ -5,6 +5,7 @@
 #include <userver/components/component_context.hpp>
 #include <userver/components/statistics_storage.hpp>
 #include <userver/storages/secdist/component.hpp>
+#include <userver/utils/statistics/writer.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
 #include <userver/storages/clickhouse/cluster.hpp>
@@ -30,9 +31,14 @@ ClickHouse::ClickHouse(const ComponentConfig& config,
 
   auto& statistics_storage =
       context.FindComponent<components::StatisticsStorage>();
-  statistics_holder_ = statistics_storage.GetStorage().RegisterExtender(
-      "clickhouse." + settings.auth_settings.database,
-      [this](const auto&) { return cluster_->GetStatistics(); });
+  statistics_holder_ = statistics_storage.GetStorage().RegisterWriter(
+      "clickhouse",
+      [this](utils::statistics::Writer& writer) {
+        if (cluster_) {
+          cluster_->WriteStatistics(writer);
+        }
+      },
+      {{"clickhouse_database", settings.auth_settings.database}});
 }
 
 ClickHouse::~ClickHouse() { statistics_holder_.Unregister(); }

@@ -20,7 +20,7 @@ set(SOURCES
 
 enable_language(ASM)
 if(APPLE)
-  if (CMAKE_SYSTEM_PROCESSOR MATCHES "^x86")
+  if (CMAKE_SYSTEM_PROCESSOR MATCHES "^x86" OR CMAKE_SYSTEM_PROCESSOR MATCHES "^amd64")
     list(APPEND SOURCES
       ${CMAKE_CURRENT_SOURCE_DIR}/src/context/asm/jump_x86_64_sysv_macho_gas.S
       ${CMAKE_CURRENT_SOURCE_DIR}/src/context/asm/make_x86_64_sysv_macho_gas.S
@@ -34,7 +34,7 @@ if(APPLE)
     )
   endif()
 else() # Unix
-  if (CMAKE_SYSTEM_PROCESSOR MATCHES "^x86")
+  if (CMAKE_SYSTEM_PROCESSOR MATCHES "^x86" OR CMAKE_SYSTEM_PROCESSOR MATCHES "^amd64")
     if(CMAKE_SIZEOF_VOID_P EQUAL 4)
       list(APPEND SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/src/context/asm/jump_i386_sysv_elf_gas.S

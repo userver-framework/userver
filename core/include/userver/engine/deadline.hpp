@@ -28,6 +28,10 @@ class Deadline final {
   /// Returns whether the deadline is reached
   bool IsReached() const noexcept;
 
+  /// Returns whether the deadline is reached. Will report false-negatives, will
+  /// never report false-positives.
+  bool IsSurelyReachedApprox() const noexcept;
+
   /// Returns the duration of time left before the reachable deadline
   Duration TimeLeft() const noexcept;
 
@@ -50,15 +54,17 @@ class Deadline final {
     constexpr auto max_now = TimePoint::clock::time_point::max();
 
     // If:
-    // 1. incoming duration can't be represented in steady duration,
-    // 2. or it can, but adding it to now will overflow
+    // 1. incoming_duration would overflow Duration,
+    // 2. or adding it to 'now' would overflow,
     // then set deadline to unreachable right away.
-    // To avoid division on hot path, we do this:
+
+    // Implementation strategy:
     // 1. Check that resolution of Duration >= that of IncomingDuration.
-    static_assert(std::is_constructible<Duration, IncomingDuration>());
-    // 2. As it it higher, then range is lower (or equal). So casting
-    //    Duration::max to IncomingDuration is safe. Fast constexpr check that
-    //    incoming duration is higher than maximum potential Duration value.
+    static_assert(std::is_constructible_v<Duration, IncomingDuration>);
+
+    // 2. As it is higher, then the range is lower (or equal). So casting
+    //    Duration::max to IncomingDuration is safe. Do a quick check
+    //    that Duration{incoming_duration} won't overflow.
     if (incoming_duration >
         std::chrono::duration_cast<IncomingDuration>(Duration::max())) {
       OnDurationOverflow(
@@ -67,11 +73,8 @@ class Deadline final {
       return Deadline{};
     }
 
-    /// 3. This heavy check requires runtime division on happy path, so
-    ///    we move it to assert. Check that incoming duration is not higher
-    ///    than what Duration is actually left in our clock.
-    UASSERT(std::chrono::duration_cast<IncomingDuration>(max_now - now) >=
-            incoming_duration);
+    // 3. Check that now + Duration{incoming_duration} won't overflow.
+    UASSERT(max_now - now >= Duration{incoming_duration});
 
     return Deadline(now + Duration{incoming_duration});
   }

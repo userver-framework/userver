@@ -6,7 +6,7 @@
 #include <userver/dynamic_config/storage_mock.hpp>
 #include <userver/utils/cpu_relax.hpp>
 #include <userver/utils/enumerate.hpp>
-#include <utils/impl/static_registration.hpp>
+#include <userver/utils/impl/static_registration.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -49,20 +49,32 @@ SnapshotData::SnapshotData(const DocsMap& defaults,
   for (const auto [id, factory] : utils::enumerate(Registry())) {
     if (!user_configs_[id].has_value()) {
       relax.Relax(1);
-      user_configs_[id] = factory(defaults);
+      try {
+        user_configs_[id] = factory(defaults);
+      } catch (const std::exception& ex) {
+        throw std::runtime_error(
+            fmt::format("While parsing dynamic config values: {} ({})",
+                        ex.what(), compiler::GetTypeName(typeid(ex))));
+      }
     }
   }
 }
 
 SnapshotData::SnapshotData(const SnapshotData& defaults,
                            const std::vector<KeyValue>& overrides)
-    : user_configs_(defaults.user_configs_) {
-  for (const auto& config_variable : overrides) {
-    user_configs_[config_variable.GetId()] = config_variable.GetValue();
+    : SnapshotData(overrides) {
+  if (defaults.IsEmpty()) return;
+
+  for (const auto [id, factory] : utils::enumerate(Registry())) {
+    if (user_configs_[id].has_value()) continue;
+    user_configs_[id] = defaults.user_configs_[id];
   }
 }
 
+bool SnapshotData::IsEmpty() const noexcept { return user_configs_.empty(); }
+
 const std::any& SnapshotData::Get(impl::ConfigId id) const {
+  UASSERT_MSG(id < user_configs_.size(), "SnapshotData is in an empty state.");
   const auto& config = user_configs_[id];
   if (!config.has_value()) {
     throw std::logic_error("This type is not registered as config");

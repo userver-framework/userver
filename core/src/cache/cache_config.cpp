@@ -10,6 +10,7 @@
 #include <userver/utils/algo.hpp>
 #include <userver/utils/string_to_duration.hpp>
 #include <userver/utils/traceful_exception.hpp>
+#include <userver/utils/trivial_map.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -23,6 +24,8 @@ constexpr std::string_view kFullUpdateIntervalMs = "full-update-interval-ms";
 constexpr std::string_view kExceptionIntervalMs = "exception-interval-ms";
 constexpr std::string_view kUpdatesEnabled = "updates-enabled";
 constexpr std::string_view kTaskProcessor = "task-processor";
+constexpr std::string_view kFailedUpdatesBeforeExpiration =
+    "failed-updates-before-expiration";
 
 constexpr std::string_view kUpdateInterval = "update-interval";
 constexpr std::string_view kUpdateJitter = "update-jitter";
@@ -30,6 +33,7 @@ constexpr std::string_view kFullUpdateInterval = "full-update-interval";
 constexpr std::string_view kExceptionInterval = "exception-interval";
 constexpr std::string_view kCleanupInterval = "additional-cleanup-interval";
 constexpr std::string_view kIsStrongPeriod = "is-strong-period";
+constexpr std::string_view kHasPreAssignCheck = "has-pre-assign-check";
 
 constexpr std::string_view kFirstUpdateFailOk = "first-update-fail-ok";
 constexpr std::string_view kUpdateTypes = "update-types";
@@ -59,33 +63,41 @@ AllowedUpdateTypes ParseUpdateMode(const yaml_config::YamlConfig& config) {
   }
 }
 
+constexpr utils::TrivialBiMap kFirstUpdateModeMap([](auto selector) {
+  return selector()
+      .Case(FirstUpdateMode::kRequired, "required")
+      .Case(FirstUpdateMode::kBestEffort, "best-effort")
+      .Case(FirstUpdateMode::kSkip, "skip");
+});
+
+constexpr utils::TrivialBiMap kFirstUpdateTypeMap([](auto selector) {
+  return selector()
+      .Case(FirstUpdateType::kFull, "full")
+      .Case(FirstUpdateType::kIncremental, "incremental")
+      .Case(FirstUpdateType::kIncrementalThenAsyncFull,
+            "incremental-then-async-full");
+});
+
 }  // namespace
 
 using dump::impl::ParseMs;
 
 FirstUpdateMode Parse(const yaml_config::YamlConfig& config,
                       formats::parse::To<FirstUpdateMode>) {
-  const auto as_string = config.As<std::string>();
+  return utils::ParseFromValueString(config, kFirstUpdateModeMap);
+}
 
-  if (as_string == "required") return FirstUpdateMode::kRequired;
-  if (as_string == "best-effort") return FirstUpdateMode::kBestEffort;
-  if (as_string == "skip") return FirstUpdateMode::kSkip;
-
-  throw yaml_config::ParseException(fmt::format(
-      "Invalid first update mode '{}' at '{}'", as_string, config.GetPath()));
+std::string_view ToString(FirstUpdateMode first_update_mode) {
+  return utils::impl::EnumToStringView(first_update_mode, kFirstUpdateModeMap);
 }
 
 FirstUpdateType Parse(const yaml_config::YamlConfig& config,
                       formats::parse::To<FirstUpdateType>) {
-  const auto as_string = config.As<std::string>();
+  return utils::ParseFromValueString(config, kFirstUpdateTypeMap);
+}
 
-  if (as_string == "full") return FirstUpdateType::kFull;
-  if (as_string == "incremental") return FirstUpdateType::kIncremental;
-  if (as_string == "incremental-then-async-full")
-    return FirstUpdateType::kIncrementalThenAsyncFull;
-
-  throw yaml_config::ParseException(fmt::format(
-      "Invalid first update type '{}' at '{}'", as_string, config.GetPath()));
+std::string_view ToString(FirstUpdateType first_update_type) {
+  return utils::impl::EnumToStringView(first_update_type, kFirstUpdateTypeMap);
 }
 
 ConfigPatch Parse(const formats::json::Value& value,
@@ -121,11 +133,14 @@ Config::Config(const yaml_config::YamlConfig& config,
       force_periodic_update(
           config[kForcePeriodicUpdates].As<std::optional<bool>>()),
       config_updates_enabled(config[kConfigSettings].As<bool>(true)),
+      has_pre_assign_check(config[kHasPreAssignCheck].As<bool>(false)),
       task_processor_name(
           config[kTaskProcessor].As<std::optional<std::string>>()),
       cleanup_interval(config[kCleanupInterval].As<std::chrono::milliseconds>(
           kDefaultCleanupInterval)),
       is_strong_period(config[kIsStrongPeriod].As<bool>(false)),
+      failed_updates_before_expiration(config[kFailedUpdatesBeforeExpiration]
+                                           .As<std::optional<std::uint64_t>>()),
       first_update_mode(
           config[dump::kDump][kFirstUpdateMode].As<FirstUpdateMode>(
               FirstUpdateMode::kSkip)),

@@ -32,6 +32,8 @@ DynamicConfigClient::DynamicConfigClient(const ComponentConfig& config,
   client_config.service_name = config["service-name"].As<std::string>();
   client_config.get_configs_overrides_for_service =
       config["get-configs-overrides-for-service"].As<bool>(true);
+  client_config.append_path_to_url =
+      config["append-path-to-url"].As<bool>(true);
   client_config.timeout =
       utils::StringToDuration(config["http-timeout"].As<std::string>());
   client_config.retries = config["http-retries"].As<int>();
@@ -96,6 +98,10 @@ properties:
     fallback-to-no-proxy:
         type: boolean
         description: make additional attempts to retrieve configs by bypassing proxy that is set in USERVER_HTTP_PROXY runtime variable
+        defaultDescription: true
+    append-path-to-url:
+        type: boolean
+        description: add default path '/configs/values' to 'config-url'
         defaultDescription: true
 )");
 }

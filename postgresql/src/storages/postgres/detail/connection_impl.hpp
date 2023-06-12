@@ -7,7 +7,9 @@
 #include <unordered_map>
 
 #include <userver/cache/lru_map.hpp>
+#include <userver/concurrent/background_task_storage_fwd.hpp>
 #include <userver/engine/deadline.hpp>
+#include <userver/engine/semaphore.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/error_injection/settings_fwd.hpp>
 #include <userver/testsuite/postgres_control.hpp>
@@ -28,12 +30,13 @@ namespace storages::postgres::detail {
 
 class ConnectionImpl {
  public:
-  ConnectionImpl(engine::TaskProcessor& bg_task_processor, uint32_t id,
-                 ConnectionSettings settings,
+  ConnectionImpl(engine::TaskProcessor& bg_task_processor,
+                 concurrent::BackgroundTaskStorageCore& bg_task_storage,
+                 uint32_t id, ConnectionSettings settings,
                  const DefaultCommandControls& default_cmd_ctls,
                  const testsuite::PostgresControl& testsuite_pg_ctl,
                  const error_injection::Settings& ei_settings,
-                 Connection::SizeGuard&& size_guard);
+                 engine::SemaphoreLock&& size_lock);
 
   void AsyncConnect(const Dsn& dsn, engine::Deadline deadline);
   void Close();
@@ -48,6 +51,7 @@ class ConnectionImpl {
   bool IsIdle() const;
   bool IsInTransaction() const;
   bool IsPipelineActive() const;
+  bool IsBroken() const;
   ConnectionSettings const& GetSettings() const;
 
   CommandControl GetDefaultCommandControl() const;

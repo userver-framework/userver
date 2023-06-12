@@ -9,11 +9,11 @@ namespace clients::http {
 Form::Form() : impl_(std::make_shared<curl::form>()) {}
 Form::~Form() = default;
 
-void Form::AddContent(const std::string& key, const std::string& content) {
+void Form::AddContent(std::string_view key, std::string_view content) {
   impl_->add_content(key, content);
 }
 
-void Form::AddContent(const std::string& key, const std::string& content,
+void Form::AddContent(std::string_view key, std::string_view content,
                       const std::string& content_type) {
   impl_->add_content(key, content, content_type);
 }

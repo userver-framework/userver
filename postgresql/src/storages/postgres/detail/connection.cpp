@@ -8,7 +8,7 @@ USERVER_NAMESPACE_BEGIN
 namespace storages::postgres::detail {
 namespace {
 
-const TimeoutDuration kConnectTimeout = std::chrono::seconds{2};
+constexpr TimeoutDuration kMinConnectTimeout = std::chrono::seconds{2};
 
 }  // namespace
 
@@ -18,16 +18,19 @@ Connection::~Connection() = default;
 
 std::unique_ptr<Connection> Connection::Connect(
     const Dsn& dsn, clients::dns::Resolver* resolver,
-    engine::TaskProcessor& bg_task_processor, uint32_t id,
+    engine::TaskProcessor& bg_task_processor,
+    concurrent::BackgroundTaskStorageCore& bg_task_storage, uint32_t id,
     ConnectionSettings settings, const DefaultCommandControls& default_cmd_ctls,
     const testsuite::PostgresControl& testsuite_pg_ctl,
-    const error_injection::Settings& ei_settings, SizeGuard&& size_guard) {
+    const error_injection::Settings& ei_settings,
+    engine::SemaphoreLock&& size_lock) {
   std::unique_ptr<Connection> conn(new Connection());
 
-  const auto deadline = engine::Deadline::FromDuration(kConnectTimeout);
+  const auto deadline = engine::Deadline::FromDuration(std::max(
+      kMinConnectTimeout, default_cmd_ctls.GetDefaultCmdCtl().execute));
   conn->pimpl_ = std::make_unique<ConnectionImpl>(
-      bg_task_processor, id, settings, default_cmd_ctls, testsuite_pg_ctl,
-      ei_settings, std::move(size_guard));
+      bg_task_processor, bg_task_storage, id, settings, default_cmd_ctls,
+      testsuite_pg_ctl, ei_settings, std::move(size_lock));
   if (resolver) {
     try {
       conn->pimpl_->AsyncConnect(ResolveDsnHostaddrs(dsn, *resolver, deadline),
@@ -63,6 +66,8 @@ ConnectionState Connection::GetState() const {
 bool Connection::IsConnected() const { return pimpl_->IsConnected(); }
 
 bool Connection::IsIdle() const { return pimpl_->IsIdle(); }
+
+bool Connection::IsBroken() const { return pimpl_->IsBroken(); }
 
 int Connection::GetServerVersion() const { return pimpl_->GetServerVersion(); }
 

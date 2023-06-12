@@ -16,6 +16,7 @@ namespace utils::statistics {
 /// {
 ///   "metric-path": [
 ///     {
+///       "type": "GAUGE",
 ///       "value": 42,
 ///       "labels": {
 ///         "some-label": "label-value",
@@ -23,6 +24,7 @@ namespace utils::statistics {
 ///       }
 ///     },
 ///     {
+///       "type": "RATE",
 ///       "value": 43,
 ///       "labels": {
 ///         "another-label": "another-value"
@@ -33,7 +35,7 @@ namespace utils::statistics {
 /// @endcode
 std::string ToJsonFormat(
     const utils::statistics::Storage& statistics,
-    const utils::statistics::StatisticsRequest& statistics_request = {});
+    const utils::statistics::Request& statistics_request = {});
 
 }  // namespace utils::statistics
 

@@ -2,7 +2,9 @@
 
 #include <boost/container/small_vector.hpp>
 
+#include <logging/put_data.hpp>
 #include <userver/formats/json.hpp>
+#include <userver/formats/json/string_builder.hpp>
 #include <userver/logging/log_extra.hpp>
 #include <userver/tracing/opentracing.hpp>
 #include <userver/tracing/tags.hpp>
@@ -45,16 +47,21 @@ struct LogExtraValueVisitor {
   void operator()(int val) { string_value = std::to_string(val); }
 };
 
-formats::json::ValueBuilder GetTagObject(const std::string& key,
-                                         const logging::LogExtra::Value& value,
-                                         const std::string& type) {
-  formats::json::ValueBuilder tag;
+void GetTagObject(formats::json::StringBuilder& builder, const std::string& key,
+                  const logging::LogExtra::Value& value,
+                  const std::string& type) {
+  formats::json::StringBuilder::ObjectGuard guard(builder);
   LogExtraValueVisitor visitor;
   std::visit(visitor, value);
-  tag.EmplaceNocheck("value", visitor.string_value);
-  tag.EmplaceNocheck("type", type);
-  tag.EmplaceNocheck("key", key);
-  return tag;
+
+  builder.Key("value");
+  builder.WriteString(visitor.string_value);
+
+  builder.Key("type");
+  builder.WriteString(type);
+
+  builder.Key("key");
+  builder.WriteString(key);
 }
 
 const std::string kOperationName = "operation_name";
@@ -74,45 +81,49 @@ void Span::Impl::LogOpenTracing() const {
   if (!logger) {
     return;
   }
+  DoLogOpenTracing(DO_LOG_TO_NO_SPAN(*logger, log_level_));
+}
+
+void Span::Impl::DoLogOpenTracing(logging::LogHelper& lh) const {
   const auto steady_now = std::chrono::steady_clock::now();
   const auto duration = steady_now - start_steady_time_;
   const auto duration_microseconds =
       std::chrono::duration_cast<std::chrono::microseconds>(duration).count();
-  logging::LogExtra jaeger_span;
   auto start_time = std::chrono::duration_cast<std::chrono::microseconds>(
                         start_system_time_.time_since_epoch())
                         .count();
 
   if (tracer_) {
-    jaeger_span.Extend(jaeger::kServiceName, tracer_->GetServiceName());
+    PutData(lh, jaeger::kServiceName, tracer_->GetServiceName());
   }
-  jaeger_span.Extend(jaeger::kTraceId, trace_id_);
-  jaeger_span.Extend(jaeger::kParentId, parent_id_);
-  jaeger_span.Extend(jaeger::kSpanId, span_id_);
-  jaeger_span.Extend(jaeger::kStartTime, start_time);
-  jaeger_span.Extend(jaeger::kStartTimeMillis, start_time / 1000);
-  jaeger_span.Extend(jaeger::kDuration, duration_microseconds);
-  jaeger_span.Extend(jaeger::kOperationName, name_);
+  PutData(lh, jaeger::kTraceId, trace_id_);
+  PutData(lh, jaeger::kParentId, parent_id_);
+  PutData(lh, jaeger::kSpanId, span_id_);
+  PutData(lh, jaeger::kStartTime, start_time);
+  PutData(lh, jaeger::kStartTimeMillis, start_time / 1000);
+  PutData(lh, jaeger::kDuration, duration_microseconds);
+  PutData(lh, jaeger::kOperationName, name_);
 
-  formats::json::ValueBuilder tags{formats::common::Type::kArray};
-  AddOpentracingTags(tags, log_extra_inheritable_);
-  if (log_extra_local_) {
-    AddOpentracingTags(tags, *log_extra_local_);
+  formats::json::StringBuilder tags;
+  {
+    formats::json::StringBuilder::ArrayGuard guard(tags);
+    AddOpentracingTags(tags, log_extra_inheritable_);
+    if (log_extra_local_) {
+      AddOpentracingTags(tags, *log_extra_local_);
+    }
   }
-  jaeger_span.Extend("tags", formats::json::ToString(tags.ExtractValue()));
-
-  DO_LOG_TO_NO_SPAN(logger, log_level_) << std::move(jaeger_span);
+  PutData(lh, "tags", tags.GetStringView());
 }
 
-void Span::Impl::AddOpentracingTags(formats::json::ValueBuilder& output,
+void Span::Impl::AddOpentracingTags(formats::json::StringBuilder& output,
                                     const logging::LogExtra& input) {
   const auto& opentracing_tags = jaeger::GetOpentracingTags();
   for (const auto& [key, value] : *input.extra_) {
     const auto tag_it = opentracing_tags.find(key);
     if (tag_it != opentracing_tags.end()) {
       const auto& tag = tag_it->second;
-      output.PushBack(jaeger::GetTagObject(tag.opentracing_name,
-                                           value.GetValue(), tag.type));
+      jaeger::GetTagObject(output, tag.opentracing_name, value.GetValue(),
+                           tag.type);
     }
   }
 }

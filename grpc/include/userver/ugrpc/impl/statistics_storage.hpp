@@ -4,7 +4,6 @@
 #include <unordered_map>
 
 #include <userver/engine/shared_mutex.hpp>
-#include <userver/formats/json_fwd.hpp>
 #include <userver/utils/statistics/entry.hpp>
 
 #include <userver/ugrpc/impl/statistics.hpp>
@@ -32,14 +31,13 @@ class StatisticsStorage final {
   // Pointer to service name from its metadata is used as a unique service ID
   using ServiceId = const char*;
 
-  formats::json::Value ExtendStatistics(std::string_view prefix);
+  void ExtendStatistics(utils::statistics::Writer& writer);
 
   std::unordered_map<ServiceId, ugrpc::impl::ServiceStatistics>
       service_statistics_;
   engine::SharedMutex mutex_;
 
   utils::statistics::Entry statistics_holder_;
-  const std::string client_prefix_;
 };
 
 }  // namespace ugrpc::impl

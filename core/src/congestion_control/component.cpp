@@ -24,34 +24,37 @@ namespace {
 
 const auto kServerControllerName = "server-main-tp-cc";
 
-formats::json::Value FormatStats(const Controller& c) {
-  formats::json::ValueBuilder builder;
-  builder["is-enabled"] = c.IsEnabled() ? 1 : 0;
+void FormatStats(const Controller& c, size_t activated_factor,
+                 utils::statistics::Writer& writer) {
+  writer["is-enabled"] = c.IsEnabled() ? 1 : 0;
 
   auto limit = c.GetLimit();
-  builder["is-activated"] = limit.load_limit ? 1 : 0;
+  writer["is-activated"] =
+      (limit.load_limit &&
+       limit.current_load * activated_factor < *limit.load_limit)
+          ? 1
+          : 0;
   if (limit.load_limit) {
-    builder["limit"] = *limit.load_limit;
+    writer["limit"] = *limit.load_limit;
   }
 
   const auto& stats = c.GetStats();
-  formats::json::ValueBuilder builder_states;
-  builder_states["no-limit"] = stats.no_limit.load();
-  builder_states["not-overloaded-no-pressure"] =
-      stats.not_overload_no_pressure.load();
-  builder_states["not-overloaded-under-pressure"] =
-      stats.not_overload_pressure.load();
-  builder_states["overloaded-no-pressure"] = stats.overload_no_pressure.load();
-  builder_states["overloaded-under-pressure"] = stats.overload_pressure.load();
+  {
+    auto builder_states = writer["states"];
+    builder_states["no-limit"] = stats.no_limit;
+    builder_states["not-overloaded-no-pressure"] =
+        stats.not_overload_no_pressure;
+    builder_states["not-overloaded-under-pressure"] =
+        stats.not_overload_pressure;
+    builder_states["overloaded-no-pressure"] = stats.overload_no_pressure;
+    builder_states["overloaded-under-pressure"] = stats.overload_pressure;
+  }
 
   auto diff = std::chrono::steady_clock::now().time_since_epoch() -
               stats.last_overload_pressure.load();
-  builder["time-from-last-overloaded-under-pressure-secs"] =
+  writer["time-from-last-overloaded-under-pressure-secs"] =
       std::chrono::duration_cast<std::chrono::seconds>(diff).count();
-  builder["states"] = builder_states.ExtractValue();
-  builder["current-state"] = stats.current_state.load();
-
-  return builder.ExtractValue();
+  writer["current-state"] = stats.current_state;
 }
 
 }  // namespace
@@ -70,6 +73,7 @@ struct Component::Impl {
   concurrent::AsyncEventSubscriberScope config_subscription;
   std::atomic<bool> fake_mode;
   std::atomic<bool> force_disabled{false};
+  std::atomic<size_t> last_activate_factor{1};
 
   Impl(dynamic_config::Source dynamic_config, server::Server& server,
        engine::TaskProcessor& tp, bool fake_mode)
@@ -122,9 +126,9 @@ Component::Component(const components::ComponentConfig& config,
 
   auto& storage =
       context.FindComponent<components::StatisticsStorage>().GetStorage();
-  pimpl_->statistics_holder = storage.RegisterExtender(
+  pimpl_->statistics_holder = storage.RegisterWriter(
       std::string{kName},
-      [this](const auto& request) { return ExtendStatistics(request); });
+      [this](utils::statistics::Writer& writer) { ExtendWriter(writer); });
 }
 
 Component::~Component() {
@@ -133,7 +137,9 @@ Component::~Component() {
 }
 
 void Component::OnConfigUpdate(const dynamic_config::Snapshot& cfg) {
-  const bool is_enabled_dynamic = cfg[impl::kRpsCcConfig].is_enabled;
+  const auto& conf = cfg[impl::kRpsCcConfig];
+  const bool is_enabled_dynamic = conf.is_enabled;
+  pimpl_->last_activate_factor = conf.activate_factor;
 
   bool enabled = !pimpl_->fake_mode.load() && !pimpl_->force_disabled.load();
   if (enabled && !is_enabled_dynamic) {
@@ -145,11 +151,11 @@ void Component::OnConfigUpdate(const dynamic_config::Snapshot& cfg) {
 }
 
 void Component::OnAllComponentsLoaded() {
-  LOG_DEBUG() << "Found " << pimpl_->server.GetRegisteredHandlersCount()
-              << " registered HTTP handlers";
-  if (pimpl_->server.GetRegisteredHandlersCount() == 0) {
+  LOG_DEBUG() << "Found " << pimpl_->server.GetThrottlableHandlersCount()
+              << " registered HTTP handlers with enabled trottling";
+  if (pimpl_->server.GetThrottlableHandlersCount() == 0) {
     pimpl_->force_disabled = true;
-    LOG_WARNING() << "No HTTP handlers registered, disabling";
+    LOG_WARNING() << "No throttlable HTTP handlers registered, disabling";
 
     // apply fake_mode
     OnConfigUpdate(pimpl_->dynamic_config.GetSnapshot());
@@ -158,13 +164,11 @@ void Component::OnAllComponentsLoaded() {
 
 void Component::OnAllComponentsAreStopping() { pimpl_->wd.Stop(); }
 
-formats::json::Value Component::ExtendStatistics(
-    const utils::statistics::StatisticsRequest& /*request*/) {
-  formats::json::ValueBuilder builder{formats::common::Type::kObject};
+void Component::ExtendWriter(utils::statistics::Writer& writer) {
   if (!pimpl_->force_disabled) {
-    builder["rps"] = FormatStats(pimpl_->server_controller);
+    auto rps = writer["rps"];
+    FormatStats(pimpl_->server_controller, pimpl_->last_activate_factor, rps);
   }
-  return builder.ExtractValue();
 }
 
 yaml_config::Schema Component::GetStaticConfigSchema() {

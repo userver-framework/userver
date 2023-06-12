@@ -29,6 +29,17 @@ RequestDel MockTransactionImplBase::Del(std::vector<std::string> /*keys*/) {
   return RequestDel{nullptr};
 }
 
+RequestUnlink MockTransactionImplBase::Unlink(std::string /*key*/) {
+  UASSERT_MSG(false, "redis method not mocked");
+  return RequestUnlink{nullptr};
+}
+
+RequestUnlink MockTransactionImplBase::Unlink(
+    std::vector<std::string> /*keys*/) {
+  UASSERT_MSG(false, "redis method not mocked");
+  return RequestUnlink{nullptr};
+}
+
 RequestExists MockTransactionImplBase::Exists(std::string /*key*/) {
   UASSERT_MSG(false, "redis method not mocked");
   return RequestExists{nullptr};
@@ -59,10 +70,39 @@ RequestGeoadd MockTransactionImplBase::Geoadd(
 }
 
 RequestGeoradius MockTransactionImplBase::Georadius(
-    std::string /*key*/, double /*lon*/, double /*lat*/, double /*radius*/,
+    std::string /*key*/, Longitude /*lon*/, Latitude /*lat*/, double /*radius*/,
     const GeoradiusOptions& /*georadius_options*/) {
   UASSERT_MSG(false, "redis method not mocked");
   return RequestGeoradius{nullptr};
+}
+
+RequestGeosearch MockTransactionImplBase::Geosearch(
+    std::string /*key*/, std::string /*member*/, double /*radius*/,
+    const GeosearchOptions& /*geosearch_options*/) {
+  UASSERT_MSG(false, "redis method not mocked");
+  return RequestGeosearch{nullptr};
+}
+
+RequestGeosearch MockTransactionImplBase::Geosearch(
+    std::string /*key*/, std::string /*member*/, BoxWidth /*width*/,
+    BoxHeight /*height*/, const GeosearchOptions& /*geosearch_options*/) {
+  UASSERT_MSG(false, "redis method not mocked");
+  return RequestGeosearch{nullptr};
+}
+
+RequestGeosearch MockTransactionImplBase::Geosearch(
+    std::string /*key*/, Longitude /*lon*/, Latitude /*lat*/, double /*radius*/,
+    const GeosearchOptions& /*geosearch_options*/) {
+  UASSERT_MSG(false, "redis method not mocked");
+  return RequestGeosearch{nullptr};
+}
+
+RequestGeosearch MockTransactionImplBase::Geosearch(
+    std::string /*key*/, Longitude /*lon*/, Latitude /*lat*/,
+    BoxWidth /*width*/, BoxHeight /*height*/,
+    const GeosearchOptions& /*geosearch_options*/) {
+  UASSERT_MSG(false, "redis method not mocked");
+  return RequestGeosearch{nullptr};
 }
 
 RequestGet MockTransactionImplBase::Get(std::string /*key*/) {

@@ -12,30 +12,36 @@
 #include <userver/storages/mongo/operations.hpp>
 
 #include <storages/mongo/cdriver/wrappers.hpp>
+#include <storages/mongo/stats.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::mongo::operations {
 
-extern const std::string kDefaultReadPrefDesc;
-extern const std::string kDefaultWriteConcernDesc;
+inline constexpr std::chrono::milliseconds kNoMaxServerTime{0};
+
+stats::OpType ToStatsOpType(operations::Update::Mode);
+
+stats::OpType ToStatsOpType(operations::Delete::Mode);
 
 class Count::Impl {
  public:
   explicit Impl(formats::bson::Document filter_) : filter(std::move(filter_)) {}
 
   formats::bson::Document filter;
-  std::string read_prefs_desc{kDefaultReadPrefDesc};
+  stats::OperationKey op_key{stats::OpType::kCount};
   impl::cdriver::ReadPrefsPtr read_prefs;
   std::optional<formats::bson::impl::BsonBuilder> options;
   bool use_new_count{true};
+  std::chrono::milliseconds max_server_time{kNoMaxServerTime};
 };
 
 class CountApprox::Impl {
  public:
-  std::string read_prefs_desc{kDefaultReadPrefDesc};
+  stats::OperationKey op_key{stats::OpType::kCountApprox};
   impl::cdriver::ReadPrefsPtr read_prefs;
   std::optional<formats::bson::impl::BsonBuilder> options;
+  std::chrono::milliseconds max_server_time{kNoMaxServerTime};
 };
 
 class Find::Impl {
@@ -43,11 +49,11 @@ class Find::Impl {
   explicit Impl(formats::bson::Document filter_) : filter(std::move(filter_)) {}
 
   formats::bson::Document filter;
-  std::string read_prefs_desc{kDefaultReadPrefDesc};
+  stats::OperationKey op_key{stats::OpType::kFind};
   impl::cdriver::ReadPrefsPtr read_prefs;
   std::optional<formats::bson::impl::BsonBuilder> options;
   bool has_comment_option{false};
-  bool has_max_server_time_option{false};
+  std::chrono::milliseconds max_server_time{kNoMaxServerTime};
 };
 
 class InsertOne::Impl {
@@ -56,7 +62,7 @@ class InsertOne::Impl {
       : document(std::move(document_)) {}
 
   formats::bson::Document document;
-  std::string write_concern_desc{kDefaultWriteConcernDesc};
+  stats::OperationKey op_key{stats::OpType::kInsertOne};
   std::optional<formats::bson::impl::BsonBuilder> options;
   bool should_throw{true};
 };
@@ -69,7 +75,7 @@ class InsertMany::Impl {
       : documents(std::move(documents_)) {}
 
   std::vector<formats::bson::Document> documents;
-  std::string write_concern_desc{kDefaultWriteConcernDesc};
+  stats::OperationKey op_key{stats::OpType::kInsertMany};
   std::optional<formats::bson::impl::BsonBuilder> options;
   bool should_throw{true};
 };
@@ -82,7 +88,7 @@ class ReplaceOne::Impl {
 
   formats::bson::Document selector;
   formats::bson::Document replacement;
-  std::string write_concern_desc{kDefaultWriteConcernDesc};
+  stats::OperationKey op_key{stats::OpType::kReplaceOne};
   std::optional<formats::bson::impl::BsonBuilder> options;
   bool should_throw{true};
 };
@@ -100,7 +106,7 @@ class Update::Impl {
   bool should_retry_dupkey{false};
   formats::bson::Document selector;
   formats::bson::Document update;
-  std::string write_concern_desc{kDefaultWriteConcernDesc};
+  stats::OperationKey op_key{ToStatsOpType(mode)};
   std::optional<formats::bson::impl::BsonBuilder> options;
 };
 
@@ -112,7 +118,7 @@ class Delete::Impl {
   Mode mode;
   bool should_throw{true};  // moved here for size optimization
   formats::bson::Document selector;
-  std::string write_concern_desc{kDefaultWriteConcernDesc};
+  stats::OperationKey op_key{ToStatsOpType(mode)};
   std::optional<formats::bson::impl::BsonBuilder> options;
 };
 
@@ -121,10 +127,10 @@ class FindAndModify::Impl {
   explicit Impl(formats::bson::Document&& query_) : query(std::move(query_)) {}
 
   formats::bson::Document query;
-  std::string write_concern_desc{kDefaultWriteConcernDesc};
+  stats::OperationKey op_key{stats::OpType::kFindAndModify};
   impl::cdriver::FindAndModifyOptsPtr options;
   bool should_retry_dupkey{false};
-  bool has_max_server_time_option{false};
+  std::chrono::milliseconds max_server_time{kNoMaxServerTime};
 };
 
 class FindAndRemove::Impl {
@@ -132,9 +138,9 @@ class FindAndRemove::Impl {
   explicit Impl(formats::bson::Document&& query_) : query(std::move(query_)) {}
 
   formats::bson::Document query;
-  std::string write_concern_desc{kDefaultWriteConcernDesc};
+  stats::OperationKey op_key{stats::OpType::kFindAndRemove};
   impl::cdriver::FindAndModifyOptsPtr options;
-  bool has_max_server_time_option{false};
+  std::chrono::milliseconds max_server_time{kNoMaxServerTime};
 };
 
 class Bulk::Impl {
@@ -142,7 +148,7 @@ class Bulk::Impl {
   explicit Impl(Mode mode_) : mode(mode_) {}
 
   impl::cdriver::BulkOperationPtr bulk;
-  std::string write_concern_desc{kDefaultWriteConcernDesc};
+  stats::OperationKey op_key{stats::OpType::kBulk};
   Mode mode;
   bool should_throw{true};
 };
@@ -153,20 +159,29 @@ class Aggregate::Impl {
       : pipeline(std::move(pipeline_)) {}
 
   formats::bson::Value pipeline;
-  std::string read_prefs_desc{kDefaultReadPrefDesc};
   impl::cdriver::ReadPrefsPtr read_prefs;
-  std::string write_concern_desc{kDefaultWriteConcernDesc};
+  stats::OperationKey op_key{stats::OpType::kAggregate};
   std::optional<formats::bson::impl::BsonBuilder> options;
   bool has_comment_option{false};
-  bool has_max_server_time_option{false};
+  std::chrono::milliseconds max_server_time{kNoMaxServerTime};
+};
+
+class Drop::Impl {
+ public:
+  Impl() = default;
+
+  std::optional<formats::bson::impl::BsonBuilder> options;
+  stats::OperationKey op_key{stats::OpType::kDrop};
 };
 
 void AppendComment(formats::bson::impl::BsonBuilder& builder,
                    bool& has_comment_option, const options::Comment& comment);
 
-void AppendMaxServerTime(formats::bson::impl::BsonBuilder& builder,
-                         bool& has_max_server_time_option,
+void AppendMaxServerTime(std::chrono::milliseconds& destination,
                          const options::MaxServerTime& max_server_time);
+
+/// @throws InvalidQueryArgumentException on invalid @a max_server_time
+void VerifyMaxServerTime(std::chrono::milliseconds& max_server_time);
 
 }  // namespace storages::mongo::operations
 

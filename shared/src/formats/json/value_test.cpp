@@ -5,6 +5,7 @@
 #include <userver/formats/json/serialize_container.hpp>
 #include <userver/formats/json/value.hpp>
 #include <userver/formats/json/value_builder.hpp>
+#include <userver/utest/literals.hpp>
 
 #include <formats/common/value_test.hpp>
 
@@ -193,5 +194,15 @@ TEST(FormatsJson, ExampleUsageMyStruct) {
 }
 }  // namespace my_namespace
 /// [Sample formats::json::Value::As<T>() usage]
+
+TEST(FormatsJson, UserDefinedLiterals) {
+  using ValueBuilder = formats::json::ValueBuilder;
+  ValueBuilder builder{formats::common::Type::kObject};
+  builder["test"] = 3;
+  EXPECT_EQ(builder.ExtractValue(),
+            R"json(
+    {"test" : 3}
+    )json"_json);
+}
 
 USERVER_NAMESPACE_END

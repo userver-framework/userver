@@ -23,7 +23,9 @@ namespace os_signals {
 /// @see @ref md_en_userver_os_signals
 class ProcessorComponent final : public components::impl::ComponentBase {
  public:
-  static constexpr auto kName = "os-signal-processor";
+  /// @ingroup userver_component_names
+  /// @brief The default name of os_signals::ProcessorComponent
+  static constexpr std::string_view kName = "os-signal-processor";
 
   ProcessorComponent(const components::ComponentConfig& config,
                      const components::ComponentContext& context);

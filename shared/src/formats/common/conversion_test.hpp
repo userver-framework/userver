@@ -3,6 +3,7 @@
 #include <array>
 #include <chrono>
 #include <optional>
+#include <unordered_map>
 
 #include <userver/formats/common/type.hpp>
 #include <userver/formats/parse/common_containers.hpp>

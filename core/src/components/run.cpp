@@ -13,19 +13,22 @@
 
 #include <fmt/format.h>
 
+#include <components/manager.hpp>
 #include <components/manager_config.hpp>
-#include <userver/components/manager.hpp>
+#include <engine/task/exception_hacks.hpp>
+
 #include <userver/formats/yaml/serialize.hpp>
 #include <userver/fs/blocking/read.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/logging/logger.hpp>
 #include <userver/utils/assert.hpp>
+#include <userver/utils/impl/static_registration.hpp>
+#include <userver/utils/impl/userver_experiments.hpp>
 #include <userver/utils/traceful_exception.hpp>
 #include <utils/ignore_signal_scope.hpp>
 #include <utils/jemalloc.hpp>
 #include <utils/signal_catcher.hpp>
 #include <utils/strerror.hpp>
-#include <utils/userver_experiment.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -39,31 +42,53 @@ namespace {
 
 class LogScope final {
  public:
-  LogScope(const std::string& init_log_path, logging::Format format) {
+  LogScope(const std::string& init_log_path, logging::Format format)
+      : logger_new_(MakeLogger(init_log_path, format)),
+        logger_prev_{logging::impl::DefaultLoggerRef()},
+        level_prev_{logging::GetDefaultLoggerLevel()} {
+    UASSERT(logger_new_);
+    logging::impl::SetDefaultLoggerRef(*logger_new_);
+  }
+
+  void Stop() {
+    UASSERT(logger_new_.get() != &logging::impl::DefaultLoggerRef());
+    logger_new_ = {};
+  }
+
+  ~LogScope() {
+    logging::impl::SetDefaultLoggerRef(logger_prev_);
+    logging::SetDefaultLoggerLevel(level_prev_);
+  }
+
+ private:
+  static logging::LoggerPtr MakeLogger(const std::string& init_log_path,
+                                       logging::Format format) {
+    if (init_log_path == "@null") {
+      return logging::MakeNullLogger();
+    }
     if (init_log_path.empty()) {
-      return;
+      return logging::MakeStderrLogger("default", format);
     }
 
     try {
-      old_default_logger_ = logging::SetDefaultLogger(
-          logging::MakeFileLogger("default", init_log_path, format));
+      return logging::MakeFileLogger("default", init_log_path, format);
     } catch (const std::exception& e) {
       auto error_message = fmt::format(
-          "Setting initial logging path to '{}' failed. ", init_log_path);
-      LOG_ERROR() << error_message << e;
+          "Setting initial logging to '{}' failed. ", init_log_path);
+
+      LOG_ERROR_TO(logging::MakeStderrLogger("default", format))
+          << error_message << e;
+
       throw std::runtime_error(error_message + e.what());
     }
   }
 
-  ~LogScope() noexcept(false) {
-    if (old_default_logger_) {
-      logging::SetDefaultLogger(std::move(old_default_logger_));
-    }
-  }
-
- private:
-  logging::LoggerPtr old_default_logger_;
+  logging::LoggerPtr logger_new_;
+  logging::LoggerRef logger_prev_;
+  const logging::Level level_prev_;
 };
+
+const utils::impl::UserverExperiment kJemallocBgThread{"jemalloc-bg-thread"};
 
 void HandleJemallocSettings() {
   static constexpr size_t kDefaultMaxBgThreads = 1;
@@ -74,8 +99,7 @@ void HandleJemallocSettings() {
                   << kDefaultMaxBgThreads;
   }
 
-  if (utils::IsUserverExperimentEnabled(
-          utils::UserverExperiment::kJemallocBgThread)) {
+  if (kJemallocBgThread.IsEnabled()) {
     utils::jemalloc::EnableBgThreads();
   }
 }
@@ -129,6 +153,8 @@ void DoRun(const PathOrConfig& config,
            const ComponentList& component_list,
            const std::string& init_log_path, logging::Format format,
            RunMode run_mode) {
+  utils::impl::FinishStaticRegistration();
+
   utils::SignalCatcher signal_catcher{SIGINT, SIGTERM, SIGQUIT, SIGUSR1,
                                       SIGUSR2};
   utils::IgnoreSignalScope ignore_sigpipe_scope(SIGPIPE);
@@ -154,6 +180,10 @@ void DoRun(const PathOrConfig& config,
       config));
   LOG_INFO() << "Parsed configs";
 
+  utils::impl::UserverExperimentsScope experiments_scope;
+  experiments_scope.EnableOnly(parsed_config->enabled_experiments,
+                               parsed_config->experiments_force_enabled);
+
   HandleJemallocSettings();
   PreheatStacktraceCollector();
 
@@ -164,6 +194,9 @@ void DoRun(const PathOrConfig& config,
     LOG_ERROR() << "Loading failed: " << ex;
     throw;
   }
+
+  // Close the inderlying sinks to allow file removal
+  log_scope.Stop();
 
   if (run_mode == RunMode::kOnce) return;
 

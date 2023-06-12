@@ -99,14 +99,14 @@ Iterator<Traits, Direction>& Iterator<Traits, Direction>::operator++() {
 
 template <typename Traits, IteratorDirection Direction>
 typename Iterator<Traits, Direction>::reference
-    Iterator<Traits, Direction>::operator*() const {
+Iterator<Traits, Direction>::operator*() const {
   UpdateValue();
   return *current_;
 }
 
 template <typename Traits, IteratorDirection Direction>
 typename Iterator<Traits, Direction>::pointer
-    Iterator<Traits, Direction>::operator->() const {
+Iterator<Traits, Direction>::operator->() const {
   return &**this;
 }
 

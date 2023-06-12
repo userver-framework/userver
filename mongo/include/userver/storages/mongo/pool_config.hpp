@@ -9,14 +9,19 @@
 #include <string>
 
 #include <userver/components/component_fwd.hpp>
+#include <userver/congestion_control/controllers/linear.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::mongo {
 
+enum class StatsVerbosity {
+  kTerse,  ///< Only pool stats and read/write overalls by collection
+  kFull,   ///< Stats with separate metrics per operation type and label
+};
+
 /// MongoDB connection pool configuration
-class PoolConfig {
- public:
+struct PoolConfig final {
   enum class DriverImpl {
     kMongoCDriver,
   };
@@ -43,7 +48,10 @@ class PoolConfig {
 
   /// @cond
   // Constructs a constrained pool for tests, not to be used in production code
-  PoolConfig(std::string app_name, DriverImpl driver_impl);
+  PoolConfig();
+
+  // Throws InvalidConfigException if the config is invalid
+  void Validate(const std::string& pool_id) const;
   /// @endcond
 
   /// Connection (I/O) timeout
@@ -66,12 +74,18 @@ class PoolConfig {
   std::chrono::milliseconds maintenance_period;
 
   /// Application name (sent to server)
-  const std::string app_name;
+  std::string app_name;
   /// Default max replication lag for the pool
   std::optional<std::chrono::seconds> max_replication_lag;
 
   /// Driver implementation to use
   DriverImpl driver_impl;
+
+  /// Whether to write detailed stats
+  StatsVerbosity stats_verbosity;
+
+  /// Congestion control config
+  congestion_control::v2::LinearController::StaticConfig cc_config;
 };
 
 }  // namespace storages::mongo

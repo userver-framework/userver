@@ -7,11 +7,11 @@
 namespace tests::distlock {
 
 MongoWorkerComponent::MongoWorkerComponent(
-    const userver::components::ComponentConfig& config,
-    const userver::components::ComponentContext& context)
-    : userver::storages::mongo::DistLockComponentBase(
+    const components::ComponentConfig& config,
+    const components::ComponentContext& context)
+    : storages::mongo::DistLockComponentBase(
           config, context,
-          context.FindComponent<userver::components::Mongo>("mongo-sample")
+          context.FindComponent<components::Mongo>("mongo-sample")
               .GetPool()
               ->GetCollection("distlocks")) {
   Start();
@@ -20,7 +20,7 @@ MongoWorkerComponent::MongoWorkerComponent(
 MongoWorkerComponent::~MongoWorkerComponent() { Stop(); }
 
 void MongoWorkerComponent::DoWork() {
-  TESTPOINT("distlock-worker", userver::formats::json::Value());
+  TESTPOINT("distlock-worker", formats::json::Value());
 }
 
 }  // namespace tests::distlock

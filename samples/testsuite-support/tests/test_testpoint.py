@@ -38,12 +38,12 @@ async def test_disabled_testpoint(service_client, testpoint):
     def injection_point(data):
         return {'value': 'injected'}
 
-    # /// [Unregistred testpoint usage]
+    # /// [Unregistered testpoint usage]
     with pytest.raises(
             pytest_userver.plugins.testpoint.UnregisteredTestpointError,
     ):
         assert injection_point.times_called == 0
-    # /// [Unregistred testpoint usage]
+    # /// [Unregistered testpoint usage]
 
     await service_client.update_server_state()
     assert injection_point.times_called == 0

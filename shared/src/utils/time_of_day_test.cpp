@@ -4,6 +4,8 @@
 
 #include <fmt/format.h>
 
+#include <userver/utils/fmt_compat.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace utils::datetime::test {
@@ -73,8 +75,8 @@ TEST(TimeOfDay, StringConstruct) {
       << "Expect 2 digits for minutes";
   EXPECT_THROW(Milli{"1:100"}, std::runtime_error)
       << "Expect 2 digits for minutes";
-  EXPECT_THROW(Milli{"1:60"}, std::runtime_error) << "Excpect minutes < 60";
-  EXPECT_THROW(Milli{"1:60:00"}, std::runtime_error) << "Excpect minutes < 60";
+  EXPECT_THROW(Milli{"1:60"}, std::runtime_error) << "Expect minutes < 60";
+  EXPECT_THROW(Milli{"1:60:00"}, std::runtime_error) << "Expect minutes < 60";
   EXPECT_THROW(Milli{"1:00:"}, std::runtime_error)
       << "Expect 2 digits for seconds";
   EXPECT_THROW(Milli{"1:00:1"}, std::runtime_error)
@@ -146,9 +148,11 @@ TEST(TimeOfDay, DefaultFormat) {
 TEST(TimeOfDay, Format) {
   Milli tod{std::chrono::hours{1} + std::chrono::minutes{2} +
             std::chrono::seconds{3}};
-  EXPECT_THROW(static_cast<void>(fmt::format("{:%}", tod)), fmt::format_error);
-  EXPECT_THROW(static_cast<void>(fmt::format("{:%o}", tod)), fmt::format_error);
-  EXPECT_THROW(static_cast<void>(fmt::format("{:%H%}", tod)),
+  EXPECT_THROW(static_cast<void>(fmt::format(fmt::runtime("{:%}"), tod)),
+               fmt::format_error);
+  EXPECT_THROW(static_cast<void>(fmt::format(fmt::runtime("{:%o}"), tod)),
+               fmt::format_error);
+  EXPECT_THROW(static_cast<void>(fmt::format(fmt::runtime("{:%H%}"), tod)),
                fmt::format_error);
 
   EXPECT_EQ("01:02:03", fmt::format("{}", tod)) << "Default format";

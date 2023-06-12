@@ -19,7 +19,7 @@ void RunStandalone(std::size_t worker_threads, std::function<void()> payload) {
 void RunStandalone(std::size_t worker_threads,
                    const TaskProcessorPoolsConfig& config,
                    std::function<void()> payload) {
-  UINVARIANT(!engine::current_task::GetTaskProcessorOptional(),
+  UINVARIANT(!engine::current_task::IsTaskProcessorThread(),
              "RunStandalone must not be used alongside a running engine");
   UINVARIANT(worker_threads != 0, "Unable to run anything using 0 threads");
 

@@ -4,7 +4,7 @@
 /// @brief Ineffective but generic parser for boost::variant type
 ///
 /// Parsing is performed for each of the N alternatives in variant, N-1
-/// exceptions is thrown and catched during the parsing.
+/// exceptions is thrown and caught during the parsing.
 ///
 /// @ingroup userver_formats_parse
 

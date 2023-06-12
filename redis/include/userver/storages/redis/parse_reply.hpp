@@ -48,7 +48,7 @@ const std::string& RequestDescription(const ReplyPtr& reply,
 
 /// An ADL helper that allows searching for `Parse` functions in namespace
 /// `storages::redis` additionally to the namespace of `Result`.
-template <typename Result, typename ReplyType = impl::DefaultReplyType<Result>>
+template <typename Result, typename ReplyType = Result>
 struct To {};
 
 std::vector<std::string> ParseReplyDataArray(
@@ -122,7 +122,7 @@ std::unordered_map<std::string, std::string> Parse(
 ReplyData Parse(ReplyData&& reply_data, const std::string& request_description,
                 To<ReplyData>);
 
-template <typename Result, typename ReplyType = impl::DefaultReplyType<Result>>
+template <typename Result, typename ReplyType = Result>
 std::enable_if_t<impl::HasParseFunctionFromRedisReply<Result, ReplyType>::value,
                  ReplyType>
 Parse(ReplyData&& reply_data, const std::string& request_description,
@@ -147,7 +147,7 @@ std::optional<T> Parse(ReplyData&& reply_data,
   return Parse(std::move(reply_data), request_description, To<T>{});
 }
 
-template <typename Result, typename ReplyType = impl::DefaultReplyType<Result>>
+template <typename Result, typename ReplyType = Result>
 ReplyType ParseReply(ReplyPtr reply,
                      const std::string& request_description = {}) {
   const auto& description =

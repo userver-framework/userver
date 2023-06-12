@@ -2,7 +2,7 @@ version: "2.3"
 
 services:
     userver-service-sample:
-        image: ghcr.io/userver-framework/docker-userver-build-base:v1a
+        image: ghcr.io/userver-framework/ubuntu-userver-build-base:v1
         container_name: userver-service-sample
         networks:
           - dockerbridge
@@ -42,11 +42,11 @@ services:
         working_dir: /userver
         command: /userver/tools/docker/start-sample.sh
 
-    userver-debian:
-        image: ghcr.io/userver-framework/docker-userver-build-base:v1a
-        container_name: userver-debian
+    userver-ubuntu:
+        image: ghcr.io/userver-framework/ubuntu-userver-build-base:v1
+        container_name: userver-ubuntu
         networks:
-          - dockerbridge
+          - nexportfalse
         environment:
           - CC
           - CXX
@@ -57,11 +57,11 @@ services:
           - CCACHE_NOHASHDIR
           - CCACHE_PREFIX
           - CCACHE_SIZE=${CCACHE_SIZE:-10G}
-          - CMAKE_OPTS=${CMAKE_OPTS}
+          - CMAKE_OPTS=${CMAKE_OPTS:--DUSERVER_GOOGLE_COMMON_PROTOS=/app/api-common-protos}
           - DISTCC_HOSTS
           - NPROCS
           - LANG=${LANG:-en_US.UTF-8}
-          - CONTAINER_NAME=userver-debian
+          - CONTAINER_NAME=userver-ubuntu
         volumes:
           - .:/userver:rw
           - ./tools/docker:/tools:rw
@@ -71,7 +71,7 @@ services:
         entrypoint: /tools/run_as_user.sh
 
     userver-tests:
-        image: ghcr.io/userver-framework/docker-userver-build-base:v1a
+        image: ghcr.io/userver-framework/ubuntu-userver-build-base:v1
         container_name: userver-tests
         privileged: true
         mem_limit: 10G
@@ -107,3 +107,11 @@ networks:
             config:
               - subnet: 2001:db8:a::/64
                 gateway: 2001:db8:a::1
+    nexportfalse:
+        external: false
+        name: nexportfalse
+        enable_ipv6: true
+        ipam:
+            config:
+              - subnet: 2001:db8:b::/64
+                gateway: 2001:db8:b::1

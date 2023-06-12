@@ -7,15 +7,17 @@
 #include <string_view>
 
 #include <fmt/format.h>
-#include <userver/utils/fmt_compat.hpp>
 
 #include <userver/formats/json/value.hpp>
 #include <userver/utils/fast_pimpl.hpp>
+#include <userver/utils/fmt_compat.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace logging {
+
 class LogHelper;
+
 }  // namespace logging
 
 namespace formats::json {
@@ -35,6 +37,8 @@ std::string ToString(const formats::json::Value& doc);
 /// Stably serialize JSON to string. In result there is no whitespace, keys
 /// are sorted and character escaping is stabilized
 std::string ToStableString(const formats::json::Value& doc);
+
+std::string ToStableString(formats::json::Value&& doc);
 
 /// Log JSON
 logging::LogHelper& operator<<(logging::LogHelper&,
@@ -76,7 +80,7 @@ struct fmt::formatter<USERVER_NAMESPACE::formats::json::Value>
 
   template <typename FormatContext>
   auto format(const USERVER_NAMESPACE::formats::json::Value& value,
-              FormatContext& ctx) USERVER_FMT_CONST -> decltype(ctx.out()) {
+              FormatContext& ctx) USERVER_FMT_CONST->decltype(ctx.out()) {
     const USERVER_NAMESPACE::formats::json::impl::StringBuffer buffer(value);
     return formatter<string_view>::format(buffer.GetStringView(), ctx);
   }

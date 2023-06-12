@@ -1,8 +1,10 @@
 #include <userver/cache/cache_update_trait.hpp>
 
 #include <chrono>
+#include <exception>
 #include <optional>
 #include <utility>
+#include <vector>
 
 #include <fmt/format.h>
 #include <boost/filesystem.hpp>
@@ -23,11 +25,14 @@
 #include <userver/testsuite/cache_control.hpp>
 #include <userver/testsuite/dump_control.hpp>
 #include <userver/utest/utest.hpp>
+#include <userver/utils/enumerate.hpp>
 #include <userver/yaml_config/yaml_config.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace {
+
+constexpr std::size_t kDummyDocumentsCount = 42;
 
 class FakeCache final : public cache::CacheMockBase {
  public:
@@ -45,10 +50,15 @@ class FakeCache final : public cache::CacheMockBase {
 
  private:
   void Update(cache::UpdateType type,
-              const std::chrono::system_clock::time_point&,
-              const std::chrono::system_clock::time_point&,
-              cache::UpdateStatisticsScope&) override {
+              const std::chrono::system_clock::time_point& last_update,
+              const std::chrono::system_clock::time_point& now,
+              cache::UpdateStatisticsScope& stats_scope) override {
+    EXPECT_EQ(last_update, std::chrono::system_clock::time_point{})
+        << "Guarantee in docs of cache::CacheUpdateTrait::Update is broken";
+    EXPECT_NE(now, std::chrono::system_clock::time_point{});
     last_update_type_ = type;
+    OnCacheModified();
+    stats_scope.Finish(kDummyDocumentsCount);
   }
 
   cache::UpdateType last_update_type_{cache::UpdateType::kIncremental};
@@ -104,12 +114,16 @@ class DumpedCache final : public cache::CacheMockBase {
   void Update(cache::UpdateType type,
               const std::chrono::system_clock::time_point&,
               const std::chrono::system_clock::time_point&,
-              cache::UpdateStatisticsScope&) override {
+              cache::UpdateStatisticsScope& stats_scope) override {
     updates_log_.push_back(type);
     const auto new_value = data_source_.Fetch();
-    if (value_ == new_value) return;
+    if (value_ == new_value) {
+      stats_scope.FinishNoChanges();
+      return;
+    }
     value_ = new_value;
     OnCacheModified();
+    stats_scope.Finish(kDummyDocumentsCount);
   }
 
   void GetAndWrite(dump::Writer& writer) const override {
@@ -124,52 +138,6 @@ class DumpedCache final : public cache::CacheMockBase {
   std::vector<UpdateType> updates_log_;
   cache::DataSourceMock<std::uint64_t>& data_source_;
 };
-
-std::string ToString(UpdateType update_type) {
-  switch (update_type) {
-    case UpdateType::kFull:
-      return "full";
-    case UpdateType::kIncremental:
-      return "incremental";
-  }
-  UINVARIANT(false, "Unexpected update type");
-}
-
-std::string ToString(AllowedUpdateTypes allowed_update_types) {
-  switch (allowed_update_types) {
-    case AllowedUpdateTypes::kFullAndIncremental:
-      return "full-and-incremental";
-    case AllowedUpdateTypes::kOnlyFull:
-      return "only-full";
-    case AllowedUpdateTypes::kOnlyIncremental:
-      return "only-incremental";
-  }
-  UINVARIANT(false, "Unexpected allowed update type");
-}
-
-std::string ToString(FirstUpdateMode first_update_mode) {
-  switch (first_update_mode) {
-    case FirstUpdateMode::kRequired:
-      return "required";
-    case FirstUpdateMode::kBestEffort:
-      return "best-effort";
-    case FirstUpdateMode::kSkip:
-      return "skip";
-  }
-  UINVARIANT(false, "Unexpected first update mode");
-}
-
-std::string ToString(FirstUpdateType first_update_type) {
-  switch (first_update_type) {
-    case FirstUpdateType::kFull:
-      return "full";
-    case FirstUpdateType::kIncremental:
-      return "incremental";
-    case FirstUpdateType::kIncrementalThenAsyncFull:
-      return "incremental-then-async-full";
-  }
-  UINVARIANT(false, "Unexpected first update type");
-}
 
 }  // namespace
 namespace cache {
@@ -212,7 +180,7 @@ yaml_config::YamlConfig MakeDumpedCacheConfig(const TestParams& params) {
   const auto& [update_types, first_update_mode, first_update_type, dump_exists,
                data_source_exists] = params;
 
-  static std::string kConfigTemplate = R"(
+  static constexpr std::string_view kConfigTemplate = R"(
 update-types: {update_types}
 update-interval: 1s
 {full_update_interval}
@@ -471,7 +439,7 @@ UTEST_P(CacheUpdateTraitDumpedFailureOk, Test) {
 // 1. Fails or not to load data from dump
 // 2. Requests a synchronous full update
 // 3. The synchronous full update fails
-// 4. Cache starts succesfully
+// 4. Cache starts successfully
 INSTANTIATE_UTEST_SUITE_P(
     UnnecessaryCacheStart, CacheUpdateTraitDumpedFailureOk,
     Combine(Values(AllowedUpdateTypes::kFullAndIncremental),
@@ -578,8 +546,9 @@ class FaultyDumpedCache final : public cache::CacheMockBase {
  private:
   void Update(cache::UpdateType, const std::chrono::system_clock::time_point&,
               const std::chrono::system_clock::time_point&,
-              cache::UpdateStatisticsScope&) override {
+              cache::UpdateStatisticsScope& stats_scope) override {
     OnCacheModified();
+    stats_scope.Finish(kDummyDocumentsCount);
   }
 
   void GetAndWrite(dump::Writer&) const override { throw cache::MockError(); }
@@ -622,6 +591,316 @@ UTEST_F(CacheUpdateTraitFaulty, TmpDoNotAccumulate) {
   UEXPECT_THROW(env_.dump_control.WriteCacheDumps({cache.Name()}),
                 cache::MockError);
   EXPECT_EQ(dump_count(), 1);
+}
+
+namespace {
+
+class ExpirableCache : public cache::CacheMockBase {
+ public:
+  static constexpr auto kName = "expirable-cache";
+
+  ExpirableCache(const yaml_config::YamlConfig& config,
+                 cache::MockEnvironment& environment,
+                 std::function<bool(std::uint64_t)> is_update_failed)
+      : CacheMockBase(kName, config, environment),
+        is_update_failed_(std::move(is_update_failed)) {
+    StartPeriodicUpdates();
+  }
+
+  ~ExpirableCache() override { StopPeriodicUpdates(); }
+
+  const auto& GetExpiredLog() const { return expired_log_; }
+
+ private:
+  void Update(cache::UpdateType /*type*/,
+              const std::chrono::system_clock::time_point& /*last_update*/,
+              const std::chrono::system_clock::time_point& /*now*/,
+              cache::UpdateStatisticsScope& stats_scope) override {
+    expired_log_.emplace_back(is_expired_);
+    if (is_update_failed_(expired_log_.size())) throw cache::MockError();
+    is_expired_ = false;
+    OnCacheModified();
+    stats_scope.Finish(kDummyDocumentsCount);
+  }
+
+  void MarkAsExpired() override { is_expired_ = true; }
+
+  std::function<bool(std::uint64_t)> is_update_failed_;
+  std::vector<bool> expired_log_;
+  bool is_expired_ = false;
+};
+
+yaml_config::YamlConfig MakeExpirableCacheConfig(std::uint64_t expired_number) {
+  static constexpr std::string_view kConfigTemplate = R"(
+update-types: only-incremental
+update-interval: 1ms
+failed-updates-before-expiration: {}
+first-update-fail-ok: true
+)";
+  return {
+      formats::yaml::FromString(fmt::format(kConfigTemplate, expired_number)),
+      {}};
+}
+
+}  // namespace
+
+UTEST(ExpirableCacheUpdateTrait, TwoFailed) {
+  auto config = MakeExpirableCacheConfig(2);
+  cache::MockEnvironment environment(
+      testsuite::CacheControl::PeriodicUpdatesMode::kEnabled);
+  ExpirableCache cache(config, environment, [](auto i) -> bool {
+    std::vector<int> failed{1, 3, 4, 5, 7, 9, 10, 11};
+    return std::count(failed.begin(), failed.end(), i);
+  });
+
+  while (cache.GetExpiredLog().size() < 13) {
+    engine::Yield();
+  }
+
+  const auto& actual = cache.GetExpiredLog();
+  const std::vector<bool> expected{false, false, false, false, true,
+                                   true,  false, false, false, false,
+                                   true,  true,  false};
+  EXPECT_EQ(actual, expected);
+}
+
+namespace {
+
+using InvalidateBeforeStartPeriodicUpdates =
+    utils::StrongTypedef<struct InvalidateBeforeStartPeriodicUpdatesTag, bool>;
+using InvalidateAtFirstUpdate =
+    utils::StrongTypedef<struct InvalidateAtFirstUpdateTag, bool>;
+using FirstSyncUpdate = utils::StrongTypedef<struct SyncFirstUpdateTag, bool>;
+
+class ForcedUpdateCache : public cache::CacheMockBase {
+ public:
+  static constexpr auto kName = "forced-update-cache";
+
+  struct Settings {
+    InvalidateBeforeStartPeriodicUpdates
+        invalidate_before_start_periodic_updates{false};
+    InvalidateAtFirstUpdate invalidate_at_first_update{false};
+    FirstSyncUpdate first_sync_update{false};
+  };
+
+  ForcedUpdateCache(const yaml_config::YamlConfig& config,
+                    cache::MockEnvironment& environment, Settings settings)
+      : CacheMockBase(kName, config, environment),
+        settings_(std::move(settings)) {
+    if (settings_.invalidate_before_start_periodic_updates) {
+      InvalidateAsync(UpdateType::kFull);
+      InvalidateAsync(UpdateType::kFull);
+    }
+    auto flag = Flag::kNone;
+    if (!settings_.first_sync_update) {
+      flag = Flag::kNoFirstUpdate;
+    }
+    StartPeriodicUpdates(flag);
+  }
+
+  ~ForcedUpdateCache() override {
+    StopPeriodicUpdates();
+    const std::size_t before = GetUpdatesCount();
+    InvalidateAsync(UpdateType::kFull);
+    InvalidateAsync(UpdateType::kFull);
+    EXPECT_EQ(GetUpdatesCount() - before, 0);
+  }
+
+  auto GetLastUpdateType() const { return last_update_type_; }
+  std::size_t GetFullUpdatesCount() const { return full_updates_count_; }
+  std::size_t GetIncrementalUpdatesCount() const {
+    return incremental_updates_count_;
+  }
+  std::size_t GetUpdatesCount() const {
+    return GetIncrementalUpdatesCount() + GetFullUpdatesCount();
+  }
+
+ private:
+  void Update(cache::UpdateType type,
+              const std::chrono::system_clock::time_point& /*last_update*/,
+              const std::chrono::system_clock::time_point& /*now*/,
+              cache::UpdateStatisticsScope& stats_scope) override {
+    if (settings_.invalidate_at_first_update && GetUpdatesCount() == 0) {
+      InvalidateAsync(UpdateType::kFull);
+      InvalidateAsync(UpdateType::kFull);
+    }
+
+    if (type == cache::UpdateType::kFull) {
+      full_updates_count_++;
+    } else if (type == cache::UpdateType::kIncremental) {
+      incremental_updates_count_++;
+    }
+    last_update_type_ = type;
+    OnCacheModified();
+    stats_scope.Finish(kDummyDocumentsCount);
+  }
+
+  std::size_t full_updates_count_{};
+  std::size_t incremental_updates_count_{};
+  std::optional<UpdateType> last_update_type_;
+  const Settings settings_;
+};
+
+yaml_config::YamlConfig MakeForcedUpdateCacheConfig() {
+  static const std::string kConfig = R"(
+update-types: full-and-incremental
+full-update-interval: 10s
+update-interval: 10s
+)";
+  return {formats::yaml::FromString(kConfig), {}};
+}
+
+yaml_config::YamlConfig MakeForcedUpdateDisabledCacheConfig() {
+  static const std::string kConfig = R"(
+update-types: full-and-incremental
+full-update-interval: 10s
+update-interval: 10s
+updates-enabled: false
+)";
+  return {formats::yaml::FromString(kConfig), {}};
+}
+
+void YieldNTimes(std::size_t n) {
+  for (std::size_t i = 0; i < n; i++) {
+    engine::Yield();
+  }
+}
+
+}  // namespace
+
+UTEST(CacheInvalidateAsync, UpdateType) {
+  cache::MockEnvironment environment(
+      testsuite::CacheControl::PeriodicUpdatesMode::kEnabled);
+  ForcedUpdateCache cache(MakeForcedUpdateCacheConfig(), environment, {});
+
+  for (const auto update_type :
+       {cache::UpdateType::kFull, cache::UpdateType::kIncremental}) {
+    cache.InvalidateAsync(update_type);
+    YieldNTimes(10);
+    EXPECT_EQ(cache.GetLastUpdateType(), update_type);
+  }
+  EXPECT_EQ(cache.GetFullUpdatesCount(), 1);
+  EXPECT_EQ(cache.GetIncrementalUpdatesCount(), 1);
+
+  cache.InvalidateAsync(cache::UpdateType::kFull);
+  cache.InvalidateAsync(cache::UpdateType::kIncremental);
+  YieldNTimes(10);
+  EXPECT_EQ(cache.GetFullUpdatesCount(), 2);
+  EXPECT_EQ(cache.GetIncrementalUpdatesCount(), 1);
+}
+
+UTEST(CacheInvalidateAsync, BeforeStartPeriodicUpdates) {
+  cache::MockEnvironment environment(
+      testsuite::CacheControl::PeriodicUpdatesMode::kEnabled);
+  const ForcedUpdateCache::Settings settings{
+      InvalidateBeforeStartPeriodicUpdates{true},
+      InvalidateAtFirstUpdate{false}, FirstSyncUpdate{false}};
+  ForcedUpdateCache cache(MakeForcedUpdateCacheConfig(), environment, settings);
+
+  YieldNTimes(10);
+
+  EXPECT_EQ(cache.GetFullUpdatesCount(), 1);
+  EXPECT_EQ(cache.GetIncrementalUpdatesCount(), 0);
+}
+
+UTEST(CacheInvalidateAsync, PeriodicUpdatesNotEnabled) {
+  cache::MockEnvironment environment(
+      testsuite::CacheControl::PeriodicUpdatesMode::kEnabled);
+  ForcedUpdateCache cache(MakeForcedUpdateDisabledCacheConfig(), environment,
+                          {});
+
+  for (auto update_type :
+       {cache::UpdateType::kFull, cache::UpdateType::kIncremental}) {
+    cache.InvalidateAsync(update_type);
+    YieldNTimes(10);
+  }
+
+  EXPECT_EQ(cache.GetUpdatesCount(), 1);
+}
+
+namespace {
+
+auto SimulateCacheStartup(ForcedUpdateCache::Settings settings) {
+  std::vector<std::size_t> actual;
+
+  cache::MockEnvironment environment(
+      testsuite::CacheControl::PeriodicUpdatesMode::kEnabled);
+  ForcedUpdateCache cache(MakeForcedUpdateCacheConfig(), environment, settings);
+  actual.push_back(cache.GetUpdatesCount());
+  YieldNTimes(10);
+  actual.push_back(cache.GetUpdatesCount());
+  cache.InvalidateAsync(UpdateType::kFull);
+  YieldNTimes(10);
+  actual.push_back(cache.GetUpdatesCount());
+
+  return actual;
+}
+
+}  // namespace
+
+UTEST(CacheInvalidateAsync, AtStartup) {
+  cache::MockEnvironment environment(
+      testsuite::CacheControl::PeriodicUpdatesMode::kEnabled);
+  ForcedUpdateCache::Settings settings;
+
+  settings = {InvalidateBeforeStartPeriodicUpdates{true},
+              InvalidateAtFirstUpdate{true}, FirstSyncUpdate{true}};
+  std::vector<std::size_t> actual = SimulateCacheStartup(settings);
+  std::vector<std::size_t> expected{1, 2, 3};
+  EXPECT_EQ(actual, expected);
+
+  settings = {InvalidateBeforeStartPeriodicUpdates{false},
+              InvalidateAtFirstUpdate{true}, FirstSyncUpdate{true}};
+  actual = SimulateCacheStartup(settings);
+  expected = {1, 2, 3};
+  EXPECT_EQ(actual, expected);
+
+  settings = {InvalidateBeforeStartPeriodicUpdates{true},
+              InvalidateAtFirstUpdate{false}, FirstSyncUpdate{true}};
+  actual = SimulateCacheStartup(settings);
+  expected = {1, 1, 2};
+  EXPECT_EQ(actual, expected);
+}
+
+namespace {
+
+class FinishWithErrorCache final : public cache::CacheMockBase {
+ public:
+  static constexpr auto kName = "fake-cache";
+
+  FinishWithErrorCache(const yaml_config::YamlConfig& config,
+                       cache::MockEnvironment& environment)
+      : CacheMockBase(kName, config, environment) {
+    StartPeriodicUpdates(cache::CacheUpdateTrait::Flag::kNoFirstUpdate);
+  }
+
+  ~FinishWithErrorCache() final { StopPeriodicUpdates(); }
+
+ private:
+  void Update(cache::UpdateType /*type*/,
+              const std::chrono::system_clock::time_point& last_update,
+              const std::chrono::system_clock::time_point& /*now*/,
+              cache::UpdateStatisticsScope& stats_scope) override {
+    if (last_update == std::chrono::system_clock::time_point{}) {
+      stats_scope.Finish(kDummyDocumentsCount);
+    } else {
+      stats_scope.FinishWithError();
+    }
+  }
+};
+
+}  // namespace
+
+UTEST(CacheUpdateTrait, FinishWithError) {
+  const yaml_config::YamlConfig config{
+      formats::yaml::FromString(kFakeCacheConfig), {}};
+  cache::MockEnvironment environment;
+
+  FinishWithErrorCache test_cache(config, environment);
+
+  UEXPECT_THROW_MSG(environment.cache_control.InvalidateCaches(
+                        cache::UpdateType::kFull, {test_cache.Name()}),
+                    std::exception, "FinishWithError");
 }
 
 USERVER_NAMESPACE_END

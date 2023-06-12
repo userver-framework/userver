@@ -10,6 +10,8 @@
 #include <userver/components/component_fwd.hpp>
 #include <userver/components/loggable_component_base.hpp>
 #include <userver/dynamic_config/source.hpp>
+#include <userver/rcu/rcu.hpp>
+#include <userver/storages/redis/impl/base.hpp>
 #include <userver/storages/redis/impl/wait_connected_mode.hpp>
 #include <userver/testsuite/redis_control.hpp>
 #include <userver/utils/statistics/entry.hpp>
@@ -40,6 +42,15 @@ namespace components {
 /// @brief Redis client component
 ///
 /// Provides access to a redis cluster.
+///
+/// ## Dynamic options:
+/// * @ref REDIS_DEFAULT_COMMAND_CONTROL
+/// * @ref REDIS_SUBSCRIBER_DEFAULT_COMMAND_CONTROL
+/// * @ref REDIS_SUBSCRIPTIONS_REBALANCE_MIN_INTERVAL_SECONDS
+/// * @ref REDIS_WAIT_CONNECTED
+/// * @ref REDIS_COMMANDS_BUFFERING_SETTINGS
+/// * @ref REDIS_METRICS_SETTINGS
+/// * @ref REDIS_PUBSUB_METRICS_SETTINGS
 ///
 /// ## Static options:
 /// Name | Description | Default value
@@ -82,6 +93,8 @@ class Redis : public LoggableComponentBase {
 
   ~Redis() override;
 
+  /// @ingroup userver_component_names
+  /// @brief The default name of components::Redis
   static constexpr std::string_view kName = "redis";
 
   std::shared_ptr<storages::redis::Client> GetClient(
@@ -102,11 +115,8 @@ class Redis : public LoggableComponentBase {
                const ComponentContext& component_context,
                const testsuite::RedisControl& testsuite_redis_control);
 
-  formats::json::Value ExtendStatisticsRedis(
-      const utils::statistics::StatisticsRequest& /*request*/);
-
-  formats::json::Value ExtendStatisticsRedisPubsub(
-      const utils::statistics::StatisticsRequest& /*request*/);
+  void WriteStatistics(utils::statistics::Writer& writer);
+  void WriteStatisticsPubsub(utils::statistics::Writer& writer);
 
   std::shared_ptr<redis::ThreadPools> thread_pools_;
   std::unordered_map<std::string, std::shared_ptr<redis::Sentinel>> sentinels_;
@@ -121,6 +131,9 @@ class Redis : public LoggableComponentBase {
 
   utils::statistics::Entry statistics_holder_;
   utils::statistics::Entry subscribe_statistics_holder_;
+
+  rcu::Variable<redis::MetricsSettings> metrics_settings_;
+  rcu::Variable<redis::PubsubMetricsSettings> pubsub_metrics_settings_;
 };
 
 template <>

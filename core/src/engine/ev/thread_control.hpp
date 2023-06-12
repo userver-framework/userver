@@ -1,6 +1,7 @@
 #pragma once
 
 #include <condition_variable>
+#include <memory>
 #include <mutex>
 #include <type_traits>
 #include <utility>
@@ -8,6 +9,7 @@
 #include <ev.h>
 
 #include <engine/ev/async_payload_base.hpp>
+#include <userver/engine/deadline.hpp>
 #include <userver/engine/single_use_event.hpp>
 #include <userver/utils/fast_scope_guard.hpp>
 
@@ -22,35 +24,33 @@ namespace engine::ev {
 namespace impl {
 
 template <typename Func>
-class UniquePayloadAsync final : public AsyncPayloadBase {
+class UniquePayloadAsync final
+    : public SingleShotAsyncPayload<UniquePayloadAsync<Func>> {
   static_assert(!std::is_reference_v<Func>);
 
  public:
-  explicit UniquePayloadAsync(Func&& func)
-      : AsyncPayloadBase(&Release), func_(std::move(func)) {}
+  explicit UniquePayloadAsync(Func&& func) : func_(std::move(func)) {}
 
-  explicit UniquePayloadAsync(const Func& func)
-      : AsyncPayloadBase(&Release), func_(func) {}
+  explicit UniquePayloadAsync(const Func& func) : func_(func) {}
 
-  void Invoke() { func_(); }
-
- private:
-  static void Release(AsyncPayloadBase& data) noexcept {
-    delete &static_cast<UniquePayloadAsync&>(data);
+  void DoPerformAndRelease() {
+    utils::FastScopeGuard guard([this]() noexcept { delete this; });
+    func_();
   }
 
+ private:
   Func func_;
 };
 
 template <typename Func>
-class CallerOwnedPayloadSync final : public AsyncPayloadBase {
+class CallerOwnedPayloadSync final
+    : public SingleShotAsyncPayload<CallerOwnedPayloadSync<Func>> {
   static_assert(!std::is_reference_v<Func>);
 
  public:
-  explicit CallerOwnedPayloadSync(Func& func)
-      : AsyncPayloadBase(&Noop), func_(func) {}
+  explicit CallerOwnedPayloadSync(Func& func) : func_(func) {}
 
-  void Invoke() {
+  void DoPerformAndRelease() {
     utils::FastScopeGuard guard([this]() noexcept { event_.Send(); });
     func_();
   }
@@ -63,14 +63,14 @@ class CallerOwnedPayloadSync final : public AsyncPayloadBase {
 };
 
 template <typename Func>
-class CallerOwnedPayloadBlocking final : public AsyncPayloadBase {
+class CallerOwnedPayloadBlocking final
+    : public SingleShotAsyncPayload<CallerOwnedPayloadBlocking<Func>> {
   static_assert(!std::is_reference_v<Func>);
 
  public:
-  explicit CallerOwnedPayloadBlocking(Func& func) noexcept
-      : AsyncPayloadBase(&Noop), func_(func) {}
+  explicit CallerOwnedPayloadBlocking(Func& func) noexcept : func_(func) {}
 
-  void Invoke() {
+  void DoPerformAndRelease() {
     utils::FastScopeGuard guard([this]() noexcept { Notify(); });
     func_();
   }
@@ -116,26 +116,21 @@ class ThreadControl final {
   void Start(ev_io& w) noexcept;
   void Stop(ev_io& w) noexcept;
 
-  /// Fast non allocating function to execute a `func(*data)` in EvLoop
-  void RunInEvLoopAsync(OnAsyncPayload* func, AsyncPayloadPtr&& data);
+  /// Fast non allocating function to execute a `func(*data)` in EvLoop.
+  void RunPayloadInEvLoopAsync(AsyncPayloadBase& payload) noexcept;
 
   /// Allocating function to execute `func()` in EvLoop.
-  ///
-  /// Dynamically allocates storage and forwards func into it, passes storage
-  /// and helper lambda into the two argument RunInEvLoopAsync overload.
   template <typename Func>
   void RunInEvLoopAsync(Func&& func);
 
   /// Fast non allocating function to register a `func(*data)` in EvLoop.
-  /// Depending on thread settings might fallback to RunInEvLoopAsync.
-  void RunInEvLoopDeferred(OnAsyncPayload* func, AsyncPayloadPtr&& data,
-                           Deadline deadline);
+  /// Does not wake up the ev thread immediately as an optimization.
+  /// Depending on thread settings might fallback to RunPayloadInEvLoopAsync.
+  void RunPayloadInEvLoopDeferred(AsyncPayloadBase& payload,
+                                  Deadline deadline) noexcept;
 
   /// Allocating function to execute `func()` in EvLoop.
-  ///
-  /// Dynamically allocates storage and forwards func into it, passes
-  /// storage and helper lambda into the three argument RunInEvLoopDeferred
-  /// overload, with deadline being unreachable.
+  /// Does not wake up the ev thread immediately as an optimization.
   template <typename Func>
   void RunInEvLoopDeferred(Func&& func);
 
@@ -146,6 +141,9 @@ class ThreadControl final {
   void RunInEvLoopBlocking(Func&& func);
 
   bool IsInEvThread() const noexcept;
+
+  std::uint8_t GetCurrentLoadPercent() const;
+  const std::string& GetName() const;
 
  private:
   Thread& thread_;
@@ -159,11 +157,9 @@ void ThreadControl::RunInEvLoopAsync(Func&& func) {
   }
 
   using Payload = impl::UniquePayloadAsync<std::remove_reference_t<Func>>;
-  AsyncPayloadPtr data{new Payload(std::forward<Func>(func))};
+  auto payload = std::make_unique<Payload>(std::forward<Func>(func));
 
-  RunInEvLoopAsync(
-      [](AsyncPayloadPtr&& ptr) { static_cast<Payload&>(*ptr).Invoke(); },
-      std::move(data));
+  RunPayloadInEvLoopAsync(*payload.release());
 }
 
 template <typename Func>
@@ -174,11 +170,9 @@ void ThreadControl::RunInEvLoopDeferred(Func&& func) {
   }
 
   using Payload = impl::UniquePayloadAsync<std::remove_reference_t<Func>>;
-  AsyncPayloadPtr data{new Payload(std::forward<Func>(func))};
+  auto payload = std::make_unique<Payload>(std::forward<Func>(func));
 
-  RunInEvLoopDeferred(
-      [](AsyncPayloadPtr&& ptr) { static_cast<Payload&>(*ptr).Invoke(); },
-      std::move(data), {});
+  RunPayloadInEvLoopDeferred(*payload.release(), {});
 }
 
 template <typename Func>
@@ -189,17 +183,11 @@ void ThreadControl::RunInEvLoopSync(Func&& func) {
   }
 
   using Payload = impl::CallerOwnedPayloadSync<std::remove_reference_t<Func>>;
-  Payload data{func};
+  Payload payload{func};
 
-  RunInEvLoopAsync(
-      [](AsyncPayloadPtr&& ptr) {
-        // 'release' is necessary, because Payload may be destroyed after
-        // signalling.
-        static_cast<Payload&>(*ptr.release()).Invoke();
-      },
-      AsyncPayloadPtr(&data));
+  RunPayloadInEvLoopAsync(payload);
 
-  data.Wait();
+  payload.Wait();
 }
 
 template <typename Func>
@@ -211,17 +199,11 @@ void ThreadControl::RunInEvLoopBlocking(Func&& func) {
 
   using Payload =
       impl::CallerOwnedPayloadBlocking<std::remove_reference_t<Func>>;
-  Payload data{func};
+  Payload payload{func};
 
-  RunInEvLoopAsync(
-      [](AsyncPayloadPtr&& ptr) {
-        // 'release' is necessary, because Payload may be destroyed after
-        // signalling.
-        static_cast<Payload&>(*ptr.release()).Invoke();
-      },
-      AsyncPayloadPtr(&data));
+  RunPayloadInEvLoopAsync(payload);
 
-  data.Wait();
+  payload.Wait();
 }
 
 }  // namespace engine::ev

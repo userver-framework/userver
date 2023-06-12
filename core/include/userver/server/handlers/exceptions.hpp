@@ -17,7 +17,7 @@ USERVER_NAMESPACE_BEGIN
 namespace server::handlers {
 
 /**
- * Enumeration that defines protocol-agnostic hander error condition codes,
+ * Enumeration that defines protocol-agnostic handler error condition codes,
  * used by server::handlers::CustomHandlerException.
  *
  * A handler for a specific protocol (e.g. http) should define mapping from
@@ -48,18 +48,18 @@ enum class HandlerErrorCode {
   // TODO More client-side error conditions here
   kServerSideError,  //!< kServerSideError An error occurred while processing
                      //!< the request
-  kBadGateway,  //!< kBadGateway An error occured while passing the request to
+  kBadGateway,  //!< kBadGateway An error occurred while passing the request to
                 //!< another service
 
-  kGatewayTimeout,  //!< kGatewayTimeout A timeout occured while passing the
+  kGatewayTimeout,  //!< kGatewayTimeout A timeout occurred while passing the
                     //!< request to another service
-  kUnsupportedMediaType,  //!< kUnsupportedMediaType Conten-Encoding or
+  kUnsupportedMediaType,  //!< kUnsupportedMediaType Content-Encoding or
                           //!< Content-Type is not supported
   // TODO More server-side error conditions
 };
 
 /**
- * Hasher class for HanderErrorCode
+ * Hasher class for HandlerErrorCode
  */
 struct HandlerErrorCodeHash {
   std::size_t operator()(HandlerErrorCode c) const {
@@ -219,7 +219,7 @@ struct CustomHandlerExceptionData final {
 /**
  * @brief Base class for handler exceptions.
  *
- * For consructing the body of an exception a special message builder type could be
+ * For constructing the body of an exception a special message builder type could be
  * used. Message builder should satisfy the following requirements:
  * - has an optional `kIsExternalBodyFormatted` set to true to forbid changing the external body
  * - has an optional `GetServiceCode()` function to return machine readable error code
@@ -233,7 +233,7 @@ struct CustomHandlerExceptionData final {
 // clang-format on
 class CustomHandlerException : public std::runtime_error {
  public:
-  // Type aliases for usage in descenant classes that are in other namespaces
+  // Type aliases for usage in descendent classes that are in other namespaces
   using HandlerErrorCode = handlers::HandlerErrorCode;
   using ServiceErrorCode = handlers::ServiceErrorCode;
   using InternalMessage = handlers::InternalMessage;
@@ -333,6 +333,15 @@ class Unauthorized : public ExceptionWithCode<HandlerErrorCode::kUnauthorized> {
 
 class ResourceNotFound
     : public ExceptionWithCode<HandlerErrorCode::kResourceNotFound> {
+ public:
+  using BaseType::BaseType;
+};
+
+/**
+ * Base exception class for situations when conflict happens.
+ */
+class ConflictError : public server::handlers::ExceptionWithCode<
+                          server::handlers::HandlerErrorCode::kConflictState> {
  public:
   using BaseType::BaseType;
 };

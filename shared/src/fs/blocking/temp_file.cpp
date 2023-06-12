@@ -16,8 +16,7 @@ USERVER_NAMESPACE_BEGIN
 namespace fs::blocking {
 
 TempFile TempFile::Create() {
-  return Create(boost::filesystem::temp_directory_path().string() + "/userver",
-                {});
+  return Create(boost::filesystem::temp_directory_path().string(), "userver-");
 }
 
 TempFile TempFile::Create(std::string_view parent_path,
@@ -29,6 +28,7 @@ TempFile TempFile::Create(std::string_view parent_path,
                                      "creating a unique file by pattern '{}'",
                                      path)}
       .Close();
+  LOG_DEBUG() << "Created a temporary file: " << path;
   return TempFile{std::move(path)};
 }
 
@@ -42,7 +42,7 @@ TempFile::TempFile(TempFile&& other) noexcept
 
 TempFile& TempFile::operator=(TempFile&& other) noexcept {
   if (&other != this) {
-    TempFile temp = std::move(*this);
+    const TempFile temp = std::move(*this);
     path_ = std::exchange(other.path_, {});
   }
   return *this;

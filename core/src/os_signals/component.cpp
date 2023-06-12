@@ -1,8 +1,8 @@
 #include <userver/os_signals/component.hpp>
 
+#include <components/manager.hpp>
 #include <components/manager_config.hpp>
 #include <userver/components/component_config.hpp>
-#include <userver/components/manager.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 #include <utils/internal_tag.hpp>
 

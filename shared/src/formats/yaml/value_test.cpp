@@ -2,6 +2,7 @@
 #include <userver/formats/yaml/serialize_container.hpp>
 #include <userver/formats/yaml/value.hpp>
 #include <userver/formats/yaml/value_builder.hpp>
+#include <userver/utest/literals.hpp>
 
 #include <formats/common/value_test.hpp>
 
@@ -82,6 +83,16 @@ TEST(FormatsYaml, NonObjectHasMember) {
   builder["key1"] = 1;
   ASSERT_THROW(builder["key1"].HasMember("key2"),
                formats::yaml::TypeMismatchException);
+}
+
+TEST(FormatsYaml, UserDefinedLiterals) {
+  using ValueBuilder = formats::yaml::ValueBuilder;
+  ValueBuilder builder{formats::common::Type::kObject};
+  builder["test"] = 3;
+  EXPECT_EQ(builder.ExtractValue(),
+            R"yaml(
+    test: 3
+    )yaml"_yaml);
 }
 
 USERVER_NAMESPACE_END

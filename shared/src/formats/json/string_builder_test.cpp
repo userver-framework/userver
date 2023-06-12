@@ -1,12 +1,13 @@
 #include <gtest/gtest.h>
 
+#include <array>
+#include <cstring>
+
 #include <userver/formats/json/serialize.hpp>
 #include <userver/formats/json/serialize_duration.hpp>
 #include <userver/formats/json/string_builder.hpp>
 #include <userver/formats/json/value_builder.hpp>
-
-#include <array>
-#include <cstring>
+#include <userver/utest/death_tests.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -288,9 +289,9 @@ TYPED_TEST(JsonStringBuilderFloatingTypesAndDeathTest, Nan) {
       std::runtime_error);
 
 #else
-  ASSERT_DEATH(WriteToStream(std::numeric_limits<TypeParam>::quiet_NaN(), sw),
-               "nan");
-  ASSERT_DEATH(
+  UEXPECT_DEATH(WriteToStream(std::numeric_limits<TypeParam>::quiet_NaN(), sw),
+                "nan");
+  UEXPECT_DEATH(
       WriteToStream(std::numeric_limits<TypeParam>::signaling_NaN(), sw),
       "nan");
 #endif
@@ -306,10 +307,10 @@ TYPED_TEST(JsonStringBuilderFloatingTypesAndDeathTest, Inf) {
                std::runtime_error);
 
 #else
-  ASSERT_DEATH(WriteToStream(std::numeric_limits<TypeParam>::infinity(), sw),
-               "inf");
-  ASSERT_DEATH(WriteToStream(std::numeric_limits<TypeParam>::infinity(), sw),
-               "inf");
+  UEXPECT_DEATH(WriteToStream(std::numeric_limits<TypeParam>::infinity(), sw),
+                "inf");
+  UEXPECT_DEATH(WriteToStream(std::numeric_limits<TypeParam>::infinity(), sw),
+                "inf");
 #endif
 }
 

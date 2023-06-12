@@ -1,7 +1,7 @@
 #pragma once
 
 /// @file userver/storages/postgres/io/bytea.hpp
-/// @brief Bytea I/O support
+/// @brief storages::postgres::Bytea I/O support
 /// @ingroup userver_postgres_parse_and_format
 
 #include <string>

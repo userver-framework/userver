@@ -47,6 +47,10 @@ ConfigDistributor::ConfigDistributor(
     const components::ComponentContext& context)
     : HttpHandlerJsonBase(config, context) {
   constexpr std::string_view kDynamicConfig = R"~({
+    "BAGGAGE_SETTINGS": {
+      "allowed_keys": []
+    },
+    "USERVER_BAGGAGE_ENABLED": false,
     "USERVER_TASK_PROCESSOR_PROFILER_DEBUG": {},
     "USERVER_LOG_REQUEST": true,
     "USERVER_LOG_REQUEST_HEADERS": false,

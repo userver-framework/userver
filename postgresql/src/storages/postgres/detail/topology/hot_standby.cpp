@@ -314,11 +314,11 @@ void HotStandby::RunCheck(DsnIndex idx) {
     const auto& wal_info_stmts =
         GetWalInfoStatementsForVersion(state.connection->GetServerVersion());
     std::optional<std::chrono::system_clock::time_point> current_xact_timestamp;
-    state.connection
-        ->Execute(state.connection->IsInRecovery() ? wal_info_stmts.slave
-                                                   : wal_info_stmts.master)
-        .Front()
-        .To(state.wal_lsn, current_xact_timestamp);
+
+    const auto wal_info = state.connection->Execute(
+        state.connection->IsInRecovery() ? wal_info_stmts.slave
+                                         : wal_info_stmts.master);
+    wal_info.Front().To(state.wal_lsn, current_xact_timestamp);
     if (current_xact_timestamp) {
       state.current_xact_timestamp = *current_xact_timestamp;
     } else {

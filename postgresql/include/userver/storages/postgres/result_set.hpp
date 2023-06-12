@@ -6,8 +6,11 @@
 #include <initializer_list>
 #include <limits>
 #include <memory>
+#include <optional>
 #include <tuple>
+#include <type_traits>
 #include <utility>
+#include <variant>
 
 #include <fmt/format.h>
 
@@ -168,7 +171,7 @@ namespace storages::postgres {
 /// A result set can be represented as a set of user row types or extracted to
 /// a container. For more information see @ref pg_user_row_types
 ///
-/// @todo Interface for copying a ResultSet to an output interator.
+/// @todo Interface for copying a ResultSet to an output iterator.
 ///
 /// @par Non-select query results
 ///
@@ -206,7 +209,7 @@ struct FieldDescription {
 /// @brief A wrapper for PGresult to access field descriptions.
 class RowDescription {
  public:
-  RowDescription(detail::ResultWrapperPtr res) : res_{res} {}
+  RowDescription(detail::ResultWrapperPtr res) : res_{std::move(res)} {}
 
   /// Check that all fields can be read in binary format
   /// @throw NoBinaryParser if any of the fields doesn't have a binary parser
@@ -290,7 +293,7 @@ class Field {
   friend class Row;
 
   Field(detail::ResultWrapperPtr res, size_type row, size_type col)
-      : res_{res}, row_index_{row}, field_index_{col} {}
+      : res_{std::move(res)}, row_index_{row}, field_index_{col} {}
 
   template <typename T>
   size_type ReadNullable(const io::FieldBuffer& fb, T&& val,
@@ -350,7 +353,7 @@ class ConstFieldIterator
   friend class Row;
 
   ConstFieldIterator(detail::ResultWrapperPtr res, size_type row, size_type col)
-      : ConstDataIterator(res, row, col) {}
+      : ConstDataIterator(std::move(res), row, col) {}
 };
 
 /// @brief Reverse iterator over fields in a result set's row
@@ -361,7 +364,7 @@ class ReverseConstFieldIterator
 
   ReverseConstFieldIterator(detail::ResultWrapperPtr res, size_type row,
                             size_type col)
-      : ConstDataIterator(res, row, col) {}
+      : ConstDataIterator(std::move(res), row, col) {}
 };
 
 /// Data row in a result set
@@ -421,7 +424,7 @@ class Row {
   ///
   /// If the user tries to read the first column into a variable, it must be the
   /// only column in the result set. If the result set contains more than one
-  /// column, the function will throw NotASingleColumResultSet. If the result
+  /// column, the function will throw NonSingleColumnResultSet. If the result
   /// set is OK to contain more than one columns, the first column value should
   /// be accessed via `row[0].To/As`.
   ///
@@ -509,7 +512,7 @@ class Row {
   friend class ResultSet;
 
   Row(detail::ResultWrapperPtr res, size_type row)
-      : res_{res}, row_index_{row} {}
+      : res_{std::move(res)}, row_index_{row} {}
 
   //@{
   /** @name Iteration support */
@@ -530,7 +533,7 @@ class ConstRowIterator
   friend class ResultSet;
 
   ConstRowIterator(detail::ResultWrapperPtr res, size_type row)
-      : ConstDataIterator(res, row) {}
+      : ConstDataIterator(std::move(res), row) {}
 };
 
 /// @name Reverse iterator over rows in a result set
@@ -540,7 +543,7 @@ class ReverseConstRowIterator
   friend class ResultSet;
 
   ReverseConstRowIterator(detail::ResultWrapperPtr res, size_type row)
-      : ConstDataIterator(res, row) {}
+      : ConstDataIterator(std::move(res), row) {}
 };
 
 /// @brief PostgreSQL result set
@@ -586,32 +589,50 @@ class ResultSet {
   /** @name Row container interface */
   //@{
   /** @name Forward iteration */
-  const_iterator cbegin() const;
-  const_iterator begin() const { return cbegin(); }
-  const_iterator cend() const;
-  const_iterator end() const { return cend(); }
+  const_iterator cbegin() const&;
+  const_iterator begin() const& { return cbegin(); }
+  const_iterator cend() const&;
+  const_iterator end() const& { return cend(); }
+
+  // One should store ResultSet before using its accessors
+  const_iterator cbegin() const&& = delete;
+  const_iterator begin() const&& = delete;
+  const_iterator cend() const&& = delete;
+  const_iterator end() const&& = delete;
   //@}
   //@{
   /** @name Reverse iteration */
-  const_reverse_iterator crbegin() const;
-  const_reverse_iterator rbegin() const { return crbegin(); }
-  const_reverse_iterator crend() const;
-  const_reverse_iterator rend() const { return crend(); }
+  const_reverse_iterator crbegin() const&;
+  const_reverse_iterator rbegin() const& { return crbegin(); }
+  const_reverse_iterator crend() const&;
+  const_reverse_iterator rend() const& { return crend(); }
+  // One should store ResultSet before using its accessors
+  const_reverse_iterator crbegin() const&& = delete;
+  const_reverse_iterator rbegin() const&& = delete;
+  const_reverse_iterator crend() const&& = delete;
+  const_reverse_iterator rend() const&& = delete;
   //@}
 
-  reference Front() const;
-  reference Back() const;
+  reference Front() const&;
+  reference Back() const&;
+  // One should store ResultSet before using its accessors
+  reference Front() const&& = delete;
+  reference Back() const&& = delete;
 
   /// @brief Access a row by index
   /// @throws RowIndexOutOfBounds if index is out of bounds
-  reference operator[](size_type index) const;
+  reference operator[](size_type index) const&;
+  // One should store ResultSet before using its accessors
+  reference operator[](size_type index) const&& = delete;
   //@}
 
   //@{
   /** @name ResultSet metadata access */
   // TODO ResultSet metadata access interface
   size_type FieldCount() const;
-  RowDescription GetRowDescription() const { return {pimpl_}; }
+  RowDescription GetRowDescription() const& { return {pimpl_}; }
+  // One should store ResultSet before using its accessors
+  RowDescription GetRowDescription() const&& = delete;
   //@}
 
   //@{
@@ -649,11 +670,42 @@ class ResultSet {
 
   template <typename T, typename Tag>
   friend class TypedResultSet;
+  friend class ConnectionImpl;
 
   std::shared_ptr<detail::ResultWrapper> pimpl_;
 };
 
 namespace detail {
+
+template <typename T>
+struct IsOptionalFromOptional : std::false_type {};
+
+template <typename T>
+struct IsOptionalFromOptional<std::optional<std::optional<T>>>
+    : std::true_type {};
+
+template <typename T>
+struct IsOneVariant : std::false_type {};
+
+template <typename T>
+struct IsOneVariant<std::variant<T>> : std::true_type {};
+
+template <typename... Args>
+constexpr void AssertSaneTypeToDeserialize() {
+  static_assert(
+      !(IsOptionalFromOptional<
+            std::remove_const_t<std::remove_reference_t<Args>>>::value ||
+        ...),
+      "Attempt to get an optional<optional<T>> was detected. Such "
+      "optional-from-optional types are very error prone, obfuscate code and "
+      "are ambiguous to deserialize. Change the type to just optional<T>");
+  static_assert(
+      !(IsOneVariant<
+            std::remove_const_t<std::remove_reference_t<Args>>>::value ||
+        ...),
+      "Attempt to get an variant<T> was detected. Such variant from one type "
+      "obfuscates code. Change the type to just T");
+}
 
 //@{
 /** @name Sequental field extraction */
@@ -663,13 +715,40 @@ struct RowDataExtractorBase;
 template <std::size_t... Indexes, typename... T>
 struct RowDataExtractorBase<std::index_sequence<Indexes...>, T...> {
   static void ExtractValues(const Row& row, T&&... val) {
-    (row[Indexes].To(std::forward<T>(val)), ...);
+    static_assert(sizeof...(Indexes) == sizeof...(T));
+
+    // We do it this way instead of row[Indexes...] to avoid Row::operator[]
+    // overhead - it copies + destroys a shared_ptr to ResultSet
+    auto it = row.begin();
+    const auto perform = [&](auto&& arg) {
+      it->To(std::forward<decltype(arg)>(arg));
+      ++it;
+    };
+    (perform(std::forward<T>(val)), ...);
   }
   static void ExtractTuple(const Row& row, std::tuple<T...>& val) {
-    (row[Indexes].To(std::get<Indexes>(val)), ...);
+    static_assert(sizeof...(Indexes) == sizeof...(T));
+
+    // We do it this way instead of row[Indexes...] to avoid Row::operator[]
+    // overhead - it copies + destroys a shared_ptr to ResultSet
+    auto it = row.begin();
+    const auto perform = [&](auto& arg) {
+      it->To(arg);
+      ++it;
+    };
+    (perform(std::get<Indexes>(val)), ...);
   }
   static void ExtractTuple(const Row& row, std::tuple<T...>&& val) {
-    (row[Indexes].To(std::get<Indexes>(val)), ...);
+    static_assert(sizeof...(Indexes) == sizeof...(T));
+
+    // We do it this way instead of row[Indexes...] to avoid Row::operator[]
+    // overhead - it copies + destroys a shared_ptr to ResultSet
+    auto it = row.begin();
+    const auto perform = [&](auto& arg) {
+      it->To(arg);
+      ++it;
+    };
+    (perform(std::get<Indexes>(val)), ...);
   }
 
   static void ExtractValues(const Row& row,
@@ -717,6 +796,7 @@ void Row::To(T&& val) const {
 
 template <typename T>
 void Row::To(T&& val, RowTag) const {
+  detail::AssertSaneTypeToDeserialize<T>();
   // Convert the val into a writable tuple and extract the data
   using ValueType = std::decay_t<T>;
   static_assert(io::traits::kIsRowType<ValueType>,
@@ -739,6 +819,7 @@ void Row::To(T&& val, RowTag) const {
 
 template <typename T>
 void Row::To(T&& val, FieldTag) const {
+  detail::AssertSaneTypeToDeserialize<T>();
   using ValueType = std::decay_t<T>;
   // composite types can be parsed without an explicit mapping
   static_assert(io::traits::kIsMappedToPg<ValueType> ||
@@ -749,13 +830,14 @@ void Row::To(T&& val, FieldTag) const {
     throw InvalidTupleSizeRequested{Size(), 1};
   }
   if (Size() > 1) {
-    throw NonSingleColumResultSet{Size(), compiler::GetTypeName<T>(), "As"};
+    throw NonSingleColumnResultSet{Size(), compiler::GetTypeName<T>(), "As"};
   }
   (*this)[0].To(std::forward<T>(val));
 }
 
 template <typename... T>
 void Row::To(T&&... val) const {
+  detail::AssertSaneTypeToDeserialize<T...>();
   if (sizeof...(T) > Size()) {
     throw InvalidTupleSizeRequested(Size(), sizeof...(T));
   }
@@ -776,6 +858,7 @@ auto Row::As() const {
 template <typename... T>
 void Row::To(const std::initializer_list<std::string>& names,
              T&&... val) const {
+  detail::AssertSaneTypeToDeserialize<T...>();
   if (sizeof...(T) != names.size()) {
     throw FieldTupleMismatch(names.size(), sizeof...(T));
   }
@@ -797,6 +880,7 @@ std::tuple<T...> Row::As(
 template <typename... T>
 void Row::To(const std::initializer_list<size_type>& indexes,
              T&&... val) const {
+  detail::AssertSaneTypeToDeserialize<T...>();
   if (sizeof...(T) != indexes.size()) {
     throw FieldTupleMismatch(indexes.size(), sizeof...(T));
   }
@@ -822,6 +906,7 @@ auto ResultSet::AsSetOf() const {
 
 template <typename T>
 auto ResultSet::AsSetOf(RowTag) const {
+  detail::AssertSaneTypeToDeserialize<T>();
   using ValueType = std::decay_t<T>;
   static_assert(io::traits::kIsRowType<ValueType>,
                 "This type cannot be used as a row type");
@@ -830,20 +915,22 @@ auto ResultSet::AsSetOf(RowTag) const {
 
 template <typename T>
 auto ResultSet::AsSetOf(FieldTag) const {
+  detail::AssertSaneTypeToDeserialize<T>();
   using ValueType = std::decay_t<T>;
   // composite types can be parsed without an explicit mapping
   static_assert(io::traits::kIsMappedToPg<ValueType> ||
                     io::traits::kIsCompositeType<ValueType>,
                 "This type is not mapped to a PostgreSQL type");
   if (FieldCount() > 1) {
-    throw NonSingleColumResultSet{FieldCount(), compiler::GetTypeName<T>(),
-                                  "AsSetOf"};
+    throw NonSingleColumnResultSet{FieldCount(), compiler::GetTypeName<T>(),
+                                   "AsSetOf"};
   }
   return TypedResultSet<T, FieldTag>{*this};
 }
 
 template <typename Container>
 Container ResultSet::AsContainer() const {
+  detail::AssertSaneTypeToDeserialize<Container>();
   using ValueType = typename Container::value_type;
   Container c;
   if constexpr (io::traits::kCanReserve<Container>) {
@@ -856,6 +943,7 @@ Container ResultSet::AsContainer() const {
 
 template <typename Container>
 Container ResultSet::AsContainer(RowTag) const {
+  detail::AssertSaneTypeToDeserialize<Container>();
   using ValueType = typename Container::value_type;
   Container c;
   if constexpr (io::traits::kCanReserve<Container>) {
@@ -873,6 +961,7 @@ auto ResultSet::AsSingleRow() const {
 
 template <typename T>
 auto ResultSet::AsSingleRow(RowTag) const {
+  detail::AssertSaneTypeToDeserialize<T>();
   if (Size() != 1) {
     throw NonSingleRowResultSet{Size()};
   }
@@ -881,6 +970,7 @@ auto ResultSet::AsSingleRow(RowTag) const {
 
 template <typename T>
 auto ResultSet::AsSingleRow(FieldTag) const {
+  detail::AssertSaneTypeToDeserialize<T>();
   if (Size() != 1) {
     throw NonSingleRowResultSet{Size()};
   }

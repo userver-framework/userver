@@ -36,7 +36,9 @@ namespace server::handlers {
 
 class DnsClientControl final : public HttpHandlerBase {
  public:
-  static constexpr auto kName = "handler-dns-client-control";
+  /// @ingroup userver_component_names
+  /// @brief The default name of server::handlers::DnsClientControl
+  static constexpr std::string_view kName = "handler-dns-client-control";
 
   DnsClientControl(const components::ComponentConfig&,
                    const components::ComponentContext&);

@@ -1,5 +1,6 @@
 #include <benchmark/benchmark.h>
 
+#include <userver/logging/impl/logger_base.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/logging/logger.hpp>
 
@@ -9,21 +10,31 @@
 
 USERVER_NAMESPACE_BEGIN
 
+namespace {
+
+class NoopLogger final : public logging::impl::LoggerBase {
+ public:
+  NoopLogger() noexcept : LoggerBase(logging::Format::kRaw) {}
+  void Log(logging::Level, std::string_view) const override {}
+  void Flush() const override {}
+};
+
+}  // namespace
+
 class LogHelperBenchmark : public benchmark::Fixture {
   void SetUp(const benchmark::State&) override {
-    old_ = logging::SetDefaultLogger(logging::MakeNullLogger("null_logger"));
+    guard_.emplace(std::make_shared<NoopLogger>());
+    logging::SetDefaultLoggerLevel(logging::Level::kInfo);
   }
 
-  void TearDown(const benchmark::State&) override {
-    if (old_) logging::SetDefaultLogger(std::exchange(old_, nullptr));
-  }
+  void TearDown(const benchmark::State&) override { guard_.reset(); }
 
-  logging::LoggerPtr old_;
+  std::optional<logging::DefaultLoggerGuard> guard_;
 };
 
 BENCHMARK_DEFINE_TEMPLATE_F(LogHelperBenchmark, LogNumber)
 (benchmark::State& state) {
-  T msg{42};
+  const auto msg = Launder(T{42});
   for (auto _ : state) {
     LOG_INFO() << msg;
   }
@@ -35,7 +46,7 @@ BENCHMARK_INSTANTIATE_TEMPLATE_F(LogHelperBenchmark, LogNumber, float);
 BENCHMARK_INSTANTIATE_TEMPLATE_F(LogHelperBenchmark, LogNumber, double);
 
 BENCHMARK_DEFINE_F(LogHelperBenchmark, LogString)(benchmark::State& state) {
-  std::string msg(state.range(0), '*');
+  const auto msg = Launder(std::string(state.range(0), '*'));
   for (auto _ : state) {
     LOG_INFO() << msg;
   }
@@ -45,10 +56,11 @@ BENCHMARK_DEFINE_F(LogHelperBenchmark, LogString)(benchmark::State& state) {
 BENCHMARK_REGISTER_F(LogHelperBenchmark, LogString)
     ->RangeMultiplier(2)
     ->Range(8, 8 << 10)
+    ->Arg(768)  // Just above initial_capacity/2
     ->Complexity();
 
 BENCHMARK_DEFINE_F(LogHelperBenchmark, LogChar)(benchmark::State& state) {
-  std::string msg(state.range(0), '*');
+  const auto msg = Launder(std::string(state.range(0), '*'));
   for (auto _ : state) {
     LOG_INFO() << msg.c_str();
   }
@@ -61,7 +73,7 @@ BENCHMARK_REGISTER_F(LogHelperBenchmark, LogChar)
     ->Complexity();
 
 BENCHMARK_DEFINE_F(LogHelperBenchmark, LogCheck)(benchmark::State& state) {
-  std::string msg(state.range(0), '*');
+  const auto msg = Launder(std::string(state.range(0), '*'));
   for (auto _ : state) {
     LOG_TRACE() << msg.c_str();
   }
@@ -86,7 +98,8 @@ std::ostream& operator<<(std::ostream& os, const StreamedStruct& value) {
 }
 
 BENCHMARK_DEFINE_F(LogHelperBenchmark, LogStruct)(benchmark::State& state) {
-  StreamedStruct msg{state.range(0), std::string(state.range(0), '*')};
+  const StreamedStruct msg{state.range(0),
+                           Launder(std::string(state.range(0), '*'))};
   for (auto _ : state) {
     LOG_INFO() << msg;
   }

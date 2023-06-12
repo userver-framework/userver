@@ -1,4 +1,4 @@
-// Copyright (c) 2016-2021 Antony Polukhin
+// Copyright (c) 2016-2023 Antony Polukhin
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -53,7 +53,7 @@ namespace typeid_conversions {
 #ifdef _MSC_VER
 #   pragma warning( push )
     // '<<': check operator precedence for possible error; use parentheses to clarify precedence
-#   pragma warning( disable : 4554 ) 
+#   pragma warning( disable : 4554 )
 #endif
 
 constexpr std::size_t native_types_mask = 31;
@@ -118,16 +118,16 @@ template <class Type> constexpr std::size_t type_to_id(identity<const Type*>) no
 template <class Type> constexpr std::size_t type_to_id(identity<const volatile Type*>) noexcept;
 template <class Type> constexpr std::size_t type_to_id(identity<volatile Type*>) noexcept;
 template <class Type> constexpr std::size_t type_to_id(identity<Type&>) noexcept;
-template <class Type> constexpr std::size_t type_to_id(identity<Type>, std::enable_if_t<std::is_enum<Type>::value>* = 0) noexcept;
-template <class Type> constexpr std::size_t type_to_id(identity<Type>, std::enable_if_t<std::is_empty<Type>::value>* = 0) noexcept;
-template <class Type> constexpr std::size_t type_to_id(identity<Type>, std::enable_if_t<std::is_union<Type>::value>* = 0) noexcept;
+template <class Type> constexpr std::size_t type_to_id(identity<Type>, std::enable_if_t<std::is_enum<Type>::value>* = nullptr) noexcept;
+template <class Type> constexpr std::size_t type_to_id(identity<Type>, std::enable_if_t<std::is_empty<Type>::value>* = nullptr) noexcept;
+template <class Type> constexpr std::size_t type_to_id(identity<Type>, std::enable_if_t<std::is_union<Type>::value>* = nullptr) noexcept;
 template <class Type> constexpr size_array<sizeof(Type) * 3> type_to_id(identity<Type>, std::enable_if_t<!std::is_enum<Type>::value && !std::is_empty<Type>::value && !std::is_union<Type>::value>* = 0) noexcept;
 
-template <std::size_t Index> constexpr auto id_to_type(size_t_<Index >, if_extension<Index, native_const_ptr_type> = 0) noexcept;
-template <std::size_t Index> constexpr auto id_to_type(size_t_<Index >, if_extension<Index, native_ptr_type> = 0) noexcept;
-template <std::size_t Index> constexpr auto id_to_type(size_t_<Index >, if_extension<Index, native_const_volatile_ptr_type> = 0) noexcept;
-template <std::size_t Index> constexpr auto id_to_type(size_t_<Index >, if_extension<Index, native_volatile_ptr_type> = 0) noexcept;
-template <std::size_t Index> constexpr auto id_to_type(size_t_<Index >, if_extension<Index, native_ref_type> = 0) noexcept;
+template <std::size_t Index> constexpr auto id_to_type(size_t_<Index >, if_extension<Index, native_const_ptr_type> = nullptr) noexcept;
+template <std::size_t Index> constexpr auto id_to_type(size_t_<Index >, if_extension<Index, native_ptr_type> = nullptr) noexcept;
+template <std::size_t Index> constexpr auto id_to_type(size_t_<Index >, if_extension<Index, native_const_volatile_ptr_type> = nullptr) noexcept;
+template <std::size_t Index> constexpr auto id_to_type(size_t_<Index >, if_extension<Index, native_volatile_ptr_type> = nullptr) noexcept;
+template <std::size_t Index> constexpr auto id_to_type(size_t_<Index >, if_extension<Index, native_ref_type> = nullptr) noexcept;
 
 
 ///////////////////// Definitions of type_to_id and id_to_type for fundamental types
@@ -599,13 +599,20 @@ struct ubiq_constructor_constexpr_copy {
 /////////////////////
 
 template <class T, std::size_t... I>
-struct is_constexpr_aggregate_initializable { // TODO: try to fix it
-    template <T = T{ ubiq_constructor_constexpr_copy{I}... } >
+struct is_constexpr_aggregate_initializable {
+    template<class T2, std::size_t... I2>
+    static constexpr void* constexpr_aggregate_initializer() noexcept {
+        T2 tmp{ ubiq_constructor_constexpr_copy{I2}... };
+        (void)tmp;
+        return nullptr;
+    }
+
+    template <void* = constexpr_aggregate_initializer<T, I...>() >
     static std::true_type test(long) noexcept;
 
     static std::false_type test(...) noexcept;
 
-    static constexpr decltype( test(0) ) value{};
+    static constexpr bool value = decltype(test(0)){};
 };
 
 
@@ -676,16 +683,7 @@ void for_each_field_dispatcher(T& t, F&& f, std::index_sequence<I...>) {
         !std::is_union<T>::value,
         "====================> Boost.PFR: For safety reasons it is forbidden to reflect unions. See `Reflection of unions` section in the docs for more info."
     );
-
-    /// Compile time error at this point means that you have called `for_each_field` or some other non-flat function or operator for a
-    /// type that is not constexpr aggregate initializable.
-    ///
-    /// Make sure that all the fields of your type have constexpr default construtors and trivial destructors.
-    /// Or compile in C++17 mode.
-    constexpr T tmp{ ubiq_constructor_constexpr_copy{I}... };
-    (void)tmp;
-
-    //static_assert(is_constexpr_aggregate_initializable<T, I...>::value, "====================> Boost.PFR: T must be a constexpr initializable type");
+    static_assert(is_constexpr_aggregate_initializable<T, I...>::value, "====================> Boost.PFR: T must be a constexpr initializable type");
 
     constexpr bool is_flat_refelectable_val = detail::is_flat_refelectable<T>( std::index_sequence<I...>{} );
     detail::for_each_field_dispatcher_1(

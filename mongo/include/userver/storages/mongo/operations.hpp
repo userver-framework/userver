@@ -34,12 +34,13 @@ class Count {
   void SetOption(options::Skip);
   void SetOption(options::Limit);
   void SetOption(options::ForceCountImpl);
+  void SetOption(const options::MaxServerTime&);
 
  private:
   friend class storages::mongo::impl::cdriver::CDriverCollectionImpl;
 
   class Impl;
-  static constexpr size_t kSize = 80;
+  static constexpr size_t kSize = 96;
   static constexpr size_t kAlignment = 8;
   // MAC_COMPAT: std::string size differs
   utils::FastPimpl<Impl, kSize, kAlignment, false> impl_;
@@ -61,12 +62,13 @@ class CountApprox {
   void SetOption(options::ReadConcern);
   void SetOption(options::Skip);
   void SetOption(options::Limit);
+  void SetOption(const options::MaxServerTime&);
 
  private:
   friend class storages::mongo::impl::cdriver::CDriverCollectionImpl;
 
   class Impl;
-  static constexpr size_t kSize = 56;
+  static constexpr size_t kSize = 72;
   static constexpr size_t kAlignment = 8;
   // MAC_COMPAT: std::string size differs
   utils::FastPimpl<Impl, kSize, kAlignment, false> impl_;
@@ -100,7 +102,7 @@ class Find {
   friend class storages::mongo::impl::cdriver::CDriverCollectionImpl;
 
   class Impl;
-  static constexpr size_t kSize = 80;
+  static constexpr size_t kSize = 96;
   static constexpr size_t kAlignment = 8;
   // MAC_COMPAT: std::string size differs
   utils::FastPimpl<Impl, kSize, kAlignment, false> impl_;
@@ -125,7 +127,7 @@ class InsertOne {
   friend class storages::mongo::impl::cdriver::CDriverCollectionImpl;
 
   class Impl;
-  static constexpr size_t kSize = 72;
+  static constexpr size_t kSize = 80;
   static constexpr size_t kAlignment = 8;
   // MAC_COMPAT: std::string size differs
   utils::FastPimpl<Impl, kSize, kAlignment, false> impl_;
@@ -154,7 +156,7 @@ class InsertMany {
   friend class storages::mongo::impl::cdriver::CDriverCollectionImpl;
 
   class Impl;
-  static constexpr size_t kSize = 80;
+  static constexpr size_t kSize = 88;
   static constexpr size_t kAlignment = 8;
   // MAC_COMPAT: std::string size differs
   utils::FastPimpl<Impl, kSize, kAlignment, false> impl_;
@@ -181,7 +183,7 @@ class ReplaceOne {
   friend class storages::mongo::impl::cdriver::CDriverCollectionImpl;
 
   class Impl;
-  static constexpr size_t kSize = 88;
+  static constexpr size_t kSize = 96;
   static constexpr size_t kAlignment = 8;
   // MAC_COMPAT: std::string size differs
   utils::FastPimpl<Impl, kSize, kAlignment, false> impl_;
@@ -211,7 +213,7 @@ class Update {
   friend class storages::mongo::impl::cdriver::CDriverCollectionImpl;
 
   class Impl;
-  static constexpr size_t kSize = 88;
+  static constexpr size_t kSize = 96;
   static constexpr size_t kAlignment = 8;
   // MAC_COMPAT: std::string size differs
   utils::FastPimpl<Impl, kSize, kAlignment, false> impl_;
@@ -238,7 +240,7 @@ class Delete {
   friend class storages::mongo::impl::cdriver::CDriverCollectionImpl;
 
   class Impl;
-  static constexpr size_t kSize = 72;
+  static constexpr size_t kSize = 80;
   static constexpr size_t kAlignment = 8;
   // MAC_COMPAT: std::string size differs
   utils::FastPimpl<Impl, kSize, kAlignment, false> impl_;
@@ -269,7 +271,7 @@ class FindAndModify {
   friend class storages::mongo::impl::cdriver::CDriverCollectionImpl;
 
   class Impl;
-  static constexpr size_t kSize = 64;
+  static constexpr size_t kSize = 80;
   static constexpr size_t kAlignment = 8;
   // MAC_COMPAT: std::string size differs
   utils::FastPimpl<Impl, kSize, kAlignment, false> impl_;
@@ -296,7 +298,7 @@ class FindAndRemove {
   friend class storages::mongo::impl::cdriver::CDriverCollectionImpl;
 
   class Impl;
-  static constexpr size_t kSize = 64;
+  static constexpr size_t kSize = 72;
   static constexpr size_t kAlignment = 8;
   // MAC_COMPAT: std::string size differs
   utils::FastPimpl<Impl, kSize, kAlignment, false> impl_;
@@ -326,7 +328,30 @@ class Aggregate {
   friend class storages::mongo::impl::cdriver::CDriverCollectionImpl;
 
   class Impl;
-  static constexpr size_t kSize = 112;
+  static constexpr size_t kSize = 120;
+  static constexpr size_t kAlignment = 8;
+  // MAC_COMPAT: std::string size differs
+  utils::FastPimpl<Impl, kSize, kAlignment, false> impl_;
+};
+
+class Drop {
+ public:
+  Drop();
+  ~Drop();
+
+  Drop(const Drop&);
+  Drop(Drop&&) noexcept;
+  Drop& operator=(const Drop&);
+  Drop& operator=(Drop&&) noexcept;
+
+  void SetOption(const options::WriteConcern&);
+  void SetOption(options::WriteConcern::Level);
+
+ private:
+  friend class storages::mongo::impl::cdriver::CDriverCollectionImpl;
+
+  class Impl;
+  static constexpr size_t kSize = 56;
   static constexpr size_t kAlignment = 8;
   // MAC_COMPAT: std::string size differs
   utils::FastPimpl<Impl, kSize, kAlignment, false> impl_;

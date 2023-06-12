@@ -36,7 +36,14 @@ struct PoolStatistics final {
   PoolQueryStatistics inserts{};
 };
 
-formats::json::Value PoolStatisticsToJson(const PoolStatistics& stats);
+void DumpMetric(USERVER_NAMESPACE::utils::statistics::Writer& writer,
+                const PoolStatistics& stats);
+
+void DumpMetric(USERVER_NAMESPACE::utils::statistics::Writer& writer,
+                const PoolQueryStatistics& stats);
+
+void DumpMetric(USERVER_NAMESPACE::utils::statistics::Writer& writer,
+                const PoolConnectionStatistics& stats);
 
 }  // namespace storages::clickhouse::stats
 

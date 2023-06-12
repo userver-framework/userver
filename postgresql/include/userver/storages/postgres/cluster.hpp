@@ -6,10 +6,12 @@
 #include <memory>
 
 #include <userver/clients/dns/resolver_fwd.hpp>
+#include <userver/dynamic_config/source.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/engine/task/task_with_result.hpp>
 #include <userver/error_injection/settings_fwd.hpp>
 #include <userver/testsuite/postgres_control.hpp>
+#include <userver/testsuite/tasks.hpp>
 
 #include <userver/storages/postgres/cluster_types.hpp>
 #include <userver/storages/postgres/database.hpp>
@@ -102,7 +104,9 @@ class Cluster {
           const ClusterSettings& cluster_settings,
           DefaultCommandControls&& default_cmd_ctls,
           const testsuite::PostgresControl& testsuite_pg_ctl,
-          const error_injection::Settings& ei_settings);
+          const error_injection::Settings& ei_settings,
+          testsuite::TestsuiteTasks& testsuite_tasks,
+          dynamic_config::Source config_source, int shard_number);
   ~Cluster();
 
   /// Get cluster statistics
@@ -211,15 +215,11 @@ class Cluster {
   /// Replaces cluster connection settings.
   ///
   /// Connections with an old settings will be dropped and reestablished.
-  ///
-  /// @warning It will overwrite pipeline mode settings set by SetPipelineMode.
   void SetConnectionSettings(const ConnectionSettings& settings);
 
   void SetPoolSettings(const PoolSettings& settings);
 
   void SetStatementMetricsSettings(const StatementMetricsSettings& settings);
-
-  void SetPipelineMode(PipelineMode mode);
 
  private:
   detail::NonTransaction Start(ClusterHostTypeFlags, OptionalCommandControl);

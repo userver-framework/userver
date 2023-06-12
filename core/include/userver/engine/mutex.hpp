@@ -59,11 +59,9 @@ class Mutex final {
   bool try_lock_until(Deadline deadline);
 
  private:
-  bool LockFastPath(impl::TaskContext&);
-  bool LockSlowPath(impl::TaskContext&, Deadline);
+  class Impl;
 
-  std::atomic<impl::TaskContext*> owner_;
-  impl::FastPimplWaitList lock_waiters_;
+  utils::FastPimpl<Impl, 96, alignof(void*)> impl_;
 };
 
 template <typename Rep, typename Period>

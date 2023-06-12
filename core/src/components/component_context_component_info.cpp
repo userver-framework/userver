@@ -139,6 +139,16 @@ void ComponentInfo::WaitStage(ComponentLifetimeStage stage,
     throw StageSwitchingCancelledException(method_name.append(" cancelled"));
 }
 
+std::string ComponentInfo::GetDependencies() const {
+  if (it_depends_on_.empty()) {
+    return {};
+  }
+
+  auto delimiter = fmt::format(R"("; "{}" -> ")", name_);
+  return fmt::format(R"("{}" -> "{}" )", name_,
+                     fmt::join(it_depends_on_, delimiter));
+}
+
 bool ComponentInfo::HasComponent() const {
   std::lock_guard<engine::Mutex> lock(mutex_);
   return !!component_;

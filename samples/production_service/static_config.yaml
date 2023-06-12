@@ -103,7 +103,8 @@ components_manager:
             limited-logging-interval: 1s
         # /// [Production service sample - static config secdist]
         # yaml
-        secdist:
+        secdist: {}
+        default-secdist-provider:
             config: $secdist-path
         # /// [Production service sample - static config secdist]
 
@@ -169,6 +170,7 @@ components_manager:
             testpoint-url: $mockserver/testpoint
             throttling_enabled: false
         testsuite-support:
+            testsuite-periodic-dumps-enabled: $userver-dumps-periodic
         tracer:
             service-name: $service-name
             tracer: native

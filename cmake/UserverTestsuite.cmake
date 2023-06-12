@@ -2,8 +2,15 @@ include(CTest)
 include(FindPython)
 
 option(USERVER_FEATURE_TESTSUITE "Enable functional tests via testsuite" ON)
-if (USERVER_FEATURE_TESTSUITE)
-  find_package(PythonDev REQUIRED)  # required by virtualenv
+if (USERVER_FEATURE_TESTSUITE) 
+  # find package python3-dev required by virtualenv
+  execute_process(
+    COMMAND bash "-c" "command -v python3-config"
+    OUTPUT_VARIABLE PYTHONCONFIG_FOUND
+  )
+  if (NOT PYTHONCONFIG_FOUND)
+    message(FATAL_ERROR "Python dev is not found")
+  endif()
 endif()
 
 get_filename_component(
@@ -39,7 +46,8 @@ function(userver_venv_setup)
     message(FATAL_ERROR
       "No virtualenv binary found, try to install:\n"
       "Debian: sudo apt install virtualenv\n"
-      "MacOS: brew install virtualenv")
+      "MacOS: brew install virtualenv\n"
+      "ArchLinux: sudo pacman -S python-virtualenv")
   endif()
 
   set(VENV_DIR ${CMAKE_CURRENT_BINARY_DIR}/${VENV_NAME})
@@ -53,7 +61,7 @@ function(userver_venv_setup)
 
   if (NOT EXISTS ${VENV_DIR})
     execute_process(
-      COMMAND ${TESTSUITE_VIRTUALENV} --python=${PYTHON} ${VENV_DIR} ${ARG_VIRTUALENV_ARGS}
+      COMMAND ${TESTSUITE_VIRTUALENV} --system-site-packages --python=${PYTHON} ${VENV_DIR} ${ARG_VIRTUALENV_ARGS}
       RESULT_VARIABLE STATUS
     )
     if (STATUS)
@@ -64,7 +72,8 @@ function(userver_venv_setup)
   list(TRANSFORM ARG_REQUIREMENTS PREPEND "--requirement="
     OUTPUT_VARIABLE PIP_REQUIREMENTS)
   execute_process(
-    COMMAND ${VENV_BIN_DIR}/pip install -U ${PIP_REQUIREMENTS} ${ARG_PIP_ARGS}
+    COMMAND ${VENV_BIN_DIR}/pip install --disable-pip-version-check
+      -U ${PIP_REQUIREMENTS} ${ARG_PIP_ARGS}
     RESULT_VARIABLE STATUS
   )
   if (STATUS)
@@ -74,7 +83,7 @@ endfunction()
 
 function(userver_testsuite_add)
   set(options)
-  set(oneValueArgs SERVICE_TARGET WORKING_DIRECTORY PYTHON_BINARY)
+  set(oneValueArgs SERVICE_TARGET WORKING_DIRECTORY PYTHON_BINARY PRETTY_LOGS)
   set(multiValueArgs PYTEST_ARGS REQUIREMENTS PYTHONPATH VIRTUALENV_ARGS)
   cmake_parse_arguments(
     ARG "${options}" "${oneValueArgs}" "${multiValueArgs}"  ${ARGN})
@@ -86,6 +95,10 @@ function(userver_testsuite_add)
 
   if (NOT ARG_WORKING_DIRECTORY)
     set(ARG_WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+  endif()
+
+  if (NOT DEFINED ARG_PRETTY_LOGS)
+    set(ARG_PRETTY_LOGS ON)
   endif()
 
   set(TESTSUITE_TARGET "testsuite-${ARG_SERVICE_TARGET}")
@@ -130,16 +143,20 @@ function(userver_testsuite_add)
     message(FATAL_ERROR "Failed to create testsuite runner")
   endif()
 
+  set(PRETTY_LOGS_MODE "")
+  if (ARG_PRETTY_LOGS)
+      set(PRETTY_LOGS_MODE "--service-logs-pretty")
+  endif()
+
+  # Without WORKING_DIRECTORY the `add_test` prints better diagnostic info
   add_test(
     NAME ${TESTSUITE_TARGET}
-    COMMAND ${TESTSUITE_RUNNER} -vv
-    WORKING_DIRECTORY ${ARG_WORKING_DIRECTORY}
+    COMMAND ${TESTSUITE_RUNNER} ${PRETTY_LOGS_MODE} -vv ${ARG_WORKING_DIRECTORY}
   )
 
   add_custom_target(
     start-${ARG_SERVICE_TARGET}
-    COMMAND ${TESTSUITE_RUNNER} --service-runner-mode -vvs
+    COMMAND ${TESTSUITE_RUNNER} --service-runner-mode ${PRETTY_LOGS_MODE} -vvs ${ARG_WORKING_DIRECTORY}
     DEPENDS ${TESTSUITE_RUNNER} ${ARG_SERVICE_TARGET}
-    WORKING_DIRECTORY ${ARG_WORKING_DIRECTORY}
   )
 endfunction()

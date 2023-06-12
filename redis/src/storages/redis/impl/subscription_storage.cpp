@@ -5,10 +5,9 @@
 #include <userver/logging/log.hpp>
 #include <userver/utils/rand.hpp>
 
-#include <userver/storages/redis/impl/command.hpp>
+#include <storages/redis/impl/command.hpp>
+#include <storages/redis/impl/subscription_rebalance_scheduler.hpp>
 #include <userver/storages/redis/impl/reply.hpp>
-
-#include "subscription_rebalance_scheduler.hpp"
 
 USERVER_NAMESPACE_BEGIN
 

@@ -17,7 +17,7 @@ namespace components {
 /// @ingroup userver_components
 ///
 /// @brief Component that loads auth configuration settings from a
-/// components::Secdist componenet if the latter was registered in
+/// components::Secdist component if the latter was registered in
 /// components::ComponentList.
 ///
 /// The component does **not** have any options for service config.
@@ -28,6 +28,8 @@ class AuthCheckerSettings final : public LoggableComponentBase {
  public:
   AuthCheckerSettings(const ComponentConfig&, const ComponentContext&);
 
+  /// @ingroup userver_component_names
+  /// @brief The default name of components::AuthCheckerSettings
   static constexpr std::string_view kName = "auth-checker-settings";
 
   const server::handlers::auth::AuthCheckerSettings& Get() const {

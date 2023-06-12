@@ -34,9 +34,7 @@ class CacheControl final {
   bool IsPeriodicUpdateEnabled(const cache::Config& cache_config,
                                const std::string& cache_name) const;
 
-  void InvalidateAllCaches(
-      cache::UpdateType update_type,
-      const std::unordered_set<std::string>& names_blocklist);
+  void InvalidateAllCaches(cache::UpdateType update_type);
 
   void InvalidateCaches(cache::UpdateType update_type,
                         std::unordered_set<std::string> names);

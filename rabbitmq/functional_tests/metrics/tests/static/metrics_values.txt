@@ -1,0 +1,6 @@
+rabbitmq.my-rabbit.localhost.connections_created:	GAUGE	0
+rabbitmq.my-rabbit.localhost.connections_closed:	GAUGE	0
+rabbitmq.my-rabbit.localhost.bytes_sent:	GAUGE	0
+rabbitmq.my-rabbit.localhost.bytes_read:	GAUGE	0
+rabbitmq.my-rabbit.localhost.messages_published:	GAUGE	0
+rabbitmq.my-rabbit.localhost.messages_consumed:	GAUGE	0

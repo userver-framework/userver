@@ -3,6 +3,7 @@
 /// @file userver/formats/yaml/iterator.hpp
 /// @brief @copybrief formats::yaml::Iterator
 
+#include <cstdint>
 #include <iterator>
 #include <optional>
 

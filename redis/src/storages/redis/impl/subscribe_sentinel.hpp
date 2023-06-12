@@ -4,9 +4,10 @@
 #include <mutex>
 #include <vector>
 
-#include <userver/storages/redis/impl/sentinel.hpp>
 #include <userver/testsuite/testsuite_support.hpp>
-#include "subscription_storage.hpp"
+
+#include <storages/redis/impl/sentinel.hpp>
+#include <storages/redis/impl/subscription_storage.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -18,6 +19,7 @@ class SubscribeSentinel : protected Sentinel {
       const std::shared_ptr<ThreadPools>& thread_pools,
       const std::vector<std::string>& shards,
       const std::vector<ConnectionInfo>& conns, std::string shard_group_name,
+      dynamic_config::Source dynamic_config_source,
       const std::string& client_name, const Password& password,
       ConnectionSecurity connection_security,
       ReadyChangeCallback ready_callback,
@@ -30,14 +32,18 @@ class SubscribeSentinel : protected Sentinel {
   static std::shared_ptr<SubscribeSentinel> Create(
       const std::shared_ptr<ThreadPools>& thread_pools,
       const secdist::RedisSettings& settings, std::string shard_group_name,
+      dynamic_config::Source dynamic_config_source,
       const std::string& client_name, bool is_cluster_mode,
-      const testsuite::RedisControl& testsuite_redis_control);
+      const testsuite::RedisControl& testsuite_redis_control,
+      clients::dns::Resolver* dns_resolver = nullptr);
   static std::shared_ptr<SubscribeSentinel> Create(
       const std::shared_ptr<ThreadPools>& thread_pools,
       const secdist::RedisSettings& settings, std::string shard_group_name,
+      dynamic_config::Source dynamic_config_source,
       const std::string& client_name, ReadyChangeCallback ready_callback,
       bool is_cluster_mode,
-      const testsuite::RedisControl& testsuite_redis_control);
+      const testsuite::RedisControl& testsuite_redis_control,
+      clients::dns::Resolver* dns_resolver = nullptr);
 
   SubscriptionToken Subscribe(
       const std::string& channel,
@@ -48,7 +54,8 @@ class SubscribeSentinel : protected Sentinel {
       const Sentinel::UserPmessageCallback& message_callback,
       CommandControl control = CommandControl());
 
-  PubsubClusterStatistics GetSubscriberStatistics() const;
+  PubsubClusterStatistics GetSubscriberStatistics(
+      const PubsubMetricsSettings& settings) const;
 
   void RebalanceSubscriptions(size_t shard_idx);
 

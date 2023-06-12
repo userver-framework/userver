@@ -15,13 +15,15 @@
 
 #include <engine/ev/thread_control.hpp>
 #include <engine/ev/thread_pool.hpp>
+#include <userver/dynamic_config/source.hpp>
 #include <userver/engine/deadline.hpp>
 #include <userver/engine/impl/condition_variable_any.hpp>
 #include <userver/utils/swappingsmart.hpp>
 
-#include <userver/storages/redis/impl/command.hpp>
-#include <userver/storages/redis/impl/redis_stats.hpp>
+#include <storages/redis/impl/redis_stats.hpp>
+#include <userver/storages/redis/impl/types.hpp>
 #include <userver/storages/redis/impl/wait_connected_mode.hpp>
+
 #include "ev_wrapper.hpp"
 #include "keys_for_shards.hpp"
 #include "keyshard_impl.hpp"
@@ -33,32 +35,10 @@ USERVER_NAMESPACE_BEGIN
 
 namespace redis {
 
-class SentinelImpl {
+class SentinelImplBase {
  public:
-  using ReadyChangeCallback = std::function<void(
-      size_t shard, const std::string& shard_name, bool ready)>;
-
-  SentinelImpl(const engine::ev::ThreadControl& sentinel_thread_control,
-               const std::shared_ptr<engine::ev::ThreadPool>& redis_thread_pool,
-               Sentinel& sentinel, const std::vector<std::string>& shards,
-               const std::vector<ConnectionInfo>& conns,
-               std::string shard_group_name, const std::string& client_name,
-               const Password& password, ConnectionSecurity connection_security,
-               ReadyChangeCallback ready_callback,
-               std::unique_ptr<KeyShard>&& key_shard,
-               ConnectionMode mode = ConnectionMode::kCommands);
-  ~SentinelImpl();
-
-  std::unordered_map<ServerId, size_t, ServerIdHasher>
-  GetAvailableServersWeighted(size_t shard_idx, bool with_master,
-                              const CommandControl& cc = {}) const;
-
-  void WaitConnectedDebug(bool allow_empty_slaves);
-
-  void WaitConnectedOnce(RedisWaitConnected wait_connected);
-
-  void ForceUpdateHosts();
-
+  static constexpr size_t kDefaultPrevInstanceIdx =
+      std::numeric_limits<std::size_t>::max();
   static constexpr size_t kUnknownShard =
       std::numeric_limits<std::size_t>::max();
 
@@ -74,23 +54,94 @@ class SentinelImpl {
         : command(command), master(master), shard(shard), start(start) {}
   };
 
+  SentinelImplBase() = default;
+  virtual ~SentinelImplBase() = default;
+
+  virtual std::unordered_map<ServerId, size_t, ServerIdHasher>
+  GetAvailableServersWeighted(size_t shard_idx, bool with_master,
+                              const CommandControl& cc) const = 0;
+
+  virtual void WaitConnectedDebug(bool allow_empty_slaves) = 0;
+
+  virtual void WaitConnectedOnce(RedisWaitConnected wait_connected) = 0;
+
+  virtual void ForceUpdateHosts() = 0;
+
+  virtual void AsyncCommand(const SentinelCommand& scommand,
+                            size_t prev_instance_idx) = 0;
+  virtual void AsyncCommandToSentinel(CommandPtr command) = 0;
+  virtual size_t ShardByKey(const std::string& key) const = 0;
+  virtual size_t ShardsCount() const = 0;
+  virtual const std::string& GetAnyKeyForShard(size_t shard_idx) const = 0;
+  virtual SentinelStatistics GetStatistics(
+      const MetricsSettings& settings) const = 0;
+
+  virtual void Init() = 0;
+  virtual void Start() = 0;
+  virtual void Stop() = 0;
+
+  virtual std::vector<std::shared_ptr<const Shard>> GetMasterShards() const = 0;
+  virtual bool IsInClusterMode() const = 0;
+
+  virtual void SetCommandsBufferingSettings(
+      CommandsBufferingSettings commands_buffering_settings) = 0;
+  virtual void SetReplicationMonitoringSettings(
+      const ReplicationMonitoringSettings& replication_monitoring_settings) = 0;
+  virtual void SetClusterAutoTopology(bool /*auto_topology*/) {}
+
+  static bool AdjustDeadline(
+      const SentinelCommand& scommand,
+      const dynamic_config::Source& dynamic_config_source);
+};
+
+class SentinelImpl : public SentinelImplBase {
+ public:
+  using ReadyChangeCallback = std::function<void(
+      size_t shard, const std::string& shard_name, bool ready)>;
+
+  SentinelImpl(const engine::ev::ThreadControl& sentinel_thread_control,
+               const std::shared_ptr<engine::ev::ThreadPool>& redis_thread_pool,
+               Sentinel& sentinel, const std::vector<std::string>& shards,
+               const std::vector<ConnectionInfo>& conns,
+               std::string shard_group_name, const std::string& client_name,
+               const Password& password, ConnectionSecurity connection_security,
+               ReadyChangeCallback ready_callback,
+               std::unique_ptr<KeyShard>&& key_shard,
+               dynamic_config::Source dynamic_config_source,
+               ConnectionMode mode = ConnectionMode::kCommands);
+  ~SentinelImpl() override;
+
+  std::unordered_map<ServerId, size_t, ServerIdHasher>
+  GetAvailableServersWeighted(size_t shard_idx, bool with_master,
+                              const CommandControl& cc) const override;
+
+  void WaitConnectedDebug(bool allow_empty_slaves) override;
+
+  void WaitConnectedOnce(RedisWaitConnected wait_connected) override;
+
+  void ForceUpdateHosts() override;
+
   void AsyncCommand(const SentinelCommand& scommand,
-                    size_t prev_instance_idx = -1);
-  void AsyncCommandToSentinel(CommandPtr command);
-  size_t ShardByKey(const std::string& key) const;
-  size_t ShardsCount() const { return master_shards_.size(); }
-  const std::string& GetAnyKeyForShard(size_t shard_idx) const;
-  SentinelStatistics GetStatistics() const;
+                    size_t prev_instance_idx) override;
+  void AsyncCommandToSentinel(CommandPtr command) override;
+  size_t ShardByKey(const std::string& key) const override;
+  size_t ShardsCount() const override { return master_shards_.size(); }
+  const std::string& GetAnyKeyForShard(size_t shard_idx) const override;
+  SentinelStatistics GetStatistics(
+      const MetricsSettings& settings) const override;
 
-  void Init();
-  void Start();
-  void Stop();
+  void Init() override;
+  void Start() override;
+  void Stop() override;
 
-  std::vector<std::shared_ptr<const Shard>> GetMasterShards() const;
-  bool IsInClusterMode() const;
+  std::vector<std::shared_ptr<const Shard>> GetMasterShards() const override;
+  bool IsInClusterMode() const override;
 
   void SetCommandsBufferingSettings(
-      CommandsBufferingSettings commands_buffering_settings);
+      CommandsBufferingSettings commands_buffering_settings) override;
+  void SetReplicationMonitoringSettings(
+      const ReplicationMonitoringSettings& replication_monitoring_settings)
+      override;
 
  private:
   static constexpr const std::chrono::milliseconds cluster_slots_timeout_ =
@@ -225,6 +276,7 @@ class SentinelImpl {
   SentinelStatisticsInternal statistics_internal_;
   utils::SwappingSmart<KeysForShards> keys_for_shards_;
   std::optional<CommandsBufferingSettings> commands_buffering_settings_;
+  dynamic_config::Source dynamic_config_source_;
 };
 
 }  // namespace redis

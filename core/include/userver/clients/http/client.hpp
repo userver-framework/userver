@@ -12,15 +12,25 @@
 #include <userver/moodycamel/concurrentqueue_fwd.h>
 
 #include <userver/clients/dns/resolver_fwd.hpp>
+#include <userver/clients/http/plugin.hpp>
 #include <userver/clients/http/request.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/rcu/rcu.hpp>
 #include <userver/utils/fast_pimpl.hpp>
+#include <userver/utils/not_null.hpp>
 #include <userver/utils/periodic_task.hpp>
 #include <userver/utils/swappingsmart.hpp>
 #include <userver/yaml_config/fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
+
+namespace tracing {
+class TracingManagerBase;
+}  // namespace tracing
+
+namespace server::http {
+class HeadersPropagator;
+}  // namespace server::http
 
 namespace curl {
 class easy;
@@ -49,6 +59,8 @@ struct ClientSettings final {
   std::string thread_name_prefix;
   size_t io_threads = 8;
   bool defer_events = false;
+  const tracing::TracingManagerBase* tracing_manager_{nullptr};
+  const server::http::HeadersPropagator* headers_propagator_{nullptr};
 };
 
 ClientSettings Parse(const yaml_config::YamlConfig& value,
@@ -66,14 +78,19 @@ ClientSettings Parse(const yaml_config::YamlConfig& value,
 /// @snippet clients/http/client_test.cpp  Sample HTTP Client usage
 class Client final {
  public:
-  Client(ClientSettings settings, engine::TaskProcessor& fs_task_processor);
+  Client(ClientSettings settings, engine::TaskProcessor& fs_task_processor,
+         impl::PluginPipeline&& plugin_pipeline);
   ~Client();
 
   /// @brief Returns a HTTP request builder type with preset values of
   /// User-Agent, Proxy and some of the Testsuite suff (if any).
+  ///
+  /// @note This method is thread-safe despite being non-const.
   std::shared_ptr<Request> CreateRequest();
 
   /// Providing CreateNonSignedRequest() function for the clients::Http alias.
+  ///
+  /// @note This method is thread-safe despite being non-const.
   std::shared_ptr<Request> CreateNotSignedRequest() { return CreateRequest(); }
 
   /// @cond
@@ -123,6 +140,8 @@ class Client final {
   /// (most likely getaddrinfo).
   void SetDnsResolver(clients::dns::Resolver* resolver);
 
+  void SetTracingManager(const tracing::TracingManagerBase&);
+
  private:
   void ReinitEasy();
 
@@ -169,6 +188,9 @@ class Client final {
   std::shared_ptr<curl::ConnectRateLimiter> connect_rate_limiter_;
 
   clients::dns::Resolver* resolver_{nullptr};
+  utils::NotNull<const tracing::TracingManagerBase*> tracing_manager_;
+  const server::http::HeadersPropagator* headers_propagator_{nullptr};
+  impl::PluginPipeline plugin_pipeline_;
 };
 
 }  // namespace clients::http

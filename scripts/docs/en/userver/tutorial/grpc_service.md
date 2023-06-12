@@ -79,6 +79,48 @@ To start the service manually run
 The service is available locally at port 8091 (as per our `static_config.yaml`).
 
 
+### Functional testing
+To implement @ref md_en_userver_functional_testing "Functional tests" for the
+service some preparational steps should be done.
+
+#### Preparations
+First of all, import the required modules and add the required
+pytest_userver.plugins.grpc pytest plugin:
+
+@snippet samples/grpc_service/tests/conftest.py  Prepare modules
+
+Load gRPC schemes by adding the path to the schemes to system paths and
+preloading them:
+
+@snippet samples/grpc_service/tests/conftest.py  grpc load schemes
+
+#### gRPC server mock
+
+To mock the gRPC server provide a hook for the static config to change
+the endpoint:
+
+@snippet samples/grpc_service/tests/conftest.py  Prepare configs
+
+Write the mocking fixtures using @ref pytest_userver.plugins.grpc_mockserver.grpc_mockserver "grpc_mockserver":
+
+@snippet samples/grpc_service/tests/conftest.py  Prepare server mock
+
+After that everything is ready to check the service client requests:
+
+@snippet samples/grpc_service/tests/test_grpc.py  grpc client test
+
+#### gRPC client
+
+To do the gRPC requests write a client fixture using
+@ref pytest_userver.plugins.grpc_client.grpc_channel "grpc_channel":
+
+@snippet samples/grpc_service/tests/conftest.py  grpc client
+
+Use it to do gRPC requests to the service:
+
+@snippet samples/grpc_service/tests/test_grpc.py  grpc server test
+
+
 ## Full sources
 
 See the full example at:
@@ -86,6 +128,8 @@ See the full example at:
 * @ref samples/grpc_service/grpc_service.cpp
 * @ref samples/grpc_service/proto/samples/greeter.proto
 * @ref samples/grpc_service/static_config.yaml
+* @ref samples/grpc_service/tests/conftest.py
+* @ref samples/grpc_service/tests/test_grpc.py
 * @ref samples/grpc_service/dynamic_config_fallback.json
 * @ref samples/grpc_service/CMakeLists.txt
 
@@ -98,5 +142,7 @@ See the full example at:
 @example samples/grpc_service/grpc_service.cpp
 @example samples/grpc_service/proto/samples/greeter.proto
 @example samples/grpc_service/static_config.yaml
+@example samples/grpc_service/tests/conftest.py
+@example samples/grpc_service/tests/test_grpc.py
 @example samples/grpc_service/dynamic_config_fallback.json
 @example samples/grpc_service/CMakeLists.txt

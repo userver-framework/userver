@@ -9,12 +9,12 @@
 #include <unordered_set>
 #include <vector>
 
-#include <moodycamel/blockingconcurrentqueue.h>
 #include <boost/smart_ptr/intrusive_ptr.hpp>
 
 #include <engine/task/counted_coroutine_ptr.hpp>
 #include <engine/task/task_counter.hpp>
 #include <engine/task/task_processor_config.hpp>
+#include <engine/task/task_queue.hpp>
 #include <userver/engine/impl/detached_tasks_sync_block.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -55,7 +55,7 @@ class TaskProcessor final {
 
   const impl::TaskCounter& GetTaskCounter() const { return task_counter_; }
 
-  size_t GetTaskQueueSize() const { return task_queue_.size_approx(); }
+  size_t GetTaskQueueSize() const { return task_queue_.GetSizeApproximate(); }
 
   size_t GetWorkerCount() const { return workers_.size(); }
 
@@ -76,7 +76,7 @@ class TaskProcessor final {
  private:
   void Cleanup() noexcept;
 
-  impl::TaskContext* DequeueTask();
+  void PrepareWorkerThread(std::size_t index) noexcept;
 
   void ProcessTasks() noexcept;
 
@@ -93,7 +93,7 @@ class TaskProcessor final {
   std::atomic<bool> is_shutting_down_;
   impl::DetachedTasksSyncBlock detached_contexts_;
 
-  moodycamel::BlockingConcurrentQueue<impl::TaskContext*> task_queue_;
+  TaskQueue task_queue_;
 
   std::atomic<std::chrono::microseconds> sensor_task_queue_wait_time_{};
   std::atomic<std::chrono::microseconds> max_task_queue_wait_time_{};

@@ -11,11 +11,13 @@ USERVER_NAMESPACE_BEGIN
 
 namespace {
 
-const server::http::HttpResponse::HeadersMap kHeaders = {
-    {"X-Header1", "value"}, {"X-Header2", "value"}, {"X-Header3", "value"},
-    {"X-Header4", "value"}, {"X-Header5", "value"}, {"X-Header6", "value"},
-    {"X-Header7", "value"},
-};
+const server::http::HttpResponse::HeadersMap kHeaders = [] {
+  server::http::HttpResponse::HeadersMap map{};
+  for (std::size_t i = 1; i <= 7; ++i) {
+    map[fmt::format("X-Header{}", i)] = "value";
+  }
+  return map;
+}();
 
 void http_headers_serialization_no_ostreams(benchmark::State& state) {
   for (auto _ : state) {
@@ -56,8 +58,8 @@ void http_headers_serialization_ostreams(benchmark::State& state) {
 
     if (kHeaders.find(USERVER_NAMESPACE::http::headers::kContentLength) ==
         kHeaders.end()) {
-      os << USERVER_NAMESPACE::http::headers::kContentLength << ": " << 1024
-         << "\r\n";
+      os << std::string_view{USERVER_NAMESPACE::http::headers::kContentLength}
+         << ": " << 1024 << "\r\n";
     }
 
     auto data = os.str();

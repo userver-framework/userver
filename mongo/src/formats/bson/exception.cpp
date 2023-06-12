@@ -58,19 +58,17 @@ const char* NameForType(bson_type_t type) {
 
 std::string MsgForType(bson_type_t actual, bson_type_t expected,
                        std::string_view path) {
-  return fmt::format(
-      FMT_STRING("Field '{}' is of a wrong type. Expected: {}, actual: {}"),
-      path, NameForType(expected), NameForType(actual));
+  return fmt::format("Field '{}' is of a wrong type. Expected: {}, actual: {}",
+                     path, NameForType(expected), NameForType(actual));
 }
 
 std::string MsgForIndex(size_t index, size_t size, std::string_view path) {
-  return fmt::format(
-      FMT_STRING("Index {} of array '{}' of size {} is out of bounds"), index,
-      path, size);
+  return fmt::format("Index {} of array '{}' of size {} is out of bounds",
+                     index, path, size);
 }
 
 std::string MsgForMissing(std::string_view path) {
-  return fmt::format(FMT_STRING("Field '{}' is missing"), path);
+  return fmt::format("Field '{}' is missing", path);
 }
 
 }  // namespace

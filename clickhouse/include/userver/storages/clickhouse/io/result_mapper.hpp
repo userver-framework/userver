@@ -146,13 +146,13 @@ typename RowsMapper<Row>::Iterator& RowsMapper<Row>::Iterator::operator++() {
 
 template <typename Row>
 typename RowsMapper<Row>::Iterator::reference
-    RowsMapper<Row>::Iterator::operator*() const {
+RowsMapper<Row>::Iterator::operator*() const {
   return UpdateValue();
 }
 
 template <typename Row>
 typename RowsMapper<Row>::Iterator::pointer
-    RowsMapper<Row>::Iterator::operator->() const {
+RowsMapper<Row>::Iterator::operator->() const {
   return &UpdateValue();
 }
 

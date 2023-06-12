@@ -11,6 +11,7 @@ the start of the @ref md_en_userver_component_system "component system". Example
 
 @snippet components/common_component_list_test.cpp  Sample components manager config component config
 
+Any amount of task processors could be created with any names.
 
 ## How to use
 
@@ -33,6 +34,8 @@ happening, use @ref md_en_userver_intro "userver provided primitives" or
 if the primitive is missing, run the blocking system call on a separate task
 processor.
 
+Task processors intentionally hide their internals and member functions, so
+there's no way to call any of the task processor members directly.
 
 ## Common Task Processors
 
@@ -128,5 +131,5 @@ Make sure that tasks execute faster than they arrive.
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref md_en_userver_logging | @ref md_en_userver_testing ⇨
+⇦ @ref md_en_userver_logging | @ref md_en_userver_periodics ⇨
 @htmlonly </div> @endhtmlonly

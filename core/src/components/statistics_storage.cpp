@@ -6,10 +6,9 @@ USERVER_NAMESPACE_BEGIN
 
 namespace components {
 
-StatisticsStorage::StatisticsStorage(const ComponentConfig& config,
-                                     const ComponentContext& context)
-    : LoggableComponentBase(config, context),
-      metrics_storage_(std::make_shared<utils::statistics::MetricsStorage>()),
+StatisticsStorage::StatisticsStorage(const ComponentConfig&,
+                                     const ComponentContext&)
+    : metrics_storage_(std::make_shared<utils::statistics::MetricsStorage>()),
       metrics_storage_registration_(metrics_storage_->RegisterIn(storage_)) {}
 
 StatisticsStorage::~StatisticsStorage() {
@@ -23,7 +22,7 @@ void StatisticsStorage::OnAllComponentsLoaded() {
 }
 
 yaml_config::Schema StatisticsStorage::GetStaticConfigSchema() {
-  return yaml_config::MergeSchemas<LoggableComponentBase>(R"(
+  return yaml_config::MergeSchemas<impl::ComponentBase>(R"(
 type: object
 description: Component that keeps a utils::statistics::Storage storage for metrics.
 additionalProperties: false

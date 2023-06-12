@@ -1,5 +1,6 @@
 #include <userver/utest/assert_macros.hpp>
 
+#include <cstdlib>
 #include <stdexcept>
 #include <type_traits>
 
@@ -188,6 +189,12 @@ TEST(AssertMacros, Sample) {
 /// [Sample assert macros usage]
 
 }  // namespace
+
+TEST(AssertMacros, ExpectDeath) {
+  testing::FLAGS_gtest_death_test_style = "threadsafe";
+  UEXPECT_DEATH(std::abort(), "");
+  EXPECT_NONFATAL_FAILURE(UEXPECT_DEATH(BarrelRoll(), ""), "");
+}
 
 TEST(AssertMacros, ExpectUinvariantFailure) {
   testing::FLAGS_gtest_death_test_style = "threadsafe";

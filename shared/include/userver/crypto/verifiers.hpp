@@ -9,8 +9,10 @@
 #include <string_view>
 
 #include <userver/crypto/basic_types.hpp>
+#include <userver/crypto/certificate.hpp>
 #include <userver/crypto/exception.hpp>
 #include <userver/crypto/public_key.hpp>
+#include <userver/utils/flags.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -112,6 +114,32 @@ using VerifierPs256 = DsaVerifier<DsaType::kRsaPss, DigestSize::k256>;
 using VerifierPs384 = DsaVerifier<DsaType::kRsaPss, DigestSize::k384>;
 using VerifierPs512 = DsaVerifier<DsaType::kRsaPss, DigestSize::k512>;
 /// @}
+
+/// @name CMS verifier per RFC 5652
+class CmsVerifier final : public NamedAlgo {
+ public:
+  /// Verifier flags
+  enum class Flags {
+    kNone = 0x0,
+    /// If set the signing certificate is not verified.
+    kNoSignerCertVerify = 0x20,
+  };
+
+  /// Input encoding
+  enum class InForm { kDer, kPem, kSMime };
+
+  /// Constructor from certificate
+  CmsVerifier(Certificate certificate);
+
+  ~CmsVerifier() override;
+
+  /// Verifies a CMS signed message as specified by flags
+  void Verify(std::initializer_list<std::string_view> data,
+              utils::Flags<Flags> flags, InForm in_form) const;
+
+ private:
+  Certificate cert_;
+};
 
 namespace weak {
 

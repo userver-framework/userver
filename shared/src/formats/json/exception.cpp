@@ -2,6 +2,7 @@
 
 #include <istream>
 #include <ostream>
+#include <string_view>
 
 #include <fmt/format.h>
 #include <rapidjson/document.h>
@@ -53,11 +54,28 @@ BadStreamException::BadStreamException(const std::ostream& os)
 TypeMismatchException::TypeMismatchException(int actual, int expected,
                                              const std::string& path)
     : Exception(MsgForType(static_cast<impl::Type>(actual),
-                           static_cast<impl::Type>(expected), path)) {}
+                           static_cast<impl::Type>(expected), path)),
+      actual_(actual),
+      expected_(expected),
+      path_(path) {}
+
+std::string_view TypeMismatchException::GetActual() const {
+  return impl::NameForType(static_cast<impl::Type>(actual_));
+}
+std::string_view TypeMismatchException::GetExpected() const {
+  return impl::NameForType(static_cast<impl::Type>(expected_));
+}
+const std::string& TypeMismatchException::GetPath() const noexcept {
+  return path_;
+}
 
 OutOfBoundsException::OutOfBoundsException(size_t index, size_t size,
                                            const std::string& path)
-    : Exception(MsgForIndex(index, size, path)) {}
+    : Exception(MsgForIndex(index, size, path)), path_(path) {}
+
+const std::string& OutOfBoundsException::GetPath() const noexcept {
+  return path_;
+}
 
 MemberMissingException::MemberMissingException(const std::string& path)
     : Exception(MsgForMissing(path)) {}

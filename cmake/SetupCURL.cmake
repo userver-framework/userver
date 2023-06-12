@@ -1,9 +1,3 @@
-if (NOT USERVER_OPEN_SOURCE_BUILD)
-    find_package(HelperCurlYandex REQUIRED)
-    add_library(CURL::libcurl ALIAS CurlYandex)  # Unify link names
-    return()
-endif()
-
 option(USERVER_DOWNLOAD_PACKAGE_CURL "Download and setup libcurl if no libcurl of matching version was found" ${USERVER_DOWNLOAD_PACKAGES})
 if (USERVER_DOWNLOAD_PACKAGE_CURL)
     find_package(CURL "7.68")

@@ -46,6 +46,15 @@ class GMockClient : public MockClientBase {
                const CommandControl& command_control),
               (override));
 
+  MOCK_METHOD(RequestUnlink, Unlink,
+              (std::string key, const CommandControl& command_control),
+              (override));
+
+  MOCK_METHOD(RequestUnlink, Unlink,
+              (std::vector<std::string> keys,
+               const CommandControl& command_control),
+              (override));
+
   MOCK_METHOD(RequestExists, Exists,
               (std::string key, const CommandControl& command_control),
               (override));
@@ -439,6 +448,27 @@ class GMockClient : public MockClientBase {
   MOCK_METHOD(RequestEvalCommon, EvalCommon,
               (std::string script, std::vector<std::string> keys,
                std::vector<std::string> args,
+               const CommandControl& command_control),
+              (override));
+
+  MOCK_METHOD(RequestGeosearch, Geosearch,
+              (std::string key, std::string member, double radius,
+               const GeosearchOptions& geosearch_options,
+               const CommandControl& command_control),
+              (override));
+  MOCK_METHOD(RequestGeosearch, Geosearch,
+              (std::string key, std::string member, BoxWidth width,
+               BoxHeight height, const GeosearchOptions& geosearch_options,
+               const CommandControl& command_control),
+              (override));
+  MOCK_METHOD(RequestGeosearch, Geosearch,
+              (std::string key, Longitude lon, Latitude lat, double radius,
+               const GeosearchOptions& geosearch_options,
+               const CommandControl& command_control),
+              (override));
+  MOCK_METHOD(RequestGeosearch, Geosearch,
+              (std::string key, Longitude lon, Latitude lat, BoxWidth width,
+               BoxHeight height, const GeosearchOptions& geosearch_options,
                const CommandControl& command_control),
               (override));
 };

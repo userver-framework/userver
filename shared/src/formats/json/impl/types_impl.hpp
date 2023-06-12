@@ -18,6 +18,8 @@ struct VersionedValuePtr::Data {
   // https://github.com/Tencent/rapidjson/issues/387
   explicit Data(Document&&);
 
+  ~Data();
+
   // native rapidjson value
   Value native;
 

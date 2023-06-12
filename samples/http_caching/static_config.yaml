@@ -14,6 +14,9 @@ components_manager:
         http-client:
             fs-task-processor: fs-task-processor
 
+        dns-client:                     # Asynchronous DNS component
+            fs-task-processor: fs-task-processor
+
         testsuite-support:
         tests-control:
             # Some options from server::handlers::HttpHandlerBase

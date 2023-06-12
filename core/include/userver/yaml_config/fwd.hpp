@@ -11,6 +11,8 @@ namespace yaml_config {
 
 class YamlConfig;
 
+struct Schema;
+
 }  // namespace yaml_config
 
 USERVER_NAMESPACE_END

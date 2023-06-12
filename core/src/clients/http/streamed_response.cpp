@@ -17,6 +17,7 @@ StreamedResponse::StreamedResponse(Queue::Consumer&& queue_consumer,
 
 std::future_status StreamedResponse::WaitForHeaders(engine::Deadline deadline) {
   if (response_) {
+    LOG_DEBUG() << "WaitForHeaders() reply is cached";
     return std::future_status::ready;
   }
 
@@ -26,9 +27,11 @@ std::future_status StreamedResponse::WaitForHeaders(engine::Deadline deadline) {
 
   auto& future = stream_data->headers_future;
   auto status = future.wait_until(deadline);
-  if (status == engine::FutureStatus::kTimeout)
+  if (status == engine::FutureStatus::kTimeout) {
+    LOG_DEBUG() << "WaitForHeaders is timeouted";
     return std::future_status::timeout;
-  future.get();  // maybe catch an exception
+  }
+  future.get();  // maybe throws an exception
 
   response_ = request_state_->response();
   UASSERT(response_);
@@ -57,6 +60,12 @@ const Headers& StreamedResponse::GetHeaders() {
   WaitForHeadersOrThrow(deadline_);
   const auto& headers = response_->headers();
   return headers;
+}
+
+const Response::CookiesMap& StreamedResponse::GetCookies() {
+  WaitForHeadersOrThrow(deadline_);
+  const auto& cookies = response_->cookies();
+  return cookies;
 }
 
 bool StreamedResponse::ReadChunk(std::string& output,

@@ -1,16 +1,27 @@
 #pragma once
 
+#include <chrono>
 #include <memory>
-#include <tuple>
+#include <optional>
 
 #include <storages/mongo/cdriver/pool_impl.hpp>
 #include <storages/mongo/collection_impl.hpp>
 #include <storages/mongo/stats.hpp>
+#include <userver/dynamic_config/snapshot.hpp>
 #include <userver/tracing/span.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::mongo::impl::cdriver {
+
+struct RequestContext final {
+  std::shared_ptr<stats::OperationStatisticsItem> stats;
+  dynamic_config::Snapshot dynamic_config;
+  CDriverPoolImpl::BoundClientPtr client;
+  CollectionPtr collection;
+  tracing::Span span;
+  std::optional<std::chrono::milliseconds> inherited_deadline;
+};
 
 class CDriverCollectionImpl : public CollectionImpl {
  public:
@@ -29,16 +40,18 @@ class CDriverCollectionImpl : public CollectionImpl {
   WriteResult Execute(const operations::FindAndRemove&) override;
   WriteResult Execute(operations::Bulk&&) override;
   Cursor Execute(const operations::Aggregate&) override;
+  void Execute(const operations::Drop&) override;
 
  private:
-  cdriver::CDriverPoolImpl::BoundClientPtr GetCDriverClient() const;
-  std::tuple<cdriver::CDriverPoolImpl::BoundClientPtr, cdriver::CollectionPtr>
-  GetCDriverCollection() const;
-  std::chrono::milliseconds GetDefaultMaxServerTime() const;
-  void SetDefaultMaxServerTime(formats::bson::impl::BsonBuilder& builder,
-                               bool& has_max_server_time_option) const;
-  void SetDefaultMaxServerTime(mongoc_find_and_modify_opts_t* options,
-                               bool& has_max_server_time_option) const;
+  cdriver::CDriverPoolImpl::BoundClientPtr GetClient(
+      stats::OperationStatisticsItem& stats) const;
+
+  RequestContext MakeRequestContext(std::string&& span_name,
+                                    const stats::OperationKey& stats_key) const;
+
+  template <typename Operation>
+  RequestContext MakeRequestContext(std::string&& span_name,
+                                    const Operation& operation) const;
 
   PoolImplPtr pool_impl_;
   std::shared_ptr<stats::CollectionStatistics> statistics_;

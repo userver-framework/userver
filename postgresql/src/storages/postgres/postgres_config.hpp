@@ -48,6 +48,20 @@ PipelineMode ParsePipelineMode(const dynamic_config::DocsMap& docs_map);
 
 inline constexpr dynamic_config::Key<ParsePipelineMode> kPipelineModeKey;
 
+class ConnlimitConfig {
+ public:
+  bool connlimit_mode_auto_enabled;
+};
+
+ConnlimitConfig ParseConnlimitConfig(const dynamic_config::DocsMap& docs_map);
+
+constexpr dynamic_config::Key<ParseConnlimitConfig> kConnlimitConfig;
+
+bool ParseDeadlinePropagation(const dynamic_config::DocsMap& docs_map);
+
+constexpr dynamic_config::Key<ParseDeadlinePropagation>
+    kDeadlinePropagationEnabledConfig;
+
 }  // namespace storages::postgres
 
 USERVER_NAMESPACE_END

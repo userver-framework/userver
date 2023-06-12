@@ -52,8 +52,8 @@ class TaskInheritedVariable final {
   void Set(const T& value) { Emplace(value); }
 
   /// @brief Hide the variable so that it is no longer accessible from the
-  /// current or child tasks
-  /// @note The variable might not actually be destroyed immediately
+  /// current or new child tasks.
+  /// @note The variable might not actually be destroyed immediately.
   void Erase() { Storage().Erase<T, kVariableKind>(impl_.GetKey()); }
 
  private:

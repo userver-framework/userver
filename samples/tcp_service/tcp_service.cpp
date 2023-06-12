@@ -28,9 +28,6 @@ class Hello final : public components::TcpAcceptorBase {
 
 }  // namespace samples::tcp
 
-template <>
-inline constexpr bool components::kHasValidate<samples::tcp::Hello> = true;
-
 /// [TCP sample - component]
 
 namespace samples::tcp {
@@ -61,7 +58,7 @@ yaml_config::Schema Hello::GetStaticConfigSchema() {
   return yaml_config::MergeSchemas<TcpAcceptorBase>(R"(
     type: object
     description: |
-      Component for accepting incomming TCP connections and reponding with some
+      Component for accepting incoming TCP connections and responding with some
       greeting as long as the client sends 'hi'.
     additionalProperties: false
     properties:

@@ -16,6 +16,12 @@ inline constexpr int kAnyLine = 0;
 
 namespace bi = boost::intrusive;
 
+enum class EntryState {
+  kForceDisabled,
+  kDefault,
+  kForceEnabled,
+};
+
 using LogEntryContentHook =
     bi::set_base_hook<bi::optimize_size<true>, bi::link_mode<bi::normal_link>>;
 
@@ -23,7 +29,7 @@ struct LogEntryContent {
   LogEntryContent(const char* path, int line) noexcept
       : line(line), path(path) {}
 
-  std::atomic<bool> should_log{false};
+  std::atomic<EntryState> state{EntryState::kDefault};
   const int line;
   const char* const path;
   LogEntryContentHook hook;
@@ -42,7 +48,8 @@ using LogEntryContentSet = bi::set<  //
         >                            //
     >;
 
-void AddDynamicDebugLog(const std::string& location_relative, int line);
+void AddDynamicDebugLog(const std::string& location_relative, int line,
+                        EntryState state = EntryState::kForceEnabled);
 
 void RemoveDynamicDebugLog(const std::string& location_relative, int line);
 

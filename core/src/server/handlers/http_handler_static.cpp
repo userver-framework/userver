@@ -4,6 +4,7 @@
 #include <userver/components/component_context.hpp>
 #include <userver/dynamic_config/storage/component.hpp>
 #include <userver/dynamic_config/value.hpp>
+#include <userver/yaml_config/merge_schemas.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -11,11 +12,12 @@ namespace server::handlers {
 
 namespace {
 
-formats::json::Value ParseContentTypeMap(
-    const dynamic_config::DocsMap& docs_map) {
-  return docs_map.Get("USERVER_FILES_CONTENT_TYPE_MAP");
+auto ParseContentTypeMap(const dynamic_config::DocsMap& docs_map) {
+  return docs_map.Get("USERVER_FILES_CONTENT_TYPE_MAP")
+      .As<dynamic_config::ValueDict<std::string>>();
 }
 constexpr dynamic_config::Key<ParseContentTypeMap> kContentTypeMap{};
+
 }  // namespace
 
 HttpHandlerStatic::HttpHandlerStatic(
@@ -29,26 +31,33 @@ HttpHandlerStatic::HttpHandlerStatic(
                            "fs-cache-component"))
                    .GetClient()) {}
 
-std::string HttpHandlerStatic::GetContentType(
-    std::string_view extension) const {
-  auto snap = config_.GetSnapshot();
-  const auto& map = snap[kContentTypeMap];
-  if (map.HasMember(extension)) {
-    return map[extension].As<std::string>();
-  }
-  return map["__default__"].As<std::string>("text/plain");
-}
-
 std::string HttpHandlerStatic::HandleRequestThrow(
     const http::HttpRequest& request, request::RequestContext&) const {
   LOG_DEBUG() << "Handler: " << request.GetRequestPath();
   const auto file = storage_.TryGetFile(request.GetRequestPath());
   if (file) {
-    request.GetHttpResponse().SetContentType(GetContentType(file->extension));
+    const auto config = config_.GetSnapshot();
+    request.GetHttpResponse().SetContentType(
+        config[kContentTypeMap][file->extension]);
     return file->data;
   }
   request.GetResponse().SetStatusNotFound();
   return "File not found";
+}
+
+yaml_config::Schema HttpHandlerStatic::GetStaticConfigSchema() {
+  return yaml_config::MergeSchemas<HttpHandlerBase>(R"(
+type: object
+description: |
+    Handler that returns HTTP 200 if file exist
+    and returns file data with mapped content/type
+additionalProperties: false
+properties:
+    fs-cache-component:
+        type: string
+        description: Name of the FsCache component
+        defaultDescription: fs-cache-component
+)");
 }
 
 }  // namespace server::handlers

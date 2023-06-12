@@ -15,33 +15,58 @@ USERVER_NAMESPACE_BEGIN
 
 namespace logging {
 
-/// Returns default logger
-LoggerPtr DefaultLogger();
+namespace impl {
 
-/// Returns default logger or a nullptr if there are problems with memory
-/// allocation
-LoggerPtr DefaultLoggerOptional() noexcept;
+/// Returns the default logger previously set by SetDefaultLogger. If the logger
+/// was not set - returns a logger that does no logging.
+LoggerRef DefaultLoggerRef() noexcept;
 
-/// Atomically replaces default logger and returns the old one
-LoggerPtr SetDefaultLogger(LoggerPtr);
+void SetDefaultLoggerRef(LoggerRef new_logger) noexcept;
+
+}  // namespace impl
+
+/// Atomically replaces the default logger.
+///
+/// @warning Do not use this class if you are using a component system.
+class DefaultLoggerGuard final {
+ public:
+  /// Atomically replaces the default logger.
+  ///
+  /// @warning The logger should live as long as someone is using it.
+  /// Generally speaking - it should live for a lifetime of the application,
+  /// or for a lifetime of the coroutine engine.
+  explicit DefaultLoggerGuard(LoggerPtr new_default_logger) noexcept;
+
+  DefaultLoggerGuard(DefaultLoggerGuard&&) = delete;
+  DefaultLoggerGuard& operator=(DefaultLoggerGuard&&) = delete;
+
+  ~DefaultLoggerGuard();
+
+ private:
+  LoggerRef logger_prev_;
+  const Level level_prev_;
+  LoggerPtr logger_new_;
+};
 
 /// Sets new log level for default logger
 void SetDefaultLoggerLevel(Level);
 
-void SetLoggerLevel(LoggerPtr, Level);
+void SetLoggerLevel(LoggerRef, Level);
 
 /// Returns log level for default logger
-Level GetDefaultLoggerLevel();
+Level GetDefaultLoggerLevel() noexcept;
 
-bool LoggerShouldLog(const LoggerPtr& logger, Level level);
+bool LoggerShouldLog(LoggerCRef logger, Level level) noexcept;
 
-Level GetLoggerLevel(const LoggerPtr& logger);
+bool LoggerShouldLog(const LoggerPtr& logger, Level level) noexcept;
+
+Level GetLoggerLevel(LoggerCRef logger) noexcept;
 
 /// Forces flush of default logger message queue
 void LogFlush();
 
 /// Forces flush of `logger` message queue
-void LogFlush(LoggerPtr logger);
+void LogFlush(LoggerCRef logger);
 
 namespace impl {
 
@@ -56,14 +81,13 @@ class RateLimitData {
 // Represents a single rate limit usage
 class RateLimiter {
  public:
-  RateLimiter(LoggerPtr logger, RateLimitData& data, Level level) noexcept;
+  RateLimiter(LoggerCRef logger, RateLimitData& data, Level level) noexcept;
   bool ShouldLog() const { return should_log_; }
   void SetShouldNotLog() { should_log_ = false; }
   Level GetLevel() const { return level_; }
   friend LogHelper& operator<<(LogHelper& lh, const RateLimiter& rl) noexcept;
 
  private:
-  LoggerPtr logger_;
   const Level level_;
   bool should_log_{false};
   uint64_t dropped_count_{0};
@@ -78,6 +102,7 @@ class StaticLogEntry final {
   StaticLogEntry& operator=(StaticLogEntry&&) = delete;
 
   bool ShouldLog() const noexcept;
+  bool ShouldNotLog(Level level) const noexcept;
 
  private:
   static constexpr std::size_t kContentSize =
@@ -108,21 +133,25 @@ struct EntryStorage final {
 /// message for the default logger.
 /// @hideinitializer
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define LOG(lvl)                                                      \
-  __builtin_expect(                                                   \
-      !USERVER_NAMESPACE::logging::ShouldLog(lvl) && []() -> bool {   \
-        struct NameHolder {                                           \
-          static constexpr const char* Get() noexcept {               \
-            return USERVER_FILEPATH;                                  \
-          }                                                           \
-        };                                                            \
-        return !USERVER_NAMESPACE::logging::impl::EntryStorage<       \
-                    NameHolder, __LINE__>::entry.ShouldLog();         \
-      }(),                                                            \
-      static_cast<int>(lvl) <                                         \
-          static_cast<int>(USERVER_NAMESPACE::logging::Level::kInfo)) \
-      ? USERVER_NAMESPACE::logging::impl::Noop{}                      \
-      : DO_LOG_TO(USERVER_NAMESPACE::logging::DefaultLoggerOptional(), (lvl))
+#define LOG(lvl)                                                             \
+  __builtin_expect(                                                          \
+      [](USERVER_NAMESPACE::logging::Level level) -> bool {                  \
+        struct NameHolder {                                                  \
+          static constexpr const char* Get() noexcept {                      \
+            return USERVER_FILEPATH;                                         \
+          }                                                                  \
+        };                                                                   \
+        const auto& entry =                                                  \
+            USERVER_NAMESPACE::logging::impl::EntryStorage<NameHolder,       \
+                                                           __LINE__>::entry; \
+        return (!USERVER_NAMESPACE::logging::ShouldLog(level) ||             \
+                entry.ShouldNotLog(level)) &&                                \
+               !entry.ShouldLog();                                           \
+      }(lvl),                                                                \
+      static_cast<int>(lvl) <                                                \
+          static_cast<int>(USERVER_NAMESPACE::logging::Level::kInfo))        \
+      ? USERVER_NAMESPACE::logging::impl::Noop{}                             \
+      : DO_LOG_TO(USERVER_NAMESPACE::logging::impl::DefaultLoggerRef(), (lvl))
 
 /// @brief If lvl matches the verbosity then builds a stream and evaluates a
 /// message for the default logger.
@@ -226,7 +255,7 @@ struct EntryStorage final {
 /// message for the default logger. Ignores log messages that occur too often.
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define LOG_LIMITED(lvl) \
-  LOG_LIMITED_TO(USERVER_NAMESPACE::logging::DefaultLoggerOptional(), lvl)
+  LOG_LIMITED_TO(USERVER_NAMESPACE::logging::impl::DefaultLoggerRef(), lvl)
 
 /// @brief Evaluates a message and logs it to the default logger if the log
 /// message does not occur too often and default logger level is below or equal

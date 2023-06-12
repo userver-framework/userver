@@ -1,5 +1,6 @@
 #include <storages/postgres/tests/util_pgtest.hpp>
 
+#include <userver/concurrent/background_task_storage.hpp>
 #include <userver/engine/single_consumer_event.hpp>
 
 #include <storages/postgres/detail/connection.hpp>
@@ -293,7 +294,7 @@ UTEST_P(PostgreConnection, RollbackOnBusyOeErroredConnection) {
                 pg::ConnectionTimeoutError);
   EXPECT_EQ(pg::ConnectionState::kTranActive, GetConn()->GetState());
   UEXPECT_NO_THROW(GetConn()->Rollback());
-  UEXPECT_NO_THROW(GetConn()->CancelAndCleanup(std::chrono::seconds{1}));
+  UEXPECT_NO_THROW(GetConn()->CancelAndCleanup(utest::kMaxTestWaitTime));
   EXPECT_EQ(pg::ConnectionState::kIdle, GetConn()->GetState());
   // Query cancelled
   DefaultCommandControlScope scope2(pg::CommandControl{
@@ -302,7 +303,7 @@ UTEST_P(PostgreConnection, RollbackOnBusyOeErroredConnection) {
   UEXPECT_THROW(GetConn()->Execute("select pg_sleep(1)"), pg::QueryCancelled);
   EXPECT_EQ(pg::ConnectionState::kTranError, GetConn()->GetState());
   UEXPECT_NO_THROW(GetConn()->Rollback());
-  UEXPECT_NO_THROW(GetConn()->CancelAndCleanup(std::chrono::seconds{1}));
+  UEXPECT_NO_THROW(GetConn()->CancelAndCleanup(utest::kMaxTestWaitTime));
   EXPECT_EQ(pg::ConnectionState::kIdle, GetConn()->GetState());
 }
 
@@ -318,7 +319,7 @@ UTEST_P(PostgreConnection, CommitOnBusyOeErroredConnection) {
                 pg::ConnectionTimeoutError);
   EXPECT_EQ(pg::ConnectionState::kTranActive, GetConn()->GetState());
   UEXPECT_THROW(GetConn()->Commit(), std::exception);
-  UEXPECT_NO_THROW(GetConn()->CancelAndCleanup(std::chrono::seconds{1}));
+  UEXPECT_NO_THROW(GetConn()->CancelAndCleanup(utest::kMaxTestWaitTime));
   EXPECT_EQ(pg::ConnectionState::kIdle, GetConn()->GetState());
   // Query cancelled
   DefaultCommandControlScope scope2(pg::CommandControl{
@@ -331,11 +332,11 @@ UTEST_P(PostgreConnection, CommitOnBusyOeErroredConnection) {
   // TODO: TAXICOMMON-4103
   // UEXPECT_THROW(GetConn()->Commit(), std::exception);
 
-  UEXPECT_NO_THROW(GetConn()->CancelAndCleanup(std::chrono::seconds{1}));
+  UEXPECT_NO_THROW(GetConn()->CancelAndCleanup(utest::kMaxTestWaitTime));
   EXPECT_EQ(pg::ConnectionState::kIdle, GetConn()->GetState());
 }
 
-UTEST_P(PostgreConnection, StatementTimout) {
+UTEST_P(PostgreConnection, StatementTimeout) {
   CheckConnection(GetConn());
 
   EXPECT_EQ(pg::ConnectionState::kIdle, GetConn()->GetState());
@@ -352,7 +353,7 @@ UTEST_P(PostgreConnection, StatementTimout) {
       std::chrono::seconds{2}, std::chrono::milliseconds{10}});
   UEXPECT_THROW(GetConn()->Execute("select pg_sleep(1)"), pg::QueryCancelled);
   EXPECT_EQ(pg::ConnectionState::kIdle, GetConn()->GetState());
-  UEXPECT_NO_THROW(GetConn()->CancelAndCleanup(std::chrono::seconds{1}));
+  UEXPECT_NO_THROW(GetConn()->CancelAndCleanup(utest::kMaxTestWaitTime));
   EXPECT_EQ(pg::ConnectionState::kIdle, GetConn()->GetState());
 }
 
@@ -375,7 +376,7 @@ UTEST_P(PostgreConnection, QueryTaskCancel) {
   ASSERT_TRUE(task.IsFinished());
 
   EXPECT_EQ(pg::ConnectionState::kTranActive, GetConn()->GetState());
-  UEXPECT_NO_THROW(GetConn()->CancelAndCleanup(std::chrono::seconds{1}));
+  UEXPECT_NO_THROW(GetConn()->CancelAndCleanup(utest::kMaxTestWaitTime));
   EXPECT_EQ(pg::ConnectionState::kIdle, GetConn()->GetState());
 }
 
@@ -398,8 +399,8 @@ class PostgreCustomConnection : public PostgreSQLBase {};
 UTEST_F(PostgreCustomConnection, Connect) {
   UEXPECT_THROW(
       pg::detail::Connection::Connect(
-          pg::Dsn{"psql://"}, nullptr, GetTaskProcessor(), kConnectionId,
-          kCachePreparedStatements, GetTestCmdCtls(), {}, {}),
+          pg::Dsn{"psql://"}, nullptr, GetTaskProcessor(), GetTaskStorage(),
+          kConnectionId, kCachePreparedStatements, GetTestCmdCtls(), {}, {}),
       pg::InvalidDSN)
       << "Connected with invalid DSN";
 
@@ -408,15 +409,16 @@ UTEST_F(PostgreCustomConnection, Connect) {
 
 UTEST_F(PostgreCustomConnection, NoPreparedStatements) {
   UEXPECT_NO_THROW(pg::detail::Connection::Connect(
-      GetDsnFromEnv(), nullptr, GetTaskProcessor(), kConnectionId,
-      kNoPreparedStatements, GetTestCmdCtls(), {}, {}));
+      GetDsnFromEnv(), nullptr, GetTaskProcessor(), GetTaskStorage(),
+      kConnectionId, kNoPreparedStatements, GetTestCmdCtls(), {}, {}));
 }
 
 UTEST_F(PostgreCustomConnection, NoUserTypes) {
   std::unique_ptr<pg::detail::Connection> conn;
-  UEXPECT_NO_THROW(conn = pg::detail::Connection::Connect(
+  UASSERT_NO_THROW(conn = pg::detail::Connection::Connect(
                        GetDsnFromEnv(), nullptr, GetTaskProcessor(),
-                       kConnectionId, kNoUserTypes, GetTestCmdCtls(), {}, {}));
+                       GetTaskStorage(), kConnectionId, kNoUserTypes,
+                       GetTestCmdCtls(), {}, {}));
   ASSERT_TRUE(conn);
 
   UEXPECT_NO_THROW(conn->Execute("select 1"));

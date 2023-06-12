@@ -34,7 +34,7 @@ In previous example we made a simple HTTP server with some dynamic configs set i
     dynamic-config-client-updater:        # A component that periodically uses `dynamic-config-client` to retrieve new values
         fallback-path: /var/cache/service-name/dynamic_cfg.json  # Fallback to the values from this file on error
         load-only-my-values: true      # Do not request all the configs, only the ask for the ones we are using right 
-        store-enabled: true            # Store the retrived values into the components::DynamicConfig
+        store-enabled: true            # Store the retrieved values into the components::DynamicConfig
         update-interval: 5s            # Request for new configs every 5 seconds
         full-update-interval: 1m
         config-settings: false
@@ -163,9 +163,14 @@ $ curl -X POST -d '{"ids":["USERVER_TASK_PROCESSOR_QOS"]}' 127.0.0.1:8083/config
 
 ### Functional testing
 @ref md_en_userver_functional_testing "Functional tests" for the service
-could be implemented using the testsuite in the following way:
+could be implemented using the @ref service_client "service_client fixture"
+in the following way:
 
 @snippet samples/config_service/tests/test_config.py  Functional test
+
+Do not forget to add the plugin in conftest.py:
+
+@snippet samples/config_service/tests/conftest.py  registration
 
 
 ## Ready to use uservice-dynconf
@@ -182,6 +187,7 @@ See the full example:
 * @ref samples/config_service/static_config.yaml
 * @ref samples/config_service/dynamic_config_fallback.json
 * @ref samples/config_service/CMakeLists.txt
+* @ref samples/config_service/tests/conftest.py
 * @ref samples/config_service/tests/test_config.py
 
 ----------
@@ -196,4 +202,5 @@ See the full example:
 @example samples/config_service/static_config.yaml
 @example samples/config_service/dynamic_config_fallback.json
 @example samples/config_service/CMakeLists.txt
+@example samples/config_service/tests/conftest.py
 @example samples/config_service/tests/test_config.py

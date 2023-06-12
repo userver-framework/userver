@@ -1,5 +1,12 @@
 #include <userver/urabbitmq/client_settings.hpp>
 
+#include <stdexcept>
+#include <string>
+#include <unordered_map>
+#include <unordered_set>
+#include <utility>
+#include <vector>
+
 #include <userver/formats/json/value.hpp>
 #include <userver/formats/serialize/common_containers.hpp>
 #include <userver/storages/secdist/helpers.hpp>

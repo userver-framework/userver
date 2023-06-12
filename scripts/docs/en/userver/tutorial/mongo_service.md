@@ -135,14 +135,15 @@ $ curl -s http://localhost:8090/v1/translations?last_update=2021-11-01T12:00:00Z
 @ref md_en_userver_functional_testing "Functional tests" for the service could be
 implemented using the testsuite. To do that you have to:
 
-* Provide Mongo settings info for the testsuite:
-@snippet samples/mongo_service/tests/conftest.py mongodb settings
-
-* Tell the testsuite to start the Mongo database:
-@snippet samples/mongo_service/tests/conftest.py require mongodb
+* Turn on the pytest_userver.plugins.mongo plugin and provide Mongo settings
+  info for the testsuite:
+  @snippet samples/mongo_service/tests/conftest.py mongodb settings
+  The pytest_userver.plugins.service_client.auto_client_deps() fixture
+  already known about the mongodb fixture, so there's no need to override the
+  extra_client_deps() fixture.
 
 * Write the test:
-@snippet samples/mongo_service/tests/test_mongo.py  Functional test
+  @snippet samples/mongo_service/tests/test_mongo.py  Functional test
 
 ## Full sources
 

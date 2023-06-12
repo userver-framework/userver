@@ -4,6 +4,8 @@
 
 #include <storages/postgres/detail/connection.hpp>
 #include <storages/postgres/detail/pool.hpp>
+#include <storages/postgres/postgres_config.hpp>
+#include <userver/dynamic_config/test_helpers.hpp>
 #include <userver/engine/async.hpp>
 #include <userver/engine/sleep.hpp>
 #include <userver/storages/postgres/dsn.hpp>
@@ -21,7 +23,8 @@ UTEST_F(PostgrePoolStats, EmptyPool) {
   auto pool = pg::detail::ConnectionPool::Create(
       GetDsnFromEnv(), nullptr, GetTaskProcessor(), "",
       storages::postgres::InitMode::kAsync, {0, 10, 10},
-      kCachePreparedStatements, {}, GetTestCmdCtls(), {}, {});
+      kCachePreparedStatements, {}, GetTestCmdCtls(), {}, {}, {},
+      dynamic_config::GetDefaultSource());
 
   const auto& stats = pool->GetStatistics();
   EXPECT_EQ(stats.connection.open_total, 0);
@@ -53,7 +56,8 @@ UTEST_F(PostgrePoolStats, MinPoolSize) {
   auto pool = pg::detail::ConnectionPool::Create(
       GetDsnFromEnv(), nullptr, GetTaskProcessor(), "",
       storages::postgres::InitMode::kAsync, {min_pool_size, 10, 10},
-      kCachePreparedStatements, {}, GetTestCmdCtls(), {}, {});
+      kCachePreparedStatements, {}, GetTestCmdCtls(), {}, {}, {},
+      dynamic_config::GetDefaultSource());
 
   // We can't check all the counters as some of them are used for internal ops
   const auto& stats = pool->GetStatistics();
@@ -82,13 +86,14 @@ UTEST_F(PostgrePoolStats, RunStatement) {
   auto pool = pg::detail::ConnectionPool::Create(
       GetDsnFromEnv(), nullptr, GetTaskProcessor(), "",
       storages::postgres::InitMode::kAsync, {1, 10, 10},
-      kCachePreparedStatements, {10}, GetTestCmdCtls(), {}, {});
+      kCachePreparedStatements, {10}, GetTestCmdCtls(), {}, {}, {},
+      dynamic_config::GetDefaultSource());
 
   const std::string statement_name = "statement_name";
   const auto query = pg::Query{"select 1", pg::Query::Name{statement_name}};
 
   pg::detail::ConnectionPtr conn{nullptr};
-  UEXPECT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
+  UASSERT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
       << "Obtained connection from pool";
   CheckConnection(conn);
 
@@ -104,13 +109,14 @@ UTEST_F(PostgrePoolStats, RunSingleTransaction) {
   auto pool = pg::detail::ConnectionPool::Create(
       GetDsnFromEnv(), nullptr, GetTaskProcessor(), "",
       storages::postgres::InitMode::kAsync, {1, 10, 10},
-      kCachePreparedStatements, {10}, GetTestCmdCtls(), {}, {});
+      kCachePreparedStatements, {10}, GetTestCmdCtls(), {}, {}, {},
+      dynamic_config::GetDefaultSource());
 
   const std::string statement_name = "statement_name";
   const auto query = pg::Query{"select 1", pg::Query::Name{statement_name}};
 
   pg::detail::ConnectionPtr conn{nullptr};
-  UEXPECT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
+  UASSERT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
       << "Obtained connection from pool";
   CheckConnection(conn);
 
@@ -127,7 +133,8 @@ UTEST_F(PostgrePoolStats, RunTransactions) {
   auto pool = pg::detail::ConnectionPool::Create(
       GetDsnFromEnv(), nullptr, GetTaskProcessor(), "",
       storages::postgres::InitMode::kAsync, {1, 10, 10},
-      kCachePreparedStatements, {}, GetTestCmdCtls(), {}, {});
+      kCachePreparedStatements, {}, GetTestCmdCtls(), {}, {}, {},
+      dynamic_config::GetDefaultSource());
 
   const auto trx_count = 5;
   const auto exec_count = 10;
@@ -138,12 +145,12 @@ UTEST_F(PostgrePoolStats, RunTransactions) {
     tasks.push_back(engine::AsyncNoSpan([&pool] {
       pg::detail::ConnectionPtr conn(nullptr);
 
-      UEXPECT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
+      UASSERT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
           << "Obtained connection from pool";
       CheckConnection(conn);
 
       [[maybe_unused]] const auto old_stats = conn->GetStatsAndReset();
-      UEXPECT_NO_THROW(conn->Begin(pg::TransactionOptions{},
+      UASSERT_NO_THROW(conn->Begin(pg::TransactionOptions{},
                                    pg::detail::SteadyClock::now()));
       for (auto i = 0; i < exec_count; ++i) {
         UEXPECT_NO_THROW(conn->Execute("select 1"))
@@ -197,10 +204,11 @@ UTEST_F(PostgrePoolStats, ConnUsed) {
   auto pool = pg::detail::ConnectionPool::Create(
       GetDsnFromEnv(), nullptr, GetTaskProcessor(), "",
       storages::postgres::InitMode::kAsync, {1, 10, 10},
-      kCachePreparedStatements, {}, GetTestCmdCtls(), {}, {});
+      kCachePreparedStatements, {}, GetTestCmdCtls(), {}, {}, {},
+      dynamic_config::GetDefaultSource());
   pg::detail::ConnectionPtr conn(nullptr);
 
-  UEXPECT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
+  UASSERT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
       << "Obtained connection from pool";
 
   const auto& stats = pool->GetStatistics();
@@ -211,12 +219,13 @@ UTEST_F(PostgrePoolStats, Portal) {
   auto pool = pg::detail::ConnectionPool::Create(
       GetDsnFromEnv(), nullptr, GetTaskProcessor(), "",
       storages::postgres::InitMode::kAsync, {1, 10, 10},
-      kCachePreparedStatements, {}, GetTestCmdCtls(), {}, {});
+      kCachePreparedStatements, {}, GetTestCmdCtls(), {}, {}, {},
+      dynamic_config::GetDefaultSource());
 
   {
     pg::detail::ConnectionPtr conn(nullptr);
 
-    UEXPECT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
+    UASSERT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
         << "Obtained connection from pool";
     CheckConnection(conn);
 
@@ -256,10 +265,10 @@ UTEST_F(PostgrePoolStats, MaxPreparedCacheSize) {
   auto pool = pg::detail::ConnectionPool::Create(
       GetDsnFromEnv(), nullptr, GetTaskProcessor(), "",
       storages::postgres::InitMode::kAsync, {1, 10, 10}, conn_settings, {},
-      GetTestCmdCtls(), {}, {});
+      GetTestCmdCtls(), {}, {}, {}, dynamic_config::GetDefaultSource());
 
   auto conn = pg::detail::ConnectionPtr{nullptr};
-  UEXPECT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
+  UASSERT_NO_THROW(conn = pool->Acquire(MakeDeadline()))
       << "Obtained connection from pool";
   CheckConnection(conn);
 

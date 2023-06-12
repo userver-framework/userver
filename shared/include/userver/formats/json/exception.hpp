@@ -6,6 +6,7 @@
 #include <iosfwd>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -35,11 +36,23 @@ class BadStreamException : public Exception {
 class TypeMismatchException : public Exception {
  public:
   TypeMismatchException(int actual, int expected, const std::string& path);
+  std::string_view GetActual() const;
+  std::string_view GetExpected() const;
+  const std::string& GetPath() const noexcept;
+
+ private:
+  int actual_;
+  int expected_;
+  std::string path_;
 };
 
 class OutOfBoundsException : public Exception {
  public:
   OutOfBoundsException(size_t index, size_t size, const std::string& path);
+  const std::string& GetPath() const noexcept;
+
+ private:
+  std::string path_;
 };
 
 class MemberMissingException : public Exception {

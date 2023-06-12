@@ -8,6 +8,7 @@
 #include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/yaml_config/schema.hpp>
+#include <utils/distances.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -28,13 +29,13 @@ std::string RemoveFallbackSuffix(std::string_view option) {
 
 bool IsTypeValid(FieldType type, const formats::yaml::Value& value) {
   switch (type) {
-    case FieldType::kInt:
+    case FieldType::kInteger:
       return value.IsInt() || value.IsUInt64() || value.IsInt64();
     case FieldType::kString:
       return value.IsString();
     case FieldType::kBool:
       return value.IsBool();
-    case FieldType::kDouble:
+    case FieldType::kNumber:
       return value.IsDouble();
     case FieldType::kObject:
       return value.IsObject() || value.IsNull();
@@ -85,8 +86,8 @@ void ValidateObject(const YamlConfig& object, const Schema& schema) {
   const auto& properties = schema.properties.value();
 
   for (const auto& [name, value] : Items(object)) {
-    if (const auto it = properties.find(RemoveFallbackSuffix(name));
-        it != properties.end()) {
+    const std::string search_name = RemoveFallbackSuffix(name);
+    if (const auto it = properties.find(search_name); it != properties.end()) {
       ValidateIfPresent(value, *it->second);
       continue;
     }
@@ -98,20 +99,40 @@ void ValidateObject(const YamlConfig& object, const Schema& schema) {
     } else if (std::get<bool>(additional_properties)) {
       continue;
     }
-    // additionalProperties: false
 
+    // additionalProperties: false
     throw std::runtime_error(fmt::format(
         "Error while validating static config against schema. "
         "Field '{}' is not declared in schema '{}' (declared: {}). "
         "You've probably "
-        "made a typo or forgot to define components' static config schema.",
-        value.GetPath(), schema.path, KeysAsString(properties)));
+        "made a typo or forgot to define components' static config schema.{}",
+        value.GetPath(), schema.path, KeysAsString(properties),
+        utils::SuggestNearestName(properties | boost::adaptors::map_keys,
+                                  search_name)));
   }
 }
 
 void ValidateArray(const YamlConfig& array, const Schema& schema) {
   for (const auto& element : array) {
     ValidateIfPresent(element, *schema.items.value());
+  }
+}
+
+void CheckNumericBounds(const YamlConfig& value, const Schema& schema) {
+  if (schema.minimum && !(value.As<double>() >= *schema.minimum)) {
+    throw std::runtime_error(
+        fmt::format("Error while validating static config against schema. "
+                    "Expected {} at path '{}' to be >= {} (actual: {}).",
+                    ToString(schema.type), value.GetPath(), *schema.minimum,
+                    formats::yaml::ToString(value.Yaml())));
+  }
+
+  if (schema.maximum && !(value.As<double>() <= *schema.maximum)) {
+    throw std::runtime_error(
+        fmt::format("Error while validating static config against schema. "
+                    "Expected {} at path '{}' to be <= {} (actual: {}).",
+                    ToString(schema.type), value.GetPath(), *schema.maximum,
+                    formats::yaml::ToString(value.Yaml())));
   }
 }
 
@@ -126,6 +147,10 @@ void Validate(const YamlConfig& static_config, const Schema& schema) {
     ValidateArray(static_config, schema);
   } else if (schema.enum_values.has_value()) {
     ValidateEnum(static_config, schema);
+  }
+
+  if (schema.type == FieldType::kInteger || schema.type == FieldType::kNumber) {
+    CheckNumericBounds(static_config, schema);
   }
 }
 

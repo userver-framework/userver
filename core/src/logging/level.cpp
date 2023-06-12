@@ -3,16 +3,15 @@
 
 #include <functional>
 #include <stdexcept>
-#include <unordered_map>
 
-#include <boost/algorithm/string/join.hpp>
-#include <boost/range/adaptor/map.hpp>
+#include <fmt/format.h>
 
-#include <logging/get_should_log_cache.hpp>
 #include <logging/spdlog.hpp>
+
+#include <userver/logging/impl/logger_base.hpp>
 #include <userver/rcu/rcu.hpp>
 #include <userver/tracing/span.hpp>
-#include <userver/utils/str_icase.hpp>
+#include <userver/utils/trivial_map.hpp>
 
 namespace std {
 
@@ -53,46 +52,35 @@ static_assert(static_cast<spdlog::level::level_enum>(Level::kNone) ==
 
 namespace {
 
-std::unordered_map<std::string, Level, utils::StrIcaseHash,
-                   utils::StrIcaseEqual>
-InitLevelMap() {
-  return {{"trace", Level::kTrace}, {"debug", Level::kDebug},
-          {"info", Level::kInfo},   {"warning", Level::kWarning},
-          {"error", Level::kError}, {"critical", Level::kCritical},
-          {"none", Level::kNone}};
-}
-
-std::unordered_map<Level, std::string> InitLevelToStringMap() {
-  auto level_map = InitLevelMap();
-  std::unordered_map<Level, std::string> result;
-  for (const auto& elem : level_map) {
-    result.emplace(elem.second, elem.first);
-  }
-  return result;
-}
+constexpr utils::TrivialBiMap kLevelMap = [](auto selector) {
+  return selector()
+      .Case("trace", Level::kTrace)
+      .Case("debug", Level::kDebug)
+      .Case("info", Level::kInfo)
+      .Case("warning", Level::kWarning)
+      .Case("error", Level::kError)
+      .Case("critical", Level::kCritical)
+      .Case("none", Level::kNone);
+};
 
 }  // namespace
 
-Level LevelFromString(const std::string& level_name) {
-  static const auto kLevelMap = InitLevelMap();
-
-  auto it = kLevelMap.find(level_name);
-  if (it == kLevelMap.end()) {
+Level LevelFromString(std::string_view level_name) {
+  auto value = kLevelMap.TryFindICase(level_name);
+  if (!value) {
     throw std::runtime_error(
-        "Unknown log level '" + level_name + "' (must be one of '" +
-        boost::algorithm::join(kLevelMap | boost::adaptors::map_keys, "', '") +
-        "')");
+        fmt::format("Unknown log level '{}' (must be one of {})", level_name,
+                    kLevelMap.DescribeFirst()));
   }
-  return it->second;
+  return *value;
 }
 
 std::string ToString(Level level) {
-  static const auto kLevelToStringMap = InitLevelToStringMap();
-  auto it = kLevelToStringMap.find(level);
-  if (it == kLevelToStringMap.end()) {
+  auto value = kLevelMap.TryFind(level);
+  if (!value) {
     return "Unknown (" + std::to_string(static_cast<int>(level)) + ')';
   }
-  return it->second;
+  return std::string{*value};
 }
 
 std::optional<Level> OptionalLevelFromString(
@@ -104,7 +92,7 @@ std::optional<Level> OptionalLevelFromString(
 }
 
 bool ShouldLogNospan(Level level) noexcept {
-  return GetShouldLogCache()[static_cast<size_t>(level)];
+  return impl::DefaultLoggerRef().ShouldLog(level);
 }
 
 bool ShouldLog(Level level) noexcept {

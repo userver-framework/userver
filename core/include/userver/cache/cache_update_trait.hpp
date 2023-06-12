@@ -3,6 +3,7 @@
 /// @file userver/cache/cache_update_trait.hpp
 /// @brief @copybrief cache::CacheUpdateTrait
 
+#include <memory>
 #include <string>
 
 #include <userver/cache/cache_statistics.hpp>
@@ -10,15 +11,10 @@
 #include <userver/components/component_fwd.hpp>
 #include <userver/dump/fwd.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
-#include <userver/utils/fast_pimpl.hpp>
+#include <userver/rcu/fwd.hpp>
 #include <userver/utils/flags.hpp>
 
 USERVER_NAMESPACE_BEGIN
-
-namespace rcu {
-template <typename T>
-class ReadablePtr;
-}  // namespace rcu
 
 namespace cache {
 
@@ -26,17 +22,25 @@ struct CacheDependencies;
 struct Config;
 
 /// @ingroup userver_base_classes
-/// @brief Base class for periodically updated caches
-/// @note Don't use directly, inherit from `CachingComponentBase` instead
+///
+/// @brief Base class for periodically updated caches.
+///
+/// @note Don't use directly, inherit from components::CachingComponentBase
+/// instead
 class CacheUpdateTrait {
  public:
   CacheUpdateTrait(CacheUpdateTrait&&) = delete;
   CacheUpdateTrait& operator=(CacheUpdateTrait&&) = delete;
 
+  /// @brief Non-blocking forced cache update of specified type
+  /// @see PeriodicTask::ForceStepAsync for behavior details
+  void InvalidateAsync(UpdateType update_type);
+
   /// @brief Forces a cache update of specified type
   /// @throws If `Update` throws
-  void Update(UpdateType update_type);
+  void UpdateSyncDebug(UpdateType update_type);
 
+  /// @return name of the component
   const std::string& Name() const;
 
  protected:
@@ -77,15 +81,42 @@ class CacheUpdateTrait {
   // For internal use only
   rcu::ReadablePtr<Config> GetConfig() const;
 
+  /// Checks for the presence of the flag for pre-assign check
+  bool HasPreAssignCheck() const;
+
   // For internal use only
   // TODO remove after TAXICOMMON-3959
   engine::TaskProcessor& GetCacheTaskProcessor() const;
   /// @endcond
 
-  /// @brief Must override in a subclass
-  /// @note Must update statistics using `stats_scope`, and call
-  /// `CachingComponentBase::Set` if the cached data has changed
-  /// @throws Any `std::exception` on error
+  /// @brief Should be overridden in a derived class to align the stored data
+  /// with some data source.
+  ///
+  /// `Update` implementation should do one of the following:
+  ///
+  /// A. If the update succeeded and has changes...
+  ///    1. call CachingComponentBase::Set to update the stored value and send a
+  ///    notification to subscribers
+  ///    2. call UpdateStatisticsScope::Finish
+  ///    3. return normally (an exception is allowed in edge cases)
+  /// B. If the update succeeded and verified that there are no changes...
+  ///    1. DON'T call CachingComponentBase::Set
+  ///    2. call UpdateStatisticsScope::FinishNoChanges
+  ///    3. return normally (an exception is allowed in edge cases)
+  /// C. If the update failed...
+  ///    1. DON'T call CachingComponentBase::Set
+  ///    2. call UpdateStatisticsScope::FinishWithError, or...
+  ///    3. throw an exception, which will be logged nicely
+  ///
+  /// @param type type of the update
+  /// @param last_update time of the last update (value of `now` from previous
+  /// invocation of Update or default constructed value if this is the first
+  /// Update).
+  /// @param now current time point
+  ///
+  /// @throws std::exception on update failure
+  ///
+  /// @see @ref md_en_userver_caches
   virtual void Update(UpdateType type,
                       const std::chrono::system_clock::time_point& last_update,
                       const std::chrono::system_clock::time_point& now,
@@ -94,12 +125,14 @@ class CacheUpdateTrait {
  private:
   virtual void Cleanup() = 0;
 
+  virtual void MarkAsExpired();
+
   virtual void GetAndWrite(dump::Writer& writer) const;
 
   virtual void ReadAndSet(dump::Reader& reader);
 
   class Impl;
-  utils::FastPimpl<Impl, 2560, 16> impl_;
+  std::unique_ptr<Impl> impl_;
 };
 
 }  // namespace cache

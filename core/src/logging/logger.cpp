@@ -2,17 +2,14 @@
 
 #include <memory>
 
-// this header must be included before any spdlog headers
-// to override spdlog's level names
+#include <logging/impl/buffered_file_sink.hpp>
+#include <logging/impl/fd_sink.hpp>
+#include <logging/impl/reopening_file_sink.hpp>
+#include <logging/impl/unix_socket_sink.hpp>
 #include <logging/spdlog.hpp>
-
-#include <logging/logger_with_info.hpp>
-#include <logging/reopening_file_sink.hpp>
-#include <logging/spdlog_helpers.hpp>
+#include <logging/tp_logger.hpp>
 
 #include <spdlog/formatter.h>
-#include <spdlog/sinks/null_sink.h>
-#include <spdlog/sinks/stdout_sinks.h>
 
 #include "config.hpp"
 
@@ -23,25 +20,24 @@ namespace logging {
 namespace {
 
 LoggerPtr MakeSimpleLogger(const std::string& name, spdlog::sink_ptr sink,
-                           spdlog::level::level_enum level, Format format) {
-  auto spdlog_logger = utils::MakeSharedRef<spdlog::logger>(name, sink);
-  auto logger = std::make_shared<impl::LoggerWithInfo>(
-      format, std::shared_ptr<spdlog::details::thread_pool>{},
-      std::move(spdlog_logger));
+                           Level level, Format format) {
+  auto logger = std::make_shared<impl::TpLogger>(format, name);
+  logger->SetLevel(level);
 
-  logger->ptr->set_pattern(GetSpdlogPattern(format));
-  logger->ptr->set_level(level);
-  logger->ptr->flush_on(level);
+  if (sink) {
+    logger->AddSink(std::move(sink));
+  }
+
   return logger;
 }
 
 spdlog::sink_ptr MakeStderrSink() {
-  static auto sink = std::make_shared<spdlog::sinks::stderr_sink_mt>();
+  static auto sink = std::make_shared<impl::BufferedStderrFileSink>();
   return sink;
 }
 
 spdlog::sink_ptr MakeStdoutSink() {
-  static auto sink = std::make_shared<spdlog::sinks::stdout_sink_mt>();
+  static auto sink = std::make_shared<impl::BufferedStdoutFileSink>();
   return sink;
 }
 
@@ -49,35 +45,30 @@ spdlog::sink_ptr MakeStdoutSink() {
 
 LoggerPtr MakeStderrLogger(const std::string& name, Format format,
                            Level level) {
-  return MakeSimpleLogger(name, MakeStderrSink(),
-                          static_cast<spdlog::level::level_enum>(level),
-                          format);
+  return MakeSimpleLogger(name, MakeStderrSink(), level, format);
 }
 
 LoggerPtr MakeStdoutLogger(const std::string& name, Format format,
                            Level level) {
-  return MakeSimpleLogger(name, MakeStdoutSink(),
-                          static_cast<spdlog::level::level_enum>(level),
-                          format);
+  return MakeSimpleLogger(name, MakeStdoutSink(), level, format);
 }
 
 LoggerPtr MakeFileLogger(const std::string& name, const std::string& path,
                          Format format, Level level) {
-  return MakeSimpleLogger(
-      name, std::make_shared<logging::ReopeningFileSinkMT>(path),
-      static_cast<spdlog::level::level_enum>(level), format);
-}
-
-LoggerPtr MakeNullLogger(const std::string& name) {
-  return MakeSimpleLogger(name, std::make_shared<spdlog::sinks::null_sink_mt>(),
-                          spdlog::level::off, Format::kTskv);
+  // TODO: On experiment
+  if (logging::impl::kUseUserverSinks.IsEnabled()) {
+    return MakeSimpleLogger(
+        name, std::make_shared<impl::BufferedFileSink>(path), level, format);
+  } else {
+    return MakeSimpleLogger(
+        name, std::make_shared<impl::ReopeningFileSinkMT>(path), level, format);
+  }
 }
 
 namespace impl {
 
-void LogRaw(LoggerWithInfo& logger, Level level, std::string_view message) {
-  auto spdlog_level = static_cast<spdlog::level::level_enum>(level);
-  logger.ptr->log(spdlog_level, "{}", message);
+void LogRaw(LoggerBase& logger, Level level, std::string_view message) {
+  logger.Log(level, message);
 }
 
 }  // namespace impl

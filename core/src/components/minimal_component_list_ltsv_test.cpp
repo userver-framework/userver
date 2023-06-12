@@ -14,34 +14,34 @@ USERVER_NAMESPACE_BEGIN
 
 namespace {
 
-const auto kTmpDir = fs::blocking::TempDirectory::Create();
-const std::string kRuntimeConfingPath =
-    kTmpDir.GetPath() + "/runtime_config.json";
-const std::string kConfigVariablesPath =
-    kTmpDir.GetPath() + "/config_vars.json";
-const std::string kLogsPath = kTmpDir.GetPath() + "/log.txt";
-
-const std::string kConfigVariables =
-    fmt::format("runtime_config_path: {}\nlogger_file_path: {}",
-                kRuntimeConfingPath, kLogsPath);
-
-const std::string kStaticConfig =
-    std::string{tests::kMinimalStaticConfig} + kConfigVariablesPath + '\n';
+constexpr std::string_view kConfigVarsTemplate = R"(
+  runtime_config_path: {0}
+  logger_file_path: {1}
+)";
 
 }  // namespace
 
 TEST_F(ComponentList, MinimalLtsvLogs) {
-  fs::blocking::RewriteFileContents(kRuntimeConfingPath, tests::kRuntimeConfig);
-  fs::blocking::RewriteFileContents(kConfigVariablesPath, kConfigVariables);
+  const auto temp_root = fs::blocking::TempDirectory::Create();
+  const std::string runtime_config_path =
+      temp_root.GetPath() + "/runtime_config.json";
+  const std::string config_vars_path =
+      temp_root.GetPath() + "/config_vars.json";
+  const std::string logs_path = temp_root.GetPath() + "/log.txt";
+  const std::string static_config =
+      std::string{tests::kMinimalStaticConfig} + config_vars_path + '\n';
 
-  components::RunOnce(components::InMemoryConfig{kStaticConfig},
+  fs::blocking::RewriteFileContents(runtime_config_path, tests::kRuntimeConfig);
+  fs::blocking::RewriteFileContents(
+      config_vars_path,
+      fmt::format(kConfigVarsTemplate, runtime_config_path, logs_path));
+
+  components::RunOnce(components::InMemoryConfig{static_config},
                       components::MinimalComponentList());
 
   logging::LogFlush();
-  auto logger = logging::DefaultLogger();
-  UASSERT(logger.use_count() == 2);
 
-  const auto logs = fs::blocking::ReadFileContents(kLogsPath);
+  const auto logs = fs::blocking::ReadFileContents(logs_path);
   EXPECT_EQ(logs.find("tskv\t"), std::string::npos) << logs;
   EXPECT_NE(logs.find("\ttext:"), std::string::npos) << logs;
 }

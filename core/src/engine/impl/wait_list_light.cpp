@@ -26,8 +26,11 @@ struct alignas(8) Waiter32 final {
 struct alignas(16) Waiter64 final {
   TaskContext* context{nullptr};
   SleepState::Epoch epoch{0};
-  [[maybe_unused]] std::uint32_t padding_dont_use{0};
+  std::uint32_t padding_dont_use{0};
 };
+
+// Silence 'unused' warning.
+static_assert(sizeof(Waiter64::padding_dont_use) != 0);
 
 using Waiter = std::conditional_t<sizeof(void*) == 8, Waiter64, Waiter32>;
 
@@ -70,7 +73,7 @@ void WaitListLight::Append(boost::intrusive_ptr<TaskContext> context) noexcept {
 
   const Waiter new_waiter{context.get(), context->GetEpoch()};
   LOG_TRACE() << "Append waiter=" << fmt::to_string(new_waiter)
-              << " use_count=" << context->use_count();
+              << " use_count=" << context->UseCount();
 
   Waiter expected{};
   // seq_cst is important for the "Append-Check-Wakeup" sequence.
@@ -111,7 +114,7 @@ void WaitListLight::WakeupOne() {
                                                   /*add_ref=*/false};
 
   LOG_TRACE() << "WakeupOne waiter=" << fmt::to_string(old_waiter)
-              << " use_count=" << context->use_count();
+              << " use_count=" << context->UseCount();
   context->Wakeup(TaskContext::WakeupSource::kWaitList, old_waiter.epoch);
 }
 
@@ -133,7 +136,7 @@ void WaitListLight::Remove(TaskContext& context) noexcept {
   }
 
   LOG_TRACE() << "Remove waiter=" << fmt::to_string(expected)
-              << " use_count=" << context.use_count();
+              << " use_count=" << context.UseCount();
   intrusive_ptr_release(&context);
 }
 

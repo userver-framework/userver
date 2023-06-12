@@ -32,11 +32,12 @@ std::size_t FastLookup(const TValue* member, const TValue* first,
 }
 
 /// Return `true` if member had been found in `container` and update `stack` so
-/// `member`'s path can be calulated
+/// `member`'s path can be calculated
 template <typename TValue, typename TValidateAddress>
-bool ProcessContainer(std::vector<TreeIterFrame>& stack, const Value* container,
-                      const TValue* member, int node_depth, const TValue* first,
-                      std::size_t size, const TValidateAddress& extra_check) {
+bool ProcessContainer(formats::json::impl::TreeStack& stack,
+                      const Value* container, const TValue* member,
+                      int node_depth, const TValue* first, std::size_t size,
+                      const TValidateAddress& extra_check) {
   int depth = stack.size();
   if (depth == node_depth) {
     int index = FastLookup(member, first, size);
@@ -54,7 +55,7 @@ bool ProcessContainer(std::vector<TreeIterFrame>& stack, const Value* container,
 namespace formats::json::impl {
 
 std::string MakePath(const Value* root, const Value* node, int node_depth) {
-  std::vector<TreeIterFrame> stack;
+  TreeStack stack;
   const Value* value = root;
 
   if (value == node) return formats::common::kPathRoot;
@@ -93,7 +94,7 @@ std::string MakePath(const Value* root, const Value* node, int node_depth) {
   return ExtractPath(stack);
 }
 
-std::string ExtractPath(const std::vector<TreeIterFrame>& stack) {
+std::string ExtractPath(const TreeStack& stack) {
   std::string path;
   for (size_t depth = 1; depth < stack.size(); depth++) {
     const auto& frame = stack[depth];

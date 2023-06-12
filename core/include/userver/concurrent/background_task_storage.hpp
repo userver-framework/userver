@@ -45,16 +45,16 @@ class BackgroundTaskStorageCore final {
 
 /// @ingroup userver_concurrency userver_containers
 ///
-/// A storage that allows one to start detached tasks and wait for their
-/// completion at the storage destructor. All active tasks are cancelled at an
-/// explicit CancelAndWait call (recommended) or at the storage destructor.
+/// A storage that allows one to start detached tasks; cancels and waits for
+/// unfinished tasks completion at the destructor. Provides CancelAndWait to
+/// explicitly cancel tasks (recommended).
 ///
 /// Usable for detached tasks that capture references to resources with a
 /// limited lifetime. You must guarantee that the resources are available while
 /// the BackgroundTaskStorage is alive.
 ///
 /// ## Usage synopsis
-/// @sample concurrent/background_task_storage_test.cpp  Sample
+/// @snippet concurrent/background_task_storage_test.cpp  Sample
 class BackgroundTaskStorage final {
  public:
   /// Creates a BTS that launches tasks in the engine::TaskProcessor used at the

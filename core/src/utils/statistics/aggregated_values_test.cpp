@@ -1,6 +1,6 @@
-#include <gtest/gtest.h>
-
 #include <userver/utils/statistics/aggregated_values.hpp>
+
+#include <gtest/gtest.h>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -13,6 +13,7 @@ TEST(AggregatedValues, Empty) {
 
 TEST(AggregatedValues, SetGet) {
   utils::statistics::AggregatedValues<3> av;
+
   av.Add(0, 1);
   av.Add(1, 2);
   av.Add(2, 4);

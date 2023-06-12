@@ -82,6 +82,8 @@ class LruMap final {
 
   size_t GetSize() const { return impl_.GetSize(); }
 
+  std::size_t GetCapacity() const { return impl_.GetCapacity(); }
+
  private:
   impl::LruBase<T, U, Hash, Equal> impl_;
 };

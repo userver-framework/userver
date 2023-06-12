@@ -1,7 +1,8 @@
 #include "client_impl.hpp"
 
-#include <userver/storages/redis/impl/sentinel.hpp>
 #include <userver/utils/assert.hpp>
+
+#include <storages/redis/impl/sentinel.hpp>
 
 #include "request_impl.hpp"
 #include "transaction_impl.hpp"
@@ -117,6 +118,25 @@ RequestDel ClientImpl::Del(std::vector<std::string> keys,
                   GetCommandControl(command_control)));
 }
 
+RequestUnlink ClientImpl::Unlink(std::string key,
+                                 const CommandControl& command_control) {
+  auto shard = ShardByKey(key, command_control);
+  return CreateRequest<RequestUnlink>(
+      MakeRequest(CmdArgs{"unlink", std::move(key)}, shard, true,
+                  GetCommandControl(command_control)));
+}
+
+RequestUnlink ClientImpl::Unlink(std::vector<std::string> keys,
+                                 const CommandControl& command_control) {
+  if (keys.empty())
+    return CreateDummyRequest<RequestUnlink>(
+        std::make_shared<Reply>("unlink", 0));
+  auto shard = ShardByKey(keys.at(0), command_control);
+  return CreateRequest<RequestUnlink>(
+      MakeRequest(CmdArgs{"unlink", std::move(keys)}, shard, true,
+                  GetCommandControl(command_control)));
+}
+
 RequestEvalCommon ClientImpl::EvalCommon(
     std::string script, std::vector<std::string> keys,
     std::vector<std::string> args, const CommandControl& command_control) {
@@ -193,14 +213,60 @@ RequestGeoadd ClientImpl::Geoadd(std::string key,
 }
 
 RequestGeoradius ClientImpl::Georadius(
-    std::string key, double lon, double lat, double radius,
+    std::string key, Longitude lon, Latitude lat, double radius,
     const GeoradiusOptions& georadius_options,
     const CommandControl& command_control) {
   auto shard = ShardByKey(key, command_control);
   return CreateRequest<RequestGeoradius>(
-      MakeRequest(CmdArgs{"georadius_ro", std::move(key), lon, lat, radius,
-                          georadius_options},
+      MakeRequest(CmdArgs{"georadius_ro", std::move(key), lon.GetUnderlying(),
+                          lat.GetUnderlying(), radius, georadius_options},
                   shard, false, GetCommandControl(command_control)));
+}
+
+RequestGeosearch ClientImpl::Geosearch(
+    std::string key, std::string member, double radius,
+    const GeosearchOptions& geosearch_options,
+    const CommandControl& command_control) {
+  auto shard = ShardByKey(key, command_control);
+  return CreateRequest<RequestGeosearch>(MakeRequest(
+      CmdArgs{"geosearch", std::move(key), "FROMMEMBER", std::move(member),
+              "BYRADIUS", radius, geosearch_options},
+      shard, false, GetCommandControl(command_control)));
+}
+
+RequestGeosearch ClientImpl::Geosearch(
+    std::string key, std::string member, BoxWidth width, BoxHeight height,
+    const GeosearchOptions& geosearch_options,
+    const CommandControl& command_control) {
+  auto shard = ShardByKey(key, command_control);
+  return CreateRequest<RequestGeosearch>(
+      MakeRequest(CmdArgs{"geosearch", std::move(key), "FROMMEMBER",
+                          std::move(member), "BYBOX", width.GetUnderlying(),
+                          height.GetUnderlying(), geosearch_options},
+                  shard, false, GetCommandControl(command_control)));
+}
+
+RequestGeosearch ClientImpl::Geosearch(
+    std::string key, Longitude lon, Latitude lat, double radius,
+    const GeosearchOptions& geosearch_options,
+    const CommandControl& command_control) {
+  auto shard = ShardByKey(key, command_control);
+  return CreateRequest<RequestGeosearch>(MakeRequest(
+      CmdArgs{"geosearch", std::move(key), "FROMLONLAT", lon.GetUnderlying(),
+              lat.GetUnderlying(), "BYRADIUS", radius, geosearch_options},
+      shard, false, GetCommandControl(command_control)));
+}
+
+RequestGeosearch ClientImpl::Geosearch(
+    std::string key, Longitude lon, Latitude lat, BoxWidth width,
+    BoxHeight height, const GeosearchOptions& geosearch_options,
+    const CommandControl& command_control) {
+  auto shard = ShardByKey(key, command_control);
+  return CreateRequest<RequestGeosearch>(MakeRequest(
+      CmdArgs{"geosearch", std::move(key), "FROMLONLAT", lon.GetUnderlying(),
+              lat.GetUnderlying(), "BYBOX", width.GetUnderlying(),
+              height.GetUnderlying(), geosearch_options},
+      shard, false, GetCommandControl(command_control)));
 }
 
 RequestGet ClientImpl::Get(std::string key,

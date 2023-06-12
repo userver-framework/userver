@@ -45,6 +45,7 @@ components_manager:
         greeter-service:
             task-processor: main-task-processor
             greeting-prefix: Hello
+            middlewares: []
 # /// [gRPC sample - static config server]
 
         # In this example, the tests still communicate with the microservice
@@ -58,6 +59,8 @@ components_manager:
             path: /hello
             method: POST
             task_processor: main-task-processor
+
+        testsuite-support:
 
     default_task_processor: main-task-processor
 # /// [gRPC sample - task processor]

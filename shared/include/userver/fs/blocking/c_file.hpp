@@ -35,8 +35,14 @@ class CFile final {
         boost::filesystem::perms perms = boost::filesystem::perms::owner_read |
                                          boost::filesystem::perms::owner_write);
 
+  /// @brief Use the `std::FILE*` directly
+  explicit CFile(std::FILE* file) noexcept;
+
   /// Checks if the file is open
   bool IsOpen() const;
+
+  // Passes the ownerwhip of the file to the caller
+  std::FILE* Release() &&;
 
   /// @brief Closes the file manually
   /// @throws std::runtime_error
@@ -58,6 +64,11 @@ class CFile final {
   /// @throws std::runtime_error
   void Flush();
 
+  /// @brief Synchronizes the written data with the file on disk
+  /// without fsync
+  /// @throws std::runtime_error
+  void FlushLight();
+
   /// @brief Fetches the current position in the file
   /// @throws std::runtime_error
   std::uint64_t GetPosition() const;
@@ -68,7 +79,7 @@ class CFile final {
 
  private:
   struct Impl;
-  utils::FastPimpl<Impl, sizeof(char*), sizeof(char*)> impl_;
+  utils::FastPimpl<Impl, sizeof(char*), alignof(char*)> impl_;
 };
 
 }  // namespace fs::blocking

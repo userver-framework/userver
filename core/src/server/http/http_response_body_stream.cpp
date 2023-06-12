@@ -1,5 +1,7 @@
 #include <userver/server/http/http_response_body_stream.hpp>
 
+#include <userver/utils/assert.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace server::http {
@@ -10,25 +12,32 @@ ResponseBodyStream::ResponseBodyStream(
     : queue_producer_(std::move(queue_producer)),
       http_response_(http_response) {}
 
-void ResponseBodyStream::PushBodyChunk(std::string&& chunk) {
+void ResponseBodyStream::PushBodyChunk(std::string&& chunk,
+                                       engine::Deadline deadline) {
   UASSERT_MSG(headers_ended_,
               "SetEndOfHeaders() was not called before PushBodyChunk()");
-  queue_producer_.Push(std::move(chunk));
+  const auto success = queue_producer_.Push(std::move(chunk), deadline);
+  UASSERT(success);
 }
 
 void ResponseBodyStream::SetHeader(const std::string& name,
                                    const std::string& value) {
-  UINVARIANT(!headers_ended_, "Calling SetHeader() after SetEndOfHeaders()");
+  http_response_.SetHeader(name, value);
+}
+
+void ResponseBodyStream::SetHeader(std::string_view name,
+                                   const std::string& value) {
   http_response_.SetHeader(name, value);
 }
 
 void ResponseBodyStream::SetEndOfHeaders() { headers_ended_ = true; }
 
 void ResponseBodyStream::SetStatusCode(int status_code) {
-  UINVARIANT(
-      !headers_ended_,
-      "Calling SetStatusCode() after the status line and headers are sent");
   http_response_.SetStatus(static_cast<server::http::HttpStatus>(status_code));
+}
+
+void ResponseBodyStream::SetStatusCode(HttpStatus status) {
+  http_response_.SetStatus(status);
 }
 
 }  // namespace server::http

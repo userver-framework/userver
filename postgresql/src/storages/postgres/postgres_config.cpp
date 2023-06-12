@@ -2,6 +2,7 @@
 
 #include <userver/logging/log.hpp>
 
+#include <storages/postgres/experiments.hpp>
 #include <userver/storages/postgres/component.hpp>
 #include <userver/storages/postgres/exceptions.hpp>
 
@@ -137,7 +138,8 @@ StatementMetricsSettings Parse(const yaml_config::YamlConfig& config,
 }
 
 PipelineMode ParsePipelineMode(const dynamic_config::DocsMap& docs_map) {
-  return docs_map.Get("POSTGRES_CONNECTION_PIPELINE_ENABLED").As<bool>(false)
+  return docs_map.Get("POSTGRES_CONNECTION_PIPELINE_EXPERIMENT").As<int>(0) ==
+                 kPipelineExperimentVersion
              ? PipelineMode::kEnabled
              : PipelineMode::kDisabled;
 }
@@ -150,6 +152,14 @@ Config::Config(const dynamic_config::DocsMap& docs_map)
       connection_settings{"POSTGRES_CONNECTION_SETTINGS", docs_map},
       statement_metrics_settings("POSTGRES_STATEMENT_METRICS_SETTINGS",
                                  docs_map) {}
+
+ConnlimitConfig ParseConnlimitConfig(const dynamic_config::DocsMap& docs_map) {
+  return {docs_map.Get("POSTGRES_CONNLIMIT_MODE_AUTO_ENABLED").As<bool>()};
+}
+
+bool ParseDeadlinePropagation(const dynamic_config::DocsMap& docs_map) {
+  return docs_map.Get("POSTGRES_DEADLINE_PROPAGATION_ENABLED").As<bool>(false);
+}
 
 }  // namespace storages::postgres
 

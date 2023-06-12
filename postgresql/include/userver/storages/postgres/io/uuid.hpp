@@ -1,7 +1,7 @@
 #pragma once
 
 /// @file userver/storages/postgres/io/uuid.hpp
-/// @brief UUID I/O support
+/// @brief UUID (boost::uuids::uuid) I/O support
 /// @ingroup userver_postgres_parse_and_format
 
 #include <userver/storages/postgres/io/buffer_io.hpp>

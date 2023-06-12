@@ -22,7 +22,8 @@ components_manager:
                 redis_thread_pool_size: 8
                 sentinel_thread_pool_size: 1
 
-        secdist:                                         # Component that stores configuration of hosts and passwords
+        secdist: {}                                      # Component that stores configuration of hosts and passwords
+        default-secdist-provider:                        # Component that loads configuration of hosts and passwords
             config: /etc/redis_service/secure_data.json  # Values are supposed to be stored in this file
             missing-ok: true                             # ... but if the file is missing it is still ok
             environment-secrets-key: SECDIST_CONFIG      # ... values will be loaded from this environment value
@@ -50,6 +51,8 @@ components_manager:
             fs-cache-path: ''
         dynamic-config-fallbacks:            # Load options from file and push them into the dynamic config storage.
             fallback-path: /etc/redis_service/dynamic_config_fallback.json
+        dns-client:
+            fs-task-processor: fs-task-processor
     coro_pool:
         initial_size: 500             # Preallocate 500 coroutines at startup.
         max_size: 1000                # Do not keep more than 1000 preallocated coroutines.

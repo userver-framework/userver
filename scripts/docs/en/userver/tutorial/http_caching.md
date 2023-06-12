@@ -242,16 +242,17 @@ provides all the required functionality via simpler to use Python functions.
 implemented using the testsuite. To do that you have to:
 
 * Mock the translations service data:
-@snippet samples/http_caching/tests/conftest.py translations
+  @snippet samples/http_caching/tests/conftest.py translations
 
 * Mock the translations service API:
-@snippet samples/http_caching/tests/conftest.py mockserver
+  @snippet samples/http_caching/tests/conftest.py mockserver
 
-* Teach testsuite how to patch the service config to use the mocked URL:
-@snippet samples/http_caching/tests/conftest.py patch configs
+* Import the pytest_userver.plugins.core plugin and teach testsuite how to
+  patch the service config to use the mocked URL:
+  @snippet samples/http_caching/tests/conftest.py patch configs
 
 * Write the test:
-@snippet samples/http_caching/tests/test_http_caching.py  Functional test
+  @snippet samples/http_caching/tests/test_http_caching.py  Functional test
 
 
 ## Full sources

@@ -20,6 +20,20 @@ Database::Database(PoolImplPtr pool, std::string database_name)
   }
 }
 
+void Database::DropDatabase() {
+  auto* pool = dynamic_cast<cdriver::CDriverPoolImpl*>(pool_.get());
+  UASSERT(pool);
+  auto client = pool->Acquire();
+  const cdriver::DatabasePtr database(
+      mongoc_client_get_database(client.get(), database_name_.c_str()));
+
+  MongoError error;
+  mongoc_database_drop(database.get(), error.GetNative());
+  if (error) {
+    error.Throw("Error dropping the database");
+  }
+}
+
 bool Database::HasCollection(const std::string& collection_name) const {
   if (!utils::text::IsCString(collection_name)) {
     throw MongoException("Invalid collection name: '" + collection_name + '\'');
@@ -28,11 +42,11 @@ bool Database::HasCollection(const std::string& collection_name) const {
   auto* pool = dynamic_cast<cdriver::CDriverPoolImpl*>(pool_.get());
   UASSERT(pool);
   auto client = pool->Acquire();
-  cdriver::DatabasePtr database(
+  const cdriver::DatabasePtr database(
       mongoc_client_get_database(client.get(), database_name_.c_str()));
 
   MongoError error;
-  bool has_collection = mongoc_database_has_collection(
+  const bool has_collection = mongoc_database_has_collection(
       database.get(), collection_name.c_str(), error.GetNative());
   if (error) {
     error.Throw("Error checking for collection existence");

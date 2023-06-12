@@ -5,7 +5,7 @@
 #include <fmt/format.h>
 
 #include <userver/utils/assert.hpp>
-#include <utils/impl/static_registration.hpp>
+#include <userver/utils/impl/static_registration.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -46,7 +46,15 @@ StaticLogEntry::StaticLogEntry(const char* path, int line) noexcept {
 }
 
 bool StaticLogEntry::ShouldLog() const noexcept {
-  return reinterpret_cast<const LogEntryContent&>(content).should_log.load();
+  return reinterpret_cast<const LogEntryContent&>(content).state.load() ==
+         EntryState::kForceEnabled;
+}
+
+bool StaticLogEntry::ShouldNotLog(Level level) const noexcept {
+  if (level >= Level::kWarning) return false;
+
+  return reinterpret_cast<const LogEntryContent&>(content).state.load() ==
+         EntryState::kForceDisabled;
 }
 
 }  // namespace impl
@@ -60,31 +68,33 @@ bool operator==(const LogEntryContent& x, const LogEntryContent& y) noexcept {
   return x.line == y.line && std::strcmp(x.path, y.path) == 0;
 }
 
-void AddDynamicDebugLog(const std::string& location_relative, int line) {
+void AddDynamicDebugLog(const std::string& location_relative, int line,
+                        EntryState state) {
   utils::impl::AssertStaticRegistrationFinished();
 
   auto& all_locations = GetAllLocations();
 
   auto it_lower = all_locations.lower_bound({location_relative.c_str(), line});
-  if (it_lower == all_locations.end() || it_lower->path != location_relative) {
+  if (it_lower == all_locations.end() ||
+      std::strncmp(it_lower->path, location_relative.c_str(),
+                   location_relative.size()) != 0) {
     ThrowUnknownDynamicLogLocation(location_relative, line);
   }
 
-  auto it_upper = it_lower;
   if (line != kAnyLine) {
-    if (it_lower->line != line) {
+    if (it_lower->line != line && it_lower->path != location_relative) {
       ThrowUnknownDynamicLogLocation(location_relative, line);
     }
 
-    ++it_upper;
+    it_lower->state = state;
+    return;
   } else {
-    it_upper = all_locations.upper_bound(
-        {location_relative.c_str(),
-         line != kAnyLine ? line : std::numeric_limits<int>::max()});
-  }
-
-  for (; it_lower != it_upper; ++it_lower) {
-    it_lower->should_log = true;
+    for (; it_lower != all_locations.end(); ++it_lower) {
+      if (std::strncmp(it_lower->path, location_relative.c_str(),
+                       location_relative.size()) != 0)
+        break;
+      it_lower->state = state;
+    }
   }
 }
 
@@ -98,7 +108,7 @@ void RemoveDynamicDebugLog(const std::string& location_relative, int line) {
        line != kAnyLine ? line : std::numeric_limits<int>::max()});
 
   for (; it_lower != it_upper; ++it_lower) {
-    it_lower->should_log = false;
+    it_lower->state = EntryState::kDefault;
   }
 }
 

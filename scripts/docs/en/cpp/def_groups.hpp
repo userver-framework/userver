@@ -15,7 +15,7 @@
 /// @ref md_en_userver_component_system for an intro.
 ///
 /// ----------
-/// 
+///
 /// @htmlonly <div class="bottom-nav"> @endhtmlonly
 /// ⇦ @ref userver_clients | @ref md_en_userver_synchronization ⇨
 /// @htmlonly </div> @endhtmlonly
@@ -38,7 +38,7 @@
 ///   concurrently if not stated the opposite.
 ///
 /// ----------
-/// 
+///
 /// @htmlonly <div class="bottom-nav"> @endhtmlonly
 /// ⇦ @ref md_en_userver_component_system | @ref userver_http_handlers ⇨
 /// @htmlonly </div> @endhtmlonly
@@ -69,7 +69,7 @@
 /// @snippet components/common_server_component_list_test.cpp  Sample handler ping component config
 ///
 /// ----------
-/// 
+///
 /// @htmlonly <div class="bottom-nav"> @endhtmlonly
 /// ⇦ @ref userver_clients | @ref userver_components ⇨
 /// @htmlonly </div> @endhtmlonly
@@ -111,5 +111,18 @@
 /// @defgroup userver_clickhouse_types Clickhouse types
 ///
 /// @brief Files with implemented ClickHouse types
+
+/// @defgroup userver_testsuite Testsuite Python support
+///
+/// @brief Functions, fixtures and classes to do
+/// @ref md_en_userver_functional_testing "functional testing with testsuite".
+
+/// @defgroup userver_testsuite_fixtures Fixtures
+/// @brief Fixtures to use with testsuite
+/// @ingroup userver_testsuite
+
+/// @defgroup userver_component_names Component Default Names
+/// @ingroup userver_components
+/// @brief Default names of components that are used in static config files
 
 // clang-format on

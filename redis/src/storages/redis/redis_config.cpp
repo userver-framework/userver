@@ -1,3 +1,4 @@
+#include <unordered_map>
 #include <userver/storages/redis/redis_config.hpp>
 
 #include <userver/logging/log.hpp>
@@ -91,6 +92,40 @@ USERVER_NAMESPACE::redis::CommandsBufferingSettings Parse(
       elem["commands_buffering_threshold"].As<size_t>(0);
   result.watch_command_timer_interval = std::chrono::microseconds(
       elem["watch_command_timer_interval_us"].As<size_t>());
+  return result;
+}
+
+MetricsSettings Parse(const formats::json::Value& elem,
+                      formats::parse::To<MetricsSettings>) {
+  MetricsSettings result;
+  result.timings_enabled =
+      elem["timings-enabled"].As<bool>(result.timings_enabled);
+  result.command_timings_enabled =
+      elem["command-timings-enabled"].As<bool>(result.command_timings_enabled);
+  result.request_sizes_enabled =
+      elem["request-sizes-enabled"].As<bool>(result.request_sizes_enabled);
+  result.reply_sizes_enabled =
+      elem["reply-sizes-enabled"].As<bool>(result.reply_sizes_enabled);
+  return result;
+}
+
+ReplicationMonitoringSettings Parse(
+    const formats::json::Value& elem,
+    formats::parse::To<ReplicationMonitoringSettings>) {
+  ReplicationMonitoringSettings result;
+  result.enable_monitoring =
+      elem["enable-monitoring"].As<bool>(result.enable_monitoring);
+  result.restrict_requests =
+      elem["forbid-requests-to-syncing-replicas"].As<bool>(
+          result.restrict_requests);
+  return result;
+}
+
+PubsubMetricsSettings Parse(const formats::json::Value& elem,
+                            formats::parse::To<PubsubMetricsSettings>) {
+  PubsubMetricsSettings result;
+  result.per_shard_stats_enabled =
+      elem["per-shard-stats-enabled"].As<bool>(result.per_shard_stats_enabled);
   return result;
 }
 

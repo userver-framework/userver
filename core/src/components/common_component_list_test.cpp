@@ -13,13 +13,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace {
 
-const auto kTmpDir = fs::blocking::TempDirectory::Create();
-const std::string kRuntimeConfingPath =
-    kTmpDir.GetPath() + "/runtime_config.json";
-const std::string kConfigVariablesPath =
-    kTmpDir.GetPath() + "/config_vars.json";
-
-const std::string_view kConfigVariables = R"(
+constexpr std::string_view kConfigVarsTemplate = R"(
   userver-dumps-root: {0}
   runtime_config_path: {1}
   access_log_path: {0}/access.log
@@ -29,7 +23,7 @@ const std::string_view kConfigVariables = R"(
 )";
 
 // clang-format off
-const std::string kStaticConfig = R"(
+constexpr std::string_view kStaticConfig = R"(
 # /// [Sample components manager config component config]
 # yaml
 components_manager:
@@ -187,24 +181,29 @@ components_manager:
 # yaml
     system-statistics-collector:
       fs-task-processor: fs-task-processor
-      update-interval: 1m
       with-nginx: false
 # /// [Sample system statistics component config]
-config_vars: )" + kConfigVariablesPath + R"(
-)";
+config_vars: )";
 // clang-format on
 
 }  // namespace
 
 TEST_F(ComponentList, Common) {
-  fs::blocking::RewriteFileContents(kRuntimeConfingPath, tests::kRuntimeConfig);
+  const auto temp_root = fs::blocking::TempDirectory::Create();
+  const std::string runtime_config_path =
+      temp_root.GetPath() + "/dynamic_config.json";
+  const std::string config_vars_path =
+      temp_root.GetPath() + "/config_vars.json";
+
+  fs::blocking::RewriteFileContents(runtime_config_path, tests::kRuntimeConfig);
   fs::blocking::RewriteFileContents(
-      kConfigVariablesPath,
-      fmt::format(kConfigVariables, kTmpDir.GetPath(), kRuntimeConfingPath,
+      config_vars_path,
+      fmt::format(kConfigVarsTemplate, temp_root.GetPath(), runtime_config_path,
                   ToString(logging::GetDefaultLoggerLevel())));
 
-  components::RunOnce(components::InMemoryConfig{kStaticConfig},
-                      components::CommonComponentList());
+  components::RunOnce(
+      components::InMemoryConfig{std::string{kStaticConfig} + config_vars_path},
+      components::CommonComponentList());
 }
 
 USERVER_NAMESPACE_END

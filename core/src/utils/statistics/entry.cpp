@@ -26,16 +26,15 @@ Entry& Entry::operator=(Entry&& other) noexcept {
 
 Entry::~Entry() {
   if (impl_->storage) {
-    LOG_DEBUG() << "Statistics holder " << impl_->iterator->prefix_path
-                << " is unsubscribing automatically, which can invoke UB. "
-                   "Please call 'Unregister' manually in destructors.";
+    impl_->storage->UnregisterExtender(impl_->iterator,
+                                       impl::UnregisteringKind::kAutomatic);
   }
-  Unregister();
 }
 
 void Entry::Unregister() noexcept {
   if (impl_->storage) {
-    impl_->storage->UnregisterExtender(impl_->iterator);
+    impl_->storage->UnregisterExtender(impl_->iterator,
+                                       impl::UnregisteringKind::kManual);
     impl_->storage = nullptr;
   }
 }

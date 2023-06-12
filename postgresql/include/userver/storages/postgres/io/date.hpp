@@ -1,7 +1,8 @@
 #pragma once
 
 /// @file userver/storages/postgres/io/date.hpp
-/// @brief Date I/O support
+/// @brief utils::datetime::Date I/O support
+/// @ingroup userver_postgres_parse_and_format
 
 #include <limits>
 

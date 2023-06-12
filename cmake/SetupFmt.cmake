@@ -1,7 +1,5 @@
 option(USERVER_DOWNLOAD_PACKAGE_FMT "Download and setup Fmt if no Fmt of matching version was found" ${USERVER_DOWNLOAD_PACKAGES})
-if (NOT USERVER_OPEN_SOURCE_BUILD)
-  find_package(fmt "7.1" REQUIRED)
-elseif (USERVER_DOWNLOAD_PACKAGE_FMT)
+if (USERVER_DOWNLOAD_PACKAGE_FMT)
   find_package(fmt "8.1.1")
 else()
   find_package(fmt "8.1.1" REQUIRED)

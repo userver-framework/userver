@@ -18,8 +18,8 @@ UTEST(HttpServerMock, Ctr) {
       [](const utest::HttpServerMock::HttpRequest& request) {
         EXPECT_EQ(clients::http::HttpMethod::kPost, request.method);
         EXPECT_EQ("/", request.path);
-        EXPECT_EQ("value1", request.headers.at("a"));
-        EXPECT_EQ("value2", request.headers.at("header"));
+        EXPECT_EQ("value1", request.headers.at(std::string_view{"a"}));
+        EXPECT_EQ("value2", request.headers.at(std::string_view{"header"}));
 
         EXPECT_EQ((std::unordered_map<std::string, std::string>{
                       {"arg1", "val1"}, {"arg2", "val2"}}),
@@ -27,15 +27,15 @@ UTEST(HttpServerMock, Ctr) {
         EXPECT_EQ(kRequestBody, request.body);
         return utest::HttpServerMock::HttpResponse{
             287,
-            {{"x", "y"}},
+            {std::make_pair(std::string{"x"}, std::string{"y"})},
             kResponseBody,
         };
       });
 
   auto http_client_ptr = utest::CreateHttpClient();
   clients::http::Headers headers{
-      {"a", "value1"},
-      {"header", "value2"},
+      std::make_pair(std::string{"a"}, std::string{"value1"}),
+      std::make_pair(std::string{"header"}, std::string{"value2"}),
   };
   for (int i = 0; i < 2; i++) {
     auto response =
@@ -48,8 +48,11 @@ UTEST(HttpServerMock, Ctr) {
 
     EXPECT_EQ(287, response->status_code());
     EXPECT_EQ(kResponseBody, response->body());
-    EXPECT_EQ((clients::http::Headers{{"x", "y"}, {"Content-Length", "13"}}),
-              response->headers());
+    EXPECT_EQ(
+        (clients::http::Headers{
+            std::make_pair(std::string{"x"}, std::string{"y"}),
+            std::make_pair(std::string{"Content-Length"}, std::string{"13"})}),
+        response->headers());
   }
 }
 

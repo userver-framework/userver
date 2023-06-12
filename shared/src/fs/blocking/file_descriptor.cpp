@@ -23,6 +23,10 @@ namespace {
 int ToNative(OpenMode flags) {
   int result = 0;
 
+  // using file descriptor without this flag is a security risk
+  // read: man 2 open
+  result |= O_CLOEXEC;
+
   if ((flags & OpenFlag::kRead) && (flags & OpenFlag::kWrite)) {
     result |= O_RDWR;
   } else if (flags & OpenFlag::kRead) {
@@ -53,6 +57,12 @@ int ToNative(OpenMode flags) {
     result |= O_TRUNC;
   }
 
+  if (flags & OpenFlag::kAppend) {
+    UINVARIANT(flags & OpenFlag::kWrite,
+               "Cannot use kAppend without kWrite in OpenFlags");
+    result |= O_APPEND;
+  }
+
   return result;
 }
 
@@ -74,6 +84,11 @@ FileDescriptor FileDescriptor::Open(const std::string& path, OpenMode flags,
   UASSERT(!path.empty());
   const auto fd = utils::CheckSyscall(
       ::open(path.c_str(), ToNative(flags), perms), "opening file '{}'", path);
+  return FileDescriptor{fd};
+}
+
+FileDescriptor FileDescriptor::AdoptFd(int fd) noexcept {
+  UASSERT_MSG(::fcntl(fd, F_GETFD) != -1, "This file descriptor is not valid");
   return FileDescriptor{fd};
 }
 

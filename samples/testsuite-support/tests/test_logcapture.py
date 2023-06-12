@@ -5,9 +5,9 @@ async def test_select(service_client):
         assert response.status == 200
 
     records = capture.select(
-        text='Message to catpure', link=response.headers['x-yarequestid'],
+        text='Message to capture', link=response.headers['x-yarequestid'],
     )
-    assert len(records) == 1
+    assert len(records) == 1, capture.select()
     # /// [select]
 
 
@@ -15,7 +15,7 @@ async def test_subscribe(service_client, mockserver):
     async with service_client.capture_logs() as capture:
 
         @capture.subscribe(
-            text='Message to catpure', trace_id=mockserver.trace_id,
+            text='Message to capture', trace_id=mockserver.trace_id,
         )
         def log_event(link, **other):
             pass

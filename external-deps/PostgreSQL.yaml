@@ -1,6 +1,5 @@
 name: PostgreSQL
 version: 12
-helper-prefix: false
 
 includes:
     find:
@@ -8,6 +7,7 @@ includes:
           - libpq-fe.h
         paths:
           - ${USERVER_PG_INCLUDE_DIR}
+          - /usr/local/include  # FreeBSD
         path-suffixes:
           - postgresql
           - pgsql
@@ -26,3 +26,5 @@ rpm-names:
   - postgresql-static
 pacman-names:
   - postgresql-libs
+pkg-names:
+  - postgresql15-client

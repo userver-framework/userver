@@ -9,6 +9,8 @@
 
 #include <userver/clients/http/error.hpp>
 #include <userver/clients/http/local_stats.hpp>
+#include <userver/http/header_map.hpp>
+#include <userver/server/http/http_response_cookie.hpp>
 #include <userver/utils/str_icase.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -29,11 +31,11 @@ enum Status : uint16_t {
   ServiceUnavailable = 503,
   GatewayTimeout = 504,
   InsufficientStorage = 507,
-  BandwithLimitExceeded = 509,
+  BandwidthLimitExceeded = 509,
   WebServerIsDown = 520,
   ConnectionTimedOut = 522,
   OriginIsUnreachable = 523,
-  TimeoutOccured = 524,
+  TimeoutOccurred = 524,
   SslHandshakeFailed = 525,
   InvalidSslCertificate = 526,
 };
@@ -41,12 +43,13 @@ enum Status : uint16_t {
 std::ostream& operator<<(std::ostream& os, Status s);
 
 /// Headers container type
-using Headers = std::unordered_map<std::string, std::string,
-                                   utils::StrIcaseHash, utils::StrIcaseEqual>;
+using Headers = USERVER_NAMESPACE::http::headers::HeaderMap;
 
 /// Class that will be returned for successful request
 class Response final {
  public:
+  using CookiesMap = server::http::Cookie::CookiesMap;
+
   Response() = default;
 
   /// response string
@@ -59,9 +62,11 @@ class Response final {
   /// body as string_view
   std::string_view body_view() const { return response_; }
 
-  /// return referece to headers
+  /// return reference to headers
   const Headers& headers() const { return headers_; }
   Headers& headers() { return headers_; }
+  const CookiesMap& cookies() const { return cookies_; }
+  CookiesMap& cookies() { return cookies_; }
 
   /// status_code
   Status status_code() const;
@@ -81,6 +86,7 @@ class Response final {
 
  private:
   Headers headers_;
+  CookiesMap cookies_;
   std::string response_;
   Status status_code_{Status::Invalid};
   LocalStats stats_;

@@ -10,6 +10,7 @@ name: CI
 
 env:
     UBSAN_OPTIONS: print_stacktrace=1
+    ASAN_OPTIONS: detect_odr_violation=2
 
 jobs:
     posix:
@@ -19,15 +20,21 @@ jobs:
                 include:
                   - cmake-flags: >-
                         -DCMAKE_CXX_COMPILER=clang++-14 -DCMAKE_C_COMPILER=clang-14
+                        -DUSERVER_FEATURE_MYSQL=1
                         -DUSERVER_SANITIZE="ub addr"
                         -DCMAKE_BUILD_TYPE=Debug
+                        -DUSERVER_NAMESPACE=userver_ns
+                        -DUSERVER_NAMESPACE_BEGIN="namespace userver_ns { inline namespace
+                        v1 {"
+                        -DUSERVER_NAMESPACE_END="}}"
+                        -DUSERVER_PG_SERVER_INCLUDE_DIR=/usr/include/postgresql/15/server
+                        -DUSERVER_PG_SERVER_LIBRARY_DIR=/usr/lib/postgresql/15/lib
                     os: ubuntu-22.04
                     info: clang-14 + debug + sanitize addr+ub
                     tests-flags: ''
 
                   - cmake-flags: >-
                         -DUSERVER_FEATURE_CRYPTOPP_BLAKE2=0 -DUSERVER_FEATURE_REDIS_HI_MALLOC=1
-                        -DUSERVER_FEATURE_GRPC_CHANNELZ=0
                         -DUSERVER_NO_WERROR=1 -DUSERVER_SANITIZE="ub addr" -DCMAKE_BUILD_TYPE=Debug
                     os: ubuntu-20.04
                     info: g++-9 + debug + sanitize addr+ub
@@ -35,23 +42,21 @@ jobs:
 
                   - cmake-flags: >-
                         -DUSERVER_FEATURE_CRYPTOPP_BLAKE2=0 -DUSERVER_FEATURE_REDIS_HI_MALLOC=1
-                        -DUSERVER_FEATURE_GRPC_CHANNELZ=0
+                        -DUSERVER_FEATURE_MYSQL=1
                         -DUSERVER_NO_WERROR=1 -DCMAKE_BUILD_TYPE=Release
                     os: ubuntu-20.04
                     info: g++-9 + release
                     tests-flags: '--gtest_filter=-HttpClient.RedirectHeaders'
 
+                  # GCC-8 - testing minimal required compiler
                   - cmake-flags: >-
                         -DCMAKE_CXX_COMPILER=g++-8 -DCMAKE_C_COMPILER=gcc-8
-                        -DUSERVER_FEATURE_MONGODB=0
-                        -DUSERVER_FEATURE_POSTGRESQL=0
-                        -DUSERVER_FEATURE_GRPC=0
-                        -DUSERVER_FEATURE_CRYPTOPP_BLAKE2=0
-                        -DUSERVER_USE_LD=gold -DCMAKE_BUILD_TYPE=Release
-                        -DUSERVER_LTO=0
-                    os: ubuntu-18.04
-                    info: g++-8 + release
-                    tests-flags: '--gtest_filter=-FormatsYaml.NativeLocation:FormatsYaml.NullAsDefaulted'
+                        -DUSERVER_FEATURE_CRYPTOPP_BLAKE2=0 -DUSERVER_FEATURE_REDIS_HI_MALLOC=1
+                        -DUSERVER_FEATURE_MYSQL=1
+                        -DUSERVER_NO_WERROR=1 -DCMAKE_BUILD_TYPE=Debug
+                    os: ubuntu-20.04
+                    info: g++-8 + debug
+                    tests-flags: '--gtest_filter=-HttpClient.RedirectHeaders'
 
         name: '${{matrix.os}}: ${{matrix.info}}'
         runs-on: ${{matrix.os}}
@@ -70,6 +75,12 @@ jobs:
                     ${{matrix.os}} ${{matrix.info}} ccache-dir ${{github.ref}} run-'
                     ${{matrix.os}} ${{matrix.info}} ccache-
 
+          - name: Free disk space
+            run: |
+                df -h
+                sudo rm -rf /usr/share/dotnet /usr/local/lib/android /usr/lib/php* /opt/ghc || true
+                df -h
+
           - name: Install packages
             run: |
                 # Instructions from https://clickhouse.com/docs/en/getting-started/install/
@@ -77,8 +88,23 @@ jobs:
                 sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 8919F6BD2B48D754
                 echo "deb https://packages.clickhouse.com/deb stable main" | sudo tee /etc/apt/sources.list.d/clickhouse.list
 
+                wget https://downloads.mariadb.com/MariaDB/mariadb_repo_setup
+                chmod +x mariadb_repo_setup
+                sudo ./mariadb_repo_setup
+
                 sudo apt update
-                sudo apt install --allow-downgrades -y clickhouse-common-static $(cat scripts/docs/en/deps/${{matrix.os}}.md | tr '\n' ' ')
+                sudo apt install --allow-downgrades -y clickhouse-common-static libmariadb-dev $(cat scripts/docs/en/deps/${{matrix.os}}.md | tr '\n' ' ')
+                if [ "${{matrix.os}}" = "ubuntu-22.04" ]; then
+                  # GH Ubuntu image has libpq version 15+ from pg's repo that is API incompatible with postgresql-14.
+                  sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 7FCC7D46ACCC4CF8
+                  echo "deb https://apt-archive.postgresql.org/pub/repos/apt jammy-pgdg-archive main" | sudo tee /etc/apt/sources.list.d/pgdg.list
+                  sudo apt update
+                  sudo apt install -y postgresql-15 postgresql-client-15 postgresql-server-dev-15
+                fi
+
+                if [ "${{matrix.info}}" = "g++-8 + debug" ]; then
+                  sudo apt install --allow-downgrades -y g++-8
+                fi
 
           - name: Install RabbitMQ packages
             run: |
@@ -109,6 +135,7 @@ jobs:
                 else
                   echo "Nothing check in clang-tidy"
                 fi
+
           - name: Compile
             run: |
                 pwd
@@ -117,6 +144,7 @@ jobs:
 
           - name: Run tests (universal)
             run: |
+                echo "UBSAN_OPTIONS=${UBSAN_OPTIONS} ASAN_OPTIONS=${ASAN_OPTIONS}"
                 cd build_debug
                 ./userver/universal/userver-universal_unittest ${{matrix.tests-flags}}
 
@@ -137,6 +165,14 @@ jobs:
                 cd build_debug
                 mkdir userver/rabbitmq || :
                 cd userver/rabbitmq
+                ctest -V
+
+          - name: Run tests (mysql)
+            run: |
+                sudo apt install mariadb-server
+                cd build_debug
+                mkdir userver/mysql || :
+                cd userver/mysql
                 ctest -V
 
           - name: Run tests (postgresql)

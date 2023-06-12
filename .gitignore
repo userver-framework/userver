@@ -16,6 +16,7 @@ CMakeLists.txt.user
 compile_commands.json
 tags
 third_party/amqp-cpp
+third_party/api-common-protos
 third_party/c-ares
 third_party/cctz
 third_party/clickhouse-cpp

@@ -1,0 +1,65 @@
+# yaml
+components_manager:
+    components:
+        handler-chaos:
+            path: /chaos
+            task_processor: main-task-processor
+            method: GET,DELETE,POST
+
+        key-value-database:
+            groups:
+              - config_name: test
+                db: test
+            subscribe_groups:
+            thread_pools:
+                redis_thread_pool_size: 8
+                sentinel_thread_pool_size: 1
+
+        testsuite-support:
+
+        server:
+            listener:
+                port: 8187
+                task_processor: main-task-processor
+        logging:
+            fs-task-processor: fs-task-processor
+            loggers:
+                default:
+                    file_path: '@stderr'
+                    level: debug
+                    overflow_behavior: discard
+
+        tracer:
+            service-name: redis-basic-chaos
+
+        dynamic-config:
+            fs-cache-path: ''
+
+        dynamic-config-fallbacks:
+            fallback-path: /etc/redis_basic_chaos/dynamic_config_fallback.json
+
+        dns-client:
+            fs-task-processor: fs-task-processor
+
+        secdist: {}
+        default-secdist-provider:
+            config: /etc/redis_service/secure_data.json
+            missing-ok: true
+            environment-secrets-key: SECDIST_CONFIG
+
+    coro_pool:
+        initial_size: 500
+        max_size: 1000
+
+    task_processors:
+        main-task-processor:
+            worker_threads: 4
+            thread_name: main-worker
+
+        fs-task-processor:
+            thread_name: fs-worker
+            worker_threads: 4
+
+    default_task_processor: main-task-processor
+userver_experiments:
+  - redis-deadline-propagation

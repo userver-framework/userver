@@ -6,14 +6,16 @@
 ///
 /// @ingroup userver_formats_parse
 
-#include <userver/formats/parse/to.hpp>
-
-#include <map>
 #include <optional>
-#include <set>
-#include <unordered_map>
-#include <unordered_set>
-#include <vector>
+#include <type_traits>
+
+#include <userver/formats/common/meta.hpp>
+#include <userver/formats/parse/to.hpp>
+#include <userver/utils/meta.hpp>
+
+namespace boost::uuids {
+struct uuid;
+}
 
 USERVER_NAMESPACE_BEGIN
 
@@ -31,65 +33,51 @@ inline T ConvertToExtractor(const Value& value) {
   return value.template ConvertTo<T>();
 }
 
-template <typename ArrayType, typename T, class Value, typename ExtractFunc>
+template <typename ArrayType, class Value, typename ExtractFunc>
 ArrayType ParseArray(const Value& value, ExtractFunc&& extract_func) {
   value.CheckArrayOrNull();
-
   ArrayType response;
   auto inserter = std::inserter(response, response.end());
+
   for (const auto& subitem : value) {
     *inserter = extract_func(subitem);
-    inserter++;
+    ++inserter;
   }
+
   return response;
 }
 
-template <typename ObjectType, typename T, class Value, typename ExtractFunc>
+template <typename ObjectType, class Value, typename ExtractFunc>
 ObjectType ParseObject(const Value& value, ExtractFunc&& extract_func) {
   value.CheckObjectOrNull();
-
   ObjectType result;
 
-  for (auto it = value.begin(); it != value.end(); ++it)
+  for (auto it = value.begin(); it != value.end(); ++it) {
     result.emplace(it.GetName(), extract_func(*it));
+  }
 
   return result;
 }
 
 }  // namespace impl
 
-template <class Value, typename T>
-std::unordered_set<T> Parse(const Value& value, To<std::unordered_set<T>>) {
-  return impl::ParseArray<std::unordered_set<T>, T>(
-      value, &impl::AsExtractor<T, Value>);
+template <typename T, typename Value>
+std::enable_if_t<common::kIsFormatValue<Value> && meta::kIsRange<T> &&
+                     !meta::kIsMap<T> && !std::is_same_v<T, boost::uuids::uuid>,
+                 T>
+Parse(const Value& value, To<T>) {
+  return impl::ParseArray<T>(
+      value, &impl::AsExtractor<meta::RangeValueType<T>, Value>);
 }
 
-template <class Value, typename T>
-std::set<T> Parse(const Value& value, To<std::set<T>>) {
-  return impl::ParseArray<std::set<T>, T>(value, &impl::AsExtractor<T, Value>);
+template <typename T, typename Value>
+std::enable_if_t<common::kIsFormatValue<Value> && meta::kIsMap<T>, T> Parse(
+    const Value& value, To<T>) {
+  return impl::ParseObject<T>(
+      value, &impl::AsExtractor<typename T::mapped_type, Value>);
 }
 
-template <class Value, typename T>
-std::vector<T> Parse(const Value& value, To<std::vector<T>>) {
-  return impl::ParseArray<std::vector<T>, T>(value,
-                                             &impl::AsExtractor<T, Value>);
-}
-
-template <class Value, typename T>
-std::unordered_map<std::string, T> Parse(
-    const Value& value, To<std::unordered_map<std::string, T>>) {
-  return impl::ParseObject<std::unordered_map<std::string, T>, T>(
-      value, &impl::AsExtractor<T, Value>);
-}
-
-template <class Value, typename T>
-std::map<std::string, T> Parse(const Value& value,
-                               To<std::map<std::string, T>>) {
-  return impl::ParseObject<std::map<std::string, T>, T>(
-      value, &impl::AsExtractor<T, Value>);
-}
-
-template <class Value, typename T>
+template <typename T, typename Value>
 std::optional<T> Parse(const Value& value, To<std::optional<T>>) {
   if (value.IsMissing() || value.IsNull()) {
     return std::nullopt;
@@ -105,54 +93,28 @@ std::optional<std::nullptr_t> Parse(const Value&,
   return nullptr;
 }
 
-template <class Value, typename T>
-std::unordered_set<T> Convert(const Value& value, To<std::unordered_set<T>>) {
+template <typename T, typename Value>
+std::enable_if_t<meta::kIsRange<T> && !meta::kIsMap<T> &&
+                     !std::is_same_v<T, boost::uuids::uuid>,
+                 T>
+Convert(const Value& value, To<T>) {
   if (value.IsMissing()) {
     return {};
   }
-  return impl::ParseArray<std::unordered_set<T>, T>(
-      value, &impl::ConvertToExtractor<T, Value>);
+  return impl::ParseArray<T>(
+      value, &impl::ConvertToExtractor<meta::RangeValueType<T>, Value>);
 }
 
-template <class Value, typename T>
-std::set<T> Convert(const Value& value, To<std::set<T>>) {
+template <typename T, typename Value>
+std::enable_if_t<meta::kIsMap<T>, T> Convert(const Value& value, To<T>) {
   if (value.IsMissing()) {
     return {};
   }
-  return impl::ParseArray<std::set<T>, T>(value,
-                                          &impl::ConvertToExtractor<T, Value>);
+  return impl::ParseObject<T>(
+      value, &impl::ConvertToExtractor<typename T::mapped_type, Value>);
 }
 
-template <class Value, typename T>
-std::vector<T> Convert(const Value& value, To<std::vector<T>>) {
-  if (value.IsMissing()) {
-    return {};
-  }
-  return impl::ParseArray<std::vector<T>, T>(
-      value, &impl::ConvertToExtractor<T, Value>);
-}
-
-template <class Value, typename T>
-std::unordered_map<std::string, T> Convert(
-    const Value& value, To<std::unordered_map<std::string, T>>) {
-  if (value.IsMissing()) {
-    return {};
-  }
-  return impl::ParseObject<std::unordered_map<std::string, T>, T>(
-      value, &impl::ConvertToExtractor<T, Value>);
-}
-
-template <class Value, typename T>
-std::map<std::string, T> Convert(const Value& value,
-                                 To<std::map<std::string, T>>) {
-  if (value.IsMissing()) {
-    return {};
-  }
-  return impl::ParseObject<std::map<std::string, T>, T>(
-      value, &impl::ConvertToExtractor<T, Value>);
-}
-
-template <class Value, typename T>
+template <typename T, typename Value>
 std::optional<T> Convert(const Value& value, To<std::optional<T>>) {
   if (value.IsMissing() || value.IsNull()) {
     return std::nullopt;

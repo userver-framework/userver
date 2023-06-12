@@ -9,7 +9,7 @@ avoid CPU-consuming context switches from OS, efficiently
 utilize the CPU with a small amount of execution threads.
 
 Telegram support chats: [English-speaking](https://t.me/userver_en) | 
-[Russian-speaking](https://t.me/userver_ru) | [News chanel](https://t.me/userver_news).
+[Russian-speaking](https://t.me/userver_ru) | [News channel](https://t.me/userver_news).
 
 
 ## Introduction
@@ -18,8 +18,10 @@ Telegram support chats: [English-speaking](https://t.me/userver_en) |
 * @ref md_en_userver_framework_comparison
 * @ref md_en_userver_supported_platforms
 * @ref md_en_userver_tutorial_build
+* @ref md_en_userver_deploy_env
 * @ref md_en_userver_beta_state
 * @ref md_en_userver_roadmap_and_changelog
+* @ref md_en_userver_faq
 
 
 ## Tutorial
@@ -34,6 +36,7 @@ Telegram support chats: [English-speaking](https://t.me/userver_en) |
 * @ref md_en_userver_tutorial_postgres_service
 * @ref md_en_userver_tutorial_mongo_service
 * @ref md_en_userver_tutorial_redis_service
+* @ref md_en_userver_tutorial_auth_postgres
 
 
 ## Generic development
@@ -45,7 +48,7 @@ Telegram support chats: [English-speaking](https://t.me/userver_en) |
 * @ref md_en_userver_formats
 * @ref md_en_userver_logging
 * @ref md_en_userver_task_processors_guide
-
+* @ref md_en_userver_periodics
 
 ## Testing and Benchmarking
 * @ref md_en_userver_testing
@@ -58,7 +61,7 @@ Telegram support chats: [English-speaking](https://t.me/userver_en) |
 * @ref md_en_userver_grpc
 * HTTP:
     * @ref clients::http::Client "Client"
-    * @ref components::Server "Server"
+    * @ref md_en_userver_http_server
 * @ref rabbitmq_driver
 * Low level:
     * @ref engine::io::TlsWrapper "TLS client and server socket"
@@ -98,6 +101,11 @@ Telegram support chats: [English-speaking](https://t.me/userver_en) |
   * @ref pg_range_types
   * @ref pg_arrays
   * @ref pg_bytea
+
+## MySQL
+* @ref mysql_driver
+* @ref md_en_userver_mysql_supported_types
+* @ref md_en_userver_mysql_design_and_details
 
 
 ## Non relational databases

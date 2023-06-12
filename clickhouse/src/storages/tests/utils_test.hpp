@@ -6,6 +6,8 @@
 #include <storages/clickhouse/impl/settings.hpp>
 #include <userver/clients/dns/resolver.hpp>
 #include <userver/storages/clickhouse/cluster.hpp>
+#include <userver/utils/statistics/storage.hpp>
+#include <userver/utils/statistics/testing.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -21,9 +23,15 @@ class ClusterWrapper final {
   storages::clickhouse::Cluster* operator->();
   storages::clickhouse::Cluster& operator*();
 
+  utils::statistics::Snapshot GetStatistics(
+      std::string prefix,
+      std::vector<utils::statistics::Label> require_labels = {});
+
  private:
   clients::dns::Resolver resolver_;
+  USERVER_NAMESPACE::utils::statistics::Storage statistics_storage_;
   storages::clickhouse::Cluster cluster_;
+  utils::statistics::Entry stats_holder_;
 };
 
 class PoolWrapper final {

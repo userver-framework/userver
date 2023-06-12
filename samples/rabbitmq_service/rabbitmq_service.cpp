@@ -12,13 +12,14 @@
 #include <userver/server/handlers/http_handler_json_base.hpp>
 #include <userver/server/handlers/tests_control.hpp>
 #include <userver/storages/secdist/component.hpp>
+#include <userver/storages/secdist/provider_component.hpp>
 #include <userver/testsuite/testpoint.hpp>
 #include <userver/testsuite/testsuite_support.hpp>
 #include <userver/utils/daemon_run.hpp>
 
 #include <userver/rabbitmq.hpp>
 
-namespace samples::urabbitmq {
+namespace samples::amqp {
 
 class MyRabbitComponent final : public components::RabbitMQ {
  public:
@@ -28,11 +29,11 @@ class MyRabbitComponent final : public components::RabbitMQ {
                     const components::ComponentContext& context)
       : components::RabbitMQ{config, context}, client_{GetClient()} {
     const auto setup_deadline =
-        userver::engine::Deadline::FromDuration(std::chrono::seconds{2});
+        engine::Deadline::FromDuration(std::chrono::seconds{2});
 
     auto admin_channel = client_->GetAdminChannel(setup_deadline);
-    admin_channel.DeclareExchange(
-        exchange_, userver::urabbitmq::Exchange::Type::kFanOut, setup_deadline);
+    admin_channel.DeclareExchange(exchange_, urabbitmq::Exchange::Type::kFanOut,
+                                  setup_deadline);
     admin_channel.DeclareQueue(queue_, setup_deadline);
     admin_channel.BindQueue(exchange_, queue_, routing_key_, setup_deadline);
   }
@@ -42,51 +43,56 @@ class MyRabbitComponent final : public components::RabbitMQ {
         engine::Deadline::FromDuration(std::chrono::seconds{1}));
 
     const auto teardown_deadline =
-        userver::engine::Deadline::FromDuration(std::chrono::seconds{2});
+        engine::Deadline::FromDuration(std::chrono::seconds{2});
     admin_channel.RemoveQueue(queue_, teardown_deadline);
     admin_channel.RemoveExchange(exchange_, teardown_deadline);
   }
 
   void Publish(const std::string& message) {
     client_->PublishReliable(
-        exchange_, routing_key_, message,
-        userver::urabbitmq::MessageType::kTransient,
-        engine::Deadline::FromDuration(std::chrono::milliseconds{200}));
+        exchange_, routing_key_, message, urabbitmq::MessageType::kTransient,
+        engine::Deadline::FromDuration(std::chrono::seconds{2}));
   }
 
  private:
-  const userver::urabbitmq::Exchange exchange_{"sample-exchange"};
-  const userver::urabbitmq::Queue queue_{"sample-queue"};
+  const urabbitmq::Exchange exchange_{"sample-exchange"};
+  const urabbitmq::Queue queue_{"sample-queue"};
   const std::string routing_key_ = "sample-routing-key";
 
-  std::shared_ptr<userver::urabbitmq::Client> client_;
+  std::shared_ptr<urabbitmq::Client> client_;
 };
 
-class MyRabbitConsumer final
-    : public userver::urabbitmq::ConsumerComponentBase {
+class MyRabbitConsumer final : public urabbitmq::ConsumerComponentBase {
  public:
   static constexpr std::string_view kName{"my-consumer"};
 
   MyRabbitConsumer(const components::ComponentConfig& config,
                    const components::ComponentContext& context)
-      : userver::urabbitmq::ConsumerComponentBase{config, context} {}
+      : urabbitmq::ConsumerComponentBase{config, context} {}
 
-  std::vector<std::string> GetConsumedMessages() {
+  std::vector<int> GetConsumedMessages() {
     auto storage = storage_.Lock();
 
-    return *storage;
+    auto messages = *storage;
+    // We sort messages here because `Process` might run in parallel
+    // and ordering is not guaranteed.
+    std::sort(messages.begin(), messages.end());
+
+    return messages;
   }
 
  protected:
   void Process(std::string message) override {
+    const auto as_integer = std::stoi(message);
+
     auto storage = storage_.Lock();
-    storage->push_back(std::move(message));
+    storage->push_back(as_integer);
 
     TESTPOINT("message_consumed", {});
   }
 
  private:
-  userver::concurrent::Variable<std::vector<std::string>> storage_;
+  concurrent::Variable<std::vector<int>> storage_;
 };
 
 class RequestHandler final : public server::handlers::HttpHandlerJsonBase {
@@ -103,7 +109,7 @@ class RequestHandler final : public server::handlers::HttpHandlerJsonBase {
       const server::http::HttpRequest& request,
       const formats::json::Value& request_json,
       server::request::RequestContext&) const override {
-    if (request.GetMethod() == userver::server::http::HttpMethod::kGet) {
+    if (request.GetMethod() == server::http::HttpMethod::kGet) {
       formats::json::ValueBuilder builder{formats::json::Type::kObject};
       builder["messages"] = my_consumer_.GetConsumedMessages();
 
@@ -126,30 +132,19 @@ class RequestHandler final : public server::handlers::HttpHandlerJsonBase {
   MyRabbitConsumer& my_consumer_;
 };
 
-}  // namespace samples::urabbitmq
-
-namespace userver::components {
-
-template <>
-inline constexpr bool kHasValidate<samples::urabbitmq::MyRabbitComponent> =
-    true;
-
-template <>
-inline constexpr bool kHasValidate<samples::urabbitmq::MyRabbitConsumer> = true;
-
-}  // namespace userver::components
+}  // namespace samples::amqp
 
 int main(int argc, char* argv[]) {
-  const auto components_list =
-      userver::components::MinimalServerComponentList()
-          .Append<samples::urabbitmq::MyRabbitComponent>()
-          .Append<samples::urabbitmq::MyRabbitConsumer>()
-          .Append<samples::urabbitmq::RequestHandler>()
-          .Append<userver::clients::dns::Component>()
-          .Append<userver::components::Secdist>()
-          .Append<userver::components::TestsuiteSupport>()
-          .Append<userver::server::handlers::TestsControl>()
-          .Append<components::HttpClient>();
+  const auto components_list = components::MinimalServerComponentList()
+                                   .Append<samples::amqp::MyRabbitComponent>()
+                                   .Append<samples::amqp::MyRabbitConsumer>()
+                                   .Append<samples::amqp::RequestHandler>()
+                                   .Append<clients::dns::Component>()
+                                   .Append<components::Secdist>()
+                                   .Append<components::DefaultSecdistProvider>()
+                                   .Append<components::TestsuiteSupport>()
+                                   .Append<server::handlers::TestsControl>()
+                                   .Append<components::HttpClient>();
 
-  return userver::utils::DaemonMain(argc, argv, components_list);
+  return utils::DaemonMain(argc, argv, components_list);
 }

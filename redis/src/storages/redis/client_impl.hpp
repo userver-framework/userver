@@ -4,9 +4,11 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <vector>
 
 #include <userver/storages/redis/impl/base.hpp>
 #include <userver/storages/redis/impl/command_options.hpp>
+#include <userver/storages/redis/impl/request.hpp>
 
 #include <userver/storages/redis/client.hpp>
 #include <userver/storages/redis/transaction.hpp>
@@ -68,6 +70,12 @@ class ClientImpl final : public Client,
   RequestDel Del(std::vector<std::string> keys,
                  const CommandControl& command_control) override;
 
+  RequestUnlink Unlink(std::string key,
+                       const CommandControl& command_control) override;
+
+  RequestUnlink Unlink(std::vector<std::string> keys,
+                       const CommandControl& command_control) override;
+
   RequestEvalCommon EvalCommon(std::string script,
                                std::vector<std::string> keys,
                                std::vector<std::string> args,
@@ -94,9 +102,28 @@ class ClientImpl final : public Client,
   RequestGeoadd Geoadd(std::string key, std::vector<GeoaddArg> point_members,
                        const CommandControl& command_control) override;
 
-  RequestGeoradius Georadius(std::string key, double lon, double lat,
+  RequestGeoradius Georadius(std::string key, Longitude lon, Latitude lat,
                              double radius,
                              const GeoradiusOptions& georadius_options,
+                             const CommandControl& command_control) override;
+
+  RequestGeosearch Geosearch(std::string key, std::string member, double radius,
+                             const GeosearchOptions& geosearch_options,
+                             const CommandControl& command_control) override;
+
+  RequestGeosearch Geosearch(std::string key, std::string member,
+                             BoxWidth width, BoxHeight height,
+                             const GeosearchOptions& geosearch_options,
+                             const CommandControl& command_control) override;
+
+  RequestGeosearch Geosearch(std::string key, Longitude lon, Latitude lat,
+                             double radius,
+                             const GeosearchOptions& geosearch_options,
+                             const CommandControl& command_control) override;
+
+  RequestGeosearch Geosearch(std::string key, Longitude lon, Latitude lat,
+                             BoxWidth width, BoxHeight height,
+                             const GeosearchOptions& geosearch_options,
                              const CommandControl& command_control) override;
 
   RequestGet Get(std::string key,

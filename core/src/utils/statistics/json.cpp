@@ -1,20 +1,10 @@
-#include <utils/statistics/visitation.hpp>
+#include <userver/utils/statistics/json.hpp>
 
-#include <algorithm>
-#include <iterator>
-#include <optional>
-#include <stack>
 #include <string_view>
-#include <userver/formats/json.hpp>
-#include <variant>
-#include <vector>
 
-#include <fmt/format.h>
-
-#include <userver/formats/common/items.hpp>
-#include <userver/formats/json/string_builder.hpp>
+#include <userver/formats/json/value_builder.hpp>
 #include <userver/utils/assert.hpp>
-#include <userver/utils/from_string.hpp>
+#include <userver/utils/overloaded.hpp>
 #include <userver/utils/statistics/storage.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -30,8 +20,11 @@ class JsonFormat final : public utils::statistics::BaseFormatBuilder {
   void HandleMetric(std::string_view path, utils::statistics::LabelsSpan labels,
                     const MetricValue& value) override {
     formats::json::ValueBuilder node;
-    std::visit([&node](const auto& v) { node["value"] = v; }, value);
+    value.Visit([&node](const auto& v) { node["value"] = v; });
     node["labels"] = BuildLabels(labels);
+    node["type"] = value.Visit(utils::Overloaded{
+        [](const Rate&) -> std::string_view { return "RATE"; },
+        [](const auto&) -> std::string_view { return "GAUGE"; }});
 
     builder_[std::string{path}].PushBack(std::move(node));
   }
@@ -56,7 +49,7 @@ class JsonFormat final : public utils::statistics::BaseFormatBuilder {
 }  // namespace
 
 std::string ToJsonFormat(const utils::statistics::Storage& statistics,
-                         const utils::statistics::StatisticsRequest& request) {
+                         const utils::statistics::Request& request) {
   JsonFormat builder{};
   statistics.VisitMetrics(builder, request);
   return std::move(builder).GetString();

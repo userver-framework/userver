@@ -5,6 +5,7 @@
 #include <cstddef>
 
 #include <userver/utils/statistics/recentperiod.hpp>
+#include <userver/utils/statistics/writer.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -38,6 +39,9 @@ void CacheHit(ExpirableLruCacheStatistics& stats);
 void CacheMiss(ExpirableLruCacheStatistics& stats);
 
 void CacheStale(ExpirableLruCacheStatistics& stats);
+
+void DumpMetric(utils::statistics::Writer& writer,
+                const ExpirableLruCacheStatistics& stats);
 
 }  // namespace cache::impl
 

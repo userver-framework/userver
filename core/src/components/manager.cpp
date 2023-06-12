@@ -1,4 +1,4 @@
-#include <userver/components/manager.hpp>
+#include <components/manager.hpp>
 
 #include <chrono>
 #include <future>
@@ -7,6 +7,12 @@
 #include <thread>
 #include <type_traits>
 
+#include <fmt/core.h>
+
+#include <components/manager_config.hpp>
+#include <engine/task/exception_hacks.hpp>
+#include <engine/task/task_processor.hpp>
+#include <engine/task/task_processor_pools.hpp>
 #include <userver/components/component_list.hpp>
 #include <userver/engine/async.hpp>
 #include <userver/hostinfo/cpu_limit.hpp>
@@ -14,11 +20,8 @@
 #include <userver/logging/log.hpp>
 #include <userver/os_signals/component.hpp>
 #include <userver/utils/async.hpp>
+#include <utils/distances.hpp>
 #include <utils/internal_tag.hpp>
-
-#include <engine/task/task_processor.hpp>
-#include <engine/task/task_processor_pools.hpp>
-#include "manager_config.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
@@ -28,15 +31,7 @@ constexpr std::size_t kDefaultHwThreadsEstimate = 512;
 
 template <typename Func>
 auto RunInCoro(engine::TaskProcessor& task_processor, Func&& func) {
-  if (auto* current_tp = engine::current_task::GetTaskProcessorOptional()) {
-    if (&task_processor == current_tp)
-      return func();
-    else
-      return engine::CriticalAsyncNoSpan(task_processor,
-                                         std::forward<Func>(func))
-          .Get();
-  }
-
+  UASSERT(!engine::current_task::IsTaskProcessorThread());
   auto task =
       engine::CriticalAsyncNoSpan(task_processor, std::forward<Func>(func));
   task.BlockingWait();
@@ -176,11 +171,22 @@ Manager::Manager(std::unique_ptr<ManagerConfig>&& config,
     CreateComponentContext(component_list);
   });
 
-  LOG_INFO() << "Started components manager";
+  {
+    const auto debug_info_action =
+        config_->mlock_debug_info ? engine::impl::DebugInfoAction::kLockInMemory
+                                  : engine::impl::DebugInfoAction::kLeaveAsIs;
+    engine::impl::InitPhdrCacheAndDisableDynamicLoading(debug_info_action);
+  }
+
+  LOG_INFO() << "Started components manager. All the components have started "
+                "successfully.";
 }
 
 Manager::~Manager() {
   LOG_INFO() << "Stopping components manager";
+
+  engine::impl::TeardownPhdrCacheAndEnableDynamicLoading();
+
   LOG_TRACE() << "Stopping component context";
   try {
     RunInCoro(*default_task_processor_, [this]() { ClearComponents(); });
@@ -190,6 +196,7 @@ Manager::~Manager() {
   component_context_.Reset();
   LOG_TRACE() << "Stopped component context";
   task_processors_storage_.Reset();
+
   LOG_INFO() << "Stopped components manager";
 }
 
@@ -237,10 +244,11 @@ void Manager::CreateComponentContext(const ComponentList& component_list) {
     const auto& name = component_config.Name();
     const auto it = loading_component_names.find(name);
     if (it == loading_component_names.cend()) {
-      throw std::runtime_error(
-          "component with name '" + name +
-          "' found in static config, but no component with "
-          "such name is registered in components::ComponentList in code");
+      throw std::runtime_error(fmt::format(
+          "Component with name '{}'"
+          " found in static config, but no component with "
+          "such name is registered in components::ComponentList in code.{}",
+          name, utils::SuggestNearestName(loading_component_names, name)));
     }
 
     // Delete component from context to make FindComponentOptional() work
@@ -270,17 +278,17 @@ components::ComponentConfigMap Manager::MakeComponentConfigMap(
   component_config_map.reserve(component_count);
   empty_configs_.reserve(component_count);
 
+  for (const auto& component_config : config_->components) {
+    const auto& name = component_config.Name();
+    component_config_map.emplace(name, component_config);
+  }
+
   for (const auto& item : component_list) {
     if (component_config_map.count(item->GetComponentName()) == 0 &&
         item->GetConfigFileMode() == ConfigFileMode::kNotRequired) {
       const auto& val = empty_configs_.emplace_back(item->GetComponentName());
       component_config_map.emplace(item->GetComponentName(), val);
     }
-  }
-
-  for (const auto& component_config : config_->components) {
-    const auto& name = component_config.Name();
-    component_config_map.emplace(name, component_config);
   }
 
   return component_config_map;
@@ -345,7 +353,10 @@ void Manager::AddComponents(const ComponentList& component_list) {
         "were caught");
   }
 
-  LOG_INFO() << "All components created";
+  LOG_INFO() << "All components created. Constructors for all the components "
+                "have completed. Preparing to run OnAllComponentsLoaded "
+                "for each component.";
+
   try {
     component_context_.OnAllComponentsLoaded();
   } catch (const std::exception& ex) {

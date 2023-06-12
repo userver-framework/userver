@@ -38,6 +38,8 @@ TEST(Meta, kIsInstantiationOf) {
 template <typename T>
 struct NonStdAllocator : std::allocator<T> {
   using std::allocator<T>::allocator;
+  template <typename U>
+  using rebind = NonStdAllocator<U>;
 };
 
 TEST(Meta, kIsVector) {
@@ -94,6 +96,7 @@ struct MyMap {
 
   auto begin() { return impl.begin(); }
   auto end() { return impl.end(); }
+  auto at(int i) const { return impl[i]; }
 };
 
 TEST(Meta, kIsMap) {

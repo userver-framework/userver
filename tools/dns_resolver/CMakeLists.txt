@@ -6,7 +6,7 @@ find_package(Boost REQUIRED COMPONENTS program_options)
 
 add_executable (${PROJECT_NAME} ${SOURCES})
 target_link_libraries (${PROJECT_NAME}
-    yandex-userver-core
+    userver-core
     Boost::program_options
 )
 

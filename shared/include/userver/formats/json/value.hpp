@@ -27,6 +27,10 @@ class InlineObjectBuilder;
 class InlineArrayBuilder;
 class MutableValueWrapper;
 class StringBuffer;
+
+// do not make a copy of string
+impl::Value MakeJsonStringViewValue(std::string_view view);
+
 }  // namespace impl
 
 class ValueBuilder;
@@ -274,6 +278,7 @@ class Value final {
   friend void Serialize(const formats::json::Value&, std::ostream&);
   friend std::string ToString(const formats::json::Value&);
   friend std::string ToStableString(const formats::json::Value&);
+  friend std::string ToStableString(formats::json::Value&&);
   friend logging::LogHelper& operator<<(logging::LogHelper&, const Value&);
 };
 
@@ -371,5 +376,13 @@ inline Value Parse(const Value& value, parse::To<Value>) { return value; }
 using formats::common::Items;
 
 }  // namespace formats::json
+
+/// Although we provide user defined literals, please beware that
+/// 'using namespace ABC' may contradict code style of your company.
+namespace formats::literals {
+
+json::Value operator"" _json(const char* str, std::size_t len);
+
+}  // namespace formats::literals
 
 USERVER_NAMESPACE_END

@@ -89,10 +89,16 @@ Read the documentation on gRPC streams:
 
 On connection errors, exceptions from userver/ugrpc/server/exceptions.hpp are thrown. It is recommended not to catch them, leading to RPC interruption. You can catch exceptions for [specific gRPC error codes](https://grpc.github.io/grpc/core/md_doc_statuscodes.html) or all at once.
 
+### Middlewares
+
+The gRPC server can be extended by middlewares. Middleware is called on each incoming RPC request. Different middlewares handle the call subsequently. A middleware may decide to reject the call or call the next middleware in the stack. Middlewares may implement almost any enhancement to the gRPC server including authorization and authentication, ratelimiting, logging, tracing, audit, etc.
+
+Middlewares to use are indicated in static config in section `middlewares` of `ugrpc::server::ServiceComponentBase` descendant component.
+
 ## Metrics
 
-* Client metrics are put inside `grpc.client.by-destination.FULL_SERVICE_NAME/METHOD_NAME`
-* Server metrics are put inside `grpc.server.by-destination.FULL_SERVICE_NAME/METHOD_NAME`
+* Client metrics are put inside `grpc.client.by-destination {grpc_destination=FULL_SERVICE_NAME/METHOD_NAME}`
+* Server metrics are put inside `grpc.server.by-destination {grpc_destination=FULL_SERVICE_NAME/METHOD_NAME}`
 
 These are the metrics provided for each gRPC method:
 

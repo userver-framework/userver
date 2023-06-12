@@ -4,6 +4,7 @@
 #include <userver/clients/http/component.hpp>
 #include <userver/components/component.hpp>
 #include <userver/dynamic_config/client/component.hpp>
+#include <userver/dynamic_config/updates_sink/find.hpp>
 #include <userver/formats/json/serialize.hpp>
 #include <userver/fs/read.hpp>
 #include <userver/utils/string_to_duration.hpp>
@@ -37,13 +38,30 @@ bool ShouldDeduplicate(
   UINVARIANT(false, "Invalid cache::UpdateType");
 }
 
+void CheckUnusedConfigs(
+    const dynamic_config::DocsMap& configs,
+    const std::unordered_set<std::string>& statically_required_configs) {
+  const auto& used_configs = configs.GetRequestedNames();
+  std::vector<std::string_view> extra_configs;
+  for (const auto& statically_required_config : statically_required_configs) {
+    if (used_configs.find(statically_required_config) == used_configs.end()) {
+      extra_configs.push_back(statically_required_config);
+    }
+  }
+  if (!extra_configs.empty()) {
+    LOG_INFO() << "Some statically required configs are unused: "
+               << extra_configs;
+  }
+}
+
 }  // namespace
 
 DynamicConfigClientUpdater::DynamicConfigClientUpdater(
     const ComponentConfig& component_config,
     const ComponentContext& component_context)
     : CachingComponentBase(component_config, component_context),
-      updater_(component_context),
+      updates_sink_(
+          dynamic_config::FindUpdatesSink(component_config, component_context)),
       load_only_my_values_(component_config["load-only-my-values"].As<bool>()),
       store_enabled_(component_config["store-enabled"].As<bool>()),
       deduplicate_update_types_(ParseDeduplicateUpdateTypes(
@@ -63,8 +81,7 @@ DynamicConfigClientUpdater::DynamicConfigClientUpdater(
     fallback_config_.Parse(fallback_config_contents, false);
 
     // There are all required configs in the fallbacks file
-    auto docs_map_keys = docs_map_keys_.Lock();
-    *docs_map_keys = fallback_config_.GetNames();
+    docs_map_keys_ = fallback_config_.GetNames();
   } catch (const std::exception& ex) {
     throw std::runtime_error(
         std::string("Cannot load fallback dynamic config: ") + ex.what());
@@ -74,7 +91,7 @@ DynamicConfigClientUpdater::DynamicConfigClientUpdater(
     StartPeriodicUpdates();
   } catch (const std::exception& e) {
     LOG_ERROR() << "Config client updater initialization failed: " << e;
-    updater_.NotifyLoadingFailed(e.what());
+    updates_sink_.NotifyLoadingFailed(kName, e.what());
     /* Start PeriodicTask without the 1st update:
      * DynamicConfig has been initialized with
      * config cached in FS. Components loading will continue.
@@ -89,22 +106,14 @@ DynamicConfigClientUpdater::~DynamicConfigClientUpdater() {
 
 void DynamicConfigClientUpdater::StoreIfEnabled() {
   auto ptr = Get();
-  if (store_enabled_) updater_.SetConfig(*ptr);
-
-  auto docs_map_keys = docs_map_keys_.Lock();
-  *docs_map_keys = ptr->GetRequestedNames();
-}
-
-DynamicConfigClientUpdater::DocsMapKeys
-DynamicConfigClientUpdater::GetStoredDocsMapKeys() const {
-  auto docs_map_keys = docs_map_keys_.Lock();
-  return *docs_map_keys;
+  if (store_enabled_) updates_sink_.SetConfig(kName, *ptr);
+  CheckUnusedConfigs(*ptr, docs_map_keys_);
 }
 
 std::vector<std::string> DynamicConfigClientUpdater::GetDocsMapKeysToFetch(
     AdditionalDocsMapKeys& additional_docs_map_keys) {
   if (load_only_my_values_) {
-    auto docs_map_keys = GetStoredDocsMapKeys();
+    auto docs_map_keys = docs_map_keys_;
 
     for (auto it = additional_docs_map_keys.begin();
          it != additional_docs_map_keys.end();) {
@@ -254,9 +263,13 @@ type: object
 description: Component that does a periodic update of runtime configs.
 additionalProperties: false
 properties:
+    updates-sink:
+        type: string
+        description: components::DynamicConfigUpdatesSinkBase descendant to be used for storing received updates
+        defaultDescription: dynamic-config
     store-enabled:
         type: boolean
-        description: store the retrieved values into the components::DynamicConfig
+        description: store the retrieved values into the updates sink component
     load-only-my-values:
         type: boolean
         description: request from the client only the values used by this service
@@ -269,7 +282,7 @@ properties:
     deduplicate-update-types:
         type: string
         description: config update types for best-effort deduplication
-        defaultDescription: none
+        defaultDescription: full-and-incremental
         enum:
           - none
           - only-full

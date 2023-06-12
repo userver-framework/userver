@@ -8,11 +8,13 @@
 #include <grpcpp/completion_queue.h>
 #include <grpcpp/impl/service_type.h>
 
+#include <userver/dynamic_config/source.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/utils/statistics/fwd.hpp>
 
 #include <userver/ugrpc/impl/static_metadata.hpp>
 #include <userver/ugrpc/impl/statistics_storage.hpp>
+#include <userver/ugrpc/server/middleware_base.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -23,6 +25,9 @@ struct ServiceSettings final {
   grpc::ServerCompletionQueue& queue;
   engine::TaskProcessor& task_processor;
   ugrpc::impl::StatisticsStorage& statistics_storage;
+  const Middlewares& middlewares;
+  const logging::LoggerPtr access_tskv_logger;
+  const dynamic_config::Source config_source;
 };
 
 /// @brief Listens to requests for a gRPC service, forwarding them to a

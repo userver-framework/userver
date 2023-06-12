@@ -16,7 +16,7 @@ class LogHelper;
 namespace server::auth {
 
 /// Type that represents a yandex uid and has all the comparison and hashing
-/// operators. It is not implicitly convertable to/from integers and provides
+/// operators. It is not implicitly convertible to/from integers and provides
 /// better type safety.
 enum class UserId : std::uint64_t {};
 

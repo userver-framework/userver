@@ -6,7 +6,7 @@
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/server/handlers/fallback_handlers.hpp>
 #include <userver/server/handlers/http_handler_base.hpp>
-#include <userver/utils/statistics/writer.hpp>
+#include <userver/utils/statistics/fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -33,17 +33,16 @@ class Server final {
 
   const ServerConfig& GetConfig() const;
 
-  formats::json::Value GetMonitorData(
-      const utils::statistics::StatisticsRequest&) const;
+  void WriteMonitorData(utils::statistics::Writer& writer) const;
 
-  void WriteTotalHandlerStatistics(utils::statistics::Writer writer) const;
+  void WriteTotalHandlerStatistics(utils::statistics::Writer& writer) const;
 
   net::Stats GetServerStats() const;
 
   void AddHandler(const handlers::HttpHandlerBase& handler,
                   engine::TaskProcessor& task_processor);
 
-  size_t GetRegisteredHandlersCount() const;
+  size_t GetThrottlableHandlersCount() const;
 
   const http::HttpRequestHandler& GetHttpRequestHandler(
       bool is_monitor = false) const;

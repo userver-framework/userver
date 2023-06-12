@@ -6,7 +6,9 @@
 #include <userver/logging/log.hpp>
 #include <userver/utils/algo.hpp>
 #include <userver/utils/assert.hpp>
-#include "userver/storages/redis/impl/base.hpp"
+
+#include <storages/redis/impl/command.hpp>
+#include <userver/storages/redis/impl/base.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -46,7 +48,12 @@ ConnectionSecurity ConnectionInfoInt::GetConnectionSecurity() const {
 const std::string& ConnectionInfoInt::Fulltext() const { return fulltext_; }
 
 void ConnectionInfoInt::Connect(Redis& instance) const {
-  instance.Connect(conn_info_.host, conn_info_.port, conn_info_.password);
+  if (conn_info_.resolved_host.empty()) {
+    instance.Connect({conn_info_.host}, conn_info_.port, conn_info_.password);
+    return;
+  }
+  instance.Connect(conn_info_.resolved_host, conn_info_.port,
+                   conn_info_.password);
 }
 
 bool operator==(const ConnectionInfoInt& lhs, const ConnectionInfoInt& rhs) {
@@ -188,6 +195,7 @@ std::shared_ptr<Redis> Shard::GetInstance(
     const auto& cur_inst = instances_[instance_idx].instance;
     if (cur_inst && !cur_inst->IsDestroying() &&
         (cur_inst->GetState() == Redis::State::kConnected) &&
+        !cur_inst->IsSyncing() &&
         (!instance || instance->IsDestroying() ||
          cur_inst->GetRunningCommands() < instance->GetRunningCommands())) {
       if (pinstance_idx) *pinstance_idx = instance_idx;
@@ -230,7 +238,7 @@ bool Shard::AsyncCommand(CommandPtr command) {
 
     /* If we force specific server, use it, don't fallback to any other server.
      * If we don't force specific server:
-     * 1) use best servers at the first attemp;
+     * 1) use best servers at the first attempt;
      * 2) fallback to any alive server if (1) failed.
      */
     bool may_fallback_to_any =
@@ -280,16 +288,19 @@ bool Shard::ProcessCreation(
   // again in UpdateCleanWaitQueue() these fields will remain unchanged.
 
   std::vector<ConnectionStatus> add_clean_wait;
+  add_clean_wait.reserve(need_to_create.size());
 
   // https://github.com/boostorg/signals2/issues/59
   // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDelete)
   for (const auto& id : need_to_create) {
+    const auto redis_settings = RedisCreationSettings{
+        id.GetConnectionSecurity(), cluster_mode_ && id.IsReadOnly()};
     ConnectionStatus entry{
         id, std::make_shared<Redis>(
                 redis_thread_pool,
                 // https://github.com/boostorg/signals2/issues/59
                 // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDelete)
-                cluster_mode_ && id.IsReadOnly(), id.GetConnectionSecurity())};
+                redis_settings)};
     if (auto commands_buffering_settings = commands_buffering_settings_.Get())
       entry.instance->SetCommandsBufferingSettings(
           *commands_buffering_settings);
@@ -341,6 +352,7 @@ bool Shard::ProcessStateUpdate() {
         case Redis::State::kDisconnected:
         case Redis::State::kDisconnectError:
         case Redis::State::kInitError:
+          /// elements will be destructed later outside of mutex scope
           erase_clean_wait.emplace_back(std::move(*info));
           info = clean_wait_.erase(info);
           break;
@@ -380,15 +392,17 @@ bool Shard::SetConnectionInfo(std::vector<ConnectionInfoInt> info_array) {
   return true;
 }
 
-ShardStatistics Shard::GetStatistics(bool master) const {
+ShardStatistics Shard::GetStatistics(bool master,
+                                     const MetricsSettings& settings) const {
   std::shared_lock lock(mutex_);
-  ShardStatistics stats;
+  ShardStatistics stats(settings);
 
   for (const auto& instance : instances_) {
     if (!instance.instance || instance.info.IsReadOnly() == master) continue;
-    stats.instances.emplace(
-        instance.info.Fulltext(),
-        redis::InstanceStatistics(instance.instance->GetStatistics()));
+    auto inst_stats =
+        redis::InstanceStatistics(settings, instance.instance->GetStatistics());
+    stats.shard_total.Add(inst_stats);
+    stats.instances.emplace(instance.info.Fulltext(), std::move(inst_stats));
     if (instance.instance->GetState() == Redis::State::kConnected) {
       stats.is_ready = true;
     }
@@ -433,6 +447,21 @@ void Shard::SetCommandsBufferingSettings(
 
   commands_buffering_settings_.Set(
       std::make_shared<CommandsBufferingSettings>(commands_buffering_settings));
+}
+
+void Shard::SetReplicationMonitoringSettings(
+    const ReplicationMonitoringSettings& replication_monitoring_settings) {
+  std::shared_lock lock(mutex_);
+
+  for (const auto& instance : instances_) {
+    instance.instance->SetReplicationMonitoringSettings(
+        replication_monitoring_settings);
+  }
+
+  for (const auto& instance : clean_wait_) {
+    instance.instance->SetReplicationMonitoringSettings(
+        replication_monitoring_settings);
+  }
 }
 
 std::vector<ConnectionInfoInt> Shard::GetConnectionInfosToCreate() const {

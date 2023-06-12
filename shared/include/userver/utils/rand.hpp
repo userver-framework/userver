@@ -31,6 +31,16 @@ class RandomBase {
 /// @warning Don't pass the returned `Random` across thread boundaries
 RandomBase& DefaultRandom();
 
+namespace impl {
+
+/// @brief Returns a thread-local UniformRandomBitGenerator for using in seed
+/// generating
+/// @note The provided `Random` instance is not cryptographically secure
+/// @warning Don't pass the returned `Random` across thread boundaries
+RandomBase& DefaultRandomForHashSeed();
+
+}  // namespace impl
+
 /// @brief Generates a random number in range [from, to)
 /// @note The used random generator is not cryptographically secure
 /// @note `from_inclusive` must be less than `to_exclusive`

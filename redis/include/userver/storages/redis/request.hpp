@@ -8,8 +8,6 @@
 #include <vector>
 
 #include <userver/storages/redis/impl/exception.hpp>
-#include <userver/utils/clang_format_workarounds.hpp>
-
 #include <userver/storages/redis/reply_types.hpp>
 #include <userver/storages/redis/request_data_base.hpp>
 #include <userver/storages/redis/scan_tag.hpp>
@@ -21,12 +19,12 @@ namespace storages::redis {
 template <ScanTag scan_tag>
 class RequestScanData;
 
-template <typename Result, typename ReplyType = impl::DefaultReplyType<Result>>
-class USERVER_NODISCARD Request final {
+template <typename Result, typename ReplyType = Result>
+class [[nodiscard]] Request final {
  public:
   using Reply = ReplyType;
 
-  explicit Request(std::unique_ptr<RequestDataBase<Result, ReplyType>>&& impl)
+  explicit Request(std::unique_ptr<RequestDataBase<ReplyType>>&& impl)
       : impl_(std::move(impl)) {}
 
   void Wait() { impl_->Wait(); }
@@ -49,7 +47,7 @@ class USERVER_NODISCARD Request final {
  private:
   ReplyPtr GetRaw() { return impl_->GetRaw(); }
 
-  std::unique_ptr<RequestDataBase<Result, ReplyType>> impl_;
+  std::unique_ptr<RequestDataBase<ReplyType>> impl_;
 };
 
 template <ScanTag scan_tag>
@@ -147,6 +145,7 @@ class ScanRequest final {
 using RequestAppend = Request<size_t>;
 using RequestDbsize = Request<size_t>;
 using RequestDel = Request<size_t>;
+using RequestUnlink = Request<size_t>;
 using RequestEvalCommon = Request<ReplyData>;
 using RequestEvalShaCommon = Request<ReplyData>;
 using RequestScriptLoad = Request<std::string>;
@@ -155,6 +154,7 @@ using RequestExists = Request<size_t>;
 using RequestExpire = Request<ExpireReply>;
 using RequestGeoadd = Request<size_t>;
 using RequestGeoradius = Request<std::vector<GeoPoint>>;
+using RequestGeosearch = Request<std::vector<GeoPoint>>;
 using RequestGet = Request<std::optional<std::string>>;
 using RequestGetset = Request<std::optional<std::string>>;
 using RequestHdel = Request<size_t>;

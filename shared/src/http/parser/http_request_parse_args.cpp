@@ -9,9 +9,9 @@ USERVER_NAMESPACE_BEGIN
 
 namespace http::parser {
 
-void ParseArgs(
-    std::string_view args,
-    std::unordered_map<std::string, std::vector<std::string>>& result) {
+void ParseArgs(std::string_view args,
+               std::unordered_map<std::string, std::vector<std::string>,
+                                  utils::StrCaseHash>& result) {
   ParseAndConsumeArgs(args, [&result](std::string key, std::string value) {
     result[std::move(key)].push_back(std::move(value));
   });

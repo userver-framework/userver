@@ -16,7 +16,7 @@ clients::dns::Resolver CreateResolver() {
 }
 
 std::shared_ptr<urabbitmq::Client> CreateClient(
-    userver::clients::dns::Resolver& resolver) {
+    clients::dns::Resolver& resolver) {
   return urabbitmq::Client::Create(resolver,
                                    urabbitmq::TestsHelper::CreateSettings());
 }

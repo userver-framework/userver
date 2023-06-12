@@ -3,6 +3,7 @@
 #include <optional>
 #include <string>
 #include <variant>
+#include <vector>
 
 #include <userver/server/handlers/auth/handler_auth_config.hpp>
 #include <userver/server/handlers/fallback_handlers.hpp>
@@ -35,10 +36,11 @@ struct HandlerConfig {
   UrlTrailingSlashOption url_trailing_slash{UrlTrailingSlashOption::kDefault};
   std::optional<size_t> max_requests_in_flight;
   std::optional<size_t> max_requests_per_second;
-  bool decompress_request{false};
+  bool decompress_request{true};
   bool throttling_enabled{true};
   bool response_body_stream{false};
   std::optional<bool> set_response_server_hostname;
+  bool set_tracing_headers{true};
 };
 
 HandlerConfig ParseHandlerConfigsWithDefaults(

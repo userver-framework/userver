@@ -35,15 +35,27 @@ All the components have the following options:
 @anchor static-configs-validation
 ### Static configs validation
 
-To validate static configs, define member function of your component 
-`GetStaticConfigSchema()` and specialize variable `components::kHasValidate`
+To validate static configs you only need to define member function of your component 
+`GetStaticConfigSchema()`
 
 @snippet components/component_sample_test.cpp  Sample user component schema
 
-@snippet components/component_sample_test.hpp  Sample kHasValidate specialization
-
 All schemas and sub-schemas must have `description` field and can have 
 `defaultDescription` field if they have a default value.
+
+Scope of static config validatoin can be specified by `validate_all_components` section of 
+`components_manager` config. To disable it use:
+
+```
+components_manager:
+    static_config_validation:
+        validate_all_components: false
+```
+
+You also can force static config validation of your component by adding `components::kHasValidate`
+
+@snippet components/component_sample_test.hpp  Sample kHasValidate specialization
+
 @note There are plans to use it to generate documentation.
 
 Supported types:
@@ -70,8 +82,10 @@ component is guaranteed to outlive the component that is being constructed.
 ## Components construction order
 utils::DaemonMain, components::Run or components::RunOnce
 start all the components from the passed components::ComponentList.
-Each component is constructed in a separate engine::Task which makes them
-initialize concurrently. This is a useful feature, for examples in cases
+Each component is constructed in a separate engine::Task on the default
+task processor and is initialized concurrently with other components.
+
+This is a useful feature, for examples in cases
 with multiple caches that slowly read from different databases.
 
 To make component *A* depend on component *B* just call
@@ -151,7 +165,7 @@ help of @ref md_en_userver_functional_testing "testsuite functional tests".
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref md_en_userver_tutorial_redis_service | @ref userver_clients ⇨
+⇦ @ref md_en_userver_tutorial_auth_postgres | @ref userver_clients ⇨
 @htmlonly </div> @endhtmlonly
 
 @example components/component_sample_test.hpp

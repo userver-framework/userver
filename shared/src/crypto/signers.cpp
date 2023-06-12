@@ -3,13 +3,13 @@
 #include <climits>
 
 #include <cryptopp/dsa.h>
+#include <openssl/cms.h>
 #include <openssl/crypto.h>
 #include <openssl/evp.h>
 #include <openssl/rsa.h>
 
 #include <crypto/helpers.hpp>
 #include <crypto/openssl.hpp>
-#include <userver/crypto/hash.hpp>
 #include <userver/utils/assert.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -48,6 +48,52 @@ std::string ConvertEcSignature(const std::string& der_signature,
     throw SignError("Failed to sign: signature format conversion failed");
   }
   return converted_signature;
+}
+
+int ToNativeCmsFlags(utils::Flags<CmsSigner::Flags> flags) {
+  int native = 0;
+
+  using SignFlags = CmsSigner::Flags;
+  if (flags & SignFlags::kText) {
+    native |= CMS_TEXT;
+  }
+  if (flags & SignFlags::kNoCerts) {
+    native |= CMS_NOCERTS;
+  }
+  if (flags & SignFlags::kDetached) {
+    native |= CMS_DETACHED;
+  }
+  if (flags & SignFlags::kBinary) {
+    native |= CMS_BINARY;
+  }
+
+  return native;
+}
+
+void OutputCmsContent(BIO& to, CMS_ContentInfo& cms,
+                      CmsSigner::OutForm out_form) {
+  using OutForm = CmsSigner::OutForm;
+  switch (out_form) {
+    case OutForm::kDer: {
+      if (!i2d_CMS_bio(&to, &cms)) {
+        throw SignError{FormatSslError("Failed to sign: i2d_CMS_bio")};
+      }
+      break;
+    }
+    case OutForm::kPem: {
+      if (!PEM_write_bio_CMS_stream(&to, &cms, nullptr, 0)) {
+        throw SignError{
+            FormatSslError("Failed to sign: PEM_write_bio_CMS_stream")};
+      }
+      break;
+    }
+    case OutForm::kSMime: {
+      if (!SMIME_write_CMS(&to, &cms, nullptr, 0)) {
+        throw SignError{FormatSslError("Failed to sign: SMIME_write_CMS")};
+      }
+      break;
+    }
+  }
 }
 
 }  // namespace
@@ -177,7 +223,7 @@ std::string DsaSigner<type, bits>::SignDigest(std::string_view digest) const {
     throw SignError("Invalid digest size for " + Name() + " signer");
   }
 
-  std::unique_ptr<EVP_PKEY_CTX, decltype(&EVP_PKEY_CTX_free)> pkey_ctx(
+  const std::unique_ptr<EVP_PKEY_CTX, decltype(&EVP_PKEY_CTX_free)> pkey_ctx(
       EVP_PKEY_CTX_new(pkey_.GetNative(), nullptr), EVP_PKEY_CTX_free);
   if (!pkey_ctx) {
     throw SignError(FormatSslError("Failed to sign digest: EVP_PKEY_CTX_new"));
@@ -229,6 +275,48 @@ template class DsaSigner<DsaType::kRsaPss, DigestSize::k160>;
 template class DsaSigner<DsaType::kRsaPss, DigestSize::k256>;
 template class DsaSigner<DsaType::kRsaPss, DigestSize::k384>;
 template class DsaSigner<DsaType::kRsaPss, DigestSize::k512>;
+
+CmsSigner::CmsSigner(Certificate certificate, PrivateKey pkey)
+    : NamedAlgo{"CMS"}, cert_{std::move(certificate)}, pkey_{std::move(pkey)} {}
+
+CmsSigner::~CmsSigner() = default;
+
+std::string CmsSigner::Sign(std::initializer_list<std::string_view> data,
+                            utils::Flags<Flags> flags, OutForm out_form) const {
+  const auto native_flags = ToNativeCmsFlags(flags);
+
+  const auto data_string = InitListToString(data);
+  const auto bio_data = MakeBioString(data_string);
+  if (!bio_data) {
+    throw SignError{FormatSslError("Failed to sign: MakeBioString")};
+  }
+
+  const std::unique_ptr<CMS_ContentInfo, decltype(&CMS_ContentInfo_free)>
+      cms_content{CMS_sign(cert_.GetNative(), pkey_.GetNative(), nullptr,
+                           bio_data.get(), native_flags),
+                  CMS_ContentInfo_free};
+  if (!cms_content) {
+    throw SignError{FormatSslError("Failed to sign: CMS_sign")};
+  }
+
+  const std::unique_ptr<BIO, decltype(&BIO_free_all)> bio_output{
+      BIO_new(BIO_s_mem()), BIO_free_all};
+  if (!bio_output) {
+    throw SignError{FormatSslError("Failed to sign: BIO_new(BIO_s_mem())")};
+  }
+
+  OutputCmsContent(*bio_output, *cms_content, out_form);
+
+  char* output_data = nullptr;
+  // Some openssl macro with c-style (as expected) casts
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast)
+  const auto output_len = BIO_get_mem_data(bio_output.get(), &output_data);
+  if (!output_data || output_len < 0) {
+    throw SignError{FormatSslError("Failed to sign: BIO_get_mem_data")};
+  }
+
+  return std::string(output_data, output_len);
+}
 
 }  // namespace crypto
 

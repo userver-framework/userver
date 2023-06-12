@@ -25,25 +25,23 @@ TEST(Deadline, Passed) {
 }
 
 TEST(Deadline, Overflow) {
-  // This duration will overflow on converting to steady_clock
-  // duration
+  // This duration will overflow on conversion to steady_clock::duration.
   const auto very_large_duration = std::chrono::hours::max();
   EXPECT_FALSE(
       engine::Deadline::FromDuration(very_large_duration).IsReachable());
 }
 
+// In Release mode the overflow will cause UB.
+#ifndef NDEBUG
 TEST(DeadlineDeathTest, Overflow) {
-  // This duration will not overflow when converting between durations, but
-  // will overflow timepoint
-  // UASSERT will cause test to die.
+  // This duration will not overflow steady_clock::duration,
+  // but will overflow steady_clock::time_point.
   const auto duration_to_overflow_time_point =
       engine::Deadline::Duration::max();
-  ASSERT_DEATH(
-      {
-        engine::Deadline::FromDuration(duration_to_overflow_time_point)
-            .IsReachable();
-      },
-      "");
+  UEXPECT_DEATH(engine::Deadline::FromDuration(duration_to_overflow_time_point)
+                    .IsReachable(),
+                "");
 }
+#endif
 
 USERVER_NAMESPACE_END

@@ -9,9 +9,16 @@ USERVER_NAMESPACE_BEGIN
 
 namespace utils::statistics {
 
+// NOLINTNEXTLINE(bugprone-forward-declaration-namespace)
 class Storage;
+
+// TODO remove
+struct StatisticsRequest;
+
+// NOLINTNEXTLINE(bugprone-forward-declaration-namespace)
+class Request;
+
 class Entry;
-class StatisticsRequest;
 class Writer;
 
 class MetricsStorage;

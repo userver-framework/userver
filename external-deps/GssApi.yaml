@@ -1,5 +1,4 @@
 name: GssApi
-helper-prefix: false
 
 debian-names:
   - libkrb5-dev

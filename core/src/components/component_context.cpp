@@ -64,10 +64,10 @@ void ComponentContext::ThrowNonRegisteredComponent(
   impl_->ThrowNonRegisteredComponent(name, type);
 }
 
-void ComponentContext::ThrowComponentTypeMissmatch(
+void ComponentContext::ThrowComponentTypeMismatch(
     std::string_view name, std::string_view type,
     impl::ComponentBase* component) const {
-  impl_->ThrowComponentTypeMissmatch(name, type, component);
+  impl_->ThrowComponentTypeMismatch(name, type, component);
 }
 
 impl::ComponentBase* ComponentContext::DoFindComponent(

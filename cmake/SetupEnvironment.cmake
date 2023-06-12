@@ -5,12 +5,16 @@ message(STATUS "C++ compiler: ${CMAKE_CXX_COMPILER}")
 
 set(CMAKE_MODULE_PATH
   ${CMAKE_MODULE_PATH}
-  ${CMAKE_CURRENT_LIST_DIR}
-  ${CMAKE_BINARY_DIR}/cmake_generated
+  "${CMAKE_CURRENT_LIST_DIR}"
+  "${CMAKE_BINARY_DIR}"
+  "${CMAKE_BINARY_DIR}/cmake_generated"
 )
 
 set (CMAKE_EXPORT_COMPILE_COMMANDS ON)
+if (NOT DEFINED CMAKE_CXX_STANDARD)
 set (CMAKE_CXX_STANDARD 17)
+endif()
+message(STATUS "C++ standard ${CMAKE_CXX_STANDARD}")
 set (CMAKE_CXX_STANDARD_REQUIRED ON)
 set (CMAKE_CXX_EXTENSIONS OFF)
 set (CMAKE_VISIBILITY_INLINES_HIDDEN ON)
@@ -49,7 +53,7 @@ add_compile_options ("-pipe" "-fPIC")
 add_definitions ("-DPIC")
 add_definitions(-DUSERVER)
 
-option(USERVER_NO_WERROR "Do not treat warnings as errors" ${USERVER_OPEN_SOURCE_BUILD})
+option(USERVER_NO_WERROR "Do not treat warnings as errors" ON)
 if (NOT USERVER_NO_WERROR)
   message(STATUS "Forcing warnings as errors!")
   add_compile_options ("-Werror")
@@ -65,7 +69,6 @@ add_compile_options ("-Wall" "-Wextra" "-Wpedantic")
 
 if (CMAKE_SYSTEM_NAME MATCHES "Darwin")
   set(MACOS found)
-  set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_LIST_DIR}/macos)
   # disable pkg-config as it's broken by homebrew -- TAXICOMMON-2264
   set(PKG_CONFIG_EXECUTABLE "")
 endif()
@@ -120,9 +123,9 @@ if(NOT HAS_CXX17_VARIANT)
   message(FATAL_ERROR "You have an outdated standard C++ library")
 endif(NOT HAS_CXX17_VARIANT)
 
-if (MACOS)
+if(MACOS AND NOT USERVER_CONAN)
     set(Boost_NO_BOOST_CMAKE ON)
-endif(MACOS)
+endif()
 find_package(Boost REQUIRED)
 
 add_cxx_compile_options_if_supported ("-ftemplate-backtrace-limit=0")

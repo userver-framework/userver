@@ -14,16 +14,18 @@
 
 #include <fmt/format.h>
 #include <boost/filesystem/operations.hpp>
+#include <boost/pfr/core.hpp>
 #include <boost/system/error_code.hpp>
 
-#include <userver/formats/json/value.hpp>
-#include <userver/formats/json/value_builder.hpp>
 #include <userver/fs/blocking/read.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/from_string.hpp>
+#include <userver/utils/statistics/writer.hpp>
 
 USERVER_NAMESPACE_BEGIN
+
+namespace utils::statistics::impl {
 
 namespace {
 
@@ -38,14 +40,10 @@ void MergeSingleStat(std::optional<T>& to, std::optional<T> from) {
   }
 }
 
-void Merge(utils::statistics::impl::SystemStats& to,
-           const utils::statistics::impl::SystemStats& from) {
-  MergeSingleStat(to.cpu_time_sec, from.cpu_time_sec);
-  MergeSingleStat(to.rss_kb, from.rss_kb);
-  MergeSingleStat(to.open_files, from.open_files);
-  MergeSingleStat(to.major_pagefaults, from.major_pagefaults);
-  MergeSingleStat(to.io_read_bytes, from.io_read_bytes);
-  MergeSingleStat(to.io_write_bytes, from.io_write_bytes);
+void Merge(SystemStats& to, const SystemStats& from) {
+  boost::pfr::for_each_field(from, [&to](auto from_field, auto index) {
+    MergeSingleStat(boost::pfr::get<decltype(index){}>(to), from_field);
+  });
 }
 
 bool IsProcStatMatchesName(std::string_view data, std::string_view name) {
@@ -60,8 +58,7 @@ bool IsAllDigits(const boost::filesystem::path& path) {
                      [](char c) { return c >= '0' && c <= '9'; });
 }
 
-void ParseProcStat(std::string_view data,
-                   utils::statistics::impl::SystemStats& stats) {
+void ParseProcStat(std::string_view data, SystemStats& stats) {
   static const auto kTicksPerSecond = sysconf(_SC_CLK_TCK);
   static const auto kPageSizeKb = sysconf(_SC_PAGESIZE) / 1024;
 
@@ -125,8 +122,7 @@ void ParseProcStat(std::string_view data,
   }
 }
 
-void ParseProcStatIo(std::string_view data,
-                     utils::statistics::impl::SystemStats& stats) {
+void ParseProcStatIo(std::string_view data, SystemStats& stats) {
   static constexpr std::string_view kReadBytesHeader = "read_bytes: ";
   static constexpr std::string_view kWriteBytesHeader = "write_bytes: ";
 
@@ -134,7 +130,7 @@ void ParseProcStatIo(std::string_view data,
   while (pos < data.size()) {
     auto next_newline_pos = std::min(data.find('\n', pos), data.size());
 
-    const auto parse_if_matches = [=](std::optional<int64_t>& field,
+    const auto parse_if_matches = [=](std::optional<std::int64_t>& field,
                                       std::string_view header) {
       if (data.substr(pos, header.size()) != header) return;
 
@@ -152,9 +148,8 @@ void ParseProcStatIo(std::string_view data,
   }
 }
 
-utils::statistics::impl::SystemStats GetSystemStatisticsByProcPath(
-    std::string_view path) {
-  utils::statistics::impl::SystemStats stats;
+SystemStats GetSystemStatisticsByProcPath(std::string_view path) {
+  SystemStats stats;
   try {
     ParseProcStat(fs::blocking::ReadFileContents(fmt::format("{}/stat", path)),
                   stats);
@@ -185,8 +180,7 @@ utils::statistics::impl::SystemStats GetSystemStatisticsByProcPath(
   return stats;
 }
 
-utils::statistics::impl::SystemStats GetSystemStatisticsByExeNameFromProc(
-    std::string_view name) {
+SystemStats GetSystemStatisticsByExeNameFromProc(std::string_view name) {
   boost::system::error_code ec;
   boost::filesystem::directory_iterator it("/proc", ec);
   if (ec) {
@@ -195,7 +189,7 @@ utils::statistics::impl::SystemStats GetSystemStatisticsByExeNameFromProc(
     return {};
   }
 
-  utils::statistics::impl::SystemStats cumulative;
+  SystemStats cumulative;
   for (; !ec && it != boost::filesystem::directory_iterator{};
        it.increment(ec)) {
     if (!boost::filesystem::is_directory(it->status())) continue;
@@ -263,22 +257,19 @@ utils::statistics::impl::SystemStats GetSelfSystemStatisticsFromKernel() {
 
 }  // namespace
 
-namespace utils::statistics::impl {
-
-formats::json::Value Serialize(utils::statistics::impl::SystemStats stats,
-                               formats::serialize::To<formats::json::Value>) {
-  formats::json::ValueBuilder json{formats::json::Type::kObject};
-
-  if (stats.cpu_time_sec) json["cpu_time_sec"] = *stats.cpu_time_sec;
-  if (stats.rss_kb) json["rss_kb"] = *stats.rss_kb;
-  if (stats.open_files) json["open_files"] = *stats.open_files;
-  if (stats.major_pagefaults)
-    json["major_pagefaults"] = *stats.major_pagefaults;
-  if (stats.io_read_bytes) json["io_read_bytes"] = *stats.io_read_bytes;
-  if (stats.io_write_bytes) json["io_write_bytes"] = *stats.io_write_bytes;
-
-  return json.ExtractValue();
+void DumpMetric(Writer& writer, const SystemStats& stats) {
+  const auto put_field = [&writer](std::string_view name, const auto& value) {
+    if (value) writer[name] = *value;
+  };
+  put_field("cpu_time_sec", stats.cpu_time_sec);
+  put_field("rss_kb", stats.rss_kb);
+  put_field("open_files", stats.open_files);
+  put_field("major_pagefaults", stats.major_pagefaults);
+  put_field("io_read_bytes", stats.io_read_bytes);
+  put_field("io_write_bytes", stats.io_write_bytes);
 }
+
+static_assert(kHasWriterSupport<SystemStats>);
 
 SystemStats GetSelfSystemStatistics() {
 #if defined(__linux__)

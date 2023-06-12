@@ -2,9 +2,9 @@
 
 #include <algorithm>  // for std::min
 
-#include <boost/functional/hash.hpp>
-
 #include <userver/utils/rand.hpp>
+
+#include <utils/impl/byte_utils.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -17,19 +17,35 @@ static_assert((static_cast<std::size_t>('a') | kUppercaseToLowerMask) == 'a');
 static_assert((static_cast<std::size_t>('z') | kUppercaseToLowerMask) == 'z');
 
 StrIcaseHash::StrIcaseHash()
-    : seed_(std::uniform_int_distribution<std::size_t>{}(DefaultRandom())) {}
+    : StrIcaseHash{HashSeed{std::uniform_int_distribution<std::uint64_t>{}(
+                                impl::DefaultRandomForHashSeed()),
+                            std::uniform_int_distribution<std::uint64_t>{}(
+                                impl::DefaultRandomForHashSeed())}} {}
 
-StrIcaseHash::StrIcaseHash(std::size_t seed) noexcept : seed_(seed) {}
+StrIcaseHash::StrIcaseHash(HashSeed seed) noexcept : seed_{seed} {}
 
 std::size_t StrIcaseHash::operator()(std::string_view s) const& noexcept {
-  // NOTE: a random seed, mixed "well enough" into string hash, should make it
-  // resistant to HashDOS attacks. That is, it should make deliberate generation
-  // of collisions infeasible.
-  std::size_t res = seed_;
-  for (const char c : s) {
-    boost::hash_combine(res, static_cast<char>(c | kUppercaseToLowerMask));
-  }
-  return res;
+  // Out implementation of siphash returns 64bit hash and under 32 bits
+  // systems it gets truncated to size_t here, which might be problematic,
+  // but I'm not certain.
+  // TODO : TAXICOMMON-6397, think about this
+  return impl::CaseInsensitiveSipHasher{seed_.k0, seed_.k1}(s);
+}
+
+StrCaseHash::StrCaseHash()
+    : StrCaseHash{HashSeed{std::uniform_int_distribution<std::uint64_t>{}(
+                               impl::DefaultRandomForHashSeed()),
+                           std::uniform_int_distribution<std::uint64_t>{}(
+                               impl::DefaultRandomForHashSeed())}} {}
+
+StrCaseHash::StrCaseHash(HashSeed seed) noexcept : seed_{seed} {}
+
+std::size_t StrCaseHash::operator()(std::string_view s) const& noexcept {
+  // Out implementation of siphash returns 64bit hash and under 32 bits
+  // systems it gets truncated to size_t here, which might be problematic,
+  // but I'm not certain.
+  // TODO : TAXICOMMON-6397, think about this
+  return impl::SipHasher{seed_.k0, seed_.k1}(s);
 }
 
 int StrIcaseCompareThreeWay::operator()(std::string_view lhs,
@@ -53,8 +69,7 @@ int StrIcaseCompareThreeWay::operator()(std::string_view lhs,
 
 bool StrIcaseEqual::operator()(std::string_view lhs, std::string_view rhs) const
     noexcept {
-  if (lhs.size() != rhs.size()) return false;
-  return StrIcaseCompareThreeWay{}(lhs, rhs) == 0;
+  return impl::CaseInsensitiveEqual{}(lhs, rhs);
 }
 
 bool StrIcaseLess::operator()(std::string_view lhs, std::string_view rhs) const

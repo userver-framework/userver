@@ -20,7 +20,9 @@ namespace server::handlers {
 
 /// @ingroup userver_components userver_http_handlers
 ///
-/// @brief Handler that allows to control the behavior of server from tests.
+/// @brief Handler that allows to control the behavior of server from tests,
+/// and @ref md_en_userver_functional_testing "functional tests with testsuite"
+/// in particular.
 ///
 /// It is highly recommended to disable this handle in production via the
 /// @ref userver_components "load-enabled: false" option.
@@ -42,11 +44,11 @@ namespace server::handlers {
 /// @snippet components/common_server_component_list_test.cpp  Sample tests control component config
 ///
 /// ## Scheme
-/// The scheme matches the https://yandex.github.io/yandex-taxi-testsuite/
-/// expectations from `/tests/control` handle. In particular:
+/// Main user of the scheme is the pytest_userver.client.Client python class.
+/// In particular:
 /// @code
 /// {
-///     "action": "run_periodic_task" | "suspend_periodic_tasks" | "write_cache_dumps" | "read_cache_dumps"
+///     "action": "run_periodic_task" | "suspend_periodic_tasks" | "write_cache_dumps" | "read_cache_dumps" | "metrics_portability"
 ///     "testpoints": [<list of testpoints to register>]
 ///     "reset_metrics": true | false
 ///     "mock_now": <time in utils::datetime::Stringtime() acceptable format>
@@ -55,6 +57,8 @@ namespace server::handlers {
 ///     <...>
 /// }
 /// @endcode
+///
+/// @see @ref md_en_userver_functional_testing
 
 // clang-format on
 class TestsControl final : public HttpHandlerJsonBase {
@@ -63,6 +67,8 @@ class TestsControl final : public HttpHandlerJsonBase {
                const components::ComponentContext& component_context);
   ~TestsControl() override;
 
+  /// @ingroup userver_component_names
+  /// @brief The default name of server::handlers::TestsControl
   static constexpr std::string_view kName = "tests-control";
 
   formats::json::Value HandleRequestJsonThrow(

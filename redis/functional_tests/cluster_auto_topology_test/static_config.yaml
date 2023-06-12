@@ -1,0 +1,76 @@
+# yaml
+components_manager:
+    components:
+        handler-cluster:
+            db: redis-cluster
+            path: /redis-cluster
+            task_processor: main-task-processor
+            method: GET,DELETE,POST
+
+        key-value-database:
+            groups:
+              - config_name: redis-cluster
+                db: redis-cluster
+                sharding_strategy: RedisCluster
+            subscribe_groups: []
+            thread_pools:
+                redis_thread_pool_size: 2
+                sentinel_thread_pool_size: 1
+
+        testsuite-support:
+
+        http-client:
+            fs-task-processor: main-task-processor
+
+        tests-control:
+            method: POST
+            path: /tests/{action}
+            skip-unregistered-testpoints: true
+            task_processor: main-task-processor
+            testpoint-timeout: 10s
+            testpoint-url: $mockserver/testpoint
+            throttling_enabled: false
+
+        secdist: {}
+        default-secdist-provider:
+            config: /etc/redis_service/secure_data.json
+            missing-ok: true
+            environment-secrets-key: SECDIST_CONFIG
+
+        server:
+            listener:
+                port: 8187
+                task_processor: main-task-processor
+        logging:
+            fs-task-processor: fs-task-processor
+            loggers:
+                default:
+                    file_path: '@stderr'
+                    level: debug
+                    overflow_behavior: discard
+
+        tracer:
+            service-name: postgres-basic-chaos
+
+        dynamic-config:
+            fs-cache-path: ''
+        dynamic-config-fallbacks:
+            fallback-path: /etc/postgres_basic_chaos/dynamic_config_fallback.json
+        dns-client:
+            fs-task-processor: fs-task-processor
+    coro_pool:
+        initial_size: 500
+        max_size: 1000
+
+    task_processors:
+        main-task-processor:
+            worker_threads: 4
+            thread_name: main-worker
+
+        fs-task-processor:
+            thread_name: fs-worker
+            worker_threads: 4
+
+    default_task_processor: main-task-processor
+userver_experiments:
+  - redis-cluster-autotopology

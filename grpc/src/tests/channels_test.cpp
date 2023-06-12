@@ -1,8 +1,11 @@
 #include <userver/ugrpc/client/channels.hpp>
 
+#include <userver/dynamic_config/storage_mock.hpp>
+#include <userver/dynamic_config/test_helpers.hpp>
 #include <userver/engine/async.hpp>
 #include <userver/engine/sleep.hpp>
 #include <userver/engine/task/task.hpp>
+#include <userver/logging/null_logger.hpp>
 #include <userver/utest/utest.hpp>
 #include <userver/utils/statistics/storage.hpp>
 
@@ -43,6 +46,8 @@ UTEST_P_MT(GrpcChannels, TryWaitForConnected, 2) {
   constexpr auto kServerStartDelay = 100ms;
   constexpr auto kMaxServerStartTime = 500ms;
   utils::statistics::Storage statistics_storage;
+  dynamic_config::StorageMock config_storage{
+      dynamic_config::MakeDefaultStorage({})};
 
   auto client_task = engine::AsyncNoSpan([&] {
     ugrpc::client::ClientFactoryConfig config;
@@ -50,14 +55,17 @@ UTEST_P_MT(GrpcChannels, TryWaitForConnected, 2) {
     config.channel_count = GetParam();
     ugrpc::client::QueueHolder client_queue;
 
+    testsuite::GrpcControl ts({}, false);
+    ugrpc::client::MiddlewareFactories mws;
     ugrpc::client::ClientFactory client_factory(
-        std::move(config), engine::current_task::GetTaskProcessor(),
-        client_queue.GetQueue(), statistics_storage);
+        std::move(config), engine::current_task::GetTaskProcessor(), mws,
+        client_queue.GetQueue(), statistics_storage, ts,
+        config_storage.GetSource());
 
     const auto endpoint = fmt::format("[::1]:{}", kPort);
     auto client =
         client_factory.MakeClient<sample::ugrpc::UnitTestServiceClient>(
-            endpoint);
+            "test", endpoint);
 
     // TryWaitForConnected should wait for the server to start and return 'true'
     EXPECT_TRUE(ugrpc::client::TryWaitForConnected(
@@ -79,8 +87,11 @@ UTEST_P_MT(GrpcChannels, TryWaitForConnected, 2) {
   engine::SleepFor(kServerStartDelay);
 
   UnitTestServiceSimple service;
-  ugrpc::server::Server server(MakeServerConfig(), statistics_storage);
-  server.AddService(service, engine::current_task::GetTaskProcessor());
+  ugrpc::server::Server server(MakeServerConfig(), statistics_storage,
+                               logging::MakeNullLogger(),
+                               config_storage.GetSource());
+  ugrpc::server::Middlewares mws;
+  server.AddService(service, engine::current_task::GetTaskProcessor(), mws);
   server.Start();
   client_task.Get();
   server.Stop();

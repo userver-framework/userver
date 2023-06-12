@@ -31,6 +31,14 @@ void RpcStatisticsScope::OnNetworkError() {
   finish_kind_ = std::max(finish_kind_, FinishKind::kNetworkError);
 }
 
+void RpcStatisticsScope::CancelledByDeadlinePropagation() {
+  finish_kind_ = std::max(finish_kind_, FinishKind::kDeadlinePropagation);
+}
+
+void RpcStatisticsScope::OnDeadlinePropagated() {
+  statistics_.AccountDeadlinePropagated();
+}
+
 void RpcStatisticsScope::AccountStatus() {
   switch (finish_kind_) {
     case FinishKind::kAutomatic:
@@ -42,6 +50,9 @@ void RpcStatisticsScope::AccountStatus() {
       break;
     case FinishKind::kNetworkError:
       statistics_.AccountNetworkError();
+      break;
+    case FinishKind::kDeadlinePropagation:
+      statistics_.AccountCancelledByDeadlinePropagation();
       break;
     default:
       UASSERT_MSG(false, "Invalid FinishKind");

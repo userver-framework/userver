@@ -23,9 +23,6 @@ std::optional<std::size_t> DoWaitAny(
   if (none_valid) return std::nullopt;
 
   auto& current = current_task::GetCurrentTaskContext();
-  if (current.ShouldCancel()) {
-    throw WaitInterruptedException(current.CancellationReason());
-  }
   WaitAnyWaitStrategy wait_strategy(deadline, targets, current);
   current.Sleep(wait_strategy);
 

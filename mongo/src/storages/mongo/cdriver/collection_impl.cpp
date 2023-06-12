@@ -5,10 +5,13 @@
 
 #include <userver/formats/bson/document.hpp>
 #include <userver/formats/bson/inline.hpp>
+#include <userver/server/request/task_inherited_data.hpp>
 #include <userver/storages/mongo/exception.hpp>
 #include <userver/storages/mongo/mongo_error.hpp>
 #include <userver/tracing/span.hpp>
+#include <userver/tracing/tags.hpp>
 #include <userver/utils/assert.hpp>
+#include <userver/utils/impl/userver_experiments.hpp>
 #include <userver/utils/text.hpp>
 
 #include <formats/bson/wrappers.hpp>
@@ -22,6 +25,9 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::mongo::impl::cdriver {
 namespace {
+
+const std::string kCancelledByDeadlineTag = "cancelled_by_deadline";
+const std::string kMaxTimeMsTag = "max_time_ms";
 
 class WriteResultHelper {
  public:
@@ -104,6 +110,73 @@ impl::cdriver::FindAndModifyOptsPtr CopyFindAndModifyOptions(
   return result;
 }
 
+std::optional<std::chrono::milliseconds> GetDeadlineTimeLeft(
+    const dynamic_config::Snapshot& config) {
+  if (utils::impl::kMongoDeadlinePropagationExperiment.IsEnabled() &&
+      config[kDeadlinePropagationEnabled]) {
+    const auto inherited_deadline = server::request::GetTaskInheritedDeadline();
+    if (inherited_deadline.IsReachable()) {
+      const auto inherited_timeout =
+          std::chrono::duration_cast<std::chrono::milliseconds>(
+              inherited_deadline.TimeLeftApprox());
+      return inherited_timeout;
+    }
+  }
+  return std::nullopt;
+}
+
+std::chrono::milliseconds ComputeAdjustedMaxServerTime(
+    std::chrono::milliseconds user_max_server_time,
+    const RequestContext& context) {
+  auto max_server_time = user_max_server_time;
+  try {
+    operations::VerifyMaxServerTime(max_server_time);
+  } catch (const InvalidQueryArgumentException& /*ex*/) {
+    context.stats->Account(stats::ErrorType::kBadQueryArgument);
+    throw;
+  }
+
+  if (max_server_time == operations::kNoMaxServerTime) {
+    max_server_time = context.dynamic_config[kDefaultMaxTime];
+  }
+
+  if (auto inherited_deadline = context.inherited_deadline) {
+    operations::VerifyMaxServerTime(*inherited_deadline);
+    if (max_server_time == operations::kNoMaxServerTime ||
+        *inherited_deadline < max_server_time) {
+      max_server_time = *inherited_deadline;
+    }
+  }
+
+  if (max_server_time != operations::kNoMaxServerTime) {
+    tracing::Span::CurrentSpan().AddTag(kMaxTimeMsTag, max_server_time.count());
+  }
+
+  return max_server_time;
+}
+
+void SetMaxServerTime(std::optional<formats::bson::impl::BsonBuilder>& builder,
+                      std::chrono::milliseconds max_server_time,
+                      const RequestContext& context) {
+  max_server_time = ComputeAdjustedMaxServerTime(max_server_time, context);
+  if (max_server_time == operations::kNoMaxServerTime) return;
+
+  constexpr std::string_view kOptionName = "maxTimeMS";
+  impl::EnsureBuilder(builder).Append(kOptionName, max_server_time.count());
+}
+
+void SetMaxServerTime(mongoc_find_and_modify_opts_t& options,
+                      std::chrono::milliseconds max_server_time,
+                      const RequestContext& context) {
+  max_server_time = ComputeAdjustedMaxServerTime(max_server_time, context);
+  if (max_server_time == operations::kNoMaxServerTime) return;
+
+  if (!mongoc_find_and_modify_opts_set_max_time_ms(&options,
+                                                   max_server_time.count())) {
+    throw MongoException("Cannot set max server time");
+  }
+}
+
 }  // namespace
 
 CDriverCollectionImpl::CDriverCollectionImpl(PoolImplPtr pool_impl,
@@ -116,101 +189,96 @@ CDriverCollectionImpl::CDriverCollectionImpl(PoolImplPtr pool_impl,
   UASSERT(dynamic_cast<cdriver::CDriverPoolImpl*>(pool_impl_.get()));
 }
 
-size_t CDriverCollectionImpl::Execute(const operations::Count& count_op) const {
-  auto span = MakeSpan("mongo_count");
-  auto [client, collection] = GetCDriverCollection();
-  auto stats_ptr = statistics_->read[count_op.impl_->read_prefs_desc];
+size_t CDriverCollectionImpl::Execute(
+    const operations::Count& operation) const {
+  auto context = MakeRequestContext("mongo_count", operation);
+
+  auto options = operation.impl_->options;
+  SetMaxServerTime(options, operation.impl_->max_server_time, context);
 
   MongoError error;
-  stats::OperationStopwatch count_sw(stats_ptr,
-                                     stats::ReadOperationStatistics::kCount);
-  const bson_t* native_filter_bson_ptr = count_op.impl_->filter.GetBson().get();
+  stats::OperationStopwatch stopwatch(std::move(context.stats));
+  const bson_t* native_filter_bson_ptr =
+      operation.impl_->filter.GetBson().get();
   int64_t count = -1;
-  if (count_op.impl_->use_new_count) {
+  if (operation.impl_->use_new_count) {
     count = mongoc_collection_count_documents(
-        collection.get(), native_filter_bson_ptr,
-        impl::GetNative(count_op.impl_->options),
-        count_op.impl_->read_prefs.Get(), nullptr, error.GetNative());
+        context.collection.get(), native_filter_bson_ptr,
+        impl::GetNative(operation.impl_->options),
+        operation.impl_->read_prefs.Get(), nullptr, error.GetNative());
   } else {
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"  // i know
     count = mongoc_collection_count_with_opts(
-        collection.get(), MONGOC_QUERY_NONE, native_filter_bson_ptr,  //
+        context.collection.get(), MONGOC_QUERY_NONE, native_filter_bson_ptr,  //
         0, 0,  // skip and limit are set in options
-        impl::GetNative(count_op.impl_->options),
-        count_op.impl_->read_prefs.Get(), error.GetNative());
+        impl::GetNative(operation.impl_->options),
+        operation.impl_->read_prefs.Get(), error.GetNative());
 #pragma clang diagnostic pop
   }
   if (count < 0) {
-    count_sw.AccountError(error.GetKind());
+    stopwatch.AccountError(error.GetKind());
     error.Throw("Error counting documents");
   }
-  count_sw.AccountSuccess();
+  stopwatch.AccountSuccess();
   return count;
 }
 
 size_t CDriverCollectionImpl::Execute(
-    const operations::CountApprox& count_approx_op) const {
-  auto span = MakeSpan("mongo_count_approx");
-  auto [client, collection] = GetCDriverCollection();
-  auto stats_ptr = statistics_->read[count_approx_op.impl_->read_prefs_desc];
+    const operations::CountApprox& operation) const {
+  auto context = MakeRequestContext("mongo_count_approx", operation);
+
+  auto options = operation.impl_->options;
+  SetMaxServerTime(options, operation.impl_->max_server_time, context);
 
   MongoError error;
-  stats::OperationStopwatch count_approx_sw(
-      stats_ptr, stats::ReadOperationStatistics::kCountApprox);
+  stats::OperationStopwatch stopwatch(std::move(context.stats));
   auto count = mongoc_collection_estimated_document_count(
-      collection.get(), impl::GetNative(count_approx_op.impl_->options),
-      count_approx_op.impl_->read_prefs.Get(), nullptr, error.GetNative());
+      context.collection.get(), impl::GetNative(operation.impl_->options),
+      operation.impl_->read_prefs.Get(), nullptr, error.GetNative());
   if (count < 0) {
-    count_approx_sw.AccountError(error.GetKind());
+    stopwatch.AccountError(error.GetKind());
     error.Throw("Error counting documents");
   }
-  count_approx_sw.AccountSuccess();
+  stopwatch.AccountSuccess();
   return count;
 }
 
-Cursor CDriverCollectionImpl::Execute(const operations::Find& find_op) const {
-  auto span = MakeSpan("mongo_find");
-  auto [client, collection] = GetCDriverCollection();
-  auto stats_ptr = statistics_->read[find_op.impl_->read_prefs_desc];
+Cursor CDriverCollectionImpl::Execute(const operations::Find& operation) const {
+  auto context = MakeRequestContext("mongo_find", operation);
 
-  auto options = find_op.impl_->options;
-  bool has_comment_option = find_op.impl_->has_comment_option;
-  bool has_max_server_time_option = find_op.impl_->has_max_server_time_option;
-
+  auto options = operation.impl_->options;
+  SetMaxServerTime(options, operation.impl_->max_server_time, context);
+  bool has_comment_option = operation.impl_->has_comment_option;
   if (!has_comment_option)
     SetLinkComment(impl::EnsureBuilder(options), has_comment_option);
-  if (!has_max_server_time_option)
-    SetDefaultMaxServerTime(impl::EnsureBuilder(options),
-                            has_max_server_time_option);
 
-  const bson_t* native_filter_bson_ptr = find_op.impl_->filter.GetBson().get();
+  const bson_t* native_filter_bson_ptr =
+      operation.impl_->filter.GetBson().get();
   impl::cdriver::CursorPtr cdriver_cursor(mongoc_collection_find_with_opts(
-      collection.get(), native_filter_bson_ptr, impl::GetNative(options),
-      find_op.impl_->read_prefs.Get()));
+      context.collection.get(), native_filter_bson_ptr,
+      impl::GetNative(options), operation.impl_->read_prefs.Get()));
   return Cursor(std::make_unique<impl::cdriver::CDriverCursorImpl>(
-      std::move(client), std::move(cdriver_cursor), std::move(stats_ptr)));
+      std::move(context.client), std::move(cdriver_cursor),
+      std::move(context.stats)));
 }
 
 WriteResult CDriverCollectionImpl::Execute(
-    const operations::InsertOne& insert_op) {
-  auto span = MakeSpan("mongo_insert_one");
-  auto [client, collection] = GetCDriverCollection();
-  auto stats_ptr = statistics_->write[insert_op.impl_->write_concern_desc];
+    const operations::InsertOne& operation) {
+  auto context = MakeRequestContext("mongo_insert_one", operation);
 
   MongoError error;
   WriteResultHelper write_result;
-  stats::OperationStopwatch insert_sw(
-      stats_ptr, stats::WriteOperationStatistics::kInsertOne);
-  const bson_t* native_bson_ptr = insert_op.impl_->document.GetBson().get();
-  if (mongoc_collection_insert_one(collection.get(), native_bson_ptr,
-                                   impl::GetNative(insert_op.impl_->options),
+  stats::OperationStopwatch stopwatch(std::move(context.stats));
+  const bson_t* native_bson_ptr = operation.impl_->document.GetBson().get();
+  if (mongoc_collection_insert_one(context.collection.get(), native_bson_ptr,
+                                   impl::GetNative(operation.impl_->options),
                                    write_result.GetNative(),
                                    error.GetNative())) {
-    insert_sw.AccountSuccess();
+    stopwatch.AccountSuccess();
   } else {
-    insert_sw.AccountError(error.GetKind());
-    if (insert_op.impl_->should_throw || !error.IsServerError()) {
+    stopwatch.AccountError(error.GetKind());
+    if (operation.impl_->should_throw || !error.IsServerError()) {
       error.Throw("Error inserting document");
     }
   }
@@ -218,31 +286,28 @@ WriteResult CDriverCollectionImpl::Execute(
 }
 
 WriteResult CDriverCollectionImpl::Execute(
-    const operations::InsertMany& insert_op) {
-  auto span = MakeSpan("mongo_insert_many");
-  if (insert_op.impl_->documents.empty()) return {};
+    const operations::InsertMany& operation) {
+  if (operation.impl_->documents.empty()) return {};
+
+  auto context = MakeRequestContext("mongo_insert_many", operation);
 
   std::vector<const bson_t*> bsons;
-  bsons.reserve(insert_op.impl_->documents.size());
-  for (const auto& doc : insert_op.impl_->documents) {
+  bsons.reserve(operation.impl_->documents.size());
+  for (const auto& doc : operation.impl_->documents) {
     bsons.push_back(doc.GetBson().get());
   }
 
-  auto [client, collection] = GetCDriverCollection();
-  auto stats_ptr = statistics_->write[insert_op.impl_->write_concern_desc];
-
   MongoError error;
   WriteResultHelper write_result;
-  stats::OperationStopwatch insert_sw(
-      stats_ptr, stats::WriteOperationStatistics::kInsertMany);
+  stats::OperationStopwatch stopwatch(std::move(context.stats));
   if (mongoc_collection_insert_many(
-          collection.get(), bsons.data(), bsons.size(),
-          impl::GetNative(insert_op.impl_->options), write_result.GetNative(),
+          context.collection.get(), bsons.data(), bsons.size(),
+          impl::GetNative(operation.impl_->options), write_result.GetNative(),
           error.GetNative())) {
-    insert_sw.AccountSuccess();
+    stopwatch.AccountSuccess();
   } else {
-    insert_sw.AccountError(error.GetKind());
-    if (insert_op.impl_->should_throw || !error.IsServerError()) {
+    stopwatch.AccountError(error.GetKind());
+    if (operation.impl_->should_throw || !error.IsServerError()) {
       error.Throw("Error inserting documents");
     }
   }
@@ -250,28 +315,25 @@ WriteResult CDriverCollectionImpl::Execute(
 }
 
 WriteResult CDriverCollectionImpl::Execute(
-    const operations::ReplaceOne& replace_op) {
-  auto span = MakeSpan("mongo_replace_one");
-  auto [client, collection] = GetCDriverCollection();
-  auto stats_ptr = statistics_->write[replace_op.impl_->write_concern_desc];
+    const operations::ReplaceOne& operation) {
+  auto context = MakeRequestContext("mongo_replace_one", operation);
 
   MongoError error;
   WriteResultHelper write_result;
-  stats::OperationStopwatch replace_sw(
-      stats_ptr, stats::WriteOperationStatistics::kReplaceOne);
+  stats::OperationStopwatch stopwatch(std::move(context.stats));
   const bson_t* native_selector_bson_ptr =
-      replace_op.impl_->selector.GetBson().get();
+      operation.impl_->selector.GetBson().get();
   const bson_t* native_replacement_bson_ptr =
-      replace_op.impl_->replacement.GetBson().get();
-  if (mongoc_collection_replace_one(collection.get(), native_selector_bson_ptr,
-                                    native_replacement_bson_ptr,
-                                    impl::GetNative(replace_op.impl_->options),
-                                    write_result.GetNative(),
-                                    error.GetNative())) {
-    replace_sw.AccountSuccess();
+      operation.impl_->replacement.GetBson().get();
+  if (mongoc_collection_replace_one(
+          context.collection.get(), native_selector_bson_ptr,
+          native_replacement_bson_ptr,
+          impl::GetNative(operation.impl_->options), write_result.GetNative(),
+          error.GetNative())) {
+    stopwatch.AccountSuccess();
   } else {
-    replace_sw.AccountError(error.GetKind());
-    if (replace_op.impl_->should_throw || !error.IsServerError()) {
+    stopwatch.AccountError(error.GetKind());
+    if (operation.impl_->should_throw || !error.IsServerError()) {
       error.Throw("Error replacing document");
     }
   }
@@ -279,51 +341,46 @@ WriteResult CDriverCollectionImpl::Execute(
 }
 
 WriteResult CDriverCollectionImpl::Execute(
-    const operations::Update& update_op) {
-  auto span = MakeSpan("mongo_update");
-  auto [client, collection] = GetCDriverCollection();
-  auto stats_ptr = statistics_->write[update_op.impl_->write_concern_desc];
+    const operations::Update& operation) {
+  auto context = MakeRequestContext("mongo_update", operation);
 
-  bool should_retry_dupkey = update_op.impl_->should_retry_dupkey;
+  bool should_retry_dupkey = operation.impl_->should_retry_dupkey;
   while (true) {
     MongoError error;
     WriteResultHelper write_result;
-    stats::OperationStopwatch<stats::WriteOperationStatistics> update_sw;
+    stats::OperationStopwatch stopwatch(context.stats);
     const bson_t* native_selector_bson_ptr =
-        update_op.impl_->selector.GetBson().get();
+        operation.impl_->selector.GetBson().get();
     const bson_t* native_update_bson_ptr =
-        update_op.impl_->update.GetBson().get();
+        operation.impl_->update.GetBson().get();
     bool has_succeeded = false;
-    switch (update_op.impl_->mode) {
+    switch (operation.impl_->mode) {
       case operations::Update::Mode::kSingle:
-        update_sw.Reset(stats_ptr, stats::WriteOperationStatistics::kUpdateOne);
         has_succeeded = mongoc_collection_update_one(
-            collection.get(), native_selector_bson_ptr, native_update_bson_ptr,
-            impl::GetNative(update_op.impl_->options), write_result.GetNative(),
-            error.GetNative());
+            context.collection.get(), native_selector_bson_ptr,
+            native_update_bson_ptr, impl::GetNative(operation.impl_->options),
+            write_result.GetNative(), error.GetNative());
         break;
 
       case operations::Update::Mode::kMulti:
-        update_sw.Reset(stats_ptr,
-                        stats::WriteOperationStatistics::kUpdateMany);
         has_succeeded = mongoc_collection_update_many(
-            collection.get(), native_selector_bson_ptr, native_update_bson_ptr,
-            impl::GetNative(update_op.impl_->options), write_result.GetNative(),
-            error.GetNative());
+            context.collection.get(), native_selector_bson_ptr,
+            native_update_bson_ptr, impl::GetNative(operation.impl_->options),
+            write_result.GetNative(), error.GetNative());
         break;
     }
     if (has_succeeded) {
-      update_sw.AccountSuccess();
+      stopwatch.AccountSuccess();
     } else {
       auto error_kind = error.GetKind();
-      update_sw.AccountError(error_kind);
+      stopwatch.AccountError(error_kind);
       if (should_retry_dupkey &&
           error_kind == MongoError::Kind::kDuplicateKey) {
-        UASSERT(update_op.impl_->mode == operations::Update::Mode::kSingle);
+        UASSERT(operation.impl_->mode == operations::Update::Mode::kSingle);
         should_retry_dupkey = false;
         continue;
       }
-      if (update_op.impl_->should_throw || !error.IsServerError()) {
+      if (operation.impl_->should_throw || !error.IsServerError()) {
         error.Throw("Error updating documents");
       }
     }
@@ -332,39 +389,35 @@ WriteResult CDriverCollectionImpl::Execute(
 }
 
 WriteResult CDriverCollectionImpl::Execute(
-    const operations::Delete& delete_op) {
-  auto span = MakeSpan("mongo_delete");
-  auto [client, collection] = GetCDriverCollection();
-  auto stats_ptr = statistics_->write[delete_op.impl_->write_concern_desc];
+    const operations::Delete& operation) {
+  auto context = MakeRequestContext("mongo_delete", operation);
 
   MongoError error;
   WriteResultHelper write_result;
-  stats::OperationStopwatch<stats::WriteOperationStatistics> delete_sw;
+  stats::OperationStopwatch stopwatch(std::move(context.stats));
   const bson_t* native_selector_bson_ptr =
-      delete_op.impl_->selector.GetBson().get();
+      operation.impl_->selector.GetBson().get();
   bool has_succeeded = false;
-  switch (delete_op.impl_->mode) {
+  switch (operation.impl_->mode) {
     case operations::Delete::Mode::kSingle:
-      delete_sw.Reset(stats_ptr, stats::WriteOperationStatistics::kDeleteOne);
       has_succeeded = mongoc_collection_delete_one(
-          collection.get(), native_selector_bson_ptr,
-          impl::GetNative(delete_op.impl_->options), write_result.GetNative(),
+          context.collection.get(), native_selector_bson_ptr,
+          impl::GetNative(operation.impl_->options), write_result.GetNative(),
           error.GetNative());
       break;
 
     case operations::Delete::Mode::kMulti:
-      delete_sw.Reset(stats_ptr, stats::WriteOperationStatistics::kDeleteMany);
       has_succeeded = mongoc_collection_delete_many(
-          collection.get(), native_selector_bson_ptr,
-          impl::GetNative(delete_op.impl_->options), write_result.GetNative(),
+          context.collection.get(), native_selector_bson_ptr,
+          impl::GetNative(operation.impl_->options), write_result.GetNative(),
           error.GetNative());
       break;
   }
   if (has_succeeded) {
-    delete_sw.AccountSuccess();
+    stopwatch.AccountSuccess();
   } else {
-    delete_sw.AccountError(error.GetKind());
-    if (delete_op.impl_->should_throw || !error.IsServerError()) {
+    stopwatch.AccountError(error.GetKind());
+    if (operation.impl_->should_throw || !error.IsServerError()) {
       error.Throw("Error deleting documents");
     }
   }
@@ -372,31 +425,25 @@ WriteResult CDriverCollectionImpl::Execute(
 }
 
 WriteResult CDriverCollectionImpl::Execute(
-    const operations::FindAndModify& fam_op) {
-  auto span = MakeSpan("mongo_find_and_modify");
-  auto [client, collection] = GetCDriverCollection();
-  auto stats_ptr = statistics_->write[fam_op.impl_->write_concern_desc];
+    const operations::FindAndModify& operation) {
+  auto context = MakeRequestContext("mongo_find_and_modify", operation);
 
-  bool should_retry_dupkey = fam_op.impl_->should_retry_dupkey;
-  auto options = CopyFindAndModifyOptions(fam_op.impl_->options);
-  bool has_max_server_time_option = fam_op.impl_->has_max_server_time_option;
-
-  if (!has_max_server_time_option)
-    SetDefaultMaxServerTime(options.get(), has_max_server_time_option);
+  auto options = CopyFindAndModifyOptions(operation.impl_->options);
+  SetMaxServerTime(*options, operation.impl_->max_server_time, context);
+  bool should_retry_dupkey = operation.impl_->should_retry_dupkey;
 
   while (true) {
     MongoError error;
     WriteResultHelper write_result;
-    stats::OperationStopwatch fam_sw(
-        stats_ptr, stats::WriteOperationStatistics::kFindAndModify);
-    const bson_t* native_fam_bson_ptr = fam_op.impl_->query.GetBson().get();
+    stats::OperationStopwatch stopwatch(context.stats);
+    const bson_t* native_fam_bson_ptr = operation.impl_->query.GetBson().get();
     if (mongoc_collection_find_and_modify_with_opts(
-            collection.get(), native_fam_bson_ptr, options.get(),
+            context.collection.get(), native_fam_bson_ptr, options.get(),
             write_result.GetNative(), error.GetNative())) {
-      fam_sw.AccountSuccess();
+      stopwatch.AccountSuccess();
     } else {
       auto error_kind = error.GetKind();
-      fam_sw.AccountError(error_kind);
+      stopwatch.AccountError(error_kind);
       if (should_retry_dupkey &&
           error_kind == MongoError::Kind::kDuplicateKey) {
         should_retry_dupkey = false;
@@ -409,136 +456,138 @@ WriteResult CDriverCollectionImpl::Execute(
 }
 
 WriteResult CDriverCollectionImpl::Execute(
-    const operations::FindAndRemove& fam_op) {
-  auto span = MakeSpan("mongo_find_and_delete");
-  auto [client, collection] = GetCDriverCollection();
-  auto stats_ptr = statistics_->write[fam_op.impl_->write_concern_desc];
+    const operations::FindAndRemove& operation) {
+  auto context = MakeRequestContext("mongo_find_and_delete", operation);
 
-  auto options = CopyFindAndModifyOptions(fam_op.impl_->options);
-  bool has_max_server_time_option = fam_op.impl_->has_max_server_time_option;
-
-  if (!has_max_server_time_option)
-    SetDefaultMaxServerTime(options.get(), has_max_server_time_option);
+  auto options = CopyFindAndModifyOptions(operation.impl_->options);
+  SetMaxServerTime(*options, operation.impl_->max_server_time, context);
 
   MongoError error;
   WriteResultHelper write_result;
-  stats::OperationStopwatch fam_sw(
-      stats_ptr, stats::WriteOperationStatistics::kFindAndRemove);
-  const bson_t* native_fam_bson_ptr = fam_op.impl_->query.GetBson().get();
+  stats::OperationStopwatch stopwatch(std::move(context.stats));
+  const bson_t* native_fam_bson_ptr = operation.impl_->query.GetBson().get();
   if (mongoc_collection_find_and_modify_with_opts(
-          collection.get(), native_fam_bson_ptr, options.get(),
+          context.collection.get(), native_fam_bson_ptr, options.get(),
           write_result.GetNative(), error.GetNative())) {
-    fam_sw.AccountSuccess();
+    stopwatch.AccountSuccess();
   } else {
-    fam_sw.AccountError(error.GetKind());
+    stopwatch.AccountError(error.GetKind());
     error.Throw("Error running find and remove");
   }
   return write_result.Extract();
 }
 
-WriteResult CDriverCollectionImpl::Execute(operations::Bulk&& bulk_op) {
-  auto span = MakeSpan("mongo_bulk");
-  if (bulk_op.IsEmpty()) return {};
+WriteResult CDriverCollectionImpl::Execute(operations::Bulk&& operation) {
+  if (operation.IsEmpty()) return {};
 
-  UASSERT(bulk_op.impl_->bulk);
-  mongoc_bulk_operation_set_database(bulk_op.impl_->bulk.get(),
+  auto context = MakeRequestContext("mongo_bulk", operation);
+
+  UASSERT(operation.impl_->bulk);
+  mongoc_bulk_operation_set_database(operation.impl_->bulk.get(),
                                      GetDatabaseName().c_str());
-  mongoc_bulk_operation_set_collection(bulk_op.impl_->bulk.get(),
+  mongoc_bulk_operation_set_collection(operation.impl_->bulk.get(),
                                        GetCollectionName().c_str());
 
-  auto client = GetCDriverClient();
-  mongoc_bulk_operation_set_client(bulk_op.impl_->bulk.get(), client.get());
-
-  auto stats_ptr = statistics_->write[bulk_op.impl_->write_concern_desc];
+  mongoc_bulk_operation_set_client(operation.impl_->bulk.get(),
+                                   context.client.get());
 
   MongoError error;
   WriteResultHelper write_result;
-  stats::OperationStopwatch bulk_sw(stats_ptr,
-                                    stats::WriteOperationStatistics::kBulk);
-  if (mongoc_bulk_operation_execute(bulk_op.impl_->bulk.get(),
+  stats::OperationStopwatch stopwatch(std::move(context.stats));
+  if (mongoc_bulk_operation_execute(operation.impl_->bulk.get(),
                                     write_result.GetNative(),
                                     error.GetNative())) {
-    bulk_sw.AccountSuccess();
+    stopwatch.AccountSuccess();
   } else {
-    bulk_sw.AccountError(error.GetKind());
-    if (bulk_op.impl_->should_throw || !error.IsServerError()) {
+    stopwatch.AccountError(error.GetKind());
+    if (operation.impl_->should_throw || !error.IsServerError()) {
       error.Throw("Error running bulk operation");
     }
   }
   return write_result.Extract();
 }
 
-Cursor CDriverCollectionImpl::Execute(
-    const operations::Aggregate& aggregate_op) {
-  auto span = MakeSpan("mongo_aggregate");
-  auto [client, collection] = GetCDriverCollection();
-  // TODO: this is not quite correct for aggregations with "$out"/"$merge"
-  auto stats_ptr = statistics_->read[aggregate_op.impl_->read_prefs_desc];
+Cursor CDriverCollectionImpl::Execute(const operations::Aggregate& operation) {
+  auto context = MakeRequestContext("mongo_aggregate", operation);
 
-  auto options = aggregate_op.impl_->options;
-  bool has_comment_option = aggregate_op.impl_->has_comment_option;
-  bool has_max_server_time_option =
-      aggregate_op.impl_->has_max_server_time_option;
-
+  auto options = operation.impl_->options;
+  SetMaxServerTime(options, operation.impl_->max_server_time, context);
+  bool has_comment_option = operation.impl_->has_comment_option;
   if (!has_comment_option)
     SetLinkComment(impl::EnsureBuilder(options), has_comment_option);
-  if (!has_max_server_time_option)
-    SetDefaultMaxServerTime(impl::EnsureBuilder(options),
-                            has_max_server_time_option);
 
-  auto pipeline_doc = aggregate_op.impl_->pipeline.GetInternalArrayDocument();
+  auto pipeline_doc = operation.impl_->pipeline.GetInternalArrayDocument();
   const bson_t* native_pipeline_bson_ptr = pipeline_doc.GetBson().get();
   impl::cdriver::CursorPtr cdriver_cursor(mongoc_collection_aggregate(
-      collection.get(), MONGOC_QUERY_NONE, native_pipeline_bson_ptr,
-      impl::GetNative(options), aggregate_op.impl_->read_prefs.Get()));
+      context.collection.get(), MONGOC_QUERY_NONE, native_pipeline_bson_ptr,
+      impl::GetNative(options), operation.impl_->read_prefs.Get()));
   return Cursor(std::make_unique<impl::cdriver::CDriverCursorImpl>(
-      std::move(client), std::move(cdriver_cursor), std::move(stats_ptr)));
+      std::move(context.client), std::move(cdriver_cursor),
+      std::move(context.stats)));
 }
 
-cdriver::CDriverPoolImpl::BoundClientPtr
-CDriverCollectionImpl::GetCDriverClient() const {
-  // uasserted in ctor
-  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
-  return static_cast<cdriver::CDriverPoolImpl*>(pool_impl_.get())->Acquire();
+void CDriverCollectionImpl::Execute(const operations::Drop& operation) {
+  auto context = MakeRequestContext("mongo_drop", operation);
+
+  MongoError error;
+  stats::OperationStopwatch stopwatch(std::move(context.stats));
+  if (mongoc_collection_drop_with_opts(
+          context.collection.get(), impl::GetNative(operation.impl_->options),
+          error.GetNative())) {
+    stopwatch.AccountSuccess();
+  } else {
+    stopwatch.AccountError(error.GetKind());
+    error.Throw("Error running drop");
+  }
 }
 
-std::tuple<cdriver::CDriverPoolImpl::BoundClientPtr, cdriver::CollectionPtr>
-CDriverCollectionImpl::GetCDriverCollection() const {
-  auto client = GetCDriverClient();
+cdriver::CDriverPoolImpl::BoundClientPtr CDriverCollectionImpl::GetClient(
+    stats::OperationStatisticsItem& stats) const {
+  try {
+    // uasserted in ctor
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
+    return static_cast<cdriver::CDriverPoolImpl*>(pool_impl_.get())->Acquire();
+  } catch (const CancelledException& /*ex*/) {
+    stats.Account(stats::ErrorType::kCancelled);
+    tracing::Span::CurrentSpan().AddTag(kCancelledByDeadlineTag, true);
+    throw;
+  } catch (const PoolOverloadException& /*ex*/) {
+    stats.Account(stats::ErrorType::kPoolOverload);
+    throw;
+  }
+}
+
+RequestContext CDriverCollectionImpl::MakeRequestContext(
+    std::string&& span_name, const stats::OperationKey& stats_key) const {
+  auto span = MakeSpan(std::move(span_name));
+  auto stats = statistics_->items[stats_key];
+  auto dynamic_config = pool_impl_->GetConfig();
+
+  const auto inherited_deadline = GetDeadlineTimeLeft(dynamic_config);
+  if (inherited_deadline && inherited_deadline <= std::chrono::seconds{0}) {
+    stats->Account(stats::ErrorType::kCancelled);
+    span.AddTag(kCancelledByDeadlineTag, true);
+    throw CancelledException("Operation cancelled (deadline propagation)");
+  }
+
+  if (inherited_deadline) {
+    span.AddTag(tracing::kTimeoutMs, inherited_deadline->count());
+  }
+
+  auto client = GetClient(*stats);
   cdriver::CollectionPtr collection(mongoc_client_get_collection(
       client.get(), GetDatabaseName().c_str(), GetCollectionName().c_str()));
-  return std::make_tuple(std::move(client), std::move(collection));
+
+  return RequestContext{
+      std::move(stats),      std::move(dynamic_config), std::move(client),
+      std::move(collection), std::move(span),           inherited_deadline,
+  };
 }
 
-std::chrono::milliseconds CDriverCollectionImpl::GetDefaultMaxServerTime()
-    const {
-  auto config = pool_impl_->GetConfig();
-  return std::chrono::milliseconds(config->default_max_time_ms);
-}
-
-void CDriverCollectionImpl::SetDefaultMaxServerTime(
-    formats::bson::impl::BsonBuilder& builder,
-    bool& has_max_server_time_option) const {
-  auto default_max_server_time = GetDefaultMaxServerTime();
-  if (default_max_server_time != std::chrono::milliseconds::zero())
-    operations::AppendMaxServerTime(
-        builder, has_max_server_time_option,
-        options::MaxServerTime(default_max_server_time));
-}
-
-void CDriverCollectionImpl::SetDefaultMaxServerTime(
-    mongoc_find_and_modify_opts_t* options,
-    bool& has_max_server_time_option) const {
-  auto default_max_server_time = GetDefaultMaxServerTime();
-  if (default_max_server_time == std::chrono::milliseconds::zero()) return;
-
-  UASSERT(!has_max_server_time_option);
-  has_max_server_time_option = true;
-
-  if (!mongoc_find_and_modify_opts_set_max_time_ms(
-          options, default_max_server_time.count())) {
-    throw MongoException("Cannot set max server time");
-  }
+template <typename Operation>
+RequestContext CDriverCollectionImpl::MakeRequestContext(
+    std::string&& span_name, const Operation& operation) const {
+  return MakeRequestContext(std::move(span_name), operation.impl_->op_key);
 }
 
 }  // namespace storages::mongo::impl::cdriver

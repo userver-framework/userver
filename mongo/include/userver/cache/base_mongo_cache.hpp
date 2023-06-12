@@ -56,7 +56,7 @@ std::chrono::milliseconds GetMongoCacheUpdateCorrection(const ComponentConfig&);
 /// ```
 /// struct MongoCacheTraitsExample {
 ///   // Component name for component
-///   static constexpr auto kName = "mongo-taxi-config";
+///   static constexpr auto kName = "mongo-dynamic-config";
 ///
 ///   // Collection to read from
 ///   static constexpr auto kMongoCollectionsField =
@@ -118,8 +118,8 @@ std::chrono::milliseconds GetMongoCacheUpdateCorrection(const ComponentConfig&);
 template <class MongoCacheTraits>
 class MongoCache
     : public CachingComponentBase<typename MongoCacheTraits::DataType> {
-  using CollectionsType = mongo_cache::impl::CollectionsType<decltype(
-      MongoCacheTraits::kMongoCollectionsField)>;
+  using CollectionsType = mongo_cache::impl::CollectionsType<
+      decltype(MongoCacheTraits::kMongoCollectionsField)>;
 
  public:
   static constexpr std::string_view kName = MongoCacheTraits::kName;

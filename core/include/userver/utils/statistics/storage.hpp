@@ -14,33 +14,17 @@
 
 #include <userver/engine/shared_mutex.hpp>
 #include <userver/formats/json/value_builder.hpp>
-#include <userver/utils/clang_format_workarounds.hpp>
+#include <userver/utils/assert.hpp>
 #include <userver/utils/statistics/entry.hpp>
+#include <userver/utils/statistics/metric_value.hpp>
 #include <userver/utils/statistics/writer.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace utils::statistics {
 
-class Label {
- public:
-  Label() = default;
-  Label(std::string name, std::string value);
-
-  explicit operator bool() { return !name_.empty(); }
-
-  const std::string& Name() const { return name_; }
-  const std::string& Value() const& { return value_; }
-  std::string& Value() & { return value_; }
-  std::string&& Value() && { return std::move(value_); }
-
- private:
-  std::string name_;
-  std::string value_;
-};
-
-bool operator<(const Label& x, const Label& y) noexcept;
-bool operator==(const Label& x, const Label& y) noexcept;
+/// @brief Used in legacy statistics extenders
+struct StatisticsRequest final {};
 
 /// @brief Class describing the request for metrics data.
 ///
@@ -55,23 +39,23 @@ bool operator==(const Label& x, const Label& y) noexcept;
 ///
 /// @note `add_labels` should not match labels from Storage, otherwise the
 /// returned metrics may not be read by metrics server.
-class StatisticsRequest final {
+class Request final {
  public:
   using AddLabels = std::unordered_map<std::string, std::string>;
 
   /// Default request without parameters. Equivalent to requesting all the
   /// metrics without adding or requiring any labels.
-  StatisticsRequest() = default;
+  Request() = default;
 
   /// Makes request for metrics whose path starts with the `prefix`.
-  static StatisticsRequest MakeWithPrefix(
-      const std::string& prefix, AddLabels add_labels = {},
-      std::vector<Label> require_labels = {});
+  static Request MakeWithPrefix(const std::string& prefix,
+                                AddLabels add_labels = {},
+                                std::vector<Label> require_labels = {});
 
   /// Makes request for metrics whose path is `path`.
-  static StatisticsRequest MakeWithPath(const std::string& path,
-                                        AddLabels add_labels = {},
-                                        std::vector<Label> require_labels = {});
+  static Request MakeWithPath(const std::string& path,
+                              AddLabels add_labels = {},
+                              std::vector<Label> require_labels = {});
 
   /// Return metrics whose path matches with this `prefix`
   const std::string prefix{};
@@ -86,22 +70,21 @@ class StatisticsRequest final {
   /// Match type of the `prefix`
   const PrefixMatch prefix_match_type = PrefixMatch::kNoop;
 
-  /// Require those labels im the metric
+  /// Require those labels in the metric
   const std::vector<Label> require_labels{};
 
   /// Add those labels to each returned metric
   const AddLabels add_labels{};
 
  private:
-  StatisticsRequest(std::string prefix_in, PrefixMatch path_match_type_in,
-                    std::vector<Label> require_labels_in,
-                    AddLabels add_labels_in);
+  Request(std::string prefix_in, PrefixMatch path_match_type_in,
+          std::vector<Label> require_labels_in, AddLabels add_labels_in);
 };
 
 using ExtenderFunc =
     std::function<formats::json::ValueBuilder(const StatisticsRequest&)>;
 
-using WriterFunc = std::function<void(Writer)>;
+using WriterFunc = std::function<void(Writer&)>;
 
 namespace impl {
 
@@ -117,12 +100,12 @@ struct MetricsSource final {
 using StorageData = std::list<MetricsSource>;
 using StorageIterator = StorageData::iterator;
 
+inline constexpr bool kCheckSubscriptionUB = utils::impl::kEnableAssert;
+
 }  // namespace impl
 
 class BaseFormatBuilder {
  public:
-  using MetricValue = std::variant<std::int64_t, double>;
-
   virtual ~BaseFormatBuilder();
 
   virtual void HandleMetric(std::string_view path, LabelsSpan labels,
@@ -132,6 +115,8 @@ class BaseFormatBuilder {
 /// @ingroup userver_clients
 ///
 /// Storage of metrics, usually retrieved from components::StatisticsStorage.
+///
+/// See utils::statistics::Writer for an information on how to write metrics.
 class Storage final {
  public:
   Storage();
@@ -141,12 +126,11 @@ class Storage final {
   /// Creates new Json::Value and calls every deprecated registered extender
   /// func over it.
   ///
-  /// @warning Deprecated. Use VisitMetrics instead.
-  formats::json::ValueBuilder GetAsJson(const StatisticsRequest& request) const;
+  /// @deprecated Use VisitMetrics instead.
+  formats::json::Value GetAsJson() const;
 
   /// Visits all the metrics and calls `out.HandleMetric` for each metric.
-  void VisitMetrics(BaseFormatBuilder& out,
-                    const StatisticsRequest& request = {}) const;
+  void VisitMetrics(BaseFormatBuilder& out, const Request& request = {}) const;
 
   /// @cond
   /// Must be called from StatisticsStorage only. Don't call it from user
@@ -154,21 +138,16 @@ class Storage final {
   void StopRegisteringExtenders();
   /// @endcond
 
-  /// Add a writer function
+  /// @brief Add a writer function. Note that `func` is called concurrently with
+  /// other code, so it should be thread\coroutine safe.
   Entry RegisterWriter(std::string common_prefix, WriterFunc func,
                        std::vector<Label> add_labels = {});
 
-  /// @warning Deprecated. Use RegisterWriter instead.
+  /// @deprecated Use RegisterWriter instead.
   Entry RegisterExtender(std::string prefix, ExtenderFunc func);
 
-  /// @warning Deprecated. Use RegisterWriter instead.
-  Entry RegisterExtender(std::vector<std::string> prefix, ExtenderFunc func);
-
-  /// @warning Deprecated. Use RegisterWriter instead.
-  Entry RegisterExtender(std::initializer_list<std::string> prefix,
-                         ExtenderFunc func);
-
-  void UnregisterExtender(impl::StorageIterator iterator) noexcept;
+  void UnregisterExtender(impl::StorageIterator iterator,
+                          impl::UnregisteringKind kind) noexcept;
 
  private:
   Entry DoRegisterExtender(impl::MetricsSource&& source);

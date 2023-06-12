@@ -24,34 +24,34 @@ form::~form() {
   }
 }
 
-void form::add_content(const std::string& key, const std::string& content) {
+void form::add_content(std::string_view key, std::string_view content) {
   std::error_code ec;
   add_content(key, content, ec);
   throw_error(ec, "add_content");
 }
 
-void form::add_content(const std::string& key, const std::string& content,
+void form::add_content(std::string_view key, std::string_view content,
                        std::error_code& ec) {
   ec = std::error_code{static_cast<errc::FormErrorCode>(native::curl_formadd(
-      &post_, &last_, native::CURLFORM_COPYNAME, key.c_str(),
+      &post_, &last_, native::CURLFORM_COPYNAME, key.data(),
       native::CURLFORM_NAMELENGTH, key.length(), native::CURLFORM_COPYCONTENTS,
-      content.c_str(), native::CURLFORM_CONTENTSLENGTH, content.length(),
+      content.data(), native::CURLFORM_CONTENTSLENGTH, content.length(),
       native::CURLFORM_END))};
 }
 
-void form::add_content(const std::string& key, const std::string& content,
+void form::add_content(std::string_view key, std::string_view content,
                        const std::string& content_type) {
   std::error_code ec;
   add_content(key, content, content_type, ec);
   throw_error(ec, "add_content");
 }
 
-void form::add_content(const std::string& key, const std::string& content,
+void form::add_content(std::string_view key, std::string_view content,
                        const std::string& content_type, std::error_code& ec) {
   ec = std::error_code{static_cast<errc::FormErrorCode>(native::curl_formadd(
-      &post_, &last_, native::CURLFORM_COPYNAME, key.c_str(),
+      &post_, &last_, native::CURLFORM_COPYNAME, key.data(),
       native::CURLFORM_NAMELENGTH, key.length(), native::CURLFORM_COPYCONTENTS,
-      content.c_str(), native::CURLFORM_CONTENTSLENGTH, content.length(),
+      content.data(), native::CURLFORM_CONTENTSLENGTH, content.length(),
       native::CURLFORM_CONTENTTYPE, content_type.c_str(),
       native::CURLFORM_END))};
 }

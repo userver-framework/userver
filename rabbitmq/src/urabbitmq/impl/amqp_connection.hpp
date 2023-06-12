@@ -93,11 +93,11 @@ class AmqpConnection final {
 
   AMQP::Channel channel_;
 
-  // The order is reversed intentionally
-  // https://github.com/CopernicaMarketingSoftware/AMQP-CPP/issues/480
-  std::unique_ptr<ReliableChannel> reliable_;
   AMQP::Channel reliable_channel_;
+  std::unique_ptr<ReliableChannel> reliable_;
 
+  // This can't be SingleWaitingTaskMutex, because consumers might issue a lot
+  // of ack/nack in parallel.
   engine::Mutex mutex_{};
   engine::Semaphore waiters_sema_;
 };

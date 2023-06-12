@@ -6,8 +6,11 @@
 #include <userver/server/handlers/exceptions.hpp>
 #include <userver/utils/statistics/graphite.hpp>
 #include <userver/utils/statistics/json.hpp>
+#include <userver/utils/statistics/pretty_format.hpp>
 #include <userver/utils/statistics/prometheus.hpp>
+#include <userver/utils/statistics/solomon.hpp>
 #include <userver/utils/statistics/storage.hpp>
+#include <userver/utils/trivial_map.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 #include <userver/yaml_config/schema.hpp>
 
@@ -25,23 +28,31 @@ enum class StatsFormat {
   kPrometheus,
   kPrometheusUntyped,
   kJson,
+  kPretty,
+  kSolomon,
 };
 
 StatsFormat ParseFormat(std::string_view format) {
-  if (format == "graphite") {
-    return StatsFormat::kGraphite;
-  } else if (format == "prometheus") {
-    return StatsFormat::kPrometheus;
-  } else if (format == "prometheus-untyped") {
-    return StatsFormat::kPrometheusUntyped;
-  } else if (format == "json") {
-    return StatsFormat::kJson;
-  } else if (format == "internal" || format.empty()) {
-    return StatsFormat::kInternal;
-  }
+  constexpr utils::TrivialBiMap kToFormat = [](auto selector) {
+    return selector()
+        .Case("graphite", StatsFormat::kGraphite)
+        .Case("prometheus", StatsFormat::kPrometheus)
+        .Case("prometheus-untyped", StatsFormat::kPrometheusUntyped)
+        .Case("json", StatsFormat::kJson)
+        .Case("pretty", StatsFormat::kPretty)
+        .Case("solomon", StatsFormat::kSolomon)
+        .Case("internal", StatsFormat::kInternal)
+        .Case("", StatsFormat::kInternal);
+  };
 
-  throw handlers::ClientError(
-      handlers::ExternalBody{"Unknown value of 'format' URL parameter"});
+  const auto opt_value = kToFormat.TryFind(format);
+  if (opt_value.has_value()) {
+    return opt_value.value();
+  }
+  throw handlers::ClientError(handlers::ExternalBody{
+      fmt::format("Unknown value '{}' of 'format' URL parameter. Expected one "
+                  "of the following formats: {}",
+                  format, kToFormat.DescribeFirst())});
 }
 
 }  // namespace
@@ -73,14 +84,17 @@ std::string ServerMonitor::HandleRequestThrow(const http::HttpRequest& request,
     }
   }
 
-  using utils::statistics::StatisticsRequest;
-  const auto statistics_request =
-      (path.empty() ? StatisticsRequest::MakeWithPrefix(prefix, common_labels_,
-                                                        std::move(labels))
-                    : StatisticsRequest::MakeWithPath(path, common_labels_,
-                                                      std::move(labels)));
-
   const auto format = ParseFormat(request.GetArg("format"));
+
+  using utils::statistics::Request;
+  auto common_labels =
+      format == StatsFormat::kSolomon ? Request::AddLabels{} : common_labels_;
+  const auto statistics_request =
+      (path.empty() ? Request::MakeWithPrefix(prefix, std::move(common_labels),
+                                              std::move(labels))
+                    : Request::MakeWithPath(path, std::move(common_labels),
+                                            std::move(labels)));
+
   switch (format) {
     case StatsFormat::kGraphite:
       return utils::statistics::ToGraphiteFormat(statistics_storage_,
@@ -98,9 +112,16 @@ std::string ServerMonitor::HandleRequestThrow(const http::HttpRequest& request,
       return utils::statistics::ToJsonFormat(statistics_storage_,
                                              statistics_request);
 
+    case StatsFormat::kPretty:
+      return utils::statistics::ToPrettyFormat(statistics_storage_,
+                                               statistics_request);
+
+    case StatsFormat::kSolomon:
+      return utils::statistics::ToSolomonFormat(
+          statistics_storage_, common_labels_, statistics_request);
+
     case StatsFormat::kInternal:
-      const auto json =
-          statistics_storage_.GetAsJson(statistics_request).ExtractValue();
+      const auto json = statistics_storage_.GetAsJson();
       UASSERT(utils::statistics::AreAllMetricsNumbers(json));
       return formats::json::ToString(json);
   }

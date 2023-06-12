@@ -1,9 +1,13 @@
+#pragma once
+
 #include <limits>
 #include <type_traits>
 
 #include <gtest/gtest.h>
+
 #include <userver/compiler/demangle.hpp>
 #include <userver/formats/common/type.hpp>
+#include <userver/utest/death_tests.hpp>
 #include <userver/utils/strong_typedef.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -32,13 +36,13 @@ inline void TestNanInfInstantiation() {
   ASSERT_THROW(ValueBuilder{-std::numeric_limits<Float>::infinity()}, Exception)
       << "Assertion failed for type " << compiler::GetTypeName<Float>();
 #else
-  ASSERT_DEATH(ValueBuilder{std::numeric_limits<Float>::signaling_NaN()}, "")
+  UEXPECT_DEATH(ValueBuilder{std::numeric_limits<Float>::signaling_NaN()}, "")
       << "Assertion failed for type " << compiler::GetTypeName<Float>();
-  ASSERT_DEATH(ValueBuilder{std::numeric_limits<Float>::quiet_NaN()}, "")
+  UEXPECT_DEATH(ValueBuilder{std::numeric_limits<Float>::quiet_NaN()}, "")
       << "Assertion failed for type " << compiler::GetTypeName<Float>();
-  ASSERT_DEATH(ValueBuilder{std::numeric_limits<Float>::infinity()}, "")
+  UEXPECT_DEATH(ValueBuilder{std::numeric_limits<Float>::infinity()}, "")
       << "Assertion failed for type " << compiler::GetTypeName<Float>();
-  ASSERT_DEATH(ValueBuilder{-std::numeric_limits<Float>::infinity()}, "")
+  UEXPECT_DEATH(ValueBuilder{-std::numeric_limits<Float>::infinity()}, "")
       << "Assertion failed for type " << compiler::GetTypeName<Float>();
 #endif
 }
@@ -103,6 +107,21 @@ TYPED_TEST_P(CommonValueBuilderTests, StringStrongTypedef) {
   }
 }
 
-REGISTER_TYPED_TEST_SUITE_P(CommonValueBuilderTests, StringStrongTypedef);
+TYPED_TEST_P(CommonValueBuilderTests, Resize) {
+  using ValueBuilder = typename TestFixture::ValueBuilder;
+  ValueBuilder builder;
+  constexpr std::size_t new_size = 10;
+  builder.Resize(new_size);
+  for (std::size_t i = 0; i < new_size; ++i) {
+    builder[i] = i;
+  }
+  const auto value = builder.ExtractValue();
+  for (std::size_t i = 0; i < new_size; ++i) {
+    EXPECT_EQ(i, value[i].template As<std::size_t>());
+  }
+}
+
+REGISTER_TYPED_TEST_SUITE_P(CommonValueBuilderTests, StringStrongTypedef,
+                            Resize);
 
 USERVER_NAMESPACE_END

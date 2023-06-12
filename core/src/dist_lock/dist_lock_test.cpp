@@ -1,5 +1,7 @@
 #include <userver/utest/utest.hpp>
 
+#include <sys/param.h>
+
 #include <userver/concurrent/variable.hpp>
 #include <userver/dist_lock/dist_lock_settings.hpp>
 #include <userver/dist_lock/dist_lock_strategy.hpp>
@@ -192,7 +194,11 @@ UTEST_MT(LockedWorker, OkAfterFail, 3) {
 }
 
 // TODO: TAXICOMMON-1059
-UTEST_MT(LockedWorker, DISABLED_IN_MAC_OS_TEST_NAME(OkFailOk), 3) {
+#if defined(__APPLE__) || defined(BSD)
+UTEST_MT(LockedWorker, DISABLED_OkFailOk, 3) {
+#else
+UTEST_MT(LockedWorker, OkFailOk, 3) {
+#endif
   auto strategy = MakeMockStrategy();
   DistLockWorkload work;
   dist_lock::DistLockedWorker locked_worker(
@@ -328,7 +334,7 @@ UTEST_MT(LockedTask, NoWait, 3) {
   strategy->Release("me");
 }
 
-UTEST_MT(LockedTask, NoWaitAquire, 3) {
+UTEST_MT(LockedTask, NoWaitAcquire, 3) {
   auto strategy = MakeMockStrategy();
   DistLockWorkload work;
 

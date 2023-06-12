@@ -418,7 +418,7 @@ TYPED_TEST_P(MemberModify, CannotBuildFromMissing) {
 TYPED_TEST_P(MemberModify, IsCheckObjectValidFunction) {
   using ValueBuilder = typename TestFixture::ValueBuilder;
   using TypeMismatchException = typename TestFixture::TypeMismatchException;
-  // This test is actually for abscence in CheckObject internal errors,
+  // This test is actually for absence in CheckObject internal errors,
   // and not that it returns true for objects and false for not-objects.
   {
     ValueBuilder builder{formats::common::Type::kObject};

@@ -44,10 +44,22 @@ components_manager:
         tracer:                             # Component that helps to trace execution times and requests in logs.
             service-name: testsuite-support # "You know. You all know exactly who I am. Say my name. " (c)
 
-        dynamic-config:                      # Dynamic config storage options, do nothing
+        dynamic-config:
             fs-cache-path: ''
-        dynamic-config-fallbacks:            # Load options from file and push them into the dynamic config storage.
-            fallback-path: /etc/testsuite_service/configs/dynamic_config_fallback.json
+        dynamic-config-fallbacks:
+            load-enabled: false
+        dynamic-config-client:
+            config-url: $config-server-url
+            http-retries: 5
+            http-timeout: 20s
+            service-name: testsuite-support
+        dynamic-config-client-updater:
+            config-settings: false
+            fallback-path: $config-fallback
+            full-update-interval: 1m
+            load-only-my-values: true
+            store-enabled: true
+            update-interval: 5s
 
         # /// [monitor - config.yaml]
         handler-server-monitor:
@@ -59,6 +71,8 @@ components_manager:
         http-client:
             fs-task-processor: fs-task-processor
             user-agent: userver testsuite
+        dns-client:                     # Asynchronous DNS component
+            fs-task-processor: fs-task-processor
 
         congestion-control:
             load-enabled: true
@@ -94,6 +108,13 @@ components_manager:
 
         handler-logcapture:
             path: /logcapture
+            method: GET
+            task_processor: main-task-processor
+            throttling_enabled: false
+            url_trailing_slash: strict-match
+
+        handler-dynamic-config:
+            path: /dynamic-config
             method: GET
             task_processor: main-task-processor
             throttling_enabled: false

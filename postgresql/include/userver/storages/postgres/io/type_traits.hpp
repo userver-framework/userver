@@ -70,8 +70,8 @@ struct HasInputOperator : std::false_type {};
 
 template <typename T>
 struct HasInputOperator<
-    T, USERVER_NAMESPACE::utils::void_t<decltype(
-           std::declval<std::istream&>() >> std::declval<T&>())>>
+    T, USERVER_NAMESPACE::utils::void_t<
+           decltype(std::declval<std::istream&>() >> std::declval<T&>())>>
     : std::true_type {};
 //@}
 
@@ -151,10 +151,9 @@ struct IsMappedToArray : BoolConstant<detail::EnableContainerMapping<T>()> {};
 template <typename T, typename = USERVER_NAMESPACE::utils::void_t<>>
 struct CanReserve : std::false_type {};
 template <typename T>
-struct CanReserve<T,
-                  USERVER_NAMESPACE::utils::void_t<decltype(
-                      std::declval<T>().reserve(std::declval<std::size_t>()))>>
-    : std::true_type {};
+struct CanReserve<
+    T, USERVER_NAMESPACE::utils::void_t<decltype(std::declval<T>().reserve(
+           std::declval<std::size_t>()))>> : std::true_type {};
 template <typename T>
 inline constexpr bool kCanReserve = CanReserve<T>::value;
 
@@ -162,9 +161,9 @@ template <typename T, typename = USERVER_NAMESPACE::utils::void_t<>>
 struct CanResize : std::false_type {};
 
 template <typename T>
-struct CanResize<T, USERVER_NAMESPACE::utils::void_t<decltype(
-                        std::declval<T>().resize(std::declval<std::size_t>()))>>
-    : std::true_type {};
+struct CanResize<
+    T, USERVER_NAMESPACE::utils::void_t<decltype(std::declval<T>().resize(
+           std::declval<std::size_t>()))>> : std::true_type {};
 template <typename T>
 inline constexpr bool kCanResize = CanResize<T>::value;
 

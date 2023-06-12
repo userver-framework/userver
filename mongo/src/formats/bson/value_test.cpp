@@ -2,6 +2,7 @@
 
 #include <userver/formats/bson.hpp>
 #include <userver/utest/assert_macros.hpp>
+#include <userver/utest/literals.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -296,5 +297,17 @@ TEST(FormatsBson, ExampleUsageMyStruct) {
 }
 }  // namespace my_namespace
 /// [Sample formats::bson::Value::As<T>() usage]
+
+TEST(FormatsBson, UserDefinedLiterals) {
+  using ValueBuilder = formats::bson::ValueBuilder;
+  ValueBuilder builder{formats::common::Type::kObject};
+  builder["test"] = 3;
+  EXPECT_EQ(builder.ExtractValue(),
+            R"bson(
+    {
+      "test": 3
+    }
+    )bson"_bson);
+}
 
 USERVER_NAMESPACE_END

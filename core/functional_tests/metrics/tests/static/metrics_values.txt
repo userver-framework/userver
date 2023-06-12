@@ -1,0 +1,380 @@
+cache.any.documents.parse_failures: cache_name=dynamic-config-client-updater	GAUGE	0
+cache.any.documents.parse_failures: cache_name=sample-cache	GAUGE	0
+cache.any.documents.read_count: cache_name=dynamic-config-client-updater	GAUGE	0
+cache.any.documents.read_count: cache_name=sample-cache	GAUGE	0
+cache.any.time.last-update-duration-ms: cache_name=dynamic-config-client-updater	GAUGE	0
+cache.any.time.last-update-duration-ms: cache_name=sample-cache	GAUGE	0
+cache.any.time.time-from-last-successful-start-ms: cache_name=dynamic-config-client-updater	GAUGE	0
+cache.any.time.time-from-last-successful-start-ms: cache_name=sample-cache	GAUGE	0
+cache.any.time.time-from-last-update-start-ms: cache_name=dynamic-config-client-updater	GAUGE	0
+cache.any.time.time-from-last-update-start-ms: cache_name=sample-cache	GAUGE	0
+cache.any.update.attempts_count: cache_name=dynamic-config-client-updater	GAUGE	0
+cache.any.update.attempts_count: cache_name=sample-cache	GAUGE	0
+cache.any.update.failures_count: cache_name=dynamic-config-client-updater	GAUGE	0
+cache.any.update.failures_count: cache_name=sample-cache	GAUGE	0
+cache.any.update.no_changes_count: cache_name=dynamic-config-client-updater	GAUGE	0
+cache.any.update.no_changes_count: cache_name=sample-cache	GAUGE	0
+cache.background-updates: cache_name=sample-lru-cache	GAUGE	0
+cache.current-documents-count: cache_name=dynamic-config-client-updater	GAUGE	0
+cache.current-documents-count: cache_name=sample-cache	GAUGE	0
+cache.current-documents-count: cache_name=sample-lru-cache	GAUGE	0
+cache.dump.is-current-from-dump: cache_name=sample-cache	GAUGE	0
+cache.dump.is-loaded-from-dump: cache_name=sample-cache	GAUGE	0
+cache.full.documents.parse_failures: cache_name=dynamic-config-client-updater	GAUGE	0
+cache.full.documents.parse_failures: cache_name=sample-cache	GAUGE	0
+cache.full.documents.read_count: cache_name=dynamic-config-client-updater	GAUGE	0
+cache.full.documents.read_count: cache_name=sample-cache	GAUGE	0
+cache.full.time.last-update-duration-ms: cache_name=dynamic-config-client-updater	GAUGE	0
+cache.full.time.last-update-duration-ms: cache_name=sample-cache	GAUGE	0
+cache.full.time.time-from-last-successful-start-ms: cache_name=dynamic-config-client-updater	GAUGE	0
+cache.full.time.time-from-last-successful-start-ms: cache_name=sample-cache	GAUGE	0
+cache.full.time.time-from-last-update-start-ms: cache_name=dynamic-config-client-updater	GAUGE	0
+cache.full.time.time-from-last-update-start-ms: cache_name=sample-cache	GAUGE	0
+cache.full.update.attempts_count: cache_name=dynamic-config-client-updater	GAUGE	0
+cache.full.update.attempts_count: cache_name=sample-cache	GAUGE	0
+cache.full.update.failures_count: cache_name=dynamic-config-client-updater	GAUGE	0
+cache.full.update.failures_count: cache_name=sample-cache	GAUGE	0
+cache.full.update.no_changes_count: cache_name=dynamic-config-client-updater	GAUGE	0
+cache.full.update.no_changes_count: cache_name=sample-cache	GAUGE	0
+cache.hit_ratio.1min: cache_name=sample-lru-cache	GAUGE	0
+cache.hits: cache_name=sample-lru-cache	GAUGE	0
+cache.incremental.documents.parse_failures: cache_name=dynamic-config-client-updater	GAUGE	0
+cache.incremental.documents.parse_failures: cache_name=sample-cache	GAUGE	0
+cache.incremental.documents.read_count: cache_name=dynamic-config-client-updater	GAUGE	0
+cache.incremental.documents.read_count: cache_name=sample-cache	GAUGE	0
+cache.incremental.time.last-update-duration-ms: cache_name=dynamic-config-client-updater	GAUGE	0
+cache.incremental.time.last-update-duration-ms: cache_name=sample-cache	GAUGE	0
+cache.incremental.time.time-from-last-successful-start-ms: cache_name=dynamic-config-client-updater	GAUGE	0
+cache.incremental.time.time-from-last-successful-start-ms: cache_name=sample-cache	GAUGE	0
+cache.incremental.time.time-from-last-update-start-ms: cache_name=dynamic-config-client-updater	GAUGE	0
+cache.incremental.time.time-from-last-update-start-ms: cache_name=sample-cache	GAUGE	0
+cache.incremental.update.attempts_count: cache_name=dynamic-config-client-updater	GAUGE	0
+cache.incremental.update.attempts_count: cache_name=sample-cache	GAUGE	0
+cache.incremental.update.failures_count: cache_name=dynamic-config-client-updater	GAUGE	0
+cache.incremental.update.failures_count: cache_name=sample-cache	GAUGE	0
+cache.incremental.update.no_changes_count: cache_name=dynamic-config-client-updater	GAUGE	0
+cache.incremental.update.no_changes_count: cache_name=sample-cache	GAUGE	0
+cache.misses: cache_name=sample-lru-cache	GAUGE	0
+cache.stale: cache_name=sample-lru-cache	GAUGE	0
+congestion-control.rps.is-custom-status-activated:	GAUGE	0
+cpu_time_sec:	GAUGE	0
+dns-client.replies: dns_reply_source=cached	GAUGE	0
+dns-client.replies: dns_reply_source=cached-failure	GAUGE	0
+dns-client.replies: dns_reply_source=cached-stale	GAUGE	0
+dns-client.replies: dns_reply_source=file	GAUGE	0
+dns-client.replies: dns_reply_source=network	GAUGE	0
+dns-client.replies: dns_reply_source=network-failure	GAUGE	0
+engine.coro-pool.coroutines.active:	GAUGE	0
+engine.coro-pool.coroutines.total:	GAUGE	0
+engine.ev-threads.cpu-load-percent: ev_thread_name=event-worker_0	GAUGE	0
+engine.ev-threads.cpu-load-percent: ev_thread_name=event-worker_1	GAUGE	0
+engine.load-ms:	GAUGE	0
+engine.task-processors.context_switch.fast: task_processor=fs-task-processor	GAUGE	0
+engine.task-processors.context_switch.fast: task_processor=main-task-processor	GAUGE	0
+engine.task-processors.context_switch.fast: task_processor=monitor-task-processor	GAUGE	0
+engine.task-processors.context_switch.no_overloaded: task_processor=fs-task-processor	GAUGE	0
+engine.task-processors.context_switch.no_overloaded: task_processor=main-task-processor	GAUGE	0
+engine.task-processors.context_switch.no_overloaded: task_processor=monitor-task-processor	GAUGE	0
+engine.task-processors.context_switch.overloaded: task_processor=fs-task-processor	GAUGE	0
+engine.task-processors.context_switch.overloaded: task_processor=main-task-processor	GAUGE	0
+engine.task-processors.context_switch.overloaded: task_processor=monitor-task-processor	GAUGE	0
+engine.task-processors.context_switch.slow: task_processor=fs-task-processor	GAUGE	0
+engine.task-processors.context_switch.slow: task_processor=main-task-processor	GAUGE	0
+engine.task-processors.context_switch.slow: task_processor=monitor-task-processor	GAUGE	0
+engine.task-processors.context_switch.spurious_wakeups: task_processor=fs-task-processor	GAUGE	0
+engine.task-processors.context_switch.spurious_wakeups: task_processor=main-task-processor	GAUGE	0
+engine.task-processors.context_switch.spurious_wakeups: task_processor=monitor-task-processor	GAUGE	0
+engine.task-processors.errors: task_processor=fs-task-processor, task_processor_error=wait_queue_overload	GAUGE	0
+engine.task-processors.errors: task_processor=main-task-processor, task_processor_error=wait_queue_overload	GAUGE	0
+engine.task-processors.errors: task_processor=monitor-task-processor, task_processor_error=wait_queue_overload	GAUGE	0
+engine.task-processors.tasks.alive: task_processor=fs-task-processor	GAUGE	0
+engine.task-processors.tasks.alive: task_processor=main-task-processor	GAUGE	0
+engine.task-processors.tasks.alive: task_processor=monitor-task-processor	GAUGE	0
+engine.task-processors.tasks.cancelled: task_processor=fs-task-processor	GAUGE	0
+engine.task-processors.tasks.cancelled: task_processor=main-task-processor	GAUGE	0
+engine.task-processors.tasks.cancelled: task_processor=monitor-task-processor	GAUGE	0
+engine.task-processors.tasks.created: task_processor=fs-task-processor	GAUGE	0
+engine.task-processors.tasks.created: task_processor=main-task-processor	GAUGE	0
+engine.task-processors.tasks.created: task_processor=monitor-task-processor	GAUGE	0
+engine.task-processors.tasks.finished: task_processor=fs-task-processor	GAUGE	0
+engine.task-processors.tasks.finished: task_processor=main-task-processor	GAUGE	0
+engine.task-processors.tasks.finished: task_processor=monitor-task-processor	GAUGE	0
+engine.task-processors.tasks.queued: task_processor=fs-task-processor	GAUGE	0
+engine.task-processors.tasks.queued: task_processor=main-task-processor	GAUGE	0
+engine.task-processors.tasks.queued: task_processor=monitor-task-processor	GAUGE	0
+engine.task-processors.tasks.running: task_processor=fs-task-processor	GAUGE	0
+engine.task-processors.tasks.running: task_processor=main-task-processor	GAUGE	0
+engine.task-processors.tasks.running: task_processor=monitor-task-processor	GAUGE	0
+engine.task-processors.worker-threads: task_processor=fs-task-processor	GAUGE	0
+engine.task-processors.worker-threads: task_processor=main-task-processor	GAUGE	0
+engine.task-processors.worker-threads: task_processor=monitor-task-processor	GAUGE	0
+engine.uptime-seconds:	GAUGE	0
+http.by-fallback.implicit-http-options.handler.cancelled-by-deadline: http_handler=handler-implicit-http-options	GAUGE	0
+http.by-fallback.implicit-http-options.handler.deadline-received: http_handler=handler-implicit-http-options	GAUGE	0
+http.by-fallback.implicit-http-options.handler.in-flight: http_handler=handler-implicit-http-options	GAUGE	0
+http.by-fallback.implicit-http-options.handler.rate-limit-reached: http_handler=handler-implicit-http-options	GAUGE	0
+http.by-fallback.implicit-http-options.handler.reply-codes: http_code=300, http_handler=handler-implicit-http-options	GAUGE	0
+http.by-fallback.implicit-http-options.handler.reply-codes: http_code=500, http_handler=handler-implicit-http-options	GAUGE	0
+http.by-fallback.implicit-http-options.handler.reply-codes: http_code=501, http_handler=handler-implicit-http-options	GAUGE	0
+http.by-fallback.implicit-http-options.handler.timings: http_handler=handler-implicit-http-options, percentile=p0	GAUGE	0
+http.by-fallback.implicit-http-options.handler.timings: http_handler=handler-implicit-http-options, percentile=p100	GAUGE	0
+http.by-fallback.implicit-http-options.handler.timings: http_handler=handler-implicit-http-options, percentile=p50	GAUGE	0
+http.by-fallback.implicit-http-options.handler.timings: http_handler=handler-implicit-http-options, percentile=p90	GAUGE	0
+http.by-fallback.implicit-http-options.handler.timings: http_handler=handler-implicit-http-options, percentile=p95	GAUGE	0
+http.by-fallback.implicit-http-options.handler.timings: http_handler=handler-implicit-http-options, percentile=p98	GAUGE	0
+http.by-fallback.implicit-http-options.handler.timings: http_handler=handler-implicit-http-options, percentile=p99	GAUGE	0
+http.by-fallback.implicit-http-options.handler.timings: http_handler=handler-implicit-http-options, percentile=p99_6	GAUGE	0
+http.by-fallback.implicit-http-options.handler.timings: http_handler=handler-implicit-http-options, percentile=p99_9	GAUGE	0
+http.by-fallback.implicit-http-options.handler.too-many-requests-in-flight: http_handler=handler-implicit-http-options	GAUGE	0
+http.handler.cancelled-by-deadline: http_handler=handler-dns-client-control, http_path=/service/dnsclient/_command_	GAUGE	0
+http.handler.cancelled-by-deadline: http_handler=handler-dynamic-debug-log, http_path=/service/log/dynamic-debug	GAUGE	0
+http.handler.cancelled-by-deadline: http_handler=handler-inspect-requests, http_path=/service/inspect-requests	GAUGE	0
+http.handler.cancelled-by-deadline: http_handler=handler-jemalloc, http_path=/service/jemalloc/prof/_command_	GAUGE	0
+http.handler.cancelled-by-deadline: http_handler=handler-log-level, http_path=/service/log-level/_level_	GAUGE	0
+http.handler.cancelled-by-deadline: http_handler=handler-on-log-rotate, http_path=/service/on-log-rotate/	GAUGE	0
+http.handler.cancelled-by-deadline: http_handler=handler-ping, http_path=/ping	GAUGE	0
+http.handler.cancelled-by-deadline: http_handler=handler-server-monitor, http_path=/service/monitor	GAUGE	0
+http.handler.cancelled-by-deadline: http_handler=tests-control, http_path=/tests/_action_	GAUGE	0
+http.handler.deadline-received: http_handler=handler-dns-client-control, http_path=/service/dnsclient/_command_	GAUGE	0
+http.handler.deadline-received: http_handler=handler-dynamic-debug-log, http_path=/service/log/dynamic-debug	GAUGE	0
+http.handler.deadline-received: http_handler=handler-inspect-requests, http_path=/service/inspect-requests	GAUGE	0
+http.handler.deadline-received: http_handler=handler-jemalloc, http_path=/service/jemalloc/prof/_command_	GAUGE	0
+http.handler.deadline-received: http_handler=handler-log-level, http_path=/service/log-level/_level_	GAUGE	0
+http.handler.deadline-received: http_handler=handler-on-log-rotate, http_path=/service/on-log-rotate/	GAUGE	0
+http.handler.deadline-received: http_handler=handler-ping, http_path=/ping	GAUGE	0
+http.handler.deadline-received: http_handler=handler-server-monitor, http_path=/service/monitor	GAUGE	0
+http.handler.deadline-received: http_handler=tests-control, http_path=/tests/_action_	GAUGE	0
+http.handler.in-flight: http_handler=handler-dns-client-control, http_path=/service/dnsclient/_command_	GAUGE	0
+http.handler.in-flight: http_handler=handler-dynamic-debug-log, http_path=/service/log/dynamic-debug	GAUGE	0
+http.handler.in-flight: http_handler=handler-inspect-requests, http_path=/service/inspect-requests	GAUGE	0
+http.handler.in-flight: http_handler=handler-jemalloc, http_path=/service/jemalloc/prof/_command_	GAUGE	0
+http.handler.in-flight: http_handler=handler-log-level, http_path=/service/log-level/_level_	GAUGE	0
+http.handler.in-flight: http_handler=handler-on-log-rotate, http_path=/service/on-log-rotate/	GAUGE	0
+http.handler.in-flight: http_handler=handler-ping, http_path=/ping	GAUGE	0
+http.handler.in-flight: http_handler=handler-server-monitor, http_path=/service/monitor	GAUGE	0
+http.handler.in-flight: http_handler=tests-control, http_path=/tests/_action_	GAUGE	0
+http.handler.rate-limit-reached: http_handler=handler-dns-client-control, http_path=/service/dnsclient/_command_	GAUGE	0
+http.handler.rate-limit-reached: http_handler=handler-dynamic-debug-log, http_path=/service/log/dynamic-debug	GAUGE	0
+http.handler.rate-limit-reached: http_handler=handler-inspect-requests, http_path=/service/inspect-requests	GAUGE	0
+http.handler.rate-limit-reached: http_handler=handler-jemalloc, http_path=/service/jemalloc/prof/_command_	GAUGE	0
+http.handler.rate-limit-reached: http_handler=handler-log-level, http_path=/service/log-level/_level_	GAUGE	0
+http.handler.rate-limit-reached: http_handler=handler-on-log-rotate, http_path=/service/on-log-rotate/	GAUGE	0
+http.handler.rate-limit-reached: http_handler=handler-ping, http_path=/ping	GAUGE	0
+http.handler.rate-limit-reached: http_handler=handler-server-monitor, http_path=/service/monitor	GAUGE	0
+http.handler.rate-limit-reached: http_handler=tests-control, http_path=/tests/_action_	GAUGE	0
+http.handler.reply-codes: http_code=200, http_handler=handler-ping, http_path=/ping	GAUGE	0
+http.handler.reply-codes: http_code=200, http_handler=handler-server-monitor, http_path=/service/monitor	GAUGE	0
+http.handler.reply-codes: http_code=300, http_handler=handler-dns-client-control, http_path=/service/dnsclient/_command_	GAUGE	0
+http.handler.reply-codes: http_code=300, http_handler=handler-dynamic-debug-log, http_path=/service/log/dynamic-debug	GAUGE	0
+http.handler.reply-codes: http_code=300, http_handler=handler-inspect-requests, http_path=/service/inspect-requests	GAUGE	0
+http.handler.reply-codes: http_code=300, http_handler=handler-jemalloc, http_path=/service/jemalloc/prof/_command_	GAUGE	0
+http.handler.reply-codes: http_code=300, http_handler=handler-log-level, http_path=/service/log-level/_level_	GAUGE	0
+http.handler.reply-codes: http_code=300, http_handler=handler-on-log-rotate, http_path=/service/on-log-rotate/	GAUGE	0
+http.handler.reply-codes: http_code=300, http_handler=handler-ping, http_path=/ping	GAUGE	0
+http.handler.reply-codes: http_code=300, http_handler=handler-server-monitor, http_path=/service/monitor	GAUGE	0
+http.handler.reply-codes: http_code=300, http_handler=tests-control, http_path=/tests/_action_	GAUGE	0
+http.handler.reply-codes: http_code=500, http_handler=handler-dns-client-control, http_path=/service/dnsclient/_command_	GAUGE	0
+http.handler.reply-codes: http_code=500, http_handler=handler-dynamic-debug-log, http_path=/service/log/dynamic-debug	GAUGE	0
+http.handler.reply-codes: http_code=500, http_handler=handler-inspect-requests, http_path=/service/inspect-requests	GAUGE	0
+http.handler.reply-codes: http_code=500, http_handler=handler-jemalloc, http_path=/service/jemalloc/prof/_command_	GAUGE	0
+http.handler.reply-codes: http_code=500, http_handler=handler-log-level, http_path=/service/log-level/_level_	GAUGE	0
+http.handler.reply-codes: http_code=500, http_handler=handler-on-log-rotate, http_path=/service/on-log-rotate/	GAUGE	0
+http.handler.reply-codes: http_code=500, http_handler=handler-ping, http_path=/ping	GAUGE	0
+http.handler.reply-codes: http_code=500, http_handler=handler-server-monitor, http_path=/service/monitor	GAUGE	0
+http.handler.reply-codes: http_code=500, http_handler=tests-control, http_path=/tests/_action_	GAUGE	0
+http.handler.reply-codes: http_code=501, http_handler=handler-dns-client-control, http_path=/service/dnsclient/_command_	GAUGE	0
+http.handler.reply-codes: http_code=501, http_handler=handler-dynamic-debug-log, http_path=/service/log/dynamic-debug	GAUGE	0
+http.handler.reply-codes: http_code=501, http_handler=handler-inspect-requests, http_path=/service/inspect-requests	GAUGE	0
+http.handler.reply-codes: http_code=501, http_handler=handler-jemalloc, http_path=/service/jemalloc/prof/_command_	GAUGE	0
+http.handler.reply-codes: http_code=501, http_handler=handler-log-level, http_path=/service/log-level/_level_	GAUGE	0
+http.handler.reply-codes: http_code=501, http_handler=handler-on-log-rotate, http_path=/service/on-log-rotate/	GAUGE	0
+http.handler.reply-codes: http_code=501, http_handler=handler-ping, http_path=/ping	GAUGE	0
+http.handler.reply-codes: http_code=501, http_handler=handler-server-monitor, http_path=/service/monitor	GAUGE	0
+http.handler.reply-codes: http_code=501, http_handler=tests-control, http_path=/tests/_action_	GAUGE	0
+http.handler.timings: http_handler=handler-dns-client-control, http_path=/service/dnsclient/_command_, percentile=p0	GAUGE	0
+http.handler.timings: http_handler=handler-dns-client-control, http_path=/service/dnsclient/_command_, percentile=p100	GAUGE	0
+http.handler.timings: http_handler=handler-dns-client-control, http_path=/service/dnsclient/_command_, percentile=p50	GAUGE	0
+http.handler.timings: http_handler=handler-dns-client-control, http_path=/service/dnsclient/_command_, percentile=p90	GAUGE	0
+http.handler.timings: http_handler=handler-dns-client-control, http_path=/service/dnsclient/_command_, percentile=p95	GAUGE	0
+http.handler.timings: http_handler=handler-dns-client-control, http_path=/service/dnsclient/_command_, percentile=p98	GAUGE	0
+http.handler.timings: http_handler=handler-dns-client-control, http_path=/service/dnsclient/_command_, percentile=p99	GAUGE	0
+http.handler.timings: http_handler=handler-dns-client-control, http_path=/service/dnsclient/_command_, percentile=p99_6	GAUGE	0
+http.handler.timings: http_handler=handler-dns-client-control, http_path=/service/dnsclient/_command_, percentile=p99_9	GAUGE	0
+http.handler.timings: http_handler=handler-dynamic-debug-log, http_path=/service/log/dynamic-debug, percentile=p0	GAUGE	0
+http.handler.timings: http_handler=handler-dynamic-debug-log, http_path=/service/log/dynamic-debug, percentile=p100	GAUGE	0
+http.handler.timings: http_handler=handler-dynamic-debug-log, http_path=/service/log/dynamic-debug, percentile=p50	GAUGE	0
+http.handler.timings: http_handler=handler-dynamic-debug-log, http_path=/service/log/dynamic-debug, percentile=p90	GAUGE	0
+http.handler.timings: http_handler=handler-dynamic-debug-log, http_path=/service/log/dynamic-debug, percentile=p95	GAUGE	0
+http.handler.timings: http_handler=handler-dynamic-debug-log, http_path=/service/log/dynamic-debug, percentile=p98	GAUGE	0
+http.handler.timings: http_handler=handler-dynamic-debug-log, http_path=/service/log/dynamic-debug, percentile=p99	GAUGE	0
+http.handler.timings: http_handler=handler-dynamic-debug-log, http_path=/service/log/dynamic-debug, percentile=p99_6	GAUGE	0
+http.handler.timings: http_handler=handler-dynamic-debug-log, http_path=/service/log/dynamic-debug, percentile=p99_9	GAUGE	0
+http.handler.timings: http_handler=handler-inspect-requests, http_path=/service/inspect-requests, percentile=p0	GAUGE	0
+http.handler.timings: http_handler=handler-inspect-requests, http_path=/service/inspect-requests, percentile=p100	GAUGE	0
+http.handler.timings: http_handler=handler-inspect-requests, http_path=/service/inspect-requests, percentile=p50	GAUGE	0
+http.handler.timings: http_handler=handler-inspect-requests, http_path=/service/inspect-requests, percentile=p90	GAUGE	0
+http.handler.timings: http_handler=handler-inspect-requests, http_path=/service/inspect-requests, percentile=p95	GAUGE	0
+http.handler.timings: http_handler=handler-inspect-requests, http_path=/service/inspect-requests, percentile=p98	GAUGE	0
+http.handler.timings: http_handler=handler-inspect-requests, http_path=/service/inspect-requests, percentile=p99	GAUGE	0
+http.handler.timings: http_handler=handler-inspect-requests, http_path=/service/inspect-requests, percentile=p99_6	GAUGE	0
+http.handler.timings: http_handler=handler-inspect-requests, http_path=/service/inspect-requests, percentile=p99_9	GAUGE	0
+http.handler.timings: http_handler=handler-jemalloc, http_path=/service/jemalloc/prof/_command_, percentile=p0	GAUGE	0
+http.handler.timings: http_handler=handler-jemalloc, http_path=/service/jemalloc/prof/_command_, percentile=p100	GAUGE	0
+http.handler.timings: http_handler=handler-jemalloc, http_path=/service/jemalloc/prof/_command_, percentile=p50	GAUGE	0
+http.handler.timings: http_handler=handler-jemalloc, http_path=/service/jemalloc/prof/_command_, percentile=p90	GAUGE	0
+http.handler.timings: http_handler=handler-jemalloc, http_path=/service/jemalloc/prof/_command_, percentile=p95	GAUGE	0
+http.handler.timings: http_handler=handler-jemalloc, http_path=/service/jemalloc/prof/_command_, percentile=p98	GAUGE	0
+http.handler.timings: http_handler=handler-jemalloc, http_path=/service/jemalloc/prof/_command_, percentile=p99	GAUGE	0
+http.handler.timings: http_handler=handler-jemalloc, http_path=/service/jemalloc/prof/_command_, percentile=p99_6	GAUGE	0
+http.handler.timings: http_handler=handler-jemalloc, http_path=/service/jemalloc/prof/_command_, percentile=p99_9	GAUGE	0
+http.handler.timings: http_handler=handler-log-level, http_path=/service/log-level/_level_, percentile=p0	GAUGE	0
+http.handler.timings: http_handler=handler-log-level, http_path=/service/log-level/_level_, percentile=p100	GAUGE	0
+http.handler.timings: http_handler=handler-log-level, http_path=/service/log-level/_level_, percentile=p50	GAUGE	0
+http.handler.timings: http_handler=handler-log-level, http_path=/service/log-level/_level_, percentile=p90	GAUGE	0
+http.handler.timings: http_handler=handler-log-level, http_path=/service/log-level/_level_, percentile=p95	GAUGE	0
+http.handler.timings: http_handler=handler-log-level, http_path=/service/log-level/_level_, percentile=p98	GAUGE	0
+http.handler.timings: http_handler=handler-log-level, http_path=/service/log-level/_level_, percentile=p99	GAUGE	0
+http.handler.timings: http_handler=handler-log-level, http_path=/service/log-level/_level_, percentile=p99_6	GAUGE	0
+http.handler.timings: http_handler=handler-log-level, http_path=/service/log-level/_level_, percentile=p99_9	GAUGE	0
+http.handler.timings: http_handler=handler-on-log-rotate, http_path=/service/on-log-rotate/, percentile=p0	GAUGE	0
+http.handler.timings: http_handler=handler-on-log-rotate, http_path=/service/on-log-rotate/, percentile=p100	GAUGE	0
+http.handler.timings: http_handler=handler-on-log-rotate, http_path=/service/on-log-rotate/, percentile=p50	GAUGE	0
+http.handler.timings: http_handler=handler-on-log-rotate, http_path=/service/on-log-rotate/, percentile=p90	GAUGE	0
+http.handler.timings: http_handler=handler-on-log-rotate, http_path=/service/on-log-rotate/, percentile=p95	GAUGE	0
+http.handler.timings: http_handler=handler-on-log-rotate, http_path=/service/on-log-rotate/, percentile=p98	GAUGE	0
+http.handler.timings: http_handler=handler-on-log-rotate, http_path=/service/on-log-rotate/, percentile=p99	GAUGE	0
+http.handler.timings: http_handler=handler-on-log-rotate, http_path=/service/on-log-rotate/, percentile=p99_6	GAUGE	0
+http.handler.timings: http_handler=handler-on-log-rotate, http_path=/service/on-log-rotate/, percentile=p99_9	GAUGE	0
+http.handler.timings: http_handler=handler-ping, http_path=/ping, percentile=p0	GAUGE	0
+http.handler.timings: http_handler=handler-ping, http_path=/ping, percentile=p100	GAUGE	0
+http.handler.timings: http_handler=handler-ping, http_path=/ping, percentile=p50	GAUGE	0
+http.handler.timings: http_handler=handler-ping, http_path=/ping, percentile=p90	GAUGE	0
+http.handler.timings: http_handler=handler-ping, http_path=/ping, percentile=p95	GAUGE	0
+http.handler.timings: http_handler=handler-ping, http_path=/ping, percentile=p98	GAUGE	0
+http.handler.timings: http_handler=handler-ping, http_path=/ping, percentile=p99	GAUGE	0
+http.handler.timings: http_handler=handler-ping, http_path=/ping, percentile=p99_6	GAUGE	0
+http.handler.timings: http_handler=handler-ping, http_path=/ping, percentile=p99_9	GAUGE	0
+http.handler.timings: http_handler=handler-server-monitor, http_path=/service/monitor, percentile=p0	GAUGE	0
+http.handler.timings: http_handler=handler-server-monitor, http_path=/service/monitor, percentile=p100	GAUGE	0
+http.handler.timings: http_handler=handler-server-monitor, http_path=/service/monitor, percentile=p50	GAUGE	0
+http.handler.timings: http_handler=handler-server-monitor, http_path=/service/monitor, percentile=p90	GAUGE	0
+http.handler.timings: http_handler=handler-server-monitor, http_path=/service/monitor, percentile=p95	GAUGE	0
+http.handler.timings: http_handler=handler-server-monitor, http_path=/service/monitor, percentile=p98	GAUGE	0
+http.handler.timings: http_handler=handler-server-monitor, http_path=/service/monitor, percentile=p99	GAUGE	0
+http.handler.timings: http_handler=handler-server-monitor, http_path=/service/monitor, percentile=p99_6	GAUGE	0
+http.handler.timings: http_handler=handler-server-monitor, http_path=/service/monitor, percentile=p99_9	GAUGE	0
+http.handler.timings: http_handler=tests-control, http_path=/tests/_action_, percentile=p0	GAUGE	0
+http.handler.timings: http_handler=tests-control, http_path=/tests/_action_, percentile=p100	GAUGE	0
+http.handler.timings: http_handler=tests-control, http_path=/tests/_action_, percentile=p50	GAUGE	0
+http.handler.timings: http_handler=tests-control, http_path=/tests/_action_, percentile=p90	GAUGE	0
+http.handler.timings: http_handler=tests-control, http_path=/tests/_action_, percentile=p95	GAUGE	0
+http.handler.timings: http_handler=tests-control, http_path=/tests/_action_, percentile=p98	GAUGE	0
+http.handler.timings: http_handler=tests-control, http_path=/tests/_action_, percentile=p99	GAUGE	0
+http.handler.timings: http_handler=tests-control, http_path=/tests/_action_, percentile=p99_6	GAUGE	0
+http.handler.timings: http_handler=tests-control, http_path=/tests/_action_, percentile=p99_9	GAUGE	0
+http.handler.too-many-requests-in-flight: http_handler=handler-dns-client-control, http_path=/service/dnsclient/_command_	GAUGE	0
+http.handler.too-many-requests-in-flight: http_handler=handler-dynamic-debug-log, http_path=/service/log/dynamic-debug	GAUGE	0
+http.handler.too-many-requests-in-flight: http_handler=handler-inspect-requests, http_path=/service/inspect-requests	GAUGE	0
+http.handler.too-many-requests-in-flight: http_handler=handler-jemalloc, http_path=/service/jemalloc/prof/_command_	GAUGE	0
+http.handler.too-many-requests-in-flight: http_handler=handler-log-level, http_path=/service/log-level/_level_	GAUGE	0
+http.handler.too-many-requests-in-flight: http_handler=handler-on-log-rotate, http_path=/service/on-log-rotate/	GAUGE	0
+http.handler.too-many-requests-in-flight: http_handler=handler-ping, http_path=/ping	GAUGE	0
+http.handler.too-many-requests-in-flight: http_handler=handler-server-monitor, http_path=/service/monitor	GAUGE	0
+http.handler.too-many-requests-in-flight: http_handler=tests-control, http_path=/tests/_action_	GAUGE	0
+http.handler.total.cancelled-by-deadline:	GAUGE	0
+http.handler.total.deadline-received:	GAUGE	0
+
+# HTTP server metrics aggregated by all the handlers
+http.handler.total.in-flight:	GAUGE	0
+http.handler.total.rate-limit-reached:	GAUGE	0
+http.handler.total.reply-codes: http_code=200	GAUGE	0
+http.handler.total.reply-codes: http_code=300	GAUGE	0
+http.handler.total.reply-codes: http_code=500	GAUGE	0
+http.handler.total.reply-codes: http_code=501	GAUGE	0
+http.handler.total.timings: percentile=p0	GAUGE	0
+http.handler.total.timings: percentile=p100	GAUGE	0
+http.handler.total.timings: percentile=p50	GAUGE	0
+http.handler.total.timings: percentile=p90	GAUGE	0
+http.handler.total.timings: percentile=p95	GAUGE	0
+http.handler.total.timings: percentile=p98	GAUGE	0
+http.handler.total.timings: percentile=p99	GAUGE	0
+http.handler.total.timings: percentile=p99_6	GAUGE	0
+http.handler.total.timings: percentile=p99_9	GAUGE	0
+http.handler.total.too-many-requests-in-flight:	GAUGE	0
+
+httpclient.cancelled-by-deadline:	GAUGE	0
+httpclient.cancelled-by-deadline: http_destination=http://localhost:00000/configs-service/configs/values	GAUGE	0
+httpclient.errors: http_destination=http://localhost:00000/configs-service/configs/values, http_error=host-resolution-failed	GAUGE	0
+httpclient.errors: http_destination=http://localhost:00000/configs-service/configs/values, http_error=ok	GAUGE	0
+httpclient.errors: http_destination=http://localhost:00000/configs-service/configs/values, http_error=socket-error	GAUGE	0
+httpclient.errors: http_destination=http://localhost:00000/configs-service/configs/values, http_error=ssl-error	GAUGE	0
+httpclient.errors: http_destination=http://localhost:00000/configs-service/configs/values, http_error=timeout	GAUGE	0
+httpclient.errors: http_destination=http://localhost:00000/configs-service/configs/values, http_error=too-many-redirects	GAUGE	0
+httpclient.errors: http_destination=http://localhost:00000/configs-service/configs/values, http_error=unknown-error	GAUGE	0
+httpclient.errors: http_error=host-resolution-failed	GAUGE	0
+httpclient.errors: http_error=ok	GAUGE	0
+httpclient.errors: http_error=socket-error	GAUGE	0
+httpclient.errors: http_error=ssl-error	GAUGE	0
+httpclient.errors: http_error=timeout	GAUGE	0
+httpclient.errors: http_error=too-many-redirects	GAUGE	0
+httpclient.errors: http_error=unknown-error	GAUGE	0
+httpclient.event-loop-load.1min:	GAUGE	0
+httpclient.last-time-to-start-us:	GAUGE	0
+httpclient.pending-requests:	GAUGE	0
+httpclient.pending-requests: http_destination=http://localhost:00000/configs-service/configs/values	GAUGE	0
+httpclient.reply-statuses: http_code=200	GAUGE	0
+httpclient.reply-statuses: http_code=200, http_destination=http://localhost:00000/configs-service/configs/values	GAUGE	0
+httpclient.reply-statuses: http_code=300	GAUGE	0
+httpclient.reply-statuses: http_code=300, http_destination=http://localhost:00000/configs-service/configs/values	GAUGE	0
+httpclient.reply-statuses: http_code=500	GAUGE	0
+httpclient.reply-statuses: http_code=500, http_destination=http://localhost:00000/configs-service/configs/values	GAUGE	0
+httpclient.reply-statuses: http_code=501	GAUGE	0
+httpclient.reply-statuses: http_code=501, http_destination=http://localhost:00000/configs-service/configs/values	GAUGE	0
+httpclient.retries:	GAUGE	0
+httpclient.retries: http_destination=http://localhost:00000/configs-service/configs/values	GAUGE	0
+httpclient.sockets.active:	GAUGE	0
+httpclient.sockets.close:	GAUGE	0
+httpclient.sockets.open:	GAUGE	0
+httpclient.sockets.open: http_destination=http://localhost:00000/configs-service/configs/values	GAUGE	0
+httpclient.sockets.throttled:	GAUGE	0
+httpclient.timeout-updated-by-deadline:	GAUGE	0
+httpclient.timeout-updated-by-deadline: http_destination=http://localhost:00000/configs-service/configs/values	GAUGE	0
+httpclient.timings: http_destination=http://localhost:00000/configs-service/configs/values, percentile=p0	GAUGE	0
+httpclient.timings: http_destination=http://localhost:00000/configs-service/configs/values, percentile=p100	GAUGE	0
+httpclient.timings: http_destination=http://localhost:00000/configs-service/configs/values, percentile=p50	GAUGE	0
+httpclient.timings: http_destination=http://localhost:00000/configs-service/configs/values, percentile=p90	GAUGE	0
+httpclient.timings: http_destination=http://localhost:00000/configs-service/configs/values, percentile=p95	GAUGE	0
+httpclient.timings: http_destination=http://localhost:00000/configs-service/configs/values, percentile=p98	GAUGE	0
+httpclient.timings: http_destination=http://localhost:00000/configs-service/configs/values, percentile=p99	GAUGE	0
+httpclient.timings: http_destination=http://localhost:00000/configs-service/configs/values, percentile=p99_6	GAUGE	0
+httpclient.timings: http_destination=http://localhost:00000/configs-service/configs/values, percentile=p99_9	GAUGE	0
+httpclient.timings: percentile=p0	GAUGE	0
+httpclient.timings: percentile=p100	GAUGE	0
+httpclient.timings: percentile=p50	GAUGE	0
+httpclient.timings: percentile=p90	GAUGE	0
+httpclient.timings: percentile=p95	GAUGE	0
+httpclient.timings: percentile=p98	GAUGE	0
+httpclient.timings: percentile=p99	GAUGE	0
+httpclient.timings: percentile=p99_6	GAUGE	0
+httpclient.timings: percentile=p99_9	GAUGE	0
+io_read_bytes:	GAUGE	0
+io_write_bytes:	GAUGE	0
+logger.by_level: level=critical, logger=default	GAUGE	0
+logger.by_level: level=debug, logger=default	GAUGE	0
+logger.by_level: level=error, logger=default	GAUGE	0
+logger.by_level: level=info, logger=default	GAUGE	0
+logger.by_level: level=none, logger=default	GAUGE	0
+logger.by_level: level=trace, logger=default	GAUGE	0
+logger.by_level: level=warning, logger=default	GAUGE	0
+logger.dropped: logger=default	GAUGE	0
+logger.total: logger=default	GAUGE	0
+major_pagefaults:	GAUGE	0
+open_files:	GAUGE	0
+rss_kb:	GAUGE	0
+server.connections.active:	GAUGE	0
+server.connections.closed:	GAUGE	0
+server.connections.opened:	GAUGE	0
+server.requests.active:	GAUGE	0
+server.requests.avg-lifetime-ms:	GAUGE	0
+server.requests.parsing:	GAUGE	0
+server.requests.processed:	GAUGE	0

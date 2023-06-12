@@ -11,41 +11,13 @@
 #include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
 
-#include <engine/impl/wait_list_light.hpp>
 #include <engine/task/task_context.hpp>
 #include <utils/check_syscall.hpp>
-
-template <>
-struct fmt::formatter<USERVER_NAMESPACE::engine::io::impl::Direction::State> {
-  static constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
-
-  template <typename FormatContext>
-  auto format(USERVER_NAMESPACE::engine::io::impl::Direction::State state,
-              FormatContext& ctx) const {
-    using State = USERVER_NAMESPACE::engine::io::impl::Direction::State;
-    std::string_view str = "broken";
-    switch (state) {
-      case State::kInvalid:
-        str = "invalid";
-        break;
-      case State::kReadyToUse:
-        str = "ready to use";
-        break;
-      case State::kInUse:
-        str = "in use";
-        break;
-    }
-
-    return fmt::format_to(ctx.out(), "{}", str);
-  }
-};
 
 USERVER_NAMESPACE_BEGIN
 
 namespace engine::io::impl {
 namespace {
-
-static_assert(std::atomic<Direction::State>::is_always_lock_free);
 
 int SetNonblock(int fd) {
   int oldflags = utils::CheckSyscallCustomException<IoSystemError>(
@@ -77,33 +49,6 @@ int ReduceSigpipe(int fd) {
   return fd;
 }
 
-class DirectionWaitStrategy final : public engine::impl::WaitStrategy {
- public:
-  DirectionWaitStrategy(Deadline deadline, engine::impl::WaitListLight& waiters,
-                        ev::Watcher<ev_io>& watcher,
-                        engine::impl::TaskContext& current)
-      : WaitStrategy(deadline),
-        waiters_(waiters),
-        watcher_(watcher),
-        current_(current) {}
-
-  void SetupWakeups() override {
-    waiters_.Append(&current_);
-    watcher_.StartAsync();
-  }
-
-  void DisableWakeups() override {
-    waiters_.Remove(current_);
-    // we need to stop watcher manually to avoid racy wakeups later
-    watcher_.StopAsync();
-  }
-
- private:
-  engine::impl::WaitListLight& waiters_;
-  ev::Watcher<ev_io>& watcher_;
-  engine::impl::TaskContext& current_;
-};
-
 }  // namespace
 
 void FdControlDeleter::operator()(FdControl* ptr) const noexcept {
@@ -112,103 +57,25 @@ void FdControlDeleter::operator()(FdControl* ptr) const noexcept {
 
 #ifndef NDEBUG
 Direction::SingleUserGuard::SingleUserGuard(Direction& dir) : dir_(dir) {
-  auto old_state = State::kReadyToUse;
-  const auto res =
-      dir_.state_.compare_exchange_strong(old_state, State::kInUse);
-
-  UASSERT_MSG(
-      res,
-      fmt::format(
-          "Socket misuse: expected socket state is '{}', actual state is '{}'",
-          State::kReadyToUse, old_state));
+  dir_.poller_.SwitchStateToInUse();
 }
 
 Direction::SingleUserGuard::~SingleUserGuard() {
-  auto old_state = State::kInUse;
-  const auto res =
-      dir_.state_.compare_exchange_strong(old_state, State::kReadyToUse);
-  UASSERT_MSG(
-      res,
-      fmt::format(
-          "Socket misuse: expected socket state is '{}', actual state is '{}'",
-          State::kInUse, old_state));
+  dir_.poller_.SwitchStateToReadyToUse();
 }
 #endif  // #ifndef NDEBUG
 
-Direction::Direction(Kind kind)
-    : kind_(kind),
-      state_(State::kInvalid),
-      watcher_(current_task::GetEventThread(), this) {
-  watcher_.Init(&IoWatcherCb);
-}
+Direction::Direction(Kind kind) : kind_(kind) {}
 
 Direction::~Direction() = default;
 
 bool Direction::Wait(Deadline deadline) {
-  return DoWait(deadline) == engine::impl::TaskContext::WakeupSource::kWaitList;
+  return poller_.Wait(deadline).has_value();
 }
 
-engine::impl::TaskContext::WakeupSource Direction::DoWait(Deadline deadline) {
-  UASSERT(IsValid());
+void Direction::Reset(int fd) { poller_.Reset(fd, kind_); }
 
-  auto& current = current_task::GetCurrentTaskContext();
-
-  if (current.ShouldCancel()) {
-    return engine::impl::TaskContext::WakeupSource::kCancelRequest;
-  }
-
-  impl::DirectionWaitStrategy wait_manager(deadline, *waiters_, watcher_,
-                                           current);
-  auto ret = current.Sleep(wait_manager);
-
-  /*
-   * Manually call Stop() here to be sure that after DoWait() no waiter_'s
-   * callback (IoWatcherCb) is running.
-   */
-  watcher_.Stop();
-  return ret;
-}
-
-void Direction::Reset(int fd) {
-  UASSERT(!IsValid());
-  UASSERT(fd_ == fd || fd_ == -1);
-  fd_ = fd;
-  watcher_.Set(fd_, kind_ == Kind::kRead ? EV_READ : EV_WRITE);
-  state_ = State::kReadyToUse;
-}
-
-void Direction::StopWatcher() {
-  UASSERT(IsValid());
-  watcher_.Stop();
-}
-
-void Direction::WakeupWaiters() { waiters_->WakeupOne(); }
-
-void Direction::Invalidate() {
-  StopWatcher();
-
-  auto old_state = State::kReadyToUse;
-  const auto res = state_.compare_exchange_strong(old_state, State::kInvalid);
-
-  UINVARIANT(
-      res,
-      fmt::format(
-          "Socket missuse: expected socket state is '{}', actual state is '{}'",
-          State::kReadyToUse, old_state));
-}
-
-void Direction::IoWatcherCb(struct ev_loop*, ev_io* watcher, int) noexcept {
-  UASSERT(watcher->active);
-  UASSERT((watcher->events & ~(EV_READ | EV_WRITE)) == 0);
-
-  auto* self = static_cast<Direction*>(watcher->data);
-
-  /* Cleanup watcher_ first, then awake the coroutine.
-   * Otherwise the coroutine may close watcher_'s fd before watcher_ is stopped.
-   */
-  self->watcher_.Stop();
-  self->WakeupWaiters();
-}
+void Direction::Invalidate() { poller_.Invalidate(); }
 
 FdControl::FdControl()
     : read_(Direction::Kind::kRead), write_(Direction::Kind::kWrite) {}

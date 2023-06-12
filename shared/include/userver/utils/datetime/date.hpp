@@ -94,13 +94,14 @@ void WriteToStream(Date value, StringBuilder& sw) {
   WriteToStream(ToString(value), sw);
 }
 
-template <class LogHelper>
-std::enable_if_t<std::is_same_v<LogHelper, logging::LogHelper>, LogHelper&>
-operator<<(LogHelper& lh, Date date) {
-  // This function was made template to work well with forward
-  // declared logging::LogHelper
-
-  return lh << ToString(date);
+template <typename LogHelper = USERVER_NAMESPACE::logging::LogHelper>
+USERVER_NAMESPACE::logging::LogHelper& operator<<(
+    USERVER_NAMESPACE::logging::LogHelper& lh, const Date& date) {
+  static_assert(
+      std::is_same_v<LogHelper, USERVER_NAMESPACE::logging::LogHelper>,
+      "This was made template to work well with forward declared "
+      "logging::LogHelper");
+  return static_cast<LogHelper&>(lh) << ToString(date);
 }
 
 std::ostream& operator<<(std::ostream& os, Date date);

@@ -4,60 +4,13 @@
 #include <cstdint>
 #include <type_traits>
 
+#include <concurrent/impl/intrusive_hooks.hpp>
+#include <concurrent/impl/tagged_ptr.hpp>
 #include <userver/utils/assert.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace concurrent::impl {
-
-template <typename T>
-class TaggedPtr final {
-  static_assert(sizeof(std::uintptr_t) <= sizeof(std::uint64_t));
-  static constexpr std::uint64_t kTagShift = 48;
-
- public:
-  using Tag = std::uint16_t;
-
-  constexpr /*implicit*/ TaggedPtr(std::nullptr_t) noexcept : impl_(0) {}
-
-  TaggedPtr(T* ptr, Tag tag)
-      : impl_(reinterpret_cast<std::uintptr_t>(ptr) |
-              (std::uint64_t{tag} << kTagShift)) {
-    UASSERT(!(reinterpret_cast<std::uintptr_t>(ptr) & 0xffff'0000'0000'0000));
-  }
-
-  T* GetDataPtr() const noexcept {
-    return reinterpret_cast<T*>(static_cast<std::uintptr_t>(
-        impl_ & ((std::uint64_t{1} << kTagShift) - 1)));
-  }
-
-  Tag GetTag() const noexcept { return static_cast<Tag>(impl_ >> kTagShift); }
-
-  Tag GetNextTag() const noexcept { return static_cast<Tag>(GetTag() + 1); }
-
- private:
-  std::uint64_t impl_;
-};
-
-template <auto Member>
-struct MemberHook final {
-  template <typename T>
-  auto& operator()(T& node) const noexcept {
-    return node.*Member;
-  }
-};
-
-template <typename T>
-class IntrusiveStackHook final {
- public:
-  IntrusiveStackHook() = default;
-
- private:
-  template <typename U, typename HookExtractor>
-  friend class IntrusiveStack;
-
-  std::atomic<T*> next_{nullptr};
-};
 
 /// @brief An intrusive stack of nodes of type `T` with ABA protection.
 ///
@@ -74,8 +27,7 @@ class IntrusiveStackHook final {
 template <typename T, typename HookExtractor>
 class IntrusiveStack final {
   static_assert(std::is_empty_v<HookExtractor>);
-  static_assert(
-      std::is_invocable_r_v<IntrusiveStackHook<T>&, HookExtractor, T&>);
+  static_assert(std::is_invocable_r_v<SinglyLinkedHook<T>&, HookExtractor, T&>);
 
  public:
   IntrusiveStack() = default;
@@ -146,7 +98,7 @@ class IntrusiveStack final {
   static_assert(std::has_unique_object_representations_v<NodeTaggedPtr>);
 
   static std::atomic<T*>& GetNext(T& node) noexcept {
-    return static_cast<IntrusiveStackHook<T>&>(HookExtractor{}(node)).next_;
+    return static_cast<SinglyLinkedHook<T>&>(HookExtractor{}(node)).next_;
   }
 
   template <typename U, typename Func>
@@ -158,12 +110,6 @@ class IntrusiveStack final {
   }
 
   std::atomic<NodeTaggedPtr> stack_head_{nullptr};
-};
-
-template <typename T>
-struct IntrusiveWalkablePoolHook final {
-  IntrusiveStackHook<T> permanent_list_hook;
-  IntrusiveStackHook<T> free_list_hook;
 };
 
 /// @brief A walkable pool of nodes of type `T`
@@ -227,18 +173,12 @@ class IntrusiveWalkablePool final {
   }
 
  private:
-  struct PermanentListHookExtractor final {
-    auto& operator()(T& node) {
-      return static_cast<IntrusiveWalkablePoolHook<T>&>(HookExtractor{}(node))
-          .permanent_list_hook;
-    }
-  };
-  struct FreeListHookExtractor final {
-    auto& operator()(T& node) {
-      return static_cast<IntrusiveWalkablePoolHook<T>&>(HookExtractor{}(node))
-          .free_list_hook;
-    }
-  };
+  using PermanentListHookExtractor = CombinedHook<
+      HookExtractor,
+      MemberHook<&IntrusiveWalkablePoolHook<T>::permanent_list_hook>>;
+  using FreeListHookExtractor =
+      CombinedHook<HookExtractor,
+                   MemberHook<&IntrusiveWalkablePoolHook<T>::free_list_hook>>;
 
   IntrusiveStack<T, PermanentListHookExtractor> permanent_list_;
   IntrusiveStack<T, FreeListHookExtractor> free_list_;

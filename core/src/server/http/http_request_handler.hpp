@@ -36,6 +36,7 @@ class HttpRequestHandler final : public RequestHandlerBase {
   void DisableAddHandler();
   void AddHandler(const handlers::HttpHandlerBase& handler,
                   engine::TaskProcessor& task_processor);
+  bool IsAddHandlerDisabled() const noexcept;
   const HandlerInfoIndex& GetHandlerInfoIndex() const override;
 
   const logging::LoggerPtr& LoggerAccess() const noexcept override {
@@ -60,7 +61,7 @@ class HttpRequestHandler final : public RequestHandlerBase {
   HandlerInfoIndex handler_info_index_;
 
   std::atomic<bool> add_handler_disabled_;
-  bool is_monitor_;
+  const bool is_monitor_;
   const std::string server_name_;
   NewRequestHook new_request_hook_;
   mutable utils::TokenBucket rate_limit_;

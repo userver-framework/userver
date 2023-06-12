@@ -3,8 +3,11 @@
 #include <atomic>
 #include <chrono>
 #include <tuple>
+#include <type_traits>
 #include <vector>
 
+#include <userver/utils/datetime.hpp>
+#include <userver/utils/statistics/fwd.hpp>
 #include <userver/utils/statistics/recentperiod_detail.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -19,7 +22,7 @@ namespace utils::statistics {
  * @see utils::statistics::Percentile
  */
 template <typename Counter, typename Result,
-          typename Timer = std::chrono::steady_clock>
+          typename Timer = utils::datetime::SteadyClock>
 class RecentPeriod {
  public:
   using Duration = typename Timer::duration;
@@ -56,13 +59,14 @@ class RecentPeriod {
    * @param duration Time range. Special value Duration::min() -> use
    *        whole RecentPeriod range.
    * @param with_current_epoch  Include current (possibly unfinished) counter
-   *        into agregation
+   *        into aggregation
    *
    * Type Result must have method Add(Counter, Duration, Duration) or allow
    * addition of counter values
    */
-  Result GetStatsForPeriod(Duration duration = Duration::min(),
-                           bool with_current_epoch = false) const {
+  // NOLINTNEXTLINE(readability-const-return-type)
+  const Result GetStatsForPeriod(Duration duration = Duration::min(),
+                                 bool with_current_epoch = false) const {
     if (duration == Duration::min()) {
       duration = max_duration_;
     }
@@ -102,6 +106,12 @@ class RecentPeriod {
   Duration GetMaxDuration() const { return max_duration_; }
 
   void UpdateEpochIfOld() { std::ignore = get_current_index(); }
+
+  void Reset() {
+    for (auto& item : items_) {
+      item.Reset();
+    }
+  }
 
  private:
   size_t get_current_index() const {
@@ -165,6 +175,21 @@ class RecentPeriod {
   mutable std::atomic_size_t epoch_index_;
   mutable std::vector<EpochBucket> items_;
 };
+
+/// @brief @a Writer support for @a RecentPeriod. Forwards to `DumpMetric`
+/// overload for `Result`.
+///
+/// @param args if any, are forwarded to `DumpMetric` for `Result`
+template <typename Counter, typename Result, typename Timer>
+void DumpMetric(Writer& writer,
+                const RecentPeriod<Counter, Result, Timer>& recent_period) {
+  writer = recent_period.GetStatsForPeriod();
+}
+
+template <typename Counter, typename Result, typename Timer>
+void ResetMetric(RecentPeriod<Counter, Result, Timer>& recent_period) {
+  recent_period.Reset();
+}
 
 }  // namespace utils::statistics
 

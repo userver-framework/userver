@@ -1,9 +1,6 @@
 #include "log_helper_impl.hpp"
 
-#include <logging/spdlog.hpp>
-
-#include <logging/logger_with_info.hpp>
-
+#include <userver/logging/impl/logger_base.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/encoding/tskv.hpp>
 
@@ -13,22 +10,8 @@ namespace logging {
 
 namespace {
 
-class PutCharFmtBuffer final {
- public:
-  template <size_t Size>
-  void operator()(fmt::basic_memory_buffer<char, Size>& to, char ch) const {
-    to.push_back(ch);
-  }
-};
-
-char GetSeparatorFromLogger(const LoggerPtr& logger_ptr) {
-  if (!logger_ptr) {
-    return '?';  // Won't be logged
-  }
-
-  const auto& logger = *logger_ptr;
-
-  switch (logger.format) {
+char GetSeparatorFromLogger(LoggerCRef logger) {
+  switch (logger.GetFormat()) {
     case Format::kTskv:
     case Format::kRaw:
       return '=';
@@ -50,13 +33,12 @@ std::streamsize LogHelper::Impl::BufferStd::xsputn(const char_type* s,
   return impl_.xsputn(s, n);
 }
 
-// SetDefaultLogger is called in components::Run and no logging happens before
-// that. So at this point the logging is initialized and
-// DefaultLogger()->name() shuld not throw.
-LogHelper::Impl::Impl(LoggerPtr logger, Level level) noexcept
-    : logger_(std::move(logger)),
+// Logging is setuped in components::Run and no logging happens before
+// that. So at this point the logging is initialized.
+LogHelper::Impl::Impl(LoggerCRef logger, Level level) noexcept
+    : logger_(&logger),
       level_(level),
-      key_value_separator_(GetSeparatorFromLogger(logger_)) {
+      key_value_separator_(GetSeparatorFromLogger(*logger_)) {
   static_assert(sizeof(LogHelper::Impl) < 4096,
                 "Structures with size more than 4096 would consume at least "
                 "8KB memory in allocator.");
@@ -67,17 +49,19 @@ std::streamsize LogHelper::Impl::xsputn(const char_type* s, std::streamsize n) {
     case Encode::kNone:
       msg_.append(s, s + n);
       break;
-    case Encode::kValue:
-      msg_.reserve(msg_.size() + n);
-      utils::encoding::EncodeTskv(msg_, s, s + n,
-                                  utils::encoding::EncodeTskvMode::kValue,
-                                  PutCharFmtBuffer{});
+    case Encode::kValue: {
+      utils::encoding::EncodeTskv(msg_, std::string_view(s, n),
+                                  utils::encoding::EncodeTskvMode::kValue);
       break;
+    }
     case Encode::kKeyReplacePeriod:
-      msg_.reserve(msg_.size() + n);
-      utils::encoding::EncodeTskv(
-          msg_, s, s + n, utils::encoding::EncodeTskvMode::kKeyReplacePeriod,
-          PutCharFmtBuffer{});
+      if (!utils::encoding::ShouldKeyBeEscaped({s, static_cast<size_t>(n)})) {
+        msg_.append(s, s + n);
+      } else {
+        utils::encoding::EncodeTskv(
+            msg_, std::string_view(s, n),
+            utils::encoding::EncodeTskvMode::kKeyReplacePeriod);
+      }
       break;
   }
 
@@ -86,25 +70,26 @@ std::streamsize LogHelper::Impl::xsputn(const char_type* s, std::streamsize n) {
 
 LogHelper::Impl::int_type LogHelper::Impl::overflow(int_type c) {
   if (c == std::streambuf::traits_type::eof()) return c;
+  Put(c);
+  return c;
+}
 
+void LogHelper::Impl::Put(char_type c) {
   switch (encode_mode_) {
     case Encode::kNone:
       msg_.push_back(c);
       break;
     case Encode::kValue:
-      utils::encoding::EncodeTskv(msg_, static_cast<char>(c),
-                                  utils::encoding::EncodeTskvMode::kValue,
-                                  PutCharFmtBuffer{});
+      utils::encoding::EncodeTskv(std::back_inserter(msg_),
+                                  static_cast<char>(c),
+                                  utils::encoding::EncodeTskvMode::kValue);
       break;
     case Encode::kKeyReplacePeriod:
       utils::encoding::EncodeTskv(
-          msg_, static_cast<char>(c),
-          utils::encoding::EncodeTskvMode::kKeyReplacePeriod,
-          PutCharFmtBuffer{});
+          std::back_inserter(msg_), static_cast<char>(c),
+          utils::encoding::EncodeTskvMode::kKeyReplacePeriod);
       break;
   }
-
-  return c;
 }
 
 LogHelper::Impl::LazyInitedStream& LogHelper::Impl::GetLazyInitedStream() {
@@ -121,8 +106,8 @@ void LogHelper::Impl::LogTheMessage() const {
   }
 
   UASSERT(logger_);
-  std::string_view message(msg_.data(), msg_.size());
-  logger_->ptr->log(static_cast<spdlog::level::level_enum>(level_), message);
+  const std::string_view message(msg_.data(), msg_.size());
+  logger_->Log(level_, message);
 }
 
 void LogHelper::Impl::MarkTextBegin() {
@@ -130,7 +115,7 @@ void LogHelper::Impl::MarkTextBegin() {
   initial_length_ = msg_.size();
 }
 
-void LogHelper::Impl::MarkAsBroken() noexcept { logger_.reset(); }
+void LogHelper::Impl::MarkAsBroken() noexcept { logger_ = nullptr; }
 
 bool LogHelper::Impl::IsBroken() const noexcept { return !logger_; }
 

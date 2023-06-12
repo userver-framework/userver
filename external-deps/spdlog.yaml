@@ -1,6 +1,5 @@
 name: spdlog
 version: '1.6.0'  # on update also adjust the version in cmake/SetupSpdlog.cmake
-helper-prefix: false
 
 includes:
     find:

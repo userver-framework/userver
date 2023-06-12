@@ -9,15 +9,17 @@
 #include <engine/ev/thread_control.hpp>
 
 #include <userver/utils/assert.hpp>
+#include <userver/utils/fast_scope_guard.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace engine::ev {
 
-/// Watcher type for a particular event type. Not intended for ownage by
-/// intrusive_ptr.
+using LibEvDuration = std::chrono::duration<double>;
+
+/// An ev watcher wrapper. Usable from coroutines and from the bound ev thread.
 template <typename EvType>
-class Watcher final : private AsyncPayloadBase {
+class Watcher final : public MultiShotAsyncPayload<Watcher<EvType>> {
  public:
   template <typename Obj>
   Watcher(const ThreadControl& thread_control, Obj* data);
@@ -29,24 +31,23 @@ class Watcher final : private AsyncPayloadBase {
   void Init(void (*cb)(struct ev_loop*, ev_io*, int) noexcept, int fd,
             int events);  // TODO: use utils::Flags for events
   void Init(void (*cb)(struct ev_loop*, ev_timer*, int) noexcept,
-            ev_tstamp after, ev_tstamp repeat);
-  void Init(void (*cb)(struct ev_loop*, ev_idle*, int) noexcept);
+            LibEvDuration after, LibEvDuration repeat);
 
   template <typename T = EvType>
   std::enable_if_t<std::is_same_v<T, ev_io>> Set(int fd, int events);
 
   template <typename T = EvType>
-  std::enable_if_t<std::is_same_v<T, ev_timer>> Set(ev_tstamp after,
-                                                    ev_tstamp repeat);
+  std::enable_if_t<std::is_same_v<T, ev_timer>> Set(LibEvDuration after,
+                                                    LibEvDuration repeat);
 
-  /* Synchronously start/stop ev_xxx.  Can be used from coroutines only */
+  // Synchronously start/stop ev_xxx. Can be used from coroutines only.
   void Start();
   void Stop();
 
-  /* Asynchronously start ev_xxx. Must not block. */
+  // Asynchronously start ev_xxx.
   void StartAsync();
 
-  /* Asynchronously stop ev_xxx. Beware of dangling references! */
+  // Asynchronously stop ev_xxx. Beware of dangling references!
   void StopAsync();
 
   template <typename T = EvType>
@@ -55,6 +56,10 @@ class Watcher final : private AsyncPayloadBase {
   template <typename T = EvType>
   std::enable_if_t<std::is_same_v<T, ev_async>> Send();
 
+  // Schedule an arbitrary function on the bound ev thread.
+  // The Watcher won't be destroyed until the operation is complete.
+  // The operations launched this way may be reordered with respect to
+  // StartAsync and StopAsync.
   template <typename Function>
   void RunInBoundEvLoopAsync(Function&&);
 
@@ -62,9 +67,14 @@ class Watcher final : private AsyncPayloadBase {
   void RunInBoundEvLoopSync(Function&&);
 
  private:
-  static void Release(AsyncPayloadBase& base) noexcept;
+  friend class MultiShotAsyncPayload<Watcher<EvType>>;
 
-  AsyncPayloadPtr SelfAsPayload() noexcept;
+  enum class AsyncOpType : std::uint32_t { kNone, kStart, kStop };
+
+  auto EvLoopOpsCountingGuard() noexcept;
+  void DoPerformAndRelease();
+  void PushAsyncOp(AsyncOpType op);
+  bool IsActive() const noexcept;
 
   void StartImpl();
   void StopImpl();
@@ -72,26 +82,25 @@ class Watcher final : private AsyncPayloadBase {
   template <typename T = EvType>
   std::enable_if_t<std::is_same_v<T, ev_timer>> AgainImpl();
 
-  bool HasPendingEvLoopOps() const noexcept { return pending_op_count_ != 0; }
-
   EvType w_;
   ThreadControl thread_control_;
   std::atomic<bool> is_running_{false};
+  std::atomic<AsyncOpType> pending_async_op_{{}};
   std::atomic<std::size_t> pending_op_count_{0};
 };
 
 template <typename EvType>
 template <typename Obj>
 Watcher<EvType>::Watcher(const ThreadControl& thread_control, Obj* data)
-    : AsyncPayloadBase(&Release), thread_control_(thread_control) {
+    : thread_control_(thread_control) {
   w_.data = static_cast<void*>(data);
-  UASSERT(!HasPendingEvLoopOps());
+  UASSERT(!IsActive());
 }
 
 template <typename EvType>
 Watcher<EvType>::~Watcher() {
   Stop();
-  UASSERT(!HasPendingEvLoopOps());
+  UASSERT(!IsActive());
 }
 
 template <typename EvType>
@@ -101,32 +110,19 @@ void Watcher<EvType>::Start() {
 
 template <typename EvType>
 void Watcher<EvType>::Stop() {
-  if (!HasPendingEvLoopOps() && !is_running_) return;
-
+  if (!IsActive()) return;
   RunInBoundEvLoopSync([this] { StopImpl(); });
 }
 
 template <typename EvType>
 void Watcher<EvType>::StartAsync() {
-  thread_control_.RunInEvLoopDeferred(
-      [](AsyncPayloadPtr&& ptr) {
-        auto& self = static_cast<Watcher&>(*ptr);
-        self.StartImpl();
-      },
-      SelfAsPayload(), {});
+  PushAsyncOp(AsyncOpType::kStart);
 }
 
 template <typename EvType>
 void Watcher<EvType>::StopAsync() {
-  // no fetch_add in predicate is fine
-  if (!HasPendingEvLoopOps() && !is_running_) return;
-
-  thread_control_.RunInEvLoopAsync(
-      [](AsyncPayloadPtr&& ptr) {
-        auto& self = static_cast<Watcher&>(*ptr);
-        self.StopImpl();
-      },
-      SelfAsPayload());
+  if (!IsActive()) return;
+  PushAsyncOp(AsyncOpType::kStop);
 }
 
 template <typename EvType>
@@ -145,8 +141,9 @@ template <typename EvType>
 template <typename Function>
 void Watcher<EvType>::RunInBoundEvLoopAsync(Function&& func) {
   thread_control_.RunInEvLoopAsync(
-      [ev_loop_ops_counting_guard = SelfAsPayload(),
-       func = std::forward<Function>(func)] { func(); });
+      [guard = EvLoopOpsCountingGuard(), func = std::forward<Function>(func)] {
+        func();
+      });
 }
 
 template <typename EvType>
@@ -155,19 +152,54 @@ void Watcher<EvType>::RunInBoundEvLoopSync(Function&& func) {
   // We need guard here to make sure that ~Watcher() does not
   // return as long as we are calling Watcher::Stop or Watcher::Start from ev
   // thread.
-  auto ev_loop_ops_counting_guard = SelfAsPayload();
+  [[maybe_unused]] auto guard = EvLoopOpsCountingGuard();
   thread_control_.RunInEvLoopSync(std::forward<Function>(func));
 }
 
 template <typename EvType>
-void Watcher<EvType>::Release(AsyncPayloadBase& base) noexcept {
-  --static_cast<Watcher&>(base).pending_op_count_;
+auto Watcher<EvType>::EvLoopOpsCountingGuard() noexcept {
+  ++pending_op_count_;
+  return utils::FastScopeGuard([this]() noexcept { --pending_op_count_; });
 }
 
 template <typename EvType>
-AsyncPayloadPtr Watcher<EvType>::SelfAsPayload() noexcept {
-  ++pending_op_count_;
-  return AsyncPayloadPtr(this);
+void Watcher<EvType>::DoPerformAndRelease() {
+  utils::FastScopeGuard release_guard([this]() noexcept {
+    // As long as pending_op_count_ != 0, Watcher owner will not destroy it
+    // immediately, instead it will launch a synchronous Stop operation that
+    // will be scheduled after the current one.
+    --pending_op_count_;
+    // Watcher may be dead at this point.
+  });
+
+  const auto op = pending_async_op_.exchange({}, std::memory_order_relaxed);
+
+  switch (op) {
+    case AsyncOpType::kNone:
+      break;
+    case AsyncOpType::kStart:
+      StartImpl();
+      break;
+    case AsyncOpType::kStop:
+      StopImpl();
+      break;
+    default:
+      UINVARIANT(false, "Invalid LifetimeOp value");
+  }
+}
+
+template <typename EvType>
+void Watcher<EvType>::PushAsyncOp(AsyncOpType op) {
+  pending_async_op_.store(op, std::memory_order_relaxed);
+  if (this->PrepareEnqueue()) {
+    ++pending_op_count_;
+    thread_control_.RunPayloadInEvLoopDeferred(*this, {});
+  }
+}
+
+template <typename EvType>
+bool Watcher<EvType>::IsActive() const noexcept {
+  return pending_op_count_ != 0 || is_running_;
 }
 
 }  // namespace engine::ev

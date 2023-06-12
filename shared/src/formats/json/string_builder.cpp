@@ -3,16 +3,16 @@
 #include <cmath>
 #include <stdexcept>
 
+#include <rapidjson/document.h>
+#include <rapidjson/stringbuffer.h>
+#include <rapidjson/writer.h>
+
+#include <formats/common/validations.hpp>
+#include <formats/json/impl/accept.hpp>
 #include <userver/formats/json/impl/types.hpp>
 #include <userver/formats/json/value.hpp>
 #include <userver/utils/datetime.hpp>
 #include <userver/utils/fast_pimpl.hpp>
-
-#include <formats/common/validations.hpp>
-
-#include <rapidjson/document.h>
-#include <rapidjson/stringbuffer.h>
-#include <rapidjson/writer.h>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -29,9 +29,13 @@ StringBuilder::StringBuilder() = default;
 
 StringBuilder::~StringBuilder() = default;
 
-std::string StringBuilder::GetString() const {
+std::string_view StringBuilder::GetStringView() const {
   const auto& buffer = impl_->buffer;
   return {buffer.GetString(), buffer.GetLength()};
+}
+
+std::string StringBuilder::GetString() const {
+  return std::string{GetStringView()};
 }
 
 void StringBuilder::WriteNull() { impl_->writer.Null(); }
@@ -60,7 +64,7 @@ void StringBuilder::WriteRawString(std::string_view value) {
 }
 
 void StringBuilder::WriteValue(const formats::json::Value& value) {
-  value.GetNative().Accept(impl_->writer);
+  formats::json::AcceptNoRecursion(value.GetNative(), impl_->writer);
 }
 
 void WriteToStream(bool value, StringBuilder& sw) { sw.WriteBool(value); }

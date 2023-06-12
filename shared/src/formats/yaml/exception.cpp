@@ -28,8 +28,7 @@ std::string MsgForState(std::ios::iostate state, std::string_view stream_kind) {
     str_state = "GOOD?";
   }
 
-  return fmt::format(FMT_STRING("The {} stream is in state '{}'"), stream_kind,
-                     str_state);
+  return fmt::format("The {} stream is in state '{}'", stream_kind, str_state);
 }
 
 const char* NameForType(Type expected) {
@@ -48,34 +47,34 @@ const char* NameForType(Type expected) {
 template <typename TType>
 std::string MsgForType(TType actual, TType expected, std::string_view path) {
   UASSERT(actual != expected);
-  return fmt::format(FMT_STRING("Field '{}' is of wrong type. Expected YAML "
-                                "type '{}', but found '{}'"),
-                     path, NameForType(expected), NameForType(actual));
+  return fmt::format(
+      "Field '{}' is of wrong type. Expected YAML "
+      "type '{}', but found '{}'",
+      path, NameForType(expected), NameForType(actual));
 }
 
 std::string MsgForType(std::string_view expected_type, std::string_view path,
                        const YAML::Node& value) {
-  return fmt::format(FMT_STRING("Field '{}' is not representable as '{}'. Can "
-                                "not convert from value '{}'"),
-                     path, expected_type, value.Scalar());
+  return fmt::format(
+      "Field '{}' is not representable as '{}'. Can "
+      "not convert from value '{}'",
+      path, expected_type, value.Scalar());
 }
 
 std::string MsgForIndex(size_t index, size_t size, std::string_view path) {
-  return fmt::format(
-      FMT_STRING("Index {} of array '{}' of size {} is out of bounds"), index,
-      path, size);
+  return fmt::format("Index {} of array '{}' of size {} is out of bounds",
+                     index, path, size);
 }
 
 std::string MsgForMissing(std::string_view path) {
-  return fmt::format(FMT_STRING("Field '{}' is missing"), path);
+  return fmt::format("Field '{}' is missing", path);
 }
 
 std::string MsgForPathPrefix(std::string_view old_path,
                              std::string_view prefix) {
   return fmt::format(
-      FMT_STRING(
-          "Attempting to append path prefix '{}' to a non-empty path '{}'"),
-      prefix, old_path);
+      "Attempting to append path prefix '{}' to a non-empty path '{}'", prefix,
+      old_path);
 }
 
 }  // namespace

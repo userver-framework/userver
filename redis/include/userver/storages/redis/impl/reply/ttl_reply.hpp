@@ -1,5 +1,8 @@
 #pragma once
 
+#include <cstdint>
+#include <string>
+
 #include <userver/storages/redis/impl/exception.hpp>
 #include <userver/storages/redis/impl/types.hpp>
 

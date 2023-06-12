@@ -1,6 +1,6 @@
 // Tencent is pleased to support the open source community by making RapidJSON available.
 //
-// Copyright (C) 2015 THL A29 Limited, a Tencent company, and Milo Yip. All rights reserved.
+// Copyright (C) 2015 THL A29 Limited, a Tencent company, and Milo Yip.
 //
 // Licensed under the MIT License (the "License"); you may not use this file except
 // in compliance with the License. You may obtain a copy of the License at
@@ -20,12 +20,16 @@
 #define RAPIDJSON_DIYFP_H_
 
 #include "../rapidjson.h"
+#include "clzll.h"
 #include <limits>
 
 #if defined(_MSC_VER) && defined(_M_AMD64) && !defined(__INTEL_COMPILER)
 #include <intrin.h>
-#pragma intrinsic(_BitScanReverse64)
+#if !defined(_ARM64EC_)
 #pragma intrinsic(_umul128)
+#else
+#pragma comment(lib,"softintrin")
+#endif
 #endif
 
 RAPIDJSON_NAMESPACE_BEGIN
@@ -100,22 +104,8 @@ struct DiyFp {
     }
 
     DiyFp Normalize() const {
-        RAPIDJSON_ASSERT(f != 0); // https://stackoverflow.com/a/26809183/291737
-#if defined(_MSC_VER) && defined(_M_AMD64)
-        unsigned long index;
-        _BitScanReverse64(&index, f);
-        return DiyFp(f << (63 - index), e - (63 - index));
-#elif defined(__GNUC__) && __GNUC__ >= 4
-        int s = __builtin_clzll(f);
+        int s = static_cast<int>(clzll(f));
         return DiyFp(f << s, e - s);
-#else
-        DiyFp res = *this;
-        while (!(res.f & (static_cast<uint64_t>(1) << 63))) {
-            res.f <<= 1;
-            res.e--;
-        }
-        return res;
-#endif
     }
 
     DiyFp NormalizeBoundary() const {

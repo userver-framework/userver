@@ -6,11 +6,14 @@
 #include <string_view>
 
 /// [Redis service sample - component]
+#include <userver/clients/dns/component.hpp>
+#include <userver/components/component.hpp>
 #include <userver/components/minimal_server_component_list.hpp>
 #include <userver/server/handlers/http_handler_base.hpp>
 #include <userver/storages/redis/client.hpp>
 #include <userver/storages/redis/component.hpp>
 #include <userver/storages/secdist/component.hpp>
+#include <userver/storages/secdist/provider_component.hpp>
 #include <userver/utils/daemon_run.hpp>
 
 namespace samples::redis {
@@ -66,7 +69,8 @@ KeyValue::KeyValue(const components::ComponentConfig& config,
     : server::handlers::HttpHandlerBase(config, context),
       redis_client_{
           context.FindComponent<components::Redis>("key-value-database")
-              .GetClient("taxi-tmp")} {}
+              .GetClient("taxi-tmp")},
+      redis_cc_{std::chrono::seconds{15}, std::chrono::seconds{60}, 4} {}
 /// [Redis service sample - component constructor]
 
 /// [Redis service sample - HandleRequestThrow]
@@ -208,8 +212,10 @@ int main(int argc, char* argv[]) {
           .Append<samples::redis::KeyValue>()
           .Append<samples::redis::EvalSha>()
           .Append<components::Secdist>()
+          .Append<components::DefaultSecdistProvider>()
           .Append<components::Redis>("key-value-database")
-          .Append<components::TestsuiteSupport>();
+          .Append<components::TestsuiteSupport>()
+          .Append<clients::dns::Component>();
   return utils::DaemonMain(argc, argv, component_list);
 }
 /// [Redis service sample - main]

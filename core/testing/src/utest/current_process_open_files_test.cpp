@@ -1,5 +1,7 @@
 #include <userver/utest/current_process_open_files.hpp>
 
+#include <sys/param.h>
+
 #include <algorithm>
 
 #include <fmt/format.h>
@@ -16,7 +18,12 @@ constexpr std::string_view kTestFilePart = "test_files_listing_of_current_proc";
 
 // Mostly tests that Subprocess.CheckSpdlogClosesFds test would detect
 // non-closed file descriptors.
+#if defined(BSD)
+// /dev/fd/* are not symlinks
+TEST(DISABLED_CurrentProcessOpenFiles, Basic) {
+#else
 TEST(CurrentProcessOpenFiles, Basic) {
+#endif
   const auto file_guard = fs::blocking::TempFile::Create("/tmp", kTestFilePart);
   const auto& path = file_guard.GetPath();
 

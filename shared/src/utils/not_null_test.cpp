@@ -87,6 +87,12 @@ TEST(NotNull, Pointer) {
   EXPECT_EQ(ref.GetBase(), &sample);
 }
 
+TEST(NotNull, ConvertibleFromReference) {
+  int sample = 179;
+  utils::NotNull<int*> ref = sample;
+  EXPECT_EQ(ref.GetBase(), &sample);
+}
+
 TEST(NotNull, SharedRef) {
   int sample = 179;
   auto ref = utils::MakeSharedRef<int>(sample);
@@ -97,6 +103,11 @@ TEST(NotNull, UniqueRef) {
   int sample = 179;
   auto ref = utils::MakeUniqueRef<int>(sample);
   EXPECT_EQ(*ref, sample);
+}
+
+TEST(NotNull, BoolConversion) {
+  EXPECT_FALSE((std::is_convertible_v<utils::NotNull<int*>, bool>));
+  EXPECT_FALSE((std::is_constructible_v<bool, utils::NotNull<int*>>));
 }
 
 USERVER_NAMESPACE_END

@@ -6,16 +6,12 @@ namespace bson = formats::bson;
 namespace mongo = storages::mongo;
 
 namespace {
-
-mongo::Pool MakeTestPool(clients::dns::Resolver* dns_resolver) {
-  return MakeTestsuiteMongoPool("collection_test", dns_resolver);
-}
-
+class Collection : public MongoPoolFixture {};
 }  // namespace
 
-UTEST(Collection, GetaddrinfoResolver) {
-  auto dns_resolver = nullptr;
-  auto pool = MakeTestPool(dns_resolver);
+UTEST_F(Collection, GetaddrinfoResolver) {
+  clients::dns::Resolver* dns_resolver = nullptr;
+  auto pool = MakePool({}, {}, dns_resolver);
   static const auto kFilter = bson::MakeDoc("x", 1);
 
   auto coll = pool.GetCollection("getaddrinfo");
@@ -25,98 +21,92 @@ UTEST(Collection, GetaddrinfoResolver) {
   EXPECT_EQ(0, coll.Count(kFilter));
 }
 
-UTEST(Collection, Read) {
-  auto dns_resolver = MakeDnsResolver();
-  auto pool = MakeTestPool(&dns_resolver);
+UTEST_F(Collection, Read) {
   static const auto kFilter = bson::MakeDoc("x", 1);
 
+  auto coll = GetDefaultPool().GetCollection("read");
+
+  EXPECT_EQ(0, coll.CountApprox());
+  EXPECT_EQ(0, coll.Count({}));
+  EXPECT_EQ(0, coll.Count(kFilter));
+
+  coll.InsertOne(bson::MakeDoc("x", 2));
+  EXPECT_EQ(1, coll.CountApprox());
+  EXPECT_EQ(1, coll.Count({}));
+  EXPECT_EQ(0, coll.Count(kFilter));
+
+  coll.InsertOne(kFilter);
+  EXPECT_EQ(2, coll.CountApprox());
+  EXPECT_EQ(2, coll.Count({}));
+  EXPECT_EQ(1, coll.Count(kFilter));
+
+  coll.InsertOne(bson::MakeDoc("x", 3));
+  EXPECT_EQ(3, coll.CountApprox());
+  EXPECT_EQ(3, coll.Count({}));
+  EXPECT_EQ(1, coll.Count(kFilter));
+  EXPECT_EQ(2, coll.Count(bson::MakeDoc("x", bson::MakeDoc("$gt", 1))));
+
+  coll.InsertOne(kFilter);
+  EXPECT_EQ(4, coll.CountApprox());
+  EXPECT_EQ(4, coll.Count({}));
+  EXPECT_EQ(2, coll.Count(kFilter));
+  EXPECT_EQ(2, coll.Count(bson::MakeDoc("x", bson::MakeDoc("$gt", 1))));
+
+  auto other_coll = GetDefaultPool().GetCollection("read_other");
+  EXPECT_EQ(0, other_coll.CountApprox());
+  EXPECT_EQ(0, other_coll.Count({}));
+  EXPECT_EQ(0, other_coll.Count(kFilter));
+
   {
-    auto coll = pool.GetCollection("read");
-
-    EXPECT_EQ(0, coll.CountApprox());
-    EXPECT_EQ(0, coll.Count({}));
-    EXPECT_EQ(0, coll.Count(kFilter));
-
-    coll.InsertOne(bson::MakeDoc("x", 2));
-    EXPECT_EQ(1, coll.CountApprox());
-    EXPECT_EQ(1, coll.Count({}));
-    EXPECT_EQ(0, coll.Count(kFilter));
-
-    coll.InsertOne(kFilter);
-    EXPECT_EQ(2, coll.CountApprox());
-    EXPECT_EQ(2, coll.Count({}));
-    EXPECT_EQ(1, coll.Count(kFilter));
-
-    coll.InsertOne(bson::MakeDoc("x", 3));
-    EXPECT_EQ(3, coll.CountApprox());
-    EXPECT_EQ(3, coll.Count({}));
-    EXPECT_EQ(1, coll.Count(kFilter));
-    EXPECT_EQ(2, coll.Count(bson::MakeDoc("x", bson::MakeDoc("$gt", 1))));
-
-    coll.InsertOne(kFilter);
-    EXPECT_EQ(4, coll.CountApprox());
-    EXPECT_EQ(4, coll.Count({}));
-    EXPECT_EQ(2, coll.Count(kFilter));
-    EXPECT_EQ(2, coll.Count(bson::MakeDoc("x", bson::MakeDoc("$gt", 1))));
-
-    auto other_coll = pool.GetCollection("read_other");
-    EXPECT_EQ(0, other_coll.CountApprox());
-    EXPECT_EQ(0, other_coll.Count({}));
-    EXPECT_EQ(0, other_coll.Count(kFilter));
-
-    {
-      size_t sum = 0;
-      size_t count = 0;
-      for (const auto& doc : coll.Find({})) {
-        sum += doc["x"].As<size_t>();
-        ++count;
-      }
-      EXPECT_EQ(4, count);
-      EXPECT_EQ(7, sum);
+    size_t sum = 0;
+    size_t count = 0;
+    for (const auto& doc : coll.Find({})) {
+      sum += doc["x"].As<size_t>();
+      ++count;
     }
-    {
-      auto cursor = coll.Aggregate(MakeArray(bson::MakeDoc(
-          "$group",
-          bson::MakeDoc("_id", nullptr, "count", bson::MakeDoc("$sum", 1),
-                        "sum", bson::MakeDoc("$sum", "$x")))));
-      auto doc = *cursor.begin();
-      EXPECT_EQ(++cursor.begin(), cursor.end());
-      EXPECT_EQ(4, doc["count"].As<int>());
-      EXPECT_EQ(7, doc["sum"].As<int>());
-    }
-    {
-      bson::Document prev;
-      for (const auto& doc : coll.Find(kFilter)) {
-        EXPECT_EQ(1, doc["x"].As<int>());
-        if (prev.HasMember("_id")) {
-          EXPECT_NE(prev["_id"].As<bson::Oid>(), doc["_id"].As<bson::Oid>());
-          EXPECT_NE(prev["_id"], doc["_id"]);
-        }
-        prev = doc;
+    EXPECT_EQ(4, count);
+    EXPECT_EQ(7, sum);
+  }
+  {
+    auto cursor = coll.Aggregate(MakeArray(bson::MakeDoc(
+        "$group",
+        bson::MakeDoc("_id", nullptr, "count", bson::MakeDoc("$sum", 1), "sum",
+                      bson::MakeDoc("$sum", "$x")))));
+    auto doc = *cursor.begin();
+    EXPECT_EQ(++cursor.begin(), cursor.end());
+    EXPECT_EQ(4, doc["count"].As<int>());
+    EXPECT_EQ(7, doc["sum"].As<int>());
+  }
+  {
+    bson::Document prev;
+    for (const auto& doc : coll.Find(kFilter)) {
+      EXPECT_EQ(1, doc["x"].As<int>());
+      if (prev.HasMember("_id")) {
+        EXPECT_NE(prev["_id"].As<bson::Oid>(), doc["_id"].As<bson::Oid>());
+        EXPECT_NE(prev["_id"], doc["_id"]);
       }
+      prev = doc;
     }
-    {
-      auto cursor = coll.Find({});
-      EXPECT_TRUE(cursor);
-      EXPECT_TRUE(cursor.HasMore());
-      for ([[maybe_unused]] const auto& doc : cursor)
-        ;  // exhaust
-      EXPECT_FALSE(cursor);
-      EXPECT_FALSE(cursor.HasMore());
-      for ([[maybe_unused]] const auto& doc : cursor) {
-        ADD_FAILURE() << "read from exhausted cursor succeeded";
-      }
+  }
+  {
+    auto cursor = coll.Find({});
+    EXPECT_TRUE(cursor);
+    EXPECT_TRUE(cursor.HasMore());
+    for ([[maybe_unused]] const auto& doc : cursor)
+      ;  // exhaust
+    EXPECT_FALSE(cursor);
+    EXPECT_FALSE(cursor.HasMore());
+    for ([[maybe_unused]] const auto& doc : cursor) {
+      ADD_FAILURE() << "read from exhausted cursor succeeded";
     }
   }
 
-  EXPECT_EQ(4, pool.GetCollection("read").CountApprox());
-  EXPECT_EQ(0, pool.GetCollection("read_other").CountApprox());
+  EXPECT_EQ(4, coll.CountApprox());
+  EXPECT_EQ(0, other_coll.CountApprox());
 }
 
-UTEST(Collection, InsertOne) {
-  auto dns_resolver = MakeDnsResolver();
-  auto pool = MakeTestPool(&dns_resolver);
-  auto coll = pool.GetCollection("insert_one");
+UTEST_F(Collection, InsertOne) {
+  auto coll = GetDefaultPool().GetCollection("insert_one");
 
   {
     auto result = coll.InsertOne(bson::MakeDoc("_id", 1));
@@ -140,10 +130,8 @@ UTEST(Collection, InsertOne) {
   }
 }
 
-UTEST(Collection, InsertMany) {
-  auto dns_resolver = MakeDnsResolver();
-  auto pool = MakeTestPool(&dns_resolver);
-  auto coll = pool.GetCollection("insert_many");
+UTEST_F(Collection, InsertMany) {
+  auto coll = GetDefaultPool().GetCollection("insert_many");
 
   {
     auto result = coll.InsertMany({});
@@ -175,10 +163,8 @@ UTEST(Collection, InsertMany) {
   }
 }
 
-UTEST(Collection, ReplaceOne) {
-  auto dns_resolver = MakeDnsResolver();
-  auto pool = MakeTestPool(&dns_resolver);
-  auto coll = pool.GetCollection("replace_one");
+UTEST_F(Collection, ReplaceOne) {
+  auto coll = GetDefaultPool().GetCollection("replace_one");
 
   coll.InsertOne(bson::MakeDoc("_id", 1));
   UEXPECT_THROW(coll.ReplaceOne(bson::MakeDoc("_id", 1),
@@ -229,10 +215,8 @@ UTEST(Collection, ReplaceOne) {
   EXPECT_EQ(2, coll.CountApprox());
 }
 
-UTEST(Collection, Update) {
-  auto dns_resolver = MakeDnsResolver();
-  auto pool = MakeTestPool(&dns_resolver);
-  auto coll = pool.GetCollection("update");
+UTEST_F(Collection, Update) {
+  auto coll = GetDefaultPool().GetCollection("update");
 
   coll.InsertOne(bson::MakeDoc("_id", 1));
   UEXPECT_THROW(coll.UpdateOne(bson::MakeDoc("_id", 1), bson::MakeDoc("x", 1)),
@@ -311,10 +295,8 @@ UTEST(Collection, Update) {
   EXPECT_EQ(3, coll.CountApprox());
 }
 
-UTEST(Collection, Delete) {
-  auto dns_resolver = MakeDnsResolver();
-  auto pool = MakeTestPool(&dns_resolver);
-  auto coll = pool.GetCollection("delete");
+UTEST_F(Collection, Delete) {
+  auto coll = GetDefaultPool().GetCollection("delete");
 
   {
     std::vector<formats::bson::Document> docs;
@@ -352,10 +334,8 @@ UTEST(Collection, Delete) {
   EXPECT_EQ(4, coll.CountApprox());
 }
 
-UTEST(Collection, FindAndModify) {
-  auto dns_resolver = MakeDnsResolver();
-  auto pool = MakeTestPool(&dns_resolver);
-  auto coll = pool.GetCollection("find_and_modify");
+UTEST_F(Collection, FindAndModify) {
+  auto coll = GetDefaultPool().GetCollection("find_and_modify");
 
   coll.InsertOne(bson::MakeDoc("_id", 1, "x", 10));
 
@@ -515,15 +495,53 @@ UTEST(Collection, FindAndModify) {
   EXPECT_EQ(1, coll.Count(bson::MakeDoc("_id", 1)));
 }
 
-UTEST(Collection, AggregateOut) {
-  auto dns_resolver = MakeDnsResolver();
-  SampleMongoPool(MakeTestPool(&dns_resolver));
+UTEST_F(Collection, AggregateOut) { SampleMongoPool(GetDefaultPool()); }
+
+UTEST_F(Collection, Drop) {
+  const std::string collection_name = "drop";
+  auto pool = GetDefaultPool();
+  auto coll = pool.GetCollection(collection_name);
+
+  {
+    coll.InsertOne(bson::MakeDoc("x", 1));
+    EXPECT_EQ(1, coll.Count({}));
+    UEXPECT_NO_THROW(coll.Drop());
+    EXPECT_FALSE(pool.HasCollection(collection_name));
+    EXPECT_EQ(0, coll.Count({}));
+  }
+
+  {
+    coll.InsertOne(bson::MakeDoc("x", 1));
+    EXPECT_EQ(1, coll.Count({}));
+    UEXPECT_NO_THROW(coll.Drop());
+    EXPECT_FALSE(pool.HasCollection(collection_name));
+    EXPECT_EQ(0, coll.Count({}));
+  }
+
+  {
+    coll.InsertOne(bson::MakeDoc("x", 1));
+    EXPECT_EQ(1, coll.Count({}));
+    UEXPECT_NO_THROW(coll.Drop());
+    EXPECT_FALSE(pool.HasCollection(collection_name));
+    EXPECT_EQ(0, coll.Count({}));
+  }
+
+  {
+    coll.InsertOne(bson::MakeDoc("x", 1));
+    UEXPECT_NO_THROW(coll.Drop(mongo::options::WriteConcern::Level::kMajority));
+    EXPECT_FALSE(pool.HasCollection(collection_name));
+  }
+
+  {
+    coll.InsertOne(bson::MakeDoc("x", 1));
+    UEXPECT_NO_THROW(
+        coll.Drop(mongo::options::WriteConcern::Level::kUnacknowledged));
+    EXPECT_FALSE(pool.HasCollection(collection_name));
+  }
 }
 
-UTEST(Collection, LargeDocRoundtrip) {
-  auto dns_resolver = MakeDnsResolver();
-  auto pool = MakeTestPool(&dns_resolver);
-  auto coll = pool.GetCollection("large_doc");
+UTEST_F(Collection, LargeDocRoundtrip) {
+  auto coll = GetDefaultPool().GetCollection("large_doc");
 
   std::string large_string(12 * 1024 * 1024, '\0');
   for (size_t i = 0; i < large_string.size(); ++i) {
@@ -536,10 +554,8 @@ UTEST(Collection, LargeDocRoundtrip) {
   EXPECT_EQ(large_string, (*result)["s"].As<std::string>());
 }
 
-UTEST(Collection, ExecuteOps) {
-  auto dns_resolver = MakeDnsResolver();
-  auto pool = MakeTestPool(&dns_resolver);
-  auto mongo_coll = pool.GetCollection("execute_ops");
+UTEST_F(Collection, ExecuteOps) {
+  auto mongo_coll = GetDefaultPool().GetCollection("execute_ops");
 
   mongo_coll.InsertMany({
       formats::bson::MakeDoc("_id", 1, "score", 0, "name", "some_name_0"),

@@ -12,10 +12,13 @@ Cluster::Cluster(DsnList dsns, clients::dns::Resolver* resolver,
                  const ClusterSettings& cluster_settings,
                  DefaultCommandControls&& default_cmd_ctls,
                  const testsuite::PostgresControl& testsuite_pg_ctl,
-                 const error_injection::Settings& ei_settings) {
+                 const error_injection::Settings& ei_settings,
+                 testsuite::TestsuiteTasks& testsuite_tasks,
+                 dynamic_config::Source config_source, int shard_number) {
   pimpl_ = std::make_unique<detail::ClusterImpl>(
       std::move(dsns), resolver, bg_task_processor, cluster_settings,
-      std::move(default_cmd_ctls), testsuite_pg_ctl, ei_settings);
+      std::move(default_cmd_ctls), testsuite_pg_ctl, ei_settings,
+      testsuite_tasks, std::move(config_source), shard_number);
 }
 
 Cluster::~Cluster() = default;
@@ -80,10 +83,6 @@ void Cluster::SetPoolSettings(const PoolSettings& settings) {
 void Cluster::SetStatementMetricsSettings(
     const StatementMetricsSettings& settings) {
   pimpl_->SetStatementMetricsSettings(settings);
-}
-
-void Cluster::SetPipelineMode(PipelineMode mode) {
-  pimpl_->SetPipelineMode(mode);
 }
 
 detail::NonTransaction Cluster::Start(ClusterHostTypeFlags flags,

@@ -8,19 +8,21 @@ USERVER_NAMESPACE_BEGIN
 
 TEST(Reply, RequestFailedExceptionTimeout) {
   try {
-    throw redis::RequestFailedException("descr", redis::REDIS_ERR_TIMEOUT);
+    throw redis::RequestFailedException("descr",
+                                        redis::ReplyStatus::kTimeoutError);
   } catch (const redis::RequestFailedException& ex) {
     EXPECT_TRUE(ex.IsTimeout());
-    EXPECT_EQ(ex.GetStatus(), redis::REDIS_ERR_TIMEOUT);
+    EXPECT_EQ(ex.GetStatus(), redis::ReplyStatus::kTimeoutError);
   }
 }
 
-TEST(Reply, RequestFailedExceptionNotReady) {
+TEST(Reply, RequestFailedException) {
   try {
-    throw redis::RequestFailedException("descr", redis::REDIS_ERR_NOT_READY);
+    throw redis::RequestFailedException("descr",
+                                        redis::ReplyStatus::kOtherError);
   } catch (const redis::RequestFailedException& ex) {
     EXPECT_FALSE(ex.IsTimeout());
-    EXPECT_EQ(ex.GetStatus(), redis::REDIS_ERR_NOT_READY);
+    EXPECT_EQ(ex.GetStatus(), redis::ReplyStatus::kOtherError);
   }
 }
 

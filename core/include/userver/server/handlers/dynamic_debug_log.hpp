@@ -65,6 +65,8 @@ class DynamicDebugLog final : public HttpHandlerBase {
   DynamicDebugLog(const components::ComponentConfig& config,
                   const components::ComponentContext& component_context);
 
+  /// @ingroup userver_component_names
+  /// @brief The default name of server::handlers::DynamicDebugLog
   static constexpr std::string_view kName = "handler-dynamic-debug-log";
 
   std::string HandleRequestThrow(const http::HttpRequest& request,

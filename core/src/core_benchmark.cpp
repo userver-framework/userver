@@ -1,7 +1,7 @@
 #include <benchmark/benchmark.h>
 
 #include <userver/logging/log.hpp>
-#include <utils/impl/static_registration.hpp>
+#include <userver/utils/impl/static_registration.hpp>
 
 int main(int argc, char** argv) {
   USERVER_NAMESPACE::utils::impl::FinishStaticRegistration();

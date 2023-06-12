@@ -5,6 +5,7 @@
 #include <userver/engine/async.hpp>
 #include <userver/engine/sleep.hpp>
 
+#include <userver/engine/task/task_base.hpp>
 #include <userver/utest/utest.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -19,7 +20,7 @@ namespace {
 class DtorInCoroChecker final {
  public:
   ~DtorInCoroChecker() {
-    EXPECT_NE(nullptr, engine::current_task::GetCurrentTaskContextUnchecked());
+    EXPECT_TRUE(engine::current_task::IsTaskProcessorThread());
   }
 };
 

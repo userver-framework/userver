@@ -5,12 +5,93 @@
 #include <bson/bson.h>
 
 #include <userver/formats/bson/exception.hpp>
+#include <userver/formats/bson/value_builder.hpp>
+#include <userver/formats/json/inline.hpp>
+#include <userver/formats/json/value_builder.hpp>
+#include <userver/logging/log_helper.hpp>
 #include <userver/utils/text.hpp>
 
 #include <formats/bson/value_impl.hpp>
 #include <formats/bson/wrappers.hpp>
 
+#include "conversion_stack.hpp"
+
 USERVER_NAMESPACE_BEGIN
+
+namespace formats::parse {
+
+json::Value Convert(const bson::Value& bson, parse::To<json::Value>) {
+  ConversionStack<bson::Value, json::ValueBuilder> conversion_stack(bson);
+  while (true) {
+    const auto& from = conversion_stack.GetNextFrom();
+    if (from.IsBool()) {
+      conversion_stack.CastCurrentPrimitive<bool>();
+    } else if (from.IsInt32()) {
+      conversion_stack.CastCurrentPrimitive<int32_t>();
+    } else if (from.IsInt64()) {
+      conversion_stack.CastCurrentPrimitive<int64_t>();
+    } else if (from.IsDouble()) {
+      conversion_stack.CastCurrentPrimitive<double>();
+    } else if (from.IsTimestamp()) {
+      conversion_stack.SetCurrent(from.As<bson::Timestamp>().GetTimestamp());
+    } else if (from.IsString()) {
+      conversion_stack.CastCurrentPrimitive<std::string>();
+    } else if (from.IsDecimal128()) {
+      conversion_stack.SetCurrent(from.As<bson::Decimal128>().ToString());
+    } else if (from.IsDateTime()) {
+      conversion_stack
+          .CastCurrentPrimitive<std::chrono::system_clock::time_point>();
+    } else if (from.IsOid()) {
+      conversion_stack.SetCurrent(from.As<bson::Oid>().ToString());
+    } else if (from.IsBinary()) {
+      conversion_stack.SetCurrent(from.As<bson::Binary>().ToString());
+    } else if (from.IsMinKey()) {
+      conversion_stack.SetCurrent(json::MakeObject("$minKey", 1));
+    } else if (from.IsMaxKey()) {
+      conversion_stack.SetCurrent(json::MakeObject("$maxKey", 1));
+    } else if (from.IsMissing() || from.IsNull()) {
+      conversion_stack.SetCurrent(common::Type::kNull);
+    } else if (from.IsArray() || from.IsObject()) {
+      conversion_stack.ParseNext();
+    } else {
+      throw bson::ConversionException("Value type is unknown");
+    }
+    if (auto value = conversion_stack.GetValueIfParsed()) {
+      return value.value().ExtractValue();
+    }
+  }
+}
+
+bson::Value Convert(const json::Value& json, parse::To<bson::Value>) {
+  ConversionStack<json::Value, bson::ValueBuilder> conversion_stack(json);
+  while (true) {
+    const auto& from = conversion_stack.GetNextFrom();
+    if (from.IsBool()) {
+      conversion_stack.CastCurrentPrimitive<bool>();
+    } else if (from.IsInt()) {
+      conversion_stack.CastCurrentPrimitive<int>();
+    } else if (from.IsInt64()) {
+      conversion_stack.CastCurrentPrimitive<int64_t>();
+    } else if (from.IsUInt64()) {
+      conversion_stack.CastCurrentPrimitive<uint64_t>();
+    } else if (from.IsDouble()) {
+      conversion_stack.CastCurrentPrimitive<double>();
+    } else if (from.IsString()) {
+      conversion_stack.CastCurrentPrimitive<std::string>();
+    } else if (from.IsMissing() || from.IsNull()) {
+      conversion_stack.SetCurrent(common::Type::kNull);
+    } else if (from.IsArray() || from.IsObject()) {
+      conversion_stack.ParseNext();
+    } else {
+      throw bson::ConversionException("Value type is unknown");
+    }
+    if (auto value = conversion_stack.GetValueIfParsed()) {
+      return value.value().ExtractValue();
+    }
+  }
+}
+
+}  // namespace formats::parse
 
 namespace formats::bson {
 namespace impl {
@@ -117,6 +198,16 @@ size_t JsonString::Size() const { return impl_->Size(); }
 
 std::ostream& operator<<(std::ostream& os, const JsonString& json) {
   return os.write(json.Data(), json.Size());
+}
+
+logging::LogHelper& operator<<(logging::LogHelper& lh, const JsonString& json) {
+  lh << json.GetView();
+  return lh;
+}
+
+logging::LogHelper& operator<<(logging::LogHelper& lh, const Document& bson) {
+  lh << ToRelaxedJsonString(bson);
+  return lh;
 }
 
 }  // namespace formats::bson

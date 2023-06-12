@@ -34,7 +34,9 @@ namespace components {
 // clang-format on
 class Tracer final : public impl::ComponentBase {
  public:
-  static constexpr auto kName = "tracer";
+  /// @ingroup userver_component_names
+  /// @brief The default name of components::Tracer
+  static constexpr std::string_view kName = "tracer";
 
   Tracer(const ComponentConfig& config, const ComponentContext& context);
 

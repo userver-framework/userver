@@ -16,9 +16,8 @@
 #include <engine/task/task_context.hpp>
 #include <logging/log_extra_stacktrace.hpp>
 #include <logging/log_helper_impl.hpp>
-#include <logging/logger_with_info.hpp>
-#include <logging/spdlog.hpp>
 #include <userver/compiler/demangle.hpp>
+#include <userver/logging/impl/logger_base.hpp>
 #include <userver/logging/level.hpp>
 #include <userver/logging/log_extra.hpp>
 #include <userver/logging/logger.hpp>
@@ -86,14 +85,9 @@ class ThreadLocalMemPool {
 
 constexpr bool NeedsQuoteEscaping(char c) { return c == '\"' || c == '\\'; }
 
-// For the dynamic debug logging
-Level AdjustLevel(Level level, const spdlog::logger& logger) {
-  return std::max(level, static_cast<Level>(logger.level()));
-}
-
 }  // namespace
 
-LogHelper::LogHelper(LoggerPtr logger, Level level, std::string_view path,
+LogHelper::LogHelper(LoggerCRef logger, Level level, std::string_view path,
                      int line, std::string_view func, Mode mode) noexcept
     : pimpl_(Impl::Make(logger, level)) {
   try {
@@ -102,10 +96,10 @@ LogHelper::LogHelper(LoggerPtr logger, Level level, std::string_view path,
 
     // The following functions actually never throw if the assertions at the
     // bottom hold.
+    LogModule(path, line, func);
     if (mode != Mode::kNoSpan) {
       LogSpan();
     }
-    LogModule(path, line, func);
     LogIds();
 
     LogTextKey();
@@ -127,6 +121,12 @@ LogHelper::LogHelper(LoggerPtr logger, Level level, std::string_view path,
     InternalLoggingError("Failed to log initial data");
   }
 }
+
+LogHelper::LogHelper(const LoggerPtr& logger, Level level,
+                     std::string_view path, int line, std::string_view func,
+                     Mode mode) noexcept
+    : LogHelper(logger ? *logger : logging::GetNullLogger(), level, path, line,
+                func, mode) {}
 
 LogHelper::~LogHelper() {
   DoLog();
@@ -152,10 +152,10 @@ void LogHelper::DoLog() noexcept {
   }
 }
 
-std::unique_ptr<LogHelper::Impl> LogHelper::Impl::Make(LoggerPtr logger,
+std::unique_ptr<LogHelper::Impl> LogHelper::Impl::Make(LoggerCRef logger,
                                                        Level level) {
-  auto new_level = logger ? AdjustLevel(level, *logger->ptr) : level;
-  return {ThreadLocalMemPool<Impl>::Pop(std::move(logger), new_level)};
+  auto new_level = std::max(level, logger.GetLevel());
+  return {ThreadLocalMemPool<Impl>::Pop(logger, new_level)};
 }
 
 void LogHelper::InternalLoggingError(std::string_view message) noexcept {
@@ -394,7 +394,7 @@ void LogHelper::Put(std::string_view value) {
   pimpl_->xsputn(value.data(), value.size());
 }
 
-void LogHelper::Put(char value) { pimpl_->xsputn(&value, 1); }
+void LogHelper::Put(char value) { pimpl_->Put(value); }
 
 void LogHelper::PutException(const std::exception& ex) {
   if (!impl::ShouldLogStacktrace()) {
@@ -456,7 +456,7 @@ LogHelper::EncodingGuard::EncodingGuard(LogHelper& lh, Encode mode) noexcept
     : lh{lh} {
   UASSERT_MSG(lh.pimpl_->GetEncoding() == Encode::kNone,
               "~EncodingGuard() sets encoding to kNone, we are expecting to "
-              "have that encoding before seting the new one in guard");
+              "have that encoding before setting the new one in guard");
   UASSERT_MSG(mode != Encode::kNone, "Already in kNone mode");
 
   lh.pimpl_->SetEncoding(mode);

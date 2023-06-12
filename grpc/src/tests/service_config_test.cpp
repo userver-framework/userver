@@ -1,5 +1,6 @@
 #include <userver/ugrpc/client/client_factory.hpp>
 
+#include <userver/dynamic_config/storage_mock.hpp>
 #include <userver/engine/task/task.hpp>
 #include <userver/formats/json/serialize.hpp>
 #include <userver/formats/yaml/value.hpp>
@@ -52,13 +53,17 @@ UTEST(GrpcClient, DefaultServiceConfig) {
 
   auto config = yaml_config.As<ugrpc::client::ClientFactoryConfig>();
   ugrpc::client::QueueHolder client_queue;
+  dynamic_config::StorageMock config_storage;
 
+  testsuite::GrpcControl ts({}, false);
+  ugrpc::client::MiddlewareFactories mws;
   ugrpc::client::ClientFactory client_factory(
-      std::move(config), engine::current_task::GetTaskProcessor(),
-      client_queue.GetQueue(), statistics_storage);
+      std::move(config), engine::current_task::GetTaskProcessor(), mws,
+      client_queue.GetQueue(), statistics_storage, ts,
+      config_storage.GetSource());
   const std::string endpoint{"[::]:50051"};
-  auto client =
-      client_factory.MakeClient<sample::ugrpc::UnitTestServiceClient>(endpoint);
+  auto client = client_factory.MakeClient<sample::ugrpc::UnitTestServiceClient>(
+      "test", endpoint);
 
   auto& data = ugrpc::client::impl::GetClientData(client);
 

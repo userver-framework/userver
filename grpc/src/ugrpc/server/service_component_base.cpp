@@ -17,11 +17,17 @@ ServiceComponentBase::ServiceComponentBase(
     : LoggableComponentBase(config, context),
       server_(context.FindComponent<ServerComponent>().GetServer()),
       service_task_processor_(context.GetTaskProcessor(
-          config["task-processor"].As<std::string>())) {}
+          config["task-processor"].As<std::string>())) {
+  auto middleware_names = config["middlewares"].As<std::vector<std::string>>();
+  for (const auto& name : middleware_names) {
+    auto& component = context.FindComponent<MiddlewareComponentBase>(name);
+    middlewares_.push_back(component.GetMiddleware());
+  }
+}
 
 void ServiceComponentBase::RegisterService(ServiceBase& service) {
   UASSERT_MSG(!registered_.exchange(true), "Register must only be called once");
-  server_.AddService(service, service_task_processor_);
+  server_.AddService(service, service_task_processor_, middlewares_);
 }
 
 yaml_config::Schema ServiceComponentBase::GetStaticConfigSchema() {
@@ -33,6 +39,12 @@ properties:
     task-processor:
         type: string
         description: the task processor to use for responses
+    middlewares:
+        type: array
+        items:
+            type: string
+            description: middleware component name
+        description: middlewares names to use
 )");
 }
 

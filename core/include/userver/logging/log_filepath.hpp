@@ -18,19 +18,25 @@ namespace logging::impl {
 
 // May have different macro values for different translation units, hence static
 // TODO: consteval
-static constexpr size_t PathBaseSize(std::string_view path) noexcept {
+static constexpr std::size_t PathBaseSize(std::string_view path) noexcept {
   for (const std::string_view base : {
-#ifdef USERVER_LOG_BUILD_PATH_BASE
-           USERVER_LOG_FILEPATH_STRINGIZE(USERVER_LOG_BUILD_PATH_BASE),
+#ifdef USERVER_LOG_PREFIX_PATH_BASE
+           USERVER_LOG_FILEPATH_STRINGIZE(USERVER_LOG_PREFIX_PATH_BASE),
 #endif
 #ifdef USERVER_LOG_SOURCE_PATH_BASE
            USERVER_LOG_FILEPATH_STRINGIZE(USERVER_LOG_SOURCE_PATH_BASE),
 #endif
+#ifdef USERVER_LOG_BUILD_PATH_BASE
+           USERVER_LOG_FILEPATH_STRINGIZE(USERVER_LOG_BUILD_PATH_BASE),
+#endif
            ""  // default in case none were defined
        }) {
     if (path.substr(0, base.size()) == base) {
-      size_t base_size = base.size();
-      while (base_size < path.size() && path[base_size] == '/') ++base_size;
+      std::size_t base_size = path.find_first_not_of('/', base.size());
+      if (base_size == std::string_view::npos) {
+        base_size = path.size();
+      }
+
       return base_size;
     }
   }

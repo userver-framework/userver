@@ -71,14 +71,25 @@ class LogHelper final {
   enum class Mode { kDefault, kNoSpan };
 
   /// @brief Constructs LogHelper with span logging
+  /// @param logger to log to
+  /// @param level message log level
+  /// @param path path of the source file that generated the message
+  /// @param line line of the source file that generated the message
+  /// @param func name of the function that generated the message
+  /// @param mode logging mode - with or without span
+  LogHelper(LoggerCRef logger, Level level, std::string_view path, int line,
+            std::string_view func, Mode mode = Mode::kDefault) noexcept;
+
+  /// @brief Constructs LogHelper with span logging
   /// @param logger to log to (logging to nullptr does not output messages)
   /// @param level message log level
   /// @param path path of the source file that generated the message
   /// @param line line of the source file that generated the message
   /// @param func name of the function that generated the message
   /// @param mode logging mode - with or without span
-  LogHelper(LoggerPtr logger, Level level, std::string_view path, int line,
-            std::string_view func, Mode mode = Mode::kDefault) noexcept;
+  LogHelper(const LoggerPtr& logger, Level level, std::string_view path,
+            int line, std::string_view func,
+            Mode mode = Mode::kDefault) noexcept;
 
   ~LogHelper();
 
@@ -191,6 +202,9 @@ class LogHelper final {
   void PutRange(const T& range);
 
   std::ostream& Stream();
+
+  template <typename T>
+  friend void PutData(LogHelper& lh, std::string_view key, const T& value);
 
   class Impl;
   std::unique_ptr<Impl> pimpl_;

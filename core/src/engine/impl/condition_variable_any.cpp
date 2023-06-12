@@ -7,13 +7,14 @@
 
 #include <engine/impl/wait_list.hpp>
 #include <engine/task/task_context.hpp>
+#include <engine/task/task_processor.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace engine::impl {
 
 void OnConditionVariableSpuriousWakeup() {
-  current_task::AccountSpuriousWakeup();
+  current_task::GetTaskProcessor().GetTaskCounter().AccountSpuriousWakeup();
 }
 
 template <typename MutexType>
@@ -61,22 +62,22 @@ ConditionVariableAny<MutexType>::~ConditionVariableAny() = default;
 template <typename MutexType>
 CvStatus ConditionVariableAny<MutexType>::WaitUntil(
     std::unique_lock<MutexType>& lock, Deadline deadline) {
+  UASSERT(lock.owns_lock());
+
   if (deadline.IsReached()) {
     return CvStatus::kTimeout;
   }
 
   auto& current = current_task::GetCurrentTaskContext();
-  if (current.ShouldCancel()) {
-    return CvStatus::kCancelled;
-  }
 
   auto wakeup_source = TaskContext::WakeupSource::kNone;
   {
     CvWaitStrategy<MutexType> wait_manager(deadline, *waiters_, current, lock);
     wakeup_source = current.Sleep(wait_manager);
   }
-  // relock the mutex after it's been released in SetupWakeups()
-  lock.lock();
+  // re-lock the mutex after it's been released in SetupWakeups()
+  // lock.owns_lock() can occur on an immediate cancellation
+  if (!lock) lock.lock();
 
   switch (wakeup_source) {
     case TaskContext::WakeupSource::kCancelRequest:

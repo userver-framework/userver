@@ -6,7 +6,7 @@
 #include <boost/pfr/core.hpp>
 
 #include <userver/utils/assert.hpp>
-#include <userver/utils/meta.hpp>
+#include <userver/utils/meta_light.hpp>
 
 #include <userver/storages/clickhouse/io/columns/base_column.hpp>
 #include <userver/storages/clickhouse/io/columns/common_columns.hpp>

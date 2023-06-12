@@ -43,7 +43,7 @@ endif()
 
 set(USERVER_BUILD_PLATFORM_X86 OFF)
 if(CMAKE_SYSTEM_PROCESSOR MATCHES "^x86")
-	set(USERVER_BUILD_PLATFORM_X86 ON)
+  set(USERVER_BUILD_PLATFORM_X86 ON)
 endif()
 
 execute_process(
@@ -58,7 +58,9 @@ if (NOT USERVER_OPEN_SOURCE_BUILD)
   message(STATUS "Using internal to Yandex build setup")
 endif()
 
-option(USERVER_DOWNLOAD_PACKAGES "Download missing third party packages and use the downloaded versions" ${USERVER_OPEN_SOURCE_BUILD})
+option(USERVER_CONAN "Build with Conan packages" ${CONAN_EXPORTED})
+
+option(USERVER_DOWNLOAD_PACKAGES "Download missing third party packages and use the downloaded versions" ON)
 
 option(USERVER_FEATURE_CRYPTOPP_BLAKE2 "Provide wrappers for blake2 algorithms of crypto++" ON)
 if (NOT USERVER_FEATURE_CRYPTOPP_BLAKE2)
@@ -70,12 +72,18 @@ if (NOT USERVER_FEATURE_CRYPTOPP_BASE64_URL)
   add_definitions("-DUSERVER_NO_CRYPTOPP_BASE64_URL=1")
 endif()
 
-option(USERVER_FEATURE_JEMALLOC "Enable linkage with jemalloc memory allocator" ON)
+if(CMAKE_SYSTEM_NAME MATCHES "BSD")
+  set(JEMALLOC_DEFAULT OFF)
+else()
+  set(JEMALLOC_DEFAULT ON)
+endif()
+option(USERVER_FEATURE_JEMALLOC "Enable linkage with jemalloc memory allocator" ${JEMALLOC_DEFAULT})
+
+option(USERVER_DISABLE_PHDR_CACHE "Disable caching of dl_phdr_info items, which interferes with dlopen" OFF)
 
 option(USERVER_CHECK_PACKAGE_VERSIONS "Check package versions" ON)
 
 include(GNUInstallDirs)
-
 include(cmake/SetupEnvironment.cmake)
 include(AddGoogleTests)
 include(CheckSubmodule)
@@ -88,12 +96,18 @@ include(UServerInstall)
 
 message(STATUS "Generating cmake files ...")
 execute_process(
+  COMMAND ${PYTHON}
+    -m pip install --disable-pip-version-check
+    -r ${USERVER_ROOT_DIR}/scripts/external_deps/requirements.txt
+  WORKING_DIRECTORY ${USERVER_ROOT_DIR}
+)
+execute_process(
     COMMAND
-        ${PYTHON} -u ${CMAKE_CURRENT_SOURCE_DIR}/plugins/external_deps/impl/cmake_generator.py
-        --repo-dir=${CMAKE_CURRENT_SOURCE_DIR}
+        ${PYTHON} -u ${USERVER_ROOT_DIR}/scripts/external_deps/cmake_generator.py
+        --repo-dir=${USERVER_ROOT_DIR}
         --build-dir=${CMAKE_BINARY_DIR}
     RESULT_VARIABLE RESULT
-    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    WORKING_DIRECTORY ${USERVER_ROOT_DIR}
 )
 
 if (RESULT)
@@ -102,17 +116,33 @@ if (RESULT)
     )
 endif(RESULT)
 
-set(USERVER_THIRD_PARTY_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/third_party CACHE INTERNAL "")
+set(USERVER_THIRD_PARTY_DIRS ${USERVER_ROOT_DIR}/third_party CACHE INTERNAL "")
 
 init_debian_depends()
 
-option(USERVER_FEATURE_MONGODB "Provide asynchronous driver for MongoDB" ${USERVER_BUILD_PLATFORM_X86})
+option(USERVER_FEATURE_MONGODB "Provide asynchronous driver for MongoDB" ${USERVER_MONGODB})
 option(USERVER_FEATURE_POSTGRESQL "Provide asynchronous driver for PostgreSQL" ON)
 option(USERVER_FEATURE_REDIS "Provide asynchronous driver for Redis" ON)
 option(USERVER_FEATURE_GRPC "Provide asynchronous driver for gRPC" ON)
 option(USERVER_FEATURE_CLICKHOUSE "Provide asynchronous driver for ClickHouse" ${USERVER_BUILD_PLATFORM_X86})
-option(USERVER_FEATURE_RABBITMQ "Provide asynchronous driver for RabbitMQ" ${USERVER_OPEN_SOURCE_BUILD})
+option(USERVER_FEATURE_RABBITMQ "Provide asynchronous driver for RabbitMQ" ON)
+option(USERVER_FEATURE_MYSQL "Provide asynchronous driver for MariaDB/MySQL" OFF)
 option(USERVER_FEATURE_UNIVERSAL "Provide a universal utilities library that does not use coroutines" ON)
+
+if (USERVER_FEATURE_GRPC)
+    include(cmake/SetupProtobuf.cmake)
+endif()
+
+if (USERVER_IS_THE_ROOT_PROJECT)
+    include(testsuite/SetupUserverTestsuiteEnv.cmake)
+    add_subdirectory(testsuite)
+endif()
+
+if (USERVER_CONAN)
+    find_package(Boost COMPONENTS stacktrace REQUIRED)
+else()
+    add_subdirectory("${USERVER_THIRD_PARTY_DIRS}/boost_stacktrace")
+endif()
 
 add_subdirectory(core "${CMAKE_BINARY_DIR}/userver/core")
 add_subdirectory("${USERVER_THIRD_PARTY_DIRS}/boost_stacktrace")
@@ -154,12 +184,16 @@ if (USERVER_FEATURE_RABBITMQ)
     add_subdirectory(rabbitmq "${CMAKE_BINARY_DIR}/userver/rabbitmq")
 endif()
 
+if (USERVER_FEATURE_MYSQL)
+    add_subdirectory(mysql "${CMAKE_BINARY_DIR}/userver/mysql")
+endif()
+
 if (USERVER_FEATURE_UNIVERSAL)
   add_subdirectory(universal "${CMAKE_BINARY_DIR}/userver/universal")
 endif()
 
 if (USERVER_IS_THE_ROOT_PROJECT)
-    add_subdirectory(samples)
+  add_subdirectory(samples)
 endif()
 
 set(CMAKE_INSTALL_CONFIGDIR ${CMAKE_INSTALL_LIBDIR}/cmake/userver)
