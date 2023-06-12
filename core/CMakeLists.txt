@@ -116,10 +116,14 @@ if (USERVER_CONAN)
 
     find_package(concurrentqueue REQUIRED)
 else()
-    include(SetupCAres)
+    if (DEFINED GRPC_EXTERNAL_ENABLE)
+        message("Target c-ares added by external grpc")
+    else()
+        include(SetupCAres)
+    endif()
     include(SetupCURL)
     include(SetupCryptoPP)
-    find_package_required(libyamlcpp "libyaml-cpp-dev")
+    find_package_required(yaml-cpp "libyaml-cpp-dev")
     include(SetupFmt)
     include(SetupSpdlog)
     include(SetupCCTZ)
@@ -158,34 +162,8 @@ if (USERVER_SANITIZE AND NOT CMAKE_BUILD_TYPE MATCHES "^Rel")
   target_link_libraries(${PROJECT_NAME} PUBLIC userver-compiler-rt-parts)
 endif()
 
-userver_target_link_libraries(${PROJECT_NAME}
-  PUBLIC
-    Threads::Threads
-    Boost::locale
-    sanitize-target
-    libyamlcpp
-    fmt
-    c-ares
-    cctz
-    CURL::libcurl
-    userver-stacktrace
-  PRIVATE
-    userver-uboost-coro
-    Boost::filesystem
-    Boost::program_options
-    Boost::iostreams
-    Boost::regex
-    CryptoPP
-    Http_Parser
-    Iconv::Iconv
-    LibEv
-    OpenSSL::Crypto
-    OpenSSL::SSL
-    ZLIB::ZLIB
-    spdlog_header_only
-)
 if (USERVER_CONAN)
-    target_link_libraries(${PROJECT_NAME}
+    userver_target_link_libraries(${PROJECT_NAME}
       PUBLIC
         yaml-cpp
         fmt::fmt
