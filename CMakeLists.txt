@@ -6,6 +6,8 @@ endif()
 
 project(userver)
 
+option(USERVER_GEN_GDB_DEBUGINFO "Compile with generation of gdb3 debug info format" OFF)
+
 if (USERVER_BUILD_SHARED_LIBS)
   set(BUILD_SHARED_LIBS ${USERVER_BUILD_SHARED_LIBS})
 endif()
@@ -13,6 +15,7 @@ endif()
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib/)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib/)
 set(CMAKE_INSTALL_BINDIR bin/userver)
+
 #set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin/userver)
 
 set(USERVER_ROOT_DIR "${CMAKE_CURRENT_LIST_DIR}")
@@ -74,6 +77,7 @@ option(USERVER_DISABLE_PHDR_CACHE "Disable caching of dl_phdr_info items, which 
 option(USERVER_CHECK_PACKAGE_VERSIONS "Check package versions" ON)
 
 include(GNUInstallDirs)
+
 include(cmake/SetupEnvironment.cmake)
 include(AddGoogleTests)
 include(CheckSubmodule)
@@ -184,5 +188,22 @@ if (USERVER_IS_THE_ROOT_PROJECT)
 endif()
 
 set(CMAKE_INSTALL_CONFIGDIR ${CMAKE_INSTALL_LIBDIR}/cmake/userver)
-INSTALL (EXPORT userver-targets FILE userver-config.cmake DESTINATION ${CMAKE_INSTALL_CONFIGDIR})
-EXPORT (EXPORT userver-targets FILE userver-config.cmake DESTINATION ${CMAKE_INSTALL_CONFIGDIR})
+set(CMAKE_CONFIG_TARGETS_FILE "userverConfigTargets.cmake")
+INSTALL (EXPORT userver-targets
+  FILE "${CMAKE_CONFIG_TARGETS_FILE}" DESTINATION ${CMAKE_INSTALL_CONFIGDIR})
+EXPORT (EXPORT userver-targets
+  FILE "${CMAKE_INSTALL_CONFIGDIR}/${CMAKE_CONFIG_TARGETS_FILE}")
+
+include(CMakePackageConfigHelpers)
+set(CMAKE_VERSION_CONFIG_OUT_FILE "${CMAKE_CURRENT_BINARY_DIR}/userverConfigVersion.cmake")
+set(CMAKE_CONFIG_IN_FILE "${CMAKE_CURRENT_LIST_DIR}/cmake/userverConfig.cmake.in")
+set(CMAKE_CONFIG_OUT_FILE "${CMAKE_CURRENT_BINARY_DIR}/userverConfig.cmake")
+set(CMAKE_CONFIG_TARGETS_FILE "userverConfigTargets.cmake")
+configure_package_config_file(
+  "${CMAKE_CONFIG_IN_FILE}"
+  "${CMAKE_CONFIG_OUT_FILE}"
+  INSTALL_DESTINATION "${CMAKE_INSTALL_CONFIGDIR}/")
+write_basic_package_version_file("${CMAKE_VERSION_CONFIG_OUT_FILE}"
+  VERSION "1.0.0"
+  COMPATIBILITY SameMajorVersion)
+install(FILES "${CMAKE_CONFIG_OUT_FILE}" "${CMAKE_VERSION_CONFIG_OUT_FILE}" DESTINATION "${CMAKE_INSTALL_CONFIGDIR}")
