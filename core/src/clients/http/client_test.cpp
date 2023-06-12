@@ -90,9 +90,10 @@ constexpr char kResponse301WithHeaderPattern[] =
 class RequestMethodTestData final {
  public:
   using Request = clients::http::Request;
-  using TwoArgsFunction = Request& (Request::*)(const std::string& url,
-                                                std::string data_);
-  using OneArgFunction = Request& (Request::*)(const std::string& url);
+  using TwoArgsFunction = std::function<Request&(
+      Request&, const std::string& url, std::string data)>;
+  using OneArgFunction =
+      std::function<Request&(Request&, const std::string& url)>;
 
   RequestMethodTestData(const char* method_name, const char* data,
                         TwoArgsFunction func)
@@ -109,9 +110,9 @@ class RequestMethodTestData final {
     *callback.data = data_;
 
     if (func_two_args_) {
-      request = (request.*func_two_args_)(url, data_);
+      func_two_args_(request, url, data_);
     } else {
-      request = (request.*func_one_arg_)(url);
+      func_one_arg_(request, url);
     }
 
     return request.verify(true)
@@ -837,17 +838,30 @@ UTEST(HttpClient, MethodsMix) {
   const auto http_client = utest::CreateHttpClient();
 
   const RequestMethodTestData tests[] = {
-      {"PUT", kTestData, &Request::put},
-      {"POST", kTestData, &Request::post},
-      {"GET", "", &Request::get},
-      {"HEAD", "", &Request::head},
+      {"PUT", kTestData,
+       [](Request& request, const std::string& url,
+          std::string data) -> Request& { return request.put(url, data); }},
+      {"POST", kTestData,
+       [](Request& request, const std::string& url,
+          std::string data) -> Request& { return request.post(url, data); }},
+      {"GET", "",
+       [](Request& request, const std::string& url) -> Request& {
+         return request.get(url);
+       }},
+      {"HEAD", "",
+       [](Request& request, const std::string& url) -> Request& {
+         return request.head(url);
+       }},
       {"DELETE", "",
-       static_cast<RequestMethodTestData::OneArgFunction>(
-           &Request::delete_method)},
+       [](Request& request, const std::string& url) -> Request& {
+         return request.delete_method(url);
+       }},
       {"DELETE", "",
-       static_cast<RequestMethodTestData::TwoArgsFunction>(
-           &Request::delete_method)},
-      {"PATCH", kTestData, &Request::patch},
+       [](Request& request, const std::string& url, std::string data)
+           -> Request& { return request.delete_method(url, data); }},
+      {"PATCH", kTestData,
+       [](Request& request, const std::string& url,
+          std::string data) -> Request& { return request.patch(url, data); }},
   };
 
   for (const auto& method1 : tests) {
@@ -878,17 +892,33 @@ UTEST(HttpClient, MethodsMixReuseRequest) {
   const auto http_client = utest::CreateHttpClient();
 
   const RequestMethodTestData tests[] = {
-      {"PUT", "", &Request::put},
-      {"POST", "", &Request::post},
-      {"GET", "", &Request::get},
-      {"HEAD", "", &Request::head},
+      {"PUT", "",
+       [](Request& request, const std::string& url) -> Request& {
+         return request.put(url);
+       }},
+      {"POST", "",
+       [](Request& request, const std::string& url) -> Request& {
+         return request.post(url);
+       }},
+      {"GET", "",
+       [](Request& request, const std::string& url) -> Request& {
+         return request.get(url);
+       }},
+      {"HEAD", "",
+       [](Request& request, const std::string& url) -> Request& {
+         return request.head(url);
+       }},
       {"DELETE", "",
-       static_cast<RequestMethodTestData::OneArgFunction>(
-           &Request::delete_method)},
+       [](Request& request, const std::string& url) -> Request& {
+         return request.delete_method(url);
+       }},
       {"DELETE", "",
-       static_cast<RequestMethodTestData::TwoArgsFunction>(
-           &Request::delete_method)},
-      {"PATCH", "", &Request::patch},
+       [](Request& request, const std::string& url, std::string data)
+           -> Request& { return request.delete_method(url, data); }},
+      {"PATCH", "",
+       [](Request& request, const std::string& url) -> Request& {
+         return request.patch(url);
+       }},
   };
 
   for (const auto& method1 : tests) {
@@ -915,16 +945,16 @@ UTEST(HttpClient, MethodsMixReuseRequestData) {
   const utest::SimpleServer http_server{callback};
   const auto http_client = utest::CreateHttpClient();
 
-  using ZeroArgsMemberFunction = Request& (Request::*)();
+  using ZeroArgsMemberFunction = std::function<Request&(Request&)>;
   struct TestData {
     std::string_view method_name;
     ZeroArgsMemberFunction function;
   };
 
   const TestData tests[] = {
-      {"PUT", &Request::put},
-      {"POST", &Request::post},
-      {"PATCH", &Request::patch},
+      {"PUT", [](Request& request) -> Request& { return request.put(); }},
+      {"POST", [](Request& request) -> Request& { return request.post(); }},
+      {"PATCH", [](Request& request) -> Request& { return request.patch(); }},
   };
 
   auto request = http_client->CreateRequest()
@@ -937,11 +967,11 @@ UTEST(HttpClient, MethodsMixReuseRequestData) {
   for (const auto& [method1, func1] : tests) {
     for (const auto& [method2, func2] : tests) {
       *callback.method_name = method1;
-      const auto response1 = (request.*func1)().perform();
+      const auto response1 = func1(request).perform();
       EXPECT_TRUE(response1->IsOk()) << "Failed to perform " << method1;
 
       *callback.method_name = method2;
-      const auto response2 = (request.*func2)().perform();
+      const auto response2 = func2(request).perform();
       EXPECT_TRUE(response2->IsOk())
           << "Failed to perform " << method2 << " after " << method1;
     }
