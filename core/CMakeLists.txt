@@ -23,10 +23,10 @@ if(${CMAKE_SOURCE_DIR}/.git/HEAD IS_NEWER_THAN ${BUILD_CONFIG})
 endif()
 
 file(GLOB_RECURSE SOURCES
-  ${CMAKE_CURRENT_SOURCE_DIR}/../shared/*.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/../shared/*.hpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/*.hpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/../shared/*pp
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/*pp
+  ${CMAKE_CURRENT_SOURCE_DIR}/internal/*pp
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/*pp
 )
 
 file(GLOB_RECURSE UNIT_TEST_SOURCES
@@ -40,7 +40,7 @@ file(GLOB_RECURSE LIBUTEST_SOURCES
 )
 list(REMOVE_ITEM LIBUTEST_SOURCES ${UNIT_TEST_SOURCES})
 
-list(REMOVE_ITEM SOURCES ${UNIT_TEST_SOURCES} ${LIBUTEST_SOURCES})
+list(REMOVE_ITEM SOURCES ${UNIT_TEST_SOURCES})
 
 file(GLOB_RECURSE BENCH_SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/../shared/*_benchmark.cpp
@@ -72,8 +72,13 @@ find_package_required(LibEv "libev-dev")
 find_package_required(ZLIB "zlib1g-dev")
 
 if (USERVER_FEATURE_UTEST)
-    include(SetupGTest)
-    include(SetupGBench)
+    if (USERVER_CONAN)
+        find_package(benchmark REQUIRED)
+        find_package(GTest REQUIRED)
+    else()
+        include(SetupGTest)
+        include(SetupGBench)
+    endif()
 endif()
 include(SetupSpdlog)
 
@@ -95,19 +100,56 @@ find_package_required(OpenSSL "libssl-dev")
 include(SetupFmt)
 include(SetupCCTZ)
 
-find_package_required(Http_Parser "libhttp-parser-dev")
+if (USERVER_CONAN)
+    find_package(c-ares REQUIRED)
+    find_package(CURL REQUIRED)
+    find_package(cryptopp REQUIRED)
+    find_package(yaml-cpp REQUIRED)
+    find_package(fmt REQUIRED)
+    find_package(spdlog REQUIRED)
+    find_package(cctz REQUIRED)
+    find_package(http_parser REQUIRED)
+    find_package(libev REQUIRED)
+
+    find_package(RapidJSON REQUIRED)
+    target_compile_definitions(RapidJSON::RapidJSON INTERFACE RAPIDJSON_HAS_STDSTRING)
+
+    find_package(concurrentqueue REQUIRED)
+else()
+    include(SetupCAres)
+    include(SetupCURL)
+    include(SetupCryptoPP)
+    find_package_required(libyamlcpp "libyaml-cpp-dev")
+    include(SetupFmt)
+    include(SetupSpdlog)
+    include(SetupCCTZ)
+    find_package_required(Http_Parser "libhttp-parser-dev")
+    find_package_required(LibEv "libev-dev")
+endif()
 
 userver_add_library(${PROJECT_NAME} SOURCES ${SOURCES})
-target_compile_definitions(${PROJECT_NAME} PRIVATE SPDLOG_PREVENT_CHILD_FD SPDLOG_FMT_EXTERNAL)
+
+target_compile_definitions(${PROJECT_NAME}
+  PRIVATE
+    SPDLOG_PREVENT_CHILD_FD
+    SPDLOG_FMT_EXTERNAL
+    [[SPDLOG_LEVEL_NAMES={"TRACE", "DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL", "OFF" }]]
+    CRYPTOPP_ENABLE_NAMESPACE_WEAK=1
+)
 
 # https://github.com/jemalloc/jemalloc/issues/820
 if (USERVER_FEATURE_JEMALLOC AND NOT USERVER_SANITIZE AND NOT MACOS)
-  if (USERVER_OPEN_SOURCE_BUILD)
-      find_package_required(Jemalloc "libjemalloc-dev")
+  if (USERVER_CONAN)
+    find_package(jemalloc REQUIRED)
+    target_link_libraries(${PROJECT_NAME} PUBLIC jemalloc::jemalloc)
+  elseif (USERVER_OPEN_SOURCE_BUILD)
+    find_package_required(Jemalloc "libjemalloc-dev")
+    target_link_libraries(${PROJECT_NAME} PUBLIC Jemalloc)
   else()
-      find_package_required(Jemalloc "libyandex-taxi-jemalloc-dev")
+    find_package_required(Jemalloc "libyandex-taxi-jemalloc-dev")
+    target_link_libraries(${PROJECT_NAME} PUBLIC Jemalloc)
   endif()
-  target_link_libraries(${PROJECT_NAME} PUBLIC Jemalloc)
+
   target_compile_definitions(${PROJECT_NAME} PRIVATE JEMALLOC_ENABLED)
 endif()
 
@@ -142,8 +184,46 @@ userver_target_link_libraries(${PROJECT_NAME}
     ZLIB::ZLIB
     spdlog_header_only
 )
+if (USERVER_CONAN)
+    target_link_libraries(${PROJECT_NAME}
+      PUBLIC
+        yaml-cpp
+        fmt::fmt
+        c-ares::cares
+        cctz::cctz
+        concurrentqueue::concurrentqueue
+        Boost::stacktrace
+      PRIVATE
+        cryptopp-static
+        http_parser::http_parser
+        libev::libev
+        spdlog::spdlog
+        RapidJSON::RapidJSON
+    )
+else()
+    target_link_libraries(${PROJECT_NAME}
+      PUBLIC
+        libyamlcpp
+        fmt
+        c-ares
+        cctz
+        userver-stacktrace
+      PRIVATE
+        CryptoPP
+        Http_Parser
+        LibEv
+        spdlog_header_only
+    )
 
-if (NOT MACOS)
+    target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE
+        ${USERVER_THIRD_PARTY_DIRS}/rapidjson/include
+    )
+    target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC
+        ${USERVER_THIRD_PARTY_DIRS}/moodycamel/include
+    )
+endif()
+
+if (NOT MACOS AND NOT ${CMAKE_SYSTEM_NAME} MATCHES "BSD")
   target_link_libraries(${PROJECT_NAME} PUBLIC atomic)
 endif()
 
@@ -151,6 +231,9 @@ set(USERVER_PUBLIC_INCLUDE_DIRS
   ${CMAKE_CURRENT_SOURCE_DIR}/include
   ${CMAKE_CURRENT_SOURCE_DIR}/../shared/include
   ${USERVER_THIRD_PARTY_DIRS}/pfr/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/src
+  ${CMAKE_CURRENT_SOURCE_DIR}/../uboost_coro/include
+  CACHE INTERNAL ""
 )
 set(USERVER_GLIBC_INCLUDE_FIXES_DIR
   ${CMAKE_CURRENT_SOURCE_DIR}/libc_include_fixes
@@ -219,9 +302,16 @@ if (USERVER_FEATURE_UTEST)
         libgmock
         userver-core-internal
         ${PROJECT_NAME}
-    PRIVATE
+      PRIVATE
+        userver-core-internal
         Boost::program_options
     )
+    if (USERVER_CONAN)
+        target_link_libraries(userver-utest PUBLIC GTest::gtest GTest::gmock)
+    else()
+        target_link_libraries(userver-utest PUBLIC libgtest libgmock)
+    endif()
+
     target_include_directories(userver-utest PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/testing/include
     )
@@ -240,13 +330,15 @@ if (USERVER_IS_THE_ROOT_PROJECT)
     target_include_directories (${PROJECT_NAME}_unittest PRIVATE
         $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>
     )
-    target_link_libraries(${PROJECT_NAME}_unittest
+    target_link_libraries(${PROJECT_NAME}_unittest PRIVATE
       userver-utest
+      userver-core-internal
     )
 
     # We keep testing deprecated functions, no need to warn about that
     target_compile_options(${PROJECT_NAME}_unittest PRIVATE "-Wno-deprecated-declarations")
     add_google_tests(${PROJECT_NAME}_unittest)
+    add_subdirectory(functional_tests)
 endif()
 
 if (USERVER_FEATURE_UTEST)
@@ -258,16 +350,24 @@ if (USERVER_FEATURE_UTEST)
       libbenchmark
       userver-core-internal
         ${PROJECT_NAME}
+      PRIVATE
+        userver-core-internal
     )
-
-# Target with no need to use userver namespace, but includes require userver/
-add_library(yandex-userver-ubench INTERFACE)
-target_link_libraries(yandex-userver-ubench INTERFACE userver-ubench)
+    if (USERVER_CONAN)
+        target_link_libraries(userver-ubench PUBLIC benchmark::benchmark)
+    else()
+        target_link_libraries(userver-ubench PUBLIC libbenchmark)
+    endif()
 endif()
 
 if (USERVER_IS_THE_ROOT_PROJECT)
     add_executable(${PROJECT_NAME}_benchmark ${BENCH_SOURCES})
-    target_link_libraries(${PROJECT_NAME}_benchmark PUBLIC userver-ubench)
+    target_link_libraries(${PROJECT_NAME}_benchmark
+      PUBLIC
+        userver-ubench
+      PRIVATE
+        userver-core-internal
+    )
     add_google_benchmark_tests(${PROJECT_NAME}_benchmark)
 endif()
 
