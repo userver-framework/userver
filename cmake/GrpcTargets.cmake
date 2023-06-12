@@ -63,16 +63,24 @@ function(generate_grpc_files)
       set(path_base "${name_base}")
     endif()
 
+    # resolve root_path, proto_file to real path's - protoc check that root_path is prefix of proto_file (this can be non true if project inside folder sym linked to other dir)
+    get_filename_component(real_root_path ${root_path} REALPATH)
+    get_filename_component(real_proto_file ${proto_file} REALPATH)
+
     execute_process(
       COMMAND mkdir -p proto
-      COMMAND ${PROTOBUF_PROTOC} ${include_options}
+      COMMAND ${PROTOBUF_PROTOC}
+              -I ${real_root_path} ${include_options}
               --cpp_out=${GENERATED_PROTO_DIR}
               --grpc_out=${GENERATED_PROTO_DIR}
               --usrv_out=${GENERATED_PROTO_DIR}
+<<<<<<< HEAD
               -I ${root_path}
+=======
+>>>>>>> 829587347 (Fix for building inside folder sym linked to other)
               --plugin=protoc-gen-grpc=${PROTO_GRPC_CPP_PLUGIN}
               --plugin=protoc-gen-usrv=${PROTO_GRPC_USRV_PLUGIN}
-              ${proto_file}
+              ${real_proto_file}
       WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
       RESULT_VARIABLE execute_process_result
     )
