@@ -2,6 +2,7 @@ project(userver-postgresql CXX)
 
 find_package(Boost REQUIRED regex)
 
+
 option(USERVER_FEATURE_PATCH_LIBPQ "Apply patches to the libpq (add portals support)" ON)
 add_library(userver-libpq INTERFACE)
 if (USERVER_FEATURE_PATCH_LIBPQ)
@@ -13,16 +14,11 @@ else()
     PROPERTIES COMPILE_FLAGS -DUSERVER_NO_LIBPQ_PATCHES=1
   )
 
-  if (USERVER_CONAN)
-    find_package(PostgreSQL REQUIRED)
-    target_link_libraries(userver-libpq INTERFACE PostgreSQL::PostgreSQL)
-  else()
-    find_library(LIBPQ_LIBRARIES NAMES libpq.a libpq.so)
-    if (NOT LIBPQ_LIBRARIES)
-      message(FATAL_ERROR "Failed to find libpq")
-    endif()
-    target_link_libraries(userver-libpq INTERFACE ${LIBPQ_LIBRARIES})
+  find_library(LIBPQ_LIBRARIES NAMES libpq.a libpq.so)
+  if (NOT LIBPQ_LIBRARIES)
+    message(FATAL_ERROR "Failed to find libpq")
   endif()
+  target_link_libraries(userver-libpq INTERFACE ${LIBPQ_LIBRARIES})
 endif()
 
 file(GLOB_RECURSE SOURCES
@@ -50,7 +46,7 @@ file(GLOB_RECURSE BENCH_SOURCES
 list (REMOVE_ITEM SOURCES ${BENCH_SOURCES})
 
 
-add_library(${PROJECT_NAME} STATIC ${SOURCES})
+userver_add_library(${PROJECT_NAME} SOURCES ${SOURCES})
 
 set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
 
@@ -63,7 +59,7 @@ target_include_directories (${PROJECT_NAME} PRIVATE
     $<TARGET_PROPERTY:userver-core,INCLUDE_DIRECTORIES>
 )
 
-target_link_libraries(${PROJECT_NAME}
+userver_target_link_libraries(${PROJECT_NAME}
   PUBLIC
     userver-core
   PRIVATE
@@ -81,10 +77,6 @@ if (USERVER_IS_THE_ROOT_PROJECT)
     ${PROJECT_NAME}
   )
   add_google_tests(${PROJECT_NAME}_unittest)
-
-  target_compile_definitions(${PROJECT_NAME}_unittest PRIVATE
-      DEFAULT_DYNAMIC_CONFIG_FILENAME="${CMAKE_SOURCE_DIR}/postgresql/tests/dynamic_config_fallback.json"
-  )
 
   add_executable(${PROJECT_NAME}_benchmark ${BENCH_SOURCES})
   target_link_libraries(${PROJECT_NAME}_benchmark PRIVATE
@@ -110,9 +102,6 @@ if (USERVER_IS_THE_ROOT_PROJECT)
   target_include_directories (${PROJECT_NAME}_pgtest PRIVATE
       $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>
   )
-  target_compile_definitions(${PROJECT_NAME}_pgtest PRIVATE
-      DEFAULT_DYNAMIC_CONFIG_FILENAME="${CMAKE_CURRENT_SOURCE_DIR}/tests/dynamic_config_fallback.json"
-  )
   target_link_libraries(${PROJECT_NAME}_pgtest userver-utest ${PROJECT_NAME})
   add_test(NAME ${PROJECT_NAME}_pgtest COMMAND env
       POSTGRES_TEST_DSN=postgresql://testsuite@localhost:15433/postgres
@@ -125,3 +114,9 @@ if (USERVER_IS_THE_ROOT_PROJECT)
 
   add_subdirectory(functional_tests)
 endif()
+
+# Target with no need to use userver namespace, but includes require userver/
+add_library(yandex-${PROJECT_NAME} INTERFACE)
+target_link_libraries(yandex-${PROJECT_NAME} INTERFACE ${PROJECT_NAME})
+
+userver_install(TARGETS ${PROJECT_NAME})

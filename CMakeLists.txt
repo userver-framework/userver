@@ -6,6 +6,14 @@ endif()
 
 project(userver)
 
+if (USERVER_BUILD_SHARED_LIBS)
+  set(BUILD_SHARED_LIBS ${USERVER_BUILD_SHARED_LIBS})
+endif()
+
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib/)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib/)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin/userver)
+
 set(USERVER_ROOT_DIR "${CMAKE_CURRENT_LIST_DIR}")
 
 set(USERVER_NOT_INCLUDED_AS_SUBDIR OFF)
@@ -71,6 +79,8 @@ include(Sanitizers)
 include(FindPackageRequired)
 include(IncludeWhatYouUse)
 include(FindPython)
+include(UServerAddLibrary)
+include(UServerInstall)
 
 message(STATUS "Generating cmake files ...")
 execute_process(
