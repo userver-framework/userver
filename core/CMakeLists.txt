@@ -390,4 +390,4 @@ endif()
 add_library(yandex-${PROJECT_NAME} INTERFACE)
 target_link_libraries(yandex-${PROJECT_NAME} INTERFACE ${PROJECT_NAME})
 
-userver_install(TARGETS ${PROJECT_NAME})
+userver_install_library(TARGETS ${PROJECT_NAME})
