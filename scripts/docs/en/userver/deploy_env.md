@@ -399,6 +399,9 @@ components_manager:
 
     default_task_processor: main-task-processor
 
+    # A sidecar doesn't need to trade RES memory for responsiveness in rare edge cases
+    mlock_debug_info: false
+
 components:
       congestion-control:
           load-enabled: false
