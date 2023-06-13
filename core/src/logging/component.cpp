@@ -14,7 +14,6 @@
 
 #include <logging/impl/buffered_file_sink.hpp>
 #include <logging/impl/fd_sink.hpp>
-#include <logging/impl/reopening_file_sink.hpp>
 #include <logging/impl/tcp_socket_sink.hpp>
 #include <logging/impl/unix_socket_sink.hpp>
 #include <logging/spdlog_helpers.hpp>
@@ -75,16 +74,6 @@ void ReopenAll(const std::shared_ptr<logging::impl::TpLogger>& logger) {
       } catch (const std::exception& e) {
         LOG_ERROR() << "Exception on log reopen: " << e;
       }
-    } else if (auto reop = std::dynamic_pointer_cast<
-                   logging::impl::ReopeningFileSinkMT>(s);
-               reop) {
-      // TODO: Remove with condition after close experiments with new sink
-      try {
-        bool should_truncate = false;
-        reop->Reopen(should_truncate);
-      } catch (const std::exception& e) {
-        LOG_ERROR() << "Exception on log reopen: " << e;
-      }
     } else {
       LOG_INFO() << "Skipping rotation for sink #" << index << " from '"
                  << logger->GetLoggerName() << "' logger";
@@ -111,13 +100,7 @@ spdlog::sink_ptr GetSinkFromFilename(const spdlog::filename_t& file_path) {
     return std::make_shared<logging::impl::UnixSocketSink>(
         file_path.substr(unix_socket_prefix.size()));
   } else {
-    // Use File sink
-    // TODO: Set On experiment in prod
-    if (logging::impl::kUseUserverSinks.IsEnabled()) {
-      return std::make_shared<logging::impl::BufferedFileSink>(file_path);
-    } else {
-      return std::make_shared<logging::impl::ReopeningFileSinkMT>(file_path);
-    }
+    return std::make_shared<logging::impl::BufferedFileSink>(file_path);
   }
 }
 

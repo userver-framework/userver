@@ -4,7 +4,6 @@
 
 #include <logging/impl/buffered_file_sink.hpp>
 #include <logging/impl/fd_sink.hpp>
-#include <logging/impl/reopening_file_sink.hpp>
 #include <logging/impl/unix_socket_sink.hpp>
 #include <logging/spdlog.hpp>
 #include <logging/tp_logger.hpp>
@@ -55,14 +54,8 @@ LoggerPtr MakeStdoutLogger(const std::string& name, Format format,
 
 LoggerPtr MakeFileLogger(const std::string& name, const std::string& path,
                          Format format, Level level) {
-  // TODO: On experiment
-  if (logging::impl::kUseUserverSinks.IsEnabled()) {
-    return MakeSimpleLogger(
-        name, std::make_shared<impl::BufferedFileSink>(path), level, format);
-  } else {
-    return MakeSimpleLogger(
-        name, std::make_shared<impl::ReopeningFileSinkMT>(path), level, format);
-  }
+  return MakeSimpleLogger(name, std::make_shared<impl::BufferedFileSink>(path),
+                          level, format);
 }
 
 namespace impl {

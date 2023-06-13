@@ -7,16 +7,12 @@
 
 #include <logging/impl/base_sink.hpp>
 #include <userver/fs/blocking/c_file.hpp>
-#include <userver/utils/impl/userver_experiments.hpp>
 
 #include "open_file_helper.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
 namespace logging::impl {
-
-inline const utils::impl::UserverExperiment kUseUserverSinks{
-    "use-userver-sinks"};
 
 class BufferedFileSink : public BaseSink {
  public:
