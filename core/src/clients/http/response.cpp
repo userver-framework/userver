@@ -22,8 +22,14 @@ std::ostream& operator<<(std::ostream& os, Status s) {
       return os << "400 BadRequest";
     case NotFound:
       return os << "404 Not Found";
+    case MethodNotAllowed:
+      return os << "405 Method Not Allowed";
+    case NotAcceptable:
+      return os << "406 Not Acceptable";
     case Conflict:
       return os << "409 Conflict";
+    case TooManyRequests:
+      return os << "429 Too Many Requests";
     case InternalServerError:
       return os << "500 Internal Server Error";
     case BadGateway:
