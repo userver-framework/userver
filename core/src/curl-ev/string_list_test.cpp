@@ -86,4 +86,27 @@ TEST(CurlStringList, ReplaceFirstIf) {
   EXPECT_EQ(ToVector(list), expected2);
 }
 
+TEST(CurlStringList, ReplaceFirstIfOnlyConsumesOnReplacement) {
+  curl::string_list list;
+
+  // 100 just to avoid SSO
+  std::string value(100, 'a');
+  {
+    const auto replaced = list.ReplaceFirstIf(
+        [](const std::string&) { return false; }, std::move(value));
+    EXPECT_FALSE(replaced);
+    // value is not moved out
+    EXPECT_FALSE(value.empty());
+  }
+
+  list.add(value);
+  {
+    const auto replaced = list.ReplaceFirstIf(
+        [](const std::string&) { return true; }, std::move(value));
+    EXPECT_TRUE(replaced);
+    // now value is moved out
+    EXPECT_TRUE(value.empty());
+  }
+}
+
 USERVER_NAMESPACE_END
