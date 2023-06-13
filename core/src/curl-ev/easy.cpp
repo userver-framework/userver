@@ -26,6 +26,7 @@
 #include <server/net/listener_impl.hpp>
 #include <userver/engine/async.hpp>
 #include <userver/logging/log.hpp>
+#include <userver/utils/algo.hpp>
 #include <userver/utils/str_icase.hpp>
 #include <utils/strerror.hpp>
 
@@ -41,7 +42,7 @@ bool IsHeaderMatchingName(std::string_view header, std::string_view name) {
 }
 
 std::optional<std::string_view> FindHeaderByNameImpl(
-    std::shared_ptr<string_list> headers, std::string_view name) {
+    const std::shared_ptr<string_list>& headers, std::string_view name) {
   if (!headers) return std::nullopt;
   auto result = headers->FindIf([name](std::string_view header) {
     return IsHeaderMatchingName(header, name);
@@ -69,7 +70,7 @@ fmt::memory_buffer CreateHeaderBuffer(std::string_view name,
   return buf;
 }
 
-bool AddHeaderDoSkip(std::shared_ptr<string_list> headers,
+bool AddHeaderDoSkip(const std::shared_ptr<string_list>& headers,
                      std::string_view name,
                      easy::DuplicateHeaderAction action) {
   if (action == easy::DuplicateHeaderAction::kSkip && headers) {
@@ -79,11 +80,11 @@ bool AddHeaderDoSkip(std::shared_ptr<string_list> headers,
   return false;
 }
 
-bool AddHeaderDoReplace(std::shared_ptr<string_list> headers,
+bool AddHeaderDoReplace(const std::shared_ptr<string_list>& headers,
                         const fmt::memory_buffer& buf, std::string_view name,
                         easy::DuplicateHeaderAction action) {
   if (action == easy::DuplicateHeaderAction::kReplace && headers) {
-    bool replaced = headers->ReplaceFirstIf(
+    const bool replaced = headers->ReplaceFirstIf(
         [name](std::string_view header) {
           return IsHeaderMatchingName(header, name);
         },
@@ -336,6 +337,8 @@ void easy::set_url(std::string url_str, std::error_code& ec) {
 
 const std::string& easy::get_original_url() const { return orig_url_str_; }
 
+const url& easy::get_easy_url() const { return url_; }
+
 void easy::set_post_fields(std::string&& post_fields) {
   std::error_code ec;
   set_post_fields(std::move(post_fields), ec);
@@ -547,14 +550,23 @@ void easy::add_resolve(const std::string& host, const std::string& port,
   if (!resolved_hosts_) {
     resolved_hosts_ = std::make_shared<string_list>();
   }
-  const auto hostport = host + ':' + port + ':';
+  auto host_port_addr = utils::StrCat(host, ":", port, ":", addr);
+  const std::string_view host_port_view{host_port_addr.data(),
+                                        host_port_addr.size() - addr.size()};
 
   if (!resolved_hosts_->ReplaceFirstIf(
-          [&hostport](const auto& entry) {
-            return entry.compare(0, hostport.size(), hostport) == 0;
+          [host_port_view](const auto& entry) {
+            // host_port_addr, of which we hold a string_view, might be moved in
+            // ReplaceFirstIf, but it's guaranteed that this
+            // lambda is not called after that.
+            return std::string_view{entry}.substr(host_port_view.size()) ==
+                   host_port_view;
           },
-          hostport + addr)) {
-    resolved_hosts_->add(hostport + addr);
+          std::move(host_port_addr))) {
+    UASSERT_MSG(
+        !host_port_addr.empty(),
+        "ReplaceFirstIf moved the string out, when it shouldn't have done so.");
+    resolved_hosts_->add(std::move(host_port_addr));
   }
 
   ec =

@@ -122,6 +122,36 @@ bool IsPrefix(const std::string& url,
                         }) == prefixes.end());
 }
 
+class MaybeOwnedUrl final {
+ public:
+  MaybeOwnedUrl(const std::string& proxy_url, curl::easy& easy) {
+    if (!proxy_url.empty()) {
+      url_if_with_proxy_.emplace();
+
+      std::error_code ec;
+      url_if_with_proxy_->SetDefaultSchemeUrl(proxy_url.c_str(), ec);
+      if (ec) {
+        throw BadArgumentException(ec, "Bad proxy URL", proxy_url, {});
+      }
+
+      url_ptr_ = &*url_if_with_proxy_;
+    } else {
+      url_ptr_ = &easy.get_easy_url();
+    }
+  }
+  MaybeOwnedUrl(const MaybeOwnedUrl&) = delete;
+  MaybeOwnedUrl(MaybeOwnedUrl&&) = delete;
+
+  const curl::url& Get() const {
+    UASSERT(url_ptr_);
+    return *url_ptr_;
+  }
+
+ private:
+  std::optional<curl::url> url_if_with_proxy_;
+  const curl::url* url_ptr_{nullptr};
+};
+
 }  // namespace
 
 RequestState::RequestState(
@@ -867,16 +897,9 @@ void RequestState::WithRequestStats(const Func& func) {
 
 void RequestState::ResolveTargetAddress(clients::dns::Resolver& resolver) {
   const auto deadline = engine::Deadline::FromDuration(effective_timeout_);
-  auto target = curl::url{};
-  if (!proxy_url_.empty()) {
-    std::error_code ec;
-    target.SetDefaultSchemeUrl(proxy_url_.c_str(), ec);
-    if (ec) throw BadArgumentException(ec, "Bad proxy URL", proxy_url_, {});
-  } else {
-    target.SetUrl(easy().get_original_url().c_str());
-  }
 
-  const std::string hostname = target.GetHostPtr().get();
+  MaybeOwnedUrl target{proxy_url_, easy()};
+  const std::string hostname = target.Get().GetHostPtr().get();
 
   // CURLOPT_RESOLV hostnames cannot contain colons (as IPv6 addresses do), skip
   if (hostname.find(':') != std::string::npos) return;
@@ -886,7 +909,7 @@ void RequestState::ResolveTargetAddress(clients::dns::Resolver& resolver) {
       addrs | boost::adaptors::transformed(
                   [](const auto& addr) { return addr.PrimaryAddressString(); });
 
-  easy().add_resolve(hostname, target.GetPortPtr().get(),
+  easy().add_resolve(hostname, target.Get().GetPortPtr().get(),
                      fmt::to_string(fmt::join(addr_strings, ",")));
 }
 

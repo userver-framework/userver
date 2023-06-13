@@ -288,6 +288,7 @@ class easy final : public std::enable_shared_from_this<easy> {
   void set_url(std::string url_str);
   void set_url(std::string url_str, std::error_code& ec);
   const std::string& get_original_url() const;
+  const url& get_easy_url() const;
 
   IMPLEMENT_CURL_OPTION(set_protocols, native::CURLOPT_PROTOCOLS, long);
   IMPLEMENT_CURL_OPTION(set_redir_protocols, native::CURLOPT_REDIR_PROTOCOLS,

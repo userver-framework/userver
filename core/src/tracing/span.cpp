@@ -12,6 +12,7 @@
 #include <userver/tracing/span.hpp>
 #include <userver/tracing/tracer.hpp>
 #include <userver/utils/assert.hpp>
+#include <userver/utils/encoding/hex.hpp>
 #include <userver/utils/rand.hpp>
 #include <userver/utils/uuid4.hpp>
 #include <utils/internal_tag.hpp>
@@ -71,7 +72,9 @@ engine::TaskLocalVariable<boost::intrusive::list<
 std::string GenerateSpanId() {
   std::uniform_int_distribution<std::uint64_t> dist;
   auto random_value = dist(utils::DefaultRandom());
-  return fmt::format(FMT_COMPILE("{:016x}"), random_value);
+
+  static_assert(sizeof(random_value) == 8);
+  return utils::encoding::ToHex(&random_value, 8);
 }
 
 logging::LogHelper& operator<<(logging::LogHelper& lh,
