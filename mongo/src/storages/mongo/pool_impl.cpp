@@ -1,5 +1,6 @@
 #include <storages/mongo/pool_impl.hpp>
 
+#include <storages/mongo/cc_config.hpp>
 #include <storages/mongo/dynamic_config.hpp>
 #include <userver/utils/impl/userver_experiments.hpp>
 
@@ -18,7 +19,10 @@ PoolImpl::PoolImpl(std::string&& id, const PoolConfig& static_config,
       cc_sensor_(*this),
       cc_limiter_(*this),
       cc_controller_(id_, cc_sensor_, cc_limiter_,
-                     statistics_.congestion_control, static_config.cc_config) {
+                     statistics_.congestion_control, static_config.cc_config,
+                     config_source, [](const dynamic_config::Snapshot& config) {
+                       return config.Get<CcConfig>().config;
+                     }) {
   config_subscriber_ = config_source_.UpdateAndListen(
       this, "mongo_pool", &PoolImpl::OnConfigUpdate);
 }

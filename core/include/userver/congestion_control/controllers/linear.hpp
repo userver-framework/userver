@@ -2,8 +2,10 @@
 
 #include <optional>
 
+#include <userver/congestion_control/controllers/linear_config.hpp>
 #include <userver/congestion_control/controllers/v2.hpp>
 #include <userver/congestion_control/limiter.hpp>
+#include <userver/dynamic_config/source.hpp>
 #include <userver/utils/periodic_task.hpp>
 #include <userver/utils/smoothed_value.hpp>
 #include <userver/yaml_config/yaml_config.hpp>
@@ -14,16 +16,13 @@ namespace congestion_control::v2 {
 
 class LinearController final : public Controller {
  public:
-  struct StaticConfig {
-    int64_t safe_limit{100};
-    double threshold_percent{5.0};
+  using StaticConfig = Controller::Config;
 
-    bool fake_mode{false};
-    bool enabled{true};
-  };
-
-  LinearController(const std::string& name, v2::Sensor& sensor,
-                   Limiter& limiter, Stats& stats, const StaticConfig& config);
+  LinearController(
+      const std::string& name, v2::Sensor& sensor, Limiter& limiter,
+      Stats& stats, const StaticConfig& config,
+      dynamic_config::Source config_source,
+      std::function<v2::Config(const dynamic_config::Snapshot&)> config_getter);
 
   Limit Update(const Sensor::Data& current) override;
 
@@ -32,8 +31,11 @@ class LinearController final : public Controller {
   utils::SmoothedValue<int64_t> current_load_;
   utils::SmoothedValue<int64_t> long_timings_;
   utils::SmoothedValue<int64_t> short_timings_;
-  std::optional<size_t> current_limit_;
-  size_t epochs_passed_{0};
+  std::optional<std::size_t> current_limit_;
+  std::size_t epochs_passed_{0};
+
+  dynamic_config::Source config_source_;
+  std::function<v2::Config(const dynamic_config::Snapshot&)> config_getter_;
 };
 
 LinearController::StaticConfig Parse(

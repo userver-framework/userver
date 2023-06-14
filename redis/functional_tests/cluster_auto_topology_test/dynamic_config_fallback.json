@@ -16,21 +16,14 @@
     "buffering_enabled": false,
     "watch_command_timer_interval_us": 0
   },
-  "REDIS_DEADLINE_PROPAGATION_ENABLED": true,
+  "REDIS_DEADLINE_PROPAGATION_ENABLED": false,
   "REDIS_DEFAULT_COMMAND_CONTROL": {},
-  "REDIS_METRICS_SETTINGS": {
-    "command-timings-enabled": true,
-    "reply-sizes-enabled": true,
-    "request-sizes-enabled": true,
-    "timings-enabled": true
-  },
-  "REDIS_PUBSUB_METRICS_SETTINGS": {
-    "per-shard-stats-enabled": true
-  },
+  "REDIS_METRICS_SETTINGS": {},
+  "REDIS_PUBSUB_METRICS_SETTINGS": {},
   "REDIS_REPLICA_MONITORING_SETTINGS": {
     "__default__": {
-      "enable-monitoring": true,
-      "forbid-requests-to-syncing-replicas": true
+      "enable-monitoring": false,
+      "forbid-requests-to-syncing-replicas": false
     }
   },
   "REDIS_SUBSCRIBER_DEFAULT_COMMAND_CONTROL": {},

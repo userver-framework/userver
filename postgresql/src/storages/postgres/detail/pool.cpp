@@ -1,8 +1,10 @@
 #include <storages/postgres/detail/pool.hpp>
 
 #include <storages/postgres/deadline.hpp>
+#include <storages/postgres/detail/cc_config.hpp>
 #include <storages/postgres/detail/statement_timings_storage.hpp>
 
+#include <userver/dynamic_config/value.hpp>
 #include <userver/engine/async.hpp>
 #include <userver/engine/sleep.hpp>
 #include <userver/engine/task/cancel.hpp>
@@ -95,7 +97,10 @@ ConnectionPool::ConnectionPool(
       cc_sensor_(*this),
       cc_limiter_(*this),
       cc_controller_("postgres" + db_name, cc_sensor_, cc_limiter_,
-                     stats_.congestion_control, cc_config) {
+                     stats_.congestion_control, cc_config, config_source,
+                     [](const dynamic_config::Snapshot& config) {
+                       return config.Get<CcConfig>().config;
+                     }) {
   if (kCcExperiment.IsEnabled()) {
     cc_controller_.Start();
   }

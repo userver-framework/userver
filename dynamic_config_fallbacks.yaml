@@ -137,7 +137,6 @@ groups:
       - redis/functional_tests/basic_chaos/dynamic_config_fallback.json
       - redis/functional_tests/metrics/dynamic_config_fallback.json
       - redis/functional_tests/pubsub/dynamic_config_fallback.json
-      - redis/functional_tests/cluster_auto_topology_test/dynamic_config_fallback.json
       - redis/tests/dynamic_config_fallback.json
     overrides:
         REDIS_METRICS_SETTINGS:
@@ -152,6 +151,14 @@ groups:
                 enable-monitoring: true
                 forbid-requests-to-syncing-replicas: true
         REDIS_DEADLINE_PROPAGATION_ENABLED: true
+
+  - library-yamls:
+      - core/library.yaml
+      - redis/library.yaml
+    fallbacks:
+      - redis/functional_tests/cluster_auto_topology_test/dynamic_config_fallback.json
+    overrides:
+        REDIS_CLUSTER_AUTOTOPOLOGY_ENABLED: true
 
   - library-yamls:
       - core/library.yaml

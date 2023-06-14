@@ -1,6 +1,7 @@
 #include <userver/utest/utest.hpp>
 
 #include <userver/congestion_control/controllers/linear.hpp>
+#include <userver/dynamic_config/test_helpers.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -19,8 +20,9 @@ FakeLimiter limiter;
 }  // namespace
 
 TEST(CCLinear, Zero) {
-  congestion_control::v2::LinearController controller("test", sensor, limiter,
-                                                      stats, {});
+  congestion_control::v2::LinearController controller(
+      "test", sensor, limiter, stats, {}, dynamic_config::GetDefaultSource(),
+      [](auto) { return congestion_control::v2::Config(); });
 
   for (size_t i = 0; i < 1000; i++) {
     auto limit = controller.Update({});
@@ -29,8 +31,9 @@ TEST(CCLinear, Zero) {
 }
 
 TEST(CCLinear, FirstSeconds) {
-  congestion_control::v2::LinearController controller("test", sensor, limiter,
-                                                      stats, {});
+  congestion_control::v2::LinearController controller(
+      "test", sensor, limiter, stats, {}, dynamic_config::GetDefaultSource(),
+      [](auto) { return congestion_control::v2::Config(); });
 
   for (size_t i = 0; i < 30; i++) {
     congestion_control::v2::Sensor::Data data;
@@ -43,8 +46,9 @@ TEST(CCLinear, FirstSeconds) {
 }
 
 TEST(CCLinear, SmallRps) {
-  congestion_control::v2::LinearController controller("test", sensor, limiter,
-                                                      stats, {});
+  congestion_control::v2::LinearController controller(
+      "test", sensor, limiter, stats, {}, dynamic_config::GetDefaultSource(),
+      [](auto) { return congestion_control::v2::Config(); });
   // First seconds
   for (size_t i = 0; i < 30; i++) {
     congestion_control::v2::Sensor::Data data;
@@ -67,8 +71,9 @@ TEST(CCLinear, SmallRps) {
 }
 
 TEST(CCLinear, SmallSpike) {
-  congestion_control::v2::LinearController controller("test", sensor, limiter,
-                                                      stats, {});
+  congestion_control::v2::LinearController controller(
+      "test", sensor, limiter, stats, {}, dynamic_config::GetDefaultSource(),
+      [](auto) { return congestion_control::v2::Config(); });
   // First seconds
   for (size_t i = 0; i < 30; i++) {
     congestion_control::v2::Sensor::Data data;
@@ -100,8 +105,9 @@ TEST(CCLinear, SmallSpike) {
 }
 
 TEST(CCLinear, ExtraLoad) {
-  congestion_control::v2::LinearController controller("test", sensor, limiter,
-                                                      stats, {});
+  congestion_control::v2::LinearController controller(
+      "test", sensor, limiter, stats, {}, dynamic_config::GetDefaultSource(),
+      [](auto) { return congestion_control::v2::Config(); });
 
   // Init
   for (size_t i = 0; i < 31; i++) {

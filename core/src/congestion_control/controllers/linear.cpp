@@ -7,33 +7,28 @@ USERVER_NAMESPACE_BEGIN
 namespace congestion_control::v2 {
 
 namespace {
-constexpr double kTimeoutThreshold = 5.0;  // 5%
-constexpr size_t kSafeDeltaLimit = 10;
-constexpr size_t kCurrentLoadEpochs = 3;
-constexpr size_t kShortTimingsEpochs = 3;
-constexpr size_t kLongTimingsEpochs = 30;
-constexpr size_t kTimingsBurstThreshold = 5;
-constexpr size_t kMinTimingsMs = 20;
-constexpr size_t kMinLimit = 10;
-constexpr size_t kMinQps = 10;
+constexpr std::size_t kCurrentLoadEpochs = 3;
+constexpr std::size_t kShortTimingsEpochs = 3;
+constexpr std::size_t kLongTimingsEpochs = 30;
 }  // namespace
 
-LinearController::LinearController(const std::string& name, v2::Sensor& sensor,
-                                   Limiter& limiter, Stats& stats,
-                                   const StaticConfig& config)
+LinearController::LinearController(
+    const std::string& name, v2::Sensor& sensor, Limiter& limiter, Stats& stats,
+    const StaticConfig& config, dynamic_config::Source config_source,
+    std::function<v2::Config(const dynamic_config::Snapshot&)> config_getter)
     : Controller(name, sensor, limiter, stats,
                  {config.fake_mode, config.enabled}),
       config_(config),
       current_load_(kCurrentLoadEpochs),
       long_timings_(kLongTimingsEpochs),
-      short_timings_(kShortTimingsEpochs) {
-  LOG_DEBUG() << "Linear Congestion-Control is created with the following "
-                 "config: safe_limit="
-              << config_.safe_limit
-              << ", threshold_percent=" << config_.threshold_percent;
-}
+      short_timings_(kShortTimingsEpochs),
+      config_source_(config_source),
+      config_getter_(config_getter) {}
 
 Limit LinearController::Update(const Sensor::Data& current) {
+  auto dyn_config = config_source_.GetSnapshot();
+  v2::Config config = config_getter_(dyn_config);
+
   auto rate = current.GetRate();
 
   short_timings_.Update(current.timings_avg_ms);
@@ -41,9 +36,9 @@ Limit LinearController::Update(const Sensor::Data& current) {
   current_load_.Update(current.current_load);
   auto current_load = current_load_.GetSmoothed();
 
-  bool overloaded = 100 * rate > config_.threshold_percent;
+  bool overloaded = 100 * rate > config.errors_threshold_percent;
 
-  if (current.total < kMinQps && !current_limit_) {
+  if (current.total < config.min_qps && !current_limit_) {
     // Too little QPS, timings avg data is VERY noisy, EPS is noisy
     return {current_limit_, current.current_load};
   }
@@ -55,11 +50,11 @@ Limit LinearController::Update(const Sensor::Data& current) {
     return {std::nullopt, current.current_load};
   }
 
-  size_t divisor = long_timings_.GetSmoothed();
-  if (divisor < kMinTimingsMs) divisor = kMinTimingsMs;
+  std::size_t divisor = std::min<std::size_t>(long_timings_.GetSmoothed(),
+                                              config.min_timings.count());
 
-  if (static_cast<size_t>(short_timings_.GetSmoothed()) >
-      kTimingsBurstThreshold * divisor) {
+  if (static_cast<std::size_t>(short_timings_.GetSmoothed()) >
+      config.timings_burst_threshold * divisor) {
     // Do not update long_timings_, it is sticky to "good" timings
     overloaded = true;
   } else {
@@ -75,7 +70,7 @@ Limit LinearController::Update(const Sensor::Data& current) {
     }
   } else {
     if (current_limit_) {
-      if (current_limit_ > current_load + config_.safe_limit) {
+      if (current_limit_ > current_load + config.safe_delta_limit) {
         // TODO: several seconds in a row
         if (current_limit_.has_value()) {
           LOG_ERROR() << GetName() << " Congestion Control is deactivated";
@@ -88,8 +83,8 @@ Limit LinearController::Update(const Sensor::Data& current) {
     }
   }
 
-  if (current_limit_.has_value() && current_limit_ < kMinLimit) {
-    current_limit_ = kMinLimit;
+  if (current_limit_.has_value() && current_limit_ < config.min_limit) {
+    current_limit_ = config.min_limit;
   }
 
   return {current_limit_, current.current_load};
@@ -99,9 +94,6 @@ LinearController::StaticConfig Parse(
     const yaml_config::YamlConfig& value,
     formats::parse::To<LinearController::StaticConfig>) {
   LinearController::StaticConfig config;
-  config.safe_limit = value["safe-limit"].As<int64_t>(kSafeDeltaLimit);
-  config.threshold_percent =
-      value["threshold-percent"].As<double>(kTimeoutThreshold);
   config.fake_mode = value["fake-mode"].As<bool>(true);
   config.enabled = value["enabled"].As<bool>(true);
   return config;
