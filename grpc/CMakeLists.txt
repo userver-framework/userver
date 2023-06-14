@@ -22,7 +22,6 @@ else()
 endif()
 
 
-include(GrpcTargets)
 include(SetupGoogleProtoApis)
 
 file(GLOB_RECURSE SOURCES

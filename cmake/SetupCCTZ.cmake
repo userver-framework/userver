@@ -26,6 +26,6 @@ endif()
 
 set(BUILD_TOOLS OFF CACHE BOOL "")
 set(BUILD_EXAMPLES OFF CACHE BOOL "")
-set(BUILD_TESTING OFF)
+set(BUILD_TESTING OFF CACHE BOOL "")
 add_subdirectory(${USERVER_ROOT_DIR}/third_party/cctz "${CMAKE_BINARY_DIR}/third_party/cctz")
 set(cctz_VERSION "2.3" CACHE STRING "Version of the cctz")

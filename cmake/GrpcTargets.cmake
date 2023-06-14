@@ -19,7 +19,6 @@ else()
 
   include(SetupGrpc)
 endif()
-find_program(PROTO_GRPC_CPP_PLUGIN grpc_cpp_plugin)
 
 if (NOT USERVER_PROTOBUF_IMPORT_DIR)
   message(FATAL_ERROR "Invalid Protobuf package")

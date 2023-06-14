@@ -13,7 +13,6 @@
 #include <userver/dynamic_config/source.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/logging/level.hpp>
-#include <userver/utils/fast_pimpl.hpp>
 #include <userver/utils/statistics/fwd.hpp>
 #include <userver/yaml_config/fwd.hpp>
 
