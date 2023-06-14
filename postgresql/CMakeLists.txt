@@ -23,7 +23,6 @@ else()
     endif()
     target_link_libraries(userver-libpq INTERFACE ${LIBPQ_LIBRARIES})
   endif()
-  target_link_libraries(userver-libpq INTERFACE ${LIBPQ_LIBRARIES})
 endif()
 
 file(GLOB_RECURSE SOURCES
@@ -127,7 +126,3 @@ if (USERVER_IS_THE_ROOT_PROJECT)
 
   add_subdirectory(functional_tests)
 endif()
-
-# Target with no need to use userver namespace, but includes require userver/
-add_library(yandex-${PROJECT_NAME} INTERFACE)
-target_link_libraries(yandex-${PROJECT_NAME} INTERFACE ${PROJECT_NAME})

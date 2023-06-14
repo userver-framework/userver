@@ -79,8 +79,4 @@ if (USERVER_IS_THE_ROOT_PROJECT)
   add_subdirectory(functional_tests)
 endif()
 
-# Target with no need to use userver namespace, but includes require userver/
-add_library(yandex-${PROJECT_NAME} INTERFACE)
-target_link_libraries(yandex-${PROJECT_NAME} INTERFACE ${PROJECT_NAME})
-
 userver_install_library(TARGETS ${PROJECT_NAME})
