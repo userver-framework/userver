@@ -13,6 +13,7 @@
 #include <userver/ugrpc/impl/statistics_scope.hpp>
 #include <userver/ugrpc/server/exceptions.hpp>
 #include <userver/ugrpc/server/impl/async_methods.hpp>
+#include <userver/ugrpc/server/impl/call_params.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -21,14 +22,7 @@ namespace ugrpc::server {
 /// @brief A non-typed base class for any gRPC call
 class CallAnyBase {
  public:
-  CallAnyBase(grpc::ServerContext& context, const std::string_view call_name,
-              ugrpc::impl::RpcStatisticsScope& statistics,
-              logging::LoggerCRef access_tskv_logger, tracing::Span& call_span)
-      : context_(context),
-        call_name_(call_name),
-        statistics_(statistics),
-        access_tskv_logger_(access_tskv_logger),
-        call_span_(call_span) {}
+  CallAnyBase(impl::CallParams&& params) : params_(params) {}
 
   /// @brief Complete the RPC with an error
   ///
@@ -41,25 +35,21 @@ class CallAnyBase {
   /// @returns the `ServerContext` used for this RPC
   /// @note Initial server metadata is not currently supported
   /// @note Trailing metadata, if any, must be set before the `Finish` call
-  grpc::ServerContext& GetContext() { return context_; }
+  grpc::ServerContext& GetContext() { return params_.context; }
 
  protected:
   void LogFinish(grpc::Status status) const;
 
-  std::string_view CallName() { return call_name_; }
+  std::string_view CallName() { return params_.call_name; }
 
-  ugrpc::impl::RpcStatisticsScope& Statistics() { return statistics_; }
+  ugrpc::impl::RpcStatisticsScope& Statistics() { return params_.statistics; }
 
-  logging::LoggerCRef AccessTskvLogger() { return access_tskv_logger_; }
+  logging::LoggerCRef AccessTskvLogger() { return params_.access_tskv_logger; }
 
-  tracing::Span& CallSpan() { return call_span_; }
+  tracing::Span& CallSpan() { return params_.call_span; }
 
  private:
-  grpc::ServerContext& context_;
-  const std::string_view call_name_;
-  ugrpc::impl::RpcStatisticsScope& statistics_;
-  logging::LoggerCRef access_tskv_logger_;
-  tracing::Span& call_span_;
+  impl::CallParams params_;
 };
 
 /// @brief Controls a single request -> single response RPC
@@ -85,10 +75,8 @@ class UnaryCall final : public CallAnyBase {
   void FinishWithError(const grpc::Status& status) override;
 
   /// For internal use only
-  UnaryCall(grpc::ServerContext& context, std::string_view call_name,
-            impl::RawResponseWriter<Response>& stream,
-            ugrpc::impl::RpcStatisticsScope& statistics,
-            logging::LoggerCRef access_tskv_logger, tracing::Span& call_span);
+  UnaryCall(impl::CallParams&& call_params,
+            impl::RawResponseWriter<Response>& stream);
 
   UnaryCall(UnaryCall&&) = delete;
   UnaryCall& operator=(UnaryCall&&) = delete;
@@ -132,10 +120,8 @@ class InputStream final : public CallAnyBase {
   void FinishWithError(const grpc::Status& status) override;
 
   /// For internal use only
-  InputStream(grpc::ServerContext& context, std::string_view call_name,
-              impl::RawReader<Request, Response>& stream,
-              ugrpc::impl::RpcStatisticsScope& statistics,
-              logging::LoggerCRef access_tskv_logger, tracing::Span& call_span);
+  InputStream(impl::CallParams&& call_params,
+              impl::RawReader<Request, Response>& stream);
 
   InputStream(InputStream&&) = delete;
   InputStream& operator=(InputStream&&) = delete;
@@ -190,11 +176,8 @@ class OutputStream final : public CallAnyBase {
   void WriteAndFinish(const Response& response);
 
   /// For internal use only
-  OutputStream(grpc::ServerContext& context, std::string_view call_name,
-               impl::RawWriter<Response>& stream,
-               ugrpc::impl::RpcStatisticsScope& statistics,
-               logging::LoggerCRef access_tskv_logger,
-               tracing::Span& call_span);
+  OutputStream(impl::CallParams&& call_params,
+               impl::RawWriter<Response>& stream);
 
   OutputStream(OutputStream&&) = delete;
   OutputStream& operator=(OutputStream&&) = delete;
@@ -255,11 +238,8 @@ class BidirectionalStream : public CallAnyBase {
   void WriteAndFinish(const Response& response);
 
   /// For internal use only
-  BidirectionalStream(grpc::ServerContext& context, std::string_view call_name,
-                      impl::RawReaderWriter<Request, Response>& stream,
-                      ugrpc::impl::RpcStatisticsScope& statistics,
-                      logging::LoggerCRef access_tskv_logger,
-                      tracing::Span& call_span);
+  BidirectionalStream(impl::CallParams&& call_params,
+                      impl::RawReaderWriter<Request, Response>& stream);
 
   BidirectionalStream(const BidirectionalStream&) = delete;
   BidirectionalStream(BidirectionalStream&&) = delete;
@@ -275,15 +255,9 @@ class BidirectionalStream : public CallAnyBase {
 // ========================== Implementation follows ==========================
 
 template <typename Response>
-UnaryCall<Response>::UnaryCall(grpc::ServerContext& context,
-                               std::string_view call_name,
-                               impl::RawResponseWriter<Response>& stream,
-                               ugrpc::impl::RpcStatisticsScope& statistics,
-                               logging::LoggerCRef access_tskv_logger,
-                               tracing::Span& call_span)
-    : CallAnyBase(context, call_name, statistics, access_tskv_logger,
-                  call_span),
-      stream_(stream) {}
+UnaryCall<Response>::UnaryCall(impl::CallParams&& call_params,
+                               impl::RawResponseWriter<Response>& stream)
+    : CallAnyBase(std::move(call_params)), stream_(stream) {}
 
 template <typename Response>
 UnaryCall<Response>::~UnaryCall() {
@@ -316,13 +290,8 @@ void UnaryCall<Response>::FinishWithError(const grpc::Status& status) {
 
 template <typename Request, typename Response>
 InputStream<Request, Response>::InputStream(
-    grpc::ServerContext& context, std::string_view call_name,
-    impl::RawReader<Request, Response>& stream,
-    ugrpc::impl::RpcStatisticsScope& statistics,
-    logging::LoggerCRef access_tskv_logger, tracing::Span& call_span)
-    : CallAnyBase(context, call_name, statistics, access_tskv_logger,
-                  call_span),
-      stream_(stream) {}
+    impl::CallParams&& call_params, impl::RawReader<Request, Response>& stream)
+    : CallAnyBase(std::move(call_params)), stream_(stream) {}
 
 template <typename Request, typename Response>
 InputStream<Request, Response>::~InputStream() {
@@ -369,14 +338,9 @@ void InputStream<Request, Response>::FinishWithError(
 }
 
 template <typename Response>
-OutputStream<Response>::OutputStream(
-    grpc::ServerContext& context, std::string_view call_name,
-    impl::RawWriter<Response>& stream,
-    ugrpc::impl::RpcStatisticsScope& statistics,
-    logging::LoggerCRef access_tskv_logger, tracing::Span& call_span)
-    : CallAnyBase(context, call_name, statistics, access_tskv_logger,
-                  call_span),
-      stream_(stream) {}
+OutputStream<Response>::OutputStream(impl::CallParams&& call_params,
+                                     impl::RawWriter<Response>& stream)
+    : CallAnyBase(std::move(call_params)), stream_(stream) {}
 
 template <typename Response>
 OutputStream<Response>::~OutputStream() {
@@ -442,13 +406,9 @@ void OutputStream<Response>::WriteAndFinish(const Response& response) {
 
 template <typename Request, typename Response>
 BidirectionalStream<Request, Response>::BidirectionalStream(
-    grpc::ServerContext& context, std::string_view call_name,
-    impl::RawReaderWriter<Request, Response>& stream,
-    ugrpc::impl::RpcStatisticsScope& statistics,
-    logging::LoggerCRef access_tskv_logger, tracing::Span& call_span)
-    : CallAnyBase(context, call_name, statistics, access_tskv_logger,
-                  call_span),
-      stream_(stream) {}
+    impl::CallParams&& call_params,
+    impl::RawReaderWriter<Request, Response>& stream)
+    : CallAnyBase(std::move(call_params)), stream_(stream) {}
 
 template <typename Request, typename Response>
 BidirectionalStream<Request, Response>::~BidirectionalStream() {

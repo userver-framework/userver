@@ -23,7 +23,7 @@ std::string EscapeForAccessTskvLog(std::string_view str) {
 }  // namespace
 
 void CallAnyBase::LogFinish(grpc::Status status) const {
-  auto md = context_.client_metadata();
+  auto md = params_.context.client_metadata();
   auto it = md.find("user-agent");
   std::string user_agent;
   if (it != md.end()) {
@@ -32,16 +32,16 @@ void CallAnyBase::LogFinish(grpc::Status status) const {
   }
 
   // TODO: extract IP
-  auto ip = context_.peer();
+  auto ip = params_.context.peer();
 
-  auto start_time = call_span_.GetStartSystemTime();
+  auto start_time = params_.call_span.GetStartSystemTime();
 
   auto now = std::chrono::system_clock::now();
   auto response_time =
       std::chrono::duration_cast<std::chrono::milliseconds>(now - start_time)
           .count();
 
-  access_tskv_logger_.Log(
+  params_.access_tskv_logger.Log(
       logging::Level::kInfo,
       fmt::format("tskv"
                   "\t{}"
@@ -55,7 +55,7 @@ void CallAnyBase::LogFinish(grpc::Status status) const {
                       start_time, "timestamp=%Y-%m-%dT%H:%M:%S\ttimezone=%Ez"),
                   EscapeForAccessTskvLog(user_agent),
                   EscapeForAccessTskvLog(ip), EscapeForAccessTskvLog(ip),
-                  EscapeForAccessTskvLog(call_name_), response_time,
+                  EscapeForAccessTskvLog(params_.call_name), response_time,
                   static_cast<int>(status.error_code())));
 }
 

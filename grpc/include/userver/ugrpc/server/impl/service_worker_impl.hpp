@@ -22,18 +22,19 @@
 #include <userver/utils/fast_scope_guard.hpp>
 #include <userver/utils/impl/wait_token_storage.hpp>
 #include <userver/utils/lazy_prvalue.hpp>
+#include <userver/utils/statistics/entry.hpp>
 
 #include <userver/ugrpc/impl/static_metadata.hpp>
 #include <userver/ugrpc/impl/statistics.hpp>
 #include <userver/ugrpc/impl/statistics_scope.hpp>
 #include <userver/ugrpc/server/impl/async_method_invocation.hpp>
 #include <userver/ugrpc/server/impl/async_service.hpp>
+#include <userver/ugrpc/server/impl/call_params.hpp>
 #include <userver/ugrpc/server/impl/call_traits.hpp>
 #include <userver/ugrpc/server/impl/service_worker.hpp>
 #include <userver/ugrpc/server/middleware_base.hpp>
 #include <userver/ugrpc/server/rpc.hpp>
 #include <userver/ugrpc/server/service_base.hpp>
-#include <userver/utils/statistics/entry.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -167,8 +168,9 @@ class CallData final {
 
     auto& access_tskv_logger =
         method_data_.service_data.settings.access_tskv_logger;
-    Call responder(context_, call_name, raw_responder_, statistics_scope,
-                   *access_tskv_logger, span_->Get());
+    Call responder(CallParams{context_, call_name, statistics_scope,
+                              *access_tskv_logger, span_->Get()},
+                   raw_responder_);
     auto do_call = [&] {
       if constexpr (std::is_same_v<InitialRequest, NoInitialRequest>) {
         (service.*service_method)(responder);
