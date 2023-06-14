@@ -373,11 +373,10 @@ INSTANTIATE_UTEST_SUITE_P(
     PoolTests, PostgrePool,
     ::testing::Values(pg::InitMode::kAsync, pg::InitMode::kSync),
     [](const testing::TestParamInfo<PostgrePool::ParamType>& info) {
-      switch (info.param) {
-        case pg::InitMode::kAsync:
-          return "Async";
-        case pg::InitMode::kSync:
-          return "Sync";
+      if (info.param == pg::InitMode::kAsync) {
+        return "Async";
+      } else {
+        return "Sync";
       }
     });
 

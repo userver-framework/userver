@@ -157,8 +157,15 @@ PostgreConnection::~PostgreConnection() {
   engine::AsyncNoSpan(GetTaskProcessor(), [] {}).Wait();
 }
 
-INSTANTIATE_UTEST_SUITE_P(ConnectionSettings, PostgreConnection,
-                          ::testing::Values(kCachePreparedStatements,
-                                            kPipelineEnabled));
+INSTANTIATE_UTEST_SUITE_P(
+    ConnectionSettings, PostgreConnection,
+    ::testing::Values(kCachePreparedStatements, kPipelineEnabled),
+    [](const testing::TestParamInfo<PostgreConnection::ParamType>& info) {
+      if (info.param.pipeline_mode == pg::PipelineMode::kEnabled) {
+        return "PipelineEnabled";
+      } else {
+        return "PipelineDisabled";
+      }
+    });
 
 USERVER_NAMESPACE_END

@@ -17,8 +17,14 @@ class PostgreStats : public PostgreConnection {};
 
 INSTANTIATE_UTEST_SUITE_P(
     StatsSettings, PostgreStats,
-    ::testing::Values<storages::postgres::ConnectionSettings>(
-        kCachePreparedStatements, kPipelineEnabled));
+    ::testing::Values(kCachePreparedStatements, kPipelineEnabled),
+    [](const testing::TestParamInfo<PostgreStats::ParamType>& info) {
+      if (info.param.pipeline_mode == pg::PipelineMode::kEnabled) {
+        return "PipelineEnabled";
+      } else {
+        return "PipelineDisabled";
+      }
+    });
 
 UTEST_P(PostgreStats, NoTransactions) {
   // We can't check all the counters as some of them are used for internal ops
