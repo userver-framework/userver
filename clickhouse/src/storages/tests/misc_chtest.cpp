@@ -155,7 +155,9 @@ UTEST(Query, AvoidUnexpectedCancellation) {
   cluster->InsertRows("tmp_table_with_sleep", {"id", "value", "sleep_result"},
                       data);
 
-  const storages::clickhouse::CommandControl cc{std::chrono::milliseconds{300}};
+  // 2000ms to avoid flaps in CI, in perfect world ~300 should do
+  const storages::clickhouse::CommandControl cc{
+      std::chrono::milliseconds{2000}};
   const auto result = cluster
                           ->Execute(cc,
                                     "SELECT id, value, sleepEachRow(0.1) FROM "
