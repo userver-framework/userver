@@ -320,7 +320,8 @@ class easy final : public std::enable_shared_from_this<easy> {
                         long);
   IMPLEMENT_CURL_OPTION_STRING(set_unix_socket_path,
                                native::CURLOPT_UNIX_SOCKET_PATH);
-  IMPLEMENT_CURL_OPTION_STRING(set_connect_to, native::CURLOPT_CONNECT_TO);
+  IMPLEMENT_CURL_OPTION(set_connect_to, native::CURLOPT_CONNECT_TO,
+                        native::curl_slist*);
   // authentication options
 
   enum netrc_t {

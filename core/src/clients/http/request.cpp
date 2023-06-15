@@ -7,6 +7,7 @@
 #include <string_view>
 #include <system_error>
 
+#include <userver/clients/http/connect_to.hpp>
 #include <userver/clients/http/error.hpp>
 #include <userver/clients/http/form.hpp>
 #include <userver/clients/http/response_future.hpp>
@@ -343,12 +344,12 @@ Request Request::unix_socket_path(const std::string& path) && {
   return std::move(this->unix_socket_path(path));
 }
 
-Request& Request::connect_to(const std::string& path) & {
-  pimpl_->connect_to(path);
+Request& Request::connect_to(const ConnectTo& connect_to) & {
+  pimpl_->connect_to(connect_to);
   return *this;
 }
-Request Request::connect_to(const std::string& path) && {
-  return std::move(this->connect_to(path));
+Request Request::connect_to(const ConnectTo& connect_to) && {
+  return std::move(this->connect_to(connect_to));
 }
 
 Request& Request::data(std::string data) & {

@@ -32,6 +32,7 @@ namespace clients::http {
 
 class RequestState;
 class StreamedResponse;
+class ConnectTo;
 
 namespace impl {
 class EasyWrapper;
@@ -234,8 +235,8 @@ class Request final {
   Request unix_socket_path(const std::string& path) &&;
 
   /// Set CURLOPT_CONNECT_TO option
-  Request& connect_to(const std::string& path) &;
-  Request connect_to(const std::string& path) &&;
+  Request& connect_to(const ConnectTo& connect_to) &;
+  Request connect_to(const ConnectTo& connect_to) &&;
 
   /// Override log URL. Usefull for "there's a secret in the query".
   /// @warning The query might be logged by other intermediate HTTP agents

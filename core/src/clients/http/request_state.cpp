@@ -16,6 +16,7 @@
 #include <curl-ev/error_code.hpp>
 #include <userver/baggage/baggage.hpp>
 #include <userver/clients/dns/resolver.hpp>
+#include <userver/clients/http/connect_to.hpp>
 #include <userver/server/request/task_inherited_data.hpp>
 #include <userver/utils/algo.hpp>
 #include <userver/utils/assert.hpp>
@@ -273,8 +274,11 @@ void RequestState::unix_socket_path(const std::string& path) {
   easy().set_unix_socket_path(path);
 }
 
-void RequestState::connect_to(const std::string& path) {
-  easy().set_connect_to(path);
+void RequestState::connect_to(const ConnectTo& connect_to) {
+  curl::native::curl_slist* ptr = connect_to.GetUnderlying();
+  if (ptr) {
+    easy().set_connect_to(ptr);
+  }
 }
 
 void RequestState::proxy(const std::string& value) {

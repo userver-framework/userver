@@ -39,6 +39,7 @@ USERVER_NAMESPACE_BEGIN
 namespace clients::http {
 
 class StreamedResponse;
+class ConnectTo;
 
 class RequestState : public std::enable_shared_from_this<RequestState> {
  public:
@@ -86,7 +87,7 @@ class RequestState : public std::enable_shared_from_this<RequestState> {
   /// set unix socket as transport instead of TCP
   void unix_socket_path(const std::string& path);
   /// set connect_to option
-  void connect_to(const std::string& path);
+  void connect_to(const ConnectTo& connect_to);
   /// sets proxy to use
   void proxy(const std::string& value);
   /// sets proxy auth type to use
