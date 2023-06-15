@@ -30,7 +30,10 @@ void ResponseBodyStream::SetHeader(std::string_view name,
   http_response_.SetHeader(name, value);
 }
 
-void ResponseBodyStream::SetEndOfHeaders() { headers_ended_ = true; }
+void ResponseBodyStream::SetEndOfHeaders() {
+  headers_ended_ = true;
+  http_response_.SetHeadersEnd();
+}
 
 void ResponseBodyStream::SetStatusCode(int status_code) {
   http_response_.SetStatus(static_cast<server::http::HttpStatus>(status_code));
