@@ -26,6 +26,37 @@ using ParseException = formats::yaml::ParseException;
 /// @ingroup userver_formats
 ///
 /// @brief Datatype that represents YAML with substituted variables
+///
+/// If YAML has value that starts with an `$`, then such value is treated as
+/// a variable from `config_vars`. For example if `config_vars` contains
+/// `variable: 42` and the YAML is following:
+/// @snippet core/src/yaml_config/yaml_config_test.cpp  sample vars
+/// Then the result of `yaml["some_element"]["some"].As<int>()` is `42`.
+///
+/// If YAML key ends on '#env' and the mode is YamlConfig::Mode::kEnvAllowed,
+/// then the value of the key is searched in
+/// environment variables of the process and returned as a value. For example:
+/// @snippet core/src/yaml_config/yaml_config_test.cpp  sample env
+///
+/// If YAML key ends on '#fallback', then the value of the key is used as a
+/// fallback for environment and `$` variables. For example for the following
+/// YAML with YamlConfig::Mode::kEnvAllowed:
+/// @snippet core/src/yaml_config/yaml_config_test.cpp  sample multiple
+/// The result of `yaml["some_element"]["some"].As<int>()` is the value of
+/// `variable` from `config_vars` if it exists; otherwise the value is the
+/// contents of the environment variable `SOME_ENV_VARIABLE` if it exists;
+/// otherwise the value if `100500`, from the fallback.
+///
+/// Another example:
+/// @snippet core/src/yaml_config/yaml_config_test.cpp  sample env fallback
+/// With YamlConfig::Mode::kEnvAllowed the result of
+/// `yaml["some_element"]["value"].As<int>()` is the value of `ENV_NAME`
+/// environment variable if it exists; otherwise it is `5`.
+///
+/// @warning YamlConfig::Mode::kEnvAllowed should be used only on configs that
+/// come from trusted environments. Otherwise, an attacker could create a
+/// config with `#env` and read any of your environment variables, including
+/// variables that contain passwords and other sensitive data.
 class YamlConfig {
  public:
   struct IterTraits {
@@ -35,6 +66,11 @@ class YamlConfig {
   };
   struct DefaultConstructed {};
 
+  enum class Mode {
+    kSecure,      /// < secure mode, without reading environment variables
+    kEnvAllowed,  /// < allows reading of environment variables
+  };
+
   using const_iterator = Iterator<IterTraits>;
   using Exception = yaml_config::Exception;
   using ParseException = yaml_config::ParseException;
@@ -42,7 +78,8 @@ class YamlConfig {
   YamlConfig() = default;
 
   /// YamlConfig = config + config_vars
-  YamlConfig(formats::yaml::Value yaml, formats::yaml::Value config_vars);
+  YamlConfig(formats::yaml::Value yaml, formats::yaml::Value config_vars,
+             Mode mode = Mode::kSecure);
 
   /// Get the plain Yaml without substitutions. It may contain raw references.
   const formats::yaml::Value& Yaml() const;
@@ -149,6 +186,7 @@ class YamlConfig {
  private:
   formats::yaml::Value yaml_;
   formats::yaml::Value config_vars_;
+  Mode mode_{Mode::kSecure};
 };
 
 template <typename T>

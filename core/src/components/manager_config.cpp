@@ -31,10 +31,10 @@ ManagerConfig ParseFromAny(
     T&& source, const std::string& source_desc,
     const std::optional<std::string>& user_config_vars_path,
     const std::optional<std::string>& user_config_vars_override_path) {
-  static const std::string kConfigVarsField = "config_vars";
-  static const std::string kManagerConfigField = "components_manager";
-  static const std::string kUserverExperimentsField = "userver_experiments";
-  static const std::string kUserverExperimentsForceEnabledField =
+  constexpr std::string_view kConfigVarsField = "config_vars";
+  constexpr std::string_view kManagerConfigField = "components_manager";
+  constexpr std::string_view kUserverExperimentsField = "userver_experiments";
+  constexpr std::string_view kUserverExperimentsForceEnabledField =
       "userver_experiments_force_enabled";
 
   formats::yaml::Value config_yaml;
@@ -66,7 +66,9 @@ ManagerConfig ParseFromAny(
     config_vars = builder.ExtractValue();
   }
 
-  auto config = yaml_config::YamlConfig(config_yaml, std::move(config_vars));
+  auto config =
+      yaml_config::YamlConfig(config_yaml, std::move(config_vars),
+                              yaml_config::YamlConfig::Mode::kEnvAllowed);
   auto result = config[kManagerConfigField].As<ManagerConfig>();
   result.enabled_experiments =
       config[kUserverExperimentsField].As<utils::impl::UserverExperimentSet>(

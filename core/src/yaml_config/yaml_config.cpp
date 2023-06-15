@@ -1,6 +1,7 @@
 #include <userver/yaml_config/yaml_config.hpp>
 
 #include <fmt/format.h>
+#include <boost/algorithm/string/predicate.hpp>
 
 #include <userver/formats/yaml/serialize.hpp>
 #include <userver/logging/log.hpp>
@@ -9,12 +10,6 @@
 USERVER_NAMESPACE_BEGIN
 
 namespace yaml_config {
-
-YamlConfig::YamlConfig(formats::yaml::Value yaml,
-                       formats::yaml::Value config_vars)
-    : yaml_(std::move(yaml)), config_vars_(std::move(config_vars)) {}
-
-const formats::yaml::Value& YamlConfig::Yaml() const { return yaml_; }
 
 namespace {
 
@@ -32,15 +27,70 @@ std::string GetFallbackName(std::string_view str) {
   return std::string{str} + "#fallback";
 }
 
+std::string GetEnvName(std::string_view str) {
+  return std::string{str} + "#env";
+}
+
 template <typename Field>
 YamlConfig MakeMissingConfig(const YamlConfig& config, Field field) {
   const auto path = formats::common::MakeChildPath(config.GetPath(), field);
   return {formats::yaml::Value()[path], {}};
 }
 
+void AssertEnvMode(YamlConfig::Mode mode) {
+  if (mode != YamlConfig::Mode::kEnvAllowed) {
+    throw std::runtime_error(
+        "YamlConfig was not constructed with Mode::kEnvAllowed but an attempt "
+        "to read an environment variable was made");
+  }
+}
+
+std::optional<formats::yaml::Value> GetFromEnvByKey(
+    std::string_view key, const formats::yaml::Value& yaml,
+    YamlConfig::Mode mode) {
+  const auto env_name = yaml[GetEnvName(key)];
+  if (!env_name.IsMissing()) {
+    AssertEnvMode(mode);
+
+    // NOLINTNEXTLINE(concurrency-mt-unsafe)
+    const auto* env_value = std::getenv(env_name.As<std::string>().c_str());
+    if (env_value) {
+      LOG_INFO() << "using env value for '" << key << '\'';
+      return formats::yaml::FromString(env_value);
+    }
+
+    const auto fallback_name = GetFallbackName(key);
+    if (yaml.HasMember(fallback_name)) {
+      LOG_INFO() << "using fallback value for '" << key << '\'';
+      return yaml[fallback_name];
+    }
+  }
+
+  return {};
+}
+
 }  // namespace
 
+YamlConfig::YamlConfig(formats::yaml::Value yaml,
+                       formats::yaml::Value config_vars, Mode mode)
+    : yaml_(std::move(yaml)),
+      config_vars_(std::move(config_vars)),
+      mode_(mode) {}
+
+const formats::yaml::Value& YamlConfig::Yaml() const { return yaml_; }
+
 YamlConfig YamlConfig::operator[](std::string_view key) const {
+  if (boost::algorithm::ends_with(key, "#env")) {
+    auto env_value = GetFromEnvByKey(key, yaml_, mode_);
+    if (env_value) {
+      // Strip substitutions off to disallow nested substitutions
+      return YamlConfig{std::move(*env_value), {}, Mode::kSecure};
+    }
+
+    // Avoid parsing #env as a string
+    return MakeMissingConfig(*this, key);
+  }
+
   auto value = yaml_[key];
 
   if (IsSubstitution(value)) {
@@ -49,22 +99,35 @@ YamlConfig YamlConfig::operator[](std::string_view key) const {
     auto var_data = config_vars_[var_name];
     if (!var_data.IsMissing()) {
       // Strip substitutions off to disallow nested substitutions
-      return YamlConfig{std::move(var_data), {}};
+      return YamlConfig{std::move(var_data), {}, Mode::kSecure};
+    }
+
+    auto env_value = GetFromEnvByKey(key, yaml_, mode_);
+    if (env_value) {
+      // Strip substitutions off to disallow nested substitutions
+      return YamlConfig{std::move(*env_value), {}, Mode::kSecure};
     }
 
     const auto fallback_name = GetFallbackName(key);
-
     if (yaml_.HasMember(fallback_name)) {
-      LOG_INFO() << "using default value for config variable '" << var_name
-                 << '\'';
-      return YamlConfig{yaml_[fallback_name], config_vars_};
+      LOG_INFO() << "using fallback value for '" << key << '\'';
+      // Strip substitutions off to disallow nested substitutions
+      return YamlConfig{yaml_[fallback_name], {}, Mode::kSecure};
     }
 
     // Avoid parsing $substitution as a string
     return MakeMissingConfig(*this, key);
   }
 
-  return YamlConfig{std::move(value), config_vars_};
+  if (value.IsMissing()) {
+    auto env_value = GetFromEnvByKey(key, yaml_, mode_);
+    if (env_value) {
+      // Strip substitutions off to disallow nested substitutions
+      return YamlConfig{std::move(*env_value), {}, Mode::kSecure};
+    }
+  }
+
+  return YamlConfig{std::move(value), config_vars_, mode_};
 }
 
 YamlConfig YamlConfig::operator[](size_t index) const {
@@ -76,7 +139,7 @@ YamlConfig YamlConfig::operator[](size_t index) const {
     auto var_data = config_vars_[var_name];
     if (!var_data.IsMissing()) {
       // Strip substitutions off to disallow nested substitutions
-      return YamlConfig{std::move(var_data), {}};
+      return YamlConfig{std::move(var_data), {}, Mode::kSecure};
     }
 
     // Avoid parsing $substitution as a string

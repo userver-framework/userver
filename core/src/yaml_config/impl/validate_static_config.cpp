@@ -16,13 +16,16 @@ namespace yaml_config::impl {
 
 namespace {
 
-const std::string kFallbackSuffix = "#fallback";
-const auto kFallbackSuffixLength = kFallbackSuffix.length();
+constexpr std::string_view kFallbackSuffix = "#fallback";
+constexpr std::string_view kEnvSuffix = "#env";
 
-std::string RemoveFallbackSuffix(std::string_view option) {
+std::string RemoveFallbackAndEnvSuffix(std::string_view option) {
   if (boost::algorithm::ends_with(option, kFallbackSuffix)) {
     return std::string(
-        option.substr(0, option.length() - kFallbackSuffixLength));
+        option.substr(0, option.length() - kFallbackSuffix.length()));
+  }
+  if (boost::algorithm::ends_with(option, kEnvSuffix)) {
+    return std::string(option.substr(0, option.length() - kEnvSuffix.length()));
   }
   return std::string(option);
 }
@@ -86,7 +89,7 @@ void ValidateObject(const YamlConfig& object, const Schema& schema) {
   const auto& properties = schema.properties.value();
 
   for (const auto& [name, value] : Items(object)) {
-    const std::string search_name = RemoveFallbackSuffix(name);
+    const std::string search_name = RemoveFallbackAndEnvSuffix(name);
     if (const auto it = properties.find(search_name); it != properties.end()) {
       ValidateIfPresent(value, *it->second);
       continue;

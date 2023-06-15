@@ -23,8 +23,9 @@ should have a section in service config (also known as static config).
 The component configuration is passed as a first parameter of type
 components::ComponentConfig to the constructor of the component. Note that
 components::ComponentConfig extends the functionality of
-yaml_config::YamlConfig that is able to substitute variables with values,
-use fallbacks. See yaml_config::YamlConfig for more info and examples.
+yaml_config::YamlConfig with YamlConfig::Mode::kEnvAllowed mode
+that is able to substitute variables with values, use environment variales and
+fallbacks. See yaml_config::YamlConfig for more info and examples.
 
 All the components have the following options:
 
