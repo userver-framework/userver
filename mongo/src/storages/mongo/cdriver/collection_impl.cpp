@@ -27,6 +27,7 @@ namespace storages::mongo::impl::cdriver {
 namespace {
 
 const std::string kCancelledByDeadlineTag = "cancelled_by_deadline";
+const std::string kCancelledTag = "cancelled";
 const std::string kMaxTimeMsTag = "max_time_ms";
 
 class WriteResultHelper {
@@ -547,9 +548,14 @@ cdriver::CDriverPoolImpl::BoundClientPtr CDriverCollectionImpl::GetClient(
     // uasserted in ctor
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
     return static_cast<cdriver::CDriverPoolImpl*>(pool_impl_.get())->Acquire();
-  } catch (const CancelledException& /*ex*/) {
+  } catch (const CancelledException& ex) {
     stats.Account(stats::ErrorType::kCancelled);
-    tracing::Span::CurrentSpan().AddTag(kCancelledByDeadlineTag, true);
+    auto& span = tracing::Span::CurrentSpan();
+    if (ex.IsByDeadlinePropagation()) {
+      span.AddTag(kCancelledByDeadlineTag, true);
+    } else {
+      span.AddTag(kCancelledTag, true);
+    }
     throw;
   } catch (const PoolOverloadException& /*ex*/) {
     stats.Account(stats::ErrorType::kPoolOverload);
@@ -567,7 +573,7 @@ RequestContext CDriverCollectionImpl::MakeRequestContext(
   if (inherited_deadline && inherited_deadline <= std::chrono::seconds{0}) {
     stats->Account(stats::ErrorType::kCancelled);
     span.AddTag(kCancelledByDeadlineTag, true);
-    throw CancelledException("Operation cancelled (deadline propagation)");
+    throw CancelledException(CancelledException::ByDeadlinePropagation{});
   }
 
   if (inherited_deadline) {

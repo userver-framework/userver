@@ -147,7 +147,7 @@ void HandleCancellations(
     queue_deadline = inherited_deadline;
     inherited_timeout = inherited_deadline.TimeLeftApprox();
     if (*inherited_timeout <= std::chrono::seconds{0}) {
-      throw CancelledException("Operation cancelled (deadline propagation)");
+      throw CancelledException(CancelledException::ByDeadlinePropagation{});
     }
   }
 
