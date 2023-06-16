@@ -86,7 +86,7 @@ TEST(CCLinear, SmallSpike) {
 
   // Extra Load
   congestion_control::v2::Sensor::Data data;
-  data.timings_avg_ms = 1000;
+  data.timings_avg_ms = 4000;
   data.total = 1;
 
   auto limit = controller.Update(data);
@@ -120,6 +120,13 @@ TEST(CCLinear, ExtraLoad) {
   }
 
   // Extra load
+  for (size_t i = 0; i < 2; i++) {
+    congestion_control::v2::Sensor::Data data;
+    data.timings_avg_ms = 5001;
+    data.total = 100;
+
+    controller.Update(data);
+  }
   for (size_t i = 0; i < 100; i++) {
     congestion_control::v2::Sensor::Data data;
     data.timings_avg_ms = 5001;

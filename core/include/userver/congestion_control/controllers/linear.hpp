@@ -30,7 +30,7 @@ class LinearController final : public Controller {
   StaticConfig config_;
   utils::SmoothedValue<int64_t> current_load_;
   utils::SmoothedValue<int64_t> long_timings_;
-  utils::SmoothedValue<int64_t> short_timings_;
+  utils::MinimalValue<int64_t> short_timings_;
   std::optional<std::size_t> current_limit_;
   std::size_t epochs_passed_{0};
 

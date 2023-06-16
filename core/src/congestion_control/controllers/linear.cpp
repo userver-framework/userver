@@ -53,7 +53,7 @@ Limit LinearController::Update(const Sensor::Data& current) {
   std::size_t divisor = std::min<std::size_t>(long_timings_.GetSmoothed(),
                                               config.min_timings.count());
 
-  if (static_cast<std::size_t>(short_timings_.GetSmoothed()) >
+  if (static_cast<std::size_t>(short_timings_.GetMinimal()) >
       config.timings_burst_threshold * divisor) {
     // Do not update long_timings_, it is sticky to "good" timings
     overloaded = true;
