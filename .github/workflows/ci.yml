@@ -127,10 +127,12 @@ jobs:
                 [[ -z "${GITHUB_BASE_REF}" ]] && BRANCH_VAR=HEAD~1 || BRANCH_VAR=origin/${GITHUB_BASE_REF}
                 echo "${BRANCH_VAR}"
                 echo "$(git diff --name-only ${BRANCH_VAR})"
-                LIST_CHECK_FILES=$(git diff --name-only ${BRANCH_VAR} | grep --color=never '.cpp' | tr '\n' ' ')
+                EXCLUDE_PATTERNS="-e '.pb.cc' -e '.pb.cpp' -e 'benchmark.cpp' -e '/boost_stacktrace/' -e '/pq-extra/' -e '/tools/' -e '/uboost_coro/' -e 'third_party' "
+                LIST_CHECK_FILES=$(git diff --name-only ${BRANCH_VAR} | grep --color=never '.cpp' | grep -v ${EXCLUDE_PATTERNS} | tr '\n' ' ')
                 if [[ -n ${LIST_CHECK_FILES} ]]
                 then
                   sudo apt install -y clang-tidy-14
+                  curl -o tools/run-clang-tidy https://raw.githubusercontent.com/llvm-mirror/clang-tools-extra/release_90/clang-tidy/tool/run-clang-tidy.py
                   python3 ./tools/run-clang-tidy -clang-tidy-binary clang-tidy-14 -p build_debug -q -j$(nproc) ${LIST_CHECK_FILES}
                 else
                   echo "Nothing check in clang-tidy"
