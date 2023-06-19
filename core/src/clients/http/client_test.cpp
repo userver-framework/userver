@@ -34,7 +34,12 @@ USERVER_NAMESPACE_BEGIN
 
 namespace {
 
-constexpr auto kTimeout = std::chrono::milliseconds{100};
+// For use in tests where we don't expect the timeout to expire.
+constexpr auto kTimeout = utest::kMaxTestWaitTime;
+// For use in tests where we expect the timeout to expire. It's OK if the
+// timeout sometimes expires just because the server was not fast enough to
+// process the request (test may very rarely pass as a false positive).
+constexpr auto kSmallTimeout = std::chrono::milliseconds{50};
 
 constexpr char kTestData[] = "Test Data";
 constexpr unsigned kRepetitions = 200;
@@ -425,13 +430,14 @@ namespace sample {
 
 /// [HTTP Client - request reuse]
 std::string DifferentUrlsRetry(std::string data, clients::http::Client& http,
+                               std::chrono::milliseconds timeout,
                                std::initializer_list<std::string> urls_list) {
   auto request = http.CreateRequest()
                      .post()
                      .data(std::move(data))  // no copying
                      .retry(1)
                      .http_version(clients::http::HttpVersion::k11)
-                     .timeout(kTimeout);
+                     .timeout(timeout);
 
   for (const auto& url : urls_list) {
     request.url(url);  // set URL
@@ -451,13 +457,14 @@ std::string DifferentUrlsRetry(std::string data, clients::http::Client& http,
 
 std::string DifferentUrlsRetryStreamResponseBody(
     std::string data, clients::http::Client& http,
+    std::chrono::milliseconds timeout,
     std::initializer_list<std::string> urls_list) {
   auto request = http.CreateRequest()
                      .post()
                      .data(std::move(data))  // no copying
                      .retry(1)
                      .http_version(clients::http::HttpVersion::k11)
-                     .timeout(kTimeout);
+                     .timeout(timeout);
 
   for (const auto& url : urls_list) {
     request.url(url);  // set URL
@@ -489,13 +496,14 @@ namespace sample2 {
 
 /// [HTTP Client - reuse async]
 std::string DifferentUrlsRetry(std::string data, clients::http::Client& http,
+                               std::chrono::milliseconds timeout,
                                std::initializer_list<std::string> urls_list) {
   auto request = http.CreateRequest()
                      .post()
                      .data(std::move(data))  // no copying
                      .retry(1)
                      .http_version(clients::http::HttpVersion::k11)
-                     .timeout(kTimeout);
+                     .timeout(timeout);
 
   for (const auto& url : urls_list) {
     request.url(url);  // set URL
@@ -575,7 +583,7 @@ UTEST(HttpClient, StatsOnTimeout) {
                      .retry(kRetries)
                      .verify(true)
                      .http_version(clients::http::HttpVersion::k11)
-                     .timeout(kTimeout);
+                     .timeout(kSmallTimeout);
 
   try {
     auto res = request.perform();
@@ -584,8 +592,8 @@ UTEST(HttpClient, StatsOnTimeout) {
     EXPECT_EQ(e.GetStats().retries_count, kRetries - 1);
     EXPECT_EQ(e.GetStats().open_socket_count, kRetries);
 
-    EXPECT_GE(e.GetStats().time_to_process, kTimeout);
-    EXPECT_LT(e.GetStats().time_to_process, kTimeout * kRetries);
+    EXPECT_GE(e.GetStats().time_to_process, kSmallTimeout);
+    EXPECT_LT(e.GetStats().time_to_process, kSmallTimeout * kRetries);
   }
 
   try {
@@ -595,8 +603,8 @@ UTEST(HttpClient, StatsOnTimeout) {
     EXPECT_EQ(e.GetStats().retries_count, (kRetries - 1) * 2);
     EXPECT_EQ(e.GetStats().open_socket_count, kRetries * 2);
 
-    EXPECT_GE(e.GetStats().time_to_process, kTimeout);
-    EXPECT_LT(e.GetStats().time_to_process, kTimeout * kRetries);
+    EXPECT_GE(e.GetStats().time_to_process, kSmallTimeout);
+    EXPECT_LT(e.GetStats().time_to_process, kSmallTimeout * kRetries);
   }
 }
 
@@ -662,7 +670,7 @@ UTEST(HttpClient, CancelRetries) {
           .retry(kRetriesCount)
           .verify(true)
           .http_version(clients::http::HttpVersion::k11)
-          .timeout(kTimeout)
+          .timeout(kSmallTimeout)
           .async_perform());
 
   ASSERT_TRUE(enough_retries_event.WaitForEventFor(utest::kMaxTestWaitTime));
@@ -720,7 +728,7 @@ UTEST(HttpClient, PostShutdownWithPendingRequest) {
         .retry(1)
         .verify(true)
         .http_version(clients::http::HttpVersion::k11)
-        .timeout(kTimeout)
+        .timeout(kSmallTimeout)
         .async_perform()
         .Detach();  // Do not do like this in production code!
 }
@@ -743,7 +751,7 @@ UTEST(HttpClient, PostShutdownWithPendingRequestHuge) {
         .retry(1)
         .verify(true)
         .http_version(clients::http::HttpVersion::k11)
-        .timeout(kTimeout)
+        .timeout(kSmallTimeout)
         .async_perform()
         .Detach();  // Do not do like this in production code!
 }
@@ -787,7 +795,7 @@ UTEST(HttpClient, PutShutdownWithPendingRequest) {
         .retry(1)
         .verify(true)
         .http_version(clients::http::HttpVersion::k11)
-        .timeout(kTimeout)
+        .timeout(kSmallTimeout)
         .async_perform()
         .Detach();  // Do not do like this in production code!
 }
@@ -810,7 +818,7 @@ UTEST(HttpClient, PutShutdownWithPendingRequestHuge) {
         .retry(1)
         .verify(true)
         .http_version(clients::http::HttpVersion::k11)
-        .timeout(kTimeout)
+        .timeout(kSmallTimeout)
         .async_perform()
         .Detach();  // Do not do like this in production code!
 }
@@ -825,7 +833,7 @@ UTEST(HttpClient, PutShutdownWithHugeResponse) {
         .retry(1)
         .verify(true)
         .http_version(clients::http::HttpVersion::k11)
-        .timeout(kTimeout)
+        .timeout(kSmallTimeout)
         .async_perform()
         .Detach();  // Do not do like this in production code!
 }
@@ -1112,9 +1120,6 @@ UTEST(HttpClient, DISABLED_IN_MAC_OS_TEST_NAME(HttpsWithCert)) {
   const auto ssl_url =
       http_server.GetBaseUrl(utest::SimpleServer::Schema::kHttps);
 
-  // SSL is slow, setting big timeout to avoid test flapping
-  const auto kTimeout = std::chrono::seconds(1);
-
   // Running twice to make sure that after request without a cert the request
   // with a cert succeeds and do not break other request types.
   for (unsigned i = 0; i < 2; ++i) {
@@ -1252,10 +1257,10 @@ UTEST(HttpClient, BadUrl) {
   UEXPECT_THROW(check("http:///?query"), clients::http::BadArgumentException);
   // three slashes before hostname are apparently okay
   UEXPECT_THROW(check("http:////path/"), clients::http::BadArgumentException);
-  // we allow no-scheme URLs for now
-  // UEXPECT_THROW(check("localhost/"), clients::http::BadArgumentException);
-  // UEXPECT_THROW(check("ftp.localhost/"),
-  // clients::http::BadArgumentException);
+
+  UEXPECT_THROW(check("localhost/"), clients::http::BadArgumentException);
+  UEXPECT_THROW(check("ftp.localhost/"), clients::http::BadArgumentException);
+
   UEXPECT_THROW(check("http://localhost:99999/"),
                 clients::http::BadArgumentException);
   UEXPECT_THROW(check("http://localhost:abcd/"),
@@ -1333,7 +1338,7 @@ UTEST(HttpClient, UsingResolverWithIpv6Addrs) {
                      .retry(1)
                      .verify(true)
                      .http_version(clients::http::HttpVersion::k11)
-                     .timeout(kTimeout);
+                     .timeout(kSmallTimeout);
 
   auto res = request.perform();
   EXPECT_EQ(res->body(), kTestData);
@@ -1364,11 +1369,8 @@ UTEST(HttpClient, RequestReuseBasic) {
   for (unsigned i = 0; i < kFewRepetitions; ++i) {
     UEXPECT_NO_THROW(res = request.perform())
         << "Probably your version of cURL is outdated";
-
-    if (i == 0) engine::SleepFor(kTimeout * 2);
-
     EXPECT_EQ(res->body(), data);
-    EXPECT_EQ(200, res->status_code());
+    EXPECT_EQ(res->status_code(), 200);
   }
 
   EXPECT_EQ(*shared_echo_callback.responses_200, kFewRepetitions);
@@ -1387,7 +1389,7 @@ UTEST(HttpClient, RequestReuseSample) {
 
   auto http_client_ptr = utest::CreateHttpClient();
 
-  auto resp = sample::DifferentUrlsRetry(data, *http_client_ptr,
+  auto resp = sample::DifferentUrlsRetry(data, *http_client_ptr, kSmallTimeout,
                                          {
                                              http_sleep_server.GetBaseUrl(),
                                              http_sleep_server.GetBaseUrl(),
@@ -1398,7 +1400,7 @@ UTEST(HttpClient, RequestReuseSample) {
   EXPECT_EQ(resp, data);
   EXPECT_EQ(*shared_echo_callback.responses_200, 1);
 
-  resp = sample2::DifferentUrlsRetry(data, *http_client_ptr,
+  resp = sample2::DifferentUrlsRetry(data, *http_client_ptr, kSmallTimeout,
                                      {
                                          http_sleep_server.GetBaseUrl(),
                                          http_sleep_server.GetBaseUrl(),
@@ -1423,7 +1425,7 @@ UTEST(HttpClient, DISABLED_RequestReuseSampleStream) {
 
   auto http_client_ptr = utest::CreateHttpClient();
   auto resp = sample::DifferentUrlsRetryStreamResponseBody(
-      data, *http_client_ptr,
+      data, *http_client_ptr, kTimeout,
       {
           http_sleep_server.GetBaseUrl(),
           http_sleep_server.GetBaseUrl(),
@@ -1458,9 +1460,6 @@ UTEST(HttpClient, RequestReuseDifferentUrlAndTimeout) {
 
   for (unsigned i = 0; i < kFewRepetitions; ++i) {
     auto res = request.perform();
-
-    if (i == 0) engine::SleepFor(kTimeout);
-
     EXPECT_EQ(res->body(), kTestData);
     EXPECT_EQ(200, res->status_code());
   }
