@@ -24,6 +24,15 @@
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define USERVER_IMPL_FORCE_INLINE __attribute__((always_inline)) inline
 
+#ifdef __clang__
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+#define USERVER_IMPL_DISABLE_ASAN \
+  __attribute__((no_sanitize_address, no_sanitize_memory))
+#else
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+#define USERVER_IMPL_DISABLE_ASAN __attribute__((no_sanitize_address))
+#endif
+
 USERVER_NAMESPACE_BEGIN
 
 namespace utils::encoding {
@@ -165,8 +174,8 @@ struct EncoderStd final {
   // Sanitizers are disabled within the function, because the SIMD loads
   // may intentionally wander to uninitialized memory. The loads never touch
   // memory outside "our" cache lines, though.
-  __attribute__((no_sanitize_address, no_sanitize_memory)) inline static auto
-  LoadBlock(const char* block) noexcept {
+  USERVER_IMPL_DISABLE_ASAN inline static auto LoadBlock(
+      const char* block) noexcept {
     block = AssumeAligned<kBlockSize>(block);
     return *reinterpret_cast<const Block*>(block);
   }
@@ -197,8 +206,8 @@ struct EncoderSse2 {
   // Sanitizers are disabled within the function, because the SIMD loads
   // may intentionally wander to uninitialized memory. The loads never touch
   // memory outside "our" cache lines, though.
-  __attribute__((no_sanitize_address, no_sanitize_memory)) inline static Block
-  LoadBlock(const char* block) noexcept {
+  USERVER_IMPL_DISABLE_ASAN inline static Block LoadBlock(
+      const char* block) noexcept {
     block = AssumeAligned<kBlockSize>(block);
     return _mm_load_si128(reinterpret_cast<const Block*>(block));
   }
@@ -249,8 +258,8 @@ struct EncoderAvx2 final {
   // Sanitizers are disabled within the function, because the SIMD loads
   // may intentionally wander to uninitialized memory. The loads never touch
   // memory outside "our" cache lines, though.
-  __attribute__((no_sanitize_address, no_sanitize_memory)) inline static Block
-  LoadBlock(const char* block) noexcept {
+  USERVER_IMPL_DISABLE_ASAN inline static Block LoadBlock(
+      const char* block) noexcept {
     block = AssumeAligned<kBlockSize>(block);
     return _mm256_load_si256(reinterpret_cast<const Block*>(block));
   }
@@ -447,3 +456,4 @@ inline bool ShouldKeyBeEscaped(std::string_view key) noexcept {
 USERVER_NAMESPACE_END
 
 #undef USERVER_IMPL_FORCE_INLINE
+#undef USERVER_IMPL_DONT_SANITIZE
