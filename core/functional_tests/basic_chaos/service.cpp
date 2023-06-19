@@ -3,6 +3,7 @@
 
 #include <userver/components/logging_configurator.hpp>
 #include <userver/components/minimal_server_component_list.hpp>
+#include <userver/server/handlers/server_monitor.hpp>
 #include <userver/server/handlers/tests_control.hpp>
 #include <userver/utest/using_namespace_userver.hpp>
 #include <userver/utils/daemon_run.hpp>
@@ -21,6 +22,7 @@ int main(int argc, char* argv[]) {
                                   .Append<components::HttpClient>()
                                   .Append<components::TestsuiteSupport>()
                                   .Append<server::handlers::TestsControl>()
+                                  .Append<server::handlers::ServerMonitor>()
                                   .Append<clients::dns::Component>();
   return utils::DaemonMain(argc, argv, component_list);
 }

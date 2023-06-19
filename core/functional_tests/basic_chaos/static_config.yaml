@@ -27,6 +27,11 @@ components_manager:
             cache-failure-ttl: 99999
             cache-size-per-way: 100
 
+        handler-server-monitor:
+            path: /service/monitor
+            method: GET
+            task_processor: main-task-processor
+
         testsuite-support:
 
         http-client:
@@ -48,6 +53,9 @@ components_manager:
         server:
             listener:
                 port: 8187
+                task_processor: main-task-processor
+            listener-monitor:
+                port: 8188
                 task_processor: main-task-processor
         logging:
             fs-task-processor: fs-task-processor

@@ -87,6 +87,7 @@ HttpHandlerStatisticsScope::~HttpHandlerStatisticsScope() {
   stats.timing = std::chrono::duration_cast<std::chrono::milliseconds>(
       finish_time - start_time_);
   stats.deadline = data ? data->deadline : engine::Deadline{};
+  stats.cancelled_by_deadline = cancelled_by_deadline_;
   stats_.Account(method_, stats);
 
   stats_.ForMethodAndTotal(method_, [&](HttpHandlerMethodStatistics& stats) {

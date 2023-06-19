@@ -226,12 +226,18 @@ async def test_deadline_immediately_expired(call, gate, testpoint):
     assert not testpoint_data, 'Control flow should NOT enter the handler body'
 
 
-async def test_deadline_expired(call, testpoint):
+async def test_deadline_expired(call, testpoint, monitor_client):
     testpoint_data = []
 
     @testpoint('testpoint_request')
     async def _hook(data):
         testpoint_data.append(data)
+
+    # TODO(TAXICOMMON-6876) make service_client.reset_metric()
+    #  work for RegisterWriter metrics
+    cancelled_metric_before = await monitor_client.single_metric(
+        path='http.handler.total.cancelled-by-deadline',
+    )
 
     response = await call(
         htype='sleep',
@@ -242,3 +248,8 @@ async def test_deadline_expired(call, testpoint):
     assert response.status == 504
     assert 'Deadline expired' in response.text
     assert testpoint_data, 'Control flow SHOULD enter the handler body'
+
+    cancelled_metric_after = await monitor_client.single_metric(
+        path='http.handler.total.cancelled-by-deadline',
+    )
+    assert cancelled_metric_after.value - cancelled_metric_before.value == 1
