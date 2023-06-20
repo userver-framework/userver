@@ -36,4 +36,5 @@ function(userver_chaos_testsuite_add)
 endfunction()
 
 add_subdirectory(basic_chaos)
+add_subdirectory(metrics)
 add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-basic-chaos)
