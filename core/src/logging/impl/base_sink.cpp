@@ -29,16 +29,12 @@ void BaseSink::Flush() {}
 
 void BaseSink::Reopen(ReopenMode) {}
 
-void BaseSink::SetLevel(Level log_level) {
-  level_.store(log_level, std::memory_order_relaxed);
-}
+void BaseSink::SetLevel(Level log_level) { level_.store(log_level); }
 
-Level BaseSink::GetLevel() const {
-  return level_.load(std::memory_order_relaxed);
-}
+Level BaseSink::GetLevel() const { return level_.load(); }
 
 bool BaseSink::IsShouldLog(Level msg_level) const {
-  return msg_level >= level_.load(std::memory_order_relaxed);
+  return msg_level >= level_.load();
 }
 
 std::mutex& BaseSink::GetMutex() { return mutex_; }
