@@ -17,12 +17,12 @@ const auto msg_c = std::string(test::kEightMb, 'c');
 
 UTEST(FdSink, StdoutSinkLog) {
   auto sink = logging::impl::StdoutSink();
-  EXPECT_NO_THROW(sink.log({"default", spdlog::level::warn, "message"}));
+  EXPECT_NO_THROW(sink.Log({"default", spdlog::level::warn, "message"}));
 }
 
 UTEST(FdSink, StderrSinkLog) {
   auto sink = logging::impl::StderrSink();
-  EXPECT_NO_THROW(sink.log({"default", spdlog::level::critical, "message"}));
+  EXPECT_NO_THROW(sink.Log({"default", spdlog::level::critical, "message"}));
 }
 
 UTEST(FdSink, PipeSinkLog) {
@@ -37,7 +37,7 @@ UTEST(FdSink, PipeSinkLog) {
   {
     auto sink = logging::impl::FdSink{
         fs::blocking::FileDescriptor::AdoptFd(fd_pipe.writer.Release())};
-    EXPECT_NO_THROW(sink.log({"default", spdlog::level::warn, "message"}));
+    EXPECT_NO_THROW(sink.Log({"default", spdlog::level::warn, "message"}));
   }
   read_task.Get();
 }
@@ -57,7 +57,7 @@ UTEST(FdSink, PipeSinkLogStringView) {
 
     const char* message = "BIG MESSAGE NO DATA";
     std::string_view message_str{message, 11};
-    EXPECT_NO_THROW(sink.log({"default", spdlog::level::warn, message_str}));
+    EXPECT_NO_THROW(sink.Log({"default", spdlog::level::warn, message_str}));
   }
   read_task.Get();
 }
@@ -76,10 +76,10 @@ UTEST(FdSink, PipeSinkLogMulti) {
   {
     auto sink = logging::impl::FdSink{
         fs::blocking::FileDescriptor::AdoptFd(fd_pipe.writer.Release())};
-    EXPECT_NO_THROW(sink.log({"default", spdlog::level::warn, "message"}));
-    EXPECT_NO_THROW(sink.log({"basic", spdlog::level::info, "message 2"}));
+    EXPECT_NO_THROW(sink.Log({"default", spdlog::level::warn, "message"}));
+    EXPECT_NO_THROW(sink.Log({"basic", spdlog::level::info, "message 2"}));
     EXPECT_NO_THROW(
-        sink.log({"current", spdlog::level::critical, "message 3"}));
+        sink.Log({"current", spdlog::level::critical, "message 3"}));
   }
   read_task.Get();
 }
@@ -106,16 +106,16 @@ UTEST_MT(FdSink, PipeSinkLogAsync, 4) {
         fs::blocking::FileDescriptor::AdoptFd(fd_pipe.writer.Release())};
 
     auto log_task_1 = engine::AsyncNoSpan([&sink] {
-      EXPECT_NO_THROW(sink.log({"default", spdlog::level::warn, "message"}));
+      EXPECT_NO_THROW(sink.Log({"default", spdlog::level::warn, "message"}));
     });
 
     auto log_task_2 = engine::AsyncNoSpan([&sink] {
-      EXPECT_NO_THROW(sink.log({"basic", spdlog::level::info, "message 2"}));
+      EXPECT_NO_THROW(sink.Log({"basic", spdlog::level::info, "message 2"}));
     });
 
     auto log_task_3 = engine::AsyncNoSpan([&sink] {
       EXPECT_NO_THROW(
-          sink.log({"current", spdlog::level::critical, "message 3"}));
+          sink.Log({"current", spdlog::level::critical, "message 3"}));
     });
     log_task_1.Get();
     log_task_2.Get();
@@ -147,15 +147,15 @@ UTEST_MT(FdSink, PipeSinkLogAsyncBigMessage, 4) {
         fs::blocking::FileDescriptor::AdoptFd(fd_pipe.writer.Release())};
 
     auto log_task_1 = engine::AsyncNoSpan([&sink] {
-      EXPECT_NO_THROW(sink.log({"default", spdlog::level::warn, msg_a}));
+      EXPECT_NO_THROW(sink.Log({"default", spdlog::level::warn, msg_a}));
     });
 
     auto log_task_2 = engine::AsyncNoSpan([&sink] {
-      EXPECT_NO_THROW(sink.log({"basic", spdlog::level::info, msg_b}));
+      EXPECT_NO_THROW(sink.Log({"basic", spdlog::level::info, msg_b}));
     });
 
     auto log_task_3 = engine::AsyncNoSpan([&sink] {
-      EXPECT_NO_THROW(sink.log({"current", spdlog::level::critical, msg_c}));
+      EXPECT_NO_THROW(sink.Log({"current", spdlog::level::critical, msg_c}));
     });
     log_task_1.Get();
     log_task_2.Get();
@@ -193,16 +193,16 @@ TEST(FdSink, PipeSinkLogAsyncNoCore) {
         fs::blocking::FileDescriptor::AdoptFd(fd_pipe[1])};
 
     auto log_task_1 = std::thread([&sink] {
-      EXPECT_NO_THROW(sink.log({"default", spdlog::level::warn, "message"}));
+      EXPECT_NO_THROW(sink.Log({"default", spdlog::level::warn, "message"}));
     });
 
     auto log_task_2 = std::thread([&sink] {
-      EXPECT_NO_THROW(sink.log({"basic", spdlog::level::info, "message 2"}));
+      EXPECT_NO_THROW(sink.Log({"basic", spdlog::level::info, "message 2"}));
     });
 
     auto log_task_3 = std::thread([&sink] {
       EXPECT_NO_THROW(
-          sink.log({"current", spdlog::level::critical, "message 3"}));
+          sink.Log({"current", spdlog::level::critical, "message 3"}));
     });
     log_task_1.join();
     log_task_2.join();
@@ -240,15 +240,15 @@ TEST(FdSink, PipeSinkLogAsyncNoCoreBigString) {
         fs::blocking::FileDescriptor::AdoptFd(fd_pipe[1])};
 
     auto log_task_1 = std::thread([&sink] {
-      EXPECT_NO_THROW(sink.log({"default", spdlog::level::warn, msg_a}));
+      EXPECT_NO_THROW(sink.Log({"default", spdlog::level::warn, msg_a}));
     });
 
     auto log_task_2 = std::thread([&sink] {
-      EXPECT_NO_THROW(sink.log({"basic", spdlog::level::info, msg_b}));
+      EXPECT_NO_THROW(sink.Log({"basic", spdlog::level::info, msg_b}));
     });
 
     auto log_task_3 = std::thread([&sink] {
-      EXPECT_NO_THROW(sink.log({"current", spdlog::level::critical, msg_c}));
+      EXPECT_NO_THROW(sink.Log({"current", spdlog::level::critical, msg_c}));
     });
     log_task_1.join();
     log_task_2.join();

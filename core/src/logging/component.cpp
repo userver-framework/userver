@@ -67,14 +67,10 @@ void ReopenAll(const std::shared_ptr<logging::impl::TpLogger>& logger) {
   int index = -1;
   for (const auto& s : logger->GetSinks()) {
     ++index;
-    if (auto reop = std::dynamic_pointer_cast<logging::impl::BaseSink>(s);
-        reop) {
-      try {
-        reop->Reopen(logging::impl::ReopenMode::kAppend);
-      } catch (const std::exception& e) {
-        LOG_ERROR() << "Exception on log reopen: " << e;
-      }
-    } else {
+    try {
+      s->Reopen(logging::impl::ReopenMode::kAppend);
+    } catch (const std::exception& e) {
+      LOG_ERROR() << "Exception on log reopen: " << e;
       LOG_INFO() << "Skipping rotation for sink #" << index << " from '"
                  << logger->GetLoggerName() << "' logger";
     }
@@ -94,7 +90,8 @@ void CreateLogDirectory(const std::string& logger_name,
   }
 }
 
-spdlog::sink_ptr GetSinkFromFilename(const spdlog::filename_t& file_path) {
+logging::impl::SinkPtr GetSinkFromFilename(
+    const spdlog::filename_t& file_path) {
   if (boost::starts_with(file_path, unix_socket_prefix)) {
     // Use Unix-socket sink
     return std::make_shared<logging::impl::UnixSocketSink>(
@@ -108,7 +105,7 @@ std::shared_ptr<logging::impl::TpLogger> CreateAsyncLogger(
     const std::string& logger_name, const logging::LoggerConfig& config) {
   auto logger =
       std::make_shared<logging::impl::TpLogger>(config.format, logger_name);
-  spdlog::sink_ptr sink;
+  logging::impl::SinkPtr sink;
   if (config.file_path == "@null") {
     // do nothing
   } else if (config.file_path == "@stderr") {
@@ -148,8 +145,8 @@ void AddSocketSink(const TestsuiteCaptureConfig& config, Sink& socket_sink,
 
   // AddSink applies the logger level and patterns to the sink. Overwriting
   /// those.
-  socket_sink->set_pattern(logging::GetSpdlogPattern(logging::Format::kTskv));
-  socket_sink->set_level(spdlog::level::off);
+  socket_sink->SetPattern(logging::GetSpdlogPattern(logging::Format::kTskv));
+  socket_sink->SetLevel(logging::Level::kNone);
 }
 
 }  // namespace impl
@@ -265,13 +262,13 @@ logging::LoggerPtr Logging::GetLoggerOptional(const std::string& name) {
 
 void Logging::StartSocketLoggingDebug() {
   UASSERT(socket_sink_);
-  socket_sink_->set_level(spdlog::level::trace);
+  socket_sink_->SetLevel(logging::Level::kTrace);
 }
 
 void Logging::StopSocketLoggingDebug() {
   UASSERT(socket_sink_);
   logging::LogFlush();
-  socket_sink_->set_level(spdlog::level::off);
+  socket_sink_->SetLevel(logging::Level::kNone);
   socket_sink_->Close();
 }
 

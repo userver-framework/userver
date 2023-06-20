@@ -155,14 +155,14 @@ void TpLogger::SetPattern(std::string pattern) {
   formatter_pattern_ = std::move(pattern);
 
   for (const auto& sink : GetSinks()) {
-    sink->set_pattern(formatter_pattern_);
+    sink->SetPattern(formatter_pattern_);
   }
 }
 
 void TpLogger::AddSink(impl::SinkPtr&& sink) {
   UASSERT(sink);
-  sink->set_level(spdlog::level::level_enum::trace);  // Always on
-  sink->set_pattern(formatter_pattern_);
+  sink->SetLevel(Level::kTrace);  // Always on
+  sink->SetPattern(formatter_pattern_);
   sinks_.push_back(std::move(sink));
 }
 
@@ -249,7 +249,7 @@ void TpLogger::BackendLog(impl::async::Log&& action) const {
   msg.payload = action.payload;
 
   for (const auto& sink : GetSinks()) {
-    if (!sink->should_log(msg.level)) {
+    if (!sink->IsShouldLog(static_cast<Level>(msg.level))) {
       // We could get in here because of the LogRaw, or because log level
       // was changed at runtime, or because socket sink is not listened by
       // testsuite right now.
@@ -257,7 +257,7 @@ void TpLogger::BackendLog(impl::async::Log&& action) const {
     }
 
     try {
-      sink->log(msg);
+      sink->Log(msg);
     } catch (const std::exception& e) {
       UASSERT_MSG(false, "While writing a log message caught an exception: " +
                              std::string(e.what()));
@@ -272,7 +272,7 @@ void TpLogger::BackendLog(impl::async::Log&& action) const {
 void TpLogger::BackendFlush() const {
   for (const auto& sink : GetSinks()) {
     try {
-      sink->flush();
+      sink->Flush();
     } catch (const std::exception& e) {
       UASSERT_MSG(false, "While flushing a log message caught an exception: " +
                              std::string(e.what()));

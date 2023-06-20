@@ -17,7 +17,7 @@ class FdSink : public BaseSink {
 
   ~FdSink() override;
 
-  void flush() override;
+  void Flush() override;
 
  protected:
   void Write(std::string_view log) final;
@@ -32,14 +32,14 @@ class StdoutSink final : public FdSink {
  public:
   StdoutSink();
   ~StdoutSink() final;
-  void flush() final;
+  void Flush() final;
 };
 
 class StderrSink final : public FdSink {
  public:
   StderrSink();
   ~StderrSink() final;
-  void flush() final;
+  void Flush() final;
 };
 
 }  // namespace logging::impl

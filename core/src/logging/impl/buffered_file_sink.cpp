@@ -27,7 +27,7 @@ BufferedFileSink::~BufferedFileSink() = default;
 
 void BufferedFileSink::Write(std::string_view log) { file_.Write(log); }
 
-void BufferedFileSink::flush() {
+void BufferedFileSink::Flush() {
   std::lock_guard lock(GetMutex());
   if (file_.IsOpen()) {
     file_.FlushLight();
@@ -45,9 +45,9 @@ BufferedStdoutFileSink::BufferedStdoutFileSink()
 BufferedStderrFileSink::BufferedStderrFileSink()
     : BufferedFileSink{fs::blocking::CFile(stderr)} {}
 
-void BufferedStdoutFileSink::flush() {}
+void BufferedStdoutFileSink::Flush() {}
 
-void BufferedStderrFileSink::flush() {}
+void BufferedStderrFileSink::Flush() {}
 
 void BufferedStdoutFileSink::Reopen(ReopenMode) {}
 

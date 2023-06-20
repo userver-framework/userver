@@ -45,7 +45,7 @@ UTEST(FileSink, TestWriteInFile) {
       temp_root.GetPath() + "/temp_file_" + std::to_string(utils::Rand());
   auto sink = logging::impl::FileSink(filename);
   ASSERT_TRUE(boost::filesystem::exists(filename));
-  EXPECT_NO_THROW(sink.log({"default", spdlog::level::critical, "message"}));
+  EXPECT_NO_THROW(sink.Log({"default", spdlog::level::critical, "message"}));
 }
 
 UTEST(FileSink, CheckPermissionsFile) {
@@ -91,7 +91,7 @@ UTEST(FileSink, TestValidWriteInFile) {
       temp_root.GetPath() + "/temp_file_" + std::to_string(utils::Rand());
   auto sink = logging::impl::FileSink(filename);
   ASSERT_TRUE(boost::filesystem::exists(filename));
-  EXPECT_NO_THROW(sink.log({"default", spdlog::level::warn, "message"}));
+  EXPECT_NO_THROW(sink.Log({"default", spdlog::level::warn, "message"}));
 
   auto content = fs::blocking::ReadFileContents(filename);
 
@@ -107,7 +107,7 @@ UTEST(FileSink, TestReopenWithTruncate) {
       temp_root.GetPath() + "/temp_file_" + std::to_string(utils::Rand());
   auto sink = logging::impl::FileSink(filename);
   ASSERT_TRUE(boost::filesystem::exists(filename));
-  EXPECT_NO_THROW(sink.log({"default", spdlog::level::warn, "message"}));
+  EXPECT_NO_THROW(sink.Log({"default", spdlog::level::warn, "message"}));
 
   auto content = fs::blocking::ReadFileContents(filename);
 
@@ -127,7 +127,7 @@ UTEST(FileSink, TestReopenWithTruncateWrite) {
       temp_root.GetPath() + "/temp_file_" + std::to_string(utils::Rand());
   auto sink = logging::impl::FileSink(filename);
   ASSERT_TRUE(boost::filesystem::exists(filename));
-  EXPECT_NO_THROW(sink.log({"default", spdlog::level::warn, "message"}));
+  EXPECT_NO_THROW(sink.Log({"default", spdlog::level::warn, "message"}));
 
   auto content = fs::blocking::ReadFileContents(filename);
 
@@ -140,7 +140,7 @@ UTEST(FileSink, TestReopenWithTruncateWrite) {
   content = fs::blocking::ReadFileContents(filename);
   ASSERT_TRUE(content.empty());
 
-  EXPECT_NO_THROW(sink.log({"default", spdlog::level::info, "message 2"}));
+  EXPECT_NO_THROW(sink.Log({"default", spdlog::level::info, "message 2"}));
 
   content = fs::blocking::ReadFileContents(filename);
 
@@ -156,7 +156,7 @@ UTEST(FileSink, TestReopenWithoutTruncate) {
       temp_root.GetPath() + "/temp_file_" + std::to_string(utils::Rand());
   auto sink = logging::impl::FileSink(filename);
   ASSERT_TRUE(boost::filesystem::exists(filename));
-  EXPECT_NO_THROW(sink.log({"default", spdlog::level::warn, "message"}));
+  EXPECT_NO_THROW(sink.Log({"default", spdlog::level::warn, "message"}));
 
   auto content = fs::blocking::ReadFileContents(filename);
 
@@ -180,7 +180,7 @@ UTEST(FileSink, TestReopenBeforeRemove) {
       temp_root.GetPath() + "/temp_file_" + std::to_string(utils::Rand());
   auto sink = logging::impl::FileSink(filename);
   ASSERT_TRUE(boost::filesystem::exists(filename));
-  EXPECT_NO_THROW(sink.log({"default", spdlog::level::warn, "message"}));
+  EXPECT_NO_THROW(sink.Log({"default", spdlog::level::warn, "message"}));
 
   auto content = fs::blocking::ReadFileContents(filename);
 
@@ -201,7 +201,7 @@ UTEST(FileSink, TestReopenBeforeRemoveCreate) {
       temp_root.GetPath() + "/temp_file_" + std::to_string(utils::Rand());
   auto sink = logging::impl::FileSink(filename);
   ASSERT_TRUE(boost::filesystem::exists(filename));
-  EXPECT_NO_THROW(sink.log({"default", spdlog::level::warn, "message"}));
+  EXPECT_NO_THROW(sink.Log({"default", spdlog::level::warn, "message"}));
 
   auto content = fs::blocking::ReadFileContents(filename);
 
@@ -224,7 +224,7 @@ UTEST(FileSink, TestReopenBeforeRemoveCreate) {
   content = fs::blocking::ReadFileContents(filename);
   ASSERT_TRUE(content.empty());
 
-  EXPECT_NO_THROW(sink.log({"default", spdlog::level::warn, "message"}));
+  EXPECT_NO_THROW(sink.Log({"default", spdlog::level::warn, "message"}));
 
   content = fs::blocking::ReadFileContents(filename);
 
@@ -240,7 +240,7 @@ UTEST(FileSink, TestReopenBeforeRemoveAndWrite) {
       temp_root.GetPath() + "/temp_file_" + std::to_string(utils::Rand());
   auto sink = logging::impl::FileSink(filename);
   ASSERT_TRUE(boost::filesystem::exists(filename));
-  EXPECT_NO_THROW(sink.log({"default", spdlog::level::warn, "message"}));
+  EXPECT_NO_THROW(sink.Log({"default", spdlog::level::warn, "message"}));
 
   auto content = fs::blocking::ReadFileContents(filename);
 
@@ -254,7 +254,7 @@ UTEST(FileSink, TestReopenBeforeRemoveAndWrite) {
   content = fs::blocking::ReadFileContents(filename);
   ASSERT_TRUE(content.empty());
 
-  EXPECT_NO_THROW(sink.log({"default", spdlog::level::warn, "message"}));
+  EXPECT_NO_THROW(sink.Log({"default", spdlog::level::warn, "message"}));
 
   content = fs::blocking::ReadFileContents(filename);
 
@@ -276,7 +276,7 @@ UTEST(FileSink, TestReopenMoveFile) {
 
   auto sink = logging::impl::FileSink(filename);
   ASSERT_TRUE(boost::filesystem::exists(filename));
-  EXPECT_NO_THROW(sink.log({"default", spdlog::level::warn, "message"}));
+  EXPECT_NO_THROW(sink.Log({"default", spdlog::level::warn, "message"}));
 
   auto content = fs::blocking::ReadFileContents(filename);
 
@@ -287,7 +287,7 @@ UTEST(FileSink, TestReopenMoveFile) {
 
   ::rename(filename.c_str(), filename_2.c_str());
 
-  EXPECT_NO_THROW(sink.log({"default", spdlog::level::info, "message 2"}));
+  EXPECT_NO_THROW(sink.Log({"default", spdlog::level::info, "message 2"}));
 
   content = fs::blocking::ReadFileContents(filename_2);
   ASSERT_FALSE(content.empty());
@@ -302,7 +302,7 @@ UTEST(FileSink, TestReopenMoveFile) {
   content = fs::blocking::ReadFileContents(filename);
   ASSERT_TRUE(content.empty());
 
-  EXPECT_NO_THROW(sink.log({"default", spdlog::level::warn, "message"}));
+  EXPECT_NO_THROW(sink.Log({"default", spdlog::level::warn, "message"}));
 
   content = fs::blocking::ReadFileContents(filename);
 
@@ -318,9 +318,9 @@ UTEST(FileSink, TestValidWriteMultiInFile) {
       temp_root.GetPath() + "/temp_file_" + std::to_string(utils::Rand());
   auto sink = logging::impl::FileSink(filename);
   ASSERT_TRUE(boost::filesystem::exists(filename));
-  EXPECT_NO_THROW(sink.log({"default", spdlog::level::warn, "message"}));
-  EXPECT_NO_THROW(sink.log({"basic", spdlog::level::info, "message 2"}));
-  EXPECT_NO_THROW(sink.log({"current", spdlog::level::critical, "message 3"}));
+  EXPECT_NO_THROW(sink.Log({"default", spdlog::level::warn, "message"}));
+  EXPECT_NO_THROW(sink.Log({"basic", spdlog::level::info, "message 2"}));
+  EXPECT_NO_THROW(sink.Log({"current", spdlog::level::critical, "message 3"}));
 
   auto content = fs::blocking::ReadFileContents(filename);
 
@@ -339,14 +339,14 @@ UTEST_MT(FileSink, WriteDataAsync, 4) {
   auto sink = logging::impl::FileSink(filename);
   ASSERT_TRUE(boost::filesystem::exists(filename));
   auto task_1 = engine::AsyncNoSpan([&sink] {
-    EXPECT_NO_THROW(sink.log({"default", spdlog::level::warn, "message"}));
+    EXPECT_NO_THROW(sink.Log({"default", spdlog::level::warn, "message"}));
   });
   auto task_2 = engine::AsyncNoSpan([&sink] {
-    EXPECT_NO_THROW(sink.log({"basic", spdlog::level::info, "message 2"}));
+    EXPECT_NO_THROW(sink.Log({"basic", spdlog::level::info, "message 2"}));
   });
   auto task_3 = engine::AsyncNoSpan([&sink] {
     EXPECT_NO_THROW(
-        sink.log({"current", spdlog::level::critical, "message 3"}));
+        sink.Log({"current", spdlog::level::critical, "message 3"}));
   });
   task_1.Get();
   task_2.Get();
@@ -373,13 +373,13 @@ UTEST_MT(FileSink, WriteDataAsyncBigString, 4) {
   auto sink = logging::impl::FileSink(filename);
   ASSERT_TRUE(boost::filesystem::exists(filename));
   auto task_1 = engine::AsyncNoSpan([&sink] {
-    EXPECT_NO_THROW(sink.log({"default", spdlog::level::warn, msg_a}));
+    EXPECT_NO_THROW(sink.Log({"default", spdlog::level::warn, msg_a}));
   });
   auto task_2 = engine::AsyncNoSpan([&sink] {
-    EXPECT_NO_THROW(sink.log({"basic", spdlog::level::info, msg_b}));
+    EXPECT_NO_THROW(sink.Log({"basic", spdlog::level::info, msg_b}));
   });
   auto task_3 = engine::AsyncNoSpan([&sink] {
-    EXPECT_NO_THROW(sink.log({"current", spdlog::level::critical, msg_c}));
+    EXPECT_NO_THROW(sink.Log({"current", spdlog::level::critical, msg_c}));
   });
   task_1.Get();
   task_2.Get();
@@ -406,14 +406,14 @@ TEST(FileSink, WriteDataAsyncNoCore) {
   auto sink = logging::impl::FileSink(filename);
   ASSERT_TRUE(boost::filesystem::exists(filename));
   auto task_1 = std::thread([&sink] {
-    EXPECT_NO_THROW(sink.log({"default", spdlog::level::warn, "message"}));
+    EXPECT_NO_THROW(sink.Log({"default", spdlog::level::warn, "message"}));
   });
   auto task_2 = std::thread([&sink] {
-    EXPECT_NO_THROW(sink.log({"basic", spdlog::level::info, "message 2"}));
+    EXPECT_NO_THROW(sink.Log({"basic", spdlog::level::info, "message 2"}));
   });
   auto task_3 = std::thread([&sink] {
     EXPECT_NO_THROW(
-        sink.log({"current", spdlog::level::critical, "message 3"}));
+        sink.Log({"current", spdlog::level::critical, "message 3"}));
   });
   task_1.join();
   task_2.join();
@@ -440,13 +440,13 @@ TEST(FileSink, WriteDataAsyncNoCoreBigString) {
   auto sink = logging::impl::FileSink(filename);
   ASSERT_TRUE(boost::filesystem::exists(filename));
   auto task_1 = std::thread([&sink] {
-    EXPECT_NO_THROW(sink.log({"default", spdlog::level::warn, msg_a}));
+    EXPECT_NO_THROW(sink.Log({"default", spdlog::level::warn, msg_a}));
   });
   auto task_2 = std::thread([&sink] {
-    EXPECT_NO_THROW(sink.log({"basic", spdlog::level::info, msg_b}));
+    EXPECT_NO_THROW(sink.Log({"basic", spdlog::level::info, msg_b}));
   });
   auto task_3 = std::thread([&sink] {
-    EXPECT_NO_THROW(sink.log({"current", spdlog::level::critical, msg_c}));
+    EXPECT_NO_THROW(sink.Log({"current", spdlog::level::critical, msg_c}));
   });
   task_1.join();
   task_2.join();
@@ -482,7 +482,7 @@ UTEST_MT(FileSink, WriteDataAsyncWithReopen, 4) {
 
   for (auto& task : tasks_logs) {
     task = engine::AsyncNoSpan([&sink] {
-      EXPECT_NO_THROW(sink.log({"default", spdlog::level::warn, msg_d}));
+      EXPECT_NO_THROW(sink.Log({"default", spdlog::level::warn, msg_d}));
     });
   }
   for (auto& task : tasks_reopen) {
@@ -522,7 +522,7 @@ TEST(FileSink, WriteDataAsyncNoCoreWithReopen) {
 
   for (auto& task : tasks_logs) {
     task = std::thread([&sink] {
-      EXPECT_NO_THROW(sink.log({"default", spdlog::level::warn, msg_d}));
+      EXPECT_NO_THROW(sink.Log({"default", spdlog::level::warn, msg_d}));
     });
   }
   for (auto& task : tasks_reopen) {

@@ -16,10 +16,10 @@ void check_stderr_sink(benchmark::State& state) {
   auto sink = logging::impl::StderrSink();
   for (auto _ : state) {
     for (auto i = 0; i < kCountLogs; ++i) {
-      sink.log({"default", spdlog::level::warn, "message"});
+      sink.Log({"default", spdlog::level::warn, "message"});
     }
   }
-  sink.flush();
+  sink.Flush();
 }
 BENCHMARK(check_stderr_sink);
 
@@ -27,10 +27,10 @@ void check_stderr_file_sink(benchmark::State& state) {
   auto sink = logging::impl::BufferedStderrFileSink();
   for (auto _ : state) {
     for (auto i = 0; i < kCountLogs; ++i) {
-      sink.log({"default", spdlog::level::warn, "message"});
+      sink.Log({"default", spdlog::level::warn, "message"});
     }
   }
-  sink.flush();
+  sink.Flush();
 }
 BENCHMARK(check_stderr_file_sink);
 

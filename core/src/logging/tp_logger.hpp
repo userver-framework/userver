@@ -10,19 +10,16 @@
 #include <userver/logging/format.hpp>
 #include <userver/logging/impl/logger_base.hpp>
 
+#include <logging/impl/base_sink.hpp>
 #include <logging/statistics/log_stats.hpp>
 
 #include "config.hpp"
-
-namespace spdlog::sinks {
-class sink;
-}
 
 USERVER_NAMESPACE_BEGIN
 
 namespace logging::impl {
 
-using SinkPtr = std::shared_ptr<spdlog::sinks::sink>;
+using SinkPtr = std::shared_ptr<BaseSink>;
 
 namespace async {
 

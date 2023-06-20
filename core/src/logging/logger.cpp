@@ -18,7 +18,7 @@ namespace logging {
 
 namespace {
 
-LoggerPtr MakeSimpleLogger(const std::string& name, spdlog::sink_ptr sink,
+LoggerPtr MakeSimpleLogger(const std::string& name, impl::SinkPtr sink,
                            Level level, Format format) {
   auto logger = std::make_shared<impl::TpLogger>(format, name);
   logger->SetLevel(level);
@@ -30,12 +30,12 @@ LoggerPtr MakeSimpleLogger(const std::string& name, spdlog::sink_ptr sink,
   return logger;
 }
 
-spdlog::sink_ptr MakeStderrSink() {
+impl::SinkPtr MakeStderrSink() {
   static auto sink = std::make_shared<impl::BufferedStderrFileSink>();
   return sink;
 }
 
-spdlog::sink_ptr MakeStdoutSink() {
+impl::SinkPtr MakeStdoutSink() {
   static auto sink = std::make_shared<impl::BufferedStdoutFileSink>();
   return sink;
 }

@@ -8,7 +8,7 @@ namespace logging::impl {
 BaseSink::BaseSink()
     : formatter_{std::make_unique<spdlog::pattern_formatter>()} {}
 
-void BaseSink::log(const spdlog::details::log_msg& msg) {
+void BaseSink::Log(const spdlog::details::log_msg& msg) {
   std::lock_guard lock{mutex_};
 
   spdlog::memory_buf_t formatted;
@@ -17,18 +17,29 @@ void BaseSink::log(const spdlog::details::log_msg& msg) {
   Write({formatted.data(), formatted.size()});
 }
 
-void BaseSink::set_pattern(const std::string& pattern) {
-  set_formatter(std::make_unique<spdlog::pattern_formatter>(pattern));
+void BaseSink::SetPattern(const std::string& pattern) {
+  SetFormatter(std::make_unique<spdlog::pattern_formatter>(pattern));
 }
 
-void BaseSink::set_formatter(
-    std::unique_ptr<spdlog::formatter> sink_formatter) {
+void BaseSink::SetFormatter(std::unique_ptr<spdlog::formatter> sink_formatter) {
   formatter_ = std::move(sink_formatter);
 }
 
-void BaseSink::flush() {}
+void BaseSink::Flush() {}
 
 void BaseSink::Reopen(ReopenMode) {}
+
+void BaseSink::SetLevel(Level log_level) {
+  level_.store(log_level, std::memory_order_relaxed);
+}
+
+Level BaseSink::GetLevel() const {
+  return level_.load(std::memory_order_relaxed);
+}
+
+bool BaseSink::IsShouldLog(Level msg_level) const {
+  return msg_level >= level_.load(std::memory_order_relaxed);
+}
 
 std::mutex& BaseSink::GetMutex() { return mutex_; }
 

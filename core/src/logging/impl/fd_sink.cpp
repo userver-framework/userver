@@ -10,7 +10,7 @@ FdSink::FdSink(fs::blocking::FileDescriptor fd) : fd_{std::move(fd)} {}
 
 void FdSink::Write(std::string_view log) { fd_.Write(log); }
 
-void FdSink::flush() {
+void FdSink::Flush() {
   std::lock_guard lock(GetMutex());
   if (fd_.IsOpen()) {
     fd_.FSync();
@@ -29,9 +29,9 @@ StdoutSink::StdoutSink()
 StderrSink::StderrSink()
     : FdSink{fs::blocking::FileDescriptor::AdoptFd(STDERR_FILENO)} {}
 
-void StdoutSink::flush() {}
+void StdoutSink::Flush() {}
 
-void StderrSink::flush() {}
+void StderrSink::Flush() {}
 
 StdoutSink::~StdoutSink() {
   // we do not close STDOUT descriptor

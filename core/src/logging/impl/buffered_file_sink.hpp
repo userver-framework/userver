@@ -23,7 +23,7 @@ class BufferedFileSink : public BaseSink {
 
   ~BufferedFileSink() override;
 
-  void flush() override;
+  void Flush() override;
 
  protected:
   void Write(std::string_view log) final;
@@ -40,7 +40,7 @@ class BufferedStdoutFileSink final : public BufferedFileSink {
  public:
   BufferedStdoutFileSink();
   ~BufferedStdoutFileSink() final;
-  void flush() final;
+  void Flush() final;
   void Reopen(ReopenMode) final;
 };
 
@@ -48,7 +48,7 @@ class BufferedStderrFileSink final : public BufferedFileSink {
  public:
   BufferedStderrFileSink();
   ~BufferedStderrFileSink() final;
-  void flush() final;
+  void Flush() final;
   void Reopen(ReopenMode) final;
 };
 

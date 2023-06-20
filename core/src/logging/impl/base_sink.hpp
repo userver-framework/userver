@@ -2,28 +2,33 @@
 
 #include <mutex>
 
-#include <spdlog/sinks/sink.h>
+#include <spdlog/formatter.h>
 
 #include <logging/impl/open_file_helper.hpp>
+#include "userver/logging/level.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
 namespace logging::impl {
 
-class BaseSink : public spdlog::sinks::sink {
+class BaseSink {
  public:
-  ~BaseSink() override;
+  virtual ~BaseSink();
   BaseSink();
 
-  void log(const spdlog::details::log_msg& msg) final;
+  void Log(const spdlog::details::log_msg& msg);
 
-  void flush() override;
+  virtual void Flush();
 
-  void set_pattern(const std::string& pattern) final;
+  void SetPattern(const std::string& pattern);
 
-  void set_formatter(std::unique_ptr<spdlog::formatter> sink_formatter) final;
+  void SetFormatter(std::unique_ptr<spdlog::formatter> sink_formatter);
 
   virtual void Reopen(ReopenMode);
+
+  void SetLevel(Level log_level);
+  Level GetLevel() const;
+  bool IsShouldLog(Level msg_level) const;
 
  protected:
   virtual void Write(std::string_view log) = 0;
@@ -32,6 +37,7 @@ class BaseSink : public spdlog::sinks::sink {
  private:
   std::mutex mutex_;
   std::unique_ptr<spdlog::formatter> formatter_;
+  std::atomic<Level> level_{Level::kTrace};
 };
 
 }  // namespace logging::impl

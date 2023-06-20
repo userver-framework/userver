@@ -1,7 +1,8 @@
 #pragma once
 
+#include <ostream>
+
 #include <gtest/gtest.h>
-#include <spdlog/sinks/ostream_sink.h>
 
 #include <logging/config.hpp>
 #include <logging/impl/unix_socket_sink.hpp>
@@ -14,9 +15,22 @@
 
 USERVER_NAMESPACE_BEGIN
 
+class OstreamSink final : public logging::impl::BaseSink {
+ public:
+  explicit OstreamSink(std::ostream& os) : ostream_(os) {}
+  inline void Write(std::string_view log) final {
+    ostream_.write(log.data(), log.size());
+  }
+
+  inline void Flush() final { ostream_.flush(); }
+
+ private:
+  std::ostream& ostream_;
+};
+
 inline std::shared_ptr<logging::impl::TpLogger> MakeLoggerFromSink(
     const std::string& logger_name,
-    std::shared_ptr<spdlog::sinks::sink> sink_ptr, logging::Format format) {
+    std::shared_ptr<logging::impl::BaseSink> sink_ptr, logging::Format format) {
   auto logger = std::make_shared<logging::impl::TpLogger>(format, logger_name);
   logger->AddSink(std::move(sink_ptr));
   logger->SetPattern(logging::GetSpdlogPattern(format));
@@ -25,13 +39,13 @@ inline std::shared_ptr<logging::impl::TpLogger> MakeLoggerFromSink(
 
 struct LoggingSinkWithStream {
   std::ostringstream sstream;
-  spdlog::sinks::ostream_sink_mt sink{sstream};
+  OstreamSink sink{sstream};
 };
 
 inline std::shared_ptr<logging::impl::TpLogger> MakeNamedStreamLogger(
     const std::string& logger_name,
     std::shared_ptr<LoggingSinkWithStream> stream, logging::Format format) {
-  std::shared_ptr<spdlog::sinks::ostream_sink_mt> sink(stream, &stream->sink);
+  std::shared_ptr<OstreamSink> sink(stream, &stream->sink);
   return MakeLoggerFromSink(logger_name, sink, format);
 }
 
