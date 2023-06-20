@@ -211,7 +211,7 @@ class TaskContext final : public ContextAccessor {
 
   void ResetPayload() noexcept;
 
-  const uint64_t magic_;
+  const uint64_t magic_{kMagic};
   TaskProcessor& task_processor_;
   TaskCounter::Token task_counter_token_;
   const bool is_critical_;
@@ -221,9 +221,10 @@ class TaskContext final : public ContextAccessor {
 
   utils::impl::WrappedCallBase* payload_;
 
-  std::atomic<Task::State> state_;
-  std::atomic<DetachedTasksSyncBlock::Token*> detached_token_;
-  std::atomic<TaskCancellationReason> cancellation_reason_;
+  std::atomic<Task::State> state_{Task::State::kNew};
+  std::atomic<DetachedTasksSyncBlock::Token*> detached_token_{nullptr};
+  std::atomic<TaskCancellationReason> cancellation_reason_{
+      TaskCancellationReason::kNone};
   mutable FastPimplGenericWaitList finish_waiters_;
 
   ContextTimer deadline_timer_;
@@ -236,14 +237,15 @@ class TaskContext final : public ContextAccessor {
 
   size_t trace_csw_left_;
 
-  AtomicSleepState sleep_state_;
+  AtomicSleepState sleep_state_{
+      SleepState{SleepFlags::kSleeping, SleepState::Epoch{0}}};
   WakeupSource wakeup_source_{WakeupSource::kNone};
 
   CountedCoroutinePtr coro_;
   TaskPipe* task_pipe_{nullptr};
   YieldReason yield_reason_{YieldReason::kNone};
 
-  std::optional<task_local::Storage> local_storage_;
+  std::optional<task_local::Storage> local_storage_{};
 
   // refcounter for task abandonning (cancellation) in engine::SharedTask
   std::atomic<std::size_t> shared_task_usages_{1};

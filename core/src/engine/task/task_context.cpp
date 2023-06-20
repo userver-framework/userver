@@ -104,19 +104,13 @@ TaskContext::TaskContext(TaskProcessor& task_processor,
                          Task::Importance importance, Task::WaitMode wait_type,
                          Deadline deadline,
                          utils::impl::WrappedCallBase& payload)
-    : magic_(kMagic),
-      task_processor_(task_processor),
+    : task_processor_(task_processor),
       task_counter_token_(task_processor_.GetTaskCounter()),
       is_critical_(importance == Task::Importance::kCritical),
       payload_(&payload),
-      state_(Task::State::kNew),
-      detached_token_(nullptr),
-      cancellation_reason_(TaskCancellationReason::kNone),
       finish_waiters_(wait_type),
       cancel_deadline_(deadline),
-      trace_csw_left_(task_processor_.GetTaskTraceMaxCswForNewTask()),
-      sleep_state_(SleepState{SleepFlags::kSleeping, SleepState::Epoch{0}}),
-      local_storage_(std::nullopt) {
+      trace_csw_left_(task_processor_.GetTaskTraceMaxCswForNewTask()) {
   UASSERT(payload_);
   LOG_TRACE() << "task with task_id="
               << ReadableTaskId(current_task::GetCurrentTaskContextUnchecked())
