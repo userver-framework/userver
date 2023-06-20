@@ -50,7 +50,7 @@ dns_client_replies{dns_reply_source="cached-stale"} 0
 dns_client_replies{dns_reply_source="cached-failure"} 0
 dns_client_replies{dns_reply_source="network"} 0
 dns_client_replies{dns_reply_source="network-failure"} 0
-``` 
+```
 
 
 ### Graphite metrics by path
@@ -108,6 +108,12 @@ With components::ClickHouse the following additional metrics appear:
 With components::RabbitMQ the following additional metrics appear:
 
 @include rabbitmq/functional_tests/metrics/tests/static/metrics_values.txt
+
+
+With grpc client and server the following additional metrics appear:
+
+@include grpc/functional_tests/metrics/tests/static/metrics_values.txt
+
 
 ----------
 
