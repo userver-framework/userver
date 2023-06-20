@@ -33,14 +33,20 @@ class MockPublishWaiter {
   // channel_name is used as PREFIX! and not as exact match
   template <typename T>
   MockPublishWaiter(GMockClient& redis_mock,
-                    const std::string& debug_channel_name, T&& matcher)
+                    const std::string& debug_channel_name, T&& matcher,
+                    size_t times_called = 1)
       : debug_channel_name_(std::move(debug_channel_name)) {
+    UINVARIANT(times_called > 0, "times_called must be > 0");
+
     using ::testing::_;
     EXPECT_CALL(redis_mock, Publish(std::forward<T>(matcher), _, _, _))
-        .Times(1)
-        .WillOnce([this](auto&& channel, auto&&...) {
-          LOG_DEBUG() << "Redis mock receieved message to channel: " << channel;
-          on_received_.Send();
+        .Times(times_called)
+        .WillRepeatedly([this, times_called](auto&& channel, auto&&...) {
+          LOG_DEBUG() << "Redis mock receieved message to channel: " << channel
+                      << "; Called time: " << times_called_.load() + 1;
+          if ((times_called_.fetch_add(1) + 1) == times_called) {
+            on_received_.Send();
+          }
         });
   }
 
@@ -53,6 +59,7 @@ class MockPublishWaiter {
  private:
   engine::SingleConsumerEvent on_received_;
   std::string debug_channel_name_;
+  std::atomic<size_t> times_called_{0};
 };
 
 }  // namespace storages::redis
