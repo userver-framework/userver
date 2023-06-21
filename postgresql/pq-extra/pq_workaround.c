@@ -931,9 +931,16 @@ static int getNotify(PGconn* conn) {
   newNotify = (PGnotify*)malloc(sizeof(PGnotify) + nmlen + extralen + 2);
   if (newNotify) {
     newNotify->relname = (char*)newNotify + sizeof(PGnotify);
-    strncpy(newNotify->relname, svname, nmlen + 1);
+    memcpy(newNotify->relname, svname, nmlen);
+
+    /* No zero termination, `extra` goes right after the last non-zero char of
+     * `relname`
+     */
+
     newNotify->extra = newNotify->relname + nmlen + 1;
-    strncpy(newNotify->extra, conn->workBuffer.data, extralen + 1);
+    memcpy(newNotify->extra, conn->workBuffer.data, extralen);
+    newNotify->extra[extralen + 1] = '\0';
+
     newNotify->be_pid = be_pid;
     newNotify->next = NULL;
     if (conn->notifyTail)
