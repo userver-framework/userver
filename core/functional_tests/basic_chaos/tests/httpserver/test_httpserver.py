@@ -208,6 +208,15 @@ async def test_network_smaller_parts_sends(call, gate):
     assert response.status == 200
 
 
+def _check_deadline_propagation_response(response):
+    assert isinstance(response, http.ClientResponse)
+    assert response.status == 504
+    # Check that the error format is customizable
+    # by GetFormattedExternalErrorBody.
+    assert 'application/json' in response.headers['content-type']
+    assert response.json()['message'] == 'Deadline expired'
+
+
 async def test_deadline_immediately_expired(call, gate, testpoint):
     testpoint_data = []
 
@@ -220,9 +229,7 @@ async def test_deadline_immediately_expired(call, gate, testpoint):
     response = await call(
         headers={'X-YaTaxi-Client-TimeoutMs': '20'}, timeout=INCREASED_TIMEOUT,
     )
-    assert isinstance(response, http.ClientResponse)
-    assert response.status == 504
-    assert 'Deadline expired' in response.text
+    _check_deadline_propagation_response(response)
     assert not testpoint_data, 'Control flow should NOT enter the handler body'
 
 
@@ -244,9 +251,7 @@ async def test_deadline_expired(call, testpoint, monitor_client):
         headers={'X-YaTaxi-Client-TimeoutMs': '150'},
         timeout=INCREASED_TIMEOUT,
     )
-    assert isinstance(response, http.ClientResponse)
-    assert response.status == 504
-    assert 'Deadline expired' in response.text
+    _check_deadline_propagation_response(response)
     assert testpoint_data, 'Control flow SHOULD enter the handler body'
 
     cancelled_metric_after = await monitor_client.single_metric(

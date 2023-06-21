@@ -207,8 +207,6 @@ class RequestProcessor final {
     DoProcessRequestStep(step_name, process_step_func);
   }
 
-  void FinishProcessing() noexcept { process_finished_ = true; }
-
   void HandleCustomException(std::string_view step_name,
                              const CustomHandlerException& ex) {
     process_finished_ = true;
@@ -329,12 +327,12 @@ utils::impl::UserverExperiment handler_cancel_on_immediate_deadline_expiration{
 utils::impl::UserverExperiment handler_override_response_on_deadline{
     "handler-override-response-on-deadline", true};
 
-void HandleDeadlineExpired(const http::HttpRequest& request,
+void HandleDeadlineExpired(RequestProcessor& processor,
                            IsCancelledByDeadline& is_cancelled) {
-  auto& response = request.GetHttpResponse();
-  response.SetStatus(http::HttpStatus::kGatewayTimeout);
-  response.SetContentType(USERVER_NAMESPACE::http::content_type::kTextPlain);
-  response.SetData("Deadline expired");
+  processor.HandleCustomException(
+      kDeadlinePropagationStep,
+      ExceptionWithCode<HandlerErrorCode::kGatewayTimeout>(
+          ExternalBody{"Deadline expired"}));
   is_cancelled = IsCancelledByDeadline{true};
 }
 
@@ -359,8 +357,7 @@ void SetUpInheritedData(RequestProcessor& processor,
     if (handler_cancel_on_immediate_deadline_expiration.IsEnabled() &&
         deadline.IsSurelyReachedApprox()) {
       request::kTaskInheritedData.Set(std::move(inherited_data));
-      HandleDeadlineExpired(processor.GetRequest(), is_cancelled);
-      processor.FinishProcessing();
+      HandleDeadlineExpired(processor, is_cancelled);
     }
 
     const auto& server_settings =
@@ -401,7 +398,7 @@ void CompleteDeadlinePropagation(RequestProcessor& processor,
                 request, processor.GetContext(), response.GetData()));
       }
     }
-    HandleDeadlineExpired(request, is_cancelled);
+    HandleDeadlineExpired(processor, is_cancelled);
   }
 }
 

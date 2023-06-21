@@ -4,6 +4,7 @@
 #include <userver/dynamic_config/storage/component.hpp>
 #include <userver/engine/sleep.hpp>
 #include <userver/server/handlers/http_handler_base.hpp>
+#include <userver/server/handlers/json_error_builder.hpp>
 #include <userver/server/http/http_response_body_stream.hpp>
 #include <userver/testsuite/testpoint.hpp>
 #include <userver/utest/using_namespace_userver.hpp>
@@ -38,6 +39,15 @@ class HttpServerHandler final : public server::handlers::HttpHandlerBase {
 
     UASSERT(false);
     return {};
+  }
+
+  server::handlers::FormattedErrorData GetFormattedExternalErrorBody(
+      const server::handlers::CustomHandlerException& exc) const override {
+    server::handlers::FormattedErrorData result;
+    result.external_body =
+        server::handlers::JsonErrorBuilder{exc}.GetExternalBody();
+    result.content_type = server::handlers::JsonErrorBuilder::GetContentType();
+    return result;
   }
 };
 
