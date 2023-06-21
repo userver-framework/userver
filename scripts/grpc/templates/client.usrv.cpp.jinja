@@ -18,6 +18,20 @@ constexpr std::string_view k{{service.name}}MethodNames[] = {
   "{{proto.package_prefix}}{{service.name}}/{{method.name}}",
   {% endfor %}
 };
+
+{% set client_qos = 'GRPC_CLIENT_QOS_' + proto.package_prefix.replace('.', '_') + '_' + service.name %}
+
+USERVER_NAMESPACE::ugrpc::client::ClientQos
+Parse{{service.name}}ClientQos(
+    [[maybe_unused]] const USERVER_NAMESPACE::dynamic_config::DocsMap& docs_map) {
+#ifdef {{ client_qos }}
+    return docs_map.Get({{ client_qos }}).As<USERVER_NAMESPACE::ugrpc::client::ClientQos>();
+#else
+    return { { "__default__", {std::nullopt}}};
+#endif
+}
+
+constexpr USERVER_NAMESPACE::dynamic_config::Key<Parse{{service.name}}ClientQos> k{{service.name}}ClientQosConfig;
 {% endfor %}
 
 }  // namespace
@@ -26,7 +40,8 @@ constexpr std::string_view k{{service.name}}MethodNames[] = {
 {{service.name}}Client::{{service.name}}Client(
     USERVER_NAMESPACE::ugrpc::client::impl::ClientParams&& client_params)
     : impl_(std::move(client_params), GetMetadata(),
-            std::in_place_type<{{proto.namespace}}::{{service.name}}>) {}
+            std::in_place_type<{{proto.namespace}}::{{service.name}}>) {
+    }
   {% for method in service.method %}
   {% set method_id = loop.index0 %}
 
@@ -36,9 +51,9 @@ constexpr std::string_view k{{service.name}}MethodNames[] = {
     const {{ method.input_type | grpc_to_cpp_name }}& request,
     {% endif %}
     std::unique_ptr<::grpc::ClientContext> context) const {
-    return {
+      return {
         USERVER_NAMESPACE::ugrpc::client::impl::CreateCallParams(
-            impl_, {{method_id}}, std::move(context)
+	impl_, {{method_id}}, std::move(context), k{{service.name}}ClientQosConfig
         ),
         impl_.NextStub<{{proto.namespace}}::{{service.name}}>(),
         &{{proto.namespace}}::{{service.name}}::Stub::PrepareAsync{{method.name}}

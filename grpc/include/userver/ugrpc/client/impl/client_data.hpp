@@ -8,6 +8,7 @@
 #include <grpcpp/completion_queue.h>
 
 #include <userver/dynamic_config/source.hpp>
+#include <userver/testsuite/grpc_control.hpp>
 #include <userver/ugrpc/client/impl/channel_cache.hpp>
 #include <userver/ugrpc/client/middleware_fwd.hpp>
 #include <userver/ugrpc/impl/static_metadata.hpp>
@@ -26,6 +27,7 @@ struct ClientParams final {
   ugrpc::impl::ServiceStatistics& statistics_storage;
   impl::ChannelCache::Token channel_token;
   const dynamic_config::Source config_source;
+  testsuite::GrpcControl& testsuite_grpc;
 };
 
 /// A helper class for generated gRPC clients
@@ -78,6 +80,10 @@ class ClientData final {
 
   const ugrpc::impl::StaticServiceMetadata& GetMetadata() const {
     return metadata_;
+  }
+
+  const testsuite::GrpcControl& GetTestsuiteControl() const {
+    return params_.testsuite_grpc;
   }
 
  private:

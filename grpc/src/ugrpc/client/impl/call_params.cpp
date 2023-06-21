@@ -4,9 +4,9 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::client::impl {
 
-CallParams CreateCallParams(const ClientData& client_data,
-                            std::size_t method_id,
-                            std::unique_ptr<grpc::ClientContext> context) {
+CallParams DoCreateCallParams(const ClientData& client_data,
+                              std::size_t method_id,
+                              std::unique_ptr<grpc::ClientContext> context) {
   return CallParams{client_data.GetClientName(),
                     client_data.GetQueue(),
                     client_data.GetConfigSnapshot(),

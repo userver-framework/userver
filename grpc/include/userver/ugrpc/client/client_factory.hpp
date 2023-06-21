@@ -72,6 +72,7 @@ class ClientFactory final {
   impl::ChannelCache channel_cache_;
   ugrpc::impl::StatisticsStorage client_statistics_storage_;
   const dynamic_config::Source config_source_;
+  testsuite::GrpcControl& testsuite_grpc_;
 };
 
 template <typename Client>
@@ -87,7 +88,7 @@ Client ClientFactory::MakeClient(const std::string& client_name,
 
   return Client(impl::ClientParams{client_name, std::move(mws), queue_,
                                    statistics, GetChannel(endpoint),
-                                   config_source_});
+                                   config_source_, testsuite_grpc_});
 }
 
 }  // namespace ugrpc::client

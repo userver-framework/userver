@@ -99,7 +99,8 @@ ClientFactory::ClientFactory(ClientFactoryConfig&& config,
                          : grpc::InsecureChannelCredentials(),
                      config.channel_args, config.channel_count),
       client_statistics_storage_(statistics_storage, "client"),
-      config_source_(source) {
+      config_source_(source),
+      testsuite_grpc_(testsuite_grpc) {
   ugrpc::impl::SetupNativeLogging();
   ugrpc::impl::UpdateNativeLogLevel(config.native_log_level);
 }

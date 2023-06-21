@@ -126,7 +126,7 @@ UTEST_F(DeadlineStatsTests, ServerDeadlineUpdated) {
 
   ValidateServerStatistic(kDeadlinePropagated, kExpected);
 
-  // Requests without deadline
+  // Requests without deadline, default deadline is used
   EXPECT_TRUE(ExecuteRequest(false));
   EXPECT_TRUE(ExecuteRequest(false));
   EXPECT_TRUE(ExecuteRequest(false));

@@ -14,7 +14,7 @@ class GrpcControl {
 
   GrpcControl(std::chrono::milliseconds timeout, bool is_tls_enabled);
 
-  [[nodiscard]] engine::Deadline MakeTimeout(
+  std::chrono::milliseconds MakeTimeout(
       std::chrono::milliseconds duration) const;
 
   bool IsTlsEnabled() const;
