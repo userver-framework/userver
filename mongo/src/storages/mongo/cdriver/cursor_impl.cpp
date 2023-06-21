@@ -40,6 +40,16 @@ bool CDriverCursorImpl::HasMore() const {
   return cursor_ && mongoc_cursor_more(cursor_.get());
 }
 
+uint32_t CDriverCursorImpl::GetBatchSize() const {
+  if (!cursor_) throw std::logic_error("GetBatchSize for invalid cursor");
+  return mongoc_cursor_get_batch_size(cursor_.get());
+}
+
+void CDriverCursorImpl::SetBatchSize(uint32_t size) {
+  if (!cursor_) throw std::logic_error("SetBatchSize for invalid cursor");
+  mongoc_cursor_set_batch_size(cursor_.get(), size);
+}
+
 const formats::bson::Document& CDriverCursorImpl::Current() const {
   if (!IsValid()) throw std::logic_error("Reading from invalid cursor");
   return *current_;
