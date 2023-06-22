@@ -50,7 +50,7 @@ Limit LinearController::Update(const Sensor::Data& current) {
     return {std::nullopt, current.current_load};
   }
 
-  std::size_t divisor = std::min<std::size_t>(long_timings_.GetSmoothed(),
+  std::size_t divisor = std::max<std::size_t>(long_timings_.GetSmoothed(),
                                               config.min_timings.count());
 
   if (static_cast<std::size_t>(short_timings_.GetMinimal()) >

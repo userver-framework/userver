@@ -156,4 +156,44 @@ TEST(CCLinear, ExtraLoad) {
   }
 }
 
+TEST(CCLinear, MinMax) {
+  congestion_control::v2::LinearController controller(
+      "test", sensor, limiter, stats, {}, dynamic_config::GetDefaultSource(),
+      [](auto) { return congestion_control::v2::Config(); });
+  // First seconds
+  for (size_t i = 0; i < 30; i++) {
+    congestion_control::v2::Sensor::Data data;
+    data.timings_avg_ms = 0;
+    data.total = 100;
+
+    auto limit = controller.Update(data);
+    EXPECT_EQ(limit.load_limit, std::nullopt) << i;
+  }
+
+  // Extra Load
+  congestion_control::v2::Sensor::Data data;
+  data.timings_avg_ms = 0;
+  data.total = 100;
+
+  auto limit = controller.Update(data);
+  EXPECT_EQ(limit.load_limit, std::nullopt) << 0;
+
+  limit = controller.Update(data);
+  EXPECT_EQ(limit.load_limit, std::nullopt) << 0;
+
+  limit = controller.Update(data);
+  EXPECT_EQ(limit.load_limit, std::nullopt) << 0;
+
+  data.timings_avg_ms = 1;
+
+  limit = controller.Update(data);
+  EXPECT_EQ(limit.load_limit, std::nullopt) << 0;
+
+  limit = controller.Update(data);
+  EXPECT_EQ(limit.load_limit, std::nullopt) << 0;
+
+  limit = controller.Update(data);
+  EXPECT_EQ(limit.load_limit, std::nullopt) << 0;
+}
+
 USERVER_NAMESPACE_END
