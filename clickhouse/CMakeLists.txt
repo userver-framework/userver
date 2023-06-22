@@ -22,16 +22,20 @@ file(GLOB_RECURSE CH_FUNCTIONAL_TEST_SOURCES
 )
 list(REMOVE_ITEM SOURCES ${CH_FUNCTIONAL_TEST_SOURCES})
 
-
-include(SetupClickhouseCPP)
-
 add_library(${PROJECT_NAME} STATIC ${SOURCES})
+
+if (USERVER_CONAN)
+  find_package(clickhouse-cpp REQUIRED)
+  target_link_libraries(${PROJECT_NAME} PRIVATE clickhouse-cpp-lib::clickhouse-cpp-lib)
+else()
+  include(SetupClickhouseCPP)
+  target_link_libraries(${PROJECT_NAME} PRIVATE clickhouse-cpp)
+endif()
 
 target_link_libraries(${PROJECT_NAME}
   PUBLIC
     userver-core
   PRIVATE
-    clickhouse-cpp
     userver-compiler-rt-parts
 )
 target_include_directories(

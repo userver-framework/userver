@@ -37,6 +37,9 @@ target_link_libraries(${PROJECT_NAME}_grpc ${PROJECT_NAME}_objs userver::grpc ${
 add_executable(${PROJECT_NAME}_mongo test_mongo.cpp)
 target_link_libraries(${PROJECT_NAME}_mongo ${PROJECT_NAME}_objs userver::mongo)
 
+add_executable(${PROJECT_NAME}_clickhouse test_clickhouse.cpp)
+target_link_libraries(${PROJECT_NAME}_clickhouse ${PROJECT_NAME}_objs userver::clickhouse)
+
 add_executable(${PROJECT_NAME}_universal test_universal.cpp)
 target_link_libraries(${PROJECT_NAME}_universal ${PROJECT_NAME}_objs userver::universal)
 

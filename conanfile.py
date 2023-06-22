@@ -52,7 +52,7 @@ class UserverConan(ConanFile):
         'with_postgresql_extra': False,
         'with_redis': True,
         'with_grpc': True,
-        'with_clickhouse': False,
+        'with_clickhouse': True,
         'with_universal': True,
         'with_rabbitmq': True,
         'with_utest': True,
@@ -120,6 +120,9 @@ class UserverConan(ConanFile):
             self.requires('hiredis/1.0.2')
         if self.options.with_rabbitmq:
             self.requires('amqp-cpp/4.3.16')
+        if self.options.with_clickhouse:
+            self.requires('clickhouse-cpp/2.4.0')
+            self.requires('abseil/20220623.0')
         if self.options.with_utest:
             self.requires('gtest/1.12.1')
             self.requires('benchmark/1.6.2')
@@ -370,6 +373,13 @@ class UserverConan(ConanFile):
         def amqpcpp():
             return ['amqp-cpp::amqp-cpp'] if self.options.with_rabbitmq else []
 
+        def clickhouse():
+            return (
+                ['clickhouse-cpp::clickhouse-cpp']
+                if self.options.with_clickhouse
+                else []
+            )
+
         userver_components = [
             {
                 'target': 'core',
@@ -486,6 +496,16 @@ class UserverConan(ConanFile):
                         'target': 'rabbitmq',
                         'lib': 'rabbitmq',
                         'requires': ['core'] + amqpcpp(),
+                    },
+                ],
+            )
+        if self.options.with_clickhouse:
+            userver_components.extend(
+                [
+                    {
+                        'target': 'clickhouse',
+                        'lib': 'clickhouse',
+                        'requires': ['core'] + clickhouse(),
                     },
                 ],
             )
