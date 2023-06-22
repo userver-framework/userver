@@ -23,6 +23,8 @@ RUN apt-get update && apt-get install -y --allow-unauthenticated \
 	libboost-locale1.74-dev \
 	libboost-regex1.74-dev \
 	libboost-iostreams1.74-dev \
+    libboost-context1.74-dev \
+    libboost-coroutine1.74-dev \
 	libev-dev \
 	zlib1g-dev \
 	libcurl4-openssl-dev \
