@@ -328,11 +328,14 @@ utils::impl::UserverExperiment handler_override_response_on_deadline{
     "handler-override-response-on-deadline", true};
 
 void HandleDeadlineExpired(RequestProcessor& processor,
-                           IsCancelledByDeadline& is_cancelled) {
+                           IsCancelledByDeadline& is_cancelled,
+                           std::string internal_message) {
   processor.HandleCustomException(
       kDeadlinePropagationStep,
       ExceptionWithCode<HandlerErrorCode::kGatewayTimeout>(
-          ExternalBody{"Deadline expired"}));
+          ExternalBody{"Deadline expired"},
+          InternalMessage{std::move(internal_message)},
+          ServiceErrorCode{"deadline_expired"}));
   is_cancelled = IsCancelledByDeadline{true};
 }
 
@@ -357,7 +360,9 @@ void SetUpInheritedData(RequestProcessor& processor,
     if (handler_cancel_on_immediate_deadline_expiration.IsEnabled() &&
         deadline.IsSurelyReachedApprox()) {
       request::kTaskInheritedData.Set(std::move(inherited_data));
-      HandleDeadlineExpired(processor, is_cancelled);
+      HandleDeadlineExpired(
+          processor, is_cancelled,
+          "Immediate timeout (deadline propagation), forcing 504 response");
     }
 
     const auto& server_settings =
@@ -398,7 +403,9 @@ void CompleteDeadlinePropagation(RequestProcessor& processor,
                 request, processor.GetContext(), response.GetData()));
       }
     }
-    HandleDeadlineExpired(processor, is_cancelled);
+    HandleDeadlineExpired(
+        processor, is_cancelled,
+        "Handling timeout (deadline propagation), forcing 504 response");
   }
 }
 
