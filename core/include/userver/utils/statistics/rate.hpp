@@ -26,13 +26,17 @@ struct Rate {
 
   explicit operator bool() const noexcept { return value != 0; }
 
-  bool operator==(const Rate& other) const noexcept {
-    return value == other.value;
-  }
+  bool operator==(const Rate& rhs) const noexcept { return value == rhs.value; }
 
-  bool operator!=(const Rate& other) const noexcept {
-    return !(*this == other);
-  }
+  bool operator!=(const Rate& rhs) const noexcept { return !(*this == rhs); }
+
+  bool operator<(const Rate& rhs) const noexcept { return value < rhs.value; }
+
+  bool operator>(const Rate& rhs) const noexcept { return rhs < *this; }
+
+  bool operator<=(const Rate& rhs) const noexcept { return !(rhs < *this); }
+
+  bool operator>=(const Rate& rhs) const noexcept { return !(*this < rhs); }
 };
 
 inline Rate operator+(Rate first, Rate second) noexcept {

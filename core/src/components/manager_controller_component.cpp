@@ -7,8 +7,6 @@
 #include <userver/components/statistics_storage.hpp>
 #include <userver/dynamic_config/storage/component.hpp>
 #include <userver/dynamic_config/value.hpp>
-#include <userver/formats/json/serialize.hpp>
-#include <userver/formats/json/value_builder.hpp>
 #include <userver/logging/component.hpp>
 #include <userver/utils/statistics/metadata.hpp>
 
@@ -17,40 +15,42 @@
 USERVER_NAMESPACE_BEGIN
 
 namespace engine {
+
 void DumpMetric(utils::statistics::Writer& writer,
                 const engine::TaskProcessor& task_processor) {
   const auto& counter = task_processor.GetTaskCounter();
 
-  const auto current = counter.GetCurrentValue();
+  const auto destroyed = counter.GetDestroyedTasks();
   const auto created = counter.GetCreatedTasks();
-  const auto running = counter.GetRunningTasks();
-  const auto cancelled = counter.GetCancelledTasks();
-  const auto queued = task_processor.GetTaskQueueSize();
+  const auto stopped = counter.GetStoppedTasks();
+  const auto started = counter.GetStartedTasks();
 
+  // TODO report RATE metrics
   if (auto tasks = writer["tasks"]) {
-    tasks["created"] = created;
-    tasks["alive"] = current;
-    tasks["running"] = running;
-    tasks["queued"] = queued;
-    tasks["finished"] = created - current;
-    tasks["cancelled"] = cancelled;
+    tasks["created"] = created.value;
+    tasks["alive"] = created.value - std::min(destroyed, created).value;
+    tasks["running"] = started.value - std::min(stopped, started).value;
+    tasks["queued"] = task_processor.GetTaskQueueSize();
+    tasks["finished"] = stopped.value;
+    tasks["cancelled"] = counter.GetCancelledTasks().value;
   }
 
   writer["errors"].ValueWithLabels(
-      counter.GetTasksOverload(),
+      counter.GetTasksOverload().value,
       {{"task_processor_error", "wait_queue_overload"}});
 
   if (auto context_switch = writer["context_switch"]) {
-    context_switch["slow"] = counter.GetTaskSwitchSlow();
-    context_switch["fast"] = counter.GetTaskSwitchFast();
-    context_switch["spurious_wakeups"] = counter.GetSpuriousWakeups();
+    context_switch["slow"] = counter.GetTaskSwitchSlow().value;
+    context_switch["fast"] = counter.GetTaskSwitchFast().value;
+    context_switch["spurious_wakeups"] = counter.GetSpuriousWakeups().value;
 
-    context_switch["overloaded"] = counter.GetTasksOverloadSensor();
-    context_switch["no_overloaded"] = counter.GetTasksNoOverloadSensor();
+    context_switch["overloaded"] = counter.GetTasksOverloadSensor().value;
+    context_switch["no_overloaded"] = counter.GetTasksNoOverloadSensor().value;
   }
 
   writer["worker-threads"] = task_processor.GetWorkerCount();
 }
+
 }  // namespace engine
 
 namespace components {

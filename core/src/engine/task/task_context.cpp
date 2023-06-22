@@ -234,18 +234,20 @@ void TaskContext::DoStep() {
 
   switch (yield_reason_) {
     case YieldReason::kTaskCancelled:
-    case YieldReason::kTaskComplete:
+    case YieldReason::kTaskComplete: {
       std::move(coro_).ReturnToPool();
-      {
-        auto new_state = (yield_reason_ == YieldReason::kTaskComplete)
-                             ? Task::State::kCompleted
-                             : Task::State::kCancelled;
-        SetState(new_state);
-        deadline_timer_.Finalize();
-        finish_waiters_->WakeupAll();
-        TraceStateTransition(new_state);
+      auto new_state = (yield_reason_ == YieldReason::kTaskComplete)
+                           ? Task::State::kCompleted
+                           : Task::State::kCancelled;
+      if (cancellation_reason_.load(std::memory_order_relaxed) !=
+          TaskCancellationReason::kNone) {
+        GetTaskProcessor().GetTaskCounter().AccountTaskCancel();
       }
-      break;
+      SetState(new_state);
+      deadline_timer_.Finalize();
+      finish_waiters_->WakeupAll();
+      TraceStateTransition(new_state);
+    } break;
 
     case YieldReason::kTaskWaiting:
       SetState(Task::State::kSuspended);
@@ -284,7 +286,6 @@ void TaskContext::RequestCancel(TaskCancellationReason reason) {
                 << logging::LogExtra::Stacktrace();
     const auto epoch = GetEpoch();
     Wakeup(WakeupSource::kCancelRequest, epoch);
-    task_processor_.GetTaskCounter().AccountTaskCancel();
   }
 }
 
@@ -683,8 +684,6 @@ void TaskContext::ProfilerStopExecution() {
   auto duration = now - execute_started_;
   auto duration_us =
       std::chrono::duration_cast<std::chrono::microseconds>(duration);
-
-  task_processor_.GetTaskCounter().AccountTaskExecution(duration_us);
 
   if (duration_us >= threshold_us) {
     logging::LogExtra extra_stacktrace;

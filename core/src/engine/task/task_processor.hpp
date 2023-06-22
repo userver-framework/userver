@@ -51,9 +51,9 @@ class TaskProcessor final {
 
   const std::string& Name() const { return config_.name; }
 
-  impl::TaskCounter& GetTaskCounter() noexcept { return *task_counter_; }
+  impl::TaskCounter& GetTaskCounter() noexcept { return task_counter_; }
 
-  const impl::TaskCounter& GetTaskCounter() const { return *task_counter_; }
+  const impl::TaskCounter& GetTaskCounter() const { return task_counter_; }
 
   size_t GetTaskQueueSize() const { return task_queue_.GetSizeApproximate(); }
 
@@ -106,7 +106,7 @@ class TaskProcessor final {
   std::atomic<bool> task_trace_logger_set_{false};
   logging::LoggerPtr task_trace_logger_{nullptr};
 
-  concurrent::impl::InterferenceShield<impl::TaskCounter> task_counter_;
+  impl::TaskCounter task_counter_;
   concurrent::impl::InterferenceShield<impl::DetachedTasksSyncBlock>
       detached_contexts_{impl::DetachedTasksSyncBlock::StopMode::kCancel};
   concurrent::impl::InterferenceShield<std::atomic<bool>>

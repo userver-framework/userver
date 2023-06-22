@@ -6,7 +6,6 @@
 #include <fmt/format.h>
 
 #include <concurrent/impl/latch.hpp>
-
 #include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/impl/static_registration.hpp>
@@ -69,7 +68,8 @@ TaskProcessor::TaskProcessor(TaskProcessorConfig config,
                              std::shared_ptr<impl::TaskProcessorPools> pools)
     : config_(std::move(config)),
       pools_(std::move(pools)),
-      task_queue_(config_) {
+      task_queue_(config_),
+      task_counter_(config.worker_threads) {
   utils::impl::FinishStaticRegistration();
   try {
     LOG_INFO() << "creating task_processor " << Name() << " "
@@ -98,7 +98,7 @@ void TaskProcessor::Cleanup() noexcept {
   InitiateShutdown();
 
   // Some tasks may be bound but not scheduled yet
-  task_counter_->WaitForExhaustion(std::chrono::milliseconds(10));
+  task_counter_.WaitForExhaustion();
 
   task_queue_.StopProcessing();
 
@@ -106,7 +106,7 @@ void TaskProcessor::Cleanup() noexcept {
     w.join();
   }
 
-  UASSERT(task_counter_->GetCurrentValue() == 0);
+  UASSERT(!task_counter_.MayHaveTasksAlive());
 }
 
 void TaskProcessor::InitiateShutdown() {
@@ -230,6 +230,8 @@ void TaskProcessor::PrepareWorkerThread(std::size_t index) noexcept {
   }
 
   utils::SetCurrentThreadName(fmt::format("{}_{}", config_.thread_name, index));
+
+  impl::SetLocalTaskCounterData(task_counter_, index);
 
   TaskProcessorThreadStartedHook();
 }

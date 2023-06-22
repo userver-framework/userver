@@ -1,5 +1,7 @@
 #include <userver/utils/statistics/rate.hpp>
 
+#include <type_traits>
+
 #include <userver/formats/json/value.hpp>
 #include <userver/formats/json/value_builder.hpp>
 #include <userver/utest/utest.hpp>
@@ -8,6 +10,10 @@
 USERVER_NAMESPACE_BEGIN
 
 namespace utils::statistics {
+
+static_assert(std::is_trivially_copy_constructible_v<Rate>,
+              "Rate is widely used in engine internals. It should be trivially "
+              "copy constructible to be returned in CPU registers.");
 
 UTEST(Rate, Basic) {
   EXPECT_EQ(Rate{5}, Rate{2} + Rate{3});

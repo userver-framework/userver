@@ -73,7 +73,11 @@ void engine_task_yield_multiple_threads(benchmark::State& state) {
         benchmark::Counter::kIsRate);
   });
 }
-BENCHMARK(engine_task_yield_multiple_threads)->RangeMultiplier(2)->Range(1, 32);
+BENCHMARK(engine_task_yield_multiple_threads)
+    ->RangeMultiplier(2)
+    ->Range(1, 32)
+    ->Arg(6)
+    ->Arg(12);
 
 void engine_task_yield_multiple_task_processors(benchmark::State& state) {
   engine::RunStandalone([&] {

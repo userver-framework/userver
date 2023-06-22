@@ -39,12 +39,18 @@ class RateCounter final {
     return *this;
   }
 
-  void Store(Rate desired) noexcept {
-    val_.store(desired.value, std::memory_order_relaxed);
+  void Store(Rate desired,
+             std::memory_order order = std::memory_order_relaxed) noexcept {
+    val_.store(desired.value, order);
   }
 
   Rate Load() const noexcept {
     return Rate{val_.load(std::memory_order_relaxed)};
+  }
+
+  void Add(Rate arg,
+           std::memory_order order = std::memory_order_relaxed) noexcept {
+    val_.fetch_add(arg.value, order);
   }
 
   RateCounter& operator++() noexcept {
