@@ -1,14 +1,13 @@
 import typing
 
 
-def _normalize_metrics(metrics: str) -> str:
+def _normalize_metrics(metrics: str) -> typing.Set[str]:
     result = metrics.splitlines()
 
     result = _drop_non_grpc_metrics(result)
     result = _hide_metrics_values(result)
 
-    result.sort()
-    return '\n'.join(result)
+    return set(result)
 
 
 def _drop_non_grpc_metrics(metrics: typing.List[str]) -> typing.List[str]:
@@ -48,6 +47,7 @@ async def test_metrics(monitor_client, load):
     all_metrics = _normalize_metrics(
         await monitor_client.metrics_raw(output_format='pretty'),
     )
+    assert all_metrics == reference
     assert all_metrics == reference, (
         '\n===== Service metrics start =====\n'
         f'{all_metrics}\n'
