@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdio>
 #include <mutex>
 #include <string_view>
 
@@ -16,19 +17,18 @@ namespace logging::impl {
 
 class BufferedFileSink : public BaseSink {
  public:
-  BufferedFileSink() = delete;
   explicit BufferedFileSink(const std::string& filename);
+  ~BufferedFileSink() override;
 
   void Reopen(ReopenMode mode) override;
-
-  ~BufferedFileSink() override;
 
   void Flush() override;
 
  protected:
+  explicit BufferedFileSink(fs::blocking::CFile&& file);
+
   void Write(std::string_view log) final;
 
-  explicit BufferedFileSink(fs::blocking::CFile&& file);
   fs::blocking::CFile& GetFile();
 
  private:
@@ -36,20 +36,12 @@ class BufferedFileSink : public BaseSink {
   fs::blocking::CFile file_;
 };
 
-class BufferedStdoutFileSink final : public BufferedFileSink {
+class BufferedUnownedFileSink final : public BufferedFileSink {
  public:
-  BufferedStdoutFileSink();
-  ~BufferedStdoutFileSink() final;
-  void Flush() final;
-  void Reopen(ReopenMode) final;
-};
-
-class BufferedStderrFileSink final : public BufferedFileSink {
- public:
-  BufferedStderrFileSink();
-  ~BufferedStderrFileSink() final;
-  void Flush() final;
-  void Reopen(ReopenMode) final;
+  explicit BufferedUnownedFileSink(std::FILE* c_file);
+  ~BufferedUnownedFileSink() override;
+  void Reopen(ReopenMode) override;
+  void Flush() override;
 };
 
 }  // namespace logging::impl

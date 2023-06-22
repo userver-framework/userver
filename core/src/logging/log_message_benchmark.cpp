@@ -14,7 +14,9 @@ namespace {
 
 class NoopLogger final : public logging::impl::LoggerBase {
  public:
-  NoopLogger() noexcept : LoggerBase(logging::Format::kRaw) {}
+  NoopLogger() noexcept : LoggerBase(logging::Format::kRaw) {
+    SetLevel(logging::Level::kInfo);
+  }
   void Log(logging::Level, std::string_view) const override {}
   void Flush() const override {}
 };
@@ -24,7 +26,6 @@ class NoopLogger final : public logging::impl::LoggerBase {
 class LogHelperBenchmark : public benchmark::Fixture {
   void SetUp(const benchmark::State&) override {
     guard_.emplace(std::make_shared<NoopLogger>());
-    logging::SetDefaultLoggerLevel(logging::Level::kInfo);
   }
 
   void TearDown(const benchmark::State&) override { guard_.reset(); }

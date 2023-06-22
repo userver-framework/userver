@@ -1,7 +1,5 @@
 #include "fd_sink.hpp"
 
-#include <spdlog/pattern_formatter.h>
-
 USERVER_NAMESPACE_BEGIN
 
 namespace logging::impl {
@@ -23,25 +21,12 @@ fs::blocking::FileDescriptor& FdSink::GetFd() { return fd_; }
 
 void FdSink::SetFd(fs::blocking::FileDescriptor&& fd) { std::swap(fd_, fd); }
 
-StdoutSink::StdoutSink()
-    : FdSink{fs::blocking::FileDescriptor::AdoptFd(STDOUT_FILENO)} {}
+UnownedFdSink::UnownedFdSink(int fd)
+    : FdSink(fs::blocking::FileDescriptor::AdoptFd(fd)) {}
 
-StderrSink::StderrSink()
-    : FdSink{fs::blocking::FileDescriptor::AdoptFd(STDERR_FILENO)} {}
+void UnownedFdSink::Flush() {}
 
-void StdoutSink::Flush() {}
-
-void StderrSink::Flush() {}
-
-StdoutSink::~StdoutSink() {
-  // we do not close STDOUT descriptor
-  std::move(GetFd()).Release();
-}
-
-StderrSink::~StderrSink() {
-  // we do not close STDERR descriptor
-  std::move(GetFd()).Release();
-}
+UnownedFdSink::~UnownedFdSink() { std::move(GetFd()).Release(); }
 
 }  // namespace logging::impl
 

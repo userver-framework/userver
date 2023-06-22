@@ -3,6 +3,7 @@
 /// @file userver/fs/blocking/c_file.hpp
 /// @brief @copybrief fs::blocking::CFile
 
+#include <cstdio>
 #include <string>
 #include <string_view>
 
@@ -35,13 +36,16 @@ class CFile final {
         boost::filesystem::perms perms = boost::filesystem::perms::owner_read |
                                          boost::filesystem::perms::owner_write);
 
-  /// @brief Use the `std::FILE*` directly
+  /// @brief Adopt the `std::FILE*` directly
   explicit CFile(std::FILE* file) noexcept;
 
   /// Checks if the file is open
   bool IsOpen() const;
 
-  // Passes the ownerwhip of the file to the caller
+  /// Returns the underlying file handle
+  std::FILE* GetNative() &;
+
+  /// Passes the ownership of the file to the caller
   std::FILE* Release() &&;
 
   /// @brief Closes the file manually

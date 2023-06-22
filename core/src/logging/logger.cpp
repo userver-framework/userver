@@ -31,12 +31,12 @@ LoggerPtr MakeSimpleLogger(const std::string& name, impl::SinkPtr sink,
 }
 
 impl::SinkPtr MakeStderrSink() {
-  static auto sink = std::make_shared<impl::BufferedStderrFileSink>();
+  static auto sink = std::make_shared<impl::BufferedUnownedFileSink>(stderr);
   return sink;
 }
 
 impl::SinkPtr MakeStdoutSink() {
-  static auto sink = std::make_shared<impl::BufferedStdoutFileSink>();
+  static auto sink = std::make_shared<impl::BufferedUnownedFileSink>(stdout);
   return sink;
 }
 

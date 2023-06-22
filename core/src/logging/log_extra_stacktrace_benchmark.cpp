@@ -1,6 +1,7 @@
 #include <userver/logging/log_extra.hpp>
 
 #include <functional>
+#include <optional>
 
 #include <benchmark/benchmark.h>
 #include <boost/stacktrace.hpp>
@@ -14,16 +15,13 @@ namespace {
 class Stacktrace : public ::benchmark::Fixture {
  protected:
   void SetUp(benchmark::State&) override {
-    old_log_level_ = logging::GetDefaultLoggerLevel();
-    logging::SetDefaultLoggerLevel(logging::Level::kDebug);
+    level_scope_.emplace(logging::Level::kDebug);
   }
 
-  void TearDown(benchmark::State&) override {
-    logging::SetDefaultLoggerLevel(old_log_level_);
-  }
+  void TearDown(benchmark::State&) override { level_scope_.reset(); }
 
  private:
-  logging::Level old_log_level_{};
+  std::optional<logging::DefaultLoggerLevelScope> level_scope_;
 };
 
 }  // namespace

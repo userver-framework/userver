@@ -23,7 +23,9 @@ void tracing_happy_log(benchmark::State& state) {
   logging::DefaultLoggerGuard guard{logging::MakeNullLogger()};
 
   engine::RunStandalone([&] {
-    logging::SetDefaultLoggerLevel(logging::Level::kInfo);
+    // TODO Null logger ignores log level and keeps kNone, this benchmark
+    //  measures nothing. Should use TpLogger instead.
+    const logging::DefaultLoggerLevelScope level_scope{logging::Level::kInfo};
     auto tracer = tracing::MakeNoopTracer("test_service");
 
     for (auto _ : state)

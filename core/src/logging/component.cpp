@@ -109,9 +109,9 @@ std::shared_ptr<logging::impl::TpLogger> CreateAsyncLogger(
   if (config.file_path == "@null") {
     // do nothing
   } else if (config.file_path == "@stderr") {
-    sink = std::make_shared<logging::impl::BufferedStderrFileSink>();
+    sink = std::make_shared<logging::impl::BufferedUnownedFileSink>(stderr);
   } else if (config.file_path == "@stdout") {
-    sink = std::make_shared<logging::impl::BufferedStdoutFileSink>();
+    sink = std::make_shared<logging::impl::BufferedUnownedFileSink>(stdout);
   } else {
     CreateLogDirectory(logger_name, config.file_path);
     sink = GetSinkFromFilename(config.file_path);

@@ -9,7 +9,7 @@
 USERVER_NAMESPACE_BEGIN
 
 TEST_F(LoggingTest, DynamicDebugEnable) {
-  logging::SetDefaultLoggerLevel(logging::Level::kNone);
+  SetDefaultLoggerLevel(logging::Level::kNone);
 
   LOG_INFO() << "before";
 
@@ -26,12 +26,10 @@ TEST_F(LoggingTest, DynamicDebugEnable) {
   EXPECT_THAT(GetStreamString(), testing::Not(testing::HasSubstr("before")));
   EXPECT_THAT(GetStreamString(), testing::HasSubstr("123"));
   EXPECT_THAT(GetStreamString(), testing::Not(testing::HasSubstr("after")));
-
-  logging::SetDefaultLoggerLevel(logging::Level::kInfo);
 }
 
 TEST_F(LoggingTest, DynamicDebugDisable) {
-  logging::SetDefaultLoggerLevel(logging::Level::kInfo);
+  SetDefaultLoggerLevel(logging::Level::kInfo);
 
   const std::string location = USERVER_FILEPATH;
   logging::AddDynamicDebugLog(location, 10002,
@@ -46,7 +44,7 @@ TEST_F(LoggingTest, DynamicDebugDisable) {
 }
 
 TEST_F(LoggingTest, DynamicDebugAnyLine) {
-  logging::SetDefaultLoggerLevel(logging::Level::kNone);
+  SetDefaultLoggerLevel(logging::Level::kNone);
 
   LOG_INFO() << "before";
 
@@ -64,12 +62,10 @@ TEST_F(LoggingTest, DynamicDebugAnyLine) {
   EXPECT_THAT(GetStreamString(), testing::HasSubstr("123"));
   EXPECT_THAT(GetStreamString(), testing::HasSubstr("456"));
   EXPECT_THAT(GetStreamString(), testing::Not(testing::HasSubstr("after")));
-
-  logging::SetDefaultLoggerLevel(logging::Level::kInfo);
 }
 
 TEST_F(LoggingTest, DynamicDebugAnyLineRemove) {
-  logging::SetDefaultLoggerLevel(logging::Level::kNone);
+  SetDefaultLoggerLevel(logging::Level::kNone);
 
   LOG_INFO() << "before";
 
@@ -94,8 +90,6 @@ TEST_F(LoggingTest, DynamicDebugAnyLineRemove) {
   EXPECT_FALSE(LoggedTextContains("123"));
   EXPECT_FALSE(LoggedTextContains("456"));
   EXPECT_FALSE(LoggedTextContains("after"));
-
-  logging::SetDefaultLoggerLevel(logging::Level::kInfo);
 }
 
 USERVER_NAMESPACE_END

@@ -42,9 +42,6 @@ DefaultLoggerGuard::DefaultLoggerGuard(LoggerPtr new_default_logger) noexcept
 }
 
 DefaultLoggerGuard::~DefaultLoggerGuard() {
-  logging::impl::SetDefaultLoggerRef(logger_prev_);
-  logging::SetDefaultLoggerLevel(level_prev_);
-
   UASSERT_MSG(
       !engine::current_task::IsTaskProcessorThread(),
       "DefaultLoggerGuard with a new logger should outlive the coroutine "
@@ -52,6 +49,19 @@ DefaultLoggerGuard::~DefaultLoggerGuard() {
       "~DefaultLoggerGuard() is called and the logger is destroyed. "
       "Construct the DefaultLoggerGuard before calling engine::RunStandalone; "
       "in tests use the utest::DefaultLoggerFixture.");
+
+  logging::impl::SetDefaultLoggerRef(logger_prev_);
+  logging::SetDefaultLoggerLevel(level_prev_);
+}
+
+DefaultLoggerLevelScope::DefaultLoggerLevelScope(logging::Level level)
+    : logger_(impl::DefaultLoggerRef()),
+      level_initial_(GetLoggerLevel(logger_)) {
+  SetLoggerLevel(logger_, level);
+}
+
+DefaultLoggerLevelScope::~DefaultLoggerLevelScope() {
+  SetLoggerLevel(logger_, level_initial_);
 }
 
 void SetDefaultLoggerLevel(Level level) {

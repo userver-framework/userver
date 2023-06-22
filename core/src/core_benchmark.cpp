@@ -6,8 +6,8 @@
 int main(int argc, char** argv) {
   USERVER_NAMESPACE::utils::impl::FinishStaticRegistration();
 
-  USERVER_NAMESPACE::logging::SetDefaultLoggerLevel(
-      USERVER_NAMESPACE::logging::Level::kError);
+  const USERVER_NAMESPACE::logging::DefaultLoggerLevelScope level_scope{
+      USERVER_NAMESPACE::logging::Level::kError};
 
   ::benchmark::Initialize(&argc, argv);
   if (::benchmark::ReportUnrecognizedArguments(argc, argv)) return 1;

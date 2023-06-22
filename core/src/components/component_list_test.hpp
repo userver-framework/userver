@@ -7,7 +7,7 @@
 #include <userver/tracing/opentracing.hpp>
 #include <userver/tracing/tracer.hpp>
 
-// allow this header usage only from tests
+#include <userver/utest/default_logger_fixture.hpp>
 #include <userver/utest/utest.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -20,16 +20,15 @@ class DefaultLoggerGuardTest {
  public:
   DefaultLoggerGuardTest() noexcept
       : logger_prev_(logging::impl::DefaultLoggerRef()),
-        level_prev_(logging::GetDefaultLoggerLevel()) {}
+        log_level_scope_(logging::GetLoggerLevel(logger_prev_)) {}
 
   ~DefaultLoggerGuardTest() {
     logging::impl::SetDefaultLoggerRef(logger_prev_);
-    logging::SetDefaultLoggerLevel(level_prev_);
   }
 
  private:
   logging::LoggerRef logger_prev_;
-  const logging::Level level_prev_;
+  logging::DefaultLoggerLevelScope log_level_scope_;
 };
 
 }  // namespace impl

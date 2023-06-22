@@ -420,10 +420,7 @@ struct ResolverWrapper {
 };
 
 auto LogLevelScope(logging::Level level) {
-  const auto old_level = logging::GetDefaultLoggerLevel();
-  logging::SetDefaultLoggerLevel(level);
-  return utils::FastScopeGuard(
-      [old_level]() noexcept { logging::SetDefaultLoggerLevel(old_level); });
+  return logging::DefaultLoggerLevelScope{level};
 }
 
 namespace sample {

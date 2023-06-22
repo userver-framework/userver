@@ -1,11 +1,16 @@
 #include "buffered_file_sink.hpp"
 
+#include <cstdio>
+
+#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
 #include <userver/engine/async.hpp>
 #include <userver/fs/blocking/read.hpp>
 #include <userver/fs/blocking/temp_directory.hpp>
+#include <userver/fs/blocking/temp_file.hpp>
 #include <userver/utest/utest.hpp>
+#include <userver/utils/fast_scope_guard.hpp>
 #include <userver/utils/rand.hpp>
 #include <userver/utils/text.hpp>
 
@@ -21,14 +26,25 @@ const auto msg_c = std::string(test::kEightMb, 'c');
 const auto msg_d = std::string(test::kOneKb, 'd');
 }  // namespace
 
-UTEST(BufferedFileSink, StdoutSinkLog) {
-  auto sink = logging::impl::BufferedStdoutFileSink();
-  EXPECT_NO_THROW(sink.Log({"default", spdlog::level::warn, "message"}));
-}
+UTEST(BufferedFileSink, UnownedSinkLog) {
+  const auto file_scope = fs::blocking::TempFile::Create();
 
-UTEST(BufferedFileSink, StderrSinkLog) {
-  auto sink = logging::impl::BufferedStderrFileSink();
-  EXPECT_NO_THROW(sink.Log({"default", spdlog::level::critical, "message"}));
+  {
+    std::FILE* const file_stream =
+        std::fopen(file_scope.GetPath().c_str(), "w");
+    ASSERT_NE(file_stream, nullptr) << "Failed to open file";
+    const utils::FastScopeGuard file_stream_closer([&file_stream]() noexcept {
+      EXPECT_EQ(std::fclose(file_stream), 0)
+          << "Failed to close file, perhaps BufferedUnownedFileSink closed the "
+             "FILE*";
+    });
+
+    auto sink = logging::impl::BufferedUnownedFileSink(file_stream);
+    EXPECT_NO_THROW(sink.Log({"default", spdlog::level::warn, "message"}));
+  }
+
+  EXPECT_THAT(fs::blocking::ReadFileContents(file_scope.GetPath()),
+              testing::HasSubstr("message"));
 }
 
 UTEST(BufferedFileSink, TestCreateFile) {

@@ -142,7 +142,7 @@ class LoggingTestCoro : public LoggingTestBase {
 
  protected:
   LoggingTestCoro() : LoggingTestBase(logging::Format::kTskv) {
-    logging::SetDefaultLoggerLevel(logging::Level::kError);
+    SetDefaultLoggerLevel(logging::Level::kError);
   }
 
   ~LoggingTestCoro() override { stats_holder_.Unregister(); }

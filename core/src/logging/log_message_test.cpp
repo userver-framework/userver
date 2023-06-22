@@ -132,7 +132,7 @@ TEST_F(LoggingTest, PlainException) {
 }
 
 TEST_F(LoggingTest, TracefulExceptionDebug) {
-  logging::SetDefaultLoggerLevel(logging::Level::kDebug);
+  SetDefaultLoggerLevel(logging::Level::kDebug);
 
   LOG_CRITICAL() << utils::TracefulException("traceful exception");
 
@@ -152,7 +152,7 @@ TEST_F(LoggingTest, TracefulExceptionInfo) {
 }
 
 TEST_F(LoggingTest, AttachedException) {
-  logging::SetDefaultLoggerLevel(logging::Level::kDebug);
+  SetDefaultLoggerLevel(logging::Level::kDebug);
 
   try {
     throw utils::impl::AttachTraceToException(
@@ -464,7 +464,7 @@ TEST_F(LoggingTest, CustomLoggerLevel) {
                                       logging::Format::kTskv);
 
   // LOG_*_TO() must use its own log level, not default logger's one
-  logging::SetDefaultLoggerLevel(logging::Level::kCritical);
+  SetDefaultLoggerLevel(logging::Level::kCritical);
   logging::SetLoggerLevel(*logger, logging::Level::kInfo);
 
   LOG_INFO_TO(*logger) << "test";

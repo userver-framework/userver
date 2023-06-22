@@ -12,7 +12,6 @@ namespace logging::impl {
 
 class FdSink : public BaseSink {
  public:
-  FdSink() = delete;
   explicit FdSink(fs::blocking::FileDescriptor fd);
 
   ~FdSink() override;
@@ -21,25 +20,21 @@ class FdSink : public BaseSink {
 
  protected:
   void Write(std::string_view log) final;
+
   fs::blocking::FileDescriptor& GetFd();
+
   void SetFd(fs::blocking::FileDescriptor&& fd);
 
  private:
   fs::blocking::FileDescriptor fd_;
 };
 
-class StdoutSink final : public FdSink {
+class UnownedFdSink final : public FdSink {
  public:
-  StdoutSink();
-  ~StdoutSink() final;
-  void Flush() final;
-};
+  explicit UnownedFdSink(int fd);
+  ~UnownedFdSink() override;
 
-class StderrSink final : public FdSink {
- public:
-  StderrSink();
-  ~StderrSink() final;
-  void Flush() final;
+  void Flush() override;
 };
 
 }  // namespace logging::impl

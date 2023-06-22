@@ -14,12 +14,11 @@ TEST(CFile, NullFile) {
   EXPECT_FALSE(file.IsOpen());
 }
 
-TEST(CFile, DirectlyPointer) {
-  fs::blocking::CFile file(stdout);
+TEST(CFile, DirectPointer) {
+  const auto file_scope = fs::blocking::TempFile::Create();
+  fs::blocking::CFile file(std::fopen("file", "w"));
   EXPECT_TRUE(file.IsOpen());
   EXPECT_NO_THROW(file.Write("Test write data\n"));
-  // stdout not need in close
-  std::move(file).Release();
 }
 
 TEST(CFile, Move) {

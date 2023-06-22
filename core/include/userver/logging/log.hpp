@@ -25,7 +25,7 @@ void SetDefaultLoggerRef(LoggerRef new_logger) noexcept;
 
 }  // namespace impl
 
-/// Atomically replaces the default logger.
+/// @brief Atomically replaces the default logger.
 ///
 /// @warning Do not use this class if you are using a component system.
 class DefaultLoggerGuard final {
@@ -48,13 +48,31 @@ class DefaultLoggerGuard final {
   LoggerPtr logger_new_;
 };
 
-/// Sets new log level for default logger
+/// @brief Allows to override default log level within a scope. Primarily for
+/// use in tests.
+class DefaultLoggerLevelScope final {
+ public:
+  explicit DefaultLoggerLevelScope(logging::Level level);
+
+  DefaultLoggerLevelScope(DefaultLoggerLevelScope&&) = delete;
+  DefaultLoggerLevelScope& operator=(DefaultLoggerLevelScope&&) = delete;
+
+  ~DefaultLoggerLevelScope();
+
+ private:
+  impl::LoggerBase& logger_;
+  const Level level_initial_;
+};
+
+/// @brief Sets new log level for the default logger
+/// @note Prefer using logging::DefaultLoggerLevelScope if possible
 void SetDefaultLoggerLevel(Level);
 
-void SetLoggerLevel(LoggerRef, Level);
-
-/// Returns log level for default logger
+/// Returns log level for the default logger
 Level GetDefaultLoggerLevel() noexcept;
+
+/// Sets new log level for a logger
+void SetLoggerLevel(LoggerRef, Level);
 
 bool LoggerShouldLog(LoggerCRef logger, Level level) noexcept;
 

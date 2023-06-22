@@ -1,10 +1,5 @@
 #include "buffered_file_sink.hpp"
 
-#include <cstdio>
-
-#include <spdlog/pattern_formatter.h>
-#include <boost/filesystem.hpp>
-
 USERVER_NAMESPACE_BEGIN
 
 namespace logging::impl {
@@ -17,7 +12,7 @@ BufferedFileSink::BufferedFileSink(const std::string& filename)
 }
 
 void BufferedFileSink::Reopen(ReopenMode mode) {
-  std::lock_guard lock{GetMutex()};
+  const std::lock_guard lock{GetMutex()};
   file_.FlushLight();
   std::move(file_).Close();
   file_ = OpenFile<fs::blocking::CFile>(filename_, mode);
@@ -28,7 +23,7 @@ BufferedFileSink::~BufferedFileSink() = default;
 void BufferedFileSink::Write(std::string_view log) { file_.Write(log); }
 
 void BufferedFileSink::Flush() {
-  std::lock_guard lock(GetMutex());
+  const std::lock_guard lock(GetMutex());
   if (file_.IsOpen()) {
     file_.FlushLight();
   }
@@ -39,27 +34,14 @@ BufferedFileSink::BufferedFileSink(fs::blocking::CFile&& file)
 
 fs::blocking::CFile& BufferedFileSink::GetFile() { return file_; }
 
-BufferedStdoutFileSink::BufferedStdoutFileSink()
-    : BufferedFileSink{fs::blocking::CFile(stdout)} {}
+BufferedUnownedFileSink::BufferedUnownedFileSink(std::FILE* c_file)
+    : BufferedFileSink{fs::blocking::CFile(c_file)} {}
 
-BufferedStderrFileSink::BufferedStderrFileSink()
-    : BufferedFileSink{fs::blocking::CFile(stderr)} {}
+void BufferedUnownedFileSink::Flush() {}
 
-void BufferedStdoutFileSink::Flush() {}
+void BufferedUnownedFileSink::Reopen(ReopenMode) {}
 
-void BufferedStderrFileSink::Flush() {}
-
-void BufferedStdoutFileSink::Reopen(ReopenMode) {}
-
-void BufferedStderrFileSink::Reopen(ReopenMode) {}
-
-BufferedStdoutFileSink::~BufferedStdoutFileSink() {
-  if (GetFile().IsOpen()) {
-    std::move(GetFile()).Release();
-  }
-}
-
-BufferedStderrFileSink::~BufferedStderrFileSink() {
+BufferedUnownedFileSink::~BufferedUnownedFileSink() {
   if (GetFile().IsOpen()) {
     std::move(GetFile()).Release();
   }

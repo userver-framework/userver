@@ -41,12 +41,34 @@ namespace components {
 
 namespace {
 
+logging::LoggerPtr MakeLogger(const std::string& init_log_path,
+                              logging::Format format) {
+  if (init_log_path == "@null") {
+    return logging::MakeNullLogger();
+  }
+  if (init_log_path.empty()) {
+    return logging::MakeStderrLogger("default", format);
+  }
+
+  try {
+    return logging::MakeFileLogger("default", init_log_path, format);
+  } catch (const std::exception& e) {
+    auto error_message =
+        fmt::format("Setting initial logging to '{}' failed. ", init_log_path);
+
+    LOG_ERROR_TO(logging::MakeStderrLogger("default", format))
+        << error_message << e;
+
+    throw std::runtime_error(error_message + e.what());
+  }
+}
+
 class LogScope final {
  public:
-  LogScope(const std::string& init_log_path, logging::Format format)
-      : logger_new_(MakeLogger(init_log_path, format)),
+  explicit LogScope(logging::LoggerPtr logger_new)
+      : logger_new_(std::move(logger_new)),
         logger_prev_{logging::impl::DefaultLoggerRef()},
-        level_prev_{logging::GetDefaultLoggerLevel()} {
+        level_scope_{logging::GetDefaultLoggerLevel()} {
     UASSERT(logger_new_);
     logging::impl::SetDefaultLoggerRef(*logger_new_);
   }
@@ -56,37 +78,12 @@ class LogScope final {
     logger_new_ = {};
   }
 
-  ~LogScope() {
-    logging::impl::SetDefaultLoggerRef(logger_prev_);
-    logging::SetDefaultLoggerLevel(level_prev_);
-  }
+  ~LogScope() { logging::impl::SetDefaultLoggerRef(logger_prev_); }
 
  private:
-  static logging::LoggerPtr MakeLogger(const std::string& init_log_path,
-                                       logging::Format format) {
-    if (init_log_path == "@null") {
-      return logging::MakeNullLogger();
-    }
-    if (init_log_path.empty()) {
-      return logging::MakeStderrLogger("default", format);
-    }
-
-    try {
-      return logging::MakeFileLogger("default", init_log_path, format);
-    } catch (const std::exception& e) {
-      auto error_message = fmt::format(
-          "Setting initial logging to '{}' failed. ", init_log_path);
-
-      LOG_ERROR_TO(logging::MakeStderrLogger("default", format))
-          << error_message << e;
-
-      throw std::runtime_error(error_message + e.what());
-    }
-  }
-
   logging::LoggerPtr logger_new_;
   logging::LoggerRef logger_prev_;
-  const logging::Level level_prev_;
+  logging::DefaultLoggerLevelScope level_scope_;
 };
 
 const utils::impl::UserverExperiment kJemallocBgThread{"jemalloc-bg-thread"};
@@ -163,7 +160,7 @@ void DoRun(const PathOrConfig& config,
   ++server::handlers::auth::apikey::auth_checker_apikey_module_activation;
   crypto::impl::Openssl::Init();
 
-  LogScope log_scope{init_log_path, format};
+  LogScope log_scope{MakeLogger(init_log_path, format)};
 
   LOG_INFO() << "Parsing configs";
   if (config_vars_path) {
@@ -196,7 +193,7 @@ void DoRun(const PathOrConfig& config,
     throw;
   }
 
-  // Close the inderlying sinks to allow file removal
+  // Close the underlying sinks to allow file removal
   log_scope.Stop();
 
   if (run_mode == RunMode::kOnce) return;
@@ -253,6 +250,7 @@ void RunOnce(const InMemoryConfig& config, const ComponentList& component_list,
              const std::string& init_log_path, logging::Format format) {
   DoRun(config, {}, {}, component_list, init_log_path, format, RunMode::kOnce);
 }
+
 }  // namespace components
 
 USERVER_NAMESPACE_END

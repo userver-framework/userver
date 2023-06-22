@@ -12,13 +12,13 @@ USERVER_NAMESPACE_BEGIN
 
 TEST_F(LoggingTest, SwitchToTraceWorks) {
   LOG_TRACE() << "test";
-  logging::SetDefaultLoggerLevel(logging::Level::kTrace);
+  SetDefaultLoggerLevel(logging::Level::kTrace);
   LOG_TRACE() << "test";
-  logging::SetDefaultLoggerLevel(logging::Level::kInfo);
+  SetDefaultLoggerLevel(logging::Level::kInfo);
   LOG_TRACE() << "test";
-  logging::SetDefaultLoggerLevel(logging::Level::kTrace);
+  SetDefaultLoggerLevel(logging::Level::kTrace);
   LOG_TRACE() << "test";
-  logging::SetDefaultLoggerLevel(logging::Level::kInfo);
+  SetDefaultLoggerLevel(logging::Level::kInfo);
 
   logging::LogFlush();
   const auto log_contents = GetStreamString();
@@ -32,7 +32,7 @@ TEST_F(LoggingTest, SwitchToTraceWorks) {
 }
 
 TEST_F(LoggingTest, LogExtraExtendType) {
-  logging::SetDefaultLoggerLevel(logging::Level::kTrace);
+  SetDefaultLoggerLevel(logging::Level::kTrace);
 
   logging::LogExtra log_extra;
   log_extra.Extend("key1", "value1", logging::LogExtra::ExtendType::kNormal);
@@ -50,7 +50,7 @@ TEST_F(LoggingTest, LogExtraExtendType) {
 }
 
 TEST_F(LoggingTest, MultipleFlushes) {
-  logging::SetDefaultLoggerLevel(logging::Level::kTrace);
+  SetDefaultLoggerLevel(logging::Level::kTrace);
 
   // Make sure that multiple flush sequences is OK
   LOG_TRACE() << "some message1";

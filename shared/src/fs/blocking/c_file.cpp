@@ -72,6 +72,11 @@ CFile::CFile(const std::string& path, OpenMode flags,
 
 bool CFile::IsOpen() const { return static_cast<bool>(impl_->handle); }
 
+std::FILE* CFile::GetNative() & {
+  UASSERT(IsOpen());
+  return impl_->handle.get();
+}
+
 std::FILE* CFile::Release() && { return impl_->handle.release(); }
 
 void CFile::Close() && {
