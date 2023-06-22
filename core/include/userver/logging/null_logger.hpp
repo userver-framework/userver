@@ -3,21 +3,11 @@
 /// @file userver/logging/null_logger.hpp
 /// @brief @copybrief logging::MakeNullLogger()
 
-#include <memory>
+#include <userver/logging/fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace logging {
-
-namespace impl {
-
-class LoggerBase;
-
-}  // namespace impl
-
-using LoggerRef = impl::LoggerBase&;
-using LoggerCRef = const impl::LoggerBase&;
-using LoggerPtr = std::shared_ptr<impl::LoggerBase>;
 
 /// @brief Returns a logger that drops all incoming messages
 /// @see components::Logging

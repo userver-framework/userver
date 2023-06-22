@@ -21,6 +21,7 @@
 #include <userver/logging/level.hpp>
 #include <userver/logging/log_extra.hpp>
 #include <userver/logging/logger.hpp>
+#include <userver/logging/null_logger.hpp>
 #include <userver/tracing/span.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/datetime.hpp>

@@ -7,8 +7,8 @@
 #include <string>
 
 #include <userver/logging/format.hpp>
+#include <userver/logging/fwd.hpp>
 #include <userver/logging/level.hpp>
-#include <userver/logging/null_logger.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

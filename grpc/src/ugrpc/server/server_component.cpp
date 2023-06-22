@@ -4,6 +4,7 @@
 #include <userver/components/statistics_storage.hpp>
 #include <userver/dynamic_config/storage/component.hpp>
 #include <userver/logging/component.hpp>
+#include <userver/logging/fwd.hpp>
 #include <userver/logging/null_logger.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 

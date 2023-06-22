@@ -15,6 +15,7 @@
 #include <logging/rate_limit.hpp>
 #include <userver/decimal64/decimal64.hpp>
 #include <userver/formats/json/serialize.hpp>
+#include <userver/logging/null_logger.hpp>
 #include <userver/utils/traceful_exception.hpp>
 #include <utils/encoding/tskv_testdata_bin.hpp>
 

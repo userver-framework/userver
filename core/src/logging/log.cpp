@@ -5,6 +5,7 @@
 #include <logging/rate_limit.hpp>
 #include <userver/engine/task/task_base.hpp>
 #include <userver/logging/impl/logger_base.hpp>
+#include <userver/logging/null_logger.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

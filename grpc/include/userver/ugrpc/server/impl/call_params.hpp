@@ -6,7 +6,7 @@
 #include <grpcpp/server_context.h>
 
 #include <userver/dynamic_config/snapshot.hpp>
-#include <userver/logging/null_logger.hpp>
+#include <userver/logging/fwd.hpp>
 #include <userver/tracing/span.hpp>
 
 #include <userver/ugrpc/impl/statistics_scope.hpp>

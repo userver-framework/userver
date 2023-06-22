@@ -21,6 +21,7 @@
 #include <userver/fs/blocking/read.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/logging/logger.hpp>
+#include <userver/logging/null_logger.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/impl/static_registration.hpp>
 #include <userver/utils/impl/userver_experiments.hpp>
