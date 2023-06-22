@@ -342,7 +342,13 @@ void HandleDeadlineExpired(RequestProcessor& processor,
 void SetUpInheritedData(RequestProcessor& processor,
                         IsCancelledByDeadline& is_cancelled) {
   request::TaskInheritedData inherited_data{
-      std::get_if<std::string>(&processor.GetHandler().GetConfig().path),
+      std::visit(
+          utils::Overloaded{
+              [](const std::string& path) -> std::string_view { return path; },
+              [](const FallbackHandler&) -> std::string_view {
+                return "<fallback>";
+              }},
+          processor.GetHandler().GetConfig().path),
       processor.GetRequest().GetMethodStr(),
       processor.GetRequest().GetStartTime(),
       engine::Deadline{},

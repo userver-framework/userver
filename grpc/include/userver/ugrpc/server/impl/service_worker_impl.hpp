@@ -51,7 +51,8 @@ void SetupSpan(std::optional<tracing::InPlaceSpan>& span_holder,
                grpc::ServerContext& context, std::string_view call_name);
 
 bool CheckAndSetupDeadline(tracing::Span&, grpc::ServerContext&,
-                           const std::string&, const std::string&,
+                           std::string_view service_name,
+                           std::string_view method_name,
                            ugrpc::impl::RpcStatisticsScope&,
                            dynamic_config::Snapshot);
 
@@ -156,10 +157,9 @@ class CallData final {
     auto& service = method_data_.service;
     const auto service_method = method_data_.service_method;
 
-    // Should be alive until the end of the RPC
-    std::string service_name{
-        method_data_.service_data.metadata.service_full_name};
-    std::string method_name{method_data_.method_name};
+    const auto& service_name =
+        method_data_.service_data.metadata.service_full_name;
+    const auto& method_name = method_data_.method_name;
 
     SetupSpan(span_, context_, call_name);
     utils::FastScopeGuard destroy_span([&]() noexcept { span_.reset(); });

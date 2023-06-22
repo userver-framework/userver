@@ -16,10 +16,10 @@ namespace server::request {
 /// @brief Per-request data that should be available inside handlers
 struct TaskInheritedData final {
   /// The static path of the handler
-  const std::string* path{nullptr};
+  std::string_view path;
 
   /// The method of the request
-  const std::string& method;
+  std::string_view method;
 
   /// The time when the request started being handled
   std::chrono::steady_clock::time_point start_time{};

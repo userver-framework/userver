@@ -44,7 +44,7 @@ void DefaultCommandControls::UpdateDefaultCmdCtl(
 }
 
 OptionalCommandControl DefaultCommandControls::GetHandlerCmdCtl(
-    const std::string& path, const std::string& method) const {
+    std::string_view path, std::string_view method) const {
   UASSERT(data_);
   auto reader = data_->handlers_command_control.Read();
   return GetHandlerOptionalCommandControl(*reader, path, method);
@@ -58,29 +58,29 @@ OptionalCommandControl DefaultCommandControls::GetQueryCmdCtl(
 }
 
 void DefaultCommandControls::UpdateHandlersCommandControl(
-    const CommandControlByHandlerMap& handlers_command_control) {
+    CommandControlByHandlerMap&& handlers_command_control) {
   UASSERT(data_);
   {
     auto reader = data_->handlers_command_control.Read();
     if (*reader == handlers_command_control) return;
   }
-  data_->handlers_command_control.Assign(handlers_command_control);
+  data_->handlers_command_control.Assign(std::move(handlers_command_control));
 }
 
 void DefaultCommandControls::UpdateQueriesCommandControl(
-    const CommandControlByQueryMap& queries_command_control) {
+    CommandControlByQueryMap&& queries_command_control) {
   UASSERT(data_);
   {
     auto reader = data_->queries_command_control.Read();
     if (*reader == queries_command_control) return;
   }
-  data_->queries_command_control.Assign(queries_command_control);
+  data_->queries_command_control.Assign(std::move(queries_command_control));
 }
 
 DefaultCommandControls::Data::Data(
     const CommandControl& default_cmd_ctl_src,
-    CommandControlByHandlerMap handlers_command_control_src,
-    CommandControlByQueryMap queries_command_control_src)
+    CommandControlByHandlerMap&& handlers_command_control_src,
+    CommandControlByQueryMap&& queries_command_control_src)
     : default_cmd_ctl(default_cmd_ctl_src),
       handlers_command_control(std::move(handlers_command_control_src)),
       queries_command_control(std::move(queries_command_control_src)) {}

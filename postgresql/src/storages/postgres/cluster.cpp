@@ -58,13 +58,13 @@ CommandControl Cluster::GetDefaultCommandControl() const {
 }
 
 void Cluster::SetHandlersCommandControl(
-    const CommandControlByHandlerMap& handlers_command_control) {
-  pimpl_->SetHandlersCommandControl(handlers_command_control);
+    CommandControlByHandlerMap handlers_command_control) {
+  pimpl_->SetHandlersCommandControl(std::move(handlers_command_control));
 }
 
 void Cluster::SetQueriesCommandControl(
-    const CommandControlByQueryMap& queries_command_control) {
-  pimpl_->SetQueriesCommandControl(queries_command_control);
+    CommandControlByQueryMap queries_command_control) {
+  pimpl_->SetQueriesCommandControl(std::move(queries_command_control));
 }
 
 void Cluster::ApplyGlobalCommandControlUpdate(CommandControl cmd_ctl) {

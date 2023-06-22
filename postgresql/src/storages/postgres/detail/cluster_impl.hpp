@@ -50,10 +50,10 @@ class ClusterImpl {
   CommandControl GetDefaultCommandControl() const;
 
   void SetHandlersCommandControl(
-      const CommandControlByHandlerMap& handlers_command_control);
+      CommandControlByHandlerMap&& handlers_command_control);
 
   void SetQueriesCommandControl(
-      const CommandControlByQueryMap& queries_command_control);
+      CommandControlByQueryMap&& queries_command_control);
 
   void SetConnectionSettings(const ConnectionSettings& settings);
 

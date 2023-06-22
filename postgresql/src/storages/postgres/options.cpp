@@ -54,14 +54,15 @@ const std::string& BeginStatement(const TransactionOptions& opts) {
 }
 
 OptionalCommandControl GetHandlerOptionalCommandControl(
-    const CommandControlByHandlerMap& map, const std::string& path,
-    const std::string& method) {
-  auto itp = map.find(path);
-  if (itp == map.end()) return std::nullopt;
-  const auto& by_method_map = itp->second;
-  auto itm = by_method_map.find(method);
-  if (itm == by_method_map.end()) return std::nullopt;
-  return itm->second;
+    const CommandControlByHandlerMap& map, std::string_view path,
+    std::string_view method) {
+  const auto* const by_method_map =
+      utils::impl::FindTransparentOrNullptr(map, path);
+  if (!by_method_map) return std::nullopt;
+  const auto* const value =
+      utils::impl::FindTransparentOrNullptr(*by_method_map, method);
+  if (!value) return std::nullopt;
+  return *value;
 }
 
 OptionalCommandControl GetQueryOptionalCommandControl(

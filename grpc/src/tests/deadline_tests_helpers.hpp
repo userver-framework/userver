@@ -33,9 +33,8 @@ inline std::unique_ptr<grpc::ClientContext> GetContext(bool need_deadline) {
 inline void InitTaskInheritedDeadline(
     const engine::Deadline deadline =
         engine::Deadline::FromDuration(kShortTimeout)) {
-  server::request::TaskInheritedData inherited_data{
-      nullptr, kGrpcMethod, std::chrono::steady_clock::now(), deadline};
-  server::request::kTaskInheritedData.Set(inherited_data);
+  server::request::kTaskInheritedData.Set(
+      {{}, kGrpcMethod, std::chrono::steady_clock::now(), deadline});
 }
 
 inline void ClearTaskInheritedDeadline() {

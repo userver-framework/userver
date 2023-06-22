@@ -22,8 +22,7 @@ namespace {
 class DeadlinePropagation : public MongoPoolFixture {};
 
 server::request::TaskInheritedData MakeRequestData(engine::Deadline deadline) {
-  static const std::string kMethod{"dummy-method"};
-  return {nullptr, kMethod, {}, deadline};
+  return {{}, "dummy-method", {}, deadline};
 }
 
 }  // namespace

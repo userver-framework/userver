@@ -312,7 +312,7 @@ class UnitTestInheritedDeadline final
     EXPECT_TRUE(client_deadline_ < inherited_data.deadline ||
                 client_deadline_ == inherited_data.deadline);
     EXPECT_TRUE(inherited_data.deadline.IsReachable());
-    EXPECT_EQ(*(inherited_data.path), "sample.ugrpc.UnitTestService");
+    EXPECT_EQ(inherited_data.path, "sample.ugrpc.UnitTestService");
     EXPECT_EQ(inherited_data.method, "SayHello");
 
     sample::ugrpc::GreetingResponse response;

@@ -11,6 +11,7 @@
 
 #include <userver/congestion_control/controllers/linear.hpp>
 #include <userver/storages/postgres/postgres_fwd.hpp>
+#include <userver/utils/impl/transparent_hash.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -137,15 +138,16 @@ struct CommandControl {
 using OptionalCommandControl = std::optional<CommandControl>;
 
 using CommandControlByMethodMap =
-    std::unordered_map<std::string, CommandControl>;
+    USERVER_NAMESPACE::utils::impl::TransparentMap<std::string, CommandControl>;
 using CommandControlByHandlerMap =
-    std::unordered_map<std::string, CommandControlByMethodMap>;
+    USERVER_NAMESPACE::utils::impl::TransparentMap<std::string,
+                                                   CommandControlByMethodMap>;
 using CommandControlByQueryMap =
     std::unordered_map<std::string, CommandControl>;
 
 OptionalCommandControl GetHandlerOptionalCommandControl(
-    const CommandControlByHandlerMap& map, const std::string& path,
-    const std::string& method);
+    const CommandControlByHandlerMap& map, std::string_view path,
+    std::string_view method);
 
 OptionalCommandControl GetQueryOptionalCommandControl(
     const CommandControlByQueryMap& map, const std::string& query_name);

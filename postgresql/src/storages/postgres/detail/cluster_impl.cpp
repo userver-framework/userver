@@ -294,13 +294,15 @@ CommandControl ClusterImpl::GetDefaultCommandControl() const {
 }
 
 void ClusterImpl::SetHandlersCommandControl(
-    const CommandControlByHandlerMap& handlers_command_control) {
-  default_cmd_ctls_.UpdateHandlersCommandControl(handlers_command_control);
+    CommandControlByHandlerMap&& handlers_command_control) {
+  default_cmd_ctls_.UpdateHandlersCommandControl(
+      std::move(handlers_command_control));
 }
 
 void ClusterImpl::SetQueriesCommandControl(
-    const CommandControlByQueryMap& queries_command_control) {
-  default_cmd_ctls_.UpdateQueriesCommandControl(queries_command_control);
+    CommandControlByQueryMap&& queries_command_control) {
+  default_cmd_ctls_.UpdateQueriesCommandControl(
+      std::move(queries_command_control));
 }
 
 void ClusterImpl::SetConnectionSettings(const ConnectionSettings& settings) {
@@ -369,8 +371,8 @@ OptionalCommandControl ClusterImpl::GetQueryCmdCtl(
 
 OptionalCommandControl ClusterImpl::GetTaskDataHandlersCommandControl() const {
   const auto* task_data = server::request::kTaskInheritedData.GetOptional();
-  if (task_data && task_data->path) {
-    return default_cmd_ctls_.GetHandlerCmdCtl(*task_data->path,
+  if (task_data) {
+    return default_cmd_ctls_.GetHandlerCmdCtl(task_data->path,
                                               task_data->method);
   }
   return std::nullopt;

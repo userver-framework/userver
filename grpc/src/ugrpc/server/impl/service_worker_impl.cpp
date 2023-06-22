@@ -82,8 +82,8 @@ void SetupSpan(std::optional<tracing::InPlaceSpan>& span_holder,
 }
 
 bool CheckAndSetupDeadline(tracing::Span& span, grpc::ServerContext& context,
-                           const std::string& service_name,
-                           const std::string& method_name,
+                           std::string_view service_name,
+                           std::string_view method_name,
                            ugrpc::impl::RpcStatisticsScope& statistics_scope,
                            dynamic_config::Snapshot config) {
   auto opt_deadline = TryExtractDeadline(context.deadline());
@@ -109,7 +109,7 @@ bool CheckAndSetupDeadline(tracing::Span& span, grpc::ServerContext& context,
   }
 
   USERVER_NAMESPACE::server::request::TaskInheritedData inherited_data{
-      &service_name, method_name, std::chrono::steady_clock::now(), deadline};
+      service_name, method_name, std::chrono::steady_clock::now(), deadline};
   USERVER_NAMESPACE::server::request::kTaskInheritedData.Set(inherited_data);
 
   return true;
