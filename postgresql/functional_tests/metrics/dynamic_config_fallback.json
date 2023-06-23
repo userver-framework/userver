@@ -26,7 +26,7 @@
     }
   },
   "POSTGRES_CONNLIMIT_MODE_AUTO_ENABLED": false,
-  "POSTGRES_DEADLINE_PROPAGATION_ENABLED": false,
+  "POSTGRES_DEADLINE_PROPAGATION_VERSION": 0,
   "POSTGRES_DEFAULT_COMMAND_CONTROL": {
     "network_timeout_ms": 750,
     "statement_timeout_ms": 500

@@ -10,13 +10,15 @@ USERVER_NAMESPACE_BEGIN
 namespace storages::postgres {
 
 void CheckDeadlineIsExpired(const dynamic_config::Snapshot& config) {
-  if (!kDeadlinePropagationExperiment.IsEnabled()) return;
+  if (!kDeadlinePropagationExperiment.IsEnabled() ||
+      config[kDeadlinePropagationVersionConfig] !=
+          kDeadlinePropagationExperimentVersion) {
+    return;
+  }
 
-  if (config[kDeadlinePropagationEnabledConfig]) {
-    const auto inherited_deadline = server::request::GetTaskInheritedDeadline();
-    if (inherited_deadline.IsReached()) {
-      throw ConnectionInterrupted("Cancelled by deadline");
-    }
+  const auto inherited_deadline = server::request::GetTaskInheritedDeadline();
+  if (inherited_deadline.IsReached()) {
+    throw ConnectionInterrupted("Cancelled by deadline");
   }
 }
 

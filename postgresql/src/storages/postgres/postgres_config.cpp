@@ -138,7 +138,7 @@ StatementMetricsSettings Parse(const yaml_config::YamlConfig& config,
 }
 
 PipelineMode ParsePipelineMode(const dynamic_config::DocsMap& docs_map) {
-  return docs_map.Get("POSTGRES_CONNECTION_PIPELINE_EXPERIMENT").As<int>(0) ==
+  return docs_map.Get("POSTGRES_CONNECTION_PIPELINE_EXPERIMENT").As<int>() ==
                  kPipelineExperimentVersion
              ? PipelineMode::kEnabled
              : PipelineMode::kDisabled;
@@ -157,8 +157,8 @@ ConnlimitConfig ParseConnlimitConfig(const dynamic_config::DocsMap& docs_map) {
   return {docs_map.Get("POSTGRES_CONNLIMIT_MODE_AUTO_ENABLED").As<bool>()};
 }
 
-bool ParseDeadlinePropagation(const dynamic_config::DocsMap& docs_map) {
-  return docs_map.Get("POSTGRES_DEADLINE_PROPAGATION_ENABLED").As<bool>(false);
+int ParseDeadlinePropagation(const dynamic_config::DocsMap& docs_map) {
+  return docs_map.Get("POSTGRES_DEADLINE_PROPAGATION_VERSION").As<int>();
 }
 
 }  // namespace storages::postgres

@@ -55,12 +55,12 @@ class ConnlimitConfig {
 
 ConnlimitConfig ParseConnlimitConfig(const dynamic_config::DocsMap& docs_map);
 
-constexpr dynamic_config::Key<ParseConnlimitConfig> kConnlimitConfig;
+inline constexpr dynamic_config::Key<ParseConnlimitConfig> kConnlimitConfig;
 
-bool ParseDeadlinePropagation(const dynamic_config::DocsMap& docs_map);
+int ParseDeadlinePropagation(const dynamic_config::DocsMap& docs_map);
 
-constexpr dynamic_config::Key<ParseDeadlinePropagation>
-    kDeadlinePropagationEnabledConfig;
+inline constexpr dynamic_config::Key<ParseDeadlinePropagation>
+    kDeadlinePropagationVersionConfig;
 
 }  // namespace storages::postgres
 
