@@ -6,8 +6,8 @@
 #include <utility>
 
 #include <moodycamel/concurrentqueue.h>
-#include <uboost_coro/coroutine2/coroutine.hpp>
-#include <uboost_coro/coroutine2/protected_fixedsize_stack.hpp>
+
+#include <coroutines/coroutine.hpp>
 
 #include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
@@ -154,7 +154,7 @@ typename Pool<Task>::Coroutine Pool<Task>::CreateCoroutine(bool quiet) {
       // because ENOMEM is most likely coming from mmap
       // hitting vm.max_map_count limit, not from the actual memory limit.
       // See `stack_context::allocate` in
-      // uboost_coro/context/posix/protected_fixedsize_stack.hpp
+      // boost/context/posix/protected_fixedsize_stack.hpp
       LOG_ERROR() << "Failed to allocate a coroutine (ENOMEM), current "
                      "coroutines count: "
                   << total_coroutines_num_.load()

@@ -64,6 +64,8 @@ set(CMAKE_THREAD_PREFER_PTHREAD ON)
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 find_package(Boost REQUIRED COMPONENTS
+    context
+    coroutine
     program_options
     filesystem
     locale
@@ -146,6 +148,8 @@ if (USERVER_SANITIZE AND NOT CMAKE_BUILD_TYPE MATCHES "^Rel")
   target_link_libraries(${PROJECT_NAME} PUBLIC userver-compiler-rt-parts)
 endif()
 
+option(USERVER_FEATURE_UBOOST_CORO "Use vendored boost context instead of a system one" ON)
+
 target_link_libraries(${PROJECT_NAME}
   PUBLIC
     Threads::Threads
@@ -153,7 +157,7 @@ target_link_libraries(${PROJECT_NAME}
     sanitize-target
     CURL::libcurl
   PRIVATE
-    userver-uboost-coro
+    Boost::coroutine
     Boost::filesystem
     Boost::program_options
     Boost::iostreams
@@ -163,6 +167,24 @@ target_link_libraries(${PROJECT_NAME}
     OpenSSL::SSL
     ZLIB::ZLIB
 )
+if (USERVER_FEATURE_UBOOST_CORO)
+    target_link_libraries(${PROJECT_NAME}
+      PRIVATE
+        userver-uboost-coro
+    )
+    target_include_directories(${PROJECT_NAME} PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}/uboost_coro/include
+    )
+else()
+    target_link_libraries(${PROJECT_NAME}
+      PRIVATE
+        Boost::context
+    )
+    target_include_directories(${PROJECT_NAME} PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}/sys_coro/include
+    )
+endif()
+
 if (USERVER_CONAN)
     target_link_libraries(${PROJECT_NAME}
       PUBLIC
