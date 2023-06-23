@@ -11,6 +11,7 @@ ClusterShard& ClusterShard::operator=(const ClusterShard& other) {
   master_ = other.master_;
   replicas_ = other.replicas_;
   current_ = other.current_.load();
+  shard_ = other.shard_;
   return *this;
 }
 
@@ -21,6 +22,7 @@ ClusterShard& ClusterShard::operator=(ClusterShard&& other) noexcept {
   master_ = std::move(other.master_);
   replicas_ = std::move(other.replicas_);
   current_ = other.current_.load();
+  shard_ = other.shard_;
   return *this;
 }
 
@@ -60,8 +62,9 @@ bool ClusterShard::AsyncCommand(CommandPtr command) {
     if (instance->AsyncCommand(command)) return true;
   }
 
-  LOG_LIMITED_WARNING() << "No Redis server is ready for shard"
+  LOG_LIMITED_WARNING() << "No Redis server is ready for shard=" << shard_
                         << " slave=" << command->read_only
+                        << " available_servers=" << available_servers.size()
                         << command->log_extra;
   return false;
 }

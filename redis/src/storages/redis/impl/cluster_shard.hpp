@@ -21,16 +21,20 @@ class ClusterShard {
  public:
   using RedisPtr = std::shared_ptr<redis::Redis>;
 
-  ClusterShard(RedisPtr master, std::vector<RedisPtr> replicas)
-      : master_(std::move(master)), replicas_(std::move(replicas)) {}
+  ClusterShard(size_t shard, RedisPtr master, std::vector<RedisPtr> replicas)
+      : master_(std::move(master)),
+        replicas_(std::move(replicas)),
+        shard_(shard) {}
   ClusterShard(const ClusterShard& other)
       : master_(other.master_),
         replicas_(other.replicas_),
-        current_(other.current_.load()) {}
+        current_(other.current_.load()),
+        shard_(other.shard_) {}
   ClusterShard(ClusterShard&& other) noexcept
       : master_(std::move(other.master_)),
         replicas_(std::move(other.replicas_)),
-        current_(other.current_.load()) {}
+        current_(other.current_.load()),
+        shard_(other.shard_) {}
   ClusterShard& operator=(const ClusterShard& other);
   ClusterShard& operator=(ClusterShard&& other) noexcept;
   bool IsReady(WaitConnectedMode mode) const;
@@ -58,6 +62,7 @@ class ClusterShard {
   RedisPtr master_;
   std::vector<RedisPtr> replicas_;
   std::atomic_size_t current_{0};
+  size_t shard_;
 };
 
 }  // namespace redis

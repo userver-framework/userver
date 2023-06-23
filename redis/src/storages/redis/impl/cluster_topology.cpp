@@ -18,6 +18,7 @@ ClusterTopology::ClusterTopology(
       return host_port.first + ":" + std::to_string(host_port.second);
     };
     cluster_shards_.reserve(infos_.size());
+    size_t shard_index = 0;
     for (const auto& info : infos_) {
       const auto& master_host_port = HostPortToString(info.master.HostPort());
       /// TODO: nodes from CLUSTER SLOTS must be present in CLUSTER NODES
@@ -28,7 +29,8 @@ ClusterTopology::ClusterTopology(
       for (const auto& replica : info.slaves) {
         replicas.push_back(nodes.Get(HostPortToString(replica.HostPort())));
       }
-      cluster_shards_.emplace_back(master, replicas);
+      cluster_shards_.emplace_back(shard_index++, std::move(master),
+                                   std::move(replicas));
     }
   }
 
@@ -87,7 +89,7 @@ void ClusterTopology::GetStatistics(
     stats.shard_group_total.Add(master_stats.shard_total);
     stats.shard_group_total.Add(replica_stats.shard_total);
     stats.masters.emplace(shard_name, std::move(master_stats));
-    stats.masters.emplace(shard_name, std::move(master_stats));
+    stats.slaves.emplace(shard_name, std::move(replica_stats));
   }
 }
 }  // namespace redis
