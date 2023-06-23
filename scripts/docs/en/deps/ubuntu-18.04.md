@@ -4,7 +4,7 @@ g++-8
 git
 libbenchmark-dev
 libboost-context1.65-dev
-libboost-coroutines1.65-dev
+libboost-coroutine1.65-dev
 libboost-filesystem1.65-dev
 libboost-iostreams1.65-dev
 libboost-locale1.65-dev

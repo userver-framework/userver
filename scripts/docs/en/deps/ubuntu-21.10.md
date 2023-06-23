@@ -3,7 +3,7 @@ cmake
 git
 libbenchmark-dev
 libboost-context1.74-dev
-libboost-coroutines1.74-dev
+libboost-coroutine1.74-dev
 libboost-filesystem1.74-dev
 libboost-iostreams1.74-dev
 libboost-locale1.74-dev
