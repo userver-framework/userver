@@ -12,6 +12,7 @@ groups:
       - samples/static_service/dynamic_config_fallback.json
       - samples/tcp_full_duplex_service/dynamic_config_fallback.json
       - samples/tcp_service/dynamic_config_fallback.json
+      - core/functional_tests/basic_chaos/dynamic_config_fallback.json
       - core/functional_tests/metrics/dynamic_config_fallback.json
       - core/functional_tests/uctl/dynamic_config_fallback.json
       - conan/test_package/hello_service/dynamic_config_fallback.json
@@ -33,14 +34,6 @@ groups:
             token-update-interval-ms: 0
         SAMPLE_INTEGER_FROM_RUNTIME_CONFIG: 42
         DYNAMIC_CONFIG_UPDATES_SINK_CHAIN: ""
-
-  - library-yamls:
-      - core/library.yaml
-    fallbacks:
-      - core/functional_tests/basic_chaos/dynamic_config_fallback.json
-    overrides:
-        USERVER_HANDLER_STREAM_API_ENABLED: true
-        USERVER_LOG_DYNAMIC_DEBUG: {"force-enabled": ["garbage"], "force-disabled": []}
 
   - library-yamls:
       - core/library.yaml
@@ -103,15 +96,6 @@ groups:
     fallbacks:
       - postgresql/functional_tests/basic_chaos/dynamic_config_fallback.json
       - postgresql/functional_tests/connlimit_max/dynamic_config_fallback.json
-    overrides:
-        # chaos proxy is slow, initial connection setup takes quite some time
-        POSTGRES_DEFAULT_COMMAND_CONTROL:
-            network_timeout_ms: 30000
-            statement_timeout_ms: 15000
-        POSTGRES_CONNECTION_SETTINGS:
-            __default__:
-                user-types-enabled: false  # Not used in chaos tests
-                recent-errors-threshold: 100000
 
   - library-yamls:
       - core/library.yaml
@@ -133,32 +117,22 @@ groups:
       - redis/library.yaml
     fallbacks:
       - samples/redis_service/dynamic_config_fallback.json
+      - redis/functional_tests/cluster_auto_topology/dynamic_config_fallback.json
+
+  - library-yamls:
+      - core/library.yaml
+      - redis/library.yaml
+    fallbacks:
       - redis/functional_tests/integration_tests/dynamic_config_fallback.json
       - redis/functional_tests/basic_chaos/dynamic_config_fallback.json
       - redis/functional_tests/metrics/dynamic_config_fallback.json
       - redis/functional_tests/pubsub/dynamic_config_fallback.json
       - redis/tests/dynamic_config_fallback.json
     overrides:
-        REDIS_METRICS_SETTINGS:
-            command-timings-enabled: true
-            reply-sizes-enabled: true
-            request-sizes-enabled: true
-            timings-enabled: true
-        REDIS_PUBSUB_METRICS_SETTINGS:
-            per-shard-stats-enabled: true
         REDIS_REPLICA_MONITORING_SETTINGS:
             __default__:
                 enable-monitoring: true
                 forbid-requests-to-syncing-replicas: true
-        REDIS_DEADLINE_PROPAGATION_ENABLED: true
-
-  - library-yamls:
-      - core/library.yaml
-      - redis/library.yaml
-    fallbacks:
-      - redis/functional_tests/cluster_auto_topology_test/dynamic_config_fallback.json
-    overrides:
-        REDIS_CLUSTER_AUTOTOPOLOGY_ENABLED: true
 
   - library-yamls:
       - core/library.yaml

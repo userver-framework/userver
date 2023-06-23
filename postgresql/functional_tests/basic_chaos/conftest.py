@@ -9,6 +9,22 @@ from testsuite.databases.pgsql import discover
 pytest_plugins = ['pytest_userver.plugins.postgresql']
 
 
+@pytest.fixture(scope='session')
+def dynamic_config_fallback_patch():
+    return {
+        'POSTGRES_DEFAULT_COMMAND_CONTROL': {
+            'network_timeout_ms': 30000,
+            'statement_timeout_ms': 15000,
+        },
+        'POSTGRES_CONNECTION_SETTINGS': {
+            '__default__': {
+                'user-types-enabled': False,
+                'recent-errors-threshold': 100000,
+            },
+        },
+    }
+
+
 # /// [gate start]
 @pytest.fixture(scope='session')
 def pgsql_local(service_source_dir, pgsql_local_create):

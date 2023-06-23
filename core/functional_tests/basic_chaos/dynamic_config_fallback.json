@@ -29,13 +29,11 @@
     ".svg": "image/svg+xml",
     "__default__": "text/plain"
   },
-  "USERVER_HANDLER_STREAM_API_ENABLED": true,
+  "USERVER_HANDLER_STREAM_API_ENABLED": false,
   "USERVER_HTTP_PROXY": "",
   "USERVER_LOG_DYNAMIC_DEBUG": {
     "force-disabled": [],
-    "force-enabled": [
-      "garbage"
-    ]
+    "force-enabled": []
   },
   "USERVER_LOG_REQUEST": true,
   "USERVER_LOG_REQUEST_HEADERS": false,

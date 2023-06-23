@@ -19,6 +19,11 @@ pytest_plugins = [
 
 
 @pytest.fixture(scope='session')
+def dynamic_config_fallback_patch():
+    return {'REDIS_CLUSTER_AUTOTOPOLOGY_ENABLED': True}
+
+
+@pytest.fixture(scope='session')
 def service_env(redis_sentinel_services, redis_cluster_topology_services):
     cluster_hosts = []
     cluster_shards = []

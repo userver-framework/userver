@@ -123,8 +123,25 @@ def taxi_config(dynamic_config) -> DynamicConfig:
 
 
 @pytest.fixture(scope='session')
+def dynamic_config_fallback_patch() -> typing.Dict[str, typing.Any]:
+    """
+    Override this fixture to replace some dynamic config values specifically
+    for testsuite tests:
+
+    @code
+    @pytest.fixture(scope='session')
+    def dynamic_config_fallback_patch():
+        return {"MY_CONFIG_NAME": 42}
+    @endcode
+
+    @ingroup userver_testsuite_fixtures
+    """
+    return {}
+
+
+@pytest.fixture(scope='session')
 def config_service_defaults(
-        config_fallback_path,
+        config_fallback_path, dynamic_config_fallback_patch,
 ) -> typing.Dict[str, typing.Any]:
     """
     Fixture that returns default values for dynamic config. You may override
@@ -141,7 +158,9 @@ def config_service_defaults(
     """
     if config_fallback_path and pathlib.Path(config_fallback_path).exists():
         with open(config_fallback_path, 'r', encoding='utf-8') as file:
-            return json.load(file)
+            fallback = json.load(file)
+        fallback.update(dynamic_config_fallback_patch)
+        return fallback
 
     raise RuntimeError(
         'Either provide the path to dynamic config defaults file using '
@@ -170,31 +189,42 @@ def userver_config_dynconf_cache(service_tmpdir):
     return patch_config
 
 
+_COMPONENTS_WITH_FALLBACK = {
+    'dynamic-config-fallbacks',
+    'dynamic-config-client-updater',
+}
+
+
 @pytest.fixture(scope='session')
-def userver_config_dynconf_fallback(pytestconfig, config_fallback_path):
+def userver_config_dynconf_fallback(
+        pytestconfig, config_service_defaults, service_tmpdir,
+):
     """
     Returns a function that adjusts the static configuration file for
     the testsuite.
-    Sets the `fallback-path` of the `dynamic-config-fallbacks` and
-    `dynamic-config-fallbacks` to the value of
-    @ref pytest_userver.plugins.config.config_fallback_path
-    "config_fallback_path" fixture.
+    Sets the `fallback-path` of the `dynamic-config-client-updater` and
+    `dynamic-config-fallbacks` according to `config_service_defaults`.
 
     @ingroup userver_testsuite_fixtures
     """
 
     def _patch_config(config_yaml, _config_vars):
         components = config_yaml['components_manager']['components']
-        for component_name in (
-                'dynamic-config-fallbacks',
-                'dynamic-config-client-updater',
-        ):
+        if not (components.keys() & _COMPONENTS_WITH_FALLBACK):
+            return
+
+        fallback_path = (
+            service_tmpdir / 'configs' / 'dynamic_config_fallback.json'
+        )
+        fallback_path.parent.mkdir(exist_ok=True)
+        with open(fallback_path, 'w', encoding='utf-8') as file:
+            json.dump(config_service_defaults, file)
+
+        for component_name in _COMPONENTS_WITH_FALLBACK:
             if component_name not in components:
                 continue
             component = components[component_name]
-            if not config_fallback_path:
-                pytest.fail('Please run with --config-fallback=...')
-            component['fallback-path'] = str(config_fallback_path)
+            component['fallback-path'] = str(fallback_path)
 
     return _patch_config
 

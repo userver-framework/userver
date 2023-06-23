@@ -12,6 +12,11 @@ pytest_plugins = ['pytest_userver.plugins.redis']
 
 
 @pytest.fixture(scope='session')
+def dynamic_config_fallback_patch():
+    return {'REDIS_DEADLINE_PROPAGATION_ENABLED': True}
+
+
+@pytest.fixture(scope='session')
 def sentinel_gate_settings() -> typing.Tuple[str, int]:
     return ('localhost', 27379)
 

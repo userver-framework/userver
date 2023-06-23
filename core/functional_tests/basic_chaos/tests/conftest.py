@@ -5,6 +5,17 @@ pytest_plugins = ['pytest_userver.plugins.core', 'pytest_userver.plugins']
 USERVER_CONFIG_HOOKS = ['_userver_config_dns_link']
 
 
+@pytest.fixture(scope='session')
+def dynamic_config_fallback_patch():
+    return {
+        'USERVER_HANDLER_STREAM_API_ENABLED': True,
+        'USERVER_LOG_DYNAMIC_DEBUG': {
+            'force-enabled': ['garbage'],
+            'force-disabled': [],
+        },
+    }
+
+
 @pytest.fixture(name='for_client_gate_port', scope='module')
 def _for_client_gate_port(request) -> int:
     # This fixture might be defined in an outer scope.
