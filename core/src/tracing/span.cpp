@@ -258,13 +258,16 @@ Span::Span(Span&& other) noexcept : pimpl_(std::move(other.pimpl_)) {
 Span::~Span() = default;
 
 Span& Span::CurrentSpan() {
+  UASSERT_MSG(engine::current_task::IsTaskProcessorThread(),
+              "Span::CurrentSpan() called from non coroutine environment");
+
   auto* span = CurrentSpanUnchecked();
-  UASSERT(span != nullptr);
+  static constexpr std::string_view msg =
+      "Span::CurrentSpan() called from Span'less task";
+  UASSERT_MSG(span != nullptr, msg);
   if (span == nullptr) {
-    static constexpr const char* msg =
-        "Span::CurrentSpan() called from Span'less task";
     LOG_ERROR() << msg << logging::LogExtra::Stacktrace();
-    throw std::logic_error(msg);
+    throw std::logic_error(std::string{msg});
   }
   return *span;
 }
