@@ -13,7 +13,7 @@ pytest_plugins = ['pytest_userver.plugins.redis']
 
 @pytest.fixture(scope='session')
 def dynamic_config_fallback_patch():
-    return {'REDIS_DEADLINE_PROPAGATION_ENABLED': True}
+    return {'REDIS_DEADLINE_PROPAGATION_VERSION': 1}
 
 
 @pytest.fixture(scope='session')

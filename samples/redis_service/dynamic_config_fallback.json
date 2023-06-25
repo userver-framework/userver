@@ -16,7 +16,7 @@
     "buffering_enabled": false,
     "watch_command_timer_interval_us": 0
   },
-  "REDIS_DEADLINE_PROPAGATION_ENABLED": false,
+  "REDIS_DEADLINE_PROPAGATION_VERSION": 1,
   "REDIS_DEFAULT_COMMAND_CONTROL": {},
   "REDIS_METRICS_SETTINGS": {},
   "REDIS_PUBSUB_METRICS_SETTINGS": {},

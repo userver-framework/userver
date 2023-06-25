@@ -238,14 +238,17 @@ std::optional<std::chrono::milliseconds> GetDeadlineTimeLeft(
 
   if (!kDeadlinePropagationExperiment.IsEnabled()) return std::nullopt;
 
-  if (config[kDeadlinePropagationEnabled]) {
-    const auto inherited_deadline = server::request::GetTaskInheritedDeadline();
-    if (inherited_deadline.IsReachable()) {
-      const auto inherited_timeout =
-          std::chrono::duration_cast<std::chrono::milliseconds>(
-              inherited_deadline.TimeLeftApprox());
-      return inherited_timeout;
-    }
+  if (config[kDeadlinePropagationVersion] !=
+      kDeadlinePropagationExperimentVersion) {
+    return std::nullopt;
+  }
+
+  const auto inherited_deadline = server::request::GetTaskInheritedDeadline();
+  if (inherited_deadline.IsReachable()) {
+    const auto inherited_timeout =
+        std::chrono::duration_cast<std::chrono::milliseconds>(
+            inherited_deadline.TimeLeftApprox());
+    return inherited_timeout;
   }
   return std::nullopt;
 }

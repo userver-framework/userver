@@ -9,12 +9,12 @@ USERVER_NAMESPACE_BEGIN
 
 namespace redis {
 
-bool ParseDeadlinePropagationEnabled(const dynamic_config::DocsMap& docs_map);
+int ParseDeadlinePropagationVersion(const dynamic_config::DocsMap& docs_map);
+inline constexpr dynamic_config::Key<ParseDeadlinePropagationVersion>
+    kDeadlinePropagationVersion;
+inline constexpr int kDeadlinePropagationExperimentVersion = 1;
+
 bool ParseRedisClusterAutoTopology(const dynamic_config::DocsMap& docs_map);
-
-inline constexpr dynamic_config::Key<ParseDeadlinePropagationEnabled>
-    kDeadlinePropagationEnabled;
-
 inline constexpr dynamic_config::Key<ParseRedisClusterAutoTopology>
     kRedisAutoTopologyEnabled;
 

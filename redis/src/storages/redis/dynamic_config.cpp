@@ -6,8 +6,8 @@ USERVER_NAMESPACE_BEGIN
 
 namespace redis {
 
-bool ParseDeadlinePropagationEnabled(const dynamic_config::DocsMap& docs_map) {
-  return docs_map.Get("REDIS_DEADLINE_PROPAGATION_ENABLED").As<bool>(false);
+int ParseDeadlinePropagationVersion(const dynamic_config::DocsMap& docs_map) {
+  return docs_map.Get("REDIS_DEADLINE_PROPAGATION_VERSION").As<int>(0);
 }
 
 bool ParseRedisClusterAutoTopology(const dynamic_config::DocsMap& docs_map) {
