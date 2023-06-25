@@ -2,10 +2,13 @@ ccache
 cmake
 git
 libbenchmark-dev
+libboost-context1.67-dev
+libboost-coroutine1.67-dev
 libboost-filesystem1.67-dev
 libboost-iostreams1.67-dev
 libboost-locale1.67-dev
 libboost-program-options1.67-dev
+libboost-thread1.67-dev
 libboost-regex1.67-dev
 libboost1.67-dev
 libbson-dev
