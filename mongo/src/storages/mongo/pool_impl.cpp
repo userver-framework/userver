@@ -30,7 +30,8 @@ PoolImpl::PoolImpl(std::string&& id, const PoolConfig& static_config,
 void PoolImpl::Start() { cc_controller_.Start(); }
 
 void PoolImpl::OnConfigUpdate(const dynamic_config::Snapshot& config) {
-  cc_controller_.SetEnabled(config[kCongestionControlEnabled]);
+  cc_controller_.SetEnabled(config[kCongestionControlEnabled] &&
+                            kCcExperiment.IsEnabled());
 }
 
 const std::string& PoolImpl::Id() const { return id_; }

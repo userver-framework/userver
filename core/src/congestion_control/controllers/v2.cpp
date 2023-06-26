@@ -42,7 +42,7 @@ std::string_view Controller::LogFakeMode() const {
   if (config_.fake_mode)
     return " (fake mode)";
   else if (!enabled_)
-    return " (disabled via config)";
+    return " (disabled via config or experiment)";
   else
     return "";
 }
@@ -74,7 +74,7 @@ void Controller::Step() {
   if (limit.load_limit.has_value()) stats_.enabled_epochs++;
   stats_.current_limit = limit.load_limit.value_or(0);
   stats_.is_enabled = limit.load_limit.has_value();
-  stats_.is_fake_mode = config_.fake_mode;
+  stats_.is_fake_mode = config_.fake_mode || !enabled_;
 }
 
 const std::string& Controller::GetName() const { return name_; }

@@ -94,7 +94,7 @@ LinearController::StaticConfig Parse(
     const yaml_config::YamlConfig& value,
     formats::parse::To<LinearController::StaticConfig>) {
   LinearController::StaticConfig config;
-  config.fake_mode = value["fake-mode"].As<bool>(true);
+  config.fake_mode = value["fake-mode"].As<bool>(false);
   config.enabled = value["enabled"].As<bool>(true);
   return config;
 }
