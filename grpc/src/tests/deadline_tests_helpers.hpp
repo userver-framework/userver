@@ -15,7 +15,7 @@ USERVER_NAMESPACE_BEGIN
 // TODO move functions to cpp
 namespace helpers {
 
-constexpr auto kShortTimeout = std::chrono::milliseconds{100};
+constexpr auto kShortTimeout = std::chrono::milliseconds{300};
 constexpr auto kLongTimeout = std::chrono::milliseconds{500} + kShortTimeout;
 
 constexpr auto kAddSleep = std::chrono::milliseconds{10};
