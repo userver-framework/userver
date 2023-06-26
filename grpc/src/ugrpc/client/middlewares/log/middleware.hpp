@@ -1,13 +1,10 @@
 #pragma once
 
-/// @file userver/ugrpc/client/log_middleware/middleware.hpp
-/// @brief @copybrief ugrpc::client::log_middleware::Middleware
-
-#include <userver/ugrpc/client/middleware_base.hpp>
+#include <userver/ugrpc/client/middlewares/base.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
-namespace ugrpc::client::log_middleware {
+namespace ugrpc::client::middlewares::log {
 
 /// @brief middleware for RPC handler logging settings
 class Middleware final : public MiddlewareBase {
@@ -38,6 +35,6 @@ class MiddlewareFactory final : public MiddlewareFactoryBase {
 };
 /// @endcond
 
-}  // namespace ugrpc::client::log_middleware
+}  // namespace ugrpc::client::middlewares::log
 
 USERVER_NAMESPACE_END

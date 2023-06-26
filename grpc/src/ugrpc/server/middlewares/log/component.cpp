@@ -1,13 +1,13 @@
-#include <userver/ugrpc/server/log_middleware/component.hpp>
+#include <userver/ugrpc/server/middlewares/log/component.hpp>
 
-#include <ugrpc/server/log_middleware/middleware.hpp>
+#include <ugrpc/server/middlewares/log/middleware.hpp>
 #include <userver/components/component_config.hpp>
 #include <userver/logging/level_serialization.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
-namespace ugrpc::server::log_middleware {
+namespace ugrpc::server::middlewares::log {
 
 Component::Component(const components::ComponentConfig& config,
                      const components::ComponentContext& context)
@@ -41,6 +41,6 @@ properties:
 )");
 }
 
-}  // namespace ugrpc::server::log_middleware
+}  // namespace ugrpc::server::middlewares::log
 
 USERVER_NAMESPACE_END

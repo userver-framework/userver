@@ -10,11 +10,12 @@
 
 #include <userver/dynamic_config/source.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
+#include <userver/logging/null_logger.hpp>
 #include <userver/utils/statistics/fwd.hpp>
 
 #include <userver/ugrpc/impl/static_metadata.hpp>
 #include <userver/ugrpc/impl/statistics_storage.hpp>
-#include <userver/ugrpc/server/middleware_base.hpp>
+#include <userver/ugrpc/server/middlewares/fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

@@ -13,6 +13,7 @@
 
 #include <ugrpc/client/impl/client_configs.hpp>
 #include <ugrpc/server/impl/server_configs.hpp>
+#include <ugrpc/server/middlewares/deadline_propagation/middleware.hpp>
 #include <userver/ugrpc/client/exceptions.hpp>
 #include <userver/ugrpc/client/queue_holder.hpp>
 
@@ -327,8 +328,15 @@ class UnitTestInheritedDeadline final
   engine::Deadline client_deadline_;
 };
 
-using GrpcTestInheritedDedline =
-    GrpcServiceFixtureSimple<UnitTestInheritedDeadline>;
+class GrpcTestInheritedDedline
+    : public GrpcServiceFixtureSimple<UnitTestInheritedDeadline> {
+ public:
+  GrpcTestInheritedDedline() {
+    GetServerMiddlewares().push_back(
+        std::make_shared<
+            ugrpc::server::middlewares::deadline_propagation::Middleware>());
+  }
+};
 
 }  // namespace
 

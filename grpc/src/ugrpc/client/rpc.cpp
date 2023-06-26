@@ -1,7 +1,7 @@
 #include <userver/ugrpc/client/rpc.hpp>
 
 #include <userver/ugrpc/client/exceptions.hpp>
-#include <userver/ugrpc/client/middleware_base.hpp>
+#include <userver/ugrpc/client/middlewares/base.hpp>
 #include <userver/utils/fast_scope_guard.hpp>
 
 USERVER_NAMESPACE_BEGIN

@@ -1,12 +1,12 @@
 #pragma once
 
-/// @file userver/ugrpc/client/middleware_base.hpp
+/// @file userver/ugrpc/client/middlewares/middleware_base.hpp
 /// @brief @copybrief ugrpc::client::MiddlewareBase
 
 #include <memory>
 #include <vector>
 
-#include <userver/ugrpc/client/middleware_fwd.hpp>
+#include <userver/ugrpc/client/middlewares/fwd.hpp>
 #include <userver/ugrpc/client/rpc.hpp>
 
 #include <userver/components/loggable_component_base.hpp>

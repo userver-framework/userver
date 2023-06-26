@@ -1,22 +1,20 @@
 #pragma once
 
-/// @file userver/ugrpc/server/log_middleware/component.hpp
-/// @brief @copybrief ugrpc::server::log_middleware::Component
+/// @file userver/ugrpc/client/logging/component.hpp
+/// @brief @copybrief ugrpc::client::middlewares::log::Component
 
-#include <optional>
-
-#include <userver/ugrpc/server/middleware_base.hpp>
+#include <userver/ugrpc/client/middlewares/base.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
-/// Server logging middleware
-namespace ugrpc::server::log_middleware {
+/// Client logging middleware
+namespace ugrpc::client::middlewares::log {
 
 // clang-format off
 
-/// @ingroup userver_components userver_base_classes
+/// @ingroup userver_components
 ///
-/// @brief Component for gRPC server logging
+/// @brief Component for gRPC client logging
 ///
 /// ## Static options:
 /// Name | Description | Default value
@@ -28,21 +26,20 @@ namespace ugrpc::server::log_middleware {
 
 class Component final : public MiddlewareComponentBase {
  public:
-  static constexpr std::string_view kName = "grpc-server-logging";
+  static constexpr std::string_view kName = "grpc-client-logging";
 
   Component(const components::ComponentConfig& config,
             const components::ComponentContext& context);
 
-  std::shared_ptr<MiddlewareBase> GetMiddleware() override;
+  std::shared_ptr<const MiddlewareFactoryBase> GetMiddlewareFactory() override;
 
   static yaml_config::Schema GetStaticConfigSchema();
 
  private:
   std::size_t max_size_;
-  logging::Level msg_log_level_;
-  std::optional<logging::Level> local_log_level_;
+  logging::Level log_level_;
 };
 
-}  // namespace ugrpc::server::log_middleware
+}  // namespace ugrpc::client::middlewares::log
 
 USERVER_NAMESPACE_END

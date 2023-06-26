@@ -15,6 +15,7 @@
 
 #include <ugrpc/client/impl/client_configs.hpp>
 #include <ugrpc/server/impl/server_configs.hpp>
+#include <ugrpc/server/middlewares/deadline_propagation/middleware.hpp>
 #include <userver/ugrpc/client/exceptions.hpp>
 
 #include <tests/messages.pb.h>
@@ -65,6 +66,9 @@ class DeadlineStatsTests
                      true);
     experiments_.Set(utils::impl::kGrpcServerDeadlinePropagationExperiment,
                      true);
+    GetServerMiddlewares().push_back(
+        std::make_shared<
+            ugrpc::server::middlewares::deadline_propagation::Middleware>());
   }
 
   void BeSlow() { GetService().SetWaitDeadline(true); }
@@ -132,10 +136,6 @@ UTEST_F(DeadlineStatsTests, ServerDeadlineUpdated) {
   EXPECT_TRUE(ExecuteRequest(false));
 
   ValidateServerStatistic(kDeadlinePropagated, kExpected);
-}
-
-UTEST_F(DeadlineStatsTests, ServerDeadlineCancelled) {
-  // TODO Test with chaos proxy
 }
 
 UTEST_F(DeadlineStatsTests, ClientDeadlineUpdated) {

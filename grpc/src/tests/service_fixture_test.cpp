@@ -27,8 +27,8 @@ GrpcServiceFixture::GrpcServiceFixture()
 GrpcServiceFixture::~GrpcServiceFixture() = default;
 
 void GrpcServiceFixture::RegisterService(ugrpc::server::ServiceBase& service) {
-  static ugrpc::server::Middlewares mws;
-  server_.AddService(service, engine::current_task::GetTaskProcessor(), mws);
+  server_.AddService(service, engine::current_task::GetTaskProcessor(),
+                     server_middlewares_);
 }
 
 void GrpcServiceFixture::StartServer(
@@ -66,6 +66,10 @@ ugrpc::server::Server& GrpcServiceFixture::GetServer() noexcept {
 ugrpc::client::MiddlewareFactories&
 GrpcServiceFixture::GetMiddlewareFactories() {
   return middleware_factories_;
+}
+
+ugrpc::server::Middlewares& GrpcServiceFixture::GetServerMiddlewares() {
+  return server_middlewares_;
 }
 
 dynamic_config::Source GrpcServiceFixture::GetConfigSource() const {

@@ -9,6 +9,7 @@
 #include <userver/utils/assert.hpp>
 
 #include <userver/ugrpc/impl/deadline_timepoint.hpp>
+#include <userver/ugrpc/impl/internal_tag_fwd.hpp>
 #include <userver/ugrpc/impl/span.hpp>
 #include <userver/ugrpc/impl/statistics_scope.hpp>
 #include <userver/ugrpc/server/exceptions.hpp>
@@ -37,16 +38,22 @@ class CallAnyBase {
   /// @note Trailing metadata, if any, must be set before the `Finish` call
   grpc::ServerContext& GetContext() { return params_.context; }
 
+  /// @brief Name of the call. Consists of service and method names
+  std::string_view GetCallName() const { return params_.call_name; }
+
+  tracing::Span& GetCallSpan() { return params_.call_span; }
+
+  /// @cond
+  // For internal use only
+  ugrpc::impl::RpcStatisticsScope& Statistics(ugrpc::impl::InternalTag);
+  /// @endcond
+
  protected:
-  void LogFinish(grpc::Status status) const;
-
-  std::string_view CallName() { return params_.call_name; }
-
   ugrpc::impl::RpcStatisticsScope& Statistics() { return params_.statistics; }
 
   logging::LoggerCRef AccessTskvLogger() { return params_.access_tskv_logger; }
 
-  tracing::Span& CallSpan() { return params_.call_span; }
+  void LogFinish(grpc::Status status) const;
 
  private:
   impl::CallParams params_;
@@ -262,7 +269,7 @@ UnaryCall<Response>::UnaryCall(impl::CallParams&& call_params,
 template <typename Response>
 UnaryCall<Response>::~UnaryCall() {
   if (!is_finished_) {
-    impl::CancelWithError(stream_, CallName());
+    impl::CancelWithError(stream_, GetCallName());
     LogFinish(impl::kUnknownErrorStatus);
   }
 }
@@ -273,9 +280,9 @@ void UnaryCall<Response>::Finish(const Response& response) {
   is_finished_ = true;
 
   LogFinish(grpc::Status::OK);
-  impl::Finish(stream_, response, grpc::Status::OK, CallName());
+  impl::Finish(stream_, response, grpc::Status::OK, GetCallName());
   Statistics().OnExplicitFinish(grpc::StatusCode::OK);
-  ugrpc::impl::UpdateSpanWithStatus(CallSpan(), grpc::Status::OK);
+  ugrpc::impl::UpdateSpanWithStatus(GetCallSpan(), grpc::Status::OK);
 }
 
 template <typename Response>
@@ -283,9 +290,9 @@ void UnaryCall<Response>::FinishWithError(const grpc::Status& status) {
   UINVARIANT(!is_finished_, "'FinishWithError' called on a finished call");
   is_finished_ = true;
   LogFinish(status);
-  impl::FinishWithError(stream_, status, CallName());
+  impl::FinishWithError(stream_, status, GetCallName());
   Statistics().OnExplicitFinish(status.error_code());
-  ugrpc::impl::UpdateSpanWithStatus(CallSpan(), status);
+  ugrpc::impl::UpdateSpanWithStatus(GetCallSpan(), status);
 }
 
 template <typename Request, typename Response>
@@ -296,7 +303,7 @@ InputStream<Request, Response>::InputStream(
 template <typename Request, typename Response>
 InputStream<Request, Response>::~InputStream() {
   if (state_ != State::kFinished) {
-    impl::CancelWithError(stream_, CallName());
+    impl::CancelWithError(stream_, GetCallName());
     LogFinish(impl::kUnknownErrorStatus);
   }
 }
@@ -319,9 +326,9 @@ void InputStream<Request, Response>::Finish(const Response& response) {
              "'Finish' called on a finished stream");
   state_ = State::kFinished;
   LogFinish(grpc::Status::OK);
-  impl::Finish(stream_, response, grpc::Status::OK, CallName());
+  impl::Finish(stream_, response, grpc::Status::OK, GetCallName());
   Statistics().OnExplicitFinish(grpc::StatusCode::OK);
-  ugrpc::impl::UpdateSpanWithStatus(CallSpan(), grpc::Status::OK);
+  ugrpc::impl::UpdateSpanWithStatus(GetCallSpan(), grpc::Status::OK);
 }
 
 template <typename Request, typename Response>
@@ -332,9 +339,9 @@ void InputStream<Request, Response>::FinishWithError(
              "'FinishWithError' called on a finished stream");
   state_ = State::kFinished;
   LogFinish(status);
-  impl::FinishWithError(stream_, status, CallName());
+  impl::FinishWithError(stream_, status, GetCallName());
   Statistics().OnExplicitFinish(status.error_code());
-  ugrpc::impl::UpdateSpanWithStatus(CallSpan(), status);
+  ugrpc::impl::UpdateSpanWithStatus(GetCallSpan(), status);
 }
 
 template <typename Response>
@@ -345,7 +352,7 @@ OutputStream<Response>::OutputStream(impl::CallParams&& call_params,
 template <typename Response>
 OutputStream<Response>::~OutputStream() {
   if (state_ != State::kFinished) {
-    impl::Cancel(stream_, CallName());
+    impl::Cancel(stream_, GetCallName());
     LogFinish(impl::kUnknownErrorStatus);
   }
 }
@@ -356,13 +363,13 @@ void OutputStream<Response>::Write(const Response& response) {
 
   // For some reason, gRPC requires explicit 'SendInitialMetadata' in output
   // streams
-  impl::SendInitialMetadataIfNew(stream_, CallName(), state_);
+  impl::SendInitialMetadataIfNew(stream_, GetCallName(), state_);
 
   // Don't buffer writes, otherwise in an event subscription scenario, events
   // may never actually be delivered
   grpc::WriteOptions write_options{};
 
-  impl::Write(stream_, response, write_options, CallName());
+  impl::Write(stream_, response, write_options, GetCallName());
 }
 
 template <typename Response>
@@ -372,9 +379,9 @@ void OutputStream<Response>::Finish() {
   state_ = State::kFinished;
   const auto status = grpc::Status::OK;
   LogFinish(status);
-  impl::Finish(stream_, status, CallName());
+  impl::Finish(stream_, status, GetCallName());
   Statistics().OnExplicitFinish(grpc::StatusCode::OK);
-  ugrpc::impl::UpdateSpanWithStatus(CallSpan(), status);
+  ugrpc::impl::UpdateSpanWithStatus(GetCallSpan(), status);
 }
 
 template <typename Response>
@@ -384,9 +391,9 @@ void OutputStream<Response>::FinishWithError(const grpc::Status& status) {
              "'Finish' called on a finished stream");
   state_ = State::kFinished;
   LogFinish(status);
-  impl::Finish(stream_, status, CallName());
+  impl::Finish(stream_, status, GetCallName());
   Statistics().OnExplicitFinish(status.error_code());
-  ugrpc::impl::UpdateSpanWithStatus(CallSpan(), status);
+  ugrpc::impl::UpdateSpanWithStatus(GetCallSpan(), status);
 }
 
 template <typename Response>
@@ -401,7 +408,7 @@ void OutputStream<Response>::WriteAndFinish(const Response& response) {
 
   const auto status = grpc::Status::OK;
   LogFinish(status);
-  impl::WriteAndFinish(stream_, response, write_options, status, CallName());
+  impl::WriteAndFinish(stream_, response, write_options, status, GetCallName());
 }
 
 template <typename Request, typename Response>
@@ -413,7 +420,7 @@ BidirectionalStream<Request, Response>::BidirectionalStream(
 template <typename Request, typename Response>
 BidirectionalStream<Request, Response>::~BidirectionalStream() {
   if (state_ != State::kFinished) {
-    impl::Cancel(stream_, CallName());
+    impl::Cancel(stream_, GetCallName());
     LogFinish(impl::kUnknownErrorStatus);
   }
 }
@@ -437,7 +444,7 @@ void BidirectionalStream<Request, Response>::Write(const Response& response) {
   // Don't buffer writes, optimize for ping-pong-style interaction
   grpc::WriteOptions write_options{};
 
-  impl::Write(stream_, response, write_options, CallName());
+  impl::Write(stream_, response, write_options, GetCallName());
 }
 
 template <typename Request, typename Response>
@@ -447,9 +454,9 @@ void BidirectionalStream<Request, Response>::Finish() {
   state_ = State::kFinished;
   const auto status = grpc::Status::OK;
   LogFinish(status);
-  impl::Finish(stream_, status, CallName());
+  impl::Finish(stream_, status, GetCallName());
   Statistics().OnExplicitFinish(grpc::StatusCode::OK);
-  ugrpc::impl::UpdateSpanWithStatus(CallSpan(), status);
+  ugrpc::impl::UpdateSpanWithStatus(GetCallSpan(), status);
 }
 
 template <typename Request, typename Response>
@@ -460,9 +467,9 @@ void BidirectionalStream<Request, Response>::FinishWithError(
              "'FinishWithError' called on a finished stream");
   state_ = State::kFinished;
   LogFinish(status);
-  impl::Finish(stream_, status, CallName());
+  impl::Finish(stream_, status, GetCallName());
   Statistics().OnExplicitFinish(status.error_code());
-  ugrpc::impl::UpdateSpanWithStatus(CallSpan(), status);
+  ugrpc::impl::UpdateSpanWithStatus(GetCallSpan(), status);
 }
 
 template <typename Request, typename Response>
@@ -477,7 +484,7 @@ void BidirectionalStream<Request, Response>::WriteAndFinish(
 
   const auto status = grpc::Status::OK;
   LogFinish(status);
-  impl::WriteAndFinish(stream_, response, write_options, status, CallName());
+  impl::WriteAndFinish(stream_, response, write_options, status, GetCallName());
 }
 
 }  // namespace ugrpc::server

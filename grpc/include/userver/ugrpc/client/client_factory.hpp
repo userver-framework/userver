@@ -18,7 +18,7 @@
 
 #include <userver/ugrpc/client/impl/channel_cache.hpp>
 #include <userver/ugrpc/client/impl/client_data.hpp>
-#include <userver/ugrpc/client/middleware_base.hpp>
+#include <userver/ugrpc/client/middlewares/base.hpp>
 #include <userver/ugrpc/impl/statistics_storage.hpp>
 
 USERVER_NAMESPACE_BEGIN

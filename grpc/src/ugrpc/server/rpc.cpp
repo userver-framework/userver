@@ -1,10 +1,13 @@
 #include <userver/ugrpc/server/rpc.hpp>
 
 #include <fmt/format.h>
+
 #include <userver/logging/impl/logger_base.hpp>
 #include <userver/logging/logger.hpp>
 #include <userver/utils/datetime.hpp>
 #include <userver/utils/encoding/tskv.hpp>
+
+#include <ugrpc/impl/internal_tag.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -21,6 +24,11 @@ std::string EscapeForAccessTskvLog(std::string_view str) {
 }
 
 }  // namespace
+
+ugrpc::impl::RpcStatisticsScope& CallAnyBase::Statistics(
+    ugrpc::impl::InternalTag) {
+  return params_.statistics;
+}
 
 void CallAnyBase::LogFinish(grpc::Status status) const {
   auto md = params_.context.client_metadata();

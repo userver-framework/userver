@@ -41,6 +41,8 @@ class GrpcServiceFixture : public ::testing::Test {
 
   dynamic_config::Source GetConfigSource() const;
 
+  ugrpc::server::Middlewares& GetServerMiddlewares();
+
   ugrpc::server::Server& GetServer() noexcept;
 
   ugrpc::client::MiddlewareFactories& GetMiddlewareFactories();
@@ -52,6 +54,7 @@ class GrpcServiceFixture : public ::testing::Test {
   dynamic_config::StorageMock config_storage_;
   ugrpc::server::Server server_;
   ugrpc::client::MiddlewareFactories middleware_factories_;
+  ugrpc::server::Middlewares server_middlewares_;
   testsuite::GrpcControl testsuite_;
   std::optional<std::string> endpoint_;
   std::optional<ugrpc::client::ClientFactory> client_factory_;

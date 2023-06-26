@@ -17,7 +17,7 @@
 #include <userver/yaml_config/fwd.hpp>
 
 #include <userver/ugrpc/impl/statistics.hpp>
-#include <userver/ugrpc/server/middleware_base.hpp>
+#include <userver/ugrpc/server/middlewares/fwd.hpp>
 #include <userver/ugrpc/server/service_base.hpp>
 
 USERVER_NAMESPACE_BEGIN

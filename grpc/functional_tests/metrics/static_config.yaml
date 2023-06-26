@@ -28,10 +28,13 @@ components_manager:
         grpc-server-logging:
             msg-size-log-limit: 10
 
+        grpc-server-deadline-propagation:
+
         greeter-service:
             task-processor: main-task-processor
             middlewares:
               - grpc-server-logging
+              - grpc-server-deadline-propagation
 
         # gRPC client
         grpc-client-factory:

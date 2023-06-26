@@ -32,7 +32,7 @@
 #include <userver/ugrpc/server/impl/call_params.hpp>
 #include <userver/ugrpc/server/impl/call_traits.hpp>
 #include <userver/ugrpc/server/impl/service_worker.hpp>
-#include <userver/ugrpc/server/middleware_base.hpp>
+#include <userver/ugrpc/server/middlewares/base.hpp>
 #include <userver/ugrpc/server/rpc.hpp>
 #include <userver/ugrpc/server/service_base.hpp>
 
@@ -180,18 +180,6 @@ class CallData final {
     };
 
     try {
-      if (!CheckAndSetupDeadline(
-              span_->Get(), context_, service_name, method_name,
-              statistics_scope,
-              method_data_.service_data.settings.config_source.GetSnapshot())) {
-        // Can throw RpcInterruptedError, therefore should be placed in try
-        // block
-        responder.FinishWithError(grpc::Status{
-            grpc::StatusCode::DEADLINE_EXCEEDED,
-            "Deadline propagation: Not enough time to handle this call"});
-        return;
-      }
-
       ::google::protobuf::Message* initial_request = nullptr;
       if constexpr (!std::is_same_v<InitialRequest, NoInitialRequest>) {
         initial_request = &initial_request_;
@@ -199,8 +187,10 @@ class CallData final {
 
       // TODO: pass responder as function_ref?
       auto& middlewares = method_data_.service_data.settings.middlewares;
-      MiddlewareCallContext middleware_context(middlewares, responder, do_call,
-                                               initial_request);
+      MiddlewareCallContext middleware_context(
+          middlewares, responder, do_call, service_name, method_name,
+          method_data_.service_data.settings.config_source.GetSnapshot(),
+          initial_request);
       middleware_context.Next();
     } catch (const RpcInterruptedError& ex) {
       ReportNetworkError(ex, call_name, span_->Get());

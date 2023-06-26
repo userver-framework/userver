@@ -10,7 +10,7 @@
 #include <userver/dynamic_config/source.hpp>
 #include <userver/testsuite/grpc_control.hpp>
 #include <userver/ugrpc/client/impl/channel_cache.hpp>
-#include <userver/ugrpc/client/middleware_fwd.hpp>
+#include <userver/ugrpc/client/middlewares/fwd.hpp>
 #include <userver/ugrpc/impl/static_metadata.hpp>
 #include <userver/ugrpc/impl/statistics.hpp>
 #include <userver/utils/fixed_array.hpp>

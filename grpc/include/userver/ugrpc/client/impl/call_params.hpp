@@ -8,7 +8,7 @@
 #include <userver/dynamic_config/snapshot.hpp>
 
 #include <userver/ugrpc/client/impl/client_data.hpp>
-#include <userver/ugrpc/client/middleware_fwd.hpp>
+#include <userver/ugrpc/client/middlewares/fwd.hpp>
 #include <userver/ugrpc/impl/statistics.hpp>
 
 USERVER_NAMESPACE_BEGIN
