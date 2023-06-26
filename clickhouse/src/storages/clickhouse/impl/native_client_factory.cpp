@@ -29,7 +29,7 @@ using TlsSocket = engine::io::TlsWrapper;
 using ConnectionMode = ConnectionSettings::ConnectionMode;
 using CompressionMethod = ConnectionSettings::CompressionMethod;
 
-constexpr std::chrono::milliseconds kConnectTimeout{2000};
+constexpr std::chrono::milliseconds kConnectTimeout{1500};
 
 template <typename T>
 class ClickhouseSocketInput final : public clickhouse_cpp::InputStream {
@@ -151,6 +151,10 @@ class ClickhouseSocketFactory final : public clickhouse_cpp::SocketFactory {
       current_addr.SetPort(static_cast<int>(opts.port));
 
       try {
+        // Each connect attempt should have it's own timeout to avoid situation
+        // of one attempt consuming the whole budget.
+        operations_deadline_ = engine::Deadline::FromDuration(kConnectTimeout);
+
         switch (mode_) {
           case ConnectionMode::kNonSecure:
             return std::make_unique<ClickhouseSocketAdapter>(
@@ -164,7 +168,8 @@ class ClickhouseSocketFactory final : public clickhouse_cpp::SocketFactory {
     }
 
     throw std::runtime_error{
-        "Could not connect to any of the resolved addresses"};
+        fmt::format("Could not connect to any of the resolved addresses: {}",
+                    fmt::join(addrs, ", "))};
   }
 
   void sleepFor(const std::chrono::milliseconds& duration) override {
