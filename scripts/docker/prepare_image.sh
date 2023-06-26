@@ -40,4 +40,6 @@ yandex-taxi-testsuite[mongodb,postgresql-binary,redis,clickhouse,rabbitmq] >= 0.
 grpcio >= 1.50.0
 grpcio-tools >= 1.50.0
 psycopg2 >= 2.7.5
+pymongo >= 4.0.0
+redis >= 4.4.0
 yandex-pgmigrate' > $current_dir/src/requirements.txt
