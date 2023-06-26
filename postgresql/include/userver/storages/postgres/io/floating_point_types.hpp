@@ -4,6 +4,8 @@
 /// @brief Floating point I/O support
 /// @ingroup userver_postgres_parse_and_format
 
+#include <cstring>
+
 #include <boost/endian/arithmetic.hpp>
 #include <userver/storages/postgres/io/buffer_io_base.hpp>
 #include <userver/storages/postgres/io/integral_types.hpp>
@@ -36,8 +38,10 @@ struct FloatingPointBySizeParser {
   using IntParser = IntegralBySizeParser<Size>;
 
   static FloatType ParseBuffer(const FieldBuffer& buf) {
-    IntType tmp = IntParser::ParseBuffer(buf);
-    return reinterpret_cast<const FloatType&>(tmp);
+    const IntType tmp = IntParser::ParseBuffer(buf);
+    FloatType float_value{};
+    std::memcpy(&float_value, &tmp, Size);
+    return float_value;
   }
 };
 

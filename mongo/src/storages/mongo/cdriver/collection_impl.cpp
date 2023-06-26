@@ -208,14 +208,18 @@ size_t CDriverCollectionImpl::Execute(
         impl::GetNative(operation.impl_->options),
         operation.impl_->read_prefs.Get(), nullptr, error.GetNative());
   } else {
+#ifdef __clang__
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"  // i know
+#endif
     count = mongoc_collection_count_with_opts(
         context.collection.get(), MONGOC_QUERY_NONE, native_filter_bson_ptr,  //
         0, 0,  // skip and limit are set in options
         impl::GetNative(operation.impl_->options),
         operation.impl_->read_prefs.Get(), error.GetNative());
+#ifdef __clang__
 #pragma clang diagnostic pop
+#endif
   }
   if (count < 0) {
     stopwatch.AccountError(error.GetKind());

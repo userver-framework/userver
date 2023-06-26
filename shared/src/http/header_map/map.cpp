@@ -578,7 +578,7 @@ Map::Iterator Map::DoErase(std::string_view key, Traits::HashValue hash) {
 
   const auto entries_index = pos.entries_index;
   positions_[pos.positions_index] = Pos::None();
-  if (entries_index + 1 != entries_.size()) {
+  if (std::size_t{entries_index} + 1 != entries_.size()) {
     entries_[entries_index] = std::move(entries_.back());
   }
   entries_.pop_back();

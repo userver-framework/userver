@@ -2,6 +2,9 @@
 
 #include <fmt/format.h>
 
+#include <userver/utils/assert.hpp>
+#include <userver/utils/underlying_value.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace formats::bson {
@@ -54,6 +57,8 @@ const char* NameForType(bson_type_t type) {
     case BSON_TYPE_DECIMAL128:
       return "DECIMAL128";
   }
+  UINVARIANT(false, fmt::format("Invalid bson_type_t: {}",
+                                utils::UnderlyingValue(type)));
 }
 
 std::string MsgForType(bson_type_t actual, bson_type_t expected,

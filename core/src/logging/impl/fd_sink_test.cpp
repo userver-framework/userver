@@ -11,15 +11,29 @@
 #include <userver/utest/utest.hpp>
 #include <userver/utils/fast_scope_guard.hpp>
 #include <userver/utils/text.hpp>
+#include <utils/check_syscall.hpp>
 
 #include "sink_helper_test.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
 namespace {
+
 const auto msg_a = std::string(test::kEightMb, 'a');
 const auto msg_b = std::string(test::kEightMb, 'b');
 const auto msg_c = std::string(test::kEightMb, 'c');
+
+[[nodiscard]] std::array<int, 2> CreatePipe() {
+  std::array<int, 2> fd_pipe{-1, -1};
+#ifdef HAVE_PIPE2
+  utils::CheckSyscall(::pipe2(fd_pipe.data(), O_NONBLOCK | O_CLOEXEC),
+                      "calling ::pipe2");
+#else
+  utils::CheckSyscall(::pipe(fd_pipe.data()), "calling ::pipe");
+#endif
+  return fd_pipe;
+}
+
 }  // namespace
 
 UTEST(FdSink, UnownedSinkLog) {
@@ -187,12 +201,7 @@ UTEST_MT(FdSink, PipeSinkLogAsyncBigMessage, 4) {
 }
 
 TEST(FdSink, PipeSinkLogAsyncNoCore) {
-  std::array<int, 2> fd_pipe{-1, -1};
-#ifdef HAVE_PIPE2
-  ::pipe2(fd_pipe.data(), O_NONBLOCK | O_CLOEXEC);
-#else
-  ::pipe(fd_pipe.data());
-#endif
+  const auto fd_pipe = CreatePipe();
   auto read_fd = fs::blocking::FileDescriptor::AdoptFd(fd_pipe[0]);
   auto write_fd = fs::blocking::FileDescriptor::AdoptFd(fd_pipe[1]);
 
@@ -234,12 +243,7 @@ TEST(FdSink, PipeSinkLogAsyncNoCore) {
 }
 
 TEST(FdSink, PipeSinkLogAsyncNoCoreBigString) {
-  std::array<int, 2> fd_pipe{-1, -1};
-#ifdef HAVE_PIPE2
-  ::pipe2(fd_pipe.data(), O_NONBLOCK | O_CLOEXEC);
-#else
-  ::pipe(fd_pipe.data());
-#endif
+  const auto fd_pipe = CreatePipe();
   auto read_fd = fs::blocking::FileDescriptor::AdoptFd(fd_pipe[0]);
   auto write_fd = fs::blocking::FileDescriptor::AdoptFd(fd_pipe[1]);
 
