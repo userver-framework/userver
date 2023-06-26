@@ -172,7 +172,7 @@ if (USERVER_FEATURE_UBOOST_CORO)
       PRIVATE
         userver-uboost-coro
     )
-    target_include_directories(${PROJECT_NAME} PUBLIC
+    target_include_directories(${PROJECT_NAME} PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/uboost_coro/include
     )
 else()
@@ -180,7 +180,7 @@ else()
       PRIVATE
         Boost::context
     )
-    target_include_directories(${PROJECT_NAME} PUBLIC
+    target_include_directories(${PROJECT_NAME} PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/sys_coro/include
     )
 endif()
