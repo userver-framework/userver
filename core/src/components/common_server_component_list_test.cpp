@@ -240,13 +240,14 @@ TEST_F(ComponentList, ServerCommon) {
   fs::blocking::RewriteFileContents(
       config_vars_path,
       fmt::format(kConfigVarsTemplate, temp_root.GetPath(), runtime_config_path,
-                  "warning", "'@stderr'", "discard"));
+                  "warning", "'@null'", "discard"));
 
   components::RunOnce(
       components::InMemoryConfig{std::string{kStaticConfig} + config_vars_path},
       components::CommonComponentList()
           .AppendComponentList(components::CommonServerComponentList())
-          .Append<server::handlers::Ping>());
+          .Append<server::handlers::Ping>(),
+      "@null");
 }
 
 TEST_F(ComponentList, ServerTraceLogging) {
@@ -267,7 +268,8 @@ TEST_F(ComponentList, ServerTraceLogging) {
       components::InMemoryConfig{std::string{kStaticConfig} + config_vars_path},
       components::CommonComponentList()
           .AppendComponentList(components::CommonServerComponentList())
-          .Append<server::handlers::Ping>());
+          .Append<server::handlers::Ping>(),
+      logs_file);
 }
 
 TEST_F(ComponentList, ServerNullLogging) {
@@ -287,7 +289,8 @@ TEST_F(ComponentList, ServerNullLogging) {
       components::InMemoryConfig{std::string{kStaticConfig} + config_vars_path},
       components::CommonComponentList()
           .AppendComponentList(components::CommonServerComponentList())
-          .Append<server::handlers::Ping>());
+          .Append<server::handlers::Ping>(),
+      "@null");
 }
 
 TEST_F(ComponentList, BlockingDefaultLogger) {
@@ -301,7 +304,7 @@ TEST_F(ComponentList, BlockingDefaultLogger) {
   fs::blocking::RewriteFileContents(
       config_vars_path,
       fmt::format(kConfigVarsTemplate, temp_root.GetPath(), runtime_config_path,
-                  "warning", "'@stderr'", "block"));
+                  "warning", "'@null'", "block"));
 
   const components::InMemoryConfig config{std::string{kStaticConfig} +
                                           config_vars_path};
@@ -309,8 +312,8 @@ TEST_F(ComponentList, BlockingDefaultLogger) {
       components::CommonComponentList()
           .AppendComponentList(components::CommonServerComponentList())
           .Append<server::handlers::Ping>();
-  UEXPECT_THROW_MSG(components::RunOnce(config, component_list), std::exception,
-                    "efault logger");
+  UEXPECT_THROW_MSG(components::RunOnce(config, component_list, "@null"),
+                    std::exception, "efault logger");
 }
 
 USERVER_NAMESPACE_END

@@ -55,11 +55,6 @@ UTEST(FdSink, UnownedSinkLog) {
               testing::HasSubstr("message"));
 }
 
-UTEST(FdSink, StderrSinkLog) {
-  auto sink = logging::impl::UnownedFdSink(STDERR_FILENO);
-  EXPECT_NO_THROW(sink.Log({"default", spdlog::level::critical, "message"}));
-}
-
 UTEST(FdSink, PipeSinkLog) {
   engine::io::Pipe fd_pipe{};
 

@@ -203,7 +203,7 @@ TEST_F(ComponentList, Common) {
 
   components::RunOnce(
       components::InMemoryConfig{std::string{kStaticConfig} + config_vars_path},
-      components::CommonComponentList());
+      components::CommonComponentList(), temp_root.GetPath() + "/server.log");
 }
 
 USERVER_NAMESPACE_END

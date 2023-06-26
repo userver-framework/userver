@@ -34,7 +34,8 @@ TEST_F(ComponentList, Minimal) {
       config_vars_path, fmt::format(kConfigVarsTemplate, runtime_config_path));
 
   components::RunOnce(components::InMemoryConfig{static_config},
-                      components::MinimalComponentList());
+                      components::MinimalComponentList(), "@null",
+                      logging::Format::kTskv);
 }
 
 USERVER_NAMESPACE_END

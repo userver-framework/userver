@@ -105,7 +105,7 @@ components_manager:
           level#fallback: info
 # /// [Sample task-switch tracing]
         default:
-          file_path: '@stderr'
+          file_path: '@null'
           level: warning
     tracer:
         service-name: config-service
@@ -222,7 +222,7 @@ TEST_F(ServerMinimalComponentList, Basic) {
   fs::blocking::RewriteFileContents(GetConfigVarsPath(), config_vars);
 
   components::RunOnce(components::InMemoryConfig{GetStaticConfig()},
-                      TestsComponentList());
+                      TestsComponentList(), "@null");
 }
 
 TEST_F(ServerMinimalComponentList, InitLogsClose) {
@@ -258,7 +258,7 @@ TEST_F(ServerMinimalComponentList, TraceSwitching) {
   fs::blocking::RewriteFileContents(GetConfigVarsPath(), config_vars);
 
   components::RunOnce(components::InMemoryConfig{GetStaticConfig()},
-                      TestsComponentList());
+                      TestsComponentList(), "@null");
 
   logging::LogFlush();
 
@@ -284,7 +284,7 @@ TEST_F(ServerMinimalComponentList, TraceStacktraces) {
       fmt::format(kConfigVarsTemplate, GetRuntimeConfigPath(), logs_path));
 
   components::RunOnce(components::InMemoryConfig{GetStaticConfig()},
-                      TestsComponentList());
+                      TestsComponentList(), "@null");
 
   logging::LogFlush();
 
@@ -308,7 +308,7 @@ TEST_F(ServerMinimalComponentList, MissingRuntimeConfigParam) {
 
   UEXPECT_THROW_MSG(
       components::RunOnce(components::InMemoryConfig{GetStaticConfig()},
-                          TestsComponentList()),
+                          TestsComponentList(), "@null"),
       std::exception, "USERVER_LOG_REQUEST_HEADERS");
 }
 

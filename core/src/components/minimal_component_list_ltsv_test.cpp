@@ -1,6 +1,7 @@
 #include <userver/components/minimal_component_list.hpp>
 
 #include <fmt/format.h>
+#include <gmock/gmock.h>
 
 #include <userver/components/run.hpp>
 #include <userver/fs/blocking/read.hpp>
@@ -37,13 +38,14 @@ TEST_F(ComponentList, MinimalLtsvLogs) {
       fmt::format(kConfigVarsTemplate, runtime_config_path, logs_path));
 
   components::RunOnce(components::InMemoryConfig{static_config},
-                      components::MinimalComponentList());
+                      components::MinimalComponentList(), logs_path,
+                      logging::Format::kLtsv);
 
   logging::LogFlush();
 
   const auto logs = fs::blocking::ReadFileContents(logs_path);
-  EXPECT_EQ(logs.find("tskv\t"), std::string::npos) << logs;
-  EXPECT_NE(logs.find("\ttext:"), std::string::npos) << logs;
+  EXPECT_THAT(logs, testing::Not(testing::HasSubstr("tskv\t")));
+  EXPECT_THAT(logs, testing::HasSubstr("\ttext:"));
 }
 
 USERVER_NAMESPACE_END
