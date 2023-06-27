@@ -13,7 +13,7 @@ if (CUSTOM_LINKER)
         set(CUSTOM_LD_OK ON CACHE INTERNAL CUSTOM_LD_OK)
         message (STATUS "Using LLVM lld linker")
     endif()
-    
+
     if (CUSTOM_LD_OK)
         string(APPEND CMAKE_EXE_LINKER_FLAGS " -fuse-ld=${CUSTOM_LINKER}")
         string(APPEND CMAKE_SHARED_LINKER_FLAGS " -fuse-ld=${CUSTOM_LINKER}")

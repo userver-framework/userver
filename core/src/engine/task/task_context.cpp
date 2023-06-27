@@ -448,7 +448,7 @@ void TaskContext::Wakeup(WakeupSource source, SleepState::Epoch epoch) {
   }
 }
 
-void TaskContext::Wakeup(WakeupSource source, TaskContext::NoEpoch) {
+void TaskContext::Wakeup(WakeupSource source, NoEpoch) {
   UASSERT(source != WakeupSource::kDeadlineTimer);
   UASSERT(source != WakeupSource::kBootstrap);
   UASSERT(source != WakeupSource::kCancelRequest);
@@ -465,6 +465,14 @@ void TaskContext::Wakeup(WakeupSource source, TaskContext::NoEpoch) {
   if (ShouldSchedule(prev_sleep_state.flags, source)) {
     Schedule();
   }
+}
+
+void TaskContext::WakeupCurrent() {
+  UASSERT(IsCurrent());
+  UASSERT(GetState() == Task::State::kRunning);
+
+  sleep_state_.FetchOrFlags<std::memory_order_seq_cst>(
+      static_cast<SleepFlags>(WakeupSource::kWaitList));
 }
 
 class TaskContext::LocalStorageGuard {

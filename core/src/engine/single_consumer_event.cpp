@@ -14,8 +14,9 @@ class SingleConsumerEvent::EventWaitStrategy final : public impl::WaitStrategy {
       : WaitStrategy(deadline), event_(event), current_(current) {}
 
   void SetupWakeups() override {
-    event_.waiters_->Append(&current_);
-    if (event_.is_signaled_.load()) event_.waiters_->WakeupOne();
+    if (event_.waiters_->GetSignalOrAppend(&current_)) {
+      current_.WakeupCurrent();
+    }
   }
 
   void DisableWakeups() override { event_.waiters_->Remove(current_); }
@@ -65,24 +66,19 @@ bool SingleConsumerEvent::WaitForEventUntil(Deadline deadline) {
   }
 }
 
-void SingleConsumerEvent::Reset() noexcept {
-  is_signaled_.exchange(false, std::memory_order_seq_cst);
-}
+void SingleConsumerEvent::Reset() noexcept { waiters_->GetAndResetSignal(); }
 
-void SingleConsumerEvent::Send() {
-  is_signaled_.store(true, std::memory_order_release);
-  waiters_->WakeupOne();
-}
+void SingleConsumerEvent::Send() { waiters_->SetSignalAndWakeupOne(); }
 
 bool SingleConsumerEvent::IsReady() const noexcept {
-  return is_signaled_.load();
+  return waiters_->IsSignaled();
 }
 
 bool SingleConsumerEvent::GetIsSignaled() noexcept {
   if (is_auto_reset_) {
-    return is_signaled_.exchange(false);
+    return waiters_->GetAndResetSignal();
   } else {
-    return is_signaled_.load(std::memory_order_acquire);
+    return waiters_->IsSignaled();
   }
 }
 

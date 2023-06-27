@@ -9,7 +9,6 @@ if (NOT "${USERVER_NAMESPACE}" STREQUAL "")
     set(USERVER_NAMESPACE_END "}" CACHE STRING "Close C++ namespace to use")
 endif()
 
-include(RequireDWCAS)
 include(CheckFunctionExists)
 check_function_exists("accept4" HAVE_ACCEPT4)
 check_function_exists("pipe2" HAVE_PIPE2)

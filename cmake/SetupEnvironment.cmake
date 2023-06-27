@@ -45,6 +45,7 @@ endif()
 
 include(SetupLinker)
 include(SetupLTO)
+include(RequireDWCAS)
 
 option(USE_CCACHE "Use ccache for build" ON)
 if (USE_CCACHE)

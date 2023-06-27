@@ -27,7 +27,7 @@ namespace engine {
 ///
 /// ## Example usage:
 ///
-/// @snippet engine/single_use_event.cpp  Sample engine::SingleUseEvent usage
+/// @snippet engine/single_use_event_test.cpp  Wait and destroy
 ///
 /// @see @ref md_en_userver_synchronization
 class SingleUseEvent final {

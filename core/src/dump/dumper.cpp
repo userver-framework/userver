@@ -319,6 +319,8 @@ void Dumper::Impl::PeriodicWriteTask() {
     auto dump_data = dump_data_.Lock();
     tracing::Span span(write_span_name_);
 
+    data_updated_signal_.Reset();
+
     try {
       WriteDump(*dump_data);
       previous_write_succeeded = true;
@@ -369,8 +371,6 @@ void Dumper::Impl::WriteDump(DumpData& dump_data) {
 }
 
 UpdateTime Dumper::Impl::RetrieveUpdateTime(UpdateData& update_data) {
-  data_updated_signal_.Reset();
-
   // kSignaling updates will wait for the next write iteration
   // (after we release UpdateData) to finish signaling.
   if (data_signal_status_.load() == SignalStatus::kSignaled) {
