@@ -6,6 +6,16 @@ USERVER_NAMESPACE_BEGIN
 
 namespace fs {
 
+// Please, review this TempFile::TempFile implementation
+// I simple added it as workaround for linkage error (if linked as shared library)
+// now project don't use TempFile
+TempFile::TempFile(userver::engine::TaskProcessor& fs_task_processor,
+  userver::fs::blocking::TempFile temp_file)
+  : fs_task_processor_(fs_task_processor),
+    temp_file_(std::move(temp_file))
+{
+}
+
 TempFile TempFile::Create(engine::TaskProcessor& fs_task_processor) {
   return {
       fs_task_processor,

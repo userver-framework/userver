@@ -14,7 +14,7 @@ file(GLOB_RECURSE RMQ_FUNCTIONAL_TEST_SOURCES
 )
 list(REMOVE_ITEM SOURCES ${RMQ_FUNCTIONAL_TEST_SOURCES})
 
-add_library(${PROJECT_NAME} STATIC ${SOURCES})
+userver_add_library(${PROJECT_NAME} SOURCES ${SOURCES})
 target_link_libraries(${PROJECT_NAME} PUBLIC userver-core)
 if (USERVER_CONAN)
   find_package(amqpcpp)
@@ -24,7 +24,9 @@ endif()
 target_link_libraries(${PROJECT_NAME} PRIVATE amqpcpp)
 target_include_directories(
   ${PROJECT_NAME}
-  PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
   PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 
@@ -47,3 +49,5 @@ if (USERVER_IS_THE_ROOT_PROJECT)
 
   add_subdirectory(functional_tests)
 endif()
+
+userver_install_library(TARGETS ${PROJECT_NAME})

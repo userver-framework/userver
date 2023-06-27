@@ -39,7 +39,7 @@ set(PQ_EXTRA_SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/pq_workaround.c
 )
 
-add_library(${PROJECT_NAME} STATIC ${PQ_EXTRA_SOURCES})
+userver_add_library(${PROJECT_NAME} SOURCES ${PQ_EXTRA_SOURCES})
 
 target_include_directories(${PROJECT_NAME}
   PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}

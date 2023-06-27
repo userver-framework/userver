@@ -3,7 +3,9 @@ project(userver-grpc CXX)
 include(GrpcTargets)
 
 add_library(${PROJECT_NAME}-deps INTERFACE)
-target_include_directories(${PROJECT_NAME}-deps INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_include_directories(${PROJECT_NAME}-deps INTERFACE
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>)
 target_link_libraries(${PROJECT_NAME}-deps INTERFACE
     protobuf::libprotobuf gRPC::grpc++
 )
@@ -13,7 +15,6 @@ if(USERVER_CONAN AND "${gRPC_VERSION}" VERSION_GREATER_EQUAL "1.41")
       absl::base absl::synchronization
   )
 endif()
-
 
 include(SetupGoogleProtoApis)
 
@@ -43,13 +44,14 @@ if (api-common-proto_USRV_SOURCES)
   list(APPEND SOURCES ${api-common-proto_USRV_SOURCES})
 endif()
 
-add_library(${PROJECT_NAME}-internal STATIC ${SOURCES})
+userver_add_library(${PROJECT_NAME}-internal SOURCES ${SOURCES})
 
 set_target_properties(${PROJECT_NAME}-internal PROPERTIES LINKER_LANGUAGE CXX)
 
 target_include_directories(${PROJECT_NAME}-internal
   PUBLIC
-    ${CMAKE_CURRENT_SOURCE_DIR}/include
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
   PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
@@ -97,7 +99,7 @@ if (USERVER_IS_THE_ROOT_PROJECT)
       ${CMAKE_CURRENT_SOURCE_DIR}/include
       ${CMAKE_CURRENT_SOURCE_DIR}/src
     )
-    target_link_libraries(${PROJECT_NAME}_unittest
+    userver_target_link_libraries(${PROJECT_NAME}_unittest
       PUBLIC
         ${PROJECT_NAME}-internal
         userver-utest
@@ -116,3 +118,16 @@ add_subdirectory(handlers)
 add_library(${PROJECT_NAME} INTERFACE)
 target_link_libraries(${PROJECT_NAME} INTERFACE ${PROJECT_NAME}-handlers)
 target_link_libraries(${PROJECT_NAME} INTERFACE ${PROJECT_NAME}-internal)
+
+userver_export(TARGETS ${PROJECT_NAME}-deps)
+
+install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/src/ugrpc/client/impl/client_configs.hpp"
+  DESTINATION "include/userver/ugrpc/client/impl/")
+
+install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/src/ugrpc/server/impl/server_configs.hpp"
+  DESTINATION "include/userver/ugrpc/server/impl/")
+
+userver_install_library(
+  TARGETS
+    ${PROJECT_NAME}
+    ${PROJECT_NAME}-internal)

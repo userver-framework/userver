@@ -9,13 +9,14 @@ file(GLOB_RECURSE UNIT_TEST_SOURCES
 )
 list(REMOVE_ITEM SOURCES ${UNIT_TEST_SOURCES})
 
-add_library(${PROJECT_NAME} STATIC ${SOURCES})
+userver_add_library(${PROJECT_NAME} SOURCES ${SOURCES})
 
 set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
 
 target_include_directories(${PROJECT_NAME}
   PUBLIC
-    ${CMAKE_CURRENT_SOURCE_DIR}/include
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
   PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
@@ -24,6 +25,16 @@ target_link_libraries(${PROJECT_NAME} PUBLIC userver-core)
 target_link_libraries(${PROJECT_NAME} PUBLIC userver-grpc-internal)
 
 add_grpc_library(${PROJECT_NAME}_proto PROTOS healthchecking/healthchecking.proto)
+
+target_include_directories(${PROJECT_NAME}
+  PUBLIC
+    $<INSTALL_INTERFACE:include/userver/grpc/handlers/proto>
+  )
+
+set_target_properties(${PROJECT_NAME}_proto PROPERTIES LINKER_LANGUAGE CXX)
+
+userver_export(TARGETS ${PROJECT_NAME}_proto)
+
 target_link_libraries(${PROJECT_NAME} PUBLIC ${PROJECT_NAME}_proto)
 
 if (USERVER_IS_THE_ROOT_PROJECT)
@@ -45,3 +56,12 @@ if (USERVER_IS_THE_ROOT_PROJECT)
 
     add_subdirectory(functional_tests)
 endif()
+
+install(DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/proto"
+  DESTINATION "include/userver/grpc/handlers/"
+  FILES_MATCHING
+  PATTERN "*.pb.hpp"
+  PATTERN "*.pb.h"
+  )
+
+userver_export(TARGETS ${PROJECT_NAME})

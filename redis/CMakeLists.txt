@@ -32,7 +32,7 @@ file(GLOB_RECURSE REDIS_FUNCTIONAL_TEST_SOURCES
 )
 list(REMOVE_ITEM SOURCES ${REDIS_FUNCTIONAL_TEST_SOURCES})
 
-add_library(${PROJECT_NAME} STATIC ${SOURCES})
+userver_add_library(${PROJECT_NAME} SOURCES ${SOURCES})
 set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
 
 # for libev
@@ -58,7 +58,7 @@ if(USERVER_FEATURE_REDIS_TLS)
   add_definitions(-DUSERVER_FEATURE_REDIS_TLS=1)
 endif()
 
-target_link_libraries(${PROJECT_NAME}
+userver_target_link_libraries(${PROJECT_NAME}
   PUBLIC
     userver-core
   PRIVATE
@@ -78,9 +78,10 @@ endif()
 target_include_directories(
   ${PROJECT_NAME}
   PUBLIC
-  ${CMAKE_CURRENT_SOURCE_DIR}/include
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
   PRIVATE
-  ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 target_include_directories (${PROJECT_NAME} PRIVATE
     $<TARGET_PROPERTY:userver-core,INCLUDE_DIRECTORIES>
@@ -89,7 +90,7 @@ target_include_directories (${PROJECT_NAME} PRIVATE
 # Helper library for testing user code with redis. Provides mock_client_base.hpp
 # and other helper headers
 if (USERVER_FEATURE_UTEST)
-    add_library(${PROJECT_NAME}_utest STATIC ${UTESTLIB_SOURCES})
+    userver_add_library(${PROJECT_NAME}_utest SOURCES ${UTESTLIB_SOURCES})
     target_include_directories(
       ${PROJECT_NAME}_utest
       PUBLIC

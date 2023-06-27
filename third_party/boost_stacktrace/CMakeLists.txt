@@ -55,7 +55,7 @@ else()
     #set(BACKTRACE_USERVER_LIBRARIES dl)
 endif()
 
-add_library (${PROJECT_NAME} STATIC ${BACKTRACE_USERVER_SOURCES})
+userver_add_library (${PROJECT_NAME} SOURCES ${BACKTRACE_USERVER_SOURCES})
 if (BacktraceIncludeFile)
     target_compile_definitions(
         ${PROJECT_NAME}
@@ -67,7 +67,12 @@ else()
     )
 endif()
 target_compile_definitions(${PROJECT_NAME} INTERFACE BOOST_STACKTRACE_LINK)
-target_include_directories(${PROJECT_NAME} PUBLIC include ${Boost_INCLUDE_DIRS})
+target_include_directories(${PROJECT_NAME} PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include/userver>
+  ${Boost_INCLUDE_DIRS})
 
 target_link_libraries(${PROJECT_NAME} PUBLIC ${BACKTRACE_USERVER_LIBRARIES})
 set_target_properties (${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
+
+userver_export(TARGETS ${PROJECT_NAME})

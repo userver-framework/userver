@@ -8,7 +8,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace dump {
 
-void ThrowDumpUnimplemented(const std::string& name) {
+void _ThrowDumpUnimplemented(const std::string& name) {
   UINVARIANT(false, fmt::format("Dumps are unimplemented for {}. "
                                 "See dump::Read, dump::Write",
                                 name));
