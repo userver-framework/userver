@@ -60,6 +60,12 @@ TEST(FileDescriptor, WriteRead) {
 
   auto fd2 = FileDescriptor::Open(path, fs::blocking::OpenFlag::kRead);
   EXPECT_EQ(contents, ReadContents(fd2));
+
+  fd2.Seek(0);
+  EXPECT_EQ(contents, ReadContents(fd2));
+
+  fd2.Seek(3);
+  EXPECT_EQ(contents + 3, ReadContents(fd2));
 }
 
 TEST(FileDescriptor, WriteNonTruncating) {
@@ -71,11 +77,19 @@ TEST(FileDescriptor, WriteNonTruncating) {
   fs::blocking::RewriteFileContents(path, "aaa");
 
   // Note: no kTruncate
-  FileDescriptor::Open(path, {OpenFlag::kWrite, OpenFlag::kCreateIfNotExists})
-      .Write("bb");
+  auto fd = FileDescriptor::Open(
+      path, {OpenFlag::kWrite, OpenFlag::kCreateIfNotExists});
+  fd.Write("bb");
 
   // Leftovers of the old file remain
   EXPECT_EQ(fs::blocking::ReadFileContents(path), "bba");
+
+  fd.Write("cc");
+  EXPECT_EQ(fs::blocking::ReadFileContents(path), "bbcc");
+
+  fd.Seek(1);
+  fd.Write("dd");
+  EXPECT_EQ(fs::blocking::ReadFileContents(path), "bddc");
 }
 
 TEST(FileDescriptor, WriteTruncating) {

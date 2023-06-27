@@ -61,11 +61,15 @@ class FileDescriptor final {
   /// @throws std::runtime_error
   void Write(std::string_view contents);
 
-  /// @brief Reads data from the file
+  /// @brief Reads data from the file at current offset
   /// @returns The amount of bytes actually acquired, which can be equal
   /// to `max_size`, or less on end-of-file
   /// @throws std::runtime_error
   std::size_t Read(char* buffer, std::size_t max_size);
+
+  /// @brief Sets the file read/write offset from the beginning of the file
+  /// @throws std::runtime_error
+  void Seek(std::size_t offset_in_bytes);
 
   /// @brief Makes sure the written data is actually stored on disk
   /// @throws std::runtime_error

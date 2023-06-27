@@ -166,6 +166,22 @@ std::size_t FileDescriptor::Read(char* buffer, std::size_t max_size) {
 }
 
 // NOLINTNEXTLINE(readability-make-member-function-const)
+void FileDescriptor::Seek(std::size_t offset_in_bytes) {
+  while (true) {
+    const auto s = ::lseek(fd_, offset_in_bytes, SEEK_SET);
+    if (s < 0) {
+      if (errno == EAGAIN || errno == EINTR) continue;
+
+      const auto code = std::make_error_code(std::errc{errno});
+      throw std::system_error(code, "calling ::lseek");
+    }
+
+    UASSERT(static_cast<std::size_t>(s) == offset_in_bytes);
+    break;
+  }
+}
+
+// NOLINTNEXTLINE(readability-make-member-function-const)
 void FileDescriptor::FSync() {
   utils::CheckSyscall(::fsync(fd_), "calling ::fsync");
 }
