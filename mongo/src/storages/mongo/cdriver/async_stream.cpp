@@ -586,6 +586,7 @@ ssize_t AsyncStream::Poll(mongoc_stream_poll_t* streams, size_t nstreams,
 
   if (engine::current_task::ShouldCancel()) {
     // mark all streams as errored out, mongoc tend to ignore poll errors
+    LOG_DEBUG() << "Should cancel current task. Marking all streams as errored out.";
     for (size_t i = 0; i < nstreams; ++i) streams[i].revents = POLLERR;
     return nstreams;
   }
