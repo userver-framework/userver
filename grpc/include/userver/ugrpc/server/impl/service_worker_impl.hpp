@@ -50,12 +50,6 @@ void ReportNetworkError(const RpcInterruptedError& ex,
 void SetupSpan(std::optional<tracing::InPlaceSpan>& span_holder,
                grpc::ServerContext& context, std::string_view call_name);
 
-bool CheckAndSetupDeadline(tracing::Span&, grpc::ServerContext&,
-                           std::string_view service_name,
-                           std::string_view method_name,
-                           ugrpc::impl::RpcStatisticsScope&,
-                           dynamic_config::Snapshot);
-
 /// Per-gRPC-service data
 template <typename GrpcppService>
 struct ServiceData final {

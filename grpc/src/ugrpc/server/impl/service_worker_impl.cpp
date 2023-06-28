@@ -19,19 +19,6 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::server::impl {
 
-namespace {
-
-std::optional<engine::Deadline> TryExtractDeadline(
-    std::chrono::system_clock::time_point time) {
-  auto duration = time - std::chrono::system_clock::now();
-  if (duration >= std::chrono::hours{365 * 24}) {
-    return std::nullopt;
-  }
-  return engine::Deadline::FromDuration(duration);
-}
-
-}  // namespace
-
 void ReportHandlerError(const std::exception& ex, std::string_view call_name,
                         tracing::Span& span) noexcept {
   LOG_ERROR() << "Uncaught exception in '" << call_name << "': " << ex;
@@ -79,40 +66,6 @@ void SetupSpan(std::optional<tracing::InPlaceSpan>& span_holder,
                              ugrpc::impl::ToGrpcString(span.GetSpanId()));
   context.AddInitialMetadata(ugrpc::impl::kXYaRequestId,
                              ugrpc::impl::ToGrpcString(span.GetLink()));
-}
-
-bool CheckAndSetupDeadline(tracing::Span& span, grpc::ServerContext& context,
-                           std::string_view service_name,
-                           std::string_view method_name,
-                           ugrpc::impl::RpcStatisticsScope& statistics_scope,
-                           dynamic_config::Snapshot config) {
-  auto opt_deadline = TryExtractDeadline(context.deadline());
-  if (!opt_deadline) {
-    return true;
-  }
-
-  auto deadline = *opt_deadline;
-  const bool cancel_by_deadline = context.IsCancelled() || deadline.IsReached();
-
-  auto deadline_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
-      deadline.TimeLeft());
-  span.AddNonInheritableTag("received_deadline_ms", deadline_ms.count());
-  statistics_scope.OnDeadlinePropagated();
-  span.AddNonInheritableTag("cancelled_by_deadline", cancel_by_deadline);
-
-  if (cancel_by_deadline &&
-      utils::impl::kGrpcServerDeadlinePropagationExperiment.IsEnabled() &&
-      config[kServerCancelTaskByDeadline]) {
-    // Experiment and config are enabled
-    statistics_scope.CancelledByDeadlinePropagation();
-    return false;
-  }
-
-  USERVER_NAMESPACE::server::request::TaskInheritedData inherited_data{
-      service_name, method_name, std::chrono::steady_clock::now(), deadline};
-  USERVER_NAMESPACE::server::request::kTaskInheritedData.Set(inherited_data);
-
-  return true;
 }
 
 }  // namespace ugrpc::server::impl
