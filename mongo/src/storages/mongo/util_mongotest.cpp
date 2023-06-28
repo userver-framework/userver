@@ -70,8 +70,7 @@ MongoPoolFixture::MongoPoolFixture()
 
 MongoPoolFixture::~MongoPoolFixture() {
   const engine::TaskCancellationBlocker block_cancels;
-  // TODO block task-inherited deadline via TaskCancellationBlocker?
-  server::request::kTaskInheritedData.Erase();
+  const server::request::DeadlinePropagationBlocker block_dp;
 
   DropDatabase(default_pool_, kTestDatabaseDefaultName);
   used_db_names_.erase(kTestDatabaseDefaultName);

@@ -588,17 +588,10 @@ Request& Request::SetTestsuiteConfig(
   pimpl_->SetTestsuiteConfig(config);
   return *this;
 }
-Request Request::SetTestsuiteConfig(
-    const std::shared_ptr<const TestsuiteConfig>& config) && {
-  return std::move(this->SetTestsuiteConfig(config));
-}
 
 Request& Request::SetAllowedUrlsExtra(const std::vector<std::string>& urls) & {
   pimpl_->SetAllowedUrlsExtra(urls);
   return *this;
-}
-Request Request::SetAllowedUrlsExtra(const std::vector<std::string>& urls) && {
-  return std::move(this->SetAllowedUrlsExtra(urls));
 }
 
 Request& Request::DisableReplyDecoding() & {
@@ -607,22 +600,6 @@ Request& Request::DisableReplyDecoding() & {
 }
 Request Request::DisableReplyDecoding() && {
   return std::move(this->DisableReplyDecoding());
-}
-
-Request& Request::EnableAddClientTimeoutHeader() & {
-  pimpl_->EnableAddClientTimeoutHeader();
-  return *this;
-}
-Request Request::EnableAddClientTimeoutHeader() && {
-  return std::move(this->EnableAddClientTimeoutHeader());
-}
-
-Request& Request::DisableAddClientTimeoutHeader() & {
-  pimpl_->DisableAddClientTimeoutHeader();
-  return *this;
-}
-Request Request::DisableAddClientTimeoutHeader() && {
-  return std::move(this->DisableAddClientTimeoutHeader());
 }
 
 Request& Request::SetTracingManager(
@@ -640,19 +617,11 @@ Request& Request::SetHeadersPropagator(
   pimpl_->SetHeadersPropagator(headers_propagator);
   return *this;
 }
-Request Request::SetHeadersPropagator(
-    const server::http::HeadersPropagator* headers_propagator) && {
-  return std::move(this->SetHeadersPropagator(headers_propagator));
-}
 
 Request& Request::SetEnforceTaskDeadline(
     EnforceTaskDeadlineConfig enforce_task_deadline) & {
   pimpl_->SetEnforceTaskDeadline(enforce_task_deadline);
   return *this;
-}
-Request Request::SetEnforceTaskDeadline(
-    EnforceTaskDeadlineConfig enforce_task_deadline) && {
-  return std::move(this->SetEnforceTaskDeadline(enforce_task_deadline));
 }
 
 const std::string& Request::GetUrl() const& {

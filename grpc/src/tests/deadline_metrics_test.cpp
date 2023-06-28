@@ -171,16 +171,15 @@ UTEST_F(DeadlineStatsTests, ClientDeadlineNotUpdated) {
   helpers::InitTaskInheritedDeadline(
       engine::Deadline::FromDuration(helpers::kLongTimeout * 2));
 
-  // Requests with deadline
-  // Deadline will not be replaced
+  // Requests with deadline. Deadline will not be replaced
   EXPECT_TRUE(ExecuteRequest(true));
   EXPECT_TRUE(ExecuteRequest(true));
   EXPECT_TRUE(ExecuteRequest(true));
 
   ValidateClientStatistic(kDeadlinePropagated, kExpected);
 
-  // No TaskInheritedData. Deadline will not be propagated in any case
-  helpers::ClearTaskInheritedDeadline();
+  // Disable deadline propagation for the following tests
+  const server::request::DeadlinePropagationBlocker dp_blocker;
 
   // Requests with deadline
   EXPECT_TRUE(ExecuteRequest(true));

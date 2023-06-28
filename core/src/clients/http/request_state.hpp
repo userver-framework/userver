@@ -113,8 +113,6 @@ class RequestState : public std::enable_shared_from_this<RequestState> {
 
   void DisableReplyDecoding();
 
-  void EnableAddClientTimeoutHeader();
-  void DisableAddClientTimeoutHeader();
   void SetEnforceTaskDeadline(EnforceTaskDeadlineConfig enforce_task_deadline);
 
   std::shared_ptr<impl::EasyWrapper> easy_wrapper() { return easy_; }

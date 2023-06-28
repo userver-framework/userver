@@ -254,34 +254,20 @@ class Request final {
   // Set testsuite related settings. For internal use only.
   Request& SetTestsuiteConfig(
       const std::shared_ptr<const TestsuiteConfig>& config) &;
-  Request SetTestsuiteConfig(
-      const std::shared_ptr<const TestsuiteConfig>& config) &&;
 
   Request& SetAllowedUrlsExtra(const std::vector<std::string>& urls) &;
-  Request SetAllowedUrlsExtra(const std::vector<std::string>& urls) &&;
 
   // Set deadline propagation settings. For internal use only.
   Request& SetEnforceTaskDeadline(
       EnforceTaskDeadlineConfig enforce_task_deadline) &;
-  Request SetEnforceTaskDeadline(
-      EnforceTaskDeadlineConfig enforce_task_deadline) &&;
 
   Request& SetHeadersPropagator(const server::http::HeadersPropagator*) &;
-  Request SetHeadersPropagator(const server::http::HeadersPropagator*) &&;
   /// @endcond
 
   /// Disable auto-decoding of received replies.
   /// Useful to proxy replies 'as is'.
   Request& DisableReplyDecoding() &;
   Request DisableReplyDecoding() &&;
-
-  /// Enable auto add header with client timeout.
-  Request& EnableAddClientTimeoutHeader() &;
-  Request EnableAddClientTimeoutHeader() &&;
-
-  /// Disable auto add header with client timeout.
-  Request& DisableAddClientTimeoutHeader() &;
-  Request DisableAddClientTimeoutHeader() &&;
 
   Request& SetTracingManager(const tracing::TracingManagerBase&) &;
   Request SetTracingManager(const tracing::TracingManagerBase&) &&;

@@ -317,14 +317,6 @@ void RequestState::DisableReplyDecoding() {
   easy().set_accept_encoding(nullptr);
 }
 
-void RequestState::EnableAddClientTimeoutHeader() {
-  add_client_timeout_header_ = true;
-}
-
-void RequestState::DisableAddClientTimeoutHeader() {
-  add_client_timeout_header_ = false;
-}
-
 void RequestState::SetEnforceTaskDeadline(
     EnforceTaskDeadlineConfig enforce_task_deadline) {
   enforce_task_deadline_ = enforce_task_deadline;
@@ -713,8 +705,6 @@ void RequestState::UpdateTimeoutFromDeadline() {
 }
 
 void RequestState::UpdateTimeoutHeader() {
-  if (!add_client_timeout_header_) return;
-
   const auto old_timeout_str = easy().FindHeaderByName(
       USERVER_NAMESPACE::http::headers::kXYaTaxiClientTimeoutMs);
   if (old_timeout_str) {
