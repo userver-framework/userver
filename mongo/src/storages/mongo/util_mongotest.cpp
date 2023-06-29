@@ -64,9 +64,7 @@ dynamic_config::StorageMock MakeDynamicConfig() {
 MongoPoolFixture::MongoPoolFixture()
     : default_resolver_(MakeDnsResolver()),
       dynamic_config_storage_(MakeDynamicConfig()),
-      default_pool_(MakePool({}, {})) {
-  experiments_.Set(utils::impl::kMongoDeadlinePropagationExperiment, true);
-}
+      default_pool_(MakePool({}, {})) {}
 
 MongoPoolFixture::~MongoPoolFixture() {
   const engine::TaskCancellationBlocker block_cancels;

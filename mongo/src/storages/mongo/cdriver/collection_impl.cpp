@@ -113,17 +113,15 @@ impl::cdriver::FindAndModifyOptsPtr CopyFindAndModifyOptions(
 
 std::optional<std::chrono::milliseconds> GetDeadlineTimeLeft(
     const dynamic_config::Snapshot& config) {
-  if (utils::impl::kMongoDeadlinePropagationExperiment.IsEnabled() &&
-      config[kDeadlinePropagationEnabled]) {
-    const auto inherited_deadline = server::request::GetTaskInheritedDeadline();
-    if (inherited_deadline.IsReachable()) {
-      const auto inherited_timeout =
-          std::chrono::duration_cast<std::chrono::milliseconds>(
-              inherited_deadline.TimeLeftApprox());
-      return inherited_timeout;
-    }
-  }
-  return std::nullopt;
+  if (!config[kDeadlinePropagationEnabled]) return std::nullopt;
+
+  const auto inherited_deadline = server::request::GetTaskInheritedDeadline();
+  if (!inherited_deadline.IsReachable()) return std::nullopt;
+
+  const auto inherited_timeout =
+      std::chrono::duration_cast<std::chrono::milliseconds>(
+          inherited_deadline.TimeLeftApprox());
+  return inherited_timeout;
 }
 
 std::chrono::milliseconds ComputeAdjustedMaxServerTime(

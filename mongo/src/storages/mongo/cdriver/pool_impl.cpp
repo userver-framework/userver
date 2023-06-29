@@ -274,8 +274,7 @@ mongoc_client_t* CDriverPoolImpl::Pop() {
   std::optional<engine::Deadline::Duration> inherited_timeout{};
 
   const auto dynamic_config = GetConfig();
-  if (utils::impl::kMongoDeadlinePropagationExperiment.IsEnabled() &&
-      dynamic_config[kDeadlinePropagationEnabled]) {
+  if (dynamic_config[kDeadlinePropagationEnabled]) {
     HandleCancellations(queue_deadline, inherited_timeout);
   }
 

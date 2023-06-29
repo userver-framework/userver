@@ -60,7 +60,6 @@ class UserverExperimentsScope final {
 };
 
 // TODO move to userver/mongo once the issues with linker are resolved.
-extern UserverExperiment kMongoDeadlinePropagationExperiment;
 extern UserverExperiment kRedisClusterAutoTopologyExperiment;
 
 extern UserverExperiment kPhdrCacheExperiment;
