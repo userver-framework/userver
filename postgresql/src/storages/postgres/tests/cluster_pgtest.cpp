@@ -374,4 +374,29 @@ UTEST_F(PostgreCluster, NonTransactionExecuteWithParameterStore) {
   }
 }
 
+UTEST_F(PostgreCluster, NonTransactionExecuteWithParameterStoreMove) {
+  testsuite::TestsuiteTasks testsuite_tasks{true};
+  auto cluster = CreateCluster(GetDsnListFromEnv(), GetTaskProcessor(), 1,
+                               testsuite_tasks);
+
+  {
+    pg::ParameterStore store{};
+    store.PushBack(1);
+    auto store_moved = std::move(store);
+    auto res =
+        cluster.Execute(pg::ClusterHostType::kMaster, "select $1", store_moved);
+    EXPECT_EQ(1, res.Size());
+  }
+  {
+    pg::CommandControl cc{std::chrono::milliseconds{50},
+                          std::chrono::milliseconds{300}};
+    pg::ParameterStore store{};
+    store.PushBack(1);
+    auto store_moved = std::move(store);
+    auto res = cluster.Execute(pg::ClusterHostType::kMaster, cc, "select $1",
+                               store_moved);
+    EXPECT_EQ(1, res.Size());
+  }
+}
+
 USERVER_NAMESPACE_END

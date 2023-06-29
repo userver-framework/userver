@@ -25,6 +25,12 @@ namespace storages::postgres {
 /// @snippet storages/postgres/tests/landing_test.cpp Exec sample
 class ParameterStore {
  public:
+  ParameterStore() = default;
+  ParameterStore(const ParameterStore&) = delete;
+  ParameterStore(ParameterStore&&) = default;
+  ParameterStore& operator=(const ParameterStore&) = delete;
+  ParameterStore& operator=(ParameterStore&&) = default;
+
   /// @brief Adds a parameter to the end of the parameter list.
   /// @note Currently only built-in/system types are supported.
   template <typename T>

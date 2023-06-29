@@ -106,6 +106,19 @@ UTEST_P(PostgreConnection, ByteaStored) {
   EXPECT_EQ(kFooBar, tgt_str);
 }
 
+UTEST_P(PostgreConnection, ByteaStoredMoved) {
+  CheckConnection(GetConn());
+  pg::ResultSet res{nullptr};
+  pg::ParameterStore store{};
+  store.PushBack(pg::Bytea(kFooBar));
+  pg::ParameterStore store_moved;
+  store_moved = std::move(store);
+  UEXPECT_NO_THROW(res = GetConn()->Execute("select $1", store_moved));
+  std::string tgt_str;
+  UEXPECT_NO_THROW(res[0][0].To(pg::Bytea(tgt_str)));
+  EXPECT_EQ(kFooBar, tgt_str);
+}
+
 }  // namespace
 
 USERVER_NAMESPACE_END

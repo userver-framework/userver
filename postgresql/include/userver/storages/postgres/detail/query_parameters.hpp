@@ -47,6 +47,12 @@ class QueryParameters {
 template <std::size_t ParamsCount>
 class StaticQueryParameters {
  public:
+  StaticQueryParameters() = default;
+  StaticQueryParameters(const StaticQueryParameters&) = delete;
+  StaticQueryParameters(StaticQueryParameters&&) = delete;
+  StaticQueryParameters& operator=(const StaticQueryParameters&) = delete;
+  StaticQueryParameters& operator=(StaticQueryParameters&&) = delete;
+
   std::size_t Size() const { return ParamsCount; }
   const char* const* ParamBuffers() const { return param_buffers; }
   const Oid* ParamTypesBuffer() const { return param_types; }
@@ -139,6 +145,12 @@ class StaticQueryParameters<0> {
 
 class DynamicQueryParameters {
  public:
+  DynamicQueryParameters() = default;
+  DynamicQueryParameters(const DynamicQueryParameters&) = delete;
+  DynamicQueryParameters(DynamicQueryParameters&&) = default;
+  DynamicQueryParameters& operator=(const DynamicQueryParameters&) = delete;
+  DynamicQueryParameters& operator=(DynamicQueryParameters&&) = default;
+
   std::size_t Size() const { return param_types.size(); }
   const char* const* ParamBuffers() const { return param_buffers.data(); }
   const Oid* ParamTypesBuffer() const { return param_types.data(); }
