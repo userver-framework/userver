@@ -44,7 +44,7 @@ class Sensor {
       return static_cast<double>(timeouts) / (total ? total : 1);
     }
 
-    std::string ToLogString();
+    std::string ToLogString() const;
   };
 
   virtual ~Sensor() = default;

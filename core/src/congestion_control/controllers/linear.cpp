@@ -38,6 +38,14 @@ Limit LinearController::Update(const Sensor::Data& current) {
 
   bool overloaded = 100 * rate > config.errors_threshold_percent;
 
+  std::size_t divisor = std::max<std::size_t>(long_timings_.GetSmoothed(),
+                                              config.min_timings.count());
+
+  LOG_DEBUG() << "CC mongo:"
+              << " sensor=(" << current.ToLogString() << ") divisor=" << divisor
+              << " short_timings_.GetMinimal()=" << short_timings_.GetMinimal()
+              << " long_timings_.GetSmoothed()=" << long_timings_.GetSmoothed();
+
   if (current.total < config.min_qps && !current_limit_) {
     // Too little QPS, timings avg data is VERY noisy, EPS is noisy
     return {current_limit_, current.current_load};
@@ -49,9 +57,6 @@ Limit LinearController::Update(const Sensor::Data& current) {
     long_timings_.Update(current.timings_avg_ms);
     return {std::nullopt, current.current_load};
   }
-
-  std::size_t divisor = std::max<std::size_t>(long_timings_.GetSmoothed(),
-                                              config.min_timings.count());
 
   if (static_cast<std::size_t>(short_timings_.GetMinimal()) >
       config.timings_burst_threshold * divisor) {

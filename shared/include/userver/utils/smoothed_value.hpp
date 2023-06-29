@@ -6,6 +6,8 @@
 #include <numeric>
 #include <vector>
 
+#include <userver/utils/assert.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace utils {
@@ -36,6 +38,7 @@ class SmoothedValue final : public AggregatedValue<T> {
   using AggregatedValue<T>::AggregatedValue;
 
   T GetSmoothed() const {
+    UASSERT(this->buckets_.size() > 0);
     return std::accumulate(this->buckets_.begin(), this->buckets_.end(),
                            static_cast<T>(0)) /
            this->buckets_.size();
@@ -50,6 +53,7 @@ class MinimalValue final : public AggregatedValue<T> {
   using AggregatedValue<T>::AggregatedValue;
 
   T GetMinimal() const {
+    UASSERT(this->buckets_.size() > 0);
     return *std::min_element(this->buckets_.begin(), this->buckets_.end());
   }
 };
