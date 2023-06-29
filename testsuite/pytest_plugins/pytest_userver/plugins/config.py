@@ -288,7 +288,23 @@ def userver_config_http_server(service_port, monitor_port):
 
 
 @pytest.fixture(scope='session')
-def userver_config_http_client(mockserver_info, mockserver_ssl_info):
+def allowed_url_prefixes_extra() -> typing.List[str]:
+    """
+    By default, userver HTTP client is only allowed to talk to mockserver
+    when running in testsuite. This makes tests repeatable and encapsulated.
+
+    Override this fixture to whitelist some additional URLs.
+    It is still strongly advised to only talk to localhost in tests.
+
+    @ingroup userver_testsuite_fixtures
+    """
+    return []
+
+
+@pytest.fixture(scope='session')
+def userver_config_http_client(
+        mockserver_info, mockserver_ssl_info, allowed_url_prefixes_extra,
+):
     """
     Returns a function that adjusts the static configuration file for testsuite.
     Sets increased timeout and limits allowed URLs for `http-client` component.
@@ -309,6 +325,7 @@ def userver_config_http_client(mockserver_info, mockserver_ssl_info):
         allowed_urls = [mockserver_info.base_url]
         if mockserver_ssl_info:
             allowed_urls.append(mockserver_ssl_info.base_url)
+        allowed_urls += allowed_url_prefixes_extra
         http_client['testsuite-allowed-url-prefixes'] = allowed_urls
 
     return patch_config
