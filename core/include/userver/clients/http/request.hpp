@@ -235,8 +235,17 @@ class Request final {
   Request unix_socket_path(const std::string& path) &&;
 
   /// Set CURLOPT_CONNECT_TO option
+  /// @warning connect_to argument must outlive Request
   Request& connect_to(const ConnectTo& connect_to) &;
   Request connect_to(const ConnectTo& connect_to) &&;
+
+  template <typename T>
+  std::enable_if_t<std::is_same_v<ConnectTo, T>, Request&> connect_to(T&&) {
+    static_assert(
+        !sizeof(T),
+        "ConnectTo argument must not be temporary, it must outlive Request");
+    return *this;
+  }
 
   /// Override log URL. Usefull for "there's a secret in the query".
   /// @warning The query might be logged by other intermediate HTTP agents

@@ -10,6 +10,7 @@
 #include <clients/http/testsuite.hpp>
 #include <engine/task/task_processor.hpp>
 #include <userver/clients/dns/resolver.hpp>
+#include <userver/clients/http/connect_to.hpp>
 #include <userver/clients/http/request_tracing_editor.hpp>
 #include <userver/clients/http/streamed_response.hpp>
 #include <userver/concurrent/queue.hpp>
@@ -1499,6 +1500,26 @@ UTEST(HttpClient, DISABLED_TestsuiteAllowedUrls) {
   });
 
   task.Get();
+}
+
+UTEST(HttpClient, TestConnectTo) {
+  EchoCallback cb;
+  const utest::SimpleServer http_server{cb};
+  auto http_client_ptr = utest::CreateHttpClient();
+
+  clients::http::ConnectTo connect_to("0.0.0.0:0:127.0.0.1:" +
+                                      std::to_string(http_server.GetPort()));
+  auto request = http_client_ptr->CreateRequest()
+                     .connect_to(connect_to)
+                     .post("http://0.0.0.0:0", kTestData)
+                     .retry(1)
+                     .http_version(clients::http::HttpVersion::k11)
+                     .timeout(kTimeout);
+  {
+    const auto res = request.perform();
+
+    EXPECT_EQ(res->body(), kTestData);
+  }
 }
 
 UTEST(HttpClient, CheckSchema) {
