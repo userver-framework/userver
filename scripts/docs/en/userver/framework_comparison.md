@@ -4,8 +4,8 @@ If you find info in this table inaccurate, please [propose a PR with the fix][us
 
 The table below shows features of different high-level asynchronous frameworks.
 Note that the framework has to provide components well integrated
-into each other. For example, a framework with "Async PotgreSQL", "Dynamic Config"
-and "Metrics" has to have metrics for the PotgreSQL driver and dynamic configs
+into each other. For example, a framework with "Async PostgreSQL", "Dynamic Config"
+and "Metrics" has to have metrics for the PostgreSQL driver and dynamic configs
 to control the driver behavior at runtime. Such framework gets the ✔️ in the
 table below. If the components have weak integration with each other
 or require additional work for such integration (the usual case for
@@ -28,8 +28,8 @@ use ❌ and ❓ respectively.
 | Async HTTP server                 | ✔️ @ref components::Server "[↗]"              | ✔️                      | ✔️                            | ✔️                     | ✔️                             |
 | Async gRPC client                 | ✔️ @ref md_en_userver_grpc "[↗]"              | ✔️                      | ✔️                            | ± third-party libs     | ❌                            |
 | Async gRPC server                 | ✔️ @ref md_en_userver_grpc "[↗]"              | ✔️                      | ✔️                            | ± third-party libs     | ❌                            |
-| Async PotgreSQL                   | ✔️ @ref pg_driver "[↗]"                       | ± third-party driver   | ✔️ [[↗]][dapr-postgre]       | ❌ [manual offloading][acti-db] | ✔️ [[↗]][drog-db]    |
-| PotgreSQL pipelining, binary protocol | ✔️ @ref pg_driver "[↗]"                   | ❌                      | ❌                            | ± third-party libs     | ❌                            |
+| Async PostgreSQL                   | ✔️ @ref pg_driver "[↗]"                       | ± third-party driver   | ✔️ [[↗]][dapr-postgre]       | ❌ [manual offloading][acti-db] | ✔️ [[↗]][drog-db]    |
+| PostgreSQL pipelining, binary protocol | ✔️ @ref pg_driver "[↗]"                   | ❌                      | ❌                            | ± third-party libs     | ❌                            |
 | Async Redis                       | ✔️ @ref md_en_userver_redis "[↗]"             | ± third-party driver   | ✔️ [[↗]][dapr-redis]         | ± third-party libs      | ✔️ [[↗]][drog-redis]         |
 | Async Mongo                       | ✔️ @ref md_en_userver_mongodb "[↗]"           | ± third-party driver   | ✔️ [[↗]][dapr-mongo]         | ❌ [manual offloading][acti-db] | ❌ [[↗]][drog-db]    |
 | Async ClickHouse                  | ✔️ @ref clickhouse_driver "[↗]"               | ± third-party driver   | ❌                            | ± third-party libs      | ❌ [[↗]][drog-db]            |
