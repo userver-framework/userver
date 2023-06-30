@@ -5,11 +5,9 @@
 #include <string>
 #include <unordered_map>
 
-#include <userver/formats/json_fwd.hpp>
+#include <grpcpp/client_context.h>
 
-namespace grpc {
-class ClientContext;
-}
+#include <userver/formats/json_fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

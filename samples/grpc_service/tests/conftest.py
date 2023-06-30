@@ -1,10 +1,6 @@
 # /// [Prepare modules]
-# pylint: disable=no-member
-import pathlib
-import sys
-
-import grpc
 import pytest
+import samples.greeter_pb2_grpc as greeter_services  # noqa: E402, E501
 
 pytest_plugins = ['pytest_userver.plugins.grpc']
 # /// [Prepare modules]
@@ -25,9 +21,7 @@ def prepare_service_config(grpc_mockserver_endpoint):
 
 # /// [Prepare server mock]
 @pytest.fixture(scope='session')
-def mock_grpc_greeter_session(
-        greeter_services, grpc_mockserver, create_grpc_mock,
-):
+def mock_grpc_greeter_session(grpc_mockserver, create_grpc_mock):
     mock = create_grpc_mock(greeter_services.GreeterServiceServicer)
     greeter_services.add_GreeterServiceServicer_to_server(
         mock.servicer, grpc_mockserver,
@@ -42,26 +36,8 @@ def mock_grpc_greeter(mock_grpc_greeter_session):
         # /// [Prepare server mock]
 
 
-# /// [grpc load schemes]
-def pytest_configure(config):
-    sys.path.append(
-        str(pathlib.Path(config.rootdir) / 'grpc_service/proto/samples'),
-    )
-
-
-@pytest.fixture(scope='session')
-def greeter_protos():
-    return grpc.protos('greeter.proto')
-
-
-@pytest.fixture(scope='session')
-def greeter_services():
-    return grpc.services('greeter.proto')
-    # /// [grpc load schemes]
-
-
 # /// [grpc client]
 @pytest.fixture
-def grpc_client(grpc_channel, greeter_services, service_client):
+def grpc_client(grpc_channel, service_client):
     return greeter_services.GreeterServiceStub(grpc_channel)
     # /// [grpc client]
