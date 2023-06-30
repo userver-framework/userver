@@ -16,58 +16,58 @@ RUN apt-get update && apt-get install -y --allow-unauthenticated \
     clang \
     clang-format \
     clang-tidy \
-	cmake \
-	libboost1.74-dev \
-	libboost-program-options1.74-dev \
-	libboost-filesystem1.74-dev \
-	libboost-locale1.74-dev \
-	libboost-regex1.74-dev \
-	libboost-iostreams1.74-dev \
+    cmake \
+    libboost1.74-dev \
+    libboost-program-options1.74-dev \
+    libboost-filesystem1.74-dev \
+    libboost-locale1.74-dev \
+    libboost-regex1.74-dev \
+    libboost-iostreams1.74-dev \
     libboost-context1.74-dev \
     libboost-coroutine1.74-dev \
-	libev-dev \
-	zlib1g-dev \
-	libcurl4-openssl-dev \
-	curl \
-	libyaml-cpp-dev \
-	libssl-dev \
-	libfmt-dev \
-	libcctz-dev \
-	libhttp-parser-dev \
-	libnghttp2-dev \
-	libjemalloc-dev \
-	libmongoc-dev \
-	libbson-dev \
-	libldap2-dev \
-	libpq-dev \
-	postgresql-server-dev-all \
-	libkrb5-dev \
-	libhiredis-dev \
-	python3-dev \
-	python3-protobuf \
-	python3-jinja2 \
-	python3-virtualenv \
-	virtualenv \
-	python3-voluptuous \
-	python3-yaml \
-	libc-ares-dev \
-	libspdlog-dev \
-	libbenchmark-dev \
-	libgmock-dev \
-	libgtest-dev \
-	ccache \
-	git \
-	postgresql \
-	redis-server \
-	vim \
-	sudo \
-	gnupg \
-	gnupg2 \
-	wget \
-	dirmngr \
-	libcrypto++-dev \
-	libabsl-dev \
-	liblz4-dev
+    libev-dev \
+    zlib1g-dev \
+    libcurl4-openssl-dev \
+    curl \
+    libyaml-cpp-dev \
+    libssl-dev \
+    libfmt-dev \
+    libcctz-dev \
+    libhttp-parser-dev \
+    libnghttp2-dev \
+    libjemalloc-dev \
+    libmongoc-dev \
+    libbson-dev \
+    libldap2-dev \
+    libpq-dev \
+    postgresql-server-dev-all \
+    libkrb5-dev \
+    libhiredis-dev \
+    python3-dev \
+    python3-protobuf \
+    python3-jinja2 \
+    python3-virtualenv \
+    virtualenv \
+    python3-voluptuous \
+    python3-yaml \
+    libc-ares-dev \
+    libspdlog-dev \
+    libbenchmark-dev \
+    libgmock-dev \
+    libgtest-dev \
+    ccache \
+    git \
+    postgresql \
+    redis-server \
+    vim \
+    sudo \
+    gnupg \
+    gnupg2 \
+    wget \
+    dirmngr \
+    libcrypto++-dev \
+    libabsl-dev \
+    liblz4-dev
 
 RUN apt-get clean all
 
@@ -94,15 +94,15 @@ RUN apt update && apt install libssl1.1
 
 RUN apt-get install -y --allow-unauthenticated \
     mongodb-org \
-	mongodb-org-database \
-	mongodb-org-server \
-	mongodb-org-shell \
-	mongodb-org-mongos \
-	mongodb-org-tools \
-	postgresql-common \
-	locales \
-	clickhouse-server \
-	clickhouse-client
+    mongodb-org-database \
+    mongodb-org-server \
+    mongodb-org-shell \
+    mongodb-org-mongos \
+    mongodb-org-tools \
+    postgresql-common \
+    locales \
+    clickhouse-server \
+    clickhouse-client
 
 # add mariadb repositories
 RUN wget https://downloads.mariadb.com/MariaDB/mariadb_repo_setup
@@ -139,24 +139,24 @@ deb [signed-by=/usr/share/keyrings/net.launchpad.ppa.rabbitmq.erlang.gpg] http:/
 deb-src [signed-by=/usr/share/keyrings/net.launchpad.ppa.rabbitmq.erlang.gpg] http://ppa.launchpad.net/rabbitmq/rabbitmq-erlang/ubuntu focal main \n\
 deb [signed-by=/usr/share/keyrings/io.packagecloud.rabbitmq.gpg] https://packagecloud.io/rabbitmq/rabbitmq-server/ubuntu/ focal main \n\
 deb-src [signed-by=/usr/share/keyrings/io.packagecloud.rabbitmq.gpg] https://packagecloud.io/rabbitmq/rabbitmq-server/ubuntu/ focal main\n" \
-	| sudo tee /etc/apt/sources.list.d/rabbitmq.list
+    | sudo tee /etc/apt/sources.list.d/rabbitmq.list
 ## Update package indices
 RUN sudo apt-get update -y
 ## Install Erlang packages
 RUN sudo apt-get install -y erlang-base \
-				erlang-asn1 erlang-crypto erlang-eldap erlang-ftp erlang-inets \
-				erlang-mnesia erlang-os-mon erlang-parsetools erlang-public-key \
-				erlang-runtime-tools erlang-snmp erlang-ssl \
-				erlang-syntax-tools erlang-tftp erlang-tools erlang-xmerl
+                erlang-asn1 erlang-crypto erlang-eldap erlang-ftp erlang-inets \
+                erlang-mnesia erlang-os-mon erlang-parsetools erlang-public-key \
+                erlang-runtime-tools erlang-snmp erlang-ssl \
+                erlang-syntax-tools erlang-tftp erlang-tools erlang-xmerl
 # hackery to disable autostart at installation https://askubuntu.com/questions/74061/install-packages-without-starting-background-processes-and-services
 RUN mkdir /tmp/fake && ln -s /bin/true/ /tmp/fake/initctl && \
-				ln -s /bin/true /tmp/fake/invoke-rc.d && \
-				ln -s /bin/true /tmp/fake/restart && \
-				ln -s /bin/true /tmp/fake/start && \
-				ln -s /bin/true /tmp/fake/stop && \
-				ln -s /bin/true /tmp/fake/start-stop-daemon && \
-				ln -s /bin/true /tmp/fake/service && \
-				ln -s /bin/true /tmp/fake/deb-systemd-helper
+                ln -s /bin/true /tmp/fake/invoke-rc.d && \
+                ln -s /bin/true /tmp/fake/restart && \
+                ln -s /bin/true /tmp/fake/start && \
+                ln -s /bin/true /tmp/fake/stop && \
+                ln -s /bin/true /tmp/fake/start-stop-daemon && \
+                ln -s /bin/true /tmp/fake/service && \
+                ln -s /bin/true /tmp/fake/deb-systemd-helper
 RUN sudo PATH=/tmp/fake:$PATH apt-get install -y rabbitmq-server
 
 # add expose ports
@@ -176,9 +176,9 @@ RUN cd /app/clickhouse-cpp && mkdir build && \
 RUN apt update && apt install libssl-dev openssl
 
 RUN cd /app/grpc && mkdir -p cmake/build && cd cmake/build && cmake ../.. -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ \
-	-DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON -DgRPC_SSL_PROVIDER=package \
-	-DgRPC_INSTALL=ON -DgRPC_BUILD_TESTS=OFF \
-	&& make -j $(nproc) && make install
+    -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON -DgRPC_SSL_PROVIDER=package \
+    -DgRPC_INSTALL=ON -DgRPC_BUILD_TESTS=OFF \
+    && make -j $(nproc) && make install
 
 # remove sources
 RUN rm -rf /app/amqp-cpp && rm -rf /app/clickhouse-cpp && rm -rf /app/grpc

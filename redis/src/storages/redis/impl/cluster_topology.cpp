@@ -22,7 +22,7 @@ ClusterTopology::ClusterTopology(
     for (const auto& info : infos_) {
       const auto& master_host_port = HostPortToString(info.master.HostPort());
       /// TODO: nodes from CLUSTER SLOTS must be present in CLUSTER NODES
-      /// Do we need aditional check or exception from 'at' will be enough?
+      /// Do we need additional check or exception from 'at' will be enough?
       auto master = nodes.Get(master_host_port);
       std::vector<ClusterShard::RedisPtr> replicas;
       replicas.reserve(info.slaves.size());

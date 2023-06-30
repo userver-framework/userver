@@ -6,7 +6,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::postgres {
 
-/// @throws ConnectionInterruped if deadline is expired.
+/// @throws ConnectionInterrupted if deadline is expired.
 void CheckDeadlineIsExpired(const dynamic_config::Snapshot&);
 
 }  // namespace storages::postgres

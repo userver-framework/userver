@@ -89,10 +89,6 @@ pytest_userver.plugins.grpc pytest plugin:
 
 @snippet samples/grpc_service/tests/conftest.py  Prepare modules
 
-Load gRPC schemes by adding the path to the schemes to system paths and
-preloading them:
-
-@snippet samples/grpc_service/tests/conftest.py  grpc load schemes
 
 #### gRPC server mock
 

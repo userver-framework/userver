@@ -1,7 +1,7 @@
 #pragma once
 
 /// @file userver/dynamic_config/updates_sink/find.hpp
-/// @brief Function for retreiving dynamic config updates sink specified in the
+/// @brief Function for retrieving dynamic config updates sink specified in the
 /// static config.
 
 #include <type_traits>

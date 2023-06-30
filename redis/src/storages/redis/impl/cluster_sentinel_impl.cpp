@@ -8,7 +8,7 @@
 #include <userver/rcu/rcu.hpp>
 #include <userver/storages/redis/impl/exception.hpp>
 #include <userver/storages/redis/impl/reply.hpp>
-#include <userver/utils/scope_guard.hpp>
+#include <userver/utils/fast_scope_guard.hpp>
 #include <userver/utils/text.hpp>
 
 #include <engine/ev/watcher.hpp>
@@ -487,7 +487,7 @@ void ClusterTopologyHolder::UpdateClusterTopology() {
             << "Parsing response from cluster slots: shard_infos.size(): "
             << shard_infos.size() << ", requests_sent=" << requests_sent
             << ", responses_parsed=" << responses_parsed;
-        auto defered = utils::ScopeGuard([&] {
+        const auto deferred = utils::FastScopeGuard([&]() noexcept {
           update_cluster_slots_flag_ = false;
           ++cluster_slots_call_counter_;
         });

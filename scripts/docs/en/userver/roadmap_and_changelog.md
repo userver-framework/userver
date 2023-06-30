@@ -33,7 +33,7 @@ Changelog news also go to the
   * ✓ Add Prometheus metrics format
   * ✓ Add Graphite metrics format
   * ✓ Provide a modern simple interface to write metrics
-* Add chaos tests for drivers
+* ✓ Add chaos tests for drivers
   * ✓ TCP chaos proxy implemented
   * ✓ UDP chaos proxy implemented
   * ✓ Mongo
@@ -42,11 +42,11 @@ Changelog news also go to the
   * ✓ Redis
   * ✓ PostgreSQL
   * ✓ Clickhouse
-  * gRPC
+  * ✓ gRPC
 * Enable PostgreSQL pipelining
 * Implement and enable Deadline Propagation
   * ✓ HTTP Client
-  * Mongo
+  * ✓ Mongo
   * PostgreSQL
   * Redis
   * gRPC
@@ -57,7 +57,61 @@ Changelog news also go to the
 ## Changelog
 
 
-### May (April 2023)
+### Beta (June 2023)
+
+* Static configs of the service now can retrieve environment variables via the
+  `#env` syntax. See yaml_config::YamlConfig for more examples. 
+* New testsuite plugins userver_config_http_client and
+  userver_config_testsuite_support turned on by default to increase timeouts
+  in tests and make the functional tests more reliable.
+* gRPC now can write access logs, see `access-tskv-logger` static option of
+  ugrpc::server::ServerComponent.
+* Now the waiter is allowed to destroy the engine::SingleConsumerEvent
+  immediately after exiting WaitForEvent, if the wait succeeded.
+* New dynamic_config_fallback_patch fixture could be used to replace some
+  dynamic config values specifically for testsuite tests.
+* Fixed utils::SmallString tests, thanks to
+  [Chingiz Sabdenov](https://github.com/GestaltEngine) for the PR!
+
+* Optimizations:
+  * Counters in the tasks were optimized. New thread local counters use
+    less CPU and scale better on huge amounts of coroutines.
+  * engine::TaskProcessor optimized layout with interference shielded atomics
+    uses less CPU and scales better on huge amounts of coroutines.
+  * Minor optimizations for HTTP clients URL manipulations.
+  * tracing::Span generation of ID was made faster.
+  * clients::http::Request now does less atomic counters increments/decrements
+    while the request is being built.
+  * `mlock_debug_info` static configuration option of
+    components::ManagerControllerComponent is now on by default. It improves
+    responsiveness of the service under heavy load on low memory and bad
+    hard drives.
+  * engine::io::Socket now has an additional `SendAll` overload that accepts
+    `const struct iovec* list, std::size_t list_size` for implementing
+    low-level vector sends. Mongo driver now uses the new function, resulting in
+    smaller CPU and memory consumption.
+  * clients::http::Form::AddContent now instead of `const std::string&` 
+    parameters accepts `std::string_view` parameters that allow to copy less
+    data.
+
+* Docs and diagnostics:
+  * gRPC metrics were documented.
+  * New documentation page @ref md_en_userver_http_server.
+  * More debug logs for the Mongo error, thanks to
+    [fominartem0](https://github.com/fominartem0) for the PR.
+  * Improved diagnostics for CurrentSpan() and testsuite tasks.
+  * Multiple typos fixed at @ref md_en_userver_framework_comparison page, thanks
+    to [Michael](https://github.com/technothecow) for the PR.
+
+* Build:
+  * Multiple build fixes for gRPC targets.
+  * Clickhouse for Conan was added, thanks to [Anton](https://github.com/Jihadist)
+    for the PR.
+  * CMake build flag `USERVER_FEATURE_UBOOST_CORO` can be used to use system
+    boost::context.
+
+
+### Beta (May 2023)
 
 * New scripts/uctl/uctl console script for administration of the running service
   was added.
@@ -245,7 +299,8 @@ Changelog news also go to the
 * To aid in asynchronous drivers development the engine::io::FdPoller is now
   a part of the public API.
 * Added a blazing fast utils::TrivialBiMap.
-* HTTP Streaming is now considered production ready (docs to come soon).
+* HTTP Streaming is now considered production ready, see
+  @ref md_en_userver_http_server for docs.
 * Testsuite fixtures were improved:
   * Fixtures for detecting service readiness now work out of the box for
     services without server::handlers::Ping

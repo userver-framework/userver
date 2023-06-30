@@ -271,7 +271,7 @@ class UTestBaggage : public baggage::Baggage {
     invalid_entry_str = "key3=value3;property4;Prope,rtyKey5=PropertyValue5";
     ASSERT_EQ(std::nullopt, this->TryMakeBaggageEntry(invalid_entry_str));
 
-    // check entry key, which doesn't contain in availbale_entries
+    // check entry key, which doesn't contain in available_entries
     invalid_entry_str = "key6=value3;property4;PropertyKey5=PropertyValue5";
     ASSERT_EQ(std::nullopt, this->TryMakeBaggageEntry(invalid_entry_str));
 

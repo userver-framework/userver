@@ -25,7 +25,7 @@ namespace storages::redis {
 /// mode (default mode), a new async task will be started. Queueing allows
 /// for better error handling and prevents service OOM. However, if you
 /// intend to implement such queue by yourself, you can disabled queueing
-/// by setting appropriate flag in ComandControl structure.
+/// by setting appropriate flag in CommandControl structure.
 ///
 /// Callbacks will be called in this task strictly sequentially for each
 /// received message.

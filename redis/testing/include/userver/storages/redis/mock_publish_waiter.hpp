@@ -42,7 +42,7 @@ class MockPublishWaiter {
     EXPECT_CALL(redis_mock, Publish(std::forward<T>(matcher), _, _, _))
         .Times(times_called)
         .WillRepeatedly([this, times_called](auto&& channel, auto&&...) {
-          LOG_DEBUG() << "Redis mock receieved message to channel: " << channel
+          LOG_DEBUG() << "Redis mock received message to channel: " << channel
                       << "; Called time: " << times_called_.load() + 1;
           if ((times_called_.fetch_add(1) + 1) == times_called) {
             on_received_.Send();

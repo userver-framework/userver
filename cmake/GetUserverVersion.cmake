@@ -16,7 +16,7 @@ if(Git_FOUND)
 
   if(STATUS)
     set(USERVER_HASH "unknown")
-    message(STATUS "Failed to retrive git short hash")
+    message(STATUS "Failed to retrieve git short hash")
   endif()
 else()
   message(STATUS "Git not found")

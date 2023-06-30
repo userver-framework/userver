@@ -248,7 +248,7 @@ class TaskContext final : public ContextAccessor {
 
   std::optional<task_local::Storage> local_storage_{};
 
-  // refcounter for task abandonning (cancellation) in engine::SharedTask
+  // refcounter for task abandoning (cancellation) in engine::SharedTask
   std::atomic<std::size_t> shared_task_usages_{1};
 
   // refcounter for resources and memory dealocation

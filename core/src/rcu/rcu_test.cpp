@@ -596,7 +596,7 @@ TEST(Rcu, StdMutexChangeRead) {
   EXPECT_EQ(std::make_pair(3, 2), *reader);
 }
 
-TEST(Rcu, StdMutexConcurentWrites) {
+TEST(Rcu, StdMutexConcurrentWrites) {
   rcu::Variable<X, StdMutexRcuTraits> ptr(1, 2);
 
   std::atomic<bool> thread_started_write{false};

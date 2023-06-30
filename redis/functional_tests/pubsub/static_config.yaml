@@ -58,13 +58,12 @@ components_manager:
                     overflow_behavior: discard
 
         tracer:
-            service-name: postgres-basic-chaos
+            service-name: redis-basic-chaos
 
         dynamic-config:
             fs-cache-path: ''
         dynamic-config-fallbacks:
-            # TODO: Why 'postgress_basic_chaos ? This is readis, isn't it ?
-            fallback-path: /etc/postgres_basic_chaos/dynamic_config_fallback.json
+            fallback-path: /etc/redis_basic_chaos/dynamic_config_fallback.json
         dns-client:
             fs-task-processor: fs-task-processor
     coro_pool:

@@ -20,7 +20,7 @@ namespace ugrpc::client {
 /// It is created for each gRPC Call and it stores aux. data
 /// used by middlewares. Each registered middleware is called by
 /// `Middleware::Handle` with the context passed as an argument.
-/// A middleware may acces Call and initial request (if any) using the context.
+/// A middleware may access Call and initial request (if any) using the context.
 class MiddlewareCallContext final {
  public:
   /// @cond
