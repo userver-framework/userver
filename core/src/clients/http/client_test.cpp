@@ -1507,11 +1507,11 @@ UTEST(HttpClient, TestConnectTo) {
   const utest::SimpleServer http_server{cb};
   auto http_client_ptr = utest::CreateHttpClient();
 
-  clients::http::ConnectTo connect_to("0.0.0.0:0:127.0.0.1:" +
+  clients::http::ConnectTo connect_to("0.0.0.0:42:127.0.0.1:" +
                                       std::to_string(http_server.GetPort()));
   auto request = http_client_ptr->CreateRequest()
                      .connect_to(connect_to)
-                     .post("http://0.0.0.0:0", kTestData)
+                     .post("http://0.0.0.0:42", kTestData)
                      .retry(1)
                      .http_version(clients::http::HttpVersion::k11)
                      .timeout(kTimeout);

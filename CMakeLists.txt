@@ -106,6 +106,7 @@ option(USERVER_FEATURE_CLICKHOUSE "Provide asynchronous driver for ClickHouse" $
 option(USERVER_FEATURE_RABBITMQ "Provide asynchronous driver for RabbitMQ" ON)
 option(USERVER_FEATURE_MYSQL "Provide asynchronous driver for MariaDB/MySQL" OFF)
 option(USERVER_FEATURE_UNIVERSAL "Provide a universal utilities library that does not use coroutines" ON)
+option(USERVER_FEATURE_UBOOST_CORO "Use vendored boost context instead of a system one" ON)
 
 if (USERVER_FEATURE_GRPC)
     include(cmake/SetupProtobuf.cmake)
@@ -122,9 +123,17 @@ else()
     add_subdirectory("${USERVER_THIRD_PARTY_DIRS}/boost_stacktrace")
 endif()
 
+if (USERVER_FEATURE_UBOOST_CORO)
+    add_subdirectory(uboost_coro)
+else()
+    find_package(Boost REQUIRED COMPONENTS
+        context
+        coroutine
+    )
+endif()
+
 add_subdirectory(core "${CMAKE_BINARY_DIR}/userver/core")
 add_subdirectory("${USERVER_THIRD_PARTY_DIRS}/compiler-rt")
-add_subdirectory(uboost_coro)
 
 if (USERVER_IS_THE_ROOT_PROJECT)
     add_subdirectory(tools/engine)
