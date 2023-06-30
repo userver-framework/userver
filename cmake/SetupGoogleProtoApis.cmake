@@ -49,10 +49,28 @@ generate_grpc_files(
   CPP_USRV_FILES generated_usrv_sources
 )
 
-add_library(userver-api-common-protos STATIC ${generated_sources})
+userver_add_library(userver-api-common-protos SOURCES ${generated_sources})
+
+set_target_properties(userver-api-common-protos PROPERTIES LINKER_LANGUAGE CXX)
+
 target_compile_options(userver-api-common-protos PUBLIC -Wno-unused-parameter)
-target_include_directories(userver-api-common-protos SYSTEM PUBLIC ${include_paths})
+target_include_directories(userver-api-common-protos SYSTEM PUBLIC
+  $<BUILD_INTERFACE:${include_paths}>
+  $<INSTALL_INTERFACE:include/userver/grpc/proto>)
+
 target_link_libraries(userver-api-common-protos PUBLIC userver-core userver-grpc-deps)
 
 set(api-common-proto_LIBRARY userver-api-common-protos)
 set(api-common-proto_USRV_SOURCES ${generated_usrv_sources})
+
+# workaround for INSTALL dependent libraries without install this static library
+set_target_properties(userver-api-common-protos PROPERTIES LINKER_LANGUAGE CXX)
+
+install(DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/proto"
+  DESTINATION "include/userver/grpc/"
+  FILES_MATCHING
+  PATTERN "*.pb.hpp"
+  PATTERN "*.pb.h"
+  )
+
+userver_export(TARGETS userver-api-common-protos)

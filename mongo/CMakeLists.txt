@@ -37,9 +37,9 @@ file(GLOB_RECURSE BENCH_SOURCES
 )
 list (REMOVE_ITEM SOURCES ${BENCH_SOURCES})
 
-add_library(${PROJECT_NAME} STATIC ${SOURCES})
+userver_add_library(${PROJECT_NAME} SOURCES ${SOURCES})
 
-target_link_libraries(${PROJECT_NAME}
+userver_target_link_libraries(${PROJECT_NAME}
   PUBLIC
     userver-core
     bson
@@ -49,9 +49,10 @@ target_link_libraries(${PROJECT_NAME}
 target_include_directories(
   ${PROJECT_NAME}
   PUBLIC
-  ${CMAKE_CURRENT_SOURCE_DIR}/include
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
   PRIVATE
-  ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 target_include_directories (${PROJECT_NAME} SYSTEM PRIVATE
   $<TARGET_PROPERTY:userver-core,INCLUDE_DIRECTORIES>
@@ -99,3 +100,5 @@ if (USERVER_IS_THE_ROOT_PROJECT)
 
   add_subdirectory(functional_tests)
 endif()
+
+userver_install_library(TARGETS ${PROJECT_NAME})

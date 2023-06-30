@@ -147,6 +147,9 @@ function(generate_grpc_files)
 
     set(did_generate_proto_sources FALSE)
     if("${newest_proto_dependency}" IS_NEWER_THAN "${GENERATED_PROTO_DIR}/${path_base}.pb.cc")
+      # resolve root_path, proto_file to real path's - protoc check that root_path is prefix of proto_file (this can be non true if project inside folder sym linked to other dir)
+      get_filename_component(real_root_path ${root_path} REALPATH)
+      get_filename_component(real_proto_file ${proto_file} REALPATH)
       execute_process(
         COMMAND mkdir -p proto
         COMMAND ${PROTOBUF_PROTOC} ${include_options}
@@ -156,12 +159,12 @@ function(generate_grpc_files)
               --python_out=${GENERATED_PROTO_DIR}
               --grpc_python_out=${GENERATED_PROTO_DIR}
               ${pyi_out_param}
-              -I ${root_path}
+              -I ${real_root_path}
               -I ${USERVER_PROTOBUF_IMPORT_DIR}
               --plugin=protoc-gen-grpc=${PROTO_GRPC_CPP_PLUGIN}
               --plugin=protoc-gen-usrv=${PROTO_GRPC_USRV_PLUGIN}
               --plugin=protoc-gen-grpc_python=${PROTO_GRPC_PYTHON_PLUGIN}
-              ${proto_file}
+              ${real_proto_file}
         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
         RESULT_VARIABLE execute_process_result
       )
@@ -229,9 +232,12 @@ function(add_grpc_library NAME)
     CPP_FILES generated_sources
     CPP_USRV_FILES generated_usrv_sources
   )
-  add_library(${NAME} STATIC ${generated_sources} ${generated_usrv_sources})
+  userver_add_library(${NAME} SOURCES ${generated_sources} ${generated_usrv_sources})
   target_compile_options(${NAME} PUBLIC -Wno-unused-parameter)
-  target_include_directories(${NAME} SYSTEM PUBLIC ${include_paths})
 
-  target_link_libraries(${NAME} PUBLIC userver-grpc)
+  target_include_directories(${NAME} SYSTEM PUBLIC
+    $<BUILD_INTERFACE:${include_paths}>
+    )
+
+  target_link_libraries(${NAME} PUBLIC userver-grpc-internal)
 endfunction()

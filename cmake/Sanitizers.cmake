@@ -7,6 +7,7 @@ set(USERVER_SANITIZE_ENUM "mem, addr, thread, ub")
 set(USERVER_SANITIZE "" CACHE STRING "Sanitizer, possible values: ${USERVER_SANITIZE_ENUM}")
 
 add_library(sanitize-target INTERFACE)
+install(TARGETS sanitize-target EXPORT userver-targets) # formal export for correct export dependent targets
 
 if (USERVER_SANITIZE)
   if (CLANG)

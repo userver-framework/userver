@@ -72,11 +72,12 @@ if(UBOOST_CORO_USE_UCONTEXT)
   )
 endif()
 
-add_library(${PROJECT_NAME} STATIC ${SOURCES})
+userver_add_library(${PROJECT_NAME} SOURCES ${SOURCES})
 set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
 
 target_include_directories(${PROJECT_NAME} PUBLIC
-  ${CMAKE_CURRENT_SOURCE_DIR}/include
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>
 )
 
 target_compile_options(${PROJECT_NAME} PRIVATE "-w") # no warnings
@@ -104,3 +105,5 @@ endif()
 
 find_package(Boost REQUIRED)
 target_link_libraries(${PROJECT_NAME} PUBLIC Boost::boost)
+
+userver_install_library(TARGETS ${PROJECT_NAME})

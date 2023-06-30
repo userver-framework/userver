@@ -115,7 +115,7 @@ else()
     find_package(LibEv REQUIRED)
 endif()
 
-add_library(${PROJECT_NAME} STATIC ${SOURCES})
+userver_add_library(${PROJECT_NAME} SOURCES ${SOURCES})
 
 target_compile_definitions(${PROJECT_NAME}
   PRIVATE
@@ -149,7 +149,7 @@ endif()
 
 option(USERVER_FEATURE_UBOOST_CORO "Use vendored boost context instead of a system one" ON)
 
-target_link_libraries(${PROJECT_NAME}
+userver_target_link_libraries(${PROJECT_NAME}
   PUBLIC
     Threads::Threads
     Boost::locale
@@ -172,7 +172,15 @@ if (USERVER_FEATURE_UBOOST_CORO)
         userver-uboost-coro
     )
     target_include_directories(${PROJECT_NAME} PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}/uboost_coro/include
+      $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/uboost_coro/include>
+      $<INSTALL_INTERFACE:include/userver>
+    )
+
+    install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/uboost_coro/include/coroutines"
+      DESTINATION "include/userver/"
+      FILES_MATCHING
+      PATTERN "*.hpp"
+      PATTERN "*.h"
     )
 else()
     target_link_libraries(${PROJECT_NAME}
@@ -180,12 +188,20 @@ else()
         Boost::context
     )
     target_include_directories(${PROJECT_NAME} PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}/sys_coro/include
+      $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/sys_coro/include>
+      $<INSTALL_INTERFACE:include/userver>
+    )
+
+    install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/sys_coro/include/coroutines"
+      DESTINATION "include/userver/"
+      FILES_MATCHING
+      PATTERN "*.hpp"
+      PATTERN "*.h"
     )
 endif()
 
 if (USERVER_CONAN)
-    target_link_libraries(${PROJECT_NAME}
+    userver_target_link_libraries(${PROJECT_NAME}
       PUBLIC
         yaml-cpp
         fmt::fmt
@@ -202,7 +218,7 @@ if (USERVER_CONAN)
         rapidjson
     )
 else()
-    target_link_libraries(${PROJECT_NAME}
+    userver_target_link_libraries(${PROJECT_NAME}
       PUBLIC
         libyamlcpp
         fmt
@@ -221,12 +237,15 @@ else()
         ${USERVER_THIRD_PARTY_DIRS}/rapidjson/include
     )
     target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC
-        ${USERVER_THIRD_PARTY_DIRS}/moodycamel/include
+        $<BUILD_INTERFACE:${USERVER_THIRD_PARTY_DIRS}/moodycamel/include>
+        $<INSTALL_INTERFACE:include/userver>
+        $<INSTALL_INTERFACE:include/userver/moodycamel>
     )
 endif()
 
 target_include_directories(${PROJECT_NAME} PUBLIC
-    ${USERVER_THIRD_PARTY_DIRS}/date/include
+    $<BUILD_INTERFACE:${USERVER_THIRD_PARTY_DIRS}/date/include>
+    $<INSTALL_INTERFACE:include/userver>
 )
 
 if (NOT MACOS AND NOT ${CMAKE_SYSTEM_NAME} MATCHES "BSD")
@@ -234,17 +253,21 @@ if (NOT MACOS AND NOT ${CMAKE_SYSTEM_NAME} MATCHES "BSD")
 endif()
 
 set(USERVER_PUBLIC_INCLUDE_DIRS
-  ${CMAKE_CURRENT_SOURCE_DIR}/include
-  ${CMAKE_CURRENT_SOURCE_DIR}/../shared/include
-  ${USERVER_THIRD_PARTY_DIRS}/pfr/include
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../shared/include>
+  $<BUILD_INTERFACE:${USERVER_THIRD_PARTY_DIRS}/pfr/include>
+  $<INSTALL_INTERFACE:include>
+  $<INSTALL_INTERFACE:include/userver>
 )
 set(USERVER_GLIBC_INCLUDE_FIXES_DIR
-  ${CMAKE_CURRENT_SOURCE_DIR}/libc_include_fixes
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/libc_include_fixes>
+  $<INSTALL_INTERFACE:include/userver/libc_include_fixes>
 )
 
 target_include_directories(${PROJECT_NAME} PUBLIC
-  ${USERVER_PUBLIC_INCLUDE_DIRS}
-)
+  $<BUILD_INTERFACE:${USERVER_PUBLIC_INCLUDE_DIRS}>
+  )
+
 target_include_directories(${PROJECT_NAME} SYSTEM BEFORE PUBLIC
   ${USERVER_GLIBC_INCLUDE_FIXES_DIR}
 )
@@ -253,6 +276,63 @@ target_include_directories(${PROJECT_NAME} SYSTEM BEFORE PUBLIC
 set_property(
   SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/src/engine/errno_test.cpp
   APPEND PROPERTY COMPILE_FLAGS -O2
+)
+
+install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/../shared/include/userver"
+  DESTINATION "include/"
+  FILES_MATCHING
+  PATTERN "*.hpp"
+  PATTERN "*.h"
+)
+
+install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/src/utils/signal_catcher.hpp"
+  DESTINATION "include/userver/utils/")
+
+install(FILES
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/components/manager_config.hpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/components/manager.hpp"
+  DESTINATION "include/userver/components/")
+
+install(FILES
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/engine/coro/pool_config.hpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/engine/coro/pool_stats.hpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/engine/coro/pool.hpp"
+  DESTINATION "include/userver/engine/coro/")
+
+install(FILES
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/engine/ev/async_payload_base.hpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/engine/ev/thread_pool_config.hpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/engine/ev/thread_pool.hpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/engine/ev/thread_control.hpp"
+  DESTINATION "include/userver/engine/ev/")
+
+install(FILES
+  "${CMAKE_CURRENT_SOURCE_DIR}/src/concurrent/impl/intrusive_hooks.hpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/src/concurrent/impl/interference_shield.hpp"
+  DESTINATION "include/userver/concurrent/impl/")
+
+install(FILES
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/engine/task/task_processor_config.hpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/engine/task/task_processor.hpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/engine/task/task_processor_pools.hpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/engine/task/counted_coroutine_ptr.hpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/engine/task/task_counter.hpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/engine/task/counted_coroutine_ptr.hpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/engine/task/task_queue.hpp"
+  DESTINATION "include/userver/engine/task/")
+
+install(DIRECTORY "${USERVER_THIRD_PARTY_DIRS}/moodycamel/include/moodycamel"
+  DESTINATION "include/userver"
+  FILES_MATCHING
+  PATTERN "*.hpp"
+  PATTERN "*.h"
+)
+
+install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/libc_include_fixes"
+  DESTINATION "include/userver"
+  FILES_MATCHING
+  PATTERN "*.hpp"
+  PATTERN "*.h"
 )
 
 target_include_directories(${PROJECT_NAME}
@@ -268,9 +348,9 @@ file(TO_NATIVE_PATH "${CMAKE_SOURCE_DIR}/" SRC_LOG_PATH_BASE)
 file(TO_NATIVE_PATH "${CMAKE_BINARY_DIR}/" BIN_LOG_PATH_BASE)
 
 target_compile_definitions(${PROJECT_NAME} PUBLIC
-  USERVER_LOG_SOURCE_PATH_BASE=${SRC_LOG_PATH_BASE}
-  USERVER_LOG_BUILD_PATH_BASE=${BIN_LOG_PATH_BASE}
-  USERVER_LOG_PREFIX_PATH_BASE=${BASE_PREFIX}
+  USERVER_LOG_SOURCE_PATH_BASE=$<BUILD_INTERFACE:${SRC_LOG_PATH_BASE}>
+  USERVER_LOG_BUILD_PATH_BASE=$<BUILD_INTERFACE:${BIN_LOG_PATH_BASE}>
+  USERVER_LOG_PREFIX_PATH_BASE=$<BUILD_INTERFACE:${BASE_PREFIX}>
 )
 
 message(STATUS "Putting userver into namespace '${USERVER_NAMESPACE}': ${USERVER_NAMESPACE_BEGIN} ${USERVER_NAMESPACE_END}")
@@ -283,7 +363,7 @@ target_compile_definitions(${PROJECT_NAME} PUBLIC
 # Suppress OpenSSL 3 warnings: we still primarily support OpenSSL 1.1.x
 target_compile_definitions(${PROJECT_NAME} PRIVATE OPENSSL_SUPPRESS_DEPRECATED=)
 
-add_library(userver-core-internal STATIC ${INTERNAL_SOURCES})
+userver_add_library(userver-core-internal SOURCES ${INTERNAL_SOURCES})
 target_compile_definitions(userver-core-internal PUBLIC $<TARGET_PROPERTY:${PROJECT_NAME},COMPILE_DEFINITIONS>)
 target_include_directories(userver-core-internal PUBLIC
   $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>
@@ -296,10 +376,10 @@ target_link_libraries(userver-core-internal
 )
 
 if (USERVER_FEATURE_UTEST)
-    add_library(userver-utest STATIC ${LIBUTEST_SOURCES})
+    userver_add_library(userver-utest SOURCES ${LIBUTEST_SOURCES})
     target_compile_definitions(userver-utest PUBLIC $<TARGET_PROPERTY:${PROJECT_NAME},COMPILE_DEFINITIONS>)
 
-    target_link_libraries(userver-utest
+    userver_target_link_libraries(userver-utest
       PUBLIC
         ${PROJECT_NAME}
       PRIVATE
@@ -342,10 +422,10 @@ if (USERVER_IS_THE_ROOT_PROJECT)
 endif()
 
 if (USERVER_FEATURE_UTEST)
-    add_library(userver-ubench ${LIBUBENCH_SOURCES})
+    userver_add_library(userver-ubench SOURCES ${LIBUBENCH_SOURCES})
     target_include_directories(userver-ubench PUBLIC $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>)
     target_compile_definitions(userver-ubench PUBLIC $<TARGET_PROPERTY:${PROJECT_NAME},COMPILE_DEFINITIONS>)
-    target_link_libraries(userver-ubench
+    userver_target_link_libraries(userver-ubench
       PUBLIC
         ${PROJECT_NAME}
       PRIVATE
@@ -362,7 +442,7 @@ if (USERVER_IS_THE_ROOT_PROJECT)
     add_executable(${PROJECT_NAME}_benchmark ${BENCH_SOURCES})
     #    find_package(absl REQUIRED)
 
-    target_link_libraries(${PROJECT_NAME}_benchmark
+    userver_target_link_libraries(${PROJECT_NAME}_benchmark
       PUBLIC
         userver-ubench
       PRIVATE
@@ -371,3 +451,5 @@ if (USERVER_IS_THE_ROOT_PROJECT)
     )
     add_google_benchmark_tests(${PROJECT_NAME}_benchmark)
 endif()
+
+userver_install_library(TARGETS ${PROJECT_NAME})

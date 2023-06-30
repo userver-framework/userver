@@ -22,7 +22,7 @@ file(GLOB_RECURSE CH_FUNCTIONAL_TEST_SOURCES
 )
 list(REMOVE_ITEM SOURCES ${CH_FUNCTIONAL_TEST_SOURCES})
 
-add_library(${PROJECT_NAME} STATIC ${SOURCES})
+userver_add_library(${PROJECT_NAME} SOURCES ${SOURCES})
 
 if (USERVER_CONAN)
   find_package(clickhouse-cpp REQUIRED)
@@ -32,15 +32,19 @@ else()
   target_link_libraries(${PROJECT_NAME} PRIVATE clickhouse-cpp)
 endif()
 
-target_link_libraries(${PROJECT_NAME}
+userver_target_link_libraries(${PROJECT_NAME}
   PUBLIC
     userver-core
   PRIVATE
+    clickhouse-cpp
+  STATIC_PRIVATE
     userver-compiler-rt-parts
 )
 target_include_directories(
   ${PROJECT_NAME}
-  PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include/userver>
   PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 
@@ -79,3 +83,5 @@ if (USERVER_IS_THE_ROOT_PROJECT)
 
   add_subdirectory(functional_tests)
 endif()
+
+userver_install_library(TARGETS ${PROJECT_NAME})

@@ -100,7 +100,7 @@ else()
   include(SetupCCTZ)
 endif()
 
-add_library(${PROJECT_NAME} STATIC ${SOURCES})
+userver_add_library(${PROJECT_NAME} SOURCES ${SOURCES})
 set_target_properties(${PROJECT_NAME} PROPERTIES
   LINKER_LANGUAGE CXX
   CXX_STANDARD 17
@@ -138,12 +138,13 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE OPENSSL_SUPPRESS_DEPRECATED=)
 
 # https://bugs.llvm.org/show_bug.cgi?id=16404
 if (USERVER_SANITIZE AND NOT CMAKE_BUILD_TYPE MATCHES "^Rel")
-  target_link_libraries(${PROJECT_NAME} PUBLIC userver-compiler-rt-parts)
+  userver_target_link_libraries(${PROJECT_NAME} STATIC_PRIVATE userver-compiler-rt-parts)
 endif()
 
-target_link_libraries(${PROJECT_NAME}
+userver_target_link_libraries(${PROJECT_NAME}
   PUBLIC
     Threads::Threads
+  STATIC_PRIVATE
     sanitize-target
   PRIVATE
     Boost::filesystem
@@ -182,7 +183,9 @@ set(UNIVERSAL_PUBLIC_INCLUDE_DIRS
 )
 
 target_include_directories(${PROJECT_NAME} PUBLIC
-  ${UNIVERSAL_PUBLIC_INCLUDE_DIRS}
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../shared/include>
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>
 )
 
 target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE

@@ -9,3 +9,5 @@ target_link_libraries (${PROJECT_NAME}
     userver-core
     Boost::program_options
 )
+
+install(TARGETS ${PROJECT_NAME})
