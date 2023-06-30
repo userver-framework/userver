@@ -111,12 +111,9 @@ UTEST_F_MT(GrpcStatistics, Multithreaded, 2) {
       return status.SingleMetric("", {label, {"grpc_code", code}}).AsInt();
     };
 
-    // TODO(TAXICOMMON-5134) It must always be equal to kIterations
-    //  Maybe investigate overall statistics on failure?
     const auto say_hello_invalid_argument =
         get_status_code_count(say_hello_label, "INVALID_ARGUMENT");
-    EXPECT_GE(say_hello_invalid_argument, 0);
-    EXPECT_LE(say_hello_invalid_argument, kIterations);
+    EXPECT_EQ(say_hello_invalid_argument, kIterations);
 
     EXPECT_EQ(get_status_code_count(say_hello_label, "UNIMPLEMENTED"), 0);
     EXPECT_EQ(get_status_code_count(chat_label, "INVALID_ARGUMENT"), 0);

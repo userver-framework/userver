@@ -252,6 +252,7 @@ void Server::Impl::Stop() noexcept {
 void Server::Impl::StopDebug() noexcept {
   UINVARIANT(server_, "The gRPC server is not running");
   server_->Shutdown();
+  service_workers_.clear();
 }
 
 void Server::Impl::DoStart() {
