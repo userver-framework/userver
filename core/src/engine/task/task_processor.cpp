@@ -66,10 +66,10 @@ void TaskProcessorThreadStartedHook() {
 
 TaskProcessor::TaskProcessor(TaskProcessorConfig config,
                              std::shared_ptr<impl::TaskProcessorPools> pools)
-    : config_(std::move(config)),
-      pools_(std::move(pools)),
-      task_queue_(config_),
-      task_counter_(config.worker_threads) {
+    : task_counter_(config.worker_threads),
+      task_queue_(config),
+      config_(std::move(config)),
+      pools_(std::move(pools)) {
   utils::impl::FinishStaticRegistration();
   try {
     LOG_INFO() << "creating task_processor " << Name() << " "

@@ -2,6 +2,7 @@
 
 #include <chrono>
 #include <cstddef>
+#include <cstdint>
 #include <string>
 
 #include <userver/formats/json_fwd.hpp>
@@ -44,7 +45,7 @@ struct TaskProcessorSettings {
   std::chrono::microseconds wait_queue_time_limit{0};
   std::chrono::microseconds sensor_wait_queue_time_limit{0};
 
-  enum class OverloadAction { kCancel, kIgnore };
+  enum class OverloadAction : std::uint8_t { kCancel, kIgnore };
   OverloadAction overload_action{OverloadAction::kIgnore};
 
   std::chrono::microseconds profiler_execution_slice_threshold{0};

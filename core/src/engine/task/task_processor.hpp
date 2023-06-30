@@ -86,31 +86,28 @@ class TaskProcessor final {
 
   void HandleOverload(impl::TaskContext& context);
 
-  const TaskProcessorConfig config_;
-  std::atomic<std::chrono::microseconds> task_profiler_threshold_{{}};
-  std::atomic<bool> profiler_force_stacktrace_{false};
-
-  std::shared_ptr<impl::TaskProcessorPools> pools_;
-
-  std::atomic<bool> is_shutting_down_{false};
-
-  TaskQueue task_queue_;
-
-  std::atomic<std::chrono::microseconds> sensor_task_queue_wait_time_{{}};
-  std::atomic<std::chrono::microseconds> max_task_queue_wait_time_{{}};
-  std::atomic<size_t> max_task_queue_wait_length_{0};
-  std::atomic<TaskProcessorSettings::OverloadAction> overload_action_{
-      TaskProcessorSettings::OverloadAction::kIgnore};
-
-  std::vector<std::thread> workers_;
-  std::atomic<bool> task_trace_logger_set_{false};
-  logging::LoggerPtr task_trace_logger_{nullptr};
-
   impl::TaskCounter task_counter_;
   concurrent::impl::InterferenceShield<impl::DetachedTasksSyncBlock>
       detached_contexts_{impl::DetachedTasksSyncBlock::StopMode::kCancel};
   concurrent::impl::InterferenceShield<std::atomic<bool>>
       task_queue_wait_time_overloaded_{false};
+  TaskQueue task_queue_;
+
+  const TaskProcessorConfig config_;
+  const std::shared_ptr<impl::TaskProcessorPools> pools_;
+  std::vector<std::thread> workers_;
+  logging::LoggerPtr task_trace_logger_{nullptr};
+
+  std::atomic<std::chrono::microseconds> task_profiler_threshold_{{}};
+  std::atomic<std::chrono::microseconds> sensor_task_queue_wait_time_{{}};
+  std::atomic<std::chrono::microseconds> max_task_queue_wait_time_{{}};
+  std::atomic<std::size_t> max_task_queue_wait_length_{0};
+
+  std::atomic<TaskProcessorSettings::OverloadAction> overload_action_{
+      TaskProcessorSettings::OverloadAction::kIgnore};
+  std::atomic<bool> profiler_force_stacktrace_{false};
+  std::atomic<bool> is_shutting_down_{false};
+  std::atomic<bool> task_trace_logger_set_{false};
 };
 
 /// Register a function that runs on all threads on task processor creation.
