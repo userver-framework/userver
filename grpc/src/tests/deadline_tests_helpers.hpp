@@ -18,7 +18,7 @@ namespace helpers {
 constexpr auto kShortTimeout = std::chrono::milliseconds{300};
 constexpr auto kLongTimeout = std::chrono::milliseconds{500} + kShortTimeout;
 
-constexpr auto kAddSleep = std::chrono::milliseconds{10};
+constexpr auto kAddSleep = std::chrono::milliseconds{100};
 
 const std::string kGrpcMethod = "grpc_method";
 
