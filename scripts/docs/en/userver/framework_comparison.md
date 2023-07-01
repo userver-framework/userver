@@ -33,7 +33,7 @@ use ❌ and ❓ respectively.
 | Async Redis                       | ✔️ @ref md_en_userver_redis "[↗]"             | ± third-party driver   | ✔️ [[↗]][dapr-redis]         | ± third-party libs      | ✔️ [[↗]][drog-redis]         |
 | Async Mongo                       | ✔️ @ref md_en_userver_mongodb "[↗]"           | ± third-party driver   | ✔️ [[↗]][dapr-mongo]         | ❌ [manual offloading][acti-db] | ❌ [[↗]][drog-db]    |
 | Async ClickHouse                  | ✔️ @ref clickhouse_driver "[↗]"               | ± third-party driver   | ❌                            | ± third-party libs      | ❌ [[↗]][drog-db]            |
-| Async MySQL                       | ❌                                             | ± third-party driver   | ✔️ [[↗]][dapr-mysql]         | ❌ [[↗]][acti-db]      | ✔️ [[↗]][drog-db]            |
+| Async MySQL                       | ✔️ @ref mysql_driver                           | ± third-party driver   | ✔️ [[↗]][dapr-mysql]         | ❌ [[↗]][acti-db]      | ✔️ [[↗]][drog-db]            |
 | Metrics                           | ✔️ @ref md_en_userver_service_monitor "[↗]"   | ± third-party driver   | ✔️ [[↗]][dapr-configs]       | ❌                      | ❌                            |
 | No args evaluation for disabled logs | ✔️ @ref md_en_userver_logging "[↗]"        | ❌                      | ❌                            | ± third-party libs       | ❌                           |
 | Secrets Management                | ± @ref storages::secdist::SecdistConfig "[↗]"  | ❓                      | ✔️                            | ❓                      | ❓                          |
