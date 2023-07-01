@@ -86,7 +86,8 @@ class SearchState final {
   std::variant<Key, Value> key_or_result_;
 };
 
-inline constexpr std::size_t kInvalidSize = -1;
+inline constexpr std::size_t kInvalidSize =
+    std::numeric_limits<std::size_t>::max();
 
 template <typename Payload>
 inline constexpr bool kFitsInStringOrPayload =
@@ -138,6 +139,9 @@ class StringOrPayload final {
   DataOrPayload data_or_payload_;
   std::size_t size_;
 };
+
+template <typename T>
+StringOrPayload(T) -> StringOrPayload<T>;
 
 template <typename Value>
 class SearchState<std::string_view, Value,
@@ -608,6 +612,9 @@ class TrivialBiMap final {
   const BuilderFunc func_;
 };
 
+template <typename BuilderFunc>
+TrivialBiMap(BuilderFunc) -> TrivialBiMap<BuilderFunc>;
+
 /// @ingroup userver_containers
 ///
 /// @brief Unordered set for trivial types, including string literals.
@@ -662,6 +669,9 @@ class TrivialSet final {
  private:
   const BuilderFunc func_;
 };
+
+template <typename BuilderFunc>
+TrivialSet(BuilderFunc) -> TrivialSet<BuilderFunc>;
 
 /// @brief Parses and returns whatever is specified by `map` from a
 /// `formats::*::Value`.
