@@ -50,7 +50,10 @@ inline std::shared_ptr<logging::impl::TpLogger> MakeNamedStreamLogger(
 }
 
 inline std::string_view GetTextKey(logging::Format format) {
-  return format == logging::Format::kLtsv ? "text:" : "text=";
+  if (format == logging::Format::kLtsv || format == logging::Format::kJson) {
+    return "text:";
+  }
+  return "text=";
 }
 
 inline std::string ParseLoggedText(std::string_view log_record,
@@ -68,7 +71,9 @@ inline std::string ParseLoggedText(std::string_view log_record,
     throw std::runtime_error("The log contains multiple log records");
   }
 
-  const auto text_end = log_record.find_first_of("\t\r\n");
+  const auto text_end = format == logging::Format::kJson
+                            ? log_record.find_first_of("\"}\n")
+                            : log_record.find_first_of("\t\r\n");
   if (text_end != std::string_view::npos) {
     log_record = log_record.substr(0, text_end);
   }
@@ -132,6 +137,13 @@ class LoggingTest : public LoggingTestBase {
 class LoggingLtsvTest : public LoggingTestBase {
  protected:
   LoggingLtsvTest() : LoggingTestBase(logging::Format::kLtsv) {
+    SetDefaultLogger(GetStreamLogger());
+  }
+};
+
+class LoggingJsonTest : public LoggingTestBase {
+ protected:
+  LoggingJsonTest() : LoggingTestBase(logging::Format::kJson) {
     SetDefaultLogger(GetStreamLogger());
   }
 };

@@ -43,7 +43,7 @@ int DaemonMain(const int argc, const char* const argv[],
     ("config_vars", po::value(&config_vars_path), "path to config_vars.yaml; if set, config_vars in config.yaml are ignored")
     ("config_vars_override", po::value(&config_vars_override_path), "path to an additional config_vars.yaml, which overrides vars of config_vars.yaml")
     ("init-log,l", po::value(&init_log_path), "path to initialization log")
-    ("init-log-format", po::value(&init_log_format), "format of the initialization log ('tskv', 'ltsv')")
+    ("init-log-format", po::value(&init_log_format), "format of the initialization log ('tskv', 'ltsv', 'json', 'raw')")
   ;
   // clang-format on
 

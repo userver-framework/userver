@@ -16,6 +16,7 @@ char GetSeparatorFromLogger(LoggerCRef logger) {
     case Format::kRaw:
       return '=';
     case Format::kLtsv:
+    case Format::kJson:
       return ':';
   }
 
