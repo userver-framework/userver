@@ -7,9 +7,12 @@
 #include <memory>
 #include <string>
 
+#include <engine/task/task_context.hpp>
 #include <userver/concurrent/mpsc_queue.hpp>
 #include <userver/engine/sleep.hpp>
+#include <userver/logging/impl/tag_writer.hpp>
 #include <userver/logging/log.hpp>
+#include <userver/tracing/span.hpp>
 #include <userver/utils/overloaded.hpp>
 
 #include <logging/spdlog_helpers.hpp>
@@ -149,6 +152,17 @@ void TpLogger::Log(Level level, std::string_view msg) const {
   }
 
   Push(std::move(action));
+}
+
+void TpLogger::PrependCommonTags(TagWriter writer) const {
+  auto* const span = tracing::Span::CurrentSpanUnchecked();
+  if (span) span->LogTo(writer);
+
+  auto* const task = engine::current_task::GetCurrentTaskContextUnchecked();
+  writer.PutTag("task_id", HexShort{task});
+
+  auto* const thread_id = reinterpret_cast<void*>(pthread_self());
+  writer.PutTag("thread_id", Hex{thread_id});
 }
 
 void TpLogger::SetPattern(std::string pattern) {

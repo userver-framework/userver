@@ -8,6 +8,10 @@
 
 USERVER_NAMESPACE_BEGIN
 
+namespace logging::impl {
+class TagWriter;
+}  // namespace logging::impl
+
 namespace tracing::impl {
 
 using PerfTimePoint = std::chrono::steady_clock::time_point;
@@ -26,7 +30,7 @@ class TimeStorage {
   /// Accumulated time for a certain key. If the key is not there, returns 0
   Duration DurationTotal(const std::string& key) const;
 
-  void MergeInto(logging::LogHelper& lh);
+  void MergeInto(logging::impl::TagWriter writer);
 
  private:
   std::unordered_map<std::string, Duration> data_;

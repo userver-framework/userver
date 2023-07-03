@@ -1,5 +1,7 @@
 #include <userver/logging/impl/logger_base.hpp>
 
+#include <userver/logging/impl/tag_writer.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace logging::impl {
@@ -7,6 +9,8 @@ namespace logging::impl {
 LoggerBase::LoggerBase(Format format) noexcept : format_(format) {}
 
 LoggerBase::~LoggerBase() = default;
+
+void LoggerBase::PrependCommonTags(TagWriter /*writer*/) const {}
 
 Format LoggerBase::GetFormat() const noexcept { return format_; }
 

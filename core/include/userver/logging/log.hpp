@@ -140,10 +140,8 @@ struct EntryStorage final {
 /// @brief Builds a stream and evaluates a message for the logger.
 /// @hideinitializer
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define DO_LOG_TO(logger, lvl)                                         \
-  USERVER_NAMESPACE::logging::LogHelper(logger, lvl, USERVER_FILEPATH, \
-                                        __LINE__, __func__)            \
-      .AsLvalue()
+#define DO_LOG_TO(logger, lvl) \
+  USERVER_NAMESPACE::logging::LogHelper(logger, lvl).AsLvalue()
 
 // static_cast<int> below are workarounds for clangs -Wtautological-compare
 

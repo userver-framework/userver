@@ -2,18 +2,20 @@
 
 #include <boost/container/small_vector.hpp>
 
-#include <logging/put_data.hpp>
-#include <userver/formats/json.hpp>
 #include <userver/formats/json/string_builder.hpp>
+#include <userver/logging/impl/tag_writer.hpp>
 #include <userver/logging/log_extra.hpp>
 #include <userver/tracing/opentracing.hpp>
 #include <userver/tracing/tags.hpp>
+#include <utils/internal_tag.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace tracing {
+
 namespace {
 namespace jaeger {
+
 struct OpentracingTag {
   std::string opentracing_name;
   std::string type;
@@ -50,7 +52,7 @@ struct LogExtraValueVisitor {
 void GetTagObject(formats::json::StringBuilder& builder, const std::string& key,
                   const logging::LogExtra::Value& value,
                   const std::string& type) {
-  formats::json::StringBuilder::ObjectGuard guard(builder);
+  const formats::json::StringBuilder::ObjectGuard guard(builder);
   LogExtraValueVisitor visitor;
   std::visit(visitor, value);
 
@@ -64,15 +66,16 @@ void GetTagObject(formats::json::StringBuilder& builder, const std::string& key,
   builder.WriteString(key);
 }
 
-const std::string kOperationName = "operation_name";
-const std::string kTraceId = "trace_id";
-const std::string kParentId = "parent_id";
-const std::string kSpanId = "span_id";
-const std::string kServiceName = "service_name";
+constexpr std::string_view kOperationName = "operation_name";
+constexpr std::string_view kTraceId = "trace_id";
+constexpr std::string_view kParentId = "parent_id";
+constexpr std::string_view kSpanId = "span_id";
+constexpr std::string_view kServiceName = "service_name";
 
-const std::string kStartTime = "start_time";
-const std::string kStartTimeMillis = "start_time_millis";
-const std::string kDuration = "duration";
+constexpr std::string_view kStartTime = "start_time";
+constexpr std::string_view kStartTimeMillis = "start_time_millis";
+constexpr std::string_view kDuration = "duration";
+
 }  // namespace jaeger
 }  // namespace
 
@@ -81,10 +84,15 @@ void Span::Impl::LogOpenTracing() const {
   if (!logger) {
     return;
   }
-  DoLogOpenTracing(DO_LOG_TO_NO_SPAN(*logger, log_level_));
+
+  {
+    const DetachLocalSpansScope ignore_local_span;
+    logging::LogHelper lh(*logger, log_level_);
+    DoLogOpenTracing(lh.GetTagWriterAfterText(utils::InternalTag{}));
+  }
 }
 
-void Span::Impl::DoLogOpenTracing(logging::LogHelper& lh) const {
+void Span::Impl::DoLogOpenTracing(logging::impl::TagWriter writer) const {
   const auto steady_now = std::chrono::steady_clock::now();
   const auto duration = steady_now - start_steady_time_;
   const auto duration_microseconds =
@@ -94,25 +102,25 @@ void Span::Impl::DoLogOpenTracing(logging::LogHelper& lh) const {
                         .count();
 
   if (tracer_) {
-    PutData(lh, jaeger::kServiceName, tracer_->GetServiceName());
+    writer.PutTag(jaeger::kServiceName, tracer_->GetServiceName());
   }
-  PutData(lh, jaeger::kTraceId, trace_id_);
-  PutData(lh, jaeger::kParentId, parent_id_);
-  PutData(lh, jaeger::kSpanId, span_id_);
-  PutData(lh, jaeger::kStartTime, start_time);
-  PutData(lh, jaeger::kStartTimeMillis, start_time / 1000);
-  PutData(lh, jaeger::kDuration, duration_microseconds);
-  PutData(lh, jaeger::kOperationName, name_);
+  writer.PutTag(jaeger::kTraceId, trace_id_);
+  writer.PutTag(jaeger::kParentId, parent_id_);
+  writer.PutTag(jaeger::kSpanId, span_id_);
+  writer.PutTag(jaeger::kStartTime, start_time);
+  writer.PutTag(jaeger::kStartTimeMillis, start_time / 1000);
+  writer.PutTag(jaeger::kDuration, duration_microseconds);
+  writer.PutTag(jaeger::kOperationName, name_);
 
   formats::json::StringBuilder tags;
   {
-    formats::json::StringBuilder::ArrayGuard guard(tags);
+    const formats::json::StringBuilder::ArrayGuard guard(tags);
     AddOpentracingTags(tags, log_extra_inheritable_);
     if (log_extra_local_) {
       AddOpentracingTags(tags, *log_extra_local_);
     }
   }
-  PutData(lh, "tags", tags.GetStringView());
+  writer.PutTag("tags", tags.GetStringView());
 }
 
 void Span::Impl::AddOpentracingTags(formats::json::StringBuilder& output,

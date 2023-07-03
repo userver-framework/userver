@@ -34,7 +34,7 @@ class InPlaceSpan final {
 
  private:
   struct Impl;
-  utils::FastPimpl<Impl, 4200, 8> impl_;
+  utils::FastPimpl<Impl, 4216, 8> impl_;
 };
 
 }  // namespace tracing

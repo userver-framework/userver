@@ -1,6 +1,6 @@
 #pragma once
 
-#include <cstddef>
+#include <cstdint>
 #include <string_view>
 #include <type_traits>
 
@@ -10,24 +10,45 @@ USERVER_NAMESPACE_BEGIN
 
 namespace utils::impl {
 
-class SourceLocation {
- public:
-  static SourceLocation Current(
-      const char* filename = &__builtin_FILE()[std::integral_constant<
-          size_t, logging::impl::PathBaseSize(__builtin_FILE())>::value],
-      const char* function = __builtin_FUNCTION(),
-      size_t line = __builtin_LINE());
+class SourceLocation final {
+  struct EmplaceEnabler final {
+    constexpr explicit EmplaceEnabler() noexcept = default;
+  };
 
-  const char* file_name() const;
-  const char* function_name() const;
-  size_t line() const;
+ public:
+  static constexpr SourceLocation Current(
+      EmplaceEnabler /*unused*/ = EmplaceEnabler{},
+      std::string_view file_name =
+          std::string_view{&__builtin_FILE()[std::integral_constant<
+              size_t, logging::impl::PathBaseSize(__builtin_FILE())>::value]},
+      std::string_view function_name = __builtin_FUNCTION(),
+      std::uint_least32_t line = __builtin_LINE()) noexcept {
+    return SourceLocation{line, file_name, function_name};
+  }
+
+  // Mainly intended for interfacing with external libraries.
+  static constexpr SourceLocation Custom(
+      std::uint_least32_t line, std::string_view file_name,
+      std::string_view function_name) noexcept {
+    return SourceLocation{line, file_name, function_name};
+  }
+
+  constexpr std::uint_least32_t GetLine() const noexcept { return line_; }
+
+  constexpr std::string_view GetFileName() const noexcept { return file_name_; }
+
+  constexpr std::string_view GetFunctionName() const noexcept {
+    return function_name_;
+  }
 
  private:
-  SourceLocation(const char* filename, const char* function, size_t line);
+  constexpr SourceLocation(std::uint_least32_t line, std::string_view file_name,
+                           std::string_view function_name) noexcept
+      : line_(line), file_name_(file_name), function_name_(function_name) {}
 
-  const char* file_name_;
-  const char* function_name_;
-  size_t line_;
+  std::uint_least32_t line_;
+  std::string_view file_name_;
+  std::string_view function_name_;
 };
 
 }  // namespace utils::impl

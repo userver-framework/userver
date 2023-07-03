@@ -13,6 +13,8 @@ USERVER_NAMESPACE_BEGIN
 
 namespace logging {
 
+inline constexpr std::size_t kInitialLogBufferSize = 1500;
+
 class LogHelper::Impl final {
  public:
   using char_type = std::streambuf::char_type;
@@ -70,16 +72,15 @@ class LogHelper::Impl final {
 
   LazyInitedStream& GetLazyInitedStream();
 
-  static constexpr size_t kOptimalBufferSize = 1500;
-
   const impl::LoggerBase* logger_;
   const Level level_;
   const char key_value_separator_;
   Encode encode_mode_{Encode::kNone};
-  fmt::basic_memory_buffer<char, kOptimalBufferSize> msg_;
+  fmt::basic_memory_buffer<char, kInitialLogBufferSize> msg_;
   std::optional<LazyInitedStream> lazy_stream_;
   LogExtra extra_;
-  size_t initial_length_{0};
+  std::size_t initial_length_{0};
+  bool is_text_finished_{false};
 };
 
 }  // namespace logging

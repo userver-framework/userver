@@ -7,8 +7,8 @@
 #include <fmt/format.h>
 
 #include <engine/task/task_context.hpp>
-#include <logging/put_data.hpp>
 #include <userver/engine/task/local_variable.hpp>
+#include <userver/logging/impl/tag_writer.hpp>
 #include <userver/tracing/span.hpp>
 #include <userver/tracing/tracer.hpp>
 #include <userver/utils/assert.hpp>
@@ -25,12 +25,12 @@ namespace {
 
 using RealMilliseconds = std::chrono::duration<double, std::milli>;
 
-const std::string kStopWatchAttrName = "stopwatch_name";
-const std::string kTotalTimeAttrName = "total_time";
-const std::string kTimeUnitsAttrName = "stopwatch_units";
-const std::string kStartTimestampAttrName = "start_timestamp";
+constexpr std::string_view kStopWatchTag = "stopwatch_name";
+constexpr std::string_view kTotalTimeTag = "total_time";
+constexpr std::string_view kTimeUnitsTag = "stopwatch_units";
+constexpr std::string_view kStartTimestampTag = "start_timestamp";
 
-const std::string kReferenceType = "span_ref_type";
+constexpr std::string_view kReferenceType = "span_ref_type";
 const std::string kReferenceTypeChild = "child";
 const std::string kReferenceTypeFollows = "follows";
 
@@ -61,13 +61,8 @@ std::string_view StartTsToString(std::chrono::system_clock::time_point start) {
   return std::string_view{&buffer[0], size.size};
 }
 
-/* Maintain coro-local span stack to identify "current span" in O(1).
- * Use list instead of stack to avoid UB in case of "pop non-last item"
- * in case of buggy users.
- */
-engine::TaskLocalVariable<boost::intrusive::list<
-    Span::Impl, boost::intrusive::constant_time_size<false>>>
-    task_local_spans;
+// Maintain coro-local span stack to identify "current span" in O(1).
+engine::TaskLocalVariable<SpanStack> task_local_spans;
 
 std::string GenerateSpanId() {
   std::uniform_int_distribution<std::uint64_t> dist;
@@ -75,12 +70,6 @@ std::string GenerateSpanId() {
 
   static_assert(sizeof(random_value) == 8);
   return utils::encoding::ToHex(&random_value, 8);
-}
-
-logging::LogHelper& operator<<(logging::LogHelper& lh,
-                               tracing::Span::Impl&& span_impl) {
-  std::move(span_impl).LogTo(lh);
-  return lh;
 }
 
 }  // namespace
@@ -117,16 +106,15 @@ Span::Impl::~Impl() {
     return;
   }
 
-  const auto* file_path = source_location_.file_name();
-
-  PutIntoLogger(logging::LogHelper(
-                    logging::impl::DefaultLoggerRef(), log_level_, file_path,
-                    source_location_.line(), source_location_.function_name(),
-                    logging::LogHelper::Mode::kNoSpan)
-                    .AsLvalue());
+  {
+    const DetachLocalSpansScope ignore_local_span;
+    logging::LogHelper lh{logging::impl::DefaultLoggerRef(), log_level_,
+                          source_location_};
+    PutIntoLogger(lh.GetTagWriterAfterText(utils::InternalTag{}));
+  }
 }
 
-void Span::Impl::PutIntoLogger(logging::LogHelper& lh) {
+void Span::Impl::PutIntoLogger(logging::impl::TagWriter writer) {
   const auto steady_now = std::chrono::steady_clock::now();
   const auto duration = steady_now - start_steady_time_;
   const auto total_time_ms =
@@ -136,28 +124,23 @@ void Span::Impl::PutIntoLogger(logging::LogHelper& lh) {
                              ? kReferenceTypeChild
                              : kReferenceTypeFollows;
 
-  PutData(lh, kStopWatchAttrName, name_);
-  PutData(lh, kTotalTimeAttrName, total_time_ms);
-  PutData(lh, kReferenceType, ref_type);
-  PutData(lh, kTimeUnitsAttrName, "ms");
-  PutData(lh, kStartTimestampAttrName, StartTsToString(start_system_time_));
+  writer.PutTag(kStopWatchTag, name_);
+  writer.PutTag(kTotalTimeTag, total_time_ms);
+  writer.PutTag(kReferenceType, ref_type);
+  writer.PutTag(kTimeUnitsTag, "ms");
+  writer.PutTag(kStartTimestampTag, StartTsToString(start_system_time_));
 
   LogOpenTracing();
 
-  time_storage_.MergeInto(lh);
+  time_storage_.MergeInto(writer);
 
-  if (log_extra_local_) lh << std::move(*log_extra_local_);
-  lh << std::move(*this);
+  if (log_extra_local_) writer.PutLogExtra(*log_extra_local_);
+  std::move(*this).LogTo(writer);
 }
 
-void Span::Impl::LogTo(logging::LogHelper& log_helper) const& {
-  log_helper << log_extra_inheritable_;
-  tracer_->LogSpanContextTo(*this, log_helper);
-}
-
-void Span::Impl::LogTo(logging::LogHelper& log_helper) && {
-  log_helper << std::move(log_extra_inheritable_);
-  tracer_->LogSpanContextTo(std::move(*this), log_helper);
+void Span::Impl::LogTo(logging::impl::TagWriter writer) {
+  writer.PutLogExtra(log_extra_inheritable_);
+  tracer_->LogSpanContextTo(*this, writer);
 }
 
 void Span::Impl::DetachFromCoroStack() { unlink(); }
@@ -376,8 +359,8 @@ std::string Span::GetLink() const { return GetTag(kLinkTag); }
 
 std::string Span::GetParentLink() const { return GetTag(kParentLinkTag); }
 
-void Span::LogTo(logging::LogHelper& log_helper) const& {
-  pimpl_->LogTo(log_helper);
+void Span::LogTo(logging::impl::TagWriter writer) const& {
+  pimpl_->LogTo(writer);
 }
 
 bool Span::ShouldLogDefault() const noexcept { return pimpl_->ShouldLog(); }
@@ -414,18 +397,39 @@ static_assert(!std::is_copy_assignable<Span>::value,
 static_assert(!std::is_move_assignable<Span>::value,
               "tracing::Span must not be move assignable");
 
-logging::LogHelper& operator<<(logging::LogHelper& lh,
-                               const tracing::Span& span) {
-  span.LogTo(lh);
-  return lh;
-}
-
 const Span::Impl* GetParentSpanImpl() {
   if (!engine::current_task::IsTaskProcessorThread()) return nullptr;
 
   const auto* spans_ptr = task_local_spans.GetOptional();
   return !spans_ptr || spans_ptr->empty() ? nullptr : &spans_ptr->back();
 }
+
+DetachLocalSpansScope::DetachLocalSpansScope() noexcept {
+  if (engine::current_task::IsTaskProcessorThread()) {
+    if (auto* const spans_ptr = task_local_spans.GetOptional()) {
+      old_spans_ = std::move(*spans_ptr);
+      UASSERT(spans_ptr->empty());
+    }
+  }
+}
+
+DetachLocalSpansScope::~DetachLocalSpansScope() {
+  UASSERT_MSG(!engine::current_task::IsTaskProcessorThread() ||
+                  !task_local_spans.GetOptional() || task_local_spans->empty(),
+              "A Span was constructed while in DetachLocalSpansScope");
+  if (!old_spans_.empty()) {
+    *task_local_spans = std::move(old_spans_);
+  }
+}
+
+namespace impl {
+
+logging::LogHelper& operator<<(logging::LogHelper& lh, LogSpanAsLast span) {
+  span.span.LogTo(lh.GetTagWriterAfterText(utils::InternalTag{}));
+  return lh;
+}
+
+}  // namespace impl
 
 }  // namespace tracing
 

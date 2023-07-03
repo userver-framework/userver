@@ -126,19 +126,20 @@ static_assert(std::is_same<tt::IO<pg::TimePointTz>::ParserType,
 static_assert(std::is_same<tt::IO<pg::TimePointTz>::FormatterType,
                            io::BufferFormatter<pg::TimePointTz>>::value);
 
-static_assert(!tt::CanUseEnumAsStrongTypedef<std::string>(), "not an enum");
-static_assert(!tt::CanUseEnumAsStrongTypedef<int>(), "not an enum");
+static_assert(!tt::CanUseEnumAsStrongTypedef<std::string>::value,
+              "not an enum");
+static_assert(!tt::CanUseEnumAsStrongTypedef<int>::value, "not an enum");
 
 // enum with unsigned underlying type cannot be used as strong typedef with
 // postgres
 static_assert(
-    !tt::CanUseEnumAsStrongTypedef<UnusableEnumTypedef>(),
+    !tt::CanUseEnumAsStrongTypedef<UnusableEnumTypedef>::value,
     "Enumeration with unsigned underlying type cannot be used with postgres");
 
-static_assert(!tt::CanUseEnumAsStrongTypedef<MappedEnum>(),
+static_assert(!tt::CanUseEnumAsStrongTypedef<MappedEnum>::value,
               "Mapped enum cannot be used as a strong typedef");
 
-static_assert(tt::CanUseEnumAsStrongTypedef<sample::EnumStrongTypedef>(),
+static_assert(tt::CanUseEnumAsStrongTypedef<sample::EnumStrongTypedef>::value,
               "Enum with signed underlying type and no mapping can be used as "
               "a strong typedef");
 static_assert(tt::kIsMappedToPg<sample::EnumStrongTypedef>,

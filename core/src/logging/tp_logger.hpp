@@ -57,6 +57,7 @@ class TpLogger final : public LoggerBase {
 
   void Log(Level level, std::string_view msg) const override;
   void Flush() const override;
+  void PrependCommonTags(TagWriter writer) const override;
 
   void SetPattern(std::string pattern);
   void AddSink(impl::SinkPtr&& sink);

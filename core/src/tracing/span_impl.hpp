@@ -20,17 +20,7 @@
 
 #include <tracing/time_storage.hpp>
 
-// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define DO_LOG_TO_NO_SPAN(logger, lvl)                                  \
-  logging::LogHelper(logger, lvl, USERVER_FILEPATH, __LINE__, __func__, \
-                     logging::LogHelper::Mode::kNoSpan)                 \
-      .AsLvalue()
-
 USERVER_NAMESPACE_BEGIN
-
-namespace formats::json {
-class ValueBuilder;
-}
 
 namespace tracing {
 
@@ -58,9 +48,9 @@ class Span::Impl
   impl::TimeStorage& GetTimeStorage() { return time_storage_; }
   const impl::TimeStorage& GetTimeStorage() const { return time_storage_; }
 
-  void LogTo(logging::LogHelper& log_helper) const&;
+  void PutIntoLogger(logging::impl::TagWriter writer);
 
-  void LogTo(logging::LogHelper& log_helper) &&;
+  void LogTo(logging::impl::TagWriter writer);
 
   const std::string& GetTraceId() const& noexcept { return trace_id_; }
   const std::string& GetSpanId() const& noexcept { return span_id_; }
@@ -78,11 +68,10 @@ class Span::Impl
 
   void DetachFromCoroStack();
   void AttachToCoroStack();
-  void PutIntoLogger(logging::LogHelper& lh);
 
  private:
   void LogOpenTracing() const;
-  void DoLogOpenTracing(logging::LogHelper& lh) const;
+  void DoLogOpenTracing(logging::impl::TagWriter writer) const;
   static void AddOpentracingTags(formats::json::StringBuilder& output,
                                  const logging::LogExtra& input);
 
@@ -115,12 +104,30 @@ class Span::Impl
   friend class SpanBuilder;
 };
 
+// Use list instead of stack to avoid UB in case of "pop non-last item"
+// in case of buggy users.
+using SpanStack =
+    boost::intrusive::list<Span::Impl,
+                           boost::intrusive::constant_time_size<false>>;
+
 const Span::Impl* GetParentSpanImpl();
 
 template <typename... Args>
 Span::Impl* AllocateImpl(Args&&... args) {
   return new Span::Impl(std::forward<Args>(args)...);
 }
+
+class DetachLocalSpansScope final {
+ public:
+  DetachLocalSpansScope() noexcept;
+
+  DetachLocalSpansScope(DetachLocalSpansScope&&) = delete;
+  DetachLocalSpansScope& operator=(DetachLocalSpansScope&&) = delete;
+  ~DetachLocalSpansScope();
+
+ private:
+  SpanStack old_spans_;
+};
 
 }  // namespace tracing
 

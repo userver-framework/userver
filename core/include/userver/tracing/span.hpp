@@ -170,8 +170,6 @@ class Span final {
   const std::string& GetSpanId() const;
   const std::string& GetParentId() const;
 
-  void LogTo(logging::LogHelper& log_helper) const&;
-
   /// @returns true if this span would be logged with the current local and
   /// global log levels to the default logger.
   bool ShouldLogDefault() const noexcept;
@@ -190,6 +188,9 @@ class Span final {
   void AddTags(const logging::LogExtra&, utils::InternalTag);
 
   impl::TimeStorage& GetTimeStorage();
+
+  // For internal use only.
+  void LogTo(logging::impl::TagWriter writer) const&;
   /// @endcond
 
  private:
@@ -215,7 +216,16 @@ class Span final {
   std::unique_ptr<Impl, OptionalDeleter> pimpl_;
 };
 
-logging::LogHelper& operator<<(logging::LogHelper& lh, const Span& span);
+namespace impl {
+
+// Must be logged as the last item, after the rest of text.
+struct LogSpanAsLast final {
+  const Span& span;
+};
+
+logging::LogHelper& operator<<(logging::LogHelper& lh, LogSpanAsLast span);
+
+}  // namespace impl
 
 }  // namespace tracing
 

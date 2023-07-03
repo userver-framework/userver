@@ -9,6 +9,8 @@ USERVER_NAMESPACE_BEGIN
 
 namespace logging::impl {
 
+class TagWriter;
+
 /// Base logger class
 class LoggerBase {
  public:
@@ -25,6 +27,8 @@ class LoggerBase {
   virtual void Log(Level level, std::string_view msg) const = 0;
 
   virtual void Flush() const = 0;
+
+  virtual void PrependCommonTags(TagWriter writer) const;
 
   Format GetFormat() const noexcept;
 

@@ -1,6 +1,7 @@
 #include <fmt/format.h>
 #include <boost/algorithm/string.hpp>
 
+#include <logging/log_helper_impl.hpp>
 #include <logging/logging_test.hpp>
 #include <tracing/no_log_spans.hpp>
 #include <userver/engine/sleep.hpp>
@@ -10,6 +11,7 @@
 #include <userver/tracing/span.hpp>
 #include <userver/tracing/tracer.hpp>
 #include <userver/utest/utest.hpp>
+#include <userver/utils/regex.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -85,6 +87,66 @@ UTEST_F(Span, Ctr) {
   logging::LogFlush();
   EXPECT_NE(std::string::npos,
             GetStreamString().find("stopwatch_name=span_name"));
+}
+
+UTEST_F(Span, LogFormat) {
+  // Note: this is a golden test. The order and content of tags is stable, which
+  // is an implementation detail, but it makes this test possible. If the order
+  // or content of tags change, this test should be fixed to reflect the
+  // changes.
+  constexpr std::string_view kExpectedPattern =
+      R"(tskv\t)"
+      R"(timestamp=\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}\t)"
+      R"(level=[A-Z]+\t)"
+      R"(module=[\w\d ():./]+\t)"
+      R"(task_id=[0-9A-F]+\t)"
+      R"(thread_id=0x[0-9A-F]+\t)"
+      R"(text=\t)"
+      R"(stopwatch_name=span_name\t)"
+      R"(total_time=\d+(\.\d+)?\t)"
+      R"(span_ref_type=child\t)"
+      R"(stopwatch_units=ms\t)"
+      R"(start_timestamp=\d+(\.\d+)?\t)"
+      R"(my_timer_time=\d+(\.\d+)?\t)"
+      R"(link=[0-9a-f]+\t)"
+      R"(my_tag_key=my_tag_value\t)"
+      R"(trace_id=[0-9a-f]+\t)"
+      R"(span_id=[0-9a-f]+\t)"
+      R"(parent_id=[0-9a-f]+\n)";
+  {
+    tracing::Span span("span_name");
+    span.AddTag("my_tag_key", "my_tag_value");
+    span.CreateScopeTime("my_timer");
+  }
+  logging::LogFlush();
+
+  const auto log_line = GetStreamString();
+  EXPECT_TRUE(utils::regex_match(log_line, utils::regex(kExpectedPattern)))
+      << log_line;
+}
+
+UTEST_F(Span, LogBufferSize) {
+  tracing::Span span("http/my-glorious-http-handler-name");
+  span.AddTag("meta_type", "my-glorious-http-handler-name");
+  span.AddTag("meta_code", 500);
+  span.AddTag("http_method", "DELETE");
+  span.AddTag("uri", "https://example.com/some/modest/uri?with=some;more=args");
+  span.AddTag("type", "request");
+  span.AddTag("request_body_length", 42);
+  span.AddTag("body", "just some modest sample request body, not too long");
+  span.AddTag("request_application", "my-userver-service");
+  span.AddTag("lang", "en");
+  span.AddTag("useragent", "what is that?");
+  span.AddTag("battery_type", "AAAAA");
+
+  LOG_ERROR() << "An exception occurred in 'my-glorious-http-handler-name' "
+                 "handler, we found this unacceptable thing and just couldn't "
+                 "really continue";
+  logging::LogFlush();
+
+  EXPECT_LE(GetStreamString().size(), logging::kInitialLogBufferSize)
+      << "A typical log, which a handler would write, caused a buffer "
+         "reallocation. Please adjust the initial buffer size.";
 }
 
 UTEST_F(Span, SourceLocation) {

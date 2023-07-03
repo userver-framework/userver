@@ -1,6 +1,7 @@
 #include <userver/logging/null_logger.hpp>
 
 #include <userver/logging/impl/logger_base.hpp>
+#include <userver/logging/impl/tag_writer.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -14,8 +15,7 @@ class NullLogger final : public impl::LoggerBase {
     LoggerBase::SetLevel(Level::kNone);
   }
 
-  void SetLevel(Level) override { /*do nothing*/
-  }
+  void SetLevel(Level) override {}  // do nothing
   void Log(Level, std::string_view) const override {}
   void Flush() const override {}
 };

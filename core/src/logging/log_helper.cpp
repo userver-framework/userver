@@ -13,11 +13,11 @@
 #include <boost/container/small_vector.hpp>
 #include <boost/exception/diagnostic_information.hpp>
 
-#include <engine/task/task_context.hpp>
 #include <logging/log_extra_stacktrace.hpp>
 #include <logging/log_helper_impl.hpp>
 #include <userver/compiler/demangle.hpp>
 #include <userver/logging/impl/logger_base.hpp>
+#include <userver/logging/impl/tag_writer.hpp>
 #include <userver/logging/level.hpp>
 #include <userver/logging/log_extra.hpp>
 #include <userver/logging/logger.hpp>
@@ -28,12 +28,11 @@
 #include <userver/utils/encoding/hex.hpp>
 #include <userver/utils/encoding/tskv.hpp>
 #include <userver/utils/traceful_exception.hpp>
+#include <utils/internal_tag.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace logging {
-
-constexpr char kPathLineSeparator = ':';
 
 namespace {
 
@@ -86,10 +85,21 @@ class ThreadLocalMemPool {
 
 constexpr bool NeedsQuoteEscaping(char c) { return c == '\"' || c == '\\'; }
 
+struct Module final {
+  const utils::impl::SourceLocation& location;
+};
+
+LogHelper& operator<<(LogHelper& lh, Module value) {
+  lh << value.location.GetFunctionName() << " ( "
+     << value.location.GetFileName() << ':' << value.location.GetLine()
+     << " ) ";
+  return lh;
+}
+
 }  // namespace
 
-LogHelper::LogHelper(LoggerCRef logger, Level level, std::string_view path,
-                     int line, std::string_view func, Mode mode) noexcept
+LogHelper::LogHelper(LoggerCRef logger, Level level,
+                     const utils::impl::SourceLocation& location) noexcept
     : pimpl_(Impl::Make(logger, level)) {
   try {
     UASSERT(pimpl_->GetEncoding() == Encode::kNone);
@@ -97,13 +107,11 @@ LogHelper::LogHelper(LoggerCRef logger, Level level, std::string_view path,
 
     // The following functions actually never throw if the assertions at the
     // bottom hold.
-    LogModule(path, line, func);
-    if (mode != Mode::kNoSpan) {
-      LogSpan();
-    }
-    LogIds();
+    auto tags_builder = GetTagWriter();
+    tags_builder.PutTag("module", Module{location});
+    logger.PrependCommonTags(tags_builder);
 
-    LogTextKey();
+    OpenTextTag();
     pimpl_->MarkTextBegin();
     // Must not log further system info after this point
 
@@ -114,20 +122,14 @@ LogHelper::LogHelper(LoggerCRef logger, Level level, std::string_view path,
         "Some function from above initialized the std::ostream. That's a "
         "heavy operation that should be avoided. Add a breakpoint on Stream() "
         "function and tune the implementation.");
-
-    UASSERT_MSG(initial_capacity == pimpl_->Capacity(),
-                "Logging buffer is too small to keep initial data. Adjust the "
-                "pimpl_ or reduce the output of the above functions.");
   } catch (...) {
     InternalLoggingError("Failed to log initial data");
   }
 }
 
 LogHelper::LogHelper(const LoggerPtr& logger, Level level,
-                     std::string_view path, int line, std::string_view func,
-                     Mode mode) noexcept
-    : LogHelper(logger ? *logger : logging::GetNullLogger(), level, path, line,
-                func, mode) {}
+                     const utils::impl::SourceLocation& location) noexcept
+    : LogHelper(logger ? *logger : logging::GetNullLogger(), level, location) {}
 
 LogHelper::~LogHelper() {
   DoLog();
@@ -142,7 +144,7 @@ bool LogHelper::IsLimitReached() const noexcept {
 
 void LogHelper::DoLog() noexcept {
   try {
-    AppendLogExtra();
+    GetTagWriter().PutLogExtra(pimpl_->GetLogExtra());
     if (pimpl_->IsStreamInitialized()) {
       Stream().flush();
     }
@@ -170,63 +172,24 @@ void LogHelper::InternalLoggingError(std::string_view message) noexcept {
   UASSERT_MSG(false, message);
 }
 
-void LogHelper::AppendLogExtra() {
-  const auto& items = pimpl_->GetLogExtra().extra_;
-  if (items->empty()) return;
-
-  for (const auto& item : *items) {
-    Put(utils::encoding::kTskvPairsSeparator);
-    {
-      EncodingGuard guard{*this, Encode::kKeyReplacePeriod};
-      Put(item.first);
-    }
-    pimpl_->PutKeyValueSeparator();
-    std::visit([this](const auto& value) { *this << value; },
-               item.second.GetValue());
-  }
-}
-
-void LogHelper::LogTextKey() {
+void LogHelper::OpenTextTag() {
   Put(utils::encoding::kTskvPairsSeparator);
   Put("text");
   pimpl_->PutKeyValueSeparator();
 }
 
-void LogHelper::LogModule(std::string_view path, int line,
-                          std::string_view func) {
-  Put("module");
-  pimpl_->PutKeyValueSeparator();
-  Put(func);
-  Put(" ( ");
-  Put(path);
-  Put(kPathLineSeparator);
-  PutSigned(line);
-  Put(" ) ");
+void LogHelper::PutKeyValueSeparator() { pimpl_->PutKeyValueSeparator(); }
+
+impl::TagWriter LogHelper::GetTagWriter() {
+  return impl::TagWriter{utils::InternalTag{}, *this};
 }
 
-void LogHelper::LogIds() {
-  auto* task = engine::current_task::GetCurrentTaskContextUnchecked();
-  uint64_t task_id = task ? reinterpret_cast<uint64_t>(task) : 0;
-  auto* thread_id = reinterpret_cast<void*>(pthread_self());
-
-  Put(utils::encoding::kTskvPairsSeparator);
-  Put("task_id");
-  pimpl_->PutKeyValueSeparator();
-  *this << HexShort{task_id};
-
-  Put(utils::encoding::kTskvPairsSeparator);
-  Put("thread_id");
-  pimpl_->PutKeyValueSeparator();
-  *this << Hex{thread_id};
-}
-
-void LogHelper::LogSpan() {
-  auto* span = tracing::Span::CurrentSpanUnchecked();
-  if (span) *this << *span;
+impl::TagWriter LogHelper::GetTagWriterAfterText(utils::InternalTag) {
+  return GetTagWriter();
 }
 
 LogHelper& LogHelper::operator<<(char value) noexcept {
-  EncodingGuard guard{*this, Encode::kValue};
+  const EncodingGuard guard{*this, Encode::kValue};
   try {
     Put(value);
   } catch (...) {
@@ -236,7 +199,7 @@ LogHelper& LogHelper::operator<<(char value) noexcept {
 }
 
 LogHelper& LogHelper::operator<<(std::string_view value) noexcept {
-  EncodingGuard guard{*this, Encode::kValue};
+  const EncodingGuard guard{*this, Encode::kValue};
   try {
     Put(value);
   } catch (...) {
@@ -306,7 +269,7 @@ LogHelper& LogHelper::operator<<(bool value) noexcept {
 }
 
 LogHelper& LogHelper::operator<<(const std::exception& value) noexcept {
-  EncodingGuard guard{*this, Encode::kValue};
+  const EncodingGuard guard{*this, Encode::kValue};
   try {
     PutException(value);
   } catch (...) {
@@ -382,7 +345,7 @@ LogHelper& LogHelper::operator<<(HexShort hex) noexcept {
 }
 
 LogHelper& LogHelper::operator<<(Quoted value) noexcept {
-  EncodingGuard guard{*this, Encode::kValue};
+  const EncodingGuard guard{*this, Encode::kValue};
   try {
     PutQuoted(value.string);
   } catch (...) {

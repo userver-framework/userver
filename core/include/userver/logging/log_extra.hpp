@@ -24,6 +24,10 @@ namespace logging {
 
 class LogHelper;
 
+namespace impl {
+class TagWriter;
+};  // namespace impl
+
 /// Extra tskv fields storage
 class LogExtra final {
  public:
@@ -105,7 +109,7 @@ class LogExtra final {
   /// be silently ignored.
   void SetFrozen(const std::string& key);
 
-  friend class LogHelper;
+  friend class impl::TagWriter;
   friend class tracing::Span;
 
  private:

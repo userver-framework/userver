@@ -8,6 +8,10 @@
 
 USERVER_NAMESPACE_BEGIN
 
+namespace logging::impl {
+class TagWriter;
+}  // namespace logging::impl
+
 /// Opentracing support
 namespace tracing {
 
@@ -31,12 +35,7 @@ class Tracer : public std::enable_shared_from_this<Tracer> {
 
   // Log tag-private information like trace id, span id, etc.
   virtual void LogSpanContextTo(const Span::Impl& span,
-                                logging::LogHelper& log_helper) const = 0;
-
-  virtual void LogSpanContextTo(Span::Impl&& span,
-                                logging::LogHelper& log_helper) const {
-    LogSpanContextTo(span, log_helper);
-  }
+                                logging::impl::TagWriter writer) const = 0;
 
  protected:
   explicit Tracer(std::string_view service_name)

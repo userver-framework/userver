@@ -17,6 +17,8 @@
 #include <userver/logging/level.hpp>
 #include <userver/logging/log_extra.hpp>
 #include <userver/logging/logger.hpp>
+#include <userver/utils/impl/source_location.hpp>
+#include <userver/utils/internal_tag_fwd.hpp>
 #include <userver/utils/meta.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -24,6 +26,8 @@ USERVER_NAMESPACE_BEGIN
 namespace logging {
 
 namespace impl {
+
+class TagWriter;
 
 struct Noop {};
 
@@ -68,28 +72,21 @@ struct Quoted final {
 /// operator.
 class LogHelper final {
  public:
-  enum class Mode { kDefault, kNoSpan };
-
   /// @brief Constructs LogHelper with span logging
   /// @param logger to log to
   /// @param level message log level
-  /// @param path path of the source file that generated the message
-  /// @param line line of the source file that generated the message
-  /// @param func name of the function that generated the message
-  /// @param mode logging mode - with or without span
-  LogHelper(LoggerCRef logger, Level level, std::string_view path, int line,
-            std::string_view func, Mode mode = Mode::kDefault) noexcept;
+  /// @param location source location that will be written to logs
+  LogHelper(LoggerCRef logger, Level level,
+            const utils::impl::SourceLocation& location =
+                utils::impl::SourceLocation::Current()) noexcept;
 
   /// @brief Constructs LogHelper with span logging
   /// @param logger to log to (logging to nullptr does not output messages)
   /// @param level message log level
-  /// @param path path of the source file that generated the message
-  /// @param line line of the source file that generated the message
-  /// @param func name of the function that generated the message
-  /// @param mode logging mode - with or without span
-  LogHelper(const LoggerPtr& logger, Level level, std::string_view path,
-            int line, std::string_view func,
-            Mode mode = Mode::kDefault) noexcept;
+  /// @param location source location that will be written to logs
+  LogHelper(const LoggerPtr& logger, Level level,
+            const utils::impl::SourceLocation& location =
+                utils::impl::SourceLocation::Current()) noexcept;
 
   ~LogHelper();
 
@@ -117,7 +114,7 @@ class LogHelper final {
     } else if constexpr (std::is_base_of_v<std::exception, T>) {
       *this << static_cast<const std::exception&>(value);
     } else if constexpr (meta::kIsOstreamWritable<T>) {
-      EncodingGuard guard{*this, Encode::kValue};
+      const EncodingGuard guard{*this, Encode::kValue};
       // may throw a non std::exception based exception
       Stream() << value;
     } else if constexpr (meta::kIsRange<T> &&
@@ -159,6 +156,12 @@ class LogHelper final {
   /// @cond
   // For internal use only!
   operator impl::Noop() const noexcept { return {}; }
+
+  // Should only use after finishing logging `text`, otherwise garbage logs will
+  // be produced. For internal use only!
+  // TODO(TAXICOMMON-6951) refactor this function into something that never
+  //  produces garbage logs.
+  impl::TagWriter GetTagWriterAfterText(utils::InternalTag);
   /// @endcond
 
  private:
@@ -175,11 +178,9 @@ class LogHelper final {
 
   void InternalLoggingError(std::string_view message) noexcept;
 
-  void AppendLogExtra();
-  void LogTextKey();
-  void LogModule(std::string_view path, int line, std::string_view func);
-  void LogIds();
-  void LogSpan();
+  void OpenTextTag();
+  void PutKeyValueSeparator();
+  impl::TagWriter GetTagWriter();
 
   void PutFloatingPoint(float value);
   void PutFloatingPoint(double value);
@@ -203,8 +204,7 @@ class LogHelper final {
 
   std::ostream& Stream();
 
-  template <typename T>
-  friend void PutData(LogHelper& lh, std::string_view key, const T& value);
+  friend class impl::TagWriter;
 
   class Impl;
   std::unique_ptr<Impl> pimpl_;
@@ -222,9 +222,9 @@ LogHelper& operator<<(LogHelper& lh, const std::atomic<T>& value) {
 }
 
 template <typename T>
-LogHelper& operator<<(LogHelper& lh, const T* value) {
+LogHelper& operator<<(LogHelper& lh, const T* value) noexcept {
   if (value == nullptr) {
-    lh << "(null)";
+    lh << std::string_view{"(null)"};
   } else if constexpr (std::is_same_v<T, char>) {
     lh << std::string_view{value};
   } else {
