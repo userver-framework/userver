@@ -3,14 +3,14 @@
 #include <array>
 
 #include <userver/logging/level.hpp>
-#include <userver/utils/statistics/relaxed_counter.hpp>
+#include <userver/utils/statistics/rate_counter.hpp>
 #include <userver/utils/statistics/writer.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace logging::statistics {
 
-using Counter = utils::statistics::RelaxedCounter<uint64_t>;
+using Counter = utils::statistics::RateCounter;
 
 struct LogStatistics final {
   Counter dropped{};

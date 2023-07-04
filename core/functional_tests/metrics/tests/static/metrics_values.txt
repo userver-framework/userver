@@ -283,8 +283,6 @@ http.handler.too-many-requests-in-flight: http_handler=handler-server-monitor, h
 http.handler.too-many-requests-in-flight: http_handler=tests-control, http_path=/tests/_action_	GAUGE	0
 http.handler.total.cancelled-by-deadline:	GAUGE	0
 http.handler.total.deadline-received:	GAUGE	0
-
-# HTTP server metrics aggregated by all the handlers
 http.handler.total.in-flight:	GAUGE	0
 http.handler.total.rate-limit-reached:	GAUGE	0
 http.handler.total.reply-codes: http_code=200	GAUGE	0
@@ -301,7 +299,6 @@ http.handler.total.timings: percentile=p99	GAUGE	0
 http.handler.total.timings: percentile=p99_6	GAUGE	0
 http.handler.total.timings: percentile=p99_9	GAUGE	0
 http.handler.total.too-many-requests-in-flight:	GAUGE	0
-
 httpclient.cancelled-by-deadline:	GAUGE	0
 httpclient.cancelled-by-deadline: http_destination=http://localhost:00000/configs-service/configs/values	GAUGE	0
 httpclient.errors: http_destination=http://localhost:00000/configs-service/configs/values, http_error=host-resolution-failed	GAUGE	0
@@ -359,15 +356,15 @@ httpclient.timings: percentile=p99_6	GAUGE	0
 httpclient.timings: percentile=p99_9	GAUGE	0
 io_read_bytes:	GAUGE	0
 io_write_bytes:	GAUGE	0
-logger.by_level: level=critical, logger=default	GAUGE	0
-logger.by_level: level=debug, logger=default	GAUGE	0
-logger.by_level: level=error, logger=default	GAUGE	0
-logger.by_level: level=info, logger=default	GAUGE	0
-logger.by_level: level=none, logger=default	GAUGE	0
-logger.by_level: level=trace, logger=default	GAUGE	0
-logger.by_level: level=warning, logger=default	GAUGE	0
-logger.dropped: logger=default	GAUGE	0
-logger.total: logger=default	GAUGE	0
+logger.by_level: level=critical, logger=default	RATE	0
+logger.by_level: level=debug, logger=default	RATE	0
+logger.by_level: level=error, logger=default	RATE	0
+logger.by_level: level=info, logger=default	RATE	0
+logger.by_level: level=none, logger=default	RATE	0
+logger.by_level: level=trace, logger=default	RATE	0
+logger.by_level: level=warning, logger=default	RATE	0
+logger.dropped: logger=default	RATE	0
+logger.total: logger=default	RATE	0
 major_pagefaults:	GAUGE	0
 open_files:	GAUGE	0
 rss_kb:	GAUGE	0

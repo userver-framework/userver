@@ -76,7 +76,7 @@ class LoggingTestCoro : public LoggingTestBase {
     }
     const auto snapshot =
         utils::statistics::Snapshot(stats_storage_, "logger", labels);
-    return snapshot.SingleMetric(metric).AsInt();
+    return snapshot.SingleMetric(metric).AsRate().value;
   }
 
   void LogTestMT(std::shared_ptr<logging::impl::TpLogger> logger,

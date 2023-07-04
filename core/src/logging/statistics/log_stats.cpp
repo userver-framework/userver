@@ -9,12 +9,13 @@ namespace logging::statistics {
 void DumpMetric(utils::statistics::Writer& writer, const LogStatistics& stats) {
   writer["dropped"] = stats.dropped;
 
-  Counter total = 0;
+  utils::statistics::Rate total;
 
   for (size_t i = 0; i < stats.by_level.size(); ++i) {
+    const auto by_level = stats.by_level[i].Load();
     writer["by_level"].ValueWithLabels(
-        stats.by_level[i], {"level", ToString(static_cast<Level>(i))});
-    total += stats.by_level[i];
+        by_level, {"level", ToString(static_cast<Level>(i))});
+    total += by_level;
   }
 
   writer["total"] = total;

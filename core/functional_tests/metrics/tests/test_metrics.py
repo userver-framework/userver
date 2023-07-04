@@ -36,4 +36,9 @@ async def test_metrics(monitor_client, load):
     all_metrics = _normalize_metrics(
         await monitor_client.metrics_raw(output_format='pretty'),
     )
-    assert all_metrics == ethalon
+
+    assert all_metrics == ethalon, (
+        '\n===== Service metrics start =====\n'
+        f'{all_metrics}\n'
+        '===== Service metrics end =====\n'
+    )
