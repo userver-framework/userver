@@ -78,6 +78,27 @@ Requires: grpc-plugins >= 1.48.1
 
 Open source asynchronous framework with a rich set of abstractions for fast and comfortable creation of C++ microservices, services and utilities.
 
+%package -n %{name}-static
+Summary: userver framework static libraries
+Group:   Development/Libraries/C and C++
+Requires: %{name} = %{version}
+Requires: cctz-devel gtest-devel spdlog-devel
+Requires: libnghttp2-devel libidn2-devel brotli-devel c-ares-devel
+Requires: libcurl-devel libbson-devel
+Requires: mongo-c-driver-libs mongo-c-driver
+Requires: fmt-devel
+Requires: libssh-devel
+Requires: hiredis-devel
+Requires: clickhouse-cpp
+Requires: amqp-cpp
+Requires: protobuf-devel >= 3.21.9
+Requires: grpc-devel >= 1.48.1
+Requires: grpc-plugins >= 1.48.1
+
+%description -n %{name}-static
+
+Open source asynchronous framework with a rich set of abstractions for fast and comfortable creation of C++ microservices, services and utilities.
+
 %prep
 %setup -q -n userver-%{_version}
 
