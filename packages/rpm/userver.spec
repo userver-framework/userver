@@ -121,11 +121,11 @@ popd
 %clean
 rm -rf %{buildroot}
 
-%files -n %{name}
+#%files -n %{name}
 #%{_bindir}/userver/
-%{_libdir}/lib*.so
+#%{_libdir}/lib*.so
 
 %files -n %{name}-devel
 %{_includedir}/
-#{_libdir}/lib*.a
+%{_libdir}/lib*.a
 %{_libdir}/cmake/userver/*.cmake
