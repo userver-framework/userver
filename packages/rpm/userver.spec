@@ -1,3 +1,5 @@
+%global debug_package %{nil}
+
 %define __boost_suffix 176
 
 Name:    userver
@@ -127,5 +129,7 @@ rm -rf %{buildroot}
 
 %files -n %{name}-devel
 %{_includedir}/
+
+%files -n %{name}-static
 %{_libdir}/lib*.a
 %{_libdir}/cmake/userver/*.cmake
