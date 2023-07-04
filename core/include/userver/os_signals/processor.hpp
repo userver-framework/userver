@@ -12,12 +12,34 @@ USERVER_NAMESPACE_BEGIN
 
 namespace os_signals {
 
-/// @brief A manager that allows to subscribe
-/// to OS signals, example: SIGUSR1, SIGUSR2
+#if !defined(__APPLE__)
+
+/// @brief Constant for SIGUSR1
+inline constexpr int kSigUsr1 = 10;
+
+/// @brief Constant for SIGUSR2
+inline constexpr int kSigUsr2 = 12;
+
+#else
+inline constexpr int kSigUsr1 = 30;
+inline constexpr int kSigUsr2 = 31;
+#endif
+
+/// @ingroup userver_clients
+///
+/// @brief A client that allows to subscribe
+/// to OS signals `SIGUSR1 and `SIGUSR2`.
+///
+/// Usually retrieved from os_signals::ProcessorComponent component. For tests
+/// use os_signals::ProcessorMock.
+///
+/// @see @ref md_en_userver_os_signals
 class Processor final {
  public:
   explicit Processor(engine::TaskProcessor& task_processor);
 
+  /// Listen for a specific signal `signum`. See the other overload for
+  /// subscription to both signals.
   template <class Class>
   Subscriber AddListener(Class* obj, std::string_view name, int signum,
                          void (Class::*func)()) {
@@ -27,14 +49,23 @@ class Processor final {
       }
     };
 
-    return {channel_.AddListener(concurrent::FunctionId(obj), name,
-                                 std::move(execute))};
+    return channel_.AddListener(concurrent::FunctionId(obj), name,
+                                std::move(execute));
+  }
+
+  /// Listen for all the OS signals.
+  template <class Class>
+  Subscriber AddListener(Class* obj, std::string_view name,
+                         void (Class::*func)(int /*signum*/)) {
+    auto execute = [obj, func](int sig) { (obj->*func)(sig); };
+    return channel_.AddListener(concurrent::FunctionId(obj), name,
+                                std::move(execute));
   }
 
   /// @cond
+  // For internal use
   void Notify(int signum, utils::InternalTag);
   /// @endcond
-
  private:
   concurrent::AsyncEventChannel<int> channel_;
   engine::TaskProcessor& task_processor_;

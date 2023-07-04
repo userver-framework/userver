@@ -1,20 +1,16 @@
 #include <userver/os_signals/component.hpp>
 
-#include <components/manager.hpp>
-#include <components/manager_config.hpp>
-#include <userver/components/component_config.hpp>
-#include <userver/yaml_config/merge_schemas.hpp>
+#include <userver/engine/task/task_base.hpp>
+
 #include <utils/internal_tag.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace os_signals {
 
-ProcessorComponent::ProcessorComponent(
-    const components::ComponentConfig&,
-    const components::ComponentContext& context)
-    : manager_(context.GetTaskProcessor(
-          context.GetManager().GetConfig().default_task_processor)) {}
+ProcessorComponent::ProcessorComponent(const components::ComponentConfig&,
+                                       const components::ComponentContext&)
+    : manager_(engine::current_task::GetTaskProcessor()) {}
 
 os_signals::Processor& ProcessorComponent::Get() { return manager_; }
 

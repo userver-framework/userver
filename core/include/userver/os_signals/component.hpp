@@ -16,7 +16,7 @@ namespace os_signals {
 
 /// @ingroup userver_components
 ///
-/// @brief A storage for Processor listeners signals
+/// @brief A component for os_signals::Processor
 ///
 /// Declaration in static config file may be skipped.
 ///

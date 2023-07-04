@@ -153,10 +153,10 @@ void AddSocketSink(const TestsuiteCaptureConfig& config, Sink& socket_sink,
 
 /// [Signals sample - init]
 Logging::Logging(const ComponentConfig& config, const ComponentContext& context)
-    : signal_subscriber_(
-          context.FindComponent<os_signals::ProcessorComponent>()
-              .Get()
-              .AddListener(this, kName, SIGUSR1, &Logging::OnLogRotate))
+    : signal_subscriber_(context.FindComponent<os_signals::ProcessorComponent>()
+                             .Get()
+                             .AddListener(this, kName, os_signals::kSigUsr1,
+                                          &Logging::OnLogRotate))
 /// [Signals sample - init]
 {
   auto& storage =

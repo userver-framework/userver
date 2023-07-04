@@ -167,6 +167,7 @@ class [[nodiscard]] TaskBase {
   boost::intrusive_ptr<impl::TaskContext> context_;
 };
 
+/// @brief Namespace with functions to work with current task from within it
 namespace current_task {
 
 /// Returns true only when running in userver coroutine environment,

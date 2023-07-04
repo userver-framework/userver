@@ -20,19 +20,16 @@ after executing [logrotate](https://github.com/logrotate/logrotate).
 ### Example
 
 1. Add in private field class
-
-```cpp
-os_signals::Subscriber signal_subscribe_
-```
+  ```cpp
+  os_signals::Subscriber signal_subscribe_
+  ```
 
 2. In in the component's constructor, register a signal listener. For example,
-components::Logging uses the following code:
-
-@snippet core/src/logging/component.cpp  Signals sample - init
+  components::Logging uses the following code:
+  @snippet core/src/logging/component.cpp  Signals sample - init
 
 3. In the component's destructor, unsubscribe from the signal
-
-@snippet core/src/logging/component.cpp  Signals sample - destr
+  @snippet core/src/logging/component.cpp  Signals sample - destr
 
 
 ----------
