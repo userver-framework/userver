@@ -60,7 +60,7 @@ Open source asynchronous framework with a rich set of abstractions for fast and 
 %package -n %{name}-devel
 Summary: userver framework
 Group:   Development/Libraries/C and C++
-Requires: %{name} = %{version}
+#Requires: %{name} = %{version}
 Requires: cctz-devel gtest-devel spdlog-devel
 Requires: libnghttp2-devel libidn2-devel brotli-devel c-ares-devel
 Requires: libcurl-devel libbson-devel
@@ -81,7 +81,7 @@ Open source asynchronous framework with a rich set of abstractions for fast and 
 %package -n %{name}-static
 Summary: userver framework static libraries
 Group:   Development/Libraries/C and C++
-Requires: %{name} = %{version}
+#Requires: %{name} = %{version}
 Requires: cctz-devel gtest-devel spdlog-devel
 Requires: libnghttp2-devel libidn2-devel brotli-devel c-ares-devel
 Requires: libcurl-devel libbson-devel
