@@ -18,6 +18,9 @@ _uctl_commands=(
   'log-level set default'
   'on-logrotate'
   'access-top'
+  'config get'
+  'config override'
+  'config reset-overrides'
 )
 
 _uctl_log_dynamic_debug_commands=(

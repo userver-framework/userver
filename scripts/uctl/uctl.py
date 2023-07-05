@@ -11,26 +11,31 @@ import typing
 import requests
 import yaml
 
+API_TOKEN_HEADER = 'X-YaTaxi-API-Key'
 CONFIG_BASEPATH = '/etc/yandex/taxi/'
+CONFIG_OVERRIDER_TOKEN_ENV_VAR = 'UCTL_CONFIG_OVERRIDER_TOKEN'
 
 
 class Client:
     def __init__(self, args):
         self.args = args
         self.read_config_yaml(self.args.config)
-        self.monitor_url = self.read_monitor_url()
-        self.config_yaml: typing.Any = None
-        self.config_vars: typing.Any = None
 
     def client_send(
             self,
             path: str,
             method: str,
             params: typing.Optional[typing.Dict[str, str]] = None,
+            headers: typing.Optional[typing.Dict[str, str]] = None,
             body: typing.Optional[str] = None,
     ) -> str:
         call = getattr(requests, method)
-        response = call(self.monitor_url + path, params=params, data=body)
+        response = call(
+            self.read_monitor_url() + path,
+            params=params,
+            headers=headers,
+            data=body,
+        )
         response.raise_for_status()
         return response.text
 
@@ -100,26 +105,86 @@ class Client:
         print(data)
 
     def access_top(self) -> None:
-        components = self.config_yaml['components_manager']['components']
-        logger_path = components['logging']['loggers']['default']['file_path']
-        if logger_path.startswith('$'):
-            logger_path = self.config_vars[logger_path[1:]]
+        logger_path = self.config_yaml_read(
+            [
+                'components_manager',
+                'components',
+                'logging',
+                'loggers',
+                'default',
+                'file_path',
+            ],
+        )
 
         subprocess.check_call(
             ['access-top', '--service_log_filepath', logger_path],
         )
+
+    def get_config_fields(self) -> None:
+        filename = self.config_yaml_read(
+            [
+                'components_manager',
+                'components',
+                'dynamic-config',
+                'fs-cache-path',
+            ],
+        )
+
+        content = ''
+        with open(filename, 'r') as f:
+            content = f.read()
+
+        config = json.loads(content)
+        output = {}
+
+        if self.args.config_name:
+            for name in self.args.config_name:
+                value = config.get(name)
+
+                if value:
+                    output[name] = value
+        else:
+            output = config
+
+        print(json.dumps(output, indent=4))
+
+    def override_config(self) -> None:
+        self.check_config_override_supported()
+        overrides = ''
+
+        if self.args.file:
+            if self.args.file == '-':
+                overrides = sys.stdin.read()
+            else:
+                with open(self.args.file, 'r') as f:
+                    overrides = f.read()
+
+        data = self.client_send(
+            path='/service/config/set_override',
+            method='post',
+            headers={API_TOKEN_HEADER: self.read_config_overrider_token()},
+            body=overrides,
+        )
+        print(data)
+
+    def reset_config_overrides(self) -> None:
+        self.check_config_override_supported()
+        data = self.client_send(
+            path='/service/config/reset_override',
+            method='post',
+            headers={API_TOKEN_HEADER: self.read_config_overrider_token()},
+        )
+        print(data)
 
     def read_config_yaml(self, config_yaml: str) -> None:
         try:
             with open(config_yaml, 'r') as ifile:
                 self.config_yaml = yaml.safe_load(ifile)
         except FileNotFoundError:
-            print(
+            raise RuntimeError(
                 'File "config.yaml" not found, maybe you forgot '
                 'to pass --config?',
-                file=sys.stderr,
             )
-            sys.exit(1)
 
         config_vars_path = self.config_yaml['config_vars']
         with open(config_vars_path, 'r') as ifile:
@@ -151,6 +216,28 @@ class Client:
             ],
         )
         return f'http://localhost:{port}'
+
+    def check_config_override_supported(self) -> None:
+        if (
+                'dynamic-config-overrider'
+                not in self.config_yaml['components_manager']['components']
+        ):
+            raise RuntimeError(
+                'Service does not support dynamic config overriding',
+            )
+
+    def read_config_overrider_token(self) -> str:
+        token = os.environ.get(CONFIG_OVERRIDER_TOKEN_ENV_VAR)
+
+        if not token:
+            raise RuntimeError(
+                'Operations with dynamic config overrides expect token to be '
+                'available in "{}" environment variable'.format(
+                    CONFIG_OVERRIDER_TOKEN_ENV_VAR,
+                ),
+            )
+
+        return token
 
 
 def guess_config_yaml() -> str:
@@ -263,26 +350,79 @@ def parse_args(args: typing.List[str]):
     )
     parser_logrotate.set_defaults(func=Client.on_logrotate)
 
-    parser_stats = subparsers.add_parser('stats')
+    parser_stats = subparsers.add_parser('stats', help='Show service metrics')
     parser_stats.set_defaults(func=Client.stats)
 
-    parser_inspect_requests = subparsers.add_parser('inspect-requests')
+    parser_inspect_requests = subparsers.add_parser(
+        'inspect-requests', help='Show information about in-flight requests',
+    )
     parser_inspect_requests.set_defaults(func=Client.inspect_requests)
 
-    parser_access_top = subparsers.add_parser('access-top')
+    parser_access_top = subparsers.add_parser(
+        'access-top', help='Show service handler statistics',
+    )
     parser_access_top.set_defaults(func=Client.access_top)
+
+    parser_config = subparsers.add_parser(
+        'config', help='Manage dynamic config',
+    )
+    subparsers_config = parser_config.add_subparsers()
+
+    parser_config_get = subparsers_config.add_parser(
+        'get',
+        help='Read dynamic configs from config cache file and print them',
+    )
+    parser_config_get.add_argument(
+        'config_name',
+        help='Config name (if none specified, all configs are printed)',
+        type=str,
+        nargs='*',
+    )
+    parser_config_get.set_defaults(func=Client.get_config_fields)
+
+    parser_config_override = subparsers_config.add_parser(
+        'override', help='Override dynamic config values',
+    )
+    parser_config_override.add_argument(
+        'file',
+        help='File containing JSON object with overridden dynamic config '
+        'values ("-" is also supported as a filename and denotes stdin). If '
+        'argument is not specified, command will send an empty request to '
+        'obtain number of currently overridden values.',
+        type=str,
+        nargs='?',
+        default='',
+    )
+    parser_config_override.set_defaults(func=Client.override_config)
+
+    parser_config_reset = subparsers_config.add_parser(
+        'reset-overrides',
+        help='Reset overridden dynamic config values to originals',
+    )
+    parser_config_reset.set_defaults(func=Client.reset_config_overrides)
 
     opts = parser.parse_args(args)
     return opts
 
 
 def run(argv: typing.List[str]) -> None:
+    # pylint: disable=W0718
     args = parse_args(argv)
     if not hasattr(args, 'func'):
         parse_args(argv + ['--help'])
         return
 
-    args.func(Client(args))
+    try:
+        args.func(Client(args))
+    except requests.exceptions.HTTPError as err:
+        print(
+            '{}\nError response body: {}'.format(err, err.response.text),
+            file=sys.stderr,
+        )
+        sys.exit(1)
+    except Exception as err:
+        print(err, file=sys.stderr)
+        sys.exit(1)
 
 
 def main() -> None:
