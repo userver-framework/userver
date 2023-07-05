@@ -1,6 +1,7 @@
 #include <benchmark/benchmark.h>
 
 #include <userver/logging/impl/logger_base.hpp>
+#include <userver/logging/impl/tag_writer.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/logging/logger.hpp>
 
@@ -12,7 +13,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace {
 
-class NoopLogger final : public logging::impl::LoggerBase {
+class NoopLogger : public logging::impl::LoggerBase {
  public:
   NoopLogger() noexcept : LoggerBase(logging::Format::kRaw) {
     SetLevel(logging::Level::kInfo);
@@ -21,7 +22,21 @@ class NoopLogger final : public logging::impl::LoggerBase {
   void Flush() const override {}
 };
 
-}  // namespace
+class PrependedTagLogger final : public NoopLogger {
+ public:
+  void PrependCommonTags(logging::impl::TagWriter writer) const override {
+    writer.PutTag("aaaaaaaaaaaaaaaaaa", "value");
+    writer.PutTag("bbbbbbbbbb", 42);
+    writer.PutTag("ccccccccccccccccccccccc", 42.0);
+    writer.PutTag("dddddddddddddddd", std::chrono::milliseconds{42});
+    writer.PutTag("eeeeeeeee", true);
+    writer.PutTag("ffffffffffffffffffffff", "foo");
+    writer.PutTag("gggggggggggggggggggg", "bar");
+    writer.PutTag("hhhhhhhhhhhhhh", "baz");
+    writer.PutTag("iiiiiiiiiii", "qux");
+    writer.PutTag("jjjjjjjjjjjjjjjjjj", "quux");
+  }
+};
 
 class LogHelperBenchmark : public benchmark::Fixture {
   void SetUp(const benchmark::State&) override {
@@ -111,5 +126,17 @@ BENCHMARK_REGISTER_F(LogHelperBenchmark, LogStruct)
     ->RangeMultiplier(2)
     ->Range(8, 8 << 10)
     ->Complexity();
+
+void LogPrependedTags(benchmark::State& state) {
+  const logging::DefaultLoggerGuard guard{
+      std::make_shared<PrependedTagLogger>()};
+
+  for (auto _ : state) {
+    LOG_INFO() << "";
+  }
+}
+BENCHMARK(LogPrependedTags);
+
+}  // namespace
 
 USERVER_NAMESPACE_END

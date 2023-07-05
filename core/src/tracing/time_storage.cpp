@@ -28,7 +28,7 @@ TimeStorage::Duration TimeStorage::DurationTotal(const std::string& key) const {
 void TimeStorage::MergeInto(logging::impl::TagWriter writer) {
   for (const auto& [key, value] : data_) {
     const auto ns_count = value.count();
-    writer.PutTag(key + kTimerSuffix,
+    writer.PutTag(logging::impl::RuntimeTagKey{key + kTimerSuffix},
                   fmt::format(FMT_COMPILE("{}.{:0>6}"), ns_count / kNsInMs,
                               ns_count % kNsInMs));
   }

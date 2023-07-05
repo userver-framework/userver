@@ -1,7 +1,9 @@
 #include <userver/logging/impl/tag_writer.hpp>
 
+#include <fmt/format.h>
 #include <boost/container/small_vector.hpp>
 
+#include <userver/utils/assert.hpp>
 #include <utils/internal_tag.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -21,9 +23,24 @@ LogHelper& operator<<(LogHelper& lh, ExtraValue value) noexcept {
 
 }  // namespace
 
+void ThrowInvalidEscapedTagKey(std::string_view key) {
+  UINVARIANT(false, fmt::format("TagKey({}) contains an invalid character. Use "
+                                "RuntimeTagKey for such keys",
+                                key));
+}
+
+std::string_view TagKey::GetEscapedKey() const noexcept { return escaped_key_; }
+
+RuntimeTagKey::RuntimeTagKey(std::string_view unescaped_key)
+    : unescaped_key_(unescaped_key) {}
+
+std::string_view RuntimeTagKey::GetUnescapedKey() const noexcept {
+  return unescaped_key_;
+}
+
 void TagWriter::PutLogExtra(const LogExtra& extra) {
   for (const auto& item : *extra.extra_) {
-    PutTag(item.first, ExtraValue{item.second.GetValue()});
+    PutTag(RuntimeTagKey{item.first}, ExtraValue{item.second.GetValue()});
   }
 }
 
