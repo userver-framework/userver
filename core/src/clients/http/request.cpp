@@ -163,7 +163,7 @@ void SetProxyHeaders(curl::easy& easy, const Range& headers_range) {
 bool IsAllowedSchemaInUrl(std::string_view url) {
   static constexpr std::string_view kAllowedSchemas[] = {"http://", "https://"};
 
-  for (std::string_view allowed_schema : kAllowedSchemas) {
+  for (const std::string_view allowed_schema : kAllowedSchemas) {
     if (utils::StrIcaseEqual{}(allowed_schema,
                                url.substr(0, allowed_schema.size()))) {
       return true;
@@ -583,15 +583,18 @@ Request Request::SetDestinationMetricName(const std::string& destination) && {
   return std::move(this->SetDestinationMetricName(destination));
 }
 
-Request& Request::SetTestsuiteConfig(
+void Request::SetTestsuiteConfig(
     const std::shared_ptr<const TestsuiteConfig>& config) & {
   pimpl_->SetTestsuiteConfig(config);
-  return *this;
 }
 
-Request& Request::SetAllowedUrlsExtra(const std::vector<std::string>& urls) & {
+void Request::SetAllowedUrlsExtra(const std::vector<std::string>& urls) & {
   pimpl_->SetAllowedUrlsExtra(urls);
-  return *this;
+}
+
+void Request::SetDeadlinePropagationConfig(
+    const impl::DeadlinePropagationConfig& deadline_propagation_config) & {
+  pimpl_->SetDeadlinePropagationConfig(deadline_propagation_config);
 }
 
 Request& Request::DisableReplyDecoding() & {
@@ -612,16 +615,9 @@ Request Request::SetTracingManager(
   return std::move(this->SetTracingManager(tracing_manager));
 }
 
-Request& Request::SetHeadersPropagator(
+void Request::SetHeadersPropagator(
     const server::http::HeadersPropagator* headers_propagator) & {
   pimpl_->SetHeadersPropagator(headers_propagator);
-  return *this;
-}
-
-Request& Request::SetEnforceTaskDeadline(
-    EnforceTaskDeadlineConfig enforce_task_deadline) & {
-  pimpl_->SetEnforceTaskDeadline(enforce_task_deadline);
-  return *this;
 }
 
 const std::string& Request::GetUrl() const& {

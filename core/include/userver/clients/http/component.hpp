@@ -29,7 +29,6 @@ namespace components {
 /// ## Dynamic options:
 /// * @ref HTTP_CLIENT_CONNECT_THROTTLE
 /// * @ref HTTP_CLIENT_CONNECTION_POOL_SIZE
-/// * @ref HTTP_CLIENT_ENFORCE_TASK_DEADLINE
 /// * @ref USERVER_HTTP_PROXY
 ///
 /// ## Static options:
@@ -47,6 +46,7 @@ namespace components {
 /// testsuite-timeout | if set, force the request timeout regardless of the value passed in code | -
 /// testsuite-allowed-url-prefixes | if set, checks that all URLs start with any of the passed prefixes, asserts if not. Set for testing purposes only. | ''
 /// dns_resolver | server hostname resolver type (getaddrinfo or async) | 'async'
+/// set-deadline-propagation-header | whether to set http::common::kXYaTaxiClientTimeoutMs request header | true
 /// plugins | Plugin names to apply. A plugin component is called "http-client-plugin-" plus the plugin name.
 ///
 /// ## Static configuration example:

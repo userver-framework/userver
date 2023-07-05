@@ -13,10 +13,8 @@
 #include <userver/utils/rand.hpp>
 #include <userver/utils/userver_info.hpp>
 
-#include <clients/http/config.hpp>
 #include <clients/http/destination_statistics.hpp>
 #include <clients/http/easy_wrapper.hpp>
-#include <clients/http/enforce_task_deadline_config.hpp>
 #include <clients/http/statistics.hpp>
 #include <clients/http/testsuite.hpp>
 #include <crypto/openssl.hpp>
@@ -40,36 +38,26 @@ long ClampToLong(size_t value) {
 }
 
 const tracing::TracingManagerBase* GetTracingManager(
-    const ClientSettings& settings) {
-  if (settings.tracing_manager_) {
-    return settings.tracing_manager_;
+    const impl::ClientSettings& settings) {
+  if (settings.tracing_manager) {
+    return settings.tracing_manager;
   }
   return &tracing::kDefaultTracingManager;
 }
 
 }  // namespace
 
-ClientSettings Parse(const yaml_config::YamlConfig& value,
-                     formats::parse::To<ClientSettings>) {
-  ClientSettings settings;
-  settings.thread_name_prefix =
-      value["thread-name-prefix"].As<std::string>(settings.thread_name_prefix);
-  settings.io_threads = value["threads"].As<size_t>(settings.io_threads);
-  settings.defer_events = value["defer-events"].As<bool>(settings.defer_events);
-
-  return settings;
-}
-
-Client::Client(ClientSettings settings,
+Client::Client(impl::ClientSettings settings,
                engine::TaskProcessor& fs_task_processor,
                impl::PluginPipeline&& plugin_pipeline)
-    : destination_statistics_(std::make_shared<DestinationStatistics>()),
+    : deadline_propagation_config_(settings.deadline_propagation),
+      destination_statistics_(std::make_shared<DestinationStatistics>()),
       statistics_(settings.io_threads),
       fs_task_processor_(fs_task_processor),
       user_agent_(utils::GetUserverIdentifier()),
       connect_rate_limiter_(std::make_shared<curl::ConnectRateLimiter>()),
       tracing_manager_(GetTracingManager(settings)),
-      headers_propagator_(settings.headers_propagator_),
+      headers_propagator_(settings.headers_propagator),
       plugin_pipeline_(std::move(plugin_pipeline)) {
   const auto io_threads = settings.io_threads;
   const auto& thread_name_prefix = settings.thread_name_prefix;
@@ -130,7 +118,7 @@ Client::~Client() {
 }
 
 Request Client::CreateRequest() {
-  auto request = [&] {
+  auto request = [this] {
     auto easy = TryDequeueIdle();
     if (easy) {
       auto idx = FindMultiIndex(easy->GetMulti());
@@ -180,7 +168,7 @@ Request Client::CreateRequest() {
     auto proxy_value = proxy_.Read();
     request.proxy(*proxy_value);
   }
-  request.SetEnforceTaskDeadline(enforce_task_deadline_.ReadCopy());
+  request.SetDeadlinePropagationConfig(deadline_propagation_config_);
 
   return request;
 }
@@ -278,7 +266,7 @@ void Client::SetAllowedUrlsExtra(std::vector<std::string>&& urls) {
   allowed_urls_extra_.Assign(std::move(urls));
 }
 
-void Client::SetConfig(const Config& config) {
+void Client::SetConfig(const impl::Config& config) {
   const auto pool_size =
       ClampToLong(config.connection_pool_size / multis_.size());
   if (pool_size * multis_.size() != config.connection_pool_size) {
@@ -286,18 +274,17 @@ void Client::SetConfig(const Config& config) {
                 << config.connection_pool_size << "/" << multis_.size()
                 << " rounded to " << pool_size << ")";
   }
-  enforce_task_deadline_.Assign(config.enforce_task_deadline);
   for (auto& multi : multis_) {
     multi->SetConnectionCacheSize(pool_size);
   }
 
-  connect_rate_limiter_->SetGlobalHttpLimits(config.http_connect_throttle_limit,
-                                             config.http_connect_throttle_rate);
+  connect_rate_limiter_->SetGlobalHttpLimits(config.throttle.http_connect_limit,
+                                             config.throttle.http_connect_rate);
   connect_rate_limiter_->SetGlobalHttpsLimits(
-      config.https_connect_throttle_limit, config.https_connect_throttle_rate);
+      config.throttle.https_connect_limit, config.throttle.https_connect_rate);
   connect_rate_limiter_->SetPerHostLimits(
-      config.per_host_connect_throttle_limit,
-      config.per_host_connect_throttle_rate);
+      config.throttle.per_host_connect_limit,
+      config.throttle.per_host_connect_rate);
 
   proxy_.Assign(config.proxy);
 }

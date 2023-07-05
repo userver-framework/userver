@@ -33,9 +33,14 @@ namespace clients::http {
 class RequestState;
 class StreamedResponse;
 class ConnectTo;
+class Form;
+class RequestStats;
+class DestinationStatistics;
+struct TestsuiteConfig;
 
 namespace impl {
 class EasyWrapper;
+struct DeadlinePropagationConfig;
 }  // namespace impl
 
 /// HTTP request method
@@ -66,12 +71,6 @@ enum class ProxyAuthType {
 };
 
 ProxyAuthType ProxyAuthTypeFromString(const std::string& auth_name);
-
-class Form;
-class RequestStats;
-class DestinationStatistics;
-struct TestsuiteConfig;
-struct EnforceTaskDeadlineConfig;
 
 /// Class for creating and performing new http requests
 class Request final {
@@ -261,16 +260,16 @@ class Request final {
 
   /// @cond
   // Set testsuite related settings. For internal use only.
-  Request& SetTestsuiteConfig(
+  void SetTestsuiteConfig(
       const std::shared_ptr<const TestsuiteConfig>& config) &;
 
-  Request& SetAllowedUrlsExtra(const std::vector<std::string>& urls) &;
+  void SetAllowedUrlsExtra(const std::vector<std::string>& urls) &;
 
   // Set deadline propagation settings. For internal use only.
-  Request& SetEnforceTaskDeadline(
-      EnforceTaskDeadlineConfig enforce_task_deadline) &;
+  void SetDeadlinePropagationConfig(
+      const impl::DeadlinePropagationConfig& deadline_propagation_config) &;
 
-  Request& SetHeadersPropagator(const server::http::HeadersPropagator*) &;
+  void SetHeadersPropagator(const server::http::HeadersPropagator*) &;
   /// @endcond
 
   /// Disable auto-decoding of received replies.

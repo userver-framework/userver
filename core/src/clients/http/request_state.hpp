@@ -28,11 +28,11 @@
 
 #include <clients/http/destination_statistics.hpp>
 #include <clients/http/easy_wrapper.hpp>
-#include <clients/http/enforce_task_deadline_config.hpp>
 #include <clients/http/testsuite.hpp>
 #include <crypto/helpers.hpp>
 #include <engine/ev/watcher/timer_watcher.hpp>
 #include <server/http/headers_propagator.hpp>
+#include <userver/clients/http/impl/config.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -113,7 +113,8 @@ class RequestState : public std::enable_shared_from_this<RequestState> {
 
   void DisableReplyDecoding();
 
-  void SetEnforceTaskDeadline(EnforceTaskDeadlineConfig enforce_task_deadline);
+  void SetDeadlinePropagationConfig(
+      const impl::DeadlinePropagationConfig& deadline_propagation_config);
 
   std::shared_ptr<impl::EasyWrapper> easy_wrapper() { return easy_; }
 
@@ -158,9 +159,6 @@ class RequestState : public std::enable_shared_from_this<RequestState> {
   static size_t StreamWriteFunction(char* ptr, size_t size, size_t nmemb,
                                     void* userdata);
 
-  uint64_t GetClientTimeoutMs() const;
-  void UpdateClientTimeoutHeader(uint64_t client_timeout_ms);
-
   void AccountResponse(std::error_code err);
   std::exception_ptr PrepareException(std::error_code err);
   std::exception_ptr PrepareDeadlinePassedException(std::string_view url);
@@ -174,7 +172,6 @@ class RequestState : public std::enable_shared_from_this<RequestState> {
   void WithRequestStats(const Func& func);
 
   void ResolveTargetAddress(clients::dns::Resolver& resolver);
-  void ScheduleWrite();
   bool IsStreamBody() const;
 
   /// curl handler wrapper
@@ -200,9 +197,8 @@ class RequestState : public std::enable_shared_from_this<RequestState> {
   /// the timeout, possibly updated by deadline propagation
   std::chrono::milliseconds effective_timeout_;
 
-  bool add_client_timeout_header_{true};
+  impl::DeadlinePropagationConfig deadline_propagation_config_;
   bool timeout_updated_by_deadline_{false};
-  EnforceTaskDeadlineConfig enforce_task_deadline_{};
   /// deadline from current task
   engine::Deadline deadline_;
   utils::NotNull<const tracing::TracingManagerBase*> tracing_manager_;

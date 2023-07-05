@@ -1,4 +1,6 @@
 #include <userver/clients/http/client.hpp>
+
+#include <userver/clients/http/impl/config.hpp>
 #include <userver/engine/task/task.hpp>
 #include <userver/utest/http_client.hpp>
 
@@ -11,8 +13,10 @@ std::shared_ptr<clients::http::Client> CreateHttpClient() {
 }
 std::shared_ptr<clients::http::Client> CreateHttpClient(
     engine::TaskProcessor& fs_task_processor) {
+  clients::http::impl::ClientSettings static_config;
+  static_config.io_threads = 1;
   return std::make_shared<clients::http::Client>(
-      clients::http::ClientSettings{"", 1, false}, fs_task_processor,
+      std::move(static_config), fs_task_processor,
       std::vector<utils::NotNull<clients::http::Plugin*>>{});
 }
 

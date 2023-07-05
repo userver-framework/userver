@@ -7,10 +7,6 @@
     "max-size": 100,
     "token-update-interval-ms": 0
   },
-  "HTTP_CLIENT_ENFORCE_TASK_DEADLINE": {
-    "cancel-request": false,
-    "update-timeout": false
-  },
   "USERVER_BAGGAGE_ENABLED": false,
   "USERVER_CACHES": {},
   "USERVER_CANCEL_HANDLE_REQUEST_BY_DEADLINE": false,
@@ -31,6 +27,10 @@
   },
   "USERVER_HANDLER_STREAM_API_ENABLED": false,
   "USERVER_HTTP_PROXY": "",
+  "USERVER_LOG_DYNAMIC_DEBUG": {
+    "force-disabled": [],
+    "force-enabled": []
+  },
   "USERVER_LOG_REQUEST": true,
   "USERVER_LOG_REQUEST_HEADERS": false,
   "USERVER_LRU_CACHES": {},

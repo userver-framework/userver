@@ -12,6 +12,7 @@
 #include <userver/moodycamel/concurrentqueue_fwd.h>
 
 #include <userver/clients/dns/resolver_fwd.hpp>
+#include <userver/clients/http/impl/config.hpp>
 #include <userver/clients/http/plugin.hpp>
 #include <userver/clients/http/request.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
@@ -47,24 +48,11 @@ namespace impl {
 class EasyWrapper;
 }  // namespace impl
 
-struct Config;
 struct TestsuiteConfig;
-struct EnforceTaskDeadlineConfig;
 class Statistics;
 struct PoolStatistics;
 struct InstanceStatistics;
 class DestinationStatistics;
-
-struct ClientSettings final {
-  std::string thread_name_prefix;
-  size_t io_threads = 8;
-  bool defer_events = false;
-  const tracing::TracingManagerBase* tracing_manager_{nullptr};
-  const server::http::HeadersPropagator* headers_propagator_{nullptr};
-};
-
-ClientSettings Parse(const yaml_config::YamlConfig& value,
-                     formats::parse::To<ClientSettings>);
 
 /// @ingroup userver_clients
 ///
@@ -78,8 +66,10 @@ ClientSettings Parse(const yaml_config::YamlConfig& value,
 /// @snippet clients/http/client_test.cpp  Sample HTTP Client usage
 class Client final {
  public:
-  Client(ClientSettings settings, engine::TaskProcessor& fs_task_processor,
+  Client(impl::ClientSettings settings,
+         engine::TaskProcessor& fs_task_processor,
          impl::PluginPipeline&& plugin_pipeline);
+
   ~Client();
 
   /// @brief Returns a HTTP request builder type with preset values of
@@ -117,7 +107,7 @@ class Client final {
   void SetAllowedUrlsExtra(std::vector<std::string>&& urls);
 
   // For internal use only.
-  void SetConfig(const Config&);
+  void SetConfig(const impl::Config&);
   /// @endcond
 
   /// @brief Sets User-Agent headers for all the requests or removes that
@@ -140,8 +130,6 @@ class Client final {
   /// (most likely getaddrinfo).
   void SetDnsResolver(clients::dns::Resolver* resolver);
 
-  void SetTracingManager(const tracing::TracingManagerBase&);
-
  private:
   void ReinitEasy();
 
@@ -159,7 +147,8 @@ class Client final {
   std::shared_ptr<curl::easy> TryDequeueIdle() noexcept;
 
   std::atomic<std::size_t> pending_tasks_{0};
-  rcu::Variable<EnforceTaskDeadlineConfig> enforce_task_deadline_;
+
+  const impl::DeadlinePropagationConfig deadline_propagation_config_;
 
   std::shared_ptr<DestinationStatistics> destination_statistics_;
   std::unique_ptr<engine::ev::ThreadPool> thread_pool_;

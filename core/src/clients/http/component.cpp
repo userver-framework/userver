@@ -8,11 +8,11 @@
 #include <userver/testsuite/testsuite_support.hpp>
 #include <userver/utils/statistics/metadata.hpp>
 
-#include <clients/http/config.hpp>
 #include <clients/http/destination_statistics.hpp>
 #include <clients/http/statistics.hpp>
 #include <clients/http/testsuite.hpp>
 #include <userver/clients/http/client.hpp>
+#include <userver/clients/http/impl/config.hpp>
 #include <userver/clients/http/plugin_component.hpp>
 #include <userver/tracing/manager_component.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
@@ -26,24 +26,26 @@ namespace {
 constexpr size_t kDestinationMetricsAutoMaxSizeDefault = 100;
 constexpr std::string_view kHttpClientPluginPrefix = "http-client-plugin-";
 
-clients::http::ClientSettings GetClientSettings(
+clients::http::impl::ClientSettings GetClientSettings(
     const ComponentConfig& component_config, const ComponentContext& context) {
-  clients::http::ClientSettings settings;
-  settings = component_config.As<clients::http::ClientSettings>();
+  clients::http::impl::ClientSettings settings;
+  settings = component_config.As<clients::http::impl::ClientSettings>();
   auto* tracing_locator =
       context.FindComponentOptional<tracing::DefaultTracingManagerLocator>();
   if (tracing_locator) {
-    settings.tracing_manager_ = &tracing_locator->GetTracingManager();
+    settings.tracing_manager = &tracing_locator->GetTracingManager();
   } else {
-    settings.tracing_manager_ = &tracing::kDefaultTracingManager;
+    settings.tracing_manager = &tracing::kDefaultTracingManager;
   }
   auto* propagator_component =
       context.FindComponentOptional<components::HeadersPropagatorComponent>();
   if (propagator_component) {
-    settings.headers_propagator_ = &propagator_component->Get();
+    settings.headers_propagator = &propagator_component->Get();
   }
   return settings;
 }
+
+constexpr dynamic_config::Key<clients::http::impl::ParseConfig> kClientConfig;
 
 }  // namespace
 
@@ -91,7 +93,7 @@ HttpClient::HttpClient(const ComponentConfig& component_config,
     testsuite.GetHttpAllowedUrlsExtra().RegisterHttpClient(http_client_);
   }
 
-  clients::http::Config bootstrap_config;
+  clients::http::impl::Config bootstrap_config;
   bootstrap_config.proxy =
       component_config["bootstrap-http-proxy"].As<std::string>({});
   http_client_.SetConfig(bootstrap_config);
@@ -136,7 +138,7 @@ HttpClient::~HttpClient() {
 clients::http::Client& HttpClient::GetHttpClient() { return http_client_; }
 
 void HttpClient::OnConfigUpdate(const dynamic_config::Snapshot& config) {
-  http_client_.SetConfig(config.Get<clients::http::Config>());
+  http_client_.SetConfig(config[kClientConfig]);
 }
 
 void HttpClient::WriteStatistics(utils::statistics::Writer& writer) {
@@ -203,6 +205,14 @@ properties:
         enum:
           - getaddrinfo
           - async
+    set-deadline-propagation-header:
+        type: boolean
+        description: |
+            Whether to set http::common::kXYaTaxiClientTimeoutMs request header
+            using the original timeout and the value of task-inherited deadline.
+            Note: timeout is always updated from the task-inherited deadline
+            when present.
+        defaultDescription: true
     plugins:
         type: array
         description: HTTP client plugin names

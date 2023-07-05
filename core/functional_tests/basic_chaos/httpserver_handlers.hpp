@@ -32,8 +32,8 @@ class HttpServerHandler final : public server::handlers::HttpHandlerBase {
     }
 
     if (type == "sleep") {
-      engine::SleepFor(std::chrono::milliseconds{200});
       TESTPOINT("testpoint_request", {});
+      engine::SleepFor(std::chrono::milliseconds{200});
       return kDefaultAnswer;
     }
 

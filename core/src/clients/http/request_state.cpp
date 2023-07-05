@@ -80,7 +80,7 @@ std::error_code TestsuiteResponseHook(Status status_code,
 }
 
 bool IsSetCookie(std::string_view key) {
-  utils::StrIcaseEqual equal;
+  const utils::StrIcaseEqual equal;
   return equal(key, USERVER_NAMESPACE::http::headers::kSetCookie);
 }
 
@@ -91,7 +91,7 @@ bool IsHttpStatusLineStart(const char* ptr, size_t size) {
 
 char* rfind_not_space(char* ptr, size_t size) {
   for (char* p = ptr + size - 1; p >= ptr; --p) {
-    char c = *p;
+    const char c = *p;
     if (c == '\n' || c == '\r' || c == ' ' || c == '\t') continue;
     return p + 1;
   }
@@ -318,15 +318,15 @@ void RequestState::DisableReplyDecoding() {
   easy().set_accept_encoding(nullptr);
 }
 
-void RequestState::SetEnforceTaskDeadline(
-    EnforceTaskDeadlineConfig enforce_task_deadline) {
-  enforce_task_deadline_ = enforce_task_deadline;
+void RequestState::SetDeadlinePropagationConfig(
+    const impl::DeadlinePropagationConfig& deadline_propagation_config) {
+  deadline_propagation_config_ = deadline_propagation_config;
 }
 
 size_t RequestState::on_header(void* ptr, size_t size, size_t nmemb,
                                void* userdata) {
   auto* self = static_cast<RequestState*>(userdata);
-  size_t data_size = size * nmemb;
+  const std::size_t data_size = size * nmemb;
   if (self) self->parse_header(static_cast<char*>(ptr), data_size);
   return data_size;
 }
@@ -464,7 +464,7 @@ void RequestState::on_retry(std::shared_ptr<RequestState> holder,
   //  - if we got result and http code is good
   //  - if we use all tries
   //  - if error and we should not retry on error
-  bool not_need_retry =
+  const bool not_need_retry =
       (!err && holder->easy().get_response_code() < kLeastBadHttpCodeForEB) ||
       (holder->retry_.current >= holder->retry_.retries) ||
       (err && !holder->retry_.on_fails) || holder->is_cancelled_.load();
@@ -686,27 +686,24 @@ void RequestState::SetEasyTimeout(std::chrono::milliseconds timeout) {
 
 void RequestState::UpdateTimeoutFromDeadline() {
   UASSERT(effective_timeout_ >= std::chrono::milliseconds{0});
+  if (!deadline_.IsReachable()) return;
 
-  if (enforce_task_deadline_.update_timeout && deadline_.IsReachable()) {
-    // TODO: account socket rtt. https://st.yandex-team.ru/TAXICOMMON-3506
-    const auto timeout_from_deadline =
-        std::max(std::chrono::duration_cast<std::chrono::milliseconds>(
-                     deadline_.TimeLeft()),
-                 std::chrono::milliseconds{0});
+  const auto timeout_from_deadline =
+      std::max(std::chrono::duration_cast<std::chrono::milliseconds>(
+                   deadline_.TimeLeft()),
+               std::chrono::milliseconds{0});
 
-    if (timeout_from_deadline < effective_timeout_) {
-      effective_timeout_ = timeout_from_deadline;
-
-      if (enforce_task_deadline_.cancel_request) {
-        timeout_updated_by_deadline_ = true;
-      }
-      WithRequestStats(
-          [](RequestStats& stats) { stats.AccountTimeoutUpdatedByDeadline(); });
-    }
+  if (timeout_from_deadline < effective_timeout_) {
+    effective_timeout_ = timeout_from_deadline;
+    timeout_updated_by_deadline_ = true;
+    WithRequestStats(
+        [](RequestStats& stats) { stats.AccountTimeoutUpdatedByDeadline(); });
   }
 }
 
 void RequestState::UpdateTimeoutHeader() {
+  if (!deadline_propagation_config_.update_header) return;
+
   const auto old_timeout_str = easy().FindHeaderByName(
       USERVER_NAMESPACE::http::headers::kXYaTaxiClientTimeoutMs);
   if (old_timeout_str) {
@@ -731,14 +728,7 @@ std::exception_ptr RequestState::PrepareDeadlineAlreadyPassedException() {
   WithRequestStats(
       [](RequestStats& stats) { stats.AccountCancelledByDeadline(); });
   const auto& url = GetLoggedOriginalUrl();
-
-  if (enforce_task_deadline_.cancel_request) {
-    return PrepareDeadlinePassedException(url);
-  } else {
-    return std::make_exception_ptr(
-        TimeoutException(fmt::format("Timeout happened, url: {}", url),
-                         easy().get_local_stats()));
-  }
+  return PrepareDeadlinePassedException(url);
 }
 
 void RequestState::AccountResponse(std::error_code err) {
@@ -748,7 +738,7 @@ void RequestState::AccountResponse(std::error_code err) {
       std::chrono::duration_cast<std::chrono::microseconds>(
           easy().time_to_start());
 
-  WithRequestStats([&](RequestStats& stats) {
+  WithRequestStats([&, this](RequestStats& stats) {
     stats.StoreTimeToStart(time_to_start);
     if (err)
       stats.FinishEc(err, attempts);
@@ -761,9 +751,7 @@ std::exception_ptr RequestState::PrepareException(std::error_code err) {
   if (timeout_updated_by_deadline_ && IsTimeout(err)) {
     WithRequestStats(
         [](RequestStats& stats) { stats.AccountCancelledByDeadline(); });
-    if (enforce_task_deadline_.cancel_request) {
-      return PrepareDeadlinePassedException(easy().get_effective_url());
-    }
+    return PrepareDeadlinePassedException(easy().get_effective_url());
   }
 
   return http::PrepareException(err, easy().get_effective_url(),
@@ -794,7 +782,7 @@ engine::Future<std::shared_ptr<Response>> RequestState::StartNewPromise() {
 
 size_t RequestState::StreamWriteFunction(char* ptr, size_t size, size_t nmemb,
                                          void* userdata) {
-  size_t actual_size = size * nmemb;
+  const size_t actual_size = size * nmemb;
   RequestState& rs = *static_cast<RequestState*>(userdata);
   auto* stream_data = std::get_if<StreamData>(&rs.data_);
   UASSERT(stream_data);
@@ -894,7 +882,7 @@ void RequestState::WithRequestStats(const Func& func) {
 void RequestState::ResolveTargetAddress(clients::dns::Resolver& resolver) {
   const auto deadline = engine::Deadline::FromDuration(effective_timeout_);
 
-  MaybeOwnedUrl target{proxy_url_, easy()};
+  const MaybeOwnedUrl target{proxy_url_, easy()};
   const std::string hostname = target.Get().GetHostPtr().get();
 
   // CURLOPT_RESOLV hostnames cannot contain colons (as IPv6 addresses do), skip

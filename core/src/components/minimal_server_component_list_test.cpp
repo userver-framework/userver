@@ -51,10 +51,6 @@ constexpr std::string_view kRuntimeConfigMissingParam = R"~({
     "max-size": 100,
     "token-update-interval-ms": 0
   },
-  "HTTP_CLIENT_ENFORCE_TASK_DEADLINE": {
-    "cancel-request": false,
-    "update-timeout": false
-  },
   "USERVER_RPS_CCONTROL_ENABLED": true,
   "USERVER_RPS_CCONTROL": {
     "down-level": 8,

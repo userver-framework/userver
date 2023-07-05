@@ -92,43 +92,6 @@ schema:
 Used by components::HttpClient, affects the behavior of clients::http::Client and all the clients that use it.
 
 
-@anchor HTTP_CLIENT_ENFORCE_TASK_DEADLINE
-## HTTP_CLIENT_ENFORCE_TASK_DEADLINE
-
-Dynamic config that controls task deadline across multiple services.
-
-For example, service `A` starts a task with some deadline that goes to service `B`, `B` goes into `C`, `C` goes to `D`:
-A->B->C->D. With the deadlines enabled, service `C` could detect that the deadline happened and there's no need to go
-to service `D`.
-
-```
-yaml
-schema:
-    type: object
-    properties:
-        cancel-request:
-            type: boolean
-            description: Cancel the request if deadline happened.
-        update-timeout:
-            type: boolean
-            description: Adjust the timeout before sending it to the next service.
-    additionalProperties: false
-    required:
-      - cancel-request
-      - update-timeout
-```
-
-**Example:**
-```json
-{
-  "cancel-request": false,
-  "update-timeout": false
-}
-```
-
-Used by components::HttpClient, affects the behavior of clients::http::Client and all the clients that use it.
-
-
 @anchor MONGO_DEFAULT_MAX_TIME_MS
 ## MONGO_DEFAULT_MAX_TIME_MS
 
