@@ -7,7 +7,7 @@ USERVER_NAMESPACE_BEGIN
 namespace logging::statistics {
 
 void DumpMetric(utils::statistics::Writer& writer, const LogStatistics& stats) {
-  writer["dropped"] = stats.dropped;
+  writer["dropped"].ValueWithLabels(stats.dropped, {"version", "2"});
 
   utils::statistics::Rate total;
 
