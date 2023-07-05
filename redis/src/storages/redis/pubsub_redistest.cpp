@@ -94,31 +94,6 @@ std::vector<redis::CommandControl> BuildTestData() {
   // One default CC
   result.emplace_back(redis::CommandControl{});
 
-  // Add one with queue enabled. It most likely is default behaviour, however
-  // explicit test is always better
-  {
-    redis::CommandControl cc;
-    cc.disable_subscription_queueing = false;
-    result.emplace_back(std::move(cc));
-  }
-
-  // Add one with queue disabled.
-  {
-    redis::CommandControl cc;
-    cc.disable_subscription_queueing = true;
-    result.emplace_back(std::move(cc));
-  }
-
-  // Add one with queue disabled.
-  {
-    redis::CommandControl cc;
-    cc.disable_subscription_queueing = true;
-    result.emplace_back(std::move(cc));
-  }
-
-  // add more CC test cases below
-  // ....
-
   return result;
 }
 

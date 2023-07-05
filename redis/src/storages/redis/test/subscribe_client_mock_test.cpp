@@ -31,34 +31,33 @@ TEST(MockSubscribeClientTest, Basic) {
   EXPECT_CALL(*client_mock, Subscribe("test_psubscribe", _, _)).Times(0);
   EXPECT_CALL(*client_mock, Psubscribe("test_subscribe", _, _)).Times(0);
 
-  client_mock->Subscribe("test_subscribe", {}, {});
-  client_mock->Psubscribe("test_psubscribe", {}, {});
+  [[maybe_unused]] const auto subscription1 =
+      client_mock->Subscribe("test_subscribe", {}, {});
+  [[maybe_unused]] const auto subscription2 =
+      client_mock->Psubscribe("test_psubscribe", {}, {});
 }
 
 /// Here, we test that our Mock is correct
 TEST(MockSubscribeClientTest, SubscriptionToken) {
   //! [SbTknExmpl1]
   // Create a mocked subscribe client
-  std::shared_ptr<MockSubscribeClient> client_mock =
-      std::make_shared<MockSubscribeClient>();
-  // We need to create a mocked token explicitly, to be able to set
-  // expectaitons on it.
-  std::unique_ptr<MockSubscriptionTokenImpl> token_mock =
-      std::make_unique<MockSubscriptionTokenImpl>();
+  auto client_mock = std::make_shared<MockSubscribeClient>();
+  // Create a mocked token explicitly to set expectaitons on it.
+  auto token_mock = std::make_unique<MockSubscriptionTokenImpl>();
 
   using testing::_;
 
-  // Set expectation on mock. We expect that Unsubscribe() will
-  // be called strictly once
+  // Expect that Unsubscribe() is called strictly once.
   EXPECT_CALL(*token_mock, Unsubscribe).Times(1);
+
   // Here is how to return a mocked token from Subscribe method.
   // Beware that after this line of code, token_mock will be nullptr!
   EXPECT_CALL(*client_mock, Subscribe("test_subscribe", _, _))
       .Times(1)
-      .WillOnce(testing::Return(::testing::ByMove(SubscriptionToken{
-          std::unique_ptr<SubscriptionTokenImplBase>{token_mock.release()}})));
+      .WillOnce(testing::Return(
+          ::testing::ByMove(SubscriptionToken{std::move(token_mock)})));
 
-  // check that wrong calls aren't there
+  // Check that wrong calls aren't there
   EXPECT_CALL(*client_mock, Psubscribe("test_subscribe", _, _)).Times(0);
 
   // Call Subscribe, get token. Inside this token there should be

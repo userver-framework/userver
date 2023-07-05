@@ -7,6 +7,8 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::redis {
 
+SubscribeClient::~SubscribeClient() = default;
+
 SubscribeClientImpl::SubscribeClientImpl(
     std::shared_ptr<USERVER_NAMESPACE::redis::SubscribeSentinel>
         subscribe_sentinel)
@@ -15,29 +17,17 @@ SubscribeClientImpl::SubscribeClientImpl(
 SubscriptionToken SubscribeClientImpl::Subscribe(
     std::string channel, SubscriptionToken::OnMessageCb on_message_cb,
     const USERVER_NAMESPACE::redis::CommandControl& command_control) {
-  if (command_control.disable_subscription_queueing) {
-    return {std::make_unique<UnqueuedSubscriptionTokenImpl>(
-        *redis_client_, std::move(channel), std::move(on_message_cb),
-        command_control)};
-  } else {
-    return {std::make_unique<SubscriptionTokenImpl>(
-        *redis_client_, std::move(channel), std::move(on_message_cb),
-        command_control)};
-  }
+  return {std::make_unique<SubscriptionTokenImpl>(
+      *redis_client_, std::move(channel), std::move(on_message_cb),
+      command_control)};
 }
 
 SubscriptionToken SubscribeClientImpl::Psubscribe(
     std::string pattern, SubscriptionToken::OnPmessageCb on_pmessage_cb,
     const USERVER_NAMESPACE::redis::CommandControl& command_control) {
-  if (command_control.disable_subscription_queueing) {
-    return {std::make_unique<UnqueuedPsubscriptionTokenImpl>(
-        *redis_client_, std::move(pattern), std::move(on_pmessage_cb),
-        command_control)};
-  } else {
-    return {std::make_unique<PsubscriptionTokenImpl>(
-        *redis_client_, std::move(pattern), std::move(on_pmessage_cb),
-        command_control)};
-  }
+  return {std::make_unique<PsubscriptionTokenImpl>(
+      *redis_client_, std::move(pattern), std::move(on_pmessage_cb),
+      command_control)};
 }
 
 void SubscribeClientImpl::WaitConnectedOnce(

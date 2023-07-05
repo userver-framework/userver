@@ -12,6 +12,10 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::redis {
 
+namespace impl {
+SubscriptionTokenImplBase::~SubscriptionTokenImplBase() = default;
+}
+
 SubscriptionToken::SubscriptionToken() = default;
 
 SubscriptionToken::~SubscriptionToken() = default;
@@ -23,7 +27,7 @@ SubscriptionToken::SubscriptionToken(SubscriptionToken&& other) noexcept =
     default;
 
 SubscriptionToken::SubscriptionToken(
-    std::unique_ptr<SubscriptionTokenImplBase>&& implementation)
+    std::unique_ptr<impl::SubscriptionTokenImplBase>&& implementation)
     : impl_(std::move(implementation)) {}
 
 void SubscriptionToken::SetMaxQueueLength(size_t length) {

@@ -20,27 +20,28 @@ class SubscribeSentinel;
 
 namespace storages::redis {
 
-/// @class SubscribeClient
-/// @brief When you call `Subscribe()` or `Psubscribe()` command in a queuing
-/// mode (default mode), a new async task will be started. Queueing allows
-/// for better error handling and prevents service OOM. However, if you
-/// intend to implement such queue by yourself, you can disabled queueing
-/// by setting appropriate flag in CommandControl structure.
+/// @ingroup userver_clients
 ///
-/// Callbacks will be called in this task strictly sequentially for each
-/// received message.
-/// You may call `utils::Async()` in the callback if you need parallel
-/// message processing.
-/// @note Messages can be received in any order due to redis sharding.
+/// @brief Client that allows subscribing to Redis channel messages.
+///
+/// Usually retrieved from components::Redis component.
+///
+/// Callback for each received message is called only
+/// after the execution of callback for previous message has finished. For
+/// parallel message processing use the utils::Async().
+///
+/// @warning Messages can be received in any order due to Redis sharding.
 /// Sometimes messages can be duplicated due to subscriptions rebalancing.
-/// Some messages may be lost (it's a redis limitation).
-/// @note The first callback execution can happen before `Subscribe()` or
+/// Some messages may be lost (it's a Redis limitation).
+///
+/// @warning The first callback execution can happen before `Subscribe()` or
 /// `Psubscribe()` return as it happens in a separate task.
+///
 /// @note a good GMock-based mock for this class can be found here:
 /// userver/storages/redis/mock_subscribe_client.hpp
 class SubscribeClient {
  public:
-  virtual ~SubscribeClient() = default;
+  virtual ~SubscribeClient();
 
   virtual SubscriptionToken Subscribe(
       std::string channel, SubscriptionToken::OnMessageCb on_message_cb,

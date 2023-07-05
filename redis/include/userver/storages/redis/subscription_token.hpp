@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/storages/redis/subscriptioin_token.hpp
+/// @brief @copybrief storages::redis::SubscriptionToken
+
 #include <functional>
 #include <memory>
 #include <string>
@@ -13,22 +16,34 @@ class SubscribeSentinel;
 
 namespace storages::redis {
 
-/// You can inherit from this class to provide your own subscription
-/// token implementation. Although it is useful only in mocks and tests.
-/// All standard implementations for redis and so on are provided by userver and
-/// there is no need to manually create instances of this interface.
-/// A good GMock-based mock is here:
-/// userver/storages/redis/mock_subscribe_client.hpp
+namespace impl {
+
 class SubscriptionTokenImplBase {
  public:
-  virtual ~SubscriptionTokenImplBase() = default;
+  SubscriptionTokenImplBase() = default;
+
+  SubscriptionTokenImplBase(SubscriptionTokenImplBase&&) = delete;
+  SubscriptionTokenImplBase& operator=(SubscriptionTokenImplBase&&) = delete;
+
+  SubscriptionTokenImplBase(const SubscriptionTokenImplBase&) = delete;
+  SubscriptionTokenImplBase& operator=(const SubscriptionTokenImplBase&&) =
+      delete;
+
+  virtual ~SubscriptionTokenImplBase();
 
   virtual void SetMaxQueueLength(size_t length) = 0;
 
   virtual void Unsubscribe() = 0;
 };
 
-class SubscriptionToken {
+}  // namespace impl
+
+/// @brief RAII subscription guard, that is usually retrieved from
+/// storages::redis::SubscribeClient.
+///
+/// See storages::redis::MockSubscriptionTokenImpl for hints on mocking and
+/// testing.
+class [[nodiscard]] SubscriptionToken final {
  public:
   using OnMessageCb = std::function<void(const std::string& channel,
                                          const std::string& message)>;
@@ -42,7 +57,7 @@ class SubscriptionToken {
   /// This constructor can be used in tests/mocks to create your own
   /// subscription token
   SubscriptionToken(
-      std::unique_ptr<SubscriptionTokenImplBase>&& implementation);
+      std::unique_ptr<impl::SubscriptionTokenImplBase>&& implementation);
 
   ~SubscriptionToken();
 
@@ -62,7 +77,7 @@ class SubscriptionToken {
   bool IsEmpty() const noexcept { return impl_ == nullptr; }
 
  private:
-  std::unique_ptr<SubscriptionTokenImplBase> impl_;
+  std::unique_ptr<impl::SubscriptionTokenImplBase> impl_;
 };
 
 }  // namespace storages::redis

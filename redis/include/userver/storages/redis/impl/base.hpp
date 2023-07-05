@@ -210,13 +210,6 @@ struct CommandControl {
   // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
   bool force_retries_to_master_on_nil_reply = false;
 
-  // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
-  // If set, SubscribeClient will not create an internal MPSC queue
-  // to handle overloads and buffering. Instead you MUST organize
-  // and maintain such queue yourself. Failure to do so is punishable
-  // by DoS in production :)
-  bool disable_subscription_queueing = false;
-
   CommandControl() = default;
   CommandControl(std::chrono::milliseconds timeout_single,
                  std::chrono::milliseconds timeout_all, size_t max_retries,

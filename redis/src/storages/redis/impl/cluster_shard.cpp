@@ -1,5 +1,7 @@
 #include "cluster_shard.hpp"
 
+#include <userver/utils/assert.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace redis {
@@ -39,6 +41,8 @@ bool ClusterShard::IsReady(WaitConnectedMode mode) const {
     case WaitConnectedMode::kMasterAndSlave:
       return IsMasterReady() && IsReplicaReady();
   }
+
+  UASSERT_MSG(false, "Unexpected WaitConnectedMode value");
 }
 
 bool ClusterShard::AsyncCommand(CommandPtr command) {

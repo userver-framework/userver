@@ -10,6 +10,7 @@
 #include <userver/clients/http/component.hpp>
 #include <userver/components/component.hpp>
 #include <userver/components/minimal_server_component_list.hpp>
+#include <userver/concurrent/variable.hpp>
 #include <userver/formats/json/serialize.hpp>
 #include <userver/formats/json/value.hpp>
 #include <userver/formats/serialize/common_containers.hpp>
@@ -27,8 +28,6 @@ namespace chaos {
 
 class ReadStoreReturn final : public server::handlers::HttpHandlerBase {
  public:
-  static constexpr std::string_view kName = "handler-redis";
-
   ReadStoreReturn(const components::ComponentConfig& config,
                   const components::ComponentContext& context);
 
@@ -41,19 +40,15 @@ class ReadStoreReturn final : public server::handlers::HttpHandlerBase {
   static yaml_config::Schema GetStaticConfigSchema();
 
  private:
-  enum class Source { kQueued, kNonQueued };
-
-  std::string Get(Source source) const;
+  std::string Get() const;
   std::string Delete() const;
 
-  std::shared_ptr<storages::redis::SubscribeClient> redis_client_;
-  // Subscription with internal queue
-  mutable std::vector<std::string> accumulated_data_with_queue_;
+  using Data = concurrent::Variable<std::vector<std::string>>;
+
+  const std::shared_ptr<storages::redis::SubscribeClient> redis_client_;
+
+  mutable Data accumulated_data_with_queue_;
   storages::redis::SubscriptionToken token_with_queue_;
-  // Subscription without internal queue
-  storages::redis::CommandControl redis_cc_no_queue_;
-  mutable std::vector<std::string> accumulated_data_no_queue_;
-  storages::redis::SubscriptionToken token_no_queue_;
 };
 
 ReadStoreReturn::ReadStoreReturn(const components::ComponentConfig& config,
@@ -64,46 +59,20 @@ ReadStoreReturn::ReadStoreReturn(const components::ComponentConfig& config,
               .GetSubscribeClient(config["db"].As<std::string>())} {
   token_with_queue_ = redis_client_->Subscribe(
       "input_channel", [this](const auto&, const auto& data) {
-        accumulated_data_with_queue_.push_back(data);
+        UASSERT(engine::current_task::IsTaskProcessorThread());
+        auto locked = accumulated_data_with_queue_.Lock();
+        locked->push_back(data);
       });
-
-  redis_cc_no_queue_.disable_subscription_queueing = true;
-  token_no_queue_ = redis_client_->Subscribe(
-      "input_channel",
-      [this](const auto&, const auto& data) {
-        accumulated_data_no_queue_.push_back(data);
-      },
-      redis_cc_no_queue_);
 }
 
-ReadStoreReturn::~ReadStoreReturn() {
-  token_with_queue_.Unsubscribe();
-  token_no_queue_.Unsubscribe();
-}
+ReadStoreReturn::~ReadStoreReturn() { token_with_queue_.Unsubscribe(); }
 
 std::string ReadStoreReturn::HandleRequestThrow(
     const server::http::HttpRequest& request,
     server::request::RequestContext& /*context*/) const {
   switch (request.GetMethod()) {
-    case server::http::HttpMethod::kGet: {
-      const auto& queued_arg = request.GetArg("queued");
-      if (queued_arg.empty()) {
-        throw server::handlers::ClientError(
-            server::handlers::ExternalBody{"No 'queued' query argument"});
-      }
-      Source source{false};
-      if (queued_arg == "yes") {
-        source = Source::kQueued;
-      } else if (queued_arg == "no") {
-        source = Source::kNonQueued;
-      } else {
-        throw server::handlers::ClientError(
-            server::handlers::ExternalBody{fmt::format(
-                "'queued' argument must be yes or no, but is {} instead",
-                queued_arg)});
-      }
-      return Get(source);
-    }
+    case server::http::HttpMethod::kGet:
+      return Get();
     case server::http::HttpMethod::kDelete:
       return Delete();
     default:
@@ -124,24 +93,17 @@ properties:
 )");
 }
 
-std::string ReadStoreReturn::Get(Source source) const {
+std::string ReadStoreReturn::Get() const {
   formats::json::ValueBuilder builder{formats::common::Type::kObject};
-  switch (source) {
-    case Source::kQueued: {
-      builder["data"] = accumulated_data_with_queue_;
-      break;
-    }
-    case Source::kNonQueued: {
-      builder["data"] = accumulated_data_no_queue_;
-      break;
-    }
-  }
+  const auto locked = accumulated_data_with_queue_.Lock();
+  builder["data"] = *locked;
+
   return formats::json::ToString(builder.ExtractValue());
 }
 
 std::string ReadStoreReturn::Delete() const {
-  accumulated_data_no_queue_.clear();
-  accumulated_data_with_queue_.clear();
+  auto locked = accumulated_data_with_queue_.Lock();
+  locked->clear();
   return {};
 }
 

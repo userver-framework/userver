@@ -29,7 +29,7 @@ void SubscriptionQueue<Item>::SetMaxLength(size_t length) {
 }
 
 template <typename Item>
-bool SubscriptionQueue<Item>::PopMessage(std::unique_ptr<Item>& msg_ptr) {
+bool SubscriptionQueue<Item>::PopMessage(Item& msg_ptr) {
   return consumer_.Pop(msg_ptr);
 }
 
@@ -49,7 +49,7 @@ SubscriptionQueue<Item>::GetSubscriptionToken(
   return subscribe_sentinel.Subscribe(
       channel,
       [this](const std::string& channel, const std::string& message) {
-        if (!producer_.PushNoblock(std::make_unique<Item>(message))) {
+        if (!producer_.PushNoblock(Item(message))) {
           // Use SubscriptionQueue::SetMaxLength() or
           // SubscriptionToken::SetMaxQueueLength() if limit is too low
           LOG_ERROR()
@@ -74,7 +74,7 @@ SubscriptionQueue<Item>::GetSubscriptionToken(
       pattern,
       [this](const std::string& pattern, const std::string& channel,
              const std::string& message) {
-        if (!producer_.PushNoblock(std::make_unique<Item>(channel, message))) {
+        if (!producer_.PushNoblock(Item(channel, message))) {
           // Use SubscriptionQueue::SetMaxLength() or
           // SubscriptionToken::SetMaxQueueLength() if limit is too low
           LOG_ERROR()

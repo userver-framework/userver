@@ -12,13 +12,13 @@ REQUESTS_RELAX_TIME = 1.0
 INPUT_CHANNEL_NAME = 'input_channel'
 
 
-async def _validate_pubsub(redis_db, service_client, msg, queued, redis_type):
+async def _validate_pubsub(redis_db, service_client, msg, redis_type):
     url = f'/redis-{redis_type}'
 
     for _ in range(REQUESTS_RETRIES):
         redis_db.publish(INPUT_CHANNEL_NAME, msg)
 
-        response = await service_client.get(url, params={'queued': queued})
+        response = await service_client.get(url)
 
         assert response.status == 200
         data = response.json()['data']
@@ -26,33 +26,36 @@ async def _validate_pubsub(redis_db, service_client, msg, queued, redis_type):
         if data:
             assert msg in data
             await service_client.delete(url)
-            return
+            return True
 
         await asyncio.sleep(REQUESTS_RELAX_TIME)
 
-    assert False, 'Retries exceeded'
+    return False
 
 
-@pytest.mark.skip(reason='Never worked, fix in TAXICOMMON-6778')
-@pytest.mark.parametrize('queued', ['yes', 'no'])
-async def test_happy_path_sentinel(service_client, redis_store, queued):
+async def test_happy_path_sentinel(service_client, redis_store):
     msg = 'sentinel_message'
-    await _validate_pubsub(
-        redis_store, service_client, msg, queued, 'sentinel',
-    )
+    assert await _validate_pubsub(redis_store, service_client, msg, 'sentinel')
 
 
 @pytest.mark.skip(reason='Flaps, fix in TAXICOMMON-6778')
-@pytest.mark.parametrize('queued', ['yes', 'no'])
-async def test_happy_path_cluster(service_client, redis_cluster_store, queued):
+async def test_happy_path_cluster(service_client, redis_cluster_store):
     async def _test_pubsub(port_number, prefix):
         msg = f'{prefix}_{port_number}'
 
         with redis.StrictRedis(host='localhost', port=port_number) as db:
-            await _validate_pubsub(db, service_client, msg, queued, 'cluster')
+            return await _validate_pubsub(db, service_client, msg, 'cluster')
 
+    failed = []
     for primary_node in redis_cluster_store.get_primaries():
-        await _test_pubsub(primary_node.port, 'primary')
+        instance_ok = await _test_pubsub(primary_node.port, 'primary')
+        if not instance_ok:
+            failed.append(f'primary {primary_node.port}')
 
     for replica_node in redis_cluster_store.get_replicas():
-        await _test_pubsub(replica_node.port, 'replica')
+        instance_ok = await _test_pubsub(replica_node.port, 'replica')
+        if not instance_ok:
+            failed.append(f'replica {replica_node.port}')
+
+    if failed:
+        assert False, f'Failed after multiple retries: {failed}'

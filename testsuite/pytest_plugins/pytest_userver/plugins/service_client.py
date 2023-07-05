@@ -55,21 +55,18 @@ def auto_client_deps(request) -> None:
         import _pytest.fixtures
         FixtureLookupError = _pytest.fixtures.FixtureLookupError
 
+    resolved_deps = []
     for dep in known_deps:
         try:
-            logger.debug(
-                'userver fixture "auto_client_deps" tries to get "%s"', dep,
-            )
             request.getfixturevalue(dep)
-            logger.debug(
-                'userver fixture "auto_client_deps" resolved dependency '
-                'to "%s"',
-                dep,
-            )
+            resolved_deps.append(dep)
         except FixtureLookupError:
-            logger.debug(
-                'userver fixture "auto_client_deps" did not find "%s"', dep,
-            )
+            pass
+
+    logger.debug(
+        'userver fixture "auto_client_deps" resolved dependencies %s',
+        resolved_deps,
+    )
 
 
 @pytest.fixture

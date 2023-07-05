@@ -22,9 +22,8 @@ def service_env(redis_sentinels, redis_cluster_sentinels):
             'redis-sentinel': {
                 'password': '',
                 'sentinels': redis_sentinels,
-                'shards': [{'name': 'pubsub_shard0'}],
+                'shards': [{'name': 'test_master0'}],
             },
         },
     }
-
     return {'SECDIST_CONFIG': json.dumps(secdist_config)}
