@@ -19,6 +19,7 @@
 #include <userver/ugrpc/client/impl/channel_cache.hpp>
 #include <userver/ugrpc/client/middlewares/fwd.hpp>
 #include <userver/ugrpc/impl/deadline_timepoint.hpp>
+#include <userver/ugrpc/impl/internal_tag_fwd.hpp>
 #include <userver/ugrpc/impl/statistics_scope.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -107,6 +108,14 @@ class CallAnyBase {
 
   /// @returns RPC name
   std::string_view GetCallName() const;
+
+  /// @returns RPC span
+  tracing::Span& GetSpan();
+
+  /// @cond
+  // For internal use only
+  impl::RpcData& GetData(ugrpc::impl::InternalTag);
+  /// @endcond
 
  protected:
   impl::RpcData& GetData();
@@ -465,12 +474,15 @@ InputStream<Response>::InputStream(
     impl::CallParams&& params, Stub& stub,
     impl::RawReaderPreparer<Stub, Request, Response> prepare_func,
     const Request& req)
-    : CallAnyBase(std::move(params)),
-      stream_((stub.*prepare_func)(&GetData().GetContext(), req,
-                                   &GetData().GetQueue())) {
+    : CallAnyBase(std::move(params)) {
   CallMiddlewares(
       GetData().GetMiddlewares(), *this,
-      [this] { impl::StartCall(*stream_, GetData()); }, &req);
+      [&] {
+        stream_ = (stub.*prepare_func)(&GetData().GetContext(), req,
+                                       &GetData().GetQueue());
+        impl::StartCall(*stream_, GetData());
+      },
+      &req);
   GetData().SetWritesFinished();
 }
 
@@ -492,14 +504,17 @@ OutputStream<Request, Response>::OutputStream(
     impl::CallParams&& params, Stub& stub,
     impl::RawWriterPreparer<Stub, Request, Response> prepare_func)
     : CallAnyBase(std::move(params)),
-      final_response_(std::make_unique<Response>()),
-      // 'final_response_' will be filled upon successful 'Finish' async call
-      stream_((stub.*prepare_func)(&GetData().GetContext(),
-                                   final_response_.get(),
-                                   &GetData().GetQueue())) {
+      final_response_(std::make_unique<Response>()) {
   CallMiddlewares(
       GetData().GetMiddlewares(), *this,
-      [this] { impl::StartCall(*stream_, GetData()); }, nullptr);
+      [&] {
+        // 'final_response_' will be filled upon successful 'Finish' async call
+        stream_ =
+            (stub.*prepare_func)(&GetData().GetContext(), final_response_.get(),
+                                 &GetData().GetQueue());
+        impl::StartCall(*stream_, GetData());
+      },
+      nullptr);
 }
 
 template <typename Request, typename Response>
@@ -540,12 +555,15 @@ template <typename Stub>
 BidirectionalStream<Request, Response>::BidirectionalStream(
     impl::CallParams&& params, Stub& stub,
     impl::RawReaderWriterPreparer<Stub, Request, Response> prepare_func)
-    : CallAnyBase(std::move(params)),
-      stream_((stub.*prepare_func)(&GetData().GetContext(),
-                                   &GetData().GetQueue())) {
+    : CallAnyBase(std::move(params)) {
   CallMiddlewares(
       GetData().GetMiddlewares(), *this,
-      [this] { impl::StartCall(*stream_, GetData()); }, nullptr);
+      [&] {
+        stream_ = (stub.*prepare_func)(&GetData().GetContext(),
+                                       &GetData().GetQueue());
+        impl::StartCall(*stream_, GetData());
+      },
+      nullptr);
 }
 
 template <typename Request, typename Response>

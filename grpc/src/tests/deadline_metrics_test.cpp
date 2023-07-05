@@ -66,9 +66,6 @@ class DeadlineStatsTests
                      true);
     experiments_.Set(utils::impl::kGrpcServerDeadlinePropagationExperiment,
                      true);
-    GetServerMiddlewares().push_back(
-        std::make_shared<
-            ugrpc::server::middlewares::deadline_propagation::Middleware>());
   }
 
   void BeSlow() { GetService().SetWaitDeadline(true); }

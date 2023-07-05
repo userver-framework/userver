@@ -61,7 +61,7 @@ bool CheckAndSetupDeadline(tracing::Span& span, grpc::ServerContext& context,
 void Middleware::Handle(MiddlewareCallContext& context) const {
   auto& call = context.GetCall();
 
-  if (!CheckAndSetupDeadline(call.GetCallSpan(), call.GetContext(),
+  if (!CheckAndSetupDeadline(call.GetSpan(), call.GetContext(),
                              context.GetServiceName(), context.GetMethodName(),
                              call.Statistics(ugrpc::impl::InternalTag()),
                              context.GetInitialDynamicConfig())) {

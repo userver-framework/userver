@@ -5,12 +5,10 @@
 
 #include <userver/dynamic_config/snapshot.hpp>
 #include <userver/engine/deadline.hpp>
-#include <userver/server/request/task_inherited_data.hpp>
 #include <userver/tracing/tags.hpp>
 #include <userver/utils/algo.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/impl/source_location.hpp>
-#include <userver/utils/impl/userver_experiments.hpp>
 
 #include <ugrpc/client/impl/client_configs.hpp>
 #include <ugrpc/impl/rpc_metadata_keys.hpp>
@@ -62,45 +60,6 @@ void SetErrorForSpan(RpcData& data, std::string&& message) {
   data.ResetSpan();
 }
 
-void UpdateDeadline(RpcData& data) {
-  // Disable by experiment
-  if (!utils::impl::kGrpcClientDeadlinePropagationExperiment.IsEnabled()) {
-    return;
-  }
-
-  // Disable by config
-  if (!data.GetConfigValues().enforce_task_deadline) {
-    return;
-  }
-
-  auto& span = data.GetSpan();
-  auto& context = data.GetContext();
-
-  const auto context_deadline =
-      engine::Deadline::FromTimePoint(context.deadline());
-  const engine::Deadline task_deadline =
-      server::request::GetTaskInheritedDeadline();
-
-  if (!task_deadline.IsReachable() && !context_deadline.IsReachable()) {
-    return;
-  }
-
-  engine::Deadline result_deadline{context_deadline};
-
-  if (task_deadline < context_deadline) {
-    span.AddTag("deadline_updated", true);
-    data.SetDeadlinePropagated();
-    result_deadline = task_deadline;
-  }
-
-  auto result_deadline_ms =
-      std::chrono::duration_cast<std::chrono::milliseconds>(
-          result_deadline.TimeLeft());
-
-  context.set_deadline(result_deadline);
-  span.AddTag(tracing::kTimeoutMs, result_deadline_ms.count());
-}
-
 }  // namespace
 
 RpcConfigValues::RpcConfigValues(const dynamic_config::Snapshot& config)
@@ -138,7 +97,6 @@ RpcData::RpcData(impl::CallParams&& params)
   UASSERT(context_);
   UASSERT(!client_name_.empty());
   SetupSpan(span_, *context_, call_name_);
-  UpdateDeadline(*this);
 }
 
 RpcData::~RpcData() {

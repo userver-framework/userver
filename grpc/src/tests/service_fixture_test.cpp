@@ -2,6 +2,10 @@
 
 #include <fmt/format.h>
 
+#include <ugrpc/client/middlewares/deadline_propagation/middleware.hpp>
+#include <ugrpc/client/middlewares/log/middleware.hpp>
+#include <ugrpc/server/middlewares/deadline_propagation/middleware.hpp>
+#include <ugrpc/server/middlewares/log/middleware.hpp>
 #include <userver/dynamic_config/test_helpers.hpp>
 #include <userver/engine/task/task.hpp>
 #include <userver/logging/null_logger.hpp>
@@ -16,12 +20,33 @@ ugrpc::server::ServerConfig MakeServerConfig() {
   return config;
 }
 
+using ClientLogMiddlewareFactory =
+    ugrpc::client::middlewares::log::MiddlewareFactory;
+using ClientLogMiddlewareSettings =
+    ugrpc::client::middlewares::log::Middleware::Settings;
+
+using ClientDpMiddlewareFactory =
+    ugrpc::client::middlewares::deadline_propagation::MiddlewareFactory;
+
+using ServerLogMiddleware = ugrpc::server::middlewares::log::Middleware;
+using ServerLogMiddlewareSettings =
+    ugrpc::server::middlewares::log::Middleware::Settings;
+
+using ServerDpMiddleware =
+    ugrpc::server::middlewares::deadline_propagation::Middleware;
+
 }  // namespace
 
 GrpcServiceFixture::GrpcServiceFixture()
     : config_storage_(dynamic_config::MakeDefaultStorage({})),
       server_(MakeServerConfig(), statistics_storage_,
               logging::MakeNullLogger(), config_storage_.GetSource()),
+      middleware_factories_({std::make_shared<ClientLogMiddlewareFactory>(
+                                 ClientLogMiddlewareSettings{}),
+                             std::make_shared<ClientDpMiddlewareFactory>()}),
+      server_middlewares_(
+          {std::make_shared<ServerLogMiddleware>(ServerLogMiddlewareSettings{}),
+           std::make_shared<ServerDpMiddleware>()}),
       testsuite_({}, false) {}
 
 GrpcServiceFixture::~GrpcServiceFixture() = default;

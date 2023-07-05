@@ -2,6 +2,7 @@
 
 #include <userver/components/minimal_server_component_list.hpp>
 #include <userver/testsuite/testsuite_support.hpp>
+#include <userver/ugrpc/client/middlewares/deadline_propagation/component.hpp>
 #include <userver/ugrpc/client/middlewares/log/component.hpp>
 #include <userver/ugrpc/server/middlewares/deadline_propagation/component.hpp>
 #include <userver/ugrpc/server/middlewares/log/component.hpp>
@@ -19,6 +20,7 @@ int main(int argc, char* argv[]) {
           .Append<ugrpc::server::middlewares::log::Component>()
           .Append<ugrpc::server::middlewares::deadline_propagation::Component>()
           .Append<ugrpc::client::middlewares::log::Component>()
+          .Append<ugrpc::client::middlewares::deadline_propagation::Component>()
           .Append<ugrpc::client::ClientFactoryComponent>()
           .Append<samples::GreeterServiceComponent>()
           .Append<samples::GreeterClient>()

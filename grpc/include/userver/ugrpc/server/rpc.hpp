@@ -41,7 +41,7 @@ class CallAnyBase {
   /// @brief Name of the call. Consists of service and method names
   std::string_view GetCallName() const { return params_.call_name; }
 
-  tracing::Span& GetCallSpan() { return params_.call_span; }
+  tracing::Span& GetSpan() { return params_.call_span; }
 
   /// @cond
   // For internal use only
@@ -282,7 +282,7 @@ void UnaryCall<Response>::Finish(const Response& response) {
   LogFinish(grpc::Status::OK);
   impl::Finish(stream_, response, grpc::Status::OK, GetCallName());
   Statistics().OnExplicitFinish(grpc::StatusCode::OK);
-  ugrpc::impl::UpdateSpanWithStatus(GetCallSpan(), grpc::Status::OK);
+  ugrpc::impl::UpdateSpanWithStatus(GetSpan(), grpc::Status::OK);
 }
 
 template <typename Response>
@@ -292,7 +292,7 @@ void UnaryCall<Response>::FinishWithError(const grpc::Status& status) {
   LogFinish(status);
   impl::FinishWithError(stream_, status, GetCallName());
   Statistics().OnExplicitFinish(status.error_code());
-  ugrpc::impl::UpdateSpanWithStatus(GetCallSpan(), status);
+  ugrpc::impl::UpdateSpanWithStatus(GetSpan(), status);
 }
 
 template <typename Request, typename Response>
@@ -328,7 +328,7 @@ void InputStream<Request, Response>::Finish(const Response& response) {
   LogFinish(grpc::Status::OK);
   impl::Finish(stream_, response, grpc::Status::OK, GetCallName());
   Statistics().OnExplicitFinish(grpc::StatusCode::OK);
-  ugrpc::impl::UpdateSpanWithStatus(GetCallSpan(), grpc::Status::OK);
+  ugrpc::impl::UpdateSpanWithStatus(GetSpan(), grpc::Status::OK);
 }
 
 template <typename Request, typename Response>
@@ -341,7 +341,7 @@ void InputStream<Request, Response>::FinishWithError(
   LogFinish(status);
   impl::FinishWithError(stream_, status, GetCallName());
   Statistics().OnExplicitFinish(status.error_code());
-  ugrpc::impl::UpdateSpanWithStatus(GetCallSpan(), status);
+  ugrpc::impl::UpdateSpanWithStatus(GetSpan(), status);
 }
 
 template <typename Response>
@@ -381,7 +381,7 @@ void OutputStream<Response>::Finish() {
   LogFinish(status);
   impl::Finish(stream_, status, GetCallName());
   Statistics().OnExplicitFinish(grpc::StatusCode::OK);
-  ugrpc::impl::UpdateSpanWithStatus(GetCallSpan(), status);
+  ugrpc::impl::UpdateSpanWithStatus(GetSpan(), status);
 }
 
 template <typename Response>
@@ -393,7 +393,7 @@ void OutputStream<Response>::FinishWithError(const grpc::Status& status) {
   LogFinish(status);
   impl::Finish(stream_, status, GetCallName());
   Statistics().OnExplicitFinish(status.error_code());
-  ugrpc::impl::UpdateSpanWithStatus(GetCallSpan(), status);
+  ugrpc::impl::UpdateSpanWithStatus(GetSpan(), status);
 }
 
 template <typename Response>
@@ -456,7 +456,7 @@ void BidirectionalStream<Request, Response>::Finish() {
   LogFinish(status);
   impl::Finish(stream_, status, GetCallName());
   Statistics().OnExplicitFinish(grpc::StatusCode::OK);
-  ugrpc::impl::UpdateSpanWithStatus(GetCallSpan(), status);
+  ugrpc::impl::UpdateSpanWithStatus(GetSpan(), status);
 }
 
 template <typename Request, typename Response>
@@ -469,7 +469,7 @@ void BidirectionalStream<Request, Response>::FinishWithError(
   LogFinish(status);
   impl::Finish(stream_, status, GetCallName());
   Statistics().OnExplicitFinish(status.error_code());
-  ugrpc::impl::UpdateSpanWithStatus(GetCallSpan(), status);
+  ugrpc::impl::UpdateSpanWithStatus(GetSpan(), status);
 }
 
 template <typename Request, typename Response>

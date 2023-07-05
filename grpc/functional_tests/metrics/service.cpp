@@ -13,6 +13,7 @@
 #include <userver/yaml_config/merge_schemas.hpp>
 
 #include <userver/ugrpc/client/client_factory_component.hpp>
+#include <userver/ugrpc/client/middlewares/deadline_propagation/component.hpp>
 #include <userver/ugrpc/client/middlewares/log/component.hpp>
 #include <userver/ugrpc/server/middlewares/deadline_propagation/component.hpp>
 #include <userver/ugrpc/server/middlewares/log/component.hpp>
@@ -121,6 +122,7 @@ int main(int argc, const char* const argv[]) {
           .Append<ugrpc::server::middlewares::log::Component>()
           .Append<ugrpc::server::middlewares::deadline_propagation::Component>()
           .Append<ugrpc::client::middlewares::log::Component>()
+          .Append<ugrpc::client::middlewares::deadline_propagation::Component>()
           .Append<ugrpc::client::ClientFactoryComponent>()
           .Append<functional_tests::GreeterClient>()
           .Append<functional_tests::GreeterServiceComponent>();

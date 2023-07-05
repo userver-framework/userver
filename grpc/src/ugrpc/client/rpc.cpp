@@ -1,8 +1,10 @@
 #include <userver/ugrpc/client/rpc.hpp>
 
+#include <userver/utils/fast_scope_guard.hpp>
+
+#include <ugrpc/impl/internal_tag.hpp>
 #include <userver/ugrpc/client/exceptions.hpp>
 #include <userver/ugrpc/client/middlewares/base.hpp>
-#include <userver/utils/fast_scope_guard.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -47,6 +49,11 @@ void CallMiddlewares(const Middlewares& mws, CallAnyBase& call,
 grpc::ClientContext& CallAnyBase::GetContext() { return data_->GetContext(); }
 
 impl::RpcData& CallAnyBase::GetData() {
+  UASSERT(data_);
+  return *data_;
+}
+
+impl::RpcData& CallAnyBase::GetData(ugrpc::impl::InternalTag) {
   UASSERT(data_);
   return *data_;
 }

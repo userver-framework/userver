@@ -12,6 +12,7 @@
 #include <userver/utils/impl/userver_experiments.hpp>
 
 #include <ugrpc/client/impl/client_configs.hpp>
+#include <ugrpc/client/middlewares/deadline_propagation/middleware.hpp>
 #include <ugrpc/server/impl/server_configs.hpp>
 #include <ugrpc/server/middlewares/deadline_propagation/middleware.hpp>
 #include <userver/ugrpc/client/exceptions.hpp>
@@ -132,16 +133,13 @@ class GrpcDeadlinePropagation
     : public GrpcServiceFixtureSimple<UnitTestDeadlinePropagationService> {
  public:
   using ClientType = sample::ugrpc::UnitTestServiceClient;
+
   GrpcDeadlinePropagation()
       : client_deadline_(
             engine::Deadline::FromDuration(helpers::kShortTimeout)),
         long_deadline_(engine::Deadline::FromDuration(helpers::kLongTimeout)),
         client_(MakeClient<ClientType>()) {
     helpers::InitTaskInheritedDeadline(client_deadline_);
-    ExtendDynamicConfig({
-        {ugrpc::client::impl::kEnforceClientTaskDeadline, true},
-        {ugrpc::server::impl::kServerCancelTaskByDeadline, true},
-    });
     experiments_.Set(utils::impl::kGrpcClientDeadlinePropagationExperiment,
                      true);
     experiments_.Set(utils::impl::kGrpcServerDeadlinePropagationExperiment,
@@ -328,15 +326,8 @@ class UnitTestInheritedDeadline final
   engine::Deadline client_deadline_;
 };
 
-class GrpcTestInheritedDedline
-    : public GrpcServiceFixtureSimple<UnitTestInheritedDeadline> {
- public:
-  GrpcTestInheritedDedline() {
-    GetServerMiddlewares().push_back(
-        std::make_shared<
-            ugrpc::server::middlewares::deadline_propagation::Middleware>());
-  }
-};
+using GrpcTestInheritedDedline =
+    GrpcServiceFixtureSimple<UnitTestInheritedDeadline>;
 
 }  // namespace
 
@@ -362,22 +353,33 @@ namespace {
 
 class UnitTestClientNotSend final : public sample::ugrpc::UnitTestServiceBase {
  public:
-  void SayHello(SayHelloCall& call,
-                sample::ugrpc::GreetingRequest&& request) override {
-    UASSERT(false);
-    sample::ugrpc::GreetingResponse response;
-    response.set_name("Hello " + request.name());
-
-    call.Finish(response);
+  void SayHello(SayHelloCall& /*call*/,
+                sample::ugrpc::GreetingRequest&& /*request*/) override {
+    FAIL();
   }
 };
 
-using GrpcTestClientNotSendData =
-    GrpcServiceFixtureSimple<UnitTestClientNotSend>;
+class GrpcTestClientNotSendData
+    : public GrpcServiceFixtureSimple<UnitTestClientNotSend> {
+ public:
+  using ClientType = sample::ugrpc::UnitTestServiceClient;
+
+  GrpcTestClientNotSendData() : client_(MakeClient<ClientType>()) {
+    experiments_.Set(utils::impl::kGrpcClientDeadlinePropagationExperiment,
+                     true);
+    experiments_.Set(utils::impl::kGrpcServerDeadlinePropagationExperiment,
+                     true);
+  }
+  ClientType& Client() { return client_; }
+
+ private:
+  ClientType client_;
+  utils::impl::UserverExperimentsScope experiments_;
+};
 
 }  // namespace
 
-UTEST_F(GrpcDeadlinePropagation, TestClientDoNotStartCallWithoutDeadline) {
+UTEST_F(GrpcTestClientNotSendData, TestClientDoNotStartCallWithoutDeadline) {
   auto task_deadline = engine::Deadline::FromDuration(helpers::kShortTimeout);
   helpers::InitTaskInheritedDeadline(task_deadline);
 
@@ -393,7 +395,7 @@ UTEST_F(GrpcDeadlinePropagation, TestClientDoNotStartCallWithoutDeadline) {
   UEXPECT_THROW(in = call.Finish(), ugrpc::client::DeadlineExceededError);
 }
 
-UTEST_F(GrpcDeadlinePropagation, TestClientDoNotStartCallWithDeadline) {
+UTEST_F(GrpcTestClientNotSendData, TestClientDoNotStartCallWithDeadline) {
   auto task_deadline = engine::Deadline::FromDuration(helpers::kShortTimeout);
   helpers::InitTaskInheritedDeadline(task_deadline);
 

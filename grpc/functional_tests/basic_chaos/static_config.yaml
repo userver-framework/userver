@@ -38,6 +38,7 @@ components_manager:
             channel-args: {}
             middlewares:
               - grpc-client-logging
+              - grpc-client-deadline-propagation
         greeter-client:
             endpoint: '[::]:8081'
 
@@ -56,6 +57,7 @@ components_manager:
 
         testsuite-support:
         grpc-client-logging:
+        grpc-client-deadline-propagation:
 
     default_task_processor: main-task-processor
     task_processors:
