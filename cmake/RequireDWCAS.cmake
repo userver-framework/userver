@@ -82,7 +82,9 @@ try_run(
 if(NOT "${COMPILE_RESULT}")
   message(FATAL_ERROR "Error while compiling DWCAS test: ${COMPILE_OUTPUT}")
 elseif("${RUN_RESULT}" STREQUAL "1")
-  message(WARNING "DWCAS seems not to work on the host platform, userver may have suboptimal performance")
+  message(WARNING "DWCAS seems not to work on the host platform, userver may have suboptimal performance. "
+                  "Either use Clang compiler or install a modern C++ Boost Library (1.66 or hihgher for x86; Boost 1.74 or higher for ARM)"
+  )
 elseif(NOT "${RUN_RESULT}" STREQUAL "0")
   message(WARNING "DWCAS does not work on the host platform, userver may crash with SIGILL")
 else()

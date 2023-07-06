@@ -1,4 +1,4 @@
-project(userver-universal)
+project(userver-universal CXX)
 
 set(USERVER_NAMESPACE "userver" CACHE STRING "C++ namespace to use")
 if (NOT "${USERVER_NAMESPACE}" STREQUAL "")
@@ -6,50 +6,13 @@ if (NOT "${USERVER_NAMESPACE}" STREQUAL "")
     set(USERVER_NAMESPACE_END "}" CACHE STRING "Close C++ namespace to use")
 endif()
 
-set(UNIVERSAL_THIRD_PARTY_DIR
-  ${CMAKE_CURRENT_SOURCE_DIR}/../third_party
-)
+if (NOT USERVER_ROOT_DIR)
+  message(FATAL_ERROR, "Include userver project rather than the userver/universal")
+endif()
 
-if(NOT TARGET userver-core)
-  # minimal setup
-  if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-    set(MACOS found)
-  endif()
-
-  cmake_policy(SET CMP0025 NEW)
-  if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang" OR "${CMAKE_CXX_COMPILER_ID}" STREQUAL "AppleClang")
-    set(CLANG found)
-  endif()
-
-  set(CMAKE_MODULE_PATH
-    ${CMAKE_MODULE_PATH}
-    ${CMAKE_CURRENT_SOURCE_DIR}/../cmake
-    ${CMAKE_BINARY_DIR}/cmake_generated
-  )
-
-  add_definitions(-DUSERVER_UNIVERSAL)
-
-  # bug on xenial https://bugs.launchpad.net/ubuntu/+source/llvm-toolchain-3.8/+bug/1664321
-  add_definitions (-DBOOST_REGEX_NO_EXTERNAL_TEMPLATES=1)
-
-  # boost.stacktrace
-  add_subdirectory(${UNIVERSAL_THIRD_PARTY_DIR}/boost_stacktrace ${CMAKE_CURRENT_BINARY_DIR}/boost_stacktrace)
-  set_target_properties(userver-stacktrace PROPERTIES
-    CXX_EXTENSIONS OFF
-    POSITION_INDEPENDENT_CODE ON
-  )
-
-  # sanitizers fixups
-  add_subdirectory(${UNIVERSAL_THIRD_PARTY_DIR}/compiler-rt ${CMAKE_CURRENT_BINARY_DIR}/compiler-rt)
-  set_target_properties(userver-compiler-rt-parts PROPERTIES
-    POSITION_INDEPENDENT_CODE ON
-  )
-
-  # local modules
-  include(AddGoogleTests)
-  include(FindPackageRequired)
-  include(Sanitizers)
-endif(NOT TARGET userver-core)
+if (TARGET userver-core)
+  message(FATAL_ERROR, "userver-core should be included after userver-universal")
+endif()
 
 file(GLOB_RECURSE SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/../shared/*.cpp
@@ -76,14 +39,11 @@ set(CMAKE_THREAD_PREFER_PTHREAD ON)
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 find_package(Boost REQUIRED COMPONENTS program_options filesystem regex)
-find_package_required(ZLIB "zlib1g-dev")
 
 find_package(Iconv REQUIRED)
 find_package_required(OpenSSL "libssl-dev")
 
 if (USERVER_CONAN)
-  find_package(GTest REQUIRED)
-  find_package(benchmark REQUIRED)
   find_package(cryptopp REQUIRED)
   find_package(yaml-cpp REQUIRED)
   find_package(fmt REQUIRED)
@@ -92,8 +52,6 @@ if (USERVER_CONAN)
   find_package(RapidJSON REQUIRED)
   target_compile_definitions(rapidjson INTERFACE RAPIDJSON_HAS_STDSTRING)
 else()
-  include(SetupGTest)
-  include(SetupGBench)
   include(SetupCryptoPP)
   find_package_required(libyamlcpp "libyaml-cpp-dev")
   include(SetupFmt)
@@ -101,13 +59,6 @@ else()
 endif()
 
 add_library(${PROJECT_NAME} STATIC ${SOURCES})
-set_target_properties(${PROJECT_NAME} PROPERTIES
-  LINKER_LANGUAGE CXX
-  CXX_STANDARD 17
-  CXX_STANDARD_REQUIRED ON
-  CXX_EXTENSIONS OFF
-  POSITION_INDEPENDENT_CODE ON
-)
 
 # https://github.com/jemalloc/jemalloc/issues/820
 if (USERVER_FEATURE_JEMALLOC AND NOT USERVER_SANITIZE AND NOT MACOS)
@@ -121,6 +72,15 @@ if (USERVER_FEATURE_JEMALLOC AND NOT USERVER_SANITIZE AND NOT MACOS)
 
   target_compile_definitions(${PROJECT_NAME} PRIVATE JEMALLOC_ENABLED)
 endif()
+
+get_filename_component(BASE_PREFIX "${CMAKE_SOURCE_DIR}/../" ABSOLUTE)
+file(TO_NATIVE_PATH "${CMAKE_SOURCE_DIR}/" SRC_LOG_PATH_BASE)
+file(TO_NATIVE_PATH "${CMAKE_BINARY_DIR}/" BIN_LOG_PATH_BASE)
+target_compile_definitions(${PROJECT_NAME} PUBLIC
+  USERVER_LOG_SOURCE_PATH_BASE=${SRC_LOG_PATH_BASE}
+  USERVER_LOG_BUILD_PATH_BASE=${BIN_LOG_PATH_BASE}
+  USERVER_LOG_PREFIX_PATH_BASE=${BASE_PREFIX}
+)
 
 message(STATUS "Putting userver into namespace '${USERVER_NAMESPACE}': ${USERVER_NAMESPACE_BEGIN} ${USERVER_NAMESPACE_END}")
 target_compile_definitions(${PROJECT_NAME} PUBLIC
@@ -138,6 +98,7 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE OPENSSL_SUPPRESS_DEPRECATED=)
 
 # https://bugs.llvm.org/show_bug.cgi?id=16404
 if (USERVER_SANITIZE AND NOT CMAKE_BUILD_TYPE MATCHES "^Rel")
+  add_subdirectory("${USERVER_THIRD_PARTY_DIRS}/compiler-rt" compiler_rt_build)
   target_link_libraries(${PROJECT_NAME} PUBLIC userver-compiler-rt-parts)
 endif()
 
@@ -151,69 +112,92 @@ target_link_libraries(${PROJECT_NAME}
     Boost::regex
     OpenSSL::Crypto
     OpenSSL::SSL
-    ZLIB::ZLIB
 )
+
 if (USERVER_CONAN)
+  find_package(Boost COMPONENTS stacktrace REQUIRED)
   target_link_libraries(${PROJECT_NAME}
     PUBLIC
-      yaml-cpp
       fmt::fmt
       cctz::cctz
       Boost::stacktrace
     PRIVATE
+      yaml-cpp
       cryptopp::cryptopp
       rapidjson
   )
 else()
+  add_subdirectory("${USERVER_THIRD_PARTY_DIRS}/boost_stacktrace" boost_stacktrace_build)
   target_link_libraries(${PROJECT_NAME}
     PUBLIC
-      libyamlcpp
       fmt
       cctz
       userver-stacktrace
     PRIVATE
+      libyamlcpp
       CryptoPP
   )
 endif()
 
-set(UNIVERSAL_PUBLIC_INCLUDE_DIRS
-  ${CMAKE_CURRENT_SOURCE_DIR}/../shared/include
-  ${CMAKE_CURRENT_SOURCE_DIR}/include
-)
-
-target_include_directories(${PROJECT_NAME} PUBLIC
-  ${UNIVERSAL_PUBLIC_INCLUDE_DIRS}
-)
-
-target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE
-  ${UNIVERSAL_THIRD_PARTY_DIR}/rapidjson/include
-)
-
-target_include_directories(${PROJECT_NAME} PUBLIC
-  ${UNIVERSAL_THIRD_PARTY_DIR}/date/include
-)
-
 target_include_directories(${PROJECT_NAME}
+  PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/../shared/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${USERVER_THIRD_PARTY_DIRS}/date/include
   PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/../shared/src/
     ${CMAKE_CURRENT_SOURCE_DIR}/src/
     ${CMAKE_CURRENT_BINARY_DIR}
 )
 
-option(USERVER_HEADER_MAP_AGAINST_OTHERS_BENCHMARK "build HeaderMap benchmarks against abseil and boost" OFF)
+target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE
+  ${USERVER_THIRD_PARTY_DIRS}/rapidjson/include
+)
 
-add_library(userver-shared-internal STATIC ${INTERNAL_SOURCES})
-target_compile_definitions(userver-shared-internal PUBLIC $<TARGET_PROPERTY:${PROJECT_NAME},COMPILE_DEFINITIONS>)
-target_include_directories(userver-shared-internal PUBLIC
-  $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>
-  ${CMAKE_CURRENT_SOURCE_DIR}/../shared/internal/include
-)
-target_link_libraries(userver-shared-internal
-  PUBLIC
-  ${PROJECT_NAME}
-)
+
+if (USERVER_IS_THE_ROOT_PROJECT OR USERVER_FEATURE_UTEST)
+  add_library(${PROJECT_NAME}-internal-utest INTERFACE)
+  add_library(${PROJECT_NAME}-internal-ubench INTERFACE)
+  if (USERVER_CONAN)
+    find_package(GTest REQUIRED)
+    find_package(benchmark REQUIRED)
+    target_link_libraries(${PROJECT_NAME}-internal-utest
+      INTERFACE
+        GTest::gtest
+        GTest::gmock
+        GTest::gtest_main
+    )
+    target_link_libraries(${PROJECT_NAME}-internal-ubench
+      INTERFACE
+        benchmark::benchmark
+    )
+  else()
+    include(SetupGTest)
+    include(SetupGBench)
+    target_link_libraries(${PROJECT_NAME}-internal-utest
+      INTERFACE
+        libgtest
+        libgmock
+    )
+    target_link_libraries(${PROJECT_NAME}-internal-ubench
+      INTERFACE
+        libbenchmark
+    )
+  endif()
+endif()
 
 if (USERVER_IS_THE_ROOT_PROJECT)
+    add_library(${PROJECT_NAME}-internal STATIC ${INTERNAL_SOURCES})
+    target_compile_definitions(${PROJECT_NAME}-internal PUBLIC $<TARGET_PROPERTY:${PROJECT_NAME},COMPILE_DEFINITIONS>)
+    target_include_directories(${PROJECT_NAME}-internal PUBLIC
+      $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>
+      ${CMAKE_CURRENT_SOURCE_DIR}/../shared/internal/include
+    )
+    target_link_libraries(${PROJECT_NAME}-internal
+      PUBLIC
+        ${PROJECT_NAME}
+    )
+
     add_executable(${PROJECT_NAME}_unittest ${UNIT_TEST_SOURCES})
     target_include_directories (${PROJECT_NAME}_unittest SYSTEM PRIVATE
         $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>
@@ -221,24 +205,11 @@ if (USERVER_IS_THE_ROOT_PROJECT)
     target_link_libraries(${PROJECT_NAME}_unittest
       PUBLIC
         ${PROJECT_NAME}
-        userver-shared-internal
       PRIVATE
         Boost::program_options
+        ${PROJECT_NAME}-internal
+        ${PROJECT_NAME}-internal-utest
     )
-    if (USERVER_CONAN)
-      target_link_libraries(${PROJECT_NAME}_unittest
-        PUBLIC
-          GTest::gtest
-          GTest::gmock
-          GTest::gtest_main
-      )
-    else()
-      target_link_libraries(${PROJECT_NAME}_unittest
-        PUBLIC
-          libgtest
-          libgmock
-      )
-    endif()
 
     # We keep testing deprecated functions, no need to warn about that
     target_compile_options(${PROJECT_NAME}_unittest PRIVATE "-Wno-deprecated-declarations")
@@ -250,13 +221,13 @@ if (USERVER_IS_THE_ROOT_PROJECT)
     target_include_directories (${PROJECT_NAME}_benchmark SYSTEM PRIVATE
         $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>
     )
-    target_link_libraries(${PROJECT_NAME}_benchmark PUBLIC ${PROJECT_NAME} userver-shared-internal)
-    if (USERVER_CONAN)
-      target_link_libraries(${PROJECT_NAME}_benchmark PUBLIC benchmark::benchmark)
-    else()
-      target_link_libraries(${PROJECT_NAME}_benchmark PUBLIC libbenchmark)
-    endif()
+    target_link_libraries(${PROJECT_NAME}_benchmark
+      PUBLIC ${PROJECT_NAME}
+        ${PROJECT_NAME}-internal
+        ${PROJECT_NAME}-internal-ubench
+      )
 
+    option(USERVER_HEADER_MAP_AGAINST_OTHERS_BENCHMARK "build HeaderMap benchmarks against abseil and boost" OFF)
     if (USERVER_HEADER_MAP_AGAINST_OTHERS_BENCHMARK)
       find_package(absl REQUIRED)
       target_link_libraries(${PROJECT_NAME}_benchmark PRIVATE absl::raw_hash_set)

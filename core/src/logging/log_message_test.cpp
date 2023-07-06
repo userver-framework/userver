@@ -94,6 +94,10 @@ TEST_F(LoggingTest, LogFormat) {
   EXPECT_TRUE(
       utils::regex_match(GetStreamString(), utils::regex(kExpectedPattern)))
       << GetStreamString();
+
+  EXPECT_TRUE(GetStreamString().find(" ( /") == std::string::npos)
+      << "Path shortening for logs stopped working. The log: "
+      << GetStreamString();
 }
 
 TEST_F(LoggingTest, FloatingPoint) {
