@@ -15,6 +15,12 @@ namespace {
 
 std::optional<engine::Deadline> TryExtractDeadline(
     std::chrono::system_clock::time_point time) {
+  // In some versions of gRPC, absence of deadline represented as negative
+  // time_point
+  if (time.time_since_epoch().count() < 0) {
+    return std::nullopt;
+  }
+
   const auto duration = time - std::chrono::system_clock::now();
   if (duration >= std::chrono::hours{365 * 24}) {
     return std::nullopt;
