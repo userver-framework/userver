@@ -55,6 +55,8 @@ void RemoveDynamicDebugLog(const std::string& location_relative, int line);
 
 const LogEntryContentSet& GetDynamicDebugLocations();
 
+void RegisterLogLocation(LogEntryContent& location);
+
 }  // namespace logging
 
 USERVER_NAMESPACE_END

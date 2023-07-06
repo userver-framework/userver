@@ -2,12 +2,12 @@
 
 #include <boost/container/small_vector.hpp>
 
+#include <logging/log_helper_impl.hpp>
 #include <userver/formats/json/string_builder.hpp>
 #include <userver/logging/impl/tag_writer.hpp>
 #include <userver/logging/log_extra.hpp>
 #include <userver/tracing/opentracing.hpp>
 #include <userver/tracing/tags.hpp>
-#include <utils/internal_tag.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -88,7 +88,7 @@ void Span::Impl::LogOpenTracing() const {
   {
     const DetachLocalSpansScope ignore_local_span;
     logging::LogHelper lh(*logger, log_level_);
-    DoLogOpenTracing(lh.GetTagWriterAfterText(utils::InternalTag{}));
+    DoLogOpenTracing(lh.GetTagWriterAfterText({}));
   }
 }
 

@@ -8,7 +8,6 @@
 #include <userver/logging/log_extra.hpp>
 #include <userver/logging/log_helper.hpp>
 #include <userver/utils/encoding/tskv.hpp>
-#include <userver/utils/internal_tag_fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -49,9 +48,11 @@ class TagWriter {
 
   void PutLogExtra(const LogExtra& extra);
 
-  explicit TagWriter(utils::InternalTag, LogHelper& lh) noexcept;
-
  private:
+  friend class logging::LogHelper;
+
+  explicit TagWriter(LogHelper& lh) noexcept;
+
   LogHelper& lh_;
 };
 

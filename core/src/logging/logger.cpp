@@ -5,10 +5,7 @@
 #include <logging/impl/buffered_file_sink.hpp>
 #include <logging/impl/fd_sink.hpp>
 #include <logging/impl/unix_socket_sink.hpp>
-#include <logging/spdlog.hpp>
 #include <logging/tp_logger.hpp>
-
-#include <spdlog/formatter.h>
 
 #include "config.hpp"
 

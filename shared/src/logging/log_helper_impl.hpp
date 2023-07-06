@@ -15,6 +15,8 @@ namespace logging {
 
 inline constexpr std::size_t kInitialLogBufferSize = 1500;
 
+struct LogHelper::InternalTag final {};
+
 class LogHelper::Impl final {
  public:
   using char_type = std::streambuf::char_type;

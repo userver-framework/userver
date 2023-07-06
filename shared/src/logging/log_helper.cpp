@@ -20,15 +20,12 @@
 #include <userver/logging/impl/tag_writer.hpp>
 #include <userver/logging/level.hpp>
 #include <userver/logging/log_extra.hpp>
-#include <userver/logging/logger.hpp>
 #include <userver/logging/null_logger.hpp>
-#include <userver/tracing/span.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/datetime.hpp>
 #include <userver/utils/encoding/hex.hpp>
 #include <userver/utils/encoding/tskv.hpp>
 #include <userver/utils/traceful_exception.hpp>
-#include <utils/internal_tag.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -180,11 +177,9 @@ void LogHelper::OpenTextTag() {
 
 void LogHelper::PutKeyValueSeparator() { pimpl_->PutKeyValueSeparator(); }
 
-impl::TagWriter LogHelper::GetTagWriter() {
-  return impl::TagWriter{utils::InternalTag{}, *this};
-}
+impl::TagWriter LogHelper::GetTagWriter() { return impl::TagWriter{*this}; }
 
-impl::TagWriter LogHelper::GetTagWriterAfterText(utils::InternalTag) {
+impl::TagWriter LogHelper::GetTagWriterAfterText(InternalTag) {
   return GetTagWriter();
 }
 

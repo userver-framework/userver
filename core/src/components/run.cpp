@@ -67,14 +67,14 @@ class LogScope final {
  public:
   explicit LogScope(logging::LoggerPtr logger_new)
       : logger_new_(std::move(logger_new)),
-        logger_prev_{logging::impl::DefaultLoggerRef()},
+        logger_prev_{logging::GetDefaultLogger()},
         level_scope_{logging::GetDefaultLoggerLevel()} {
     UASSERT(logger_new_);
     logging::impl::SetDefaultLoggerRef(*logger_new_);
   }
 
   void Stop() {
-    UASSERT(logger_new_.get() != &logging::impl::DefaultLoggerRef());
+    UASSERT(logger_new_.get() != &logging::GetDefaultLogger());
     logger_new_ = {};
   }
 

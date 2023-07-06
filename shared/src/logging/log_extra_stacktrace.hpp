@@ -2,8 +2,8 @@
 
 #include <boost/stacktrace/stacktrace_fwd.hpp>
 
+#include <userver/logging/fwd.hpp>
 #include <userver/logging/log_extra.hpp>
-#include <userver/logging/logger.hpp>
 #include <userver/utils/flags.hpp>
 
 USERVER_NAMESPACE_BEGIN

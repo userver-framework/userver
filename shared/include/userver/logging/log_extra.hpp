@@ -11,7 +11,7 @@
 #include <boost/container/container_fwd.hpp>
 
 #include <userver/compiler/select.hpp>
-#include <userver/logging/logger.hpp>
+#include <userver/logging/fwd.hpp>
 #include <userver/utils/fast_pimpl.hpp>
 
 USERVER_NAMESPACE_BEGIN

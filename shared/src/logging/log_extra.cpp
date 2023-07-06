@@ -3,15 +3,16 @@
 #include <stdexcept>
 #include <unordered_set>
 
+#include <fmt/format.h>
 #include <boost/container/small_vector.hpp>
-
 #include <boost/stacktrace.hpp>
+
 #include <userver/logging/level.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
+#include <userver/utils/flags.hpp>
 #include <userver/utils/trivial_map.hpp>
 
-#include <fmt/format.h>
 #include <logging/log_extra_stacktrace.hpp>
 
 USERVER_NAMESPACE_BEGIN

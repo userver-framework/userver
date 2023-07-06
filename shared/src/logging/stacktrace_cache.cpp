@@ -9,7 +9,6 @@
 
 #include <userver/cache/lru_map.hpp>
 #include <userver/utils/assert.hpp>
-#include <userver/utils/text.hpp>
 
 namespace std {
 

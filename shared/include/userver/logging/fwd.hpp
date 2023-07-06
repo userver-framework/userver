@@ -1,7 +1,7 @@
 #pragma once
 
 /// @file userver/logging/fwd.hpp
-/// @brief Forward declarations for Logger pointers
+/// @brief Forward declarations for `logging` types
 
 #include <memory>
 
@@ -18,6 +18,8 @@ class LoggerBase;
 using LoggerRef = impl::LoggerBase&;
 using LoggerCRef = const impl::LoggerBase&;
 using LoggerPtr = std::shared_ptr<impl::LoggerBase>;
+
+class LogHelper;
 
 }  // namespace logging
 

@@ -9,8 +9,6 @@
 #include <userver/engine/io/sockaddr.hpp>
 #include <userver/engine/io/socket.hpp>
 
-#include <spdlog/common.h>
-
 USERVER_NAMESPACE_BEGIN
 
 namespace logging::impl {

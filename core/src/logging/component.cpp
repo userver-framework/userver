@@ -3,10 +3,6 @@
 #include <chrono>
 #include <stdexcept>
 
-// this header must be included before any spdlog headers
-// to override spdlog's level names
-#include <logging/spdlog.hpp>
-
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/filesystem/operations.hpp>
 

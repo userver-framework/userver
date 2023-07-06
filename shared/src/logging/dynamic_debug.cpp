@@ -31,34 +31,6 @@ LogEntryContentSet& GetAllLocations() noexcept {
 
 }  // namespace
 
-namespace impl {
-
-// NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
-StaticLogEntry::StaticLogEntry(const char* path, int line) noexcept {
-  utils::impl::AssertStaticRegistrationAllowed(
-      "Dynamic debug logging location");
-  UASSERT(path);
-  UASSERT(line);
-  static_assert(sizeof(LogEntryContent) == sizeof(content));
-  // static_assert(std::is_trivially_destructible_v<LogEntryContent>);
-  auto* item = new (&content) LogEntryContent(path, line);
-  GetAllLocations().insert(*item);
-}
-
-bool StaticLogEntry::ShouldLog() const noexcept {
-  return reinterpret_cast<const LogEntryContent&>(content).state.load() ==
-         EntryState::kForceEnabled;
-}
-
-bool StaticLogEntry::ShouldNotLog(Level level) const noexcept {
-  if (level >= Level::kWarning) return false;
-
-  return reinterpret_cast<const LogEntryContent&>(content).state.load() ==
-         EntryState::kForceDisabled;
-}
-
-}  // namespace impl
-
 bool operator<(const LogEntryContent& x, const LogEntryContent& y) noexcept {
   const auto cmp = std::strcmp(x.path, y.path);
   return cmp < 0 || (cmp == 0 && x.line < y.line);
@@ -115,6 +87,14 @@ void RemoveDynamicDebugLog(const std::string& location_relative, int line) {
 const LogEntryContentSet& GetDynamicDebugLocations() {
   utils::impl::AssertStaticRegistrationFinished();
   return GetAllLocations();
+}
+
+void RegisterLogLocation(LogEntryContent& location) {
+  utils::impl::AssertStaticRegistrationAllowed(
+      "Dynamic debug logging location");
+  UASSERT(location.path);
+  UASSERT(location.line);
+  GetAllLocations().insert(location);
 }
 
 }  // namespace logging

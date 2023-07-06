@@ -6,10 +6,10 @@
 #include <chrono>
 
 #include <userver/compiler/select.hpp>
+#include <userver/logging/fwd.hpp>
 #include <userver/logging/level.hpp>
 #include <userver/logging/log_filepath.hpp>
 #include <userver/logging/log_helper.hpp>
-#include <userver/logging/logger.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -17,13 +17,20 @@ namespace logging {
 
 namespace impl {
 
-/// Returns the default logger previously set by SetDefaultLogger. If the logger
-/// was not set - returns a logger that does no logging.
-LoggerRef DefaultLoggerRef() noexcept;
-
 void SetDefaultLoggerRef(LoggerRef new_logger) noexcept;
 
+extern bool has_background_threads_which_can_log;
+
 }  // namespace impl
+
+/// @brief Returns the default logger previously set by SetDefaultLogger. If the
+/// logger was not set - returns a logger that does no logging.
+///
+/// @note While the coroutine engine is running, any reference to the default
+/// logger is guaranteed to be alive. No lifetime guarantees are given
+/// for the default logger reference outside the engine's lifetime. The rule of
+/// thumb there is not to keep this reference in any extended scope.
+LoggerRef GetDefaultLogger() noexcept;
 
 /// @brief Atomically replaces the default logger.
 ///
@@ -70,6 +77,10 @@ void SetDefaultLoggerLevel(Level);
 
 /// Returns log level for the default logger
 Level GetDefaultLoggerLevel() noexcept;
+
+/// Returns true if the provided log level is greater or equal to
+/// the current log level and to the tracing::Span (if any) local log level.
+bool ShouldLog(Level level) noexcept;
 
 /// Sets new log level for a logger
 void SetLoggerLevel(LoggerRef, Level);
@@ -167,7 +178,7 @@ struct EntryStorage final {
       static_cast<int>(lvl) <                                                \
           static_cast<int>(USERVER_NAMESPACE::logging::Level::kInfo))        \
       ? USERVER_NAMESPACE::logging::impl::Noop{}                             \
-      : DO_LOG_TO(USERVER_NAMESPACE::logging::impl::DefaultLoggerRef(), (lvl))
+      : DO_LOG_TO(USERVER_NAMESPACE::logging::GetDefaultLogger(), (lvl))
 
 /// @brief If lvl matches the verbosity then builds a stream and evaluates a
 /// message for the default logger.
@@ -271,7 +282,7 @@ struct EntryStorage final {
 /// message for the default logger. Ignores log messages that occur too often.
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define LOG_LIMITED(lvl) \
-  LOG_LIMITED_TO(USERVER_NAMESPACE::logging::impl::DefaultLoggerRef(), lvl)
+  LOG_LIMITED_TO(USERVER_NAMESPACE::logging::GetDefaultLogger(), lvl)
 
 /// @brief Evaluates a message and logs it to the default logger if the log
 /// message does not occur too often and default logger level is below or equal

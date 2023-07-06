@@ -4,8 +4,6 @@
 #include <mutex>
 #include <string_view>
 
-#include <spdlog/sinks/sink.h>
-
 #include <logging/impl/base_sink.hpp>
 #include <userver/fs/blocking/c_file.hpp>
 

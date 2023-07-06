@@ -34,7 +34,7 @@ class LoggerBase {
 
   virtual void SetLevel(Level level);
   Level GetLevel() const noexcept;
-  bool ShouldLog(Level level) const noexcept;
+  virtual bool ShouldLog(Level level) const noexcept;
 
   void SetFlushOn(Level level);
   bool ShouldFlush(Level level) const;
@@ -44,6 +44,8 @@ class LoggerBase {
   std::atomic<Level> level_{Level::kNone};
   std::atomic<Level> flush_level_{Level::kWarning};
 };
+
+bool ShouldLogNoSpan(const LoggerBase& logger, Level level) noexcept;
 
 }  // namespace logging::impl
 

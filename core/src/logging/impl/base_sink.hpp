@@ -5,7 +5,7 @@
 #include <spdlog/formatter.h>
 
 #include <logging/impl/open_file_helper.hpp>
-#include "userver/logging/level.hpp"
+#include <userver/logging/level.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

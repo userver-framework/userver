@@ -16,6 +16,8 @@ class TaskProcessorPools final {
   TaskProcessorPools(coro::PoolConfig coro_pool_config,
                      ev::ThreadPoolConfig ev_pool_config);
 
+  ~TaskProcessorPools();
+
   CoroPool& GetCoroPool() { return coro_pool_; }
   ev::ThreadPool& EventThreadPool() { return event_thread_pool_; }
 

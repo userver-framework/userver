@@ -249,7 +249,7 @@ TEST_F(LoggingTest, ExternalModulePath) {
 
   {
     logging::LogHelper a(
-        logging::impl::DefaultLoggerRef(), logging::Level::kCritical,
+        logging::GetDefaultLogger(), logging::Level::kCritical,
         utils::impl::SourceLocation::Custom(__LINE__, kPath, __func__));
   }
   logging::LogFlush();
@@ -293,7 +293,7 @@ TEST_F(LoggingTest, PartialPrefixModulePath) {
 
   {
     logging::LogHelper a(
-        logging::impl::DefaultLoggerRef(), logging::Level::kCritical,
+        logging::GetDefaultLogger(), logging::Level::kCritical,
         utils::impl::SourceLocation::Custom(__LINE__, kPath, __func__));
   }
   logging::LogFlush();
@@ -528,7 +528,7 @@ TEST_F(LoggingTest, NullLoggerPtr) {
 TEST_F(LoggingTest, Noexceptness) {
   static_assert(noexcept(logging::ShouldLog(logging::Level::kCritical)));
   static_assert(noexcept(logging::impl::Noop{}));
-  static_assert(noexcept(logging::impl::DefaultLoggerRef()));
+  static_assert(noexcept(logging::GetDefaultLogger()));
   static_assert(noexcept(logging::LogExtra()));
   static_assert(noexcept(logging::LogExtra::Stacktrace()));
 

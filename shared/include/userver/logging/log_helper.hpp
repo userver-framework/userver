@@ -14,11 +14,10 @@
 #include <type_traits>
 
 #include <userver/formats/common/meta.hpp>
+#include <userver/logging/fwd.hpp>
 #include <userver/logging/level.hpp>
 #include <userver/logging/log_extra.hpp>
-#include <userver/logging/logger.hpp>
 #include <userver/utils/impl/source_location.hpp>
-#include <userver/utils/internal_tag_fwd.hpp>
 #include <userver/utils/meta.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -157,11 +156,13 @@ class LogHelper final {
   // For internal use only!
   operator impl::Noop() const noexcept { return {}; }
 
+  struct InternalTag;
+
   // Should only use after finishing logging `text`, otherwise garbage logs will
   // be produced. For internal use only!
   // TODO(TAXICOMMON-6951) refactor this function into something that never
   //  produces garbage logs.
-  impl::TagWriter GetTagWriterAfterText(utils::InternalTag);
+  impl::TagWriter GetTagWriterAfterText(InternalTag);
   /// @endcond
 
  private:

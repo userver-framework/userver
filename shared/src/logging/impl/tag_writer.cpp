@@ -4,7 +4,6 @@
 #include <boost/container/small_vector.hpp>
 
 #include <userver/utils/assert.hpp>
-#include <utils/internal_tag.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -44,7 +43,7 @@ void TagWriter::PutLogExtra(const LogExtra& extra) {
   }
 }
 
-TagWriter::TagWriter(utils::InternalTag, LogHelper& lh) noexcept : lh_(lh) {}
+TagWriter::TagWriter(LogHelper& lh) noexcept : lh_(lh) {}
 
 }  // namespace logging::impl
 

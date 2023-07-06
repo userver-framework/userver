@@ -36,17 +36,6 @@ std::string ToString(Level level);
 std::optional<Level> OptionalLevelFromString(
     const std::optional<std::string>& level_name);
 
-/// @brief Returns true if the provided log level is greater or equal to
-/// the current log level. Note that this function does not deal with
-/// tracing::Span local log level, so the log may be actually disabled by the
-/// span.
-bool ShouldLogNospan(Level level) noexcept;
-
-/// @brief Returns true if the provided log level is greater or equal to
-/// the current log level and to the tracing::Span local log level. In other
-/// words, returns true if the log with `level` is logged.
-bool ShouldLog(Level level) noexcept;
-
 }  // namespace logging
 
 USERVER_NAMESPACE_END

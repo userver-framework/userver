@@ -4,7 +4,6 @@
 
 #include <logging/dynamic_debug.hpp>
 #include <logging/logging_test.hpp>
-#include <userver/logging/log.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

@@ -19,13 +19,17 @@ void LoggerBase::SetLevel(Level level) { level_ = level; }
 Level LoggerBase::GetLevel() const noexcept { return level_; }
 
 bool LoggerBase::ShouldLog(Level level) const noexcept {
-  return level_ <= level && level != Level::kNone;
+  return ShouldLogNoSpan(*this, level);
 }
 
 void LoggerBase::SetFlushOn(Level level) { flush_level_ = level; }
 
 bool LoggerBase::ShouldFlush(Level level) const {
   return flush_level_ <= level;
+}
+
+bool ShouldLogNoSpan(const LoggerBase& logger, Level level) noexcept {
+  return logger.GetLevel() <= level && level != Level::kNone;
 }
 
 }  // namespace logging::impl

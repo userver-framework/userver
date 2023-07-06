@@ -19,7 +19,7 @@ namespace impl {
 class DefaultLoggerGuardTest {
  public:
   DefaultLoggerGuardTest() noexcept
-      : logger_prev_(logging::impl::DefaultLoggerRef()),
+      : logger_prev_(logging::GetDefaultLogger()),
         log_level_scope_(logging::GetLoggerLevel(logger_prev_)) {}
 
   ~DefaultLoggerGuardTest() {

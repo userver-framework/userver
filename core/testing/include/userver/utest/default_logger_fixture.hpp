@@ -46,7 +46,7 @@ class DefaultLoggerFixture : public Base {
  private:
   void BackUpDefaultLogger() {
     if (!logger_initial_) {
-      logger_initial_ = &logging::impl::DefaultLoggerRef();
+      logger_initial_ = &logging::GetDefaultLogger();
       level_initial_ = logging::GetLoggerLevel(*logger_initial_);
     }
   }

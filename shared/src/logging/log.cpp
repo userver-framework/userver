@@ -2,10 +2,11 @@
 
 #include <utility>
 
+#include <logging/dynamic_debug.hpp>
 #include <logging/rate_limit.hpp>
-#include <userver/engine/task/task_base.hpp>
 #include <userver/logging/impl/logger_base.hpp>
 #include <userver/logging/null_logger.hpp>
+#include <userver/utils/assert.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -23,18 +24,20 @@ constexpr bool IsPowerOf2(uint64_t n) { return (n & (n - 1)) == 0; }
 
 namespace impl {
 
-LoggerRef DefaultLoggerRef() noexcept {
-  return *NonOwningDefaultLoggerInternal().load();
-}
-
 void SetDefaultLoggerRef(LoggerRef logger) noexcept {
   NonOwningDefaultLoggerInternal() = &logger;
 }
 
+bool has_background_threads_which_can_log{false};
+
 }  // namespace impl
 
+LoggerRef GetDefaultLogger() noexcept {
+  return *NonOwningDefaultLoggerInternal().load();
+}
+
 DefaultLoggerGuard::DefaultLoggerGuard(LoggerPtr new_default_logger) noexcept
-    : logger_prev_(impl::DefaultLoggerRef()),
+    : logger_prev_(GetDefaultLogger()),
       level_prev_(GetDefaultLoggerLevel()),
       logger_new_(std::move(new_default_logger)) {
   UASSERT(logger_new_);
@@ -43,7 +46,7 @@ DefaultLoggerGuard::DefaultLoggerGuard(LoggerPtr new_default_logger) noexcept
 
 DefaultLoggerGuard::~DefaultLoggerGuard() {
   UASSERT_MSG(
-      !engine::current_task::IsTaskProcessorThread(),
+      !impl::has_background_threads_which_can_log,
       "DefaultLoggerGuard with a new logger should outlive the coroutine "
       "engine, because otherwise it could be in use right now, when the "
       "~DefaultLoggerGuard() is called and the logger is destroyed. "
@@ -55,8 +58,7 @@ DefaultLoggerGuard::~DefaultLoggerGuard() {
 }
 
 DefaultLoggerLevelScope::DefaultLoggerLevelScope(logging::Level level)
-    : logger_(impl::DefaultLoggerRef()),
-      level_initial_(GetLoggerLevel(logger_)) {
+    : logger_(GetDefaultLogger()), level_initial_(GetLoggerLevel(logger_)) {
   SetLoggerLevel(logger_, level);
 }
 
@@ -64,15 +66,18 @@ DefaultLoggerLevelScope::~DefaultLoggerLevelScope() {
   SetLoggerLevel(logger_, level_initial_);
 }
 
-void SetDefaultLoggerLevel(Level level) {
-  impl::DefaultLoggerRef().SetLevel(level);
-}
+void SetDefaultLoggerLevel(Level level) { GetDefaultLogger().SetLevel(level); }
 
 void SetLoggerLevel(LoggerRef logger, Level level) { logger.SetLevel(level); }
 
 Level GetDefaultLoggerLevel() noexcept {
-  static_assert(noexcept(impl::DefaultLoggerRef().GetLevel()));
-  return impl::DefaultLoggerRef().GetLevel();
+  static_assert(noexcept(GetDefaultLogger().GetLevel()));
+  return GetDefaultLogger().GetLevel();
+}
+
+bool ShouldLog(Level level) noexcept {
+  static_assert(noexcept(GetDefaultLogger().ShouldLog(level)));
+  return GetDefaultLogger().ShouldLog(level);
 }
 
 bool LoggerShouldLog(LoggerCRef logger, Level level) noexcept {
@@ -89,7 +94,7 @@ Level GetLoggerLevel(LoggerCRef logger) noexcept {
   return logger.GetLevel();
 }
 
-void LogFlush() { impl::DefaultLoggerRef().Flush(); }
+void LogFlush() { GetDefaultLogger().Flush(); }
 
 void LogFlush(LoggerCRef logger) { logger.Flush(); }
 
@@ -133,6 +138,26 @@ LogHelper& operator<<(LogHelper& lh, const RateLimiter& rl) noexcept {
     lh << "[" << rl.dropped_count_ << " logs dropped] ";
   }
   return lh;
+}
+
+// NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
+StaticLogEntry::StaticLogEntry(const char* path, int line) noexcept {
+  static_assert(sizeof(LogEntryContent) == sizeof(content));
+  // static_assert(std::is_trivially_destructible_v<LogEntryContent>);
+  auto* item = new (&content) LogEntryContent(path, line);
+  RegisterLogLocation(*item);
+}
+
+bool StaticLogEntry::ShouldLog() const noexcept {
+  return reinterpret_cast<const LogEntryContent&>(content).state.load() ==
+         EntryState::kForceEnabled;
+}
+
+bool StaticLogEntry::ShouldNotLog(Level level) const noexcept {
+  if (level >= Level::kWarning) return false;
+
+  return reinterpret_cast<const LogEntryContent&>(content).state.load() ==
+         EntryState::kForceDisabled;
 }
 
 }  // namespace impl

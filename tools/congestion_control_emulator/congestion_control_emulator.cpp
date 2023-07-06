@@ -4,8 +4,8 @@
 
 #include <userver/congestion_control/controller.hpp>
 #include <userver/dynamic_config/storage_mock.hpp>
-#include <userver/formats/json/serialize.hpp>
 #include <userver/logging/log.hpp>
+#include <userver/logging/logger.hpp>
 
 #include <userver/utest/using_namespace_userver.hpp>
 

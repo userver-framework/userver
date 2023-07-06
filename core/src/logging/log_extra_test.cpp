@@ -1,7 +1,12 @@
 #include <userver/logging/log_extra.hpp>
 
+#include <gtest/gtest.h>
+
 #include <userver/logging/log.hpp>
-#include <userver/utest/utest.hpp>
+#include <userver/utest/assert_macros.hpp>
+
+// TODO move these tests to `shared`. Can't move right now, because
+//  there is no `EXPECT_UINVARIANT_FAILURE` in `shared`
 
 USERVER_NAMESPACE_BEGIN
 

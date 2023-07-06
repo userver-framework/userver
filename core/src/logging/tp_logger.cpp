@@ -1,8 +1,7 @@
 #include "tp_logger.hpp"
 
-// this header must be included before any spdlog headers
-// to override spdlog's level names
-#include <logging/spdlog.hpp>
+#include <spdlog/common.h>
+#include <spdlog/spdlog.h>
 
 #include <memory>
 #include <string>
@@ -165,6 +164,20 @@ void TpLogger::PrependCommonTags(TagWriter writer) const {
   writer.PutTag("thread_id", Hex{thread_id});
 }
 
+bool TpLogger::ShouldLog(Level level) const noexcept {
+  if (!LoggerBase::ShouldLog(level)) return false;
+
+  const auto* const span = tracing::Span::CurrentSpanUnchecked();
+  if (span) {
+    const auto local_log_level = span->GetLocalLogLevel();
+    if (local_log_level && *local_log_level > level) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 void TpLogger::SetPattern(std::string pattern) {
   formatter_pattern_ = std::move(pattern);
 
@@ -258,7 +271,7 @@ void TpLogger::Push(impl::async::Log&& action) const {
 void TpLogger::BackendLog(impl::async::Log&& action) const {
   spdlog::details::log_msg msg{};
   msg.logger_name = GetLoggerName();
-  msg.level = static_cast<spdlog::level::level_enum>(action.level);
+  msg.level = ToSpdlogLevel(action.level);
   msg.time = action.time;
   msg.payload = action.payload;
 

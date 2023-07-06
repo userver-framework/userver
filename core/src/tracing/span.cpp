@@ -7,7 +7,9 @@
 #include <fmt/format.h>
 
 #include <engine/task/task_context.hpp>
+#include <logging/log_helper_impl.hpp>
 #include <userver/engine/task/local_variable.hpp>
+#include <userver/logging/impl/logger_base.hpp>
 #include <userver/logging/impl/tag_writer.hpp>
 #include <userver/tracing/span.hpp>
 #include <userver/tracing/tracer.hpp>
@@ -108,9 +110,9 @@ Span::Impl::~Impl() {
 
   {
     const DetachLocalSpansScope ignore_local_span;
-    logging::LogHelper lh{logging::impl::DefaultLoggerRef(), log_level_,
+    logging::LogHelper lh{logging::GetDefaultLogger(), log_level_,
                           source_location_};
-    PutIntoLogger(lh.GetTagWriterAfterText(utils::InternalTag{}));
+    PutIntoLogger(lh.GetTagWriterAfterText({}));
   }
 }
 
@@ -181,7 +183,8 @@ bool Span::Impl::ShouldLog() const {
   /* We must honour default log level, but use span's level from ourselves,
    * not the previous span's.
    */
-  return logging::ShouldLogNospan(log_level_) &&
+  return logging::impl::ShouldLogNoSpan(logging::GetDefaultLogger(),
+                                        log_level_) &&
          local_log_level_.value_or(logging::Level::kTrace) <= log_level_;
 }
 
@@ -425,7 +428,7 @@ DetachLocalSpansScope::~DetachLocalSpansScope() {
 namespace impl {
 
 logging::LogHelper& operator<<(logging::LogHelper& lh, LogSpanAsLast span) {
-  span.span.LogTo(lh.GetTagWriterAfterText(utils::InternalTag{}));
+  span.span.LogTo(lh.GetTagWriterAfterText({}));
   return lh;
 }
 
