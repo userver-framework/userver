@@ -29,12 +29,14 @@ components_manager:
             msg-size-log-limit: 10
 
         grpc-server-deadline-propagation:
+        grpc-server-baggage:
 
         greeter-service:
             task-processor: main-task-processor
             middlewares:
               - grpc-server-logging
               - grpc-server-deadline-propagation
+              - grpc-server-baggage
 
         # gRPC client
         grpc-client-factory:
@@ -43,6 +45,7 @@ components_manager:
             middlewares:
               - grpc-client-logging
               - grpc-client-deadline-propagation
+              - grpc-client-baggage
         greeter-client:
             endpoint: '[::]:8081'
 
@@ -64,6 +67,7 @@ components_manager:
         testsuite-support:
         grpc-client-logging:
         grpc-client-deadline-propagation:
+        grpc-client-baggage:
 
     default_task_processor: main-task-processor
     task_processors:
