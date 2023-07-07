@@ -15,23 +15,19 @@ if (TARGET userver-core)
 endif()
 
 file(GLOB_RECURSE SOURCES
-  ${CMAKE_CURRENT_SOURCE_DIR}/../shared/*.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/../shared/*.hpp
   ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/*.hpp
 )
 
 file(GLOB_RECURSE UNIT_TEST_SOURCES
-  ${CMAKE_CURRENT_SOURCE_DIR}/../shared/*_test.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/*_test.cpp
 )
 file(GLOB_RECURSE BENCH_SOURCES
-  ${CMAKE_CURRENT_SOURCE_DIR}/../shared/*_benchmark.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/*_benchmark.cpp
 )
 file(GLOB_RECURSE INTERNAL_SOURCES
-  ${CMAKE_CURRENT_SOURCE_DIR}/../shared/internal/*.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/../shared/internal/*.hpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/internal/*.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/internal/*.hpp
 )
 list(REMOVE_ITEM SOURCES ${UNIT_TEST_SOURCES} ${BENCH_SOURCES} ${INTERNAL_SOURCES})
 
@@ -141,11 +137,9 @@ endif()
 
 target_include_directories(${PROJECT_NAME}
   PUBLIC
-    ${CMAKE_CURRENT_SOURCE_DIR}/../shared/include
     ${CMAKE_CURRENT_SOURCE_DIR}/include
     ${USERVER_THIRD_PARTY_DIRS}/date/include
   PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/../shared/src/
     ${CMAKE_CURRENT_SOURCE_DIR}/src/
     ${CMAKE_CURRENT_BINARY_DIR}
 )
@@ -191,7 +185,7 @@ if (USERVER_IS_THE_ROOT_PROJECT)
     target_compile_definitions(${PROJECT_NAME}-internal PUBLIC $<TARGET_PROPERTY:${PROJECT_NAME},COMPILE_DEFINITIONS>)
     target_include_directories(${PROJECT_NAME}-internal PUBLIC
       $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>
-      ${CMAKE_CURRENT_SOURCE_DIR}/../shared/internal/include
+      ${CMAKE_CURRENT_SOURCE_DIR}/internal/include
     )
     target_link_libraries(${PROJECT_NAME}-internal
       PUBLIC

@@ -183,7 +183,7 @@ set_property(
 
 target_include_directories(${PROJECT_NAME}
   PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/../shared/src/
+    ${CMAKE_CURRENT_SOURCE_DIR}/../universal/src/
     ${CMAKE_CURRENT_SOURCE_DIR}/src/
     ${CMAKE_CURRENT_BINARY_DIR}
 )
@@ -194,7 +194,7 @@ if (USERVER_IS_THE_ROOT_PROJECT OR USERVER_FEATURE_UTEST)
   target_include_directories(userver-core-internal PUBLIC
     $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>
     ${CMAKE_CURRENT_SOURCE_DIR}/internal/include
-    ${CMAKE_CURRENT_SOURCE_DIR}/../shared/internal/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/../universal/internal/include
   )
   target_link_libraries(userver-core-internal
     PUBLIC
