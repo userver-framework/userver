@@ -112,7 +112,7 @@ target_link_libraries(${PROJECT_NAME}
 )
 
 if (USERVER_FEATURE_UBOOST_CORO)
-    add_subdirectory(${USERVER_ROOT_DIR}/uboost_coro uboost_coro_build)
+    add_subdirectory(${USERVER_THIRD_PARTY_DIRS}/uboost_coro uboost_coro_build)
     target_link_libraries(${PROJECT_NAME}
       PRIVATE
         userver-uboost-coro

@@ -24,15 +24,13 @@
 /clickhouse/ @itrofimow
 /rabbitmq/ @itrofimow
 
-/shared/**/compiler/ @antoshkka
-/shared/**/crypto/ @bugaevskiy @segoon
-/shared/**/decimal64/ @antonyzhilin @bugaevskiy
-/shared/**/fs/ @antoshkka
-/shared/**/http/ @segoon @bugaevskiy
-
 /third_party/boost_stacktrace/ @antoshkka
 /third_party/pfr/ @ser-fedorov @antoshkka
+/third_party/uboost_coro/ @bugaevskiy @antoshkka
 
-/uboost_coro/ @bugaevskiy @antoshkka
-
-/universal/ @bugaevskiy
+/universal/ @antonyzhilin @antoshkka
+/universal/**/compiler/ @antoshkka
+/universal/**/crypto/ @bugaevskiy @segoon
+/universal/**/decimal64/ @antonyzhilin @bugaevskiy
+/universal/**/fs/ @antoshkka
+/universal/**/http/ @segoon @bugaevskiy

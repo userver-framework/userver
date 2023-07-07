@@ -127,7 +127,7 @@ jobs:
                 [[ -z "${GITHUB_BASE_REF}" ]] && BRANCH_VAR=HEAD~1 || BRANCH_VAR=origin/${GITHUB_BASE_REF}
                 echo "${BRANCH_VAR}"
                 echo "$(git diff --name-only ${BRANCH_VAR})"
-                EXCLUDE_PATTERNS="-e '.pb.cc' -e '.pb.cpp' -e 'benchmark.cpp' -e '/boost_stacktrace/' -e '/pq-extra/' -e '/tools/' -e '/uboost_coro/' -e 'third_party' "
+                EXCLUDE_PATTERNS="-e '.pb.cc' -e '.pb.cpp' -e 'benchmark.cpp' -e '/boost_stacktrace/' -e '/pq-extra/' -e '/tools/' -e 'third_party' "
                 LIST_CHECK_FILES=$(git diff --name-only ${BRANCH_VAR} | grep --color=never '.cpp' | grep -v ${EXCLUDE_PATTERNS} | tr '\n' ' ')
                 if [[ -n ${LIST_CHECK_FILES} ]]
                 then

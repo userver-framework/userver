@@ -7,3 +7,4 @@ This folder contains source codes from following open source projects:
 * moodycamel: https://github.com/cameron314/concurrentqueue/releases/tag/v1.0.3
 * rapidjson: https://github.com/Tencent/rapidjson/commit/083f359f5c36198accc2b9360ce1e32a333231d9 with RAPIDJSON_HAS_STDSTRING defined in rapidjson.h
 * date: https://github.com/HowardHinnant/date/tree/v3.0.1
+* uboost_coro: see uboost_coro/README.md
