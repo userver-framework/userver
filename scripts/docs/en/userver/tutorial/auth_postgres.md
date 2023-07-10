@@ -187,7 +187,7 @@ See the full example:
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref md_en_userver_tutorial_redis_service | @ref md_en_userver_component_system ⇨
+⇦ @ref md_en_userver_tutorial_redis_service | @ref md_en_userver_tutorial_json_to_yaml ⇨
 @htmlonly </div> @endhtmlonly
 
 @example samples/postgres_auth/user_info_cache.hpp

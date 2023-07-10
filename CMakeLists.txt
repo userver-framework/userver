@@ -133,7 +133,6 @@ endif()
 
 if (USERVER_IS_THE_ROOT_PROJECT AND USERVER_FEATURE_CORE)
     add_subdirectory(tools/engine)
-    add_subdirectory(tools/json2yaml)
     add_subdirectory(tools/httpclient)
     add_subdirectory(tools/netcat)
     add_subdirectory(tools/dns_resolver)

@@ -365,6 +365,7 @@ make docker-test-debug
 ```
 You can replace the debug with a release
 
+
 ### Run framework tests
 To run tests and make sure that the framework works fine use the following command:
 ```

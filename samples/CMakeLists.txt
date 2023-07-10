@@ -54,6 +54,9 @@ if (USERVER_FEATURE_GRPC)
   add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-grpc_service)
 endif()
 
+add_subdirectory(json2yaml)
+add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-json2yaml)
+
 add_subdirectory(hello_service)
 add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-hello_service)
 

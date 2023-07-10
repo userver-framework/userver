@@ -37,6 +37,7 @@ Telegram support chats: [English-speaking](https://t.me/userver_en) |
 * @ref md_en_userver_tutorial_mongo_service
 * @ref md_en_userver_tutorial_redis_service
 * @ref md_en_userver_tutorial_auth_postgres
+* @ref md_en_userver_tutorial_json_to_yaml
 
 
 ## Generic development

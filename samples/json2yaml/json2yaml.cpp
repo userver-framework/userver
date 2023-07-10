@@ -1,17 +1,19 @@
+/// [json2yaml - includes]
 #include <iostream>
 #include <string>
 
 #include <userver/formats/json.hpp>
 #include <userver/formats/parse/to.hpp>
 #include <userver/formats/yaml.hpp>
+/// [json2yaml - includes]
 
+/// [json2yaml - convert]
 USERVER_NAMESPACE_BEGIN
 
 namespace formats::parse {
 
-static formats::yaml::Value Convert(const formats::json::Value& json,
-                                    formats::parse::To<formats::yaml::Value>) {
-  formats::yaml::ValueBuilder yaml_vb;
+yaml::Value Convert(const json::Value& json, parse::To<yaml::Value>) {
+  yaml::ValueBuilder yaml_vb;
 
   if (json.IsBool()) {
     yaml_vb = json.ConvertTo<bool>();
@@ -24,14 +26,14 @@ static formats::yaml::Value Convert(const formats::json::Value& json,
   } else if (json.IsString()) {
     yaml_vb = json.ConvertTo<std::string>();
   } else if (json.IsArray()) {
-    yaml_vb = {formats::common::Type::kArray};
+    yaml_vb = {common::Type::kArray};
     for (const auto& elem : json) {
-      yaml_vb.PushBack(elem.ConvertTo<formats::yaml::Value>());
+      yaml_vb.PushBack(elem.ConvertTo<yaml::Value>());
     }
   } else if (json.IsObject()) {
-    yaml_vb = {formats::common::Type::kObject};
+    yaml_vb = {common::Type::kObject};
     for (auto it = json.begin(); it != json.end(); ++it) {
-      yaml_vb[it.GetName()] = it->ConvertTo<formats::yaml::Value>();
+      yaml_vb[it.GetName()] = it->ConvertTo<yaml::Value>();
     }
   }
 
@@ -41,11 +43,14 @@ static formats::yaml::Value Convert(const formats::json::Value& json,
 }  // namespace formats::parse
 
 USERVER_NAMESPACE_END
+/// [json2yaml - convert]
 
+/// [json2yaml - main]
 int main() {
-  namespace yaml = USERVER_NAMESPACE::formats::yaml;
-  namespace json = USERVER_NAMESPACE::formats::json;
-  yaml::Serialize(json::FromStream(std::cin).ConvertTo<yaml::Value>(),
-                  std::cout);
+  namespace formats = USERVER_NAMESPACE::formats;
+
+  auto json = formats::json::FromStream(std::cin);
+  formats::yaml::Serialize(json.ConvertTo<formats::yaml::Value>(), std::cout);
   std::cout << std::endl;
 }
+/// [json2yaml - main]
