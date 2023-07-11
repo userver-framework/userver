@@ -8,6 +8,7 @@
 
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/fs/blocking/temp_file.hpp>
+#include <userver/utils/not_null.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -37,8 +38,8 @@ class TempFile final {
                          engine::TaskProcessor& fs_task_processor);
 
   TempFile() = delete;
-  TempFile(TempFile&& other) noexcept;
-  TempFile& operator=(TempFile&& other) noexcept;
+  TempFile(TempFile&& other) noexcept = default;
+  TempFile& operator=(TempFile&& other) noexcept = default;
   ~TempFile();
 
   /// Take ownership of an existing file
@@ -56,7 +57,7 @@ class TempFile final {
   TempFile(engine::TaskProcessor& fs_task_processor,
            fs::blocking::TempFile temp_file);
 
-  engine::TaskProcessor& fs_task_processor_;
+  utils::NotNull<engine::TaskProcessor*> fs_task_processor_;
   fs::blocking::TempFile temp_file_;
 };
 
