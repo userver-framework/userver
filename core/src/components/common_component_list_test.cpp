@@ -195,7 +195,8 @@ TEST_F(ComponentList, Common) {
   const std::string config_vars_path =
       temp_root.GetPath() + "/config_vars.json";
 
-  fs::blocking::RewriteFileContents(runtime_config_path, tests::kRuntimeConfig);
+  fs::blocking::RewriteFileContents(runtime_config_path,
+                                    tests::GetRuntimeConfig());
   fs::blocking::RewriteFileContents(
       config_vars_path,
       fmt::format(kConfigVarsTemplate, temp_root.GetPath(), runtime_config_path,

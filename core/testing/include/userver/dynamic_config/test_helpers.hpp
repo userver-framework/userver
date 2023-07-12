@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/dynamic_config/test_helpers.hpp
+/// @brief Contains getters for dynamic config defaults for tests.
+
 #include <userver/dynamic_config/impl/test_helpers.hpp>
 
 #ifdef ARCADIA_ROOT
@@ -29,6 +32,16 @@ inline dynamic_config::StorageMock MakeDefaultStorage(
   return dynamic_config::impl::MakeDefaultStorage(
       DEFAULT_DYNAMIC_CONFIG_FILENAME, overrides);
 }
+
+namespace impl {
+
+// Internal API, use functions above instead!
+inline const dynamic_config::DocsMap& GetDefaultDocsMap() {
+  return dynamic_config::impl::GetDefaultDocsMap(
+      DEFAULT_DYNAMIC_CONFIG_FILENAME);
+}
+
+}  // namespace impl
 #endif
 
 }  // namespace dynamic_config

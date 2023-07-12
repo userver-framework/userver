@@ -91,7 +91,8 @@ TEST_F(ComponentList, LruCacheComponentSample) {
   /// [Sample lru cache component registration]
   component_list.Append<components::TestsuiteSupport>();
 
-  fs::blocking::RewriteFileContents(dynamic_config_path, tests::kRuntimeConfig);
+  fs::blocking::RewriteFileContents(dynamic_config_path,
+                                    tests::GetRuntimeConfig());
   fs::blocking::RewriteFileContents(config_vars_path, kConfigVariables);
 
   components::RunOnce(components::InMemoryConfig{static_config}, component_list,

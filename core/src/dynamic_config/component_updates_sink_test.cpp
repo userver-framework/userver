@@ -196,7 +196,8 @@ TEST_F(ComponentList, DynamicConfigUpdatesSink) {
   const std::string static_config =
       std::string{kStaticConfig} + config_vars_path + '\n';
 
-  fs::blocking::RewriteFileContents(runtime_config_path, tests::kRuntimeConfig);
+  fs::blocking::RewriteFileContents(runtime_config_path,
+                                    tests::GetRuntimeConfig());
   fs::blocking::RewriteFileContents(
       config_vars_path, fmt::format(kConfigVarsTemplate, runtime_config_path,
                                     "dynamic-config-test-updates-sink2"));
@@ -214,7 +215,8 @@ TEST_F(ComponentList, DynamicConfigUpdatesSinkUsedByMultipleSources) {
   const std::string static_config =
       std::string{kStaticConfig} + config_vars_path + '\n';
 
-  fs::blocking::RewriteFileContents(runtime_config_path, tests::kRuntimeConfig);
+  fs::blocking::RewriteFileContents(runtime_config_path,
+                                    tests::GetRuntimeConfig());
   fs::blocking::RewriteFileContents(
       config_vars_path,
       fmt::format(kConfigVarsTemplate, runtime_config_path, "dynamic-config"));

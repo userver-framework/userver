@@ -236,7 +236,8 @@ TEST_F(ComponentList, ServerCommon) {
   const std::string config_vars_path =
       temp_root.GetPath() + "/config_vars.json";
 
-  fs::blocking::RewriteFileContents(runtime_config_path, tests::kRuntimeConfig);
+  fs::blocking::RewriteFileContents(runtime_config_path,
+                                    tests::GetRuntimeConfig());
   fs::blocking::RewriteFileContents(
       config_vars_path,
       fmt::format(kConfigVarsTemplate, temp_root.GetPath(), runtime_config_path,
@@ -258,7 +259,8 @@ TEST_F(ComponentList, ServerTraceLogging) {
       temp_root.GetPath() + "/config_vars.json";
   const std::string logs_file = temp_root.GetPath() + "/logs.txt";
 
-  fs::blocking::RewriteFileContents(runtime_config_path, tests::kRuntimeConfig);
+  fs::blocking::RewriteFileContents(runtime_config_path,
+                                    tests::GetRuntimeConfig());
   fs::blocking::RewriteFileContents(
       config_vars_path,
       fmt::format(kConfigVarsTemplate, temp_root.GetPath(), runtime_config_path,
@@ -279,7 +281,8 @@ TEST_F(ComponentList, ServerNullLogging) {
   const std::string config_vars_path =
       temp_root.GetPath() + "/config_vars.json";
 
-  fs::blocking::RewriteFileContents(runtime_config_path, tests::kRuntimeConfig);
+  fs::blocking::RewriteFileContents(runtime_config_path,
+                                    tests::GetRuntimeConfig());
   fs::blocking::RewriteFileContents(
       config_vars_path,
       fmt::format(kConfigVarsTemplate, temp_root.GetPath(), runtime_config_path,
@@ -300,7 +303,8 @@ TEST_F(ComponentList, BlockingDefaultLogger) {
   const std::string config_vars_path =
       temp_root.GetPath() + "/config_vars.json";
 
-  fs::blocking::RewriteFileContents(runtime_config_path, tests::kRuntimeConfig);
+  fs::blocking::RewriteFileContents(runtime_config_path,
+                                    tests::GetRuntimeConfig());
   fs::blocking::RewriteFileContents(
       config_vars_path,
       fmt::format(kConfigVarsTemplate, temp_root.GetPath(), runtime_config_path,

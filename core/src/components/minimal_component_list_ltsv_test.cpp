@@ -32,7 +32,8 @@ TEST_F(ComponentList, MinimalLtsvLogs) {
   const std::string static_config =
       std::string{tests::kMinimalStaticConfig} + config_vars_path + '\n';
 
-  fs::blocking::RewriteFileContents(runtime_config_path, tests::kRuntimeConfig);
+  fs::blocking::RewriteFileContents(runtime_config_path,
+                                    tests::GetRuntimeConfig());
   fs::blocking::RewriteFileContents(
       config_vars_path,
       fmt::format(kConfigVarsTemplate, runtime_config_path, logs_path));

@@ -4,6 +4,7 @@
 
 #include <userver/components/loggable_component_base.hpp>
 #include <userver/components/run.hpp>
+#include <userver/formats/json/value_builder.hpp>
 #include <userver/fs/blocking/read.hpp>
 #include <userver/fs/blocking/temp_directory.hpp>  // for fs::blocking::TempDirectory
 #include <userver/fs/blocking/write.hpp>  // for fs::blocking::RewriteFileContents
@@ -17,57 +18,6 @@
 USERVER_NAMESPACE_BEGIN
 
 namespace {
-
-constexpr std::string_view kRuntimeConfigMissingParam = R"~({
-  "USERVER_BAGGAGE_ENABLED": false,
-  "BAGGAGE_SETTINGS": {
-    "allowed_keys": []
-  },
-  "USERVER_TASK_PROCESSOR_PROFILER_DEBUG": {},
-  "USERVER_LOG_REQUEST": true,
-  "USERVER_CHECK_AUTH_IN_HANDLERS": false,
-  "USERVER_HTTP_PROXY": "",
-  "USERVER_CANCEL_HANDLE_REQUEST_BY_DEADLINE": false,
-  "USERVER_NO_LOG_SPANS":{"names":[], "prefixes":[]},
-  "USERVER_LOG_DYNAMIC_DEBUG": {"force-enabled":[], "force-disabled":[]},
-  "USERVER_TASK_PROCESSOR_QOS": {
-    "default-service": {
-      "default-task-processor": {
-        "wait_queue_overload": {
-          "action": "ignore",
-          "length_limit": 5000,
-          "time_limit_us": 3000
-        }
-      }
-    }
-  },
-  "USERVER_CACHES": {},
-  "USERVER_RPS_CCONTROL_ACTIVATED_FACTOR_METRIC": 5,
-  "USERVER_LRU_CACHES": {},
-  "USERVER_DUMPS": {},
-  "USERVER_HANDLER_STREAM_API_ENABLED": false,
-  "HTTP_CLIENT_CONNECTION_POOL_SIZE": 1000,
-  "HTTP_CLIENT_CONNECT_THROTTLE": {
-    "max-size": 100,
-    "token-update-interval-ms": 0
-  },
-  "USERVER_RPS_CCONTROL_ENABLED": true,
-  "USERVER_RPS_CCONTROL": {
-    "down-level": 8,
-    "down-rate-percent": 1,
-    "load-limit-crit-percent": 50,
-    "load-limit-percent": 0,
-    "min-limit": 2,
-    "no-limit-seconds": 300,
-    "overload-off-seconds": 8,
-    "overload-on-seconds": 8,
-    "up-level": 2,
-    "up-rate-percent": 1
-  },
-  "USERVER_RPS_CCONTROL_CUSTOM_STATUS": {},
-  "SAMPLE_INTEGER_FROM_RUNTIME_CONFIG": 42,
-  "DYNAMIC_CONFIG_UPDATES_SINK_CHAIN": ""
-})~";
 
 constexpr std::string_view kStaticConfig = R"(
 components_manager:
@@ -214,7 +164,7 @@ TEST_F(ServerMinimalComponentList, Basic) {
       fmt::format(kConfigVarsTemplate, GetRuntimeConfigPath());
 
   fs::blocking::RewriteFileContents(GetRuntimeConfigPath(),
-                                    tests::kRuntimeConfig);
+                                    tests::GetRuntimeConfig());
   fs::blocking::RewriteFileContents(GetConfigVarsPath(), config_vars);
 
   components::RunOnce(components::InMemoryConfig{GetStaticConfig()},
@@ -231,7 +181,7 @@ TEST_F(ServerMinimalComponentList, InitLogsClose) {
       fmt::format(kConfigVarsTemplate, GetRuntimeConfigPath(), init_logs_path);
 
   fs::blocking::RewriteFileContents(GetRuntimeConfigPath(),
-                                    tests::kRuntimeConfig);
+                                    tests::GetRuntimeConfig());
   fs::blocking::RewriteFileContents(GetConfigVarsPath(), config_vars);
 
   components::RunOnce(components::InMemoryConfig{GetStaticConfig()},
@@ -250,7 +200,7 @@ TEST_F(ServerMinimalComponentList, TraceSwitching) {
       fmt::format(kConfigVarsTemplate, GetRuntimeConfigPath(), logs_path);
 
   fs::blocking::RewriteFileContents(GetRuntimeConfigPath(),
-                                    tests::kRuntimeConfig);
+                                    tests::GetRuntimeConfig());
   fs::blocking::RewriteFileContents(GetConfigVarsPath(), config_vars);
 
   components::RunOnce(components::InMemoryConfig{GetStaticConfig()},
@@ -274,7 +224,7 @@ TEST_F(ServerMinimalComponentList, TraceStacktraces) {
   const std::string logs_path = GetTempRoot() + "/tracing_st_log.txt";
 
   fs::blocking::RewriteFileContents(GetRuntimeConfigPath(),
-                                    tests::kRuntimeConfig);
+                                    tests::GetRuntimeConfig());
   fs::blocking::RewriteFileContents(
       GetConfigVarsPath(),
       fmt::format(kConfigVarsTemplate, GetRuntimeConfigPath(), logs_path));
@@ -298,8 +248,14 @@ TEST_F(ServerMinimalComponentList, MissingRuntimeConfigParam) {
   const auto config_vars =
       fmt::format(kConfigVarsTemplate, GetRuntimeConfigPath());
 
+  formats::json::ValueBuilder runtime_config{
+      formats::json::FromString(tests::GetRuntimeConfig())};
+  runtime_config.Remove("USERVER_LOG_REQUEST_HEADERS");
+  const auto runtime_config_missing_param =
+      formats::json::ToString(runtime_config.ExtractValue());
+
   fs::blocking::RewriteFileContents(GetRuntimeConfigPath(),
-                                    kRuntimeConfigMissingParam);
+                                    runtime_config_missing_param);
   fs::blocking::RewriteFileContents(GetConfigVarsPath(), config_vars);
 
   UEXPECT_THROW_MSG(

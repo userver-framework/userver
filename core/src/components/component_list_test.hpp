@@ -7,6 +7,7 @@
 #include <userver/tracing/opentracing.hpp>
 #include <userver/tracing/tracer.hpp>
 
+#include <userver/dynamic_config/test_helpers.hpp>
 #include <userver/utest/default_logger_fixture.hpp>
 #include <userver/utest/utest.hpp>
 
@@ -33,57 +34,9 @@ class DefaultLoggerGuardTest {
 
 }  // namespace impl
 
-inline constexpr std::string_view kRuntimeConfig = R"~({
-  "USERVER_BAGGAGE_ENABLED": false,
-  "BAGGAGE_SETTINGS": {
-    "allowed_keys": []
-  },
-  "USERVER_TASK_PROCESSOR_PROFILER_DEBUG": {},
-  "USERVER_LOG_REQUEST": true,
-  "USERVER_LOG_REQUEST_HEADERS": false,
-  "USERVER_CHECK_AUTH_IN_HANDLERS": false,
-  "USERVER_CANCEL_HANDLE_REQUEST_BY_DEADLINE": false,
-  "USERVER_HTTP_PROXY": "",
-  "USERVER_NO_LOG_SPANS":{"names":[], "prefixes":[]},
-  "USERVER_LOG_DYNAMIC_DEBUG": {"force-enabled":[], "force-disabled":[]},
-  "USERVER_HANDLER_STREAM_API_ENABLED": true,
-  "USERVER_TASK_PROCESSOR_QOS": {
-    "default-service": {
-      "default-task-processor": {
-        "wait_queue_overload": {
-          "action": "ignore",
-          "length_limit": 5000,
-          "time_limit_us": 3000
-        }
-      }
-    }
-  },
-  "USERVER_CACHES": {},
-  "USERVER_RPS_CCONTROL_ACTIVATED_FACTOR_METRIC": 5,
-  "USERVER_LRU_CACHES": {},
-  "USERVER_DUMPS": {},
-  "HTTP_CLIENT_CONNECTION_POOL_SIZE": 1000,
-  "HTTP_CLIENT_CONNECT_THROTTLE": {
-    "max-size": 100,
-    "token-update-interval-ms": 0
-  },
-  "USERVER_RPS_CCONTROL_CUSTOM_STATUS":{},
-  "USERVER_RPS_CCONTROL_ENABLED": true,
-  "USERVER_RPS_CCONTROL": {
-    "down-level": 8,
-    "down-rate-percent": 1,
-    "load-limit-crit-percent": 50,
-    "load-limit-percent": 0,
-    "min-limit": 2,
-    "no-limit-seconds": 300,
-    "overload-off-seconds": 8,
-    "overload-on-seconds": 8,
-    "up-level": 2,
-    "up-rate-percent": 1
-  },
-  "SAMPLE_INTEGER_FROM_RUNTIME_CONFIG": 42,
-  "DYNAMIC_CONFIG_UPDATES_SINK_CHAIN": ""
-})~";
+inline std::string GetRuntimeConfig() {
+  return dynamic_config::impl::GetDefaultDocsMap().AsJsonString();
+};
 
 // BEWARE! No separate fs-task-processor. Testing almost single thread mode
 inline constexpr std::string_view kMinimalStaticConfig = R"(

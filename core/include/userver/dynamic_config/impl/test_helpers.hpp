@@ -21,6 +21,9 @@ dynamic_config::StorageMock MakeDefaultStorage(
     const std::string& filename,
     const std::vector<dynamic_config::KeyValue>& overrides);
 
+// Internal function, use dynamic_config::GetDefaultSnapshot() instead
+const dynamic_config::DocsMap& GetDefaultDocsMap(const std::string& filename);
+
 }  // namespace dynamic_config::impl
 
 USERVER_NAMESPACE_END

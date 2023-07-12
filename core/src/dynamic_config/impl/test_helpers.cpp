@@ -14,11 +14,6 @@ dynamic_config::DocsMap ReadDefaultDocsMap(const std::string& filename) {
   return docs_map;
 }
 
-const dynamic_config::DocsMap& GetDefaultDocsMap(const std::string& filename) {
-  static const auto default_docs_map = ReadDefaultDocsMap(filename);
-  return default_docs_map;
-}
-
 }  // namespace
 
 dynamic_config::Source GetDefaultSource(const std::string& filename) {
@@ -36,6 +31,11 @@ dynamic_config::StorageMock MakeDefaultStorage(
     const std::string& filename,
     const std::vector<dynamic_config::KeyValue>& overrides) {
   return {GetDefaultDocsMap(filename), overrides};
+}
+
+const dynamic_config::DocsMap& GetDefaultDocsMap(const std::string& filename) {
+  static const auto default_docs_map = ReadDefaultDocsMap(filename);
+  return default_docs_map;
 }
 
 }  // namespace dynamic_config::impl
