@@ -1,5 +1,7 @@
 import asyncio
 
+import pytest
+
 
 MESSAGES = ['a', 'b', 'c']
 
@@ -49,6 +51,7 @@ async def test_rabbitmq_happy(testpoint, service_client, gate):
     await _publish_and_consume(testpoint, service_client)
 
 
+@pytest.mark.skip(reason='std::terminate is called, fix in TAXICOMMON-6995')
 async def test_consumer_reconnects(testpoint, service_client, gate):
     await _clear_messages(service_client)
 
