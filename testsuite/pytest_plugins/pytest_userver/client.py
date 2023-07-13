@@ -5,6 +5,8 @@ testsuite; see @ref md_en_userver_functional_testing for an introduction.
 @ingroup userver_testsuite
 """
 
+# pylint: disable=too-many-lines
+
 import contextlib
 import copy
 import dataclasses
@@ -533,11 +535,23 @@ class AiohttpClient(service_client.AiohttpClient):
         self._periodic_tasks.tasks_to_suspend.clear()
         await self._suspend_periodic_tasks()
 
-    async def write_cache_dumps(self, names: typing.List[str]) -> None:
-        await self._testsuite_action('write_cache_dumps', names=names)
+    async def write_cache_dumps(
+            self, names: typing.List[str], *, testsuite_skip_prepare=False,
+    ) -> None:
+        await self._testsuite_action(
+            'write_cache_dumps',
+            names=names,
+            testsuite_skip_prepare=testsuite_skip_prepare,
+        )
 
-    async def read_cache_dumps(self, names: typing.List[str]) -> None:
-        await self._testsuite_action('read_cache_dumps', names=names)
+    async def read_cache_dumps(
+            self, names: typing.List[str], *, testsuite_skip_prepare=False,
+    ) -> None:
+        await self._testsuite_action(
+            'read_cache_dumps',
+            names=names,
+            testsuite_skip_prepare=testsuite_skip_prepare,
+        )
 
     async def run_distlock_task(self, name: str) -> None:
         await self.run_task(f'distlock/{name}')
@@ -776,12 +790,20 @@ class Client(ClientWrapper):
         await self._client.resume_all_periodic_tasks()
 
     @_wrap_client_error
-    async def write_cache_dumps(self, names: typing.List[str]) -> None:
-        await self._client.write_cache_dumps(names=names)
+    async def write_cache_dumps(
+            self, names: typing.List[str], *, testsuite_skip_prepare=False,
+    ) -> None:
+        await self._client.write_cache_dumps(
+            names=names, testsuite_skip_prepare=testsuite_skip_prepare,
+        )
 
     @_wrap_client_error
-    async def read_cache_dumps(self, names: typing.List[str]) -> None:
-        await self._client.read_cache_dumps(names=names)
+    async def read_cache_dumps(
+            self, names: typing.List[str], *, testsuite_skip_prepare=False,
+    ) -> None:
+        await self._client.read_cache_dumps(
+            names=names, testsuite_skip_prepare=testsuite_skip_prepare,
+        )
 
     async def run_task(self, name: str) -> None:
         await self._client.run_task(name)
