@@ -77,6 +77,14 @@ class OptionalRef {
     return *data_;
   }
 
+  constexpr T& value() const {
+    if (!has_value()) {
+      throw std::bad_optional_access();
+    }
+
+    return *data_;
+  }
+
  private:
   template <class Optional>
   static T* GetPointer(Optional& other) noexcept {

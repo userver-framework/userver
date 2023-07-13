@@ -145,4 +145,31 @@ TEST(OptionalRef, ImplicitConversion) {
       !std::is_invocable<non_const_optional_ref, const TestImplicit&>::value);
 }
 
+TEST(OptionalRef, Methods) {
+  int a1_val = 1;
+
+  utils::OptionalRef<int> a1(a1_val);
+  EXPECT_TRUE(a1);
+  EXPECT_TRUE(a1.has_value());
+
+  EXPECT_EQ(*a1, a1_val);
+  EXPECT_EQ(a1.value(), a1_val);
+
+  utils::OptionalRef<int> def;
+  EXPECT_FALSE(def);
+  EXPECT_FALSE(def.has_value());
+  EXPECT_THROW(def.value(), std::bad_optional_access);
+}
+
+TEST(OptionalRef, ArrowOperator) {
+  struct Object {
+    const Object* GetThis() const noexcept { return this; }
+  };
+
+  Object o_val;
+
+  utils::OptionalRef<Object> o(o_val);
+  EXPECT_EQ(o->GetThis(), &o_val);
+}
+
 USERVER_NAMESPACE_END
