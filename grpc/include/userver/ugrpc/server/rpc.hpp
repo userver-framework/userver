@@ -439,7 +439,7 @@ bool BidirectionalStream<Request, Response>::Read(Request& request) {
 
 template <typename Request, typename Response>
 void BidirectionalStream<Request, Response>::Write(const Response& response) {
-  UINVARIANT(state_ == State::kOpen, "'Write' called on a finished stream");
+  UINVARIANT(state_ != State::kFinished, "'Write' called on a finished stream");
 
   // Don't buffer writes, optimize for ping-pong-style interaction
   grpc::WriteOptions write_options{};
