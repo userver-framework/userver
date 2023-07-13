@@ -110,3 +110,7 @@ grpc.server.by-destination.status.v2: grpc_code=UNAUTHENTICATED, grpc_destinatio
 grpc.server.by-destination.status.v2: grpc_code=UNAVAILABLE, grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
 grpc.server.by-destination.status.v2: grpc_code=UNIMPLEMENTED, grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
 grpc.server.by-destination.status.v2: grpc_code=UNKNOWN, grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
+grpc.client.by-destination.cancelled: grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	GAUGE	0
+grpc.server.by-destination.cancelled.v2: grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
+grpc.server.by-destination.cancelled: grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	GAUGE	0
+grpc.client.by-destination.cancelled.v2: grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0

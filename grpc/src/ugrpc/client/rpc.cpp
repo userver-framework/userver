@@ -15,8 +15,9 @@ UnaryFuture::UnaryFuture(impl::RpcData& data) noexcept : impl_(data) {}
 UnaryFuture::~UnaryFuture() noexcept {
   if (auto* const data = impl_.GetData()) {
     impl::RpcData::AsyncMethodInvocationGuard guard(*data);
-    impl::ProcessFinishResult(*data, data->GetAsyncMethodInvocation().Wait(),
-                              data->GetStatus(), false);
+    impl::ProcessFinishResult(
+        *data, impl::Wait(data->GetAsyncMethodInvocation(), data->GetContext()),
+        data->GetStatus(), false);
   }
 }
 
@@ -33,8 +34,13 @@ void UnaryFuture::Get() {
   impl::RpcData::AsyncMethodInvocationGuard guard(*data);
   impl_.ClearData();
   auto& status = data->GetStatus();
-  impl::ProcessFinishResult(*data, data->GetAsyncMethodInvocation().Wait(),
-                            status, true);
+  const auto wait_status =
+      impl::Wait(data->GetAsyncMethodInvocation(), data->GetContext());
+  if (wait_status == impl::AsyncMethodInvocation::WaitStatus::kCancelled) {
+    data->GetStatsScope().OnCancelled();
+    throw RpcCancelledError(data->GetCallName(), "Get()");
+  }
+  impl::ProcessFinishResult(*data, wait_status, status, true);
 }
 
 bool UnaryFuture::IsReady() const noexcept { return impl_.IsReady(); }

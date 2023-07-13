@@ -113,7 +113,7 @@ class CallData final {
         method_data_.method_id, context_, initial_request_, raw_responder_,
         queue, queue, prepare_.GetTag());
 
-    if (!prepare_.Wait()) {
+    if (prepare_.Wait() != impl::AsyncMethodInvocation::WaitStatus::kOk) {
       // the CompletionQueue is shutting down
 
       // Do not wait for notify_when_done. When queue is shutting down, it will
@@ -203,7 +203,7 @@ class CallData final {
   grpc::ServerContext context_{};
   InitialRequest initial_request_{};
   RawCall raw_responder_{&context_};
-  ugrpc::impl::AsyncMethodInvocation prepare_{};
+  ugrpc::impl::AsyncMethodInvocation prepare_;
   std::optional<tracing::InPlaceSpan> span_{};
 };
 

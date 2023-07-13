@@ -23,6 +23,8 @@ class RpcStatisticsScope final {
 
   void OnDeadlinePropagated();
 
+  void OnCancelled();
+
   void OnNetworkError();
 
  private:
@@ -41,6 +43,9 @@ class RpcStatisticsScope final {
 
     // Closed by deadline propagation
     kDeadlinePropagation = 3,
+
+    // Task was cancelled
+    kCancelled = 4,
   };
 
   void AccountStatus();

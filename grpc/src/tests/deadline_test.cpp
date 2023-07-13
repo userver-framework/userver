@@ -73,10 +73,13 @@ class UnitTestDeadlinePropagationService final
                 ::sample::ugrpc::StreamGreetingRequest&& request) override {
     sample::ugrpc::StreamGreetingResponse response;
     response.set_name("One " + request.name());
+    // NOLINTNEXTLINE(clang-analyzer-optin.cplusplus.UninitializedObject)
     call.Write(response);
     response.set_name("Two " + request.name());
+    // NOLINTNEXTLINE(clang-analyzer-optin.cplusplus.UninitializedObject)
     call.Write(response);
     response.set_name("Three " + request.name());
+    // NOLINTNEXTLINE(clang-analyzer-optin.cplusplus.UninitializedObject)
     call.Write(response);
 
     helpers::WaitForDeadline(call.GetContext().deadline());

@@ -39,24 +39,30 @@ void RpcStatisticsScope::OnDeadlinePropagated() {
   statistics_.AccountDeadlinePropagated();
 }
 
+void RpcStatisticsScope::OnCancelled() {
+  finish_kind_ = std::max(finish_kind_, FinishKind::kCancelled);
+}
+
 void RpcStatisticsScope::AccountStatus() {
   switch (finish_kind_) {
     case FinishKind::kAutomatic:
       statistics_.AccountStatus(grpc::StatusCode::UNKNOWN);
       statistics_.AccountInternalError();
-      break;
+      return;
     case FinishKind::kExplicit:
       statistics_.AccountStatus(finish_code_);
-      break;
+      return;
     case FinishKind::kNetworkError:
       statistics_.AccountNetworkError();
-      break;
+      return;
     case FinishKind::kDeadlinePropagation:
       statistics_.AccountCancelledByDeadlinePropagation();
-      break;
-    default:
-      UASSERT_MSG(false, "Invalid FinishKind");
+      return;
+    case FinishKind::kCancelled:
+      statistics_.AccountCancelled();
+      return;
   }
+  UASSERT_MSG(false, "Invalid FinishKind");
 }
 
 void RpcStatisticsScope::AccountTiming() {

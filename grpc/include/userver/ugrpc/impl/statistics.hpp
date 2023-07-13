@@ -43,6 +43,8 @@ class MethodStatistics final {
 
   void AccountDeadlinePropagated() noexcept;
 
+  void AccountCancelled() noexcept;
+
   friend void DumpMetric(utils::statistics::Writer& writer,
                          const MethodStatistics& stats);
 
@@ -60,6 +62,7 @@ class MethodStatistics final {
   utils::statistics::RecentPeriod<Percentile, Percentile> timings_;
   RateCounter network_errors_{0};
   RateCounter internal_errors_{0};
+  RateCounter cancelled_{0};
 
   RateCounter deadline_updated_{0};
   RateCounter deadline_cancelled_{0};

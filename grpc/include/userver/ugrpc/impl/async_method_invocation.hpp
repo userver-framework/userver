@@ -1,6 +1,6 @@
 #pragma once
 
-#include <userver/engine/single_use_event.hpp>
+#include <userver/engine/single_consumer_event.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -12,10 +12,6 @@ class EventBase {
   /// @param `bool ok` returned by `grpc::CompletionQueue::Next`
   virtual void Notify(bool ok) noexcept = 0;
 
-  /// @brief For use from coroutines
-  /// @return This object's `void* tag` for `grpc::CompletionQueue::Next`
-  void* GetTag() noexcept;
-
  protected:
   // One should not call destructor by pointer to interface.
   ~EventBase();
@@ -23,14 +19,26 @@ class EventBase {
 
 class AsyncMethodInvocation final : public EventBase {
  public:
-  constexpr AsyncMethodInvocation() noexcept = default;
+  ~AsyncMethodInvocation();
+
+  /// @brief For use from coroutines
+  /// @return This object's `void* tag` for `grpc::CompletionQueue::Next`
+  void* GetTag() noexcept;
 
   /// @see EventBase::Notify
   void Notify(bool ok) noexcept override;
 
+  bool IsBusy() const noexcept;
+
+  enum class WaitStatus {
+    kOk,
+    kError,
+    kCancelled,
+  };
+
   /// @brief For use from coroutines
   /// @return `bool ok` returned by `grpc::CompletionQueue::Next`
-  [[nodiscard]] bool Wait() noexcept;
+  [[nodiscard]] WaitStatus Wait() noexcept;
 
   /// @brief Checks if the asynchronous call has completed
   /// @return true if event returned from `grpc::CompletionQueue::Next`
@@ -38,7 +46,8 @@ class AsyncMethodInvocation final : public EventBase {
 
  private:
   bool ok_{false};
-  engine::SingleUseEvent event_;
+  bool busy_{false};
+  engine::SingleConsumerEvent event_;
 };
 
 }  // namespace ugrpc::impl

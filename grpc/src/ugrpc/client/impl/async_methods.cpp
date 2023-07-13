@@ -103,6 +103,7 @@ RpcData::~RpcData() {
   UASSERT(!invocation_.has_value());
 
   if (context_ && !IsFinished()) {
+    UASSERT(span_);
     SetErrorForSpan(*this, "Abandoned");
     context_->TryCancel();
   }
@@ -216,12 +217,19 @@ RpcData::AsyncMethodInvocationGuard::~AsyncMethodInvocationGuard() noexcept {
   data_.GetStatus() = grpc::Status{};
 }
 
-void CheckOk(RpcData& data, bool ok, std::string_view stage) {
-  if (!ok) {
+void CheckOk(RpcData& data, AsyncMethodInvocation::WaitStatus status,
+             std::string_view stage) {
+  if (status == impl::AsyncMethodInvocation::WaitStatus::kError) {
     data.SetFinished();
     data.GetStatsScope().OnNetworkError();
     SetErrorForSpan(data, fmt::format("Network error at '{}'", stage));
     throw RpcInterruptedError(data.GetCallName(), stage);
+  } else if (status == impl::AsyncMethodInvocation::WaitStatus::kCancelled) {
+    data.SetFinished();
+    data.GetStatsScope().OnCancelled();
+    SetErrorForSpan(
+        data, fmt::format("Network error at '{}' (task cancelled)", stage));
+    throw RpcCancelledError(data.GetCallName(), stage);
   }
 }
 
@@ -230,8 +238,10 @@ void PrepareFinish(RpcData& data) {
   data.SetFinished();
 }
 
-void ProcessFinishResult(RpcData& data, bool ok, grpc::Status& status,
-                         bool throw_on_error) {
+void ProcessFinishResult(RpcData& data,
+                         AsyncMethodInvocation::WaitStatus wait_status,
+                         grpc::Status& status, bool throw_on_error) {
+  const auto ok = wait_status == impl::AsyncMethodInvocation::WaitStatus::kOk;
   UASSERT_MSG(ok,
               "ok=false in async Finish method invocation is prohibited "
               "by gRPC docs, see grpc::CompletionQueue::Next");

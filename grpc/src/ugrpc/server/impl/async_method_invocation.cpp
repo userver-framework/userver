@@ -10,6 +10,8 @@ RpcFinishedEvent::RpcFinishedEvent(
     : cancellation_token_(std::move(cancellation_token)),
       server_ctx_(server_ctx) {}
 
+void* RpcFinishedEvent::GetTag() noexcept { return this; }
+
 void RpcFinishedEvent::Wait() noexcept { event_.WaitNonCancellable(); }
 
 void RpcFinishedEvent::Notify(bool ok) noexcept {

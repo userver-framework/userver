@@ -34,6 +34,10 @@ RpcInterruptedError::RpcInterruptedError(std::string_view call_name,
                                          std::string_view stage)
     : RpcError(call_name, fmt::format("interrupted at {}", stage)) {}
 
+RpcCancelledError::RpcCancelledError(std::string_view call_name,
+                                     std::string_view stage)
+    : RpcError(call_name, fmt::format("cancelled at {}", stage)) {}
+
 const grpc::Status& ErrorWithStatus::GetStatus() const noexcept {
   return status_;
 }

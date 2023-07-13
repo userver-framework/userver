@@ -58,6 +58,8 @@ void MethodStatistics::AccountDeadlinePropagated() noexcept {
   ++deadline_updated_;
 }
 
+void MethodStatistics::AccountCancelled() noexcept { ++cancelled_; }
+
 void DumpMetric(utils::statistics::Writer& writer,
                 const MethodStatistics& stats) {
   writer["timings"] = stats.timings_;
@@ -80,6 +82,7 @@ void DumpMetric(utils::statistics::Writer& writer,
   const auto network_errors_value = stats.network_errors_.Load();
   const auto abandoned_errors_value = stats.internal_errors_.Load();
   const auto deadline_cancelled_value = stats.deadline_cancelled_.Load();
+  const auto cancelled_value = stats.cancelled_.Load();
 
   // 'total_requests' and 'error_requests' originally only count RPCs that
   // finished with a status code. 'network_errors' are RPCs that finished
@@ -92,6 +95,10 @@ void DumpMetric(utils::statistics::Writer& writer,
   total_requests += deadline_cancelled_value;
   error_requests += deadline_cancelled_value;
 
+  // Same for cancelled tasks
+  total_requests += cancelled_value;
+  error_requests += cancelled_value;
+
   // "active" is not a rate metric. Also, beware of overflow
   writer["active"] = static_cast<std::int64_t>(stats.started_.Load().value) -
                      static_cast<std::int64_t>(total_requests.value);
@@ -101,6 +108,7 @@ void DumpMetric(utils::statistics::Writer& writer,
 
   writer["network-error"] = AsRateAndGauge{network_errors_value};
   writer["abandoned-error"] = AsRateAndGauge{abandoned_errors_value};
+  writer["cancelled"] = AsRateAndGauge{cancelled_value};
 
   writer["deadline-propagated"] =
       AsRateAndGauge{stats.deadline_updated_.Load()};

@@ -46,6 +46,7 @@ class [[nodiscard]] UnaryFuture {
   /// `Get` should not be called multiple times for the same UnaryFuture.
   ///
   /// @throws ugrpc::client::RpcError on an RPC error
+  /// @throws ugrpc::client::RpcCancelledError on task cancellation
   void Get();
 
   /// @brief Checks if the asynchronous call has completed
@@ -79,6 +80,7 @@ class [[nodiscard]] StreamReadFuture {
   /// `Get` should not be called multiple times for the same StreamReadFuture.
   ///
   /// @throws ugrpc::client::RpcError on an RPC error
+  /// @throws ugrpc::client::RpcCancelledError on task cancellation
   bool Get();
 
   /// @brief Checks if the asynchronous call has completed
@@ -142,6 +144,7 @@ class [[nodiscard]] UnaryCall final : public CallAnyBase {
   ///
   /// @returns the response on success
   /// @throws ugrpc::client::RpcError on an RPC error
+  /// @throws ugrpc::client::RpcCancelledError on task cancellation
   Response Finish();
 
   /// @brief Asynchronously finish the call
@@ -190,7 +193,7 @@ class [[nodiscard]] InputStream final : public CallAnyBase {
   /// On end-of-input, `Finish` is called automatically.
   ///
   /// @param response where to put response on success
-  /// @returns `true` on success, `false` on end-of-input
+  /// @returns `true` on success, `false` on end-of-input or task cancellation
   /// @throws ugrpc::client::RpcError on an RPC error
   [[nodiscard]] bool Read(Response& response);
 
@@ -233,7 +236,8 @@ class [[nodiscard]] OutputStream final : public CallAnyBase {
   ///
   /// @param request the next message to write
   /// @return true if the data is going to the wire; false if the write
-  ///         operation failed, in which case no more writes will be accepted,
+  ///         operation failed (including due to task cancellation),
+  ///         in which case no more writes will be accepted,
   ///         and the error details can be fetched from Finish
   [[nodiscard]] bool Write(const Request& request);
 
@@ -247,6 +251,7 @@ class [[nodiscard]] OutputStream final : public CallAnyBase {
   ///
   /// @param request the next message to write
   /// @throws ugrpc::client::RpcError on an RPC error
+  /// @throws ugrpc::client::RpcCancelledError on task cancellation
   void WriteAndCheck(const Request& request);
 
   /// @brief Complete the RPC successfully
@@ -260,6 +265,7 @@ class [[nodiscard]] OutputStream final : public CallAnyBase {
   ///
   /// @returns the single `Response` received after finishing the writes
   /// @throws ugrpc::client::RpcError on an RPC error
+  /// @throws ugrpc::client::RpcCancelledError on task cancellation
   Response Finish();
 
   /// @cond
@@ -318,7 +324,7 @@ class [[nodiscard]] BidirectionalStream final : public CallAnyBase {
   /// On end-of-input, `Finish` is called automatically.
   ///
   /// @param response where to put response on success
-  /// @returns `true` on success, `false` on end-of-input
+  /// @returns `true` on success, `false` on end-of-input or task cancellation
   /// @throws ugrpc::client::RpcError on an RPC error
   [[nodiscard]] bool Read(Response& response);
 
@@ -336,7 +342,8 @@ class [[nodiscard]] BidirectionalStream final : public CallAnyBase {
   ///
   /// @param request the next message to write
   /// @return true if the data is going to the wire; false if the write
-  ///         operation failed, in which case no more writes will be accepted,
+  ///         operation failed (including due to task cancellation),
+  ///         in which case no more writes will be accepted,
   ///         but Read may still have some data and status code available
   [[nodiscard]] bool Write(const Request& request);
 
@@ -350,6 +357,7 @@ class [[nodiscard]] BidirectionalStream final : public CallAnyBase {
   ///
   /// @param request the next message to write
   /// @throws ugrpc::client::RpcError on an RPC error
+  /// @throws ugrpc::client::RpcCancelledError on task cancellation
   void WriteAndCheck(const Request& request);
 
   /// @brief Announce end-of-output to the server
@@ -395,7 +403,12 @@ template <typename RPC>
 StreamReadFuture<RPC>::~StreamReadFuture() noexcept {
   if (auto* const data = impl_.GetData()) {
     impl::RpcData::AsyncMethodInvocationGuard guard(*data);
-    if (!data->GetAsyncMethodInvocation().Wait()) {
+    const auto wait_status =
+        impl::Wait(data->GetAsyncMethodInvocation(), data->GetContext());
+    if (wait_status != impl::AsyncMethodInvocation::WaitStatus::kOk) {
+      if (wait_status == impl::AsyncMethodInvocation::WaitStatus::kCancelled) {
+        data->GetStatsScope().OnCancelled();
+      }
       impl::Finish(*stream_, *data, false);
     }
   }
@@ -417,13 +430,17 @@ bool StreamReadFuture<RPC>::Get() {
   UINVARIANT(data, "'Get' must be called only once");
   impl::RpcData::AsyncMethodInvocationGuard guard(*data);
   impl_.ClearData();
-  auto result = data->GetAsyncMethodInvocation().Wait();
-  if (!result) {
+  const auto result =
+      impl::Wait(data->GetAsyncMethodInvocation(), data->GetContext());
+  if (result == impl::AsyncMethodInvocation::WaitStatus::kCancelled) {
+    data->GetStatsScope().OnCancelled();
+  }
+  if (result == impl::AsyncMethodInvocation::WaitStatus::kError) {
     // Finish can only be called once all the data is read, otherwise the
     // underlying gRPC driver hangs.
     impl::Finish(*stream_, *data, true);
   }
-  return result;
+  return result == impl::AsyncMethodInvocation::WaitStatus::kOk;
 }
 
 template <typename RPC>

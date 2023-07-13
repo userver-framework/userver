@@ -28,6 +28,7 @@ class UnitTestServiceCancelEcho final
   void Chat(ChatCall& call) override {
     sample::ugrpc::StreamGreetingRequest request;
     ASSERT_TRUE(call.Read(request));
+    // NOLINTNEXTLINE(clang-analyzer-optin.cplusplus.UninitializedObject)
     UASSERT_NO_THROW(call.Write({}));
 
     ASSERT_FALSE(call.Read(request));

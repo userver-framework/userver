@@ -20,6 +20,8 @@ class RpcFinishedEvent final : public ugrpc::impl::EventBase {
   RpcFinishedEvent(RpcFinishedEvent&&) = delete;
   RpcFinishedEvent& operator=(RpcFinishedEvent&&) = delete;
 
+  void* GetTag() noexcept;
+
   /// @see EventBase::Notify
   void Notify(bool ok) noexcept override;
 

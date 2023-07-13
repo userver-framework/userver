@@ -17,6 +17,7 @@
 #include <userver/tracing/span.hpp>
 
 #include <userver/ugrpc/client/exceptions.hpp>
+#include <userver/ugrpc/client/impl/async_method_invocation.hpp>
 #include <userver/ugrpc/client/impl/call_params.hpp>
 #include <userver/ugrpc/impl/async_method_invocation.hpp>
 #include <userver/ugrpc/impl/statistics_scope.hpp>
@@ -167,19 +168,21 @@ class FutureImpl final {
   RpcData* data_;
 };
 
-void CheckOk(RpcData& data, bool ok, std::string_view stage);
+void CheckOk(RpcData& data, AsyncMethodInvocation::WaitStatus status,
+             std::string_view stage);
 
 template <typename GrpcStream>
 void StartCall(GrpcStream& stream, RpcData& data) {
   AsyncMethodInvocation start_call;
   stream.StartCall(start_call.GetTag());
-  CheckOk(data, start_call.Wait(), "StartCall");
+  CheckOk(data, Wait(start_call, data.GetContext()), "StartCall");
 }
 
 void PrepareFinish(RpcData& data);
 
-void ProcessFinishResult(RpcData& data, bool ok, grpc::Status& status,
-                         bool throw_on_error);
+void ProcessFinishResult(RpcData& data,
+                         AsyncMethodInvocation::WaitStatus wait_status,
+                         grpc::Status& status, bool throw_on_error);
 
 template <typename GrpcStream>
 void Finish(GrpcStream& stream, RpcData& data, bool throw_on_error) {
@@ -187,7 +190,13 @@ void Finish(GrpcStream& stream, RpcData& data, bool throw_on_error) {
   grpc::Status status;
   AsyncMethodInvocation finish;
   stream.Finish(&status, finish.GetTag());
-  ProcessFinishResult(data, finish.Wait(), status, throw_on_error);
+
+  const auto wait_status = Wait(finish, data.GetContext());
+  if (wait_status == impl::AsyncMethodInvocation::WaitStatus::kCancelled) {
+    data.GetStatsScope().OnCancelled();
+    if (throw_on_error) throw RpcCancelledError(data.GetCallName(), "Finish");
+  }
+  ProcessFinishResult(data, wait_status, status, throw_on_error);
 }
 
 void PrepareRead(RpcData& data);
@@ -197,7 +206,11 @@ template <typename GrpcStream, typename Response>
   PrepareRead(data);
   AsyncMethodInvocation read;
   stream.Read(&response, read.GetTag());
-  return read.Wait();
+  const auto wait_status = Wait(read, data.GetContext());
+  if (wait_status == impl::AsyncMethodInvocation::WaitStatus::kCancelled) {
+    data.GetStatsScope().OnCancelled();
+  }
+  return wait_status == impl::AsyncMethodInvocation::WaitStatus::kOk;
 }
 
 template <typename GrpcStream, typename Response>
@@ -216,11 +229,14 @@ bool Write(GrpcStream& stream, const Request& request,
   PrepareWrite(data);
   AsyncMethodInvocation write;
   stream.Write(request, options, write.GetTag());
-  auto result = write.Wait();
-  if (!result) {
+  const auto result = Wait(write, data.GetContext());
+  if (result == impl::AsyncMethodInvocation::WaitStatus::kCancelled) {
+    data.GetStatsScope().OnCancelled();
+  }
+  if (result != impl::AsyncMethodInvocation::WaitStatus::kOk) {
     data.SetWritesFinished();
   }
-  return result;
+  return result == impl::AsyncMethodInvocation::WaitStatus::kOk;
 }
 
 void PrepareWriteAndCheck(RpcData& data);
@@ -231,7 +247,7 @@ void WriteAndCheck(GrpcStream& stream, const Request& request,
   PrepareWriteAndCheck(data);
   AsyncMethodInvocation write;
   stream.Write(request, options, write.GetTag());
-  CheckOk(data, write.Wait(), "WriteAndCheck");
+  CheckOk(data, Wait(write, data.GetContext()), "WriteAndCheck");
 }
 
 template <typename GrpcStream>
@@ -240,7 +256,11 @@ bool WritesDone(GrpcStream& stream, RpcData& data) {
   data.SetWritesFinished();
   AsyncMethodInvocation writes_done;
   stream.WritesDone(writes_done.GetTag());
-  return writes_done.Wait();
+  const auto wait_status = Wait(writes_done, data.GetContext());
+  if (wait_status == impl::AsyncMethodInvocation::WaitStatus::kCancelled) {
+    data.GetStatsScope().OnCancelled();
+  }
+  return wait_status == impl::AsyncMethodInvocation::WaitStatus::kOk;
 }
 
 }  // namespace ugrpc::client::impl

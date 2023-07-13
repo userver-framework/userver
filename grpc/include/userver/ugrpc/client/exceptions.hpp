@@ -44,6 +44,12 @@ class RpcInterruptedError final : public RpcError {
   RpcInterruptedError(std::string_view call_name, std::string_view stage);
 };
 
+/// @brief RPC failed due to task cancellation
+class RpcCancelledError final : public RpcError {
+ public:
+  RpcCancelledError(std::string_view call_name, std::string_view stage);
+};
+
 /// @brief Error with grpc::Status details
 /// @see <grpcpp/impl/codegen/status_code_enum.h> for error code details
 class ErrorWithStatus : public RpcError {
