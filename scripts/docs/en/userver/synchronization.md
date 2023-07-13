@@ -57,23 +57,28 @@ See also engine::WaitAllChecked and engine::GetAll for a way to wait for all
 of the asynchronous operations, rethrowing exceptions immediately.
 
 
-### concurrent::MpscQueue
+### concurrent::MpscQueue and friends
 
 For long-living tasks it is convenient to use message queues.
 In `concurrent::MpscQueue`, writers (one or more) can write data to the queue, and on the other hand, a reader can read what is written. The order of objects written by different writers is not defined.
 
 @snippet concurrent/mpsc_queue_test.cpp  Sample concurrent::MpscQueue usage
 
-If the queue is supposed to pass data types `T` with a non-trivial destructor, then you need to use the queue `concurrent::MpscQueue<std::unique_ptr<T>>`. If the queue with unread data is destroyed, all unprocessed items will be released correctly.
+(`concurrent::MpscQueue` only.) If the queue is supposed to pass data types `T` with a non-trivial destructor, then you need to use the queue `concurrent::MpscQueue<std::unique_ptr<T>>`.
 
-Use this class by default. However, if you really need higher performance use NonFifo queues:
+If the queue with unread data is destroyed, all unprocessed items will be released correctly.
 
-* `concurrent::NonFifoMpmcQueue`
+Use `concurrent::MpscQueue` by default.
+
+If there is only a single producing task, these can be used instead for higher performance:
+
+* `concurrent::SpscQueue`
+* `concurrent::SpmcQueue`
+
+If reordering of the elements is acceptable, these can be used instead for higher performance:
+
 * `concurrent::NonFifoMpscQueue`
-* `concurrent::NonFifoSpmcQueue`
-* `concurrent::NonFifoSpscQueue`
-
-NonFifo queues do not guarantee FIFO order of the elements of the queue and thereby have higher performance.
+* `concurrent::NonFifoMpmcQueue`
 
 ### std::atomic
 
@@ -146,7 +151,7 @@ A single-producer, single-consumer event without task cancellation support. Must
 
 For multiple producers and cancellation support, use `engine::SingleConsumerEvent` instead.
 
-@snippet engine/single_use_event_test.cpp  Sample engine::SingleUseEvent usage
+@snippet engine/single_use_event_test.cpp  Wait and destroy
 
 ### utils::SwappingSmart
 
