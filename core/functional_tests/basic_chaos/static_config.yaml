@@ -71,7 +71,20 @@ components_manager:
         dynamic-config:
             fs-cache-path: ''
         dynamic-config-fallbacks:
-            fallback-path: /etc/postgres_basic_chaos/dynamic_config_fallback.json
+            load-enabled: false
+        dynamic-config-client:
+            config-url: $config-server-url
+            http-retries: 5
+            http-timeout: 20s
+            service-name: testsuite-support
+        dynamic-config-client-updater:
+            config-settings: false
+            fallback-path: $config-fallback
+            full-update-interval: 1m
+            load-only-my-values: true
+            store-enabled: true
+            update-interval: 5s
+
         dns-client:
             fs-task-processor: fs-task-processor
     coro_pool:

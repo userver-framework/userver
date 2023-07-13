@@ -37,7 +37,7 @@ HandlerConfig ParseHandlerConfigsWithDefaults(
   request::HttpRequestConfig handler_defaults{};
   if (!is_monitor) {
     handler_defaults = server_config.listener.handler_defaults;
-  } else if (is_monitor && server_config.monitor_listener.has_value()) {
+  } else if (server_config.monitor_listener.has_value()) {
     handler_defaults = server_config.monitor_listener->handler_defaults;
   }
 
@@ -96,6 +96,10 @@ HandlerConfig ParseHandlerConfigsWithDefaults(
 
   config.set_tracing_headers = value["set_tracing_headers"].As<bool>(
       handler_defaults.set_tracing_headers);
+
+  config.deadline_propagation_enabled =
+      value["deadline_propagation_enabled"].As<bool>(
+          handler_defaults.deadline_propagation_enabled);
 
   return config;
 }

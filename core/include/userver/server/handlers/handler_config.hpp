@@ -41,6 +41,7 @@ struct HandlerConfig {
   bool response_body_stream{false};
   std::optional<bool> set_response_server_hostname;
   bool set_tracing_headers{true};
+  bool deadline_propagation_enabled{true};
 };
 
 HandlerConfig ParseHandlerConfigsWithDefaults(

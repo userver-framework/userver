@@ -20,6 +20,8 @@ DEFAULT_DATA = {'hello': 'world'}
 DATA_PARTS_MAX_SIZE = 10
 BYTES_PER_SECOND_LIMIT = 10
 
+DP_TIMEOUT_MS = 'X-YaTaxi-Client-TimeoutMs'
+
 logger = logging.getLogger(__name__)
 
 
@@ -227,7 +229,7 @@ async def test_deadline_immediately_expired(call, gate, testpoint):
     gate.to_server_smaller_parts(DATA_PARTS_MAX_SIZE, sleep_per_packet=0.03)
 
     response = await call(
-        headers={'X-YaTaxi-Client-TimeoutMs': '20'}, timeout=INCREASED_TIMEOUT,
+        headers={DP_TIMEOUT_MS: '20'}, timeout=INCREASED_TIMEOUT,
     )
     _check_deadline_propagation_response(response)
     assert not testpoint_data, 'Control flow should NOT enter the handler body'
@@ -248,7 +250,7 @@ async def test_deadline_expired(call, testpoint, monitor_client):
 
     response = await call(
         htype='sleep',
-        headers={'X-YaTaxi-Client-TimeoutMs': '150'},
+        headers={DP_TIMEOUT_MS: '150'},
         timeout=INCREASED_TIMEOUT,
     )
     _check_deadline_propagation_response(response)
@@ -258,3 +260,14 @@ async def test_deadline_expired(call, testpoint, monitor_client):
         path='http.handler.total.cancelled-by-deadline',
     )
     assert cancelled_metric_after.value - cancelled_metric_before.value == 1
+
+
+@pytest.mark.config(USERVER_DEADLINE_PROPAGATION_ENABLED=False)
+async def test_deadline_propagation_disabled_dynamically(call):
+    response = await call(
+        htype='sleep',
+        headers={DP_TIMEOUT_MS: '10'},
+        timeout=INCREASED_TIMEOUT,
+    )
+    assert isinstance(response, http.ClientResponse)
+    assert response.status == 200

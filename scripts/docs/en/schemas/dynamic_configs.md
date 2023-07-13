@@ -758,6 +758,28 @@ true
 
 Used by components::Server.
 
+@anchor USERVER_DEADLINE_PROPAGATION_ENABLED
+## USERVER_DEADLINE_PROPAGATION_ENABLED
+
+When `false`, disables deadline propagation in the service. This includes:
+
+- reading the task-inherited deadline from HTTP headers and gRPC metadata;
+- interrupting operations when deadline expires;
+- propagating the deadline to downstream services and databases.
+
+```
+yaml
+schema:
+    type: boolean
+```
+
+**Example:**
+```
+true
+```
+
+Used by components::Server and ugrpc::server::ServerComponent.
+
 @anchor USERVER_DUMPS
 ## USERVER_DUMPS
 

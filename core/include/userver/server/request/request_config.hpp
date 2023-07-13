@@ -16,6 +16,7 @@ struct HttpRequestConfig {
   bool testing_mode = false;
   bool decompress_request = false;
   bool set_tracing_headers = true;
+  bool deadline_propagation_enabled = true;
 };
 
 HttpRequestConfig Parse(const yaml_config::YamlConfig& value,

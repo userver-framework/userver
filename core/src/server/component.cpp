@@ -196,6 +196,15 @@ properties:
                     parse_args_from_body:
                         type: boolean
                         description: optional field to parse request according to x-www-form-urlencoded rules and make parameters accessible as query parameters
+                    set_tracing_headers:
+                        type: boolean
+                        description: whether to set http tracing headers (X-YaTraceId, X-YaSpanId, X-RequestId)
+                    deadline_propagation_enabled:
+                        type: boolean
+                        description: |
+                            When `false`, disables deadline propagation by default in all HTTP handlers.
+                            Can be overridden by the corresponding option in server::handlers::HandlerBase.
+                        defaultDescription: true
             shards:
                 type: integer
                 description: how many concurrent tasks harvest data from a single socket; do not set if not sure what it is doing

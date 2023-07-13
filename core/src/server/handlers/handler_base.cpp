@@ -115,6 +115,23 @@ properties:
         type: boolean
         description: whether to set http tracing headers (X-YaTraceId, X-YaSpanId, X-RequestId)
         defaultDescription: true
+    deadline_propagation_enabled:
+        type: boolean
+        description: |
+            When set to `false`, disables deadline propagation within this
+            handler. This includes:
+
+            - reading the task-inherited deadline from HTTP headers and gRPC
+              metadata;
+            - interrupting operations when deadline expires;
+            - propagating the deadline to downstream services and databases.
+
+            Deadline propagation can also be disabled in the static config of:
+            - components::Server (to set the default for all HTTP handlers).
+
+            Deadline propagation is disabled if disabled statically OR
+            dynamically.
+        defaultDescription: true
 )");
 }
 

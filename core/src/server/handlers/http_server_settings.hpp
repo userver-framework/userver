@@ -15,6 +15,7 @@ class HttpServerSettings final {
   bool need_log_request_headers;
   bool need_check_auth_in_handlers;
   bool need_cancel_handle_request_by_deadline;
+  bool deadline_propagation_enabled;
 };
 
 inline constexpr dynamic_config::Key<HttpServerSettings::Parse>

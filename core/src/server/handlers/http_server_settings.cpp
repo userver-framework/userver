@@ -11,6 +11,8 @@ const std::string kLogRequestHeaders = "USERVER_LOG_REQUEST_HEADERS";
 const std::string kCheckAuthInHandlers = "USERVER_CHECK_AUTH_IN_HANDLERS";
 const std::string kCancelHandleRequestByDeadline =
     "USERVER_CANCEL_HANDLE_REQUEST_BY_DEADLINE";
+const std::string kDeadlinePropagationEnabled =
+    "USERVER_DEADLINE_PROPAGATION_ENABLED";
 
 }  // namespace
 
@@ -23,6 +25,8 @@ HttpServerSettings HttpServerSettings::Parse(
       docs_map.Get(kCheckAuthInHandlers).As<bool>();
   result.need_cancel_handle_request_by_deadline =
       docs_map.Get(kCancelHandleRequestByDeadline).As<bool>();
+  result.deadline_propagation_enabled =
+      docs_map.Get(kDeadlinePropagationEnabled).As<bool>();
   return result;
 }
 

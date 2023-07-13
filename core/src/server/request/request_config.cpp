@@ -26,6 +26,10 @@ HttpRequestConfig Parse(const yaml_config::YamlConfig& value,
   conf.set_tracing_headers =
       value["set_tracing_headers"].As<bool>(conf.set_tracing_headers);
 
+  conf.deadline_propagation_enabled =
+      value["deadline_propagation_enabled"].As<bool>(
+          conf.deadline_propagation_enabled);
+
   return conf;
 }
 

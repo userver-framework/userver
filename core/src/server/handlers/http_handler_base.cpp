@@ -339,6 +339,37 @@ void HandleDeadlineExpired(RequestProcessor& processor,
   is_cancelled = IsCancelledByDeadline{true};
 }
 
+void SetUpInheritedDeadline(RequestProcessor& processor,
+                            IsCancelledByDeadline& is_cancelled,
+                            request::TaskInheritedData& inherited_data) {
+  if (!processor.GetHandler().GetConfig().deadline_propagation_enabled) return;
+
+  const auto& server_settings = processor.GetServerSettings();
+  if (!server_settings.deadline_propagation_enabled) return;
+
+  const auto timeout = ParseTimeout(processor.GetRequest());
+  if (!timeout) return;
+
+  auto& span = tracing::Span::CurrentSpan();
+  span.AddNonInheritableTag("deadline_received_ms", timeout->count());
+
+  const auto deadline = engine::Deadline::FromTimePoint(
+      processor.GetRequest().GetStartTime() + *timeout);
+  inherited_data.deadline = deadline;
+
+  if (handler_cancel_on_immediate_deadline_expiration.IsEnabled() &&
+      deadline.IsSurelyReachedApprox()) {
+    HandleDeadlineExpired(
+        processor, is_cancelled,
+        "Immediate timeout (deadline propagation), forcing 504 response");
+    return;
+  }
+
+  if (server_settings.need_cancel_handle_request_by_deadline) {
+    engine::current_task::SetDeadline(deadline);
+  }
+}
+
 void SetUpInheritedData(RequestProcessor& processor,
                         IsCancelledByDeadline& is_cancelled) {
   request::TaskInheritedData inherited_data{
@@ -354,31 +385,11 @@ void SetUpInheritedData(RequestProcessor& processor,
       engine::Deadline{},
   };
 
-  const auto timeout = ParseTimeout(processor.GetRequest());
-  if (timeout) {
-    auto& span = tracing::Span::CurrentSpan();
-    span.AddNonInheritableTag("deadline_received_ms", timeout->count());
+  const utils::FastScopeGuard set_inherited_data_guard([&]() noexcept {
+    request::kTaskInheritedData.Set(std::move(inherited_data));
+  });
 
-    const auto deadline = engine::Deadline::FromTimePoint(
-        processor.GetRequest().GetStartTime() + *timeout);
-    inherited_data.deadline = deadline;
-
-    if (handler_cancel_on_immediate_deadline_expiration.IsEnabled() &&
-        deadline.IsSurelyReachedApprox()) {
-      request::kTaskInheritedData.Set(std::move(inherited_data));
-      HandleDeadlineExpired(
-          processor, is_cancelled,
-          "Immediate timeout (deadline propagation), forcing 504 response");
-    }
-
-    const auto& server_settings =
-        processor.GetDynamicConfig()[kHttpServerSettings];
-    if (server_settings.need_cancel_handle_request_by_deadline) {
-      engine::current_task::SetDeadline(deadline);
-    }
-  }
-
-  request::kTaskInheritedData.Set(std::move(inherited_data));
+  SetUpInheritedDeadline(processor, is_cancelled, inherited_data);
 }
 
 void CompleteDeadlinePropagation(RequestProcessor& processor,
