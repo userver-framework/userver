@@ -89,7 +89,15 @@ else()
     )
 endif()
 
-target_link_libraries(${PROJECT_NAME}-internal PUBLIC ${PROJECT_NAME}-deps absl::log_globals absl::log_internal_globals absl::log_internal_check_op)
+target_link_libraries(${PROJECT_NAME}-internal PUBLIC ${PROJECT_NAME}-deps)
+
+if (Protobuf_VERSION VERSION_GREATER_EQUAL 4.23.0)
+    target_link_libraries(${PROJECT_NAME}-internal PUBLIC
+        absl::log_globals
+        absl::log_internal_globals
+        absl::log_internal_check_op
+    )
+endif()
 
 if (USERVER_IS_THE_ROOT_PROJECT)
     add_executable(${PROJECT_NAME}_unittest ${UNIT_TEST_SOURCES})

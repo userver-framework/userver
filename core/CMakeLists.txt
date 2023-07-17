@@ -209,9 +209,10 @@ if (USERVER_FEATURE_UTEST)
     target_link_libraries(userver-utest
       PUBLIC
         ${PROJECT_NAME}
+        userver-universal-internal-utest
+      PRIVATE
         userver-core-internal
         Boost::program_options
-        userver-universal-internal-utest
     )
 
     target_include_directories(userver-utest PUBLIC
@@ -250,8 +251,9 @@ if (USERVER_FEATURE_UTEST)
     target_link_libraries(userver-ubench
       PUBLIC
         ${PROJECT_NAME}
-        userver-core-internal
         userver-universal-internal-ubench
+      PRIVATE
+        userver-core-internal
     )
 endif()
 
