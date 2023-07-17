@@ -25,6 +25,8 @@ clients::dns::Resolver MakeDnsResolver();
 
 dynamic_config::StorageMock MakeDynamicConfig();
 
+storages::mongo::PoolConfig MakeTestPoolConfig();
+
 class MongoPoolFixture : public ::testing::Test {
  protected:
   MongoPoolFixture();

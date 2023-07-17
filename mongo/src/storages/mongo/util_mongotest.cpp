@@ -22,11 +22,14 @@ namespace {
 constexpr const char* kTestsuiteMongosPort = "TESTSUITE_MONGOS_PORT";
 constexpr const char* kDefaultMongoPort = "27217";
 
-auto MakeDefaultPoolConfig() {
-  storages::mongo::PoolConfig config;
-  config.initial_size = 1;
-  return config;
-}
+constexpr auto kTestConnTimeout = utest::kMaxTestWaitTime;
+constexpr auto kTestSoTimeout = utest::kMaxTestWaitTime;
+constexpr auto kTestQueueTimeout = std::chrono::milliseconds{10};
+constexpr size_t kTestInitialSize = 1;
+constexpr size_t kTestMaxSize = 16;
+constexpr size_t kTestIdleLimit = 4;
+constexpr size_t kTestConnectingLimit = 8;
+constexpr auto kTestMaintenancePeriod = std::chrono::seconds{1};
 
 void DropDatabase(storages::mongo::Pool& pool, const std::string& name) {
   LOG_INFO() << "Dropping database " << name << " after mongo tests";
@@ -61,6 +64,19 @@ dynamic_config::StorageMock MakeDynamicConfig() {
   return dynamic_config::MakeDefaultStorage({});
 }
 
+storages::mongo::PoolConfig MakeTestPoolConfig() {
+  storages::mongo::PoolConfig config;
+  config.conn_timeout = kTestConnTimeout;
+  config.so_timeout = kTestSoTimeout;
+  config.queue_timeout = kTestQueueTimeout;
+  config.initial_size = kTestInitialSize;
+  config.max_size = kTestMaxSize;
+  config.idle_limit = kTestIdleLimit;
+  config.connecting_limit = kTestConnectingLimit;
+  config.maintenance_period = kTestMaintenancePeriod;
+  return config;
+}
+
 MongoPoolFixture::MongoPoolFixture()
     : default_resolver_(MakeDnsResolver()),
       dynamic_config_storage_(MakeDynamicConfig()),
@@ -90,7 +106,7 @@ storages::mongo::Pool MongoPoolFixture::MakePool(
     std::optional<storages::mongo::PoolConfig> config,
     std::optional<clients::dns::Resolver*> dns_resolver) {
   if (!db_name) db_name.emplace(kTestDatabaseDefaultName);
-  if (!config) config.emplace(MakeDefaultPoolConfig());
+  if (!config) config.emplace(MakeTestPoolConfig());
   if (!dns_resolver) dns_resolver.emplace(&default_resolver_);
   used_db_names_.insert(*db_name);
   return {*db_name, GetTestsuiteMongoUri(*db_name), *config, *dns_resolver,

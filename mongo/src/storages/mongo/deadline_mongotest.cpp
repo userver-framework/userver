@@ -28,7 +28,7 @@ server::request::TaskInheritedData MakeRequestData(engine::Deadline deadline) {
 }  // namespace
 
 UTEST_F(DeadlinePropagation, PoolOverload) {
-  mongo::PoolConfig pool_config{};
+  auto pool_config = MakeTestPoolConfig();
   pool_config.initial_size = 1;
   pool_config.idle_limit = 1;
   pool_config.max_size = 1;
@@ -49,7 +49,7 @@ UTEST_F(DeadlinePropagation, PoolOverload) {
 }
 
 UTEST_F(DeadlinePropagation, PoolOverloadDeadlinePropagation) {
-  mongo::PoolConfig pool_config{};
+  auto pool_config = MakeTestPoolConfig();
   pool_config.initial_size = 1;
   pool_config.idle_limit = 1;
   pool_config.max_size = 1;

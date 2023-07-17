@@ -19,6 +19,13 @@ namespace components {
 
 namespace {
 const std::string kStandardMongoPrefix = "mongo-";
+
+auto ParsePoolConfig(const ComponentConfig& config) {
+  auto pool_config = config.As<storages::mongo::PoolConfig>();
+  pool_config.Validate(config.Name());
+  return pool_config;
+}
+
 }  // namespace
 
 Mongo::Mongo(const ComponentConfig& config, const ComponentContext& context)
@@ -35,7 +42,7 @@ Mongo::Mongo(const ComponentConfig& config, const ComponentContext& context)
 
   auto* dns_resolver = clients::dns::GetResolverPtr(config, context);
 
-  const storages::mongo::PoolConfig pool_config(config);
+  const auto pool_config = ParsePoolConfig(config);
   auto config_source = context.FindComponent<DynamicConfig>().GetSource();
 
   pool_ = std::make_shared<storages::mongo::Pool>(
@@ -86,7 +93,7 @@ MultiMongo::MultiMongo(const ComponentConfig& config,
                        const ComponentContext& context)
     : LoggableComponentBase(config, context),
       multi_mongo_(config.Name(), context.FindComponent<Secdist>().GetStorage(),
-                   storages::mongo::PoolConfig(config),
+                   ParsePoolConfig(config),
                    clients::dns::GetResolverPtr(config, context),
                    context.FindComponent<DynamicConfig>().GetSource()) {
   auto& statistics_storage =
