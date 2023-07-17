@@ -209,7 +209,6 @@ if (USERVER_FEATURE_UTEST)
     target_link_libraries(userver-utest
       PUBLIC
         ${PROJECT_NAME}
-      PRIVATE
         userver-core-internal
         Boost::program_options
         userver-universal-internal-utest
@@ -251,7 +250,6 @@ if (USERVER_FEATURE_UTEST)
     target_link_libraries(userver-ubench
       PUBLIC
         ${PROJECT_NAME}
-      PRIVATE
         userver-core-internal
         userver-universal-internal-ubench
     )

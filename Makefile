@@ -10,7 +10,7 @@ NPROCS ?= $(shell nproc)
 ifeq ($(KERNEL),Darwin)
 CMAKE_COMMON_FLAGS += -DUSERVER_NO_WERROR=1 -DUSERVER_CHECK_PACKAGE_VERSIONS=0 \
   -DUSERVER_DOWNLOAD_PACKAGE_CRYPTOPP=1 \
-  -DOPENSSL_ROOT_DIR=$(shell brew --prefix openssl@1.1) \
+  -DOPENSSL_ROOT_DIR=$(shell brew --prefix openssl) \
   -DUSERVER_PG_INCLUDE_DIR=$(shell pg_config --includedir) \
   -DUSERVER_PG_LIBRARY_DIR=$(shell pg_config --libdir) \
   -DUSERVER_PG_SERVER_LIBRARY_DIR=$(shell pg_config --pkglibdir) \
