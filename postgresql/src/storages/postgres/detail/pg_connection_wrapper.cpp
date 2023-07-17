@@ -799,6 +799,10 @@ void PGConnectionWrapper::MarkAsBroken() { is_broken_ = true; }
 
 bool PGConnectionWrapper::IsBroken() const { return is_broken_; }
 
+bool PGConnectionWrapper::IsInAbortedPipeline() const {
+  return PQpipelineStatus(conn_) == PGpipelineStatus::PQ_PIPELINE_ABORTED;
+}
+
 }  // namespace storages::postgres::detail
 
 USERVER_NAMESPACE_END

@@ -47,6 +47,10 @@ std::unique_ptr<Connection> Connection::Connect(
 
 void Connection::Close() { pimpl_->Close(); }
 
+bool Connection::IsInAbortedPipeline() const {
+  return pimpl_->IsInAbortedPipeline();
+}
+
 bool Connection::IsInRecovery() const { return pimpl_->IsInRecovery(); }
 
 bool Connection::IsReadOnly() const { return pimpl_->IsReadOnly(); }

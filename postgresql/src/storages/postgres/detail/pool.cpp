@@ -13,6 +13,8 @@
 #include <userver/storages/postgres/exceptions.hpp>
 #include <userver/utils/impl/userver_experiments.hpp>
 
+#include <utils/impl/assert_extra.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::postgres::detail {
@@ -448,6 +450,15 @@ void ConnectionPool::CheckMinPoolSizeUnderflow() {
 }
 
 void ConnectionPool::Push(Connection* connection) {
+  if (connection->IsInAbortedPipeline()) {
+    // TODO : this is us investigating issues with pipelining,
+    // remove in TAXICOMMON-6886
+    USERVER_NAMESPACE::utils::impl::AbortWithStacktrace(
+        "Connection returned into pool with PQ_PIPELINE_ABORTED "
+        "pipeline status, shouldn't happen. "
+        "Please collect the core dump and file an issue.");
+  }
+
   auto conn_settings = conn_settings_.Read();
   if (connection->GetSettings().version < conn_settings->version) {
     DropOutdatedConnection(connection);

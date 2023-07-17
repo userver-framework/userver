@@ -124,6 +124,8 @@ class PGConnectionWrapper {
 
   bool IsBroken() const;
 
+  bool IsInAbortedPipeline() const;
+
  private:
   PGTransactionStatusType GetTransactionStatus() const;
 
