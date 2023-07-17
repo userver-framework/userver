@@ -38,6 +38,16 @@ class IntrusiveMpscQueueImpl final {
   // Can be called from multiple threads concurrently.
   void Push(NodeRef node) noexcept;
 
+  // Atomically push a node and get the newest node pushed before us, if any.
+  // Warning: to use the result, the user needs to somehow guarantee that it
+  // will not be deleted by the consumer.
+  // Can be called from multiple threads concurrently.
+  NodePtr GetBackAndPush(NodeRef node) noexcept;
+
+  // Push a node if the queue is empty.
+  // Can be called from multiple threads concurrently.
+  [[nodiscard]] bool PushIfEmpty(NodeRef node) noexcept;
+
   // Returns the oldest pushed node, or `nullptr` if the queue is logically
   // empty. Momentarily spins if necessary for a concurrent Push to complete.
   // Can only be called from one thread at a time.

@@ -110,9 +110,6 @@ class Logging final : public impl::ComponentBase {
   void Init(const ComponentConfig&, const ComponentContext&);
   void Stop() noexcept;
 
-  auto GetTaskFunction() {
-    return [this] { FlushLogs(); };
-  }
   void FlushLogs();
 
   engine::TaskProcessor* fs_task_processor_{nullptr};

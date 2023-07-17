@@ -95,7 +95,7 @@ LogHelper& operator<<(LogHelper& lh, Module value) {
 
 }  // namespace
 
-LogHelper::LogHelper(LoggerCRef logger, Level level,
+LogHelper::LogHelper(LoggerRef logger, Level level,
                      const utils::impl::SourceLocation& location) noexcept
     : pimpl_(Impl::Make(logger, level)) {
   try {
@@ -152,7 +152,7 @@ void LogHelper::DoLog() noexcept {
   }
 }
 
-std::unique_ptr<LogHelper::Impl> LogHelper::Impl::Make(LoggerCRef logger,
+std::unique_ptr<LogHelper::Impl> LogHelper::Impl::Make(LoggerRef logger,
                                                        Level level) {
   auto new_level = std::max(level, logger.GetLevel());
   return {ThreadLocalMemPool<Impl>::Pop(logger, new_level)};

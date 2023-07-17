@@ -59,7 +59,7 @@ void SingleUseEvent::WaitNonCancellable() noexcept {
   intrusive_ptr_add_ref(&current);
   SingleUseEventWaitStrategy wait_manager(state_, current);
 
-  engine::TaskCancellationBlocker cancel_blocker;
+  const engine::TaskCancellationBlocker cancel_blocker;
   [[maybe_unused]] const auto wakeup_source = current.Sleep(wait_manager);
   UASSERT(wakeup_source == impl::TaskContext::WakeupSource::kWaitList);
 }

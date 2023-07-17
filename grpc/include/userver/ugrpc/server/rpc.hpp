@@ -51,7 +51,7 @@ class CallAnyBase {
  protected:
   ugrpc::impl::RpcStatisticsScope& Statistics() { return params_.statistics; }
 
-  logging::LoggerCRef AccessTskvLogger() { return params_.access_tskv_logger; }
+  logging::LoggerRef AccessTskvLogger() { return params_.access_tskv_logger; }
 
   void LogFinish(grpc::Status status) const;
 

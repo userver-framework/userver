@@ -75,7 +75,7 @@ class LogHelper final {
   /// @param logger to log to
   /// @param level message log level
   /// @param location source location that will be written to logs
-  LogHelper(LoggerCRef logger, Level level,
+  LogHelper(LoggerRef logger, Level level,
             const utils::impl::SourceLocation& location =
                 utils::impl::SourceLocation::Current()) noexcept;
 

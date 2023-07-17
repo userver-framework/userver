@@ -44,7 +44,7 @@ bool ShouldLogStacktrace() noexcept {
   return ShouldLog(logging::Level::kDebug);
 }
 
-bool LoggerShouldLogStacktrace(logging::LoggerCRef logger) noexcept {
+bool LoggerShouldLogStacktrace(logging::LoggerRef logger) noexcept {
   return LoggerShouldLog(logger, logging::Level::kDebug);
 }
 

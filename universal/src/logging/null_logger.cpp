@@ -16,8 +16,8 @@ class NullLogger final : public impl::LoggerBase {
   }
 
   void SetLevel(Level) override {}  // do nothing
-  void Log(Level, std::string_view) const override {}
-  void Flush() const override {}
+  void Log(Level, std::string_view) override {}
+  void Flush() override {}
 };
 
 }  // namespace

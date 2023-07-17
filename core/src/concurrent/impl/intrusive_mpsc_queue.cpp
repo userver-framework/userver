@@ -26,6 +26,10 @@ NodeRef BlockThreadUntilNotNull(std::atomic<NodePtr>& next) noexcept {
 }  // namespace
 
 void IntrusiveMpscQueueImpl::Push(NodeRef node) noexcept {
+  GetBackAndPush(node);
+}
+
+NodePtr IntrusiveMpscQueueImpl::GetBackAndPush(NodeRef node) noexcept {
   UASSERT(GetNext(node).load(std::memory_order_relaxed) == nullptr);
   const NodeRef prev = head_->exchange(node, std::memory_order_acq_rel);
 
@@ -33,6 +37,22 @@ void IntrusiveMpscQueueImpl::Push(NodeRef node) noexcept {
   // x86), the consumer will be momentarily blocked.
 
   GetNext(prev).store(node, std::memory_order_release);
+
+  return prev == &stub_ ? nullptr : &*prev;
+}
+
+bool IntrusiveMpscQueueImpl::PushIfEmpty(NodeRef node) noexcept {
+  UASSERT(GetNext(node).load(std::memory_order_relaxed) == nullptr);
+
+  NodeRef prev = stub_;
+  if (head_->compare_exchange_strong(prev, node, std::memory_order_acq_rel)) {
+    // If the consumer reads 'prev' right here,
+    // the consumer will be momentarily blocked.
+    GetNext(prev).store(node, std::memory_order_release);
+    return true;
+  }
+
+  return false;
 }
 
 IntrusiveMpscQueueImpl::NodePtr IntrusiveMpscQueueImpl::TryPop() noexcept {

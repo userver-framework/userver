@@ -10,7 +10,7 @@ namespace logging {
 
 namespace {
 
-char GetSeparatorFromLogger(LoggerCRef logger) {
+char GetSeparatorFromLogger(LoggerRef logger) {
   switch (logger.GetFormat()) {
     case Format::kTskv:
     case Format::kRaw:
@@ -33,9 +33,7 @@ std::streamsize LogHelper::Impl::BufferStd::xsputn(const char_type* s,
   return impl_.xsputn(s, n);
 }
 
-// Logging is setuped in components::Run and no logging happens before
-// that. So at this point the logging is initialized.
-LogHelper::Impl::Impl(LoggerCRef logger, Level level) noexcept
+LogHelper::Impl::Impl(LoggerRef logger, Level level) noexcept
     : logger_(&logger),
       level_(level),
       key_value_separator_(GetSeparatorFromLogger(*logger_)) {

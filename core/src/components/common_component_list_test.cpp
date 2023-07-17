@@ -131,7 +131,7 @@ components_manager:
       update-interval: 5s
       update-jitter: 2s
       full-update-interval: 5m
-      first-update-fail-ok: true
+      first-update-fail-ok: false
       config-settings: true
       additional-cleanup-interval: 5m
       testsuite-force-periodic-update: true

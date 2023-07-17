@@ -33,7 +33,6 @@ inline std::shared_ptr<logging::impl::TpLogger> MakeLoggerFromSink(
     std::shared_ptr<logging::impl::BaseSink> sink_ptr, logging::Format format) {
   auto logger = std::make_shared<logging::impl::TpLogger>(format, logger_name);
   logger->AddSink(std::move(sink_ptr));
-  logger->SetPattern(logging::GetSpdlogPattern(format));
   return logger;
 }
 

@@ -147,7 +147,10 @@ def _userver_config_logs_capture(_userver_log_capture_socket):
     def patch_config(config, _config_vars) -> None:
         sockname = _userver_log_capture_socket.getsockname()
         logging_config = config['components_manager']['components']['logging']
-        logging_config['loggers']['default']['testsuite-capture'] = {
+        default_logger = logging_config['loggers']['default']
+        # Other formats are not yet supported by log-capture.
+        default_logger['format'] = 'tskv'
+        default_logger['testsuite-capture'] = {
             'host': sockname[0],
             'port': sockname[1],
         }

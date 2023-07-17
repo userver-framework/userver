@@ -85,17 +85,17 @@ bool ShouldLog(Level level) noexcept;
 /// Sets new log level for a logger
 void SetLoggerLevel(LoggerRef, Level);
 
-bool LoggerShouldLog(LoggerCRef logger, Level level) noexcept;
+bool LoggerShouldLog(LoggerRef logger, Level level) noexcept;
 
 bool LoggerShouldLog(const LoggerPtr& logger, Level level) noexcept;
 
-Level GetLoggerLevel(LoggerCRef logger) noexcept;
+Level GetLoggerLevel(LoggerRef logger) noexcept;
 
 /// Forces flush of default logger message queue
 void LogFlush();
 
 /// Forces flush of `logger` message queue
-void LogFlush(LoggerCRef logger);
+void LogFlush(LoggerRef logger);
 
 namespace impl {
 
@@ -110,7 +110,7 @@ class RateLimitData {
 // Represents a single rate limit usage
 class RateLimiter {
  public:
-  RateLimiter(LoggerCRef logger, RateLimitData& data, Level level) noexcept;
+  RateLimiter(LoggerRef logger, RateLimitData& data, Level level) noexcept;
   bool ShouldLog() const { return should_log_; }
   void SetShouldNotLog() { should_log_ = false; }
   Level GetLevel() const { return level_; }

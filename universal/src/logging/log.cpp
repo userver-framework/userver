@@ -80,7 +80,7 @@ bool ShouldLog(Level level) noexcept {
   return GetDefaultLogger().ShouldLog(level);
 }
 
-bool LoggerShouldLog(LoggerCRef logger, Level level) noexcept {
+bool LoggerShouldLog(LoggerRef logger, Level level) noexcept {
   static_assert(noexcept(logger.ShouldLog(level)));
   return logger.ShouldLog(level);
 }
@@ -89,18 +89,18 @@ bool LoggerShouldLog(const LoggerPtr& logger, Level level) noexcept {
   return logger && LoggerShouldLog(*logger, level);
 }
 
-Level GetLoggerLevel(LoggerCRef logger) noexcept {
+Level GetLoggerLevel(LoggerRef logger) noexcept {
   static_assert(noexcept(logger.GetLevel()));
   return logger.GetLevel();
 }
 
 void LogFlush() { GetDefaultLogger().Flush(); }
 
-void LogFlush(LoggerCRef logger) { logger.Flush(); }
+void LogFlush(LoggerRef logger) { logger.Flush(); }
 
 namespace impl {
 
-RateLimiter::RateLimiter(LoggerCRef logger, RateLimitData& data,
+RateLimiter::RateLimiter(LoggerRef logger, RateLimitData& data,
                          Level level) noexcept
     : level_(level) {
   try {

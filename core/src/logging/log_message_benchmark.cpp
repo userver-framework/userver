@@ -1,11 +1,11 @@
 #include <benchmark/benchmark.h>
 
+#include <ostream>
+
 #include <userver/logging/impl/logger_base.hpp>
 #include <userver/logging/impl/tag_writer.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/logging/logger.hpp>
-
-#include <ostream>
 
 #include <utils/gbench_auxilary.hpp>
 
@@ -18,8 +18,8 @@ class NoopLogger : public logging::impl::LoggerBase {
   NoopLogger() noexcept : LoggerBase(logging::Format::kRaw) {
     SetLevel(logging::Level::kInfo);
   }
-  void Log(logging::Level, std::string_view) const override {}
-  void Flush() const override {}
+  void Log(logging::Level, std::string_view) override {}
+  void Flush() override {}
 };
 
 class PrependedTagLogger final : public NoopLogger {

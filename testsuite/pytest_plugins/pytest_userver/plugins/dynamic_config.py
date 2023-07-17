@@ -247,6 +247,7 @@ def userver_config_dynconf_url(mockserver_info):
         client = components.get('dynamic-config-client', None)
         if client:
             client['config-url'] = mockserver_info.url('configs-service')
+            client['append-path-to-url'] = True
 
     return _patch_config
 

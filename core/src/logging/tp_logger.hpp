@@ -1,19 +1,27 @@
 #pragma once
 
+#include <atomic>
 #include <future>
+#include <limits>
 #include <memory>
+#include <string>
+#include <string_view>
 #include <variant>
+#include <vector>
 
-#include <userver/concurrent/queue.hpp>
-#include <userver/engine/async.hpp>
+#include <userver/engine/condition_variable.hpp>
 #include <userver/engine/future.hpp>
+#include <userver/engine/mutex.hpp>
+#include <userver/engine/task/task.hpp>
 #include <userver/logging/format.hpp>
 #include <userver/logging/impl/logger_base.hpp>
 
+#include <concurrent/impl/interference_shield.hpp>
+#include <concurrent/impl/intrusive_hooks.hpp>
+#include <engine/impl/async_flat_combining_queue.hpp>
+#include <logging/config.hpp>
 #include <logging/impl/base_sink.hpp>
 #include <logging/statistics/log_stats.hpp>
-
-#include "config.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
@@ -41,6 +49,10 @@ struct Stop {};
 
 using Action = std::variant<Stop, Log, FlushCoro, FlushThreaded>;
 
+struct ActionNode final : public concurrent::impl::SinglyLinkedBaseHook {
+  Action action{Stop{}};
+};
+
 }  // namespace async
 
 /// @brief Asynchronous logger that logs into a specific TaskProcessor.
@@ -49,18 +61,17 @@ class TpLogger final : public LoggerBase {
   TpLogger(Format format, std::string logger_name);
   ~TpLogger() override;
 
-  void StartAsync(engine::TaskProcessor& task_processor,
-                  std::size_t max_queue_size,
-                  LoggerConfig::QueueOverflowBehavior overflow_policy);
+  void StartConsumerTask(engine::TaskProcessor& task_processor,
+                         std::size_t max_queue_size,
+                         QueueOverflowBehavior overflow_policy);
 
-  void SwitchToSyncMode();
+  void StopConsumerTask();
 
-  void Log(Level level, std::string_view msg) const override;
-  void Flush() const override;
+  void Log(Level level, std::string_view msg) override;
+  void Flush() override;
   void PrependCommonTags(TagWriter writer) const override;
   bool ShouldLog(Level level) const noexcept override;
 
-  void SetPattern(std::string pattern);
   void AddSink(impl::SinkPtr&& sink);
   const std::vector<impl::SinkPtr>& GetSinks() const;
 
@@ -69,26 +80,50 @@ class TpLogger final : public LoggerBase {
   statistics::LogStatistics& GetStatistics() noexcept;
 
  private:
-  using Queue = concurrent::NonFifoMpmcQueue<impl::async::Action>;
-
   struct ActionVisitor;
 
+  enum class State {
+    kSync,
+    kAsync,
+    kStoppingAsync,
+  };
+
+  using Queue = engine::impl::AsyncFlatCombiningQueue;
+  using QueueSize = std::int64_t;
+
   void ProcessingLoop();
-  bool KeepProcessing(impl::async::Action&& action) noexcept;
-  void Push(impl::async::Log&& action) const;
+  bool HasFreeQueueCapacity() noexcept;
+  bool TryWaitFreeQueueCapacity();
+  void Push(impl::async::Action&& action);
+  void DoPush(concurrent::impl::SinglyLinkedBaseHook& node) noexcept;
+  void ConsumeNode(concurrent::impl::SinglyLinkedBaseHook& node) noexcept;
+  void ConsumeQueueOnce(Queue::Consumer& consumer) noexcept;
+  void CleanUpQueue(Queue::Consumer&& consumer) noexcept;
+  void AccountLogConsumed() noexcept;
+  void BackendPerform(impl::async::Action&& action) noexcept;
   void BackendLog(impl::async::Log&& action) const;
   void BackendFlush() const;
 
   const std::string logger_name_;
-  std::string formatter_pattern_;
-  const std::shared_ptr<Queue> queue_;
-  engine::Task consuming_task_;
-  std::atomic<bool> in_async_mode_{false};
-  Queue::MultiProducer producer_;
-  mutable std::atomic<std::size_t> pending_async_ops_{0};
-  LoggerConfig::QueueOverflowBehavior overflow_policy_{};
+  const std::string formatter_pattern_;
   std::vector<impl::SinkPtr> sinks_;
-  mutable statistics::LogStatistics stats_{};
+  statistics::LogStatistics stats_{};
+
+  engine::Mutex capacity_waiters_mutex_;
+  engine::ConditionVariable capacity_waiters_cv_;
+  engine::Task consuming_task_;
+  std::atomic<QueueSize> max_queue_size_{std::numeric_limits<QueueSize>::max()};
+  std::atomic<QueueOverflowBehavior> overflow_policy_{
+      QueueOverflowBehavior::kDiscard};
+  // State changes rarely, no need for an InterferenceShield.
+  std::atomic<State> state_{State::kSync};
+  Queue::Consumer queue_consumer_;
+  // A dummy action used for notifying the async task during stopping.
+  impl::async::ActionNode stop_node_;
+
+  Queue queue_;
+  concurrent::impl::InterferenceShield<std::atomic<QueueSize>> produced_{0};
+  concurrent::impl::InterferenceShield<std::atomic<QueueSize>> consumed_{0};
 };
 
 }  // namespace logging::impl

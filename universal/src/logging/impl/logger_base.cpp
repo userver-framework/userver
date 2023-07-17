@@ -10,6 +10,8 @@ LoggerBase::LoggerBase(Format format) noexcept : format_(format) {}
 
 LoggerBase::~LoggerBase() = default;
 
+void LoggerBase::Flush() {}
+
 void LoggerBase::PrependCommonTags(TagWriter /*writer*/) const {}
 
 Format LoggerBase::GetFormat() const noexcept { return format_; }

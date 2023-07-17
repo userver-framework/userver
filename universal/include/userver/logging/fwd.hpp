@@ -16,7 +16,6 @@ class LoggerBase;
 }  // namespace impl
 
 using LoggerRef = impl::LoggerBase&;
-using LoggerCRef = const impl::LoggerBase&;
 using LoggerPtr = std::shared_ptr<impl::LoggerBase>;
 
 class LogHelper;

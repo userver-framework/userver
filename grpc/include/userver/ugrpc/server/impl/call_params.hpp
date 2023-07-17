@@ -19,7 +19,7 @@ struct CallParams {
   grpc::ServerContext& context;
   const std::string_view call_name;
   ugrpc::impl::RpcStatisticsScope& statistics;
-  logging::LoggerCRef access_tskv_logger;
+  logging::LoggerRef access_tskv_logger;
   tracing::Span& call_span;
 };
 
