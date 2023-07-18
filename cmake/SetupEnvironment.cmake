@@ -45,7 +45,6 @@ endif()
 
 include(SetupLinker)
 include(SetupLTO)
-include(RequireDWCAS)
 
 option(USE_CCACHE "Use ccache for build" ON)
 if (USE_CCACHE)
@@ -98,6 +97,8 @@ if(MACOS AND NOT USERVER_CONAN)
     set(Boost_NO_BOOST_CMAKE ON)
 endif()
 find_package(Boost REQUIRED)
+
+include(RequireDWCAS)
 
 add_cxx_compile_options_if_supported ("-ftemplate-backtrace-limit=0")
 
