@@ -7,8 +7,10 @@
 #include <userver/dynamic_config/updates_sink/find.hpp>
 #include <userver/formats/json/serialize.hpp>
 #include <userver/fs/read.hpp>
+#include <userver/utils/algo.hpp>
 #include <userver/utils/string_to_duration.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
+#include <utils/internal_tag.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -38,22 +40,6 @@ bool ShouldDeduplicate(
   UINVARIANT(false, "Invalid cache::UpdateType");
 }
 
-void CheckUnusedConfigs(
-    const dynamic_config::DocsMap& configs,
-    const std::unordered_set<std::string>& statically_required_configs) {
-  const auto& used_configs = configs.GetRequestedNames();
-  std::vector<std::string_view> extra_configs;
-  for (const auto& statically_required_config : statically_required_configs) {
-    if (used_configs.find(statically_required_config) == used_configs.end()) {
-      extra_configs.push_back(statically_required_config);
-    }
-  }
-  if (!extra_configs.empty()) {
-    LOG_INFO() << "Some statically required configs are unused: "
-               << extra_configs;
-  }
-}
-
 }  // namespace
 
 DynamicConfigClientUpdater::DynamicConfigClientUpdater(
@@ -81,7 +67,8 @@ DynamicConfigClientUpdater::DynamicConfigClientUpdater(
     fallback_config_.Parse(fallback_config_contents, false);
 
     // There are all required configs in the fallbacks file
-    docs_map_keys_ = fallback_config_.GetNames();
+    docs_map_keys_ =
+        utils::AsContainer<DocsMapKeys>(fallback_config_.GetNames());
   } catch (const std::exception& ex) {
     throw std::runtime_error(
         std::string("Cannot load fallback dynamic config: ") + ex.what());
@@ -104,10 +91,19 @@ DynamicConfigClientUpdater::~DynamicConfigClientUpdater() {
   StopPeriodicUpdates();
 }
 
+dynamic_config::DocsMap DynamicConfigClientUpdater::MergeDocsMap(
+    const dynamic_config::DocsMap& current, dynamic_config::DocsMap&& update) {
+  dynamic_config::DocsMap combined(std::move(update));
+  combined.MergeMissing(current);
+  combined.SetConfigsExpectedToBeUsed(docs_map_keys_, utils::InternalTag{});
+  return combined;
+}
+
 void DynamicConfigClientUpdater::StoreIfEnabled() {
-  auto ptr = Get();
-  if (store_enabled_) updates_sink_.SetConfig(kName, *ptr);
-  CheckUnusedConfigs(*ptr, docs_map_keys_);
+  if (store_enabled_) {
+    auto ptr = Get();
+    updates_sink_.SetConfig(kName, *ptr);
+  }
 }
 
 std::vector<std::string> DynamicConfigClientUpdater::GetDocsMapKeysToFetch(
@@ -170,10 +166,9 @@ void DynamicConfigClientUpdater::Update(
      * as every full update we get a bit outdated reply.
      */
 
-    dynamic_config::DocsMap combined(fallback_config_);
-    combined.MergeFromOther(std::move(docs_map));
-
+    auto combined = MergeDocsMap(fallback_config_, std::move(docs_map));
     auto size = combined.Size();
+
     {
       std::lock_guard<engine::Mutex> lock(update_config_mutex_);
       if (IsDuplicate(update_type, combined)) {
@@ -181,6 +176,7 @@ void DynamicConfigClientUpdater::Update(
         server_timestamp_ = reply.timestamp;
         return;
       }
+
       Set(std::move(combined));
       StoreIfEnabled();
     }
@@ -210,8 +206,7 @@ void DynamicConfigClientUpdater::Update(
     {
       std::lock_guard<engine::Mutex> lock(update_config_mutex_);
       auto ptr = Get();
-      dynamic_config::DocsMap combined = *ptr;
-      combined.MergeFromOther(std::move(docs_map));
+      auto combined = MergeDocsMap(*ptr, std::move(docs_map));
 
       if (IsDuplicate(update_type, combined)) {
         stats.FinishNoChanges();
@@ -232,13 +227,13 @@ void DynamicConfigClientUpdater::Update(
 void DynamicConfigClientUpdater::UpdateAdditionalKeys(
     const std::vector<std::string>& keys) {
   auto reply = config_client_.FetchDocsMap(std::nullopt, keys);
-  auto& combined = reply.docs_map;
+  auto& additional_configs = reply.docs_map;
 
   {
     std::lock_guard<engine::Mutex> lock(update_config_mutex_);
     auto ptr = Get();
     dynamic_config::DocsMap docs_map = *ptr;
-    combined.MergeFromOther(std::move(docs_map));
+    auto combined = MergeDocsMap(additional_configs, std::move(docs_map));
 
     Emplace(std::move(combined));
     StoreIfEnabled();

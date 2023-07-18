@@ -30,7 +30,7 @@ DynamicConfigFallbacks::DynamicConfigFallbacks(const ComponentConfig& config,
       auto overrides_contents = fs::blocking::ReadFileContents(*overrides_path);
       dynamic_config::DocsMap overrides_values;
       overrides_values.Parse(overrides_contents, true);
-      config_values.MergeFromOther(std::move(overrides_values));
+      config_values.MergeOrAssign(std::move(overrides_values));
     }
 
     updates_sink_.SetConfig(kName, std::move(config_values));

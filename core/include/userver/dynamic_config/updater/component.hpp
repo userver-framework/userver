@@ -20,6 +20,7 @@
 #include <userver/dynamic_config/updater/additional_keys_token.hpp>
 #include <userver/dynamic_config/updates_sink/component.hpp>
 #include <userver/engine/mutex.hpp>
+#include <userver/utils/impl/transparent_hash.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -93,9 +94,11 @@ class DynamicConfigClientUpdater
   static yaml_config::Schema GetStaticConfigSchema();
 
  private:
+  dynamic_config::DocsMap MergeDocsMap(const dynamic_config::DocsMap& current,
+                                       dynamic_config::DocsMap&& update);
   void StoreIfEnabled();
 
-  using DocsMapKeys = std::unordered_set<std::string>;
+  using DocsMapKeys = utils::impl::TransparentSet<std::string>;
   using AdditionalDocsMapKeys =
       std::unordered_set<std::shared_ptr<std::vector<std::string>>>;
 

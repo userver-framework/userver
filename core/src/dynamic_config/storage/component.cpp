@@ -20,6 +20,7 @@
 #include <userver/yaml_config/merge_schemas.hpp>
 
 #include <dynamic_config/storage_data.hpp>
+#include <utils/internal_tag.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -125,6 +126,13 @@ void DynamicConfig::Impl::NotifyLoadingFailed(std::string_view updater,
 
 void DynamicConfig::Impl::DoSetConfig(const dynamic_config::DocsMap& value) {
   dynamic_config::impl::SnapshotData config(value, {});
+
+  if (!value.GetConfigsExpectedToBeUsed(utils::InternalTag{}).empty()) {
+    LOG_WARNING()
+        << "Some configs expected to be used are actually not needed: "
+        << value.GetConfigsExpectedToBeUsed(utils::InternalTag{});
+  }
+
   auto after_assign_hook = [&] {
     {
       std::lock_guard lock(loaded_mutex_);
