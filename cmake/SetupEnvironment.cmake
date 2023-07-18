@@ -45,7 +45,6 @@ endif()
 
 include(SetupLinker)
 include(SetupLTO)
-include(RequireDWCAS)
 
 option(USE_CCACHE "Use ccache for build" ON)
 if (USE_CCACHE)
@@ -140,5 +139,7 @@ else ()
   # enable additional glibc checks (used in debian packaging, requires -O)
   add_definitions(-D_FORTIFY_SOURCE=2)
 endif ()
+
+include(RequireDWCAS)
 
 enable_testing ()
