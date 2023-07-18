@@ -128,9 +128,8 @@ void DynamicConfig::Impl::DoSetConfig(const dynamic_config::DocsMap& value) {
   dynamic_config::impl::SnapshotData config(value, {});
 
   if (!value.GetConfigsExpectedToBeUsed(utils::InternalTag{}).empty()) {
-    LOG_WARNING()
-        << "Some configs expected to be used are actually not needed: "
-        << value.GetConfigsExpectedToBeUsed(utils::InternalTag{});
+    LOG_INFO() << "Some configs expected to be used are actually not needed: "
+               << value.GetConfigsExpectedToBeUsed(utils::InternalTag{});
   }
 
   auto after_assign_hook = [&] {
