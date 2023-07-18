@@ -190,14 +190,6 @@ class UserverConan(ConanFile):
         copy(
             self,
             pattern='*',
-            dst=os.path.join(self.package_folder, 'include', 'shared'),
-            src=os.path.join(self.source_folder, 'shared', 'include'),
-            keep_path=True,
-        )
-
-        copy(
-            self,
-            pattern='*',
             dst=os.path.join(self.package_folder, 'scripts'),
             src=os.path.join(self.source_folder, 'scripts'),
             keep_path=True,
@@ -552,10 +544,6 @@ class UserverConan(ConanFile):
                     ].includedirs.append(
                         os.path.join('include', cmake_component),
                     )
-                if cmake_component == 'core' or cmake_component == 'universal':
-                    self.cpp_info.components[
-                        conan_component
-                    ].includedirs.append(os.path.join('include', 'shared'))
 
                 self.cpp_info.components[conan_component].requires = requires
 
