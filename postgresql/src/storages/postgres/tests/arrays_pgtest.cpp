@@ -11,7 +11,9 @@ namespace tt = io::traits;
 
 namespace static_test {
 
-using one_dim_vector = std::vector<int>;
+using Int = std::optional<int>;
+
+using one_dim_vector = std::vector<Int>;
 using two_dim_vector = std::vector<one_dim_vector>;
 using three_dim_vector = std::vector<two_dim_vector>;
 
@@ -19,23 +21,23 @@ constexpr std::size_t kDimOne = 3;
 constexpr std::size_t kDimTwo = 2;
 constexpr std::size_t kDimThree = 1;
 
-using one_dim_array = std::array<int, kDimOne>;
+using one_dim_array = std::array<Int, kDimOne>;
 using two_dim_array = std::array<one_dim_array, kDimTwo>;
 using three_dim_array = std::array<two_dim_array, kDimThree>;
 
 using vector_of_arrays = std::vector<two_dim_array>;
 
-using unordered_set = std::unordered_set<int>;
+using unordered_set = std::unordered_set<Int>;
 using vector_of_unordered_sets = std::vector<unordered_set>;
 using array_of_vectors_of_unordered_sets =
     std::array<vector_of_unordered_sets, kDimOne>;
 
-using one_dim_set = std::set<int>;
+using one_dim_set = std::set<Int>;
 using two_dim_set = std::set<one_dim_set>;
 using set_of_arrays = std::set<one_dim_array>;
 using set_of_vectors = std::set<one_dim_vector>;
 
-static_assert(!tt::kIsCompatibleContainer<int>);
+static_assert(!tt::kIsCompatibleContainer<Int>);
 
 static_assert(tt::kIsCompatibleContainer<one_dim_vector>);
 static_assert(tt::kIsCompatibleContainer<two_dim_vector>);
@@ -76,40 +78,40 @@ static_assert(tt::kDimensionCount<set_of_arrays> == 2);
 static_assert(tt::kDimensionCount<set_of_vectors> == 2);
 
 static_assert((
-    std::is_same<tt::ContainerFinalElement<one_dim_vector>::type, int>::value));
+    std::is_same<tt::ContainerFinalElement<one_dim_vector>::type, Int>::value));
 static_assert((
-    std::is_same<tt::ContainerFinalElement<two_dim_vector>::type, int>::value));
+    std::is_same<tt::ContainerFinalElement<two_dim_vector>::type, Int>::value));
 static_assert(std::is_same<tt::ContainerFinalElement<three_dim_vector>::type,
-                           int>::value);
+                           Int>::value);
 
 static_assert(
-    (std::is_same<tt::ContainerFinalElement<one_dim_array>::type, int>::value));
+    (std::is_same<tt::ContainerFinalElement<one_dim_array>::type, Int>::value));
 static_assert(
-    (std::is_same<tt::ContainerFinalElement<two_dim_array>::type, int>::value));
+    (std::is_same<tt::ContainerFinalElement<two_dim_array>::type, Int>::value));
 static_assert(
-    std::is_same<tt::ContainerFinalElement<three_dim_array>::type, int>::value);
+    std::is_same<tt::ContainerFinalElement<three_dim_array>::type, Int>::value);
 
 static_assert(std::is_same<tt::ContainerFinalElement<vector_of_arrays>::type,
-                           int>::value);
+                           Int>::value);
 
 static_assert(
-    std::is_same<tt::ContainerFinalElement<unordered_set>::type, int>::value);
+    std::is_same<tt::ContainerFinalElement<unordered_set>::type, Int>::value);
 static_assert(
     std::is_same<tt::ContainerFinalElement<vector_of_unordered_sets>::type,
-                 int>::value);
+                 Int>::value);
 static_assert(
     std::is_same<
         tt::ContainerFinalElement<array_of_vectors_of_unordered_sets>::type,
-        int>::value);
+        Int>::value);
 
 static_assert(
-    std::is_same<tt::ContainerFinalElement<one_dim_set>::type, int>::value);
+    std::is_same<tt::ContainerFinalElement<one_dim_set>::type, Int>::value);
 static_assert(
-    std::is_same<tt::ContainerFinalElement<two_dim_set>::type, int>::value);
+    std::is_same<tt::ContainerFinalElement<two_dim_set>::type, Int>::value);
 static_assert(
-    std::is_same<tt::ContainerFinalElement<set_of_arrays>::type, int>::value);
+    std::is_same<tt::ContainerFinalElement<set_of_arrays>::type, Int>::value);
 static_assert(
-    std::is_same<tt::ContainerFinalElement<set_of_vectors>::type, int>::value);
+    std::is_same<tt::ContainerFinalElement<set_of_vectors>::type, Int>::value);
 
 static_assert(!tt::kHasFixedDimensions<one_dim_vector>);
 static_assert(!tt::kHasFixedDimensions<two_dim_vector>);
@@ -194,6 +196,75 @@ static_assert(tt::kTypeBufferCategory<set_of_vectors> ==
               io::BufferCategory::kArrayBuffer);
 
 static_assert(tt::kIsMappedToPg<io::detail::ContainerChunk<one_dim_vector>>);
+
+const pg::UserTypes types;
+
+static_assert(io::CppToPg<one_dim_vector>::GetOid(types) ==
+              static_cast<unsigned int>(
+                  io::PredefinedOid<io::PredefinedOids::kInt4Array>::value));
+static_assert(io::CppToPg<two_dim_vector>::GetOid(types) ==
+              static_cast<unsigned int>(
+                  io::PredefinedOid<io::PredefinedOids::kInt4Array>::value));
+static_assert(io::CppToPg<three_dim_vector>::GetOid(types) ==
+              static_cast<unsigned int>(
+                  io::PredefinedOid<io::PredefinedOids::kInt4Array>::value));
+
+static_assert(io::CppToPg<one_dim_array>::GetOid(types) ==
+              static_cast<unsigned int>(
+                  io::PredefinedOid<io::PredefinedOids::kInt4Array>::value));
+static_assert(io::CppToPg<two_dim_array>::GetOid(types) ==
+              static_cast<unsigned int>(
+                  io::PredefinedOid<io::PredefinedOids::kInt4Array>::value));
+static_assert(io::CppToPg<three_dim_array>::GetOid(types) ==
+              static_cast<unsigned int>(
+                  io::PredefinedOid<io::PredefinedOids::kInt4Array>::value));
+
+static_assert(io::CppToPg<vector_of_arrays>::GetOid(types) ==
+              static_cast<unsigned int>(
+                  io::PredefinedOid<io::PredefinedOids::kInt4Array>::value));
+
+static_assert(io::CppToPg<unordered_set>::GetOid(types) ==
+              static_cast<unsigned int>(
+                  io::PredefinedOid<io::PredefinedOids::kInt4Array>::value));
+static_assert(io::CppToPg<vector_of_unordered_sets>::GetOid(types) ==
+              static_cast<unsigned int>(
+                  io::PredefinedOid<io::PredefinedOids::kInt4Array>::value));
+static_assert(io::CppToPg<array_of_vectors_of_unordered_sets>::GetOid(types) ==
+              static_cast<unsigned int>(
+                  io::PredefinedOid<io::PredefinedOids::kInt4Array>::value));
+
+static_assert(io::CppToPg<one_dim_set>::GetOid(types) ==
+              static_cast<unsigned int>(
+                  io::PredefinedOid<io::PredefinedOids::kInt4Array>::value));
+static_assert(io::CppToPg<two_dim_set>::GetOid(types) ==
+              static_cast<unsigned int>(
+                  io::PredefinedOid<io::PredefinedOids::kInt4Array>::value));
+static_assert(io::CppToPg<set_of_arrays>::GetOid(types) ==
+              static_cast<unsigned int>(
+                  io::PredefinedOid<io::PredefinedOids::kInt4Array>::value));
+static_assert(io::CppToPg<set_of_vectors>::GetOid(types) ==
+              static_cast<unsigned int>(
+                  io::PredefinedOid<io::PredefinedOids::kInt4Array>::value));
+
+static_assert(io::IsTypeMappedToSystemArray<one_dim_vector>());
+static_assert(io::IsTypeMappedToSystemArray<two_dim_vector>());
+static_assert(io::IsTypeMappedToSystemArray<three_dim_vector>());
+
+static_assert(io::IsTypeMappedToSystemArray<one_dim_array>());
+static_assert(io::IsTypeMappedToSystemArray<two_dim_array>());
+static_assert(io::IsTypeMappedToSystemArray<three_dim_array>());
+
+static_assert(io::IsTypeMappedToSystemArray<vector_of_arrays>());
+
+static_assert(io::IsTypeMappedToSystemArray<unordered_set>());
+static_assert(io::IsTypeMappedToSystemArray<vector_of_unordered_sets>());
+static_assert(
+    io::IsTypeMappedToSystemArray<array_of_vectors_of_unordered_sets>());
+
+static_assert(io::IsTypeMappedToSystemArray<one_dim_set>());
+static_assert(io::IsTypeMappedToSystemArray<two_dim_set>());
+static_assert(io::IsTypeMappedToSystemArray<set_of_arrays>());
+static_assert(io::IsTypeMappedToSystemArray<set_of_vectors>());
 
 }  // namespace static_test
 

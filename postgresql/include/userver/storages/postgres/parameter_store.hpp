@@ -36,7 +36,7 @@ class ParameterStore {
   template <typename T>
   ParameterStore& PushBack(const T& param) {
     static_assert(
-        io::traits::kIsMappedToSystemType<T>,
+        io::IsTypeMappedToSystem<T>() || io::IsTypeMappedToSystemArray<T>(),
         "Currently only built-in types can be used in ParameterStore");
     data_.Write(kNoUserTypes, param);
     return *this;

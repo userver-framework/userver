@@ -145,6 +145,7 @@ template <typename T>
 struct CppToUserPgImpl {
   static_assert(io::traits::CheckParser<T>());
 
+  using Type = T;
   using Mapping = CppToUserPg<T>;
   static constexpr DBTypeName postgres_name = kPgUserTypeName<T>;
   static const detail::RegisterUserTypeParser init_;

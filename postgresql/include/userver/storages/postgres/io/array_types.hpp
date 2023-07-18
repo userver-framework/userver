@@ -392,6 +392,7 @@ struct ArrayBinaryFormatter : BufferFormatterBase<Container> {
 
 template <typename Container, bool System>
 struct ArrayPgOid {
+  using Type = Container;
   using ElementType = typename traits::ContainerFinalElement<Container>::type;
   using ElementMapping = CppToPg<ElementType>;
   using Mapping = ArrayPgOid<Container, System>;
@@ -403,6 +404,7 @@ struct ArrayPgOid {
 
 template <typename Container>
 struct ArrayPgOid<Container, true> {
+  using Type = Container;
   using ElementType = typename traits::ContainerFinalElement<Container>::type;
   using ElementMapping = CppToPg<ElementType>;
   using Mapping = ArrayPgOid<Container, true>;
@@ -417,8 +419,8 @@ constexpr bool IsElementMappedToSystem() {
   if constexpr (!traits::kIsCompatibleContainer<Container>) {
     return false;
   } else {
-    return traits::kIsMappedToSystemType<
-        typename traits::ContainerFinalElement<Container>::type>;
+    return IsTypeMappedToSystem<
+        typename traits::ContainerFinalElement<Container>::type>();
   }
 }
 
@@ -451,6 +453,14 @@ inline constexpr bool kEnableArrayFormatter = EnableArrayFormatter<Container>();
 template <typename T>
 struct CppToPg<T, std::enable_if_t<traits::detail::EnableContainerMapping<T>()>>
     : detail::ArrayPgOid<T, detail::IsElementMappedToSystem<T>()> {};
+
+template <typename T>
+constexpr bool IsTypeMappedToSystemArray() {
+  return traits::kIsMappedToPg<T> &&
+         std::is_same<
+             typename CppToPg<T>::Mapping,
+             io::detail::ArrayPgOid<typename CppToPg<T>::Type, true>>::value;
+}
 
 namespace traits {
 
