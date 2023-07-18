@@ -800,7 +800,11 @@ void PGConnectionWrapper::MarkAsBroken() { is_broken_ = true; }
 bool PGConnectionWrapper::IsBroken() const { return is_broken_; }
 
 bool PGConnectionWrapper::IsInAbortedPipeline() const {
+#if LIBPQ_HAS_PIPELINING
   return PQpipelineStatus(conn_) == PGpipelineStatus::PQ_PIPELINE_ABORTED;
+#else
+  return false;
+#endif
 }
 
 }  // namespace storages::postgres::detail
