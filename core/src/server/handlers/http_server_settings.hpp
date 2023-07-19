@@ -7,19 +7,23 @@ USERVER_NAMESPACE_BEGIN
 
 namespace server::handlers {
 
-class HttpServerSettings final {
- public:
-  static HttpServerSettings Parse(const dynamic_config::DocsMap& docs_map);
+bool ParseLogRequest(const dynamic_config::DocsMap&);
 
-  bool need_log_request;
-  bool need_log_request_headers;
-  bool need_check_auth_in_handlers;
-  bool need_cancel_handle_request_by_deadline;
-  bool deadline_propagation_enabled;
-};
+inline constexpr dynamic_config::Key<ParseLogRequest> kLogRequest;
 
-inline constexpr dynamic_config::Key<HttpServerSettings::Parse>
-    kHttpServerSettings;
+bool ParseLogRequestHeaders(const dynamic_config::DocsMap&);
+
+inline constexpr dynamic_config::Key<ParseLogRequestHeaders> kLogRequestHeaders;
+
+bool ParseCheckAuthInHandlers(const dynamic_config::DocsMap&);
+
+inline constexpr dynamic_config::Key<ParseCheckAuthInHandlers>
+    kCheckAuthInHandlers;
+
+bool ParseCancelHandleRequestByDeadline(const dynamic_config::DocsMap&);
+
+inline constexpr dynamic_config::Key<ParseCancelHandleRequestByDeadline>
+    kCancelHandleRequestByDeadline;
 
 }  // namespace server::handlers
 

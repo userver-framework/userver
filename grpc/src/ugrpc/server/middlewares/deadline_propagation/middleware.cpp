@@ -1,6 +1,7 @@
 #include "middleware.hpp"
 
 #include <userver/dynamic_config/snapshot.hpp>
+#include <userver/server/handlers/impl/deadline_propagation_config.hpp>
 #include <userver/server/request/task_inherited_data.hpp>
 #include <userver/utils/impl/userver_experiments.hpp>
 
@@ -33,6 +34,11 @@ bool CheckAndSetupDeadline(tracing::Span& span, grpc::ServerContext& context,
                            std::string_view method_name,
                            ugrpc::impl::RpcStatisticsScope& statistics_scope,
                            const dynamic_config::Snapshot& config) {
+  if (!config[USERVER_NAMESPACE::server::handlers::impl::
+                  kDeadlinePropagationEnabled]) {
+    return true;
+  }
+
   auto opt_deadline = TryExtractDeadline(context.deadline());
   if (!opt_deadline) {
     return true;

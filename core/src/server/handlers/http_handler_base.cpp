@@ -24,6 +24,7 @@
 #include <userver/logging/log.hpp>
 #include <userver/server/component.hpp>
 #include <userver/server/handlers/auth/auth_checker_settings_component.hpp>
+#include <userver/server/handlers/impl/deadline_propagation_config.hpp>
 #include <userver/server/http/http_error.hpp>
 #include <userver/server/http/http_method.hpp>
 #include <userver/server/http/http_response_body_stream.hpp>
@@ -160,7 +161,8 @@ class RequestProcessor final {
         http_request_(http_request),
         context_(context),
         config_snapshot_(std::move(snapshot)),
-        settings_(config_snapshot_[kHttpServerSettings]) {}
+        need_log_response_(config_snapshot_[kLogRequest]),
+        need_log_response_headers_(config_snapshot_[kLogRequestHeaders]) {}
 
   ~RequestProcessor() {
     try {
@@ -177,8 +179,8 @@ class RequestProcessor final {
       span.AddTag(tracing::kHttpStatusCode, response_code);
       if (response_code >= 500) span.AddTag(tracing::kErrorFlag, true);
 
-      if (settings_.need_log_request) {
-        if (settings_.need_log_request_headers) {
+      if (need_log_response_) {
+        if (need_log_response_headers_) {
           span.AddNonInheritableTag("response_headers",
                                     GetHeadersLogString(response));
         }
@@ -234,11 +236,9 @@ class RequestProcessor final {
 
   request::RequestContext& GetContext() { return context_; }
 
-  const dynamic_config::Snapshot& GetDynamicConfig() const {
+  const dynamic_config::Snapshot& GetInitialDynamicConfig() const {
     return config_snapshot_;
   }
-
-  const HttpServerSettings& GetServerSettings() const { return settings_; }
 
   void ResetDynamicConfig() {
     [[maybe_unused]] const auto for_destruction = std::move(config_snapshot_);
@@ -287,7 +287,8 @@ class RequestProcessor final {
 
   request::RequestContext& context_;
   dynamic_config::Snapshot config_snapshot_;
-  const HttpServerSettings settings_;
+  const bool need_log_response_;
+  const bool need_log_response_headers_;
 };
 
 std::optional<std::chrono::milliseconds> ParseTimeout(
@@ -316,7 +317,10 @@ std::optional<std::chrono::milliseconds> ParseTimeout(
   return timeout;
 }
 
-enum class IsCancelledByDeadline : bool {};
+struct DeadlinePropagationContext final {
+  bool need_log_response{false};
+  bool is_cancelled_by_deadline{false};
+};
 
 constexpr std::string_view kDeadlinePropagationStep =
     "check_deadline_propagation";
@@ -328,7 +332,7 @@ utils::impl::UserverExperiment handler_override_response_on_deadline{
     "handler-override-response-on-deadline", true};
 
 void HandleDeadlineExpired(RequestProcessor& processor,
-                           IsCancelledByDeadline& is_cancelled,
+                           DeadlinePropagationContext& dp_context,
                            std::string internal_message) {
   processor.HandleCustomException(
       kDeadlinePropagationStep,
@@ -336,19 +340,23 @@ void HandleDeadlineExpired(RequestProcessor& processor,
           ExternalBody{"Deadline expired"},
           InternalMessage{std::move(internal_message)},
           ServiceErrorCode{"deadline_expired"}));
-  is_cancelled = IsCancelledByDeadline{true};
+  dp_context.is_cancelled_by_deadline = true;
 }
 
 void SetUpInheritedDeadline(RequestProcessor& processor,
-                            IsCancelledByDeadline& is_cancelled,
+                            DeadlinePropagationContext& dp_context,
                             request::TaskInheritedData& inherited_data) {
   if (!processor.GetHandler().GetConfig().deadline_propagation_enabled) return;
 
-  const auto& server_settings = processor.GetServerSettings();
-  if (!server_settings.deadline_propagation_enabled) return;
+  if (!processor.GetInitialDynamicConfig()[impl::kDeadlinePropagationEnabled]) {
+    return;
+  }
 
   const auto timeout = ParseTimeout(processor.GetRequest());
   if (!timeout) return;
+
+  dp_context.need_log_response =
+      processor.GetInitialDynamicConfig()[kLogRequest];
 
   auto& span = tracing::Span::CurrentSpan();
   span.AddNonInheritableTag("deadline_received_ms", timeout->count());
@@ -360,18 +368,18 @@ void SetUpInheritedDeadline(RequestProcessor& processor,
   if (handler_cancel_on_immediate_deadline_expiration.IsEnabled() &&
       deadline.IsSurelyReachedApprox()) {
     HandleDeadlineExpired(
-        processor, is_cancelled,
+        processor, dp_context,
         "Immediate timeout (deadline propagation), forcing 504 response");
     return;
   }
 
-  if (server_settings.need_cancel_handle_request_by_deadline) {
+  if (processor.GetInitialDynamicConfig()[kCancelHandleRequestByDeadline]) {
     engine::current_task::SetDeadline(deadline);
   }
 }
 
 void SetUpInheritedData(RequestProcessor& processor,
-                        IsCancelledByDeadline& is_cancelled) {
+                        DeadlinePropagationContext& dp_context) {
   request::TaskInheritedData inherited_data{
       std::visit(
           utils::Overloaded{
@@ -389,11 +397,11 @@ void SetUpInheritedData(RequestProcessor& processor,
     request::kTaskInheritedData.Set(std::move(inherited_data));
   });
 
-  SetUpInheritedDeadline(processor, is_cancelled, inherited_data);
+  SetUpInheritedDeadline(processor, dp_context, inherited_data);
 }
 
 void CompleteDeadlinePropagation(RequestProcessor& processor,
-                                 IsCancelledByDeadline& is_cancelled) {
+                                 DeadlinePropagationContext& dp_context) {
   const auto& request = processor.GetRequest();
   auto& response = request.GetHttpResponse();
 
@@ -409,11 +417,11 @@ void CompleteDeadlinePropagation(RequestProcessor& processor,
   span.AddNonInheritableTag("cancelled_by_deadline", cancelled_by_deadline);
 
   if (handler_override_response_on_deadline.IsEnabled() &&
-      cancelled_by_deadline && !static_cast<bool>(is_cancelled)) {
+      cancelled_by_deadline && !dp_context.is_cancelled_by_deadline) {
     const auto& original_body = response.GetData();
     if (!original_body.empty() && span.ShouldLogDefault()) {
       span.AddNonInheritableTag("dp_original_body_size", original_body.size());
-      if (processor.GetServerSettings().need_log_request) {
+      if (dp_context.need_log_response) {
         span.AddNonInheritableTag(
             "dp_original_body",
             processor.GetHandler().GetResponseDataForLoggingChecked(
@@ -421,7 +429,7 @@ void CompleteDeadlinePropagation(RequestProcessor& processor,
       }
     }
     HandleDeadlineExpired(
-        processor, is_cancelled,
+        processor, dp_context,
         "Handling timeout (deadline propagation), forcing 504 response");
   }
 }
@@ -620,7 +628,7 @@ void HttpHandlerBase::HandleRequest(request::RequestBase& request,
   try {
     HttpHandlerStatisticsScope stats_scope(*handler_statistics_,
                                            http_request.GetMethod(), response);
-    IsCancelledByDeadline is_cancelled_by_deadline{false};
+    DeadlinePropagationContext dp_context;
 
     const auto meta_type = CutTrailingSlash(GetMetaType(http_request),
                                             GetConfig().url_trailing_slash);
@@ -630,7 +638,7 @@ void HttpHandlerBase::HandleRequest(request::RequestBase& request,
     RequestProcessor request_processor(*this, http_request_impl, http_request,
                                        context, config_source_.GetSnapshot());
 
-    SetUpBaggage(http_request, request_processor.GetDynamicConfig());
+    SetUpBaggage(http_request, request_processor.GetInitialDynamicConfig());
     LogYandexHeaders(http_request);
 
     request_processor.ProcessRequestStep(
@@ -638,14 +646,15 @@ void HttpHandlerBase::HandleRequest(request::RequestBase& request,
         [this, &http_request] { CheckRatelimit(http_request); });
 
     request_processor.ProcessRequestStepNoScopeTime(
-        kDeadlinePropagationStep,
-        [&request_processor, &is_cancelled_by_deadline] {
-          SetUpInheritedData(request_processor, is_cancelled_by_deadline);
+        kDeadlinePropagationStep, [&request_processor, &dp_context] {
+          SetUpInheritedData(request_processor, dp_context);
         });
 
     request_processor.ProcessRequestStep(
-        "check_auth",
-        [this, &http_request, &context] { CheckAuth(http_request, context); });
+        "check_auth", [this, &http_request, &context, &request_processor] {
+          CheckAuth(http_request, context,
+                    request_processor.GetInitialDynamicConfig());
+        });
 
     if (GetConfig().decompress_request) {
       request_processor.ProcessRequestStep(
@@ -658,15 +667,15 @@ void HttpHandlerBase::HandleRequest(request::RequestBase& request,
           ParseRequestData(http_request, context);
         });
 
-    if (request_processor.GetServerSettings().need_log_request) {
-      LOG_INFO()
-          << "start handling"
-          << LogRequestExtra(
-                 request_processor.GetServerSettings().need_log_request_headers,
-                 http_request, meta_type,
-                 GetRequestBodyForLoggingChecked(http_request, context,
-                                                 http_request.RequestBody()),
-                 http_request.RequestBody().length());
+    if (request_processor.GetInitialDynamicConfig()[kLogRequest]) {
+      const bool need_log_request_headers =
+          request_processor.GetInitialDynamicConfig()[kLogRequestHeaders];
+      LOG_INFO() << "start handling"
+                 << LogRequestExtra(
+                        need_log_request_headers, http_request, meta_type,
+                        GetRequestBodyForLoggingChecked(
+                            http_request, context, http_request.RequestBody()),
+                        http_request.RequestBody().length());
     }
 
     {
@@ -684,11 +693,11 @@ void HttpHandlerBase::HandleRequest(request::RequestBase& request,
           }
         });
 
-    CompleteDeadlinePropagation(request_processor, is_cancelled_by_deadline);
+    CompleteDeadlinePropagation(request_processor, dp_context);
     if (GetConfig().set_tracing_headers) {
       tracing_manager_.FillResponseWithTracingContext(*span_storage, response);
     }
-    if (static_cast<bool>(is_cancelled_by_deadline)) {
+    if (dp_context.is_cancelled_by_deadline) {
       stats_scope.OnCancelledByDeadline();
     }
   } catch (const std::exception& ex) {
@@ -786,10 +795,10 @@ tracing::Span HttpHandlerBase::MakeSpan(const http::HttpRequest& http_request,
   return span;
 }
 
-void HttpHandlerBase::CheckAuth(const http::HttpRequest& http_request,
-                                request::RequestContext& context) const {
-  if (!config_source_.GetCopy(kHttpServerSettings)
-           .need_check_auth_in_handlers) {
+void HttpHandlerBase::CheckAuth(
+    const http::HttpRequest& http_request, request::RequestContext& context,
+    const dynamic_config::Snapshot& initial_config) const {
+  if (!initial_config[kCheckAuthInHandlers]) {
     LOG_DEBUG() << "auth checks are disabled for current service";
     return;
   }
