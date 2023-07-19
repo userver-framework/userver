@@ -20,8 +20,10 @@ struct StdMutexRcuMapTraits : rcu::DefaultRcuMapTraits<K, V> {
   using MutexType = std::mutex;
 };
 
+class RedisConnectionHolder;
 using NodesStorage =
-    rcu::RcuMap<std::string, Redis, StdMutexRcuMapTraits<std::string, Redis>>;
+    rcu::RcuMap<std::string, RedisConnectionHolder,
+                StdMutexRcuMapTraits<std::string, RedisConnectionHolder>>;
 
 class ClusterTopology {
  public:

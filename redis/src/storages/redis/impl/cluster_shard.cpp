@@ -1,5 +1,6 @@
 #include "cluster_shard.hpp"
 
+#include <memory>
 #include <userver/utils/assert.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -77,6 +78,9 @@ ShardStatistics ClusterShard::GetStatistics(
     bool master, const MetricsSettings& settings) const {
   ShardStatistics stats(settings);
   auto add_to_stats = [&settings, &stats](const auto& instance) {
+    if (!instance) {
+      return;
+    }
     auto inst_stats =
         redis::InstanceStatistics(settings, instance->GetStatistics());
     stats.shard_total.Add(inst_stats);
@@ -87,12 +91,12 @@ ShardStatistics ClusterShard::GetStatistics(
 
   if (master) {
     if (master_) {
-      add_to_stats(master_);
+      add_to_stats(master_->Get());
     }
   } else {
     for (const auto& instance : replicas_) {
       if (instance) {
-        add_to_stats(instance);
+        add_to_stats(instance->Get());
       }
     }
   }
@@ -117,18 +121,21 @@ void ClusterShard::GetNearestServersPing(const CommandControl& command_control,
   instances.resize(num_instances);
 }
 
-std::vector<ClusterShard::RedisPtr> ClusterShard::GetAvailableServers(
-    const RedisPtr& master, const std::vector<RedisPtr>& replicas,
+std::vector<std::shared_ptr<Redis>> ClusterShard::GetAvailableServers(
+    const RedisConnectionPtr& master_connetion,
+    const std::vector<RedisConnectionPtr>& replicas_connections,
     const CommandControl& command_control, bool with_masters,
     bool with_slaves) {
   if (!command_control.force_server_id.IsAny()) {
     const auto id = command_control.force_server_id;
+    auto master = master_connetion->Get();
     if (master->GetServerId() == id) {
-      return {master};
+      return {std::move(master)};
     }
-    for (const auto& replica : replicas) {
+    for (const auto& replica_connection : replicas_connections) {
+      auto replica = replica_connection->Get();
       if (replica->GetServerId() == id) {
-        return {replica};
+        return {std::move(replica)};
       }
     }
     const logging::LogExtra log_extra({{"server_id", id.GetId()}});
@@ -138,12 +145,14 @@ std::vector<ClusterShard::RedisPtr> ClusterShard::GetAvailableServers(
   }
 
   std::vector<RedisPtr> result;
-  result.reserve(with_masters + with_slaves * replicas.size());
+  result.reserve(with_masters + with_slaves * replicas_connections.size());
   if (with_masters) {
-    result.push_back(master);
+    result.push_back(master_connetion->Get());
   }
   if (with_slaves) {
-    result.insert(result.end(), replicas.begin(), replicas.end());
+    for (const auto& replica_connection : replicas_connections) {
+      result.push_back(replica_connection->Get());
+    }
   }
 
   switch (command_control.strategy) {
@@ -188,7 +197,7 @@ bool ClusterShard::IsMasterReady() const {
 
 bool ClusterShard::IsReplicaReady() const {
   return std::any_of(
-      replicas_.begin(), replicas_.end(), [](const RedisPtr& replica) {
+      replicas_.begin(), replicas_.end(), [](const auto& replica) {
         return replica && replica->GetState() == Redis::State::kConnected;
       });
 }

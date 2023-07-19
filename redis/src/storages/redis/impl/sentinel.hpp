@@ -36,6 +36,7 @@ const int kDefaultRedisThreadPoolSize = 8;
 
 const auto kSentinelGetHostsCheckInterval = std::chrono::seconds(3);
 const auto kProcessWaitingCommandsInterval = std::chrono::seconds(3);
+const auto kCheckRedisConnectedInterval = std::chrono::seconds(3);
 
 // Forward declarations
 class SentinelImplBase;

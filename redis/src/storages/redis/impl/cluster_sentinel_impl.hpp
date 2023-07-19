@@ -11,6 +11,10 @@ namespace redis {
 class ClusterTopologyHolder;
 class ClusterNodesHolder;
 
+struct StdMutexRcuTraits {
+  using MutexType = std::mutex;
+};
+
 class ClusterSentinelImpl : public SentinelImplBase {
  public:
   using ReadyChangeCallback = std::function<void(

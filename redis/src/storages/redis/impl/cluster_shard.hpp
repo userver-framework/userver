@@ -11,6 +11,7 @@
 #include <userver/storages/redis/impl/wait_connected_mode.hpp>
 
 #include <storages/redis/impl/command.hpp>
+#include <storages/redis/impl/redis_connection_holder.hpp>
 #include <storages/redis/impl/sentinel_query.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -20,8 +21,10 @@ namespace redis {
 class ClusterShard {
  public:
   using RedisPtr = std::shared_ptr<redis::Redis>;
+  using RedisConnectionPtr = std::shared_ptr<RedisConnectionHolder>;
 
-  ClusterShard(size_t shard, RedisPtr master, std::vector<RedisPtr> replicas)
+  ClusterShard(size_t shard, RedisConnectionPtr master,
+               std::vector<RedisConnectionPtr> replicas)
       : master_(std::move(master)),
         replicas_(std::move(replicas)),
         shard_(shard) {}
@@ -52,15 +55,16 @@ class ClusterShard {
   static void GetNearestServersPing(const CommandControl& command_control,
                                     std::vector<RedisPtr>& instances);
   static std::vector<RedisPtr> GetAvailableServers(
-      const RedisPtr& master, const std::vector<RedisPtr>& replicas,
+      const RedisConnectionPtr& master,
+      const std::vector<RedisConnectionPtr>& replicas,
       const CommandControl& command_control, bool with_masters,
       bool with_slaves);
   RedisPtr GetInstance(const std::vector<RedisPtr>& instances, size_t skip_idx);
   bool IsMasterReady() const;
   bool IsReplicaReady() const;
 
-  RedisPtr master_;
-  std::vector<RedisPtr> replicas_;
+  RedisConnectionPtr master_;
+  std::vector<RedisConnectionPtr> replicas_;
   std::atomic_size_t current_{0};
   size_t shard_;
 };
