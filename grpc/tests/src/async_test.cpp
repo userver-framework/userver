@@ -1,16 +1,13 @@
 #include <userver/utest/utest.hpp>
 
-#include <google/rpc/error_details.pb.h>
-#include <google/rpc/status.pb.h>
-
 #include <ugrpc/impl/status.hpp>
 #include <userver/engine/deadline.hpp>
 #include <userver/engine/sleep.hpp>
 #include <userver/ugrpc/client/exceptions.hpp>
 
-#include <tests/service_fixture_test.hpp>
 #include <tests/unit_test_client.usrv.pb.hpp>
 #include <tests/unit_test_service.usrv.pb.hpp>
+#include <userver/ugrpc/tests/service_fixtures.hpp>
 
 using namespace std::chrono_literals;
 
@@ -41,8 +38,8 @@ class AsyncTestService final : public sample::ugrpc::UnitTestServiceBase {
 }  // namespace
 
 using GrpcAsyncClientErrorTest =
-    GrpcServiceFixtureSimple<AsyncTestServiceWithError>;
-using GrpcAsyncClientTest = GrpcServiceFixtureSimple<AsyncTestService>;
+    ugrpc::tests::ServiceFixture<AsyncTestServiceWithError>;
+using GrpcAsyncClientTest = ugrpc::tests::ServiceFixture<AsyncTestService>;
 
 // Disabled due to https://github.com/grpc/grpc/issues/14812
 UTEST_F(GrpcAsyncClientErrorTest, DISABLED_BidirectionalStreamAsyncRead) {

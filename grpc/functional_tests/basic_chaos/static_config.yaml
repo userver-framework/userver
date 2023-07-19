@@ -19,6 +19,12 @@ components_manager:
         # gRPC server and service
         grpc-server:
             port: 8091
+            service-defaults:
+                task-processor: main-task-processor
+                middlewares:
+                  - grpc-server-logging
+                  - grpc-server-deadline-propagation
+                  - grpc-server-baggage
 
         grpc-server-logging:
             msg-size-log-limit: 10
@@ -28,12 +34,7 @@ components_manager:
         grpc-server-baggage:
 
         greeter-service:
-            task-processor: main-task-processor
             greeting-prefix: Hello
-            middlewares:
-              - grpc-server-logging
-              - grpc-server-deadline-propagation
-              - grpc-server-baggage
 
         # gRPC client
         grpc-client-factory:

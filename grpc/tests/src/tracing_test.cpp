@@ -6,9 +6,9 @@
 #include <ugrpc/impl/rpc_metadata_keys.hpp>
 #include <ugrpc/impl/to_string.hpp>
 
-#include <tests/service_fixture_test.hpp>
 #include <tests/unit_test_client.usrv.pb.hpp>
 #include <tests/unit_test_service.usrv.pb.hpp>
+#include <userver/ugrpc/tests/service_fixtures.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -77,7 +77,8 @@ class UnitTestServiceWithTracingChecks final
   }
 };
 
-using GrpcTracing = GrpcServiceFixtureSimple<UnitTestServiceWithTracingChecks>;
+using GrpcTracing =
+    ugrpc::tests::ServiceFixture<UnitTestServiceWithTracingChecks>;
 
 void CheckMetadata(const grpc::ClientContext& context) {
   const auto& metadata = context.GetServerInitialMetadata();

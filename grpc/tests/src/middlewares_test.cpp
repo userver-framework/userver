@@ -1,10 +1,10 @@
 #include <userver/utest/utest.hpp>
 
-#include <tests/service_fixture_test.hpp>
+#include <userver/ugrpc/client/middlewares/base.hpp>
+
 #include <tests/unit_test_client.usrv.pb.hpp>
 #include <tests/unit_test_service.usrv.pb.hpp>
-
-#include <userver/ugrpc/client/middlewares/base.hpp>
+#include <userver/ugrpc/tests/service_fixtures.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -74,75 +74,71 @@ class MockMiddlewareFactory final
  public:
   std::shared_ptr<const ugrpc::client::MiddlewareBase> GetMiddleware(
       std::string_view) const override {
-    return mw;
+    return mw_;
   }
 
-  std::shared_ptr<MockMiddleware> mw = std::make_shared<MockMiddleware>();
+  MockMiddleware& GetMockMiddleware() { return *mw_; }
+
+ private:
+  std::shared_ptr<MockMiddleware> mw_ = std::make_shared<MockMiddleware>();
+};
+
+class GrpcMiddlewares : public ugrpc::tests::ServiceFixtureBase {
+ protected:
+  GrpcMiddlewares() {
+    AddClientMiddleware(mwf_);
+    RegisterService(service_);
+    StartServer();
+    client_.emplace(MakeClient<sample::ugrpc::UnitTestServiceClient>());
+  }
+
+  ~GrpcMiddlewares() override {
+    client_.reset();
+    StopServer();
+  }
+
+  sample::ugrpc::UnitTestServiceClient& GetClient() { return client_.value(); }
+
+  MockMiddleware& GetMockMiddleware() { return mwf_->GetMockMiddleware(); }
+
+ private:
+  std::shared_ptr<MockMiddlewareFactory> mwf_ =
+      std::make_shared<MockMiddlewareFactory>();
+  UnitTestService service_;
+  std::optional<sample::ugrpc::UnitTestServiceClient> client_;
 };
 
 }  // namespace
 
-using GrpcMiddlewares = GrpcServiceFixture;
-
 UTEST_F(GrpcMiddlewares, HappyPath) {
-  auto mwf = std::make_shared<MockMiddlewareFactory>();
-  GetMiddlewareFactories().push_back(
-      std::shared_ptr<ugrpc::client::MiddlewareFactoryBase>(mwf));
-  UnitTestService service;
-  RegisterService(service);
-  StartServer();
-
-  auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
-  auto& mw = mwf->mw;
-
-  EXPECT_EQ(mw->times_called, 0);
+  EXPECT_EQ(GetMockMiddleware().times_called, 0);
 
   sample::ugrpc::GreetingRequest request;
   request.set_name("userver");
-  auto response = client.SayHello(request).Finish();
+  auto response = GetClient().SayHello(request).Finish();
 
-  EXPECT_EQ(mw->times_called, 1);
+  EXPECT_EQ(GetMockMiddleware().times_called, 1);
   EXPECT_EQ(response.name(), "Hello userver");
 }
 
 UTEST_F(GrpcMiddlewares, Exception) {
-  auto mwf = std::make_shared<MockMiddlewareFactory>();
-  GetMiddlewareFactories().push_back(
-      std::shared_ptr<ugrpc::client::MiddlewareFactoryBase>(mwf));
-  UnitTestService service;
-  RegisterService(service);
-  StartServer();
+  EXPECT_EQ(GetMockMiddleware().times_called, 0);
 
-  auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
-  auto& mw = mwf->mw;
-
-  EXPECT_EQ(mw->times_called, 0);
-
-  mw->throw_exception = true;
+  GetMockMiddleware().throw_exception = true;
   sample::ugrpc::GreetingRequest request;
   request.set_name("userver");
-  EXPECT_THROW(auto r = client.SayHello(request), std::runtime_error);
-  EXPECT_EQ(mw->times_called, 1);
+  EXPECT_THROW(auto r = GetClient().SayHello(request), std::runtime_error);
+  EXPECT_EQ(GetMockMiddleware().times_called, 1);
 }
 
 UTEST_F(GrpcMiddlewares, DISABLED_IN_DEBUG_TEST_NAME(Drop)) {
-  auto mwf = std::make_shared<MockMiddlewareFactory>();
-  GetMiddlewareFactories().push_back(
-      std::shared_ptr<ugrpc::client::MiddlewareFactoryBase>(mwf));
-  UnitTestService service;
-  RegisterService(service);
-  StartServer();
+  EXPECT_EQ(GetMockMiddleware().times_called, 0);
 
-  auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
-  auto& mw = mwf->mw;
-
-  EXPECT_EQ(mw->times_called, 0);
-
-  mw->call_next = false;
+  GetMockMiddleware().call_next = false;
   sample::ugrpc::GreetingRequest request;
   request.set_name("userver");
-  EXPECT_THROW(client.SayHello(request).Finish(), std::exception);
-  EXPECT_EQ(mw->times_called, 1);
+  EXPECT_THROW(GetClient().SayHello(request).Finish(), std::exception);
+  EXPECT_EQ(GetMockMiddleware().times_called, 1);
 }
 
 USERVER_NAMESPACE_END

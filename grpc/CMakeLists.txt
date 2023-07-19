@@ -21,23 +21,19 @@ file(GLOB_RECURSE SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/include/*pp
   ${CMAKE_CURRENT_SOURCE_DIR}/src/*pp)
 
-if (USERVER_IS_THE_ROOT_PROJECT)
-    add_grpc_library(${PROJECT_NAME}_unittest_proto
-      PROTOS
-        # Absolute paths are allowed
-        ${CMAKE_CURRENT_SOURCE_DIR}/proto/tests/unit_test.proto
-        # As well as paths relative to CMAKE_CURRENT_SOURCE_DIR
-        tests/messages.proto
-        tests/same_service_and_method_name.proto
-      INCLUDE_DIRECTORIES ${CMAKE_CURRENT_SOURCE_DIR}/proto
-    )
-    add_subdirectory(functional_tests)
-endif()
-
 file(GLOB_RECURSE UNIT_TEST_SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/src/*_test.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/tests/src/*pp
+  ${CMAKE_CURRENT_SOURCE_DIR}/utest/src/*_test.cpp
 )
 list(REMOVE_ITEM SOURCES ${UNIT_TEST_SOURCES})
+
+file(GLOB_RECURSE LIBUTEST_SOURCES
+    ${CMAKE_CURRENT_SOURCE_DIR}/utest/include/*pp
+    ${CMAKE_CURRENT_SOURCE_DIR}/utest/src/*pp
+)
+list(REMOVE_ITEM LIBUTEST_SOURCES ${UNIT_TEST_SOURCES})
+list(REMOVE_ITEM SOURCES ${LIBUTEST_SOURCES})
 
 if (api-common-proto_USRV_SOURCES)
   list(APPEND SOURCES ${api-common-proto_USRV_SOURCES})
@@ -99,24 +95,55 @@ if (Protobuf_VERSION VERSION_GREATER_EQUAL 4.23.0)
     )
 endif()
 
-if (USERVER_IS_THE_ROOT_PROJECT)
-    add_executable(${PROJECT_NAME}_unittest ${UNIT_TEST_SOURCES})
-    target_include_directories(${PROJECT_NAME}_unittest PRIVATE
-      ${CMAKE_CURRENT_SOURCE_DIR}/include
-      ${CMAKE_CURRENT_SOURCE_DIR}/src
-    )
-    target_link_libraries(${PROJECT_NAME}_unittest
-      PUBLIC
-        ${PROJECT_NAME}-internal
-        userver-utest
-      PRIVATE
-        ${PROJECT_NAME}_unittest_proto
-    )
-    add_google_tests(${PROJECT_NAME}_unittest)
+if (USERVER_FEATURE_UTEST)
+  add_library(${PROJECT_NAME}-utest STATIC ${LIBUTEST_SOURCES})
 
-    target_compile_definitions(${PROJECT_NAME}_unittest PRIVATE
+  target_link_libraries(${PROJECT_NAME}-utest
+      PUBLIC
+      ${PROJECT_NAME}-internal
+      userver-utest
+  )
+
+  target_include_directories(${PROJECT_NAME}-utest PUBLIC
+      ${CMAKE_CURRENT_SOURCE_DIR}/utest/include
+  )
+  target_include_directories(${PROJECT_NAME}-utest PRIVATE
+      ${CMAKE_CURRENT_SOURCE_DIR}/src/
+      ${CMAKE_CURRENT_SOURCE_DIR}/utest/src/
+  )
+endif()
+
+if (USERVER_IS_THE_ROOT_PROJECT)
+  add_grpc_library(${PROJECT_NAME}-unittest-proto
+      PROTOS
+      # Absolute paths are allowed
+      ${CMAKE_CURRENT_SOURCE_DIR}/proto/tests/unit_test.proto
+      # As well as paths relative to CMAKE_CURRENT_SOURCE_DIR
+      tests/messages.proto
+      tests/same_service_and_method_name.proto
+      INCLUDE_DIRECTORIES ${CMAKE_CURRENT_SOURCE_DIR}/proto
+  )
+
+  add_executable(${PROJECT_NAME}-unittest ${UNIT_TEST_SOURCES})
+  target_include_directories(${PROJECT_NAME}-unittest PRIVATE
+      ${CMAKE_CURRENT_SOURCE_DIR}/src
+      ${CMAKE_CURRENT_SOURCE_DIR}/tests/src
+  )
+  target_link_libraries(${PROJECT_NAME}-unittest
+      PUBLIC
+      ${PROJECT_NAME}-internal
+      userver-utest
+      ${PROJECT_NAME}-utest
+      PRIVATE
+      ${PROJECT_NAME}-unittest-proto
+  )
+  add_google_tests(${PROJECT_NAME}-unittest)
+
+  target_compile_definitions(${PROJECT_NAME}-unittest PRIVATE
       DEFAULT_DYNAMIC_CONFIG_FILENAME="${CMAKE_SOURCE_DIR}/grpc/tests/dynamic_config_fallback.json"
-    )
+  )
+
+  add_subdirectory(functional_tests)
 endif()
 
 add_subdirectory(handlers)

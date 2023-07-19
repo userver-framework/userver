@@ -6,9 +6,9 @@
 
 #include <userver/ugrpc/client/exceptions.hpp>
 
-#include <tests/service_fixture_test.hpp>
 #include <tests/unit_test_client.usrv.pb.hpp>
 #include <tests/unit_test_service.usrv.pb.hpp>
+#include <userver/ugrpc/tests/service_fixtures.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -31,7 +31,8 @@ class UnitTestServiceForStatistics final
 
 }  // namespace
 
-using GrpcStatistics = GrpcServiceFixtureSimple<UnitTestServiceForStatistics>;
+using GrpcStatistics =
+    ugrpc::tests::ServiceFixture<UnitTestServiceForStatistics>;
 
 UTEST_F(GrpcStatistics, LongRequest) {
   auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();

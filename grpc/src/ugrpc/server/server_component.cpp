@@ -4,37 +4,33 @@
 #include <userver/components/statistics_storage.hpp>
 #include <userver/dynamic_config/storage/component.hpp>
 #include <userver/logging/component.hpp>
-#include <userver/logging/fwd.hpp>
-#include <userver/logging/null_logger.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
+
+#include <ugrpc/server/impl/parse_config.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::server {
 
-namespace {
-
-logging::LoggerPtr GetLogger(const components::ComponentContext& context,
-                             const ServerConfig config) {
-  if (config.access_log_logger_name.empty()) return logging::MakeNullLogger();
-
-  return context.FindComponent<components::Logging>().GetLogger(
-      config.access_log_logger_name);
-}
-
-}  // namespace
-
 ServerComponent::ServerComponent(const components::ComponentConfig& config,
                                  const components::ComponentContext& context)
     : LoggableComponentBase(config, context),
-      config_(config.As<ServerConfig>()),
       server_(
-          config_,
+          impl::ParseServerConfig(config, context),
           context.FindComponent<components::StatisticsStorage>().GetStorage(),
-          GetLogger(context, config_),
-          context.FindComponent<components::DynamicConfig>().GetSource()) {}
+          context.FindComponent<components::DynamicConfig>().GetSource()),
+      service_defaults_(std::make_unique<impl::ServiceDefaults>(
+          impl::ParseServiceDefaults(config["service-defaults"], context))) {}
+
+ServerComponent::~ServerComponent() = default;
 
 Server& ServerComponent::GetServer() noexcept { return server_; }
+
+ServiceConfig ServerComponent::ParseServiceConfig(
+    const components::ComponentConfig& config,
+    const components::ComponentContext& context) {
+  return impl::ParseServiceConfig(config, context, *service_defaults_);
+}
 
 void ServerComponent::OnAllComponentsLoaded() { server_.Start(); }
 
@@ -75,6 +71,20 @@ properties:
     enable-channelz:
         type: boolean
         description: enable channelz
+    service-defaults:
+        type: object
+        description: omitted options for service components will default to the corresponding option from here
+        additionalProperties: false
+        properties:
+            task-processor:
+                type: string
+                description: the task processor to use for responses
+            middlewares:
+                type: array
+                description: middlewares names to use
+                items:
+                    type: string
+                    description: middleware component name
 )");
 }
 

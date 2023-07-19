@@ -31,6 +31,11 @@ ugrpc::impl::RpcStatisticsScope& CallAnyBase::Statistics(
 }
 
 void CallAnyBase::LogFinish(grpc::Status status) const {
+  constexpr auto kLevel = logging::Level::kInfo;
+  if (!params_.access_tskv_logger.ShouldLog(kLevel)) {
+    return;
+  }
+
   auto md = params_.context.client_metadata();
   auto it = md.find("user-agent");
   std::string user_agent;

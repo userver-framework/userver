@@ -10,13 +10,13 @@
 #include <userver/engine/task/task_with_result.hpp>
 #include <userver/utils/algo.hpp>
 
-#include <tests/service_fixture_test.hpp>
 #include <tests/unit_test_client.usrv.pb.hpp>
 #include <tests/unit_test_service.usrv.pb.hpp>
-
-USERVER_NAMESPACE_BEGIN
+#include <userver/ugrpc/tests/service_fixtures.hpp>
 
 using namespace std::chrono_literals;
+
+USERVER_NAMESPACE_BEGIN
 
 namespace {
 
@@ -81,8 +81,7 @@ void ExpectCancelledStats(const utils::statistics::Snapshot& stats) {
 
 }  // namespace
 
-using GrpcClientCancel =
-    GrpcServiceFixtureSimple<USERVER_NAMESPACE::UnitTestService>;
+using GrpcClientCancel = ugrpc::tests::ServiceFixture<UnitTestService>;
 
 UTEST_F(GrpcClientCancel, UnaryCall) {
   auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();

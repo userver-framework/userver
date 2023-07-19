@@ -15,7 +15,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::server {
 
-class Server;
+class ServerComponent;
 
 // clang-format off
 
@@ -26,8 +26,8 @@ class Server;
 /// ## Static options:
 /// Name | Description | Default value
 /// ---- | ----------- | -------------
-/// task-processor | the task processor to use for responses | -
-/// middlewares | middleware component names to use for each RPC call, can be empty array ([]) | -
+/// task-processor | the task processor to use for responses | taken from grpc-server.service-defaults
+/// middlewares | middleware component names to use for each RPC call, can be empty array ([]) | taken from grpc-server.service-defaults
 
 // clang-format on
 
@@ -44,9 +44,8 @@ class ServiceComponentBase : public components::LoggableComponentBase {
   void RegisterService(ServiceBase& service);
 
  private:
-  Server& server_;
-  engine::TaskProcessor& service_task_processor_;
-  Middlewares middlewares_;
+  ServerComponent& server_;
+  ServiceConfig config_;
   std::atomic<bool> registered_{false};
 };
 

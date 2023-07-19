@@ -18,10 +18,10 @@
 #include <userver/ugrpc/client/exceptions.hpp>
 #include <userver/ugrpc/client/queue_holder.hpp>
 
-#include <tests/deadline_tests_helpers.hpp>
-#include <tests/service_fixture_test.hpp>
+#include <tests/deadline_helpers.hpp>
 #include <tests/unit_test_client.usrv.pb.hpp>
 #include <tests/unit_test_service.usrv.pb.hpp>
+#include <userver/ugrpc/tests/service_fixtures.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -64,7 +64,7 @@ class UnitTestDeadlinePropagationService final
     sample::ugrpc::GreetingResponse response;
     response.set_name("Hello " + request.name());
 
-    helpers::WaitForDeadline(call.GetContext().deadline());
+    tests::WaitForDeadline(call.GetContext().deadline());
 
     call.Finish(response);
   }
@@ -82,7 +82,7 @@ class UnitTestDeadlinePropagationService final
     // NOLINTNEXTLINE(clang-analyzer-optin.cplusplus.UninitializedObject)
     call.Write(response);
 
-    helpers::WaitForDeadline(call.GetContext().deadline());
+    tests::WaitForDeadline(call.GetContext().deadline());
     call.Finish();
   }
 
@@ -102,7 +102,7 @@ class UnitTestDeadlinePropagationService final
     sample::ugrpc::StreamGreetingResponse response;
     response.set_name("Hello " + request.name());
 
-    helpers::WaitForDeadline(call.GetContext().deadline());
+    tests::WaitForDeadline(call.GetContext().deadline());
 
     call.Finish(response);
   }
@@ -124,7 +124,7 @@ class UnitTestDeadlinePropagationService final
     response.set_name("Two " + requests[1].name());
     UEXPECT_NO_THROW(call.Write(response));
 
-    helpers::WaitForDeadline(call.GetContext().deadline());
+    tests::WaitForDeadline(call.GetContext().deadline());
 
     response.set_name("Three " + requests[0].name());
     UEXPECT_THROW(call.WriteAndFinish(response),
@@ -133,16 +133,15 @@ class UnitTestDeadlinePropagationService final
 };
 
 class GrpcDeadlinePropagation
-    : public GrpcServiceFixtureSimple<UnitTestDeadlinePropagationService> {
+    : public ugrpc::tests::ServiceFixture<UnitTestDeadlinePropagationService> {
  public:
   using ClientType = sample::ugrpc::UnitTestServiceClient;
 
   GrpcDeadlinePropagation()
-      : client_deadline_(
-            engine::Deadline::FromDuration(helpers::kShortTimeout)),
-        long_deadline_(engine::Deadline::FromDuration(helpers::kLongTimeout)),
+      : client_deadline_(engine::Deadline::FromDuration(tests::kShortTimeout)),
+        long_deadline_(engine::Deadline::FromDuration(tests::kLongTimeout)),
         client_(MakeClient<ClientType>()) {
-    helpers::InitTaskInheritedDeadline(client_deadline_);
+    tests::InitTaskInheritedDeadline(client_deadline_);
     experiments_.Set(utils::impl::kGrpcClientDeadlinePropagationExperiment,
                      true);
     experiments_.Set(utils::impl::kGrpcServerDeadlinePropagationExperiment,
@@ -151,7 +150,7 @@ class GrpcDeadlinePropagation
 
   ClientType& Client() { return client_; }
 
-  void WaitClientDeadline() { helpers::WaitForDeadline(client_deadline_); }
+  void WaitClientDeadline() { tests::WaitForDeadline(client_deadline_); }
 
   ~GrpcDeadlinePropagation() override {
     EXPECT_TRUE(client_deadline_.IsReached());
@@ -330,7 +329,7 @@ class UnitTestInheritedDeadline final
 };
 
 using GrpcTestInheritedDedline =
-    GrpcServiceFixtureSimple<UnitTestInheritedDeadline>;
+    ugrpc::tests::ServiceFixture<UnitTestInheritedDeadline>;
 
 }  // namespace
 
@@ -341,7 +340,7 @@ UTEST_F(GrpcTestInheritedDedline, TestServerDataExist) {
 
   auto context = std::make_unique<grpc::ClientContext>();
   engine::Deadline deadline =
-      engine::Deadline::FromDuration(helpers::kLongTimeout);
+      engine::Deadline::FromDuration(tests::kLongTimeout);
   GetService().SetClientDeadline(deadline);
 
   context->set_deadline(deadline);
@@ -363,7 +362,7 @@ class UnitTestClientNotSend final : public sample::ugrpc::UnitTestServiceBase {
 };
 
 class GrpcTestClientNotSendData
-    : public GrpcServiceFixtureSimple<UnitTestClientNotSend> {
+    : public ugrpc::tests::ServiceFixture<UnitTestClientNotSend> {
  public:
   using ClientType = sample::ugrpc::UnitTestServiceClient;
 
@@ -383,32 +382,32 @@ class GrpcTestClientNotSendData
 }  // namespace
 
 UTEST_F(GrpcTestClientNotSendData, TestClientDoNotStartCallWithoutDeadline) {
-  auto task_deadline = engine::Deadline::FromDuration(helpers::kShortTimeout);
-  helpers::InitTaskInheritedDeadline(task_deadline);
+  auto task_deadline = engine::Deadline::FromDuration(tests::kShortTimeout);
+  tests::InitTaskInheritedDeadline(task_deadline);
 
   sample::ugrpc::GreetingRequest request;
   request.set_name("userver");
 
   // Wait for deadline before request
-  helpers::WaitForDeadline(task_deadline);
+  tests::WaitForDeadline(task_deadline);
   // Context deadline not set
-  auto call = Client().SayHello(request, helpers::GetContext(false));
+  auto call = Client().SayHello(request, tests::GetContext(false));
 
   sample::ugrpc::GreetingResponse in;
   UEXPECT_THROW(in = call.Finish(), ugrpc::client::DeadlineExceededError);
 }
 
 UTEST_F(GrpcTestClientNotSendData, TestClientDoNotStartCallWithDeadline) {
-  auto task_deadline = engine::Deadline::FromDuration(helpers::kShortTimeout);
-  helpers::InitTaskInheritedDeadline(task_deadline);
+  auto task_deadline = engine::Deadline::FromDuration(tests::kShortTimeout);
+  tests::InitTaskInheritedDeadline(task_deadline);
 
   sample::ugrpc::GreetingRequest request;
   request.set_name("userver");
 
   // Wait for deadline before request
-  helpers::WaitForDeadline(task_deadline);
+  tests::WaitForDeadline(task_deadline);
   // Set additional client deadline
-  auto call = Client().SayHello(request, helpers::GetContext(true));
+  auto call = Client().SayHello(request, tests::GetContext(true));
 
   sample::ugrpc::GreetingResponse in;
   UEXPECT_THROW(in = call.Finish(), ugrpc::client::DeadlineExceededError);

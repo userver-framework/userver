@@ -10,10 +10,12 @@
 #include <userver/engine/sleep.hpp>
 #include <userver/server/request/task_inherited_data.hpp>
 
+#include <userver/ugrpc/impl/deadline_timepoint.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 // TODO move functions to cpp
-namespace helpers {
+namespace tests {
 
 constexpr auto kShortTimeout = std::chrono::milliseconds{300};
 constexpr auto kLongTimeout = std::chrono::milliseconds{500} + kShortTimeout;
@@ -37,14 +39,10 @@ inline void InitTaskInheritedDeadline(
       {{}, kGrpcMethod, std::chrono::steady_clock::now(), deadline});
 }
 
-inline void ClearTaskInheritedDeadline() {
-  server::request::kTaskInheritedData.Erase();
-}
-
 inline void WaitForDeadline(const engine::Deadline deadline) {
   if (!deadline.IsReached()) {
     engine::SleepUntil(deadline);
-    // Some tests flacky without this... Should research this
+    // TODO Some tests are flaky without this... Should research this
     engine::SleepFor(kAddSleep);
   }
 }
@@ -54,6 +52,6 @@ inline void WaitForDeadline(
   WaitForDeadline(engine::Deadline::FromTimePoint(deadline));
 }
 
-}  // namespace helpers
+}  // namespace tests
 
 USERVER_NAMESPACE_END

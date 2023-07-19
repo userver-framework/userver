@@ -16,9 +16,9 @@
 #include <tests/unit_test_client.usrv.pb.hpp>
 #include <tests/unit_test_service.usrv.pb.hpp>
 
-USERVER_NAMESPACE_BEGIN
-
 using namespace std::chrono_literals;
+
+USERVER_NAMESPACE_BEGIN
 
 namespace {
 
@@ -88,10 +88,9 @@ UTEST_P_MT(GrpcChannels, TryWaitForConnected, 2) {
 
   UnitTestServiceSimple service;
   ugrpc::server::Server server(MakeServerConfig(), statistics_storage,
-                               logging::MakeNullLogger(),
                                config_storage.GetSource());
-  ugrpc::server::Middlewares mws;
-  server.AddService(service, engine::current_task::GetTaskProcessor(), mws);
+  server.AddService(service, {engine::current_task::GetTaskProcessor(),
+                              ugrpc::server::Middlewares{}});
   server.Start();
   client_task.Get();
   server.Stop();

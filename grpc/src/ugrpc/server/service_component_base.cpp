@@ -5,6 +5,7 @@
 #include <userver/utils/assert.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
+#include <ugrpc/server/impl/parse_config.hpp>
 #include <userver/ugrpc/server/middlewares/base.hpp>
 #include <userver/ugrpc/server/server_component.hpp>
 
@@ -16,19 +17,12 @@ ServiceComponentBase::ServiceComponentBase(
     const components::ComponentConfig& config,
     const components::ComponentContext& context)
     : LoggableComponentBase(config, context),
-      server_(context.FindComponent<ServerComponent>().GetServer()),
-      service_task_processor_(context.GetTaskProcessor(
-          config["task-processor"].As<std::string>())) {
-  auto middleware_names = config["middlewares"].As<std::vector<std::string>>();
-  for (const auto& name : middleware_names) {
-    auto& component = context.FindComponent<MiddlewareComponentBase>(name);
-    middlewares_.push_back(component.GetMiddleware());
-  }
-}
+      server_(context.FindComponent<ServerComponent>()),
+      config_(server_.ParseServiceConfig(config, context)) {}
 
 void ServiceComponentBase::RegisterService(ServiceBase& service) {
-  UASSERT_MSG(!registered_.exchange(true), "Register must only be called once");
-  server_.AddService(service, service_task_processor_, middlewares_);
+  UINVARIANT(!registered_.exchange(true), "Register must only be called once");
+  server_.GetServer().AddService(service, std::move(config_));
 }
 
 yaml_config::Schema ServiceComponentBase::GetStaticConfigSchema() {
@@ -40,12 +34,14 @@ properties:
     task-processor:
         type: string
         description: the task processor to use for responses
+        defaultDescription: uses grpc-server.service-defaults.task-processor
     middlewares:
         type: array
+        description: middlewares names to use
+        defaultDescription: uses grpc-server.service-defaults.middlewares
         items:
             type: string
             description: middleware component name
-        description: middlewares names to use
 )");
 }
 

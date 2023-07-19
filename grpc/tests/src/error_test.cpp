@@ -8,9 +8,9 @@
 #include <userver/engine/sleep.hpp>
 #include <userver/ugrpc/client/exceptions.hpp>
 
-#include <tests/service_fixture_test.hpp>
 #include <tests/unit_test_client.usrv.pb.hpp>
 #include <tests/unit_test_service.usrv.pb.hpp>
+#include <userver/ugrpc/tests/service_fixtures.hpp>
 
 using namespace std::chrono_literals;
 
@@ -70,7 +70,8 @@ class UnitTestServiceWithDetailedError final
 
 }  // namespace
 
-using GrpcClientErrorTest = GrpcServiceFixtureSimple<UnitTestServiceWithError>;
+using GrpcClientErrorTest =
+    ugrpc::tests::ServiceFixture<UnitTestServiceWithError>;
 
 UTEST_F(GrpcClientErrorTest, UnaryRPC) {
   auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
@@ -129,7 +130,7 @@ UTEST_F(GrpcClientErrorTest, BidirectionalStream) {
 }
 
 using GrpcClientWithDetailedErrorTest =
-    GrpcServiceFixtureSimple<UnitTestServiceWithDetailedError>;
+    ugrpc::tests::ServiceFixture<UnitTestServiceWithDetailedError>;
 
 UTEST_F(GrpcClientWithDetailedErrorTest, UnaryRPC) {
   constexpr std::string_view kExpectedMessage =

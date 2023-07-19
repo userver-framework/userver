@@ -19,10 +19,10 @@
 #include <userver/ugrpc/client/exceptions.hpp>
 
 #include <tests/messages.pb.h>
-#include <tests/deadline_tests_helpers.hpp>
-#include <tests/service_fixture_test.hpp>
+#include <tests/deadline_helpers.hpp>
 #include <tests/unit_test_client.usrv.pb.hpp>
 #include <tests/unit_test_service.usrv.pb.hpp>
+#include <userver/ugrpc/tests/service_fixtures.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -42,7 +42,7 @@ class UnitTestDeadlineStatsService final
     response.set_name("Hello " + request.name());
 
     if (wait_deadline_) {
-      helpers::WaitForDeadline(call.GetContext().deadline());
+      tests::WaitForDeadline(call.GetContext().deadline());
     }
 
     call.Finish(response);
@@ -55,7 +55,7 @@ class UnitTestDeadlineStatsService final
 };
 
 class DeadlineStatsTests
-    : public GrpcServiceFixtureSimple<UnitTestDeadlineStatsService> {
+    : public ugrpc::tests::ServiceFixture<UnitTestDeadlineStatsService> {
  public:
   DeadlineStatsTests() {
     ExtendDynamicConfig({
@@ -79,7 +79,7 @@ class DeadlineStatsTests
 
     auto client = MakeClient<ClientType>();
 
-    auto context = helpers::GetContext(need_deadline);
+    auto context = tests::GetContext(need_deadline);
     auto call = client.SayHello(request, std::move(context));
     try {
       response = call.Finish();
@@ -139,7 +139,7 @@ UTEST_F(DeadlineStatsTests, ClientDeadlineUpdated) {
   size_t expected_value{0};
 
   // TaskInheritedData has set up. Deadline will be propagated
-  helpers::InitTaskInheritedDeadline();
+  tests::InitTaskInheritedDeadline();
 
   // Enabled be default
   // Requests with deadline
@@ -165,8 +165,8 @@ UTEST_F(DeadlineStatsTests, ClientDeadlineNotUpdated) {
   constexpr std::size_t kExpected{0};
 
   // TaskInheritedData has set up but context deadline is less
-  helpers::InitTaskInheritedDeadline(
-      engine::Deadline::FromDuration(helpers::kLongTimeout * 2));
+  tests::InitTaskInheritedDeadline(
+      engine::Deadline::FromDuration(tests::kLongTimeout * 2));
 
   // Requests with deadline. Deadline will not be replaced
   EXPECT_TRUE(ExecuteRequest(true));
@@ -200,7 +200,7 @@ UTEST_F(DeadlineStatsTests, ClientDeadlineCancelled) {
   BeSlow();
 
   // TaskInheritedData has set up, but DP disabled
-  helpers::InitTaskInheritedDeadline();
+  tests::InitTaskInheritedDeadline();
 
   // Requests with deadline
   EXPECT_FALSE(ExecuteRequest(true));
@@ -229,7 +229,7 @@ UTEST_F(DeadlineStatsTests, DisabledClientDeadlineUpdated) {
   DisableClientDp();
 
   // TaskInheritedData has set up, but DP disabled
-  helpers::InitTaskInheritedDeadline();
+  tests::InitTaskInheritedDeadline();
 
   // Requests with deadline
   // TaskInheritedData ignored
@@ -254,7 +254,7 @@ UTEST_F(DeadlineStatsTests, DisabledClientDeadlineCancelled) {
   DisableClientDp();
 
   // TaskInheritedData has set up, but DP disabled.
-  helpers::InitTaskInheritedDeadline();
+  tests::InitTaskInheritedDeadline();
 
   // Failed by deadline. But not due to deadline propagation
   EXPECT_FALSE(ExecuteRequest(true));

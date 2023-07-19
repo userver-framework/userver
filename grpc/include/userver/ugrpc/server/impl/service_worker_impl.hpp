@@ -246,7 +246,7 @@ std::unique_ptr<ServiceWorker> MakeServiceWorker(
     const std::string_view (&method_full_names)[sizeof...(ServiceMethods)],
     Service& service, ServiceMethods... service_methods) {
   return std::make_unique<ServiceWorkerImpl<GrpcppService>>(
-      ServiceSettings(settings),
+      std::move(settings),
       ugrpc::impl::MakeStaticServiceMetadata<GrpcppService>(method_full_names),
       service, service_methods...);
 }

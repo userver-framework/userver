@@ -19,9 +19,9 @@
 #include <userver/ugrpc/client/exceptions.hpp>
 #include <userver/ugrpc/client/queue_holder.hpp>
 
-#include <tests/service_fixture_test.hpp>
 #include <tests/unit_test_client.usrv.pb.hpp>
 #include <tests/unit_test_service.usrv.pb.hpp>
+#include <userver/ugrpc/tests/service_fixtures.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -32,8 +32,7 @@ class ServerBaggageTestService final
  public:
   void SayHello(SayHelloCall& call, sample::ugrpc::GreetingRequest&&) override {
     sample::ugrpc::GreetingResponse response;
-    const auto* bg =
-        USERVER_NAMESPACE::baggage::BaggageManager::TryGetBaggage();
+    const auto* bg = baggage::BaggageManager::TryGetBaggage();
 
     if (bg) {
       response.set_name(bg->ToString());
@@ -45,18 +44,25 @@ class ServerBaggageTestService final
   }
 };
 
-class GrpcServerTestBaggage
-    : public GrpcServiceFixtureSimple<ServerBaggageTestService> {
+class GrpcServerTestBaggage : public ugrpc::tests::ServiceFixtureBase {
  public:
   GrpcServerTestBaggage() {
-    GetServerMiddlewares().push_back(
+    AddServerMiddleware(
         std::make_shared<ugrpc::server::middlewares::baggage::Middleware>());
 
     ExtendDynamicConfig({
         {baggage::kBaggageSettings, {{"key1", "key2", "key3"}}},
         {baggage::kBaggageEnabled, true},
     });
+
+    RegisterService(service_);
+    StartServer();
   }
+
+  ~GrpcServerTestBaggage() override { StopServer(); }
+
+ private:
+  ServerBaggageTestService service_;
 };
 
 }  // namespace
@@ -136,20 +142,21 @@ class ClientBaggageTestService final
   }
 };
 
-class GrpcClientTestBaggage : public GrpcServiceFixture {
+class GrpcClientTestBaggage : public ugrpc::tests::ServiceFixtureBase {
  public:
   GrpcClientTestBaggage() {
     ExtendDynamicConfig({
         {baggage::kBaggageSettings, {{"key1", "key2", "key3"}}},
         {baggage::kBaggageEnabled, true},
     });
-    GetMiddlewareFactories().push_back(
-        std::shared_ptr<ugrpc::client::MiddlewareFactoryBase>(
-            std::make_shared<
-                ugrpc::client::middlewares::baggage::MiddlewareFactory>()));
+    AddClientMiddleware(
+        std::make_shared<
+            ugrpc::client::middlewares::baggage::MiddlewareFactory>());
     RegisterService(service_);
     StartServer();
   };
+
+  ~GrpcClientTestBaggage() override { StopServer(); }
 
   baggage::BaggageManager& BaggageManager() { return baggage_manager_; }
 

@@ -9,13 +9,13 @@
 #include <userver/engine/task/task_with_result.hpp>
 #include <userver/utils/algo.hpp>
 
-#include <tests/service_fixture_test.hpp>
 #include <tests/unit_test_client.usrv.pb.hpp>
 #include <tests/unit_test_service.usrv.pb.hpp>
-
-USERVER_NAMESPACE_BEGIN
+#include <userver/ugrpc/tests/service_fixtures.hpp>
 
 using namespace std::chrono_literals;
+
+USERVER_NAMESPACE_BEGIN
 
 namespace {
 
@@ -81,8 +81,7 @@ class UnitTestService final : public sample::ugrpc::UnitTestServiceBase {
 
 }  // namespace
 
-using GrpcClientTest =
-    GrpcServiceFixtureSimple<USERVER_NAMESPACE::UnitTestService>;
+using GrpcClientTest = ugrpc::tests::ServiceFixture<UnitTestService>;
 
 std::unique_ptr<grpc::ClientContext> PrepareClientContext() {
   auto context = std::make_unique<grpc::ClientContext>();
@@ -262,7 +261,7 @@ UTEST_F(GrpcClientTest, EmptyBidirectionalStream) {
 }
 
 using GrpcClientMultichannelTest =
-    GrpcServiceFixtureMultichannel<USERVER_NAMESPACE::UnitTestService>;
+    ugrpc::tests::ServiceFixtureMultichannel<UnitTestService>;
 
 UTEST_P_MT(GrpcClientMultichannelTest, MultiThreadedClientTest, 4) {
   auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
@@ -320,7 +319,7 @@ class WriteAndFinishService final : public sample::ugrpc::UnitTestServiceBase {
 
 }  // namespace
 
-using GrpcWriteAndFinish = GrpcServiceFixtureSimple<WriteAndFinishService>;
+using GrpcWriteAndFinish = ugrpc::tests::ServiceFixture<WriteAndFinishService>;
 
 UTEST_F(GrpcWriteAndFinish, InputStream) {
   auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();

@@ -89,20 +89,20 @@ target_include_directories (${PROJECT_NAME} PRIVATE
 # Helper library for testing user code with redis. Provides mock_client_base.hpp
 # and other helper headers
 if (USERVER_FEATURE_UTEST)
-    add_library(${PROJECT_NAME}_utest STATIC ${UTESTLIB_SOURCES})
-    target_include_directories(
-      ${PROJECT_NAME}_utest
-      PUBLIC
-        ${CMAKE_CURRENT_SOURCE_DIR}/testing/include
-    )
-    target_include_directories (${PROJECT_NAME}_utest PRIVATE
-      $<TARGET_PROPERTY:userver-core,INCLUDE_DIRECTORIES>
-    )
-    target_link_libraries(${PROJECT_NAME}_utest
-      userver-utest
-      ${PROJECT_NAME}
-    )
-  target_compile_definitions(${PROJECT_NAME}_utest PRIVATE
+  add_library(${PROJECT_NAME}-utest STATIC ${UTESTLIB_SOURCES})
+  target_include_directories(
+    ${PROJECT_NAME}-utest
+    PUBLIC
+      ${CMAKE_CURRENT_SOURCE_DIR}/testing/include
+  )
+  target_include_directories (${PROJECT_NAME}-utest PRIVATE
+    $<TARGET_PROPERTY:userver-core,INCLUDE_DIRECTORIES>
+  )
+  target_link_libraries(${PROJECT_NAME}-utest
+    userver-utest
+    ${PROJECT_NAME}
+  )
+  target_compile_definitions(${PROJECT_NAME}-utest PRIVATE
       DEFAULT_DYNAMIC_CONFIG_FILENAME="${CMAKE_CURRENT_SOURCE_DIR}/tests/dynamic_config_fallback.json"
   )
 endif()
@@ -111,7 +111,7 @@ if (USERVER_IS_THE_ROOT_PROJECT)
   add_executable(${PROJECT_NAME}_unittest ${UNIT_TEST_SOURCES})
   target_link_libraries(${PROJECT_NAME}_unittest
     userver-utest
-    ${PROJECT_NAME}_utest
+    ${PROJECT_NAME}-utest
     ${PROJECT_NAME}
   )
   target_include_directories(

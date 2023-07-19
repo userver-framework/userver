@@ -13,6 +13,7 @@
 #include <userver/dynamic_config/source.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/logging/level.hpp>
+#include <userver/logging/null_logger.hpp>
 #include <userver/utils/statistics/fwd.hpp>
 #include <userver/yaml_config/fwd.hpp>
 
@@ -42,12 +43,9 @@ struct ServerConfig final {
   /// Serve a web page with runtime info about gRPC connections
   bool enable_channelz{false};
 
-  /// Name of 'access-tskv.log' logger
-  std::string access_log_logger_name;
+  /// 'access-tskv.log' logger
+  logging::LoggerPtr access_tskv_logger{logging::MakeNullLogger()};
 };
-
-ServerConfig Parse(const yaml_config::YamlConfig& value,
-                   formats::parse::To<ServerConfig> to);
 
 /// @brief Manages the gRPC server
 ///
@@ -58,9 +56,8 @@ class Server final {
   using SetupHook = std::function<void(grpc::ServerBuilder&)>;
 
   /// @brief Start building the server
-  explicit Server(const ServerConfig& config,
+  explicit Server(ServerConfig&& config,
                   utils::statistics::Storage& statistics_storage,
-                  logging::LoggerPtr access_tskv_logger,
                   dynamic_config::Source config_source);
 
   Server(Server&&) = delete;
@@ -70,8 +67,7 @@ class Server final {
   /// @brief Register a service implementation in the server. The user or the
   /// component is responsible for keeping `service` and `middlewares` alive at
   /// least until `Stop` is called.
-  void AddService(ServiceBase& service, engine::TaskProcessor& task_processor,
-                  const Middlewares& middlewares);
+  void AddService(ServiceBase& service, ServiceConfig&& config);
 
   /// @brief Get names of all registered services
   std::vector<std::string_view> GetServiceNames() const;

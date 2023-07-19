@@ -2,9 +2,9 @@
 
 #include <userver/ugrpc/client/exceptions.hpp>
 
-#include <tests/service_fixture_test.hpp>
 #include <tests/unit_test_client.usrv.pb.hpp>
 #include <tests/unit_test_service.usrv.pb.hpp>
+#include <userver/ugrpc/tests/service_fixtures.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -19,7 +19,7 @@ std::unique_ptr<grpc::ClientContext> ContextWithDeadline() {
 
 }  // namespace
 
-class GrpcServerAllUnimplementedTest : public GrpcServiceFixture {
+class GrpcServerAllUnimplementedTest : public ugrpc::tests::ServiceFixtureBase {
  protected:
   GrpcServerAllUnimplementedTest() { StartServer(); }
 
@@ -40,7 +40,7 @@ class ChatOnlyService final : public sample::ugrpc::UnitTestServiceBase {
 };
 
 using GrpcServerSomeUnimplementedTest =
-    GrpcServiceFixtureSimple<ChatOnlyService>;
+    ugrpc::tests::ServiceFixture<ChatOnlyService>;
 
 UTEST_F(GrpcServerSomeUnimplementedTest, Implemented) {
   auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();

@@ -12,13 +12,13 @@
 #include <userver/ugrpc/client/queue_holder.hpp>
 #include <userver/ugrpc/server/server.hpp>
 
-#include <tests/service_fixture_test.hpp>
 #include <tests/unit_test_client.usrv.pb.hpp>
 #include <tests/unit_test_service.usrv.pb.hpp>
-
-USERVER_NAMESPACE_BEGIN
+#include <userver/ugrpc/tests/service_fixtures.hpp>
 
 using namespace std::chrono_literals;
+
+USERVER_NAMESPACE_BEGIN
 
 namespace {
 
@@ -38,7 +38,7 @@ class UnitTestServiceCancelEcho final
 
 }  // namespace
 
-using GrpcCancel = GrpcServiceFixtureSimple<UnitTestServiceCancelEcho>;
+using GrpcCancel = ugrpc::tests::ServiceFixture<UnitTestServiceCancelEcho>;
 
 UTEST_F(GrpcCancel, TryCancel) {
   auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
@@ -72,7 +72,7 @@ class UnitTestServiceEcho final : public sample::ugrpc::UnitTestServiceBase {
   }
 };
 
-using GrpcServerEcho = GrpcServiceFixtureSimple<UnitTestServiceEcho>;
+using GrpcServerEcho = ugrpc::tests::ServiceFixture<UnitTestServiceEcho>;
 
 }  // namespace
 
@@ -171,7 +171,8 @@ class UnitTestServiceCancelHello final
 
 }  // namespace
 
-using GrpcCancelByClient = GrpcServiceFixtureSimple<UnitTestServiceCancelHello>;
+using GrpcCancelByClient =
+    ugrpc::tests::ServiceFixture<UnitTestServiceCancelHello>;
 
 UTEST_F_MT(GrpcCancelByClient, CancelByClient, 3) {
   auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
