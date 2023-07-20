@@ -164,50 +164,62 @@ struct RetryNilFromMaster {};
 // master if slave returned a nil reply.
 static const RetryNilFromMaster kRetryNilFromMaster{};
 
+/// Redis command execution options
 struct CommandControl {
   enum class Strategy {
-    /* same as kEveryDc */
+    /// Same as kEveryDc
     kDefault,
-    /* Send ~1/N requests to an instance with ping N ms */
+
+    /// Send ~1/N requests to an instance with ping N ms
     kEveryDc,
-    /* Send requests to Redis instances located in local DC (by Conductor
-       info) */
+
+    /// Send requests to Redis instances located in local DC (by Conductor info)
     kLocalDcConductor,
-    /* Send requests to 'best_dc_count' Redis instances with the min ping */
+
+    /// Send requests to 'best_dc_count' Redis instances with the min ping
     kNearestServerPing,
   };
 
-  // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
-  std::chrono::milliseconds timeout_single = std::chrono::milliseconds(0);
-  // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
-  std::chrono::milliseconds timeout_all = std::chrono::milliseconds(0);
-  // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
-  size_t max_retries = 0;
-  // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
+  /// Timeout for a single attempt to execute command
+  std::chrono::milliseconds timeout_single = std::chrono::milliseconds{500};
+
+  /// Command execution timeout, including retries
+  std::chrono::milliseconds timeout_all = std::chrono::milliseconds{2000};
+
+  /// The maximum number of retries while executing command
+  size_t max_retries = 4;
+
+  /// Server instance selection strategy
   Strategy strategy = Strategy::kDefault;
-  // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
-  size_t best_dc_count = 0; /* How many nearest DCs to use, 0 for no limit */
-  // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
+
+  /// How many nearest DCs to use, 0 for no limit
+  size_t best_dc_count = 0;
+
+  /// Server latency limit
   std::chrono::milliseconds max_ping_latency = std::chrono::milliseconds(0);
-  // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
+
+  /// Force execution on master node
   bool force_request_to_master = false;
-  // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
+
+  /// Allow execution of readonly commands on master node to facilitate load
+  /// distribution
   bool allow_reads_from_master = false;
-  // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
+
+  /// Controls if command execution will be accounted in statistics
   bool account_in_statistics = true;
-  // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
+
+  /// If set, force execution on specific shard
   std::optional<size_t> force_shard_idx;
-  // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
+
+  /// Split execution of multi-key commands (i.e., MGET) to multiple requests
   size_t chunk_size = 0;
 
-  /* If set, the user wants a specific Redis instance to handle the command.
-   * Sentinel may not redirect the command to other instances.
-   * strategy is ignored.
-   */
-  // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
+  /// If set, the user wants a specific Redis instance to handle the command.
+  /// Sentinel may not redirect the command to other instances. strategy is
+  /// ignored.
   ServerId force_server_id;
 
-  // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
+  /// If set, command retries will be directed to the master instance
   bool force_retries_to_master_on_nil_reply = false;
 
   CommandControl() = default;
@@ -219,22 +231,15 @@ struct CommandControl {
 
   CommandControl MergeWith(const CommandControl& b) const;
   CommandControl MergeWith(const testsuite::RedisControl&) const;
+  CommandControl MergeWith(RetryNilFromMaster) const;
 
   std::string ToString() const;
 
   friend class Sentinel;
   friend class storages::redis::Client;
-
- private:
-  CommandControl MergeWith(RetryNilFromMaster) const;
 };
 
 CommandControl::Strategy StrategyFromString(const std::string& s);
-
-const CommandControl kDefaultCommandControl = {
-    /*.timeout_single = */ std::chrono::milliseconds(500),
-    /*.timeout_all = */ std::chrono::milliseconds(2000),
-    /*.max_retries = */ 4};
 
 struct CommandsBufferingSettings {
   bool buffering_enabled{false};

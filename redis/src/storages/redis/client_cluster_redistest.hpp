@@ -51,10 +51,8 @@ class RedisClusterClientTest : public ::testing::Test {
         configs_source, "pub", true, {}, nullptr);
     subscribe_sentinel_->WaitConnectedDebug();
 
-    auto info_reply = sentinel_
-                          ->MakeRequest({"info", "server"}, "none", false,
-                                        redis::kDefaultCommandControl)
-                          .Get();
+    auto info_reply =
+        sentinel_->MakeRequest({"info", "server"}, "none", false).Get();
     ASSERT_TRUE(info_reply->IsOk());
     ASSERT_TRUE(info_reply->data.IsString());
     const auto info = info_reply->data.GetString();
@@ -75,9 +73,7 @@ class RedisClusterClientTest : public ::testing::Test {
 
   void SetUp() override {
     for (size_t shard = 0; shard < 3; ++shard) {
-      sentinel_
-          ->MakeRequest({"flushdb"}, shard, true, redis::kDefaultCommandControl)
-          .Get();
+      sentinel_->MakeRequest({"flushdb"}, shard, true).Get();
     }
 
     client_ = std::make_shared<storages::redis::ClientImpl>(sentinel_);

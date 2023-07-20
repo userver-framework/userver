@@ -43,10 +43,8 @@ class RedisClientTest : public ::testing::Test {
         dynamic_config::GetDefaultSource(), "pub", false, {}, nullptr);
     subscribe_sentinel_->WaitConnectedDebug();
 
-    auto info_reply = sentinel_
-                          ->MakeRequest({"info", "server"}, "none", false,
-                                        redis::kDefaultCommandControl)
-                          .Get();
+    auto info_reply =
+        sentinel_->MakeRequest({"info", "server"}, "none", false).Get();
     ASSERT_TRUE(info_reply->IsOk());
     ASSERT_TRUE(info_reply->data.IsString());
     const auto info = info_reply->data.GetString();
@@ -66,9 +64,7 @@ class RedisClientTest : public ::testing::Test {
   }
 
   void SetUp() override {
-    sentinel_
-        ->MakeRequest({"flushdb"}, "none", true, redis::kDefaultCommandControl)
-        .Get();
+    sentinel_->MakeRequest({"flushdb"}, "none", true).Get();
 
     client_ = std::make_shared<storages::redis::ClientImpl>(sentinel_);
 

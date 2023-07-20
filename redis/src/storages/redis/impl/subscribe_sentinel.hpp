@@ -24,8 +24,7 @@ class SubscribeSentinel : protected Sentinel {
       ConnectionSecurity connection_security,
       ReadyChangeCallback ready_callback,
       std::unique_ptr<KeyShard>&& key_shard = nullptr,
-      bool is_cluster_mode = false,
-      CommandControl command_control = kDefaultCommandControl,
+      bool is_cluster_mode = false, CommandControl command_control = {},
       const testsuite::RedisControl& testsuite_redis_control = {});
   ~SubscribeSentinel() override;
 

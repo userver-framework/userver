@@ -122,7 +122,7 @@ std::shared_ptr<SubscribeSentinel> SubscribeSentinel::Create(
                        settings.secure_connection,
                        ResolveDns(sentinel.host, dns_resolver));
   }
-  redis::CommandControl command_control = redis::kDefaultCommandControl;
+  redis::CommandControl command_control{};
   LOG_DEBUG() << "redis command_control: timeout_single = "
               << command_control.timeout_single.count()
               << "ms; timeout_all = " << command_control.timeout_all.count()

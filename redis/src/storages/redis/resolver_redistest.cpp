@@ -22,8 +22,8 @@ storages::redis::ClientPtr GetClientWithResolver(
       redis::kDefaultRedisThreadPoolSize);
   auto sentinel = redis::Sentinel::CreateSentinel(
       std::move(thread_pools), GetTestsuiteRedisSettings(), "none",
-      dynamic_config::GetDefaultSource(), "pub", redis::KeyShardFactory{""},
-      redis::kDefaultCommandControl, {}, resolver);
+      dynamic_config::GetDefaultSource(), "pub", redis::KeyShardFactory{""}, {},
+      {}, resolver);
   sentinel->WaitConnectedDebug();
   return std::make_shared<storages::redis::ClientImpl>(std::move(sentinel));
 }
@@ -76,8 +76,8 @@ storages::redis::ClientPtr GetClientCustomResolve(
       redis::kDefaultRedisThreadPoolSize);
   auto sentinel = CreateSentinelCustomResolve(
       std::move(thread_pools), GetTestsuiteRedisSettings(), "none", "pub",
-      std::move(ready_callback), redis::KeyShardFactory{""},
-      redis::kDefaultCommandControl, {}, resolved_hosts);
+      std::move(ready_callback), redis::KeyShardFactory{""}, {}, {},
+      resolved_hosts);
   sentinel->WaitConnectedOnce({redis::WaitConnectedMode::kMasterAndSlave, false,
                                std::chrono::milliseconds(2000)});
   return std::make_shared<storages::redis::ClientImpl>(std::move(sentinel));

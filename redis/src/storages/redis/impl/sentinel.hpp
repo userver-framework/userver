@@ -56,7 +56,7 @@ class Sentinel {
            ReadyChangeCallback ready_callback,
            dynamic_config::Source dynamic_config_source,
            std::unique_ptr<KeyShard>&& key_shard = nullptr,
-           CommandControl command_control = kDefaultCommandControl,
+           CommandControl command_control = {},
            const testsuite::RedisControl& testsuite_redis_control = {},
            ConnectionMode mode = ConnectionMode::kCommands);
   virtual ~Sentinel();
@@ -84,7 +84,7 @@ class Sentinel {
       const secdist::RedisSettings& settings, std::string shard_group_name,
       dynamic_config::Source dynamic_config_source,
       const std::string& client_name, KeyShardFactory key_shard_factory,
-      const CommandControl& command_control = kDefaultCommandControl,
+      const CommandControl& command_control = {},
       const testsuite::RedisControl& testsuite_redis_control = {},
       clients::dns::Resolver* dns_resolver = nullptr);
   static std::shared_ptr<redis::Sentinel> CreateSentinel(
@@ -93,7 +93,7 @@ class Sentinel {
       dynamic_config::Source dynamic_config_source,
       const std::string& client_name, ReadyChangeCallback ready_callback,
       KeyShardFactory key_shard_factory,
-      const CommandControl& command_control = kDefaultCommandControl,
+      const CommandControl& command_control = {},
       const testsuite::RedisControl& testsuite_redis_control = {},
       clients::dns::Resolver* dns_resolver = nullptr);
 

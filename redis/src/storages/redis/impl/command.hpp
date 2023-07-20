@@ -45,11 +45,11 @@ struct Command : public std::enable_shared_from_this<Command> {
   std::string name;
 };
 
-CommandPtr PrepareCommand(
-    CmdArgs&& args, ReplyCallback callback,
-    const CommandControl& command_control = kDefaultCommandControl,
-    int counter = 0, bool asking = false, size_t instance_idx = 0,
-    bool redirected = false, bool read_only = false);
+CommandPtr PrepareCommand(CmdArgs&& args, ReplyCallback callback,
+                          const CommandControl& command_control = {},
+                          int counter = 0, bool asking = false,
+                          size_t instance_idx = 0, bool redirected = false,
+                          bool read_only = false);
 
 }  // namespace redis
 
