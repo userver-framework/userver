@@ -97,7 +97,7 @@ std::size_t Client::ReadSome() {
 }
 
 void Client::WriteResponse() {
-  [[maybe_unused]] size_t sent =
+  [[maybe_unused]] const size_t sent =
       socket_.SendAll(resp_.data_to_send.data(), resp_.data_to_send.size(), {});
 }
 
@@ -108,6 +108,7 @@ class SimpleServer::Impl {
   Impl(OnRequest callback, Protocol protocol);
 
   [[nodiscard]] Port GetPort() const { return listener_.port; };
+
   [[nodiscard]] Protocol GetProtocol() const {
     switch (listener_.addr.Domain()) {
       case engine::io::AddrDomain::kInet:
@@ -119,9 +120,14 @@ class SimpleServer::Impl {
     }
   };
 
+  std::uint64_t GetConnectionsOpenedCount() const {
+    return connections_opened_count_;
+  }
+
  private:
   OnRequest callback_;
   internal::net::TcpListener listener_;
+  std::atomic<std::uint64_t> connections_opened_count_{0};
 
   concurrent::BackgroundTaskStorage client_tasks_storage_;
   engine::Task listener_task_;
@@ -147,6 +153,7 @@ void SimpleServer::Impl::StartPortListening() {
       auto socket = listener_.socket.Accept({});
 
       LOG_TRACE() << "SimpleServer accepted socket";
+      ++connections_opened_count_;
 
       client_tasks_storage_.AsyncDetach(
           "client", [cb = cb, s = std::move(socket)]() mutable {
@@ -177,6 +184,10 @@ std::string SimpleServer::GetBaseUrl(Schema type) const {
   url += std::to_string(GetPort());
 
   return url;
+}
+
+std::uint64_t SimpleServer::GetConnectionsOpenedCount() const {
+  return pimpl_->GetConnectionsOpenedCount();
 }
 
 }  // namespace utest

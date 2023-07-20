@@ -3,6 +3,7 @@
 /// @file userver/utest/simple_server.hpp
 /// @brief @copybrief utest::SimpleServer
 
+#include <cstdint>
 #include <functional>
 #include <initializer_list>
 #include <memory>
@@ -52,6 +53,8 @@ class SimpleServer final {
   };
 
   std::string GetBaseUrl(Schema type = Schema::kHttp) const;
+
+  std::uint64_t GetConnectionsOpenedCount() const;
 
  private:
   class Impl;

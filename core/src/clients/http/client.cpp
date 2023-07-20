@@ -131,19 +131,15 @@ Request Client::CreateRequest() {
       auto& multi = multis_[i];
 
       try {
-        return engine::AsyncNoSpan(
-                   fs_task_processor_,
-                   [this, &multi, &i] {
-                     // GetBound() calls blocking Curl_resolver_init()
-                     auto wrapper = std::make_shared<impl::EasyWrapper>(
-                         easy_.Get()->GetBoundBlocking(*multi), *this);
-                     return Request{std::move(wrapper),
-                                    statistics_[i].CreateRequestStats(),
-                                    destination_statistics_, resolver_,
-                                    plugin_pipeline_};
-                   })
-            .Get();
+        auto wrapper = engine::AsyncNoSpan(fs_task_processor_, [this, &multi] {
+                         return std::make_shared<impl::EasyWrapper>(
+                             easy_.Get()->GetBoundBlocking(*multi), *this);
+                       }).Get();
+        return Request{std::move(wrapper), statistics_[i].CreateRequestStats(),
+                       destination_statistics_, resolver_, plugin_pipeline_};
       } catch (engine::WaitInterruptedException&) {
+        throw clients::http::CancelException();
+      } catch (engine::TaskCancelledException&) {
         throw clients::http::CancelException();
       }
     }

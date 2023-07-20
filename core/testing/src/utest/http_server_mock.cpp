@@ -10,22 +10,41 @@ USERVER_NAMESPACE_BEGIN
 
 namespace utest {
 
-HttpServerMock::HttpServerMock(HttpHandler http_handler,
-                               SimpleServer::Protocol protocol)
-    : http_handler_(std::move(http_handler)),
-      server_(OnNewConnection(), protocol) {}
-
-std::string HttpServerMock::GetBaseUrl() const { return server_.GetBaseUrl(); }
-
 namespace {
-class HttpConnection {
+
+clients::http::HttpMethod ConvertHttpMethod(http_method method) {
+  switch (method) {
+    case HTTP_DELETE:
+      return clients::http::HttpMethod::kDelete;
+    case HTTP_GET:
+      return clients::http::HttpMethod::kGet;
+    case HTTP_HEAD:
+      return clients::http::HttpMethod::kHead;
+    case HTTP_POST:
+      return clients::http::HttpMethod::kPost;
+    case HTTP_PUT:
+      return clients::http::HttpMethod::kPut;
+    case HTTP_PATCH:
+      return clients::http::HttpMethod::kPatch;
+    case HTTP_OPTIONS:
+      return clients::http::HttpMethod::kOptions;
+    default:
+      ADD_FAILURE() << "Unknown HTTP method " << method;
+      return clients::http::HttpMethod::kGet;
+  }
+}
+
+}  // namespace
+
+class HttpConnection final {
  public:
-  explicit HttpConnection(HttpServerMock::HttpHandler http_handler);
+  explicit HttpConnection(HttpServerMock& owner);
 
   HttpConnection(const HttpConnection& other);
 
   SimpleServer::Response operator()(const SimpleServer::Request& request);
 
+ private:
   static int OnUrl(http_parser* p, const char* data, size_t size);
   static int OnHeaderField(http_parser* p, const char* data, size_t size);
   static int OnHeaderValue(http_parser* p, const char* data, size_t size);
@@ -42,14 +61,20 @@ class HttpConnection {
   int DoOnBody(const char* data, size_t size);
   int DoOnMessageComplete();
 
- private:
-  HttpServerMock::HttpHandler http_handler_;
+  void Reset();
+
+  static constexpr http_parser_settings MakeHttpParserSettings();
+
+  static const http_parser_settings kParserSettings;
+
+  HttpServerMock& owner_;
   http_parser parser_{};
 
   HttpServerMock::HttpRequest http_request_;
   std::optional<HttpServerMock::HttpResponse> http_response_;
 
-  std::string header_name_, header_value_;
+  std::string header_name_;
+  std::string header_value_;
   bool reading_header_name_{true};
 };
 
@@ -83,37 +108,17 @@ HttpConnection& HttpConnection::GetConnection(http_parser* p) {
   return *static_cast<HttpConnection*>(p->data);
 }
 
-clients::http::HttpMethod ConvertHttpMethod(http_method method) {
-  switch (method) {
-    case HTTP_DELETE:
-      return clients::http::HttpMethod::kDelete;
-    case HTTP_GET:
-      return clients::http::HttpMethod::kGet;
-    case HTTP_HEAD:
-      return clients::http::HttpMethod::kHead;
-    case HTTP_POST:
-      return clients::http::HttpMethod::kPost;
-    case HTTP_PUT:
-      return clients::http::HttpMethod::kPut;
-    case HTTP_PATCH:
-      return clients::http::HttpMethod::kPatch;
-    case HTTP_OPTIONS:
-      return clients::http::HttpMethod::kOptions;
-    default:
-      ADD_FAILURE() << "Unknown HTTP method " << method;
-      return clients::http::HttpMethod::kGet;
-  }
-}
-
 int HttpConnection::DoOnUrl(http_parser* p, const char* data, size_t size) {
   http_request_.method = ConvertHttpMethod(static_cast<http_method>(p->method));
-  http_request_.path += std::string(data, size);
+  http_request_.path.append(data, size);
   return 0;
 }
 
 int HttpConnection::DoOnHeaderField(const char* data, size_t size) {
   if (!reading_header_name_) {
     http_request_.headers[std::move(header_name_)] = std::move(header_value_);
+    header_name_.clear();
+    header_value_.clear();
     reading_header_name_ = true;
   }
 
@@ -158,7 +163,7 @@ int HttpConnection::DoOnMessageComplete() {
   }
 
   try {
-    http_response_ = http_handler_(http_request_);
+    http_response_ = owner_.http_handler_(http_request_);
   } catch (const std::exception& e) {
     ADD_FAILURE() << e.what();
     http_response_ = HttpServerMock::HttpResponse{500, {}, ""};
@@ -166,7 +171,7 @@ int HttpConnection::DoOnMessageComplete() {
   return 0;
 }
 
-http_parser_settings InitHttpParserSettings() {
+constexpr http_parser_settings HttpConnection::MakeHttpParserSettings() {
   http_parser_settings settings{};
 
   settings.on_url = HttpConnection::OnUrl;
@@ -179,22 +184,22 @@ http_parser_settings InitHttpParserSettings() {
   return settings;
 }
 
-const http_parser_settings parser_settings = InitHttpParserSettings();
+constexpr http_parser_settings HttpConnection::kParserSettings =
+    HttpConnection::MakeHttpParserSettings();
 
-HttpConnection::HttpConnection(HttpServerMock::HttpHandler http_handler)
-    : http_handler_(std::move(http_handler)) {
+HttpConnection::HttpConnection(HttpServerMock& owner) : owner_(owner) {
   http_parser_init(&parser_, HTTP_REQUEST);
   parser_.data = this;
 }
 
 HttpConnection::HttpConnection(const HttpConnection& other)
-    : HttpConnection(other.http_handler_) {}
+    : HttpConnection(other.owner_) {}
 
 SimpleServer::Response HttpConnection::operator()(
     const SimpleServer::Request& request) {
   auto size = request.size();
-  size_t parsed =
-      http_parser_execute(&parser_, &parser_settings, request.data(), size);
+  const size_t parsed =
+      http_parser_execute(&parser_, &kParserSettings, request.data(), size);
 
   if (parsed != size) {
     ADD_FAILURE() << "parsed=" << parsed << " size=" << size
@@ -216,17 +221,32 @@ SimpleServer::Response HttpConnection::operator()(
     data += "Content-Length: " + std::to_string(http_response_->body.size());
     data += "\r\n\r\n" + http_response_->body;  // TODO
 
-    return {data, SimpleServer::Response::kWriteAndClose};
+    Reset();
+    return {std::move(data), SimpleServer::Response::kWriteAndContinue};
   } else {
     return {"", SimpleServer::Response::kTryReadMore};
   }
 }
 
-}  // namespace
+void HttpConnection::Reset() {
+  http_parser_init(&parser_, HTTP_REQUEST);
+  parser_.data = this;
 
-SimpleServer::OnRequest HttpServerMock::OnNewConnection() {
-  return HttpConnection(http_handler_);
+  http_request_ = {};
+  http_response_ = {};
 }
+
+HttpServerMock::HttpServerMock(HttpHandler http_handler,
+                               SimpleServer::Protocol protocol)
+    : http_handler_(std::move(http_handler)),
+      server_(HttpConnection(*this), protocol) {}
+
+std::string HttpServerMock::GetBaseUrl() const { return server_.GetBaseUrl(); }
+
+std::uint64_t HttpServerMock::GetConnectionsOpenedCount() const {
+  return server_.GetConnectionsOpenedCount();
+}
+
 }  // namespace utest
 
 USERVER_NAMESPACE_END

@@ -1,5 +1,8 @@
 #pragma once
 
+#include <atomic>
+#include <cstdint>
+
 #include <userver/utest/simple_server.hpp>
 
 #include <userver/clients/http/request.hpp>
@@ -33,8 +36,10 @@ class HttpServerMock {
 
   std::string GetBaseUrl() const;
 
+  std::uint64_t GetConnectionsOpenedCount() const;
+
  private:
-  SimpleServer::OnRequest OnNewConnection();
+  friend class HttpConnection;
 
   HttpHandler http_handler_;
   SimpleServer server_;

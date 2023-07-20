@@ -581,16 +581,9 @@ engine::Future<std::shared_ptr<Response>> RequestState::async_perform(
   ApplyTestsuiteConfig();
   StartStats();
 
-  // if we need retries call with special callback
-  if (retry_.retries <= 1) {
-    perform_request([holder = shared_from_this()](std::error_code err) mutable {
-      RequestState::on_completed(std::move(holder), err);
-    });
-  } else {
-    perform_request([holder = shared_from_this()](std::error_code err) mutable {
-      RequestState::on_retry(std::move(holder), err);
-    });
-  }
+  perform_request([holder = shared_from_this()](std::error_code err) mutable {
+    RequestState::on_retry(std::move(holder), err);
+  });
 
   return future;
 }
