@@ -21,12 +21,6 @@ namespace concurrent {
 
 namespace impl {
 
-class MultiProducerToken final {
- public:
-  template <typename T, typename Traits>
-  explicit MultiProducerToken(moodycamel::ConcurrentQueue<T, Traits>&) {}
-};
-
 template <bool MultipleProducer, bool MultipleConsumer>
 struct SimpleQueuePolicy {
   template <typename T>
@@ -68,7 +62,10 @@ class GenericQueue final
   using ConsumerToken =
       std::conditional_t<QueuePolicy::kIsMultipleProducer,
                          moodycamel::ConsumerToken, impl::NoToken>;
-  using MultiProducerToken = impl::MultiProducerToken;
+  using MultiProducerToken = impl::MultiToken;
+  using MultiConsumerToken =
+      std::conditional_t<QueuePolicy::kIsMultipleProducer, impl::MultiToken,
+                         impl::NoToken>;
 
   using SingleProducerToken =
       std::conditional_t<!QueuePolicy::kIsMultipleProducer,
@@ -76,16 +73,20 @@ class GenericQueue final
 
   friend class Producer<GenericQueue, ProducerToken, EmplaceEnabler>;
   friend class Producer<GenericQueue, MultiProducerToken, EmplaceEnabler>;
-  friend class Consumer<GenericQueue, EmplaceEnabler>;
+  friend class Consumer<GenericQueue, ConsumerToken, EmplaceEnabler>;
+  friend class Consumer<GenericQueue, MultiConsumerToken, EmplaceEnabler>;
 
  public:
   using ValueType = T;
 
   using Producer =
       concurrent::Producer<GenericQueue, ProducerToken, EmplaceEnabler>;
-  using Consumer = concurrent::Consumer<GenericQueue, EmplaceEnabler>;
+  using Consumer =
+      concurrent::Consumer<GenericQueue, ConsumerToken, EmplaceEnabler>;
   using MultiProducer =
       concurrent::Producer<GenericQueue, MultiProducerToken, EmplaceEnabler>;
+  using MultiConsumer =
+      concurrent::Consumer<GenericQueue, MultiConsumerToken, EmplaceEnabler>;
 
   static constexpr std::size_t kUnbounded =
       std::numeric_limits<std::size_t>::max() / 4;
@@ -160,17 +161,24 @@ class GenericQueue final
   ///
   /// @note `Consumer` may outlive the queue and producers.
   Consumer GetConsumer() {
-    std::size_t old_consumers_count{};
-    utils::AtomicUpdate(consumers_count_, [&](auto old_value) {
-      old_consumers_count = old_value;
-      return old_value == kCreatedAndDead ? 1 : old_value + 1;
-    });
-
-    if (old_consumers_count == kCreatedAndDead) {
-      producer_side_.ResumeBlockingOnPush();
-    }
-    UASSERT(QueuePolicy::kIsMultipleConsumer || old_consumers_count != 1);
+    PrepareConsumer();
     return Consumer(this->shared_from_this(), EmplaceEnabler{});
+  }
+
+  /// Get a `MultiConsumer` which makes it possible to read items from the
+  /// queue. Can be called multiple times. The resulting `MultiConsumer` is
+  /// thread-safe, so it can be used simultaneously from multiple
+  /// coroutines/threads.
+  ///
+  /// @note `MultiConsumer` may outlive the queue and producers.
+  ///
+  /// @note Prefer `Consumer` tokens when possible, because `MultiConsumer`
+  /// token incurs some overhead.
+  MultiConsumer GetMultiConsumer() {
+    static_assert(QueuePolicy::kIsMultipleConsumer,
+                  "Trying to obtain MultiConsumer for a single-consumer queue");
+    PrepareConsumer();
+    return MultiConsumer(this->shared_from_this(), EmplaceEnabler{});
   }
 
   /// @brief Sets the limit on the queue size, pushes over this limit will block
@@ -215,12 +223,13 @@ class GenericQueue final
     return producer_side_.PushNoblock(token, std::move(value));
   }
 
-  [[nodiscard]] bool Pop(ConsumerToken& token, T& value,
-                         engine::Deadline deadline) {
+  template <typename Token>
+  [[nodiscard]] bool Pop(Token& token, T& value, engine::Deadline deadline) {
     return consumer_side_.Pop(token, value, deadline);
   }
 
-  [[nodiscard]] bool PopNoblock(ConsumerToken& token, T& value) {
+  template <typename Token>
+  [[nodiscard]] bool PopNoblock(Token& token, T& value) {
     return consumer_side_.PopNoblock(token, value);
   }
 
@@ -235,6 +244,19 @@ class GenericQueue final
       consumer_side_.ResumeBlockingOnPop();
     }
     UASSERT(QueuePolicy::kIsMultipleProducer || old_producers_count != 1);
+  }
+
+  void PrepareConsumer() {
+    std::size_t old_consumers_count{};
+    utils::AtomicUpdate(consumers_count_, [&](auto old_value) {
+      old_consumers_count = old_value;
+      return old_value == kCreatedAndDead ? 1 : old_value + 1;
+    });
+
+    if (old_consumers_count == kCreatedAndDead) {
+      producer_side_.ResumeBlockingOnPush();
+    }
+    UASSERT(QueuePolicy::kIsMultipleConsumer || old_consumers_count != 1);
   }
 
   void MarkConsumerIsDead() {
@@ -258,9 +280,11 @@ class GenericQueue final
   }
 
  public:  // TODO
+  /// @cond
   bool NoMoreConsumers() const { return consumers_count_ == kCreatedAndDead; }
 
   bool NoMoreProducers() const { return producers_count_ == kCreatedAndDead; }
+  /// @endcond
 
  private:
   template <typename Token>
@@ -280,12 +304,19 @@ class GenericQueue final
     consumer_side_.OnElementPushed();
   }
 
-  [[nodiscard]] bool DoPop(ConsumerToken& token, T& value) {
-    bool success = false;
-    if constexpr (QueuePolicy::kIsMultipleProducer) {
+  template <typename Token>
+  [[nodiscard]] bool DoPop(Token& token, T& value) {
+    bool success{};
+
+    if constexpr (std::is_same_v<Token, moodycamel::ConsumerToken>) {
+      static_assert(QueuePolicy::kIsMultipleProducer);
       success = queue_.try_dequeue(token, value);
+    } else if constexpr (std::is_same_v<Token, impl::MultiToken>) {
+      static_assert(QueuePolicy::kIsMultipleProducer);
+      success = queue_.try_dequeue(value);
     } else {
-      // Substitute with our single producer token
+      static_assert(std::is_same_v<Token, impl::NoToken>);
+      static_assert(!QueuePolicy::kIsMultipleProducer);
       success = queue_.try_dequeue_from_producer(single_producer_token_, value);
     }
 
@@ -458,8 +489,8 @@ class GenericQueue<T, QueuePolicy>::SingleConsumerSide final {
       : queue_(queue), element_count_(0) {}
 
   // Blocks only if queue is empty
-  [[nodiscard]] bool Pop(ConsumerToken& token, T& value,
-                         engine::Deadline deadline) {
+  template <typename Token>
+  [[nodiscard]] bool Pop(Token& token, T& value, engine::Deadline deadline) {
     while (!DoPop(token, value)) {
       if (queue_.NoMoreProducers() ||
           !nonempty_event_.WaitForEventUntil(deadline)) {
@@ -472,7 +503,8 @@ class GenericQueue<T, QueuePolicy>::SingleConsumerSide final {
     return true;
   }
 
-  [[nodiscard]] bool PopNoblock(ConsumerToken& token, T& value) {
+  template <typename Token>
+  [[nodiscard]] bool PopNoblock(Token& token, T& value) {
     return DoPop(token, value);
   }
 
@@ -488,7 +520,8 @@ class GenericQueue<T, QueuePolicy>::SingleConsumerSide final {
   std::size_t GetElementCount() const { return element_count_; }
 
  private:
-  [[nodiscard]] bool DoPop(ConsumerToken& token, T& value) {
+  template <typename Token>
+  [[nodiscard]] bool DoPop(Token& token, T& value) {
     if (queue_.DoPop(token, value)) {
       --element_count_;
       nonempty_event_.Reset();
@@ -517,13 +550,14 @@ class GenericQueue<T, QueuePolicy>::MultiConsumerSide final {
   ~MultiConsumerSide() { element_count_.unlock_shared_count(kUnbounded); }
 
   // Blocks only if queue is empty
-  [[nodiscard]] bool Pop(ConsumerToken& token, T& value,
-                         engine::Deadline deadline) {
+  template <typename Token>
+  [[nodiscard]] bool Pop(Token& token, T& value, engine::Deadline deadline) {
     return element_count_.try_lock_shared_until(deadline) &&
            DoPop(token, value);
   }
 
-  [[nodiscard]] bool PopNoblock(ConsumerToken& token, T& value) {
+  template <typename Token>
+  [[nodiscard]] bool PopNoblock(Token& token, T& value) {
     return element_count_.try_lock_shared() && DoPop(token, value);
   }
 
@@ -549,7 +583,8 @@ class GenericQueue<T, QueuePolicy>::MultiConsumerSide final {
   }
 
  private:
-  [[nodiscard]] bool DoPop(ConsumerToken& token, T& value) {
+  template <typename Token>
+  [[nodiscard]] bool DoPop(Token& token, T& value) {
     while (true) {
       if (queue_.DoPop(token, value)) {
         return true;

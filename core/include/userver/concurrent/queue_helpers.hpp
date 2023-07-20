@@ -15,6 +15,11 @@ struct NoToken final {
   explicit NoToken(LockFreeQueue& /*unused*/) {}
 };
 
+struct MultiToken final {
+  template <typename LockFreeQueue>
+  explicit MultiToken(LockFreeQueue& /*unused*/) {}
+};
+
 }  // namespace impl
 
 /// @warning A single Producer must not be used from multiple threads
@@ -61,6 +66,7 @@ class Producer final {
   void Reset() && {
     if (queue_) queue_->MarkProducerIsDead();
     queue_.reset();
+    [[maybe_unused]] ProducerToken for_destruction = std::move(token_);
   }
 
   /// Const access to source queue.
@@ -81,7 +87,8 @@ class Producer final {
 
 /// @warning A single Consumer must not be used from multiple threads
 /// concurrently
-template <typename QueueType, typename EmplaceEnablerType>
+template <typename QueueType, typename ConsumerToken,
+          typename EmplaceEnablerType>
 class Consumer final {
   static_assert(
       std::is_same_v<EmplaceEnablerType, typename QueueType::EmplaceEnabler>,
@@ -89,7 +96,6 @@ class Consumer final {
       "from queue");
 
   using ValueType = typename QueueType::ValueType;
-  using ConsumerToken = typename QueueType::ConsumerToken;
 
  public:
   Consumer(const Consumer&) = delete;

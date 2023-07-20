@@ -1,12 +1,15 @@
 #include <userver/concurrent/queue.hpp>
 
 #include <optional>
+#include <unordered_set>
 
+#include <boost/range/irange.hpp>
+
+#include <concurrent/mp_queue_test.hpp>
 #include <userver/engine/mutex.hpp>
-#include <userver/utils/async.hpp>
-#include "mp_queue_test.hpp"
-
 #include <userver/utest/utest.hpp>
+#include <userver/utils/async.hpp>
+#include <userver/utils/fixed_array.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -118,7 +121,7 @@ UTEST_MT(NonFifoMpmcQueue, Mpmc, kProducersCount + kConsumersCount) {
         "consumer", [&consumer = consumers[i], &consumed_messages, &mutex] {
           std::size_t value{};
           while (consumer.Pop(value)) {
-            std::lock_guard lock(mutex);
+            const std::lock_guard lock(mutex);
             ++consumed_messages[value];
           }
         }));
@@ -197,7 +200,7 @@ UTEST_MT(NonFifoSpmcQueue, Spmc, 1 + kConsumersCount) {
         "consumer", [&consumer = consumers[i], &consumed_messages, &mutex] {
           std::size_t value{};
           while (consumer.Pop(value)) {
-            std::lock_guard lock(mutex);
+            const std::lock_guard lock(mutex);
             ++consumed_messages[value];
           }
         }));
@@ -302,6 +305,62 @@ UTEST_MT(NonFifoSpscQueue, Spsc, 1 + 1) {
 
   ASSERT_TRUE(std::all_of(consumed_messages.begin(), consumed_messages.end(),
                           [](int item) { return item == 1; }));
+}
+
+UTEST_MT(QueueFixture, MultiConsumerToken, kProducersCount + kConsumersCount) {
+  using Message = std::size_t;
+  using Queue = concurrent::NonFifoMpmcQueue<Message>;
+  using ReceivedMessages = std::unordered_set<Message>;
+
+  auto queue = Queue::Create(kMessageCount);
+  auto producer = queue->GetMultiProducer();
+  auto consumer = queue->GetMultiConsumer();
+
+  auto producer_tasks =
+      utils::GenerateFixedArray(kProducersCount, [&](std::size_t producer_id) {
+        return engine::AsyncNoSpan([&, producer_id] {
+          for (const auto message :
+               boost::irange<Message>(kMessageCount * producer_id,
+                                      kMessageCount * (producer_id + 1))) {
+            ASSERT_TRUE(producer.Push(Message{message}));
+          }
+        });
+      });
+
+  auto consumer_tasks = utils::GenerateFixedArray(
+      kConsumersCount, [&](std::size_t /*consumer_id*/) {
+        return engine::AsyncNoSpan([&] {
+          ReceivedMessages received_messages;
+          Message message{};
+          while (consumer.Pop(message)) {
+            const auto [_, new_message] = received_messages.insert(message);
+            EXPECT_TRUE(new_message) << "Duplicate message " << message;
+            if (!new_message) break;
+          }
+          return received_messages;
+        });
+      });
+
+  for (auto& task : producer_tasks) {
+    UEXPECT_NO_THROW(task.Get());
+  }
+
+  std::move(producer).Reset();
+
+  ReceivedMessages total;
+  for (auto& task : consumer_tasks) {
+    ReceivedMessages partial;
+    UEXPECT_NO_THROW(partial = task.Get());
+
+    const auto old_total_size = total.size();
+    const auto partial_size = partial.size();
+    total.merge(std::move(partial));
+    EXPECT_EQ(old_total_size + partial_size, total.size())
+        << "Duplicate messages";
+  }
+
+  EXPECT_EQ(total.size(), kProducersCount * kMessageCount)
+      << "Likely missing messages";
 }
 
 USERVER_NAMESPACE_END

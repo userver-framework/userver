@@ -84,7 +84,7 @@ class MpscQueue final : public std::enable_shared_from_this<MpscQueue<T>> {
   using ConsumerToken = impl::NoToken;
 
   friend class Producer<MpscQueue, ProducerToken, EmplaceEnabler>;
-  friend class Consumer<MpscQueue, EmplaceEnabler>;
+  friend class Consumer<MpscQueue, ConsumerToken, EmplaceEnabler>;
 
  public:
   static constexpr std::size_t kUnbounded =
@@ -94,7 +94,8 @@ class MpscQueue final : public std::enable_shared_from_this<MpscQueue<T>> {
 
   using Producer =
       concurrent::Producer<MpscQueue, ProducerToken, EmplaceEnabler>;
-  using Consumer = concurrent::Consumer<MpscQueue, EmplaceEnabler>;
+  using Consumer =
+      concurrent::Consumer<MpscQueue, ConsumerToken, EmplaceEnabler>;
   using MultiProducer =
       concurrent::Producer<MpscQueue, impl::NoToken, EmplaceEnabler>;
 
