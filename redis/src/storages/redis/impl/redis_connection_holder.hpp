@@ -24,12 +24,9 @@ class RedisConnectionHolder {
       ReplicationMonitoringSettings replication_monitoring_settings);
   ~RedisConnectionHolder();
   RedisConnectionHolder(const RedisConnectionHolder&) = delete;
-  RedisConnectionHolder(RedisConnectionHolder&&) noexcept = default;
   RedisConnectionHolder& operator=(const RedisConnectionHolder&) = delete;
-  RedisConnectionHolder& operator=(RedisConnectionHolder&&) noexcept = default;
 
   std::shared_ptr<Redis> Get() const;
-  /// Stats GetStats() const;
 
   void SetReplicationMonitoringSettings(ReplicationMonitoringSettings settings);
   void SetCommandsBufferingSettings(CommandsBufferingSettings settings);
