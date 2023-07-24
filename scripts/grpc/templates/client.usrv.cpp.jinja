@@ -50,10 +50,13 @@ constexpr USERVER_NAMESPACE::dynamic_config::Key<Parse{{service.name}}ClientQos>
     {% if not method.client_streaming %}
     const {{ method.input_type | grpc_to_cpp_name }}& request,
     {% endif %}
-    std::unique_ptr<::grpc::ClientContext> context) const {
+    std::unique_ptr<::grpc::ClientContext> context,
+    const USERVER_NAMESPACE::ugrpc::client::Qos& qos
+) const {
+      ApplyQos(*context, qos, impl_.GetTestsuiteControl());
       return {
         USERVER_NAMESPACE::ugrpc::client::impl::CreateCallParams(
-	impl_, {{method_id}}, std::move(context), k{{service.name}}ClientQosConfig
+	impl_, {{method_id}}, std::move(context), k{{service.name}}ClientQosConfig, qos
         ),
         impl_.NextStub<{{proto.namespace}}::{{service.name}}>(),
         &{{proto.namespace}}::{{service.name}}::Stub::PrepareAsync{{method.name}}

@@ -43,8 +43,9 @@ class {{service.name}}Client final {
       {% if not method.client_streaming %}
       const {{ method.input_type | grpc_to_cpp_name }}& request,
       {% endif %}
-      std::unique_ptr<::grpc::ClientContext> context =
-          std::make_unique<::grpc::ClientContext>()) const;
+      std::unique_ptr<::grpc::ClientContext> context = std::make_unique<::grpc::ClientContext>(),
+      const USERVER_NAMESPACE::ugrpc::client::Qos& qos = {}
+  ) const;
   {% endfor %}
 
   // For internal use only

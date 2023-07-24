@@ -9,6 +9,7 @@
 
 #include <userver/ugrpc/client/impl/client_data.hpp>
 #include <userver/ugrpc/client/middlewares/fwd.hpp>
+#include <userver/ugrpc/client/qos.hpp>
 #include <userver/ugrpc/impl/statistics.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -32,7 +33,8 @@ template <typename ClientQosConfig>
 CallParams CreateCallParams(const ClientData& client_data,
                             std::size_t method_id,
                             std::unique_ptr<grpc::ClientContext> client_context,
-                            const ClientQosConfig& client_qos) {
+                            const ClientQosConfig& client_qos,
+                            const ugrpc::client::Qos& qos) {
   const auto& metadata = client_data.GetMetadata();
   const auto& full_name = metadata.method_full_names[method_id];
   const auto& method_name =
@@ -41,6 +43,8 @@ CallParams CreateCallParams(const ClientData& client_data,
   const auto& config = client_data.GetConfigSnapshot();
   ApplyQos(*client_context, config[client_qos][method_name],
            client_data.GetTestsuiteControl());
+
+  ApplyQos(*client_context, qos, client_data.GetTestsuiteControl());
   return DoCreateCallParams(client_data, method_id, std::move(client_context));
 }
 
