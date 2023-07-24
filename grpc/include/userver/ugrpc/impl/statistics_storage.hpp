@@ -33,7 +33,15 @@ class StatisticsStorage final {
 
   void ExtendStatistics(utils::statistics::Writer& writer);
 
-  std::unordered_map<ServiceId, ugrpc::impl::ServiceStatistics>
+  // std::equal_to<const char*> specialized in arcadia/util/str_stl.h
+  // so we need to define our own comparer to use it in map and avoid
+  // specialization after instantiation problem
+  struct ServiceIdComparer final {
+    bool operator()(ServiceId lhs, ServiceId rhs) const { return lhs == rhs; }
+  };
+
+  std::unordered_map<ServiceId, ugrpc::impl::ServiceStatistics,
+                     std::hash<ServiceId>, ServiceIdComparer>
       service_statistics_;
   engine::SharedMutex mutex_;
 
