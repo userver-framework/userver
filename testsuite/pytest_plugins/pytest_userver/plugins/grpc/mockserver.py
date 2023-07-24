@@ -72,7 +72,7 @@ def grpc_mockserver_endpoint(pytestconfig, _grpc_mockserver_and_port) -> str:
 
 
 @pytest.fixture(scope='session')
-async def _grpc_mockserver_and_port(_grpc_mockserver_endpoint):
+def _grpc_mockserver_and_port(_grpc_mockserver_endpoint):
     server = grpc.aio.server()
     port = server.add_insecure_port(_grpc_mockserver_endpoint)
     return server, port
