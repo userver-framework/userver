@@ -58,8 +58,9 @@ class ClusterShard {
       const RedisConnectionPtr& master,
       const std::vector<RedisConnectionPtr>& replicas,
       const CommandControl& command_control, bool with_masters,
-      bool with_slaves);
-  RedisPtr GetInstance(const std::vector<RedisPtr>& instances, size_t skip_idx);
+      bool with_slaves, size_t current);
+  static RedisPtr GetInstance(const std::vector<RedisPtr>& instances,
+                              size_t skip_idx);
   bool IsMasterReady() const;
   bool IsReplicaReady() const;
 

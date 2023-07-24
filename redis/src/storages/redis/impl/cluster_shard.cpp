@@ -51,8 +51,9 @@ bool ClusterShard::AsyncCommand(CommandPtr command) {
   const auto with_masters =
       !read_only || command->control.allow_reads_from_master;
   const auto with_replicas = read_only;
-  const auto& available_servers = GetAvailableServers(
-      master_, replicas_, command->control, with_masters, with_replicas);
+  const auto& available_servers =
+      GetAvailableServers(master_, replicas_, command->control, with_masters,
+                          with_replicas, current_++);
 
   const auto masters_count = 1;
   const auto max_attempts = replicas_.size() + masters_count + 1;
@@ -122,10 +123,10 @@ void ClusterShard::GetNearestServersPing(const CommandControl& command_control,
 }
 
 std::vector<std::shared_ptr<Redis>> ClusterShard::GetAvailableServers(
-    const RedisConnectionPtr& master_connetion,
-    const std::vector<RedisConnectionPtr>& replicas_connections,
-    const CommandControl& command_control, bool with_masters,
-    bool with_slaves) {
+    const ClusterShard::RedisConnectionPtr& master_connetion,
+    const std::vector<ClusterShard::RedisConnectionPtr>& replicas_connections,
+    const CommandControl& command_control, bool with_masters, bool with_slaves,
+    size_t current) {
   if (!command_control.force_server_id.IsAny()) {
     const auto id = command_control.force_server_id;
     auto master = master_connetion->Get();
@@ -144,15 +145,26 @@ std::vector<std::shared_ptr<Redis>> ClusterShard::GetAvailableServers(
     return {};
   }
 
-  std::vector<RedisPtr> result;
+  std::vector<ClusterShard::RedisPtr> result;
   result.reserve(with_masters + with_slaves * replicas_connections.size());
-  if (with_masters) {
+
+  /// Define retry priority
+  if (with_masters && !with_slaves) {
+    /// First attempt will be made in master and then in replicas
     result.push_back(master_connetion->Get());
-  }
-  if (with_slaves) {
-    for (const auto& replica_connection : replicas_connections) {
-      result.push_back(replica_connection->Get());
+    const auto replicas_count = replicas_connections.size();
+    for (size_t i = 0; i < replicas_count; ++i) {
+      const auto index = (current + i) % replicas_count;
+      result.push_back(replicas_connections[index]->Get());
     }
+  } else {
+    /// First attempts will be made in replicas and after that in master
+    const auto replicas_count = replicas_connections.size();
+    for (size_t i = 0; i < replicas_count; ++i) {
+      const auto index = (current + i) % replicas_count;
+      result.push_back(replicas_connections[index]->Get());
+    }
+    result.push_back(master_connetion->Get());
   }
 
   switch (command_control.strategy) {
@@ -161,7 +173,7 @@ std::vector<std::shared_ptr<Redis>> ClusterShard::GetAvailableServers(
       break;
     case CommandControl::Strategy::kLocalDcConductor:
     case CommandControl::Strategy::kNearestServerPing: {
-      GetNearestServersPing(command_control, result);
+      ClusterShard::GetNearestServersPing(command_control, result);
     } break;
   }
 
@@ -171,11 +183,7 @@ std::vector<std::shared_ptr<Redis>> ClusterShard::GetAvailableServers(
 ClusterShard::RedisPtr ClusterShard::GetInstance(
     const std::vector<RedisPtr>& instances, size_t skip_idx) {
   RedisPtr ret;
-  const auto size = instances.size();
-  const auto cur = ++current_;
-  for (size_t i = 0; i < size; ++i) {
-    const size_t instance_idx = (cur + i) % size;
-    const auto& cur_inst = instances[instance_idx];
+  for (const auto& cur_inst : instances) {
     if (skip_idx == ToInstanceIdx(cur_inst)) {
       continue;
     }

@@ -4,17 +4,9 @@ import pytest
 
 
 pytest_plugins = [
-    'pytest_userver.plugins.base',
-    'pytest_userver.plugins.caches',
-    'pytest_userver.plugins.config',
-    'pytest_userver.plugins.dumps',
-    'pytest_userver.plugins.dynamic_config',
-    'pytest_userver.plugins.log_capture',
-    'pytest_userver.plugins.service',
-    'pytest_userver.plugins.service_client',
-    'pytest_userver.plugins.testpoint',
-    'taxi.integration_testing.pytest_plugin',
-    'taxi.uservices.testsuite.integration_testing.pytest_plugin',
+    'pytest_userver.plugins.redis',
+    'taxi.uservices.userver.redis.functional_tests.'
+    'pytest_redis_cluster_topology_plugin.pytest_plugin',
 ]
 
 
@@ -24,16 +16,12 @@ def dynamic_config_fallback_patch():
 
 
 @pytest.fixture(scope='session')
-def service_env(redis_sentinel_services, redis_cluster_topology_services):
+def service_env(redis_cluster_ports, redis_cluster_topology_session):
     cluster_hosts = []
     cluster_shards = []
-    for index, _ in enumerate(redis_cluster_topology_services.masters):
-        cluster_hosts.append(
-            {
-                'host': redis_cluster_topology_services.master_host(index),
-                'port': 6379,
-            },
-        )
+    for index, port in enumerate(redis_cluster_ports):
+        cluster_hosts.append({'host': '127.0.0.1', 'port': port})
+    for index in range(3):
         cluster_shards.append({'name': f'shard{index}'})
 
     secdist_config = {
