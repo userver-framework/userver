@@ -147,6 +147,7 @@ class Connection {
   void Close();
 
   bool IsInAbortedPipeline() const;
+  bool IsSyncingPipeline() const;
   bool IsInRecovery() const;
   bool IsReadOnly() const;
   void RefreshReplicaState(engine::Deadline) const;

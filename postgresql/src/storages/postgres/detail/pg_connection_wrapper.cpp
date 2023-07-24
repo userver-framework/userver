@@ -389,7 +389,7 @@ void PGConnectionWrapper::EnterPipelineMode() {
         << "libpq failed to enter pipeline connection mode";
     throw ConnectionError{"Failed to enter pipeline connection mode"};
   }
-  PGCW_LOG_DEBUG() << "Entered pipeline mode";
+  PGCW_LOG_INFO() << "Entered pipeline mode";
 #else
   UINVARIANT(false, "Pipeline mode is not supported");
 #endif

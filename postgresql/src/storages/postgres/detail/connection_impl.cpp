@@ -14,6 +14,8 @@
 #include <storages/postgres/io/pg_type_parsers.hpp>
 #include <userver/storages/postgres/exceptions.hpp>
 
+#include <utils/impl/assert_extra.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::postgres::detail {
@@ -222,6 +224,10 @@ int ConnectionImpl::GetServerVersion() const {
 
 bool ConnectionImpl::IsInAbortedPipeline() const {
   return conn_wrapper_.IsInAbortedPipeline();
+}
+
+bool ConnectionImpl::IsSyncingPipeline() const {
+  return conn_wrapper_.IsSyncingPipeline();
 }
 
 bool ConnectionImpl::IsInRecovery() const { return is_in_recovery_; }
@@ -571,6 +577,10 @@ void ConnectionImpl::CheckBusy() const {
   if ((GetConnectionState() == ConnectionState::kTranActive) &&
       (!IsPipelineActive() || conn_wrapper_.IsSyncingPipeline())) {
     throw ConnectionBusy("There is another query in flight");
+  }
+  if (IsInAbortedPipeline()) {  // TODO: TAXICOMMON-6886
+    USERVER_NAMESPACE::utils::impl::AbortWithStacktrace(
+        "Using an aborted connection is illegal");
   }
 }
 

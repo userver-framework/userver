@@ -43,6 +43,7 @@ class ConnectionImpl {
 
   int GetServerVersion() const;
   bool IsInAbortedPipeline() const;
+  bool IsSyncingPipeline() const;
   bool IsInRecovery() const;
   bool IsReadOnly() const;
   void RefreshReplicaState(engine::Deadline deadline);
