@@ -247,12 +247,21 @@ cat scripts/docs/en/deps/arch.md | grep -oP '^makepkg\|\K.*' | while read ;\
 MacOS is recommended only for development as it may have performance issues in some cases.
 At least MacOS 10.15 required with [Xcode](https://apps.apple.com/us/app/xcode/id497799835) and [Homebrew](https://brew.sh/).
 
-Start with the following command:
-```
-bash
-mkdir build_release
-cd build_release
-cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+1. Install the build and test dependencies from macos.md file:
+  ```bash
+  brew install $(cat scripts/docs/en/deps/macos.md | tr '\n' ' ')
+  ```
+
+2. Force link OpenSSL 1.1:
+  ```bash
+  brew link --force openssl@1.1
+  ```
+
+3. Build the userver:
+  ```bash
+  mkdir build_release
+  cd build_release
+  cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
       -DUSERVER_NO_WERROR=1 -DUSERVER_CHECK_PACKAGE_VERSIONS=0 \
       -DUSERVER_FEATURE_REDIS_HI_MALLOC=1 \
       -DUSERVER_FEATURE_CRYPTOPP_BLAKE2=0 -DUSERVER_DOWNLOAD_PACKAGE_CRYPTOPP=1 \
@@ -262,14 +271,14 @@ cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
       -DUSERVER_PG_LIBRARY_DIR=$(pg_config --libdir) -DUSERVER_PG_INCLUDE_DIR=$(pg_config --includedir) \
       -DUSERVER_PG_SERVER_LIBRARY_DIR=$(pg_config --pkglibdir) -DUSERVER_PG_SERVER_INCLUDE_DIR=$(pg_config --includedir-server) \
       ..
-```
+  ```
 
-Follow the cmake hints for the installation of required packets and keep calling cmake with the options.
+  Follow the cmake hints for the installation of required packets and keep calling cmake with the options.
 
-To run the tests, increase the limits of open files count via:
-```
-ulimit -n 4096
-```
+  To run the tests, increase the limits of open files count via:
+  ```
+  ulimit -n 4096
+  ```
 
 ### Other POSIX based platforms
 
@@ -373,7 +382,7 @@ bash
 cd build_release && ulimit -n 4096 && ctest -V
 ```
 
-If you need to edit or make your own docker image with custom configuration, read about 
+If you need to edit or make your own docker image with custom configuration, read about
 it @ref md_en_userver_docker "here"
 
 ----------
