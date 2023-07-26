@@ -451,6 +451,12 @@ class GMockClient : public MockClientBase {
                const CommandControl& command_control),
               (override));
 
+  MOCK_METHOD(RequestEvalShaCommon, EvalShaCommon,
+              (std::string script, std::vector<std::string> keys,
+               std::vector<std::string> args,
+               const CommandControl& command_control),
+              (override));
+
   MOCK_METHOD(RequestGeosearch, Geosearch,
               (std::string key, std::string member, double radius,
                const GeosearchOptions& geosearch_options,
