@@ -64,7 +64,7 @@ class UnitTestDeadlinePropagationService final
     sample::ugrpc::GreetingResponse response;
     response.set_name("Hello " + request.name());
 
-    tests::WaitForDeadline(call.GetContext().deadline());
+    tests::WaitUntilRpcDeadline(call);
 
     call.Finish(response);
   }
@@ -82,7 +82,7 @@ class UnitTestDeadlinePropagationService final
     // NOLINTNEXTLINE(clang-analyzer-optin.cplusplus.UninitializedObject)
     call.Write(response);
 
-    tests::WaitForDeadline(call.GetContext().deadline());
+    tests::WaitUntilRpcDeadline(call);
     call.Finish();
   }
 
@@ -102,7 +102,7 @@ class UnitTestDeadlinePropagationService final
     sample::ugrpc::StreamGreetingResponse response;
     response.set_name("Hello " + request.name());
 
-    tests::WaitForDeadline(call.GetContext().deadline());
+    tests::WaitUntilRpcDeadline(call);
 
     call.Finish(response);
   }
@@ -124,7 +124,7 @@ class UnitTestDeadlinePropagationService final
     response.set_name("Two " + requests[1].name());
     UEXPECT_NO_THROW(call.Write(response));
 
-    tests::WaitForDeadline(call.GetContext().deadline());
+    tests::WaitUntilRpcDeadline(call);
 
     response.set_name("Three " + requests[0].name());
     UEXPECT_THROW(call.WriteAndFinish(response),
@@ -150,7 +150,7 @@ class GrpcDeadlinePropagation
 
   ClientType& Client() { return client_; }
 
-  void WaitClientDeadline() { tests::WaitForDeadline(client_deadline_); }
+  void WaitClientDeadline() { tests::WaitUntilRpcDeadline(client_deadline_); }
 
   ~GrpcDeadlinePropagation() override {
     EXPECT_TRUE(client_deadline_.IsReached());
@@ -389,7 +389,7 @@ UTEST_F(GrpcTestClientNotSendData, TestClientDoNotStartCallWithoutDeadline) {
   request.set_name("userver");
 
   // Wait for deadline before request
-  tests::WaitForDeadline(task_deadline);
+  tests::WaitUntilRpcDeadline(task_deadline);
   // Context deadline not set
   auto call = Client().SayHello(request, tests::GetContext(false));
 
@@ -405,7 +405,7 @@ UTEST_F(GrpcTestClientNotSendData, TestClientDoNotStartCallWithDeadline) {
   request.set_name("userver");
 
   // Wait for deadline before request
-  tests::WaitForDeadline(task_deadline);
+  tests::WaitUntilRpcDeadline(task_deadline);
   // Set additional client deadline
   auto call = Client().SayHello(request, tests::GetContext(true));
 

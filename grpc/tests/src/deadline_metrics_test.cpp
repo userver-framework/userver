@@ -42,7 +42,7 @@ class UnitTestDeadlineStatsService final
     response.set_name("Hello " + request.name());
 
     if (wait_deadline_) {
-      tests::WaitForDeadline(call.GetContext().deadline());
+      tests::WaitUntilRpcDeadline(call);
     }
 
     call.Finish(response);

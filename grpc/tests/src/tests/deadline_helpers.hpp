@@ -39,17 +39,17 @@ inline void InitTaskInheritedDeadline(
       {{}, kGrpcMethod, std::chrono::steady_clock::now(), deadline});
 }
 
-inline void WaitForDeadline(const engine::Deadline deadline) {
-  if (!deadline.IsReached()) {
-    engine::SleepUntil(deadline);
-    // TODO Some tests are flaky without this... Should research this
-    engine::SleepFor(kAddSleep);
-  }
+inline void WaitUntilRpcDeadline(engine::Deadline deadline) {
+  engine::SleepUntil(deadline);
+  // kAddSleep is needed, because otherwise there would be a race in client
+  // between reporting DEADLINE_EXCEEDED and returning our response.
+  engine::SleepFor(kAddSleep);
 }
 
-inline void WaitForDeadline(
-    const std::chrono::system_clock::time_point deadline) {
-  WaitForDeadline(engine::Deadline::FromTimePoint(deadline));
+template <typename Call>
+void WaitUntilRpcDeadline(Call& call) {
+  WaitUntilRpcDeadline(
+      engine::Deadline::FromTimePoint(call.GetContext().deadline()));
 }
 
 }  // namespace tests
