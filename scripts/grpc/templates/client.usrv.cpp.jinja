@@ -19,7 +19,7 @@ constexpr std::string_view k{{service.name}}MethodNames[] = {
   {% endfor %}
 };
 
-{% set client_qos = 'GRPC_CLIENT_QOS_' + proto.package_prefix.replace('.', '_') + '_' + service.name %}
+{% set client_qos = 'GRPC_CLIENT_QOS_' + proto.package_prefix.replace('.', '_') + service.name + 'Client'%}
 
 USERVER_NAMESPACE::ugrpc::client::ClientQos
 Parse{{service.name}}ClientQos(
