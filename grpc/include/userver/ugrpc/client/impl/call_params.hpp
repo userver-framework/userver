@@ -41,10 +41,14 @@ CallParams CreateCallParams(const ClientData& client_data,
       full_name.substr(metadata.service_full_name.size() + 1);
 
   const auto& config = client_data.GetConfigSnapshot();
+
+  // User qos goes first
+  ApplyQos(*client_context, qos, client_data.GetTestsuiteControl());
+
+  // If user qos was empty update timeout from config
   ApplyQos(*client_context, config[client_qos][method_name],
            client_data.GetTestsuiteControl());
 
-  ApplyQos(*client_context, qos, client_data.GetTestsuiteControl());
   return DoCreateCallParams(client_data, method_id, std::move(client_context));
 }
 

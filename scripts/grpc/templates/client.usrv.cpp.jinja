@@ -53,7 +53,6 @@ constexpr USERVER_NAMESPACE::dynamic_config::Key<Parse{{service.name}}ClientQos>
     std::unique_ptr<::grpc::ClientContext> context,
     const USERVER_NAMESPACE::ugrpc::client::Qos& qos
 ) const {
-      ApplyQos(*context, qos, impl_.GetTestsuiteControl());
       return {
         USERVER_NAMESPACE::ugrpc::client::impl::CreateCallParams(
 	impl_, {{method_id}}, std::move(context), k{{service.name}}ClientQosConfig, qos
