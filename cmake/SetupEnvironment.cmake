@@ -23,7 +23,7 @@ add_compile_options ("-pipe" "-g" "-gz" "-fPIC")
 add_definitions ("-DPIC")
 add_definitions(-DUSERVER)
 
-option(USERVER_NO_WERROR "Do not treat warnings as errors" ON)
+option(USERVER_NO_WERROR "Do not treat warnings as errors" OFF)
 if (NOT USERVER_NO_WERROR)
   message(STATUS "Forcing warnings as errors!")
   add_compile_options ("-Werror")

@@ -191,6 +191,7 @@ clickhouse_cpp::CompressionMethod GetCompressionMethod(
     case CompressionMethod::kLZ4:
       return clickhouse_cpp::CompressionMethod::LZ4;
   }
+  UINVARIANT(false, "Invalid value of CompressionMethod enum");
 }
 
 }  // namespace

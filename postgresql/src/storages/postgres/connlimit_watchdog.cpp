@@ -14,7 +14,7 @@ constexpr CommandControl kCommandControl{std::chrono::seconds(2),
 constexpr size_t kTestsuiteConnlimit = 100;
 constexpr size_t kReservedConn = 5;
 
-constexpr size_t kMaxStepsWithError = 3;
+constexpr int kMaxStepsWithError = 3;
 constexpr size_t kFallbackConnlimit = 20;
 }  // namespace
 

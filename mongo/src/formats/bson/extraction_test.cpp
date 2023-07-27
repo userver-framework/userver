@@ -256,6 +256,19 @@ TEST(BsonExtraction, Int32) {
   test_elem(doc["en"], -321);
 }
 
+namespace {
+
+bool FitsInSizeT(int64_t value) {
+  if (value < 0) return false;
+  if constexpr (sizeof(size_t) < sizeof(int64_t)) {
+    return value <= static_cast<int64_t>(std::numeric_limits<size_t>::max());
+  } else {
+    return true;
+  }
+}
+
+}  // namespace
+
 TEST(BsonExtraction, Int64) {
   auto test_elem = [](const fb::Value& elem, int64_t value) {
     EXPECT_FALSE(elem.IsMissing());
@@ -284,7 +297,7 @@ TEST(BsonExtraction, Int64) {
       EXPECT_EQ(value, elem.As<int32_t>());
     }
     EXPECT_EQ(value, elem.As<int64_t>());
-    if (value >= 0 && value <= std::numeric_limits<size_t>::max()) {
+    if (FitsInSizeT(value)) {
       EXPECT_EQ(value, elem.As<size_t>());
     } else {
       EXPECT_ANY_THROW(elem.As<size_t>());

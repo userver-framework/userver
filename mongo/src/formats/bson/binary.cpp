@@ -40,7 +40,16 @@ auto ValidateWithErrorAndOffset(const Bson* bson, Flags flag)
 template <class Bson, class Flags, class... Args>
 void ValidateWithErrorAndOffset(const Bson* bson, Flags flag, const Args&...) {
   bson_error_t validation_error;
+
+// https://jira.mongodb.org/browse/CDRIVER-3378
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Walign-mismatch"
+#endif
   if (!bson_validate_with_error(bson, flag, &validation_error)) {
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
     throw ParseException("malformed BSON: ") << validation_error.message;
   }
 }

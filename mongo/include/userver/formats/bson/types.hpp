@@ -19,7 +19,11 @@ USERVER_NAMESPACE_BEGIN
 
 namespace formats::bson {
 namespace impl {
+// https://jira.mongodb.org/browse/CDRIVER-3378
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wignored-attributes"
 using BsonHolder = std::shared_ptr<const bson_t>;
+#pragma GCC diagnostic pop
 
 class ValueImpl;
 using ValueImplPtr = std::shared_ptr<ValueImpl>;

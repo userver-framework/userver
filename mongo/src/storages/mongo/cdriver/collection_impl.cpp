@@ -209,6 +209,9 @@ size_t CDriverCollectionImpl::Execute(
 #ifdef __clang__
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"  // i know
+#else
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #endif
     count = mongoc_collection_count_with_opts(
         context.collection.get(), MONGOC_QUERY_NONE, native_filter_bson_ptr,  //
@@ -217,6 +220,8 @@ size_t CDriverCollectionImpl::Execute(
         operation.impl_->read_prefs.Get(), error.GetNative());
 #ifdef __clang__
 #pragma clang diagnostic pop
+#else
+#pragma GCC diagnostic pop
 #endif
   }
   if (count < 0) {
@@ -294,7 +299,11 @@ WriteResult CDriverCollectionImpl::Execute(
 
   auto context = MakeRequestContext("mongo_insert_many", operation);
 
+  // https://jira.mongodb.org/browse/CDRIVER-3378
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wignored-attributes"
   std::vector<const bson_t*> bsons;
+#pragma GCC diagnostic pop
   bsons.reserve(operation.impl_->documents.size());
   for (const auto& doc : operation.impl_->documents) {
     bsons.push_back(doc.GetBson().get());

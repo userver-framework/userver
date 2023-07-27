@@ -29,6 +29,8 @@ if(NOT amqp-cpp_external_project_POPULATED)
 endif()
 
 add_subdirectory(${USERVER_ROOT_DIR}/third_party/amqp-cpp "${CMAKE_BINARY_DIR}/third_party/amqp-cpp")
+target_compile_options(amqpcpp PRIVATE "-Wno-unused-parameter")
+
 set(amqpcpp_VERSION "4.3.16" CACHE STRING "Version of the amqp-cpp")
 # Don't try to find system amqp-cpp (and print an error)
 # on the next Configure run.

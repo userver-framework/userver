@@ -41,6 +41,8 @@ int ToMySQLEvents(engine::io::FdPoller::Kind kind) {
     case Kind::kWrite:
       return MYSQL_WAIT_WRITE;
   }
+
+  UINVARIANT(false, "Invalid engine::io::FdPoller::Kind enum value");
 }
 
 }  // namespace

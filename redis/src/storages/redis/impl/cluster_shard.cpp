@@ -43,7 +43,7 @@ bool ClusterShard::IsReady(WaitConnectedMode mode) const {
       return IsMasterReady() && IsReplicaReady();
   }
 
-  UASSERT_MSG(false, "Unexpected WaitConnectedMode value");
+  UINVARIANT(false, "Unexpected WaitConnectedMode value");
 }
 
 bool ClusterShard::AsyncCommand(CommandPtr command) {
