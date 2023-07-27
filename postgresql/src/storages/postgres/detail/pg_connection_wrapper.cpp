@@ -10,6 +10,7 @@ auto PQXisBusy(PGconn* conn) { return ::PQisBusy(conn); }
 auto PQXgetResult(PGconn* conn) { return ::PQgetResult(conn); }
 #endif
 
+#include <crypto/openssl.hpp>
 #include <userver/concurrent/background_task_storage.hpp>
 #include <userver/engine/task/cancel.hpp>
 #include <userver/logging/log.hpp>
@@ -103,6 +104,17 @@ void NoticeReceiver(void* conn_wrapper_ptr, PGresult const* pg_res) {
   conn_wrapper->LogNotice(pg_res);
 }
 
+struct Openssl {
+  static void Init() noexcept { [[maybe_unused]] static Openssl lock; }
+
+ private:
+  Openssl() {
+    // When using OpenSSL < 1.1 duplicate initialization can be problematic
+    PQinitSSL(0);
+    crypto::impl::Openssl::Init();
+  }
+};
+
 }  // namespace
 
 PGConnectionWrapper::PGConnectionWrapper(
@@ -114,7 +126,7 @@ PGConnectionWrapper::PGConnectionWrapper(
                  {"pg_conn_id", id}},
       pool_size_lock_{std::move(pool_size_lock)},
       last_use_{std::chrono::steady_clock::now()} {
-  // TODO add SSL initialization
+  Openssl::Init();
 }
 
 PGConnectionWrapper::~PGConnectionWrapper() {

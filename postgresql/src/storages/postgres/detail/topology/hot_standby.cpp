@@ -10,7 +10,6 @@
 
 #include <fmt/format.h>
 
-#include <crypto/openssl.hpp>
 #include <storages/postgres/detail/connection.hpp>
 #include <storages/postgres/internal_pg_types.hpp>
 #include <storages/postgres/io/pg_type_parsers.hpp>
@@ -142,7 +141,6 @@ HotStandby::HotStandby(engine::TaskProcessor& bg_task_processor, DsnList dsns,
                    testsuite_pg_ctl, std::move(ei_settings)),
       host_states_{GetDsnList().begin(), GetDsnList().end()},
       dsn_stats_(GetDsnList().size()) {
-  crypto::impl::Openssl::Init();
   RunDiscovery();
 
   discovery_task_.Start(
