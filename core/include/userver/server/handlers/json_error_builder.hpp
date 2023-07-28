@@ -17,9 +17,9 @@ class JsonErrorBuilder {
 
   explicit JsonErrorBuilder(const CustomHandlerException& ex);
 
-  JsonErrorBuilder(const std::string& error_code, std::string internal_message,
-                   const std::string& external_error_body,
-                   const formats::json::Value& = {});
+  JsonErrorBuilder(std::string_view error_code, std::string internal_message,
+                   std::string_view external_error_body,
+                   formats::json::Value = {});
 
   const std::string& GetInternalMessage() const { return internal_message_; };
 

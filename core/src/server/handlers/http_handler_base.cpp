@@ -213,7 +213,7 @@ class RequestProcessor final {
                              const CustomHandlerException& ex) {
     process_finished_ = true;
     auto& response = http_request_.GetHttpResponse();
-    auto http_status = http::GetHttpStatus(ex.GetCode());
+    auto http_status = http::GetHttpStatus(ex);
     auto level = handler_.GetLogLevelForResponseStatus(http_status);
     LOG(level) << "custom handler exception in '" << handler_.HandlerName()
                << "' handler in " << step_name << ": msg=" << ex;
@@ -266,8 +266,8 @@ class RequestProcessor final {
         http_request_impl_.MarkAsInternalServerError();
         SetFormattedErrorResponse(response,
                                   handler_.GetFormattedExternalErrorBody({
-                                      ExternalBody{response.GetData()},
                                       HandlerErrorCode::kServerSideError,
+                                      ExternalBody{response.GetData()},
                                   }));
       }
     } catch (...) {
@@ -583,7 +583,7 @@ void HttpHandlerBase::HandleRequestStream(
   try {
     HandleStreamRequest(http_request, context, response_body_stream);
   } catch (const CustomHandlerException& e) {
-    response_body_stream.SetStatusCode(http::GetHttpStatus(e.GetCode()));
+    response_body_stream.SetStatusCode(http::GetHttpStatus(e));
 
     for (const auto& [name, value] : e.GetExtraHeaders()) {
       response_body_stream.SetHeader(name, value);
@@ -609,8 +609,8 @@ void HttpHandlerBase::HandleRequestStream(
       response_body_stream.SetStatusCode(500);
       SetFormattedErrorResponse(response,
                                 GetFormattedExternalErrorBody({
-                                    ExternalBody{response.GetData()},
                                     HandlerErrorCode::kServerSideError,
+                                    ExternalBody{response.GetData()},
                                 }));
     }
   }
@@ -743,8 +743,8 @@ void HttpHandlerBase::ReportMalformedRequest(
 
     SetFormattedErrorResponse(
         response,
-        GetFormattedExternalErrorBody({ExternalBody{response.GetData()},
-                                       HandlerErrorCode::kRequestParseError}));
+        GetFormattedExternalErrorBody({HandlerErrorCode::kRequestParseError,
+                                       ExternalBody{response.GetData()}}));
   } catch (const std::exception& ex) {
     LOG_ERROR() << "unable to handle ready request: " << ex;
   }
