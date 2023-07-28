@@ -23,6 +23,7 @@ jobs:
                         -DUSERVER_FEATURE_MYSQL=1
                         -DUSERVER_SANITIZE="ub addr"
                         -DCMAKE_BUILD_TYPE=Debug
+                        -DUSERVER_NO_WERROR=OFF
                         -DUSERVER_NAMESPACE=userver_ns
                         -DUSERVER_NAMESPACE_BEGIN="namespace userver_ns { inline namespace
                         v1 {"
