@@ -89,34 +89,10 @@ class Span final {
   Span CreateFollower(std::string name) const;
 
   /// @brief Creates a tracing::ScopeTime attached to the span.
-  ///
-  /// Note that
-  ///
-  /// @code
-  ///   auto scope = tracing::Span::CurrentSpan().CreateScopeTime();
-  /// @endcode
-  ///
-  /// is equivalent to
-  ///
-  /// @code
-  ///   tracing::Span scope;
-  /// @endcode
   ScopeTime CreateScopeTime();
 
   /// @brief Creates a tracing::ScopeTime attached to the Span and starts
   /// measuring execution time.
-  ///
-  /// Note that
-  ///
-  /// @code
-  ///   auto scope = tracing::Span::CurrentSpan().CreateScopeTime(name);
-  /// @endcode
-  ///
-  /// is equivalent to
-  ///
-  /// @code
-  ///   tracing::Span scope{name};
-  /// @endcode
   ScopeTime CreateScopeTime(std::string name);
 
   /// Returns total time elapsed for a certain scope of this span.
