@@ -1,19 +1,54 @@
 #include <userver/clients/http/response_future.hpp>
 
-#include <clients/http/easy_wrapper.hpp>
+#include <algorithm>
+
 #include <clients/http/request_state.hpp>
+#include <userver/utils/fast_scope_guard.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace clients::http {
 
+namespace {
+
+/// Max number of retries during calculating timeout
+constexpr int kMaxRetryInTimeout = 5;
+/// Base time for exponential backoff algorithm
+constexpr long kEBBaseTime = 25;
+
+long MaxRetryTime(short retries) {
+  long time_ms = 0;
+  for (short int i = 1; i < retries; ++i) {
+    time_ms += kEBBaseTime * ((1 << std::min(i - 1, kMaxRetryInTimeout)) + 1);
+  }
+  return time_ms;
+}
+
+long CompleteTimeout(long request_timeout, short retries) {
+  return static_cast<long>(static_cast<double>(request_timeout * retries) *
+                           1.1) +
+         MaxRetryTime(retries);
+}
+
+engine::Deadline ComputeBaseDeadline(RequestState& request_state) {
+  return engine::Deadline::FromDuration(std::chrono::milliseconds(
+      CompleteTimeout(request_state.timeout(), request_state.retries())));
+}
+
+}  // namespace
+
 ResponseFuture::ResponseFuture(
     engine::Future<std::shared_ptr<Response>>&& future,
-    std::chrono::milliseconds total_timeout,
     std::shared_ptr<RequestState> request_state)
     : future_(std::move(future)),
-      deadline_(engine::Deadline::FromDuration(total_timeout)),
-      request_state_(std::move(request_state)) {}
+      deadline_(ComputeBaseDeadline(*request_state)),
+      request_state_(std::move(request_state)) {
+  const auto propagated_deadline = request_state_->GetDeadline();
+  if (propagated_deadline < deadline_) {
+    deadline_ = propagated_deadline;
+    was_deadline_propagated_ = true;
+  }
+}
 
 ResponseFuture::ResponseFuture(ResponseFuture&& other) noexcept {
   std::swap(future_, other.future_);
@@ -27,6 +62,7 @@ ResponseFuture& ResponseFuture::operator=(ResponseFuture&& other) noexcept {
   future_ = std::move(other.future_);
   deadline_ = other.deadline_;
   request_state_ = std::move(other.request_state_);
+  was_deadline_propagated_ = other.was_deadline_propagated_;
   return *this;
 }
 
@@ -54,6 +90,13 @@ std::future_status ResponseFuture::Wait() {
 
     throw CancelException(
         "HTTP response wait was aborted due to task cancellation", stats);
+  }
+  if (was_deadline_propagated_ && status == engine::FutureStatus::kTimeout) {
+    // We allow the physical HTTP request to complete in the background to avoid
+    // closing the connection.
+    const utils::FastScopeGuard detach_guard([this]() noexcept { Detach(); });
+
+    request_state_->ThrowDeadlineExpiredException();
   }
   return (status == engine::FutureStatus::kReady) ? std::future_status::ready
                                                   : std::future_status::timeout;

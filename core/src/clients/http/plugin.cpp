@@ -14,6 +14,7 @@ void PluginRequest::SetHeader(std::string_view name, std::string value) {
 }
 
 void PluginRequest::SetTimeout(std::chrono::milliseconds ms) {
+  state_.set_timeout(ms.count());
   state_.SetEasyTimeout(ms);
 }
 

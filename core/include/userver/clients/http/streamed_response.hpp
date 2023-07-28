@@ -8,6 +8,7 @@
 #include <userver/clients/http/response.hpp>
 #include <userver/concurrent/queue.hpp>
 #include <userver/engine/deadline.hpp>
+#include <userver/engine/future.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -51,19 +52,23 @@ class StreamedResponse final {
   /// @note may block if the chunk is not obtained yet.
   bool ReadChunk(std::string& output, engine::Deadline);
 
-  /// Creates a new StreamedResponse
-  StreamedResponse(Queue::Consumer&& queue_consumer, engine::Deadline deadline,
+  /// @cond
+  StreamedResponse(engine::Future<void>&& headers_future,
+                   Queue::Consumer&& queue_consumer,
                    std::shared_ptr<clients::http::RequestState> request_state);
+  /// @endcond
 
  private:
   std::future_status WaitForHeaders(engine::Deadline);
+
   void WaitForHeadersOrThrow(engine::Deadline);
 
   std::shared_ptr<RequestState> request_state_;
-  std::shared_ptr<Response>
-      response_;  // re-use sync response's headers & status code storage
+  // re-use sync response's headers & status code storage
+  std::shared_ptr<Response> response_;
   engine::Deadline deadline_;
 
+  engine::Future<void> headers_future_;
   Queue::Consumer queue_consumer_;
 };
 

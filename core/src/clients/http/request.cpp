@@ -35,10 +35,6 @@ USERVER_NAMESPACE_BEGIN
 namespace clients::http {
 
 namespace {
-/// Max number of retries during calculating timeout
-constexpr int kMaxRetryInTimeout = 5;
-/// Base time for exponential backoff algorithm
-constexpr long kEBBaseTime = 25;
 
 constexpr std::string_view kHeaderExpect = "Expect";
 
@@ -101,20 +97,6 @@ curl::easy::proxyauth_t ProxyAuthTypeToNative(ProxyAuthType value) {
   }
 
   UINVARIANT(false, "Unexpected proxy auth type");
-}
-
-inline long max_retry_time(short number) {
-  long time_ms = 0;
-  for (short int i = 1; i < number; ++i) {
-    time_ms += kEBBaseTime * ((1 << std::min(i - 1, kMaxRetryInTimeout)) + 1);
-  }
-  return time_ms;
-}
-
-long complete_timeout(long request_timeout, short retries) {
-  return static_cast<long>(static_cast<double>(request_timeout * retries) *
-                           1.1) +
-         max_retry_time(retries);
 }
 
 bool IsUserAgentHeader(std::string_view header_name) {
@@ -221,20 +203,15 @@ Request::Request(std::shared_ptr<impl::EasyWrapper>&& wrapper,
 }
 
 ResponseFuture Request::async_perform(utils::impl::SourceLocation location) {
-  return {pimpl_->async_perform(location),
-          std::chrono::milliseconds(
-              complete_timeout(pimpl_->timeout(), pimpl_->retries())),
-          pimpl_};
+  return ResponseFuture{pimpl_->async_perform(location), pimpl_};
 }
 
 StreamedResponse Request::async_perform_stream_body(
     const std::shared_ptr<concurrent::StringStreamQueue>& queue,
     utils::impl::SourceLocation location) {
   LOG_DEBUG() << "Starting an async HTTP request with streamed response body";
-  pimpl_->async_perform_stream(queue, location);
-  auto deadline = engine::Deadline::FromDuration(
-      std::chrono::milliseconds(pimpl_->effective_timeout()));
-  return StreamedResponse(queue->GetConsumer(), deadline, pimpl_);
+  return StreamedResponse(pimpl_->async_perform_stream(queue, location),
+                          queue->GetConsumer(), pimpl_);
 }
 
 std::shared_ptr<Response> Request::perform(

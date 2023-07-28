@@ -70,7 +70,7 @@ void SetTaskInheritedDeadline(std::chrono::milliseconds ms) {
 
 }  // namespace
 
-UTEST_F(HttpClientDeadline, DISABLED_ZeroDeadlineIsUsedByClient) {
+UTEST_F(HttpClientDeadline, ZeroDeadlineIsUsedByClient) {
   SetTaskInheritedDeadline(0ms);
 
   auto request = GetClient()
@@ -81,7 +81,7 @@ UTEST_F(HttpClientDeadline, DISABLED_ZeroDeadlineIsUsedByClient) {
   UEXPECT_THROW((void)request.perform(), clients::http::CancelException);
 }
 
-UTEST_F(HttpClientDeadline, DISABLED_DeadlineIsUsedByClient) {
+UTEST_F(HttpClientDeadline, DeadlineIsUsedByClient) {
   SetTaskInheritedDeadline(100ms);
 
   auto request = GetClient()
@@ -92,7 +92,7 @@ UTEST_F(HttpClientDeadline, DISABLED_DeadlineIsUsedByClient) {
   UEXPECT_THROW((void)request.perform(), clients::http::CancelException);
 }
 
-UTEST_F(HttpClientDeadline, DISABLED_DeadlineIsUsedByClientOldConnection) {
+UTEST_F(HttpClientDeadline, DeadlineIsUsedByClientOldConnection) {
   SetTaskInheritedDeadline(100ms);
 
   PushResponseCode(200);
@@ -161,8 +161,7 @@ UTEST_F(HttpClientDeadline, ConnectionIsKeptAfterDeadlineExpires) {
     engine::SleepFor(kTimeToCleanUpConnection);
   }
 
-  // TODO should be 1, fix in TAXICOMMON-7005
-  EXPECT_EQ(GetServer().GetConnectionsOpenedCount(), 3);
+  EXPECT_EQ(GetServer().GetConnectionsOpenedCount(), 1);
 }
 
 USERVER_NAMESPACE_END
