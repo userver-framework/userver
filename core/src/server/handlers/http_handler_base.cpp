@@ -170,7 +170,10 @@ class RequestProcessor final {
       auto& response = http_request_.GetHttpResponse();
 
       const auto status_code = response.GetStatus();
-      span.SetLogLevel(handler_.GetLogLevelForResponseStatus(status_code));
+      span.SetLogLevel(
+          forced_log_level_
+              ? *forced_log_level_
+              : handler_.GetLogLevelForResponseStatus(status_code));
       if (!span.ShouldLogDefault()) {
         return;
       }
@@ -230,6 +233,8 @@ class RequestProcessor final {
     }
   }
 
+  void FinishProcessing() noexcept { process_finished_ = true; }
+
   const http::HttpRequest& GetRequest() { return http_request_; }
 
   const HttpHandlerBase& GetHandler() const { return handler_; }
@@ -243,6 +248,8 @@ class RequestProcessor final {
   void ResetDynamicConfig() {
     [[maybe_unused]] const auto for_destruction = std::move(config_snapshot_);
   }
+
+  void SetForcedLogLevel(logging::Level level) { forced_log_level_ = level; }
 
  private:
   template <typename Func>
@@ -283,7 +290,9 @@ class RequestProcessor final {
   const HttpHandlerBase& handler_;
   const http::HttpRequestImpl& http_request_impl_;
   const http::HttpRequest& http_request_;
+
   bool process_finished_{false};
+  std::optional<logging::Level> forced_log_level_{};
 
   request::RequestContext& context_;
   dynamic_config::Snapshot config_snapshot_;
@@ -334,13 +343,23 @@ utils::impl::UserverExperiment handler_override_response_on_deadline{
 void HandleDeadlineExpired(RequestProcessor& processor,
                            DeadlinePropagationContext& dp_context,
                            std::string internal_message) {
-  processor.HandleCustomException(
-      kDeadlinePropagationStep,
-      ExceptionWithCode<HandlerErrorCode::kGatewayTimeout>(
-          ExternalBody{"Deadline expired"},
-          InternalMessage{std::move(internal_message)},
-          ServiceErrorCode{"deadline_expired"}));
+  const auto& config = processor.GetHandler().GetConfig();
   dp_context.is_cancelled_by_deadline = true;
+  processor.FinishProcessing();
+  processor.SetForcedLogLevel(logging::Level::kWarning);
+
+  auto& response = processor.GetRequest().GetHttpResponse();
+  const auto status_code = config.deadline_expired_status_code;
+  response.SetStatus(status_code);
+
+  const http::CustomHandlerException exception_for_formatted_body{
+      HandlerErrorCode::kClientError, config.deadline_expired_status_code,
+      ExternalBody{"Deadline expired"},
+      InternalMessage{std::move(internal_message)},
+      ServiceErrorCode{"deadline_expired"}};
+  SetFormattedErrorResponse(
+      response, processor.GetHandler().GetFormattedExternalErrorBody(
+                    exception_for_formatted_body));
 }
 
 void SetUpInheritedDeadline(RequestProcessor& processor,
@@ -367,9 +386,8 @@ void SetUpInheritedDeadline(RequestProcessor& processor,
 
   if (handler_cancel_on_immediate_deadline_expiration.IsEnabled() &&
       deadline.IsSurelyReachedApprox()) {
-    HandleDeadlineExpired(
-        processor, dp_context,
-        "Immediate timeout (deadline propagation), forcing 504 response");
+    HandleDeadlineExpired(processor, dp_context,
+                          "Immediate timeout (deadline propagation)");
     return;
   }
 
@@ -428,9 +446,8 @@ void CompleteDeadlinePropagation(RequestProcessor& processor,
                 request, processor.GetContext(), response.GetData()));
       }
     }
-    HandleDeadlineExpired(
-        processor, dp_context,
-        "Handling timeout (deadline propagation), forcing 504 response");
+    HandleDeadlineExpired(processor, dp_context,
+                          "Handling timeout (deadline propagation)");
   }
 }
 

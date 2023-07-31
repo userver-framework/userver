@@ -132,6 +132,10 @@ properties:
             Deadline propagation is disabled if disabled statically OR
             dynamically.
         defaultDescription: true
+    deadline_expired_status_code:
+        type: integer
+        description: the HTTP status code to return if the request deadline expires
+        defaultDescription: 504
 )");
 }
 

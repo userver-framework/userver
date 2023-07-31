@@ -4,7 +4,9 @@
 
 #include <server/server_config.hpp>
 
+#include <server/http/parse_http_status.hpp>
 #include <userver/formats/parse/common_containers.hpp>
+#include <userver/logging/level_serialization.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -100,6 +102,10 @@ HandlerConfig ParseHandlerConfigsWithDefaults(
   config.deadline_propagation_enabled =
       value["deadline_propagation_enabled"].As<bool>(
           handler_defaults.deadline_propagation_enabled);
+
+  config.deadline_expired_status_code =
+      value["deadline_expired_status_code"].As<http::HttpStatus>(
+          handler_defaults.deadline_expired_status_code);
 
   return config;
 }

@@ -212,7 +212,8 @@ async def test_network_smaller_parts_sends(call, gate):
 
 def _check_deadline_propagation_response(response):
     assert isinstance(response, http.ClientResponse)
-    assert response.status == 504
+    # Check that the status code is taken from deadline_expired_status_code.
+    assert response.status == 498
     # Check that the error format is customizable
     # by GetFormattedExternalErrorBody.
     assert 'application/json' in response.headers['content-type']

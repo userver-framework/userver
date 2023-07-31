@@ -1,8 +1,7 @@
 #include <userver/server/request/request_config.hpp>
 
-#include <stdexcept>
-
-#include <userver/utils/assert.hpp>
+#include <server/http/parse_http_status.hpp>
+#include <userver/logging/level_serialization.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -29,6 +28,10 @@ HttpRequestConfig Parse(const yaml_config::YamlConfig& value,
   conf.deadline_propagation_enabled =
       value["deadline_propagation_enabled"].As<bool>(
           conf.deadline_propagation_enabled);
+
+  conf.deadline_expired_status_code =
+      value["deadline_expired_status_code"].As<http::HttpStatus>(
+          conf.deadline_expired_status_code);
 
   return conf;
 }

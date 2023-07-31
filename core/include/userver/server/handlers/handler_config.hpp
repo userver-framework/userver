@@ -7,6 +7,7 @@
 
 #include <userver/server/handlers/auth/handler_auth_config.hpp>
 #include <userver/server/handlers/fallback_handlers.hpp>
+#include <userver/server/http/http_status.hpp>
 #include <userver/server/request/request_config.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -42,6 +43,7 @@ struct HandlerConfig {
   std::optional<bool> set_response_server_hostname;
   bool set_tracing_headers{true};
   bool deadline_propagation_enabled{true};
+  http::HttpStatus deadline_expired_status_code{504};
 };
 
 HandlerConfig ParseHandlerConfigsWithDefaults(
