@@ -458,11 +458,6 @@ void ConnectionPool::Push(Connection* connection) {
         "pipeline status, shouldn't happen. "
         "Please collect the core dump and file an issue.");
   }
-  if (connection->IsSyncingPipeline()) {
-    // TODO: also TAXICOMMON-6886, should not be possible
-    USERVER_NAMESPACE::utils::impl::AbortWithStacktrace(
-        "Connection returned into pool without reading SYNC");
-  }
 
   auto conn_settings = conn_settings_.Read();
   if (connection->GetSettings().version < conn_settings->version) {

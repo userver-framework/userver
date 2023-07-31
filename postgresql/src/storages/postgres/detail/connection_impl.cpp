@@ -226,10 +226,6 @@ bool ConnectionImpl::IsInAbortedPipeline() const {
   return conn_wrapper_.IsInAbortedPipeline();
 }
 
-bool ConnectionImpl::IsSyncingPipeline() const {
-  return conn_wrapper_.IsSyncingPipeline();
-}
-
 bool ConnectionImpl::IsInRecovery() const { return is_in_recovery_; }
 
 bool ConnectionImpl::IsReadOnly() const { return is_read_only_; }

@@ -51,10 +51,6 @@ bool Connection::IsInAbortedPipeline() const {
   return pimpl_->IsInAbortedPipeline();
 }
 
-bool Connection::IsSyncingPipeline() const {
-  return pimpl_->IsSyncingPipeline();
-}
-
 bool Connection::IsInRecovery() const { return pimpl_->IsInRecovery(); }
 
 bool Connection::IsReadOnly() const { return pimpl_->IsReadOnly(); }

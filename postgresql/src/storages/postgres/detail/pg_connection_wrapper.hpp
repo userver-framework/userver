@@ -154,6 +154,8 @@ class PGConnectionWrapper {
 
   void HandleSocketPostClose();
 
+  void HandlePipelineSync();
+
   template <typename ExceptionType>
   [[noreturn]] void CloseWithError(ExceptionType&& ex);
 
@@ -167,8 +169,8 @@ class PGConnectionWrapper {
   logging::LogExtra log_extra_;
   engine::SemaphoreLock pool_size_lock_;
   std::chrono::steady_clock::time_point last_use_;
+  size_t pipeline_sync_counter_{0};
   bool is_broken_{false};
-  bool is_syncing_pipeline_{false};
 };
 
 }  // namespace storages::postgres::detail
