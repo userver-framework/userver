@@ -360,6 +360,9 @@ void HandleDeadlineExpired(RequestProcessor& processor,
   SetFormattedErrorResponse(
       response, processor.GetHandler().GetFormattedExternalErrorBody(
                     exception_for_formatted_body));
+
+  response.SetHeader(USERVER_NAMESPACE::http::headers::kXYaTaxiDeadlineExpired,
+                     "1");
 }
 
 void SetUpInheritedDeadline(RequestProcessor& processor,

@@ -21,6 +21,7 @@ DATA_PARTS_MAX_SIZE = 10
 BYTES_PER_SECOND_LIMIT = 10
 
 DP_TIMEOUT_MS = 'X-YaTaxi-Client-TimeoutMs'
+DP_DEADLINE_EXPIRED = 'X-YaTaxi-Deadline-Expired'
 
 logger = logging.getLogger(__name__)
 
@@ -212,6 +213,7 @@ async def test_network_smaller_parts_sends(call, gate):
 
 def _check_deadline_propagation_response(response):
     assert isinstance(response, http.ClientResponse)
+    assert DP_DEADLINE_EXPIRED in response.headers
     # Check that the status code is taken from deadline_expired_status_code.
     assert response.status == 498
     # Check that the error format is customizable

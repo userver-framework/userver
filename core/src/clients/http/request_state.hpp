@@ -154,6 +154,8 @@ class RequestState : public std::enable_shared_from_this<RequestState> {
   void UpdateTimeoutHeader();
   void HandleDeadlineAlreadyPassed();
   void CheckResponseDeadline(std::error_code& err, Status status_code);
+  bool IsDeadlineExpiredResponse(Status status_code);
+  bool ShouldRetryResponse();
 
   const std::string& GetLoggedOriginalUrl() const noexcept;
 
