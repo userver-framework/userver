@@ -22,7 +22,6 @@
 #include <userver/utils/assert.hpp>
 #include <userver/utils/async.hpp>
 #include <userver/utils/encoding/hex.hpp>
-#include <userver/utils/from_string.hpp>
 #include <userver/utils/overloaded.hpp>
 #include <userver/utils/rand.hpp>
 #include <utils/impl/assert_extra.hpp>
@@ -383,14 +382,7 @@ void RequestState::on_completed(std::shared_ptr<RequestState> holder,
 
   const auto status_code = static_cast<Status>(easy.get_response_code());
 
-  if (holder->deadline_expired_ || holder->deadline_.IsReached()) {
-    // The most probable cause is that the propagated deadline caused
-    // the downstream service to stop handling the request.
-    holder->deadline_expired_ = true;
-    holder->WithRequestStats(
-        [](RequestStats& stats) { stats.AccountCancelledByDeadline(); });
-    err = std::error_code{curl::errc::EasyErrorCode::kOperationTimedout};
-  }
+  holder->CheckResponseDeadline(err, status_code);
 
   if (holder->testsuite_config_ && !err) {
     const auto& headers = holder->response()->headers();
@@ -461,10 +453,6 @@ void RequestState::on_completed(std::shared_ptr<RequestState> holder,
     std::visit(visitor, holder->data_);
   }
   // it is unsafe to touch any content of holder after this point!
-}
-
-bool RequestState::IsStreamBody() const {
-  return !!std::get_if<StreamData>(&data_);
 }
 
 void RequestState::on_retry(std::shared_ptr<RequestState> holder,
@@ -751,6 +739,30 @@ void RequestState::HandleDeadlineAlreadyPassed() {
   std::visit(visitor, data_);
 }
 
+void RequestState::CheckResponseDeadline(std::error_code& err,
+                                         Status status_code) {
+  const std::chrono::microseconds attempt_time{easy().get_total_time_usec()};
+
+  if (deadline_expired_ ||
+      (deadline_propagation_config_.update_header &&
+       timeout_updated_by_deadline_ && attempt_time >= effective_timeout_)) {
+    // The most probable cause is that our original deadline, which was
+    // propagated to the downstream service, expired and caused it to stop
+    // handling the request.
+    deadline_expired_ = true;
+    err = std::error_code{curl::errc::EasyErrorCode::kOperationTimedout};
+    WithRequestStats(
+        [](RequestStats& stats) { stats.AccountCancelledByDeadline(); });
+  } else if (deadline_propagation_config_.update_header && !err &&
+             status_code >= Status{400} && attempt_time >= original_timeout_) {
+    // The most probable cause is that the per-attempt deadline based on the
+    // original timeout, which was propagated to the downstream service (but is
+    // less than our original deadline), expired and caused the downstream
+    // service to stop handling the request.
+    err = std::error_code{curl::errc::EasyErrorCode::kOperationTimedout};
+  }
+}
+
 void RequestState::AccountResponse(std::error_code err) {
   const auto attempts = retry_.current;
 
@@ -758,7 +770,7 @@ void RequestState::AccountResponse(std::error_code err) {
       std::chrono::duration_cast<std::chrono::microseconds>(
           easy().time_to_start());
 
-  WithRequestStats([&, this](RequestStats& stats) {
+  WithRequestStats([this, err, attempts, time_to_start](RequestStats& stats) {
     stats.StoreTimeToStart(time_to_start);
     if (err)
       stats.FinishEc(err, attempts);
