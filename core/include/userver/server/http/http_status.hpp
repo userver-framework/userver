@@ -63,6 +63,7 @@ enum class HttpStatus {
   kTooManyRequests = 429,
   kRequestHeaderFieldsTooLarge = 431,
   kUnavailableForLegalReasons = 451,
+  kDeadlineExpired = 498,      // userver-specific
   kClientClosedRequest = 499,  // nginx-specific
   kInternalServerError = 500,
   kNotImplemented = 501,

@@ -108,6 +108,8 @@ std::string_view HttpStatusString(HttpStatus status) {
       return "Request Header Fields Too Large";
     case HttpStatus::kUnavailableForLegalReasons:
       return "Unavailable For Legal Reasons";
+    case HttpStatus::kDeadlineExpired:
+      return "Deadline Expired";
     case HttpStatus::kClientClosedRequest:
       return "Client Closed Request";
     case HttpStatus::kInternalServerError:
