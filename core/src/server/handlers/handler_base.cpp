@@ -136,6 +136,8 @@ properties:
         type: integer
         description: the HTTP status code to return if the request deadline expires
         defaultDescription: 504
+        minimum: 400
+        maximum: 599
 )");
 }
 
