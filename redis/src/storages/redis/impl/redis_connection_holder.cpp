@@ -22,7 +22,7 @@ RedisConnectionHolder::RedisConnectionHolder(
           ev_thread_, [this] { EnsureConnected(); },
           kCheckRedisConnectedInterval) {
   CreateConnection();
-  ev_thread_.RunInEvLoopBlocking([this] { connection_check_timer_.Start(); });
+  ev_thread_.RunInEvLoopAsync([this] { connection_check_timer_.Start(); });
 }
 
 RedisConnectionHolder::~RedisConnectionHolder() {

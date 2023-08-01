@@ -7,7 +7,7 @@
     "max-size": 100,
     "token-update-interval-ms": 0
   },
-  "REDIS_CLUSTER_AUTOTOPOLOGY_ENABLED": false,
+  "REDIS_CLUSTER_AUTOTOPOLOGY_ENABLED_V2": true,
   "REDIS_COMMANDS_BUFFERING_SETTINGS": {
     "buffering_enabled": false,
     "watch_command_timer_interval_us": 0

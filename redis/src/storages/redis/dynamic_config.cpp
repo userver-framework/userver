@@ -11,7 +11,7 @@ int ParseDeadlinePropagationVersion(const dynamic_config::DocsMap& docs_map) {
 }
 
 bool ParseRedisClusterAutoTopology(const dynamic_config::DocsMap& docs_map) {
-  return docs_map.Get("REDIS_CLUSTER_AUTOTOPOLOGY_ENABLED").As<bool>(false);
+  return docs_map.Get("REDIS_CLUSTER_AUTOTOPOLOGY_ENABLED_V2").As<bool>(true);
 }
 
 }  // namespace redis

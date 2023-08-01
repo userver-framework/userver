@@ -69,8 +69,8 @@ class Config {
         pubsub_metrics_settings{"REDIS_PUBSUB_METRICS_SETTINGS", docs_map},
         replication_monitoring_settings{"REDIS_REPLICA_MONITORING_SETTINGS",
                                         docs_map},
-        redis_cluster_autotopology_enabled{"REDIS_CLUSTER_AUTOTOPOLOGY_ENABLED",
-                                           docs_map} {}
+        redis_cluster_autotopology_enabled{
+            "REDIS_CLUSTER_AUTOTOPOLOGY_ENABLED_V2", docs_map} {}
 };
 
 }  // namespace storages::redis
