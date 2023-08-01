@@ -357,7 +357,7 @@ void TaskContext::ArmTimer(Deadline deadline, Func&& func) {
     deadline_timer_.Restart(std::forward<Func>(func), deadline);
   } else {
     deadline_timer_.Start(boost::intrusive_ptr{this},
-                          task_processor_.EventThreadPool().NextThread(),
+                          task_processor_.EventThreadPool().NextTimerThread(),
                           std::forward<Func>(func), deadline);
   }
 }

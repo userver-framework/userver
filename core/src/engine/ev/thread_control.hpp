@@ -99,35 +99,22 @@ class CallerOwnedPayloadBlocking final
 
 class Thread;
 
-class ThreadControl final {
+class ThreadControlBase {
  public:
-  explicit ThreadControl(Thread& thread) noexcept : thread_(thread) {}
-
   struct ev_loop* GetEvLoop() const noexcept;
-
-  void Start(ev_async& w) noexcept;
-  void Stop(ev_async& w) noexcept;
-  void Send(ev_async& w) noexcept;
-
-  void Start(ev_timer& w) noexcept;
-  void Stop(ev_timer& w) noexcept;
-  void Again(ev_timer& w) noexcept;
-
-  void Start(ev_io& w) noexcept;
-  void Stop(ev_io& w) noexcept;
 
   /// Fast non allocating function to execute a `func(*data)` in EvLoop.
   void RunPayloadInEvLoopAsync(AsyncPayloadBase& payload) noexcept;
-
-  /// Allocating function to execute `func()` in EvLoop.
-  template <typename Func>
-  void RunInEvLoopAsync(Func&& func);
 
   /// Fast non allocating function to register a `func(*data)` in EvLoop.
   /// Does not wake up the ev thread immediately as an optimization.
   /// Depending on thread settings might fallback to RunPayloadInEvLoopAsync.
   void RunPayloadInEvLoopDeferred(AsyncPayloadBase& payload,
                                   Deadline deadline) noexcept;
+
+  /// Allocating function to execute `func()` in EvLoop.
+  template <typename Func>
+  void RunInEvLoopAsync(Func&& func);
 
   /// Allocating function to execute `func()` in EvLoop.
   /// Does not wake up the ev thread immediately as an optimization.
@@ -145,12 +132,26 @@ class ThreadControl final {
   std::uint8_t GetCurrentLoadPercent() const;
   const std::string& GetName() const;
 
+ protected:
+  explicit ThreadControlBase(Thread& thread) noexcept;
+
+  void DoStart(ev_timer& w) noexcept;
+  void DoStop(ev_timer& w) noexcept;
+  void DoAgain(ev_timer& w) noexcept;
+
+  void DoStart(ev_async& w) noexcept;
+  void DoStop(ev_async& w) noexcept;
+  void DoSend(ev_async& w) noexcept;
+
+  void DoStart(ev_io& w) noexcept;
+  void DoStop(ev_io& w) noexcept;
+
  private:
   Thread& thread_;
 };
 
 template <typename Func>
-void ThreadControl::RunInEvLoopAsync(Func&& func) {
+void ThreadControlBase::RunInEvLoopAsync(Func&& func) {
   if (IsInEvThread()) {
     func();
     return;
@@ -163,7 +164,7 @@ void ThreadControl::RunInEvLoopAsync(Func&& func) {
 }
 
 template <typename Func>
-void ThreadControl::RunInEvLoopDeferred(Func&& func) {
+void ThreadControlBase::RunInEvLoopDeferred(Func&& func) {
   if (IsInEvThread()) {
     func();
     return;
@@ -176,7 +177,7 @@ void ThreadControl::RunInEvLoopDeferred(Func&& func) {
 }
 
 template <typename Func>
-void ThreadControl::RunInEvLoopSync(Func&& func) {
+void ThreadControlBase::RunInEvLoopSync(Func&& func) {
   if (IsInEvThread()) {
     func();
     return;
@@ -191,7 +192,7 @@ void ThreadControl::RunInEvLoopSync(Func&& func) {
 }
 
 template <typename Func>
-void ThreadControl::RunInEvLoopBlocking(Func&& func) {
+void ThreadControlBase::RunInEvLoopBlocking(Func&& func) {
   if (IsInEvThread()) {
     func();
     return;
@@ -205,6 +206,31 @@ void ThreadControl::RunInEvLoopBlocking(Func&& func) {
 
   payload.Wait();
 }
+
+class TimerThreadControl final : public ThreadControlBase {
+ public:
+  explicit TimerThreadControl(Thread& thread) noexcept;
+
+  void Start(ev_timer& w) noexcept;
+  void Stop(ev_timer& w) noexcept;
+  void Again(ev_timer& w) noexcept;
+};
+
+class ThreadControl final : public ThreadControlBase {
+ public:
+  explicit ThreadControl(Thread& thread) noexcept;
+
+  void Start(ev_timer& w) noexcept;
+  void Stop(ev_timer& w) noexcept;
+  void Again(ev_timer& w) noexcept;
+
+  void Start(ev_async& w) noexcept;
+  void Stop(ev_async& w) noexcept;
+  void Send(ev_async& w) noexcept;
+
+  void Start(ev_io& w) noexcept;
+  void Stop(ev_io& w) noexcept;
+};
 
 }  // namespace engine::ev
 

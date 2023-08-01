@@ -25,10 +25,13 @@ ThreadPools::ThreadPools(size_t sentinel_thread_pool_size,
                          size_t redis_thread_pool_size) {
   sentinel_thread_pool_ =
       std::make_unique<engine::ev::ThreadPool>(engine::ev::ThreadPoolConfig{
-          sentinel_thread_pool_size, kSentinelThreadName});
+          sentinel_thread_pool_size, 0 /* dedicated_timer_threads */,
+          kSentinelThreadName});
 
-  redis_thread_pool_ = std::make_shared<engine::ev::ThreadPool>(
-      engine::ev::ThreadPoolConfig{redis_thread_pool_size, kRedisThreadName});
+  redis_thread_pool_ =
+      std::make_shared<engine::ev::ThreadPool>(engine::ev::ThreadPoolConfig{
+          redis_thread_pool_size, 0 /* dedicated_timer_threads */,
+          kRedisThreadName});
 }
 
 ThreadPools::~ThreadPools() {

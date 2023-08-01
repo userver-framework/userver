@@ -34,7 +34,7 @@ class ContextTimer final {
   /// Asynchronously starts the timer.
   /// Prolongs lifetime of the context until Finalize().
   void Start(boost::intrusive_ptr<TaskContext> context,
-             ev::ThreadControl thread_control, Func&& on_timer_func,
+             ev::TimerThreadControl thread_control, Func&& on_timer_func,
              Deadline deadline);
 
   /// Restarts a running timer with specified params. More efficient than

@@ -31,46 +31,78 @@ ThreadPool::ThreadPool(ThreadPoolConfig config, bool use_ev_default_loop)
   const auto register_timer_event_mode =
       GetRegisterEventMode(config.defer_events);
 
-  threads_ = utils::GenerateFixedArray(config.threads, [&](std::size_t index) {
-    const auto thread_name = fmt::format("{}_{}", config.thread_name, index);
-    return (use_ev_default_loop && index == 0)
-               ? Thread(thread_name, Thread::kUseDefaultEvLoop,
-                        register_timer_event_mode)
-               : Thread(thread_name, register_timer_event_mode);
-  });
+  {
+    default_threads_.threads =
+        utils::GenerateFixedArray(config.threads, [&](std::size_t index) {
+          const auto thread_name =
+              fmt::format("{}_{}", config.thread_name, index);
+          return (use_ev_default_loop && index == 0)
+                     ? Thread(thread_name, Thread::kUseDefaultEvLoop,
+                              register_timer_event_mode)
+                     : Thread(thread_name, register_timer_event_mode);
+        });
 
-  thread_controls_ = utils::GenerateFixedArray(
-      threads_.size(),
-      [&](std::size_t index) { return ThreadControl(threads_[index]); });
+    default_threads_.thread_controls = utils::GenerateFixedArray(
+        default_threads_.threads.size(), [&](std::size_t index) {
+          return ThreadControl(default_threads_.threads[index]);
+        });
+  }
+
+  {
+    timer_threads_.threads = utils::GenerateFixedArray(
+        config.dedicated_timer_threads, [](std::size_t index) {
+          return Thread{fmt::format("ev-timer_{}", index),
+                        Thread::RegisterEventMode::kDeferred};
+        });
+
+    // Although we expect to always have a dedicated timer thread[s]
+    // in the future, this feature is experimental for now and not always on.
+    // So we operate over our own timer threads if they are present, or fallback
+    // to default threads, behaving almost (separate atomic indexes, everything
+    // besides stays exactly the same) identically to what we had before.
+    auto& threads_to_wrap = timer_threads_.threads.empty()
+                                ? default_threads_.threads
+                                : timer_threads_.threads;
+    timer_threads_.thread_controls = utils::GenerateFixedArray(
+        threads_to_wrap.size(), [&threads_to_wrap](std::size_t index) {
+          return TimerThreadControl{threads_to_wrap[index]};
+        });
+  }
 }
 
 ThreadPool::~ThreadPool() = default;
 
-std::size_t ThreadPool::GetSize() const { return threads_.size(); }
-
-ThreadControl& ThreadPool::NextThread() {
-  UASSERT(!thread_controls_.empty());
-  // just ignore counter_ overflow
-  return thread_controls_[next_thread_idx_++ % thread_controls_.size()];
+std::size_t ThreadPool::GetSize() const {
+  return default_threads_.threads.size();
 }
+
+ThreadControl& ThreadPool::NextThread() { return default_threads_.Next(); }
 
 std::vector<ThreadControl*> ThreadPool::NextThreads(std::size_t count) {
   std::vector<ThreadControl*> res;
   if (!count) return res;
-  UASSERT(!thread_controls_.empty());
+  UASSERT(!default_threads_.Empty());
   res.reserve(count);
+
   // just ignore counter_ overflow
-  const auto start = next_thread_idx_.fetch_add(count);
+  const auto start = default_threads_.next_thread_idx.fetch_add(count);
   for (std::size_t i = 0; i < count; i++) {
-    res.push_back(&thread_controls_[(start + i) % thread_controls_.size()]);
+    res.push_back(
+        &default_threads_
+             .thread_controls[(start + i) %
+                              default_threads_.thread_controls.size()]);
   }
   return res;
 }
 
+TimerThreadControl& ThreadPool::NextTimerThread() {
+  return timer_threads_.Next();
+}
+
 ThreadControl& ThreadPool::GetEvDefaultLoopThread() {
-  UINVARIANT(!thread_controls_.empty() && use_ev_default_loop_,
+  UINVARIANT(!default_threads_.Empty() && use_ev_default_loop_,
              "no ev_default_loop in current thread_pool");
-  return thread_controls_[0];
+  return default_threads_.thread_controls[0];
 }
 
 }  // namespace engine::ev

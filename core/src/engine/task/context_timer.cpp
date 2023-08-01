@@ -21,7 +21,7 @@ class ContextTimer::Impl final : public ev::MultiShotAsyncPayload<Impl> {
   bool WasStarted() const noexcept;
 
   void Start(boost::intrusive_ptr<TaskContext>&& context,
-             ev::ThreadControl thread_control, Func&& on_timer_func,
+             ev::TimerThreadControl thread_control, Func&& on_timer_func,
              Deadline deadline);
 
   void Restart(Func&& on_timer_func, Deadline deadline);
@@ -53,7 +53,7 @@ class ContextTimer::Impl final : public ev::MultiShotAsyncPayload<Impl> {
   };
 
   boost::intrusive_ptr<TaskContext> context_;
-  std::optional<ev::ThreadControl> thread_control_;
+  std::optional<ev::TimerThreadControl> thread_control_;
   Params params_;
   ev_timer timer_{};
   ev::DataPipeToEv<Params> params_pipe_to_ev_;
@@ -76,7 +76,7 @@ bool ContextTimer::Impl::WasStarted() const noexcept {
 }
 
 void ContextTimer::Impl::Start(boost::intrusive_ptr<TaskContext>&& context,
-                               ev::ThreadControl thread_control,
+                               ev::TimerThreadControl thread_control,
                                Func&& on_timer_func, Deadline deadline) {
   UASSERT(!context_);
   UASSERT(!thread_control_);
@@ -173,8 +173,8 @@ ContextTimer::~ContextTimer() = default;
 bool ContextTimer::WasStarted() const noexcept { return impl_->WasStarted(); }
 
 void ContextTimer::Start(boost::intrusive_ptr<TaskContext> context,
-                         ev::ThreadControl thread_control, Func&& on_timer_func,
-                         Deadline deadline) {
+                         ev::TimerThreadControl thread_control,
+                         Func&& on_timer_func, Deadline deadline) {
   impl_->Start(std::move(context), thread_control, std::move(on_timer_func),
                deadline);
 }
