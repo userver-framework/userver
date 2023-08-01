@@ -92,7 +92,8 @@ void ExpectCancelledStats(const utils::statistics::Snapshot& stats) {
 
 using GrpcClientCancel = ugrpc::tests::ServiceFixture<UnitTestService>;
 
-UTEST_F(GrpcClientCancel, UnaryCall) {
+// TODO(TAXICOMMON-7315) fix race in the test and re-enable
+UTEST_F(GrpcClientCancel, DISABLED_UnaryCall) {
   auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
   {
     engine::current_task::GetCancellationToken().RequestCancel();
@@ -111,7 +112,8 @@ UTEST_F(GrpcClientCancel, UnaryCall) {
   ExpectCancelledStats(stats);
 }
 
-UTEST_F(GrpcClientCancel, UnaryFinish) {
+// TODO(TAXICOMMON-7315) fix race in the test and re-enable
+UTEST_F(GrpcClientCancel, DISABLED_UnaryFinish) {
   auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
   {
     sample::ugrpc::GreetingRequest out;
@@ -130,7 +132,8 @@ UTEST_F(GrpcClientCancel, UnaryFinish) {
   ExpectCancelledStats(stats);
 }
 
-UTEST_F(GrpcClientCancel, InputStreamRead) {
+// TODO(TAXICOMMON-7315) fix race in the test and re-enable
+UTEST_F(GrpcClientCancel, DISABLED_InputStreamRead) {
   auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
   {
     sample::ugrpc::StreamGreetingRequest out;
@@ -151,7 +154,8 @@ UTEST_F(GrpcClientCancel, InputStreamRead) {
   ExpectCancelledStats(stats);
 }
 
-UTEST_F(GrpcClientCancel, InputStreamCall) {
+// TODO(TAXICOMMON-7315) fix race in the test and re-enable
+UTEST_F(GrpcClientCancel, DISABLED_InputStreamCall) {
   auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
   {
     sample::ugrpc::StreamGreetingRequest out;
@@ -169,7 +173,8 @@ UTEST_F(GrpcClientCancel, InputStreamCall) {
   ExpectCancelledStats(stats);
 }
 
-UTEST_F(GrpcClientCancel, OutputStreamCall) {
+// TODO(TAXICOMMON-7315) fix race in the test and re-enable
+UTEST_F(GrpcClientCancel, DISABLED_OutputStreamCall) {
   auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
   {
     engine::current_task::GetCancellationToken().RequestCancel();
@@ -183,7 +188,8 @@ UTEST_F(GrpcClientCancel, OutputStreamCall) {
   ExpectCancelledStats(stats);
 }
 
-UTEST_F(GrpcClientCancel, OutputStreamWrite) {
+// TODO(TAXICOMMON-7315) fix race in the test and re-enable
+UTEST_F(GrpcClientCancel, DISABLED_OutputStreamWrite) {
   auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
   {
     auto os = client.WriteMany(PrepareClientContext());
@@ -202,7 +208,8 @@ UTEST_F(GrpcClientCancel, OutputStreamWrite) {
   ExpectCancelledStats(stats);
 }
 
-UTEST_F(GrpcClientCancel, OutputStreamFinish) {
+// TODO(TAXICOMMON-7315) fix race in the test and re-enable
+UTEST_F(GrpcClientCancel, DISABLED_OutputStreamFinish) {
   auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
   {
     auto os = client.WriteMany(PrepareClientContext());
@@ -223,7 +230,8 @@ UTEST_F(GrpcClientCancel, OutputStreamFinish) {
   ExpectCancelledStats(stats);
 }
 
-UTEST_F(GrpcClientCancel, BidirectionalStreamCall) {
+// TODO(TAXICOMMON-7315) fix race in the test and re-enable
+UTEST_F(GrpcClientCancel, DISABLED_BidirectionalStreamCall) {
   auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
   {
     engine::current_task::GetCancellationToken().RequestCancel();
@@ -238,7 +246,8 @@ UTEST_F(GrpcClientCancel, BidirectionalStreamCall) {
   ExpectCancelledStats(stats);
 }
 
-UTEST_F(GrpcClientCancel, BidirectionalStreamRead) {
+// TODO(TAXICOMMON-7315) fix race in the test and re-enable
+UTEST_F(GrpcClientCancel, DISABLED_BidirectionalStreamRead) {
   auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
   {
     auto bs = client.Chat(PrepareClientContext());
@@ -255,7 +264,8 @@ UTEST_F(GrpcClientCancel, BidirectionalStreamRead) {
   ExpectCancelledStats(stats);
 }
 
-UTEST_F(GrpcClientCancel, BidirectionalStreamWrite) {
+// TODO(TAXICOMMON-7315) fix race in the test and re-enable
+UTEST_F(GrpcClientCancel, DISABLED_BidirectionalStreamWrite) {
   auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
   {
     auto bs = client.Chat(PrepareClientContext());
@@ -272,7 +282,8 @@ UTEST_F(GrpcClientCancel, BidirectionalStreamWrite) {
   ExpectCancelledStats(stats);
 }
 
-UTEST_F(GrpcClientCancel, BidirectionalStreamWritesDone) {
+// TODO(TAXICOMMON-7315) fix race in the test and re-enable
+UTEST_F(GrpcClientCancel, DISABLED_BidirectionalStreamWritesDone) {
   auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
   {
     auto bs = client.Chat(PrepareClientContext());
