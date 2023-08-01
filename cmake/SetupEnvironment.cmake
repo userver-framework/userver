@@ -98,7 +98,7 @@ if(MACOS AND NOT USERVER_CONAN)
 endif()
 find_package(Boost REQUIRED)
 
-include(RequireDWCAS)
+include(RequireDWCAS)  # Should be called after `find_package(Boost REQUIRED)`
 
 add_cxx_compile_options_if_supported ("-ftemplate-backtrace-limit=0")
 

@@ -20,8 +20,8 @@ Let's write a simple JSON to YAML converter with the help of `userver-universal`
 
 ### Code
 
-The implementation is quite straitforward. Include the necessary C++ Standard library
-and userver headers:
+The implementation is quite straightforward. Include the necessary C++ Standard
+library and userver headers:
 
 @snippet samples/json2yaml/json2yaml.cpp  json2yaml - includes
 

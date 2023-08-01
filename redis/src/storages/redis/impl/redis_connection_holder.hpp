@@ -12,7 +12,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace redis {
 
-/// This class holds redis connection and automaticaly reconnects if
+/// This class holds redis connection and automatically reconnects if
 /// disconnected
 class RedisConnectionHolder {
  public:

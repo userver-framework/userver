@@ -34,7 +34,7 @@ class DocsMap final {
   /// @cond
   // For internal use only
   // Set of configs expected to be used is automatically updated when
-  // configs are retreived with 'Get' method.
+  // configs are retrieved with 'Get' method.
   void SetConfigsExpectedToBeUsed(
       utils::impl::TransparentSet<std::string> configs, utils::InternalTag);
 

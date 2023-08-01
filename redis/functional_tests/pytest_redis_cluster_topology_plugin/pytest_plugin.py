@@ -384,7 +384,7 @@ class RedisClusterTopology:
 
     def _count_hosts_in_cluster(self, node):
         """
-        Count hosts that have assigned slots so they are actualy part of
+        Count hosts that have assigned slots so they are actually part of
         the cluster
         """
         client = node.get_client()

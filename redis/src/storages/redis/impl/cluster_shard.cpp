@@ -123,13 +123,13 @@ void ClusterShard::GetNearestServersPing(const CommandControl& command_control,
 }
 
 std::vector<std::shared_ptr<Redis>> ClusterShard::GetAvailableServers(
-    const ClusterShard::RedisConnectionPtr& master_connetion,
+    const ClusterShard::RedisConnectionPtr& master_connection,
     const std::vector<ClusterShard::RedisConnectionPtr>& replicas_connections,
     const CommandControl& command_control, bool with_masters, bool with_slaves,
     size_t current) {
   if (!command_control.force_server_id.IsAny()) {
     const auto id = command_control.force_server_id;
-    auto master = master_connetion->Get();
+    auto master = master_connection->Get();
     if (master->GetServerId() == id) {
       return {std::move(master)};
     }
@@ -151,7 +151,7 @@ std::vector<std::shared_ptr<Redis>> ClusterShard::GetAvailableServers(
   /// Define retry priority
   if (with_masters && !with_slaves) {
     /// First attempt will be made in master and then in replicas
-    result.push_back(master_connetion->Get());
+    result.push_back(master_connection->Get());
     const auto replicas_count = replicas_connections.size();
     for (size_t i = 0; i < replicas_count; ++i) {
       const auto index = (current + i) % replicas_count;
@@ -164,7 +164,7 @@ std::vector<std::shared_ptr<Redis>> ClusterShard::GetAvailableServers(
       const auto index = (current + i) % replicas_count;
       result.push_back(replicas_connections[index]->Get());
     }
-    result.push_back(master_connetion->Get());
+    result.push_back(master_connection->Get());
   }
 
   switch (command_control.strategy) {

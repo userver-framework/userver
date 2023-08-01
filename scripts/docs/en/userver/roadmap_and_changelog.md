@@ -17,7 +17,7 @@ Changelog news also go to the
 ## Roadmap
 
 
-### Plans for the first release
+### Plans for the first release (in a three months!)
 
 * Add web interface to the [uservice-dynconf](https://github.com/userver-framework/uservice-dynconf)
   * ✓ Add component to serve static pages
@@ -46,6 +46,7 @@ Changelog news also go to the
 * Enable PostgreSQL pipelining
 * Implement and enable Deadline Propagation
   * ✓ HTTP Client
+  * ✓ HTTP Server
   * ✓ Mongo
   * PostgreSQL
   * Redis
@@ -55,6 +56,37 @@ Changelog news also go to the
 
 
 ## Changelog
+
+
+### Beta (July 2023)
+
+* server::http::CustomHandlerException now allows to provide a custom HTTP
+  status that is not mapped to protocol-agnostic
+  server::handlers::HandlerErrorCode.
+* Non-coroutine `userver-universal` CMake target was refactored and is now used
+  by the whole framework as a basic dependency. Compile times dropped down
+  drastically for building the whole framework from scratch.
+* Added a non-coroutine usage example @ref md_en_userver_tutorial_json_to_yaml.
+* It is now possible to subscribe to `SIGUSR1` and `SIGUSR2` in the same class.
+  Thanks to [Beshkent](https://github.com/Beshkent) for the bug report.
+* Dynamic config management commands were added to `uctl` tool.
+
+* Optimizations:
+  * storages::redis::SubscribeClient subscriptions were optimized to do less
+    dynamic allocations on new message and use a faster lock-free queue.
+  * Escaping of tags for logging is now done at compile-time by default, which
+    gives up to 30% speedup in some cases.
+  * Internal asynchronous logging logic was rewritten, leading to better
+    scalability and more than 25% speedup.
+  * HTTP client connection is now preserved on deadline, leading to less
+    connections being reopened.
+
+* Cleaned up and added docs for redis::CommandControl.
+* MacOS build instructions were enhanced, thanks to
+  [Daniil Shvalov](https://github.com/danilshvalov) for the PR!
+* Conan build was fixed, thanks to
+  [Yuri Bogomolov](https://github.com/ybogo) for the PR.
+* Numerous build and configure fixes.
 
 
 ### Beta (June 2023)

@@ -40,7 +40,7 @@ TEST(RcuMap, StdMutexBase) {
   UEXPECT_NO_THROW(*map["any"] = 1);
 }
 
-TEST(RcuMap, StdMutexConcurentWrites) {
+TEST(RcuMap, StdMutexConcurrentWrites) {
   StdMutexRcuMap map;
   std::atomic<bool> thread_started_write{false};
 

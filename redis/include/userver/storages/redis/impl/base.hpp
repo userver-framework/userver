@@ -201,11 +201,11 @@ struct CommandControl {
   /// Force execution on master node
   bool force_request_to_master = false;
 
-  /// Allow execution of readonly commands on master node to facilitate load
-  /// distribution
+  /// Allow execution of readonly commands on master node along with replica
+  /// nodes to facilitate load distribution.
   bool allow_reads_from_master = false;
 
-  /// Controls if command execution will be accounted in statistics
+  /// Controls if the command execution accounted in statistics
   bool account_in_statistics = true;
 
   /// If set, force execution on specific shard
@@ -219,7 +219,7 @@ struct CommandControl {
   /// ignored.
   ServerId force_server_id;
 
-  /// If set, command retries will be directed to the master instance
+  /// If set, command retries are directed to the master instance
   bool force_retries_to_master_on_nil_reply = false;
 
   CommandControl() = default;
