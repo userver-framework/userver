@@ -669,11 +669,14 @@ UTEST_F(Options, DefaultMaxServerTime) {
       {}, mongo::options::MaxServerTime{utest::kMaxTestWaitTime}));
 }
 
+// Note: make sure to call SetTimeout on WriteConcern::kMajority, otherwise
+// the default timeout of 1 second will lead to the test being flaky.
 UTEST_F(Options, WriteConcern) {
   auto coll = GetDefaultPool().GetCollection("write_concern");
 
-  coll.InsertOne({}, mongo::options::WriteConcern::kMajority);
-  UEXPECT_NO_THROW(coll.InsertOne({}, mongo::options::WriteConcern::kMajority));
+  UEXPECT_NO_THROW(coll.InsertOne(
+      {}, mongo::options::WriteConcern{mongo::options::WriteConcern::kMajority}
+              .SetTimeout(utest::kMaxTestWaitTime)));
   UEXPECT_NO_THROW(
       coll.InsertOne({}, mongo::options::WriteConcern::kUnacknowledged));
   UEXPECT_NO_THROW(coll.InsertOne({}, mongo::options::WriteConcern{1}));
@@ -689,8 +692,10 @@ UTEST_F(Options, WriteConcern) {
   UEXPECT_THROW(coll.InsertOne({}, mongo::options::WriteConcern{"test"}),
                 mongo::ServerException);
 
-  UEXPECT_NO_THROW(
-      coll.FindAndModify({}, {}, mongo::options::WriteConcern::kMajority));
+  UEXPECT_NO_THROW(coll.FindAndModify(
+      {}, {},
+      mongo::options::WriteConcern{mongo::options::WriteConcern::kMajority}
+          .SetTimeout(utest::kMaxTestWaitTime)));
   UEXPECT_NO_THROW(coll.FindAndModify(
       {}, {}, mongo::options::WriteConcern::kUnacknowledged));
   UEXPECT_NO_THROW(coll.FindAndModify({}, {}, mongo::options::WriteConcern{1}));

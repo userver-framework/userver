@@ -45,9 +45,8 @@ struct PoolConfig final {
   /// Default application name
   static constexpr char kDefaultAppName[] = "userver";
 
-  // Throws InvalidConfigException if the config is invalid
+  /// @throws InvalidConfigException if the config is invalid
   void Validate(const std::string& pool_id) const;
-  /// @endcond
 
   /// Connection (I/O) timeout
   std::chrono::milliseconds conn_timeout = kDefaultConnTimeout;
