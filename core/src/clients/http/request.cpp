@@ -74,6 +74,29 @@ constexpr utils::TrivialBiMap kAuthTypeMap = [](auto selector) {
       .Case("any_safe", ProxyAuthType::kAnySafe);
 };
 
+curl::easy::httpauth_t HttpAuthTypeToNative(HttpAuthType value) {
+  switch (value) {
+    case HttpAuthType::kBasic:
+      return curl::easy::auth_basic;
+    case HttpAuthType::kDigest:
+      return curl::easy::auth_digest;
+    case HttpAuthType::kDigestIE:
+      return curl::easy::auth_digest_ie;
+    case HttpAuthType::kNegotiate:
+      return curl::easy::auth_negotiate;
+    case HttpAuthType::kNtlm:
+      return curl::easy::auth_ntlm;
+    case HttpAuthType::kNtlmWb:
+      return curl::easy::auth_ntlm_wb;
+    case HttpAuthType::kAny:
+      return curl::easy::auth_any;
+    case HttpAuthType::kAnySafe:
+      return curl::easy::auth_any_safe;
+  }
+
+  UINVARIANT(false, "Unexpected http auth type");
+}
+
 curl::easy::proxyauth_t ProxyAuthTypeToNative(ProxyAuthType value) {
   switch (value) {
     case ProxyAuthType::kBasic:
@@ -368,6 +391,19 @@ Request Request::headers(
     const std::initializer_list<std::pair<std::string_view, std::string_view>>&
         headers) && {
   return std::move(this->headers(headers));
+}
+
+Request& Request::http_auth_type(HttpAuthType value, bool auth_only,
+                                 std::string_view user,
+                                 std::string_view password) & {
+  pimpl_->http_auth_type(HttpAuthTypeToNative(value), auth_only, user,
+                         password);
+  return *this;
+}
+Request Request::http_auth_type(HttpAuthType value, bool auth_only,
+                                std::string_view user,
+                                std::string_view password) && {
+  return std::move(this->http_auth_type(value, auth_only, user, password));
 }
 
 Request& Request::proxy_headers(const Headers& headers) & {

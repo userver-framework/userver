@@ -58,6 +58,17 @@ enum class HttpVersion {
   k2PriorKnowledge,  ///< HTTP/2 only (without Upgrade)
 };
 
+enum class HttpAuthType {
+  kBasic,      ///< "basic"
+  kDigest,     ///< "digest"
+  kDigestIE,   ///< "digest_ie"
+  kNegotiate,  ///< "negotiate"
+  kNtlm,       ///< "ntlm"
+  kNtlmWb,     ///< "ntlm_wb"
+  kAny,        ///< "any"
+  kAnySafe,    ///< "any_safe"
+};
+
 enum class ProxyAuthType {
   kBasic,      ///< "basic"
   kDigest,     ///< "digest"
@@ -157,6 +168,11 @@ class Request final {
                    std::pair<std::string_view, std::string_view>>& headers) &;
   Request headers(const std::initializer_list<
                   std::pair<std::string_view, std::string_view>>& headers) &&;
+  /// Sets http auth type to use.
+  Request& http_auth_type(HttpAuthType value, bool auth_only,
+                          std::string_view user, std::string_view password) &;
+  Request http_auth_type(HttpAuthType value, bool auth_only,
+                         std::string_view user, std::string_view password) &&;
   /// Proxy headers for request as map
   Request& proxy_headers(const Headers& headers) &;
   Request proxy_headers(const Headers& headers) &&;

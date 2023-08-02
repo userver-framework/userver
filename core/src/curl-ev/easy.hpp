@@ -338,13 +338,13 @@ class easy final : public std::enable_shared_from_this<easy> {
                                native::CURLOPT_PROXYPASSWORD);
   enum httpauth_t {
     auth_basic = CURLAUTH_BASIC,
-    auth_digest,
-    auth_digest_ie,
-    auth_gss_negotiate,
-    auth_ntml,
-    auth_nhtml_wb,
-    auth_any,
-    auth_any_safe
+    auth_digest = CURLAUTH_DIGEST,
+    auth_digest_ie = CURLAUTH_DIGEST_IE,
+    auth_negotiate = CURLAUTH_NEGOTIATE,
+    auth_ntlm = CURLAUTH_NTLM,
+    auth_ntlm_wb = CURLAUTH_NTLM_WB,
+    auth_any = CURLAUTH_ANY,
+    auth_any_safe = CURLAUTH_ANYSAFE
   };
   inline void set_http_auth(httpauth_t auth, bool auth_only) {
     std::error_code ec;
