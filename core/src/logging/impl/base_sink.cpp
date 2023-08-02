@@ -9,8 +9,6 @@ BaseSink::BaseSink()
     : formatter_{std::make_unique<spdlog::pattern_formatter>()} {}
 
 void BaseSink::Log(const spdlog::details::log_msg& msg) {
-  std::lock_guard lock{mutex_};
-
   spdlog::memory_buf_t formatted;
   formatter_->format(msg, formatted);
 
@@ -36,8 +34,6 @@ Level BaseSink::GetLevel() const { return level_.load(); }
 bool BaseSink::IsShouldLog(Level msg_level) const {
   return msg_level >= level_.load();
 }
-
-std::mutex& BaseSink::GetMutex() { return mutex_; }
 
 BaseSink::~BaseSink() = default;
 

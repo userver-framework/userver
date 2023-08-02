@@ -116,7 +116,7 @@ class Logging final : public impl::ComponentBase {
   std::unordered_map<std::string, std::shared_ptr<logging::impl::TpLogger>>
       loggers_;
   utils::PeriodicTask flush_task_;
-  std::shared_ptr<logging::impl::TcpSocketSink> socket_sink_;
+  logging::impl::TcpSocketSink* socket_sink_{nullptr};
   os_signals::Subscriber signal_subscriber_;
   utils::statistics::Entry statistics_holder_;
 };

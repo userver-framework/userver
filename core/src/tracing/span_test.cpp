@@ -19,28 +19,20 @@ class Span : public LoggingTest {};
 
 class OpentracingSpan : public Span {
  protected:
-  void SetUp() override {
-    opentracing_data_ = std::make_shared<LoggingSinkWithStream>();
-    opentracing_logger_ = MakeNamedStreamLogger(
-        "openstracing", opentracing_data_, logging::Format::kTskv);
-    tracing::SetOpentracingLogger(opentracing_logger_);
+  OpentracingSpan()
+      : opentracing_logger_(
+            MakeNamedStreamLogger("openstracing", logging::Format::kTskv)) {
+    tracing::SetOpentracingLogger(opentracing_logger_.logger);
 
     // Discard logs from SetOpentracingLogger
-    logging::LogFlush(*opentracing_logger_);
-    opentracing_data_->sstream.str({});
-
-    Span::SetUp();
+    logging::LogFlush(*opentracing_logger_.logger);
+    opentracing_logger_.stream.str({});
   }
 
-  void TearDown() override {
-    Span::TearDown();
-    if (opentracing_logger_) {
-      tracing::SetOpentracingLogger({});
-      opentracing_logger_.reset();
-    }
-  }
+  ~OpentracingSpan() override { tracing::SetOpentracingLogger({}); }
 
-  void FlushOpentracing() { opentracing_logger_->Flush(); }
+  // NOLINTNEXTLINE(readability-make-member-function-const)
+  void FlushOpentracing() { logging::LogFlush(*opentracing_logger_.logger); }
 
   static void CheckTagFormat(const formats::json::Value& tag) {
     EXPECT_TRUE(tag.HasMember("key"));
@@ -66,12 +58,11 @@ class OpentracingSpan : public Span {
   }
 
   std::string GetOtStreamString() const {
-    return opentracing_data_->sstream.str();
+    return opentracing_logger_.stream.str();
   }
 
  private:
-  std::shared_ptr<LoggingSinkWithStream> opentracing_data_;
-  std::shared_ptr<logging::impl::TpLogger> opentracing_logger_;
+  StringStreamLogger opentracing_logger_;
 };
 
 UTEST_F(Span, Ctr) {

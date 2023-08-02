@@ -28,13 +28,11 @@ LoggerPtr MakeSimpleLogger(const std::string& name, impl::SinkPtr sink,
 }
 
 impl::SinkPtr MakeStderrSink() {
-  static auto sink = std::make_shared<impl::BufferedUnownedFileSink>(stderr);
-  return sink;
+  return std::make_unique<impl::BufferedUnownedFileSink>(stderr);
 }
 
 impl::SinkPtr MakeStdoutSink() {
-  static auto sink = std::make_shared<impl::BufferedUnownedFileSink>(stdout);
-  return sink;
+  return std::make_unique<impl::BufferedUnownedFileSink>(stdout);
 }
 
 }  // namespace
@@ -51,7 +49,7 @@ LoggerPtr MakeStdoutLogger(const std::string& name, Format format,
 
 LoggerPtr MakeFileLogger(const std::string& name, const std::string& path,
                          Format format, Level level) {
-  return MakeSimpleLogger(name, std::make_shared<impl::BufferedFileSink>(path),
+  return MakeSimpleLogger(name, std::make_unique<impl::BufferedFileSink>(path),
                           level, format);
 }
 

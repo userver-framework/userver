@@ -10,10 +10,6 @@ USERVER_NAMESPACE_BEGIN
 
 namespace test {
 
-constexpr size_t kEightMb = 8 * 1024 * 1024;
-
-constexpr size_t kOneKb = 1024;
-
 std::vector<std::string> NormalizeLogs(const std::string& data);
 
 std::vector<std::string> ReadFromFd(fs::blocking::FileDescriptor&& fd);

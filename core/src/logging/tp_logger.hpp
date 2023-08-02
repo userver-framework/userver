@@ -21,13 +21,14 @@
 #include <engine/impl/async_flat_combining_queue.hpp>
 #include <logging/config.hpp>
 #include <logging/impl/base_sink.hpp>
+#include <logging/impl/reopen_mode.hpp>
 #include <logging/statistics/log_stats.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace logging::impl {
 
-using SinkPtr = std::shared_ptr<BaseSink>;
+using SinkPtr = std::unique_ptr<BaseSink>;
 
 namespace async {
 
@@ -45,9 +46,14 @@ struct FlushThreaded {
   std::promise<void> promise;
 };
 
+struct ReopenCoro {
+  ReopenMode reopen_mode;
+  engine::Promise<void> promise;
+};
+
 struct Stop {};
 
-using Action = std::variant<Stop, Log, FlushCoro, FlushThreaded>;
+using Action = std::variant<Stop, Log, FlushCoro, FlushThreaded, ReopenCoro>;
 
 struct ActionNode final : public concurrent::impl::SinglyLinkedBaseHook {
   Action action{Stop{}};
@@ -74,6 +80,7 @@ class TpLogger final : public LoggerBase {
 
   void AddSink(impl::SinkPtr&& sink);
   const std::vector<impl::SinkPtr>& GetSinks() const;
+  void Reopen(ReopenMode reopen_mode);
 
   std::string_view GetLoggerName() const noexcept;
 
@@ -103,6 +110,7 @@ class TpLogger final : public LoggerBase {
   void BackendPerform(impl::async::Action&& action) noexcept;
   void BackendLog(impl::async::Log&& action) const;
   void BackendFlush() const;
+  void BackendReopen(ReopenMode reopen_mode) const;
 
   const std::string logger_name_;
   const std::string formatter_pattern_;

@@ -1,12 +1,10 @@
 #include <logging/tp_logger.hpp>
 
 #include <gmock/gmock.h>
-#include <boost/algorithm/string.hpp>
 
 #include <userver/engine/async.hpp>
 #include <userver/engine/task/cancel.hpp>
 #include <userver/utest/utest.hpp>
-#include <userver/utils/statistics/pretty_format.hpp>
 #include <userver/utils/statistics/storage.hpp>
 #include <userver/utils/statistics/testing.hpp>
 

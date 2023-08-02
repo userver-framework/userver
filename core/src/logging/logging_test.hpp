@@ -15,37 +15,40 @@
 
 USERVER_NAMESPACE_BEGIN
 
-class OstreamSink final : public logging::impl::BaseSink {
+class StringSink final : public logging::impl::BaseSink {
  public:
-  explicit OstreamSink(std::ostream& os) : ostream_(os) {}
-  inline void Write(std::string_view log) final {
+  StringSink() = default;
+
+  void Write(std::string_view log) final {
     ostream_.write(log.data(), log.size());
   }
 
-  inline void Flush() final { ostream_.flush(); }
+  void Flush() final { ostream_.flush(); }
+
+  std::ostringstream& GetStream() { return ostream_; }
 
  private:
-  std::ostream& ostream_;
+  std::ostringstream ostream_;
 };
 
 inline std::shared_ptr<logging::impl::TpLogger> MakeLoggerFromSink(
-    const std::string& logger_name,
-    std::shared_ptr<logging::impl::BaseSink> sink_ptr, logging::Format format) {
+    const std::string& logger_name, logging::impl::SinkPtr sink_ptr,
+    logging::Format format) {
   auto logger = std::make_shared<logging::impl::TpLogger>(format, logger_name);
   logger->AddSink(std::move(sink_ptr));
   return logger;
 }
 
-struct LoggingSinkWithStream {
-  std::ostringstream sstream;
-  OstreamSink sink{sstream};
+struct StringStreamLogger final {
+  std::shared_ptr<logging::impl::TpLogger> logger;
+  std::ostringstream& stream;
 };
 
-inline std::shared_ptr<logging::impl::TpLogger> MakeNamedStreamLogger(
-    const std::string& logger_name,
-    std::shared_ptr<LoggingSinkWithStream> stream, logging::Format format) {
-  std::shared_ptr<OstreamSink> sink(stream, &stream->sink);
-  return MakeLoggerFromSink(logger_name, sink, format);
+inline StringStreamLogger MakeNamedStreamLogger(const std::string& logger_name,
+                                                logging::Format format) {
+  auto sink = std::make_unique<StringSink>();
+  auto& stream = sink->GetStream();
+  return {MakeLoggerFromSink(logger_name, std::move(sink), format), stream};
 }
 
 inline std::string_view GetTextKey(logging::Format format) {
@@ -79,11 +82,9 @@ using DefaultLoggerFixture = utest::DefaultLoggerFixture< ::testing::Test>;
 
 class LoggingTestBase : public DefaultLoggerFixture {
  protected:
-  LoggingTestBase(logging::Format format)
+  explicit LoggingTestBase(logging::Format format)
       : format_(format),
-        sstream_data_{std::make_shared<LoggingSinkWithStream>()},
-        stream_logger_{MakeNamedStreamLogger("test-stream-logger",
-                                             sstream_data_, format_)} {}
+        stream_logger_(MakeNamedStreamLogger("test-stream-logger", format_)) {}
 
   std::string LoggedText() const {
     logging::LogFlush();
@@ -94,7 +95,7 @@ class LoggingTestBase : public DefaultLoggerFixture {
     return LoggedText().find(str) != std::string::npos;
   }
 
-  void ClearLog() { sstream_data_->sstream.str({}); }
+  void ClearLog() { stream_logger_.stream.str({}); }
 
   template <typename T>
   std::string ToStringViaLogging(const T& value) {
@@ -104,7 +105,7 @@ class LoggingTestBase : public DefaultLoggerFixture {
     return result;
   }
 
-  std::string GetStreamString() const { return sstream_data_->sstream.str(); }
+  std::string GetStreamString() const { return stream_logger_.stream.str(); }
 
   std::size_t GetRecordsCount() const {
     auto str = GetStreamString();
@@ -112,13 +113,12 @@ class LoggingTestBase : public DefaultLoggerFixture {
   }
 
   std::shared_ptr<logging::impl::TpLogger> GetStreamLogger() const {
-    return stream_logger_;
+    return stream_logger_.logger;
   }
 
  private:
   const logging::Format format_;
-  const std::shared_ptr<LoggingSinkWithStream> sstream_data_;
-  const std::shared_ptr<logging::impl::TpLogger> stream_logger_;
+  const StringStreamLogger stream_logger_;
 };
 
 class LoggingTest : public LoggingTestBase {

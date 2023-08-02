@@ -16,7 +16,7 @@ namespace {
 std::shared_ptr<logging::impl::TpLogger> MakeLoggerFromSink(
     const std::string& logger_name, logging::impl::SinkPtr sink_ptr,
     logging::Format format) {
-  auto logger = std::make_shared<logging::impl::TpLogger>(format, logger_name);
+  auto logger = std::make_unique<logging::impl::TpLogger>(format, logger_name);
   logger->AddSink(std::move(sink_ptr));
   return logger;
 }
@@ -25,7 +25,7 @@ class TpLoggerBenchmark : public benchmark::Fixture {
  protected:
   void SetUp(const benchmark::State&) override {
     tp_logger_ =
-        MakeLoggerFromSink("test", std::make_shared<logging::impl::NullSink>(),
+        MakeLoggerFromSink("test", std::make_unique<logging::impl::NullSink>(),
                            logging::Format::kTskv);
     tp_logger_->SetLevel(logging::Level::kInfo);
     guard_.emplace(tp_logger_);

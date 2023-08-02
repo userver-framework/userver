@@ -1,8 +1,7 @@
 #pragma once
 
-#include <chrono>
-#include <functional>
-#include <string>
+#include <mutex>
+#include <string_view>
 #include <vector>
 
 #include <logging/impl/base_sink.hpp>
@@ -47,6 +46,7 @@ class TcpSocketSink final : public BaseSink {
   void Write(std::string_view log) final;
 
  private:
+  std::mutex mutex_;
   impl::TcpSocketClient client_;
 };
 

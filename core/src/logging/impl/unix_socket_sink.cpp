@@ -59,10 +59,7 @@ UnixSocketClient::~UnixSocketClient() { close(); }
 
 void UnixSocketSink::Write(std::string_view log) { client_.send(log); }
 
-void UnixSocketSink::Close() {
-  std::lock_guard lock(GetMutex());
-  client_.close();
-}
+void UnixSocketSink::Close() { client_.close(); }
 
 }  // namespace logging::impl
 

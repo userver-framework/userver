@@ -11,7 +11,6 @@
 #include <logging/impl/fd_sink.hpp>
 #include <logging/impl/tcp_socket_sink.hpp>
 #include <logging/impl/unix_socket_sink.hpp>
-#include <logging/spdlog_helpers.hpp>
 #include <logging/tp_logger.hpp>
 #include <userver/components/component.hpp>
 #include <userver/components/statistics_storage.hpp>
@@ -38,17 +37,7 @@ constexpr std::chrono::seconds kDefaultFlushInterval{2};
 constexpr std::string_view kUnixSocketPrefix = "unix:";
 
 void ReopenAll(const std::shared_ptr<logging::impl::TpLogger>& logger) {
-  int index = -1;
-  for (const auto& s : logger->GetSinks()) {
-    ++index;
-    try {
-      s->Reopen(logging::impl::ReopenMode::kAppend);
-    } catch (const std::exception& e) {
-      LOG_ERROR() << "Exception on log reopen: " << e;
-      LOG_INFO() << "Skipping rotation for sink #" << index << " from '"
-                 << logger->GetLoggerName() << "' logger";
-    }
-  }
+  logger->Reopen(logging::impl::ReopenMode::kAppend);
 }
 
 void CreateLogDirectory(const std::string& logger_name,
@@ -68,10 +57,10 @@ logging::impl::SinkPtr GetSinkFromFilename(
     const spdlog::filename_t& file_path) {
   if (boost::starts_with(file_path, kUnixSocketPrefix)) {
     // Use Unix-socket sink
-    return std::make_shared<logging::impl::UnixSocketSink>(
+    return std::make_unique<logging::impl::UnixSocketSink>(
         file_path.substr(kUnixSocketPrefix.size()));
   } else {
-    return std::make_shared<logging::impl::BufferedFileSink>(file_path);
+    return std::make_unique<logging::impl::BufferedFileSink>(file_path);
   }
 }
 
@@ -79,9 +68,9 @@ logging::impl::SinkPtr MakeOptionalSink(const logging::LoggerConfig& config) {
   if (config.file_path == "@null") {
     return nullptr;
   } else if (config.file_path == "@stderr") {
-    return std::make_shared<logging::impl::BufferedUnownedFileSink>(stderr);
+    return std::make_unique<logging::impl::BufferedUnownedFileSink>(stderr);
   } else if (config.file_path == "@stdout") {
-    return std::make_shared<logging::impl::BufferedUnownedFileSink>(stdout);
+    return std::make_unique<logging::impl::BufferedUnownedFileSink>(stdout);
   } else {
     CreateLogDirectory(config.logger_name, config.file_path);
     return GetSinkFromFilename(config.file_path);
@@ -91,12 +80,12 @@ logging::impl::SinkPtr MakeOptionalSink(const logging::LoggerConfig& config) {
 auto MakeTestsuiteSink(const logging::TestsuiteCaptureConfig& config) {
   auto addrs = net::blocking::GetAddrInfo(config.host,
                                           std::to_string(config.port).c_str());
-  return std::make_shared<logging::impl::TcpSocketSink>(std::move(addrs));
+  return std::make_unique<logging::impl::TcpSocketSink>(std::move(addrs));
 }
 
 std::shared_ptr<logging::impl::TpLogger> MakeLogger(
     const logging::LoggerConfig& config,
-    std::shared_ptr<logging::impl::TcpSocketSink>& socket_sink) {
+    logging::impl::TcpSocketSink*& socket_sink) {
   auto logger = std::make_shared<logging::impl::TpLogger>(config.format,
                                                           config.logger_name);
   logger->SetLevel(config.level);
@@ -107,8 +96,9 @@ std::shared_ptr<logging::impl::TpLogger> MakeLogger(
   }
 
   if (config.testsuite_capture) {
-    socket_sink = MakeTestsuiteSink(*config.testsuite_capture);
-    logger->AddSink(socket_sink);
+    auto socket_sink_holder = MakeTestsuiteSink(*config.testsuite_capture);
+    socket_sink = socket_sink_holder.get();
+    logger->AddSink(std::move(socket_sink_holder));
     // Overwriting the level of TpLogger.
     socket_sink->SetLevel(logging::Level::kNone);
   }

@@ -9,7 +9,6 @@ FdSink::FdSink(fs::blocking::FileDescriptor fd) : fd_{std::move(fd)} {}
 void FdSink::Write(std::string_view log) { fd_.Write(log); }
 
 void FdSink::Flush() {
-  std::lock_guard lock(GetMutex());
   if (fd_.IsOpen()) {
     fd_.FSync();
   }

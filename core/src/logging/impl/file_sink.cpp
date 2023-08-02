@@ -13,7 +13,6 @@ FileSink::FileSink(const std::string& filename)
 }
 
 void FileSink::Reopen(ReopenMode mode) {
-  std::lock_guard lock{GetMutex()};
   GetFd().FSync();
   std::move(GetFd()).Close();
   SetFd(OpenFile<fs::blocking::FileDescriptor>(filename_, mode));

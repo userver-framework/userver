@@ -57,11 +57,12 @@ TcpSocketSink::TcpSocketSink(std::vector<engine::io::Sockaddr> addr)
     : client_{std::move(addr)} {}
 
 void TcpSocketSink::Close() {
-  std::lock_guard lock{GetMutex()};
+  const std::lock_guard lock{mutex_};
   client_.Close();
 }
 
 void TcpSocketSink::Write(std::string_view log) {
+  const std::lock_guard lock{mutex_};
   if (!client_.IsConnected()) {
     client_.Connect();
   }

@@ -12,7 +12,6 @@ BufferedFileSink::BufferedFileSink(const std::string& filename)
 }
 
 void BufferedFileSink::Reopen(ReopenMode mode) {
-  const std::lock_guard lock{GetMutex()};
   file_.FlushLight();
   std::move(file_).Close();
   file_ = OpenFile<fs::blocking::CFile>(filename_, mode);
@@ -23,7 +22,6 @@ BufferedFileSink::~BufferedFileSink() = default;
 void BufferedFileSink::Write(std::string_view log) { file_.Write(log); }
 
 void BufferedFileSink::Flush() {
-  const std::lock_guard lock(GetMutex());
   if (file_.IsOpen()) {
     file_.FlushLight();
   }

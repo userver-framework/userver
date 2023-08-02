@@ -1,5 +1,6 @@
 #include "tp_logger.hpp"
 
+#include <fmt/format.h>
 #include <spdlog/common.h>
 #include <spdlog/spdlog.h>
 
@@ -9,6 +10,7 @@
 #include <userver/engine/task/cancel.hpp>
 #include <userver/logging/impl/tag_writer.hpp>
 #include <userver/tracing/span.hpp>
+#include <userver/utils/enumerate.hpp>
 #include <userver/utils/fast_scope_guard.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -25,6 +27,11 @@ struct TpLogger::ActionVisitor final {
 
   void operator()(impl::async::Stop&&) const noexcept {
     // The consumer thread will check state_ later.
+  }
+
+  void operator()(impl::async::ReopenCoro&& reopen) const noexcept {
+    logger.BackendReopen(reopen.reopen_mode);
+    reopen.promise.set_value();
   }
 
   template <class Flush>
@@ -104,15 +111,14 @@ void TpLogger::Flush() {
     Push(std::move(action));
 
     const engine::TaskCancellationBlocker block_cancel;
-    [[maybe_unused]] const auto result = future.wait();
-    UASSERT(result == engine::FutureStatus::kReady);
+    future.get();
   } else {
     impl::async::FlushThreaded action{};
     auto future = action.promise.get_future();
 
     Push(std::move(action));
 
-    future.wait();
+    future.get();
   }
 }
 
@@ -172,6 +178,21 @@ void TpLogger::AddSink(impl::SinkPtr&& sink) {
 }
 
 const std::vector<impl::SinkPtr>& TpLogger::GetSinks() const { return sinks_; }
+
+void TpLogger::Reopen(ReopenMode reopen_mode) {
+  if (GetSinks().empty()) {
+    return;
+  }
+
+  UASSERT(engine::current_task::IsTaskProcessorThread());
+  impl::async::ReopenCoro action{reopen_mode, {}};
+  auto future = action.promise.get_future();
+
+  Push(std::move(action));
+
+  const engine::TaskCancellationBlocker block_cancel;
+  future.get();
+}
 
 std::string_view TpLogger::GetLoggerName() const noexcept {
   return logger_name_;
@@ -309,6 +330,19 @@ void TpLogger::BackendFlush() const {
     } catch (const std::exception& e) {
       UASSERT_MSG(false, "While flushing a log message caught an exception: " +
                              std::string(e.what()));
+    }
+  }
+}
+
+void TpLogger::BackendReopen(ReopenMode reopen_mode) const {
+  for (const auto& [index, sink] : utils::enumerate(GetSinks())) {
+    try {
+      sink->Reopen(reopen_mode);
+    } catch (const std::exception& e) {
+      UASSERT_MSG(false, fmt::format("Exception while reopening log files : {}",
+                                     e.what()));
+      LOG_ERROR() << "Exception on log reopen in sink #" << index
+                  << " of logger '" << GetLoggerName() << "': " << e;
     }
   }
 }
