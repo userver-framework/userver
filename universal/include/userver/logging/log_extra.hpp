@@ -26,7 +26,7 @@ class LogHelper;
 
 namespace impl {
 class TagWriter;
-};  // namespace impl
+}  // namespace impl
 
 /// Extra tskv fields storage
 class LogExtra final {

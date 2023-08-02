@@ -39,7 +39,8 @@ constexpr boost::memory_order ToInternalMemoryOrder(
     case std::memory_order_seq_cst:
       return boost::memory_order_seq_cst;
   }
-  utils::impl::AbortWithStacktrace("Invalid memory order");
+  // AbortWithStacktrace here leads to a compilation error on GCC 8.
+  return boost::memory_order_seq_cst;
 }
 #else
 template <typename T>
