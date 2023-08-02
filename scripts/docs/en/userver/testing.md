@@ -76,7 +76,7 @@ Example usage:
 - To mock time, use `utils::datetime::Now()` and `utils::datetime::SteadyNow()` from `<userver/utils/datetime.hpp>` instead of `std::chrono::system_clock::now()` and `std::chrono::steady_clock::now()`, respectively 
 - Control the mocked time in tests using `<userver/utils/mock_now.hpp>`
 
-@snippet shared/src/utils/mock_now_test.cpp  Mocked time sample
+@snippet universal/src/utils/mock_now_test.cpp  Mocked time sample
 
 @anchor utest-dynamic-config
 ### Mocked dynamic config

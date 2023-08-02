@@ -5,14 +5,14 @@
 USERVER_NAMESPACE_BEGIN
 
 TEST(FastScopeGuard, Dtr) {
-  /// [FastScopeGuard example]
+  /// [FastScopeGuard]
   int x = 0;
   {
     utils::FastScopeGuard d([&]() noexcept { x = 1; });
     EXPECT_EQ(x, 0);
   }
   EXPECT_EQ(x, 1);
-  /// [FastScopeGuard example]
+  /// [FastScopeGuard]
 }
 
 TEST(FastScopeGuard, Cancel) {

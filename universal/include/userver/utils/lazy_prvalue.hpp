@@ -13,7 +13,7 @@ namespace utils {
 /// @brief Can be used with various emplace functions to allow in-place
 /// constructing a non-movable value using a callable.
 ///
-/// @snippet shared/src/utils/lazy_prvalue_test.cpp  LazyPrvalue sample
+/// @snippet universal/src/utils/lazy_prvalue_test.cpp  LazyPrvalue sample
 template <typename Func>
 class LazyPrvalue final {
   static_assert(!std::is_reference_v<Func>);

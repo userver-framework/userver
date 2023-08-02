@@ -464,7 +464,7 @@ class CaseSecondDescriber final {
 /// @brief Bidirectional unordered map for trivial types, including string
 /// literals; could be efficiently used as a unordered non-bidirectional map.
 ///
-/// @snippet shared/src/utils/trivial_map_test.cpp  sample string bimap
+/// @snippet universal/src/utils/trivial_map_test.cpp  sample string bimap
 ///
 /// utils::TrivialBiMap and utils::TrivialSet are known to outperform
 /// std::unordered_map if:
@@ -479,7 +479,7 @@ class CaseSecondDescriber final {
 /// The same story with integral or enum mappings - compiler optimizes them
 /// into a switch and it usually takes O(1) to find the match.
 ///
-/// @snippet shared/src/utils/trivial_map_test.cpp  sample bidir bimap
+/// @snippet universal/src/utils/trivial_map_test.cpp  sample bidir bimap
 ///
 /// For a single value Case statements see @ref utils::TrivialSet.
 template <typename BuilderFunc>

@@ -12,4 +12,4 @@ This folder contains the userver core functionality:
 * [Caches](https://userver.tech/d8/d01/md_en_userver_caches.html)
 * [Logging and Tracing](https://userver.tech/de/db6/md_en_userver_logging.html)
 * [Metrics](https://userver.tech/dc/d6a/md_en_userver_service_monitor.html)
-* All the helper classes and utilities provided by the `../shared/` directory
+* All the helper classes and utilities provided by the `userver-universal`

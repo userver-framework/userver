@@ -20,7 +20,7 @@ namespace utils {
 /// non-copyable and even non-movable types.
 ///
 /// Usage example:
-/// @snippet shared/src/utils/any_movable_test.cpp  AnyMovable example usage
+/// @snippet universal/src/utils/any_movable_test.cpp  AnyMovable example usage
 class AnyMovable final {
  public:
   /// Creates an empty `AnyMovable`
