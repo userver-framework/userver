@@ -36,9 +36,9 @@ cd $current_dir/src && git clone https://github.com/grpc/grpc.git \
 echo 'voluptuous >= 0.11.1
 Jinja2 >= 2.10
 PyYAML >= 3.13
-yandex-taxi-testsuite[mongodb,postgresql-binary,redis,clickhouse,rabbitmq] >= 0.1.14
-grpcio >= 1.50.0
-grpcio-tools >= 1.50.0
+yandex-taxi-testsuite[mongodb,postgresql-binary,redis,clickhouse,rabbitmq] >= 0.1.17
+grpcio >= 1.55.0
+grpcio-tools >= 1.55.0
 psycopg2 >= 2.7.5
 pymongo >= 4.0.0
 redis >= 4.4.0
