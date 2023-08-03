@@ -84,9 +84,10 @@ void ConnlimitWatchdog::Step() {
 
     auto connlimit = max_connections / instances;
     if (connlimit == 0) connlimit = 1;
-    LOG_DEBUG() << "max_connections = " << max_connections
-                << ", instances = " << instances
-                << ", connlimit = " << connlimit;
+    LOG((connlimit_ == connlimit) ? logging::Level::kDebug
+                                  : logging::Level::kWarning)
+        << "max_connections = " << max_connections
+        << ", instances = " << instances << ", connlimit = " << connlimit;
     connlimit_ = connlimit;
 
     trx.Commit();
