@@ -31,7 +31,17 @@ CDriverCursorImpl::CDriverCursorImpl(
     : client_(std::move(client)),
       cursor_(std::move(cursor)),
       find_stats_(std::move(find_stats)) {
-  Next();  // prime the cursor
+  if (cursor_) {
+    // Precondition: we've got a valid cursor (it could be errored-out right
+    // away due to stream selection error, for example).
+    MongoError error;
+    if (mongoc_cursor_error(cursor_.get(), error.GetNative())) {
+      error.Throw("Error iterating over query results");
+    }
+  }
+
+  // Prime the cursor
+  Next();
 }
 
 bool CDriverCursorImpl::IsValid() const { return cursor_ || current_; }
