@@ -110,7 +110,7 @@ class RateLimitData {
 // Represents a single rate limit usage
 class RateLimiter {
  public:
-  RateLimiter(LoggerRef logger, RateLimitData& data, Level level) noexcept;
+  RateLimiter(RateLimitData& data, Level level) noexcept;
   bool ShouldLog() const { return should_log_; }
   void SetShouldNotLog() { should_log_ = false; }
   Level GetLevel() const { return level_; }
@@ -118,7 +118,7 @@ class RateLimiter {
 
  private:
   const Level level_;
-  bool should_log_{false};
+  bool should_log_{true};
   uint64_t dropped_count_{0};
 };
 
@@ -130,13 +130,14 @@ class StaticLogEntry final {
   StaticLogEntry(StaticLogEntry&&) = delete;
   StaticLogEntry& operator=(StaticLogEntry&&) = delete;
 
-  bool ShouldLog() const noexcept;
-  bool ShouldNotLog(Level level) const noexcept;
+  bool ShouldNotLog(LoggerRef logger, Level level) const noexcept;
+  bool ShouldNotLog(const LoggerPtr& logger, Level level) const noexcept;
 
  private:
   static constexpr std::size_t kContentSize =
       compiler::SelectSize().For64Bit(40).For32Bit(24);
-  alignas(void*) std::byte content[kContentSize];
+
+  alignas(void*) std::byte content_[kContentSize];
 };
 
 template <class NameHolder, int Line>
@@ -148,46 +149,42 @@ struct EntryStorage final {
 
 }  // namespace logging
 
-/// @brief Builds a stream and evaluates a message for the logger.
-/// @hideinitializer
+/// @cond
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define DO_LOG_TO(logger, lvl) \
-  USERVER_NAMESPACE::logging::LogHelper(logger, lvl).AsLvalue()
+#define USERVER_IMPL_LOG_TO(logger, level) \
+  USERVER_NAMESPACE::logging::LogHelper(logger, level).AsLvalue()
 
-// static_cast<int> below are workarounds for clangs -Wtautological-compare
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+#define USERVER_IMPL_DYNAMIC_DEBUG_ENTRY                                       \
+  []() noexcept -> const auto& {                                               \
+    struct NameHolder {                                                        \
+      static constexpr const char* Get() noexcept { return USERVER_FILEPATH; } \
+    };                                                                         \
+    const auto& entry =                                                        \
+        USERVER_NAMESPACE::logging::impl::EntryStorage<NameHolder,             \
+                                                       __LINE__>::entry;       \
+    return entry;                                                              \
+  }
+/// @endcond
+
+/// @brief If lvl matches the verbosity then builds a stream and evaluates a
+/// message for the specified logger.
+/// @hideinitializer
+// static_cast<int> below are workarounds for -Wtautological-compare
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+#define LOG_TO(logger, lvl)                                             \
+  __builtin_expect(                                                     \
+      USERVER_IMPL_DYNAMIC_DEBUG_ENTRY().ShouldNotLog((logger), (lvl)), \
+      static_cast<int>(lvl) <                                           \
+          static_cast<int>(USERVER_NAMESPACE::logging::Level::kInfo))   \
+      ? USERVER_NAMESPACE::logging::impl::Noop{}                        \
+      : USERVER_IMPL_LOG_TO((logger), (lvl))
 
 /// @brief If lvl matches the verbosity then builds a stream and evaluates a
 /// message for the default logger.
 /// @hideinitializer
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define LOG(lvl)                                                             \
-  __builtin_expect(                                                          \
-      [](USERVER_NAMESPACE::logging::Level level) -> bool {                  \
-        struct NameHolder {                                                  \
-          static constexpr const char* Get() noexcept {                      \
-            return USERVER_FILEPATH;                                         \
-          }                                                                  \
-        };                                                                   \
-        const auto& entry =                                                  \
-            USERVER_NAMESPACE::logging::impl::EntryStorage<NameHolder,       \
-                                                           __LINE__>::entry; \
-        return (!USERVER_NAMESPACE::logging::ShouldLog(level) ||             \
-                entry.ShouldNotLog(level)) &&                                \
-               !entry.ShouldLog();                                           \
-      }(lvl),                                                                \
-      static_cast<int>(lvl) <                                                \
-          static_cast<int>(USERVER_NAMESPACE::logging::Level::kInfo))        \
-      ? USERVER_NAMESPACE::logging::impl::Noop{}                             \
-      : DO_LOG_TO(USERVER_NAMESPACE::logging::GetDefaultLogger(), (lvl))
-
-/// @brief If lvl matches the verbosity then builds a stream and evaluates a
-/// message for the default logger.
-/// @hideinitializer
-// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define LOG_TO(logger, lvl)                                     \
-  !USERVER_NAMESPACE::logging::LoggerShouldLog((logger), (lvl)) \
-      ? USERVER_NAMESPACE::logging::impl::Noop{}                \
-      : DO_LOG_TO((logger), (lvl))
+#define LOG(lvl) LOG_TO(USERVER_NAMESPACE::logging::GetDefaultLogger(), (lvl))
 
 /// @brief Evaluates a message and logs it to the default logger if its level is
 /// below or equal to logging::Level::kTrace
@@ -268,7 +265,6 @@ struct EntryStorage final {
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define LOG_LIMITED_TO(logger, lvl)                                        \
   for (USERVER_NAMESPACE::logging::impl::RateLimiter log_limited_to_rl{    \
-           logger,                                                         \
            []() -> USERVER_NAMESPACE::logging::impl::RateLimitData& {      \
              thread_local USERVER_NAMESPACE::logging::impl::RateLimitData  \
                  rl_data;                                                  \

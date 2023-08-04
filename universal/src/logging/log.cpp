@@ -100,13 +100,9 @@ void LogFlush(LoggerRef logger) { logger.Flush(); }
 
 namespace impl {
 
-RateLimiter::RateLimiter(LoggerRef logger, RateLimitData& data,
-                         Level level) noexcept
+RateLimiter::RateLimiter(RateLimitData& data, Level level) noexcept
     : level_(level) {
   try {
-    should_log_ = logging::LoggerShouldLog(logger, level);
-    if (!should_log_) return;
-
     if (!impl::IsLogLimitedEnabled()) {
       return;
     }
@@ -142,22 +138,25 @@ LogHelper& operator<<(LogHelper& lh, const RateLimiter& rl) noexcept {
 
 // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
 StaticLogEntry::StaticLogEntry(const char* path, int line) noexcept {
-  static_assert(sizeof(LogEntryContent) == sizeof(content));
+  static_assert(sizeof(LogEntryContent) == sizeof(content_));
   // static_assert(std::is_trivially_destructible_v<LogEntryContent>);
-  auto* item = new (&content) LogEntryContent(path, line);
+  auto* item = new (&content_) LogEntryContent(path, line);
   RegisterLogLocation(*item);
 }
 
-bool StaticLogEntry::ShouldLog() const noexcept {
-  return reinterpret_cast<const LogEntryContent&>(content).state.load() ==
-         EntryState::kForceEnabled;
+bool StaticLogEntry::ShouldNotLog(logging::LoggerRef logger,
+                                  logging::Level level) const noexcept {
+  const auto& content = reinterpret_cast<const LogEntryContent&>(content_);
+  const auto state = content.state.load();
+  const bool force_disabled =
+      level < Level::kWarning && state == EntryState::kForceDisabled;
+  const bool force_enabled = state == EntryState::kForceEnabled;
+  return (!LoggerShouldLog(logger, level) || force_disabled) && !force_enabled;
 }
 
-bool StaticLogEntry::ShouldNotLog(Level level) const noexcept {
-  if (level >= Level::kWarning) return false;
-
-  return reinterpret_cast<const LogEntryContent&>(content).state.load() ==
-         EntryState::kForceDisabled;
+bool StaticLogEntry::ShouldNotLog(const logging::LoggerPtr& logger,
+                                  logging::Level level) const noexcept {
+  return !logger || ShouldNotLog(*logger, level);
 }
 
 }  // namespace impl
