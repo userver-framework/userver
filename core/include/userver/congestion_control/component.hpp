@@ -5,6 +5,7 @@
 
 #include <userver/components/loggable_component_base.hpp>
 #include <userver/dynamic_config/snapshot.hpp>
+#include <userver/server/congestion_control/limiter.hpp>
 #include <userver/utils/fast_pimpl.hpp>
 #include <userver/utils/statistics/entry.hpp>
 
@@ -48,6 +49,8 @@ class Component final : public components::LoggableComponentBase {
   ~Component() override;
 
   static yaml_config::Schema GetStaticConfigSchema();
+
+  server::congestion_control::Limiter& GetServerLimiter();
 
  private:
   void OnConfigUpdate(const dynamic_config::Snapshot& cfg);

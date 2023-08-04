@@ -1,23 +1,25 @@
 #pragma once
 
-/// @file userver/ugrpc/server/middlewares/deadline_propagation/component.hpp
+/// @file userver/ugrpc/server/middlewares/congestion_control/component.hpp
 /// @brief @copybrief
-/// ugrpc::server::middlewares::deadline_propagation::Component
+/// ugrpc::server::middlewares::congestion_control::Component
 
 #include <userver/ugrpc/server/middlewares/base.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
-/// Server deadline propagation middleware
-namespace ugrpc::server::middlewares::deadline_propagation {
+/// Server congestion_control middleware
+namespace ugrpc::server::middlewares::congestion_control {
+
+class Middleware;
 
 /// @ingroup userver_components userver_base_classes
 ///
-/// @brief Component for gRPC server deadline propagation
+/// @brief Component for gRPC server logging
 
 class Component final : public MiddlewareComponentBase {
  public:
-  static constexpr std::string_view kName = "grpc-server-deadline-propagation";
+  static constexpr std::string_view kName = "grpc-server-congestion-control";
 
   Component(const components::ComponentConfig& config,
             const components::ComponentContext& context);
@@ -25,8 +27,11 @@ class Component final : public MiddlewareComponentBase {
   std::shared_ptr<MiddlewareBase> GetMiddleware() override;
 
   static yaml_config::Schema GetStaticConfigSchema();
+
+ private:
+  std::shared_ptr<Middleware> middleware_;
 };
 
-}  // namespace ugrpc::server::middlewares::deadline_propagation
+}  // namespace ugrpc::server::middlewares::congestion_control
 
 USERVER_NAMESPACE_END

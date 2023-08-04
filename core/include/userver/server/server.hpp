@@ -4,6 +4,7 @@
 
 #include <userver/components/component_context.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
+#include <userver/server/congestion_control/limiter.hpp>
 #include <userver/server/handlers/fallback_handlers.hpp>
 #include <userver/server/handlers/http_handler_base.hpp>
 #include <userver/utils/statistics/fwd.hpp>
@@ -25,7 +26,7 @@ class RequestsView;
 class ServerImpl;
 struct ServerConfig;
 
-class Server final {
+class Server final : public congestion_control::Limitee {
  public:
   Server(ServerConfig config,
          const components::ComponentContext& component_context);
@@ -52,6 +53,8 @@ class Server final {
   void Stop();
 
   RequestsView& GetRequestsView();
+
+  void SetLimit(std::optional<size_t> new_limit) override;
 
   void SetRpsRatelimit(std::optional<size_t> rps);
 

@@ -25,6 +25,7 @@ components_manager:
                   - grpc-server-logging
                   - grpc-server-deadline-propagation
                   - grpc-server-baggage
+                  - grpc-server-congestion-control
 
         grpc-server-logging:
             msg-size-log-limit: 10
@@ -32,6 +33,8 @@ components_manager:
         grpc-server-deadline-propagation:
 
         grpc-server-baggage:
+
+        grpc-server-congestion-control:
 
         greeter-service:
             greeting-prefix: Hello
@@ -60,7 +63,21 @@ components_manager:
             method: POST
             task_processor: main-task-processor
 
+        http-client:
+            fs-task-processor: main-task-processor
+        dns-client:
+            fs-task-processor: fs-task-processor
+        congestion-control:
+
         testsuite-support:
+        tests-control:
+            method: POST
+            path: /tests/{action}
+            skip-unregistered-testpoints: true
+            task_processor: main-task-processor
+            testpoint-timeout: 10s
+            throttling_enabled: false
+
         grpc-client-logging:
         grpc-client-deadline-propagation:
         grpc-client-baggage:

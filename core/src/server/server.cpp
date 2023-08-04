@@ -268,6 +268,10 @@ RequestsView& ServerImpl::GetRequestsView() {
   return requests_view_;
 }
 
+void Server::SetLimit(std::optional<size_t> new_limit) {
+  SetRpsRatelimit(new_limit);
+}
+
 void ServerImpl::WriteTotalHandlerStatistics(
     utils::statistics::Writer& writer) const {
   handlers::HttpHandlerStatisticsSnapshot total;
