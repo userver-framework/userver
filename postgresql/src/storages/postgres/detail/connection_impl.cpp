@@ -815,7 +815,7 @@ void ConnectionImpl::SetParameter(std::string_view name, std::string_view value,
               << (is_transaction_scope ? "transaction" : "session") << " scope";
   StaticQueryParameters<3> params;
   params.Write(db_types_, name, value, is_transaction_scope);
-  if (IsPipelineActive() && IsInTransaction()) {
+  if (IsPipelineActive()) {
     SendCommandNoPrepare("SELECT set_config($1, $2, $3)",
                          detail::QueryParameters{params}, deadline);
   } else {
