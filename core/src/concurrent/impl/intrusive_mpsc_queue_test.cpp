@@ -5,6 +5,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <future>
+#include <limits>
 #include <thread>
 #include <vector>
 
@@ -80,7 +81,7 @@ TEST(IntrusiveMpscQueue, PushPopInterleaved) {
 
 TEST(IntrusiveMpscQueue, StressTest) {
   constexpr std::size_t kProducerCount = 2;
-  constexpr std::size_t kStopSignal = -1;
+  constexpr std::size_t kStopSignal = std::numeric_limits<std::size_t>::max();
 
   MpscQueue queue;
   std::atomic<bool> keep_producing{true};

@@ -1,12 +1,13 @@
 #include "json_tree.hpp"
 
+#include <cstddef>
+#include <limits>
+
 #include <rapidjson/document.h>
 
 #include <userver/formats/common/path.hpp>
 #include <userver/formats/json/exception.hpp>
 #include <userver/formats/json/impl/types.hpp>
-
-#include <cstddef>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -23,12 +24,15 @@ const Member* MemberFromValue(const Value* val) {
                                          offsetof(Member, value));
 }
 
+constexpr std::size_t kLookupFailed = std::numeric_limits<std::size_t>::max();
+
 /// Given beginning and length of an array, check if `member` pointer belongs to
 /// it and return its index or -1 on failure
 template <typename TValue>
 std::size_t FastLookup(const TValue* member, const TValue* first,
                        std::size_t size) {
-  return member >= first && member < first + size ? member - first : -1;
+  return member >= first && member < first + size ? member - first
+                                                  : kLookupFailed;
 }
 
 /// Return `true` if member had been found in `container` and update `stack` so
@@ -38,10 +42,10 @@ bool ProcessContainer(formats::json::impl::TreeStack& stack,
                       const Value* container, const TValue* member,
                       int node_depth, const TValue* first, std::size_t size,
                       const TValidateAddress& extra_check) {
-  int depth = stack.size();
+  const int depth = stack.size();
   if (depth == node_depth) {
-    int index = FastLookup(member, first, size);
-    if (index != -1 && extra_check(first + index)) {
+    const std::size_t index = FastLookup(member, first, size);
+    if (index != kLookupFailed && extra_check(first + index)) {
       stack.emplace_back(container, index + 1);
       return true;
     }
