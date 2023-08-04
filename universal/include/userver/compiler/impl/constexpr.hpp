@@ -6,3 +6,9 @@
 #else
 #define USERVER_IMPL_CONSTEVAL constexpr
 #endif
+
+#if __cpp_constinit >= 201907L
+#define USERVER_IMPL_CONSTINIT constinit
+#else
+#define USERVER_IMPL_CONSTINIT
+#endif

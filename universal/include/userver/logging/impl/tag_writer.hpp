@@ -4,7 +4,7 @@
 #include <string_view>
 #include <type_traits>
 
-#include <userver/compiler/impl/consteval.hpp>
+#include <userver/compiler/impl/constexpr.hpp>
 #include <userver/logging/log_extra.hpp>
 #include <userver/logging/log_helper.hpp>
 #include <userver/utils/encoding/tskv.hpp>
