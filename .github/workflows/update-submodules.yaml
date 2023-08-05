@@ -1,0 +1,22 @@
+name: Update submodules
+
+on:
+  workflow_dispatch:
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Update submodules
+        run: |
+          git submodule update --init
+
+      - name: Commit & push changes
+        run: |
+          git config user.email "actions@github.com"
+          git config user.name "GitHub Actions - update submodules"
+          git commit -am "Update submodules"
+          git push

@@ -1,0 +1,77 @@
+name: CI
+
+'on':
+    pull_request:
+    push:
+        branches:
+          - develop
+
+env:
+    UBSAN_OPTIONS: print_stacktrace=1
+
+jobs:
+    posix:
+        strategy:
+            fail-fast: false
+            matrix:
+                include:
+                  - os: ubuntu-20.04
+                    make: test-debug
+                    info: g++-9 + test-debug
+
+                  - os: ubuntu-20.04
+                    make: test-release
+                    info: g++-9 + test-release
+
+        name: '${{matrix.os}}: ${{matrix.info}}'
+        runs-on: ${{matrix.os}}
+
+        steps:
+          - uses: actions/checkout@v2
+            with:
+                submodules: true
+
+          - name: Reuse ccache directory
+            uses: actions/cache@v2
+            with:
+                path: ~/.ccache
+                key: '${{matrix.os}} ${{matrix.info}} ccache-dir ${{github.ref}} run-${{github.run_number}}'
+                restore-keys: |
+                    ${{matrix.os}} ${{matrix.info}} ccache-dir ${{github.ref}} run-'
+                    ${{matrix.os}} ${{matrix.info}} ccache-
+
+          - name: Install packages
+            run: |
+                sudo apt update
+                sudo apt install --allow-downgrades -y pep8 $(cat third_party/userver/scripts/docs/en/deps/${{matrix.os}}.md | tr '\n' ' ')
+
+          - name: Setup ccache
+            run: |
+                ccache -M 2.0GB
+                ccache -s
+
+          - name: Run ${{matrix.make}}
+            run: |
+                make ${{matrix.make}}
+
+          - name: Test install ${{matrix.make}}
+            if: matrix.make == 'test-release'
+            run: |
+                make dist-clean
+                make install PREFIX=`pwd`/local_installation/
+
+          - name: Test run after install
+            if: matrix.make == 'test-release'
+            run: |
+                ./local_installation/bin/service_template --config=./local_installation/etc/service_template/static_config.yaml &
+
+          - name: Check work run service
+            if: matrix.make == 'test-release'
+            run: |
+                ps aux | grep service_template | grep config && curl http://localhost:8080/ping -v
+
+          - name: Stop all
+            if: matrix.make == 'test-release'
+            run: |
+                killall service_template
+
