@@ -15,6 +15,124 @@ div.contents {
   font-size: 120%;
 }
 
+/* Landing page */
+.landing-logo {
+  width: 45%;
+  margin-left: auto;
+  margin-right: auto;
+  margin-top: 3%;
+  margin-bottom: 6%;
+}
+
+.landing-description {
+    margin: 30px;
+    text-align: center;
+    font-size: 32px;
+    color: #F7F7F7;
+}
+
+.landing-motto {
+    text-align: right;
+    font-size: 28px;
+}
+
+.landing-text {
+    font-size: 18px;
+    line-height: 1.5;
+    margin-top: 25px;
+    margin-bottom: 25px;
+    color: #F7F7F7;
+}
+
+.landing-container {
+    width: 100%;
+    display:  table;
+}
+
+.landing-intro-left {
+    font-size: 18px;
+    line-height: 1.5;
+    margin-top: 60px;
+    margin-right: 60px;
+    margin-bottom: 60px;
+    color: #F7F7F7;
+    width: 35%;
+    float: left;
+    text-align: justify;
+}
+
+.landing-intro-right {
+    font-size: 18px;
+    line-height: 1.5;
+    margin-top: 60px;
+    margin-left: 60px;
+    margin-bottom: 60px;
+    color: #F7F7F7;
+    width: 35%;
+    float: right;
+    text-align: justify;
+}
+
+.bottom-nav {
+    width: 100%;
+    display: flex;
+}
+
+.bottom-nav .button {
+    font-size: 12px;
+    padding: 16px;
+    background: #F5F5F5;
+    display: flex;
+    flex-direction: column;
+    text-decoration: none;
+    gap: 4px;
+}
+
+@media(min-width: 768px) {
+    .bottom-nav .button {
+        font-size: 14px;
+    }
+}
+
+.bottom-nav .button.prev {
+    margin-right: 10px;
+}
+
+.bottom-nav .button.next {
+    margin-left: auto;
+    text-align: right;
+}
+
+.bottom-nav .btn-title {
+    color: #000;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.bottom-nav .button.prev .btn-title::before,
+.bottom-nav .button.next .btn-title::after  {
+    content: '';
+    display: block;
+    flex-shrink: 0;
+    width: 24px;
+    height: 24px;
+    background-image: url(arrow.svg);
+}
+
+.bottom-nav .button.next .btn-title::after {
+    transform: rotate(180deg);
+}
+
+.bottom-nav .button:hover {
+    background: #FDCC9A;
+}
+
+.bottom-nav .btn-sub {
+    color: #6E6E6E;
+}
+
 .landing-intro-center {
     font-size: 18px;
     line-height: 1.5;

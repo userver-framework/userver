@@ -193,6 +193,22 @@ function telegram_channel_language() {
   }
 }
 
+function styleNavButtons() {
+    const navButtonsContainer = document.querySelector('.bottom-nav')
+    const navButtons = document.querySelectorAll('.bottom-nav .el');
+
+    if (!(navButtonsContainer && navButtons.length)) return;
+    
+    for (const button of navButtons) {
+        const isBackButton = button.previousSibling.textContent.includes('⇦');
+        button.className = `button ${isBackButton ? 'prev' : 'next'}`;
+        button.innerHTML = `<span class="btn-sub">${isBackButton ? 'Go back' : 'Up next'}</span><span class="btn-title">${button.innerHTML}</span>`;
+    }
+    
+    navButtonsContainer.innerHTML = '';
+    navButtons.forEach(button => navButtonsContainer.appendChild(button));
+}
+
 // We do not use $(function() { ... }); because
 // * all the elements (except menu parts) are already parsed up above
 // * skipping it speedups page load
@@ -200,9 +216,10 @@ function telegram_channel_language() {
 telegram_channel_language();
 
 if (!setup_if_landing()) {
-  draw_toc();
-  highlight_code();
-  sticky_menu();
+    draw_toc();
+    highlight_code();
+    sticky_menu();
+    styleNavButtons();
 }
 </script> -->
 </body>
