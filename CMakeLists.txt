@@ -10,10 +10,13 @@ option(JWT_BUILD_EXAMPLES OFF)
 
 # Common sources
 add_library(${PROJECT_NAME}_objs OBJECT
-    src/hello.hpp
-    src/hello.cpp
+	src/handlers/profiles.cpp
+	src/handlers/profiles.h
+	src/dto/profile.cpp
+	src/handlers/users.cpp
+	src/handlers/users.h
 )
-target_include_directories(${PROJECT_NAME}_objs PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
+target_link_libraries(${PROJECT_NAME}_objs PUBLIC userver-core userver-postgresql)
 
 target_link_libraries(${PROJECT_NAME}_objs PUBLIC userver-core userver-postgresql)
 
