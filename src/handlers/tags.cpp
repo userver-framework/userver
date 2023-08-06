@@ -1,4 +1,4 @@
-#include "view.hpp"
+#include "tags.hpp"
 
 #include <userver/components/component.hpp>
 #include <userver/formats/json/serialize_container.hpp>
@@ -6,17 +6,15 @@
 #include <userver/storages/postgres/cluster.hpp>
 #include <userver/storages/postgres/component.hpp>
 
-namespace realmedium {
+namespace real_medium {
 
-namespace {
-
-class GetTags final : public userver::server::handlers::HttpHandlerJsonBase {
+class Tags final : public userver::server::handlers::HttpHandlerJsonBase {
   userver::storages::postgres::ClusterPtr pg_cluster_;
 
  public:
   static constexpr std::string_view kName = "handler-get-tags";
 
-  GetTags(const userver::components::ComponentConfig& config,
+  Tags(const userver::components::ComponentConfig& config,
           const userver::components::ComponentContext& component_context)
       : HttpHandlerJsonBase(config, component_context),
         pg_cluster_(component_context
@@ -40,10 +38,8 @@ class GetTags final : public userver::server::handlers::HttpHandlerJsonBase {
   }
 };
 
-}  // namespace
-
 void AppendGetTags(userver::components::ComponentList& component_list) {
-  component_list.Append<GetTags>();
+  component_list.Append<Tags>();
 }
 
-}  // namespace realmedium
+}  // namespace real_medium

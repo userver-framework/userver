@@ -3,7 +3,7 @@
 #include <fmt/format.h>
 
 #include <userver/server/handlers/http_handler_base.hpp>
-#include "profiles.h"
+#include "profiles.hpp"
 
 namespace real_medium {
 

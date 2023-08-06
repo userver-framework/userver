@@ -7,8 +7,9 @@
 #include <userver/testsuite/testsuite_support.hpp>
 #include <userver/utils/daemon_run.hpp>
 
-#include "handlers/profiles.h"
-#include "handlers/users.h"
+#include "handlers/profiles.hpp"
+#include "handlers/users.hpp"
+#include "handlers/tags.hpp"
 
 int main(int argc, char* argv[]) {
   auto component_list = userver::components::MinimalServerComponentList()

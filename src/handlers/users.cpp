@@ -3,7 +3,7 @@
 #include <string_view>
 
 #include <userver/server/handlers/http_handler_base.hpp>
-#include "users.h"
+#include "users.hpp"
 
 #include <userver/storages/postgres/cluster.hpp>
 #include <userver/storages/postgres/component.hpp>
