@@ -21,5 +21,7 @@ int main(int argc, char* argv[]) {
 
   real_medium::AppendProfiles(component_list);
   real_medium::AppendUsers(component_list);
+  real_medium::AppendGetTags(component_list);
+
   return userver::utils::DaemonMain(argc, argv, component_list);
 }
