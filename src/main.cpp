@@ -9,6 +9,7 @@
 
 #include "handlers/profiles.h"
 #include "handlers/users.h"
+#include "handlers/get-tags/view.hpp"
 
 int main(int argc, char* argv[]) {
   auto component_list = userver::components::MinimalServerComponentList()
@@ -21,5 +22,7 @@ int main(int argc, char* argv[]) {
 
   service_template::AppendProfiles(component_list);
   service_template::AppendUsers(component_list);
+  realmedium::AppendGetTags(component_list);
+
   return userver::utils::DaemonMain(argc, argv, component_list);
 }
