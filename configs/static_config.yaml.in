@@ -65,7 +65,7 @@ components_manager:
             method: GET,POST             
             task_processor: main-task-processor 
             
-        handler-user:
+        handler-users:
             path: /user                 
             method: GET,POST             
             task_processor: main-task-processor 

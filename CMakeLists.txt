@@ -11,6 +11,8 @@ add_subdirectory(third_party/userver)
 add_library(${PROJECT_NAME}_objs OBJECT
 	src/handlers/profiles.cpp
 	src/handlers/profiles.h
+	src/handlers/users.cpp
+	src/handlers/users.h
 )
 target_link_libraries(${PROJECT_NAME}_objs PUBLIC userver-core)
 

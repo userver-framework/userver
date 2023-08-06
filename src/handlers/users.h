@@ -5,6 +5,6 @@
 
 namespace service_template {
 
-void AppendProfiles(userver::components::ComponentList &component_list);
+void AppendUsers(userver::components::ComponentList &component_list);
 
 } // namespace service_template
