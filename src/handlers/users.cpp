@@ -17,6 +17,14 @@ class Users final : public userver::server::handlers::HttpHandlerBase {
  public:
   static constexpr std::string_view kName = "handler-users";
 
+   Users(const userver::components::ComponentConfig& config,
+                  const userver::components::ComponentContext& component_context)
+            : HttpHandlerBase(config, component_context),
+            pg_cluster_(
+                component_context
+                    .FindComponent<userver::components::Postgres>("realworld-database")
+                    .GetCluster()) {}
+
 
   using HttpHandlerBase::HttpHandlerBase;
   
@@ -26,7 +34,7 @@ class Users final : public userver::server::handlers::HttpHandlerBase {
     return "";
   }
 
-
+  userver::storages::postgres::ClusterPtr pg_cluster_;
 
 };  
 
