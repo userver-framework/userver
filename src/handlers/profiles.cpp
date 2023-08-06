@@ -5,7 +5,7 @@
 #include <userver/server/handlers/http_handler_base.hpp>
 #include "profiles.h"
 
-namespace service_template {
+namespace real_medium {
 
 class Profiles final : public userver::server::handlers::HttpHandlerBase {
  public:

@@ -2,7 +2,7 @@
 
 #include <userver/components/component_list.hpp>
 
-namespace service_template {
+namespace real_medium {
 
 void AppendProfiles(userver::components::ComponentList &component_list);
 

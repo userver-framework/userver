@@ -19,7 +19,7 @@ int main(int argc, char* argv[]) {
                             .Append<userver::clients::dns::Component>()
                             .Append<userver::server::handlers::TestsControl>();
 
-  service_template::AppendProfiles(component_list);
-  service_template::AppendUsers(component_list);
+  real_medium::AppendProfiles(component_list);
+  real_medium::AppendUsers(component_list);
   return userver::utils::DaemonMain(argc, argv, component_list);
 }

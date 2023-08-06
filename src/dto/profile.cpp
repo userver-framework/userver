@@ -1,10 +1,10 @@
 #include "profile.hpp"
 
 
-namespace realmedium::dto {
+namespace real_medium::dto {
 
 userver::formats::json::Value Serialize(
-    const realmedium::dto::Profile& dto,
+    const real_medium::dto::Profile& dto,
     userver::formats::serialize::To<userver::formats::json::Value>) {
   return {};
 }

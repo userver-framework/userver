@@ -11,7 +11,7 @@
 #include <userver/components/component_config.hpp>
 #include <userver/components/component_context.hpp>
 
-namespace service_template {
+namespace real_medium {
 
 class Users final : public userver::server::handlers::HttpHandlerBase {
  public:

@@ -3,7 +3,7 @@
 
 #include <userver/components/component_list.hpp>
 
-namespace service_template {
+namespace real_medium {
 
 void AppendUsers(userver::components::ComponentList &component_list);
 

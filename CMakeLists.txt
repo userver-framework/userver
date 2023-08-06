@@ -18,10 +18,6 @@ add_library(${PROJECT_NAME}_objs OBJECT
 )
 target_link_libraries(${PROJECT_NAME}_objs PUBLIC userver-core userver-postgresql)
 
-target_link_libraries(${PROJECT_NAME}_objs PUBLIC userver-core userver-postgresql)
-
-
-
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/cmake")
 find_package(ICU 4.4 COMPONENTS io i18n REQUIRED)
 target_include_directories(${PROJECT_NAME}_objs PUBLIC ${ICU_INCLUDE_DIRS})
@@ -33,7 +29,6 @@ target_link_libraries(${PROJECT_NAME} PRIVATE ${PROJECT_NAME}_objs)
 
 # Unit Tests
 add_executable(${PROJECT_NAME}_unittest
- src/hello_test.cpp
 )
 target_link_libraries(${PROJECT_NAME}_unittest PRIVATE ${PROJECT_NAME}_objs userver-utest)
 add_google_tests(${PROJECT_NAME}_unittest)
