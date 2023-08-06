@@ -3,7 +3,7 @@
 #include <string_view>
 
 #include <userver/server/handlers/http_handler_base.hpp>
-#include "users.h"
+#include "users.hpp"
 
 #include <userver/storages/postgres/cluster.hpp>
 #include <userver/storages/postgres/component.hpp>
@@ -11,7 +11,7 @@
 #include <userver/components/component_config.hpp>
 #include <userver/components/component_context.hpp>
 
-namespace service_template {
+namespace real_medium {
 
 class Users final : public userver::server::handlers::HttpHandlerBase {
  public:

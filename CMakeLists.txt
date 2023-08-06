@@ -11,11 +11,12 @@ option(JWT_BUILD_EXAMPLES OFF)
 # Common sources
 add_library(${PROJECT_NAME}_objs OBJECT
 	src/handlers/profiles.cpp
-	src/handlers/profiles.h
+	src/handlers/profiles.hpp
 	src/dto/profile.cpp
 	src/handlers/users.cpp
-	src/handlers/users.h
-	src/handlers/get-tags/view.cpp
+	src/handlers/users.hpp
+	src/handlers/tags.cpp
+	src/handlers/tags.hpp
 )
 target_link_libraries(${PROJECT_NAME}_objs PUBLIC userver-core userver-postgresql)
 
@@ -30,11 +31,12 @@ add_executable(${PROJECT_NAME} src/main.cpp)
 target_link_libraries(${PROJECT_NAME} PRIVATE ${PROJECT_NAME}_objs)
 
 # Unit Tests
-add_executable(${PROJECT_NAME}_unittest
-)
+#add_executable(${PROJECT_NAME}_unittest
+ #src/hello_test.cpp
+#)
 
-target_link_libraries(${PROJECT_NAME}_unittest PRIVATE ${PROJECT_NAME}_objs userver-utest)
-add_google_tests(${PROJECT_NAME}_unittest)
+#target_link_libraries(${PROJECT_NAME}_unittest PRIVATE ${PROJECT_NAME}_objs userver-utest)
+#add_google_tests(${PROJECT_NAME}_unittest)
 
 # Functional Tests
 add_subdirectory(tests)

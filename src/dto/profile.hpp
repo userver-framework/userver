@@ -4,7 +4,7 @@
 
 #include <userver/formats/json/value.hpp>
 
-namespace realmedium::dto {
+namespace real_medium::dto {
 
 struct Profile {
   std::string username;

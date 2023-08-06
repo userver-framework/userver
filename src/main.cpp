@@ -7,9 +7,9 @@
 #include <userver/testsuite/testsuite_support.hpp>
 #include <userver/utils/daemon_run.hpp>
 
-#include "handlers/profiles.h"
-#include "handlers/users.h"
-#include "handlers/get-tags/view.hpp"
+#include "handlers/profiles.hpp"
+#include "handlers/users.hpp"
+#include "handlers/tags.hpp"
 
 int main(int argc, char* argv[]) {
   auto component_list = userver::components::MinimalServerComponentList()
@@ -20,9 +20,9 @@ int main(int argc, char* argv[]) {
                             .Append<userver::clients::dns::Component>()
                             .Append<userver::server::handlers::TestsControl>();
 
-  service_template::AppendProfiles(component_list);
-  service_template::AppendUsers(component_list);
-  realmedium::AppendGetTags(component_list);
+  real_medium::AppendProfiles(component_list);
+  real_medium::AppendUsers(component_list);
+  real_medium::AppendGetTags(component_list);
 
   return userver::utils::DaemonMain(argc, argv, component_list);
 }
