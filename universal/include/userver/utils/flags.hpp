@@ -39,6 +39,7 @@ class Flags final {
   constexpr bool operator!=(Flags) const;
 
   constexpr ValueType GetValue() const;
+  constexpr void SetValue(ValueType value);
 
  private:
   friend class AtomicFlags<Enum>;
@@ -182,6 +183,11 @@ constexpr bool Flags<Enum>::operator!=(Flags rhs) const {
 template <typename Enum>
 constexpr typename Flags<Enum>::ValueType Flags<Enum>::GetValue() const {
   return this->value_;
+}
+
+template <typename Enum>
+constexpr void Flags<Enum>::SetValue(typename Flags<Enum>::ValueType value) {
+  this->value_ = value;
 }
 
 template <typename Enum>
