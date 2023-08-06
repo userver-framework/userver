@@ -450,6 +450,14 @@ void ConnectionPool::CheckMinPoolSizeUnderflow() {
 }
 
 void ConnectionPool::Push(Connection* connection) {
+  // However unlikely, this could happen when we return connection after
+  // asynchronous cleanup routine.
+  // A good safety measure anyway.
+  if (connection->IsBroken()) {
+    DeleteBrokenConnection(connection);
+    return;
+  }
+
   if (connection->IsInAbortedPipeline()) {
     // TODO : this is us investigating issues with pipelining,
     // remove in TAXICOMMON-6886
