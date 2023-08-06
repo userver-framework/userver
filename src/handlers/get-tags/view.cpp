@@ -1,10 +1,10 @@
 #include "view.hpp"
 
 #include <userver/components/component.hpp>
+#include <userver/formats/json/serialize_container.hpp>
 #include <userver/server/handlers/http_handler_json_base.hpp>
 #include <userver/storages/postgres/cluster.hpp>
 #include <userver/storages/postgres/component.hpp>
-#include <userver/formats/json/serialize_container.hpp>
 
 namespace realmedium {
 
@@ -19,21 +19,19 @@ class GetTags final : public userver::server::handlers::HttpHandlerJsonBase {
   GetTags(const userver::components::ComponentConfig& config,
           const userver::components::ComponentContext& component_context)
       : HttpHandlerJsonBase(config, component_context),
-        pg_cluster_(
-            component_context
-                .FindComponent<userver::components::Postgres>("postgres-db-1")
-                .GetCluster()) {}
+        pg_cluster_(component_context
+                        .FindComponent<userver::components::Postgres>(
+                            "realworld-database")
+                        .GetCluster()) {}
 
   userver::formats::json::Value HandleRequestJsonThrow(
       const userver::server::http::HttpRequest&,
       const userver::formats::json::Value&,
       userver::server::request::RequestContext&) const override {
-
-    constexpr static auto query = "SELECT tag_name FROM tag_list";
+    constexpr static auto query = "SELECT tag_name FROM realworld.tag_list";
     auto result = pg_cluster_->Execute(
         userver::storages::postgres::ClusterHostType::kSlave, query);
     auto tags = result.AsSetOf<std::string>();
-
 
     userver::formats::json::ValueBuilder response;
     response["tags"] = tags;
