@@ -1,0 +1,28 @@
+version: "2.3"
+
+services:
+    service_template-container:
+        image: ghcr.io/userver-framework/ubuntu-userver-build-base:v1
+        privileged: true
+        network_mode: bridge
+        environment:
+          - PREFIX=${PREFIX:-~/.local}
+          - CC
+          - CCACHE_DIR=/service_template/.ccache
+          - CCACHE_HASHDIR
+          - CCACHE_NOHASHDIR
+          - CCACHE_PREFIX
+          - CCACHE_SIZE
+          - CMAKE_OPTS
+          - CORES_DIR=/cores
+          - CXX
+          - MAKE_OPTS
+          - CMAKE_OPTIONS
+        volumes:
+          - .:/service_template:rw
+          - ./third_party/userver/tools/docker:/tools:ro
+        ports:
+          - 8080:8080
+        working_dir: /service_template
+        entrypoint:
+          - /tools/run_as_user.sh

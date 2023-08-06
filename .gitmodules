@@ -1,0 +1,3 @@
+[submodule "third_party/userver"]
+	path = third_party/userver
+	url = https://github.com/userver-framework/userver.git
