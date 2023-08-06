@@ -60,12 +60,14 @@ components_manager:
             throttling_enabled: false
             url_trailing_slash: strict-match
 
-        handler-profiles:
-            path: /hello                 
-            method: GET,POST             
-            task_processor: main-task-processor 
-            
-        handler-user:
-            path: /user                 
-            method: GET,POST             
-            task_processor: main-task-processor 
+        handler-hello:                    # Finally! Our handler.
+            path: /hello                  # Registering handler by URL '/hello'.
+            method: GET,POST              # It will only reply to GET (HEAD) and POST requests.
+            task_processor: main-task-processor  # Run it on CPU bound task processor
+
+        realworld-database:
+            dbconnection: $dbconnection
+            blocking_task_processor: fs-task-processor
+            dns_resolver: async
+            sync-start: true
+
