@@ -1,14 +1,31 @@
 version: "2.3"
 
 services:
-    service_template-container:
+    postgres:
+        container_name: service-postgres
+        image: postgres:12
+        environment:
+          - POSTGRES_DB=realworld_service_db_1
+          - POSTGRES_USER=user
+          - POSTGRES_PASSWORD=password
+        ports:
+          - 5432
+        volumes:
+          - ./postgresql/schemas:/docker-entrypoint-initdb.d
+          - ./.pgdata:/var/lib/postgresql/data
+        networks:
+          - postgres
+
+    realworld_service-container:
         image: ghcr.io/userver-framework/ubuntu-userver-build-base:v1
         privileged: true
-        network_mode: bridge
         environment:
+          - POSTGRES_DB=realworld_service_db_1
+          - POSTGRES_USER=user
+          - POSTGRES_PASSWORD=password
           - PREFIX=${PREFIX:-~/.local}
           - CC
-          - CCACHE_DIR=/service_template/.ccache
+          - CCACHE_DIR=/realworld_service/.ccache
           - CCACHE_HASHDIR
           - CCACHE_NOHASHDIR
           - CCACHE_PREFIX
@@ -19,10 +36,19 @@ services:
           - MAKE_OPTS
           - CMAKE_OPTIONS
         volumes:
-          - .:/service_template:rw
+          - .:/realworld_service:rw
           - ./third_party/userver/tools/docker:/tools:ro
+          - ${TC_CORES_DIR:-./.cores}:/cores:rw
         ports:
           - 8080:8080
-        working_dir: /service_template
+        working_dir: /realworld_service
         entrypoint:
           - /tools/run_as_user.sh
+        depends_on:
+          - postgres
+        networks:
+          - postgres
+
+networks:
+    postgres:
+        driver: bridge

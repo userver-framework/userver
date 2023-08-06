@@ -60,6 +60,12 @@ components_manager:
             throttling_enabled: false
             url_trailing_slash: strict-match
 
+        realworld-database:
+            dbconnection: $dbconnection
+            blocking_task_processor: fs-task-processor
+            dns_resolver: async
+            sync-start: true
+
         handler-profiles:
             path: /hello                 
             method: GET,POST             
@@ -69,3 +75,4 @@ components_manager:
             path: /user                 
             method: GET,POST             
             task_processor: main-task-processor 
+
