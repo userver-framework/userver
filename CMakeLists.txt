@@ -15,6 +15,7 @@ add_library(${PROJECT_NAME}_objs OBJECT
 	src/dto/profile.cpp
 	src/handlers/users.cpp
 	src/handlers/users.h
+	src/handlers/get-tags/view.cpp
 )
 target_link_libraries(${PROJECT_NAME}_objs PUBLIC userver-core userver-postgresql)
 

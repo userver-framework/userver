@@ -76,3 +76,7 @@ components_manager:
             method: GET,POST             
             task_processor: main-task-processor 
 
+        handler-get-tags:
+            path: /api/tags
+            method GET
+            task_processor: main-task-processor
