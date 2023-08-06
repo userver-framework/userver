@@ -78,5 +78,5 @@ components_manager:
 
         handler-get-tags:
             path: /api/tags
-            method GET
+            method: GET
             task_processor: main-task-processor
