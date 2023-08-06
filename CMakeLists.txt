@@ -12,8 +12,10 @@ add_library(${PROJECT_NAME}_objs OBJECT
 	src/handlers/profiles.cpp
 	src/handlers/profiles.h
 	src/dto/profile.cpp
+	src/handlers/users.cpp
+	src/handlers/users.h
 )
-target_link_libraries(${PROJECT_NAME}_objs PUBLIC userver-core)
+target_link_libraries(${PROJECT_NAME}_objs PUBLIC userver-core userver-postgresql)
 
 
 # The Service
