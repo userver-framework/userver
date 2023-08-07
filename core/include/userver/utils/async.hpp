@@ -41,7 +41,7 @@ struct SpanWrapCall {
 
   struct Impl;
 
-  static constexpr std::size_t kImplSize = 4256;
+  static constexpr std::size_t kImplSize = 4264;
   static constexpr std::size_t kImplAlign = 8;
   utils::FastPimpl<Impl, kImplSize, kImplAlign> pimpl_;
 };

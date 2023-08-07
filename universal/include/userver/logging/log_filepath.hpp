@@ -4,7 +4,6 @@
 /// @brief Short source path calculator
 
 #include <string_view>
-#include <type_traits>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -16,9 +15,7 @@ namespace logging::impl {
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define USERVER_LOG_FILEPATH_STRINGIZE(X) USERVER_LOG_FILEPATH_STRINGIZE_AUX(X)
 
-// May have different macro values for different translation units, hence static
-// TODO: consteval
-static constexpr std::size_t PathBaseSize(std::string_view path) noexcept {
+inline constexpr std::size_t PathBaseSize(std::string_view path) noexcept {
   for (const std::string_view base : {
 #ifdef USERVER_LOG_PREFIX_PATH_BASE
            USERVER_LOG_FILEPATH_STRINGIZE(USERVER_LOG_PREFIX_PATH_BASE),
@@ -43,6 +40,12 @@ static constexpr std::size_t PathBaseSize(std::string_view path) noexcept {
   return 0;
 }
 
+// TODO: consteval
+inline constexpr std::string_view CutFilePath(const char* path) noexcept {
+  const std::string_view path_view = path;
+  return path_view.substr(PathBaseSize(path_view));
+}
+
 #undef USERVER_LOG_FILEPATH_STRINGIZE
 #undef USERVER_LOG_FILEPATH_STRINGIZE_AUX
 
@@ -52,8 +55,7 @@ static constexpr std::size_t PathBaseSize(std::string_view path) noexcept {
 /// @hideinitializer
 // We need user's filename here, not ours
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define USERVER_FILEPATH                                                      \
-  &__FILE__[std::integral_constant<size_t, USERVER_NAMESPACE::logging::impl:: \
-                                               PathBaseSize(__FILE__)>::value]
+#define USERVER_FILEPATH \
+  USERVER_NAMESPACE::logging::impl::CutFilePath(__builtin_FILE())
 
 USERVER_NAMESPACE_END

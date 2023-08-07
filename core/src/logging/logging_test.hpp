@@ -67,7 +67,8 @@ inline std::string ParseLoggedText(std::string_view log_record,
   const auto log_end = log_record.find_first_of("\r\n");
   if (log_end != std::string_view::npos &&
       log_record.substr(log_end).size() > 2) {
-    throw std::runtime_error("The log contains multiple log records");
+    throw std::runtime_error(
+        fmt::format("The log contains multiple log records: {}", log_record));
   }
 
   const auto text_end = log_record.find_first_of("\t\r\n");

@@ -113,9 +113,9 @@ class LogHelper final {
     } else if constexpr (std::is_base_of_v<std::exception, T>) {
       *this << static_cast<const std::exception&>(value);
     } else if constexpr (meta::kIsOstreamWritable<T>) {
-      const EncodingGuard guard{*this, Encode::kValue};
       // may throw a non std::exception based exception
       Stream() << value;
+      FlushStream();
     } else if constexpr (meta::kIsRange<T> &&
                          !formats::common::kIsFormatValue<T>) {
       // may throw a non std::exception based exception
@@ -146,6 +146,8 @@ class LogHelper final {
   /// Extends internal LogExtra
   LogHelper& operator<<(LogExtra&& extra) noexcept;
 
+  LogHelper& operator<<(const LogExtra::Value& value) noexcept;
+
   LogHelper& operator<<(Hex hex) noexcept;
 
   LogHelper& operator<<(HexShort hex) noexcept;
@@ -158,29 +160,19 @@ class LogHelper final {
 
   struct InternalTag;
 
-  // Should only use after finishing logging `text`, otherwise garbage logs will
-  // be produced. For internal use only!
-  // TODO(TAXICOMMON-6951) refactor this function into something that never
-  //  produces garbage logs.
+  // For internal use only!
   impl::TagWriter GetTagWriterAfterText(InternalTag);
   /// @endcond
 
  private:
-  enum class Encode { kNone, kValue, kKeyReplacePeriod };
+  friend class impl::TagWriter;
 
-  struct EncodingGuard {
-    LogHelper& lh;
-
-    EncodingGuard(LogHelper& lh, Encode mode) noexcept;
-    ~EncodingGuard();
-  };
+  struct Module;
 
   void DoLog() noexcept;
 
   void InternalLoggingError(std::string_view message) noexcept;
 
-  void OpenTextTag();
-  void PutKeyValueSeparator();
   impl::TagWriter GetTagWriter();
 
   void PutFloatingPoint(float value);
@@ -191,6 +183,8 @@ class LogHelper final {
   void PutBoolean(bool value);
   void Put(std::string_view value);
   void Put(char value);
+
+  void PutRaw(std::string_view value_needs_no_escaping);
   void PutException(const std::exception& ex);
   void PutQuoted(std::string_view value);
 
@@ -204,8 +198,7 @@ class LogHelper final {
   void PutRange(const T& range);
 
   std::ostream& Stream();
-
-  friend class impl::TagWriter;
+  void FlushStream();
 
   class Impl;
   std::unique_ptr<Impl> pimpl_;

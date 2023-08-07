@@ -219,7 +219,7 @@ static inline void InvokeCommand(CommandPtr command, ReplyPtr&& reply) {
   LOG_DEBUG() << "redis_request( " << CommandSpecialPrinter{command}
               << " ):" << (reply->status == ReplyStatus::kOk ? '+' : '-') << ":"
               << reply->time * 1000.0 << " cc: " << command->control.ToString()
-              << command->log_extra;
+              << command->GetLogExtra();
   ++command->invoke_counter;
   try {
     command->callback(command, reply);

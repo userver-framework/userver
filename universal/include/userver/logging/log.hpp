@@ -155,15 +155,17 @@ struct EntryStorage final {
   USERVER_NAMESPACE::logging::LogHelper(logger, level).AsLvalue()
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define USERVER_IMPL_DYNAMIC_DEBUG_ENTRY                                       \
-  []() noexcept -> const auto& {                                               \
-    struct NameHolder {                                                        \
-      static constexpr const char* Get() noexcept { return USERVER_FILEPATH; } \
-    };                                                                         \
-    const auto& entry =                                                        \
-        USERVER_NAMESPACE::logging::impl::EntryStorage<NameHolder,             \
-                                                       __LINE__>::entry;       \
-    return entry;                                                              \
+#define USERVER_IMPL_DYNAMIC_DEBUG_ENTRY                                 \
+  []() noexcept -> const auto& {                                         \
+    struct NameHolder {                                                  \
+      static constexpr const char* Get() noexcept {                      \
+        return USERVER_FILEPATH.data();                                  \
+      }                                                                  \
+    };                                                                   \
+    const auto& entry =                                                  \
+        USERVER_NAMESPACE::logging::impl::EntryStorage<NameHolder,       \
+                                                       __LINE__>::entry; \
+    return entry;                                                        \
   }
 /// @endcond
 

@@ -71,7 +71,7 @@ bool ClusterShard::AsyncCommand(CommandPtr command) {
   LOG_LIMITED_WARNING() << "No Redis server is ready for shard=" << shard_
                         << " slave=" << command->read_only
                         << " available_servers=" << available_servers.size()
-                        << command->log_extra;
+                        << command->GetLogExtra();
   return false;
 }
 

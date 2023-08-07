@@ -93,6 +93,9 @@ UTEST_F(Span, LogFormat) {
       R"(task_id=[0-9A-F]+\t)"
       R"(thread_id=0x[0-9A-F]+\t)"
       R"(text=\t)"
+      R"(trace_id=[0-9a-f]+\t)"
+      R"(span_id=[0-9a-f]+\t)"
+      R"(parent_id=[0-9a-f]+\t)"
       R"(stopwatch_name=span_name\t)"
       R"(total_time=\d+(\.\d+)?\t)"
       R"(span_ref_type=child\t)"
@@ -100,10 +103,7 @@ UTEST_F(Span, LogFormat) {
       R"(start_timestamp=\d+(\.\d+)?\t)"
       R"(my_timer_time=\d+(\.\d+)?\t)"
       R"(link=[0-9a-f]+\t)"
-      R"(my_tag_key=my_tag_value\t)"
-      R"(trace_id=[0-9a-f]+\t)"
-      R"(span_id=[0-9a-f]+\t)"
-      R"(parent_id=[0-9a-f]+\n)";
+      R"(my_tag_key=my_tag_value\n)";
   {
     tracing::Span span("span_name");
     span.AddTag("my_tag_key", "my_tag_value");

@@ -21,8 +21,6 @@ void LogRaw(LoggerBase& logger, Level level, std::string_view message);
 
 }  // namespace impl
 
-using LoggerPtr = std::shared_ptr<impl::LoggerBase>;
-
 /// @brief Creates synchronous stderr logger with default tskv pattern
 /// @param name logger name, for internal use, must be unique
 /// @see components::Logging

@@ -8,7 +8,7 @@
 USERVER_NAMESPACE_BEGIN
 
 TEST_F(LoggingTest, DynamicDebugEnable) {
-  const std::string filename = USERVER_FILEPATH;
+  const std::string filename{USERVER_FILEPATH};
   SetDefaultLoggerLevel(logging::Level::kNone);
 
   const auto do_log = [](std::string_view string) {
@@ -36,7 +36,7 @@ TEST_F(LoggingTest, DynamicDebugEnable) {
 }
 
 TEST_F(LoggingTest, DynamicDebugDisable) {
-  const std::string filename = USERVER_FILEPATH;
+  const std::string filename{USERVER_FILEPATH};
   SetDefaultLoggerLevel(logging::Level::kInfo);
 
   const auto do_log = [](std::string_view string) {
@@ -55,7 +55,7 @@ TEST_F(LoggingTest, DynamicDebugDisable) {
 }
 
 TEST_F(LoggingTest, DynamicDebugAnyLine) {
-  const std::string filename = USERVER_FILEPATH;
+  const std::string filename{USERVER_FILEPATH};
   SetDefaultLoggerLevel(logging::Level::kNone);
 
   LOG_INFO() << "before";
@@ -80,7 +80,7 @@ TEST_F(LoggingTest, DynamicDebugAnyLineRemove) {
 
   LOG_INFO() << "before";
 
-  const std::string location = USERVER_FILEPATH;
+  const std::string location{USERVER_FILEPATH};
   logging::AddDynamicDebugLog(location, 30001);
   logging::AddDynamicDebugLog(location, 30002);
   logging::RemoveDynamicDebugLog(location, logging::kAnyLine);
@@ -104,7 +104,7 @@ TEST_F(LoggingTest, DynamicDebugAnyLineRemove) {
 }
 
 TEST_F(LoggingTest, DynamicDebugLimitedEnable) {
-  const std::string location = USERVER_FILEPATH;
+  const std::string location{USERVER_FILEPATH};
   SetDefaultLoggerLevel(logging::Level::kNone);
 
   const auto do_log = [](std::string_view string) {

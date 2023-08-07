@@ -1,6 +1,7 @@
 #pragma once
 
 #include <boost/intrusive/link_mode.hpp>
+#include <boost/intrusive/options.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

@@ -29,6 +29,9 @@ Command::Command(CmdArgs&& _args, ReplyCallback callback,
     std::transform(name.begin(), name.end(), name.begin(),
                    [](unsigned char c) { return std::tolower(c); });
   }
+  if constexpr (utils::impl::kEnableAssert) {
+    original_span_debug = tracing::Span::CurrentSpanUnchecked();
+  }
 }
 
 ReplyCallback Command::Callback() const {
@@ -50,6 +53,18 @@ logging::LogExtra Command::PrepareLogExtra() {
   } else {
     // Non-user requests (e.g. PING)
     return {};
+  }
+}
+
+const logging::LogExtra& Command::GetLogExtra() const {
+  const auto* span = tracing::Span::CurrentSpanUnchecked();
+  if (span) {
+    UASSERT_MSG(span == original_span_debug,
+                "Work on the command is expected to be performed either "
+                "in the Span that constructed it, or in an ev thread.");
+    return logging::kEmptyLogExtra;
+  } else {
+    return log_extra;
   }
 }
 

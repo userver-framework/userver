@@ -104,16 +104,18 @@ inline void InvokeCommand(CommandPtr command, ReplyPtr&& reply) {
   LOG_DEBUG() << "redis_request( " << CommandSpecialPrinter{command}
               << " ):" << (reply->status == ReplyStatus::kOk ? '+' : '-') << ":"
               << reply->time * 1000.0 << " cc: " << command->control.ToString()
-              << command->log_extra;
+              << command->GetLogExtra();
   ++command->invoke_counter;
   try {
     command->callback(command, reply);
   } catch (const std::exception& ex) {
+    UASSERT(!engine::current_task::IsTaskProcessorThread());
     LOG_WARNING() << "exception in command->callback, cmd=" << reply->cmd << " "
-                  << ex << command->log_extra;
+                  << ex << command->GetLogExtra();
   } catch (...) {
+    UASSERT(!engine::current_task::IsTaskProcessorThread());
     LOG_WARNING() << "exception in command->callback, cmd=" << reply->cmd
-                  << command->log_extra;
+                  << command->GetLogExtra();
   }
 }
 

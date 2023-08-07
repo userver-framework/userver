@@ -64,7 +64,7 @@ std::error_code TestsuiteResponseHook(Status status_code,
 
     if (headers.end() != it) {
       LOG_INFO() << "Mockserver faked error of type " << it->second
-                 << tracing::impl::LogSpanAsLast{span};
+                 << tracing::impl::LogSpanAsLastNonCoro{span};
 
       const auto error_it = kTestsuiteActions.find(it->second);
       if (error_it != kTestsuiteActions.end()) {
@@ -471,7 +471,8 @@ void RequestState::on_retry(std::shared_ptr<RequestState> holder,
   UASSERT(holder);
   UASSERT(holder->span_storage_);
   LOG_TRACE() << "RequestImpl::on_retry"
-              << tracing::impl::LogSpanAsLast{holder->span_storage_->Get()};
+              << tracing::impl::LogSpanAsLastNonCoro{
+                     holder->span_storage_->Get()};
 
   // We do not need to retry:
   // - if we got result and HTTP code is good
@@ -864,7 +865,7 @@ size_t RequestState::StreamWriteFunction(char* ptr, size_t size, size_t nmemb,
   LOG_DEBUG() << fmt::format(
                      "Got bytes in stream API chunk, chunk of ({} bytes)",
                      actual_size)
-              << tracing::impl::LogSpanAsLast{rs.span_storage_->Get()};
+              << tracing::impl::LogSpanAsLastNonCoro{rs.span_storage_->Get()};
 
   std::string buffer(ptr, actual_size);
   auto& queue_producer = stream_data->queue_producer;

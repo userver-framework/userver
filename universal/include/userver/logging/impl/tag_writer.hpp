@@ -1,6 +1,5 @@
 #pragma once
 
-#include <stdexcept>
 #include <string_view>
 #include <type_traits>
 
@@ -46,12 +45,22 @@ class TagWriter {
   template <typename T>
   void PutTag(RuntimeTagKey key, const T& value);
 
+  // The tags must not be duplicated in other Put* calls.
   void PutLogExtra(const LogExtra& extra);
+
+  // Copies the tags to the internal LogExtra. They will be deduplicated
+  // automatically.
+  void ExtendLogExtra(const LogExtra& extra);
 
  private:
   friend class logging::LogHelper;
 
   explicit TagWriter(LogHelper& lh) noexcept;
+
+  void PutKey(TagKey key);
+  void PutKey(RuntimeTagKey key);
+
+  void MarkValueEnd() noexcept;
 
   LogHelper& lh_;
 };
@@ -78,22 +87,16 @@ USERVER_IMPL_CONSTEVAL TagKey::TagKey(const StringType& escaped_key)
 
 template <typename T>
 void TagWriter::PutTag(TagKey key, const T& value) {
-  lh_.Put(utils::encoding::kTskvPairsSeparator);
-  lh_.Put(key.GetEscapedKey());
-  lh_.PutKeyValueSeparator();
+  PutKey(key);
   lh_ << value;
+  MarkValueEnd();
 }
 
 template <typename T>
 void TagWriter::PutTag(RuntimeTagKey key, const T& value) {
-  lh_.Put(utils::encoding::kTskvPairsSeparator);
-  {
-    const logging::LogHelper::EncodingGuard guard{
-        lh_, logging::LogHelper::Encode::kKeyReplacePeriod};
-    lh_.Put(key.GetUnescapedKey());
-  }
-  lh_.PutKeyValueSeparator();
+  PutKey(key);
   lh_ << value;
+  MarkValueEnd();
 }
 
 }  // namespace logging::impl

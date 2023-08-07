@@ -48,8 +48,10 @@ class Span::Impl
   impl::TimeStorage& GetTimeStorage() { return time_storage_; }
   const impl::TimeStorage& GetTimeStorage() const { return time_storage_; }
 
-  void PutIntoLogger(logging::impl::TagWriter writer);
+  // Log this Span specifically
+  void PutIntoLogger(logging::impl::TagWriter writer) &&;
 
+  // Add the context of this Span a non-Span-specific log record
   void LogTo(logging::impl::TagWriter writer);
 
   const std::string& GetTraceId() const& noexcept { return trace_id_; }

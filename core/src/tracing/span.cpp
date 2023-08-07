@@ -1,6 +1,5 @@
 #include <tracing/span_impl.hpp>
 
-#include <random>
 #include <type_traits>
 
 #include <fmt/compile.h>
@@ -112,11 +111,11 @@ Span::Impl::~Impl() {
     const DetachLocalSpansScope ignore_local_span;
     logging::LogHelper lh{logging::GetDefaultLogger(), log_level_,
                           source_location_};
-    PutIntoLogger(lh.GetTagWriterAfterText({}));
+    std::move(*this).PutIntoLogger(lh.GetTagWriterAfterText({}));
   }
 }
 
-void Span::Impl::PutIntoLogger(logging::impl::TagWriter writer) {
+void Span::Impl::PutIntoLogger(logging::impl::TagWriter writer) && {
   const auto steady_now = std::chrono::steady_clock::now();
   const auto duration = steady_now - start_steady_time_;
   const auto total_time_ms =
@@ -126,22 +125,27 @@ void Span::Impl::PutIntoLogger(logging::impl::TagWriter writer) {
                              ? kReferenceTypeChild
                              : kReferenceTypeFollows;
 
+  tracer_->LogSpanContextTo(*this, writer);
   writer.PutTag(kStopWatchTag, name_);
   writer.PutTag(kTotalTimeTag, total_time_ms);
   writer.PutTag(kReferenceType, ref_type);
   writer.PutTag(kTimeUnitsTag, "ms");
   writer.PutTag(kStartTimestampTag, StartTsToString(start_system_time_));
 
-  LogOpenTracing();
-
   time_storage_.MergeInto(writer);
 
-  if (log_extra_local_) writer.PutLogExtra(*log_extra_local_);
-  std::move(*this).LogTo(writer);
+  if (log_extra_local_) {
+    // TODO apparently, same tags can be added both to log_extra_inheritable_
+    //  and log_extra_local_. Merge to deduplicate such tags.
+    log_extra_inheritable_.Extend(std::move(*log_extra_local_));
+  }
+  writer.PutLogExtra(log_extra_inheritable_);
+
+  LogOpenTracing();
 }
 
 void Span::Impl::LogTo(logging::impl::TagWriter writer) {
-  writer.PutLogExtra(log_extra_inheritable_);
+  writer.ExtendLogExtra(log_extra_inheritable_);
   tracer_->LogSpanContextTo(*this, writer);
 }
 
@@ -334,6 +338,12 @@ void Span::AddTags(const logging::LogExtra& log_extra, utils::InternalTag) {
   pimpl_->log_extra_inheritable_.Extend(log_extra);
 }
 
+void Span::AddNonInheritableTags(const logging::LogExtra& log_extra,
+                                 utils::InternalTag) {
+  if (!pimpl_->log_extra_local_) pimpl_->log_extra_local_.emplace();
+  pimpl_->log_extra_local_->Extend(log_extra);
+}
+
 impl::TimeStorage& Span::GetTimeStorage() { return pimpl_->GetTimeStorage(); }
 
 std::string Span::GetTag(std::string_view tag) const {
@@ -427,7 +437,9 @@ DetachLocalSpansScope::~DetachLocalSpansScope() {
 
 namespace impl {
 
-logging::LogHelper& operator<<(logging::LogHelper& lh, LogSpanAsLast span) {
+logging::LogHelper& operator<<(logging::LogHelper& lh,
+                               LogSpanAsLastNonCoro span) {
+  UASSERT(!engine::current_task::IsTaskProcessorThread());
   span.span.LogTo(lh.GetTagWriterAfterText({}));
   return lh;
 }

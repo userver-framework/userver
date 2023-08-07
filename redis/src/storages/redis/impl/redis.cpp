@@ -568,7 +568,7 @@ void Redis::RedisImpl::LogSocketErrorReply(const CommandPtr& command,
   LOG_WARNING() << "Request to Redis server " << reply->server
                 << " failed with status " << reply->status << " ("
                 << reply->status_string << ")" << reply->GetLogExtra()
-                << command->log_extra;
+                << command->GetLogExtra();
 }
 
 void Redis::RedisImpl::LogInstanceErrorReply(const CommandPtr& command,
@@ -576,7 +576,7 @@ void Redis::RedisImpl::LogInstanceErrorReply(const CommandPtr& command,
   LOG_ERROR() << "Request to Redis server " << reply->server
               << " failed with Redis error reply: "
               << reply->data.ToDebugString() << reply->GetLogExtra()
-              << command->log_extra;
+              << command->GetLogExtra();
 }
 
 bool Redis::RedisImpl::WatchCommandTimerEnabled(

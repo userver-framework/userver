@@ -71,8 +71,8 @@ TEST_F(LoggingTest, TskvEncodeKeyWithDot) {
   logging::LogExtra le;
   le.Extend("http.port.ipv4", "4040");
   LOG_CRITICAL() << "line 1\nline 2" << le;
-  EXPECT_THAT(GetStreamString(),
-              testing::HasSubstr("line 1\\nline 2\thttp_port_ipv4=4040"));
+  EXPECT_THAT(GetStreamString(), testing::HasSubstr("line 1\\nline 2"));
+  EXPECT_THAT(GetStreamString(), testing::HasSubstr("http_port_ipv4=4040"));
 }
 
 TEST_F(LoggingTest, LogFormat) {
@@ -416,8 +416,7 @@ TEST_F(LoggingTest, RangeOverflow) {
   std::iota(range.begin(), range.end(), 0);
 
   LOG_CRITICAL() << range;
-  EXPECT_TRUE(LoggedTextContains("1850, 1851, ...8148 more"))
-      << "Actual logged text: " << LoggedText();
+  EXPECT_THAT(LoggedText(), testing::HasSubstr("1850, 1851, ...8148 more"));
 }
 
 TEST_F(LoggingTest, ImmediateRangeOverflow) {
@@ -425,8 +424,7 @@ TEST_F(LoggingTest, ImmediateRangeOverflow) {
   std::vector<int> range{42};
 
   LOG_CRITICAL() << filler << range;
-  EXPECT_TRUE(LoggedTextContains("[...1 more]"))
-      << "Actual logged text: " << LoggedText();
+  EXPECT_THAT(LoggedText(), testing::HasSubstr("[...1 more]"));
 }
 
 TEST_F(LoggingTest, NestedRangeOverflow) {
@@ -434,10 +432,9 @@ TEST_F(LoggingTest, NestedRangeOverflow) {
       {"1", "2", "3"}, {std::string(100000, 'A'), "4", "5"}, {"6", "7"}};
 
   LOG_CRITICAL() << range;
-  EXPECT_TRUE(LoggedTextContains(R"([["1", "2", "3"], ["AAA)"))
-      << "Actual logged text: " << LoggedText();
-  EXPECT_TRUE(LoggedTextContains(R"(AAA...", ...2 more], ...1 more])"))
-      << "Actual logged text: " << LoggedText();
+  EXPECT_THAT(LoggedText(), testing::HasSubstr(R"([["1", "2", "3"], ["AAA)"));
+  EXPECT_THAT(LoggedText(),
+              testing::HasSubstr(R"(AAA...", ...2 more], ...1 more])"));
 }
 
 TEST_F(LoggingTest, MapOverflow) {
@@ -447,10 +444,9 @@ TEST_F(LoggingTest, MapOverflow) {
   }
 
   LOG_CRITICAL() << map;
-  EXPECT_TRUE(LoggedTextContains("[0: 0, 1: 1,"))
-      << "Actual logged text: " << LoggedText();
-  EXPECT_TRUE(LoggedTextContains("1017: 1017, 1018: 1018, ...8981 more]"))
-      << "Actual logged text: " << LoggedText();
+  EXPECT_THAT(LoggedText(), testing::HasSubstr("[0: 0, 1: 1,"));
+  EXPECT_THAT(LoggedText(),
+              testing::HasSubstr("1017: 1017, 1018: 1018, ...8981 more]"));
 }
 
 TEST_F(LoggingTest, FilesystemPath) {

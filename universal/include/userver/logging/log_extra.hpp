@@ -154,6 +154,8 @@ class LogExtra final {
   utils::FastPimpl<Map, kPimplSize, alignof(void*)> extra_;
 };
 
+extern const LogExtra kEmptyLogExtra;
+
 }  // namespace logging
 
 USERVER_NAMESPACE_END

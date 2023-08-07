@@ -35,8 +35,7 @@ std::set<std::string> SentinelParseFlags(const std::string& flags) {
 }
 
 const logging::LogExtra& GetLogExtra(const CommandPtr& command) {
-  static const logging::LogExtra kEmptyLogExtra{};
-  return (command ? command->log_extra : kEmptyLogExtra);
+  return (command ? command->GetLogExtra() : logging::kEmptyLogExtra);
 }
 
 bool ParseSentinelResponse(

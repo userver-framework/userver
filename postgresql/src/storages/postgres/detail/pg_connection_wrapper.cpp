@@ -562,7 +562,10 @@ void PGConnectionWrapper::DiscardInput(Deadline deadline) {
 }
 
 void PGConnectionWrapper::FillSpanTags(tracing::Span& span) const {
-  span.AddTags(log_extra_, USERVER_NAMESPACE::utils::InternalTag{});
+  // With inheritable tags, they would end up being duplicated in current Span
+  // and in log_extra_ (passed by PGCW_LOG_ macros).
+  span.AddNonInheritableTags(log_extra_,
+                             USERVER_NAMESPACE::utils::InternalTag{});
 }
 
 PGresult* PGConnectionWrapper::ReadResult(Deadline deadline) {

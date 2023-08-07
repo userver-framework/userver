@@ -163,6 +163,8 @@ class Span final {
   /// @cond
   void AddTags(const logging::LogExtra&, utils::InternalTag);
 
+  void AddNonInheritableTags(const logging::LogExtra&, utils::InternalTag);
+
   impl::TimeStorage& GetTimeStorage();
 
   // For internal use only.
@@ -194,12 +196,12 @@ class Span final {
 
 namespace impl {
 
-// Must be logged as the last item, after the rest of text.
-struct LogSpanAsLast final {
+struct LogSpanAsLastNonCoro final {
   const Span& span;
 };
 
-logging::LogHelper& operator<<(logging::LogHelper& lh, LogSpanAsLast span);
+logging::LogHelper& operator<<(logging::LogHelper& lh,
+                               LogSpanAsLastNonCoro span);
 
 }  // namespace impl
 

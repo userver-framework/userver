@@ -194,6 +194,8 @@ LogExtra::ProtectedValue& LogExtra::ProtectedValue::operator=(
 
 void LogExtra::ProtectedValue::SetFrozen() { frozen_ = true; }
 
+const LogExtra kEmptyLogExtra;
+
 }  // namespace logging
 
 USERVER_NAMESPACE_END

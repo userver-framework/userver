@@ -31,9 +31,13 @@ struct Command : public std::enable_shared_from_this<Command> {
 
   static logging::LogExtra PrepareLogExtra();
 
+  // Returns Span details only if we are not already running within a Span.
+  const logging::LogExtra& GetLogExtra() const;
+
   CmdArgs args;
   ReplyCallback callback;
   std::chrono::steady_clock::time_point start_handling_time;
+  tracing::Span* original_span_debug{nullptr};
   logging::LogExtra log_extra;
   CommandControl control;
   size_t instance_idx = 0;

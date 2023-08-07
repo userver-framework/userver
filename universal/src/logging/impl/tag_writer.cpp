@@ -3,24 +3,12 @@
 #include <fmt/format.h>
 #include <boost/container/small_vector.hpp>
 
+#include <logging/log_helper_impl.hpp>
 #include <userver/utils/assert.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace logging::impl {
-
-namespace {
-
-struct ExtraValue final {
-  const LogExtra::Value& value;
-};
-
-LogHelper& operator<<(LogHelper& lh, ExtraValue value) noexcept {
-  std::visit([&lh](const auto& contents) { lh << contents; }, value.value);
-  return lh;
-}
-
-}  // namespace
 
 void ThrowInvalidEscapedTagKey(std::string_view key) {
   UINVARIANT(false, fmt::format("TagKey({}) contains an invalid character. Use "
@@ -39,11 +27,25 @@ std::string_view RuntimeTagKey::GetUnescapedKey() const noexcept {
 
 void TagWriter::PutLogExtra(const LogExtra& extra) {
   for (const auto& item : *extra.extra_) {
-    PutTag(RuntimeTagKey{item.first}, ExtraValue{item.second.GetValue()});
+    PutTag(RuntimeTagKey{item.first}, item.second.GetValue());
   }
 }
 
+void TagWriter::ExtendLogExtra(const LogExtra& extra) {
+  lh_.pimpl_->GetLogExtra().Extend(extra);
+}
+
 TagWriter::TagWriter(LogHelper& lh) noexcept : lh_(lh) {}
+
+void TagWriter::PutKey(TagKey key) {
+  lh_.pimpl_->PutRawKey(key.GetEscapedKey());
+}
+
+void TagWriter::PutKey(RuntimeTagKey key) {
+  lh_.pimpl_->PutKey(key.GetUnescapedKey());
+}
+
+void TagWriter::MarkValueEnd() noexcept { lh_.pimpl_->MarkValueEnd(); }
 
 }  // namespace logging::impl
 
