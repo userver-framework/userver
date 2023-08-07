@@ -41,8 +41,6 @@ target_include_directories(${PROJECT_NAME}
     ${CMAKE_CURRENT_SOURCE_DIR}/include
   PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
-    ${USERVER_THIRD_PARTY_DIRS}/clickhouse-cpp
-    ${USERVER_THIRD_PARTY_DIRS}/clickhouse-cpp/contrib
 )
 
 if (USERVER_IS_THE_ROOT_PROJECT)

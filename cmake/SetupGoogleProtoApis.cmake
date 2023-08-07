@@ -8,28 +8,15 @@ elseif (USERVER_GOOGLE_COMMON_PROTOS)
   set(api-common-protos_SOURCE_DIR ${USERVER_GOOGLE_COMMON_PROTOS})
 endif()
 
-if (NOT api-common-protos_SOURCE_DIR)
-  set(api-common-protos_SOURCE_DIR ${USERVER_ROOT_DIR}/third_party/api-common-protos)
-endif()
-
 if (NOT EXISTS ${api-common-protos_SOURCE_DIR})
-  include(FetchContent)
-
-  FetchContent_Declare(
-    api-common-protos_external_project
-    GIT_REPOSITORY https://github.com/googleapis/api-common-protos.git
-    TIMEOUT 10
-    GIT_TAG 1.50.0
-    SOURCE_DIR ${api-common-protos_SOURCE_DIR}
+  include(DownloadUsingCPM)
+  CPMAddPackage(
+      NAME api-common-protos
+      VERSION 1.50.0
+      GITHUB_REPOSITORY googleapis/api-common-protos
+      GIT_TAG 1.50.0
+      DOWNLOAD_ONLY YES
   )
-
-  FetchContent_GetProperties(api-common-protos_external_project)
-  if (NOT api-common-protos_external_project_POPULATED AND
-      # POPULATED check glitches with multiple build directories
-      NOT EXISTS ${api-common-protos_SOURCE_DIR})
-    message(STATUS "Downloading api-common-protos from remote")
-    FetchContent_Populate(api-common-protos_external_project)
-  endif()
 endif()
 
 if (NOT api-common-protos_SOURCE_DIR)

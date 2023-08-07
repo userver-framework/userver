@@ -4,54 +4,55 @@
 
 The following options could be used to control `cmake`:
 
-| Option                                 | Description                                                                                                           | Default                                                              |
-|----------------------------------------|-----------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------|
-| USERVER_FEATURE_CORE                   | Provide a core library with coroutines, otherwise build only userver-universal                                        | ON                                                                   |
-| USERVER_FEATURE_MONGODB                | Provide asynchronous driver for MongoDB                                                                               | ON if platform is x86\* and not \*BSD and ${USERVER_FEATURE_CORE}    |
-| USERVER_FEATURE_POSTGRESQL             | Provide asynchronous driver for PostgreSQL                                                                            | ${USERVER_FEATURE_CORE}                                              |
-| USERVER_FEATURE_REDIS                  | Provide asynchronous driver for Redis                                                                                 | ${USERVER_FEATURE_CORE}                                              |
-| USERVER_FEATURE_CLICKHOUSE             | Provide asynchronous driver for ClickHouse                                                                            | ${USERVER_FEATURE_CORE} if platform is x86\*; OFF otherwise          |
-| USERVER_FEATURE_GRPC                   | Provide asynchronous driver for gRPC                                                                                  | ${USERVER_FEATURE_CORE}                                              |
-| USERVER_FEATURE_RABBITMQ               | Provide asynchronous driver for RabbitMQ (AMQP 0-9-1)                                                                 | ${USERVER_FEATURE_CORE}                                              |
-| USERVER_FEATURE_MYSQL                  | Provide asynchronous driver for MySQL/MariaDB                                                                         | OFF                                                                  |
-| USERVER_FEATURE_UTEST                  | Provide 'utest' and 'ubench' for unit testing and benchmarking coroutines                                             | ${USERVER_FEATURE_CORE}                                              |
-| USERVER_FEATURE_CRYPTOPP_BLAKE2        | Provide wrappers for blake2 algorithms of crypto++                                                                    | ON                                                                   |
-| USERVER_FEATURE_PATCH_LIBPQ            | Apply patches to the libpq (add portals support), requires libpq.a                                                    | ON                                                                   |
-| USERVER_FEATURE_CRYPTOPP_BASE64_URL    | Provide wrappers for Base64 URL decoding and encoding algorithms of crypto++                                          | ON                                                                   |
-| USERVER_FEATURE_REDIS_HI_MALLOC        | Provide a `hi_malloc(unsigned long)` [issue][hi_malloc] workaround                                                    | OFF                                                                  |
-| USERVER_FEATURE_REDIS_TLS              | SSL/TLS support for Redis driver                                                                                      | OFF                                                                  |
-| USERVER_FEATURE_STACKTRACE             | Allow capturing stacktraces using boost::stacktrace                                                                   | OFF if platform is not \*BSD; ON otherwise                           |
-| USERVER_FEATURE_JEMALLOC               | Use jemalloc memory allocator                                                                                         | ON                                                                   |
-| USERVER_FEATURE_DWCAS                  | Require double-width compare-and-swap                                                                                 | ON                                                                   |
-| USERVER_FEATURE_TESTSUITE              | Enable functional tests via testsuite                                                                                 | ON                                                                   |
-| USERVER_FEATURE_GRPC_CHANNELZ          | Enable Channelz for gRPC                                                                                              | ON for "sufficiently new" gRPC versions                              |
-| USERVER_CHECK_PACKAGE_VERSIONS         | Check package versions                                                                                                | ON                                                                   |
-| USERVER_SANITIZE                       | Build with sanitizers support, allows combination of values via 'val1 val2'                                           | ''                                                                   |
-| USERVER_SANITIZE_BLACKLIST             | Path to file that is passed to the -fsanitize-blacklist option                                                        | ''                                                                   |
-| USERVER_USE_LD                         | Linker to use, e.g. 'gold' or 'lld'                                                                                   | ''                                                                   |
-| USERVER_LTO                            | Use link time optimizations                                                                                           | OFF for Debug build, ON for all the other builds                     |
-| USERVER_NO_WERROR                      | Do not treat warnings as errors                                                                                       | ON                                                                   |
-| USERVER_PYTHON_PATH                    | Path to the python3 binary for use in testsuite tests                                                                 | python3                                                              |
-| USERVER_DOWNLOAD_PACKAGES              | Download missing third party packages and use the downloaded versions                                                 | ON                                                                   |
-| USERVER_DOWNLOAD_PACKAGE_CARES         | Download and setup c-ares if no c-ares of matching version was found                                                  | ${USERVER_DOWNLOAD_PACKAGES}                                         |
-| USERVER_DOWNLOAD_PACKAGE_CCTZ          | Download and setup cctz if no cctz of matching version was found                                                      | ${USERVER_DOWNLOAD_PACKAGES}                                         |
-| USERVER_DOWNLOAD_PACKAGE_CLICKHOUSECPP | Download and setup clickhouse-cpp                                                                                     | ${USERVER_DOWNLOAD_PACKAGES}                                         |
-| USERVER_DOWNLOAD_PACKAGE_CRYPTOPP      | Download and setup CryptoPP if no CryptoPP of matching version was found                                              | ${USERVER_DOWNLOAD_PACKAGES}                                         |
-| USERVER_DOWNLOAD_PACKAGE_CURL          | Download and setup libcurl if no libcurl of matching version was found                                                | ${USERVER_DOWNLOAD_PACKAGES}                                         |
-| USERVER_DOWNLOAD_PACKAGE_FMT           | Download and setup Fmt if no Fmt of matching version was found                                                        | ${USERVER_DOWNLOAD_PACKAGES}                                         |
-| USERVER_DOWNLOAD_PACKAGE_GTEST         | Download and setup gtest if no gtest of matching version was found                                                    | ${USERVER_DOWNLOAD_PACKAGES}                                         |
-| USERVER_DOWNLOAD_PACKAGE_GBENCH        | Download and setup gbench if no gbench of matching version was found                                                  | ${USERVER_DOWNLOAD_PACKAGES}                                         |
-| USERVER_DOWNLOAD_PACKAGE_SPDLOG        | Download and setup Spdlog if no Spdlog of matching version was found                                                  | ${USERVER_DOWNLOAD_PACKAGES}                                         |
-| USERVER_IS_THE_ROOT_PROJECT            | Build tests, samples and helper tools                                                                                 | auto-detects if userver is the top level project                     |
-| USERVER_GOOGLE_COMMON_PROTOS_TARGET    | Name of cmake target preparing google common proto library                                                            | Builds userver-api-common-protos                                     |
-| USERVER_GOOGLE_COMMON_PROTOS           | Path to the folder with google common proto files                                                                     | Downloads to third_party automatically                               |
-| USERVER_PG_SERVER_INCLUDE_DIR          | Path to the folder with @ref POSTGRES_LIBS "PostgreSQL server headers", for example /usr/include/postgresql/15/server | autodetected                                                         |
-| USERVER_PG_SERVER_LIBRARY_DIR          | Path to the folder with @ref POSTGRES_LIBS "PostgreSQL server libraries", for example /usr/lib/postgresql/15/lib      | autodetected                                                         |
-| USERVER_PG_INCLUDE_DIR                 | Path to the folder with @ref POSTGRES_LIBS "PostgreSQL libpq headers", for example /usr/local/include                 | autodetected                                                         |
-| USERVER_PG_LIBRARY_DIR                 | Path to the folder with @ref POSTGRES_LIBS "PostgreSQL libpq libraries", for example /usr/local/lib                   | autodetected                                                         |
-| USERVER_MYSQL_ALLOW_BUGGY_LIBMARIADB   | Allows mysql driver to leak memory instead of aborting in some rare cases when linked against libmariadb3<3.3.4       | OFF                                                                  |
-| USERVER_DISABLE_PHDR_CACHE             | Disable caching of dl_phdr_info items, which interferes with dlopen                                                   | OFF                                                                  |
-| USERVER_FEATURE_UBOOST_CORO            | Build with vendored version of Boost.context and Boost.coroutine2, is needed for sanitizers builds                    | ON                                                                   |
+| Option                                 | Description                                                                                                           | Default                                                           |
+|----------------------------------------|-----------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------|
+| USERVER_FEATURE_CORE                   | Provide a core library with coroutines, otherwise build only userver-universal                                        | ON                                                                |
+| USERVER_FEATURE_MONGODB                | Provide asynchronous driver for MongoDB                                                                               | ON if platform is x86\* and not \*BSD and ${USERVER_FEATURE_CORE} |
+| USERVER_FEATURE_POSTGRESQL             | Provide asynchronous driver for PostgreSQL                                                                            | ${USERVER_FEATURE_CORE}                                           |
+| USERVER_FEATURE_REDIS                  | Provide asynchronous driver for Redis                                                                                 | ${USERVER_FEATURE_CORE}                                           |
+| USERVER_FEATURE_CLICKHOUSE             | Provide asynchronous driver for ClickHouse                                                                            | ${USERVER_FEATURE_CORE} if platform is x86\*; OFF otherwise       |
+| USERVER_FEATURE_GRPC                   | Provide asynchronous driver for gRPC                                                                                  | ${USERVER_FEATURE_CORE}                                           |
+| USERVER_FEATURE_RABBITMQ               | Provide asynchronous driver for RabbitMQ (AMQP 0-9-1)                                                                 | ${USERVER_FEATURE_CORE}                                           |
+| USERVER_FEATURE_MYSQL                  | Provide asynchronous driver for MySQL/MariaDB                                                                         | OFF                                                               |
+| USERVER_FEATURE_UTEST                  | Provide 'utest' and 'ubench' for unit testing and benchmarking coroutines                                             | ${USERVER_FEATURE_CORE}                                           |
+| USERVER_FEATURE_CRYPTOPP_BLAKE2        | Provide wrappers for blake2 algorithms of crypto++                                                                    | ON                                                                |
+| USERVER_FEATURE_PATCH_LIBPQ            | Apply patches to the libpq (add portals support), requires libpq.a                                                    | ON                                                                |
+| USERVER_FEATURE_CRYPTOPP_BASE64_URL    | Provide wrappers for Base64 URL decoding and encoding algorithms of crypto++                                          | ON                                                                |
+| USERVER_FEATURE_REDIS_HI_MALLOC        | Provide a `hi_malloc(unsigned long)` [issue][hi_malloc] workaround                                                    | OFF                                                               |
+| USERVER_FEATURE_REDIS_TLS              | SSL/TLS support for Redis driver                                                                                      | OFF                                                               |
+| USERVER_FEATURE_STACKTRACE             | Allow capturing stacktraces using boost::stacktrace                                                                   | OFF if platform is not \*BSD; ON otherwise                        |
+| USERVER_FEATURE_JEMALLOC               | Use jemalloc memory allocator                                                                                         | ON                                                                |
+| USERVER_FEATURE_DWCAS                  | Require double-width compare-and-swap                                                                                 | ON                                                                |
+| USERVER_FEATURE_TESTSUITE              | Enable functional tests via testsuite                                                                                 | ON                                                                |
+| USERVER_FEATURE_GRPC_CHANNELZ          | Enable Channelz for gRPC                                                                                              | ON for "sufficiently new" gRPC versions                           |
+| USERVER_CHECK_PACKAGE_VERSIONS         | Check package versions                                                                                                | ON                                                                |
+| USERVER_SANITIZE                       | Build with sanitizers support, allows combination of values via 'val1 val2'                                           | ''                                                                |
+| USERVER_SANITIZE_BLACKLIST             | Path to file that is passed to the -fsanitize-blacklist option                                                        | ''                                                                |
+| USERVER_USE_LD                         | Linker to use, e.g. 'gold' or 'lld'                                                                                   | ''                                                                |
+| USERVER_LTO                            | Use link time optimizations                                                                                           | OFF for Debug build, ON for all the other builds                  |
+| USERVER_NO_WERROR                      | Do not treat warnings as errors                                                                                       | ON                                                                |
+| USERVER_PYTHON_PATH                    | Path to the python3 binary for use in testsuite tests                                                                 | python3                                                           |
+| USERVER_DOWNLOAD_PACKAGES              | Download missing third party packages and use the downloaded versions                                                 | ON                                                                |
+| USERVER_DOWNLOAD_PACKAGE_CARES         | Download and setup c-ares if no c-ares of matching version was found                                                  | ${USERVER_DOWNLOAD_PACKAGES}                                      |
+| USERVER_DOWNLOAD_PACKAGE_CCTZ          | Download and setup cctz if no cctz of matching version was found                                                      | ${USERVER_DOWNLOAD_PACKAGES}                                      |
+| USERVER_DOWNLOAD_PACKAGE_CLICKHOUSECPP | Download and setup clickhouse-cpp                                                                                     | ${USERVER_DOWNLOAD_PACKAGES}                                      |
+| USERVER_DOWNLOAD_PACKAGE_CRYPTOPP      | Download and setup CryptoPP if no CryptoPP of matching version was found                                              | ${USERVER_DOWNLOAD_PACKAGES}                                      |
+| USERVER_DOWNLOAD_PACKAGE_CURL          | Download and setup libcurl if no libcurl of matching version was found                                                | ${USERVER_DOWNLOAD_PACKAGES}                                      |
+| USERVER_DOWNLOAD_PACKAGE_FMT           | Download and setup Fmt if no Fmt of matching version was found                                                        | ${USERVER_DOWNLOAD_PACKAGES}                                      |
+| USERVER_DOWNLOAD_PACKAGE_GTEST         | Download and setup gtest if no gtest of matching version was found                                                    | ${USERVER_DOWNLOAD_PACKAGES}                                      |
+| USERVER_DOWNLOAD_PACKAGE_GBENCH        | Download and setup gbench if no gbench of matching version was found                                                  | ${USERVER_DOWNLOAD_PACKAGES}                                      |
+| USERVER_DOWNLOAD_PACKAGE_SPDLOG        | Download and setup Spdlog if no Spdlog of matching version was found                                                  | ${USERVER_DOWNLOAD_PACKAGES}                                      |
+| USERVER_FORCE_DOWNLOAD_PACKAGES        | Download all possible third-party packages even if there is an installed system package                               | OFF                                                               |
+| USERVER_IS_THE_ROOT_PROJECT            | Build tests, samples and helper tools                                                                                 | auto-detects if userver is the top level project                  |
+| USERVER_GOOGLE_COMMON_PROTOS_TARGET    | Name of cmake target preparing google common proto library                                                            | Builds userver-api-common-protos                                  |
+| USERVER_GOOGLE_COMMON_PROTOS           | Path to the folder with google common proto files                                                                     | Downloads automatically                                           |
+| USERVER_PG_SERVER_INCLUDE_DIR          | Path to the folder with @ref POSTGRES_LIBS "PostgreSQL server headers", for example /usr/include/postgresql/15/server | autodetected                                                      |
+| USERVER_PG_SERVER_LIBRARY_DIR          | Path to the folder with @ref POSTGRES_LIBS "PostgreSQL server libraries", for example /usr/lib/postgresql/15/lib      | autodetected                                                      |
+| USERVER_PG_INCLUDE_DIR                 | Path to the folder with @ref POSTGRES_LIBS "PostgreSQL libpq headers", for example /usr/local/include                 | autodetected                                                      |
+| USERVER_PG_LIBRARY_DIR                 | Path to the folder with @ref POSTGRES_LIBS "PostgreSQL libpq libraries", for example /usr/local/lib                   | autodetected                                                      |
+| USERVER_MYSQL_ALLOW_BUGGY_LIBMARIADB   | Allows mysql driver to leak memory instead of aborting in some rare cases when linked against libmariadb3<3.3.4       | OFF                                                               |
+| USERVER_DISABLE_PHDR_CACHE             | Disable caching of dl_phdr_info items, which interferes with dlopen                                                   | OFF                                                               |
+| USERVER_FEATURE_UBOOST_CORO            | Build with vendored version of Boost.context and Boost.coroutine2, is needed for sanitizers builds                    | ON                                                                |
 
 [hi_malloc]: https://bugs.launchpad.net/ubuntu/+source/hiredis/+bug/1888025
 
@@ -59,6 +60,23 @@ To explicitly specialize the compiler use the cmake options `CMAKE_C_COMPILER` a
 For example to use clang-12 compiler install it and add the following options to cmake:
 `-DCMAKE_CXX_COMPILER=clang++-12 -DCMAKE_C_COMPILER=clang-12`
 
+### Downloading packages using CPM
+
+userver uses [CPM](https://github.com/cpm-cmake/CPM.cmake) for downloading missing packages.
+
+By default, we first try to find the corresponding system package.
+With `USERVER_FORCE_DOWNLOAD_PACKAGES=ON`, no such attempt is made, and we skip straight to `CPMAddPackage`.
+This can be useful to guarantee that the build uses the latest (known to userver) versions of third-party packages.
+
+You can control the usage of CPM with `USERVER_DOWNLOAD_*` options.
+For example, `USERVER_DOWNLOAD_PACKAGES=OFF` is useful for CI and other controlled environments
+to make sure that no download attempts are made, which ensures repeatability and the best CI build speed.
+
+For details on the download options, refer to [CPM](https://github.com/cpm-cmake/CPM.cmake) documentation.
+Some advice:
+
+- `CPM_SOURCE_CACHE` helps to avoid re-downloads with multiple userver build modes or multiple CPM-using projects;
+- `CPM_USE_NAMED_CACHE_DIRECTORIES` (which userver enables by default) avoids junk library names shown in IDEs.
 
 ## Installation instructions
 

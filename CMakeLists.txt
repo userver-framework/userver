@@ -3,6 +3,8 @@ cmake_policy(SET CMP0025 NEW)
 if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.15")
   cmake_policy(SET CMP0093 NEW)
 endif()
+set(CMAKE_POLICY_DEFAULT_CMP0063 NEW)
+set(CMAKE_POLICY_DEFAULT_CMP0069 NEW)
 
 project(userver)
 
@@ -50,7 +52,16 @@ endif()
 
 option(USERVER_CONAN "Build with Conan packages" ${CONAN_EXPORTED})
 
-option(USERVER_DOWNLOAD_PACKAGES "Download missing third party packages and use the downloaded versions" ON)
+option(
+    USERVER_DOWNLOAD_PACKAGES
+    "Download missing third party packages and use the downloaded versions"
+    ON
+)
+option(
+    USERVER_FORCE_DOWNLOAD_PACKAGES
+    "Download all possible third party packages even if a system package is available"
+    OFF
+)
 
 option(USERVER_FEATURE_CRYPTOPP_BLAKE2 "Provide wrappers for blake2 algorithms of crypto++" ON)
 if (NOT USERVER_FEATURE_CRYPTOPP_BLAKE2)
