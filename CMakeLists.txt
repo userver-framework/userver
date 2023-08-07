@@ -12,11 +12,12 @@ option(JWT_BUILD_EXAMPLES OFF)
 add_library(${PROJECT_NAME}_objs OBJECT
 	src/handlers/profiles.cpp
 	src/handlers/profiles.hpp
-	src/dto/profile.cpp
 	src/handlers/users.cpp
 	src/handlers/users.hpp
 	src/handlers/tags.cpp
 	src/handlers/tags.hpp
+	src/dto/profile.cpp
+	src/dto/profile.hpp
 )
 target_link_libraries(${PROJECT_NAME}_objs PUBLIC userver-core userver-postgresql)
 
