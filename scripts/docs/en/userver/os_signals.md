@@ -35,5 +35,5 @@ after executing [logrotate](https://github.com/logrotate/logrotate).
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref md_en_userver_dns_control | @ref md_en_userver_caches ⇨
+⇦ @ref scripts/docs/en/userver/dns_control.md | @ref scripts/docs/en/userver/caches.md ⇨
 @htmlonly </div> @endhtmlonly

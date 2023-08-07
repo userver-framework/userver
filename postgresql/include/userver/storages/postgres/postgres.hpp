@@ -49,7 +49,7 @@
 /// ----------
 ///
 /// @htmlonly <div class="bottom-nav"> @endhtmlonly
-/// ⇦ @ref md_en_userver_lru_cache | @ref pg_transactions ⇨
+/// ⇦ @ref scripts/docs/en/userver/lru_cache.md | @ref pg_transactions ⇨
 /// @htmlonly </div> @endhtmlonly
 
 USERVER_NAMESPACE_BEGIN

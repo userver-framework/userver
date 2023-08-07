@@ -22,7 +22,7 @@ DELETE /service/log/dynamic-debug?location=LOCATION_FROM_GET
 
 Note that the server::handlers::DynamicDebugLog handler lives at the separate
 `components.server.listener-monitor` address, so you have to request them using the
-`listener-monitor` credentials. See @ref md_en_userver_tutorial_production_service
+`listener-monitor` credentials. See @ref scripts/docs/en/userver/tutorial/production_service.md
 for more info on configuration and ideas on how to change the
 `/service/log/dynamic-debug` handle path.
 
@@ -125,7 +125,7 @@ PUT /service/log-level/reset
 ```
 Note that the server::handlers::LogLevel handler lives at the separate
 `components.server.listener-monitor` address, so you have to request them using the
-`listener-monitor` credentials. See @ref md_en_userver_tutorial_production_service
+`listener-monitor` credentials. See @ref scripts/docs/en/userver/tutorial/production_service.md
 for more info on configuration and ideas on how to change the
 `/service/log-level/` handle path.
 
@@ -167,7 +167,7 @@ PUT /service/log-level/reset?logger={logger}
 ```
 Note that the server::handlers::LogLevel handler lives at the separate
 `components.server.listener-monitor` address, so you have to request them using the
-`listener-monitor` credentials. See @ref md_en_userver_tutorial_production_service
+`listener-monitor` credentials. See @ref scripts/docs/en/userver/tutorial/production_service.md
 for more info on configuration.
 
 
@@ -201,6 +201,6 @@ $ curl 'http://127.0.0.1:1188/service/log-level/reset?logger=access' -X PUT
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref md_en_schemas_dynamic_configs | @ref md_en_userver_requests_in_flight ⇨
+⇦ @ref scripts/docs/en/schemas/dynamic_configs.md | @ref scripts/docs/en/userver/requests_in_flight.md ⇨
 @htmlonly </div> @endhtmlonly
 

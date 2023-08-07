@@ -58,13 +58,13 @@ digraph TypicalService
 This configuration is quite useful for testing. However, there's no need to
 configure it manually for tests, because testsuite does that automatically
 (starts databases, fills them with data, tunes logging, mocks other services).
-See @ref md_en_userver_functional_testing for more info.
+See @ref scripts/docs/en/userver/functional_testing.md for more info.
 
 For non testing purposes the configuration could be also quite useful for
 services that should have a single instance and have small load on database.
 Internal services that require no reliability and chat bots are examples of
 such services. For a starting point on configuration see
-@ref md_en_userver_tutorial_production_service.
+@ref scripts/docs/en/userver/tutorial/production_service.md.
 
 Note that for a longstanding runs the logs of the service should be cleaned up
 at some point. Configure the `logrotate` like software to move/remove the old
@@ -84,11 +84,11 @@ directly to the `🐙 Service`). Nginx could serve static requests, terminate TL
 do some header rewrites and forward request to the `🐙 Service`.
 
 The service uses
-@ref md_en_userver_tutorial_config_service "dynamic configs service", writes
+@ref scripts/docs/en/userver/tutorial/config_service.md "dynamic configs service", writes
 logs.
 
 Some `Metrics Uploader` script is periodically called, it
-@ref md_en_userver_service_monitor "retrieves metrics"
+@ref scripts/docs/en/userver/service_monitor.md "retrieves metrics"
 from the `🐙 Service` and sends the results to `Metrics Aggregateor` (could be
 Prometheus, Graphite, VictoriaMetrics). Metrics could be viewed in web
 interface, for example via Grafana .
@@ -185,7 +185,7 @@ digraph TypicalService
 
 
 `Metrics Uploader` script could be implemented in bash or Python to request
-@ref md_en_userver_service_monitor "service monitor". Note that for
+@ref scripts/docs/en/userver/service_monitor.md "service monitor". Note that for
 small containers the script could eat up quite a lot of resources if it
 converts metrics from one format to another. Prefer using already supported
 metrics format and feel free to add new formats via Pull Requests
@@ -203,7 +203,7 @@ adjust OOM-killer priorities to kill the `Logs Collector` rather that the
 `🐙 Service` itself. Also, do not forget to configure `logrotate`, as was
 shown in the first recipe.
 
-See @ref md_en_userver_tutorial_production_service for more configuration
+See @ref scripts/docs/en/userver/tutorial/production_service.md for more configuration
 tips and tricks.
 
 
@@ -227,11 +227,11 @@ the HTTP client requests to the `Sidecar Proxy`.
 All other parts of the setup remain the same as in the previous approach.
 
 The service uses
-@ref md_en_userver_tutorial_config_service "dynamic configs service", writes
+@ref scripts/docs/en/userver/tutorial/config_service.md "dynamic configs service", writes
 logs.
 
 Some `Metrics Uploader` script is periodically called, it
-@ref md_en_userver_service_monitor "retrieves metrics"
+@ref scripts/docs/en/userver/service_monitor.md "retrieves metrics"
 from the `🐙 Service` and sends the results to `Metrics Aggregateor`.
 Metrics could be viewed in web interface, for example via Grafana .
 
@@ -429,5 +429,5 @@ so use the same `main-task-processor` for all the task processors.
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref md_en_userver_tutorial_build | @ref md_en_userver_beta_state ⇨
+⇦ @ref scripts/docs/en/userver/tutorial/build.md | @ref scripts/docs/en/userver/beta_state.md ⇨
 @htmlonly </div> @endhtmlonly

@@ -3,7 +3,7 @@
 ## Before you start
 
 Make sure that you can compile and run core tests as described at
-@ref md_en_userver_tutorial_build.
+@ref scripts/docs/en/userver/tutorial/build.md.
 
 
 ## Step by step guide
@@ -20,7 +20,7 @@ function to get the new sockets:
 @snippet samples/tcp_service/tcp_service.cpp  TCP sample - component
 
 @warning `ProcessSocket` functions are invoked concurrently on the same 
-instance of the class. Use @ref md_en_userver_synchronization "synchronization primitives"
+instance of the class. Use @ref scripts/docs/en/userver/synchronization.md "synchronization primitives"
 or do not modify shared data in `ProcessSocket`.
 
 
@@ -43,13 +43,13 @@ We are not planning to get updates for dynamic config values in this sample. Bec
 that we just write the defaults to the fallback file of
 the `components::DynamicConfigFallbacks` component.
 
-All the values are described in a separate section @ref md_en_schemas_dynamic_configs .
+All the values are described in a separate section @ref scripts/docs/en/schemas/dynamic_configs.md .
 
 @include samples/tcp_service/dynamic_config_fallback.json
 
 A production ready service would dynamically retrieve the above options at
  runtime from a configuration service. See
-@ref md_en_userver_tutorial_config_service for insights on how to change the
+@ref scripts/docs/en/userver/tutorial/config_service.md for insights on how to change the
 above options on the fly, without restarting the service.
 
 
@@ -80,7 +80,7 @@ make userver-samples-tcp_service
 
 The sample could be started by running
 `make start-userver-samples-tcp_service`. The command would invoke
-@ref md_en_userver_functional_testing "testsuite start target" that sets proper
+@ref scripts/docs/en/userver/functional_testing.md "testsuite start target" that sets proper
 paths in the configuration files and starts the service.
 
 To start the service manually run
@@ -96,7 +96,7 @@ hello
 ```
 
 ### Functional testing
-@ref md_en_userver_functional_testing "Functional tests" for the service could be
+@ref scripts/docs/en/userver/functional_testing.md "Functional tests" for the service could be
 implemented using the testsuite in the following way:
 
 @snippet samples/tcp_service/tests/test_tcp.py  Functional test
@@ -121,7 +121,7 @@ See the full example at:
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref md_en_userver_tutorial_production_service | @ref md_en_userver_tutorial_tcp_full ⇨
+⇦ @ref scripts/docs/en/userver/tutorial/production_service.md | @ref scripts/docs/en/userver/tutorial/tcp_full.md ⇨
 @htmlonly </div> @endhtmlonly
 
 @example samples/tcp_service/tcp_service.cpp

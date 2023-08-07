@@ -674,7 +674,7 @@ TrivialSet(BuilderFunc) -> TrivialSet<BuilderFunc>;
 /// `formats::*::Value`.
 /// @throws ExceptionType or `Value::Exception` by default, if `value` is not a
 /// string, or if `value` is not contained in `map`.
-/// @see @ref md_en_userver_formats
+/// @see @ref scripts/docs/en/userver/formats.md
 template <typename ExceptionType = void, typename Value, typename BuilderFunc>
 auto ParseFromValueString(const Value& value, TrivialBiMap<BuilderFunc> map) {
   if constexpr (!std::is_void_v<ExceptionType>) {

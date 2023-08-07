@@ -27,7 +27,7 @@ namespace engine {
 ///
 /// @snippet engine/task/shared_task_with_result_test.cpp Sample SharedTaskWithResult usage
 ///
-/// @see @ref md_en_userver_synchronization
+/// @see @ref scripts/docs/en/userver/synchronization.md
 
 // clang-format on
 

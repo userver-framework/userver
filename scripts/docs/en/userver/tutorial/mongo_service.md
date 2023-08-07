@@ -4,7 +4,7 @@
 ## Before you start
 
 Make sure that you can compile and run core tests and read a basic example
-@ref md_en_userver_tutorial_hello_service.
+@ref scripts/docs/en/userver/tutorial/hello_service.md.
 
 
 ## Step by step guide
@@ -21,7 +21,7 @@ database. The service would have the following Rest API:
 
 ### HTTP handler component
 
-Like in @ref md_en_userver_tutorial_hello_service we create a component for
+Like in @ref scripts/docs/en/userver/tutorial/hello_service.md we create a component for
 handling HTTP requests:
 
 @snippet samples/mongo_service/mongo_service.cpp  Mongo service sample - component
@@ -38,7 +38,7 @@ a BSON document for insertion.
 
 @snippet samples/mongo_service/mongo_service.cpp  Mongo service sample - InsertNew
 
-There are different ways to form a document, see @ref md_en_userver_formats.
+There are different ways to form a document, see @ref scripts/docs/en/userver/formats.md.
 
 
 ### Translations::ReturnDiff
@@ -52,13 +52,13 @@ rewrite previous data for the same key.
 
 @snippet samples/mongo_service/mongo_service.cpp  Mongo service sample - ReturnDiff
 
-See @ref md_en_userver_mongodb for MongoDB hints and more usage samples.
+See @ref scripts/docs/en/userver/mongodb.md for MongoDB hints and more usage samples.
 
 
 ### Static config
 
 Static configuration of service is quite close to the configuration from
-@ref md_en_userver_tutorial_hello_service except for the handler and DB:
+@ref scripts/docs/en/userver/tutorial/hello_service.md except for the handler and DB:
 
 @snippet samples/mongo_service/static_config.yaml  Mongo service sample - static config
 
@@ -74,10 +74,10 @@ that we just write the defaults to the fallback file of the
 @ref samples/mongo_service/dynamic_config_fallback.json
 
 All the values are described in a separate section
-@ref md_en_schemas_dynamic_configs .
+@ref scripts/docs/en/schemas/dynamic_configs.md .
 
 A production ready service would dynamically retrieve the above options at runtime from a configuration service. See
-@ref md_en_userver_tutorial_config_service for insights on how to change the
+@ref scripts/docs/en/userver/tutorial/config_service.md for insights on how to change the
 above options on the fly, without restarting the service.
 
 
@@ -103,7 +103,7 @@ make userver-samples-mongo_service
 
 The sample could be started by running
 `make start-userver-samples-mongo_service`. The command would invoke
-@ref md_en_userver_functional_testing "testsuite start target" that sets proper
+@ref scripts/docs/en/userver/functional_testing.md "testsuite start target" that sets proper
 paths in the configuration files, prepares and starts the DB, and starts the
 service.
 
@@ -132,7 +132,7 @@ $ curl -s http://localhost:8090/v1/translations?last_update=2021-11-01T12:00:00Z
 ```
 
 ### Functional testing
-@ref md_en_userver_functional_testing "Functional tests" for the service could be
+@ref scripts/docs/en/userver/functional_testing.md "Functional tests" for the service could be
 implemented using the testsuite. To do that you have to:
 
 * Turn on the pytest_userver.plugins.mongo plugin and provide Mongo settings
@@ -158,7 +158,7 @@ See the full example:
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref md_en_userver_tutorial_postgres_service | @ref md_en_userver_tutorial_redis_service ⇨
+⇦ @ref scripts/docs/en/userver/tutorial/postgres_service.md | @ref scripts/docs/en/userver/tutorial/redis_service.md ⇨
 @htmlonly </div> @endhtmlonly
 
 

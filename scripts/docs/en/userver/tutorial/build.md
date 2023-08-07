@@ -401,10 +401,10 @@ cd build_release && ulimit -n 4096 && ctest -V
 ```
 
 If you need to edit or make your own docker image with custom configuration, read about
-it @ref md_en_userver_docker "here"
+it @ref scripts/docs/en/userver/docker.md "here"
 
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref md_en_userver_supported_platforms | @ref md_en_userver_deploy_env ⇨
+⇦ @ref scripts/docs/en/userver/supported_platforms.md | @ref scripts/docs/en/userver/deploy_env.md ⇨
 @htmlonly </div> @endhtmlonly

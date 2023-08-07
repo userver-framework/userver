@@ -36,7 +36,7 @@ class ValueBuilder;
 ///
 /// @snippet formats/bson/value_test.cpp  Sample formats::bson::Value usage
 ///
-/// @see @ref md_en_userver_formats
+/// @see @ref scripts/docs/en/userver/formats.md
 class Value {
  public:
   struct DefaultConstructed {};
@@ -157,7 +157,7 @@ class Value {
   ///
   /// @snippet formats/bson/value_test.cpp  Sample formats::bson::Value::As<T>() usage
   ///
-  /// @see @ref md_en_userver_formats
+  /// @see @ref scripts/docs/en/userver/formats.md
 
   // clang-format on
 

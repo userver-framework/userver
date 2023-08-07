@@ -29,7 +29,7 @@ namespace engine {
 ///
 /// @snippet engine/single_use_event_test.cpp  Wait and destroy
 ///
-/// @see @ref md_en_userver_synchronization
+/// @see @ref scripts/docs/en/userver/synchronization.md
 class SingleUseEvent final {
  public:
   constexpr SingleUseEvent() noexcept : state_(0) {}

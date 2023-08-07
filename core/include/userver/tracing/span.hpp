@@ -22,7 +22,8 @@ class SpanBuilder;
 /// @brief Measures the execution time of the current code block, links it with
 /// the parent tracing::Spans and stores that info in the log.
 ///
-/// See @ref md_en_userver_logging for usage examples and more descriptions.
+/// See @ref scripts/docs/en/userver/logging.md for usage examples and more
+/// descriptions.
 ///
 /// @warning Shall be created only as a local variable. Do not use it as a
 /// class member!

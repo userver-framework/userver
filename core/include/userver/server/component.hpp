@@ -74,7 +74,7 @@ namespace components {
 /// connection.keepalive_timeout | timeout in seconds to drop connection if there's not data received from it | 600
 /// shards | how many concurrent tasks harvest data from a single socket; do not set if not sure what it is doing | -
 ///
-/// @see @ref md_en_userver_http_server
+/// @see @ref scripts/docs/en/userver/http_server.md
 
 // clang-format on
 

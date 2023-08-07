@@ -17,7 +17,7 @@ Well suited for:
 Poorly suited for:
 * Regularly receiving data from another service for caching purposes.
   To do this, it is better to use specially designed
-  @ref md_en_userver_caches "caches".
+  @ref scripts/docs/en/userver/caches.md "caches".
 * Background DB accesses for periodic changes. Use instead dist_lock::DistLockedTask.
 
 The update period can be changed without stopping the periodic task using
@@ -140,5 +140,5 @@ is not processed, then another DoWork-coroutine is not launched.
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref md_en_userver_task_processors_guide | @ref md_en_userver_testing ⇨
+⇦ @ref scripts/docs/en/userver/task_processors_guide.md | @ref scripts/docs/en/userver/testing.md ⇨
 @htmlonly </div> @endhtmlonly

@@ -40,7 +40,7 @@ class Locker;
 /// ## Example without retrying
 /// @snippet dist_lock/dist_lock_test.cpp Sample distributed locked task SingleAttempt
 ///
-/// @see @ref md_en_userver_periodics
+/// @see @ref scripts/docs/en/userver/periodics.md
 /// @see AlwaysBusyDistLockStrategy
 
 // clang-format on

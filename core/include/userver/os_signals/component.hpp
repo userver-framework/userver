@@ -20,7 +20,7 @@ namespace os_signals {
 ///
 /// Declaration in static config file may be skipped.
 ///
-/// @see @ref md_en_userver_os_signals
+/// @see @ref scripts/docs/en/userver/os_signals.md
 class ProcessorComponent final : public components::impl::ComponentBase {
  public:
   /// @ingroup userver_component_names

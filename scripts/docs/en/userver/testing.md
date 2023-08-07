@@ -153,5 +153,5 @@ in `<userver/dynamic_config/benchmark_helpers.hpp>`.
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref md_en_userver_periodics | @ref md_en_userver_functional_testing ⇨
+⇦ @ref scripts/docs/en/userver/periodics.md | @ref scripts/docs/en/userver/functional_testing.md ⇨
 @htmlonly </div> @endhtmlonly

@@ -144,7 +144,7 @@ destroyed in the reverse order of construction. In other words, references from
 If you need dynamic configs, you can get them using this approach:
 @snippet components/component_sample_test.cpp  Sample user component runtime config source
 
-@note See @ref md_en_userver_tutorial_config_service for info on how to
+@note See @ref scripts/docs/en/userver/tutorial/config_service.md for info on how to
 implement your own config server.
 
 Do not forget to register your component in components::ComponentList
@@ -156,17 +156,17 @@ Done! You've implemented your first component. Full sources:
 * @ref components/component_sample_test.cpp
 
 @note For info on writing HTTP handler components refer to
-the @ref md_en_userver_tutorial_hello_service.
+the @ref scripts/docs/en/userver/tutorial/hello_service.md.
 
 ### Testing
 Starting up the components in unit tests is quite hard. Prefer moving out
 all the functionality from the component or testing the component with the
-help of @ref md_en_userver_functional_testing "testsuite functional tests".
+help of @ref scripts/docs/en/userver/functional_testing.md "testsuite functional tests".
 
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref md_en_userver_tutorial_auth_postgres | @ref userver_clients ⇨
+⇦ @ref scripts/docs/en/userver/tutorial/auth_postgres.md | @ref userver_clients ⇨
 @htmlonly </div> @endhtmlonly
 
 @example components/component_sample_test.hpp

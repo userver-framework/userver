@@ -99,5 +99,5 @@ Test your serializers!
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref md_en_userver_synchronization | @ref md_en_userver_logging ⇨
+⇦ @ref scripts/docs/en/userver/synchronization.md | @ref scripts/docs/en/userver/logging.md ⇨
 @htmlonly </div> @endhtmlonly

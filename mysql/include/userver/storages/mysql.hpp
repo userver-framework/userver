@@ -75,10 +75,10 @@
 /// @section info More information
 /// - For configuring see storages::mysql::Component
 /// - For cluster operations see storages::mysql::Cluster
-/// - For C++ <-> MySQL mapping see @ref md_en_userver_mysql_supported_types
+/// - For C++ <-> MySQL mapping see @ref scripts/docs/en/userver/mysql/supported_types.md
 /// - For typed extraction of statements results into C++ types see
 /// storages::mysql::StatementResultSet
-/// - For high-level design and implementation details see @ref md_en_userver_mysql_design_and_details
+/// - For high-level design and implementation details see @ref scripts/docs/en/userver/mysql/design_and_details.md
 // clang-format on
 
 USERVER_NAMESPACE_BEGIN

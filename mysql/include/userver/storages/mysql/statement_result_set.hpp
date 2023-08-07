@@ -48,7 +48,7 @@ class StatementResultSet final {
   // clang-format off
   /// @brief Parse statement result set as std::vector<T>.
   /// `T` is expected to be an aggregate of supported types.
-  /// See @ref md_en_userver_mysql_supported_types for better understanding of
+  /// See @ref scripts/docs/en/userver/mysql/supported_types.md for better understanding of
   /// `T` requirements.
   ///
   /// UINVARIANTs on columns count mismatch or types mismatch.
@@ -62,7 +62,7 @@ class StatementResultSet final {
   /// @brief Parse statement result set as std::vector<T>.
   /// Result set is expected to have a single column, `T` is expected to be one
   /// of supported types.
-  /// See @ref md_en_userver_mysql_supported_types for supported typed.
+  /// See @ref scripts/docs/en/userver/mysql/supported_types.md for supported typed.
   ///
   /// UINVARIANTs on columns count not being equal to 1 or type mismatch.
   ///
@@ -75,7 +75,7 @@ class StatementResultSet final {
   /// @brief Parse statement result set as Container<T>.
   /// `T` is expected to be an aggregate of supported types, `Container` is
   /// expected to meet std::Container requirements.
-  /// See @ref md_en_userver_mysql_supported_types for better understanding of
+  /// See @ref scripts/docs/en/userver/mysql/supported_types.md for better understanding of
   /// `Container::value_type` requirements.
   ///
   /// UINVARIANTs on columns count mismatch or types mismatch.
@@ -90,7 +90,7 @@ class StatementResultSet final {
   /// Result set is expected to have a single column, `T` is expected to be one
   /// of supported types,
   /// `Container` is expected to meed std::Container requirements.
-  /// See @ref md_en_userver_mysql_supported_types for supported types.
+  /// See @ref scripts/docs/en/userver/mysql/supported_types.md for supported types.
   ///
   /// UINVARIANTs on columns count not being equal to 1 or type mismatch.
   ///
@@ -103,7 +103,7 @@ class StatementResultSet final {
   /// @brief Parse statement result as T.
   /// Result set is expected to have a single row, `T` is expected to be an
   /// aggregate of supported types.
-  /// See @ref md_en_userver_mysql_supported_types for better understanding of
+  /// See @ref scripts/docs/en/userver/mysql/supported_types.md for better understanding of
   /// `T` requirements.
   ///
   /// UINVARIANTs on columns count mismatch or types mismatch.
@@ -118,7 +118,7 @@ class StatementResultSet final {
   /// @brief Parse statement result as T.
   /// Result set is expected to have a single row and a single column,
   /// `T` is expected to be one of supported types.
-  /// See @ref md_en_userver_mysql_supported_types for supported types.
+  /// See @ref scripts/docs/en/userver/mysql/supported_types.md for supported types.
   ///
   /// UINVARIANTs on columns count not being equal to 1 or type mismatch.
   /// throws if result set is empty of contains more than one row.
@@ -132,7 +132,7 @@ class StatementResultSet final {
   /// @brief Parse statement result as std::optional<T>.
   /// Result set is expected to have not more than one row,
   /// `T` is expected to be an aggregate of supported types.
-  /// See @ref md_en_userver_mysql_supported_types for better understanding of
+  /// See @ref scripts/docs/en/userver/mysql/supported_types.md for better understanding of
   /// `T` requirements.
   ///
   /// UINVARIANTs on columns count mismatch or types mismatch.
@@ -147,7 +147,7 @@ class StatementResultSet final {
   /// @brief Parse statement result as T.
   /// Result set is expected to have not more than one row,
   /// `T` is expected to be one of supported types.
-  /// See @ref md_en_userver_mysql_supported_types for supported types.
+  /// See @ref scripts/docs/en/userver/mysql/supported_types.md for supported types.
   ///
   /// UINVARIANTs on columns count not being equal to 1 or type mismatch.
   /// throws if result set contains more than one row.
@@ -161,7 +161,7 @@ class StatementResultSet final {
   /// @brief Converts to an interface for on-the-flight mapping
   /// statement result set from `DbType`.
   /// `DbType` is expected to be an aggregate of supported types.
-  /// See @ref md_en_userver_mysql_supported_types for better understanding of
+  /// See @ref scripts/docs/en/userver/mysql/supported_types.md for better understanding of
   /// `DbType` requirements.
   ///
   /// @snippet storages/tests/unittests/statement_result_set_mysqltest.cpp uMySQL usage sample - StatementResultSet MapFrom
@@ -210,8 +210,8 @@ class MappedStatementResultSet final {
 
   /// @brief Parse statement result set as std::vector<T> using provided
   /// converter function.
-  /// See @ref md_en_userver_mysql_supported_types for better understanding of
-  /// `T` requirements.
+  /// See @ref scripts/docs/en/userver/mysql/supported_types.md for better
+  /// understanding of `T` requirements.
   ///
   /// UINVARIANTs on columns count mismatch or types mismatch for `DbType`.
   template <typename T>
@@ -219,7 +219,8 @@ class MappedStatementResultSet final {
 
   /// @brief Parse statement result set as std::vector<T> using provided
   /// converter function.
-  /// See @ref md_en_userver_mysql_supported_types for supported types.
+  /// See @ref scripts/docs/en/userver/mysql/supported_types.md for supported
+  /// types.
   ///
   /// UINVARIANTs on columns count not being 1 or types mismatch for DbType.
   template <typename T>
@@ -227,8 +228,8 @@ class MappedStatementResultSet final {
 
   /// @brief Parse statement result set as Container<T> using provided
   /// converter function.
-  /// See @ref md_en_userver_mysql_supported_types for better understanding of
-  /// `Container::value_type` requirements.
+  /// See @ref scripts/docs/en/userver/mysql/supported_types.md for better
+  /// understanding of `Container::value_type` requirements.
   ///
   /// UINVARIANTs on columns count mismatch or types mismatch for `DbType`.
   template <typename Container>
@@ -236,7 +237,8 @@ class MappedStatementResultSet final {
 
   /// @brief Parse statement result set as Container<T> using provided
   /// converter function.
-  /// See @ref md_en_userver_mysql_supported_types for supported types.
+  /// See @ref scripts/docs/en/userver/mysql/supported_types.md for supported
+  /// types.
   ///
   /// UINVARIANTs on columns count not being 1 or types mismatch for DbType.
   template <typename Container>

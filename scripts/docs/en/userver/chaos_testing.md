@@ -6,7 +6,7 @@ network itself is the source of failures.
 
 Luckily userver provides a network proxy to simulate network errors and whose
 behavior could be controlled from
-@ref md_en_userver_functional_testing "functional tests". In other
+@ref scripts/docs/en/userver/functional_testing.md "functional tests". In other
 words, it is a tool to do chaos testing.
 
 To implement the tests, the pytest_userver.chaos.TcpGate and pytest_userver.chaos.UdpGate 
@@ -115,7 +115,7 @@ sure that the service restores:
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref md_en_userver_functional_testing | @ref md_en_userver_profile_context_switches ⇨
+⇦ @ref scripts/docs/en/userver/functional_testing.md | @ref scripts/docs/en/userver/profile_context_switches.md ⇨
 @htmlonly </div> @endhtmlonly
 
 @example postgresql/functional_tests/basic_chaos/conftest.py

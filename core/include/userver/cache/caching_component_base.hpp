@@ -46,7 +46,7 @@ namespace components {
 /// Caching components must be configured in service config (see options below)
 /// and may be reconfigured dynamically via components::DynamicConfig.
 ///
-/// @ref md_en_userver_caches provide a more detailed introduction.
+/// @ref scripts/docs/en/userver/caches.md provide a more detailed introduction.
 ///
 /// ## Dynamic config
 /// * @ref USERVER_CACHES
@@ -92,7 +92,7 @@ namespace components {
 /// @see `dump::Dumper` for more info on persistent cache dumps and
 /// corresponding config options.
 ///
-/// @see @ref md_en_userver_caches. pytest_userver.client.Client.invalidate_caches()
+/// @see @ref scripts/docs/en/userver/caches.md. pytest_userver.client.Client.invalidate_caches()
 /// for a function to force cache update from testsuite.
 
 // clang-format on

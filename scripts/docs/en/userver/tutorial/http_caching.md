@@ -3,7 +3,7 @@
 ## Before you start
 
 Make sure that you can compile and run core tests and read a basic example
-@ref md_en_userver_tutorial_hello_service.
+@ref scripts/docs/en/userver/tutorial/hello_service.md.
 
 
 ## Step by step guide
@@ -16,7 +16,7 @@ them in a local cache.
 
 In this sample we show how to write and test a cache along with creating
 HTTP requests. If you wish to cache data from database prefer using
-@ref md_en_userver_caches "cache specializations for DB".
+@ref scripts/docs/en/userver/caches.md "cache specializations for DB".
 
 
 ### Remote HTTP server description
@@ -65,18 +65,18 @@ We are planning to cache those translations in a std::unordered_map:
 
 ### Cache component
 
-Our cache @ref md_en_userver_component_system "component" should have the
+Our cache @ref scripts/docs/en/userver/component_system.md "component" should have the
 following fields:
 * Reference to HTTP client, that is required to make HTTP requests
 * URL to the incremental and full update handle
 * String with last update time from remote. This string used only from the
   components::CachingComponentBase::Update overload and it is guaranteed
-  @ref md_en_userver_caches "that Update is not called concurrently", so there
+  @ref scripts/docs/en/userver/caches.md "that Update is not called concurrently", so there
   is no need to protect it from concurrent access.
 
 @snippet samples/http_caching/http_caching.cpp  HTTP caching sample - component
 
-To create a non @ref md_en_userver_lru_cache "LRU cache" cache you have to
+To create a non @ref scripts/docs/en/userver/lru_cache.md "LRU cache" cache you have to
 derive from components::CachingComponentBase, call
 CacheUpdateTrait::StartPeriodicUpdates() at the component constructor and
 CacheUpdateTrait::StopPeriodicUpdates() at the destructor:
@@ -141,14 +141,14 @@ should be provided:
 ### Dynamic configuration
 
 Dynamic configuration is close to the basic configuration from
-@ref md_en_userver_tutorial_hello_service but should have additional options
+@ref scripts/docs/en/userver/tutorial/hello_service.md but should have additional options
 for HTTP client: @ref samples/http_caching/dynamic_config_fallback.json
 
-All the values are described in at @ref md_en_schemas_dynamic_configs.
+All the values are described in at @ref scripts/docs/en/schemas/dynamic_configs.md.
 
 A production ready service would dynamically retrieve the above options at
 runtime from a configuration service. See
-@ref md_en_userver_tutorial_config_service for insights on how to change the
+@ref scripts/docs/en/userver/tutorial/config_service.md for insights on how to change the
 above options on the fly, without restarting the service.
 
 
@@ -160,7 +160,7 @@ could get a reference to the cache and use it in `HandleRequestThrow`:
 @snippet samples/http_caching/http_caching.cpp  HTTP caching sample - GreetUser
 
 Note that the cache is concurrency safe
-@ref md_en_userver_component_system "as all the components".
+@ref scripts/docs/en/userver/component_system.md "as all the components".
 
 
 ### int main()
@@ -187,12 +187,12 @@ make userver-samples-http_caching
 Note that
 you need a running translations service with bulk handlers to start the service.
 You could use the
-@ref md_en_userver_tutorial_mongo_service "mongo service" for that purpose.
+@ref scripts/docs/en/userver/tutorial/mongo_service.md "mongo service" for that purpose.
 
 
 The sample could be started by running
 `make start-userver-samples-http_caching`. The command would invoke
-@ref md_en_userver_functional_testing "testsuite start target" that sets proper
+@ref scripts/docs/en/userver/functional_testing.md "testsuite start target" that sets proper
 paths in the configuration files and starts the service.
 
 To start the service manually run
@@ -233,12 +233,12 @@ For example the following JSON forces incremental update of the
 }}
 ```
 
-Fortunately, the @ref md_en_userver_functional_testing "testsuite API"
+Fortunately, the @ref scripts/docs/en/userver/functional_testing.md "testsuite API"
 provides all the required functionality via simpler to use Python functions.
 
 
 ### Functional testing
-@ref md_en_userver_functional_testing "Functional tests" for the service could be
+@ref scripts/docs/en/userver/functional_testing.md "Functional tests" for the service could be
 implemented using the testsuite. To do that you have to:
 
 * Mock the translations service data:
@@ -268,7 +268,7 @@ See the full example:
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref md_en_userver_tutorial_tcp_full | @ref md_en_userver_tutorial_flatbuf_service ⇨
+⇦ @ref scripts/docs/en/userver/tutorial/tcp_full.md | @ref scripts/docs/en/userver/tutorial/flatbuf_service.md ⇨
 @htmlonly </div> @endhtmlonly
 
 @example samples/http_caching/http_caching.cpp

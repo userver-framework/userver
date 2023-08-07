@@ -31,7 +31,7 @@ namespace engine {
 ///
 /// @snippet engine/future_test.cpp  Sample engine::Future usage
 ///
-/// @see @ref md_en_userver_synchronization
+/// @see @ref scripts/docs/en/userver/synchronization.md
 template <typename T>
 class Promise;
 
@@ -46,7 +46,7 @@ class Promise;
 ///
 /// @snippet engine/future_test.cpp  Sample engine::Future usage
 ///
-/// @see @ref md_en_userver_synchronization
+/// @see @ref scripts/docs/en/userver/synchronization.md
 template <typename T>
 class Future final {
  public:

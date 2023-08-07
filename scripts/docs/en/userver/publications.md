@@ -32,5 +32,5 @@
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref md_en_userver_driver_guide |
+⇦ @ref scripts/docs/en/userver/driver_guide.md |
 @htmlonly </div> @endhtmlonly

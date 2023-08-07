@@ -7,7 +7,7 @@
 The driver wraps `grpcpp` in the userver asynchronous interface.
 
 See also:
-* @ref md_en_userver_tutorial_grpc_service
+* @ref scripts/docs/en/userver/tutorial/grpc_service.md
 * [Official gRPC documentation](https://grpc.io/docs/languages/cpp/)
 * [grpcpp reference](https://grpc.github.io/grpc/cpp/index.html)
 * [grpc-core reference](https://grpc.github.io/grpc/core/index.html)
@@ -116,5 +116,5 @@ These are the metrics provided for each gRPC method:
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref md_en_userver_profile_context_switches | @ref rabbitmq_driver ⇨
+⇦ @ref scripts/docs/en/userver/profile_context_switches.md | @ref rabbitmq_driver ⇨
 @htmlonly </div> @endhtmlonly

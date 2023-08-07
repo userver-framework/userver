@@ -3,7 +3,7 @@
 ## Before you start
 
 Make sure that you can compile and run framework tests as described at
-@ref md_en_userver_tutorial_build.
+@ref scripts/docs/en/userver/tutorial/build.md.
 
 
 ## Step by step guide
@@ -11,7 +11,7 @@ Make sure that you can compile and run framework tests as described at
 The userver framework allows to use it's non-coroutine parts by using the
 `userver-universal` CMake target. It provides usefull utilities like
 utils::FastPimpl, utils::TrivialBiMap,
-@ref md_en_userver_formats "JSON and YAML formats", utils::AnyMovable,
+@ref scripts/docs/en/userver/formats.md "JSON and YAML formats", utils::AnyMovable,
 cache::LruMap and many other utilities. See the content of
 userver/universal/include directory for a whole list of functions and classes.
 
@@ -90,7 +90,7 @@ See the full example at:
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref md_en_userver_tutorial_auth_postgres | @ref md_en_userver_component_system ⇨
+⇦ @ref scripts/docs/en/userver/tutorial/auth_postgres.md | @ref scripts/docs/en/userver/component_system.md ⇨
 @htmlonly </div> @endhtmlonly
 
 

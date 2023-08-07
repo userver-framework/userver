@@ -23,7 +23,7 @@ namespace engine {
 ///
 /// @snippet engine/condition_variable_test.cpp  Sample ConditionVariable usage
 ///
-/// @see @ref md_en_userver_synchronization
+/// @see @ref scripts/docs/en/userver/synchronization.md
 class ConditionVariable final {
  public:
   ConditionVariable();

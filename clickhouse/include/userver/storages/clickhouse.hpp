@@ -30,7 +30,8 @@
 /// ----------
 ///
 /// @htmlonly <div class="bottom-nav"> @endhtmlonly
-/// ⇦ @ref md_en_userver_redis | @ref md_en_userver_development_stability ⇨
+/// ⇦ @ref scripts/docs/en/userver/redis.md |
+/// @ref scripts/docs/en/userver/development/stability.md ⇨
 /// @htmlonly </div> @endhtmlonly
 
 USERVER_NAMESPACE_BEGIN

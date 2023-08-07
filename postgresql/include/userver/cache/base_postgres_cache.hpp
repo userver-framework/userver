@@ -47,7 +47,7 @@ namespace components {
 ///
 /// @snippet cache/postgres_cache_test.cpp  Pg Cache Trivial Usage
 ///
-/// See @ref md_en_userver_caches for introduction into caches.
+/// See @ref scripts/docs/en/userver/caches.md for introduction into caches.
 ///
 ///
 /// @section pg_cc_configuration Configuration
@@ -105,7 +105,7 @@ namespace components {
 /// ----------
 ///
 /// @htmlonly <div class="bottom-nav"> @endhtmlonly
-/// ⇦ @ref md_en_userver_cache_dumps | @ref md_en_userver_lru_cache ⇨
+/// ⇦ @ref scripts/docs/en/userver/cache_dumps.md | @ref scripts/docs/en/userver/lru_cache.md ⇨
 /// @htmlonly </div> @endhtmlonly
 
 // clang-format on
@@ -371,7 +371,7 @@ inline constexpr std::size_t kDefaultChunkSize = 1000;
 ///
 /// @brief Caching component for PostgreSQL. See @ref pg_cache.
 ///
-/// @see @ref pg_cache, @ref md_en_userver_caches
+/// @see @ref pg_cache, @ref scripts/docs/en/userver/caches.md
 template <typename PostgreCachePolicy>
 class PostgreCache final
     : public pg_cache::detail::PolicyChecker<PostgreCachePolicy>::BaseType {

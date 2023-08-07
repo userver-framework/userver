@@ -49,8 +49,8 @@ class Cluster final {
   /// @brief Executes a statement on a host of host_type with default deadline.
   /// Fills placeholders of the statement with args..., `Args` are expected to
   /// be of supported types.
-  /// See @ref md_en_userver_mysql_supported_types for better understanding of
-  /// `Args` requirements.
+  /// See @ref scripts/docs/en/userver/mysql/supported_types.md for better
+  /// understanding of `Args` requirements.
   ///
   /// UINVARIANTs on params count mismatch doesn't validate types.
   template <typename... Args>
@@ -62,7 +62,7 @@ class Cluster final {
   /// CommandControl.
   /// Fills placeholders of the statement with args..., `Args` are expected to
   /// be of supported types.
-  /// See @ref md_en_userver_mysql_supported_types for better understanding of `Args`
+  /// See @ref scripts/docs/en/userver/mysql/supported_types.md for better understanding of `Args`
   /// requirements.
   ///
   /// UINVARIANTs on params count mismatch doesn't validate types.
@@ -79,8 +79,8 @@ class Cluster final {
   /// Basically an alias for Execute(host_type, query, AsArgs<T>(row)),
   /// where AsArgs is an imaginary function which passes fields of T as
   /// variadic params. Handy for one-liner inserts.
-  /// See @ref md_en_userver_mysql_supported_types for better understanding of
-  /// `T` requirements.
+  /// See @ref scripts/docs/en/userver/mysql/supported_types.md for better
+  /// understanding of `T` requirements.
   ///
   /// UINVARIANTs on params count mismatch, doesn't validate types.
   template <typename T>
@@ -94,7 +94,7 @@ class Cluster final {
   /// Basically an alias for Execute(command_control, host_type, query,
   /// AsArgs<T>(row)), where AsArgs is an imaginary function which passes
   /// fields of T as variadic params. Handy for one-liner inserts.
-  /// See @ref md_en_userver_mysql_supported_types for better understanding of `T` requirements.
+  /// See @ref scripts/docs/en/userver/mysql/supported_types.md for better understanding of `T` requirements.
   ///
   /// UINVARIANTs on params count mismatch, doesn't validate types.
   ///
@@ -110,8 +110,8 @@ class Cluster final {
   /// bulk-manner.
   /// Container is expected to be a std::Container, Container::value_type is
   /// expected to be an aggregate of supported types.
-  /// See @ref md_en_userver_mysql_supported_types for better understanding of
-  /// `Container::value_type` requirements.
+  /// See @ref scripts/docs/en/userver/mysql/supported_types.md for better
+  /// understanding of `Container::value_type` requirements.
   ///
   /// @note Requires MariaDB 10.2.6+ as a server
   ///
@@ -128,7 +128,7 @@ class Cluster final {
   /// Container::value_type in a bulk-manner.
   /// Container is expected to be a std::Container, Container::value_type is
   /// expected to be an aggregate of supported types.
-  /// See @ref md_en_userver_mysql_supported_types for better understanding of
+  /// See @ref scripts/docs/en/userver/mysql/supported_types.md for better understanding of
   /// `Container::value_type` requirements.
   ///
   /// @note Requires MariaDB 10.2.6+ as a server
@@ -148,7 +148,7 @@ class Cluster final {
   /// on the flight remapping from `Container::value_type` to `MapTo`.
   /// `Container` is expected to be a std::Container of whatever type pleases
   /// you, `MapTo` is expected to be an aggregate of supported types.
-  /// See @ref md_en_userver_mysql_supported_types for better understanding of `MapTo` requirements.
+  /// See @ref scripts/docs/en/userver/mysql/supported_types.md for better understanding of `MapTo` requirements.
   /// You are expected to provide a converter function
   /// `MapTo Convert(const Container::value_type&, storages::mysql::convert::To<MapTo>)`
   /// in namespace of `MapTo` or storages::mysql::convert.
@@ -170,7 +170,7 @@ class Cluster final {
   /// to `MapTo`.
   /// `Container` is expected to be a std::Container of whatever type pleases
   /// you, `MapTo` is expected to be an aggregate of supported types.
-  /// See @ref md_en_userver_mysql_supported_types for better understanding of `MapTo` requirements.
+  /// See @ref scripts/docs/en/userver/mysql/supported_types.md for better understanding of `MapTo` requirements.
   /// You are expected to provide a converter function
   /// `MapTo Convert(const Container::value_type&, storages::mysql::convert::To<MapTo>)`
   /// in namespace of `MapTo` or storages::mysql::convert.
@@ -229,8 +229,8 @@ class Cluster final {
   /// @brief Executes a statement with default deadline on a host of host_type,
   /// filling statements placeholders with `args...`, and returns a read-only
   /// cursor which fetches `batch_count` rows in each next fetch request.
-  /// See @ref md_en_userver_mysql_supported_types for better understanding of
-  /// `Args` requirements.
+  /// See @ref scripts/docs/en/userver/mysql/supported_types.md for better
+  /// understanding of `Args` requirements.
   ///
   /// @note Deadline is processing-wide, not just for initial cursor creation.
   ///
@@ -245,7 +245,7 @@ class Cluster final {
   /// a host of host_type, filling statements placeholders with `args...`, and
   /// returns a read-only cursor which fetches `batch_count` rows in each next
   /// fetch request.
-  /// See @ref md_en_userver_mysql_supported_types for better understanding of `Args`
+  /// See @ref scripts/docs/en/userver/mysql/supported_types.md for better understanding of `Args`
   /// requirements.
   ///
   /// @note Deadline is processing-wide, not just for initial cursor creation.

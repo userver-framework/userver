@@ -4,7 +4,7 @@ Here you can find the description of dynamic configs - options that can be
 changed at run-time without stopping the service.
 
 For an information on how to write a service that distributes dynamic configs
-see @ref md_en_userver_tutorial_config_service.
+see @ref scripts/docs/en/userver/tutorial/config_service.md.
 
 
 ## Adding and using your own dynamic configs
@@ -1275,5 +1275,5 @@ Used by server::handlers::HttpHandlerStatic
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref rabbitmq_driver | @ref md_en_userver_log_level_running_service ⇨
+⇦ @ref rabbitmq_driver | @ref scripts/docs/en/userver/log_level_running_service.md ⇨
 @htmlonly </div> @endhtmlonly

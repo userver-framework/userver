@@ -163,5 +163,5 @@ For multiple producers and cancellation support, use `engine::SingleConsumerEven
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref userver_components | @ref md_en_userver_formats ⇨
+⇦ @ref userver_components | @ref scripts/docs/en/userver/formats.md ⇨
 @htmlonly </div> @endhtmlonly

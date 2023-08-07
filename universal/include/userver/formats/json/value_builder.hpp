@@ -34,7 +34,7 @@ namespace formats::json {
 ///
 /// @snippet formats/json/value_builder_test.cpp  Sample Customization formats::json::ValueBuilder usage
 ///
-/// @see @ref md_en_userver_formats
+/// @see @ref scripts/docs/en/userver/formats.md
 
 // clang-format on
 

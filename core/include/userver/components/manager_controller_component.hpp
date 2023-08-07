@@ -53,7 +53,7 @@ class Manager;
 /// task-trace.logger | required name of logger to write traces to, should not be the 'default' logger | -
 ///
 /// Tips and tricks on `task-trace` usage are described in
-/// @ref md_en_userver_profile_context_switches.
+/// @ref scripts/docs/en/userver/profile_context_switches.md.
 ///
 /// ## Static configuration example:
 ///

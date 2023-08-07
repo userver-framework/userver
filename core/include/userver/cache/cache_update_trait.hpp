@@ -116,7 +116,7 @@ class CacheUpdateTrait {
   ///
   /// @throws std::exception on update failure
   ///
-  /// @see @ref md_en_userver_caches
+  /// @see @ref scripts/docs/en/userver/caches.md
   virtual void Update(UpdateType type,
                       const std::chrono::system_clock::time_point& last_update,
                       const std::chrono::system_clock::time_point& now,

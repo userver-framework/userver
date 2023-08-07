@@ -25,7 +25,7 @@ namespace engine {
 ///
 /// @snippet engine/task/task_with_result_test.cpp  Sample TaskWithResult usage
 ///
-/// @see @ref md_en_userver_synchronization
+/// @see @ref scripts/docs/en/userver/synchronization.md
 template <typename T>
 class [[nodiscard]] TaskWithResult : public Task {
  public:

@@ -26,7 +26,7 @@ Most important ones:
 | mongo.errors                    | counter of failed requests                           |
 | mongo.timings                   | query timings                                        |
 
-See @ref md_en_userver_service_monitor for info on how to get the metrics.
+See @ref scripts/docs/en/userver/service_monitor.md for info on how to get the metrics.
 
 
 ## Usage
@@ -71,7 +71,7 @@ can be passed to the collection method `Execute()`.
 ### BSON
 
 BSON follows the common formats interface that is described in detail at
-@ref md_en_userver_formats.
+@ref scripts/docs/en/userver/formats.md.
 
 Since BSON is a binary format, it is not human readable. Differences
 in the BSON and JSON formats type systems do not always allow you to perform
@@ -84,5 +84,5 @@ intended for debugging.
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref pg_bytea | @ref md_en_userver_redis ⇨
+⇦ @ref pg_bytea | @ref scripts/docs/en/userver/redis.md ⇨
 @htmlonly </div> @endhtmlonly

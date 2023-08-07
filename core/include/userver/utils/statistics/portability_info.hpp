@@ -74,7 +74,7 @@ formats::json::Value Serialize(const PortabilityWarnings& info,
                                formats::serialize::To<formats::json::Value>);
 
 /// Output portability info for `statistics`.
-/// @see @ref md_en_userver_functional_testing
+/// @see @ref scripts/docs/en/userver/functional_testing.md
 PortabilityWarnings GetPortabilityWarnings(
     const utils::statistics::Storage& statistics,
     const utils::statistics::Request& request);

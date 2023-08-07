@@ -9,7 +9,7 @@ open source development:
 * some integrations for the popular tools|services are being added
 
 Moreover, as there's no release, there's no
-@ref md_en_userver_development_stability "API stability" yet.
+@ref scripts/docs/en/userver/development/stability.md "API stability" yet.
 
 
 ## Is userver ready for production use?
@@ -25,5 +25,5 @@ needs. If there's something missing, please fill a
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref md_en_userver_deploy_env | @ref md_en_userver_roadmap_and_changelog ⇨
+⇦ @ref scripts/docs/en/userver/deploy_env.md | @ref scripts/docs/en/userver/roadmap_and_changelog.md ⇨
 @htmlonly </div> @endhtmlonly

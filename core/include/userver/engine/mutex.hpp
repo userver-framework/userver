@@ -22,7 +22,7 @@ namespace engine {
 ///
 /// @snippet engine/mutex_test.cpp  Sample engine::Mutex usage
 ///
-/// @see @ref md_en_userver_synchronization
+/// @see @ref scripts/docs/en/userver/synchronization.md
 class Mutex final {
  public:
   Mutex();

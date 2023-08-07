@@ -43,7 +43,7 @@ namespace server::handlers {
 /// query argument. Set it to the `reset` value, to reset the logger level to
 /// the initial values.
 ///
-/// @see @ref md_en_userver_log_level_running_service
+/// @see @ref scripts/docs/en/userver/log_level_running_service.md
 
 // clang-format on
 class LogLevel final : public HttpHandlerBase {

@@ -301,7 +301,7 @@ enum class DestructionType { kSync, kAsync };
 ///
 /// @snippet rcu/rcu_test.cpp  Sample rcu::Variable usage
 ///
-/// @see @ref md_en_userver_synchronization
+/// @see @ref scripts/docs/en/userver/synchronization.md
 template <typename T, typename RcuTraits>
 class Variable final {
  public:

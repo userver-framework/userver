@@ -57,7 +57,7 @@ namespace server::handlers {
 /// `DELETE` request removes the forced logging from location. Location should
 /// be specified in the `location=` argument in URL.
 ///
-/// @see @ref md_en_userver_log_level_running_service
+/// @see @ref scripts/docs/en/userver/log_level_running_service.md
 
 // clang-format on
 class DynamicDebugLog final : public HttpHandlerBase {

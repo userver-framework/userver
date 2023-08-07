@@ -119,5 +119,5 @@ $ make -j4 userver-core_unittest && ./userver/core/userver-core_unittest --gtest
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref md_en_userver_functional_testing | @ref md_en_userver_grpc ⇨
+⇦ @ref scripts/docs/en/userver/functional_testing.md | @ref scripts/docs/en/userver/grpc.md ⇨
 @htmlonly </div> @endhtmlonly

@@ -41,7 +41,7 @@ class SemaphoreLockCancelledError final : public std::runtime_error {
 ///
 /// @snippet engine/semaphore_test.cpp  Sample engine::Semaphore usage
 ///
-/// @see @ref md_en_userver_synchronization
+/// @see @ref scripts/docs/en/userver/synchronization.md
 class CancellableSemaphore final {
  public:
   using Counter = std::size_t;
@@ -132,7 +132,7 @@ class CancellableSemaphore final {
 ///
 /// @snippet engine/semaphore_test.cpp  Sample engine::Semaphore usage
 ///
-/// @see @ref md_en_userver_synchronization
+/// @see @ref scripts/docs/en/userver/synchronization.md
 class Semaphore final {
  public:
   using Counter = std::size_t;

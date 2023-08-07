@@ -28,7 +28,7 @@ versa.
 | redis.timings         | query timings                            |
 | redis.errors          | counter of failed requests               |
 
-See @ref md_en_userver_service_monitor for info on how to get the metrics.
+See @ref scripts/docs/en/userver/service_monitor.md for info on how to get the metrics.
 
 ## Usage
 
@@ -58,5 +58,5 @@ by the server.
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref md_en_userver_mongodb | @ref clickhouse_driver ⇨
+⇦ @ref scripts/docs/en/userver/mongodb.md | @ref clickhouse_driver ⇨
 @htmlonly </div> @endhtmlonly

@@ -129,5 +129,5 @@ The userver synchronization primitives are comparable in performance to standard
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-| @ref md_en_userver_intro ⇨
+| @ref scripts/docs/en/userver/intro.md ⇨
 @htmlonly </div> @endhtmlonly

@@ -1,6 +1,7 @@
 """
 Python module that provides testsuite support for
-chaos tests; see @ref md_en_userver_chaos_testing for an introduction.
+chaos tests; see
+@ref scripts/docs/en/userver/chaos_testing.md for an introduction.
 
 @ingroup userver_testsuite
 """
@@ -423,7 +424,7 @@ class BaseGate:
 
     @ingroup userver_testsuite
 
-    @see @ref md_en_userver_chaos_testing
+    @see @ref scripts/docs/en/userver/chaos_testing.md
     """
 
     _NOT_IMPLEMENTED_MESSAGE = (
@@ -741,7 +742,7 @@ class TcpGate(BaseGate):
 
     @ingroup userver_testsuite
 
-    @see @ref md_en_userver_chaos_testing
+    @see @ref scripts/docs/en/userver/chaos_testing.md
     """
 
     def __init__(self, route: GateRoute, loop: EvLoop) -> None:
@@ -852,7 +853,7 @@ class UdpGate(BaseGate):
 
     @ingroup userver_testsuite
 
-    @see @ref md_en_userver_chaos_testing
+    @see @ref scripts/docs/en/userver/chaos_testing.md
     """
 
     _NOT_IMPLEMENTED_IN_UDP = 'This method is not allowed in UDP gate'

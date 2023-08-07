@@ -37,7 +37,7 @@ namespace formats::bson {
 ///
 /// @snippet formats/bson/value_builder_test.cpp  Sample Customization formats::bson::ValueBuilder usage
 ///
-/// @see @ref md_en_userver_formats
+/// @see @ref scripts/docs/en/userver/formats.md
 
 // clang-format on
 

@@ -30,7 +30,7 @@ class ValueBuilder;
 ///
 /// @snippet formats/yaml/value_test.cpp  Sample formats::yaml::Value usage
 ///
-/// @see @ref md_en_userver_formats
+/// @see @ref scripts/docs/en/userver/formats.md
 class Value final {
  public:
   struct IterTraits {
@@ -144,7 +144,7 @@ class Value final {
   ///
   /// @snippet formats/yaml/value_test.cpp  Sample formats::yaml::Value::As<T>() usage
   ///
-  /// @see @ref md_en_userver_formats
+  /// @see @ref scripts/docs/en/userver/formats.md
 
   // clang-format on
 

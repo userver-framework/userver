@@ -3,7 +3,7 @@
 ## Before you start
 
 Make sure that you can compile and run core tests as described at
-@ref md_en_userver_tutorial_build.
+@ref scripts/docs/en/userver/tutorial/build.md.
 
 Note that there is a ready to use opensource
 [service template](https://github.com/userver-framework/service_template)
@@ -35,7 +35,7 @@ HTTP response code will be set to `500`.
 
 @snippet samples/hello_service/hello_service.cpp  Hello service sample - component
 
-@warning `Handle*` functions are invoked concurrently on the same instance of the handler class. Use @ref md_en_userver_synchronization "synchronization primitives" or do not modify shared data in `Handle*`.
+@warning `Handle*` functions are invoked concurrently on the same instance of the handler class. Use @ref scripts/docs/en/userver/synchronization.md "synchronization primitives" or do not modify shared data in `Handle*`.
 
 
 ### Static config
@@ -53,12 +53,12 @@ We are not planning to get new dynamic config values in this sample. Because of
 that we just write the defaults to the fallback file of
 the `components::DynamicConfigFallbacks` component.
 
-All the values are described in a separate section @ref md_en_schemas_dynamic_configs .
+All the values are described in a separate section @ref scripts/docs/en/schemas/dynamic_configs.md .
 
 @include samples/hello_service/dynamic_config_fallback.json
 
 A production ready service would dynamically retrieve the above options at runtime from a configuration service. See
-@ref md_en_userver_tutorial_config_service for insights on how to change the
+@ref scripts/docs/en/userver/tutorial/config_service.md for insights on how to change the
 above options on the fly, without restarting the service.
 
 
@@ -83,7 +83,7 @@ make userver-samples-hello_service
 
 The sample could be started by running
 `make start-userver-samples-hello_service`. The command would invoke
-@ref md_en_userver_functional_testing "testsuite start target" that sets proper
+@ref scripts/docs/en/userver/functional_testing.md "testsuite start target" that sets proper
 paths in the configuration files and starts the service.
 
 To start the service manually run
@@ -102,7 +102,7 @@ Hello world!
 
 ### Functional testing
 
-@ref md_en_userver_functional_testing "Functional tests" for the service could be
+@ref scripts/docs/en/userver/functional_testing.md "Functional tests" for the service could be
 implemented using the @ref service_client "service_client" fixture from
 pytest_userver.plugins.core in the
 following way:
@@ -126,7 +126,7 @@ See the full example at:
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref md_en_userver_faq | @ref md_en_userver_tutorial_config_service ⇨
+⇦ @ref scripts/docs/en/userver/faq.md | @ref scripts/docs/en/userver/tutorial/config_service.md ⇨
 @htmlonly </div> @endhtmlonly
 
 

@@ -8,7 +8,7 @@ service for further investigation.
 
 The userver framework addresses modern logging requirements and provides
 multiple facilities for efficient work with logs, including
-@ref md_en_userver_log_level_running_service.
+@ref scripts/docs/en/userver/log_level_running_service.md.
 
 Below are the intruductions to main developer logging facilities.
 
@@ -48,7 +48,7 @@ yaml
 
 The logging `level` that was set in the static config of the components::Logging
 component for the entire service can be changed on the fly.
-See @ref md_en_userver_log_level_running_service for more info.
+See @ref scripts/docs/en/userver/log_level_running_service.md for more info.
 
 ### Limit log length of the requests and responses
 
@@ -228,5 +228,5 @@ For example, this is how you can disable logging of all Span for MongoDB (that i
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref md_en_userver_formats | @ref md_en_userver_task_processors_guide ⇨
+⇦ @ref scripts/docs/en/userver/formats.md | @ref scripts/docs/en/userver/task_processors_guide.md ⇨
 @htmlonly </div> @endhtmlonly

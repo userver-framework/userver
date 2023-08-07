@@ -2,7 +2,7 @@
 
 ## Before you start
 
-Make sure that you can compile and run core tests and read a basic example @ref md_en_userver_tutorial_hello_service.
+Make sure that you can compile and run core tests and read a basic example @ref scripts/docs/en/userver/tutorial/hello_service.md.
 
 
 ## Step by step guide
@@ -18,7 +18,7 @@ In this sample we use the @ref samples/flatbuf_service/flatbuffer_schema.fbs Fla
 ### HTTP Flatbuffer handler component
 
 There are two ways to write a handler that deals with Flatbuffers:
-* We could do that by creating a component derived from server::handlers::HttpHandlerBase as in the @ref md_en_userver_tutorial_hello_service example. In that case we would need
+* We could do that by creating a component derived from server::handlers::HttpHandlerBase as in the @ref scripts/docs/en/userver/tutorial/hello_service.md example. In that case we would need
     * to manually parse the input
     * and manually to serialize the result to a std::string that holds the bytes of a Flatbuffers.
 * Or we could just take a server::handlers::HttpHandlerFlatbufBase that does all the above steps for us.
@@ -53,7 +53,7 @@ make userver-samples-flatbuf_service
 
 The sample could be started by running
 `make start-userver-samples-flatbuf_service`. The command would invoke
-@ref md_en_userver_functional_testing "testsuite start target" that sets proper
+@ref scripts/docs/en/userver/functional_testing.md "testsuite start target" that sets proper
 paths in the configuration files and starts the service.
 
 To start the service manually run
@@ -89,7 +89,7 @@ $ echo "100000000c00180000000800100004000c00000014000000140000000000000016000000
 
 
 ### Functional testing
-Naive @ref md_en_userver_functional_testing "functional tests" for the service
+Naive @ref scripts/docs/en/userver/functional_testing.md "functional tests" for the service
 could be implemented using the testsuite in the following way:
 
 @snippet samples/flatbuf_service/tests/test_flatbuf.py  Functional test
@@ -112,7 +112,7 @@ See the full example:
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref md_en_userver_tutorial_http_caching | @ref md_en_userver_tutorial_grpc_service ⇨
+⇦ @ref scripts/docs/en/userver/tutorial/http_caching.md | @ref scripts/docs/en/userver/tutorial/grpc_service.md ⇨
 @htmlonly </div> @endhtmlonly
 
 @example samples/flatbuf_service/flatbuf_service.cpp

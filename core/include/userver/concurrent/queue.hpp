@@ -47,7 +47,7 @@ struct ContainerQueuePolicy {
 
 /// Queue with single and multi producer/consumer options
 ///
-/// @see @ref md_en_userver_synchronization
+/// @see @ref scripts/docs/en/userver/synchronization.md
 template <typename T, typename QueuePolicy>
 class GenericQueue final
     : public std::enable_shared_from_this<GenericQueue<T, QueuePolicy>> {
@@ -616,7 +616,7 @@ class GenericQueue<T, QueuePolicy>::MultiConsumerSide final {
 /// In exchange for this, the queue has lower contention and increased
 /// throughput compared to a conventional lock-free queue.
 ///
-/// @see @ref md_en_userver_synchronization
+/// @see @ref scripts/docs/en/userver/synchronization.md
 template <typename T>
 using NonFifoMpmcQueue = GenericQueue<T, impl::SimpleQueuePolicy<true, true>>;
 
@@ -625,7 +625,7 @@ using NonFifoMpmcQueue = GenericQueue<T, impl::SimpleQueuePolicy<true, true>>;
 /// @brief Non FIFO multiple producers single consumer queue.
 ///
 /// @see concurrent::NonFifoMpmcQueue for the description of what NonFifo means.
-/// @see @ref md_en_userver_synchronization
+/// @see @ref scripts/docs/en/userver/synchronization.md
 template <typename T>
 using NonFifoMpscQueue = GenericQueue<T, impl::SimpleQueuePolicy<true, false>>;
 
@@ -633,7 +633,7 @@ using NonFifoMpscQueue = GenericQueue<T, impl::SimpleQueuePolicy<true, false>>;
 ///
 /// @brief Single producer multiple consumers queue.
 ///
-/// @see @ref md_en_userver_synchronization
+/// @see @ref scripts/docs/en/userver/synchronization.md
 template <typename T>
 using SpmcQueue = GenericQueue<T, impl::SimpleQueuePolicy<false, true>>;
 
@@ -641,7 +641,7 @@ using SpmcQueue = GenericQueue<T, impl::SimpleQueuePolicy<false, true>>;
 ///
 /// @brief Single producer single consumer queue.
 ///
-/// @see @ref md_en_userver_synchronization
+/// @see @ref scripts/docs/en/userver/synchronization.md
 template <typename T>
 using SpscQueue = GenericQueue<T, impl::SimpleQueuePolicy<false, false>>;
 
@@ -650,7 +650,7 @@ using SpscQueue = GenericQueue<T, impl::SimpleQueuePolicy<false, false>>;
 /// @brief Single producer single consumer queue of std::string which is bounded
 /// bytes inside.
 ///
-/// @see @ref md_en_userver_synchronization
+/// @see @ref scripts/docs/en/userver/synchronization.md
 using StringStreamQueue =
     GenericQueue<std::string, impl::ContainerQueuePolicy<false, false>>;
 

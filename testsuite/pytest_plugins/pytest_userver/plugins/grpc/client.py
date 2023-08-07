@@ -1,7 +1,7 @@
 """
 Make gRPC requests to the service.
 
-@sa @ref md_en_userver_tutorial_grpc_service
+@sa @ref scripts/docs/en/userver/tutorial/grpc_service.md
 """
 
 # pylint: disable=no-member

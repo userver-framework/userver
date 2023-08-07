@@ -1,6 +1,6 @@
 # Basics of Caches
 
-A cache in userver is a @ref md_en_userver_component_system "component" that
+A cache in userver is a @ref scripts/docs/en/userver/component_system.md "component" that
 periodically polls an external resource and caches its response. Strictly
 speaking, the cache component is a shadow replica of some resource
 (database tables, mongo collections, etc.). The use of the cache is
@@ -14,7 +14,7 @@ time always has an instant access to some version of the data.
 Caches usually inherit from components::CachingComponentBase or
 cache::LruCacheComponent. Sections below describe the features of
 components::CachingComponentBase. For information on cache::LruCacheComponent
-refer to @ref md_en_userver_lru_cache.
+refer to @ref scripts/docs/en/userver/lru_cache.md.
 
 
 ## Update Modes
@@ -88,7 +88,7 @@ initial value. If the first update fails with an error, i.e. the update throws
 an exception, then this leads to an exception in the cache component
 constructor and to the service shutdown. There are two ways to change
 this behavior:
-1. @ref md_en_userver_cache_dumps "By enabling dumps", in this case the cache
+1. @ref scripts/docs/en/userver/cache_dumps.md "By enabling dumps", in this case the cache
     starts with the state stored in the dump. If there is no dump, the service
     will still fall when the first update fails. You can overcome this
     through next clause
@@ -188,7 +188,7 @@ implement Full and Incremental updates. In Update(), don't forget to put down
 metrics for the `stats_scope` object, describing how many objects were read,
 how many parsing errors there were, and how many elements are in the final cache.
 
-See @ref md_en_userver_tutorial_http_caching for a detailed introduction.
+See @ref scripts/docs/en/userver/tutorial/http_caching.md for a detailed introduction.
 
 
 ## Parallel loading
@@ -200,7 +200,7 @@ you to speed up the loading of the service in the case of multiple heavy caches.
 ## Metrics
 
 Each cache automatically collects metrics. See
-@ref md_en_userver_service_monitor for a list of metrics with some descriptions. 
+@ref scripts/docs/en/userver/service_monitor.md for a list of metrics with some descriptions. 
 
 
 ## Common misuses
@@ -229,5 +229,5 @@ Each cache automatically collects metrics. See
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref md_en_userver_os_signals | @ref md_en_userver_cache_dumps ⇨
+⇦ @ref scripts/docs/en/userver/os_signals.md | @ref scripts/docs/en/userver/cache_dumps.md ⇨
 @htmlonly </div> @endhtmlonly

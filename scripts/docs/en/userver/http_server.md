@@ -9,7 +9,7 @@
 * HTTP 1.1/1.0 support
 * Body decompression with "Content-Encoding: gzip"
 * HTTP pipelining
-* Custom authorization @ref md_en_userver_tutorial_auth_postgres
+* Custom authorization @ref scripts/docs/en/userver/tutorial/auth_postgres.md
 * Deadline propagation
 * Congestion control
 * Rate limiting

@@ -2,7 +2,7 @@
 
 ## Before you start
 
-Make sure that you can compile and run core tests and read a basic example @ref md_en_userver_tutorial_hello_service.
+Make sure that you can compile and run core tests and read a basic example @ref scripts/docs/en/userver/tutorial/hello_service.md.
 
 ## Step by step guide
 
@@ -48,7 +48,7 @@ Now let's create a configuration service.
 Dynamic configs are requested via JSON requests, so we need to create a simple JSON handler that is responding with config values.
 
 There are two ways to write a JSON handler:
-* We could do that by creating a component derived from server::handlers::HttpHandlerBase as in the @ref md_en_userver_tutorial_hello_service example. In that case we would need
+* We could do that by creating a component derived from server::handlers::HttpHandlerBase as in the @ref scripts/docs/en/userver/tutorial/hello_service.md example. In that case we would need
     * to parse the input via formats::json::FromString
     * and to send the result by serializing a JSON to std::string via formats::json::ToString.
 * Or we could just take a server::handlers::HttpHandlerJsonBase that does all the above steps for us.
@@ -57,7 +57,7 @@ We are going to take the second approach:
 
 @snippet samples/config_service/config_service.cpp Config service sample - component
 
-@warning `Handle*` functions are invoked concurrently on the same instance of the handler class. Use @ref md_en_userver_synchronization "synchronization primitives" or do not modify shared data in `Handle*`.
+@warning `Handle*` functions are invoked concurrently on the same instance of the handler class. Use @ref scripts/docs/en/userver/synchronization.md "synchronization primitives" or do not modify shared data in `Handle*`.
 
 Note the rcu::Variable. There may be (and will be!) multiple concurrent requests and the `HandleRequestJsonThrow` would be invoked concurrently on the same instance of `ConfigDistributor`. The rcu::Variable allows us to atomically update the config value, concurrently with the `HandleRequestJsonThrow` invocations.
 
@@ -104,7 +104,7 @@ make userver-samples-config_service
 
 The sample could be started by running
 `make start-userver-samples-config_service`. The command would invoke
-@ref md_en_userver_functional_testing "testsuite start target" that sets proper
+@ref scripts/docs/en/userver/functional_testing.md "testsuite start target" that sets proper
 paths in the configuration files and starts the service.
 
 To start the service manually run
@@ -162,7 +162,7 @@ $ curl -X POST -d '{"ids":["USERVER_TASK_PROCESSOR_QOS"]}' 127.0.0.1:8083/config
 ```
 
 ### Functional testing
-@ref md_en_userver_functional_testing "Functional tests" for the service
+@ref scripts/docs/en/userver/functional_testing.md "Functional tests" for the service
 could be implemented using the @ref service_client "service_client fixture"
 in the following way:
 
@@ -193,7 +193,7 @@ See the full example:
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref md_en_userver_tutorial_hello_service | @ref md_en_userver_tutorial_production_service ⇨
+⇦ @ref scripts/docs/en/userver/tutorial/hello_service.md | @ref scripts/docs/en/userver/tutorial/production_service.md ⇨
 @htmlonly </div> @endhtmlonly
 
 

@@ -4,6 +4,7 @@ CMAKE_COMMON_FLAGS ?= -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 CMAKE_DEBUG_FLAGS ?= -DUSERVER_SANITIZE='addr ub'
 CMAKE_RELEASE_FLAGS ?=
 CMAKE_OS_FLAGS ?=
+DOXYGEN ?= doxygen
 
 NPROCS ?= $(shell nproc)
 
@@ -24,6 +25,7 @@ endif
 gen:
 	python3 scripts/external_deps/cmake_generator.py --repo-dir=. --build-dir=cmake
 
+# Requires doxygen 1.9.8 +
 .PHONY: docs
 docs:
 	@rm -rf docs/*
@@ -34,9 +36,9 @@ docs:
 	    echo "HTML_HEADER = scripts/docs/header_opensource.html"; \
 	    echo 'PROJECT_BRIEF = "C++ Async Framework (beta)"'; \
 	    echo OUTPUT_DIRECTORY=docs \
-	  ) | doxygen -
+	  ) | $(DOXYGEN) -
 	@echo 'userver.tech' > docs/html/CNAME
-	@cp docs/html/df/d86/md_en_userver_404.html docs/html/404.html
+	@cp docs/html/d8/dee/md_en_2userver_2404.html docs/html/404.html || :
 	@sed -i 's|\.\./\.\./|/|g' docs/html/404.html
 
 # Debug cmake configuration

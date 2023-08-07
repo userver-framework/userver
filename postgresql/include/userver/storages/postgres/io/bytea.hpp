@@ -39,7 +39,7 @@ namespace storages::postgres {
  * ----------
  *
  * @htmlonly <div class="bottom-nav"> @endhtmlonly
- * ⇦ @ref pg_arrays | @ref md_en_userver_mongodb ⇨
+ * ⇦ @ref pg_arrays | @ref scripts/docs/en/userver/mongodb.md ⇨
  * @htmlonly </div> @endhtmlonly
  */
 

@@ -10,7 +10,7 @@
 
 \htmlonly
 <div class="landing-logo" id='landing_logo_id'>
-  <a href="d6/d2f/md_en_index.html"><img src='/logo.svg' alt='userver logo big'/></a>
+  <a href="de/d6a/md_en_2index.html"><img src='/logo.svg' alt='userver logo big'/></a>
 </div>
 \endhtmlonly
 
@@ -54,8 +54,8 @@ std::size_t Ins(storages::postgres::Transaction& tr, std::string_view key) {
       service.
   </div>
   <div class="landing-intro-right">
-      Write @ref md_en_userver_tutorial_hello_service "your first toy C++ service",
-      evolve it into a @ref md_en_userver_tutorial_production_service "production ready service".
+      Write @ref scripts/docs/en/userver/tutorial/hello_service.md "your first toy C++ service",
+      evolve it into a @ref scripts/docs/en/userver/tutorial/production_service.md "production ready service".
   </div>
 </div>
 
@@ -66,7 +66,7 @@ std::size_t Ins(storages::postgres::Transaction& tr, std::string_view key) {
       construction and cancellation.
   </div>
   <div class="landing-intro-right">
-      Functionality to @ref md_en_schemas_dynamic_configs "change the service configuration"
+      Functionality to @ref scripts/docs/en/schemas/dynamic_configs.md "change the service configuration"
       on-the-fly. Adjust options of the deadline propagation, timeouts,
       congestion-control without a restart.
   </div>
@@ -75,7 +75,7 @@ std::size_t Ins(storages::postgres::Transaction& tr, std::string_view key) {
 <div class="landing-container">
   <div class="landing-intro-left">
       Rich set of high-level components for caches, tasks, distributed locking,
-      logging, tracing, statistics, metrics, @ref md_en_userver_formats "JSON/YAML/BSON".
+      logging, tracing, statistics, metrics, @ref scripts/docs/en/userver/formats.md "JSON/YAML/BSON".
   </div>
   <div class="landing-intro-right">
       Comprehensive set of asynchronous low-level synchronization primitives
@@ -91,7 +91,7 @@ std::size_t Ins(storages::postgres::Transaction& tr, std::string_view key) {
   </div>
 
   <div class="landing-intro-center">
-      Dive into @ref md_en_index "the documentation" for more details.
+      Dive into @ref scripts/docs/en/index.md "the documentation" for more details.
   
     \htmlonly
     <a href="https://github.com/userver-framework/" rel="noopener" target="_blank" class="titlelink">

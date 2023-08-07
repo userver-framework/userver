@@ -1,6 +1,7 @@
 """
 Python module that provides clients for functional tests with
-testsuite; see @ref md_en_userver_functional_testing for an introduction.
+testsuite; see
+@ref scripts/docs/en/userver/functional_testing.md for an introduction.
 
 @ingroup userver_testsuite
 """

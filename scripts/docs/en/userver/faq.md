@@ -14,7 +14,7 @@ If you are trying to build the framework on Windows OS, you should use WSL
 as the platform native API
 [is not supported at the moment](https://github.com/userver-framework/userver/issues/228).
 
-Try disabling modules that you do not use, see @ref md_en_userver_tutorial_build
+Try disabling modules that you do not use, see @ref scripts/docs/en/userver/tutorial/build.md
 for a list of supported CMake options.
 
 If you have problems with PostgreSQL build, see @ref POSTGRES_LIBS "PostgreSQL versions".
@@ -97,16 +97,16 @@ grow - then the somewhere a lot of tasks was produced and the task processor
 tries hard to deal with those.
 
 If `major_pagefaults` metric grows and CPU usage of
-@ref md_en_userver_task_processors_guide "main task processors" is small,
+@ref scripts/docs/en/userver/task_processors_guide.md "main task processors" is small,
 then a blocking filesystem operation is executed in the main task processor.
 Investigate the code of your service and move those operations to
-@ref md_en_userver_task_processors_guide "fs-task-processor".
+@ref scripts/docs/en/userver/task_processors_guide.md "fs-task-processor".
 
 
 If there's no suspicious metrics grows and the CPU usage of main task
 processors is small - then probably there is a blocking system call in the code
 of your service. Locate it and replace it with a
-@ref md_en_userver_intro "proper replacement" from userver.
+@ref scripts/docs/en/userver/intro.md "proper replacement" from userver.
 
 
 ### PostgreSQL: Statement XXXX network timeout error
@@ -119,13 +119,13 @@ acquire connection + execute query <= network timeout
 ```
 
 See PostgreSQL related
-@ref md_en_schemas_dynamic_configs for more info.
+@ref scripts/docs/en/schemas/dynamic_configs.md for more info.
 
 
 ### PostgreSQL: Statement XXXX was canceled
 
 Statement was canceled by the `statement timeout`. See PostgreSQL related
-@ref md_en_schemas_dynamic_configs for more info.
+@ref scripts/docs/en/schemas/dynamic_configs.md for more info.
 
 
 ### PostgreSQL: Something is slow
@@ -143,7 +143,7 @@ network.
 Big values in the `*.busy` metrics mean that the query is slow to execute on
 the database server or that there are problems with network.
 
-See PostgreSQL metrics descriptions at @ref md_en_userver_service_monitor.
+See PostgreSQL metrics descriptions at @ref scripts/docs/en/userver/service_monitor.md.
 
 
 ### PostgreSQL: Timestamp in PostgreSQL and locally differ for multiple hours/minutes
@@ -204,5 +204,5 @@ storages::postgres::TimePointTz.
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref md_en_userver_roadmap_and_changelog | @ref md_en_userver_tutorial_hello_service ⇨
+⇦ @ref scripts/docs/en/userver/roadmap_and_changelog.md | @ref scripts/docs/en/userver/tutorial/hello_service.md ⇨
 @htmlonly </div> @endhtmlonly

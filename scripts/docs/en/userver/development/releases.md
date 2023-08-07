@@ -11,7 +11,7 @@ updated quite often, up to multiple times per day.
 The above model may not fit all the projects. Because of that, we do releases - 
 a snapshot of the trunk sources.
 
-See @ref md_en_userver_development_stability "info on versioning and stability" 
+See @ref scripts/docs/en/userver/development/stability.md "info on versioning and stability" 
 
 Releases do not evolve, all the new functionality and bugfixes go to trunk
 (develop branch of git) and become a new release.
@@ -41,5 +41,5 @@ functionality you have to update to a new release with a fix.
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref md_en_userver_development_stability | @ref md_en_userver_driver_guide ⇨
+⇦ @ref scripts/docs/en/userver/development/stability.md | @ref scripts/docs/en/userver/driver_guide.md ⇨
 @htmlonly </div> @endhtmlonly

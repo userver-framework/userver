@@ -4,8 +4,8 @@
 ## Before you start
 
 Make sure that you can compile and run core tests as described at
-@ref md_en_userver_tutorial_build and took a look at the
-@ref md_en_userver_tutorial_tcp_service.
+@ref scripts/docs/en/userver/tutorial/build.md and took a look at the
+@ref scripts/docs/en/userver/tutorial/tcp_service.md.
 
 
 ## Step by step guide
@@ -25,7 +25,7 @@ function to get the new sockets:
 @snippet samples/tcp_full_duplex_service/tcp_full_duplex_service.cpp  TCP sample - component
 
 @warning `ProcessSocket` functions are invoked concurrently on the same 
-instance of the class. Use @ref md_en_userver_synchronization "synchronization primitives"
+instance of the class. Use @ref scripts/docs/en/userver/synchronization.md "synchronization primitives"
 or do not modify shared data in `ProcessSocket`.
 
 `struct Stats` holds the statistics for the component and is defined as:
@@ -65,13 +65,13 @@ We are not planning to get updates for dynamic config values in this sample. Bec
 that we just write the defaults to the fallback file of
 the `components::DynamicConfigFallbacks` component.
 
-All the values are described in a separate section @ref md_en_schemas_dynamic_configs .
+All the values are described in a separate section @ref scripts/docs/en/schemas/dynamic_configs.md .
 
 @include samples/tcp_full_duplex_service/dynamic_config_fallback.json
 
 A production ready service would dynamically retrieve the above options at
 runtime from a configuration service. See
-@ref md_en_userver_tutorial_config_service for insights on how to change the
+@ref scripts/docs/en/userver/tutorial/config_service.md for insights on how to change the
 above options on the fly, without restarting the service.
 
 
@@ -136,7 +136,7 @@ make userver-samples-tcp_full_duplex_service
 
 The sample could be started by running
 `make start-userver-samples-tcp_full_duplex_service`. The command would invoke
-@ref md_en_userver_functional_testing "testsuite start target" that sets proper
+@ref scripts/docs/en/userver/functional_testing.md "testsuite start target" that sets proper
 paths in the configuration files and starts the service.
 
 To start the service manually run
@@ -154,7 +154,7 @@ test test test
 ```
 
 ### Functional testing
-@ref md_en_userver_functional_testing "Functional tests" for the service and
+@ref scripts/docs/en/userver/functional_testing.md "Functional tests" for the service and
 its metrics could be implemented using the testsuite in the following way:
 
 @snippet samples/tcp_full_duplex_service/tests/test_echo.py  Functional test
@@ -180,7 +180,7 @@ See the full example at:
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref md_en_userver_tutorial_tcp_service | @ref md_en_userver_tutorial_http_caching ⇨
+⇦ @ref scripts/docs/en/userver/tutorial/tcp_service.md | @ref scripts/docs/en/userver/tutorial/http_caching.md ⇨
 @htmlonly </div> @endhtmlonly
 
 @example samples/tcp_full_duplex_service/tcp_full_duplex_service.cpp

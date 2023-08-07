@@ -29,7 +29,7 @@ namespace formats::json {
 ///
 /// @snippet formats/json/string_builder_test.cpp  Sample formats::json::StringBuilder usage
 ///
-/// @see @ref md_en_userver_formats
+/// @see @ref scripts/docs/en/userver/formats.md
 
 // clang-format on
 

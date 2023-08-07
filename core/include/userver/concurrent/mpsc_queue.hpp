@@ -70,7 +70,7 @@ struct QueueHelper<std::unique_ptr<T>> {
 ///
 /// @snippet concurrent/mpsc_queue_test.cpp  Sample concurrent::MpscQueue usage
 ///
-/// @see @ref md_en_userver_synchronization
+/// @see @ref scripts/docs/en/userver/synchronization.md
 template <typename T>
 class MpscQueue final : public std::enable_shared_from_this<MpscQueue<T>> {
   struct EmplaceEnabler final {

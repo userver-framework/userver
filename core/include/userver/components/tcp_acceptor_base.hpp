@@ -35,7 +35,7 @@ namespace components {
 /// no_delay | whether to set the `TCP_NODELAY` option on incoming sockets | true
 /// sockets_task_processor | task processor to process accepted sockets | value of `task_processor`
 ///
-/// @see @ref md_en_userver_tutorial_tcp_service
+/// @see @ref scripts/docs/en/userver/tutorial/tcp_service.md
 
 // clang-format on
 class TcpAcceptorBase : public LoggableComponentBase {

@@ -19,7 +19,7 @@ namespace engine {
 ///
 /// @snippet engine/shared_mutex_test.cpp  Sample engine::SharedMutex usage
 ///
-/// @see @ref md_en_userver_synchronization
+/// @see @ref scripts/docs/en/userver/synchronization.md
 class SharedMutex final {
  public:
   SharedMutex();

@@ -33,7 +33,7 @@ inline constexpr int kSigUsr2 = 31;
 /// Usually retrieved from os_signals::ProcessorComponent component. For tests
 /// use os_signals::ProcessorMock.
 ///
-/// @see @ref md_en_userver_os_signals
+/// @see @ref scripts/docs/en/userver/os_signals.md
 class Processor final {
  public:
   explicit Processor(engine::TaskProcessor& task_processor);

@@ -16,7 +16,7 @@ make some requests from another terminal window, for example
 
 Note that the server::handlers::ServerMonitor handler lives at the separate
 `components.server.listener-monitor` address, so you have to request them using the
-`listener-monitor` credentials. See @ref md_en_userver_tutorial_production_service
+`listener-monitor` credentials. See @ref scripts/docs/en/userver/tutorial/production_service.md
 for more info on configuration and ideas on how to change the
 `/service/monitor` handle path.
 
@@ -118,6 +118,6 @@ With grpc client and server the following additional metrics appear:
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref md_en_userver_requests_in_flight | @ref md_en_userver_memory_profile_running_service ⇨
+⇦ @ref scripts/docs/en/userver/requests_in_flight.md | @ref scripts/docs/en/userver/memory_profile_running_service.md ⇨
 @htmlonly </div> @endhtmlonly
 

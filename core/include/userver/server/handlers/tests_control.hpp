@@ -21,7 +21,7 @@ namespace server::handlers {
 /// @ingroup userver_components userver_http_handlers
 ///
 /// @brief Handler that allows to control the behavior of server from tests,
-/// and @ref md_en_userver_functional_testing "functional tests with testsuite"
+/// and @ref scripts/docs/en/userver/functional_testing.md "functional tests with testsuite"
 /// in particular.
 ///
 /// It is highly recommended to disable this handle in production via the
@@ -58,7 +58,7 @@ namespace server::handlers {
 /// }
 /// @endcode
 ///
-/// @see @ref md_en_userver_functional_testing
+/// @see @ref scripts/docs/en/userver/functional_testing.md
 
 // clang-format on
 class TestsControl final : public HttpHandlerJsonBase {

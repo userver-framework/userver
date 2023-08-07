@@ -108,7 +108,8 @@ USERVER_NAMESPACE_END
 /// @snippet core/src/engine/semaphore_test.cpp  UTEST macro example 1
 /// @snippet core/src/engine/semaphore_test.cpp  UTEST macro example 2
 ///
-/// See @ref md_en_userver_testing for more usage examples and descriptions
+/// See @ref scripts/docs/en/userver/testing.md for more usage examples and
+/// descriptions
 /// @{
 
 /// @brief An equivalent of the gtest macro TEST that starts the test body as a

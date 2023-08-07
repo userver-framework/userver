@@ -465,7 +465,7 @@ def test_service(service_client):
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref md_en_userver_testing | @ref md_en_userver_chaos_testing ⇨
+⇦ @ref scripts/docs/en/userver/testing.md | @ref scripts/docs/en/userver/chaos_testing.md ⇨
 @htmlonly </div> @endhtmlonly
 
 @example cmake/UserverTestsuite.cmake

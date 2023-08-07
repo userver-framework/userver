@@ -102,7 +102,7 @@ class RcuMapIterator final {
 ///
 /// @snippet rcu/rcu_map_test.cpp  Sample rcu::RcuMap usage
 ///
-/// @see @ref md_en_userver_synchronization
+/// @see @ref scripts/docs/en/userver/synchronization.md
 template <typename Key, typename Value, typename RcuMapTraits>
 class RcuMap final {
   using RcuTraits = typename impl::RcuTraitsFromRcuMapTraits<RcuMapTraits>;

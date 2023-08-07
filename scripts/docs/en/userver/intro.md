@@ -47,7 +47,7 @@ ______
 ⚠️🐙❗ If you want to run code that uses standard synchronization primitives
 (for example, code from a third-party library), then this code should be run in
 a separate `engine::TaskProcessor` to avoid starvation of main task processors.
-See @ref md_en_userver_task_processors_guide for more info.
+See @ref scripts/docs/en/userver/task_processors_guide.md for more info.
 ______
 
 
@@ -113,7 +113,7 @@ Note that the destructor of `engine::Task` cancels and waits for task to finish 
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref md_en_userver_intro_io_bound_coro | @ref md_en_userver_framework_comparison ⇨
+⇦ @ref scripts/docs/en/userver/intro_io_bound_coro.md | @ref scripts/docs/en/userver/framework_comparison.md ⇨
 @htmlonly </div> @endhtmlonly
 
 @example core/src/engine/mutex_benchmark.cpp
