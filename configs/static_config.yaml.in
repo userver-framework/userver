@@ -80,8 +80,12 @@ components_manager:
             path: /api/tags
             method: GET
             task_processor: main-task-processor
-
         handler-register-user:
             path: /api/users
+            method: POST
+            task_processor: main-task-processor
+
+        handler-login-user:
+            path: /api/login
             method: POST
             task_processor: main-task-processor
