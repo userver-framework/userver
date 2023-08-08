@@ -22,6 +22,7 @@ int main(int argc, char* argv[]) {
                             .Append<userver::clients::dns::Component>()
                             .Append<userver::server::handlers::TestsControl>()
                             .Append<real_medium::handlers::users::post::Handler>()
+                            .Append<real_medium::handlers::profiles::get::Handler>()
                             .Append<real_medium::handlers::tags::get::Handler>();
 
   return userver::utils::DaemonMain(argc, argv, component_list);

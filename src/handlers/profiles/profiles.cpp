@@ -7,17 +7,10 @@
 
 namespace real_medium::handlers::profiles::get {
 
-class Profiles final : public userver::server::handlers::HttpHandlerBase {
- public:
-  static constexpr std::string_view kName = "handler-profiles";
-
-  using HttpHandlerBase::HttpHandlerBase;
-
-  std::string HandleRequestThrow(
-      const userver::server::http::HttpRequest &request,
-      userver::server::request::RequestContext &) const override {
-    return "";
-  }
-};
+std::string Handler::HandleRequestThrow(
+    const userver::server::http::HttpRequest &request,
+    userver::server::request::RequestContext &) const {
+  return "";
+}
 
 } // namespace real_medium::handlers::profiles::get
