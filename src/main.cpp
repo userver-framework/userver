@@ -18,7 +18,7 @@ int main(int argc, char* argv[]) {
                             .Append<userver::server::handlers::Ping>()
                             .Append<userver::components::TestsuiteSupport>()
                             .Append<userver::components::HttpClient>()
-                            .Append<userver::components::Postgres>("realworld-database")
+                            .Append<userver::components::Postgres>("realmedium-database")
                             .Append<userver::clients::dns::Component>()
                             .Append<userver::server::handlers::TestsControl>()
                             .Append<real_medium::handlers::users::post::Handler>()

@@ -12,14 +12,14 @@ Handler::Handler(const userver::components::ComponentConfig& config,
       : HttpHandlerJsonBase(config, component_context),
         pg_cluster_(component_context
                         .FindComponent<userver::components::Postgres>(
-                            "realworld-database")
+                            "realmedium-database")
                         .GetCluster()) {}
 
   userver::formats::json::Value Handler::HandleRequestJsonThrow(
       const userver::server::http::HttpRequest&,
       const userver::formats::json::Value&,
       userver::server::request::RequestContext&) const {
-    constexpr static auto query = "SELECT tag_name FROM realworld.tag_list";
+    constexpr static auto query = "SELECT tag_name FROM real_medium.tag_list";
     auto result = pg_cluster_->Execute(
         userver::storages::postgres::ClusterHostType::kSlave, query);
     auto tags = result.AsSetOf<std::string>();

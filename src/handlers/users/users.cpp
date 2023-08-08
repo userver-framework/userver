@@ -15,7 +15,7 @@ Handler::Handler(const userver::components::ComponentConfig& config,
       : HttpHandlerBase(config, component_context)
       , pg_cluster_(component_context
                         .FindComponent<userver::components::Postgres>(
-                            "realworld-database")
+                            "realmedium-database")
                         .GetCluster()) {}
 
   std::string Handler::HandleRequestThrow(
