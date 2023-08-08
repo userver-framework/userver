@@ -33,7 +33,11 @@ add_library(${PROJECT_NAME}_objs OBJECT
 		src/dto/profile.cpp
 		src/dto/profile.hpp
 		src/db/sql.hpp
+		src/models/user.hpp
+		src/models/user.cpp
 )
+
+include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 target_link_libraries(${PROJECT_NAME}_objs PUBLIC userver-core userver-postgresql)
 
 
