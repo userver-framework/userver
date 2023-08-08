@@ -1,4 +1,5 @@
 #include "user.hpp"
+#include <userver/formats/serialize/common_containers.hpp>
 
 namespace real_medium::models {
 
@@ -14,4 +15,4 @@ userver::formats::json::Value Serialize(
   return item.ExtractValue();
 }
 
-}
+}  // namespace real_medium::models
