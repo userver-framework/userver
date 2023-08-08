@@ -16,17 +16,18 @@
 
 namespace real_medium::handlers::users::post {
 
-class Handler final : public userver::server::handlers::HttpHandlerBase {
+class RegisterUser final : public userver::server::handlers::HttpHandlerBase {
  public:
-  static constexpr std::string_view kName = "handler-users";
-  Handler(const userver::components::ComponentConfig& config,
-        const userver::components::ComponentContext& component_context);
+  static constexpr std::string_view kName = "handler-register-user";
+  RegisterUser(const userver::components::ComponentConfig& config,
+               const userver::components::ComponentContext& component_context);
   std::string HandleRequestThrow(
       const userver::server::http::HttpRequest& request,
       userver::server::request::RequestContext&) const override;
   using HttpHandlerBase::HttpHandlerBase;
+
  private:
   userver::storages::postgres::ClusterPtr pg_cluster_;
 };
 
-} // namespace real_medium::handlers::users::post
+}  // namespace real_medium::handlers::users::post
