@@ -1,3 +1,3 @@
-namespace real_medium::db::sql {
+namespace real_medium::sql {
 
 }
