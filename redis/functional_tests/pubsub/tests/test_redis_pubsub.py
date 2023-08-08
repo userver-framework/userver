@@ -1,7 +1,5 @@
 import asyncio
 
-import pytest
-
 import redis
 
 # Some messages may be lost (it's a Redis limitation)
@@ -38,7 +36,6 @@ async def test_happy_path_sentinel(service_client, redis_store):
     assert await _validate_pubsub(redis_store, service_client, msg, 'sentinel')
 
 
-@pytest.mark.skip(reason='Flaps, fix in TAXICOMMON-6778')
 async def test_happy_path_cluster(service_client, redis_cluster_store):
     async def _test_pubsub(port_number, prefix):
         msg = f'{prefix}_{port_number}'
