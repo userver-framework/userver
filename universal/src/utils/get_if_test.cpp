@@ -37,6 +37,7 @@ TEST(GetIf, Basic) {
   {
     A a{};
     EXPECT_EQ(utils::GetIf(a, &A::b), &a.b);
+    EXPECT_EQ(UOPT_DEREF(a, b), &a.b);
   }
 
   {
@@ -47,41 +48,49 @@ TEST(GetIf, Basic) {
   {
     A a{};
     EXPECT_EQ(utils::GetIf(&a, &A::b), &a.b);
+    EXPECT_EQ(UOPT_DEREF(&a, b), &a.b);
   }
 
   {
     A* a = nullptr;
     EXPECT_EQ(utils::GetIf(a, &A::b), static_cast<B*>(nullptr));
+    EXPECT_EQ(UOPT_DEREF(a, b), static_cast<B*>(nullptr));
   }
 
   {
     auto a = std::make_optional<A>();
     EXPECT_EQ(utils::GetIf(a, &A::b), &a->b);
+    EXPECT_EQ(UOPT_DEREF(a, b), &a->b);
   }
 
   {
     std::optional<A> a;
     EXPECT_EQ(utils::GetIf(a, &A::b), static_cast<B*>(nullptr));
+    EXPECT_EQ(UOPT_DEREF(a, b), static_cast<B*>(nullptr));
   }
 
   {
     auto a = std::make_unique<A>();
     EXPECT_EQ(utils::GetIf(a, &A::b), &a->b);
+    EXPECT_EQ(UOPT_DEREF(a, b), &a->b);
   }
 
   {
     std::unique_ptr<A> a;
     EXPECT_EQ(utils::GetIf(a, &A::b), static_cast<B*>(nullptr));
+    EXPECT_EQ(UOPT_DEREF(a, b), static_cast<B*>(nullptr));
   }
 
   {
     auto a = std::make_shared<A>();
     EXPECT_EQ(utils::GetIf(a, &A::b), &a->b);
+    EXPECT_EQ(UOPT_DEREF(a, b), &a->b);
   }
 
   {
     std::shared_ptr<A> a;
     EXPECT_EQ(utils::GetIf(a, &A::b), static_cast<B*>(nullptr));
+    EXPECT_EQ(UOPT_DEREF(a, b), static_cast<B*>(nullptr));
   }
 }
 
@@ -97,19 +106,27 @@ TEST(GetIf, Chain) {
 
   auto a = std::make_optional<A>();
   EXPECT_EQ(utils::GetIf(a, &A::b, &B::c), a->b->c.get());
+  EXPECT_EQ(UOPT_DEREF(a, b, c), a->b->c.get());
   EXPECT_EQ(utils::GetIf(a, &A::b), a->b.get());
+  EXPECT_EQ(UOPT_DEREF(a, b), a->b.get());
   EXPECT_EQ(utils::GetIf(a), &*a);
   a->b->c.reset();
   EXPECT_EQ(utils::GetIf(a, &A::b, &B::c), static_cast<C*>(nullptr));
+  EXPECT_EQ(UOPT_DEREF(a, b, c), static_cast<C*>(nullptr));
   EXPECT_EQ(utils::GetIf(a, &A::b), a->b.get());
+  EXPECT_EQ(UOPT_DEREF(a, b), a->b.get());
   EXPECT_EQ(utils::GetIf(a), &*a);
   a->b.reset();
   EXPECT_EQ(utils::GetIf(a, &A::b, &B::c), static_cast<C*>(nullptr));
+  EXPECT_EQ(UOPT_DEREF(a, b, c), static_cast<C*>(nullptr));
   EXPECT_EQ(utils::GetIf(a, &A::b), static_cast<B*>(nullptr));
+  EXPECT_EQ(UOPT_DEREF(a, b), static_cast<B*>(nullptr));
   EXPECT_EQ(utils::GetIf(a), &*a);
   a.reset();
   EXPECT_EQ(utils::GetIf(a, &A::b, &B::c), static_cast<C*>(nullptr));
+  EXPECT_EQ(UOPT_DEREF(a, b, c), static_cast<C*>(nullptr));
   EXPECT_EQ(utils::GetIf(a, &A::b), static_cast<B*>(nullptr));
+  EXPECT_EQ(UOPT_DEREF(a, b), static_cast<B*>(nullptr));
   EXPECT_EQ(utils::GetIf(a), static_cast<A*>(nullptr));
   /// [Sample Usage]
 }
@@ -123,15 +140,19 @@ TEST(GetIf, DoubleIndirection) {
   {
     A a;
     EXPECT_EQ(utils::GetIf(a, &A::b), &**a.b);
+    EXPECT_EQ(UOPT_DEREF(a, b), &**a.b);
     a.b->reset();
     EXPECT_EQ(utils::GetIf(a, &A::b), static_cast<B*>(nullptr));
+    EXPECT_EQ(UOPT_DEREF(a, b), static_cast<B*>(nullptr));
   }
 
   {
     A a;
     EXPECT_EQ(utils::GetIf(a, &A::b), &**a.b);
+    EXPECT_EQ(UOPT_DEREF(a, b), &**a.b);
     a.b.reset();
     EXPECT_EQ(utils::GetIf(a, &A::b), static_cast<B*>(nullptr));
+    EXPECT_EQ(UOPT_DEREF(a, b), static_cast<B*>(nullptr));
   }
 }
 
@@ -186,6 +207,7 @@ TEST(GetIf, RawPtr) {
   B b;
   A a{&b};
   EXPECT_EQ(utils::GetIf(a, &A::b), &b);
+  EXPECT_EQ(UOPT_DEREF(a, b), &b);
 }
 
 TEST(GetIf, FreeFunction) {
@@ -223,6 +245,12 @@ TEST(GetIf, PerfectForwarding) {
   EXPECT_EQ(utils::GetIf(std::as_const(b), a), a.c + 1);
   EXPECT_EQ(utils::GetIf(std::move(b), a), a.c + 2);
   EXPECT_EQ(utils::GetIf(std::move(std::as_const(b)), a), a.c + 3);
+}
+
+TEST(GetIf, OptDeref) {
+    struct Y {};
+    struct X { Y y; Y& f() { return y; } } x;
+    EXPECT_EQ(UOPT_DEREF(x, f), &x.y);
 }
 
 USERVER_NAMESPACE_END

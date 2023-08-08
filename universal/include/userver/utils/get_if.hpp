@@ -23,6 +23,38 @@ using IsPointerLike =
 template <typename T>
 inline constexpr bool kIsPointerLike = meta::kIsDetected<IsPointerLike, T>;
 
+#define UPARENS ()
+
+#define UEXPAND(...) UEXPAND4(UEXPAND4(UEXPAND4(UEXPAND4(__VA_ARGS__))))
+#define UEXPAND4(...) UEXPAND3(UEXPAND3(UEXPAND3(UEXPAND3(__VA_ARGS__))))
+#define UEXPAND3(...) UEXPAND2(UEXPAND2(UEXPAND2(UEXPAND2(__VA_ARGS__))))
+#define UEXPAND2(...) UEXPAND1(UEXPAND1(UEXPAND1(UEXPAND1(__VA_ARGS__))))
+#define UEXPAND1(...) __VA_ARGS__
+
+#define UFOR_EACH(macro, ...)                                    \
+  __VA_OPT__(UEXPAND(UFOR_EACH_HELPER(macro, __VA_ARGS__)))
+#define UFOR_EACH_HELPER(macro, arg, ...)                         \
+  macro(arg)                                                     \
+  __VA_OPT__(UFOR_EACH_AGAIN UPARENS (macro, __VA_ARGS__))
+#define UFOR_EACH_AGAIN() UFOR_EACH_HELPER
+
+#define UMEMBER_ACCESS(member) , \
+[]<typename T>(T* clazz) constexpr -> auto* \
+{ \
+    return utils::GetIf(clazz, &T::member); \
+}
+
+template<typename Prev, typename Curr, typename... Next>
+constexpr auto* OptDeref(Prev* prev, Curr curr, Next... next)
+{
+    auto* clazz = curr(prev);
+    if constexpr (sizeof...(next) == 0) {
+        return clazz;
+    } else {
+        return OptDeref(clazz, next...);
+    }
+}
+
 }  // namespace impl
 
 template <typename Leaf>
@@ -51,6 +83,14 @@ constexpr auto* GetIf(Root&& root, Head&& head, Tail&&... tail) {
         std::forward<Tail>(tail)...);
   }
 }
+
+/// @brief Dereferences a chain of indirections and compositions,
+/// returns nullptr if one of the chain elements is not set
+///
+/// @snippet universal/src/utils/get_if_test.cpp Sample Usage
+
+#define UOPT_DEREF(first, ...) \
+    utils::impl::OptDeref(utils::GetIf(first) UFOR_EACH(UMEMBER_ACCESS, __VA_ARGS__))
 
 }  // namespace utils
 
