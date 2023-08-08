@@ -32,6 +32,8 @@ add_library(${PROJECT_NAME}_objs OBJECT
 		src/handlers/articles/articles_put.hpp
 		src/dto/profile.cpp
 		src/dto/profile.hpp
+		src/dto/user.hpp
+		src/dto/user.cpp
 		src/db/sql.hpp
 		src/models/user.hpp
 		src/models/user.cpp
