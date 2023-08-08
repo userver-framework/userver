@@ -32,6 +32,7 @@ add_library(${PROJECT_NAME}_objs OBJECT
 		src/handlers/articles/articles_put.hpp
 		src/dto/profile.cpp
 		src/dto/profile.hpp
+		src/db/sql.hpp
 )
 target_link_libraries(${PROJECT_NAME}_objs PUBLIC userver-core userver-postgresql)
 
