@@ -8,11 +8,12 @@
 #include <userver/components/component_config.hpp>
 #include <userver/components/component_context.hpp>
 
+#include "dto/user.hpp"
 #include "validators/user_validators.hpp"
 #include "models/user.hpp"
 #include "db/sql.hpp"
 
-namespace real_medium::handlers::api::users_login::post {
+namespace real_medium::handlers::users_login::post {
 
 namespace {
 
@@ -31,28 +32,26 @@ public:
   std::string HandleRequestThrow(
       const userver::server::http::HttpRequest &request,
       userver::server::request::RequestContext &) const override {
-    auto request_body = userver::formats::json::FromString(request.RequestBody());
-    auto email = request_body["email"].As<std::string>();
-    auto password = request_body["password"].As<std::string>();
+    auto user_login = userver::formats::json::FromString(request.RequestBody())["user"].As<dto::UserLoginDTO>();
 
-    if (!validators::ValidateEmail(email)) {
+    if (!validators::ValidateEmail(user_login.email)) {
       auto &response = request.GetHttpResponse();
       response.SetStatus(userver::server::http::HttpStatus::kUnprocessableEntity);
       return {};
     }
 
-    if (!validators::ValidatePassword(password)) {
+    if (!validators::ValidatePassword(user_login.password)) {
       auto& response = request.GetHttpResponse();
       response.SetStatus(userver::server::http::HttpStatus::kUnprocessableEntity);
       return {};
     }
 
-    auto password_hash = userver::crypto::hash::Sha256(password);
+    auto password_hash = userver::crypto::hash::Sha256(user_login.password);
 
     auto userResult = pg_cluster_->Execute(
         userver::storages::postgres::ClusterHostType::kMaster,
         sql::kSelectUserByEmailAndPassword.data(),
-        email, password_hash);
+        user_login.email, password_hash);
 
     if (userResult.IsEmpty()) {
       auto &response = request.GetHttpResponse();

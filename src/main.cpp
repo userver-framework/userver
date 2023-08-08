@@ -10,6 +10,7 @@
 #include "handlers/profiles/profiles.hpp"
 #include "handlers/tags/tags.hpp"
 #include "handlers/users/users.hpp"
+#include "handlers/users/users_login.hpp"
 
 using namespace real_medium::handlers;
 
@@ -25,6 +26,8 @@ int main(int argc, char* argv[]) {
           .Append<real_medium::handlers::users::post::RegisterUser>()
           .Append<real_medium::handlers::profiles::get::Handler>()
           .Append<real_medium::handlers::tags::get::Handler>();
+          
+  users_login::post::AppendLoginUser(component_list);
 
   return userver::utils::DaemonMain(argc, argv, component_list);
 }
