@@ -2,10 +2,10 @@
 #include <string_view>
 #include <fmt/format.h>
 
-#include <userver/server/handlers/http_handler_base.hpp>
 #include "profiles.hpp"
+#include "userver/server/handlers/http_handler_base.hpp"
 
-namespace real_medium {
+namespace real_medium::handlers::profiles::get {
 
 class Profiles final : public userver::server::handlers::HttpHandlerBase {
  public:
@@ -20,8 +20,4 @@ class Profiles final : public userver::server::handlers::HttpHandlerBase {
   }
 };
 
-void AppendProfiles(userver::components::ComponentList &component_list) {
-  component_list.Append<Profiles>();
-}
-
-} // namespace service_template
+} // namespace real_medium::handlers::profiles::get

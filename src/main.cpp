@@ -7,9 +7,11 @@
 #include <userver/testsuite/testsuite_support.hpp>
 #include <userver/utils/daemon_run.hpp>
 
-#include "handlers/profiles.hpp"
-#include "handlers/users.hpp"
-#include "handlers/tags.hpp"
+#include "handlers/profiles/profiles.hpp"
+#include "handlers/tags/tags.hpp"
+#include "handlers/users/users.hpp"
+
+using namespace real_medium::handlers;
 
 int main(int argc, char* argv[]) {
   auto component_list = userver::components::MinimalServerComponentList()
@@ -18,11 +20,9 @@ int main(int argc, char* argv[]) {
                             .Append<userver::components::HttpClient>()
                             .Append<userver::components::Postgres>("realworld-database")
                             .Append<userver::clients::dns::Component>()
-                            .Append<userver::server::handlers::TestsControl>();
-
-  real_medium::AppendProfiles(component_list);
-  real_medium::AppendUsers(component_list);
-  real_medium::AppendGetTags(component_list);
+                            .Append<userver::server::handlers::TestsControl>()
+                            .Append<real_medium::handlers::users::post::Handler>()
+                            .Append<real_medium::handlers::tags::get::Handler>();
 
   return userver::utils::DaemonMain(argc, argv, component_list);
 }

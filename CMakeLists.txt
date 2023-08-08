@@ -10,14 +10,28 @@ option(JWT_BUILD_EXAMPLES OFF)
 
 # Common sources
 add_library(${PROJECT_NAME}_objs OBJECT
-	src/handlers/profiles.cpp
-	src/handlers/profiles.hpp
-	src/handlers/users.cpp
-	src/handlers/users.hpp
-	src/handlers/tags.cpp
-	src/handlers/tags.hpp
-	src/dto/profile.cpp
-	src/dto/profile.hpp
+		src/handlers/profiles/profiles.cpp
+		src/handlers/profiles/profiles.hpp
+		src/handlers/users/users.cpp
+		src/handlers/users/users.hpp
+		src/handlers/tags/tags.cpp
+		src/handlers/tags/tags.hpp
+		src/handlers/users/users_login.cpp
+		src/handlers/users/users_login.hpp
+		src/handlers/users/user_get.cpp
+		src/handlers/users/user_get.hpp
+		src/handlers/users/user_put.cpp
+		src/handlers/users/user_put.hpp
+		src/handlers/profiles/profiles_follow.cpp
+		src/handlers/profiles/profiles_follow.hpp
+		src/handlers/profiles/profiles_follow_delete.cpp
+		src/handlers/profiles/profiles_follow_delete.hpp
+		src/handlers/articles/articles_get.cpp
+		src/handlers/articles/articles_get.hpp
+		src/handlers/articles/articles_put.cpp
+		src/handlers/articles/articles_put.hpp
+		src/dto/profile.cpp
+		src/dto/profile.hpp
 )
 target_link_libraries(${PROJECT_NAME}_objs PUBLIC userver-core userver-postgresql)
 
