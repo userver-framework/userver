@@ -14,16 +14,17 @@
 using namespace real_medium::handlers;
 
 int main(int argc, char* argv[]) {
-  auto component_list = userver::components::MinimalServerComponentList()
-                            .Append<userver::server::handlers::Ping>()
-                            .Append<userver::components::TestsuiteSupport>()
-                            .Append<userver::components::HttpClient>()
-                            .Append<userver::components::Postgres>("realmedium-database")
-                            .Append<userver::clients::dns::Component>()
-                            .Append<userver::server::handlers::TestsControl>()
-                            .Append<real_medium::handlers::users::post::Handler>()
-                            .Append<real_medium::handlers::profiles::get::Handler>()
-                            .Append<real_medium::handlers::tags::get::Handler>();
+  auto component_list =
+      userver::components::MinimalServerComponentList()
+          .Append<userver::server::handlers::Ping>()
+          .Append<userver::components::TestsuiteSupport>()
+          .Append<userver::components::HttpClient>()
+          .Append<userver::components::Postgres>("realmedium-database")
+          .Append<userver::clients::dns::Component>()
+          .Append<userver::server::handlers::TestsControl>()
+          .Append<real_medium::handlers::users::post::RegisterUser>()
+          .Append<real_medium::handlers::profiles::get::Handler>()
+          .Append<real_medium::handlers::tags::get::Handler>();
 
   return userver::utils::DaemonMain(argc, argv, component_list);
 }
