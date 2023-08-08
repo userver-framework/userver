@@ -9,8 +9,8 @@ userver::formats::json::Value Serialize(
   item["email"] = user.email;
   item["username"] = user.username;
   item["token"] = "token";
-  if (user.bio) item["bio"] = *user.bio;
-  if (user.image) item["image"] = *user.image;
+  item["bio"] = user.bio;
+  item["image"] = user.image;
   return item.ExtractValue();
 }
 
