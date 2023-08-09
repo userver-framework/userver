@@ -19,4 +19,15 @@ UserLoginDTO Parse(const userver::formats::json::Value& json,
   };
 }
 
+UserUpdateDTO Parse(const userver::formats::json::Value& json,
+                 userver::formats::parse::To<UserUpdateDTO>) {
+  return UserUpdateDTO{
+      json["email"].As<std::optional<std::string>>(),
+      json["username"].As<std::optional<std::string>>(),
+      json["password"].As<std::optional<std::string>>(),
+      json["image"].As<std::optional<std::string>>(),
+      json["bio"].As<std::optional<std::string>>(),
+  };
+}
+
 }

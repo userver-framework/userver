@@ -15,4 +15,21 @@ SELECT * FROM real_medium.users
 WHERE email = $1 AND password_hash = $2
 )~";
 
+inline constexpr std::string_view kUpdateUser = R"~(
+UPDATE real_medium.users SET 
+  username = COALESCE($2, username),
+  email = COALESCE($3, email),
+  bio = COALESCE($4, bio),
+  image = COALESCE($5, image),
+  password_hash = COALESCE($6, password_hash)
+WHERE user_id = $1
+RETURNING *
+)~";
+
+inline constexpr std::string_view kFindUserById = R"~(
+SELECT * FROM real_medium.users WHERE user_id = $1     
+)~"; 
+
+
+
 }
