@@ -504,6 +504,15 @@ logging::LogExtra LogRequestExtra(bool need_log_request_headers,
   return log_extra;
 }
 
+std::unordered_map<int, logging::Level> ParseStatusCodesLogLevel(
+    const std::unordered_map<std::string, std::string>& codes) {
+  std::unordered_map<int, logging::Level> result;
+  for (const auto& [key, value] : codes) {
+    result[utils::FromString<int>(key)] = logging::LevelFromString(value);
+  }
+  return result;
+}
+
 }  // namespace
 
 HttpHandlerBase::HttpHandlerBase(const components::ComponentConfig& config,
@@ -517,6 +526,9 @@ HttpHandlerBase::HttpHandlerBase(const components::ComponentConfig& config,
       tracing_manager_(
           context.FindComponent<tracing::DefaultTracingManagerLocator>()
               .GetTracingManager()),
+      log_level_for_status_codes_(ParseStatusCodesLogLevel(
+          config["status-codes-log-level"]
+              .As<std::unordered_map<std::string, std::string>>({}))),
       handler_statistics_(std::make_unique<HttpHandlerStatistics>()),
       request_statistics_(std::make_unique<HttpRequestStatistics>()),
       auth_checkers_(auth::CreateAuthCheckers(
@@ -789,7 +801,11 @@ HttpRequestStatistics& HttpHandlerBase::GetRequestStatistics() const {
 
 logging::Level HttpHandlerBase::GetLogLevelForResponseStatus(
     http::HttpStatus status) const {
-  auto status_code = static_cast<int>(status);
+  const auto status_code = static_cast<int>(status);
+  const auto* const level =
+      utils::FindOrNullptr(log_level_for_status_codes_, status_code);
+  if (level) return *level;
+
   if (status_code >= 400 && status_code <= 499) return logging::Level::kWarning;
   if (status_code >= 500 && status_code <= 599) return logging::Level::kError;
   return logging::Level::kInfo;
@@ -1001,6 +1017,13 @@ properties:
         type: string
         description: overrides log level for this handle
         defaultDescription: <no override>
+    status-codes-log-level:
+        type: object
+        properties: {}
+        additionalProperties:
+            type: string
+            description: log level
+        description: HTTP status code -> log level map
 )");
 }
 
