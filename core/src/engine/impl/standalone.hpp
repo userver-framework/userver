@@ -46,7 +46,8 @@ class TaskProcessorHolder final {
   utils::UniqueRef<TaskProcessor> task_processor_;
 };
 
-void RunOnTaskProcessorSync(TaskProcessor& tp, std::function<void()> user_cb);
+void RunOnTaskProcessorSync(TaskProcessor& tp,
+                            utils::function_ref<void()> user_cb);
 
 }  // namespace engine::impl
 

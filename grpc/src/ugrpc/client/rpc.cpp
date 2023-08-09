@@ -45,12 +45,16 @@ void UnaryFuture::Get() {
 
 bool UnaryFuture::IsReady() const noexcept { return impl_.IsReady(); }
 
+namespace impl {
+
 void CallMiddlewares(const Middlewares& mws, CallAnyBase& call,
-                     std::function<void()> user_call,
+                     utils::function_ref<void()> user_call,
                      const ::google::protobuf::Message* request) {
-  MiddlewareCallContext mw_ctx(mws, call, std::move(user_call), request);
+  MiddlewareCallContext mw_ctx(mws, call, user_call, request);
   mw_ctx.Next();
 }
+
+}  // namespace impl
 
 grpc::ClientContext& CallAnyBase::GetContext() { return data_->GetContext(); }
 

@@ -5,6 +5,7 @@
 #include <userver/dynamic_config/snapshot.hpp>
 #include <userver/engine/mutex.hpp>
 #include <userver/rcu/rcu.hpp>
+#include <userver/utils/function_ref.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -14,7 +15,7 @@ class StorageData final {
  public:
   using SnapshotChannel = concurrent::AsyncEventChannel<const Snapshot&>;
   using DiffChannel = concurrent::AsyncEventChannel<const Diff&>;
-  using AfterAssignHook = std::function<void()>;
+  using AfterAssignHook = utils::function_ref<void()>;
 
   StorageData();
   explicit StorageData(SnapshotData config);

@@ -6,10 +6,11 @@
 #include <memory>
 #include <vector>
 
+#include <userver/components/loggable_component_base.hpp>
+#include <userver/utils/function_ref.hpp>
+
 #include <userver/ugrpc/server/middlewares/fwd.hpp>
 #include <userver/ugrpc/server/rpc.hpp>
-
-#include <userver/components/loggable_component_base.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -20,19 +21,11 @@ class MiddlewareCallContext final {
  public:
   /// @cond
   MiddlewareCallContext(const Middlewares& middlewares, CallAnyBase& call,
-                        std::function<void()> user_call,
+                        utils::function_ref<void()> user_call,
                         std::string_view service_name,
                         std::string_view method_name,
                         const dynamic_config::Snapshot& config,
-                        const ::google::protobuf::Message* request)
-      : middleware_(middlewares.begin()),
-        middleware_end_(middlewares.end()),
-        user_call_(std::move(user_call)),
-        call_(call),
-        service_name_(service_name),
-        method_name_(method_name),
-        config_(config),
-        request_(request) {}
+                        const ::google::protobuf::Message* request);
   /// @endcond
 
   /// @brief Call next plugin, or gRPC handler if none
@@ -60,7 +53,7 @@ class MiddlewareCallContext final {
 
   Middlewares::const_iterator middleware_;
   Middlewares::const_iterator middleware_end_;
-  std::function<void()> user_call_;
+  utils::function_ref<void()> user_call_;
 
   CallAnyBase& call_;
 

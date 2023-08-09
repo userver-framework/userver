@@ -179,7 +179,6 @@ class CallData final {
         initial_request = &initial_request_;
       }
 
-      // TODO: pass responder as function_ref?
       auto& middlewares = method_data_.service_data.settings.middlewares;
       MiddlewareCallContext middleware_context(
           middlewares, responder, do_call, service_name, method_name,

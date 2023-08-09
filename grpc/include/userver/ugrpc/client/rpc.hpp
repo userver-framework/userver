@@ -12,6 +12,7 @@
 
 #include <userver/dynamic_config/snapshot.hpp>
 #include <userver/utils/assert.hpp>
+#include <userver/utils/function_ref.hpp>
 
 #include <userver/ugrpc/client/exceptions.hpp>
 #include <userver/ugrpc/client/impl/async_methods.hpp>
@@ -388,11 +389,13 @@ class [[nodiscard]] BidirectionalStream final : public CallAnyBase {
   impl::RawReaderWriter<Request, Response> stream_;
 };
 
-void CallMiddlewares(const Middlewares& mws, CallAnyBase& call,
-                     std::function<void()> user_call,
-                     const ::google::protobuf::Message* request);
-
 // ========================== Implementation follows ==========================
+
+namespace impl {
+void CallMiddlewares(const Middlewares& mws, CallAnyBase& call,
+                     utils::function_ref<void()> user_call,
+                     const ::google::protobuf::Message* request);
+}  // namespace impl
 
 template <typename RPC>
 StreamReadFuture<RPC>::StreamReadFuture(
@@ -455,7 +458,7 @@ UnaryCall<Response>::UnaryCall(
     impl::RawResponseReaderPreparer<Stub, Request, Response> prepare_func,
     const Request& req)
     : CallAnyBase(std::move(params)) {
-  CallMiddlewares(
+  impl::CallMiddlewares(
       GetData().GetMiddlewares(), *this,
       [&] {
         reader_ = (stub.*prepare_func)(&GetData().GetContext(), req,
@@ -492,7 +495,7 @@ InputStream<Response>::InputStream(
     impl::RawReaderPreparer<Stub, Request, Response> prepare_func,
     const Request& req)
     : CallAnyBase(std::move(params)) {
-  CallMiddlewares(
+  impl::CallMiddlewares(
       GetData().GetMiddlewares(), *this,
       [&] {
         stream_ = (stub.*prepare_func)(&GetData().GetContext(), req,
@@ -522,7 +525,7 @@ OutputStream<Request, Response>::OutputStream(
     impl::RawWriterPreparer<Stub, Request, Response> prepare_func)
     : CallAnyBase(std::move(params)),
       final_response_(std::make_unique<Response>()) {
-  CallMiddlewares(
+  impl::CallMiddlewares(
       GetData().GetMiddlewares(), *this,
       [&] {
         // 'final_response_' will be filled upon successful 'Finish' async call
@@ -573,7 +576,7 @@ BidirectionalStream<Request, Response>::BidirectionalStream(
     impl::CallParams&& params, Stub& stub,
     impl::RawReaderWriterPreparer<Stub, Request, Response> prepare_func)
     : CallAnyBase(std::move(params)) {
-  CallMiddlewares(
+  impl::CallMiddlewares(
       GetData().GetMiddlewares(), *this,
       [&] {
         stream_ = (stub.*prepare_func)(&GetData().GetContext(),

@@ -11,6 +11,7 @@
 #include <userver/engine/io/common.hpp>
 #include <userver/engine/io/exception.hpp>
 #include <userver/utils/fast_pimpl.hpp>
+#include <userver/utils/function_ref.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -59,7 +60,7 @@ class BufferedReader final {
 
   /// @brief Reads the stream until the predicate returns `true`.
   /// @param pred predicate that will be called for each byte read and EOF.
-  std::string ReadUntil(const std::function<bool(int)>& pred,
+  std::string ReadUntil(utils::function_ref<bool(int) const> pred,
                         Deadline deadline = {});
 
   /// Reads one byte from the stream or reports an EOF (-1).

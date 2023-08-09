@@ -8,11 +8,19 @@ MiddlewareBase::MiddlewareBase() = default;
 
 MiddlewareBase::~MiddlewareBase() = default;
 
-void MiddlewareCallContext::Next() {
-  UASSERT_MSG(user_call_, "MiddlewareCallContext must be used only once");
+MiddlewareCallContext::MiddlewareCallContext(
+    const Middlewares& middlewares, CallAnyBase& call,
+    utils::function_ref<void()> user_call,
+    const ::google::protobuf::Message* request)
+    : middleware_(middlewares.begin()),
+      middleware_end_(middlewares.end()),
+      user_call_(user_call),
+      call_(call),
+      request_(request) {}
 
+void MiddlewareCallContext::Next() {
   if (middleware_ == middleware_end_) {
-    user_call_();
+    (*user_call_)();
     user_call_ = {};
   } else {
     // NOLINTNEXTLINE(readability-qualified-auto)

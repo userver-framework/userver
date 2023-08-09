@@ -77,7 +77,7 @@ class Server::Impl final {
 
   std::vector<std::string_view> GetServiceNames() const;
 
-  void WithServerBuilder(SetupHook&& setup);
+  void WithServerBuilder(SetupHook setup);
 
   grpc::CompletionQueue& GetCompletionQueue() noexcept;
 
@@ -184,7 +184,7 @@ std::vector<std::string_view> Server::Impl::GetServiceNames() const {
   return ret;
 }
 
-void Server::Impl::WithServerBuilder(SetupHook&& setup) {
+void Server::Impl::WithServerBuilder(SetupHook setup) {
   std::lock_guard lock(configuration_mutex_);
   UASSERT(state_ == State::kConfiguration);
 
@@ -281,8 +281,8 @@ std::vector<std::string_view> Server::GetServiceNames() const {
   return impl_->GetServiceNames();
 }
 
-void Server::WithServerBuilder(SetupHook&& setup) {
-  impl_->WithServerBuilder(std::move(setup));
+void Server::WithServerBuilder(SetupHook setup) {
+  impl_->WithServerBuilder(setup);
 }
 
 grpc::CompletionQueue& Server::GetCompletionQueue() noexcept {

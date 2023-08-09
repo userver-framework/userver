@@ -4,12 +4,14 @@
 /// @brief @copybrief ugrpc::client::MiddlewareBase
 
 #include <memory>
+#include <optional>
 #include <vector>
+
+#include <userver/components/loggable_component_base.hpp>
+#include <userver/utils/function_ref.hpp>
 
 #include <userver/ugrpc/client/middlewares/fwd.hpp>
 #include <userver/ugrpc/client/rpc.hpp>
-
-#include <userver/components/loggable_component_base.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -25,13 +27,8 @@ class MiddlewareCallContext final {
  public:
   /// @cond
   MiddlewareCallContext(const Middlewares& middlewares, CallAnyBase& call,
-                        std::function<void()> user_call,
-                        const ::google::protobuf::Message* request)
-      : middleware_(middlewares.begin()),
-        middleware_end_(middlewares.end()),
-        user_call_(std::move(user_call)),
-        call_(call),
-        request_(request) {}
+                        utils::function_ref<void()> user_call,
+                        const ::google::protobuf::Message* request);
   /// @endcond
 
   /// @brief Call next plugin, or gRPC handler if none
@@ -47,7 +44,7 @@ class MiddlewareCallContext final {
  private:
   Middlewares::const_iterator middleware_;
   Middlewares::const_iterator middleware_end_;
-  std::function<void()> user_call_;
+  std::optional<utils::function_ref<void()>> user_call_;
 
   CallAnyBase& call_;
   const ::google::protobuf::Message* request_;
