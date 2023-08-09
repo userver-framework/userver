@@ -1,4 +1,6 @@
 #include "user.hpp"
+#include "utils/jwt.hpp"
+
 #include <userver/formats/serialize/common_containers.hpp>
 
 namespace real_medium::models {
@@ -9,7 +11,7 @@ userver::formats::json::Value Serialize(
   userver::formats::json::ValueBuilder item;
   item["email"] = user.email;
   item["username"] = user.username;
-  item["token"] = "token";
+  item["token"] = utils::jwt::GenerateJWT(user.id);
   item["bio"] = user.bio;
   item["image"] = user.image;
   return item.ExtractValue();

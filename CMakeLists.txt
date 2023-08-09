@@ -6,6 +6,9 @@ include(GNUInstallDirs)
 
 add_subdirectory(third_party/userver)
 
+add_subdirectory(third_party/cpp-jwt)
+
+
 option(JWT_BUILD_EXAMPLES OFF)
 
 # Common sources
@@ -47,11 +50,17 @@ add_library(${PROJECT_NAME}_objs OBJECT
 		src/validators/user_validators.cpp
 		src/utils/make_error.hpp
 		src/utils/make_error.cpp
+		src/utils/jwt.hpp
+		src/utils/jwt.cpp
+		src/handlers/auth/auth_bearer.hpp
+		src/handlers/auth/auth_bearer.cpp
 )
 
 include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 target_link_libraries(${PROJECT_NAME}_objs PUBLIC userver-core userver-postgresql)
 
+target_include_directories(${PROJECT_NAME}_objs PUBLIC cpp-jwt)
+target_link_libraries(${PROJECT_NAME}_objs PUBLIC cpp-jwt)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/cmake")
 find_package(ICU 4.4 COMPONENTS io i18n REQUIRED)

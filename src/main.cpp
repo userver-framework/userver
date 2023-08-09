@@ -11,6 +11,7 @@
 #include "handlers/tags/tags.hpp"
 #include "handlers/users/users.hpp"
 #include "handlers/users/users_login.hpp"
+#include "handlers/auth/auth_bearer.hpp"
 
 #include "handlers/users/user_get.hpp"
 #include "handlers/users/user_put.hpp"
@@ -19,6 +20,9 @@
 using namespace real_medium::handlers;
 
 int main(int argc, char* argv[]) {
+   userver::server::handlers::auth::RegisterAuthCheckerFactory(
+      "bearer", std::make_unique<real_medium::auth::CheckerFactory>());
+
   auto component_list =
       userver::components::MinimalServerComponentList()
           .Append<userver::server::handlers::Ping>()

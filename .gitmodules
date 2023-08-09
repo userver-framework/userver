@@ -1,3 +1,6 @@
 [submodule "third_party/userver"]
 	path = third_party/userver
 	url = https://github.com/userver-framework/userver.git
+[submodule "cpp-jwt"]
+	path = third_party/cpp-jwt
+	url = https://github.com/arun11299/cpp-jwt
