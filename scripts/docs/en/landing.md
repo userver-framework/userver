@@ -1,16 +1,10 @@
-\htmlonly
-<script type="text/javascript">
-  document.body.style.backgroundColor = 'black';
-  document.getElementById('titlearea').style.display = 'none';
-  document.getElementsByClassName('header')[0].style.display = 'none';
-</script>
-\endhtmlonly
-
-<div class="landing-description">The C++ Asynchronous Framework</div>
+<div id='mainDescription'>
+<div id='landing-content' style="text-align: center; padding-bottom: 30px 0">
+<div class="landing-description" style="font-size: 32px;">The C++ Asynchronous Framework</div>
 
 \htmlonly
-<div class="landing-logo" id='landing_logo_id'>
-  <a href="de/d6a/md_en_2index.html"><img src='/logo.svg' alt='userver logo big'/></a>
+<div class="landing-logo" id='landing_logo_id' style="text-align: center;">
+  <a href="de/d6a/md_en_2index.html"><img src='logo.svg' alt='userver logo big' style='width: 400px'/></a>
 </div>
 \endhtmlonly
 
@@ -95,13 +89,24 @@ std::size_t Ins(storages::postgres::Transaction& tr, std::string_view key) {
   
     \htmlonly
     <a href="https://github.com/userver-framework/" rel="noopener" target="_blank" class="titlelink">
-      <img src="/github_logo.svg"  width="48" height="48" style="filter: invert(100%);" alt="Github"/>
+      <img src="github_logo.svg"  width="48" height="48" class="gh-logo" alt="Github"/>
     </a>
     &nbsp;
     <a href="https://t.me/userver_en" rel="noopener" id='telegram_channel' target="_blank" class="titlelink">
-      <img src="/telegram_logo.svg"  width="48" height="48" alt="Telegram"/>
+      <img src="telegram_logo.svg"  width="48" height="48" alt="Telegram"/>
     </a>
     \endhtmlonly
   </div>
 
 </div>
+</div>
+</div>
+
+\htmlonly
+<script type="text/javascript">
+  document.getElementById('side-nav').style.display = 'none';
+  document.getElementById('titlearea').style.display = 'none';
+  document.getElementById('mainDescription').closest('#doc-content').removeAttribute('id')
+  document.getElementsByClassName('header')[0].style.display = 'none';
+</script>
+\endhtmlonly
