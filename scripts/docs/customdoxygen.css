@@ -1,52 +1,3 @@
-/* Keep the menu background black */
-.sm-dox {
-    background-image:none;
-    background-color: black;
-    color: white;
-}
-
-.sm-dox ul a,
-.sm-dox ul a:focus,
-.sm-dox ul a:hover,
-.sm-dox ul a:active,
-.sm-dox a,
-.sm-dox a:focus,
-.sm-dox a:hover,
-.sm-dox a:active
-{
-    color: #F7F7F7;
-	  background-color: black;
-    text-shadow:none;
-}
-
-.sm-dox ul {
-    border:none;
-    background: black;
-}
-
-.main-nav-landing {
-    margin-bottom: 75px;
-    margin-top: 7px;
-}
-
-/* Sticky menu */
-@media (min-width: 768px) {
-    .stickyHeader {
-      position: fixed;
-      top: 0;
-      width: 100%;
-    }
-
-    /* Do not cover the anchor text by the sticky menu */
-    html {
-      scroll-padding-top: 75px;
-    }
-
-    .stickySearchResults {
-      position: fixed !important;
-      top: 30px !important;
-    }
-}
 
 /* Too wide page makes people uncomfortable, keep content in center */
 div.contents {
@@ -55,144 +6,13 @@ div.contents {
     margin-right: auto;
 }
 
-.title {
-    text-align: center;
-}
-
-/* Do not stick to screen borders */
-div.contents > * {
-    margin-right: 13px;
-    margin-left: 13px;
-    max-width: calc(100% - 13px - 13px);
-}
-
-/* Bigger margins to visually separate titles */
-div.contents > div.textblock > h1 {
-    margin: 38px 0px 10px;
-    font-size: 25px; /* default in insanely huge */
-}
-
-div.contents > div.textblock > h2,
-div.contents > div.textblock > h3,
-div.contents > div.textblock > h4,
-div.contents > div.textblock > h5,
-div.contents > div.textblock > h6 {
-    margin: 38px 0px 10px;
-}
-
-/* Separate two consecutive titles by smaller margins */
-div.contents > div.textblock > h1 + h2,
-div.contents > div.textblock > h2 + h3,
-div.contents > div.textblock > h3 + h4,
-div.contents > div.textblock > h4 + h5,
-div.contents > div.textblock > h5 + h6
-{
-    margin: 15px 0px 10px;
-}
-
-/* Link that looks like text */
-a.titlelink {
-  text-decoration: none;
-  color: inherit;
-}
-
-/* Side navigation */
-.sidenav {
-    float: right;
-    border: 1px solid #FDCC9A;
-    padding: 13px 13px 13px 20px;
-    margin: 13px 13px 13px 20px;
-    max-width: 300px;
-}
-
-.sidenav a {
-  padding-left: 43px;
-  display: block;
-  overflow: hidden;
-}
-
-/* Hide TOC on small screens */
-@media not (min-width: 1024px) {
- .sidenav { display: none; }
- .sidenav a { display: none; }
-}
-
-/* Set svg logo size */
 #projectlogo {
-    width: 80px;
+    width: 50px;
     padding: 7px;
-}
-
-/* Big fonts for titles */
-#projectname {
-  font-size: 300%;
 }
 
 #projectbrief {
   font-size: 120%;
-}
-
-/* Landing page */
-.landing-logo {
-  width: 45%;
-  margin-left: auto;
-  margin-right: auto;
-  margin-top: 3%;
-  margin-bottom: 6%;
-}
-
-.landing-description {
-    margin: 30px;
-    text-align: center;
-    font-size: 32px;
-    color: #F7F7F7;
-}
-
-.landing-motto {
-    text-align: right;
-    font-size: 28px;
-}
-
-.landing-text {
-    font-size: 18px;
-    line-height: 1.5;
-    margin-top: 25px;
-    margin-bottom: 25px;
-    color: #F7F7F7;
-}
-
-.landing-container {
-    width: 100%;
-    display:  table;
-}
-
-.landing-intro-left {
-    font-size: 18px;
-    line-height: 1.5;
-    margin-top: 60px;
-    margin-right: 60px;
-    margin-bottom: 60px;
-    color: #F7F7F7;
-    width: 35%;
-    float: left;
-    text-align: justify;
-}
-
-.landing-intro-right {
-    font-size: 18px;
-    line-height: 1.5;
-    margin-top: 60px;
-    margin-left: 60px;
-    margin-bottom: 60px;
-    color: #F7F7F7;
-    width: 35%;
-    float: right;
-    text-align: justify;
-}
-
-.bottom-nav {
-    width: 100%;
-    text-align: center;
 }
 
 .landing-intro-center {
@@ -207,17 +27,14 @@ a.titlelink {
     text-align: center;
 }
 
-.image .landing-logo {
-    text-align: center;
-    font-size: 24px;
+/* Set logo background to white */
+#titlearea img {
+    background-color: rgb(255, 255, 255);
+    border-radius: 50%;
 }
-
-/* Set logo background to black */
-#titlearea {
-    background-color: black;
-    color: #F7F7F7;
+#titlearea td{
+    margin-left: 15px;
 }
-
 /* Bigger font for menu */
 #main-nav > ul > li > a {
     font-size: 18px;
@@ -229,11 +46,6 @@ div.fragment {
     overflow-x: auto;
 }
 
-/* Do not put images in the middle */
-.image not(.landing-logo) {
-    text-align: left;
-}
-
 /* Scale down image to the page width */
 .image img {
     max-width: calc(100% - 7px - 7px - 1px - 1px);
@@ -242,55 +54,28 @@ div.fragment {
     padding: 7px; /* matches .fragment */
 }
 
-/* Almost transparent link that becomes visible on hover */
-.hoverlink {
-    opacity: 0.25;
-    font-size: 80%; /* default in insanely huge */
+
+html {
+    --primary-color: #f18127;
+    --fragment-background: #fefaf4; /*todo */
+}   
+
+html:not(.light-mode) {
+    color-scheme: dark;
+    --primary-color: #f18127;
+    --primary-dark-color: #f18127;
 }
 
-.hoverlink:hover {
-    opacity: 1.0;
-    text-decoration: none;  /* do not undeline */
+.memItemLeft, .memTemplItemLeft {
+    white-space: normal;
+    font-size: 14px;
 }
 
-@media (min-width: 768px) {
-    /* Enlarge search box:  doxygen 1.9.4 */
-    #searchBoxPos2 > #MSearchBox {
-        transform: scale(1.3) translateX(-10px);
-    }
-
-    /* Enlarge search box:  doxygen 1.8.* */
-    :not(#searchBoxPos2) > #MSearchBox > span {
-        transform: scale(1.3) translateX(-35px);
-    }
-
-    :not(#searchBoxPos2) > #MSearchBox > span.right {
-        transform: scale(1.3);
-    }
-
-    /* Enlarge search dropdown selection */
-    #MSearchSelectWindow {
-        transform: scale(1.3) translate(-35px, 10px);
-    }
+#MSearchResults .SRPage .SREntry {
+    font-size: 10px;
 }
 
-/* Force examples to have same proportions */
-div.fragment > div.line {
-    line-height: unset;
-    font-size: unset;
-}
-div.fragment > pre {
-    margin-top: 0px;
-    margin-bottom: 0px;
+#titlearea a:hover {
+    text-decoration: none;
 }
 
-/* Adjust Doxygen highlighting */
-span.keywordtype {
-    color: #008000;
-}
-span.keywordflow {
-    color: #008000;
-}
-span.stringliteral {
-  color: #806000;
-}
