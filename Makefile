@@ -25,7 +25,7 @@ endif
 gen:
 	python3 scripts/external_deps/cmake_generator.py --repo-dir=. --build-dir=cmake
 
-# Requires doxygen 1.9.8 +
+# Requires doxygen 1.9.7+
 .PHONY: docs
 docs:
 	@rm -rf docs/*

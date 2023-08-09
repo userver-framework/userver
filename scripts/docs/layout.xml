@@ -3,8 +3,7 @@
   <!-- Navigation index tabs for HTML output -->
   <navindex>
     <tab type="mainpage" visible="yes" title="Documentation"/>
-    <tab type="user" visible="yes" url="@ref md_ru_userver_tutorial" title="Tutorial" intro=""/>
-    <tab type="user" visible="yes" url="@ref md_ru_userver_faq-quick-start" title="FAQ" intro=""/>
+    <tab type="user" visible="yes" url="dc/d05/md_ru_2userver_2faq-quick-start.html" title="FAQ" intro=""/>
     <tab type="usergroup" visible="yes" title="API Reference">
       <tab type="modules" visible="yes" title="API Groups" intro=""/>
       <tab type="namespacelist" visible="yes" title="" intro=""/>
@@ -18,7 +17,7 @@
       <tab type="examples" visible="yes" title="" intro=""/>
       <tab type="pages" visible="yes" title="" intro=""/>
     </tab>
-    <tab type="user" visible="yes" url="@ref scripts/docs/en/index.md" title="No-Codegen" intro=""/>
+    <tab type="user" visible="yes" url="de/d6a/md_en_2index.html" title="Opensource" intro=""/>
   </navindex>
 
   <!-- Layout definition for a class page -->
