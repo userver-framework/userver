@@ -151,9 +151,9 @@ class RequestState : public std::enable_shared_from_this<RequestState> {
   /// run curl async_request, called once per attempt
   void perform_request(curl::easy::handler_type handler);
 
-  void UpdateTimeoutFromDeadline(std::chrono::milliseconds rtt_estimate);
+  void UpdateTimeoutFromDeadline(std::chrono::milliseconds backoff);
   [[nodiscard]] bool UpdateTimeoutFromDeadlineAndCheck(
-      std::chrono::milliseconds rtt_estimate = {});
+      std::chrono::milliseconds backoff = {});
   void UpdateTimeoutHeader();
   void HandleDeadlineAlreadyPassed();
   void CheckResponseDeadline(std::error_code& err, Status status_code);
@@ -199,7 +199,9 @@ class RequestState : public std::enable_shared_from_this<RequestState> {
   /// the timeout value provided by user (or the default)
   std::chrono::milliseconds original_timeout_;
   /// the timeout, possibly updated by deadline propagation
-  std::chrono::milliseconds effective_timeout_;
+  std::chrono::milliseconds local_timeout_;
+  /// the timeout propagated to the downstream service, accounting for RTT
+  std::chrono::milliseconds remote_timeout_;
 
   impl::DeadlinePropagationConfig deadline_propagation_config_;
   /// deadline from current task

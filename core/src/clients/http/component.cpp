@@ -213,6 +213,10 @@ properties:
             Note: timeout is always updated from the task-inherited deadline
             when present.
         defaultDescription: true
+    deadline-propagation-rtt-estimate:
+        type: string
+        description: round-trip time is subtracted from the propagated deadline
+        defaultDescription: 0ms
     plugins:
         type: array
         description: HTTP client plugin names

@@ -21,6 +21,7 @@ namespace clients::http::impl {
 
 struct DeadlinePropagationConfig {
   bool update_header{true};
+  std::chrono::milliseconds rtt_estimate{0};
 };
 
 // Static config

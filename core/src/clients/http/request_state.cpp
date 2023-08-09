@@ -167,7 +167,8 @@ RequestState::RequestState(
       stats_(std::move(req_stats)),
       dest_stats_(dest_stats),
       original_timeout_(kDefaultTimeout),
-      effective_timeout_(original_timeout_),
+      local_timeout_(original_timeout_),
+      remote_timeout_(original_timeout_),
       tracing_manager_{&tracing::kDefaultTracingManager},
       is_cancelled_(false),
       errorbuffer_(),
@@ -263,7 +264,8 @@ void RequestState::http_version(curl::easy::http_version_t version) {
 
 void RequestState::set_timeout(long timeout_ms) {
   original_timeout_ = std::chrono::milliseconds{timeout_ms};
-  effective_timeout_ = original_timeout_;
+  local_timeout_ = original_timeout_;
+  remote_timeout_ = original_timeout_;
 }
 
 void RequestState::retry(short retries, bool on_fails) {
@@ -406,8 +408,8 @@ void RequestState::on_completed(std::shared_ptr<RequestState> holder,
       [sockets](RequestStats& stats) { stats.AccountOpenSockets(sockets); });
 
   span.AddTag(tracing::kAttempts, holder->retry_.current);
-  if (holder->effective_timeout_ != holder->original_timeout_) {
-    span.AddTag("propagated_timeout_ms", holder->effective_timeout_.count());
+  if (holder->remote_timeout_ != holder->original_timeout_) {
+    span.AddTag("propagated_timeout_ms", holder->remote_timeout_.count());
   }
 
   if (err) {
@@ -687,17 +689,21 @@ engine::Deadline RequestState::GetDeadline() const noexcept {
 }
 
 void RequestState::UpdateTimeoutFromDeadline(
-    std::chrono::milliseconds rtt_estimate) {
-  UASSERT(effective_timeout_ >= std::chrono::milliseconds::zero());
+    std::chrono::milliseconds backoff) {
+  UASSERT(remote_timeout_ >= std::chrono::milliseconds::zero());
   if (!deadline_.IsReachable()) return;
 
-  const auto timeout_from_deadline =
+  const auto timeout_from_deadline_no_rtt =
       std::clamp(std::chrono::duration_cast<std::chrono::milliseconds>(
-                     deadline_.TimeLeft() - rtt_estimate),
+                     deadline_.TimeLeft() - backoff),
                  std::chrono::milliseconds{0}, original_timeout_);
+  const auto timeout_from_deadline = std::max(
+      timeout_from_deadline_no_rtt - deadline_propagation_config_.rtt_estimate,
+      std::chrono::milliseconds{0});
 
   if (timeout_from_deadline != original_timeout_) {
-    effective_timeout_ = timeout_from_deadline;
+    remote_timeout_ = timeout_from_deadline;
+    local_timeout_ = timeout_from_deadline_no_rtt;
     timeout_updated_by_deadline_ = true;
     WithRequestStats(
         [](RequestStats& stats) { stats.AccountTimeoutUpdatedByDeadline(); });
@@ -705,9 +711,9 @@ void RequestState::UpdateTimeoutFromDeadline(
 }
 
 bool RequestState::UpdateTimeoutFromDeadlineAndCheck(
-    std::chrono::milliseconds rtt_estimate) {
-  UpdateTimeoutFromDeadline(rtt_estimate);
-  if (effective_timeout_ <= std::chrono::milliseconds::zero()) {
+    std::chrono::milliseconds backoff) {
+  UpdateTimeoutFromDeadline(backoff);
+  if (remote_timeout_ <= std::chrono::milliseconds::zero()) {
     deadline_expired_ = true;
     HandleDeadlineAlreadyPassed();
     return false;
@@ -719,7 +725,7 @@ void RequestState::UpdateTimeoutHeader() {
   if (deadline_propagation_config_.update_header) return;
 
   easy().add_header(USERVER_NAMESPACE::http::headers::kXYaTaxiClientTimeoutMs,
-                    fmt::to_string(effective_timeout_.count()),
+                    fmt::to_string(remote_timeout_.count()),
                     curl::easy::DuplicateHeaderAction::kReplace);
 }
 
@@ -757,7 +763,7 @@ void RequestState::CheckResponseDeadline(std::error_code& err,
 
   if (deadline_expired_ ||
       (deadline_propagation_config_.update_header &&
-       timeout_updated_by_deadline_ && attempt_time >= effective_timeout_)) {
+       timeout_updated_by_deadline_ && attempt_time >= local_timeout_)) {
     // The most probable cause is IsDeadlineExpiredResponse, case (1).
     // Even if not, the ResponseFuture already has thrown or is preparing
     // to throw a CancelledException, so reflect it here for consistency.
@@ -840,7 +846,8 @@ void RequestState::ResetDataForNewRequest() {
 
   is_cancelled_ = false;
   retry_.current = 1;
-  effective_timeout_ = original_timeout_;
+  local_timeout_ = original_timeout_;
+  remote_timeout_ = original_timeout_;
   deadline_ = server::request::GetTaskInheritedDeadline();
   deadline_expired_ = false;
   timeout_updated_by_deadline_ = false;
@@ -957,7 +964,7 @@ void RequestState::WithRequestStats(const Func& func) {
 }
 
 void RequestState::ResolveTargetAddress(clients::dns::Resolver& resolver) {
-  const auto deadline = engine::Deadline::FromDuration(effective_timeout_);
+  const auto deadline = engine::Deadline::FromDuration(remote_timeout_);
 
   const MaybeOwnedUrl target{proxy_url_, easy()};
   const std::string hostname = target.Get().GetHostPtr().get();
