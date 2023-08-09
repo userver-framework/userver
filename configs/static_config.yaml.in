@@ -105,3 +105,8 @@ components_manager:
             path: /api/articles/{slug}/comments/{id}
             method: DELETE
             task_processor: main-task-processor
+        
+        handler-comment-post:
+            path: /api/articles/{slug}/comments
+            method: POST
+            task_processor: main-task-processor
