@@ -16,7 +16,7 @@
 #include <ugrpc/impl/to_string.hpp>
 #include <userver/ugrpc/client/exceptions.hpp>
 #include <userver/ugrpc/impl/deadline_timepoint.hpp>
-#include <userver/ugrpc/impl/status_codes.hpp>
+#include <userver/ugrpc/status_codes.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -44,8 +44,8 @@ void SetupSpan(std::optional<tracing::InPlaceSpan>& span_holder,
 void SetStatusDetailsForSpan(RpcData& data, grpc::Status& status,
                              const std::optional<std::string>& message) {
   data.GetSpan().AddTag(tracing::kErrorFlag, true);
-  data.GetSpan().AddTag(
-      "grpc_code", std::string{ugrpc::impl::ToString(status.error_code())});
+  data.GetSpan().AddTag("grpc_code",
+                        std::string{ugrpc::ToString(status.error_code())});
   if (message.has_value()) {
     data.GetSpan().AddTag(tracing::kErrorMessage, *message);
   } else {

@@ -5,7 +5,7 @@
 #include <userver/utils/statistics/writer.hpp>
 #include <userver/utils/underlying_value.hpp>
 
-#include <userver/ugrpc/impl/status_codes.hpp>
+#include <userver/ugrpc/status_codes.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -75,7 +75,7 @@ void DumpMetric(utils::statistics::Writer& writer,
       total_requests += count;
       if (code != grpc::StatusCode::OK) error_requests += count;
       status.ValueWithLabels(AsRateAndGauge{count},
-                             {"grpc_code", ugrpc::impl::ToString(code)});
+                             {"grpc_code", ugrpc::ToString(code)});
     }
   }
 

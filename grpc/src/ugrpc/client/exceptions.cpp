@@ -5,7 +5,7 @@
 #include <fmt/format.h>
 
 #include <ugrpc/impl/status.hpp>
-#include <userver/ugrpc/impl/status_codes.hpp>
+#include <userver/ugrpc/status_codes.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -22,10 +22,9 @@ ErrorWithStatus::ErrorWithStatus(std::string_view call_name,
                                  grpc::Status&& status,
                                  std::optional<google::rpc::Status>&& gstatus,
                                  std::optional<std::string>&& message)
-    : RpcError(call_name,
-               fmt::format("code={}, message='{}'",
-                           ugrpc::impl::ToString(status.error_code()),
-                           status.error_message())),
+    : RpcError(call_name, fmt::format("code={}, message='{}'",
+                                      ugrpc::ToString(status.error_code()),
+                                      status.error_message())),
       status_(std::move(status)),
       gstatus_(std::move(gstatus)),
       gstatus_string_(std::move(message)) {}

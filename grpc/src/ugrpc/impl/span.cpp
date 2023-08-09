@@ -3,7 +3,7 @@
 #include <string_view>
 
 #include <userver/tracing/tags.hpp>
-#include <userver/ugrpc/impl/status_codes.hpp>
+#include <userver/ugrpc/status_codes.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
