@@ -30,6 +30,9 @@ inline constexpr std::string_view kFindUserById = R"~(
 SELECT * FROM real_medium.users WHERE user_id = $1     
 )~"; 
 
+inline constexpr std::string_view kDeleteCommentById = R"~(
+DELETE FROM real_medium.comments WHERE comment_id = $1     
+)~"; 
 
 
 }

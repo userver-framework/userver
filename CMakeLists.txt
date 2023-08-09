@@ -30,13 +30,19 @@ add_library(${PROJECT_NAME}_objs OBJECT
 		src/handlers/articles/articles_get.hpp
 		src/handlers/articles/articles_put.cpp
 		src/handlers/articles/articles_put.hpp
+		src/handlers/comments/comment_delete.cpp
+		src/handlers/comments/comment_delete.hpp
 		src/dto/profile.cpp
 		src/dto/profile.hpp
 		src/dto/user.hpp
 		src/dto/user.cpp
+		src/dto/comment.hpp
+		src/dto/comment.cpp
 		src/db/sql.hpp
 		src/models/user.hpp
 		src/models/user.cpp
+		src/models/author.hpp
+		src/models/author.cpp
 		src/validators/user_validators.hpp
 		src/validators/user_validators.cpp
 		src/utils/make_error.hpp

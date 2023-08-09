@@ -14,6 +14,7 @@
 
 #include "handlers/users/user_get.hpp"
 #include "handlers/users/user_put.hpp"
+#include "handlers/comments/comment_delete.hpp"
 
 using namespace real_medium::handlers;
 
@@ -28,9 +29,10 @@ int main(int argc, char* argv[]) {
           .Append<userver::server::handlers::TestsControl>()
           .Append<real_medium::handlers::users::put::Handler>()
           .Append<real_medium::handlers::users::get::Handler>()
+          .Append<real_medium::handlers::comments::del::Handler>()
           .Append<real_medium::handlers::users::post::RegisterUser>()
           .Append<real_medium::handlers::profiles::get::Handler>()
-          .Append<real_medium::handlers::tags::get::Handler>();
+          .Append<real_medium::handlers::tags::get::Handler>();// .Append<real_medium::handlers::comments::del::Handler>();
           
   real_medium::handlers::users_login::post::AppendLoginUser(component_list);
 
