@@ -1,11 +1,8 @@
 #include "tp_logger.hpp"
 
 #include <fmt/format.h>
-#include <spdlog/common.h>
-#include <spdlog/spdlog.h>
 
 #include <engine/task/task_context.hpp>
-#include <logging/spdlog_helpers.hpp>
 #include <userver/engine/async.hpp>
 #include <userver/engine/task/cancel.hpp>
 #include <userver/logging/impl/tag_writer.hpp>
@@ -42,9 +39,7 @@ struct TpLogger::ActionVisitor final {
 };
 
 TpLogger::TpLogger(Format format, std::string logger_name)
-    : LoggerBase(format),
-      logger_name_(std::move(logger_name)),
-      formatter_pattern_(GetSpdlogPattern(format)) {
+    : LoggerBase(format), logger_name_(std::move(logger_name)) {
   SetLevel(logging::Level::kInfo);
 }
 
@@ -172,8 +167,6 @@ bool TpLogger::ShouldLog(Level level) const noexcept {
 
 void TpLogger::AddSink(impl::SinkPtr&& sink) {
   UASSERT(sink);
-  sink->SetLevel(Level::kTrace);  // Always on
-  sink->SetPattern(formatter_pattern_);
   sinks_.push_back(std::move(sink));
 }
 
@@ -296,29 +289,20 @@ void TpLogger::CleanUpQueue(Queue::Consumer&& consumer) noexcept {
 }
 
 void TpLogger::BackendLog(impl::async::Log&& action) const {
-  spdlog::details::log_msg msg{};
-  msg.logger_name = GetLoggerName();
-  msg.level = ToSpdlogLevel(action.level);
-  msg.time = action.time;
-  msg.payload = action.payload;
+  LogMessage message;
+  message.payload = action.payload;
+  message.level = action.level;
 
   for (const auto& sink : GetSinks()) {
-    if (!sink->IsShouldLog(static_cast<Level>(msg.level))) {
-      // We could get in here because of the LogRaw, or because log level
-      // was changed at runtime, or because socket sink is not listened by
-      // testsuite right now.
-      continue;
-    }
-
     try {
-      sink->Log(msg);
+      sink->Log(message);
     } catch (const std::exception& e) {
       UASSERT_MSG(false, "While writing a log message caught an exception: " +
                              std::string(e.what()));
     }
   }
 
-  if (ShouldFlush(action.level)) {
+  if (ShouldFlush(message.level)) {
     BackendFlush();
   }
 }

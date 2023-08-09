@@ -3,6 +3,7 @@
 #include <boost/locale.hpp>
 #include <boost/regex.hpp>
 
+#include <userver/fs/blocking/read.hpp>
 #include <userver/utils/text.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -29,6 +30,10 @@ std::vector<std::string> NormalizeLogs(const std::string& data) {
     }
   }
   return result;
+}
+
+std::vector<std::string> ReadFromFile(const std::string& filename) {
+  return NormalizeLogs(fs::blocking::ReadFileContents(filename));
 }
 
 std::vector<std::string> ReadFromFd(fs::blocking::FileDescriptor&& fd) {

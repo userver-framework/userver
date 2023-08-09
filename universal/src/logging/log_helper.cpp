@@ -145,10 +145,11 @@ struct LogHelper::Module final {
 
 LogHelper::LogHelper(LoggerRef logger, Level level,
                      const utils::impl::SourceLocation& location) noexcept
-    : pimpl_(Impl::Make(logger, level)) {
+    : pimpl_(ThreadLocalMemPool<Impl>::Pop(logger, level)) {
   try {
     // The following functions actually never throw if the assertions at the
     // bottom hold.
+    pimpl_->PutMessageBegin();
     auto tag_writer = GetTagWriter();
     tag_writer.PutTag("module", Module{location});
     logger.PrependCommonTags(tag_writer);
@@ -187,17 +188,12 @@ void LogHelper::DoLog() noexcept {
       pimpl_->MarkValueEnd();
     }
     GetTagWriter().PutLogExtra(pimpl_->GetLogExtra());
+    pimpl_->PutMessageEnd();
 
     pimpl_->LogTheMessage();
   } catch (...) {
     InternalLoggingError("Failed to flush log");
   }
-}
-
-std::unique_ptr<LogHelper::Impl> LogHelper::Impl::Make(LoggerRef logger,
-                                                       Level level) {
-  auto new_level = std::max(level, logger.GetLevel());
-  return ThreadLocalMemPool<Impl>::Pop(logger, new_level);
 }
 
 void LogHelper::InternalLoggingError(std::string_view message) noexcept {

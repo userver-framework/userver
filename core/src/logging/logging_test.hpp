@@ -2,11 +2,11 @@
 
 #include <ostream>
 
+#include <fmt/format.h>
 #include <gtest/gtest.h>
 
 #include <logging/config.hpp>
 #include <logging/impl/unix_socket_sink.hpp>
-#include <logging/spdlog_helpers.hpp>
 #include <logging/tp_logger.hpp>
 
 #include <userver/logging/format.hpp>

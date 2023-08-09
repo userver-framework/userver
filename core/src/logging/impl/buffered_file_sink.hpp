@@ -7,8 +7,6 @@
 #include <logging/impl/base_sink.hpp>
 #include <userver/fs/blocking/c_file.hpp>
 
-#include "open_file_helper.hpp"
-
 USERVER_NAMESPACE_BEGIN
 
 namespace logging::impl {

@@ -3,8 +3,6 @@
 #include <mutex>
 #include <string>
 
-#include <spdlog/pattern_formatter.h>
-
 #include <logging/impl/base_sink.hpp>
 
 USERVER_NAMESPACE_BEGIN

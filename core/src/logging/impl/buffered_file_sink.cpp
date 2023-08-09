@@ -1,5 +1,7 @@
 #include "buffered_file_sink.hpp"
 
+#include "open_file_helper.hpp"
+
 USERVER_NAMESPACE_BEGIN
 
 namespace logging::impl {

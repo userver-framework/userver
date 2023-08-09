@@ -1,7 +1,5 @@
 #include <benchmark/benchmark.h>
 
-#include <spdlog/sinks/stdout_sinks.h>
-
 #include <userver/fs/blocking/c_file.hpp>
 #include <userver/fs/blocking/file_descriptor.hpp>
 #include <userver/fs/blocking/temp_file.hpp>
@@ -22,7 +20,7 @@ void LogFdSink(benchmark::State& state) {
   auto sink = logging::impl::UnownedFdSink(fd_scope.GetNative());
   for (auto _ : state) {
     for (std::size_t i = 0; i < kCountLogs; ++i) {
-      sink.Log({"default", spdlog::level::warn, "message"});
+      sink.Log({"message\n", logging::Level::kWarning});
     }
   }
   sink.Flush();
@@ -36,22 +34,11 @@ void LogBufferedFdSink(benchmark::State& state) {
   auto sink = logging::impl::BufferedUnownedFileSink(c_file_scope.GetNative());
   for (auto _ : state) {
     for (std::size_t i = 0; i < kCountLogs; ++i) {
-      sink.Log({"default", spdlog::level::warn, "message"});
+      sink.Log({"message\n", logging::Level::kWarning});
     }
   }
   sink.Flush();
 }
 BENCHMARK(LogBufferedFdSink);
-
-void DISABLED_LogSpdlogStderrSink(benchmark::State& state) {
-  auto sink = spdlog::sinks::stderr_sink_mt();
-  for (auto _ : state) {
-    for (std::size_t i = 0; i < kCountLogs; ++i) {
-      sink.log({"default", spdlog::level::warn, "message"});
-    }
-  }
-  sink.flush();
-}
-BENCHMARK(DISABLED_LogSpdlogStderrSink);
 
 USERVER_NAMESPACE_END

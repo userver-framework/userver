@@ -16,34 +16,34 @@ USERVER_NAMESPACE_BEGIN
 UTEST(TcpSocketSink, SocketConnectErrorLocalhost) {
   auto addrs = net::blocking::GetAddrInfo("localhost", "8111");
   auto socket_sink = logging::impl::TcpSocketSink(addrs);
-  EXPECT_THROW(socket_sink.Log({"default", spdlog::level::warn, "msg"}),
+  EXPECT_THROW(socket_sink.Log({"msg", logging::Level::kWarning}),
                engine::io::IoSystemError);
 }
 
 UTEST(TcpSocketSink, SocketConnectErrorIpV6) {
   auto addrs = net::blocking::GetAddrInfo("::1", "8222");
   auto socket_sink = logging::impl::TcpSocketSink(addrs);
-  EXPECT_THROW(socket_sink.Log({"default", spdlog::level::warn, "msg"}),
+  EXPECT_THROW(socket_sink.Log({"msg", logging::Level::kWarning}),
                engine::io::IoSystemError);
 }
 
 UTEST(TcpSocketSink, SocketConnectErrorIpV4) {
   auto addrs = net::blocking::GetAddrInfo("127.0.0.1", "8333");
   auto socket_sink = logging::impl::TcpSocketSink(addrs);
-  EXPECT_THROW(socket_sink.Log({"default", spdlog::level::warn, "msg"}),
+  EXPECT_THROW(socket_sink.Log({"msg", logging::Level::kWarning}),
                engine::io::IoSystemError);
 }
 
 UTEST(TcpSocketSink, SocketConnectV4) {
   internal::net::TcpListener listener(internal::net::IpVersion::kV4);
   auto socket_sink = logging::impl::TcpSocketSink({listener.addr});
-  EXPECT_NO_THROW(socket_sink.Log({"default", spdlog::level::warn, "msg"}));
+  EXPECT_NO_THROW(socket_sink.Log({"msg", logging::Level::kWarning}));
 }
 
 UTEST(TcpSocketSink, SocketConnectV6) {
   internal::net::TcpListener listener(internal::net::IpVersion::kV6);
   auto socket_sink = logging::impl::TcpSocketSink({listener.addr});
-  EXPECT_NO_THROW(socket_sink.Log({"default", spdlog::level::warn, "msg"}));
+  EXPECT_NO_THROW(socket_sink.Log({"msg", logging::Level::kWarning}));
 }
 
 UTEST(TcpSocketSink, SinkReadOnceV4) {
@@ -55,10 +55,11 @@ UTEST(TcpSocketSink, SinkReadOnceV4) {
   auto listen_task = engine::AsyncNoSpan([&listener, &deadline] {
     auto sock = listener.socket.Accept(deadline);
     const auto data = test::ReadFromSocket(std::move(sock));
-    EXPECT_EQ(data[0], "[datetime] [default] [warning] message");
+    ASSERT_EQ(data.size(), 1);
+    EXPECT_EQ(data[0], "message");
   });
 
-  EXPECT_NO_THROW(socket_sink.Log({"default", spdlog::level::warn, "message"}));
+  EXPECT_NO_THROW(socket_sink.Log({"message\n", logging::Level::kWarning}));
 
   socket_sink.Close();
   listen_task.Get();
@@ -73,15 +74,15 @@ UTEST(TcpSocketSink, SinkReadMoreV4) {
   auto listen_task = engine::AsyncNoSpan([&listener, &deadline] {
     auto sock = listener.socket.Accept(deadline);
     const auto logs = test::ReadFromSocket(std::move(sock));
-    EXPECT_EQ(logs[0], "[datetime] [default] [warning] message");
-    EXPECT_EQ(logs[1], "[datetime] [basic] [info] message 2");
-    EXPECT_EQ(logs[2], "[datetime] [current] [critical] message 3");
+    ASSERT_EQ(logs.size(), 3);
+    EXPECT_EQ(logs[0], "message");
+    EXPECT_EQ(logs[1], "message 2");
+    EXPECT_EQ(logs[2], "message 3");
   });
 
-  EXPECT_NO_THROW(socket_sink.Log({"default", spdlog::level::warn, "message"}));
-  EXPECT_NO_THROW(socket_sink.Log({"basic", spdlog::level::info, "message 2"}));
-  EXPECT_NO_THROW(
-      socket_sink.Log({"current", spdlog::level::critical, "message 3"}));
+  EXPECT_NO_THROW(socket_sink.Log({"message\n", logging::Level::kWarning}));
+  EXPECT_NO_THROW(socket_sink.Log({"message 2\n", logging::Level::kInfo}));
+  EXPECT_NO_THROW(socket_sink.Log({"message 3\n", logging::Level::kCritical}));
   socket_sink.Close();
   listen_task.Get();
 }

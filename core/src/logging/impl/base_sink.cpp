@@ -1,26 +1,17 @@
 #include "base_sink.hpp"
 
-#include <spdlog/pattern_formatter.h>
-
 USERVER_NAMESPACE_BEGIN
 
 namespace logging::impl {
-BaseSink::BaseSink()
-    : formatter_{std::make_unique<spdlog::pattern_formatter>()} {}
 
-void BaseSink::Log(const spdlog::details::log_msg& msg) {
-  spdlog::memory_buf_t formatted;
-  formatter_->format(msg, formatted);
+BaseSink::BaseSink() = default;
 
-  Write({formatted.data(), formatted.size()});
-}
+BaseSink::~BaseSink() = default;
 
-void BaseSink::SetPattern(const std::string& pattern) {
-  SetFormatter(std::make_unique<spdlog::pattern_formatter>(pattern));
-}
-
-void BaseSink::SetFormatter(std::unique_ptr<spdlog::formatter> sink_formatter) {
-  formatter_ = std::move(sink_formatter);
+void BaseSink::Log(const LogMessage& message) {
+  if (ShouldLog(message.level)) {
+    Write(message.payload);
+  }
 }
 
 void BaseSink::Flush() {}
@@ -31,11 +22,9 @@ void BaseSink::SetLevel(Level log_level) { level_.store(log_level); }
 
 Level BaseSink::GetLevel() const { return level_.load(); }
 
-bool BaseSink::IsShouldLog(Level msg_level) const {
+bool BaseSink::ShouldLog(Level msg_level) const {
   return msg_level >= level_.load();
 }
-
-BaseSink::~BaseSink() = default;
 
 }  // namespace logging::impl
 

@@ -113,7 +113,6 @@ class TpLogger final : public LoggerBase {
   void BackendReopen(ReopenMode reopen_mode) const;
 
   const std::string logger_name_;
-  const std::string formatter_pattern_;
   std::vector<impl::SinkPtr> sinks_;
   statistics::LogStatistics stats_{};
 

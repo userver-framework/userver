@@ -1,7 +1,6 @@
 #pragma once
 
 #include "fd_sink.hpp"
-#include "open_file_helper.hpp"
 
 USERVER_NAMESPACE_BEGIN
 

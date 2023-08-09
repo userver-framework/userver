@@ -12,9 +12,16 @@ namespace test {
 
 std::vector<std::string> NormalizeLogs(const std::string& data);
 
+std::vector<std::string> ReadFromFile(const std::string& filename);
+
 std::vector<std::string> ReadFromFd(fs::blocking::FileDescriptor&& fd);
 
 std::vector<std::string> ReadFromSocket(engine::io::Socket&& sock);
+
+template <typename... Strings>
+std::vector<std::string> Messages(const Strings&... strings) {
+  return {strings...};
+}
 
 }  // namespace test
 

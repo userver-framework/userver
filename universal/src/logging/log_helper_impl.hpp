@@ -21,12 +21,13 @@ struct LogHelper::InternalTag final {};
 
 class LogHelper::Impl final {
  public:
-  static std::unique_ptr<LogHelper::Impl> Make(LoggerRef logger, Level level);
-
   explicit Impl(LoggerRef logger, Level level) noexcept;
 
   bool IsStreamInitialized() const noexcept { return !!lazy_stream_; }
   std::ostream& Stream() { return GetLazyInitedStream().ostr; }
+
+  void PutMessageBegin();
+  void PutMessageEnd();
 
   // Closes the previous tag value, puts the new tag key, opens the new value.
   void PutKey(std::string_view key);

@@ -1,38 +1,41 @@
 #pragma once
 
-#include <spdlog/formatter.h>
+#include <atomic>
 
-#include <logging/impl/open_file_helper.hpp>
+#include <logging/impl/reopen_mode.hpp>
 #include <userver/logging/level.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace logging::impl {
 
+struct LogMessage final {
+  std::string_view payload;
+  Level level{logging::Level::kError};
+};
+
 class BaseSink {
  public:
+  BaseSink(BaseSink&&) = delete;
+  BaseSink& operator=(BaseSink&&) = delete;
   virtual ~BaseSink();
-  BaseSink();
 
-  void Log(const spdlog::details::log_msg& msg);
+  void Log(const LogMessage& message);
 
   virtual void Flush();
-
-  void SetPattern(const std::string& pattern);
-
-  void SetFormatter(std::unique_ptr<spdlog::formatter> sink_formatter);
 
   virtual void Reopen(ReopenMode);
 
   void SetLevel(Level log_level);
   Level GetLevel() const;
-  bool IsShouldLog(Level msg_level) const;
+  bool ShouldLog(Level msg_level) const;
 
  protected:
+  BaseSink();
+
   virtual void Write(std::string_view log) = 0;
 
  private:
-  std::unique_ptr<spdlog::formatter> formatter_;
   std::atomic<Level> level_{Level::kTrace};
 };
 

@@ -53,8 +53,7 @@ void CreateLogDirectory(const std::string& logger_name,
   }
 }
 
-logging::impl::SinkPtr GetSinkFromFilename(
-    const spdlog::filename_t& file_path) {
+logging::impl::SinkPtr GetSinkFromFilename(const std::string& file_path) {
   if (boost::starts_with(file_path, kUnixSocketPrefix)) {
     // Use Unix-socket sink
     return std::make_unique<logging::impl::UnixSocketSink>(

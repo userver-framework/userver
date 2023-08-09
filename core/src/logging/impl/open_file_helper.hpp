@@ -1,5 +1,8 @@
 #pragma once
 
+#include <thread>
+
+#include <fmt/format.h>
 #include <boost/filesystem.hpp>
 
 #include <logging/impl/reopen_mode.hpp>
