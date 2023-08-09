@@ -34,9 +34,13 @@ add_library(${PROJECT_NAME}_objs OBJECT
 		src/dto/profile.hpp
 		src/dto/user.hpp
 		src/dto/user.cpp
+		src/dto/comment.hpp
+		src/dto/comment.cpp
 		src/db/sql.hpp
 		src/models/user.hpp
 		src/models/user.cpp
+		src/models/author.hpp
+		src/models/author.cpp
 		src/validators/user_validators.hpp
 		src/validators/user_validators.cpp
 )
