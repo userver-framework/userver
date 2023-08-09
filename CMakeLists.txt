@@ -30,6 +30,8 @@ add_library(${PROJECT_NAME}_objs OBJECT
 		src/handlers/articles/articles_get.hpp
 		src/handlers/articles/articles_put.cpp
 		src/handlers/articles/articles_put.hpp
+		src/handlers/comments/comment_delete.cpp
+		src/handlers/comments/comment_delete.hpp
 		src/dto/profile.cpp
 		src/dto/profile.hpp
 		src/dto/user.hpp

@@ -77,12 +77,12 @@ components_manager:
         #     task_processor: main-task-processor 
         
         handler-user-get:
-            path: /user               
+            path: /api/user               
             method: GET          
             task_processor: main-task-processor 
 
         handler-user-put:
-            path: /user               
+            path: /api/user               
             method: PUT         
             task_processor: main-task-processor 
 
@@ -99,4 +99,9 @@ components_manager:
         handler-login-user:
             path: /api/users/login
             method: POST
+            task_processor: main-task-processor
+
+        handler-comment-delete:
+            path: /api/articles/{slug}/comments/{id}
+            method: DELETE
             task_processor: main-task-processor
