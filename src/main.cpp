@@ -12,6 +12,9 @@
 #include "handlers/users/users.hpp"
 #include "handlers/users/users_login.hpp"
 
+#include "handlers/users/user_get.hpp"
+#include "handlers/users/user_put.hpp"
+
 using namespace real_medium::handlers;
 
 int main(int argc, char* argv[]) {
@@ -21,13 +24,15 @@ int main(int argc, char* argv[]) {
           .Append<userver::components::TestsuiteSupport>()
           .Append<userver::components::HttpClient>()
           .Append<userver::components::Postgres>("realmedium-database")
-          .Append<userver::clients::dns::Component>()
+          .Append<userver::clients::dns::Component>() //real_medium::handlers::users_login::post 
           .Append<userver::server::handlers::TestsControl>()
+          .Append<real_medium::handlers::users::put::Handler>()
+          .Append<real_medium::handlers::users::get::Handler>()
           .Append<real_medium::handlers::users::post::RegisterUser>()
           .Append<real_medium::handlers::profiles::get::Handler>()
           .Append<real_medium::handlers::tags::get::Handler>();
           
-  users_login::post::AppendLoginUser(component_list);
+  real_medium::handlers::users_login::post::AppendLoginUser(component_list);
 
   return userver::utils::DaemonMain(argc, argv, component_list);
 }

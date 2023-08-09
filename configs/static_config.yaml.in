@@ -71,10 +71,20 @@ components_manager:
             method: GET,POST             
             task_processor: main-task-processor 
             
-        #handler-users:
-        #    path: /user                 
-        #    method: GET,PUT             
-        #    task_processor: main-task-processor 
+        # handler-users:
+        #     path: /users                 
+        #     method: GET,POST             
+        #     task_processor: main-task-processor 
+        
+        handler-user-get:
+            path: /user               
+            method: GET          
+            task_processor: main-task-processor 
+
+        handler-user-put:
+            path: /user               
+            method: PUT         
+            task_processor: main-task-processor 
 
         handler-get-tags:
             path: /api/tags
