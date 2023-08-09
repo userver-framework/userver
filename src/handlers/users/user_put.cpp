@@ -27,7 +27,7 @@ std::string Handler::HandleRequestThrow(
 
   auto user_id = "3dff4620-c620-4372-9d34-8d44b6bbc041";
 
-  auto user_change_data =
+  const auto user_change_data =
       userver::formats::json::FromString(request.RequestBody())["user"]
           .As<dto::UserUpdateDTO>();
 

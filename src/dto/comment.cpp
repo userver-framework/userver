@@ -1,5 +1,5 @@
 #include "comment.hpp"
-#include "../models/author.hpp"
+
 namespace real_medium::dto {
 
 CommentDTO Parse(const userver::formats::json::Value& json,
@@ -9,7 +9,15 @@ CommentDTO Parse(const userver::formats::json::Value& json,
       json["createdAt"].As<std::string>(),
       json["updatedAt"].As<std::string>(),
       json["body"].As<std::string>(),
-      json["author"].As<real_medium::models::Author>()
+      //json["author"].As<real_medium::models::Author>() author это тот же профиль
+      json["author"].As<std::string>()
+  };
+}
+
+AddCommentDTO Parse(const userver::formats::json::Value& json,
+                 userver::formats::parse::To<AddCommentDTO>) {
+  return AddCommentDTO{
+      json["body"].As<std::string>(),
   };
 }
 
