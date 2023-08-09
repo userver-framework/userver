@@ -30,7 +30,11 @@ std::string Handler::HandleRequestThrow(
                             sql::kDeleteCommentById.data(),
                             id_comment);
 
-    // Надо ли думать о том, что этой статьи уже не существует и мы удалил воздух?
+    if(result.IsEmpty()){
+        request.SetResponseStatus(userver::server::http::HttpStatus::kNotFound); 
+        return "NOT_FOUND_COMMENT";
+    }
+    
                             
     return "";
 

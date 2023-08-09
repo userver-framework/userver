@@ -29,7 +29,7 @@ std::string Handler::HandleRequestThrow(
           .As<dto::AddCommentDTO>();
 
     const auto& comment_body = comment_json.body;    
-    auto user_id = "9427d0da-4819-43b4-a0b4-0b32ce3aa769";
+    auto user_id = "d2252d2f-51f1-4393-bdf5-e78a1d611019";
     const auto& slug = request.GetPathArg("slug");
 
 

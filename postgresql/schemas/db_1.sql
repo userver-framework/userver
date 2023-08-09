@@ -59,7 +59,7 @@ CREATE TABLE IF NOT EXISTS real_medium.followers (
 );
 
 CREATE TABLE IF NOT EXISTS real_medium.comments (
-	comment_id SERIAL,
+	comment_id BIGSERIAL,
 	created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 	updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 	body VARCHAR(16384) NOT NULL,
