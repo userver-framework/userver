@@ -27,11 +27,6 @@ div.contents {
     text-align: center;
 }
 
-/* Set logo background to white */
-#titlearea img {
-    background-color: rgb(255, 255, 255);
-    border-radius: 50%;
-}
 #titlearea td{
     margin-left: 15px;
 }
@@ -54,7 +49,6 @@ div.fragment {
     padding: 7px; /* matches .fragment */
 }
 
-
 html {
     --primary-color: #f18127;
     --fragment-background: #fefaf4; /*todo */
@@ -64,6 +58,10 @@ html:not(.light-mode) {
     color-scheme: dark;
     --primary-color: #f18127;
     --primary-dark-color: #f18127;
+}
+
+html:not(.light-mode) #gh-logo {
+    filter: invert(1);
 }
 
 .memItemLeft, .memTemplItemLeft {
