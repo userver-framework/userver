@@ -12,6 +12,8 @@ import pytest
 
 DEFAULT_TIMEOUT = 15.0
 
+USERVER_CONFIG_HOOKS = ['prepare_config_vars']
+
 
 @pytest.fixture(scope='session')
 def grpc_service_port(service_config_yaml) -> int:
@@ -96,3 +98,13 @@ def grpc_service_deps(service_client):
 
     @ingroup userver_testsuite_fixtures
     """
+
+
+@pytest.fixture(scope='session')
+def prepare_config_vars(grpc_mockserver_endpoint):
+    def patch_config(config, config_vars):
+        for name in config_vars:
+            if config_vars[name] == '$grpc_mockserver':
+                config_vars[name] = grpc_mockserver_endpoint
+
+    return patch_config
