@@ -1,6 +1,5 @@
 #include "profile.hpp"
 
-
 namespace real_medium::dto {
 
 userver::formats::json::Value Serialize(
@@ -9,4 +8,4 @@ userver::formats::json::Value Serialize(
   return {};
 }
 
-}  // realmedium::dto
+}  // namespace real_medium::dto

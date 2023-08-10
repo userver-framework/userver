@@ -8,4 +8,4 @@ namespace real_medium::validators {
 bool ValidateEmail(std::string_view email);
 bool ValidatePassword(std::string_view password);
 
-}  // namespace real_meidum::validators
+}  // namespace real_medium::validators

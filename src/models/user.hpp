@@ -25,4 +25,4 @@ userver::formats::json::Value Serialize(
     const User& user,
     userver::formats::serialize::To<userver::formats::json::Value>);
 
-}  // namespace realworld::models
+}  // namespace real_medium::models

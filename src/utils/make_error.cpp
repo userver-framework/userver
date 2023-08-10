@@ -8,4 +8,4 @@ userver::formats::json::Value MakeError(std::string_view field_name,
   error_builder["errors"][field_name.data()].PushBack(message);
   return error_builder.ExtractValue();
 }
-}  // namespace real_medium::utils
+}  // namespace real_medium::utils::error

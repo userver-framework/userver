@@ -11,8 +11,8 @@ std::string GenerateJWT(std::string_view id) {
 }
 
 ::jwt::jwt_payload DecodeJWT(std::string_view jwt_token) {
-  auto dec_obj =
-      ::jwt::decode(jwt_token, algorithms({"HS256"}), secret("secret"), verify(true));
+  auto dec_obj = ::jwt::decode(jwt_token, algorithms({"HS256"}),
+                               secret("secret"), verify(true));
   return dec_obj.payload();
 }
 

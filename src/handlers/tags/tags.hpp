@@ -1,7 +1,7 @@
 #pragma once
 
-#include "userver/components/component_list.hpp"
 #include "userver/components/component.hpp"
+#include "userver/components/component_list.hpp"
 #include "userver/formats/json/serialize_container.hpp"
 #include "userver/server/handlers/http_handler_json_base.hpp"
 #include "userver/storages/postgres/cluster.hpp"
@@ -14,7 +14,7 @@ class Handler final : public userver::server::handlers::HttpHandlerJsonBase {
   static constexpr std::string_view kName = "handler-get-tags";
 
   Handler(const userver::components::ComponentConfig& config,
-       const userver::components::ComponentContext& component_context);
+          const userver::components::ComponentContext& component_context);
 
   userver::formats::json::Value HandleRequestJsonThrow(
       const userver::server::http::HttpRequest&,
