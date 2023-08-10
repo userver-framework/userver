@@ -44,6 +44,7 @@ std::string AssertNoThrow(std::function<void()> statement,
 
 USERVER_NAMESPACE_END
 
+/// @cond
 // NOLINTNEXTLINE (cppcoreguidelines-macro-usage)
 #define IMPL_UTEST_ASSERT_THROW(statement, exception_type, message_substring, \
                                 failure_macro)                                \
@@ -62,6 +63,7 @@ USERVER_NAMESPACE_END
                                                         #statement);        \
       !message_impl_utest.empty())                                          \
   failure_macro(message_impl_utest.c_str())
+/// @endcond
 
 /// @ingroup userver_utest
 ///

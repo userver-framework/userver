@@ -1,9 +1,13 @@
 #include <userver/utest/utest.hpp>
 
+#include <grpcpp/grpcpp.h>
+
 #include <ugrpc/impl/status.hpp>
 #include <userver/engine/deadline.hpp>
 #include <userver/engine/sleep.hpp>
 #include <userver/ugrpc/client/exceptions.hpp>
+#include <userver/utils/from_string.hpp>
+#include <userver/utils/text.hpp>
 
 #include <tests/unit_test_client.usrv.pb.hpp>
 #include <tests/unit_test_service.usrv.pb.hpp>
@@ -41,8 +45,13 @@ using GrpcAsyncClientErrorTest =
     ugrpc::tests::ServiceFixture<AsyncTestServiceWithError>;
 using GrpcAsyncClientTest = ugrpc::tests::ServiceFixture<AsyncTestService>;
 
-// Disabled due to https://github.com/grpc/grpc/issues/14812
-UTEST_F(GrpcAsyncClientErrorTest, DISABLED_BidirectionalStreamAsyncRead) {
+UTEST_F(GrpcAsyncClientErrorTest, BidirectionalStreamAsyncRead) {
+  const auto grpc_version_minor =
+      utils::FromString<int>(utils::text::Split(grpc::Version(), ".").at(1));
+  if (grpc_version_minor < 24) {
+    GTEST_SKIP() << "Disabled due to https://github.com/grpc/grpc/issues/14812";
+  }
+
   auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
   sample::ugrpc::StreamGreetingResponse in;
   sample::ugrpc::StreamGreetingRequest out{};

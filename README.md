@@ -48,4 +48,4 @@ or [Habr](https://habr.com/post/674902) (Russian).
   OS abstractions. 
 
 
-[See the docs for more info](https://userver.tech/d6/d2f/md_en_index.html).
+[See the docs for more info](https://userver.tech/de/d6a/md_en_2index.html).

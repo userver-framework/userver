@@ -55,14 +55,15 @@ constexpr USERVER_NAMESPACE::dynamic_config::Key<Parse{{service.name}}ClientQos>
 ) const {
       return {
         USERVER_NAMESPACE::ugrpc::client::impl::CreateCallParams(
-	impl_, {{method_id}}, std::move(context), k{{service.name}}ClientQosConfig, qos
+          impl_, {{method_id}}, std::move(context), k{{service.name}}ClientQosConfig, qos
         ),
         impl_.NextStub<{{proto.namespace}}::{{service.name}}>(),
-        &{{proto.namespace}}::{{service.name}}::Stub::PrepareAsync{{method.name}}
+        &{{proto.namespace}}::{{service.name}}::Stub::PrepareAsync{{method.name}},
         {% if method.client_streaming %}
-	    };
+      };
         {% else %}
-        ,request};
+        request,
+      };
         {% endif %}
 }
   {% endfor %}

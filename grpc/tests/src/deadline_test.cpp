@@ -87,17 +87,14 @@ class UnitTestDeadlinePropagationService final
   }
 
   void WriteMany(WriteManyCall& call) override {
-    bool res = false;
     sample::ugrpc::StreamGreetingRequest request;
+    std::size_t reads{0};
 
-    size_t reads{0};
-
-    while ((res = call.Read(request))) {
-      EXPECT_EQ(request.name(), kRequests[reads++]);
+    while (call.Read(request)) {
+      ASSERT_LT(reads, std::size(kRequests));
+      EXPECT_EQ(request.name(), kRequests[reads]);
+      ++reads;
     }
-
-    EXPECT_FALSE(res);
-    ASSERT_GE(reads, 2);
 
     sample::ugrpc::StreamGreetingResponse response;
     response.set_name("Hello " + request.name());
@@ -150,7 +147,9 @@ class GrpcDeadlinePropagation
 
   ClientType& Client() { return client_; }
 
-  void WaitClientDeadline() { tests::WaitUntilRpcDeadline(client_deadline_); }
+  void WaitClientDeadline() {
+    tests::WaitUntilRpcDeadlineClient(client_deadline_);
+  }
 
   ~GrpcDeadlinePropagation() override {
     EXPECT_TRUE(client_deadline_.IsReached());
@@ -389,7 +388,7 @@ UTEST_F(GrpcTestClientNotSendData, TestClientDoNotStartCallWithoutDeadline) {
   request.set_name("userver");
 
   // Wait for deadline before request
-  tests::WaitUntilRpcDeadline(task_deadline);
+  tests::WaitUntilRpcDeadlineClient(task_deadline);
   // Context deadline not set
   auto call = Client().SayHello(request, tests::GetContext(false));
 
@@ -405,7 +404,7 @@ UTEST_F(GrpcTestClientNotSendData, TestClientDoNotStartCallWithDeadline) {
   request.set_name("userver");
 
   // Wait for deadline before request
-  tests::WaitUntilRpcDeadline(task_deadline);
+  tests::WaitUntilRpcDeadlineClient(task_deadline);
   // Set additional client deadline
   auto call = Client().SayHello(request, tests::GetContext(true));
 
