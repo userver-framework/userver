@@ -4,6 +4,7 @@
 
 #include <logging/socket_logging_test.hpp>
 #include <userver/logging/log.hpp>
+#include <userver/logging/logger.hpp>
 #include <userver/utest/utest.hpp>
 #include <userver/utils/async.hpp>
 #include <userver/utils/datetime/date.hpp>
@@ -107,6 +108,12 @@ TEST_F(LoggingTest, DatetimeDate) {
 UTEST_F(SocketLoggingTest, Test) {
   LOG_ERROR() << "test";
   EXPECT_EQ("test", NextLoggedText());
+}
+
+TEST_F(LoggingTest, LogRaw) {
+  logging::impl::LogRaw(logging::GetDefaultLogger(), logging::Level::kInfo,
+                        "foo");
+  EXPECT_EQ(GetStreamString(), "foo\n");
 }
 
 USERVER_NAMESPACE_END

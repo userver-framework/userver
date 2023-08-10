@@ -56,7 +56,12 @@ LoggerPtr MakeFileLogger(const std::string& name, const std::string& path,
 namespace impl {
 
 void LogRaw(LoggerBase& logger, Level level, std::string_view message) {
-  logger.Log(level, message);
+  std::string message_with_newline;
+  message_with_newline.reserve(message.size() + 1);
+  message_with_newline.append(message);
+  message_with_newline.push_back('\n');
+
+  logger.Log(level, message_with_newline);
 }
 
 }  // namespace impl
