@@ -237,6 +237,7 @@ class Value final {
 
  private:
   class EmplaceEnabler {};
+  class LazyDetachedPath;
 
  public:
   /// @cond
@@ -247,7 +248,7 @@ class Value final {
  private:
   explicit Value(impl::VersionedValuePtr root) noexcept;
   Value(impl::VersionedValuePtr root, const impl::Value* value_ptr, int depth);
-  Value(impl::VersionedValuePtr root, std::string&& detached_path);
+  Value(impl::VersionedValuePtr root, LazyDetachedPath&& lazy_detached_path);
 
   bool IsUniqueReference() const;
   void EnsureNotMissing();
@@ -258,10 +259,35 @@ class Value final {
 
   impl::VersionedValuePtr root_;
   impl::Value* value_ptr_{nullptr};
-  /// Full path of node (only for missing nodes)
-  std::string detached_path_;
   /// Depth of the node to ease recursive traversal in GetPath()
   int depth_{0};
+
+  // We don't want to calculate the path for missing node before it is
+  // explicitly requested, because GetPath() call is very costly.
+  // This helps with patterns like 'json["missing"].As<T>({})':
+  // path is not needed here (note default arg), and if we have a lot of missing
+  // keys during parsing we save a lot of expensive calculations.
+  class LazyDetachedPath final {
+   public:
+    LazyDetachedPath();
+    LazyDetachedPath(impl::Value* parent_value_ptr, int parent_depth,
+                     std::string_view key);
+
+    LazyDetachedPath(const LazyDetachedPath&);
+    LazyDetachedPath(LazyDetachedPath&&) noexcept;
+    LazyDetachedPath& operator=(const LazyDetachedPath&);
+    LazyDetachedPath& operator=(LazyDetachedPath&&) noexcept;
+
+    std::string Get(const impl::Value* root) const;
+    LazyDetachedPath Chain(std::string_view key) const;
+
+   private:
+    impl::Value* parent_value_ptr_{nullptr};
+    int parent_depth_{0};
+    std::string virtual_path_;
+  };
+
+  LazyDetachedPath lazy_detached_path_;
 
   template <typename, common::IteratorDirection>
   friend class Iterator;

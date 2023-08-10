@@ -44,12 +44,28 @@ std::string MakeChildPath(std::string_view parent, std::string_view key) {
   return new_path;
 }
 
+std::string MakeChildPath(std::string&& parent, std::string_view key) {
+  if (parent.empty() || parent == kPathRoot) return std::string{key};
+
+  AppendPath(parent, key);
+  return std::move(parent);
+}
+
 std::string MakeChildPath(std::string_view parent, std::size_t index) {
   std::string new_path;
   if (!parent.empty() && parent != kPathRoot) new_path = parent;
 
   AppendPath(new_path, index);
   return new_path;
+}
+
+std::string MakeChildPath(std::string&& parent, std::size_t index) {
+  if (parent == kPathRoot) {
+    parent.clear();
+  }
+
+  AppendPath(parent, index);
+  return std::move(parent);
 }
 
 std::string GetIndexString(size_t index) {

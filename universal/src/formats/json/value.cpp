@@ -86,8 +86,10 @@ Value::Value(impl::VersionedValuePtr root, const impl::Value* value_ptr,
       value_ptr_(const_cast<impl::Value*>(value_ptr)),
       depth_(depth) {}
 
-Value::Value(impl::VersionedValuePtr root, std::string&& detached_path)
-    : root_(std::move(root)), detached_path_(detached_path) {}
+Value::Value(impl::VersionedValuePtr root,
+             LazyDetachedPath&& lazy_detached_path)
+    : root_{std::move(root)},
+      lazy_detached_path_{std::move(lazy_detached_path)} {}
 
 Value Value::operator[](std::string_view key) const {
   if (!IsMissing()) {
@@ -99,8 +101,11 @@ Value Value::operator[](std::string_view key) const {
         return {root_, &it->value, depth_ + 1};
       }
     }
+
+    return {root_, LazyDetachedPath{value_ptr_, depth_, key}};
   }
-  return {root_, formats::common::MakeChildPath(GetPath(), key)};
+
+  return {root_, lazy_detached_path_.Chain(key)};
 }
 
 Value Value::operator[](std::size_t index) const {
@@ -347,7 +352,7 @@ std::string Value::GetPath() const {
   if (value_ptr_ != nullptr) {
     return impl::MakePath(root_.Get(), value_ptr_, depth_);
   } else {
-    return detached_path_.empty() ? formats::common::kPathRoot : detached_path_;
+    return lazy_detached_path_.Get(root_.Get());
   }
 }
 
@@ -436,6 +441,45 @@ void Value::CheckInBounds(std::size_t index) const {
     throw OutOfBoundsException(index, GetSize(), GetPath());
   }
 }
+
+Value::LazyDetachedPath::LazyDetachedPath() = default;
+
+Value::LazyDetachedPath::LazyDetachedPath(impl::Value* parent_value_ptr,
+                                          int parent_depth,
+                                          std::string_view key)
+    : parent_value_ptr_{parent_value_ptr},
+      parent_depth_{parent_depth},
+      virtual_path_{key} {}
+
+Value::LazyDetachedPath::LazyDetachedPath(const LazyDetachedPath&) = default;
+
+Value::LazyDetachedPath::LazyDetachedPath(LazyDetachedPath&&) noexcept =
+    default;
+
+Value::LazyDetachedPath& Value::LazyDetachedPath::operator=(
+    const LazyDetachedPath&) = default;
+
+Value::LazyDetachedPath& Value::LazyDetachedPath::operator=(
+    LazyDetachedPath&&) noexcept = default;
+
+std::string Value::LazyDetachedPath::Get(const impl::Value* root) const {
+  if (parent_value_ptr_ == nullptr) {
+    return formats::common::kPathRoot;
+  }
+
+  return formats::common::MakeChildPath(
+      impl::MakePath(root, parent_value_ptr_, parent_depth_), virtual_path_);
+}
+
+Value::LazyDetachedPath Value::LazyDetachedPath::Chain(
+    std::string_view key) const {
+  LazyDetachedPath result{*this};
+  result.virtual_path_ =
+      formats::common::MakeChildPath(std::move(result.virtual_path_), key);
+
+  return result;
+}
+
 }  // namespace formats::json
 
 namespace formats::literals {
