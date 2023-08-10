@@ -5,6 +5,7 @@
 #include <string_view>
 
 #include "userver/server/handlers/http_handler_base.hpp"
+#include "userver/server/handlers/http_handler_json_base.hpp"
 
 #include "userver/storages/postgres/cluster.hpp"
 #include "userver/storages/postgres/component.hpp"
@@ -13,8 +14,6 @@
 #include "userver/components/component_context.hpp"
 
 #include "userver/formats/json/value.hpp"
-#include "userver/server/handlers/http_handler_base.hpp"
-#include "userver/server/handlers/http_handler_json_base.hpp"
 
 namespace real_medium::handlers::users::get {
 

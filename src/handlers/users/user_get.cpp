@@ -1,8 +1,9 @@
 
 #include "user_get.hpp"
-#include "../../dto/user.hpp"
-#include "../../models/user.hpp"
+#include "dto/user.hpp"
+#include "models/user.hpp"
 #include "db/sql.hpp"
+#include "utils/make_error.hpp"
 
 namespace real_medium::handlers::users::get {
 
@@ -25,8 +26,9 @@ userver::formats::json::Value Handler::HandleRequestJsonThrow(
       sql::kFindUserById.data(), user_id);
 
   if (result.IsEmpty()) {
-    request.SetResponseStatus(userver::server::http::HttpStatus::kNotFound);
-    return {};
+    auto& response = request.GetHttpResponse();
+    response.SetStatus(userver::server::http::HttpStatus::kNotFound);
+    return utils::error::MakeError("user_id", "Ivanlid user_id. Not found.");
   }
 
   auto user = result.AsSingleRow<real_medium::models::User>(
