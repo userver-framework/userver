@@ -5,3 +5,5 @@ logger-level: debug
 is_testing: true
 
 server-port: 8080
+
+dbconnection: 'postgresql://testsuite@localhost:15433/realworld_service_db_1'
