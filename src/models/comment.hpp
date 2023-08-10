@@ -11,7 +11,7 @@
 namespace real_medium::models {
 
 struct Comment {
-  int comment_id;
+  int id;
   userver::storages::postgres::TimePointTz created_at;
   userver::storages::postgres::TimePointTz updated_at;
   std::string body;
@@ -20,7 +20,7 @@ struct Comment {
 
 
   auto Introspect() {
-    return std::tie(comment_id, created_at, updated_at, body,
+    return std::tie(id, created_at, updated_at, body,
     user_id, article_id);
   }
 };

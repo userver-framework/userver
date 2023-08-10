@@ -10,9 +10,11 @@ CommentDTO Parse(const userver::formats::json::Value& json,
       json["updatedAt"].As<std::string>(),
       json["body"].As<std::string>(),
       //json["author"].As<real_medium::models::Author>() author это тот же профиль
-      json["author"].As<std::string>()
+      json["author_id"].As<std::string>()
   };
 }
+
+
 
 AddCommentDTO Parse(const userver::formats::json::Value& json,
                  userver::formats::parse::To<AddCommentDTO>) {
