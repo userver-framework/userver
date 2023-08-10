@@ -25,9 +25,6 @@ Copyright (C) 2015 THL A29 Limited, a Tencent company, and Milo Yip
 **[curl-asio library](https://github.com/mologie/curl-asio)**
 Copyright (c) 2013 Oliver Kuckertz
 
-**[Spdlog  library](https://github.com/gabime/spdlog)**
-Copyright (c) 2016 Gabi Melman.
-
 **[Date library](https://github.com/HowardHinnant/date)**
 Copyright (c) 2023 Howard Hinnant.
 

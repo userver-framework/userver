@@ -64,7 +64,6 @@ if (USERVER_CONAN)
     find_package(c-ares REQUIRED)
     find_package(CURL REQUIRED)
     find_package(cryptopp REQUIRED)
-    find_package(spdlog REQUIRED)
     find_package(http_parser REQUIRED)
     find_package(libnghttp2 REQUIRED)
     find_package(libev REQUIRED)
@@ -74,7 +73,6 @@ else()
     include(SetupCAres)
     include(SetupCURL)
     include(SetupCryptoPP)
-    include(SetupSpdlog)
     find_package(Http_Parser REQUIRED)
     find_package(Nghttp2 REQUIRED)
     find_package(LibEv REQUIRED)
@@ -82,18 +80,9 @@ endif()
 
 add_library(${PROJECT_NAME} STATIC ${SOURCES})
 
-target_compile_definitions(${PROJECT_NAME}
-  PRIVATE
-    SPDLOG_PREVENT_CHILD_FD
-    SPDLOG_FMT_EXTERNAL
-    [[SPDLOG_LEVEL_NAMES={"TRACE", "DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL", "OFF" }]]
-)
-
 if (USERVER_DISABLE_PHDR_CACHE)
   target_compile_definitions(${PROJECT_NAME} PRIVATE USERVER_DISABLE_PHDR_CACHE)
 endif()
-
-
 
 target_link_libraries(${PROJECT_NAME}
   PUBLIC
@@ -144,7 +133,6 @@ if (USERVER_CONAN)
         http_parser::http_parser
         libev::libev
         libnghttp2::nghttp2
-        spdlog::spdlog_header_only
     )
 else()
     target_link_libraries(${PROJECT_NAME}
@@ -155,7 +143,6 @@ else()
         Http_Parser
         Nghttp2
         LibEv
-        spdlog_header_only
     )
 
     target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC

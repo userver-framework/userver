@@ -43,7 +43,7 @@ const std::string kTestProgram = "/bin/test";
 const std::string kTestProgram = "/usr/bin/test";
 #endif
 
-constexpr std::string_view kSpdlogFilePart = "spdlog_closeexec_test_";
+constexpr std::string_view kLogFilePart = "log_closeexec_test_";
 
 }  // namespace
 
@@ -65,8 +65,8 @@ UTEST(Subprocess, False) {
   EXPECT_NE(0, status.GetExitCode());
 }
 
-UTEST(Subprocess, CheckSpdlogClosesFds) {
-  auto file = fs::blocking::TempFile::Create("/tmp", kSpdlogFilePart);
+UTEST(Subprocess, CheckLogClosesFds) {
+  auto file = fs::blocking::TempFile::Create("/tmp", kLogFilePart);
   auto logger = logging::MakeFileLogger("to_file", file.GetPath(),
                                         logging::Format::kTskv);
   LOG_ERROR_TO(logger) << "This must be logged";
@@ -96,28 +96,25 @@ UTEST(Subprocess, CheckSpdlogClosesFds) {
 #endif
 
   auto future = starter.Exec(
-      self,
-      {
-          "--gtest_also_run_disabled_tests",
-          "--gtest_filter=Subprocess.DISABLED_CheckSpdlogClosesFdsFromChild",
-      });
+      self, {
+                "--gtest_also_run_disabled_tests",
+                "--gtest_filter=Subprocess.DISABLED_CheckLogClosesFdsFromChild",
+            });
 
   auto status = future.Get();
   ASSERT_TRUE(status.IsExited());
   const auto return_code = status.GetExitCode();
-  EXPECT_NE(return_code, 1)
-      << "File descriptor for '" << file.GetPath()
-      << "' was inherited from SpdLog. Make sure that spdlog compiled "
-         "with -DSPDLOG_PREVENT_CHILD_FD";
+  EXPECT_NE(return_code, 1) << "File descriptor for '" << file.GetPath()
+                            << "' was inherited from Log.";
   EXPECT_EQ(return_code, 0);
 }
 
-// This test is run from Subprocess.CheckSpdlogClosesFds
-TEST(Subprocess, DISABLED_CheckSpdlogClosesFdsFromChild) {
+// This test is run from Subprocess.CheckLogClosesFds
+TEST(Subprocess, DISABLED_CheckLogClosesFdsFromChild) {
   const auto opened_files = utest::CurrentProcessOpenFiles();
   for (const auto& file : opened_files) {
     // CurrentProcessOpenFiles.Basic makes sure that this works well
-    if (file.find(kSpdlogFilePart) != std::string::npos) {
+    if (file.find(kLogFilePart) != std::string::npos) {
       LOG_ERROR() << "Error: " << file;
       // NOLINTNEXTLINE(concurrency-mt-unsafe)
       std::exit(1);

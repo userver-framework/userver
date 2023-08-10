@@ -29,7 +29,6 @@ libmongoc-dev
 libnghttp2-dev
 libpq-dev
 libprotoc-dev
-libspdlog-dev
 libssl-dev
 libyaml-cpp-dev
 postgresql-13

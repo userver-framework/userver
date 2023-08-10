@@ -100,8 +100,6 @@ class UserverConan(ConanFile):
         self.requires('http_parser/2.9.4')
         self.requires('openssl/1.1.1s')
         self.requires('rapidjson/cci.20220822')
-        self.requires('spdlog/1.9.0')
-        self.options['spdlog'].header_only = True
         self.requires('yaml-cpp/0.7.0')
         self.requires('zlib/1.2.13')
 

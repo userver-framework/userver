@@ -15,7 +15,6 @@ jemalloc
 krb5
 nghttp2
 protobuf
-spdlog
 openssl@1.1
 yaml-cpp
 postgresql@13

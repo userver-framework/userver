@@ -26,7 +26,6 @@ python-pip
 python-virtualenv
 python-voluptuous
 python-yaml
-spdlog
 yaml-cpp
 zlib
 makepkg|cctz

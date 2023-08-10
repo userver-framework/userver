@@ -15,4 +15,3 @@ target_link_libraries (${PROJECT_NAME}
 target_include_directories (${PROJECT_NAME} SYSTEM PRIVATE
     $<TARGET_PROPERTY:userver-core,INCLUDE_DIRECTORIES>
 )
-target_compile_definitions(${PROJECT_NAME} PRIVATE SPDLOG_FMT_EXTERNAL=1)

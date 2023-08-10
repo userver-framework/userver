@@ -16,7 +16,7 @@ USERVER_NAMESPACE_BEGIN
 
 constexpr std::string_view kTestFilePart = "test_files_listing_of_current_proc";
 
-// Mostly tests that Subprocess.CheckSpdlogClosesFds test would detect
+// Mostly tests that Subprocess.CheckLogClosesFds test would detect
 // non-closed file descriptors.
 #if defined(BSD)
 // /dev/fd/* are not symlinks
