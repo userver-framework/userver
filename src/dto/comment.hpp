@@ -25,7 +25,8 @@ struct AddCommentDTO {
 
 CommentDTO Parse(const userver::formats::json::Value& json,
            userver::formats::parse::To<CommentDTO>);
-           
+
+          
 AddCommentDTO Parse(const userver::formats::json::Value& json,
            userver::formats::parse::To<AddCommentDTO>);
 

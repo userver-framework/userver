@@ -122,3 +122,11 @@ components_manager:
             auth:
                 types:
                   - bearer
+
+        handler-comments-get:
+            path: /api/articles/{slug}/comments
+            method: GET
+            task_processor: main-task-processor
+            auth:
+                types:
+                  - bearer

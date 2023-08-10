@@ -37,6 +37,8 @@ add_library(${PROJECT_NAME}_objs OBJECT
 		src/handlers/comments/comment_delete.hpp
 		src/handlers/comments/comment_post.cpp
 		src/handlers/comments/comment_post.hpp
+		src/handlers/comments/comments_get.cpp
+		src/handlers/comments/comments_get.hpp
 		src/dto/profile.cpp
 		src/dto/profile.hpp
 		src/dto/user.hpp
