@@ -22,18 +22,10 @@ endif()
 
 include(DownloadUsingCPM)
 CPMAddPackage(
-    NAME cryptopp
-    VERSION 8.7.0
-    GITHUB_REPOSITORY weidai11/cryptopp
-    GIT_TAG CRYPTOPP_8_7_0
-    DOWNLOAD_ONLY YES
-)
-CPMAddPackage(
     NAME cryptopp-cmake
     VERSION 8.7.0
     GITHUB_REPOSITORY abdes/cryptopp-cmake
     OPTIONS
-    "CRYPTOPP_SOURCES ${cryptopp_SOURCE_DIR}"
     "cryptopp_DISPLAY_CMAKE_SUPPORT_WARNING OFF"
     "CRYPTOPP_BUILD_SHARED OFF"
     "CRYPTOPP_BUILD_TESTING OFF"
