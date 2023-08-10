@@ -28,7 +28,7 @@ RETURNING *
 
 inline constexpr std::string_view kFindUserById = R"~(
 SELECT * FROM real_medium.users WHERE user_id = $1    
-)~"; 
+)~";
 
 inline constexpr std::string_view kFindCommentById = R"~(
 SELECT * FROM real_medium.comments WHERE comment_id = $1 
@@ -36,21 +36,21 @@ SELECT * FROM real_medium.comments WHERE comment_id = $1
 
 inline constexpr std::string_view kFindCommentByArticleId = R"~(
 SELECT * FROM real_medium.comments WHERE article_id = $1 
-)~"; 
+)~";
 
 inline constexpr std::string_view kDeleteCommentById = R"~(
 DELETE FROM real_medium.comments WHERE comment_id = $1 AND user_id = $2
 RETURNING *
-)~"; 
+)~";
 
 inline constexpr std::string_view kAddComment = R"~(
   INSERT INTO real_medium.comments(body, user_id, article_id) 
   VALUES($1, $2, $3)
   RETURNING *
-)~"; 
+)~";
 
 inline constexpr std::string_view kFindIdArticleBySlug = R"~(
 SELECT article_id FROM real_medium.articles WHERE slug = $1  
-)~"; 
+)~";
 
-}
+}  // namespace real_medium::sql

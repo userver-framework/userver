@@ -25,7 +25,7 @@ class Handler final : public userver::server::handlers::HttpHandlerJsonBase {
   static constexpr std::string_view kName = "handler-comments-get";
 
   Handler(const userver::components::ComponentConfig& config,
-        const userver::components::ComponentContext& component_context);
+          const userver::components::ComponentContext& component_context);
   userver::formats::json::Value HandleRequestJsonThrow(
       const userver::server::http::HttpRequest& request,
       const userver::formats::json::Value& request_json,
@@ -36,6 +36,4 @@ class Handler final : public userver::server::handlers::HttpHandlerJsonBase {
   userver::storages::postgres::ClusterPtr pg_cluster_;
 };
 
-
-
-} // namespace real_medium::handlers::comments::get
+}  // namespace real_medium::handlers::comments::get
