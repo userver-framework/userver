@@ -80,6 +80,9 @@ components_manager:
             path: /api/user               
             method: GET          
             task_processor: main-task-processor 
+            auth:
+                types:
+                  - bearer
 
         handler-user-put:
             path: /api/user               
