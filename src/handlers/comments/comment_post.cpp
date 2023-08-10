@@ -16,20 +16,15 @@ Handler::Handler(const userver::components::ComponentConfig& config,
 
 std::string Handler::HandleRequestThrow(
     const userver::server::http::HttpRequest& request,
-    userver::server::request::RequestContext&) const {
+    userver::server::request::RequestContext& context) const {
 
-    /*
-    ..
-    check authentication
-    ..
-    */
+    auto user_id = context.GetData<std::string>("id");
     
     const auto comment_json =
       userver::formats::json::FromString(request.RequestBody())["comment"]
           .As<dto::AddCommentDTO>();
 
     const auto& comment_body = comment_json.body;    
-    auto user_id = "d2252d2f-51f1-4393-bdf5-e78a1d611019";
     const auto& slug = request.GetPathArg("slug");
 
 

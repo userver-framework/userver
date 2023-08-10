@@ -14,25 +14,27 @@ Handler::Handler(const userver::components::ComponentConfig& config,
 
 std::string Handler::HandleRequestThrow(
     const userver::server::http::HttpRequest& request,
-    userver::server::request::RequestContext&) const {
+    userver::server::request::RequestContext& context) const {
 
-    /*
-    ..
-    check authentication
-    ..
-    */
+    auto user_id = context.GetData<std::string>("id");
+    const auto& comment_id = std::atoi(request.GetPathArg("id").c_str());
+
+    const auto result_find_comment = pg_cluster_->Execute(userver::storages::postgres::ClusterHostType::kMaster,
+                            sql::kSelectCommentById.data(),
+                            comment_id);
     
-    
-    const auto& id_comment = std::atoi(request.GetPathArg("id").c_str());
-
-
-    const auto result =  pg_cluster_->Execute(userver::storages::postgres::ClusterHostType::kMaster,
-                            sql::kDeleteCommentById.data(),
-                            id_comment);
-
-    if(result.IsEmpty()){
+    if(result_find_comment.IsEmpty()){
         request.SetResponseStatus(userver::server::http::HttpStatus::kNotFound); 
         return "NOT_FOUND_COMMENT";
+    }
+
+    const auto result_delete_comment = pg_cluster_->Execute(userver::storages::postgres::ClusterHostType::kMaster,
+                            sql::kDeleteCommentById.data(),
+                            comment_id, user_id);
+
+    if(result_delete_comment.IsEmpty()){
+        request.SetResponseStatus(userver::server::http::HttpStatus::kMethodNotAllowed ); 
+        return "USER_NOT_OWNER";
     }
     
                             

@@ -18,14 +18,8 @@ Handler::Handler(const userver::components::ComponentConfig& config,
 
 std::string Handler::HandleRequestThrow(
     const userver::server::http::HttpRequest& request,
-    userver::server::request::RequestContext&) const {
-  /*
-  ..
-  get user_id by token
-  ..
-  */
-
-  auto user_id = "3dff4620-c620-4372-9d34-8d44b6bbc041";
+    userver::server::request::RequestContext& context) const {
+  auto user_id = context.GetData<std::string>("id");
 
   const auto user_change_data =
       userver::formats::json::FromString(request.RequestBody())["user"]
