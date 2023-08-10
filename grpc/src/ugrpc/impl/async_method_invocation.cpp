@@ -30,6 +30,11 @@ void* AsyncMethodInvocation::GetTag() noexcept {
 }
 
 AsyncMethodInvocation::WaitStatus AsyncMethodInvocation::Wait() noexcept {
+  if (engine::current_task::ShouldCancel()) {
+    // Make sure that cancelled RPC returns kCancelled (significant for tests)
+    return WaitStatus::kCancelled;
+  }
+
   if (!event_.WaitForEvent()) {
     UASSERT(engine::current_task::ShouldCancel());
     return WaitStatus::kCancelled;
