@@ -1516,24 +1516,24 @@ UTEST(HttpClient, RequestReuseDifferentUrlAndTimeout) {
   EXPECT_EQ(*shared_echo_callback.responses_200, kFewRepetitions + 1);
 }
 
-UTEST(HttpClient, DISABLED_TestsuiteAllowedUrls) {
+UTEST_DEATH(HttpClientDeathTest, TestsuiteAllowedUrls) {
   auto task = utils::Async("test", [] {
     const utest::SimpleServer http_server{EchoCallback{}};
     auto http_client_ptr = utest::CreateHttpClient();
     http_client_ptr->SetTestsuiteConfig({{"http://126.0.0.1"}, {}});
 
-    EXPECT_NO_THROW((void)http_client_ptr->CreateRequest()
-                        .get("http://126.0.0.1")
-                        .async_perform());
+    UEXPECT_NO_THROW((void)http_client_ptr->CreateRequest()
+                         .get("http://126.0.0.1")
+                         .async_perform());
     UEXPECT_DEATH((void)http_client_ptr->CreateRequest()
                       .get("http://12.0.0.1")
                       .async_perform(),
                   ".*");
 
     http_client_ptr->SetAllowedUrlsExtra({"http://12.0"});
-    EXPECT_NO_THROW((void)http_client_ptr->CreateRequest()
-                        .get("http://12.0.0.1")
-                        .async_perform());
+    UEXPECT_NO_THROW((void)http_client_ptr->CreateRequest()
+                         .get("http://12.0.0.1")
+                         .async_perform());
     UEXPECT_DEATH((void)http_client_ptr->CreateRequest()
                       .get("http://13.0.0.1")
                       .async_perform(),
