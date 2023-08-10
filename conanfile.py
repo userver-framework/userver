@@ -193,7 +193,7 @@ class UserverConan(ConanFile):
             pattern='*',
             dst=os.path.join(self.package_folder, 'include', 'function_backports'),
             src=os.path.join(
-                self.source_folder, 'third_party', 'function_backports',
+                self.source_folder, 'third_party', 'function_backports', 'include',
             ),
             keep_path=True,
         )
