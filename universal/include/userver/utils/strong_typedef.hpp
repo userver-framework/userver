@@ -365,7 +365,7 @@ std::string ToString(const StrongTypedef<Tag, std::string, Ops>& object) {
 }
 
 template <typename Tag, typename T, StrongTypedefOps Ops,
-          typename = std::enable_if_t<meta::kIsInteger<T>>>
+          typename = std::enable_if_t<meta::kIsNumber<T>>>
 std::string ToString(const StrongTypedef<Tag, T, Ops>& object) {
   impl::strong_typedef::CheckIfAllowsLogging<
       StrongTypedef<Tag, std::string, Ops>>();

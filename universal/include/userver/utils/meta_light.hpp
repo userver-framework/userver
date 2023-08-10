@@ -102,6 +102,11 @@ template <typename T>
 inline constexpr bool kIsInteger =
     std::is_integral_v<T> && !kIsCharacter<T> && !std::is_same_v<T, bool>;
 
+/// Returns `true` if the type is a true number type (integer or floating point)
+/// `signed char` and `unsigned char` are integer types
+template <typename T>
+inline constexpr bool kIsNumber = kIsNumber<T> || std::is_floating_point_v<T>;
+
 }  // namespace meta
 
 USERVER_NAMESPACE_END
