@@ -188,6 +188,21 @@ class UserverConan(ConanFile):
             keep_path=True,
         )
 
+        copy(
+            self,
+            pattern='*',
+            dst=os.path.join(
+                self.package_folder, 'include', 'function_backports',
+            ),
+            src=os.path.join(
+                self.source_folder,
+                'third_party',
+                'function_backports',
+                'include',
+            ),
+            keep_path=True,
+        )
+
         def copy_component(component):
             copy(
                 self,
@@ -241,13 +256,14 @@ class UserverConan(ConanFile):
                 'userver::grpc',
             )
 
-            grpc_file = open(
-                os.path.join(self.package_folder, 'cmake', 'GrpcConan.cmake'),
-                'a+',
-            )
-            grpc_file.write('\nset(USERVER_CONAN TRUE)')
-            grpc_file.write('\nset(PYTHON "python3")')
-            grpc_file.close()
+            with open(
+                    os.path.join(
+                        self.package_folder, 'cmake', 'GrpcConan.cmake',
+                    ),
+                    'a+',
+            ) as grpc_file:
+                grpc_file.write('\nset(USERVER_CONAN TRUE)')
+                grpc_file.write('\nset(PYTHON "python3")')
         if self.options.with_utest:
             copy(
                 self,
@@ -526,6 +542,12 @@ class UserverConan(ConanFile):
                     )
                 else:
                     self.cpp_info.components[conan_component].libs = [lib_name]
+                if cmake_component == 'universal':
+                    self.cpp_info.components[
+                        cmake_component
+                    ].includedirs.append(
+                        os.path.join('include', 'function_backports'),
+                    )
                 if cmake_component == 'core':
                     self.cpp_info.components[conan_component].libs.append(
                         get_lib_name('core-internal'),
