@@ -1,13 +1,8 @@
 #include <string>
 
 #include "users.hpp"
-#include "userver/server/handlers/http_handler_base.hpp"
-
-#include "userver/storages/postgres/component.hpp"
 
 #include <userver/crypto/hash.hpp>
-#include "userver/components/component_config.hpp"
-#include "userver/components/component_context.hpp"
 
 #include "db/sql.hpp"
 #include "dto/user.hpp"
