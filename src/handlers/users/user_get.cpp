@@ -8,14 +8,15 @@ namespace real_medium::handlers::users::get {
 
 Handler::Handler(const userver::components::ComponentConfig& config,
                  const userver::components::ComponentContext& component_context)
-    : HttpHandlerBase(config, component_context),
+    : HttpHandlerJsonBase(config, component_context),
       pg_cluster_(component_context
                       .FindComponent<userver::components::Postgres>(
                           "realmedium-database")
                       .GetCluster()) {}
 
-std::string Handler::HandleRequestThrow(
+userver::formats::json::Value Handler::HandleRequestJsonThrow(
     const userver::server::http::HttpRequest& request,
+    const userver::formats::json::Value& request_json,
     userver::server::request::RequestContext& context) const {
   auto user_id = context.GetData<std::string>("id");
 
@@ -25,7 +26,7 @@ std::string Handler::HandleRequestThrow(
 
   if (result.IsEmpty()) {
     request.SetResponseStatus(userver::server::http::HttpStatus::kNotFound);
-    return "USER_NOT_FOUND";
+    return {};
   }
 
   auto user = result.AsSingleRow<real_medium::models::User>(
@@ -34,7 +35,7 @@ std::string Handler::HandleRequestThrow(
   userver::formats::json::ValueBuilder builder;
   builder["user"] = user;
 
-  return ToString(builder.ExtractValue());
+  return builder.ExtractValue();
 }
 
 }  // namespace real_medium::handlers::users::get
