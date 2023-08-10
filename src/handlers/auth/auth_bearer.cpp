@@ -1,6 +1,6 @@
 #include "auth_bearer.hpp"
-#include "utils/jwt.hpp"
 #include "db/sql.hpp"
+#include "utils/jwt.hpp"
 
 #include <algorithm>
 
@@ -15,7 +15,8 @@ class AuthCheckerBearer final
  public:
   using AuthCheckResult = userver::server::handlers::auth::AuthCheckResult;
 
-  AuthCheckerBearer(const userver::components::ComponentContext& component_context)
+  AuthCheckerBearer(
+      const userver::components::ComponentContext& component_context)
       : pg_cluster_(component_context
                         .FindComponent<userver::components::Postgres>(
                             "realmedium-database")
@@ -27,7 +28,7 @@ class AuthCheckerBearer final
 
   [[nodiscard]] bool SupportsUserAuth() const noexcept override { return true; }
 
-private:
+ private:
   userver::storages::postgres::ClusterPtr pg_cluster_;
 };
 
@@ -37,10 +38,11 @@ AuthCheckerBearer::AuthCheckResult AuthCheckerBearer::CheckAuth(
   const auto& auth_value =
       request.GetHeader(userver::http::headers::kAuthorization);
   if (auth_value.empty()) {
-    return AuthCheckResult{AuthCheckResult::Status::kTokenNotFound,
-                           {},
-                           "Empty 'Authorization' header",
-                           userver::server::handlers::HandlerErrorCode::kUnauthorized};
+    return AuthCheckResult{
+        AuthCheckResult::Status::kTokenNotFound,
+        {},
+        "Empty 'Authorization' header",
+        userver::server::handlers::HandlerErrorCode::kUnauthorized};
   }
 
   const auto bearer_sep_pos = auth_value.find(' ');
@@ -56,9 +58,9 @@ AuthCheckerBearer::AuthCheckResult AuthCheckerBearer::CheckAuth(
   auto payload = utils::jwt::DecodeJWT(token);
   auto id = payload.get_claim_value<std::string>("id");
 
-  const auto res = pg_cluster_->Execute(
-      userver::storages::postgres::ClusterHostType::kSlave,
-      sql::kFindUserById.data(), id);
+  const auto res =
+      pg_cluster_->Execute(userver::storages::postgres::ClusterHostType::kSlave,
+                           sql::kFindUserById.data(), id);
   if (res.IsEmpty()) {
     return AuthCheckResult{
         AuthCheckResult::Status::kTokenNotFound,

@@ -27,12 +27,11 @@ struct UserUpdateDTO {
 };
 
 UserRegistrationDTO Parse(const userver::formats::json::Value& json,
-           userver::formats::parse::To<UserRegistrationDTO>);
+                          userver::formats::parse::To<UserRegistrationDTO>);
 
 UserLoginDTO Parse(const userver::formats::json::Value& json,
-           userver::formats::parse::To<UserLoginDTO>);
-
+                   userver::formats::parse::To<UserLoginDTO>);
 
 UserUpdateDTO Parse(const userver::formats::json::Value& json,
-           userver::formats::parse::To<UserUpdateDTO>);
-}
+                    userver::formats::parse::To<UserUpdateDTO>);
+}  // namespace real_medium::dto

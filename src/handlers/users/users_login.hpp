@@ -4,6 +4,6 @@
 
 namespace real_medium::handlers::users_login::post {
 
-void AppendLoginUser(userver::components::ComponentList &component_list);
+void AppendLoginUser(userver::components::ComponentList& component_list);
 
-} // namespace realworld::handlers::api::users_login::post
+}  // namespace real_medium::handlers::users_login::post

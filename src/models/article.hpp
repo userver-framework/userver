@@ -21,7 +21,7 @@ struct Article {
 
   auto Introspect() {
     return std::tie(article_id, title, slug, body, description, created_at,
-    updated_at, favorites_count, user_id);
+                    updated_at, favorites_count, user_id);
   }
 };
 
@@ -29,4 +29,4 @@ userver::formats::json::Value Serialize(
     const Article& article,
     userver::formats::serialize::To<userver::formats::json::Value>);
 
-}  // namespace realworld::models
+}  // namespace real_medium::models

@@ -1,8 +1,8 @@
 
 #include "user_get.hpp"
+#include "db/sql.hpp"
 #include "dto/user.hpp"
 #include "models/user.hpp"
-#include "db/sql.hpp"
 #include "utils/make_error.hpp"
 
 namespace real_medium::handlers::users::get {

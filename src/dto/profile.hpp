@@ -17,4 +17,4 @@ userver::formats::json::Value Serialize(
     const Profile& dto,
     userver::formats::serialize::To<userver::formats::json::Value>);
 
-}  // namespace realmedium::dto
+}  // namespace real_medium::dto
