@@ -1,8 +1,8 @@
 
 #include "comment_post.hpp"
 #include "db/sql.hpp"
-#include "../../dto/comment.hpp"
-#include "../../models/comment.hpp"
+#include "dto/comment.hpp"
+#include "models/comment.hpp"
 
 #include "utils/make_error.hpp"
 
