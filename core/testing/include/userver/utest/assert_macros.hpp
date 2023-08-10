@@ -124,16 +124,24 @@ USERVER_NAMESPACE_END
 #define UASSERT_NO_THROW(statement) \
   IMPL_UTEST_ASSERT_NO_THROW(statement, GTEST_FATAL_FAILURE_)
 
+/// @cond
+#ifdef NDEBUG
+// NOLINTNEXTLINE (cppcoreguidelines-macro-usage)
+#define EXPECT_UINVARIANT_FAILURE_MSG(statement, message_substring)      \
+  UEXPECT_THROW_MSG(statement, USERVER_NAMESPACE::utils::InvariantError, \
+                    message_substring)
+#else
+// NOLINTNEXTLINE (cppcoreguidelines-macro-usage)
+#define EXPECT_UINVARIANT_FAILURE_MSG(statement, message_substring) \
+  UEXPECT_DEATH(statement, message_substring)
+#endif
+/// @endcond
+
 /// @ingroup userver_utest
 ///
 /// Test that a UINVARIANT check triggers
 ///
 /// @hideinitializer
-#ifdef NDEBUG
 // NOLINTNEXTLINE (cppcoreguidelines-macro-usage)
 #define EXPECT_UINVARIANT_FAILURE(statement) \
-  UEXPECT_THROW(statement, USERVER_NAMESPACE::utils::InvariantError)
-#else
-// NOLINTNEXTLINE (cppcoreguidelines-macro-usage)
-#define EXPECT_UINVARIANT_FAILURE(statement) UEXPECT_DEATH(statement, "")
-#endif
+  EXPECT_UINVARIANT_FAILURE_MSG(statement, "")

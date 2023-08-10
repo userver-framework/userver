@@ -42,6 +42,8 @@ class ChatOnlyService final : public sample::ugrpc::UnitTestServiceBase {
 using GrpcServerSomeUnimplementedTest =
     ugrpc::tests::ServiceFixture<ChatOnlyService>;
 
+using GrpcServerSomeUnimplementedDeathTest = GrpcServerSomeUnimplementedTest;
+
 UTEST_F(GrpcServerSomeUnimplementedTest, Implemented) {
   auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
   auto call = client.Chat(ContextWithDeadline());
@@ -50,13 +52,17 @@ UTEST_F(GrpcServerSomeUnimplementedTest, Implemented) {
   EXPECT_FALSE(call.Read(response));
 }
 
-UTEST_F(GrpcServerSomeUnimplementedTest,
-        DISABLED_IN_DEBUG_TEST_NAME(Unimplemented)) {
+UTEST_F_DEATH(GrpcServerSomeUnimplementedDeathTest, Unimplemented) {
   auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
   sample::ugrpc::GreetingRequest out;
   out.set_name("userver");
+#ifdef NDEBUG
   UEXPECT_THROW(client.SayHello(out, ContextWithDeadline()).Finish(),
                 ugrpc::client::UnimplementedError);
+#else
+  UEXPECT_DEATH(client.SayHello(out, ContextWithDeadline()).Finish(),
+                "Called not implemented");
+#endif
 }
 
 USERVER_NAMESPACE_END

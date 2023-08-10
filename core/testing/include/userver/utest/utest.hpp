@@ -117,14 +117,14 @@ USERVER_NAMESPACE_END
 /// @hideinitializer
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define UTEST(test_suite_name, test_name) \
-  IMPL_UTEST_TEST(test_suite_name, test_name, 1)
+  IMPL_UTEST_TEST(test_suite_name, test_name, 1, false)
 
 /// @brief An equivalent of the gtest macro TEST for death tests that starts the
 /// test body as a coroutine task
 /// @hideinitializer
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define UTEST_DEATH(test_suite_name, test_name) \
-  IMPL_UTEST_DEATH_TEST(test_suite_name, test_name, 1)
+  IMPL_UTEST_TEST(test_suite_name, test_name, 1, true)
 
 /// @brief An equivalent of the gtest macro TEST that starts the test body as a
 /// coroutine task
@@ -132,14 +132,21 @@ USERVER_NAMESPACE_END
 /// @hideinitializer
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define UTEST_MT(test_suite_name, test_name, thread_count) \
-  IMPL_UTEST_TEST(test_suite_name, test_name, thread_count)
+  IMPL_UTEST_TEST(test_suite_name, test_name, thread_count, false)
 
 /// @brief An equivalent of the gtest macro TEST_F that starts the test body as
 /// a coroutine task
 /// @hideinitializer
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define UTEST_F(test_suite_name, test_name) \
-  IMPL_UTEST_TEST_F(test_suite_name, test_name, 1)
+  IMPL_UTEST_TEST_F(test_suite_name, test_name, 1, false)
+
+/// @brief An equivalent of the gtest macro TEST_F for death tests that starts
+/// the test body as a coroutine task
+/// @hideinitializer
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+#define UTEST_F_DEATH(test_suite_name, test_name) \
+  IMPL_UTEST_TEST_F(test_suite_name, test_name, 1, true)
 
 /// @brief An equivalent of the gtest macro TEST_F that starts the test body as
 /// a coroutine task
@@ -147,28 +154,28 @@ USERVER_NAMESPACE_END
 /// @hideinitializer
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define UTEST_F_MT(test_suite_name, test_name, thread_count) \
-  IMPL_UTEST_TEST_F(test_suite_name, test_name, thread_count)
+  IMPL_UTEST_TEST_F(test_suite_name, test_name, thread_count, false)
 
 /// @brief An equivalent of the gtest macro TEST_P that starts the test body as
 /// a coroutine task
 /// @hideinitializer
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define UTEST_P(test_suite_name, test_name) \
-  IMPL_UTEST_TEST_P(test_suite_name, test_name, 1)
+  IMPL_UTEST_TEST_P(test_suite_name, test_name, 1, false)
 
 /// @brief An equivalent of the gtest macro TEST_P that starts the test body as
 /// a coroutine task
 /// @hideinitializer
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define UTEST_P_MT(test_suite_name, test_name, thread_count) \
-  IMPL_UTEST_TEST_P(test_suite_name, test_name, thread_count)
+  IMPL_UTEST_TEST_P(test_suite_name, test_name, thread_count, false)
 
 /// @brief An equivalent of the gtest macro TYPED_TEST that starts the test body
 /// as a coroutine task
 /// @hideinitializer
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define TYPED_UTEST(test_suite_name, test_name) \
-  IMPL_UTEST_TYPED_TEST(test_suite_name, test_name, 1)
+  IMPL_UTEST_TYPED_TEST(test_suite_name, test_name, 1, false)
 
 /// @brief An equivalent of the gtest macro TYPED_TEST that starts the test body
 /// as a coroutine task
@@ -176,14 +183,14 @@ USERVER_NAMESPACE_END
 /// @hideinitializer
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define TYPED_UTEST_MT(test_suite_name, test_name, thread_count) \
-  IMPL_UTEST_TYPED_TEST(test_suite_name, test_name, thread_count)
+  IMPL_UTEST_TYPED_TEST(test_suite_name, test_name, thread_count, false)
 
 /// @brief An equivalent of the gtest macro TYPED_TEST_P that starts the test
 /// body as a coroutine task
 /// @hideinitializer
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define TYPED_UTEST_P(test_suite_name, test_name) \
-  IMPL_UTEST_TYPED_TEST_P(test_suite_name, test_name, 1)
+  IMPL_UTEST_TYPED_TEST_P(test_suite_name, test_name, 1, false)
 
 /// @brief An equivalent of the gtest macro TYPED_TEST_P that starts the test
 /// body as a coroutine task
@@ -191,7 +198,7 @@ USERVER_NAMESPACE_END
 /// @hideinitializer
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define TYPED_UTEST_P_MT(test_suite_name, test_name, thread_count) \
-  IMPL_UTEST_TYPED_TEST_P(test_suite_name, test_name, thread_count)
+  IMPL_UTEST_TYPED_TEST_P(test_suite_name, test_name, thread_count, false)
 
 /// @brief An equivalent of the gtest macro TYPED_TEST_SUITE that starts the
 /// test body as a coroutine task

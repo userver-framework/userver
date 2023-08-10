@@ -108,6 +108,8 @@ class GrpcMiddlewares : public ugrpc::tests::ServiceFixtureBase {
   std::optional<sample::ugrpc::UnitTestServiceClient> client_;
 };
 
+using GrpcMiddlewaresDeathTest = GrpcMiddlewares;
+
 }  // namespace
 
 UTEST_F(GrpcMiddlewares, HappyPath) {
@@ -127,18 +129,18 @@ UTEST_F(GrpcMiddlewares, Exception) {
   GetMockMiddleware().throw_exception = true;
   sample::ugrpc::GreetingRequest request;
   request.set_name("userver");
-  EXPECT_THROW(auto r = GetClient().SayHello(request), std::runtime_error);
+  UEXPECT_THROW(auto r = GetClient().SayHello(request), std::runtime_error);
   EXPECT_EQ(GetMockMiddleware().times_called, 1);
 }
 
-UTEST_F(GrpcMiddlewares, DISABLED_IN_DEBUG_TEST_NAME(Drop)) {
+UTEST_F_DEATH(GrpcMiddlewaresDeathTest, Drop) {
   EXPECT_EQ(GetMockMiddleware().times_called, 0);
 
   GetMockMiddleware().call_next = false;
   sample::ugrpc::GreetingRequest request;
   request.set_name("userver");
-  EXPECT_THROW(GetClient().SayHello(request).Finish(), std::exception);
-  EXPECT_EQ(GetMockMiddleware().times_called, 1);
+  EXPECT_UINVARIANT_FAILURE_MSG(GetClient().SayHello(request).Finish(),
+                                "forgot to call context.Next()");
 }
 
 USERVER_NAMESPACE_END
