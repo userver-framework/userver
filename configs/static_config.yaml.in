@@ -88,6 +88,9 @@ components_manager:
             path: /api/user               
             method: PUT         
             task_processor: main-task-processor 
+            auth:
+                types:
+                  - bearer
 
         handler-get-tags:
             path: /api/tags
@@ -108,8 +111,14 @@ components_manager:
             path: /api/articles/{slug}/comments/{id}
             method: DELETE
             task_processor: main-task-processor
+            auth:
+                types:
+                  - bearer
         
         handler-comment-post:
             path: /api/articles/{slug}/comments
             method: POST
             task_processor: main-task-processor
+            auth:
+                types:
+                  - bearer

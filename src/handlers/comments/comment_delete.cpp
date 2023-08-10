@@ -1,42 +1,48 @@
 
 #include "comment_delete.hpp"
 #include "db/sql.hpp"
+#include "utils/make_error.hpp"
 
 namespace real_medium::handlers::comments::del {
 
 Handler::Handler(const userver::components::ComponentConfig& config,
         const userver::components::ComponentContext& component_context)
-      : HttpHandlerBase(config, component_context)
+      : HttpHandlerJsonBase(config, component_context)
       , pg_cluster_(component_context
                         .FindComponent<userver::components::Postgres>(
                             "realmedium-database")
                         .GetCluster()) {}
 
-std::string Handler::HandleRequestThrow(
+userver::formats::json::Value Handler::HandleRequestJsonThrow(
     const userver::server::http::HttpRequest& request,
-    userver::server::request::RequestContext&) const {
+    const userver::formats::json::Value& request_json,
+    userver::server::request::RequestContext& context) const {
 
-    /*
-    ..
-    check authentication
-    ..
-    */
+    auto user_id = context.GetData<std::string>("id");
+    const auto& comment_id = std::atoi(request.GetPathArg("id").c_str());
+
+    const auto result_find_comment = pg_cluster_->Execute(userver::storages::postgres::ClusterHostType::kMaster,
+                            sql::kFindCommentById.data(),
+                            comment_id);
     
-    
-    const auto& id_comment = std::atoi(request.GetPathArg("id").c_str());
+    if(result_find_comment.IsEmpty()){
+        auto& response = request.GetHttpResponse();
+        response.SetStatus(userver::server::http::HttpStatus::kUnprocessableEntity);
+        return utils::error::MakeError("comment_id", "Ivanlid comment_id.");
+    }
 
-
-    const auto result =  pg_cluster_->Execute(userver::storages::postgres::ClusterHostType::kMaster,
+    const auto result_delete_comment = pg_cluster_->Execute(userver::storages::postgres::ClusterHostType::kMaster,
                             sql::kDeleteCommentById.data(),
-                            id_comment);
+                            comment_id, user_id);
 
-    if(result.IsEmpty()){
-        request.SetResponseStatus(userver::server::http::HttpStatus::kNotFound); 
-        return "NOT_FOUND_COMMENT";
+    if(result_delete_comment.IsEmpty()){
+        auto& response = request.GetHttpResponse();
+        response.SetStatus(userver::server::http::HttpStatus::kMethodNotAllowed);
+        return utils::error::MakeError("user_id", "This user does not own this comment.");
     }
     
                             
-    return "";
+    return {};
 
 }
 

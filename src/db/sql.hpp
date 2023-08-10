@@ -30,15 +30,19 @@ inline constexpr std::string_view kFindUserById = R"~(
 SELECT * FROM real_medium.users WHERE user_id = $1    
 )~"; 
 
+inline constexpr std::string_view kFindCommentById = R"~(
+SELECT * FROM real_medium.comments WHERE comment_id = $1 
+)~"; 
+
 inline constexpr std::string_view kDeleteCommentById = R"~(
-DELETE FROM real_medium.comments WHERE comment_id = $1
+DELETE FROM real_medium.comments WHERE comment_id = $1 AND user_id = $2
 RETURNING *
 )~"; 
 
 inline constexpr std::string_view kAddComment = R"~(
-INSERT INTO real_medium.comments(body, user_id, article_id) 
-VALUES($1, $2, $3)
-RETURNING *
+  INSERT INTO real_medium.comments(body, user_id, article_id) 
+  VALUES($1, $2, $3)
+  RETURNING *
 )~"; 
 
 inline constexpr std::string_view kFindIdArticleBySlug = R"~(

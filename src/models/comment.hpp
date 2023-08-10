@@ -5,13 +5,15 @@
 #include <tuple>
 
 #include <userver/formats/json/value_builder.hpp>
+#include <userver/storages/postgres/io/chrono.hpp>
+
 
 namespace real_medium::models {
 
 struct Comment {
-  std::string comment_id;
-  std::string created_at;
-  std::string updated_at;
+  int comment_id;
+  userver::storages::postgres::TimePointTz created_at;
+  userver::storages::postgres::TimePointTz updated_at;
   std::string body;
   std::string user_id;
   std::string article_id;
