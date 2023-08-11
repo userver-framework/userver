@@ -127,6 +127,7 @@ div.contents {
 
 .bottom-nav .button:hover {
     background: #FDCC9A;
+    border-radius: 8px;
 }
 
 .bottom-nav .btn-sub {
