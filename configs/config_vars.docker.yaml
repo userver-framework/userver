@@ -6,5 +6,5 @@ is_testing: false
 
 server-port: 8080
 
-dbconnection: 'postgresql://user:password@service-postgres:5432/realworld_service_db-1'
+dbconnection: 'postgresql://user:password@service-postgres:5432/realmedium_db-1'
 
