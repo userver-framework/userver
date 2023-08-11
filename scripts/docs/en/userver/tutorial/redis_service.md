@@ -2,8 +2,7 @@
 
 ## Before you start
 
-Make sure that you can compile and run core tests and read a basic example @ref
-md_en_userver_tutorial_hello_service.
+Make sure that you can compile and run core tests and read a basic example @ref scripts/docs/en/userver/tutorial/hello_service.md.
 
 ## Step by step guide
 
@@ -77,8 +76,7 @@ Note that mutating queries are automatically executed on a master instance.
 
 ### Static config
 
-Static configuration of service is quite close to the configuration from @ref
-md_en_userver_tutorial_hello_service except for the handler and DB:
+Static configuration of service is quite close to the configuration from @ref scripts/docs/en/userver/tutorial/hello_service.md except for the handler and DB:
 
 @snippet samples/redis_service/static_config.yaml Redis service sample - static config
 
