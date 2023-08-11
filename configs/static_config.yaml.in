@@ -33,7 +33,7 @@ components_manager:
                     overflow_behavior: discard  # Drop logs if the system is too busy to write them down.
 
         tracer:                              # Component that helps to trace execution times and requests in logs.
-            service-name: service_template   # "You know. You all know exactly who I am. Say my name. " (c)
+            service-name: realworld_service   # "You know. You all know exactly who I am. Say my name. " (c)
 
         dynamic-config:                      # Dynamic config storage options, do nothing
             fs-cache-path: ''
@@ -63,6 +63,7 @@ components_manager:
         realmedium-database:
             dbconnection: $dbconnection
             blocking_task_processor: fs-task-processor
+            blocking_cancel_task_processor: fs-task-processor
             dns_resolver: async
             sync-start: true
 

@@ -4,7 +4,6 @@
   "USERVER_CHECK_AUTH_IN_HANDLERS": true,
   "USERVER_DUMPS": {},
   "USERVER_HTTP_PROXY": "",
-  "USERVER_HANDLER_STREAM_API_ENABLED": false,
   "USERVER_LOG_REQUEST": true,
   "USERVER_LOG_REQUEST_HEADERS": false,
   "USERVER_LRU_CACHES": {},
@@ -23,10 +22,6 @@
     "cancel-request": false,
     "update-timeout": false
   },
-  "BAGGAGE_SETTINGS": {
-    "allowed_keys": []
-  },
-  "USERVER_BAGGAGE_ENABLED": false,
   "USERVER_TASK_PROCESSOR_QOS": {
     "default-service": {
       "default-task-processor": {
@@ -38,8 +33,6 @@
       }
     }
   },
-  "POSTGRES_DEADLINE_PROPAGATION_VERSION": 0,
-  "POSTGRES_CONNECTION_PIPELINE_EXPERIMENT": 0,
   "POSTGRES_CONNECTION_POOL_SETTINGS": {
     "postgres-db-1": {
       "max_pool_size": 15,
@@ -47,8 +40,6 @@
       "min_pool_size": 8
     }
   },
-  "POSTGRES_CONNLIMIT_MODE_AUTO_ENABLED": false,
-  "POSTGRES_DEADLINE_PROPAGATION_ENABLED": false,
   "POSTGRES_DEFAULT_COMMAND_CONTROL": {
     "network_timeout_ms": 750,
     "statement_timeout_ms": 500
@@ -63,11 +54,10 @@
   },
   "POSTGRES_QUERIES_COMMAND_CONTROL": {},
   "POSTGRES_CONNECTION_SETTINGS": {},
-  "POSTGRES_CONGESTION_CONTROL_SETTINGS": {},
+  "POSTGRES_CONNECTION_PIPELINE_ENABLED": true,
   "POSTGRES_STATEMENT_METRICS_SETTINGS": {
     "postgres-db-1": {
       "max_statement_metrics": 5
     }
   }
 }
-
