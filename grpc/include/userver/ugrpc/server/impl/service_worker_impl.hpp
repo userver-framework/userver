@@ -31,6 +31,7 @@
 #include <userver/ugrpc/server/impl/async_service.hpp>
 #include <userver/ugrpc/server/impl/call_params.hpp>
 #include <userver/ugrpc/server/impl/call_traits.hpp>
+#include <userver/ugrpc/server/impl/error_code.hpp>
 #include <userver/ugrpc/server/impl/service_worker.hpp>
 #include <userver/ugrpc/server/middlewares/base.hpp>
 #include <userver/ugrpc/server/rpc.hpp>
@@ -46,6 +47,10 @@ void ReportHandlerError(const std::exception& ex, std::string_view call_name,
 void ReportNetworkError(const RpcInterruptedError& ex,
                         std::string_view call_name,
                         tracing::Span& span) noexcept;
+
+void ReportCustomError(
+    const USERVER_NAMESPACE::server::handlers::CustomHandlerException& ex,
+    CallAnyBase& call, tracing::Span& span);
 
 void SetupSpan(std::optional<tracing::InPlaceSpan>& span_holder,
                grpc::ServerContext& context, std::string_view call_name);
@@ -185,6 +190,9 @@ class CallData final {
           method_data_.service_data.settings.config_source.GetSnapshot(),
           initial_request);
       middleware_context.Next();
+    } catch (
+        const USERVER_NAMESPACE::server::handlers::CustomHandlerException& ex) {
+      ReportCustomError(ex, responder, span_->Get());
     } catch (const RpcInterruptedError& ex) {
       ReportNetworkError(ex, call_name, span_->Get());
       statistics_scope.OnNetworkError();

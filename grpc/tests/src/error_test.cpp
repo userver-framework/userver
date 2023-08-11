@@ -6,6 +6,7 @@
 #include <ugrpc/impl/status.hpp>
 #include <userver/engine/deadline.hpp>
 #include <userver/engine/sleep.hpp>
+#include <userver/server/handlers/exceptions.hpp>
 #include <userver/ugrpc/client/exceptions.hpp>
 
 #include <tests/unit_test_client.usrv.pb.hpp>
@@ -149,6 +150,37 @@ UTEST_F(GrpcClientWithDetailedErrorTest, UnaryRPC) {
     call.Finish();
   } catch (ugrpc::client::ResourceExhaustedError& e) {
     EXPECT_EQ(*(e.GetGStatusString()), kExpectedMessage);
+  }
+}
+
+namespace {
+
+class ThrowCustomService final : public sample::ugrpc::UnitTestServiceBase {
+ public:
+  void ReadMany(ReadManyCall&,
+                sample::ugrpc::StreamGreetingRequest&&) override {
+    throw server::handlers::Unauthorized(
+        server::handlers::ExternalBody{"abba"});
+  }
+};
+
+}  // namespace
+
+using GrpcThrowCustomFinish = ugrpc::tests::ServiceFixture<ThrowCustomService>;
+
+UTEST_F(GrpcThrowCustomFinish, InputStream) {
+  auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
+  sample::ugrpc::StreamGreetingRequest out;
+  out.set_name("userver");
+  out.set_number(1);
+  auto is = client.ReadMany(out);
+
+  sample::ugrpc::StreamGreetingResponse in;
+  try {
+    [[maybe_unused]] bool result1 = is.Read(in);
+    FAIL();
+  } catch (const ugrpc::client::UnauthenticatedError& e) {
+    EXPECT_EQ(e.GetStatus().error_code(), grpc::StatusCode::UNAUTHENTICATED);
   }
 }
 

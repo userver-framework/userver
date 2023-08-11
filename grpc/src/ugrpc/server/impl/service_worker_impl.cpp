@@ -34,6 +34,20 @@ void ReportNetworkError(const RpcInterruptedError& ex,
   span.AddTag(tracing::kErrorMessage, ex.what());
 }
 
+void ReportCustomError(
+    const USERVER_NAMESPACE::server::handlers::CustomHandlerException& ex,
+    CallAnyBase& call, tracing::Span& span) {
+  if (!call.IsFinished()) {
+    call.FinishWithError(
+        {CustomStatusToGrpc(ex.GetCode()),
+         ugrpc::impl::ToGrpcString(ex.GetExternalErrorBody())});
+  }
+
+  LOG_WARNING() << "Error in " << call.GetCallName() << ": " << ex;
+  span.AddTag(tracing::kErrorFlag, true);
+  span.AddTag(tracing::kErrorMessage, ex.what());
+}
+
 void SetupSpan(std::optional<tracing::InPlaceSpan>& span_holder,
                grpc::ServerContext& context, std::string_view call_name) {
   auto span_name = utils::StrCat("grpc/", call_name);
