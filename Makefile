@@ -27,17 +27,17 @@ build_release/Makefile:
 
 # build using cmake
 build-impl-%: build_%/Makefile
-	@cmake --build build_$* -j $(NPROCS) --target realworld_service
+	@cmake --build build_$* -j $(NPROCS) --target realmedium
 
 # test
 test-impl-%: build-impl-%
-	@cmake --build build_$* -j $(NPROCS) --target realworld_service_unittest
+	@cmake --build build_$* -j $(NPROCS) --target realmedium_unittest
 	@cd build_$* && ((test -t 1 && GTEST_COLOR=1 PYTEST_ADDOPTS="--color=yes" ctest -V) || ctest -V)
 	@pep8 tests
 
 # testsuite service runner
 service-impl-start-%: build-impl-%
-	@cd ./build_$* && $(MAKE) start-realworld_service
+	@cd ./build_$* && $(MAKE) start-realmedium
 
 # clean
 clean-impl-%:
@@ -59,37 +59,37 @@ format:
 
 install-debug: build-debug
 	@cd build_debug && \
-		cmake --install . -v --component realworld_service
+		cmake --install . -v --component realmedium
 
 install: build-release
 	@cd build_release && \
-		cmake --install . -v --component realworld_service
+		cmake --install . -v --component realmedium
 
 # Hide target, use only in docker environment
 --debug-start-in-docker: install
-	@sed -i 's/config_vars.yaml/config_vars.docker.yaml/g' /home/user/.local/etc/realworld_service/static_config.yaml
-	@psql 'postgresql://user:password@service-postgres:5432/realworld_service_db-1' -f ./postgresql/schemas/db-1.sql
-	@/home/user/.local/bin/realworld_service \
-		--config /home/user/.local/etc/realworld_service/static_config.yaml
+	@sed -i 's/config_vars.yaml/config_vars.docker.yaml/g' /home/user/.local/etc/realmedium/static_config.yaml
+	@psql 'postgresql://user:password@service-postgres:5432/realmedium_db-1' -f ./postgresql/schemas/db-1.sql
+	@/home/user/.local/bin/realmedium \
+		--config /home/user/.local/etc/realmedium/static_config.yaml
 
 # Hide target, use only in docker environment
 --debug-start-in-docker-debug: install-debug
-	@sed -i 's/config_vars.yaml/config_vars.docker.yaml/g' /home/user/.local/etc/realworld_service/static_config.yaml
-	@psql 'postgresql://user:password@service-postgres:5432/realworld_service_db-1' -f ./postgresql/schemas/db-1.sql
-	@/home/user/.local/bin/realworld_service \
-		--config /home/user/.local/etc/realworld_service/static_config.yaml
+	@sed -i 's/config_vars.yaml/config_vars.docker.yaml/g' /home/user/.local/etc/realmedium/static_config.yaml
+	@psql 'postgresql://user:password@service-postgres:5432/realmedium_db-1' -f ./postgresql/schemas/db-1.sql
+	@/home/user/.local/bin/realmedium \
+		--config /home/user/.local/etc/realmedium/static_config.yaml
 
 # Start targets makefile in docker enviroment
 docker-impl-%:
-	docker-compose run --rm realworld_service-container make $*
+	docker-compose run --rm realmedium-service make $*
 
 # Build and runs service in docker environment
 docker-start-service-debug:
-	@docker-compose run -p 8080:8080 --rm realworld_service-container make -- --debug-start-in-docker-debug
+	@docker-compose run -p 8080:8080 --rm realmedium-service make -- --debug-start-in-docker-debug
 
 # Build and runs service in docker environment
 docker-start-service:
-	@docker-compose run -p 8080:8080 --rm realworld_service-container make -- --debug-start-in-docker
+	@docker-compose run -p 8080:8080 --rm realmedium-service make -- --debug-start-in-docker
 
 # Stop docker container and remove PG data
 docker-clean-data:
