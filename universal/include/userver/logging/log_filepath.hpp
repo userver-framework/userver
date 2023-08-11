@@ -15,19 +15,21 @@ namespace logging::impl {
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define USERVER_LOG_FILEPATH_STRINGIZE(X) USERVER_LOG_FILEPATH_STRINGIZE_AUX(X)
 
-inline constexpr std::size_t PathBaseSize(std::string_view path) noexcept {
-  for (const std::string_view base : {
+// May have different macro values for different translation units, hence static
+static constexpr std::size_t PathBaseSize(std::string_view path) noexcept {
+  constexpr std::string_view kSourcePathPrefixes[] = {
 #ifdef USERVER_LOG_PREFIX_PATH_BASE
-           USERVER_LOG_FILEPATH_STRINGIZE(USERVER_LOG_PREFIX_PATH_BASE),
+      USERVER_LOG_FILEPATH_STRINGIZE(USERVER_LOG_PREFIX_PATH_BASE),
 #endif
 #ifdef USERVER_LOG_SOURCE_PATH_BASE
-           USERVER_LOG_FILEPATH_STRINGIZE(USERVER_LOG_SOURCE_PATH_BASE),
+      USERVER_LOG_FILEPATH_STRINGIZE(USERVER_LOG_SOURCE_PATH_BASE),
 #endif
 #ifdef USERVER_LOG_BUILD_PATH_BASE
-           USERVER_LOG_FILEPATH_STRINGIZE(USERVER_LOG_BUILD_PATH_BASE),
+      USERVER_LOG_FILEPATH_STRINGIZE(USERVER_LOG_BUILD_PATH_BASE),
 #endif
-           ""  // default in case none were defined
-       }) {
+  };
+
+  for (const std::string_view base : kSourcePathPrefixes) {
     if (path.substr(0, base.size()) == base) {
       std::size_t base_size = path.find_first_not_of('/', base.size());
       if (base_size == std::string_view::npos) {
@@ -41,7 +43,7 @@ inline constexpr std::size_t PathBaseSize(std::string_view path) noexcept {
 }
 
 // TODO: consteval
-inline constexpr std::string_view CutFilePath(const char* path) noexcept {
+static constexpr std::string_view CutFilePath(const char* path) noexcept {
   const std::string_view path_view = path;
   return path_view.substr(PathBaseSize(path_view));
 }
