@@ -1,2 +1,2 @@
-yandex-taxi-testsuite >= 0.1.7.2
+yandex-taxi-testsuite[postgresql-binary] >= 0.1.6.3
 pyjwt >= 2.8.0
