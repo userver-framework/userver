@@ -442,7 +442,7 @@ void Value::CheckInBounds(std::size_t index) const {
   }
 }
 
-Value::LazyDetachedPath::LazyDetachedPath() = default;
+Value::LazyDetachedPath::LazyDetachedPath() noexcept = default;
 
 Value::LazyDetachedPath::LazyDetachedPath(impl::Value* parent_value_ptr,
                                           int parent_depth,

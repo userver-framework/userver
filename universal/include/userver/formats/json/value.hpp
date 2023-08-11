@@ -257,7 +257,7 @@ class Value final {
   void SetNative(impl::Value&);  // does not copy
   int GetExtendedType() const;
 
-  impl::VersionedValuePtr root_;
+  impl::VersionedValuePtr root_{};
   impl::Value* value_ptr_{nullptr};
   /// Depth of the node to ease recursive traversal in GetPath()
   int depth_{0};
@@ -269,7 +269,7 @@ class Value final {
   // keys during parsing we save a lot of expensive calculations.
   class LazyDetachedPath final {
    public:
-    LazyDetachedPath();
+    LazyDetachedPath() noexcept;
     LazyDetachedPath(impl::Value* parent_value_ptr, int parent_depth,
                      std::string_view key);
 
@@ -284,7 +284,7 @@ class Value final {
    private:
     impl::Value* parent_value_ptr_{nullptr};
     int parent_depth_{0};
-    std::string virtual_path_;
+    std::string virtual_path_{};
   };
 
   LazyDetachedPath lazy_detached_path_;
