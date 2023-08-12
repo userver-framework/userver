@@ -30,6 +30,8 @@ inline constexpr std::string_view kFindUserById = R"~(
 SELECT * FROM real_medium.users WHERE user_id = $1    
 )~";
 
+
+//Comments
 inline constexpr std::string_view kFindCommentById = R"~(
 SELECT * FROM real_medium.comments WHERE comment_id = $1 
 )~";
@@ -60,11 +62,15 @@ RETURN EXISTS (SELECT 1 FROM real_medium.followers WHERE follower_user_id = $1 A
 
 //TODO: reuse common kIsProfileFollowing
 inline constexpr std::string_view kGetProfileByUsername = R"~(
-SELECT username, bio, image,
-CASE WHEN $1 = NULL
-THEN FALSE ELSE (RETURN EXISTS (SELECT 1 FROM real_medium.followers WHERE follower_user_id = user_id AND followed_user_id = $1))
-END
-FROM real_medium.users WHERE username = $2
+WITH profile AS (
+  SELECT * FROM real_medium.users WHERE username = $1
+)
+SELECT profile.username, profile.bio, profile.image, 
+       CASE WHEN EXISTS (
+         SELECT 1 FROM real_medium.followers 
+         WHERE followed_user_id = profile.user_id AND follower_user_id = $2
+       ) THEN true ELSE false END AS following
+FROM profile
 )~";
 
 inline constexpr std::string_view kFollowUser = R"~(
@@ -75,24 +81,4 @@ inline constexpr std::string_view kUnfollowUser = R"~(
 DELETE FROM real_medium.followers WHERE follower = $1 AND followed = $2;
 )~";
 
-inline constexpr std::string_view kIsProfileFollowing = R"~(
-RETURN EXISTS (SELECT 1 FROM real_medium.followers WHERE follower_user_id = $1 AND followed_user_id = $2);
-)~";
-
-//TODO: reuse common kIsProfileFollowing
-inline constexpr std::string_view kGetProfileByUsername = R"~(
-SELECT username, bio, image,
-CASE WHEN $1 = NULL
-THEN FALSE ELSE (RETURN EXISTS (SELECT 1 FROM real_medium.followers WHERE follower_user_id = user_id AND followed_user_id = $1))
-END
-FROM real_medium.users WHERE username = $2
-)~";
-
-inline constexpr std::string_view kFollowUser = R"~(
-INSERT INTO real_medium.followers(followed, followed) VALUES ($1, $2)
-)~";
-
-inline constexpr std::string_view kUnfollowUser = R"~(
-DELETE FROM real_medium.followers WHERE follower = $1 AND followed = $2;
-)~";
 }  // namespace real_medium::sql
