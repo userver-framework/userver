@@ -84,6 +84,7 @@ components_manager:
             auth:
                 types:
                   - bearer
+                required: true
 
         handler-user-put:
             path: /api/user               
@@ -92,6 +93,7 @@ components_manager:
             auth:
                 types:
                   - bearer
+                required: true
 
         handler-get-tags:
             path: /api/tags
@@ -115,6 +117,7 @@ components_manager:
             auth:
                 types:
                   - bearer
+                required: true
         
         handler-comment-post:
             path: /api/articles/{slug}/comments
@@ -123,6 +126,7 @@ components_manager:
             auth:
                 types:
                   - bearer
+                required: true
 
         handler-comments-get:
             path: /api/articles/{slug}/comments

@@ -20,7 +20,7 @@ userver::formats::json::Value Handler::HandleRequestJsonThrow(
     const userver::server::http::HttpRequest& request,
     const userver::formats::json::Value& request_json,
     userver::server::request::RequestContext& context) const {
-  auto user_id = context.GetData<std::string>("id");
+  auto user_id = context.GetData<std::optional<std::string>>("id");
   const auto& slug = request.GetPathArg("slug");
 
   const auto res_find_article = pg_cluster_->Execute(
