@@ -25,7 +25,7 @@ build:
     - echo "working in $CI_BUILDS_DIR"
     - useradd -d $CI_BUILDS_DIR/$GITLAB_USER_LOGIN -g users -M -N builder
     - chown -R builder:users ..
-   # - sudo -u builder make build-$BUILD_TYPE && cmake --build build_$BUILD_TYPE --target ${PROJECT_NAME}_unittest
+    - sudo -u builder make build-$BUILD_TYPE && cmake --build build_$BUILD_TYPE --target ${PROJECT_NAME}_unittest
    # - build_$BUILD_TYPE/tests/venv-testsuite-$PROJECT_NAME/bin/python3 -m pip freeze > build_$BUILD_TYPE/tests/requirements.txt
    # - build_$BUILD_TYPE/tests/venv-testsuite-$PROJECT_NAME/bin/python3 -m pip freeze | xargs build_$BUILD_TYPE/tests/venv-testsuite-$PROJECT_NAME/bin/python3 -m pip uninstall -y
     - XZ_OPT=-9T0 tar -Jcvfx build_$BUILD_TYPE.tar.xz 
