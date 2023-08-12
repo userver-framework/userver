@@ -18,30 +18,26 @@ $generatedby <a href="https://www.doxygen.org/index.html">Doxygen</a> $doxygenve
 
 <script type="text/javascript" src="$relpath^codeHighlight.js"></script>
 <script type="text/javascript" src="$relpath^telegramLanguage.js"></script>
-<script type="text/javascript" src="$relpath^toc.js"></script>
+<script type="text/javascript" src="$relpath^toc.js"></script> // TODO: header
 <script type="text/javascript" src="$relpath^styledBtn.js"></script>
+<script type="text/javascript" src="$relpath^search.js"></script>
 <script>
+  document.addEventListener("readystatechange", () => {
+    if (document.readyState != "complete") return;
 
-  function setup_if_landing() {
-      if (document.getElementById('landing_logo_id') === null) {
-          return false;
-      }
+    init_all_results_button();
 
-      $(function() {
-          const main_nav = $('#main-nav');
-          main_nav.addClass('main-nav-landing');
-          main_nav.append('<hr>');
-      });
+    const isLanding = document.getElementById('landing_logo_id') !== null;
 
-      return true;
-  }
+    if (isLanding) return;
 
-  if (!setup_if_landing()) {
-      // draw_toc();
-      // highlight_code();
-      // sticky_menu();
-      styleNavButtons();
-  }
+    // FIXME: ???
+    // draw_toc();
+    // highlight_code();
+    // sticky_menu();
+
+    styleNavButtons(); // TODO: style?
+  });
 </script>
 </body>
 </html>
