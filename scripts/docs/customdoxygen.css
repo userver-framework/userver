@@ -130,7 +130,7 @@ padding: auto;
 }
 
 .bottom-nav .button:hover {
-    background: #FDCC9A;
+    background: #f9e2ca;
     border-radius: 8px;
 }
 
@@ -197,7 +197,8 @@ div.fragment {
 html {
     --primary-color: #f18127;
     --fragment-background: #fefaf4; /*todo */
-}   
+    --light-pitch : #FDCC9A;
+} 
 
 html:not(.light-mode) {
     color-scheme: dark;
@@ -218,6 +219,11 @@ html:not(.light-mode) .gh-logo {
     font-size: 10px;
 }
 
+#MSearchResults .SRPage .SREntry:hover {
+    background:  var(--light-pitch);
+    border-radius: 8px;
+}
+
 #titlearea a:hover {
     text-decoration: none;
 }
@@ -229,3 +235,36 @@ html:not(.light-mode) .gh-logo {
 #MSearchField {
     padding: 0 15px;
 }
+
+.all-results-link {
+    padding: var(--spacing-small) var(--spacing-medium);
+    display: flex;
+    align-items: center;
+
+}
+
+.all-results-link:hover {
+    background: var(--light-pitch);
+    border-radius: 8px;
+}
+
+.all-results-link::after {
+    margin-left: 7px;
+    content: '';
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    background-image: url(ep_arrow-up.svg);
+    background-size: contain;
+    mask-image:var(--primary-color); ;
+}
+
+.all-results-link:hover::after {
+    filter: invert(1);
+}
+
+#MSearchResultsWindow {
+    height: auto !important;
+
+}
+

@@ -3,6 +3,7 @@ function init_all_results_button() {
   const searchInput = document.querySelector("#MSearchField");
 
   const allResultsLink = document.createElement("a");
+  allResultsLink.classList.add("all-results-link");
 
   allResultsLink.text = "All results";
   allResultsLink.target = "_blank";
