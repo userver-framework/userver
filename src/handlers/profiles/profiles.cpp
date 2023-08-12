@@ -1,6 +1,7 @@
 #include "profiles.hpp"
 #include <string>
 #include "dto/profile.hpp"
+#include "models/profile.hpp"
 #include "db/sql.hpp"
 #include "userver/formats/yaml/value_builder.hpp"
 #include "userver/server/handlers/http_handler_base.hpp"
@@ -34,15 +35,15 @@ json::Value Handler::HandleRequestJsonThrow(
   }
   auto userId = request_context.GetData<std::string>("id");
 
-  auto res = cluster_->Execute(ClusterHostType::kSlave, real_medium::sql::kGetProfileByUsername, username, userId);
+  auto res = cluster_->Execute(ClusterHostType::kSlave, sql::kGetProfileByUsername.data(), username, userId);
   if (res.IsEmpty()) {
     request.SetResponseStatus(HttpStatus::kNotFound);
     return {};
   }
-  const auto profile = res.AsSingleRow<Profile>();
+  const auto profile = res.AsSingleRow<models::Profile>();
   userver::formats::json::ValueBuilder builder;
   builder["profile"] =
-      Profile{profile.username, profile.bio, profile.image, profile.following};
+      dto::Profile{profile.username, profile.bio, profile.image, profile.following};
   return builder.ExtractValue();
 }
 

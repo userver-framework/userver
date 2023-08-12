@@ -75,4 +75,24 @@ inline constexpr std::string_view kUnfollowUser = R"~(
 DELETE FROM real_medium.followers WHERE follower = $1 AND followed = $2;
 )~";
 
+inline constexpr std::string_view kIsProfileFollowing = R"~(
+RETURN EXISTS (SELECT 1 FROM real_medium.followers WHERE follower_user_id = $1 AND followed_user_id = $2);
+)~";
+
+//TODO: reuse common kIsProfileFollowing
+inline constexpr std::string_view kGetProfileByUsername = R"~(
+SELECT username, bio, image,
+CASE WHEN $1 = NULL
+THEN FALSE ELSE (RETURN EXISTS (SELECT 1 FROM real_medium.followers WHERE follower_user_id = user_id AND followed_user_id = $1))
+END
+FROM real_medium.users WHERE username = $2
+)~";
+
+inline constexpr std::string_view kFollowUser = R"~(
+INSERT INTO real_medium.followers(followed, followed) VALUES ($1, $2)
+)~";
+
+inline constexpr std::string_view kUnfollowUser = R"~(
+DELETE FROM real_medium.followers WHERE follower = $1 AND followed = $2;
+)~";
 }  // namespace real_medium::sql

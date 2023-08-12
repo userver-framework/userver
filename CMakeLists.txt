@@ -52,6 +52,7 @@ add_library(${PROJECT_NAME}_objs OBJECT
 		src/models/comment.cpp
 		src/models/article.hpp
 		src/models/article.cpp
+		src/models/profile.hpp
 		src/validators/user_validators.hpp
 		src/validators/user_validators.cpp
 		src/utils/make_error.hpp

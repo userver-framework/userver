@@ -1,4 +1,7 @@
 #include "profiles_follow.hpp"
+#include "db/sql.hpp"
+#include "dto/profile.hpp"
+#include "models/profile.hpp"
 #include "userver/formats/yaml/value_builder.hpp"
 #include "userver/server/handlers/http_handler_base.hpp"
 #include "userver/storages/postgres/cluster.hpp"
@@ -32,11 +35,18 @@ userver::formats::json::Value Handler::HandleRequestJsonThrow(
   }
   auto userId = request_context.GetData<std::string>("id");
   const auto res = cluster_->Execute(
-      userver::storages::postgres::ClusterHostType::kMaster, "", username);
+      userver::storages::postgres::ClusterHostType::kSlave, sql::kGetProfileByUsername.data(), username, userId);
   if (res.IsEmpty()) {
     request.SetResponseStatus(userver::server::http::HttpStatus::kNotFound);
     return {};
   }
-  return {};
+  const auto user = res.AsSingleRow<models::Profile>();
+  cluster_->Execute(
+      userver::storages::postgres::ClusterHostType::kMaster,
+      sql::kFollowUser.data(), userId);
+  userver::formats::json::ValueBuilder builder;
+  builder["profile"] =
+      dto::Profile{user.username, user.bio, user.image, true};
+  return builder.ExtractValue();
 }
 }  // namespace real_medium::handlers::profiles::post
