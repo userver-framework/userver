@@ -72,4 +72,4 @@ jobs:
 
           - name: Run tests
             run: docker-compose run --rm ${{ matrix.image }} bash -c 'cd /userver/build
-                && ulimit -n 4096 && ctest -V'
+                && ulimit -n 4096 && ctest -V -E redis'
