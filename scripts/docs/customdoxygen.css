@@ -15,6 +15,18 @@ div.contents {
   font-size: 120%;
 }
 
+#landing-content{
+    text-align: center; 
+    padding-bottom: 30px 0
+}
+
+#landing_logo_id{
+    text-align: center;
+    max-width: 400px;
+}
+
+
+
 /* Landing page */
 .landing-logo {
   width: 45%;
@@ -24,12 +36,6 @@ div.contents {
   margin-bottom: 6%;
 }
 
-.landing-description {
-    margin: 30px;
-    text-align: center;
-    font-size: 32px;
-    color: #F7F7F7;
-}
 
 .landing-motto {
     text-align: right;
@@ -47,30 +53,28 @@ div.contents {
 .landing-container {
     width: 100%;
     display:  table;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    
 }
 
 .landing-intro-left {
-    font-size: 18px;
-    line-height: 1.5;
-    margin-top: 60px;
-    margin-right: 60px;
-    margin-bottom: 60px;
-    color: #F7F7F7;
-    width: 35%;
-    float: left;
+    font-size: 1.1em;
+    width: 47%;
     text-align: justify;
+    padding: 0.5em;
 }
 
 .landing-intro-right {
-    font-size: 18px;
-    line-height: 1.5;
-    margin-top: 60px;
-    margin-left: 60px;
-    margin-bottom: 60px;
-    color: #F7F7F7;
-    width: 35%;
-    float: right;
+    font-size: 1.1em;
+padding: auto;
+
+    width: 47%;
+
     text-align: justify;
+    padding: 0.5em;
 }
 
 .bottom-nav {
@@ -135,7 +139,7 @@ div.contents {
 }
 
 .landing-intro-center {
-    font-size: 18px;
+    font-size: 1em;
     line-height: 1.5;
     margin-top: 30px;
     margin-bottom: 30px;
@@ -147,47 +151,18 @@ div.contents {
 }
 
 .landing-description {
-    font-size: 18px;
+    text-align: center;
+    font-size: 2em;
     line-height: 1.5;
     margin-top: 30px;
     margin-bottom: 30px;
     margin-left: auto;
     margin-right: auto;
-
-    width: 35%;
     text-align: center;
 }
 
-.landing-container {
-    display: flex;
-    flex-direction: row;
-    flex-wrap: wrap;
-    justify-content: space-between;
-}
 
-.landing-intro-left {
-    font-size: 18px;
-    line-height: 1.5;
-    margin-top: 30px;
-    margin-bottom: 30px;
-    margin-left: 30px;
-    margin-right: 30px;
 
-    width: 35%;
-    text-align: left;
-}
-
-.landing-intro-right {
-    font-size: 18px;
-    line-height: 1.5;
-    margin-top: 30px;
-    margin-bottom: 30px;
-    margin-left: 30px;
-    margin-right: 30px;
-
-    width: 35%;
-    text-align: right;
-}
 
 html:not(.black-mode) .landing-intro-center {
     color: #304053;

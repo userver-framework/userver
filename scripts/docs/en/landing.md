@@ -1,10 +1,10 @@
 <div id='mainDescription'>
-<div id='landing-content' style="text-align: center; padding-bottom: 30px 0">
-<div class="landing-description" style="font-size: 32px;">The C++ Asynchronous Framework</div>
+<div id='landing-content'>
+<div class="landing-description">The C++ Asynchronous Framework</div>
 
 \htmlonly
-<div class="landing-logo" id='landing_logo_id' style="text-align: center;">
-  <a href="de/d6a/md_en_2index.html"><img src='logo.svg' alt='userver logo big' style='width: 400px'/></a>
+<div class="landing-logo" id='landing_logo_id'>
+  <a href="de/d6a/md_en_2index.html"><img src='logo.svg' alt='userver logo big'/></a>
 </div>
 \endhtmlonly
 
@@ -17,14 +17,14 @@ The problem of efficient I/O interactions is solved transparently for the
 developers:</div>
 
 <div class="landing-text">
-<pre style="padding: 20px; color: silver;white-space: pre-wrap; word-wrap: break-word;">
+<div style="font-family: monospace;">
 std::size_t Ins(storages::postgres::Transaction& tr, std::string_view key) {
     <span style="color: darkgoldenrod">// Asynchronous execution of the SQL query in transaction. Current thread</span>
     <span style="color: darkgoldenrod">// handles other requests while the response from the DB is being received:</span>
     <span style="color: #008000">auto</span> res = tr.Execute(<span style="color: darkgreen">"INSERT INTO keys VALUES ($1)"</span>, key);
     <span style="color: #008000">return</span> res.RowsAffected();
 }
-</pre>
+</div>
 </div>
 
 <!--@snippet postgresql/src/storages/postgres/tests/landing_test.cpp  Landing sample1 -->
