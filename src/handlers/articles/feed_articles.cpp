@@ -22,6 +22,7 @@ userver::formats::json::Value Handler::HandleRequestJsonThrow(
   auto user_id = context.GetData<std::string>("id");
   userver::formats::json::ValueBuilder builder;
   builder["articles"] = std::vector<models::Article>();
+  builder["articlesCount"] = 0;
   return builder.ExtractValue();
 }
 
