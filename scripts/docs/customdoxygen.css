@@ -222,5 +222,10 @@ html:not(.light-mode) .gh-logo {
     text-decoration: none;
 }
 
+#MSearchSelect {
+    display: none;
+}
 
-
+#MSearchField {
+    padding: 0 15px;
+}
