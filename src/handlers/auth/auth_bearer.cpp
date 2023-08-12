@@ -16,11 +16,12 @@ class AuthCheckerBearer final
   using AuthCheckResult = userver::server::handlers::auth::AuthCheckResult;
 
   AuthCheckerBearer(
-      const userver::components::ComponentContext& component_context)
+      const userver::components::ComponentContext& component_context, bool is_required)
       : pg_cluster_(component_context
                         .FindComponent<userver::components::Postgres>(
                             "realmedium-database")
-                        .GetCluster()) {}
+                        .GetCluster()),
+                        is_required_(is_required) {}
 
   [[nodiscard]] AuthCheckResult CheckAuth(
       const userver::server::http::HttpRequest& request,
@@ -30,6 +31,7 @@ class AuthCheckerBearer final
 
  private:
   userver::storages::postgres::ClusterPtr pg_cluster_;
+  bool is_required_;
 };
 
 AuthCheckerBearer::AuthCheckResult AuthCheckerBearer::CheckAuth(
@@ -38,6 +40,10 @@ AuthCheckerBearer::AuthCheckResult AuthCheckerBearer::CheckAuth(
   const auto& auth_value =
       request.GetHeader(userver::http::headers::kAuthorization);
   if (auth_value.empty()) {
+    if (!is_required_) {
+      request_context.SetData("id", std::optional<std::string>(std::nullopt));
+      return {};
+    }
     return AuthCheckResult{
         AuthCheckResult::Status::kTokenNotFound,
         {},
@@ -69,7 +75,7 @@ AuthCheckerBearer::AuthCheckResult AuthCheckerBearer::CheckAuth(
         userver::server::handlers::HandlerErrorCode::kUnauthorized};
   }
 
-  request_context.SetData("id", id);
+  request_context.SetData("id", std::optional<std::string>(id));
   return {};
 }
 
@@ -77,7 +83,8 @@ userver::server::handlers::auth::AuthCheckerBasePtr CheckerFactory::operator()(
     const userver::components::ComponentContext& context,
     const userver::server::handlers::auth::HandlerAuthConfig& auth_config,
     const userver::server::handlers::auth::AuthCheckerSettings&) const {
-  return std::make_shared<AuthCheckerBearer>(context);
+  auto is_required = auth_config["required"].As<bool>(false);
+  return std::make_shared<AuthCheckerBearer>(context, is_required);
 }
 
 }  // namespace real_medium::auth
