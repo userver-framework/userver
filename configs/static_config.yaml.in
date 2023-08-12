@@ -139,3 +139,8 @@ components_manager:
             auth:
                 types:
                   - bearer
+        
+        handler-get-articles:
+            path: /api/articles
+            method: GET
+            task_processor: main-task-processor
