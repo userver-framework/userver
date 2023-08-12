@@ -8,8 +8,8 @@ namespace real_medium::dto {
 
 struct Profile {
   std::string username;
-  std::string bio;
-  std::string image;
+  std::optional<std::string> bio;
+  std::optional<std::string> image;
   bool following;
 };
 
