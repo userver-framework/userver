@@ -68,10 +68,13 @@ components_manager:
             sync-start: true
 
         handler-get-profiles:
-            path: /hello                 
-            method: GET,POST             
+            path: /api/profiles/{username}                 
+            method: GET            
             task_processor: main-task-processor 
-            
+            auth:
+                types:
+                  - bearer
+                  
         # handler-users:
         #     path: /users                 
         #     method: GET,POST             
