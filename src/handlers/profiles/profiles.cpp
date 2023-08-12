@@ -42,7 +42,7 @@ json::Value Handler::HandleRequestJsonThrow(
   const auto profile = res.AsSingleRow<Profile>();
   userver::formats::json::ValueBuilder builder;
   builder["profile"] =
-      Profile{profile.username, profile.bio, profile.image, profile.following};
+      Profile{profile.username, profile.bio, profile.image, profile.isFollowing};
   return builder.ExtractValue();
 }
 

@@ -53,4 +53,17 @@ inline constexpr std::string_view kFindIdArticleBySlug = R"~(
 SELECT article_id FROM real_medium.articles WHERE slug = $1  
 )~";
 
+inline constexpr std::string_view kCreateArticle{R"~(
+SELECT real_medium.create_article($1, $2, $3, $4, $5, $6)
+)~"};
+
+inline constexpr std::string_view kGetArticleWithAuthorProfile{R"~(
+SELECT real_medium.get_article_with_author_profile($1, $2)
+)~"};
+
+
+inline constexpr std::string_view kGetArticleWithAuthorProfileBySlug{R"~(
+SELECT real_medium.get_article_with_author_profile_by_slug($1, $2)
+)~"};
+
 }  // namespace real_medium::sql
