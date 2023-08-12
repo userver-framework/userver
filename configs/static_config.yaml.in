@@ -144,3 +144,16 @@ components_manager:
             path: /api/articles
             method: GET
             task_processor: main-task-processor
+
+        handler-create-article:
+            path: /api/articles
+            method: POST
+            task_processor: main-task-processor
+            auth:
+                types:
+                  - bearer
+
+        handler-get-article:
+            path: /api/articles/{slug}
+            method: GET
+            task_processor: main-task-processor

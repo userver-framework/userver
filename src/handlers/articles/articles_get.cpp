@@ -20,7 +20,7 @@ userver::formats::json::Value Handler::HandleRequestJsonThrow(
     const userver::formats::json::Value& request_json,
     userver::server::request::RequestContext& context) const {
   userver::formats::json::ValueBuilder builder;
-  builder["articles"] = std::vector<models::Article>();
+  builder["articles"] = std::vector<real_medium::models::TaggedArticleWithProfile>();
   builder["articlesCount"] = 0;
   return builder.ExtractValue();
 }
