@@ -1,5 +1,5 @@
 ## Configure and Build
-\tableofcontents
+
 ## CMake options
 
 The following options could be used to control `cmake`:

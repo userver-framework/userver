@@ -265,6 +265,28 @@ html:not(.light-mode) .gh-logo {
 
 #MSearchResultsWindow {
     height: auto !important;
-
 }
 
+div.toc li.level1 {
+    margin-left: 0px;
+}
+
+div.toc li.level2 {
+    margin-left: 15px;
+}
+
+div.toc li.level3 {
+    margin-left: 30px;
+}
+
+div.toc li.level4 {
+    margin-left: 45px;
+}
+
+div.toc li.level5 {
+    margin-left: 60px;
+}
+
+div.toc li.level6 {
+    margin-left: 75px;
+}
