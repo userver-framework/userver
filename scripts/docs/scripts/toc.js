@@ -55,7 +55,3 @@ function draw_toc() {
 
     $(sidenav_content).insertAfter('.header');
 }
-
-if (document.getElementById('landing_logo_id') === null) { // TODO: on page load
-    draw_toc();
-}

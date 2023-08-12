@@ -54,7 +54,3 @@ function highlight_code() {
         node.replaceWith('<div class="fragment"><pre>' + data + '</pre></div>');
     });
 }
-
-if (document.getElementById('landing_logo_id') === null) { // TODO: on page load
-    highlight_code();
-}

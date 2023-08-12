@@ -15,5 +15,33 @@
 $generatedby <a href="https://www.doxygen.org/index.html">Doxygen</a> $doxygenversion
 </small></address>
 <!--END !GENERATE_TREEVIEW-->
+
+<script type="text/javascript" src="$relpath^codeHighlight.js"></script>
+<script type="text/javascript" src="$relpath^telegramLanguage.js"></script>
+<script type="text/javascript" src="$relpath^toc.js"></script>
+<script type="text/javascript" src="$relpath^styledBtn.js"></script>
+<script>
+
+  function setup_if_landing() {
+      if (document.getElementById('landing_logo_id') === null) {
+          return false;
+      }
+
+      $(function() {
+          const main_nav = $('#main-nav');
+          main_nav.addClass('main-nav-landing');
+          main_nav.append('<hr>');
+      });
+
+      return true;
+  }
+
+  if (!setup_if_landing()) {
+      // draw_toc();
+      // highlight_code();
+      // sticky_menu();
+      styleNavButtons();
+  }
+</script>
 </body>
 </html>
