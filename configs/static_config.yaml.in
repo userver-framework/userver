@@ -131,3 +131,11 @@ components_manager:
             auth:
                 types:
                   - bearer
+
+        handler-feed-articles:
+            path: /api/articles/feed
+            method: GET
+            task_processor: main-task-processor
+            auth:
+                types:
+                  - bearer

@@ -13,6 +13,7 @@
 #include "handlers/users/users.hpp"
 #include "handlers/users/users_login.hpp"
 
+#include "handlers/articles/feed_articles.hpp"
 #include "handlers/comments/comment_delete.hpp"
 #include "handlers/comments/comment_post.hpp"
 #include "handlers/comments/comments_get.hpp"
@@ -41,7 +42,8 @@ int main(int argc, char* argv[]) {
           .Append<real_medium::handlers::comments::get::Handler>()
           .Append<real_medium::handlers::users::post::RegisterUser>()
           .Append<real_medium::handlers::profiles::get::Handler>()
-          .Append<real_medium::handlers::tags::get::Handler>();
+          .Append<real_medium::handlers::tags::get::Handler>()
+          .Append<real_medium::handlers::articles::feed::get::Handler>();
 
   real_medium::handlers::users_login::post::AppendLoginUser(component_list);
 
