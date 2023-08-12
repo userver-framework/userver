@@ -29,8 +29,8 @@ build:
    # - build_$BUILD_TYPE/tests/venv-testsuite-$PROJECT_NAME/bin/python3 -m pip freeze > build_$BUILD_TYPE/tests/requirements.txt
    # - build_$BUILD_TYPE/tests/venv-testsuite-$PROJECT_NAME/bin/python3 -m pip freeze | xargs build_$BUILD_TYPE/tests/venv-testsuite-$PROJECT_NAME/bin/python3 -m pip uninstall -y
    # - XZ_OPT=-9T0 tar -Jcvfx build_$BUILD_TYPE.tar.xz 
-      configs/static_config.yaml
-      build_$BUILD_TYPE/$PROJECT_NAME 
+  #   configs/static_config.yaml
+  #    build_$BUILD_TYPE/$PROJECT_NAME
   #    build_$BUILD_TYPE/${PROJECT_NAME}_unittest
   #    build_$BUILD_TYPE/CTestTestfile.cmake
   #    build_$BUILD_TYPE/tests/runtests-testsuite-$PROJECT_NAME
