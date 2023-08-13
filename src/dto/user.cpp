@@ -25,8 +25,8 @@ UserUpdateDTO Parse(const userver::formats::json::Value& json,
       json["email"].As<std::optional<std::string>>(),
       json["username"].As<std::optional<std::string>>(),
       json["password"].As<std::optional<std::string>>(),
-      json["image"].As<std::optional<std::string>>(),
       json["bio"].As<std::optional<std::string>>(),
+      json["image"].As<std::optional<std::string>>(),
   };
 }
 
