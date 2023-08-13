@@ -26,7 +26,6 @@ div.contents {
 }
 
 
-
 /* Landing page */
 .landing-logo {
   width: 45%;
@@ -161,9 +160,6 @@ padding: auto;
     text-align: center;
 }
 
-
-
-
 html:not(.black-mode) .landing-intro-center {
     color: #304053;
 }
@@ -206,7 +202,7 @@ html:not(.light-mode) {
     --primary-dark-color: #f18127;
 }
 
-html:not(.light-mode) .gh-logo {
+.gh-logo {
     filter: invert(1);
 }
 
@@ -289,4 +285,39 @@ div.toc li.level5 {
 
 div.toc li.level6 {
     margin-left: 75px;
+}
+
+#MSearchBox {
+    width: 380px;
+    margin-left: 15px;
+    border-radius: 14px;
+}
+
+#projectlogo img  {
+    width: 72px;
+    max-height: none;
+}
+td#projectalign {
+    padding: 0;
+}
+#projectname a {
+    font-size: 42px;
+    color: white !important;
+}
+#projectbrief a  {
+    font-size: 17px;
+    color: white !important;
+}
+
+#top {
+    background-color: #352e48;
+    color: white !important;
+}
+
+#main-nav a {
+    color: white !important;
+}
+#main-nav ul a:active {
+    background-color: none;
+    color: red;
 }
