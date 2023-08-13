@@ -194,12 +194,18 @@ html {
     --primary-color: #f18127;
     --fragment-background: #fefaf4; /*todo */
     --light-pitch : #FDCC9A;
-} 
+    --border-color: #FDCC9A;
+    --page-secondary-foreground-color: #716690;
+    --toc-primary-color: #352E48;
+}
 
 html:not(.light-mode) {
     color-scheme: dark;
     --primary-color: #f18127;
     --primary-dark-color: #f18127;
+    --border-color: #7A6DA0;
+    --page-secondary-foreground-color: #716690;
+    --toc-primary-color: #FFFFFF;
 }
 
 .gh-logo {
@@ -320,4 +326,43 @@ td#projectalign {
 #main-nav ul a:active {
     background-color: none;
     color: red;
+}
+
+/* Table of contents */
+
+div.contents .toc  {
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    box-sizing: border-box;
+    min-width: 300px;
+    padding: 32px 20px;
+}
+
+div.toc h3 {
+    font-size: 20px;
+    margin: 0;
+}
+
+div.toc li.level1:first-child {
+    margin-top: 16px;
+}
+
+div.toc li.level1, div.toc li.level2, div.toc li.level3, div.toc li.level4 {
+    margin-top: 12px;
+}
+
+div.toc li a {
+    font-size: 14px;
+    color: var(--primary-color) !important;
+}
+
+div.toc li a.active {
+    color: var(--toc-primary-color) !important;
+    font-weight: bold;
+}
+
+@media (max-width: 768px) {
+    div.contents .toc {
+        padding-top: 0;
+    }
 }
