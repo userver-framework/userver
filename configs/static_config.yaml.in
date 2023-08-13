@@ -182,3 +182,11 @@ components_manager:
             path: /api/articles/{slug}
             method: GET
             task_processor: main-task-processor
+
+        handler-articles-favorite-post:
+            path: /api/articles/{slug}/favorite
+            method: POST
+            task_processor: main-task-processor
+            auth:
+                types:
+                  - bearer
