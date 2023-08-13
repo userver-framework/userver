@@ -198,3 +198,21 @@ components_manager:
             auth:
                 types:
                   - bearer
+
+        handler-update-article:
+            path: /api/articles/{slug}
+            method: PUT
+            task_processor: main-task-processor
+            auth:
+                types:
+                  - bearer
+                required: true
+
+        handler-delete-article:
+            path: /api/articles/{slug}
+            method: DELETE
+            task_processor: main-task-processor
+            auth:
+                types:
+                  - bearer
+                required: true
