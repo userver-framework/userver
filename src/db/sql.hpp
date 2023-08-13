@@ -39,10 +39,25 @@ inline constexpr std::string_view kFindCommentById = R"~(
 SELECT * FROM real_medium.comments WHERE comment_id = $1 
 )~";
 
-inline constexpr std::string_view kFindCommentByArticleId = R"~(
-SELECT comment_id, created_at, updated_at, body, username, bio, image FROM real_medium.comments 
-INNER JOIN real_medium.users
-USING (user_id) WHERE article_id = $1
+inline constexpr std::string_view kFindCommentsByArticleId = R"~(
+WITH comments AS (
+  SELECT * FROM real_medium.comments WHERE article_id = $1
+)
+SELECT 
+    comments.comment_id, 
+    comments.created_at, 
+    comments.updated_at,
+    comments.body,
+    (
+        SELECT 
+            ROW(users.username, users.bio, users.image,
+            CASE WHEN EXISTS (SELECT 1 FROM real_medium.followers 
+            WHERE followers.followed_user_id = comments.user_id AND followers.follower_user_id = $2)
+            THEN true ELSE false END)::real_medium.profile
+        FROM real_medium.users
+        WHERE user_id = comments.user_id
+    ) AS author
+FROM comments
 )~";
 
 inline constexpr std::string_view kDeleteCommentById = R"~(
@@ -51,18 +66,27 @@ RETURNING *
 )~";
 
 inline constexpr std::string_view kAddComment = R"~(
-  INSERT INTO real_medium.comments(body, user_id, article_id) 
-  VALUES($1, $2, $3)
-  RETURNING *
+WITH comment AS (
+    INSERT INTO real_medium.comments(body, user_id, article_id) 
+    VALUES ($1, $2, $3)
+    RETURNING *
+)
+SELECT 
+    comment.comment_id, 
+    comment.created_at, 
+    comment.updated_at,
+    comment.body,
+    (
+        SELECT 
+            ROW(users.username, users.bio, users.image, false)::real_medium.profile
+        FROM real_medium.users
+        WHERE user_id = $2
+    ) AS author
+FROM comment
 )~";
 
 inline constexpr std::string_view kFindIdArticleBySlug = R"~(
 SELECT article_id FROM real_medium.articles WHERE slug = $1  
-)~";
-
-
-inline constexpr std::string_view kIsProfileFollowing = R"~(
-RETURN EXISTS (SELECT 1 FROM real_medium.followers WHERE follower_user_id = $1 AND followed_user_id = $2);
 )~";
 
 //TODO: reuse common kIsProfileFollowing
