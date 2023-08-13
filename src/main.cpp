@@ -8,22 +8,27 @@
 #include <userver/utils/daemon_run.hpp>
 
 #include "handlers/auth/auth_bearer.hpp"
-#include "handlers/profiles/profiles.hpp"
-#include "handlers/tags/tags.hpp"
-#include "handlers/users/users.hpp"
-#include "handlers/users/users_login.hpp"
 
-#include "handlers/articles/feed_articles.hpp"
+#include "handlers/profiles/profiles.hpp"
+#include "handlers/profiles/profiles_follow.hpp"
+#include "handlers/profiles/profiles_follow_delete.hpp"
+
+#include "handlers/tags/tags.hpp"
+
 #include "handlers/comments/comment_delete.hpp"
 #include "handlers/comments/comment_post.hpp"
 #include "handlers/comments/comments_get.hpp"
+
 #include "handlers/users/user_get.hpp"
 #include "handlers/users/user_put.hpp"
-#include "handlers/articles/articles_favorite.hpp"
+#include "handlers/users/users.hpp"
+#include "handlers/users/users_login.hpp"
 
 #include "handlers/articles/articles_post.hpp"
 #include "handlers/articles/articles_slug_get.hpp"
 #include "handlers/articles/articles_get.hpp"
+#include "handlers/articles/feed_articles.hpp"
+#include "handlers/articles/articles_favorite.hpp"
 
 using namespace real_medium::handlers;
 
@@ -47,6 +52,8 @@ int main(int argc, char* argv[]) {
           .Append<real_medium::handlers::comments::get::Handler>()
           .Append<real_medium::handlers::users::post::RegisterUser>()
           .Append<real_medium::handlers::profiles::get::Handler>()
+          .Append<real_medium::handlers::profiles::post::Handler>()
+          .Append<real_medium::handlers::profiles::del::Handler>()
           .Append<real_medium::handlers::tags::get::Handler>()
           .Append<real_medium::handlers::articles::feed::get::Handler>()
           .Append<real_medium::handlers::articles::get::Handler>()

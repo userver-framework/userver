@@ -12,7 +12,7 @@ userver::formats::json::Value Serialize(
   item["created_at"] = comment.created_at;
   item["updated_at"] = comment.updated_at;
   item["body"] = comment.body;
-  item["author"] = comment.user_id;
+  item["author"] = comment.author;
 
   return item.ExtractValue();
 }

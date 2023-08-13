@@ -1,6 +1,6 @@
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
--- DROP SCHEMA IF EXISTS real_medium CASCADE;
+
 CREATE SCHEMA IF NOT EXISTS real_medium;
 
 CREATE TABLE IF NOT EXISTS real_medium.users (
@@ -95,8 +95,6 @@ CREATE TYPE real_medium.tagged_article_with_author_profile AS
         favorites_count BIGINT,
         author real_medium.profile
 );
-
-
 
 
 CREATE OR REPLACE FUNCTION real_medium.get_article_tags(
@@ -270,3 +268,8 @@ BEGIN
                 article_id = _article_id;
 END;
 $$ LANGUAGE plpgsql;
+
+
+
+
+

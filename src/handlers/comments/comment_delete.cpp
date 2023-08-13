@@ -15,7 +15,7 @@ Handler::Handler(const userver::components::ComponentConfig& config,
 
 userver::formats::json::Value Handler::HandleRequestJsonThrow(
     const userver::server::http::HttpRequest& request,
-    const userver::formats::json::Value& request_json,
+    const userver::formats::json::Value& /*request_json*/,
     userver::server::request::RequestContext& context) const {
   auto user_id = context.GetData<std::optional<std::string>>("id");
   const auto& comment_id = std::atoi(request.GetPathArg("id").c_str());
