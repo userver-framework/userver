@@ -34,7 +34,7 @@ inline constexpr std::string_view kFindUserIDByUsername = R"~(
 SELECT user_id FROM real_medium.users WHERE username = $1    
 )~";
 
-//Comments
+// Comments
 inline constexpr std::string_view kFindCommentById = R"~(
 SELECT * FROM real_medium.comments WHERE comment_id = $1 
 )~";
@@ -89,7 +89,11 @@ inline constexpr std::string_view kFindIdArticleBySlug = R"~(
 SELECT article_id FROM real_medium.articles WHERE slug = $1  
 )~";
 
-//TODO: reuse common kIsProfileFollowing
+inline constexpr std::string_view kIsProfileFollowing = R"~(
+RETURN EXISTS (SELECT 1 FROM real_medium.followers WHERE follower_user_id = $1 AND followed_user_id = $2);
+)~";
+
+// TODO: reuse common kIsProfileFollowing
 inline constexpr std::string_view kGetProfileByUsername = R"~(
 WITH profile AS (
   SELECT * FROM real_medium.users WHERE username = $1
@@ -141,7 +145,6 @@ inline constexpr std::string_view kGetArticleWithAuthorProfile{R"~(
 SELECT real_medium.get_article_with_author_profile($1, $2)
 )~"};
 
-
 inline constexpr std::string_view kGetArticleWithAuthorProfileBySlug{R"~(
 SELECT real_medium.get_article_with_author_profile_by_slug($1, $2)
 )~"};
@@ -174,5 +177,9 @@ inline constexpr std::string_view kDecrementFavoritesCount = R"~(
 UPDATE real_medium.articles
 SET favorites_count=favorites_count - 1
 WHERE article_id=$1
+)~";
+
+inline constexpr std::string_view kFindArticlesByFollowedUsers = R"~(
+SELECT real_medium.get_feed_articles($1, $2, $3)
 )~";
 }  // namespace real_medium::sql
