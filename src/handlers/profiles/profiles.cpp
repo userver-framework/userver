@@ -36,17 +36,18 @@ json::Value Handler::HandleRequestJsonThrow(
   const auto& username = request.GetPathArg("username");
 
 
-  auto res = cluster_->Execute(ClusterHostType::kSlave, sql::kGetProfileByUsername.data(), username, userId);
+  auto res = cluster_->Execute(ClusterHostType::kMaster, sql::kGetProfileByUsername.data(), username, userId);
   if (res.IsEmpty()) {
     auto& response = request.GetHttpResponse();
     response.SetStatus(userver::server::http::HttpStatus::kNotFound);
     return utils::error::MakeError("username", "There is no user with this nickname.");
   }
 
-  const auto profile = res.AsSingleRow<models::Profile>(userver::storages::postgres::kRowTag);
+  auto profile =
+      res.AsSingleRow<real_medium::models::Profile>(userver::storages::postgres::kRowTag);
   userver::formats::json::ValueBuilder builder;
-  builder["profile"] =
-      dto::Profile{profile.username, profile.bio, profile.image, profile.following};
+  builder["profile"] = profile;
+
   return builder.ExtractValue();
 }
 

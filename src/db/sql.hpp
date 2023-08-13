@@ -37,7 +37,9 @@ SELECT * FROM real_medium.comments WHERE comment_id = $1
 )~";
 
 inline constexpr std::string_view kFindCommentByArticleId = R"~(
-SELECT * FROM real_medium.comments WHERE article_id = $1 
+SELECT comment_id, created_at, updated_at, body, username, bio, image FROM real_medium.comments 
+INNER JOIN real_medium.users
+USING (user_id) WHERE article_id = $1
 )~";
 
 inline constexpr std::string_view kDeleteCommentById = R"~(

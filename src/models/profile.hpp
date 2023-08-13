@@ -5,6 +5,7 @@
 #include <tuple>
 
 #include <userver/formats/json/value_builder.hpp>
+#include "userver/formats/json/value.hpp"
 
 namespace real_medium::models {
 
@@ -12,10 +13,10 @@ struct Profile {
   std::string username;
   std::optional<std::string> bio;
   std::optional<std::string> image;
-  bool following{false};
+ // bool following{false};
 
   auto Introspect() {
-    return std::tie(username, bio, image, following);
+    return std::tie(username, bio, image);
   }
 };
 

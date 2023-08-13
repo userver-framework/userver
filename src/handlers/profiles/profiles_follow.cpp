@@ -28,22 +28,26 @@ userver::formats::json::Value Handler::HandleRequestJsonThrow(
     const userver::server::http::HttpRequest& request,
     const userver::formats::json::Value&,
     userver::server::request::RequestContext& request_context) const {
+  auto userId = request_context.GetData<std::string>("id");
   const auto& username = request.GetPathArg("username");
   if (username.empty()) {
     request.SetResponseStatus(HttpStatus::kBadRequest);
     return {};
   }
-  auto userId = request_context.GetData<std::string>("id");
+
   const auto res = cluster_->Execute(
       userver::storages::postgres::ClusterHostType::kSlave, sql::kGetProfileByUsername.data(), username, userId);
   if (res.IsEmpty()) {
     request.SetResponseStatus(userver::server::http::HttpStatus::kNotFound);
     return {};
   }
+
   const auto user = res.AsSingleRow<models::Profile>();
+  
   cluster_->Execute(
       userver::storages::postgres::ClusterHostType::kMaster,
       sql::kFollowUser.data(), userId);
+  
   userver::formats::json::ValueBuilder builder;
   builder["profile"] =
       dto::Profile{user.username, user.bio, user.image, true};

@@ -20,7 +20,7 @@ userver::formats::json::Value Handler::HandleRequestJsonThrow(
     const userver::server::http::HttpRequest& request,
     const userver::formats::json::Value& request_json,
     userver::server::request::RequestContext& context) const {
-  auto user_id = context.GetData<std::string>("id");
+ // auto user_id = context.GetData<std::string>("id");
   const auto& slug = request.GetPathArg("slug");
 
   const auto res_find_article = pg_cluster_->Execute(
@@ -39,12 +39,14 @@ userver::formats::json::Value Handler::HandleRequestJsonThrow(
       pg_cluster_->Execute(userver::storages::postgres::ClusterHostType::kSlave,
                            sql::kFindCommentByArticleId.data(), article_id);
 
+  using vasya = std::tuple<real_medium::models::Comment, real_medium::models::Profile>;
+
   const auto comments =
-      res_find_comments.AsContainer<std::vector<real_medium::models::Comment>>(
+      res_find_comments.AsContainer<std::vector<vasya>>(
           userver::storages::postgres::kRowTag);
   userver::formats::json::ValueBuilder builder;
-  for (auto comment : comments) builder["comments"].PushBack(comment);
-
+  for (auto comment : comments) builder["comments"].PushBack(std::get<0>(comment));
+  request.
   return builder.ExtractValue();
 }
 

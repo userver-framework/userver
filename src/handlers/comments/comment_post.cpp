@@ -51,16 +51,16 @@ userver::formats::json::Value Handler::HandleRequestJsonThrow(
         userver::server::http::HttpStatus::kNotImplemented);  // 501, мб надо
                                                               // заменить
     return utils::error::MakeError(
-        "none", "Uknow error. The comment was not added to the database.");
+        "none", "Unknow error. The comment was not added to the database.");
   }
 
   auto comment_res_data =
       res_ins_new_comment.AsSingleRow<real_medium::models::Comment>(
           userver::storages::postgres::kRowTag);
-
+  
   userver::formats::json::ValueBuilder builder;
   builder["comment"] = comment_res_data;
-
+        builder.
   return builder.ExtractValue();
 }
 

@@ -69,3 +69,41 @@ CREATE TABLE IF NOT EXISTS real_medium.comments (
 	CONSTRAINT fk_article FOREIGN KEY(article_id) REFERENCES real_medium.articles(article_id) ON DELETE CASCADE,
 	CONSTRAINT fk_author FOREIGN KEY(user_id) REFERENCES real_medium.users(user_id) ON DELETE CASCADE
 );
+
+
+CREATE TYPE real_medium.user AS
+(
+	user_id TEXT,
+	username VARCHAR(255),
+	email VARCHAR(255),
+	bio TEXT,
+	image VARCHAR(255),
+	password_hash VARCHAR(255)
+);
+
+CREATE TYPE real_medium.profile AS
+(
+	username VARCHAR(255),
+	bio TEXT,
+	image VARCHAR(255),
+	following BOOL
+);
+
+CREATE TYPE real_medium.article AS
+(
+	article_id TEXT,
+	title VARCHAR(255),
+	slug VARCHAR(255),
+	body TEXT,
+	description TEXT,
+	created_at TIMESTAMPTZ,
+	updated_at TIMESTAMPTZ,
+	favorites_count INT,
+	user_id TEXT
+);
+
+CREATE TYPE real_medium.article_with_profile AS
+(
+	article real_medium.article,
+	author real_medium.profile
+);
