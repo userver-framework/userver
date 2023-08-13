@@ -7,8 +7,6 @@ import numpy as np
 from functools import partial
 from itertools import chain
 
-from transliterate import translit, get_available_language_codes
-
 COUNT_OF_USERS = 1000
 COUNT_OF_ARTICLES = 1000
 COUNT_OF_TAGS = 100
