@@ -191,7 +191,7 @@ div.fragment {
 }
 
 html {
-    --primary-color: #f18127;
+    --primary-color: #f18128;
     --fragment-background: #fefaf4; /*todo */
     --light-pitch : #FDCC9A;
     --border-color: #FDCC9A;
@@ -201,8 +201,8 @@ html {
 
 html:not(.light-mode) {
     color-scheme: dark;
-    --primary-color: #f18127;
-    --primary-dark-color: #f18127;
+    --primary-color: #f18128;
+    --primary-dark-color: #f18128;
     --border-color: #7A6DA0;
     --page-secondary-foreground-color: #716690;
     --toc-primary-color: #FFFFFF;
@@ -365,4 +365,69 @@ div.toc li a.active {
     div.contents .toc {
         padding-top: 0;
     }
+}
+.sm-dox ul a:hover, .sm-dox ul a:active, .sm-dox ul a:focus {
+    background-color: transparent;
+}
+
+
+html{
+    --primary-color: #f18128;
+    --separator-color: #FDCC9A;
+    --box-shadow: 0 2px 8px 0 rgba(0,0,0,.08);
+    --odd-color: rgba(0,0,0,.03);
+    --tablehead-background: #FEFAF5;
+    --code-background: #FEFCF9;
+    --side-nav-background: #FEFCF9;
+}
+
+@media (prefers-color-scheme: dark) {
+    html:not(.light-mode) {
+        --tablehead-background: #2f2a2a;
+        --fragment-background: #7A6DA0;
+    }}
+
+    html.dark-mode {
+        --page-background-color: #352E48;
+        --separator-color: #7A6DA0;
+        --side-nav-background: #413956;
+        --code-background: #4D416C;
+
+        --tablehead-background: #413956;
+        --fragment-background: #4D416C;
+    }
+
+
+    .sm-dox a:hover span.sub-arrow {
+        border-color: var(--primary-color) transparent transparent transparent;
+    }
+
+    .sm-dox ul a span.sub-arrow {
+        border-color: transparent transparent transparent var(--page-foreground-color);
+
+    }
+
+    .sm-dox ul a:hover, .sm-dox ul a:active, .sm-dox ul a:focus {
+        color: var(--primary-color) !important;
+        background-color: transparent !important;
+
+    }
+
+    .sm-dox a:hover, .sm-dox a:active, .tablist li a:hover {
+
+         background: transparent;
+        color: var(--primary-color) !important;}
+
+        #MSearchBox {
+            background: white !important; }
+
+
+
+a.titlelink {
+    color: var(--page-foreground-color) !important;
+
+}
+
+a.titlelink:hover {
+    color: var(--primary-color) !important;
 }
