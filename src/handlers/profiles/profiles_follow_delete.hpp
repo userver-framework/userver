@@ -19,11 +19,11 @@ class Handler final : public userver::server::handlers::HttpHandlerJsonBase {
   userver::formats::json::Value HandleRequestJsonThrow(
       const userver::server::http::HttpRequest& request,
       const userver::formats::json::Value&,
-      userver::server::request::RequestContext& request_context)
+      userver::server::request::RequestContext& context)
       const override final;
 
  private:
-  const userver::storages::postgres::ClusterPtr cluster_;
+  const userver::storages::postgres::ClusterPtr pg_cluster_;
 };
 
 }  // namespace real_medium::handlers::profiles::del

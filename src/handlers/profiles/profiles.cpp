@@ -14,7 +14,6 @@ using namespace std;
 using namespace userver::formats;
 using namespace userver::server::http;
 using namespace userver::server::request;
-using namespace userver::server::http;
 using namespace userver::storages::postgres;
 using namespace real_medium::dto;
 
@@ -30,9 +29,9 @@ Handler::Handler(const userver::components::ComponentConfig& config,
 
 json::Value Handler::HandleRequestJsonThrow(
     const HttpRequest& request, const json::Value&,
-    RequestContext& request_context) const {
+    RequestContext& context) const {
 
-  auto user_id = request_context.GetData<std::optional<std::string>>("id");;
+  auto user_id = context.GetData<std::optional<std::string>>("id");
   const auto& username = request.GetPathArg("username");
 
 
@@ -43,8 +42,8 @@ json::Value Handler::HandleRequestJsonThrow(
     return utils::error::MakeError("username", "There is no user with this nickname.");
   }
 
-  auto profile =
-      res.AsSingleRow<real_medium::models::Profile>(userver::storages::postgres::kRowTag);
+  auto profile = res.AsSingleRow<real_medium::models::Profile>(userver::storages::postgres::kRowTag);
+
   userver::formats::json::ValueBuilder builder;
   builder["profile"] = profile;
 

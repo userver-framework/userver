@@ -60,7 +60,7 @@ userver::formats::json::Value Handler::HandleRequestJsonThrow(
   
   userver::formats::json::ValueBuilder builder;
   builder["comment"] = comment_res_data;
-        builder.
+        
   return builder.ExtractValue();
 }
 
