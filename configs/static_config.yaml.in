@@ -67,11 +67,32 @@ components_manager:
             dns_resolver: async
             sync-start: true
 
-        handler-get-profiles:
-            path: /hello                 
-            method: GET,POST             
+        handler-get-profile:
+            path: /api/profiles/{username}                 
+            method: GET            
             task_processor: main-task-processor 
-            
+            auth:
+                types:
+                  - bearer
+
+        handler-profile-follow:
+            path: /api/profiles/{username}/follow             
+            method: POST            
+            task_processor: main-task-processor 
+            auth:
+                types:
+                  - bearer
+                required: true
+
+        handler-profile-unfollow:
+            path: /api/profiles/{username}/follow             
+            method: DELETE            
+            task_processor: main-task-processor 
+            auth:
+                types:
+                  - bearer
+                required: true
+
         # handler-users:
         #     path: /users                 
         #     method: GET,POST             

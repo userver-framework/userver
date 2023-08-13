@@ -30,12 +30,19 @@ inline constexpr std::string_view kFindUserById = R"~(
 SELECT * FROM real_medium.users WHERE user_id = $1    
 )~";
 
+inline constexpr std::string_view kFindUserIDByUsername = R"~(
+SELECT user_id FROM real_medium.users WHERE username = $1    
+)~";
+
+//Comments
 inline constexpr std::string_view kFindCommentById = R"~(
 SELECT * FROM real_medium.comments WHERE comment_id = $1 
 )~";
 
 inline constexpr std::string_view kFindCommentByArticleId = R"~(
-SELECT * FROM real_medium.comments WHERE article_id = $1 
+SELECT comment_id, created_at, updated_at, body, username, bio, image FROM real_medium.comments 
+INNER JOIN real_medium.users
+USING (user_id) WHERE article_id = $1
 )~";
 
 inline constexpr std::string_view kDeleteCommentById = R"~(
@@ -51,6 +58,55 @@ inline constexpr std::string_view kAddComment = R"~(
 
 inline constexpr std::string_view kFindIdArticleBySlug = R"~(
 SELECT article_id FROM real_medium.articles WHERE slug = $1  
+)~";
+
+
+inline constexpr std::string_view kIsProfileFollowing = R"~(
+RETURN EXISTS (SELECT 1 FROM real_medium.followers WHERE follower_user_id = $1 AND followed_user_id = $2);
+)~";
+
+//TODO: reuse common kIsProfileFollowing
+inline constexpr std::string_view kGetProfileByUsername = R"~(
+WITH profile AS (
+  SELECT * FROM real_medium.users WHERE username = $1
+)
+SELECT profile.username, profile.bio, profile.image, 
+       CASE WHEN EXISTS (
+         SELECT 1 FROM real_medium.followers 
+         WHERE followed_user_id = profile.user_id AND follower_user_id = $2
+       ) THEN true ELSE false END AS following
+FROM profile
+)~";
+
+inline constexpr std::string_view KFollowingUser = R"~(
+WITH profile AS (
+  SELECT * FROM real_medium.users WHERE user_id = $1
+), following AS (
+  INSERT INTO real_medium.followers(followed_user_id, follower_user_id) VALUES ($1, $2)
+  ON CONFLICT DO NOTHING
+  RETURNING *
+)
+SELECT 
+  profile.username, 
+  profile.bio, 
+  profile.image, 
+  CASE WHEN EXISTS (SELECT 1 FROM following) THEN TRUE ELSE FALSE END
+FROM profile
+)~";
+
+inline constexpr std::string_view KUnFollowingUser = R"~(
+WITH profile AS (
+  SELECT * FROM real_medium.users WHERE user_id = $1
+), following AS (
+  DELETE FROM real_medium.followers WHERE followed_user_id = $1 AND follower_user_id = $2
+  RETURNING *
+)
+SELECT 
+  profile.username, 
+  profile.bio, 
+  profile.image, 
+  CASE WHEN EXISTS (SELECT 1 FROM following) THEN FALSE ELSE TRUE END
+FROM profile
 )~";
 
 inline constexpr std::string_view kCreateArticle{R"~(

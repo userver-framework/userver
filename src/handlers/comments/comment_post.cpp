@@ -18,7 +18,7 @@ Handler::Handler(const userver::components::ComponentConfig& config,
 
 userver::formats::json::Value Handler::HandleRequestJsonThrow(
     const userver::server::http::HttpRequest& request,
-    const userver::formats::json::Value& request_json,
+    const userver::formats::json::Value& /*request_json*/,
     userver::server::request::RequestContext& context) const {
   auto user_id = context.GetData<std::optional<std::string>>("id");
 
@@ -51,16 +51,16 @@ userver::formats::json::Value Handler::HandleRequestJsonThrow(
         userver::server::http::HttpStatus::kNotImplemented);  // 501, мб надо
                                                               // заменить
     return utils::error::MakeError(
-        "none", "Uknow error. The comment was not added to the database.");
+        "none", "Unknow error. The comment was not added to the database.");
   }
 
   auto comment_res_data =
       res_ins_new_comment.AsSingleRow<real_medium::models::Comment>(
           userver::storages::postgres::kRowTag);
-
+  
   userver::formats::json::ValueBuilder builder;
   builder["comment"] = comment_res_data;
-
+        
   return builder.ExtractValue();
 }
 

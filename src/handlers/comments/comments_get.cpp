@@ -39,11 +39,13 @@ userver::formats::json::Value Handler::HandleRequestJsonThrow(
       pg_cluster_->Execute(userver::storages::postgres::ClusterHostType::kSlave,
                            sql::kFindCommentByArticleId.data(), article_id);
 
+  using vasya = std::tuple<real_medium::models::Comment, real_medium::models::Profile>;
+
   const auto comments =
-      res_find_comments.AsContainer<std::vector<real_medium::models::Comment>>(
+      res_find_comments.AsContainer<std::vector<vasya>>(
           userver::storages::postgres::kRowTag);
   userver::formats::json::ValueBuilder builder;
-  for (auto comment : comments) builder["comments"].PushBack(comment);
+  for (auto comment : comments) builder["comments"].PushBack(std::get<0>(comment));
 
   return builder.ExtractValue();
 }
