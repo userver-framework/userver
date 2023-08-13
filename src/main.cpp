@@ -28,6 +28,8 @@
 #include "handlers/articles/articles_slug_get.hpp"
 #include "handlers/articles/articles_get.hpp"
 #include "handlers/articles/feed_articles.hpp"
+#include "handlers/articles/articles_favorite.hpp"
+#include "handlers/articles/articles_unfavorite.hpp"
 
 using namespace real_medium::handlers;
 
@@ -57,7 +59,9 @@ int main(int argc, char* argv[]) {
           .Append<real_medium::handlers::articles::feed::get::Handler>()
           .Append<real_medium::handlers::articles::get::Handler>()
           .Append<real_medium::handlers::articles::post::Handler>()
-          .Append<real_medium::handlers::articles_slug::get::Handler>();
+          .Append<real_medium::handlers::articles_slug::get::Handler>()
+          .Append<real_medium::handlers::articles_favorite::post::Handler>()
+          .Append<real_medium::handlers::articles_favorite::del::Handler>();
 
   real_medium::handlers::users_login::post::AppendLoginUser(component_list);
 

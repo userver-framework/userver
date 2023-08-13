@@ -39,6 +39,8 @@ add_library(${PROJECT_NAME}_objs OBJECT
 		src/handlers/articles/articles_post.hpp
 		src/handlers/articles/feed_articles.hpp
 		src/handlers/articles/feed_articles.cpp
+		src/handlers/articles/articles_favorite.cpp
+		src/handlers/articles/articles_favorite.hpp
 		src/handlers/comments/comment_delete.cpp
 		src/handlers/comments/comment_delete.hpp
 		src/handlers/comments/comment_post.cpp
@@ -76,8 +78,10 @@ add_library(${PROJECT_NAME}_objs OBJECT
 		src/utils/jwt.hpp
 		src/utils/jwt.cpp
 		src/utils/slugify.hpp
-		src/utils/slugify.cpp		
-		
+		src/utils/slugify.cpp
+		src/handlers/articles/articles_unfavorite.cpp
+		src/handlers/articles/articles_unfavorite.hpp
+
 )
 
 include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
