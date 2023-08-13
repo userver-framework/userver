@@ -53,7 +53,7 @@ AuthCheckerBearer::AuthCheckResult AuthCheckerBearer::CheckAuth(
 
   const auto bearer_sep_pos = auth_value.find(' ');
   if (bearer_sep_pos == std::string::npos ||
-      std::string_view{auth_value.data(), bearer_sep_pos} != "Bearer") {
+      std::string_view{auth_value.data(), bearer_sep_pos} != "Token") {
     return AuthCheckResult{
         AuthCheckResult::Status::kTokenNotFound,
         {},

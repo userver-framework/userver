@@ -19,7 +19,7 @@ struct Comment {
   real_medium::models::Profile author;
 
   auto Introspect() {
-    return std::tie(id, created_at, updated_at, body);
+    return std::tie(id, created_at, updated_at, body, author);
   }
 };
 

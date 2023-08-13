@@ -42,8 +42,9 @@ userver::formats::json::Value Handler::HandleRequestJsonThrow(
 
   const auto comments = res_find_comments.AsContainer<std::vector<real_medium::models::Comment>>(
           userver::storages::postgres::kRowTag);
+          
   userver::formats::json::ValueBuilder builder;
-  for (auto comment : comments) builder["comments"].PushBack(comment);
+  for (auto comment : comments) {builder["comments"].PushBack(comment);}
 
   return builder.ExtractValue();
 }

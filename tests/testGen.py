@@ -7,13 +7,15 @@ import numpy as np
 from functools import partial
 from itertools import chain
 
-COUNT_OF_USERS = 1000
-COUNT_OF_ARTICLES = 1000
-COUNT_OF_TAGS = 100
+COUNT_OF_USERS = 100000
+COUNT_OF_ARTICLES = 10000
 COUNT_OF_COMMENTS = 1000
-MAX_FOLLOWERS = 30 # Максимум феворитов у каждой статьи
-MAX_FAVORITES = 30 # Максимум подписчиков у каждого по-отдельности
+MAX_FOLLOWERS = 400 # Максимум феворитов у каждой статьи
+MAX_FAVORITES = 400 # Максимум подписчиков у каждого по-отдельности
 NAME_SCHEMA = "real_medium"
+
+TITLES_DEFAULT = ["Monkey eat banan", "123456", "title", "article", "123"]
+USERS_DEFAULT = ["vasya", "jake", "123", "root"]
 
 def generate_random_number(min_value, max_value, step):
     num = random.randint(min_value // step, max_value // step) * step
@@ -38,11 +40,10 @@ def genUsername(cnt):
     nameList = ["Vasya", "Petya", "yandex_boy", "hacker", "Jhon", "Dimon", "Kostya", "Mike", "Jhohan", "Ninja", "GodOfCode", "McMisha"
                 "Japanist", "Danial", "Anna", "Ilya", "Vadim", "Vika", "meganagibator", "zemlekop", "usman", "ImMoRTaL", "DeadPool2009",
                 "imissher", "killer"]
-    listCyfix = genListOfRandStr(cnt, 5)
     
     resList = []
-    for i in listCyfix:
-        resList.append(random.choice(nameList) + i)
+    for i in range(COUNT_OF_USERS):
+        resList.append(random.choice(nameList) + "_" + str(i))
 
     return resList
     
@@ -81,10 +82,10 @@ def genText(cnt, isEnglish):
 
     text = ""
     while len(text) < cnt:
-        text += random.choice(wordsRussia).capitalize()
+        text += random.choice(words).capitalize()
         cnt_words =  random.randint(2, 6)
         for i in range(cnt_words):
-            text += " " + (random.choice(wordsRussia))
+            text += " " + (random.choice(words))
             if(len(text) > cnt):
                 break
         text += ". "
@@ -132,7 +133,7 @@ def fillUsers(con):
     cur = con.cursor()
    
     emails = genEmailList(COUNT_OF_USERS)
-    usernames = genUsername(COUNT_OF_USERS)
+    usernames = USERS_DEFAULT + genUsername(max(0, COUNT_OF_USERS - len(USERS_DEFAULT))) 
     imageList = ["https://fikiwiki.com/uploads/posts/2022-02/1644991237_23-fikiwiki-com-p-kartinki-krasivikh-koshechek-31.jpg",
                  "https://webpulse.imgsmail.ru/imgpreview?key=pulse_cabinet-image-c52e6c20-071b-46fe-b0c0-cbad32ffb447&mb=webpulse",
                  "https://vplate.ru/images/article/orig/2019/04/belye-koshki-s-golubymi-glazami-harakterna-li-dlya-nih-gluhota-i-kakimi-oni-byvayut-29.jpg",
@@ -154,25 +155,30 @@ def fillUsers(con):
         strExecute = createStrExecuteInsert("users", dictOfExecute)
         cur.execute(strExecute)
 
+
+
+
 def fillArticles(con):
     print("Fill articles")
     
     cur = con.cursor()
 
-    titles = []
-    while len(titles) < COUNT_OF_ARTICLES:
-        titles.append(genText(random.randint(10, 20), 0))
+    
+    titles = TITLES_DEFAULT + [] 
+    newLenght = max(0, COUNT_OF_ARTICLES - len(TITLES_DEFAULT))
 
+    for i in range(newLenght):
+        titles.append(genText(random.randint(10, 20), 1))
+    
     userIDList = getColumn(con, "users", "user_id")
 
     for i in range(COUNT_OF_ARTICLES):
- 
         title = titles[i]
         slug = title.replace('.', "").replace(' ', '-').lower()
-        slug += "_" + genListOfRandStr(1, 5)[0]
+        slug += "_" + str(i)
         body = genText(60, 0)
         description = genText(20, 0)
-        favorites_count = random.randint(0, 1000)
+        favorites_count = random.randint(0, COUNT_OF_USERS)
         userID = random.choice(userIDList)
 
         
@@ -233,11 +239,11 @@ def fillFollowers(con):
 
     cur = con.cursor()
     cur.execute(createStrExecuteDelete("article_tag"))
-
+    print(0)
     userIDList = getColumn(con, "users", "user_id")
-
+    print(1)
     for followed in userIDList:
-        randFollowerList = random.sample(userIDList, random.randint(1, min(MAX_FOLLOWERS, COUNT_OF_USERS)))
+        randFollowerList = random.sample(userIDList, random.randint(1, MAX_FOLLOWERS))
         for follower in randFollowerList:
             if(followed == follower):
                 continue
@@ -276,12 +282,23 @@ def main():
     con = None
 
     try:
+
+        if(COUNT_OF_USERS < MAX_FAVORITES):
+            print(f"\nERROR:\n\t COUNT_OF_USERS < MAX_FAVORITES: {COUNT_OF_USERS} < {MAX_FAVORITES}")
+            exit(1)
+        
+        if(COUNT_OF_USERS < MAX_FOLLOWERS):
+            print(f"\nERROR:\n\t COUNT_OF_USERS < MAX_FOLLOWERS: {COUNT_OF_USERS} < {MAX_FOLLOWERS}")
+            exit(1)
+        
         conn_string = "host=localhost port=8081 dbname=\'" + sys.argv[1] + "\' user=user password=password"
         print ("Connecting to database\n    ->{}".format(conn_string))
         
         con = psycopg2.connect(conn_string)
 
-        
+        print('\nDefault titles: ' + str(TITLES_DEFAULT))
+        print('Default users: ' + str(USERS_DEFAULT) + "\n\tpassword=123456")
+
         clearDataBase(con)      
         
         fillUsers(con)
