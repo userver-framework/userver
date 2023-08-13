@@ -137,4 +137,18 @@ SET favorites_count=favorites_count + 1
 WHERE article_id=$1
 )~";
 
+inline constexpr std::string_view kDeleteFavoritePair = R"~(
+WITH tmp(article_id, user_id) AS (
+    SELECT article_id, $1 FROM real_medium.articles WHERE slug=$2
+)
+DELETE FROM real_medium.favorites
+WHERE (article_id, user_id) IN (SELECT article_id, user_id FROM tmp)
+RETURNING article_id
+)~";
+
+inline constexpr std::string_view kDecrementFavoritesCount = R"~(
+UPDATE real_medium.articles
+SET favorites_count=favorites_count - 1
+WHERE article_id=$1
+)~";
 }  // namespace real_medium::sql
