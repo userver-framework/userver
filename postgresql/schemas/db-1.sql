@@ -301,3 +301,61 @@ BEGIN
 	OFFSET _offset;
 END;
 $$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION real_medium.update_article_by_slug(
+        _old_slug VARCHAR(255),
+        _user_id TEXT,
+        _title VARCHAR(255) = NULL,
+        _new_slug VARCHAR(255) = NULL,
+        _description TEXT = NULL,
+        _body TEXT = NULL)
+    RETURNS SETOF TEXT
+AS $$
+BEGIN
+        RETURN QUERY
+        UPDATE
+                real_medium.articles
+        SET
+                title = COALESCE(_title, title),
+                slug = COALESCE(_new_slug, slug),
+                description = COALESCE(_description, description),
+                body = COALESCE(_body, body),
+                updated_at = NOW()
+        WHERE
+                slug = _old_slug AND
+                user_id = _user_id
+        RETURNING
+                article_id;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION real_medium.get_article_id_by_slug(
+        _slug VARCHAR(255))
+    RETURNS SETOF TEXT
+AS $$
+BEGIN
+        RETURN QUERY
+        SELECT
+                article_id
+        FROM
+                real_medium.articles
+        WHERE
+                slug = _slug;
+END;
+$$ LANGUAGE plpgsql;
+
+
+CREATE OR REPLACE FUNCTION real_medium.delete_article_by_slug(
+        _slug VARCHAR(255),
+        _user_id TEXT)
+    RETURNS VOID
+AS $$
+BEGIN
+        DELETE FROM
+                real_medium.articles
+        WHERE
+                slug = _slug AND
+                user_id = _user_id;
+END;
+$$ LANGUAGE plpgsql;
+

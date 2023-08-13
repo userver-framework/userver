@@ -2,6 +2,7 @@
 
 #include <string>
 #include <userver/storages/postgres/io/chrono.hpp>
+#include <userver/server/handlers/http_handler_base.hpp>
 #include <userver/formats/parse/common_containers.hpp>
 #include <userver/formats/json/value.hpp>
 #include "../models/article.hpp"
@@ -31,13 +32,12 @@ userver::formats::json::Value Serialize(
 
 struct CreateArticleRequest final {
   static constexpr int MIN_TITLE_LEN=3;
-  static constexpr int MIN_BODY_LEN=5;
-  static constexpr int MIN_DESCR_LEN=5;
-  static constexpr int MIN_TAG_NAME_LEN=2;
-
   static constexpr int MAX_TITLE_LEN=256;
+  static constexpr int MIN_BODY_LEN=5;
   static constexpr int MAX_BODY_LEN=65535;
+  static constexpr int MIN_DESCR_LEN=5;
   static constexpr int MAX_DESCR_LEN=8192;
+  static constexpr int MIN_TAG_NAME_LEN=2;
   static constexpr int MAX_TAG_NAME_LEN=256;
   static CreateArticleRequest Parse(const userver::formats::json::Value& data);
   std::string title;
@@ -46,5 +46,23 @@ struct CreateArticleRequest final {
   std::optional<std::vector<std::string>> tags;
 };
 
+struct UpdateArticleRequest final {
+  static constexpr int MIN_TITLE_LEN=3;
+  static constexpr int MAX_TITLE_LEN=256;
+  static constexpr int MIN_BODY_LEN=5;
+  static constexpr int MAX_BODY_LEN=65535;
+  static constexpr int MIN_DESCR_LEN=5;
+  static constexpr int MAX_DESCR_LEN=8192;
+  static constexpr int MIN_TAG_NAME_LEN=2;
+  static constexpr int MAX_TAG_NAME_LEN=256;
+  static UpdateArticleRequest Parse(
+      const userver::formats::json::Value& data,
+      const userver::server::http::HttpRequest& request) ;
+  std::string slug;
+  std::optional<std::string> title;
+  std::optional<std::string> description;
+  std::optional<std::string> body;
+  std::optional<std::vector<std::string>> tags;
+};
 
 }  // namespace realmedium::dto
