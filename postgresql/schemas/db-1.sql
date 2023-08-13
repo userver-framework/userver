@@ -1,6 +1,6 @@
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
-
+DROP SCHEMA IF EXISTS real_medium CASCADE;
 CREATE SCHEMA IF NOT EXISTS real_medium;
 
 CREATE TABLE IF NOT EXISTS real_medium.users (
@@ -95,6 +95,8 @@ CREATE TYPE real_medium.tagged_article_with_author_profile AS
         favorites_count BIGINT,
         author real_medium.profile
 );
+
+
 
 
 CREATE OR REPLACE FUNCTION real_medium.get_article_tags(
@@ -203,7 +205,7 @@ RETURN QUERY
                 CASE WHEN _follower_id = NULL THEN
                         FALSE
                 ELSE
-                         real_medium.is_following(_follower_id, _id)
+                         real_medium.is_following(_id, _follower_id)
                 END
         FROM
                 real_medium.users
@@ -269,7 +271,34 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-
-
-
-
+CREATE OR REPLACE FUNCTION real_medium.get_feed_articles(
+	_user_id TEXT,
+	_limit INT = 20,
+	_offset INT = 0)
+    RETURNS SETOF real_medium.tagged_article_with_author_profile 
+AS $$
+BEGIN
+	RETURN QUERY
+	SELECT 
+		article_id,
+		title,
+		slug,
+                body,
+		description,	
+		created_at,
+		updated_at,
+		ARRAY(SELECT * FROM real_medium.get_article_tags(article_id))::VARCHAR(255)[],
+		real_medium.is_favorited_article(article_id),
+		(SELECT COUNT(*) FROM real_medium.favorites WHERE article_id = article_id),
+		real_medium.get_profile(user_id, _user_id)
+	FROM 
+		real_medium.articles
+	WHERE
+		user_id IN (
+			SELECT followed_user_id FROM real_medium.followers WHERE follower_user_id = _user_id
+		)		
+	ORDER BY created_at DESC
+	LIMIT _limit
+	OFFSET _offset;
+END;
+$$ LANGUAGE plpgsql;
