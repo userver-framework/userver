@@ -1,3 +1,4 @@
+
 #pragma once
 
 #include <fmt/format.h>
@@ -13,11 +14,11 @@
 #include "userver/components/component_config.hpp"
 #include "userver/components/component_context.hpp"
 
-namespace real_medium::handlers::articles::get {
+namespace real_medium::handlers::articles::feed::get {
 
 class Handler final : public userver::server::handlers::HttpHandlerJsonBase {
  public:
-  static constexpr std::string_view kName = "handler-get-articles";
+  static constexpr std::string_view kName = "handler-feed-articles";
   Handler(const userver::components::ComponentConfig& config,
           const userver::components::ComponentContext& component_context);
   userver::formats::json::Value HandleRequestJsonThrow(
@@ -30,4 +31,4 @@ class Handler final : public userver::server::handlers::HttpHandlerJsonBase {
   userver::storages::postgres::ClusterPtr pg_cluster_;
 };
 
-}  // namespace real_medium::handlers::articles::get
+}  // namespace real_medium::handlers::articles::feed::get

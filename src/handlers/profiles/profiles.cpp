@@ -32,11 +32,11 @@ json::Value Handler::HandleRequestJsonThrow(
     const HttpRequest& request, const json::Value&,
     RequestContext& request_context) const {
 
-  auto userId = request_context.GetData<std::string>("id");
+  auto user_id = request_context.GetData<std::optional<std::string>>("id");;
   const auto& username = request.GetPathArg("username");
 
 
-  auto res = cluster_->Execute(ClusterHostType::kMaster, sql::kGetProfileByUsername.data(), username, userId);
+  auto res = cluster_->Execute(ClusterHostType::kMaster, sql::kGetProfileByUsername.data(), username, user_id);
   if (res.IsEmpty()) {
     auto& response = request.GetHttpResponse();
     response.SetStatus(userver::server::http::HttpStatus::kNotFound);

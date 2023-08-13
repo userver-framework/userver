@@ -87,6 +87,7 @@ components_manager:
             auth:
                 types:
                   - bearer
+                required: true
 
         handler-user-put:
             path: /api/user               
@@ -95,6 +96,7 @@ components_manager:
             auth:
                 types:
                   - bearer
+                required: true
 
         handler-get-tags:
             path: /api/tags
@@ -118,6 +120,7 @@ components_manager:
             auth:
                 types:
                   - bearer
+                required: true
         
         handler-comment-post:
             path: /api/articles/{slug}/comments
@@ -126,6 +129,7 @@ components_manager:
             auth:
                 types:
                   - bearer
+                required: true
 
         handler-comments-get:
             path: /api/articles/{slug}/comments
@@ -134,3 +138,29 @@ components_manager:
             auth:
                 types:
                   - bearer
+
+        handler-feed-articles:
+            path: /api/articles/feed
+            method: GET
+            task_processor: main-task-processor
+            auth:
+                types:
+                  - bearer
+        
+        handler-get-articles:
+            path: /api/articles
+            method: GET
+            task_processor: main-task-processor
+
+        handler-create-article:
+            path: /api/articles
+            method: POST
+            task_processor: main-task-processor
+            auth:
+                types:
+                  - bearer
+
+        handler-get-article:
+            path: /api/articles/{slug}
+            method: GET
+            task_processor: main-task-processor

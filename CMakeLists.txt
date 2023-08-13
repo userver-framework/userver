@@ -29,16 +29,26 @@ add_library(${PROJECT_NAME}_objs OBJECT
 		src/handlers/profiles/profiles_follow.hpp
 		src/handlers/profiles/profiles_follow_delete.cpp
 		src/handlers/profiles/profiles_follow_delete.hpp
+		src/handlers/articles/articles_slug_get.cpp
+        src/handlers/articles/articles_slug_get.hpp        
 		src/handlers/articles/articles_get.cpp
 		src/handlers/articles/articles_get.hpp
 		src/handlers/articles/articles_put.cpp
 		src/handlers/articles/articles_put.hpp
+		src/handlers/articles/articles_post.cpp
+		src/handlers/articles/articles_post.hpp
+		src/handlers/articles/feed_articles.hpp
+		src/handlers/articles/feed_articles.cpp
 		src/handlers/comments/comment_delete.cpp
 		src/handlers/comments/comment_delete.hpp
 		src/handlers/comments/comment_post.cpp
 		src/handlers/comments/comment_post.hpp
 		src/handlers/comments/comments_get.cpp
 		src/handlers/comments/comments_get.hpp
+		src/handlers/auth/auth_bearer.hpp
+		src/handlers/auth/auth_bearer.cpp
+		src/dto/article.cpp
+		src/dto/article.hpp
 		src/dto/profile.cpp
 		src/dto/profile.hpp
 		src/dto/user.hpp
@@ -46,6 +56,7 @@ add_library(${PROJECT_NAME}_objs OBJECT
 		src/dto/comment.hpp
 		src/dto/comment.cpp
 		src/db/sql.hpp
+		src/db/types.hpp
 		src/models/user.hpp
 		src/models/user.cpp
 		src/models/comment.hpp
@@ -56,12 +67,17 @@ add_library(${PROJECT_NAME}_objs OBJECT
 		src/models/profile.cpp
 		src/validators/user_validators.hpp
 		src/validators/user_validators.cpp
+		src/validators/length_validator.hpp
+		src/validators/length_validator.cpp
+		src/utils/errors.hpp
+		src/utils/errors.cpp
 		src/utils/make_error.hpp
 		src/utils/make_error.cpp
 		src/utils/jwt.hpp
 		src/utils/jwt.cpp
-		src/handlers/auth/auth_bearer.hpp
-		src/handlers/auth/auth_bearer.cpp
+		src/utils/slugify.hpp
+		src/utils/slugify.cpp		
+		
 )
 
 include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
@@ -81,7 +97,6 @@ target_link_libraries(${PROJECT_NAME} PRIVATE ${PROJECT_NAME}_objs)
 
 # Unit Tests
 add_executable(${PROJECT_NAME}_unittest
-#  src/hello_test.cpp
 )
 
 target_link_libraries(${PROJECT_NAME}_unittest PRIVATE ${PROJECT_NAME}_objs userver-utest)

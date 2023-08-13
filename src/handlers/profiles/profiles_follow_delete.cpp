@@ -33,7 +33,7 @@ userver::formats::json::Value Handler::HandleRequestJsonThrow(
     request.SetResponseStatus(HttpStatus::kBadRequest);
     return {};
   }
-  auto userId = request_context.GetData<std::string>("id");
+  auto userId = request_context.GetData<std::optional<std::string>>("id");;
   const auto res = cluster_->Execute(
       userver::storages::postgres::ClusterHostType::kSlave, sql::kGetProfileByUsername.data(), username, userId);
   if (res.IsEmpty()) {

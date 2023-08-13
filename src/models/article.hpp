@@ -2,31 +2,48 @@
 
 #include <optional>
 #include <string>
+#include <vector>
 #include <tuple>
-
+#include <userver/storages/postgres/io/pg_types.hpp>
 #include <userver/formats/json/value_builder.hpp>
+#include <userver/storages/postgres/io/chrono.hpp>
+#include "../db/types.hpp"
+#include "profile.hpp"
 
 namespace real_medium::models {
 
-struct Article {
-  std::string article_id;
+struct TaggedArticleWithProfile {
+  std::string articleId;
   std::string title;
   std::string slug;
   std::string body;
   std::string description;
-  std::string created_at;
-  std::string updated_at;
-  int favorites_count;
-  std::string user_id;
+  userver::storages::postgres::TimePointTz createdAt;
+  userver::storages::postgres::TimePointTz updatedAt;
+  std::optional<std::vector<std::string>> tags;
+  bool isFavorited;
+  std::int64_t favoritesCount;
+  Profile authorProfile;
 
   auto Introspect() {
-    return std::tie(article_id, title, slug, body, description, created_at,
-                    updated_at, favorites_count, user_id);
+    return std::tie(articleId, title, slug, body, description, createdAt,
+                    updatedAt,tags,isFavorited, favoritesCount, authorProfile);
   }
 };
 
 userver::formats::json::Value Serialize(
-    const Article& article,
+    const TaggedArticleWithProfile& article,
     userver::formats::serialize::To<userver::formats::json::Value>);
 
 }  // namespace real_medium::models
+
+namespace userver::storages::postgres::io {
+
+template <>
+struct CppToUserPg<real_medium::models::TaggedArticleWithProfile> {
+  static constexpr DBTypeName postgres_name{
+    real_medium::sql::types::kTaggedArticleWithProfile.data()
+  };
+};
+
+} // namespace userver::storages::postgres::io
