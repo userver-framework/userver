@@ -190,3 +190,11 @@ components_manager:
             auth:
                 types:
                   - bearer
+
+        handler-articles-favorite-delete:
+            path: /api/articles/{slug}/favorite
+            method: DELETE
+            task_processor: main-task-processor
+            auth:
+                types:
+                  - bearer
