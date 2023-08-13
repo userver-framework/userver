@@ -1,9 +1,6 @@
 #include "articles_favorite.hpp"
 #include "db/sql.hpp"
 #include "dto/article.hpp"
-#include "utils/make_error.hpp"
-
-#include <iostream>
 
 namespace real_medium::handlers::articles_favorite::post {
 
