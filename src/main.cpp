@@ -19,6 +19,7 @@
 #include "handlers/comments/comments_get.hpp"
 #include "handlers/users/user_get.hpp"
 #include "handlers/users/user_put.hpp"
+#include "handlers/articles/articles_favorite.hpp"
 
 #include "handlers/articles/articles_post.hpp"
 #include "handlers/articles/articles_slug_get.hpp"
@@ -50,7 +51,8 @@ int main(int argc, char* argv[]) {
           .Append<real_medium::handlers::articles::feed::get::Handler>()
           .Append<real_medium::handlers::articles::get::Handler>()
           .Append<real_medium::handlers::articles::post::Handler>()
-          .Append<real_medium::handlers::articles_slug::get::Handler>();
+          .Append<real_medium::handlers::articles_slug::get::Handler>()
+          .Append<real_medium::handlers::articles_favorite::post::Handler>();
 
   real_medium::handlers::users_login::post::AppendLoginUser(component_list);
 

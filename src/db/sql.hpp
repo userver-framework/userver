@@ -66,4 +66,19 @@ inline constexpr std::string_view kGetArticleWithAuthorProfileBySlug{R"~(
 SELECT real_medium.get_article_with_author_profile_by_slug($1, $2)
 )~"};
 
+inline constexpr std::string_view kInsertFavoritePair = R"~(
+WITH tmp(article_id, user_id) AS (
+    SELECT article_id, $1 FROM real_medium.articles WHERE slug=$2
+)
+INSERT INTO real_medium.favorites(article_id, user_id) (SELECT article_id, user_id FROM tmp)
+ON CONFLICT DO NOTHING
+RETURNING article_id
+)~";
+
+inline constexpr std::string_view kIncrementFavoritesCount = R"~(
+UPDATE real_medium.articles
+SET favorites_count=favorites_count + 1
+WHERE article_id=$1
+)~";
+
 }  // namespace real_medium::sql
