@@ -83,6 +83,8 @@ add_library(${PROJECT_NAME}_objs OBJECT
 		src/utils/slugify.cpp
 		src/handlers/articles/articles_unfavorite.cpp
 		src/handlers/articles/articles_unfavorite.hpp
+		src/dto/filter.hpp
+		src/dto/filter.cpp
 
 )
 

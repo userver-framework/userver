@@ -195,5 +195,8 @@ inline constexpr std::string_view kDeleteArticleBySlug{R"~(
 SELECT real_medium.delete_article_by_slug($1, $2)
 )~"};
 
+inline constexpr std::string_view kFindArticlesByFilters{R"~(
+SELECT real_medium.get_articles_by_filters($1, $2, $3, $4, $5, $6)
+)~"};
 
 }  // namespace real_medium::sql
