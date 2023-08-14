@@ -91,11 +91,6 @@ padding: auto;
     gap: 4px;
 }
 
-@media(min-width: 768px) {
-    .bottom-nav .button {
-        font-size: 14px;
-    }
-}
 
 .bottom-nav .button.prev {
     margin-right: 10px;
@@ -360,12 +355,7 @@ div.contents .toc  {
     border-radius: 12px;
     box-sizing: border-box;
     min-width: 300px;
-    padding: 32px 20px;
-}
-
-div.toc h3 {
-    font-size: 20px;
-    margin: 0;
+    padding: 16px 16px;
 }
 
 div.toc li.level1:first-child {
@@ -394,6 +384,19 @@ div.toc li a.active {
     div.contents .toc {
         padding-top: 0;
     }
+    .bottom-nav .button {
+        font-size: 14px;
+    }
+}
+
+@media screen and (max-width: 999px){
+div.contents .toc  {
+    padding: 0px;
+    padding-left: 10px;
+}
+div.toc h3 {
+    padding-top: 14px !important;
+}
 }
 .sm-dox ul a:hover, .sm-dox ul a:active, .sm-dox ul a:focus {
     background-color: transparent;
