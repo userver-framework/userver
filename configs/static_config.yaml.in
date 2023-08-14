@@ -164,11 +164,15 @@ components_manager:
             auth:
                 types:
                   - bearer
+                required: true
         
         handler-get-articles:
             path: /api/articles
             method: GET
             task_processor: main-task-processor
+            auth:
+                types:
+                  - bearer
 
         handler-create-article:
             path: /api/articles

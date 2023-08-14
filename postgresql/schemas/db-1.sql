@@ -359,3 +359,40 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+
+CREATE OR REPLACE FUNCTION real_medium.get_articles_by_filters(
+ _user_id TEXT = NULL,
+ _tag TEXT = NULL,
+ _author TEXT = NULL,
+ _favorited TEXT = NULL,
+ _limit INT = 20,
+ _offset INT = 0)
+    RETURNS SETOF real_medium.tagged_article_with_author_profile 
+AS $$
+BEGIN
+ RETURN QUERY
+ SELECT 
+  article_id,
+  title,
+  slug,
+  body,
+  description, 
+  created_at,
+  updated_at,
+  ARRAY(SELECT * FROM real_medium.get_article_tags(article_id))::VARCHAR(255)[],
+  real_medium.is_favorited_article(article_id),
+  (SELECT COUNT(*) FROM real_medium.favorites WHERE article_id = article_id),
+  real_medium.get_profile(user_id, _user_id)
+ FROM 
+  real_medium.articles
+
+ WHERE (_tag IS NULL OR article_id IN (SELECT article_id FROM real_medium.article_tag WHERE tag_id IN
+       (SELECT tag_id FROM real_medium.tag_list WHERE tag_name = _tag)))
+       AND (_author IS NULL OR article_id IN (SELECT article_id FROM real_medium.users INNER JOIN real_medium.articles USING(user_id)
+       WHERE username = _author)) 
+              AND (_favorited IS NULL OR article_id IN (SELECT article_id FROM real_medium.users INNER JOIN real_medium.favorites USING(user_id)
+       WHERE username = _favorited))
+       ORDER BY created_at DESC
+       LIMIT _limit OFFSET _offset;
+END;
+$$ LANGUAGE plpgsql;
