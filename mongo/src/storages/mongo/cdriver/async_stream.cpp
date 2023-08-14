@@ -581,16 +581,14 @@ bool AsyncStream::CheckClosed(mongoc_stream_t* base_stream) noexcept {
 ssize_t AsyncStream::Poll(mongoc_stream_poll_t* streams, size_t nstreams,
                           int32_t timeout_ms) noexcept {
   LOG_TRACE() << "Polling " << nstreams << " async streams";
-
   if (!nstreams) return 0;
 
-  if (engine::current_task::ShouldCancel()) {
-    // mark all streams as errored out, mongoc tend to ignore poll errors
-    LOG_DEBUG()
-        << "Should cancel current task. Marking all streams as errored out.";
-    for (size_t i = 0; i < nstreams; ++i) streams[i].revents = POLLERR;
-    return nstreams;
-  }
+  // We used to have a "mark all streams as errored out (by POLLERR)" logic in
+  // case of cancellation, but apparently that leads to the connection being
+  // returned into the pool in an unusable state, and any request issued on the
+  // connection would just fail until topology rescan timeout passes.
+  // We think blocking cancellation off completely is a lesser evil.
+  const engine::TaskCancellationBlocker block_cancel{};
 
   const auto deadline = DeadlineFromTimeoutMs(timeout_ms);
 
