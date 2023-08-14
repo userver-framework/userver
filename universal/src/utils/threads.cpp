@@ -44,7 +44,7 @@ int QueryLowPriorityParam() {
 
 }  // namespace
 
-bool IsMainThread() {
+bool IsMainThread() noexcept {
 #if defined(__APPLE__) || defined(BSD)
   return !!pthread_main_np();
 #else

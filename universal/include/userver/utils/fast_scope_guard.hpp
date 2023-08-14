@@ -10,7 +10,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace utils {
 
-/// @ingroup userver_containers
+/// @ingroup userver_universal userver_containers
 ///
 /// @brief a helper class to perform actions on scope exit
 ///

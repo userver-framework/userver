@@ -14,7 +14,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace utils {
 
-/// @ingroup userver_containers
+/// @ingroup userver_universal userver_containers
 ///
 /// @brief Restricts a pointer or smart pointer to only hold non-null values.
 template <typename T>
@@ -100,14 +100,14 @@ class NotNull {
   T ptr_;
 };
 
-/// @ingroup userver_containers
+/// @ingroup userver_universal userver_containers
 ///
 /// @brief A `std::shared_ptr` that is guaranteed to be not-null.
 /// @see MakeSharedRef
 template <typename U>
 using SharedRef = NotNull<std::shared_ptr<U>>;
 
-/// @ingroup userver_containers
+/// @ingroup userver_universal userver_containers
 ///
 /// @brief A `std::unique_ptr` that is guaranteed to be not-null.
 /// @see MakeUniqueRef

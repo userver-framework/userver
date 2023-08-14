@@ -22,7 +22,7 @@ struct GenerateTag final {
 
 }  // namespace impl
 
-/// @ingroup userver_containers
+/// @ingroup userver_universal userver_containers
 ///
 /// @brief A fixed-size array with the size determined at runtime.
 ///

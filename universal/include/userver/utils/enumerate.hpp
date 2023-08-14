@@ -2,6 +2,7 @@
 
 /// @file userver/utils/enumerate.hpp
 /// @brief @copybrief utils::enumerate
+/// @ingroup userver_universal
 
 #include <tuple>
 #include <utility>

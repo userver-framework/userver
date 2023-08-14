@@ -29,7 +29,7 @@ class DeathTestScope final {
 
 USERVER_NAMESPACE_END
 
-/// @ingroup userver_utest
+/// @ingroup userver_universal userver_utest
 ///
 /// @brief An optimized equivalent of EXPECT_DEATH.
 ///

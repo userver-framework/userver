@@ -2,7 +2,7 @@
 
 /// @file userver/formats/serialize/write_to_stream.hpp
 /// @brief Common WriteToStream functions for SAX serializers.
-/// @ingroup userver_formats_serialize_sax
+/// @ingroup userver_universal userver_formats_serialize_sax
 
 #include <map>
 #include <optional>

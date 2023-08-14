@@ -2,6 +2,7 @@
 
 /// @file userver/utils/encoding/hex.hpp
 /// @brief Encoders, decoders and helpers for hexadecimal representations
+/// @ingroup userver_universal
 
 #include <cstdint>
 #include <string>

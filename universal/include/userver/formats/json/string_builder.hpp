@@ -18,7 +18,7 @@ namespace formats::json {
 
 // clang-format off
 
-/// @ingroup userver_containers userver_formats userver_formats_serialize_sax
+/// @ingroup userver_universal userver_containers userver_formats userver_formats_serialize_sax
 ///
 /// @brief SAX like builder of JSON string. Use with extreme caution and only in
 /// performance critical part of your code.

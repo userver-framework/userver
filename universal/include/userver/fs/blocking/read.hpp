@@ -2,6 +2,7 @@
 
 /// @file userver/fs/blocking/read.hpp
 /// @brief functions for synchronous (blocking) file read operations
+/// @ingroup userver_universal
 
 #include <string>
 

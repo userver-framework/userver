@@ -2,6 +2,7 @@
 
 /// @file userver/utils/str_icase.hpp
 /// @brief Case insensitive ASCII comparators and hashers
+/// @ingroup userver_universal
 
 #include <cstdint>
 #include <string>

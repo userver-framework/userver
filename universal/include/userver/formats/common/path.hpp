@@ -26,6 +26,8 @@ std::string MakeChildPath(std::string&& parent, std::string_view key);
 std::string MakeChildPath(std::string_view parent, std::size_t index);
 std::string MakeChildPath(std::string&& parent, std::size_t index);
 
+/// @ingroup userver_universal
+///
 /// Document/array element path storage
 class Path {
  public:

@@ -14,7 +14,7 @@ USERVER_NAMESPACE_BEGIN
 /// Utilities
 namespace utils {
 
-/// @ingroup userver_containers
+/// @ingroup userver_universal userver_containers
 ///
 /// @brief Replacement for `std::any` that is not copyable. It allows to store
 /// non-copyable and even non-movable types.

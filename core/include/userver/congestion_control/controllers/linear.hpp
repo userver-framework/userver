@@ -7,7 +7,7 @@
 #include <userver/congestion_control/limiter.hpp>
 #include <userver/dynamic_config/source.hpp>
 #include <userver/utils/periodic_task.hpp>
-#include <userver/utils/smoothed_value.hpp>
+#include <userver/utils/sliding_interval.hpp>
 #include <userver/yaml_config/yaml_config.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -28,9 +28,9 @@ class LinearController final : public Controller {
 
  private:
   StaticConfig config_;
-  utils::SmoothedValue<int64_t> current_load_;
-  utils::SmoothedValue<int64_t> long_timings_;
-  utils::MinimalValue<int64_t> short_timings_;
+  utils::SlidingInterval<int64_t> current_load_;
+  utils::SlidingInterval<int64_t> long_timings_;
+  utils::SlidingInterval<int64_t> short_timings_;
   std::optional<std::size_t> current_limit_;
   std::size_t epochs_passed_{0};
 

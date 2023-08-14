@@ -2,6 +2,7 @@
 
 /// @file userver/formats/json.hpp
 /// @brief Include-all header for JSON support
+/// @ingroup userver_universal
 
 #include <userver/formats/json/exception.hpp>
 #include <userver/formats/json/inline.hpp>

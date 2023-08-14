@@ -2,6 +2,7 @@
 
 /// @file userver/formats/common/type.hpp
 /// @brief @copybrief formats::common::Type
+/// @ingroup userver_universal
 
 USERVER_NAMESPACE_BEGIN
 

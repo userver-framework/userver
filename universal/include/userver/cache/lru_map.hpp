@@ -10,7 +10,7 @@ USERVER_NAMESPACE_BEGIN
 /// Utilities for caching
 namespace cache {
 
-/// @ingroup userver_containers
+/// @ingroup userver_universal userver_containers
 ///
 /// LRU key value storage (LRU cache), thread safety matches Standard Library
 /// thread safety

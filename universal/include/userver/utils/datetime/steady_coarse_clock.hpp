@@ -9,6 +9,8 @@ USERVER_NAMESPACE_BEGIN
 
 namespace utils::datetime {
 
+/// @ingroup userver_universal
+///
 /// @brief Steady clock with up to a few millisecond resolution that is slightly
 /// faster than the std::chrono::steady_clock
 struct SteadyCoarseClock final {

@@ -2,6 +2,7 @@
 
 /// @file userver/http/parser/http_request_parse_args.hpp
 /// @brief Strict URL arguments parsing
+/// @ingroup userver_universal
 
 #include <functional>
 #include <string>

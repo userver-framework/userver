@@ -20,6 +20,8 @@ namespace header_map {
 class Map;
 }
 
+/// @ingroup userver_universal userver_containers
+///
 /// @brief Container that maps case-insensitive header name into header value.
 ///
 /// Allows storing up to 24576 name->value pairs, after that an attempt to

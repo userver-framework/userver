@@ -2,6 +2,7 @@
 
 /// @file userver/compiler/demangle.hpp
 /// @brief @copybrief compiler::GetTypeName
+/// @ingroup userver_universal
 
 #include <chrono>
 #include <string>

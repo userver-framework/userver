@@ -10,7 +10,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace utils {
 
-/// @ingroup userver_containers
+/// @ingroup userver_universal userver_containers
 ///
 /// @brief `std::shared_ptr<const T>` wrapper that makes sure that the pointer
 /// is stored before dereferencing. Protects from dangling references:

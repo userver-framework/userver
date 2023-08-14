@@ -65,7 +65,7 @@ class TracefulExceptionBase {
   utils::FastPimpl<Impl, kSize, alignof(void*)> impl_;
 };
 
-/// @ingroup userver_base_classes
+/// @ingroup userver_universal userver_base_classes
 ///
 /// @brief Exception that remembers the backtrace at the point of its
 /// construction

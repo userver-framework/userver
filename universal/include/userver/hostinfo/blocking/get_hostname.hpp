@@ -2,6 +2,7 @@
 
 /// @file userver/hostinfo/blocking/get_hostname.hpp
 /// @brief @copybrief hostinfo::blocking::GetRealHostName
+/// @ingroup userver_universal
 
 #include <string>
 

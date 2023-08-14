@@ -2,6 +2,7 @@
 
 /// @file userver/utils/encoding/tskv.hpp
 /// @brief Encoders, decoders and helpers for TSKV representations
+/// @ingroup userver_universal
 
 #include <array>
 #include <cstddef>

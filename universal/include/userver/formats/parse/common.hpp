@@ -4,7 +4,7 @@
 /// @brief Parsers and converters for std::chrono::seconds,
 /// std::chrono::system_clock::time_point and integral types
 ///
-/// @ingroup userver_formats_parse
+/// @ingroup userver_universal userver_formats_parse
 
 #include <chrono>
 #include <cstdint>

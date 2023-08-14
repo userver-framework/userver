@@ -3,6 +3,7 @@
 /// @file userver/utils/trivial_map_fwd.hpp
 /// @brief Forward declarations of utils::TrivialBiMap and utils::TrivialSet
 /// types.
+/// @ingroup userver_universal
 
 USERVER_NAMESPACE_BEGIN
 

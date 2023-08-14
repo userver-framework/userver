@@ -2,7 +2,7 @@
 
 /// @file userver/formats/parse/boost_uuid.hpp
 /// @brief boost::uuids::uuid parser for any format
-/// @ingroup userver_formats_parse
+/// @ingroup userver_universal userver_formats_parse
 
 #include <optional>
 #include <string>

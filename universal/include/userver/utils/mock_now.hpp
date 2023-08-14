@@ -2,6 +2,7 @@
 
 /// @file userver/utils/mock_now.hpp
 /// @brief Mocking and getting mocked values
+/// @ingroup userver_universal
 
 #include <chrono>
 

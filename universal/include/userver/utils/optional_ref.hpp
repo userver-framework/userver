@@ -14,7 +14,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace utils {
 
-/// @ingroup userver_containers
+/// @ingroup userver_universal userver_containers
 ///
 /// @brief Class that behaves as a nullable reference. Main difference from the
 /// pointer - value comparison of pointed values.

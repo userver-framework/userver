@@ -10,7 +10,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace utils {
 
-/// @ingroup userver_concurrency
+/// @ingroup userver_universal userver_concurrency
 ///
 /// Thread safe ratelimiter
 class TokenBucket final {

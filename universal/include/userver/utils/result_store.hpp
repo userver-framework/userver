@@ -12,6 +12,8 @@ USERVER_NAMESPACE_BEGIN
 
 namespace utils {
 
+/// @ingroup userver_universal userver_containers
+///
 /// Simple value/exception store
 template <typename T>
 class ResultStore final {
@@ -40,6 +42,8 @@ class ResultStore final {
   std::exception_ptr exception_;
 };
 
+/// @ingroup userver_universal userver_containers
+///
 /// Simple void value/exception store
 template <>
 class ResultStore<void> final {

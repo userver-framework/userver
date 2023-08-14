@@ -53,6 +53,8 @@ static constexpr std::string_view CutFilePath(const char* path) noexcept {
 
 }  // namespace logging::impl
 
+/// @ingroup userver_universal
+///
 /// @brief Short source path for logging.
 /// @hideinitializer
 // We need user's filename here, not ours

@@ -2,6 +2,7 @@
 
 /// @file userver/utils/assert.hpp
 /// @brief Assertion macros UASSERT, UASSERT_MSG, UINVARIANT
+/// @ingroup userver_universal
 
 #include <string_view>
 

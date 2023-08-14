@@ -2,6 +2,7 @@
 
 /// @file userver/crypto/verifiers.hpp
 /// @brief Digital signature verifiers
+/// @ingroup userver_universal
 
 #include <initializer_list>
 #include <memory>

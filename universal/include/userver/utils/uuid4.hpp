@@ -2,6 +2,7 @@
 
 /// @file utils/uuid4.hpp
 /// @brief @copybrief utils::generators::GenerateUuid
+/// @ingroup userver_universal
 
 #include <string>
 

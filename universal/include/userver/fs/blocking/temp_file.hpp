@@ -10,7 +10,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace fs::blocking {
 
-/// @ingroup userver_containers
+/// @ingroup userver_universal userver_containers
 ///
 /// @brief A unique temporary file. The file is deleted when the `TempFile`
 /// object is destroyed.

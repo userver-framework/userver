@@ -18,6 +18,8 @@ USERVER_NAMESPACE_BEGIN
 
 namespace utils {
 
+/// @ingroup userver_universal
+///
 /// @brief Space-efficient probabilistic data structure
 ///
 /// @details Used to test whether a count number of a given element is

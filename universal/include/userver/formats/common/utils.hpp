@@ -1,7 +1,9 @@
 #pragma once
 
 /// @file include/userver/formats/common/utils.hpp
-/// @brief Utils for `Value` and `ValueBuilder`
+/// @brief formats::common::GetAtPath and formats::common::RemoveAtPath utils
+/// for `Value` and `ValueBuilder`
+/// @ingroup userver_universal
 
 #include <cstddef>
 #include <optional>

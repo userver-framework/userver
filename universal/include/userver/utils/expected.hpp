@@ -46,7 +46,7 @@ class unexpected {
 template <class E>
 unexpected(E) -> unexpected<E>;
 
-/// @ingroup userver_containers
+/// @ingroup userver_universal userver_containers
 ///
 /// @brief For holding a value or an error
 template <class S, class E>

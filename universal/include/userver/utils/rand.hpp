@@ -6,7 +6,8 @@
 #include <userver/utils/assert.hpp>
 
 /// @file userver/utils/rand.hpp
-/// @brief Random number generators for use in a coroutine environment
+/// @brief Random number generators
+/// @ingroup userver_universal
 
 USERVER_NAMESPACE_BEGIN
 

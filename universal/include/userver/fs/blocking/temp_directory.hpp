@@ -10,7 +10,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace fs::blocking {
 
-/// @ingroup userver_containers
+/// @ingroup userver_universal userver_containers
 ///
 /// @brief A unique directory for temporary files. The directory is deleted when
 /// the `TempDirectory` is destroyed.

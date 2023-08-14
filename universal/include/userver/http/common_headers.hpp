@@ -4,6 +4,7 @@
 
 /// @file userver/http/common_headers.hpp
 /// @brief Common HTTP header names
+/// @ingroup userver_universal
 
 USERVER_NAMESPACE_BEGIN
 

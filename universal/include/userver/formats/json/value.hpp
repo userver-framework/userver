@@ -39,7 +39,7 @@ namespace parser {
 class JsonValueParser;
 }  // namespace parser
 
-/// @ingroup userver_containers userver_formats
+/// @ingroup userver_universal userver_containers userver_formats
 ///
 /// @brief Non-mutable JSON value representation.
 ///

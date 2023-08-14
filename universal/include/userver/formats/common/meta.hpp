@@ -1,22 +1,25 @@
 #pragma once
 
+/// @file userver/formats/common/meta.hpp
+/// @brief Metaprogramming helpers for converters detection.
+/// @ingroup userver_universal
+
 #include <type_traits>
 
 #include <userver/formats/parse/to.hpp>
 #include <userver/formats/serialize/to.hpp>
 #include <userver/utils/meta_light.hpp>
 
-/// @file userver/formats/common/meta.hpp
-/// @brief Metaprogramming helpers for converters detection.
-/// @warning `kHasX` are only intended for internal diagnostic use.
-/// `formats` doesn't support SFINAE, so e.g. `kHasParse` can return `true`
-/// while a usage of `Parse` will fail to compile.
-
 USERVER_NAMESPACE_BEGIN
 
 namespace formats::common {
 
 namespace impl {
+
+/// `kHasX` are only intended for internal diagnostic use!
+///
+/// `formats` doesn't support SFINAE, so e.g. `kHasParse` can return `true`
+/// while a usage of `Parse` will fail to compile.
 
 template <typename Value, typename T>
 using HasParse = decltype(Parse(std::declval<const Value&>(), parse::To<T>{}));

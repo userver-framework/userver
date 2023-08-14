@@ -2,6 +2,7 @@
 
 /// @file userver/decimal64/format_options.hpp
 /// @brief Structure storing format options for decimal
+/// @ingroup userver_universal
 
 #include <optional>
 #include <string>

@@ -14,7 +14,7 @@ namespace utils {
 template <typename Enum>
 class AtomicFlags;
 
-/// @ingroup userver_containers
+/// @ingroup userver_universal userver_containers
 ///
 /// @brief Wrapper to extend enum with flags interface
 template <typename Enum>
@@ -58,7 +58,7 @@ constexpr bool operator==(Enum, Flags<Enum>);
 template <typename Enum>
 constexpr bool operator!=(Enum, Flags<Enum>);
 
-/// @ingroup userver_containers
+/// @ingroup userver_universal userver_containers
 ///
 /// @brief Wrapper to extend enum with atomic flags interface
 template <typename Enum>

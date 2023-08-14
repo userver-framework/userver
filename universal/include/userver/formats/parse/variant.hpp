@@ -6,7 +6,7 @@
 /// Parsing is performed for each of the N alternatives in variant, N-1
 /// exceptions is thrown and caught during the parsing.
 ///
-/// @ingroup userver_formats_parse
+/// @ingroup userver_universal userver_formats_parse
 
 #include <optional>
 #include <typeinfo>

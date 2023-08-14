@@ -3,6 +3,7 @@
 /// @file userver/utils/str_icase_containers.hpp
 /// @brief Contains utilities for working with containers with
 /// utils::StrCaseHash and utils::StrIcaseHash.
+/// @ingroup userver_universal
 
 #include <unordered_map>
 #include <unordered_set>

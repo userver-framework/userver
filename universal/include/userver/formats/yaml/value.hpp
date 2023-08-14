@@ -19,7 +19,7 @@ namespace formats::yaml {
 
 class ValueBuilder;
 
-/// @ingroup userver_containers userver_formats
+/// @ingroup userver_universal userver_containers userver_formats
 ///
 /// @brief Non-mutable YAML value representation.
 ///

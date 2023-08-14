@@ -16,7 +16,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace fs::blocking {
 
-/// @ingroup userver_containers
+/// @ingroup userver_universal userver_containers
 ///
 /// @brief A `std::FILE*` wrapper
 /// @details The file is closed in the destructor

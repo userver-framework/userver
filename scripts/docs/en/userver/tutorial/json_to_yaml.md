@@ -12,8 +12,8 @@ The userver framework allows to use it's non-coroutine parts by using the
 `userver-universal` CMake target. It provides usefull utilities like
 utils::FastPimpl, utils::TrivialBiMap,
 @ref scripts/docs/en/userver/formats.md "JSON and YAML formats", utils::AnyMovable,
-cache::LruMap and many other utilities. See the content of
-userver/universal/include directory for a whole list of functions and classes.
+cache::LruMap and many other utilities. See  @ref userver_universal for a list
+of available functions and classes.
 
 
 Let's write a simple JSON to YAML converter with the help of `userver-universal`.

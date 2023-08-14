@@ -2,6 +2,7 @@
 
 /// @file userver/crypto/algorithm.hpp
 /// @brief @copybrief crypto::algorithm
+/// @ingroup userver_universal
 
 #include <string_view>
 

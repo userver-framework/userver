@@ -45,7 +45,7 @@ constexpr auto operator|(StrongTypedefOps op1, StrongTypedefOps op2) noexcept {
                           utils::UnderlyingValue(op2)};
 }
 
-/// @ingroup userver_containers
+/// @ingroup userver_universal userver_containers
 ///
 /// @brief Strong typedef for a type T.
 ///

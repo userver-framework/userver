@@ -2,6 +2,7 @@
 
 /// @file userver/decimal64/decimal64.hpp
 /// @brief Decimal data type for fixed-point arithmetic
+/// @ingroup userver_universal
 
 // Original source taken from https://github.com/vpiotr/decimal_for_cpp
 // Original license:
@@ -404,7 +405,7 @@ class RoundUpRoundPolicy final {
   }
 };
 
-/// @ingroup userver_containers
+/// @ingroup userver_universal userver_containers
 ///
 /// @brief Fixed-point decimal data type for use in deterministic calculations,
 /// oftentimes involving money

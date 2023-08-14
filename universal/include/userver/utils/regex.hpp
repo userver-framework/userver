@@ -11,7 +11,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace utils {
 
-/// @ingroup userver_containers
+/// @ingroup userver_universal userver_containers
 ///
 /// @brief Small alias for boost::regex / std::regex without huge includes
 class regex final {

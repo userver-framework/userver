@@ -143,6 +143,8 @@ class Danger;
 class Map;
 }  // namespace header_map
 
+/// @ingroup userver_universal userver_containers
+///
 /// @brief A struct to represent compile-time known header name.
 ///
 /// Calculates the hash value at compile time with the same hasher

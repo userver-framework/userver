@@ -2,6 +2,7 @@
 
 /// @file userver/utils/bytes_per_second.hpp
 /// @brief @copybrief utils::BytesPerSecond
+/// @ingroup userver_universal
 
 #include <string>
 
@@ -11,7 +12,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace utils {
 
-/// @ingroup userver_containers
+/// @ingroup userver_universal userver_containers
 ///
 /// @brief Data type that represents `bytes per second` unit
 enum class BytesPerSecond : long long {};

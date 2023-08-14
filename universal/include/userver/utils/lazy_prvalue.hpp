@@ -10,6 +10,8 @@ USERVER_NAMESPACE_BEGIN
 
 namespace utils {
 
+/// @ingroup userver_universal
+///
 /// @brief Can be used with various emplace functions to allow in-place
 /// constructing a non-movable value using a callable.
 ///

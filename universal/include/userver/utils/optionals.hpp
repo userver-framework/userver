@@ -2,6 +2,7 @@
 
 /// @file userver/utils/optionals.hpp
 /// @brief Helper functions for std optionals
+/// @ingroup userver_universal
 
 #include <optional>
 #include <string>

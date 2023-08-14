@@ -460,7 +460,7 @@ class CaseSecondDescriber final {
 
 }  // namespace impl
 
-/// @ingroup userver_containers
+/// @ingroup userver_universal userver_containers
 ///
 /// @brief Bidirectional unordered map for trivial types, including string
 /// literals; could be efficiently used as a unordered non-bidirectional map.
@@ -612,7 +612,7 @@ class TrivialBiMap final {
 template <typename BuilderFunc>
 TrivialBiMap(BuilderFunc) -> TrivialBiMap<BuilderFunc>;
 
-/// @ingroup userver_containers
+/// @ingroup userver_universal userver_containers
 ///
 /// @brief Unordered set for trivial types, including string literals.
 ///

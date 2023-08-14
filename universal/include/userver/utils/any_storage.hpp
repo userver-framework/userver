@@ -69,7 +69,7 @@ class AnyStorageDataTag final {
   friend class AnyStorage<StorageTag>;
 };
 
-/// @ingroup userver_containers
+/// @ingroup userver_universal userver_containers
 ///
 /// @brief map-like heterogeneous data storage
 ///

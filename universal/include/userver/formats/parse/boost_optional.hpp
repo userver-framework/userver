@@ -2,7 +2,7 @@
 
 /// @file userver/formats/parse/boost_optional.hpp
 /// @brief Parsers and converters for boost::optional
-/// @ingroup userver_formats_parse
+/// @ingroup userver_universal userver_formats_parse
 
 #include <userver/formats/parse/to.hpp>
 

@@ -14,7 +14,7 @@ namespace formats::yaml {
 
 // clang-format off
 
-/// @ingroup userver_containers userver_formats
+/// @ingroup userver_universal userver_containers userver_formats
 ///
 /// @brief Builder for YAML.
 ///

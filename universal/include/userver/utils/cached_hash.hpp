@@ -10,6 +10,8 @@ USERVER_NAMESPACE_BEGIN
 
 namespace utils {
 
+/// @ingroup userver_universal
+///
 /// @brief Holds the key and its hash for faster comparisons and hashing
 template <class Key>
 struct CachedHash final {

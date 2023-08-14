@@ -2,6 +2,7 @@
 
 /// @file userver/http/url.hpp
 /// @brief URL manipulation functions
+/// @ingroup userver_universal
 
 #include <map>
 #include <string>

@@ -14,7 +14,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace utils {
 
-/// @ingroup userver_containers
+/// @ingroup userver_universal userver_containers
 ///
 /// @brief An alternative to std::string with a custom SSO (small string
 /// optimization) container size. Unlike std::string, SmallString is not

@@ -12,6 +12,8 @@ USERVER_NAMESPACE_BEGIN
 
 namespace crypto {
 
+/// @ingroup userver_universal userver_containers
+///
 /// Loaded into memory X509 certificate
 class Certificate {
  public:

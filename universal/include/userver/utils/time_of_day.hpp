@@ -22,7 +22,7 @@ class LogHelper;
 
 namespace utils::datetime {
 
-/// @ingroup userver_containers
+/// @ingroup userver_universal userver_containers
 ///
 /// @brief A simple implementation of a "time since midnight" datatype.
 ///

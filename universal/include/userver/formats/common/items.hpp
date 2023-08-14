@@ -1,5 +1,9 @@
 #pragma once
 
+/// @file userver/formats/common/items.hpp
+/// @brief @copybrief formats::common::Items()
+/// @ingroup userver_universal
+
 #include <cstddef>
 #include <iterator>
 #include <string>
@@ -9,6 +13,9 @@ USERVER_NAMESPACE_BEGIN
 
 namespace formats::common {
 
+/// @brief Wrapper for handy python-like iteration over a map.
+///
+/// See formats::common::Items() for usage example
 template <typename Value>
 class ItemsWrapper final {
  public:
@@ -64,8 +71,13 @@ class ItemsWrapper final {
   Value value_;
 };
 
+/// @brief Wrapper for handy python-like iteration over a map
+///
+/// @code
+///   for (const auto& [name, value]: Items(map)) ...
+/// @endcode
 template <typename Value>
-inline auto Items(Value&& value) {
+ItemsWrapper<Value> Items(Value&& value) {
   // when passed an lvalue, store by reference
   // when passed an rvalue, store by value
   return ItemsWrapper<Value>(static_cast<Value&&>(value));

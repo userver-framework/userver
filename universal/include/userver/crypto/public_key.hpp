@@ -15,6 +15,8 @@ namespace crypto {
 
 class Certificate;
 
+/// @ingroup userver_universal userver_containers
+///
 /// Loaded into memory public key
 class PublicKey {
  public:

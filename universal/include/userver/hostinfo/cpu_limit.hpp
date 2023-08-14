@@ -2,6 +2,7 @@
 
 /// @file userver/hostinfo/cpu_limit.hpp
 /// @brief Information about CPU limits in container.
+/// @ingroup userver_universal
 
 #include <optional>
 

@@ -2,6 +2,7 @@
 
 /// @file userver/utils/datetime.hpp
 /// @brief Date and Time related converters
+/// @ingroup userver_universal
 
 #include <chrono>
 #include <stdexcept>
@@ -12,7 +13,7 @@
 USERVER_NAMESPACE_BEGIN
 
 namespace utils::datetime {
-/// @ingroup userver_constants
+/// @ingroup userver_universal userver_constants
 /// @{
 inline const std::string kRfc3339Format = "%Y-%m-%dT%H:%M:%E*S%Ez";
 inline const std::string kTaximeterFormat = "%Y-%m-%dT%H:%M:%E6SZ";

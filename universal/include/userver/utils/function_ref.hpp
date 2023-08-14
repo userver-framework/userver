@@ -10,7 +10,12 @@ USERVER_NAMESPACE_BEGIN
 
 namespace utils {
 
+/// @ingroup userver_universal userver_containers
+///
+/// @brief A backport of std::function_ref from C++26
+/// @see https://wg21.link/p0792 for reference
 using function_backports::function_ref;
+
 using function_backports::nontype;
 using function_backports::nontype_t;
 

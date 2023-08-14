@@ -2,6 +2,7 @@
 
 /// @file userver/crypto/hash.hpp
 /// @brief @copybrief crypto::hash
+/// @ingroup userver_universal
 
 #include <string_view>
 

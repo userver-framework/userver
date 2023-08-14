@@ -5,6 +5,7 @@
 
 /// @file userver/utils/thread_name.hpp
 /// @brief Functions for thread name manipulation
+/// @ingroup userver_universal
 
 USERVER_NAMESPACE_BEGIN
 

@@ -9,6 +9,8 @@ USERVER_NAMESPACE_BEGIN
 
 namespace utils::datetime {
 
+/// @ingroup userver_universal
+///
 /// @brief System clock with up to a few millisecond resolution that is slightly
 /// faster than the std::chrono::system_clock
 struct WallCoarseClock final {

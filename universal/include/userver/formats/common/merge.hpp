@@ -2,6 +2,7 @@
 
 /// @file userver/formats/common/merge.hpp
 /// @brief @copybrief formats::json::MergeSchemas
+/// @ingroup userver_universal
 
 #include <userver/formats/common/items.hpp>
 

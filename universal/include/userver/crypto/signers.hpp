@@ -2,6 +2,7 @@
 
 /// @file userver/crypto/signers.hpp
 /// @brief Digital signature generators
+/// @ingroup userver_universal
 
 #include <initializer_list>
 #include <memory>

@@ -12,6 +12,8 @@ USERVER_NAMESPACE_BEGIN
 
 namespace crypto {
 
+/// @ingroup userver_universal userver_containers
+///
 /// Loaded into memory private key
 class PrivateKey {
  public:

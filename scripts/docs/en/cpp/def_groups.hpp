@@ -78,6 +78,18 @@
 /// @defgroup userver_concurrency Concurrency
 /// @brief Task construction and @ref scripts/docs/en/userver/synchronization.md "synchronization primitives for coroutines"
 
+/// @defgroup userver_universal Universal
+///
+/// @brief Functions and classes that could be used with or without coroutine
+/// environment.
+///
+/// Those classes and functions reside in CMake target `userver-universal`,
+/// that is a base target for all the `userver-*` targets, so all
+/// these the classes and functions are available while using any of the userver
+/// parts.
+///
+/// @see @ref scripts/docs/en/userver/tutorial/json_to_yaml.md for a usage
+/// example.
 
 /// @defgroup userver_containers Containers
 ///
@@ -85,7 +97,6 @@
 
 /// @defgroup userver_formats Formats
 /// @brief Different containers that @ref scripts/docs/en/userver/formats.md "share the same interface and manipulate tree-like formats"
-/// @ingroup userver_containers
 
 /// @defgroup userver_formats_serialize Serializers
 /// @brief Files with serializers @ref scripts/docs/en/userver/formats.md "into formats"

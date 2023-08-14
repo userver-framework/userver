@@ -3,7 +3,7 @@
 /// @file userver/formats/parse/time_of_day.hpp
 /// @brief utils::datetime::TimeOfDay parser for any format
 ///
-/// @ingroup userver_formats_parse
+/// @ingroup userver_universal userver_formats_parse
 
 #include <userver/utils/time_of_day.hpp>
 

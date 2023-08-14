@@ -2,7 +2,7 @@
 
 /// @file userver/formats/serialize/boost_optional.hpp
 /// @brief Serializers for boost::optional
-/// @ingroup userver_formats_serialize
+/// @ingroup userver_universal userver_formats_serialize
 
 #include <boost/optional.hpp>
 

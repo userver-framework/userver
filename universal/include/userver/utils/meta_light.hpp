@@ -3,6 +3,7 @@
 /// @file userver/utils/meta_light.hpp
 /// @brief Lightweight concepts
 /// @see userver/utils/meta.hpp for more concepts
+/// @ingroup userver_universal
 
 #include <type_traits>
 

@@ -2,6 +2,7 @@
 
 /// @file userver/utils/get_if.hpp
 /// @brief @copybrief utils::GetIf
+/// @ingroup userver_universal
 
 #include <functional>
 #include <memory>

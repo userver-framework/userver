@@ -9,7 +9,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace utils {
 
-/// @ingroup userver_concurrency
+/// @ingroup userver_universal userver_concurrency
 ///
 /// @brief Atomically performs the operation of `updater` on `atomic`
 /// @details `updater` may be called multiple times per one call of
@@ -28,7 +28,7 @@ T AtomicUpdate(std::atomic<T>& atomic, Func updater) {
   }
 }
 
-/// @ingroup userver_concurrency
+/// @ingroup userver_universal userver_concurrency
 ///
 /// @brief Concurrently safe sets `atomic` to a `value` if `value` is less
 template <typename T>
@@ -38,7 +38,7 @@ T AtomicMin(std::atomic<T>& atomic, T value) {
   });
 }
 
-/// @ingroup userver_concurrency
+/// @ingroup userver_universal userver_concurrency
 ///
 /// @brief Concurrently safe sets `atomic` to a `value` if `value` is greater
 template <typename T>

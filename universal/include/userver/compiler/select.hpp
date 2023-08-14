@@ -2,6 +2,7 @@
 
 /// @file userver/compiler/select.hpp
 /// @brief Utilities for selection of platform specific values
+/// @ingroup userver_universal
 
 #include <cstddef>
 

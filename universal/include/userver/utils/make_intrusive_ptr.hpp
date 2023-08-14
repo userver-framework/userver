@@ -2,6 +2,7 @@
 
 /// @file userver/utils/make_intrusive_ptr.hpp
 /// @brief @copybrief utils::make_intrusive_ptr
+/// @ingroup userver_universal
 
 #include <memory>
 

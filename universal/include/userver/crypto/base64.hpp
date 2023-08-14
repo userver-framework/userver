@@ -2,6 +2,7 @@
 
 /// @file userver/crypto/base64.hpp
 /// @brief @copybrief crypto::base64
+/// @ingroup userver_universal
 
 #include <string_view>
 

@@ -2,6 +2,7 @@
 
 /// @file userver/hostinfo/blocking/read_groups.hpp
 /// @brief @copybrief hostinfo::blocking::ReadConductorGroups
+/// @ingroup userver_universal
 
 #include <string>
 #include <vector>
