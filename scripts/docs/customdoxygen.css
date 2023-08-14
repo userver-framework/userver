@@ -174,6 +174,22 @@ html:not(.light-mode) .landing-intro-center  {
 /* Bigger font for menu */
 #main-nav > ul > li > a {
     font-size: 18px;
+    
+}
+#main-nav > ul > li > a {
+    color: #D2DBDE !important;
+}
+
+#main-nav > ul > li > a:hover {
+    color: var(--primary-color)  !important;
+}
+
+.sm-dox a span.sub-arrow {
+    border-color: #D2DBDE transparent transparent transparent;
+}
+
+.sm-dox ul a:hover span.sub-arrow {
+    border-color: transparent transparent transparent var(--primary-color);
 }
 
 /* More space and scrolling for code snippets */
@@ -332,12 +348,9 @@ td#projectalign {
     color: white !important;
 }
 
-#main-nav a {
-    color: white !important;
-}
+
 #main-nav ul a:active {
     background-color: none;
-    color: red;
 }
 
 /* Table of contents */
