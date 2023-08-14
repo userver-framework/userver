@@ -68,7 +68,7 @@ div.contents {
 
 .landing-intro-right {
     font-size: 1.1em;
-padding: auto;
+    padding: auto;
 
     width: 47%;
 
@@ -91,6 +91,141 @@ padding: auto;
     gap: 4px;
 }
 
+#projectname a {
+    color: white !important;
+}
+
+#projectbrief a  {
+    color: white !important;
+}
+
+#links {
+    display: none;
+}
+
+#MSearchBox {
+    display: none;
+}
+
+#projectlogo img  {
+    width: 32px;
+    max-height: none;
+    margin: 0;
+}
+
+@media(max-width: 767px) {
+    #top {
+        display: flex;
+        justify-content: space-between;
+    }
+
+    #main-nav {
+        flex-grow: 0;
+        padding: 0;
+        margin: auto 0;
+    }
+    #projectlogo {
+        padding: 0;
+    }
+    #projectname a {
+        font-size: 14px;
+    }
+    #projectbrief a  {
+        font-size: 7px;
+    }
+
+    .sm-dox {
+        margin: auto 45px;
+        position: relative;
+    }
+    #titlearea {
+        padding: 10px;
+    }
+
+    /* body, table, div, p, dl {
+        line-height: 20px;
+    } */
+    #main-nav {
+       position: absolute;
+       background-color: white;
+       color: #352e48;
+       /* border: 1px solid rgb(238, 236, 236); */
+       font-weight: bold;
+       top: 0px;
+       right: 0px;
+       z-index: -1;
+       border-radius: 10px;
+       margin: 0;
+       
+    }
+    
+    #main-nav ul {
+        margin: 0;
+        z-index: inherit;
+    }
+    #main-nav >ul >li {
+        border-radius: 10px;
+        padding: 5px 70px;  /* todo adaptive width */
+    }
+    #main-nav > ul > li > a  {
+        padding: 0;
+        display: block;
+        font-weight: bold;
+    }
+    #main-nav > ul > li:hover,  #main-nav > ul > li > a:hover{
+        background:  #fae7d3;
+        color: #352e48 !important;
+        
+    }
+    
+    #projectalign {
+        padding-left: 0;
+    }
+
+    #projectalign div{
+        line-height: 10px;
+    }
+
+    /* #parent {
+        position: absolute;
+        margin: auto 0;
+       left: 200px;
+    } */
+
+}
+
+@media(min-width: 1440px) {
+    #projectlogo img  {
+        width: 72px;
+    }
+    td#projectalign {
+        padding: 0;
+        /* line-height: 22px; */
+    }
+    #projectname a {
+        font-size: 42px;
+    }
+    #projectbrief a  {
+        font-size: 17px;
+    }
+    #projectalign {
+        padding-left: 0.5em;
+    }
+    #MSearchBox {
+        display: block;
+    }
+
+    #links {
+        display: block;
+    }
+
+    #projectalign  div {
+        line-height: 26px;
+    }
+    #main-nav a {
+        color: white !important;
+    }
+}
 
 .bottom-nav .button.prev {
     margin-right: 10px;
@@ -320,22 +455,6 @@ div.toc li.level6 {
     width: 380px;
     margin-left: 15px;
     border-radius: 14px;
-}
-
-#projectlogo img  {
-    width: 72px;
-    max-height: none;
-}
-td#projectalign {
-    padding: 0;
-}
-#projectname a {
-    font-size: 42px;
-    color: white !important;
-}
-#projectbrief a  {
-    font-size: 17px;
-    color: white !important;
 }
 
 #top {
