@@ -1,9 +1,9 @@
 #include "feed_articles.hpp"
-#include <boost/lexical_cast.hpp>
 #include <sstream>
 #include <userver/formats/serialize/common_containers.hpp>
 #include "db/sql.hpp"
 #include "dto/article.hpp"
+#include "dto/filter.hpp"
 #include "models/article.hpp"
 
 namespace real_medium::handlers::articles::feed::get {
@@ -20,18 +20,21 @@ userver::formats::json::Value Handler::HandleRequestJsonThrow(
     const userver::server::http::HttpRequest& request,
     const userver::formats::json::Value& request_json,
     userver::server::request::RequestContext& context) const {
+  dto::FeedArticleFilterDTO filter;
+
+  try {
+    filter = dto::Parse<dto::FeedArticleFilterDTO>(request);
+  } catch (std::bad_cast& ex) {
+    auto& response = request.GetHttpResponse();
+    response.SetStatus(userver::server::http::HttpStatus::kUnprocessableEntity);
+    return utils::error::MakeError("filters", "invalid filters entered");
+  }
+
   auto user_id = context.GetData<std::optional<std::string>>("id");
-  std::int32_t limit =
-      request.HasArg("limit")
-          ? boost::lexical_cast<int32_t>(request.GetArg("limit"))
-          : 20;
-  std::int32_t offset =
-      request.HasArg("offset")
-          ? boost::lexical_cast<int32_t>(request.GetArg("offset"))
-          : 0;
-  auto query_result = pg_cluster_->Execute(
-      userver::storages::postgres::ClusterHostType::kMaster,
-      sql::kFindArticlesByFollowedUsers.data(), user_id, limit, offset);
+  auto query_result =
+      pg_cluster_->Execute(userver::storages::postgres::ClusterHostType::kSlave,
+                           sql::kFindArticlesByFollowedUsers.data(), user_id,
+                           filter.limit, filter.offset);
   auto articles = query_result.AsContainer<
       std::vector<real_medium::models::TaggedArticleWithProfile>>();
   userver::formats::json::ValueBuilder builder;
