@@ -103,6 +103,10 @@ div.contents {
     display: none;
 }
 
+#links a:hover {
+    text-decoration: none;
+}
+
 #MSearchBox {
     display: none;
 }
