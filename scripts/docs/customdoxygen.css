@@ -177,9 +177,7 @@ div.contents {
         font-weight: bold;
     }
     #main-nav > ul > li:hover,  #main-nav > ul > li > a:hover{
-        background:  #fae7d3;
         color: #352e48 !important;
-        
     }
     
     #projectalign {
@@ -225,6 +223,17 @@ div.contents {
 
     #projectalign  div {
         line-height: 26px;
+    }
+    #main-nav > ul > li > a {
+        color: #D2DBDE !important;
+    }
+    #main-nav > ul > li > a {
+        font-size: 1.2em;
+    }
+}
+@media (min-width:768px){
+    #main-nav > ul > li > a {
+        color: #D2DBDE !important;
     }
 }
 
@@ -303,13 +312,7 @@ html:not(.light-mode) .landing-intro-center  {
     margin-left: 15px;
 }
 /* Bigger font for menu */
-#main-nav > ul > li > a {
-    font-size: 18px;
-    
-}
-#main-nav > ul > li > a {
-    color: #D2DBDE !important;
-}
+
 
 #main-nav > ul > li > a:hover {
     color: var(--primary-color)  !important;
