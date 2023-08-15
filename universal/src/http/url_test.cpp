@@ -3,11 +3,19 @@
 #include <gtest/gtest.h>
 
 #include <userver/http/url.hpp>
+#include <utils/impl/internal_tag.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
-using http::UrlDecode;
 using http::UrlEncode;
+
+namespace {
+
+std::string UrlDecode(std::string_view range) {
+  return http::impl::UrlDecode(utils::impl::InternalTag{}, range);
+}
+
+}  // namespace
 
 TEST(UrlEncode, Empty) { EXPECT_EQ("", UrlEncode("")); }
 

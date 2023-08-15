@@ -2,6 +2,8 @@
 
 #include <array>
 
+#include <utils/impl/internal_tag.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace http {
@@ -51,33 +53,7 @@ std::string UrlEncode(std::string_view input_string) {
 }
 
 std::string UrlDecode(std::string_view range) {
-  std::string result;
-  result.reserve(range.size() / 3);
-
-  for (const char *i = range.begin(), *end = range.end(); i != end; ++i) {
-    switch (*i) {
-      case '+':
-        result.append(1, ' ');
-        break;
-      case '%':
-        if (std::distance(i, end) > 2) {
-          char f = *(i + 1);
-          char s = *(i + 2);
-          int digit = (f >= 'A' ? ((f & 0xDF) - 'A') + 10 : (f - '0')) * 16;
-          digit += (s >= 'A') ? ((s & 0xDF) - 'A') + 10 : (s - '0');
-          result.append(1, static_cast<char>(digit));
-          i += 2;
-        } else {
-          result.append(1, '%');
-        }
-        break;
-      default:
-        result.append(1, (*i));
-        break;
-    }
-  }
-
-  return result;
+  return impl::UrlDecode(utils::impl::InternalTag{}, range);
 }
 
 namespace {
@@ -220,6 +196,40 @@ std::string ExtractHostname(std::string_view url) {
 
   return std::string{tmp};
 }
+
+namespace impl {
+
+std::string UrlDecode(utils::impl::InternalTag, std::string_view range) {
+  std::string result;
+  result.reserve(range.size() / 3);
+
+  for (const char *i = range.begin(), *end = range.end(); i != end; ++i) {
+    switch (*i) {
+      case '+':
+        result.append(1, ' ');
+        break;
+      case '%':
+        if (std::distance(i, end) > 2) {
+          char f = *(i + 1);
+          char s = *(i + 2);
+          int digit = (f >= 'A' ? ((f & 0xDF) - 'A') + 10 : (f - '0')) * 16;
+          digit += (s >= 'A') ? ((s & 0xDF) - 'A') + 10 : (s - '0');
+          result.append(1, static_cast<char>(digit));
+          i += 2;
+        } else {
+          result.append(1, '%');
+        }
+        break;
+      default:
+        result.append(1, (*i));
+        break;
+    }
+  }
+
+  return result;
+}
+
+}  // namespace impl
 
 }  // namespace http
 

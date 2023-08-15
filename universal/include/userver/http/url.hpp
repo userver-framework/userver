@@ -9,6 +9,7 @@
 #include <string_view>
 #include <unordered_map>
 
+#include <userver/utils/impl/internal_tag_fwd.hpp>
 #include <userver/utils/str_icase.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -63,6 +64,12 @@ std::string ExtractPath(std::string_view url);
 
 /// @brief Returns hostname part of a URL
 std::string ExtractHostname(std::string_view url);
+
+namespace impl {
+
+std::string UrlDecode(utils::impl::InternalTag, std::string_view range);
+
+}  // namespace impl
 
 }  // namespace http
 
