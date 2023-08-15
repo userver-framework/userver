@@ -23,7 +23,7 @@ userver::formats::json::Value Handler::HandleRequestJsonThrow(
   dto::ArticleFilterDTO filter;
 
   try {
-    filter = dto::Parse(request);
+    filter = dto::Parse<dto::ArticleFilterDTO>(request);
   } catch (std::bad_cast& ex) {
     auto& response = request.GetHttpResponse();
     response.SetStatus(userver::server::http::HttpStatus::kUnprocessableEntity);
