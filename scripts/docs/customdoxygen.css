@@ -226,9 +226,6 @@ div.contents {
     #projectalign  div {
         line-height: 26px;
     }
-    #main-nav a {
-        color: white !important;
-    }
 }
 
 .bottom-nav .button.prev {
@@ -429,6 +426,14 @@ pre {
 
 #MSearchResultsWindow {
     height: auto !important;
+    max-height: 80vh !important;
+    width: 380px !important;
+}
+#MSearchResultsWindow {
+    transform: translate(-87px, 20px) !important;
+}
+.MSearchBoxActive #MSearchField {
+    color: black;
 }
 
 div.toc li.level1 {
