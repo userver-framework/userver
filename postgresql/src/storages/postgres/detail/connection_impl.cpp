@@ -513,6 +513,11 @@ void ConnectionImpl::CancelAndCleanup(TimeoutDuration timeout) {
     cancel.WaitUntil(deadline);
   }
 
+  // DiscardInput could have marked connection as broken
+  if (IsBroken()) {
+    return;
+  }
+
   // We might need more timeout here
   // We are no more bound with SLA, user has his exception.
   // It's better to keep this connection alive than recreating it, because
