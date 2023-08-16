@@ -7,6 +7,21 @@
 
 USERVER_NAMESPACE_BEGIN
 
+#if !defined(USERVER_LOG_PREFIX_PATH_BASE) && \
+    !defined(USERVER_LOG_SOURCE_PATH_BASE) && \
+    !defined(USERVER_LOG_BUILD_PATH_BASE)
+
+/// @ingroup userver_universal
+///
+/// @brief Short std::string_view with source path for logging.
+/// @hideinitializer
+// We need user's filename here, not ours
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+#define USERVER_FILEPATH \
+  std::string_view { __builtin_FILE() }
+
+#else
+
 namespace logging::impl {
 
 // I know no other way to wrap a macro value in quotes
@@ -45,7 +60,7 @@ static constexpr std::size_t PathBaseSize(std::string_view path) noexcept {
 // TODO: consteval
 static constexpr std::string_view CutFilePath(const char* path) noexcept {
   const std::string_view path_view = path;
-  return path_view.substr(PathBaseSize(path_view));
+  return path_view.substr(impl::PathBaseSize(path_view));
 }
 
 #undef USERVER_LOG_FILEPATH_STRINGIZE
@@ -53,13 +68,10 @@ static constexpr std::string_view CutFilePath(const char* path) noexcept {
 
 }  // namespace logging::impl
 
-/// @ingroup userver_universal
-///
-/// @brief Short source path for logging.
-/// @hideinitializer
-// We need user's filename here, not ours
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define USERVER_FILEPATH \
   USERVER_NAMESPACE::logging::impl::CutFilePath(__builtin_FILE())
+
+#endif
 
 USERVER_NAMESPACE_END

@@ -72,11 +72,21 @@ endif()
 get_filename_component(BASE_PREFIX "${CMAKE_SOURCE_DIR}/../" ABSOLUTE)
 file(TO_NATIVE_PATH "${CMAKE_SOURCE_DIR}/" SRC_LOG_PATH_BASE)
 file(TO_NATIVE_PATH "${CMAKE_BINARY_DIR}/" BIN_LOG_PATH_BASE)
-target_compile_definitions(${PROJECT_NAME} PUBLIC
-  USERVER_LOG_SOURCE_PATH_BASE=${SRC_LOG_PATH_BASE}
-  USERVER_LOG_BUILD_PATH_BASE=${BIN_LOG_PATH_BASE}
-  USERVER_LOG_PREFIX_PATH_BASE=${BASE_PREFIX}
-)
+
+check_cxx_compiler_flag("-fmacro-prefix-map=a=b" USERVER_COMPILER_HAS_MACRO_PREFIX_MAP)
+if (USERVER_COMPILER_HAS_MACRO_PREFIX_MAP)
+  target_compile_options(${PROJECT_NAME} PUBLIC
+    -fmacro-prefix-map=${SRC_LOG_PATH_BASE}/=
+    -fmacro-prefix-map=${BIN_LOG_PATH_BASE}/=
+    -fmacro-prefix-map=${BASE_PREFIX}/=
+  )
+else()
+  target_compile_definitions(${PROJECT_NAME} PUBLIC
+    USERVER_LOG_SOURCE_PATH_BASE=${SRC_LOG_PATH_BASE}
+    USERVER_LOG_BUILD_PATH_BASE=${BIN_LOG_PATH_BASE}
+    USERVER_LOG_PREFIX_PATH_BASE=${BASE_PREFIX}
+  )
+endif()
 
 message(STATUS "Putting userver into namespace '${USERVER_NAMESPACE}': ${USERVER_NAMESPACE_BEGIN} ${USERVER_NAMESPACE_END}")
 target_compile_definitions(${PROJECT_NAME} PUBLIC
