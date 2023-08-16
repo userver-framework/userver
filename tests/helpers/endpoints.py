@@ -6,6 +6,7 @@ async def register_user(service_client, user):
         json=model_dump(user, include=RequiredFields.REGISTRATION.value)
     )
 
+
 async def login_user(service_client, user):
     return await service_client.post(
         Routes.LOGIN,
