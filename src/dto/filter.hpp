@@ -17,5 +17,11 @@ struct ArticleFilterDTO {
   std::int32_t offset = 0;
 };
 
-ArticleFilterDTO Parse(const userver::server::http::HttpRequest& request);
+struct FeedArticleFilterDTO {
+  std::int32_t limit = 20;
+  std::int32_t offset = 0;
+};
+
+template <typename T>
+T Parse(const userver::server::http::HttpRequest& request);
 }  // namespace real_medium::dto
