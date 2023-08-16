@@ -17,6 +17,6 @@ async def test_get_user(service_client):
     assert validate_user(user, response)
 
 
-async def test_get_unknown_user(service_client):
+async def test_get_user_unauthorized(service_client):
     response = await get_user(service_client, 'some-token')
     assert response.status == HTTPStatus.UNAUTHORIZED
