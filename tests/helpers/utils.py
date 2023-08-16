@@ -8,7 +8,7 @@ class Routes(str, Enum):
     UPDATE_USER = '/api/user'
     GET_PROFILE = '/api/profiles/{username}'
     FOLLOW_PROFILE = '/api/profiles/{username}/follow'
-    UNFOLLOW_PROFILE ='/api/profiles/:username/follow'
+    UNFOLLOW_PROFILE = '/api/profiles/{username}/follow'
     LIST_ARTICLES = '/api/articles'
     FEED_ARTICLES = '/api/articles/feed'
     GET_ARTICLE = '/api/articles/:slug'
