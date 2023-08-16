@@ -18,5 +18,20 @@ async def test_get_user(service_client):
 
 
 async def test_get_user_unauthorized(service_client):
+    response = await get_user(service_client, None)
+    assert response.status == HTTPStatus.UNAUTHORIZED
+
     response = await get_user(service_client, 'some-token')
+    assert response.status == HTTPStatus.UNAUTHORIZED
+
+    jwt_token = (
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.'
+        'eyJpZCI6ImlkIn0.'
+        'd9NfuI8JzGnYtjPa5rHRh4Jr104WKp-yls9POZJbe9U'
+    )
+
+    response = await get_user(service_client, 'Bearer {token}'.format(token=jwt_token))
+    assert response.status == HTTPStatus.UNAUTHORIZED
+
+    response = await get_user(service_client, 'Token {token}'.format(token=jwt_token))
     assert response.status == HTTPStatus.UNAUTHORIZED
