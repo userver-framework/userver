@@ -2,8 +2,8 @@ from testsuite.utils import matching
 from models import *
 
 
-def validate_user(user, response_json):
-    return response_json == { 
+def validate_user(user, response):
+    return response.json() == { 
         'user' : {
             'email' : user.email,
             'token' : matching.RegexString('^[\w-]+\.[\w-]+\.[\w-]+$'),
