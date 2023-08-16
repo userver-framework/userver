@@ -9,7 +9,7 @@ async def test_register(service_client):
     user = User(bio=None, image=None)
     response = await register_user(service_client, user)
     assert response.status == HTTPStatus.OK
-    assert validate_user(user, response.json())
+    assert validate_user(user, response)
 
 
 async def test_register_same_username(service_client):
@@ -41,3 +41,4 @@ async def test_register_same_password(service_client):
 
     another_user = User(password=user.password)
     response = await register_user(service_client, another_user)
+    assert response.status == HTTPStatus.OK

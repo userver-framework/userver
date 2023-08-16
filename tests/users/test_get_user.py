@@ -14,7 +14,7 @@ async def test_get_user(service_client):
 
     response = await get_user(service_client, get_user_token(response))
     assert response.status == HTTPStatus.OK
-    assert validate_user(user, response.json())
+    assert validate_user(user, response)
 
 
 async def test_get_unknown_user(service_client):

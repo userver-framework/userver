@@ -18,3 +18,11 @@ async def get_user(service_client, token):
         Routes.GET_USER,
         headers={ 'Authorization' : token },
     )
+
+
+async def update_user(service_client, user, token):
+    return await service_client.put(
+        Routes.UPDATE_USER,
+        json=model_dump(user, exclude_none=True),
+        headers={ 'Authorization' : token },
+    )

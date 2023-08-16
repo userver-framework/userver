@@ -14,7 +14,7 @@ async def test_update_user(service_client):
     another_user = User()
     response = await update_user(service_client, another_user, get_user_token(response))
     assert response.status == HTTPStatus.OK
-    assert validate_user(another_user, response.json())
+    assert validate_user(another_user, response)
 
 
 async def test_update_unauthorized(service_client):

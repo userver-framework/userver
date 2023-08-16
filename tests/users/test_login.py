@@ -13,7 +13,7 @@ async def test_login(service_client):
 
     response = await login_user(service_client, user)
     assert response.status == HTTPStatus.OK
-    assert validate_user(user, response.json())
+    assert validate_user(user, response)
 
 
 async def test_login_unknown(service_client):
