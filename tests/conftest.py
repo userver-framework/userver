@@ -4,6 +4,8 @@ from testsuite.databases.pgsql import discover
 import pytest
 import pathlib
 
+sys.path.append(os.path.join(os.path.dirname(__file__), 'helpers'))
+
 pytest_plugins = [
     "pytest_userver.plugins",
     "testsuite.databases.pgsql.pytest_plugin",
