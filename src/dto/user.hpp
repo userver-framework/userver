@@ -22,8 +22,8 @@ struct UserUpdateDTO {
   std::optional<std::string> email;
   std::optional<std::string> username;
   std::optional<std::string> password;
-  std::optional<std::string> image;
   std::optional<std::string> bio;
+  std::optional<std::string> image;
 };
 
 UserRegistrationDTO Parse(const userver::formats::json::Value& json,
