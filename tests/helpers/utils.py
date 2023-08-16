@@ -34,3 +34,5 @@ def model_dump(model, **kwargs):
     return { model.__class__.__name__.lower() : model.model_dump(**kwargs)}
 
 
+def get_user_token(response):
+    return 'Token {token}'.format(token=response.json()['user']['token'])
