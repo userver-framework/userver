@@ -35,3 +35,10 @@ async def get_profile(service_client, user, token):
         Routes.GET_PROFILE.format(username=user.username),
         headers={'Authorization': token}
     )
+
+
+async def follow_user(service_client, user, token):
+    return await service_client.post(
+        Routes.FOLLOW_PROFILE.format(username=user.username),
+        headers={ 'Authorization' : token },
+    )
