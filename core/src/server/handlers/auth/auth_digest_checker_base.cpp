@@ -61,25 +61,33 @@ using NonceCount = std::uint32_t;
 AuthCheckerDigestBase::AuthCheckerDigestBase(
     const AuthDigestSettings& digest_settings, Realm realm)
     : qops_(digest_settings.qops),
-      qops_str_({}),
+      qops_str_(fmt::format("{}", fmt::join(qops_, ","))),
       realm_(std::move(realm)),
       domains_(digest_settings.domains),
-      domains_str_({}),
+      domains_str_(fmt::format("{}", fmt::join(domains_, ", "))),
       algorithm_(digest_settings.algorithm),
       is_session_(digest_settings.is_session.value_or(false)),
       is_proxy_(digest_settings.is_proxy.value_or(false)),
       nonce_ttl_(digest_settings.nonce_ttl),
-      digest_hasher_(algorithm_) {
-  qops_str_ = fmt::format("{}", fmt::join(qops_, ","));
-  domains_str_ = fmt::format("{}", fmt::join(domains_, ", "));
-}
+      digest_hasher_(algorithm_),
+      authenticate_header_(is_proxy_
+                               ? userver::http::headers::kProxyAuthenticate
+                               : userver::http::headers::kWWWAuthenticate),
+      authorization_header_(is_proxy_
+                                ? userver::http::headers::kProxyAuthorization
+                                : userver::http::headers::kAuthorization),
+      unauthorized_status_(is_proxy_
+                                ? userver::server::http::HttpStatus::kProxyAuthenticationRequired
+                                : userver::server::http::HttpStatus::kUnauthorized) {}
 
 AuthCheckResult AuthCheckerDigestBase::CheckAuth(
     const server::http::HttpRequest& request,
     server::request::RequestContext&) const {
-  const auto& auth_value =
-      request.GetHeader(userver::http::headers::kAuthorization);
+  auto& response = request.GetHttpResponse(); 
+
+  const auto& auth_value = request.GetHeader(authorization_header_);
   if (auth_value.empty()) {
+    response.SetStatus(unauthorized_status_);
     throw CustomHandlerException(impl::CustomHandlerExceptionData{
         server::handlers::HandlerErrorCode::kUnauthorized,
         ConstructResponseDirectives(digest_hasher_.Nonce(),
@@ -170,7 +178,7 @@ void AuthCheckerDigestBase::StartNewAuthSession(std::string_view username,
 ExtraHeaders AuthCheckerDigestBase::ConstructResponseDirectives(
     std::string_view nonce, std::string_view opaque, bool stale) const {
   ExtraHeaders extra_headers;
-  extra_headers.headers["WWW-Authenticate"] = utils::StrCat(
+  extra_headers.headers[authenticate_header_] = utils::StrCat(
       "Digest ",
       fmt::format("{}=\"{}\", ", kTypesToDirectives.TryFind(DirectiveTypes::kRealm).value(), realm_),
       fmt::format("{}=\"{}\", ", kTypesToDirectives.TryFind(DirectiveTypes::kNonce).value(), nonce),
