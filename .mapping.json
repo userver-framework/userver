@@ -2248,6 +2248,7 @@
   "redis/src/storages/redis/impl/cluster_sentinel_impl.hpp":"taxi/uservices/userver/redis/src/storages/redis/impl/cluster_sentinel_impl.hpp",
   "redis/src/storages/redis/impl/cluster_shard.cpp":"taxi/uservices/userver/redis/src/storages/redis/impl/cluster_shard.cpp",
   "redis/src/storages/redis/impl/cluster_shard.hpp":"taxi/uservices/userver/redis/src/storages/redis/impl/cluster_shard.hpp",
+  "redis/src/storages/redis/impl/cluster_shard_test.cpp":"taxi/uservices/userver/redis/src/storages/redis/impl/cluster_shard_test.cpp",
   "redis/src/storages/redis/impl/cluster_topology.cpp":"taxi/uservices/userver/redis/src/storages/redis/impl/cluster_topology.cpp",
   "redis/src/storages/redis/impl/cluster_topology.hpp":"taxi/uservices/userver/redis/src/storages/redis/impl/cluster_topology.hpp",
   "redis/src/storages/redis/impl/command.cpp":"taxi/uservices/userver/redis/src/storages/redis/impl/command.cpp",

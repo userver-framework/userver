@@ -696,7 +696,7 @@ void ClusterSentinelImpl::AsyncCommand(const SentinelCommand& scommand,
       false, !master));
 
   const auto topology = topology_holder_->GetTopology();
-  auto master_shard = topology->GetClusterShardByIndex(shard);
+  const auto& master_shard = topology->GetClusterShardByIndex(shard);
   if (!master_shard.AsyncCommand(command_check_errors)) {
     scommand.command->args = std::move(command_check_errors->args);
     AsyncCommandFailed(scommand);
