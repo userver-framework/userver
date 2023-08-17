@@ -14,12 +14,12 @@ def validate_user(user, response):
     }
 
 
-def validate_profile(user, following, response):
+def validate_profile(profile, response):
     return response.json() == {
         'profile': {
-            'username': user.username,
-            'bio': user.bio,
-            'image': user.image,
-            'following': following,
+            'username': profile.username,
+            'bio': profile.bio,
+            'image': profile.image,
+            'following': profile.following,
         }
     }
