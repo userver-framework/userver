@@ -14,7 +14,7 @@ async def test_update_article_unauthorized(service_client):
 
     article = Article(Profile(user))
     response = await create_article(service_client, article, get_user_token(response))
-    response.status == HTTPStatus.OK
+    assert response.status == HTTPStatus.OK
 
     slug = article.slug
     article.change_fields()
