@@ -48,6 +48,15 @@ div.contents {
     margin-bottom: 25px;
 }
 
+.landing-text .codeblock {
+    width: fit-content;
+    margin: 0 auto;
+    font-family: monospace;
+    text-align: left;
+    white-space: pre-wrap; 
+    word-wrap: break-word;
+}
+
 .landing-container {
     width: 100%;
     display:  table;
