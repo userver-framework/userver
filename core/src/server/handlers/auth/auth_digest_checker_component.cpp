@@ -6,6 +6,8 @@
 #include <userver/utils/async.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
+#include <userver/server/handlers/auth/digest_algorithms.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace component {
@@ -17,10 +19,15 @@ AuthDigestCheckerComponent::AuthDigestCheckerComponent(const components::Compone
     : components::LoggableComponentBase(config, context) {
       
   // Reading config values from static config
-  settings_.algorithm = config["algorithm"].As<std::string>();
+  std::string algorithm = config["algorithm"].As<std::string>();
+  if (!server::handlers::auth::kHashAlgToType.TryFind(algorithm).has_value()) {
+    throw std::runtime_error("Algorithm is not supported: " + algorithm);
+  }
+  settings_.algorithm = algorithm;
+
+  settings_.domains = config["domains"].As<std::vector<std::string>>({});
   settings_.is_proxy = config["is-proxy"].As<bool>(false);
   settings_.is_session = config["is-session"].As<bool>(false);
-  settings_.domains = config["domains"].As<std::vector<std::string>>({});
   settings_.qops = config["qops"].As<std::vector<std::string>>({});
   settings_.nonce_ttl = config["nonce-ttl"].As<std::chrono::milliseconds>(kDefaultTTL);
 }
