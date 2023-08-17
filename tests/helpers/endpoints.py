@@ -49,3 +49,12 @@ async def unfollow_user(service_client, user, token):
         Routes.UNFOLLOW_PROFILE.format(username=user.username),
         headers={'Authorization': token},
     )
+
+
+async def create_article(service_client, article, token):
+    return await service_client.post(
+        Routes.CREATE_ARTICLE,
+        json=model_dump(
+            article, include=RequiredFields.CREATE_ARTICLE.value, exclude_none=True),
+        headers={'Authorization': token},
+    )

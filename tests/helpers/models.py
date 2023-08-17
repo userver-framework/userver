@@ -38,6 +38,7 @@ class Article(BaseModel):
     favoritesCount: int = 0
     author: Optional[Profile] = None
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, profile=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.slug = self.title.lower().replace(' ', '-')
+        self.author = profile
