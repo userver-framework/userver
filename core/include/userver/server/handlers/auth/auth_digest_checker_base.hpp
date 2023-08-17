@@ -11,9 +11,9 @@
 #include <userver/rcu/rcu_map.hpp>
 #include <userver/server/handlers/auth/auth_digest_settings.hpp>
 #include <userver/server/handlers/auth/auth_params_parsing.hpp>
+#include <userver/server/http/http_request.hpp>
 #include <userver/server/http/http_response.hpp>
 #include <userver/server/http/http_status.hpp>
-#include <userver/server/http/http_request.hpp>
 #include <userver/server/request/request_context.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -67,12 +67,12 @@ class AuthCheckerDigestBase : public server::handlers::auth::AuthCheckerBase {
 
  private:
   std::string ConstructResponseDirectives(std::string_view nonce,
-                                           std::string_view opaque,
-                                           bool stale) const;
-  AuthCheckResult StartNewAuthSession(std::string_view username,
-                           std::string_view client_nonce,
-                           std::string_view client_opaque, bool stale,
-                           server::http::HttpResponse& response) const;
+                                          std::string_view opaque,
+                                          bool stale) const;
+  AuthCheckResult StartNewAuthSession(
+      std::string_view username, std::string_view client_nonce,
+      std::string_view client_opaque, bool stale,
+      server::http::HttpResponse& response) const;
   bool IsNonceExpired(const std::string& username,
                       std::string_view nonce_from_client) const;
   // TODO: protect the values with std::atomic
@@ -90,7 +90,7 @@ class AuthCheckerDigestBase : public server::handlers::auth::AuthCheckerBase {
   const std::chrono::milliseconds nonce_ttl_;
 
   const DigestHasher digest_hasher_;
-  
+
   const std::string authenticate_header_;
   const std::string authorization_header_;
   const userver::server::http::HttpStatus unauthorized_status_;

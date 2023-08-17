@@ -13,11 +13,11 @@
 #include <userver/http/common_headers.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/server/handlers/auth/auth_checker_base.hpp>
+#include <userver/server/handlers/auth/digest_algorithms.hpp>
+#include <userver/server/handlers/auth/digest_directives.hpp>
 #include <userver/server/handlers/exceptions.hpp>
 #include <userver/server/handlers/fallback_handlers.hpp>
 #include <userver/utils/algo.hpp>
-#include <userver/server/handlers/auth/digest_directives.hpp>
-#include <userver/server/handlers/auth/digest_algorithms.hpp>
 #include "userver/server/http/http_response.hpp"
 
 USERVER_NAMESPACE_BEGIN
@@ -77,21 +77,23 @@ AuthCheckerDigestBase::AuthCheckerDigestBase(
       authorization_header_(is_proxy_
                                 ? userver::http::headers::kProxyAuthorization
                                 : userver::http::headers::kAuthorization),
-      unauthorized_status_(is_proxy_
-                                ? userver::server::http::HttpStatus::kProxyAuthenticationRequired
-                                : userver::server::http::HttpStatus::kUnauthorized) {}
+      unauthorized_status_(
+          is_proxy_
+              ? userver::server::http::HttpStatus::kProxyAuthenticationRequired
+              : userver::server::http::HttpStatus::kUnauthorized) {}
 
 AuthCheckResult AuthCheckerDigestBase::CheckAuth(
     const server::http::HttpRequest& request,
     server::request::RequestContext&) const {
-  auto& response = request.GetHttpResponse(); 
+  auto& response = request.GetHttpResponse();
 
   const auto& auth_value = request.GetHeader(authorization_header_);
   if (auth_value.empty()) {
     response.SetStatus(unauthorized_status_);
-    response.SetHeader(authenticate_header_,
-            ConstructResponseDirectives(digest_hasher_.Nonce(),
-                                        digest_hasher_.Opaque(), false));
+    response.SetHeader(
+        authenticate_header_,
+        ConstructResponseDirectives(digest_hasher_.Nonce(),
+                                    digest_hasher_.Opaque(), false));
     return AuthCheckResult{AuthCheckResult::Status::kInvalidToken};
   }
 
@@ -101,13 +103,13 @@ AuthCheckResult AuthCheckerDigestBase::CheckAuth(
   auto client_server_data_ptr = client_data_.Get(client_context.username);
   if (!client_server_data_ptr) {
     return StartNewAuthSession(client_context.username, digest_hasher_.Nonce(),
-                        digest_hasher_.Opaque(), true, response);
+                               digest_hasher_.Opaque(), true, response);
   }
   LOG_DEBUG() << "USER IS OK";
 
   if (IsNonceExpired(client_context.username, client_context.nonce)) {
     return StartNewAuthSession(client_context.username, digest_hasher_.Nonce(),
-                        digest_hasher_.Opaque(), true, response);
+                               digest_hasher_.Opaque(), true, response);
   }
   LOG_DEBUG() << "NONCE IS OK";
 
@@ -119,9 +121,11 @@ AuthCheckResult AuthCheckerDigestBase::CheckAuth(
   }
   LOG_DEBUG() << "NONCE_COUNT IS OK";
 
-  if (!crypto::algorithm::AreStringsEqualConstTime(client_context.opaque, client_data_[client_context.username]->opaque)) {
+  if (!crypto::algorithm::AreStringsEqualConstTime(
+          client_context.opaque,
+          client_data_[client_context.username]->opaque)) {
     return StartNewAuthSession(client_context.username, digest_hasher_.Nonce(),
-                        digest_hasher_.Opaque(), true, response);
+                               digest_hasher_.Opaque(), true, response);
   }
   LOG_DEBUG() << "OPAQUE IS OK";
 
@@ -145,35 +149,36 @@ AuthCheckResult AuthCheckerDigestBase::CheckAuth(
   std::string ha2 = digest_hasher_.GetHash(a2);
 
   // digest_value = H(HA1:nonce:nc:cnonce:qop:HA2)
-  std::string digest_value = fmt::format("{}:{}:{}:{}:{}:{}",
-  ha1, client_context.nonce, client_context.nc,
-  client_context.cnonce, client_context.qop, ha2);
+  std::string digest_value = fmt::format(
+      "{}:{}:{}:{}:{}:{}", ha1, client_context.nonce, client_context.nc,
+      client_context.cnonce, client_context.qop, ha2);
   auto digest = digest_hasher_.GetHash(digest_value);
   LOG_DEBUG() << "DIGEST: " << digest << " " << client_context.response;
 
-  
-  if (!crypto::algorithm::AreStringsEqualConstTime(digest, client_context.response)) {
+  if (!crypto::algorithm::AreStringsEqualConstTime(digest,
+                                                   client_context.response)) {
     response.SetStatus(unauthorized_status_);
     response.SetHeader(authenticate_header_,
-            ConstructResponseDirectives(client_context.nonce, client_context.opaque,
-                                    false));
+                       ConstructResponseDirectives(
+                           client_context.nonce, client_context.opaque, false));
     return AuthCheckResult{AuthCheckResult::Status::kInvalidToken};
   }
 
   return {};
 };
 
-AuthCheckResult AuthCheckerDigestBase::StartNewAuthSession(std::string_view username,
-                           std::string_view client_nonce,
-                           std::string_view client_opaque, bool stale,
-                           server::http::HttpResponse& response) const {
+AuthCheckResult AuthCheckerDigestBase::StartNewAuthSession(
+    std::string_view username, std::string_view client_nonce,
+    std::string_view client_opaque, bool stale,
+    server::http::HttpResponse& response) const {
   client_data_.Emplace(username.data(),
                        ClientData{client_nonce.data(), client_opaque.data(),
                                   std::chrono::system_clock::now()});
   response.SetStatus(unauthorized_status_);
-  response.SetHeader(authenticate_header_,
-            ConstructResponseDirectives(client_nonce, client_opaque, stale));
-    
+  response.SetHeader(
+      authenticate_header_,
+      ConstructResponseDirectives(client_nonce, client_opaque, stale));
+
   return AuthCheckResult{AuthCheckResult::Status::kInvalidToken};
 }
 
@@ -201,7 +206,8 @@ bool AuthCheckerDigestBase::IsNonceExpired(
   LOG_DEBUG() << "TIMESTAMP IS OK";
   LOG_DEBUG() << "NONCE: " << client_data->nonce;
   LOG_DEBUG() << "NONCE_FROM_CLIENT: " << nonce_from_client;
-  return !crypto::algorithm::AreStringsEqualConstTime(client_data->nonce, nonce_from_client);
+  return !crypto::algorithm::AreStringsEqualConstTime(client_data->nonce,
+                                                      nonce_from_client);
 }
 
 }  // namespace server::handlers::auth
