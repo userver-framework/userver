@@ -12,7 +12,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace component {
 
-const int kDefaultTTL = 10 * 1000; 
+constexpr int kDefaultTTL = 10 * 1000; 
 
 AuthDigestCheckerComponent::AuthDigestCheckerComponent(const components::ComponentConfig& config,
                      const components::ComponentContext& context)
