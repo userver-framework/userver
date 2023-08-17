@@ -1,4 +1,8 @@
 from enum import Enum
+from faker import Faker
+
+fake = Faker()
+fake.seed_instance(4321)
 
 
 class Routes(str, Enum):
@@ -37,3 +41,7 @@ def model_dump(model, **kwargs):
 
 def get_user_token(response):
     return 'Token {token}'.format(token=response.json()['user']['token'])
+
+
+def generate_title():
+    return ' '.join(fake.words(nb=5))
