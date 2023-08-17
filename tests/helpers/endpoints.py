@@ -74,3 +74,10 @@ async def update_article(service_client, article, slug, token):
             article, include=RequiredFields.UPDATE_ARTICLE.value, exclude_none=True),
         headers={'Authorization': token},
     )
+
+
+async def delete_article(service_client, article, token):
+    return await service_client.delete(
+        Routes.UPDATE_ARTICLE.format(slug=article.slug),
+        headers={'Authorization': token},
+    )
