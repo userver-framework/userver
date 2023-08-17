@@ -42,3 +42,10 @@ class Article(BaseModel):
         super().__init__(*args, **kwargs)
         self.slug = self.title.lower().replace(' ', '-')
         self.author = profile
+
+    def change_fields(self):
+        new_article = Article()
+        self.body = new_article.body
+        self.description = new_article.description
+        self.title = new_article.title
+        self.slug = new_article.slug

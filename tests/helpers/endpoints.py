@@ -65,3 +65,12 @@ async def get_article(service_client, article, token):
         Routes.GET_ARTICLE.format(slug=article.slug),
         headers={'Authorization': token},
     )
+
+
+async def update_article(service_client, article, slug, token):
+    return await service_client.put(
+        Routes.UPDATE_ARTICLE.format(slug=slug),
+        json=model_dump(
+            article, include=RequiredFields.UPDATE_ARTICLE.value, exclude_none=True),
+        headers={'Authorization': token},
+    )
