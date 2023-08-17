@@ -9,7 +9,9 @@
 USERVER_NAMESPACE_BEGIN
 
 namespace component {
- 
+
+const int kDefaultTTL = 10 * 1000; 
+
 AuthDigestCheckerComponent::AuthDigestCheckerComponent(const components::ComponentConfig& config,
                      const components::ComponentContext& context)
     : components::LoggableComponentBase(config, context) {
@@ -20,7 +22,7 @@ AuthDigestCheckerComponent::AuthDigestCheckerComponent(const components::Compone
   settings_.is_session = config["is-session"].As<bool>(false);
   settings_.domains = config["domains"].As<std::vector<std::string>>({});
   settings_.qops = config["qops"].As<std::vector<std::string>>({});
-  settings_.nonce_ttl = config["nonce-ttl"].As<std::chrono::milliseconds>(0);
+  settings_.nonce_ttl = config["nonce-ttl"].As<std::chrono::milliseconds>(kDefaultTTL);
 }
  
 }  // namespace component
