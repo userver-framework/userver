@@ -58,3 +58,10 @@ async def create_article(service_client, article, token):
             article, include=RequiredFields.CREATE_ARTICLE.value, exclude_none=True),
         headers={'Authorization': token},
     )
+
+
+async def get_article(service_client, article, token):
+    return await service_client.get(
+        Routes.GET_ARTICLE.format(slug=article.slug),
+        headers={'Authorization': token},
+    )
