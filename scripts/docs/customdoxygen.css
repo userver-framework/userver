@@ -1,3 +1,72 @@
+/* Highlight.js overrides */
+
+.hljs {
+    background: #fbf1c7;
+    color: #3c3836;
+}
+
+.hljs-comment {
+    color: #800000;
+}
+
+.hljs-tag .hljs-attr,
+.hljs-tag .hljs-name {
+    color: var(--fragment-foreground);
+}
+
+.hljs-deletion,
+.hljs-number,
+.hljs-quote {
+    color: #008000;
+}
+
+.hljs-template-tag,
+.hljs-type,
+.hljs-section,
+.hljs-title {
+    color: var(--fragment-foreground);
+}
+
+.hljs-link,
+.hljs-operator,
+.hljs-variable {
+    color: #008000;
+}
+
+.hljs-literal {
+    color: #8f3f71;
+}
+
+.hljs-literal {
+    color: #8f3f71;
+}
+
+.hljs-addition,
+.hljs-built_in {
+    color: #076678;
+}
+
+.hljs-bullet,
+.hljs-selector-pseudo,
+.hljs-tag {
+    color: #427b58;
+}
+
+.hljs-addition,
+.hljs-section,
+.hljs-selector-attr,
+.hljs-selector-class,
+.hljs-string,
+.hljs-symbol {
+    color: #806000;
+}
+
+.hljs-code,
+.hljs-regexpб
+.hljs-selector-id,
+.hljs-template-variable {
+    color: #af3a03;
+}
 
 /* Too wide page makes people uncomfortable, keep content in center */
 div.contents {

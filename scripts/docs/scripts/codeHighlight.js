@@ -11,8 +11,6 @@ function highlight_code() {
     hljs.registerAliases('sh', {languageName: 'shell'});
     hljs.registerAliases('bash', {languageName: 'shell'});
     hljs.registerAliases('yml', {languageName: 'yaml'});
-    hljs.registerAliases('plain', {languageName: 'plaintext'});
-    hljs.registerAliases('tskv', {languageName: 'plaintext'});
     $(".fragment").each(function() {
         const node = $(this);
         let data = '';
@@ -47,7 +45,7 @@ function highlight_code() {
         }
 
         if (language !== '') {
-            data = hljs.highlight(language, data).value;
+            data = hljs.highlight(data, { language }).value;
         } else {
             data = hljs.highlightAuto(data).value;
         }
