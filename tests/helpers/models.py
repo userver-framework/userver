@@ -1,3 +1,4 @@
+from typing import Optional
 from pydantic import BaseModel, Field
 from faker import Faker
 
@@ -15,12 +16,15 @@ class User(BaseModel):
 
 class Profile(BaseModel):
 
-    username: str | None
-    bio: str | None
-    image: str | None
+    username: Optional[str] = None
+    bio: Optional[str] = None
+    image: Optional[str] = None
     following: bool = False
 
-    def __init__(self, user):
-        username = user.username
-        bio = user.bio
-        image = user.image
+    def __init__(self, user, *args, **kwargs):
+        super().__init__(
+            username = user.username,
+            bio = user.bio,
+            image = user.image,
+            *args, **kwargs
+        )

@@ -2,12 +2,13 @@ import pytest
 from http import HTTPStatus
 
 from endpoints import register_user, get_profile, follow_user
-from models import User
+from models import User, Profile
 from validators import validate_profile
 from utils import get_user_token
 
 async def test_follow_user(service_client):
     user = User(bio=None, image=None)
+
     response = await register_user(service_client, user)
     assert response.status == HTTPStatus.OK
 
@@ -19,11 +20,13 @@ async def test_follow_user(service_client):
 
     response = await follow_user(service_client, followed_user, user_token)
     assert response.status == HTTPStatus.OK
-    assert validate_profile(followed_user, True, response)
+
+    followed_profile = Profile(followed_user, following=True)
+    assert validate_profile(followed_profile, response)
 
     response = await get_profile(service_client, followed_user, user_token)
     assert response.status == HTTPStatus.OK
-    assert validate_profile(followed_user, True, response)
+    assert validate_profile(followed_profile, response)
 
 
 async def test_follow_urself(service_client):

@@ -2,7 +2,7 @@ import pytest
 from http import HTTPStatus
 
 from endpoints import register_user, get_profile, unfollow_user, follow_user
-from models import User
+from models import User, Profile
 from validators import validate_profile
 from utils import get_user_token
 
@@ -25,6 +25,7 @@ async def test_unfollow_unknown_user(service_client):
 
 async def test_unfollow_user(service_client):
     user = User(bio=None, image=None)
+
     response = await register_user(service_client, user)
     assert response.status == HTTPStatus.OK
 
@@ -39,8 +40,10 @@ async def test_unfollow_user(service_client):
 
     response = await unfollow_user(service_client, followed_user, user_token)
     assert response.status == HTTPStatus.OK
-    assert validate_profile(followed_user, False, response)
+
+    followed_profile = Profile(followed_user)
+    assert validate_profile(followed_profile, response)
 
     response = await get_profile(service_client, followed_user, user_token)
     assert response.status == HTTPStatus.OK
-    assert validate_profile(followed_user, False, response)
+    assert validate_profile(followed_profile, response)
