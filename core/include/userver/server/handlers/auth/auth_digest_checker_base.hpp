@@ -66,12 +66,13 @@ class AuthCheckerDigestBase : public server::handlers::auth::AuthCheckerBase {
   virtual std::optional<HA1> GetHA1(const std::string& username) const = 0;
 
  private:
-  ExtraHeaders ConstructResponseDirectives(std::string_view nonce,
+  std::string ConstructResponseDirectives(std::string_view nonce,
                                            std::string_view opaque,
                                            bool stale) const;
-  void StartNewAuthSession(std::string_view username,
+  AuthCheckResult StartNewAuthSession(std::string_view username,
                            std::string_view client_nonce,
-                           std::string_view client_opaque, bool stale) const;
+                           std::string_view client_opaque, bool stale,
+                           server::http::HttpResponse& response) const;
   bool IsNonceExpired(const std::string& username,
                       std::string_view nonce_from_client) const;
   // TODO: protect the values with std::atomic

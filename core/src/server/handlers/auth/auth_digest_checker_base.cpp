@@ -18,6 +18,7 @@
 #include <userver/utils/algo.hpp>
 #include <userver/server/handlers/auth/digest_directives.hpp>
 #include <userver/server/handlers/auth/digest_algorithms.hpp>
+#include "userver/server/http/http_response.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
@@ -88,10 +89,10 @@ AuthCheckResult AuthCheckerDigestBase::CheckAuth(
   const auto& auth_value = request.GetHeader(authorization_header_);
   if (auth_value.empty()) {
     response.SetStatus(unauthorized_status_);
-    throw CustomHandlerException(impl::CustomHandlerExceptionData{
-        server::handlers::HandlerErrorCode::kUnauthorized,
-        ConstructResponseDirectives(digest_hasher_.Nonce(),
-                                    digest_hasher_.Opaque(), false)});
+    response.SetHeader(authenticate_header_,
+            ConstructResponseDirectives(digest_hasher_.Nonce(),
+                                        digest_hasher_.Opaque(), false));
+    return AuthCheckResult{AuthCheckResult::Status::kInvalidToken};
   }
 
   DigestParsing parser;
@@ -99,14 +100,14 @@ AuthCheckResult AuthCheckerDigestBase::CheckAuth(
   const auto& client_context = parser.GetClientContext();
   auto client_server_data_ptr = client_data_.Get(client_context.username);
   if (!client_server_data_ptr) {
-    StartNewAuthSession(client_context.username, digest_hasher_.Nonce(),
-                        digest_hasher_.Opaque(), true);
+    return StartNewAuthSession(client_context.username, digest_hasher_.Nonce(),
+                        digest_hasher_.Opaque(), true, response);
   }
   LOG_DEBUG() << "USER IS OK";
 
   if (IsNonceExpired(client_context.username, client_context.nonce)) {
-    StartNewAuthSession(client_context.username, digest_hasher_.Nonce(),
-                        digest_hasher_.Opaque(), true);
+    return StartNewAuthSession(client_context.username, digest_hasher_.Nonce(),
+                        digest_hasher_.Opaque(), true, response);
   }
   LOG_DEBUG() << "NONCE IS OK";
 
@@ -119,15 +120,14 @@ AuthCheckResult AuthCheckerDigestBase::CheckAuth(
   LOG_DEBUG() << "NONCE_COUNT IS OK";
 
   if (!crypto::algorithm::AreStringsEqualConstTime(client_context.opaque, client_data_[client_context.username]->opaque)) {
-    StartNewAuthSession(client_context.username, digest_hasher_.Nonce(),
-                        digest_hasher_.Opaque(), true);
+    return StartNewAuthSession(client_context.username, digest_hasher_.Nonce(),
+                        digest_hasher_.Opaque(), true, response);
   }
   LOG_DEBUG() << "OPAQUE IS OK";
 
   auto ha1_opt = GetHA1(client_context.username);
   if (!ha1_opt.has_value()) {
-    throw CustomHandlerException(
-        server::handlers::HandlerErrorCode::kForbidden);
+    return AuthCheckResult{AuthCheckResult::Status::kForbidden};
   }
   LOG_DEBUG() << "HA1 IS OK";
 
@@ -153,32 +153,34 @@ AuthCheckResult AuthCheckerDigestBase::CheckAuth(
 
   
   if (!crypto::algorithm::AreStringsEqualConstTime(digest, client_context.response)) {
-    throw CustomHandlerException(impl::CustomHandlerExceptionData{
-        server::handlers::HandlerErrorCode::kUnauthorized,
-        ConstructResponseDirectives(client_context.nonce, client_context.opaque,
-                                    false)});
+    response.SetStatus(unauthorized_status_);
+    response.SetHeader(authenticate_header_,
+            ConstructResponseDirectives(client_context.nonce, client_context.opaque,
+                                    false));
+    return AuthCheckResult{AuthCheckResult::Status::kInvalidToken};
   }
 
   return {};
 };
 
-void AuthCheckerDigestBase::StartNewAuthSession(std::string_view username,
-                                                std::string_view client_nonce,
-                                                std::string_view client_opaque,
-                                                bool stale) const {
+AuthCheckResult AuthCheckerDigestBase::StartNewAuthSession(std::string_view username,
+                           std::string_view client_nonce,
+                           std::string_view client_opaque, bool stale,
+                           server::http::HttpResponse& response) const {
   client_data_.Emplace(username.data(),
                        ClientData{client_nonce.data(), client_opaque.data(),
                                   std::chrono::system_clock::now()});
-  throw CustomHandlerException(impl::CustomHandlerExceptionData{
-      server::handlers::HandlerErrorCode::kUnauthorized,
-      ConstructResponseDirectives(client_nonce, client_opaque, stale)});
+  response.SetStatus(unauthorized_status_);
+  response.SetHeader(authenticate_header_,
+            ConstructResponseDirectives(client_nonce, client_opaque, stale));
+    
+  return AuthCheckResult{AuthCheckResult::Status::kInvalidToken};
 }
 
 // clang-format off
-ExtraHeaders AuthCheckerDigestBase::ConstructResponseDirectives(
+std::string AuthCheckerDigestBase::ConstructResponseDirectives(
     std::string_view nonce, std::string_view opaque, bool stale) const {
-  ExtraHeaders extra_headers;
-  extra_headers.headers[authenticate_header_] = utils::StrCat(
+  return utils::StrCat(
       "Digest ",
       fmt::format("{}=\"{}\", ", kTypesToDirectives.TryFind(DirectiveTypes::kRealm).value(), realm_),
       fmt::format("{}=\"{}\", ", kTypesToDirectives.TryFind(DirectiveTypes::kNonce).value(), nonce),
@@ -187,7 +189,6 @@ ExtraHeaders AuthCheckerDigestBase::ConstructResponseDirectives(
       fmt::format("{}=\"{}\", ", kTypesToDirectives.TryFind(DirectiveTypes::kOpaque).value(), opaque),
       fmt::format("{}=\"{}\", ", kTypesToDirectives.TryFind(DirectiveTypes::kAlgorithm).value(), algorithm_),
       fmt::format("{}=\"{}\"", kTypesToDirectives.TryFind(DirectiveTypes::kQop).value(), qops_str_));
-  return extra_headers;
 }
 // clang-format on
 
