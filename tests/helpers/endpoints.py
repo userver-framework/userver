@@ -73,3 +73,10 @@ async def add_comment(service_client, comment, article, token):
         json=model_dump(comment, include=RequiredFields.ADD_COMMENT.value),
         headers={'Authorization': token},
     )
+
+
+async def get_comments(service_client, article, token):
+    return await service_client.get(
+        Routes.GET_COMMENTS.format(slug=article.slug),
+        headers={'Authorization': token},
+    )

@@ -1,7 +1,6 @@
-from typing import Optional
+from typing import Optional, List
 from pydantic import BaseModel, Field
 from utils import generate_title, fake
-from typing import Optional
 
 
 class User(BaseModel):
@@ -51,3 +50,11 @@ class Comment(BaseModel):
     def __init__(self, profile=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.author = profile
+
+
+class CommentList(BaseModel):
+    comments: List[Comment] = []
+
+    def __init__(self, n=1, profile=None, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.comments = [Comment(profile) for i in range(n)]

@@ -45,13 +45,24 @@ def validate_article(article, response):
     }
 
 
-def validate_comment(comment, response):
-    return response.json() == {
-        'comment': {
-            'id': matching.positive_integer,
-            'createdAt': matching.datetime_string,
-            'updatedAt': matching.datetime_string,
-            'body': comment.body,
-            'author': comment.author.model_dump()
-        }
+def validate_comment_json(comment, json):
+    return json == {
+        'id': matching.positive_integer,
+        'createdAt': matching.datetime_string,
+        'updatedAt': matching.datetime_string,
+        'body': comment.body,
+        'author': comment.author.model_dump()
     }
+
+
+def validate_comment(comment, response):
+    return validate_comment_json(comment, response.json()['comment'])
+
+
+def validate_comments(commentList, response):
+    response_json = response.json()
+    for comment, json in zip(commentList.comments, response_json['comments']):
+        res = validate_comment_json(comment, json)
+        if not res:
+            return False
+    return True
