@@ -495,7 +495,10 @@ void RequestState::on_retry(std::shared_ptr<RequestState> holder,
         std::clamp(holder->retry_.current - 1, 0, kEBMaxPower);
     const auto backoff = kEBBaseTime * (utils::RandRange(1 << eb_power) + 1);
 
-    if (!holder->UpdateTimeoutFromDeadlineAndCheck(backoff)) {
+    holder->UpdateTimeoutFromDeadline(backoff);
+    if (holder->remote_timeout_ <= std::chrono::milliseconds::zero()) {
+      holder->deadline_expired_ = true;
+      RequestState::on_completed(std::move(holder), err);
       return;
     }
 
@@ -722,7 +725,7 @@ bool RequestState::UpdateTimeoutFromDeadlineAndCheck(
 }
 
 void RequestState::UpdateTimeoutHeader() {
-  if (deadline_propagation_config_.update_header) return;
+  if (!deadline_propagation_config_.update_header) return;
 
   easy().add_header(USERVER_NAMESPACE::http::headers::kXYaTaxiClientTimeoutMs,
                     fmt::to_string(remote_timeout_.count()),
@@ -734,6 +737,7 @@ void RequestState::HandleDeadlineAlreadyPassed() {
   span.AddTag(tracing::kAttempts, retry_.current - 1);
   span.AddTag(tracing::kErrorFlag, true);
   span.AddTag("propagated_timeout_ms", 0);
+  span.AddTag("cancelled_by_deadline", 1);
 
   WithRequestStats(
       [](RequestStats& stats) { stats.AccountCancelledByDeadline(); });
@@ -769,6 +773,7 @@ void RequestState::CheckResponseDeadline(std::error_code& err,
     // to throw a CancelledException, so reflect it here for consistency.
     deadline_expired_ = true;
     err = std::error_code{curl::errc::EasyErrorCode::kOperationTimedout};
+    span_storage_->Get().AddTag("cancelled_by_deadline", 1);
     WithRequestStats(
         [](RequestStats& stats) { stats.AccountCancelledByDeadline(); });
   } else if (!err && IsDeadlineExpiredResponse(status_code)) {
