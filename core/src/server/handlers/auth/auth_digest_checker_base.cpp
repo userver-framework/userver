@@ -112,11 +112,14 @@ AuthCheckResult AuthCheckerDigestBase::CheckAuth(
   LOG_DEBUG() << "NONCE IS OK";
 
   auto client_nc = std::stoul(client_context.nc, nullptr, 16);
+  LOG_DEBUG() << "User Data NC: " << user_data.nonce_count;
+  LOG_DEBUG() << "Client NC: " << client_nc;
   if (user_data.nonce_count < client_nc) {
     UserData user_data{client_context.nonce, client_context.opaque,
                        std::chrono::system_clock::now()};
     SetUserData(client_context.username, std::move(user_data));
   } else {
+    LOG_DEBUG() << "SOMETHING WRONG HERE";
     return AuthCheckResult{AuthCheckResult::Status::kTokenNotFound};
   }
   LOG_DEBUG() << "NONCE_COUNT IS OK";
