@@ -5,20 +5,19 @@
 #include <unordered_map>
 
 #include <userver/logging/log.hpp>
+#include <userver/server/handlers/auth/digest_directives.hpp>
 #include <userver/utils/exception.hpp>
 #include <userver/utils/statistics/fmt.hpp>
-#include <userver/server/handlers/auth/digest_directives.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace server::handlers::auth {
 
 namespace {
-  constexpr std::array<std::string_view, 5> kMandatoryDirectives = {
+constexpr std::array<std::string_view, 5> kMandatoryDirectives = {
     directives::kRealm, directives::kNonce, directives::kResponse,
-    directives::kUri, directives::kUsername
-  };
-}
+    directives::kUri, directives::kUsername};
+}  // namespace
 
 void DigestParsing::ParseAuthInfo(std::string_view header_value) {
   enum class State {
