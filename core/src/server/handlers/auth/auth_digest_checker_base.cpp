@@ -208,23 +208,6 @@ bool AuthCheckerDigestBase::IsNonceExpired(std::string_view nonce_from_client,
   return user_data.timestamp + nonce_ttl_ < std::chrono::system_clock::now();
 }
 
-// UserData AuthCheckerDigestBase::GetUserData(const std::string& username)
-// const {
-//   auto [nonce, timestamp] = GetNonceInfo(username);
-//   auto opaque = GetOpaque(username);
-//   auto nonce_count = GetNonceCount(username);
-
-//   return {std::move(nonce), std::move(opaque), timestamp, nonce_count};
-// }
-
-// void AuthCheckerDigestBase::SetUserData(const std::string& username,
-//                                         const std::string& nonce,
-//                                         const std::string& opaque) const {
-//   SetNonceInfo(username, nonce, std::chrono::system_clock::now());
-//   SetOpaque(username, opaque);
-//   SetNonceCount(username, );
-// }
-
 }  // namespace server::handlers::auth
 
 USERVER_NAMESPACE_END

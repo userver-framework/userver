@@ -86,20 +86,6 @@ class AuthCheckerDigestBase : public server::handlers::auth::AuthCheckerBase {
   virtual void SetUserData(const std::string& username,
                            UserData user_data) const = 0;
 
-  // bool IsUserKnown(const std::string& username) const;
-
-  // virtual NonceInfo GetNonceInfo(const std::string& username) const = 0;
-  // virtual void SetNonceInfo(const std::string& username, const Nonce& nonce,
-  //                           TimePoint timestamp) const = 0;
-
-  // virtual std::string GetOpaque(const std::string& username) const = 0;
-  // virtual void SetOpaque(const std::string& username,
-  //                        const Nonce& nonce) const = 0;
-
-  // virtual std::uint32_t GetNonceCount(const std::string& nonce) const = 0;
-  // virtual void SetNonceCount(const std::string& username,
-  //                            std::uint32_t nonce_count) const = 0;
-
  private:
   std::string ConstructResponseDirectives(std::string_view nonce,
                                           std::string_view opaque,
