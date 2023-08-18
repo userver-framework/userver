@@ -118,3 +118,8 @@ async def delete_comment(service_client, comment_id, article, token):
         headers={'Authorization': token},
     )
 
+
+async def get_tags(service_client):
+    return await service_client.get(
+        Routes.GET_TAGS,
+    )
