@@ -71,5 +71,5 @@ async def test_add_comment_unauthorized(service_client):
     assert response.status == HTTPStatus.OK
 
     comment = Comment(profile)
-    response = await add_comment(service_client, comment, article, 'some-token')
+    response = await add_comment(service_client, comment, article, None)
     assert response.status == HTTPStatus.UNAUTHORIZED

@@ -51,10 +51,6 @@ async def test_get_comments_unknown_article(service_client):
     another_user_token = get_user_token(response)
     another_profile = Profile(another_user)
 
-    response = await follow_user(service_client, another_user, user_token)
-    assert response.status == HTTPStatus.OK
-    another_profile.following = True
-
     article = Article(another_profile)
     response = await create_article(service_client, article, another_user_token)
     assert response.status == HTTPStatus.OK
