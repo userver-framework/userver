@@ -13,7 +13,7 @@ DigestContextFromClient Parse(
       json[directives::kRealm].As<std::string>(),
       json[directives::kNonce].As<std::string>(),
       json[directives::kUri].As<std::string>(),
-      json[directives::kDomain].As<std::string>(),
+      json[directives::kResponse].As<std::string>(),
       json[directives::kAlgorithm].As<std::string>({}),
       json[directives::kCnonce].As<std::string>({}),
       json[directives::kOpaque].As<std::string>({}),
