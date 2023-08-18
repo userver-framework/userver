@@ -95,30 +95,34 @@ AuthCheckResult AuthCheckerDigestBase::CheckAuth(
   DigestParsing parser;
   parser.ParseAuthInfo(auth_value.substr(kDigestWord.size() + 1));
   const auto& client_context = parser.GetClientContext();
-  auto client_server_data_ptr = client_data_.Get(client_context.username);
-  if (!client_server_data_ptr) {
+
+  auto user_data_opt = GetUserData(client_context.username);
+  if (!user_data_opt.has_value()) {
     return StartNewAuthSession(client_context.username, digest_hasher_.Nonce(),
                                digest_hasher_.Opaque(), true, response);
   }
-  LOG_DEBUG() << "USER IS OK";
+  LOG_DEBUG() << "User is known";
 
-  if (IsNonceExpired(client_context.username, client_context.nonce)) {
+  const auto& user_data = user_data_opt.value();
+
+  if (IsNonceExpired(client_context.nonce, user_data)) {
     return StartNewAuthSession(client_context.username, digest_hasher_.Nonce(),
                                digest_hasher_.Opaque(), true, response);
   }
   LOG_DEBUG() << "NONCE IS OK";
 
   auto client_nc = std::stoul(client_context.nc, nullptr, 16);
-  if (*nonce_counts_[client_context.nonce] < client_nc) {
-    *nonce_counts_[client_context.nonce] = client_nc;
+  if (user_data.nonce_count < client_nc) {
+    UserData user_data{client_context.nonce, client_context.opaque,
+                       std::chrono::system_clock::now()};
+    SetUserData(client_context.username, std::move(user_data));
   } else {
     return AuthCheckResult{AuthCheckResult::Status::kTokenNotFound};
   }
   LOG_DEBUG() << "NONCE_COUNT IS OK";
 
-  if (!crypto::algorithm::AreStringsEqualConstTime(
-          client_context.opaque,
-          client_data_[client_context.username]->opaque)) {
+  if (!crypto::algorithm::AreStringsEqualConstTime(client_context.opaque,
+                                                   user_data.opaque)) {
     return StartNewAuthSession(client_context.username, digest_hasher_.Nonce(),
                                digest_hasher_.Opaque(), true, response);
   }
@@ -166,9 +170,9 @@ AuthCheckResult AuthCheckerDigestBase::StartNewAuthSession(
     const std::string& username, const std::string& nonce_from_client,
     const std::string& opaque_from_client, bool stale,
     server::http::HttpResponse& response) const {
-  auto client_data_ptr = std::make_shared<ClientData>(nonce_from_client, opaque_from_client,
-                                          std::chrono::system_clock::now());
-  client_data_.InsertOrAssign(username, client_data_ptr);
+  UserData user_data{nonce_from_client, opaque_from_client,
+                     std::chrono::system_clock::now()};
+  SetUserData(username, std::move(user_data));
   response.SetStatus(unauthorized_status_);
   response.SetHeader(authenticate_header_,
                      ConstructResponseDirectives(nonce_from_client,
@@ -192,18 +196,34 @@ std::string AuthCheckerDigestBase::ConstructResponseDirectives(
 }
 // clang-format on
 
-bool AuthCheckerDigestBase::IsNonceExpired(
-    const std::string& username, std::string_view nonce_from_client) const {
-  const auto& client_data = client_data_[username];
-  LOG_DEBUG() << "NONCE: " << client_data->nonce;
+bool AuthCheckerDigestBase::IsNonceExpired(std::string_view nonce_from_client,
+                                           const UserData& user_data) const {
+  LOG_DEBUG() << "NONCE: " << user_data.nonce;
   LOG_DEBUG() << "NONCE_FROM_CLIENT: " << nonce_from_client;
-  if (!crypto::algorithm::AreStringsEqualConstTime(client_data->nonce,
+  if (!crypto::algorithm::AreStringsEqualConstTime(user_data.nonce,
                                                    nonce_from_client)) {
     return false;
   }
 
-  return client_data->timestamp + nonce_ttl_ < std::chrono::system_clock::now();
+  return user_data.timestamp + nonce_ttl_ < std::chrono::system_clock::now();
 }
+
+// UserData AuthCheckerDigestBase::GetUserData(const std::string& username)
+// const {
+//   auto [nonce, timestamp] = GetNonceInfo(username);
+//   auto opaque = GetOpaque(username);
+//   auto nonce_count = GetNonceCount(username);
+
+//   return {std::move(nonce), std::move(opaque), timestamp, nonce_count};
+// }
+
+// void AuthCheckerDigestBase::SetUserData(const std::string& username,
+//                                         const std::string& nonce,
+//                                         const std::string& opaque) const {
+//   SetNonceInfo(username, nonce, std::chrono::system_clock::now());
+//   SetOpaque(username, opaque);
+//   SetNonceCount(username, );
+// }
 
 }  // namespace server::handlers::auth
 
