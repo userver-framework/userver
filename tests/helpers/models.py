@@ -64,4 +64,15 @@ class CommentList(BaseModel):
 
     def __init__(self, n=1, profile=None, init_comments=[], *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.comments = init_comments + [Comment(profile) for i in range(n - len(init_comments))]
+        self.comments = init_comments + \
+            [Comment(profile) for i in range(n - len(init_comments))]
+
+
+class ArticleList(BaseModel):
+    articles: List[Article] = []
+    articlesCount: int
+
+    def __init__(self, n=1, profile=None, init_comments=[], *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.comments = init_comments + \
+            [Article(profile) for i in range(n - len(init_comments))]
