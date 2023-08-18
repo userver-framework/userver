@@ -1,3 +1,30 @@
+const addModal = () => {
+    const modalHandler = () => {
+        const modal = document.getElementById('main-nav')
+        const closeBtn = document.getElementsByClassName('sm-dox')[0]
+        if (window.innerWidth < 768) {
+            closeBtn.appendChild(modal)
+        } else {
+            closeBtn.after(modal)
+        }
+    }
+
+    window.addEventListener('resize', () => {
+        modalHandler()
+    })
+
+    modalHandler()
+}
+
+const onBurger = () => {
+    const burgerBtn = document.querySelector('.main-menu-btn');
+    const modal = document.getElementById('navbar-main-menu')
+
+    burgerBtn.addEventListener('click', () => {
+        modal.style.display = 'flex'
+    })
+}
+
 const create_nav_wrapper = () => {
     const searchBoxWrapper = document.getElementById('searchBoxPos2');
     const themeToggler = document.querySelector("doxygen-awesome-dark-mode-toggle");
@@ -32,37 +59,9 @@ const remove_legacy_searchbox = () => {
     mobileSearchBox.parentNode.removeChild(mobileSearchBox);
 }
 
-const init_header = () => { // TODO: to footer.html
+const init_header = () => {
+    addModal();
     create_nav_wrapper();
-    remove_legacy_searchbox(); // TODO: mobile layout
-}
-const onBurger = () => {
-    const burgerBtn = document.querySelector('.main-menu-btn');
-    const modal = document.getElementById('navbar-main-menu')
-
-    
-    burgerBtn.addEventListener('click', () => {
-        modal.style.display = 'flex'
-    })
-}
-
-const addModal = () => {
-    const modalHandler = () => {
-        const modal = document.getElementById('main-nav')
-        const closeBtn = document.getElementsByClassName('sm-dox')[0]
-        if (window.innerWidth < 768) {
-            closeBtn.appendChild(modal)
-        } else {
-            closeBtn.after(modal)
-        }
-    }
-
-    window.addEventListener('resize', () => {
-        modalHandler()
-    })
-
-    modalHandler()
-
-    init_header();
-    onBurger()
+    remove_legacy_searchbox();
+    onBurger();
 }
