@@ -6,6 +6,7 @@ from models import User, Profile, Article
 from validators import validate_article
 from utils import get_user_token
 
+
 async def test_get_article(service_client):
     user = User(bio=None, image=None)
 
@@ -48,6 +49,6 @@ async def test_get_article_unauthorized(service_client):
     response = await create_article(service_client, article, user_token)
     assert response.status == HTTPStatus.OK
 
-    response = await get_article(service_client, article, 'some-token')
+    response = await get_article(service_client, article, None)
     assert response.status == HTTPStatus.OK
     assert validate_article(article, response)
