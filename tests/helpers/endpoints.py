@@ -80,3 +80,10 @@ async def get_comments(service_client, article, token):
         Routes.GET_COMMENTS.format(slug=article.slug),
         headers={'Authorization': token},
     )
+
+
+async def delete_comment(service_client, comment_id, article, token):
+    return await service_client.delete(
+        Routes.DELETE_COMMENT.format(slug=article.slug, id=comment_id),
+        headers={'Authorization': token},
+    )

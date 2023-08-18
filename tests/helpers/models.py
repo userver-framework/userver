@@ -55,6 +55,6 @@ class Comment(BaseModel):
 class CommentList(BaseModel):
     comments: List[Comment] = []
 
-    def __init__(self, n=1, profile=None, *args, **kwargs):
+    def __init__(self, n=1, profile=None, init_comments=[], *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.comments = [Comment(profile) for i in range(n)]
+        self.comments = init_comments + [Comment(profile) for i in range(n - len(init_comments))]

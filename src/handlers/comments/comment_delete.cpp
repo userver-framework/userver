@@ -36,7 +36,7 @@ userver::formats::json::Value Handler::HandleRequestJsonThrow(
 
   if (result_delete_comment.IsEmpty()) {
     auto& response = request.GetHttpResponse();
-    response.SetStatus(userver::server::http::HttpStatus::kMethodNotAllowed);
+    response.SetStatus(userver::server::http::HttpStatus::kForbidden);
     return utils::error::MakeError("user_id",
                                    "This user does not own this comment.");
   }
