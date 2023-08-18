@@ -61,8 +61,7 @@ AuthCheckerDigestBase::AuthCheckerDigestBase(
     : qops_(digest_settings.qops),
       qops_str_(fmt::format("{}", fmt::join(qops_, ","))),
       realm_(std::move(realm)),
-      domains_(digest_settings.domains),
-      domains_str_(fmt::format("{}", fmt::join(domains_, ", "))),
+      domains_str_(fmt::format("{}", fmt::join(digest_settings.domains, ", "))),
       algorithm_(digest_settings.algorithm),
       is_session_(digest_settings.is_session.value_or(false)),
       is_proxy_(digest_settings.is_proxy.value_or(false)),
@@ -167,9 +166,9 @@ AuthCheckResult AuthCheckerDigestBase::StartNewAuthSession(
     const std::string& username, const std::string& nonce_from_client,
     const std::string& opaque_from_client, bool stale,
     server::http::HttpResponse& response) const {
-  auto ptr = std::make_shared<ClientData>(nonce_from_client, opaque_from_client,
+  auto client_data_ptr = std::make_shared<ClientData>(nonce_from_client, opaque_from_client,
                                           std::chrono::system_clock::now());
-  client_data_.InsertOrAssign(username, ptr);
+  client_data_.InsertOrAssign(username, client_data_ptr);
   response.SetStatus(unauthorized_status_);
   response.SetHeader(authenticate_header_,
                      ConstructResponseDirectives(nonce_from_client,

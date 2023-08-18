@@ -86,10 +86,9 @@ class AuthCheckerDigestBase : public server::handlers::auth::AuthCheckerBase {
   mutable rcu::RcuMap<Username, ClientData> client_data_;
 
   const Qops& qops_;
-  QopsString qops_str_;
+  const QopsString qops_str_;
   const Realm realm_;
-  const Domains& domains_;
-  DomainsString domains_str_;
+  const DomainsString domains_str_;
   const Algorithm& algorithm_;
   const bool is_session_;
   const bool is_proxy_;
