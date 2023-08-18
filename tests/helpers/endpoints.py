@@ -49,3 +49,49 @@ async def unfollow_user(service_client, user, token):
         Routes.UNFOLLOW_PROFILE.format(username=user.username),
         headers={'Authorization': token},
     )
+
+
+async def create_article(service_client, article, token):
+    return await service_client.post(
+        Routes.CREATE_ARTICLE,
+        json=model_dump(
+            article, include=RequiredFields.CREATE_ARTICLE.value, exclude_none=True),
+        headers={'Authorization': token},
+    )
+
+
+async def get_article(service_client, article, token):
+    return await service_client.get(
+        Routes.GET_ARTICLE.format(slug=article.slug),
+        headers={'Authorization': token},
+    )
+
+
+async def update_article(service_client, article, slug, token):
+    return await service_client.put(
+        Routes.UPDATE_ARTICLE.format(slug=slug),
+        json=model_dump(
+            article, include=RequiredFields.UPDATE_ARTICLE.value, exclude_none=True),
+        headers={'Authorization': token},
+    )
+
+
+async def delete_article(service_client, article, token):
+    return await service_client.delete(
+        Routes.UPDATE_ARTICLE.format(slug=article.slug),
+        headers={'Authorization': token},
+    )
+
+
+async def favourite_article(service_client, article, token):
+    return await service_client.post(
+        Routes.FAVOURITE_ARTICLE.format(slug=article.slug),
+        headers={'Authorization': token},
+    )
+
+
+async def unfavourite_article(service_client, article, token):
+    return await service_client.delete(
+        Routes.UNFAVOURITE_ARTICLE.format(slug=article.slug),
+        headers={'Authorization': token},
+    )

@@ -23,3 +23,23 @@ def validate_profile(profile, response):
             'following': profile.following,
         }
     }
+
+
+def validate_article(article, response):
+    response_json = response.json()
+    response_json['article']['tagList'] = set(
+        response_json['article']['tagList'])
+    return response_json == {
+        'article': {
+            'slug': article.slug,
+            'title': article.title,
+            'description': article.description,
+            'body': article.body,
+            'tagList': set(article.tagList),
+            'createdAt': matching.datetime_string,
+            'updatedAt': matching.datetime_string,
+            'favorited': article.favorited,
+            'favoritesCount': article.favoritesCount,
+            'author': article.author.model_dump()
+        }
+    }

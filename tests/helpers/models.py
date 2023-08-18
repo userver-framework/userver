@@ -1,9 +1,7 @@
 from typing import Optional
 from pydantic import BaseModel, Field
-from faker import Faker
-
-fake = Faker()
-fake.seed_instance(4321)
+from utils import generate_title, fake
+from typing import Optional
 
 
 class User(BaseModel):
@@ -23,8 +21,31 @@ class Profile(BaseModel):
 
     def __init__(self, user, *args, **kwargs):
         super().__init__(
-            username = user.username,
-            bio = user.bio,
-            image = user.image,
+            username=user.username,
+            bio=user.bio,
+            image=user.image,
             *args, **kwargs
         )
+
+
+class Article(BaseModel):
+    slug: Optional[str] = None
+    title: str = Field(default_factory=generate_title)
+    description: str = Field(default_factory=fake.sentence)
+    body: str = Field(default_factory=fake.paragraph)
+    tagList: list = Field(default_factory=fake.words)
+    favorited: bool = False
+    favoritesCount: int = 0
+    author: Optional[Profile] = None
+
+    def __init__(self, profile=None, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.slug = self.title.lower().replace(' ', '-')
+        self.author = profile
+
+    def change_fields(self):
+        new_article = Article()
+        self.body = new_article.body
+        self.description = new_article.description
+        self.title = new_article.title
+        self.slug = new_article.slug

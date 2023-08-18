@@ -1,4 +1,8 @@
 from enum import Enum
+from faker import Faker
+
+fake = Faker()
+fake.seed_instance(4321)
 
 
 class Routes(str, Enum):
@@ -29,6 +33,8 @@ class Routes(str, Enum):
 class RequiredFields(tuple, Enum):
     LOGIN = 'email', 'password'
     REGISTRATION = 'username', 'email', 'password'
+    CREATE_ARTICLE = 'title', 'description', 'body', 'tagList'
+    UPDATE_ARTICLE = 'title', 'description', 'body',
 
 
 def model_dump(model, **kwargs):
@@ -37,3 +43,7 @@ def model_dump(model, **kwargs):
 
 def get_user_token(response):
     return 'Token {token}'.format(token=response.json()['user']['token'])
+
+
+def generate_title():
+    return ' '.join(fake.words(nb=5))
