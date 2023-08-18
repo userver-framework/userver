@@ -3,13 +3,22 @@
 #include <fmt/format.h>
 #include <cctype>
 #include <unordered_map>
+
 #include <userver/logging/log.hpp>
 #include <userver/utils/exception.hpp>
 #include <userver/utils/statistics/fmt.hpp>
+#include <userver/server/handlers/auth/digest_directives.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace server::handlers::auth {
+
+namespace {
+  constexpr std::array<std::string_view, 5> kMandatoryDirectives = {
+    directives::kRealm, directives::kNonce, directives::kResponse,
+    directives::kUri, directives::kUsername
+  };
+}
 
 void DigestParsing::ParseAuthInfo(std::string_view header_value) {
   enum class State {
@@ -114,7 +123,7 @@ void DigestParsing::ParseAuthInfo(std::string_view header_value) {
 
 DigestContextFromClient DigestParsing::GetClientContext() {
   // mandatory client directives checking
-  for (const auto& dir : client_params.mandatory_directives) {
+  for (const auto& dir : kMandatoryDirectives) {
     if (!directive_mapping.HasMember(dir)) {
       utils::LogErrorAndThrow(fmt::format(
           "Mandatory {} directive is missing in Authentication header", dir));
