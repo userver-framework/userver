@@ -70,9 +70,9 @@ class CommentList(BaseModel):
 
 class ArticleList(BaseModel):
     articles: List[Article] = []
-    articlesCount: int
+    articlesCount: int = 0
 
-    def __init__(self, n=1, profile=None, init_comments=[], *args, **kwargs):
+    def __init__(self, n=1, profile=None, init_articles=[], *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.comments = init_comments + \
-            [Article(profile) for i in range(n - len(init_comments))]
+        self.articles = init_articles + \
+            [Article(profile) for i in range(n - len(init_articles))]
