@@ -187,13 +187,13 @@ std::string AuthCheckerDigestBase::ConstructResponseDirectives(
     std::string_view nonce, std::string_view opaque, bool stale) const {
   return utils::StrCat(
       "Digest ",
-      fmt::format("{}=\"{}\", ", kTypesToDirectives.TryFind(DirectiveTypes::kRealm).value(), realm_),
-      fmt::format("{}=\"{}\", ", kTypesToDirectives.TryFind(DirectiveTypes::kNonce).value(), nonce),
-      fmt::format("{}=\"{}\", ", kTypesToDirectives.TryFind(DirectiveTypes::kStale).value(), stale),
-      fmt::format("{}=\"{}\", ", kTypesToDirectives.TryFind(DirectiveTypes::kDomain).value(), domains_str_),
-      fmt::format("{}=\"{}\", ", kTypesToDirectives.TryFind(DirectiveTypes::kOpaque).value(), opaque),
-      fmt::format("{}=\"{}\", ", kTypesToDirectives.TryFind(DirectiveTypes::kAlgorithm).value(), algorithm_),
-      fmt::format("{}=\"{}\"", kTypesToDirectives.TryFind(DirectiveTypes::kQop).value(), qops_str_));
+      fmt::format("{}=\"{}\", ", directives::kRealm, realm_),
+      fmt::format("{}=\"{}\", ", directives::kNonce, nonce),
+      fmt::format("{}=\"{}\", ", directives::kStale, stale),
+      fmt::format("{}=\"{}\", ", directives::kDomain, domains_str_),
+      fmt::format("{}=\"{}\", ", directives::kOpaque, opaque),
+      fmt::format("{}=\"{}\", ", directives::kAlgorithm, algorithm_),
+      fmt::format("{}=\"{}\"", directives::kQop, qops_str_));
 }
 // clang-format on
 

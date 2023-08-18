@@ -1,32 +1,25 @@
 #pragma once
 
-#include <userver/utils/trivial_map.hpp>
+#include <string_view>
 
 USERVER_NAMESPACE_BEGIN
 
-namespace server::handlers::auth {
+namespace server::handlers::auth::directives {
 
-enum class DirectiveTypes {
-  kRealm,
-  kNonce,
-  kStale,
-  kDomain,
-  kOpaque,
-  kAlgorithm,
-  kQop
-};
+constexpr std::string_view kUsername = "username";
+constexpr std::string_view kRealm = "realm";
+constexpr std::string_view kNonce = "nonce";
+constexpr std::string_view kStale = "stale";
+constexpr std::string_view kUri = "uri";
+constexpr std::string_view kDomain = "domain";
+constexpr std::string_view kResponse = "response";
+constexpr std::string_view kAlgorithm = "algorithm";
+constexpr std::string_view kCnonce = "cnonce";
+constexpr std::string_view kOpaque = "opaque";
+constexpr std::string_view kQop = "qop";
+constexpr std::string_view kNonceCount = "nc";
+constexpr std::string_view kAuthParam = "auth-param";
 
-constexpr utils::TrivialBiMap kTypesToDirectives = [](auto selector) {
-  return selector()
-      .Case("realm", DirectiveTypes::kRealm)
-      .Case("nonce", DirectiveTypes::kNonce)
-      .Case("stale", DirectiveTypes::kStale)
-      .Case("domain", DirectiveTypes::kDomain)
-      .Case("opaque", DirectiveTypes::kOpaque)
-      .Case("algorithm", DirectiveTypes::kAlgorithm)
-      .Case("qop", DirectiveTypes::kQop);
-};
-
-}  // namespace server::handlers::auth
+}  // namespace server::handlers::auth::directives
 
 USERVER_NAMESPACE_END

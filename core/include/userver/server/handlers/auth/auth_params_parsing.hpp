@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <memory>
 #include <optional>
 #include <string>
@@ -16,28 +17,12 @@ USERVER_NAMESPACE_BEGIN
 
 namespace server::handlers::auth {
 
-struct Auth {
-  static std::unordered_set<std::string> mandatory_directives;
-};
-
-struct ClientAuth : public Auth {
-  std::unordered_set<std::string> mandatory_directives = {
-      "realm", "nonce", "response", "uri", "username"};
-};
-
-struct ServerAuth : public Auth {
-  std::unordered_set<std::string> mandatory_directives = {"realm", "nonce"};
-};
-
 class DigestParsing {
-  ClientAuth client_params;
-  ServerAuth server_params;
   formats::json::ValueBuilder directive_mapping;
 
  public:
   void ParseAuthInfo(std::string_view header_value);
   DigestContextFromClient GetClientContext();
-  DigestContextFromServer GetServerContext();
 };
 
 }  // namespace server::handlers::auth
