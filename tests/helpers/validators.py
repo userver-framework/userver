@@ -43,3 +43,15 @@ def validate_article(article, response):
             'author': article.author.model_dump()
         }
     }
+
+
+def validate_comment(comment, response):
+    return response.json() == {
+        'comment': {
+            'id': matching.positive_integer,
+            'createdAt': matching.datetime_string,
+            'updatedAt': matching.datetime_string,
+            'body': comment.body,
+            'author': comment.author.model_dump()
+        }
+    }

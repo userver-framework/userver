@@ -34,6 +34,7 @@ class RequiredFields(tuple, Enum):
     LOGIN = 'email', 'password'
     REGISTRATION = 'username', 'email', 'password'
     CREATE_ARTICLE = 'title', 'description', 'body', 'tagList'
+    ADD_COMMENT = 'body'
 
 
 def model_dump(model, **kwargs):

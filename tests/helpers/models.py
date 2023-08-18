@@ -42,3 +42,12 @@ class Article(BaseModel):
         super().__init__(*args, **kwargs)
         self.slug = self.title.lower().replace(' ', '-')
         self.author = profile
+
+
+class Comment(BaseModel):
+    body: str = Field(default_factory=fake.sentence)
+    author: Optional[Profile] = None
+
+    def __init__(self, profile=None, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.author = profile

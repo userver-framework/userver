@@ -65,3 +65,11 @@ async def get_article(service_client, article, token):
         Routes.GET_ARTICLE.format(slug=article.slug),
         headers={'Authorization': token},
     )
+
+
+async def add_comment(service_client, comment, article, token):
+    return await service_client.post(
+        Routes.ADD_COMMENT.format(slug=article.slug),
+        json=model_dump(comment, include=RequiredFields.ADD_COMMENT.value),
+        headers={'Authorization': token},
+    )
