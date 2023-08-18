@@ -54,7 +54,7 @@ struct NonceInfo {
 struct UserData {
   UserData() = default;
   UserData(const std::string& nonce, const std::string& opaque,
-           TimePoint timestamp, std::uint32_t nonce_count = 1)
+           TimePoint timestamp, std::uint32_t nonce_count = 0)
       : nonce(nonce),
         opaque(opaque),
         timestamp(timestamp),
