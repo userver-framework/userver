@@ -1,26 +1,26 @@
 #pragma once
 
-#include <userver/formats/json/value.hpp>
-#include <userver/formats/json/value_builder.hpp>
-
 #include <optional>
 #include <string>
 #include <string_view>
 #include <unordered_set>
 #include <vector>
 
+#include <userver/formats/json/value.hpp>
+#include <userver/formats/json/value_builder.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace server::handlers::auth {
 
-// www-authenticate response header from server
+// WWW-Authenticate response header from server
 // realm, nonce are mandatory
 // domain, opaque, stale, algorithm, qop, auth-param are optional
 struct DigestContextFromServer {
   std::string realm;
   std::string nonce;
   std::string algorithm;
-  bool stale;
+  bool stale{false};
   std::string authparam;
   std::string qop;
   std::string opaque;
