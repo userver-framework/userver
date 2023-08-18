@@ -1,4 +1,5 @@
 #include <userver/server/handlers/auth/digestcontext.hpp>
+#include <userver/server/handlers/auth/digest_directives.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -8,17 +9,17 @@ DigestContextFromClient Parse(
     const userver::formats::json::Value& json,
     userver::formats::parse::To<DigestContextFromClient>) {
   return DigestContextFromClient{
-      json["username"].As<std::string>(),
-      json["realm"].As<std::string>(),
-      json["nonce"].As<std::string>(),
-      json["uri"].As<std::string>(),
-      json["response"].As<std::string>(),
-      json["algorithm"].As<std::string>({}),
-      json["cnonce"].As<std::string>({}),
-      json["opaque"].As<std::string>({}),
-      json["qop"].As<std::string>({}),
-      json["nc"].As<std::string>({}),
-      json["auth-param"].As<std::string>({}),
+      json[directives::kUsername].As<std::string>(),
+      json[directives::kRealm].As<std::string>(),
+      json[directives::kNonce].As<std::string>(),
+      json[directives::kUri].As<std::string>(),
+      json[directives::kDomain].As<std::string>(),
+      json[directives::kAlgorithm].As<std::string>({}),
+      json[directives::kCnonce].As<std::string>({}),
+      json[directives::kOpaque].As<std::string>({}),
+      json[directives::kQop].As<std::string>({}),
+      json[directives::kNonceCount].As<std::string>({}),
+      json[directives::kAuthParam].As<std::string>({}),
   };
 }
 
