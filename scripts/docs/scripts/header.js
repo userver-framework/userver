@@ -1,3 +1,51 @@
+const create_nav_wrapper = () => {
+    const searchBoxWrapper = document.getElementById('searchBoxPos2');
+    const themeToggler = document.querySelector("doxygen-awesome-dark-mode-toggle");
+    const searchBox = document.getElementById('MSearchBox');
+
+    const mainNav = document.createElement('div');
+    mainNav.id = 'main-navbar';
+
+    const mainMenu = document.getElementById('main-menu');
+    mainMenu.id = 'navbar-main-menu';
+
+    mainNav.appendChild(mainMenu);
+
+    mainMenu.after(searchBox);
+    mainMenu.after(themeToggler);
+
+    searchBoxWrapper.parentNode.removeChild(searchBoxWrapper);
+
+    const oldWrapper = document.getElementById('main-nav');
+
+    oldWrapper.before(mainNav);
+}
+
+const remove_legacy_searchbox = () => {
+    const burgerBtn = document.querySelector('.main-menu-btn');
+    const mainMenu = document.getElementById('navbar-main-menu');
+
+    mainMenu.after(burgerBtn);
+
+    const mobileSearchBox = document.getElementById('searchBoxPos1');
+
+    mobileSearchBox.parentNode.removeChild(mobileSearchBox);
+}
+
+const init_header = () => { // TODO: to footer.html
+    create_nav_wrapper();
+    remove_legacy_searchbox(); // TODO: mobile layout
+}
+const onBurger = () => {
+    const burgerBtn = document.querySelector('.main-menu-btn');
+    const modal = document.getElementById('navbar-main-menu')
+
+    
+    burgerBtn.addEventListener('click', () => {
+        modal.style.display = 'flex'
+    })
+}
+
 const addModal = () => {
     const modalHandler = () => {
         const modal = document.getElementById('main-nav')
@@ -14,4 +62,7 @@ const addModal = () => {
     })
 
     modalHandler()
+
+    init_header();
+    onBurger()
 }

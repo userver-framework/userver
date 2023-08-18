@@ -6,9 +6,78 @@ div.contents {
     margin-right: auto;
 }
 
+/* styles for header */
+#top {
+    justify-content: space-between; /* or center */
+    /* padding: 10px; TODO: make sence */
+}
+/* project logo and name*/
 #projectlogo {
-    width: 50px;
-    padding: 7px;
+    padding: 7px; 
+}
+
+#projectlogo img {
+    width: 70px;
+    max-height: none;
+}
+
+#projectalign {
+    padding-left: 0.5em;
+}
+
+#projectalign div {
+    line-height: 26px;
+}
+
+#projectname a {
+    font-size: 42px;
+    color: white !important;
+}
+
+#projectbrief a  {
+    font-size: 17px;
+    color: white !important;
+}
+
+/* gh and tg links */
+#links a:hover {
+    text-decoration: none;
+}
+.gh-logo {
+    filter: invert(1);
+}
+
+/* main navbar, search and toggler */
+#main-navbar  {
+    display: flex;
+    align-items: center;
+}
+.sm.sm-dox {
+    margin-left: 20px;
+}
+#navbar-main-menu > li > a { 
+    color: rgb(255, 255, 255) !important;
+    font-size: 18px;
+}
+
+#navbar-main-menu > li > a:hover{  
+    color: #f18128;
+}
+.sm.sm-dox a {
+    color: black !important;
+}
+#main-nav {
+    display: none;
+}
+
+#links {
+    margin-left: 20px;
+}
+
+#MSearchBox {
+    width: 400px;
+    margin-left: 15px;
+    border-radius: 14px;
 }
 
 #projectbrief {
@@ -25,7 +94,6 @@ div.contents {
     max-width: 400px;
 }
 
-
 /* Landing page */
 .landing-logo {
   width: 45%;
@@ -34,7 +102,6 @@ div.contents {
   margin-top: 3%;
   margin-bottom: 6%;
 }
-
 
 .landing-motto {
     text-align: right;
@@ -99,30 +166,105 @@ div.contents {
     gap: 4px;
 }
 
-#projectname a {
-    color: white !important;
-}
+@media(max-width: 1439px) {
+    #top {
+        display: flex;
+        justify-content: space-between;
+    }
 
-#projectbrief a  {
-    color: white !important;
-}
+    #projectlogo {
+        padding: 0; 
+    }
+    
+    #projectlogo img {
+        width: 36px;
+        max-height: none;
+    }
+    td#projectalign {
+        padding: 5px;
+    }
 
-#links {
-    display: none;
-}
+    #titlearea {
+        padding: 10px;
+    }
 
-#links a:hover {
-    text-decoration: none;
-}
+    #projectalign div {
+        line-height: 12px;
+    }
+    
+    #projectname a {
+        font-size: 15px;
+        color: white !important;
+    }
+    
+    #projectbrief a  {
+        font-size: 9px;
+        color: white !important;
+    }
 
-#MSearchBox {
-    display: none;
-}
+    #MSearchBox {
+        width: 390px; /* 45vw; */
+        order: 1;
+    }
+    #MSearchField {
+        width: 390px; /* 200%; */
+    }
 
-#projectlogo img  {
-    width: 32px;
-    max-height: none;
-    margin: 0;
+    #MSearchResultsWindow {
+        right: 0px;
+    }
+
+    #navbar-main-menu {
+        display: none;
+        position: absolute;
+        top: 10px;
+        right: 50px;
+        flex-direction: column;
+        width: 300px;
+        background-color: white;
+        border-radius: 8px;
+        border: 1px solid #d3d1d1;
+    }
+
+    #navbar-main-menu > li > a { 
+        color: black !important;
+        font-size: 18px;
+    }
+
+    #navbar-main-menu li:hover{
+        cursor:  pointer;
+        background-color: #fae7d3 !important;
+    }
+
+    .sm-dox {
+        margin: auto 0;
+        position: relative;
+        
+    }
+
+    .sm.sm-dox a  {
+        color: black !important;
+        font-weight: bold;
+    }
+
+    .sm.sm-dox  > li {
+        border-radius: 10px;
+        padding: 5px 70px;  /* TODO: adaptive width */
+    }
+
+    doxygen-awesome-dark-mode-toggle {
+        order: 2;
+    }
+
+    .main-menu-btn {
+        order: 3;
+        position: relative;
+        top: 0px;
+    }
+
+    #links {
+        display: none;
+    }
 }
 
 @media(max-width: 767px) {
@@ -131,117 +273,107 @@ div.contents {
         justify-content: space-between;
     }
 
-    #main-nav {
-        flex-grow: 0;
-        padding: 0;
-        margin: auto 0;
-    }
     #projectlogo {
-        padding: 0;
+        padding: 0; 
     }
+    
+    #projectlogo img {
+        width: 36px;
+        max-height: none;
+    }
+    td#projectalign {
+        padding: 5px;
+    }
+
+    #titlearea {
+        padding: 10px;
+    }
+
+    #projectalign div {
+        line-height: 10px;
+    }
+
+    #projectalign {
+        padding-left: 0;
+        white-space: nowrap;
+        padding-left: 10px;
+    }
+    
     #projectname a {
         font-size: 14px;
+        color: white !important;
     }
+    
     #projectbrief a  {
         font-size: 7px;
+        color: white !important;
+    }
+
+    #MSearchBox {
+        width: 30vw;
+        order: 1;
+    }
+    #MSearchField {
+        width: 30vw;
+    }
+
+    #MSearchResultsWindow {
+        /* right: 0px; */
+        left: 30vw !important; /*  TODO: search modal position*/ 
+    }
+
+    #navbar-main-menu {
+        display: none;
+        position: absolute;
+        top: 10px;
+        right: 30px;
+        flex-direction: column;
+        width: 300px;
+        background-color: white;
+        border-radius: 8px;
+        border: 1px solid #d3d1d1;
+    }
+
+    #navbar-main-menu li:hover{
+        cursor:  pointer;
+        background-color: #fae7d3 !important;
     }
 
     .sm-dox {
         margin: auto 45px;
         position: relative;
+        padding: 0px !important;
+        
     }
-    #titlearea {
-        padding: 10px;
+    .sm.sm-dox {
+        margin: 0px;
     }
-
-    /* body, table, div, p, dl {
-        line-height: 20px;
-    } */
-    #main-nav {
-       position: absolute;
-       background-color: white;
-       color: #352e48;
-       /* border: 1px solid rgb(238, 236, 236); */
-       font-weight: bold;
-       top: 0px;
-       right: 0px;
-       z-index: -1;
-       border-radius: 10px;
-       margin: 0;
-       
-    }
-    
-    #main-nav ul {
-        margin: 0;
-        z-index: inherit;
-    }
-    #main-nav >ul >li {
-        border-radius: 10px;
-        padding: 5px 70px;  /* todo adaptive width */
-    }
-    #main-nav > ul > li > a  {
-        padding: 0;
-        display: block;
+    .sm.sm-dox a  {
+        color: black !important;
         font-weight: bold;
+        background: transparent;
+        font-size: 18px !important;
     }
-    #main-nav > ul > li:hover,  #main-nav > ul > li > a:hover{
-        color: #352e48 !important;
+    .sm.sm-dox a:hover{
+        font-size: 18px !important;
     }
-    
-    #projectalign {
-        padding-left: 0;
-    }
-
-    #projectalign div{
-        line-height: 10px;
+    .sm.sm-dox > li {
+        border-radius: 10px;
+        padding: 5px 70px;  /* TODO: adaptive width */
     }
 
-    /* #parent {
-        position: absolute;
-        margin: auto 0;
-       left: 200px;
-    } */
+    doxygen-awesome-dark-mode-toggle {
+        order: 2;
+    }
 
-}
-
-@media(min-width: 1440px) {
-    #projectlogo img  {
-        width: 72px;
-    }
-    td#projectalign {
-        padding: 0;
-        /* line-height: 22px; */
-    }
-    #projectname a {
-        font-size: 42px;
-    }
-    #projectbrief a  {
-        font-size: 17px;
-    }
-    #projectalign {
-        padding-left: 0.5em;
-    }
-    #MSearchBox {
-        display: block;
+    .main-menu-btn {
+        order: 3;
+        position: relative;
+        top: 0px;
     }
 
     #links {
-        display: block;
-    }
-
-    #projectalign  div {
-        line-height: 26px;
-    }
-    #main-nav > ul > li > a {
-        color: #D2DBDE !important;
-    }
-    #main-nav > ul > li > a {
-        font-size: 1.2em;
-    }
-}
-@media (min-width:768px){
-    #main-nav > ul > li > a {
-        color: #D2DBDE !important;
+        display: none;
     }
 }
 
@@ -378,10 +510,6 @@ pre {
     font-family: var(--font-family-monospace);
 }
 
-.gh-logo {
-    filter: invert(1);
-}
-
 .memItemLeft, .memTemplItemLeft {
     white-space: normal;
     font-size: 14px;
@@ -469,12 +597,6 @@ div.toc li.level5 {
 
 div.toc li.level6 {
     margin-left: 75px;
-}
-
-#MSearchBox {
-    width: 380px;
-    margin-left: 15px;
-    border-radius: 14px;
 }
 
 #top {
