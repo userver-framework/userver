@@ -88,3 +88,10 @@ async def favourite_article(service_client, article, token):
         Routes.FAVOURITE_ARTICLE.format(slug=article.slug),
         headers={'Authorization': token},
     )
+
+
+async def unfavourite_article(service_client, article, token):
+    return await service_client.delete(
+        Routes.UNFAVOURITE_ARTICLE.format(slug=article.slug),
+        headers={'Authorization': token},
+    )
