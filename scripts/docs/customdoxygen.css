@@ -1,7 +1,7 @@
 
 /* Too wide page makes people uncomfortable, keep content in center */
 div.contents {
-    max-width: 1200px;
+    max-width: 1440px;
     margin-left: auto;
     margin-right: auto;
 }
@@ -92,6 +92,14 @@ div.contents {
 #landing_logo_id{
     text-align: center;
     max-width: 400px;
+}
+
+h2.groupheader {
+    box-shadow: none;
+}
+
+div.header {
+    border: 0;
 }
 
 /* Landing page */
