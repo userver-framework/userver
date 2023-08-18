@@ -44,7 +44,8 @@ userver::formats::json::Value Handler::HandleRequestJsonThrow(
           userver::storages::postgres::kRowTag);
           
   userver::formats::json::ValueBuilder builder;
-  for (auto comment : comments) {builder["comments"].PushBack(comment);}
+  builder["comments"] = comments;
+  // for (auto comment : comments) {builder["comments"].PushBack(comment);}
 
   return builder.ExtractValue();
 }

@@ -1,7 +1,6 @@
-from typing import Optional
+from typing import Optional, List
 from pydantic import BaseModel, Field
 from utils import generate_title, fake
-from typing import Optional
 
 
 class User(BaseModel):
@@ -49,3 +48,20 @@ class Article(BaseModel):
         self.description = new_article.description
         self.title = new_article.title
         self.slug = new_article.slug
+
+
+class Comment(BaseModel):
+    body: str = Field(default_factory=fake.sentence)
+    author: Optional[Profile] = None
+
+    def __init__(self, profile=None, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.author = profile
+
+
+class CommentList(BaseModel):
+    comments: List[Comment] = []
+
+    def __init__(self, n=1, profile=None, init_comments=[], *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.comments = init_comments + [Comment(profile) for i in range(n - len(init_comments))]
