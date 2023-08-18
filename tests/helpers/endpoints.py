@@ -81,3 +81,10 @@ async def delete_article(service_client, article, token):
         Routes.UPDATE_ARTICLE.format(slug=article.slug),
         headers={'Authorization': token},
     )
+
+
+async def favourite_article(service_client, article, token):
+    return await service_client.post(
+        Routes.FAVOURITE_ARTICLE.format(slug=article.slug),
+        headers={'Authorization': token},
+    )
