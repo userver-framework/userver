@@ -134,3 +134,9 @@ async def list_articles(service_client, token, tag, author, favorited, limit, of
                 'limit': limit, 'offset': offset},
         headers={'Authorization': token},
     )
+
+
+async def get_tags(service_client):
+    return await service_client.get(
+        Routes.GET_TAGS,
+    )

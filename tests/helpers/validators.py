@@ -79,3 +79,7 @@ def validate_comments(commentList, response):
         if not res:
             return False
     return True
+
+
+def validate_tags(tagList, response):
+    return set(response.json()["tags"]) == tagList
