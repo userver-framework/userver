@@ -720,6 +720,7 @@ html:not(.light-mode) .landing-intro-center {
 
 .bottom-nav .button {
   font-size: 12px;
+  border-radius: 8px;
   padding: 16px;
   background: #f5f5f5;
   display: flex;
@@ -761,7 +762,6 @@ html:not(.light-mode) .landing-intro-center {
 
 .bottom-nav .button:hover {
   background: #f9e2ca;
-  border-radius: 8px;
 }
 
 .bottom-nav .btn-sub {
