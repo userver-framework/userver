@@ -20,6 +20,7 @@ AuthDigestCheckerComponent::AuthDigestCheckerComponent(
     const components::ComponentContext& context)
     : components::LoggableComponentBase(config, context) {
   // Reading config values from static config
+  // Check for valid algorithms
   std::string algorithm = config["algorithm"].As<std::string>();
   if (!server::handlers::auth::kHashAlgToType.TryFind(algorithm).has_value()) {
     throw std::runtime_error("Algorithm is not supported: " + algorithm);
@@ -27,9 +28,9 @@ AuthDigestCheckerComponent::AuthDigestCheckerComponent(
   settings_.algorithm = algorithm;
 
   settings_.domains = config["domains"].As<std::vector<std::string>>({});
+  settings_.qops = config["qops"].As<std::vector<std::string>>({});
   settings_.is_proxy = config["is-proxy"].As<bool>(false);
   settings_.is_session = config["is-session"].As<bool>(false);
-  settings_.qops = config["qops"].As<std::vector<std::string>>({});
   settings_.nonce_ttl =
       config["nonce-ttl"].As<std::chrono::milliseconds>(kDefaultTTL);
 }
