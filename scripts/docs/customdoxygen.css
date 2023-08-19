@@ -107,7 +107,7 @@ html.dark-mode {
 }
 
 .hljs-comment {
-  color: #d46d6d
+  color: #d46d6d;
 }
 
 .hljs-tag .hljs-attr,
@@ -183,6 +183,10 @@ div.contents {
   padding: 7px; /* matches .fragment */
 }
 
+hr {
+  display: none;
+}
+
 /* Header */
 
 #top {
@@ -193,7 +197,7 @@ div.contents {
 }
 
 #titlearea {
-    padding: 0px;
+  padding: 0px;
 }
 
 #titlearea a:hover {
@@ -262,7 +266,7 @@ html.dark-mode .sm.sm-dox a {
   color: white !important;
 }
 
-html.dark-mode .sm.sm-dox a:hover{
+html.dark-mode .sm.sm-dox a:hover {
   color: var(--primary-color) !important;
 }
 
@@ -270,7 +274,7 @@ html.dark-mode .sm.sm-dox li:last-child ul {
   background-color: #2e273f !important;
 }
 
-html.dark-mode .sm.sm-dox li:last-child ul li a{
+html.dark-mode .sm.sm-dox li:last-child ul li a {
   background-color: transparent !important;
 }
 
@@ -285,7 +289,7 @@ html.dark-mode .sm.sm-dox li:last-child ul li a{
 }
 
 #telegram_channel {
-    margin-left: 5px;
+  margin-left: 5px;
 }
 
 #MSearchBox {
@@ -297,7 +301,7 @@ html.dark-mode .sm.sm-dox li:last-child ul li a{
 }
 
 #MSearchBox span.left {
-    width: 100%;
+  width: 100%;
 }
 
 #projectbrief {
@@ -305,7 +309,7 @@ html.dark-mode .sm.sm-dox li:last-child ul li a{
 }
 
 #projectlogo img {
-    margin: 0px;
+  margin: 0px;
 }
 
 #landing-content {
@@ -363,7 +367,7 @@ a.titlelink:hover {
 }
 
 .main-menu-btn {
-    margin-left: 7px;
+  margin-left: 7px;
 }
 
 .SRResult .highlight {
@@ -392,11 +396,11 @@ a.titlelink:hover {
 }
 
 .right {
-    margin-right: 5px;
+  margin-right: 5px;
 }
 
 #MSearchCloseImg {
-    width: 16px;
+  width: 16px;
 }
 
 .all-results-link {
@@ -444,11 +448,11 @@ a.titlelink:hover {
 }
 
 doxygen-awesome-dark-mode-toggle {
-    order: 1;
+  order: 1;
 }
 
 #MSearchBox {
-    order: 2;
+  order: 2;
 }
 
 @media (max-width: 1439px) {
@@ -668,7 +672,6 @@ doxygen-awesome-dark-mode-toggle {
 }
 
 .landing-text .codeblock {
-
   margin: 0 auto;
   font-family: monospace;
   text-align: justify;
@@ -683,7 +686,6 @@ doxygen-awesome-dark-mode-toggle {
   flex-wrap: wrap;
 }
 
-
 .landing-intro-left,
 .landing-intro-right {
   font-size: 1.1em;
@@ -694,7 +696,7 @@ doxygen-awesome-dark-mode-toggle {
 @media (min-width: 999px) {
   .landing-intro-left,
   .landing-intro-right {
-      width: 47%; 
+    width: 47%;
   }
 }
 
@@ -847,7 +849,7 @@ div.toc li.level4 {
   line-height: 18px;
 }
 
-div.toc li { 
+div.toc li {
   font-family: "Roboto", sans-serif;
 }
 
@@ -902,34 +904,47 @@ pre {
 /* style block code */
 .textblock li > .fragment,
 .textblock li > .doxygen-awesome-fragment-wrapper > .fragment {
-    margin: var(--spacing-medium) calc(15px - var(--spacing-large));
+  margin: var(--spacing-medium) calc(15px - var(--spacing-large));
 }
 
 @media screen and (max-width: 767px) {
-doxygen-awesome-fragment-copy-button {
-      right: (var(--spacing-small));
+  doxygen-awesome-fragment-copy-button {
+    right: (var(--spacing-small));
   }
 }
 
 @media screen and (max-width: 767px) {
-
   .contents > div.fragment,
   .textblock > div.fragment,
   .textblock > pre.fragment,
   .contents > .doxygen-awesome-fragment-wrapper > div.fragment,
   .textblock > .doxygen-awesome-fragment-wrapper > div.fragment,
   .textblock > .doxygen-awesome-fragment-wrapper > pre.fragment {
-      margin: var(--spacing-medium) calc(15px - var(--spacing-large));
-      border-radius: 12px;
+    margin: var(--spacing-medium) calc(15px - var(--spacing-large));
+    border-radius: 12px;
   }
 
-/* position copy btn */
+  /* position copy btn */
   @media screen and (max-width: 767px) {
-    .textblock > .doxygen-awesome-fragment-wrapper > doxygen-awesome-fragment-copy-button,
-    .textblock li > .doxygen-awesome-fragment-wrapper > doxygen-awesome-fragment-copy-button,
-    .memdoc li > .doxygen-awesome-fragment-wrapper > doxygen-awesome-fragment-copy-button,
-    .memdoc > .doxygen-awesome-fragment-wrapper > doxygen-awesome-fragment-copy-button,
-    dl dd > .doxygen-awesome-fragment-wrapper > doxygen-awesome-fragment-copy-button {
-        right: 7px;
+    .textblock
+      > .doxygen-awesome-fragment-wrapper
+      > doxygen-awesome-fragment-copy-button,
+    .textblock
+      li
+      > .doxygen-awesome-fragment-wrapper
+      > doxygen-awesome-fragment-copy-button,
+    .memdoc
+      li
+      > .doxygen-awesome-fragment-wrapper
+      > doxygen-awesome-fragment-copy-button,
+    .memdoc
+      > .doxygen-awesome-fragment-wrapper
+      > doxygen-awesome-fragment-copy-button,
+    dl
+      dd
+      > .doxygen-awesome-fragment-wrapper
+      > doxygen-awesome-fragment-copy-button {
+      right: 7px;
     }
-}}
+  }
+}
