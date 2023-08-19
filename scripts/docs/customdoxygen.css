@@ -70,11 +70,9 @@ html.dark-mode {
 
   --tablehead-background: #413956;
 
-  --code-background: #2E273F;
-
+  --code-background: #4d416c;
 
   --side-nav-background: #413956;
-  --fragment-background:#2E273F
 }
 
 /* 🐙 userver variables */
@@ -183,25 +181,6 @@ div.contents {
   background-color: #fefcf9; /* matches .fragment */
   border: 1px solid #fdcc9a; /* matches .fragment */
   padding: 7px; /* matches .fragment */
-}
-
-/* Code examples */
-
-/* More space and scrolling for code snippets */
-div.fragment {
-  padding: 7px;
-  overflow-x: scroll;
-  border-radius: 12px;
-}
-
-pre {
-  font-family: var(--font-family-monospace);
-}
-
-.memItemLeft,
-.memTemplItemLeft {
-  white-space: normal;
-  font-size: 14px;
 }
 
 /* Header */
@@ -885,7 +864,26 @@ div.toc li a.active {
   }
 }
 
-/* fix style block code */
+/* Code examples */
+
+/* More space and scrolling for code snippets */
+div.fragment {
+  padding: 7px;
+  overflow-x: scroll;
+  border-radius: 12px;
+}
+
+pre {
+  font-family: var(--font-family-monospace);
+}
+
+.memItemLeft,
+.memTemplItemLeft {
+  white-space: normal;
+  font-size: 14px;
+}
+
+/* style block code */
 .textblock li > .fragment,
 .textblock li > .doxygen-awesome-fragment-wrapper > .fragment {
     margin: var(--spacing-medium) calc(15px - var(--spacing-large));
@@ -909,7 +907,7 @@ doxygen-awesome-fragment-copy-button {
       border-radius: 12px;
   }
 
-/* fix position copy btn */
+/* position copy btn */
   @media screen and (max-width: 767px) {
     .textblock > .doxygen-awesome-fragment-wrapper > doxygen-awesome-fragment-copy-button,
     .textblock li > .doxygen-awesome-fragment-wrapper > doxygen-awesome-fragment-copy-button,
