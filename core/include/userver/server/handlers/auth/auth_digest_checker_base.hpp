@@ -51,9 +51,7 @@ struct UserData {
   UserData() = default;
   UserData(const std::string& nonce, TimePoint timestamp,
            std::uint32_t nonce_count = 0)
-      : nonce(nonce),
-        timestamp(timestamp),
-        nonce_count(nonce_count) {}
+      : nonce(nonce), timestamp(timestamp), nonce_count(nonce_count) {}
 
   std::string nonce;
   TimePoint timestamp;
@@ -64,7 +62,8 @@ class AuthCheckerDigestBase : public server::handlers::auth::AuthCheckerBase {
  public:
   using AuthCheckResult = server::handlers::auth::AuthCheckResult;
 
-  AuthCheckerDigestBase(const AuthDigestSettings& digest_settings, Realm realm);
+  AuthCheckerDigestBase(const AuthDigestSettings& digest_settings,
+                        Realm&& realm);
 
   [[nodiscard]] AuthCheckResult CheckAuth(
       const server::http::HttpRequest& request,

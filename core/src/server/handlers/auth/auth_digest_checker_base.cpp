@@ -58,7 +58,7 @@ std::string DigestHasher::GetHash(std::string_view data) const {
 }
 
 AuthCheckerDigestBase::AuthCheckerDigestBase(
-    const AuthDigestSettings& digest_settings, Realm realm)
+    const AuthDigestSettings& digest_settings, Realm&& realm)
     : qops_(digest_settings.qops),
       qops_str_(fmt::format("{}", fmt::join(qops_, ","))),
       realm_(std::move(realm)),
@@ -118,9 +118,8 @@ AuthCheckResult AuthCheckerDigestBase::CheckAuth(
   if (!crypto::algorithm::AreStringsEqualConstTime(digest.value(),
                                                    client_context.response)) {
     response.SetStatus(unauthorized_status_);
-    response.SetHeader(authenticate_header_,
-                       ConstructResponseDirectives(
-                           client_context.nonce, false));
+    response.SetHeader(authenticate_header_, ConstructResponseDirectives(
+                                                 client_context.nonce, false));
     return AuthCheckResult{AuthCheckResult::Status::kInvalidToken};
   }
 
@@ -169,8 +168,7 @@ std::string AuthCheckerDigestBase::ConstructAuthInfoHeader(
 
 AuthCheckResult AuthCheckerDigestBase::StartNewAuthSession(
     const std::string& username, const std::string& nonce_from_client,
-    bool stale,
-    server::http::HttpResponse& response) const {
+    bool stale, server::http::HttpResponse& response) const {
   UserData user_data{nonce_from_client, userver::utils::datetime::Now()};
   SetUserData(username, std::move(user_data));
   response.SetStatus(unauthorized_status_);
@@ -220,8 +218,7 @@ std::optional<std::string> AuthCheckerDigestBase::CalculateDigest(
                       client_context.cnonce);
   }
 
-  auto a2 =
-      fmt::format("{}:{}", ToString(request_method), client_context.uri);
+  auto a2 = fmt::format("{}:{}", ToString(request_method), client_context.uri);
   std::string ha2 = digest_hasher_.GetHash(a2);
 
   // digest_value = H(HA1:nonce:nc:cnonce:qop:HA2)
