@@ -18,9 +18,9 @@
 #include <userver/server/handlers/auth/digest_directives.hpp>
 #include <userver/server/handlers/exceptions.hpp>
 #include <userver/server/handlers/fallback_handlers.hpp>
+#include <userver/server/http/http_response.hpp>
 #include <userver/utils/algo.hpp>
 #include <userver/utils/datetime.hpp>
-#include <userver/server/http/http_response.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -83,17 +83,20 @@ AuthCheckerDigestBase::AuthCheckerDigestBase(
 AuthCheckResult AuthCheckerDigestBase::CheckAuth(
     const server::http::HttpRequest& request,
     server::request::RequestContext&) const {
+  // RFC 2617, 3
+  // Digest Access Authentication.
   auto& response = request.GetHttpResponse();
 
   const auto& auth_value = request.GetHeader(authorization_header_);
   if (auth_value.empty()) {
+    // If there is no authorization header, we save the "nonce" to temporary
+    // storage.
     auto nonce = digest_hasher_.Nonce();
     PushUnnamedNonce(nonce);
 
     response.SetStatus(unauthorized_status_);
-    response.SetHeader(
-        authenticate_header_,
-        ConstructResponseDirectives(nonce, false));
+    response.SetHeader(authenticate_header_,
+                       ConstructResponseDirectives(nonce, false));
     return AuthCheckResult{AuthCheckResult::Status::kInvalidToken};
   }
 
@@ -126,6 +129,8 @@ AuthCheckResult AuthCheckerDigestBase::CheckAuth(
     return AuthCheckResult{AuthCheckResult::Status::kInvalidToken};
   }
 
+  // RFC 2617, 3.2.3
+  // Authentication-Info contains the "nextnonce" required for subsequent authentication.
   auto info_header_directives = ConstructAuthInfoHeader(client_context);
   response.SetHeader(authenticate_info_header_, info_header_directives);
 
@@ -136,6 +141,7 @@ ValidateClientDataResult AuthCheckerDigestBase::ValidateClientData(
     const DigestContextFromClient& client_context) const {
   auto user_data_opt = GetUserData(client_context.username);
   if (!user_data_opt.has_value()) {
+    // If the user is not found, his "nonce" may be in temporary storage.
     if (!HasUnnamedNonce(client_context.nonce)) {
       return ValidateClientDataResult::kWrongUserData;
     }
@@ -189,6 +195,8 @@ AuthCheckResult AuthCheckerDigestBase::StartNewAuthSession(
 // clang-format off
 std::string AuthCheckerDigestBase::ConstructResponseDirectives(
     std::string_view nonce, bool stale) const {
+  // RFC 2617, 3.2.1
+  // Server response directives.
   return utils::StrCat(
       "Digest ",
       fmt::format("{}=\"{}\", ", directives::kRealm, realm_),
@@ -215,6 +223,7 @@ bool AuthCheckerDigestBase::IsNonceExpired(std::string_view nonce_from_client,
 std::optional<std::string> AuthCheckerDigestBase::CalculateDigest(
     const server::http::HttpMethod& request_method,
     const DigestContextFromClient& client_context) const {
+  // RFC 2617, 3.2.2.1 Request-Digest
   auto ha1_opt = GetHA1(client_context.username);
   if (!ha1_opt.has_value()) {
     return std::nullopt;
@@ -229,11 +238,11 @@ std::optional<std::string> AuthCheckerDigestBase::CalculateDigest(
   auto a2 = fmt::format("{}:{}", ToString(request_method), client_context.uri);
   std::string ha2 = digest_hasher_.GetHash(a2);
 
-  // digest_value = H(HA1:nonce:nc:cnonce:qop:HA2)
-  std::string digest_value = fmt::format(
+  // request_digest = H(HA1:nonce:nc:cnonce:qop:HA2).
+  std::string request_digest = fmt::format(
       "{}:{}:{}:{}:{}:{}", ha1, client_context.nonce, client_context.nc,
       client_context.cnonce, client_context.qop, ha2);
-  return digest_hasher_.GetHash(digest_value);
+  return digest_hasher_.GetHash(request_digest);
 }
 
 }  // namespace server::handlers::auth
