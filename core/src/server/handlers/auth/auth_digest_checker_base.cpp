@@ -229,7 +229,7 @@ bool AuthCheckerDigestBase::IsNonceExpired(std::string_view nonce_from_client,
     return false;
   }
 
-  return user_data.timestamp + nonce_ttl_ >= userver::utils::datetime::Now();
+  return user_data.timestamp + nonce_ttl_ < userver::utils::datetime::Now();
 }
 
 }  // namespace server::handlers::auth
