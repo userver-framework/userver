@@ -212,6 +212,11 @@ pre {
   justify-content: space-between;
   background-color: #352e48;
   color: white !important;
+  padding: 20px;
+}
+
+#titlearea {
+    padding: 0px;
 }
 
 #titlearea a:hover {
@@ -285,12 +290,18 @@ pre {
 
 #MSearchBox {
   width: 400px;
-  margin-left: 15px;
+  margin: 0px;
+  margin-left: 5px;
   border-radius: 14px;
+  background: white !important;
 }
 
 #projectbrief {
   font-size: 120%;
+}
+
+#projectlogo img {
+    margin: 0px;
 }
 
 #landing-content {
@@ -339,16 +350,16 @@ div.header {
   color: var(--primary-color) !important;
 }
 
-#MSearchBox {
-  background: white !important;
-}
-
 a.titlelink {
   color: var(--page-foreground-color) !important;
 }
 
 a.titlelink:hover {
   color: var(--primary-color) !important;
+}
+
+.main-menu-btn {
+    margin-left: 7px;
 }
 
 .SRResult .highlight {
@@ -440,10 +451,6 @@ a.titlelink:hover {
     padding: 5px;
   }
 
-  #titlearea {
-    padding: 10px;
-  }
-
   #projectname a {
     font-size: 15px;
     color: white !important;
@@ -520,11 +527,6 @@ a.titlelink:hover {
 }
 
 @media (max-width: 767px) {
-  #top {
-    display: flex;
-    justify-content: space-between;
-  }
-
   #projectlogo {
     padding: 0;
   }
@@ -545,6 +547,7 @@ a.titlelink:hover {
   }
 
   .sm.sm-dox {
+    width: 100%;
     margin: 0px;
   }
 
@@ -566,10 +569,6 @@ a.titlelink:hover {
 
   td#projectalign {
     padding: 5px;
-  }
-
-  #titlearea {
-    padding: 10px;
   }
 
   #projectalign div {
