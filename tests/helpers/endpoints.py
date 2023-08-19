@@ -125,3 +125,12 @@ async def feed_articles(service_client, token, limit, offset):
         params={'limit': limit, 'offset': offset},
         headers={'Authorization': token},
     )
+
+
+async def list_articles(service_client, token, tag, author, favorited, limit, offset):
+    return await service_client.get(
+        Routes.LIST_ARTICLES,
+        params={'tag': tag, 'author': author, 'favorited': favorited,
+                'limit': limit, 'offset': offset},
+        headers={'Authorization': token},
+    )
