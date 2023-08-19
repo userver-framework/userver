@@ -87,6 +87,8 @@ class AuthCheckerDigestBase : public server::handlers::auth::AuthCheckerBase {
                            UserData user_data) const = 0;
 
  private:
+  std::string ConstructAuthInfoHeader(
+      const DigestContextFromClient& client_context) const;
   std::string ConstructResponseDirectives(std::string_view nonce,
                                           std::string_view opaque,
                                           bool stale) const;
@@ -110,6 +112,7 @@ class AuthCheckerDigestBase : public server::handlers::auth::AuthCheckerBase {
 
   const std::string authenticate_header_;
   const std::string authorization_header_;
+  const std::string authenticate_info_header_;
   const userver::server::http::HttpStatus unauthorized_status_;
 };
 

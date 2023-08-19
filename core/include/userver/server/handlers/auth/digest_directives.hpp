@@ -9,6 +9,7 @@ namespace server::handlers::auth::directives {
 constexpr std::string_view kUsername = "username";
 constexpr std::string_view kRealm = "realm";
 constexpr std::string_view kNonce = "nonce";
+constexpr std::string_view kNextNonce = "nextnonce";
 constexpr std::string_view kStale = "stale";
 constexpr std::string_view kUri = "uri";
 constexpr std::string_view kDomain = "domain";

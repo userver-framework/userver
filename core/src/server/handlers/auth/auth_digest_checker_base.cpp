@@ -27,6 +27,9 @@ namespace server::handlers::auth {
 
 constexpr std::string_view kDigestWord = "Digest";
 
+constexpr std::string_view kAuthenticationInfo = "Authentication-Info";
+constexpr std::string_view kProxyAuthenticationInfo = "Proxy-Authentication-Info";
+
 DigestHasher::DigestHasher(const Algorithm& algorithm) {
   switch (
       kHashAlgToType.TryFindICase(algorithm).value_or(HashAlgTypes::kUnknown)) {
@@ -73,6 +76,9 @@ AuthCheckerDigestBase::AuthCheckerDigestBase(
       authorization_header_(is_proxy_
                                 ? userver::http::headers::kProxyAuthorization
                                 : userver::http::headers::kAuthorization),
+      authenticate_info_header_(is_proxy_
+                                ? kProxyAuthenticationInfo
+                                : kAuthenticationInfo),
       unauthorized_status_(
           is_proxy_ ? server::http::HttpStatus::kProxyAuthenticationRequired
                     : server::http::HttpStatus::kUnauthorized) {}
@@ -146,7 +152,7 @@ AuthCheckResult AuthCheckerDigestBase::CheckAuth(
   auto a2 =
       fmt::format("{}:{}", ToString(request.GetMethod()), client_context.uri);
   if (client_context.qop == "auth-int") {
-    a2.append(digest_hasher_.GetHash(request.RequestBody()));
+    a2 += fmt::format(":{}", digest_hasher_.GetHash(request.RequestBody()));
   }
   std::string ha2 = digest_hasher_.GetHash(a2);
 
@@ -166,8 +172,22 @@ AuthCheckResult AuthCheckerDigestBase::CheckAuth(
     return AuthCheckResult{AuthCheckResult::Status::kInvalidToken};
   }
 
+  auto info_header_directives = ConstructAuthInfoHeader(client_context);
+  response.SetHeader(authenticate_info_header_, info_header_directives);
+
   return {};
 };
+
+std::string AuthCheckerDigestBase::ConstructAuthInfoHeader(
+      const DigestContextFromClient& client_context) const {
+  auto next_nonce = digest_hasher_.Nonce();
+
+  UserData user_data{next_nonce, client_context.opaque,
+                     std::chrono::system_clock::now()};
+  SetUserData(client_context.username, std::move(user_data));
+  
+  return fmt::format("{}=\"{}\"", directives::kNextNonce, next_nonce);
+}
 
 AuthCheckResult AuthCheckerDigestBase::StartNewAuthSession(
     const std::string& username, const std::string& nonce_from_client,
