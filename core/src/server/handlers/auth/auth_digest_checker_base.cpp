@@ -87,10 +87,13 @@ AuthCheckResult AuthCheckerDigestBase::CheckAuth(
 
   const auto& auth_value = request.GetHeader(authorization_header_);
   if (auth_value.empty()) {
+    auto nonce = digest_hasher_.Nonce();
+    PushUnnamedNonce(nonce);
+
     response.SetStatus(unauthorized_status_);
     response.SetHeader(
         authenticate_header_,
-        ConstructResponseDirectives(digest_hasher_.Nonce(), false));
+        ConstructResponseDirectives(nonce, false));
     return AuthCheckResult{AuthCheckResult::Status::kInvalidToken};
   }
 
@@ -133,9 +136,14 @@ ValidateClientDataResult AuthCheckerDigestBase::ValidateClientData(
     const DigestContextFromClient& client_context) const {
   auto user_data_opt = GetUserData(client_context.username);
   if (!user_data_opt.has_value()) {
-    return ValidateClientDataResult::kWrongUserData;
+    if (!HasUnnamedNonce(client_context.nonce)) {
+      return ValidateClientDataResult::kWrongUserData;
+    }
+
+    UserData user_data{client_context.nonce, utils::datetime::Now()};
+    SetUserData(client_context.username, user_data);
+    user_data_opt = user_data;
   }
-  LOG_DEBUG() << "User is known";
 
   const auto& user_data = user_data_opt.value();
 

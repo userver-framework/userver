@@ -79,6 +79,9 @@ class AuthCheckerDigestBase : public server::handlers::auth::AuthCheckerBase {
   virtual void SetUserData(const std::string& username,
                            UserData user_data) const = 0;
 
+  virtual void PushUnnamedNonce(const Nonce& nonce) const = 0;
+  virtual bool HasUnnamedNonce(const Nonce& nonce) const = 0;
+
   ValidateClientDataResult ValidateClientData(
       const DigestContextFromClient& client_context) const;
 
