@@ -255,6 +255,11 @@ pre {
 }
 
 .gh-logo {
+  mask-image: url(github_logo.svg);
+  -webkit-mask-image: url(github_logo.svg);
+}
+
+html.dark-mode .gh-logo {
   filter: invert(1);
 }
 
@@ -666,52 +671,48 @@ doxygen-awesome-dark-mode-toggle {
   line-height: 1.5;
   margin-top: 25px;
   margin-bottom: 25px;
+  text-align: justify;
 }
 
 .landing-text .codeblock {
-  width: fit-content;
+
   margin: 0 auto;
   font-family: monospace;
-  text-align: left;
+  text-align: justify;
   white-space: pre-wrap;
   word-wrap: break-word;
 }
 
 .landing-container {
   width: 100%;
-  display: table;
   display: flex;
-  flex-direction: row;
+  justify-content: center;
   flex-wrap: wrap;
-  justify-content: space-between;
 }
 
-.landing-intro-left {
-  font-size: 1.1em;
-  width: 47%;
-  text-align: justify;
-  padding: 0.5em;
-}
 
+.landing-intro-left,
 .landing-intro-right {
   font-size: 1.1em;
-  padding: auto;
-
-  width: 47%;
-
   text-align: justify;
-  padding: 0.5em;
+  padding: 0.8em;
+}
+
+@media (min-width: 999px) {
+  .landing-intro-left,
+  .landing-intro-right {
+      width: 47%; 
+  }
 }
 
 .landing-intro-center {
-  font-size: 1em;
+  font-size: 1.1em;
   line-height: 1.5;
   margin-top: 30px;
   margin-bottom: 30px;
   margin-left: auto;
   margin-right: auto;
   color: #f7f7f7;
-  width: 35%;
   text-align: center;
 }
 
