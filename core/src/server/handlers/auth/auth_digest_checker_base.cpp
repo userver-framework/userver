@@ -217,7 +217,7 @@ bool AuthCheckerDigestBase::IsNonceExpired(std::string_view nonce_from_client,
   LOG_DEBUG() << "NONCE_FROM_CLIENT: " << nonce_from_client;
   if (!crypto::algorithm::AreStringsEqualConstTime(user_data.nonce,
                                                    nonce_from_client)) {
-    return false;
+    return true;
   }
 
   return user_data.timestamp + nonce_ttl_ < userver::utils::datetime::Now();
