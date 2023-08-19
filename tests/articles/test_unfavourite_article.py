@@ -16,7 +16,7 @@ async def test_unfavourite_article_unauthorized(service_client):
     response = await create_article(service_client, article, get_user_token(response))
     assert response.status == HTTPStatus.OK
 
-    response = await favourite_article(service_client, article, None)
+    response = await unfavourite_article(service_client, article, None)
     assert response.status == HTTPStatus.UNAUTHORIZED
 
 

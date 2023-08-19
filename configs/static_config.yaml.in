@@ -181,11 +181,15 @@ components_manager:
             auth:
                 types:
                   - bearer
+                required: true 
 
         handler-get-article:
             path: /api/articles/{slug}
             method: GET
             task_processor: main-task-processor
+            auth:
+                types:
+                  - bearer
 
         handler-articles-favorite-post:
             path: /api/articles/{slug}/favorite
@@ -194,6 +198,8 @@ components_manager:
             auth:
                 types:
                   - bearer
+                required: true
+                
 
         handler-articles-favorite-delete:
             path: /api/articles/{slug}/favorite
@@ -202,6 +208,7 @@ components_manager:
             auth:
                 types:
                   - bearer
+                required: true
 
         handler-update-article:
             path: /api/articles/{slug}

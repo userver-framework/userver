@@ -17,7 +17,7 @@ userver::formats::json::Value Handler::HandleRequestJsonThrow(
     const userver::server::http::HttpRequest& request,
     const userver::formats::json::Value&,
     userver::server::request::RequestContext& context) const {
-  auto& user_id = context.GetData<std::string>("id");
+  auto& user_id = context.GetData<std::optional<std::string>>("id");
   auto& slug = request.GetPathArg("slug");
 
   auto transaction =

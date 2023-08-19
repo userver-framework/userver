@@ -61,7 +61,16 @@ AuthCheckerBearer::AuthCheckResult AuthCheckerBearer::CheckAuth(
         userver::server::handlers::HandlerErrorCode::kUnauthorized};
   }
   std::string_view token{auth_value.data() + bearer_sep_pos + 1};
-  auto payload = utils::jwt::DecodeJWT(token);
+  jwt::jwt_payload payload;
+  try {
+    payload = utils::jwt::DecodeJWT(token);
+  } catch (...) {
+    return AuthCheckResult{
+        AuthCheckResult::Status::kTokenNotFound,
+        {},
+        "Token verification error",
+        userver::server::handlers::HandlerErrorCode::kUnauthorized};
+  }
   auto id = payload.get_claim_value<std::string>("id");
 
   const auto res =
