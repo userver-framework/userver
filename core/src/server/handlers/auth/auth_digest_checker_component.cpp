@@ -1,5 +1,5 @@
 #include <userver/server/handlers/auth/auth_digest_checker_component.hpp>
- 
+
 #include <userver/components/component.hpp>
 #include <userver/dynamic_config/storage/component.hpp>
 #include <userver/dynamic_config/value.hpp>
@@ -12,12 +12,12 @@ USERVER_NAMESPACE_BEGIN
 
 namespace component {
 
-constexpr int kDefaultTTL = 10 * 1000; 
+constexpr int kDefaultTTL = 10 * 1000;
 
-AuthDigestCheckerComponent::AuthDigestCheckerComponent(const components::ComponentConfig& config,
-                     const components::ComponentContext& context)
+AuthDigestCheckerComponent::AuthDigestCheckerComponent(
+    const components::ComponentConfig& config,
+    const components::ComponentContext& context)
     : components::LoggableComponentBase(config, context) {
-      
   // Reading config values from static config
   std::string algorithm = config["algorithm"].As<std::string>();
   if (!server::handlers::auth::kHashAlgToType.TryFind(algorithm).has_value()) {
@@ -29,27 +29,29 @@ AuthDigestCheckerComponent::AuthDigestCheckerComponent(const components::Compone
   settings_.is_proxy = config["is-proxy"].As<bool>(false);
   settings_.is_session = config["is-session"].As<bool>(false);
   settings_.qops = config["qops"].As<std::vector<std::string>>({});
-  settings_.nonce_ttl = config["nonce-ttl"].As<std::chrono::milliseconds>(kDefaultTTL);
+  settings_.nonce_ttl =
+      config["nonce-ttl"].As<std::chrono::milliseconds>(kDefaultTTL);
 }
- 
+
 }  // namespace component
- 
+
 namespace component {
- 
+
 AuthDigestCheckerComponent::~AuthDigestCheckerComponent() = default;
- 
-}  // component
- 
+
+}  // namespace component
+
 namespace component {
- 
-const server::handlers::auth::AuthDigestSettings& AuthDigestCheckerComponent::GetSettings() const {
+
+const server::handlers::auth::AuthDigestSettings&
+AuthDigestCheckerComponent::GetSettings() const {
   return settings_;
 }
- 
-}  // component
- 
+
+}  // namespace component
+
 namespace component {
- 
+
 yaml_config::Schema AuthDigestCheckerComponent::GetStaticConfigSchema() {
   return yaml_config::MergeSchemas<components::LoggableComponentBase>(R"(
 type: object
@@ -87,13 +89,10 @@ properties:
 )");
 }
 
-
-
- 
 }  // namespace component
 
 template <>
-inline constexpr bool components::kHasValidate<component::AuthDigestCheckerComponent> =
-    true;
+inline constexpr bool
+    components::kHasValidate<component::AuthDigestCheckerComponent> = true;
 
 USERVER_NAMESPACE_END
