@@ -1,4 +1,4 @@
-#include <userver/server/handlers/auth/digestcontext.hpp>
+#include <userver/server/handlers/auth/digest_context.hpp>
 #include <userver/server/handlers/auth/digest_directives.hpp>
 
 USERVER_NAMESPACE_BEGIN
