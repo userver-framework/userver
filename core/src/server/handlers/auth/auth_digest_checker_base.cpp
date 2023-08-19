@@ -116,7 +116,7 @@ AuthCheckResult AuthCheckerDigestBase::CheckAuth(
       break;
   }
 
-  auto digest = CalculateDigest(request, client_context);
+  auto digest = CalculateDigest(request.GetMethod(), client_context);
   if (!digest.has_value()) {
     return AuthCheckResult{AuthCheckResult::Status::kForbidden};
   }
@@ -224,7 +224,7 @@ bool AuthCheckerDigestBase::IsNonceExpired(std::string_view nonce_from_client,
 }
 
 std::optional<std::string> AuthCheckerDigestBase::CalculateDigest(
-    const server::http::HttpRequest& request,
+    const server::http::HttpMethod& request_method,
     const DigestContextFromClient& client_context) const {
   auto ha1_opt = GetHA1(client_context.username);
   if (!ha1_opt.has_value()) {
@@ -238,10 +238,7 @@ std::optional<std::string> AuthCheckerDigestBase::CalculateDigest(
   }
 
   auto a2 =
-      fmt::format("{}:{}", ToString(request.GetMethod()), client_context.uri);
-  if (client_context.qop == "auth-int") {
-    a2 += fmt::format(":{}", digest_hasher_.GetHash(request.RequestBody()));
-  }
+      fmt::format("{}:{}", ToString(request_method), client_context.uri);
   std::string ha2 = digest_hasher_.GetHash(a2);
 
   // digest_value = H(HA1:nonce:nc:cnonce:qop:HA2)

@@ -86,6 +86,10 @@ class AuthCheckerDigestBase : public server::handlers::auth::AuthCheckerBase {
   ValidateClientDataResult ValidateClientData(
       const DigestContextFromClient& client_context) const;
 
+  std::optional<std::string> CalculateDigest(
+      const server::http::HttpMethod& request_method,
+      const DigestContextFromClient& client_context) const;
+
  private:
   std::string ConstructAuthInfoHeader(
       const DigestContextFromClient& client_context) const;
@@ -98,10 +102,6 @@ class AuthCheckerDigestBase : public server::handlers::auth::AuthCheckerBase {
       server::http::HttpResponse& response) const;
   bool IsNonceExpired(std::string_view nonce_from_client,
                       const UserData& user_data) const;
-
-  std::optional<std::string> CalculateDigest(
-      const server::http::HttpRequest& request,
-      const DigestContextFromClient& client_context) const;
 
   const Qops& qops_;
   const QopsString qops_str_;
