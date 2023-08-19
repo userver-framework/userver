@@ -26,23 +26,36 @@ def validate_profile(profile, response):
 
 
 def validate_article(article, response):
-    response_json = response.json()
-    response_json['article']['tagList'] = set(
-        response_json['article']['tagList'])
+    return validate_article_json(article, response.json()['article'])
+
+
+def validate_article_json(article, response_json):
+    response_json['tagList'] = set(
+        response_json['tagList'])
     return response_json == {
-        'article': {
-            'slug': article.slug,
-            'title': article.title,
-            'description': article.description,
-            'body': article.body,
-            'tagList': set(article.tagList),
-            'createdAt': matching.datetime_string,
-            'updatedAt': matching.datetime_string,
-            'favorited': article.favorited,
-            'favoritesCount': article.favoritesCount,
-            'author': article.author.model_dump()
-        }
+        'slug': article.slug,
+        'title': article.title,
+        'description': article.description,
+        'body': article.body,
+        'tagList': set(article.tagList),
+        'createdAt': matching.datetime_string,
+        'updatedAt': matching.datetime_string,
+        'favorited': article.favorited,
+        'favoritesCount': article.favoritesCount,
+        'author': article.author.model_dump()
     }
+
+
+def validate_articles(articleList, response):
+    response_json = response.json()
+    if int(response_json['articlesCount']) != len(articleList.articles):
+        return False
+
+    for article, json in zip(articleList.articles, response_json['articles']):
+        res = validate_article_json(article, json)
+        if not res:
+            return False
+    return True
 
 
 def validate_comment_json(comment, json):
