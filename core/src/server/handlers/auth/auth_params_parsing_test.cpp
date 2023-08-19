@@ -8,6 +8,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
+// Correst Parsing and Directory Tests
 TEST(AuthenticationInfoCorrectParsing, WithoutOptional) {
     std::string_view correctInfo = R"(username="Mufasa",
         realm="testrealm@host.com",
@@ -40,10 +41,15 @@ TEST(AuthenticationInfo, WithOptionalPartial) {
     auto auth_context = parser.GetClientContext();
 
     EXPECT_EQ(auth_context.username, "Mufasa");
+
     EXPECT_EQ(auth_context.nonce, "dcd98b7102dd2f0e8b11d0f600bfb0c093");
+
     EXPECT_EQ(auth_context.realm, "testrealm@host.com");
+
     EXPECT_EQ(auth_context.uri, "/dir/index.html");
+
     EXPECT_EQ(auth_context.response, "6629fae49393a05397450978507c4ef1");
+
     EXPECT_EQ(auth_context.algorithm, "MD5");
 }
 
@@ -67,9 +73,13 @@ TEST(AuthenticationInfo, WithOptionalAll) {
     auto auth_context = parser.GetClientContext();
     
     EXPECT_EQ(auth_context.username, "Mufasa");
+
     EXPECT_EQ(auth_context.nonce, "dcd98b7102dd2f0e8b11d0f600bfb0c093");
+
     EXPECT_EQ(auth_context.realm, "testrealm@host.com");
+
     EXPECT_EQ(auth_context.uri, "/dir/index.html");
+
     EXPECT_EQ(auth_context.response, "6629fae49393a05397450978507c4ef1");
 
     EXPECT_TRUE(!auth_context.algorithm.empty());
