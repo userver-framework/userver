@@ -58,7 +58,6 @@ TEST(AuthenticationInfo, WithOptionalAll) {
         nc=00000001,
         cnonce="0a4f113b",
         response="6629fae49393a05397450978507c4ef1",
-        opaque="5ccc069c403ebaf9f0171e9517f40e41",
         auth-param="fictional parameter"
     )";
     userver::server::handlers::auth::DigestParsing parser;
@@ -74,9 +73,6 @@ TEST(AuthenticationInfo, WithOptionalAll) {
 
     EXPECT_TRUE(!auth_context.algorithm.empty());
     EXPECT_EQ(auth_context.algorithm, "MD5");
-
-    EXPECT_TRUE(!auth_context.opaque.empty());
-    EXPECT_EQ(auth_context.opaque, "5ccc069c403ebaf9f0171e9517f40e41");
 
     EXPECT_TRUE(!auth_context.nc.empty());
     EXPECT_EQ(auth_context.nc, "00000001");
@@ -98,7 +94,6 @@ TEST(AuthenticationInfo, MandatoryDirectivesMissing) {
         nc=00000001,
         cnonce="0a4f113b",
         response="6629fae49393a05397450978507c4ef1",
-        opaque="5ccc069c403ebaf9f0171e9517f40e41",
         auth-param="fictional parameter"
     )";
     userver::server::handlers::auth::DigestParsing parser;
@@ -116,7 +111,6 @@ TEST(AuthenticationInfo, MandatoryDirectiveMissing) {
         nc=00000001,
         cnonce="0a4f113b",
         response="6629fae49393a05397450978507c4ef1",
-        opaque="5ccc069c403ebaf9f0171e9517f40e41",
         auth-param="fictional parameter"
     )";
     userver::server::handlers::auth::DigestParsing parser;
@@ -134,7 +128,6 @@ TEST(AuthenticationInfo, MandatoryDirectiveMissingExtended) {
         nc=00000001,
         cnonce="0a4f113b",
         response="6629fae49393a05397450978507c4ef1",
-        opaque="5ccc069c403ebaf9f0171e9517f40e41",
         auth-param="fictional parameter"
     )";
     userver::server::handlers::auth::DigestParsing parser;

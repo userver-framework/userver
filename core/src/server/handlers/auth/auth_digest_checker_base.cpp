@@ -49,10 +49,6 @@ DigestHasher::DigestHasher(const Algorithm& algorithm) {
   }
 }
 
-std::string DigestHasher::Opaque() const {
-  return GetHash(std::to_string(
-      std::chrono::system_clock::now().time_since_epoch().count()));
-}
 std::string DigestHasher::Nonce() const {
   return GetHash(std::to_string(
       std::chrono::system_clock::now().time_since_epoch().count()));
@@ -94,8 +90,7 @@ AuthCheckResult AuthCheckerDigestBase::CheckAuth(
     response.SetStatus(unauthorized_status_);
     response.SetHeader(
         authenticate_header_,
-        ConstructResponseDirectives(digest_hasher_.Nonce(),
-                                    digest_hasher_.Opaque(), false));
+        ConstructResponseDirectives(digest_hasher_.Nonce(), false));
     return AuthCheckResult{AuthCheckResult::Status::kInvalidToken};
   }
 
@@ -107,8 +102,7 @@ AuthCheckResult AuthCheckerDigestBase::CheckAuth(
   switch (validate_result) {
     case ValidateClientDataResult::kWrongUserData:
       return StartNewAuthSession(client_context.username,
-                                 digest_hasher_.Nonce(),
-                                 digest_hasher_.Opaque(), true, response);
+                                 digest_hasher_.Nonce(), true, response);
     case ValidateClientDataResult::kUserNotRegistred:
       response.SetStatus(unauthorized_status_);
       return AuthCheckResult{AuthCheckResult::Status::kTokenNotFound};
@@ -126,7 +120,7 @@ AuthCheckResult AuthCheckerDigestBase::CheckAuth(
     response.SetStatus(unauthorized_status_);
     response.SetHeader(authenticate_header_,
                        ConstructResponseDirectives(
-                           client_context.nonce, client_context.opaque, false));
+                           client_context.nonce, false));
     return AuthCheckResult{AuthCheckResult::Status::kInvalidToken};
   }
 
@@ -153,19 +147,12 @@ ValidateClientDataResult AuthCheckerDigestBase::ValidateClientData(
 
   auto client_nc = std::stoul(client_context.nc, nullptr, 16);
   if (user_data.nonce_count < client_nc) {
-    UserData user_data{client_context.nonce, client_context.opaque,
-                       utils::datetime::Now()};
+    UserData user_data{client_context.nonce, utils::datetime::Now()};
     SetUserData(client_context.username, std::move(user_data));
   } else {
     return ValidateClientDataResult::kUserNotRegistred;
   }
   LOG_DEBUG() << "NONCE_COUNT IS OK";
-
-  if (!crypto::algorithm::AreStringsEqualConstTime(client_context.opaque,
-                                                   user_data.opaque)) {
-    return ValidateClientDataResult::kWrongUserData;
-  }
-  LOG_DEBUG() << "OPAQUE IS OK";
 
   return ValidateClientDataResult::kOk;
 }
@@ -174,8 +161,7 @@ std::string AuthCheckerDigestBase::ConstructAuthInfoHeader(
     const DigestContextFromClient& client_context) const {
   auto next_nonce = digest_hasher_.Nonce();
 
-  UserData user_data{next_nonce, client_context.opaque,
-                     userver::utils::datetime::Now()};
+  UserData user_data{next_nonce, userver::utils::datetime::Now()};
   SetUserData(client_context.username, std::move(user_data));
 
   return fmt::format("{}=\"{}\"", directives::kNextNonce, next_nonce);
@@ -183,29 +169,26 @@ std::string AuthCheckerDigestBase::ConstructAuthInfoHeader(
 
 AuthCheckResult AuthCheckerDigestBase::StartNewAuthSession(
     const std::string& username, const std::string& nonce_from_client,
-    const std::string& opaque_from_client, bool stale,
+    bool stale,
     server::http::HttpResponse& response) const {
-  UserData user_data{nonce_from_client, opaque_from_client,
-                     userver::utils::datetime::Now()};
+  UserData user_data{nonce_from_client, userver::utils::datetime::Now()};
   SetUserData(username, std::move(user_data));
   response.SetStatus(unauthorized_status_);
   response.SetHeader(authenticate_header_,
-                     ConstructResponseDirectives(nonce_from_client,
-                                                 opaque_from_client, stale));
+                     ConstructResponseDirectives(nonce_from_client, stale));
 
   return AuthCheckResult{AuthCheckResult::Status::kInvalidToken};
 }
 
 // clang-format off
 std::string AuthCheckerDigestBase::ConstructResponseDirectives(
-    std::string_view nonce, std::string_view opaque, bool stale) const {
+    std::string_view nonce, bool stale) const {
   return utils::StrCat(
       "Digest ",
       fmt::format("{}=\"{}\", ", directives::kRealm, realm_),
       fmt::format("{}=\"{}\", ", directives::kNonce, nonce),
       fmt::format("{}=\"{}\", ", directives::kStale, stale),
       fmt::format("{}=\"{}\", ", directives::kDomain, domains_str_),
-      fmt::format("{}=\"{}\", ", directives::kOpaque, opaque),
       fmt::format("{}=\"{}\", ", directives::kAlgorithm, algorithm_),
       fmt::format("{}=\"{}\"", directives::kQop, qops_str_));
 }

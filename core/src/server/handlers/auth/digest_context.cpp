@@ -16,7 +16,6 @@ DigestContextFromClient Parse(
       json[directives::kResponse].As<std::string>(),
       json[directives::kAlgorithm].As<std::string>({}),
       json[directives::kCnonce].As<std::string>({}),
-      json[directives::kOpaque].As<std::string>({}),
       json[directives::kQop].As<std::string>({}),
       json[directives::kNonceCount].As<std::string>({}),
       json[directives::kAuthParam].As<std::string>({}),

@@ -38,7 +38,6 @@ using TimePoint = std::chrono::time_point<std::chrono::system_clock>;
 class DigestHasher {
  public:
   DigestHasher(const Algorithm& algorithm);
-  std::string Opaque() const;
   std::string Nonce() const;
   std::string GetHash(std::string_view data) const;
 
@@ -50,15 +49,13 @@ class DigestHasher {
 
 struct UserData {
   UserData() = default;
-  UserData(const std::string& nonce, const std::string& opaque,
-           TimePoint timestamp, std::uint32_t nonce_count = 0)
+  UserData(const std::string& nonce, TimePoint timestamp,
+           std::uint32_t nonce_count = 0)
       : nonce(nonce),
-        opaque(opaque),
         timestamp(timestamp),
         nonce_count(nonce_count) {}
 
   std::string nonce;
-  std::string opaque;
   TimePoint timestamp;
   std::uint32_t nonce_count{};
 };
@@ -94,12 +91,10 @@ class AuthCheckerDigestBase : public server::handlers::auth::AuthCheckerBase {
   std::string ConstructAuthInfoHeader(
       const DigestContextFromClient& client_context) const;
   std::string ConstructResponseDirectives(std::string_view nonce,
-                                          std::string_view opaque,
                                           bool stale) const;
   AuthCheckResult StartNewAuthSession(
       const std::string& username, const std::string& nonce_from_client,
-      const std::string& opaque_from_client, bool stale,
-      server::http::HttpResponse& response) const;
+      bool stale, server::http::HttpResponse& response) const;
   bool IsNonceExpired(std::string_view nonce_from_client,
                       const UserData& user_data) const;
 

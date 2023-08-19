@@ -15,7 +15,7 @@ namespace server::handlers::auth {
 
 // WWW-Authenticate response header from server
 // realm, nonce are mandatory
-// domain, opaque, stale, algorithm, qop, auth-param are optional
+// domain, stale, algorithm, qop, auth-param are optional
 struct DigestContextFromServer {
   std::string realm;
   std::string nonce;
@@ -23,12 +23,11 @@ struct DigestContextFromServer {
   bool stale{false};
   std::string authparam;
   std::string qop;
-  std::string opaque;
 };
 
 // authorizion request header from client
 // username, realm, nonce, digest-uri, response are mandatory
-// algorithm, cnonce, opaque, qop, nc, auth-param are optional
+// algorithm, cnonce, qop, nc, auth-param are optional
 struct DigestContextFromClient {
   std::string username;
   std::string realm;
@@ -37,7 +36,6 @@ struct DigestContextFromClient {
   std::string response;
   std::string algorithm;
   std::string cnonce;
-  std::string opaque;
   std::string qop;        // message-qop
   std::string nc;       // nonce-count
   std::string authparam;  // auth-param
