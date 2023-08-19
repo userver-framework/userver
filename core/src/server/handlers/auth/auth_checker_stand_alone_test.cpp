@@ -20,7 +20,7 @@ class StandAloneChecker : public AuthCheckerDigestBaseStandAlone{
 //     const server::http::HttpMethod& request_method,
 //     const DigestContextFromClient& client_context) const
 
-TES(DigestHashChecker, CalculateDigest) {
+TEST(DigestHashChecker, CalculateDigest) {
     StandAloneChecker checker;
     userver::server::http::HttpMethod method = userver::server::http::HttpMethod::kGet;
     server::handlers::auth::DigestContextFromClient client_context;
