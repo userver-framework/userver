@@ -18,6 +18,7 @@ variables:
 
 stages:
   - build
+  - test
 
 build:
   image: ghcr.io/userver-framework/ubuntu-userver-build-base:v1
