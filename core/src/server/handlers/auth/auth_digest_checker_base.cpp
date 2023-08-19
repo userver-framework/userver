@@ -19,6 +19,7 @@
 #include <userver/server/handlers/exceptions.hpp>
 #include <userver/server/handlers/fallback_handlers.hpp>
 #include <userver/utils/algo.hpp>
+#include <<userver/utils/datetime.hpp>
 #include "userver/server/http/http_response.hpp"
 
 USERVER_NAMESPACE_BEGIN
@@ -122,7 +123,7 @@ AuthCheckResult AuthCheckerDigestBase::CheckAuth(
   LOG_DEBUG() << "Client NC: " << client_nc;
   if (user_data.nonce_count < client_nc) {
     UserData user_data{client_context.nonce, client_context.opaque,
-                       std::chrono::system_clock::now()};
+                       userver::utils::datetime::Now()};
     SetUserData(client_context.username, std::move(user_data));
   } else {
     LOG_DEBUG() << "SOMETHING WRONG HERE";
@@ -183,7 +184,7 @@ std::string AuthCheckerDigestBase::ConstructAuthInfoHeader(
   auto next_nonce = digest_hasher_.Nonce();
 
   UserData user_data{next_nonce, client_context.opaque,
-                     std::chrono::system_clock::now()};
+                     userver::utils::datetime::Now()};
   SetUserData(client_context.username, std::move(user_data));
   
   return fmt::format("{}=\"{}\"", directives::kNextNonce, next_nonce);
@@ -194,7 +195,7 @@ AuthCheckResult AuthCheckerDigestBase::StartNewAuthSession(
     const std::string& opaque_from_client, bool stale,
     server::http::HttpResponse& response) const {
   UserData user_data{nonce_from_client, opaque_from_client,
-                     std::chrono::system_clock::now()};
+                     userver::utils::datetime::Now()};
   SetUserData(username, std::move(user_data));
   response.SetStatus(unauthorized_status_);
   response.SetHeader(authenticate_header_,
@@ -228,7 +229,7 @@ bool AuthCheckerDigestBase::IsNonceExpired(std::string_view nonce_from_client,
     return false;
   }
 
-  return user_data.timestamp + nonce_ttl_ < std::chrono::system_clock::now();
+  return user_data.timestamp + nonce_ttl_ < userver::utils::datetime::Now();
 }
 
 }  // namespace server::handlers::auth
