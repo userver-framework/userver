@@ -3,7 +3,118 @@
   <!-- Navigation index tabs for HTML output -->
   <navindex>
     <tab type="mainpage" visible="no" title="Landing"/>
-    <tab type="user" visible="yes" url="de/d6a/md_en_2index.html" title="Documentation" intro=""/>
+    <tab type="usergroup" title="Documentation" url="@ref md_en_2index">
+      <tab type="usergroup" title="Introduction" url="[none]">
+        <tab type="user" url="@ref md_en_2userver_2intro__io__bound__coro" title="I/O-bound Applications and Coroutines"/>
+        <tab type="user" url="@ref md_en_2userver_2intro" title="The Basics"/>
+        <tab type="user" url="@ref md_en_2userver_2framework__comparison" title="Feature Comparison with other Frameworks"/>
+        <tab type="user" url="@ref md_en_2userver_2supported__platforms" title="Supported Platforms"/>
+        <tab type="user" url="@ref md_en_2userver_2tutorial_2build" title="Configure and Build"/>
+        <tab type="user" url="@ref md_en_2userver_2deploy__env" title="Deploy Environment Specific Configurations"/>
+        <tab type="user" url="@ref md_en_2userver_2beta__state" title="About the BETA state"/>
+        <tab type="user" url="@ref md_en_2userver_2roadmap__and__changelog" title="Roadmap and Changelog"/>
+        <tab type="user" url="@ref md_en_2userver_2faq" title="Frequently Asked Questions"/>
+      </tab>
+      <tab type="usergroup" title="Tutorial" url="[none]">
+        <tab type="user" url="@ref md_en_2userver_2tutorial_2hello__service" title="Writing your first HTTP server"/>
+        <tab type="user" url="@ref md_en_2userver_2tutorial_2config__service" title="Writing your own configs server"/>
+        <tab type="user" url="@ref md_en_2userver_2tutorial_2production__service" title="Production configs and best practices"/>
+        <tab type="user" url="@ref md_en_2userver_2tutorial_2tcp__service" title="TCP half-duplex server with static configs validation"/>
+        <tab type="user" url="@ref md_en_2userver_2tutorial_2tcp__full" title="TCP full-duplex server with metrics and Spans"/>
+        <tab type="user" url="@ref md_en_2userver_2tutorial_2http__caching" title="Pre-caching data from HTTP remote"/>
+        <tab type="user" url="@ref md_en_2userver_2tutorial_2flatbuf__service" title="HTTP Flatbuf handler and requests"/>
+        <tab type="user" url="@ref md_en_2userver_2tutorial_2grpc__service" title="gRPC client and service"/>
+        <tab type="user" url="@ref md_en_2userver_2tutorial_2postgres__service" title="PostgreSQL service"/>
+        <tab type="user" url="@ref md_en_2userver_2tutorial_2mongo__service" title="MongoDB service"/>
+        <tab type="user" url="@ref md_en_2userver_2tutorial_2redis__service" title="Redis service"/>
+        <tab type="user" url="@ref md_en_2userver_2tutorial_2auth__postgres" title="Custom Authorization/Authentication via PostgreSQL"/>
+        <tab type="user" url="@ref md_en_2userver_2tutorial_2json__to__yaml" title="Non-Coroutine Console Tool"/>
+      </tab>
+      <tab type="usergroup" title="Generic development" url="[none]">
+        <tab type="usergroup" url="@ref md_en_2userver_2component__system" title="Component system">
+          <tab type="user" url="@ref group__userver__clients" title="Clients"/>
+          <tab type="user" url="@ref group__userver__http__handlers" title="HTTP Handlers"/>
+          <tab type="user" url="@ref group__userver__components" title="Other components"/>
+        </tab>
+        <tab type="user" url="@ref md_en_2userver_2synchronization" title="Synchronization Primitives"/>
+        <tab type="user" url="@ref md_en_2userver_2formats" title="Formats (JSON, YAML, BSON, ...)"/>
+        <tab type="user" url="@ref md_en_2userver_2logging" title="Logging and Tracing"/>
+        <tab type="user" url="@ref md_en_2userver_2task__processors__guide" title="Guide on TaskProcessor Usage"/>
+        <tab type="user" url="@ref md_en_2userver_2periodics" title="Periodics and DistLocks"/>
+      </tab>
+      <tab type="usergroup" title="Testing and Benchmarking" url="[none]">
+        <tab type="user" url="@ref md_en_2userver_2testing" title="Unit Tests and Benchmarks"/>
+        <tab type="user" url="@ref md_en_2userver_2functional__testing" title="Functional service tests (testsuite)"/>
+        <tab type="user" url="@ref md_en_2userver_2chaos__testing" title="Chaos Testing"/>
+        <tab type="user" url="@ref md_en_2userver_2profile__context__switches" title="Profiling context switches"/>
+      </tab>
+      <tab type="usergroup" title="Protocols" url="[none]">
+        <tab type="user" url="@ref md_en_2userver_2grpc" title="gRPC"/>
+        <tab type="usergroup" title="HTTP" url="[none]">
+          <tab type="user" url="@ref clients::http::Client" title="Client"/>
+          <tab type="user" url="@ref md_en_2userver_2http__server" title="HTTP Server"/>
+        </tab>
+        <tab type="user" url="@ref rabbitmq_driver" title="RabbitMQ (AMQP 0-9-1) - EXPERIMENTAL"/>
+        <tab type="usergroup" title="Low level" url="[none]">
+          <tab type="user" url="@ref engine::io::TlsWrapper" title="TLS client and server socket"/>
+          <tab type="user" url="@ref engine::io::Socket" title="TCP and UDP sockets"/>
+          <tab type="user" url="@ref engine::subprocess::ProcessStarter" title="Subprocesses"/>
+        </tab>
+      </tab>
+      <tab type="usergroup" title="Runtime service features" url="[none]">
+        <tab type="user" url="@ref md_en_2schemas_2dynamic__configs" title="Dynamic configs"/>
+        <tab type="user" url="@ref md_en_2userver_2log__level__running__service" title="Changing the log level at runtime"/>
+        <tab type="user" url="@ref md_en_2userver_2requests__in__flight" title="Inspecting in-flight requests"/>
+        <tab type="user" url="@ref md_en_2userver_2service__monitor" title="Service Statistics and Metrics (Prometheus/Graphite/...)"/>
+        <tab type="user" url="@ref md_en_2userver_2memory__profile__running__service" title="Memory profiling a production service"/>
+        <tab type="user" url="@ref md_en_2userver_2dns__control" title="Controlling DNS"/>
+        <tab type="user" url="@ref md_en_2userver_2os__signals" title="Handling OS signals"/>
+      </tab>
+      <tab type="usergroup" title="Caches" url="[none]">
+        <tab type="user" url="@ref md_en_2userver_2caches" title="Basics of Caches"/>
+        <tab type="user" url="@ref md_en_2userver_2cache__dumps" title="Local cache dumps"/>
+        <tab type="user" url="@ref pg_cache" title="Caching Component for PostgreSQL"/>
+        <tab type="user" url="@ref md_en_2userver_2lru__cache" title="Least Recently Used (LRU) Caches and expirable LRU caches"/>
+      </tab>
+      <tab type="usergroup" title="PostgreSQL" url="[none]">
+        <tab type="user" url="@ref pg_driver" title="uPg Driver"/>
+        <tab type="user" url="@ref pg_transactions" title="uPg: Transactions"/>
+        <tab type="user" url="@ref pg_run_queries" title="uPg: Running queries"/>
+        <tab type="user" url="@ref pg_process_results" title="uPg: Working with result sets"/>
+        <tab type="user" url="@ref pg_types" title="uPg: Supported data types"/>
+        <tab type="user" url="@ref pg_user_row_types" title="uPg: Typed PostgreSQL results"/>
+        <tab type="user" url="@ref pg_errors" title="uPg: Postgres errors"/>
+        <tab type="user" url="@ref pg_topology" title="uPg: Cluster topology discovery"/>
+        <tab type="usergroup" url="@ref pg_user_types" title="uPg: Mapping a C++ type to PostgreSQL user type">
+          <tab type="user" url="@ref pg_composite_types" title="uPg: Composite user types"/>
+          <tab type="user" url="@ref pg_enum" title="uPg: Mapping a C++ enum to PostgreSQL enum type."/>
+          <tab type="user" url="@ref pg_range_types" title="uPg: Range types"/>
+          <tab type="user" url="@ref pg_arrays" title="uPg: Arrays"/>
+          <tab type="user" url="@ref pg_bytea" title="uPg bytea support"/>
+        </tab>
+      </tab>
+      <tab type="usergroup" title="MySQL" url="[none]">
+        <tab type="user" url="@ref mysql_driver" title="MySQL Driver - EXPERIMENTAL"/>
+        <tab type="user" url="@ref md_en_2userver_2mysql_2supported__types" title="MySQL supported types"/>
+        <tab type="user" url="@ref md_en_2userver_2mysql_2design__and__details" title="MySQL driver design and implementation details"/>
+      </tab>
+      <tab type="usergroup" title="Non relational databases" url="[none]">
+        <tab type="user" url="@ref md_en_2userver_2mongodb" title="MongoDB"/>
+        <tab type="user" url="@ref md_en_2userver_2redis" title="Redis"/>
+        <tab type="user" url="@ref clickhouse_driver" title="ClickHouse Driver"/>
+      </tab>
+      <tab type="usergroup" title="Opensource" url="[none]">
+        <tab type="user" url="@ref md_en_2userver_2development_2stability" title="API and ABI stability, versioning"/>
+        <tab type="user" url="@ref md_en_2userver_2development_2releases" title="Issues, feature and pull requests, releases"/>
+        <tab type="user" url="@ref md_en_2userver_2driver__guide" title="Driver Writing Guide"/>
+        <tab type="user" url="@ref md_en_2userver_2publications" title="Publications and Videos"/>
+        <tab type="user" url="@ref md__2home_2fleshr_2userver_2CONTRIBUTING" title="Notice to external contributors"/>
+        <tab type="user" url="@ref md__2home_2fleshr_2userver_2SECURITY" title="Security Policy"/>
+        <tab type="user" url="@ref md_en_2userver_2security__changelog" title="Security Changelog"/>
+        <tab type="user" url="http://www.apache.org/licenses/LICENSE-2.0" title="Distributed under Apache-2.0 License"/>
+        <tab type="user" url="@ref md__2home_2fleshr_2userver_2THIRD__PARTY" title="Third Party Code Licenses"/>
+      </tab>
+    </tab>
     <tab type="modules" visible="yes" title="API Groups" intro=""/>
     <tab type="namespacelist" visible="yes" title="Namespaces" intro=""/>
     <tab type="usergroup" visible="yes" title="Reference">
@@ -15,7 +126,7 @@
       <tab type="filelist" visible="yes" title="" intro=""/>
       <tab type="globals" visible="yes" title="" intro=""/>
       <tab type="examples" visible="yes" title="" intro=""/>
-      <tab type="pages" visible="yes" title="" intro=""/>
+      <tab type="pages" visible="no" title="" intro=""/>
     </tab>
   </navindex>
 
