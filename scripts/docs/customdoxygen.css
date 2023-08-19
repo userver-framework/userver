@@ -96,6 +96,10 @@ html {
   }
 }
 
+html.dark-mode div.contents .dotgraph iframe {
+  filter: none;
+}
+
 html.dark-mode {
   --toc-active-color: #ffffff;
 }
