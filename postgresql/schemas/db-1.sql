@@ -277,14 +277,9 @@ BEGIN
                                 *
                         FROM
                                 real_medium.get_article_tags(article_id))::varchar(255)[],
-        real_medium.is_favorited_article(article_id),
-(
-                SELECT
-                        COUNT(*)
-                FROM
-                        real_medium.favorites
-                WHERE
-                        article_id = article_id), real_medium.get_profile(user_id, _user_id)
+        real_medium.is_favorited_article(article_id, _user_id),
+        favorites_count,
+        real_medium.get_profile(user_id, _user_id)
 FROM
         real_medium.articles
 WHERE
@@ -342,11 +337,11 @@ CREATE OR REPLACE FUNCTION real_medium.delete_article_by_slug(_slug varchar(255)
         RETURNS SETOF TEXT
         AS $$
 BEGIN
-        RETURN QUERY
-        DELETE FROM real_medium.articles
+        RETURN QUERY DELETE FROM real_medium.articles
         WHERE slug = _slug
                 AND user_id = _user_id
-        RETURNING article_id;
+        RETURNING
+                article_id;
 END;
 $$
 LANGUAGE plpgsql;
@@ -369,14 +364,9 @@ BEGIN
                                 *
                         FROM
                                 real_medium.get_article_tags(article_id))::varchar(255)[],
-        real_medium.is_favorited_article(article_id),
-(
-                SELECT
-                        COUNT(*)
-                FROM
-                        real_medium.favorites
-                WHERE
-                        article_id = article_id), real_medium.get_profile(user_id, _user_id)
+        real_medium.is_favorited_article(article_id, _user_id),
+        favorites_count,
+        real_medium.get_profile(user_id, _user_id)
 FROM
         real_medium.articles
 WHERE(_tag IS NULL
