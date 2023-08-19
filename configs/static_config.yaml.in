@@ -208,6 +208,7 @@ components_manager:
             auth:
                 types:
                   - bearer
+                required: true
 
         handler-update-article:
             path: /api/articles/{slug}
