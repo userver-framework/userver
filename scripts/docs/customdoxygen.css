@@ -135,11 +135,11 @@ html.dark-mode {
 }
 
 .hljs-literal {
-  color: #8f3f71;
+  color: #eb6bbb;
 }
 
 .hljs-literal {
-  color: #8f3f71;
+  color: #eb6bbb;
 }
 
 .hljs-addition,
@@ -159,7 +159,7 @@ html.dark-mode {
 .hljs-selector-class,
 .hljs-string,
 .hljs-symbol {
-  color: #806000;
+  color: #cf9b00;
 }
 
 .hljs-code,
