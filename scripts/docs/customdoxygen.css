@@ -281,6 +281,7 @@ pre {
 }
 
 #links {
+  order: 3;
   display: flex;
   margin-left: 10px;
 }
@@ -444,6 +445,14 @@ a.titlelink:hover {
   background-color: none;
 }
 
+doxygen-awesome-dark-mode-toggle {
+    order: 1;
+}
+
+#MSearchBox {
+    order: 2;
+}
+
 @media (max-width: 1439px) {
   #top {
     display: flex;
@@ -479,7 +488,6 @@ a.titlelink:hover {
 
   #MSearchBox {
     width: 390px;
-    order: 2;
   }
 
   #MSearchField {
@@ -525,10 +533,6 @@ a.titlelink:hover {
   .sm.sm-dox > li {
     border-radius: 10px;
     padding: 5px 70px; /* TODO: adaptive width */
-  }
-
-  doxygen-awesome-dark-mode-toggle {
-    order: 1;
   }
 
   .main-menu-btn {
