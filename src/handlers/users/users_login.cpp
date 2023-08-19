@@ -3,7 +3,7 @@
 #include <userver/components/component_config.hpp>
 #include <userver/components/component_context.hpp>
 #include <userver/crypto/hash.hpp>
-#include <userver/server/handlers/http_handler_base.hpp>
+#include <userver/server/handlers/http_handler_json_base.hpp>
 #include <userver/server/http/http_status.hpp>
 #include <userver/storages/postgres/cluster.hpp>
 #include <userver/storages/postgres/component.hpp>
@@ -17,24 +17,23 @@ namespace real_medium::handlers::users_login::post {
 
 namespace {
 
-class LoginUser final : public userver::server::handlers::HttpHandlerBase {
+class LoginUser final : public userver::server::handlers::HttpHandlerJsonBase {
  public:
   static constexpr std::string_view kName = "handler-login-user";
 
   LoginUser(const userver::components::ComponentConfig& config,
             const userver::components::ComponentContext& component_context)
-      : HttpHandlerBase(config, component_context),
+      : HttpHandlerJsonBase(config, component_context),
         pg_cluster_(component_context
                         .FindComponent<userver::components::Postgres>(
                             "realmedium-database")
                         .GetCluster()) {}
 
-  std::string HandleRequestThrow(
+  userver::formats::json::Value HandleRequestJsonThrow(
       const userver::server::http::HttpRequest& request,
+      const userver::formats::json::Value& request_json,
       userver::server::request::RequestContext&) const override {
-    auto user_login =
-        userver::formats::json::FromString(request.RequestBody())["user"]
-            .As<dto::UserLoginDTO>();
+    auto user_login = request_json["user"].As<dto::UserLoginDTO>();
 
     if (!validators::ValidateEmail(user_login.email)) {
       auto& response = request.GetHttpResponse();
@@ -69,7 +68,7 @@ class LoginUser final : public userver::server::handlers::HttpHandlerBase {
     userver::formats::json::ValueBuilder response;
     response["user"] = user;
 
-    return userver::formats::json::ToString(response.ExtractValue());
+    return response.ExtractValue();
   }
 
  private:
