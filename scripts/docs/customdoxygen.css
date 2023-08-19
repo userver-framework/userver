@@ -787,7 +787,6 @@ html:not(.light-mode) .landing-intro-center {
 }
 
 /* Table of contents */
-
 div.toc li.level1 {
   margin-left: 0px;
 }
@@ -831,7 +830,11 @@ div.toc li.level4 {
   margin-top: 12px;
 }
 
-div.toc li {
+.toc ul li {
+  line-height: 18px;
+}
+
+div.toc li { 
   font-family: "Roboto", sans-serif;
 }
 
