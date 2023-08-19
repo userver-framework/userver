@@ -18,11 +18,13 @@ const addModal = () => {
 
 const onBurger = () => {
     const burgerBtn = document.querySelector('.main-menu-btn');
-    const modal = document.getElementById('navbar-main-menu')
+    const modal = document.getElementById('navbar-main-menu');
 
     burgerBtn.addEventListener('click', () => {
-        modal.style.display = 'flex'
-    })
+        const isVisible = modal.style.display == 'flex';
+
+        modal.style.display = isVisible ? null : 'flex';
+    });
 }
 
 const create_nav_wrapper = () => {

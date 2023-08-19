@@ -466,8 +466,8 @@ a.titlelink:hover {
   #navbar-main-menu {
     display: none;
     position: absolute;
-    top: 10px;
-    right: 50px;
+    top: 65px;
+    right: 10px;
     flex-direction: column;
     width: 300px;
     background-color: white;
@@ -600,8 +600,6 @@ a.titlelink:hover {
   #navbar-main-menu {
     display: none;
     position: absolute;
-    top: 10px;
-    right: 30px;
     flex-direction: column;
     width: 300px;
     background-color: white;
