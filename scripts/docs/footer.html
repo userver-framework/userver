@@ -44,6 +44,8 @@ $generatedby <a href="https://www.doxygen.org/index.html">Doxygen</a> $doxygenve
     if (document.readyState != "complete") return;
 
     init_all_results_button();
+    addLinks();
+    init_header();
 
     const isLanding = document.getElementById('landing_logo_id') !== null;
 
@@ -51,8 +53,6 @@ $generatedby <a href="https://www.doxygen.org/index.html">Doxygen</a> $doxygenve
 
     highlight_code();
     styleNavButtons(); // TODO: code style?
-    addLinks();
-    init_header();
   });
 </script>
 </body>

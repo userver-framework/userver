@@ -105,7 +105,6 @@ std::size_t Ins(storages::postgres::Transaction& tr, std::string_view key) {
 \htmlonly
 <script type="text/javascript">
   document.getElementById('side-nav').style.display = 'none';
-  document.getElementById('titlearea').style.display = 'none';
   document.getElementById('mainDescription').closest('#doc-content').removeAttribute('id')
   document.getElementsByClassName('header')[0].style.display = 'none';
 </script>
