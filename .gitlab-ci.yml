@@ -27,22 +27,45 @@ build:
     - useradd -d $CI_BUILDS_DIR/$GITLAB_USER_LOGIN -g users -M -N builder
     - chown -R builder:users ..
     - sudo -u builder make build-$BUILD_TYPE && cmake --build build_$BUILD_TYPE --target ${PROJECT_NAME}_unittest
-   # - build_$BUILD_TYPE/tests/venv-testsuite-$PROJECT_NAME/bin/python3 -m pip freeze > build_$BUILD_TYPE/tests/requirements.txt
-   # - build_$BUILD_TYPE/tests/venv-testsuite-$PROJECT_NAME/bin/python3 -m pip freeze | xargs build_$BUILD_TYPE/tests/venv-testsuite-$PROJECT_NAME/bin/python3 -m pip uninstall -y
-   # - XZ_OPT=-9T0 tar -Jcvfx build_$BUILD_TYPE.tar.xz 
-  #   configs/static_config.yaml
-  #    build_$BUILD_TYPE/$PROJECT_NAME
-  #    build_$BUILD_TYPE/${PROJECT_NAME}_unittest
-  #    build_$BUILD_TYPE/CTestTestfile.cmake
-  #    build_$BUILD_TYPE/tests/runtests-testsuite-$PROJECT_NAME
-  #    build_$BUILD_TYPE/tests/CTestTestfile.cmake
-  #    build_$BUILD_TYPE/tests/venv-testsuite-$PROJECT_NAME/
-  #    build_$BUILD_TYPE/tests/requirements.txt
+    - build_$BUILD_TYPE/tests/venv-testsuite-$PROJECT_NAME/bin/python3 -m pip freeze > build_$BUILD_TYPE/tests/requirements.txt
+    - build_$BUILD_TYPE/tests/venv-testsuite-$PROJECT_NAME/bin/python3 -m pip freeze | xargs build_$BUILD_TYPE/tests/venv-testsuite-$PROJECT_NAME/bin/python3 -m pip uninstall -y
+    - XZ_OPT=-9T0 tar -Jcvfx build_$BUILD_TYPE.tar.xz 
+      configs/static_config.yaml
+      build_$BUILD_TYPE/$PROJECT_NAME
+      build_$BUILD_TYPE/${PROJECT_NAME}_unittest
+      build_$BUILD_TYPE/CTestTestfile.cmake
+      build_$BUILD_TYPE/tests/runtests-testsuite-$PROJECT_NAME
+      build_$BUILD_TYPE/tests/CTestTestfile.cmake
+      build_$BUILD_TYPE/tests/venv-testsuite-$PROJECT_NAME/
+      build_$BUILD_TYPE/tests/requirements.txt
   parallel: !reference [.parallel,parallel]
 
- # artifacts:
- #   paths:
- #     - build_$BUILD_TYPE.tar.xz
- #   expire_in: 1 day
+  artifacts:
+    paths:
+      - build_$BUILD_TYPE.tar.xz
+    expire_in: 1 day
   rules:
     - !reference [.default_rules, rules]
+
+test:
+  image: ghcr.io/userver-framework/ubuntu-userver-build-base:v1
+  stage: test
+  dependencies:
+    - build
+  script:
+    - mkdir /etc/${PROJECT_NAME}
+    - cp $SECURE_DATA /etc/${PROJECT_NAME}/secure_data.json
+    - tar -Jxvf build_$BUILD_TYPE.tar.xz
+    - useradd -d $CI_BUILDS_DIR/$GITLAB_USER_LOGIN -g users -M -N builder
+    - chown -R builder:users ..
+    - chown -R builder:users /etc/realmedium/secure_data.json
+    - build_$BUILD_TYPE/tests/venv-testsuite-${PROJECT_NAME}/bin/python3 -m pip install -r build_$BUILD_TYPE/tests/requirements.txt
+    - sudo -u builder GTEST_COLOR=1 PYTEST_ADDOPTS="--color=yes" ctest -V --test-dir build_$BUILD_TYPE --output-junit report.xml
+  parallel: !reference [.parallel,parallel]
+  rules:
+    - !reference [.default_rules, rules]
+  artifacts:
+    reports:
+      junit:
+        - build_$BUILD_TYPE/test-results/${PROJECT_NAME}_unittest.xml
+        - build_$BUILD_TYPE/report.xml
