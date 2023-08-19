@@ -65,8 +65,3 @@ test:
   parallel: !reference [.parallel,parallel]
   rules:
     - !reference [.default_rules, rules]
-  artifacts:
-    reports:
-      junit:
-        - build_$BUILD_TYPE/test-results/${PROJECT_NAME}_unittest.xml
-        - build_$BUILD_TYPE/report.xml
