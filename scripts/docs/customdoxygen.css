@@ -258,6 +258,22 @@ html.dark-mode .gh-logo {
   color: black !important;
 }
 
+html.dark-mode .sm.sm-dox a {
+  color: white !important;
+}
+
+html.dark-mode .sm.sm-dox a:hover{
+  color: var(--primary-color) !important;
+}
+
+html.dark-mode .sm.sm-dox li:last-child ul {
+  background-color: #2e273f !important;
+}
+
+html.dark-mode .sm.sm-dox li:last-child ul li a{
+  background-color: transparent !important;
+}
+
 #main-nav {
   display: none;
 }
