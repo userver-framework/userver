@@ -19,14 +19,15 @@ userver::formats::json::Value Handler::HandleRequestJsonThrow(
     userver::server::request::RequestContext& context) const {
   auto user_id = context.GetData<std::optional<std::string>>("id");
   const auto& comment_id = std::atoi(request.GetPathArg("id").c_str());
+  const auto& slug = request.GetPathArg("slug");
 
   const auto result_find_comment = pg_cluster_->Execute(
       userver::storages::postgres::ClusterHostType::kMaster,
-      sql::kFindCommentById.data(), comment_id);
+      sql::kFindCommentByIdAndSlug.data(), comment_id, slug);
 
   if (result_find_comment.IsEmpty()) {
     auto& response = request.GetHttpResponse();
-    response.SetStatus(userver::server::http::HttpStatus::kUnprocessableEntity);
+    response.SetStatus(userver::server::http::HttpStatus::kNotFound);
     return utils::error::MakeError("comment_id", "Ivanlid comment_id.");
   }
 
