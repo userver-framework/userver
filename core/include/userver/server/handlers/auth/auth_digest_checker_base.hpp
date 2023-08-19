@@ -21,6 +21,8 @@ USERVER_NAMESPACE_BEGIN
 
 namespace server::handlers::auth {
 
+enum class ValidateClientDataResult { kOk, kWrongUserData, kUserNotRegistred };
+
 using Nonce = std::string;
 using Username = std::string;
 using NonceCount = std::uint32_t;
@@ -44,11 +46,6 @@ class DigestHasher {
   using HashAlgorithm = std::function<std::string(
       std::string_view, crypto::hash::OutputEncoding)>;
   HashAlgorithm hash_algorithm_;
-};
-
-struct NonceInfo {
-  Nonce nonce;
-  TimePoint timestamp;
 };
 
 struct UserData {
@@ -86,6 +83,9 @@ class AuthCheckerDigestBase : public server::handlers::auth::AuthCheckerBase {
   virtual void SetUserData(const std::string& username,
                            UserData user_data) const = 0;
 
+  ValidateClientDataResult ValidateClientData(
+      const DigestContextFromClient& client_context) const;
+
  private:
   std::string ConstructAuthInfoHeader(
       const DigestContextFromClient& client_context) const;
@@ -98,6 +98,10 @@ class AuthCheckerDigestBase : public server::handlers::auth::AuthCheckerBase {
       server::http::HttpResponse& response) const;
   bool IsNonceExpired(std::string_view nonce_from_client,
                       const UserData& user_data) const;
+
+  std::optional<std::string> CalculateDigest(
+      const server::http::HttpRequest& request,
+      const DigestContextFromClient& client_context) const;
 
   const Qops& qops_;
   const QopsString qops_str_;

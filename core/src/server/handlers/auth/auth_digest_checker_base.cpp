@@ -28,7 +28,8 @@ namespace server::handlers::auth {
 constexpr std::string_view kDigestWord = "Digest";
 
 constexpr std::string_view kAuthenticationInfo = "Authentication-Info";
-constexpr std::string_view kProxyAuthenticationInfo = "Proxy-Authentication-Info";
+constexpr std::string_view kProxyAuthenticationInfo =
+    "Proxy-Authentication-Info";
 
 DigestHasher::DigestHasher(const Algorithm& algorithm) {
   switch (
@@ -76,9 +77,8 @@ AuthCheckerDigestBase::AuthCheckerDigestBase(
       authorization_header_(is_proxy_
                                 ? userver::http::headers::kProxyAuthorization
                                 : userver::http::headers::kAuthorization),
-      authenticate_info_header_(is_proxy_
-                                ? kProxyAuthenticationInfo
-                                : kAuthenticationInfo),
+      authenticate_info_header_(is_proxy_ ? kProxyAuthenticationInfo
+                                          : kAuthenticationInfo),
       unauthorized_status_(
           is_proxy_ ? server::http::HttpStatus::kProxyAuthenticationRequired
                     : server::http::HttpStatus::kUnauthorized) {}
@@ -102,68 +102,25 @@ AuthCheckResult AuthCheckerDigestBase::CheckAuth(
   parser.ParseAuthInfo(auth_value.substr(kDigestWord.size() + 1));
   const auto& client_context = parser.GetClientContext();
 
-  auto user_data_opt = GetUserData(client_context.username);
-  if (!user_data_opt.has_value()) {
-    return StartNewAuthSession(client_context.username, digest_hasher_.Nonce(),
-                               digest_hasher_.Opaque(), true, response);
+  auto validate_result = ValidateClientData(client_context);
+  switch (validate_result) {
+    case ValidateClientDataResult::kWrongUserData:
+      return StartNewAuthSession(client_context.username,
+                                 digest_hasher_.Nonce(),
+                                 digest_hasher_.Opaque(), true, response);
+    case ValidateClientDataResult::kUserNotRegistred:
+      response.SetStatus(unauthorized_status_);
+      return AuthCheckResult{AuthCheckResult::Status::kTokenNotFound};
+    case ValidateClientDataResult::kOk:
+      break;
   }
-  LOG_DEBUG() << "User is known";
 
-  const auto& user_data = user_data_opt.value();
-
-  if (IsNonceExpired(client_context.nonce, user_data)) {
-    return StartNewAuthSession(client_context.username, digest_hasher_.Nonce(),
-                               digest_hasher_.Opaque(), true, response);
-  }
-  LOG_DEBUG() << "NONCE IS OK";
-
-  auto client_nc = std::stoul(client_context.nc, nullptr, 16);
-  LOG_DEBUG() << "User Data NC: " << user_data.nonce_count;
-  LOG_DEBUG() << "Client NC: " << client_nc;
-  if (user_data.nonce_count < client_nc) {
-    UserData user_data{client_context.nonce, client_context.opaque,
-                       std::chrono::system_clock::now()};
-    SetUserData(client_context.username, std::move(user_data));
-  } else {
-    LOG_DEBUG() << "SOMETHING WRONG HERE";
-    return AuthCheckResult{AuthCheckResult::Status::kTokenNotFound};
-  }
-  LOG_DEBUG() << "NONCE_COUNT IS OK";
-
-  if (!crypto::algorithm::AreStringsEqualConstTime(client_context.opaque,
-                                                   user_data.opaque)) {
-    return StartNewAuthSession(client_context.username, digest_hasher_.Nonce(),
-                               digest_hasher_.Opaque(), true, response);
-  }
-  LOG_DEBUG() << "OPAQUE IS OK";
-
-  auto ha1_opt = GetHA1(client_context.username);
-  if (!ha1_opt.has_value()) {
+  auto digest = CalculateDigest(request, client_context);
+  if (!digest.has_value()) {
     return AuthCheckResult{AuthCheckResult::Status::kForbidden};
   }
-  LOG_DEBUG() << "HA1 IS OK";
 
-  auto ha1 = ha1_opt.value().GetUnderlying();
-  if (is_session_) {
-    ha1 = fmt::format("{}:{}:{}", ha1, client_context.nonce,
-                      client_context.cnonce);
-  }
-
-  auto a2 =
-      fmt::format("{}:{}", ToString(request.GetMethod()), client_context.uri);
-  if (client_context.qop == "auth-int") {
-    a2 += fmt::format(":{}", digest_hasher_.GetHash(request.RequestBody()));
-  }
-  std::string ha2 = digest_hasher_.GetHash(a2);
-
-  // digest_value = H(HA1:nonce:nc:cnonce:qop:HA2)
-  std::string digest_value = fmt::format(
-      "{}:{}:{}:{}:{}:{}", ha1, client_context.nonce, client_context.nc,
-      client_context.cnonce, client_context.qop, ha2);
-  auto digest = digest_hasher_.GetHash(digest_value);
-  LOG_DEBUG() << "DIGEST: " << digest << " " << client_context.response;
-
-  if (!crypto::algorithm::AreStringsEqualConstTime(digest,
+  if (!crypto::algorithm::AreStringsEqualConstTime(digest.value(),
                                                    client_context.response)) {
     response.SetStatus(unauthorized_status_);
     response.SetHeader(authenticate_header_,
@@ -178,14 +135,48 @@ AuthCheckResult AuthCheckerDigestBase::CheckAuth(
   return {};
 };
 
+ValidateClientDataResult AuthCheckerDigestBase::ValidateClientData(
+    const DigestContextFromClient& client_context) const {
+  auto user_data_opt = GetUserData(client_context.username);
+  if (!user_data_opt.has_value()) {
+    return ValidateClientDataResult::kWrongUserData;
+  }
+  LOG_DEBUG() << "User is known";
+
+  const auto& user_data = user_data_opt.value();
+
+  if (IsNonceExpired(client_context.nonce, user_data)) {
+    return ValidateClientDataResult::kWrongUserData;
+  }
+  LOG_DEBUG() << "NONCE IS OK";
+
+  auto client_nc = std::stoul(client_context.nc, nullptr, 16);
+  if (user_data.nonce_count < client_nc) {
+    UserData user_data{client_context.nonce, client_context.opaque,
+                       std::chrono::system_clock::now()};
+    SetUserData(client_context.username, std::move(user_data));
+  } else {
+    return ValidateClientDataResult::kUserNotRegistred;
+  }
+  LOG_DEBUG() << "NONCE_COUNT IS OK";
+
+  if (!crypto::algorithm::AreStringsEqualConstTime(client_context.opaque,
+                                                   user_data.opaque)) {
+    return ValidateClientDataResult::kWrongUserData;
+  }
+  LOG_DEBUG() << "OPAQUE IS OK";
+
+  return ValidateClientDataResult::kOk;
+}
+
 std::string AuthCheckerDigestBase::ConstructAuthInfoHeader(
-      const DigestContextFromClient& client_context) const {
+    const DigestContextFromClient& client_context) const {
   auto next_nonce = digest_hasher_.Nonce();
 
   UserData user_data{next_nonce, client_context.opaque,
                      std::chrono::system_clock::now()};
   SetUserData(client_context.username, std::move(user_data));
-  
+
   return fmt::format("{}=\"{}\"", directives::kNextNonce, next_nonce);
 }
 
@@ -229,6 +220,34 @@ bool AuthCheckerDigestBase::IsNonceExpired(std::string_view nonce_from_client,
   }
 
   return user_data.timestamp + nonce_ttl_ < std::chrono::system_clock::now();
+}
+
+std::optional<std::string> AuthCheckerDigestBase::CalculateDigest(
+    const server::http::HttpRequest& request,
+    const DigestContextFromClient& client_context) const {
+  auto ha1_opt = GetHA1(client_context.username);
+  if (!ha1_opt.has_value()) {
+    return std::nullopt;
+  }
+
+  auto ha1 = ha1_opt.value().GetUnderlying();
+  if (is_session_) {
+    ha1 = fmt::format("{}:{}:{}", ha1, client_context.nonce,
+                      client_context.cnonce);
+  }
+
+  auto a2 =
+      fmt::format("{}:{}", ToString(request.GetMethod()), client_context.uri);
+  if (client_context.qop == "auth-int") {
+    a2 += fmt::format(":{}", digest_hasher_.GetHash(request.RequestBody()));
+  }
+  std::string ha2 = digest_hasher_.GetHash(a2);
+
+  // digest_value = H(HA1:nonce:nc:cnonce:qop:HA2)
+  std::string digest_value = fmt::format(
+      "{}:{}:{}:{}:{}:{}", ha1, client_context.nonce, client_context.nc,
+      client_context.cnonce, client_context.qop, ha2);
+  return digest_hasher_.GetHash(digest_value);
 }
 
 }  // namespace server::handlers::auth
