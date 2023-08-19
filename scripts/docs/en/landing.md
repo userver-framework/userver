@@ -89,7 +89,7 @@ std::size_t Ins(storages::postgres::Transaction& tr, std::string_view key) {
   
     \htmlonly
     <a href="https://github.com/userver-framework/" rel="noopener" target="_blank" class="titlelink">
-      <img src="github_logo.svg"  width="48" height="48" class="gh-logo" alt="Github"/>
+      <img src="github_logo.svg"  width="48" height="48" class="gh-logo-landing" alt="Github"/>
     </a>
     &nbsp;
     <a href="https://t.me/userver_en" rel="noopener" id='telegram_channel' target="_blank" class="titlelink">

@@ -235,13 +235,21 @@ hr {
   text-decoration: none;
 }
 
-.gh-logo {
+.gh-logo-landing {
   mask-image: url(github_logo.svg);
-  -webkit-mask-image: url(github_logo.svg);
+}
+
+html.dark-mode .gh-logo-landing {
+  filter: invert(1);
+}
+
+.gh-logo {
+ --webkit-mask-image: url(github_logo.svg);
+filter : invert(1)
 }
 
 html.dark-mode .gh-logo {
-  filter: invert(1);
+fill: white;
 }
 
 #main-navbar {
