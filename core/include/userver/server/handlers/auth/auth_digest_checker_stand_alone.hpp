@@ -24,14 +24,15 @@ class AuthCheckerDigestBaseStandAlone : public AuthCheckerDigestBase {
  public:
   using AuthCheckResult = server::handlers::auth::AuthCheckResult;
 
-  AuthCheckerDigestBaseStandAlone(const AuthDigestSettings& digest_settings, Realm realm);
+  AuthCheckerDigestBaseStandAlone(const AuthDigestSettings& digest_settings,
+                                  Realm&& realm);
 
   [[nodiscard]] bool SupportsUserAuth() const noexcept override { return true; }
 
   std::optional<UserData> GetUserData(
       const std::string& username) const override;
   void SetUserData(const std::string& username,
-                           UserData user_data) const override;
+                   UserData user_data) const override;
 
  private:
   mutable rcu::RcuMap<Username, UserData> user_data_;
