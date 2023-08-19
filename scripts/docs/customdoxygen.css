@@ -452,7 +452,7 @@ a.titlelink:hover {
 
   #MSearchBox {
     width: 390px;
-    order: 1;
+    order: 2;
   }
 
   #MSearchField {
@@ -501,7 +501,7 @@ a.titlelink:hover {
   }
 
   doxygen-awesome-dark-mode-toggle {
-    order: 2;
+    order: 1;
   }
 
   .main-menu-btn {
@@ -528,6 +528,10 @@ a.titlelink:hover {
   #projectlogo img {
     width: 36px;
     max-height: none;
+  }
+
+  #main-navbar {
+    width: 100%;
   }
 
   .sm-dox {
@@ -569,9 +573,7 @@ a.titlelink:hover {
   }
 
   #projectalign {
-    padding-left: 0;
-    white-space: nowrap;
-    padding-left: 10px;
+    display: none;
   }
 
   #projectname a {
@@ -585,8 +587,7 @@ a.titlelink:hover {
   }
 
   #MSearchBox {
-    width: 30vw;
-    order: 1;
+    width: 100%;
   }
 
   #MSearchField {
@@ -612,12 +613,7 @@ a.titlelink:hover {
     background-color: #fae7d3 !important;
   }
 
-  doxygen-awesome-dark-mode-toggle {
-    order: 2;
-  }
-
   .main-menu-btn {
-    order: 3;
     position: relative;
     top: 0px;
   }
