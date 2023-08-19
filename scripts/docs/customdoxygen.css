@@ -227,10 +227,6 @@ pre {
   margin-left: 15px;
 }
 
-#projectlogo {
-  padding: 7px;
-}
-
 #projectlogo img {
   width: 70px;
   max-height: none;
@@ -285,7 +281,12 @@ pre {
 }
 
 #links {
-  margin-left: 20px;
+  display: flex;
+  margin-left: 10px;
+}
+
+#telegram_channel {
+    margin-left: 5px;
 }
 
 #MSearchBox {
@@ -294,6 +295,10 @@ pre {
   margin-left: 5px;
   border-radius: 14px;
   background: white !important;
+}
+
+#MSearchBox span.left {
+    width: 100%;
 }
 
 #projectbrief {
@@ -381,7 +386,18 @@ a.titlelink:hover {
 }
 
 #MSearchField {
+  width: 100%;
+  margin-top: 1px;
   padding: 0 15px;
+  box-sizing: border-box;
+}
+
+.right {
+    margin-right: 5px;
+}
+
+#MSearchCloseImg {
+    width: 16px;
 }
 
 .all-results-link {

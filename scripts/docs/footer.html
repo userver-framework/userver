@@ -25,8 +25,8 @@ $generatedby <a href="https://www.doxygen.org/index.html">Doxygen</a> $doxygenve
 <script>
   const addLinks = () =>  {
       const links = document.createElement('div')
-      links.setAttribute('style', 'padding-right: 20px;')
-      links.setAttribute('id', 'links')
+      links.id = 'links';
+
       links.innerHTML = `
           <a href="https://github.com/userver-framework/" rel="noopener" target="_blank" class="titlelink">
               <img src="$relpath^github_logo.svg" alt="Github" class="gh-logo"/> 
@@ -35,17 +35,15 @@ $generatedby <a href="https://www.doxygen.org/index.html">Doxygen</a> $doxygenve
               <img src="$relpath^telegram_logo.svg" alt="Telegram"/>
           </a>
       `
-      document.getElementById('main-nav').after(links)
-      const toggler = document.querySelector('[title="Toggle Light/Dark Mode"]')
-      document.getElementById('MSearchBox').before(toggler)
+      document.getElementById('main-navbar').appendChild(links);
   }
 
   document.addEventListener("readystatechange", () => {
     if (document.readyState != "complete") return;
 
     init_all_results_button();
-    addLinks();
     init_header();
+    addLinks();
 
     const isLanding = document.getElementById('landing_logo_id') !== null;
 
