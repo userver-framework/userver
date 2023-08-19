@@ -11,7 +11,7 @@
 #include <userver/formats/json/value.hpp>
 #include <userver/formats/json/value_builder.hpp>
 
-#include "digestcontext.hpp"
+#include "digest_context.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
