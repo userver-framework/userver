@@ -62,7 +62,7 @@ AuthCheckerBearer::AuthCheckResult AuthCheckerBearer::CheckAuth(
   }
   std::string_view token{auth_value.data() + bearer_sep_pos + 1};
   jwt::jwt_payload payload;
-   try {
+  try {
     payload = utils::jwt::DecodeJWT(token);
   } catch (...) {
     return AuthCheckResult{

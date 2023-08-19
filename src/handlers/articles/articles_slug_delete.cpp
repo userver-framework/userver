@@ -19,16 +19,22 @@ userver::formats::json::Value Handler::HandleRequestJsonThrow(
     userver::server::request::RequestContext& context) const {
   const auto& slug = request.GetPathArg("slug");
   const auto userId = context.GetData<std::optional<std::string>>("id");
-  const auto res = pg_cluster_->Execute(
+  auto res = pg_cluster_->Execute(
       userver::storages::postgres::ClusterHostType::kMaster,
-      real_medium::sql::kGetArticleIdBySlugAndAuthor.data(), userId, slug);
+      real_medium::sql::kGetArticleIdBySlug.data(), slug);
   if (res.IsEmpty()) {
     request.SetResponseStatus(userver::server::http::HttpStatus::kNotFound);
     return {};
   }
-  pg_cluster_->Execute(userver::storages::postgres::ClusterHostType::kMaster,
-                       real_medium::sql::kDeleteArticleBySlug.data(), slug,
-                       userId);
+  res = pg_cluster_->Execute(
+      userver::storages::postgres::ClusterHostType::kMaster,
+      real_medium::sql::kDeleteArticleBySlug.data(), slug, userId);
+
+  if (res.IsEmpty()) {
+    request.SetResponseStatus(userver::server::http::HttpStatus::kForbidden);
+    return {};
+  }
+
   return {};
 }
 

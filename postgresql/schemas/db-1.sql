@@ -45,8 +45,8 @@ CREATE TABLE IF NOT EXISTS real_medium.favorites(
         article_id text NOT NULL,
         user_id text NOT NULL,
         CONSTRAINT pk_favorites PRIMARY KEY (user_id, article_id),
-        CONSTRAINT fk_user FOREIGN KEY (user_id) REFERENCES real_medium.users(user_id),
-        CONSTRAINT fk_article FOREIGN KEY (article_id) REFERENCES real_medium.articles(article_id)
+        CONSTRAINT fk_user FOREIGN KEY (user_id) REFERENCES real_medium.users(user_id) ON DELETE CASCADE,
+        CONSTRAINT fk_article FOREIGN KEY (article_id) REFERENCES real_medium.articles(article_id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS real_medium.followers(
@@ -323,7 +323,7 @@ END;
 $$
 LANGUAGE plpgsql;
 
-CREATE OR REPLACE FUNCTION real_medium.get_article_id_by_slug(_user_id text, _slug varchar(255))
+CREATE OR REPLACE FUNCTION real_medium.get_article_id_by_slug(_slug varchar(255))
         RETURNS SETOF TEXT
         AS $$
 BEGIN
@@ -333,19 +333,20 @@ BEGIN
         FROM
                 real_medium.articles
         WHERE
-                slug = _slug
-                AND user_id = _user_id;
+                slug = _slug;
 END;
 $$
 LANGUAGE plpgsql;
 
 CREATE OR REPLACE FUNCTION real_medium.delete_article_by_slug(_slug varchar(255), _user_id text)
-        RETURNS VOID
+        RETURNS SETOF TEXT
         AS $$
 BEGIN
+        RETURN QUERY
         DELETE FROM real_medium.articles
         WHERE slug = _slug
-                AND user_id = _user_id;
+                AND user_id = _user_id
+        RETURNING article_id;
 END;
 $$
 LANGUAGE plpgsql;

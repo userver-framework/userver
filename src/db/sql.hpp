@@ -188,8 +188,8 @@ inline constexpr std::string_view kFindArticlesByFollowedUsers = R"~(
 SELECT real_medium.get_feed_articles($1, $2, $3)
 )~";
 
-inline constexpr std::string_view kGetArticleIdBySlugAndAuthor{R"~(
-SELECT real_medium.get_article_id_by_slug($1, $2)
+inline constexpr std::string_view kGetArticleIdBySlug{R"~(
+SELECT real_medium.get_article_id_by_slug($1)
 )~"};
 
 inline constexpr std::string_view kUpdateArticleBySlug{R"~(
