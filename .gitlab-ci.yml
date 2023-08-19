@@ -55,11 +55,11 @@ test:
     - build
   script:
     - mkdir /etc/${PROJECT_NAME}
-    - cp $SECURE_DATA /etc/${PROJECT_NAME}/secure_data.json
+    #- cp $SECURE_DATA /etc/${PROJECT_NAME}/secure_data.json
     - tar -Jxvf build_$BUILD_TYPE.tar.xz
     - useradd -d $CI_BUILDS_DIR/$GITLAB_USER_LOGIN -g users -M -N builder
     - chown -R builder:users ..
-    - chown -R builder:users /etc/realmedium/secure_data.json
+    #- chown -R builder:users /etc/realmedium/secure_data.json
     - build_$BUILD_TYPE/tests/venv-testsuite-${PROJECT_NAME}/bin/python3 -m pip install -r build_$BUILD_TYPE/tests/requirements.txt
     - sudo -u builder GTEST_COLOR=1 PYTEST_ADDOPTS="--color=yes" ctest -V --test-dir build_$BUILD_TYPE --output-junit report.xml
   parallel: !reference [.parallel,parallel]
