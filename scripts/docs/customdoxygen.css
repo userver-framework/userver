@@ -52,9 +52,6 @@ html {
     --tablehead-background: #413956;
 
     --code-background: #4d416c;
-
-    --fragment-background: #4d416c;
-
     --side-nav-background: #413956;
   }
 }
@@ -73,11 +70,11 @@ html.dark-mode {
 
   --tablehead-background: #413956;
 
-  --code-background: #4d416c;
+  --code-background: #2E273F;
 
-  --fragment-background: #4d416c;
 
   --side-nav-background: #413956;
+  --fragment-background:#2E273F
 }
 
 /* 🐙 userver variables */
@@ -112,7 +109,7 @@ html.dark-mode {
 }
 
 .hljs-comment {
-  color: #800000;
+  color: #d46d6d
 }
 
 .hljs-tag .hljs-attr,
@@ -193,7 +190,8 @@ div.contents {
 /* More space and scrolling for code snippets */
 div.fragment {
   padding: 7px;
-  overflow-x: auto;
+  overflow-x: scroll;
+  border-radius: 12px;
 }
 
 pre {
@@ -886,3 +884,38 @@ div.toc li a.active {
     font-size: 14px;
   }
 }
+
+/* fix style block code */
+.textblock li > .fragment,
+.textblock li > .doxygen-awesome-fragment-wrapper > .fragment {
+    margin: var(--spacing-medium) calc(15px - var(--spacing-large));
+}
+
+@media screen and (max-width: 767px) {
+doxygen-awesome-fragment-copy-button {
+      right: (var(--spacing-small));
+  }
+}
+
+@media screen and (max-width: 767px) {
+
+  .contents > div.fragment,
+  .textblock > div.fragment,
+  .textblock > pre.fragment,
+  .contents > .doxygen-awesome-fragment-wrapper > div.fragment,
+  .textblock > .doxygen-awesome-fragment-wrapper > div.fragment,
+  .textblock > .doxygen-awesome-fragment-wrapper > pre.fragment {
+      margin: var(--spacing-medium) calc(15px - var(--spacing-large));
+      border-radius: 12px;
+  }
+
+/* fix position copy btn */
+  @media screen and (max-width: 767px) {
+    .textblock > .doxygen-awesome-fragment-wrapper > doxygen-awesome-fragment-copy-button,
+    .textblock li > .doxygen-awesome-fragment-wrapper > doxygen-awesome-fragment-copy-button,
+    .memdoc li > .doxygen-awesome-fragment-wrapper > doxygen-awesome-fragment-copy-button,
+    .memdoc > .doxygen-awesome-fragment-wrapper > doxygen-awesome-fragment-copy-button,
+    dl dd > .doxygen-awesome-fragment-wrapper > doxygen-awesome-fragment-copy-button {
+        right: 7px;
+    }
+}}
