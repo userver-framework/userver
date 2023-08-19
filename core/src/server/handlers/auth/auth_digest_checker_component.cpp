@@ -1,3 +1,4 @@
+#include <cstddef>
 #include <userver/server/handlers/auth/auth_digest_checker_component.hpp>
 
 #include <userver/components/component.hpp>
@@ -12,7 +13,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace component {
 
-constexpr int kDefaultTTL = 10 * 1000;
+constexpr size_t kDefaultTTL = 10 * 1000;
 
 AuthDigestCheckerComponent::AuthDigestCheckerComponent(
     const components::ComponentConfig& config,
