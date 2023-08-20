@@ -16,4 +16,6 @@ void validate(const dto::AddCommentDTO& dto);
 
 void validate(const dto::CreateArticleRequest& dto);
 
+void validate(const dto::UpdateArticleRequest& dto);
+
 }  // namespace real_medium::validator

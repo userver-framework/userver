@@ -1,9 +1,10 @@
 #include "articles_slug_put.hpp"
-#include "models/article.hpp"
-#include "dto/article.hpp"
 #include "db/sql.hpp"
-#include "utils/slugify.hpp"
+#include "dto/article.hpp"
+#include "models/article.hpp"
 #include "utils/errors.hpp"
+#include "utils/slugify.hpp"
+#include "validators/validators.hpp"
 
 namespace real_medium::handlers::articles_slug::put {
 Handler::Handler(const userver::components::ComponentConfig& config,
@@ -18,9 +19,10 @@ userver::formats::json::Value Handler::HandleRequestJsonThrow(
     const userver::server::http::HttpRequest& request,
     const userver::formats::json::Value& request_json,
     userver::server::request::RequestContext& context) const {
-  real_medium::dto::UpdateArticleRequest updateRequest;
+  auto slug = request.GetPathArg("slug");
+  auto updateRequest = request_json["article"].As<dto::UpdateArticleRequest>();
   try {
-    updateRequest = real_medium::dto::UpdateArticleRequest::Parse(request_json["article"], request);
+    validator::validate(updateRequest);
   } catch (const real_medium::utils::error::ValidationException& ex) {
     request.SetResponseStatus(
         userver::server::http::HttpStatus::kUnprocessableEntity);
@@ -36,7 +38,7 @@ userver::formats::json::Value Handler::HandleRequestJsonThrow(
                               : std::nullopt;
     const auto res = pg_cluster_->Execute(
         userver::storages::postgres::ClusterHostType::kMaster,
-        real_medium::sql::kUpdateArticleBySlug.data(), updateRequest.slug,
+        real_medium::sql::kUpdateArticleBySlug.data(), slug,
         userId, updateRequest.title, newSlug,
         updateRequest.description, updateRequest.body);
     if (res.IsEmpty()) {

@@ -53,30 +53,14 @@ CreateArticleRequest Parse(const userver::formats::json::Value& json,
         json["tagList"].As<std::optional<std::vector<std::string>>>()
   };
 }
-
-UpdateArticleRequest UpdateArticleRequest::Parse(
+UpdateArticleRequest Parse(
     const userver::formats::json::Value& json,
-    const userver::server::http::HttpRequest& request) {
-  UpdateArticleRequest article;
-  article.slug = request.GetPathArg("slug");
-  article.title = json["title"].As<std::optional<std::string>>();
-  article.description =json["description"].As<std::optional<std::string>>();
-  article.body = json["body"].As<std::optional<std::string>>();
-  article.tags = json["tagList"].As<std::optional<std::vector<std::string>>>();
-
-  if (article.title)
-    real_medium::validator::CheckLength(*article.title, "title", MIN_TITLE_LEN, MAX_TITLE_LEN);
-  if (article.description)
-    real_medium::validator::CheckLength(*article.description, "description", MIN_DESCR_LEN, MAX_DESCR_LEN);
-  if (article.body)
-    real_medium::validator::CheckLength(*article.body, "body", MIN_BODY_LEN, MAX_BODY_LEN);
-  if (article.tags)
-    for(const auto &tag:*article.tags)
-      real_medium::validator::CheckLength(tag,"tagList",MIN_TAG_NAME_LEN,MAX_TAG_NAME_LEN);
-  if (!article.title && !article.description && !article.body && !article.tags)
-    throw real_medium::utils::error::ValidationException{"article", "cannot be empty"};
-
-  return article;
+    userver::formats::parse::To<UpdateArticleRequest>) {
+  return UpdateArticleRequest{
+      json["title"].As<std::optional<std::string>>(),
+      json["description"].As<std::optional<std::string>>(),
+      json["body"].As<std::optional<std::string>>()
+  };
 }
 
 }  // realmedium::dto

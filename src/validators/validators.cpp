@@ -71,17 +71,30 @@ void validate(const dto::CreateArticleRequest& dto) {
   if (!dto.description) {
     throw utils::error::ValidationException("description", "Field is missing");
   } else {
-    ValidateTitle(dto.description.value());
+    ValidateDescription(dto.description.value());
   }
 
   if (!dto.body) {
     throw utils::error::ValidationException("body", "Field is missing");
   } else {
-    ValidateTitle(dto.body.value());
+    ValidateBody(dto.body.value());
   }
 
   if (dto.tags) {
     ValidateTags(dto.tags.value());
+  }
+}
+void validate(const dto::UpdateArticleRequest& dto) {
+  if (dto.title) {
+    ValidateTitle(dto.title.value());
+  }
+
+  if (dto.description) {
+    ValidateDescription(dto.description.value());
+  }
+
+  if (dto.body) {
+    ValidateBody(dto.body.value());
   }
 }
 
