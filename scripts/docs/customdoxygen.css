@@ -262,10 +262,6 @@ fill: white;
   font-size: 18px;
 }
 
-#navbar-main-menu > li > a:hover {
-  color: #f18128;
-}
-
 .sm.sm-dox a {
   color: black !important;
 }
@@ -273,13 +269,29 @@ fill: white;
 html.dark-mode .sm.sm-dox a {
   color: white !important;
 }
-
-html.dark-mode .sm.sm-dox a:hover {
-  color: var(--primary-color) !important;
+.sm.sm-dox li:last-child ul { 
+  padding: 0;
+  border-radius: 8px !important;
 }
 
 html.dark-mode .sm.sm-dox li:last-child ul {
   background-color: #2e273f !important;
+}
+
+.sm.sm-dox li:last-child ul li:first-child {
+  border-radius: 8px 8px 0 0 !important;
+}
+
+.sm.sm-dox li:last-child ul li:last-child {
+  border-radius: 0 0 8px 8px !important;
+}
+
+.sm.sm-dox li:last-child ul li:hover {
+  background-color: #fae7d3;
+}
+
+html.dark-mode .sm.sm-dox li:last-child ul li:hover {
+  background-color: #7a6da0;
 }
 
 html.dark-mode .sm.sm-dox li:last-child ul li a {
@@ -348,8 +360,17 @@ div.header .summary {
   background-color: transparent;
 }
 
-.sm-dox a:hover span.sub-arrow {
-  border-color: var(--primary-color) transparent transparent transparent;
+/* colors of arrow in nav menu */
+.sm.sm-dox li a .sub-arrow {
+  border-color: white transparent transparent transparent !important;
+}
+
+.sm.sm-dox li ul a .sub-arrow {
+  border-color: black transparent transparent transparent !important;
+}
+
+html.dark-mode .sm-dox a span.sub-arrow {
+  border-color: white transparent transparent transparent !important;
 }
 
 .sm-dox ul a span.sub-arrow {
@@ -359,7 +380,7 @@ div.header .summary {
 .sm-dox ul a:hover,
 .sm-dox ul a:active,
 .sm-dox ul a:focus {
-  color: var(--primary-color) !important;
+  color: black !important;
   background-color: transparent !important;
 }
 
@@ -526,19 +547,40 @@ doxygen-awesome-dark-mode-toggle {
     border: 1px solid #d3d1d1;
   }
 
+  html.dark-mode #navbar-main-menu {
+    background-color: #2e273f;
+    border: 1px solid #796da0;
+  }
+
   #navbar-main-menu > li > a {
     color: black !important;
     font-size: 18px;
   }
 
+  html.dark-mode #navbar-main-menu > li > a {
+    color: white !important;
+  }
+  
   #navbar-main-menu li:hover {
     cursor: pointer;
     background-color: #fae7d3 !important;
   }
 
+  html.dark-mode #navbar-main-menu li:hover {
+    background-color: #7a6da0 !important; 
+  }
+
   .sm-dox {
     margin: auto 0;
     position: relative;
+  }
+
+  .sm.sm-dox ul {
+    padding: 0;
+  }
+
+  html:not(.dark-mode) .sm.sm-dox ul a:hover { 
+    color: black !important;
   }
 
   .sm.sm-dox a {
@@ -547,10 +589,16 @@ doxygen-awesome-dark-mode-toggle {
   }
 
   .sm.sm-dox > li {
-    border-radius: 10px;
     padding: 5px 70px; /* TODO: adaptive width */
   }
 
+  .sm.sm-dox  > li:first-child {
+    border-radius: 8px 8px 0 0;
+  }
+
+  .sm.sm-dox  > li:last-child {
+    border-radius: 0 0 8px 8px;
+  }
   .main-menu-btn {
     order: 3;
     position: relative;
