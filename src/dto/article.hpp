@@ -5,8 +5,7 @@
 #include <userver/server/handlers/http_handler_base.hpp>
 #include <userver/formats/parse/common_containers.hpp>
 #include <userver/formats/json/value.hpp>
-#include "../models/article.hpp"
-#include "../validators/length_validator.hpp"
+#include "models/article.hpp"
 #include "profile.hpp"
 
 namespace real_medium::dto {
@@ -31,38 +30,24 @@ userver::formats::json::Value Serialize(
     userver::formats::serialize::To<userver::formats::json::Value>);
 
 struct CreateArticleRequest final {
-  static constexpr int MIN_TITLE_LEN=3;
-  static constexpr int MAX_TITLE_LEN=256;
-  static constexpr int MIN_BODY_LEN=5;
-  static constexpr int MAX_BODY_LEN=65535;
-  static constexpr int MIN_DESCR_LEN=5;
-  static constexpr int MAX_DESCR_LEN=8192;
-  static constexpr int MIN_TAG_NAME_LEN=2;
-  static constexpr int MAX_TAG_NAME_LEN=256;
-  static CreateArticleRequest Parse(const userver::formats::json::Value& data);
-  std::string title;
-  std::string description;
-  std::string body;
-  std::optional<std::vector<std::string>> tags;
-};
 
-struct UpdateArticleRequest final {
-  static constexpr int MIN_TITLE_LEN=3;
-  static constexpr int MAX_TITLE_LEN=256;
-  static constexpr int MIN_BODY_LEN=5;
-  static constexpr int MAX_BODY_LEN=65535;
-  static constexpr int MIN_DESCR_LEN=5;
-  static constexpr int MAX_DESCR_LEN=8192;
-  static constexpr int MIN_TAG_NAME_LEN=2;
-  static constexpr int MAX_TAG_NAME_LEN=256;
-  static UpdateArticleRequest Parse(
-      const userver::formats::json::Value& data,
-      const userver::server::http::HttpRequest& request) ;
-  std::string slug;
   std::optional<std::string> title;
   std::optional<std::string> description;
   std::optional<std::string> body;
   std::optional<std::vector<std::string>> tags;
 };
+
+struct UpdateArticleRequest final {
+  std::optional<std::string> title;
+  std::optional<std::string> description;
+  std::optional<std::string> body;
+};
+
+CreateArticleRequest Parse(const userver::formats::json::Value& json,
+                   userver::formats::parse::To<CreateArticleRequest>);
+
+
+UpdateArticleRequest Parse(const userver::formats::json::Value& json,
+                           userver::formats::parse::To<UpdateArticleRequest>);
 
 }  // namespace realmedium::dto

@@ -8,14 +8,14 @@
 namespace real_medium::dto {
 
 struct UserRegistrationDTO {
-  std::string username;
-  std::string email;
-  std::string password;
+  std::optional<std::string> username;
+  std::optional<std::string> email;
+  std::optional<std::string> password;
 };
 
 struct UserLoginDTO {
-  std::string email;
-  std::string password;
+  std::optional<std::string> email;
+  std::optional<std::string> password;
 };
 
 struct UserUpdateDTO {

@@ -85,6 +85,9 @@ add_library(${PROJECT_NAME}_objs OBJECT
 		src/handlers/articles/articles_unfavorite.hpp
 		src/dto/filter.hpp
 		src/dto/filter.cpp
+		src/validators/validators.cpp
+        src/validators/article_validators.cpp
+        src/validators/article_validators.hpp
 
 )
 
