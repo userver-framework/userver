@@ -24,9 +24,24 @@ class StandAloneChecker : public AuthCheckerDigestBaseStandAlone {
   bool HasUnnamedNonce(const Nonce&) const override { return false; };
 };
 
-// std::optional<std::string> AuthCheckerDigestBase::CalculateDigest(
-//     const server::http::HttpMethod& request_method,
-//     const DigestContextFromClient& client_context) const
+class DigestCalculation : public ::testing::Test {
+    StandAloneChecker checker;
+    DigestContextFromClient default_context;
+    DigestContextFromClient client_context;
+ public:
+  DigestCalculation(const AuthDigestSettings& digest_settings, Realm&& realm) : 
+    checker(digest_settings, realm),
+    
+  {
+
+  }
+  void SetUp(const AuthDigestSettings& digest_settings, Realm&& realm) {
+    
+  }
+  void SetDefault() {
+    client_context = default_context;
+  }
+}
 
 TEST(DigestHashChecker, CalculateDigest) {
   StandAloneChecker checker;
@@ -40,6 +55,11 @@ TEST(DigestHashChecker, CalculateDigest) {
   client_context.qop = "auth";
   EXPECT_EQ(checker.CalculateDigest(method, client_context),
             "6629fae49393a05397450978507c4ef1");
+  client_context.username = "Mubasa";
+  EXPECT_NE(checker.CalculateDigest(method, client_context),
+            "6629fae49393a05397450978507c4ef1");
+  client_context.username = "Mufasa";
+  client_context.username = 
 }
 
 }  // namespace server::handlers::auth::test
