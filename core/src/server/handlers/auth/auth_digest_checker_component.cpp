@@ -35,24 +35,12 @@ AuthDigestCheckerComponent::AuthDigestCheckerComponent(
       config["nonce-ttl"].As<std::chrono::milliseconds>(kDefaultTTL);
 }
 
-}  // namespace component
-
-namespace component {
-
 AuthDigestCheckerComponent::~AuthDigestCheckerComponent() = default;
-
-}  // namespace component
-
-namespace component {
 
 const server::handlers::auth::AuthDigestSettings&
 AuthDigestCheckerComponent::GetSettings() const {
   return settings_;
 }
-
-}  // namespace component
-
-namespace component {
 
 yaml_config::Schema AuthDigestCheckerComponent::GetStaticConfigSchema() {
   return yaml_config::MergeSchemas<components::LoggableComponentBase>(R"(
