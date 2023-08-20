@@ -712,6 +712,10 @@ doxygen-awesome-dark-mode-toggle {
   #links {
     display: none;
   }
+  #MSearchCloseImg {
+  width: 34px;
+  transform: translate(-2px, -6px);
+}
 }
 
 /* Landing page */
