@@ -831,12 +831,21 @@ html:not(.light-mode) .landing-intro-center {
 .bottom-nav .button {
   font-size: 12px;
   border-radius: 8px;
+  border: 1px solid #FDCC9A;
   padding: 16px;
-  background: #f5f5f5;
+  background: transparent;
   display: flex;
   flex-direction: column;
   text-decoration: none;
   gap: 4px;
+}
+
+html.dark-mode .bottom-nav .button {
+  border: 1px solid #EC700E;
+}
+
+html.dark-mode .btn-title {
+  color: #d2dbde !important;
 }
 
 .bottom-nav .button.prev {
@@ -846,6 +855,11 @@ html:not(.light-mode) .landing-intro-center {
 .bottom-nav .button.next {
   margin-left: auto;
   text-align: right;
+}
+
+html.dark-mode .btn-title::after, 
+html.dark-mode  .btn-title::before {
+  filter: invert(1);
 }
 
 .bottom-nav .btn-title {
@@ -874,8 +888,8 @@ html:not(.light-mode) .landing-intro-center {
   background: #f9e2ca;
 }
 
-.bottom-nav .btn-sub {
-  color: #6e6e6e;
+.btn-sub {
+  color: #716690;
 }
 
 /* Bigger font for menu */
