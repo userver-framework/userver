@@ -13,8 +13,8 @@ struct AuthDigestSettings {
   std::string algorithm;
   std::vector<std::string> domains;
   std::vector<std::string> qops;
-  std::optional<bool> is_proxy;
-  std::optional<bool> is_session;
+  bool is_proxy;
+  bool is_session;
   std::chrono::milliseconds nonce_ttl;
 };
 
