@@ -7,5 +7,6 @@ bool ValidateEmail(const std::string& email) {
   return regex_match(email.begin(), email.end(), pattern);
 }
 bool ValidatePassword(const std::string& password) { return !password.empty(); }
+bool ValidateUsername(const std::string& username) { return !username.empty(); }
 
 }  // namespace real_medium::validator
