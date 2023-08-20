@@ -802,8 +802,6 @@ bool RequestState::IsDeadlineExpiredResponse(Status status_code) {
 bool RequestState::ShouldRetryResponse() {
   const auto status_code = static_cast<Status>(easy().get_response_code());
 
-  if (status_code >= kLeastBadHttpCodeForEB) return true;
-
   return status_code >= kLeastBadHttpCodeForEB ||
          // See IsDeadlineExpiredResponse. We return 'true' for both cases here
          // and check case (1) separately in on_retry.

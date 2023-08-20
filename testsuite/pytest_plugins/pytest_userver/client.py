@@ -601,6 +601,15 @@ class AiohttpClient(service_client.AiohttpClient):
         )
         await _task_check_response(task_id, response)
 
+    async def http_allowed_urls_extra(
+            self, http_allowed_urls_extra: typing.List[str],
+    ) -> None:
+        await self._do_testsuite_action(
+            'http_allowed_urls_extra',
+            json={'allowed_urls_extra': http_allowed_urls_extra},
+            testsuite_skip_prepare=True,
+        )
+
     @contextlib.asynccontextmanager
     async def capture_logs(self):
         async with self._log_capture_fixture.start_capture() as capture:
@@ -653,8 +662,10 @@ class AiohttpClient(service_client.AiohttpClient):
             }
             if cache_names:
                 body['invalidate_caches']['names'] = cache_names
+
         if http_allowed_urls_extra is not None:
-            body['http_allowed_urls_extra'] = http_allowed_urls_extra
+            await self.http_allowed_urls_extra(http_allowed_urls_extra)
+
         return await self._tests_control(body)
 
     async def update_server_state(self) -> None:
