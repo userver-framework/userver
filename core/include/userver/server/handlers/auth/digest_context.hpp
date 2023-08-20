@@ -36,16 +36,10 @@ struct DigestContextFromClient {
   std::string response;
   std::string algorithm;
   std::string cnonce;
-<<<<<<< HEAD
-  std::string qop;        // message-qop
-  std::string nc;       // nonce-count
-  std::string authparam;  // auth-param
-=======
   std::string opaque;
   std::string qop;        
   std::string nc;       
   std::string authparam; 
->>>>>>> parsing
 };
 
 DigestContextFromClient Parse(
