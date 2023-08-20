@@ -403,6 +403,27 @@ a.titlelink:hover {
   margin-left: 7px;
 }
 
+.main-menu-btn-icon,
+.main-menu-btn-icon::before, 
+.main-menu-btn-icon::after {
+  width: 26px;
+  height: 3px;
+  border-radius: 1.5px;
+  background-color: var(--primary-color);
+}
+
+.main-menu-btn-icon {
+  margin-top: -1px;
+}
+
+.main-menu-btn-icon::before {
+  top: -8px;
+}
+
+.main-menu-btn-icon::after {
+  top: 8px;
+}
+
 .SRResult .highlight {
   font-weight: 600;
 }
