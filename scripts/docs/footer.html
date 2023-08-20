@@ -38,19 +38,21 @@ $generatedby <a href="https://www.doxygen.org/index.html">Doxygen</a> $doxygenve
       document.getElementById('main-navbar').appendChild(links);
   }
 
-  document.addEventListener("readystatechange", () => {
-    if (document.readyState != "complete") return;
+  $(function() {
+    $(document).ready(function() {
+      setTimeout(() => {
+      init_all_results_button();
+      init_header();
+      addLinks();
 
-    init_all_results_button();
-    init_header();
-    addLinks();
+      const isLanding = document.getElementById('landing_logo_id') !== null;
 
-    const isLanding = document.getElementById('landing_logo_id') !== null;
+      if (isLanding) return;
 
-    if (isLanding) return;
-
-    highlight_code();
-    styleNavButtons(); // TODO: code style?
+      highlight_code();
+      styleNavButtons(); // TODO: code style?
+    }, 0);
+    });
   });
 </script>
 </body>
