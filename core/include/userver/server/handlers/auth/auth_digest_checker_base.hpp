@@ -82,7 +82,8 @@ class AuthCheckerDigestBase : public AuthCheckerBase {
   ValidateClientDataResult ValidateClientData(
       const DigestContextFromClient& client_context) const;
 
-  std::optional<std::string> CalculateDigest(
+  std::string CalculateDigest(
+      const HA1& ha1_non_loggable,
       http::HttpMethod request_method,
       const DigestContextFromClient& client_context) const;
 

@@ -107,11 +107,6 @@ AuthCheckResult AuthCheckerDigestBase::CheckAuth(
   if (!ha1_opt.has_value()) {
     return AuthCheckResult{AuthCheckResult::Status::kForbidden};
   }
-  auto ha1 = ha1_opt.value().GetUnderlying();
-  if (is_session_) {
-    ha1 = fmt::format("{}:{}:{}", ha1, client_context.nonce,
-                      client_context.cnonce);
-  }
 
   auto validate_result = ValidateClientData(client_context);
   switch (validate_result) {
@@ -125,9 +120,9 @@ AuthCheckResult AuthCheckerDigestBase::CheckAuth(
       break;
   }
 
-  auto digest = CalculateDigest(request.GetMethod(), client_context);
+  auto digest = CalculateDigest(ha1_opt.value(), request.GetMethod(), client_context);
 
-  if (!crypto::algorithm::AreStringsEqualConstTime(digest.value(),
+  if (!crypto::algorithm::AreStringsEqualConstTime(digest,
                                                    client_context.response)) {
     response.SetStatus(unauthorized_status_);
     response.SetHeader(authenticate_header_, ConstructResponseDirectives(
@@ -229,11 +224,18 @@ bool AuthCheckerDigestBase::IsNonceExpired(std::string_view nonce_from_client,
   return user_data.timestamp + nonce_ttl_ < userver::utils::datetime::Now();
 }
 
-std::optional<std::string> AuthCheckerDigestBase::CalculateDigest(
+std::string AuthCheckerDigestBase::CalculateDigest(
+    const HA1& ha1_non_loggable,
     http::HttpMethod request_method,
     const DigestContextFromClient& client_context) const {
   // RFC 2617, 3.2.2.1 Request-Digest
-  
+
+  auto ha1 = ha1_non_loggable.GetUnderlying();
+  if (is_session_) {
+    ha1 = fmt::format("{}:{}:{}", ha1, client_context.nonce,
+                      client_context.cnonce);
+  }
+
   auto a2 = fmt::format("{}:{}", ToString(request_method), client_context.uri);
   std::string ha2 = digest_hasher_.GetHash(a2);
 
