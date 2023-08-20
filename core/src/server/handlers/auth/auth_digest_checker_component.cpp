@@ -22,7 +22,7 @@ AuthDigestCheckerComponent::AuthDigestCheckerComponent(
   // Reading config values from static config
   // Check for valid algorithms
   std::string algorithm = config["algorithm"].As<std::string>();
-  if (!server::handlers::auth::kHashAlgToType.TryFind(algorithm).has_value()) {
+  if (!server::handlers::auth::kHashAlgToType.TryFindICase(algorithm).has_value()) {
     throw std::runtime_error("Algorithm is not supported: " + algorithm);
   }
   settings_.algorithm = algorithm;
