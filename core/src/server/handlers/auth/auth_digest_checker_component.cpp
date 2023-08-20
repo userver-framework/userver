@@ -27,8 +27,15 @@ AuthDigestCheckerComponent::AuthDigestCheckerComponent(
   }
   settings_.algorithm = algorithm;
 
-  settings_.domains = config["domains"].As<std::vector<std::string>>("/");
+  settings_.domains = config["domains"].As<std::vector<std::string>>(std::vector<std::string>{"/"});
   settings_.qops = config["qops"].As<std::vector<std::string>>(std::vector<std::string>{"auth"});
+  // Check for valid qops
+  for (const auto& qop: settings_.qops) {
+    if (!server::handlers::auth::kQopToType.TryFindICase(qop).has_value()) {
+      throw std::runtime_error("Qop is not supported: " + qop);
+    }
+  }
+
   settings_.is_proxy = config["is-proxy"].As<bool>(false);
   settings_.is_session = config["is-session"].As<bool>(false);
   settings_.nonce_ttl =
