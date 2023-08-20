@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/server/handlers/auth/digest_directives.hpp
+/// @brief Various digest authentication directives
+
 #include <string_view>
 
 USERVER_NAMESPACE_BEGIN
