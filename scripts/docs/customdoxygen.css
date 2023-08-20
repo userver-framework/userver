@@ -666,10 +666,19 @@ doxygen-awesome-dark-mode-toggle {
   .sm.sm-dox a:hover {
     font-size: 18px !important;
   }
-
+  .sm.sm-dox ul { 
+    border-radius: 8px !important;
+  }
   .sm.sm-dox > li {
-    border-radius: 10px;
     padding: 5px 70px; /* TODO: adaptive width */
+  }
+
+  .sm.sm-dox > li:first-child {
+    border-radius: 8px 8px 0 0;
+  }
+
+  .sm.sm-dox > li:last-child {
+    border-radius:  0 0 8px 8px;
   }
 
   td#projectalign {
