@@ -52,5 +52,14 @@ void validate(const dto::UserUpdateDTO& dto) {
     throw utils::error::ValidationException("password", "Invalid field");
   }
 }
+void validate(const dto::AddCommentDTO& dto) {
+  if (!dto.body) {
+    throw utils::error::ValidationException("body", "Field is missing");
+  }
+
+  if (dto.body.value().empty()) {
+    throw utils::error::ValidationException("body", "Invalid field");
+  }
+}
 
 }  // namespace real_medium::validator

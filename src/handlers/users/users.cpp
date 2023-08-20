@@ -26,19 +26,20 @@ userver::formats::json::Value RegisterUser::HandleRequestJsonThrow(
     const userver::server::http::HttpRequest& request,
     const userver::formats::json::Value& request_json,
     userver::server::request::RequestContext& context) const {
-  dto::UserRegistrationDTO user_register;
-
+  dto::UserRegistrationDTO user_register =
+      request_json["user"].As<dto::UserRegistrationDTO>();
+  ;
 
   try {
-    user_register = request_json["user"]
-                        .As<dto::UserRegistrationDTO>();
     validator::validate(user_register);
   } catch (const utils::error::ValidationException& err) {
-    request.SetResponseStatus(userver::server::http::HttpStatus::kUnprocessableEntity);
+    request.SetResponseStatus(
+        userver::server::http::HttpStatus::kUnprocessableEntity);
     return err.GetDetails();
   }
 
-  auto hash_password = userver::crypto::hash::Sha256(user_register.password.value());
+  auto hash_password =
+      userver::crypto::hash::Sha256(user_register.password.value());
   models::User result_user;
   try {
     auto query_result = pg_cluster_->Execute(

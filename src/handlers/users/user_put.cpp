@@ -19,22 +19,22 @@ userver::formats::json::Value Handler::HandleRequestJsonThrow(
     const userver::server::http::HttpRequest& request,
     const userver::formats::json::Value& request_json,
     userver::server::request::RequestContext& context) const {
-  auto user_id = context.GetData<std::optional<std::string>>("id");;
+  auto user_id = context.GetData<std::optional<std::string>>("id");
 
-  dto::UserUpdateDTO user_change_data;
+  dto::UserUpdateDTO user_change_data =
+      request_json["user"].As<dto::UserUpdateDTO>();
 
   try {
-    user_change_data = request_json["user"]
-                           .As<dto::UserUpdateDTO>();
     validator::validate(user_change_data);
   } catch (const utils::error::ValidationException& err) {
-    request.SetResponseStatus(userver::server::http::HttpStatus::kUnprocessableEntity);
+    request.SetResponseStatus(
+        userver::server::http::HttpStatus::kUnprocessableEntity);
     return err.GetDetails();
   }
 
   std::optional<std::string> password_hash = std::nullopt;
-    password_hash =
-        userver::crypto::hash::Sha256(user_change_data.password.value());
+  password_hash =
+      userver::crypto::hash::Sha256(user_change_data.password.value());
 
   const auto result = pg_cluster_->Execute(
       userver::storages::postgres::ClusterHostType::kMaster,

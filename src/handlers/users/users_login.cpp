@@ -34,18 +34,19 @@ class LoginUser final : public userver::server::handlers::HttpHandlerJsonBase {
       const userver::server::http::HttpRequest& request,
       const userver::formats::json::Value& request_json,
       userver::server::request::RequestContext&) const override {
-    dto::UserLoginDTO user_login;
-
+    dto::UserLoginDTO user_login = request_json["user"].As<dto::UserLoginDTO>();
+    ;
 
     try {
-      user_login = request_json["user"].As<dto::UserLoginDTO>();
       validator::validate(user_login);
     } catch (const utils::error::ValidationException& err) {
-      request.SetResponseStatus(userver::server::http::HttpStatus::kUnprocessableEntity);
+      request.SetResponseStatus(
+          userver::server::http::HttpStatus::kUnprocessableEntity);
       return err.GetDetails();
     }
 
-    auto password_hash = userver::crypto::hash::Sha256(user_login.password.value());
+    auto password_hash =
+        userver::crypto::hash::Sha256(user_login.password.value());
 
     auto userResult = pg_cluster_->Execute(
         userver::storages::postgres::ClusterHostType::kMaster,
