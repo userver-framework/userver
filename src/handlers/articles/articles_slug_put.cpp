@@ -1,8 +1,9 @@
 #include "articles_slug_put.hpp"
-#include "../../models/article.hpp"
-#include "../../dto/article.hpp"
-#include "../../db/sql.hpp"
-#include "../../utils/slugify.hpp"
+#include "models/article.hpp"
+#include "dto/article.hpp"
+#include "db/sql.hpp"
+#include "utils/slugify.hpp"
+#include "utils/errors.hpp"
 
 namespace real_medium::handlers::articles_slug::put {
 Handler::Handler(const userver::components::ComponentConfig& config,

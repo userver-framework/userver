@@ -6,6 +6,7 @@
 #include "../../models/article.hpp"
 #include "../../utils/errors.hpp"
 #include "../../utils/slugify.hpp"
+#include "validators/validators.hpp"
 namespace real_medium::handlers::articles::post {
 
 Handler::Handler(const userver::components::ComponentConfig& config,
@@ -20,13 +21,12 @@ userver::formats::json::Value Handler::HandleRequestJsonThrow(
     const userver::server::http::HttpRequest& request,
     const userver::formats::json::Value& request_json,
     userver::server::request::RequestContext& context) const {
-  dto::CreateArticleRequest createArticleRequest;
+  auto createArticleRequest = request_json["article"].As<dto::CreateArticleRequest>();
   try {
-    createArticleRequest =
-        dto::CreateArticleRequest::Parse(request_json["article"]);
+    validator::validate(createArticleRequest);
   } catch (const real_medium::utils::error::ValidationException& ex) {
     // userver doesn't yet support 422 HTTP error code, so we handle the
-    // exception by ourselves. In general the exception is processed by the
+    // exception by ourselves. In general the exceptions are processed by the
     // framework
     request.SetResponseStatus(
         userver::server::http::HttpStatus::kUnprocessableEntity);
@@ -38,7 +38,7 @@ userver::formats::json::Value Handler::HandleRequestJsonThrow(
   std::string articleId;
   try {
     const auto slug =
-        real_medium::utils::slug::Slugify(createArticleRequest.title);
+        real_medium::utils::slug::Slugify(createArticleRequest.title.value());
 
     const auto res = pg_cluster_->Execute(
         userver::storages::postgres::ClusterHostType::kMaster,
