@@ -443,11 +443,11 @@ a.titlelink:hover {
 #MSearchResultsWindow {
   height: auto !important;
   max-height: 80vh !important;
-  width: 380px !important;
+  width: 400px !important;
 }
 
 #MSearchResultsWindow {
-  transform: translate(-87px, 20px) !important;
+  transform: translate(-90px, 20px) !important;
 }
 
 .MSearchBoxActive #MSearchField {
@@ -508,7 +508,10 @@ doxygen-awesome-dark-mode-toggle {
   }
 
   #MSearchResultsWindow {
-    right: 0px;
+    height: auto !important;
+    max-height: 80vh !important;
+    width: 390px !important;
+    transform: translate(-54px, 20px) !important;
   }
 
   #navbar-main-menu {
@@ -631,7 +634,11 @@ doxygen-awesome-dark-mode-toggle {
   }
 
   #MSearchResultsWindow {
-    left: 30vw !important; /*  TODO: search modal position*/
+    height: auto !important;
+    max-height: 80vh !important;
+    width: 95% !important;
+    transform: translate(0px, 20px) !important;
+    z-index: 1000;
   }
 
   #navbar-main-menu {
