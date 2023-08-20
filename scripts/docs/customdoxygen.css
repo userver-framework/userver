@@ -678,7 +678,7 @@ doxygen-awesome-dark-mode-toggle {
   }
 
   #MSearchField {
-    width: 30vw;
+    width: 100%;
   }
 
   #MSearchResultsWindow {
