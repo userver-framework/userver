@@ -859,9 +859,20 @@ html.dark-mode .bottom-nav .button {
 }
 
 html.dark-mode .btn-title {
-  color: #d2dbde !important;
+  color: #d2dbde;
 }
 
+.bottom-nav .button:hover {
+  background: #f9e2ca;
+}
+html.dark-mode .bottom-nav .button:hover {
+  background: #7A6DA0;
+  border: none;
+}
+
+html.dark-mode .button:hover .btn-sub {
+  color: #d2dbde !important;
+}
 .bottom-nav .button.prev {
   margin-right: 10px;
 }
@@ -896,10 +907,6 @@ html.dark-mode  .btn-title::before {
 
 .bottom-nav .button.next .btn-title::after {
   transform: rotate(180deg);
-}
-
-.bottom-nav .button:hover {
-  background: #f9e2ca;
 }
 
 .btn-sub {
