@@ -17,6 +17,16 @@ namespace component {
 
 /// @brief Component that loads digest auth configuration settings from a
 /// static_config.yaml
+/// ## Static options:
+///
+/// Name       | Description                                          | Default value
+/// ---------- | ---------------------------------------------------- | -------------
+/// algorithm  | algorithm for hashing nonce                          | md5
+/// domains    | domains for use                                      | /
+/// qops       | list of qop-options                                  | auth
+/// is-proxy   | if set, the Proxy prefix is inserted into the header | false
+/// is-session | enable sessions                                      | false
+/// nonce-ttl  | ttl for nonce                                        | 10s
 
 // clang-format on
 
