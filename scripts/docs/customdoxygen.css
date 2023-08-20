@@ -90,7 +90,7 @@ html {
     --toc-active-color: #ffffff;
   }
 }
-
+/* Change color of iframe polygon scheme in dark-mode */
 html.dark-mode div.contents .dotgraph iframe {
   filter: none;
 }
