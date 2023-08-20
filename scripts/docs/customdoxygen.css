@@ -118,7 +118,7 @@ html.dark-mode {
 .hljs-deletion,
 .hljs-number,
 .hljs-quote {
-  color: #008000;
+  color: #00CC51;
 }
 
 .hljs-template-tag,
@@ -131,7 +131,7 @@ html.dark-mode {
 .hljs-link,
 .hljs-operator,
 .hljs-variable {
-  color: #008000;
+  color: #00CC51;
 }
 
 .hljs-literal {
@@ -144,13 +144,13 @@ html.dark-mode {
 
 .hljs-addition,
 .hljs-built_in {
-  color: #076678;
+  color: #8D41DA;
 }
 
 .hljs-bullet,
 .hljs-selector-pseudo,
 .hljs-tag {
-  color: #427b58;
+  color: #18E5E5;
 }
 
 .hljs-addition,
@@ -159,13 +159,13 @@ html.dark-mode {
 .hljs-selector-class,
 .hljs-string,
 .hljs-symbol {
-  color: #cf9b00;
+  color: #F79400;
 }
 
 .hljs-code,
 .hljs-regexpб .hljs-selector-id,
 .hljs-template-variable {
-  color: #af3a03;
+  color: #FF5C5C;
 }
 
 /* Common styles */
@@ -713,9 +713,9 @@ doxygen-awesome-dark-mode-toggle {
     display: none;
   }
   #MSearchCloseImg {
-  width: 34px;
-  transform: translate(-2px, -6px);
-}
+    width: 34px;
+    transform: translate(-2px, -6px);
+  }
 }
 
 /* Landing page */
