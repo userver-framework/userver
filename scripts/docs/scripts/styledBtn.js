@@ -1,7 +1,6 @@
 function styleNavButtons() {
     const navButtonsContainer = document.querySelector('.bottom-nav')
     const navButtons = document.querySelectorAll('.bottom-nav .el');
-    console.log(navButtonsContainer, navButtons)
     
     if (!(navButtonsContainer && navButtons.length)) return;
     
