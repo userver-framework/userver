@@ -59,8 +59,7 @@ std::string DigestHasher::GetHash(std::string_view data) const {
 
 AuthCheckerDigestBase::AuthCheckerDigestBase(
     const AuthDigestSettings& digest_settings, Realm&& realm)
-    : qops_(digest_settings.qops),
-      qops_str_(fmt::format("{}", fmt::join(qops_, ","))),
+    : qops_str_(fmt::format("{}", fmt::join(digest_settings.qops, ","))),
       realm_(std::move(realm)),
       domains_str_(fmt::format("{}", fmt::join(digest_settings.domains, ", "))),
       algorithm_(digest_settings.algorithm),
@@ -76,13 +75,12 @@ AuthCheckerDigestBase::AuthCheckerDigestBase(
                                 : userver::http::headers::kAuthorization),
       authenticate_info_header_(is_proxy_ ? kProxyAuthenticationInfo
                                           : kAuthenticationInfo),
-      unauthorized_status_(
-          is_proxy_ ? server::http::HttpStatus::kProxyAuthenticationRequired
-                    : server::http::HttpStatus::kUnauthorized) {}
+      unauthorized_status_(is_proxy_
+                               ? http::HttpStatus::kProxyAuthenticationRequired
+                               : http::HttpStatus::kUnauthorized) {}
 
 AuthCheckResult AuthCheckerDigestBase::CheckAuth(
-    const server::http::HttpRequest& request,
-    server::request::RequestContext&) const {
+    const http::HttpRequest& request, request::RequestContext&) const {
   // RFC 2617, 3
   // Digest Access Authentication.
   auto& response = request.GetHttpResponse();
@@ -109,7 +107,7 @@ AuthCheckResult AuthCheckerDigestBase::CheckAuth(
     case ValidateClientDataResult::kWrongUserData:
       return StartNewAuthSession(client_context.username,
                                  digest_hasher_.Nonce(), true, response);
-    case ValidateClientDataResult::kUserNotRegistred:
+    case ValidateClientDataResult::kDuplicateRequest:
       response.SetStatus(unauthorized_status_);
       return AuthCheckResult{AuthCheckResult::Status::kTokenNotFound};
     case ValidateClientDataResult::kOk:
@@ -130,7 +128,8 @@ AuthCheckResult AuthCheckerDigestBase::CheckAuth(
   }
 
   // RFC 2617, 3.2.3
-  // Authentication-Info contains the "nextnonce" required for subsequent authentication.
+  // Authentication-Info contains the "nextnonce" required for subsequent
+  // authentication.
   auto info_header_directives = ConstructAuthInfoHeader(client_context);
   response.SetHeader(authenticate_info_header_, info_header_directives);
 
@@ -156,16 +155,16 @@ ValidateClientDataResult AuthCheckerDigestBase::ValidateClientData(
   if (IsNonceExpired(client_context.nonce, user_data)) {
     return ValidateClientDataResult::kWrongUserData;
   }
-  LOG_DEBUG() << "NONCE IS OK";
+  LOG_DEBUG() << "Nonce is OK";
 
   auto client_nc = std::stoul(client_context.nc, nullptr, 16);
   if (user_data.nonce_count < client_nc) {
     UserData user_data{client_context.nonce, utils::datetime::Now()};
     SetUserData(client_context.username, std::move(user_data));
   } else {
-    return ValidateClientDataResult::kUserNotRegistred;
+    return ValidateClientDataResult::kDuplicateRequest;
   }
-  LOG_DEBUG() << "NONCE_COUNT IS OK";
+  LOG_DEBUG() << "Nonce_count is OK";
 
   return ValidateClientDataResult::kOk;
 }
@@ -182,7 +181,7 @@ std::string AuthCheckerDigestBase::ConstructAuthInfoHeader(
 
 AuthCheckResult AuthCheckerDigestBase::StartNewAuthSession(
     const std::string& username, const std::string& nonce_from_client,
-    bool stale, server::http::HttpResponse& response) const {
+    bool stale, http::HttpResponse& response) const {
   UserData user_data{nonce_from_client, userver::utils::datetime::Now()};
   SetUserData(username, std::move(user_data));
   response.SetStatus(unauthorized_status_);
@@ -210,8 +209,8 @@ std::string AuthCheckerDigestBase::ConstructResponseDirectives(
 
 bool AuthCheckerDigestBase::IsNonceExpired(std::string_view nonce_from_client,
                                            const UserData& user_data) const {
-  LOG_DEBUG() << "NONCE: " << user_data.nonce;
-  LOG_DEBUG() << "NONCE_FROM_CLIENT: " << nonce_from_client;
+  LOG_DEBUG() << "Nonce: " << user_data.nonce;
+  LOG_DEBUG() << "Nonce_from_client : " << nonce_from_client;
   if (!crypto::algorithm::AreStringsEqualConstTime(user_data.nonce,
                                                    nonce_from_client)) {
     return true;
@@ -221,7 +220,7 @@ bool AuthCheckerDigestBase::IsNonceExpired(std::string_view nonce_from_client,
 }
 
 std::optional<std::string> AuthCheckerDigestBase::CalculateDigest(
-    const server::http::HttpMethod& request_method,
+    http::HttpMethod request_method,
     const DigestContextFromClient& client_context) const {
   // RFC 2617, 3.2.2.1 Request-Digest
   auto ha1_opt = GetHA1(client_context.username);
@@ -238,7 +237,6 @@ std::optional<std::string> AuthCheckerDigestBase::CalculateDigest(
   auto a2 = fmt::format("{}:{}", ToString(request_method), client_context.uri);
   std::string ha2 = digest_hasher_.GetHash(a2);
 
-  // request_digest = H(HA1:nonce:nc:cnonce:qop:HA2).
   std::string request_digest = fmt::format(
       "{}:{}:{}:{}:{}:{}", ha1, client_context.nonce, client_context.nc,
       client_context.cnonce, client_context.qop, ha2);

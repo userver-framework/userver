@@ -20,11 +20,9 @@ USERVER_NAMESPACE_BEGIN
 
 namespace server::handlers::auth {
 
-class AuthCheckerDigestBaseStandAlone : public AuthCheckerDigestBase {
+class AuthCheckerDigestBaseStandalone : public AuthCheckerDigestBase {
  public:
-  using AuthCheckResult = server::handlers::auth::AuthCheckResult;
-
-  AuthCheckerDigestBaseStandAlone(const AuthDigestSettings& digest_settings,
+  AuthCheckerDigestBaseStandalone(const AuthDigestSettings& digest_settings,
                                   Realm&& realm);
 
   [[nodiscard]] bool SupportsUserAuth() const noexcept override { return true; }
