@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/server/handlers/auth/digest_checker_settings_component.hpp
+/// @brief @copybrief server::handlers::auth::DigestCheckerSettingsComponent
+
 #include <chrono>
 #include <optional>
 #include <string>
