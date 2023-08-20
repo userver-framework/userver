@@ -3,7 +3,6 @@
 #include <fmt/format.h>
 
 #include <cctype>
-#include <unordered_map>
 
 #include <userver/logging/log.hpp>
 #include <userver/server/handlers/auth/digest_directives.hpp>
@@ -124,13 +123,12 @@ void DigestParsing::ParseAuthInfo(std::string_view header_value) {
 DigestContextFromClient DigestParsing::GetClientContext() {
   // mandatory client directives checking
   for (const auto& dir : kMandatoryDirectives) {
-    if (!directive_mapping.HasMember(dir)) {
+    if (!directive_mapping.count(dir.data())) {
       utils::LogErrorAndThrow(fmt::format(
           "Mandatory {} directive is missing in Authentication header", dir));
     }
   }
-  auto json_value = directive_mapping.ExtractValue();
-  return json_value.As<DigestContextFromClient>();
+  return Parse(directive_mapping);
 }
 
 }  // namespace server::handlers::auth
