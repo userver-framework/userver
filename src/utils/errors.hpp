@@ -5,24 +5,18 @@
 
 namespace real_medium::utils::error {
 
-class ErrorBuilder {
- public:
-  static constexpr bool kIsExternalBodyFormatted{true};
-
-  ErrorBuilder(std::string_view field, std::string_view msg);
-  std::string GetExternalBody() const;
-
- private:
-  std::string json_error_body_;
-};
-
+/*
+ * userver doesn't yet support 422 HTTP error code
+ */
 class ValidationException
     : public userver::server::handlers::ExceptionWithCode<
           userver::server::handlers::HandlerErrorCode::kClientError> {
  public:
-  using BaseType::BaseType;
+  ValidationException(std::string_view field, std::string_view msg)
+      : BaseType(MakeError(field, msg)) {}
 
-  userver::formats::json::Value ToJson() const;
+  explicit ValidationException(userver::formats::json::Value&& json)
+      : BaseType(std::move(json)) {}
 };
 
 class SlugifyException
@@ -30,9 +24,6 @@ class SlugifyException
           userver::server::handlers::HandlerErrorCode::kClientError> {
  public:
   using BaseType::BaseType;
-
-  userver::formats::json::Value ToJson() const;
 };
-
 
 }  // namespace real_medium::utils::error

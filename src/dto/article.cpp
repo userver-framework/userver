@@ -76,7 +76,7 @@ UpdateArticleRequest UpdateArticleRequest::Parse(
     for(const auto &tag:*article.tags)
       real_medium::validators::CheckLength(tag,"tagList",MIN_TAG_NAME_LEN,MAX_TAG_NAME_LEN);
   if (!article.title && !article.description && !article.body && !article.tags)
-    throw real_medium::utils::error::ValidationException{real_medium::utils::error::ErrorBuilder{"article", "cannot be empty"}};
+    throw real_medium::utils::error::ValidationException{"article", "cannot be empty"};
 
   return article;
 }

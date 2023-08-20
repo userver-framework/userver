@@ -27,7 +27,7 @@ userver::formats::json::Value Handler::HandleRequestJsonThrow(
           .As<dto::UserUpdateDTO>();
 
   if (user_change_data.email.has_value() &&
-      !validators::ValidateEmail(user_change_data.email.value())) {
+      !validator::ValidateEmail(user_change_data.email.value())) {
     auto& response = request.GetHttpResponse();
     response.SetStatus(userver::server::http::HttpStatus::kUnprocessableEntity);
     return utils::error::MakeError("email", "Ivanlid email.");
@@ -35,7 +35,7 @@ userver::formats::json::Value Handler::HandleRequestJsonThrow(
 
   std::optional<std::string> password_hash = std::nullopt;
   if (user_change_data.password.has_value()) {
-    if (!validators::ValidatePassword(user_change_data.password.value())) {
+    if (!validator::ValidatePassword(user_change_data.password.value())) {
       auto& response = request.GetHttpResponse();
       response.SetStatus(
           userver::server::http::HttpStatus::kUnprocessableEntity);

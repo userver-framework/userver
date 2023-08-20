@@ -3,9 +3,9 @@
 #include <regex>
 #include <string_view>
 
-namespace real_medium::validators {
+namespace real_medium::validator {
 
-bool ValidateEmail(std::string_view email);
-bool ValidatePassword(std::string_view password);
+bool ValidateEmail(const std::string& email);
+bool ValidatePassword(const std::string& password);
 
-}  // namespace real_medium::validators
+}  // namespace real_medium::validator

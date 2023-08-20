@@ -1,20 +1,20 @@
 #include "articles_post.hpp"
 #include <userver/logging/log.hpp>
 
-#include "../../dto/article.hpp"
-#include "../../utils/slugify.hpp"
 #include "../../db/sql.hpp"
-#include "../../utils/errors.hpp"
+#include "../../dto/article.hpp"
 #include "../../models/article.hpp"
+#include "../../utils/errors.hpp"
+#include "../../utils/slugify.hpp"
 namespace real_medium::handlers::articles::post {
 
 Handler::Handler(const userver::components::ComponentConfig& config,
                  const userver::components::ComponentContext& context)
     : HttpHandlerJsonBase(config, context),
       pg_cluster_(context
-                   .FindComponent<userver::components::Postgres>(
-                       "realmedium-database")
-                   .GetCluster()) {}
+                      .FindComponent<userver::components::Postgres>(
+                          "realmedium-database")
+                      .GetCluster()) {}
 
 userver::formats::json::Value Handler::HandleRequestJsonThrow(
     const userver::server::http::HttpRequest& request,
@@ -22,22 +22,29 @@ userver::formats::json::Value Handler::HandleRequestJsonThrow(
     userver::server::request::RequestContext& context) const {
   dto::CreateArticleRequest createArticleRequest;
   try {
-    createArticleRequest = dto::CreateArticleRequest::Parse(request_json["article"]);
+    createArticleRequest =
+        dto::CreateArticleRequest::Parse(request_json["article"]);
   } catch (const real_medium::utils::error::ValidationException& ex) {
-    request.SetResponseStatus(userver::server::http::HttpStatus::kUnprocessableEntity);
-    return ex.ToJson();
+    // userver doesn't yet support 422 HTTP error code, so we handle the
+    // exception by ourselves. In general the exception is processed by the
+    // framework
+    request.SetResponseStatus(
+        userver::server::http::HttpStatus::kUnprocessableEntity);
+    return ex.GetDetails();
   }
 
   const auto userId = context.GetData<std::optional<std::string>>("id");
 
   std::string articleId;
   try {
-    const auto slug = real_medium::utils::slug::Slugify(createArticleRequest.title);
+    const auto slug =
+        real_medium::utils::slug::Slugify(createArticleRequest.title);
 
     const auto res = pg_cluster_->Execute(
         userver::storages::postgres::ClusterHostType::kMaster,
-        real_medium::sql::kCreateArticle.data(), createArticleRequest.title, slug,
-        createArticleRequest.body, createArticleRequest.description, userId, createArticleRequest.tags);
+        real_medium::sql::kCreateArticle.data(), createArticleRequest.title,
+        slug, createArticleRequest.body, createArticleRequest.description,
+        userId, createArticleRequest.tags);
 
     articleId = res.AsSingleRow<std::string>();
   } catch (const userver::storages::postgres::UniqueViolation& ex) {
@@ -50,14 +57,13 @@ userver::formats::json::Value Handler::HandleRequestJsonThrow(
     throw;
   }
 
-  const auto res =
-      pg_cluster_->Execute(userver::storages::postgres::ClusterHostType::kMaster,
-                        real_medium::sql::kGetArticleWithAuthorProfile.data(),
-                        articleId, userId);
+  const auto res = pg_cluster_->Execute(
+      userver::storages::postgres::ClusterHostType::kMaster,
+      real_medium::sql::kGetArticleWithAuthorProfile.data(), articleId, userId);
 
   userver::formats::json::ValueBuilder builder;
-  builder["article"] =
-      dto::Article::Parse(res.AsSingleRow<real_medium::models::TaggedArticleWithProfile>());
+  builder["article"] = dto::Article::Parse(
+      res.AsSingleRow<real_medium::models::TaggedArticleWithProfile>());
   return builder.ExtractValue();
 }
-} // namespace real_medium::handlers::articles::post
+}  // namespace real_medium::handlers::articles::post

@@ -29,13 +29,13 @@ userver::formats::json::Value RegisterUser::HandleRequestJsonThrow(
       userver::formats::json::FromString(request.RequestBody())["user"]
           .As<dto::UserRegistrationDTO>();
 
-  if (!validators::ValidateEmail(user_register.email)) {
+  if (!validator::ValidateEmail(user_register.email)) {
     auto& response = request.GetHttpResponse();
     response.SetStatus(userver::server::http::HttpStatus::kUnprocessableEntity);
     return utils::error::MakeError("email", "Wrong email entered");
   }
 
-  if (!validators::ValidatePassword(user_register.password)) {
+  if (!validator::ValidatePassword(user_register.password)) {
     auto& response = request.GetHttpResponse();
     response.SetStatus(userver::server::http::HttpStatus::kUnprocessableEntity);
     return utils::error::MakeError("password", "Wrong password entered");

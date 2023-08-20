@@ -11,7 +11,8 @@
 #include "db/sql.hpp"
 #include "dto/user.hpp"
 #include "models/user.hpp"
-#include "validators/user_validators.hpp"
+#include "utils/errors.hpp"
+#include "validators/validators.hpp"
 
 namespace real_medium::handlers::users_login::post {
 
@@ -35,18 +36,11 @@ class LoginUser final : public userver::server::handlers::HttpHandlerJsonBase {
       userver::server::request::RequestContext&) const override {
     auto user_login = request_json["user"].As<dto::UserLoginDTO>();
 
-    if (!validators::ValidateEmail(user_login.email)) {
-      auto& response = request.GetHttpResponse();
-      response.SetStatus(
-          userver::server::http::HttpStatus::kUnprocessableEntity);
-      return {};
-    }
-
-    if (!validators::ValidatePassword(user_login.password)) {
-      auto& response = request.GetHttpResponse();
-      response.SetStatus(
-          userver::server::http::HttpStatus::kUnprocessableEntity);
-      return {};
+    try {
+      validator::validate(user_login);
+    } catch (const utils::error::ValidationException& err) {
+      request.SetResponseStatus(userver::server::http::HttpStatus::kNotFound);
+      return err.GetDetails();
     }
 
     auto password_hash = userver::crypto::hash::Sha256(user_login.password);

@@ -23,7 +23,7 @@ userver::formats::json::Value Handler::HandleRequestJsonThrow(
   } catch (const real_medium::utils::error::ValidationException& ex) {
     request.SetResponseStatus(
         userver::server::http::HttpStatus::kUnprocessableEntity);
-    return ex.ToJson();
+    return ex.GetDetails();
   }
   auto userId = context.GetData<std::optional<std::string>>("id");
 

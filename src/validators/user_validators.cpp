@@ -1,11 +1,11 @@
 #include "user_validators.hpp"
 
-namespace real_medium::validators {
+namespace real_medium::validator {
 
-bool ValidateEmail(std::string_view email) {
-  const std::regex pattern("(\\w+)(\\.|_)?(\\w*)@(\\w+)(\\.(\\w+))+");
+bool ValidateEmail(const std::string& email) {
+  const std::regex pattern{R"((\w+)(\.|_)?(\w*)@(\w+)(\.(\w+))+)"};
   return regex_match(email.begin(), email.end(), pattern);
 }
-bool ValidatePassword(std::string_view password) { return !password.empty(); }
+bool ValidatePassword(const std::string& password) { return !password.empty(); }
 
-}  // namespace real_medium::validators
+}  // namespace real_medium::validator
