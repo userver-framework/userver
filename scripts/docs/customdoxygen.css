@@ -924,16 +924,16 @@ pre {
   }
 }
 
-@media screen and (max-width: 767px) {
-  .contents > div.fragment,
-  .textblock > div.fragment,
-  .textblock > pre.fragment,
-  .contents > .doxygen-awesome-fragment-wrapper > div.fragment,
-  .textblock > .doxygen-awesome-fragment-wrapper > div.fragment,
-  .textblock > .doxygen-awesome-fragment-wrapper > pre.fragment {
-    margin: var(--spacing-medium) calc(15px - var(--spacing-large));
-    border-radius: 12px;
-  }
+  @media screen and (max-width: 767px) {
+    div.fragment, pre.fragment {
+        border-top-right-radius: 0;
+        border-bottom-right-radius: 0;
+        border-right: 0;
+        border : 1px solid var(--separator-color);
+        border-radius: 12px;
+        margin: var(--spacing-medium) calc(15px - var(--spacing-large));
+    }}
+
 
   /* position copy btn */
   @media screen and (max-width: 767px) {
@@ -958,4 +958,3 @@ pre {
       right: 7px;
     }
   }
-}
