@@ -27,8 +27,8 @@ AuthDigestCheckerComponent::AuthDigestCheckerComponent(
   }
   settings_.algorithm = algorithm;
 
-  settings_.domains = config["domains"].As<std::vector<std::string>>({});
-  settings_.qops = config["qops"].As<std::vector<std::string>>({});
+  settings_.domains = config["domains"].As<std::vector<std::string>>("/");
+  settings_.qops = config["qops"].As<std::vector<std::string>>("auth");
   settings_.is_proxy = config["is-proxy"].As<bool>(false);
   settings_.is_session = config["is-session"].As<bool>(false);
   settings_.nonce_ttl =
@@ -54,7 +54,7 @@ properties:
     domains:
       type: array
       description: domains for use
-      defaultDescription: no domains
+      defaultDescription: /
       items:
           type: string
           description: domain name
