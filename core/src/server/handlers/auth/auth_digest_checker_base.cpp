@@ -102,6 +102,17 @@ AuthCheckResult AuthCheckerDigestBase::CheckAuth(
   parser.ParseAuthInfo(auth_value.substr(kDigestWord.size() + 1));
   const auto& client_context = parser.GetClientContext();
 
+  // Check if user have been registred.
+  auto ha1_opt = GetHA1(client_context.username);
+  if (!ha1_opt.has_value()) {
+    return AuthCheckResult{AuthCheckResult::Status::kForbidden};
+  }
+  auto ha1 = ha1_opt.value().GetUnderlying();
+  if (is_session_) {
+    ha1 = fmt::format("{}:{}:{}", ha1, client_context.nonce,
+                      client_context.cnonce);
+  }
+
   auto validate_result = ValidateClientData(client_context);
   switch (validate_result) {
     case ValidateClientDataResult::kWrongUserData:
@@ -115,9 +126,6 @@ AuthCheckResult AuthCheckerDigestBase::CheckAuth(
   }
 
   auto digest = CalculateDigest(request.GetMethod(), client_context);
-  if (!digest.has_value()) {
-    return AuthCheckResult{AuthCheckResult::Status::kForbidden};
-  }
 
   if (!crypto::algorithm::AreStringsEqualConstTime(digest.value(),
                                                    client_context.response)) {
@@ -138,30 +146,31 @@ AuthCheckResult AuthCheckerDigestBase::CheckAuth(
 
 ValidateClientDataResult AuthCheckerDigestBase::ValidateClientData(
     const DigestContextFromClient& client_context) const {
-  auto user_data_opt = GetUserData(client_context.username);
-  if (!user_data_opt.has_value()) {
-    // If the user is not found, his "nonce" may be in temporary storage.
+  auto user_data = GetUserData(client_context.username);
+
+  bool are_nonces_equal =
+      crypto::algorithm::AreStringsEqualConstTime(user_data.nonce,
+                                                  client_context.nonce);
+  bool is_nonce_expired = user_data.timestamp + nonce_ttl_ < userver::utils::datetime::Now();  
+  if (!are_nonces_equal) {
+    // "nonce" may be in temporary storage.
     auto nonce_creation_time = GetUnnamedNonceCreationTime(client_context.nonce);
     if (!nonce_creation_time.has_value()) {
       return ValidateClientDataResult::kWrongUserData;
     }
 
-    UserData user_data{client_context.nonce, nonce_creation_time.value()};
-    SetUserData(client_context.username, user_data);
-    user_data_opt = user_data;
-  }
-
-  const auto& user_data = user_data_opt.value();
-
-  if (IsNonceExpired(client_context.nonce, user_data)) {
+    UserData new_user_data{client_context.nonce, nonce_creation_time.value()};
+    SetUserData(client_context.username, std::move(new_user_data));
+  } else if (is_nonce_expired) {
     return ValidateClientDataResult::kWrongUserData;
   }
+
   LOG_DEBUG() << "Nonce is OK";
 
   auto client_nc = std::stoul(client_context.nc, nullptr, 16);
   if (user_data.nonce_count < client_nc) {
-    UserData user_data{client_context.nonce, utils::datetime::Now()};
-    SetUserData(client_context.username, std::move(user_data));
+    UserData new_user_data{client_context.nonce, utils::datetime::Now()};
+    SetUserData(client_context.username, std::move(new_user_data));
   } else {
     return ValidateClientDataResult::kDuplicateRequest;
   }
@@ -224,17 +233,7 @@ std::optional<std::string> AuthCheckerDigestBase::CalculateDigest(
     http::HttpMethod request_method,
     const DigestContextFromClient& client_context) const {
   // RFC 2617, 3.2.2.1 Request-Digest
-  auto ha1_opt = GetHA1(client_context.username);
-  if (!ha1_opt.has_value()) {
-    return std::nullopt;
-  }
-
-  auto ha1 = ha1_opt.value().GetUnderlying();
-  if (is_session_) {
-    ha1 = fmt::format("{}:{}:{}", ha1, client_context.nonce,
-                      client_context.cnonce);
-  }
-
+  
   auto a2 = fmt::format("{}:{}", ToString(request_method), client_context.uri);
   std::string ha2 = digest_hasher_.GetHash(a2);
 

@@ -27,10 +27,9 @@ class AuthCheckerDigestBaseStandalone : public AuthCheckerDigestBase {
 
   [[nodiscard]] bool SupportsUserAuth() const noexcept override { return true; }
 
-  std::optional<UserData> GetUserData(
-      const std::string& username) const override;
+  UserData GetUserData(const std::string& username) const override;
   void SetUserData(const std::string& username,
-                   UserData user_data) const override;
+                   UserData&& user_data) const override;
 
  private:
   mutable rcu::RcuMap<Username, UserData> user_data_;

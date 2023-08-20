@@ -61,6 +61,8 @@ class AuthCheckerDigestBase : public AuthCheckerBase {
   AuthCheckerDigestBase(const AuthDigestSettings& digest_settings,
                         Realm&& realm);
 
+  AuthCheckerDigestBase(const AuthCheckerDigestBase&) = default;
+
   [[nodiscard]] AuthCheckResult CheckAuth(
       const http::HttpRequest& request,
       request::RequestContext& request_context) const final;
@@ -70,10 +72,9 @@ class AuthCheckerDigestBase : public AuthCheckerBase {
   using HA1 = utils::NonLoggable<class HA1Tag, std::string>;
   virtual std::optional<HA1> GetHA1(const std::string& username) const = 0;
 
-  virtual std::optional<UserData> GetUserData(
-      const std::string& username) const = 0;
+  virtual UserData GetUserData(const std::string& username) const = 0;
   virtual void SetUserData(const std::string& username,
-                           UserData user_data) const = 0;
+                           UserData&& user_data) const = 0;
 
   virtual void PushUnnamedNonce(const Nonce& nonce, std::chrono::milliseconds nonce_ttl) const = 0;
   virtual std::optional<TimePoint> GetUnnamedNonceCreationTime(const Nonce& nonce) const = 0;
