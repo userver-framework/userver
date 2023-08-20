@@ -21,7 +21,7 @@ AuthDigestCheckerComponent::AuthDigestCheckerComponent(
     : components::LoggableComponentBase(config, context) {
   // Reading config values from static config
   // Check for valid algorithms
-  std::string algorithm = config["algorithm"].As<std::string>();
+  auto algorithm = config["algorithm"].As<std::string>("md5");
   if (!server::handlers::auth::kHashAlgToType.TryFindICase(algorithm).has_value()) {
     throw std::runtime_error("Algorithm is not supported: " + algorithm);
   }
