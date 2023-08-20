@@ -33,8 +33,10 @@ userver::formats::json::Value Handler::HandleRequestJsonThrow(
   }
 
   std::optional<std::string> password_hash = std::nullopt;
-  password_hash =
-      userver::crypto::hash::Sha256(user_change_data.password.value());
+  if (user_change_data.password) {
+    password_hash =
+        userver::crypto::hash::Sha256(user_change_data.password.value());
+  }
 
   const auto result = pg_cluster_->Execute(
       userver::storages::postgres::ClusterHostType::kMaster,
