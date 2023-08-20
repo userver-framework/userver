@@ -18,11 +18,11 @@ USERVER_NAMESPACE_BEGIN
 namespace server::handlers::auth {
 
 class DigestParsing {
-  formats::json::ValueBuilder directive_mapping;
-
  public:
   void ParseAuthInfo(std::string_view header_value);
   DigestContextFromClient GetClientContext();
+ private:
+  formats::json::ValueBuilder directive_mapping;
 };
 
 }  // namespace server::handlers::auth

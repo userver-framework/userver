@@ -1,6 +1,7 @@
 #include <userver/server/handlers/auth/auth_params_parsing.hpp>
 
 #include <fmt/format.h>
+
 #include <cctype>
 #include <unordered_map>
 
