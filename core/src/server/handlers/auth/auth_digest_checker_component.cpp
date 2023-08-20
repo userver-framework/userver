@@ -7,7 +7,7 @@
 #include <userver/utils/async.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
-#include <userver/server/handlers/auth/digest_algorithms.hpp>
+#include <userver/server/handlers/auth/digest_directives.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -28,7 +28,7 @@ AuthDigestCheckerComponent::AuthDigestCheckerComponent(
   settings_.algorithm = algorithm;
 
   settings_.domains = config["domains"].As<std::vector<std::string>>("/");
-  settings_.qops = config["qops"].As<std::vector<std::string>>("auth");
+  settings_.qops = config["qops"].As<std::vector<std::string>>(std::vector<std::string>{"auth"});
   settings_.is_proxy = config["is-proxy"].As<bool>(false);
   settings_.is_session = config["is-session"].As<bool>(false);
   settings_.nonce_ttl =
