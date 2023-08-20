@@ -1,8 +1,6 @@
 #include <userver/server/handlers/auth/auth_params_parsing.hpp>
 #include <userver/utest/utest.hpp>
 
-#include <gtest/gtest.h>
-
 #include <exception>
 #include <string_view>
 
@@ -27,13 +25,13 @@ TEST(AuthenticationInfoCorrectParsing, WithoutOptional) {
     EXPECT_EQ(auth_context.response, "6629fae49393a05397450978507c4ef1");
 }
 
-TEST(AuthenticationInfo, WithOptionalPartial) {
+TEST(AuthenticationInfoCorrectParsing, WithOptionalPartial) {
     std::string_view correctInfo = R"(username="Mufasa",
         realm="testrealm@host.com",
         nonce="dcd98b7102dd2f0e8b11d0f600bfb0c093",
         uri="/dir/index.html",
         response="6629fae49393a05397450978507c4ef1",
-        algorithm="MD5"
+        algorithm=MD5
     )";
     userver::server::handlers::auth::DigestParsing parser;
     EXPECT_NO_THROW(parser.ParseAuthInfo(correctInfo));
@@ -53,13 +51,13 @@ TEST(AuthenticationInfo, WithOptionalPartial) {
     EXPECT_EQ(auth_context.algorithm, "MD5");
 }
 
-TEST(AuthenticationInfo, WithOptionalAll) {
+TEST(AuthenticationInfoCorrectParsing, WithOptionalAll) {
 
     std::string_view correctInfo = R"(username="Mufasa",
         realm="testrealm@host.com",
         nonce="dcd98b7102dd2f0e8b11d0f600bfb0c093",
         uri="/dir/index.html",
-        algorithm="MD5",
+        algorithm=MD5,
         qop=auth,
         nc=00000001,
         cnonce="0a4f113b",
@@ -97,9 +95,9 @@ TEST(AuthenticationInfo, WithOptionalAll) {
     EXPECT_EQ(auth_context.authparam, "fictional parameter"); 
 }
 
-TEST(AuthenticationInfo, MandatoryDirectivesMissing) {
+TEST(AuthenticationInfoIncorrectParsing, MandatoryDirectivesMissing) {
 
-    std::string_view correctInfo = R"(algorithm="MD5",
+    std::string_view correctInfo = R"(algorithm=MD5,
         qop=auth,
         nc=00000001,
         cnonce="0a4f113b",
@@ -111,12 +109,12 @@ TEST(AuthenticationInfo, MandatoryDirectivesMissing) {
     EXPECT_THROW(parser.GetClientContext(), std::runtime_error);
 }
 
-TEST(AuthenticationInfo, MandatoryDirectiveMissing) {
+TEST(AuthenticationInfoIncorrectParsing, MandatoryDirectiveMissing) {
 
     std::string_view correctInfo = R"(username="Mufasa",
         nonce="dcd98b7102dd2f0e8b11d0f600bfb0c093",
         uri="/dir/index.html",
-        algorithm="MD5",
+        algorithm=MD5,
         qop=auth,
         nc=00000001,
         cnonce="0a4f113b",
@@ -128,12 +126,12 @@ TEST(AuthenticationInfo, MandatoryDirectiveMissing) {
     EXPECT_THROW(parser.GetClientContext(), std::runtime_error);
 }
 
-TEST(AuthenticationInfo, MandatoryDirectiveMissingExtended) {
+TEST(AuthenticationInfoIncorrectParsing, MandatoryDirectiveMissingExtended) {
 
     std::string_view correctInfo = R"(username="Mufasa",
         nonce="dcd98b7102dd2f0e8b11d0f600bfb0c093",
         uri="/dir/index.html",
-        algorithm="MD5",
+        algorithm=MD5,
         qop=auth,
         nc=00000001,
         cnonce="0a4f113b",
@@ -146,24 +144,24 @@ TEST(AuthenticationInfo, MandatoryDirectiveMissingExtended) {
 }
 
 // Value Parsing Errors
-TEST(AuthenticationInfo, MandatoryDirectiveNoValue) {
+TEST(AuthenticationInfoIncorrectParsing, MandatoryDirectiveNoValue) {
 
     std::string_view correctInfo = R"(username=,
         nonce="dcd98b7102dd2f0e8b11d0f600bfb0c093",
         uri="/dir/index.html",
-        algorithm="MD5",
+        algorithm=MD5,
         response="6629fae49393a05397450978507c4ef1",
     )";
     userver::server::handlers::auth::DigestParsing parser;
     EXPECT_THROW(parser.ParseAuthInfo(correctInfo), std::runtime_error);
 }
 
-TEST(AuthenticationInfo, OptionalDirectiveNoValue) {
+TEST(AuthenticationInfoIncorrectParsing, OptionalDirectiveNoValue) {
 
     std::string_view correctInfo = R"(username="Mufasa",
         nonce="dcd98b7102dd2f0e8b11d0f600bfb0c093",
         uri="/dir/index.html",
-        algorithm="MD5",
+        algorithm=MD5,
         response="6629fae49393a05397450978507c4ef1",
         qop=,
     )";
@@ -172,12 +170,12 @@ TEST(AuthenticationInfo, OptionalDirectiveNoValue) {
 }
 
 // Directory Parsing Errors
-TEST(AuthenticationInfo, InvalidMandatoryDirectory) {
+TEST(AuthenticationInfoIncorrectParsing, InvalidMandatoryDirectory) {
 
     std::string_view correctInfo = R"(usergame="Mubasa",
         nonce="dcd98b7102dd2f0e8b11d0f600bfb0c093",
         uri="/dir/index.html",
-        algorithm="MD5",
+        algorithm=MD5,
         response="6629fae49393a05397450978507c4ef1"
     )";
     userver::server::handlers::auth::DigestParsing parser;

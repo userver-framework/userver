@@ -25,25 +25,31 @@ struct DigestContextFromServer {
   std::string qop;
 };
 
-// authorizion request header from client
+// authorization request header from client
 // username, realm, nonce, digest-uri, response are mandatory
 // algorithm, cnonce, qop, nc, auth-param are optional
 struct DigestContextFromClient {
   std::string username;
   std::string realm;
   std::string nonce;
-  std::string uri;  // digest-uri
+  std::string uri;  
   std::string response;
   std::string algorithm;
   std::string cnonce;
+<<<<<<< HEAD
   std::string qop;        // message-qop
   std::string nc;       // nonce-count
   std::string authparam;  // auth-param
+=======
+  std::string opaque;
+  std::string qop;        
+  std::string nc;       
+  std::string authparam; 
+>>>>>>> parsing
 };
 
 DigestContextFromClient Parse(
-    const userver::formats::json::Value& json,
-    userver::formats::parse::To<DigestContextFromClient>);
+    std::unordered_map<std::string, std::string> directive_mapping);
 
 }  // namespace server::handlers::auth
 
