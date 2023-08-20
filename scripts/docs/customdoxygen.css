@@ -338,6 +338,10 @@ div.header {
   border: 0;
 }
 
+div.header .summary {
+  display: none;
+}
+
 .sm-dox ul a:hover,
 .sm-dox ul a:active,
 .sm-dox ul a:focus {
