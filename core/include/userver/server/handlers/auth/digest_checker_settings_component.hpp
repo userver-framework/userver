@@ -11,7 +11,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace component {
+namespace server::handlers::auth {
 
 // clang-format off
 
@@ -30,24 +30,24 @@ namespace component {
 
 // clang-format on
 
-class AuthDigestCheckerComponent final
+class DigestCheckerSettingsComponent final
     : public components::LoggableComponentBase {
  public:
   static constexpr std::string_view kName = "auth-digest-checker-settings";
 
-  AuthDigestCheckerComponent(const components::ComponentConfig& config,
-                             const components::ComponentContext& context);
+  DigestCheckerSettingsComponent(const components::ComponentConfig& config,
+                                 const components::ComponentContext& context);
 
-  ~AuthDigestCheckerComponent() final;
+  ~DigestCheckerSettingsComponent() final;
 
-  const server::handlers::auth::AuthDigestSettings& GetSettings() const;
+  const AuthDigestSettings& GetSettings() const;
 
   static yaml_config::Schema GetStaticConfigSchema();
 
  private:
-  server::handlers::auth::AuthDigestSettings settings_;
+  AuthDigestSettings settings_;
 };
 
-}  // namespace component
+}  // namespace server::handlers::auth
 
 USERVER_NAMESPACE_END

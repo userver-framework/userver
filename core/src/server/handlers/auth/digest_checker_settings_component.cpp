@@ -1,5 +1,5 @@
 #include <cstddef>
-#include <userver/server/handlers/auth/auth_digest_checker_component.hpp>
+#include <userver/server/handlers/auth/digest_checker_settings_component.hpp>
 
 #include <userver/components/component.hpp>
 #include <userver/dynamic_config/storage/component.hpp>
@@ -11,27 +11,29 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace component {
+namespace server::handlers::auth {
 
 constexpr size_t kDefaultTTL = 10 * 1000;
 
-AuthDigestCheckerComponent::AuthDigestCheckerComponent(
+DigestCheckerSettingsComponent::DigestCheckerSettingsComponent(
     const components::ComponentConfig& config,
     const components::ComponentContext& context)
     : components::LoggableComponentBase(config, context) {
   // Reading config values from static config
   // Check for valid algorithms
   auto algorithm = config["algorithm"].As<std::string>("md5");
-  if (!server::handlers::auth::kHashAlgToType.TryFindICase(algorithm).has_value()) {
+  if (!kHashAlgToType.TryFindICase(algorithm).has_value()) {
     throw std::runtime_error("Algorithm is not supported: " + algorithm);
   }
   settings_.algorithm = algorithm;
 
-  settings_.domains = config["domains"].As<std::vector<std::string>>(std::vector<std::string>{"/"});
-  settings_.qops = config["qops"].As<std::vector<std::string>>(std::vector<std::string>{"auth"});
+  settings_.domains = config["domains"].As<std::vector<std::string>>(
+      std::vector<std::string>{"/"});
+  settings_.qops = config["qops"].As<std::vector<std::string>>(
+      std::vector<std::string>{"auth"});
   // Check for valid qops
-  for (const auto& qop: settings_.qops) {
-    if (!server::handlers::auth::kQopToType.TryFindICase(qop).has_value()) {
+  for (const auto& qop : settings_.qops) {
+    if (!kQopToType.TryFindICase(qop).has_value()) {
       throw std::runtime_error("Qop is not supported: " + qop);
     }
   }
@@ -42,14 +44,13 @@ AuthDigestCheckerComponent::AuthDigestCheckerComponent(
       config["nonce-ttl"].As<std::chrono::milliseconds>(kDefaultTTL);
 }
 
-AuthDigestCheckerComponent::~AuthDigestCheckerComponent() = default;
+DigestCheckerSettingsComponent::~DigestCheckerSettingsComponent() = default;
 
-const server::handlers::auth::AuthDigestSettings&
-AuthDigestCheckerComponent::GetSettings() const {
+const AuthDigestSettings& DigestCheckerSettingsComponent::GetSettings() const {
   return settings_;
 }
 
-yaml_config::Schema AuthDigestCheckerComponent::GetStaticConfigSchema() {
+yaml_config::Schema DigestCheckerSettingsComponent::GetStaticConfigSchema() {
   return yaml_config::MergeSchemas<components::LoggableComponentBase>(R"(
 type: object
 description: settings for digest authentication
@@ -86,10 +87,10 @@ properties:
 )");
 }
 
-}  // namespace component
+}  // namespace server::handlers::auth
 
 template <>
-inline constexpr bool
-    components::kHasValidate<component::AuthDigestCheckerComponent> = true;
+inline constexpr bool components::kHasValidate<
+    server::handlers::auth::DigestCheckerSettingsComponent> = true;
 
 USERVER_NAMESPACE_END
