@@ -90,7 +90,7 @@ AuthCheckResult AuthCheckerDigestBase::CheckAuth(
     // If there is no authorization header, we save the "nonce" to temporary
     // storage.
     auto nonce = digest_hasher_.Nonce();
-    PushUnnamedNonce(nonce);
+    PushUnnamedNonce(nonce, nonce_ttl_);
 
     response.SetStatus(unauthorized_status_);
     response.SetHeader(authenticate_header_,
@@ -141,11 +141,12 @@ ValidateClientDataResult AuthCheckerDigestBase::ValidateClientData(
   auto user_data_opt = GetUserData(client_context.username);
   if (!user_data_opt.has_value()) {
     // If the user is not found, his "nonce" may be in temporary storage.
-    if (!HasUnnamedNonce(client_context.nonce)) {
+    auto nonce_creation_time = GetUnnamedNonceCreationTime(client_context.nonce);
+    if (!nonce_creation_time.has_value()) {
       return ValidateClientDataResult::kWrongUserData;
     }
 
-    UserData user_data{client_context.nonce, utils::datetime::Now()};
+    UserData user_data{client_context.nonce, nonce_creation_time.value()};
     SetUserData(client_context.username, user_data);
     user_data_opt = user_data;
   }
