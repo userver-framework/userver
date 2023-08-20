@@ -11,9 +11,10 @@
 #include "profile.hpp"
 
 namespace real_medium::models {
+  using ArticleId=std::string;
 
-struct TaggedArticleWithProfile {
-  std::string articleId;
+struct TaggedArticleWithProfile {  
+  ArticleId articleId;
   std::string title;
   std::string slug;
   std::string body;

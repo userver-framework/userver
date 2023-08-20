@@ -13,6 +13,8 @@ option(JWT_BUILD_EXAMPLES OFF)
 
 # Common sources
 add_library(${PROJECT_NAME}_objs OBJECT
+                src/cache/articles_cache.hpp
+                src/cache/articles_cache.cpp
 		src/handlers/profiles/profiles.cpp
 		src/handlers/profiles/profiles.hpp
 		src/handlers/users/users.cpp
