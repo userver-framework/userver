@@ -1,11 +1,10 @@
-
 #include "user_put.hpp"
 #include <userver/crypto/hash.hpp>
 #include "db/sql.hpp"
 #include "dto/user.hpp"
 #include "models/user.hpp"
-#include "utils/make_error.hpp"
-#include "validators/user_validators.hpp"
+#include "utils/errors.hpp"
+#include "validators/validators.hpp"
 namespace real_medium::handlers::users::put {
 
 Handler::Handler(const userver::components::ComponentConfig& config,
@@ -22,29 +21,20 @@ userver::formats::json::Value Handler::HandleRequestJsonThrow(
     userver::server::request::RequestContext& context) const {
   auto user_id = context.GetData<std::optional<std::string>>("id");;
 
-  const auto user_change_data =
-      userver::formats::json::FromString(request.RequestBody())["user"]
-          .As<dto::UserUpdateDTO>();
+  dto::UserUpdateDTO user_change_data;
 
-  if (user_change_data.email.has_value() &&
-      !validator::ValidateEmail(user_change_data.email.value())) {
-    auto& response = request.GetHttpResponse();
-    response.SetStatus(userver::server::http::HttpStatus::kUnprocessableEntity);
-    return utils::error::MakeError("email", "Ivanlid email.");
+  try {
+    user_change_data = request_json["user"]
+                           .As<dto::UserUpdateDTO>();
+    validator::validate(user_change_data);
+  } catch (const utils::error::ValidationException& err) {
+    request.SetResponseStatus(userver::server::http::HttpStatus::kUnprocessableEntity);
+    return err.GetDetails();
   }
 
   std::optional<std::string> password_hash = std::nullopt;
-  if (user_change_data.password.has_value()) {
-    if (!validator::ValidatePassword(user_change_data.password.value())) {
-      auto& response = request.GetHttpResponse();
-      response.SetStatus(
-          userver::server::http::HttpStatus::kUnprocessableEntity);
-      return utils::error::MakeError("password", "Ivanlid password.");
-    }
-
     password_hash =
         userver::crypto::hash::Sha256(user_change_data.password.value());
-  }
 
   const auto result = pg_cluster_->Execute(
       userver::storages::postgres::ClusterHostType::kMaster,

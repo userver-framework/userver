@@ -39,5 +39,18 @@ void validate(const dto::UserRegistrationDTO& dto) {
                                             "Invalid value");
   }
 }
+void validate(const dto::UserUpdateDTO& dto) {
+  if (dto.username && !ValidateUsername(dto.username.value())) {
+    throw utils::error::ValidationException("username", "Invalid field");
+  }
+
+  if (dto.email && !ValidateEmail(dto.email.value())) {
+    throw utils::error::ValidationException("email", "Invalid field");
+  }
+
+  if (dto.password && !ValidatePassword(dto.password.value())) {
+    throw utils::error::ValidationException("password", "Invalid field");
+  }
+}
 
 }  // namespace real_medium::validator
