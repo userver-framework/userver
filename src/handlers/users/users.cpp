@@ -26,10 +26,12 @@ userver::formats::json::Value RegisterUser::HandleRequestJsonThrow(
     const userver::server::http::HttpRequest& request,
     const userver::formats::json::Value& request_json,
     userver::server::request::RequestContext& context) const {
-  auto user_register = request_json["user"]
-          .As<dto::UserRegistrationDTO>();
+  dto::UserRegistrationDTO user_register;
+
 
   try {
+    user_register = request_json["user"]
+                        .As<dto::UserRegistrationDTO>();
     validator::validate(user_register);
   } catch (const utils::error::ValidationException& err) {
     request.SetResponseStatus(userver::server::http::HttpStatus::kUnprocessableEntity);

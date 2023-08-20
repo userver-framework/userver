@@ -22,7 +22,7 @@ void validate(const dto::UserLoginDTO& dto) {
 void validate(const dto::UserRegistrationDTO& dto) {
   if (!dto.username) {
     throw utils::error::ValidationException("username", "Field is missing");
-  } else if (!ValidateEmail(dto.username.value())) {
+  } else if (!ValidateUsername(dto.username.value())) {
     throw utils::error::ValidationException("username", "Invalid field");
   }
 
