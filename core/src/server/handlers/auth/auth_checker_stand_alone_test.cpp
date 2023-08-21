@@ -22,8 +22,8 @@ class StandAloneChecker : public AuthCheckerDigestBaseStandalone {
   StandAloneChecker(const AuthDigestSettings& digest_settings, Realm&& realm)
       : AuthCheckerDigestBaseStandalone(digest_settings, std::move(realm)){};
 
-  std::optional<HA1> GetHA1(const std::string& username) const override {
-    if (registred_users_storage_.count(username)) return HA1{registred_users_storage_.at(username)};
+  std::optional<UserData::HA1> GetHA1(const std::string& username) const override {
+    if (registred_users_storage_.count(username)) return UserData::HA1{registred_users_storage_.at(username)};
     return std::nullopt;
   }
 
