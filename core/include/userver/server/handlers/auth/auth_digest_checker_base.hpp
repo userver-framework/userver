@@ -21,11 +21,10 @@ USERVER_NAMESPACE_BEGIN
 
 namespace server::handlers::auth {
 
-enum class ValidateClientDataResult { kOk, kWrongUserData, kDuplicateRequest };
+enum class ValidateResult { kOk, kWrongUserData, kDuplicateRequest };
 
 using Nonce = std::string;
 using Username = std::string;
-
 using QopsString = std::string;
 using Realm = std::string;
 using Domains = std::vector<std::string>;
@@ -46,14 +45,20 @@ class DigestHasher final {
 };
 
 struct UserData final {
-  UserData() = default;
-  UserData(const std::string& nonce, TimePoint timestamp,
-           std::uint32_t nonce_count = 0)
-      : nonce(nonce), timestamp(timestamp), nonce_count(nonce_count) {}
+  using HA1 = utils::NonLoggable<class HA1Tag, std::string>;
 
+  UserData() = default;
+  UserData(HA1 ha1, const std::string& nonce, TimePoint timestamp,
+           std::int32_t nonce_count = 0)
+      : ha1(ha1),
+        nonce(nonce),
+        timestamp(timestamp),
+        nonce_count(nonce_count) {}
+
+  HA1 ha1;
   Nonce nonce;
   TimePoint timestamp;
-  std::uint32_t nonce_count{};
+  std::int32_t nonce_count{};
 };
 
 class AuthCheckerDigestBase : public AuthCheckerBase {
@@ -61,31 +66,38 @@ class AuthCheckerDigestBase : public AuthCheckerBase {
   AuthCheckerDigestBase(const AuthDigestSettings& digest_settings,
                         Realm&& realm);
 
+  AuthCheckerDigestBase(const AuthCheckerDigestBase&) = delete;
+  AuthCheckerDigestBase(AuthCheckerDigestBase&&) = delete;
+  AuthCheckerDigestBase& operator=(const AuthCheckerDigestBase&) = delete;
+  AuthCheckerDigestBase& operator=(AuthCheckerDigestBase&&) = delete;
+
+  virtual ~AuthCheckerDigestBase() = default;
+
   [[nodiscard]] AuthCheckResult CheckAuth(
       const http::HttpRequest& request,
       request::RequestContext& request_context) const final;
 
   [[nodiscard]] bool SupportsUserAuth() const noexcept override { return true; }
 
-  using HA1 = utils::NonLoggable<class HA1Tag, std::string>;
-  virtual std::optional<HA1> GetHA1(const std::string& username) const = 0;
+  virtual std::optional<UserData> GetUserData(
+      const std::string& username) const = 0;
+  virtual void SetUserData(const std::string& username, const Nonce& nonce,
+                           std::int32_t nonce_count,
+                           TimePoint nonce_creation_time) const = 0;
 
-  virtual UserData GetUserData(const std::string& username) const = 0;
-  virtual void SetUserData(const std::string& username,
-                           UserData&& user_data) const = 0;
+  virtual void PushUnnamedNonce(const Nonce& nonce,
+                                std::chrono::milliseconds nonce_ttl) const = 0;
+  virtual std::optional<TimePoint> GetUnnamedNonceCreationTime(
+      const Nonce& nonce) const = 0;
 
-  virtual void PushUnnamedNonce(const Nonce& nonce, std::chrono::milliseconds nonce_ttl) const = 0;
-  virtual std::optional<TimePoint> GetUnnamedNonceCreationTime(const Nonce& nonce) const = 0;
-
-  ValidateClientDataResult ValidateClientData(
-      const DigestContextFromClient& client_context) const;
-
-  std::string CalculateDigest(
-      const HA1& ha1_non_loggable,
-      http::HttpMethod request_method,
-      const DigestContextFromClient& client_context) const;
+  ValidateResult ValidateUserData(const DigestContextFromClient& client_context,
+                                  const UserData& user_data) const;
 
  private:
+  std::string CalculateDigest(
+      const UserData::HA1& ha1_non_loggable, http::HttpMethod request_method,
+      const DigestContextFromClient& client_context) const;
+
   std::string ConstructAuthInfoHeader(
       const DigestContextFromClient& client_context) const;
   std::string ConstructResponseDirectives(std::string_view nonce,
@@ -94,8 +106,6 @@ class AuthCheckerDigestBase : public AuthCheckerBase {
                                       const std::string& nonce_from_client,
                                       bool stale,
                                       http::HttpResponse& response) const;
-  bool IsNonceExpired(std::string_view nonce_from_client,
-                      const UserData& user_data) const;
 
   const QopsString qops_str_;
   const Realm realm_;

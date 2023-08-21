@@ -14,8 +14,8 @@
 #include <userver/http/common_headers.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/server/handlers/auth/auth_checker_base.hpp>
-#include <userver/server/handlers/auth/digest_algorithms.hpp>
 #include <userver/server/handlers/auth/digest_directives.hpp>
+#include <userver/server/handlers/auth/digest_types.hpp>
 #include <userver/server/handlers/exceptions.hpp>
 #include <userver/server/handlers/fallback_handlers.hpp>
 #include <userver/server/http/http_response.hpp>
@@ -63,8 +63,8 @@ AuthCheckerDigestBase::AuthCheckerDigestBase(
       realm_(std::move(realm)),
       domains_str_(fmt::format("{}", fmt::join(digest_settings.domains, ", "))),
       algorithm_(digest_settings.algorithm),
-      is_session_(digest_settings.is_session.value_or(false)),
-      is_proxy_(digest_settings.is_proxy.value_or(false)),
+      is_session_(digest_settings.is_session),
+      is_proxy_(digest_settings.is_proxy),
       nonce_ttl_(digest_settings.nonce_ttl),
       digest_hasher_(algorithm_),
       authenticate_header_(is_proxy_
@@ -103,24 +103,26 @@ AuthCheckResult AuthCheckerDigestBase::CheckAuth(
   const auto& client_context = parser.GetClientContext();
 
   // Check if user have been registred.
-  auto ha1_opt = GetHA1(client_context.username);
-  if (!ha1_opt.has_value()) {
+  auto user_data_opt = GetUserData(client_context.username);
+  if (!user_data_opt.has_value()) {
     return AuthCheckResult{AuthCheckResult::Status::kForbidden};
   }
+  const auto& user_data = user_data_opt.value();
 
-  auto validate_result = ValidateClientData(client_context);
+  auto validate_result = ValidateUserData(client_context, user_data);
   switch (validate_result) {
-    case ValidateClientDataResult::kWrongUserData:
+    case ValidateResult::kWrongUserData:
       return StartNewAuthSession(client_context.username,
                                  digest_hasher_.Nonce(), true, response);
-    case ValidateClientDataResult::kDuplicateRequest:
+    case ValidateResult::kDuplicateRequest:
       response.SetStatus(unauthorized_status_);
       return AuthCheckResult{AuthCheckResult::Status::kTokenNotFound};
-    case ValidateClientDataResult::kOk:
+    case ValidateResult::kOk:
       break;
   }
 
-  auto digest = CalculateDigest(ha1_opt.value(), request.GetMethod(), client_context);
+  auto digest =
+      CalculateDigest(user_data.ha1, request.GetMethod(), client_context);
 
   if (!crypto::algorithm::AreStringsEqualConstTime(digest,
                                                    client_context.response)) {
@@ -139,47 +141,48 @@ AuthCheckResult AuthCheckerDigestBase::CheckAuth(
   return {};
 };
 
-ValidateClientDataResult AuthCheckerDigestBase::ValidateClientData(
-    const DigestContextFromClient& client_context) const {
-  auto user_data = GetUserData(client_context.username);
-
-  bool are_nonces_equal =
-      crypto::algorithm::AreStringsEqualConstTime(user_data.nonce,
-                                                  client_context.nonce);
-  bool is_nonce_expired = user_data.timestamp + nonce_ttl_ < userver::utils::datetime::Now();  
+ValidateResult AuthCheckerDigestBase::ValidateUserData(
+    const DigestContextFromClient& client_context,
+    const UserData& user_data) const {
+  bool are_nonces_equal = crypto::algorithm::AreStringsEqualConstTime(
+      user_data.nonce, client_context.nonce);
+  bool is_nonce_expired =
+      user_data.timestamp + nonce_ttl_ < userver::utils::datetime::Now();
   if (!are_nonces_equal) {
     // "nonce" may be in temporary storage.
-    auto nonce_creation_time = GetUnnamedNonceCreationTime(client_context.nonce);
+    auto nonce_creation_time =
+        GetUnnamedNonceCreationTime(client_context.nonce);
     if (!nonce_creation_time.has_value()) {
-      return ValidateClientDataResult::kWrongUserData;
+      return ValidateResult::kWrongUserData;
     }
 
-    UserData new_user_data{client_context.nonce, nonce_creation_time.value()};
-    SetUserData(client_context.username, std::move(new_user_data));
-  } else if (is_nonce_expired) {
-    return ValidateClientDataResult::kWrongUserData;
+    SetUserData(client_context.username, client_context.nonce, 0,
+                nonce_creation_time.value());
+  }
+
+  if (is_nonce_expired) {
+    return ValidateResult::kWrongUserData;
   }
 
   LOG_DEBUG() << "Nonce is OK";
 
   auto client_nc = std::stoul(client_context.nc, nullptr, 16);
   if (user_data.nonce_count < client_nc) {
-    UserData new_user_data{client_context.nonce, utils::datetime::Now()};
-    SetUserData(client_context.username, std::move(new_user_data));
+    SetUserData(client_context.username, client_context.nonce, 0,
+                utils::datetime::Now());
   } else {
-    return ValidateClientDataResult::kDuplicateRequest;
+    return ValidateResult::kDuplicateRequest;
   }
   LOG_DEBUG() << "Nonce_count is OK";
 
-  return ValidateClientDataResult::kOk;
+  return ValidateResult::kOk;
 }
 
 std::string AuthCheckerDigestBase::ConstructAuthInfoHeader(
     const DigestContextFromClient& client_context) const {
   auto next_nonce = digest_hasher_.Nonce();
 
-  UserData user_data{next_nonce, userver::utils::datetime::Now()};
-  SetUserData(client_context.username, std::move(user_data));
+  SetUserData(client_context.username, next_nonce, 0, utils::datetime::Now());
 
   return fmt::format("{}=\"{}\"", directives::kNextNonce, next_nonce);
 }
@@ -187,8 +190,7 @@ std::string AuthCheckerDigestBase::ConstructAuthInfoHeader(
 AuthCheckResult AuthCheckerDigestBase::StartNewAuthSession(
     const std::string& username, const std::string& nonce_from_client,
     bool stale, http::HttpResponse& response) const {
-  UserData user_data{nonce_from_client, userver::utils::datetime::Now()};
-  SetUserData(username, std::move(user_data));
+  SetUserData(username, nonce_from_client, 0, utils::datetime::Now());
   response.SetStatus(unauthorized_status_);
   response.SetHeader(authenticate_header_,
                      ConstructResponseDirectives(nonce_from_client, stale));
@@ -212,21 +214,8 @@ std::string AuthCheckerDigestBase::ConstructResponseDirectives(
 }
 // clang-format on
 
-bool AuthCheckerDigestBase::IsNonceExpired(std::string_view nonce_from_client,
-                                           const UserData& user_data) const {
-  LOG_DEBUG() << "Nonce: " << user_data.nonce;
-  LOG_DEBUG() << "Nonce_from_client : " << nonce_from_client;
-  if (!crypto::algorithm::AreStringsEqualConstTime(user_data.nonce,
-                                                   nonce_from_client)) {
-    return true;
-  }
-
-  return user_data.timestamp + nonce_ttl_ < userver::utils::datetime::Now();
-}
-
 std::string AuthCheckerDigestBase::CalculateDigest(
-    const HA1& ha1_non_loggable,
-    http::HttpMethod request_method,
+    const UserData::HA1& ha1_non_loggable, http::HttpMethod request_method,
     const DigestContextFromClient& client_context) const {
   // RFC 2617, 3.2.2.1 Request-Digest
 
