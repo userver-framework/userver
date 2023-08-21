@@ -35,17 +35,16 @@ userver::formats::json::Value Handler::HandleRequestJsonThrow(
 
   const auto article_id = res_find_article.AsSingleRow<std::string>();
 
-  const auto res_find_comments =
-      pg_cluster_->Execute(userver::storages::postgres::ClusterHostType::kSlave,
-                           sql::kFindCommentsByArticleId.data(), article_id, user_id);
+  const auto res_find_comments = pg_cluster_->Execute(
+      userver::storages::postgres::ClusterHostType::kSlave,
+      sql::kFindCommentsByArticleId.data(), article_id, user_id);
 
-
-  const auto comments = res_find_comments.AsContainer<std::vector<real_medium::models::Comment>>(
+  const auto comments =
+      res_find_comments.AsContainer<std::vector<real_medium::models::Comment>>(
           userver::storages::postgres::kRowTag);
-          
+
   userver::formats::json::ValueBuilder builder;
   builder["comments"] = comments;
-  // for (auto comment : comments) {builder["comments"].PushBack(comment);}
 
   return builder.ExtractValue();
 }
