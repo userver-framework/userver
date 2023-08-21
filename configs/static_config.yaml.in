@@ -41,6 +41,14 @@ components_manager:
             fallback-path: @CONFIG_FALLBACK_PATH@
         testsuite-support: {}
 
+        articles-cache:
+            pgcomponent: realmedium-database
+            update-interval: 10s
+            full-update-interval: 1m
+            update-correction: 2s
+            update-jitter: 1s
+            chunk-size: 100
+
         http-client:
             load-enabled: $is_testing
             fs-task-processor: fs-task-processor

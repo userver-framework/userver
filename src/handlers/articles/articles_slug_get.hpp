@@ -8,6 +8,7 @@
 #include <userver/storages/postgres/cluster.hpp>
 #include <userver/storages/postgres/component.hpp>
 #include <userver/storages/postgres/postgres_fwd.hpp>
+#include "../../cache/articles_cache.hpp"
 
 namespace real_medium::handlers::articles_slug::get {
 class Handler final : public userver::server::handlers::HttpHandlerJsonBase {
@@ -24,5 +25,6 @@ class Handler final : public userver::server::handlers::HttpHandlerJsonBase {
 
  private:
   const userver::storages::postgres::ClusterPtr pg_cluster_;
+  const real_medium::cache::articles_cache::ArticlesCache &cache_;
 };
 }  // namespace real_medium::handlers::articles_slug::get

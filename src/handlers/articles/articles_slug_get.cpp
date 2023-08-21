@@ -5,31 +5,30 @@
 
 namespace real_medium::handlers::articles_slug::get {
 Handler::Handler(const userver::components::ComponentConfig& config,
-                 const userver::components::ComponentContext& context)
-    : HttpHandlerJsonBase(config, context),
-      pg_cluster_(context
+                 const userver::components::ComponentContext& component_context)
+    : HttpHandlerJsonBase(config, component_context),
+      pg_cluster_(component_context
                       .FindComponent<userver::components::Postgres>(
                           "realmedium-database")
-                      .GetCluster()) {}
+                      .GetCluster()),
+      cache_(component_context.FindComponent<
+             real_medium::cache::articles_cache::ArticlesCache>()) {}
 
 userver::formats::json::Value Handler::HandleRequestJsonThrow(
     const userver::server::http::HttpRequest& request,
-    const userver::formats::json::Value& request_json,
+    const userver::formats::json::Value& /*request_json*/,
     userver::server::request::RequestContext& context) const {
   const auto& slug = request.GetPathArg("slug");
   const std::optional<std::string> userId =
       context.GetData<std::optional<std::string>>("id");
-  const auto res = pg_cluster_->Execute(
-      userver::storages::postgres::ClusterHostType::kSlave,
-      real_medium::sql::kGetArticleWithAuthorProfileBySlug.data(), slug,
-      userId);
-  if (res.IsEmpty()) {
+  auto data=cache_.Get();
+  auto article=data->findArticleBySlug(slug);
+  if(article==nullptr){
     request.SetResponseStatus(userver::server::http::HttpStatus::kNotFound);
     return {};
   }
   userver::formats::json::ValueBuilder builder;
-  builder["article"] = real_medium::dto::Article::Parse(
-      res.AsSingleRow<real_medium::models::TaggedArticleWithProfile>());
+  builder["article"] = real_medium::dto::Article::Parse(*article,userId);
   return builder.ExtractValue();
 }
 

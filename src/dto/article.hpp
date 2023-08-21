@@ -13,7 +13,7 @@ namespace real_medium::dto {
 
 struct Article final {
   static Article Parse(const models::TaggedArticleWithProfile& model);
-
+  static Article Parse(const models::FullArticleInfo&info, std::optional<std::string> authUserId);
   std::string slug;
   std::string title;
   std::string body;

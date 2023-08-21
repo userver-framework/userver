@@ -13,6 +13,7 @@
 
 #include "userver/components/component_config.hpp"
 #include "userver/components/component_context.hpp"
+#include "../../cache/articles_cache.hpp"
 
 namespace real_medium::handlers::articles::feed::get {
 
@@ -29,6 +30,7 @@ class Handler final : public userver::server::handlers::HttpHandlerJsonBase {
 
  private:
   userver::storages::postgres::ClusterPtr pg_cluster_;
+  const real_medium::cache::articles_cache::ArticlesCache &cache_;
 };
 
 }  // namespace real_medium::handlers::articles::feed::get

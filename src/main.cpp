@@ -32,6 +32,7 @@
 #include "handlers/articles/feed_articles.hpp"
 #include "handlers/articles/articles_favorite.hpp"
 #include "handlers/articles/articles_unfavorite.hpp"
+#include "cache/articles_cache.hpp"
 
 using namespace real_medium::handlers;
 
@@ -43,6 +44,7 @@ int main(int argc, char* argv[]) {
       userver::components::MinimalServerComponentList()
           .Append<userver::server::handlers::Ping>()
           .Append<userver::components::TestsuiteSupport>()
+          .Append<real_medium::cache::articles_cache::ArticlesCache>()
           .Append<userver::components::HttpClient>()
           .Append<userver::components::Postgres>("realmedium-database")
           .Append<userver::clients::dns::

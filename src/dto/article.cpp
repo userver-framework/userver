@@ -21,6 +21,27 @@ Article Article::Parse(const models::TaggedArticleWithProfile& model) {
   return article;
 }
 
+Article Article::Parse(const models::FullArticleInfo& model, std::optional<std::string> authUserId){
+  Article article;
+  article.slug = model.slug;
+  article.title = model.title;
+  article.description = model.description;
+  article.body = model.body;
+  if(!model.tags.empty())
+    article.tags = std::vector<std::string>(model.tags.begin(),model.tags.end());
+  article.createdAt = model.createdAt;
+  article.updatedAt = model.updatedAt;
+  article.favoritesCount = model.articleFavoritedByUsernames.size();
+  article.isFavorited = authUserId?
+      model.articleFavoritedByUserIds.find(authUserId.value())!=model.articleFavoritedByUserIds.end(): false;
+  article.profile.bio = model.authorInfo.bio;
+  article.profile.image = model.authorInfo.image;
+  article.profile.username = model.authorInfo.username;
+  article.profile.isFollowing = authUserId?
+      model.authorFollowedByUsersIds.find(authUserId.value())!=model.authorFollowedByUsersIds.end(): false;
+  return article;
+}
+
 userver::formats::json::Value Serialize(
     const Article& article,
     userver::formats::serialize::To<userver::formats::json::Value>) {

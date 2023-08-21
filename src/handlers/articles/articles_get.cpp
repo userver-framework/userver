@@ -14,7 +14,9 @@ Handler::Handler(const userver::components::ComponentConfig& config,
       pg_cluster_(component_context
                       .FindComponent<userver::components::Postgres>(
                           "realmedium-database")
-                      .GetCluster()) {}
+                      .GetCluster()),
+      cache_(component_context.FindComponent<
+             real_medium::cache::articles_cache::ArticlesCache>()) {}
 
 userver::formats::json::Value Handler::HandleRequestJsonThrow(
     const userver::server::http::HttpRequest& request,
@@ -31,18 +33,13 @@ userver::formats::json::Value Handler::HandleRequestJsonThrow(
   }
 
   auto user_id = context.GetData<std::optional<std::string>>("id");
-  auto query_result = pg_cluster_->Execute(
-      userver::storages::postgres::ClusterHostType::kSlave,
-      sql::kFindArticlesByFilters.data(), user_id, filter.tag, filter.author,
-      filter.favorited, filter.limit, filter.offset);
-  auto articles = query_result.AsContainer<
-      std::vector<real_medium::models::TaggedArticleWithProfile>>();
+  auto data=cache_.Get();
+  auto recentArticles=data->getRecent(filter);
   userver::formats::json::ValueBuilder builder;
   builder["articles"] = userver::formats::common::Type::kArray;
-  for (auto& article : articles) {
-    builder["articles"].PushBack(dto::Article::Parse(article));
-  }
-  builder["articlesCount"] = articles.size();
+  for (auto& article : recentArticles)
+    builder["articles"].PushBack(dto::Article::Parse(*article,user_id));
+  builder["articlesCount"] = recentArticles.size();
   return builder.ExtractValue();
 }
 
