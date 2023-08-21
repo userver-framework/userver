@@ -867,7 +867,7 @@ html.dark-mode .btn-title {
 }
 html.dark-mode .bottom-nav .button:hover {
   background: #7A6DA0;
-  border: none;
+  border-color: #7A6DA0;
 }
 
 html.dark-mode .button:hover .btn-sub {
