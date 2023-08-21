@@ -28,8 +28,8 @@ userver::formats::json::Value Handler::HandleRequestJsonThrow(
     return {};
   }
   userver::formats::json::ValueBuilder builder;
-  builder["article"] = real_medium::dto::Article::Parse(
-      res.AsSingleRow<real_medium::models::TaggedArticleWithProfile>());
+  builder["article"] =
+      res.AsSingleRow<real_medium::models::TaggedArticleWithProfile>();
   return builder.ExtractValue();
 }
 

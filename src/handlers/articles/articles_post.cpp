@@ -21,7 +21,8 @@ userver::formats::json::Value Handler::HandleRequestJsonThrow(
     const userver::server::http::HttpRequest& request,
     const userver::formats::json::Value& request_json,
     userver::server::request::RequestContext& context) const {
-  auto createArticleRequest = request_json["article"].As<dto::CreateArticleRequest>();
+  auto createArticleRequest =
+      request_json["article"].As<dto::CreateArticleRequest>();
   try {
     validator::validate(createArticleRequest);
   } catch (const real_medium::utils::error::ValidationException& ex) {
@@ -62,8 +63,8 @@ userver::formats::json::Value Handler::HandleRequestJsonThrow(
       real_medium::sql::kGetArticleWithAuthorProfile.data(), articleId, userId);
 
   userver::formats::json::ValueBuilder builder;
-  builder["article"] = dto::Article::Parse(
-      res.AsSingleRow<real_medium::models::TaggedArticleWithProfile>());
+  builder["article"] =
+      res.AsSingleRow<real_medium::models::TaggedArticleWithProfile>();
   return builder.ExtractValue();
 }
 }  // namespace real_medium::handlers::articles::post

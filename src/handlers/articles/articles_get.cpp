@@ -38,10 +38,7 @@ userver::formats::json::Value Handler::HandleRequestJsonThrow(
   auto articles = query_result.AsContainer<
       std::vector<real_medium::models::TaggedArticleWithProfile>>();
   userver::formats::json::ValueBuilder builder;
-  builder["articles"] = userver::formats::common::Type::kArray;
-  for (auto& article : articles) {
-    builder["articles"].PushBack(dto::Article::Parse(article));
-  }
+  builder["articles"] = articles;
   builder["articlesCount"] = articles.size();
   return builder.ExtractValue();
 }
