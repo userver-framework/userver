@@ -16,194 +16,44 @@ $generatedby <a href="https://www.doxygen.org/index.html">Doxygen</a> $doxygenve
 </small></address>
 <!--END !GENERATE_TREEVIEW-->
 
-<script type="text/javascript">
-const LOWER_CASE_TRANSLITTERATION_MAPPING = {
-    "а":"a", "б":"b", "в":"v", "г":"g", "д":"d", "е":"e", "ё":"jo", "ж":"zh",
-    "з":"z", "и":"i", "й":"jj", "к":"k", "л":"l", "м":"m", "н":"n", "о":"o",
-    "п":"p", "р":"r", "с":"s", "т":"t", "у":"u", "ф":"f", "х":"x", "ц":"c",
-    "ч":"ch", "ш":"sh", "щ":"shh", "ъ":"\'", "ы":"y", "ь":"\'", "э":"je",
-    "ю":"ju", "я":"ja"
-};
-const DOXYGEN_DIAMOND_STRING = '◆\u00A0' // ◆&nbsp;
+<script type="text/javascript" src="$relpath^codeHighlight.js"></script>
+<script type="text/javascript" src="$relpath^telegramLanguage.js"></script>
+<script type="text/javascript" src="$relpath^styledBtn.js"></script>
+<script type="text/javascript" src="$relpath^search.js"></script>
+<script type="text/javascript" src="$relpath^header.js"></script>
+<script type="text/javascript" src="$relpath^searchHighlight.js"></script>
+<script>
+  const addLinks = () =>  {
+      const links = document.createElement('div')
+      links.id = 'links';
 
-function make_id(raw_id) {
-    return raw_id.toLowerCase().split('').map(function (char) {
-        return LOWER_CASE_TRANSLITTERATION_MAPPING[char] || char;
-    }).join('').replace(/\W/g, '');
-}
-
-const html_escape = function () {
-    const p = document.createElement('p');
-    return function (text) {
-        p.textContent = text;
-        return p.innerHTML;
-    };
-}();
-
-function draw_toc() {
-    let headers = $(':header');
-    if (headers.length === 0) {
-        return;
-    }
-
-    let sidenav_content = '<div id="mySidenav" class="sidenav">';
-    sidenav_content += '<h2>Table of contents</h2>';
-    headers.each(function() {
-        let index = parseInt(this.nodeName.substring(1)) - 1;
-        const header = $(this);
-        let id = header.attr('id');
-        if (!id) {
-          id = make_id(header.text())
-          header.attr('id', id);
-        }
-
-        let header_text = header.text()
-        if (header_text.startsWith(DOXYGEN_DIAMOND_STRING)) {
-            ++index;
-            header_text = header_text.substring(DOXYGEN_DIAMOND_STRING.length);
-        }
-
-        sidenav_content += ''
-          + '<a href="#' + id + '" style="padding-left: ' + index * 15 + 'px">'
-          + '•&nbsp;' + html_escape(header_text)
-          + '</a>'
-        ;
-        header.append(' <a class="hoverlink" href="#' + id + '">🔗</a>')
-    });
-    sidenav_content += '</div>';
-
-    $(sidenav_content).insertAfter('.header');
-}
-
-function highlight_code() {
-    if (window.location.href.indexOf("pp_source") !== -1
-        || window.location.href.indexOf("cpp-example") !== -1) {
-        // Header listing is already nicely highlighted by Doxygen
-        return;
-    }
-
-    hljs.configure({
-        tabReplace: '    ' // 4 spaces
-    });
-    hljs.registerAliases('sh', {languageName: 'shell'});
-    hljs.registerAliases('bash', {languageName: 'shell'});
-    hljs.registerAliases('yml', {languageName: 'yaml'});
-    hljs.registerAliases('plain', {languageName: 'plaintext'});
-    hljs.registerAliases('tskv', {languageName: 'plaintext'});
-    $(".fragment").each(function() {
-        const node = $(this);
-        let data = '';
-        let language = '';
-        let requires_highlighting = true;
-
-        node.children('div.line').each(function(i) {
-            line = $(this).text();
-
-            // Doxygen 1.8.11 workaround to remove line numbers.
-            // No line numbers added in Doxygen 1.8.13
-            line = line.replace(/^ *\d+\xA0/, '');
-
-            if (i === 0) {
-                line = line.trimLeft().replace(/^# /, '');
-                if (line === 'autodetect') {
-                    return true;
-                } else if (hljs.getLanguage(line)) {
-                    language = line;
-                    return true;
-                } else {
-                    requires_highlighting = false;
-                    return false;
-                }
-            }
-
-            data += line + '\n';
-        });
-
-        if (requires_highlighting === false) {
-            return;
-        }
-
-        if (language !== '') {
-            data = hljs.highlight(language, data).value;
-        } else {
-            data = hljs.highlightAuto(data).value;
-        }
-        node.replaceWith('<div class="fragment"><pre>' + data + '</pre></div>');
-    });
-}
-
-function setup_if_landing() {
-    if (document.getElementById('landing_logo_id') === null) {
-        return false;
-    }
-
-    $(function() {
-        const main_nav = $('#main-nav');
-        main_nav.addClass('main-nav-landing');
-        main_nav.append('<hr>');
-    });
-
-    return true;
-}
-
-function sticky_menu() {
-    const main_nav = $('#main-nav');
-    const menu_y_position = 94;
-    const search_results_window = $('#MSearchResultsWindow');
-    const search_select_window = $('#MSearchSelectWindow');
-    var menu_is_sticky = false;
-    const stick = function () {
-        if ($(this).scrollTop() > menu_y_position) {
-            if (menu_is_sticky) return;
-
-            search_results_window.addClass('stickySearchResults');
-            search_select_window.addClass('stickySearchResults');
-            main_nav.addClass('stickyHeader');
-            // Prevent page quick movement as the menu sticks to the top
-            document.body.style.paddingTop = '36px';
-            menu_is_sticky = true;
-        } else {
-            if (!menu_is_sticky) return;
-
-            search_results_window.removeClass('stickySearchResults');
-            search_select_window.removeClass('stickySearchResults');
-            // 'top' property of the results window is computed by Doxygen JS
-            // and it may give bad results if the computation is invoked at the
-            // middle of the page.
-            //
-            // Hiding the window. Doxygen will recompute and show it on new
-            // user input.
-            search_results_window.hide();
-            main_nav.removeClass('stickyHeader');
-            document.body.style.paddingTop = '0px';
-            menu_is_sticky = false;
-        }
-    };
-
-    stick();  // on page refresh draw the menu on the right position
-    $(window).on("scroll", stick);
-}
-
-function telegram_channel_language() {
-  if (/^ru/.test(navigator.language)) {
-    const channel = $('#telegram_channel');
-    if (channel) {
-      channel.attr('href', 'https://t.me/userver_ru');
-    }
+      links.innerHTML = `
+          <a href="https://github.com/userver-framework/" rel="noopener" target="_blank" class="titlelink">
+              <img src="$relpath^github_logo.svg" alt="Github" class="gh-logo"/> 
+          </a>
+          <a href="https://t.me/userver_en" rel="noopener" id='telegram_channel' target="_blank" class="titlelink">
+              <img src="$relpath^telegram_logo.svg" alt="Telegram"/>
+          </a>
+      `
+      document.getElementById('main-navbar').appendChild(links);
   }
-}
 
-// We do not use $(function() { ... }); because
-// * all the elements (except menu parts) are already parsed up above
-// * skipping it speedups page load
-// * with it Firefox does not scroll to a JS generated anchor links
-telegram_channel_language();
+  $(function() {
+    $(document).ready(function() {
+      setTimeout(() => {
+      init_all_results_button();
+      init_header();
+      addLinks();
 
-if (!setup_if_landing()) {
-  draw_toc();
-  highlight_code();
-  sticky_menu();
-}
+      const isLanding = document.getElementById('landing_logo_id') !== null;
+
+      if (isLanding) return;
+
+      highlight_code();
+      styleNavButtons(); // TODO: code style?
+    }, 0);
+    });
+  });
 </script>
 </body>
 </html>
