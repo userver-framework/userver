@@ -82,3 +82,9 @@ docker-clean-data:
 dist-clean:
 	@rm -rf build_*
 	@rm -rf docs/
+
+# run concrete test
+.PHONY: my-test
+my-test:
+	@cmake --build build_debug -j $(NPROCS)
+	@./build_debug/userver/core/userver-core_unittest --gtest_filter=StandAloneCheckerTest*

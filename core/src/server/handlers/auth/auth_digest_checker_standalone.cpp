@@ -18,8 +18,10 @@ UserData AuthCheckerDigestBaseStandalone::GetUserData(
     const std::string& username) const {
   auto user_data_ptr = user_data_.Get(username);
   if (!user_data_ptr) {
-    UserData user_data{"", utils::datetime::Now()};
+    UserData user_data{"some-invalid-nonce", utils::datetime::Now()};
+    auto tmp_user_data = user_data;
     SetUserData(username, std::move(user_data));
+    return tmp_user_data;
   }
 
   return *user_data_ptr;

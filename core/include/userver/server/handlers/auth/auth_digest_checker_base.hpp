@@ -61,8 +61,6 @@ class AuthCheckerDigestBase : public AuthCheckerBase {
   AuthCheckerDigestBase(const AuthDigestSettings& digest_settings,
                         Realm&& realm);
 
-  AuthCheckerDigestBase(const AuthCheckerDigestBase&) = default;
-
   [[nodiscard]] AuthCheckResult CheckAuth(
       const http::HttpRequest& request,
       request::RequestContext& request_context) const final;
