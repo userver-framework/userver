@@ -21,20 +21,11 @@ USERVER_NAMESPACE_BEGIN
 
 namespace server::handlers::auth {
 
-enum class ValidateResult { kOk, kWrongUserData, kDuplicateRequest };
-
-using Nonce = std::string;
-using Username = std::string;
-using QopsString = std::string;
-using Realm = std::string;
-using Domains = std::vector<std::string>;
-using DomainsString = std::string;
-using Algorithm = std::string;
 using TimePoint = std::chrono::time_point<std::chrono::system_clock>;
 
 class DigestHasher final {
  public:
-  DigestHasher(const Algorithm& algorithm);
+  DigestHasher(const std::string& algorithm);
   std::string Nonce() const;
   std::string GetHash(std::string_view data) const;
 
@@ -56,22 +47,24 @@ struct UserData final {
         nonce_count(nonce_count) {}
 
   HA1 ha1;
-  Nonce nonce;
+  std::string nonce;
   TimePoint timestamp;
   std::int32_t nonce_count{};
 };
 
+enum class ValidateResult { kOk, kWrongUserData, kDuplicateRequest };
+
 class AuthCheckerDigestBase : public AuthCheckerBase {
  public:
   AuthCheckerDigestBase(const AuthDigestSettings& digest_settings,
-                        Realm&& realm);
+                        std::string&& realm);
 
   AuthCheckerDigestBase(const AuthCheckerDigestBase&) = delete;
   AuthCheckerDigestBase(AuthCheckerDigestBase&&) = delete;
   AuthCheckerDigestBase& operator=(const AuthCheckerDigestBase&) = delete;
   AuthCheckerDigestBase& operator=(AuthCheckerDigestBase&&) = delete;
 
-  virtual ~AuthCheckerDigestBase() = default;
+  ~AuthCheckerDigestBase() override = default;
 
   [[nodiscard]] AuthCheckResult CheckAuth(
       const http::HttpRequest& request,
@@ -81,14 +74,14 @@ class AuthCheckerDigestBase : public AuthCheckerBase {
 
   virtual std::optional<UserData> GetUserData(
       const std::string& username) const = 0;
-  virtual void SetUserData(const std::string& username, const Nonce& nonce,
-                           std::int32_t nonce_count,
+  virtual void SetUserData(const std::string& username,
+                           const std::string& nonce, std::int32_t nonce_count,
                            TimePoint nonce_creation_time) const = 0;
 
-  virtual void PushUnnamedNonce(const Nonce& nonce,
+  virtual void PushUnnamedNonce(const std::string& nonce,
                                 std::chrono::milliseconds nonce_ttl) const = 0;
   virtual std::optional<TimePoint> GetUnnamedNonceCreationTime(
-      const Nonce& nonce) const = 0;
+      const std::string& nonce) const = 0;
 
   ValidateResult ValidateUserData(const DigestContextFromClient& client_context,
                                   const UserData& user_data) const;
@@ -107,10 +100,10 @@ class AuthCheckerDigestBase : public AuthCheckerBase {
                                       bool stale,
                                       http::HttpResponse& response) const;
 
-  const QopsString qops_str_;
-  const Realm realm_;
-  const DomainsString domains_str_;
-  const Algorithm& algorithm_;
+  const std::string qops_;
+  const std::string realm_;
+  const std::string domains_;
+  const std::string& algorithm_;
   const bool is_session_;
   const bool is_proxy_;
   const std::chrono::milliseconds nonce_ttl_;

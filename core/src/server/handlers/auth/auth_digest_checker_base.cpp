@@ -32,7 +32,7 @@ constexpr std::string_view kAuthenticationInfo = "Authentication-Info";
 constexpr std::string_view kProxyAuthenticationInfo =
     "Proxy-Authentication-Info";
 
-DigestHasher::DigestHasher(const Algorithm& algorithm) {
+DigestHasher::DigestHasher(const std::string& algorithm) {
   switch (
       kHashAlgToType.TryFindICase(algorithm).value_or(HashAlgTypes::kUnknown)) {
     case HashAlgTypes::kMD5:
@@ -58,10 +58,10 @@ std::string DigestHasher::GetHash(std::string_view data) const {
 }
 
 AuthCheckerDigestBase::AuthCheckerDigestBase(
-    const AuthDigestSettings& digest_settings, Realm&& realm)
-    : qops_str_(fmt::format("{}", fmt::join(digest_settings.qops, ","))),
+    const AuthDigestSettings& digest_settings, std::string&& realm)
+    : qops_(fmt::format("{}", fmt::join(digest_settings.qops, ","))),
       realm_(std::move(realm)),
-      domains_str_(fmt::format("{}", fmt::join(digest_settings.domains, ", "))),
+      domains_(fmt::format("{}", fmt::join(digest_settings.domains, ", "))),
       algorithm_(digest_settings.algorithm),
       is_session_(digest_settings.is_session),
       is_proxy_(digest_settings.is_proxy),
@@ -208,9 +208,9 @@ std::string AuthCheckerDigestBase::ConstructResponseDirectives(
       fmt::format("{}=\"{}\", ", directives::kRealm, realm_),
       fmt::format("{}=\"{}\", ", directives::kNonce, nonce),
       fmt::format("{}=\"{}\", ", directives::kStale, stale),
-      fmt::format("{}=\"{}\", ", directives::kDomain, domains_str_),
+      fmt::format("{}=\"{}\", ", directives::kDomain, domains_),
       fmt::format("{}=\"{}\", ", directives::kAlgorithm, algorithm_),
-      fmt::format("{}=\"{}\"", directives::kQop, qops_str_));
+      fmt::format("{}=\"{}\"", directives::kQop, qops_));
 }
 // clang-format on
 
