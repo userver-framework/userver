@@ -235,9 +235,6 @@ hr {
   text-decoration: none;
 }
 
-.gh-logo-landing {
-  mask-image: url(github_logo.svg);
-}
 
 html.dark-mode .gh-logo-landing {
   filter: invert(1);
