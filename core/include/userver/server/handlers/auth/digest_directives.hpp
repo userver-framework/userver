@@ -14,11 +14,12 @@ enum class HashAlgTypes {
   kUnknown  ///< Unknown algorithm
 };
 
-/// @brief Supported qop-options
+/// @brief Supported `qop-options` from
+/// https://datatracker.ietf.org/doc/html/rfc2617#section-3.2.1
 enum class QopTypes {
-  kAuth,     ///< `The value "auth" indicates authentication` from
-             ///< https://datatracker.ietf.org/doc/html/rfc2617#section-3.2.1
-  kUnknown,  ///< Unknown qop-value
+  kAuth,    ///< `The value "auth" indicates authentication` from
+            ///< https://datatracker.ietf.org/doc/html/rfc2617#section-3.2.1
+  kUnknown  ///< Unknown qop-value
 };
 
 constexpr utils::TrivialBiMap kHashAlgToType = [](auto selector) {
