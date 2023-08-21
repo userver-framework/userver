@@ -71,7 +71,7 @@ void DigestParsing::ParseAuthInfo(std::string_view header_value) {
         if (delimiter == '\\') {
           state = State::kStateValueEscape;
         } else if (delimiter == '"') {
-          directive_mapping[token] = value;
+          directive_mapping[token] = std::move(value);
           token.clear();
           value.clear();
           state = State::kStateComma;
@@ -87,12 +87,12 @@ void DigestParsing::ParseAuthInfo(std::string_view header_value) {
 
       case State::kStateValue:
         if (std::isspace(delimiter)) {
-          directive_mapping[token] = value;
+          directive_mapping[token] = std::move(value);
           token.clear();
           value.clear();
           state = State::kStateComma;
         } else if (delimiter == ',') {
-          directive_mapping[token] = value;
+          directive_mapping[token] = std::move(value);
           token.clear();
           value.clear();
           state = State::kStateSpace;
@@ -113,7 +113,7 @@ void DigestParsing::ParseAuthInfo(std::string_view header_value) {
   }
 
   if (state == State::kStateValue) {
-    directive_mapping[token] = value;
+    directive_mapping[token] = std::move(value);
   }
 
   if (state != State::kStateValue && state != State::kStateComma)
