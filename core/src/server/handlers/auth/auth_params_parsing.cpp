@@ -121,7 +121,9 @@ void DigestParsing::ParseAuthInfo(std::string_view header_value) {
 }
 
 DigestContextFromClient DigestParsing::GetClientContext() {
-  // mandatory client directives checking
+  // Only checking mandatory directives 
+  // because according to RFC 2617,
+  // "Any unrecognized directive MUST be ignored"
   for (const auto& dir : kMandatoryDirectives) {
     if (!directive_mapping.count(dir.data())) {
       utils::LogErrorAndThrow(fmt::format(
