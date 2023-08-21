@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/server/handlers/auth/auth_digest_settings.hpp
+/// @brief @copybrief server::handlers::auth::AuthDigestSettings
+
 #include <chrono>
 #include <optional>
 #include <string>
