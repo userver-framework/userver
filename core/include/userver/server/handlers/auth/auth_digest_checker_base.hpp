@@ -21,21 +21,18 @@ USERVER_NAMESPACE_BEGIN
 
 namespace server::handlers::auth {
 
-enum class ValidateClientDataResult { kOk, kWrongUserData, kUserNotRegistred };
+enum class ValidateResult { kOk, kWrongUserData, kDuplicateRequest };
 
 using Nonce = std::string;
 using Username = std::string;
-using NonceCount = std::uint32_t;
-
 using QopsString = std::string;
-using Qops = std::vector<std::string>;
 using Realm = std::string;
 using Domains = std::vector<std::string>;
 using DomainsString = std::string;
 using Algorithm = std::string;
 using TimePoint = std::chrono::time_point<std::chrono::system_clock>;
 
-class DigestHasher {
+class DigestHasher final {
  public:
   DigestHasher(const Algorithm& algorithm);
   std::string Nonce() const;
@@ -47,60 +44,69 @@ class DigestHasher {
   HashAlgorithm hash_algorithm_;
 };
 
-struct UserData {
-  UserData() = default;
-  UserData(const std::string& nonce, TimePoint timestamp,
-           std::uint32_t nonce_count = 0)
-      : nonce(nonce), timestamp(timestamp), nonce_count(nonce_count) {}
+struct UserData final {
+  using HA1 = utils::NonLoggable<class HA1Tag, std::string>;
 
-  std::string nonce;
+  UserData() = default;
+  UserData(HA1 ha1, const std::string& nonce, TimePoint timestamp,
+           std::int32_t nonce_count = 0)
+      : ha1(ha1),
+        nonce(nonce),
+        timestamp(timestamp),
+        nonce_count(nonce_count) {}
+
+  HA1 ha1;
+  Nonce nonce;
   TimePoint timestamp;
-  std::uint32_t nonce_count{};
+  std::int32_t nonce_count{};
 };
 
-class AuthCheckerDigestBase : public server::handlers::auth::AuthCheckerBase {
+class AuthCheckerDigestBase : public AuthCheckerBase {
  public:
-  using AuthCheckResult = server::handlers::auth::AuthCheckResult;
-
   AuthCheckerDigestBase(const AuthDigestSettings& digest_settings,
                         Realm&& realm);
 
+  AuthCheckerDigestBase(const AuthCheckerDigestBase&) = delete;
+  AuthCheckerDigestBase(AuthCheckerDigestBase&&) = delete;
+  AuthCheckerDigestBase& operator=(const AuthCheckerDigestBase&) = delete;
+  AuthCheckerDigestBase& operator=(AuthCheckerDigestBase&&) = delete;
+
+  virtual ~AuthCheckerDigestBase() = default;
+
   [[nodiscard]] AuthCheckResult CheckAuth(
-      const server::http::HttpRequest& request,
-      server::request::RequestContext& request_context) const final;
+      const http::HttpRequest& request,
+      request::RequestContext& request_context) const final;
 
   [[nodiscard]] bool SupportsUserAuth() const noexcept override { return true; }
 
-  using HA1 = utils::NonLoggable<class HA1Tag, std::string>;
-  virtual std::optional<HA1> GetHA1(const std::string& username) const = 0;
-
   virtual std::optional<UserData> GetUserData(
       const std::string& username) const = 0;
-  virtual void SetUserData(const std::string& username,
-                           UserData user_data) const = 0;
+  virtual void SetUserData(const std::string& username, const Nonce& nonce,
+                           std::int32_t nonce_count,
+                           TimePoint nonce_creation_time) const = 0;
 
-  virtual void PushUnnamedNonce(const Nonce& nonce) const = 0;
-  virtual bool HasUnnamedNonce(const Nonce& nonce) const = 0;
+  virtual void PushUnnamedNonce(const Nonce& nonce,
+                                std::chrono::milliseconds nonce_ttl) const = 0;
+  virtual std::optional<TimePoint> GetUnnamedNonceCreationTime(
+      const Nonce& nonce) const = 0;
 
-  ValidateClientDataResult ValidateClientData(
-      const DigestContextFromClient& client_context) const;
-
-  std::optional<std::string> CalculateDigest(
-      const server::http::HttpMethod& request_method,
-      const DigestContextFromClient& client_context) const;
+  ValidateResult ValidateUserData(const DigestContextFromClient& client_context,
+                                  const UserData& user_data) const;
 
  private:
+  std::string CalculateDigest(
+      const UserData::HA1& ha1_non_loggable, http::HttpMethod request_method,
+      const DigestContextFromClient& client_context) const;
+
   std::string ConstructAuthInfoHeader(
       const DigestContextFromClient& client_context) const;
   std::string ConstructResponseDirectives(std::string_view nonce,
                                           bool stale) const;
-  AuthCheckResult StartNewAuthSession(
-      const std::string& username, const std::string& nonce_from_client,
-      bool stale, server::http::HttpResponse& response) const;
-  bool IsNonceExpired(std::string_view nonce_from_client,
-                      const UserData& user_data) const;
+  AuthCheckResult StartNewAuthSession(const std::string& username,
+                                      const std::string& nonce_from_client,
+                                      bool stale,
+                                      http::HttpResponse& response) const;
 
-  const Qops& qops_;
   const QopsString qops_str_;
   const Realm realm_;
   const DomainsString domains_str_;
@@ -114,7 +120,7 @@ class AuthCheckerDigestBase : public server::handlers::auth::AuthCheckerBase {
   const std::string authenticate_header_;
   const std::string authorization_header_;
   const std::string authenticate_info_header_;
-  const userver::server::http::HttpStatus unauthorized_status_;
+  const http::HttpStatus unauthorized_status_;
 };
 
 }  // namespace server::handlers::auth

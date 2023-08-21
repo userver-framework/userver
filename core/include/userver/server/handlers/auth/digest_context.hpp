@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/server/handlers/auth/digest_context.hpp
+/// @brief Context structures for Digest Authentication
+
 #include <optional>
 #include <string>
 #include <string_view>
@@ -13,9 +16,9 @@ USERVER_NAMESPACE_BEGIN
 
 namespace server::handlers::auth {
 
-// WWW-Authenticate response header from server
-// realm, nonce are mandatory
-// domain, stale, algorithm, qop, auth-param are optional
+/// WWW-Authenticate header from server response
+/// realm, nonce directives are mandatory
+/// domain, opaque, stale, algorithm, qop, auth-param directives are optional
 struct DigestContextFromServer {
   std::string realm;
   std::string nonce;
@@ -25,9 +28,9 @@ struct DigestContextFromServer {
   std::string qop;
 };
 
-// authorization request header from client
-// username, realm, nonce, digest-uri, response are mandatory
-// algorithm, cnonce, qop, nc, auth-param are optional
+/// Authorization header from client request
+/// username, realm, nonce, digest-uri directives response are mandatory
+/// algorithm, cnonce, opaque, qop, nc, auth-param directives are optional
 struct DigestContextFromClient {
   std::string username;
   std::string realm;
@@ -42,6 +45,7 @@ struct DigestContextFromClient {
   std::string authparam; 
 };
 
+/// Function to parse directive map into structure
 DigestContextFromClient Parse(
     std::unordered_map<std::string, std::string> directive_mapping);
 

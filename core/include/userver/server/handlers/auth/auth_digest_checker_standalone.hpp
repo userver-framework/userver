@@ -3,10 +3,12 @@
 #include "auth_digest_checker_base.hpp"
 
 #include <chrono>
+#include <cstdint>
 #include <functional>
 #include <random>
 #include <string_view>
 
+#include <userver/concurrent/mpsc_queue.hpp>
 #include <userver/crypto/hash.hpp>
 #include <userver/rcu/rcu_map.hpp>
 #include <userver/server/handlers/auth/auth_digest_settings.hpp>
@@ -20,22 +22,29 @@ USERVER_NAMESPACE_BEGIN
 
 namespace server::handlers::auth {
 
-class AuthCheckerDigestBaseStandAlone : public AuthCheckerDigestBase {
- public:
-  using AuthCheckResult = server::handlers::auth::AuthCheckResult;
+struct NonceInfo final {
+  Nonce nonce;
+  TimePoint nonce_creation_time;
+  std::int32_t nonce_count;
+};
 
-  AuthCheckerDigestBaseStandAlone(const AuthDigestSettings& digest_settings,
+class AuthCheckerDigestBaseStandalone : public AuthCheckerDigestBase {
+ public:
+  AuthCheckerDigestBaseStandalone(const AuthDigestSettings& digest_settings,
                                   Realm&& realm);
 
   [[nodiscard]] bool SupportsUserAuth() const noexcept override { return true; }
 
   std::optional<UserData> GetUserData(
       const std::string& username) const override;
-  void SetUserData(const std::string& username,
-                   UserData user_data) const override;
+  void SetUserData(const std::string& username, const Nonce& nonce,
+                   std::int32_t nonce_count,
+                   TimePoint nonce_creation_time) const override;
+  virtual std::optional<UserData::HA1> GetHA1(
+      const std::string& username) const = 0;
 
  private:
-  mutable rcu::RcuMap<Username, UserData> user_data_;
+  mutable rcu::RcuMap<Username, NonceInfo> user_data_;
 };
 
 }  // namespace server::handlers::auth
