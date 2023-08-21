@@ -1066,3 +1066,7 @@ pre {
       right: 7px;
     }
   }
+
+#nav-sync {
+  display: none;
+}
