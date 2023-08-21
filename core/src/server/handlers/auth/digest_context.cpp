@@ -1,24 +1,26 @@
 #include <userver/server/handlers/auth/digest_context.hpp>
 #include <userver/server/handlers/auth/digest_directives.hpp>
 
+#include <unordered_map>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace server::handlers::auth {
 
 DigestContextFromClient Parse(
-    const userver::formats::json::Value& json,
-    userver::formats::parse::To<DigestContextFromClient>) {
+    std::unordered_map<std::string, std::string> directive_mapping) {
   return DigestContextFromClient{
-      json[directives::kUsername].As<std::string>(),
-      json[directives::kRealm].As<std::string>(),
-      json[directives::kNonce].As<std::string>(),
-      json[directives::kUri].As<std::string>(),
-      json[directives::kResponse].As<std::string>(),
-      json[directives::kAlgorithm].As<std::string>({}),
-      json[directives::kCnonce].As<std::string>({}),
-      json[directives::kQop].As<std::string>({}),
-      json[directives::kNonceCount].As<std::string>({}),
-      json[directives::kAuthParam].As<std::string>({}),
+      directive_mapping[directives::kUsername.data()],
+      directive_mapping[directives::kRealm.data()],
+      directive_mapping[directives::kNonce.data()],
+      directive_mapping[directives::kUri.data()],
+      directive_mapping[directives::kResponse.data()],
+      directive_mapping[directives::kAlgorithm.data()],
+      directive_mapping[directives::kCnonce.data()],
+      directive_mapping[directives::kOpaque.data()],
+      directive_mapping[directives::kQop.data()],
+      directive_mapping[directives::kNonceCount.data()],
+      directive_mapping[directives::kAuthParam.data()],
   };
 }
 
