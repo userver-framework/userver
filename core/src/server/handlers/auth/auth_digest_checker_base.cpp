@@ -32,6 +32,13 @@ constexpr std::string_view kAuthenticationInfo = "Authentication-Info";
 constexpr std::string_view kProxyAuthenticationInfo =
     "Proxy-Authentication-Info";
 
+UserData::UserData() = default;
+
+UserData::UserData(HA1 ha1, const std::string& nonce, TimePoint timestamp,
+                   std::int32_t nonce_count)
+    : ha1(ha1), nonce(nonce), timestamp(timestamp), nonce_count(nonce_count) {}
+
+
 DigestHasher::DigestHasher(const std::string& algorithm) {
   switch (
       kHashAlgToType.TryFindICase(algorithm).value_or(HashAlgTypes::kUnknown)) {

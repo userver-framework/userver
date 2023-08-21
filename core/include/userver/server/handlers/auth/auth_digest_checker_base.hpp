@@ -38,13 +38,9 @@ class DigestHasher final {
 struct UserData final {
   using HA1 = utils::NonLoggable<class HA1Tag, std::string>;
 
-  UserData() = default;
+  UserData();
   UserData(HA1 ha1, const std::string& nonce, TimePoint timestamp,
-           std::int32_t nonce_count = 0)
-      : ha1(ha1),
-        nonce(nonce),
-        timestamp(timestamp),
-        nonce_count(nonce_count) {}
+           std::int32_t nonce_count = 0);
 
   HA1 ha1;
   std::string nonce;
