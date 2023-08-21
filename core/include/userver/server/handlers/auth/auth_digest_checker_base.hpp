@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/server/handlers/auth/auth_digest_checker_base.hpp
+/// @brief @copybrief server::handlers::auth::AuthCheckerDigestBase
+
 #include "auth_checker_base.hpp"
 
 #include <chrono>
@@ -54,6 +57,12 @@ struct UserData final {
 
 enum class ValidateResult { kOk, kWrongUserData, kDuplicateRequest };
 
+// clang-format off
+
+/// @brief Authentication checker, that realise a digest-authentication.
+
+// clang-format on
+
 class AuthCheckerDigestBase : public AuthCheckerBase {
  public:
   AuthCheckerDigestBase(const AuthDigestSettings& digest_settings,
@@ -82,10 +91,11 @@ class AuthCheckerDigestBase : public AuthCheckerBase {
                                 std::chrono::milliseconds nonce_ttl) const = 0;
   virtual std::optional<TimePoint> GetUnnamedNonceCreationTime(
       const std::string& nonce) const = 0;
-
+  
+  /// @cond
   ValidateResult ValidateUserData(const DigestContextFromClient& client_context,
                                   const UserData& user_data) const;
-
+  /// @endcond
  private:
   std::string CalculateDigest(
       const UserData::HA1& ha1_non_loggable, http::HttpMethod request_method,
