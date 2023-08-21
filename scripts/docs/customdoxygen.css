@@ -777,6 +777,21 @@ doxygen-awesome-dark-mode-toggle {
   flex-wrap: wrap;
 }
 
+.landing-fragment {
+  width: fit-content;
+}
+
+.landing-text .doxygen-awesome-fragment-wrapper {
+  display: flex;
+  justify-content: center;
+}
+
+div.fragment.landing-fragment .line,
+div.fragment.landing-fragment span {
+  font-size: 18px !important;
+  line-height: 27px;
+}
+
 .landing-intro-left,
 .landing-intro-right {
   font-size: 1.1em;
@@ -794,7 +809,6 @@ doxygen-awesome-dark-mode-toggle {
 .landing-intro-center {
   font-size: 1.1em;
   line-height: 1.5;
-  margin-top: 30px;
   margin-bottom: 30px;
   margin-left: auto;
   margin-right: auto;
