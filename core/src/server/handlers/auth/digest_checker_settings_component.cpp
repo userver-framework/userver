@@ -1,5 +1,6 @@
-#include <cstddef>
 #include <userver/server/handlers/auth/digest_checker_settings_component.hpp>
+
+#include <cstddef>
 
 #include <userver/components/component.hpp>
 #include <userver/dynamic_config/storage/component.hpp>
