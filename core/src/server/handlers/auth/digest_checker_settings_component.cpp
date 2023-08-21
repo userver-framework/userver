@@ -7,7 +7,7 @@
 #include <userver/utils/async.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
-#include <userver/server/handlers/auth/digest_directives.hpp>
+#include <userver/server/handlers/auth/digest_types.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
