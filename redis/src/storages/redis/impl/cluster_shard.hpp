@@ -56,7 +56,9 @@ class ClusterShard {
   std::vector<RedisConnectionPtr> GetAvailableServers(
       const CommandControl& command_control) const;
   static RedisPtr GetInstance(const std::vector<RedisConnectionPtr>& instances,
-                              size_t start_idx, size_t* pinstance_idx);
+                              size_t start_idx, size_t attempt,
+                              bool is_nearest_ping_server, size_t best_dc_count,
+                              size_t* pinstance_idx);
   std::vector<RedisConnectionPtr> MakeReadonlyWithMasters() const;
   bool IsMasterReady() const;
   bool IsReplicaReady() const;

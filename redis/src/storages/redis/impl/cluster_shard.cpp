@@ -2,6 +2,7 @@
 
 #include <limits>
 #include <memory>
+#include <optional>
 #include <vector>
 
 #include <userver/utils/assert.hpp>
@@ -92,7 +93,9 @@ bool ClusterShard::AsyncCommand(CommandPtr command) const {
                       command->instance_idx, current, servers_count);
 
     size_t idx = SentinelImpl::kDefaultPrevInstanceIdx;
-    const auto instance = GetInstance(available_servers, start_idx, &idx);
+    const auto instance = GetInstance(available_servers, start_idx, attempt,
+                                      is_nearest_ping_server,
+                                      command_control.best_dc_count, &idx);
     if (!instance) {
       continue;
     }
@@ -208,9 +211,12 @@ std::vector<ClusterShard::RedisConnectionPtr> ClusterShard::GetAvailableServers(
 
 ClusterShard::RedisPtr ClusterShard::GetInstance(
     const std::vector<RedisConnectionPtr>& instances, size_t start_idx,
+    size_t attempt, bool is_nearest_ping_server, size_t best_dc_count,
     size_t* pinstance_idx) {
   RedisPtr ret;
-  const auto end = instances.size();
+  const auto end = (is_nearest_ping_server && attempt == 0 && best_dc_count)
+                       ? std::min(instances.size(), best_dc_count)
+                       : instances.size();
   for (size_t i = 0; i < end; ++i) {
     const auto idx = (start_idx + i) % end;
     const auto& cur_inst = instances[idx]->Get();
