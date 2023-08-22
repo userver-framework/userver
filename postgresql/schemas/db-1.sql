@@ -290,8 +290,7 @@ WHERE
                         real_medium.followers
                 WHERE
                         follower_user_id = _user_id)
-ORDER BY
-        created_at DESC
+
 LIMIT _limit OFFSET _offset;
 END;
 $$
@@ -406,4 +405,5 @@ END;
 $$
 LANGUAGE plpgsql;
 
-CREATE INDEX IF NOT EXISTS idx_createdat ON real_medium.articles(created_at);
+CREATE INDEX IF NOT EXISTS idx_createdat ON real_medium.articles(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_tagname ON real_medium.tag_list(tag_name);
