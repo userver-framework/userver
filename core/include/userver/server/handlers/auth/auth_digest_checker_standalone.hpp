@@ -24,9 +24,15 @@ USERVER_NAMESPACE_BEGIN
 namespace server::handlers::auth {
 
 struct NonceInfo final {
-  Nonce nonce;
-  TimePoint nonce_creation_time;
-  std::int32_t nonce_count;
+  NonceInfo() = default;
+  NonceInfo(const std::string& nonce, TimePoint expiration_time,
+            std::int32_t nonce_count = 0)
+      : nonce(nonce),
+        expiration_time(expiration_time),
+        nonce_count(nonce_count) {}
+  std::string nonce;
+  TimePoint expiration_time;
+  std::int32_t nonce_count{};
 };
 
 class AuthCheckerDigestBaseStandalone : public AuthCheckerDigestBase {
