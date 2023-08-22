@@ -15,14 +15,14 @@ userver::storages::postgres::Query CommentCachePolicy::kQuery =
 void CommentsCacheContainer::insert_or_assign(real_medium::cache::comments_cache::CommentsCacheContainer::Key&& key,
       real_medium::cache::comments_cache::CommentsCacheContainer::Comment&& comment) {
       auto commentPtr = std::make_shared<const Comment>(std::move(comment));
-      comments_to_key_[key].insert(commentPtr);
+      comments_to_key_[commentPtr->article_id].insert(commentPtr);
 };
 
 size_t CommentsCacheContainer::size() const {
   return comments_to_key_.size();
 }
 
-std::unordered_set<CommentsCacheContainer::CommentPtr> CommentsCacheContainer::findComments(const real_medium::cache::comments_cache::CommentsCacheContainer::Key& key) const {
+std::unordered_set<CommentsCacheContainer::CommentPtr> CommentsCacheContainer::findComments(const ArticleId& key) const {
   if (!comments_to_key_.count(key))
     return {};
   return comments_to_key_.at(key);

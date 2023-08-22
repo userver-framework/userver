@@ -13,7 +13,7 @@ namespace real_medium::dto {
 
 struct Comment final{
   static Comment Parse(const real_medium::models::CachedComment& cachedComment, std::optional<std::string> userId);
-  std::string id;
+  int32_t id;
   userver::storages::postgres::TimePointTz createdAt;
   userver::storages::postgres::TimePointTz updatedAt;
   std::string body;

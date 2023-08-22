@@ -10,7 +10,7 @@
 #include <userver/storages/postgres/io/chrono.hpp>
 
 namespace real_medium::models {
-using CommentId = std::string;
+using CommentId = int32_t;
 
 struct Comment {
   CommentId id;
@@ -31,11 +31,12 @@ struct CachedComment {
   userver::storages::postgres::TimePointTz updated_at;
   std::string body;
   std::string user_id;
+  std::string article_id;
   real_medium::models::Profile author;
   std::unordered_set<std::string> following;
 
   auto Introspect() {
-    return std::tie(id, created_at, updated_at, body, user_id, author, following);
+    return std::tie(id, created_at, updated_at, body, user_id, article_id, author, following);
   }
 };
 

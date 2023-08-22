@@ -15,7 +15,7 @@ namespace real_medium::models {
   using ArticleId=std::string;
 
 struct FullArticleInfo{
-    std::string articleId;
+    ArticleId articleId;
     std::string title;
     std::string slug;
     std::string description;

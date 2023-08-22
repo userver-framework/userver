@@ -13,16 +13,17 @@ namespace real_medium::cache::comments_cache {
 class CommentsCacheContainer
 {
  public:
-  using Key=real_medium::models::ArticleId;
+  using Key=real_medium::models::CommentId;
   using Comment=real_medium::models::CachedComment;
   using CommentPtr=std::shared_ptr<const Comment>;
+  using ArticleId=std::string;
   void insert_or_assign(Key &&key, Comment &&config);
   size_t size() const;
 
-  std::unordered_set<CommentPtr> findComments(const Key &key) const;
+  std::unordered_set<CommentPtr> findComments(const ArticleId &key) const;
 
  private:
-  std::unordered_map<Key, std::unordered_set<CommentPtr>> comments_to_key_;
+  std::unordered_map<ArticleId, std::unordered_set<CommentPtr>> comments_to_key_;
 };
 
 struct CommentCachePolicy {

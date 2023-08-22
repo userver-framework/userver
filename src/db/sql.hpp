@@ -248,6 +248,8 @@ SELECT c.comment_id,
        c.created_at AS createdAt,
        c.updated_at AS updatedAt,
        c.body,
+       a.user_id,
+       c.article_id,
        ROW(u.user_id, u.username, u.email, u.bio, u.image, u.password_hash)::real_medium.user AS author_info,
             ARRAY(
     SELECT follower_user_id
