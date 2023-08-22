@@ -421,6 +421,7 @@ void CompleteDeadlinePropagation(RequestProcessor& processor,
   const bool cancelled_by_deadline =
       engine::current_task::CancellationReason() ==
           engine::TaskCancellationReason::kDeadline ||
+      inherited_data.deadline_signal.IsExpired() ||
       inherited_data.deadline.IsReached();
 
   auto& span = tracing::Span::CurrentSpan();

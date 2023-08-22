@@ -7,7 +7,6 @@ import typing
 
 from aiohttp import client_exceptions as exceptions
 import pytest
-
 from pytest_userver import chaos
 
 from testsuite.utils import http
@@ -245,24 +244,18 @@ async def test_deadline_expired(call, testpoint, monitor_client):
     async def _hook(data):
         testpoint_data.append(data)
 
-    # TODO(TAXICOMMON-6876) make service_client.reset_metric()
-    #  work for RegisterWriter metrics
-    cancelled_metric_before = await monitor_client.single_metric(
-        path='http.handler.total.cancelled-by-deadline',
-    )
+    async with monitor_client.metrics_diff(
+            prefix='http.handler.total', diff_gauge=True,
+    ) as differ:
+        response = await call(
+            htype='sleep',
+            headers={DP_TIMEOUT_MS: '150'},
+            timeout=INCREASED_TIMEOUT,
+        )
+        _check_deadline_propagation_response(response)
+        assert testpoint_data, 'Control flow SHOULD enter the handler body'
 
-    response = await call(
-        htype='sleep',
-        headers={DP_TIMEOUT_MS: '150'},
-        timeout=INCREASED_TIMEOUT,
-    )
-    _check_deadline_propagation_response(response)
-    assert testpoint_data, 'Control flow SHOULD enter the handler body'
-
-    cancelled_metric_after = await monitor_client.single_metric(
-        path='http.handler.total.cancelled-by-deadline',
-    )
-    assert cancelled_metric_after.value - cancelled_metric_before.value == 1
+    assert differ.value_at('cancelled-by-deadline') == 1
 
 
 @pytest.mark.config(USERVER_DEADLINE_PROPAGATION_ENABLED=False)

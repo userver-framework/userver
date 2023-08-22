@@ -1,5 +1,6 @@
 import pytest
 from pytest_userver import metrics  # pylint: disable=import-error
+import pytest_userver.client
 
 
 _ETHALON_METRICS = {
@@ -293,3 +294,57 @@ def test_handmade_metrics_to_json():
         "tcp-echo.sockets.closed": [{"labels": {"label":"b"}, "value": 2}]
     }"""
     assert values == metrics.MetricsSnapshot.from_json(json)
+
+
+def test_differ():
+    # Note: private API, do not construct MetricsDiffer like this!
+    differ = pytest_userver.client.MetricsDiffer(
+        _client=None,  # type: ignore
+        _path=None,
+        _prefix='foo.bar',
+        _labels={'bar': 'qux'},
+        _diff_gauge=True,
+    )
+
+    differ.baseline = metrics.MetricsSnapshot(
+        {
+            'foo.bar.baz': {
+                metrics.Metric({'bar': 'qux', 'state': 'keep'}, 10),
+                metrics.Metric({'bar': 'qux', 'state': 'remove'}, 5),
+            },
+        },
+    )
+
+    # 'differ' will compute 'diff' at the assignment.
+    differ.current = metrics.MetricsSnapshot(
+        {
+            'foo.bar.baz': {
+                metrics.Metric({'bar': 'qux', 'state': 'keep'}, 15),
+                metrics.Metric({'bar': 'qux', 'state': 'add'}, 15),
+            },
+        },
+    )
+
+    differ.diff.assert_equals(
+        {
+            'foo.bar.baz': {
+                metrics.Metric({'bar': 'qux', 'state': 'keep'}, 5),
+                metrics.Metric({'bar': 'qux', 'state': 'add'}, 15),
+            },
+        },
+    )
+
+    assert differ.value_at('baz', {'state': 'keep'}) == 5
+    assert differ.value_at('baz', {'state': 'add'}) == 15
+    assert differ.value_at('baz', {'state': 'remove'}, default=0) == 0
+
+    with pytest.raises(AssertionError):
+        differ.value_at('baz', {'state': 'remove'})
+    with pytest.raises(AssertionError):
+        # No metrics with just the labels from 'differ'
+        differ.value_at('baz', {})
+    with pytest.raises(AssertionError):
+        # No metrics with just the labels from 'differ'
+        differ.value_at('baz')
+    with pytest.raises(AssertionError):
+        differ.value_at('nonexistent', {'state': 'remove'})

@@ -8,12 +8,14 @@
 #include <userver/engine/deadline.hpp>
 #include <userver/server/handlers/http_handler_base.hpp>
 #include <userver/server/http/http_response_body_stream.hpp>
+#include <userver/server/request/task_inherited_data.hpp>
 #include <userver/testsuite/testpoint.hpp>
 #include <userver/utest/using_namespace_userver.hpp>
+#include <userver/utils/from_string.hpp>
 
 namespace chaos {
 
-const int kTimeoutSecs{15};
+constexpr std::chrono::seconds kDefaultTimeout{15};
 
 class HttpClientHandler final : public server::handlers::HttpHandlerBase {
  public:
@@ -29,23 +31,33 @@ class HttpClientHandler final : public server::handlers::HttpHandlerBase {
       const server::http::HttpRequest& request,
       server::request::RequestContext&) const override {
     const auto& type = request.GetArg("type");
-    const auto& port = request.GetArg("port");
-    const auto& timeout = request.GetArg("timeout");
-    const std::chrono::seconds timeout_secs{
-        timeout.empty() ? kTimeoutSecs : std::stoi(timeout)};
+    const auto& port_string = request.GetArg("port");
+    const auto& timeout_string = request.GetArg("timeout");
+    const auto& attempts_string = request.GetArg("attempts");
+
+    const auto port = utils::FromString<std::uint16_t>(port_string);
+    const auto timeout =
+        timeout_string.empty()
+            ? kDefaultTimeout
+            : std::chrono::milliseconds{
+                  utils::FromString<std::chrono::milliseconds::rep>(
+                      timeout_string)};
+    const auto attempts = attempts_string.empty()
+                              ? short{1}
+                              : utils::FromString<short>(attempts_string);
+
     if (type == "common") {
       auto url = fmt::format("http://localhost:{}/test", port);
-      auto response = client_.CreateNotSignedRequest()
-                          .get(url)
-                          .timeout(timeout_secs)
-                          .retry(1)
+      auto response = client_.CreateRequest()
+                          .get(url)  //
+                          .timeout(timeout)
+                          .retry(attempts)
                           .perform();
       response->raise_for_status();
       return response->body();
     }
 
-    UASSERT(false);
-    return {};
+    UINVARIANT(false, "Unexpected request type");
   }
 
  private:
@@ -78,15 +90,16 @@ class StreamHandler : public server::handlers::HttpHandlerBase {
 
     const auto& port = request.GetArg("port");
     auto url = fmt::format("http://localhost:{}/test", port);
-    const auto& timeout = request.GetArg("timeout");
-    const std::chrono::seconds timeout_secs{
-        timeout.empty() ? kTimeoutSecs : std::stoi(timeout)};
+    const auto& timeout_string = request.GetArg("timeout");
+    const auto timeout = timeout_string.empty()
+                             ? kDefaultTimeout
+                             : std::chrono::seconds{std::stoi(timeout_string)};
     const auto retries = 1;
 
-    auto external_request = http_client_.CreateNotSignedRequest()
+    auto external_request = http_client_.CreateRequest()
                                 .get(url)
                                 .headers(std::move(headers))
-                                .timeout(timeout_secs)
+                                .timeout(timeout)
                                 .retry(retries);
 
     auto queue = concurrent::StringStreamQueue::Create();

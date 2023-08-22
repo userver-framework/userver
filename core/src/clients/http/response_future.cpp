@@ -3,6 +3,7 @@
 #include <algorithm>
 
 #include <clients/http/request_state.hpp>
+#include <userver/server/request/task_inherited_data.hpp>
 #include <userver/utils/fast_scope_guard.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -81,30 +82,41 @@ void ResponseFuture::Detach() {
 }
 
 std::future_status ResponseFuture::Wait() {
-  auto status = future_.wait_until(deadline_);
-  if (status == engine::FutureStatus::kCancelled) {
-    const auto stats = request_state_->easy().get_local_stats();
+  switch (future_.wait_until(deadline_)) {
+    case engine::FutureStatus::kCancelled: {
+      const auto stats = request_state_->easy().get_local_stats();
 
-    // request_ has armed timers to retry the request. Stopping those ASAP.
-    Cancel();
+      // request_ has armed timers to retry the request. Stopping those ASAP.
+      Cancel();
 
-    throw CancelException(
-        "HTTP response wait was aborted due to task cancellation", stats);
+      throw CancelException(
+          "HTTP response wait was aborted due to task cancellation", stats);
+    }
+    case engine::FutureStatus::kTimeout:
+      if (was_deadline_propagated_) {
+        server::request::MarkTaskInheritedDeadlineExpired();
+
+        // We allow the physical HTTP request to complete in the background to
+        // avoid closing the connection.
+        const utils::FastScopeGuard detach_guard(
+            [this]() noexcept { Detach(); });
+
+        request_state_->ThrowDeadlineExpiredException();
+      }
+      return std::future_status::timeout;
+    case engine::FutureStatus::kReady:
+      return std::future_status::ready;
   }
-  if (was_deadline_propagated_ && status == engine::FutureStatus::kTimeout) {
-    // We allow the physical HTTP request to complete in the background to avoid
-    // closing the connection.
-    const utils::FastScopeGuard detach_guard([this]() noexcept { Detach(); });
 
-    request_state_->ThrowDeadlineExpiredException();
-  }
-  return (status == engine::FutureStatus::kReady) ? std::future_status::ready
-                                                  : std::future_status::timeout;
+  UINVARIANT(false, "Invalid engine::FutureStatus");
 }
 
 std::shared_ptr<Response> ResponseFuture::Get() {
   const auto future_status = Wait();
   if (future_status == std::future_status::ready) {
+    if (request_state_->IsDeadlineExpired()) {
+      server::request::MarkTaskInheritedDeadlineExpired();
+    }
     auto response = future_.get();
     Detach();
     return response;

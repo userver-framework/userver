@@ -381,12 +381,48 @@ class ClientMonitor(ClientWrapper):
     @ingroup userver_testsuite
     """
 
+    def metrics_diff(
+            self,
+            *,
+            path: typing.Optional[str] = None,
+            prefix: typing.Optional[str] = None,
+            labels: typing.Optional[typing.Dict[str, str]] = None,
+            diff_gauge: bool = False,
+    ) -> 'MetricsDiffer':
+        """
+        Creates a `MetricsDiffer` that fetches metrics using this client.
+        It's recommended to use this method over `metrics` to make sure
+        the tests don't affect each other.
+
+        With `diff_gauge` off, only RATE metrics are differentiated.
+        With `diff_gauge` on, GAUGE metrics are differentiated as well,
+        which may lead to nonsensical results for those.
+
+        @param path Optional full metric path
+        @param prefix Optional prefix on which the metric paths should start
+        @param labels Optional dictionary of labels that must be in the metric
+        @param diff_gauge Whether to differentiate GAUGE metrics
+
+        @code
+        async with monitor_client.metrics_diff(prefix='foo') as differ:
+            # Do something that makes the service update its metrics
+        assert differ.value_at('path-suffix', {'label'}) == 42
+        @endcode
+        """
+        return MetricsDiffer(
+            _client=self,
+            _path=path,
+            _prefix=prefix,
+            _labels=labels,
+            _diff_gauge=diff_gauge,
+        )
+
     @_wrap_client_error
     async def metrics(
             self,
             *,
-            path: str = None,
-            prefix: str = None,
+            path: typing.Optional[str] = None,
+            prefix: typing.Optional[str] = None,
             labels: typing.Optional[typing.Dict[str, str]] = None,
     ) -> metric_module.MetricsSnapshot:
         """
@@ -439,8 +475,8 @@ class ClientMonitor(ClientWrapper):
             self,
             output_format: str,
             *,
-            path: str = None,
-            prefix: str = None,
+            path: typing.Optional[str] = None,
+            prefix: typing.Optional[str] = None,
             labels: typing.Optional[typing.Dict[str, str]] = None,
     ) -> typing.Dict[str, Metric]:
         """
@@ -475,7 +511,153 @@ class ClientMonitor(ClientWrapper):
         return await self._client.get_metric(metric_name)
 
 
+class MetricsDiffer:
+    """
+    A helper class for computing metric differences.
+
+    @see ClientMonitor.metrics_diff
+    @ingroup userver_testsuite
+    """
+
+    # @cond
+    def __init__(
+            self,
+            _client: ClientMonitor,
+            _path: typing.Optional[str],
+            _prefix: typing.Optional[str],
+            _labels: typing.Optional[typing.Dict[str, str]],
+            _diff_gauge: bool,
+    ):
+        self._client = _client
+        self._path = _path
+        self._prefix = _prefix
+        self._labels = _labels
+        self._diff_gauge = _diff_gauge
+        self._baseline: typing.Optional[metric_module.MetricsSnapshot] = None
+        self._current: typing.Optional[metric_module.MetricsSnapshot] = None
+        self._diff: typing.Optional[metric_module.MetricsSnapshot] = None
+
+    # @endcond
+
+    @property
+    def baseline(self) -> metric_module.MetricsSnapshot:
+        assert self._baseline is not None
+        return self._baseline
+
+    @baseline.setter
+    def baseline(self, value: metric_module.MetricsSnapshot) -> None:
+        self._baseline = value
+        if self._current is not None:
+            self._diff = _subtract_metrics_snapshots(
+                self._current, self._baseline, self._diff_gauge,
+            )
+
+    @property
+    def current(self) -> metric_module.MetricsSnapshot:
+        assert self._current is not None, 'Set self.current first'
+        return self._current
+
+    @current.setter
+    def current(self, value: metric_module.MetricsSnapshot) -> None:
+        self._current = value
+        assert self._baseline is not None, 'Set self.baseline first'
+        self._diff = _subtract_metrics_snapshots(
+            self._current, self._baseline, self._diff_gauge,
+        )
+
+    @property
+    def diff(self) -> metric_module.MetricsSnapshot:
+        assert self._diff is not None, 'Set self.current first'
+        return self._diff
+
+    def value_at(
+            self,
+            subpath: typing.Optional[str] = None,
+            add_labels: typing.Optional[typing.Dict] = None,
+            *,
+            default: typing.Optional[float] = None,
+    ) -> float:
+        """
+        Returns a single metric value at the specified path, prepending
+        the path provided at construction. If a dict of labels is provided,
+        does en exact match of labels, prepending the labels provided
+        at construction.
+
+        @param subpath Suffix of the metric path; the path provided
+        at construction is prepended
+        @param add_labels Labels that the metric must have in addition
+        to the labels provided at construction
+        @param default An optional default value in case the metric is missing
+        @throws AssertionError if not one metric by path
+        """
+        base_path = self._path or self._prefix
+        if base_path and subpath:
+            path = f'{base_path}.{subpath}'
+        else:
+            assert base_path or subpath, 'No path provided'
+            path = base_path or subpath or ''
+        labels: typing.Optional[dict] = None
+        if self._labels is not None or add_labels is not None:
+            labels = (self._labels or {}) | (add_labels or {})
+        return self.diff.value_at(path, labels, default=default)
+
+    async def fetch(self) -> metric_module.MetricsSnapshot:
+        """
+        Fetches metric values from the service.
+        """
+        return await self._client.metrics(
+            path=self._path, prefix=self._prefix, labels=self._labels,
+        )
+
+    async def __aenter__(self) -> 'MetricsDiffer':
+        self._baseline = await self.fetch()
+        self._current = None
+        return self
+
+    async def __aexit__(self, exc_type, exc, tb) -> None:
+        self.current = await self.fetch()
+
+
 # @cond
+
+
+def _subtract_metrics_snapshots(
+        current: metric_module.MetricsSnapshot,
+        initial: metric_module.MetricsSnapshot,
+        diff_gauge: bool,
+) -> metric_module.MetricsSnapshot:
+    return metric_module.MetricsSnapshot(
+        {
+            path: {
+                _subtract_metrics(path, current_metric, initial, diff_gauge)
+                for current_metric in current_group
+            }
+            for path, current_group in current.items()
+        },
+    )
+
+
+def _subtract_metrics(
+        path: str,
+        current_metric: metric_module.Metric,
+        initial: metric_module.MetricsSnapshot,
+        diff_gauge: bool,
+) -> metric_module.Metric:
+    assert diff_gauge, 'diff_gauge=False is unimplemented'
+
+    initial_group = initial.get(path, None)
+    if initial_group is None:
+        return current_metric
+    initial_metric = next(
+        (x for x in initial_group if x.labels == current_metric.labels), None,
+    )
+    if initial_metric is None:
+        return current_metric
+
+    return metric_module.Metric(
+        labels=current_metric.labels,
+        value=current_metric.value - initial_metric.value,
+    )
 
 
 class AiohttpClient(service_client.AiohttpClient):
@@ -944,7 +1126,7 @@ class _StateManager:
             self._update_state(body)
             self._apply_new_state()
             yield
-        except:  # noqa
+        except Exception:  # noqa
             self._state = saved_state
             self._apply_new_state()
             raise
