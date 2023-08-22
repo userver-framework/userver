@@ -32,10 +32,10 @@ class DigestHasher final {
   /// Constructor from the hash algorithm name from "crypto" namespace.
   /// Subsequently, all methods of the class will use this algorithm for
   /// encryption.
-  DigestHasher(const std::string& algorithm);
+  DigestHasher(std::string_view algorithm);
 
   /// Returns "nonce" directive value in hexadecimal format.
-  std::string Nonce() const;
+  std::string GenerateNonce() const;
 
   /// Returns data encrypted according to the specified in constructor
   /// algorithm.
@@ -53,12 +53,12 @@ struct UserData final {
 
   UserData();
   UserData(HA1 ha1, const std::string& nonce, TimePoint timestamp,
-           std::int32_t nonce_count = 0);
+           std::int64_t nonce_count = 0);
 
   HA1 ha1;
   std::string nonce;
   TimePoint timestamp;
-  std::int32_t nonce_count{};
+  std::int64_t nonce_count{};
 };
 
 /// @ingroup userver_base_classes
@@ -78,7 +78,7 @@ class DigestCheckerBase : public AuthCheckerBase {
   DigestCheckerBase& operator=(const DigestCheckerBase&) = delete;
   DigestCheckerBase& operator=(DigestCheckerBase&&) = delete;
 
-  ~DigestCheckerBase() override = default;
+  ~DigestCheckerBase() override;
 
   /// The main checking function that is called for each request.
   [[nodiscard]] AuthCheckResult CheckAuth(
@@ -93,12 +93,12 @@ class DigestCheckerBase : public AuthCheckerBase {
   /// user is registered, but he is not in storage, the implementation should
   /// create him with invalid data to avoids extra round trips for
   /// authentication challenges.
-  virtual std::optional<UserData> GetUserData(
+  virtual std::optional<UserData> FetchUserData(
       const std::string& username) const = 0;
 
   /// Sets user authentication data to storage.
   virtual void SetUserData(const std::string& username,
-                           const std::string& nonce, std::int32_t nonce_count,
+                           const std::string& nonce, std::int64_t nonce_count,
                            TimePoint nonce_creation_time) const = 0;
 
   /// Pushes "nonce" not tied to username to "Nonce Pool".

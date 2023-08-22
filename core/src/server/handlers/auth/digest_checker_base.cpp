@@ -35,11 +35,11 @@ constexpr std::string_view kProxyAuthenticationInfo =
 UserData::UserData() = default;
 
 UserData::UserData(HA1 ha1, const std::string& nonce, TimePoint timestamp,
-                   std::int32_t nonce_count)
+                   std::int64_t nonce_count)
     : ha1(ha1), nonce(nonce), timestamp(timestamp), nonce_count(nonce_count) {}
 
 
-DigestHasher::DigestHasher(const std::string& algorithm) {
+DigestHasher::DigestHasher(std::string_view algorithm) {
   switch (
       kHashAlgToType.TryFindICase(algorithm).value_or(HashAlgTypes::kUnknown)) {
     case HashAlgTypes::kMD5:
@@ -56,10 +56,11 @@ DigestHasher::DigestHasher(const std::string& algorithm) {
   }
 }
 
-std::string DigestHasher::Nonce() const {
+std::string DigestHasher::GenerateNonce() const {
   return GetHash(std::to_string(
       std::chrono::system_clock::now().time_since_epoch().count()));
 }
+
 std::string DigestHasher::GetHash(std::string_view data) const {
   return hash_algorithm_(data, crypto::hash::OutputEncoding::kHex);
 }
@@ -86,6 +87,8 @@ DigestCheckerBase::DigestCheckerBase(const AuthDigestSettings& digest_settings,
                                ? http::HttpStatus::kProxyAuthenticationRequired
                                : http::HttpStatus::kUnauthorized) {}
 
+DigestCheckerBase::~DigestCheckerBase() = default;
+
 AuthCheckResult DigestCheckerBase::CheckAuth(const http::HttpRequest& request,
                                              request::RequestContext&) const {
   // RFC 2617, 3
@@ -96,7 +99,7 @@ AuthCheckResult DigestCheckerBase::CheckAuth(const http::HttpRequest& request,
   if (auth_value.empty()) {
     // If there is no authorization header, we save the "nonce" to temporary
     // storage.
-    auto nonce = digest_hasher_.Nonce();
+    auto nonce = digest_hasher_.GenerateNonce();
     PushUnnamedNonce(nonce, nonce_ttl_);
 
     response.SetStatus(unauthorized_status_);
@@ -110,7 +113,7 @@ AuthCheckResult DigestCheckerBase::CheckAuth(const http::HttpRequest& request,
   const auto& client_context = parser.GetClientContext();
 
   // Check if user have been registred.
-  auto user_data_opt = GetUserData(client_context.username);
+  auto user_data_opt = FetchUserData(client_context.username);
   if (!user_data_opt.has_value()) {
     return AuthCheckResult{AuthCheckResult::Status::kForbidden};
   }
@@ -120,7 +123,7 @@ AuthCheckResult DigestCheckerBase::CheckAuth(const http::HttpRequest& request,
   switch (validate_result) {
     case ValidateResult::kWrongUserData:
       return StartNewAuthSession(client_context.username,
-                                 digest_hasher_.Nonce(), true, response);
+                                 digest_hasher_.GenerateNonce(), true, response);
     case ValidateResult::kDuplicateRequest:
       response.SetStatus(unauthorized_status_);
       return AuthCheckResult{AuthCheckResult::Status::kTokenNotFound};
@@ -187,7 +190,7 @@ DigestCheckerBase::ValidateResult DigestCheckerBase::ValidateUserData(
 
 std::string DigestCheckerBase::ConstructAuthInfoHeader(
     const DigestContextFromClient& client_context) const {
-  auto next_nonce = digest_hasher_.Nonce();
+  auto next_nonce = digest_hasher_.GenerateNonce();
 
   SetUserData(client_context.username, next_nonce, 0, utils::datetime::Now());
 
