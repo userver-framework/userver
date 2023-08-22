@@ -1,4 +1,5 @@
 import pytest
+import time
 from http import HTTPStatus
 
 from endpoints import register_user, create_article, get_article
@@ -19,6 +20,7 @@ async def test_get_article(service_client):
     response = await create_article(service_client, article, user_token)
     assert response.status == HTTPStatus.OK
 
+    time.sleep(10)
     response = await get_article(service_client, article, user_token)
     assert response.status == HTTPStatus.OK
     assert validate_article(article, response)
@@ -33,6 +35,7 @@ async def test_get_unknown_article(service_client):
     user_token = get_user_token(response)
 
     article = Article(Profile(user))
+    time.sleep(10)
     response = await get_article(service_client, article, user_token)
     assert response.status == HTTPStatus.NOT_FOUND
 
@@ -49,6 +52,7 @@ async def test_get_article_unauthorized(service_client):
     response = await create_article(service_client, article, user_token)
     assert response.status == HTTPStatus.OK
 
+    time.sleep(10)
     response = await get_article(service_client, article, None)
     assert response.status == HTTPStatus.OK
     assert validate_article(article, response)

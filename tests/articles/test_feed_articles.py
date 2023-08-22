@@ -1,4 +1,5 @@
 import pytest
+import time
 from http import HTTPStatus
 
 from endpoints import register_user, create_article, follow_user, feed_articles
@@ -31,6 +32,7 @@ async def test_feed_articles(service_client):
         response = await create_article(service_client, article, user_token)
         assert response.status == HTTPStatus.OK
 
+    time.sleep(30)
     response = await feed_articles(service_client, another_user_token, 2, 0)
     assert response.status == HTTPStatus.OK
     assert validate_articles(ArticleList(0), response)
@@ -41,6 +43,7 @@ async def test_feed_articles(service_client):
     user_profile.following = True
     feed_articles_result = ArticleList(
         init_articles=article_lst.articles[:-3:-1])
+    time.sleep(30)
     response = await feed_articles(service_client, another_user_token, 2, 0)
     assert response.status == HTTPStatus.OK
     assert validate_articles(feed_articles_result, response)

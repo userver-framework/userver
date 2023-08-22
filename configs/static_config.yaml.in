@@ -44,7 +44,7 @@ components_manager:
         articles-cache:
             pgcomponent: realmedium-database
             update-interval: 10s
-            full-update-interval: 1m
+            full-update-interval: 20s
             update-correction: 2s
             update-jitter: 1s
             chunk-size: 100

@@ -1,4 +1,5 @@
 import pytest
+import time
 from http import HTTPStatus
 
 from endpoints import register_user, create_article, delete_article, get_article, favourite_article, add_comment, get_comments
@@ -52,12 +53,14 @@ async def test_delete_article(service_client):
     response = await delete_article(service_client, article, user_token)
     assert response.status == HTTPStatus.OK
 
+    time.sleep(10)
     response = await get_article(service_client, article, user_token)
     assert response.status == HTTPStatus.NOT_FOUND
 
     response = await create_article(service_client, article, user_token)
     assert response.status == HTTPStatus.OK
 
+    time.sleep(10)
     response = await get_comments(service_client, article, user_token)
     assert response.status == HTTPStatus.OK
     assert validate_comments(CommentList(0), response)
