@@ -43,7 +43,7 @@ void DigestParser::ParseAuthInfo(std::string_view header_value) {
         } else if (std::isspace(delimiter)) {
           // Skip
         } else
-          userver::utils::LogErrorAndThrow(
+          utils::LogErrorAndThrow(
               "Invalid authentication information");
         break;
 
@@ -125,7 +125,7 @@ DigestContextFromClient DigestParser::GetClientContext() {
   // because according to RFC 2617,
   // "Any unrecognized directive MUST be ignored"
   for (const auto& dir : kMandatoryDirectives) {
-    if (!directive_mapping.count(dir.data())) {
+    if (!directive_mapping.count(dir)) {
       utils::LogErrorAndThrow(fmt::format(
           "Mandatory {} directive is missing in Authentication header", dir));
     }
