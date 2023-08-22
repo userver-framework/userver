@@ -52,6 +52,7 @@ class AuthCheckerDigestBaseStandalone : public AuthCheckerDigestBase {
 
  private:
   mutable rcu::RcuMap<Username, concurrent::Variable<NonceInfo>> user_data_;
+  mutable rcu::RcuMap<Nonce, concurrent::Variable<TimePoint>> unnamed_nonces;
 };
 
 }  // namespace server::handlers::auth
