@@ -38,7 +38,7 @@ std::vector<ArticlesCacheContainer::ArticlePtr> ArticlesCacheContainer::getRecen
   std::vector<ArticlePtr> articles;
   int offset=0;
   for(const auto &it:recentArticles_){
-    if(filter.limit && filter.limit>articles.size())
+    if(filter.limit && articles.size()>=filter.limit)
       break;
 
     const auto &tags=it.second->tags;
@@ -67,7 +67,7 @@ std::vector<ArticlesCacheContainer::ArticlePtr> ArticlesCacheContainer::getFeed(
     return articles;
   int offset=0;
   for(const auto &it:followedArticles->second){
-    if(filter.limit && filter.limit>articles.size())
+    if(filter.limit && articles.size()>=filter.limit)
       break;
     if(filter.offset && offset<filter.offset){
       ++offset;
