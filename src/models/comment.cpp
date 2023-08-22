@@ -17,4 +17,5 @@ userver::formats::json::Value Serialize(
   return item.ExtractValue();
 }
 
+
 }  // namespace real_medium::models

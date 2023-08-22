@@ -13,8 +13,10 @@ option(JWT_BUILD_EXAMPLES OFF)
 
 # Common sources
 add_library(${PROJECT_NAME}_objs OBJECT
-                src/cache/articles_cache.hpp
-                src/cache/articles_cache.cpp
+		src/cache/articles_cache.hpp
+		src/cache/articles_cache.cpp
+        src/cache/comments_cache.cpp
+        src/cache/comments_cache.hpp
 		src/handlers/profiles/profiles.cpp
 		src/handlers/profiles/profiles.hpp
 		src/handlers/users/users.cpp
@@ -31,14 +33,14 @@ add_library(${PROJECT_NAME}_objs OBJECT
 		src/handlers/profiles/profiles_follow.hpp
 		src/handlers/profiles/profiles_follow_delete.cpp
 		src/handlers/profiles/profiles_follow_delete.hpp                
-                src/handlers/articles/articles_slug_delete.cpp
-                src/handlers/articles/articles_slug_delete.hpp
-                src/handlers/articles/articles_slug_get.cpp
-                src/handlers/articles/articles_slug_get.hpp
-                src/handlers/articles/articles_slug_put.cpp
-                src/handlers/articles/articles_slug_put.hpp
-                src/handlers/articles/articles_get.cpp
-                src/handlers/articles/articles_get.hpp
+		src/handlers/articles/articles_slug_delete.cpp
+		src/handlers/articles/articles_slug_delete.hpp
+		src/handlers/articles/articles_slug_get.cpp
+		src/handlers/articles/articles_slug_get.hpp
+		src/handlers/articles/articles_slug_put.cpp
+		src/handlers/articles/articles_slug_put.hpp
+		src/handlers/articles/articles_get.cpp
+		src/handlers/articles/articles_get.hpp
 		src/handlers/articles/articles_post.cpp
 		src/handlers/articles/articles_post.hpp
 		src/handlers/articles/feed_articles.hpp

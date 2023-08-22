@@ -7,12 +7,12 @@
 #include <userver/storages/postgres/io/io_fwd.hpp>
 #include <userver/storages/postgres/io/pg_types.hpp>
 #include <userver/formats/json/value_builder.hpp>
-#include "../db/types.hpp"
+#include "db/types.hpp"
 
 namespace real_medium::models {
 
 using UserId=std::string;
-struct User {
+struct User final{
   UserId id;
   std::string username;
   std::string email;

@@ -2,9 +2,10 @@
 #include "comments_get.hpp"
 #include "db/sql.hpp"
 #include "dto/comment.hpp"
-#include "models/comment.hpp"
-
+#include "dto/profile.hpp"
+#include <userver/formats/serialize/common_containers.hpp>
 #include "utils/make_error.hpp"
+
 
 namespace real_medium::handlers::comments::get {
 
@@ -14,7 +15,9 @@ Handler::Handler(const userver::components::ComponentConfig& config,
       pg_cluster_(component_context
                       .FindComponent<userver::components::Postgres>(
                           "realmedium-database")
-                      .GetCluster()) {}
+                      .GetCluster()),
+      cache_(component_context.FindComponent<
+             real_medium::cache::comments_cache::CommentsCache>()){}
 
 userver::formats::json::Value Handler::HandleRequestJsonThrow(
     const userver::server::http::HttpRequest& request,
@@ -22,32 +25,28 @@ userver::formats::json::Value Handler::HandleRequestJsonThrow(
     userver::server::request::RequestContext& context) const {
   auto user_id = context.GetData<std::optional<std::string>>("id");
   const auto& slug = request.GetPathArg("slug");
-
+  const auto data = cache_.Get();
+  userver::formats::json::ValueBuilder result = userver::formats::json::MakeObject();
+  
   const auto res_find_article = pg_cluster_->Execute(
-      userver::storages::postgres::ClusterHostType::kMaster,
+      userver::storages::postgres::ClusterHostType::kSlave,
       sql::kFindIdArticleBySlug.data(), slug);
 
   if (res_find_article.IsEmpty()) {
     auto& response = request.GetHttpResponse();
     response.SetStatus(userver::server::http::HttpStatus::kNotFound);
-    return utils::error::MakeError("article_id", "Ivanlid article_id.");
+    return utils::error::MakeError("article_id", "Invalid article_id.");
   }
 
   const auto article_id = res_find_article.AsSingleRow<std::string>();
+  const auto res_find_comments = data->findComments(article_id);
 
-  const auto res_find_comments =
-      pg_cluster_->Execute(userver::storages::postgres::ClusterHostType::kSlave,
-                           sql::kFindCommentsByArticleId.data(), article_id, user_id);
-
-
-  const auto comments = res_find_comments.AsContainer<std::vector<real_medium::models::Comment>>(
-          userver::storages::postgres::kRowTag);
-          
   userver::formats::json::ValueBuilder builder;
-  builder["comments"] = comments;
-  // for (auto comment : comments) {builder["comments"].PushBack(comment);}
+  builder["comments"] = userver::formats::common::Type::kArray;
+  for (auto& comment : res_find_comments)
+    builder["comments"].PushBack(dto::Comment::Parse(*comment, user_id));
 
   return builder.ExtractValue();
 }
 
-}  // namespace real_medium::handlers::comments::get
+}  // namespace real_medium::hancleardlers::comments::get

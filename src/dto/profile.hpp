@@ -11,7 +11,7 @@ struct Profile {
   std::string username;
   std::optional<std::string> bio;
   std::optional<std::string> image;
-  bool isFollowing;
+  bool isFollowing{false};
 };
 
 userver::formats::json::Value Serialize(

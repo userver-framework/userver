@@ -1,4 +1,3 @@
-
 #pragma once
 
 #include <fmt/format.h>
@@ -16,9 +15,8 @@
 #include <userver/components/component_context.hpp>
 
 #include <userver/formats/json/value.hpp>
-
-
 #include <userver/formats/serialize/common_containers.hpp>
+#include "cache/comments_cache.hpp"
 
 namespace real_medium::handlers::comments::get {
 
@@ -36,6 +34,7 @@ class Handler final : public userver::server::handlers::HttpHandlerJsonBase {
 
  private:
   userver::storages::postgres::ClusterPtr pg_cluster_;
+  const real_medium::cache::comments_cache::CommentsCache &cache_;
 };
 
 }  // namespace real_medium::handlers::comments::get

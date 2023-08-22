@@ -6,25 +6,29 @@
 #include <userver/formats/json.hpp>
 #include <userver/formats/parse/common_containers.hpp>
 
+#include "profile.hpp"
+#include "models/comment.hpp"
+
 namespace real_medium::dto {
 
-struct CommentDTO {
+struct Comment final{
+  static Comment Parse(const real_medium::models::CachedComment& cachedComment, std::optional<std::string> userId);
   std::string id;
-  std::string createdAtl;
-  std::string updatedAt;
+  userver::storages::postgres::TimePointTz createdAt;
+  userver::storages::postgres::TimePointTz updatedAt;
   std::string body;
-  // real_medium::models::Author author; author это тот же профиль
-  std::string Author;
+  Profile author;
 };
 
-struct AddCommentDTO {
+struct AddComment {
   std::string body;
 };
 
-CommentDTO Parse(const userver::formats::json::Value& json,
-                 userver::formats::parse::To<CommentDTO>);
+AddComment Parse(const userver::formats::json::Value& json,
+                    userver::formats::parse::To<AddComment>);
 
-AddCommentDTO Parse(const userver::formats::json::Value& json,
-                    userver::formats::parse::To<AddCommentDTO>);
+userver::formats::json::Value Serialize(
+    const Comment& comment,
+    userver::formats::serialize::To<userver::formats::json::Value>);
 
 }  // namespace real_medium::dto

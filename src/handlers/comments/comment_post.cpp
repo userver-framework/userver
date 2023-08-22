@@ -24,7 +24,7 @@ userver::formats::json::Value Handler::HandleRequestJsonThrow(
 
   const auto comment_json =
       userver::formats::json::FromString(request.RequestBody())["comment"]
-          .As<dto::AddCommentDTO>();
+          .As<dto::AddComment>();
 
   const auto& comment_body = comment_json.body;
   const auto& slug = request.GetPathArg("slug");
