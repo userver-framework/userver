@@ -24,6 +24,25 @@ void RpcFinishedEvent::Notify(bool ok) noexcept {
   event_.Send();
 }
 
+ugrpc::impl::AsyncMethodInvocation::WaitStatus Wait(
+    ugrpc::impl::AsyncMethodInvocation& async) {
+  using WaitStatus = ugrpc::impl::AsyncMethodInvocation::WaitStatus;
+
+  const engine::TaskCancellationBlocker blocker;
+  const auto status = async.Wait();
+
+  switch (status) {
+    case WaitStatus::kOk:
+    case WaitStatus::kError:
+      return status;
+    case WaitStatus::kCancelled:
+      UASSERT(false);
+  }
+
+  UASSERT(false);
+  return status;
+}
+
 }  // namespace ugrpc::server::impl
 
 USERVER_NAMESPACE_END

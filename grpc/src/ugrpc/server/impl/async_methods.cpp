@@ -11,14 +11,6 @@ void ReportErrorWhileCancelling(std::string_view call_name) noexcept {
   LOG_ERROR() << "Connection error while cancelling call '" << call_name << "'";
 }
 
-impl::AsyncMethodInvocation::WaitStatus Wait(
-    impl::AsyncMethodInvocation& async) {
-  engine::TaskCancellationBlocker blocker;
-  const auto status = async.Wait();
-  UASSERT(status != impl::AsyncMethodInvocation::WaitStatus::kCancelled);
-  return status;
-}
-
 void ThrowOnError(impl::AsyncMethodInvocation::WaitStatus status,
                   std::string_view call_name, std::string_view stage_name) {
   switch (status) {

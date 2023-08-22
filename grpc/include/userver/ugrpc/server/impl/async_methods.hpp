@@ -8,8 +8,8 @@
 #include <grpcpp/impl/codegen/async_unary_call.h>
 #include <grpcpp/impl/codegen/status.h>
 
-#include <userver/ugrpc/impl/async_method_invocation.hpp>
 #include <userver/ugrpc/server/exceptions.hpp>
+#include <userver/ugrpc/server/impl/async_method_invocation.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -35,9 +35,6 @@ using RawReaderWriter = grpc::ServerAsyncReaderWriter<Response, Request>;
 using ugrpc::impl::AsyncMethodInvocation;
 
 void ReportErrorWhileCancelling(std::string_view call_name) noexcept;
-
-impl::AsyncMethodInvocation::WaitStatus Wait(
-    impl::AsyncMethodInvocation& async);
 
 void ThrowOnError(impl::AsyncMethodInvocation::WaitStatus status,
                   std::string_view call_name, std::string_view stage_name);
