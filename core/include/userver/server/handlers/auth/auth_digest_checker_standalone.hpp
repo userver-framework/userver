@@ -9,6 +9,7 @@
 #include <string_view>
 
 #include <userver/concurrent/mpsc_queue.hpp>
+#include <userver/concurrent/variable.hpp>
 #include <userver/crypto/hash.hpp>
 #include <userver/rcu/rcu_map.hpp>
 #include <userver/server/handlers/auth/auth_digest_settings.hpp>
@@ -44,7 +45,7 @@ class AuthCheckerDigestBaseStandalone : public AuthCheckerDigestBase {
       const std::string& username) const = 0;
 
  private:
-  mutable rcu::RcuMap<Username, NonceInfo> user_data_;
+  mutable rcu::RcuMap<Username, concurrent::Variable<NonceInfo>> user_data_;
 };
 
 }  // namespace server::handlers::auth

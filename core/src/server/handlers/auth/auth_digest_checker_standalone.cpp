@@ -27,9 +27,10 @@ std::optional<UserData> AuthCheckerDigestBaseStandalone::GetUserData(
   auto nonce_info = user_data_.Get(username);
   if (nonce_info) {
     // If nonce_info is found by username, we return UserData
-    UserData user_data{ha1.value(), nonce_info->nonce,
-                       nonce_info->nonce_creation_time,
-                       nonce_info->nonce_count};
+    auto nonce_info_ptr = nonce_info->Lock();
+    UserData user_data{ha1.value(), nonce_info_ptr->nonce,
+                       nonce_info_ptr->nonce_creation_time,
+                       nonce_info_ptr->nonce_count};
     return user_data;
   }
 
@@ -47,9 +48,19 @@ std::optional<UserData> AuthCheckerDigestBaseStandalone::GetUserData(
 void AuthCheckerDigestBaseStandalone::SetUserData(
     const std::string& username, const Nonce& nonce, std::int32_t nonce_count,
     TimePoint nonce_creation_time) const {
-  auto nonce_info = std::make_shared<NonceInfo>(
-      std::move(nonce), std::move(nonce_creation_time), std::move(nonce_count));
-  user_data_.InsertOrAssign(username, nonce_info);
+  auto nonce_info = user_data_.Get(username);
+  if (nonce_info) {
+    // If the nonce_info exists, we update it
+    auto user_data_ptr = user_data_[username]->Lock();
+    NonceInfo nonce_info_temp{nonce, nonce_creation_time, nonce_count};
+    *user_data_ptr = nonce_info_temp;
+  } else {
+    // Else we create nonce_info and put it to user_data_
+    auto nonce_info_new = std::make_shared<concurrent::Variable<NonceInfo>>(
+        std::move(nonce), std::move(nonce_creation_time),
+        std::move(nonce_count));
+    user_data_.InsertOrAssign(username, nonce_info_new);
+  }
 }
 
 }  // namespace server::handlers::auth
