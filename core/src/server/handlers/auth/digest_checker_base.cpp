@@ -1,4 +1,4 @@
-#include <userver/server/handlers/auth/auth_digest_checker_base.hpp>
+#include <userver/server/handlers/auth/digest_checker_base.hpp>
 
 #include <chrono>
 #include <memory>
@@ -57,8 +57,8 @@ std::string DigestHasher::GetHash(std::string_view data) const {
   return hash_algorithm_(data, crypto::hash::OutputEncoding::kHex);
 }
 
-AuthCheckerDigestBase::AuthCheckerDigestBase(
-    const AuthDigestSettings& digest_settings, std::string&& realm)
+DigestCheckerBase::DigestCheckerBase(const AuthDigestSettings& digest_settings,
+                                     std::string&& realm)
     : qops_(fmt::format("{}", fmt::join(digest_settings.qops, ","))),
       realm_(std::move(realm)),
       domains_(fmt::format("{}", fmt::join(digest_settings.domains, ", "))),
@@ -79,8 +79,8 @@ AuthCheckerDigestBase::AuthCheckerDigestBase(
                                ? http::HttpStatus::kProxyAuthenticationRequired
                                : http::HttpStatus::kUnauthorized) {}
 
-AuthCheckResult AuthCheckerDigestBase::CheckAuth(
-    const http::HttpRequest& request, request::RequestContext&) const {
+AuthCheckResult DigestCheckerBase::CheckAuth(const http::HttpRequest& request,
+                                             request::RequestContext&) const {
   // RFC 2617, 3
   // Digest Access Authentication.
   auto& response = request.GetHttpResponse();
@@ -141,7 +141,7 @@ AuthCheckResult AuthCheckerDigestBase::CheckAuth(
   return {};
 };
 
-ValidateResult AuthCheckerDigestBase::ValidateUserData(
+ValidateResult DigestCheckerBase::ValidateUserData(
     const DigestContextFromClient& client_context,
     const UserData& user_data) const {
   bool are_nonces_equal = crypto::algorithm::AreStringsEqualConstTime(
@@ -178,7 +178,7 @@ ValidateResult AuthCheckerDigestBase::ValidateUserData(
   return ValidateResult::kOk;
 }
 
-std::string AuthCheckerDigestBase::ConstructAuthInfoHeader(
+std::string DigestCheckerBase::ConstructAuthInfoHeader(
     const DigestContextFromClient& client_context) const {
   auto next_nonce = digest_hasher_.Nonce();
 
@@ -187,7 +187,7 @@ std::string AuthCheckerDigestBase::ConstructAuthInfoHeader(
   return fmt::format("{}=\"{}\"", directives::kNextNonce, next_nonce);
 }
 
-AuthCheckResult AuthCheckerDigestBase::StartNewAuthSession(
+AuthCheckResult DigestCheckerBase::StartNewAuthSession(
     const std::string& username, const std::string& nonce_from_client,
     bool stale, http::HttpResponse& response) const {
   SetUserData(username, nonce_from_client, 0, utils::datetime::Now());
@@ -199,7 +199,7 @@ AuthCheckResult AuthCheckerDigestBase::StartNewAuthSession(
 }
 
 // clang-format off
-std::string AuthCheckerDigestBase::ConstructResponseDirectives(
+std::string DigestCheckerBase::ConstructResponseDirectives(
     std::string_view nonce, bool stale) const {
   // RFC 2617, 3.2.1
   // Server response directives.
@@ -214,7 +214,7 @@ std::string AuthCheckerDigestBase::ConstructResponseDirectives(
 }
 // clang-format on
 
-std::string AuthCheckerDigestBase::CalculateDigest(
+std::string DigestCheckerBase::CalculateDigest(
     const UserData::HA1& ha1_non_loggable, http::HttpMethod request_method,
     const DigestContextFromClient& client_context) const {
   // RFC 2617, 3.2.2.1 Request-Digest

@@ -75,20 +75,20 @@ enum class ValidateResult {
 
 /// @brief Base class for digest authentication checkers Implements a
 /// digest-authentication logic.
-class AuthCheckerDigestBase : public AuthCheckerBase {
+class DigestCheckerBase : public AuthCheckerBase {
  public:
   /// Assepts digest-authentication settings from
   /// @ref server::handlers::auth::DigestCheckerSettingsComponent and "realm"
   /// from handler config in static_config.yaml.
-  AuthCheckerDigestBase(const AuthDigestSettings& digest_settings,
-                        std::string&& realm);
+  DigestCheckerBase(const AuthDigestSettings& digest_settings,
+                    std::string&& realm);
 
-  AuthCheckerDigestBase(const AuthCheckerDigestBase&) = delete;
-  AuthCheckerDigestBase(AuthCheckerDigestBase&&) = delete;
-  AuthCheckerDigestBase& operator=(const AuthCheckerDigestBase&) = delete;
-  AuthCheckerDigestBase& operator=(AuthCheckerDigestBase&&) = delete;
+  DigestCheckerBase(const DigestCheckerBase&) = delete;
+  DigestCheckerBase(DigestCheckerBase&&) = delete;
+  DigestCheckerBase& operator=(const DigestCheckerBase&) = delete;
+  DigestCheckerBase& operator=(DigestCheckerBase&&) = delete;
 
-  ~AuthCheckerDigestBase() override = default;
+  ~DigestCheckerBase() override = default;
 
   /// The main checking function that is called for each request.
   [[nodiscard]] AuthCheckResult CheckAuth(
