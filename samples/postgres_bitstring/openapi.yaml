@@ -1,0 +1,97 @@
+openapi: "3.0.2"
+info:
+    title: PostgreSQL BitString sample API
+    version: "1.0"
+servers:
+    - url: http://localhost:8080/
+components:
+    schemas:
+        CppTypes:
+            type: string
+            enum:
+                - bitset8
+                - bitset32
+                - bitset128
+                - uint8
+                - uint32
+                - flags8
+        DbTypes:
+            type: string
+            enum:
+                - varbit
+                - bit8
+                - bit32
+                - bit128
+paths:
+    /v1/bitstring:
+        post:
+            description: post bitstring
+            parameters:
+              - name: id
+                in: query
+                description: unique id
+                required: true
+                schema:
+                    type: integer
+                    format: int64
+              - name: value
+                in: query
+                description: bitstring (lsb to msb order)
+                required: true
+                schema:
+                    type: string
+                example: 01001111
+              - name: cpp_type
+                in: query
+                description: name of type for bitstring representation in cpp code
+                required: true
+                schema:
+                    $ref: '#/components/schemas/CppTypes'
+              - name: db_type
+                in: query
+                description: name of type for bitstring storage in PostgreSQL
+                required: true
+                schema:
+                    $ref: '#/components/schemas/DbTypes'
+            responses:
+                '200':
+                    description: OK
+                    content:
+                        application/text:
+                            schema:
+                                type: string
+                '400':
+                    description: invalid input parameters
+        get:
+            description: get bitstring
+            parameters:
+              - name: id
+                in: query
+                description: unique id
+                required: true
+                schema:
+                    type: integer
+                    format: int64
+              - name: cpp_type
+                in: query
+                description: name of type for bitstring representation in cpp code
+                required: true
+                schema:
+                    $ref: '#/components/schemas/CppTypes'
+              - name: db_type
+                in: query
+                description: name of type for bitstring storage in PostgreSQL
+                required: true
+                schema:
+                    $ref: '#/components/schemas/DbTypes'
+            responses:
+                '200':
+                    description: OK
+                    content:
+                        application/text:
+                            schema:
+                                type: string
+                '400':
+                    description: invalid input parameters
+                '404':
+                    description: Not found

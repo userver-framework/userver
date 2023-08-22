@@ -86,6 +86,9 @@ if (USERVER_FEATURE_POSTGRESQL)
 
   add_subdirectory(postgres-support)
   add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-postgres-support)
+
+  add_subdirectory(postgres_bitstring)
+  add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-postgres_bitstring)
 endif()
 
 add_subdirectory(production_service)
