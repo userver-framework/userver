@@ -236,7 +236,7 @@ SELECT a.article_id AS articleId,
               FROM real_medium.followers fl
               WHERE fl.followed_user_id = a.user_id
        ) AS author_followed_by_user_ids,
-       ROW(u.user_id, u.username, u.email, u.bio, u.image, u.password_hash) AS authorInfo
+       ROW(u.user_id, u.username, u.email, u.bio, u.image, u.password_hash)::real_medium.user AS author_info
 FROM real_medium.articles a
 JOIN real_medium.users u ON a.user_id = u.user_id
 )~"

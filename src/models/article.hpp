@@ -31,7 +31,7 @@ struct FullArticleInfo{
     auto Introspect() {
       return std::tie(articleId, title, slug, description, body, tags,
                       createdAt,updatedAt,articleFavoritedByUserIds,
-                      articleFavoritedByUsernames,authorFollowedByUsersIds);
+                      articleFavoritedByUsernames,authorFollowedByUsersIds,authorInfo);
     }
 };
 
