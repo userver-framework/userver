@@ -1,7 +1,7 @@
 #pragma once
 
 /// @file userver/server/handlers/auth/auth_digest_checker_base.hpp
-/// @brief @copybrief server::handlers::auth::AuthCheckerDigestBase
+/// @brief @copybrief server::handlers::auth::DigestCheckerBase
 
 #include "auth_checker_base.hpp"
 
@@ -61,7 +61,7 @@ struct UserData final {
   std::int32_t nonce_count{};
 };
 
-/// @brief Base class for digest authentication checkers Implements a
+/// @brief Base class for digest authentication checkers. Implements a
 /// digest-authentication logic.
 class DigestCheckerBase : public AuthCheckerBase {
  public:
@@ -99,7 +99,7 @@ class DigestCheckerBase : public AuthCheckerBase {
                            const std::string& nonce, std::int32_t nonce_count,
                            TimePoint nonce_creation_time) const = 0;
 
-  /// Pushes "nonce" to "Nonce Pool" not tied to username.
+  /// Pushes "nonce" not tied to username to "Nonce Pool".
   virtual void PushUnnamedNonce(const std::string& nonce,
                                 std::chrono::milliseconds nonce_ttl) const = 0;
 
