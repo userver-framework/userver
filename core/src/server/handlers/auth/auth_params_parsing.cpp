@@ -14,12 +14,12 @@ USERVER_NAMESPACE_BEGIN
 namespace server::handlers::auth {
 
 namespace {
-constexpr std::array<std::string_view, 5> kMandatoryDirectives = {
+inline const std::array<std::string, 5> kMandatoryDirectives = {
     directives::kRealm, directives::kNonce, directives::kResponse,
     directives::kUri, directives::kUsername};
 }  // namespace
 
-void DigestParsing::ParseAuthInfo(std::string_view header_value) {
+void DigestParser::ParseAuthInfo(std::string_view header_value) {
   enum class State {
     kStateSpace,
     kStateToken,
@@ -120,7 +120,7 @@ void DigestParsing::ParseAuthInfo(std::string_view header_value) {
     utils::LogErrorAndThrow("Invalid authentication information");
 }
 
-DigestContextFromClient DigestParsing::GetClientContext() {
+DigestContextFromClient DigestParser::GetClientContext() {
   // Only checking mandatory directives 
   // because according to RFC 2617,
   // "Any unrecognized directive MUST be ignored"

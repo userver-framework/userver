@@ -10,17 +10,17 @@ namespace server::handlers::auth {
 DigestContextFromClient Parse(
     std::unordered_map<std::string, std::string> directive_mapping) {
   return DigestContextFromClient{
-      directive_mapping[std::string(directives::kUsername)],
-      directive_mapping[std::string(directives::kRealm)],
-      directive_mapping[std::string(directives::kNonce)],
-      directive_mapping[std::string(directives::kUri)],
-      directive_mapping[std::string(directives::kResponse)],
-      directive_mapping[std::string(directives::kAlgorithm)],
-      directive_mapping[std::string(directives::kCnonce)],
-      directive_mapping[std::string(directives::kOpaque)],
-      directive_mapping[std::string(directives::kQop)],
-      directive_mapping[std::string(directives::kNonceCount)],
-      directive_mapping[std::string(directives::kAuthParam)],
+      directive_mapping[directives::kUsername],
+      directive_mapping[directives::kRealm],
+      directive_mapping[directives::kNonce],
+      directive_mapping[directives::kUri],
+      directive_mapping[directives::kResponse],
+      directive_mapping[directives::kAlgorithm],
+      directive_mapping[directives::kCnonce],
+      directive_mapping[directives::kOpaque],
+      directive_mapping[directives::kQop],
+      directive_mapping[directives::kNonceCount],
+      directive_mapping[directives::kAuthParam],
   };
 }
 
