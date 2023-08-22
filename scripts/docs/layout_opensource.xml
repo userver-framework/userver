@@ -108,11 +108,11 @@
         <tab type="user" url="@ref md_en_2userver_2development_2releases" title="Issues, feature and pull requests, releases"/>
         <tab type="user" url="@ref md_en_2userver_2driver__guide" title="Driver Writing Guide"/>
         <tab type="user" url="@ref md_en_2userver_2publications" title="Publications and Videos"/>
-        <tab type="user" url="@ref md__2home_2fleshr_2userver_2CONTRIBUTING" title="Notice to external contributors"/>
-        <tab type="user" url="@ref md__2home_2fleshr_2userver_2SECURITY" title="Security Policy"/>
+        <tab type="user" url="@ref md__2data_2code_2service__template_2third__party_2userver_2CONTRIBUTING" title="Notice to external contributors"/>
+        <tab type="user" url="@ref md__2data_2code_2service__template_2third__party_2userver_2SECURITY" title="Security Policy"/>
         <tab type="user" url="@ref md_en_2userver_2security__changelog" title="Security Changelog"/>
         <tab type="user" url="http://www.apache.org/licenses/LICENSE-2.0" title="Distributed under Apache-2.0 License"/>
-        <tab type="user" url="@ref md__2home_2fleshr_2userver_2THIRD__PARTY" title="Third Party Code Licenses"/>
+        <tab type="user" url="@ref md__2data_2code_2service__template_2third__party_2userver_2THIRD__PARTY" title="Third Party Code Licenses"/>
       </tab>
     </tab>
     <tab type="modules" visible="yes" title="API Groups" intro=""/>

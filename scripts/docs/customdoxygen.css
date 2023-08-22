@@ -235,9 +235,6 @@ hr {
   text-decoration: none;
 }
 
-.gh-logo-landing {
-  mask-image: url(github_logo.svg);
-}
 
 html.dark-mode .gh-logo-landing {
   filter: invert(1);
@@ -666,10 +663,19 @@ doxygen-awesome-dark-mode-toggle {
   .sm.sm-dox a:hover {
     font-size: 18px !important;
   }
-
+  .sm.sm-dox ul { 
+    border-radius: 8px !important;
+  }
   .sm.sm-dox > li {
-    border-radius: 10px;
     padding: 5px 70px; /* TODO: adaptive width */
+  }
+
+  .sm.sm-dox > li:first-child {
+    border-radius: 8px 8px 0 0;
+  }
+
+  .sm.sm-dox > li:last-child {
+    border-radius:  0 0 8px 8px;
   }
 
   td#projectalign {
@@ -777,6 +783,21 @@ doxygen-awesome-dark-mode-toggle {
   flex-wrap: wrap;
 }
 
+.landing-fragment {
+  width: fit-content;
+}
+
+.landing-text .doxygen-awesome-fragment-wrapper {
+  display: flex;
+  justify-content: center;
+}
+
+div.fragment.landing-fragment .line,
+div.fragment.landing-fragment span {
+  font-size: 18px !important;
+  line-height: 27px;
+}
+
 .landing-intro-left,
 .landing-intro-right {
   font-size: 1.1em;
@@ -794,7 +815,6 @@ doxygen-awesome-dark-mode-toggle {
 .landing-intro-center {
   font-size: 1.1em;
   line-height: 1.5;
-  margin-top: 30px;
   margin-bottom: 30px;
   margin-left: auto;
   margin-right: auto;
@@ -845,9 +865,20 @@ html.dark-mode .bottom-nav .button {
 }
 
 html.dark-mode .btn-title {
-  color: #d2dbde !important;
+  color: #d2dbde;
 }
 
+.bottom-nav .button:hover {
+  background: #f9e2ca;
+}
+html.dark-mode .bottom-nav .button:hover {
+  background: #7A6DA0;
+  border-color: #7A6DA0;
+}
+
+html.dark-mode .button:hover .btn-sub {
+  color: #d2dbde !important;
+}
 .bottom-nav .button.prev {
   margin-right: 10px;
 }
@@ -882,10 +913,6 @@ html.dark-mode  .btn-title::before {
 
 .bottom-nav .button.next .btn-title::after {
   transform: rotate(180deg);
-}
-
-.bottom-nav .button:hover {
-  background: #f9e2ca;
 }
 
 .btn-sub {
@@ -1052,3 +1079,7 @@ pre {
       right: 7px;
     }
   }
+
+#nav-sync {
+  display: none;
+}
