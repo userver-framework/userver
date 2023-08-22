@@ -10,7 +10,7 @@ namespace server::handlers::auth {
 DigestContextFromClient Parse(
     std::unordered_map<std::string, std::string> directive_mapping) {
   return DigestContextFromClient{
-      directive_mapping[std::string(std::string(directives::kUsername.data()))],
+      directive_mapping[std::string(directives::kUsername.data())],
       directive_mapping[std::string(directives::kRealm.data())],
       directive_mapping[std::string(directives::kNonce.data())],
       directive_mapping[std::string(directives::kUri.data())],
