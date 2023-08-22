@@ -25,15 +25,19 @@ class StandAloneChecker : public AuthCheckerDigestBaseStandalone {
     return HA1{"939e7578ed9e3c518a452acee763bce9"};
   }
 
-  void PushUnnamedNonce(const Nonce&, std::chrono::milliseconds) const override {};
+  void PushUnnamedNonce(const Nonce& nonce) const override {
+    unnamed_nonce_storage[nonce] = userver::utils::datetime::Now() + nonce_ttl_;
+  };
 
   std::optional<TimePoint> GetUnnamedNonceCreationTime(const Nonce& nonce) const override {
-    if (unnamed_nonce_storage_.count(nonce)) return utils::datetime::Now();
+    if (unnamed_nonce_storage_.count(nonce)) return unnamed_nonce_storage_[nonce];
     return std::nullopt;
   };
 
  private:
-  std::set<std::string> unnamed_nonce_storage_{"existing-nonce"};
+  mutable std::unordered_map<Nonce, TimePoint> 
+    unnamed_nonce_storage_;
+  //std::set<std::string> unnamed_nonce_storage_{"existing-nonce"};
 };
 
 class StandAloneCheckerTest : public ::testing::Test {
@@ -47,18 +51,19 @@ class StandAloneCheckerTest : public ::testing::Test {
           false,
           false,
           std::chrono::milliseconds{1000}}),
-      checker_(digest_settings_, "registred@userver.com"),
+      checker_(digest_settings_, "testrealm@host.com"),
       client_context_(
         DigestContextFromClient{
           "Mufasa",
           "testrealm@host.com",
-          "3f93a38e2fdb46e36dc74e0e4b221ca4",
+          "dcd98b7102dd2f0e8b11d0f600bfb0c093",
           "/dir/index.html",
-          "response",
+          "6629fae49393a05397450978507c4ef1",
           "MD5",
-          "bea007ff2c14c8fbec8eeaafab264f16",
-          "00000001",
+          "0a4f113b",
+          "5ccc069c403ebaf9f0171e9517f40e41",
           "auth",
+          "00000001",
           "auth-param"}) {}
 
  protected:
@@ -69,9 +74,14 @@ class StandAloneCheckerTest : public ::testing::Test {
 };
 
 TEST_F(StandAloneCheckerTest, DirectiveValidation) {
-  client_context_.nonce = "no-existing-nonce";
-  EXPECT_EQ(checker_.ValidateClientData(client_context_), ValidateClientDataResult::kWrongUserData);
- 
+  // пришел пустой запрос, ответили 401, кинули в пул новый nonce 
+  checker_.PushUnnamedNonce("939e7578ed9e3c518a452acee763bce9")
+  // ждем ответа 
+  client_context_.nonce = "939e7578ed9e3c518a452acee763bce9";
+  EXPECT_EQ(checker_.ValidateUserData(client_context_), ValidateResult::kOk);
+  client_context_.nonce = "just wrong";
+  EXPECT_EQ(checker_.ValidateUserData(client_context_), ValidateResult::kWrongUserData);
+  
   // utils::datetime::MockNowSet(utils::datetime::Now());
   // utils::datetime::MockSleep(9001);  // utils::datetime::MockNowSet(utils::datetime::Now());
   // utils::datetime::MockSleep(9001);
@@ -84,7 +94,7 @@ TEST_F(StandAloneCheckerTest, DirectiveValidation) {
   // utils::datetime::MockNowSet(Stringtime("2000-01-02T00:00:00+0000"));
   // EXPECT_EQ(timer.NextLoop(), 24h - 9001s);
   // client_context_.nonce = "existing-nonce";
-  // EXPECT_EQ(checker_.ValidateClientData(client_context_), ValidateClientDataResult::kWrongUserData);
+  // EXPECT_EQ(checker_.ValidateUserData(client_context_), ValidateUserDataResult::kWrongUserData);
 }
 
 }  // namespace server::handlers::auth::test
