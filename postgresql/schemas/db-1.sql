@@ -401,10 +401,9 @@ WHERE(_tag IS NULL
                                         INNER JOIN real_medium.favorites USING(user_id)
                                 WHERE
                                         username = _favorited))
-        ORDER BY
-                created_at DESC
         LIMIT _limit OFFSET _offset;
 END;
 $$
 LANGUAGE plpgsql;
 
+CREATE INDEX IF NOT EXISTS idx_createdat ON real_medium.articles(created_at);

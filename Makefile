@@ -67,6 +67,7 @@ install: build-release
 
 # Hide target, use only in docker environment
 --debug-start-in-docker: install
+	@ulimit -n 100000
 	@sed -i 's/config_vars.yaml/config_vars.docker.yaml/g' /home/user/.local/etc/realmedium/static_config.yaml
 	@psql 'postgresql://user:password@service-postgres:5432/realmedium_db-1' -f ./postgresql/schemas/db-1.sql
 	@/home/user/.local/bin/realmedium \

@@ -7,15 +7,17 @@ import numpy as np
 from functools import partial
 from itertools import chain
 
-COUNT_OF_USERS = 100000
-COUNT_OF_ARTICLES = 10000
-COUNT_OF_COMMENTS = 1000
-MAX_FOLLOWERS = 400 # Максимум феворитов у каждой статьи
-MAX_FAVORITES = 400 # Максимум подписчиков у каждого по-отдельности
+COUNT_OF_USERS = 30000
+COUNT_OF_ARTICLES = 30000
+COUNT_OF_COMMENTS = 15000
+MAX_FOLLOWERS = 200 # Максимум Ффоловерок у каждого пользователя
+MAX_FAVORITES = 200 # Максимум лайков у каждой статьи по отдельности
 NAME_SCHEMA = "real_medium"
 
 TITLES_DEFAULT = ["Monkey eat banan", "123456", "title", "article", "123"]
 USERS_DEFAULT = ["vasya", "jake", "123", "root"]
+
+TAG_LIST = ["c++", "cpp", "python", "ai", "guid", "backend", "frontend", "userver"]
 
 def generate_random_number(min_value, max_value, step):
     num = random.randint(min_value // step, max_value // step) * step
@@ -110,8 +112,19 @@ def getColumn(con, nameTable, nameField):
     
     return list(chain.from_iterable(cur.fetchall()))
 
+def progress_bar(current, total, bar_length=20):
+    fraction = current / total
+
+    arrow = int(fraction * bar_length - 1) * '-' + '>'
+    padding = int(bar_length - len(arrow)) * ' '
+
+    ending = '\n' if current == total else '\r'
+
+    print(f'[{arrow}{padding}] {int(fraction*100)}%', end=ending)
+
+
 def createStrExecuteDelete(nameTable):
-    strExecute = "DELETE FROM " + NAME_SCHEMA + "." + nameTable
+    strExecute = "TRUNCATE " + NAME_SCHEMA + "." + nameTable + " CASCADE"
     return strExecute
 
 def createStrExecuteInsert(nameTable, kwargs):
@@ -123,17 +136,20 @@ def clearDataBase(con):
     
     cur = con.cursor()
 
-    dbList = ["favorites", "article_tag", "followers", "articles", "users", "tag_list"]
-    for nameDB in dbList:
-        cur.execute(createStrExecuteDelete(nameDB))
+    tableList = ["favorites", "article_tag", "followers", "articles", "users", "tag_list"]
+    for nameTable in tableList:
+        cur.execute(createStrExecuteDelete(nameTable))
+
+    print("End")
 
 def fillUsers(con):
-    print("Fill users")
+ 
 
     cur = con.cursor()
    
     emails = genEmailList(COUNT_OF_USERS)
-    usernames = USERS_DEFAULT + genUsername(max(0, COUNT_OF_USERS - len(USERS_DEFAULT))) 
+    lenUsersDefault = len(USERS_DEFAULT)
+    usernames = USERS_DEFAULT + genUsername(max(0, COUNT_OF_USERS - lenUsersDefault)) 
     imageList = ["https://fikiwiki.com/uploads/posts/2022-02/1644991237_23-fikiwiki-com-p-kartinki-krasivikh-koshechek-31.jpg",
                  "https://webpulse.imgsmail.ru/imgpreview?key=pulse_cabinet-image-c52e6c20-071b-46fe-b0c0-cbad32ffb447&mb=webpulse",
                  "https://vplate.ru/images/article/orig/2019/04/belye-koshki-s-golubymi-glazami-harakterna-li-dlya-nih-gluhota-i-kakimi-oni-byvayut-29.jpg",
@@ -141,9 +157,13 @@ def fillUsers(con):
                  "https://proprikol.ru/wp-content/uploads/2020/11/kartinki-paczanov-43.jpg"]
     
     for i in range(COUNT_OF_USERS):
+        progress_bar(i+1, COUNT_OF_USERS)
         randPassHash = "".join(random.choices(list(string.ascii_letters), k = 255))
         randBio = genText(15, 0)
         randImage = random.choice(imageList)
+
+        if(i < lenUsersDefault):
+            emails[i] = usernames[i] + "@yandex.ru"
 
         dictOfExecute = {"email":emails[i],
                          "username":usernames[i],
@@ -159,7 +179,6 @@ def fillUsers(con):
 
 
 def fillArticles(con):
-    print("Fill articles")
     
     cur = con.cursor()
 
@@ -173,10 +192,12 @@ def fillArticles(con):
     userIDList = getColumn(con, "users", "user_id")
 
     for i in range(COUNT_OF_ARTICLES):
+        progress_bar(i+1, COUNT_OF_ARTICLES)
+
         title = titles[i]
         slug = title.replace('.', "").replace(' ', '-').lower()
         slug += "_" + str(i)
-        body = genText(60, 0)
+        body = genText(random.randint(100, 400), 0)
         description = genText(20, 0)
         favorites_count = random.randint(0, COUNT_OF_USERS)
         userID = random.choice(userIDList)
@@ -193,57 +214,80 @@ def fillArticles(con):
    
         cur.execute(strExecute)
 
-def fillTagList(con):
-    print("Fill tag_list")
+def fillTAG_LIST(con):
     cur = con.cursor()
-    
-    tagList = ["c++", "python", "ai", "guid", "backend", "frontend", "userver"]
 
-    for i in tagList:
-        strExecute = createStrExecuteInsert("tag_list", {"tag_name":i})
+    cntTag = len(TAG_LIST)
+    for i in range(cntTag):
+        progress_bar(i+1, cntTag)
+        strExecute = createStrExecuteInsert("tag_list", {"tag_name":TAG_LIST[i]})
         cur.execute(strExecute)   
 
 def fillArticleTag(con):
-    print("Fill article_tag")
 
     cur = con.cursor()
-    cur.execute(createStrExecuteDelete("article_tag"))
+    
 
     articleIDList = getColumn(con, "articles", "article_id")
     tagIDList = getColumn(con, "tag_list", "tag_id")
 
-
+    cnt = 1
     for articleID in articleIDList:
+        progress_bar(cnt, COUNT_OF_ARTICLES)
+        cnt +=1
         randTagIDList = random.sample(tagIDList, random.randint(1, len(tagIDList)))
         for tagID in randTagIDList:
             strExecute = createStrExecuteInsert("article_tag", {"article_id": articleID, "tag_id":tagID})
-            cur.execute(strExecute)   
+            cur.execute(strExecute) 
+
+
 
 def fillFavorites(con):
-    print("Fill favorites")
-
     cur = con.cursor()
-    cur.execute(createStrExecuteDelete("article_tag"))
 
     articleIDList = getColumn(con, "articles", "article_id")
     userIDList = getColumn(con, "users", "user_id")
 
+    cnt = 1
+    curPos = 0
+
     for userID in userIDList:
-        randArticleIDList = random.sample(articleIDList, random.randint(1, min(MAX_FAVORITES, COUNT_OF_ARTICLES)))
+        progress_bar(cnt, COUNT_OF_ARTICLES)
+        
+        cnt += 1
+        
+        step = random.randint(1, MAX_FAVORITES)
+        
+        if(curPos + step > COUNT_OF_ARTICLES):
+            curPos = 0
+        
+        randArticleIDList = articleIDList[curPos:curPos+step]
+        curPos+=step
+
         for articleID in randArticleIDList:
             strExecute = createStrExecuteInsert("favorites", {"user_id":userID, "article_id": articleID})
             cur.execute(strExecute)    
 
 def fillFollowers(con):
-    print("Fill followers")
 
     cur = con.cursor()
-    cur.execute(createStrExecuteDelete("article_tag"))
-    print(0)
+
     userIDList = getColumn(con, "users", "user_id")
-    print(1)
+
+    cnt = 1
+    curPos =0
     for followed in userIDList:
-        randFollowerList = random.sample(userIDList, random.randint(1, MAX_FOLLOWERS))
+        progress_bar(cnt, COUNT_OF_USERS)
+        cnt += 1
+
+        step = random.randint(1, MAX_FOLLOWERS)
+        
+        if(curPos + step > COUNT_OF_USERS):
+            curPos = 0
+        
+        randFollowerList = userIDList[curPos:curPos+step]
+        curPos += step
+
         for follower in randFollowerList:
             if(followed == follower):
                 continue
@@ -251,10 +295,7 @@ def fillFollowers(con):
             cur.execute(strExecute)    
 
 def fillComments(con):
-    print("Fill comments")
-
     cur = con.cursor()
-    cur.execute(createStrExecuteDelete("article_tag"))
 
     userIDList = getColumn(con, "users", "user_id")
     articleIDList = getColumn(con, "articles", "article_id")
@@ -262,6 +303,7 @@ def fillComments(con):
 
 
     for i in range(COUNT_OF_COMMENTS):
+        progress_bar(i+1, COUNT_OF_COMMENTS)
         userID = random.choice(userIDList)
         articleID = random.choice(articleIDList)
 
@@ -271,8 +313,6 @@ def fillComments(con):
 
         strExecute = createStrExecuteInsert("comments", dictOfExecute)
         cur.execute(strExecute)    
-
-
 
 
 
@@ -291,24 +331,39 @@ def main():
             print(f"\nERROR:\n\t COUNT_OF_USERS < MAX_FOLLOWERS: {COUNT_OF_USERS} < {MAX_FOLLOWERS}")
             exit(1)
         
+        if(len(sys.argv) == 1):
+            sys.argv.append("realmedium_db-1")
+
         conn_string = "host=localhost port=8081 dbname=\'" + sys.argv[1] + "\' user=user password=password"
         print ("Connecting to database\n    ->{}".format(conn_string))
         
         con = psycopg2.connect(conn_string)
-
+        
+        print(f"\nCount of USER: {COUNT_OF_USERS}")
+        print(f"Count of ARTICLE: {COUNT_OF_ARTICLES}")
+        print(f"Max follower: {MAX_FOLLOWERS}")
+        print(f"Max favorite: {MAX_FAVORITES}")
+        print(f"TAG: {TAG_LIST}")
         print('\nDefault titles: ' + str(TITLES_DEFAULT))
-        print('Default users: ' + str(USERS_DEFAULT) + "\n\tpassword=123456")
+        print('Default users: ' + str(USERS_DEFAULT) + "\n\tpassword=123456\temail=name@yandex.ru\n")
 
         clearDataBase(con)      
-        
+        print("Fill tables: ")
+        print("users: ")
         fillUsers(con)
+        print("articles: ")
         fillArticles(con)
-        fillTagList(con)
+        print("tag_list: ")
+        fillTAG_LIST(con)
+        print("article_tag: ")
         fillArticleTag(con)
+        print("favorite: ")
         fillFavorites(con)
+        print("followers: ")
         fillFollowers(con)
+        print("comments: ")
         fillComments(con)
-
+        
         con.commit()
 
         print("Successfully finished")
