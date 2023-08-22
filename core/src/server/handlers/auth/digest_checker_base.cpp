@@ -148,7 +148,7 @@ AuthCheckResult DigestCheckerBase::CheckAuth(const http::HttpRequest& request,
   return {};
 };
 
-ValidateResult DigestCheckerBase::ValidateUserData(
+DigestCheckerBase::ValidateResult DigestCheckerBase::ValidateUserData(
     const DigestContextFromClient& client_context,
     const UserData& user_data) const {
   bool are_nonces_equal = crypto::algorithm::AreStringsEqualConstTime(
@@ -225,7 +225,6 @@ std::string DigestCheckerBase::CalculateDigest(
     const UserData::HA1& ha1_non_loggable, http::HttpMethod request_method,
     const DigestContextFromClient& client_context) const {
   // RFC 2617, 3.2.2.1 Request-Digest
-
   auto ha1 = ha1_non_loggable.GetUnderlying();
   if (is_session_) {
     ha1 = fmt::format("{}:{}:{}", ha1, client_context.nonce,

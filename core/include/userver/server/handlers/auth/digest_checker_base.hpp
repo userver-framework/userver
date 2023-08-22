@@ -61,6 +61,8 @@ struct UserData final {
   std::int32_t nonce_count{};
 };
 
+/// @ingroup userver_base_classes
+///
 /// @brief Base class for digest authentication checkers. Implements a
 /// digest-authentication logic.
 class DigestCheckerBase : public AuthCheckerBase {
@@ -87,7 +89,7 @@ class DigestCheckerBase : public AuthCheckerBase {
   /// information about the user to the RequestContext.
   [[nodiscard]] bool SupportsUserAuth() const noexcept override { return true; }
 
-  /// The implementation must return null if the user is not registered. If the
+  /// The implementation should return std::nullopt if the user is not registered. If the
   /// user is registered, but he is not in storage, the implementation should
   /// create him with invalid data to avoids extra round trips for
   /// authentication challenges.
