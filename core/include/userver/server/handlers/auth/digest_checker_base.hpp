@@ -64,14 +64,6 @@ struct UserData final {
   TimePoint timestamp;
   std::int32_t nonce_count{};
 };
-/// @brief Results of checking the user's "nonce", "nonce_creation_time" and
-/// "nonce_count" directive values.
-enum class ValidateResult {
-  kOk,               ///< OK
-  kWrongUserData,    ///< Returned if "nonce" values is not equal or expired.
-  kDuplicateRequest  ///< Returned if the server "nonce_count" is greater than
-                     ///< or equal to the value in the request.
-};
 
 /// @brief Base class for digest authentication checkers Implements a
 /// digest-authentication logic.
@@ -120,6 +112,7 @@ class DigestCheckerBase : public AuthCheckerBase {
       const std::string& nonce) const = 0;
 
   /// @cond
+  enum class ValidateResult {kOk, kWrongUserData, kDuplicateRequest};
   ValidateResult ValidateUserData(const DigestContextFromClient& client_context,
                                   const UserData& user_data) const;
   /// @endcond
