@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/server/handlers/auth/auth_digest_checker_base.hpp
+/// @brief @copybrief server::handlers::auth::AuthCheckerDigestBase
+
 #include "auth_checker_base.hpp"
 
 #include <chrono>
@@ -23,10 +26,19 @@ namespace server::handlers::auth {
 
 using TimePoint = std::chrono::time_point<std::chrono::system_clock>;
 
+/// Used for data hashing and "nonce" generating.
 class DigestHasher final {
  public:
+  /// Constructor from the hash algorithm name from "crypto" namespace.
+  /// Subsequently, all methods of the class will use this algorithm for
+  /// encryption.
   DigestHasher(const std::string& algorithm);
+
+  /// Returns "nonce" directive value in hexadecimal format.
   std::string Nonce() const;
+
+  /// Returns data encrypted according to the specified in constructor
+  /// algorithm.
   std::string GetHash(std::string_view data) const;
 
  private:
@@ -35,6 +47,7 @@ class DigestHasher final {
   HashAlgorithm hash_algorithm_;
 };
 
+/// Contains information about the user.
 struct UserData final {
   using HA1 = utils::NonLoggable<class HA1Tag, std::string>;
 
@@ -48,40 +61,57 @@ struct UserData final {
   std::int32_t nonce_count{};
 };
 
-enum class ValidateResult { kOk, kWrongUserData, kDuplicateRequest };
-
-class AuthCheckerDigestBase : public AuthCheckerBase {
+/// @brief Base class for digest authentication checkers Implements a
+/// digest-authentication logic.
+class DigestCheckerBase : public AuthCheckerBase {
  public:
-  AuthCheckerDigestBase(const AuthDigestSettings& digest_settings,
-                        std::string&& realm);
+  /// Assepts digest-authentication settings from
+  /// @ref server::handlers::auth::DigestCheckerSettingsComponent and "realm"
+  /// from handler config in static_config.yaml.
+  DigestCheckerBase(const AuthDigestSettings& digest_settings,
+                    std::string&& realm);
 
-  AuthCheckerDigestBase(const AuthCheckerDigestBase&) = delete;
-  AuthCheckerDigestBase(AuthCheckerDigestBase&&) = delete;
-  AuthCheckerDigestBase& operator=(const AuthCheckerDigestBase&) = delete;
-  AuthCheckerDigestBase& operator=(AuthCheckerDigestBase&&) = delete;
+  DigestCheckerBase(const DigestCheckerBase&) = delete;
+  DigestCheckerBase(DigestCheckerBase&&) = delete;
+  DigestCheckerBase& operator=(const DigestCheckerBase&) = delete;
+  DigestCheckerBase& operator=(DigestCheckerBase&&) = delete;
 
-  ~AuthCheckerDigestBase() override = default;
+  ~DigestCheckerBase() override = default;
 
+  /// The main checking function that is called for each request.
   [[nodiscard]] AuthCheckResult CheckAuth(
       const http::HttpRequest& request,
       request::RequestContext& request_context) const final;
 
+  /// Returns "true" if the checker is allowed to write authentication
+  /// information about the user to the RequestContext.
   [[nodiscard]] bool SupportsUserAuth() const noexcept override { return true; }
 
+  /// The implementation must return null if the user is not registered. If the
+  /// user is registered, but he is not in storage, the implementation should
+  /// create him with invalid data to avoids extra round trips for
+  /// authentication challenges.
   virtual std::optional<UserData> GetUserData(
       const std::string& username) const = 0;
+
+  /// Sets user authentication data to storage.
   virtual void SetUserData(const std::string& username,
                            const std::string& nonce, std::int32_t nonce_count,
                            TimePoint nonce_creation_time) const = 0;
 
+  /// Pushes "nonce" to "Nonce Pool" not tied to username.
   virtual void PushUnnamedNonce(const std::string& nonce,
                                 std::chrono::milliseconds nonce_ttl) const = 0;
+
+  /// Returns "nonce" creation time from "Nonce Pool" if exists.
   virtual std::optional<TimePoint> GetUnnamedNonceCreationTime(
       const std::string& nonce) const = 0;
 
+  /// @cond
+  enum class ValidateResult {kOk, kWrongUserData, kDuplicateRequest};
   ValidateResult ValidateUserData(const DigestContextFromClient& client_context,
                                   const UserData& user_data) const;
-
+  /// @endcond
  private:
   std::string CalculateDigest(
       const UserData::HA1& ha1_non_loggable, http::HttpMethod request_method,
@@ -89,8 +119,10 @@ class AuthCheckerDigestBase : public AuthCheckerBase {
 
   std::string ConstructAuthInfoHeader(
       const DigestContextFromClient& client_context) const;
+
   std::string ConstructResponseDirectives(std::string_view nonce,
                                           bool stale) const;
+
   AuthCheckResult StartNewAuthSession(const std::string& username,
                                       const std::string& nonce_from_client,
                                       bool stale,
