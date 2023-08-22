@@ -55,7 +55,7 @@ async def test_favourite_article(service_client):
     article.favorited = True
     assert validate_article(article, response)
 
-    time.sleep(10)
+    await service_client.invalidate_caches()
     response = await get_article(service_client, article, another_user_token)
     assert response.status == HTTPStatus.OK
     assert validate_article(article, response)
@@ -92,7 +92,7 @@ async def test_self_favorite_article(service_client):
     assert response.status == HTTPStatus.OK
     assert validate_article(article, response)
 
-    time.sleep(10)
+    await service_client.invalidate_caches()
     response = await get_article(service_client, article, user_token)
     assert response.status == HTTPStatus.OK
     assert validate_article(article, response)
@@ -123,7 +123,7 @@ async def test_multiple_favorite_article(service_client):
         article.favoritesCount += 1
         assert validate_article(article, response)
 
-    time.sleep(10)
+    await service_client.invalidate_caches()
     for token in tokens:
         response = await get_article(service_client, article, token)
         assert response.status == HTTPStatus.OK
