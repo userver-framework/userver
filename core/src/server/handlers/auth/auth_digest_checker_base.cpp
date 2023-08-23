@@ -1,4 +1,4 @@
-#include <userver/server/handlers/auth/digest_checker_base.hpp>
+#include <userver/server/handlers/auth/auth_digest_checker_base.hpp>
 
 #include <chrono>
 #include <memory>

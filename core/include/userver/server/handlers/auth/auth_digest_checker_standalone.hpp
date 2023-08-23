@@ -1,6 +1,6 @@
 #pragma once
 
-#include "auth_digest_checker_base.hpp"
+#include <userver/server/auth_digest_checker_base.hpp>
 
 #include <chrono>
 #include <cstdint>
