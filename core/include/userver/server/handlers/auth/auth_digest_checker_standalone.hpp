@@ -9,6 +9,7 @@
 #include <string_view>
 
 #include <userver/concurrent/mpsc_queue.hpp>
+#include <userver/concurrent/variable.hpp>
 #include <userver/crypto/hash.hpp>
 #include <userver/rcu/rcu_map.hpp>
 #include <userver/server/handlers/auth/auth_digest_settings.hpp>
@@ -23,9 +24,15 @@ USERVER_NAMESPACE_BEGIN
 namespace server::handlers::auth {
 
 struct NonceInfo final {
-  Nonce nonce;
-  TimePoint nonce_creation_time;
-  std::int32_t nonce_count;
+  NonceInfo() = default;
+  NonceInfo(const std::string& nonce, TimePoint expiration_time,
+            std::int32_t nonce_count = 0)
+      : nonce(nonce),
+        expiration_time(expiration_time),
+        nonce_count(nonce_count) {}
+  std::string nonce;
+  TimePoint expiration_time;
+  std::int32_t nonce_count{};
 };
 
 class AuthCheckerDigestBaseStandalone : public AuthCheckerDigestBase {
@@ -44,7 +51,8 @@ class AuthCheckerDigestBaseStandalone : public AuthCheckerDigestBase {
       const std::string& username) const = 0;
 
  private:
-  mutable rcu::RcuMap<Username, NonceInfo> user_data_;
+  mutable rcu::RcuMap<Username, concurrent::Variable<NonceInfo>> user_data_;
+  mutable rcu::RcuMap<Nonce, concurrent::Variable<TimePoint>> unnamed_nonces;
 };
 
 }  // namespace server::handlers::auth
