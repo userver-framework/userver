@@ -14,12 +14,12 @@ USERVER_NAMESPACE_BEGIN
 namespace server::handlers::auth {
 
 namespace {
-constexpr std::array<std::string_view, 5> kMandatoryDirectives = {
+inline const std::array<std::string, 5> kMandatoryDirectives = {
     directives::kRealm, directives::kNonce, directives::kResponse,
     directives::kUri, directives::kUsername};
 }  // namespace
 
-void DigestParsing::ParseAuthInfo(std::string_view header_value) {
+void DigestParser::ParseAuthInfo(std::string_view header_value) {
   enum class State {
     kStateSpace,
     kStateToken,
@@ -43,7 +43,7 @@ void DigestParsing::ParseAuthInfo(std::string_view header_value) {
         } else if (std::isspace(delimiter)) {
           // Skip
         } else
-          userver::utils::LogErrorAndThrow(
+          utils::LogErrorAndThrow(
               "Invalid authentication information");
         break;
 
@@ -71,7 +71,7 @@ void DigestParsing::ParseAuthInfo(std::string_view header_value) {
         if (delimiter == '\\') {
           state = State::kStateValueEscape;
         } else if (delimiter == '"') {
-          directive_mapping[token] = value;
+          directive_mapping[token] = std::move(value);
           token.clear();
           value.clear();
           state = State::kStateComma;
@@ -87,12 +87,12 @@ void DigestParsing::ParseAuthInfo(std::string_view header_value) {
 
       case State::kStateValue:
         if (std::isspace(delimiter)) {
-          directive_mapping[token] = value;
+          directive_mapping[token] = std::move(value);
           token.clear();
           value.clear();
           state = State::kStateComma;
         } else if (delimiter == ',') {
-          directive_mapping[token] = value;
+          directive_mapping[token] = std::move(value);
           token.clear();
           value.clear();
           state = State::kStateSpace;
@@ -113,17 +113,19 @@ void DigestParsing::ParseAuthInfo(std::string_view header_value) {
   }
 
   if (state == State::kStateValue) {
-    directive_mapping[token] = value;
+    directive_mapping[token] = std::move(value);
   }
 
   if (state != State::kStateValue && state != State::kStateComma)
     utils::LogErrorAndThrow("Invalid authentication information");
 }
 
-DigestContextFromClient DigestParsing::GetClientContext() {
-  // mandatory client directives checking
+DigestContextFromClient DigestParser::GetClientContext() {
+  // Only checking mandatory directives 
+  // because according to RFC 2617,
+  // "Any unrecognized directive MUST be ignored"
   for (const auto& dir : kMandatoryDirectives) {
-    if (!directive_mapping.count(dir.data())) {
+    if (!directive_mapping.count(dir)) {
       utils::LogErrorAndThrow(fmt::format(
           "Mandatory {} directive is missing in Authentication header", dir));
     }

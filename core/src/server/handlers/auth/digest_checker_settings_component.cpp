@@ -1,5 +1,6 @@
-#include <cstddef>
 #include <userver/server/handlers/auth/digest_checker_settings_component.hpp>
+
+#include <cstddef>
 
 #include <userver/components/component.hpp>
 #include <userver/dynamic_config/storage/component.hpp>
@@ -13,7 +14,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace server::handlers::auth {
 
-constexpr size_t kDefaultTTL = 10 * 1000;
+constexpr size_t kDefaultTtlMs = 10 * 1000;
 
 DigestCheckerSettingsComponent::DigestCheckerSettingsComponent(
     const components::ComponentConfig& config,
@@ -41,7 +42,7 @@ DigestCheckerSettingsComponent::DigestCheckerSettingsComponent(
   settings_.is_proxy = config["is-proxy"].As<bool>(false);
   settings_.is_session = config["is-session"].As<bool>(false);
   settings_.nonce_ttl =
-      config["nonce-ttl"].As<std::chrono::milliseconds>(kDefaultTTL);
+      config["nonce-ttl"].As<std::chrono::milliseconds>(kDefaultTtlMs);
 }
 
 DigestCheckerSettingsComponent::~DigestCheckerSettingsComponent() = default;
