@@ -22,14 +22,14 @@ namespace server::handlers::auth {
 /// static_config.yaml
 /// ## Static options:
 ///
-/// Name       | Description                                          | Default value
-/// ---------- | ---------------------------------------------------- | -------------
-/// algorithm  | algorithm for hashing nonce                          | sha256
-/// domains    | domains for use                                      | /
-/// qops       | list of qop-options                                  | auth
-/// is-proxy   | if set, the Proxy prefix is inserted into the header | false
-/// is-session | enable sessions                                      | false
-/// nonce-ttl  | ttl for nonce                                        | 10s
+/// Name       | Description                                    | Default value
+/// ---------- | ---------------------------------------------- | -------------
+/// algorithm  | algorithm for hashing nonce                    | sha256
+/// domains    | list of URIs, that define the protection space | /
+/// qops       | list of supported qop-options. Use `auth` for authentication and `auth-in` for authentication with integrity protection | auth
+/// is-proxy   | indicates that the server is a proxy server. If set, the Proxy prefix is inserted into the header | false
+/// is-session | activate session algorithm (md5-sess, sha256-sess or sha512-sess) | false
+/// nonce-ttl  | ttl for nonce | 10s
 
 // clang-format on
 
