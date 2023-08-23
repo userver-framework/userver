@@ -289,7 +289,7 @@ WHERE
                         real_medium.followers
                 WHERE
                         follower_user_id = _user_id)
-
+ORDER BY created_at desc
 LIMIT _limit OFFSET _offset;
 END;
 $$
