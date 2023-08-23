@@ -78,6 +78,7 @@ Telegram support chats: [English-speaking](https://t.me/userver_en) |
 * @ref scripts/docs/en/userver/memory_profile_running_service.md
 * @ref scripts/docs/en/userver/dns_control.md
 * @ref scripts/docs/en/userver/os_signals.md
+* @ref scripts/docs/en/userver/deadline_propagation.md
 
 
 ## Caches
