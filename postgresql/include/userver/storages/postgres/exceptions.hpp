@@ -912,6 +912,20 @@ class NotImplemented : public LogicError {
 
 //@}
 
+//@{
+/** @name ip type errors */
+class IpAddressError : public LogicError {
+ public:
+  using LogicError::LogicError;
+};
+
+class IpAddressInvalidFormat : public IpAddressError {
+ public:
+  explicit IpAddressInvalidFormat(std::string_view str)
+      : IpAddressError(fmt::format("IP address invalid format. {}", str)) {}
+};
+//@}
+
 }  // namespace storages::postgres
 
 USERVER_NAMESPACE_END
