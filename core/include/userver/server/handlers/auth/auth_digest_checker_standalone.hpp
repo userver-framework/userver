@@ -25,7 +25,6 @@ USERVER_NAMESPACE_BEGIN
 namespace server::handlers::auth {
 
 struct NonceInfo final {
-  NonceInfo() = default;
   NonceInfo(const std::string& nonce, TimePoint expiration_time,
             std::int64_t nonce_count = 0)
       : nonce(nonce),
