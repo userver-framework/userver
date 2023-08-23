@@ -14,7 +14,9 @@ namespace server::handlers::auth {
 
 AuthCheckerDigestBaseStandalone::AuthCheckerDigestBaseStandalone(
     const AuthDigestSettings& digest_settings, Realm&& realm)
-    : AuthCheckerDigestBase(digest_settings, std::move(realm)){};
+    : AuthCheckerDigestBase(digest_settings, std::move(realm)) {
+  unnamed_nonces_.SetMaxLifetime(digest_settings.nonce_ttl);
+};
 
 std::optional<UserData> AuthCheckerDigestBaseStandalone::GetUserData(
     const std::string& username) const {
@@ -59,6 +61,22 @@ void AuthCheckerDigestBaseStandalone::SetUserData(
         nonce, nonce_creation_time, nonce_count);
     user_data_.InsertOrAssign(username, nonce_info_new);
   }
+}
+
+void AuthCheckerDigestBaseStandalone::PushUnnamedNonce(
+    const Nonce& nonce, std::chrono::milliseconds nonce_ttl) const {
+  unnamed_nonces_.Put(nonce, static_cast<TimePoint>(
+                                 userver::utils::datetime::Now() + nonce_ttl));
+}
+
+std::optional<TimePoint>
+AuthCheckerDigestBaseStandalone::GetUnnamedNonceCreationTime(
+    const Nonce& nonce) const {
+  auto unnamed_nonce = unnamed_nonces_.GetOptionalNoUpdate(nonce);
+  if (unnamed_nonce) {
+    unnamed_nonces_.InvalidateByKey(nonce);
+  }
+  return unnamed_nonce;
 }
 
 }  // namespace server::handlers::auth
