@@ -136,6 +136,7 @@ UTEST_F(HttpClientDeadline, ConnectionIsBrokenAfterTimeout) {
                        .url(GetServer().GetBaseUrl())
                        .timeout(10ms);
     UEXPECT_THROW((void)request.perform(), clients::http::TimeoutException);
+    engine::SleepFor(50ms);
   }
 
   EXPECT_EQ(GetServer().GetConnectionsOpenedCount(), 3);
