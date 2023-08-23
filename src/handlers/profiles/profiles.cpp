@@ -1,9 +1,9 @@
 #include "profiles.hpp"
 #include <string>
+#include "db/sql.hpp"
 #include "dto/profile.hpp"
 #include "models/profile.hpp"
 #include "utils/make_error.hpp"
-#include "db/sql.hpp"
 
 #include "userver/formats/yaml/value_builder.hpp"
 #include "userver/server/handlers/http_handler_base.hpp"
@@ -27,22 +27,24 @@ Handler::Handler(const userver::components::ComponentConfig& config,
                        "realmedium-database")
                    .GetCluster()) {}
 
-json::Value Handler::HandleRequestJsonThrow(
-    const HttpRequest& request, const json::Value&,
-    RequestContext& context) const {
-
+json::Value Handler::HandleRequestJsonThrow(const HttpRequest& request,
+                                            const json::Value&,
+                                            RequestContext& context) const {
   auto user_id = context.GetData<std::optional<std::string>>("id");
   const auto& username = request.GetPathArg("username");
 
-
-  auto res = cluster_->Execute(ClusterHostType::kMaster, sql::kGetProfileByUsername.data(), username, user_id);
+  auto res =
+      cluster_->Execute(ClusterHostType::kMaster,
+                        sql::kGetProfileByUsername.data(), username, user_id);
   if (res.IsEmpty()) {
     auto& response = request.GetHttpResponse();
     response.SetStatus(userver::server::http::HttpStatus::kNotFound);
-    return utils::error::MakeError("username", "There is no user with this nickname.");
+    return utils::error::MakeError("username",
+                                   "There is no user with this nickname.");
   }
 
-  auto profile = res.AsSingleRow<real_medium::models::Profile>(userver::storages::postgres::kRowTag);
+  auto profile = res.AsSingleRow<real_medium::models::Profile>(
+      userver::storages::postgres::kRowTag);
 
   userver::formats::json::ValueBuilder builder;
   builder["profile"] = profile;

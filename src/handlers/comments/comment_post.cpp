@@ -24,9 +24,7 @@ userver::formats::json::Value Handler::HandleRequestJsonThrow(
     userver::server::request::RequestContext& context) const {
   auto user_id = context.GetData<std::optional<std::string>>("id");
 
-  auto comment_json = request_json["comment"]
-          .As<dto::AddCommentDTO>();
-
+  auto comment_json = request_json["comment"].As<dto::AddCommentDTO>();
 
   try {
     validator::validate(comment_json);
@@ -67,10 +65,10 @@ userver::formats::json::Value Handler::HandleRequestJsonThrow(
   auto comment_res_data =
       res_ins_new_comment.AsSingleRow<real_medium::models::Comment>(
           userver::storages::postgres::kRowTag);
-  
+
   userver::formats::json::ValueBuilder builder;
   builder["comment"] = comment_res_data;
-        
+
   return builder.ExtractValue();
 }
 

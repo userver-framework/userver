@@ -1,8 +1,8 @@
 #pragma once
 
+#include <algorithm>
 #include <memory>
 #include <string>
-#include <algorithm>
 
 namespace real_medium::utils::slug {
 

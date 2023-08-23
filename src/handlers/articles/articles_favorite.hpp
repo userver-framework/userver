@@ -25,4 +25,4 @@ class Handler final : public userver::server::handlers::HttpHandlerJsonBase {
   userver::storages::postgres::ClusterPtr pg_cluster_;
 };
 
-}  // namespace realmedium::handlers::articles
+}  // namespace real_medium::handlers::articles_favorite::post
