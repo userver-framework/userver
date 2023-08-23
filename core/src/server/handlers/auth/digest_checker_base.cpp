@@ -75,6 +75,8 @@ DigestHasher::DigestHasher(std::string_view algorithm) {
   }
 }
 
+// TODO: Implement the recommended nonce hashing algorithm:
+// nonce = hash(timestamp:ETag:server-private-key)
 std::string DigestHasher::GenerateNonce() const {
   return GetHash(std::to_string(
       std::chrono::system_clock::now().time_since_epoch().count()));
@@ -110,8 +112,11 @@ DigestCheckerBase::~DigestCheckerBase() = default;
 
 AuthCheckResult DigestCheckerBase::CheckAuth(const http::HttpRequest& request,
                                              request::RequestContext&) const {
-  // RFC 2617, 3
+  // RFC 2617, 3: https://datatracker.ietf.org/doc/html/rfc2617
   // Digest Access Authentication.
+
+  // TODO: Implement a more recent version:
+  // RFC 7616 https://datatracker.ietf.org/doc/html/rfc7616
   auto& response = request.GetHttpResponse();
 
   const auto& auth_value = request.GetHeader(authorization_header_);
