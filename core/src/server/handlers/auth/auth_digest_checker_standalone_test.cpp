@@ -1,39 +1,52 @@
-#include <set>
+#include <userver/cache/expirable_lru_cache.hpp>
+
 #include <userver/server/handlers/auth/auth_digest_checker_standalone.hpp>
 #include <userver/server/handlers/auth/auth_params_parsing.hpp>
 #include <userver/server/handlers/auth/digest_context.hpp>
 
-#include <gtest/gtest.h>
+#include <userver/utest/utest.hpp>
+
+#include <userver/server/handlers/auth/digest_checker_base.hpp>
+#include <userver/utils/datetime.hpp>
+#include <userver/utils/mock_now.hpp>
 
 #include <exception>
 #include <string_view>
 #include <vector>
-#include <userver/server/handlers/auth/auth_digest_checker_base.hpp>
-#include "userver/utils/datetime.hpp"
-#include "userver/utils/mock_now.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
+
 namespace server::handlers::auth::test {
 
-class StandAloneChecker : public AuthCheckerDigestBaseStandalone {
- public:
-  StandAloneChecker(const AuthDigestSettings& digest_settings, Realm&& realm)
-      : AuthCheckerDigestBaseStandalone(digest_settings, std::move(realm)){};
+using HA1 = utils::NonLoggable<class HA1Tag, std::string>;
+using NonceCache = cache::ExpirableLruCache<std::string, TimePoint>;
+using ValidateResult = DigestCheckerBase::ValidateResult;
 
-  std::optional<HA1> GetHA1(const std::string&) const override {
+class StandAloneChecker : public AuthCheckerDigestBaseStandalone {
+
+ public:
+  StandAloneChecker(const AuthDigestSettings& digest_settings, std::string&& realm)
+      : AuthCheckerDigestBaseStandalone(digest_settings, std::move(realm)), nonce_cache(1, 1){
+        nonce_cache.SetMaxLifetime(digest_settings.nonce_ttl);
+      };
+
+  std::optional<HA1> GetHA1(std::string_view) const override {
     return HA1{"939e7578ed9e3c518a452acee763bce9"};
   }
 
-  void PushUnnamedNonce(const Nonce&, std::chrono::milliseconds) const override {};
+  void PushUnnamedNonce(std::string nonce, std::chrono::milliseconds nonce_ttl) const override {
+    auto creation_time = userver::utils::datetime::Now();
+    nonce_cache.Put(nonce, creation_time);
+  };
 
-  std::optional<TimePoint> GetUnnamedNonceCreationTime(const Nonce& nonce) const override {
-    if (unnamed_nonce_storage_.count(nonce)) return utils::datetime::Now();
-    return std::nullopt;
+  std::optional<TimePoint> GetUnnamedNonceCreationTime(const std::string& nonce) const override {
+    auto nonce_creation_time = nonce_cache.GetOptionalNoUpdate(nonce);
+    return nonce_creation_time;
   };
 
  private:
-  std::set<std::string> unnamed_nonce_storage_{"existing-nonce"};
+  mutable NonceCache nonce_cache;
 };
 
 class StandAloneCheckerTest : public ::testing::Test {
@@ -47,46 +60,81 @@ class StandAloneCheckerTest : public ::testing::Test {
           false,
           false,
           std::chrono::milliseconds{1000}}),
-      checker_(digest_settings_, "registred@userver.com"),
-      client_context_(
+      checker_(digest_settings_, "testrealm@host.com"),
+      correct_client_context(
         DigestContextFromClient{
           "Mufasa",
           "testrealm@host.com",
-          "3f93a38e2fdb46e36dc74e0e4b221ca4",
+          "dcd98b7102dd2f0e8b11d0f600bfb0c093",
           "/dir/index.html",
-          "response",
+          "6629fae49393a05397450978507c4ef1",
           "MD5",
-          "bea007ff2c14c8fbec8eeaafab264f16",
-          "00000001",
+          "0a4f113b",
+          "5ccc069c403ebaf9f0171e9517f40e41",
           "auth",
-          "auth-param"}) {}
-
+          "00000001",
+          "auth-param"}) {
+            client_context_ = correct_client_context;
+          }
+  
  protected:
 
   AuthDigestSettings digest_settings_;
   StandAloneChecker checker_;
   DigestContextFromClient client_context_;
+  DigestContextFromClient correct_client_context;
 };
 
-TEST_F(StandAloneCheckerTest, DirectiveValidation) {
-  client_context_.nonce = "no-existing-nonce";
-  EXPECT_EQ(checker_.ValidateClientData(client_context_), ValidateClientDataResult::kWrongUserData);
- 
-  // utils::datetime::MockNowSet(utils::datetime::Now());
-  // utils::datetime::MockSleep(9001);  // utils::datetime::MockNowSet(utils::datetime::Now());
-  // utils::datetime::MockSleep(9001);
-  // EXPECT_EQ(timer.NextLoop(), 9001s);
- 
-  // utils::datetime::MockNowSet(Stringtime("2000-01-02T00:00:00+0000"));
-  // EXPECT_EQ(timer.NextLoop(), 24h - 9001s);
-  // EXPECT_EQ(timer.NextLoop(), 9001s);
- 
-  // utils::datetime::MockNowSet(Stringtime("2000-01-02T00:00:00+0000"));
-  // EXPECT_EQ(timer.NextLoop(), 24h - 9001s);
-  // client_context_.nonce = "existing-nonce";
-  // EXPECT_EQ(checker_.ValidateClientData(client_context_), ValidateClientDataResult::kWrongUserData);
+UTEST_F(StandAloneCheckerTest, DirectiveSubstitution) {
+  utils::datetime::MockNowSet(std::chrono::system_clock::now());
+  std::string valid_nonce = "dcd98b7102dd2f0e8b11d0f600bfb0c093";
+  std::string validHA1 = "939e7578ed9e3c518a452acee763bce9";
+  // пришел пустой запрос, ответили 401, кинули в пул новый nonce 
+  checker_.PushUnnamedNonce(valid_nonce, {});
+  // ждем ответа 
+  UserData test_data(HA1(validHA1), valid_nonce, utils::datetime::Now());
+  EXPECT_EQ(checker_.ValidateUserData(client_context_, test_data), ValidateResult::kOk);
+  client_context_.nonce = "just wrong";
+  EXPECT_EQ(checker_.ValidateUserData(client_context_, test_data), ValidateResult::kWrongUserData);
+  client_context_ = correct_client_context;
+  EXPECT_EQ(checker_.ValidateUserData(client_context_, test_data), ValidateResult::kOk);
+  client_context_.username = "Mubasa";
+  EXPECT_EQ(checker_.ValidateUserData(client_context_, test_data), ValidateResult::kWrongUserData);
+  client_context_ = correct_client_context;
+  utils::datetime::MockSleep(std::chrono::milliseconds(2));
+  EXPECT_EQ(checker_.ValidateUserData(client_context_, test_data), ValidateResult::kOk);
+  utils::datetime::MockSleep(std::chrono::milliseconds(2000));
+  EXPECT_EQ(checker_.ValidateUserData(client_context_, test_data), ValidateResult::kWrongUserData);
 }
 
+UTEST_F(StandAloneCheckerTest, SessionLogic) {
+  utils::datetime::MockNowSet(std::chrono::system_clock::now());
+  std::string valid_nonce = "dcd98b7102dd2f0e8b11d0f600bfb0c093";
+  std::string validHA1 = "939e7578ed9e3c518a452acee763bce9";
+  // пришел пустой запрос, ответили 401, кинули в пул новый nonce 
+  checker_.PushUnnamedNonce(valid_nonce, {});
+  // ждем ответа 
+  UserData test_data(HA1(validHA1), valid_nonce, utils::datetime::Now());
+  utils::datetime::MockSleep(std::chrono::milliseconds(2));
+  EXPECT_EQ(checker_.ValidateUserData(client_context_, test_data), ValidateResult::kOk);
+  utils::datetime::MockSleep(std::chrono::milliseconds(20));
+  EXPECT_EQ(checker_.ValidateUserData(client_context_, test_data), ValidateResult::kWrongUserData);
+}
+
+UTEST_F(StandAloneCheckerTest, NonceCountLogic) {
+  std::string valid_nonce = "dcd98b7102dd2f0e8b11d0f600bfb0c093";
+  std::string validHA1 = "939e7578ed9e3c518a452acee763bce9";
+  // пришел пустой запрос, ответили 401, кинули в пул новый nonce 
+  checker_.PushUnnamedNonce(valid_nonce, {});
+  // ждем ответа 
+  UserData test_data(HA1(validHA1), valid_nonce, utils::datetime::Now());
+  EXPECT_EQ(checker_.ValidateUserData(client_context_, test_data), ValidateResult::kOk);
+  EXPECT_EQ(checker_.ValidateUserData(client_context_, test_data), ValidateResult::kDuplicateRequest);
+  // increment nc because this will be second request with same nonce
+  correct_client_context.nc = "00000002";
+  client_context_ = correct_client_context;
+  EXPECT_EQ(checker_.ValidateUserData(client_context_, test_data), ValidateResult::kOk);
+}
 }  // namespace server::handlers::auth::test
 
 USERVER_NAMESPACE_END

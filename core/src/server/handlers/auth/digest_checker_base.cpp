@@ -1,7 +1,8 @@
-#include <userver/server/handlers/auth/auth_digest_checker_base.hpp>
+#include <userver/server/handlers/auth/digest_checker_base.hpp>
 
 #include <chrono>
 #include <memory>
+#include <exception>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -32,7 +33,14 @@ constexpr std::string_view kAuthenticationInfo = "Authentication-Info";
 constexpr std::string_view kProxyAuthenticationInfo =
     "Proxy-Authentication-Info";
 
-DigestHasher::DigestHasher(const Algorithm& algorithm) {
+UserData::UserData() = default;
+
+UserData::UserData(HA1 ha1, std::string nonce, TimePoint timestamp,
+                   std::int64_t nonce_count)
+    : ha1(std::move(ha1)), nonce(std::move(nonce)), timestamp(timestamp), nonce_count(nonce_count) {}
+
+
+DigestHasher::DigestHasher(std::string_view algorithm) {
   switch (
       kHashAlgToType.TryFindICase(algorithm).value_or(HashAlgTypes::kUnknown)) {
     case HashAlgTypes::kMD5:
@@ -49,19 +57,20 @@ DigestHasher::DigestHasher(const Algorithm& algorithm) {
   }
 }
 
-std::string DigestHasher::Nonce() const {
+std::string DigestHasher::GenerateNonce() const {
   return GetHash(std::to_string(
       std::chrono::system_clock::now().time_since_epoch().count()));
 }
+
 std::string DigestHasher::GetHash(std::string_view data) const {
   return hash_algorithm_(data, crypto::hash::OutputEncoding::kHex);
 }
 
-AuthCheckerDigestBase::AuthCheckerDigestBase(
-    const AuthDigestSettings& digest_settings, Realm&& realm)
-    : qops_str_(fmt::format("{}", fmt::join(digest_settings.qops, ","))),
+DigestCheckerBase::DigestCheckerBase(const AuthDigestSettings& digest_settings,
+                                     std::string&& realm)
+    : qops_(fmt::format("{}", fmt::join(digest_settings.qops, ","))),
       realm_(std::move(realm)),
-      domains_str_(fmt::format("{}", fmt::join(digest_settings.domains, ", "))),
+      domains_(fmt::format("{}", fmt::join(digest_settings.domains, ", "))),
       algorithm_(digest_settings.algorithm),
       is_session_(digest_settings.is_session),
       is_proxy_(digest_settings.is_proxy),
@@ -79,8 +88,10 @@ AuthCheckerDigestBase::AuthCheckerDigestBase(
                                ? http::HttpStatus::kProxyAuthenticationRequired
                                : http::HttpStatus::kUnauthorized) {}
 
-AuthCheckResult AuthCheckerDigestBase::CheckAuth(
-    const http::HttpRequest& request, request::RequestContext&) const {
+DigestCheckerBase::~DigestCheckerBase() = default;
+
+AuthCheckResult DigestCheckerBase::CheckAuth(const http::HttpRequest& request,
+                                             request::RequestContext&) const {
   // RFC 2617, 3
   // Digest Access Authentication.
   auto& response = request.GetHttpResponse();
@@ -89,31 +100,43 @@ AuthCheckResult AuthCheckerDigestBase::CheckAuth(
   if (auth_value.empty()) {
     // If there is no authorization header, we save the "nonce" to temporary
     // storage.
-    auto nonce = digest_hasher_.Nonce();
-    PushUnnamedNonce(nonce, nonce_ttl_);
-
+    auto nonce = digest_hasher_.GenerateNonce();
+    
     response.SetStatus(unauthorized_status_);
     response.SetHeader(authenticate_header_,
                        ConstructResponseDirectives(nonce, false));
+    
+    PushUnnamedNonce(std::move(nonce), nonce_ttl_);
+    
+    LOG_WARNING() << fmt::format("Missing {} header from client", authorization_header_);
+    
     return AuthCheckResult{AuthCheckResult::Status::kInvalidToken};
   }
 
-  DigestParsing parser;
-  parser.ParseAuthInfo(auth_value.substr(kDigestWord.size() + 1));
-  const auto& client_context = parser.GetClientContext();
+  DigestParser parser;
+  DigestContextFromClient client_context; 
+  try {
+    parser.ParseAuthInfo(auth_value.substr(kDigestWord.size() + 1));
+    client_context = parser.GetClientContext();
+  } catch(std::runtime_error& ex) {
+    response.SetStatus(http::HttpStatus::kBadRequest);
+    LOG_WARNING() << "Missing mandatory directives or wrong authentication header format.";
+    throw handlers::ClientError();
+  }
 
   // Check if user have been registred.
-  auto user_data_opt = GetUserData(client_context.username);
+  auto user_data_opt = FetchUserData(client_context.username);
   if (!user_data_opt.has_value()) {
+    LOG_WARNING() << "User is not registred.";
     return AuthCheckResult{AuthCheckResult::Status::kForbidden};
   }
-  const auto& user_data = user_data_opt.value();
 
+  const auto& user_data = user_data_opt.value();
   auto validate_result = ValidateUserData(client_context, user_data);
   switch (validate_result) {
     case ValidateResult::kWrongUserData:
       return StartNewAuthSession(client_context.username,
-                                 digest_hasher_.Nonce(), true, response);
+                                 digest_hasher_.GenerateNonce(), true, response);
     case ValidateResult::kDuplicateRequest:
       response.SetStatus(unauthorized_status_);
       return AuthCheckResult{AuthCheckResult::Status::kTokenNotFound};
@@ -141,18 +164,17 @@ AuthCheckResult AuthCheckerDigestBase::CheckAuth(
   return {};
 };
 
-ValidateResult AuthCheckerDigestBase::ValidateUserData(
+DigestCheckerBase::ValidateResult DigestCheckerBase::ValidateUserData(
     const DigestContextFromClient& client_context,
     const UserData& user_data) const {
   bool are_nonces_equal = crypto::algorithm::AreStringsEqualConstTime(
       user_data.nonce, client_context.nonce);
-  bool is_nonce_expired =
-      user_data.timestamp + nonce_ttl_ < userver::utils::datetime::Now();
   if (!are_nonces_equal) {
     // "nonce" may be in temporary storage.
     auto nonce_creation_time =
         GetUnnamedNonceCreationTime(client_context.nonce);
     if (!nonce_creation_time.has_value()) {
+      LOG_WARNING() << "Nonces aren't equal and no equivalent nonce found in \"nonce pool\".";
       return ValidateResult::kWrongUserData;
     }
 
@@ -160,46 +182,50 @@ ValidateResult AuthCheckerDigestBase::ValidateUserData(
                 nonce_creation_time.value());
   }
 
+  bool is_nonce_expired =
+      user_data.timestamp + nonce_ttl_ < userver::utils::datetime::Now();
   if (is_nonce_expired) {
+    LOG_WARNING() << "Nonces are equal, but expired.";
     return ValidateResult::kWrongUserData;
   }
 
   LOG_DEBUG() << "Nonce is OK";
 
   auto client_nc = std::stoul(client_context.nc, nullptr, 16);
-  if (user_data.nonce_count < client_nc) {
-    SetUserData(client_context.username, client_context.nonce, 0,
-                utils::datetime::Now());
-  } else {
+  if (user_data.nonce_count >= client_nc) {
+    LOG_WARNING() << "The current request is a duplicate.";
     return ValidateResult::kDuplicateRequest;
   }
-  LOG_DEBUG() << "Nonce_count is OK";
 
+  SetUserData(client_context.username, user_data.nonce, client_nc,
+                user_data.timestamp);
+
+  LOG_DEBUG() << "Nonce_count is OK";
   return ValidateResult::kOk;
 }
 
-std::string AuthCheckerDigestBase::ConstructAuthInfoHeader(
+std::string DigestCheckerBase::ConstructAuthInfoHeader(
     const DigestContextFromClient& client_context) const {
-  auto next_nonce = digest_hasher_.Nonce();
-
+  auto next_nonce = digest_hasher_.GenerateNonce();
   SetUserData(client_context.username, next_nonce, 0, utils::datetime::Now());
 
-  return fmt::format("{}=\"{}\"", directives::kNextNonce, next_nonce);
+  return fmt::format("{}=\"{}\"", directives::kNextNonce, std::move(next_nonce));
 }
 
-AuthCheckResult AuthCheckerDigestBase::StartNewAuthSession(
-    const std::string& username, const std::string& nonce_from_client,
+AuthCheckResult DigestCheckerBase::StartNewAuthSession(
+    std::string username, std::string&& nonce,
     bool stale, http::HttpResponse& response) const {
-  SetUserData(username, nonce_from_client, 0, utils::datetime::Now());
   response.SetStatus(unauthorized_status_);
   response.SetHeader(authenticate_header_,
-                     ConstructResponseDirectives(nonce_from_client, stale));
+                     ConstructResponseDirectives(nonce, stale));
+  
+  SetUserData(std::move(username), std::move(nonce), 0, utils::datetime::Now());
 
   return AuthCheckResult{AuthCheckResult::Status::kInvalidToken};
 }
 
 // clang-format off
-std::string AuthCheckerDigestBase::ConstructResponseDirectives(
+std::string DigestCheckerBase::ConstructResponseDirectives(
     std::string_view nonce, bool stale) const {
   // RFC 2617, 3.2.1
   // Server response directives.
@@ -208,17 +234,16 @@ std::string AuthCheckerDigestBase::ConstructResponseDirectives(
       fmt::format("{}=\"{}\", ", directives::kRealm, realm_),
       fmt::format("{}=\"{}\", ", directives::kNonce, nonce),
       fmt::format("{}=\"{}\", ", directives::kStale, stale),
-      fmt::format("{}=\"{}\", ", directives::kDomain, domains_str_),
+      fmt::format("{}=\"{}\", ", directives::kDomain, domains_),
       fmt::format("{}=\"{}\", ", directives::kAlgorithm, algorithm_),
-      fmt::format("{}=\"{}\"", directives::kQop, qops_str_));
+      fmt::format("{}=\"{}\"", directives::kQop, qops_));
 }
 // clang-format on
 
-std::string AuthCheckerDigestBase::CalculateDigest(
+std::string DigestCheckerBase::CalculateDigest(
     const UserData::HA1& ha1_non_loggable, http::HttpMethod request_method,
     const DigestContextFromClient& client_context) const {
   // RFC 2617, 3.2.2.1 Request-Digest
-
   auto ha1 = ha1_non_loggable.GetUnderlying();
   if (is_session_) {
     ha1 = fmt::format("{}:{}:{}", ha1, client_context.nonce,
@@ -226,9 +251,9 @@ std::string AuthCheckerDigestBase::CalculateDigest(
   }
 
   auto a2 = fmt::format("{}:{}", ToString(request_method), client_context.uri);
-  std::string ha2 = digest_hasher_.GetHash(a2);
+  auto ha2 = digest_hasher_.GetHash(a2);
 
-  std::string request_digest = fmt::format(
+  auto request_digest = fmt::format(
       "{}:{}:{}:{}:{}:{}", ha1, client_context.nonce, client_context.nc,
       client_context.cnonce, client_context.qop, ha2);
   return digest_hasher_.GetHash(request_digest);

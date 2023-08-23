@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/server/handlers/auth/digest_types.hpp
+/// @brief Types for validating directive values
+
 #include <userver/utils/trivial_map.hpp>
 
 USERVER_NAMESPACE_BEGIN
