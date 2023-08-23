@@ -59,7 +59,7 @@ class StandAloneCheckerTest : public ::testing::Test {
           false,
           std::chrono::milliseconds{1000}}),
       checker_(digest_settings_, "testrealm@host.com"),
-      client_context_(
+      correct_client_context(
         DigestContextFromClient{
           "Mufasa",
           "testrealm@host.com",
@@ -72,40 +72,65 @@ class StandAloneCheckerTest : public ::testing::Test {
           "auth",
           "00000001",
           "auth-param"}) {}
-
+  
  protected:
 
   AuthDigestSettings digest_settings_;
   StandAloneChecker checker_;
   DigestContextFromClient client_context_;
+  DigestContextFromClient correct_client_context;
 };
 
-UTEST_F(StandAloneCheckerTest, DirectiveValidation) {
-  utils::datetime::MockNowSet(std::chrono::system_clock::now());
-  // пришел пустой запрос, ответили 401, кинули в пул новый nonce 
+UTEST_F(StandAloneCheckerTest, DirectiveSubstitution) {
+  DigestContextFromClient correct_client_context{
+          "Mufasa",
+          "testrealm@host.com",
+          "dcd98b7102dd2f0e8b11d0f600bfb0c093",
+          "/dir/index.html",
+          "6629fae49393a05397450978507c4ef1",
+          "MD5",
+          "0a4f113b",
+          "5ccc069c403ebaf9f0171e9517f40e41",
+          "auth",
+          "00000001",
+          "auth-param"
+  }
   std::string valid_nonce = "dcd98b7102dd2f0e8b11d0f600bfb0c093";
   std::string validHA1 = "939e7578ed9e3c518a452acee763bce9";
+  // пришел пустой запрос, ответили 401, кинули в пул новый nonce 
   checker_.PushUnnamedNonce(valid_nonce, {});
   // ждем ответа 
-  client_context_.nonce = valid_nonce;
   UserData test_data(HA1(validHA1), valid_nonce, utils::datetime::Now());
-  EXPECT_EQ(checker_.ValidateUserData(client_context_, test_data), ValidateResult::kOk);
-  EXPECT_EQ(checker_.ValidateUserData(client_context_, test_data), ValidateResult::kOk);
-  EXPECT_EQ(checker_.ValidateUserData(client_context_, test_data), ValidateResult::kOk);
   EXPECT_EQ(checker_.ValidateUserData(client_context_, test_data), ValidateResult::kOk);
   client_context_.nonce = "just wrong";
   EXPECT_EQ(checker_.ValidateUserData(client_context_, test_data), ValidateResult::kWrongUserData);
-  client_context_.nonce = valid_nonce;
+  client_context_ = correct_client_context;
   EXPECT_EQ(checker_.ValidateUserData(client_context_, test_data), ValidateResult::kOk);
   client_context_.username = "Mubasa";
   EXPECT_NE(checker_.ValidateUserData(client_context_, test_data), ValidateResult::kWrongUserData);
-  client_context_.username = "Mufasa";
+  client_context_ = correct_client_context;
   utils::datetime::MockSleep(std::chrono::milliseconds(2));
   EXPECT_EQ(checker_.ValidateUserData(client_context_, test_data), ValidateResult::kOk);
   utils::datetime::MockSleep(std::chrono::milliseconds(20));
   EXPECT_NE(checker_.ValidateUserData(client_context_, test_data), ValidateResult::kWrongUserData);
 }
 
+UTEST_F(StandAloneCheckerTest, SessionLogic) {
+  utils::datetime::MockNowSet(std::chrono::system_clock::now());
+  std::string valid_nonce = "dcd98b7102dd2f0e8b11d0f600bfb0c093";
+  std::string validHA1 = "939e7578ed9e3c518a452acee763bce9";
+  // пришел пустой запрос, ответили 401, кинули в пул новый nonce 
+  checker_.PushUnnamedNonce(valid_nonce, {});
+  // ждем ответа 
+  utils::datetime::MockSleep(std::chrono::milliseconds(2));
+  EXPECT_EQ(checker_.ValidateUserData(client_context_, test_data), ValidateResult::kOk);
+  utils::datetime::MockSleep(std::chrono::milliseconds(20));
+  EXPECT_NE(checker_.ValidateUserData(client_context_, test_data), ValidateResult::kWrongUserData);
+}
+
+UTEST_F(StandAloneCheckerTest, NonceCountLogic) {
+  
+}
 }  // namespace server::handlers::auth::test
 
 USERVER_NAMESPACE_END
