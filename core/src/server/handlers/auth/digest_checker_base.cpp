@@ -26,24 +26,24 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace server::handlers::auth {
+namespace utils {
 
-namespace {
-
-std::int64_t FromHexToInteger(const std::string& str) {
+std::int64_t FromHexString(const std::string& str) {
   std::int64_t result{};
   try {
     result = std::stoll(str, nullptr, 16);
   } catch (std::logic_error& ex) {
     LOG_WARNING() << "Nonce_count from string to integer casting error: "
                   << ex.what();
-    throw handlers::ClientError();
+    throw server::handlers::ClientError();
   }
 
   return result;
 }
 
-}  // namespace
+}  // namespace utils
+
+namespace server::handlers::auth {
 
 constexpr std::string_view kDigestWord = "Digest";
 
@@ -213,7 +213,7 @@ DigestCheckerBase::ValidateResult DigestCheckerBase::ValidateUserData(
 
   LOG_DEBUG() << "Nonce is OK";
 
-  auto client_nc = FromHexToInteger(client_context.nc);
+  auto client_nc = utils::FromHexString(client_context.nc);
   if (user_data.nonce_count >= client_nc) {
     LOG_WARNING() << "The current request is a duplicate.";
     return ValidateResult::kDuplicateRequest;
