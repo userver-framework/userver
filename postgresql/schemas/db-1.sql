@@ -101,9 +101,8 @@ BEGIN
                 real_medium.article_tag AS at
                 INNER JOIN real_medium.tag_list AS t ON t.tag_id = at.tag_id
         WHERE
-                article_id = _article_id
-        ORDER BY
-                t.tag_name ASC;
+                article_id = _article_id;
+
 END;
 $$
 LANGUAGE plpgsql;

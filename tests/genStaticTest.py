@@ -7,9 +7,9 @@ import numpy as np
 from functools import partial
 from itertools import chain
 
-COUNT_OF_USERS = 50000
-COUNT_OF_ARTICLES = 50000
-COUNT_OF_COMMENTS = 1000
+COUNT_OF_USERS = 25000
+COUNT_OF_ARTICLES = 25000
+COUNT_OF_COMMENTS = 25000
 COUNT_FOLLOWERS = 20 # У каждого зера
 COUNT_FAVORITES = 20 # У Каждой статьи
 NAME_SCHEMA = "real_medium"
@@ -180,7 +180,7 @@ def fillComments(con):
  
         dictOfExecute = {"body":"О да!! Я восхищён этой бессмыслицей в кубе. Это всё явно показывает бессмысленость смысла",
                          "user_id": userIDList[i%(COUNT_OF_USERS-1)],
-                         "article_id":articleIDList[1%(COUNT_OF_ARTICLES-1)]}
+                         "article_id":articleIDList[i%(COUNT_OF_ARTICLES-1)]}
 
         strExecute = createStrExecuteInsert("comments", dictOfExecute)
         cur.execute(strExecute)    
