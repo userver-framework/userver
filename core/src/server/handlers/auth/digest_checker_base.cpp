@@ -1,8 +1,8 @@
 #include <userver/server/handlers/auth/digest_checker_base.hpp>
 
 #include <chrono>
-#include <memory>
 #include <exception>
+#include <memory>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -22,10 +22,28 @@
 #include <userver/server/http/http_response.hpp>
 #include <userver/utils/algo.hpp>
 #include <userver/utils/datetime.hpp>
+#include "userver/utils/from_string.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
 namespace server::handlers::auth {
+
+namespace {
+
+std::int64_t FromHexToInteger(const std::string& str) {
+  std::int64_t result{};
+  try {
+    result = std::stoll(str, nullptr, 16);
+  } catch (std::logic_error& ex) {
+    LOG_WARNING() << "Nonce_count from string to integer casting error: "
+                  << ex.what();
+    throw handlers::ClientError();
+  }
+
+  return result;
+}
+
+}  // namespace
 
 constexpr std::string_view kDigestWord = "Digest";
 
@@ -37,8 +55,10 @@ UserData::UserData() = default;
 
 UserData::UserData(HA1 ha1, std::string nonce, TimePoint timestamp,
                    std::int64_t nonce_count)
-    : ha1(std::move(ha1)), nonce(std::move(nonce)), timestamp(timestamp), nonce_count(nonce_count) {}
-
+    : ha1(std::move(ha1)),
+      nonce(std::move(nonce)),
+      timestamp(timestamp),
+      nonce_count(nonce_count) {}
 
 DigestHasher::DigestHasher(std::string_view algorithm) {
   switch (
@@ -101,26 +121,28 @@ AuthCheckResult DigestCheckerBase::CheckAuth(const http::HttpRequest& request,
     // If there is no authorization header, we save the "nonce" to temporary
     // storage.
     auto nonce = digest_hasher_.GenerateNonce();
-    
+
     response.SetStatus(unauthorized_status_);
     response.SetHeader(authenticate_header_,
                        ConstructResponseDirectives(nonce, false));
-    
-    PushUnnamedNonce(std::move(nonce), nonce_ttl_);
-    
-    LOG_WARNING() << fmt::format("Missing {} header from client", authorization_header_);
-    
+
+    PushUnnamedNonce(std::move(nonce));
+
+    LOG_WARNING() << fmt::format("Missing {} header from client",
+                                 authorization_header_);
+
     return AuthCheckResult{AuthCheckResult::Status::kInvalidToken};
   }
 
   DigestParser parser;
-  DigestContextFromClient client_context; 
+  DigestContextFromClient client_context;
   try {
     parser.ParseAuthInfo(auth_value.substr(kDigestWord.size() + 1));
     client_context = parser.GetClientContext();
-  } catch(std::runtime_error& ex) {
+  } catch (std::runtime_error& ex) {
     response.SetStatus(http::HttpStatus::kBadRequest);
-    LOG_WARNING() << "Missing mandatory directives or wrong authentication header format.";
+    LOG_WARNING() << "Missing mandatory directives or wrong authentication "
+                     "header format.";
     throw handlers::ClientError();
   }
 
@@ -136,7 +158,8 @@ AuthCheckResult DigestCheckerBase::CheckAuth(const http::HttpRequest& request,
   switch (validate_result) {
     case ValidateResult::kWrongUserData:
       return StartNewAuthSession(client_context.username,
-                                 digest_hasher_.GenerateNonce(), true, response);
+                                 digest_hasher_.GenerateNonce(), true,
+                                 response);
     case ValidateResult::kDuplicateRequest:
       response.SetStatus(unauthorized_status_);
       return AuthCheckResult{AuthCheckResult::Status::kTokenNotFound};
@@ -174,7 +197,8 @@ DigestCheckerBase::ValidateResult DigestCheckerBase::ValidateUserData(
     auto nonce_creation_time =
         GetUnnamedNonceCreationTime(client_context.nonce);
     if (!nonce_creation_time.has_value()) {
-      LOG_WARNING() << "Nonces aren't equal and no equivalent nonce found in \"nonce pool\".";
+      LOG_WARNING() << "Nonces aren't equal and no equivalent nonce found in "
+                       "\"nonce pool\".";
       return ValidateResult::kWrongUserData;
     }
 
@@ -191,14 +215,14 @@ DigestCheckerBase::ValidateResult DigestCheckerBase::ValidateUserData(
 
   LOG_DEBUG() << "Nonce is OK";
 
-  auto client_nc = std::stoul(client_context.nc, nullptr, 16);
+  auto client_nc = FromHexToInteger(client_context.nc);
   if (user_data.nonce_count >= client_nc) {
     LOG_WARNING() << "The current request is a duplicate.";
     return ValidateResult::kDuplicateRequest;
   }
 
   SetUserData(client_context.username, user_data.nonce, client_nc,
-                user_data.timestamp);
+              user_data.timestamp);
 
   LOG_DEBUG() << "Nonce_count is OK";
   return ValidateResult::kOk;
@@ -209,36 +233,34 @@ std::string DigestCheckerBase::ConstructAuthInfoHeader(
   auto next_nonce = digest_hasher_.GenerateNonce();
   SetUserData(client_context.username, next_nonce, 0, utils::datetime::Now());
 
-  return fmt::format("{}=\"{}\"", directives::kNextNonce, std::move(next_nonce));
+  return fmt::format("{}=\"{}\"", directives::kNextNonce,
+                     std::move(next_nonce));
 }
 
 AuthCheckResult DigestCheckerBase::StartNewAuthSession(
-    std::string username, std::string&& nonce,
-    bool stale, http::HttpResponse& response) const {
+    std::string username, std::string&& nonce, bool stale,
+    http::HttpResponse& response) const {
   response.SetStatus(unauthorized_status_);
   response.SetHeader(authenticate_header_,
                      ConstructResponseDirectives(nonce, stale));
-  
+
   SetUserData(std::move(username), std::move(nonce), 0, utils::datetime::Now());
 
   return AuthCheckResult{AuthCheckResult::Status::kInvalidToken};
 }
 
-// clang-format off
 std::string DigestCheckerBase::ConstructResponseDirectives(
     std::string_view nonce, bool stale) const {
   // RFC 2617, 3.2.1
   // Server response directives.
   return utils::StrCat(
-      "Digest ",
-      fmt::format("{}=\"{}\", ", directives::kRealm, realm_),
+      "Digest ", fmt::format("{}=\"{}\", ", directives::kRealm, realm_),
       fmt::format("{}=\"{}\", ", directives::kNonce, nonce),
       fmt::format("{}=\"{}\", ", directives::kStale, stale),
       fmt::format("{}=\"{}\", ", directives::kDomain, domains_),
       fmt::format("{}=\"{}\", ", directives::kAlgorithm, algorithm_),
       fmt::format("{}=\"{}\"", directives::kQop, qops_));
 }
-// clang-format on
 
 std::string DigestCheckerBase::CalculateDigest(
     const UserData::HA1& ha1_non_loggable, http::HttpMethod request_method,

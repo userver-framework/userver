@@ -89,28 +89,27 @@ class DigestCheckerBase : public AuthCheckerBase {
   /// information about the user to the RequestContext.
   [[nodiscard]] bool SupportsUserAuth() const noexcept override { return true; }
 
-  /// The implementation should return std::nullopt if the user is not registered. If the
-  /// user is registered, but he is not in storage, the implementation should
-  /// create him with invalid data to avoids extra round trips for
-  /// authentication challenges.
+  /// The implementation should return std::nullopt if the user is not
+  /// registered. If the user is registered, but he is not in storage, the
+  /// implementation should create him with invalid data to avoids extra round
+  /// trips for authentication challenges.
   virtual std::optional<UserData> FetchUserData(
       const std::string& username) const = 0;
 
   /// Sets user authentication data to storage.
-  virtual void SetUserData(std::string username,
-                           std::string nonce, std::int64_t nonce_count,
+  virtual void SetUserData(std::string username, std::string nonce,
+                           std::int64_t nonce_count,
                            TimePoint nonce_creation_time) const = 0;
 
   /// Pushes "nonce" not tied to username to "Nonce Pool".
-  virtual void PushUnnamedNonce(std::string nonce,
-                                std::chrono::milliseconds nonce_ttl) const = 0;
+  virtual void PushUnnamedNonce(std::string nonce) const = 0;
 
   /// Returns "nonce" creation time from "Nonce Pool" if exists.
   virtual std::optional<TimePoint> GetUnnamedNonceCreationTime(
       const std::string& nonce) const = 0;
 
   /// @cond
-  enum class ValidateResult {kOk, kWrongUserData, kDuplicateRequest};
+  enum class ValidateResult { kOk, kWrongUserData, kDuplicateRequest };
   ValidateResult ValidateUserData(const DigestContextFromClient& client_context,
                                   const UserData& user_data) const;
   /// @endcond
@@ -125,8 +124,7 @@ class DigestCheckerBase : public AuthCheckerBase {
   std::string ConstructResponseDirectives(std::string_view nonce,
                                           bool stale) const;
 
-  AuthCheckResult StartNewAuthSession(std::string username,
-                                      std::string&& nonce,
+  AuthCheckResult StartNewAuthSession(std::string username, std::string&& nonce,
                                       bool stale,
                                       http::HttpResponse& response) const;
 
