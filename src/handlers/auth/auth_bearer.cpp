@@ -16,12 +16,13 @@ class AuthCheckerBearer final
   using AuthCheckResult = userver::server::handlers::auth::AuthCheckResult;
 
   AuthCheckerBearer(
-      const userver::components::ComponentContext& component_context, bool is_required)
+      const userver::components::ComponentContext& component_context,
+      bool is_required)
       : pg_cluster_(component_context
                         .FindComponent<userver::components::Postgres>(
                             "realmedium-database")
                         .GetCluster()),
-                        is_required_(is_required) {}
+        is_required_(is_required) {}
 
   [[nodiscard]] AuthCheckResult CheckAuth(
       const userver::server::http::HttpRequest& request,

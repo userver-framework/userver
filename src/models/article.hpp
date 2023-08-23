@@ -2,11 +2,11 @@
 
 #include <optional>
 #include <string>
-#include <vector>
 #include <tuple>
-#include <userver/storages/postgres/io/pg_types.hpp>
 #include <userver/formats/json/value_builder.hpp>
 #include <userver/storages/postgres/io/chrono.hpp>
+#include <userver/storages/postgres/io/pg_types.hpp>
+#include <vector>
 #include "../db/types.hpp"
 #include "profile.hpp"
 
@@ -27,7 +27,8 @@ struct TaggedArticleWithProfile {
 
   auto Introspect() {
     return std::tie(articleId, title, slug, body, description, createdAt,
-                    updatedAt,tags,isFavorited, favoritesCount, authorProfile);
+                    updatedAt, tags, isFavorited, favoritesCount,
+                    authorProfile);
   }
 };
 
@@ -42,8 +43,7 @@ namespace userver::storages::postgres::io {
 template <>
 struct CppToUserPg<real_medium::models::TaggedArticleWithProfile> {
   static constexpr DBTypeName postgres_name{
-    real_medium::sql::types::kTaggedArticleWithProfile.data()
-  };
+      real_medium::sql::types::kTaggedArticleWithProfile.data()};
 };
 
-} // namespace userver::storages::postgres::io
+}  // namespace userver::storages::postgres::io

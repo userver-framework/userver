@@ -1,13 +1,12 @@
 #pragma once
 
-
 #include <userver/components/component_context.hpp>
 #include <userver/formats/json/value.hpp>
 #include <userver/server/handlers/http_handler_base.hpp>
 #include <userver/server/handlers/http_handler_json_base.hpp>
-#include <userver/storages/postgres/postgres_fwd.hpp>
 #include <userver/storages/postgres/cluster.hpp>
 #include <userver/storages/postgres/component.hpp>
+#include <userver/storages/postgres/postgres_fwd.hpp>
 
 namespace real_medium::handlers::articles::post {
 class Handler final : public userver::server::handlers::HttpHandlerJsonBase {
@@ -26,4 +25,4 @@ class Handler final : public userver::server::handlers::HttpHandlerJsonBase {
  private:
   const userver::storages::postgres::ClusterPtr pg_cluster_;
 };
-} // namespace real_medium::handlers::articles::post
+}  // namespace real_medium::handlers::articles::post

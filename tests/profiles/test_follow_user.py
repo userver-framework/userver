@@ -6,6 +6,7 @@ from models import User, Profile
 from validators import validate_profile
 from utils import get_user_token
 
+
 async def test_follow_user(service_client):
     user = User(bio=None, image=None)
 

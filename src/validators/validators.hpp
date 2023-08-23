@@ -1,8 +1,8 @@
 #pragma once
 
+#include "dto/article.hpp"
 #include "dto/comment.hpp"
 #include "dto/user.hpp"
-#include "dto/article.hpp"
 
 namespace real_medium::validator {
 
