@@ -142,7 +142,8 @@ void DumpMetric(utils::statistics::Writer& writer,
         {"http_error", Statistics::ToString(error_group)});
   }
 
-  writer["reply-statuses"] = stats.reply_status;
+  writer["reply-statuses"] =
+      utils::statistics::impl::HttpCodesAsGauge{stats.reply_status};
 
   writer["retries"] = stats.retries;
   writer["pending-requests"] = stats.easy_handles;

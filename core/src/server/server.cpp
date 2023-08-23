@@ -288,8 +288,10 @@ void ServerImpl::WriteTotalHandlerStatistics(
         main_port_info_.request_handler_->GetHandlerInfoIndex().GetHandlers();
 
     for (const auto handler_ptr : handlers) {
-      const auto& statistics = handler_ptr->GetHandlerStatistics().GetTotal();
-      total.Add(handlers::HttpHandlerStatisticsSnapshot{statistics});
+      for (const auto method : handler_ptr->GetAllowedMethods()) {
+        total.Add(handlers::HttpHandlerStatisticsSnapshot{
+            handler_ptr->GetHandlerStatistics().GetByMethod(method)});
+      }
     }
   }
 

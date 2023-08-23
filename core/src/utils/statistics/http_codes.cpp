@@ -19,12 +19,7 @@ bool IsForcedStatusCode(HttpCodes::Code status) noexcept {
 
 }  // namespace
 
-HttpCodes::HttpCodes() {
-  // TODO remove in C++20 after atomics value-initialization
-  for (auto& counter : codes_) {
-    counter.store(0, std::memory_order_relaxed);
-  }
-}
+HttpCodes::HttpCodes() = default;
 
 void HttpCodes::Account(Code code) noexcept {
   if (code < kMinHttpStatus || code >= kMaxHttpStatus) {
@@ -32,12 +27,12 @@ void HttpCodes::Account(Code code) noexcept {
                 << ", skipping statistics accounting";
     return;
   }
-  codes_[code - kMinHttpStatus].fetch_add(1, std::memory_order_relaxed);
+  ++codes_[code - kMinHttpStatus];
 }
 
 HttpCodes::Snapshot::Snapshot(const HttpCodes& other) noexcept {
   for (std::size_t i = 0; i < codes_.size(); ++i) {
-    codes_[i] = other.codes_[i].load(std::memory_order_relaxed);
+    codes_[i] = other.codes_[i].Load();
   }
 }
 
@@ -49,12 +44,26 @@ void HttpCodes::Snapshot::operator+=(const Snapshot& other) {
 
 void DumpMetric(Writer& writer, const HttpCodes::Snapshot& snapshot) {
   for (const auto& [base_code, count] : utils::enumerate(snapshot.codes_)) {
-    if (count != 0 || IsForcedStatusCode(base_code)) {
+    if (count || IsForcedStatusCode(base_code)) {
       const auto code = base_code + HttpCodes::kMinHttpStatus;
       writer.ValueWithLabels(count, {"http_code", std::to_string(code)});
     }
   }
 }
+
+namespace impl {
+
+void DumpMetric(Writer& writer, HttpCodesAsGauge as_gauge) {
+  for (const auto& [base_code, count] :
+       utils::enumerate(as_gauge.snapshot.codes_)) {
+    if (count || IsForcedStatusCode(base_code)) {
+      const auto code = base_code + HttpCodes::kMinHttpStatus;
+      writer.ValueWithLabels(count.value, {"http_code", std::to_string(code)});
+    }
+  }
+}
+
+}  // namespace impl
 
 static_assert(kHasWriterSupport<HttpCodes::Snapshot>);
 

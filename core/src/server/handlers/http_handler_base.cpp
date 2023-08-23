@@ -838,8 +838,7 @@ void HttpHandlerBase::CheckAuth(
 
 void HttpHandlerBase::CheckRatelimit(
     const http::HttpRequest& http_request) const {
-  auto& statistics = handler_statistics_->GetByMethod(http_request.GetMethod());
-  auto& total_statistics = handler_statistics_->GetTotal();
+  auto& statistics = handler_statistics_->ForMethod(http_request.GetMethod());
 
   const bool success = rate_limit_.Obtain();
   if (!success) {
@@ -854,7 +853,6 @@ void HttpHandlerBase::CheckRatelimit(
         std::string{
             USERVER_NAMESPACE::http::headers::ratelimit_reason::kGlobal});
     statistics.IncrementRateLimitReached();
-    total_statistics.IncrementRateLimitReached();
 
     throw ExceptionWithCode<HandlerErrorCode::kTooManyRequests>();
   }
@@ -872,7 +870,6 @@ void HttpHandlerBase::CheckRatelimit(
             USERVER_NAMESPACE::http::headers::ratelimit_reason::kInFlight});
 
     statistics.IncrementTooManyRequestsInFlight();
-    total_statistics.IncrementTooManyRequestsInFlight();
 
     throw ExceptionWithCode<HandlerErrorCode::kTooManyRequests>();
   }
@@ -957,14 +954,18 @@ std::string HttpHandlerBase::GetResponseDataForLoggingChecked(
 template <typename HttpStatistics>
 void HttpHandlerBase::FormatStatistics(utils::statistics::Writer result,
                                        const HttpStatistics& stats) {
-  result = stats.GetTotal();
+  using Snapshot = typename HttpStatistics::Snapshot;
+  Snapshot total;
 
-  if (IsMethodStatisticIncluded()) {
-    for (auto method : GetAllowedMethods()) {
-      result.ValueWithLabels(stats.GetByMethod(method),
-                             {"http_method", ToString(method)});
+  for (const auto method : GetAllowedMethods()) {
+    const Snapshot by_method{stats.GetByMethod(method)};
+    if (IsMethodStatisticIncluded()) {
+      result.ValueWithLabels(by_method, {"http_method", ToString(method)});
     }
+    total.Add(by_method);
   }
+
+  result = total;
 }
 
 void HttpHandlerBase::SetResponseAcceptEncoding(

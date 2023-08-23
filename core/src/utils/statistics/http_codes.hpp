@@ -1,12 +1,13 @@
 #pragma once
 
 #include <array>
-#include <atomic>
 #include <cstddef>
 #include <cstdint>
 #include <unordered_map>
 
 #include <userver/utils/statistics/fwd.hpp>
+#include <userver/utils/statistics/rate.hpp>
+#include <userver/utils/statistics/rate_counter.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -15,7 +16,6 @@ namespace utils::statistics {
 class HttpCodes final {
  public:
   using Code = int;
-  using Counter = std::uint64_t;
 
   static constexpr Code kMinHttpStatus = 100;
   static constexpr Code kMaxHttpStatus = 600;
@@ -28,9 +28,18 @@ class HttpCodes final {
   void Account(Code code) noexcept;
 
  private:
-  using ValueType = std::uint64_t;
-  std::array<std::atomic<ValueType>, kMaxHttpStatus - kMinHttpStatus> codes_{};
+  std::array<RateCounter, kMaxHttpStatus - kMinHttpStatus> codes_{};
 };
+
+namespace impl {
+
+struct HttpCodesAsGauge final {
+  const HttpCodes::Snapshot& snapshot;
+};
+
+void DumpMetric(Writer& writer, HttpCodesAsGauge as_gauge);
+
+}  // namespace impl
 
 class HttpCodes::Snapshot final {
  public:
@@ -45,7 +54,9 @@ class HttpCodes::Snapshot final {
   friend void DumpMetric(Writer& writer, const Snapshot& snapshot);
 
  private:
-  std::array<HttpCodes::ValueType, kMaxHttpStatus - kMinHttpStatus> codes_{};
+  friend void impl::DumpMetric(Writer& writer, impl::HttpCodesAsGauge as_gauge);
+
+  std::array<Rate, kMaxHttpStatus - kMinHttpStatus> codes_{};
 };
 
 }  // namespace utils::statistics
