@@ -6,7 +6,7 @@
 #include <optional>
 #include <string>
 #include <string_view>
-#include <unordered_set>
+#include <unordered_map>
 #include <vector>
 
 #include <userver/formats/json/value.hpp>
@@ -36,14 +36,14 @@ struct DigestContextFromClient {
   std::string username;
   std::string realm;
   std::string nonce;
-  std::string uri;  
+  std::string uri;
   std::string response;
   std::string algorithm;
   std::string cnonce;
   std::string opaque;
-  std::string qop;        
-  std::string nc;       
-  std::string authparam; 
+  std::string qop;
+  std::string nc;
+  std::string authparam;
 };
 
 /// Function to parse directive map into structure

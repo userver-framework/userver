@@ -4,7 +4,6 @@
 #include <userver/server/request/task_inherited_data.hpp>
 #include <userver/tracing/tags.hpp>
 #include <userver/ugrpc/client/impl/async_methods.hpp>
-#include <userver/utils/impl/userver_experiments.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -13,11 +12,6 @@ namespace ugrpc::client::middlewares::deadline_propagation {
 namespace {
 
 void UpdateDeadline(impl::RpcData& data) {
-  // Disable by experiment
-  if (!utils::impl::kGrpcClientDeadlinePropagationExperiment.IsEnabled()) {
-    return;
-  }
-
   // Disable by config
   if (!data.GetConfigValues().enforce_task_deadline) {
     return;

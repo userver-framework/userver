@@ -10,9 +10,8 @@ USERVER_NAMESPACE_BEGIN
 namespace storages::postgres {
 
 void CheckDeadlineIsExpired(const dynamic_config::Snapshot& config) {
-  if (!kDeadlinePropagationExperiment.IsEnabled() ||
-      config[kDeadlinePropagationVersionConfig] !=
-          kDeadlinePropagationExperimentVersion) {
+  if (config[kDeadlinePropagationVersionConfig] !=
+      kDeadlinePropagationExperimentVersion) {
     return;
   }
 

@@ -592,7 +592,7 @@ void ClusterSentinelImpl::Init() { topology_holder_->Init(); }
 
 void ClusterSentinelImpl::AsyncCommand(const SentinelCommand& scommand,
                                        size_t prev_instance_idx) {
-  if (!AdjustDeadline(scommand, dynamic_config_source_)) {
+  if (!AdjustDeadline(scommand)) {
     auto reply = std::make_shared<Reply>("", ReplyData::CreateNil());
     reply->status = ReplyStatus::kTimeoutError;
     InvokeCommand(scommand.command, std::move(reply));
@@ -696,7 +696,7 @@ void ClusterSentinelImpl::AsyncCommand(const SentinelCommand& scommand,
       false, !master));
 
   const auto topology = topology_holder_->GetTopology();
-  auto master_shard = topology->GetClusterShardByIndex(shard);
+  const auto& master_shard = topology->GetClusterShardByIndex(shard);
   if (!master_shard.AsyncCommand(command_check_errors)) {
     scommand.command->args = std::move(command_check_errors->args);
     AsyncCommandFailed(scommand);

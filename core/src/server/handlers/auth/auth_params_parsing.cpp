@@ -14,13 +14,12 @@ USERVER_NAMESPACE_BEGIN
 namespace server::handlers::auth {
 
 namespace {
-const std::array<std::string, 5> kMandatoryDirectives = {
+inline const std::array<std::string, 5> kMandatoryDirectives = {
     directives::kRealm, directives::kNonce, directives::kResponse,
     directives::kUri, directives::kUsername};
 }  // namespace
 
 void DigestParser::ParseAuthInfo(std::string_view header_value) {
-  // clang-format off
   enum class State {
     kStateSpace,
     kStateToken,
@@ -30,7 +29,7 @@ void DigestParser::ParseAuthInfo(std::string_view header_value) {
     kStateValueEscape,
     kStateComma,  // if Final then OK
   };
-  // clang-format on
+
   State state = State::kStateSpace;
   std::string token;
   std::string value;
@@ -44,8 +43,7 @@ void DigestParser::ParseAuthInfo(std::string_view header_value) {
         } else if (std::isspace(delimiter)) {
           // Skip
         } else
-          utils::LogErrorAndThrow(
-              "Invalid authentication information");
+          utils::LogErrorAndThrow("Invalid authentication information");
         break;
 
       case State::kStateToken:
@@ -122,7 +120,7 @@ void DigestParser::ParseAuthInfo(std::string_view header_value) {
 }
 
 DigestContextFromClient DigestParser::GetClientContext() {
-  // Only checking mandatory directives 
+  // Only checking mandatory directives
   // because according to RFC 2617,
   // "Any unrecognized directive MUST be ignored"
   for (const auto& dir : kMandatoryDirectives) {

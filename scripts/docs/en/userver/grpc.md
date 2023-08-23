@@ -18,9 +18,10 @@ See also:
 * Forwarding gRPC Core logs to userver logs
 * Caching and reusing connections (**TODO**)
 * Timeouts and retries of requests (**TODO**)
-* Collection of metrics on driver usage (**TODO**)
-* Cancellation support (**TODO**)
-* Automatic authentication (**TODO**)
+* Collection of metrics on driver usage
+* Cancellation support
+* Automatic authentication using middlewares
+* @ref scripts/docs/en/userver/deadline_propagation.md
 
 ## Installation
 

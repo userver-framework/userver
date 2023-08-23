@@ -7,17 +7,19 @@ pytest_plugins = ['pytest_userver.plugins.redis']
 
 
 @pytest.fixture(scope='session')
-def service_env(redis_sentinels, redis_cluster_sentinels):
-    cluster_shards = []
-    cluster_primary_count = len(redis_cluster_sentinels) // 2
-    for index in range(cluster_primary_count):
-        cluster_shards.append({'name': f'shard{index}'})
+def service_env(redis_sentinels, redis_cluster_nodes, redis_cluster_replicas):
+    cluster_shards = [
+        {'name': f'shard{idx}'}
+        for idx in range(
+            len(redis_cluster_nodes) // (redis_cluster_replicas + 1),
+        )
+    ]
 
     secdist_config = {
         'redis_settings': {
             'redis-cluster': {
                 'password': '',
-                'sentinels': redis_cluster_sentinels,
+                'sentinels': redis_cluster_nodes,
                 'shards': cluster_shards,
             },
             'redis-sentinel': {

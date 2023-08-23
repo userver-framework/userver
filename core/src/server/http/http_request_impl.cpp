@@ -281,8 +281,8 @@ void HttpRequestImpl::AccountResponseTime() {
   UASSERT(request_statistics_);
   auto timing = std::chrono::duration_cast<std::chrono::milliseconds>(
       finish_send_response_time_ - start_time_);
-  request_statistics_->Account(GetMethod(),
-                               handlers::HttpRequestStatisticsEntry{timing});
+  request_statistics_->ForMethod(GetMethod())
+      .Account(handlers::HttpRequestStatisticsEntry{timing});
 }
 
 void HttpRequestImpl::MarkAsInternalServerError() const {

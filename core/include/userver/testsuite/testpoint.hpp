@@ -64,7 +64,7 @@ USERVER_NAMESPACE_END
   do {                                                  \
     namespace tp = USERVER_NAMESPACE::testsuite::impl;  \
     if (!tp::IsTestpointEnabled(name)) break;           \
-    tp::TestpointScope tp_scope;                        \
+    const tp::TestpointScope tp_scope;                  \
     if (!tp_scope) break;                               \
     /* only evaluate 'json' if actually needed */       \
     tp_scope.GetClient().Execute(name, json, callback); \

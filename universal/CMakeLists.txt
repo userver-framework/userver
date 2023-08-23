@@ -73,12 +73,18 @@ get_filename_component(BASE_PREFIX "${CMAKE_SOURCE_DIR}/../" ABSOLUTE)
 file(TO_NATIVE_PATH "${CMAKE_SOURCE_DIR}/" SRC_LOG_PATH_BASE)
 file(TO_NATIVE_PATH "${CMAKE_BINARY_DIR}/" BIN_LOG_PATH_BASE)
 
+set(SRC_LOG_PATH_BASE "${SRC_LOG_PATH_BASE}/")
+set(BIN_LOG_PATH_BASE "${BIN_LOG_PATH_BASE}/")
+if (NOT BASE_PREFIX STREQUAL "/")
+  set(BASE_PREFIX "${BASE_PREFIX}/")
+endif()
+
 check_cxx_compiler_flag("-fmacro-prefix-map=a=b" USERVER_COMPILER_HAS_MACRO_PREFIX_MAP)
 if (USERVER_COMPILER_HAS_MACRO_PREFIX_MAP)
   target_compile_options(${PROJECT_NAME} PUBLIC
-    -fmacro-prefix-map=${SRC_LOG_PATH_BASE}/=
-    -fmacro-prefix-map=${BIN_LOG_PATH_BASE}/=
-    -fmacro-prefix-map=${BASE_PREFIX}/=
+    -fmacro-prefix-map=${SRC_LOG_PATH_BASE}=
+    -fmacro-prefix-map=${BIN_LOG_PATH_BASE}=
+    -fmacro-prefix-map=${BASE_PREFIX}=
   )
 else()
   target_compile_definitions(${PROJECT_NAME} PUBLIC

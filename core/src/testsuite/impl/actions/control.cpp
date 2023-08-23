@@ -34,15 +34,6 @@ formats::json::Value Control::Perform(
         testpoints.As<std::unordered_set<std::string>>());
   }
 
-  auto http_allowed_urls_extra =
-      request_body["http_allowed_urls_extra"]
-          .As<std::optional<std::vector<std::string>>>(
-              std::optional<std::vector<std::string>>{});
-  if (http_allowed_urls_extra) {
-    testsuite_support_.GetHttpAllowedUrlsExtra().SetAllowedUrlsExtra(
-        std::move(*http_allowed_urls_extra));
-  }
-
   const auto mock_now = request_body["mock_now"];
   if (!mock_now.IsMissing()) {
     const auto now = mock_now.As<std::optional<std::string>>();
@@ -50,16 +41,6 @@ formats::json::Value Control::Perform(
       utils::datetime::MockNowSet(utils::datetime::Stringtime(*now));
     } else {
       utils::datetime::MockNowUnset();
-    }
-  }
-
-  const auto socket_logging = request_body["socket_logging_duplication"];
-  if (!socket_logging.IsMissing()) {
-    auto enable = socket_logging.As<bool>();
-    if (enable) {
-      logging_component_.StartSocketLoggingDebug();
-    } else {
-      logging_component_.StopSocketLoggingDebug();
     }
   }
 
