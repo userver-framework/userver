@@ -52,7 +52,7 @@ struct UserData final {
   using HA1 = utils::NonLoggable<class HA1Tag, std::string>;
 
   UserData();
-  UserData(HA1 ha1, const std::string& nonce, TimePoint timestamp,
+  UserData(HA1 ha1, std::string nonce, TimePoint timestamp,
            std::int64_t nonce_count = 0);
 
   HA1 ha1;
@@ -94,20 +94,20 @@ class DigestCheckerBase : public AuthCheckerBase {
   /// create him with invalid data to avoids extra round trips for
   /// authentication challenges.
   virtual std::optional<UserData> FetchUserData(
-      const std::string& username) const = 0;
+      std::string_view username) const = 0;
 
   /// Sets user authentication data to storage.
-  virtual void SetUserData(const std::string& username,
-                           const std::string& nonce, std::int64_t nonce_count,
+  virtual void SetUserData(std::string_view username,
+                           std::string_view nonce, std::int64_t nonce_count,
                            TimePoint nonce_creation_time) const = 0;
 
   /// Pushes "nonce" not tied to username to "Nonce Pool".
-  virtual void PushUnnamedNonce(const std::string& nonce,
+  virtual void PushUnnamedNonce(std::string_view nonce,
                                 std::chrono::milliseconds nonce_ttl) const = 0;
 
   /// Returns "nonce" creation time from "Nonce Pool" if exists.
   virtual std::optional<TimePoint> GetUnnamedNonceCreationTime(
-      const std::string& nonce) const = 0;
+      std::string_view nonce) const = 0;
 
   /// @cond
   enum class ValidateResult {kOk, kWrongUserData, kDuplicateRequest};
@@ -125,15 +125,15 @@ class DigestCheckerBase : public AuthCheckerBase {
   std::string ConstructResponseDirectives(std::string_view nonce,
                                           bool stale) const;
 
-  AuthCheckResult StartNewAuthSession(const std::string& username,
-                                      const std::string& nonce_from_client,
+  AuthCheckResult StartNewAuthSession(std::string_view username,
+                                      std::string_view nonce_from_client,
                                       bool stale,
                                       http::HttpResponse& response) const;
 
   const std::string qops_;
   const std::string realm_;
   const std::string domains_;
-  const std::string& algorithm_;
+  std::string_view algorithm_;
   const bool is_session_;
   const bool is_proxy_;
   const std::chrono::milliseconds nonce_ttl_;

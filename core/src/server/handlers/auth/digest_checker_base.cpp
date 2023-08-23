@@ -34,9 +34,9 @@ constexpr std::string_view kProxyAuthenticationInfo =
 
 UserData::UserData() = default;
 
-UserData::UserData(HA1 ha1, const std::string& nonce, TimePoint timestamp,
+UserData::UserData(HA1 ha1, std::string nonce, TimePoint timestamp,
                    std::int64_t nonce_count)
-    : ha1(ha1), nonce(nonce), timestamp(timestamp), nonce_count(nonce_count) {}
+    : ha1(std::move(ha1)), nonce(std::move(nonce)), timestamp(timestamp), nonce_count(nonce_count) {}
 
 
 DigestHasher::DigestHasher(std::string_view algorithm) {
@@ -198,7 +198,7 @@ std::string DigestCheckerBase::ConstructAuthInfoHeader(
 }
 
 AuthCheckResult DigestCheckerBase::StartNewAuthSession(
-    const std::string& username, const std::string& nonce_from_client,
+    std::string_view username, std::string_view nonce_from_client,
     bool stale, http::HttpResponse& response) const {
   SetUserData(username, nonce_from_client, 0, utils::datetime::Now());
   response.SetStatus(unauthorized_status_);
@@ -235,9 +235,9 @@ std::string DigestCheckerBase::CalculateDigest(
   }
 
   auto a2 = fmt::format("{}:{}", ToString(request_method), client_context.uri);
-  std::string ha2 = digest_hasher_.GetHash(a2);
+  auto ha2 = digest_hasher_.GetHash(a2);
 
-  std::string request_digest = fmt::format(
+  auto request_digest = fmt::format(
       "{}:{}:{}:{}:{}:{}", ha1, client_context.nonce, client_context.nc,
       client_context.cnonce, client_context.qop, ha2);
   return digest_hasher_.GetHash(request_digest);
