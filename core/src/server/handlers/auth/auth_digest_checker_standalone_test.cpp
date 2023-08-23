@@ -97,12 +97,12 @@ UTEST_F(StandAloneCheckerTest, DirectiveSubstitution) {
   client_context_ = correct_client_context;
   EXPECT_EQ(checker_.ValidateUserData(client_context_, test_data), ValidateResult::kOk);
   client_context_.username = "Mubasa";
-  EXPECT_NE(checker_.ValidateUserData(client_context_, test_data), ValidateResult::kWrongUserData);
+  EXPECT_EQ(checker_.ValidateUserData(client_context_, test_data), ValidateResult::kWrongUserData);
   client_context_ = correct_client_context;
   utils::datetime::MockSleep(std::chrono::milliseconds(2));
   EXPECT_EQ(checker_.ValidateUserData(client_context_, test_data), ValidateResult::kOk);
-  utils::datetime::MockSleep(std::chrono::milliseconds(20));
-  EXPECT_NE(checker_.ValidateUserData(client_context_, test_data), ValidateResult::kWrongUserData);
+  utils::datetime::MockSleep(std::chrono::milliseconds(2000));
+  EXPECT_EQ(checker_.ValidateUserData(client_context_, test_data), ValidateResult::kWrongUserData);
 }
 
 UTEST_F(StandAloneCheckerTest, SessionLogic) {
@@ -116,7 +116,7 @@ UTEST_F(StandAloneCheckerTest, SessionLogic) {
   utils::datetime::MockSleep(std::chrono::milliseconds(2));
   EXPECT_EQ(checker_.ValidateUserData(client_context_, test_data), ValidateResult::kOk);
   utils::datetime::MockSleep(std::chrono::milliseconds(20));
-  EXPECT_NE(checker_.ValidateUserData(client_context_, test_data), ValidateResult::kWrongUserData);
+  EXPECT_EQ(checker_.ValidateUserData(client_context_, test_data), ValidateResult::kWrongUserData);
 }
 
 UTEST_F(StandAloneCheckerTest, NonceCountLogic) {
@@ -127,7 +127,7 @@ UTEST_F(StandAloneCheckerTest, NonceCountLogic) {
   // ждем ответа 
   UserData test_data(HA1(validHA1), valid_nonce, utils::datetime::Now());
   EXPECT_EQ(checker_.ValidateUserData(client_context_, test_data), ValidateResult::kOk);
-  EXPECT_EQ(checker_.ValidateUserData(client_context_, test_data), ValidateResult::kWrongUserData);
+  EXPECT_EQ(checker_.ValidateUserData(client_context_, test_data), ValidateResult::kDuplicateRequest);
   // increment nc because this will be second request with same nonce
   correct_client_context.nc = "00000002";
   client_context_ = correct_client_context;
