@@ -1,14 +1,11 @@
-#include <userver/cache/expirable_lru_cache.hpp>
+#include <userver/utest/utest.hpp>
 
+#include <userver/utils/datetime.hpp>
+#include <userver/utils/mock_now.hpp>
 #include <userver/server/handlers/auth/auth_digest_checker_standalone.hpp>
 #include <userver/server/handlers/auth/auth_params_parsing.hpp>
 #include <userver/server/handlers/auth/digest_context.hpp>
-
-#include <userver/utest/utest.hpp>
-
 #include <userver/server/handlers/auth/digest_checker_base.hpp>
-#include <userver/utils/datetime.hpp>
-#include <userver/utils/mock_now.hpp>
 
 #include <exception>
 #include <string_view>
@@ -108,7 +105,6 @@ UTEST_F(StandAloneCheckerTest, NonceCount) {
 }
 
 UTEST_F(StandAloneCheckerTest, InvalidNonce) {
-  checker_.PushUnnamedNonce(valid_nonce, {});
   auto invalid_nonce = "abc88743bacdf9238";
   UserData test_data(HA1(validHA1), invalid_nonce, utils::datetime::Now());
   EXPECT_EQ(checker_.ValidateUserData(client_context_, test_data), ValidateResult::kWrongUserData);

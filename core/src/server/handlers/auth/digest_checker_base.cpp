@@ -167,14 +167,12 @@ AuthCheckResult DigestCheckerBase::CheckAuth(const http::HttpRequest& request,
 DigestCheckerBase::ValidateResult DigestCheckerBase::ValidateUserData(
     const DigestContextFromClient& client_context,
     const UserData& user_data) const {
-      LOG_DEBUG() << "user data nonce: " << user_data.nonce << "client_context nonce: " << client_context.nonce << "\n";
   bool are_nonces_equal = crypto::algorithm::AreStringsEqualConstTime(
       user_data.nonce, client_context.nonce);
   if (!are_nonces_equal) {
     // "nonce" may be in temporary storage.
     auto nonce_creation_time =
         GetUnnamedNonceCreationTime(client_context.nonce);
-    LOG_DEBUG() << "Client_context creation time: " << nonce_creation_time << "\n";
     if (!nonce_creation_time.has_value()) {
       LOG_WARNING() << "Nonces aren't equal and no equivalent nonce found in \"nonce pool\".";
       return ValidateResult::kWrongUserData;
@@ -182,9 +180,8 @@ DigestCheckerBase::ValidateResult DigestCheckerBase::ValidateUserData(
 
     SetUserData(client_context.username, client_context.nonce, 0,
                 nonce_creation_time.value());
+    return ValidateResult::kWrongUserData;
   }
-  LOG_DEBUG() << "Nonce creation time: " << user_data.timestamp << "\n";
-  LOG_DEBUG() << "Nonce creation time: " << userver::utils::datetime::Now() << "\n";
   bool is_nonce_expired =
       user_data.timestamp + nonce_ttl_ < userver::utils::datetime::Now();
   if (is_nonce_expired) {
