@@ -98,6 +98,84 @@ TEST(Text, SplitSV) {
   }
 }
 
+TEST(Text, SplitStringViewMultiple) {
+  {
+    /// [SplitStringViewMultiple]
+    std::string input = "1,22#333";
+    std::vector<std::string_view> tokens =
+        utils::text::SplitIntoStringViewVector(input, "#,");
+    ASSERT_EQ(tokens.size(), 3);
+    EXPECT_EQ(tokens[0], "1");
+    EXPECT_EQ(tokens[1], "22");
+    EXPECT_EQ(tokens[2], "333");
+    /// [SplitStringViewMultiple]
+    ASSERT_EQ(input.data(), tokens[0].data());
+  }
+  {
+    std::string input;
+    std::vector<std::string_view> tokens =
+        utils::text::SplitIntoStringViewVector(input, ",#");
+    ASSERT_EQ(tokens.size(), 1);
+  }
+  {
+    std::string input = ",";
+    std::vector<std::string_view> tokens =
+        utils::text::SplitIntoStringViewVector(input, "#,");
+    ASSERT_EQ(tokens.size(), 2);
+  }
+  {
+    std::string input = ",#";
+    std::vector<std::string_view> tokens =
+        utils::text::SplitIntoStringViewVector(input, "#,");
+    ASSERT_EQ(tokens.size(), 3);
+  }
+  {
+    std::string input = "#0,";
+    std::vector<std::string_view> tokens =
+        utils::text::SplitIntoStringViewVector(input, ",#");
+    ASSERT_EQ(tokens.size(), 3);
+    EXPECT_EQ(tokens[0], "");
+    EXPECT_EQ(tokens[1], "0");
+    EXPECT_EQ(tokens[2], "");
+  }
+}
+
+TEST(Text, SplitMultiple) {
+  {
+    /// [SplitMultiple]
+    std::string input = "1,22#333";
+    auto tokens = utils::text::Split(input, "#,");
+    ASSERT_EQ(tokens.size(), 3);
+    EXPECT_EQ(tokens[0], "1");
+    EXPECT_EQ(tokens[1], "22");
+    EXPECT_EQ(tokens[2], "333");
+    /// [SplitMultiple]
+  }
+  {
+    std::string input;
+    auto tokens = utils::text::SplitIntoStringViewVector(input, ",#");
+    ASSERT_EQ(tokens.size(), 1);
+  }
+  {
+    std::string input = ",";
+    auto tokens = utils::text::SplitIntoStringViewVector(input, "#,");
+    ASSERT_EQ(tokens.size(), 2);
+  }
+  {
+    std::string input = ",#";
+    auto tokens = utils::text::SplitIntoStringViewVector(input, "#,");
+    ASSERT_EQ(tokens.size(), 3);
+  }
+  {
+    std::string input = "#0,";
+    auto tokens = utils::text::SplitIntoStringViewVector(input, ",#");
+    ASSERT_EQ(tokens.size(), 3);
+    EXPECT_EQ(tokens[0], "");
+    EXPECT_EQ(tokens[1], "0");
+    EXPECT_EQ(tokens[2], "");
+  }
+}
+
 TEST(TestIsAscii, IsAscii) {
   EXPECT_TRUE(utils::text::IsAscii("valid ascii"));
 

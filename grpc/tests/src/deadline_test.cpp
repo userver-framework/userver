@@ -9,7 +9,6 @@
 #include <userver/engine/task/task_with_result.hpp>
 #include <userver/server/request/task_inherited_data.hpp>
 #include <userver/utils/algo.hpp>
-#include <userver/utils/impl/userver_experiments.hpp>
 
 #include <ugrpc/client/impl/client_configs.hpp>
 #include <ugrpc/client/middlewares/deadline_propagation/middleware.hpp>
@@ -139,10 +138,6 @@ class GrpcDeadlinePropagation
         long_deadline_(engine::Deadline::FromDuration(tests::kLongTimeout)),
         client_(MakeClient<ClientType>()) {
     tests::InitTaskInheritedDeadline(client_deadline_);
-    experiments_.Set(utils::impl::kGrpcClientDeadlinePropagationExperiment,
-                     true);
-    experiments_.Set(utils::impl::kGrpcServerDeadlinePropagationExperiment,
-                     true);
   }
 
   ClientType& Client() { return client_; }
@@ -160,7 +155,6 @@ class GrpcDeadlinePropagation
   engine::Deadline client_deadline_;
   engine::Deadline long_deadline_;
   ClientType client_;
-  utils::impl::UserverExperimentsScope experiments_;
 };
 
 }  // namespace
@@ -365,17 +359,12 @@ class GrpcTestClientNotSendData
  public:
   using ClientType = sample::ugrpc::UnitTestServiceClient;
 
-  GrpcTestClientNotSendData() : client_(MakeClient<ClientType>()) {
-    experiments_.Set(utils::impl::kGrpcClientDeadlinePropagationExperiment,
-                     true);
-    experiments_.Set(utils::impl::kGrpcServerDeadlinePropagationExperiment,
-                     true);
-  }
+  GrpcTestClientNotSendData() : client_(MakeClient<ClientType>()) {}
+
   ClientType& Client() { return client_; }
 
  private:
   ClientType client_;
-  utils::impl::UserverExperimentsScope experiments_;
 };
 
 }  // namespace

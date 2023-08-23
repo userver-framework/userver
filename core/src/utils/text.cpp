@@ -90,11 +90,11 @@ std::string Format(double value, int ndigits) {
   return res.str();
 }
 
-bool StartsWith(std::string_view hay, std::string_view needle) {
+bool StartsWith(std::string_view hay, std::string_view needle) noexcept {
   return hay.substr(0, needle.size()) == needle;
 }
 
-bool EndsWith(std::string_view hay, std::string_view needle) {
+bool EndsWith(std::string_view hay, std::string_view needle) noexcept {
   return hay.size() >= needle.size() &&
          hay.substr(hay.size() - needle.size()) == needle;
 }

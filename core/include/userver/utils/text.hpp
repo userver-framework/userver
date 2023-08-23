@@ -23,12 +23,19 @@ std::string Trim(const std::string& str);
 /// Trim string in-place.
 std::string Trim(std::string&& str);
 
-/// Split string
-std::vector<std::string> Split(std::string_view str, std::string_view sep);
+/// Split string by separators
+///
+/// @snippet utils/text_test.cpp  SplitMultiple
+std::vector<std::string> Split(std::string_view str,
+                               std::string_view separators);
 
-/// Split string
-std::vector<std::string_view> SplitIntoStringViewVector(std::string_view str,
-                                                        std::string_view sep);
+/// Split string by separators and return a non-owning container of chunks.
+///
+/// @warning Initial `str` should outlive the result of the function
+///
+/// @snippet utils/text_test.cpp  SplitStringViewMultiple
+std::vector<std::string_view> SplitIntoStringViewVector(
+    std::string_view str, std::string_view separators);
 
 /// Join string
 std::string Join(const std::vector<std::string>& strs, std::string_view sep);
@@ -44,10 +51,10 @@ std::string Format(double value, int ndigits);
 std::string Format(boost::multiprecision::cpp_dec_float_50 value, int ndigits);
 
 /// Return true if `hay` starts with `needle`, false otherwise.
-bool StartsWith(std::string_view hay, std::string_view needle);
+bool StartsWith(std::string_view hay, std::string_view needle) noexcept;
 
 /// Return true if `hay` ends with `needle`, false otherwise.
-bool EndsWith(std::string_view hay, std::string_view needle);
+bool EndsWith(std::string_view hay, std::string_view needle) noexcept;
 
 /// Transform letters to lower case
 std::string ToLower(std::string_view str,

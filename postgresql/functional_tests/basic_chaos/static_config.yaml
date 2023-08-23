@@ -83,4 +83,3 @@ components_manager:
 
 userver_experiments:
   - pg-connection-pipeline-enabled
-  - pg-deadline-propagation

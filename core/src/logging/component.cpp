@@ -220,6 +220,7 @@ logging::LoggerPtr Logging::GetLoggerOptional(const std::string& name) {
 
 void Logging::StartSocketLoggingDebug() {
   UASSERT(socket_sink_);
+  logging::LogFlush();
   socket_sink_->SetLevel(logging::Level::kTrace);
 }
 

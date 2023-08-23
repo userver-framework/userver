@@ -46,15 +46,11 @@ async def test_engine_metrics(service_client, monitor_client):
     assert (
         metrics_dict.value_at(
             'http.handler.in-flight',
-            labels={'http_path': '/ping', 'http_handler': 'handler-ping'},
-        )
-        == 0
-    )
-
-    assert (
-        metrics_dict.value_at(
-            'http.handler.in-flight',
-            labels={'http_handler': 'handler-ping', 'http_path': '/ping'},
+            labels={
+                'http_path': '/ping',
+                'http_handler': 'handler-ping',
+                'version': '2',
+            },
         )
         == 0
     )

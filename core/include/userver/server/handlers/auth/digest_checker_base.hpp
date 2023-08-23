@@ -31,13 +31,13 @@ class DigestHasher final {
  public:
   /// Constructor from the hash algorithm name from "crypto" namespace.
   /// Subsequently, all methods of the class will use this algorithm for
-  /// encryption.
+  /// hashing.
   DigestHasher(std::string_view algorithm);
 
   /// Returns "nonce" directive value in hexadecimal format.
   std::string GenerateNonce() const;
 
-  /// Returns data encrypted according to the specified in constructor
+  /// Returns data hashed according to the specified in constructor
   /// algorithm.
   std::string GetHash(std::string_view data) const;
 
@@ -51,7 +51,6 @@ class DigestHasher final {
 struct UserData final {
   using HA1 = utils::NonLoggable<class HA1Tag, std::string>;
 
-  UserData();
   UserData(HA1 ha1, std::string nonce, TimePoint timestamp,
            std::int64_t nonce_count = 0);
 
@@ -97,8 +96,8 @@ class DigestCheckerBase : public AuthCheckerBase {
       const std::string& username) const = 0;
 
   /// Sets user authentication data to storage.
-  virtual void SetUserData(std::string username, std::string nonce,
-                           std::int64_t nonce_count,
+  virtual void SetUserData(const std::string& username,
+                           const std::string& nonce, std::int64_t nonce_count,
                            TimePoint nonce_creation_time) const = 0;
 
   /// Pushes "nonce" not tied to username to "Nonce Pool".

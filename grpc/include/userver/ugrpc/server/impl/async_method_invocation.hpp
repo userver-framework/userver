@@ -34,6 +34,9 @@ class RpcFinishedEvent final : public ugrpc::impl::EventBase {
   engine::SingleUseEvent event_;
 };
 
+ugrpc::impl::AsyncMethodInvocation::WaitStatus Wait(
+    ugrpc::impl::AsyncMethodInvocation& async);
+
 }  // namespace ugrpc::server::impl
 
 USERVER_NAMESPACE_END
