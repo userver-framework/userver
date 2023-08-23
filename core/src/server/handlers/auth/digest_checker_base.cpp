@@ -121,6 +121,7 @@ AuthCheckResult DigestCheckerBase::CheckAuth(const http::HttpRequest& request,
   } catch(std::runtime_error& ex) {
     response.SetStatus(http::HttpStatus::kBadRequest);
     LOG_WARNING() << "Missing mandatory directives or wrong authentication header format.";
+    throw handlers::ClientError();
   }
 
   // Check if user have been registred.
@@ -220,7 +221,6 @@ AuthCheckResult DigestCheckerBase::StartNewAuthSession(
   
   SetUserData(std::move(username), std::move(nonce), 0, utils::datetime::Now());
 
-  LOG_WARNING() << "User is not registred.";
   return AuthCheckResult{AuthCheckResult::Status::kInvalidToken};
 }
 
