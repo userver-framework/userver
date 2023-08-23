@@ -45,9 +45,9 @@ userver::formats::json::Value Handler::HandleRequestJsonThrow(
   }
 
   userver::formats::json::ValueBuilder builder;
-  builder["article"] = real_medium::dto::Article::Parse(
+  builder["article"] =
       get_article_res
-          .AsSingleRow<real_medium::models::TaggedArticleWithProfile>());
+          .AsSingleRow<real_medium::models::TaggedArticleWithProfile>();
   return builder.ExtractValue();
 }
 

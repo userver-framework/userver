@@ -37,7 +37,7 @@ async def test_delete_article(service_client):
     assert response.status == HTTPStatus.OK
 
     user_token = get_user_token(response)
-    
+
     profile = Profile(user)
     article = Article(profile)
     response = await create_article(service_client, article, user_token)
@@ -84,4 +84,4 @@ async def test_invalid_access_delete_article(service_client):
     assert response.status == HTTPStatus.OK
 
     response = await delete_article(service_client, article, get_user_token(response))
-    assert response.status == HTTPStatus.FORBIDDEN 
+    assert response.status == HTTPStatus.FORBIDDEN

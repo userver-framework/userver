@@ -24,16 +24,16 @@
 #include "handlers/users/users.hpp"
 #include "handlers/users/users_login.hpp"
 
+#include "handlers/articles/articles_favorite.hpp"
+#include "handlers/articles/articles_get.hpp"
 #include "handlers/articles/articles_post.hpp"
+#include "handlers/articles/articles_slug_delete.hpp"
 #include "handlers/articles/articles_slug_get.hpp"
 #include "handlers/articles/articles_slug_put.hpp"
-#include "handlers/articles/articles_slug_delete.hpp"
-#include "handlers/articles/articles_get.hpp"
-#include "handlers/articles/feed_articles.hpp"
-#include "handlers/articles/articles_favorite.hpp"
 #include "handlers/articles/articles_unfavorite.hpp"
 #include "cache/articles_cache.hpp"
 #include "cache/comments_cache.hpp"
+#include "handlers/articles/feed_articles.hpp"
 
 using namespace real_medium::handlers;
 
@@ -68,8 +68,7 @@ int main(int argc, char* argv[]) {
           .Append<real_medium::handlers::articles_slug::put::Handler>()
           .Append<real_medium::handlers::articles_slug::del::Handler>()
           .Append<real_medium::handlers::articles_favorite::post::Handler>()
-          .Append<real_medium::handlers::articles_favorite::del::Handler>()
-      ;
+          .Append<real_medium::handlers::articles_favorite::del::Handler>();
 
   real_medium::handlers::users_login::post::AppendLoginUser(component_list);
 

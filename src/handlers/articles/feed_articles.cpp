@@ -5,6 +5,7 @@
 #include "dto/article.hpp"
 #include "dto/filter.hpp"
 #include "models/article.hpp"
+#include "utils/errors.hpp"
 
 namespace real_medium::handlers::articles::feed::get {
 

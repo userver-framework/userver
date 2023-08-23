@@ -21,15 +21,14 @@ Handler::Handler(const userver::components::ComponentConfig& config,
                  const userver::components::ComponentContext& component_context)
     : HttpHandlerJsonBase(config, component_context),
       pg_cluster_(component_context
-                   .FindComponent<userver::components::Postgres>(
-                       "realmedium-database")
-                   .GetCluster()) {}
+                      .FindComponent<userver::components::Postgres>(
+                          "realmedium-database")
+                      .GetCluster()) {}
 
 userver::formats::json::Value Handler::HandleRequestJsonThrow(
     const userver::server::http::HttpRequest& request,
     const userver::formats::json::Value&,
     userver::server::request::RequestContext& context) const {
-
   auto user_id = context.GetData<std::optional<std::string>>("id");
   const auto& username = request.GetPathArg("username");
   if (username.empty()) {
@@ -37,30 +36,34 @@ userver::formats::json::Value Handler::HandleRequestJsonThrow(
     response.SetStatus(userver::server::http::HttpStatus::kNotFound);
     return utils::error::MakeError("username", "It is null.");
   }
-  
-  const auto res_find_id_username = pg_cluster_->Execute(
-      userver::storages::postgres::ClusterHostType::kSlave, sql::kFindUserIDByUsername.data(), username);
+
+  const auto res_find_id_username =
+      pg_cluster_->Execute(userver::storages::postgres::ClusterHostType::kSlave,
+                           sql::kFindUserIDByUsername.data(), username);
   if (res_find_id_username.IsEmpty()) {
     auto& response = request.GetHttpResponse();
     response.SetStatus(userver::server::http::HttpStatus::kNotFound);
-    return utils::error::MakeError("username", "There is no user with this nickname.");
+    return utils::error::MakeError("username",
+                                   "There is no user with this nickname.");
   }
 
   std::string username_id = res_find_id_username.AsSingleRow<std::string>();
-  
-  if(username_id == user_id){
+
+  if (username_id == user_id) {
     auto& response = request.GetHttpResponse();
     response.SetStatus(userver::server::http::HttpStatus::kBadRequest);
-    return utils::error::MakeError("username", "Username is author of the request.");
+    return utils::error::MakeError("username",
+                                   "Username is author of the request.");
   }
 
-  const auto res_following = pg_cluster_->Execute(
-      userver::storages::postgres::ClusterHostType::kSlave, sql::KFollowingUser.data(), username_id, user_id);
-  
+  const auto res_following =
+      pg_cluster_->Execute(userver::storages::postgres::ClusterHostType::kSlave,
+                           sql::KFollowingUser.data(), username_id, user_id);
 
-  const auto profile = res_following.AsSingleRow<real_medium::models::Profile>(userver::storages::postgres::kRowTag);
-  
-  if(!profile.isFollowing){
+  const auto profile = res_following.AsSingleRow<real_medium::models::Profile>(
+      userver::storages::postgres::kRowTag);
+
+  if (!profile.isFollowing) {
     auto& response = request.GetHttpResponse();
     response.SetStatus(userver::server::http::HttpStatus::kBadRequest);
     return utils::error::MakeError("user_id", "has already followed");

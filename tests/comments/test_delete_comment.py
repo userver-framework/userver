@@ -6,6 +6,7 @@ from models import User, Profile, Article, Comment, CommentList
 from validators import validate_comments
 from utils import get_user_token
 
+
 async def test_delete_self_comment(service_client):
     user = User(bio=None, image=None)
     response = await register_user(service_client, user)
@@ -25,6 +26,7 @@ async def test_delete_self_comment(service_client):
     assert response.status == HTTPStatus.OK
 
     commentList = CommentList(0)
+    await service_client.invalidate_caches()
     response = await get_comments(service_client, article, user_token)
     assert response.status == HTTPStatus.OK
     assert validate_comments(commentList, response)
@@ -54,6 +56,7 @@ async def test_delete_not_self_comment(service_client):
     assert response.status == HTTPStatus.FORBIDDEN
 
     commentList = CommentList(init_comments=[comment])
+    await service_client.invalidate_caches()
     response = await get_comments(service_client, article, user_token)
     assert response.status == HTTPStatus.OK
     assert validate_comments(commentList, response)

@@ -1,7 +1,7 @@
 #pragma once
 
-#include <string>
 #include <optional>
+#include <string>
 #include <userver/formats/json/value.hpp>
 #include <userver/formats/json/value_builder.hpp>
 
@@ -18,4 +18,4 @@ userver::formats::json::Value Serialize(
     const Profile& dto,
     userver::formats::serialize::To<userver::formats::json::Value>);
 
-}  // namespace realmedium::dto
+}  // namespace real_medium::dto

@@ -91,6 +91,9 @@ add_library(${PROJECT_NAME}_objs OBJECT
 		src/handlers/articles/articles_unfavorite.hpp
 		src/dto/filter.hpp
 		src/dto/filter.cpp
+		src/validators/validators.cpp
+        src/validators/article_validators.cpp
+        src/validators/article_validators.hpp
 
 )
 
@@ -112,6 +115,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE ${PROJECT_NAME}_objs)
 # Unit Tests
 add_executable(${PROJECT_NAME}_unittest
 	src/utils/slugify_test.cpp
+	src/validators/validator_test.cpp
 )
 
 target_link_libraries(${PROJECT_NAME}_unittest PRIVATE ${PROJECT_NAME}_objs userver-utest)

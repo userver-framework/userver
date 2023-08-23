@@ -7,8 +7,9 @@
 #include "db/sql.hpp"
 #include "dto/user.hpp"
 #include "models/user.hpp"
+#include "utils/errors.hpp"
 #include "utils/make_error.hpp"
-#include "validators/user_validators.hpp"
+#include "validators/validators.hpp"
 
 namespace real_medium::handlers::users::post {
 
@@ -25,23 +26,20 @@ userver::formats::json::Value RegisterUser::HandleRequestJsonThrow(
     const userver::server::http::HttpRequest& request,
     const userver::formats::json::Value& request_json,
     userver::server::request::RequestContext& context) const {
-  auto user_register =
-      userver::formats::json::FromString(request.RequestBody())["user"]
-          .As<dto::UserRegistrationDTO>();
+  dto::UserRegistrationDTO user_register =
+      request_json["user"].As<dto::UserRegistrationDTO>();
+  ;
 
-  if (!validators::ValidateEmail(user_register.email)) {
-    auto& response = request.GetHttpResponse();
-    response.SetStatus(userver::server::http::HttpStatus::kUnprocessableEntity);
-    return utils::error::MakeError("email", "Wrong email entered");
+  try {
+    validator::validate(user_register);
+  } catch (const utils::error::ValidationException& err) {
+    request.SetResponseStatus(
+        userver::server::http::HttpStatus::kUnprocessableEntity);
+    return err.GetDetails();
   }
 
-  if (!validators::ValidatePassword(user_register.password)) {
-    auto& response = request.GetHttpResponse();
-    response.SetStatus(userver::server::http::HttpStatus::kUnprocessableEntity);
-    return utils::error::MakeError("password", "Wrong password entered");
-  }
-
-  auto hash_password = userver::crypto::hash::Sha256(user_register.password);
+  auto hash_password =
+      userver::crypto::hash::Sha256(user_register.password.value());
   models::User result_user;
   try {
     auto query_result = pg_cluster_->Execute(

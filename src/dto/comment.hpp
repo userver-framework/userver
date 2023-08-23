@@ -21,7 +21,7 @@ struct Comment final{
 };
 
 struct AddComment {
-  std::string body;
+  std::optional<std::string> body;
 };
 
 AddComment Parse(const userver::formats::json::Value& json,

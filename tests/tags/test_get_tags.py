@@ -17,7 +17,7 @@ async def test_get_tags(service_client):
 
     articleList = ArticleList(10, Profile(user))
     tags = set()
-    for article in articleList.articles:        
+    for article in articleList.articles:
         response = await create_article(service_client, article, user_token)
         assert response.status == HTTPStatus.OK
         print(article.tagList)

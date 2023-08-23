@@ -32,7 +32,7 @@ userver::formats::json::Value Serialize(
 AddComment Parse(const userver::formats::json::Value& json,
                     userver::formats::parse::To<AddComment>) {
   return AddComment{
-      json["body"].As<std::string>(),
+      json["body"].As<std::optional<std::string>>()
   };
 }
 
