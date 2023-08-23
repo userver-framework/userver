@@ -34,6 +34,8 @@ class HttpClientHandler final : public server::handlers::HttpHandlerBase {
     const auto& port_string = request.GetArg("port");
     const auto& timeout_string = request.GetArg("timeout");
     const auto& attempts_string = request.GetArg("attempts");
+    const auto& retry_network_errors_string =
+        request.GetArg("retry_network_errors");
 
     const auto port = utils::FromString<std::uint16_t>(port_string);
     const auto timeout =
@@ -45,13 +47,16 @@ class HttpClientHandler final : public server::handlers::HttpHandlerBase {
     const auto attempts = attempts_string.empty()
                               ? short{1}
                               : utils::FromString<short>(attempts_string);
+    const auto retry_network_errors =
+        retry_network_errors_string.empty() ||
+        static_cast<bool>(utils::FromString<int>(retry_network_errors_string));
 
     if (type == "common") {
       auto url = fmt::format("http://localhost:{}/test", port);
       auto response = client_.CreateRequest()
                           .get(url)  //
                           .timeout(timeout)
-                          .retry(attempts)
+                          .retry(attempts, retry_network_errors)
                           .perform();
       response->raise_for_status();
       return response->body();
