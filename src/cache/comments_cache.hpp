@@ -32,7 +32,7 @@ struct CommentCachePolicy {
   using CacheContainer = CommentsCacheContainer;
   static constexpr auto kKeyMember = &real_medium::models::CachedComment::id;
   static userver::storages::postgres::Query kQuery;
-  static constexpr auto kUpdatedField = "Comments::updated_at";
+  static constexpr auto kUpdatedField = "c.updated_at";
   using UpdatedFieldType = userver::storages::postgres::TimePointTz;
 };
 
