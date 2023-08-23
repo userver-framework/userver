@@ -147,7 +147,7 @@ AuthCheckResult DigestCheckerBase::CheckAuth(const http::HttpRequest& request,
   // Check if user have been registred.
   auto user_data_opt = FetchUserData(client_context.username);
   if (!user_data_opt.has_value()) {
-    LOG_WARNING() << "User is not registred.";
+    LOG_WARNING() << "username not registred.";
     return AuthCheckResult{AuthCheckResult::Status::kForbidden};
   }
 

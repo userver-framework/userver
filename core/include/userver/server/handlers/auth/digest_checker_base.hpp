@@ -96,7 +96,7 @@ class DigestCheckerBase : public AuthCheckerBase {
       const std::string& username) const = 0;
 
   /// Sets user authentication data to storage.
-  virtual void SetUserData(std::string username, std::string nonce,
+  virtual void SetUserData(const std::string& username, const std::string& nonce,
                            std::int64_t nonce_count,
                            TimePoint nonce_creation_time) const = 0;
 
