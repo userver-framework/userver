@@ -101,9 +101,8 @@ BEGIN
                 real_medium.article_tag AS at
                 INNER JOIN real_medium.tag_list AS t ON t.tag_id = at.tag_id
         WHERE
-                article_id = _article_id
-        ORDER BY
-                t.tag_name ASC;
+                article_id = _article_id;
+
 END;
 $$
 LANGUAGE plpgsql;
@@ -290,8 +289,7 @@ WHERE
                         real_medium.followers
                 WHERE
                         follower_user_id = _user_id)
-ORDER BY
-        created_at DESC
+ORDER BY created_at desc
 LIMIT _limit OFFSET _offset;
 END;
 $$
@@ -401,10 +399,10 @@ WHERE(_tag IS NULL
                                         INNER JOIN real_medium.favorites USING(user_id)
                                 WHERE
                                         username = _favorited))
-        ORDER BY
-                created_at DESC
         LIMIT _limit OFFSET _offset;
 END;
 $$
 LANGUAGE plpgsql;
 
+CREATE INDEX IF NOT EXISTS idx_createdat ON real_medium.articles(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_tagname ON real_medium.tag_list(tag_name);
