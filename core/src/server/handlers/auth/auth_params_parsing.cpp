@@ -14,11 +14,12 @@ USERVER_NAMESPACE_BEGIN
 namespace server::handlers::auth {
 
 namespace {
-inline const std::array<std::string, 5> kMandatoryDirectives = {
+// clang-format off
+const std::array<std::string, 5> kMandatoryDirectives = {
     directives::kRealm, directives::kNonce, directives::kResponse,
     directives::kUri, directives::kUsername};
 }  // namespace
-
+// clang-format on
 void DigestParser::ParseAuthInfo(std::string_view header_value) {
   enum class State {
     kStateSpace,
