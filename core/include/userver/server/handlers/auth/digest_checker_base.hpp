@@ -94,7 +94,7 @@ class DigestCheckerBase : public AuthCheckerBase {
   /// create him with invalid data to avoids extra round trips for
   /// authentication challenges.
   virtual std::optional<UserData> FetchUserData(
-      std::string_view username) const = 0;
+      const std::string& username) const = 0;
 
   /// Sets user authentication data to storage.
   virtual void SetUserData(std::string username,
@@ -107,7 +107,7 @@ class DigestCheckerBase : public AuthCheckerBase {
 
   /// Returns "nonce" creation time from "Nonce Pool" if exists.
   virtual std::optional<TimePoint> GetUnnamedNonceCreationTime(
-      std::string_view nonce) const = 0;
+      const std::string& nonce) const = 0;
 
   /// @cond
   enum class ValidateResult {kOk, kWrongUserData, kDuplicateRequest};
