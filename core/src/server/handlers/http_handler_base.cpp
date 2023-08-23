@@ -40,7 +40,6 @@
 #include <userver/utils/fast_scope_guard.hpp>
 #include <userver/utils/from_string.hpp>
 #include <userver/utils/graphite.hpp>
-#include <userver/utils/impl/userver_experiments.hpp>
 #include <userver/utils/log.hpp>
 #include <userver/utils/overloaded.hpp>
 #include <userver/utils/scope_guard.hpp>
@@ -331,15 +330,6 @@ struct DeadlinePropagationContext final {
   bool is_cancelled_by_deadline{false};
 };
 
-constexpr std::string_view kDeadlinePropagationStep =
-    "check_deadline_propagation";
-
-utils::impl::UserverExperiment handler_cancel_on_immediate_deadline_expiration{
-    "handler-cancel-on-immediate-deadline-expiration", true};
-
-utils::impl::UserverExperiment handler_override_response_on_deadline{
-    "handler-override-response-on-deadline", true};
-
 void HandleDeadlineExpired(RequestProcessor& processor,
                            DeadlinePropagationContext& dp_context,
                            std::string internal_message) {
@@ -387,8 +377,7 @@ void SetUpInheritedDeadline(RequestProcessor& processor,
       processor.GetRequest().GetStartTime() + *timeout);
   inherited_data.deadline = deadline;
 
-  if (handler_cancel_on_immediate_deadline_expiration.IsEnabled() &&
-      deadline.IsSurelyReachedApprox()) {
+  if (deadline.IsSurelyReachedApprox()) {
     HandleDeadlineExpired(processor, dp_context,
                           "Immediate timeout (deadline propagation)");
     return;
@@ -432,13 +421,13 @@ void CompleteDeadlinePropagation(RequestProcessor& processor,
   const bool cancelled_by_deadline =
       engine::current_task::CancellationReason() ==
           engine::TaskCancellationReason::kDeadline ||
+      inherited_data.deadline_signal.IsExpired() ||
       inherited_data.deadline.IsReached();
 
   auto& span = tracing::Span::CurrentSpan();
   span.AddNonInheritableTag("cancelled_by_deadline", cancelled_by_deadline);
 
-  if (handler_override_response_on_deadline.IsEnabled() &&
-      cancelled_by_deadline && !dp_context.is_cancelled_by_deadline) {
+  if (cancelled_by_deadline && !dp_context.is_cancelled_by_deadline) {
     const auto& original_body = response.GetData();
     if (!original_body.empty() && span.ShouldLogDefault()) {
       span.AddNonInheritableTag("dp_original_body_size", original_body.size());
@@ -678,7 +667,7 @@ void HttpHandlerBase::HandleRequest(request::RequestBase& request,
         [this, &http_request] { CheckRatelimit(http_request); });
 
     request_processor.ProcessRequestStepNoScopeTime(
-        kDeadlinePropagationStep, [&request_processor, &dp_context] {
+        "check_deadline_propagation", [&request_processor, &dp_context] {
           SetUpInheritedData(request_processor, dp_context);
         });
 

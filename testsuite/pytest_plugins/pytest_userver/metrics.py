@@ -36,7 +36,7 @@ class Metric:
 
 class _MetricsJSONEncoder(json.JSONEncoder):
     def default(self, o):  # pylint: disable=method-hidden
-        if dataclasses.is_dataclass(o):
+        if isinstance(o, Metric):
             return dataclasses.asdict(o)
         if isinstance(o, set):
             return list(o)
@@ -113,7 +113,7 @@ class MetricsSnapshot:
     ) -> float:
         """
         Returns a single metric value at specified path. If a dict of labels
-        id provided, does en exact match of labels (i.e. {} stands for no
+        is provided, does en exact match of labels (i.e. {} stands for no
         labels; {'a': 'b', 'c': 'd'} matches only {'a': 'b', 'c': 'd'} or
         {'c': 'd', 'a': 'b'} but neither match {'a': 'b'} nor
         {'a': 'b', 'c': 'd', 'e': 'f'}).

@@ -99,6 +99,8 @@ class RequestState : public std::enable_shared_from_this<RequestState> {
   short retries() const { return retry_.retries; }
 
   engine::Deadline GetDeadline() const noexcept;
+  /// true iff *we detected* that the deadline has expired
+  bool IsDeadlineExpired() const noexcept;
 
   [[noreturn]] void ThrowDeadlineExpiredException();
 

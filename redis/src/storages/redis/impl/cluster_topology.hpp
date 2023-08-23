@@ -44,7 +44,7 @@ class ClusterTopology {
     return slot_to_shard_.at(slot);
   }
 
-  ClusterShard GetClusterShardByIndex(uint16_t index) const {
+  const ClusterShard& GetClusterShardByIndex(uint16_t index) const {
     return cluster_shards_.at(index);
   }
 
