@@ -210,7 +210,7 @@ DigestCheckerBase::ValidateResult DigestCheckerBase::ValidateUserData(
   }
 
   bool is_nonce_expired =
-      user_data.timestamp + nonce_ttl_ < userver::utils::datetime::Now();
+      user_data.timestamp + nonce_ttl_ < utils::datetime::Now();
   if (is_nonce_expired) {
     LOG_WARNING() << "Nonces are equal, but expired.";
     return ValidateResult::kWrongUserData;
