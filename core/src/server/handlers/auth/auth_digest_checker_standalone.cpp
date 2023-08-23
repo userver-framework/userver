@@ -66,7 +66,8 @@ void AuthCheckerDigestBaseStandalone::PushUnnamedNonce(
   unnamed_nonces_.Put(nonce, static_cast<TimePoint>(
                                  userver::utils::datetime::Now()));
 }
-
+// 40 байт
+// 4096 KBit = 4096 * 1024 байт
 std::optional<TimePoint>
 AuthCheckerDigestBaseStandalone::GetUnnamedNonceCreationTime(
   const std::string& nonce) const {
