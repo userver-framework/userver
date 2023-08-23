@@ -8,6 +8,7 @@
 #include <random>
 #include <string_view>
 
+#include <userver/cache/expirable_lru_cache.hpp>
 #include <userver/concurrent/mpsc_queue.hpp>
 #include <userver/concurrent/variable.hpp>
 #include <userver/crypto/hash.hpp>
@@ -47,12 +48,19 @@ class AuthCheckerDigestBaseStandalone : public AuthCheckerDigestBase {
   void SetUserData(const std::string& username, const Nonce& nonce,
                    std::int32_t nonce_count,
                    TimePoint nonce_creation_time) const override;
+
+  void PushUnnamedNonce(const Nonce& nonce,
+                        std::chrono::milliseconds nonce_ttl) const override;
+  std::optional<TimePoint> GetUnnamedNonceCreationTime(
+      const Nonce& nonce) const override;
+
   virtual std::optional<UserData::HA1> GetHA1(
       const std::string& username) const = 0;
 
  private:
   mutable rcu::RcuMap<Username, concurrent::Variable<NonceInfo>> user_data_;
-  mutable rcu::RcuMap<Nonce, concurrent::Variable<TimePoint>> unnamed_nonces;
+  mutable cache::ExpirableLruCache<std::string, TimePoint> unnamed_nonces_{1,
+                                                                           1};
 };
 
 }  // namespace server::handlers::auth
