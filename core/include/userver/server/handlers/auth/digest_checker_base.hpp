@@ -102,8 +102,7 @@ class DigestCheckerBase : public AuthCheckerBase {
                            TimePoint nonce_creation_time) const = 0;
 
   /// Pushes "nonce" not tied to username to "Nonce Pool".
-  virtual void PushUnnamedNonce(std::string nonce,
-                                std::chrono::milliseconds nonce_ttl) const = 0;
+  virtual void PushUnnamedNonce(std::string nonce) const = 0;
 
   /// Returns "nonce" creation time from "Nonce Pool" if exists.
   virtual std::optional<TimePoint> GetUnnamedNonceCreationTime(

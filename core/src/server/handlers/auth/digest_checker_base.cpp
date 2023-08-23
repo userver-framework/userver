@@ -126,7 +126,7 @@ AuthCheckResult DigestCheckerBase::CheckAuth(const http::HttpRequest& request,
     response.SetHeader(authenticate_header_,
                        ConstructResponseDirectives(nonce, false));
 
-    PushUnnamedNonce(std::move(nonce), nonce_ttl_);
+    PushUnnamedNonce(std::move(nonce));
 
     LOG_WARNING() << fmt::format("Missing {} header from client",
                                  authorization_header_);
