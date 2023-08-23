@@ -22,10 +22,27 @@
 #include <userver/server/http/http_response.hpp>
 #include <userver/utils/algo.hpp>
 #include <userver/utils/datetime.hpp>
+#include "userver/utils/from_string.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
 namespace server::handlers::auth {
+
+namespace {
+
+std::int64_t FromHexToInteger(const std::string& str) {
+  std::int64_t result{};
+  try {
+    result = std::stoll(str, nullptr, 16);
+  } catch(std::logic_error& ex) {
+    LOG_WARNING() << "Nonce_count from string to integer casting error: " << ex.what();
+    throw handlers::ClientError();
+  }
+
+  return result;
+}
+
+}  // namespace
 
 constexpr std::string_view kDigestWord = "Digest";
 
@@ -191,7 +208,7 @@ DigestCheckerBase::ValidateResult DigestCheckerBase::ValidateUserData(
 
   LOG_DEBUG() << "Nonce is OK";
 
-  auto client_nc = std::stoul(client_context.nc, nullptr, 16);
+  auto client_nc = FromHexToInteger(client_context.nc);
   if (user_data.nonce_count >= client_nc) {
     LOG_WARNING() << "The current request is a duplicate.";
     return ValidateResult::kDuplicateRequest;
