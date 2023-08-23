@@ -90,8 +90,7 @@ class DigestCheckerBase : public AuthCheckerBase {
 
   /// The implementation should return std::nullopt if the user is not
   /// registered. If the user is registered, but he is not in storage, the
-  /// implementation should create him with invalid data to avoids extra round
-  /// trips for authentication challenges.
+  /// implementation can create him with arbitrary data.
   virtual std::optional<UserData> FetchUserData(
       const std::string& username) const = 0;
 
