@@ -71,7 +71,9 @@ class StandAloneCheckerTest : public ::testing::Test {
           "5ccc069c403ebaf9f0171e9517f40e41",
           "auth",
           "00000001",
-          "auth-param"}) {}
+          "auth-param"}) {
+            client_context_ = correct_client_context;
+          }
   
  protected:
 
@@ -82,19 +84,7 @@ class StandAloneCheckerTest : public ::testing::Test {
 };
 
 UTEST_F(StandAloneCheckerTest, DirectiveSubstitution) {
-  DigestContextFromClient correct_client_context{
-          "Mufasa",
-          "testrealm@host.com",
-          "dcd98b7102dd2f0e8b11d0f600bfb0c093",
-          "/dir/index.html",
-          "6629fae49393a05397450978507c4ef1",
-          "MD5",
-          "0a4f113b",
-          "5ccc069c403ebaf9f0171e9517f40e41",
-          "auth",
-          "00000001",
-          "auth-param"
-  }
+  utils::datetime::MockNowSet(std::chrono::system_clock::now());
   std::string valid_nonce = "dcd98b7102dd2f0e8b11d0f600bfb0c093";
   std::string validHA1 = "939e7578ed9e3c518a452acee763bce9";
   // пришел пустой запрос, ответили 401, кинули в пул новый nonce 
@@ -122,6 +112,7 @@ UTEST_F(StandAloneCheckerTest, SessionLogic) {
   // пришел пустой запрос, ответили 401, кинули в пул новый nonce 
   checker_.PushUnnamedNonce(valid_nonce, {});
   // ждем ответа 
+  UserData test_data(HA1(validHA1), valid_nonce, utils::datetime::Now());
   utils::datetime::MockSleep(std::chrono::milliseconds(2));
   EXPECT_EQ(checker_.ValidateUserData(client_context_, test_data), ValidateResult::kOk);
   utils::datetime::MockSleep(std::chrono::milliseconds(20));
@@ -129,7 +120,18 @@ UTEST_F(StandAloneCheckerTest, SessionLogic) {
 }
 
 UTEST_F(StandAloneCheckerTest, NonceCountLogic) {
-  
+  std::string valid_nonce = "dcd98b7102dd2f0e8b11d0f600bfb0c093";
+  std::string validHA1 = "939e7578ed9e3c518a452acee763bce9";
+  // пришел пустой запрос, ответили 401, кинули в пул новый nonce 
+  checker_.PushUnnamedNonce(valid_nonce, {});
+  // ждем ответа 
+  UserData test_data(HA1(validHA1), valid_nonce, utils::datetime::Now());
+  EXPECT_EQ(checker_.ValidateUserData(client_context_, test_data), ValidateResult::kOk);
+  EXPECT_EQ(checker_.ValidateUserData(client_context_, test_data), ValidateResult::kWrongUserData);
+  // increment nc because this will be second request with same nonce
+  correct_client_context.nc = "00000002";
+  client_context_ = correct_client_context;
+  EXPECT_EQ(checker_.ValidateUserData(client_context_, test_data), ValidateResult::kOk);
 }
 }  // namespace server::handlers::auth::test
 
