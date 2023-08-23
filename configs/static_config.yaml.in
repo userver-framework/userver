@@ -49,6 +49,14 @@ components_manager:
             update-jitter: 1s
             chunk-size: 100
 
+        comments-cache:
+            pgcomponent: realmedium-database
+            update-interval: 10s
+            full-update-interval: 20s
+            update-correction: 2s
+            update-jitter: 1s
+            chunk-size: 100
+
         http-client:
             load-enabled: $is_testing
             fs-task-processor: fs-task-processor
