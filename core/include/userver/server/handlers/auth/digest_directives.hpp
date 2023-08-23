@@ -12,6 +12,7 @@ namespace server::handlers::auth::directives {
 inline const std::string kUsername = "username";
 inline const std::string kRealm = "realm";
 inline const std::string kNonce = "nonce";
+inline const std::string kNextNonce = "nextnonce";
 inline const std::string kStale = "stale";
 inline const std::string kUri = "uri";
 inline const std::string kDomain = "domain";

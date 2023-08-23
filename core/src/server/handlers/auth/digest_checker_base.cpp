@@ -113,7 +113,7 @@ AuthCheckResult DigestCheckerBase::CheckAuth(const http::HttpRequest& request,
     return AuthCheckResult{AuthCheckResult::Status::kInvalidToken};
   }
 
-  DigestParsing parser;
+  DigestParser parser;
   DigestContextFromClient client_context; 
   try {
     parser.ParseAuthInfo(auth_value.substr(kDigestWord.size() + 1));
