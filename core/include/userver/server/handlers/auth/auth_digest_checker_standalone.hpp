@@ -58,8 +58,8 @@ class AuthCheckerDigestBaseStandalone : public DigestCheckerBase {
 
  private:
   mutable rcu::RcuMap<std::string, concurrent::Variable<NonceInfo>> user_data_;
-  mutable cache::ExpirableLruCache<std::string, TimePoint> unnamed_nonces_{1,
-                                                                           1};
+  mutable cache::ExpirableLruCache<std::string, TimePoint> unnamed_nonces_{4,
+                                                                           1000};
 };
 
 }  // namespace server::handlers::auth
