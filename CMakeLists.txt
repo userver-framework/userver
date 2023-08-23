@@ -6,6 +6,8 @@ include(GNUInstallDirs)
 
 add_subdirectory(third_party/userver)
 
+set(CPP_JWT_BUILD_TESTS OFF)
+set(CPP_JWT_BUILD_EXAMPLES OFF)
 add_subdirectory(third_party/cpp-jwt)
 
 

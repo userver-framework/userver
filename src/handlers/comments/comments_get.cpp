@@ -16,35 +16,31 @@ Handler::Handler(const userver::components::ComponentConfig& config,
                       .FindComponent<userver::components::Postgres>(
                           "realmedium-database")
                       .GetCluster()),
-      cache_(component_context.FindComponent<
-             real_medium::cache::comments_cache::CommentsCache>()){}
+      commentsCache_(component_context.FindComponent<
+                     real_medium::cache::comments_cache::CommentsCache>()),
+      articlesCache_(component_context.FindComponent<
+                     real_medium::cache::articles_cache::ArticlesCache>()){}
 
 userver::formats::json::Value Handler::HandleRequestJsonThrow(
     const userver::server::http::HttpRequest& request,
-    const userver::formats::json::Value& request_json,
+    const userver::formats::json::Value& /*request_json*/,
     userver::server::request::RequestContext& context) const {
   auto user_id = context.GetData<std::optional<std::string>>("id");
   const auto& slug = request.GetPathArg("slug");
-  const auto data = cache_.Get();
+  const auto articlesData = articlesCache_.Get();
   userver::formats::json::ValueBuilder result = userver::formats::json::MakeObject();
-  
-  const auto res_find_article = pg_cluster_->Execute(
-      userver::storages::postgres::ClusterHostType::kSlave,
-      sql::kFindIdArticleBySlug.data(), slug);
-
-  if (res_find_article.IsEmpty()) {
+  if(!articlesData->findArticleBySlug(slug)) {
     auto& response = request.GetHttpResponse();
     response.SetStatus(userver::server::http::HttpStatus::kNotFound);
-    return utils::error::MakeError("article_id", "Invalid article_id.");
+    return utils::error::MakeError("slug", "Invalid slug");
   }
-
-  const auto article_id = res_find_article.AsSingleRow<std::string>();
-  const auto res_find_comments = data->findComments(article_id);
+  const auto commentsData = commentsCache_.Get();
+  const auto res_find_comments = commentsData->findComments(slug);
 
   userver::formats::json::ValueBuilder builder;
   builder["comments"] = userver::formats::common::Type::kArray;
   for (auto& comment : res_find_comments)
-    builder["comments"].PushBack(dto::Comment::Parse(*comment, user_id));
+    builder["comments"].PushBack(dto::Comment::Parse(*comment.second, user_id));
 
   return builder.ExtractValue();
 }
