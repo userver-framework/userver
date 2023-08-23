@@ -76,7 +76,7 @@ CREATE TYPE real_medium.user AS (
         username varchar(255),
         email text,
         bio TEXT,
-        image VARCHAR(255),  
+        image VARCHAR(255),
         password_hash TEXT
 );
 
@@ -101,6 +101,16 @@ CREATE TYPE real_medium.profile AS (
         image VARCHAR(255),
         FOLLOWING BOOL);
 
+CREATE TYPE real_medium.comment AS (
+        id int,
+        created_at TIMESTAMP WITH TIME ZONE,
+        updated_at TIMESTAMP WITH TIME ZONE,
+        body TEXT,
+        user_id varchar( 255),
+        article_id varchar( 255),
+        author real_medium.profile,
+        following VARCHAR(255)[]
+    );
 
 CREATE TYPE real_medium.tagged_article_with_author_profile AS (
         article_id text,

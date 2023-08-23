@@ -28,7 +28,7 @@ userver::formats::json::Value Handler::HandleRequestJsonThrow(
   if (result_find_comment.IsEmpty()) {
     auto& response = request.GetHttpResponse();
     response.SetStatus(userver::server::http::HttpStatus::kNotFound);
-    return utils::error::MakeError("comment_id", "Ivanlid comment_id.");
+    return utils::error::MakeError("comment_id", "Invalid comment_id.");
   }
 
   const auto result_delete_comment = pg_cluster_->Execute(

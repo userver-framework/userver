@@ -55,7 +55,7 @@ userver::formats::json::Value Handler::HandleRequestJsonThrow(
   }
 
   auto comment_res_data =
-      res_ins_new_comment.AsSingleRow<real_medium::models::Comment>(
+      res_ins_new_comment.AsSingleRow<real_medium::dto::Comment>(
           userver::storages::postgres::kRowTag);
   
   userver::formats::json::ValueBuilder builder;
