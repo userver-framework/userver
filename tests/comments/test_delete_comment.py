@@ -6,6 +6,7 @@ from models import User, Profile, Article, Comment, CommentList
 from validators import validate_comments
 from utils import get_user_token
 
+
 async def test_delete_self_comment(service_client):
     user = User(bio=None, image=None)
     response = await register_user(service_client, user)

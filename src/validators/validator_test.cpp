@@ -61,21 +61,39 @@ UTEST(ArticleValidation, CreateArticleValidation) {
 
   UEXPECT_NO_THROW(validate(
       CreateArticleRequest{"title", "description", "some body", std::nullopt}));
-  UEXPECT_NO_THROW(validate(CreateArticleRequest{"title", "description", "some body", std::vector<std::string>{}}));
-  UEXPECT_NO_THROW(validate(CreateArticleRequest{"title", "description", "some body", std::vector<std::string>{"kek", "lol"}}));
+  UEXPECT_NO_THROW(validate(CreateArticleRequest{
+      "title", "description", "some body", std::vector<std::string>{}}));
+  UEXPECT_NO_THROW(
+      validate(CreateArticleRequest{"title", "description", "some body",
+                                    std::vector<std::string>{"kek", "lol"}}));
 
-  UEXPECT_THROW(validate(CreateArticleRequest{std::nullopt, "description", "some body", std::vector<std::string>{}}), ValidationException);
-  UEXPECT_THROW(validate(CreateArticleRequest{"title", std::nullopt, "some body", std::vector<std::string>{}}), ValidationException);
-  UEXPECT_THROW(validate(CreateArticleRequest{"title", "description", std::nullopt, std::vector<std::string>{}}), ValidationException);
-  UEXPECT_THROW(validate(CreateArticleRequest{"title", "description", "some body", std::vector<std::string>{""}}), ValidationException);
+  UEXPECT_THROW(
+      validate(CreateArticleRequest{std::nullopt, "description", "some body",
+                                    std::vector<std::string>{}}),
+      ValidationException);
+  UEXPECT_THROW(
+      validate(CreateArticleRequest{"title", std::nullopt, "some body",
+                                    std::vector<std::string>{}}),
+      ValidationException);
+  UEXPECT_THROW(
+      validate(CreateArticleRequest{"title", "description", std::nullopt,
+                                    std::vector<std::string>{}}),
+      ValidationException);
+  UEXPECT_THROW(
+      validate(CreateArticleRequest{"title", "description", "some body",
+                                    std::vector<std::string>{""}}),
+      ValidationException);
 }
 
 UTEST(ArticleValidation, UpdateArticleValidation) {
   using real_medium::dto::UpdateArticleRequest;
 
-  UEXPECT_NO_THROW(validate(UpdateArticleRequest{"title", "description", "some body"}));
-  UEXPECT_NO_THROW(validate(UpdateArticleRequest{std::nullopt, std::nullopt, std::nullopt}));
+  UEXPECT_NO_THROW(
+      validate(UpdateArticleRequest{"title", "description", "some body"}));
+  UEXPECT_NO_THROW(
+      validate(UpdateArticleRequest{std::nullopt, std::nullopt, std::nullopt}));
 
-  UEXPECT_THROW(validate(UpdateArticleRequest{std::nullopt, std::nullopt, "body"}), ValidationException);
-
+  UEXPECT_THROW(
+      validate(UpdateArticleRequest{std::nullopt, std::nullopt, "body"}),
+      ValidationException);
 }

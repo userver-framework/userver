@@ -5,6 +5,7 @@ from endpoints import register_user
 from models import User
 from validators import validate_user
 
+
 async def test_register(service_client):
     user = User(bio=None, image=None)
     response = await register_user(service_client, user)

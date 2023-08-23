@@ -17,7 +17,6 @@
 
 #include <userver/formats/json/value.hpp>
 
-
 #include <userver/formats/serialize/common_containers.hpp>
 
 namespace real_medium::handlers::comments::get {

@@ -1,31 +1,22 @@
-#include "gtest/gtest.h"
 #include "slugify.hpp"
+#include "gtest/gtest.h"
 
 namespace real_medium::utils::slug {
 
-TEST(SlugifyTest, TestEmpty) {
-  EXPECT_EQ(Slugify(""), "");
-}
+TEST(SlugifyTest, TestEmpty) { EXPECT_EQ(Slugify(""), ""); }
 
-TEST(SlugifyTest, TestEnglish1) {
-  EXPECT_EQ(Slugify("abc"), "abc");
-}
+TEST(SlugifyTest, TestEnglish1) { EXPECT_EQ(Slugify("abc"), "abc"); }
 
-TEST(SlugifyTest, TestEnglish2) {
-  EXPECT_EQ(Slugify("ab`c"), "abc");
-}
+TEST(SlugifyTest, TestEnglish2) { EXPECT_EQ(Slugify("ab`c"), "abc"); }
 
-TEST(SlugifyTest, TestEnglish3) {
-  EXPECT_EQ(Slugify("ab%c"), "abc");
-}
+TEST(SlugifyTest, TestEnglish3) { EXPECT_EQ(Slugify("ab%c"), "abc"); }
 
-TEST(SlugifyTest, TestEnglish4) {
-  EXPECT_EQ(Slugify("ab  c"), "ab-c");
-}
+TEST(SlugifyTest, TestEnglish4) { EXPECT_EQ(Slugify("ab  c"), "ab-c"); }
 
 TEST(SlugifyTest, TestEnglish5) {
-  EXPECT_EQ(Slugify("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~:/?#[]@!$&'()*+,;=")
-                , "abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz0123456789");
+  EXPECT_EQ(Slugify("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz012345"
+                    "6789-._~:/?#[]@!$&'()*+,;="),
+            "abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz0123456789");
 }
 
 TEST(SlugifyTest, TestRussian) {
@@ -47,4 +38,4 @@ TEST(SlugifyTest, TestSpanish) {
 TEST(SlugifyTest, TestChineese) {
   EXPECT_EQ(Slugify("文章標題"), "wen-zhang-biao-ti");
 }
-}
+}  // namespace real_medium::utils::slug
