@@ -45,9 +45,9 @@ class AuthCheckerDigestBaseStandalone : public DigestCheckerBase {
 
   std::optional<UserData> FetchUserData(
       const std::string& username) const override;
-  void SetUserData(std::string username,
-                           std::string nonce, std::int64_t nonce_count,
-                           TimePoint nonce_creation_time) const override;
+  void SetUserData(std::string username, std::string nonce,
+                   std::int64_t nonce_count,
+                   TimePoint nonce_creation_time) const override;
 
   void PushUnnamedNonce(std::string nonce) const override;
   std::optional<TimePoint> GetUnnamedNonceCreationTime(
@@ -58,8 +58,8 @@ class AuthCheckerDigestBaseStandalone : public DigestCheckerBase {
 
  private:
   mutable rcu::RcuMap<std::string, concurrent::Variable<NonceInfo>> user_data_;
-  mutable cache::ExpirableLruCache<std::string, TimePoint> unnamed_nonces_{4,
-                                                                           25000};
+  mutable cache::ExpirableLruCache<std::string, TimePoint> unnamed_nonces_{
+      4, 25000};
 };
 
 }  // namespace server::handlers::auth
