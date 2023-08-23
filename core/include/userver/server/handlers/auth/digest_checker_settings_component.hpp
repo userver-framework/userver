@@ -36,6 +36,9 @@ namespace server::handlers::auth {
 class DigestCheckerSettingsComponent final
     : public components::LoggableComponentBase {
  public:
+  /// @ingroup userver_component_names
+  /// @brief The default name of
+  /// server::handlers::auth::DigestCheckerSettingsComponent
   static constexpr std::string_view kName = "auth-digest-checker-settings";
 
   DigestCheckerSettingsComponent(const components::ComponentConfig& config,
