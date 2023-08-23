@@ -16,7 +16,8 @@ namespace ugrpc::client::middlewares::deadline_propagation {
 /// @brief Component for gRPC client deadline_propagation. Update deadline
 /// from TaskInheritedData if it exists and more strict than
 /// context deadline.
-
+///
+/// @see @ref scripts/docs/en/userver/deadline_propagation.md
 class Component final : public MiddlewareComponentBase {
  public:
   static constexpr std::string_view kName = "grpc-client-deadline-propagation";

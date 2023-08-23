@@ -8,7 +8,8 @@ databases and the BSON format.
 * Support for basic operations with collections via storages::mongo::Collection;
 * Support for bulk operations;
 * Dynamic management of database sets;
-* Aggregation support.
+* Aggregation support;
+* @ref scripts/docs/en/userver/deadline_propagation.md
 
 ## Metrics
 

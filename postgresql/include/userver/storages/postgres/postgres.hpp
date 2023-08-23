@@ -34,6 +34,7 @@
 /// - Portals for effective background cache updates;
 /// - Queries pipelining;
 /// - Mapping PostgreSQL user types to C++ types.
+/// - @ref scripts/docs/en/userver/deadline_propagation.md
 ///
 /// @section toc More information
 /// - For configuration see components::Postgres

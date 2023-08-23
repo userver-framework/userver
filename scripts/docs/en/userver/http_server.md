@@ -15,7 +15,7 @@
 * Rate limiting
 * Requests-in-flight limiting
 * Body size / headers count / URL length / etc. limits
-* 
+* @ref scripts/docs/en/userver/deadline_propagation.md
 
 ## Streaming API
 

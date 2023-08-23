@@ -41,8 +41,8 @@ namespace server::handlers {
 /// set-response-server-hostname | set to true to add the `X-YaTaxi-Server-Hostname` header with instance name, set to false to not add the header | <takes the value from components::Server config>
 /// monitor-handler | Overrides the in-code `is_monitor` flag that makes the handler run either on `server.listener` or on `server.listener-monitor` | --
 /// set_tracing_headers | whether to set http tracing headers (X-YaTraceId, X-YaSpanId, X-RequestId) | true
-/// deadline_propagation_enabled | when `false`, disables HTTP handler deadline propagation | true
-/// deadline_expired_status_code | the HTTP status code to return if the request deadline expires | 504
+/// deadline_propagation_enabled | when `false`, disables HTTP handler @ref scripts/docs/en/userver/deadline_propagation.md "deadline propagation" | true
+/// deadline_expired_status_code | the HTTP status code to return if the request @ref scripts/docs/en/userver/deadline_propagation.md "deadline expires" | 504
 
 // clang-format on
 class HandlerBase : public components::LoggableComponentBase {
