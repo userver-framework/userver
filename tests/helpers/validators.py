@@ -74,6 +74,8 @@ def validate_comment(comment, response):
 
 def validate_comments(commentList, response):
     response_json = response.json()
+    if len(response_json['comments']) != len(commentList.comments):
+        return False
     for comment, json in zip(commentList.comments, response_json['comments']):
         res = validate_comment_json(comment, json)
         if not res:

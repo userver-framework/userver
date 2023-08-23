@@ -59,7 +59,7 @@ async def test_get_comments_unknown_article(service_client):
     for comment in commentList.comments:
         response = await add_comment(service_client, comment, article, another_user_token)
         assert response.status == HTTPStatus.OK
-    
+
     article.slug = 'some_slug'
     response = await get_comments(service_client, article, user_token)
     assert response.status == HTTPStatus.NOT_FOUND
