@@ -25,14 +25,14 @@ enum class QopTypes {
   kUnknown  ///< Unknown qop-value
 };
 
-constexpr utils::TrivialBiMap kHashAlgToType = [](auto selector) {
+inline constexpr utils::TrivialBiMap kHashAlgToType = [](auto selector) {
   return selector()
       .Case("md5", HashAlgTypes::kMD5)
       .Case("sha256", HashAlgTypes::kSHA256)
       .Case("sha512", HashAlgTypes::kSHA512);
 };
 
-constexpr utils::TrivialBiMap kQopToType = [](auto selector) {
+inline constexpr utils::TrivialBiMap kQopToType = [](auto selector) {
   return selector().Case("auth", QopTypes::kAuth);
 };
 
