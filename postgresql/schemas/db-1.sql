@@ -367,21 +367,8 @@ BEGIN
         real_medium.get_profile(user_id, _user_id)
 FROM
         real_medium.articles
-WHERE(_tag IS NULL
-                OR article_id IN(
-                        SELECT
-                                article_id
-                        FROM
-                                real_medium.article_tag
-                        WHERE
-                                tag_id IN(
-                                        SELECT
-                                                tag_id
-                                        FROM
-                                                real_medium.tag_list
-                                        WHERE
-                                                tag_name = _tag)))
-                AND(_author IS NULL
+WHERE
+                (_author IS NULL
                         OR article_id IN(
                                 SELECT
                                         article_id
@@ -399,6 +386,20 @@ WHERE(_tag IS NULL
                                         INNER JOIN real_medium.favorites USING(user_id)
                                 WHERE
                                         username = _favorited))
+AND(_tag IS NULL
+                OR article_id IN(
+                        SELECT
+                                article_id
+                        FROM
+                                real_medium.article_tag
+                        WHERE
+                                tag_id IN(
+                                        SELECT
+                                                tag_id
+                                        FROM
+                                                real_medium.tag_list
+                                        WHERE
+                                                tag_name = _tag)))
         ORDER BY
                 created_at DESC
         LIMIT _limit OFFSET _offset;
@@ -409,4 +410,5 @@ LANGUAGE plpgsql;
 CREATE INDEX IF NOT EXISTS idx_createdat ON real_medium.articles(created_at DESC);
 
 CREATE INDEX IF NOT EXISTS idx_tagname ON real_medium.tag_list(tag_name);
+
 
