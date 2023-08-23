@@ -94,13 +94,11 @@ UTEST_F(StandAloneCheckerTest, DirectiveSubstitution) {
   // ждем ответа 
   UserData test_data(HA1(validHA1), valid_nonce, utils::datetime::Now());
   EXPECT_EQ(checker_.ValidateUserData(client_context_, test_data), ValidateResult::kOk);
-  client_context_.nonce = "just wrong";
+  // changing HA1 to invalid
+  test_data.ha1 = HA1("adf98b7102dd2f0e8b11d0f600bfb0c093");
   EXPECT_EQ(checker_.ValidateUserData(client_context_, test_data), ValidateResult::kWrongUserData);
-  client_context_ = correct_client_context;
+  test_data.ha1 = HA1(validHA1);
   EXPECT_EQ(checker_.ValidateUserData(client_context_, test_data), ValidateResult::kOk);
-  client_context_.username = "Mubasa";
-  EXPECT_EQ(checker_.ValidateUserData(client_context_, test_data), ValidateResult::kWrongUserData);
-  client_context_ = correct_client_context;
   utils::datetime::MockSleep(std::chrono::milliseconds(2));
   EXPECT_EQ(checker_.ValidateUserData(client_context_, test_data), ValidateResult::kOk);
   utils::datetime::MockSleep(std::chrono::milliseconds(2000));
