@@ -12,8 +12,7 @@ class ArticlesCacheContainer
 {
   using Timepoint=userver::storages::postgres::TimePointTz;
   using Slug=std::string;
-  using UserId=std::string;
-
+  using UserId=std::string;  
  public:
   using Key=real_medium::models::ArticleId;
   using Article=real_medium::models::FullArticleInfo;
@@ -22,16 +21,30 @@ class ArticlesCacheContainer
   void insert_or_assign(Key &&key, Article &&config);
   size_t size() const;
 
-  ArticlePtr findArticle(const Key &key) const;
   ArticlePtr findArticleBySlug(const Slug& slug) const;
   std::vector<ArticlePtr> getRecent(real_medium::dto::ArticleFilterDTO &filter_) const;
   std::vector<ArticlePtr> getFeed(real_medium::dto::FeedArticleFilterDTO &filter_, UserId authId_) const;
 
  private:
-  using RecentArticlesMap=std::map<Timepoint/*created_at*/,ArticlePtr,std::greater<Timepoint>>;
+
+  struct TimepointedArticle{
+    Timepoint created;
+    Key articleId;
+    bool operator<(const TimepointedArticle&other) const {
+      return created!=other.created? created<other.created: articleId<other.articleId;
+    }
+    bool operator==(const TimepointedArticle&other) const {
+      return created==other.created && articleId==other.articleId;
+    }
+    bool operator>(const TimepointedArticle&other) const {
+      return !(*this==other) && !(*this<other);
+    }
+  };
+
+  using RecentArticlesMap=std::map<TimepointedArticle/*created_at*/,ArticlePtr,std::greater<TimepointedArticle>>;
   std::unordered_map<Key, ArticlePtr> articleByKey_;
   std::unordered_map<Slug,ArticlePtr> articleBySlug_;
-  std::unordered_map<UserId/*author*/,RecentArticlesMap> articlesByAuthor_;
+  std::unordered_map<UserId/*follower*/,std::unordered_map<Key,ArticlePtr>> articlesByFollower_;
   RecentArticlesMap recentArticles_;
 };
 

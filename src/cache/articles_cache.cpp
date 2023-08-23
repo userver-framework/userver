@@ -9,23 +9,23 @@ userver::storages::postgres::Query ArticlesCachePolicy::kQuery =
 void ArticlesCacheContainer::insert_or_assign(Key &&key, Article &&article) {
   auto articlePtr = std::make_shared<const Article>(std::move(article));
   auto oldValue=articleByKey_.find(key);
-  if(oldValue!=articleByKey_.end())
+  if(oldValue!=articleByKey_.end()){
     articleBySlug_.erase(oldValue->second->slug);
+    for(const auto &oldFollower: oldValue->second->authorFollowedByUsersIds)
+      if(articlePtr->authorFollowedByUsersIds.find(oldFollower)==articlePtr->authorFollowedByUsersIds.end())
+        articlesByFollower_[oldFollower].erase(articlePtr->articleId);
+  }
 
   articleByKey_.insert_or_assign(key,articlePtr);
   articleBySlug_.insert_or_assign(articlePtr->slug,articlePtr);
-  articlesByAuthor_[articlePtr->authorInfo.id].insert_or_assign(articlePtr->createdAt,articlePtr);
-  recentArticles_.insert_or_assign(articlePtr->createdAt,articlePtr);
+  for(const auto &follower:articlePtr->authorFollowedByUsersIds)
+    articlesByFollower_[follower].insert_or_assign(articlePtr->articleId,articlePtr);
+  recentArticles_.insert_or_assign({articlePtr->createdAt,articlePtr->articleId},articlePtr);
 }
 
 size_t ArticlesCacheContainer::size() const { return articleByKey_.size(); }
 
-ArticlesCacheContainer::ArticlePtr ArticlesCacheContainer::findArticle(const Key &key) const{
-  auto it=articleByKey_.find(key);
-  if(it==articleByKey_.end())
-    return nullptr;
-  return it->second;
-}
+
 
 ArticlesCacheContainer::ArticlePtr ArticlesCacheContainer::findArticleBySlug(const Slug& slug) const{
   auto it=articleBySlug_.find(slug);
@@ -61,12 +61,17 @@ std::vector<ArticlesCacheContainer::ArticlePtr> ArticlesCacheContainer::getRecen
   return articles;
 }
 std::vector<ArticlesCacheContainer::ArticlePtr> ArticlesCacheContainer::getFeed(real_medium::dto::FeedArticleFilterDTO &filter, UserId authId) const{
-  std::vector<ArticlePtr> articles;
-  auto followedArticles=articlesByAuthor_.find(authId);
-  if(followedArticles==articlesByAuthor_.end())
-    return articles;
+  auto followedArticlesUMap=articlesByFollower_.find(authId);
+  if(followedArticlesUMap==articlesByFollower_.end())
+    return {};
+
+  RecentArticlesMap followedArticlesOrdered;
+  for(const auto &it:followedArticlesUMap->second)
+    followedArticlesOrdered.insert_or_assign({it.second->createdAt,it.second->articleId},it.second);
+
+  std::vector<ArticlePtr> articles;;
   int offset=0;
-  for(const auto &it:followedArticles->second){
+  for(const auto &it:followedArticlesOrdered){
     if(filter.limit && articles.size()>=filter.limit)
       break;
     if(filter.offset && offset<filter.offset){

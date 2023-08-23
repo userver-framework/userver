@@ -44,7 +44,7 @@ components_manager:
         articles-cache:
             pgcomponent: realmedium-database
             update-interval: 10s
-            full-update-interval: 20s
+            full-update-interval: 1m
             update-correction: 2s
             update-jitter: 1s
             chunk-size: 100
@@ -52,7 +52,7 @@ components_manager:
         comments-cache:
             pgcomponent: realmedium-database
             update-interval: 10s
-            full-update-interval: 20s
+            full-update-interval: 1m
             update-correction: 2s
             update-jitter: 1s
             chunk-size: 100
