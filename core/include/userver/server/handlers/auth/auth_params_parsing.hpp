@@ -1,12 +1,8 @@
 #pragma once
 
 /// @file userver/server/handlers/auth/auth_params_parsing.hpp
-<<<<<<< HEAD
-/// @brief Class for parsing Authorization header directives from client request.
-=======
 /// @brief Class for parsing Authorization header directives from client
 /// request.
->>>>>>> develop
 
 #include <array>
 #include <memory>
