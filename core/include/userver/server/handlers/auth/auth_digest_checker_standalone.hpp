@@ -49,7 +49,7 @@ class AuthCheckerDigestBaseStandalone : public DigestCheckerBase {
                            std::string nonce, std::int64_t nonce_count,
                            TimePoint nonce_creation_time) const override;
 
-  void PushUnnamedNonce(std::string nonce, std::chrono::milliseconds nonce_ttl) const override;
+  void PushUnnamedNonce(std::string nonce) const override;
   std::optional<TimePoint> GetUnnamedNonceCreationTime(
       const std::string& nonce) const override;
 
