@@ -1,5 +1,9 @@
-#include "auth_digest.hpp"
-#include "user_info.hpp"
+#include <algorithm>
+#include <optional>
+#include <string_view>
+#include <userver/http/common_headers.hpp>
+#include <userver/server/handlers/auth/digest_checker_settings_component.hpp>
+
 #include "userver/logging/log.hpp"
 #include "userver/server/handlers/auth/auth_checker_settings.hpp"
 #include "userver/server/handlers/auth/digest_checker_base.hpp"
@@ -11,11 +15,8 @@
 #include "userver/storages/postgres/result_set.hpp"
 #include "userver/utils/datetime.hpp"
 
-#include <algorithm>
-#include <optional>
-#include <string_view>
-#include <userver/http/common_headers.hpp>
-#include <userver/server/handlers/auth/digest_checker_settings_component.hpp>
+#include "auth_digest.hpp"
+#include "user_info.hpp"
 
 namespace samples::pg {
 
@@ -37,34 +38,29 @@ class AuthCheckerDigest final
         pg_cluster_(
             context
                 .FindComponent<userver::components::Postgres>("auth-database")
-                .GetCluster()) {}
-
-  std::optional<HA1> GetHA1(std::string_view username) const;
+                .GetCluster()),
+        nonce_ttl_(digest_settings.nonce_ttl) {}
 
   std::optional<UserData> FetchUserData(
-      std::string_view username) const override;
+      const std::string& username) const override;
 
-  void SetUserData(std::string username, std::string nonce,
-                   std::int64_t nonce_count,
-                   TimePoint nonce_creation_time) const override;
+  void SetUserData(const std::string& username,
+                           const std::string& nonce, std::int64_t nonce_count,
+                           TimePoint nonce_creation_time) const override;
 
-  void PushUnnamedNonce(std::string nonce,
-                        std::chrono::milliseconds nonce_ttl) const override;
+  void PushUnnamedNonce(std::string nonce) const override;
 
   std::optional<TimePoint> GetUnnamedNonceCreationTime(
-      std::string_view nonce) const override;
+      const std::string& nonce) const override;
 
  private:
   userver::storages::postgres::ClusterPtr pg_cluster_;
+  const std::chrono::milliseconds nonce_ttl_;
 
   const storages::postgres::Query kSelectUser{
       "SELECT username, nonce, timestamp, nonce_count, ha1 "
       "FROM auth_schema.users WHERE username=$1",
       storages::postgres::Query::Name{"select_user"}};
-
-  const storages::postgres::Query kSelectHA1{
-      "SELECT ha1 FROM auth_schema.users WHERE username=$1",
-      storages::postgres::Query::Name{"select_ha1"}};
 
   const storages::postgres::Query kUpdateUser{
       "UPDATE auth_schema.users "
@@ -72,6 +68,13 @@ class AuthCheckerDigest final
       "WHERE username=$4",
       storages::postgres::Query::Name{"update_user"}};
 
+/// 1) Searches for id of expired nonce or generates new nonce.
+/// 2) Insert nonce and it's creation time.
+/// if id is selected from present nonces
+/// then there will be conflict
+/// so we rewrite nonce information.
+/// 3) Otherwise new nonce will be inserted.
+/// Purpose is not storing expired nonces and making deleting query after every query
   const storages::postgres::Query kInsertUnnamedNonce{
       "WITH expired AS( "
       "  SELECT id FROM auth_schema.unnamed_nonce WHERE creation_time <= $1 "
@@ -100,44 +103,33 @@ class AuthCheckerDigest final
       storages::postgres::Query::Name{"select_unnamed_nonce"}};
 };
 
-std::optional<HA1> AuthCheckerDigest::GetHA1(std::string_view username) const {
-  storages::postgres::ResultSet res = pg_cluster_->Execute(
-      storages::postgres::ClusterHostType::kSlave, kSelectHA1, username);
-
-  return HA1{res.AsSingleRow<std::string>()};
-}
-
 std::optional<UserData> AuthCheckerDigest::FetchUserData(
-    std::string_view username) const {
-  auto ha1_opt = GetHA1(username);
-  if (!ha1_opt.has_value()) return std::nullopt;
-
+    const std::string& username) const {
   storages::postgres::ResultSet res = pg_cluster_->Execute(
       storages::postgres::ClusterHostType::kSlave, kSelectUser, username);
 
   auto userDbInfo =
       res.AsSingleRow<UserDbInfo>(userver::storages::postgres::kRowTag);
-  return UserData{ha1_opt.value(), userDbInfo.nonce, userDbInfo.timestamp,
+  return UserData{HA1{userDbInfo.ha1}, userDbInfo.nonce, userDbInfo.timestamp,
                   userDbInfo.nonce_count};
 }
 
-void AuthCheckerDigest::SetUserData(std::string username, std::string nonce,
-                                    std::int64_t nonce_count,
-                                    TimePoint nonce_creation_time) const {
+void AuthCheckerDigest::SetUserData(const std::string& username,
+                           const std::string& nonce, std::int64_t nonce_count,
+                           TimePoint nonce_creation_time) const {
   pg_cluster_->Execute(storages::postgres::ClusterHostType::kMaster,
                        kUpdateUser, nonce, nonce_creation_time, nonce_count,
                        username);
 }
 
-void AuthCheckerDigest::PushUnnamedNonce(
-    std::string nonce, std::chrono::milliseconds nonce_ttl) const {
+void AuthCheckerDigest::PushUnnamedNonce(std::string nonce) const {
   auto res = pg_cluster_->Execute(
       storages::postgres::ClusterHostType::kMaster, kInsertUnnamedNonce,
-      utils::datetime::Now() - nonce_ttl, nonce, utils::datetime::Now());
+      utils::datetime::Now() - nonce_ttl_, nonce, utils::datetime::Now());
 }
 
 std::optional<TimePoint> AuthCheckerDigest::GetUnnamedNonceCreationTime(
-    std::string_view nonce) const {
+    const std::string& nonce) const {
   auto res = pg_cluster_->Execute(storages::postgres::ClusterHostType::kSlave,
                                   kSelectUnnamedNonce, nonce);
 

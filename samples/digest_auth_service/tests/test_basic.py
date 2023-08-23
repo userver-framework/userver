@@ -329,3 +329,4 @@ async def test_aliving_nonce_after_half_ttl(service_client, mocked_time):
         '/v1/hello', headers={'Authorization': auth_header},
     )
     assert response.status == 200
+    
