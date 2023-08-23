@@ -97,12 +97,12 @@ class DigestCheckerBase : public AuthCheckerBase {
       std::string_view username) const = 0;
 
   /// Sets user authentication data to storage.
-  virtual void SetUserData(std::string_view username,
-                           std::string_view nonce, std::int64_t nonce_count,
+  virtual void SetUserData(std::string username,
+                           std::string nonce, std::int64_t nonce_count,
                            TimePoint nonce_creation_time) const = 0;
 
   /// Pushes "nonce" not tied to username to "Nonce Pool".
-  virtual void PushUnnamedNonce(std::string_view nonce,
+  virtual void PushUnnamedNonce(std::string nonce,
                                 std::chrono::milliseconds nonce_ttl) const = 0;
 
   /// Returns "nonce" creation time from "Nonce Pool" if exists.
@@ -125,8 +125,8 @@ class DigestCheckerBase : public AuthCheckerBase {
   std::string ConstructResponseDirectives(std::string_view nonce,
                                           bool stale) const;
 
-  AuthCheckResult StartNewAuthSession(std::string_view username,
-                                      std::string_view nonce_from_client,
+  AuthCheckResult StartNewAuthSession(std::string username,
+                                      std::string&& nonce,
                                       bool stale,
                                       http::HttpResponse& response) const;
 

@@ -2,6 +2,7 @@
 
 #include <chrono>
 #include <memory>
+#include <exception>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -100,25 +101,36 @@ AuthCheckResult DigestCheckerBase::CheckAuth(const http::HttpRequest& request,
     // If there is no authorization header, we save the "nonce" to temporary
     // storage.
     auto nonce = digest_hasher_.GenerateNonce();
-    PushUnnamedNonce(nonce, nonce_ttl_);
-
+    
     response.SetStatus(unauthorized_status_);
     response.SetHeader(authenticate_header_,
                        ConstructResponseDirectives(nonce, false));
+    
+    PushUnnamedNonce(std::move(nonce), nonce_ttl_);
+    
+    LOG_WARNING() << fmt::format("Missing {} header from client", authorization_header_);
+    
     return AuthCheckResult{AuthCheckResult::Status::kInvalidToken};
   }
 
   DigestParsing parser;
-  parser.ParseAuthInfo(auth_value.substr(kDigestWord.size() + 1));
-  const auto& client_context = parser.GetClientContext();
+  DigestContextFromClient client_context; 
+  try {
+    parser.ParseAuthInfo(auth_value.substr(kDigestWord.size() + 1));
+    client_context = parser.GetClientContext();
+  } catch(std::runtime_error& ex) {
+    response.SetStatus(http::HttpStatus::kBadRequest);
+    LOG_WARNING() << "Missing mandatory directives or wrong authentication header format.";
+  }
 
   // Check if user have been registred.
   auto user_data_opt = FetchUserData(client_context.username);
   if (!user_data_opt.has_value()) {
+    LOG_WARNING() << "User is not registred.";
     return AuthCheckResult{AuthCheckResult::Status::kForbidden};
   }
-  const auto& user_data = user_data_opt.value();
 
+  const auto& user_data = user_data_opt.value();
   auto validate_result = ValidateUserData(client_context, user_data);
   switch (validate_result) {
     case ValidateResult::kWrongUserData:
@@ -156,13 +168,12 @@ DigestCheckerBase::ValidateResult DigestCheckerBase::ValidateUserData(
     const UserData& user_data) const {
   bool are_nonces_equal = crypto::algorithm::AreStringsEqualConstTime(
       user_data.nonce, client_context.nonce);
-  bool is_nonce_expired =
-      user_data.timestamp + nonce_ttl_ < userver::utils::datetime::Now();
   if (!are_nonces_equal) {
     // "nonce" may be in temporary storage.
     auto nonce_creation_time =
         GetUnnamedNonceCreationTime(client_context.nonce);
     if (!nonce_creation_time.has_value()) {
+      LOG_WARNING() << "Nonces aren't equal and no equivalent nonce found in \"nonce pool\".";
       return ValidateResult::kWrongUserData;
     }
 
@@ -170,41 +181,46 @@ DigestCheckerBase::ValidateResult DigestCheckerBase::ValidateUserData(
                 nonce_creation_time.value());
   }
 
+  bool is_nonce_expired =
+      user_data.timestamp + nonce_ttl_ < userver::utils::datetime::Now();
   if (is_nonce_expired) {
+    LOG_WARNING() << "Nonces are equal, but expired.";
     return ValidateResult::kWrongUserData;
   }
 
   LOG_DEBUG() << "Nonce is OK";
 
   auto client_nc = std::stoul(client_context.nc, nullptr, 16);
-  if (user_data.nonce_count < client_nc) {
-    SetUserData(client_context.username, client_context.nonce, 0,
-                utils::datetime::Now());
-  } else {
+  if (user_data.nonce_count >= client_nc) {
+    LOG_WARNING() << "The current request is a duplicate.";
     return ValidateResult::kDuplicateRequest;
   }
-  LOG_DEBUG() << "Nonce_count is OK";
 
+  SetUserData(client_context.username, user_data.nonce, client_nc,
+                user_data.timestamp);
+
+  LOG_DEBUG() << "Nonce_count is OK";
   return ValidateResult::kOk;
 }
 
 std::string DigestCheckerBase::ConstructAuthInfoHeader(
     const DigestContextFromClient& client_context) const {
   auto next_nonce = digest_hasher_.GenerateNonce();
-
   SetUserData(client_context.username, next_nonce, 0, utils::datetime::Now());
 
-  return fmt::format("{}=\"{}\"", directives::kNextNonce, next_nonce);
+  return fmt::format("{}=\"{}\"", directives::kNextNonce, std::move(next_nonce));
 }
 
 AuthCheckResult DigestCheckerBase::StartNewAuthSession(
-    std::string_view username, std::string_view nonce_from_client,
+    std::string username, std::string&& nonce,
     bool stale, http::HttpResponse& response) const {
-  SetUserData(username, nonce_from_client, 0, utils::datetime::Now());
   response.SetStatus(unauthorized_status_);
   response.SetHeader(authenticate_header_,
-                     ConstructResponseDirectives(nonce_from_client, stale));
+                     ConstructResponseDirectives(nonce, stale));
+  
+  SetUserData(std::move(username), std::move(nonce), 0, utils::datetime::Now());
 
+  LOG_WARNING() << "User is not registred.";
   return AuthCheckResult{AuthCheckResult::Status::kInvalidToken};
 }
 
