@@ -43,8 +43,7 @@ void DigestParser::ParseAuthInfo(std::string_view header_value) {
         } else if (std::isspace(delimiter)) {
           // Skip
         } else
-          utils::LogErrorAndThrow(
-              "Invalid authentication information");
+          utils::LogErrorAndThrow("Invalid authentication information");
         break;
 
       case State::kStateToken:
@@ -121,7 +120,7 @@ void DigestParser::ParseAuthInfo(std::string_view header_value) {
 }
 
 DigestContextFromClient DigestParser::GetClientContext() {
-  // Only checking mandatory directives 
+  // Only checking mandatory directives
   // because according to RFC 2617,
   // "Any unrecognized directive MUST be ignored"
   for (const auto& dir : kMandatoryDirectives) {

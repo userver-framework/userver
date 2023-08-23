@@ -1,7 +1,12 @@
 #pragma once
 
 /// @file userver/server/handlers/auth/auth_params_parsing.hpp
+<<<<<<< HEAD
 /// @brief Class for parsing Authorization header directives from client request.
+=======
+/// @brief Class for parsing Authorization header directives from client
+/// request.
+>>>>>>> develop
 
 #include <array>
 #include <memory>
@@ -22,10 +27,12 @@ namespace server::handlers::auth {
 /// Class for parsing Authrorization header
 class DigestParser {
  public:
-  /// Function to call to parse Authorization header value into directive-value map
+  /// Function to call to parse Authorization header value into directive-value
+  /// map
   void ParseAuthInfo(std::string_view header_value);
   /// Function to call to get client digest context from directive-value map
   DigestContextFromClient GetClientContext();
+
  private:
   std::unordered_map<std::string, std::string> directive_mapping;
 };

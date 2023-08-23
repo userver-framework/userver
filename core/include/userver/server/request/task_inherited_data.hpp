@@ -3,6 +3,7 @@
 /// @file userver/server/request/task_inherited_data.hpp
 /// @brief @copybrief server::request::TaskInheritedData
 
+#include <atomic>
 #include <string>
 
 #include <userver/engine/deadline.hpp>
@@ -12,6 +13,20 @@ USERVER_NAMESPACE_BEGIN
 
 /// Server request related types and functions
 namespace server::request {
+
+/// @brief Signals when an operation has detected deadline expiration.
+class DeadlineSignal final {
+ public:
+  DeadlineSignal() noexcept;
+  DeadlineSignal(const DeadlineSignal&) noexcept;
+  DeadlineSignal& operator=(const DeadlineSignal&) noexcept;
+
+  void SetExpired() noexcept;
+  bool IsExpired() const noexcept;
+
+ private:
+  std::atomic<bool> value_{false};
+};
 
 /// @brief Per-request data that should be available inside handlers
 struct TaskInheritedData final {
@@ -26,14 +41,20 @@ struct TaskInheritedData final {
 
   /// The time when there is no use handling the request anymore
   engine::Deadline deadline;
+
+  /// Signals when an operation has detected deadline expiration
+  mutable DeadlineSignal deadline_signal{};
 };
 
 /// @see TaskInheritedData for details on the contents.
-inline engine::TaskInheritedVariable<TaskInheritedData> kTaskInheritedData;
+extern engine::TaskInheritedVariable<TaskInheritedData> kTaskInheritedData;
 
 /// @brief Returns TaskInheritedData::deadline, or an unreachable
 /// engine::Deadline if none was set.
 engine::Deadline GetTaskInheritedDeadline() noexcept;
+
+/// @brief Marks that the current TaskInheritedData::deadline has expired.
+void MarkTaskInheritedDeadlineExpired() noexcept;
 
 /// @brief Stops deadline propagation within its scope
 ///

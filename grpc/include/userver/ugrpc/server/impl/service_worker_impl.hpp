@@ -118,7 +118,11 @@ class CallData final {
         method_data_.method_id, context_, initial_request_, raw_responder_,
         queue, queue, prepare_.GetTag());
 
-    if (prepare_.Wait() != impl::AsyncMethodInvocation::WaitStatus::kOk) {
+    // Note: we ignore task cancellations here. Even if notify_when_done has
+    // already cancelled this RPC, we want to:
+    // 1. listen to further RPCs for the same method
+    // 2. handle this RPC correctly, including metrics, logs, etc.
+    if (Wait(prepare_) != impl::AsyncMethodInvocation::WaitStatus::kOk) {
       // the CompletionQueue is shutting down
 
       // Do not wait for notify_when_done. When queue is shutting down, it will
