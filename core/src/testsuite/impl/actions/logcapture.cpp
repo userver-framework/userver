@@ -15,13 +15,12 @@ LogCapture::LogCapture(const components::ComponentContext& component_context)
 formats::json::Value LogCapture::Perform(
     const formats::json::Value& request_body) const {
   const auto socket_logging = request_body["socket_logging_duplication"];
-  if (!socket_logging.IsMissing()) {
-    auto enable = socket_logging.As<bool>();
-    if (enable) {
-      logging_component_.StartSocketLoggingDebug();
-    } else {
-      logging_component_.StopSocketLoggingDebug();
-    }
+
+  const auto enable = socket_logging.As<bool>();
+  if (enable) {
+    logging_component_.StartSocketLoggingDebug();
+  } else {
+    logging_component_.StopSocketLoggingDebug();
   }
 
   return {};

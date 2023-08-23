@@ -90,8 +90,4 @@ properties:
 
 }  // namespace server::handlers::auth
 
-template <>
-inline constexpr bool components::kHasValidate<
-    server::handlers::auth::DigestCheckerSettingsComponent> = true;
-
 USERVER_NAMESPACE_END

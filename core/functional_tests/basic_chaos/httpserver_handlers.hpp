@@ -37,8 +37,7 @@ class HttpServerHandler final : public server::handlers::HttpHandlerBase {
       return kDefaultAnswer;
     }
 
-    UASSERT(false);
-    return {};
+    UINVARIANT(false, "Unexpected request type");
   }
 
   server::handlers::FormattedErrorData GetFormattedExternalErrorBody(

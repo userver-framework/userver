@@ -81,7 +81,7 @@ struct UnsafeConstexprHasher final {
 inline constexpr utils::TrivialBiMap kKnownHeadersLowercaseMap =
     [](auto selector) {
       return selector()
-          .Case("content-type", 1)
+          .Case("content-type", std::int8_t{1})
           .Case("content-encoding", 2)
           .Case("content-length", 3)
           .Case("transfer-encoding", 4)
@@ -111,14 +111,15 @@ inline constexpr utils::TrivialBiMap kKnownHeadersLowercaseMap =
           .Case("x-yataxi-allow-auth-response", 28)
           .Case("x-yataxi-server-hostname", 29)
           .Case("x-yataxi-client-timeoutms", 30)
-          .Case("x-yataxi-ratelimited-by", 31)
-          .Case("x-yataxi-ratelimit-reason", 32);
+          .Case("x-yataxi-deadline-expired", 31)
+          .Case("x-yataxi-ratelimited-by", 32)
+          .Case("x-yataxi-ratelimit-reason", 33);
     };
 
 // We use different values for "no index" at compile and run time to simplify
 // comparison - with these values being different we cant just == them.
-constexpr std::int8_t kNoHeaderIndexLookup = -1;
-constexpr std::int8_t kNoHeaderIndexInsertion = -2;
+inline constexpr std::int8_t kNoHeaderIndexLookup = -1;
+inline constexpr std::int8_t kNoHeaderIndexInsertion = -2;
 static_assert(kNoHeaderIndexLookup != kNoHeaderIndexInsertion);
 static_assert(kNoHeaderIndexLookup != 0 && kNoHeaderIndexInsertion != 0);
 

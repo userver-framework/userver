@@ -1,4 +1,4 @@
 # Highlight.js
 
-Version 11.6.0 with custom set of languages:
-xml,html,http,nginx,diff,sql,makefile,cmake,plaintext,bash,ini,yaml
+Version 11.8.0 with custom set of languages:
+bash,cmake,cpp,diff,http,ini,makefile,nginx,sql,xml,yaml

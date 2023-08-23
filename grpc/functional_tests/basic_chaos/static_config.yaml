@@ -23,7 +23,6 @@ components_manager:
                 task-processor: main-task-processor
                 middlewares:
                   - grpc-server-logging
-                  - grpc-server-deadline-propagation
                   - grpc-server-baggage
                   - grpc-server-congestion-control
 
@@ -45,7 +44,6 @@ components_manager:
             channel-args: {}
             middlewares:
               - grpc-client-logging
-              - grpc-client-deadline-propagation
               - grpc-client-baggage
         greeter-client:
             endpoint: '[::]:8081'
@@ -96,6 +94,3 @@ components_manager:
     coro_pool:
         initial_size: 500
         max_size: 1000
-userver_experiments:
-  - grpc-client-deadline-propagation
-  - grpc-server-deadline-propagation

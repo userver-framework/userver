@@ -11,7 +11,6 @@
 #include <userver/server/request/task_inherited_data.hpp>
 #include <userver/utest/assert_macros.hpp>
 #include <userver/utest/utest.hpp>
-#include <userver/utils/impl/userver_experiments.hpp>
 
 #include <ugrpc/client/impl/client_configs.hpp>
 #include <ugrpc/server/impl/server_configs.hpp>
@@ -62,10 +61,6 @@ class DeadlineStatsTests
         {ugrpc::client::impl::kEnforceClientTaskDeadline, true},
         {ugrpc::server::impl::kServerCancelTaskByDeadline, true},
     });
-    experiments_.Set(utils::impl::kGrpcClientDeadlinePropagationExperiment,
-                     true);
-    experiments_.Set(utils::impl::kGrpcServerDeadlinePropagationExperiment,
-                     true);
   }
 
   void BeSlow() { GetService().SetWaitDeadline(true); }
@@ -110,9 +105,6 @@ class DeadlineStatsTests
 
     EXPECT_EQ(statistics.SingleMetric(path).AsInt(), expected);
   }
-
- private:
-  utils::impl::UserverExperimentsScope experiments_;
 };
 
 }  // namespace

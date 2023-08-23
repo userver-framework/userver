@@ -21,15 +21,11 @@
 #include <userver/server/request/task_inherited_data.hpp>
 #include <userver/storages/redis/impl/exception.hpp>
 #include <userver/storages/redis/impl/reply.hpp>
-#include <userver/utils/impl/userver_experiments.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace redis {
 namespace {
-
-utils::impl::UserverExperiment kDeadlinePropagationExperiment{
-    "redis-deadline-propagation", true};
 
 bool CheckQuorum(size_t requests_sent, size_t responses_parsed) {
   size_t quorum = requests_sent / 2 + 1;
@@ -212,7 +208,9 @@ void SentinelImpl::InitShards(
   }
 }
 
-static inline void InvokeCommand(CommandPtr command, ReplyPtr&& reply) {
+namespace {
+
+void InvokeCommand(CommandPtr command, ReplyPtr&& reply) {
   UASSERT(reply);
   if (reply->server_id.IsAny())
     reply->server_id = command->control.force_server_id;
@@ -232,32 +230,22 @@ static inline void InvokeCommand(CommandPtr command, ReplyPtr&& reply) {
   }
 }
 
-std::optional<std::chrono::milliseconds> GetDeadlineTimeLeft(
-    const dynamic_config::Snapshot& config) {
+std::optional<std::chrono::milliseconds> GetDeadlineTimeLeft() {
   if (!engine::current_task::IsTaskProcessorThread()) return std::nullopt;
 
-  if (!kDeadlinePropagationExperiment.IsEnabled()) return std::nullopt;
-
-  if (config[kDeadlinePropagationVersion] !=
-      kDeadlinePropagationExperimentVersion) {
-    return std::nullopt;
-  }
-
   const auto inherited_deadline = server::request::GetTaskInheritedDeadline();
-  if (inherited_deadline.IsReachable()) {
-    const auto inherited_timeout =
-        std::chrono::duration_cast<std::chrono::milliseconds>(
-            inherited_deadline.TimeLeftApprox());
-    return inherited_timeout;
-  }
-  return std::nullopt;
+  if (!inherited_deadline.IsReachable()) return std::nullopt;
+
+  const auto inherited_timeout =
+      std::chrono::duration_cast<std::chrono::milliseconds>(
+          inherited_deadline.TimeLeftApprox());
+  return inherited_timeout;
 }
 
-bool SentinelImplBase::AdjustDeadline(
-    const SentinelCommand& scommand,
-    const dynamic_config::Source& dynamic_config_source) {
-  const auto inherited_deadline =
-      GetDeadlineTimeLeft(dynamic_config_source.GetSnapshot());
+}  // namespace
+
+bool AdjustDeadline(const SentinelImplBase::SentinelCommand& scommand) {
+  const auto inherited_deadline = GetDeadlineTimeLeft();
   if (!inherited_deadline) return true;
 
   if (*inherited_deadline <= std::chrono::seconds{0}) {
@@ -274,7 +262,7 @@ bool SentinelImplBase::AdjustDeadline(
 
 void SentinelImpl::AsyncCommand(const SentinelCommand& scommand,
                                 size_t prev_instance_idx) {
-  if (!AdjustDeadline(scommand, dynamic_config_source_)) {
+  if (!AdjustDeadline(scommand)) {
     auto reply = std::make_shared<Reply>("", ReplyData::CreateNil());
     reply->status = ReplyStatus::kTimeoutError;
     InvokeCommand(scommand.command, std::move(reply));

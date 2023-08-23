@@ -26,32 +26,30 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace server::handlers::auth {
+namespace utils {
 
-namespace {
-
-std::int64_t FromHexToInteger(const std::string& str) {
+std::int64_t FromHexString(const std::string& str) {
   std::int64_t result{};
   try {
     result = std::stoll(str, nullptr, 16);
   } catch (std::logic_error& ex) {
     LOG_WARNING() << "Nonce_count from string to integer casting error: "
                   << ex.what();
-    throw handlers::ClientError();
+    throw server::handlers::ClientError();
   }
 
   return result;
 }
 
-}  // namespace
+}  // namespace utils
+
+namespace server::handlers::auth {
 
 constexpr std::string_view kDigestWord = "Digest";
 
 constexpr std::string_view kAuthenticationInfo = "Authentication-Info";
 constexpr std::string_view kProxyAuthenticationInfo =
     "Proxy-Authentication-Info";
-
-UserData::UserData() = default;
 
 UserData::UserData(HA1 ha1, std::string nonce, TimePoint timestamp,
                    std::int64_t nonce_count)
@@ -77,6 +75,8 @@ DigestHasher::DigestHasher(std::string_view algorithm) {
   }
 }
 
+// TODO: Implement the recommended nonce hashing algorithm:
+// nonce = hash(timestamp:ETag:server-private-key)
 std::string DigestHasher::GenerateNonce() const {
   return GetHash(std::to_string(
       std::chrono::system_clock::now().time_since_epoch().count()));
@@ -112,8 +112,11 @@ DigestCheckerBase::~DigestCheckerBase() = default;
 
 AuthCheckResult DigestCheckerBase::CheckAuth(const http::HttpRequest& request,
                                              request::RequestContext&) const {
-  // RFC 2617, 3
+  // RFC 2617, 3: https://datatracker.ietf.org/doc/html/rfc2617
   // Digest Access Authentication.
+
+  // TODO: Implement a more recent version:
+  // RFC 7616 https://datatracker.ietf.org/doc/html/rfc7616
   auto& response = request.GetHttpResponse();
 
   const auto& auth_value = request.GetHeader(authorization_header_);
@@ -149,7 +152,7 @@ AuthCheckResult DigestCheckerBase::CheckAuth(const http::HttpRequest& request,
   // Check if user have been registred.
   auto user_data_opt = FetchUserData(client_context.username);
   if (!user_data_opt.has_value()) {
-    LOG_WARNING() << "User is not registred.";
+    LOG_WARNING() << "username not registred.";
     return AuthCheckResult{AuthCheckResult::Status::kForbidden};
   }
 
@@ -215,7 +218,7 @@ DigestCheckerBase::ValidateResult DigestCheckerBase::ValidateUserData(
 
   LOG_DEBUG() << "Nonce is OK";
 
-  auto client_nc = FromHexToInteger(client_context.nc);
+  auto client_nc = utils::FromHexString(client_context.nc);
   if (user_data.nonce_count >= client_nc) {
     LOG_WARNING() << "The current request is a duplicate.";
     return ValidateResult::kDuplicateRequest;
