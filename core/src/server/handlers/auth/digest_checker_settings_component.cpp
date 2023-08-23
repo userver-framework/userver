@@ -22,7 +22,7 @@ DigestCheckerSettingsComponent::DigestCheckerSettingsComponent(
     : components::LoggableComponentBase(config, context) {
   // Reading config values from static config
   // Check for valid algorithms
-  auto algorithm = config["algorithm"].As<std::string>("md5");
+  auto algorithm = config["algorithm"].As<std::string>("sha256");
   if (!kHashAlgToType.TryFindICase(algorithm).has_value()) {
     throw std::runtime_error("Algorithm is not supported: " + algorithm);
   }

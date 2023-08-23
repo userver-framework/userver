@@ -24,7 +24,7 @@ namespace server::handlers::auth {
 ///
 /// Name       | Description                                          | Default value
 /// ---------- | ---------------------------------------------------- | -------------
-/// algorithm  | algorithm for hashing nonce                          | md5
+/// algorithm  | algorithm for hashing nonce                          | sha256
 /// domains    | domains for use                                      | /
 /// qops       | list of qop-options                                  | auth
 /// is-proxy   | if set, the Proxy prefix is inserted into the header | false
