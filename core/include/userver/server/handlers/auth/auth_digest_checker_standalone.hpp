@@ -41,7 +41,7 @@ struct NonceInfo final {
 class AuthCheckerDigestBaseStandalone : public DigestCheckerBase {
  public:
   AuthCheckerDigestBaseStandalone(const AuthDigestSettings& digest_settings,
-                                  std::string&& realm);
+                                  std::string&& realm, std::size_t ways, std::size_t way_size);
 
   [[nodiscard]] bool SupportsUserAuth() const noexcept override { return true; }
 
@@ -59,13 +59,13 @@ class AuthCheckerDigestBaseStandalone : public DigestCheckerBase {
       std::string_view username) const = 0;
 
  private:
+  using NonceCache = cache::ExpirableLruCache<std::string, TimePoint>;
   // potentially we store ALL user's data
   // great chance to occupy large block of memory
   mutable rcu::RcuMap<std::string, concurrent::Variable<NonceInfo>> user_data_;
   // cache for "unnamed" nonces, 
   // i.e initial nonces not tied to any user
-  mutable cache::ExpirableLruCache<std::string, TimePoint> unnamed_nonces_{
-      4, 25000};
+  mutable NonceCache unnamed_nonces_;
 };
 
 }  // namespace server::handlers::auth

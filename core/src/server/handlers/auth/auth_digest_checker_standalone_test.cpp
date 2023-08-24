@@ -15,6 +15,9 @@ USERVER_NAMESPACE_BEGIN
 
 namespace server::handlers::auth::test {
 
+constexpr std::size_t kWays = 4;
+constexpr std::size_t kWaySize = 25000;
+
 using HA1 = utils::NonLoggable<class HA1Tag, std::string>;
 using NonceCache = cache::ExpirableLruCache<std::string, TimePoint>;
 using ValidateResult = DigestCheckerBase::ValidateResult;
@@ -23,7 +26,8 @@ class StandAloneChecker final : public AuthCheckerDigestBaseStandalone {
  public:
   StandAloneChecker(const AuthDigestSettings& digest_settings,
                     std::string&& realm)
-      : AuthCheckerDigestBaseStandalone(digest_settings, std::move(realm)) {}
+      : AuthCheckerDigestBaseStandalone(digest_settings, std::move(realm),
+                                        kWays, kWaySize) {}
 
   std::optional<HA1> GetHA1(std::string_view) const override {
     return HA1{"939e7578ed9e3c518a452acee763bce9"};
