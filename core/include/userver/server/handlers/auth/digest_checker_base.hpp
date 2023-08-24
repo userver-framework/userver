@@ -52,7 +52,7 @@ struct UserData final {
   using HA1 = utils::NonLoggable<class HA1Tag, std::string>;
 
   UserData(HA1 ha1, std::string nonce, TimePoint timestamp,
-           std::int64_t nonce_count = 0);
+           std::int64_t nonce_count);
 
   HA1 ha1;
   std::string nonce;
