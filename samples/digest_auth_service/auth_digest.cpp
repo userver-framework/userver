@@ -44,9 +44,9 @@ class AuthCheckerDigest final
   std::optional<UserData> FetchUserData(
       const std::string& username) const override;
 
-  void SetUserData(const std::string& username,
-                           const std::string& nonce, std::int64_t nonce_count,
-                           TimePoint nonce_creation_time) const override;
+  void SetUserData(const std::string& username, const std::string& nonce,
+                   std::int64_t nonce_count,
+                   TimePoint nonce_creation_time) const override;
 
   void PushUnnamedNonce(std::string nonce) const override;
 
@@ -68,13 +68,14 @@ class AuthCheckerDigest final
       "WHERE username=$4",
       storages::postgres::Query::Name{"update_user"}};
 
-/// 1) Searches for id of expired nonce or generates new nonce.
-/// 2) Insert nonce and it's creation time.
-/// if id is selected from present nonces
-/// then there will be conflict
-/// so we rewrite nonce information.
-/// 3) Otherwise new nonce will be inserted.
-/// Purpose is not storing expired nonces and making deleting query after every query
+  /// 1) Searches for id of expired nonce or generates new nonce.
+  /// 2) Insert nonce and it's creation time.
+  /// if id is selected from present nonces
+  /// then there will be conflict
+  /// so we rewrite nonce information.
+  /// 3) Otherwise new nonce will be inserted.
+  /// Purpose is not storing expired nonces and making deleting query after
+  /// every query
   const storages::postgres::Query kInsertUnnamedNonce{
       "WITH expired AS( "
       "  SELECT id FROM auth_schema.unnamed_nonce WHERE creation_time <= $1 "
@@ -115,8 +116,9 @@ std::optional<UserData> AuthCheckerDigest::FetchUserData(
 }
 
 void AuthCheckerDigest::SetUserData(const std::string& username,
-                           const std::string& nonce, std::int64_t nonce_count,
-                           TimePoint nonce_creation_time) const {
+                                    const std::string& nonce,
+                                    std::int64_t nonce_count,
+                                    TimePoint nonce_creation_time) const {
   pg_cluster_->Execute(storages::postgres::ClusterHostType::kMaster,
                        kUpdateUser, nonce, nonce_creation_time, nonce_count,
                        username);
