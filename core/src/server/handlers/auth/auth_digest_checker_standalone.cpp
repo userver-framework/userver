@@ -46,8 +46,8 @@ std::optional<UserData> AuthCheckerDigestBaseStandalone::FetchUserData(
 }
 
 void AuthCheckerDigestBaseStandalone::SetUserData(
-    const std::string& username, const std::string& nonce, std::int64_t nonce_count,
-    TimePoint nonce_creation_time) const {
+    const std::string& username, const std::string& nonce,
+    std::int64_t nonce_count, TimePoint nonce_creation_time) const {
   auto nonce_info = user_data_.Get(username);
   if (nonce_info) {
     // If the nonce_info exists, we update it
@@ -56,7 +56,7 @@ void AuthCheckerDigestBaseStandalone::SetUserData(
   } else {
     // Else we create nonce_info and put it to user_data_
     auto nonce_info_new = std::make_shared<concurrent::Variable<NonceInfo>>(
-      nonce, nonce_creation_time, nonce_count);
+        nonce, nonce_creation_time, nonce_count);
     user_data_.InsertOrAssign(username, nonce_info_new);
   }
 }

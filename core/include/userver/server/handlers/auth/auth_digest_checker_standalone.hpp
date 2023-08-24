@@ -11,13 +11,13 @@
 #include <userver/concurrent/variable.hpp>
 #include <userver/crypto/hash.hpp>
 #include <userver/rcu/rcu_map.hpp>
+#include <userver/server/handlers/auth/auth_digest_settings.hpp>
+#include <userver/server/handlers/auth/auth_params_parsing.hpp>
+#include <userver/server/handlers/auth/digest_checker_base.hpp>
 #include <userver/server/http/http_request.hpp>
 #include <userver/server/http/http_response.hpp>
 #include <userver/server/http/http_status.hpp>
 #include <userver/server/request/request_context.hpp>
-#include <userver/server/handlers/auth/digest_checker_base.hpp>
-#include <userver/server/handlers/auth/auth_digest_settings.hpp>
-#include <userver/server/handlers/auth/auth_params_parsing.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
