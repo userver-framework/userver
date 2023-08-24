@@ -20,6 +20,7 @@
 
 namespace samples::pg {
 
+/// [request context]
 class Hello final : public server::handlers::HttpHandlerBase {
  public:
   static constexpr std::string_view kName = "handler-hello";
@@ -32,13 +33,17 @@ class Hello final : public server::handlers::HttpHandlerBase {
     return "Hello world";
   }
 };
+/// [request context]
 
 }  // namespace samples::pg
 
+/// [auth checker registration]
 int main(int argc, const char* const argv[]) {
   server::handlers::auth::RegisterAuthCheckerFactory(
       "digest", std::make_unique<samples::pg::CheckerFactory>());
+  /// [auth checker registration]
 
+  /// [main]
   const auto component_list =
       components::MinimalServerComponentList()
           .Append<components::Postgres>("auth-database")
@@ -49,4 +54,6 @@ int main(int argc, const char* const argv[]) {
           .Append<clients::dns::Component>()
           .Append<server::handlers::auth::DigestCheckerSettingsComponent>();
   return utils::DaemonMain(argc, argv, component_list);
+  /// [main]
 }
+/// [Postgres digest auth service sample - main]

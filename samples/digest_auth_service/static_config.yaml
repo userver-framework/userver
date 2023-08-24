@@ -5,7 +5,7 @@ components_manager:
             dbconnection: 'postgresql://testsuite@localhost:15433/postgres'
             blocking_task_processor: fs-task-processor
             dns_resolver: async
-
+        # /// [digest config]
         auth-digest-checker-settings:
             algorithm: MD5
             qops:
@@ -15,7 +15,8 @@ components_manager:
             domains:
               - /v1/hello
             nonce-ttl: 1000s
-
+        # /// [digest config]
+        # /// [hello config]
         handler-hello:
             path: /v1/hello
             task_processor: main-task-processor
@@ -24,7 +25,7 @@ components_manager:
                 types:
                   - digest  # Authorization type that was specified in main()
                 realm: registred@userver.com
-
+        # /// [hello config]
         testsuite-support:
 
         server:

@@ -1,3 +1,4 @@
+# /// [Functional test]
 import pytest
 import requests.auth
 from requests.auth import HTTPDigestAuth
@@ -40,6 +41,7 @@ async def test_authenticate_base(service_client):
         '/v1/hello', headers={'Authorization': auth_header},
     )
     assert response.status == 200
+# /// [Functional test]
 
 
 @pytest.mark.pgsql('auth', files=['test_data.sql'])

@@ -2,6 +2,7 @@
 
 #include <userver/utest/using_namespace_userver.hpp>
 
+/// [auth checker factory decl]
 #include <userver/server/handlers/auth/auth_checker_factory.hpp>
 
 namespace samples::pg {
@@ -16,3 +17,4 @@ class CheckerFactory final
 };
 
 }  // namespace samples::pg
+/// [auth checker factory decl]
