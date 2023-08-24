@@ -151,7 +151,7 @@ implemented using the testsuite. To do that you have to:
   @ref samples/digest_auth_service/tests/conftest.py
 * Prepare the DB test data @ref samples/digest_auth_service/tests/static/test_data.sql
 * Write the test:
-  @snippet samples/digest_auth_service/tests/test_postgres.py  Functional test
+  @snippet samples/digest_auth_service/tests/test_digest.py  Functional test
 
 
 ## Full sources
