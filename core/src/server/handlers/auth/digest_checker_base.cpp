@@ -75,9 +75,11 @@ DigestHasher::DigestHasher(std::string_view algorithm) {
 
 // TODO: Implement the recommended nonce hashing algorithm:
 // nonce = hash(timestamp:ETag:server-private-key)
-std::string DigestHasher::GenerateNonce() const {
-  return GetHash(std::to_string(
-      std::chrono::system_clock::now().time_since_epoch().count()));
+std::string DigestHasher::GenerateNonce(std::string_view etag) const {
+  auto timestamp = std::to_string(
+      std::chrono::system_clock::now().time_since_epoch().count());
+  if (etag.empty()) return GetHash(timestamp);
+  return GetHash(fmt::format("{}:{}", timestamp, etag));
 }
 
 std::string DigestHasher::GetHash(std::string_view data) const {
@@ -116,12 +118,13 @@ AuthCheckResult DigestCheckerBase::CheckAuth(const http::HttpRequest& request,
   // TODO: Implement a more recent version:
   // RFC 7616 https://datatracker.ietf.org/doc/html/rfc7616
   auto& response = request.GetHttpResponse();
+  const auto& etag = request.GetHeader(userver::http::headers::kETag);
 
   const auto& auth_value = request.GetHeader(authorization_header_);
   if (auth_value.empty()) {
     // If there is no authorization header, we save the "nonce" to temporary
     // storage.
-    auto nonce = digest_hasher_.GenerateNonce();
+    auto nonce = digest_hasher_.GenerateNonce(etag);
 
     response.SetStatus(unauthorized_status_);
     response.SetHeader(authenticate_header_,
@@ -160,7 +163,7 @@ AuthCheckResult DigestCheckerBase::CheckAuth(const http::HttpRequest& request,
   switch (validate_result) {
     case ValidateResult::kWrongUserData:
       return StartNewAuthSession(client_context.username,
-                                 digest_hasher_.GenerateNonce(), true,
+                                 digest_hasher_.GenerateNonce(etag), true,
                                  response);
     case ValidateResult::kDuplicateRequest:
       response.SetStatus(unauthorized_status_);
@@ -183,7 +186,7 @@ AuthCheckResult DigestCheckerBase::CheckAuth(const http::HttpRequest& request,
   // RFC 2617, 3.2.3
   // Authentication-Info contains the "nextnonce" required for subsequent
   // authentication.
-  auto info_header_directives = ConstructAuthInfoHeader(client_context);
+  auto info_header_directives = ConstructAuthInfoHeader(client_context, etag);
   response.SetHeader(authenticate_info_header_, info_header_directives);
 
   return {};
@@ -231,8 +234,9 @@ DigestCheckerBase::ValidateResult DigestCheckerBase::ValidateUserData(
 }
 
 std::string DigestCheckerBase::ConstructAuthInfoHeader(
-    const DigestContextFromClient& client_context) const {
-  auto next_nonce = digest_hasher_.GenerateNonce();
+    const DigestContextFromClient& client_context,
+    std::string_view etag) const {
+  auto next_nonce = digest_hasher_.GenerateNonce(etag);
   SetUserData(client_context.username, next_nonce, 0, utils::datetime::Now());
 
   return fmt::format("{}=\"{}\"", directives::kNextNonce,

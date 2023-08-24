@@ -35,7 +35,7 @@ class DigestHasher final {
   DigestHasher(std::string_view algorithm);
 
   /// Returns "nonce" directive value in hexadecimal format.
-  std::string GenerateNonce() const;
+  std::string GenerateNonce(std::string_view etag) const;
 
   /// Returns data hashed according to the specified in constructor
   /// algorithm.
@@ -117,7 +117,8 @@ class DigestCheckerBase : public AuthCheckerBase {
       const DigestContextFromClient& client_context) const;
 
   std::string ConstructAuthInfoHeader(
-      const DigestContextFromClient& client_context) const;
+      const DigestContextFromClient& client_context,
+      std::string_view etag) const;
 
   std::string ConstructResponseDirectives(std::string_view nonce,
                                           bool stale) const;
