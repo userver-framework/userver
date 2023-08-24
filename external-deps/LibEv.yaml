@@ -1,0 +1,19 @@
+name: LibEv
+
+includes:
+    find:
+      - names:
+          - ev.h
+
+libraries:
+    find:
+      - names:
+          - ev
+
+debian-names:
+  - libev-dev
+formula-name: libev
+rpm-names:
+  - libev-devel
+pacman-names:
+  - libev

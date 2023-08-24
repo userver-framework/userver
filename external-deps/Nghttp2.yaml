@@ -1,0 +1,17 @@
+name: Nghttp2
+
+includes:
+    find:
+      - names:
+          - nghttp2/nghttp2.h
+
+libraries:
+    find:
+      - names:
+          - nghttp2
+
+debian-names:
+  - libnghttp2-dev
+formula-name: nghttp2
+pacman-names:
+  - libnghttp2

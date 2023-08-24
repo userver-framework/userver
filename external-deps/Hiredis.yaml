@@ -1,0 +1,22 @@
+name: Hiredis
+version: 0.13.3
+
+includes:
+    find:
+      - names:
+          - hiredis/hiredis.h
+
+libraries:
+    find:
+      - names:
+          - hiredis
+
+debian-names:
+  - libhiredis-dev
+formula-name: hiredis
+rpm-names:
+  - hiredis-devel
+pacman-names:
+  - hiredis
+pkg-names:
+  - hiredis

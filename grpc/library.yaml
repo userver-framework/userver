@@ -1,0 +1,14 @@
+project-name: userver-grpc
+project-alt-names:
+  - yandex-userver-grpc
+maintainers:
+  - Common components
+description: Userver component for gRPC protocol
+
+libraries:
+  - userver-core
+
+configs:
+    names:
+      - USERVER_GRPC_CLIENT_ENABLE_DEADLINE_PROPAGATION
+      - USERVER_GRPC_SERVER_CANCEL_TASK_BY_DEADLINE

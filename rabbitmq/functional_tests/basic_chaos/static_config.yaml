@@ -1,0 +1,79 @@
+components_manager:
+    components:                                               # Configuring components that were registered via component_list
+        chaos-handler:
+            path: /v1/messages                                # Registering handler by URL '/v1/messages'.
+            task_processor: main-task-processor               # Run it on CPU bound task processor
+            method: GET,POST,PATCH,DELETE
+
+        chaos-consumer:
+            rabbit_name: chaos-rabbit
+            queue: chaos-queue
+            prefetch_count: 2
+
+        chaos-rabbit:
+            secdist_alias: chaos-rabbit-alias
+            min_pool_size: 1
+            max_pool_size: 1
+            max_in_flight_requests: 5
+            use_secure_connection: false
+
+        secdist: {}                                           # Component that stores configuration of hosts and passwords
+        default-secdist-provider:                             # Component that loads configuration of hosts and passwords  
+            config: /etc/rabbitmq_service/secure_data.json    # Values are supposed to be stored in this file
+            missing-ok: true                                  # ... but if the file is missing it is still ok
+            environment-secrets-key: SECDIST_CONFIG           # ... values will be loaded from this environment value
+
+        server:
+            listener:                                         # configuring the main listening socket...
+                port: 8096                                    # ...to listen on this port and...
+                task_processor: main-task-processor           # ...process incoming requests on this task processor.
+            listener-monitor:
+                port: 8086
+                task_processor: main-task-processor
+        logging:
+            fs-task-processor: fs-task-processor
+            loggers:
+                default:
+                    file_path: '@stdout'
+                    level: debug
+                    overflow_behavior: discard                # Drop logs if the system is too busy to write them down.
+
+        tracer:                                               # Component that helps to trace execution times and requests in logs.
+            service-name: rabbitmq-metrics
+
+        dynamic-config:                                       # Dynamic config storage options, do nothing
+            fs-cache-path: ''
+        dynamic-config-fallbacks:                             # Load options from file and push them into the dynamic config storage.
+            fallback-path: /etc/rabbitmq_service/dynamic_config_fallback.json
+        dns-client:
+            fs-task-processor: fs-task-processor
+
+        http-client:
+            fs-task-processor: fs-task-processor
+            user-agent: userver testsuite
+
+        tests-control:
+            path: /tests/{action}
+            method: POST
+            task_processor: main-task-processor
+            testpoint-timeout: 10s
+            testpoint-url: mockserver/testpoint
+            throttling_enabled: false
+
+        testsuite-support:
+
+    coro_pool:
+        initial_size: 500                                     # Preallocate 500 coroutines at startup.
+        max_size: 1000                                        # Do not keep more than 1000 preallocated coroutines.
+
+    task_processors:                                          # Task processor is an executor for coroutine tasks
+
+        main-task-processor:                                  # Make a task processor for CPU-bound coroutine tasks.
+            worker_threads: 4                                 # Process tasks in 4 threads.
+            thread_name: main-worker                          # OS will show the threads of this task processor with 'main-worker' prefix.
+
+        fs-task-processor:                                    # Make a separate task processor for filesystem bound tasks.
+            thread_name: fs-worker
+            worker_threads: 4
+
+    default_task_processor: main-task-processor

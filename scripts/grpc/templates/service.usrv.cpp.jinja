@@ -1,0 +1,51 @@
+{% import "utils.inc.jinja" as utils %}
+{{- utils.do_not_edit() }}
+// This file was generated from {{ proto.source_file }}
+#include "{{ proto.source_file_without_ext }}_service.usrv.pb.hpp"
+
+{# All constant includes must go inside this header #}
+#include <userver/ugrpc/server/impl/codegen_definitions.hpp>
+
+{{ utils.include_grpcpp(proto.source_file_without_ext) }}
+
+{% call utils.optional_namespace(proto.namespace) %}
+
+namespace {
+{% for service in proto.services %}
+
+constexpr std::string_view k{{service.name}}MethodNames[] = {
+  {% for method in service.method %}
+  "{{proto.package_prefix}}{{service.name}}/{{method.name}}",
+  {% endfor %}
+};
+{% endfor %}
+
+}  // namespace
+{% for service in proto.services %}
+{% for method in service.method %}
+{% set method_id = loop.index0 %}
+
+void {{service.name}}Base::{{method.name}}(
+    {% if method.client_streaming %}
+    {{method.name}}Call& call) {
+    {% else %}
+    {{method.name}}Call& call,
+    [[maybe_unused]] {{ method.input_type | grpc_to_cpp_name }}&& request) {
+    {% endif %}
+  UASSERT_MSG(false, "Called not implemented {{proto.package_prefix}}{{service.name}}/{{method.name}}");
+  call.FinishWithError(USERVER_NAMESPACE::ugrpc::server::impl::kUnimplementedStatus);
+}
+{% endfor %}
+
+std::unique_ptr<USERVER_NAMESPACE::ugrpc::server::impl::ServiceWorker>
+{{service.name}}Base::MakeWorker(
+    USERVER_NAMESPACE::ugrpc::server::impl::ServiceSettings&& settings) {
+  return USERVER_NAMESPACE::ugrpc::server::impl::MakeServiceWorker<
+      {{proto.namespace}}::{{service.name}}>(
+      std::move(settings), k{{service.name}}MethodNames, *this,
+      {% for method in service.method %}
+      &{{service.name}}Base::{{method.name}}{{ "," if not loop.last else ");" }}
+      {% endfor %}
+}
+{% endfor %}
+{% endcall %} {# utils.optional_namespace #}

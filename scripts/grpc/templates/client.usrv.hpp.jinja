@@ -1,0 +1,63 @@
+{% import "utils.inc.jinja" as utils %}
+{{- utils.do_not_edit() }}
+// This file was generated from {{ proto.source_file }}
+#pragma once
+
+{# All constant includes must go inside this header #}
+#include <userver/ugrpc/client/impl/codegen_declarations.hpp>
+
+#include "{{ proto.source_file_without_ext }}.pb.h"
+
+{% call utils.optional_namespace(proto.namespace) %}
+{% for service in proto.services %}
+
+// Client for {{service.name}}
+class {{service.name}}Client final {
+ public:
+  // For internal use only
+  {{service.name}}Client(
+      USERVER_NAMESPACE::ugrpc::client::impl::ClientParams&& client_params);
+  {% for method in service.method %}
+
+  {% if method.client_streaming and method.server_streaming %}
+  using {{method.name}}Call =
+        USERVER_NAMESPACE::ugrpc::client::BidirectionalStream<
+            {{ method.input_type | grpc_to_cpp_name }},
+            {{ method.output_type | grpc_to_cpp_name }}>;
+  {% elif method.client_streaming %}
+  using {{method.name}}Call =
+        USERVER_NAMESPACE::ugrpc::client::OutputStream<
+            {{ method.input_type | grpc_to_cpp_name }},
+            {{ method.output_type | grpc_to_cpp_name }}>;
+  {% elif method.server_streaming %}
+  using {{method.name}}Call =
+        USERVER_NAMESPACE::ugrpc::client::InputStream<
+            {{ method.output_type | grpc_to_cpp_name }}>;
+  {% else %}
+  using {{method.name}}Call =
+        USERVER_NAMESPACE::ugrpc::client::UnaryCall<
+            {{ method.output_type | grpc_to_cpp_name }}>;
+  {% endif %}
+
+  {{method.name}}Call {{method.name}}(
+      {% if not method.client_streaming %}
+      const {{ method.input_type | grpc_to_cpp_name }}& request,
+      {% endif %}
+      std::unique_ptr<::grpc::ClientContext> context = std::make_unique<::grpc::ClientContext>(),
+      const USERVER_NAMESPACE::ugrpc::client::Qos& qos = {}
+  ) const;
+  {% endfor %}
+
+  // For internal use only
+  static USERVER_NAMESPACE::ugrpc::impl::StaticServiceMetadata GetMetadata();
+
+ private:
+  {# All non-template related client data should be placed in ClientData #}
+  template <typename Client>
+  friend USERVER_NAMESPACE::ugrpc::client::impl::ClientData&
+  USERVER_NAMESPACE::ugrpc::client::impl::GetClientData(Client& client);
+
+  USERVER_NAMESPACE::ugrpc::client::impl::ClientData impl_;
+};
+{% endfor %}
+{% endcall %} {# utils.optional_namespace #}

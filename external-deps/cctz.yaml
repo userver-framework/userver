@@ -1,0 +1,23 @@
+name: cctz
+version: '2.3'
+
+debian-names:
+  - libcctz-dev
+
+formula-name: cctz
+rpm-names:
+  - cctz-devel
+pacman-names:
+  - cctz
+
+libraries:
+    find:
+      - names:
+          - cctz
+        paths:
+          - /usr/lib/x86_64-linux-gnu
+
+includes:
+    find:
+      - names:
+          - cctz/civil_time.h

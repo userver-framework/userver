@@ -1,0 +1,117 @@
+version: "2.3"
+
+services:
+    userver-service-sample:
+        image: ghcr.io/userver-framework/ubuntu-userver-build-base:v1
+        container_name: userver-service-sample
+        networks:
+          - dockerbridge
+        environment:
+          - CC
+          - CXX
+          - BUILD_DIR=${BUILD_DIR:-/userver/build}
+          - BUILD_TYPE=${BUILD_TYPE:-Release}
+          - CCACHE_DIR=/userver/.ccache
+          - CCACHE_HASHDIR
+          - CCACHE_NOHASHDIR
+          - CCACHE_PREFIX
+          - CCACHE_SIZE=${CCACHE_SIZE:-10G}
+          - CMAKE_OPTS=${CMAKE_OPTS}
+          - DISTCC_HOSTS
+          - NPROCS
+          - LANG=${LANG:-en_US.UTF-8}
+          - CONTAINER_NAME=userver-service-sample
+          - SERVICE_NAME=${SERVICE_NAME:-hello_service}
+        volumes:
+          - .:/userver:rw
+          - ./tools/docker:/tools:rw
+        ports:
+          - 8080:8080
+          - 8081:8081
+          - 8082:8082
+          - 8083:8083
+          - 8084:8084
+          - 8085:8085
+          - 8086:8086
+          - 8088:8088
+          - 8093:8093
+          - 8091:8091
+          - 8089:8089
+          - 8090:8090
+          - 8087:8087
+        working_dir: /userver
+        command: /userver/tools/docker/start-sample.sh
+
+    userver-ubuntu:
+        image: ghcr.io/userver-framework/ubuntu-userver-build-base:v1
+        container_name: userver-ubuntu
+        networks:
+          - nexportfalse
+        environment:
+          - CC
+          - CXX
+          - BUILD_DIR=${BUILD_DIR:-/userver/build}
+          - BUILD_TYPE=${BUILD_TYPE:-Release}
+          - CCACHE_DIR=/userver/.ccache
+          - CCACHE_HASHDIR
+          - CCACHE_NOHASHDIR
+          - CCACHE_PREFIX
+          - CCACHE_SIZE=${CCACHE_SIZE:-10G}
+          - CMAKE_OPTS=${CMAKE_OPTS:--DUSERVER_GOOGLE_COMMON_PROTOS=/app/api-common-protos}
+          - DISTCC_HOSTS
+          - NPROCS
+          - LANG=${LANG:-en_US.UTF-8}
+          - CONTAINER_NAME=userver-ubuntu
+        volumes:
+          - .:/userver:rw
+          - ./tools/docker:/tools:rw
+        ports:
+          - 8080:8080
+        working_dir: /userver
+        entrypoint: /tools/run_as_user.sh
+
+    userver-tests:
+        image: ghcr.io/userver-framework/ubuntu-userver-build-base:v1
+        container_name: userver-tests
+        privileged: true
+        mem_limit: 10G
+        networks:
+          - dockerbridge
+        environment:
+          - BUILD_DIR=${BUILD_DIR:-/userver/build}
+          - BUILD_TYPE=${BUILD_TYPE:-Release}
+          - CC
+          - CCACHE_DIR=/userver/.ccache
+          - CCACHE_HASHDIR
+          - CCACHE_NOHASHDIR
+          - CCACHE_PREFIX
+          - CCACHE_SIZE=${CCACHE_SIZE:-10G}
+          - CMAKE_OPTS=${CMAKE_OPTS}
+          - CORES_DIR=/cores
+          - CONTAINER_NAME=userver-tests
+          - CXX
+          - NPROCS
+          - LANG=${LANG:-en_US.UTF-8}
+          - MAKE_OPTS
+        volumes:
+          - .:/userver:rw
+          - ./tools/docker:/tools:rw
+        working_dir: /userver/
+        command: /userver/tools/docker/userver-tests.sh
+
+networks:
+    dockerbridge:
+        name: dockerbridge
+        enable_ipv6: true
+        ipam:
+            config:
+              - subnet: 2001:db8:a::/64
+                gateway: 2001:db8:a::1
+    nexportfalse:
+        external: false
+        name: nexportfalse
+        enable_ipv6: true
+        ipam:
+            config:
+              - subnet: 2001:db8:b::/64
+                gateway: 2001:db8:b::1

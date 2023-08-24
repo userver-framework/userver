@@ -1,0 +1,22 @@
+name: GssApi
+
+debian-names:
+  - libkrb5-dev
+
+formula-name: krb5
+
+pacman-names:
+  - krb5
+
+includes:
+    find:
+      - names:
+          - gssapi.h
+        path-suffixes:
+          - gssapi
+
+libraries:
+    find:
+      - names:
+          - gssapi_krb5
+          - gssapi

@@ -1,0 +1,4 @@
+pymongo >= 4.0.0
+yandex-taxi-testsuite[mongodb,postgresql,redis,clickhouse,rabbitmq,mysql] >= 0.1.17
+requests >= 2.28.0
+redis >= 4.4.0

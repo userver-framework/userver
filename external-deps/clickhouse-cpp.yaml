@@ -1,0 +1,14 @@
+name: clickhouse-cpp
+
+libraries:
+    find:
+      - names:
+          - libclickhouse-cpp-lib.so
+
+includes:
+    find:
+      - names:
+          - clickhouse/block.h
+        path-suffixes:
+          - clickhouse-cpp
+          - yandex/clickhouse-cpp

@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+// Note:
+// a) the package name becomes the C++ namespace
+// b) the path to the .proto becomes the path to the C++ header file
+//
+// In general, it is a good idea to keep a) and b) in sync. In this test they
+// are different, and we also test the behavior in this case.
+package sample.ugrpc;
+
+import "tests/messages.proto";
+
+service UnitTestService {
+  // Simple RPC
+  rpc SayHello(GreetingRequest) returns(GreetingResponse) {}
+  // Server-to-client streaming RPC
+  rpc ReadMany(StreamGreetingRequest) returns(stream StreamGreetingResponse) {}
+  // Client-to-server streaming RPC
+  rpc WriteMany(stream StreamGreetingRequest) returns(StreamGreetingResponse) {}
+  // Bidirectional streaming RPC
+  rpc Chat(stream StreamGreetingRequest) returns(stream StreamGreetingResponse) {}
+}

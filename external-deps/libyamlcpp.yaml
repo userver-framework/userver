@@ -1,0 +1,22 @@
+name: libyamlcpp
+
+includes:
+    find:
+      - names:
+          - yaml-cpp/yaml.h
+          - yaml-cpp/node.h
+        path-suffixes:
+          - include
+
+libraries:
+    find:
+      - names:
+          - yaml-cpp
+        path-suffixes:
+          - lib
+
+debian-names:
+  - libyaml-cpp-dev
+formula-name: yaml-cpp
+pacman-names:
+  - yaml-cpp

@@ -1,0 +1,70 @@
+# yaml
+components_manager:
+    coro_pool:
+        initial_size: 500             # Preallocate 500 coroutines at startup.
+        max_size: 1000                # Do not keep more than 1000 preallocated coroutines.
+
+    task_processors:                  # Task processor is an executor for coroutine tasks
+
+        main-task-processor:          # Make a task processor for CPU-bound couroutine tasks.
+            worker_threads: 4         # Process tasks in 4 threads.
+            thread_name: main-worker  # OS will show the threads of this task processor with 'main-worker' prefix.
+
+        fs-task-processor:            # Make a separate task processor for filesystem bound tasks.
+            thread_name: fs-worker
+            worker_threads: 4
+
+        monitor-task-processor:       # Make a separate task processor for administrative tasks.
+            thread_name: mon-worker
+            worker_threads: 2
+
+    default_task_processor: main-task-processor
+
+    components:                       # Configuring components that were registered via component_list
+        logging:
+            fs-task-processor: fs-task-processor
+            loggers:
+                default:
+                    file_path: '@stderr'
+                    level: debug
+                    overflow_behavior: discard  # Drop logs if the system is too busy to write them down.
+
+        tracer:                           # Component that helps to trace execution times and requests in logs.
+            service-name: tcp-full-duplex
+
+        dynamic-config:                      # Dynamic config storage options, do nothing
+            fs-cache-path: ''
+        dynamic-config-fallbacks:            # Load options from file and push them into the dynamic config storage.
+            fallback-path: /etc/tcp_full_duplex/dynamic_config_fallback.json
+
+        # /// [TCP component]
+        # yaml
+        tcp-echo:
+            task_processor: main-task-processor         # Run socket accepts on CPU bound task processor
+            sockets_task_processor: main-task-processor # Run ProcessSocket() for each new socket on CPU bound task processor
+            port: 8181
+        # /// [TCP component]
+
+        # /// [HTTP and stats]
+        # yaml
+        server:
+            listener:
+                port: 8182            # ...to listen on this port and...
+                task_processor: monitor-task-processor    # ...process incoming requests on this task processor.                
+        handler-server-monitor:
+            path: /service/monitor
+            method: GET
+            task_processor: monitor-task-processor
+            monitor-handler: false
+        # /// [HTTP and stats]
+
+        # Testuite stuff
+        testsuite-support:
+        tests-control:
+            path: /tests/{action}
+            method: POST
+            task_processor: main-task-processor
+        http-client:
+            fs-task-processor: fs-task-processor
+        dns-client:                     # Asynchronous DNS component
+            fs-task-processor: fs-task-processor

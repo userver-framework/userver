@@ -1,0 +1,23 @@
+name: mongoc
+version: 1.16.0
+
+libraries:
+    find:
+      - names:
+          - mongoc
+          - mongoc-1.0
+includes:
+    find:
+      - names:
+          - mongoc/mongoc.h
+        paths:
+          - /usr/include/libmongoc-1.0
+          - /usr/local/opt/mongo-c/include/libmongoc-1.0
+
+debian-names:
+  - libmongoc-dev
+formula-name: mongo-c-driver
+rpm-names:
+  - mongo-c-driver-devel
+pacman-names:
+  - mongo-c-driver

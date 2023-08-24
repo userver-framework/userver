@@ -1,0 +1,25 @@
+# upcast of address with insufficient space for an object of type std::_Rb_tree_node<...>
+[undefined]
+src:*bits/stl_tree.h
+
+# libstdc++ 4.8 creates a null reference when calling
+# data() on an empty vector: https://gcc.gnu.org/bugzilla/show_bug.cgi?id=59829
+[undefined]
+src:*bits/stl_iterator.h
+
+[undefined]
+src:*bits/stl_vector.h
+
+# libstdc++ 8.0.1 casts an under-aligned pointer to type type_info:
+# https://gcc.gnu.org/bugzilla/show_bug.cgi?id=85930
+[undefined]
+src:*bits/shared_ptr_base.h
+
+# Old versions of Boost have alignment problems within Boost.Lockfree.
+[undefined]
+src:*boost/lockfree/*
+# https://st.yandex-team.ru/TAXICOMMON-2436
+src:*boost/circular_buffer/base.hpp
+
+[undefined]
+src:*mongo/src/storages/mongo/operations.cpp

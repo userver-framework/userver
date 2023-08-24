@@ -1,0 +1,107 @@
+---
+Checks:
+  "-*\
+  ,boost-*\
+  ,bugprone-*\
+  ,cert-*\
+  ,clang-analyzer-*\
+  ,concurrency-*\
+  ,cppcoreguidelines-*\
+  ,fuchsia-multiple-inheritance\
+  ,google-*\
+  ,hicpp-*\
+  ,misc-*\
+  ,modernize-*\
+  ,performance-*\
+  ,portability-*\
+  ,readability-*\
+  ,-bugprone-easily-swappable-parameters\
+  ,-bugprone-exception-escape\
+  ,-bugprone-implicit-widening-of-multiplication-result\
+  ,-bugprone-lambda-function-name\
+  ,-bugprone-narrowing-conversions\
+  ,-bugprone-use-after-move\
+  ,-cert-dcl21-cpp\
+  ,-cert-err09-cpp\
+  ,-cert-err33-c\
+  ,-cert-err58-cpp\
+  ,-cert-err61-cpp\
+  ,-cert-msc30-c\
+  ,-cert-msc32-c\
+  ,-clang-analyzer-core.uninitialized.Assign\
+  ,-clang-analyzer-optin.cplusplus.VirtualCall\
+  ,-cppcoreguidelines-avoid-c-arrays\
+  ,-cppcoreguidelines-avoid-const-or-ref-data-members\
+  ,-cppcoreguidelines-avoid-do-while\
+  ,-cppcoreguidelines-avoid-goto\
+  ,-cppcoreguidelines-avoid-magic-numbers\
+  ,-cppcoreguidelines-avoid-non-const-global-variables\
+  ,-cppcoreguidelines-c-copy-assignment-signature\
+  ,-cppcoreguidelines-narrowing-conversions\
+  ,-cppcoreguidelines-non-private-member-variables-in-classes\
+  ,-cppcoreguidelines-owning-memory\
+  ,-cppcoreguidelines-pro-bounds-array-to-pointer-decay\
+  ,-cppcoreguidelines-pro-bounds-constant-array-index\
+  ,-cppcoreguidelines-pro-bounds-pointer-arithmetic\
+  ,-cppcoreguidelines-pro-type-reinterpret-cast\
+  ,-cppcoreguidelines-pro-type-union-access\
+  ,-cppcoreguidelines-pro-type-vararg\
+  ,-cppcoreguidelines-special-member-functions\
+  ,-cppcoreguidelines-virtual-class-destructor
+  ,-google-explicit-constructor\
+  ,-google-readability-braces-around-statements\
+  ,-google-readability-function-size\
+  ,-google-readability-todo\
+  ,-google-runtime-int\
+  ,-hicpp-avoid-c-arrays\
+  ,-hicpp-avoid-goto\
+  ,-hicpp-braces-around-statements\
+  ,-hicpp-deprecated-headers\
+  ,-hicpp-explicit-conversions\
+  ,-hicpp-function-size\
+  ,-hicpp-invalid-access-moved\
+  ,-hicpp-member-init\
+  ,-hicpp-move-const-arg\
+  ,-hicpp-named-parameter\
+  ,-hicpp-no-array-decay\
+  ,-hicpp-no-malloc\
+  ,-hicpp-noexcept-move\
+  ,-hicpp-signed-bitwise\
+  ,-hicpp-special-member-functions\
+  ,-hicpp-uppercase-literal-suffix\
+  ,-hicpp-vararg\
+  ,-misc-no-recursion\
+  ,-misc-unconventional-assign-operator\
+  ,-modernize-avoid-c-arrays\
+  ,-modernize-pass-by-value\
+  ,-modernize-return-braced-init-list\
+  ,-modernize-use-nodiscard\
+  ,-modernize-use-trailing-return-type\
+  ,-performance-move-const-arg\
+  ,-performance-no-int-to-ptr\
+  ,-performance-trivially-destructible\
+  ,-performance-unnecessary-value-param\
+  ,-portability-simd-intrinsics\
+  ,-readability-braces-around-statements\
+  ,-readability-container-contains\
+  ,-readability-else-after-return\
+  ,-readability-function-cognitive-complexity\
+  ,-readability-identifier-length\
+  ,-readability-implicit-bool-conversion\
+  ,-readability-magic-numbers\
+  ,-readability-misleading-indentation\
+  ,-readability-named-parameter\
+  ,-readability-redundant-declaration\
+  ,-readability-uppercase-literal-suffix\
+  ,-readability-use-anyofallof\
+  "
+
+WarningsAsErrors: '*'
+HeaderFilterRegex: '/userver/(build|clickhouse|core|grpc|mongo|postgresql|redis|shared|tools)/'
+CheckOptions:
+  - key: misc-non-private-member-variables-in-classes.IgnoreClassesWithAllMemberVariablesBeingPublic
+    value: '1'
+  - key: readability-redundant-access-specifiers.CheckFirstDeclaration
+    value: '1'
+  - key: modernize-loop-convert.UseCxx20ReverseRanges
+    value: 'false'

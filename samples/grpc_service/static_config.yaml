@@ -1,0 +1,81 @@
+# yaml
+components_manager:
+    components:
+        # The required common components
+        logging:
+            fs-task-processor: fs-task-processor
+            loggers:
+                default:
+                    file_path: '@stderr'
+                    level: debug
+                    overflow_behavior: discard
+        tracer:
+            service-name: grpc-service
+        dynamic-config:
+            fs-cache-path: ''
+        dynamic-config-fallbacks:
+            fallback-path: /etc/grpc_service/dynamic_config_fallback.json
+
+# /// [gRPC sample - static config client]
+# yaml
+        # Creates gRPC clients
+        grpc-client-factory:
+            # The TaskProcessor for blocking connection initiation
+            task-processor: grpc-blocking-task-processor
+
+            # Optional channel parameters for gRPC Core
+            # https://grpc.github.io/grpc/core/group__grpc__arg__keys.html
+            channel-args: {}
+
+        # Our wrapper around the generated client for GreeterService
+        greeter-client:
+            # The service endpoint (URI). We talk to our own service,
+            # which is kind of pointless, but works for an example
+            endpoint: '[::1]:8091'
+# /// [gRPC sample - static config client]
+
+# /// [gRPC sample - static config server]
+# yaml
+        # Common configuration for gRPC server
+        grpc-server:
+            # The single listening port for incoming RPCs
+            port: 8091
+
+        # Our GreeterService implementation
+        greeter-service:
+            task-processor: main-task-processor
+            greeting-prefix: Hello
+            middlewares: []
+# /// [gRPC sample - static config server]
+
+        # In this example, the tests still communicate with the microservice
+        # using HTTP, so we still need an HTTP server and an HTTP handler.
+        server:
+            listener:
+                port: 8092
+                task_processor: main-task-processor
+        auth-checker-settings:
+        greeter-http-handler:
+            path: /hello
+            method: POST
+            task_processor: main-task-processor
+
+        testsuite-support:
+
+    default_task_processor: main-task-processor
+# /// [gRPC sample - task processor]
+# yaml
+    task_processors:
+        grpc-blocking-task-processor:  # For blocking gRPC channel creation
+            thread_name: grpc-worker
+            worker_threads: 2
+# /// [gRPC sample - task processor]
+        main-task-processor:           # For non-blocking operations
+            thread_name: main-worker
+            worker_threads: 4
+        fs-task-processor:             # For blocking filesystem operations
+            thread_name: fs-worker
+            worker_threads: 2
+    coro_pool:
+        initial_size: 500
+        max_size: 1000

@@ -1,0 +1,68 @@
+# /// [HTTP caching sample - static config cache]
+# yaml
+components_manager:
+    components:                       # Configuring components that were registered via component_list
+        cache-http-translations:
+            translations-url: 'mockserver/v1/translations'  # Some other microservice listens on this URL
+
+            update-types: full-and-incremental
+            full-update-interval: 1h
+            update-interval: 15m
+# /// [HTTP caching sample - static config cache]
+
+# /// [HTTP caching sample - static config deps]
+        http-client:
+            fs-task-processor: fs-task-processor
+
+        dns-client:                     # Asynchronous DNS component
+            fs-task-processor: fs-task-processor
+
+        testsuite-support:
+        tests-control:
+            # Some options from server::handlers::HttpHandlerBase
+            path: /tests/{action}
+            method: POST
+            task_processor: main-task-processor
+
+        server:
+            # ...
+# /// [HTTP caching sample - static config deps]
+            listener:                 # configuring the main listening socket...
+                port: 8089            # ...to listen on this port and...
+                task_processor: main-task-processor    # ...process incoming requests on this task processor.
+        logging:
+            fs-task-processor: fs-task-processor
+            loggers:
+                default:
+                    file_path: '@stderr'
+                    level: debug
+                    overflow_behavior: discard  # Drop logs if the system is too busy to write them down.
+
+        tracer:                           # Component that helps to trace execution times and requests in logs.
+            service-name: http-cache      # "You know. You all know exactly who I am. Say my name. " (c)
+
+        dynamic-config:                      # Dynamic config storage options, do nothing
+            fs-cache-path: ''
+        dynamic-config-fallbacks:            # Load options from file and push them into the dynamic config storage.
+            fallback-path: /etc/http_caching/dynamic_config_fallback.json
+
+        handler-greet-user:
+            path: /samples/greet
+            method: POST
+            task_processor: main-task-processor
+
+    coro_pool:
+        initial_size: 500             # Preallocate 500 coroutines at startup.
+        max_size: 1000                # Do not keep more than 1000 preallocated coroutines.
+
+    task_processors:                  # Task processor is an executor for coroutine tasks
+
+        main-task-processor:          # Make a task processor for CPU-bound coroutine tasks.
+            worker_threads: 4         # Process tasks in 4 threads.
+            thread_name: main-worker  # OS will show the threads of this task processor with 'main-worker' prefix.
+
+        fs-task-processor:            # Make a separate task processor for filesystem bound tasks.
+            thread_name: fs-worker
+            worker_threads: 4
+
+    default_task_processor: main-task-processor

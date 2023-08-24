@@ -1,0 +1,36 @@
+* @taxi/common-group-developers
+
+/core/**/cache/ @segoon
+/core/**/clients/config/ @segoon
+/core/**/clients/http/ @segoon @bugaevskiy
+/core/**/components/ @segoon @bugaevskiy
+/core/**/concurrent/ @segoon @bugaevskiy
+/core/**/curl-ev/ @bugaevskiy
+/core/**/dump/ @segoon @antonyzhilin
+/core/**/dynamic_config/ @segoon @antonyzhilin
+/core/**/engine/ @bugaevskiy @segoon
+/core/**/fs/ @antoshkka
+/core/**/rcu/ @segoon
+/core/**/server/ @bugaevskiy @segoon
+/core/**/server_settings/ @segoon
+/core/**/storages/secdist/ @segoon
+/core/**/tracing/ @segoon
+/core/**/yaml_config/ @antoshkka @antonyzhilin
+
+/mongo/ @bugaevskiy
+/postgresql/ @bugaevskiy
+/redis/ @segoon
+/grpc/ @antonyzhilin
+/clickhouse/ @itrofimow
+/rabbitmq/ @itrofimow
+
+/third_party/boost_stacktrace/ @antoshkka
+/third_party/pfr/ @ser-fedorov @antoshkka
+/third_party/uboost_coro/ @bugaevskiy @antoshkka
+
+/universal/ @antonyzhilin @antoshkka
+/universal/**/compiler/ @antoshkka
+/universal/**/crypto/ @bugaevskiy @segoon
+/universal/**/decimal64/ @antonyzhilin @bugaevskiy
+/universal/**/fs/ @antoshkka
+/universal/**/http/ @segoon @bugaevskiy

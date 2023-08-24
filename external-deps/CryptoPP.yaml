@@ -1,0 +1,26 @@
+name: CryptoPP
+
+includes:
+    find:
+      - names:
+          - cryptopp/cryptlib.h
+        path-suffixes:
+          - include
+
+libraries:
+    find:
+      - names:
+          - cryptlib
+          - cryptopp
+        path-suffixes:
+          - lib
+
+debian-names:
+  - libcrypto++-dev
+formula-name: cryptopp
+rpm-names:
+  - cryptopp-devel
+pacman-names:
+  - crypto++
+pkg-config-names:
+  - libcrypto++

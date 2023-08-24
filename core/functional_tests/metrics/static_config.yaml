@@ -1,0 +1,180 @@
+# yaml
+
+config_vars: /etc/test_core_metrics/config_vars.yaml
+
+components_manager:
+    components:
+
+        congestion-control:
+            fake-mode: $testsuite-enabled
+            load-enabled: true
+        dump-configurator:
+            dump-root: $userver-dumps-root
+        handler-implicit-http-options:
+            as_fallback: implicit-http-options
+            method: OPTIONS
+            task_processor: main-task-processor
+            throttling_enabled: false
+
+        handler-inspect-requests:
+            path: /service/inspect-requests
+            method: GET
+            task_processor: monitor-task-processor
+        handler-jemalloc:
+            path: /service/jemalloc/prof/{command}
+            method: POST
+            task_processor: monitor-task-processor
+        handler-log-level:
+            path: /service/log-level/{level}
+            method: GET,PUT
+            task_processor: monitor-task-processor
+        handler-on-log-rotate:
+            path: /service/on-log-rotate/
+            method: POST
+            task_processor: monitor-task-processor
+        handler-dynamic-debug-log:
+            path: /service/log/dynamic-debug
+            method: GET,PUT,DELETE
+            task_processor: monitor-task-processor
+        handler-dns-client-control:
+            path: /service/dnsclient/{command}
+            method: POST
+            task_processor: monitor-task-processor
+        handler-server-monitor:
+            path: /service/monitor
+            method: GET
+            task_processor: monitor-task-processor
+
+        handler-ping:
+            path: /ping
+            method: GET
+            task_processor: main-task-processor  # !!!
+            throttling_enabled: false
+            url_trailing_slash: strict-match
+        http-client:
+            fs-task-processor: fs-task-processor
+            user-agent: $server-name
+            user-agent#fallback: 'userver-based-service 1.0'
+
+        http-client-statistics:
+            fs-task-processor: fs-task-processor
+            pool-statistics-disable: true
+            thread-name-prefix: stats
+            user-agent: $server-name
+        dns-client:
+            fs-task-processor: fs-task-processor
+        logging:
+            fs-task-processor: fs-task-processor
+            loggers:
+                access:
+                    file_path: $access-log-path
+                    file_path#fallback: /var/log/company-name/service-name/access.log
+                    overflow_behavior: discard
+                    format: raw
+                access-tskv:
+                    file_path: $access-tskv-log-path
+                    file_path#fallback: /var/log/company-name/service-name/access_tskv.log
+                    overflow_behavior: discard
+                    format: raw
+                default:
+                    file_path: $default-log-path
+                    file_path#fallback: /var/log/company-name/service-name/server.log
+                    level: $logger-level
+                    level#fallback: info
+                    overflow_behavior: discard
+        logging-configurator:
+            limited-logging-enable: true
+            limited-logging-interval: 1s
+
+        secdist: {}
+        default-secdist-provider: {}
+
+        server:
+            listener:
+                port: $server-port
+                port#fallback: 8085
+                connection:
+                    in_buffer_size: 32768
+                    requests_queue_size_threshold: 100
+                task_processor: main-task-processor
+            listener-monitor:
+                port: $monitor-server-port
+                port#fallback: 8086
+                connection:
+                    in_buffer_size: 32768
+                    requests_queue_size_threshold: 100
+                task_processor: monitor-task-processor
+            logger_access: ''
+            logger_access_tskv: ''
+            max_response_size_in_flight: 1000000000
+            server-name: $server-name
+
+        system-statistics-collector:
+            fs-task-processor: fs-task-processor
+
+        dynamic-config:
+            fs-cache-path: $config-cache
+            fs-task-processor: fs-task-processor
+        dynamic-config-client:
+            config-url: $config-server-url
+            http-retries: 5
+            http-timeout: 20s
+            service-name: $service-name
+        dynamic-config-client-updater:
+            config-settings: false
+            fallback-path: $config-fallback
+            full-update-interval: 1m
+            load-only-my-values: true
+            store-enabled: true
+            update-interval: 5s
+
+        tests-control:
+            load-enabled: $testsuite-enabled
+            path: /tests/{action}
+            method: POST
+            task_processor: main-task-processor
+            testpoint-timeout: 10s
+            testpoint-url: $mockserver/testpoint
+            throttling_enabled: false
+        testsuite-support:
+            testsuite-periodic-dumps-enabled: $userver-dumps-periodic
+        sample-cache:
+            update-types: full-and-incremental
+            full-update-interval: 1h
+            update-interval: 15m
+            dump:
+                enable: true
+                world-readable: false
+                format-version: 0
+                first-update-mode: required
+                first-update-type: full
+        sample-lru-cache:
+            size: 1024
+            ways: 32
+            lifetime: 1s
+        tracer:
+            service-name: $service-name
+            tracer: native
+    coro_pool:
+        initial_size: $coro-pool-initial-size
+        initial_size#fallback: 5000
+        max_size: $coro-pool-max-size
+        max_size#fallback: 50000
+    default_task_processor: main-task-processor
+
+    task_processors:
+        fs-task-processor:
+            thread_name: fs-worker
+            worker_threads: $fs_worker_threads
+            worker_threads#fallback: 2
+        main-task-processor:
+            thread_name: main-worker
+            worker_threads: $main_worker_threads
+            worker_threads#fallback: 6
+        monitor-task-processor:
+            thread_name: mon-worker
+            worker_threads: $monitor_worker_threads
+            worker_threads#fallback: 1
+    event_thread_pool:
+        threads: $event_threads
+        threads#fallback: 2

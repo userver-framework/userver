@@ -1,0 +1,22 @@
+name: fmt
+version: '7.1'  # on update also adjust the version in core/CMakeLists.txt
+
+includes:
+    find:
+      - names:
+          - fmt/format.h
+
+libraries:
+    find:
+      - names:
+          - fmt
+
+debian-names:
+  - libfmt-dev
+formula-name: fmt
+rpm-names:
+  - fmt-devel
+pacman-names:
+  - fmt
+pkg-config-names:
+  - fmt

@@ -1,0 +1,70 @@
+# /// [Redis service sample - static config]
+# yaml
+components_manager:
+    components:                       # Configuring components that were registered via component_list
+        handler-key-value:
+            path: /v1/key-value                  # Registering handler by URL '/v1/key-value'.
+            method: GET,POST,DELETE              # GET, POST and DELETE requests only.
+            task_processor: main-task-processor  # Run it on CPU bound task processor
+        handler-script:
+            path: /v1/script                     # Registering handler by URL '/v1/key-value'.
+            method: POST                         # GET, POST and DELETE requests only.
+            task_processor: main-task-processor  # Run it on CPU bound task processor
+
+        key-value-database:
+            groups:
+              - config_name: taxi-tmp  # Key to lookup in secdist configuration
+                db: taxi-tmp           # Name to refer to the cluster in components::Redis::GetClient()
+
+            subscribe_groups:  # Array of redis clusters to work with in subscribe mode
+
+            thread_pools:
+                redis_thread_pool_size: 8
+                sentinel_thread_pool_size: 1
+
+        secdist: {}                                      # Component that stores configuration of hosts and passwords
+        default-secdist-provider:                        # Component that loads configuration of hosts and passwords
+            config: /etc/redis_service/secure_data.json  # Values are supposed to be stored in this file
+            missing-ok: true                             # ... but if the file is missing it is still ok
+            environment-secrets-key: SECDIST_CONFIG      # ... values will be loaded from this environment value
+
+        testsuite-support:
+
+        server:
+            # ...
+# /// [Redis service sample - static config]
+            listener:                 # configuring the main listening socket...
+                port: 8088            # ...to listen on this port and...
+                task_processor: main-task-processor    # ...process incoming requests on this task processor.
+        logging:
+            fs-task-processor: fs-task-processor
+            loggers:
+                default:
+                    file_path: '@stderr'
+                    level: debug
+                    overflow_behavior: discard  # Drop logs if the system is too busy to write them down.
+
+        tracer:                           # Component that helps to trace execution times and requests in logs.
+            service-name: hello-service   # "You know. You all know exactly who I am. Say my name. " (c)
+
+        dynamic-config:                      # Dynamic config storage options, do nothing
+            fs-cache-path: ''
+        dynamic-config-fallbacks:            # Load options from file and push them into the dynamic config storage.
+            fallback-path: /etc/redis_service/dynamic_config_fallback.json
+        dns-client:
+            fs-task-processor: fs-task-processor
+    coro_pool:
+        initial_size: 500             # Preallocate 500 coroutines at startup.
+        max_size: 1000                # Do not keep more than 1000 preallocated coroutines.
+
+    task_processors:                  # Task processor is an executor for coroutine tasks
+
+        main-task-processor:          # Make a task processor for CPU-bound coroutine tasks.
+            worker_threads: 4         # Process tasks in 4 threads.
+            thread_name: main-worker  # OS will show the threads of this task processor with 'main-worker' prefix.
+
+        fs-task-processor:            # Make a separate task processor for filesystem bound tasks.
+            thread_name: fs-worker
+            worker_threads: 4
+
+    default_task_processor: main-task-processor

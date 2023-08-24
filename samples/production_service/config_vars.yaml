@@ -1,0 +1,19 @@
+# yaml
+server-name: sample-production-service 1.0
+service-name: sample-production-service
+logger-level: info
+
+config-server-url: http://localhost:8083/
+server-port: 8085
+monitor-server-port: 8086
+
+testsuite-enabled: false
+
+userver-dumps-root: /var/cache/production_service/userver-dumps/
+access-log-path: /var/log/production_service/access.log
+access-tskv-log-path: /var/log/production_service/access_tskv.log
+default-log-path: /var/log/production_service/server.log
+secdist-path: /etc/production_service/secure_data.json
+
+config-cache: /var/cache/production_service/config_cache.json
+config-fallback: /etc/production_service/dynamic_config_fallback.json

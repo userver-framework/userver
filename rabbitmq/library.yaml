@@ -1,0 +1,9 @@
+project-name: userver-rabbitmq
+project-alt-names:
+  - yandex-userver-rabbitmq
+maintainers:
+  - Common components
+description: RabbitMQ (AMQP 0-9-1) driver
+
+libraries:
+  - userver-core

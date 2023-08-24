@@ -1,0 +1,38 @@
+common-name: OpenSSL
+partials:
+  - name: Crypto
+    package-name: OpenSSL
+
+    debian-names:
+      - libssl-dev
+    formula-name: openssl
+    rpm-names:
+      - openssl-devel
+    pacman-names:
+      - openssl
+    pkg-config-names:
+      - openssl
+
+    libraries:
+        enabled: false
+
+    includes:
+        enabled: false
+  - name: SSL
+    package-name: OpenSSL
+
+    debian-names:
+      - libssl-dev
+    formula-name: openssl
+    rpm-names:
+      - openssl-devel
+    pacman-names:
+      - openssl
+    pkg-config-names:
+      - libssl
+
+    libraries:
+        enabled: false
+
+    includes:
+        enabled: false

@@ -1,0 +1,6 @@
+project-name: userver-universal
+project-alt-names:
+  - yandex-userver-universal
+maintainers:
+  - Common components
+description: Parts of userver that can be used independently

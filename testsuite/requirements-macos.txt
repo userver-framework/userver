@@ -1,0 +1,1 @@
+yandex-taxi-testsuite[mongodb,postgresql-binary,redis,clickhouse,rabbitmq,mysql] >= 0.1.17

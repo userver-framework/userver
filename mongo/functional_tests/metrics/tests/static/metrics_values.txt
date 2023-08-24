@@ -1,0 +1,90 @@
+distlock.brain-splits: distlock_name=component-distlock-metrics	GAUGE	0
+distlock.failures: distlock_name=component-distlock-metrics	GAUGE	0
+distlock.locked-for-ms: distlock_name=component-distlock-metrics	GAUGE	0
+distlock.locked: distlock_name=component-distlock-metrics	GAUGE	0
+distlock.running: distlock_name=component-distlock-metrics	GAUGE	0
+distlock.successes: distlock_name=component-distlock-metrics	GAUGE	0
+distlock.task-failures: distlock_name=component-distlock-metrics	GAUGE	0
+distlock.watchdog-triggers: distlock_name=component-distlock-metrics	GAUGE	0
+mongo.by-collection.errors-total: mongo_collection=distlocks, mongo_database=key-value-database, mongo_direction=read, mongo_error=total	RATE	0
+mongo.by-collection.errors-total: mongo_collection=distlocks, mongo_database=key-value-database, mongo_direction=write, mongo_error=total	RATE	0
+mongo.by-collection.errors-total: mongo_collection=test, mongo_database=key-value-database, mongo_direction=read, mongo_error=total	RATE	0
+mongo.by-collection.errors-total: mongo_collection=test, mongo_database=key-value-database, mongo_direction=write, mongo_error=total	RATE	0
+mongo.by-collection.success: mongo_collection=distlocks, mongo_database=key-value-database, mongo_direction=read	RATE	0
+mongo.by-collection.success: mongo_collection=distlocks, mongo_database=key-value-database, mongo_direction=write	RATE	0
+mongo.by-collection.success: mongo_collection=test, mongo_database=key-value-database, mongo_direction=read	RATE	1
+mongo.by-collection.success: mongo_collection=test, mongo_database=key-value-database, mongo_direction=write	RATE	1
+mongo.by-collection.timings-1min: mongo_collection=distlocks, mongo_database=key-value-database, mongo_direction=read, percentile=p100	GAUGE	0
+mongo.by-collection.timings-1min: mongo_collection=distlocks, mongo_database=key-value-database, mongo_direction=read, percentile=p95	GAUGE	0
+mongo.by-collection.timings-1min: mongo_collection=distlocks, mongo_database=key-value-database, mongo_direction=read, percentile=p98	GAUGE	0
+mongo.by-collection.timings-1min: mongo_collection=distlocks, mongo_database=key-value-database, mongo_direction=read, percentile=p99	GAUGE	0
+mongo.by-collection.timings-1min: mongo_collection=distlocks, mongo_database=key-value-database, mongo_direction=write, percentile=p100	GAUGE	0
+mongo.by-collection.timings-1min: mongo_collection=distlocks, mongo_database=key-value-database, mongo_direction=write, percentile=p95	GAUGE	0
+mongo.by-collection.timings-1min: mongo_collection=distlocks, mongo_database=key-value-database, mongo_direction=write, percentile=p98	GAUGE	0
+mongo.by-collection.timings-1min: mongo_collection=distlocks, mongo_database=key-value-database, mongo_direction=write, percentile=p99	GAUGE	0
+mongo.by-collection.timings-1min: mongo_collection=test, mongo_database=key-value-database, mongo_direction=read, percentile=p100	GAUGE	1
+mongo.by-collection.timings-1min: mongo_collection=test, mongo_database=key-value-database, mongo_direction=read, percentile=p95	GAUGE	1
+mongo.by-collection.timings-1min: mongo_collection=test, mongo_database=key-value-database, mongo_direction=read, percentile=p98	GAUGE	1
+mongo.by-collection.timings-1min: mongo_collection=test, mongo_database=key-value-database, mongo_direction=read, percentile=p99	GAUGE	1
+mongo.by-collection.timings-1min: mongo_collection=test, mongo_database=key-value-database, mongo_direction=write, percentile=p100	GAUGE	17
+mongo.by-collection.timings-1min: mongo_collection=test, mongo_database=key-value-database, mongo_direction=write, percentile=p95	GAUGE	17
+mongo.by-collection.timings-1min: mongo_collection=test, mongo_database=key-value-database, mongo_direction=write, percentile=p98	GAUGE	17
+mongo.by-collection.timings-1min: mongo_collection=test, mongo_database=key-value-database, mongo_direction=write, percentile=p99	GAUGE	17
+mongo.by-database.errors-total: mongo_database=key-value-database, mongo_direction=read, mongo_error=total	RATE	0
+mongo.by-database.errors-total: mongo_database=key-value-database, mongo_direction=write, mongo_error=total	RATE	0
+mongo.by-database.success: mongo_database=key-value-database, mongo_direction=read	RATE	1
+mongo.by-database.success: mongo_database=key-value-database, mongo_direction=write	RATE	1
+mongo.by-database.timings-1min: mongo_database=key-value-database, mongo_direction=read, percentile=p100	GAUGE	1
+mongo.by-database.timings-1min: mongo_database=key-value-database, mongo_direction=read, percentile=p95	GAUGE	1
+mongo.by-database.timings-1min: mongo_database=key-value-database, mongo_direction=read, percentile=p98	GAUGE	1
+mongo.by-database.timings-1min: mongo_database=key-value-database, mongo_direction=read, percentile=p99	GAUGE	1
+mongo.by-database.timings-1min: mongo_database=key-value-database, mongo_direction=write, percentile=p100	GAUGE	17
+mongo.by-database.timings-1min: mongo_database=key-value-database, mongo_direction=write, percentile=p95	GAUGE	17
+mongo.by-database.timings-1min: mongo_database=key-value-database, mongo_direction=write, percentile=p98	GAUGE	17
+mongo.by-database.timings-1min: mongo_database=key-value-database, mongo_direction=write, percentile=p99	GAUGE	17
+mongo.by-operation.errors-total: mongo_collection=test, mongo_database=key-value-database, mongo_direction=read, mongo_error=total, mongo_operation=count	RATE	0
+mongo.by-operation.errors-total: mongo_collection=test, mongo_database=key-value-database, mongo_direction=write, mongo_error=total, mongo_operation=insert-one	RATE	0
+mongo.by-operation.success: mongo_collection=test, mongo_database=key-value-database, mongo_direction=read, mongo_operation=count	RATE	1
+mongo.by-operation.success: mongo_collection=test, mongo_database=key-value-database, mongo_direction=write, mongo_operation=insert-one	RATE	1
+mongo.by-operation.timings-1min: mongo_collection=test, mongo_database=key-value-database, mongo_direction=read, mongo_operation=count, percentile=p100	GAUGE	1
+mongo.by-operation.timings-1min: mongo_collection=test, mongo_database=key-value-database, mongo_direction=read, mongo_operation=count, percentile=p95	GAUGE	1
+mongo.by-operation.timings-1min: mongo_collection=test, mongo_database=key-value-database, mongo_direction=read, mongo_operation=count, percentile=p98	GAUGE	1
+mongo.by-operation.timings-1min: mongo_collection=test, mongo_database=key-value-database, mongo_direction=read, mongo_operation=count, percentile=p99	GAUGE	1
+mongo.by-operation.timings-1min: mongo_collection=test, mongo_database=key-value-database, mongo_direction=write, mongo_operation=insert-one, percentile=p100	GAUGE	17
+mongo.by-operation.timings-1min: mongo_collection=test, mongo_database=key-value-database, mongo_direction=write, mongo_operation=insert-one, percentile=p95	GAUGE	17
+mongo.by-operation.timings-1min: mongo_collection=test, mongo_database=key-value-database, mongo_direction=write, mongo_operation=insert-one, percentile=p98	GAUGE	17
+mongo.by-operation.timings-1min: mongo_collection=test, mongo_database=key-value-database, mongo_direction=write, mongo_operation=insert-one, percentile=p99	GAUGE	17
+mongo.congestion-control.enabled-seconds: mongo_database=key-value-database	GAUGE	0
+mongo.congestion-control.is-enabled: mongo_database=key-value-database	GAUGE	0
+mongo.congestion-control.is-fake-mode: mongo_database=key-value-database	GAUGE	0
+mongo.pool.conn-closed: mongo_database=key-value-database	RATE	0
+mongo.pool.conn-created: mongo_database=key-value-database	RATE	2
+mongo.pool.conn-init.errors-total: mongo_database=key-value-database, mongo_error=total	RATE	0
+mongo.pool.conn-init.success: mongo_database=key-value-database	RATE	2
+mongo.pool.conn-init.timings-1min: mongo_database=key-value-database, percentile=p100	GAUGE	0
+mongo.pool.conn-init.timings-1min: mongo_database=key-value-database, percentile=p95	GAUGE	0
+mongo.pool.conn-init.timings-1min: mongo_database=key-value-database, percentile=p98	GAUGE	0
+mongo.pool.conn-init.timings-1min: mongo_database=key-value-database, percentile=p99	GAUGE	0
+mongo.pool.conn-request-timings-1min: mongo_database=key-value-database, percentile=p0	GAUGE	0
+mongo.pool.conn-request-timings-1min: mongo_database=key-value-database, percentile=p100	GAUGE	0
+mongo.pool.conn-request-timings-1min: mongo_database=key-value-database, percentile=p50	GAUGE	0
+mongo.pool.conn-request-timings-1min: mongo_database=key-value-database, percentile=p90	GAUGE	0
+mongo.pool.conn-request-timings-1min: mongo_database=key-value-database, percentile=p95	GAUGE	0
+mongo.pool.conn-request-timings-1min: mongo_database=key-value-database, percentile=p98	GAUGE	0
+mongo.pool.conn-request-timings-1min: mongo_database=key-value-database, percentile=p99	GAUGE	0
+mongo.pool.conn-request-timings-1min: mongo_database=key-value-database, percentile=p99_6	GAUGE	0
+mongo.pool.conn-request-timings-1min: mongo_database=key-value-database, percentile=p99_9	GAUGE	0
+mongo.pool.conn-requests: mongo_database=key-value-database	RATE	2
+mongo.pool.current-in-use: mongo_database=key-value-database	GAUGE	0
+mongo.pool.current-size: mongo_database=key-value-database	GAUGE	2
+mongo.pool.max-size: mongo_database=key-value-database	GAUGE	4
+mongo.pool.overloads: mongo_database=key-value-database	RATE	0
+mongo.pool.queue-wait-timings-1min: mongo_database=key-value-database, percentile=p0	GAUGE	0
+mongo.pool.queue-wait-timings-1min: mongo_database=key-value-database, percentile=p100	GAUGE	0
+mongo.pool.queue-wait-timings-1min: mongo_database=key-value-database, percentile=p50	GAUGE	0
+mongo.pool.queue-wait-timings-1min: mongo_database=key-value-database, percentile=p90	GAUGE	0
+mongo.pool.queue-wait-timings-1min: mongo_database=key-value-database, percentile=p95	GAUGE	0
+mongo.pool.queue-wait-timings-1min: mongo_database=key-value-database, percentile=p98	GAUGE	0
+mongo.pool.queue-wait-timings-1min: mongo_database=key-value-database, percentile=p99	GAUGE	0
+mongo.pool.queue-wait-timings-1min: mongo_database=key-value-database, percentile=p99_6	GAUGE	0
+mongo.pool.queue-wait-timings-1min: mongo_database=key-value-database, percentile=p99_9	GAUGE	0

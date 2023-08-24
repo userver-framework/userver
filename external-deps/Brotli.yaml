@@ -1,0 +1,21 @@
+name: Brotli
+
+debian-names:
+  - libbrotli-dev
+formula-name: brotli
+pacman-names:
+  - brotli
+
+libraries:
+    find:
+      - names:
+          - brotlidec
+      - names:
+          - brotlienc
+
+includes:
+    find:
+      - names:
+          - brotli/decode.h
+      - names:
+          - brotli/encode.h

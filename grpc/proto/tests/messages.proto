@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package sample.ugrpc;
+
+message GreetingRequest {
+  string name = 1;
+}
+
+message GreetingResponse {
+  string name = 1;
+}
+
+message StreamGreetingRequest {
+  int32 number = 1;
+  string name = 2;
+}
+
+message StreamGreetingResponse {
+  int32 number = 1;
+  string name = 2;
+}

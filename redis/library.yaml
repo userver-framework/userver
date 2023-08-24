@@ -1,0 +1,22 @@
+project-name: userver-redis
+project-alt-names:
+  - yandex-userver-redis
+maintainers:
+  - Common components
+description: Redis driver
+
+libraries:
+  - userver-core
+
+configs:
+    names:
+      - REDIS_CLUSTER_AUTOTOPOLOGY_ENABLED_V2
+      - REDIS_COMMANDS_BUFFERING_SETTINGS
+      - REDIS_DEFAULT_COMMAND_CONTROL
+      - REDIS_METRICS_SETTINGS
+      - REDIS_REPLICA_MONITORING_SETTINGS
+      - REDIS_SUBSCRIBER_DEFAULT_COMMAND_CONTROL
+      - REDIS_SUBSCRIPTIONS_REBALANCE_MIN_INTERVAL_SECONDS
+      - REDIS_WAIT_CONNECTED
+      - REDIS_DEADLINE_PROPAGATION_VERSION
+      - REDIS_PUBSUB_METRICS_SETTINGS

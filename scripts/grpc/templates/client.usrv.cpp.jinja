@@ -1,0 +1,78 @@
+{% import "utils.inc.jinja" as utils %}
+{{- utils.do_not_edit() }}
+// This file was generated from {{ proto.source_file }}
+#include "{{ proto.source_file_without_ext }}_client.usrv.pb.hpp"
+
+{# All constant includes must go inside this header #}
+#include <userver/ugrpc/client/impl/codegen_definitions.hpp>
+
+{{ utils.include_grpcpp(proto.source_file_without_ext) }}
+
+{% call utils.optional_namespace(proto.namespace) %}
+
+namespace {
+{% for service in proto.services %}
+
+constexpr std::string_view k{{service.name}}MethodNames[] = {
+  {% for method in service.method %}
+  "{{proto.package_prefix}}{{service.name}}/{{method.name}}",
+  {% endfor %}
+};
+
+{% set client_qos = 'GRPC_CLIENT_QOS_' + proto.package_prefix.replace('.', '_') + service.name + 'Client'%}
+
+USERVER_NAMESPACE::ugrpc::client::ClientQos
+Parse{{service.name}}ClientQos(
+    [[maybe_unused]] const USERVER_NAMESPACE::dynamic_config::DocsMap& docs_map) {
+#ifdef {{ client_qos }}
+    return docs_map.Get({{ client_qos }}).As<USERVER_NAMESPACE::ugrpc::client::ClientQos>();
+#else
+    return { { "__default__", {std::nullopt}}};
+#endif
+}
+
+constexpr USERVER_NAMESPACE::dynamic_config::Key<Parse{{service.name}}ClientQos> k{{service.name}}ClientQosConfig;
+{% endfor %}
+
+}  // namespace
+{% for service in proto.services %}
+
+{{service.name}}Client::{{service.name}}Client(
+    USERVER_NAMESPACE::ugrpc::client::impl::ClientParams&& client_params)
+    : impl_(std::move(client_params), GetMetadata(),
+            std::in_place_type<{{proto.namespace}}::{{service.name}}>) {
+    }
+  {% for method in service.method %}
+  {% set method_id = loop.index0 %}
+
+{{service.name}}Client::{{method.name}}Call
+{{service.name}}Client::{{method.name}}(
+    {% if not method.client_streaming %}
+    const {{ method.input_type | grpc_to_cpp_name }}& request,
+    {% endif %}
+    std::unique_ptr<::grpc::ClientContext> context,
+    const USERVER_NAMESPACE::ugrpc::client::Qos& qos
+) const {
+      return {
+        USERVER_NAMESPACE::ugrpc::client::impl::CreateCallParams(
+          impl_, {{method_id}}, std::move(context), k{{service.name}}ClientQosConfig, qos
+        ),
+        impl_.NextStub<{{proto.namespace}}::{{service.name}}>(),
+        &{{proto.namespace}}::{{service.name}}::Stub::PrepareAsync{{method.name}},
+        {% if method.client_streaming %}
+      };
+        {% else %}
+        request,
+      };
+        {% endif %}
+}
+  {% endfor %}
+
+USERVER_NAMESPACE::ugrpc::impl::StaticServiceMetadata
+{{ service.name }}Client::GetMetadata() {
+  return USERVER_NAMESPACE::ugrpc::impl::MakeStaticServiceMetadata<
+      {{proto.namespace}}::{{service.name}}>(
+      k{{service.name}}MethodNames);
+}
+{% endfor %}
+{% endcall %} {# utils.optional_namespace #}

@@ -1,0 +1,30 @@
+name: PostgreSQL
+version: 12
+
+includes:
+    find:
+      - names:
+          - libpq-fe.h
+        paths:
+          - ${USERVER_PG_INCLUDE_DIR}
+          - /usr/local/include  # FreeBSD
+        path-suffixes:
+          - postgresql
+          - pgsql
+
+libraries:
+    find:
+      - names:
+          - libpq.a
+        paths:
+          - ${USERVER_PG_LIBRARY_DIR}
+
+debian-names:
+  - libpq-dev
+formula-name: postgresql@14
+rpm-names:
+  - postgresql-static
+pacman-names:
+  - postgresql-libs
+pkg-names:
+  - postgresql15-client

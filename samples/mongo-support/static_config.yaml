@@ -1,0 +1,87 @@
+# yaml
+components_manager:
+    coro_pool:
+        initial_size: 500             # Preallocate 500 coroutines at startup.
+        max_size: 1000                # Do not keep more than 1000 preallocated coroutines.
+
+    task_processors:                  # Task processor is an executor for coroutine tasks
+
+        main-task-processor:          # Make a task processor for CPU-bound couroutine tasks.
+            worker_threads: 4         # Process tasks in 4 threads.
+            thread_name: main-worker  # OS will show the threads of this task processor with 'main-worker' prefix.
+
+        fs-task-processor:            # Make a separate task processor for filesystem bound tasks.
+            thread_name: fs-worker
+            worker_threads: 4
+
+        monitor-task-processor:       # for monitoring
+            thread_name: mon-worker
+            worker_threads: 1
+
+    default_task_processor: main-task-processor
+
+    components:                       # Configuring components that were registered via component_list
+        server:
+            listener:                 # configuring the main listening socket...
+                port: 8080            # ...to listen on this port and...
+                task_processor: main-task-processor    # ...process incoming requests on this task processor.
+            listener-monitor:
+                # Listen on localhost:8085 for developer/utility requests
+                port: $monitor-server-port
+                port#fallback: 8086
+                connection:
+                    in_buffer_size: 32768
+                    requests_queue_size_threshold: 100
+                task_processor: monitor-task-processor
+        logging:
+            fs-task-processor: fs-task-processor
+            loggers:
+                default:
+                    file_path: '@stderr'
+                    level: debug
+                    overflow_behavior: discard  # Drop logs if the system is too busy to write them down.
+
+        tracer:                             # Component that helps to trace execution times and requests in logs.
+            service-name: testsuite-support # "You know. You all know exactly who I am. Say my name. " (c)
+
+        dynamic-config:                      # Dynamic config storage options, do nothing
+            fs-cache-path: ''
+        dynamic-config-fallbacks:            # Load options from file and push them into the dynamic config storage.
+            fallback-path: /etc/testsuite_service/configs/dynamic_config_fallback.json
+
+        http-client:
+            fs-task-processor: fs-task-processor
+            user-agent: userver testsuite
+
+        dns-client:                     # Asynchronous DNS component
+            fs-task-processor: fs-task-processor
+
+        congestion-control:
+            load-enabled: true
+            fake-mode: false
+
+        handler-ping:
+            path: /ping
+            method: GET
+            task_processor: main-task-processor
+            throttling_enabled: false
+            url_trailing_slash: strict-match
+
+        distlock-mongo:
+            testsuite-support: true
+            lockname: sample-lock
+            lock-ttl: 60s
+            mongo-timeout: 10s
+
+        tests-control:
+            load-enabled: $testsuite-enabled
+            path: /tests/{action}
+            method: POST
+            task_processor: main-task-processor
+            testpoint-timeout: 10s
+            testpoint-url: mockserver/testpoint
+            throttling_enabled: false
+        testsuite-support:
+
+        mongo-sample:
+            dbconnection: mongodb://localhost/sample

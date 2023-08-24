@@ -1,0 +1,16 @@
+project-name: userver-mongo
+project-alt-names:
+  - yandex-userver-mongo
+maintainers:
+  - Common components
+description: MongoDB serialization helpers
+
+libraries:
+  - userver-core
+
+configs:
+    names:
+      - MONGO_CONGESTION_CONTROL_ENABLED
+      - MONGO_CONGESTION_CONTROL_SETTINGS
+      - MONGO_DEADLINE_PROPAGATION_ENABLED_V2
+      - MONGO_DEFAULT_MAX_TIME_MS

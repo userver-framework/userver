@@ -1,0 +1,16 @@
+name: Git
+
+includes:
+    enabled: false
+
+libraries:
+    enabled: false
+
+programs:
+    find:
+      - names:
+          - git
+          - eg
+        path-suffixes:
+          - Git/cmd
+          - Git/bin

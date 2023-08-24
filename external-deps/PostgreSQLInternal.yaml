@@ -1,0 +1,71 @@
+name: PostgreSQLInternal
+
+
+includes:
+    find:
+      - names:
+          - postgres_fe.h
+        paths:
+          - ${USERVER_PG_SERVER_INCLUDE_DIR}
+          - /usr/include/postgresql/12/server
+          - /usr/include/postgresql/13/server
+          - /usr/include/postgresql/14/server
+          - /usr/include/postgresql/15/server
+          - /usr/local/include/postgresql/server  # FreeBSD
+        path-suffixes:
+          - pgsql/server         # postgresql-server-devel
+
+      - names:
+          - libpq-int.h
+        paths:
+          - ${USERVER_PG_INCLUDE_DIR}/internal
+          - ${USERVER_PG_INCLUDE_DIR}/postgresql/internal
+          - /usr/local/include/postgresql/internal  # FreeBSD
+        path-suffixes:
+          - postgresql/internal  # libpq-dev
+          - pgsql/internal       # postgresql-private-devel
+
+      - names:
+          - libpq-fe.h
+        paths:
+          - ${USERVER_PG_INCLUDE_DIR}
+          - /usr/local/include  # FreeBSD
+        path-suffixes:
+          - postgresql
+          - pgsql
+
+libraries:
+    find:
+      - names:
+          - libpq.a              # must be a static library as we use internal symbols
+        paths:
+          - ${USERVER_PG_LIBRARY_DIR}
+          - /usr/local/lib  # FreeBSD
+      - names:
+          - libpgcommon.a
+        paths:
+          - ${USERVER_PG_SERVER_LIBRARY_DIR}
+          - ${USERVER_PG_LIBRARY_DIR}
+          - /usr/lib/postgresql/12/lib
+          - /usr/lib/postgresql/13/lib
+          - /usr/lib/postgresql/14/lib
+          - /usr/lib/postgresql/15/lib
+      - names:
+          - libpgport.a
+        paths:
+          - ${USERVER_PG_SERVER_LIBRARY_DIR}
+          - ${USERVER_PG_LIBRARY_DIR}
+          - /usr/lib/postgresql/12/lib
+          - /usr/lib/postgresql/13/lib
+          - /usr/lib/postgresql/14/lib
+          - /usr/lib/postgresql/15/lib
+
+debian-names:
+  - libpq-dev
+  - postgresql-server-dev-12
+formula-name: postgresql@14
+rpm-names:
+  - postgresql-server-devel
+  - postgresql-static
+pkg-names:
+  - postgresql15-server

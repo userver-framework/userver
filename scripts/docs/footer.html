@@ -1,0 +1,59 @@
+<!-- HTML footer for doxygen 1.8.13-->
+<!-- start footer part -->
+<!--BEGIN GENERATE_TREEVIEW-->
+<div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
+  <ul>
+    $navpath
+    <li class="footer">$generatedby
+    <a href="https://www.doxygen.org/index.html">Doxygen</a> $doxygenversion</li>
+  </ul>
+</div>
+<!--END GENERATE_TREEVIEW-->
+<!--BEGIN !GENERATE_TREEVIEW-->
+<hr class="footer"/>
+<address class="footer"><small>
+$generatedby <a href="https://www.doxygen.org/index.html">Doxygen</a> $doxygenversion
+</small></address>
+<!--END !GENERATE_TREEVIEW-->
+
+<script type="text/javascript" src="$relpath^codeHighlight.js"></script>
+<script type="text/javascript" src="$relpath^telegramLanguage.js"></script>
+<script type="text/javascript" src="$relpath^styledBtn.js"></script>
+<script type="text/javascript" src="$relpath^search.js"></script>
+<script type="text/javascript" src="$relpath^header.js"></script>
+<script type="text/javascript" src="$relpath^searchHighlight.js"></script>
+<script>
+  const addLinks = () =>  {
+      const links = document.createElement('div')
+      links.id = 'links';
+
+      links.innerHTML = `
+          <a href="https://github.com/userver-framework/" rel="noopener" target="_blank" class="titlelink">
+              <img src="$relpath^github_logo.svg" alt="Github" class="gh-logo"/> 
+          </a>
+          <a href="https://t.me/userver_en" rel="noopener" id='telegram_channel' target="_blank" class="titlelink">
+              <img src="$relpath^telegram_logo.svg" alt="Telegram"/>
+          </a>
+      `
+      document.getElementById('main-navbar').appendChild(links);
+  }
+
+  $(function() {
+    $(document).ready(function() {
+      setTimeout(() => {
+      init_all_results_button();
+      init_header();
+      addLinks();
+
+      const isLanding = document.getElementById('landing_logo_id') !== null;
+
+      if (isLanding) return;
+
+      highlight_code();
+      styleNavButtons(); // TODO: code style?
+    }, 0);
+    });
+  });
+</script>
+</body>
+</html>

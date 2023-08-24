@@ -1,0 +1,56 @@
+{% import "utils.inc.jinja" as utils %}
+{{- utils.do_not_edit() }}
+// This file was generated from {{ proto.source_file }}
+#pragma once
+
+{# All constant includes must go inside this header #}
+#include <userver/ugrpc/server/impl/codegen_declarations.hpp>
+
+#include "{{ proto.source_file_without_ext }}.pb.h"
+
+{% call utils.optional_namespace(proto.namespace) %}
+{% for service in proto.services %}
+
+// Service interface for {{service.name}}
+class {{service.name}}Base
+    : public USERVER_NAMESPACE::ugrpc::server::ServiceBase {
+ public:
+  using Component = USERVER_NAMESPACE::ugrpc::server::impl::ServiceComponentBase<
+      {{service.name}}Base>;
+
+  {% for method in service.method %}
+  {% if method.client_streaming and method.server_streaming %}
+  using {{method.name}}Call =
+      USERVER_NAMESPACE::ugrpc::server::BidirectionalStream<
+          {{ method.input_type | grpc_to_cpp_name }},
+          {{ method.output_type | grpc_to_cpp_name }}>;
+  {% elif method.client_streaming %}
+  using {{method.name}}Call =
+      USERVER_NAMESPACE::ugrpc::server::InputStream<
+          {{ method.input_type | grpc_to_cpp_name }},
+          {{ method.output_type | grpc_to_cpp_name }}>;
+  {% elif method.server_streaming %}
+  using {{method.name}}Call =
+      USERVER_NAMESPACE::ugrpc::server::OutputStream<
+          {{ method.output_type | grpc_to_cpp_name }}>;
+  {% else %}
+  using {{method.name}}Call =
+      USERVER_NAMESPACE::ugrpc::server::UnaryCall<
+          {{ method.output_type | grpc_to_cpp_name }}>;
+  {% endif %}
+
+  {% if method.client_streaming %}
+  virtual void {{method.name}}({{method.name}}Call& call);
+  {% else %}
+  virtual void {{method.name}}(
+      {{method.name}}Call& call,
+      {{ method.input_type | grpc_to_cpp_name }}&& request);
+  {% endif %}
+
+  {% endfor %}
+ private:
+  std::unique_ptr<USERVER_NAMESPACE::ugrpc::server::impl::ServiceWorker>
+  MakeWorker(USERVER_NAMESPACE::ugrpc::server::impl::ServiceSettings&& settings) final;
+};
+{% endfor %}
+{% endcall %} {# utils.optional_namespace #}

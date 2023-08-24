@@ -1,0 +1,85 @@
+# yaml
+components_manager:
+    components:
+        handler-chaos-postgres:
+            path: /chaos/postgres
+            task_processor: main-task-processor
+            method: GET,DELETE,POST
+
+        key-value-database:
+            dbconnection: 'postgresql://testsuite@localhost:11433/pg_key_value'
+            blocking_task_processor: fs-task-processor
+            dns_resolver: async
+            sync-start: true
+            user-types-enabled: false  # Not used in chaos tests
+            # some tests close all the connections and wait for them to start
+            # again... no need to have too many connections
+            max_pool_size: 1  # should be in sync with value in ./utils.py
+            max_queue_size: 200
+            min_pool_size: 1
+
+        testsuite-support:
+
+        http-client:
+            fs-task-processor: main-task-processor
+
+        tests-control:
+            method: POST
+            path: /tests/{action}
+            skip-unregistered-testpoints: true
+            task_processor: main-task-processor
+            testpoint-timeout: 10s
+            testpoint-url: $mockserver/testpoint
+            throttling_enabled: false
+
+        server:
+            listener:
+                port: 8187
+                task_processor: main-task-processor
+        logging:
+            fs-task-processor: fs-task-processor
+            loggers:
+                default:
+                    file_path: '@stderr'
+                    level: debug
+                    overflow_behavior: discard
+
+        tracer:
+            service-name: postgres-basic-chaos
+
+        dynamic-config:
+            fs-cache-path: ''
+        dynamic-config-fallbacks:
+            load-enabled: false
+        dynamic-config-client:
+            config-url: $config-server-url
+            http-retries: 5
+            http-timeout: 20s
+            service-name: testsuite-support
+        dynamic-config-client-updater:
+            config-settings: false
+            fallback-path: $config-fallback
+            full-update-interval: 1m
+            load-only-my-values: true
+            store-enabled: true
+            update-interval: 5s
+
+        dns-client:
+            fs-task-processor: fs-task-processor
+    coro_pool:
+        initial_size: 500
+        max_size: 1000
+
+    task_processors:
+        main-task-processor:
+            worker_threads: 4
+            thread_name: main-worker
+
+        fs-task-processor:
+            thread_name: fs-worker
+            worker_threads: 4
+
+    default_task_processor: main-task-processor
+
+userver_experiments:
+  - pg-connection-pipeline-enabled

@@ -1,0 +1,22 @@
+project-name: userver-postgresql
+project-alt-names:
+  - yandex-userver-postgresql
+maintainers:
+  - Common components
+description: PostgreSQL driver
+
+libraries:
+  - userver-core
+
+configs:
+    names:
+      - POSTGRES_CONGESTION_CONTROL_SETTINGS
+      - POSTGRES_CONNECTION_PIPELINE_EXPERIMENT
+      - POSTGRES_CONNECTION_POOL_SETTINGS
+      - POSTGRES_CONNECTION_SETTINGS
+      - POSTGRES_CONNLIMIT_MODE_AUTO_ENABLED
+      - POSTGRES_DEADLINE_PROPAGATION_VERSION
+      - POSTGRES_DEFAULT_COMMAND_CONTROL
+      - POSTGRES_HANDLERS_COMMAND_CONTROL
+      - POSTGRES_QUERIES_COMMAND_CONTROL
+      - POSTGRES_STATEMENT_METRICS_SETTINGS
