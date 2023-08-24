@@ -7,16 +7,13 @@
 
 #include <userver/http/common_headers.hpp>
 #include <userver/server/handlers/auth/digest_checker_settings_component.hpp>
-#include "userver/logging/log.hpp"
-#include "userver/server/handlers/auth/auth_checker_settings.hpp"
-#include "userver/server/handlers/auth/digest_checker_base.hpp"
-#include "userver/storages/postgres/cluster_types.hpp"
-#include "userver/storages/postgres/component.hpp"
-#include "userver/storages/postgres/io/row_types.hpp"
-#include "userver/storages/postgres/postgres_fwd.hpp"
-#include "userver/storages/postgres/query.hpp"
-#include "userver/storages/postgres/result_set.hpp"
-#include "userver/utils/datetime.hpp"
+#include <userver/server/handlers/auth/digest_checker_base.hpp>
+#include <userver/storages/postgres/cluster_types.hpp>
+#include <userver/storages/postgres/component.hpp>
+#include <userver/storages/postgres/postgres_fwd.hpp>
+#include <userver/storages/postgres/query.hpp>
+#include <userver/storages/postgres/result_set.hpp>
+#include <userver/utils/datetime.hpp>
 
 namespace samples::pg {
 
