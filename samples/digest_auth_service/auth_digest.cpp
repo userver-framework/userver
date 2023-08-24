@@ -1,9 +1,12 @@
+#include "auth_digest.hpp"
+#include "user_info.hpp"
+
 #include <algorithm>
 #include <optional>
 #include <string_view>
+
 #include <userver/http/common_headers.hpp>
 #include <userver/server/handlers/auth/digest_checker_settings_component.hpp>
-
 #include "userver/logging/log.hpp"
 #include "userver/server/handlers/auth/auth_checker_settings.hpp"
 #include "userver/server/handlers/auth/digest_checker_base.hpp"
@@ -14,9 +17,6 @@
 #include "userver/storages/postgres/query.hpp"
 #include "userver/storages/postgres/result_set.hpp"
 #include "userver/utils/datetime.hpp"
-
-#include "auth_digest.hpp"
-#include "user_info.hpp"
 
 namespace samples::pg {
 
