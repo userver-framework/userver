@@ -82,11 +82,11 @@ DigestCheckerBase::DigestCheckerBase(const AuthDigestSettings& digest_settings,
       nonce_ttl_(digest_settings.nonce_ttl),
       digest_hasher_(algorithm_),
       authenticate_header_(is_proxy_
-                               ? userver::http::headers::kProxyAuthenticate
-                               : userver::http::headers::kWWWAuthenticate),
+                               ? USERVER_NAMESPACE::http::headers::kProxyAuthenticate
+                               : USERVER_NAMESPACE::http::headers::kWWWAuthenticate),
       authorization_header_(is_proxy_
-                                ? userver::http::headers::kProxyAuthorization
-                                : userver::http::headers::kAuthorization),
+                                ? USERVER_NAMESPACE::http::headers::kProxyAuthorization
+                                : USERVER_NAMESPACE::http::headers::kAuthorization),
       authenticate_info_header_(is_proxy_ ? kProxyAuthenticationInfo
                                           : kAuthenticationInfo),
       unauthorized_status_(is_proxy_
@@ -103,7 +103,7 @@ AuthCheckResult DigestCheckerBase::CheckAuth(const http::HttpRequest& request,
   // TODO: Implement a more recent version:
   // RFC 7616 https://datatracker.ietf.org/doc/html/rfc7616
   auto& response = request.GetHttpResponse();
-  const auto& etag = request.GetHeader(userver::http::headers::kETag);
+  const auto& etag = request.GetHeader(USERVER_NAMESPACE::http::headers::kETag);
 
   const auto& auth_value = request.GetHeader(authorization_header_);
   if (auth_value.empty()) {
