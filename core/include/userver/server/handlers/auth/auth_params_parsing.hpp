@@ -1,8 +1,7 @@
 #pragma once
 
 /// @file userver/server/handlers/auth/auth_params_parsing.hpp
-/// @brief Class for parsing Authorization header directives from client
-/// request.
+/// @brief @copybrief server::handlers::auth::DigestParserClass
 
 #include <array>
 #include <memory>
@@ -18,6 +17,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
+/// @brief Class for parsing Authorization header directives from client request.
 namespace server::handlers::auth {
 
 /// Class for parsing Authrorization header
