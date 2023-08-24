@@ -32,8 +32,7 @@ std::int64_t FromHexString(const std::string& str) {
   try {
     result = std::stoll(str, nullptr, 16);
   } catch (std::logic_error& ex) {
-    LOG_WARNING() << "Nonce_count from string to integer casting error: "
-                  << ex.what();
+    LOG_WARNING() << "Nonce_count from string to integer casting error: " << ex;
     throw server::handlers::ClientError();
   }
 
