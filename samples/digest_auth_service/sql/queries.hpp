@@ -29,7 +29,7 @@ const storages::postgres::Query kInsertUnnamedNonce{
     "), "
     "free_id AS ( "
     "SELECT COALESCE((SELECT id FROM expired LIMIT 1), "
-    "nextval('nonce_id_seq')) AS id "
+    "uuid_generate_v4()) AS id "
     ") "
     "INSERT INTO auth_schema.unnamed_nonce (id, nonce, creation_time) "
     "SELECT "
