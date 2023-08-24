@@ -16,7 +16,6 @@ components_manager:
               - /v1/hello
             nonce-ttl: 1000s
         # /// [digest config]
-      config-settings: false # true by default
         # /// [hello config]
         handler-hello:
             path: /v1/hello

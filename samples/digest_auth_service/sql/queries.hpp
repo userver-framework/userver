@@ -1,6 +1,7 @@
 #pragma once
 
 namespace uservice_dynconf::sql {
+
 const storages::postgres::Query kSelectUser{
     "SELECT username, nonce, timestamp, nonce_count, ha1 "
     "FROM auth_schema.users WHERE username=$1",
@@ -47,4 +48,5 @@ const storages::postgres::Query kSelectUnnamedNonce{
     "UPDATE auth_schema.unnamed_nonce SET nonce='' WHERE nonce=$1 "
     "RETURNING creation_time ",
     storages::postgres::Query::Name{"select_unnamed_nonce"}};
+
 }  // namespace uservice_dynconf::sql
