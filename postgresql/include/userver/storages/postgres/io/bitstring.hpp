@@ -11,6 +11,7 @@
 #include <userver/storages/postgres/io/buffer_io.hpp>
 #include <userver/storages/postgres/io/buffer_io_base.hpp>
 #include <userver/storages/postgres/io/type_mapping.hpp>
+
 #include <userver/utils/flags.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -48,10 +49,10 @@ template <typename Enum>
 struct IsBitStringCompatible<USERVER_NAMESPACE::utils::Flags<Enum>>
     : std::true_type {};
 
-template <size_t N>
+template <std::size_t N>
 struct IsBitStringCompatible<std::bitset<N>> : std::true_type {};
 
-template <size_t N>
+template <std::size_t N>
 struct IsBitStringCompatible<std::array<bool, N>> : std::true_type {};
 
 template <typename T>
@@ -63,37 +64,39 @@ struct BitContainerTraits;
 template <typename BitContainer>
 struct BitContainerTraits<BitContainer,
                           std::enable_if_t<std::is_integral_v<BitContainer>>> {
-  static bool TestBit(const BitContainer& bits, uint8_t i) {
+  static bool TestBit(const BitContainer& bits, std::uint8_t i) {
     return bits & (1ull << i);
   }
   static void SetBit(BitContainer& bits, std::uint8_t i) {
     bits |= (1ull << i);
   }
-  static size_t BitCount(const BitContainer&) noexcept {
+  static std::size_t BitCount(const BitContainer&) noexcept {
     return sizeof(BitContainer) * 8;
   }
   static void Reset(BitContainer& bits) noexcept { bits = 0; }
 };
 
-template <size_t N>
+template <std::size_t N>
 struct BitContainerTraits<std::array<bool, N>> {
   using BitContainer = std::array<bool, N>;
-  static bool TestBit(const BitContainer& bits, uint8_t i) { return bits[i]; }
+  static bool TestBit(const BitContainer& bits, std::uint8_t i) {
+    return bits[i];
+  }
   static void SetBit(BitContainer& bits, std::uint8_t i) { bits[i] = true; }
-  static size_t BitCount(const BitContainer&) noexcept { return N; }
+  static std::size_t BitCount(const BitContainer&) noexcept { return N; }
   static void Reset(BitContainer& bits) noexcept {
     std::fill(bits.begin(), bits.end(), false);
   }
 };
 
-template <size_t N>
+template <std::size_t N>
 struct BitContainerTraits<std::bitset<N>> {
   using BitContainer = std::bitset<N>;
-  static bool TestBit(const BitContainer& bits, uint8_t i) {
+  static bool TestBit(const BitContainer& bits, std::uint8_t i) {
     return bits.test(i);
   }
   static void SetBit(BitContainer& bits, std::uint8_t i) { bits.set(i); }
-  static size_t BitCount(const BitContainer&) noexcept { return N; }
+  static std::size_t BitCount(const BitContainer&) noexcept { return N; }
   static void Reset(BitContainer& bits) noexcept { bits.reset(); }
 };
 
@@ -129,7 +132,7 @@ struct BitStringWrapper {
                 "This C++ type cannot be used with PostgreSQL 'bit' and `bit "
                 "varying` data type");
 
-  BitContainer bits;
+  BitContainer bits{};
 };
 
 template <BitStringType kBitStringType, typename BitContainer>
@@ -192,7 +195,7 @@ struct BufferParser<postgres::detail::BitStringRefWrapper<
   void operator()(FieldBuffer buffer) {
     Integer bit_count{0};
     buffer.Read(bit_count, BufferCategory::kPlainBuffer);
-    if (static_cast<size_t>((bit_count + 7) / 8) > buffer.length)
+    if (static_cast<std::size_t>((bit_count + 7) / 8) > buffer.length)
       throw InvalidBitStringRepresentation{};
 
     auto& bits = this->value.bits;
@@ -202,7 +205,7 @@ struct BufferParser<postgres::detail::BitStringRefWrapper<
       throw BitStringOverflow(bit_count, target_bit_count);
     }
     io::traits::BitContainerTraits<BitContainer>::Reset(bits);
-    const uint8_t* byte_cptr = buffer.buffer;
+    const std::uint8_t* byte_cptr = buffer.buffer;
     for (Integer i = 0; i < bit_count;) {
       if ((*byte_cptr) & (0x80 >> (i % 8))) {
         io::traits::BitContainerTraits<BitContainer>::SetBit(bits, i);
@@ -249,7 +252,7 @@ struct BufferParser<postgres::BitStringWrapper<BitContainer, kBitStringType>>
   }
 };
 
-template <size_t N>
+template <std::size_t N>
 struct BufferParser<std::bitset<N>> : detail::BufferParserBase<std::bitset<N>> {
   using BaseType = detail::BufferParserBase<std::bitset<N>>;
   using BaseType::BaseType;
@@ -279,18 +282,18 @@ struct BufferFormatter<postgres::detail::BitStringRefWrapper<
     //  [b0 b1 b2 b3 b4 b5 b6 b7 b8 b9 b10 b11 b12 b13 b14 b15]
     // target buffer:
     //  header:
-    //   | bit count (integer, 4 bytes) |
+    //   | bit count (integer, 4 bytes in network bytes order) |
     //  bytes (bits from most to least significant):
     //   | 1st byte (b0 b1 b2 b3 b4 b5 b6 b7) |
     //   | 2nd byte (b8 b9 b10 b11 b12 b13 b14 b15) |
     // ...
 
-    uint8_t b = 0;
+    std::uint8_t b = 0;
     std::string data;
     const auto& bits = this->value.bits;
     const auto bit_count =
         io::traits::BitContainerTraits<BitContainer>::BitCount(bits);
-    for (size_t i = 0; i < bit_count;) {
+    for (std::size_t i = 0; i < bit_count;) {
       if (io::traits::BitContainerTraits<BitContainer>::TestBit(bits, i)) {
         b |= (0x80 >> (i % 8));
       }
@@ -348,7 +351,7 @@ struct BufferFormatter<postgres::BitStringWrapper<BitContainer, kBitStringType>>
 
 // std::bitset is saved as bit varying on default
 
-template <size_t N>
+template <std::size_t N>
 struct BufferFormatter<std::bitset<N>>
     : detail::BufferFormatterBase<std::bitset<N>> {
   using BitContainer = std::bitset<N>;
@@ -381,7 +384,7 @@ struct CppToSystemPg<
     postgres::BitStringWrapper<BitContainer, postgres::BitStringType::kBit>>
     : PredefinedOid<PredefinedOids::kBit> {};
 
-template <size_t N>
+template <std::size_t N>
 struct CppToSystemPg<std::bitset<N>> : PredefinedOid<PredefinedOids::kVarbit> {
 };
 
