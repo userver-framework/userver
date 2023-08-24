@@ -16,7 +16,7 @@ is passed to the HTTP handler.
 Authentication credentials checking logic is set in base class `DigestCheckerBase`, 
 This sample simply defines derived class `AuthCheckerDigest`, which gets, sets user data, and pushes unnamed nonce in pool.
 Digest authentication logic and hashing logic is out of scope of this tutorial.
-For reference, read [https://datatracker.ietf.org/doc/html/rfc2617](RFC2617).
+For reference, read [RFC2617](https://datatracker.ietf.org/doc/html/rfc2617).
 
 
 ### PostgreSQL Table
