@@ -10,6 +10,10 @@ USERVER_NAMESPACE_BEGIN
 
 namespace server::handlers::auth {
 
+NonceInfo::NonceInfo(const std::string& nonce, TimePoint expiration_time,
+            std::int64_t nonce_count) 
+      : nonce(nonce), expiration_time(expiration_time), nonce_count(nonce_count) {};
+
 AuthCheckerDigestBaseStandalone::AuthCheckerDigestBaseStandalone(
     const AuthDigestSettings& digest_settings, std::string&& realm)
     : DigestCheckerBase(digest_settings, std::move(realm)) {
@@ -36,7 +40,7 @@ std::optional<UserData> AuthCheckerDigestBaseStandalone::FetchUserData(
 
   // If nonce_info is not found by username, we create NonceInfo for username,
   // push to user_data_ and return UserData
-  NonceInfo nonce_info_temp{"", utils::datetime::Now()};
+  NonceInfo nonce_info_temp{"", utils::datetime::Now(), 0};
   SetUserData(username, nonce_info_temp.nonce, nonce_info_temp.nonce_count,
               nonce_info_temp.expiration_time);
   UserData user_data{ha1.value(), nonce_info_temp.nonce,

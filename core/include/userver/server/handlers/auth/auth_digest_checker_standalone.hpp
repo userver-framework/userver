@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/server/handlers/auth/auth_digest_checker_standalone.hpp
+/// @brief @copybrief server::handlers::auth::DigestCheckerBase
+
 #include <chrono>
 #include <cstdint>
 #include <functional>
@@ -25,15 +28,16 @@ namespace server::handlers::auth {
 
 struct NonceInfo final {
   NonceInfo(const std::string& nonce, TimePoint expiration_time,
-            std::int64_t nonce_count = 0)
-      : nonce(nonce),
-        expiration_time(expiration_time),
-        nonce_count(nonce_count) {}
+            std::int64_t nonce_count);
   std::string nonce;
   TimePoint expiration_time;
   std::int64_t nonce_count{};
 };
 
+/// @ingroup userver_base_classes
+///
+/// @brief Class for digest authentication checker. Implements a stand-alone
+/// digest-authentication logic.
 class AuthCheckerDigestBaseStandalone : public DigestCheckerBase {
  public:
   AuthCheckerDigestBaseStandalone(const AuthDigestSettings& digest_settings,
@@ -55,7 +59,11 @@ class AuthCheckerDigestBaseStandalone : public DigestCheckerBase {
       std::string_view username) const = 0;
 
  private:
+  // potentially we store ALL user's data
+  // great chance to occupy large block of memory
   mutable rcu::RcuMap<std::string, concurrent::Variable<NonceInfo>> user_data_;
+  // cache for "unnamed" nonces, 
+  // i.e initial nonces not tied to any user
   mutable cache::ExpirableLruCache<std::string, TimePoint> unnamed_nonces_{
       4, 25000};
 };
