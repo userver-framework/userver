@@ -22,4 +22,5 @@ struct UserDbInfo {
   int nonce_count{};
   std::string ha1;
 };
+
 }  // namespace samples::pg
