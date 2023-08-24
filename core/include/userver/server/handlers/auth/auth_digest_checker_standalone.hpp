@@ -43,7 +43,7 @@ class AuthCheckerDigestBaseStandalone : public DigestCheckerBase {
 
   std::optional<UserData> FetchUserData(
       const std::string& username) const override;
-  void SetUserData(std::string username, std::string nonce,
+  void SetUserData(const std::string& username, const std::string& nonce,
                    std::int64_t nonce_count,
                    TimePoint nonce_creation_time) const override;
 
