@@ -20,30 +20,15 @@ using HA1 = utils::NonLoggable<class HA1Tag, std::string>;
 using NonceCache = cache::ExpirableLruCache<std::string, TimePoint>;
 using ValidateResult = DigestCheckerBase::ValidateResult;
 
-class StandAloneChecker : public AuthCheckerDigestBaseStandalone {
+class StandAloneChecker final : public AuthCheckerDigestBaseStandalone {
 
  public:
   StandAloneChecker(const AuthDigestSettings& digest_settings, std::string&& realm)
-      : AuthCheckerDigestBaseStandalone(digest_settings, std::move(realm)), nonce_cache_(1, 1){
-        nonce_cache_.SetMaxLifetime(digest_settings.nonce_ttl);
-      };
+      : AuthCheckerDigestBaseStandalone(digest_settings, std::move(realm)) {}
 
   std::optional<HA1> GetHA1(std::string_view) const override {
     return HA1{"939e7578ed9e3c518a452acee763bce9"};
   }
-
-  void PushUnnamedNonce(std::string nonce) const override {
-    auto creation_time = utils::datetime::Now();
-    nonce_cache_.Put(nonce, creation_time);
-  };
-
-  std::optional<TimePoint> GetUnnamedNonceCreationTime(const std::string& nonce) const override {
-    auto nonce_creation_time = nonce_cache_.GetOptionalNoUpdate(nonce);
-    return nonce_creation_time;
-  };
-
- private:
-  mutable NonceCache nonce_cache_;
 };
 
 class StandAloneCheckerTest : public ::testing::Test {
