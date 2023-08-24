@@ -22,7 +22,6 @@
 #include <userver/server/http/http_response.hpp>
 #include <userver/utils/algo.hpp>
 #include <userver/utils/datetime.hpp>
-#include "userver/utils/from_string.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
@@ -152,7 +151,8 @@ AuthCheckResult DigestCheckerBase::CheckAuth(const http::HttpRequest& request,
   // Check if user have been registred.
   auto user_data_opt = FetchUserData(client_context.username);
   if (!user_data_opt.has_value()) {
-    LOG_WARNING() << "username not registred.";
+    LOG_WARNING() << fmt::format("User with username {} is not registred.",
+                                 client_context.username);
     return AuthCheckResult{AuthCheckResult::Status::kForbidden};
   }
 
