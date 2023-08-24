@@ -595,7 +595,7 @@ const std::string& RequestState::GetLoggedOriginalUrl() const noexcept {
 
 engine::Future<std::shared_ptr<Response>> RequestState::async_perform(
     utils::impl::SourceLocation location) {
-  data_ = FullBufferedData{};
+  data_.emplace<FullBufferedData>();
 
   StartNewSpan(location);
   ResetDataForNewRequest();

@@ -129,7 +129,7 @@ class Promise final {
   Promise(const Promise&) = delete;
   Promise(Promise&&) noexcept = default;
   Promise& operator=(const Promise&) = delete;
-  Promise& operator=(Promise&&) noexcept = default;
+  Promise& operator=(Promise&&) noexcept;
 
   /// Retrieves the Future associated with this value store.
   /// @throw std::future_error if the Future has already been retrieved.
@@ -162,7 +162,7 @@ class Promise<void> final {
   Promise(const Promise&) = delete;
   Promise(Promise&&) noexcept = default;
   Promise& operator=(const Promise&) = delete;
-  Promise& operator=(Promise&&) noexcept = default;
+  Promise& operator=(Promise&&) noexcept;
 
   /// Retrieves the Future associated with this signal store.
   /// @throw std::future_error if the Future has already been retrieved.
@@ -235,8 +235,16 @@ template <typename T>
 Promise<T>::Promise() : state_(std::make_shared<impl::FutureState<T>>()) {}
 
 template <typename T>
+Promise<T>& Promise<T>::operator=(Promise<T>&& other) noexcept {
+  if (this == &other) return *this;
+  { [[maybe_unused]] const auto for_destruction = std::move(*this); }
+  state_ = std::move(other.state_);
+  return *this;
+}
+
+template <typename T>
 Promise<T>::~Promise() {
-  if (state_ && !state_->IsReady()) {
+  if (state_ && !state_->IsReady() && state_->IsFutureCreated()) {
     try {
       state_->SetException(std::make_exception_ptr(
           std::future_error(std::future_errc::broken_promise)));
@@ -269,8 +277,15 @@ void Promise<T>::set_exception(std::exception_ptr ex) {
 inline Promise<void>::Promise()
     : state_(std::make_shared<impl::FutureState<void>>()) {}
 
+inline Promise<void>& Promise<void>::operator=(Promise<void>&& other) noexcept {
+  if (this == &other) return *this;
+  { [[maybe_unused]] const auto for_destruction = std::move(*this); }
+  state_ = std::move(other.state_);
+  return *this;
+}
+
 inline Promise<void>::~Promise() {
-  if (state_ && !state_->IsReady()) {
+  if (state_ && !state_->IsReady() && state_->IsFutureCreated()) {
     try {
       state_->SetException(std::make_exception_ptr(
           std::future_error(std::future_errc::broken_promise)));
