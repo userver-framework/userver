@@ -64,7 +64,7 @@ UTEST_F(StandAloneCheckerTest, NonceTTL) {
   utils::datetime::MockNowSet(std::chrono::system_clock::now());
   checker_.PushUnnamedNonce(valid_nonce_);
 
-  UserData test_data{valid_ha1_, valid_nonce_, utils::datetime::Now()};
+  UserData test_data{valid_ha1_, valid_nonce_, utils::datetime::Now(), 0};
   utils::datetime::MockSleep(std::chrono::milliseconds(2));
   EXPECT_EQ(checker_.ValidateUserData(client_context_, test_data),
             ValidateResult::kOk);
@@ -77,7 +77,7 @@ UTEST_F(StandAloneCheckerTest, NonceTTL) {
 UTEST_F(StandAloneCheckerTest, NonceCount) {
   checker_.PushUnnamedNonce(valid_nonce_);
 
-  UserData test_data{valid_ha1_, valid_nonce_, utils::datetime::Now()};
+  UserData test_data{valid_ha1_, valid_nonce_, utils::datetime::Now(), 0};
   EXPECT_EQ(checker_.ValidateUserData(client_context_, test_data),
             ValidateResult::kOk);
 
@@ -93,13 +93,20 @@ UTEST_F(StandAloneCheckerTest, NonceCount) {
 
 UTEST_F(StandAloneCheckerTest, InvalidNonce) {
   auto invalid_nonce_ = "abc88743bacdf9238";
-  UserData test_data{valid_ha1_, invalid_nonce_, utils::datetime::Now()};
+  UserData test_data{valid_ha1_, invalid_nonce_, utils::datetime::Now(), 0};
   EXPECT_EQ(checker_.ValidateUserData(client_context_, test_data),
             ValidateResult::kWrongUserData);
 
   test_data.nonce = valid_nonce_;
   EXPECT_EQ(checker_.ValidateUserData(client_context_, test_data),
             ValidateResult::kOk);
+}
+
+UTEST_F(StandAloneCheckerTest, NonceCountConvertingThrow) {
+  client_context_.nc = "not-a-hex-number";
+  UserData test_data{valid_ha1_, valid_nonce_, utils::datetime::Now(), 0};
+  EXPECT_THROW(checker_.ValidateUserData(client_context_, test_data),
+               std::runtime_error);
 }
 
 }  // namespace server::handlers::auth::test
