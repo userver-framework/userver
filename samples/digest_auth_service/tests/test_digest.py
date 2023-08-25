@@ -11,10 +11,7 @@ async def test_authenticate_base(service_client):
     authentication_header = response.headers["WWW-Authenticate"]
     auth_directives = parse_directives(authentication_header)
 
-    assert 'realm' in auth_directives
-    assert 'nonce' in auth_directives
-    assert 'algorithm' in auth_directives
-    assert 'qop' in auth_directives
+    auth_directives_assert(auth_directives) 
 
     challenge = construct_challenge(auth_directives)
     auth_header = construct_header("username", "pswd", challenge)
@@ -35,10 +32,7 @@ async def test_postgres_wrong_data(service_client):
     authentication_header = response.headers["WWW-Authenticate"]
     auth_directives = parse_directives(authentication_header)
 
-    assert 'realm' in auth_directives
-    assert 'nonce' in auth_directives
-    assert 'algorithm' in auth_directives
-    assert 'qop' in auth_directives
+    auth_directives_assert(auth_directives)
 
     challenge = construct_challenge(auth_directives)
     auth_header = construct_header("username", "WRONG-PASSWORD", challenge)
@@ -58,10 +52,7 @@ async def test_repeated_auth(service_client):
     authentication_header = response.headers["WWW-Authenticate"]
     auth_directives = parse_directives(authentication_header)
 
-    assert 'realm' in auth_directives
-    assert 'nonce' in auth_directives
-    assert 'algorithm' in auth_directives
-    assert 'qop' in auth_directives
+    auth_directives_assert(auth_directives)
 
     challenge = construct_challenge(auth_directives)
     auth_header = construct_header("username", "pswd", challenge)
@@ -93,10 +84,7 @@ async def test_same_nonce_repeated_use(service_client):
     authentication_header = response.headers["WWW-Authenticate"]
     auth_directives = parse_directives(authentication_header)
 
-    assert 'realm' in auth_directives
-    assert 'nonce' in auth_directives
-    assert 'algorithm' in auth_directives
-    assert 'qop' in auth_directives
+    auth_directives_assert(auth_directives)
 
     challenge = construct_challenge(auth_directives)
     auth_header = construct_header("username", "pswd", challenge)
@@ -133,10 +121,7 @@ async def test_expiring_nonce(service_client, mocked_time):
     authentication_header = response.headers["WWW-Authenticate"]
     auth_directives = parse_directives(authentication_header)
 
-    assert 'realm' in auth_directives
-    assert 'nonce' in auth_directives
-    assert 'algorithm' in auth_directives
-    assert 'qop' in auth_directives
+    auth_directives_assert(auth_directives)
 
     challenge = construct_challenge(auth_directives)
     auth_header = construct_header("username", "pswd", challenge)
@@ -164,10 +149,7 @@ async def test_expiring_nonce(service_client, mocked_time):
     authentication_header = response.headers["WWW-Authenticate"]
     auth_directives = parse_directives(authentication_header)
 
-    assert 'realm' in auth_directives
-    assert 'nonce' in auth_directives
-    assert 'algorithm' in auth_directives
-    assert 'qop' in auth_directives
+    auth_directives_assert(auth_directives)
 
     challenge = construct_challenge(auth_directives)
     auth_header = construct_header("username", "pswd", challenge)
@@ -187,10 +169,7 @@ async def test_aliving_nonce_after_half_ttl(service_client, mocked_time):
     authentication_header = response.headers["WWW-Authenticate"]
     auth_directives = parse_directives(authentication_header)
 
-    assert 'realm' in auth_directives
-    assert 'nonce' in auth_directives
-    assert 'algorithm' in auth_directives
-    assert 'qop' in auth_directives
+    auth_directives_assert(auth_directives)
 
     challenge = construct_challenge(auth_directives)
     auth_header = construct_header("username", "pswd", challenge)
@@ -225,10 +204,7 @@ async def test_repeated_auth_ignore_nextnonce(service_client):
     authentication_header = response.headers["WWW-Authenticate"]
     auth_directives = parse_directives(authentication_header)
 
-    assert 'realm' in auth_directives
-    assert 'nonce' in auth_directives
-    assert 'algorithm' in auth_directives
-    assert 'qop' in auth_directives
+    auth_directives_assert(auth_directives)
 
     challenge = construct_challenge(auth_directives)
     auth_header = construct_header("username", "pswd", challenge)

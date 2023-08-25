@@ -22,3 +22,10 @@ def construct_header(username: str, password: str, challenge: dict):
 
 def parse_directives(authentication_header: str):
     return dict(reg.findall(authentication_header))
+
+# checks if mandatory directives are in WWW-Authenticate header
+def auth_directives_assert(auth_directives: dir):
+    assert 'realm' in auth_directives
+    assert 'nonce' in auth_directives
+    assert 'algorithm' in auth_directives
+    assert 'qop' in auth_directives
