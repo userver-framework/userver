@@ -16,7 +16,7 @@ NonceCacheSettingsComponent::NonceCacheSettingsComponent(
     : DigestCheckerSettingsComponent(config, context) {
   settings_.ways = config["ways"].As<std::size_t>();
   settings_.way_size = config["size"].As<std::size_t>();
-    }
+}
 
 NonceCacheSettingsComponent::~NonceCacheSettingsComponent() = default;
 

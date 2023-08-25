@@ -44,7 +44,7 @@ class DigestCheckerSettingsComponent
   DigestCheckerSettingsComponent(const components::ComponentConfig& config,
                                  const components::ComponentContext& context);
 
-  ~DigestCheckerSettingsComponent() override = default;
+  ~DigestCheckerSettingsComponent() override;
 
   const AuthDigestSettings& GetSettings() const;
 

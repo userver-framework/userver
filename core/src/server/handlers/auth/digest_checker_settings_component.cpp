@@ -45,7 +45,7 @@ DigestCheckerSettingsComponent::DigestCheckerSettingsComponent(
       config["nonce-ttl"].As<std::chrono::milliseconds>(kDefaultTtlMs);
 }
 
-// DigestCheckerSettingsComponent::~DigestCheckerSettingsComponent() = default;
+DigestCheckerSettingsComponent::~DigestCheckerSettingsComponent() = default;
 
 const AuthDigestSettings& DigestCheckerSettingsComponent::GetSettings() const {
   return settings_;

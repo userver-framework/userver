@@ -20,8 +20,8 @@ USERVER_NAMESPACE_BEGIN
 namespace server::handlers::auth {
 
 struct NonceCacheSettings {
-  std::size_t ways;
-  std::size_t way_size;
+  std::size_t ways{};
+  std::size_t way_size{};
 };
 
 // clang-format off
@@ -36,7 +36,8 @@ struct NonceCacheSettings {
 
 // clang-format on
 
-class NonceCacheSettingsComponent final : public DigestCheckerSettingsComponent {
+class NonceCacheSettingsComponent final
+    : public DigestCheckerSettingsComponent {
  public:
   /// @ingroup userver_component_names
   /// @brief The default name of
@@ -44,7 +45,7 @@ class NonceCacheSettingsComponent final : public DigestCheckerSettingsComponent 
   static constexpr std::string_view kName = "nonce-cache-settings";
 
   NonceCacheSettingsComponent(const components::ComponentConfig& config,
-                                 const components::ComponentContext& context);
+                              const components::ComponentContext& context);
 
   ~NonceCacheSettingsComponent() final;
 
@@ -53,8 +54,7 @@ class NonceCacheSettingsComponent final : public DigestCheckerSettingsComponent 
   static yaml_config::Schema GetStaticConfigSchema();
 
  private:
- // ???
-  NonceCacheSettings settings_{};
+  NonceCacheSettings settings_;
 };
 
 }  // namespace server::handlers::auth
@@ -62,6 +62,5 @@ class NonceCacheSettingsComponent final : public DigestCheckerSettingsComponent 
 template <>
 inline constexpr bool components::kHasValidate<
     server::handlers::auth::NonceCacheSettingsComponent> = true;
-
 
 USERVER_NAMESPACE_END
