@@ -22,26 +22,9 @@
 #include <userver/server/http/http_response.hpp>
 #include <userver/utils/algo.hpp>
 #include <userver/utils/datetime.hpp>
-#include "userver/utils/from_string.hpp"
+#include <userver/utils/from_string.hpp>
 
 USERVER_NAMESPACE_BEGIN
-
-namespace utils {
-
-std::int64_t FromHexString(const std::string& str) {
-  std::int64_t result{};
-  try {
-    result = std::stoll(str, nullptr, 16);
-  } catch (std::logic_error& ex) {
-    LOG_WARNING() << "Nonce_count from string to integer casting error: "
-                  << ex.what();
-    throw server::handlers::ClientError();
-  }
-
-  return result;
-}
-
-}  // namespace utils
 
 namespace server::handlers::auth {
 
@@ -77,9 +60,11 @@ DigestHasher::DigestHasher(std::string_view algorithm) {
 
 // TODO: Implement the recommended nonce hashing algorithm:
 // nonce = hash(timestamp:ETag:server-private-key)
-std::string DigestHasher::GenerateNonce() const {
-  return GetHash(std::to_string(
-      std::chrono::system_clock::now().time_since_epoch().count()));
+std::string DigestHasher::GenerateNonce(std::string_view etag) const {
+  auto timestamp = std::to_string(
+      std::chrono::system_clock::now().time_since_epoch().count());
+  if (etag.empty()) return GetHash(timestamp);
+  return GetHash(fmt::format("{}:{}", timestamp, etag));
 }
 
 std::string DigestHasher::GetHash(std::string_view data) const {
@@ -97,11 +82,11 @@ DigestCheckerBase::DigestCheckerBase(const AuthDigestSettings& digest_settings,
       nonce_ttl_(digest_settings.nonce_ttl),
       digest_hasher_(algorithm_),
       authenticate_header_(is_proxy_
-                               ? userver::http::headers::kProxyAuthenticate
-                               : userver::http::headers::kWWWAuthenticate),
+                               ? USERVER_NAMESPACE::http::headers::kProxyAuthenticate
+                               : USERVER_NAMESPACE::http::headers::kWWWAuthenticate),
       authorization_header_(is_proxy_
-                                ? userver::http::headers::kProxyAuthorization
-                                : userver::http::headers::kAuthorization),
+                                ? USERVER_NAMESPACE::http::headers::kProxyAuthorization
+                                : USERVER_NAMESPACE::http::headers::kAuthorization),
       authenticate_info_header_(is_proxy_ ? kProxyAuthenticationInfo
                                           : kAuthenticationInfo),
       unauthorized_status_(is_proxy_
@@ -118,12 +103,13 @@ AuthCheckResult DigestCheckerBase::CheckAuth(const http::HttpRequest& request,
   // TODO: Implement a more recent version:
   // RFC 7616 https://datatracker.ietf.org/doc/html/rfc7616
   auto& response = request.GetHttpResponse();
+  const auto& etag = request.GetHeader(USERVER_NAMESPACE::http::headers::kETag);
 
   const auto& auth_value = request.GetHeader(authorization_header_);
   if (auth_value.empty()) {
     // If there is no authorization header, we save the "nonce" to temporary
     // storage.
-    auto nonce = digest_hasher_.GenerateNonce();
+    auto nonce = digest_hasher_.GenerateNonce(etag);
 
     response.SetStatus(unauthorized_status_);
     response.SetHeader(authenticate_header_,
@@ -152,7 +138,8 @@ AuthCheckResult DigestCheckerBase::CheckAuth(const http::HttpRequest& request,
   // Check if user have been registred.
   auto user_data_opt = FetchUserData(client_context.username);
   if (!user_data_opt.has_value()) {
-    LOG_WARNING() << "username not registred.";
+    LOG_WARNING() << fmt::format("User with username {} is not registred.",
+                                 client_context.username);
     return AuthCheckResult{AuthCheckResult::Status::kForbidden};
   }
 
@@ -161,7 +148,7 @@ AuthCheckResult DigestCheckerBase::CheckAuth(const http::HttpRequest& request,
   switch (validate_result) {
     case ValidateResult::kWrongUserData:
       return StartNewAuthSession(client_context.username,
-                                 digest_hasher_.GenerateNonce(), true,
+                                 digest_hasher_.GenerateNonce(etag), true,
                                  response);
     case ValidateResult::kDuplicateRequest:
       response.SetStatus(unauthorized_status_);
@@ -184,7 +171,7 @@ AuthCheckResult DigestCheckerBase::CheckAuth(const http::HttpRequest& request,
   // RFC 2617, 3.2.3
   // Authentication-Info contains the "nextnonce" required for subsequent
   // authentication.
-  auto info_header_directives = ConstructAuthInfoHeader(client_context);
+  auto info_header_directives = ConstructAuthInfoHeader(client_context, etag);
   response.SetHeader(authenticate_info_header_, info_header_directives);
 
   return {};
@@ -210,7 +197,7 @@ DigestCheckerBase::ValidateResult DigestCheckerBase::ValidateUserData(
     return ValidateResult::kWrongUserData;
   }
   bool is_nonce_expired =
-      user_data.timestamp + nonce_ttl_ < userver::utils::datetime::Now();
+      user_data.timestamp + nonce_ttl_ < utils::datetime::Now();
   if (is_nonce_expired) {
     LOG_WARNING() << "Nonces are equal, but expired.";
     return ValidateResult::kWrongUserData;
@@ -218,7 +205,13 @@ DigestCheckerBase::ValidateResult DigestCheckerBase::ValidateUserData(
 
   LOG_DEBUG() << "Nonce is OK";
 
-  auto client_nc = utils::FromHexString(client_context.nc);
+  std::int64_t client_nc{};
+  try {
+    client_nc = utils::FromHexString(client_context.nc);
+  } catch (std::runtime_error& ex) {
+     LOG_WARNING() << "Nonce_count from string to std::int64_t casting error: " << ex;
+     throw server::handlers::ClientError();
+  }
   if (user_data.nonce_count >= client_nc) {
     LOG_WARNING() << "The current request is a duplicate.";
     return ValidateResult::kDuplicateRequest;
@@ -232,8 +225,9 @@ DigestCheckerBase::ValidateResult DigestCheckerBase::ValidateUserData(
 }
 
 std::string DigestCheckerBase::ConstructAuthInfoHeader(
-    const DigestContextFromClient& client_context) const {
-  auto next_nonce = digest_hasher_.GenerateNonce();
+    const DigestContextFromClient& client_context,
+    std::string_view etag) const {
+  auto next_nonce = digest_hasher_.GenerateNonce(etag);
   SetUserData(client_context.username, next_nonce, 0, utils::datetime::Now());
 
   return fmt::format("{}=\"{}\"", directives::kNextNonce,

@@ -35,7 +35,7 @@ class DigestHasher final {
   DigestHasher(std::string_view algorithm);
 
   /// Returns "nonce" directive value in hexadecimal format.
-  std::string GenerateNonce() const;
+  std::string GenerateNonce(std::string_view etag) const;
 
   /// Returns data hashed according to the specified in constructor
   /// algorithm.
@@ -52,7 +52,7 @@ struct UserData final {
   using HA1 = utils::NonLoggable<class HA1Tag, std::string>;
 
   UserData(HA1 ha1, std::string nonce, TimePoint timestamp,
-           std::int64_t nonce_count = 0);
+           std::int64_t nonce_count);
 
   HA1 ha1;
   std::string nonce;
@@ -90,8 +90,7 @@ class DigestCheckerBase : public AuthCheckerBase {
 
   /// The implementation should return std::nullopt if the user is not
   /// registered. If the user is registered, but he is not in storage, the
-  /// implementation should create him with invalid data to avoids extra round
-  /// trips for authentication challenges.
+  /// implementation can create him with arbitrary data.
   virtual std::optional<UserData> FetchUserData(
       const std::string& username) const = 0;
 
@@ -118,7 +117,8 @@ class DigestCheckerBase : public AuthCheckerBase {
       const DigestContextFromClient& client_context) const;
 
   std::string ConstructAuthInfoHeader(
-      const DigestContextFromClient& client_context) const;
+      const DigestContextFromClient& client_context,
+      std::string_view etag) const;
 
   std::string ConstructResponseDirectives(std::string_view nonce,
                                           bool stale) const;

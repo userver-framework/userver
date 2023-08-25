@@ -173,6 +173,8 @@ T FromString(const StringType& str) {
   return impl::FromString<T>(str);
 }
 
+std::int64_t FromHexString(const std::string& str);
+
 }  // namespace utils
 
 USERVER_NAMESPACE_END
