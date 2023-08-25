@@ -595,7 +595,7 @@ const std::string& RequestState::GetLoggedOriginalUrl() const noexcept {
 
 engine::Future<std::shared_ptr<Response>> RequestState::async_perform(
     utils::impl::SourceLocation location) {
-  data_ = FullBufferedData{};
+  data_.emplace<FullBufferedData>();
 
   StartNewSpan(location);
   ResetDataForNewRequest();
@@ -810,9 +810,8 @@ bool RequestState::ShouldRetryResponse() {
   const auto status_code = static_cast<Status>(easy().get_response_code());
 
   if (IsDeadlineExpiredResponse(status_code)) {
-    // See IsDeadlineExpiredResponse. We return 'true' for both cases here
-    // and check case (1) separately in on_retry.
-    return !timeout_updated_by_deadline_;
+    // See IsDeadlineExpiredResponse, case (2).
+    return !timeout_updated_by_deadline_ && retry_.on_fails;
   }
 
   return status_code >= kLeastBadHttpCodeForEB;

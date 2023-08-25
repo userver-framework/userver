@@ -111,7 +111,7 @@ def slow_mock(mockserver):
 async def test_deadline_ok(call, client_metrics, slow_mock, timeout, deadline):
     async with client_metrics:
         response = await call(
-            headers={DP_TIMEOUT_MS: str(deadline)}, timeout=str(timeout),
+            headers={DP_TIMEOUT_MS: str(deadline)}, timeout=timeout,
         )
         assert response.status == 200
         assert response.text == 'OK!'
@@ -145,8 +145,8 @@ async def test_timeout_expired(
         async with client_metrics:
             response = await call(
                 headers={DP_TIMEOUT_MS: str(deadline)},
-                timeout=str(timeout),
-                attempts=str(attempts),
+                timeout=timeout,
+                attempts=attempts,
             )
             assert response.status == 500
             assert response.text == ''
@@ -201,8 +201,8 @@ async def test_deadline_expired(
         async with client_metrics:
             response = await call(
                 headers={DP_TIMEOUT_MS: str(deadline)},
-                timeout=str(timeout),
-                attempts=str(attempts),
+                timeout=timeout,
+                attempts=attempts,
             )
             assert response.status == 498
             assert response.text == 'Deadline expired'
@@ -258,7 +258,7 @@ async def test_fake_deadline_expired(
     async with service_client.capture_logs() as capture:
         async with client_metrics:
             response = await call(
-                headers={DP_TIMEOUT_MS: '300'}, timeout='500', attempts=3,
+                headers={DP_TIMEOUT_MS: '300'}, timeout=500, attempts=3,
             )
             assert response.status == 498
             assert response.text == 'Deadline expired'
@@ -282,3 +282,28 @@ async def test_fake_deadline_expired(
     logs = get_handler_exception_logs(capture)
     assert len(logs) == 1
     assert 'clients::http::CancelException' in logs[0]['text']
+
+
+@pytest.mark.parametrize(
+    'retry_network_errors,retries_performed', [(True, 3), (False, 1)],
+)
+async def test_dp_timeout_not_retried(
+        call,
+        fake_deadline_expired_mock,
+        retry_network_errors,
+        retries_performed,
+):
+    # If the called service (fake_deadline_expired_mock in this case) returns
+    # DP_DEADLINE_EXPIRED header, and our service did not spend the rest of its
+    # deadline on the request, then userver HTTP client should retry
+    # the request if and only if it should retry a timeout.
+    response = await call(
+        headers={DP_TIMEOUT_MS: '500'},
+        timeout=100,
+        attempts=3,
+        retry_network_errors=int(retry_network_errors),
+    )
+    assert response.status == 500
+    assert response.text == ''
+
+    assert fake_deadline_expired_mock.times_called == retries_performed

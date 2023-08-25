@@ -73,6 +73,10 @@ void FutureStateBase::OnFutureCreated() {
   }
 }
 
+bool FutureStateBase::IsFutureCreated() const noexcept {
+  return is_future_created_.load(std::memory_order_relaxed);
+}
+
 void FutureStateBase::LockResultStore() {
   if (is_result_store_locked_.exchange(true, std::memory_order_relaxed)) {
     throw std::future_error(std::future_errc::promise_already_satisfied);

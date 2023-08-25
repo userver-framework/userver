@@ -1588,6 +1588,8 @@
   "mongo/functional_tests/basic_chaos/dynamic_config_fallback.json":"taxi/uservices/userver/mongo/functional_tests/basic_chaos/dynamic_config_fallback.json",
   "mongo/functional_tests/basic_chaos/mongo_service.cpp":"taxi/uservices/userver/mongo/functional_tests/basic_chaos/mongo_service.cpp",
   "mongo/functional_tests/basic_chaos/static_config.yaml":"taxi/uservices/userver/mongo/functional_tests/basic_chaos/static_config.yaml",
+  "mongo/functional_tests/basic_chaos/tests-deadline-propagation/conftest.py":"taxi/uservices/userver/mongo/functional_tests/basic_chaos/tests-deadline-propagation/conftest.py",
+  "mongo/functional_tests/basic_chaos/tests-deadline-propagation/test_deadline_propagation.py":"taxi/uservices/userver/mongo/functional_tests/basic_chaos/tests-deadline-propagation/test_deadline_propagation.py",
   "mongo/functional_tests/basic_chaos/tests/conftest.py":"taxi/uservices/userver/mongo/functional_tests/basic_chaos/tests/conftest.py",
   "mongo/functional_tests/basic_chaos/tests/test_mongo.py":"taxi/uservices/userver/mongo/functional_tests/basic_chaos/tests/test_mongo.py",
   "mongo/functional_tests/metrics/CMakeLists.txt":"taxi/uservices/userver/mongo/functional_tests/metrics/CMakeLists.txt",

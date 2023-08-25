@@ -90,7 +90,8 @@ class SentinelImplBase {
   virtual void SetClusterAutoTopology(bool /*auto_topology*/) {}
 };
 
-bool AdjustDeadline(const SentinelImplBase::SentinelCommand& scommand);
+bool AdjustDeadline(const SentinelImplBase::SentinelCommand& scommand,
+                    const dynamic_config::Snapshot& config);
 
 class SentinelImpl : public SentinelImplBase {
  public:

@@ -344,6 +344,18 @@ Request Request::unix_socket_path(const std::string& path) && {
   return std::move(this->unix_socket_path(path));
 }
 
+Request& Request::use_ipv4() & {
+  pimpl_->easy().set_ip_resolve(curl::easy::ip_resolve_v4);
+  return *this;
+}
+Request Request::use_ipv4() && { return std::move(this->use_ipv4()); }
+
+Request& Request::use_ipv6() & {
+  pimpl_->easy().set_ip_resolve(curl::easy::ip_resolve_v6);
+  return *this;
+}
+Request Request::use_ipv6() && { return std::move(this->use_ipv6()); }
+
 Request& Request::connect_to(const ConnectTo& connect_to) & {
   pimpl_->connect_to(connect_to);
   return *this;

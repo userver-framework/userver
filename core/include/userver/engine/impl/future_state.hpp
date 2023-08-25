@@ -20,6 +20,7 @@ class FutureStateBase : private engine::impl::ContextAccessor {
   [[nodiscard]] FutureStatus WaitUntil(Deadline deadline);
 
   void OnFutureCreated();
+  bool IsFutureCreated() const noexcept;
 
   // Internal helper for WaitAny/WaitAll
   ContextAccessor* TryGetContextAccessor() noexcept { return this; }
