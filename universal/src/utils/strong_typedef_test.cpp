@@ -35,8 +35,8 @@ using MySpecialShort =
                          utils::StrongTypedefOps::kCompareTransparent>;
 
 using MySpecialDouble =
-    userver::utils::StrongTypedef<class MyDoubleTag, double,
-                                  utils::StrongTypedefOps::kCompareTransparent>;
+    utils::StrongTypedef<class MyDoubleTag, double,
+                         utils::StrongTypedefOps::kCompareTransparent>;
 
 using MySpecialVector =
     utils::StrongTypedef<class MySpecialVectorTag, std::vector<bool>>;
