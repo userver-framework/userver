@@ -56,7 +56,9 @@ struct NotDetected {};
 /// if constexpr (utils::meta::kIsDetected<HasValueType, T>) { ... }
 /// @endcode
 template <template <typename...> typename Trait, typename... Args>
-concept kIsDetected = requires { typename Trait<Args...>; };
+concept kIsDetected = requires {
+  typename Trait<Args...>;
+};
 
 #else
 
