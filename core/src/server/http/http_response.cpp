@@ -27,8 +27,13 @@ namespace {
 constexpr std::string_view kCrlf = "\r\n";
 constexpr std::string_view kKeyValueHeaderSeparator = ": ";
 
-const auto kDefaultContentTypeString =
-    http::ContentType{"text/html; charset=utf-8"}.ToString();
+// RFC 9110 states that in case of missing Content-Type it may be assumed to be
+// application/octet-stream.
+//
+// text/plain was our first guess, but we should provide an encoding with that
+// type, which we do not know for sure. "application/octet-stream" has no
+// charset https://www.iana.org/assignments/media-types/application/octet-stream
+constexpr std::string_view kDefaultContentType = "application/octet-stream";
 
 constexpr std::string_view kClose = "close";
 constexpr std::string_view kKeepAlive = "keep-alive";
@@ -259,7 +264,7 @@ void HttpResponse::SendResponse(engine::io::Socket& socket) {
   }
   if (headers_.find(USERVER_NAMESPACE::http::headers::kContentType) == end) {
     impl::OutputHeader(header, USERVER_NAMESPACE::http::headers::kContentType,
-                       kDefaultContentTypeString);
+                       kDefaultContentType);
   }
   headers_.OutputInHttpFormat(header);
   if (headers_.find(USERVER_NAMESPACE::http::headers::kConnection) == end) {
