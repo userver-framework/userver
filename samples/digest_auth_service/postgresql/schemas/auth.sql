@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS auth_schema.unnamed_nonce (
     id uuid NOT NULL,
     nonce TEXT NOT NULL,
     creation_time TIMESTAMP NOT NULL,
-    PRIMARY KEY(id)
+    PRIMARY KEY(id),
+    UNIQUE(nonce)
 );
 /* /// [postgresql schema] */

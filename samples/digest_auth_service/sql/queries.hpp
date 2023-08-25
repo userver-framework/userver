@@ -45,7 +45,7 @@ const storages::postgres::Query kInsertUnnamedNonce{
     storages::postgres::Query::Name{"insert_unnamed_nonce"}};
 /// [insert unnamed nonce]
 const storages::postgres::Query kSelectUnnamedNonce{
-    "UPDATE auth_schema.unnamed_nonce SET nonce='' WHERE nonce=$1 "
+    "UPDATE auth_schema.unnamed_nonce SET nonce=id WHERE nonce=$1 "
     "RETURNING creation_time ",
     storages::postgres::Query::Name{"select_unnamed_nonce"}};
 
