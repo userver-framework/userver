@@ -33,7 +33,7 @@ namespace server::handlers::auth {
 
 // clang-format on
 
-class DigestCheckerSettingsComponent final
+class DigestCheckerSettingsComponent
     : public components::LoggableComponentBase {
  public:
   /// @ingroup userver_component_names
@@ -44,7 +44,7 @@ class DigestCheckerSettingsComponent final
   DigestCheckerSettingsComponent(const components::ComponentConfig& config,
                                  const components::ComponentContext& context);
 
-  ~DigestCheckerSettingsComponent() final;
+  ~DigestCheckerSettingsComponent() override = default;
 
   const AuthDigestSettings& GetSettings() const;
 
