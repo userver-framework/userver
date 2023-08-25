@@ -241,3 +241,39 @@ async def test_aliving_nonce_after_half_ttl(service_client, mocked_time):
     )
     assert response.status == 200
     assert 'Authentication-Info' in response.headers
+
+
+@pytest.mark.pgsql('auth', files=['test_data.sql'])
+async def test_repeated_auth_ignore_nextnonce(service_client):
+    response = await service_client.get('/v1/hello')
+    assert response.status == 401
+
+    authentication_header = response.headers["WWW-Authenticate"]
+    auth_directives = parse_directives(authentication_header)
+
+    assert 'realm' in auth_directives
+    assert 'nonce' in auth_directives
+    assert 'algorithm' in auth_directives
+    assert 'qop' in auth_directives
+
+    challenge = construct_challenge(auth_directives)
+    auth_header = construct_header("username", "pswd", challenge)
+
+    response = await service_client.get(
+        '/v1/hello', headers={'Authorization': auth_header},
+    )
+    assert response.status == 200
+
+    response = await service_client.get('/v1/hello')
+    assert response.status == 401
+
+    authentication_header = response.headers["WWW-Authenticate"]
+    auth_directives = parse_directives(authentication_header)
+
+    challenge = construct_challenge(auth_directives)
+    auth_header = construct_header("username", "pswd", challenge)
+
+    response = await service_client.get(
+        '/v1/hello', headers={'Authorization': auth_header},
+    )
+    assert response.status == 200
