@@ -1,4 +1,3 @@
-#include <userver/testsuite/testsuite_support.hpp>
 #include <userver/utest/using_namespace_userver.hpp>  // IWYU pragma: keep
 
 #include <string>
@@ -10,6 +9,8 @@
 #include <userver/clients/http/component.hpp>
 #include <userver/components/component.hpp>
 #include <userver/components/minimal_server_component_list.hpp>
+#include <userver/dynamic_config/client/component.hpp>
+#include <userver/dynamic_config/updater/component.hpp>
 #include <userver/engine/sleep.hpp>
 #include <userver/server/handlers/http_handler_base.hpp>
 #include <userver/server/handlers/tests_control.hpp>
@@ -17,6 +18,7 @@
 #include <userver/storages/redis/component.hpp>
 #include <userver/storages/secdist/component.hpp>
 #include <userver/storages/secdist/provider_component.hpp>
+#include <userver/testsuite/testsuite_support.hpp>
 #include <userver/utils/daemon_run.hpp>
 #include <userver/utils/from_string.hpp>
 
@@ -134,6 +136,8 @@ int main(int argc, char* argv[]) {
           .Append<components::TestsuiteSupport>()
           .Append<clients::dns::Component>()
           .Append<components::HttpClient>()
-          .Append<server::handlers::TestsControl>();
+          .Append<server::handlers::TestsControl>()
+          .Append<components::DynamicConfigClient>()
+          .Append<components::DynamicConfigClientUpdater>();
   return utils::DaemonMain(argc, argv, component_list);
 }

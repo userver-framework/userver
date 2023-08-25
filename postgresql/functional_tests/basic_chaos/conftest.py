@@ -22,6 +22,7 @@ def dynamic_config_fallback_patch():
                 'recent-errors-threshold': 100000,
             },
         },
+        'POSTGRES_DEADLINE_PROPAGATION_VERSION': 1,
     }
 
 

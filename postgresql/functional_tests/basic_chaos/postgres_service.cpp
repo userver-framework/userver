@@ -99,7 +99,7 @@ std::string PostgresHandler::HandleRequestThrow(
     TESTPOINT("before_trx_commit", {});
     transaction.Commit();
     TESTPOINT("after_trx_commit", {});
-    return {};
+    return "OK!";
   } else if (type == "portal" || type == kPortalSmallTimeout) {
     const std::chrono::seconds timeout{type == kPortalSmallTimeout ? 3 : 25};
 
