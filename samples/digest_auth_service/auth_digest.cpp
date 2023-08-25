@@ -28,7 +28,7 @@ class AuthCheckerDigest final
  public:
   using AuthCheckResult = server::handlers::auth::AuthCheckResult;
   using AuthDigestSettings =
-      userver::server::handlers::auth::AuthDigestSettings;
+      server::handlers::auth::AuthDigestSettings;
 
   AuthCheckerDigest(const AuthDigestSettings& digest_settings,
                     std::string realm,
@@ -37,7 +37,7 @@ class AuthCheckerDigest final
                                                   std::move(realm)),
         pg_cluster_(
             context
-                .FindComponent<userver::components::Postgres>("auth-database")
+                .FindComponent<components::Postgres>("auth-database")
                 .GetCluster()),
         nonce_ttl_(digest_settings.nonce_ttl) {}
 
@@ -54,7 +54,7 @@ class AuthCheckerDigest final
       const std::string& nonce) const override;
 
  private:
-  userver::storages::postgres::ClusterPtr pg_cluster_;
+  storages::postgres::ClusterPtr pg_cluster_;
   const std::chrono::milliseconds nonce_ttl_;
 };
 /// [auth checker declaration]
@@ -66,7 +66,7 @@ std::optional<UserData> AuthCheckerDigest::FetchUserData(
       storages::postgres::ClusterHostType::kSlave, uservice_dynconf::sql::kSelectUser, username);
 
   auto userDbInfo =
-      res.AsSingleRow<UserDbInfo>(userver::storages::postgres::kRowTag);
+      res.AsSingleRow<UserDbInfo>(storages::postgres::kRowTag);
   return UserData{HA1{userDbInfo.ha1}, userDbInfo.nonce, userDbInfo.timestamp,
                   userDbInfo.nonce_count};
 }

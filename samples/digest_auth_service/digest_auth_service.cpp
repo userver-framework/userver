@@ -29,7 +29,7 @@ class Hello final : public server::handlers::HttpHandlerBase {
 
   std::string HandleRequestThrow(
       const server::http::HttpRequest&,
-      server::request::RequestContext& ctx) const override {
+      server::request::RequestContext&) const override {
     return "Hello world";
   }
 };
@@ -49,8 +49,8 @@ int main(int argc, const char* const argv[]) {
           .Append<components::Postgres>("auth-database")
           .Append<samples::pg::Hello>()
           .Append<components::TestsuiteSupport>()
-          .Append<userver::components::HttpClient>()
-          .Append<userver::server::handlers::TestsControl>()
+          .Append<components::HttpClient>()
+          .Append<server::handlers::TestsControl>()
           .Append<clients::dns::Component>()
           .Append<server::handlers::auth::DigestCheckerSettingsComponent>();
   return utils::DaemonMain(argc, argv, component_list);
