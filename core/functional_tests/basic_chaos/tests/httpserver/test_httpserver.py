@@ -214,7 +214,7 @@ def _check_deadline_propagation_response(response):
     assert isinstance(response, http.ClientResponse)
     assert DP_DEADLINE_EXPIRED in response.headers
     # Check that the status code is taken from deadline_expired_status_code.
-    assert response.status == 498
+    assert response.status == 504
     # Check that the error format is customizable
     # by GetFormattedExternalErrorBody.
     assert 'application/json' in response.headers['content-type']
@@ -257,7 +257,7 @@ async def test_deadline_immediately_expired(
     assert handler_metrics.value_at('rps') == 1
     assert (
         handler_metrics.value_at(
-            'reply-codes', {'http_code': '498', 'version': '2'},
+            'reply-codes', {'http_code': '504', 'version': '2'},
         )
         == 1
     )
@@ -289,7 +289,7 @@ async def test_deadline_expired(
     assert handler_metrics.value_at('rps') == 1
     assert (
         handler_metrics.value_at(
-            'reply-codes', {'http_code': '498', 'version': '2'},
+            'reply-codes', {'http_code': '504', 'version': '2'},
         )
         == 1
     )

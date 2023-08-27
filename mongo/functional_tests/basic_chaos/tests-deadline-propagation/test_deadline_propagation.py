@@ -21,7 +21,7 @@ async def test_works(service_client, put_foo_value, dynamic_config):
             '/v1/key-value?key=foo&sleep_ms=200',
             headers={DP_TIMEOUT_MS: '100'},
         )
-        assert response.status == 504
+        assert response.status == 498
         assert response.text == 'Deadline expired'
 
     logs = [
@@ -42,7 +42,7 @@ async def test_disabled(service_client, put_foo_value, dynamic_config):
             '/v1/key-value?key=foo&sleep_ms=200',
             headers={DP_TIMEOUT_MS: '100'},
         )
-        assert response.status == 504
+        assert response.status == 498
         assert response.text == 'Deadline expired'
 
     # The mongo request should be completed ignoring the fact that

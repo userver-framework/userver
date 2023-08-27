@@ -55,7 +55,7 @@ components_manager:
                 port: 8187
                 task_processor: main-task-processor
                 handler-defaults:
-                    deadline_expired_status_code: 498
+                    deadline_expired_status_code: 504
             listener-monitor:
                 port: 8188
                 task_processor: main-task-processor

@@ -164,11 +164,11 @@ If there is a header `X-YaTaxi-Client-timeoutMs` in the request, the handler:
 
 * Sets `server::request::TaskInheritedData::deadline`, which is then used in clients
 
-* If the deadline has expired by the time the user code of the handle is released, then:
+* If the deadline has expired by the time the handler returns, then:
 
     * the code `498 Deadline Expired` is returned;
-    * the body is `Deadline expired`;
-    * see monitoring below.
+        * this code can be configured, see below;
+    * the body is `Deadline expired`.
 
 * If by the time the request has been read to the end and the request has started to be processed, the deadline has
   already expired, then the user code is never called, and the handler responds as shown above
@@ -184,7 +184,10 @@ Metrics:
 Log tags of the request's `tracing::Span`:
 
 * `deadline_received_ms=...` if the calling service has set a deadline for the request
-* `cancelled_by_deadline=1` if request processing was interrupted by deadline
+* if deadline expired while handling the request:
+    * `cancelled_by_deadline=1`;
+    * `dp_original_body` - the user-provided response body (if any) that was replaced by `Deadline expired`;
+    * `dp_original_body_size` - the size of this body in bytes.
 
 ### Configuring
 
@@ -197,7 +200,12 @@ To disable deadline propagation in the dynamic config:
 
 - set @ref USERVER_DEADLINE_PROPAGATION_ENABLED to `false`
 
-To configure HTTP status response code for Deadline expired:
+The default HTTP status code for `Deadline expired` responses is a custom userver-specific `498 Deadline Expired` code.
+The code is deliberately chosen in the 4xx range, because it is not a server error by itself. Given infinite time,
+the server would probably handle the request successfully.
+However, some environments may fail to handle a non-standard code, in which case you may want to configure it.
+
+To configure HTTP status code for `Deadline expired` responses:
 
 - `server.listener.handler-defaults.deadline_expired_status_code: 504`
 - or per handler: `<handle component>.deadline_expired_status_code: 504`

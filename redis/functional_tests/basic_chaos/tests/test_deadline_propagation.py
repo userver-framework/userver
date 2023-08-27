@@ -11,7 +11,7 @@ async def test_expired(service_client, dynamic_config, sentinel_gate, gate):
             '/chaos?key=foo&value=bar&sleep_ms=1000',
             headers={DP_TIMEOUT_MS: '500'},
         )
-        assert response.status == 504
+        assert response.status == 498
         assert response.text == 'Deadline expired'
 
     logs = [
@@ -34,7 +34,7 @@ async def test_expired_dp_disabled(service_client, sentinel_gate, gate):
         response = await service_client.get(
             '/chaos?key=foo&sleep_ms=1000', headers={DP_TIMEOUT_MS: '500'},
         )
-        assert response.status == 504
+        assert response.status == 498
         assert response.text == 'Deadline expired'
 
     # The redis request should be completed ignoring the fact that

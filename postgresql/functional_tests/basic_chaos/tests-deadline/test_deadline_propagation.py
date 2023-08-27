@@ -9,7 +9,7 @@ async def test_expired(service_client, dynamic_config):
             '/chaos/postgres?sleep_ms=1000&type=select',
             headers={'X-YaTaxi-Client-TimeoutMs': '500'},
         )
-        assert response.status == 504
+        assert response.status == 498
         assert response.text == 'Deadline expired'
 
     logs = [
@@ -29,7 +29,7 @@ async def test_expired_dp_disabled(service_client):
             '/chaos/postgres?sleep_ms=1000&type=select',
             headers={'X-YaTaxi-Client-TimeoutMs': '500'},
         )
-        assert response.status == 504
+        assert response.status == 498
         assert response.text == 'Deadline expired'
 
     # The postgres request should be completed ignoring the fact that

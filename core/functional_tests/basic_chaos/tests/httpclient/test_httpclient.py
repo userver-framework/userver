@@ -204,7 +204,7 @@ async def test_deadline_expired(
                 timeout=timeout,
                 attempts=attempts,
             )
-            assert response.status == 498
+            assert response.status == 504
             assert response.text == 'Deadline expired'
 
             # If deadline fires before timeout, metrics and logs will only
@@ -260,7 +260,7 @@ async def test_fake_deadline_expired(
             response = await call(
                 headers={DP_TIMEOUT_MS: '300'}, timeout=500, attempts=3,
             )
-            assert response.status == 498
+            assert response.status == 504
             assert response.text == 'Deadline expired'
 
     assert fake_deadline_expired_mock.times_called == 1
