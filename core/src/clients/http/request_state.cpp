@@ -167,7 +167,6 @@ RequestState::RequestState(
       stats_(std::move(req_stats)),
       dest_stats_(dest_stats),
       original_timeout_(kDefaultTimeout),
-      local_timeout_(original_timeout_),
       remote_timeout_(original_timeout_),
       tracing_manager_{&tracing::kDefaultTracingManager},
       is_cancelled_(false),
@@ -264,7 +263,6 @@ void RequestState::http_version(curl::easy::http_version_t version) {
 
 void RequestState::set_timeout(long timeout_ms) {
   original_timeout_ = std::chrono::milliseconds{timeout_ms};
-  local_timeout_ = original_timeout_;
   remote_timeout_ = original_timeout_;
 }
 
@@ -700,17 +698,13 @@ void RequestState::UpdateTimeoutFromDeadline(
   UASSERT(remote_timeout_ >= std::chrono::milliseconds::zero());
   if (!deadline_.IsReachable()) return;
 
-  const auto timeout_from_deadline_no_rtt =
+  const auto timeout_from_deadline =
       std::clamp(std::chrono::duration_cast<std::chrono::milliseconds>(
                      deadline_.TimeLeft() - backoff),
                  std::chrono::milliseconds{0}, original_timeout_);
-  const auto timeout_from_deadline = std::max(
-      timeout_from_deadline_no_rtt - deadline_propagation_config_.rtt_estimate,
-      std::chrono::milliseconds{0});
 
   if (timeout_from_deadline != original_timeout_) {
     remote_timeout_ = timeout_from_deadline;
-    local_timeout_ = timeout_from_deadline_no_rtt;
     timeout_updated_by_deadline_ = true;
     WithRequestStats(
         [](RequestStats& stats) { stats.AccountTimeoutUpdatedByDeadline(); });
@@ -770,7 +764,7 @@ void RequestState::CheckResponseDeadline(std::error_code& err,
   const std::chrono::microseconds attempt_time{easy().get_total_time_usec()};
 
   if (!deadline_expired_ && timeout_updated_by_deadline_ &&
-      (attempt_time >= local_timeout_ ||
+      (attempt_time >= remote_timeout_ ||
        (!err && IsDeadlineExpiredResponse(status_code)))) {
     // The most probable cause is IsDeadlineExpiredResponse, case (1).
     // Even if not, the ResponseFuture already has thrown or is preparing
@@ -858,7 +852,6 @@ void RequestState::ResetDataForNewRequest() {
 
   is_cancelled_ = false;
   retry_.current = 1;
-  local_timeout_ = original_timeout_;
   remote_timeout_ = original_timeout_;
   deadline_ = server::request::GetTaskInheritedDeadline();
   deadline_expired_ = false;

@@ -266,8 +266,6 @@ If there is a task-inherited deadline, the client:
 5. Otherwise, if the response has `X-YaTaxi-Deadline-Expired` header, it converts the response
    to `clients::http::TimeoutException`
 
-If the (experimental) RTT estimate is set, then it is subtracted from the propagated deadline.
-
 ### Monitoring
 
 Metrics:
@@ -292,10 +290,6 @@ To disable deadline propagation in the static config:
 To disable deadline propagation in the dynamic config:
 
 * set @ref USERVER_DEADLINE_PROPAGATION_ENABLED to `false`
-
-To set RTT estimate:
-
-* `http-client.deadline-propagation-rtt-estimate: 5ms`
 
 ## Deadline propagation details for gRPC clients
 
