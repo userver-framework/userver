@@ -71,8 +71,7 @@ void AuthCheckerDigestBaseStandalone::SetUserData(
 
 void AuthCheckerDigestBaseStandalone::PushUnnamedNonce(
     std::string nonce) const {
-  unnamed_nonces_.Put(nonce,
-                      static_cast<TimePoint>(userver::utils::datetime::Now()));
+  unnamed_nonces_.Put(nonce, utils::datetime::Now());
 }
 
 std::optional<TimePoint>

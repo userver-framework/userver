@@ -51,7 +51,6 @@ class StandAloneCheckerTest : public ::testing::Test {
     client_context_ = correct_client_context_;
   }
 
- protected:
   std::string valid_nonce_{"dcd98b7102dd2f0e8b11d0f600bfb0c093"};
   HA1 valid_ha1_{"939e7578ed9e3c518a452acee763bce9"};
   AuthDigestSettings digest_settings_;
@@ -92,7 +91,7 @@ UTEST_F(StandAloneCheckerTest, NonceCount) {
 }
 
 UTEST_F(StandAloneCheckerTest, InvalidNonce) {
-  auto invalid_nonce_ = "abc88743bacdf9238";
+  const auto* invalid_nonce_ = "abc88743bacdf9238";
   UserData test_data{valid_ha1_, invalid_nonce_, utils::datetime::Now(), 0};
   EXPECT_EQ(checker_.ValidateUserData(client_context_, test_data),
             ValidateResult::kWrongUserData);
