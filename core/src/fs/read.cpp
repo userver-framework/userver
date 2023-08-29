@@ -15,13 +15,14 @@ bool IsHiddenFile(const boost::filesystem::path& path) {
   return name != ".." && name != "." && name[0] == '.';
 }
 
-std::string GetRelative(std::string_view path, std::string_view dir) {
+}  // namespace
+
+std::string GetLexicallyRelative(std::string_view path, std::string_view dir) {
   UASSERT(dir.size() < path.size());
+  UASSERT(path.substr(0, dir.size()) == dir);
   auto rel = path.substr(dir.size());
   return std::string{rel};
 }
-
-}  // namespace
 
 std::string ReadFileContents(engine::TaskProcessor& async_tp,
                              const std::string& path) {
@@ -42,7 +43,7 @@ FileInfoWithDataMap ReadRecursiveFilesInfoWithData(
     info.size = boost::filesystem::file_size(f.path());
     info.extension = f.path().extension().string();
     info.data = ReadFileContents(async_tp, f.path().string());
-    data[GetRelative(f.path().string(), path)] =
+    data[GetLexicallyRelative(f.path().string(), path)] =
         std::make_shared<const FileInfoWithData>(std::move(info));
   }
   return data;
