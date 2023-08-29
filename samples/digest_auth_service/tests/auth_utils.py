@@ -1,5 +1,6 @@
 from requests.auth import HTTPDigestAuth
 import re
+
 # parsing regex
 reg = re.compile(r'(\w+)[:=][\s"]?([^",]+)"?')
 
@@ -29,3 +30,4 @@ def auth_directives_assert(auth_directives: dir):
     assert 'nonce' in auth_directives
     assert 'algorithm' in auth_directives
     assert 'qop' in auth_directives
+    
