@@ -1,3 +1,7 @@
+#include <exception>
+#include <string_view>
+#include <vector>
+
 #include <userver/utest/utest.hpp>
 
 #include <userver/server/handlers/auth/auth_digest_checker_standalone.hpp>
@@ -6,10 +10,6 @@
 #include <userver/server/handlers/auth/digest_context.hpp>
 #include <userver/utils/datetime.hpp>
 #include <userver/utils/mock_now.hpp>
-
-#include <exception>
-#include <string_view>
-#include <vector>
 
 USERVER_NAMESPACE_BEGIN
 
