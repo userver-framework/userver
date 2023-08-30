@@ -63,7 +63,7 @@ void CallAnyBase::LogFinish(grpc::Status status) const {
                   "\treal_ip={}"
                   "\trequest={}"
                   "\tupstream_response_time_ms={}"
-                  "\tgrpc_status={}",
+                  "\tgrpc_status={}\n",
                   utils::datetime::LocalTimezoneTimestring(
                       start_time, "timestamp=%Y-%m-%dT%H:%M:%S\ttimezone=%Ez"),
                   EscapeForAccessTskvLog(user_agent),
