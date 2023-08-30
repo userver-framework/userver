@@ -29,6 +29,7 @@ namespace components {
 /// * clients::dns::Component
 /// * components::DynamicConfigClient
 /// * components::DynamicConfigClientUpdater
+/// * engine::TaskProcessorsLoadMonitor
 ComponentList CommonComponentList();
 
 }  // namespace components

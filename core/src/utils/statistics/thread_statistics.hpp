@@ -4,8 +4,10 @@
 #include <chrono>
 #include <cstdint>
 #include <thread>
+#include <vector>
 
 #include <userver/utils/datetime/steady_coarse_clock.hpp>
+#include <userver/utils/fast_pimpl.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -25,6 +27,8 @@ ThreadCpuUsage GetCurrentThreadCpuUsage();
 
 }  // namespace impl
 
+using Percent = std::uint8_t;
+
 /// @brief Helper class to maintain current thread CPU usage.
 /// Doesn't drive itself, so you are expected to call `Collect` every so often.
 /// Getting current thread CPU usage implies syscall, the class throttles it via
@@ -43,7 +47,7 @@ class ThreadCpuStatsStorage final {
   void Collect();
 
   /// @brief Get current CPU usage percent.
-  std::uint8_t GetCurrentLoadPercent() const;
+  Percent GetCurrentLoadPercent() const;
 
  private:
   using Clock = utils::datetime::SteadyCoarseClock;
@@ -59,9 +63,28 @@ class ThreadCpuStatsStorage final {
   Clock::time_point last_ts_{};
   utils::statistics::impl::ThreadCpuUsage last_usage_{};
 
-  std::atomic<std::uint8_t> current_usage_pct_{0};
+  std::atomic<Percent> current_load_pct_{0};
 
   std::thread::id caller_id_;
+};
+
+/// @brief Helper class to maintain CPU usage information for a pool of threads.
+/// Doesn't drive itself, so you are expected to call `CollectCurrentLoadPct`
+/// every so often.
+class ThreadPoolCpuStatsStorage final {
+ public:
+  /// @param threads Pool of threads to maintain information for.
+  ThreadPoolCpuStatsStorage(const std::vector<std::thread>& threads);
+  ~ThreadPoolCpuStatsStorage();
+
+  /// @brief Collect average CPU usage since previous call for every thread
+  /// passed into constructor, in the same order.
+  /// @note This function is not thread-safe.
+  std::vector<Percent> CollectCurrentLoadPct();
+
+ private:
+  class Impl;
+  utils::FastPimpl<Impl, 40, 8> impl_;
 };
 
 }  // namespace utils::statistics

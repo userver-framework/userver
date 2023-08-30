@@ -18,6 +18,10 @@
 
 USERVER_NAMESPACE_BEGIN
 
+namespace utils::statistics {
+class ThreadPoolCpuStatsStorage;
+}
+
 namespace engine {
 
 namespace impl {
@@ -73,6 +77,8 @@ class TaskProcessor final {
 
   logging::LoggerPtr GetTaskTraceLogger() const;
 
+  std::vector<std::uint8_t> CollectCurrentLoadPct() const;
+
  private:
   void Cleanup() noexcept;
 
@@ -108,6 +114,9 @@ class TaskProcessor final {
   std::atomic<bool> profiler_force_stacktrace_{false};
   std::atomic<bool> is_shutting_down_{false};
   std::atomic<bool> task_trace_logger_set_{false};
+
+  std::unique_ptr<utils::statistics::ThreadPoolCpuStatsStorage>
+      cpu_stats_storage_{nullptr};
 };
 
 /// Register a function that runs on all threads on task processor creation.

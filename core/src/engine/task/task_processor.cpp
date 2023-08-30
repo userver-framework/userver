@@ -12,6 +12,7 @@
 #include <userver/utils/rand.hpp>
 #include <userver/utils/thread_name.hpp>
 #include <userver/utils/threads.hpp>
+#include <utils/statistics/thread_statistics.hpp>
 
 #include <engine/task/counted_coroutine_ptr.hpp>
 #include <engine/task/task_context.hpp>
@@ -38,7 +39,7 @@ void SetTaskQueueWaitTimepoint(impl::TaskContext* context) {
 }
 
 // Hooks are modified only before task processors created and only in main
-// thread, so it doesnt' need any synchronization.
+// thread, so it doesn't need any synchronization.
 std::vector<std::function<void()>>& ThreadStartedHooks() {
   static std::vector<std::function<void()>> thread_started_hooks;
   return thread_started_hooks;
@@ -85,6 +86,10 @@ TaskProcessor::TaskProcessor(TaskProcessorConfig config,
         ProcessTasks();
       });
     }
+
+    cpu_stats_storage_ =
+        std::make_unique<utils::statistics::ThreadPoolCpuStatsStorage>(
+            workers_);
     workers_left.wait();
   } catch (...) {
     Cleanup();
@@ -209,6 +214,12 @@ logging::LoggerPtr TaskProcessor::GetTaskTraceLogger() const {
   // logger macros should be ready to deal with null logger
   if (!task_trace_logger_set_.load(std::memory_order_acquire)) return {};
   return task_trace_logger_;
+}
+
+std::vector<std::uint8_t> TaskProcessor::CollectCurrentLoadPct() const {
+  UASSERT(cpu_stats_storage_);
+
+  return cpu_stats_storage_->CollectCurrentLoadPct();
 }
 
 void RegisterThreadStartedHook(std::function<void()> func) {

@@ -3,7 +3,6 @@
 #include <userver/clients/dns/component.hpp>
 #include <userver/clients/http/component.hpp>
 #include <userver/components/dump_configurator.hpp>
-#include <userver/components/headers_propagator_component.hpp>
 #include <userver/components/logging_configurator.hpp>
 #include <userver/components/manager_controller_component.hpp>
 #include <userver/components/statistics_storage.hpp>
@@ -11,6 +10,7 @@
 #include <userver/dynamic_config/client/component.hpp>
 #include <userver/dynamic_config/storage/component.hpp>
 #include <userver/dynamic_config/updater/component.hpp>
+#include <userver/engine/task_processors_load_monitor.hpp>
 #include <userver/logging/component.hpp>
 #include <userver/os_signals/component.hpp>
 #include <userver/testsuite/testsuite_support.hpp>
@@ -37,7 +37,9 @@ ComponentList CommonComponentList() {
       .Append<components::HttpClient>("http-client-statistics")
       .Append<clients::dns::Component>()
       .Append<components::DynamicConfigClient>()
-      .Append<components::DynamicConfigClientUpdater>();
+      .Append<components::DynamicConfigClientUpdater>()
+
+      .Append<engine::TaskProcessorsLoadMonitor>();
 }
 
 }  // namespace components

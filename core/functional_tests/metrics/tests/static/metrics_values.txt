@@ -69,6 +69,15 @@ engine.coro-pool.coroutines.total:	GAUGE	0
 engine.ev-threads.cpu-load-percent: ev_thread_name=event-worker_0	GAUGE	0
 engine.ev-threads.cpu-load-percent: ev_thread_name=event-worker_1	GAUGE	0
 engine.load-ms:	GAUGE	0
+engine.task-processors-load-percent: task_processor=fs-task-processor, thread=0	GAUGE	0
+engine.task-processors-load-percent: task_processor=fs-task-processor, thread=1	GAUGE	0
+engine.task-processors-load-percent: task_processor=main-task-processor, thread=0	GAUGE	0
+engine.task-processors-load-percent: task_processor=main-task-processor, thread=1	GAUGE	0
+engine.task-processors-load-percent: task_processor=main-task-processor, thread=2	GAUGE	0
+engine.task-processors-load-percent: task_processor=main-task-processor, thread=3	GAUGE	0
+engine.task-processors-load-percent: task_processor=main-task-processor, thread=4	GAUGE	0
+engine.task-processors-load-percent: task_processor=main-task-processor, thread=5	GAUGE	0
+engine.task-processors-load-percent: task_processor=monitor-task-processor, thread=0	GAUGE	0
 engine.task-processors.context_switch.fast: task_processor=fs-task-processor	GAUGE	0
 engine.task-processors.context_switch.fast: task_processor=main-task-processor	GAUGE	0
 engine.task-processors.context_switch.fast: task_processor=monitor-task-processor	GAUGE	0
