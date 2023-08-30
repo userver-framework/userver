@@ -136,6 +136,9 @@ namespace storages::postgres {
  *       - NotInTransaction
  *     - UnsupportedInterval
  *     - BoundedRangeError
+ *     - BitStringError
+ *       - BitStringOverflow
+ *       - InvalidBitStringRepresentation
  *   - RuntimeError
  *     - ConnectionError
  *       - ClusterUnavailable
@@ -893,6 +896,31 @@ class BoundedRangeError : public LogicError {
             "PostgreSQL range violates bounded range invariant: {}", message)) {
   }
 };
+
+//@{
+/** @name bit/bit varying type errors */
+
+/// @brief Base error when working with bit string types.
+class BitStringError : public LogicError {
+ public:
+  using LogicError::LogicError;
+};
+
+/// Value in PostgreSQL binary buffer cannot be represented by a given C++ type
+class BitStringOverflow : public BitStringError {
+ public:
+  BitStringOverflow(std::size_t actual, std::size_t expected)
+      : BitStringError(fmt::format("Invalid bit container size {}. Expected {}",
+                                   actual, expected)) {}
+};
+
+/// Value in PostgreSQL binary buffer cannot be represented as bit string type
+class InvalidBitStringRepresentation : public BitStringError {
+ public:
+  InvalidBitStringRepresentation()
+      : BitStringError("Invalid bit or bit varying type representation") {}
+};
+//@}
 
 //@{
 /** @name Misc exceptions */

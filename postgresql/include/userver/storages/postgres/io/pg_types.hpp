@@ -266,7 +266,9 @@ enum class PredefinedOids {
   kNumericArray = 1231,   // Not in documentation
   kTimetz = 1266,
   kBit = 1560,
+  kBitArray = 1561,
   kVarbit = 1562,
+  kVarbitArray = 1563,
   kNumeric = 1700,
   kRefcursor = 1790,
   kRegprocedure = 2202,
@@ -397,6 +399,14 @@ struct ArrayType<PredefinedOids::kTimestamptz>
 template <>
 struct ArrayType<PredefinedOids::kInterval>
     : PredefinedOid<PredefinedOids::kIntervalArray> {};
+
+template <>
+struct ArrayType<PredefinedOids::kBit>
+    : PredefinedOid<PredefinedOids::kBitArray> {};
+
+template <>
+struct ArrayType<PredefinedOids::kVarbit>
+    : PredefinedOid<PredefinedOids::kVarbitArray> {};
 
 template <>
 struct ArrayType<PredefinedOids::kNumeric>
