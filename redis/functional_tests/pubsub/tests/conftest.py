@@ -1,9 +1,12 @@
 import json
+import os
 
 import pytest
 
 
 pytest_plugins = ['pytest_userver.plugins.redis']
+
+os.environ['TESTSUITE_REDIS_HOSTNAME'] = 'localhost'
 
 
 @pytest.fixture(scope='session')

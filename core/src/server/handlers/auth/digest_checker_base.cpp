@@ -81,12 +81,12 @@ DigestCheckerBase::DigestCheckerBase(const AuthDigestSettings& digest_settings,
       is_proxy_(digest_settings.is_proxy),
       nonce_ttl_(digest_settings.nonce_ttl),
       digest_hasher_(algorithm_),
-      authenticate_header_(is_proxy_
-                               ? USERVER_NAMESPACE::http::headers::kProxyAuthenticate
-                               : USERVER_NAMESPACE::http::headers::kWWWAuthenticate),
-      authorization_header_(is_proxy_
-                                ? USERVER_NAMESPACE::http::headers::kProxyAuthorization
-                                : USERVER_NAMESPACE::http::headers::kAuthorization),
+      authenticate_header_(
+          is_proxy_ ? USERVER_NAMESPACE::http::headers::kProxyAuthenticate
+                    : USERVER_NAMESPACE::http::headers::kWWWAuthenticate),
+      authorization_header_(
+          is_proxy_ ? USERVER_NAMESPACE::http::headers::kProxyAuthorization
+                    : USERVER_NAMESPACE::http::headers::kAuthorization),
       authenticate_info_header_(is_proxy_ ? kProxyAuthenticationInfo
                                           : kAuthenticationInfo),
       unauthorized_status_(is_proxy_
@@ -156,7 +156,7 @@ AuthCheckResult DigestCheckerBase::CheckAuth(const http::HttpRequest& request,
     case ValidateResult::kOk:
       break;
   }
-  
+
   auto digest =
       CalculateDigest(user_data.ha1, request.GetMethod(), client_context);
 
@@ -194,8 +194,8 @@ DigestCheckerBase::ValidateResult DigestCheckerBase::ValidateUserData(
 
     SetUserData(client_context.username, client_context.nonce, 0,
                 nonce_creation_time.value());
-    return ValidateResult::kWrongUserData;
   }
+
   bool is_nonce_expired =
       user_data.timestamp + nonce_ttl_ < utils::datetime::Now();
   if (is_nonce_expired) {
@@ -209,8 +209,9 @@ DigestCheckerBase::ValidateResult DigestCheckerBase::ValidateUserData(
   try {
     client_nc = utils::FromHexString(client_context.nc);
   } catch (std::runtime_error& ex) {
-     LOG_WARNING() << "Nonce_count from string to std::int64_t casting error: " << ex;
-     throw server::handlers::ClientError();
+    LOG_WARNING() << "Nonce_count from string to std::int64_t casting error: "
+                  << ex;
+    throw server::handlers::ClientError();
   }
   if (user_data.nonce_count >= client_nc) {
     LOG_WARNING() << "The current request is a duplicate.";

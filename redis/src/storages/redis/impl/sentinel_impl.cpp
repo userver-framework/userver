@@ -244,9 +244,15 @@ std::optional<std::chrono::milliseconds> GetDeadlineTimeLeft() {
 
 }  // namespace
 
-bool AdjustDeadline(const SentinelImplBase::SentinelCommand& scommand) {
+bool AdjustDeadline(const SentinelImplBase::SentinelCommand& scommand,
+                    const dynamic_config::Snapshot& config) {
   const auto inherited_deadline = GetDeadlineTimeLeft();
   if (!inherited_deadline) return true;
+
+  if (config[kDeadlinePropagationVersion] !=
+      kDeadlinePropagationExperimentVersion) {
+    return true;
+  }
 
   if (*inherited_deadline <= std::chrono::seconds{0}) {
     return false;
@@ -262,7 +268,7 @@ bool AdjustDeadline(const SentinelImplBase::SentinelCommand& scommand) {
 
 void SentinelImpl::AsyncCommand(const SentinelCommand& scommand,
                                 size_t prev_instance_idx) {
-  if (!AdjustDeadline(scommand)) {
+  if (!AdjustDeadline(scommand, dynamic_config_source_.GetSnapshot())) {
     auto reply = std::make_shared<Reply>("", ReplyData::CreateNil());
     reply->status = ReplyStatus::kTimeoutError;
     InvokeCommand(scommand.command, std::move(reply));

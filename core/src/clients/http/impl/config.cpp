@@ -34,9 +34,6 @@ DeadlinePropagationConfig ParseDeadlinePropagationConfig(
   DeadlinePropagationConfig result;
   result.update_header =
       value["set-deadline-propagation-header"].As<bool>(result.update_header);
-  result.rtt_estimate =
-      value["deadline-propagation-rtt-estimate"].As<std::chrono::milliseconds>(
-          result.rtt_estimate);
   return result;
 }
 

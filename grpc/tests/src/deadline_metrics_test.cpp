@@ -95,7 +95,7 @@ class DeadlineStatsTests
         "grpc.server.by-destination",
         {{"grpc_destination", "sample.ugrpc.UnitTestService/SayHello"}});
 
-    EXPECT_EQ(statistics.SingleMetric(path).AsInt(), expected);
+    EXPECT_EQ(statistics.SingleMetric(path).AsRate().value, expected);
   }
 
   void ValidateClientStatistic(const std::string& path, size_t expected) {
@@ -103,7 +103,7 @@ class DeadlineStatsTests
         "grpc.client.by-destination",
         {{"grpc_destination", "sample.ugrpc.UnitTestService/SayHello"}});
 
-    EXPECT_EQ(statistics.SingleMetric(path).AsInt(), expected);
+    EXPECT_EQ(statistics.SingleMetric(path).AsRate().value, expected);
   }
 };
 

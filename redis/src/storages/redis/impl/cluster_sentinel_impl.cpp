@@ -592,7 +592,7 @@ void ClusterSentinelImpl::Init() { topology_holder_->Init(); }
 
 void ClusterSentinelImpl::AsyncCommand(const SentinelCommand& scommand,
                                        size_t prev_instance_idx) {
-  if (!AdjustDeadline(scommand)) {
+  if (!AdjustDeadline(scommand, dynamic_config_source_.GetSnapshot())) {
     auto reply = std::make_shared<Reply>("", ReplyData::CreateNil());
     reply->status = ReplyStatus::kTimeoutError;
     InvokeCommand(scommand.command, std::move(reply));

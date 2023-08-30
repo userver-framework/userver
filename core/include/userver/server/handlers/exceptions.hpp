@@ -23,11 +23,10 @@ namespace server::handlers {
 /// Specific error formats can derive various defaults from the this code, e.g.
 /// HTTP status code, JSON service error code, and default error message texts.
 ///
-/// @note When adding enumerators here, please also add mappings to the
-/// implementation of:
-/// - server::handler::GetCodeDescription,
-/// - server::handler::GetFallbackServiceCode,
-/// - server::http::GetHttpStatus.
+/// For example, to provide an HTTP specific error code that is not presented
+/// in this enum the HTTP code should be provided via
+/// server::http::CustomHandlerException construction with the required
+/// server::http::HttpStatus.
 enum class HandlerErrorCode {
   kUnknownError,  //!< kUnknownError This value is to map possibly unknown codes
                   //!< to a description, shouldn't be used in client code
@@ -46,9 +45,10 @@ enum class HandlerErrorCode {
   kPayloadTooLarge,   //!< kPayloadTooLarge The payload for the request exceeded
                       //!< handler's settings
   kTooManyRequests,   //!< kTooManyRequests Request limit exceeded
-  // Client error codes should go before the server side error for them to be
-  // mapped correctly to a protocol-specific error code
-  // TODO More client-side error conditions here
+
+  // Client error codes are declared before the server side error to be
+  // mapped correctly to a protocol-specific error code!
+
   kServerSideError,  //!< kServerSideError An error occurred while processing
                      //!< the request
   kBadGateway,  //!< kBadGateway An error occurred while passing the request to
@@ -58,12 +58,17 @@ enum class HandlerErrorCode {
                     //!< request to another service
   kUnsupportedMediaType,  //!< kUnsupportedMediaType Content-Encoding or
                           //!< Content-Type is not supported
-  // TODO More server-side error conditions
-};
 
-/**
- * Hasher class for HandlerErrorCode
- */
+  // Server error codes are declared ater the client side error to be
+  // mapped correctly to a protocol-specific error code!
+};
+// When adding enumerators here ^, please also add mappings to the
+// implementation of:
+// - server::handler::GetCodeDescription,
+// - server::handler::GetFallbackServiceCode,
+// - server::http::GetHttpStatus.
+
+/// Hasher class for HandlerErrorCode
 struct HandlerErrorCodeHash {
   std::size_t operator()(HandlerErrorCode c) const {
     return static_cast<std::size_t>(c);

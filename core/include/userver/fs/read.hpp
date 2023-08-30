@@ -32,6 +32,13 @@ enum class SettingsReadFile {
   kSkipHidden = 1 << 0,
 };
 
+/// @brief Returns relative path from full path
+/// @param path full path, must start with `dir`
+/// @param dir directory path to get relative path
+/// @note it does not access filesystem, the relative path is calculated
+/// lexically.
+std::string GetLexicallyRelative(std::string_view path, std::string_view dir);
+
 /// @brief Returns files from recursively traversed directory
 /// @param async_tp TaskProcessor for synchronous waiting
 /// @param path to directory to traverse recursively

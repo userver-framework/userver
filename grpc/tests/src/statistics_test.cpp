@@ -48,29 +48,29 @@ UTEST_F(GrpcStatistics, LongRequest) {
         {{"grpc_destination", "sample.ugrpc.UnitTestService/SayHello"}});
 
     const auto get_status_code_count_legacy = [&](const std::string& code) {
-      return stats.SingleMetric("status", {{"grpc_code", code}}).AsInt();
-    };
-    const auto get_status_code_count = [&](const std::string& code) {
       return stats.SingleMetric("status.v2", {{"grpc_code", code}})
           .AsRate()
           .value;
     };
+    const auto get_status_code_count = [&](const std::string& code) {
+      return stats.SingleMetric("status", {{"grpc_code", code}}).AsRate().value;
+    };
     EXPECT_EQ(get_status_code_count("OK"), 0);
     EXPECT_EQ(get_status_code_count("INVALID_ARGUMENT"), 1);
     EXPECT_EQ(get_status_code_count("ALREADY_EXISTS"), 0);
-    EXPECT_EQ(stats.SingleMetric("rps.v2").AsRate().value, 1);
-    EXPECT_EQ(stats.SingleMetric("eps.v2").AsRate().value, 1);
-    EXPECT_EQ(stats.SingleMetric("network-error.v2").AsRate().value, 0);
-    EXPECT_EQ(stats.SingleMetric("abandoned-error.v2").AsRate().value, 0);
+    EXPECT_EQ(stats.SingleMetric("rps").AsRate().value, 1);
+    EXPECT_EQ(stats.SingleMetric("eps").AsRate().value, 1);
+    EXPECT_EQ(stats.SingleMetric("network-error").AsRate().value, 0);
+    EXPECT_EQ(stats.SingleMetric("abandoned-error").AsRate().value, 0);
 
     // check that legacy stats is still collected
     EXPECT_EQ(get_status_code_count_legacy("OK"), 0);
     EXPECT_EQ(get_status_code_count_legacy("INVALID_ARGUMENT"), 1);
     EXPECT_EQ(get_status_code_count_legacy("ALREADY_EXISTS"), 0);
-    EXPECT_EQ(stats.SingleMetric("rps").AsInt(), 1);
-    EXPECT_EQ(stats.SingleMetric("eps").AsInt(), 1);
-    EXPECT_EQ(stats.SingleMetric("network-error").AsInt(), 0);
-    EXPECT_EQ(stats.SingleMetric("abandoned-error").AsInt(), 0);
+    EXPECT_EQ(stats.SingleMetric("rps.v2").AsRate().value, 1);
+    EXPECT_EQ(stats.SingleMetric("eps.v2").AsRate().value, 1);
+    EXPECT_EQ(stats.SingleMetric("network-error.v2").AsRate().value, 0);
+    EXPECT_EQ(stats.SingleMetric("abandoned-error.v2").AsRate().value, 0);
   }
 }
 
@@ -109,7 +109,9 @@ UTEST_F_MT(GrpcStatistics, Multithreaded, 2) {
         "grpc_destination", "sample.ugrpc.UnitTestService/Chat"};
 
     const auto get_status_code_count = [&](const auto& label, auto code) {
-      return status.SingleMetric("", {label, {"grpc_code", code}}).AsInt();
+      return status.SingleMetric("", {label, {"grpc_code", code}})
+          .AsRate()
+          .value;
     };
 
     const auto say_hello_invalid_argument =

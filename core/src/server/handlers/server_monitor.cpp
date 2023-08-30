@@ -95,6 +95,7 @@ std::string ServerMonitor::HandleRequestThrow(const http::HttpRequest& request,
                     : Request::MakeWithPath(path, std::move(common_labels),
                                             std::move(labels)));
 
+  request.GetHttpResponse().SetContentType("text/plain; charset=utf-8");
   switch (format) {
     case StatsFormat::kGraphite:
       return utils::statistics::ToGraphiteFormat(statistics_storage_,
@@ -109,6 +110,7 @@ std::string ServerMonitor::HandleRequestThrow(const http::HttpRequest& request,
                                                           statistics_request);
 
     case StatsFormat::kJson:
+      request.GetHttpResponse().SetContentType("application/json");
       return utils::statistics::ToJsonFormat(statistics_storage_,
                                              statistics_request);
 
@@ -117,10 +119,12 @@ std::string ServerMonitor::HandleRequestThrow(const http::HttpRequest& request,
                                                statistics_request);
 
     case StatsFormat::kSolomon:
+      request.GetHttpResponse().SetContentType("application/json");
       return utils::statistics::ToSolomonFormat(
           statistics_storage_, common_labels_, statistics_request);
 
     case StatsFormat::kInternal:
+      request.GetHttpResponse().SetContentType("application/json");
       const auto json = statistics_storage_.GetAsJson();
       UASSERT(utils::statistics::AreAllMetricsNumbers(json));
       return formats::json::ToString(json);

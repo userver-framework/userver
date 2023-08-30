@@ -249,6 +249,13 @@ class Request final {
   Request& unix_socket_path(const std::string& path) &;
   Request unix_socket_path(const std::string& path) &&;
 
+  /// Set CURL_IPRESOLVE_V4 for ipv4 resolving
+  Request& use_ipv4() &;
+  Request use_ipv4() &&;
+  /// Set CURL_IPRESOLVE_V6 for ipv6 resolving
+  Request& use_ipv6() &;
+  Request use_ipv6() &&;
+
   /// Set CURLOPT_CONNECT_TO option
   /// @warning connect_to argument must outlive Request
   Request& connect_to(const ConnectTo& connect_to) &;

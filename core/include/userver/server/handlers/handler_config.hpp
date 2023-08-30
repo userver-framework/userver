@@ -43,7 +43,7 @@ struct HandlerConfig {
   std::optional<bool> set_response_server_hostname;
   bool set_tracing_headers{true};
   bool deadline_propagation_enabled{true};
-  http::HttpStatus deadline_expired_status_code{504};
+  http::HttpStatus deadline_expired_status_code{498};
 };
 
 HandlerConfig ParseHandlerConfigsWithDefaults(
