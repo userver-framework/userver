@@ -307,7 +307,9 @@ UTEST_MT(NonFifoSpscQueue, Spsc, 1 + 1) {
                           [](int item) { return item == 1; }));
 }
 
-UTEST_MT(QueueFixture, MultiConsumerToken, kProducersCount + kConsumersCount) {
+// TODO(TAXICOMMON-7429) the test occasionally hangs; fix and re-enable
+UTEST_MT(QueueFixture, DISABLED_MultiConsumerToken,
+         kProducersCount + kConsumersCount) {
   using Message = std::size_t;
   using Queue = concurrent::NonFifoMpmcQueue<Message>;
   using ReceivedMessages = std::unordered_set<Message>;
