@@ -23,7 +23,9 @@ Creation of tokens and user registration is out of scope of this tutorial.
 
 Let's make a table to store users data:
 
-@snippet samples/postgres_auth/schemas/postgresql/auth.sql  postgresql schema
+@include samples/postgres_auth/schemas/postgresql/auth/migrations.txt
+@include samples/postgres_auth/schemas/postgresql/auth/migrations/V001__create_db.sql
+@include samples/postgres_auth/schemas/postgresql/auth/migrations/V002__add_name.sql
 
 Authorization data is rarely changed and often queried. Caching it would improve
 response times:
@@ -161,7 +163,9 @@ Content-Length: 0
 implemented using the testsuite. To do that you have to:
 
 * Provide PostgreSQL schema to start the database:
-  @snippet samples/postgres_auth/schemas/postgresql/auth.sql  postgresql schema
+  @ref samples/postgres_auth/schemas/postgresql/auth/migrations.txt
+  @ref samples/postgres_auth/schemas/postgresql/auth/migrations/V001__create_db.sql
+  @ref samples/postgres_auth/schemas/postgresql/auth/migrations/V002__add_name.sql
 * Tell the testsuite to start the PostgreSQL database by adjusting the
   @ref samples/postgres_auth/tests/conftest.py
 * Prepare the DB test data @ref samples/postgres_auth/tests/static/test_data.sql
@@ -179,7 +183,9 @@ See the full example:
 * @ref samples/postgres_auth/static_config.yaml
 * @ref samples/postgres_auth/dynamic_config_fallback.json
 * @ref samples/postgres_auth/CMakeLists.txt
-* @ref samples/postgres_auth/schemas/postgresql/auth.sql
+* @ref samples/postgres_auth/schemas/postgresql/auth/migrations.txt
+* @ref samples/postgres_auth/schemas/postgresql/auth/migrations/V001__create_db.sql
+* @ref samples/postgres_auth/schemas/postgresql/auth/migrations/V002__add_name.sql
 * @ref samples/postgres_auth/tests/conftest.py
 * @ref samples/postgres_auth/tests/test_postgres.py
 * @ref samples/postgres_auth/tests/static/test_data.sql
@@ -197,7 +203,9 @@ See the full example:
 @example samples/postgres_auth/static_config.yaml
 @example samples/postgres_auth/dynamic_config_fallback.json
 @example samples/postgres_auth/CMakeLists.txt
-@example samples/postgres_auth/schemas/postgresql/auth.sql
+@example samples/postgres_auth/schemas/postgresql/auth/migrations.txt
+@example samples/postgres_auth/schemas/postgresql/auth/migrations/V001__create_db.sql
+@example samples/postgres_auth/schemas/postgresql/auth/migrations/V002__add_name.sql
 @example samples/postgres_auth/tests/conftest.py
 @example samples/postgres_auth/tests/test_postgres.py
 @example samples/postgres_auth/tests/static/test_data.sql

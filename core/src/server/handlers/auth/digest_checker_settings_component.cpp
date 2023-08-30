@@ -5,10 +5,9 @@
 #include <userver/components/component.hpp>
 #include <userver/dynamic_config/storage/component.hpp>
 #include <userver/dynamic_config/value.hpp>
+#include <userver/server/handlers/auth/digest_types.hpp>
 #include <userver/utils/async.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
-
-#include <userver/server/handlers/auth/digest_types.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -22,7 +21,7 @@ DigestCheckerSettingsComponent::DigestCheckerSettingsComponent(
     : components::LoggableComponentBase(config, context) {
   // Reading config values from static config
   // Check for valid algorithms
-  auto algorithm = config["algorithm"].As<std::string>("md5");
+  auto algorithm = config["algorithm"].As<std::string>("sha256");
   if (!kHashAlgToType.TryFindICase(algorithm).has_value()) {
     throw std::runtime_error("Algorithm is not supported: " + algorithm);
   }

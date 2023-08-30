@@ -2,6 +2,9 @@
 #include <userver/clients/http/component.hpp>
 #include <userver/components/component.hpp>
 #include <userver/components/minimal_server_component_list.hpp>
+#include <userver/dynamic_config/client/component.hpp>
+#include <userver/dynamic_config/updater/component.hpp>
+#include <userver/engine/sleep.hpp>
 #include <userver/formats/bson/inline.hpp>
 #include <userver/server/handlers/http_handler_base.hpp>
 #include <userver/server/handlers/server_monitor.hpp>
@@ -9,6 +12,7 @@
 #include <userver/storages/mongo/component.hpp>
 #include <userver/testsuite/testsuite_support.hpp>
 #include <userver/utils/daemon_run.hpp>
+#include <userver/utils/from_string.hpp>
 
 #include <userver/utest/using_namespace_userver.hpp>
 
@@ -27,6 +31,12 @@ class KeyValue final : public server::handlers::HttpHandlerBase {
   std::string HandleRequestThrow(
       const server::http::HttpRequest& request,
       server::request::RequestContext&) const override {
+    const auto sleep_ms = request.GetArg("sleep_ms");
+    if (!sleep_ms.empty()) {
+      engine::SleepFor(std::chrono::milliseconds{
+          utils::FromString<std::chrono::milliseconds::rep>(sleep_ms)});
+    }
+
     switch (request.GetMethod()) {
       case server::http::HttpMethod::kGet:
         return GetValue(request);
@@ -78,6 +88,8 @@ int main(int argc, char* argv[]) {
           .Append<components::TestsuiteSupport>()
           .Append<server::handlers::TestsControl>()
           .Append<components::Mongo>("key-value-database")
-          .Append<chaos::KeyValue>();
+          .Append<chaos::KeyValue>()
+          .Append<components::DynamicConfigClient>()
+          .Append<components::DynamicConfigClientUpdater>();
   return utils::DaemonMain(argc, argv, component_list);
 }

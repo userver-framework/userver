@@ -145,6 +145,10 @@ if (USERVER_IS_THE_ROOT_PROJECT)
       ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}_redistest
       --gtest_output=xml:${CMAKE_BINARY_DIR}/test-results/${PROJECT_NAME}_redistest.xml
   )
+  set_property(
+    TEST ${PROJECT_NAME}_redistest
+    PROPERTY ENVIRONMENT "TESTSUITE_REDIS_HOSTNAME=localhost"
+  )
 
   add_executable(${PROJECT_NAME}_benchmark ${REDIS_BENCH_SOURCES})
   target_link_libraries(${PROJECT_NAME}_benchmark

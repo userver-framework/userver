@@ -127,7 +127,7 @@ properties:
                     deadline_expired_status_code:
                         type: integer
                         description: the HTTP status code to return if the request deadline expires
-                        defaultDescription: 504
+                        defaultDescription: 498
                         minimum: 400
                         maximum: 599
             connection:

@@ -1,0 +1,7 @@
+worker-threads: 14
+worker-fs-threads: 2
+logger-level: error
+
+is_testing: false
+
+server-port: 8080

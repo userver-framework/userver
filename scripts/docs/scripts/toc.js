@@ -46,14 +46,6 @@ function make_id(raw_id) {
     .replace(/\W/g, "");
 }
 
-const html_escape = (function () {
-  const p = document.createElement("p");
-  return function (text) {
-    p.textContent = text;
-    return p.innerHTML;
-  };
-})();
-
 function draw_toc() {
   const headers = document.querySelectorAll(
     ".contents h1, .contents h2, .contents h3, .contents h4, .contents h5, .contents h6"

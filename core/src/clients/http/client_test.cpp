@@ -1563,6 +1563,45 @@ UTEST(HttpClient, TestConnectTo) {
   }
 }
 
+UTEST(HttpClient, TestUseIPv4v6) {
+  EchoCallback cb;
+  const utest::SimpleServer http_server{cb, utest::SimpleServer::kTcpIpV4};
+
+  auto http_client_ptr = utest::CreateHttpClient();
+
+  // Good case
+  {
+    auto request =
+        http_client_ptr->CreateRequest()
+            .post("http://localhost:" + std::to_string(http_server.GetPort()),
+                  kTestData)
+            .retry(1)
+            .http_version(clients::http::HttpVersion::k11)
+            .timeout(kTimeout)
+            .use_ipv4();
+    {
+      const auto res = request.perform();
+
+      EXPECT_EQ(res->body(), kTestData);
+    }
+  }
+
+  // Bad case
+  {
+    auto request =
+        http_client_ptr->CreateRequest()
+            .post("http://localhost:" + std::to_string(http_server.GetPort()),
+                  kTestData)
+            .retry(1)
+            .http_version(clients::http::HttpVersion::k11)
+            .timeout(kTimeout)
+            .use_ipv6();
+
+    UEXPECT_THROW(request.perform()->status_code(),
+                  clients::http::NetworkProblemException);
+  }
+}
+
 UTEST(HttpClient, CheckSchema) {
   auto http_client_ptr = utest::CreateHttpClient();
   UEXPECT_NO_THROW(http_client_ptr->CreateRequest().url("http://localhost"));

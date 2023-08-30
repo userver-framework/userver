@@ -200,9 +200,7 @@ class RequestState : public std::enable_shared_from_this<RequestState> {
 
   /// the timeout value provided by user (or the default)
   std::chrono::milliseconds original_timeout_;
-  /// the timeout, possibly updated by deadline propagation
-  std::chrono::milliseconds local_timeout_;
-  /// the timeout propagated to the downstream service, accounting for RTT
+  /// the timeout propagated to the downstream service
   std::chrono::milliseconds remote_timeout_;
 
   impl::DeadlinePropagationConfig deadline_propagation_config_;

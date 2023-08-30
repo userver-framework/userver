@@ -258,6 +258,7 @@ std::ostream& operator<<(std::ostream& os, const ContentType& content_type) {
 
 namespace content_type {
 
+const ContentType kApplicationOctetStream = "application/octet-stream";
 const ContentType kApplicationJson = "application/json; charset=utf-8";
 const ContentType kTextPlain = "text/plain; charset=utf-8";
 

@@ -85,6 +85,7 @@ std::ostream& operator<<(std::ostream&, const ContentType&);
 
 namespace content_type {
 
+extern const ContentType kApplicationOctetStream;
 extern const ContentType kApplicationJson;
 extern const ContentType kTextPlain;
 

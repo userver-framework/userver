@@ -39,7 +39,7 @@ jobs:
                         -DUSERVER_NO_WERROR=1 -DUSERVER_SANITIZE="ub addr" -DCMAKE_BUILD_TYPE=Debug
                     os: ubuntu-20.04
                     info: g++-9 + debug + sanitize addr+ub
-                    tests-flags: '--gtest_filter=-HttpClient.Cancel*:HttpClient.Retr*:HttpClient.RedirectHeaders'
+                    tests-flags: '--gtest_filter=-HttpClient.Cancel*:HttpClient.Retr*:HttpClient.RedirectHeaders:HttpClient.TestUseIPv4v6'
 
                   - cmake-flags: >-
                         -DUSERVER_FEATURE_CRYPTOPP_BLAKE2=0 -DUSERVER_FEATURE_REDIS_HI_MALLOC=1
@@ -47,7 +47,7 @@ jobs:
                         -DUSERVER_NO_WERROR=1 -DCMAKE_BUILD_TYPE=Release
                     os: ubuntu-20.04
                     info: g++-9 + release
-                    tests-flags: '--gtest_filter=-HttpClient.RedirectHeaders'
+                    tests-flags: '--gtest_filter=-HttpClient.RedirectHeaders:HttpClient.TestUseIPv4v6'
 
                   # GCC-8 - testing minimal required compiler
                   - cmake-flags: >-
@@ -57,7 +57,7 @@ jobs:
                         -DUSERVER_NO_WERROR=1 -DCMAKE_BUILD_TYPE=Debug
                     os: ubuntu-20.04
                     info: g++-8 + debug
-                    tests-flags: '--gtest_filter=-HttpClient.RedirectHeaders'
+                    tests-flags: '--gtest_filter=-HttpClient.RedirectHeaders:HttpClient.TestUseIPv4v6'
 
         name: '${{matrix.os}}: ${{matrix.info}}'
         runs-on: ${{matrix.os}}

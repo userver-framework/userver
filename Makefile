@@ -25,15 +25,12 @@ endif
 gen:
 	python3 scripts/external_deps/cmake_generator.py --repo-dir=. --build-dir=cmake
 
-# Requires doxygen 1.9.7+
+# Requires doxygen 1.9.8+
 .PHONY: docs
 docs:
 	@rm -rf docs/*
 	@( \
 	    cat scripts/docs/doxygen.conf; \
-	    echo "LAYOUT_FILE = scripts/docs/layout_opensource.xml"; \
-	    echo "USE_MDFILE_AS_MAINPAGE = scripts/docs/en/landing.md"; \
-	    echo "HTML_HEADER = scripts/docs/header_opensource.html"; \
 	    echo 'PROJECT_BRIEF = "C++ Async Framework (beta)"'; \
 	    echo OUTPUT_DIRECTORY=docs \
 	  ) | $(DOXYGEN) -

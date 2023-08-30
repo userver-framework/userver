@@ -18,7 +18,7 @@ struct HttpRequestConfig {
   bool decompress_request = false;
   bool set_tracing_headers = true;
   bool deadline_propagation_enabled = true;
-  http::HttpStatus deadline_expired_status_code{504};
+  http::HttpStatus deadline_expired_status_code{498};
 };
 
 HttpRequestConfig Parse(const yaml_config::YamlConfig& value,
