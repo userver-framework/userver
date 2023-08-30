@@ -64,6 +64,8 @@ std::optional<UserData> AuthCheckerDigest::FetchUserData(
     const std::string& username) const {
   storages::postgres::ResultSet res = pg_cluster_->Execute(
       storages::postgres::ClusterHostType::kSlave, uservice_dynconf::sql::kSelectUser, username);
+  
+  if (res.IsEmpty()) return std::nullopt;
 
   auto userDbInfo =
       res.AsSingleRow<UserDbInfo>(storages::postgres::kRowTag);
