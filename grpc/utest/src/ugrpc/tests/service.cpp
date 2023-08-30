@@ -1,4 +1,4 @@
-#include <userver/ugrpc/tests/service_fixtures.hpp>
+#include <userver/ugrpc/tests/service.hpp>
 
 #include <fmt/format.h>
 
@@ -6,7 +6,6 @@
 #include <ugrpc/client/middlewares/log/middleware.hpp>
 #include <ugrpc/server/middlewares/deadline_propagation/middleware.hpp>
 #include <ugrpc/server/middlewares/log/middleware.hpp>
-#include <userver/dynamic_config/test_helpers.hpp>
 #include <userver/engine/task/task.hpp>
 #include <userver/logging/null_logger.hpp>
 
@@ -38,7 +37,7 @@ using ServerDpMiddleware =
 
 }  // namespace
 
-ServiceFixtureBase::ServiceFixtureBase(dynamic_config::StorageMock&& dynconf)
+ServiceBase::ServiceBase(dynamic_config::StorageMock&& dynconf)
     : config_storage_(std::move(dynconf)),
       server_(MakeServerConfig(), statistics_storage_,
               config_storage_.GetSource()),
@@ -50,9 +49,9 @@ ServiceFixtureBase::ServiceFixtureBase(dynamic_config::StorageMock&& dynconf)
                              std::make_shared<ClientDpMiddlewareFactory>()}),
       testsuite_({}, false) {}
 
-ServiceFixtureBase::~ServiceFixtureBase() = default;
+ServiceBase::~ServiceBase() = default;
 
-void ServiceFixtureBase::RegisterService(server::ServiceBase& service) {
+void ServiceBase::RegisterService(server::ServiceBase& service) {
   adding_middlewares_allowed_ = false;
   server_.AddService(service, server::ServiceConfig{
                                   engine::current_task::GetTaskProcessor(),
@@ -60,7 +59,7 @@ void ServiceFixtureBase::RegisterService(server::ServiceBase& service) {
                               });
 }
 
-void ServiceFixtureBase::StartServer(
+void ServiceBase::StartServer(
     client::ClientFactoryConfig&& client_factory_config) {
   adding_middlewares_allowed_ = false;
   server_.Start();
@@ -72,30 +71,24 @@ void ServiceFixtureBase::StartServer(
                           config_storage_.GetSource());
 }
 
-void ServiceFixtureBase::StopServer() noexcept {
+void ServiceBase::StopServer() noexcept {
   client_factory_.reset();
   endpoint_.reset();
   server_.Stop();
 }
 
-utils::statistics::Snapshot ServiceFixtureBase::GetStatistics(
-    std::string prefix, std::vector<utils::statistics::Label> require_labels) {
-  return utils::statistics::Snapshot{statistics_storage_, std::move(prefix),
-                                     std::move(require_labels)};
-}
-
-void ServiceFixtureBase::ExtendDynamicConfig(
+void ServiceBase::ExtendDynamicConfig(
     const std::vector<dynamic_config::KeyValue>& overrides) {
   config_storage_.Extend(overrides);
 }
 
-server::Server& ServiceFixtureBase::GetServer() noexcept { return server_; }
+server::Server& ServiceBase::GetServer() noexcept { return server_; }
 
-dynamic_config::Source ServiceFixtureBase::GetConfigSource() const {
+dynamic_config::Source ServiceBase::GetConfigSource() const {
   return config_storage_.GetSource();
 }
 
-void ServiceFixtureBase::AddServerMiddleware(
+void ServiceBase::AddServerMiddleware(
     std::shared_ptr<server::MiddlewareBase> middleware) {
   UINVARIANT(adding_middlewares_allowed_,
              "Adding server middlewares after the first RegisterService call "
@@ -103,7 +96,7 @@ void ServiceFixtureBase::AddServerMiddleware(
   server_middlewares_.push_back(std::move(middleware));
 }
 
-void ServiceFixtureBase::AddClientMiddleware(
+void ServiceBase::AddClientMiddleware(
     std::shared_ptr<const client::MiddlewareFactoryBase> middleware_factory) {
   UINVARIANT(adding_middlewares_allowed_,
              "Adding client middlewares after the StartServer call "

@@ -35,6 +35,11 @@ file(GLOB_RECURSE LIBUTEST_SOURCES
 list(REMOVE_ITEM LIBUTEST_SOURCES ${UNIT_TEST_SOURCES})
 list(REMOVE_ITEM SOURCES ${LIBUTEST_SOURCES})
 
+file(GLOB_RECURSE BENCH_SOURCES
+  ${CMAKE_CURRENT_SOURCE_DIR}/benchmarks/*.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/benchmarks/*.hpp
+)
+
 if (api-common-proto_USRV_SOURCES)
   list(APPEND SOURCES ${api-common-proto_USRV_SOURCES})
 endif()
@@ -101,7 +106,6 @@ if (USERVER_FEATURE_UTEST)
   target_link_libraries(${PROJECT_NAME}-utest
       PUBLIC
       ${PROJECT_NAME}-internal
-      userver-utest
   )
 
   target_include_directories(${PROJECT_NAME}-utest PUBLIC
@@ -138,8 +142,22 @@ if (USERVER_IS_THE_ROOT_PROJECT)
       ${PROJECT_NAME}-unittest-proto
   )
   add_google_tests(${PROJECT_NAME}-unittest)
-
   target_compile_definitions(${PROJECT_NAME}-unittest PRIVATE
+      DEFAULT_DYNAMIC_CONFIG_FILENAME="${CMAKE_SOURCE_DIR}/grpc/tests/dynamic_config_fallback.json"
+  )
+
+  add_executable(${PROJECT_NAME}-benchmark ${BENCH_SOURCES})
+  target_link_libraries(${PROJECT_NAME}-benchmark
+      ${PROJECT_NAME}-internal
+      userver-ubench
+      ${PROJECT_NAME}-utest
+      ${PROJECT_NAME}-unittest-proto
+  )
+  target_include_directories(${PROJECT_NAME}-benchmark PRIVATE
+    $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>
+  )
+  add_google_benchmark_tests(${PROJECT_NAME}-benchmark)
+  target_compile_definitions(${PROJECT_NAME}-benchmark PRIVATE
       DEFAULT_DYNAMIC_CONFIG_FILENAME="${CMAKE_SOURCE_DIR}/grpc/tests/dynamic_config_fallback.json"
   )
 

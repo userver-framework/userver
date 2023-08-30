@@ -3,8 +3,7 @@
 #include <string>
 #include <vector>
 
-#include <benchmark/benchmark.h>
-
+#include <userver/dynamic_config/impl/default_config_path.hpp>
 #include <userver/dynamic_config/impl/test_helpers.hpp>
 #include <userver/dynamic_config/source.hpp>
 #include <userver/dynamic_config/storage_mock.hpp>
@@ -29,6 +28,17 @@ inline dynamic_config::StorageMock MakeDefaultStorage(
     const std::vector<dynamic_config::KeyValue>& overrides) {
   return impl::MakeDefaultStorage(DEFAULT_DYNAMIC_CONFIG_FILENAME, overrides);
 }
+
+namespace impl {
+
+// Internal API, use functions above instead!
+inline const dynamic_config::DocsMap& GetDefaultDocsMap() {
+  return dynamic_config::impl::GetDefaultDocsMap(
+      DEFAULT_DYNAMIC_CONFIG_FILENAME);
+}
+
+}  // namespace impl
+
 #endif
 
 }  // namespace dynamic_config
