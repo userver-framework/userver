@@ -91,7 +91,9 @@ void AuthCheckerDigest::PushUnnamedNonce(std::string nonce) const {
       storages::postgres::ClusterHostType::kMaster, uservice_dynconf::sql::kInsertUnnamedNonce,
       utils::datetime::Now() - nonce_ttl_, nonce, utils::datetime::Now());
 }
+/// [auth checker definition 3]
 
+/// [auth checker definition 4]
 std::optional<TimePoint> AuthCheckerDigest::GetUnnamedNonceCreationTime(
     const std::string& nonce) const {
   auto res = pg_cluster_->Execute(storages::postgres::ClusterHostType::kSlave,
@@ -101,7 +103,7 @@ std::optional<TimePoint> AuthCheckerDigest::GetUnnamedNonceCreationTime(
 
   return res.AsSingleRow<TimePoint>();
 }
-/// [auth checker definition 3]
+/// [auth checker definition 4]
 
 /// [auth checker factory definition]
 server::handlers::auth::AuthCheckerBasePtr CheckerFactory::operator()(
