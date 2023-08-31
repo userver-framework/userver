@@ -166,17 +166,22 @@ Manager::Manager(std::unique_ptr<ManagerConfig>&& config,
     throw std::runtime_error(
         "Cannot start components manager: missing default task processor");
   }
+
+  {
+    // Call mlock() before component context creation as we should be done with
+    // mlock before HTTP server starts and handles incoming requests
+    const auto debug_info_action =
+        config_->mlock_debug_info ? engine::impl::DebugInfoAction::kLockInMemory
+                                  : engine::impl::DebugInfoAction::kLeaveAsIs;
+    engine::impl::MLockDebugInfo(debug_info_action);
+  }
+
   default_task_processor_ = default_task_processor_it->second.get();
   RunInCoro(*default_task_processor_, [this, &component_list]() {
     CreateComponentContext(component_list);
   });
 
-  {
-    const auto debug_info_action =
-        config_->mlock_debug_info ? engine::impl::DebugInfoAction::kLockInMemory
-                                  : engine::impl::DebugInfoAction::kLeaveAsIs;
-    engine::impl::InitPhdrCacheAndDisableDynamicLoading(debug_info_action);
-  }
+  engine::impl::InitPhdrCache();
 
   LOG_INFO() << "Started components manager. All the components have started "
                 "successfully.";

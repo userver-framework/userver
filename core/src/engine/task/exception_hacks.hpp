@@ -9,7 +9,9 @@ enum class DebugInfoAction {
   kLockInMemory,
 };
 
-void InitPhdrCacheAndDisableDynamicLoading(DebugInfoAction debug_info);
+void InitPhdrCache();
+
+void MLockDebugInfo(DebugInfoAction debug_info);
 
 void TeardownPhdrCacheAndEnableDynamicLoading();
 

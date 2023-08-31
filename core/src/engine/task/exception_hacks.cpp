@@ -241,10 +241,12 @@ void AssertDlFunctionFound(void* function, std::string_view dl_function_name) {
 
 }  // namespace
 
-void InitPhdrCacheAndDisableDynamicLoading(DebugInfoAction debug_info_action) {
+void InitPhdrCache() {
   static PhdrCache phdr_cache{};
   phdr_cache.Initialize();
+}
 
+void MLockDebugInfo(DebugInfoAction debug_info_action) {
   if (debug_info_action == DebugInfoAction::kLockInMemory) {
     DlIteratePhdr(
         [](struct dl_phdr_info* info, size_t, void*) {
@@ -328,7 +330,9 @@ USERVER_NAMESPACE_BEGIN
 
 namespace engine::impl {
 
-void InitPhdrCacheAndDisableDynamicLoading(DebugInfoAction) {}
+void InitPhdrCache() {}
+
+void MLockDebugInfo(DebugInfoAction) {}
 
 void TeardownPhdrCacheAndEnableDynamicLoading() {}
 
