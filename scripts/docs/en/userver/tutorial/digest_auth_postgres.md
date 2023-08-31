@@ -72,7 +72,7 @@ type:
 
 @snippet samples/digest_auth_service/static_config.yaml hello config
 
-Digest settings are set using `server::handlers::auth::AuthDigestSettings` component and universal for each handler, which uses digest authentication
+Digest settings are set using `server::handlers::auth::AuthDigestSettings` component and universal for each handler, which uses digest authentication:
 
 @snippet samples/digest_auth_service/static_config.yaml digest config
 
@@ -93,7 +93,7 @@ implemented using the testsuite. To do that you have to:
 * Provide PostgreSQL schema to start the database:
   @snippet samples/digest_auth_service/postgresql/schemas/auth.sql  postgresql schema
 * Tell the testsuite to start the PostgreSQL database by adjusting the
-  @ref samples/digest_auth_service/tests/conftest.py
+  @ref samples/digest_auth_service/tests/common/conftest.py
 * Prepare the DB test data
   @ref samples/digest_auth_service/postgresql/data/test_data.sql
 * Write the test:
@@ -113,8 +113,8 @@ See the full example:
 * @ref samples/digest_auth_service/tests/common/test_digest.py
 * @ref samples/digest_auth_service/tests/proxy/conftest.py
 * @ref samples/digest_auth_service/tests/proxy/test_proxy.py
-* @ref samples/digest_auth_service/schemas/postgresql/auth.sql
-* @ref samples/digest_auth_service/data/postgresql/test_data.sql
+* @ref samples/digest_auth_service/postgresql/schemas/auth.sql
+* @ref samples/digest_auth_service/postgresql/data/test_data.sql
 
 ----------
 
