@@ -76,7 +76,9 @@ USERVER_NAMESPACE_END
 template <>
 struct fmt::formatter<USERVER_NAMESPACE::formats::json::Value>
     : fmt::formatter<std::string_view> {
-  static auto parse(format_parse_context& ctx) -> decltype(ctx.begin());
+  constexpr auto parse(format_parse_context& ctx) -> decltype(ctx.begin()) {
+    return ctx.begin();
+  }
 
   template <typename FormatContext>
   auto format(const USERVER_NAMESPACE::formats::json::Value& value,

@@ -28,4 +28,10 @@ USERVER_NAMESPACE_END
 
 template <std::size_t N>
 struct fmt::formatter<USERVER_NAMESPACE::utils::SmallString<N>>
-    : public fmt::formatter<std::string_view> {};
+    : public fmt::formatter<std::string_view> {
+  template <typename FormatContext>
+  auto format(const USERVER_NAMESPACE::utils::SmallString<N>& value,
+              FormatContext& ctx) const -> decltype(ctx.out()) {
+    return formatter<string_view>::format(std::string_view(value), ctx);
+  }
+};

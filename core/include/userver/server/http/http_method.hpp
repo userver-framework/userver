@@ -37,7 +37,7 @@ USERVER_NAMESPACE_END
 
 template <>
 struct fmt::formatter<USERVER_NAMESPACE::server::http::HttpMethod> {
-  static auto parse(format_parse_context& ctx) { return ctx.begin(); }
+  constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
 
   template <typename FormatContext>
   auto format(USERVER_NAMESPACE::server::http::HttpMethod method,
