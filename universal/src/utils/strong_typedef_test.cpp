@@ -34,6 +34,10 @@ using MySpecialShort =
     utils::StrongTypedef<class MySpecialShortTag, short,
                          utils::StrongTypedefOps::kCompareTransparent>;
 
+using MySpecialDouble =
+    utils::StrongTypedef<class MyDoubleTag, double,
+                         utils::StrongTypedefOps::kCompareTransparent>;
+
 using MySpecialVector =
     utils::StrongTypedef<class MySpecialVectorTag, std::vector<bool>>;
 
@@ -291,6 +295,14 @@ TEST(StrongTypedef, StrongTypedefForStringIsNotARange) {
   // 'std::string' as an array.
   EXPECT_FALSE(meta::kIsRange<MyString>);
   EXPECT_FALSE(meta::kIsRange<MyString2>);
+}
+
+TEST(StrongTypedef, ToString) {
+  EXPECT_EQ(utils::ToString(MySpecialInt{123}), "123");
+  EXPECT_EQ(utils::ToString(MySpecialShort{123}), "123");
+  EXPECT_EQ(utils::ToString(MySpecialDouble{123.456}), "123.456");
+  EXPECT_EQ(utils::ToString(MySpecialDouble{1e-20}), "1e-20");
+  EXPECT_EQ(utils::ToString(MySpecialDouble{1e+20}), "1e+20");
 }
 
 USERVER_NAMESPACE_END
