@@ -26,6 +26,10 @@ AuthCheckerDigestBaseStandalone::AuthCheckerDigestBaseStandalone(
 
 std::optional<UserData> AuthCheckerDigestBaseStandalone::FetchUserData(
     const std::string& username) const {
+  if (username.empty()) {
+    return std::nullopt;
+  }
+
   auto ha1 = GetHA1(username);
   if (!ha1) {
     // If ha1 is not found, we return an empty UserData
