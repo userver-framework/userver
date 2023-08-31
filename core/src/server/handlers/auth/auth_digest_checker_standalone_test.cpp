@@ -48,10 +48,18 @@ class StandAloneCheckerTest : public ::testing::Test {
             std::vector<std::string>{"auth"}, false, false, kNonceTTL}),
         checker_(digest_settings_, "testrealm@host.com"),
         correct_client_context_(DigestContextFromClient{
-            "Mufasa", "testrealm@host.com", kValidNonce, "/dir/index.html",
-            "6629fae49393a05397450978507c4ef1", "MD5", "0a4f113b",
-            "5ccc069c403ebaf9f0171e9517f40e41", "auth", "00000001",
-            "auth-param"}) {
+            "Mufasa",                            // username
+            "testrealm@host.com",                // realm
+            kValidNonce,                         // nonce
+            "/dir/index.html",                   // uri
+            "6629fae49393a05397450978507c4ef1",  // response
+            "MD5",                               // algorithm
+            "0a4f113b",                          // cnonce
+            "5ccc069c403ebaf9f0171e9517f40e41",  // opaque
+            "auth",                              // qop
+            "00000001",                          // nc
+            "auth-param"                         // authparam
+        }) {
     client_context_ = correct_client_context_;
   }
 
