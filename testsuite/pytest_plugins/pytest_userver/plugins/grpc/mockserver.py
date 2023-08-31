@@ -141,8 +141,11 @@ def _create_servicer_mock(servicer_class):
     def wrap_grpc_method(name, default_method):
         @functools.wraps(default_method)
         async def run_method(self, *args, **kwargs):
-            method = mock.get(name, default_method)
-            return await method(*args, **kwargs)
+            method = mock.get(name, None)
+            if method is not None:
+                return await method(*args, **kwargs)
+            else:
+                return await default_method(self, *args, **kwargs)
 
         return run_method
 
