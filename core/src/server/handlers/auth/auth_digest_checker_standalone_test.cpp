@@ -44,8 +44,13 @@ class StandAloneCheckerTest : public ::testing::Test {
  public:
   StandAloneCheckerTest()
       : digest_settings_(AuthDigestSettings{
-            "MD5", std::vector<std::string>{"/"},
-            std::vector<std::string>{"auth"}, false, false, kNonceTTL}),
+            "MD5",                             // algorithm
+            std::vector<std::string>{"/"},     // domains
+            std::vector<std::string>{"auth"},  // qops
+            false,                             // is_proxy
+            false,                             // is_session
+            kNonceTTL                          // nonce_ttl
+        }),
         checker_(digest_settings_, "testrealm@host.com"),
         correct_client_context_(DigestContextFromClient{
             "Mufasa",                            // username
