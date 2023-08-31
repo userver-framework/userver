@@ -51,7 +51,7 @@ std::optional<UserData> AuthCheckerDigestBaseStandalone::FetchUserData(
 
   // If nonce_info is not found by username, we create NonceInfo for username,
   // push to user_data_ and return UserData
-  NonceInfo nonce_info_temp{"", utils::datetime::Now(), 0};
+  NonceInfo nonce_info_temp{};
   SetUserData(username, nonce_info_temp.nonce, nonce_info_temp.nonce_count,
               nonce_info_temp.expiration_time);
   UserData user_data{ha1.value(), nonce_info_temp.nonce,
