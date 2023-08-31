@@ -25,6 +25,25 @@ async def test_authenticate_base(service_client):
 
 
 @pytest.mark.pgsql('auth', files=['test_data.sql'])
+async def test_authenticate_base_unregisted_user(service_client):
+    response = await service_client.get('/v1/hello')
+    assert response.status == 401
+
+    authentication_header = response.headers["WWW-Authenticate"]
+    auth_directives = parse_directives(authentication_header)
+
+    auth_directives_assert(auth_directives) 
+
+    challenge = construct_challenge(auth_directives)
+    auth_header = construct_header("unregistred_username", "pswd", challenge)
+
+    response = await service_client.get(
+        '/v1/hello', headers={'Authorization': auth_header},
+    )
+    assert response.status == 403
+
+
+@pytest.mark.pgsql('auth', files=['test_data.sql'])
 async def test_postgres_wrong_data(service_client):
     response = await service_client.get('/v1/hello')
     assert response.status == 401
@@ -35,7 +54,7 @@ async def test_postgres_wrong_data(service_client):
     auth_directives_assert(auth_directives)
 
     challenge = construct_challenge(auth_directives)
-    auth_header = construct_header("username", "WRONG-PASSWORD", challenge)
+    auth_header = construct_header("username", "wrong-password", challenge)
 
     response = await service_client.get(
         '/v1/hello', headers={'Authorization': auth_header},

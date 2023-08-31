@@ -32,7 +32,7 @@ async def test_postgres_wrong_data_proxy(service_client):
     auth_directives_assert(auth_directives)
 
     challenge = construct_challenge(auth_directives)
-    auth_header = construct_header("username", "WRONG-PASSWORD", challenge)
+    auth_header = construct_header("username", "wrong-password", challenge)
 
     response = await service_client.get(
         '/v1/hello', headers={'Proxy-Authorization': auth_header},
