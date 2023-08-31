@@ -30,6 +30,8 @@ class StandAloneChecker final : public AuthCheckerDigestBaseStandalone {
                                         kWays, kWaySize) {}
 
   std::optional<HA1> GetHA1(std::string_view) const override {
+    // hash of `username:realm:password` for testing
+    // each user is considered registered
     return HA1{"939e7578ed9e3c518a452acee763bce9"};
   }
 };
