@@ -4,7 +4,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace ugrpc::client {
+namespace ugrpc::client::impl {
 
 yaml_config::Schema SimpleClientComponentAny::GetStaticConfigSchema() {
   return yaml_config::MergeSchemas<components::LoggableComponentBase>(R"(
@@ -21,6 +21,6 @@ properties:
 )");
 }
 
-}  // namespace ugrpc::client
+}  // namespace ugrpc::client::impl
 
 USERVER_NAMESPACE_END

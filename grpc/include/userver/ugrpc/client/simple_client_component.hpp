@@ -12,12 +12,16 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::client {
 
+namespace impl {
+
 class SimpleClientComponentAny : public components::LoggableComponentBase {
  public:
   using components::LoggableComponentBase::LoggableComponentBase;
 
   static yaml_config::Schema GetStaticConfigSchema();
 };
+
+}  // namespace impl
 
 // clang-format off
 
@@ -51,7 +55,7 @@ class SimpleClientComponentAny : public components::LoggableComponentBase {
 // clang-format on
 
 template <typename Client>
-class SimpleClientComponent final : public SimpleClientComponentAny {
+class SimpleClientComponent final : public impl::SimpleClientComponentAny {
  public:
   SimpleClientComponent(const components::ComponentConfig& config,
                         const components::ComponentContext& context)
@@ -72,5 +76,13 @@ class SimpleClientComponent final : public SimpleClientComponentAny {
 };
 
 }  // namespace ugrpc::client
+
+namespace components {
+
+template <typename Client>
+inline constexpr bool
+    kHasValidate<ugrpc::client::SimpleClientComponent<Client>> = true;
+
+}  // namespace components
 
 USERVER_NAMESPACE_END
