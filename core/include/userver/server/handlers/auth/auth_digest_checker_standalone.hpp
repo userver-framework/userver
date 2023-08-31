@@ -27,11 +27,12 @@ USERVER_NAMESPACE_BEGIN
 namespace server::handlers::auth {
 
 struct NonceInfo final {
+  NonceInfo();
   NonceInfo(const std::string& nonce, TimePoint expiration_time,
             std::int64_t nonce_count);
   std::string nonce;
   TimePoint expiration_time;
-  std::int64_t nonce_count{};
+  std::int64_t nonce_count;
 };
 
 /// @ingroup userver_base_classes

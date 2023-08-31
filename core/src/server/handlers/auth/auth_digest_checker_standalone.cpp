@@ -10,6 +10,9 @@ USERVER_NAMESPACE_BEGIN
 
 namespace server::handlers::auth {
 
+NonceInfo::NonceInfo()
+    : expiration_time(utils::datetime::Now()), nonce_count(0) {}
+
 NonceInfo::NonceInfo(const std::string& nonce, TimePoint expiration_time,
                      std::int64_t nonce_count)
     : nonce(nonce),
