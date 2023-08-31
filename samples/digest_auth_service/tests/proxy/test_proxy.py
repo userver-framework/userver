@@ -1,4 +1,8 @@
 import pytest
+import os
+import sys
+
+sys.path.append(os.path.dirname(__file__) + '/../utils')
 from auth_utils import *
 
 @pytest.mark.pgsql('auth', files=['test_data.sql'])
