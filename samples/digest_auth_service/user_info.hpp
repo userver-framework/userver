@@ -2,13 +2,6 @@
 
 #include <chrono>
 #include <string>
-#include <vector>
-
-#include <userver/cache/base_postgres_cache.hpp>
-#include <userver/crypto/algorithm.hpp>
-#include <userver/server/auth/user_auth_info.hpp>
-#include <userver/storages/postgres/io/array_types.hpp>
-#include <userver/utest/using_namespace_userver.hpp>
 
 namespace samples::pg {
 

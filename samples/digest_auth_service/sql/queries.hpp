@@ -1,5 +1,7 @@
 #pragma once
 
+#include <userver/storages/postgres/query.hpp>
+
 namespace uservice_dynconf::sql {
 
 const storages::postgres::Query kSelectUser{
