@@ -2,7 +2,7 @@
 
 #include <atomic>
 
-#include <userver/concurrent/background_task_storage_fwd.hpp>
+#include <userver/concurrent/background_task_storage.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 
 #include <urabbitmq/connection_ptr.hpp>
@@ -53,7 +53,7 @@ class ConsumerBaseImpl final {
   std::atomic<bool> broken_{false};
 
   // This should be the last member
-  concurrent::BackgroundTaskStorageFastPimpl bts_;
+  concurrent::BackgroundTaskStorageCore bts_;
 };
 
 }  // namespace urabbitmq

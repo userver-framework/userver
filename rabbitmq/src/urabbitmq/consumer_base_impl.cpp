@@ -4,7 +4,6 @@
 
 #include <fmt/format.h>
 
-#include <userver/concurrent/background_task_storage.hpp>
 #include <userver/engine/task/task.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/tracing/span.hpp>
@@ -78,7 +77,7 @@ void ConsumerBaseImpl::Stop() {
   }
 
   // Cancel all the active dispatched tasks
-  bts_->CancelAndWait();
+  bts_.CancelAndWait();
 
   // Destroy the connection: at this point all the remaining tasks are stopped,
   // consumer is either stopped or in unknown state - that could happen if we
@@ -99,7 +98,7 @@ void ConsumerBaseImpl::OnMessage(const AMQP::Message& message,
   std::string trace_id = message.headers().get("u-trace-id");
   std::string message_data{message.body(), message.bodySize()};
 
-  bts_->Detach(engine::AsyncNoSpan(
+  bts_.Detach(engine::AsyncNoSpan(
       dispatcher_, [this, message = std::move(message_data),
                     span_name = std::move(span_name),
                     trace_id = std::move(trace_id), delivery_tag]() mutable {

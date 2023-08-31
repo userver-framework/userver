@@ -83,17 +83,6 @@ class BackgroundTaskStorage final {
                                         std::forward<Args>(args)...));
   }
 
-  /// @deprecated Pass engine::TaskProcessor to BTS constructor instead.
-  template <typename... Args>
-  void AsyncDetach(engine::TaskProcessor& task_processor, std::string name,
-                   Args&&... args) {
-    core_.Detach(utils::AsyncBackground(std::move(name), task_processor,
-                                        std::forward<Args>(args)...));
-  }
-
-  /// @deprecated Use AsyncDetach or BackgroundTaskStorageCore instead.
-  void Detach(engine::Task&& task) { core_.Detach(std::move(task)); }
-
   /// Approximate number of currently active tasks
   std::int64_t ActiveTasksApprox() const noexcept;
 
