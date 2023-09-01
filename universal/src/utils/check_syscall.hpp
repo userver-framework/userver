@@ -11,12 +11,12 @@ USERVER_NAMESPACE_BEGIN
 
 namespace utils {
 
-template <typename Exception, typename ErrorMark, typename Ret, typename Format,
-          typename... Args>
-Ret CheckSyscallNotEqualsCustomException(Ret ret, ErrorMark mark,
-                                         const Format& format,
-                                         const Args&... args) {
-  if (ret == mark) {
+template <typename Exception, typename IsError, typename ErrorMark,
+          typename Ret, typename Format, typename... Args>
+Ret CompareSyscallWithCustomException(IsError is_error, Ret ret, ErrorMark mark,
+                                      const Format& format,
+                                      const Args&... args) {
+  if (is_error(ret, mark)) {
     // avoid losing errno due to message generation
     const auto err_value = errno;
     fmt::memory_buffer msg_buf;
@@ -28,6 +28,18 @@ Ret CheckSyscallNotEqualsCustomException(Ret ret, ErrorMark mark,
   }
 
   return ret;
+}
+
+template <typename Exception, typename ErrorMark, typename Ret, typename Format,
+          typename... Args>
+Ret CheckSyscallNotEqualsCustomException(Ret ret, ErrorMark mark,
+                                         const Format& format,
+                                         const Args&... args) {
+  const auto compare = [](const Ret& ret, const ErrorMark& mark) -> bool {
+    return ret == mark;
+  };
+  return CompareSyscallWithCustomException<Exception>(compare, ret, mark,
+                                                      format, args...);
 }
 
 template <typename Exception, typename Ret, typename Format, typename... Args>
