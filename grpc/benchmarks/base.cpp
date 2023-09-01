@@ -78,24 +78,28 @@ std::unique_ptr<grpc::ClientContext> PrepareClientContext() {
   return context;
 }
 
-void UnaryRPCPayload() {
-  GrpcClientTest client_factory;
-  auto client =
-      client_factory.MakeClient<sample::ugrpc::UnitTestServiceClient>();
+void UnaryRPCPayload(sample::ugrpc::UnitTestServiceClient& client) {
   sample::ugrpc::GreetingRequest out;
   out.set_name("userver");
-  auto call_for_move = client.SayHello(out, PrepareClientContext());
-  auto call = std::move(call_for_move);  // test move operation
+  auto call = client.SayHello(out, PrepareClientContext());
 
   sample::ugrpc::GreetingResponse in;
   in = call.Finish();
   UINVARIANT("Hello " + out.name() == in.name(), "Behavior broken");
 }
 
-void UnaryRPCPayloadRepeated() {
-  static constexpr std::size_t kRepetitions = 32;
+void UnaryRPCPayloadRepeated(sample::ugrpc::UnitTestServiceClient& client) {
+  static constexpr std::size_t kRepetitions = 256;
   for (std::size_t i = 0; i < kRepetitions; ++i) {
-    UnaryRPCPayload();
+    UnaryRPCPayload(client);
+  }
+}
+
+void NewClientRepeated(GrpcClientTest& client_factory) {
+  static constexpr std::size_t kRepetitions = 256;
+  for (std::size_t i = 0; i < kRepetitions; ++i) {
+    auto client =
+        client_factory.MakeClient<sample::ugrpc::UnitTestServiceClient>();
   }
 }
 
@@ -103,28 +107,108 @@ void UnaryRPCPayloadRepeated() {
 
 void UnaryRPC(benchmark::State& state) {
   engine::RunStandalone(state.range(0), [&] {
+    GrpcClientTest client_factory;
+    auto client =
+        client_factory.MakeClient<sample::ugrpc::UnitTestServiceClient>();
+
     for (auto _ : state) {
-      UnaryRPCPayload();
+      UnaryRPCPayload(client);
     }
   });
 }
 
 BENCHMARK(UnaryRPC)->DenseRange(1, 4)->Unit(benchmark::kMicrosecond);
 
-void BatchOfUnaryRPC(benchmark::State& state) {
+void UnaryRPCNewClient(benchmark::State& state) {
   engine::RunStandalone(state.range(0), [&] {
-    static constexpr std::size_t kBatchSize = 16;
+    GrpcClientTest client_factory;
 
     for (auto _ : state) {
-      auto tasks = utils::GenerateFixedArray(kBatchSize, [](auto i) {
-        return engine::AsyncNoSpan(UnaryRPCPayloadRepeated);
-      });
-      engine::GetAll(tasks);
+      auto client =
+          client_factory.MakeClient<sample::ugrpc::UnitTestServiceClient>();
+      UnaryRPCPayload(client);
     }
   });
 }
 
+BENCHMARK(UnaryRPCNewClient)->DenseRange(1, 4)->Unit(benchmark::kMicrosecond);
+
+void BatchOfUnaryRPC(benchmark::State& state) {
+  engine::RunStandalone(
+      state.range(0),
+      engine::TaskProcessorPoolsConfig{10000, 100000, 256 * 1024ULL, 1, "ev",
+                                       false, false},
+      [&] {
+        static constexpr std::size_t kBatchSize = 16;
+        GrpcClientTest client_factory;
+        auto clients =
+            utils::GenerateFixedArray(kBatchSize, [&client_factory](auto) {
+              return client_factory
+                  .MakeClient<sample::ugrpc::UnitTestServiceClient>();
+            });
+
+        for (auto _ : state) {
+          auto tasks =
+              utils::GenerateFixedArray(kBatchSize, [&clients](auto i) {
+                return engine::AsyncNoSpan(UnaryRPCPayloadRepeated,
+                                           std::ref(clients[i]));
+              });
+          engine::GetAll(tasks);
+        }
+      });
+}
+
 BENCHMARK(BatchOfUnaryRPC)->DenseRange(1, 8)->Unit(benchmark::kMillisecond);
+
+void BatchOfUnaryRPCNewClient(benchmark::State& state) {
+  engine::RunStandalone(
+      state.range(0),
+      engine::TaskProcessorPoolsConfig{10000, 100000, 256 * 1024ULL, 1, "ev",
+                                       false, false},
+      [&] {
+        static constexpr std::size_t kBatchSize = 16;
+        GrpcClientTest client_factory;
+
+        for (auto _ : state) {
+          auto tasks =
+              utils::GenerateFixedArray(kBatchSize, [&client_factory](auto) {
+                return engine::AsyncNoSpan([&client_factory] {
+                  auto client =
+                      client_factory
+                          .MakeClient<sample::ugrpc::UnitTestServiceClient>();
+                  UnaryRPCPayloadRepeated(client);
+                });
+              });
+          engine::GetAll(tasks);
+        }
+      });
+}
+
+BENCHMARK(BatchOfUnaryRPCNewClient)
+    ->DenseRange(1, 8)
+    ->Unit(benchmark::kMillisecond);
+
+void BatchOfNewClient(benchmark::State& state) {
+  engine::RunStandalone(
+      state.range(0),
+      engine::TaskProcessorPoolsConfig{10000, 100000, 256 * 1024ULL, 1, "ev",
+                                       false, false},
+      [&] {
+        static constexpr std::size_t kBatchSize = 16;
+        GrpcClientTest client_factory;
+
+        for (auto _ : state) {
+          auto tasks =
+              utils::GenerateFixedArray(kBatchSize, [&client_factory](auto) {
+                return engine::AsyncNoSpan(NewClientRepeated,
+                                           std::ref(client_factory));
+              });
+          engine::GetAll(tasks);
+        }
+      });
+}
+
+BENCHMARK(BatchOfNewClient)->DenseRange(1, 8)->Unit(benchmark::kMillisecond);
 
 }  // namespace ugrpc
 
