@@ -15,7 +15,6 @@ namespace pg = storages::postgres;
 
 namespace {
 constexpr const char* kPostgresDsn = "POSTGRES_TEST_DSN";
-constexpr const char* kPostgresLog = "POSTGRES_TEST_LOG";
 }  // namespace
 
 pg::DefaultCommandControls GetTestCmdCtls() {
@@ -69,11 +68,6 @@ void PrintBuffer(std::ostream& os, const std::string& buffer) {
 }
 
 PostgreSQLBase::PostgreSQLBase() {
-  // NOLINTNEXTLINE(concurrency-mt-unsafe)
-  if (std::getenv(kPostgresLog)) {
-    old_.emplace(logging::MakeStderrLogger("cerr", logging::Format::kTskv,
-                                           logging::Level::kDebug));
-  }
   experiments_.Set(pg::kPipelineExperiment, true);
 }
 
@@ -112,10 +106,20 @@ storages::postgres::detail::ConnectionPtr PostgreSQLBase::MakeConnection(
     storages::postgres::ConnectionSettings settings) {
   std::unique_ptr<pg::detail::Connection> conn;
 
-  UEXPECT_NO_THROW(conn = pg::detail::Connection::Connect(
-                       dsn, nullptr, task_processor, GetTaskStorage(),
-                       kConnectionId, settings, GetTestCmdCtls(), {}, {}))
-      << "Connect to correct DSN";
+  try {
+    conn = pg::detail::Connection::Connect(dsn, nullptr, task_processor,
+                                           GetTaskStorage(), kConnectionId,
+                                           settings, GetTestCmdCtls(), {}, {});
+  } catch (const storages::postgres::Error& ex) {
+    ADD_FAILURE() << ex.what();
+  }
+
+  if (!conn) {
+    // Make sure that we signal a fatal failure so that the test body does not
+    // run. Otherwise, it may crash.
+    [&] { FAIL() << "Failed to connect to DSN"; }();
+  }
+
   pg::detail::ConnectionPtr conn_ptr{std::move(conn)};
   if (conn_ptr) CheckConnection(conn_ptr);
   return conn_ptr;
@@ -124,10 +128,10 @@ storages::postgres::detail::ConnectionPtr PostgreSQLBase::MakeConnection(
 void PostgreSQLBase::CheckConnection(const pg::detail::ConnectionPtr& conn) {
   ASSERT_TRUE(conn) << "Expected non-empty connection pointer";
 
-  EXPECT_TRUE(conn->IsConnected()) << "Connection to PostgreSQL is established";
-  EXPECT_TRUE(conn->IsIdle())
+  ASSERT_TRUE(conn->IsConnected()) << "Connection to PostgreSQL is established";
+  ASSERT_TRUE(conn->IsIdle())
       << "Connection to PosgreSQL is idle after connection";
-  EXPECT_FALSE(conn->IsInTransaction()) << "Connection to PostgreSQL is "
+  ASSERT_FALSE(conn->IsInTransaction()) << "Connection to PostgreSQL is "
                                            "not in a transaction after "
                                            "connection";
 }

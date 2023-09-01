@@ -82,7 +82,6 @@ class PostgreSQLBase : public ::testing::Test {
       storages::postgres::detail::ConnectionPtr conn);
 
  private:
-  std::optional<logging::DefaultLoggerGuard> old_;
   utils::impl::UserverExperimentsScope experiments_;
 };
 
