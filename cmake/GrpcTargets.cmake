@@ -14,7 +14,7 @@ else()
   if(Protobuf_INCLUDE_DIR)
     set(USERVER_PROTOBUF_IMPORT_DIR "${Protobuf_INCLUDE_DIR}")
   else()
-    set(USERVER_PROTOBUF_IMPORT_DIR "${Protobuf_INCLUDE_DIRS}")
+    set(USERVER_PROTOBUF_IMPORT_DIR "${protobuf_INCLUDE_DIRS}")
   endif()
 
   include(SetupGrpc)
