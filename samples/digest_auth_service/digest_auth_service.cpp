@@ -12,7 +12,7 @@
 #include <userver/testsuite/testsuite_support.hpp>
 #include <userver/utils/daemon_run.hpp>
 
-namespace samples::pg {
+namespace samples::digest_auth {
 
 /// [request context]
 class Hello final : public server::handlers::HttpHandlerBase {
@@ -29,19 +29,19 @@ class Hello final : public server::handlers::HttpHandlerBase {
 };
 /// [request context]
 
-}  // namespace samples::pg
+}  // namespace samples::digest_auth
 
 /// [auth checker registration]
 int main(int argc, const char* const argv[]) {
   server::handlers::auth::RegisterAuthCheckerFactory(
-      "digest", std::make_unique<samples::pg::CheckerFactory>());
+      "digest", std::make_unique<samples::digest_auth::CheckerFactory>());
   /// [auth checker registration]
 
   /// [main]
   const auto component_list =
       components::MinimalServerComponentList()
           .Append<components::Postgres>("auth-database")
-          .Append<samples::pg::Hello>()
+          .Append<samples::digest_auth::Hello>()
           .Append<components::TestsuiteSupport>()
           .Append<components::HttpClient>()
           .Append<server::handlers::TestsControl>()
