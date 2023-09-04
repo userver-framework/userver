@@ -21,6 +21,7 @@ namespace samples::digest_auth {
 
 using UserData = server::handlers::auth::UserData;
 using HA1 = server::handlers::auth::UserData::HA1;
+using TimePoint = std::chrono::time_point<std::chrono::system_clock>;
 
 class AuthCheckerDigest final
     : public server::handlers::auth::DigestCheckerBase {
@@ -66,7 +67,8 @@ std::optional<UserData> AuthCheckerDigest::FetchUserData(
 
   auto user_db_info = res.AsSingleRow<UserDbInfo>(storages::postgres::kRowTag);
   return UserData{HA1{user_db_info.ha1}, user_db_info.nonce,
-                  user_db_info.timestamp, user_db_info.nonce_count};
+                  user_db_info.timestamp.GetUnderlying(),
+                  user_db_info.nonce_count};
 }
 /// [auth checker definition 1]
 
@@ -77,16 +79,18 @@ void AuthCheckerDigest::SetUserData(const std::string& username,
                                     TimePoint nonce_creation_time) const {
   pg_cluster_->Execute(storages::postgres::ClusterHostType::kMaster,
                        uservice_dynconf::sql::kUpdateUser, nonce,
-                       nonce_creation_time, nonce_count, username);
+                       storages::postgres::TimePointTz{nonce_creation_time},
+                       nonce_count, username);
 }
 /// [auth checker definition 2]
 
 /// [auth checker definition 3]
 void AuthCheckerDigest::PushUnnamedNonce(std::string nonce) const {
-  auto res = pg_cluster_->Execute(storages::postgres::ClusterHostType::kMaster,
-                                  uservice_dynconf::sql::kInsertUnnamedNonce,
-                                  utils::datetime::Now() - nonce_ttl_, nonce,
-                                  utils::datetime::Now());
+  auto res = pg_cluster_->Execute(
+      storages::postgres::ClusterHostType::kMaster,
+      uservice_dynconf::sql::kInsertUnnamedNonce,
+      storages::postgres::TimePointTz{utils::datetime::Now() - nonce_ttl_},
+      nonce, storages::postgres::TimePointTz{utils::datetime::Now()});
 }
 /// [auth checker definition 3]
 
@@ -99,7 +103,7 @@ std::optional<TimePoint> AuthCheckerDigest::GetUnnamedNonceCreationTime(
 
   if (res.IsEmpty()) return std::nullopt;
 
-  return res.AsSingleRow<TimePoint>();
+  return res.AsSingleRow<storages::postgres::TimePointTz>().GetUnderlying();
 }
 /// [auth checker definition 4]
 

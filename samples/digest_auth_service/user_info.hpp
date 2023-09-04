@@ -3,14 +3,14 @@
 #include <chrono>
 #include <string>
 
-namespace samples::digest_auth {
+#include <userver/storages/postgres/io/chrono.hpp>
 
-using TimePoint = std::chrono::time_point<std::chrono::system_clock>;
+namespace samples::digest_auth {
 
 struct UserDbInfo {
   std::string username;
   std::string nonce;
-  TimePoint timestamp;
+  storages::postgres::TimePointTz timestamp;
   int nonce_count{};
   std::string ha1;
 };
