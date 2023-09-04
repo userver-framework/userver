@@ -8,9 +8,6 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::mongo::impl {
 
-USERVER_NAMESPACE::utils::impl::UserverExperiment kCcExperiment(
-    "mongo-congestion-control");
-
 PoolImpl::PoolImpl(std::string&& id, const PoolConfig& static_config,
                    dynamic_config::Source config_source)
     : id_(std::move(id)),
@@ -30,8 +27,7 @@ PoolImpl::PoolImpl(std::string&& id, const PoolConfig& static_config,
 void PoolImpl::Start() { cc_controller_.Start(); }
 
 void PoolImpl::OnConfigUpdate(const dynamic_config::Snapshot& config) {
-  cc_controller_.SetEnabled(config[kCongestionControlEnabled] &&
-                            kCcExperiment.IsEnabled());
+  cc_controller_.SetEnabled(config[kCongestionControlEnabled]);
 }
 
 const std::string& PoolImpl::Id() const { return id_; }
