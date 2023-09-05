@@ -415,14 +415,19 @@ void CompleteDeadlinePropagation(RequestProcessor& processor,
   const auto& request = processor.GetRequest();
   auto& response = request.GetHttpResponse();
 
-  const auto& inherited_data = request::kTaskInheritedData.Get();
-  if (!inherited_data.deadline.IsReachable()) return;
+  const auto* const inherited_data = request::kTaskInheritedData.GetOptional();
+  if (!inherited_data) {
+    // Handling was interrupted before it got to SetUpInheritedData.
+    return;
+  }
+
+  if (!inherited_data->deadline.IsReachable()) return;
 
   const bool cancelled_by_deadline =
       engine::current_task::CancellationReason() ==
           engine::TaskCancellationReason::kDeadline ||
-      inherited_data.deadline_signal.IsExpired() ||
-      inherited_data.deadline.IsReached();
+      inherited_data->deadline_signal.IsExpired() ||
+      inherited_data->deadline.IsReached();
 
   auto& span = tracing::Span::CurrentSpan();
   span.AddNonInheritableTag("cancelled_by_deadline", cancelled_by_deadline);
