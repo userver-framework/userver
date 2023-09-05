@@ -21,7 +21,7 @@ namespace redis {
 class ClusterShard {
  public:
   using RedisPtr = std::shared_ptr<redis::Redis>;
-  using RedisConnectionPtr = std::shared_ptr<RedisConnectionHolder>;
+  using RedisConnectionPtr = std::shared_ptr<const RedisConnectionHolder>;
 
   ClusterShard(size_t shard, RedisConnectionPtr master,
                std::vector<RedisConnectionPtr> replicas)

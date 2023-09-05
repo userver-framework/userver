@@ -216,7 +216,11 @@ class ClusterTopologyHolder {
   void SendUpdateClusterTopology() { update_topology_watch_.Send(); }
 
   std::shared_ptr<Redis> GetRedisInstance(const std::string& host_port) const {
-    return std::const_pointer_cast<Redis>(nodes_.Get(host_port)->Get());
+    const auto connection = nodes_.Get(host_port);
+    if (!connection) {
+      return {};
+    }
+    return std::const_pointer_cast<Redis>(connection->Get());
   }
 
   void GetStatistics(SentinelStatistics& stats,
@@ -500,9 +504,14 @@ void ClusterTopologyHolder::UpdateClusterTopology() {
           }
         }
 
-        topology_.Assign(ClusterTopology(
-            ++current_topology_version_, std::chrono::steady_clock::now(),
-            std::move(shard_infos), password_, redis_thread_pool_, nodes_));
+        try {
+          topology_.Assign(ClusterTopology(
+              ++current_topology_version_, std::chrono::steady_clock::now(),
+              std::move(shard_infos), password_, redis_thread_pool_, nodes_));
+        } catch (const rcu::MissingKeyException& e) {
+          LOG_WARNING() << "Failed to update cluster topology: " << e;
+          return;
+        }
         is_topology_received_ = true;
 
         LOG_DEBUG() << "Cluster topology updated to version"

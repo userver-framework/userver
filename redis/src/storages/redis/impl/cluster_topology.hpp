@@ -37,7 +37,7 @@ class ClusterTopology {
       size_t version, std::chrono::steady_clock::time_point timestamp,
       ClusterShardHostInfos infos, Password password,
       const std::shared_ptr<engine::ev::ThreadPool>& redis_thread_pool,
-      NodesStorage& nodes);
+      const NodesStorage& nodes);
   ~ClusterTopology();
 
   size_t GetShardIndexBySlot(uint16_t slot) const {

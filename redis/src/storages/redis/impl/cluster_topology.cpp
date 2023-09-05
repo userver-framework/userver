@@ -8,7 +8,7 @@ ClusterTopology::ClusterTopology(
     size_t version, std::chrono::steady_clock::time_point timestamp,
     ClusterShardHostInfos infos, Password password,
     const std::shared_ptr<engine::ev::ThreadPool>& /*redis_thread_pool*/,
-    NodesStorage& nodes)
+    const NodesStorage& nodes)
     : infos_(std::move(infos)),
       password_(std::move(password)),
       version_(version),
@@ -21,13 +21,14 @@ ClusterTopology::ClusterTopology(
     size_t shard_index = 0;
     for (const auto& info : infos_) {
       const auto& master_host_port = HostPortToString(info.master.HostPort());
-      /// TODO: nodes from CLUSTER SLOTS must be present in CLUSTER NODES
-      /// Do we need additional check or exception from 'at' will be enough?
-      auto master = nodes.Get(master_host_port);
-      std::vector<ClusterShard::RedisConnectionPtr> replicas;
+      /// Throws rcu::MissingKeyException on missing key in nodes
+      std::shared_ptr<const RedisConnectionHolder> master =
+          nodes[master_host_port];
+      std::vector<std::shared_ptr<const RedisConnectionHolder>> replicas;
       replicas.reserve(info.slaves.size());
       for (const auto& replica : info.slaves) {
-        replicas.push_back(nodes.Get(HostPortToString(replica.HostPort())));
+        /// Throws rcu::MissingKeyException on missing key in nodes
+        replicas.push_back(nodes[HostPortToString(replica.HostPort())]);
       }
       cluster_shards_.emplace_back(shard_index++, std::move(master),
                                    std::move(replicas));
