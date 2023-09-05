@@ -18,28 +18,6 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::postgres {
 
-/**
- * @page pg_bitstring uPg 'bit' and 'bit varying' support
- *
- * The driver allows reading and writing raw binary data from/to PostgreSQL
- * 'bit' and 'bit varying' types.
- *
- * Reading and writing to PostgreSQL is implemented for integral values
- * (e.g. int8_t, int32_t, int64_t), 'utils::Flags',
- * 'std::array' of 'bool' and 'std::bitset'.
- *
- * @code
- * namespace pg = storages::postgres;
- * std::array<bool, 4> arr = "1101";
- * trx.Execute("select $1", pg::Varbit(arr));
- * trx.Execute("select $1", pg::Bit(arr));
- *
- * // std::bitset mapps to bit varying on default
- * std::bitset<4> bits = "1101";
- * trx.Execute("select $1", bits);
- * @endcode
- */
-
 namespace io::traits {
 
 template <typename BitContainer>
@@ -70,7 +48,7 @@ struct BitContainerTraits<BitContainer,
   static void SetBit(BitContainer& bits, std::uint8_t i) {
     bits |= (1ull << i);
   }
-  static std::size_t BitCount(const BitContainer&) noexcept {
+  static constexpr std::size_t BitCount() noexcept {
     return sizeof(BitContainer) * 8;
   }
   static void Reset(BitContainer& bits) noexcept { bits = 0; }
@@ -78,25 +56,25 @@ struct BitContainerTraits<BitContainer,
 
 template <std::size_t N>
 struct BitContainerTraits<std::array<bool, N>> {
+  static_assert(N > 0, "Length for bit container must be at least 1");
   using BitContainer = std::array<bool, N>;
   static bool TestBit(const BitContainer& bits, std::uint8_t i) {
     return bits[i];
   }
   static void SetBit(BitContainer& bits, std::uint8_t i) { bits[i] = true; }
-  static std::size_t BitCount(const BitContainer&) noexcept { return N; }
-  static void Reset(BitContainer& bits) noexcept {
-    std::fill(bits.begin(), bits.end(), false);
-  }
+  static constexpr std::size_t BitCount() noexcept { return N; }
+  static void Reset(BitContainer& bits) noexcept { bits.fill(false); }
 };
 
 template <std::size_t N>
 struct BitContainerTraits<std::bitset<N>> {
+  static_assert(N > 0, "Length for bit container must be at least 1");
   using BitContainer = std::bitset<N>;
   static bool TestBit(const BitContainer& bits, std::uint8_t i) {
     return bits.test(i);
   }
   static void SetBit(BitContainer& bits, std::uint8_t i) { bits.set(i); }
-  static std::size_t BitCount(const BitContainer&) noexcept { return N; }
+  static constexpr std::size_t BitCount() noexcept { return N; }
   static void Reset(BitContainer& bits) noexcept { bits.reset(); }
 };
 
@@ -115,7 +93,7 @@ struct BitStringRefWrapper {
 
   using BitContainer = std::decay_t<BitContainerRef>;
   static_assert(io::traits::kIsBitStringCompatible<BitContainer>,
-                "This C++ type cannot be used with PostgreSQL `bit` and 'bit "
+                "This C++ type cannot be used with PostgreSQL 'bit' and 'bit "
                 "varying' data type");
 
   BitContainerRef bits;
@@ -129,8 +107,8 @@ struct BitStringWrapper {
                 "The container must not be passed by reference");
 
   static_assert(io::traits::kIsBitStringCompatible<BitContainer>,
-                "This C++ type cannot be used with PostgreSQL 'bit' and `bit "
-                "varying` data type");
+                "This C++ type cannot be used with PostgreSQL 'bit' and 'bit "
+                "varying' data type");
 
   BitContainer bits{};
 };
@@ -200,19 +178,18 @@ struct BufferParser<postgres::detail::BitStringRefWrapper<
 
     auto& bits = this->value.bits;
     if (const Integer target_bit_count =
-            io::traits::BitContainerTraits<BitContainer>::BitCount(bits);
+            io::traits::BitContainerTraits<BitContainer>::BitCount();
         target_bit_count < bit_count) {
       throw BitStringOverflow(bit_count, target_bit_count);
     }
+
+    // buffer contains a zero-padded bitstring, most significant bit first
     io::traits::BitContainerTraits<BitContainer>::Reset(bits);
-    const std::uint8_t* byte_cptr = buffer.buffer;
-    for (Integer i = 0; i < bit_count;) {
+    for (Integer i = 0; i < bit_count; ++i) {
+      const auto* byte_cptr = buffer.buffer + (i / 8);
       if ((*byte_cptr) & (0x80 >> (i % 8))) {
-        io::traits::BitContainerTraits<BitContainer>::SetBit(bits, i);
-      }
-      ++i;
-      if (i % 8 == 0) {
-        ++byte_cptr;
+        io::traits::BitContainerTraits<BitContainer>::SetBit(bits,
+                                                             bit_count - i - 1);
       }
     }
   }
@@ -278,34 +255,18 @@ struct BufferFormatter<postgres::detail::BitStringRefWrapper<
 
   template <typename Buffer>
   void operator()(const UserTypes& types, Buffer& buffer) const {
-    // source bitcontainer (bits from least to most significant):
-    //  [b0 b1 b2 b3 b4 b5 b6 b7 b8 b9 b10 b11 b12 b13 b14 b15]
-    // target buffer:
-    //  header:
-    //   | bit count (integer, 4 bytes in network bytes order) |
-    //  bytes (bits from most to least significant):
-    //   | 1st byte (b0 b1 b2 b3 b4 b5 b6 b7) |
-    //   | 2nd byte (b8 b9 b10 b11 b12 b13 b14 b15) |
-    // ...
-
-    std::uint8_t b = 0;
-    std::string data;
+    // convert bitcontainer to bytes and write into buffer,
+    // from most to least significant
     const auto& bits = this->value.bits;
-    const auto bit_count =
-        io::traits::BitContainerTraits<BitContainer>::BitCount(bits);
-    for (std::size_t i = 0; i < bit_count;) {
-      if (io::traits::BitContainerTraits<BitContainer>::TestBit(bits, i)) {
-        b |= (0x80 >> (i % 8));
-      }
-      ++i;
-      if (i % 8 == 0) {
-        data.push_back(b);
-        b = 0;
-      }
-    }
-    // push back last partially filled byte
-    if (bit_count % 8) {
-      data.push_back(b);
+    constexpr auto bit_count =
+        io::traits::BitContainerTraits<BitContainer>::BitCount();
+
+    std::array<std::uint8_t, (bit_count + 7) / 8> data{};
+    for (std::size_t i = 0; i < bit_count; ++i) {
+      data[i / 8] |= static_cast<std::uint8_t>(
+                         io::traits::BitContainerTraits<BitContainer>::TestBit(
+                             bits, bit_count - i - 1))
+                     << (7 - i % 8);
     }
 
     buffer.reserve(buffer.size() + sizeof(Integer) + data.size());

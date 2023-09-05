@@ -28,8 +28,8 @@
 /// boolean           | bool                                    | +       |
 /// real              | float                                   | +       |
 /// double precision  | double                                  | +       |
-/// numeric(p)        | decimal64::Decimal<P>                   | +       |
-/// decimal(p)        | decimal64::Decimal<P>                   | +       |
+/// numeric(p)        | decimal64::Decimal                      | +       |
+/// decimal(p)        | decimal64::Decimal                      | +       |
 /// money             | N/A                                     |         |
 /// text              | std::string                             | +       |
 /// char(n)           | std::string                             |         |
@@ -38,12 +38,16 @@
 /// timestamp         | std::chrono::system_clock::time_point   | +       |
 /// timestamptz       | storages::postgres::TimePointTz         | +       |
 /// date              | utils::datetime::Date                   | +       |
-/// time              | utils::datetime::TimeOfDay<>            | +       |
+/// time              | utils::datetime::TimeOfDay              | +       |
 /// timetz            | N/A                                     |         |
 /// interval          | std::chrono::microseconds               |         |
 /// bytea             | container of one-byte type              |         |
-/// bit(n)            | N/A                                     |         |
-/// bit varying(n)    | N/A                                     |         |
+/// bit(n)            | utils::Flags                            |         |
+/// ^                 | std::bitset<N>                          |         |
+/// ^                 | std::array<bool, N>                     |         |
+/// bit varying(n)    | utils::Flags                            |         |
+/// ^                 | std::bitset<N>                          |         |
+/// ^                 | std::array<bool, N>                     |         |
 /// uuid              | boost::uuids::uuid                      | +       |
 /// json              | formats::json::Value                    |         |
 /// jsonb             | formats::json::Value                    | +       |
@@ -51,6 +55,12 @@
 /// ^                 | storages::postgres::BoundedIntegerRange |         |
 /// int8range         | storages::postgres::BigintRange         |         |
 /// ^                 | storages::postgres::BoundedBigintRange  |         |
+/// inet              | utils::ip::AddressV4                    |         |
+/// ^                 | utils::ip::AddressV6                    |         |
+/// cidr              | utils::ip::NetworkV4                    |         |
+/// ^                 | utils::ip::NetworkV6                    |         |
+/// macaddr           | utils::Macaddr                          |         |
+/// macaddr8          | utils::Macaddr8                         |         |
 /// numrange          | N/A                                     |         |
 /// tsrange           | N/A                                     |         |
 /// tstzrange         | N/A                                     |         |
@@ -96,14 +106,27 @@
 ///
 /// See @pg_bytea
 ///
+/// @par Network types
+///
+/// The driver offers data types to store IPv4, IPv6, and MAC addresses, as
+/// well as network specifications (CIDR).
+///
+/// @par Bit string types
+///
+/// The driver supports PostgreSQL `bit` and `bit varying` types.
+///
+/// Parsing and formatting is implemented for integral values
+/// (e.g. `uint32_t`, `uint64_t`), `utils::Flags`, `std::array<bool, N>`
+/// and `std::bitset<N>`.
+///
+/// Example of using the bit types from tests:
+/// @snippet storages/postgres/tests/bitstring_pgtest.cpp Bit string sample
+///
 /// @par PostgreSQL types not covered above
 ///
 /// The types not covered above or marked as N/A in the table of fundamental
 /// types will be eventually supported later, on request from the driver's
 /// users.
-///
-/// - Bit string https://st.yandex-team.ru/TAXICOMMON-374
-/// - Network types https://st.yandex-team.ru/TAXICOMMON-377
 ///
 /// ----------
 ///

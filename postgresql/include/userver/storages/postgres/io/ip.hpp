@@ -11,10 +11,7 @@
 #include <userver/storages/postgres/io/integral_types.hpp>
 #include <userver/storages/postgres/io/string_types.hpp>
 #include <userver/storages/postgres/io/type_mapping.hpp>
-#include <userver/utils/ip/exception.hpp>
-#include <userver/utils/ip/inet_network.hpp>
-#include <userver/utils/ip/network_v4.hpp>
-#include <userver/utils/ip/network_v6.hpp>
+#include <userver/utils/ip.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

@@ -1,16 +1,19 @@
 #pragma once
 
+/// @file userver/storages/postgres/io/macaddr.hpp
+/// @brief utils::Macaddr and utils::Macaddr8 I/O support
+/// @ingroup userver_postgres_parse_and_format
+
 #include <userver/storages/postgres/io/buffer_io.hpp>
 #include <userver/storages/postgres/io/buffer_io_base.hpp>
-#include <userver/utils/macaddr/macaddr.hpp>
-#include <userver/utils/macaddr/macaddr8.hpp>
+#include <userver/utils/macaddr.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::postgres {
 
-using Macaddr = USERVER_NAMESPACE::utils::macaddr::Macaddr;
-using Macaddr8 = USERVER_NAMESPACE::utils::macaddr::Macaddr8;
+using Macaddr = USERVER_NAMESPACE::utils::Macaddr;
+using Macaddr8 = USERVER_NAMESPACE::utils::Macaddr8;
 
 namespace io {
 namespace detail {

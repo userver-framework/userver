@@ -79,10 +79,10 @@ static_assert(tt::kIsBitStringCompatible<std::uint8_t> &&
 namespace {
 
 template <typename BitContainer>
-std::size_t ByteCount(const BitContainer& value) {
+std::size_t ByteCount(const BitContainer&) {
   constexpr std::size_t byte_size = 8;
   const std::size_t bit_count =
-      io::traits::BitContainerTraits<BitContainer>::BitCount(value);
+      io::traits::BitContainerTraits<BitContainer>::BitCount();
   return (bit_count + byte_size - 1) / byte_size;
 }
 
@@ -378,6 +378,26 @@ UTEST_P(PostgreConnection, BitStringOverflow) {
   BitStringOverflowTest<pg::BitStringType::kBit,
                         std::decay_t<decltype(kBitset8Value)>>(kBitset9Value,
                                                                GetConn());
+}
+
+UTEST_P(PostgreConnection, BitStringSample) {
+  pg::ResultSet res{nullptr};
+  auto& conn = GetConn();
+  CheckConnection(conn);
+
+  /*! [Bit string sample] */
+  res = conn->Execute("select 25::bit(8)");
+  auto bits = res[0][0].As<std::bitset<8>>();
+  EXPECT_EQ(bits, 0b11001);
+
+  res = conn->Execute("select $1::text", bits);
+  EXPECT_EQ(res[0][0].As<std::string>(), "00011001");
+
+  std::uint8_t num{};
+  res = conn->Execute("select 42::bit(8)");
+  res[0][0].To(pg::Bit(num));
+  EXPECT_EQ(num, 42);
+  /*! [Bit string sample] */
 }
 
 }  // namespace
