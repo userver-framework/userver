@@ -185,6 +185,7 @@ class TaskContext final : public ContextAccessor {
 
   std::size_t DecrementFetchSharedTaskUsages() noexcept;
   std::size_t IncrementFetchSharedTaskUsages() noexcept;
+  void ResetPayload() noexcept;
 
  private:
   class LocalStorageGuard;
@@ -209,8 +210,6 @@ class TaskContext final : public ContextAccessor {
   void ProfilerStopExecution();
 
   void TraceStateTransition(Task::State state);
-
-  void ResetPayload() noexcept;
 
   const uint64_t magic_{kMagic};
   TaskProcessor& task_processor_;

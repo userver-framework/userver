@@ -354,4 +354,30 @@ UTEST_MT(Task, ExceptionStorm, 8) {
   }
 }
 
+UTEST(Task,
+      WithLastContextOwnerInEvThreadResultIsStillDestroyedInWorkerThread) {
+  struct IMustBeDestroyedInWorkerThread final {
+    ~IMustBeDestroyedInWorkerThread() {
+      EXPECT_TRUE(engine::current_task::IsTaskProcessorThread());
+    }
+  };
+
+  {
+    const auto deadline = engine::Deadline::FromDuration(100ms);
+    auto task = engine::AsyncNoSpan([deadline] {
+      // Here we set up a timer, which will become the last context owner.
+      engine::current_task::SetDeadline(deadline);
+      return IMustBeDestroyedInWorkerThread{};
+    });
+    task.Wait();
+  }
+  // Task's context is still alive at this point,
+  // the last owner is a deadline timer in ev-thread.
+
+  // There's no way to synchronize with timer here, this is the best we've got.
+  // With a single ev-thread this is actually sufficient, otherwise
+  // false-negatives are possible.
+  engine::SleepFor(200ms);
+}
+
 USERVER_NAMESPACE_END
