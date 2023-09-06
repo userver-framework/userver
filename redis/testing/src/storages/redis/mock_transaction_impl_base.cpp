@@ -491,6 +491,12 @@ RequestZcard MockTransactionImplBase::Zcard(std::string /*key*/) {
   return RequestZcard{nullptr};
 }
 
+RequestZcount MockTransactionImplBase::Zcount(std::string /*key*/,
+                                              double /*min*/, double /*max*/) {
+  UASSERT_MSG(false, "redis method not mocked");
+  return RequestZcount{nullptr};
+}
+
 RequestZrange MockTransactionImplBase::Zrange(std::string /*key*/,
                                               int64_t /*start*/,
                                               int64_t /*stop*/) {

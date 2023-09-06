@@ -359,6 +359,9 @@ class ClientImpl final : public Client,
   RequestZcard Zcard(std::string key,
                      const CommandControl& command_control) override;
 
+  RequestZcount Zcount(std::string key, double min, double max,
+                       const CommandControl& command_control) override;
+
   RequestZrange Zrange(std::string key, int64_t start, int64_t stop,
                        const CommandControl& command_control) override;
 

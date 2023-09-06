@@ -210,6 +210,8 @@ class MockTransactionImplBase {
 
   virtual RequestZcard Zcard(std::string key);
 
+  virtual RequestZcount Zcount(std::string key, double min, double max);
+
   virtual RequestZrange Zrange(std::string key, int64_t start, int64_t stop);
 
   virtual RequestZrangeWithScores ZrangeWithScores(std::string key,

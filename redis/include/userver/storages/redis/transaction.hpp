@@ -245,6 +245,8 @@ class Transaction {
 
   virtual RequestZcard Zcard(std::string key) = 0;
 
+  virtual RequestZcount Zcount(std::string key, double min, double max) = 0;
+
   virtual RequestZrange Zrange(std::string key, int64_t start,
                                int64_t stop) = 0;
 

@@ -91,6 +91,7 @@ const std::string_view kCommandTypes[] = {
     "unsubscribe",
     "zadd",
     "zcard",
+    "zcount",
     "zrange",
     "zrangebyscore",
     "zrem",

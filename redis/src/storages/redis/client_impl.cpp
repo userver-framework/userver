@@ -895,6 +895,14 @@ RequestZcard ClientImpl::Zcard(std::string key,
                   GetCommandControl(command_control)));
 }
 
+RequestZcount ClientImpl::Zcount(std::string key, double min, double max,
+                                 const CommandControl& command_control) {
+  auto shard = ShardByKey(key, command_control);
+  return CreateRequest<RequestZcount>(
+      MakeRequest(CmdArgs{"zcount", std::move(key), min, max}, shard, false,
+                  GetCommandControl(command_control)));
+}
+
 RequestZrange ClientImpl::Zrange(std::string key, int64_t start, int64_t stop,
                                  const CommandControl& command_control) {
   auto shard = ShardByKey(key, command_control);

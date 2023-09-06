@@ -652,6 +652,14 @@ UTEST_F(RedisClientTransactionTest, Zcard) {
   EXPECT_EQ(Get(client->Zcard("zset")), 2);
 }
 
+UTEST_F(RedisClientTransactionTest, Zcount) {
+  auto& client = GetTransactionClient();
+
+  Get(client->Zadd("zset", {{2., "two"}, {3., "three"}}));
+  const auto inf = std::numeric_limits<double>::infinity();
+  EXPECT_EQ(Get(client->Zcount("zset", 3., inf)), 1);
+}
+
 UTEST_F(RedisClientTransactionTest, Zrange) {
   auto& client = GetTransactionClient();
 

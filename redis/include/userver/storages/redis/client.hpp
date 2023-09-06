@@ -385,6 +385,9 @@ class Client {
   virtual RequestZcard Zcard(std::string key,
                              const CommandControl& command_control) = 0;
 
+  virtual RequestZcount Zcount(std::string key, double min, double max,
+                               const CommandControl& command_control) = 0;
+
   virtual RequestZrange Zrange(std::string key, int64_t start, int64_t stop,
                                const CommandControl& command_control) = 0;
 

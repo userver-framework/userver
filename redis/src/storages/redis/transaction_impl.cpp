@@ -556,6 +556,11 @@ RequestZcard TransactionImpl::Zcard(std::string key) {
   return AddCmd<RequestZcard>("zcard", false, std::move(key));
 }
 
+RequestZcount TransactionImpl::Zcount(std::string key, double min, double max) {
+  UpdateShard(key);
+  return AddCmd<RequestZcount>("zcount", false, std::move(key), min, max);
+}
+
 RequestZrange TransactionImpl::Zrange(std::string key, int64_t start,
                                       int64_t stop) {
   UpdateShard(key);

@@ -581,6 +581,11 @@ RequestZcard MockTransaction::Zcard(std::string key) {
   return AddSubrequest(impl_->Zcard(std::move(key)));
 }
 
+RequestZcount MockTransaction::Zcount(std::string key, double min, double max) {
+  UpdateShard(key);
+  return AddSubrequest(impl_->Zcount(std::move(key), min, max));
+}
+
 RequestZrange MockTransaction::Zrange(std::string key, int64_t start,
                                       int64_t stop) {
   UpdateShard(key);

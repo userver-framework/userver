@@ -641,6 +641,13 @@ RequestZcard MockClientBase::Zcard(std::string /*key*/,
   return RequestZcard{nullptr};
 }
 
+RequestZcount MockClientBase::Zcount(
+    std::string /*key*/, double /*min*/, double /*max*/,
+    const CommandControl& /*command_control*/) {
+  UASSERT_MSG(false, "redis method not mocked");
+  return RequestZcount{nullptr};
+}
+
 RequestZrange MockClientBase::Zrange(
     std::string /*key*/, int64_t /*start*/, int64_t /*stop*/,
     const CommandControl& /*command_control*/) {

@@ -214,6 +214,7 @@ using RequestZadd = Request<size_t>;
 using RequestZaddIncr = Request<double>;
 using RequestZaddIncrExisting = Request<std::optional<double>>;
 using RequestZcard = Request<size_t>;
+using RequestZcount = Request<size_t>;
 using RequestZrange = Request<std::vector<std::string>>;
 using RequestZrangeWithScores = Request<std::vector<MemberScore>>;
 using RequestZrangebyscore = Request<std::vector<std::string>>;

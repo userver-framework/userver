@@ -215,6 +215,8 @@ class MockTransaction final : public Transaction {
 
   RequestZcard Zcard(std::string key) override;
 
+  RequestZcount Zcount(std::string key, double min, double max) override;
+
   RequestZrange Zrange(std::string key, int64_t start, int64_t stop) override;
 
   RequestZrangeWithScores ZrangeWithScores(std::string key, int64_t start,
