@@ -204,9 +204,9 @@ ConnectionPtr ConnectionPool::Acquire(engine::Deadline deadline) {
   auto config = GetConfigSource().GetSnapshot();
   CheckDeadlineIsExpired(config);
   ConnectionPtr connection{Pop(deadline), std::move(shared_this)};
+  ++stats_.connection.used;
   CheckDeadlineIsExpired(config);
 
-  ++stats_.connection.used;
   connection->UpdateDefaultCommandControl();
   return connection;
 }
