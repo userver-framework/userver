@@ -1,6 +1,7 @@
 #include <userver/cache/cache_statistics.hpp>
 
 #include <userver/utils/assert.hpp>
+#include <userver/utils/datetime.hpp>
 #include <userver/utils/statistics/writer.hpp>
 #include <utils/internal_tag.hpp>
 
@@ -19,7 +20,10 @@ constexpr const char* kStatisticsNameCurrentDocumentsCount =
 template <typename Clock, typename Duration>
 std::int64_t TimeStampToMillisecondsFromNow(
     std::chrono::time_point<Clock, Duration> time) {
-  const auto diff = Clock::now() - time;
+  const auto diff = (std::is_same_v<Clock, std::chrono::steady_clock>
+                         ? utils::datetime::SteadyNow()
+                         : Clock::now()) -
+                    time;
   return std::chrono::duration_cast<std::chrono::milliseconds>(diff).count();
 }
 
@@ -95,7 +99,7 @@ UpdateStatisticsScope::UpdateStatisticsScope(impl::Statistics& stats,
       update_stats_(type == cache::UpdateType::kIncremental
                         ? stats.incremental_update
                         : stats.full_update),
-      update_start_time_(std::chrono::steady_clock::now()) {
+      update_start_time_(utils::datetime::SteadyNow()) {
   update_stats_.last_update_start_time = update_start_time_;
   ++update_stats_.update_attempt_count;
 }
@@ -139,7 +143,7 @@ void UpdateStatisticsScope::DoFinish(impl::UpdateState new_state) {
   //  and add an UASSERT here.
   if (state_ != impl::UpdateState::kNotFinished) return;
 
-  const auto update_stop_time = std::chrono::steady_clock::now();
+  const auto update_stop_time = utils::datetime::SteadyNow();
   if (new_state == impl::UpdateState::kSuccess) {
     update_stats_.last_successful_update_start_time = update_start_time_;
   }
