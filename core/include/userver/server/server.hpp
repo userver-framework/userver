@@ -7,6 +7,7 @@
 #include <userver/server/congestion_control/limiter.hpp>
 #include <userver/server/handlers/fallback_handlers.hpp>
 #include <userver/server/handlers/http_handler_base.hpp>
+#include <userver/storages/secdist/component.hpp>
 #include <userver/utils/statistics/fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -28,7 +29,7 @@ struct ServerConfig;
 
 class Server final : public congestion_control::Limitee {
  public:
-  Server(ServerConfig config,
+  Server(ServerConfig config, const storages::secdist::SecdistConfig& secdist,
          const components::ComponentContext& component_context);
   ~Server();
 

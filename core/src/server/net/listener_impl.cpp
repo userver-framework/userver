@@ -12,6 +12,7 @@
 #include <userver/engine/async.hpp>
 #include <userver/engine/io/exception.hpp>
 #include <userver/engine/io/socket.hpp>
+#include <userver/engine/io/tls_wrapper.hpp>
 #include <userver/engine/sleep.hpp>
 #include <userver/fs/blocking/read.hpp>
 #include <userver/fs/blocking/write.hpp>
@@ -78,7 +79,12 @@ void ListenerImpl::AcceptConnection(engine::io::Socket& request_socket) {
 
   LOG_DEBUG() << "Accepted connection #" << new_connection_count << '/'
               << endpoint_info_->listener_config.max_connections;
-  SetupConnection(std::move(peer_socket));
+  try {
+    SetupConnection(std::move(peer_socket));
+  } catch (const std::exception& e) {
+    --endpoint_info_->connection_count;
+    throw;
+  }
 }
 
 void ListenerImpl::SetupConnection(engine::io::Socket peer_socket) {
@@ -90,10 +96,21 @@ void ListenerImpl::SetupConnection(engine::io::Socket peer_socket) {
 
   LOG_TRACE() << "Creating connection for fd " << fd;
 
+  std::unique_ptr<engine::io::RwBase> socket;
+  auto remote_address = peer_socket.Getpeername().PrimaryAddressString();
+  if (endpoint_info_->listener_config.tls) {
+    socket = std::make_unique<engine::io::TlsWrapper>(
+        engine::io::TlsWrapper::StartTlsServer(
+            std::move(peer_socket), endpoint_info_->listener_config.tls_cert,
+            endpoint_info_->listener_config.tls_private_key, {}));
+  } else {
+    socket = std::make_unique<engine::io::Socket>(std::move(peer_socket));
+  }
+
   auto connection_ptr = Connection::Create(
       task_processor_, endpoint_info_->listener_config.connection_config,
-      endpoint_info_->listener_config.handler_defaults, std::move(peer_socket),
-      endpoint_info_->request_handler, stats_, data_accounter_);
+      endpoint_info_->listener_config.handler_defaults, std::move(socket),
+      remote_address, endpoint_info_->request_handler, stats_, data_accounter_);
   connection_ptr->SetCloseCb([endpoint_info = endpoint_info_]() {
     --endpoint_info->connection_count;
   });

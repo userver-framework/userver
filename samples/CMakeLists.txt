@@ -60,6 +60,9 @@ add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-json2yaml)
 add_subdirectory(hello_service)
 add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-hello_service)
 
+add_subdirectory(https_service)
+add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-https_service)
+
 add_subdirectory(tcp_service)
 add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-tcp_service)
 

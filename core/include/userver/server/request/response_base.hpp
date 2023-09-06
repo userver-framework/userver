@@ -11,7 +11,7 @@
 USERVER_NAMESPACE_BEGIN
 
 namespace engine::io {
-class Socket;
+class RwBase;
 }  // namespace engine::io
 
 namespace server::request {
@@ -70,7 +70,7 @@ class ResponseBase {
   }
   std::chrono::steady_clock::time_point SentTime() const { return sent_time_; }
 
-  virtual void SendResponse(engine::io::Socket& socket) = 0;
+  virtual void SendResponse(engine::io::RwBase& socket) = 0;
 
   virtual void SetStatusServiceUnavailable() = 0;
   virtual void SetStatusOk() = 0;

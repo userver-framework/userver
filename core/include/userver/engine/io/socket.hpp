@@ -28,12 +28,6 @@ enum class SocketType {
   kUdp = kDgram,
 };
 
-/// IoData for vector send
-struct IoData final {
-  const void* data;
-  size_t len;
-};
-
 /// @brief Socket representation.
 ///
 /// It is not thread-safe to concurrently read from socket. It is not
@@ -94,6 +88,11 @@ class [[nodiscard]] Socket final : public RwBase {
   /// @snippet src/engine/io/socket_test.cpp send vector data in socket
   [[nodiscard]] size_t SendAll(std::initializer_list<IoData> list,
                                Deadline deadline);
+
+  [[nodiscard]] size_t WriteAll(std::initializer_list<IoData> list,
+                                Deadline deadline) override {
+    return SendAll(list, deadline);
+  }
 
   /// @brief Sends exactly list_size IoData to the socket.
   /// @note Can return less than len if socket is closed by peer.

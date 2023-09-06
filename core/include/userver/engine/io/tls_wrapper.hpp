@@ -93,6 +93,8 @@ class [[nodiscard]] TlsWrapper final : public RwBase {
     return SendAll(buf, len, deadline);
   }
 
+  int GetRawFd();
+
  private:
   explicit TlsWrapper(Socket&&);
 

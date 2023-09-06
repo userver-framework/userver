@@ -9,11 +9,24 @@ USERVER_NAMESPACE_BEGIN
 
 namespace components {
 
+namespace {
+const storages::secdist::SecdistConfig& GetSecdist(
+    const components::ComponentContext& component_context) {
+  auto* component =
+      component_context.FindComponentOptional<components::Secdist>();
+  if (component) return component->Get();
+
+  static storages::secdist::SecdistConfig kEmpty;
+  return kEmpty;
+}
+}  // namespace
+
 Server::Server(const components::ComponentConfig& component_config,
                const components::ComponentContext& component_context)
     : LoggableComponentBase(component_config, component_context),
       server_(std::make_unique<server::Server>(
-          component_config.As<server::ServerConfig>(), component_context)) {
+          component_config.As<server::ServerConfig>(),
+          GetSecdist(component_context), component_context)) {
   auto& statistics_storage =
       component_context.FindComponent<StatisticsStorage>().GetStorage();
   server_statistics_holder_ = statistics_storage.RegisterWriter(
@@ -97,6 +110,20 @@ properties:
                 type: integer
                 description: max count of new connections pending acceptance
                 defaultDescription: 1024
+            tls:
+                type: object
+                description: TLS settings
+                additionalProperties: false
+                properties:
+                    cert:
+                        type: string
+                        description: path to TLS certificate
+                    private-key:
+                        type: string
+                        description: path to TLS certificate private key
+                    private-key-passphrase-name:
+                        type: string
+                        description: passphrase name located in secdist
             handler-defaults:
                 type: object
                 description: handler defaults options

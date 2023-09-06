@@ -519,6 +519,8 @@ Socket TlsWrapper::StopTls(Deadline deadline) {
   return std::move(impl_->bio_data.socket);
 }
 
+int TlsWrapper::GetRawFd() { return impl_->bio_data.socket.Fd(); }
+
 }  // namespace engine::io
 
 USERVER_NAMESPACE_END

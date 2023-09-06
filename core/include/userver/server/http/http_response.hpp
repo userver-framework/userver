@@ -118,7 +118,7 @@ class HttpResponse final : public request::ResponseBase {
 
   /// @cond
   // TODO: server internals. remove from public interface
-  void SendResponse(engine::io::Socket& socket) override;
+  void SendResponse(engine::io::RwBase& socket) override;
   /// @endcond
 
   void SetStatusServiceUnavailable() override {
@@ -139,10 +139,10 @@ class HttpResponse final : public request::ResponseBase {
 
  private:
   // Returns total size of the response
-  std::size_t SetBodyStreamed(engine::io::Socket& socket, std::string& header);
+  std::size_t SetBodyStreamed(engine::io::RwBase& socket, std::string& header);
 
   // Returns total size of the response
-  std::size_t SetBodyNotStreamed(engine::io::Socket& socket,
+  std::size_t SetBodyNotStreamed(engine::io::RwBase& socket,
                                  std::string& header);
 
   const HttpRequestImpl& request_;

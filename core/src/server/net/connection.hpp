@@ -33,7 +33,8 @@ class Connection final : public std::enable_shared_from_this<Connection> {
   static std::shared_ptr<Connection> Create(
       engine::TaskProcessor& task_processor, const ConnectionConfig& config,
       const request::HttpRequestConfig& handler_defaults_config,
-      engine::io::Socket peer_socket,
+      std::unique_ptr<engine::io::RwBase> peer_socket,
+      const std::string& remote_address,
       const http::RequestHandlerBase& request_handler,
       std::shared_ptr<Stats> stats,
       request::ResponseDataAccounter& data_accounter);
@@ -42,7 +43,8 @@ class Connection final : public std::enable_shared_from_this<Connection> {
   Connection(engine::TaskProcessor& task_processor,
              const ConnectionConfig& config,
              const request::HttpRequestConfig& handler_defaults_config,
-             engine::io::Socket peer_socket,
+             std::unique_ptr<engine::io::RwBase> peer_socket,
+             const std::string& remote_address,
              const http::RequestHandlerBase& request_handler,
              std::shared_ptr<Stats> stats,
              request::ResponseDataAccounter& data_accounter, EmplaceEnabler);
@@ -72,10 +74,12 @@ class Connection final : public std::enable_shared_from_this<Connection> {
   void HandleQueueItem(QueueItem& item) noexcept;
   void SendResponse(request::RequestBase& request);
 
+  std::string Getpeername() const;
+
   engine::TaskProcessor& task_processor_;
   const ConnectionConfig& config_;
   const request::HttpRequestConfig& handler_defaults_config_;
-  engine::io::Socket peer_socket_;
+  std::unique_ptr<engine::io::RwBase> peer_socket_;
   const http::RequestHandlerBase& request_handler_;
   const std::shared_ptr<Stats> stats_;
   request::ResponseDataAccounter& data_accounter_;

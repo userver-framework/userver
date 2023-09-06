@@ -16,8 +16,10 @@
 #include <server/net/endpoint_info.hpp>
 #include <server/net/listener.hpp>
 #include <server/net/stats.hpp>
+#include <server/pph_config.hpp>
 #include <server/requests_view.hpp>
 #include <server/server_config.hpp>
+#include <userver/fs/blocking/read.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -110,6 +112,7 @@ bool PortInfo::IsRunning() const noexcept {
 class ServerImpl final {
  public:
   ServerImpl(ServerConfig config,
+             const storages::secdist::SecdistConfig& secdist,
              const components::ComponentContext& component_context);
   ~ServerImpl();
 
@@ -143,13 +146,23 @@ class ServerImpl final {
   std::atomic<bool> has_requests_view_watchers_{false};
   RequestsView requests_view_{};
 
-  const ServerConfig config_;
+  ServerConfig config_;
 };
 
 ServerImpl::ServerImpl(ServerConfig config,
+                       const storages::secdist::SecdistConfig& secdist,
                        const components::ComponentContext& component_context)
     : config_(std::move(config)) {
   LOG_INFO() << "Creating server";
+
+  if (config_.listener.tls) {
+    auto contents =
+        fs::blocking::ReadFileContents(config_.listener.tls_private_key_path);
+    auto pph = secdist.Get<PassphraseConfig>().GetPassphrase(
+        config_.listener.tls_private_key_passphrase_name);
+    config_.listener.tls_private_key =
+        crypto::PrivateKey::LoadFromString(contents, pph.GetUnderlying());
+  }
 
   main_port_info_.Init(config_, config_.listener, component_context, false);
   if (config_.max_response_size_in_flight) {
@@ -309,9 +322,10 @@ void ServerImpl::SetRpsRatelimit(std::optional<size_t> rps) {
 }
 
 Server::Server(ServerConfig config,
+               const storages::secdist::SecdistConfig& secdist,
                const components::ComponentContext& component_context)
-    : pimpl(
-          std::make_unique<ServerImpl>(std::move(config), component_context)) {}
+    : pimpl(std::make_unique<ServerImpl>(std::move(config), secdist,
+                                         component_context)) {}
 
 Server::~Server() = default;
 
