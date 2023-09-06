@@ -1392,6 +1392,7 @@
   "grpc/CMakeLists.txt":"taxi/uservices/userver/grpc/CMakeLists.txt",
   "grpc/README.md":"taxi/uservices/userver/grpc/README.md",
   "grpc/benchmarks/base.cpp":"taxi/uservices/userver/grpc/benchmarks/base.cpp",
+  "grpc/benchmarks/format_log_message.cpp":"taxi/uservices/userver/grpc/benchmarks/format_log_message.cpp",
   "grpc/functional_tests/CMakeLists.txt":"taxi/uservices/userver/grpc/functional_tests/CMakeLists.txt",
   "grpc/functional_tests/basic_chaos/CMakeLists.txt":"taxi/uservices/userver/grpc/functional_tests/basic_chaos/CMakeLists.txt",
   "grpc/functional_tests/basic_chaos/client.hpp":"taxi/uservices/userver/grpc/functional_tests/basic_chaos/client.hpp",

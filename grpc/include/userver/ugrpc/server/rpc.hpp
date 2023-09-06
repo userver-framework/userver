@@ -20,6 +20,15 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::server {
 
+namespace impl {
+
+std::string FormatLogMessage(
+    const std::multimap<grpc::string_ref, grpc::string_ref>& metadata,
+    std::string_view peer, std::chrono::system_clock::time_point start_time,
+    std::string_view call_name, int code);
+
+}
+
 /// @brief A non-typed base class for any gRPC call
 class CallAnyBase {
  public:

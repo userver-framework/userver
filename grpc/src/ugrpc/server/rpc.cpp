@@ -1,7 +1,10 @@
 #include <userver/ugrpc/server/rpc.hpp>
 
+#include <fmt/chrono.h>
+#include <fmt/compile.h>
 #include <fmt/format.h>
 
+#include <userver/compiler/impl/constexpr.hpp>
 #include <userver/logging/impl/logger_base.hpp>
 #include <userver/logging/logger.hpp>
 #include <userver/utils/datetime.hpp>
@@ -34,10 +37,72 @@ std::string ParseIp(std::string_view sv) {
     sv = sv.substr(pos1 + 3, pos2 - pos1 - 3);
   }
 
-  return std::string{sv};
+  return EscapeForAccessTskvLog(sv);
+}
+
+std::string_view GetCurrentTimeString(
+    std::chrono::system_clock::time_point start_time) noexcept {
+  using SecondsTimePoint =
+      std::chrono::time_point<std::chrono::system_clock, std::chrono::seconds>;
+  constexpr std::string_view kTemplate = "0000-00-00T00:00:00";
+
+  thread_local USERVER_IMPL_CONSTINIT SecondsTimePoint cached_time{};
+  thread_local USERVER_IMPL_CONSTINIT char
+      cached_time_string[kTemplate.size()]{};
+
+  const auto rounded_now =
+      std::chrono::time_point_cast<std::chrono::seconds>(start_time);
+  if (rounded_now != cached_time) {
+    fmt::format_to(cached_time_string, FMT_COMPILE("{:%FT%T}"),
+                   fmt::localtime(start_time));
+    cached_time = rounded_now;
+  }
+  return {cached_time_string, kTemplate.size()};
 }
 
 }  // namespace
+
+namespace impl {
+
+std::string FormatLogMessage(
+    const std::multimap<grpc::string_ref, grpc::string_ref>& metadata,
+    std::string_view peer, std::chrono::system_clock::time_point start_time,
+    std::string_view call_name, int code) {
+  static const auto timezone =
+      utils::datetime::LocalTimezoneTimestring(start_time, "%Ez");
+
+  auto it = metadata.find("user-agent");
+  std::string_view user_agent;
+  if (it != metadata.end()) {
+    auto ref = it->second;
+    user_agent = std::string_view(ref.data(), ref.size());
+  }
+
+  auto ip = ParseIp(peer);
+
+  auto now = std::chrono::system_clock::now();
+  auto response_time =
+      std::chrono::duration_cast<std::chrono::microseconds>(now - start_time)
+          .count();
+
+  // FMT_COMPILE makes it slower
+  return fmt::format(
+      "tskv"
+      "\ttimestamp={}"
+      "\ttimezone={}"
+      "\tuser_agent={}"
+      "\tip={}"
+      "\tx_real_ip={}"
+      "\trequest={}"
+      "\tupstream_response_time_ms={}.{:0>3}"
+      "\tgrpc_status={}\n",
+      GetCurrentTimeString(start_time), timezone,
+      EscapeForAccessTskvLog(user_agent), ip, ip,
+      EscapeForAccessTskvLog(call_name), response_time / 1000,
+      response_time % 1000, code);
+}
+
+}  // namespace impl
 
 ugrpc::impl::RpcStatisticsScope& CallAnyBase::Statistics(
     ugrpc::impl::InternalTag) {
@@ -50,39 +115,11 @@ void CallAnyBase::LogFinish(grpc::Status status) const {
     return;
   }
 
-  auto md = params_.context.client_metadata();
-  auto it = md.find("user-agent");
-  std::string user_agent;
-  if (it != md.end()) {
-    auto ref = it->second;
-    user_agent = std::string(ref.begin(), ref.end());
-  }
-
-  auto ip = ParseIp(params_.context.peer());
-
-  auto start_time = params_.call_span.GetStartSystemTime();
-
-  auto now = std::chrono::system_clock::now();
-  auto response_time =
-      std::chrono::duration_cast<std::chrono::milliseconds>(now - start_time)
-          .count();
-
-  params_.access_tskv_logger.Log(
-      logging::Level::kInfo,
-      fmt::format("tskv"
-                  "\t{}"
-                  "\tuser_agent={}"
-                  "\tip={}"
-                  "\tx_real_ip={}"
-                  "\trequest={}"
-                  "\tupstream_response_time_ms={}"
-                  "\tgrpc_status={}\n",
-                  utils::datetime::LocalTimezoneTimestring(
-                      start_time, "timestamp=%Y-%m-%dT%H:%M:%S\ttimezone=%Ez"),
-                  EscapeForAccessTskvLog(user_agent),
-                  EscapeForAccessTskvLog(ip), EscapeForAccessTskvLog(ip),
-                  EscapeForAccessTskvLog(params_.call_name), response_time,
-                  static_cast<int>(status.error_code())));
+  auto str = impl::FormatLogMessage(
+      params_.context.client_metadata(), params_.context.peer(),
+      params_.call_span.GetStartSystemTime(), params_.call_name,
+      static_cast<int>(status.error_code()));
+  params_.access_tskv_logger.Log(logging::Level::kInfo, std::move(str));
 }
 
 }  // namespace ugrpc::server
