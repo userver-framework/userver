@@ -37,7 +37,7 @@ components_manager:
         dynamic-config-fallbacks:            # Load options from file and push them into the dynamic config storage.
             fallback-path: /etc/static_service/dynamic_config_fallback.json
         fs-cache-main:
-            dir: /var/www           # Path to the directory with files
+            dir: /var/www/           # Path to the directory with files
             update-period: 10s        # update cache each N seconds
             fs-task-processor: fs-task-processor  # Run it on blocking task processor
 

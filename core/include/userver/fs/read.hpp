@@ -19,7 +19,6 @@ namespace fs {
 struct FileInfoWithData {
   std::string data;
   std::string extension;
-  size_t size;
 };
 
 using FileInfoWithDataConstPtr = std::shared_ptr<const FileInfoWithData>;

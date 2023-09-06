@@ -4,11 +4,28 @@
 #include <boost/filesystem/operations.hpp>
 
 #include <userver/engine/task/task_processor_fwd.hpp>
+#include <userver/fs/read.hpp>
 #include <userver/rcu/rcu_map.hpp>
 #include <userver/utils/async.hpp>
 #include <userver/utils/periodic_task.hpp>
 
 USERVER_NAMESPACE_BEGIN
+
+namespace {
+
+std::string GetNormalizeDirectory(std::string_view dir) {
+  auto slice = dir.size();
+  // NOLINTNEXTLINE(modernize-loop-convert)
+  for (auto it = dir.rbegin(); it != dir.rend(); ++it) {
+    if (*it == '/')
+      --slice;
+    else
+      break;
+  }
+  return std::string{dir.data(), slice};
+}
+
+}  // namespace
 
 namespace fs {
 
@@ -26,7 +43,7 @@ bool IsFilepathHidden(const std::string& path) {
 FsCacheClient::FsCacheClient(std::string_view dir,
                              std::chrono::milliseconds update_period,
                              engine::TaskProcessor& tp)
-    : dir_(dir), update_period_(update_period), tp_(tp) {
+    : dir_(GetNormalizeDirectory(dir)), update_period_(update_period), tp_(tp) {
   UpdateCache();
 
   if (update_period_ == std::chrono::milliseconds(0)) {
@@ -98,7 +115,6 @@ void FsCacheClient::HandleCreate(const std::string& path) {
   FileInfoWithData info{};
   info.extension = boost::filesystem::extension(path);
   info.data = ReadFileContents(tp_, path);
-  info.size = info.data.size();
   data_.InsertOrAssign(
       GetLexicallyRelative(path, dir_),
       std::make_shared<const FileInfoWithData>(std::move(info)));
