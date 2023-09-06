@@ -152,7 +152,7 @@ void Component::OnConfigUpdate(const dynamic_config::Snapshot& cfg) {
 
 void Component::OnAllComponentsLoaded() {
   LOG_DEBUG() << "Found " << pimpl_->server.GetThrottlableHandlersCount()
-              << " registered HTTP handlers with enabled trottling";
+              << " registered HTTP handlers with enabled throttling";
   if (pimpl_->server.GetThrottlableHandlersCount() == 0) {
     pimpl_->force_disabled = true;
     LOG_WARNING() << "No throttlable HTTP handlers registered, disabling";

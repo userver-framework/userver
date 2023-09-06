@@ -42,7 +42,7 @@
 /// @par Implementation
 /// Topology update runs every second.
 ///
-/// Every host is assighed a connection with special ID (4100200300).
+/// Every host is assigned a connection with special ID (4100200300).
 /// Using this connection we check for host availability, writability
 /// (master detection) and perform RTT measurements.
 ///

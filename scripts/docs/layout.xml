@@ -32,9 +32,9 @@
       </tab>
       <tab type="usergroup" title="Generic development" url="[none]">
         <tab type="usergroup" url="@ref md_en_2userver_2component__system" title="Component system">
-          <tab type="user" url="@ref group__userver__clients" title="Clients"/>
-          <tab type="user" url="@ref group__userver__http__handlers" title="HTTP Handlers"/>
-          <tab type="user" url="@ref group__userver__components" title="Other components"/>
+          <tab type="user" url="@ref userver_clients" title="Clients"/>
+          <tab type="user" url="@ref userver_http_handlers" title="HTTP Handlers"/>
+          <tab type="user" url="@ref userver_components" title="Other components"/>
         </tab>
         <tab type="user" url="@ref md_en_2userver_2synchronization" title="Synchronization Primitives"/>
         <tab type="user" url="@ref md_en_2userver_2formats" title="Formats (JSON, YAML, BSON, ...)"/>
@@ -69,6 +69,7 @@
         <tab type="user" url="@ref md_en_2userver_2memory__profile__running__service" title="Memory profiling a production service"/>
         <tab type="user" url="@ref md_en_2userver_2dns__control" title="Controlling DNS"/>
         <tab type="user" url="@ref md_en_2userver_2os__signals" title="Handling OS signals"/>
+        <tab type="user" url="@ref md_en_2userver_2deadline__propagation" title="Deadline Propagation"/>
       </tab>
       <tab type="usergroup" title="Caches" url="[none]">
         <tab type="user" url="@ref md_en_2userver_2caches" title="Basics of Caches"/>

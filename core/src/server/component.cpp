@@ -68,7 +68,7 @@ properties:
         description: set to logger name from components::Logging component to write access logs in TSKV format into it; do not set to avoid writing access logs
     max_response_size_in_flight:
         type: integer
-        description: set it to the size of response in bytes and the component will drop bigger responses from handlers that allow trottling
+        description: set it to the size of response in bytes and the component will drop bigger responses from handlers that allow throttling
     server-name:
         type: string
         description: value to send in HTTP Server header
@@ -141,7 +141,7 @@ properties:
                         defaultDescription: 32 * 1024
                     requests_queue_size_threshold:
                         type: integer
-                        description: drop requests from handlers that allow trottling if there's more pending requests than allowed by this value
+                        description: drop requests from handlers that allow throttling if there's more pending requests than allowed by this value
                         defaultDescription: 100
                     keepalive_timeout:
                         type: integer

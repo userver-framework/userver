@@ -70,7 +70,7 @@ TEST(Macaddr8Test, Test) {
   EXPECT_EQ(Macaddr8FromString("08002b-0102030405"), Macaddr8(octets));
   EXPECT_EQ(Macaddr8FromString("08002b.0102030405"), Macaddr8(octets));
 
-  // Macaddr compatability
+  // Macaddr compatibility
   Macaddr8::OctetsType octets1 = {0x08, 0x00, 0x2b, 0xFF,
                                   0xFE, 0x03, 0x04, 0x05};
   EXPECT_EQ(Macaddr8FromString("08:00:2b:03:04:05"), Macaddr8(octets1));

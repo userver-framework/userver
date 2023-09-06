@@ -257,7 +257,7 @@ size_t GetStartIndex(const CommandControl& command_control, size_t attempt,
   /// For compatibility with non-cluster-autotopology driver:
   /// List of available servers for readonly
   /// requests still contains master. Master is the last server in list.
-  /// Reads from master are posible even with allow_reads_from_master=false
+  /// Reads from master are possible even with allow_reads_from_master=false
   /// in cases when there no available replica (replicas are broken or
   /// master is the only instance in cluster shard).
   servers_count = (first_try && first_attempt && !allow_reads_from_master)

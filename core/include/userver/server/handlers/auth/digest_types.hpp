@@ -13,7 +13,7 @@ namespace server::handlers::auth {
 enum class HashAlgTypes {
   kMD5,     ///< MD5 algorithm
   kSHA256,  ///< SHA256 algorithm
-  kSHA512,  ///< SHA512 algortihm
+  kSHA512,  ///< SHA512 algorithm
   kUnknown  ///< Unknown algorithm
 };
 

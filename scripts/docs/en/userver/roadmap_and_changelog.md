@@ -17,12 +17,10 @@ Changelog news also go to the
 ## Roadmap
 
 
-### Plans for the first release (in a three months!)
+### Plans for the first release (in a two months!)
 
-* Add web interface to the [uservice-dynconf](https://github.com/userver-framework/uservice-dynconf)
-  * ✓ Add component to serve static pages
+* ✓ Add component to serve static pages
 * ✓ Migrate userver-only related CI checks to the GithubCI
-* Migrate to upstream versions of formatters
 * ✓ Improve documentation
   * ✓ Improve @ref scripts/docs/en/userver/framework_comparison.md
   * ✓ Add TCP acceptor sample
@@ -44,18 +42,97 @@ Changelog news also go to the
   * ✓ Clickhouse
   * ✓ gRPC
 * Enable PostgreSQL pipelining
-* Implement and enable Deadline Propagation
+* ✓ Implement and enable Deadline Propagation
   * ✓ HTTP Client
   * ✓ HTTP Server
   * ✓ Mongo
-  * PostgreSQL
-  * Redis
-  * gRPC
+  * ✓ PostgreSQL
+  * ✓ Redis
+  * ✓ gRPC
 * ✓ Implement streaming API for the HTTP
+
+### Plans for the next release
+
+* Add web interface to the [uservice-dynconf](https://github.com/userver-framework/uservice-dynconf)
 * Add basic Kafka driver.
+* Add YDB driver.
 
 
 ## Changelog
+
+
+### Beta (August 2023)
+
+* Deadline Propagation is now implemned and
+  @ref scripts/docs/en/userver/deadline_propagation.md "documented".
+
+* Projects from [Yandex Schools](https://academy.yandex.ru/schools):
+  * Documentation was redesigned by [hellenisaeva](https://github.com/hellenisaeva)
+    and [MariaGrinchenko](https://github.com/MariaGrinchenko); new design was
+    made up by [Fedor Alekseev](https://github.com/atlz253),
+    [fleshr](https://github.com/fleshr), [ZenkoWu](https://github.com/ZenkoWu),
+    [Michael Talalaev](https://github.com/InfinityScripter); the whole process
+    was managed by [Oleg Komarov](https://github.com/0GE1) with feedback from
+    marketing specialist [makachusha](https://github.com/makachusha).
+    Many thanks to all the participants for the great work.
+  * Implemented initial API for RFC 7616 - HTTP Digest Access Authentication,
+    thanks to [Almaz Shagiev](https://github.com/bashkirian),
+    [Konstantin Antoniadi](https://github.com/KonstantinAntoniadi),
+    [Ilya Golosov](https://github.com/bookWorm21), and
+    [Niyaz](https://github.com/mnink275) for multiple PRs!
+  * std::bitset<N>, std::array<bool, N>, userver::utils::Flags<Enum> and integral
+    values are now mapped to PostgreSQL bit and bit varying types. Thanks to
+    [dsaa27](https://github.com/dsaa27) and 
+    [bshirokov](https://github.com/bshirokov) for the PRs!
+  * Initial `Realmedium` sample was implemented and moved into a separate
+    repository at [userver-framework/realmedium_sample](https://github.com/userver-framework/realmedium_sample).
+    Thanks to [berholz](https://github.com/berholz),
+    [rumxcola](https://github.com/rumxcola),
+    [Konstantin Artemev](https://github.com/rumxcola),
+    [GasikPasik](https://github.com/GasikPasik),
+    [Anna Volkova](https://github.com/etoanita),
+    [Nikita Semenov](https://github.com/NikitaSemenov1),
+    [VVendor](https://github.com/VVendor) for the PR!
+
+* Metrics for CPU usage of particular threads of task processors are now
+  available via new engine::TaskProcessorsLoadMonitor component.
+
+* gRPC and HTTP handler metrics were switched to utils::statistics::Rate,
+  leading to better handling of service start/stop by metrics storage.
+
+* server::Server now returns HTTP header
+  "Content-Type: application/octet-stream" if the content type was not set.
+
+* Implemented `ToString(utils::StrongTypedef<floating point>)`, thanks to
+  [Daniil Shvalov](https://github.com/danilshvalov) for the PR.
+
+* Optimizations:
+  * Signifiacally optimized JSON DOM access to a non-existing element.
+  * Logging now does not lock a mutex in fs-task-processor on each log record.
+  * Up to 3 times faster logging due to multiple minor tweaks with data copy and
+    memory prereserving.
+  * The new asynchronous engine::io::sys::linux::Inotify driver for Linux allows
+    subscriptions to filesystem events. Thanks to it the fs::FsCacheClient now
+    reacts faster.
+
+* Docs:
+  * @ref scripts/docs/en/userver/tutorial/auth_postgres.md now provides a
+    PostgreSQL migrations sample.
+  * Fixed broken refs to hello_service page, thanks to
+    [Danil Sidoruk](https://github.com/eoan-ermine) for the PR!
+  * @ref userver_universal group was added with information on contents of
+    `userver-universal` CMake target.
+  * Documented @ref scripts/docs/en/userver/service_monitor.md "PostgreSQL metrics"
+
+* Build:
+  * Dropped spdlog dependency
+  * [CPM library](https://github.com/cpm-cmake/CPM.cmake) is now used for managing
+    third-party dependencies.
+  * Fixed cryptopp compilation error, thanks to
+    [Daniil Shvalov](https://github.com/danilshvalov) for the PR!
+  * Fixed -Wsign-conversion -Wctad-maybe-unsupported warnings in
+    utils::TrivialBiMap, thanks to [darktime78](https://github.com/darktime78)
+    for the PR!
 
 
 ### Beta (July 2023)

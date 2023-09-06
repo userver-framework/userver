@@ -30,7 +30,7 @@ class SlidingInterval final {
     UASSERT(this->buckets_.size() > 0);
   }
 
-  /// @brief replaces the oldes value in terval with `value`, i.e slides the
+  /// @brief replaces the oldest value in interval with `value`, i.e slides the
   /// interval.
   void Update(T value) {
     buckets_[idx_] = value;

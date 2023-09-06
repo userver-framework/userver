@@ -33,7 +33,7 @@ class FileDescriptor final {
   /// @throws std::runtime_error
   static FileDescriptor OpenDirectory(const std::string& path);
 
-  /// @brief Use the file discriptor directly
+  /// @brief Use the file descriptor directly
   static FileDescriptor AdoptFd(int fd) noexcept;
 
   FileDescriptor() = delete;

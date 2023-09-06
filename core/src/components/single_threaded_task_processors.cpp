@@ -34,9 +34,9 @@ properties:
         type: string
         description: |
             OS scheduling mode for the task processor threads.
-            `idle` sets the lowest pririty.
+            `idle` sets the lowest priority.
             `low-priority` sets the priority below `normal` but
-            higher than `idle`.   
+            higher than `idle`.
         defaultDescription: normal
         enum:
           - normal

@@ -100,7 +100,7 @@ Value FromString(std::string_view doc) {
   if (!ok) {
     const auto offset = ok.Offset();
     const auto line = 1 + std::count(doc.begin(), doc.begin() + offset, '\n');
-    // Some versions of libstdc++ have runtime isues in
+    // Some versions of libstdc++ have runtime issues in
     // string_view::find_last_of("\n", 0, offset) implementation.
     const auto from_pos = doc.substr(0, offset).find_last_of('\n');
     const auto column = offset > from_pos ? offset - from_pos : offset + 1;

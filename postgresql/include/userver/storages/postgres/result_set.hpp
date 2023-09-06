@@ -162,7 +162,7 @@ namespace storages::postgres {
 /// @par Converting a Row to a user row type
 ///
 /// A row can be converted to a user type (tuple, structure, class), for more
-/// information on data type requrements see @ref pg_user_row_types
+/// information on data type requirements see @ref pg_user_row_types
 ///
 /// @todo Interface for converting rows to arbitrary user types
 ///

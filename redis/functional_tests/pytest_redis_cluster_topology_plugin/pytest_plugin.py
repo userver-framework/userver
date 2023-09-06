@@ -140,7 +140,7 @@ class _RedisClusterNode:
     def wait_ready(self):
         for _ in range(MAX_CHECK_RETRIES):
             if self.check_instance():
-                logger.info(f'redis {self.get_address()} suceessfully pinged')
+                logger.info(f'redis {self.get_address()} successfully pinged')
                 break
             logger.warning('Redis cluster is not up yet, waiting')
             time.sleep(RETRY_TIMEOUT)

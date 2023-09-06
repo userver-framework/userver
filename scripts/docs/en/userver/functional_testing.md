@@ -48,7 +48,7 @@ Then create testsuite target:
 * WORKING_DIRECTORY, pytest working directory. Default is ${CMAKE_CURRENT_SOURCE_DIR}.
 * PYTEST_ARGS, list of extra arguments passed to `pytest`.
 * PYTHONPATH, list of directories to be prepended to `PYTHONPATH`.
-* REQUIREMENTS, list of reqirements.txt files used to populate `virtualenv`.
+* REQUIREMENTS, list of requirements.txt files used to populate `virtualenv`.
 * PYTHON_BINARY, path to existing Python binary.
 * VIRTUALENV_ARGS, list of extra arguments passed to `virtualenv`.
 * PRETTY_LOGS, set to `OFF` to disable pretty printing.

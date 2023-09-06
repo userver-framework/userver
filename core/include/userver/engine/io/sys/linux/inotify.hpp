@@ -36,7 +36,7 @@ enum class EventType {
   kMovedTo = IN_MOVED_TO,
   kOpen = IN_OPEN,
 
-  kIsDir = IN_ISDIR,      // event occured against dir
+  kIsDir = IN_ISDIR,      // event occurred against dir
   kOnlyDir = IN_ONLYDIR,  // catch only dir events
 };
 

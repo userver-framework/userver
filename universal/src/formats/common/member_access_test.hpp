@@ -8,21 +8,21 @@ template <class T>
 struct MemberAccess : public ::testing::Test {};
 TYPED_TEST_SUITE_P(MemberAccess);
 
-TYPED_TEST_P(MemberAccess, ChildBySquareBrakets) {
+TYPED_TEST_P(MemberAccess, ChildBySquareBrackets) {
   using ValueBuilder = typename TestFixture::ValueBuilder;
 
   EXPECT_FALSE(this->doc_["key1"].IsMissing());
   EXPECT_EQ(this->doc_["key1"], ValueBuilder(1).ExtractValue());
 }
 
-TYPED_TEST_P(MemberAccess, ChildBySquareBraketsTwice) {
+TYPED_TEST_P(MemberAccess, ChildBySquareBracketsTwice) {
   using ValueBuilder = typename TestFixture::ValueBuilder;
 
   EXPECT_FALSE(this->doc_["key3"]["sub"].IsMissing());
   EXPECT_EQ(this->doc_["key3"]["sub"], ValueBuilder(-1).ExtractValue());
 }
 
-TYPED_TEST_P(MemberAccess, ChildBySquareBraketsMissing) {
+TYPED_TEST_P(MemberAccess, ChildBySquareBracketsMissing) {
   using MemberMissingException = typename TestFixture::MemberMissingException;
 
   EXPECT_NO_THROW(this->doc_["key_missing"]);
@@ -35,7 +35,7 @@ TYPED_TEST_P(MemberAccess, ChildBySquareBraketsMissing) {
                MemberMissingException);
 }
 
-TYPED_TEST_P(MemberAccess, ChildBySquareBraketsMissingTwice) {
+TYPED_TEST_P(MemberAccess, ChildBySquareBracketsMissingTwice) {
   using MemberMissingException = typename TestFixture::MemberMissingException;
 
   EXPECT_NO_THROW(this->doc_["key_missing"]["sub"]);
@@ -48,13 +48,13 @@ TYPED_TEST_P(MemberAccess, ChildBySquareBraketsMissingTwice) {
                MemberMissingException);
 }
 
-TYPED_TEST_P(MemberAccess, ChildBySquareBraketsArray) {
+TYPED_TEST_P(MemberAccess, ChildBySquareBracketsArray) {
   using ValueBuilder = typename TestFixture::ValueBuilder;
 
   EXPECT_EQ(this->doc_["key4"][1], ValueBuilder(2).ExtractValue());
 }
 
-TYPED_TEST_P(MemberAccess, ChildBySquareBraketsBounds) {
+TYPED_TEST_P(MemberAccess, ChildBySquareBracketsBounds) {
   using OutOfBoundsException = typename TestFixture::OutOfBoundsException;
 
   // possible false positive because of conditional in catch?
@@ -438,9 +438,9 @@ TYPED_TEST_P(MemberAccess, RootAndPathOfCloned) {
 REGISTER_TYPED_TEST_SUITE_P(
     MemberAccess,
 
-    ChildBySquareBrakets, ChildBySquareBraketsTwice,
-    ChildBySquareBraketsMissing, ChildBySquareBraketsMissingTwice,
-    ChildBySquareBraketsArray, ChildBySquareBraketsBounds,
+    ChildBySquareBrackets, ChildBySquareBracketsTwice,
+    ChildBySquareBracketsMissing, ChildBySquareBracketsMissingTwice,
+    ChildBySquareBracketsArray, ChildBySquareBracketsBounds,
 
     Items, IterateMemberNames, IterateAndCheckValues,
     IterateMembersAndCheckKey4, IterateMembersAndCheckKey4Index,

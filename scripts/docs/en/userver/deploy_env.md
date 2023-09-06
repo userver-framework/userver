@@ -95,7 +95,7 @@ interface, for example via Grafana .
 
 `Logs Collector` (for example `logstash`, `fluentd`, `vector`) processes the
 logs file and uploads results to logs aggregator
-(for example Elastic). Logs could be viewed in web interface, for
+(for example Elasticsearch). Logs could be viewed in web interface, for
 example via Kibana.
 
 @dot
@@ -131,7 +131,7 @@ digraph TypicalService
     Database1 [label = "Database", shape=cylinder, width=2.0];
   }
   
-  Elastic [shape=cylinder, width=2.0];
+  Elasticsearch [shape=cylinder, width=2.0];
   Kibana [shape=component, width=2.0];
   
   MetricsAggregateor [label = "Metrics Aggregateor", shape=cylinder, width=2.0];
@@ -161,8 +161,8 @@ digraph TypicalService
   logs -> LogsCollector  [penwidth=3, edgetooltip = "FS read, TSKV", dir=both  arrowhead=none];
   MetricsUploader -> Service [penwidth=3, edgetooltip = "HTTP JSON, compressed response"];
   MetricsUploader -> MetricsAggregateor[penwidth=3, edgetooltip = "HTTP JSON, compressed response"];
-  LogsCollector -> Elastic [penwidth=3, edgetooltip = "HTTP JSON, compressed response", weight=100];
-  Elastic -> Kibana [penwidth=3, edgetooltip = "JSON", dir=both];
+  LogsCollector -> Elasticsearch [penwidth=3, edgetooltip = "HTTP JSON, compressed response", weight=100];
+  Elasticsearch -> Kibana [penwidth=3, edgetooltip = "JSON", dir=both];
   MetricsAggregateor -> Grafana [penwidth=3, edgetooltip = "JSON", dir=both];
 
   Request[label = "Request", shape=plaintext, rank="main"];
@@ -237,7 +237,7 @@ Metrics could be viewed in web interface, for example via Grafana .
 
 `Logs Collector` (for example `logstash`, `fluentd`, `vector`) processes the
 logs file and uploads results to logs aggregator
-(for example Elastic). Logs could be viewed in web interface, for
+(for example Elasticsearch). Logs could be viewed in web interface, for
 example via Kibana.
 
 @dot
@@ -271,7 +271,7 @@ digraph TypicalService
     Database1 [label = "Database", shape=cylinder, width=2.0];
   }
   
-  Elastic [shape=cylinder, width=2.0];
+  Elasticsearch [shape=cylinder, width=2.0];
   Kibana [shape=component, width=2.0];
   
   MetricsAggregateor [shape=cylinder, width=2.0];
@@ -295,8 +295,8 @@ digraph TypicalService
   logs -> LogsCollector  [penwidth=3, edgetooltip = "FS read, TSKV", dir=both  arrowhead=none];
   MetricsUploader -> Service [penwidth=3, edgetooltip = "HTTP JSON, compressed response"];
   MetricsUploader -> MetricsAggregateor[penwidth=3, edgetooltip = "HTTP JSON, compressed response"];
-  LogsCollector -> Elastic [penwidth=3, edgetooltip = "HTTP JSON, compressed response", weight=100];
-  Elastic -> Kibana [penwidth=3, edgetooltip = "JSON", dir=both];
+  LogsCollector -> Elasticsearch [penwidth=3, edgetooltip = "HTTP JSON, compressed response", weight=100];
+  Elasticsearch -> Kibana [penwidth=3, edgetooltip = "JSON", dir=both];
   MetricsAggregateor -> Grafana [penwidth=3, edgetooltip = "JSON", dir=both];
 
   

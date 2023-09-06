@@ -22,7 +22,7 @@ struct AsRateAndGauge final {
 void DumpMetric(utils::statistics::Writer& writer,
                 const AsRateAndGauge& stats) {
   // old format. Currently it is 'rate' as well, as we are
-  // in our final stages of fully moving to RateConter
+  // in our final stages of fully moving to RateCounter
   // See https://st.yandex-team.ru/TAXICOMMON-6872
   writer = stats.value;
   // new format, with 'rate' support but into different sensor

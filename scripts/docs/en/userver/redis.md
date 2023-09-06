@@ -15,6 +15,7 @@ versa.
 * Support for different strategies of choosing the most suitable Redis instance;
 * Request timeouts management with transparent retries;
 * @ref scripts/docs/en/userver/deadline_propagation.md
+* Cluster autotopology 
 
 ## Metrics
 
@@ -55,6 +56,43 @@ that executes the Redis request:
 
 Redis driver does not guarantee that the cancelled request was not executed
 by the server.
+
+
+### Redis Cluster Autotopology
+
+Cluster autotopology makes it possible to do resharding of the cluster
+without Secdist changes and service restart.
+
+With this feature entries in the Secdist are now treated not as a list of all
+the cluster hosts, but only as input points through which the service discowers
+the configuration of the entire cluster. Therefore, it is not recommended
+to delete instances that are listed in secdist from the cluster.
+
+The cluster configuration is checked
+* at the start of the service
+* and periodically
+* and if a MOVED response is received from Redis
+
+If a change in the cluster topology was detected during the check
+(hashslot distribution change, master change, or new replicas discowered),
+then the internal representation of the topology is recreated,
+the new topology is gets ready (new connections may appear in it),
+and after that the active topology is replaced.
+
+#### Enabling/Disabling Redis Cluster Autotopology
+
+At the moment aotopology could be nables via an experiment in static config of
+a service:
+
+```
+#yaml
+userver_experiments:
+  - redis-cluster-autotopology
+```
+
+The autotopology could be disabled by the dynamic config option
+REDIS_CLUSTER_AUTOTOPOLOGY_ENABLED_V2.
+
 
 ----------
 

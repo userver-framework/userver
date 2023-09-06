@@ -23,7 +23,7 @@ that could be is dynamically enabled/disabled via the server::handlers::Jemalloc
    ```
 2. Start your service
 3. To start sampling call the server::handlers::Jemalloc. If you use the
-   static confing from @ref scripts/docs/en/userver/tutorial/production_service.md then you
+   static config from @ref scripts/docs/en/userver/tutorial/production_service.md then you
    have to do something like this:
    ```
    bash
