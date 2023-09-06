@@ -92,6 +92,7 @@ Changelog news also go to the
     [GasikPasik](https://github.com/GasikPasik),
     [Anna Volkova](https://github.com/etoanita),
     [Nikita Semenov](https://github.com/NikitaSemenov1),
+    [Daniil Boriskin](https://github.com/Riferus),
     [VVendor](https://github.com/VVendor) for the PR!
 
 * Metrics for CPU usage of particular threads of task processors are now
