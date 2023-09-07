@@ -1,4 +1,5 @@
 import asyncio
+import uuid
 
 
 async def _check_that_restores(client, gate):
@@ -56,3 +57,23 @@ async def test_clickhouse_close_connections(service_client, gate):
 
     await gate.sockets_close()
     await _check_that_restores(service_client, gate)
+
+
+async def test_uuids(service_client, clickhouse):
+    user_uuid = '30eec7b3-0b5c-451e-8976-98f62b4c4448'
+    big_endian_uuid = '1e455c0b-b3c7-ee30-4844-4c2bf6987689'
+    response = await service_client.post(
+        '/uuids',
+        json={'uuid_mismatched': user_uuid, 'uuid_correct': user_uuid},
+    )
+    assert response.status == 200
+
+    response = await service_client.get('/uuids')
+    assert response.json() == [
+        {'uuid_mismatched': user_uuid, 'uuid_correct': user_uuid},
+    ]
+
+    db_data = clickhouse['key-value-database'].execute(
+        'SELECT uuid_mismatched, uuid_correct FROM uuids',
+    )
+    assert db_data == [(uuid.UUID(big_endian_uuid), uuid.UUID(user_uuid))]

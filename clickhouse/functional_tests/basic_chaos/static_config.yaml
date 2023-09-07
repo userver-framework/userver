@@ -5,6 +5,11 @@ components_manager:
             task_processor: main-task-processor
             method: GET,POST,DELETE
 
+        handler-uuids:
+            path: /uuids
+            task_processor: main-task-processor
+            method: GET,POST
+
         clickhouse-database:
             secdist_alias: clickhouse-database-alias
             initial_pool_size: 1
