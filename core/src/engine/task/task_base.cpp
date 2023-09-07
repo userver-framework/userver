@@ -160,7 +160,9 @@ void TaskBase::Terminate(TaskCancellationReason reason) noexcept {
     Wait();
   }
 
-  context_->ResetPayload();
+  if (reason == TaskCancellationReason::kAbandoned) {
+    context_->ResetPayload();
+  }
 }
 
 namespace current_task {

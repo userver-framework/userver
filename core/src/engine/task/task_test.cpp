@@ -380,4 +380,12 @@ UTEST(Task,
   engine::SleepFor(200ms);
 }
 
+UTEST(Task, SyncCancelAndWait) {
+  auto task = engine::AsyncNoSpan([] { return 1; });
+  engine::Yield();
+
+  task.SyncCancel();
+  task.Get();
+}
+
 USERVER_NAMESPACE_END
