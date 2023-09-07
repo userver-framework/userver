@@ -33,6 +33,21 @@ constexpr std::string_view kAuthenticationInfo = "Authentication-Info";
 constexpr std::string_view kProxyAuthenticationInfo =
     "Proxy-Authentication-Info";
 
+namespace {
+
+class ServerDigestSecretKey {
+ public:
+  ServerDigestSecretKey(const formats::json::Value& doc)
+      : secret_key_(doc["server-secret-key"].As<DigestSecretKey>()) {}
+
+  const DigestSecretKey& GetSecretKey() const { return secret_key_; }
+
+ private:
+  DigestSecretKey secret_key_;
+};
+
+}  // namespace
+
 UserData::UserData(HA1 ha1, std::string nonce, TimePoint timestamp,
                    std::int64_t nonce_count)
     : ha1(std::move(ha1)),
@@ -40,7 +55,9 @@ UserData::UserData(HA1 ha1, std::string nonce, TimePoint timestamp,
       timestamp(timestamp),
       nonce_count(nonce_count) {}
 
-Hasher::Hasher(std::string_view algorithm) {
+DigestHasher::DigestHasher(std::string_view algorithm,
+                           const SecdistConfig& secdist_config)
+    : secdist_config_(secdist_config) {
   switch (
       kHashAlgToType.TryFindICase(algorithm).value_or(HashAlgTypes::kUnknown)) {
     case HashAlgTypes::kMD5:
@@ -57,21 +74,22 @@ Hasher::Hasher(std::string_view algorithm) {
   }
 }
 
-// TODO: Implement the recommended nonce hashing algorithm:
-// nonce = hash(timestamp:ETag:server-private-key)
-std::string Hasher::GenerateNonce(std::string_view etag) const {
+std::string DigestHasher::GenerateNonce(std::string_view etag) const {
   auto timestamp = std::to_string(
       std::chrono::system_clock::now().time_since_epoch().count());
-  if (etag.empty()) return GetHash(timestamp);
-  return GetHash(fmt::format("{}:{}", timestamp, etag));
+  return GetHash(fmt::format("{}:{}:{}", timestamp, etag,
+                             secdist_config_.Get<ServerDigestSecretKey>()
+                                 .GetSecretKey()
+                                 .GetUnderlying()));
 }
 
 std::string Hasher::GetHash(std::string_view data) const {
   return hash_algorithm_(data, crypto::hash::OutputEncoding::kHex);
 }
 
-AuthCheckerBase::AuthCheckerBase(const AuthCheckerSettings& digest_settings,
-                                 std::string&& realm)
+DigestCheckerBase::DigestCheckerBase(const AuthDigestSettings& digest_settings,
+                                     std::string&& realm,
+                                     const SecdistConfig& secdist_config)
     : qops_(fmt::format("{}", fmt::join(digest_settings.qops, ","))),
       realm_(std::move(realm)),
       domains_(fmt::format("{}", fmt::join(digest_settings.domains, ", "))),
@@ -79,7 +97,7 @@ AuthCheckerBase::AuthCheckerBase(const AuthCheckerSettings& digest_settings,
       is_session_(digest_settings.is_session),
       is_proxy_(digest_settings.is_proxy),
       nonce_ttl_(digest_settings.nonce_ttl),
-      digest_hasher_(algorithm_),
+      digest_hasher_(algorithm_, secdist_config),
       authenticate_header_(
           is_proxy_ ? USERVER_NAMESPACE::http::headers::kProxyAuthenticate
                     : USERVER_NAMESPACE::http::headers::kWWWAuthenticate),
