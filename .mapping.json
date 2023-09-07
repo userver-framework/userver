@@ -1,6 +1,7 @@
 {
   ".clang-format":"taxi/uservices/userver/.clang-format",
   ".clang-tidy":"taxi/uservices/userver/.clang-tidy",
+  ".editorconfig":"taxi/uservices/userver/.editorconfig",
   ".gitattributes":"taxi/uservices/userver/.gitattributes",
   ".github/workflows/ci-conan.yml":"taxi/uservices/userver/.github/workflows/ci-conan.yml",
   ".github/workflows/ci.yml":"taxi/uservices/userver/.github/workflows/ci.yml",
