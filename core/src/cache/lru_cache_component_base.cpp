@@ -65,6 +65,10 @@ properties:
         type: string
         description: TTL for cache entries (0 is unlimited)
         defaultDescription: 0
+    background-update:
+        type: boolean
+        description: enables asynchronous updates for expring values
+        defaultDescription: false
     config-settings:
         type: boolean
         description: enables dynamic reconfiguration with CacheConfigSet
