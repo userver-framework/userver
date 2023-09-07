@@ -4,15 +4,15 @@
 
 #include <userver/utest/utest.hpp>
 
-#include <userver/server/handlers/auth/digest/auth_checker_base.hpp>
-#include <userver/server/handlers/auth/digest/context.hpp>
-#include <userver/server/handlers/auth/digest/directives_parser.hpp>
-#include <userver/server/handlers/auth/digest/standalone_checker.hpp>
-#include <userver/utils/datetime.hpp>
-#include <userver/utils/mock_now.hpp>
 #include <userver/fs/blocking/temp_file.hpp>
 #include <userver/fs/blocking/write.hpp>
+#include <userver/server/handlers/auth/auth_digest_checker_standalone.hpp>
+#include <userver/server/handlers/auth/auth_params_parsing.hpp>
+#include <userver/server/handlers/auth/digest_checker_base.hpp>
+#include <userver/server/handlers/auth/digest_context.hpp>
 #include <userver/storages/secdist/provider_component.hpp>
+#include <userver/utils/datetime.hpp>
+#include <userver/utils/mock_now.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -34,11 +34,9 @@ constexpr auto kNonceTTL = std::chrono::milliseconds{1000};
 class StandAloneChecker final : public AuthStandaloneCheckerBase {
  public:
   StandAloneChecker(const AuthDigestSettings& digest_settings,
-                    std::string&& realm,
-                    const SecdistConfig& secdist_config)
+                    std::string&& realm, const SecdistConfig& secdist_config)
       : AuthCheckerDigestBaseStandalone(digest_settings, std::move(realm),
-                                        secdist_config,
-                                        kWays, kWaySize) {}
+                                        secdist_config, kWays, kWaySize) {}
 
   std::optional<HA1> GetHA1(std::string_view) const override {
     return kValidHA1;
@@ -51,9 +49,7 @@ class StandAloneCheckerTest : public ::testing::Test {
     TempFileProvider() {
       fs::blocking::RewriteFileContents(temp_file.GetPath(), kSecdistJson);
     }
-    const std::string& GetFilePath() const {
-      return temp_file.GetPath();
-    }
+    const std::string& GetFilePath() const { return temp_file.GetPath(); }
 
     static constexpr std::string_view kSecdistJson = R"~(
     {
@@ -64,13 +60,11 @@ class StandAloneCheckerTest : public ::testing::Test {
   };
 
   StandAloneCheckerTest()
-      : default_loader(
-        {temp_file_provier.GetFilePath(), storages::secdist::SecdistFormat::kJson, true, std::nullopt}
-      ),
-      secdist_config(
-        {&default_loader, std::chrono::milliseconds::zero()}
-      ),
-      digest_settings_(AuthDigestSettings{
+      : default_loader({temp_file_provier.GetFilePath(),
+                        storages::secdist::SecdistFormat::kJson, true,
+                        std::nullopt}),
+        secdist_config({&default_loader, std::chrono::milliseconds::zero()}),
+        digest_settings_(AuthDigestSettings{
             "MD5",                             // algorithm
             std::vector<std::string>{"/"},     // domains
             std::vector<std::string>{"auth"},  // qops
