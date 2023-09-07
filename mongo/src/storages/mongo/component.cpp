@@ -49,6 +49,8 @@ Mongo::Mongo(const ComponentConfig& config, const ComponentContext& context)
       config.Name(), connection_string, pool_config, dns_resolver,
       config_source);
 
+  pool_->Start();
+
   auto& statistics_storage =
       context.FindComponent<components::StatisticsStorage>();
 

@@ -109,8 +109,11 @@ storages::mongo::Pool MongoPoolFixture::MakePool(
   if (!config) config.emplace(MakeTestPoolConfig());
   if (!dns_resolver) dns_resolver.emplace(&default_resolver_);
   used_db_names_.insert(*db_name);
-  return {*db_name, GetTestsuiteMongoUri(*db_name), *config, *dns_resolver,
-          dynamic_config_storage_.GetSource()};
+  storages::mongo::Pool pool{*db_name, GetTestsuiteMongoUri(*db_name), *config,
+                             *dns_resolver,
+                             dynamic_config_storage_.GetSource()};
+  pool.Start();
+  return pool;
 }
 
 void MongoPoolFixture::SetDynamicConfig(

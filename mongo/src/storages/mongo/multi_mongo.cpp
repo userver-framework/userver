@@ -43,6 +43,8 @@ void MultiMongo::PoolSet::AddPool(std::string dbalias) {
         target_->name_ + ':' + dbalias,
         secdist::GetSecdistConnectionString(target_->secdist_, dbalias),
         target_->pool_config_, target_->dns_resolver_, target_->config_source_);
+
+    pool_ptr->Start();
   }
 
   pool_map_ptr_->emplace(std::move(dbalias), std::move(pool_ptr));

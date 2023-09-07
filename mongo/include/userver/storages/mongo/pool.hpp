@@ -46,6 +46,8 @@ class Pool {
        dynamic_config::Source config_source);
 
   ~Pool();
+
+  void Start();
   /// @endcond
 
   /// Checks whether a collection exists
