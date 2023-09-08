@@ -17,22 +17,22 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace server::handlers::auth {
+namespace server::handlers::auth::digest {
 
 /// @brief Class for parsing Authorization header directives from client
 /// request.
-class DigestParser {
+class Parser {
  public:
   /// Function to call to parse Authorization header value into directive-value
   /// map
   void ParseAuthInfo(std::string_view header_value);
   /// Function to call to get client digest context from directive-value map
-  DigestContextFromClient GetClientContext();
+  ContextFromClient GetClientContext();
 
  private:
   std::unordered_map<std::string, std::string> directive_mapping;
 };
 
-}  // namespace server::handlers::auth
+}  // namespace server::handlers::auth::digest
 
 USERVER_NAMESPACE_END

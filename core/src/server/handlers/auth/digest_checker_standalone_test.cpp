@@ -4,8 +4,8 @@
 
 #include <userver/utest/utest.hpp>
 
-#include <userver/server/handlers/auth/auth_digest_checker_standalone.hpp>
-#include <userver/server/handlers/auth/auth_params_parsing.hpp>
+#include <userver/server/handlers/auth/digest_checker_standalone.hpp>
+#include <userver/server/handlers/auth/digest_directives_parser.hpp>
 #include <userver/server/handlers/auth/digest_checker_base.hpp>
 #include <userver/server/handlers/auth/digest_context.hpp>
 #include <userver/utils/datetime.hpp>
@@ -13,11 +13,11 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace server::handlers::auth::test {
+namespace server::handlers::auth::digest::test {
 
 using HA1 = utils::NonLoggable<class HA1Tag, std::string>;
 using NonceCache = cache::ExpirableLruCache<std::string, TimePoint>;
-using ValidateResult = DigestCheckerBase::ValidateResult;
+using ValidateResult = AuthCheckerBase::ValidateResult;
 
 constexpr std::size_t kWays = 4;
 constexpr std::size_t kWaySize = 25000;
@@ -28,11 +28,11 @@ const auto kValidHA1 = HA1{"939e7578ed9e3c518a452acee763bce9"};
 const std::string kValidNonce = "dcd98b7102dd2f0e8b11d0f600bfb0c093";
 constexpr auto kNonceTTL = std::chrono::milliseconds{1000};
 
-class StandAloneChecker final : public AuthCheckerDigestBaseStandalone {
+class StandAloneChecker final : public AuthCheckerBaseStandalone {
  public:
-  StandAloneChecker(const AuthDigestSettings& digest_settings,
+  StandAloneChecker(const AuthCheckerSettings& digest_settings,
                     std::string&& realm)
-      : AuthCheckerDigestBaseStandalone(digest_settings, std::move(realm),
+      : AuthCheckerBaseStandalone(digest_settings, std::move(realm),
                                         kWays, kWaySize) {}
 
   std::optional<HA1> GetHA1(std::string_view) const override {
@@ -43,7 +43,7 @@ class StandAloneChecker final : public AuthCheckerDigestBaseStandalone {
 class StandAloneCheckerTest : public ::testing::Test {
  public:
   StandAloneCheckerTest()
-      : digest_settings_(AuthDigestSettings{
+      : digest_settings_({
             "MD5",                             // algorithm
             std::vector<std::string>{"/"},     // domains
             std::vector<std::string>{"auth"},  // qops
@@ -52,7 +52,7 @@ class StandAloneCheckerTest : public ::testing::Test {
             kNonceTTL                          // nonce_ttl
         }),
         checker_(digest_settings_, "testrealm@host.com"),
-        correct_client_context_(DigestContextFromClient{
+        correct_client_context_({
             "Mufasa",                            // username
             "testrealm@host.com",                // realm
             kValidNonce,                         // nonce
@@ -68,10 +68,10 @@ class StandAloneCheckerTest : public ::testing::Test {
     client_context_ = correct_client_context_;
   }
 
-  AuthDigestSettings digest_settings_;
+  AuthCheckerSettings digest_settings_;
   StandAloneChecker checker_;
-  DigestContextFromClient client_context_;
-  DigestContextFromClient correct_client_context_;
+  ContextFromClient client_context_;
+  ContextFromClient correct_client_context_;
 };
 
 UTEST_F(StandAloneCheckerTest, NonceTTL) {
@@ -123,6 +123,6 @@ UTEST_F(StandAloneCheckerTest, NonceCountConvertingThrow) {
                std::runtime_error);
 }
 
-}  // namespace server::handlers::auth::test
+}  // namespace server::handlers::auth::digest::test
 
 USERVER_NAMESPACE_END

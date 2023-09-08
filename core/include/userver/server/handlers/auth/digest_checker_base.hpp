@@ -14,7 +14,7 @@
 #include <userver/crypto/hash.hpp>
 #include <userver/rcu/rcu_map.hpp>
 #include <userver/server/handlers/auth/auth_digest_settings.hpp>
-#include <userver/server/handlers/auth/auth_params_parsing.hpp>
+#include <userver/server/handlers/auth/digest_directives_parser.hpp>
 #include <userver/server/http/http_request.hpp>
 #include <userver/server/http/http_response.hpp>
 #include <userver/server/http/http_status.hpp>
@@ -22,17 +22,17 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace server::handlers::auth {
+namespace server::handlers::auth::digest {
 
 using TimePoint = std::chrono::time_point<std::chrono::system_clock>;
 
 /// Used for data hashing and "nonce" generating.
-class DigestHasher final {
+class Hasher final {
  public:
   /// Constructor from the hash algorithm name from "crypto" namespace.
   /// Subsequently, all methods of the class will use this algorithm for
   /// hashing.
-  DigestHasher(std::string_view algorithm);
+  Hasher(std::string_view algorithm);
 
   /// Returns "nonce" directive value in hexadecimal format.
   std::string GenerateNonce(std::string_view etag) const;
@@ -64,20 +64,20 @@ struct UserData final {
 ///
 /// @brief Base class for digest authentication checkers. Implements a
 /// digest-authentication logic.
-class DigestCheckerBase : public AuthCheckerBase {
+class AuthCheckerBase : public auth::AuthCheckerBase {
  public:
   /// Assepts digest-authentication settings from
   /// @ref server::handlers::auth::DigestCheckerSettingsComponent and "realm"
   /// from handler config in static_config.yaml.
-  DigestCheckerBase(const AuthDigestSettings& digest_settings,
+  AuthCheckerBase(const AuthCheckerSettings& digest_settings,
                     std::string&& realm);
 
-  DigestCheckerBase(const DigestCheckerBase&) = delete;
-  DigestCheckerBase(DigestCheckerBase&&) = delete;
-  DigestCheckerBase& operator=(const DigestCheckerBase&) = delete;
-  DigestCheckerBase& operator=(DigestCheckerBase&&) = delete;
+  AuthCheckerBase(const AuthCheckerBase&) = delete;
+  AuthCheckerBase(AuthCheckerBase&&) = delete;
+  AuthCheckerBase& operator=(const AuthCheckerBase&) = delete;
+  AuthCheckerBase& operator=(AuthCheckerBase&&) = delete;
 
-  ~DigestCheckerBase() override;
+  ~AuthCheckerBase() override;
 
   /// The main checking function that is called for each request.
   [[nodiscard]] AuthCheckResult CheckAuth(
@@ -108,16 +108,16 @@ class DigestCheckerBase : public AuthCheckerBase {
 
   /// @cond
   enum class ValidateResult { kOk, kWrongUserData, kDuplicateRequest };
-  ValidateResult ValidateUserData(const DigestContextFromClient& client_context,
+  ValidateResult ValidateUserData(const ContextFromClient& client_context,
                                   const UserData& user_data) const;
   /// @endcond
  private:
   std::string CalculateDigest(
       const UserData::HA1& ha1_non_loggable, http::HttpMethod request_method,
-      const DigestContextFromClient& client_context) const;
+      const ContextFromClient& client_context) const;
 
   std::string ConstructAuthInfoHeader(
-      const DigestContextFromClient& client_context,
+      const ContextFromClient& client_context,
       std::string_view etag) const;
 
   std::string ConstructResponseDirectives(std::string_view nonce,
@@ -135,7 +135,7 @@ class DigestCheckerBase : public AuthCheckerBase {
   const bool is_proxy_;
   const std::chrono::milliseconds nonce_ttl_;
 
-  const DigestHasher digest_hasher_;
+  const Hasher digest_hasher_;
 
   const std::string authenticate_header_;
   const std::string authorization_header_;
@@ -143,6 +143,6 @@ class DigestCheckerBase : public AuthCheckerBase {
   const http::HttpStatus unauthorized_status_;
 };
 
-}  // namespace server::handlers::auth
+}  // namespace server::handlers::auth::digest
 
 USERVER_NAMESPACE_END

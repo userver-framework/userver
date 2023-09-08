@@ -8,12 +8,12 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace server::handlers::auth {
+namespace server::handlers::auth::digest {
 
 NonceCacheSettingsComponent::NonceCacheSettingsComponent(
     const components::ComponentConfig& config,
     const components::ComponentContext& context)
-    : DigestCheckerSettingsComponent(config, context) {
+    : AuthCheckerSettingsComponent(config, context) {
   settings_.ways = config["ways"].As<std::size_t>();
   settings_.way_size = config["size"].As<std::size_t>();
 }
@@ -25,7 +25,7 @@ const NonceCacheSettings& NonceCacheSettingsComponent::GetSettings() const {
 };
 
 yaml_config::Schema NonceCacheSettingsComponent::GetStaticConfigSchema() {
-  return yaml_config::MergeSchemas<DigestCheckerSettingsComponent>(R"(
+  return yaml_config::MergeSchemas<AuthCheckerSettingsComponent>(R"(
 type: object
 description: class for nonce cache settings
 additionalProperties: false
@@ -39,6 +39,6 @@ properties:
 )");
 }
 
-}  // namespace server::handlers::auth
+}  // namespace server::handlers::auth::digest
 
 USERVER_NAMESPACE_END

@@ -26,7 +26,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace server::handlers::auth {
+namespace server::handlers::auth::digest {
 
 constexpr std::string_view kDigestWord = "Digest";
 
@@ -41,7 +41,7 @@ UserData::UserData(HA1 ha1, std::string nonce, TimePoint timestamp,
       timestamp(timestamp),
       nonce_count(nonce_count) {}
 
-DigestHasher::DigestHasher(std::string_view algorithm) {
+Hasher::Hasher(std::string_view algorithm) {
   switch (
       kHashAlgToType.TryFindICase(algorithm).value_or(HashAlgTypes::kUnknown)) {
     case HashAlgTypes::kMD5:
@@ -60,18 +60,18 @@ DigestHasher::DigestHasher(std::string_view algorithm) {
 
 // TODO: Implement the recommended nonce hashing algorithm:
 // nonce = hash(timestamp:ETag:server-private-key)
-std::string DigestHasher::GenerateNonce(std::string_view etag) const {
+std::string Hasher::GenerateNonce(std::string_view etag) const {
   auto timestamp = std::to_string(
       std::chrono::system_clock::now().time_since_epoch().count());
   if (etag.empty()) return GetHash(timestamp);
   return GetHash(fmt::format("{}:{}", timestamp, etag));
 }
 
-std::string DigestHasher::GetHash(std::string_view data) const {
+std::string Hasher::GetHash(std::string_view data) const {
   return hash_algorithm_(data, crypto::hash::OutputEncoding::kHex);
 }
 
-DigestCheckerBase::DigestCheckerBase(const AuthDigestSettings& digest_settings,
+AuthCheckerBase::AuthCheckerBase(const AuthCheckerSettings& digest_settings,
                                      std::string&& realm)
     : qops_(fmt::format("{}", fmt::join(digest_settings.qops, ","))),
       realm_(std::move(realm)),
@@ -93,9 +93,9 @@ DigestCheckerBase::DigestCheckerBase(const AuthDigestSettings& digest_settings,
                                ? http::HttpStatus::kProxyAuthenticationRequired
                                : http::HttpStatus::kUnauthorized) {}
 
-DigestCheckerBase::~DigestCheckerBase() = default;
+AuthCheckerBase::~AuthCheckerBase() = default;
 
-AuthCheckResult DigestCheckerBase::CheckAuth(const http::HttpRequest& request,
+AuthCheckResult AuthCheckerBase::CheckAuth(const http::HttpRequest& request,
                                              request::RequestContext&) const {
   // RFC 2617, 3: https://datatracker.ietf.org/doc/html/rfc2617
   // Digest Access Authentication.
@@ -123,8 +123,8 @@ AuthCheckResult DigestCheckerBase::CheckAuth(const http::HttpRequest& request,
     return AuthCheckResult{AuthCheckResult::Status::kInvalidToken};
   }
 
-  DigestParser parser;
-  DigestContextFromClient client_context;
+  Parser parser;
+  ContextFromClient client_context;
   try {
     parser.ParseAuthInfo(auth_value.substr(kDigestWord.size() + 1));
     client_context = parser.GetClientContext();
@@ -177,8 +177,8 @@ AuthCheckResult DigestCheckerBase::CheckAuth(const http::HttpRequest& request,
   return {};
 };
 
-DigestCheckerBase::ValidateResult DigestCheckerBase::ValidateUserData(
-    const DigestContextFromClient& client_context,
+AuthCheckerBase::ValidateResult AuthCheckerBase::ValidateUserData(
+    const ContextFromClient& client_context,
     const UserData& user_data) const {
   bool are_nonces_equal = crypto::algorithm::AreStringsEqualConstTime(
       user_data.nonce, client_context.nonce);
@@ -225,8 +225,8 @@ DigestCheckerBase::ValidateResult DigestCheckerBase::ValidateUserData(
   return ValidateResult::kOk;
 }
 
-std::string DigestCheckerBase::ConstructAuthInfoHeader(
-    const DigestContextFromClient& client_context,
+std::string AuthCheckerBase::ConstructAuthInfoHeader(
+    const ContextFromClient& client_context,
     std::string_view etag) const {
   auto next_nonce = digest_hasher_.GenerateNonce(etag);
   SetUserData(client_context.username, next_nonce, 0, utils::datetime::Now());
@@ -235,7 +235,7 @@ std::string DigestCheckerBase::ConstructAuthInfoHeader(
                      std::move(next_nonce));
 }
 
-AuthCheckResult DigestCheckerBase::StartNewAuthSession(
+AuthCheckResult AuthCheckerBase::StartNewAuthSession(
     std::string username, std::string&& nonce, bool stale,
     http::HttpResponse& response) const {
   response.SetStatus(unauthorized_status_);
@@ -247,7 +247,7 @@ AuthCheckResult DigestCheckerBase::StartNewAuthSession(
   return AuthCheckResult{AuthCheckResult::Status::kInvalidToken};
 }
 
-std::string DigestCheckerBase::ConstructResponseDirectives(
+std::string AuthCheckerBase::ConstructResponseDirectives(
     std::string_view nonce, bool stale) const {
   // RFC 2617, 3.2.1
   // Server response directives.
@@ -260,9 +260,9 @@ std::string DigestCheckerBase::ConstructResponseDirectives(
       fmt::format("{}=\"{}\"", directives::kQop, qops_));
 }
 
-std::string DigestCheckerBase::CalculateDigest(
+std::string AuthCheckerBase::CalculateDigest(
     const UserData::HA1& ha1_non_loggable, http::HttpMethod request_method,
-    const DigestContextFromClient& client_context) const {
+    const ContextFromClient& client_context) const {
   // RFC 2617, 3.2.2.1 Request-Digest
   auto ha1 = ha1_non_loggable.GetUnderlying();
   if (is_session_) {
@@ -279,6 +279,6 @@ std::string DigestCheckerBase::CalculateDigest(
   return digest_hasher_.GetHash(request_digest);
 }
 
-}  // namespace server::handlers::auth
+}  // namespace server::handlers::auth::digest
 
 USERVER_NAMESPACE_END

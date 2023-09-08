@@ -50,9 +50,9 @@ int main(int argc, const char* const argv[]) {
           .Append<components::HttpClient>()
           .Append<server::handlers::TestsControl>()
           .Append<clients::dns::Component>()
-          .Append<server::handlers::auth::DigestCheckerSettingsComponent>(
+          .Append<server::handlers::auth::digest::AuthCheckerSettingsComponent>(
               "auth-digest-checker-settings-proxy")
-          .Append<server::handlers::auth::DigestCheckerSettingsComponent>();
+          .Append<server::handlers::auth::digest::AuthCheckerSettingsComponent>();
   return utils::DaemonMain(argc, argv, component_list);
   /// [main]
 }

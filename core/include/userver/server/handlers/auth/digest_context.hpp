@@ -14,12 +14,12 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace server::handlers::auth {
+namespace server::handlers::auth::digest {
 
 /// WWW-Authenticate header from server response
 /// realm, nonce directives are mandatory
 /// domain, opaque, stale, algorithm, qop, auth-param directives are optional
-struct DigestContextFromServer {
+struct ContextFromServer {
   std::string realm;
   std::string nonce;
   std::string algorithm;
@@ -32,7 +32,7 @@ struct DigestContextFromServer {
 /// Authorization header from client request
 /// username, realm, nonce, digest-uri directives response are mandatory
 /// algorithm, cnonce, opaque, qop, nc, auth-param directives are optional
-struct DigestContextFromClient {
+struct ContextFromClient {
   std::string username;
   std::string realm;
   std::string nonce;
@@ -47,9 +47,9 @@ struct DigestContextFromClient {
 };
 
 /// Function to parse directive map into structure
-DigestContextFromClient Parse(
+ContextFromClient Parse(
     std::unordered_map<std::string, std::string> directive_mapping);
 
-}  // namespace server::handlers::auth
+}  // namespace server::handlers::auth::digest
 
 USERVER_NAMESPACE_END
