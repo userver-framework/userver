@@ -8,7 +8,7 @@ the developers. As a result, with the framework you get straightforward source c
 avoid CPU-consuming context switches from OS, efficiently
 utilize the CPU with a small amount of execution threads.
 
-Telegram support chats: [English-speaking](https://t.me/userver_en) | 
+Telegram support chats: [English-speaking](https://t.me/userver_en) |
 [Russian-speaking](https://t.me/userver_ru) | [News channel](https://t.me/userver_news).
 
 
@@ -39,6 +39,7 @@ Telegram support chats: [English-speaking](https://t.me/userver_en) |
 * @ref scripts/docs/en/userver/tutorial/auth_postgres.md
 * @ref scripts/docs/en/userver/tutorial/digest_auth_postgres.md
 * @ref scripts/docs/en/userver/tutorial/json_to_yaml.md
+* @ref scripts/docs/en/userver/tutorial/websocket_service.md
 
 
 ## Generic development

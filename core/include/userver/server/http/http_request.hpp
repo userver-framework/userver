@@ -4,6 +4,7 @@
 /// @brief @copybrief server::http::HttpRequest
 
 #include <chrono>
+#include <functional>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -17,6 +18,11 @@
 #include <userver/utils/str_icase.hpp>
 
 USERVER_NAMESPACE_BEGIN
+
+namespace engine::io {
+class Socket;
+class Sockaddr;
+}  // namespace engine::io
 
 /// Server parts of the HTTP protocol implementation.
 namespace server::http {
@@ -138,6 +144,7 @@ class HttpRequest final {
   const std::string& GetHeader(
       const USERVER_NAMESPACE::http::headers::PredefinedHeader& header_name)
       const;
+  const HeadersMap& GetHeaders() const;
 
   /// @return true if header with case insensitive name header_name exists,
   /// false otherwise.
@@ -195,6 +202,15 @@ class HttpRequest final {
 
   /// @return true if the body of the request was compressed
   bool IsBodyCompressed() const;
+
+  /// @cond
+  void SetUpgradeWebsocket(
+      std::function<void(std::unique_ptr<engine::io::RwBase>&&,
+                         engine::io::Sockaddr&&)>
+          cb) const;
+  void DoUpgrade(std::unique_ptr<engine::io::RwBase>&&,
+                 engine::io::Sockaddr&& peer_name) const;
+  /// @endcond
 
  private:
   HttpRequestImpl& impl_;

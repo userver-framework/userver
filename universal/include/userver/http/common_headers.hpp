@@ -115,9 +115,17 @@ inline constexpr PredefinedHeader kServer{"Server"};
 inline constexpr PredefinedHeader kSetCookie{"Set-Cookie"};
 /// @}
 
+/// @name Websockets headers
+/// @{
+inline constexpr PredefinedHeader kWebsocketKey{"Sec-WebSocket-Key"};
+inline constexpr PredefinedHeader kWebsocketAccept{"Sec-WebSocket-Accept"};
+inline constexpr PredefinedHeader kWebsocketVersion{"Sec-WebSocket-Version"};
+/// @}
+
 /// @name Extra headers
 /// @{
 inline constexpr PredefinedHeader kConnection{"Connection"};
+inline constexpr PredefinedHeader kUpgrade{"Upgrade"};
 inline constexpr PredefinedHeader kCookie{"Cookie"};
 /// @}
 

@@ -117,8 +117,8 @@ UTEST(ServerNetConnection, EarlyCancel) {
   auto connection_ptr = net::Connection::Create(
       engine::current_task::GetTaskProcessor(), config.connection_config,
       config.handler_defaults,
-      std::make_unique<engine::io::Socket>(std::move(peer)), "localhost",
-      handler, stats, data_accounter);
+      std::make_unique<engine::io::Socket>(std::move(peer)), {}, handler, stats,
+      data_accounter);
 
   connection_ptr->Start();
   // Immediately canceling the `socket_listener_` task without giving it
@@ -159,8 +159,8 @@ UTEST(ServerNetConnection, EarlyTimeout) {
   auto connection_ptr = net::Connection::Create(
       engine::current_task::GetTaskProcessor(), config.connection_config,
       config.handler_defaults,
-      std::make_unique<engine::io::Socket>(std::move(peer)), "localhost",
-      handler, stats, data_accounter);
+      std::make_unique<engine::io::Socket>(std::move(peer)), {}, handler, stats,
+      data_accounter);
 
   connection_ptr->Start();
   std::weak_ptr<net::Connection> weak = connection_ptr;
@@ -192,8 +192,8 @@ UTEST(ServerNetConnection, TimeoutWithTaskCancellation) {
   auto connection_ptr = net::Connection::Create(
       engine::current_task::GetTaskProcessor(), config.connection_config,
       config.handler_defaults,
-      std::make_unique<engine::io::Socket>(std::move(peer)), "localhost",
-      handler, stats, data_accounter);
+      std::make_unique<engine::io::Socket>(std::move(peer)), {}, handler, stats,
+      data_accounter);
 
   connection_ptr->Start();
   std::weak_ptr<net::Connection> weak = connection_ptr;
@@ -244,8 +244,8 @@ UTEST(ServerNetConnection, RemoteClosed) {
   auto connection_ptr = net::Connection::Create(
       engine::current_task::GetTaskProcessor(), config.connection_config,
       config.handler_defaults,
-      std::make_unique<engine::io::Socket>(std::move(peer)), "localhost",
-      handler, stats, data_accounter);
+      std::make_unique<engine::io::Socket>(std::move(peer)), {}, handler, stats,
+      data_accounter);
 
   connection_ptr->Start();
   std::weak_ptr<net::Connection> weak = connection_ptr;
@@ -279,8 +279,8 @@ UTEST(ServerNetConnection, KeepAlive) {
   auto connection_ptr = net::Connection::Create(
       engine::current_task::GetTaskProcessor(), config.connection_config,
       config.handler_defaults,
-      std::make_unique<engine::io::Socket>(std::move(peer)), "localhost",
-      handler, stats, data_accounter);
+      std::make_unique<engine::io::Socket>(std::move(peer)), {}, handler, stats,
+      data_accounter);
 
   connection_ptr->Start();
   EXPECT_EQ(request.Get()->status_code(), 404);
@@ -313,8 +313,8 @@ UTEST(ServerNetConnection, CancelMultipleInFlight) {
     auto connection_ptr = net::Connection::Create(
         engine::current_task::GetTaskProcessor(), config.connection_config,
         config.handler_defaults,
-        std::make_unique<engine::io::Socket>(std::move(peer)), "localhost",
-        handler, stats, data_accounter);
+        std::make_unique<engine::io::Socket>(std::move(peer)), {}, handler,
+        stats, data_accounter);
 
     connection_ptr->Start();
     res.Wait();

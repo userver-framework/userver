@@ -97,7 +97,7 @@ void ListenerImpl::SetupConnection(engine::io::Socket peer_socket) {
   LOG_TRACE() << "Creating connection for fd " << fd;
 
   std::unique_ptr<engine::io::RwBase> socket;
-  auto remote_address = peer_socket.Getpeername().PrimaryAddressString();
+  auto remote_address = peer_socket.Getpeername();
   if (endpoint_info_->listener_config.tls) {
     socket = std::make_unique<engine::io::TlsWrapper>(
         engine::io::TlsWrapper::StartTlsServer(

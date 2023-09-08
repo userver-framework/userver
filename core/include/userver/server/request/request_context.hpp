@@ -20,7 +20,9 @@ namespace server::request {
 class RequestContext final {
  public:
   RequestContext();
-  RequestContext(RequestContext&&) = delete;
+
+  RequestContext(RequestContext&&) noexcept;
+
   RequestContext(const RequestContext&) = delete;
 
   ~RequestContext();

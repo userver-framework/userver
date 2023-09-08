@@ -34,7 +34,7 @@ class Connection final : public std::enable_shared_from_this<Connection> {
       engine::TaskProcessor& task_processor, const ConnectionConfig& config,
       const request::HttpRequestConfig& handler_defaults_config,
       std::unique_ptr<engine::io::RwBase> peer_socket,
-      const std::string& remote_address,
+      const engine::io::Sockaddr& remote_address,
       const http::RequestHandlerBase& request_handler,
       std::shared_ptr<Stats> stats,
       request::ResponseDataAccounter& data_accounter);
@@ -44,7 +44,7 @@ class Connection final : public std::enable_shared_from_this<Connection> {
              const ConnectionConfig& config,
              const request::HttpRequestConfig& handler_defaults_config,
              std::unique_ptr<engine::io::RwBase> peer_socket,
-             const std::string& remote_address,
+             const engine::io::Sockaddr& remote_address,
              const http::RequestHandlerBase& request_handler,
              std::shared_ptr<Stats> stats,
              request::ResponseDataAccounter& data_accounter, EmplaceEnabler);
@@ -83,7 +83,7 @@ class Connection final : public std::enable_shared_from_this<Connection> {
   const http::RequestHandlerBase& request_handler_;
   const std::shared_ptr<Stats> stats_;
   request::ResponseDataAccounter& data_accounter_;
-  const std::string remote_address_;
+  engine::io::Sockaddr remote_address_;
 
   std::shared_ptr<Queue> request_tasks_;
   engine::SingleConsumerEvent response_sender_launched_event_;

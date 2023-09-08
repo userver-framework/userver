@@ -28,7 +28,7 @@ std::shared_ptr<Connection> Connection::Create(
     engine::TaskProcessor& task_processor, const ConnectionConfig& config,
     const request::HttpRequestConfig& handler_defaults_config,
     std::unique_ptr<engine::io::RwBase> peer_socket,
-    const std::string& remote_address,
+    const engine::io::Sockaddr& remote_address,
     const http::RequestHandlerBase& request_handler,
     std::shared_ptr<Stats> stats,
     request::ResponseDataAccounter& data_accounter) {
@@ -42,7 +42,7 @@ Connection::Connection(
     engine::TaskProcessor& task_processor, const ConnectionConfig& config,
     const request::HttpRequestConfig& handler_defaults_config,
     std::unique_ptr<engine::io::RwBase> peer_socket,
-    const std::string& remote_address,
+    const engine::io::Sockaddr& remote_address,
     const http::RequestHandlerBase& request_handler,
     std::shared_ptr<Stats> stats,
     request::ResponseDataAccounter& data_accounter, EmplaceEnabler)
@@ -265,6 +265,9 @@ void Connection::ProcessResponses(Queue::Consumer& consumer) noexcept {
        * until SendResponse() as the task produces body chunks.
        */
       SendResponse(*item.first);
+      if (item.first->IsUpgradeWebsocket())
+        item.first->DoUpgrade(std::move(peer_socket_),
+                              std::move(remote_address_));
       item.first.reset();
       item.second = {};
     }
@@ -340,10 +343,13 @@ void Connection::SendResponse(request::RequestBase& request) {
   ++stats_->requests_processed_count;
 
   request.WriteAccessLogs(request_handler_.LoggerAccess(),
-                          request_handler_.LoggerAccessTskv(), remote_address_);
+                          request_handler_.LoggerAccessTskv(),
+                          remote_address_.PrimaryAddressString());
 }
 
-std::string Connection::Getpeername() const { return remote_address_; }
+std::string Connection::Getpeername() const {
+  return remote_address_.PrimaryAddressString();
+}
 
 }  // namespace server::net
 

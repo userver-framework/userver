@@ -34,3 +34,6 @@ add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-uctl)
 
 add_subdirectory(cache_update)
 add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-cache-update)
+
+add_subdirectory(websocket)
+add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-websocket)

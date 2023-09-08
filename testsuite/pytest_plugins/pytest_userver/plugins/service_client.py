@@ -5,6 +5,7 @@ Service main and monitor clients.
 import logging
 
 import pytest
+import websockets
 
 from testsuite.daemons import service_client as base_service_client
 
@@ -95,6 +96,22 @@ async def service_client(
     if _testsuite_client_config.testsuite_action_path:
         return _service_client_testsuite
     return _service_client_base
+
+
+@pytest.fixture
+async def websocket_client(service_client, service_port):
+    """
+    Fixture that provides access to userver based websocket service.
+
+    @anchor websocket_client
+    @ingroup userver_testsuite_fixtures
+    """
+
+    class Client:
+        def get(self, path):
+            return websockets.connect(f'ws://localhost:{service_port}/{path}')
+
+    return Client()
 
 
 @pytest.fixture

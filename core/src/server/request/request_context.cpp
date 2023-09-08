@@ -80,6 +80,8 @@ void RequestContext::Impl::EraseAnyData(const std::string& name) {
 
 RequestContext::RequestContext() = default;
 
+RequestContext::RequestContext(RequestContext&&) noexcept = default;
+
 RequestContext::~RequestContext() = default;
 
 utils::AnyMovable& RequestContext::SetUserAnyData(utils::AnyMovable&& data) {

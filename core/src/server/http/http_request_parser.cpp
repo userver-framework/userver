@@ -72,7 +72,6 @@ bool HttpRequestParser::Parse(const char* data, size_t size) {
     return false;
   }
   if (parser_.upgrade) {
-    LOG_WARNING() << "upgrade detected";
     FinalizeRequest();
     return false;
   }
@@ -202,7 +201,6 @@ int HttpRequestParser::OnBodyImpl(http_parser* p, const char* data,
 int HttpRequestParser::OnMessageCompleteImpl(http_parser* p) {
   UASSERT(request_constructor_);
   if (p->upgrade) {
-    LOG_WARNING() << "upgrade detected";
     return -1;  // error
   }
   request_constructor_->SetIsFinal(!http_should_keep_alive(p));

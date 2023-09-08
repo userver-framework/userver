@@ -22,14 +22,14 @@ Let's write a simple server that responds with "Hello world!\n" on every request
 
 ### HTTP handler component
 
-HTTP handlers must derive from `server::handlers::HttpHandlerBase` and have a name, that 
+HTTP handlers must derive from `server::handlers::HttpHandlerBase` and have a name, that
 is obtainable at compile time via `kName` variable and is obtainable at runtime via `HandlerName()`.
 
 The primary functionality of the handler should be located in `HandleRequestThrow` function.
 Return value of this function is the HTTP response body. If an exception `exc` derived from
 `server::handlers::CustomHandlerException` is thrown from the function then the
 HTTP response code will be set to `exc.GetCode()` and `exc.GetExternalErrorBody()`
-would be used for HTTP response body. Otherwise if the an exception `exc` derived from
+would be used for HTTP response body. Otherwise if an exception `exc` derived from
 `std::exception` is thrown from the function then the
 HTTP response code will be set to `500`.
 

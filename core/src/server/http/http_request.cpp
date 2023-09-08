@@ -1,6 +1,7 @@
 #include <userver/server/http/http_request.hpp>
 
 #include <server/http/http_request_impl.hpp>
+#include <userver/engine/io/socket.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -115,6 +116,10 @@ const std::string& HttpRequest::GetHeader(
   return impl_.GetHeader(header_name);
 }
 
+const HttpRequest::HeadersMap& HttpRequest::GetHeaders() const {
+  return impl_.GetHeaders();
+}
+
 bool HttpRequest::HasHeader(std::string_view header_name) const {
   return impl_.HasHeader(header_name);
 }
@@ -182,6 +187,18 @@ void HttpRequest::SetResponseStatus(HttpStatus status) const {
 }
 
 bool HttpRequest::IsBodyCompressed() const { return impl_.IsBodyCompressed(); }
+
+void HttpRequest::SetUpgradeWebsocket(
+    std::function<void(std::unique_ptr<engine::io::RwBase>&&,
+                       engine::io::Sockaddr&&)>
+        cb) const {
+  impl_.SetUpgradeWebsocket(std::move(cb));
+}
+
+void HttpRequest::DoUpgrade(std::unique_ptr<engine::io::RwBase>&& socket,
+                            engine::io::Sockaddr&& peer_name) const {
+  impl_.DoUpgrade(std::move(socket), std::move(peer_name));
+}
 
 }  // namespace server::http
 

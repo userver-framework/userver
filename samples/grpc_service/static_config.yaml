@@ -14,7 +14,7 @@ components_manager:
         dynamic-config:
             fs-cache-path: ''
         dynamic-config-fallbacks:
-            fallback-path: /etc/grpc_service/dynamic_config_fallback.json
+            fallback-path: dynamic_config_fallback.json
 
 # /// [gRPC sample - static config client]
 # yaml

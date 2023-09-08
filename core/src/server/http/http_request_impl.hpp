@@ -95,6 +95,18 @@ class HttpRequestImpl final : public request::RequestBase {
 
   bool IsFinal() const override { return is_final_; }
 
+  using UpgradeCallback = std::function<void(
+      std::unique_ptr<engine::io::RwBase>&&, engine::io::Sockaddr&&)>;
+
+  bool IsUpgradeWebsocket() const override {
+    return static_cast<bool>(upgrade_websocket_cb_);
+  }
+  void SetUpgradeWebsocket(UpgradeCallback cb) {
+    upgrade_websocket_cb_ = std::move(cb);
+  }
+  void DoUpgrade(std::unique_ptr<engine::io::RwBase>&& socket,
+                 engine::io::Sockaddr&& peer_name) const override;
+
   request::ResponseBase& GetResponse() const override { return response_; }
   HttpResponse& GetHttpResponse() const { return response_; }
 
@@ -148,6 +160,7 @@ class HttpRequestImpl final : public request::RequestBase {
   HttpRequest::HeadersMap headers_;
   HttpRequest::CookiesMap cookies_;
   bool is_final_{false};
+  UpgradeCallback upgrade_websocket_cb_;
 
   mutable HttpResponse response_;
   engine::TaskProcessor* task_processor_{nullptr};
