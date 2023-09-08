@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file userver/server/handlers/auth/digest/digest_directives.hpp
+/// @file userver/server/handlers/auth/digest/directives.hpp
 /// @brief Various digest authentication directives
 
 #include <string_view>

@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file userver/server/handlers/auth/digest/digest_directives_parser.hpp
+/// @file userver/server/handlers/auth/digest/directives_parser.hpp
 /// @brief @copybrief server::handlers::auth::digest::Parser
 
 #include <array>
@@ -13,7 +13,7 @@
 #include <userver/formats/json/value.hpp>
 #include <userver/formats/json/value_builder.hpp>
 
-#include <userver/server/handlers/auth/digest/digest_context.hpp>
+#include <userver/server/handlers/auth/digest/context.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

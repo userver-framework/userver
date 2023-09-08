@@ -1,10 +1,10 @@
-#include <userver/server/handlers/auth/digest/digest_standalone_checker.hpp>
+#include <userver/server/handlers/auth/digest/standalone_checker.hpp>
 
 #include <memory>
 #include <optional>
 #include <string_view>
 
-#include <userver/server/handlers/auth/digest/digest_checker_settings.hpp>
+#include <userver/server/handlers/auth/digest/auth_checker_settings.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

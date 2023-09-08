@@ -10,9 +10,9 @@
 
 #include <userver/components/loggable_component_base.hpp>
 #include <userver/dynamic_config/source.hpp>
-#include <userver/server/handlers/auth/digest/digest_checker_settings_component.hpp>
+#include <userver/server/handlers/auth/digest/auth_checker_settings_component.hpp>
 
-#include "digest_checker_settings.hpp"
+#include "auth_checker_settings.hpp"
 
 USERVER_NAMESPACE_BEGIN
 

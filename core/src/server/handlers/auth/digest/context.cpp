@@ -1,5 +1,5 @@
-#include <userver/server/handlers/auth/digest/digest_context.hpp>
-#include <userver/server/handlers/auth/digest/digest_directives.hpp>
+#include <userver/server/handlers/auth/digest/context.hpp>
+#include <userver/server/handlers/auth/digest/directives.hpp>
 
 #include <unordered_map>
 

@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file userver/server/handlers/auth/digest/digest_checker_base.hpp
+/// @file userver/server/handlers/auth/digest/auth_checker_base.hpp
 /// @brief @copybrief server::handlers::auth::digest::AuthCheckerBase
 
 #include <userver/server/handlers/auth/auth_checker_base.hpp>
@@ -13,8 +13,8 @@
 
 #include <userver/crypto/hash.hpp>
 #include <userver/rcu/rcu_map.hpp>
-#include <userver/server/handlers/auth/digest/digest_checker_settings.hpp>
-#include <userver/server/handlers/auth/digest/digest_directives_parser.hpp>
+#include <userver/server/handlers/auth/digest/auth_checker_settings.hpp>
+#include <userver/server/handlers/auth/digest/directives_parser.hpp>
 #include <userver/server/http/http_request.hpp>
 #include <userver/server/http/http_response.hpp>
 #include <userver/server/http/http_status.hpp>

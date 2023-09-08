@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file userver/server/handlers/auth/digest/digest_types.hpp
+/// @file userver/server/handlers/auth/digest/types.hpp
 /// @brief Types for validating directive values
 
 #include <userver/utils/trivial_map.hpp>

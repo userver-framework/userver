@@ -1,11 +1,11 @@
-#include <userver/server/handlers/auth/digest/digest_checker_settings_component.hpp>
+#include <userver/server/handlers/auth/digest/auth_checker_settings_component.hpp>
 
 #include <cstddef>
 
 #include <userver/components/component.hpp>
 #include <userver/dynamic_config/storage/component.hpp>
 #include <userver/dynamic_config/value.hpp>
-#include <userver/server/handlers/auth/digest/digest_types.hpp>
+#include <userver/server/handlers/auth/digest/types.hpp>
 #include <userver/utils/async.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 

@@ -4,7 +4,7 @@
 #include <userver/clients/dns/component.hpp>
 #include <userver/clients/http/component.hpp>
 #include <userver/components/minimal_server_component_list.hpp>
-#include <userver/server/handlers/auth/digest/digest_checker_settings_component.hpp>
+#include <userver/server/handlers/auth/digest/auth_checker_settings_component.hpp>
 #include <userver/server/handlers/http_handler_base.hpp>
 #include <userver/server/handlers/tests_control.hpp>
 #include <userver/storages/postgres/cluster.hpp>
