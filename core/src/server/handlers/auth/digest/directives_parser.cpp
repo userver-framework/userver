@@ -5,34 +5,68 @@
 #include <cctype>
 
 #include <userver/logging/log.hpp>
-#include <userver/server/handlers/auth/digest/directives.hpp>
-#include <userver/utils/exception.hpp>
+#include <userver/server/handlers/auth/digest_directives.hpp>
+#include <userver/server/handlers/auth/exception.hpp>
 #include <userver/utils/statistics/fmt.hpp>
+#include <userver/utils/trivial_map.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace server::handlers::auth::digest {
 
 namespace {
-const std::array<std::string, 5> kMandatoryDirectives = {
-    directives::kRealm,     //
-    directives::kNonce,     //
-    directives::kResponse,  //
-    directives::kUri,       //
-    directives::kUsername};
+
+enum class kClientDirectiveTypes {
+  kUsername,
+  kRealm,
+  kNonce,
+  kUri,
+  kResponse,
+  kAlgorithm,
+  kCnonce,
+  kOpaque,
+  kQop,
+  kNonceCount,
+  kAuthParam,
+  kUnknown
+};
+
+const utils::TrivialBiMap kClientDirectivesMap = [](auto selector) {
+  return selector()
+      .Case(directives::kUsername, kClientDirectiveTypes::kUsername)
+      .Case(directives::kRealm, kClientDirectiveTypes::kRealm)
+      .Case(directives::kNonce, kClientDirectiveTypes::kNonce)
+      .Case(directives::kUri, kClientDirectiveTypes::kUri)
+      .Case(directives::kResponse, kClientDirectiveTypes::kResponse)
+      .Case(directives::kAlgorithm, kClientDirectiveTypes::kAlgorithm)
+      .Case(directives::kCnonce, kClientDirectiveTypes::kCnonce)
+      .Case(directives::kOpaque, kClientDirectiveTypes::kOpaque)
+      .Case(directives::kQop, kClientDirectiveTypes::kQop)
+      .Case(directives::kNonceCount, kClientDirectiveTypes::kNonceCount)
+      .Case(directives::kAuthParam, kClientDirectiveTypes::kAuthParam);
+};
+
+const std::array<kClientDirectiveTypes, kClientMandatoryDirectivesNumber>
+    kMandatoryDirectives = {
+        kClientDirectiveTypes::kRealm, kClientDirectiveTypes::kNonce,
+        kClientDirectiveTypes::kResponse, kClientDirectiveTypes::kUri,
+        kClientDirectiveTypes::kUsername};
+
+enum class State {
+  kStateSpace,
+  kStateToken,
+  kStateEquals,
+  kStateValue,  // if Final then OK
+  kStateValueQuoted,
+  kStateValueEscape,
+  kStateComma,  // if Final then OK
+};
+
 }  // namespace
 
-void Parser::ParseAuthInfo(std::string_view header_value) {
-  enum class State {
-    kStateSpace,
-    kStateToken,
-    kStateEquals,
-    kStateValue,  // if Final then OK
-    kStateValueQuoted,
-    kStateValueEscape,
-    kStateComma,  // if Final then OK
-  };
-
+DigestContextFromClient DigestParser::ParseAuthInfo(
+    std::string_view header_value) {
+  DigestContextFromClient client_context;
   State state = State::kStateSpace;
   std::string token;
   std::string value;
@@ -46,7 +80,7 @@ void Parser::ParseAuthInfo(std::string_view header_value) {
         } else if (std::isspace(delimiter)) {
           // Skip
         } else
-          utils::LogErrorAndThrow("Invalid authentication information");
+          throw ParseException("Invalid header format");
         break;
 
       case State::kStateToken:
@@ -56,7 +90,7 @@ void Parser::ParseAuthInfo(std::string_view header_value) {
                    delimiter == '-') {
           token += delimiter;
         } else
-          utils::LogErrorAndThrow("Invalid authentication information");
+          throw ParseException("Invalid header format");
         break;
 
       case State::kStateEquals:
@@ -66,14 +100,15 @@ void Parser::ParseAuthInfo(std::string_view header_value) {
         } else if (delimiter == '"') {
           state = State::kStateValueQuoted;
         } else
-          utils::LogErrorAndThrow("Invalid authentication information");
+          throw ParseException("Invalid header format");
         break;
 
       case State::kStateValueQuoted:
         if (delimiter == '\\') {
           state = State::kStateValueEscape;
         } else if (delimiter == '"') {
-          directive_mapping[token] = std::move(value);
+          PushToClientContext(std::move(token), std::move(value),
+                              client_context);
           token.clear();
           value.clear();
           state = State::kStateComma;
@@ -89,12 +124,14 @@ void Parser::ParseAuthInfo(std::string_view header_value) {
 
       case State::kStateValue:
         if (std::isspace(delimiter)) {
-          directive_mapping[token] = std::move(value);
+          PushToClientContext(std::move(token), std::move(value),
+                              client_context);
           token.clear();
           value.clear();
           state = State::kStateComma;
         } else if (delimiter == ',') {
-          directive_mapping[token] = std::move(value);
+          PushToClientContext(std::move(token), std::move(value),
+                              client_context);
           token.clear();
           value.clear();
           state = State::kStateSpace;
@@ -109,30 +146,102 @@ void Parser::ParseAuthInfo(std::string_view header_value) {
         } else if (std::isspace(delimiter)) {
           // Skip
         } else
-          utils::LogErrorAndThrow("Invalid authentication information");
+          throw ParseException("Invalid header format");
         break;
     }
   }
 
   if (state == State::kStateValue) {
-    directive_mapping[token] = std::move(value);
+    PushToClientContext(std::move(token), std::move(value), client_context);
   }
 
-  if (state != State::kStateValue && state != State::kStateComma)
-    utils::LogErrorAndThrow("Invalid authentication information");
+  if (state != State::kStateValue && state != State::kStateComma) {
+    throw ParseException("Invalid header format");
+  }
+
+  CheckMandatoryDirectivesPresent();
+  CheckDuplicateDirectivesExist();
+
+  return client_context;
 }
 
-ContextFromClient Parser::GetClientContext() {
-  // Only checking mandatory directives
-  // because according to RFC 2617,
-  // "Any unrecognized directive MUST be ignored"
-  for (const auto& dir : kMandatoryDirectives) {
-    if (!directive_mapping.count(dir)) {
-      utils::LogErrorAndThrow(fmt::format(
-          "Mandatory {} directive is missing in Authentication header", dir));
-    }
+void DigestParser::PushToClientContext(
+    std::string&& directive, std::string&& value,
+    DigestContextFromClient& client_context) {
+  const auto directive_type = kClientDirectivesMap.TryFind(std::move(directive))
+                                  .value_or(kClientDirectiveTypes::kUnknown);
+  const auto index = static_cast<std::size_t>(directive_type);
+  if (directive_type != kClientDirectiveTypes::kUnknown)
+    directives_counter_[index]++;
+  switch (directive_type) {
+    case kClientDirectiveTypes::kUsername:
+      client_context.username = std::move(value);
+      break;
+    case kClientDirectiveTypes::kRealm:
+      client_context.realm = std::move(value);
+      break;
+    case kClientDirectiveTypes::kNonce:
+      client_context.nonce = std::move(value);
+      break;
+    case kClientDirectiveTypes::kUri:
+      client_context.uri = std::move(value);
+      break;
+    case kClientDirectiveTypes::kResponse:
+      client_context.response = std::move(value);
+      break;
+    case kClientDirectiveTypes::kAlgorithm:
+      client_context.algorithm = std::move(value);
+      break;
+    case kClientDirectiveTypes::kCnonce:
+      client_context.cnonce = std::move(value);
+      break;
+    case kClientDirectiveTypes::kOpaque:
+      client_context.opaque = std::move(value);
+      break;
+    case kClientDirectiveTypes::kQop:
+      client_context.qop = std::move(value);
+      break;
+    case kClientDirectiveTypes::kNonceCount:
+      client_context.nc = std::move(value);
+      break;
+    case kClientDirectiveTypes::kAuthParam:
+      client_context.authparam = std::move(value);
+      break;
+    case kClientDirectiveTypes::kUnknown:
+      throw ParseException("Unknown directive found");
+      break;
   }
-  return Parse(directive_mapping);
+}
+
+void DigestParser::CheckMandatoryDirectivesPresent() {
+  std::vector<std::string> missing_directives;
+  std::for_each(
+      kMandatoryDirectives.begin(), kMandatoryDirectives.end(),
+      [this, &missing_directives](const kClientDirectiveTypes directive_type) {
+        const auto index = static_cast<std::size_t>(directive_type);
+        if (directives_counter_[index] == 0) {
+          auto directive = kClientDirectivesMap.TryFind(directive_type).value();
+          missing_directives.emplace_back(directive);
+        }
+
+        if (!missing_directives.empty()) {
+          throw MissingDirectivesException(std::move(missing_directives));
+        }
+      });
+}
+
+void DigestParser::CheckDuplicateDirectivesExist() {
+  auto it = std::find_if(
+      directives_counter_.begin(), directives_counter_.end(),
+      [](std::size_t directive_count) { return directive_count > 1; });
+
+  if (it != directives_counter_.end()) {
+    const auto index = std::distance(directives_counter_.begin(), it);
+    const auto directive_type = static_cast<kClientDirectiveTypes>(index);
+    throw DuplicateDirectiveException(
+        fmt::format("Duplicate '{}' directive found",
+                    kClientDirectivesMap.TryFind(directive_type).value()));
+  }
 }
 
 }  // namespace server::handlers::auth::digest

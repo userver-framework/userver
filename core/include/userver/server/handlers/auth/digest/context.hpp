@@ -46,6 +46,13 @@ struct ContextFromClient {
   std::string authparam;
 };
 
+/// Max number of directives in Authorization header.
+/// Must be equal to the number of DigestContextFromClient fields.
+inline constexpr std::size_t kMaxClientDirectivesNumber = 11;
+
+/// Number of mandatory directives in Authorization header.
+inline constexpr std::size_t kClientMandatoryDirectivesNumber = 5;
+
 /// Function to parse directive map into structure
 ContextFromClient Parse(
     std::unordered_map<std::string, std::string> directive_mapping);

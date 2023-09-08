@@ -4,16 +4,10 @@
 /// @brief @copybrief server::handlers::auth::digest::Parser
 
 #include <array>
-#include <memory>
-#include <optional>
 #include <string>
 #include <string_view>
-#include <unordered_map>
 
-#include <userver/formats/json/value.hpp>
-#include <userver/formats/json/value_builder.hpp>
-
-#include <userver/server/handlers/auth/digest/context.hpp>
+#include <userver/server/handlers/auth/digest_context.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -21,16 +15,17 @@ namespace server::handlers::auth::digest {
 
 /// @brief Class for parsing Authorization header directives from client
 /// request.
-class Parser {
+class DigestParser final {
  public:
-  /// Function to call to parse Authorization header value into directive-value
-  /// map
-  void ParseAuthInfo(std::string_view header_value);
-  /// Function to call to get client digest context from directive-value map
-  ContextFromClient GetClientContext();
+  /// Function to call to parse Authorization header directives.
+  DigestContextFromClient ParseAuthInfo(std::string_view header_value);
 
  private:
-  std::unordered_map<std::string, std::string> directive_mapping;
+  void PushToClientContext(std::string&& directive, std::string&& value, DigestContextFromClient& client_context);
+  void CheckMandatoryDirectivesPresent();
+  void CheckDuplicateDirectivesExist();
+
+  std::array<std::size_t, kMaxClientDirectivesNumber> directives_counter_{};
 };
 
 }  // namespace server::handlers::auth::digest

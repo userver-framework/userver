@@ -14,8 +14,10 @@
 #include <userver/crypto/hash.hpp>
 #include <userver/http/common_headers.hpp>
 #include <userver/logging/log.hpp>
-#include <userver/server/handlers/auth/digest/directives.hpp>
-#include <userver/server/handlers/auth/digest/types.hpp>
+#include <userver/server/handlers/auth/auth_checker_base.hpp>
+#include <userver/server/handlers/auth/digest_directives.hpp>
+#include <userver/server/handlers/auth/digest_types.hpp>
+#include <userver/server/handlers/auth/exception.hpp>
 #include <userver/server/handlers/exceptions.hpp>
 #include <userver/server/handlers/fallback_handlers.hpp>
 #include <userver/server/http/http_response.hpp>
@@ -125,9 +127,8 @@ AuthCheckResult AuthCheckerBase::CheckAuth(const http::HttpRequest& request,
   Parser parser;
   ContextFromClient client_context;
   try {
-    parser.ParseAuthInfo(auth_value.substr(kDigestWord.size() + 1));
-    client_context = parser.GetClientContext();
-  } catch (std::runtime_error& ex) {
+    client_context = parser.ParseAuthInfo(auth_value.substr(kDigestWord.size() + 1));
+  } catch (Exception& ex) {
     response.SetStatus(http::HttpStatus::kBadRequest);
     LOG_WARNING() << "Missing mandatory directives or wrong authentication "
                      "header format.";
