@@ -1,7 +1,7 @@
 #pragma once
 
-/// @file userver/server/handlers/auth/auth_params_parsing.hpp
-/// @brief @copybrief server::handlers::auth::DigestParser
+/// @file userver/server/handlers/auth/digest/digest_directives_parser.hpp
+/// @brief @copybrief server::handlers::auth::digest::Parser
 
 #include <array>
 #include <memory>

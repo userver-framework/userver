@@ -13,8 +13,8 @@ the tutorial the authorization data is stored in PostgreSQL database, and
 information of an authorized user (i.e. Authorization header) 
 is passed to the HTTP handler.
 
-Authentication credentials checking logic is set in base class `DigestCheckerBase`.
-This sample simply defines derived class `AuthCheckerDigest`, that can operate with user data and unnamed nonce pool.
+Authentication credentials checking logic is set in base class `server::handlers::auth::digest::AuthChecker`.
+This sample simply defines derived class `samples::digest_auth::AuthChecker`, that can operate with user data and unnamed nonce pool.
 Digest authentication logic and hashing logic is out of scope of this tutorial.
 For reference, read [RFC2617](https://datatracker.ietf.org/doc/html/rfc2617).
 
@@ -29,7 +29,7 @@ Let's make a table to store users data:
 ### Authorization Checker
 
 To implement an authorization checker derive from 
-`server::handlers::auth::DigestCheckerBase` and override the virtual functions:
+`server::handlers::auth::digest::AuthChecker` and override the virtual functions:
 
 @snippet samples/digest_auth_service/auth_digest.cpp  auth checker declaration
 
@@ -72,7 +72,7 @@ type:
 
 @snippet samples/digest_auth_service/static_config.yaml hello config
 
-Digest settings are set using `server::handlers::auth::AuthDigestSettings` component and universal for each handler, which uses digest authentication:
+Digest settings are set using `server::handlers::auth::digest::AuthCheckerSettingsComponent` and universal for each handler, which uses digest authentication:
 
 @snippet samples/digest_auth_service/static_config.yaml digest config
 
@@ -93,11 +93,11 @@ implemented using the testsuite. To do that you have to:
 * Provide PostgreSQL schema to start the database:
   @snippet samples/digest_auth_service/postgresql/schemas/auth.sql  postgresql schema
 * Tell the testsuite to start the PostgreSQL database by adjusting the
-  @ref samples/digest_auth_service/tests/common/conftest.py
+  @ref samples/digest_auth_service/tests/conftest.py
 * Prepare the DB test data
   @ref samples/digest_auth_service/postgresql/data/test_data.sql
 * Write the test:
-  @snippet samples/digest_auth_service/tests/common/test_digest.py  Functional test
+  @snippet samples/digest_auth_service/tests/test_digest.py  Functional test
 
 
 
@@ -109,10 +109,9 @@ See the full example:
 * @ref samples/digest_auth_service/static_config.yaml
 * @ref samples/digest_auth_service/dynamic_config_fallback.json
 * @ref samples/digest_auth_service/CMakeLists.txt
-* @ref samples/digest_auth_service/tests/common/conftest.py
-* @ref samples/digest_auth_service/tests/common/test_digest.py
-* @ref samples/digest_auth_service/tests/proxy/conftest.py
-* @ref samples/digest_auth_service/tests/proxy/test_proxy.py
+* @ref samples/digest_auth_service/tests/conftest.py
+* @ref samples/digest_auth_service/tests/test_digest.py
+* @ref samples/digest_auth_service/tests/test_proxy.py
 * @ref samples/digest_auth_service/postgresql/schemas/auth.sql
 * @ref samples/digest_auth_service/postgresql/data/test_data.sql
 
@@ -127,9 +126,8 @@ See the full example:
 @example samples/digest_auth_service/static_config.yaml
 @example samples/digest_auth_service/dynamic_config_fallback.json
 @example samples/digest_auth_service/CMakeLists.txt
-@example samples/digest_auth_service/tests/common/conftest.py
-@example samples/digest_auth_service/tests/common/test_digest.py
-@example samples/digest_auth_service/tests/proxy/conftest.py
-@example samples/digest_auth_service/tests/proxy/test_proxy.py
+@example samples/digest_auth_service/tests/conftest.py
+@example samples/digest_auth_service/tests/test_digest.py
+@example samples/digest_auth_service/tests/test_proxy.py
 @example samples/digest_auth_service/postgresql/schemas/auth.sql
 @example samples/digest_auth_service/postgresql/data/test_data.sql

@@ -1,7 +1,7 @@
 #pragma once
 
-/// @file userver/server/handlers/auth/auth_digest_checker_standalone.hpp
-/// @brief @copybrief server::handlers::auth::DigestCheckerBase
+/// @file userver/server/handlers/auth/digest/digest_standalone_checker.hpp
+/// @brief @copybrief server::handlers::auth::digest::AuthStandaloneCheckerBase
 
 #include <chrono>
 #include <cstdint>

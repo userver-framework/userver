@@ -1,7 +1,7 @@
 #pragma once
 
-/// @file userver/server/handlers/auth/auth_digest_checker_base.hpp
-/// @brief @copybrief server::handlers::auth::DigestCheckerBase
+/// @file userver/server/handlers/auth/digest/digest_checker_base.hpp
+/// @brief @copybrief server::handlers::auth::digest::AuthCheckerBase
 
 #include <userver/server/handlers/auth/auth_checker_base.hpp>
 
@@ -67,7 +67,7 @@ struct UserData final {
 class AuthCheckerBase : public auth::AuthCheckerBase {
  public:
   /// Assepts digest-authentication settings from
-  /// @ref server::handlers::auth::DigestCheckerSettingsComponent and "realm"
+  /// @ref server::handlers::auth::digest::AuthCheckerSettingsComponent and "realm"
   /// from handler config in static_config.yaml.
   AuthCheckerBase(const AuthCheckerSettings& digest_settings,
                     std::string&& realm);

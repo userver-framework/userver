@@ -1,7 +1,7 @@
 #pragma once
 
-/// @file userver/server/handlers/auth/auth_digest_settings.hpp
-/// @brief @copybrief server::handlers::auth::AuthDigestSettings
+/// @file userver/server/handlers/auth/digest/digest_checker_settings.hpp
+/// @brief @copybrief server::handlers::auth::digest::AuthCheckerSettings
 
 #include <chrono>
 #include <optional>

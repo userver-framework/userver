@@ -1,7 +1,7 @@
 #pragma once
 
-/// @file userver/server/handlers/auth/digest_checker_settings_component.hpp
-/// @brief @copybrief server::handlers::auth::DigestCheckerSettingsComponent
+/// @file userver/server/handlers/auth/digest/digest_checker_settings_component.hpp
+/// @brief @copybrief server::handlers::auth::digest::AuthCheckerSettingsComponent
 
 #include <chrono>
 #include <optional>
@@ -38,7 +38,7 @@ class AuthCheckerSettingsComponent
  public:
   /// @ingroup userver_component_names
   /// @brief The default name of
-  /// server::handlers::auth::DigestCheckerSettingsComponent
+  /// server::handlers::auth::digest::AuthCheckerSettingsComponent
   static constexpr std::string_view kName = "auth-digest-checker-settings";
 
   AuthCheckerSettingsComponent(const components::ComponentConfig& config,
