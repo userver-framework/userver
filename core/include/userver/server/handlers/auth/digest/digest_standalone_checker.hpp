@@ -39,9 +39,9 @@ struct NonceInfo final {
 ///
 /// @brief Class for digest authentication checker. Implements a stand-alone
 /// digest-authentication logic.
-class AuthCheckerBaseStandalone : public AuthCheckerBase {
+class AuthStandaloneCheckerBase : public AuthCheckerBase {
  public:
-  AuthCheckerBaseStandalone(const AuthCheckerSettings& digest_settings,
+  AuthStandaloneCheckerBase(const AuthCheckerSettings& digest_settings,
                                   std::string&& realm, std::size_t ways,
                                   std::size_t way_size);
 

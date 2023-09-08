@@ -1,4 +1,4 @@
-#include <userver/server/handlers/auth/digest/digest_checker_standalone.hpp>
+#include <userver/server/handlers/auth/digest/digest_standalone_checker.hpp>
 
 #include <memory>
 #include <optional>
@@ -19,7 +19,7 @@ NonceInfo::NonceInfo(const std::string& nonce, TimePoint expiration_time,
       expiration_time(expiration_time),
       nonce_count(nonce_count){};
 
-AuthCheckerBaseStandalone::AuthCheckerBaseStandalone(
+AuthStandaloneCheckerBase::AuthStandaloneCheckerBase(
     const AuthCheckerSettings& digest_settings, std::string&& realm,
     std::size_t ways, std::size_t way_size)
     : AuthCheckerBase(digest_settings, std::move(realm)),
@@ -27,7 +27,7 @@ AuthCheckerBaseStandalone::AuthCheckerBaseStandalone(
   unnamed_nonces_.SetMaxLifetime(digest_settings.nonce_ttl);
 };
 
-std::optional<UserData> AuthCheckerBaseStandalone::FetchUserData(
+std::optional<UserData> AuthStandaloneCheckerBase::FetchUserData(
     const std::string& username) const {
   if (username.empty()) {
     return std::nullopt;
@@ -60,7 +60,7 @@ std::optional<UserData> AuthCheckerBaseStandalone::FetchUserData(
   return user_data;
 }
 
-void AuthCheckerBaseStandalone::SetUserData(
+void AuthStandaloneCheckerBase::SetUserData(
     const std::string& username, const std::string& nonce,
     std::int64_t nonce_count, TimePoint nonce_creation_time) const {
   auto nonce_info = user_data_.Get(username);
@@ -76,13 +76,13 @@ void AuthCheckerBaseStandalone::SetUserData(
   }
 }
 
-void AuthCheckerBaseStandalone::PushUnnamedNonce(
+void AuthStandaloneCheckerBase::PushUnnamedNonce(
     std::string nonce) const {
   unnamed_nonces_.Put(nonce, utils::datetime::Now());
 }
 
 std::optional<TimePoint>
-AuthCheckerBaseStandalone::GetUnnamedNonceCreationTime(
+AuthStandaloneCheckerBase::GetUnnamedNonceCreationTime(
     const std::string& nonce) const {
   auto unnamed_nonce = unnamed_nonces_.GetOptionalNoUpdate(nonce);
   if (unnamed_nonce) {

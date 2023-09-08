@@ -4,7 +4,7 @@
 
 #include <userver/utest/utest.hpp>
 
-#include <userver/server/handlers/auth/digest/digest_checker_standalone.hpp>
+#include <userver/server/handlers/auth/digest/digest_standalone_checker.hpp>
 #include <userver/server/handlers/auth/digest/digest_directives_parser.hpp>
 #include <userver/server/handlers/auth/digest/digest_checker_base.hpp>
 #include <userver/server/handlers/auth/digest/digest_context.hpp>
@@ -28,11 +28,11 @@ const auto kValidHA1 = HA1{"939e7578ed9e3c518a452acee763bce9"};
 const std::string kValidNonce = "dcd98b7102dd2f0e8b11d0f600bfb0c093";
 constexpr auto kNonceTTL = std::chrono::milliseconds{1000};
 
-class StandAloneChecker final : public AuthCheckerBaseStandalone {
+class StandAloneChecker final : public AuthStandaloneCheckerBase {
  public:
   StandAloneChecker(const AuthCheckerSettings& digest_settings,
                     std::string&& realm)
-      : AuthCheckerBaseStandalone(digest_settings, std::move(realm),
+      : AuthStandaloneCheckerBase(digest_settings, std::move(realm),
                                         kWays, kWaySize) {}
 
   std::optional<HA1> GetHA1(std::string_view) const override {
