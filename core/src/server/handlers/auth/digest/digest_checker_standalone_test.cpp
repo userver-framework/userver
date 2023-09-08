@@ -4,10 +4,10 @@
 
 #include <userver/utest/utest.hpp>
 
-#include <userver/server/handlers/auth/digest_checker_standalone.hpp>
-#include <userver/server/handlers/auth/digest_directives_parser.hpp>
-#include <userver/server/handlers/auth/digest_checker_base.hpp>
-#include <userver/server/handlers/auth/digest_context.hpp>
+#include <userver/server/handlers/auth/digest/digest_checker_standalone.hpp>
+#include <userver/server/handlers/auth/digest/digest_directives_parser.hpp>
+#include <userver/server/handlers/auth/digest/digest_checker_base.hpp>
+#include <userver/server/handlers/auth/digest/digest_context.hpp>
 #include <userver/utils/datetime.hpp>
 #include <userver/utils/mock_now.hpp>
 

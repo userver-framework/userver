@@ -1,4 +1,4 @@
-#include <userver/server/handlers/auth/digest_directives_parser.hpp>
+#include <userver/server/handlers/auth/digest/digest_directives_parser.hpp>
 #include <userver/utest/utest.hpp>
 
 #include <exception>

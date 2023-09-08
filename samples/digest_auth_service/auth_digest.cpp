@@ -9,8 +9,8 @@
 #include <string_view>
 
 #include <userver/http/common_headers.hpp>
-#include <userver/server/handlers/auth/digest_checker_base.hpp>
-#include <userver/server/handlers/auth/digest_checker_settings_component.hpp>
+#include <userver/server/handlers/auth/digest/digest_checker_base.hpp>
+#include <userver/server/handlers/auth/digest/digest_checker_settings_component.hpp>
 #include <userver/storages/postgres/cluster.hpp>
 #include <userver/storages/postgres/cluster_types.hpp>
 #include <userver/storages/postgres/component.hpp>

@@ -1,11 +1,11 @@
-#include <userver/server/handlers/auth/digest_directives_parser.hpp>
+#include <userver/server/handlers/auth/digest/digest_directives_parser.hpp>
 
 #include <fmt/format.h>
 
 #include <cctype>
 
 #include <userver/logging/log.hpp>
-#include <userver/server/handlers/auth/digest_directives.hpp>
+#include <userver/server/handlers/auth/digest/digest_directives.hpp>
 #include <userver/utils/exception.hpp>
 #include <userver/utils/statistics/fmt.hpp>
 

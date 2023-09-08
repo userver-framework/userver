@@ -13,7 +13,7 @@
 #include <userver/formats/json/value.hpp>
 #include <userver/formats/json/value_builder.hpp>
 
-#include <userver/server/handlers/auth/digest_context.hpp>
+#include <userver/server/handlers/auth/digest/digest_context.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

@@ -1,4 +1,4 @@
-#include <userver/server/handlers/auth/nonce_cache_settings_component.hpp>
+#include <userver/server/handlers/auth/digest/nonce_cache_settings_component.hpp>
 
 #include <userver/components/component.hpp>
 #include <userver/dynamic_config/storage/component.hpp>
