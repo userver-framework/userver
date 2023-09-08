@@ -13,14 +13,12 @@
 #include <engine/task/task_counter.hpp>
 #include <engine/task/task_processor_config.hpp>
 #include <engine/task/task_queue.hpp>
+#include <utils/statistics/thread_statistics.hpp>
+
 #include <userver/engine/impl/detached_tasks_sync_block.hpp>
 #include <userver/logging/logger.hpp>
 
 USERVER_NAMESPACE_BEGIN
-
-namespace utils::statistics {
-class ThreadPoolCpuStatsStorage;
-}
 
 namespace engine {
 
