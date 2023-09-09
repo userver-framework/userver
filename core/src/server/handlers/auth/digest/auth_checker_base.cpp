@@ -127,7 +127,8 @@ AuthCheckResult AuthCheckerBase::CheckAuth(const http::HttpRequest& request,
   Parser parser;
   ContextFromClient client_context;
   try {
-    client_context = parser.ParseAuthInfo(auth_value.substr(kDigestWord.size() + 1));
+    client_context =
+        parser.ParseAuthInfo(auth_value.substr(kDigestWord.size() + 1));
   } catch (const Exception& ex) {
     response.SetStatus(http::HttpStatus::kBadRequest);
     LOG_WARNING() << "Directives parser exception: " << ex;

@@ -106,8 +106,9 @@ TEST(DirectivesParser, MandatoryRealmDirectiveMissing) {
   } catch (const MissingDirectivesException& ex) {
     const auto& missing_directives = ex.GetMissingDirectives();
     EXPECT_EQ(missing_directives.size(), 1);
-    
-    auto it = std::find(missing_directives.begin(), missing_directives.end(), directives::kRealm);
+
+    auto it = std::find(missing_directives.begin(), missing_directives.end(),
+                        directives::kRealm);
     EXPECT_TRUE(it != missing_directives.end());
   }
 }
@@ -128,17 +129,21 @@ TEST(DirectivesParser, MultipleMandatoryDirectivesMissing) {
   } catch (const MissingDirectivesException& ex) {
     const auto& missing_directives = ex.GetMissingDirectives();
     EXPECT_EQ(missing_directives.size(), 4);
-    
-    auto it = std::find(missing_directives.begin(), missing_directives.end(), directives::kRealm);
-    EXPECT_TRUE(it != missing_directives.end());
-    
-    it = std::find(missing_directives.begin(), missing_directives.end(), directives::kRealm);
+
+    auto it = std::find(missing_directives.begin(), missing_directives.end(),
+                        directives::kRealm);
     EXPECT_TRUE(it != missing_directives.end());
 
-    it = std::find(missing_directives.begin(), missing_directives.end(), directives::kNonce);
+    it = std::find(missing_directives.begin(), missing_directives.end(),
+                   directives::kRealm);
     EXPECT_TRUE(it != missing_directives.end());
 
-    it = std::find(missing_directives.begin(), missing_directives.end(), directives::kUri);
+    it = std::find(missing_directives.begin(), missing_directives.end(),
+                   directives::kNonce);
+    EXPECT_TRUE(it != missing_directives.end());
+
+    it = std::find(missing_directives.begin(), missing_directives.end(),
+                   directives::kUri);
     EXPECT_TRUE(it != missing_directives.end());
   }
 }
@@ -152,8 +157,7 @@ TEST(DirectivesParser, InvalidHeader) {
         response="6629fae49393a05397450978507c4ef1",
     )";
   DigestParser parser;
-  EXPECT_THROW(parser.ParseAuthInfo(header_value),
-               ParseException);
+  EXPECT_THROW(parser.ParseAuthInfo(header_value), ParseException);
 }
 
 TEST(DirectivesParser, UnknownDirective) {
@@ -166,8 +170,7 @@ TEST(DirectivesParser, UnknownDirective) {
         unknown="some-value"
     )";
   DigestParser parser;
-  EXPECT_THROW(parser.ParseAuthInfo(header_value),
-               ParseException);
+  EXPECT_THROW(parser.ParseAuthInfo(header_value), ParseException);
 }
 
 TEST(DirectivesParser, InvalidMandatoryDirective) {
@@ -179,8 +182,7 @@ TEST(DirectivesParser, InvalidMandatoryDirective) {
         response="6629fae49393a05397450978507c4ef1"
     )";
   DigestParser parser;
-  EXPECT_THROW(parser.ParseAuthInfo(header_value),
-               Exception);
+  EXPECT_THROW(parser.ParseAuthInfo(header_value), Exception);
 }
 
 TEST(DirectivesParser, DuplicateDirectives) {
@@ -194,8 +196,7 @@ TEST(DirectivesParser, DuplicateDirectives) {
         response="6629fae49393a05397450978507c4ef1"
     )";
   DigestParser parser;
-  EXPECT_THROW(parser.ParseAuthInfo(header_value),
-               DuplicateDirectiveException);
+  EXPECT_THROW(parser.ParseAuthInfo(header_value), DuplicateDirectiveException);
 }
 
 }  // namespace server::handlers::auth::test

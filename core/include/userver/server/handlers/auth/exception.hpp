@@ -33,10 +33,9 @@ class DuplicateDirectiveException : public Exception {
 
 class MissingDirectivesException : public Exception {
  public:
-  MissingDirectivesException(
-    std::vector<std::string>&& missing_directives);
+  MissingDirectivesException(std::vector<std::string>&& missing_directives);
 
-const std::vector<std::string>& GetMissingDirectives() const noexcept;
+  const std::vector<std::string>& GetMissingDirectives() const noexcept;
 
  private:
   std::vector<std::string> missing_directives_;

@@ -21,7 +21,8 @@ class DigestParser final {
   DigestContextFromClient ParseAuthInfo(std::string_view header_value);
 
  private:
-  void PushToClientContext(std::string&& directive, std::string&& value, DigestContextFromClient& client_context);
+  void PushToClientContext(std::string&& directive, std::string&& value,
+                           DigestContextFromClient& client_context);
   void CheckMandatoryDirectivesPresent() const;
   void CheckDuplicateDirectivesExist() const;
 
