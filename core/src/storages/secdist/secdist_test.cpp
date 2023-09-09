@@ -24,8 +24,11 @@ class UserPasswords {
  public:
   using Password = utils::NonLoggable<class PasswordTag, std::string>;
 
-  UserPasswords(const formats::json::Value& doc)
-      : user_password_(doc["user-passwords"].As<Storage>()) {}
+  UserPasswords(const formats::json::Value& doc) {
+    if (doc.HasMember("user-passwords")) {
+      user_password_ = doc["user-passwords"].As<Storage>();
+    }
+  }
 
   bool IsMatching(const std::string& user, const Password& password) const {
     const auto* ptr = utils::FindOrNullptr(user_password_, user);

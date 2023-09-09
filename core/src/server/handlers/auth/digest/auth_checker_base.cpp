@@ -37,9 +37,12 @@ namespace {
 
 class ServerDigestSecretKey {
  public:
-  ServerDigestSecretKey(const formats::json::Value& doc)
-      : secret_key_(doc["http_server_digest_auth_secret"]
-                        .As<ServerDigestAuthSecret>()) {}
+  ServerDigestSecretKey(const formats::json::Value& doc) {
+    if (doc.HasMember("http_server_digest_auth_secret")) {
+      secret_key_ =
+          doc["http_server_digest_auth_secret"].As<ServerDigestAuthSecret>();
+    }
+  }
 
   const ServerDigestAuthSecret& GetSecretKey() const { return secret_key_; }
 
