@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file userver/server/handlers/auth/digest/digest_context.hpp
+/// @file userver/server/handlers/auth/digest/context.hpp
 /// @brief Context structures for Digest Authentication
 
 #include <string>
