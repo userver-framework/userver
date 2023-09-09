@@ -1,4 +1,4 @@
-#include <userver/server/handlers/auth/exception.hpp>
+#include <userver/server/handlers/auth/digest/exception.hpp>
 
 #include <fmt/format.h>
 

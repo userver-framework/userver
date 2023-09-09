@@ -3,14 +3,7 @@
 /// @file userver/server/handlers/auth/digest/digest_context.hpp
 /// @brief Context structures for Digest Authentication
 
-#include <optional>
 #include <string>
-#include <string_view>
-#include <unordered_map>
-#include <vector>
-
-#include <userver/formats/json/value.hpp>
-#include <userver/formats/json/value_builder.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -53,6 +46,5 @@ inline constexpr std::size_t kMaxClientDirectivesNumber = 11;
 /// Number of mandatory directives in Authorization header.
 inline constexpr std::size_t kClientMandatoryDirectivesNumber = 5;
 
-}  // namespace server::handlers::auth
-
+}  // namespace server::handlers::auth::digest
 USERVER_NAMESPACE_END

@@ -1,13 +1,13 @@
 #include <userver/server/handlers/auth/digest/directives_parser.hpp>
 
-#include <fmt/format.h>
-
+#include <algorithm>
 #include <cctype>
 
+#include <fmt/format.h>
+
 #include <userver/logging/log.hpp>
-#include <userver/server/handlers/auth/digest_directives.hpp>
-#include <userver/server/handlers/auth/exception.hpp>
-#include <userver/utils/statistics/fmt.hpp>
+#include <userver/server/handlers/auth/digest/directives.hpp>
+#include <userver/server/handlers/auth/digest/exception.hpp>
 #include <userver/utils/trivial_map.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -66,9 +66,9 @@ enum class State {
 
 }  // namespace
 
-DigestContextFromClient DigestParser::ParseAuthInfo(
+ContextFromClient Parser::ParseAuthInfo(
     std::string_view auth_header_value) {
-  DigestContextFromClient client_context;
+  ContextFromClient client_context;
   State state = State::kStateSpace;
   std::string token;
   std::string value;
@@ -168,9 +168,9 @@ DigestContextFromClient DigestParser::ParseAuthInfo(
   return client_context;
 }
 
-void DigestParser::PushToClientContext(
+void Parser::PushToClientContext(
     std::string&& directive, std::string&& value,
-    DigestContextFromClient& client_context) {
+    ContextFromClient& client_context) {
   const auto directive_type = kClientDirectivesMap.TryFind(std::move(directive))
                                   .value_or(kClientDirectiveTypes::kUnknown);
   const auto index = static_cast<std::size_t>(directive_type);
@@ -216,7 +216,7 @@ void DigestParser::PushToClientContext(
   }
 }
 
-void DigestParser::CheckMandatoryDirectivesPresent() const {
+void Parser::CheckMandatoryDirectivesPresent() const {
   std::vector<std::string> missing_directives;
   std::for_each(
       kMandatoryDirectives.begin(), kMandatoryDirectives.end(),
@@ -234,7 +234,7 @@ void DigestParser::CheckMandatoryDirectivesPresent() const {
   }
 }
 
-void DigestParser::CheckDuplicateDirectivesExist() const {
+void Parser::CheckDuplicateDirectivesExist() const {
   auto it = std::find_if(
       directives_counter_.begin(), directives_counter_.end(),
       [](std::size_t directive_count) { return directive_count > 1; });

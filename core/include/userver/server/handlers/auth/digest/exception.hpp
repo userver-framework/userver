@@ -1,7 +1,7 @@
 #pragma once
 
-/// @file userver/server/handlers/auth/exception.hpp
-/// @brief Exception classes for server::handlers::auth::DigestParser
+/// @file userver/server/handlers/auth/digest/exception.hpp
+/// @brief Exception classes for server::handlers::auth::digest::Parser
 
 #include <stdexcept>
 #include <string>
