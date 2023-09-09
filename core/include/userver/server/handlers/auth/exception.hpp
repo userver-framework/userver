@@ -6,7 +6,7 @@
 #include <stdexcept>
 #include <string>
 #include <vector>
-#include <fmt/format.h>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace server::handlers::auth {

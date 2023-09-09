@@ -22,8 +22,8 @@ class DigestParser final {
 
  private:
   void PushToClientContext(std::string&& directive, std::string&& value, DigestContextFromClient& client_context);
-  void CheckMandatoryDirectivesPresent();
-  void CheckDuplicateDirectivesExist();
+  void CheckMandatoryDirectivesPresent() const;
+  void CheckDuplicateDirectivesExist() const;
 
   std::array<std::size_t, kMaxClientDirectivesNumber> directives_counter_{};
 };

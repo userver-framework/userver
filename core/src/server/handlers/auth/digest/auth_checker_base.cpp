@@ -128,10 +128,9 @@ AuthCheckResult AuthCheckerBase::CheckAuth(const http::HttpRequest& request,
   ContextFromClient client_context;
   try {
     client_context = parser.ParseAuthInfo(auth_value.substr(kDigestWord.size() + 1));
-  } catch (Exception& ex) {
+  } catch (const Exception& ex) {
     response.SetStatus(http::HttpStatus::kBadRequest);
-    LOG_WARNING() << "Missing mandatory directives or wrong authentication "
-                     "header format.";
+    LOG_WARNING() << "Directives parser exception: " << ex;
     throw handlers::ClientError();
   }
 

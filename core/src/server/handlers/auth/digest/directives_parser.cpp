@@ -213,14 +213,15 @@ void DigestParser::PushToClientContext(
   }
 }
 
-void DigestParser::CheckMandatoryDirectivesPresent() {
+void DigestParser::CheckMandatoryDirectivesPresent() const {
   std::vector<std::string> missing_directives;
   std::for_each(
       kMandatoryDirectives.begin(), kMandatoryDirectives.end(),
       [this, &missing_directives](const kClientDirectiveTypes directive_type) {
         const auto index = static_cast<std::size_t>(directive_type);
         if (directives_counter_[index] == 0) {
-          auto directive = kClientDirectivesMap.TryFind(directive_type).value();
+          auto directive = kClientDirectivesMap.TryFind(directive_type).value_or("unknown_directive");
+          UASSERT(directive != "unknown_directive");
           missing_directives.emplace_back(directive);
         }
 
@@ -230,7 +231,7 @@ void DigestParser::CheckMandatoryDirectivesPresent() {
       });
 }
 
-void DigestParser::CheckDuplicateDirectivesExist() {
+void DigestParser::CheckDuplicateDirectivesExist() const {
   auto it = std::find_if(
       directives_counter_.begin(), directives_counter_.end(),
       [](std::size_t directive_count) { return directive_count > 1; });
@@ -238,9 +239,11 @@ void DigestParser::CheckDuplicateDirectivesExist() {
   if (it != directives_counter_.end()) {
     const auto index = std::distance(directives_counter_.begin(), it);
     const auto directive_type = static_cast<kClientDirectiveTypes>(index);
+    auto directive = kClientDirectivesMap.TryFind(directive_type).value_or("unknown_directive");
+    UASSERT(directive != "unknown_directive");
     throw DuplicateDirectiveException(
-        fmt::format("Duplicate '{}' directive found",
-                    kClientDirectivesMap.TryFind(directive_type).value()));
+        fmt::format("Duplicate '{}' directive found", directive));
+        
   }
 }
 

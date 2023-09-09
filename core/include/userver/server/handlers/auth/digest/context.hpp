@@ -53,10 +53,6 @@ inline constexpr std::size_t kMaxClientDirectivesNumber = 11;
 /// Number of mandatory directives in Authorization header.
 inline constexpr std::size_t kClientMandatoryDirectivesNumber = 5;
 
-/// Function to parse directive map into structure
-ContextFromClient Parse(
-    std::unordered_map<std::string, std::string> directive_mapping);
-
-}  // namespace server::handlers::auth::digest
+}  // namespace server::handlers::auth
 
 USERVER_NAMESPACE_END
