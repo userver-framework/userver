@@ -27,7 +27,7 @@ namespace server::handlers::auth::digest {
 
 using TimePoint = std::chrono::time_point<std::chrono::system_clock>;
 using SecdistConfig = storages::secdist::SecdistConfig;
-using DigestSecretKey =
+using ServerDigestAuthSecret =
     utils::NonLoggable<class DigestSecretKeyTag, std::string>;
 
 /// Used for data hashing and "nonce" generating.

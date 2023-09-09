@@ -6,4 +6,4 @@ target_link_libraries(${PROJECT_NAME} userver-core userver-postgresql)
 userver_sample_testsuite_add()
 
 set_tests_properties(testsuite-${PROJECT_NAME} PROPERTIES ENVIRONMENT
-          "DIGEST_SERVER_SECRET={\"server-secret-key\": \"some-private-key\"}")
+          "SERVER_DIGEST_AUTH_SECRET={\"http_server_digest_auth_secret\": \"some-private-key\"}")

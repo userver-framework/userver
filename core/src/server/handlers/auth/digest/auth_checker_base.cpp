@@ -38,12 +38,12 @@ namespace {
 class ServerDigestSecretKey {
  public:
   ServerDigestSecretKey(const formats::json::Value& doc)
-      : secret_key_(doc["server-secret-key"].As<DigestSecretKey>()) {}
+      : secret_key_(doc["http_server_digest_auth_secret"].As<ServerDigestAuthSecret>()) {}
 
-  const DigestSecretKey& GetSecretKey() const { return secret_key_; }
+  const ServerDigestAuthSecret& GetSecretKey() const { return secret_key_; }
 
  private:
-  DigestSecretKey secret_key_;
+  ServerDigestAuthSecret secret_key_;
 };
 
 }  // namespace
