@@ -3,6 +3,7 @@
 #include <cstdlib>
 #include <cstring>
 
+#include <cryptopp/config_int.h>
 #include <cryptopp/sha.h>
 #include <boost/endian/conversion.hpp>
 

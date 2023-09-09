@@ -151,7 +151,6 @@ class WebSocketConnectionImpl final : public WebSocketConnection {
         }
 
         if (frame_.ping_received) {
-          LOG_ERROR() << "Data size " << frame_.payload->size();
           Message pong_msg;
           pong_msg.data = std::move(*frame_.payload);
           MessageExtended pongMsg{pong_msg, false, true};

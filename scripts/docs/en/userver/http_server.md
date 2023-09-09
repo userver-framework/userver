@@ -1,12 +1,14 @@
-# HTTP Server
+# HTTP, HTTPS, WebSocket
 
 ## Introduction
 
-🐙 **userver** implements HTTP 1.1 server in `userver-core` library using @ref components::Server component.
+🐙 **userver** implements HTTP/HTTPS 1.1 and WebSocket server in `userver-core` library using @ref components::Server component.
 
 ## Capabilities
 
 * HTTP 1.1/1.0 support
+* HTTPS
+* WebSocket
 * Body decompression with "Content-Encoding: gzip"
 * HTTP pipelining
 * Custom authorization @ref scripts/docs/en/userver/tutorial/auth_postgres.md
