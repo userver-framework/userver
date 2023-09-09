@@ -49,7 +49,7 @@ void PortInfo::Init(const ServerConfig& config,
                     const net::ListenerConfig& listener_config,
                     const components::ComponentContext& component_context,
                     bool is_monitor) {
-  LOG_INFO() << "Creating listener" << (is_monitor ? " (monitor)" : "");
+  LOG_DEBUG() << "Creating listener" << (is_monitor ? " (monitor)" : "");
 
   engine::TaskProcessor& task_processor =
       component_context.GetTaskProcessor(listener_config.task_processor);
@@ -153,7 +153,7 @@ ServerImpl::ServerImpl(ServerConfig config,
                        const storages::secdist::SecdistConfig& secdist,
                        const components::ComponentContext& component_context)
     : config_(std::move(config)) {
-  LOG_INFO() << "Creating server";
+  LOG_DEBUG() << "Creating server";
 
   if (config_.listener.tls) {
     auto contents =
@@ -174,7 +174,7 @@ ServerImpl::ServerImpl(ServerConfig config,
                             component_context, true);
   }
 
-  LOG_INFO() << "Server is created";
+  LOG_INFO() << "Server is created, listening for incoming connections.";
 }
 
 ServerImpl::~ServerImpl() { Stop(); }

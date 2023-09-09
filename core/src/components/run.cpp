@@ -162,7 +162,7 @@ void DoRun(const PathOrConfig& config,
 
   LogScope log_scope{MakeLogger(init_log_path, format)};
 
-  LOG_INFO() << "Parsing configs";
+  LOG_DEBUG() << "Parsing configs";
   if (config_vars_path) {
     LOG_INFO() << "Using config_vars from cmdline: " << *config_vars_path
                << ". The config_vars filepath in config.yaml is ignored.";
@@ -176,7 +176,7 @@ void DoRun(const PathOrConfig& config,
   auto parsed_config = std::make_unique<ManagerConfig>(std::visit(
       ConfigToManagerVisitor{config_vars_path, config_vars_override_path},
       config));
-  LOG_INFO() << "Parsed configs";
+  LOG_DEBUG() << "Parsed configs";
 
   utils::impl::UserverExperimentsScope experiments_scope;
   experiments_scope.EnableOnly(parsed_config->enabled_experiments,

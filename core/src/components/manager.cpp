@@ -312,6 +312,7 @@ void Manager::AddComponents(const ComponentList& component_list) {
     for (const auto& adder : component_list) {
       auto task_name = "boot/" + adder->GetComponentName();
       tasks.push_back(utils::CriticalAsync(std::move(task_name), [&]() {
+        tracing::Span::CurrentSpan().SetLogLevel(logging::Level::kDebug);
         try {
           (*adder)(*this, component_config_map);
         } catch (const ComponentsLoadCancelledException& ex) {
@@ -389,12 +390,12 @@ void Manager::AddComponentImpl(
   }
   auto enabled = config_it->second["load-enabled"].As<bool>(true);
   if (!enabled) {
-    LOG_INFO() << "Component " << name
-               << " load disabled in config.yaml, skipping";
+    LOG_DEBUG() << "Component " << name
+                << " load disabled in config.yaml, skipping";
     return;
   }
 
-  LOG_INFO() << "Starting component " << name;
+  LOG_DEBUG() << "Starting component " << name;
 
   auto* component = component_context_.AddComponent(
       name, [&factory, &config = config_it->second](
@@ -404,7 +405,7 @@ void Manager::AddComponentImpl(
   if (auto* signal_processor =
           dynamic_cast<os_signals::ProcessorComponent*>(component))
     signal_processor_ = signal_processor;
-  LOG_INFO() << "Started component " << name;
+  LOG_DEBUG() << "Started component " << name;
 }
 
 void Manager::ClearComponents() noexcept {

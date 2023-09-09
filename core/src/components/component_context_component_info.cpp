@@ -39,9 +39,9 @@ void ComponentInfo::ClearComponent() {
   span.AddTag(kComponentName, name_);
 
   auto component = ExtractComponent();
-  LOG_INFO() << "Stopping component";
+  LOG_DEBUG() << "Stopping component";
   component.reset();
-  LOG_INFO() << "Stopped component";
+  LOG_DEBUG() << "Stopped component";
 }
 
 ComponentBase* ComponentInfo::GetComponent() const {

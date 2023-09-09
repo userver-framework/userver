@@ -256,8 +256,8 @@ void ComponentContext::Impl::ProcessSingleComponentLifetimeStageSwitching(
     else
       component_info.ForEachDependsOnIt(wait_cb);
 
-    LOG_INFO() << "Call " << params.stage_switch_handler_name
-               << " for component " << name;
+    LOG_DEBUG() << "Call " << params.stage_switch_handler_name
+                << " for component " << name;
     (component_info.*params.stage_switch_handler)();
   } catch (const impl::StageSwitchingCancelledException& ex) {
     LOG_WARNING() << params.stage_switch_handler_name
@@ -338,8 +338,8 @@ impl::ComponentBase* ComponentContext::Impl::DoFindComponent(
     engine::TaskCancellationBlocker block_cancel;
     auto data = shared_data_.Lock();
     this_component_name = GetLoadingComponentName(*data);
-    LOG_INFO() << "component " << name << " is not loaded yet, component "
-               << this_component_name << " is waiting for it to load";
+    LOG_DEBUG() << "component " << name << " is not loaded yet, component "
+                << this_component_name << " is waiting for it to load";
   }
   SearchingComponentScope finder(*this, this_component_name);
 
@@ -352,8 +352,8 @@ void ComponentContext::Impl::AddDependency(impl::ComponentNameFromInfo name) {
   const auto current_component_name = GetLoadingComponentName(*data);
   if (components_.at(current_component_name).CheckItDependsOn(name)) return;
 
-  LOG_INFO() << "Resolving dependency " << current_component_name << " -> "
-             << name;
+  LOG_DEBUG() << "Resolving dependency " << current_component_name << " -> "
+              << name;
   CheckForDependencyCycle(current_component_name, name, *data);
 
   components_.at(current_component_name).AddItDependsOn(name);

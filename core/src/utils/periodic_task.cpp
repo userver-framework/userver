@@ -63,7 +63,7 @@ void PeriodicTask::Start(std::string name, Settings settings,
 
 void PeriodicTask::DoStart() {
   const auto name_ptr = name_.Read();
-  LOG_INFO() << "Starting PeriodicTask with name=" << *name_ptr;
+  LOG_DEBUG() << "Starting PeriodicTask with name=" << *name_ptr;
   auto settings_ptr = settings_.Read();
   auto& task_processor = settings_ptr->task_processor
                              ? *settings_ptr->task_processor
