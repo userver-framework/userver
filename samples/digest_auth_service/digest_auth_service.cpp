@@ -4,7 +4,7 @@
 #include <userver/clients/dns/component.hpp>
 #include <userver/clients/http/component.hpp>
 #include <userver/components/minimal_server_component_list.hpp>
-#include <userver/server/handlers/auth/digest_checker_settings_component.hpp>
+#include <userver/server/handlers/auth/digest/auth_checker_settings_component.hpp>
 #include <userver/server/handlers/http_handler_base.hpp>
 #include <userver/server/handlers/tests_control.hpp>
 #include <userver/storages/postgres/cluster.hpp>
@@ -50,9 +50,10 @@ int main(int argc, const char* const argv[]) {
           .Append<components::HttpClient>()
           .Append<server::handlers::TestsControl>()
           .Append<clients::dns::Component>()
-          .Append<server::handlers::auth::DigestCheckerSettingsComponent>(
+          .Append<server::handlers::auth::digest::AuthCheckerSettingsComponent>(
               "auth-digest-checker-settings-proxy")
-          .Append<server::handlers::auth::DigestCheckerSettingsComponent>();
+          .Append<
+              server::handlers::auth::digest::AuthCheckerSettingsComponent>();
   return utils::DaemonMain(argc, argv, component_list);
   /// [main]
 }

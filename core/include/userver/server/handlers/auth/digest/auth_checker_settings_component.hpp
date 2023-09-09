@@ -1,7 +1,9 @@
 #pragma once
 
-/// @file userver/server/handlers/auth/digest_checker_settings_component.hpp
-/// @brief @copybrief server::handlers::auth::DigestCheckerSettingsComponent
+/// @file
+/// userver/server/handlers/auth/digest/digest_checker_settings_component.hpp
+/// @brief @copybrief
+/// server::handlers::auth::digest::AuthCheckerSettingsComponent
 
 #include <chrono>
 #include <optional>
@@ -10,11 +12,11 @@
 #include <userver/components/loggable_component_base.hpp>
 #include <userver/dynamic_config/source.hpp>
 
-#include "auth_digest_settings.hpp"
+#include "auth_checker_settings.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
-namespace server::handlers::auth {
+namespace server::handlers::auth::digest {
 
 // clang-format off
 
@@ -33,31 +35,30 @@ namespace server::handlers::auth {
 
 // clang-format on
 
-class DigestCheckerSettingsComponent
-    : public components::LoggableComponentBase {
+class AuthCheckerSettingsComponent : public components::LoggableComponentBase {
  public:
   /// @ingroup userver_component_names
   /// @brief The default name of
-  /// server::handlers::auth::DigestCheckerSettingsComponent
+  /// server::handlers::auth::digest::AuthCheckerSettingsComponent
   static constexpr std::string_view kName = "auth-digest-checker-settings";
 
-  DigestCheckerSettingsComponent(const components::ComponentConfig& config,
-                                 const components::ComponentContext& context);
+  AuthCheckerSettingsComponent(const components::ComponentConfig& config,
+                               const components::ComponentContext& context);
 
-  ~DigestCheckerSettingsComponent() override;
+  ~AuthCheckerSettingsComponent() override;
 
-  const AuthDigestSettings& GetSettings() const;
+  const AuthCheckerSettings& GetSettings() const;
 
   static yaml_config::Schema GetStaticConfigSchema();
 
  private:
-  AuthDigestSettings settings_;
+  AuthCheckerSettings settings_;
 };
 
-}  // namespace server::handlers::auth
+}  // namespace server::handlers::auth::digest
 
 template <>
 inline constexpr bool components::kHasValidate<
-    server::handlers::auth::DigestCheckerSettingsComponent> = true;
+    server::handlers::auth::digest::AuthCheckerSettingsComponent> = true;
 
 USERVER_NAMESPACE_END

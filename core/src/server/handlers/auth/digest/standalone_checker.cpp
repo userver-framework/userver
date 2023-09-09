@@ -1,14 +1,14 @@
-#include <userver/server/handlers/auth/auth_digest_checker_standalone.hpp>
+#include <userver/server/handlers/auth/digest/standalone_checker.hpp>
 
 #include <memory>
 #include <optional>
 #include <string_view>
 
-#include <userver/server/handlers/auth/auth_digest_settings.hpp>
+#include <userver/server/handlers/auth/digest/auth_checker_settings.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
-namespace server::handlers::auth {
+namespace server::handlers::auth::digest {
 
 NonceInfo::NonceInfo()
     : expiration_time(utils::datetime::Now()), nonce_count(0) {}
@@ -19,15 +19,15 @@ NonceInfo::NonceInfo(const std::string& nonce, TimePoint expiration_time,
       expiration_time(expiration_time),
       nonce_count(nonce_count){};
 
-AuthCheckerDigestBaseStandalone::AuthCheckerDigestBaseStandalone(
-    const AuthDigestSettings& digest_settings, std::string&& realm,
+AuthStandaloneCheckerBase::AuthStandaloneCheckerBase(
+    const AuthCheckerSettings& digest_settings, std::string&& realm,
     std::size_t ways, std::size_t way_size)
-    : DigestCheckerBase(digest_settings, std::move(realm)),
+    : AuthCheckerBase(digest_settings, std::move(realm)),
       unnamed_nonces_(ways, way_size) {
   unnamed_nonces_.SetMaxLifetime(digest_settings.nonce_ttl);
 };
 
-std::optional<UserData> AuthCheckerDigestBaseStandalone::FetchUserData(
+std::optional<UserData> AuthStandaloneCheckerBase::FetchUserData(
     const std::string& username) const {
   if (username.empty()) {
     return std::nullopt;
@@ -60,7 +60,7 @@ std::optional<UserData> AuthCheckerDigestBaseStandalone::FetchUserData(
   return user_data;
 }
 
-void AuthCheckerDigestBaseStandalone::SetUserData(
+void AuthStandaloneCheckerBase::SetUserData(
     const std::string& username, const std::string& nonce,
     std::int64_t nonce_count, TimePoint nonce_creation_time) const {
   auto nonce_info = user_data_.Get(username);
@@ -76,13 +76,11 @@ void AuthCheckerDigestBaseStandalone::SetUserData(
   }
 }
 
-void AuthCheckerDigestBaseStandalone::PushUnnamedNonce(
-    std::string nonce) const {
+void AuthStandaloneCheckerBase::PushUnnamedNonce(std::string nonce) const {
   unnamed_nonces_.Put(nonce, utils::datetime::Now());
 }
 
-std::optional<TimePoint>
-AuthCheckerDigestBaseStandalone::GetUnnamedNonceCreationTime(
+std::optional<TimePoint> AuthStandaloneCheckerBase::GetUnnamedNonceCreationTime(
     const std::string& nonce) const {
   auto unnamed_nonce = unnamed_nonces_.GetOptionalNoUpdate(nonce);
   if (unnamed_nonce) {
@@ -91,6 +89,6 @@ AuthCheckerDigestBaseStandalone::GetUnnamedNonceCreationTime(
   return unnamed_nonce;
 }
 
-}  // namespace server::handlers::auth
+}  // namespace server::handlers::auth::digest
 
 USERVER_NAMESPACE_END

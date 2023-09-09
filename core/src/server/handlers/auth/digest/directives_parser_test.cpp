@@ -1,10 +1,12 @@
-#include <userver/server/handlers/auth/auth_params_parsing.hpp>
+#include <userver/server/handlers/auth/digest/directives_parser.hpp>
 #include <userver/utest/utest.hpp>
 
 #include <exception>
 #include <string_view>
 
 USERVER_NAMESPACE_BEGIN
+
+using Parser = server::handlers::auth::digest::Parser;
 
 TEST(AuthenticationInfoCorrectParsing, WithoutOptional) {
   std::string_view correctInfo = R"(username="Mufasa",
@@ -13,7 +15,7 @@ TEST(AuthenticationInfoCorrectParsing, WithoutOptional) {
         uri="/dir/index.html",
         response="6629fae49393a05397450978507c4ef1"
     )";
-  server::handlers::auth::DigestParser parser;
+  Parser parser;
   EXPECT_NO_THROW(parser.ParseAuthInfo(correctInfo));
   auto auth_context = parser.GetClientContext();
 
@@ -32,7 +34,7 @@ TEST(AuthenticationInfoCorrectParsing, WithOptionalPartial) {
         response="6629fae49393a05397450978507c4ef1",
         algorithm=MD5
     )";
-  server::handlers::auth::DigestParser parser;
+  Parser parser;
   EXPECT_NO_THROW(parser.ParseAuthInfo(correctInfo));
 
   auto auth_context = parser.GetClientContext();
@@ -58,7 +60,7 @@ TEST(AuthenticationInfoCorrectParsing, WithOptionalAll) {
         opaque="5ccc069c403ebaf9f0171e9517f40e41",
         auth-param="fictional parameter"
     )";
-  server::handlers::auth::DigestParser parser;
+  Parser parser;
   EXPECT_NO_THROW(parser.ParseAuthInfo(correctInfo));
 
   auto auth_context = parser.GetClientContext();
@@ -97,7 +99,7 @@ TEST(AuthenticationInfoIncorrectParsing, MandatoryDirectivesMissing) {
         opaque="5ccc069c403ebaf9f0171e9517f40e41",
         auth-param="fictional parameter"
     )";
-  server::handlers::auth::DigestParser parser;
+  Parser parser;
   EXPECT_NO_THROW(parser.ParseAuthInfo(correctInfo));
   EXPECT_THROW(parser.GetClientContext(), std::runtime_error);
 }
@@ -114,7 +116,7 @@ TEST(AuthenticationInfoIncorrectParsing, MandatoryDirectiveMissing) {
         opaque="5ccc069c403ebaf9f0171e9517f40e41",
         auth-param="fictional parameter"
     )";
-  server::handlers::auth::DigestParser parser;
+  Parser parser;
   EXPECT_NO_THROW(parser.ParseAuthInfo(correctInfo));
   EXPECT_THROW(parser.GetClientContext(), std::runtime_error);
 }
@@ -131,7 +133,7 @@ TEST(AuthenticationInfoIncorrectParsing, MandatoryDirectiveMissingExtended) {
         opaque="5ccc069c403ebaf9f0171e9517f40e41",
         auth-param="fictional parameter"
     )";
-  server::handlers::auth::DigestParser parser;
+  Parser parser;
   EXPECT_NO_THROW(parser.ParseAuthInfo(correctInfo));
   EXPECT_THROW(parser.GetClientContext(), std::runtime_error);
 }
@@ -144,7 +146,7 @@ TEST(AuthenticationInfoIncorrectParsing, MandatoryDirectiveNoValue) {
         algorithm=MD5,
         response="6629fae49393a05397450978507c4ef1",
     )";
-  server::handlers::auth::DigestParser parser;
+  Parser parser;
   EXPECT_THROW(parser.ParseAuthInfo(correctInfo), std::runtime_error);
 }
 
@@ -156,7 +158,7 @@ TEST(AuthenticationInfoIncorrectParsing, OptionalDirectiveNoValue) {
         response="6629fae49393a05397450978507c4ef1",
         qop=,
     )";
-  server::handlers::auth::DigestParser parser;
+  Parser parser;
   EXPECT_THROW(parser.ParseAuthInfo(correctInfo), std::runtime_error);
 }
 
@@ -168,7 +170,7 @@ TEST(AuthenticationInfoIncorrectParsing, InvalidMandatoryDirectory) {
         algorithm=MD5,
         response="6629fae49393a05397450978507c4ef1"
     )";
-  server::handlers::auth::DigestParser parser;
+  Parser parser;
   EXPECT_NO_THROW(parser.ParseAuthInfo(correctInfo));
   EXPECT_THROW(parser.GetClientContext(), std::runtime_error);
 }

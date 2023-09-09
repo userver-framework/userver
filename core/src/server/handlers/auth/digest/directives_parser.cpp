@@ -1,17 +1,17 @@
-#include <userver/server/handlers/auth/auth_params_parsing.hpp>
+#include <userver/server/handlers/auth/digest/directives_parser.hpp>
 
 #include <fmt/format.h>
 
 #include <cctype>
 
 #include <userver/logging/log.hpp>
-#include <userver/server/handlers/auth/digest_directives.hpp>
+#include <userver/server/handlers/auth/digest/directives.hpp>
 #include <userver/utils/exception.hpp>
 #include <userver/utils/statistics/fmt.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
-namespace server::handlers::auth {
+namespace server::handlers::auth::digest {
 
 namespace {
 const std::array<std::string, 5> kMandatoryDirectives = {
@@ -22,7 +22,7 @@ const std::array<std::string, 5> kMandatoryDirectives = {
     directives::kUsername};
 }  // namespace
 
-void DigestParser::ParseAuthInfo(std::string_view header_value) {
+void Parser::ParseAuthInfo(std::string_view header_value) {
   enum class State {
     kStateSpace,
     kStateToken,
@@ -122,7 +122,7 @@ void DigestParser::ParseAuthInfo(std::string_view header_value) {
     utils::LogErrorAndThrow("Invalid authentication information");
 }
 
-DigestContextFromClient DigestParser::GetClientContext() {
+ContextFromClient Parser::GetClientContext() {
   // Only checking mandatory directives
   // because according to RFC 2617,
   // "Any unrecognized directive MUST be ignored"
@@ -135,6 +135,6 @@ DigestContextFromClient DigestParser::GetClientContext() {
   return Parse(directive_mapping);
 }
 
-}  // namespace server::handlers::auth
+}  // namespace server::handlers::auth::digest
 
 USERVER_NAMESPACE_END

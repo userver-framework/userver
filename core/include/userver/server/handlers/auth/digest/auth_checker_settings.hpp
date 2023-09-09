@@ -1,7 +1,7 @@
 #pragma once
 
-/// @file userver/server/handlers/auth/auth_digest_settings.hpp
-/// @brief @copybrief server::handlers::auth::AuthDigestSettings
+/// @file userver/server/handlers/auth/digest/digest_checker_settings.hpp
+/// @brief @copybrief server::handlers::auth::digest::AuthCheckerSettings
 
 #include <chrono>
 #include <optional>
@@ -10,11 +10,11 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace server::handlers::auth {
+namespace server::handlers::auth::digest {
 
 /// @brief Struct of directives for digest authentication server settings per
 /// RFC 2617
-struct AuthDigestSettings {
+struct AuthCheckerSettings {
   /// Algorithm for hashing `nonce` from
   /// https://datatracker.ietf.org/doc/html/rfc2617#section-3.2.1
   std::string algorithm;
@@ -33,6 +33,6 @@ struct AuthDigestSettings {
   std::chrono::milliseconds nonce_ttl{0};
 };
 
-}  // namespace server::handlers::auth
+}  // namespace server::handlers::auth::digest
 
 USERVER_NAMESPACE_END

@@ -1,7 +1,8 @@
 #pragma once
 
-/// @file userver/server/handlers/auth/nonce_cache_settings_component.hpp
-/// @brief @copybrief server::handlers::auth::NonceCacheSettingsComponent
+/// @file userver/server/handlers/auth/digest/nonce_cache_settings_component.hpp
+/// @brief @copybrief
+/// server::handlers::auth::digest::NonceCacheSettingsComponent
 
 #include <chrono>
 #include <cstddef>
@@ -10,13 +11,13 @@
 
 #include <userver/components/loggable_component_base.hpp>
 #include <userver/dynamic_config/source.hpp>
-#include <userver/server/handlers/auth/digest_checker_settings_component.hpp>
+#include <userver/server/handlers/auth/digest/auth_checker_settings_component.hpp>
 
-#include "auth_digest_settings.hpp"
+#include "auth_checker_settings.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
-namespace server::handlers::auth {
+namespace server::handlers::auth::digest {
 
 struct NonceCacheSettings {
   std::size_t ways{};
@@ -35,8 +36,7 @@ struct NonceCacheSettings {
 
 // clang-format on
 
-class NonceCacheSettingsComponent final
-    : public DigestCheckerSettingsComponent {
+class NonceCacheSettingsComponent final : public AuthCheckerSettingsComponent {
  public:
   /// @ingroup userver_component_names
   /// @brief The default name of
@@ -56,10 +56,10 @@ class NonceCacheSettingsComponent final
   NonceCacheSettings settings_;
 };
 
-}  // namespace server::handlers::auth
+}  // namespace server::handlers::auth::digest
 
 template <>
 inline constexpr bool components::kHasValidate<
-    server::handlers::auth::NonceCacheSettingsComponent> = true;
+    server::handlers::auth::digest::NonceCacheSettingsComponent> = true;
 
 USERVER_NAMESPACE_END

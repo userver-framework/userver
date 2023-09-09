@@ -1,7 +1,7 @@
 #pragma once
 
-/// @file userver/server/handlers/auth/auth_digest_checker_standalone.hpp
-/// @brief @copybrief server::handlers::auth::DigestCheckerBase
+/// @file userver/server/handlers/auth/digest/standalone_checker.hpp
+/// @brief @copybrief server::handlers::auth::digest::AuthStandaloneCheckerBase
 
 #include <chrono>
 #include <cstdint>
@@ -14,9 +14,9 @@
 #include <userver/concurrent/variable.hpp>
 #include <userver/crypto/hash.hpp>
 #include <userver/rcu/rcu_map.hpp>
-#include <userver/server/handlers/auth/auth_digest_settings.hpp>
-#include <userver/server/handlers/auth/auth_params_parsing.hpp>
-#include <userver/server/handlers/auth/digest_checker_base.hpp>
+#include <userver/server/handlers/auth/digest/auth_checker_base.hpp>
+#include <userver/server/handlers/auth/digest/auth_checker_settings.hpp>
+#include <userver/server/handlers/auth/digest/directives_parser.hpp>
 #include <userver/server/http/http_request.hpp>
 #include <userver/server/http/http_response.hpp>
 #include <userver/server/http/http_status.hpp>
@@ -24,7 +24,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace server::handlers::auth {
+namespace server::handlers::auth::digest {
 
 struct NonceInfo final {
   NonceInfo();
@@ -39,11 +39,11 @@ struct NonceInfo final {
 ///
 /// @brief Class for digest authentication checker. Implements a stand-alone
 /// digest-authentication logic.
-class AuthCheckerDigestBaseStandalone : public DigestCheckerBase {
+class AuthStandaloneCheckerBase : public AuthCheckerBase {
  public:
-  AuthCheckerDigestBaseStandalone(const AuthDigestSettings& digest_settings,
-                                  std::string&& realm, std::size_t ways,
-                                  std::size_t way_size);
+  AuthStandaloneCheckerBase(const AuthCheckerSettings& digest_settings,
+                            std::string&& realm, std::size_t ways,
+                            std::size_t way_size);
 
   [[nodiscard]] bool SupportsUserAuth() const noexcept override { return true; }
 
@@ -70,6 +70,6 @@ class AuthCheckerDigestBaseStandalone : public DigestCheckerBase {
   mutable NonceCache unnamed_nonces_;
 };
 
-}  // namespace server::handlers::auth
+}  // namespace server::handlers::auth::digest
 
 USERVER_NAMESPACE_END

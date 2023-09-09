@@ -9,8 +9,8 @@
 #include <string_view>
 
 #include <userver/http/common_headers.hpp>
-#include <userver/server/handlers/auth/digest_checker_base.hpp>
-#include <userver/server/handlers/auth/digest_checker_settings_component.hpp>
+#include <userver/server/handlers/auth/digest/auth_checker_base.hpp>
+#include <userver/server/handlers/auth/digest/auth_checker_settings_component.hpp>
 #include <userver/storages/postgres/cluster.hpp>
 #include <userver/storages/postgres/cluster_types.hpp>
 #include <userver/storages/postgres/component.hpp>
@@ -19,21 +19,21 @@
 
 namespace samples::digest_auth {
 
-using UserData = server::handlers::auth::UserData;
-using HA1 = server::handlers::auth::UserData::HA1;
+using UserData = server::handlers::auth::digest::UserData;
+using HA1 = server::handlers::auth::digest::UserData::HA1;
 using TimePoint = std::chrono::time_point<std::chrono::system_clock>;
 
-class AuthCheckerDigest final
-    : public server::handlers::auth::DigestCheckerBase {
+class AuthChecker final
+    : public server::handlers::auth::digest::AuthCheckerBase {
  public:
   using AuthCheckResult = server::handlers::auth::AuthCheckResult;
-  using AuthDigestSettings = server::handlers::auth::AuthDigestSettings;
+  using AuthDigestSettings =
+      server::handlers::auth::digest::AuthCheckerSettings;
 
-  AuthCheckerDigest(const AuthDigestSettings& digest_settings,
-                    std::string realm,
-                    const ::components::ComponentContext& context)
-      : server::handlers::auth::DigestCheckerBase(digest_settings,
-                                                  std::move(realm)),
+  AuthChecker(const AuthDigestSettings& digest_settings, std::string realm,
+              const ::components::ComponentContext& context)
+      : server::handlers::auth::digest::AuthCheckerBase(digest_settings,
+                                                        std::move(realm)),
         pg_cluster_(context.FindComponent<components::Postgres>("auth-database")
                         .GetCluster()),
         nonce_ttl_(digest_settings.nonce_ttl) {}
@@ -57,7 +57,7 @@ class AuthCheckerDigest final
 /// [auth checker declaration]
 
 /// [auth checker definition 1]
-std::optional<UserData> AuthCheckerDigest::FetchUserData(
+std::optional<UserData> AuthChecker::FetchUserData(
     const std::string& username) const {
   storages::postgres::ResultSet res =
       pg_cluster_->Execute(storages::postgres::ClusterHostType::kSlave,
@@ -73,10 +73,10 @@ std::optional<UserData> AuthCheckerDigest::FetchUserData(
 /// [auth checker definition 1]
 
 /// [auth checker definition 2]
-void AuthCheckerDigest::SetUserData(const std::string& username,
-                                    const std::string& nonce,
-                                    std::int64_t nonce_count,
-                                    TimePoint nonce_creation_time) const {
+void AuthChecker::SetUserData(const std::string& username,
+                              const std::string& nonce,
+                              std::int64_t nonce_count,
+                              TimePoint nonce_creation_time) const {
   pg_cluster_->Execute(storages::postgres::ClusterHostType::kMaster,
                        uservice_dynconf::sql::kUpdateUser, nonce,
                        storages::postgres::TimePointTz{nonce_creation_time},
@@ -85,7 +85,7 @@ void AuthCheckerDigest::SetUserData(const std::string& username,
 /// [auth checker definition 2]
 
 /// [auth checker definition 3]
-void AuthCheckerDigest::PushUnnamedNonce(std::string nonce) const {
+void AuthChecker::PushUnnamedNonce(std::string nonce) const {
   auto res = pg_cluster_->Execute(
       storages::postgres::ClusterHostType::kMaster,
       uservice_dynconf::sql::kInsertUnnamedNonce,
@@ -95,7 +95,7 @@ void AuthCheckerDigest::PushUnnamedNonce(std::string nonce) const {
 /// [auth checker definition 3]
 
 /// [auth checker definition 4]
-std::optional<TimePoint> AuthCheckerDigest::GetUnnamedNonceCreationTime(
+std::optional<TimePoint> AuthChecker::GetUnnamedNonceCreationTime(
     const std::string& nonce) const {
   auto res =
       pg_cluster_->Execute(storages::postgres::ClusterHostType::kSlave,
@@ -115,10 +115,10 @@ server::handlers::auth::AuthCheckerBasePtr CheckerFactory::operator()(
   const auto& digest_auth_settings =
       context
           .FindComponent<
-              server::handlers::auth::DigestCheckerSettingsComponent>()
+              server::handlers::auth::digest::AuthCheckerSettingsComponent>()
           .GetSettings();
 
-  return std::make_shared<AuthCheckerDigest>(
+  return std::make_shared<AuthChecker>(
       digest_auth_settings, auth_config["realm"].As<std::string>({}), context);
 }
 /// [auth checker factory definition]
@@ -130,11 +130,11 @@ server::handlers::auth::AuthCheckerBasePtr CheckerProxyFactory::operator()(
   const auto& digest_auth_settings =
       context
           .FindComponent<
-              server::handlers::auth::DigestCheckerSettingsComponent>(
+              server::handlers::auth::digest::AuthCheckerSettingsComponent>(
               "auth-digest-checker-settings-proxy")
           .GetSettings();
 
-  return std::make_shared<AuthCheckerDigest>(
+  return std::make_shared<AuthChecker>(
       digest_auth_settings, auth_config["realm"].As<std::string>({}), context);
 }
 

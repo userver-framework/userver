@@ -1,21 +1,21 @@
-#include <userver/server/handlers/auth/digest_checker_settings_component.hpp>
+#include <userver/server/handlers/auth/digest/auth_checker_settings_component.hpp>
 
 #include <cstddef>
 
 #include <userver/components/component.hpp>
 #include <userver/dynamic_config/storage/component.hpp>
 #include <userver/dynamic_config/value.hpp>
-#include <userver/server/handlers/auth/digest_types.hpp>
+#include <userver/server/handlers/auth/digest/types.hpp>
 #include <userver/utils/async.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
-namespace server::handlers::auth {
+namespace server::handlers::auth::digest {
 
 constexpr size_t kDefaultTtlMs = 10 * 1000;
 
-DigestCheckerSettingsComponent::DigestCheckerSettingsComponent(
+AuthCheckerSettingsComponent::AuthCheckerSettingsComponent(
     const components::ComponentConfig& config,
     const components::ComponentContext& context)
     : components::LoggableComponentBase(config, context) {
@@ -44,13 +44,13 @@ DigestCheckerSettingsComponent::DigestCheckerSettingsComponent(
       config["nonce-ttl"].As<std::chrono::milliseconds>(kDefaultTtlMs);
 }
 
-DigestCheckerSettingsComponent::~DigestCheckerSettingsComponent() = default;
+AuthCheckerSettingsComponent::~AuthCheckerSettingsComponent() = default;
 
-const AuthDigestSettings& DigestCheckerSettingsComponent::GetSettings() const {
+const AuthCheckerSettings& AuthCheckerSettingsComponent::GetSettings() const {
   return settings_;
 }
 
-yaml_config::Schema DigestCheckerSettingsComponent::GetStaticConfigSchema() {
+yaml_config::Schema AuthCheckerSettingsComponent::GetStaticConfigSchema() {
   return yaml_config::MergeSchemas<components::LoggableComponentBase>(R"(
 type: object
 description: settings for digest authentication
@@ -87,6 +87,6 @@ properties:
 )");
 }
 
-}  // namespace server::handlers::auth
+}  // namespace server::handlers::auth::digest
 
 USERVER_NAMESPACE_END

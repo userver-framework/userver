@@ -1,13 +1,13 @@
 #pragma once
 
-/// @file userver/server/handlers/auth/digest_types.hpp
+/// @file userver/server/handlers/auth/digest/types.hpp
 /// @brief Types for validating directive values
 
 #include <userver/utils/trivial_map.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
-namespace server::handlers::auth {
+namespace server::handlers::auth::digest {
 
 /// @brief Supported hashing algorithms
 enum class HashAlgTypes {
@@ -38,6 +38,6 @@ inline constexpr utils::TrivialBiMap kQopToType = [](auto selector) {
 
 // enum
 
-}  // namespace server::handlers::auth
+}  // namespace server::handlers::auth::digest
 
 USERVER_NAMESPACE_END

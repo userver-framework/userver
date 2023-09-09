@@ -1,7 +1,7 @@
 #pragma once
 
-/// @file userver/server/handlers/auth/auth_params_parsing.hpp
-/// @brief @copybrief server::handlers::auth::DigestParser
+/// @file userver/server/handlers/auth/digest/directives_parser.hpp
+/// @brief @copybrief server::handlers::auth::digest::Parser
 
 #include <array>
 #include <memory>
@@ -13,26 +13,26 @@
 #include <userver/formats/json/value.hpp>
 #include <userver/formats/json/value_builder.hpp>
 
-#include <userver/server/handlers/auth/digest_context.hpp>
+#include <userver/server/handlers/auth/digest/context.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
-namespace server::handlers::auth {
+namespace server::handlers::auth::digest {
 
 /// @brief Class for parsing Authorization header directives from client
 /// request.
-class DigestParser {
+class Parser {
  public:
   /// Function to call to parse Authorization header value into directive-value
   /// map
   void ParseAuthInfo(std::string_view header_value);
   /// Function to call to get client digest context from directive-value map
-  DigestContextFromClient GetClientContext();
+  ContextFromClient GetClientContext();
 
  private:
   std::unordered_map<std::string, std::string> directive_mapping;
 };
 
-}  // namespace server::handlers::auth
+}  // namespace server::handlers::auth::digest
 
 USERVER_NAMESPACE_END
