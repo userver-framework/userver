@@ -29,8 +29,6 @@ USERVER_NAMESPACE_BEGIN
 
 namespace server::handlers::auth::digest {
 
-constexpr std::string_view kDigestWord = "Digest";
-
 constexpr std::string_view kAuthenticationInfo = "Authentication-Info";
 constexpr std::string_view kProxyAuthenticationInfo =
     "Proxy-Authentication-Info";
@@ -127,8 +125,7 @@ AuthCheckResult AuthCheckerBase::CheckAuth(const http::HttpRequest& request,
   Parser parser;
   ContextFromClient client_context;
   try {
-    client_context =
-        parser.ParseAuthInfo(auth_value.substr(kDigestWord.size() + 1));
+    client_context = parser.ParseAuthInfo(auth_value);
   } catch (const Exception& ex) {
     response.SetStatus(http::HttpStatus::kBadRequest);
     LOG_WARNING() << "Directives parser exception: " << ex;

@@ -16,6 +16,8 @@ namespace server::handlers::auth::digest {
 
 namespace {
 
+constexpr std::string_view kDigestWord = "Digest";
+
 enum class kClientDirectiveTypes {
   kUsername,
   kRealm,
@@ -65,13 +67,14 @@ enum class State {
 }  // namespace
 
 DigestContextFromClient DigestParser::ParseAuthInfo(
-    std::string_view header_value) {
+    std::string_view auth_header_value) {
   DigestContextFromClient client_context;
   State state = State::kStateSpace;
   std::string token;
   std::string value;
 
-  for (char delimiter : header_value) {
+  auto directives_str = auth_header_value.substr(kDigestWord.size() + 1);
+  for (char delimiter : directives_str) {
     switch (state) {
       case State::kStateSpace:
         if (std::isalnum(delimiter) || delimiter == '_' || delimiter == '-') {

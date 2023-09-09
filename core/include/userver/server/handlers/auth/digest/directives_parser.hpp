@@ -18,7 +18,7 @@ namespace server::handlers::auth::digest {
 class DigestParser final {
  public:
   /// Function to call to parse Authorization header directives.
-  DigestContextFromClient ParseAuthInfo(std::string_view header_value);
+  DigestContextFromClient ParseAuthInfo(std::string_view auth_header_value);
 
  private:
   void PushToClientContext(std::string&& directive, std::string&& value,
