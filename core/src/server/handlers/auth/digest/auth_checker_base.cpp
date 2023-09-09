@@ -16,8 +16,8 @@
 #include <userver/logging/log.hpp>
 #include <userver/server/handlers/auth/auth_checker_base.hpp>
 #include <userver/server/handlers/auth/digest/directives.hpp>
-#include <userver/server/handlers/auth/digest/types.hpp>
 #include <userver/server/handlers/auth/digest/exception.hpp>
+#include <userver/server/handlers/auth/digest/types.hpp>
 #include <userver/server/handlers/exceptions.hpp>
 #include <userver/server/handlers/fallback_handlers.hpp>
 #include <userver/server/http/http_response.hpp>

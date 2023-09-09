@@ -3,8 +3,8 @@
 
 #include <gtest/gtest.h>
 
-#include <userver/server/handlers/auth/digest/directives_parser.hpp>
 #include <userver/server/handlers/auth/digest/directives.hpp>
+#include <userver/server/handlers/auth/digest/directives_parser.hpp>
 #include <userver/server/handlers/auth/digest/exception.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -196,7 +196,8 @@ TEST(DirectivesParser, DuplicateDirectives) {
         response="6629fae49393a05397450978507c4ef1"
     )";
   Parser parser;
-  EXPECT_THROW(parser.ParseAuthInfo(directives_str), DuplicateDirectiveException);
+  EXPECT_THROW(parser.ParseAuthInfo(directives_str),
+               DuplicateDirectiveException);
 }
 
 }  // namespace server::handlers::auth::digest::test

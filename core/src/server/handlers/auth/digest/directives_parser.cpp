@@ -66,8 +66,7 @@ enum class State {
 
 }  // namespace
 
-ContextFromClient Parser::ParseAuthInfo(
-    std::string_view auth_header_value) {
+ContextFromClient Parser::ParseAuthInfo(std::string_view auth_header_value) {
   ContextFromClient client_context;
   State state = State::kStateSpace;
   std::string token;
@@ -168,9 +167,8 @@ ContextFromClient Parser::ParseAuthInfo(
   return client_context;
 }
 
-void Parser::PushToClientContext(
-    std::string&& directive, std::string&& value,
-    ContextFromClient& client_context) {
+void Parser::PushToClientContext(std::string&& directive, std::string&& value,
+                                 ContextFromClient& client_context) {
   const auto directive_type = kClientDirectivesMap.TryFind(std::move(directive))
                                   .value_or(kClientDirectiveTypes::kUnknown);
   const auto index = static_cast<std::size_t>(directive_type);
