@@ -9,6 +9,7 @@
 #include <userver/server/handlers/auth/digest/directives.hpp>
 #include <userver/server/handlers/auth/digest/exception.hpp>
 #include <userver/utils/trivial_map.hpp>
+#include "userver/utils/assert.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
@@ -72,6 +73,9 @@ ContextFromClient Parser::ParseAuthInfo(std::string_view auth_header_value) {
   std::string token;
   std::string value;
 
+  UASSERT_MSG(auth_header_value.substr(0, kDigestWord.size()) == kDigestWord,
+              fmt::format("Result is: '{}'",
+                          auth_header_value.substr(0, kDigestWord.size())));
   auto directives_str = auth_header_value.substr(kDigestWord.size() + 1);
   for (char delimiter : directives_str) {
     switch (state) {

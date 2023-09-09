@@ -12,13 +12,13 @@ USERVER_NAMESPACE_BEGIN
 namespace server::handlers::auth::digest::test {
 
 TEST(DirectivesParser, MandatoryDirectives) {
-  std::string_view directives_str = R"(
-        username="Mufasa",
-        realm="testrealm@host.com",
-        nonce="dcd98b7102dd2f0e8b11d0f600bfb0c093",
-        uri="/dir/index.html",
-        response="6629fae49393a05397450978507c4ef1"
-    )";
+  std::string_view directives_str = R"(Digest 
+username="Mufasa", 
+realm="testrealm@host.com", 
+nonce="dcd98b7102dd2f0e8b11d0f600bfb0c093", 
+uri="/dir/index.html", 
+response="6629fae49393a05397450978507c4ef1"
+)";
   Parser parser;
   ContextFromClient auth_context;
   EXPECT_NO_THROW(auth_context = parser.ParseAuthInfo(directives_str));
@@ -31,14 +31,14 @@ TEST(DirectivesParser, MandatoryDirectives) {
 }
 
 TEST(DirectivesParser, WithPartialOptionalDirectives) {
-  std::string_view directives_str = R"(
-        username="Mufasa",
-        realm="testrealm@host.com",
-        nonce="dcd98b7102dd2f0e8b11d0f600bfb0c093",
-        uri="/dir/index.html",
-        response="6629fae49393a05397450978507c4ef1",
-        algorithm=MD5
-    )";
+  std::string_view directives_str = R"(Digest 
+username="Mufasa", 
+realm="testrealm@host.com", 
+nonce="dcd98b7102dd2f0e8b11d0f600bfb0c093", 
+uri="/dir/index.html", 
+response="6629fae49393a05397450978507c4ef1", 
+algorithm=MD5
+)";
   Parser parser;
   ContextFromClient auth_context;
   EXPECT_NO_THROW(auth_context = parser.ParseAuthInfo(directives_str));
@@ -57,19 +57,19 @@ TEST(DirectivesParser, WithPartialOptionalDirectives) {
 }
 
 TEST(DirectivesParser, WithAllOptionalDirectives) {
-  std::string_view directives_str = R"(
-        username="Mufasa",
-        realm="testrealm@host.com",
-        nonce="dcd98b7102dd2f0e8b11d0f600bfb0c093",
-        uri="/dir/index.html",
-        algorithm=MD5,
-        qop=auth,
-        nc=00000001,
-        cnonce="0a4f113b",
-        response="6629fae49393a05397450978507c4ef1",
-        opaque="5ccc069c403ebaf9f0171e9517f40e41",
-        auth-param="fictional parameter"
-    )";
+  std::string_view directives_str = R"(Digest 
+username="Mufasa", 
+realm="testrealm@host.com", 
+nonce="dcd98b7102dd2f0e8b11d0f600bfb0c093", 
+uri="/dir/index.html", 
+algorithm=MD5, 
+qop=auth, 
+nc=00000001, 
+cnonce="0a4f113b", 
+response="6629fae49393a05397450978507c4ef1", 
+opaque="5ccc069c403ebaf9f0171e9517f40e41", 
+auth-param="fictional parameter"
+)";
   Parser parser;
   ContextFromClient auth_context;
   EXPECT_NO_THROW(auth_context = parser.ParseAuthInfo(directives_str));
@@ -88,18 +88,18 @@ TEST(DirectivesParser, WithAllOptionalDirectives) {
 }
 
 TEST(DirectivesParser, MandatoryRealmDirectiveMissing) {
-  std::string_view directives_str = R"(
-        username="Mufasa",
-        nonce="dcd98b7102dd2f0e8b11d0f600bfb0c093",
-        uri="/dir/index.html",
-        algorithm=MD5,
-        qop=auth,
-        nc=00000001,
-        cnonce="0a4f113b",
-        response="6629fae49393a05397450978507c4ef1",
-        opaque="5ccc069c403ebaf9f0171e9517f40e41",
-        auth-param="fictional parameter"
-    )";
+  std::string_view directives_str = R"(Digest 
+username="Mufasa", 
+nonce="dcd98b7102dd2f0e8b11d0f600bfb0c093", 
+uri="/dir/index.html", 
+algorithm=MD5, 
+qop=auth, 
+nc=00000001, 
+cnonce="0a4f113b", 
+response="6629fae49393a05397450978507c4ef1", 
+opaque="5ccc069c403ebaf9f0171e9517f40e41", 
+auth-param="fictional parameter"
+)";
   Parser parser;
   try {
     parser.ParseAuthInfo(directives_str);
@@ -114,15 +114,15 @@ TEST(DirectivesParser, MandatoryRealmDirectiveMissing) {
 }
 
 TEST(DirectivesParser, MultipleMandatoryDirectivesMissing) {
-  std::string_view directives_str = R"(
-        algorithm=MD5,
-        qop=auth,
-        nc=00000001,
-        cnonce="0a4f113b",
-        response="6629fae49393a05397450978507c4ef1",
-        opaque="5ccc069c403ebaf9f0171e9517f40e41",
-        auth-param="fictional parameter"
-    )";
+  std::string_view directives_str = R"(Digest 
+algorithm=MD5, 
+qop=auth, 
+nc=00000001, 
+cnonce="0a4f113b", 
+response="6629fae49393a05397450978507c4ef1", 
+opaque="5ccc069c403ebaf9f0171e9517f40e41", 
+auth-param="fictional parameter"
+)";
   Parser parser;
   try {
     parser.ParseAuthInfo(directives_str);
@@ -149,52 +149,52 @@ TEST(DirectivesParser, MultipleMandatoryDirectivesMissing) {
 }
 
 TEST(DirectivesParser, InvalidHeader) {
-  std::string_view directives_str = R"(
-        username=="Mufasa",
-        realm="testrea=lm@host.com",
-        nonce="dcd98b7102dd2f0e8b11d0f600bfb0c093",
-        uri="/dir/index.html",
-        response="6629fae49393a05397450978507c4ef1",
-    )";
+  std::string_view directives_str = R"(Digest 
+username=="Mufasa", 
+realm="testrea=lm@host.com", 
+nonce="dcd98b7102dd2f0e8b11d0f600bfb0c093", 
+uri="/dir/index.html", 
+response="6629fae49393a05397450978507c4ef1",
+)";
   Parser parser;
   EXPECT_THROW(parser.ParseAuthInfo(directives_str), ParseException);
 }
 
 TEST(DirectivesParser, UnknownDirective) {
-  std::string_view directives_str = R"(
-        username="Mufasa",
-        realm="testrealm@host.com",
-        nonce="dcd98b7102dd2f0e8b11d0f600bfb0c093",
-        uri="/dir/index.html",
-        response="6629fae49393a05397450978507c4ef1",
-        unknown="some-value"
-    )";
+  std::string_view directives_str = R"(Digest 
+username="Mufasa", 
+realm="testrealm@host.com", 
+nonce="dcd98b7102dd2f0e8b11d0f600bfb0c093", 
+uri="/dir/index.html", 
+response="6629fae49393a05397450978507c4ef1", 
+unknown="some-value"
+)";
   Parser parser;
   EXPECT_THROW(parser.ParseAuthInfo(directives_str), ParseException);
 }
 
 TEST(DirectivesParser, InvalidMandatoryDirective) {
-  std::string_view directives_str = R"(
-        usergame="Mubasa",
-        nonce="dcd98b7102dd2f0e8b11d0f600bfb0c093",
-        uri="/dir/index.html",
-        algorithm=MD5,
-        response="6629fae49393a05397450978507c4ef1"
-    )";
+  std::string_view directives_str = R"(Digest 
+usergame="Mubasa", 
+nonce="dcd98b7102dd2f0e8b11d0f600bfb0c093", 
+uri="/dir/index.html", 
+algorithm=MD5, 
+response="6629fae49393a05397450978507c4ef1"
+)";
   Parser parser;
   EXPECT_THROW(parser.ParseAuthInfo(directives_str), Exception);
 }
 
 TEST(DirectivesParser, DuplicateDirectives) {
-  std::string_view directives_str = R"(
-        username="Mubasa",
-        realm="testrealm@host.com",
-        username="Alex",
-        nonce="dcd98b7102dd2f0e8b11d0f600bfb0c093",
-        uri="/dir/index.html",
-        algorithm=MD5,
-        response="6629fae49393a05397450978507c4ef1"
-    )";
+  std::string_view directives_str = R"(Digest 
+username="Mubasa", 
+realm="testrealm@host.com", 
+username="Alex", 
+nonce="dcd98b7102dd2f0e8b11d0f600bfb0c093", 
+uri="/dir/index.html", 
+algorithm=MD5, 
+response="6629fae49393a05397450978507c4ef1"
+)";
   Parser parser;
   EXPECT_THROW(parser.ParseAuthInfo(directives_str),
                DuplicateDirectiveException);
