@@ -38,7 +38,8 @@ namespace {
 class ServerDigestSecretKey {
  public:
   ServerDigestSecretKey(const formats::json::Value& doc)
-      : secret_key_(doc["http_server_digest_auth_secret"].As<ServerDigestAuthSecret>()) {}
+      : secret_key_(doc["http_server_digest_auth_secret"]
+                        .As<ServerDigestAuthSecret>()) {}
 
   const ServerDigestAuthSecret& GetSecretKey() const { return secret_key_; }
 
@@ -55,8 +56,7 @@ UserData::UserData(HA1 ha1, std::string nonce, TimePoint timestamp,
       timestamp(timestamp),
       nonce_count(nonce_count) {}
 
-Hasher::Hasher(std::string_view algorithm,
-                           const SecdistConfig& secdist_config)
+Hasher::Hasher(std::string_view algorithm, const SecdistConfig& secdist_config)
     : secdist_config_(secdist_config) {
   switch (
       kHashAlgToType.TryFindICase(algorithm).value_or(HashAlgTypes::kUnknown)) {
@@ -88,8 +88,8 @@ std::string Hasher::GetHash(std::string_view data) const {
 }
 
 AuthCheckerBase::AuthCheckerBase(const AuthCheckerSettings& digest_settings,
-                                     std::string&& realm,
-                                     const SecdistConfig& secdist_config)
+                                 std::string&& realm,
+                                 const SecdistConfig& secdist_config)
     : qops_(fmt::format("{}", fmt::join(digest_settings.qops, ","))),
       realm_(std::move(realm)),
       domains_(fmt::format("{}", fmt::join(digest_settings.domains, ", "))),

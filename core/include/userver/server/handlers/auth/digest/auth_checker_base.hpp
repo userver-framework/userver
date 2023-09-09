@@ -75,7 +75,7 @@ class AuthCheckerBase : public auth::AuthCheckerBase {
   /// @ref server::handlers::auth::DigestCheckerSettingsComponent and "realm"
   /// from handler config in static_config.yaml.
   AuthCheckerBase(const AuthCheckerSettings& digest_settings,
-                    std::string&& realm, const SecdistConfig& secdist_config);
+                  std::string&& realm, const SecdistConfig& secdist_config);
 
   AuthCheckerBase(const AuthCheckerBase&) = delete;
   AuthCheckerBase(AuthCheckerBase&&) = delete;

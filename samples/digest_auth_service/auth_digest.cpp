@@ -32,10 +32,9 @@ class AuthChecker final
   using AuthDigestSettings =
       server::handlers::auth::digest::AuthCheckerSettings;
 
-  AuthChecker(const AuthDigestSettings& digest_settings,
-                    std::string realm,
-                    const ::components::ComponentContext& context,
-                    const SecdistConfig& secdist_config)
+  AuthChecker(const AuthDigestSettings& digest_settings, std::string realm,
+              const ::components::ComponentContext& context,
+              const SecdistConfig& secdist_config)
       : server::handlers::auth::digest::AuthCheckerBase(
             digest_settings, std::move(realm), secdist_config),
         pg_cluster_(context.FindComponent<components::Postgres>("auth-database")

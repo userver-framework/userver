@@ -6,10 +6,10 @@
 
 #include <userver/fs/blocking/temp_file.hpp>
 #include <userver/fs/blocking/write.hpp>
-#include <userver/server/handlers/auth/digest/standalone_checker.hpp>
-#include <userver/server/handlers/auth/digest/directives_parser.hpp>
 #include <userver/server/handlers/auth/digest/auth_checker_base.hpp>
 #include <userver/server/handlers/auth/digest/context.hpp>
+#include <userver/server/handlers/auth/digest/directives_parser.hpp>
+#include <userver/server/handlers/auth/digest/standalone_checker.hpp>
 #include <userver/storages/secdist/provider_component.hpp>
 #include <userver/utils/datetime.hpp>
 #include <userver/utils/mock_now.hpp>
@@ -36,7 +36,7 @@ class StandAloneChecker final : public AuthStandaloneCheckerBase {
   StandAloneChecker(const AuthCheckerSettings& digest_settings,
                     std::string&& realm, const SecdistConfig& secdist_config)
       : AuthStandaloneCheckerBase(digest_settings, std::move(realm),
-                                        secdist_config, kWays, kWaySize) {}
+                                  secdist_config, kWays, kWaySize) {}
 
   std::optional<HA1> GetHA1(std::string_view) const override {
     return kValidHA1;
