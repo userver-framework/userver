@@ -104,6 +104,7 @@ TEST(DirectivesParser, MandatoryRealmDirectiveMissing) {
   } catch (const server::handlers::auth::MissingDirectivesException& ex) {
     const auto& missing_directives = ex.GetMissingDirectives();
     EXPECT_EQ(missing_directives.size(), 1);
+    
     auto it = std::find(missing_directives.begin(), missing_directives.end(), server::handlers::auth::directives::kRealm);
     EXPECT_TRUE(it != missing_directives.end());
   }
@@ -120,8 +121,24 @@ TEST(DirectivesParser, MultipleMandatoryDirectivesMissing) {
         auth-param="fictional parameter"
     )";
   server::handlers::auth::DigestParser parser;
-  EXPECT_THROW(parser.ParseAuthInfo(header_value),
-               server::handlers::auth::MissingDirectivesException);
+  try {
+    parser.ParseAuthInfo(header_value);
+  } catch (const server::handlers::auth::MissingDirectivesException& ex) {
+    const auto& missing_directives = ex.GetMissingDirectives();
+    EXPECT_EQ(missing_directives.size(), 4);
+    
+    auto it = std::find(missing_directives.begin(), missing_directives.end(), server::handlers::auth::directives::kRealm);
+    EXPECT_TRUE(it != missing_directives.end());
+    
+    it = std::find(missing_directives.begin(), missing_directives.end(), server::handlers::auth::directives::kRealm);
+    EXPECT_TRUE(it != missing_directives.end());
+
+    it = std::find(missing_directives.begin(), missing_directives.end(), server::handlers::auth::directives::kNonce);
+    EXPECT_TRUE(it != missing_directives.end());
+
+    it = std::find(missing_directives.begin(), missing_directives.end(), server::handlers::auth::directives::kUri);
+    EXPECT_TRUE(it != missing_directives.end());
+  }
 }
 
 TEST(DirectivesParser, InvalidHeader) {

@@ -223,12 +223,10 @@ void DigestParser::CheckMandatoryDirectivesPresent() const {
           auto directive = kClientDirectivesMap.TryFind(directive_type).value_or("unknown_directive");
           UASSERT(directive != "unknown_directive");
           missing_directives.emplace_back(directive);
-        }
-
-        if (!missing_directives.empty()) {
+        }});
+  if (!missing_directives.empty()) {
           throw MissingDirectivesException(std::move(missing_directives));
-        }
-      });
+  }
 }
 
 void DigestParser::CheckDuplicateDirectivesExist() const {
