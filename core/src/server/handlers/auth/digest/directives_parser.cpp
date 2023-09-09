@@ -233,6 +233,7 @@ void Parser::CheckMandatoryDirectivesPresent() const {
 }
 
 void Parser::CheckDuplicateDirectivesExist() const {
+  // NOLINTNEXTLINE(readability-qualified-auto)
   auto it = std::find_if(
       directives_counter_.begin(), directives_counter_.end(),
       [](std::size_t directive_count) { return directive_count > 1; });
