@@ -9,6 +9,8 @@
 
 USERVER_NAMESPACE_BEGIN
 
+namespace server::handlers::auth::test {
+
 TEST(DirectivesParser, MandatoryDirectives) {
   std::string_view header_value = R"(
         username="Mufasa",
@@ -17,8 +19,8 @@ TEST(DirectivesParser, MandatoryDirectives) {
         uri="/dir/index.html",
         response="6629fae49393a05397450978507c4ef1"
     )";
-  server::handlers::auth::DigestParser parser;
-  server::handlers::auth::DigestContextFromClient auth_context;
+  DigestParser parser;
+  DigestContextFromClient auth_context;
   EXPECT_NO_THROW(auth_context = parser.ParseAuthInfo(header_value));
 
   EXPECT_EQ(auth_context.username, "Mufasa");
@@ -37,8 +39,8 @@ TEST(DirectivesParser, WithPartialOptionalDirectives) {
         response="6629fae49393a05397450978507c4ef1",
         algorithm=MD5
     )";
-  server::handlers::auth::DigestParser parser;
-  server::handlers::auth::DigestContextFromClient auth_context;
+  DigestParser parser;
+  DigestContextFromClient auth_context;
   EXPECT_NO_THROW(auth_context = parser.ParseAuthInfo(header_value));
 
   EXPECT_EQ(auth_context.username, "Mufasa");
@@ -68,8 +70,8 @@ TEST(DirectivesParser, WithAllOptionalDirectives) {
         opaque="5ccc069c403ebaf9f0171e9517f40e41",
         auth-param="fictional parameter"
     )";
-  server::handlers::auth::DigestParser parser;
-  server::handlers::auth::DigestContextFromClient auth_context;
+  DigestParser parser;
+  DigestContextFromClient auth_context;
   EXPECT_NO_THROW(auth_context = parser.ParseAuthInfo(header_value));
 
   EXPECT_EQ(auth_context.username, "Mufasa");
@@ -98,14 +100,14 @@ TEST(DirectivesParser, MandatoryRealmDirectiveMissing) {
         opaque="5ccc069c403ebaf9f0171e9517f40e41",
         auth-param="fictional parameter"
     )";
-  server::handlers::auth::DigestParser parser;
+  DigestParser parser;
   try {
     parser.ParseAuthInfo(header_value);
-  } catch (const server::handlers::auth::MissingDirectivesException& ex) {
+  } catch (const MissingDirectivesException& ex) {
     const auto& missing_directives = ex.GetMissingDirectives();
     EXPECT_EQ(missing_directives.size(), 1);
     
-    auto it = std::find(missing_directives.begin(), missing_directives.end(), server::handlers::auth::directives::kRealm);
+    auto it = std::find(missing_directives.begin(), missing_directives.end(), directives::kRealm);
     EXPECT_TRUE(it != missing_directives.end());
   }
 }
@@ -120,23 +122,23 @@ TEST(DirectivesParser, MultipleMandatoryDirectivesMissing) {
         opaque="5ccc069c403ebaf9f0171e9517f40e41",
         auth-param="fictional parameter"
     )";
-  server::handlers::auth::DigestParser parser;
+  DigestParser parser;
   try {
     parser.ParseAuthInfo(header_value);
-  } catch (const server::handlers::auth::MissingDirectivesException& ex) {
+  } catch (const MissingDirectivesException& ex) {
     const auto& missing_directives = ex.GetMissingDirectives();
     EXPECT_EQ(missing_directives.size(), 4);
     
-    auto it = std::find(missing_directives.begin(), missing_directives.end(), server::handlers::auth::directives::kRealm);
+    auto it = std::find(missing_directives.begin(), missing_directives.end(), directives::kRealm);
     EXPECT_TRUE(it != missing_directives.end());
     
-    it = std::find(missing_directives.begin(), missing_directives.end(), server::handlers::auth::directives::kRealm);
+    it = std::find(missing_directives.begin(), missing_directives.end(), directives::kRealm);
     EXPECT_TRUE(it != missing_directives.end());
 
-    it = std::find(missing_directives.begin(), missing_directives.end(), server::handlers::auth::directives::kNonce);
+    it = std::find(missing_directives.begin(), missing_directives.end(), directives::kNonce);
     EXPECT_TRUE(it != missing_directives.end());
 
-    it = std::find(missing_directives.begin(), missing_directives.end(), server::handlers::auth::directives::kUri);
+    it = std::find(missing_directives.begin(), missing_directives.end(), directives::kUri);
     EXPECT_TRUE(it != missing_directives.end());
   }
 }
@@ -149,9 +151,9 @@ TEST(DirectivesParser, InvalidHeader) {
         uri="/dir/index.html",
         response="6629fae49393a05397450978507c4ef1",
     )";
-  server::handlers::auth::DigestParser parser;
+  DigestParser parser;
   EXPECT_THROW(parser.ParseAuthInfo(header_value),
-               server::handlers::auth::ParseException);
+               ParseException);
 }
 
 TEST(DirectivesParser, UnknownDirective) {
@@ -163,9 +165,9 @@ TEST(DirectivesParser, UnknownDirective) {
         response="6629fae49393a05397450978507c4ef1",
         unknown="some-value"
     )";
-  server::handlers::auth::DigestParser parser;
+  DigestParser parser;
   EXPECT_THROW(parser.ParseAuthInfo(header_value),
-               server::handlers::auth::ParseException);
+               ParseException);
 }
 
 TEST(DirectivesParser, InvalidMandatoryDirective) {
@@ -176,9 +178,9 @@ TEST(DirectivesParser, InvalidMandatoryDirective) {
         algorithm=MD5,
         response="6629fae49393a05397450978507c4ef1"
     )";
-  server::handlers::auth::DigestParser parser;
+  DigestParser parser;
   EXPECT_THROW(parser.ParseAuthInfo(header_value),
-               server::handlers::auth::Exception);
+               Exception);
 }
 
 TEST(DirectivesParser, DuplicateDirectives) {
@@ -191,9 +193,11 @@ TEST(DirectivesParser, DuplicateDirectives) {
         algorithm=MD5,
         response="6629fae49393a05397450978507c4ef1"
     )";
-  server::handlers::auth::DigestParser parser;
+  DigestParser parser;
   EXPECT_THROW(parser.ParseAuthInfo(header_value),
-               server::handlers::auth::DuplicateDirectiveException);
+               DuplicateDirectiveException);
 }
+
+}  // namespace server::handlers::auth::test
 
 USERVER_NAMESPACE_END
