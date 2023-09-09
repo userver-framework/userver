@@ -36,7 +36,7 @@ class Hasher final {
   /// Constructor from the hash algorithm name from "crypto" namespace
   /// to be used for hashing and storages::secdist::SecdistConfig containing a
   /// server secret key to be used for "nonce" generating.
-  DigestHasher(std::string_view algorithm, const SecdistConfig& secdist_config);
+  Hasher(std::string_view algorithm, const SecdistConfig& secdist_config);
 
   /// Returns "nonce" directive value in hexadecimal format.
   std::string GenerateNonce(std::string_view etag) const;
@@ -74,7 +74,7 @@ class AuthCheckerBase : public auth::AuthCheckerBase {
   /// Assepts digest-authentication settings from
   /// @ref server::handlers::auth::DigestCheckerSettingsComponent and "realm"
   /// from handler config in static_config.yaml.
-  DigestCheckerBase(const AuthDigestSettings& digest_settings,
+  AuthCheckerBase(const AuthCheckerSettings& digest_settings,
                     std::string&& realm, const SecdistConfig& secdist_config);
 
   AuthCheckerBase(const AuthCheckerBase&) = delete;

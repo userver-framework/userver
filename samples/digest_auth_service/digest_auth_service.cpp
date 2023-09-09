@@ -54,7 +54,7 @@ int main(int argc, const char* const argv[]) {
           .Append<clients::dns::Component>()
           .Append<components::Secdist>()
           .Append<components::DefaultSecdistProvider>()
-          .Append<server::handlers::auth::DigestCheckerSettingsComponent>(
+          .Append<server::handlers::auth::digest::AuthCheckerSettingsComponent>(
               "auth-digest-checker-settings-proxy")
           .Append<
               server::handlers::auth::digest::AuthCheckerSettingsComponent>();

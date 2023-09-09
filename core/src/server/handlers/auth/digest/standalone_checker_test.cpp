@@ -6,10 +6,10 @@
 
 #include <userver/fs/blocking/temp_file.hpp>
 #include <userver/fs/blocking/write.hpp>
-#include <userver/server/handlers/auth/auth_digest_checker_standalone.hpp>
-#include <userver/server/handlers/auth/auth_params_parsing.hpp>
-#include <userver/server/handlers/auth/digest_checker_base.hpp>
-#include <userver/server/handlers/auth/digest_context.hpp>
+#include <userver/server/handlers/auth/digest/standalone_checker.hpp>
+#include <userver/server/handlers/auth/digest/directives_parser.hpp>
+#include <userver/server/handlers/auth/digest/auth_checker_base.hpp>
+#include <userver/server/handlers/auth/digest/context.hpp>
 #include <userver/storages/secdist/provider_component.hpp>
 #include <userver/utils/datetime.hpp>
 #include <userver/utils/mock_now.hpp>
@@ -33,9 +33,9 @@ constexpr auto kNonceTTL = std::chrono::milliseconds{1000};
 
 class StandAloneChecker final : public AuthStandaloneCheckerBase {
  public:
-  StandAloneChecker(const AuthDigestSettings& digest_settings,
+  StandAloneChecker(const AuthCheckerSettings& digest_settings,
                     std::string&& realm, const SecdistConfig& secdist_config)
-      : AuthCheckerDigestBaseStandalone(digest_settings, std::move(realm),
+      : AuthStandaloneCheckerBase(digest_settings, std::move(realm),
                                         secdist_config, kWays, kWaySize) {}
 
   std::optional<HA1> GetHA1(std::string_view) const override {
@@ -64,7 +64,7 @@ class StandAloneCheckerTest : public ::testing::Test {
                         storages::secdist::SecdistFormat::kJson, true,
                         std::nullopt}),
         secdist_config({&default_loader, std::chrono::milliseconds::zero()}),
-        digest_settings_(AuthDigestSettings{
+        digest_settings_({
             "MD5",                             // algorithm
             std::vector<std::string>{"/"},     // domains
             std::vector<std::string>{"auth"},  // qops
@@ -73,7 +73,7 @@ class StandAloneCheckerTest : public ::testing::Test {
             kNonceTTL                          // nonce_ttl
         }),
         checker_(digest_settings_, "testrealm@host.com", secdist_config),
-        correct_client_context_(DigestContextFromClient{
+        correct_client_context_({
             "Mufasa",                            // username
             "testrealm@host.com",                // realm
             kValidNonce,                         // nonce
@@ -93,7 +93,7 @@ class StandAloneCheckerTest : public ::testing::Test {
   storages::secdist::DefaultLoader default_loader;
   storages::secdist::SecdistConfig secdist_config;
 
-  AuthDigestSettings digest_settings_;
+  AuthCheckerSettings digest_settings_;
   StandAloneChecker checker_;
   ContextFromClient client_context_;
   ContextFromClient correct_client_context_;

@@ -55,7 +55,7 @@ UserData::UserData(HA1 ha1, std::string nonce, TimePoint timestamp,
       timestamp(timestamp),
       nonce_count(nonce_count) {}
 
-DigestHasher::DigestHasher(std::string_view algorithm,
+Hasher::Hasher(std::string_view algorithm,
                            const SecdistConfig& secdist_config)
     : secdist_config_(secdist_config) {
   switch (
@@ -74,7 +74,7 @@ DigestHasher::DigestHasher(std::string_view algorithm,
   }
 }
 
-std::string DigestHasher::GenerateNonce(std::string_view etag) const {
+std::string Hasher::GenerateNonce(std::string_view etag) const {
   auto timestamp = std::to_string(
       std::chrono::system_clock::now().time_since_epoch().count());
   return GetHash(fmt::format("{}:{}:{}", timestamp, etag,
@@ -87,7 +87,7 @@ std::string Hasher::GetHash(std::string_view data) const {
   return hash_algorithm_(data, crypto::hash::OutputEncoding::kHex);
 }
 
-DigestCheckerBase::DigestCheckerBase(const AuthDigestSettings& digest_settings,
+AuthCheckerBase::AuthCheckerBase(const AuthCheckerSettings& digest_settings,
                                      std::string&& realm,
                                      const SecdistConfig& secdist_config)
     : qops_(fmt::format("{}", fmt::join(digest_settings.qops, ","))),
