@@ -11,14 +11,10 @@ USERVER_NAMESPACE_BEGIN
 
 namespace server::handlers::auth {
 
-class Exception : public std::exception {
+class Exception : public std::runtime_error {
  public:
-  explicit Exception(std::string msg) : msg_(std::move(msg)) {}
-
-  const char* what() const noexcept final { return msg_.c_str(); }
-
- private:
-  std::string msg_;
+  explicit Exception(std::string msg)
+      : std::runtime_error(std::move(msg)) {}
 };
 
 class ParseException : public Exception {
