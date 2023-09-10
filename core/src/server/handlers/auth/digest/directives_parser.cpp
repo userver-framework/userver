@@ -9,7 +9,6 @@
 #include <userver/server/handlers/auth/digest/directives.hpp>
 #include <userver/server/handlers/auth/digest/exception.hpp>
 #include <userver/utils/trivial_map.hpp>
-#include "userver/utils/assert.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
