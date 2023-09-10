@@ -193,7 +193,7 @@ AuthCheckResult AuthCheckerBase::CheckAuth(const http::HttpRequest& request,
   response.SetHeader(authenticate_info_header_, info_header_directives);
 
   return {};
-};
+}
 
 AuthCheckerBase::ValidateResult AuthCheckerBase::ValidateUserData(
     const ContextFromClient& client_context, const UserData& user_data) const {

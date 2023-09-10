@@ -22,7 +22,7 @@ NonceCacheSettingsComponent::~NonceCacheSettingsComponent() = default;
 
 const NonceCacheSettings& NonceCacheSettingsComponent::GetSettings() const {
   return settings_;
-};
+}
 
 yaml_config::Schema NonceCacheSettingsComponent::GetStaticConfigSchema() {
   return yaml_config::MergeSchemas<AuthCheckerSettingsComponent>(R"(
