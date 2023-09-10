@@ -113,7 +113,7 @@ void FsCacheClient::HandleCreate(const std::string& path) {
   if (IsFilepathHidden(path)) return;
 
   FileInfoWithData info{};
-  info.extension = boost::filesystem::extension(path);
+  info.extension = boost::filesystem::path(path).extension().string();
   info.data = ReadFileContents(tp_, path);
   data_.InsertOrAssign(
       GetLexicallyRelative(path, dir_),
