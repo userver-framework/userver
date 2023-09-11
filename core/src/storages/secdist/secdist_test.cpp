@@ -26,19 +26,25 @@ class UserPasswords {
 
   UserPasswords(const formats::json::Value& doc) {
     if (doc.HasMember("user-passwords")) {
-      user_password_ = doc["user-passwords"].As<Storage>();
+      user_passwords_ = doc["user-passwords"].As<Storage>();
     }
   }
 
   bool IsMatching(const std::string& user, const Password& password) const {
-    const auto* ptr = utils::FindOrNullptr(user_password_, user);
+    if (!user_passwords_.has_value()) {
+      throw std::runtime_error(
+          "User passwords storage is missing. Field 'user-passwords' was "
+          "missing in json.");
+    }
+
+    const auto* ptr = utils::FindOrNullptr(user_passwords_.value(), user);
     return ptr && crypto::algorithm::AreStringsEqualConstTime(
                       ptr->GetUnderlying(), password.GetUnderlying());
   }
 
  private:
   using Storage = std::unordered_map<std::string, Password>;
-  Storage user_password_;
+  std::optional<Storage> user_passwords_{};
 };
 /// [UserPasswords]
 

@@ -44,10 +44,18 @@ class ServerDigestSecretKey {
     }
   }
 
-  const ServerDigestAuthSecret& GetSecretKey() const { return secret_key_; }
+  const ServerDigestAuthSecret& GetSecretKey() const {
+    if (!secret_key_.has_value()) {
+      throw std::runtime_error(
+          "Secret key storage is missing. Field "
+          "'http_server_digest_auth_secret' was missing in json.");
+    }
+
+    return secret_key_.value();
+  }
 
  private:
-  ServerDigestAuthSecret secret_key_;
+  std::optional<ServerDigestAuthSecret> secret_key_{};
 };
 
 }  // namespace
