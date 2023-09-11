@@ -1,8 +1,8 @@
-#include <optional>
 #include <userver/utest/utest.hpp>
 
 #include <atomic>
 #include <cstdlib>
+#include <optional>
 
 #include <userver/engine/sleep.hpp>
 #include <userver/engine/subprocess/environment_variables.hpp>
