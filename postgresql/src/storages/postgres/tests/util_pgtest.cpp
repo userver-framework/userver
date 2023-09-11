@@ -67,9 +67,7 @@ void PrintBuffer(std::ostream& os, const std::string& buffer) {
               buffer.size());
 }
 
-PostgreSQLBase::PostgreSQLBase() {
-  experiments_.Set(pg::kPipelineExperiment, true);
-}
+PostgreSQLBase::PostgreSQLBase() = default;
 
 PostgreSQLBase::~PostgreSQLBase() = default;
 

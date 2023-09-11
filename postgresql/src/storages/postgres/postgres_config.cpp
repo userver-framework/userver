@@ -138,8 +138,7 @@ StatementMetricsSettings Parse(const yaml_config::YamlConfig& config,
 }
 
 PipelineMode ParsePipelineMode(const dynamic_config::DocsMap& docs_map) {
-  return docs_map.Get("POSTGRES_CONNECTION_PIPELINE_EXPERIMENT").As<int>() ==
-                 kPipelineExperimentVersion
+  return docs_map.Get("POSTGRES_CONNECTION_PIPELINE_EXPERIMENT").As<int>() > 0
              ? PipelineMode::kEnabled
              : PipelineMode::kDisabled;
 }

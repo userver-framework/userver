@@ -10,7 +10,6 @@
 #include <userver/utils/uuid4.hpp>
 
 #include <storages/postgres/detail/tracing_tags.hpp>
-#include <storages/postgres/experiments.hpp>
 #include <storages/postgres/io/pg_type_parsers.hpp>
 #include <userver/storages/postgres/exceptions.hpp>
 
@@ -182,8 +181,7 @@ ConnectionImpl::ConnectionImpl(
     throw InvalidConfig("max_prepared_cache_size is 0");
   }
 #if !LIBPQ_HAS_PIPELINING
-  if (settings_.pipeline_mode == PipelineMode::kEnabled &&
-      kPipelineExperiment.IsEnabled()) {
+  if (settings_.pipeline_mode == PipelineMode::kEnabled) {
     LOG_LIMITED_WARNING() << "Pipeline mode is not supported, falling back";
     settings_.pipeline_mode = PipelineMode::kDisabled;
   }
@@ -203,16 +201,15 @@ void ConnectionImpl::AsyncConnect(const Dsn& dsn, engine::Deadline deadline) {
   scope.Reset(scopes::kGetConnectData);
   // We cannot handle exceptions here, so we let them got to the caller
   ExecuteCommandNoPrepare("DISCARD ALL", deadline);
-  if (settings_.pipeline_mode == PipelineMode::kEnabled &&
-      kPipelineExperiment.IsEnabled()) {
-    conn_wrapper_.EnterPipelineMode();
-  }
   SetParameter("client_encoding", "UTF8", Connection::ParameterScope::kSession,
                deadline);
   RefreshReplicaState(deadline);
   SetConnectionStatementTimeout(GetDefaultCommandControl().statement, deadline);
   if (settings_.user_types == ConnectionSettings::kUserTypesEnabled) {
     LoadUserTypes(deadline);
+  }
+  if (settings_.pipeline_mode == PipelineMode::kEnabled) {
+    conn_wrapper_.EnterPipelineMode();
   }
 }
 
@@ -579,9 +576,8 @@ void ConnectionImpl::CheckBusy() const {
       (!IsPipelineActive() || conn_wrapper_.IsSyncingPipeline())) {
     throw ConnectionBusy("There is another query in flight");
   }
-  if (IsInAbortedPipeline()) {  // TODO: TAXICOMMON-6886
-    USERVER_NAMESPACE::utils::impl::AbortWithStacktrace(
-        "Using an aborted connection is illegal");
+  if (IsInAbortedPipeline()) {
+    throw ConnectionError("Attempted to use an aborted connection");
   }
 }
 

@@ -453,18 +453,9 @@ void ConnectionPool::Push(Connection* connection) {
   // However unlikely, this could happen when we return connection after
   // asynchronous cleanup routine.
   // A good safety measure anyway.
-  if (connection->IsBroken()) {
+  if (connection->IsBroken() || connection->IsInAbortedPipeline()) {
     DeleteBrokenConnection(connection);
     return;
-  }
-
-  if (connection->IsInAbortedPipeline()) {
-    // TODO : this is us investigating issues with pipelining,
-    // remove in TAXICOMMON-6886
-    USERVER_NAMESPACE::utils::impl::AbortWithStacktrace(
-        "Connection returned into pool with PQ_PIPELINE_ABORTED "
-        "pipeline status, shouldn't happen. "
-        "Please collect the core dump and file an issue.");
   }
 
   auto conn_settings = conn_settings_.Read();
