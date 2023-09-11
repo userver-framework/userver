@@ -88,9 +88,10 @@ void UnaryRPCPayload(sample::ugrpc::UnitTestServiceClient& client) {
   UINVARIANT("Hello " + out.name() == in.name(), "Behavior broken");
 }
 
+constexpr std::size_t kUnaryRPCPayloadRepeatedRepetitions = 256;
+
 void UnaryRPCPayloadRepeated(sample::ugrpc::UnitTestServiceClient& client) {
-  static constexpr std::size_t kRepetitions = 256;
-  for (std::size_t i = 0; i < kRepetitions; ++i) {
+  for (std::size_t i = 0; i < kUnaryRPCPayloadRepeatedRepetitions; ++i) {
     UnaryRPCPayload(client);
   }
 }
@@ -155,6 +156,11 @@ void BatchOfUnaryRPC(benchmark::State& state) {
               });
           engine::GetAll(tasks);
         }
+
+        state.counters["rps"] = benchmark::Counter(
+            static_cast<std::size_t>(state.iterations()) * kBatchSize *
+                kUnaryRPCPayloadRepeatedRepetitions,
+            benchmark::Counter::kIsRate);
       });
 }
 
@@ -181,6 +187,10 @@ void BatchOfUnaryRPCNewClient(benchmark::State& state) {
               });
           engine::GetAll(tasks);
         }
+        state.counters["rps"] = benchmark::Counter(
+            static_cast<std::size_t>(state.iterations()) * kBatchSize *
+                kUnaryRPCPayloadRepeatedRepetitions,
+            benchmark::Counter::kIsRate);
       });
 }
 
