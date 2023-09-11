@@ -10,7 +10,8 @@ namespace server::http {
 
 inline constexpr HttpMethod kHandlerMethods[] = {
     HttpMethod::kGet,    HttpMethod::kPost,  HttpMethod::kPut,
-    HttpMethod::kDelete, HttpMethod::kPatch, HttpMethod::kOptions};
+    HttpMethod::kDelete, HttpMethod::kPatch, HttpMethod::kOptions,
+    HttpMethod::kUnknown};
 
 inline constexpr size_t kHandlerMethodsMax = static_cast<size_t>(
     *std::max_element(std::begin(kHandlerMethods), std::end(kHandlerMethods)));
