@@ -1,3 +1,4 @@
+#include <optional>
 #include <userver/utest/utest.hpp>
 
 #include <atomic>
@@ -24,11 +25,8 @@ class UserPasswords {
  public:
   using Password = utils::NonLoggable<class PasswordTag, std::string>;
 
-  UserPasswords(const formats::json::Value& doc) {
-    if (doc.HasMember("user-passwords")) {
-      user_passwords_ = doc["user-passwords"].As<Storage>();
-    }
-  }
+  UserPasswords(const formats::json::Value& doc)
+      : user_passwords_(doc["user-passwords"].As<std::optional<Storage>>()) {}
 
   bool IsMatching(const std::string& user, const Password& password) const {
     if (!user_passwords_.has_value()) {
@@ -44,7 +42,7 @@ class UserPasswords {
 
  private:
   using Storage = std::unordered_map<std::string, Password>;
-  std::optional<Storage> user_passwords_{};
+  std::optional<Storage> user_passwords_;
 };
 /// [UserPasswords]
 

@@ -12,6 +12,7 @@
 
 #include <userver/crypto/algorithm.hpp>
 #include <userver/crypto/hash.hpp>
+#include <userver/formats/parse/common_containers.hpp>
 #include <userver/http/common_headers.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/server/handlers/auth/auth_checker_base.hpp>
@@ -37,12 +38,9 @@ namespace {
 
 class ServerDigestSecretKey {
  public:
-  ServerDigestSecretKey(const formats::json::Value& doc) {
-    if (doc.HasMember("http_server_digest_auth_secret")) {
-      secret_key_ =
-          doc["http_server_digest_auth_secret"].As<ServerDigestAuthSecret>();
-    }
-  }
+  ServerDigestSecretKey(const formats::json::Value& doc)
+      : secret_key_(doc["http_server_digest_auth_secret"]
+                        .As<std::optional<ServerDigestAuthSecret>>()) {}
 
   const ServerDigestAuthSecret& GetSecretKey() const {
     if (!secret_key_.has_value()) {
@@ -55,7 +53,7 @@ class ServerDigestSecretKey {
   }
 
  private:
-  std::optional<ServerDigestAuthSecret> secret_key_{};
+  std::optional<ServerDigestAuthSecret> secret_key_;
 };
 
 }  // namespace
