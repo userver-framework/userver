@@ -37,6 +37,8 @@ struct ManagerConfig {
       const std::optional<std::string>& config_vars_override_path);
 };
 
+yaml_config::Schema GetManagerConfigSchema();
+
 ManagerConfig Parse(const yaml_config::YamlConfig& value,
                     formats::parse::To<ManagerConfig>);
 

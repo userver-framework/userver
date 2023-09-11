@@ -4,6 +4,7 @@
 
 #include <csignal>
 #include <cstring>
+#include <iostream>
 #include <variant>
 
 #include <boost/stacktrace/stacktrace.hpp>
@@ -249,6 +250,24 @@ void Run(const InMemoryConfig& config, const ComponentList& component_list,
 void RunOnce(const InMemoryConfig& config, const ComponentList& component_list,
              const std::string& init_log_path, logging::Format format) {
   DoRun(config, {}, {}, component_list, init_log_path, format, RunMode::kOnce);
+}
+
+void RunForPrintConfigSchema(const ComponentList& component_list) {
+  auto manager_schema = components::GetManagerConfigSchema();
+  UASSERT(manager_schema.properties);
+  (*manager_schema.properties)
+      .insert_or_assign(
+          "components",
+          yaml_config::SchemaPtr(component_list.GetStaticConfigSchema()));
+
+  auto schema = yaml_config::Schema::EmptyObject();
+  schema.UpdateDescription("Root object");
+  schema.properties.emplace();
+  schema.properties->emplace("components_manager",
+                             yaml_config::SchemaPtr(std::move(manager_schema)));
+
+  std::cout << ToString(formats::yaml::ValueBuilder{schema}.ExtractValue())
+            << "\n";
 }
 
 }  // namespace components

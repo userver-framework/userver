@@ -79,6 +79,8 @@ ManagerConfig ParseFromAny(
   return result;
 }
 
+}  // namespace
+
 yaml_config::Schema GetManagerConfigSchema() {
   return yaml_config::impl::SchemaFromString(R"(
 type: object
@@ -197,8 +199,6 @@ properties:
                 description: if true, all components configs are validated
 )");
 }
-
-}  // namespace
 
 ManagerConfig Parse(const yaml_config::YamlConfig& value,
                     formats::parse::To<ManagerConfig>) {

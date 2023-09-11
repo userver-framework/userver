@@ -35,6 +35,17 @@ ComponentList&& ComponentList::AppendComponentList(ComponentList&& other) && {
   return std::move(AppendComponentList(std::move(other)));
 }
 
+yaml_config::Schema ComponentList::GetStaticConfigSchema() const {
+  auto schema = yaml_config::Schema::EmptyObject();
+  schema.properties.emplace();
+  for (const auto& adder : adders_) {
+    schema.properties->emplace(
+        adder->GetComponentName(),
+        yaml_config::SchemaPtr(adder->GetStaticConfigSchema()));
+  }
+  return schema;
+}
+
 ComponentList& ComponentList::Append(impl::ComponentAdderPtr&& added) & {
   auto [it, ok] = adders_.insert(std::move(added));
   UINVARIANT(ok, fmt::format("Attempt to add a duplicate component '{}'",

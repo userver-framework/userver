@@ -58,6 +58,8 @@ void RunOnce(const InMemoryConfig& config, const ComponentList& component_list,
              const std::string& init_log_path = {},
              logging::Format format = logging::Format::kTskv);
 
+void RunForPrintConfigSchema(const ComponentList& component_list);
+
 }  // namespace components
 
 USERVER_NAMESPACE_END

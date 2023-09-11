@@ -39,6 +39,7 @@ int DaemonMain(const int argc, const char* const argv[],
   // clang-format off
   desc.add_options()
     ("help,h", "produce this help message")
+    ("print-config-schema", "print config.yaml YAML Schema")
     ("config,c", po::value(&config_path)->default_value(config_path), "path to server config")
     ("config_vars", po::value(&config_vars_path), "path to config_vars.yaml; if set, config_vars in config.yaml are ignored")
     ("config_vars_override", po::value(&config_vars_override_path), "path to an additional config_vars.yaml, which overrides vars of config_vars.yaml")
@@ -57,6 +58,11 @@ int DaemonMain(const int argc, const char* const argv[],
 
   if (vm.count("help")) {
     std::cerr << desc << '\n';
+    return 0;
+  }
+
+  if (vm.count("print-config-schema")) {
+    components::RunForPrintConfigSchema(components_list);
     return 0;
   }
 

@@ -4,7 +4,9 @@
 #include <boost/range/algorithm/count.hpp>
 
 #include <userver/formats/parse/common_containers.hpp>
+#include <userver/formats/serialize/common_containers.hpp>
 #include <userver/formats/yaml/serialize.hpp>
+#include <userver/formats/yaml/value_builder.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/trivial_map.hpp>
 
@@ -129,6 +131,11 @@ SchemaPtr Parse(const formats::yaml::Value& schema,
   return SchemaPtr(schema.As<Schema>());
 }
 
+formats::yaml::Value Serialize(
+    const SchemaPtr& schema, formats::serialize::To<formats::yaml::Value> to) {
+  return Serialize(*schema, to);
+}
+
 SchemaPtr::SchemaPtr(Schema&& schema)
     : schema_(std::make_unique<Schema>(std::move(schema))) {}
 
@@ -167,6 +174,28 @@ Schema Parse(const formats::yaml::Value& schema, formats::parse::To<Schema>) {
   CheckSchemaStructure(result);
 
   return result;
+}
+
+formats::yaml::Value Serialize(const Schema& schema,
+                               formats::serialize::To<formats::yaml::Value>) {
+  formats::yaml::ValueBuilder builder;
+
+  builder["type"] = ToString(schema.type);
+  builder["description"] = schema.description;
+
+  if (schema.default_description)
+    builder["defaultDescription"] = *schema.default_description;
+
+  if (schema.additional_properties)
+    builder["additionalProperties"] =
+        std::visit([](const auto& x) { return formats::yaml::ValueBuilder(x); },
+                   *schema.additional_properties);
+  if (schema.properties) builder["properties"] = *schema.properties;
+  if (schema.items) builder["items"] = *schema.items;
+  if (schema.enum_values) builder["enum"] = *schema.enum_values;
+  if (schema.minimum) builder["minimum"] = *schema.minimum;
+  if (schema.maximum) builder["maximum"] = *schema.maximum;
+  return builder.ExtractValue();
 }
 
 void Schema::UpdateDescription(std::string new_description) {

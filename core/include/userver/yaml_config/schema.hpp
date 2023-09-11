@@ -11,6 +11,7 @@
 #include <variant>
 #include <vector>
 
+#include <userver/formats/parse/common_containers.hpp>
 #include <userver/formats/yaml_fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -37,9 +38,14 @@ class SchemaPtr final {
   const Schema& operator*() const { return *schema_; }
   Schema& operator*() { return *schema_; }
 
+  const Schema* operator->() const { return schema_.get(); }
+
  private:
   std::unique_ptr<Schema> schema_;
 };
+
+formats::yaml::Value Serialize(const SchemaPtr& schema,
+                               formats::serialize::To<formats::yaml::Value>);
 
 /// @brief JSON Schema-like type definition
 ///
@@ -63,6 +69,9 @@ struct Schema final {
 };
 
 Schema Parse(const formats::yaml::Value& schema, formats::parse::To<Schema>);
+
+formats::yaml::Value Serialize(const Schema& schema,
+                               formats::serialize::To<formats::yaml::Value>);
 
 namespace impl {
 

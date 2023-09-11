@@ -65,6 +65,8 @@ class ComponentAdderBase {
   virtual void ValidateStaticConfig(const ComponentConfig&,
                                     ValidationMode) const = 0;
 
+  virtual yaml_config::Schema GetStaticConfigSchema() const = 0;
+
  private:
   std::string name_;
   ConfigFileMode config_file_mode_;
@@ -82,6 +84,10 @@ class ComponentAdder final : public ComponentAdderBase {
   void ValidateStaticConfig(const ComponentConfig& static_config,
                             ValidationMode validation_mode) const override {
     impl::TryValidateStaticConfig<Component>(static_config, validation_mode);
+  }
+
+  yaml_config::Schema GetStaticConfigSchema() const override {
+    return impl::GetStaticConfigSchema<Component>();
   }
 };
 
@@ -155,6 +161,8 @@ class ComponentList final {
   Adders::const_iterator end() const { return adders_.end(); }
 
   ComponentList& Append(impl::ComponentAdderPtr&& added) &;
+
+  yaml_config::Schema GetStaticConfigSchema() const;
 
  private:
   Adders adders_;
