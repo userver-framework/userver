@@ -95,8 +95,8 @@ TEST_F(ComponentList, LruCacheComponentSample) {
                                     tests::GetRuntimeConfig());
   fs::blocking::RewriteFileContents(config_vars_path, kConfigVariables);
 
-  components::RunOnce(components::InMemoryConfig{static_config}, component_list,
-                      "@null");
+  components::RunOnce(components::InMemoryConfig{static_config},
+                      component_list);
 }
 
 TEST(StaticConfigValidator, ValidConfig) {

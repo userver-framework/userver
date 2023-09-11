@@ -247,8 +247,7 @@ TEST_F(ComponentList, ServerCommon) {
       components::InMemoryConfig{std::string{kStaticConfig} + config_vars_path},
       components::CommonComponentList()
           .AppendComponentList(components::CommonServerComponentList())
-          .Append<server::handlers::Ping>(),
-      "@null");
+          .Append<server::handlers::Ping>());
 }
 
 TEST_F(ComponentList, ServerTraceLogging) {
@@ -270,8 +269,7 @@ TEST_F(ComponentList, ServerTraceLogging) {
       components::InMemoryConfig{std::string{kStaticConfig} + config_vars_path},
       components::CommonComponentList()
           .AppendComponentList(components::CommonServerComponentList())
-          .Append<server::handlers::Ping>(),
-      logs_file);
+          .Append<server::handlers::Ping>());
 }
 
 TEST_F(ComponentList, ServerNullLogging) {
@@ -292,8 +290,7 @@ TEST_F(ComponentList, ServerNullLogging) {
       components::InMemoryConfig{std::string{kStaticConfig} + config_vars_path},
       components::CommonComponentList()
           .AppendComponentList(components::CommonServerComponentList())
-          .Append<server::handlers::Ping>(),
-      "@null");
+          .Append<server::handlers::Ping>());
 }
 
 TEST_F(ComponentList, BlockingDefaultLogger) {
@@ -316,8 +313,8 @@ TEST_F(ComponentList, BlockingDefaultLogger) {
       components::CommonComponentList()
           .AppendComponentList(components::CommonServerComponentList())
           .Append<server::handlers::Ping>();
-  UEXPECT_THROW_MSG(components::RunOnce(config, component_list, "@null"),
-                    std::exception, "efault logger");
+  UEXPECT_THROW_MSG(components::RunOnce(config, component_list), std::exception,
+                    "efault logger");
 }
 
 USERVER_NAMESPACE_END

@@ -95,14 +95,14 @@ TEST_F(ComponentList, ConfigNotRequiredDefault) {
   expected_greeting = "default";
   components::RunOnce(
       components::InMemoryConfig{std::string{kStaticConfigBase}},
-      MakeComponentList(), "@null");
+      MakeComponentList());
 }
 
 TEST_F(ComponentList, ConfigNotRequiredCustom) {
   expected_greeting = "custom";
   components::RunOnce(components::InMemoryConfig{utils::StrCat(
                           kStaticConfigBase, kCustomGreetingConfig)},
-                      MakeComponentList(), "@null");
+                      MakeComponentList());
 }
 
 USERVER_NAMESPACE_END

@@ -39,8 +39,7 @@ TEST_F(ComponentList, MinimalLtsvLogs) {
       fmt::format(kConfigVarsTemplate, runtime_config_path, logs_path));
 
   components::RunOnce(components::InMemoryConfig{static_config},
-                      components::MinimalComponentList(), logs_path,
-                      logging::Format::kLtsv);
+                      components::MinimalComponentList());
 
   logging::LogFlush();
 

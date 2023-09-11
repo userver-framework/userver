@@ -1,6 +1,7 @@
 #include <userver/components/minimal_server_component_list.hpp>
 
 #include <fmt/format.h>
+#include <gmock/gmock.h>
 
 #include <userver/components/loggable_component_base.hpp>
 #include <userver/components/run.hpp>
@@ -82,7 +83,7 @@ class ServerMinimalComponentList : public ComponentList {
   }
 
   std::string GetConfigVarsPath() const {
-    return temp_root_.GetPath() + "/config_vars.json";
+    return temp_root_.GetPath() + "/config_vars.yaml";
   }
 
   const std::string& GetStaticConfig() const { return static_config_; }
@@ -104,10 +105,6 @@ class InitOpenFileChecker final : public components::LoggableComponentBase {
     if (init_path_.empty()) {
       return;
     }
-
-    // Log may not have been flushed, but the file is already open.
-    const auto files = utest::CurrentProcessOpenFiles();
-    UASSERT(std::find(files.begin(), files.end(), init_path_) != files.end());
   }
 
   void OnAllComponentsAreStopping() override {
@@ -116,21 +113,19 @@ class InitOpenFileChecker final : public components::LoggableComponentBase {
     }
 
     const auto files = utest::CurrentProcessOpenFiles();
-    UASSERT_MSG(
-        std::find(files.begin(), files.end(), init_path_) == files.end(),
-        "Initial log file should be closed after the component system "
-        "started. Otherwise the open file descriptor prevents log file "
-        "deletion/rotation");
+    ASSERT_THAT(files, testing::Not(testing::Contains(init_path_)))
+        << "Initial log file should be closed after the component system "
+           "started. Otherwise the open file descriptor prevents log file "
+           "deletion/rotation";
 
     const auto logs = fs::blocking::ReadFileContents(init_path_);
-    EXPECT_NE(logs.find("Using config_vars from config.yaml."),
-              std::string::npos)
+    EXPECT_THAT(logs, testing::HasSubstr("Using config_vars from config.yaml."))
         << "Initial logs were not written to the init log. Init log content: "
         << logs;
   }
 
   static void AssertFilesWereChecked() {
-    UASSERT(!init_path_.empty());
+    ASSERT_FALSE(init_path_.empty());
     init_path_ = {};
   }
 
@@ -168,7 +163,7 @@ TEST_F(ServerMinimalComponentList, Basic) {
   fs::blocking::RewriteFileContents(GetConfigVarsPath(), config_vars);
 
   components::RunOnce(components::InMemoryConfig{GetStaticConfig()},
-                      TestsComponentList(), "@null");
+                      TestsComponentList());
 }
 
 TEST_F(ServerMinimalComponentList, InitLogsClose) {
@@ -185,7 +180,7 @@ TEST_F(ServerMinimalComponentList, InitLogsClose) {
   fs::blocking::RewriteFileContents(GetConfigVarsPath(), config_vars);
 
   components::RunOnce(components::InMemoryConfig{GetStaticConfig()},
-                      TestsComponentList(), init_logs_path);
+                      TestsComponentList());
 
   InitOpenFileChecker::AssertFilesWereChecked();
 }
@@ -204,7 +199,7 @@ TEST_F(ServerMinimalComponentList, TraceSwitching) {
   fs::blocking::RewriteFileContents(GetConfigVarsPath(), config_vars);
 
   components::RunOnce(components::InMemoryConfig{GetStaticConfig()},
-                      TestsComponentList(), "@null");
+                      TestsComponentList());
 
   logging::LogFlush();
 
@@ -230,7 +225,7 @@ TEST_F(ServerMinimalComponentList, TraceStacktraces) {
       fmt::format(kConfigVarsTemplate, GetRuntimeConfigPath(), logs_path));
 
   components::RunOnce(components::InMemoryConfig{GetStaticConfig()},
-                      TestsComponentList(), "@null");
+                      TestsComponentList());
 
   logging::LogFlush();
 
@@ -260,7 +255,7 @@ TEST_F(ServerMinimalComponentList, MissingRuntimeConfigParam) {
 
   UEXPECT_THROW_MSG(
       components::RunOnce(components::InMemoryConfig{GetStaticConfig()},
-                          TestsComponentList(), "@null"),
+                          TestsComponentList()),
       std::exception, "USERVER_LOG_REQUEST_HEADERS");
 }
 

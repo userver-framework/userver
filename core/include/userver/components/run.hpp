@@ -29,17 +29,13 @@ struct InMemoryConfig : utils::StrongTypedef<InMemoryConfig, std::string> {
 void Run(const std::string& config_path,
          const std::optional<std::string>& config_vars_path,
          const std::optional<std::string>& config_vars_override_path,
-         const ComponentList& component_list,
-         const std::string& init_log_path = {},
-         logging::Format format = logging::Format::kTskv);
+         const ComponentList& component_list);
 
 /// Starts a server with the provided component list and config.
 /// Ropens the logging files on SIGUSR1.
 ///
 /// @see utils::DaemonMain
-void Run(const InMemoryConfig& config, const ComponentList& component_list,
-         const std::string& init_log_path = {},
-         logging::Format format = logging::Format::kTskv);
+void Run(const InMemoryConfig& config, const ComponentList& component_list);
 
 /// Runs the component list once with the config loaded from file.
 ///
@@ -47,16 +43,12 @@ void Run(const InMemoryConfig& config, const ComponentList& component_list,
 void RunOnce(const std::string& config_path,
              const std::optional<std::string>& config_vars_path,
              const std::optional<std::string>& config_vars_override_path,
-             const ComponentList& component_list,
-             const std::string& init_log_path = {},
-             logging::Format format = logging::Format::kTskv);
+             const ComponentList& component_list);
 
 /// Runs the component list once with the config.
 ///
 /// @see utils::DaemonMain
-void RunOnce(const InMemoryConfig& config, const ComponentList& component_list,
-             const std::string& init_log_path = {},
-             logging::Format format = logging::Format::kTskv);
+void RunOnce(const InMemoryConfig& config, const ComponentList& component_list);
 
 void RunForPrintConfigSchema(const ComponentList& component_list);
 

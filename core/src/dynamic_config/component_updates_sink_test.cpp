@@ -203,7 +203,7 @@ TEST_F(ComponentList, DynamicConfigUpdatesSink) {
                                     "dynamic-config-test-updates-sink2"));
 
   components::RunOnce(components::InMemoryConfig{static_config},
-                      MakeComponentList(), "@null");
+                      MakeComponentList());
 }
 
 TEST_F(ComponentList, DynamicConfigUpdatesSinkUsedByMultipleSources) {
@@ -223,7 +223,7 @@ TEST_F(ComponentList, DynamicConfigUpdatesSinkUsedByMultipleSources) {
 
   try {
     components::RunOnce(components::InMemoryConfig{static_config},
-                        MakeComponentList(), "@null");
+                        MakeComponentList());
     ADD_FAILURE() << "should throw 'std::runtime_error' exception";
   } catch (const std::runtime_error& e) {
     const std::string text = e.what();
