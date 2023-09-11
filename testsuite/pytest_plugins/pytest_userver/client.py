@@ -598,7 +598,7 @@ class MetricsDiffer:
             path = base_path or subpath or ''
         labels: typing.Optional[dict] = None
         if self._labels is not None or add_labels is not None:
-            labels = (self._labels or {}) | (add_labels or {})
+            labels = {**(self._labels or {}), **(add_labels or {})}
         return self.diff.value_at(path, labels, default=default)
 
     async def fetch(self) -> metric_module.MetricsSnapshot:
