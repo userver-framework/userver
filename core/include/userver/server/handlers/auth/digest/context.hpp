@@ -1,16 +1,9 @@
 #pragma once
 
-/// @file userver/server/handlers/auth/digest/digest_context.hpp
+/// @file userver/server/handlers/auth/digest/context.hpp
 /// @brief Context structures for Digest Authentication
 
-#include <optional>
 #include <string>
-#include <string_view>
-#include <unordered_map>
-#include <vector>
-
-#include <userver/formats/json/value.hpp>
-#include <userver/formats/json/value_builder.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -46,10 +39,12 @@ struct ContextFromClient {
   std::string authparam;
 };
 
-/// Function to parse directive map into structure
-ContextFromClient Parse(
-    std::unordered_map<std::string, std::string> directive_mapping);
+/// Max number of directives in Authorization header.
+/// Must be equal to the number of DigestContextFromClient fields.
+inline constexpr std::size_t kMaxClientDirectivesNumber = 11;
+
+/// Number of mandatory directives in Authorization header.
+inline constexpr std::size_t kClientMandatoryDirectivesNumber = 5;
 
 }  // namespace server::handlers::auth::digest
-
 USERVER_NAMESPACE_END

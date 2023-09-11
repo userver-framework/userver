@@ -3,7 +3,7 @@
 /// @file userver/server/handlers/auth/digest/directives.hpp
 /// @brief Various digest authentication directives
 
-#include <string_view>
+#include <string>
 
 USERVER_NAMESPACE_BEGIN
 

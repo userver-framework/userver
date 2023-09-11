@@ -14,7 +14,9 @@
 #include <userver/crypto/hash.hpp>
 #include <userver/http/common_headers.hpp>
 #include <userver/logging/log.hpp>
+#include <userver/server/handlers/auth/auth_checker_base.hpp>
 #include <userver/server/handlers/auth/digest/directives.hpp>
+#include <userver/server/handlers/auth/digest/exception.hpp>
 #include <userver/server/handlers/auth/digest/types.hpp>
 #include <userver/server/handlers/exceptions.hpp>
 #include <userver/server/handlers/fallback_handlers.hpp>
@@ -26,8 +28,6 @@
 USERVER_NAMESPACE_BEGIN
 
 namespace server::handlers::auth::digest {
-
-constexpr std::string_view kDigestWord = "Digest";
 
 constexpr std::string_view kAuthenticationInfo = "Authentication-Info";
 constexpr std::string_view kProxyAuthenticationInfo =
@@ -125,12 +125,10 @@ AuthCheckResult AuthCheckerBase::CheckAuth(const http::HttpRequest& request,
   Parser parser;
   ContextFromClient client_context;
   try {
-    parser.ParseAuthInfo(auth_value.substr(kDigestWord.size() + 1));
-    client_context = parser.GetClientContext();
-  } catch (std::runtime_error& ex) {
+    client_context = parser.ParseAuthInfo(auth_value);
+  } catch (const Exception& ex) {
     response.SetStatus(http::HttpStatus::kBadRequest);
-    LOG_WARNING() << "Missing mandatory directives or wrong authentication "
-                     "header format.";
+    LOG_WARNING() << "Directives parser exception: " << ex;
     throw handlers::ClientError();
   }
 
