@@ -412,7 +412,8 @@ AddrVector Resolver::Resolve(const std::string& name,
   if (net_result.status == Impl::NetCacheResult::Status::kMiss) {
     // synchronize with possible parallel updates
     if (deadline.IsReachable()) {
-      lock.try_lock_for(deadline.TimeLeft());
+      [[maybe_unused]] auto lock_result =
+          lock.try_lock_for(deadline.TimeLeft());
     } else {
       lock.lock();
     }
