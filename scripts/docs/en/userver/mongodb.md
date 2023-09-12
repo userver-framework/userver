@@ -9,6 +9,7 @@ databases and the BSON format.
 * Support for bulk operations;
 * Dynamic management of database sets;
 * Aggregation support;
+* Congestion control;
 * @ref scripts/docs/en/userver/deadline_propagation.md
 
 ## Metrics
@@ -81,6 +82,16 @@ conversion functions between BSON and text formats by default, but they are
 available in <userver/formats/bson/serialize.hpp>. These functions are provided
 without guarantees for the stability of the conversion, and are primarily
 intended for debugging.
+
+
+### Mongo Congestion Control
+
+Extra database load may lead to database overload. To protect Mongo from this
+happening userver has Congestion Control. In case of fast timings increase,
+the Congestion Control limits the number of concurrent connections to Mongo and
+eliminates the extra load. On the one hand, it leads to extra error responses, but
+on the other hand, it greatly lowers the timings of the rest of the database
+requests and helps Mongo to return to the normal state with lower response timings.
 
 ----------
 
