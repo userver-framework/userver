@@ -2650,7 +2650,6 @@
   "scripts/docs/en/landing.md":"taxi/uservices/userver/scripts/docs/en/landing.md",
   "scripts/docs/en/schemas/dynamic_configs.md":"taxi/uservices/userver/scripts/docs/en/schemas/dynamic_configs.md",
   "scripts/docs/en/userver/404.md":"taxi/uservices/userver/scripts/docs/en/userver/404.md",
-  "scripts/docs/en/userver/beta_state.md":"taxi/uservices/userver/scripts/docs/en/userver/beta_state.md",
   "scripts/docs/en/userver/cache_dumps.md":"taxi/uservices/userver/scripts/docs/en/userver/cache_dumps.md",
   "scripts/docs/en/userver/caches.md":"taxi/uservices/userver/scripts/docs/en/userver/caches.md",
   "scripts/docs/en/userver/chaos_testing.md":"taxi/uservices/userver/scripts/docs/en/userver/chaos_testing.md",
