@@ -11,7 +11,7 @@
         <tab type="user" url="@ref md_en_2userver_2supported__platforms" title="Supported Platforms"/>
         <tab type="user" url="@ref md_en_2userver_2tutorial_2build" title="Configure and Build"/>
         <tab type="user" url="@ref md_en_2userver_2deploy__env" title="Deploy Environment Specific Configurations"/>
-        <tab type="user" url="@ref md_en_2userver_2beta__state" title="About the BETA state"/>
+        <tab type="user" url="@ref md_en_2userver_2development_2releases" title="Releases, Trunk-based Development and Pull Requests"/>
         <tab type="user" url="@ref md_en_2userver_2roadmap__and__changelog" title="Roadmap and Changelog"/>
         <tab type="user" url="@ref md_en_2userver_2faq" title="Frequently Asked Questions"/>
       </tab>
@@ -106,7 +106,6 @@
       </tab>
       <tab type="usergroup" title="Opensource" url="[none]">
         <tab type="user" url="@ref md_en_2userver_2development_2stability" title="API and ABI stability, versioning"/>
-        <tab type="user" url="@ref md_en_2userver_2development_2releases" title="Issues, feature and pull requests, releases"/>
         <tab type="user" url="@ref md_en_2userver_2driver__guide" title="Driver Writing Guide"/>
         <tab type="user" url="@ref md_en_2userver_2publications" title="Publications and Videos"/>
         <tab type="user" url="@ref md__2data_2code_2service__template_2third__party_2userver_2CONTRIBUTING" title="Notice to external contributors"/>

@@ -53,5 +53,5 @@ without ODR-violations.
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref clickhouse_driver | @ref scripts/docs/en/userver/development/releases.md ⇨
+⇦ @ref clickhouse_driver | @ref scripts/docs/en/userver/driver_guide.md ⇨
 @htmlonly </div> @endhtmlonly

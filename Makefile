@@ -31,7 +31,6 @@ docs:
 	@rm -rf docs/*
 	@( \
 	    cat scripts/docs/doxygen.conf; \
-	    echo 'PROJECT_BRIEF = "C++ Async Framework (beta)"'; \
 	    echo OUTPUT_DIRECTORY=docs \
 	  ) | $(DOXYGEN) -
 	@echo 'userver.tech' > docs/html/CNAME

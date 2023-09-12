@@ -638,7 +638,7 @@ Changelog news also go to the
   See @ref scripts/docs/en/userver/tutorial/build.md
 * Docs improved: removed internal links; added
   @ref scripts/docs/en/userver/framework_comparison.md,
-  @ref scripts/docs/en/userver/supported_platforms.md, @ref scripts/docs/en/userver/beta_state.md,
+  @ref scripts/docs/en/userver/supported_platforms.md,
   @ref scripts/docs/en/userver/security_changelog.md,
   @ref scripts/docs/en/userver/profile_context_switches.md,
   @ref scripts/docs/en/userver/driver_guide.md,
@@ -666,6 +666,6 @@ Changelog news also go to the
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref scripts/docs/en/userver/beta_state.md | @ref scripts/docs/en/userver/faq.md ⇨
+⇦ @ref scripts/docs/en/userver/development/releases.md | @ref scripts/docs/en/userver/faq.md ⇨
 @htmlonly </div> @endhtmlonly
 

@@ -19,7 +19,7 @@ Telegram support chats: [English-speaking](https://t.me/userver_en) |
 * @ref scripts/docs/en/userver/supported_platforms.md
 * @ref scripts/docs/en/userver/tutorial/build.md
 * @ref scripts/docs/en/userver/deploy_env.md
-* @ref scripts/docs/en/userver/beta_state.md
+* @ref scripts/docs/en/userver/development/releases.md
 * @ref scripts/docs/en/userver/roadmap_and_changelog.md
 * @ref scripts/docs/en/userver/faq.md
 
@@ -120,7 +120,6 @@ Telegram support chats: [English-speaking](https://t.me/userver_en) |
 
 ## Opensource
 * @ref scripts/docs/en/userver/development/stability.md
-* @ref scripts/docs/en/userver/development/releases.md
 * @ref scripts/docs/en/userver/driver_guide.md
 * @ref scripts/docs/en/userver/publications.md
 * @ref CONTRIBUTING.md
