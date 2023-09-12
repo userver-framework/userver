@@ -76,10 +76,10 @@ enum class Final {
 };
 
 boost::container::small_vector<char, impl::kMaxFrameHeaderSize> DataFrameHeader(
-    utils::impl::Span<const char> data, bool is_text,
+    utils::impl::Span<const std::byte> data, bool is_text,
     Continuation is_continuation, Final is_final);
 std::array<char, sizeof(WSHeader)> MakeControlFrame(
-    WSOpcodes opcode, utils::impl::Span<const char> data = {});
+    WSOpcodes opcode, utils::impl::Span<const std::byte> data = {});
 std::string CloseFrame(CloseStatusInt status_code);
 
 const std::array<char, sizeof(WSHeader)>& PingFrame();
@@ -100,7 +100,7 @@ struct FrameParserState {
 };
 
 CloseStatus ReadWSFrame(FrameParserState& frame, engine::io::ReadableBase& io,
-                        unsigned max_payload_size);
+                        unsigned max_payload_size, std::size_t& payload_len);
 
 }  // namespace server::websocket::impl
 

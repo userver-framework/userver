@@ -52,7 +52,7 @@ async def test_too_big(websocket_client):
         try:
             await chat.recv()
             assert False
-        except websockets.exceptions.ConnectionClosedError as e:
+        except websockets.exceptions.ConnectionClosed as e:
             assert e.rcvd.code == 1009
 
 
@@ -69,7 +69,7 @@ async def test_duplex(websocket_client):
     async with websocket_client.get('duplex') as chat:
         await chat.send('ping')
         response = await chat.recv()
-        assert response == 'ping'
+        assert response == b'ping'
 
 
 async def test_two(websocket_client):
@@ -82,7 +82,7 @@ async def test_two(websocket_client):
 
             for _ in range(10):
                 msg = await chat2.recv()
-                assert msg == 'B'
+                assert msg == b'B'
             for _ in range(10):
                 msg = await chat1.recv()
-                assert msg == 'A'
+                assert msg == b'A'

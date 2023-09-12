@@ -9,6 +9,7 @@
 #include <userver/engine/io/socket.hpp>
 #include <userver/server/http/http_request.hpp>
 #include <userver/tracing/span.hpp>
+#include <userver/utils/impl/span.hpp>
 #include <userver/yaml_config/fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -88,6 +89,16 @@ class WebSocketConnection {
   /// from different coroutines at once thus implementing full-duplex socket
   /// connection.
   virtual void Send(const Message& message) = 0;
+  virtual void SendText(std::string_view message) = 0;
+
+  template <typename ContiguousContainer>
+  void SendBinary(const ContiguousContainer& message) {
+    static_assert(sizeof(typename ContiguousContainer::value_type) == 1,
+                  "SendBinary() should send either std::bytes or chars");
+    DoSendBinary(utils::impl::Span(
+        reinterpret_cast<const std::byte*>(message.data()),
+        reinterpret_cast<const std::byte*>(message.data() + message.size())));
+  }
 
   virtual void Close(CloseStatus status_code) = 0;
 
@@ -95,6 +106,9 @@ class WebSocketConnection {
 
   virtual void AddFinalTags(tracing::Span& span) const = 0;
   virtual void AddStatistics(Statistics& stats) const = 0;
+
+ protected:
+  virtual void DoSendBinary(utils::impl::Span<const std::byte> message) = 0;
 };
 
 std::shared_ptr<WebSocketConnection> MakeWebSocket(

@@ -63,7 +63,7 @@ void PushRaw(const T& value, V& data) {
 
 namespace frames {
 boost::container::small_vector<char, impl::kMaxFrameHeaderSize> DataFrameHeader(
-    Span<const char> data, bool is_text, Continuation is_continuation,
+    Span<const std::byte> data, bool is_text, Continuation is_continuation,
     Final is_final) {
   boost::container::small_vector<char, impl::kMaxFrameHeaderSize> frame;
 
@@ -103,8 +103,8 @@ std::string CloseFrame(CloseStatusInt status_code) {
   return frame;
 }
 
-std::array<char, sizeof(WSHeader)> MakeControlFrame(WSOpcodes opcode,
-                                                    Span<const char> data) {
+std::array<char, sizeof(WSHeader)> MakeControlFrame(
+    WSOpcodes opcode, Span<const std::byte> data) {
   std::array<char, sizeof(WSHeader)> frame{};
 
   auto* hdr = reinterpret_cast<WSHeader*>(frame.data());
@@ -146,25 +146,24 @@ std::string WebsocketSecAnswer(std::string_view sec_key) {
 }
 
 CloseStatus ReadWSFrame(FrameParserState& frame, engine::io::ReadableBase& io,
-                        unsigned max_payload_size) {
+                        unsigned max_payload_size, std::size_t& payload_len) {
   WSHeader hdr;
   RecvExactly(io, AsWritableBytes(MakeSpan(&hdr, 1)), {});
   if (engine::current_task::ShouldCancel()) return CloseStatus::kGoingAway;
 
   const bool isDataFrame =
       (hdr.bits.opcode & (kText | kBinary)) || hdr.bits.opcode == kContinuation;
-  uint64_t payloadLen = 0;
   if (hdr.bits.payloadLen <= 125) {
-    payloadLen = hdr.bits.payloadLen;
+    payload_len = hdr.bits.payloadLen;
   } else if (hdr.bits.payloadLen == 126) {
     uint16_t payloadLen16 = 0;
     RecvExactly(io, AsWritableBytes(MakeSpan(&payloadLen16, 1)), {});
-    payloadLen = boost::endian::big_to_native(payloadLen16);
+    payload_len = boost::endian::big_to_native(payloadLen16);
   } else  // if (hdr.payloadLen == 127)
   {
     uint64_t payloadLen64 = 0;
     RecvExactly(io, AsWritableBytes(MakeSpan(&payloadLen64, 1)), {});
-    payloadLen = boost::endian::big_to_native(payloadLen64);
+    payload_len = boost::endian::big_to_native(payloadLen64);
   }
   if (engine::current_task::ShouldCancel()) return CloseStatus::kGoingAway;
 
@@ -173,14 +172,14 @@ CloseStatus ReadWSFrame(FrameParserState& frame, engine::io::ReadableBase& io,
     return CloseStatus::kProtocolError;
   }
 
-  if (payloadLen + frame.payload->size() > max_payload_size)
+  if (payload_len + frame.payload->size() > max_payload_size)
     return CloseStatus::kTooBigData;
 
   Mask32 mask;
   if (hdr.bits.mask) RecvExactly(io, AsWritableBytes(MakeSpan(&mask, 1)), {});
   if (engine::current_task::ShouldCancel()) return CloseStatus::kGoingAway;
 
-  if (payloadLen > 0) {
+  if (payload_len > 0) {
     if (isDataFrame) {
       if (!frame.payload->empty() && hdr.bits.opcode != kContinuation) {
         // non-continuation opcode while waiting continuation
@@ -189,9 +188,10 @@ CloseStatus ReadWSFrame(FrameParserState& frame, engine::io::ReadableBase& io,
     }
 
     size_t newPayloadOffset = frame.payload->size();
-    frame.payload->resize(frame.payload->size() + payloadLen);
-    RecvExactly(
-        io, MakeSpan(frame.payload->data() + newPayloadOffset, payloadLen), {});
+    frame.payload->resize(frame.payload->size() + payload_len);
+    RecvExactly(io,
+                MakeSpan(frame.payload->data() + newPayloadOffset, payload_len),
+                {});
     if (engine::current_task::ShouldCancel()) return CloseStatus::kGoingAway;
 
     if (mask.mask32)

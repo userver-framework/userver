@@ -80,7 +80,7 @@ class WebsocketsFullDuplexHandler final
           while (!engine::current_task::ShouldCancel()) {
             std::string msg;
             if (!consumer.Pop(msg)) break;
-            chat.Send({std::move(msg), {}, true});
+            chat.SendBinary(msg);
           }
         });
 

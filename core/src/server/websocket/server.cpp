@@ -16,7 +16,7 @@ namespace server::websocket {
 namespace {
 inline void SendExactly(engine::io::WritableBase& writable,
                         utils::impl::Span<const char> data1,
-                        utils::impl::Span<const char> data2) {
+                        utils::impl::Span<const std::byte> data2) {
   if (writable.WriteAll(
           {{data1.data(), data1.size()}, {data2.data(), data2.size()}}, {}) !=
       data1.size() + data2.size())
@@ -26,6 +26,11 @@ inline void SendExactly(engine::io::WritableBase& writable,
 using utils::impl::Span;
 
 Message CloseMessage(CloseStatus status) { return {{}, status, false}; }
+
+Span<const std::byte> MakeBinarySpan(Span<const char> span) {
+  return {reinterpret_cast<const std::byte*>(span.data()),
+          reinterpret_cast<const std::byte*>(span.data() + span.size())};
+}
 
 }  // namespace
 
@@ -43,9 +48,9 @@ class WebSocketConnectionImpl final : public WebSocketConnection {
   std::unique_ptr<engine::io::RwBase> io;
 
   struct MessageExtended final {
-    const Message& msg;
-    bool ping = false;
-    bool pong = false;
+    Span<const std::byte> data;
+    impl::WSOpcodes opcode;
+    std::optional<CloseStatus> close_status;
   };
 
   // write_mutex_ should be obtained for each write to the socket.
@@ -74,59 +79,74 @@ class WebSocketConnectionImpl final : public WebSocketConnection {
 
   void SendExtended(MessageExtended& message) {
     stats_.msg_sent++;
-    stats_.bytes_sent += message.msg.data.size();
+    stats_.bytes_sent += message.data.size();
 
     std::unique_lock lock(write_mutex_);
 
-    LOG_TRACE() << "Write message " << message.msg.data.size() << " bytes";
-    if (message.ping) {
+    LOG_TRACE() << "Write message " << message.data.size() << " bytes";
+    if (message.opcode == impl::WSOpcodes::kPing) {
       SendExactly(*io, impl::frames::PingFrame(), {});
-    } else if (message.pong) {
-      SendExactly(*io,
-                  impl::frames::MakeControlFrame(impl::WSOpcodes::kPong,
-                                                 message.msg.data),
-                  message.msg.data);
-    } else if (message.msg.close_status.has_value()) {
+    } else if (message.opcode == impl::WSOpcodes::kPong) {
+      SendExactly(
+          *io,
+          impl::frames::MakeControlFrame(impl::WSOpcodes::kPong, message.data),
+          message.data);
+    } else if (message.close_status.has_value()) {
       SendExactly(*io,
                   impl::frames::CloseFrame(
-                      static_cast<int>(message.msg.close_status.value())),
+                      static_cast<int>(message.close_status.value())),
                   {});
-    } else if (!message.msg.data.empty()) {
-      Span<const char> dataToSend{message.msg.data};
+    } else if (message.data.size() > 0) {
+      Span<const std::byte> dataToSend{message.data};
       auto continuation = impl::frames::Continuation::kNo;
       while (dataToSend.size() > config.fragment_size &&
              config.fragment_size > 0) {
-        SendExactly(
-            *io,
-            impl::frames::DataFrameHeader(
-                dataToSend.first(config.fragment_size), message.msg.is_text,
-                continuation, impl::frames::Final::kNo),
-            dataToSend.first(config.fragment_size));
+        SendExactly(*io,
+                    impl::frames::DataFrameHeader(
+                        dataToSend.first(config.fragment_size),
+                        message.opcode == impl::WSOpcodes::kText, continuation,
+                        impl::frames::Final::kNo),
+                    dataToSend.first(config.fragment_size));
         continuation = impl::frames::Continuation::kYes;
         dataToSend = dataToSend.last(dataToSend.size() - config.fragment_size);
       }
       SendExactly(*io,
-                  impl::frames::DataFrameHeader(dataToSend, message.msg.is_text,
-                                                continuation,
-                                                impl::frames::Final::kYes),
+                  impl::frames::DataFrameHeader(
+                      dataToSend, message.opcode == impl::WSOpcodes::kText,
+                      continuation, impl::frames::Final::kYes),
                   dataToSend);
     }
   }
 
   void Send(const Message& message) override {
-    MessageExtended mext{message, false, false};
+    MessageExtended mext{
+        MakeBinarySpan(message.data),
+        message.is_text ? impl::WSOpcodes::kText : impl::WSOpcodes::kBinary,
+        message.close_status};
+    SendExtended(mext);
+  }
+
+  void SendText(std::string_view message) override {
+    MessageExtended mext{MakeBinarySpan(message), impl::WSOpcodes::kText, {}};
+    SendExtended(mext);
+  }
+
+  void DoSendBinary(utils::impl::Span<const std::byte> message) override {
+    MessageExtended mext{message, impl::WSOpcodes::kBinary, {}};
     SendExtended(mext);
   }
 
   void Recv(Message& msg) override {
     msg.data.resize(0);  // do not call .clear() to keep the allocated memory
     frame_.payload = &msg.data;
+    frame_.payload->resize(0);
 
     try {
       while (true) {
+        size_t payload_len = 0;
         // ReadWSFrame() returns kGoingAway in case of task cancellation
         CloseStatus status_raw =
-            ReadWSFrame(frame_, *io, config.max_remote_payload);
+            ReadWSFrame(frame_, *io, config.max_remote_payload, payload_len);
 
         auto status = static_cast<CloseStatusInt>(status_raw);
         LOG_TRACE() << fmt::format(
@@ -135,10 +155,7 @@ class WebSocketConnectionImpl final : public WebSocketConnection {
             frame_.is_text, frame_.closed, frame_.payload->size(), status,
             frame_.waiting_continuation);
         if (status != 0) {
-          Message msg;
-          msg.close_status = status_raw;
-          // msg.closed is not used
-          MessageExtended close_msg{msg, false, false};
+          MessageExtended close_msg{{}, impl::WSOpcodes::kClose, status_raw};
           SendExtended(close_msg);
           msg = CloseMessage(status_raw);
           return;
@@ -151,10 +168,10 @@ class WebSocketConnectionImpl final : public WebSocketConnection {
         }
 
         if (frame_.ping_received) {
-          Message pong_msg;
-          pong_msg.data = std::move(*frame_.payload);
-          MessageExtended pongMsg{pong_msg, false, true};
+          MessageExtended pongMsg{
+              MakeBinarySpan(*frame_.payload), impl::WSOpcodes::kPong, {}};
           SendExtended(pongMsg);
+          frame_.payload->resize(frame_.payload->size() - payload_len);
           frame_.ping_received = false;
           continue;
         }
