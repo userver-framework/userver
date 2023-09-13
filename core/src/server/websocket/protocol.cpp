@@ -3,7 +3,6 @@
 #include <cstdlib>
 #include <cstring>
 
-#include <cryptopp/config_int.h>
 #include <cryptopp/sha.h>
 #include <boost/endian/conversion.hpp>
 
@@ -133,11 +132,18 @@ std::string WebsocketSecAnswer(std::string_view sec_key) {
   // https://datatracker.ietf.org/doc/html/rfc6455#section-1.3
   static constexpr std::string_view websocketGuid =
       "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
-  CryptoPP::byte webSocketRespKeySHA1[CryptoPP::SHA1::DIGESTSIZE];
+
+#if defined(CRYPTOPP_NO_GLOBAL_BYTE)
+  using CryptoByte = CryptoPP::byte;
+#else
+  using CryptoByte = ::byte;
+#endif
+
+  CryptoByte webSocketRespKeySHA1[CryptoPP::SHA1::DIGESTSIZE];
   CryptoPP::SHA1 hash;
-  hash.Update(reinterpret_cast<const CryptoPP::byte*>(sec_key.data()),
+  hash.Update(reinterpret_cast<const CryptoByte*>(sec_key.data()),
               sec_key.size());
-  hash.Update(reinterpret_cast<const CryptoPP::byte*>(websocketGuid.data()),
+  hash.Update(reinterpret_cast<const CryptoByte*>(websocketGuid.data()),
               websocketGuid.size());
   hash.Final(webSocketRespKeySHA1);
   return crypto::base64::Base64Encode(
