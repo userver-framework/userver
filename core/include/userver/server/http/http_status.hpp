@@ -88,7 +88,7 @@ USERVER_NAMESPACE_END
 
 template <>
 struct fmt::formatter<USERVER_NAMESPACE::server::http::HttpStatus> {
-  static auto parse(format_parse_context& ctx) { return ctx.begin(); }
+  constexpr static auto parse(format_parse_context& ctx) { return ctx.begin(); }
 
   template <typename FormatContext>
   auto format(USERVER_NAMESPACE::server::http::HttpStatus status,

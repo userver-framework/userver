@@ -187,3 +187,13 @@ class PredefinedHeader final {
 }  // namespace http::headers
 
 USERVER_NAMESPACE_END
+
+template <>
+struct fmt::formatter<USERVER_NAMESPACE::http::headers::PredefinedHeader>
+    : fmt::formatter<std::string_view> {
+  template <typename FormatContext>
+  auto format(const USERVER_NAMESPACE::http::headers::PredefinedHeader& value,
+              FormatContext& ctx) const -> decltype(ctx.out()) {
+    return formatter<std::string_view>::format(std::string_view{value}, ctx);
+  }
+};

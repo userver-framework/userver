@@ -210,8 +210,3 @@ std::string_view StringBuffer::GetStringView() const {
 }  // namespace formats::json
 
 USERVER_NAMESPACE_END
-
-auto fmt::formatter<USERVER_NAMESPACE::formats::json::Value>::parse(
-    format_parse_context& ctx) -> decltype(ctx.begin()) {
-  return ctx.begin();
-}

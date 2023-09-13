@@ -628,7 +628,7 @@ class formatter<USERVER_NAMESPACE::utils::datetime::TimeOfDay<Duration>> {
     char subseconds[buffer_size];
     subseconds[0] = 0;
     if (ss > 0 || !truncate_trailing_subseconds_) {
-      format_to(subseconds, kSubsecondsPreformat, ss);
+      fmt::format_to(subseconds, kSubsecondsPreformat, ss);
       subseconds[buffer_size - 1] = 0;
       if (truncate_trailing_subseconds_) {
         // Truncate trailing zeros

@@ -148,7 +148,8 @@ void EnableFlag(const impl::cdriver::FindAndModifyOptsPtr& fam_options,
   if (!mongoc_find_and_modify_opts_set_flags(
           fam_options.get(),
           static_cast<mongoc_find_and_modify_flags_t>(old_flags | new_flag))) {
-    throw MongoException("Cannot set FAM flag ") << new_flag;
+    throw MongoException("Cannot set FAM flag ")
+        << static_cast<std::int32_t>(new_flag);
   }
 }
 
