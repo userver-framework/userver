@@ -111,7 +111,7 @@ See the full example at:
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref scripts/docs/en/userver/faq.md | @ref scripts/docs/en/userver/tutorial/config_service.md ⇨
+⇦ @ref scripts/docs/en/userver/tutorial/digest_auth_postgres.md | @ref scripts/docs/en/userver/tutorial/json_to_yaml.md ⇨
 @htmlonly </div> @endhtmlonly
 
 

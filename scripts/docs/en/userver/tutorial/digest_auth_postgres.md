@@ -118,7 +118,7 @@ See the full example:
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref scripts/docs/en/userver/tutorial/redis_service.md | @ref scripts/docs/en/userver/tutorial/json_to_yaml.md ⇨
+⇦ @ref scripts/docs/en/userver/tutorial/redis_service.md | @ref scripts/docs/en/userver/tutorial/websocket_service.md ⇨
 @htmlonly </div> @endhtmlonly
 
 @example samples/digest_auth_service/auth_digest.hpp

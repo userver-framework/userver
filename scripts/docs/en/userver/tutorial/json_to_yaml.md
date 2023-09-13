@@ -90,7 +90,7 @@ See the full example at:
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref scripts/docs/en/userver/tutorial/auth_postgres.md | @ref scripts/docs/en/userver/component_system.md ⇨
+⇦ @ref scripts/docs/en/userver/tutorial/websocket_service.md | @ref scripts/docs/en/userver/component_system.md ⇨
 @htmlonly </div> @endhtmlonly
 
 

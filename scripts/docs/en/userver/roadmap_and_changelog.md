@@ -63,7 +63,7 @@ Changelog news also go to the
 
 ### Beta (August 2023)
 
-* Deadline Propagation is now implemned and
+* Deadline Propagation is now implemented and
   @ref scripts/docs/en/userver/deadline_propagation.md "documented".
 
 * Projects from [Yandex Schools](https://academy.yandex.ru/schools):
