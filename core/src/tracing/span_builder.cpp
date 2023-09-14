@@ -43,6 +43,12 @@ void SpanBuilder::AddTagFrozen(std::string key,
                                         logging::LogExtra::ExtendType::kFrozen);
 }
 
+void SpanBuilder::AddNonInheritableTag(std::string key,
+                                       logging::LogExtra::Value value) {
+  if (!pimpl_->log_extra_local_) pimpl_->log_extra_local_.emplace();
+  pimpl_->log_extra_local_->Extend(std::move(key), std::move(value));
+}
+
 void SpanBuilder::SetParentLink(std::string parent_link) {
   AddTagFrozen(kParentLinkTag, std::move(parent_link));
 }

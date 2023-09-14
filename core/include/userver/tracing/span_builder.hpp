@@ -25,6 +25,7 @@ class SpanBuilder final {
   void SetParentSpanId(std::string parent_span_id);
   void SetParentLink(std::string parent_link);
   void AddTagFrozen(std::string key, logging::LogExtra::Value value);
+  void AddNonInheritableTag(std::string key, logging::LogExtra::Value value);
   Span Build() &&;
 
  private:
