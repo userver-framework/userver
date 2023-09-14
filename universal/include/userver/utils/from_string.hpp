@@ -5,6 +5,7 @@
 /// @ingroup userver_universal
 
 #include <cctype>
+#include <cstdint>
 #include <cerrno>
 #include <charconv>
 #include <cstdlib>
