@@ -38,6 +38,9 @@ formats::json::Value Control::Perform(
   if (!mock_now.IsMissing()) {
     const auto now = mock_now.As<std::optional<std::string>>();
     if (now) {
+      // Testsuite converts timezone to UTC, then it may keep it or rip it off.
+      // We interpret missing timezone as UTC by default, which is compatible
+      // with this testsuite behavior.
       utils::datetime::MockNowSet(utils::datetime::Stringtime(*now));
     } else {
       utils::datetime::MockNowUnset();
