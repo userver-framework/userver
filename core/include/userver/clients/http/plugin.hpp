@@ -20,7 +20,9 @@ class Response;
 /// from plugins
 class PluginRequest final {
  public:
+  /// @cond
   explicit PluginRequest(RequestState& state);
+  /// @endcond
 
   void SetHeader(std::string_view name, std::string value);
 

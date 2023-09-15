@@ -406,7 +406,7 @@ void RequestState::on_completed(std::shared_ptr<RequestState> holder,
       [sockets](RequestStats& stats) { stats.AccountOpenSockets(sockets); });
 
   span.AddTag(tracing::kAttempts, holder->retry_.current);
-  if (holder->remote_timeout_ != holder->original_timeout_) {
+  if (holder->deadline_propagation_config_.update_header) {
     span.AddTag("propagated_timeout_ms", holder->remote_timeout_.count());
   }
 
@@ -859,6 +859,11 @@ void RequestState::ResetDataForNewRequest() {
 
   ApplyTestsuiteConfig();
 
+  // Testsuite config might have changed the timeout, so add the tag here.
+  // Note: HookPerformRequest can potentially change timeout manually
+  // per-attempt. These changes are currently ignored.
+  span_storage_->Get().AddTag(tracing::kTimeoutMs, original_timeout_.count());
+
   // Ignore deadline propagation when setting cURL timeout to avoid closing
   // connections on deadline expiration. The connection will still be closed if
   // the original timeout is exceeded.
@@ -946,7 +951,6 @@ void RequestState::StartNewSpan(utils::impl::SourceLocation location) {
   plugin_pipeline_.HookCreateSpan(*this);
   span.AddTag(tracing::kHttpUrl, GetLoggedOriginalUrl());
   span.AddTag(tracing::kMaxAttempts, retry_.retries);
-  span.AddTag(tracing::kTimeoutMs, original_timeout_.count());
 
   // Span is local to a Request, it is not related to current coroutine
   span.DetachFromCoroStack();
