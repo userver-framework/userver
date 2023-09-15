@@ -25,7 +25,7 @@ function(userver_chaos_testsuite_add)
     )
 
     set_tests_properties(testsuite-${PROJECT_NAME}-${ARG_TESTS_DIRECTORY}
-      PROPERTIES ENVIRONMENT "TESTSUITE_RABBITMQ_SERVER_START_TIMEOUT=60.0"
+      PROPERTIES ENVIRONMENT "TESTSUITE_RABBITMQ_SERVER_START_TIMEOUT=120.0"
     )
 endfunction()
 

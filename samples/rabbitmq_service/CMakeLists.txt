@@ -6,5 +6,5 @@ target_link_libraries(${PROJECT_NAME} userver-core userver-rabbitmq)
 userver_sample_testsuite_add()
 if (TEST testsuite-${PROJECT_NAME})
   set_tests_properties(testsuite-${PROJECT_NAME} PROPERTIES ENVIRONMENT
-          "TESTSUITE_RABBITMQ_SERVER_START_TIMEOUT=60.0")
+          "TESTSUITE_RABBITMQ_SERVER_START_TIMEOUT=120.0")
 endif()
