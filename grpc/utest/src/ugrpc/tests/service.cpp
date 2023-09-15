@@ -15,12 +15,6 @@ namespace ugrpc::tests {
 
 namespace {
 
-server::ServerConfig MakeServerConfig() {
-  server::ServerConfig config;
-  config.port = 0;
-  return config;
-}
-
 using ClientLogMiddlewareFactory = client::middlewares::log::MiddlewareFactory;
 using ClientLogMiddlewareSettings =
     client::middlewares::log::Middleware::Settings;
@@ -37,9 +31,10 @@ using ServerDpMiddleware =
 
 }  // namespace
 
-ServiceBase::ServiceBase(dynamic_config::StorageMock&& dynconf)
+ServiceBase::ServiceBase(dynamic_config::StorageMock&& dynconf,
+                         server::ServerConfig&& server_config)
     : config_storage_(std::move(dynconf)),
-      server_(MakeServerConfig(), statistics_storage_,
+      server_(std::move(server_config), statistics_storage_,
               config_storage_.GetSource()),
       server_middlewares_(
           {std::make_shared<ServerLogMiddleware>(ServerLogMiddlewareSettings{}),

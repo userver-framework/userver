@@ -1611,6 +1611,7 @@
   "grpc/tests/src/deadline_metrics_test.cpp":"taxi/uservices/userver/grpc/tests/src/deadline_metrics_test.cpp",
   "grpc/tests/src/deadline_test.cpp":"taxi/uservices/userver/grpc/tests/src/deadline_test.cpp",
   "grpc/tests/src/error_test.cpp":"taxi/uservices/userver/grpc/tests/src/error_test.cpp",
+  "grpc/tests/src/logging_test.cpp":"taxi/uservices/userver/grpc/tests/src/logging_test.cpp",
   "grpc/tests/src/middlewares_test.cpp":"taxi/uservices/userver/grpc/tests/src/middlewares_test.cpp",
   "grpc/tests/src/service_config_test.cpp":"taxi/uservices/userver/grpc/tests/src/service_config_test.cpp",
   "grpc/tests/src/statistics_test.cpp":"taxi/uservices/userver/grpc/tests/src/statistics_test.cpp",

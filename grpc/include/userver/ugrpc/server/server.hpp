@@ -31,7 +31,7 @@ struct ServerConfig final {
   /// The port to listen to. If `0`, a free port will be picked automatically.
   /// If none, the ports have to be configured programmatically using
   /// Server::WithServerBuilder.
-  std::optional<int> port{};
+  std::optional<int> port{0};
 
   /// Optional grpc-core channel args
   /// @see https://grpc.github.io/grpc/core/group__grpc__arg__keys.html
