@@ -48,8 +48,8 @@ async def test_cycle(websocket_client):
 async def test_too_big(websocket_client):
     async with websocket_client.get('chat') as chat:
         msg = 'hello' * 100000
-        await chat.send(msg)
         try:
+            await chat.send(msg)
             await chat.recv()
             assert False
         except websockets.exceptions.ConnectionClosed as e:
