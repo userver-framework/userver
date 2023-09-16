@@ -56,7 +56,7 @@ std::string_view GetCurrentTimeString(
       std::chrono::time_point_cast<std::chrono::seconds>(start_time);
   if (rounded_now != cached_time) {
     fmt::format_to(cached_time_string, FMT_COMPILE("{:%FT%T}"),
-                   fmt::localtime(start_time));
+                   fmt::localtime(std::chrono::system_clock::to_time_t(start_time)));
     cached_time = rounded_now;
   }
   return {cached_time_string, kTemplate.size()};
