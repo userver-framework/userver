@@ -44,18 +44,9 @@ class LogScope final {
  public:
   LogScope()
       : logger_prev_{logging::GetDefaultLogger()},
-        level_scope_{logging::GetDefaultLoggerLevel()},
-        old_uncaught_exceptions_(std::uncaught_exceptions()) {}
+        level_scope_{logging::GetDefaultLoggerLevel()} {}
 
-  ~LogScope() {
-    if (std::uncaught_exceptions() > old_uncaught_exceptions_) {
-      // Log the exception before we destroy the inner-scope logger and replace
-      // it with what is likely a NullLogger.
-      LOG_ERROR() << "Unhandled exception in components::Run: "
-                  << boost::diagnostic_information(std::current_exception());
-    }
-    logging::impl::SetDefaultLoggerRef(logger_prev_);
-  }
+  ~LogScope() { logging::impl::SetDefaultLoggerRef(logger_prev_); }
 
   void SetLogger(logging::LoggerPtr logger) {
     UASSERT(logger);
@@ -68,7 +59,6 @@ class LogScope final {
   logging::LoggerPtr logger_new_;
   logging::LoggerRef logger_prev_;
   logging::DefaultLoggerLevelScope level_scope_;
-  const int old_uncaught_exceptions_;
 };
 
 const utils::impl::UserverExperiment kJemallocBgThread{"jemalloc-bg-thread"};
@@ -187,19 +177,20 @@ void DoRun(const PathOrConfig& config,
   crypto::impl::Openssl::Init();
 
   LogScope log_scope;
-  auto parsed_config = ParseManagerConfigAndSetupLogging(
+  auto manager_config = ParseManagerConfigAndSetupLogging(
       log_scope, config, config_vars_path, config_vars_override_path);
 
   utils::impl::UserverExperimentsScope experiments_scope;
-  experiments_scope.EnableOnly(parsed_config.enabled_experiments,
-                               parsed_config.experiments_force_enabled);
-
-  HandleJemallocSettings();
-  PreheatStacktraceCollector();
-
   std::optional<Manager> manager;
+
   try {
-    manager.emplace(std::make_unique<ManagerConfig>(std::move(parsed_config)),
+    experiments_scope.EnableOnly(manager_config.enabled_experiments,
+                                 manager_config.experiments_force_enabled);
+
+    HandleJemallocSettings();
+    PreheatStacktraceCollector();
+
+    manager.emplace(std::make_unique<ManagerConfig>(std::move(manager_config)),
                     component_list);
   } catch (const std::exception& ex) {
     LOG_ERROR() << "Loading failed: " << ex;
@@ -225,7 +216,7 @@ void DoRun(const PathOrConfig& config,
     } else {
       LOG_WARNING() << "Got unexpected signal: " << signum << " ("
                     << utils::strsignal(signum) << ')';
-      UASSERT(!"unexpected signal");
+      UASSERT_MSG(false, "unexpected signal");
     }
   }
 }
