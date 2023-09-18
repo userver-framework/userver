@@ -78,8 +78,8 @@ UTEST_F(GrpcAccessLog, Test) {
       R"(timestamp=\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\t)"
       R"(timezone=[-+]\d{2}:\d{2}\t)"
       R"(user_agent=.+\t)"
-      R"(ip=[.0-9a-f:]+\:[0-9]+\t)"
-      R"(x_real_ip=[.0-9a-f:]+\:[0-9]+\t)"
+      R"(ip=[.0-9a-f:\[\]]+\:[0-9]+\t)"
+      R"(x_real_ip=[.0-9a-f:\[\]]+\:[0-9]+\t)"
       R"(request=[a-zA-Z./0-9]+\t)"
       R"(upstream_response_time_ms=\d+\.\d+\t)"
       R"(grpc_status=\d+\n)";
