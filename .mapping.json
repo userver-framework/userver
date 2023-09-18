@@ -1394,7 +1394,6 @@
   "external-deps/LibEv.yaml":"taxi/uservices/userver/external-deps/LibEv.yaml",
   "external-deps/Nghttp2.yaml":"taxi/uservices/userver/external-deps/Nghttp2.yaml",
   "external-deps/OpenSSL.yaml":"taxi/uservices/userver/external-deps/OpenSSL.yaml",
-  "external-deps/PostgreSQL.yaml":"taxi/uservices/userver/external-deps/PostgreSQL.yaml",
   "external-deps/PostgreSQLInternal.yaml":"taxi/uservices/userver/external-deps/PostgreSQLInternal.yaml",
   "external-deps/README.md":"taxi/uservices/userver/external-deps/README.md",
   "external-deps/UserverGBench.yaml":"taxi/uservices/userver/external-deps/UserverGBench.yaml",
