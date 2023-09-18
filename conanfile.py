@@ -7,7 +7,6 @@ from conan.tools.cmake import cmake_layout
 from conan.tools.cmake import CMakeDeps
 from conan.tools.cmake import CMakeToolchain
 from conan.tools.files import copy
-from conan.tools.files import replace_in_file
 
 required_conan_version = '>=1.51.0, <2.0.0'  # pylint: disable=invalid-name
 
@@ -246,14 +245,6 @@ class UserverConan(ConanFile):
                 dst=os.path.join(self.package_folder, 'cmake'),
                 src=os.path.join(self.source_folder, 'cmake'),
                 keep_path=True,
-            )
-            replace_in_file(
-                self,
-                os.path.join(
-                    self.package_folder, 'cmake', 'GrpcTargets.cmake',
-                ),
-                'userver-grpc',
-                'userver::grpc',
             )
 
             with open(
