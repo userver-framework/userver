@@ -1,1 +1,2 @@
-protobuf>=4.21.12
+Jinja2 >= 2.10
+protobuf >= 4.21.12

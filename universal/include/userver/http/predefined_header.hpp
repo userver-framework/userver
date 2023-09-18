@@ -3,6 +3,8 @@
 #include <string>
 #include <string_view>
 
+#include <fmt/core.h>
+
 #include <userver/utils/trivial_map.hpp>
 
 USERVER_NAMESPACE_BEGIN

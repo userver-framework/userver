@@ -16,6 +16,10 @@ libraries:
     find:
       - names:
           - libpq.a
+          # For Arch and Fedora
+          - libpq.so
+          # For macOS arm64
+          - libpq.dylib
         paths:
           - ${USERVER_PG_LIBRARY_DIR}
 

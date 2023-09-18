@@ -1,6 +1,7 @@
 # Functions to create a target consisting of generated gRPC files and their
 # wrappers. A separate target is required as gRPC generated headers require
 # relaxed compilation flags.
+include_guard()
 
 if(USERVER_CONAN)
   find_package(gRPC REQUIRED)
@@ -30,33 +31,24 @@ endif()
 get_filename_component(USERVER_DIR "${CMAKE_CURRENT_LIST_DIR}" DIRECTORY)
 set(PROTO_GRPC_USRV_PLUGIN "${USERVER_DIR}/scripts/grpc/protoc_usrv_plugin.sh")
 
-if(NOT USERVER_GRPC_VERSIONS_PRINTED)
-  message(STATUS "Protobuf version: ${Protobuf_VERSION}")
-  message(STATUS "gRPC version: ${gRPC_VERSION}")
-  set(USERVER_GRPC_VERSIONS_PRINTED ON)
+message(STATUS "Protobuf version: ${Protobuf_VERSION}")
+message(STATUS "gRPC version: ${gRPC_VERSION}")
+
+# For userver_venv_setup
+include(UserverTestsuite)
+
+set(file_requirements_protobuf "requirements.txt")
+if(Protobuf_VERSION VERSION_LESS 3.20.0)
+  set(file_requirements_protobuf "requirements-old.txt")
 endif()
 
-# We only check the system pip protobuf package version once.
-if(NOT USERVER_IMPL_GRPC_REQUIREMENTS_CHECKED)
-  set(file_requirements_protobuf "requirements.txt")
-  if(Protobuf_VERSION VERSION_LESS 3.20.0)
-    message(STATUS "Forcing old protobuf version for python")
-    set(file_requirements_protobuf "requirements-old.txt")
-  endif()
-  execute_process(
-    COMMAND "${PYTHON}"
-      -m pip install --disable-pip-version-check
-      -r "${USERVER_DIR}/scripts/grpc/${file_requirements_protobuf}"
-    RESULT_VARIABLE RESULT
-    WORKING_DIRECTORY "${USERVER_DIR}"
-  )
-  if(RESULT)
-    message(FATAL_ERROR
-        "Protobuf requirements check failed: "
-        "PYTHON ${PYTHON} USERVER_DIR ${USERVER_DIR} RESULT ${RESULT}")
-  endif(RESULT)
-  set(USERVER_IMPL_GRPC_REQUIREMENTS_CHECKED ON CACHE INTERNAL "")
-endif()
+userver_venv_setup(
+    NAME userver-grpc
+    PYTHON_OUTPUT_VAR USERVER_GRPC_PYTHON_BINARY
+    REQUIREMENTS "${USERVER_DIR}/scripts/grpc/${file_requirements_protobuf}"
+    UNIQUE
+)
+set(ENV{USERVER_GRPC_PYTHON_BINARY} "${USERVER_GRPC_PYTHON_BINARY}")
 
 set(PROTOBUF_PROTOC "${Protobuf_PROTOC_EXECUTABLE}")
 

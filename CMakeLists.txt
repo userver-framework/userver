@@ -90,28 +90,29 @@ include(CheckSubmodule)
 include(Sanitizers)
 include(FindPackageRequired)
 include(IncludeWhatYouUse)
-include(FindPython)
+# For userver_venv_setup below, otherwise FindPython would be enough.
+include(UserverTestsuite)
 
 message(STATUS "Generating cmake files ...")
-execute_process(
-  COMMAND ${PYTHON}
-    -m pip install --disable-pip-version-check
-    -r ${USERVER_ROOT_DIR}/scripts/external_deps/requirements.txt
-  WORKING_DIRECTORY ${USERVER_ROOT_DIR}
+userver_venv_setup(
+    NAME userver-cmake
+    PYTHON_OUTPUT_VAR USERVER_CMAKE_GEN_PYTHON_BINARY
+    REQUIREMENTS "${USERVER_ROOT_DIR}/scripts/external_deps/requirements.txt"
+    UNIQUE
 )
 execute_process(
     COMMAND
-        ${PYTHON} -u ${USERVER_ROOT_DIR}/scripts/external_deps/cmake_generator.py
-        --repo-dir=${USERVER_ROOT_DIR}
-        --build-dir=${CMAKE_BINARY_DIR}
+    "${USERVER_CMAKE_GEN_PYTHON_BINARY}"
+    -u "${USERVER_ROOT_DIR}/scripts/external_deps/cmake_generator.py"
+    --repo-dir "${USERVER_ROOT_DIR}"
+    --build-dir "${CMAKE_BINARY_DIR}"
     RESULT_VARIABLE RESULT
-    WORKING_DIRECTORY ${USERVER_ROOT_DIR}
+    WORKING_DIRECTORY "${USERVER_ROOT_DIR}"
 )
-
-if (RESULT)
-    message(FATAL_ERROR
-        "Generating cmake files failed with exit code: ${RESULT}"
-    )
+if(RESULT)
+  message(FATAL_ERROR
+      "Generating cmake files failed with exit code: ${RESULT}"
+  )
 endif(RESULT)
 
 set(USERVER_THIRD_PARTY_DIRS ${USERVER_ROOT_DIR}/third_party CACHE INTERNAL "")
@@ -128,12 +129,12 @@ option(USERVER_FEATURE_MYSQL "Provide asynchronous driver for MariaDB/MySQL" OFF
 option(USERVER_FEATURE_UBOOST_CORO "Use vendored boost context instead of a system one" ON)
 
 if (USERVER_FEATURE_GRPC)
-    include(cmake/SetupProtobuf.cmake)
+  include(cmake/SetupProtobuf.cmake)
 endif()
 
 if (USERVER_IS_THE_ROOT_PROJECT)
-    include(testsuite/SetupUserverTestsuiteEnv.cmake)
-    add_subdirectory(testsuite)
+  include(testsuite/SetupUserverTestsuiteEnv.cmake)
+  add_subdirectory(testsuite)
 endif()
 
 add_subdirectory(universal "${CMAKE_BINARY_DIR}/userver/universal")
