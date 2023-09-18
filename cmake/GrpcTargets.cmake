@@ -34,8 +34,10 @@ set(PROTO_GRPC_USRV_PLUGIN "${USERVER_DIR}/scripts/grpc/protoc_usrv_plugin.sh")
 message(STATUS "Protobuf version: ${Protobuf_VERSION}")
 message(STATUS "gRPC version: ${gRPC_VERSION}")
 
-# For userver_venv_setup
-include(UserverTestsuite)
+if(NOT USERVER_CONAN)
+  # For userver_venv_setup. With Conan, it's included automatically.
+  include(UserverTestsuite)
+endif()
 
 set(file_requirements_protobuf "requirements.txt")
 if(Protobuf_VERSION VERSION_LESS 3.20.0)
