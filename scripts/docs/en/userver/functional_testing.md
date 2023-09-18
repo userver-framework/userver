@@ -23,6 +23,8 @@ Supported features:
 
 ## CMake integration
 
+### CMake integration via `userver_testsuite_add()`
+
 With `userver_testsuite_add()` function you can easily add testsuite support to your project.
 Its main purpose is:
 
@@ -32,9 +34,8 @@ Its main purpose is:
 * Adds a `start-*` target that starts the service and databases with testsuite
   configs and waits for keyboard interruption to stop the service.
 
-
 @ref cmake/UserverTestsuite.cmake library is automatically added to CMake path
-after userever environment setup. Add the following line to use it:
+after userver environment setup. Add the following line to use it:
 
 @snippet testsuite/SetupUserverTestsuiteEnv.cmake testsuite - UserverTestsuite
 
@@ -67,6 +68,21 @@ Some of the most useful arguments for PYTEST_ARGS:
 | `--service-wait`                | With this argument the testsuite will wait for the service start by user. For example under gdb. Testsuite outputs a hint on starting the service |
 | `-rf`                           | Show a summary of failed tests          |
 
+### CMake integration via `userver_testsuite_add_simple()`
+
+`userver_testsuite_add_simple()` is a version of `userver_testsuite_add()`
+that makes some assumptions of the project structure.
+It should be invoked from the service's `CMakeLists.txt` as follows:
+
+@snippet samples/mongo-support/CMakeLists.txt testsuite - cmake
+
+It supports the following file structure (and a few others):
+
+* `configs/config.yaml`
+* `configs/config_vars.[testsuite|tests].yaml` [optional]
+* `configs/dynamic_config_fallback.json`
+* `configs/[secdist|secure_data].json` [optional]
+* `[testsuite|tests]/conftest.py`
 
 ### Python environment
 

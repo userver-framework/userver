@@ -5,4 +5,6 @@ target_link_libraries(${PROJECT_NAME} userver-grpc-handlers)
 
 include(GrpcTargets)
 
-userver_chaos_testsuite_add()
+userver_chaos_testsuite_add(
+    PYTHONPATH "${CMAKE_CURRENT_BINARY_DIR}/../../proto"
+)

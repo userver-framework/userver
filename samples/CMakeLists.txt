@@ -3,43 +3,8 @@ project(userver-samples CXX)
 add_custom_target(${PROJECT_NAME})
 
 function(userver_sample_testsuite_add)
-  set(options)
-  set(oneValueArgs TESTS_DIRECTORY PROTO_PATH)
-  set(multiValueArgs)
-  cmake_parse_arguments(
-      ARG "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
-
-  set(PYTEST_ADDITIONAL_ARGS "")
-
-  if (NOT ARG_TESTS_DIRECTORY)
-    set(ARG_TESTS_DIRECTORY tests)
-  endif()
-
-  if (NOT ARG_PROTO_PATH AND EXISTS "${CMAKE_CURRENT_BINARY_DIR}/proto")
-    set(ARG_PROTO_PATH "${CMAKE_CURRENT_BINARY_DIR}/proto")
-  endif()
-
-  set(CONFIG_VARS_PATH "${CMAKE_CURRENT_SOURCE_DIR}/config_vars.yaml")
-  if (EXISTS "${CONFIG_VARS_PATH}")
-    list(APPEND PYTEST_ADDITIONAL_ARGS "--service-config-vars=${CONFIG_VARS_PATH}")
-  endif()
-
-  set(SECDIST_PATH "${CMAKE_CURRENT_SOURCE_DIR}/secure_data.json")
-  if (EXISTS "${SECDIST_PATH}")
-    list(APPEND PYTEST_ADDITIONAL_ARGS "--service-secdist=${SECDIST_PATH}")
-  endif()
-
-  userver_testsuite_add(
-      SERVICE_TARGET ${PROJECT_NAME}
-      WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests
-      PYTHON_BINARY ${TESTSUITE_PYTHON_BINARY}
-      PYTHONPATH ${ARG_PROTO_PATH}
-      PYTEST_ARGS
-      --service-config=${CMAKE_CURRENT_SOURCE_DIR}/static_config.yaml
-      --service-source-dir=${CMAKE_CURRENT_SOURCE_DIR}
-      --service-binary=${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}
-      --config-fallback=${CMAKE_CURRENT_SOURCE_DIR}/dynamic_config_fallback.json
-      ${PYTEST_ADDITIONAL_ARGS}
+  userver_testsuite_add_simple(
+      PYTHON_BINARY "${TESTSUITE_PYTHON_BINARY}"
   )
 endfunction()
 
