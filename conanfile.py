@@ -283,14 +283,15 @@ class UserverConan(ConanFile):
             )
             copy(
                 self,
-                pattern='UserverTestsuite.cmake',
+                pattern='AddGoogleTests.cmake',
                 dst=os.path.join(self.package_folder, 'cmake'),
                 src=os.path.join(self.source_folder, 'cmake'),
                 keep_path=True,
             )
+        if self.options.with_grpc or self.options.with_utest:
             copy(
                 self,
-                pattern='AddGoogleTests.cmake',
+                pattern='UserverTestsuite.cmake',
                 dst=os.path.join(self.package_folder, 'cmake'),
                 src=os.path.join(self.source_folder, 'cmake'),
                 keep_path=True,
