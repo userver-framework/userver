@@ -7,6 +7,7 @@
 #include <cctype>
 #include <cerrno>
 #include <charconv>
+#include <cstdint>
 #include <cstdlib>
 #include <limits>
 #include <string>
