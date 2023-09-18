@@ -11,7 +11,6 @@ if(NOT LDAP_LIBRARY)
           "For Mac OS X please install `openldap`.")
 endif()
 
-find_package(PostgreSQL REQUIRED)
 find_package(PostgreSQLInternal REQUIRED)
 find_package_required(OpenSSL "libssl-dev")
 find_package(GssApi REQUIRED)
@@ -47,8 +46,6 @@ target_include_directories(${PROJECT_NAME}
 
 target_link_libraries(${PROJECT_NAME}
   PUBLIC
-    PostgreSQL
-  PRIVATE
     PostgreSQLInternal
 )
 

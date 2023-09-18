@@ -14,11 +14,7 @@ else()
   )
 
   find_package(PostgreSQL REQUIRED)
-  if (USERVER_CONAN)
-    target_link_libraries(userver-libpq INTERFACE PostgreSQL::PostgreSQL)
-  else()
-    target_link_libraries(userver-libpq INTERFACE PostgreSQL)
-  endif()
+  target_link_libraries(userver-libpq INTERFACE PostgreSQL::PostgreSQL)
 endif()
 
 file(GLOB_RECURSE SOURCES
