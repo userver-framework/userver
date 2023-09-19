@@ -76,8 +76,7 @@ class TaskProcessorsLoadMonitor::Impl final {
     }
 
     {
-      utils::PeriodicTask::Settings settings{
-          kCollectInterval, utils::PeriodicTask::Flags::kCritical};
+      utils::PeriodicTask::Settings settings{kCollectInterval};
       settings.task_processor = monitor_task_processor;
       UASSERT(settings.task_processor);
 

@@ -84,11 +84,9 @@ Client::Client(impl::ClientSettings settings,
     }
   }).Get();
 
-  easy_reinit_task_.Start(
-      "http_easy_reinit",
-      utils::PeriodicTask::Settings(kEasyReinitPeriod,
-                                    {utils::PeriodicTask::Flags::kCritical}),
-      [this] { ReinitEasy(); });
+  easy_reinit_task_.Start("http_easy_reinit",
+                          utils::PeriodicTask::Settings(kEasyReinitPeriod),
+                          [this] { ReinitEasy(); });
 
   SetConfig({});
 }

@@ -97,8 +97,7 @@ CacheUpdateTrait::Impl::Impl(CacheDependencies&& dependencies,
       periodic_update_enabled_(
           dependencies.cache_control.IsPeriodicUpdateEnabled(static_config_,
                                                              name_)),
-      periodic_task_flags_{utils::PeriodicTask::Flags::kChaotic,
-                           utils::PeriodicTask::Flags::kCritical},
+      periodic_task_flags_{utils::PeriodicTask::Flags::kChaotic},
       dumpable_(customized_trait_) {
   if (dependencies.dump_config) {
     dumper_.emplace(*dependencies.dump_config,

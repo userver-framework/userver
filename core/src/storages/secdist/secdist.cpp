@@ -134,8 +134,8 @@ void Secdist::Impl::EnsurePeriodicUpdateEnabled(const std::string& msg) const {
 
 void Secdist::Impl::StartUpdateTask() {
   LOG_INFO() << "Start task for secdist periodic updates";
-  utils::PeriodicTask::Settings periodic_settings(
-      settings_.update_period, {utils::PeriodicTask::Flags::kCritical});
+  const utils::PeriodicTask::Settings periodic_settings{
+      settings_.update_period};
   update_task_.Start("secdist_update", periodic_settings, [this]() {
     try {
       dynamic_secdist_config_.Assign(

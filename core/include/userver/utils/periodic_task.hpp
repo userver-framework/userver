@@ -45,7 +45,8 @@ class PeriodicTask final {
     kStrong = 1 << 1,
     /// Randomize wait period (+-25% by default)
     kChaotic = 1 << 2,
-    /// Use `engine::Task::Importance::kCritical` flag
+    /// @deprecated Does nothing, PeriodicTask is always spawned as
+    /// `engine::Task::Importance::kCritical`.
     /// @note Although this periodic task cannot be cancelled due to
     /// system overload, it's cancelled upon calling `Stop`.
     /// Subtasks that may be spawned in the callback

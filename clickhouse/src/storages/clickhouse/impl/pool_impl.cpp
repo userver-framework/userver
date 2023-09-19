@@ -154,8 +154,7 @@ void PoolImpl::StartMaintenance() {
 
   maintenance_task_.Start(
       kMaintenanceTaskName,
-      {kMaintenanceInterval,
-       {PeriodicTask::Flags::kStrong, PeriodicTask::Flags::kCritical}},
+      {kMaintenanceInterval, {PeriodicTask::Flags::kStrong}},
       [this] { MaintainConnections(); });
 }
 

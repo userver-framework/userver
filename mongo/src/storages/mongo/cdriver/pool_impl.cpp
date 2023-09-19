@@ -20,7 +20,6 @@
 #include <storages/mongo/stats.hpp>
 #include <userver/storages/mongo/exception.hpp>
 #include <userver/storages/mongo/mongo_error.hpp>
-#include <userver/utils/impl/userver_experiments.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -201,11 +200,10 @@ CDriverPoolImpl::CDriverPoolImpl(std::string id, const std::string& uri_string,
     LOG_ERROR() << "Mongo pool was not fully prepopulated: " << ex;
   }
 
-  maintenance_task_.Start(kMaintenanceTaskName,
-                          {config.maintenance_period,
-                           {utils::PeriodicTask::Flags::kStrong,
-                            utils::PeriodicTask::Flags::kCritical}},
-                          [this] { DoMaintenance(); });
+  maintenance_task_.Start(
+      kMaintenanceTaskName,
+      {config.maintenance_period, {utils::PeriodicTask::Flags::kStrong}},
+      [this] { DoMaintenance(); });
 }
 
 CDriverPoolImpl::~CDriverPoolImpl() {
