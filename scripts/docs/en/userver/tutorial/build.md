@@ -402,6 +402,21 @@ cd build_release && ulimit -n 4096 && ctest -V
 If you need to edit or make your own docker image with custom configuration, read about
 it @ref scripts/docs/en/userver/docker.md "here"
 
+
+### Conan
+
+@note conan must have version >= 1.51, but < 2.0
+
+Thanks to Open-Source community we have Conan support.
+
+You must run the following in the userver directory:
+```
+conan profile new --detect default && conan profile update settings.compiler.libcxx=libstdc++11 default
+conan create . --build=missing -pr:b=default -tf conan/test_package/
+```
+
+Now you can use userver as conan package and build it in your services.
+
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
