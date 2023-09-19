@@ -96,7 +96,6 @@ function(userver_venv_setup)
     execute_process(
         COMMAND
         "${TESTSUITE_VIRTUALENV}"
-        --system-site-packages
         "--python=${PYTHON}"
         "${venv_dir}"
         ${ARG_VIRTUALENV_ARGS}
