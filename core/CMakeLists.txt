@@ -212,22 +212,22 @@ if (USERVER_FEATURE_UTEST)
 endif()
 
 if (USERVER_IS_THE_ROOT_PROJECT)
-    add_executable(${PROJECT_NAME}_unittest ${UNIT_TEST_SOURCES})
-    target_include_directories (${PROJECT_NAME}_unittest PRIVATE
+    add_executable(${PROJECT_NAME}-unittest ${UNIT_TEST_SOURCES})
+    target_include_directories (${PROJECT_NAME}-unittest PRIVATE
         $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>
     )
-    target_link_libraries(${PROJECT_NAME}_unittest PRIVATE
+    target_link_libraries(${PROJECT_NAME}-unittest PRIVATE
       userver-utest
       userver-core-internal
     )
 
-    target_compile_definitions(${PROJECT_NAME}_unittest PRIVATE
+    target_compile_definitions(${PROJECT_NAME}-unittest PRIVATE
       DEFAULT_DYNAMIC_CONFIG_FILENAME="${CMAKE_SOURCE_DIR}/core/tests/dynamic_config_fallback.json"
     )
 
     # We keep testing deprecated functions, no need to warn about that
-    target_compile_options(${PROJECT_NAME}_unittest PRIVATE "-Wno-deprecated-declarations")
-    add_google_tests(${PROJECT_NAME}_unittest)
+    target_compile_options(${PROJECT_NAME}-unittest PRIVATE "-Wno-deprecated-declarations")
+    add_google_tests(${PROJECT_NAME}-unittest)
     add_subdirectory(functional_tests)
 endif()
 
@@ -245,15 +245,15 @@ if (USERVER_FEATURE_UTEST)
 endif()
 
 if (USERVER_IS_THE_ROOT_PROJECT)
-    add_executable(${PROJECT_NAME}_benchmark ${BENCH_SOURCES})
+    add_executable(${PROJECT_NAME}-benchmark ${BENCH_SOURCES})
     #    find_package(absl REQUIRED)
 
-    target_link_libraries(${PROJECT_NAME}_benchmark
+    target_link_libraries(${PROJECT_NAME}-benchmark
       PUBLIC
         userver-ubench
       PRIVATE
       #        absl::raw_hash_set
         userver-core-internal
     )
-    add_google_benchmark_tests(${PROJECT_NAME}_benchmark)
+    add_google_benchmark_tests(${PROJECT_NAME}-benchmark)
 endif()

@@ -58,11 +58,11 @@ if (USERVER_IS_THE_ROOT_PROJECT)
       ${UNIT_TESTS_PATH}
   )
 
-  add_executable(${PROJECT_NAME}_benchmark ${MYSQL_BENCH_SOURCES})
-  target_include_directories(${PROJECT_NAME}_benchmark PRIVATE
+  add_executable(${PROJECT_NAME}-benchmark ${MYSQL_BENCH_SOURCES})
+  target_include_directories(${PROJECT_NAME}-benchmark PRIVATE
     $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>
   )
-  target_link_libraries(${PROJECT_NAME}_benchmark PRIVATE userver-ubench ${PROJECT_NAME}
+  target_link_libraries(${PROJECT_NAME}-benchmark PRIVATE userver-ubench ${PROJECT_NAME}
           mariadb
     )
 

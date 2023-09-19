@@ -209,11 +209,11 @@ if (USERVER_IS_THE_ROOT_PROJECT)
         ${PROJECT_NAME}
     )
 
-    add_executable(${PROJECT_NAME}_unittest ${UNIT_TEST_SOURCES})
-    target_include_directories (${PROJECT_NAME}_unittest SYSTEM PRIVATE
+    add_executable(${PROJECT_NAME}-unittest ${UNIT_TEST_SOURCES})
+    target_include_directories (${PROJECT_NAME}-unittest SYSTEM PRIVATE
         $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>
     )
-    target_link_libraries(${PROJECT_NAME}_unittest
+    target_link_libraries(${PROJECT_NAME}-unittest
       PUBLIC
         ${PROJECT_NAME}
       PRIVATE
@@ -223,16 +223,16 @@ if (USERVER_IS_THE_ROOT_PROJECT)
     )
 
     # We keep testing deprecated functions, no need to warn about that
-    target_compile_options(${PROJECT_NAME}_unittest PRIVATE "-Wno-deprecated-declarations")
-    add_google_tests(${PROJECT_NAME}_unittest)
+    target_compile_options(${PROJECT_NAME}-unittest PRIVATE "-Wno-deprecated-declarations")
+    add_google_tests(${PROJECT_NAME}-unittest)
 
-    add_executable(${PROJECT_NAME}_benchmark ${BENCH_SOURCES})
+    add_executable(${PROJECT_NAME}-benchmark ${BENCH_SOURCES})
     #    find_package(absl REQUIRED)
 
-    target_include_directories (${PROJECT_NAME}_benchmark SYSTEM PRIVATE
+    target_include_directories (${PROJECT_NAME}-benchmark SYSTEM PRIVATE
         $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>
     )
-    target_link_libraries(${PROJECT_NAME}_benchmark
+    target_link_libraries(${PROJECT_NAME}-benchmark
       PUBLIC ${PROJECT_NAME}
         ${PROJECT_NAME}-internal
         ${PROJECT_NAME}-internal-ubench
@@ -241,9 +241,9 @@ if (USERVER_IS_THE_ROOT_PROJECT)
     option(USERVER_HEADER_MAP_AGAINST_OTHERS_BENCHMARK "build HeaderMap benchmarks against abseil and boost" OFF)
     if (USERVER_HEADER_MAP_AGAINST_OTHERS_BENCHMARK)
       find_package(absl REQUIRED)
-      target_link_libraries(${PROJECT_NAME}_benchmark PRIVATE absl::raw_hash_set)
-      target_compile_definitions(${PROJECT_NAME}_benchmark PRIVATE HEADER_MAP_AGAINST_OTHERS_BENCHMARK)
+      target_link_libraries(${PROJECT_NAME}-benchmark PRIVATE absl::raw_hash_set)
+      target_compile_definitions(${PROJECT_NAME}-benchmark PRIVATE HEADER_MAP_AGAINST_OTHERS_BENCHMARK)
     endif()
 
-    add_google_benchmark_tests(${PROJECT_NAME}_benchmark)
+    add_google_benchmark_tests(${PROJECT_NAME}-benchmark)
 endif()

@@ -108,62 +108,62 @@ if (USERVER_FEATURE_UTEST)
 endif()
 
 if (USERVER_IS_THE_ROOT_PROJECT)
-  add_executable(${PROJECT_NAME}_unittest ${UNIT_TEST_SOURCES})
-  target_link_libraries(${PROJECT_NAME}_unittest
+  add_executable(${PROJECT_NAME}-unittest ${UNIT_TEST_SOURCES})
+  target_link_libraries(${PROJECT_NAME}-unittest
     userver-utest
     ${PROJECT_NAME}-utest
     ${PROJECT_NAME}
   )
   target_include_directories(
-    ${PROJECT_NAME}_unittest
+    ${PROJECT_NAME}-unittest
     PUBLIC
       ${CMAKE_CURRENT_SOURCE_DIR}/include
     PRIVATE
       ${CMAKE_CURRENT_SOURCE_DIR}/src
   )
-  target_include_directories (${PROJECT_NAME}_unittest PRIVATE
+  target_include_directories (${PROJECT_NAME}-unittest PRIVATE
     $<TARGET_PROPERTY:userver-core,INCLUDE_DIRECTORIES>
   )
-  target_compile_definitions(${PROJECT_NAME}_unittest PRIVATE
+  target_compile_definitions(${PROJECT_NAME}-unittest PRIVATE
       DEFAULT_DYNAMIC_CONFIG_FILENAME="${CMAKE_CURRENT_SOURCE_DIR}/tests/dynamic_config_fallback.json"
   )
-  add_google_tests(${PROJECT_NAME}_unittest)
+  add_google_tests(${PROJECT_NAME}-unittest)
 
-  add_executable(${PROJECT_NAME}_redistest ${REDIS_TEST_SOURCES})
-  target_include_directories (${PROJECT_NAME}_redistest PRIVATE
+  add_executable(${PROJECT_NAME}-redistest ${REDIS_TEST_SOURCES})
+  target_include_directories (${PROJECT_NAME}-redistest PRIVATE
       $<TARGET_PROPERTY:userver-redis,INCLUDE_DIRECTORIES>
   )
-  target_link_libraries(${PROJECT_NAME}_redistest userver-utest ${PROJECT_NAME})
-  target_compile_definitions(${PROJECT_NAME}_redistest PRIVATE
+  target_link_libraries(${PROJECT_NAME}-redistest userver-utest ${PROJECT_NAME})
+  target_compile_definitions(${PROJECT_NAME}-redistest PRIVATE
       DEFAULT_DYNAMIC_CONFIG_FILENAME="${CMAKE_CURRENT_SOURCE_DIR}/tests/dynamic_config_fallback.json"
   )
-  add_test(${PROJECT_NAME}_redistest
+  add_test(${PROJECT_NAME}-redistest
     env
       ${CMAKE_BINARY_DIR}/testsuite/env
       --databases=redis,redis-cluster
       run --
-      ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}_redistest
+      ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-redistest
       --gtest_output=xml:${CMAKE_BINARY_DIR}/test-results/${PROJECT_NAME}_redistest.xml
   )
   set_property(
-    TEST ${PROJECT_NAME}_redistest
+    TEST ${PROJECT_NAME}-redistest
     PROPERTY ENVIRONMENT "TESTSUITE_REDIS_HOSTNAME=localhost"
   )
 
-  add_executable(${PROJECT_NAME}_benchmark ${REDIS_BENCH_SOURCES})
-  target_link_libraries(${PROJECT_NAME}_benchmark
+  add_executable(${PROJECT_NAME}-benchmark ${REDIS_BENCH_SOURCES})
+  target_link_libraries(${PROJECT_NAME}-benchmark
     userver-ubench
     ${PROJECT_NAME}
   )
-  target_include_directories(${PROJECT_NAME}_benchmark PRIVATE
+  target_include_directories(${PROJECT_NAME}-benchmark PRIVATE
     $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>
   )
-  add_test(${PROJECT_NAME}_benchmark
+  add_test(${PROJECT_NAME}-benchmark
     env
       ${CMAKE_BINARY_DIR}/testsuite/env
       --databases=redis
       run --
-      ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}_benchmark
+      ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-benchmark
       --benchmark_min_time=0
       --benchmark_color=no
   )

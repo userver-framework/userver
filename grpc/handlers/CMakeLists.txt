@@ -27,19 +27,19 @@ add_grpc_library(${PROJECT_NAME}-proto PROTOS healthchecking/healthchecking.prot
 target_link_libraries(${PROJECT_NAME} PUBLIC ${PROJECT_NAME}-proto)
 
 if (USERVER_IS_THE_ROOT_PROJECT)
-    add_executable(${PROJECT_NAME}_unittest ${UNIT_TEST_SOURCES})
-    target_include_directories(${PROJECT_NAME}_unittest PRIVATE
+    add_executable(${PROJECT_NAME}-unittest ${UNIT_TEST_SOURCES})
+    target_include_directories(${PROJECT_NAME}-unittest PRIVATE
       ${CMAKE_CURRENT_SOURCE_DIR}/include
       ${CMAKE_CURRENT_SOURCE_DIR}/src
     )
-    target_link_libraries(${PROJECT_NAME}_unittest
+    target_link_libraries(${PROJECT_NAME}-unittest
       PUBLIC
         ${PROJECT_NAME}
         userver-utest
     )
-    add_google_tests(${PROJECT_NAME}_unittest)
+    add_google_tests(${PROJECT_NAME}-unittest)
 
-    target_compile_definitions(${PROJECT_NAME}_unittest PRIVATE
+    target_compile_definitions(${PROJECT_NAME}-unittest PRIVATE
       DEFAULT_DYNAMIC_CONFIG_FILENAME="${CMAKE_SOURCE_DIR}/grpc/tests/dynamic_config_fallback.json"
     )
 
