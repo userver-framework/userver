@@ -149,12 +149,12 @@ jobs:
             run: |
                 echo "UBSAN_OPTIONS=${UBSAN_OPTIONS} ASAN_OPTIONS=${ASAN_OPTIONS}"
                 cd build_debug
-                ./userver/universal/userver-universal_unittest ${{matrix.tests-flags}}
+                ./userver/universal/userver-universal-unittest ${{matrix.tests-flags}}
 
           - name: Run tests (core)
             run: |
                 cd build_debug
-                ./userver/core/userver-core_unittest ${{matrix.tests-flags}}
+                ./userver/core/userver-core-unittest ${{matrix.tests-flags}}
 
           - name: Run tests (clickhouse)
             run: |
@@ -197,9 +197,9 @@ jobs:
                 cd build_debug
                 mkdir userver/mongo || :
                 cd userver/mongo
-                if [ -f ./userver-mongo_unittest ]; then ./userver-mongo_unittest ; fi
+                if [ -f ./userver-mongo-unittest ]; then ./userver-mongo-unittest ; fi
                 # Mongo is not available on Ubuntu 22.04 from default repos
-                if [ "${{matrix.os}}" != "ubuntu-22.04" ]; then ctest -V -R userver-mongo_mongotest ; fi
+                if [ "${{matrix.os}}" != "ubuntu-22.04" ]; then ctest -V -R userver-mongo-mongotest ; fi
 
           - name: Run tests (gRPC)
             # TODO: Sanitizer detects bool with value other than 1 or 0
