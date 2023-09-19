@@ -188,7 +188,7 @@ class Client:
 
         config_vars_path = self.config_yaml['config_vars']
         with open(config_vars_path, 'r') as ifile:
-            self.config_vars = yaml.load(ifile)
+            self.config_vars = yaml.safe_load(ifile)
 
     def config_yaml_read(self, path: typing.List[str]) -> str:
         data = self.config_yaml
