@@ -44,6 +44,17 @@
 # include BOOST_ABI_PREFIX
 #endif
 
+#if defined(__CET__) && defined(__unix__)
+#  include <cet.h>
+#  include <sys/mman.h>
+#  define SHSTK_ENABLED (__CET__ & 0x2)
+#  define BOOST_CONTEXT_SHADOW_STACK (SHSTK_ENABLED && SHADOW_STACK_SYSCALL)
+#  define __NR_map_shadow_stack 451
+#ifndef SHADOW_STACK_SET_TOKEN
+#  define SHADOW_STACK_SET_TOKEN 0x1
+#endif
+#endif
+
 #if defined(BOOST_MSVC)
 # pragma warning(push)
 # pragma warning(disable: 4702)
@@ -62,6 +73,12 @@ transfer_t context_unwind( transfer_t t) {
 template< typename Rec >
 transfer_t context_exit( transfer_t t) noexcept {
     Rec * rec = static_cast< Rec * >( t.data);
+#if BOOST_CONTEXT_SHADOW_STACK
+    // destory shadow stack
+    std::size_t ss_size = *((unsigned long*)(reinterpret_cast< uintptr_t >( rec)- 16));
+    long unsigned int ss_base = *((unsigned long*)(reinterpret_cast< uintptr_t >( rec)- 8));
+    munmap((void *)ss_base, ss_size);
+#endif
     // destroy context stack
     rec->deallocate();
     return { nullptr, nullptr };
@@ -168,6 +185,25 @@ fcontext_t create_context1( StackAlloc && salloc, Fn && fn) {
             reinterpret_cast< uintptr_t >( sctx.sp) - static_cast< uintptr_t >( sctx.size) );
     // create fast-context
     const std::size_t size = reinterpret_cast< uintptr_t >( stack_top) - reinterpret_cast< uintptr_t >( stack_bottom);
+
+#if BOOST_CONTEXT_SHADOW_STACK
+    std::size_t ss_size = size >> 5;
+    // align shadow stack to 8 bytes.
+	ss_size = (ss_size + 7) & ~7;
+    // Todo: shadow stack occupies at least 4KB
+    ss_size = (ss_size > 4096) ? size : 4096;
+    // create shadow stack
+    void *ss_base = (void *)syscall(__NR_map_shadow_stack, 0, ss_size, SHADOW_STACK_SET_TOKEN);
+    BOOST_ASSERT(ss_base != -1);
+    unsigned long ss_sp = (unsigned long)ss_base + ss_size;
+    /* pass the shadow stack pointer to make_fcontext
+	 i.e., link the new shadow stack with the new fcontext
+	 TODO should be a better way? */
+    *((unsigned long*)(reinterpret_cast< uintptr_t >( stack_top)- 8)) = ss_sp;
+    /* Todo: place shadow stack info in 64byte gap */
+    *((unsigned long*)(reinterpret_cast< uintptr_t >( storage)- 8)) = (unsigned long) ss_base;
+    *((unsigned long*)(reinterpret_cast< uintptr_t >( storage)- 16)) = ss_size;
+#endif
     const fcontext_t fctx = make_fcontext( stack_top, size, & context_entry< Record >);
     BOOST_ASSERT( nullptr != fctx);
     // transfer control structure to context-stack
@@ -190,6 +226,25 @@ fcontext_t create_context2( preallocated palloc, StackAlloc && salloc, Fn && fn)
             reinterpret_cast< uintptr_t >( palloc.sctx.sp) - static_cast< uintptr_t >( palloc.sctx.size) );
     // create fast-context
     const std::size_t size = reinterpret_cast< uintptr_t >( stack_top) - reinterpret_cast< uintptr_t >( stack_bottom);
+
+#if BOOST_CONTEXT_SHADOW_STACK
+    std::size_t ss_size = size >> 5;
+    // align shadow stack to 8 bytes.
+	ss_size = (ss_size + 7) & ~7;
+    // Todo: shadow stack occupies at least 4KB
+    ss_size = (ss_size > 4096) ? size : 4096;
+    // create shadow stack
+    void *ss_base = (void *)syscall(__NR_map_shadow_stack, 0, ss_size, SHADOW_STACK_SET_TOKEN);
+    BOOST_ASSERT(ss_base != -1);
+    unsigned long ss_sp = (unsigned long)ss_base + ss_size;
+    /* pass the shadow stack pointer to make_fcontext
+	 i.e., link the new shadow stack with the new fcontext
+	 TODO should be a better way? */
+    *((unsigned long*)(reinterpret_cast< uintptr_t >( stack_top)- 8)) = ss_sp;
+    /* Todo: place shadow stack info in 64byte gap */
+    *((unsigned long*)(reinterpret_cast< uintptr_t >( storage)- 8)) = (unsigned long) ss_base;
+    *((unsigned long*)(reinterpret_cast< uintptr_t >( storage)- 16)) = ss_size;
+#endif
     const fcontext_t fctx = make_fcontext( stack_top, size, & context_entry< Record >);
     BOOST_ASSERT( nullptr != fctx);
     // transfer control structure to context-stack

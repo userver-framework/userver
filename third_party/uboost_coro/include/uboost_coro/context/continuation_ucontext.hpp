@@ -7,7 +7,7 @@
 #ifndef BOOST_CONTEXT_CONTINUATION_H
 #define BOOST_CONTEXT_CONTINUATION_H
 
-#include <boost/predef.h>
+#include <boost/predef/os.h>
 #if BOOST_OS_MACOS
 #define _XOPEN_SOURCE 600
 #endif
@@ -16,6 +16,7 @@ extern "C" {
 #include <ucontext.h>
 }
 
+#include <boost/predef.h>
 #include <uboost_coro/context/detail/config.hpp>
 
 #include <algorithm>
@@ -60,12 +61,19 @@ namespace detail {
 // tampoline function
 // entered if the execution context
 // is resumed for the first time
-template< typename Record >
-static void entry_func( void * data) noexcept {
-    Record * record = static_cast< Record * >( data);
-    BOOST_ASSERT( nullptr != record);
-    // start execution of toplevel context-function
-    record->run();
+template <typename Record>
+#ifdef BOOST_OS_MACOS
+static void entry_func(std::uint32_t data_high,
+                       std::uint32_t data_low) noexcept {
+  auto data =
+      reinterpret_cast<void *>(std::uint64_t(data_high) << 32 | data_low);
+#else
+static void entry_func(void *data) noexcept {
+#endif
+  Record *record = static_cast<Record *>(data);
+  BOOST_ASSERT(nullptr != record);
+  // start execution of toplevel context-function
+  record->run();
 }
 
 struct BOOST_CONTEXT_DECL activation_record {
@@ -298,7 +306,15 @@ static activation_record * create_context1( StackAlloc && salloc, Fn && fn) {
     record->uctx.uc_stack.ss_size = reinterpret_cast< uintptr_t >( storage) -
             reinterpret_cast< uintptr_t >( stack_bottom) - static_cast< uintptr_t >( 64);
     record->uctx.uc_link = nullptr;
-    ::makecontext( & record->uctx, ( void (*)() ) & entry_func< capture_t >, 1, record);
+#ifdef BOOST_OS_MACOS
+    const auto integer = std::uint64_t(record);
+    ::makecontext(&record->uctx, (void (*)()) & entry_func<capture_t>, 2,
+                  std::uint32_t((integer >> 32) & 0xFFFFFFFF),
+                  std::uint32_t(integer));
+#else
+    ::makecontext(&record->uctx, (void (*)()) & entry_func<capture_t>, 1,
+                  record);
+#endif
 #if defined(BOOST_USE_ASAN)
     record->stack_bottom = record->uctx.uc_stack.ss_sp;
     record->stack_size = record->uctx.uc_stack.ss_size;
@@ -333,7 +349,15 @@ static activation_record * create_context2( preallocated palloc, StackAlloc && s
     record->uctx.uc_stack.ss_size = reinterpret_cast< uintptr_t >( storage) -
             reinterpret_cast< uintptr_t >( stack_bottom) - static_cast< uintptr_t >( 64);
     record->uctx.uc_link = nullptr;
-    ::makecontext( & record->uctx,  ( void (*)() ) & entry_func< capture_t >, 1, record);
+#ifdef BOOST_OS_MACOS
+    const auto integer = std::uint64_t(record);
+    ::makecontext(&record->uctx, (void (*)()) & entry_func<capture_t>, 2,
+                  std::uint32_t((integer >> 32) & 0xFFFFFFFF),
+                  std::uint32_t(integer));
+#else
+    ::makecontext(&record->uctx, (void (*)()) & entry_func<capture_t>, 1,
+                  record);
+#endif
 #if defined(BOOST_USE_ASAN)
     record->stack_bottom = record->uctx.uc_stack.ss_sp;
     record->stack_size = record->uctx.uc_stack.ss_size;

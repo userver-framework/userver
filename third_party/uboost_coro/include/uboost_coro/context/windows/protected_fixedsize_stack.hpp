@@ -15,6 +15,7 @@ extern "C" {
 #include <cstddef>
 #include <new>
 
+#include <boost/assert.hpp>
 #include <boost/config.hpp>
 #include <boost/core/ignore_unused.hpp>
 
