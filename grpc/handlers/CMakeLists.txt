@@ -23,8 +23,8 @@ target_include_directories(${PROJECT_NAME}
 target_link_libraries(${PROJECT_NAME} PUBLIC userver-core)
 target_link_libraries(${PROJECT_NAME} PUBLIC userver-grpc-internal)
 
-add_grpc_library(${PROJECT_NAME}_proto PROTOS healthchecking/healthchecking.proto)
-target_link_libraries(${PROJECT_NAME} PUBLIC ${PROJECT_NAME}_proto)
+add_grpc_library(${PROJECT_NAME}-proto PROTOS healthchecking/healthchecking.proto)
+target_link_libraries(${PROJECT_NAME} PUBLIC ${PROJECT_NAME}-proto)
 
 if (USERVER_IS_THE_ROOT_PROJECT)
     add_executable(${PROJECT_NAME}_unittest ${UNIT_TEST_SOURCES})
