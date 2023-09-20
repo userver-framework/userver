@@ -1,4 +1,4 @@
-#include <userver/utest/assert_macros.hpp>
+#include <userver/utest/impl/assert_macros.hpp>
 
 #include <fmt/format.h>
 
@@ -6,6 +6,11 @@
 #include <userver/logging/stacktrace_cache.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/traceful_exception.hpp>
+
+#ifdef EXPECT_EQ
+#error gtest.h headers should not be included to avoid userver-universal \
+    dependency on testing library
+#endif
 
 USERVER_NAMESPACE_BEGIN
 

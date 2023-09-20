@@ -2,6 +2,7 @@
 
 /// @file userver/yaml_config/merge_schemas.hpp
 /// @brief @copybrief yaml_config::MergeSchemas
+/// @ingroup userver_universal
 
 #include <userver/yaml_config/schema.hpp>
 

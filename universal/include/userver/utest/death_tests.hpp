@@ -2,6 +2,7 @@
 
 /// @file userver/utest/death_tests.hpp
 /// @brief Contains facilities for testing service crashes
+/// @ingroup userver_universal
 
 #include <gtest/gtest.h>
 
@@ -29,7 +30,7 @@ class DeathTestScope final {
 
 USERVER_NAMESPACE_END
 
-/// @ingroup userver_universal userver_utest
+/// @ingroup userver_utest
 ///
 /// @brief An optimized equivalent of EXPECT_DEATH.
 ///

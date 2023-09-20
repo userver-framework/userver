@@ -2,6 +2,8 @@
 
 /// @file userver/utest/assert_macros.hpp
 /// @brief Extensions to the gtest macros for printing and testing exceptions
+/// that could work even without coroutine environment.
+/// @ingroup userver_universal
 
 #include <exception>
 #include <functional>
@@ -13,36 +15,8 @@
 #include <gtest/gtest.h>
 
 #include <userver/utest/death_tests.hpp>
+#include <userver/utest/impl/assert_macros.hpp>
 #include <userver/utils/invariant_error.hpp>
-
-USERVER_NAMESPACE_BEGIN
-
-namespace utest::impl {
-
-template <typename ExceptionType>
-bool IsSubtype(const std::exception& ex) noexcept {
-  static_assert(
-      std::is_base_of_v<std::exception, ExceptionType>,
-      "Exception types not inherited from std::exception are not supported");
-  if constexpr (std::is_same_v<ExceptionType, std::exception>) {
-    return true;
-  } else {
-    return dynamic_cast<const ExceptionType*>(&ex) != nullptr;
-  }
-}
-
-std::string AssertThrow(std::function<void()> statement,
-                        std::string_view statement_text,
-                        std::function<bool(const std::exception&)> type_checker,
-                        const std::type_info& expected_type,
-                        std::string_view message_substring);
-
-std::string AssertNoThrow(std::function<void()> statement,
-                          std::string_view statement_text);
-
-}  // namespace utest::impl
-
-USERVER_NAMESPACE_END
 
 /// @cond
 // NOLINTNEXTLINE (cppcoreguidelines-macro-usage)

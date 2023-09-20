@@ -4,7 +4,7 @@
 #include <userver/yaml_config/schema.hpp>
 #include <userver/yaml_config/yaml_config.hpp>
 
-#include <userver/utest/utest.hpp>
+#include <userver/utest/assert_macros.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

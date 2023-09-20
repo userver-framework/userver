@@ -2,6 +2,7 @@
 
 /// @file userver/yaml_config/fwd.hpp
 /// @brief Forward declarations of YamlConfig type and formats::parse::To.
+/// @ingroup userver_universal
 
 #include <userver/formats/parse/to.hpp>
 

@@ -47,6 +47,8 @@ class SchemaPtr final {
 formats::yaml::Value Serialize(const SchemaPtr& schema,
                                formats::serialize::To<formats::yaml::Value>);
 
+/// @ingroup userver_universal
+///
 /// @brief JSON Schema-like type definition
 ///
 /// @see @ref static-configs-validation "Static configs validation"

@@ -23,7 +23,7 @@ namespace yaml_config {
 using Exception = formats::yaml::Exception;
 using ParseException = formats::yaml::ParseException;
 
-/// @ingroup userver_formats
+/// @ingroup userver_formats userver_universal
 ///
 /// @brief Datatype that represents YAML with substituted variables
 ///

@@ -3,6 +3,7 @@
 /// @file userver/utest/using_namespace_userver.hpp
 /// @brief For samples and snippets only! Has a `using namespace
 /// USERVER_NAMESPACE;` if the USERVER_NAMESPACE is not empty.
+/// @ingroup userver_universal
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define USERVER_IS_EMPTY_MACRO_HELPER(X) X##1
