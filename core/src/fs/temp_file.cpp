@@ -43,6 +43,8 @@ TempFile TempFile::Adopt(std::string path,
 const std::string& TempFile::GetPath() const { return temp_file_.GetPath(); }
 
 void TempFile::Remove() && {
+  if (temp_file_.GetPath().empty()) return;
+
   engine::AsyncNoSpan(*fs_task_processor_, [this] {
     std::move(temp_file_).Remove();
   }).Get();
