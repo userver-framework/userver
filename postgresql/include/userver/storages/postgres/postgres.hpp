@@ -26,15 +26,15 @@
 ///   separately from the query;
 /// - Automatic PgaaS topology discovery;
 /// - Selecting query target (master/slave);
-/// - Connection failover
+/// - Connection failover;
 /// - Transaction support;
 /// - Variadic template query parameter passing;
 /// - Query result extraction to C++ types;
 /// - Binary protocol usage for communication;
 /// - Portals for effective background cache updates;
 /// - Queries pipelining;
-/// - Mapping PostgreSQL user types to C++ types.
-/// - @ref scripts/docs/en/userver/deadline_propagation.md
+/// - Mapping PostgreSQL user types to C++ types;
+/// - @ref scripts/docs/en/userver/deadline_propagation.md .
 ///
 /// @section toc More information
 /// - For configuration see components::Postgres

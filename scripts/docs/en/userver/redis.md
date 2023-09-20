@@ -9,11 +9,11 @@ versa.
 
 ## Main features
 
-* Convenient methods for Redis commands returning proper C++ types;
-* Support for bulk operations (MGET, MSET, etc); driver splits data into smaller
-  chunks if necessary to increase server responsiveness;
-* Support for different strategies of choosing the most suitable Redis instance;
-* Request timeouts management with transparent retries;
+* Convenient methods for Redis commands returning proper C++ types
+* Support for bulk operations (MGET, MSET, etc). Driver splits data into smaller
+  chunks if necessary to increase server responsiveness
+* Support for different strategies of choosing the most suitable Redis instance
+* Request timeouts management with transparent retries
 * @ref scripts/docs/en/userver/deadline_propagation.md
 * Cluster autotopology 
 

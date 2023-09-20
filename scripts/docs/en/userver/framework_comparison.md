@@ -44,7 +44,8 @@ use ❌ and ❓ respectively.
 | Async TCP/UDP                     | ✔️ @ref engine::io::Socket "[↗]"              | ✔️                      | ❓                            | ✔️ [[↗]][tokio-net]     | ❌                           |
 | Async TLS Socket                  | ✔️ @ref engine::io::TlsWrapper "[↗]"          | ✔️                      | ❓                            | ± third-party libs       | ❌                           |
 | Async HTTPS client                | ✔️ @ref clients::http::Client "[↗]"           | ✔️                      | ❓                            | ✔️                      | ❓                          |
-| Async HTTPS server                | ❌                                             | ❓                      | ❓                            | ✔️                      | ❓                          |
+| Async HTTPS server                | ✔️ @ref components::Server "[↗]"              | ❓                      | ❓                            | ✔️                      | ❓                          |
+| WebSockets Server                 | ✔️ @ref components::Server "[↗]"              | ± third-party libs       | ❌ [[↗]][dapr-websock]       | ± third-party libs      | ✔️ [[↗]][drogon]            |
 | Deadlines and Cancellations       | ✔️                                             | ❓                      | ❓                            | ❓                      | ± [[↗]][drog-timeout]      |
 | Retries and Load Balancing        | ✔️                                             | ✔️ [[↗]][gom-features] | ✔️                            | ❓                      |❓                          |
 
@@ -59,8 +60,10 @@ use ❌ and ❓ respectively.
 [dapr-postgre]: https://docs.dapr.io/reference/components-reference/supported-state-stores/setup-postgresql/
 [dapr-mysql]: https://docs.dapr.io/reference/components-reference/supported-state-stores/setup-mysql/
 [dapr-distlock]: https://github.com/dapr/dapr/issues/3549
+[dapr-websock]: https://github.com/dapr/dapr/issues/5766
 [actix-test]: https://actix.rs/docs/testing/
 [acti-db]: https://actix.rs/docs/databases/
+[drogon]: https://github.com/drogonframework/drogon
 [drog-testig]: https://drogon.docsforge.com/master/testing-framework/
 [drog-http-client]: https://drogon.docsforge.com/master/api/drogon/HttpClient/
 [drog-db]: https://drogon.docsforge.com/master/database-general/

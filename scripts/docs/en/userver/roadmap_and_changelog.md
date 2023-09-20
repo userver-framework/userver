@@ -16,41 +16,6 @@ Changelog news also go to the
 
 ## Roadmap
 
-
-### Plans for the first release (in a two months!)
-
-* ✓ Add component to serve static pages
-* ✓ Migrate userver-only related CI checks to the GithubCI
-* ✓ Improve documentation
-  * ✓ Improve @ref scripts/docs/en/userver/framework_comparison.md
-  * ✓ Add TCP acceptor sample
-  * ✓ Add gRPC testsuite mock sample
-  * ✓ Add reference sections for the Python fixtures
-  * ✓ Add HTTP authentication sample
-* ✓ Improve experience with metrics
-  * ✓ Add Prometheus metrics format
-  * ✓ Add Graphite metrics format
-  * ✓ Provide a modern simple interface to write metrics
-* ✓ Add chaos tests for drivers
-  * ✓ TCP chaos proxy implemented
-  * ✓ UDP chaos proxy implemented
-  * ✓ Mongo
-  * ✓ HTTP Client
-  * ✓ DNS resolver
-  * ✓ Redis
-  * ✓ PostgreSQL
-  * ✓ Clickhouse
-  * ✓ gRPC
-* Enable PostgreSQL pipelining
-* ✓ Implement and enable Deadline Propagation
-  * ✓ HTTP Client
-  * ✓ HTTP Server
-  * ✓ Mongo
-  * ✓ PostgreSQL
-  * ✓ Redis
-  * ✓ gRPC
-* ✓ Implement streaming API for the HTTP
-
 ### Plans for the next release
 
 * Add web interface to the [uservice-dynconf](https://github.com/userver-framework/uservice-dynconf)
@@ -59,6 +24,84 @@ Changelog news also go to the
 
 
 ## Changelog
+
+
+### Release v1.0.0
+
+Big new features since the Beta announcement:
+
+* Implemented WebSockets server
+* Added MySQL driver
+* RabbitMQ drived was added
+* Implemented TLS server
+* Enabled PostgreSQL pipelining
+* Implemented and enabled Deadline Propagation
+* Improved experience with metrics. Added Prometheus and Graphite metric
+  formats. Provided a modern simple interface to write and test metrics.
+* Added chaos tests for drivers
+* Implemented streaming API for the HTTP
+* Improved documentation, added more samples and descriptions, improved search.
+* Numerous optimizations.
+* Numerous build improvements, including Conan and Docker support.
+
+Optimized and improved features that were available at the Beta announcement:
+
+* gRPC client and server
+* Mongo driver
+* Redis driver
+* PostgreSQL
+* HTTP server and client
+* Logging and Tracing
+* ... and many other features.
+
+Detailed descriptions could be found below.
+
+
+### Beta (September 2023)
+
+* WebSockets server and TLS server are now implemented as part of the
+  @ref scripts/docs/en/userver/http_server.md "HTTP server"
+
+* PostgreSQL pipelining is now implemented and turned on by default, leading to
+  improved response times.
+
+* @ref scripts/docs/en/userver/mongodb.md "Mongo Congestion Control"
+  is implemented and turned on by default, leading to better stability of the
+  service in case of high load on database.
+
+* Initial logger is now initialized from the component config, leading to
+  a more simple code and setup. The `--initial-logger` option now does nothing
+  and will be removed soon.
+
+* Added a @ref scripts/docs/en/userver/functional_testing.md "`userver_testsuite_add_simple()`"
+  CMake function to simplify testsuite CMake configuration.
+
+* Expanded list of HTTP codes, thanks to [Vladimir Popov](https://github.com/Liteskarr)
+  for the PR!
+
+* Projects from [Yandex Schools](https://academy.yandex.ru/schools) were updated
+  by the original authors. Thanks to 
+  [bshirokov](https://github.com/bshirokov),
+  [Almaz Shagiev](https://github.com/bashkirian),
+  [Konstantin Antoniadi](https://github.com/KonstantinAntoniadi),
+  [Mingaripov Niyaz](https://github.com/mnink275),
+  [Ilya Golosov](https://github.com/bookWorm21) and all the participants
+  for the the great work and PRs!
+
+* Build:
+  * New versions of `yaml-cpp` library are now supported. Thanks to
+    [Nikita](https://github.com/rtkid-nik) for the bug report!
+  * Supported compilation with fmt 10.1.0. Thanks to
+    [Vladislav Nepogodin](https://github.com/vnepogodin) for the PRs!
+  * Fixed unused result warning. Thanks to
+    [Vladislav Nepogodin](https://github.com/vnepogodin) for the PR!
+  * Fixed use of deprecated API. Thanks to
+    [Vladislav Nepogodin](https://github.com/vnepogodin) for the PR!
+  * Fixed build with GCC-13 libstdc++. Thanks to
+    [Vladislav Nepogodin](https://github.com/vnepogodin) for the PR!
+  * Fixed MacOS Protobuf discovery. Thanks to
+    [Pavel Talashchenko](https://github.com/pavelbezpravel) for the PR!
+  * Fixed multiple other build warnings and issues.
 
 
 ### Beta (August 2023)
@@ -70,7 +113,8 @@ Changelog news also go to the
   * Documentation was redesigned by [hellenisaeva](https://github.com/hellenisaeva)
     and [MariaGrinchenko](https://github.com/MariaGrinchenko); new design was
     made up by [Fedor Alekseev](https://github.com/atlz253),
-    [fleshr](https://github.com/fleshr), [ZenkoWu](https://github.com/ZenkoWu),
+    [fleshr](https://github.com/fleshr),
+    [Anna Zagrebaylo](https://github.com/ZenkoWu),
     [Michael Talalaev](https://github.com/InfinityScripter); the whole process
     was managed by [Oleg Komarov](https://github.com/0GE1) with feedback from
     marketing specialist [makachusha](https://github.com/makachusha).

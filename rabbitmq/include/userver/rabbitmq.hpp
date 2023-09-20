@@ -17,11 +17,11 @@
 
 /// @page rabbitmq_driver RabbitMQ (AMQP 0-9-1) - EXPERIMENTAL
 ///
-/// Disclaimer: current state of the driver is highly experimental, and
+/// Disclaimer: current state of the driver is experimental, and
 /// although APIs are not likely to change drastically, some adjustments may be
 /// made in the future.
-/// Please also keep in mind that this driver is a community-based effort and is
-/// not backed by Yandex expertise nor by Yandex-scale production usage.
+/// Please also keep in mind that this driver is
+/// not backed by Yandex-scale production usage.
 ///
 /// 🐙 **userver** provides access to RabbitMQ servers via
 /// components::RabbitMQ. The uRabbitMQ driver is asynchronous, it suspends

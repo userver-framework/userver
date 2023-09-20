@@ -4,13 +4,15 @@ The mongo asynchronous driver provides an interface to work with MongoDB
 databases and the BSON format.
 
 ## Main features
+
 * Building and reading BSON documents with support for most of the C++ types;
 * Support for basic operations with collections via storages::mongo::Collection;
 * Support for bulk operations;
 * Dynamic management of database sets;
 * Aggregation support;
+* Timeouts;
 * Congestion control;
-* @ref scripts/docs/en/userver/deadline_propagation.md
+* @ref scripts/docs/en/userver/deadline_propagation.md .
 
 ## Metrics
 

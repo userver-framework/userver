@@ -12,11 +12,11 @@
 // clang-format off
 /// @page mysql_driver MySQL Driver - EXPERIMENTAL
 ///
-/// **Disclaimer**: current state of the driver is highly experimental, and
+/// **Disclaimer**: current state of the driver is experimental, and
 /// although APIs are not likely to change drastically, some adjustments may be
 /// made in the future.
-/// Please also keep in mind that this driver is a community-based effort and is
-/// not backed by Yandex expertise nor by Yandex-scale production usage.
+/// Please also keep in mind that this driver is
+/// not backed by Yandex-scale production usage.
 ///
 /// 🐙 **userver** provides access to MySQL databases servers via
 /// components::MySQL. The uMySQL driver is asynchronous, and with it one can

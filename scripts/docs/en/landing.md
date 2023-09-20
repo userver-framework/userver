@@ -68,7 +68,7 @@ developers:</div>
 <div class="landing-container">
   <div class="landing-intro-left">
       Efficient asynchronous drivers for databases (MongoDB, PostgreSQL, MySQL/MariaDB (experimental), Redis, ClickHouse,
-      ...) and data transfer protocols (HTTP, GRPC, TCP, AMQP-0.9.1 (experimental), ...), tasks
+      ...) and data transfer protocols (HTTP, WEbSockets, gRPC, TCP, AMQP-0.9.1 (experimental), ...), tasks
       construction and cancellation.
   </div>
   <div class="landing-intro-right">
