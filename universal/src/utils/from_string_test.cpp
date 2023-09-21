@@ -60,8 +60,10 @@ auto DistributionForTesting() {
   if constexpr (std::is_floating_point_v<T>) {
     return std::normal_distribution<T>();
   } else {
-    return std::uniform_int_distribution<T>(std::numeric_limits<T>::min(),
-                                            std::numeric_limits<T>::max());
+    // 8-bit types are not allowed in uniform_int_distribution, so increase
+    // the T size.
+    return std::uniform_int_distribution<std::common_type_t<T, unsigned short>>(
+        std::numeric_limits<T>::min(), std::numeric_limits<T>::max());
   }
 }
 
