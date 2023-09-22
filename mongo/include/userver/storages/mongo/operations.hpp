@@ -208,6 +208,10 @@ class Update {
   void SetOption(options::WriteConcern::Level);
   void SetOption(const options::WriteConcern&);
   void SetOption(options::SuppressServerExceptions);
+  void SetOption(const options::ArrayFilters&);
+
+  /// @note Available starting in MongoDB 4.2.1
+  void SetOption(const options::Hint&);
 
  private:
   friend class storages::mongo::impl::cdriver::CDriverCollectionImpl;
@@ -266,6 +270,7 @@ class FindAndModify {
   void SetOption(options::WriteConcern::Level);
   void SetOption(const options::WriteConcern&);
   void SetOption(const options::MaxServerTime&);
+  void SetOption(const options::ArrayFilters&);
 
  private:
   friend class storages::mongo::impl::cdriver::CDriverCollectionImpl;
