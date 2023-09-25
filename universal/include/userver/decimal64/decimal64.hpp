@@ -741,7 +741,25 @@ class Decimal {
   ///
   /// @see FromFloatInexact
   constexpr double ToDoubleInexact() const {
-    return static_cast<double>(value_) / kDecimalFactor;
+    // maximum number that can be represented without modification
+    constexpr std::int64_t kLossLimit =
+        (static_cast<std::int64_t>(1) << std::numeric_limits<double>::digits);
+
+    if (std::abs(value_) < kLossLimit) {
+      return static_cast<double>(value_) / kDecimalFactor;
+    }
+
+    constexpr int kCoef =
+        1 << (std::max(std::numeric_limits<std::int64_t>::digits -
+                           std::numeric_limits<double>::digits - 3 * Prec,
+                       0));
+
+    // divide the value into two parts (each no more than kLossLimit)
+    std::int64_t p1 = value_ / (kDecimalFactor * kCoef) * kCoef;
+    std::int64_t p2 = value_ % (kDecimalFactor * kCoef);
+
+    // combine without loss of accuracy
+    return p1 + static_cast<double>(p2) / kDecimalFactor;
   }
 
   /// @brief Retrieve the internal representation
