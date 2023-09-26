@@ -42,6 +42,11 @@ class ConnectionHelper final {
       const ConnectionPtr& connection, const Queue& queue,
       engine::Deadline deadline);
 
+  [[nodiscard]] static impl::ResponseAwaiter Get(
+      const ConnectionPtr& connection, const Queue& queue,
+      utils::Flags<Queue::Flags> flags, std::string& message,
+      engine::Deadline deadline);
+
   static void Publish(const ConnectionPtr& connection, const Exchange& exchange,
                       const std::string& routing_key,
                       const std::string& message, MessageType type,

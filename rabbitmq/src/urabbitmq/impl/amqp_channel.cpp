@@ -43,6 +43,7 @@ int Convert(utils::Flags<Queue::Flags> flags) {
   if (flags & Queue::Flags::kDurable) result |= AMQP::durable;
   if (flags & Queue::Flags::kExclusive) result |= AMQP::exclusive;
   if (flags & Queue::Flags::kAutoDelete) result |= AMQP::autodelete;
+  if (flags & Queue::Flags::kNoAck) result |= AMQP::noack;
 
   return result;
 }
@@ -139,6 +140,21 @@ ResponseAwaiter AmqpChannel::RemoveQueue(const Queue& queue,
   {
     auto channel = conn_.GetChannel(deadline);
     awaiter.GetWrapper()->Wrap(channel->removeQueue(queue.GetUnderlying()));
+  }
+
+  return awaiter;
+}
+
+ResponseAwaiter AmqpChannel::Get(const Queue& queue,
+                                 utils::Flags<Queue::Flags> flags,
+                                 std::string& message,
+                                 engine::Deadline deadline) {
+  auto awaiter = conn_.GetAwaiter(deadline);
+
+  {
+    auto channel = conn_.GetChannel(deadline);
+    awaiter.GetWrapper()->WrapGet(
+        channel->get(queue.GetUnderlying(), Convert(flags)), message);
   }
 
   return awaiter;

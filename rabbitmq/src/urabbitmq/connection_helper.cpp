@@ -51,6 +51,16 @@ impl::ResponseAwaiter ConnectionHelper::RemoveQueue(
   });
 }
 
+impl::ResponseAwaiter ConnectionHelper::Get(const ConnectionPtr& connection,
+                                            const Queue& queue,
+                                            utils::Flags<Queue::Flags> flags,
+                                            std::string& message,
+                                            engine::Deadline deadline) {
+  return WithSpan("get", [&] {
+    return connection->GetChannel().Get(queue, flags, message, deadline);
+  });
+}
+
 void ConnectionHelper::Publish(const ConnectionPtr& connection,
                                const Exchange& exchange,
                                const std::string& routing_key,

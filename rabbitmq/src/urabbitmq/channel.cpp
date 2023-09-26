@@ -20,6 +20,13 @@ void Channel::Publish(const Exchange& exchange, const std::string& routing_key,
                             deadline);
 }
 
+std::string Channel::Get(const Queue& queue, utils::Flags<Queue::Flags> flags,
+                         engine::Deadline deadline) {
+  std::string message{};
+  ConnectionHelper::Get(*impl_, queue, flags, message, deadline).Wait(deadline);
+  return message;
+}
+
 ReliableChannel::ReliableChannel(ConnectionPtr&& channel)
     : impl_{std::move(channel)} {}
 

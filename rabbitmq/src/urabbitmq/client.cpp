@@ -60,6 +60,16 @@ void Client::RemoveQueue(const Queue& queue, engine::Deadline deadline) {
   awaiter.Wait(deadline);
 }
 
+std::string Client::Get(const Queue& queue, utils::Flags<Queue::Flags> flags,
+                        engine::Deadline deadline) {
+  std::string message{};
+  auto awaiter = ConnectionHelper::Get(impl_->GetConnection(deadline), queue,
+                                       flags, message, deadline);
+  awaiter.Wait(deadline);
+
+  return message;
+}
+
 void Client::Publish(const Exchange& exchange, const std::string& routing_key,
                      const std::string& message, MessageType type,
                      engine::Deadline deadline) {

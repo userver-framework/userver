@@ -103,6 +103,20 @@ class IChannelInterface {
                        const std::string& message,
                        engine::Deadline deadline) = 0;
 
+  /// @brief Gets a single message.
+  ///
+  /// You have to set kNoAck flag in order for server to implicitely
+  /// acknowledge gathered message.
+  /// By default the gathered message has to be explicitly
+  /// acknowledged or rejected.
+  ///
+  /// @param queue name of the queue
+  /// @param flags queue flags
+  /// @param message consumed message
+  /// @param deadline execution deadline
+  virtual std::string Get(const Queue& queue, utils::Flags<Queue::Flags> flags,
+                          engine::Deadline deadline) = 0;
+
  protected:
   ~IChannelInterface();
 };
