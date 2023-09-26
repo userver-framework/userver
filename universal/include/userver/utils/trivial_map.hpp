@@ -605,6 +605,21 @@ class TrivialBiMap final {
     return func_([]() { return impl::CaseSecondDescriber{}; }).Extract();
   }
 
+  /// Returns a string of comma separated quoted values of Case
+  /// parameters that matches by type.
+  ///
+  /// \b Example: "'1', '2', '3'"
+  ///
+  /// Corresponding Case must be formattable
+  template <typename T>
+  std::string DescribeByType() const {
+    if constexpr (std::is_convertible_v<T, First>) {
+      return DescribeFirst();
+    } else {
+      return DescribeSecond();
+    }
+  }
+
  private:
   const BuilderFunc func_;
 };
@@ -691,10 +706,11 @@ auto ParseFromValueString(const Value& value, TrivialBiMap<BuilderFunc> map) {
   using Exception =
       std::conditional_t<std::is_void_v<ExceptionType>,
                          typename Value::Exception, ExceptionType>;
-  throw Exception(
-      fmt::format("Invalid value of {} at '{}': '{}' is not one of {}",
-                  compiler::GetTypeName<std::decay_t<decltype(*parsed)>>(),
-                  value.GetPath(), string, map.DescribeSecond()));
+
+  throw Exception(fmt::format(
+      "Invalid value of {} at '{}': '{}' is not one of {}",
+      compiler::GetTypeName<std::decay_t<decltype(*parsed)>>(), value.GetPath(),
+      string, map.template DescribeByType<std::string>()));
 }
 
 namespace impl {
