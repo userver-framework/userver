@@ -13,25 +13,18 @@ RpcStatisticsScope::RpcStatisticsScope(MethodStatistics& statistics)
   statistics_.AccountStarted();
 }
 
-RpcStatisticsScope::~RpcStatisticsScope() {
-  AccountStatus();
-  AccountTiming();
-}
+RpcStatisticsScope::~RpcStatisticsScope() { Flush(); }
 
 void RpcStatisticsScope::OnExplicitFinish(grpc::StatusCode code) {
   finish_kind_ = std::max(finish_kind_, FinishKind::kExplicit);
   finish_code_ = code;
-
-  // The service might keep doing something after calling 'stream.Finish()' -
-  // that time is not accounted for.
-  AccountTiming();
 }
 
 void RpcStatisticsScope::OnNetworkError() {
   finish_kind_ = std::max(finish_kind_, FinishKind::kNetworkError);
 }
 
-void RpcStatisticsScope::CancelledByDeadlinePropagation() {
+void RpcStatisticsScope::OnCancelledByDeadlinePropagation() {
   finish_kind_ = std::max(finish_kind_, FinishKind::kDeadlinePropagation);
 }
 
@@ -40,10 +33,19 @@ void RpcStatisticsScope::OnDeadlinePropagated() {
 }
 
 void RpcStatisticsScope::OnCancelled() {
-  finish_kind_ = std::max(finish_kind_, FinishKind::kCancelled);
+  is_cancelled_.store(true, std::memory_order_relaxed);
 }
 
-void RpcStatisticsScope::AccountStatus() {
+void RpcStatisticsScope::Flush() {
+  if (!start_time_) {
+    return;
+  }
+
+  if (is_cancelled_.load()) {
+    finish_kind_ = std::max(finish_kind_, FinishKind::kCancelled);
+  }
+
+  AccountTiming();
   switch (finish_kind_) {
     case FinishKind::kAutomatic:
       statistics_.AccountStatus(grpc::StatusCode::UNKNOWN);
