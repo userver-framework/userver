@@ -238,8 +238,8 @@ class Request final {
   /// retry on network error too. Retries = 3 means that maximum 3 request
   /// will be performed.
   ///
-  /// Retries use exponential backoff - an exponentially increasing delay
-  /// is added before each retry of this request.
+  /// Retries use exponential backoff with jitter - an exponentially increasing
+  /// randomized delay is added before each retry of this request.
   Request& retry(short retries = 3, bool on_fails = true) &;
   Request retry(short retries = 3, bool on_fails = true) &&;
 

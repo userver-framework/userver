@@ -12,8 +12,7 @@
 * Body decompression with "Content-Encoding: gzip";
 * HTTP pipelining;
 * Custom authorization @ref scripts/docs/en/userver/tutorial/auth_postgres.md ;
-* Congestion control;
-* Rate limiting;
+* Rate limiting via Congestion control and indiviadual handlers configuration;
 * Requests-in-flight limiting;
 * Requests-in-flight inspection via server::handlers::InspectRequests ;
 * Body size / headers count / URL length / etc. limits;
