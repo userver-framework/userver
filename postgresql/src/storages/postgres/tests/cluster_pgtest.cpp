@@ -340,7 +340,7 @@ UTEST_F(PostgreCluster, TransactionTimeouts) {
         pg::Transaction::RW,
         kTestCmdCtl.WithStatementTimeout(std::chrono::milliseconds{50}));
     UEXPECT_THROW(trx.Execute("select pg_sleep(0.1)"), pg::QueryCancelled);
-    trx.Commit();
+    UEXPECT_THROW(trx.Commit(), pg::RuntimeError);
   }
   {
     static const std::string kTestTransactionName = "test-transaction-name";
@@ -351,7 +351,7 @@ UTEST_F(PostgreCluster, TransactionTimeouts) {
     // Use timeout for custom transaction name
     auto trx = cluster.Begin(kTestTransactionName, pg::Transaction::RW);
     UEXPECT_THROW(trx.Execute("select pg_sleep(0.1)"), pg::QueryCancelled);
-    trx.Commit();
+    UEXPECT_THROW(trx.Commit(), pg::RuntimeError);
   }
 }
 

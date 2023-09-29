@@ -290,7 +290,8 @@ UTEST_P(PostgrePool, QueryCancel) {
 
     UEXPECT_THROW(trx.Execute("select pg_sleep(1)"), pg::QueryCancelled)
         << "Fail statement on timeout";
-    UEXPECT_NO_THROW(trx.Commit()) << "Connection is left in a usable state";
+    UEXPECT_THROW(trx.Commit(), pg::RuntimeError)
+        << "Connection is left in a usable state";
   }
   {
     const auto& stats = pool->GetStatistics();

@@ -378,15 +378,16 @@ void ConnectionImpl::Commit() {
   if (!IsInTransaction()) {
     throw NotInTransaction();
   }
-  CountCommit count_commit(stats_);
-  ResetTransactionCommandControl transaction_guard{*this};
 
   if (GetConnectionState() == ConnectionState::kTranError) {
-    // TODO: TAXICOMMON-4103
     LOG_LIMITED_WARNING() << "Attempt to commit an aborted transaction, "
                              "rollback will be performed instead";
+    Rollback();
+    throw RuntimeError{"Attempted to commit already failed transaction"};
   }
 
+  CountCommit count_commit(stats_);
+  ResetTransactionCommandControl transaction_guard{*this};
   ExecuteCommandNoPrepare("COMMIT", MakeCurrentDeadline());
 }
 
