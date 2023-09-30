@@ -8,9 +8,9 @@
 USERVER_NAMESPACE_BEGIN
 
 namespace {
-constexpr std::chrono::milliseconds kDefaultPullingFrequency =
+constexpr std::chrono::milliseconds kDefaultPollingFrequency =
     std::chrono::seconds{1};
-constexpr std::chrono::milliseconds kDefaultPullingTimeout =
+constexpr std::chrono::milliseconds kDefaultPollingTimeout =
     std::chrono::minutes{10};
 }  // namespace
 
@@ -22,17 +22,17 @@ TelegramBotLongPoller::TelegramBotLongPoller(
     : components::LoggableComponentBase(config, context)
     , client_(context.FindComponent<TelegramBotClient>()
                 .GetClient())
-    , pulling_frequency_(
-          config["pulling-frequency"].As<std::chrono::milliseconds>(
-            kDefaultPullingFrequency))
+    , polling_frequency_(
+          config["polling-frequency"].As<std::chrono::milliseconds>(
+            kDefaultPollingFrequency))
     , polling_timeout_(
-        config["pulling-timeout"].As<std::chrono::milliseconds>(
-            kDefaultPullingTimeout)) {}
+        config["polling-timeout"].As<std::chrono::milliseconds>(
+            kDefaultPollingTimeout)) {}
 
 void TelegramBotLongPoller::OnAllComponentsLoaded() {
   periodic_.Start(
     fmt::format("{}/long_polling_periodic_task", kName),
-    {pulling_frequency_},
+    {polling_frequency_},
     [this] { FetchAndHandleUpdates(); }
   );
 }
@@ -48,12 +48,12 @@ type: object
 description: Component that provides updates via long polling
 additionalProperties: false
 properties:
-    pulling-frequency:
+    polling-frequency:
         type: string
         description: The frequency with which updates from telegram will
-                     be pulled
+                     be polled
         defaultDescription: 1s
-    pulling-timeout:
+    polling-timeout:
         type: string
         description: Timeout in seconds for long polling
         defaultDescription: 60s

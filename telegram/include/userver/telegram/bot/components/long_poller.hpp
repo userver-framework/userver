@@ -36,7 +36,7 @@ private:
 
   std::int64_t offset_ = 0;
 
-  const std::chrono::milliseconds pulling_frequency_;
+  const std::chrono::milliseconds polling_frequency_;
   const std::chrono::milliseconds polling_timeout_;
 
   utils::PeriodicTask periodic_;

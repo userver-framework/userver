@@ -45,4 +45,4 @@ components_manager:
         handler-greet-user:
             fs-task-processor: fs-task-processor
             greeting-photo-path: /etc/telegram_bot_service/assets/userver_greeting.jpg
-            pulling-frequency: 50ms
+            polling-frequency: 50ms
