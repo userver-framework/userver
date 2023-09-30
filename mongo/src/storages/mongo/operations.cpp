@@ -140,6 +140,12 @@ void AppendHint(formats::bson::impl::BsonBuilder& builder,
   builder.Append(kOptionName, hint.Value());
 }
 
+void AppendArrayFilters(formats::bson::impl::BsonBuilder& builder,
+                        const options::ArrayFilters& filters) {
+  static const std::string kOptionName = "arrayFilters";
+  builder.Append(kOptionName, filters.Value());
+}
+
 void EnableFlag(const impl::cdriver::FindAndModifyOptsPtr& fam_options,
                 mongoc_find_and_modify_flags_t new_flag) {
   UASSERT(!!fam_options);
@@ -412,6 +418,14 @@ void Update::SetOption(options::SuppressServerExceptions) {
   impl_->should_throw = false;
 }
 
+void Update::SetOption(const options::ArrayFilters& filters) {
+  AppendArrayFilters(impl::EnsureBuilder(impl_->options), filters);
+}
+
+void Update::SetOption(const options::Hint& hint) {
+  AppendHint(impl::EnsureBuilder(impl_->options), hint);
+}
+
 Delete::Delete(Mode mode, formats::bson::Document selector)
     : impl_(mode, std::move(selector)) {}
 
@@ -500,6 +514,19 @@ void FindAndModify::SetOption(const options::WriteConcern& write_concern) {
 
 void FindAndModify::SetOption(const options::MaxServerTime& max_server_time) {
   AppendMaxServerTime(impl_->max_server_time, max_server_time);
+}
+
+void FindAndModify::SetOption(const options::ArrayFilters& filters) {
+  formats::bson::impl::BsonBuilder array_filters_builder;
+  AppendArrayFilters(array_filters_builder, filters);
+
+  const auto af_bson = array_filters_builder.Extract();
+  const bson_t* native_af_bson_ptr = af_bson.get();
+
+  if (!mongoc_find_and_modify_opts_append(impl_->options.get(),
+                                          native_af_bson_ptr)) {
+    throw MongoException("Cannot set arrayFilters");
+  }
 }
 
 FindAndRemove::FindAndRemove(formats::bson::Document query)

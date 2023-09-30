@@ -153,6 +153,20 @@ Hint::Hint(formats::bson::Document index_spec)
 
 const formats::bson::Value& Hint::Value() const { return value_; }
 
+ArrayFilters::ArrayFilters(
+    std::initializer_list<formats::bson::Document> filters) {
+  formats::bson::ValueBuilder builder{
+      formats::bson::ValueBuilder::Type::kArray};
+
+  for (const auto& filter : filters) {
+    builder.PushBack(filter);
+  }
+
+  value_ = builder.ExtractValue();
+}
+
+const formats::bson::Value& ArrayFilters::Value() const { return value_; }
+
 Comment::Comment(std::string value) : value_(std::move(value)) {
   if (!utils::text::IsUtf8(value_)) {
     throw InvalidQueryArgumentException(

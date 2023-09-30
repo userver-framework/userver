@@ -53,8 +53,10 @@ T RandRange(T from_inclusive, T to_exclusive) {
     return std::uniform_real_distribution<T>{from_inclusive,
                                              to_exclusive}(DefaultRandom());
   } else {
-    return std::uniform_int_distribution<T>{from_inclusive,
-                                            to_exclusive - 1}(DefaultRandom());
+    // 8-bit types are not allowed in uniform_int_distribution, so increase the
+    // T size.
+    return std::uniform_int_distribution<std::common_type_t<T, unsigned short>>{
+        from_inclusive, to_exclusive - 1}(DefaultRandom());
   }
 }
 

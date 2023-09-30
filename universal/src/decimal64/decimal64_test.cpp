@@ -36,6 +36,32 @@ TYPED_TEST(Decimal64Round, FromDouble) {
   }
 }
 
+TYPED_TEST(Decimal64Round, ToDouble) {
+  {
+    double dob = 134079827203791.55;
+    auto dec = Dec2(fmt::to_string(dob));
+    EXPECT_EQ(dob, dec.ToDoubleInexact());
+  }
+
+  {
+    double dob = 4174801208242952;
+    auto dec = Dec2(fmt::to_string(dob));
+    EXPECT_EQ(dob, dec.ToDoubleInexact());
+  }
+
+  {
+    double dob = 331716630467646.8;
+    auto dec = Dec4(fmt::to_string(dob));
+    EXPECT_EQ(dob, dec.ToDoubleInexact());
+  }
+
+  {
+    double dob = 564448964690768.6;
+    auto dec = Dec4(fmt::to_string(dob));
+    EXPECT_EQ(dob, dec.ToDoubleInexact());
+  }
+}
+
 TEST(Decimal64, DefaultValue) { ASSERT_EQ(Dec4{}, Dec4{0}); }
 
 TEST(Decimal64, DefaultRoundingPolicy) {

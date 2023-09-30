@@ -437,6 +437,7 @@ bool StreamReadFuture<RPC>::Get() {
       impl::Wait(data->GetAsyncMethodInvocation(), data->GetContext());
   if (result == impl::AsyncMethodInvocation::WaitStatus::kCancelled) {
     data->GetStatsScope().OnCancelled();
+    data->GetStatsScope().Flush();
   }
   if (result == impl::AsyncMethodInvocation::WaitStatus::kError) {
     // Finish can only be called once all the data is read, otherwise the
@@ -481,8 +482,8 @@ template <typename Response>
 UnaryFuture UnaryCall<Response>::FinishAsync(Response& response) {
   UASSERT(reader_);
   PrepareFinish(GetData());
-  GetData().EmplaceAsyncMethodInvocation();
-  auto& finish = GetData().GetAsyncMethodInvocation();
+  GetData().EmplaceFinishAsyncMethodInvocation();
+  auto& finish = GetData().GetFinishAsyncMethodInvocation();
   auto& status = GetData().GetStatus();
   reader_->Finish(&response, &status, finish.GetTag());
   return UnaryFuture{GetData()};

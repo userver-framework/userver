@@ -14,8 +14,34 @@ versa.
   chunks if necessary to increase server responsiveness
 * Support for different strategies of choosing the most suitable Redis instance
 * Request timeouts management with transparent retries
+* TLS connections support
 * @ref scripts/docs/en/userver/deadline_propagation.md
-* Cluster autotopology 
+* Cluster autotopology
+
+
+## Redis Guarantees
+
+Redis is not a reliable database by design. In case of problems on the server
+side, partial or complete loss of data is possible. When a master migrates, the
+entire Redis cluster may become unavailable for several tens of seconds. The
+specific latency value should be determined for each Redis configuration
+separately (depending on the size of the database, server location, etc.).
+
+Every command that is sent to the server has the potential to fail. Moreover,
+the client may receive error information (for example, a timeout), but the
+command on the server may succeed. Therefore, Redis commands should be
+idemponent. If this is not possible for some reason, then care should be taken
+to ensure that incomplete groups of commands/resent commands do not leave the
+database in an inconsistent state.
+
+Redis command has a timeout, number of replays, and a global timeout. If a
+response is not received from the server within the timeout, then the same
+command is sent to another server in the cluster, and so on either until the
+limit on the number of repetitions is reached, or when the global timeout is
+reached. These settings can be changed via redis::CommandControl.
+
+@warning For the above reasons, it is recommended to prefer PostgreSQL database
+         over Redis. However it is fine to use Redis as a distributed cache.
 
 ## Metrics
 
@@ -79,6 +105,7 @@ then the internal representation of the topology is recreated,
 the new topology is gets ready (new connections may appear in it),
 and after that the active topology is replaced.
 
+
 #### Enabling/Disabling Redis Cluster Autotopology
 
 At the moment aotopology could be nables via an experiment in static config of
@@ -92,7 +119,6 @@ userver_experiments:
 
 The autotopology could be disabled by the dynamic config option
 REDIS_CLUSTER_AUTOTOPOLOGY_ENABLED_V2.
-
 
 ----------
 

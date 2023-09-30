@@ -332,10 +332,8 @@ UTEST_P(PostgreConnection, CommitOnBusyOeErroredConnection) {
   EXPECT_EQ(pg::ConnectionState::kTranError, GetConn()->GetState());
 
   // Server automatically replaces COMMIT with a ROLLBACK for aborted txns
-  // TODO: TAXICOMMON-4103
-  // UEXPECT_THROW(GetConn()->Commit(), std::exception);
+  UEXPECT_THROW(GetConn()->Commit(), std::exception);
 
-  UEXPECT_NO_THROW(GetConn()->CancelAndCleanup(utest::kMaxTestWaitTime));
   EXPECT_EQ(pg::ConnectionState::kIdle, GetConn()->GetState());
   EXPECT_FALSE(GetConn()->IsBroken());
 }

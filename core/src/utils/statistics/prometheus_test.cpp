@@ -1,12 +1,9 @@
 #include <userver/utest/utest.hpp>
 
-#include <boost/algorithm/string/classification.hpp>
-#include <boost/algorithm/string/join.hpp>
-#include <boost/algorithm/string/split.hpp>
-
 #include <userver/formats/json/serialize.hpp>
 #include <userver/utils/statistics/metadata.hpp>
 #include <userver/utils/statistics/storage.hpp>
+#include <userver/utils/text.hpp>
 
 #include <userver/utils/statistics/prometheus.hpp>
 
@@ -17,10 +14,9 @@ namespace utils::statistics::impl {
 namespace {
 
 std::string Sorted(const std::string_view raw) {
-  std::vector<std::string> lines;
-  boost::split(lines, raw, boost::is_any_of("\n"));
+  auto lines = utils::text::Split(raw, "\n");
   std::sort(lines.begin(), lines.end());
-  return boost::algorithm::join(lines, "\n");
+  return utils::text::Join(lines, "\n");
 }
 
 void TestToMetricsPrometheus(const utils::statistics::Storage& statistics,

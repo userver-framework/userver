@@ -16,11 +16,11 @@ Changelog news also go to the
 
 ## Roadmap
 
-### Plans for the next release
-
+* Add YDB driver.
+* Add PostgreSQL connection pools control via Congestion Control.
+* Add retry budget or retry circuit breaker for clients.
 * Add web interface to the [uservice-dynconf](https://github.com/userver-framework/uservice-dynconf)
 * Add basic Kafka driver.
-* Add YDB driver.
 
 
 ## Changelog

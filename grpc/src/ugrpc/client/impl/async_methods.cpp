@@ -100,7 +100,7 @@ RpcData::RpcData(impl::CallParams&& params)
 }
 
 RpcData::~RpcData() {
-  UASSERT(!invocation_.has_value());
+  UASSERT(std::holds_alternative<std::monostate>(invocation_));
 
   if (context_ && !IsFinished()) {
     UASSERT(span_);
@@ -195,14 +195,26 @@ bool RpcData::AreWritesFinished() const noexcept {
 }
 
 void RpcData::EmplaceAsyncMethodInvocation() {
-  UINVARIANT(!invocation_.has_value(),
+  UINVARIANT(std::holds_alternative<std::monostate>(invocation_),
              "Another method is already running for this RPC concurrently");
-  invocation_.emplace();
+  invocation_.emplace<AsyncMethodInvocation>();
+}
+
+void RpcData::EmplaceFinishAsyncMethodInvocation() {
+  UINVARIANT(std::holds_alternative<std::monostate>(invocation_),
+             "Another method is already running for this RPC concurrently");
+  invocation_.emplace<FinishAsyncMethodInvocation>(*this);
 }
 
 AsyncMethodInvocation& RpcData::GetAsyncMethodInvocation() noexcept {
-  UASSERT(invocation_.has_value());
-  return invocation_.value();
+  UASSERT(std::holds_alternative<AsyncMethodInvocation>(invocation_));
+  return std::get<AsyncMethodInvocation>(invocation_);
+}
+
+FinishAsyncMethodInvocation&
+RpcData::GetFinishAsyncMethodInvocation() noexcept {
+  UASSERT(std::holds_alternative<FinishAsyncMethodInvocation>(invocation_));
+  return std::get<FinishAsyncMethodInvocation>(invocation_);
 }
 
 grpc::Status& RpcData::GetStatus() noexcept { return status_; }
@@ -212,8 +224,9 @@ RpcData::AsyncMethodInvocationGuard::AsyncMethodInvocationGuard(
     : data_(data) {}
 
 RpcData::AsyncMethodInvocationGuard::~AsyncMethodInvocationGuard() noexcept {
-  UASSERT(data_.invocation_.has_value());
-  data_.invocation_.reset();
+  UASSERT(!std::holds_alternative<std::monostate>(data_.invocation_));
+  data_.invocation_.emplace<std::monostate>();
+
   data_.GetStatus() = grpc::Status{};
 }
 
@@ -222,6 +235,7 @@ void CheckOk(RpcData& data, AsyncMethodInvocation::WaitStatus status,
   if (status == impl::AsyncMethodInvocation::WaitStatus::kError) {
     data.SetFinished();
     data.GetStatsScope().OnNetworkError();
+    data.GetStatsScope().Flush();
     SetErrorForSpan(data, fmt::format("Network error at '{}'", stage));
     throw RpcInterruptedError(data.GetCallName(), stage);
   } else if (status == impl::AsyncMethodInvocation::WaitStatus::kCancelled) {
@@ -240,33 +254,25 @@ void PrepareFinish(RpcData& data) {
 
 void ProcessFinishResult(RpcData& data,
                          AsyncMethodInvocation::WaitStatus wait_status,
-                         grpc::Status& status, bool throw_on_error) {
+                         grpc::Status&& status, ParsedGStatus&& parsed_gstatus,
+                         bool throw_on_error) {
   const auto ok = wait_status == impl::AsyncMethodInvocation::WaitStatus::kOk;
   UASSERT_MSG(ok,
               "ok=false in async Finish method invocation is prohibited "
               "by gRPC docs, see grpc::CompletionQueue::Next");
   data.GetStatsScope().OnExplicitFinish(status.error_code());
+  data.GetStatsScope().Flush();
 
   if (!status.ok()) {
-    // extract error
-    std::optional<std::string> gstatus_string;
-
-    auto gstatus = ugrpc::impl::ToGoogleRpcStatus(status);
-    if (gstatus) {
-      gstatus_string = ugrpc::impl::GetGStatusLimitedMessage(*gstatus);
-    }
-
-    SetStatusDetailsForSpan(data, status, gstatus_string);
-    if (status.error_code() == grpc::StatusCode::DEADLINE_EXCEEDED &&
-        data.IsDeadlinePropagated()) {
-      data.GetStatsScope().CancelledByDeadlinePropagation();
-    }
+    SetStatusDetailsForSpan(data, status, parsed_gstatus.gstatus_string);
 
     if (throw_on_error) {
       impl::ThrowErrorWithStatus(data.GetCallName(), std::move(status),
-                                 std::move(gstatus), std::move(gstatus_string));
+                                 std::move(parsed_gstatus.gstatus),
+                                 std::move(parsed_gstatus.gstatus_string));
     }
   } else {
+    data.GetStatsScope().Flush();
     data.ResetSpan();
   }
 }

@@ -8,6 +8,7 @@ import pytest
 import websockets
 
 from testsuite.daemons import service_client as base_service_client
+from testsuite.utils import compat
 
 from pytest_userver import client
 
@@ -108,8 +109,18 @@ async def websocket_client(service_client, service_port):
     """
 
     class Client:
-        def get(self, path):
-            return websockets.connect(f'ws://localhost:{service_port}/{path}')
+        @compat.asynccontextmanager
+        async def get(self, path):
+            update_server_state = getattr(
+                service_client, 'update_server_state', None,
+            )
+            if update_server_state:
+                await update_server_state()
+            ws_context = websockets.connect(
+                f'ws://localhost:{service_port}/{path}',
+            )
+            async with ws_context as socket:
+                yield socket
 
     return Client()
 

@@ -609,6 +609,10 @@ UTEST_F(Options, Hint) {
   UEXPECT_NO_THROW(coll.FindOne({}, mongo::options::Hint{"some_index"}));
   UEXPECT_NO_THROW(
       coll.FindOne({}, mongo::options::Hint{bson::MakeDoc("_id", 1)}));
+
+  UEXPECT_NO_THROW(
+      coll.UpdateMany({}, bson::MakeDoc("$set", bson::MakeDoc("a", "b")),
+                      mongo::options::Hint{"some_index"}));
 }
 
 UTEST_F(Options, AllowPartialResults) {
@@ -845,6 +849,42 @@ UTEST_F(Options, ReturnNew) {
     auto doc = *result.FoundDocument();
     EXPECT_EQ(1, doc["_id"].As<int>());
     EXPECT_EQ(3, doc["x"].As<int>());
+  }
+}
+
+UTEST_F(Options, ArrayFilters) {
+  auto coll = GetDefaultPool().GetCollection("array_filters");
+  coll.InsertMany(
+      {bson::MakeDoc("_id", 1, "grades", bson::MakeArray(95, 92, 90)),
+       bson::MakeDoc("_id", 2, "grades", bson::MakeArray(98, 100, 102))});
+
+  {
+    auto result = coll.UpdateOne(
+        bson::MakeDoc("_id", 1),
+        bson::MakeDoc("$set", bson::MakeDoc("grades.$[elem]", 100)),
+        mongo::options::ArrayFilters(
+            {bson::MakeDoc("elem", bson::MakeDoc("$gte", 100))}));
+
+    EXPECT_TRUE(result.ServerErrors().empty());
+    EXPECT_TRUE(result.WriteConcernErrors().empty());
+  }
+
+  {
+    auto result = coll.UpdateMany(
+        {}, bson::MakeDoc("$set", bson::MakeDoc("grades.$[elem]", 101)),
+        mongo::options::ArrayFilters(
+            {bson::MakeDoc("elem", bson::MakeDoc("$gte", 100))}));
+
+    EXPECT_TRUE(result.ServerErrors().empty());
+    EXPECT_TRUE(result.WriteConcernErrors().empty());
+  }
+
+  {
+    UEXPECT_NO_THROW(coll.FindAndModify(
+        bson::MakeDoc("_id", 1),
+        bson::MakeDoc("$set", bson::MakeDoc("grades.$[elem]", 100)),
+        mongo::options::ArrayFilters(
+            {bson::MakeDoc("elem", bson::MakeDoc("$gte", 100))})));
   }
 }
 
