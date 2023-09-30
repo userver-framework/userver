@@ -185,6 +185,10 @@ if (USERVER_FEATURE_MYSQL)
     add_subdirectory(mysql "${CMAKE_BINARY_DIR}/userver/mysql")
 endif()
 
+if (USERVER_FEATURE_CORE)
+    add_subdirectory(telegram "${CMAKE_BINARY_DIR}/userver/telegram")
+endif()
+
 if (USERVER_IS_THE_ROOT_PROJECT AND USERVER_FEATURE_CORE)
     add_subdirectory(samples)
 endif()
