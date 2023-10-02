@@ -17,9 +17,9 @@ class EventBase {
   ~EventBase();
 };
 
-class AsyncMethodInvocation : public EventBase {
+class AsyncMethodInvocation final : public EventBase {
  public:
-  virtual ~AsyncMethodInvocation();
+  ~AsyncMethodInvocation();
 
   /// @brief For use from coroutines
   /// @return This object's `void* tag` for `grpc::CompletionQueue::Next`

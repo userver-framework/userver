@@ -1,6 +1,5 @@
 #pragma once
 
-#include <atomic>
 #include <chrono>
 #include <optional>
 
@@ -20,15 +19,13 @@ class RpcStatisticsScope final {
 
   void OnExplicitFinish(grpc::StatusCode code);
 
-  void OnCancelledByDeadlinePropagation();
+  void CancelledByDeadlinePropagation();
 
   void OnDeadlinePropagated();
 
   void OnCancelled();
 
   void OnNetworkError();
-
-  void Flush();
 
  private:
   // Represents how the RPC was finished. Kinds with higher numeric values
@@ -51,9 +48,9 @@ class RpcStatisticsScope final {
     kCancelled = 4,
   };
 
+  void AccountStatus();
   void AccountTiming();
 
-  std::atomic<bool> is_cancelled_{false};
   MethodStatistics& statistics_;
   std::optional<std::chrono::steady_clock::time_point> start_time_;
   FinishKind finish_kind_{FinishKind::kAutomatic};

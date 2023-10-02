@@ -72,7 +72,6 @@ struct RpcConfigValues final {
   bool enforce_task_deadline;
 };
 
-using ugrpc::client::impl::FinishAsyncMethodInvocation;
 using ugrpc::impl::AsyncMethodInvocation;
 
 class RpcData final {
@@ -117,11 +116,7 @@ class RpcData final {
 
   void EmplaceAsyncMethodInvocation();
 
-  void EmplaceFinishAsyncMethodInvocation();
-
   AsyncMethodInvocation& GetAsyncMethodInvocation() noexcept;
-
-  FinishAsyncMethodInvocation& GetFinishAsyncMethodInvocation() noexcept;
 
   grpc::Status& GetStatus() noexcept;
 
@@ -148,9 +143,7 @@ class RpcData final {
   RpcConfigValues config_values_;
   const Middlewares& mws_;
 
-  std::variant<std::monostate, AsyncMethodInvocation,
-               FinishAsyncMethodInvocation>
-      invocation_;
+  std::optional<AsyncMethodInvocation> invocation_;
   grpc::Status status_;
 };
 
@@ -189,15 +182,13 @@ void PrepareFinish(RpcData& data);
 
 void ProcessFinishResult(RpcData& data,
                          AsyncMethodInvocation::WaitStatus wait_status,
-                         grpc::Status&& status, ParsedGStatus&& parsed_gstatus,
-                         bool throw_on_error);
+                         grpc::Status& status, bool throw_on_error);
 
 template <typename GrpcStream>
 void Finish(GrpcStream& stream, RpcData& data, bool throw_on_error) {
   PrepareFinish(data);
-
-  FinishAsyncMethodInvocation finish(data);
-  auto& status = finish.GetStatus();
+  grpc::Status status;
+  AsyncMethodInvocation finish;
   stream.Finish(&status, finish.GetTag());
 
   const auto wait_status = Wait(finish, data.GetContext());
@@ -205,8 +196,7 @@ void Finish(GrpcStream& stream, RpcData& data, bool throw_on_error) {
     data.GetStatsScope().OnCancelled();
     if (throw_on_error) throw RpcCancelledError(data.GetCallName(), "Finish");
   }
-  ProcessFinishResult(data, wait_status, std::move(status),
-                      std::move(finish.GetParsedGStatus()), throw_on_error);
+  ProcessFinishResult(data, wait_status, status, throw_on_error);
 }
 
 void PrepareRead(RpcData& data);

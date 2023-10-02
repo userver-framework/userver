@@ -3,7 +3,6 @@
 #include <userver/engine/get_all.hpp>
 #include <userver/engine/sleep.hpp>
 #include <userver/utils/async.hpp>
-#include <userver/utils/mock_now.hpp>
 
 #include <userver/ugrpc/client/exceptions.hpp>
 
@@ -12,8 +11,6 @@
 #include <userver/ugrpc/tests/service_fixtures.hpp>
 
 USERVER_NAMESPACE_BEGIN
-
-using namespace std::chrono_literals;
 
 namespace {
 
@@ -77,40 +74,6 @@ UTEST_F(GrpcStatistics, LongRequest) {
   }
 }
 
-UTEST_F(GrpcStatistics, StatsBeforeGet) {
-  utils::datetime::MockNowSet({});
-
-  auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
-  sample::ugrpc::GreetingRequest out;
-  sample::ugrpc::GreetingResponse res;
-  out.set_name("userver");
-
-  auto call = client.SayHello(out);
-  auto future = call.FinishAsync(res);
-  engine::SleepFor(std::chrono::milliseconds{100});
-  utils::datetime::MockSleep(6s);
-
-  const auto stats = GetStatistics(
-      "grpc.client.by-destination",
-      {{"grpc_destination", "sample.ugrpc.UnitTestService/SayHello"}});
-
-  // check status
-  EXPECT_EQ(stats.SingleMetric("status.v2", {{"grpc_code", "INVALID_ARGUMENT"}})
-                .AsRate()
-                .value,
-            1);
-  // check rps
-  EXPECT_EQ(stats.SingleMetric("rps.v2").AsRate().value, 1);
-
-  // check timings
-  auto timing = stats.SingleMetric("timings", {{"percentile", "p100"}}).AsInt();
-  EXPECT_GT(timing, 20);
-  EXPECT_LT(timing, 100);
-
-  UEXPECT_THROW(future.Get(), ugrpc::client::InvalidArgumentError);
-  GetServer().StopDebug();
-}
-
 UTEST_F_MT(GrpcStatistics, Multithreaded, 2) {
   constexpr int kIterations = 10;
 
@@ -151,8 +114,10 @@ UTEST_F_MT(GrpcStatistics, Multithreaded, 2) {
           .value;
     };
 
-    EXPECT_EQ(get_status_code_count(say_hello_label, "INVALID_ARGUMENT"),
-              kIterations);
+    const auto say_hello_invalid_argument =
+        get_status_code_count(say_hello_label, "INVALID_ARGUMENT");
+    EXPECT_EQ(say_hello_invalid_argument, kIterations);
+
     EXPECT_EQ(get_status_code_count(say_hello_label, "UNIMPLEMENTED"), 0);
     EXPECT_EQ(get_status_code_count(chat_label, "INVALID_ARGUMENT"), 0);
     EXPECT_EQ(get_status_code_count(chat_label, "UNIMPLEMENTED"), kIterations);
