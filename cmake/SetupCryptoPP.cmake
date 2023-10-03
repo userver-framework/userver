@@ -21,26 +21,33 @@ if (NOT USERVER_FORCE_DOWNLOAD_PACKAGES)
 endif()
 
 include(DownloadUsingCPM)
-# Letting cryptopp-cmake download cryptopp on its own results in:
-#   cryptopp clone error
-# Call Stack (most recent call first):
-# cryptopp-cmake/cmake/GitClone.cmake:266 (message)
-# cryptopp-cmake/cmake/GetCryptoppSources.cmake:18 (git_clone)
-# cryptopp-cmake/cmake/GetCryptoppSources.cmake:60 (use_gitclone)
-# cryptopp-cmake/CMakeLists.txt:172 (get_cryptopp_sources)
-CPMAddPackage(
-    NAME cryptopp
-    VERSION 8.7.0
-    GITHUB_REPOSITORY weidai11/cryptopp
-    GIT_TAG CRYPTOPP_8_7_0
-    DOWNLOAD_ONLY YES
-)
+
+if(MACOS)
+  set(cryptopp_sources_arg)
+else()
+  # Letting cryptopp-cmake download cryptopp on its own results in:
+  #   cryptopp clone error
+  # Call Stack (most recent call first):
+  # cryptopp-cmake/cmake/GitClone.cmake:266 (message)
+  # cryptopp-cmake/cmake/GetCryptoppSources.cmake:18 (git_clone)
+  # cryptopp-cmake/cmake/GetCryptoppSources.cmake:60 (use_gitclone)
+  # cryptopp-cmake/CMakeLists.txt:172 (get_cryptopp_sources)
+  CPMAddPackage(
+      NAME cryptopp
+      VERSION 8.7.0
+      GITHUB_REPOSITORY weidai11/cryptopp
+      GIT_TAG CRYPTOPP_8_7_0
+      DOWNLOAD_ONLY YES
+  )
+  set(cryptopp_sources_arg "CRYPTOPP_SOURCES ${cryptopp_SOURCE_DIR}")
+endif()
+
 CPMAddPackage(
     NAME cryptopp-cmake
     VERSION 8.7.0
     GITHUB_REPOSITORY abdes/cryptopp-cmake
     OPTIONS
-    "CRYPTOPP_SOURCES ${cryptopp_SOURCE_DIR}"
+    ${cryptopp_sources_arg}
     "cryptopp_DISPLAY_CMAKE_SUPPORT_WARNING OFF"
     "CRYPTOPP_BUILD_SHARED OFF"
     "CRYPTOPP_BUILD_TESTING OFF"
