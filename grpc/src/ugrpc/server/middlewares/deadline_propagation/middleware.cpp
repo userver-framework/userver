@@ -54,7 +54,7 @@ bool CheckAndSetupDeadline(tracing::Span& span, grpc::ServerContext& context,
 
   if (cancel_by_deadline && config[impl::kServerCancelTaskByDeadline]) {
     // Experiment and config are enabled
-    statistics_scope.CancelledByDeadlinePropagation();
+    statistics_scope.OnCancelledByDeadlinePropagation();
     return false;
   }
 

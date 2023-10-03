@@ -8,13 +8,7 @@ namespace ugrpc::impl {
 
 EventBase::~EventBase() = default;
 
-AsyncMethodInvocation::~AsyncMethodInvocation() {
-  if (busy_) {
-    engine::TaskCancellationBlocker blocker;
-    const auto result = event_.WaitForEvent();
-    UASSERT(result);
-  }
-}
+AsyncMethodInvocation::~AsyncMethodInvocation() { WaitWhileBusy(); }
 
 void AsyncMethodInvocation::Notify(bool ok) noexcept {
   ok_ = ok;
@@ -46,6 +40,15 @@ AsyncMethodInvocation::WaitStatus AsyncMethodInvocation::Wait() noexcept {
 
 bool AsyncMethodInvocation::IsReady() const noexcept {
   return event_.IsReady();
+}
+
+void AsyncMethodInvocation::WaitWhileBusy() {
+  if (busy_) {
+    engine::TaskCancellationBlocker blocker;
+    const auto result = event_.WaitForEvent();
+    UASSERT(result);
+  }
+  busy_ = false;
 }
 
 }  // namespace ugrpc::impl

@@ -17,9 +17,9 @@ class EventBase {
   ~EventBase();
 };
 
-class AsyncMethodInvocation final : public EventBase {
+class AsyncMethodInvocation : public EventBase {
  public:
-  ~AsyncMethodInvocation();
+  virtual ~AsyncMethodInvocation();
 
   /// @brief For use from coroutines
   /// @return This object's `void* tag` for `grpc::CompletionQueue::Next`
@@ -43,6 +43,9 @@ class AsyncMethodInvocation final : public EventBase {
   /// @brief Checks if the asynchronous call has completed
   /// @return true if event returned from `grpc::CompletionQueue::Next`
   [[nodiscard]] bool IsReady() const noexcept;
+
+ protected:
+  void WaitWhileBusy();
 
  private:
   bool ok_{false};
