@@ -12,6 +12,7 @@
   "AUTHORS":"taxi/uservices/userver/AUTHORS",
   "CMakeLists.txt":"taxi/uservices/userver/CMakeLists.txt",
   "CODEOWNERS":"taxi/uservices/userver/CODEOWNERS",
+  "CODE_OF_CONDUCT.md":"taxi/uservices/userver/CODE_OF_CONDUCT.md",
   "CONTRIBUTING.md":"taxi/uservices/userver/CONTRIBUTING.md",
   "LICENSE":"taxi/uservices/userver/LICENSE",
   "Makefile":"taxi/uservices/userver/Makefile",
