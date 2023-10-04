@@ -31,19 +31,16 @@ struct ConnectionInfo {
   bool read_only = false;
   ConnectionSecurity connection_security = ConnectionSecurity::kNone;
   using HostVector = std::vector<std::string>;
-  HostVector resolved_host{};
 
   ConnectionInfo() = default;
   ConnectionInfo(std::string host, int port, Password password,
                  bool read_only = false,
-                 ConnectionSecurity security = ConnectionSecurity::kNone,
-                 HostVector resolved_host = {})
+                 ConnectionSecurity security = ConnectionSecurity::kNone)
       : host{std::move(host)},
         port{port},
         password{std::move(password)},
         read_only{read_only},
-        connection_security(security),
-        resolved_host(std::move(resolved_host)) {}
+        connection_security(security) {}
 };
 
 struct Stat {

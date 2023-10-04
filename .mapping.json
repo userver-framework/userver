@@ -2370,7 +2370,6 @@
   "redis/src/storages/redis/request_exec_data_impl.hpp":"taxi/uservices/userver/redis/src/storages/redis/request_exec_data_impl.hpp",
   "redis/src/storages/redis/request_impl.hpp":"taxi/uservices/userver/redis/src/storages/redis/request_impl.hpp",
   "redis/src/storages/redis/request_test.cpp":"taxi/uservices/userver/redis/src/storages/redis/request_test.cpp",
-  "redis/src/storages/redis/resolver_redistest.cpp":"taxi/uservices/userver/redis/src/storages/redis/resolver_redistest.cpp",
   "redis/src/storages/redis/scan_reply.hpp":"taxi/uservices/userver/redis/src/storages/redis/scan_reply.hpp",
   "redis/src/storages/redis/subscribe_client_impl.cpp":"taxi/uservices/userver/redis/src/storages/redis/subscribe_client_impl.cpp",
   "redis/src/storages/redis/subscribe_client_impl.hpp":"taxi/uservices/userver/redis/src/storages/redis/subscribe_client_impl.hpp",

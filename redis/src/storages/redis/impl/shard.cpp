@@ -48,12 +48,7 @@ ConnectionSecurity ConnectionInfoInt::GetConnectionSecurity() const {
 const std::string& ConnectionInfoInt::Fulltext() const { return fulltext_; }
 
 void ConnectionInfoInt::Connect(Redis& instance) const {
-  if (conn_info_.resolved_host.empty()) {
-    instance.Connect({conn_info_.host}, conn_info_.port, conn_info_.password);
-    return;
-  }
-  instance.Connect(conn_info_.resolved_host, conn_info_.port,
-                   conn_info_.password);
+  instance.Connect({conn_info_.host}, conn_info_.port, conn_info_.password);
 }
 
 bool operator==(const ConnectionInfoInt& lhs, const ConnectionInfoInt& rhs) {

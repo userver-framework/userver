@@ -1,6 +1,5 @@
 #include "subscribe_sentinel.hpp"
 
-#include <userver/clients/dns/resolver.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/testsuite/testsuite_support.hpp>
 #include <userver/utils/assert.hpp>
@@ -10,28 +9,6 @@
 USERVER_NAMESPACE_BEGIN
 
 namespace redis {
-
-namespace {
-
-constexpr std::chrono::milliseconds kResolveTimeout{500};
-
-ConnectionInfo::HostVector ResolveDns(const std::string& host,
-                                      clients::dns::Resolver* resolver) {
-  if (!resolver) return {};
-  ConnectionInfo::HostVector result;
-  try {
-    auto addrs = resolver->Resolve(
-        host, engine::Deadline::FromDuration(kResolveTimeout));
-    std::transform(addrs.begin(), addrs.end(), std::back_inserter(result),
-                   [](auto addr) { return addr.PrimaryAddressString(); });
-  } catch (const std::exception& e) {
-    LOG_WARNING() << "exception occurred during dns resolving for host " << host
-                  << ": " << e;
-  }
-  return result;
-}
-
-}  // namespace
 
 SubscribeSentinel::SubscribeSentinel(
     const std::shared_ptr<ThreadPools>& thread_pools,
@@ -78,8 +55,7 @@ std::shared_ptr<SubscribeSentinel> SubscribeSentinel::Create(
     const secdist::RedisSettings& settings, std::string shard_group_name,
     dynamic_config::Source dynamic_config_source,
     const std::string& client_name, bool is_cluster_mode,
-    const testsuite::RedisControl& testsuite_redis_control,
-    clients::dns::Resolver* dns_resolver) {
+    const testsuite::RedisControl& testsuite_redis_control) {
   auto ready_callback = [](size_t shard, const std::string& shard_name,
                            bool ready) {
     LOG_INFO() << "redis: ready_callback:"
@@ -90,7 +66,7 @@ std::shared_ptr<SubscribeSentinel> SubscribeSentinel::Create(
   // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDelete)
   return Create(thread_pools, settings, std::move(shard_group_name),
                 dynamic_config_source, client_name, std::move(ready_callback),
-                is_cluster_mode, testsuite_redis_control, dns_resolver);
+                is_cluster_mode, testsuite_redis_control);
 }
 
 std::shared_ptr<SubscribeSentinel> SubscribeSentinel::Create(
@@ -99,8 +75,7 @@ std::shared_ptr<SubscribeSentinel> SubscribeSentinel::Create(
     dynamic_config::Source dynamic_config_source,
     const std::string& client_name, ReadyChangeCallback ready_callback,
     bool is_cluster_mode,
-    const testsuite::RedisControl& testsuite_redis_control,
-    clients::dns::Resolver* dns_resolver) {
+    const testsuite::RedisControl& testsuite_redis_control) {
   const auto& password = settings.password;
 
   const std::vector<std::string>& shards = settings.shards;
@@ -119,8 +94,7 @@ std::shared_ptr<SubscribeSentinel> SubscribeSentinel::Create(
     // sentinels in cluster mode.
     conns.emplace_back(sentinel.host, sentinel.port,
                        (is_cluster_mode ? password : Password("")), false,
-                       settings.secure_connection,
-                       ResolveDns(sentinel.host, dns_resolver));
+                       settings.secure_connection);
   }
   redis::CommandControl command_control{};
   LOG_DEBUG() << "redis command_control: timeout_single = "

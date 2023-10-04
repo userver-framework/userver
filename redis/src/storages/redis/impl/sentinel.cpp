@@ -5,7 +5,6 @@
 
 #include <engine/ev/thread_control.hpp>
 
-#include <userver/clients/dns/resolver.hpp>
 #include <userver/dynamic_config/value.hpp>
 #include <userver/engine/task/cancel.hpp>
 #include <userver/logging/log.hpp>
@@ -35,24 +34,6 @@ void ThrowIfCancelled() {
     throw RequestCancelledException(
         "Failed to make redis request due to task cancellation");
   }
-}
-
-constexpr std::chrono::milliseconds kResolveTimeout{500};
-
-ConnectionInfo::HostVector ResolveDns(const std::string& host,
-                                      clients::dns::Resolver* resolver) {
-  if (!resolver) return {};
-  ConnectionInfo::HostVector result;
-  try {
-    auto addrs = resolver->Resolve(
-        host, engine::Deadline::FromDuration(kResolveTimeout));
-    std::transform(addrs.begin(), addrs.end(), std::back_inserter(result),
-                   [](auto addr) { return addr.PrimaryAddressString(); });
-  } catch (const std::exception& e) {
-    LOG_WARNING() << "exception occurred during dns resolving for host " << host
-                  << ": " << e;
-  }
-  return result;
 }
 
 }  // namespace
@@ -129,8 +110,7 @@ std::shared_ptr<Sentinel> Sentinel::CreateSentinel(
     dynamic_config::Source dynamic_config_source,
     const std::string& client_name, KeyShardFactory key_shard_factory,
     const CommandControl& command_control,
-    const testsuite::RedisControl& testsuite_redis_control,
-    clients::dns::Resolver* dns_resolver) {
+    const testsuite::RedisControl& testsuite_redis_control) {
   auto ready_callback = [](size_t shard, const std::string& shard_name,
                            bool ready) {
     LOG_INFO() << "redis: ready_callback:"
@@ -140,7 +120,7 @@ std::shared_ptr<Sentinel> Sentinel::CreateSentinel(
   return CreateSentinel(thread_pools, settings, std::move(shard_group_name),
                         dynamic_config_source, client_name,
                         std::move(ready_callback), std::move(key_shard_factory),
-                        command_control, testsuite_redis_control, dns_resolver);
+                        command_control, testsuite_redis_control);
 }
 
 std::shared_ptr<Sentinel> Sentinel::CreateSentinel(
@@ -150,8 +130,7 @@ std::shared_ptr<Sentinel> Sentinel::CreateSentinel(
     const std::string& client_name,
     Sentinel::ReadyChangeCallback ready_callback,
     KeyShardFactory key_shard_factory, const CommandControl& command_control,
-    const testsuite::RedisControl& testsuite_redis_control,
-    clients::dns::Resolver* dns_resolver) {
+    const testsuite::RedisControl& testsuite_redis_control) {
   const auto& password = settings.password;
 
   const std::vector<std::string>& shards = settings.shards;
@@ -171,8 +150,7 @@ std::shared_ptr<Sentinel> Sentinel::CreateSentinel(
     // sentinels in cluster mode.
     conns.emplace_back(sentinel.host, sentinel.port,
                        (key_shard ? Password("") : password), false,
-                       settings.secure_connection,
-                       ResolveDns(sentinel.host, dns_resolver));
+                       settings.secure_connection);
   }
 
   LOG_DEBUG() << "redis command_control:"
