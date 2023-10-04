@@ -9,6 +9,7 @@
 #include <userver/server/handlers/ping.hpp>
 
 #include <components/component_list_test.hpp>
+#include <userver/internal/net/net_listener.hpp>
 #include <userver/utest/utest.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -21,6 +22,8 @@ constexpr std::string_view kConfigVarsTemplate = R"(
   log_level: {2}
   file_path: {3}
   overflow_behavior: {4}
+  server-port: {5}
+  server-monitor-port: {6}
 )";
 
 // BEWARE! No separate fs-task-processor. Testing almost single thread mode
@@ -58,13 +61,13 @@ components_manager:
       fs-task-processor: main-task-processor
     server:
       listener:
-          port: 8087
+          port: $server-port
           task_processor: main-task-processor
       listener-monitor:
           connection:
               in_buffer_size: 32768
               requests_queue_size_threshold: 100
-          port: 8088
+          port: $server-monitor-port
           port#fallback: 1188
           task_processor: monitor-task-processor
     auth-checker-settings:
@@ -227,6 +230,21 @@ components_manager:
 # /// [Sample handler dynamic debug log component config]
 config_vars: )";
 
+struct ServicePorts final {
+  std::uint16_t server_port{0};
+  std::uint16_t monitor_port{0};
+};
+
+ServicePorts FindFreePorts() {
+  ServicePorts ports;
+  engine::RunStandalone([&ports] {
+    const internal::net::TcpListener listener1;
+    const internal::net::TcpListener listener2;
+    ports = {listener1.Port(), listener2.Port()};
+  });
+  return ports;
+}
+
 }  // namespace
 
 TEST_F(ComponentList, ServerCommon) {
@@ -235,13 +253,15 @@ TEST_F(ComponentList, ServerCommon) {
       temp_root.GetPath() + "/runtime_config.json";
   const std::string config_vars_path =
       temp_root.GetPath() + "/config_vars.json";
+  const auto ports = FindFreePorts();
 
   fs::blocking::RewriteFileContents(runtime_config_path,
                                     tests::GetRuntimeConfig());
   fs::blocking::RewriteFileContents(
       config_vars_path,
       fmt::format(kConfigVarsTemplate, temp_root.GetPath(), runtime_config_path,
-                  "warning", "'@null'", "discard"));
+                  "warning", "'@null'", "discard", ports.server_port,
+                  ports.monitor_port));
 
   components::RunOnce(
       components::InMemoryConfig{std::string{kStaticConfig} + config_vars_path},
@@ -257,13 +277,15 @@ TEST_F(ComponentList, ServerTraceLogging) {
   const std::string config_vars_path =
       temp_root.GetPath() + "/config_vars.json";
   const std::string logs_file = temp_root.GetPath() + "/logs.txt";
+  const auto ports = FindFreePorts();
 
   fs::blocking::RewriteFileContents(runtime_config_path,
                                     tests::GetRuntimeConfig());
   fs::blocking::RewriteFileContents(
       config_vars_path,
       fmt::format(kConfigVarsTemplate, temp_root.GetPath(), runtime_config_path,
-                  "trace", logs_file, "discard"));
+                  "trace", logs_file, "discard", ports.server_port,
+                  ports.monitor_port));
 
   components::RunOnce(
       components::InMemoryConfig{std::string{kStaticConfig} + config_vars_path},
@@ -278,13 +300,15 @@ TEST_F(ComponentList, ServerNullLogging) {
       temp_root.GetPath() + "/runtime_config.json";
   const std::string config_vars_path =
       temp_root.GetPath() + "/config_vars.json";
+  const auto ports = FindFreePorts();
 
   fs::blocking::RewriteFileContents(runtime_config_path,
                                     tests::GetRuntimeConfig());
   fs::blocking::RewriteFileContents(
       config_vars_path,
       fmt::format(kConfigVarsTemplate, temp_root.GetPath(), runtime_config_path,
-                  "trace", "'@null'", "discard"));
+                  "trace", "'@null'", "discard", ports.server_port,
+                  ports.monitor_port));
 
   components::RunOnce(
       components::InMemoryConfig{std::string{kStaticConfig} + config_vars_path},
@@ -299,13 +323,15 @@ TEST_F(ComponentList, BlockingDefaultLogger) {
       temp_root.GetPath() + "/runtime_config.json";
   const std::string config_vars_path =
       temp_root.GetPath() + "/config_vars.json";
+  const auto ports = FindFreePorts();
 
   fs::blocking::RewriteFileContents(runtime_config_path,
                                     tests::GetRuntimeConfig());
   fs::blocking::RewriteFileContents(
       config_vars_path,
       fmt::format(kConfigVarsTemplate, temp_root.GetPath(), runtime_config_path,
-                  "warning", "'@null'", "block"));
+                  "warning", "'@null'", "block", ports.server_port,
+                  ports.monitor_port));
 
   const components::InMemoryConfig config{std::string{kStaticConfig} +
                                           config_vars_path};

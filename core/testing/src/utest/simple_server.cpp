@@ -107,7 +107,7 @@ class SimpleServer::Impl {
  public:
   Impl(OnRequest callback, Protocol protocol);
 
-  [[nodiscard]] Port GetPort() const { return listener_.port; };
+  [[nodiscard]] Port GetPort() const { return listener_.Port(); };
 
   [[nodiscard]] Protocol GetProtocol() const {
     switch (listener_.addr.Domain()) {

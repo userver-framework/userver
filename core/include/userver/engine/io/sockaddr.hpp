@@ -94,10 +94,10 @@ class Sockaddr final {
   bool HasPort() const;
 
   /// Returns the stored port number if available, otherwise throws.
-  int Port() const;
+  std::uint16_t Port() const;
 
   /// Sets a port for address families that allow for one, otherwise throws.
-  void SetPort(int port);
+  void SetPort(std::uint16_t port);
 
   /// @brief Human-readable address representation.
   /// @note Does not include port number.

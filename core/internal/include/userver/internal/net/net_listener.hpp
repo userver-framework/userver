@@ -21,24 +21,26 @@ enum class IpVersion {
 };
 
 struct TcpListener {
+  constexpr static auto kType = engine::io::SocketType::kStream;
+
   explicit TcpListener(IpVersion ipv = IpVersion::kV6);
 
   std::pair<engine::io::Socket, engine::io::Socket> MakeSocketPair(
       engine::Deadline);
 
-  constexpr static auto type = engine::io::SocketType::kStream;
+  std::uint16_t Port() const { return addr.Port(); }
 
-  uint16_t port{0};
   engine::io::Sockaddr addr;
   engine::io::Socket socket;
 };
 
 struct UdpListener {
+  constexpr static auto kType = engine::io::SocketType::kDgram;
+
   explicit UdpListener(IpVersion ipv = IpVersion::kV6);
 
-  constexpr static auto type = engine::io::SocketType::kDgram;
+  std::uint16_t Port() const { return addr.Port(); }
 
-  uint16_t port{0};
   engine::io::Sockaddr addr;
   engine::io::Socket socket;
 };

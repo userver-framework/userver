@@ -13,12 +13,22 @@
 #include <userver/yaml_config/merge_schemas.hpp>
 
 #include <components/component_list_test.hpp>
+#include <userver/internal/net/net_listener.hpp>
 #include <userver/utest/current_process_open_files.hpp>
 #include <userver/utest/utest.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace {
+
+std::uint16_t FindFreePort() {
+  std::uint16_t result{};
+  engine::RunStandalone([&result] {
+    const internal::net::TcpListener listener{};
+    result = listener.Port();
+  });
+  return result;
+}
 
 constexpr std::string_view kStaticConfig = R"(
 components_manager:
@@ -63,7 +73,7 @@ components_manager:
         fallback-path: $runtime_config_path
     server:
       listener:
-          port: 8087
+          port: $server-port
           task_processor: main-task-processor
     statistics-storage: # Nothing
     auth-checker-settings: # Nothing
@@ -88,9 +98,12 @@ class ServerMinimalComponentList : public ComponentList {
 
   const std::string& GetStaticConfig() const { return static_config_; }
 
+  std::uint16_t GetServerPort() const { return server_port_; }
+
  private:
   fs::blocking::TempDirectory temp_root_ =
       fs::blocking::TempDirectory::Create();
+  std::uint16_t server_port_ = FindFreePort();
   std::string static_config_ = std::string{kStaticConfig} + GetConfigVarsPath();
 };
 
@@ -154,9 +167,10 @@ auto TestsComponentList() {
 TEST_F(ServerMinimalComponentList, Basic) {
   constexpr std::string_view kConfigVarsTemplate = R"(
     runtime_config_path: {0}
+    server-port: {1}
   )";
   const auto config_vars =
-      fmt::format(kConfigVarsTemplate, GetRuntimeConfigPath());
+      fmt::format(kConfigVarsTemplate, GetRuntimeConfigPath(), GetServerPort());
 
   fs::blocking::RewriteFileContents(GetRuntimeConfigPath(),
                                     tests::GetRuntimeConfig());
@@ -170,10 +184,12 @@ TEST_F(ServerMinimalComponentList, InitLogsClose) {
   constexpr std::string_view kConfigVarsTemplate = R"(
     runtime_config_path: {0}
     init_log_path: {1}
+    server-port: {2}
   )";
   const std::string init_logs_path = GetTempRoot() + "/init_log.txt";
   const auto config_vars =
-      fmt::format(kConfigVarsTemplate, GetRuntimeConfigPath(), init_logs_path);
+      fmt::format(kConfigVarsTemplate, GetRuntimeConfigPath(), init_logs_path,
+                  GetServerPort());
 
   fs::blocking::RewriteFileContents(GetRuntimeConfigPath(),
                                     tests::GetRuntimeConfig());
@@ -189,10 +205,11 @@ TEST_F(ServerMinimalComponentList, TraceSwitching) {
   constexpr std::string_view kConfigVarsTemplate = R"(
     runtime_config_path: {0}
     tracer_log_path: {1}
+    server-port: {2}
   )";
   const std::string logs_path = GetTempRoot() + "/tracing_log.txt";
-  const auto config_vars =
-      fmt::format(kConfigVarsTemplate, GetRuntimeConfigPath(), logs_path);
+  const auto config_vars = fmt::format(
+      kConfigVarsTemplate, GetRuntimeConfigPath(), logs_path, GetServerPort());
 
   fs::blocking::RewriteFileContents(GetRuntimeConfigPath(),
                                     tests::GetRuntimeConfig());
@@ -215,6 +232,7 @@ TEST_F(ServerMinimalComponentList, TraceStacktraces) {
     runtime_config_path: {0}
     tracer_log_path: {1}
     tracer_level: debug
+    server-port: {2}
   )";
   const std::string logs_path = GetTempRoot() + "/tracing_st_log.txt";
 
@@ -222,7 +240,8 @@ TEST_F(ServerMinimalComponentList, TraceStacktraces) {
                                     tests::GetRuntimeConfig());
   fs::blocking::RewriteFileContents(
       GetConfigVarsPath(),
-      fmt::format(kConfigVarsTemplate, GetRuntimeConfigPath(), logs_path));
+      fmt::format(kConfigVarsTemplate, GetRuntimeConfigPath(), logs_path,
+                  GetServerPort()));
 
   components::RunOnce(components::InMemoryConfig{GetStaticConfig()},
                       TestsComponentList());
@@ -239,9 +258,10 @@ TEST_F(ServerMinimalComponentList, TraceStacktraces) {
 TEST_F(ServerMinimalComponentList, MissingRuntimeConfigParam) {
   constexpr std::string_view kConfigVarsTemplate = R"(
     runtime_config_path: {0}
+    server-port: {1}
   )";
   const auto config_vars =
-      fmt::format(kConfigVarsTemplate, GetRuntimeConfigPath());
+      fmt::format(kConfigVarsTemplate, GetRuntimeConfigPath(), GetServerPort());
 
   formats::json::ValueBuilder runtime_config{
       formats::json::FromString(tests::GetRuntimeConfig())};
