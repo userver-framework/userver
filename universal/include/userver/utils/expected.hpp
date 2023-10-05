@@ -69,9 +69,14 @@ class [[nodiscard]] expected {
   /// @brief Return reference to the value or throws bad_expected_access
   /// if it's not available
   /// @throws utils::bad_expected_access if *this contain an unexpected value
-  S& value();
+  S& value() &;
 
-  const S& value() const;
+  /// @brief Extracts the value or throws bad_expected_access
+  /// if it's not available
+  /// @throws utils::bad_expected_access if *this contain an unexpected value
+  S value() &&;
+
+  const S& value() const&;
 
   /// @brief Return reference to the error value or throws bad_expected_access
   /// if it's not available
@@ -139,7 +144,7 @@ bool expected<S, E>::has_value() const noexcept {
 }
 
 template <class S, class E>
-S& expected<S, E>::value() {
+S& expected<S, E>::value() & {
   S* result = std::get_if<S>(&data_);
   if (result == nullptr) {
     throw bad_expected_access(
@@ -149,7 +154,12 @@ S& expected<S, E>::value() {
 }
 
 template <class S, class E>
-const S& expected<S, E>::value() const {
+S expected<S, E>::value() && {
+  return std::move(value());
+}
+
+template <class S, class E>
+const S& expected<S, E>::value() const& {
   const S* result = std::get_if<S>(&data_);
   if (result == nullptr) {
     throw bad_expected_access(

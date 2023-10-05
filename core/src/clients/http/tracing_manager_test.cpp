@@ -43,6 +43,28 @@ class MockTracingManager : public tracing::TracingManagerBase {
 }  // namespace
 
 UTEST(TracingManagerBase, TracingManagerCorrectCalls) {
+  MockTracingManager tracing_manager;
+  auto http_client_ptr = utest::CreateHttpClient(tracing_manager);
+
+  const utest::SimpleServer http_server_final{
+      clients::http::Response200WithHeader{"xxx: test"}};
+
+  const auto url = http_server_final.GetBaseUrl();
+  auto& http_client = *http_client_ptr;
+  std::string data{};
+
+  const auto response = http_client.CreateRequest()
+                            .post(url, data)
+                            .timeout(std::chrono::seconds(1))
+                            .perform();
+
+  EXPECT_TRUE(response->IsOk());
+  EXPECT_EQ(tracing_manager.GetCreateNewSpanCounter(), 0);
+  EXPECT_EQ(tracing_manager.GetFillRequestCounter(), 1);
+  EXPECT_EQ(tracing_manager.GetFillResponseCounter(), 0);
+}
+
+UTEST(TracingManagerBase, TracingManagerCorrectCallsPerRequest) {
   auto http_client_ptr = utest::CreateHttpClient();
 
   const utest::SimpleServer http_server_final{
@@ -53,7 +75,6 @@ UTEST(TracingManagerBase, TracingManagerCorrectCalls) {
   std::string data{};
 
   MockTracingManager tracing_manager;
-
   const auto response = http_client.CreateRequest()
                             .post(url, data)
                             .timeout(std::chrono::seconds(1))

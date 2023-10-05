@@ -138,6 +138,21 @@ inline constexpr PredefinedHeader kXRequestId{"X-RequestId"};
 inline constexpr PredefinedHeader kXBackendServer{"X-Backend-Server"};
 inline constexpr PredefinedHeader kXTaxiEnvoyProxyDstVhost{
     "X-Taxi-EnvoyProxy-DstVhost"};
+
+/// B3 tracing Headers
+namespace b3 {
+inline constexpr PredefinedHeader kTraceId{"X-B3-TraceId"};
+inline constexpr PredefinedHeader kSpanId{"X-B3-SpanId"};
+inline constexpr PredefinedHeader kSampled{"X-B3-Sampled"};
+inline constexpr PredefinedHeader kParentSpanId{"X-B3-ParentSpanId"};
+}  // namespace b3
+
+/// OpenTelemetry tracing Headers
+namespace opentelemetry {
+inline constexpr PredefinedHeader kTraceParent{"traceparent"};
+inline constexpr PredefinedHeader kTraceState{"tracestate"};
+}  // namespace opentelemetry
+
 /// @}
 
 /// @name Baggage header

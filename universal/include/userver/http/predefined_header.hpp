@@ -115,7 +115,13 @@ inline constexpr utils::TrivialBiMap kKnownHeadersLowercaseMap =
           .Case("x-yataxi-client-timeoutms", 30)
           .Case("x-yataxi-deadline-expired", 31)
           .Case("x-yataxi-ratelimited-by", 32)
-          .Case("x-yataxi-ratelimit-reason", 33);
+          .Case("x-yataxi-ratelimit-reason", 33)
+          .Case("x-b3-traceid", 34)
+          .Case("x-b3-spanid", 35)
+          .Case("x-b3-sampled", 36)
+          .Case("x-b3-parentspanid", 37)
+          .Case("traceparent", 38)
+          .Case("tracestate", 39);
     };
 
 // We use different values for "no index" at compile and run time to simplify

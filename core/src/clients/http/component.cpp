@@ -30,13 +30,9 @@ clients::http::impl::ClientSettings GetClientSettings(
     const ComponentConfig& component_config, const ComponentContext& context) {
   clients::http::impl::ClientSettings settings;
   settings = component_config.As<clients::http::impl::ClientSettings>();
-  auto* tracing_locator =
-      context.FindComponentOptional<tracing::DefaultTracingManagerLocator>();
-  if (tracing_locator) {
-    settings.tracing_manager = &tracing_locator->GetTracingManager();
-  } else {
-    settings.tracing_manager = &tracing::kDefaultTracingManager;
-  }
+  auto& tracing_locator =
+      context.FindComponent<tracing::DefaultTracingManagerLocator>();
+  settings.tracing_manager = &tracing_locator.GetTracingManager();
   auto* propagator_component =
       context.FindComponentOptional<components::HeadersPropagatorComponent>();
   if (propagator_component) {

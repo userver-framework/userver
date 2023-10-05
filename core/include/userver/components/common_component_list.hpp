@@ -30,6 +30,7 @@ namespace components {
 /// * components::DynamicConfigClient
 /// * components::DynamicConfigClientUpdater
 /// * engine::TaskProcessorsLoadMonitor
+/// * tracing::DefaultTracingManagerLocator
 ComponentList CommonComponentList();
 
 }  // namespace components

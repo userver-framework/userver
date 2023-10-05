@@ -47,7 +47,8 @@ class RequestState : public std::enable_shared_from_this<RequestState> {
                std::shared_ptr<RequestStats>&& req_stats,
                const std::shared_ptr<DestinationStatistics>& dest_stats,
                clients::dns::Resolver* resolver,
-               impl::PluginPipeline& plugin_pipeline);
+               impl::PluginPipeline& plugin_pipeline,
+               const tracing::TracingManagerBase& tracing_manager);
   ~RequestState();
 
   using Queue = concurrent::StringStreamQueue;

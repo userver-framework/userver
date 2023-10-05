@@ -39,10 +39,8 @@ long ClampToLong(size_t value) {
 
 const tracing::TracingManagerBase* GetTracingManager(
     const impl::ClientSettings& settings) {
-  if (settings.tracing_manager) {
-    return settings.tracing_manager;
-  }
-  return &tracing::kDefaultTracingManager;
+  UASSERT(settings.tracing_manager);
+  return settings.tracing_manager;
 }
 
 }  // namespace
@@ -122,8 +120,10 @@ Request Client::CreateRequest() {
       auto idx = FindMultiIndex(easy->GetMulti());
       auto wrapper =
           std::make_shared<impl::EasyWrapper>(std::move(easy), *this);
-      return Request{std::move(wrapper), statistics_[idx].CreateRequestStats(),
-                     destination_statistics_, resolver_, plugin_pipeline_};
+      return Request{
+          std::move(wrapper),      statistics_[idx].CreateRequestStats(),
+          destination_statistics_, resolver_,
+          plugin_pipeline_,        *tracing_manager_.GetBase()};
     } else {
       auto i = utils::RandRange(multis_.size());
       auto& multi = multis_[i];
@@ -133,8 +133,10 @@ Request Client::CreateRequest() {
                          return std::make_shared<impl::EasyWrapper>(
                              easy_.Get()->GetBoundBlocking(*multi), *this);
                        }).Get();
-        return Request{std::move(wrapper), statistics_[i].CreateRequestStats(),
-                       destination_statistics_, resolver_, plugin_pipeline_};
+        return Request{
+            std::move(wrapper),      statistics_[i].CreateRequestStats(),
+            destination_statistics_, resolver_,
+            plugin_pipeline_,        *tracing_manager_.GetBase()};
       } catch (engine::WaitInterruptedException&) {
         throw clients::http::CancelException();
       } catch (engine::TaskCancelledException&) {
@@ -149,7 +151,6 @@ Request Client::CreateRequest() {
   auto urls = allowed_urls_extra_.Read();
   request.SetAllowedUrlsExtra(*urls);
 
-  request.SetTracingManager(*tracing_manager_.GetBase());
   request.SetHeadersPropagator(headers_propagator_);
 
   if (user_agent_) {

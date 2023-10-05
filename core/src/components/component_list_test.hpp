@@ -4,12 +4,13 @@
 
 #include <userver/engine/run_standalone.hpp>
 #include <userver/logging/log.hpp>
-#include <userver/tracing/opentracing.hpp>
 #include <userver/tracing/tracer.hpp>
 
 #include <userver/dynamic_config/test_helpers.hpp>
 #include <userver/utest/default_logger_fixture.hpp>
 #include <userver/utest/utest.hpp>
+
+#include <tracing/opentracing_logger.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

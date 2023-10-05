@@ -96,7 +96,8 @@ class Request final {
                    std::shared_ptr<RequestStats>&& req_stats,
                    const std::shared_ptr<DestinationStatistics>& dest_stats,
                    clients::dns::Resolver* resolver,
-                   impl::PluginPipeline& plugin_pipeline);
+                   impl::PluginPipeline& plugin_pipeline,
+                   const tracing::TracingManagerBase& tracing_manager);
   /// @endcond
 
   /// Specifies method
@@ -300,6 +301,8 @@ class Request final {
   Request& DisableReplyDecoding() &;
   Request DisableReplyDecoding() &&;
 
+  /// Override the default tracing manager from HTTP client for this
+  /// particular request.
   Request& SetTracingManager(const tracing::TracingManagerBase&) &;
   Request SetTracingManager(const tracing::TracingManagerBase&) &&;
 

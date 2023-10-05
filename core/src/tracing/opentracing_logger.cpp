@@ -1,4 +1,4 @@
-#include <userver/tracing/opentracing.hpp>
+#include <tracing/opentracing_logger.hpp>
 
 #include <userver/rcu/rcu.hpp>
 

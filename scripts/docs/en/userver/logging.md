@@ -137,6 +137,8 @@ thereby building a trace of requests and interactions.
 It can be used to identify slow query stages, bottlenecks, 
 sequential queries, etc.
 
+See tracing::DefaultTracingManagerLocator for more info.
+
 ### tracing::Span
 
 When processing a request, you can create a `tracking::Span` object that measures the execution time of the current code block (technically, the time between its constructor and destructor) and stores the resulting time in the log:
@@ -199,7 +201,9 @@ The HTTP client sends the current link/span_id/trace_id values in each request t
 
 When the HTTP server handles the request, it extracts data from the request headers and puts them in the Span.
 
-Names of the headers:
+Names of the headers varry depending on tracing::DefaultTracingManagerLocator
+static configuration and on the chosen tracing::Fromat value. For example,
+with tracing::Fromat::kYandexTaxi the following headers would be used:
 
 ``` 
 X-YaRequestId

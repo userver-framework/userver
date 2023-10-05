@@ -30,7 +30,6 @@ ComponentList CommonServerComponentList() {
       .Append<server::handlers::OnLogRotate>()
       .Append<server::handlers::ServerMonitor>()
       .Append<server::handlers::TestsControl>()
-      .Append<tracing::DefaultTracingManagerLocator>()
       .Append<congestion_control::Component>()
       .Append<components::AuthCheckerSettings>();
 }

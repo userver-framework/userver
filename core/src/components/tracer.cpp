@@ -3,9 +3,10 @@
 #include <userver/components/component.hpp>
 #include <userver/logging/component.hpp>
 #include <userver/tracing/noop.hpp>
-#include <userver/tracing/opentracing.hpp>
 #include <userver/tracing/tracer.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
+
+#include <tracing/opentracing_logger.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

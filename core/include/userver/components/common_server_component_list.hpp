@@ -30,7 +30,6 @@ namespace components {
 /// * server::handlers::auth::NonceCacheSettingsComponent
 /// * congestion_control::Component
 /// * components::HttpServerSettings
-/// * tracing::DefaultTracingManagerLocator
 ComponentList CommonServerComponentList();
 
 }  // namespace components

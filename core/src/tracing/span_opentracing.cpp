@@ -2,12 +2,13 @@
 
 #include <boost/container/small_vector.hpp>
 
-#include <logging/log_helper_impl.hpp>
 #include <userver/formats/json/string_builder.hpp>
 #include <userver/logging/impl/tag_writer.hpp>
 #include <userver/logging/log_extra.hpp>
-#include <userver/tracing/opentracing.hpp>
 #include <userver/tracing/tags.hpp>
+
+#include <logging/log_helper_impl.hpp>
+#include <tracing/opentracing_logger.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

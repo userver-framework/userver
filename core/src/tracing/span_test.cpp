@@ -7,11 +7,12 @@
 #include <userver/engine/sleep.hpp>
 #include <userver/formats/json/serialize.hpp>
 #include <userver/tracing/noop.hpp>
-#include <userver/tracing/opentracing.hpp>
 #include <userver/tracing/span.hpp>
 #include <userver/tracing/tracer.hpp>
 #include <userver/utest/utest.hpp>
 #include <userver/utils/regex.hpp>
+
+#include <tracing/opentracing_logger.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

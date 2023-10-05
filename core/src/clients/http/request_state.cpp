@@ -162,13 +162,14 @@ RequestState::RequestState(
     std::shared_ptr<impl::EasyWrapper>&& wrapper,
     std::shared_ptr<RequestStats>&& req_stats,
     const std::shared_ptr<DestinationStatistics>& dest_stats,
-    clients::dns::Resolver* resolver, impl::PluginPipeline& plugin_pipeline)
+    clients::dns::Resolver* resolver, impl::PluginPipeline& plugin_pipeline,
+    const tracing::TracingManagerBase& tracing_manager)
     : easy_(std::move(wrapper)),
       stats_(std::move(req_stats)),
       dest_stats_(dest_stats),
       original_timeout_(kDefaultTimeout),
       remote_timeout_(original_timeout_),
-      tracing_manager_{&tracing::kDefaultTracingManager},
+      tracing_manager_{tracing_manager},
       is_cancelled_(false),
       errorbuffer_(),
       resolver_{resolver},

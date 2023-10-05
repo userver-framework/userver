@@ -15,6 +15,7 @@ groups:
       - core/functional_tests/basic_chaos/dynamic_config_fallback.json
       - core/functional_tests/metrics/dynamic_config_fallback.json
       - core/functional_tests/uctl/dynamic_config_fallback.json
+      - core/functional_tests/tracing/dynamic_config_fallback.json
       - conan/test_package/hello_service/dynamic_config_fallback.json
       - core/functional_tests/cache_update/dynamic_config_fallback.json
       - samples/mysql_service/dynamic_config_fallback.json

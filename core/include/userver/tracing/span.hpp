@@ -133,17 +133,30 @@ class Span final {
   /// it is set and greater than the main log level of the Span.
   std::optional<logging::Level> GetLocalLogLevel() const;
 
-  /// Set link. Can be called only once.
+  /// Set link - a requst ID within a service. Can be called only once.
+  ///
+  /// Propagates within a single service, but not from client to server. A new
+  /// link is generated for the "root" request handling task
   void SetLink(std::string link);
 
-  /// Set parent_link. Can be called only once.
+  /// Set parent_link - an ID . Can be called only once.
   void SetParentLink(std::string parent_link);
 
+  /// Get link - a request ID within the service.
+  ///
+  /// Propagates within a single service, but not from client to server. A new
+  /// link is generated for the "root" request handling task
   std::string GetLink() const;
 
   std::string GetParentLink() const;
 
+  /// An ID of the request that does not change from service to service.
+  ///
+  /// Propagates both to sub-spans within a single service, and from client
+  /// to server
   const std::string& GetTraceId() const;
+
+  /// Identifies a specific span. It does not propagate
   const std::string& GetSpanId() const;
   const std::string& GetParentId() const;
 

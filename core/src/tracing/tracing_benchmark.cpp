@@ -3,7 +3,8 @@
 #include <userver/engine/run_standalone.hpp>
 #include <userver/logging/null_logger.hpp>
 #include <userver/tracing/noop.hpp>
-#include <userver/tracing/opentracing.hpp>
+
+#include <tracing/opentracing_logger.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

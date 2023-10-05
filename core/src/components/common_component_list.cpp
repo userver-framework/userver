@@ -14,6 +14,7 @@
 #include <userver/logging/component.hpp>
 #include <userver/os_signals/component.hpp>
 #include <userver/testsuite/testsuite_support.hpp>
+#include <userver/tracing/manager_component.hpp>
 #include <userver/utils/statistics/system_statistics_collector.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -35,6 +36,7 @@ ComponentList CommonComponentList() {
       .Append<components::SystemStatisticsCollector>()
       .Append<components::HttpClient>()
       .Append<components::HttpClient>("http-client-statistics")
+      .Append<tracing::DefaultTracingManagerLocator>()
       .Append<clients::dns::Component>()
       .Append<components::DynamicConfigClient>()
       .Append<components::DynamicConfigClientUpdater>()

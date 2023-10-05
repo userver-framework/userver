@@ -26,16 +26,29 @@ class TracingManagerComponentBase : public components::LoggableComponentBase,
 
 /// @ingroup userver_components
 ///
-/// @brief Locator component that provides access to the actual TracingManager
-/// that will be used in handlers and clients unless specified otherwise
+/// @brief Component that provides access to the actual TracingManager
+/// that is used in handlers and clients.
+///
+/// This component allows conversion of tracing formats and allows working with
+/// multiple tracing formats. For example:
+/// @code
+/// # yaml
+/// incomming-format: ['opentelemetry', 'taxi']
+/// new-requests-format: ['b3-alternative', 'opentelemetry']
+/// @endcode
+/// means that tracing data is extracted from OpenTelemetry headers if they
+/// were received or from Yandex-Taxi specific headers. The outgoing requests
+/// will have the tracing::Format::kB3Alternative headers and OpenTelemetry
+/// headers at the same time.
 ///
 /// The component can be configured in service config.
-/// If the config is not provided, then tracing::kDefaultTracingManager will be used
 ///
 /// ## Static options:
 /// Name | Description | Default value
 /// ---- | ----------- | -------------
-/// component-name | name of the component, that implements TracingManagerComponentBase | <use kDefaultTracingManager>
+/// component-name | name of the component, that implements TracingManagerComponentBase | <use tracing::GenericTracingManager with below settings>
+/// incomming-format | Array of incomming tracing formats supported by tracing::FormatFromString | ['taxi']
+/// new-requests-format | Send tracing data in those formats supported by tracing::FormatFromString | ['taxi']
 ///
 // clang-format on
 class DefaultTracingManagerLocator final
@@ -53,6 +66,7 @@ class DefaultTracingManagerLocator final
   static yaml_config::Schema GetStaticConfigSchema();
 
  private:
+  GenericTracingManager default_manager_;
   const TracingManagerBase& tracing_manager_;
 };
 
