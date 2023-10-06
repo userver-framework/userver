@@ -3130,6 +3130,7 @@
   "universal/include/userver/logging/log_extra.hpp":"taxi/uservices/userver/universal/include/userver/logging/log_extra.hpp",
   "universal/include/userver/logging/log_filepath.hpp":"taxi/uservices/userver/universal/include/userver/logging/log_filepath.hpp",
   "universal/include/userver/logging/log_helper.hpp":"taxi/uservices/userver/universal/include/userver/logging/log_helper.hpp",
+  "universal/include/userver/logging/log_helper_extras.hpp":"taxi/uservices/userver/universal/include/userver/logging/log_helper_extras.hpp",
   "universal/include/userver/logging/log_helper_fwd.hpp":"taxi/uservices/userver/universal/include/userver/logging/log_helper_fwd.hpp",
   "universal/include/userver/logging/null_logger.hpp":"taxi/uservices/userver/universal/include/userver/logging/null_logger.hpp",
   "universal/include/userver/logging/stacktrace_cache.hpp":"taxi/uservices/userver/universal/include/userver/logging/stacktrace_cache.hpp",

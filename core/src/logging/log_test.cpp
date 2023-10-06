@@ -4,6 +4,7 @@
 
 #include <logging/socket_logging_test.hpp>
 #include <userver/logging/log.hpp>
+#include <userver/logging/log_helper_extras.hpp>
 #include <userver/logging/logger.hpp>
 #include <userver/utest/utest.hpp>
 #include <userver/utils/async.hpp>
@@ -103,6 +104,23 @@ TEST_F(LoggingTest, DatetimeDate) {
             ToStringViaLogging(std::optional<utils::datetime::Date>{}));
   EXPECT_EQ("2023-04-08",
             ToStringViaLogging(std::optional<utils::datetime::Date>{date}));
+}
+
+TEST_F(LoggingTest, StdTuple) {
+  std::tuple<int> one{1234};
+  EXPECT_EQ("(1234)", ToStringViaLogging(one));
+
+  std::tuple<int, float, char, std::string> many{42, 3.14, 'c', "str"};
+  EXPECT_EQ("(42, 3.14, c, str)", ToStringViaLogging(many));
+
+  std::tuple<std::vector<int>> container{{1, 2, 3, 4}};
+  EXPECT_EQ("([1, 2, 3, 4])", ToStringViaLogging(container));
+
+  std::tuple<std::optional<int>, std::optional<int>> optionals{std::nullopt, 0};
+  EXPECT_EQ("((none), 0)", ToStringViaLogging(optionals));
+
+  std::tuple<> empty{};
+  EXPECT_EQ("()", ToStringViaLogging(empty));
 }
 
 UTEST_F(SocketLoggingTest, Test) {
