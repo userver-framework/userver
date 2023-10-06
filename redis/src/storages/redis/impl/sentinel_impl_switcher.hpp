@@ -93,7 +93,6 @@ class ClusterSentinelImplSwitcher : public SentinelImplBase {
   };
   Params params_;
 
-  USERVER_NAMESPACE::redis::RedisWaitConnected wait_connected_;
   utils::SwappingSmart<SentinelImplBase> impl_;
 
   engine::Task create_task_;

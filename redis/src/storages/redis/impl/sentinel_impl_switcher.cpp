@@ -6,6 +6,7 @@
 #include <userver/utils/async.hpp>
 
 #include <storages/redis/impl/cluster_sentinel_impl.hpp>
+#include "userver/storages/redis/impl/wait_connected_mode.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
@@ -57,7 +58,6 @@ void ClusterSentinelImplSwitcher::WaitConnectedDebug(bool allow_empty_slaves) {
 
 void ClusterSentinelImplSwitcher::WaitConnectedOnce(
     RedisWaitConnected wait_connected) {
-  wait_connected_ = wait_connected;
   auto impl = impl_.Get();
   UASSERT(impl);
   impl->WaitConnectedOnce(std::move(wait_connected));
@@ -173,9 +173,11 @@ void ClusterSentinelImplSwitcher::UpdateImpl(bool async, bool wait) {
         params_.mode);
     /// Wait using same settings that were requested by client
     if (wait) {
-      params_.sentinel_thread_control.RunInEvLoopBlocking(
+      params_.sentinel_thread_control.RunInEvLoopAsync(
           [&sentinel] { sentinel->Start(); });
-      sentinel->WaitConnectedOnce(wait_connected_);
+      redis::RedisWaitConnected wait_settings;
+      wait_settings.mode = WaitConnectedMode::kMasterAndSlave;
+      sentinel->WaitConnectedOnce(wait_settings);
     }
     if (enabled_by_config_ &&
         dynamic_cast<ClusterSentinelImpl*>(impl_.Get().get()) == nullptr) {
@@ -193,9 +195,11 @@ void ClusterSentinelImplSwitcher::UpdateImpl(bool async, bool wait) {
         params_.mode);
     /// Wait using same settings that were requested by client
     if (wait) {
-      params_.sentinel_thread_control.RunInEvLoopBlocking(
+      params_.sentinel_thread_control.RunInEvLoopAsync(
           [&sentinel] { sentinel->Start(); });
-      sentinel->WaitConnectedOnce(wait_connected_);
+      redis::RedisWaitConnected wait_settings;
+      wait_settings.mode = WaitConnectedMode::kMasterAndSlave;
+      sentinel->WaitConnectedOnce(wait_settings);
     }
     if (!enabled_by_config_ &&
         dynamic_cast<SentinelImpl*>(impl_.Get().get()) == nullptr) {

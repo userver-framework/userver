@@ -7,6 +7,7 @@
 #include <userver/concurrent/variable.hpp>
 #include <userver/rcu/rcu.hpp>
 #include <userver/storages/redis/impl/exception.hpp>
+#include <userver/storages/redis/impl/redis_state.hpp>
 #include <userver/storages/redis/impl/reply.hpp>
 #include <userver/utils/fast_scope_guard.hpp>
 #include <userver/utils/text.hpp>
@@ -121,8 +122,11 @@ inline void InvokeCommand(CommandPtr command, ReplyPtr&& reply) {
 
 }  // namespace
 
-class ClusterTopologyHolder {
+class ClusterTopologyHolder
+    : public std::enable_shared_from_this<ClusterTopologyHolder> {
  public:
+  using HostPort = std::string;
+
   ClusterTopologyHolder(
       const engine::ev::ThreadControl& sentinel_thread_control,
       const std::shared_ptr<engine::ev::ThreadPool>& redis_thread_pool,
@@ -142,6 +146,13 @@ class ClusterTopologyHolder {
         explore_nodes_timer_(
             ev_thread_, [this] { ExploreNodes(); },
             kSentinelGetHostsCheckInterval),
+        create_nodes_watch_(ev_thread_,
+                            [this] {
+                              // https://github.com/boostorg/signals2/issues/59
+                              // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDelete)
+                              CreateNodes();
+                              create_nodes_watch_.Start();
+                            }),
         sentinels_process_creation_(
             ev_thread_,
             [this] {
@@ -185,6 +196,7 @@ class ClusterTopologyHolder {
   void Start() {
     update_topology_watch_.Start();
     update_topology_timer_.Start();
+    create_nodes_watch_.Start();
     explore_nodes_timer_.Start();
     sentinels_process_creation_.Start();
   }
@@ -278,8 +290,13 @@ class ClusterTopologyHolder {
   void UpdateClusterTopology();
   /// @}
 
+  /// Discover actual nodes in cluster
   engine::ev::PeriodicWatcher explore_nodes_timer_;
   void ExploreNodes();
+
+  /// Create connections to discovered nodes
+  engine::ev::AsyncWatcher create_nodes_watch_;
+  void CreateNodes();
 
   engine::ev::PeriodicWatcher sentinels_process_creation_;
 
@@ -300,6 +317,8 @@ class ClusterTopologyHolder {
       commands_buffering_settings_;
   concurrent::Variable<ReplicationMonitoringSettings, std::mutex>
       monitoring_settings_;
+  concurrent::Variable<std::unordered_set<HostPort>, std::mutex>
+      nodes_to_create_;
 
   static std::atomic<size_t> cluster_slots_call_counter_;
 };
@@ -312,7 +331,7 @@ enum class ClusterNodesResponseStatus {
   kFail,
   kNonCluster,
 };
-ClusterNodesResponseStatus ParseCLusterNodesResponse(
+ClusterNodesResponseStatus ParseClusterNodesResponse(
     const ReplyPtr& reply, std::unordered_set<std::string>& res) {
   UASSERT(reply);
   if (reply->IsUnknownCommandError()) {
@@ -363,27 +382,27 @@ void ClusterTopologyHolder::ExploreNodes() {
 
   const auto cmd = PrepareCommand(
       {"CLUSTER", "NODES"}, [this](const CommandPtr& /*cmd*/, ReplyPtr reply) {
-        std::unordered_set<std::string> host_ports;
+        std::unordered_set<HostPort> host_ports;
+        std::unordered_set<HostPort> host_ports_to_create;
 
-        if (ParseCLusterNodesResponse(reply, host_ports) !=
+        if (ParseClusterNodesResponse(reply, host_ports) !=
             ClusterNodesResponseStatus::kOk) {
           LOG_WARNING() << "Failed to parse CLUSTER NODES response";
           return;
         }
 
-        bool got_new_node = false;
         for (auto&& host_port : host_ports) {
-          if (nodes_.Get(host_port)) {
-            /// already have this connection
-            continue;
+          if (!nodes_.Get(host_port)) {
+            host_ports_to_create.insert(std::move(host_port));
           }
-
-          auto instance = CreateRedisInstance(host_port);
-          nodes_.Insert(std::move(host_port), std::move(instance));
-          got_new_node = true;
         }
-        if (got_new_node) {
-          LOG_DEBUG() << "Got new cluster nodes";
+
+        if (!host_ports_to_create.empty()) {
+          {
+            auto ptr = nodes_to_create_.Lock();
+            std::swap(*ptr, host_ports_to_create);
+          }
+          create_nodes_watch_.Send();
         }
 
         if (!is_nodes_received_.exchange(true)) {
@@ -391,6 +410,31 @@ void ClusterTopologyHolder::ExploreNodes() {
         }
       });
   sentinels_->AsyncCommand(cmd);
+}
+
+void ClusterTopologyHolder::CreateNodes() {
+  std::unordered_set<HostPort> host_ports_to_create;
+  {
+    auto ptr = nodes_to_create_.Lock();
+    std::swap(*ptr, host_ports_to_create);
+  }
+
+  for (auto&& host_port : host_ports_to_create) {
+    auto instance = CreateRedisInstance(host_port);
+    instance->signal_state_change.connect(
+        [topology_holder_wp = weak_from_this()](redis::RedisState /*state*/) {
+          auto topology_holder = topology_holder_wp.lock();
+          if (!topology_holder) {
+            return;
+          }
+          topology_holder->cv_.NotifyAll();
+        });
+    nodes_.Insert(std::move(host_port), std::move(instance));
+  }
+
+  if (!is_nodes_received_.exchange(true)) {
+    SendUpdateClusterTopology();
+  }
 }
 
 void ClusterSentinelImpl::ProcessWaitingCommands() {
@@ -513,6 +557,7 @@ void ClusterTopologyHolder::UpdateClusterTopology() {
           return;
         }
         is_topology_received_ = true;
+        cv_.NotifyAll();
 
         LOG_DEBUG() << "Cluster topology updated to version"
                     << current_topology_version_.load();
@@ -545,7 +590,7 @@ ClusterSentinelImpl::ClusterSentinelImpl(
           std::make_unique<engine::ev::PeriodicWatcher>(
               ev_thread_, [this] { ProcessWaitingCommands(); },
               kSentinelGetHostsCheckInterval)),
-      topology_holder_(std::make_unique<ClusterTopologyHolder>(
+      topology_holder_(std::make_shared<ClusterTopologyHolder>(
           ev_thread_, redis_thread_pool, shard_group_name, password, shards,
           conns)),
       shard_group_name_(std::move(shard_group_name)),

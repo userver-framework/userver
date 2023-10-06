@@ -2,8 +2,6 @@ import asyncio
 import logging
 import time
 
-import redis
-
 KEYS_SEQ_LEN = 20  # enough sequential keys to test all slots
 REDIS_PORT = 6379
 FAILOVER_DEADLINE_SEC = 30  # maximum time allowed to finish failover
@@ -80,44 +78,6 @@ async def test_hard_failover(service_client, redis_cluster_topology):
     await _assert_read_all_slots(service_client, 'hf_key2', 'cde')
 
 
-def _execute_command(node, cmd):
-    ret = node.container.exec_run(cmd.split())
-    if ret.exit_code:
-        logger.error(
-            'Container exec_run failed, cmd = %r, result = %r', cmd, ret,
-        )
-        raise RuntimeError('Failed to create node')
-
-
-def _create_node(entry_node, new_node, replica=False):
-    entry_node_host = entry_node.get_ipv6()
-    new_node_host = new_node.get_ipv6()
-    cmd = (
-        f'redis-cli --cluster add-node '
-        f'{new_node_host}:{REDIS_PORT} '
-        f'{entry_node_host}:{REDIS_PORT}'
-    )
-    if replica:
-        cmd += ' --cluster-slave'
-    _execute_command(entry_node, cmd)
-
-
-def _move_hash_slots(from_node, to_node, hash_slot_count):
-    from_host = from_node.get_ipv6()
-    to_host = to_node.get_ipv6()
-    from_client = redis.StrictRedis(host=from_host, port=REDIS_PORT)
-    to_client = redis.StrictRedis(host=to_host, port=REDIS_PORT)
-    from_id = from_client.cluster('myid').decode()
-    to_id = to_client.cluster('myid').decode()
-    cmd = (
-        f'redis-cli --cluster reshard {from_host}:{REDIS_PORT} '
-        f'--cluster-from {from_id} '
-        f'--cluster-to {to_id} --cluster-slots {hash_slot_count} '
-        f'--cluster-yes'
-    )
-    _execute_command(from_node, cmd)
-
-
 async def test_add_shard(service_client, redis_cluster_topology):
     # Write enough different keys to have something in every slot
     assert await _check_write_all_slots(service_client, 'hf_key1', 'abc')
@@ -140,3 +100,25 @@ async def test_add_shard(service_client, redis_cluster_topology):
     # check reading from the remaining replica
     await _assert_read_all_slots(service_client, 'hf_key1', 'abc')
     await _assert_read_all_slots(service_client, 'hf_key2', 'cde')
+
+
+async def test_cluster_switcher(
+        service_client, redis_cluster_topology, dynamic_config,
+):
+    """
+    Check service reacts correctly on dynamic config change.
+    """
+    # Write enough different keys to have something in every slot
+    assert await _check_write_all_slots(service_client, 'hf_key1', 'abc')
+
+    # test we can turn autotopology off
+    dynamic_config.set_values({'REDIS_CLUSTER_AUTOTOPOLOGY_ENABLED_V2': False})
+    await asyncio.sleep(10)
+    await _assert_read_all_slots(service_client, 'hf_key1', 'abc')
+
+    # test we can turn autotopology on again
+    dynamic_config.set_values({'REDIS_CLUSTER_AUTOTOPOLOGY_ENABLED_V2': True})
+    await asyncio.sleep(10)
+    await _assert_read_all_slots(service_client, 'hf_key1', 'abc')
+    redis_cluster_topology.add_shard()
+    await _assert_read_all_slots(service_client, 'hf_key1', 'abc')

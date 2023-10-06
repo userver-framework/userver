@@ -14,7 +14,8 @@ namespace redis {
 
 /// This class holds redis connection and automatically reconnects if
 /// disconnected
-class RedisConnectionHolder {
+class RedisConnectionHolder
+    : public std::enable_shared_from_this<RedisConnectionHolder> {
  public:
   RedisConnectionHolder(
       const engine::ev::ThreadControl& sentinel_thread_control,
@@ -32,6 +33,9 @@ class RedisConnectionHolder {
   void SetCommandsBufferingSettings(CommandsBufferingSettings settings);
 
   Redis::State GetState() const;
+
+  // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
+  boost::signals2::signal<void(Redis::State)> signal_state_change;
 
  private:
   void CreateConnection();

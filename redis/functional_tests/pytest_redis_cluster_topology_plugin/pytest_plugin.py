@@ -266,6 +266,8 @@ class RedisClusterTopology:
         self._wait_cluster_nodes_known(original_replicas, 6)
         self._wait_cluster_nodes_ready(original_masters, 6)
         self._wait_cluster_nodes_ready(original_replicas, 6)
+        new_master.stop()
+        new_replica.stop()
 
         self.nodes = original_masters + original_replicas
         # wait until just removed node will be removed from ban-list to allow
@@ -399,7 +401,7 @@ class RedisClusterTopology:
         return len(ports)
 
 
-class RedisClusterTopologyPluginVVV:
+class RedisClusterTopologyPlugin:
     def __init__(self):
         self.ports = [
             port_manager.get_port() for _ in range(CLUSTER_MINIMUM_NODES_COUNT)
@@ -430,6 +432,6 @@ class RedisClusterTopologyPluginVVV:
 
 def pytest_configure(config):
     config.pluginmanager.register(
-        RedisClusterTopologyPluginVVV(),
+        RedisClusterTopologyPlugin(),
         '_redis_cluster_topology_no_docker_plugin',
     )

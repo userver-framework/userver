@@ -85,7 +85,7 @@ class ClusterSentinelImpl : public SentinelImplBase {
   void ProcessWaitingCommands();
   void ProcessWaitingCommandsOnStop();
 
-  std::unique_ptr<ClusterTopologyHolder> topology_holder_;
+  std::shared_ptr<ClusterTopologyHolder> topology_holder_;
 
   std::string shard_group_name_;
   std::vector<ConnectionInfo> conns_;

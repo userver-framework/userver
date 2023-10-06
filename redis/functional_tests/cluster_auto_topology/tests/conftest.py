@@ -5,14 +5,10 @@ import pytest
 
 pytest_plugins = [
     'pytest_userver.plugins.redis',
+    'pytest_userver.plugins.dynamic_config',
     'taxi.uservices.userver.redis.functional_tests.'
     'pytest_redis_cluster_topology_plugin.pytest_plugin',
 ]
-
-
-@pytest.fixture(scope='session')
-def dynamic_config_fallback_patch():
-    return {'REDIS_CLUSTER_AUTOTOPOLOGY_ENABLED': True}
 
 
 @pytest.fixture(scope='session')
@@ -27,6 +23,11 @@ def service_env(redis_cluster_ports, redis_cluster_topology_session):
     secdist_config = {
         'redis_settings': {
             'redis-cluster': {
+                'password': '',
+                'sentinels': cluster_hosts,
+                'shards': cluster_shards,
+            },
+            'redis-cluster2': {
                 'password': '',
                 'sentinels': cluster_hosts,
                 'shards': cluster_shards,

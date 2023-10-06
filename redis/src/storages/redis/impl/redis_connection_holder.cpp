@@ -21,6 +21,8 @@ RedisConnectionHolder::RedisConnectionHolder(
       connection_check_timer_(
           ev_thread_, [this] { EnsureConnected(); },
           kCheckRedisConnectedInterval) {
+  // https://github.com/boostorg/signals2/issues/59
+  // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDelete)
   CreateConnection();
   ev_thread_.RunInEvLoopAsync([this] { connection_check_timer_.Start(); });
 }
@@ -39,15 +41,25 @@ void RedisConnectionHolder::EnsureConnected() {
                 redis->GetState() == Redis::State::kInit)) {
     return;
   }
+  // https://github.com/boostorg/signals2/issues/59
+  // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDelete)
   CreateConnection();
 }
 
 void RedisConnectionHolder::CreateConnection() {
   RedisCreationSettings settings;
-  /// TODO: Do we have any config for this mode?
   /// Here we allow read from replicas possibly stale data
+  /// This does not affect connections to masters
   settings.send_readonly = true;
   auto instance = std::make_shared<Redis>(redis_thread_pool_, settings);
+  instance->signal_state_change.connect(
+      [this, weak_ptr{weak_from_this()}](Redis::State state) {
+        const auto ptr = weak_ptr.lock();
+        if (!ptr) return;
+
+        signal_state_change(state);
+      });
+
   {
     auto settings_ptr = commands_buffering_settings_.Lock();
     if (settings_ptr->has_value()) {
