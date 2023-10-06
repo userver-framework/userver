@@ -10,5 +10,5 @@ async def test_corrupt_data(grpc_ch, service_client, gate, case):
     for _ in range(gate.connections_count()):
         await requests_client.unavailable_request(service_client, gate, case)
 
-    await requests_client.close_connection(gate, grpc_ch)
+    await requests_client.close_connection(gate, grpc_ch, service_client)
     await requests_client.check_200_for(case)(grpc_ch, service_client, gate)
