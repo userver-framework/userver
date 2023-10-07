@@ -57,9 +57,6 @@ components_manager:
             method: GET
             task_processor: main-task-processor
 
-        tracer:
-            service-name: redis-metrics
-
         dynamic-config:
             fs-cache-path: ''
 

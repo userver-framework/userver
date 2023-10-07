@@ -6,7 +6,6 @@
 #include <userver/components/logging_configurator.hpp>
 #include <userver/components/manager_controller_component.hpp>
 #include <userver/components/statistics_storage.hpp>
-#include <userver/components/tracer.hpp>
 #include <userver/dynamic_config/client/component.hpp>
 #include <userver/dynamic_config/storage/component.hpp>
 #include <userver/dynamic_config/updater/component.hpp>
@@ -14,6 +13,7 @@
 #include <userver/logging/component.hpp>
 #include <userver/os_signals/component.hpp>
 #include <userver/testsuite/testsuite_support.hpp>
+#include <userver/tracing/component.hpp>
 #include <userver/tracing/manager_component.hpp>
 #include <userver/utils/statistics/system_statistics_collector.hpp>
 

@@ -48,8 +48,6 @@ components_manager:
       loggers:
         default:
           file_path: '@null'
-    tracer:
-        service-name: config-service
     statistics-storage:
       # Nothing
     dynamic-config:

@@ -58,9 +58,6 @@ components_manager:
             method: GET
             task_processor: main-task-processor
 
-        tracer:
-            service-name: clickhouse-basic-chaos
-
         dynamic-config:
             fs-cache-path: ''
         dynamic-config-fallbacks:

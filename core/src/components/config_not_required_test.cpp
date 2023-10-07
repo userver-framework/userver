@@ -4,9 +4,9 @@
 #include <userver/components/loggable_component_base.hpp>
 #include <userver/components/run.hpp>
 #include <userver/components/statistics_storage.hpp>
-#include <userver/components/tracer.hpp>
 #include <userver/logging/component.hpp>
 #include <userver/os_signals/component.hpp>
+#include <userver/tracing/component.hpp>
 #include <userver/utils/algo.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 

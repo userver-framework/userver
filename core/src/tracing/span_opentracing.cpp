@@ -8,7 +8,6 @@
 #include <userver/tracing/tags.hpp>
 
 #include <logging/log_helper_impl.hpp>
-#include <tracing/opentracing_logger.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -81,12 +80,12 @@ constexpr std::string_view kDuration = "duration";
 }  // namespace
 
 void Span::Impl::LogOpenTracing() const {
-  auto logger = tracing::OpentracingLogger();
-  if (!logger) {
+  if (!tracer_) {
     return;
   }
 
-  {
+  auto logger = tracer_->GetOptionalLogger();
+  if (logger) {
     const DetachLocalSpansScope ignore_local_span;
     logging::LogHelper lh(*logger, log_level_);
     DoLogOpenTracing(lh.GetTagWriterAfterText({}));

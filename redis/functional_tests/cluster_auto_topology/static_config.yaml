@@ -52,9 +52,6 @@ components_manager:
                     level: debug
                     overflow_behavior: discard
 
-        tracer:
-            service-name: postgres-basic-chaos
-
         dynamic-config:
             fs-cache-path: ''
         dynamic-config-fallbacks:

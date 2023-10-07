@@ -2,9 +2,7 @@
 
 #include <userver/engine/run_standalone.hpp>
 #include <userver/logging/null_logger.hpp>
-#include <userver/tracing/noop.hpp>
-
-#include <tracing/opentracing_logger.hpp>
+#include <userver/tracing/tracer.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -12,7 +10,7 @@ namespace {
 
 void tracing_noop_ctr(benchmark::State& state) {
   engine::RunStandalone([&] {
-    auto tracer = tracing::MakeNoopTracer("test_service");
+    auto tracer = tracing::MakeTracer("test_service", {});
 
     for (auto _ : state)
       benchmark::DoNotOptimize(tracer->CreateSpanWithoutParent("name"));
@@ -27,7 +25,7 @@ void tracing_happy_log(benchmark::State& state) {
     // TODO Null logger ignores log level and keeps kNone, this benchmark
     //  measures nothing. Should use TpLogger instead.
     const logging::DefaultLoggerLevelScope level_scope{logging::Level::kInfo};
-    auto tracer = tracing::MakeNoopTracer("test_service");
+    auto tracer = tracing::MakeTracer("test_service", {});
 
     for (auto _ : state)
       benchmark::DoNotOptimize(tracer->CreateSpanWithoutParent("name"));
@@ -46,12 +44,10 @@ tracing::Span GetSpanWithOpentracingHttpTags(tracing::TracerPtr tracer) {
 void tracing_opentracing_ctr(benchmark::State& state) {
   auto logger = logging::MakeNullLogger();
   engine::RunStandalone([&] {
-    auto tracer = tracing::MakeNoopTracer("test_service");
-    tracing::SetOpentracingLogger(logger);
+    auto tracer = tracing::MakeTracer("test_service", logger);
     for (auto _ : state) {
       benchmark::DoNotOptimize(GetSpanWithOpentracingHttpTags(tracer));
     }
-    tracing::SetOpentracingLogger({});
   });
 }
 BENCHMARK(tracing_opentracing_ctr);

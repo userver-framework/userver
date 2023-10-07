@@ -9,8 +9,6 @@ components_manager:
                     file_path: '@stderr'
                     level: debug
                     overflow_behavior: discard
-        tracer:
-            service-name: grpc-service
         dynamic-config:
             fs-cache-path: ''
         dynamic-config-fallbacks:

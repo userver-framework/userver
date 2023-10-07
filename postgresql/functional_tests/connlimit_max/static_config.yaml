@@ -48,9 +48,6 @@ components_manager:
             method: GET
             task_processor: main-task-processor
 
-        tracer:
-            service-name: postgres-basic-chaos
-
         dynamic-config:
             fs-cache-path: ''
         dynamic-config-fallbacks:

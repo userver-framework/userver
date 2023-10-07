@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file userver/components/tracer.hpp
+/// @file userver/tracing/component.hpp
 /// @brief @copybrief components::Tracer
 
 #include <userver/components/component_fwd.hpp>
@@ -24,7 +24,7 @@ namespace components {
 /// ## Static options:
 /// Name | Description | Default value
 /// ---- | ----------- | -------------
-/// service-name | name of the service to write in traces | -
+/// service-name | name of the service to write in traces | ''
 /// tracer | type of the tracer to trace, currently supported only 'native' | 'native'
 ///
 /// ## Static configuration example:
@@ -45,6 +45,9 @@ class Tracer final : public impl::ComponentBase {
 
 template <>
 inline constexpr bool kHasValidate<Tracer> = true;
+
+template <>
+inline constexpr auto kConfigFileMode<Tracer> = ConfigFileMode::kNotRequired;
 
 }  // namespace components
 

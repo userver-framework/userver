@@ -34,9 +34,6 @@ components_manager:
                     level: debug
                     overflow_behavior: discard
 
-        tracer:
-            service-name: mongo-service
-
         dynamic-config:
             fs-cache-path: ''
         dynamic-config-fallbacks:

@@ -171,7 +171,7 @@ components_manager:
             throttling_enabled: false
         testsuite-support:
             testsuite-periodic-dumps-enabled: $userver-dumps-periodic
-        tracer:
+        tracer:  # Component that helps to trace execution times and requests in logs.
             service-name: $service-name
             tracer: native
     coro_pool:

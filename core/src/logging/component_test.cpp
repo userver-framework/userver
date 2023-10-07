@@ -8,12 +8,12 @@
 #include <userver/components/component_list.hpp>
 #include <userver/components/loggable_component_base.hpp>
 #include <userver/components/run.hpp>
-#include <userver/components/tracer.hpp>
 #include <userver/fs/blocking/read.hpp>
 #include <userver/fs/blocking/temp_directory.hpp>
 #include <userver/fs/blocking/write.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/os_signals/component.hpp>
+#include <userver/tracing/component.hpp>
 #include <userver/utest/utest.hpp>
 
 USERVER_NAMESPACE_BEGIN

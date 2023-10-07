@@ -36,9 +36,6 @@ components_manager:
                     level: debug
                     overflow_behavior: discard
 
-        tracer:
-            service-name: clickhouse-basic-chaos
-
         dynamic-config:
             fs-cache-path: ''
         dynamic-config-fallbacks:

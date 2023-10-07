@@ -6,13 +6,10 @@
 #include <tracing/no_log_spans.hpp>
 #include <userver/engine/sleep.hpp>
 #include <userver/formats/json/serialize.hpp>
-#include <userver/tracing/noop.hpp>
 #include <userver/tracing/span.hpp>
 #include <userver/tracing/tracer.hpp>
 #include <userver/utest/utest.hpp>
 #include <userver/utils/regex.hpp>
-
-#include <tracing/opentracing_logger.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -23,14 +20,17 @@ class OpentracingSpan : public Span {
   OpentracingSpan()
       : opentracing_logger_(
             MakeNamedStreamLogger("openstracing", logging::Format::kTskv)) {
-    tracing::SetOpentracingLogger(opentracing_logger_.logger);
+    tracing::Tracer::SetTracer(
+        tracing::MakeTracer("service-test-name", opentracing_logger_.logger));
 
-    // Discard logs from SetOpentracingLogger
+    // Discard logs
     logging::LogFlush(*opentracing_logger_.logger);
     opentracing_logger_.stream.str({});
   }
 
-  ~OpentracingSpan() override { tracing::SetOpentracingLogger({}); }
+  ~OpentracingSpan() override {
+    tracing::Tracer::SetTracer(tracing::MakeTracer({}, {}));
+  }
 
   // NOLINTNEXTLINE(readability-make-member-function-const)
   void FlushOpentracing() { logging::LogFlush(*opentracing_logger_.logger); }
@@ -212,7 +212,8 @@ UTEST_F(OpentracingSpan, Tags) {
 }
 
 UTEST_F(OpentracingSpan, FromTracerWithServiceName) {
-  auto tracer = tracing::MakeNoopTracer("test_service");
+  auto tracer = tracing::MakeTracer(
+      "test_service", tracing::Tracer::GetTracer()->GetOptionalLogger());
   {
     tracing::Span span(tracer, "span_name", nullptr,
                        tracing::ReferenceType::kChild);
@@ -365,7 +366,7 @@ UTEST_F(Span, LowerLocalLogLevel) {
 }
 
 UTEST_F(Span, ConstructFromTracer) {
-  auto tracer = tracing::MakeNoopTracer("test_service");
+  auto tracer = tracing::MakeTracer("test_service", {});
 
   tracing::Span span(tracer, "name", nullptr, tracing::ReferenceType::kChild);
   span.SetLink("some_link");
@@ -561,7 +562,7 @@ UTEST_F(Span, NoLogWithSetLogLevel) {
 }
 
 UTEST_F(Span, ForeignSpan) {
-  auto tracer = tracing::MakeNoopTracer("test_service");
+  auto tracer = tracing::MakeTracer("test_service", {});
 
   tracing::Span local_span(tracer, "local", nullptr,
                            tracing::ReferenceType::kChild);

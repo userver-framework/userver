@@ -64,8 +64,6 @@ components_manager:
         default:
           file_path: '@null'
           level: warning
-    tracer:
-        service-name: config-service
     dynamic-config:
       fs-cache-path: $runtime_config_path
       fs-task-processor: main-task-processor

@@ -38,9 +38,6 @@ components_manager:
                     level: debug
                     overflow_behavior: discard                # Drop logs if the system is too busy to write them down.
 
-        tracer:                                               # Component that helps to trace execution times and requests in logs.
-            service-name: rabbitmq-metrics
-
         dynamic-config:                                       # Dynamic config storage options, do nothing
             fs-cache-path: ''
         dynamic-config-fallbacks:                             # Load options from file and push them into the dynamic config storage.

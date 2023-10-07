@@ -10,8 +10,6 @@
 #include <userver/utest/default_logger_fixture.hpp>
 #include <userver/utest/utest.hpp>
 
-#include <tracing/opentracing_logger.hpp>
-
 USERVER_NAMESPACE_BEGIN
 
 namespace tests {
@@ -60,8 +58,6 @@ components_manager:
         default:
           file_path: $logger_file_path
           format: ltsv
-    tracer:
-        service-name: config-service
     statistics-storage:
       # Nothing
     dynamic-config:
@@ -75,17 +71,11 @@ components_manager:
 config_vars: )";
 
 struct TracingGuard final {
-  TracingGuard()
-      : opentracing_logger(tracing::OpentracingLogger()),
-        tracer(tracing::Tracer::GetTracer()) {}
+  TracingGuard() : tracer(tracing::Tracer::GetTracer()) {}
 
   ~TracingGuard() {
-    if (tracing::Tracer::GetTracer() != tracer ||
-        tracing::OpentracingLogger() != opentracing_logger) {
-      engine::RunStandalone([&] {
-        tracing::Tracer::SetTracer(tracer);
-        tracing::SetOpentracingLogger(opentracing_logger);
-      });
+    if (tracing::Tracer::GetTracer() != tracer) {
+      engine::RunStandalone([&] { tracing::Tracer::SetTracer(tracer); });
     }
   }
 
