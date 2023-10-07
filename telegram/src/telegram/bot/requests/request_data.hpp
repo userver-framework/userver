@@ -8,8 +8,6 @@
 
 #include <userver/utils/assert.hpp>
 
-#include <userver/logging/log.hpp>
-
 #include <variant>
 
 USERVER_NAMESPACE_BEGIN
@@ -38,8 +36,6 @@ void FillFormSection(clients::http::Form& form,
 
   std::string content = formats::json::ToString(
         formats::json::ValueBuilder(field).ExtractValue());
-
-  LOG_INFO() << "field_name: " << field_name << "as json";
 
   form.AddContent(field_name,
                   content,
