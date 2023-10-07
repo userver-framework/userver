@@ -1,10 +1,9 @@
 #pragma once
 
-#include <functional>
-
 #include <boost/intrusive_ptr.hpp>
 
 #include <engine/ev/thread_control.hpp>
+#include <engine/task/sleep_state.hpp>
 #include <userver/engine/deadline.hpp>
 #include <userver/utils/fast_pimpl.hpp>
 
@@ -18,9 +17,6 @@ class TaskContext;
 // Not thread-safe, IOW you cannot call Start() and Stop() in parallel.
 class ContextTimer final {
  public:
-  // calls on_timer_func() in event loop
-  using Func = std::function<void(TaskContext&)>;
-
   ContextTimer();
 
   ContextTimer(const ContextTimer&) = delete;
@@ -31,15 +27,23 @@ class ContextTimer final {
 
   bool WasStarted() const noexcept;
 
-  /// Asynchronously starts the timer.
+  /// Asynchronously starts the timer with cancel request.
   /// Prolongs lifetime of the context until Finalize().
-  void Start(boost::intrusive_ptr<TaskContext> context,
-             ev::TimerThreadControl thread_control, Func&& on_timer_func,
-             Deadline deadline);
+  void StartCancel(boost::intrusive_ptr<TaskContext> context,
+                   ev::TimerThreadControl& thread_control, Deadline deadline);
+
+  /// Asynchronously starts the timer with wakeup request.
+  void StartWakeup(boost::intrusive_ptr<TaskContext> context,
+                   ev::TimerThreadControl& thread_control, Deadline deadline,
+                   SleepState::Epoch sleep_epoch);
 
   /// Restarts a running timer with specified params. More efficient than
   /// calling Stop() + Start().
-  void Restart(Func&& on_timer_func, Deadline deadline);
+  void RestartCancel(Deadline deadline);
+
+  /// Restarts a running timer with specified params. More efficient than
+  /// calling Stop() + Start().
+  void RestartWakeup(Deadline deadline, SleepState::Epoch sleep_epoch);
 
   /// Asynchronously stops the timer and destroys all held resources.
   /// Invalidates the Timer and makes it unable to be restarted,
@@ -49,7 +53,7 @@ class ContextTimer final {
 
  private:
   class Impl;
-  utils::FastPimpl<Impl, 336, 16> impl_;
+  utils::FastPimpl<Impl, 160, 16> impl_;
 };
 
 }  // namespace engine::impl

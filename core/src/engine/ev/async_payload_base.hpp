@@ -19,7 +19,10 @@ class AsyncPayloadBase : public concurrent::impl::SinglyLinkedBaseHook {
   AsyncPayloadBase& operator=(AsyncPayloadBase&&) = delete;
 
   // Must be called on an ev thread.
-  void PerformAndRelease() { perform_and_release_func_(*this); }
+  void PerformAndRelease() {
+    UASSERT(perform_and_release_func_);
+    perform_and_release_func_(*this);
+  }
 
  protected:
   using PerformAndReleaseFunc = void (*)(AsyncPayloadBase&);
@@ -30,11 +33,16 @@ class AsyncPayloadBase : public concurrent::impl::SinglyLinkedBaseHook {
     UASSERT(perform_and_release_func_);
   }
 
+  void DebugReset() noexcept {
+    // intentionally doing nothing in Release
+    UASSERT(std::exchange(perform_and_release_func_, nullptr));
+  }
+
   // Prohibit destruction via pointer to base.
   ~AsyncPayloadBase() = default;
 
  private:
-  const PerformAndReleaseFunc perform_and_release_func_;
+  PerformAndReleaseFunc perform_and_release_func_;
 };
 
 template <typename Derived>
@@ -51,23 +59,17 @@ class SingleShotAsyncPayload : public AsyncPayloadBase {
  private:
   static void PerformAndReleaseImpl(AsyncPayloadBase& base) {
     auto& self = static_cast<SingleShotAsyncPayload&>(base);
-#ifndef NDEBUG
-    UASSERT(!self.was_performed_);
-    self.was_performed_ = true;
-#endif
+    self.DebugReset();  // detect if this is called for the second time
+
     static_cast<Derived&>(self).DoPerformAndRelease();
     // *this may be destroyed at this point
   }
-
-#ifndef NDEBUG
-  bool was_performed_{false};
-#endif
 };
 
 template <typename Derived>
 class MultiShotAsyncPayload : public AsyncPayloadBase {
  public:
-  MultiShotAsyncPayload() : AsyncPayloadBase(&PerformAndReleaseImpl) {
+  MultiShotAsyncPayload() noexcept : AsyncPayloadBase(&PerformAndReleaseImpl) {
     static_assert(std::is_base_of_v<MultiShotAsyncPayload, Derived>);
   }
 
@@ -82,7 +84,7 @@ class MultiShotAsyncPayload : public AsyncPayloadBase {
   // in parallel with an already enqueued operation running on the ev thread.
   // DoPerformAndRelease should be prepared to such concurrent access, as well
   // as to double-execution with the same data.
-  bool PrepareEnqueue() {
+  bool PrepareEnqueue() noexcept {
     // synchronizes-with exchange in PerformAndReleaseImpl.
     // We need make previous stores in the calling thread visible
     // to the ev thread in case is_in_queue_ was 'true'.

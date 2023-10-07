@@ -340,39 +340,31 @@ TaskContext::WakeupSource TaskContext::Sleep(WaitStrategy& wait_strategy) {
   return wakeup_source_;
 }
 
-template <typename Func>
-void TaskContext::ArmTimer(Deadline deadline, Func&& func) {
-  static_assert(std::is_invocable_v<const Func&, TaskContext&>);
-
-  if (!deadline.IsReachable()) {
-    return;
+void TaskContext::ArmDeadlineTimer(Deadline deadline,
+                                   SleepState::Epoch sleep_epoch) {
+  UASSERT(deadline.IsReachable());
+  if (deadline_timer_.WasStarted()) {
+    deadline_timer_.RestartWakeup(deadline, sleep_epoch);
+  } else {
+    deadline_timer_.StartWakeup(
+        boost::intrusive_ptr{this},
+        task_processor_.EventThreadPool().NextTimerThread(), deadline,
+        sleep_epoch);
   }
+}
 
-  if (deadline.IsReached()) {
-    func(*this);
+void TaskContext::ArmCancellationTimer() {
+  if (!cancel_deadline_.IsReachable()) {
     return;
   }
 
   if (deadline_timer_.WasStarted()) {
-    deadline_timer_.Restart(std::forward<Func>(func), deadline);
+    deadline_timer_.RestartCancel(cancel_deadline_);
   } else {
-    deadline_timer_.Start(boost::intrusive_ptr{this},
-                          task_processor_.EventThreadPool().NextTimerThread(),
-                          std::forward<Func>(func), deadline);
+    deadline_timer_.StartCancel(
+        boost::intrusive_ptr{this},
+        task_processor_.EventThreadPool().NextTimerThread(), cancel_deadline_);
   }
-}
-
-void TaskContext::ArmDeadlineTimer(Deadline deadline,
-                                   SleepState::Epoch sleep_epoch) {
-  ArmTimer(deadline, [sleep_epoch](TaskContext& self) {
-    self.Wakeup(WakeupSource::kDeadlineTimer, sleep_epoch);
-  });
-}
-
-void TaskContext::ArmCancellationTimer() {
-  ArmTimer(cancel_deadline_, [](TaskContext& self) {
-    self.RequestCancel(TaskCancellationReason::kDeadline);
-  });
 }
 
 bool TaskContext::ShouldSchedule(SleepState::Flags prev_flags,
