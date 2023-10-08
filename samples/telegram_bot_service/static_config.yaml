@@ -23,6 +23,19 @@ components_manager:
         dns-client:                     # Asynchronous DNS component
             fs-task-processor: fs-task-processor
 
+        testsuite-support:
+        tests-control:
+            # Some options from server::handlers::HttpHandlerBase
+            path: /tests/{action}
+            method: POST
+            task_processor: main-task-processor
+
+        server:
+            # ...
+            listener:                 # configuring the main listening socket...
+                port: 8080            # ...to listen on this port and...
+                task_processor: main-task-processor    # ...process incoming requests on this task processor.
+
         logging:
             fs-task-processor: fs-task-processor
             loggers:

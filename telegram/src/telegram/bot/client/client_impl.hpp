@@ -12,7 +12,8 @@ class ClientImpl : public Client {
 public:
   ClientImpl(clients::http::Client& http_client,
              std::string bot_token,
-             std::string tg_fqdn);
+             std::string api_base_url,
+             std::string file_base_url);
 
   CloseRequest Close(const RequestOptions& request_options) override;
 
@@ -102,7 +103,7 @@ private:
       const typename Request::Method::Parameters& parameters,
       const RequestOptions& request_options) {
     return Request(http_client_.CreateRequest(),
-                   tg_fqdn_,
+                   api_base_url_,
                    bot_token_,
                    request_options,
                    parameters);
@@ -110,7 +111,8 @@ private:
 
   clients::http::Client& http_client_;
   const std::string bot_token_;
-  const std::string tg_fqdn_;
+  const std::string api_base_url_;
+  const std::string file_base_url_;
 };
 
 }  // namespace telegram::bot

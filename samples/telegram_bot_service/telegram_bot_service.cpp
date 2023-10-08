@@ -1,10 +1,12 @@
+#include <userver/testsuite/testsuite_support.hpp>
 #include <userver/utest/using_namespace_userver.hpp>
 
 #include <userver/clients/dns/component.hpp>
 #include <userver/clients/http/component.hpp>
 #include <userver/components/component.hpp>
-#include <userver/components/minimal_component_list.hpp>
+#include <userver/components/minimal_server_component_list.hpp>
 #include <userver/fs/read.hpp>
+#include <userver/server/handlers/tests_control.hpp>
 #include <userver/utils/daemon_run.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
@@ -169,10 +171,12 @@ std::shared_ptr<std::string> GreetUser::ReadPhoto(
 
 int main(int argc, char* argv[]) {
   const auto component_list =
-      components::MinimalComponentList()
+      components::MinimalServerComponentList()
           .Append<telegram::bot::TelegramBotClient>()
           .Append<samples::telegram_bot::GreetUser>()
           .Append<clients::dns::Component>()
-          .Append<components::HttpClient>();
+          .Append<components::HttpClient>()
+          .Append<components::TestsuiteSupport>()
+          .Append<server::handlers::TestsControl>();
   return utils::DaemonMain(argc, argv, component_list);
 }

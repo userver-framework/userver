@@ -8,10 +8,12 @@ namespace telegram::bot {
 
 ClientImpl::ClientImpl(clients::http::Client& http_client,
                        std::string bot_token,
-                       std::string tg_fqdn)
+                       std::string api_base_url,
+                       std::string file_base_url)
     : http_client_(http_client),
       bot_token_(std::move(bot_token)),
-      tg_fqdn_(std::move(tg_fqdn)) {}
+      api_base_url_(std::move(api_base_url)),
+      file_base_url_(std::move(file_base_url)) {}
 
 CloseRequest ClientImpl::Close(const RequestOptions& request_options) {
   return FormRequest<CloseRequest>(CloseMethod::Parameters{}, request_options);

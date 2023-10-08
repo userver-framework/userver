@@ -23,12 +23,12 @@ class [[nodiscard]] Request {
   using Method = method;
 
   Request(clients::http::Request&& request,
-          std::string_view tg_fqdn,
+          std::string_view base_url,
           std::string_view bot_token,
           const RequestOptions& request_options,
           const typename Method::Parameters& parameters)
       : http_request_(std::move(request)) {
-    SetUrl(tg_fqdn, bot_token);
+    SetUrl(base_url, bot_token);
     SetRequestOptions(request_options);
     Method::FillRequestData(http_request_, parameters);
   }
@@ -44,20 +44,20 @@ class [[nodiscard]] Request {
                  .retry(request_options.retries);
   }
 
-  void SetUrl(std::string_view tg_fqdn, std::string_view raw_token) {
+  void SetUrl(std::string_view base_url, std::string_view raw_token) {
     Token token{raw_token};
 
-    http_request_.url(GetUrl(tg_fqdn, token.GetToken()))
-                 .SetLoggedUrl(GetUrl(tg_fqdn, token.GetHiddenToken()));
+    http_request_.url(GetFullUrl(base_url, token.GetToken()))
+                 .SetLoggedUrl(GetFullUrl(base_url, token.GetHiddenToken()));
   }
 
-  std::string GetUrl(std::string_view fqdn,
-                     std::string_view token,
-                     bool is_test_env = false) {
+  std::string GetFullUrl(std::string_view base_url,
+                         std::string_view token,
+                         bool is_test_env = false) {
     if (!is_test_env) {
-      return fmt::format("https://{}/bot{}/{}", fqdn, token, Method::kName);
+      return fmt::format("{}/bot{}/{}", base_url, token, Method::kName);
     } else {
-      return fmt::format("https://{}/bot{}/test/{}", fqdn, token, Method::kName);
+      return fmt::format("{}/bot{}/test/{}", base_url, token, Method::kName);
     }
   }
 
