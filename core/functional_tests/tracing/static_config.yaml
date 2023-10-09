@@ -37,7 +37,7 @@ components_manager:
                     overflow_behavior: discard
 
         tracer:
-            service-name: http-trcin-test
+            service-name: http-tracing-test
 
         tracing-manager-locator:
             incomming-format: ['taxi', 'yandex', 'b3-alternative', 'opentelemetry']

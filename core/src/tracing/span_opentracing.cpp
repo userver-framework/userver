@@ -6,6 +6,7 @@
 #include <userver/logging/impl/tag_writer.hpp>
 #include <userver/logging/log_extra.hpp>
 #include <userver/tracing/tags.hpp>
+#include <userver/utils/trivial_map.hpp>
 
 #include <logging/log_helper_impl.hpp>
 
@@ -17,29 +18,28 @@ namespace {
 namespace jaeger {
 
 struct OpentracingTag {
-  std::string opentracing_name;
-  std::string type;
+  std::string_view opentracing_name;
+  std::string_view type;
 };
 
-const std::unordered_map<std::string, OpentracingTag>& GetOpentracingTags() {
-  static const std::unordered_map<std::string, OpentracingTag> opentracing_tags{
-      {kHttpStatusCode, {"http.status_code", "int64"}},
-      {kErrorFlag, {"error", "bool"}},
-      {kHttpMethod, {"http.method", "string"}},
-      {kHttpUrl, {"http.url", "string"}},
+constexpr utils::TrivialBiMap kGetOpentracingTags = [](auto selector) {
+  using Tag = OpentracingTag;
+  return selector()
+      .Case(kHttpStatusCode, Tag{"http.status_code", "int64"})
+      .Case(kErrorFlag, Tag{"error", "bool"})
+      .Case(kHttpMethod, Tag{"http.method", "string"})
+      .Case(kHttpUrl, Tag{"http.url", "string"})
 
-      {kDatabaseType, {"db.type", "string"}},
-      {kDatabaseStatement, {"db.statement", "string"}},
-      {kDatabaseInstance, {"db.instance", "string"}},
-      {kDatabaseStatementName, {"db.statement_name", "string"}},
-      {kDatabaseCollection, {"db.collection", "string"}},
-      {kDatabaseStatementDescription, {"db.query_description", "string"}},
+      .Case(kDatabaseType, Tag{"db.type", "string"})
+      .Case(kDatabaseStatement, Tag{"db.statement", "string"})
+      .Case(kDatabaseInstance, Tag{"db.instance", "string"})
+      .Case(kDatabaseStatementName, Tag{"db.statement_name", "string"})
+      .Case(kDatabaseCollection, Tag{"db.collection", "string"})
+      .Case(kDatabaseStatementDescription,
+            Tag{"db.query_description", "string"})
 
-      {kPeerAddress, {"peer.address", "string"}},
-  };
-
-  return opentracing_tags;
-}
+      .Case(kPeerAddress, Tag{"peer.address", "string"});
+};
 
 struct LogExtraValueVisitor {
   std::string string_value;
@@ -49,9 +49,9 @@ struct LogExtraValueVisitor {
   void operator()(int val) { string_value = std::to_string(val); }
 };
 
-void GetTagObject(formats::json::StringBuilder& builder, const std::string& key,
+void GetTagObject(formats::json::StringBuilder& builder, std::string_view key,
                   const logging::LogExtra::Value& value,
-                  const std::string& type) {
+                  std::string_view type) {
   const formats::json::StringBuilder::ObjectGuard guard(builder);
   LogExtraValueVisitor visitor;
   std::visit(visitor, value);
@@ -125,11 +125,10 @@ void Span::Impl::DoLogOpenTracing(logging::impl::TagWriter writer) const {
 
 void Span::Impl::AddOpentracingTags(formats::json::StringBuilder& output,
                                     const logging::LogExtra& input) {
-  const auto& opentracing_tags = jaeger::GetOpentracingTags();
   for (const auto& [key, value] : *input.extra_) {
-    const auto tag_it = opentracing_tags.find(key);
-    if (tag_it != opentracing_tags.end()) {
-      const auto& tag = tag_it->second;
+    const auto tag_it = jaeger::kGetOpentracingTags.TryFind(key);
+    if (tag_it) {
+      const auto& tag = *tag_it;
       jaeger::GetTagObject(output, tag.opentracing_name, value.GetValue(),
                            tag.type);
     }
