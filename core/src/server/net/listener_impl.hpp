@@ -43,11 +43,13 @@ class ListenerImpl final {
   std::shared_ptr<Stats> stats_;
   request::ResponseDataAccounter& data_accounter_;
 
-  engine::TaskWithResult<void> socket_listener_task_;
-
   // connections_ are added in socket_listener_task_ and removed
   // in ~ListenerImpl(), no synchronization required
   std::vector<std::weak_ptr<Connection>> connections_;
+
+  // Uses all the above member variables, must be started only after
+  // their construction.
+  engine::TaskWithResult<void> socket_listener_task_;
 };
 
 }  // namespace server::net
