@@ -40,13 +40,22 @@ class Pool final {
   void OnCoroutineDestruction() noexcept;
 
   template <typename Token>
-  Token& GetToken();
+  Token& GetUsedPoolToken();
 
   const PoolConfig config_;
   const Executor executor_;
 
   boost::coroutines2::protected_fixedsize_stack stack_allocator_;
-  moodycamel::ConcurrentQueue<Coroutine> coroutines_;
+
+  // We aim to reuse coroutines as much as possible,
+  // because since coroutine stack is a mmap-ed chunk of memory and not actually
+  // an allocated memory we don't want to de-virtualize that memory excessively.
+  //
+  // The same could've been achieved with some LIFO container, but apparently
+  // we don't have a container handy enough to not just use 2 queues.
+  moodycamel::ConcurrentQueue<Coroutine> initial_coroutines_;
+  moodycamel::ConcurrentQueue<Coroutine> used_coroutines_;
+
   std::atomic<std::size_t> idle_coroutines_num_;
   std::atomic<std::size_t> total_coroutines_num_;
 };
@@ -84,13 +93,15 @@ template <typename Task>
 Pool<Task>::Pool(PoolConfig config, Executor executor)
     : config_(std::move(config)),
       executor_(executor),
-      stack_allocator_(config.stack_size),
-      coroutines_(config_.max_size),
+      stack_allocator_(config_.stack_size),
+      initial_coroutines_(config_.initial_size),
+      used_coroutines_(config_.max_size),
       idle_coroutines_num_(config_.initial_size),
       total_coroutines_num_(0) {
-  moodycamel::ProducerToken token(coroutines_);
+  moodycamel::ProducerToken token(initial_coroutines_);
   for (std::size_t i = 0; i < config_.initial_size; ++i) {
-    bool ok = coroutines_.enqueue(token, CreateCoroutine(/*quiet =*/true));
+    bool ok =
+        initial_coroutines_.enqueue(token, CreateCoroutine(/*quiet =*/true));
     UINVARIANT(ok, "Failed to allocate the initial coro pool");
   }
 }
@@ -111,8 +122,13 @@ typename Pool<Task>::CoroutinePtr Pool<Task>::GetCoroutine() {
 
   std::optional<Coroutine> coroutine;
   CoroutineMover mover{coroutine};
-  auto& token = GetToken<moodycamel::ConsumerToken>();
-  if (coroutines_.try_dequeue(token, mover)) {
+
+  // First try to dequeue from 'working set': if we can get a coroutine
+  // from there we are happy, because we saved on minor-page-faulting (thus
+  // increasing resident memory usage) a not-yet-de-virtualized coroutine stack.
+  if (used_coroutines_.try_dequeue(
+          GetUsedPoolToken<moodycamel::ConsumerToken>(), mover) ||
+      initial_coroutines_.try_dequeue(mover)) {
     --idle_coroutines_num_;
   } else {
     coroutine.emplace(CreateCoroutine());
@@ -123,8 +139,10 @@ typename Pool<Task>::CoroutinePtr Pool<Task>::GetCoroutine() {
 template <typename Task>
 void Pool<Task>::PutCoroutine(CoroutinePtr&& coroutine_ptr) {
   if (idle_coroutines_num_.load() >= config_.max_size) return;
-  auto& token = GetToken<moodycamel::ProducerToken>();
-  const bool ok = coroutines_.enqueue(token, std::move(coroutine_ptr.Get()));
+  auto& token = GetUsedPoolToken<moodycamel::ProducerToken>();
+  const bool ok =
+      // We only ever return coroutines into our 'working set'.
+      used_coroutines_.enqueue(token, std::move(coroutine_ptr.Get()));
   if (ok) ++idle_coroutines_num_;
 }
 
@@ -132,7 +150,8 @@ template <typename Task>
 PoolStats Pool<Task>::GetStats() const {
   PoolStats stats;
   stats.active_coroutines =
-      total_coroutines_num_.load() - coroutines_.size_approx();
+      total_coroutines_num_.load() -
+      (used_coroutines_.size_approx() + initial_coroutines_.size_approx());
   stats.total_coroutines =
       std::max(total_coroutines_num_.load(), stats.active_coroutines);
   return stats;
@@ -177,8 +196,8 @@ std::size_t Pool<Task>::GetStackSize() const {
 
 template <typename Task>
 template <typename Token>
-Token& Pool<Task>::GetToken() {
-  thread_local Token token(coroutines_);
+Token& Pool<Task>::GetUsedPoolToken() {
+  thread_local Token token(used_coroutines_);
   return token;
 }
 
