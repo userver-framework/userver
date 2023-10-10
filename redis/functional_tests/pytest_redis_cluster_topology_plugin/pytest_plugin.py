@@ -91,6 +91,33 @@ class _RedisClusterNode:
     def get_client(self) -> redis.Redis:
         return redis.Redis(host=self.host, port=self.port)
 
+    def get_primary_addresses(self) -> set[str]:
+        try:
+            client = self.get_client()
+        except (BaseException, redis.exceptions.ConnectionError):
+            return set()
+
+        cluster_slots = client.cluster('SLOTS')
+        ret = set()
+        for interval in cluster_slots:
+            master = interval[2]
+            ret.add(f'{master[0].decode()}:{master[1]}')
+        return ret
+
+    def get_replica_addresses(self) -> set[str]:
+        try:
+            client = self.get_client()
+        except (BaseException, redis.exceptions.ConnectionError):
+            return set()
+
+        cluster_slots = client.cluster('SLOTS')
+        ret = set()
+        for interval in cluster_slots:
+            replicas = interval[3:]
+            for replica in replicas:
+                ret.add(f'{replica[0].decode()}:{replica[1]}')
+        return ret
+
     def get_address(self):
         return f'{self.host}:{self.port}'
 
@@ -176,6 +203,9 @@ class RedisClusterTopology:
             _RedisClusterNode('127.0.0.1', port, cluster_port)
             for port, cluster_port in zip(ports, cluster_ports)
         ]
+        self.nodes_by_names = {node.get_address(): node for node in self.nodes}
+        self.added_master = None
+        self.added_replica = None
         self.start_all_nodes()
         self._create_cluster()
 
@@ -193,12 +223,34 @@ class RedisClusterTopology:
         ) and _expected_connections(self.get_replicas())
 
     def get_masters(self):
-        size = len(self.nodes)
-        return self.nodes[: size // 2]
+        ret = []
+        for node in self.nodes:
+            addrs = node.get_primary_addresses()
+            if not addrs:
+                continue
+            ret = []
+            for addr in addrs:
+                node = self.nodes_by_names.get(addr)
+                if node:
+                    ret.append(node)
+            if ret:
+                return ret
+        return ret
 
     def get_replicas(self):
-        size = len(self.nodes)
-        return self.nodes[size // 2 :]
+        ret = []
+        for node in self.nodes:
+            addrs = node.get_replica_addresses()
+            if not addrs:
+                continue
+            ret = []
+            for addr in addrs:
+                node = self.nodes_by_names.get(addr)
+                if node:
+                    ret.append(node)
+            if ret:
+                return ret
+        return ret
 
     def add_shard(self):
         """
@@ -212,10 +264,13 @@ class RedisClusterTopology:
         new_master = _RedisClusterNode(
             '127.0.0.1', port_manager.get_port(), port_manager.get_port(),
         )
+        self.added_master = new_master
         new_master.start()
+
         new_replica = _RedisClusterNode(
             '127.0.0.1', port_manager.get_port(), port_manager.get_port(),
         )
+        self.added_replica = new_replica
         new_replica.start()
 
         # add new nodes to existing cluster
@@ -251,10 +306,10 @@ class RedisClusterTopology:
         # Validate state before proceed
         self._wait_cluster_nodes_known(self.nodes, 8)
         self._wait_cluster_nodes_ready(self.nodes, 8)
-        original_masters = self.get_masters()[:3]
-        original_replicas = self.get_replicas()[:3]
-        new_master = self.get_masters()[-1]
-        new_replica = self.get_replicas()[-1]
+        new_master = self.added_master
+        new_replica = self.added_replica
+        original_masters = self.get_masters()
+        original_replicas = self.get_replicas()
 
         slot_count = 16384 // 3 // 4
         for master in original_masters:
@@ -262,10 +317,11 @@ class RedisClusterTopology:
         self._remove_node_from_cluster(original_masters[0], new_master)
         self._remove_node_from_cluster(original_masters[0], new_replica)
 
-        self._wait_cluster_nodes_known(original_masters, 6)
-        self._wait_cluster_nodes_known(original_replicas, 6)
         self._wait_cluster_nodes_ready(original_masters, 6)
         self._wait_cluster_nodes_ready(original_replicas, 6)
+        self._wait_cluster_nodes_known(original_masters, 6)
+        self._wait_cluster_nodes_known(original_replicas, 6)
+
         new_master.stop()
         new_replica.stop()
 
