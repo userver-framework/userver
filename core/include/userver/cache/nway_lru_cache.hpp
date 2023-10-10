@@ -164,7 +164,13 @@ void NWayLRU<T, U, Hash, Eq>::UpdateWaySize(size_t way_size) {
 template <typename T, typename U, typename Hash, typename Eq>
 typename NWayLRU<T, U, Hash, Eq>::Way& NWayLRU<T, U, Hash, Eq>::GetWay(
     const T& key) {
-  auto n = hash_fn_(key) % caches_.size();
+  /// It is needed to twist hash because there is hash map in LruMap. Otherwise
+  /// nodes will fall into one bucket. According to
+  /// https://www.boost.org/doc/libs/1_83_0/libs/container_hash/doc/html/hash.html#notes_hash_combine
+  /// hash_combine can be treated as hash itself
+  auto seed = hash_fn_(key);
+  boost::hash_combine(seed, 0);
+  auto n = seed % caches_.size();
   return caches_[n];
 }
 

@@ -54,4 +54,14 @@ UTEST(NWayLRU, SetMultipleWays) {
   EXPECT_EQ(1, cache.Get(1));
 }
 
+UTEST(NWayLRU, HashCombine) {
+  for (const auto seed : std::vector<std::size_t>{0, 1, 7, 42, 100, 1000}) {
+    /// @note: checking for seed used in way selection to not be equal after
+    /// hash_combine
+    auto new_seed = seed;
+    boost::hash_combine(new_seed, 0);
+    EXPECT_NE(seed, new_seed);
+  }
+}
+
 USERVER_NAMESPACE_END
