@@ -54,6 +54,7 @@ Connection::Connection(
       stats_(std::move(stats)),
       data_accounter_(data_accounter),
       remote_address_(remote_address),
+      peer_name_(remote_address_.PrimaryAddressString()),
       request_tasks_(Queue::Create()) {
   LOG_DEBUG() << "Incoming connection from " << Getpeername() << ", fd "
               << Fd();
@@ -343,13 +344,10 @@ void Connection::SendResponse(request::RequestBase& request) {
   ++stats_->requests_processed_count;
 
   request.WriteAccessLogs(request_handler_.LoggerAccess(),
-                          request_handler_.LoggerAccessTskv(),
-                          remote_address_.PrimaryAddressString());
+                          request_handler_.LoggerAccessTskv(), peer_name_);
 }
 
-std::string Connection::Getpeername() const {
-  return remote_address_.PrimaryAddressString();
-}
+std::string Connection::Getpeername() const { return peer_name_; }
 
 }  // namespace server::net
 

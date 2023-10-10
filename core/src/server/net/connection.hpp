@@ -83,7 +83,9 @@ class Connection final : public std::enable_shared_from_this<Connection> {
   const http::RequestHandlerBase& request_handler_;
   const std::shared_ptr<Stats> stats_;
   request::ResponseDataAccounter& data_accounter_;
+
   engine::io::Sockaddr remote_address_;
+  std::string peer_name_;
 
   std::shared_ptr<Queue> request_tasks_;
   engine::SingleConsumerEvent response_sender_launched_event_;
