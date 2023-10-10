@@ -1,6 +1,7 @@
 #include <clients/http/destination_statistics.hpp>
 
 #include <unordered_set>
+#include <userver/engine/sleep.hpp>
 
 #include <userver/clients/http/client.hpp>
 #include <userver/utest/http_client.hpp>
@@ -59,6 +60,33 @@ UTEST(DestinationStatistics, Ok) {
       }
     }
   }
+}
+
+UTEST(DestinationStatistics, CancelledFuture) {
+  const utest::SimpleServer http_server{[](const HttpRequest& request) {
+    engine::InterruptibleSleepFor(utest::kMaxTestWaitTime);
+    return Callback(200, request);
+  }};
+  auto client = utest::CreateHttpClient();
+
+  auto url = http_server.GetBaseUrl();
+
+  {
+    auto response_future = client->CreateRequest()
+                               .post(url)
+                               .retry(1)
+                               .timeout(std::chrono::milliseconds(100))
+                               .async_perform();
+  }
+
+  const auto& pool_stats = client->GetPoolStatistics();
+  EXPECT_EQ(pool_stats.multi.size(), 1);
+  EXPECT_EQ(pool_stats.multi[0].error_count[static_cast<size_t>(
+                clients::http::Statistics::ErrorGroup::kUnknown)],
+            0);
+  EXPECT_EQ(pool_stats.multi[0].error_count[static_cast<size_t>(
+                clients::http::Statistics::ErrorGroup::kCancelled)],
+            1);
 }
 
 UTEST(DestinationStatistics, Multiple) {

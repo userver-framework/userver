@@ -321,6 +321,7 @@ http.handler.total.timings: percentile=p99_9, version=2	GAUGE	0
 http.handler.total.too-many-requests-in-flight: version=2	RATE	0
 httpclient.cancelled-by-deadline:	GAUGE	0
 httpclient.cancelled-by-deadline: http_destination=http://localhost:00000/configs-service/configs/values	GAUGE	0
+httpclient.errors: http_destination=http://localhost:00000/configs-service/configs/values, http_error=cancelled	GAUGE	0
 httpclient.errors: http_destination=http://localhost:00000/configs-service/configs/values, http_error=host-resolution-failed	GAUGE	0
 httpclient.errors: http_destination=http://localhost:00000/configs-service/configs/values, http_error=ok	GAUGE	0
 httpclient.errors: http_destination=http://localhost:00000/configs-service/configs/values, http_error=socket-error	GAUGE	0
@@ -328,6 +329,7 @@ httpclient.errors: http_destination=http://localhost:00000/configs-service/confi
 httpclient.errors: http_destination=http://localhost:00000/configs-service/configs/values, http_error=timeout	GAUGE	0
 httpclient.errors: http_destination=http://localhost:00000/configs-service/configs/values, http_error=too-many-redirects	GAUGE	0
 httpclient.errors: http_destination=http://localhost:00000/configs-service/configs/values, http_error=unknown-error	GAUGE	0
+httpclient.errors: http_error=cancelled	GAUGE	0
 httpclient.errors: http_error=host-resolution-failed	GAUGE	0
 httpclient.errors: http_error=ok	GAUGE	0
 httpclient.errors: http_error=socket-error	GAUGE	0

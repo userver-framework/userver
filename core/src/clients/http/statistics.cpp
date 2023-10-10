@@ -72,8 +72,13 @@ void RequestStats::AccountCancelledByDeadline() noexcept {
 Statistics::ErrorGroup Statistics::ErrorCodeToGroup(std::error_code ec) {
   using ErrorCode = curl::errc::EasyErrorCode;
 
-  if (ec.category() != curl::errc::GetEasyCategory())
+  if (ec == std::errc::operation_canceled) {
+    return ErrorGroup::kCancelled;
+  }
+
+  if (ec.category() != curl::errc::GetEasyCategory()) {
     return ErrorGroup::kUnknown;
+  }
 
   switch (static_cast<ErrorCode>(ec.value())) {
     case ErrorCode::kCouldNotResolveHost:
@@ -118,6 +123,8 @@ const char* Statistics::ToString(ErrorGroup error) {
       return "ssl-error";
     case ErrorGroup::kTooManyRedirects:
       return "too-many-redirects";
+    case ErrorGroup::kCancelled:
+      return "cancelled";
     case ErrorGroup::kUnknown:
     case ErrorGroup::kCount:
       break;

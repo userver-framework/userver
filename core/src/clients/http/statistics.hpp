@@ -75,6 +75,7 @@ class Statistics {
     kTimeout,
     kSslError,
     kTooManyRedirects,
+    kCancelled,
     kUnknown,
     kCount,
   };
