@@ -31,9 +31,6 @@ components_manager:
             fs-cache-path: ''
         dynamic-config-fallbacks:            # Load options from file and push them into the dynamic config storage.
             fallback-path: /etc/mongo_service/dynamic_config_fallback.json
-    coro_pool:
-        initial_size: 500             # Preallocate 500 coroutines at startup.
-        max_size: 1000                # Do not keep more than 1000 preallocated coroutines.
 
     task_processors:                  # Task processor is an executor for coroutine tasks
 

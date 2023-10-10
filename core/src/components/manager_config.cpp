@@ -95,9 +95,11 @@ properties:
             initial_size:
                 type: integer
                 description: amount of coroutines to preallocate on startup
+                defaultDescription: 1000
             max_size:
                 type: integer
                 description: max amount of coroutines to keep preallocated
+                defaultDescription: 4000
             stack_size:
                 type: integer
                 description: size of a single coroutine, bytes
@@ -206,7 +208,7 @@ ManagerConfig Parse(const yaml_config::YamlConfig& value,
 
   ManagerConfig config;
 
-  config.coro_pool = value["coro_pool"].As<engine::coro::PoolConfig>();
+  config.coro_pool = value["coro_pool"].As<engine::coro::PoolConfig>({});
   config.event_thread_pool =
       value["event_thread_pool"].As<engine::ev::ThreadPoolConfig>();
   if (config.event_thread_pool.threads < 1) {

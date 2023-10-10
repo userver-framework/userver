@@ -50,9 +50,6 @@ components_manager:
             fallback-path: /etc/redis_service/dynamic_config_fallback.json
         dns-client:
             fs-task-processor: fs-task-processor
-    coro_pool:
-        initial_size: 500             # Preallocate 500 coroutines at startup.
-        max_size: 1000                # Do not keep more than 1000 preallocated coroutines.
 
     task_processors:                  # Task processor is an executor for coroutine tasks
 

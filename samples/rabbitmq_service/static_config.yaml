@@ -62,10 +62,6 @@ components_manager:
 
         testsuite-support:
 
-    coro_pool:
-        initial_size: 500                                     # Preallocate 500 coroutines at startup.
-        max_size: 1000                                        # Do not keep more than 1000 preallocated coroutines.
-
     task_processors:                                          # Task processor is an executor for coroutine tasks
 
         main-task-processor:                                  # Make a task processor for CPU-bound coroutine tasks.

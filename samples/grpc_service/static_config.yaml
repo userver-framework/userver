@@ -74,6 +74,3 @@ components_manager:
         fs-task-processor:             # For blocking filesystem operations
             thread_name: fs-worker
             worker_threads: 2
-    coro_pool:
-        initial_size: 500
-        max_size: 1000
