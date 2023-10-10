@@ -45,6 +45,12 @@ properties:
     port:
         type: integer
         description: the port to use for all gRPC services, or 0 to pick any available
+    completion-queue-count:
+        type: integer
+        description: |
+            completion queue count to create. Should be ~2 times less than worker
+            threads for best RPS.
+        minimum: 1
     channel-args:
         type: object
         description: a map of channel arguments, see gRPC Core docs

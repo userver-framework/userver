@@ -33,6 +33,10 @@ struct ServerConfig final {
   /// Server::WithServerBuilder.
   std::optional<int> port{0};
 
+  /// Number of completion queues to create. Should be ~2 times less than number
+  /// of worker threads for best RPS.
+  int completion_queue_num{2};
+
   /// Optional grpc-core channel args
   /// @see https://grpc.github.io/grpc/core/group__grpc__arg__keys.html
   std::unordered_map<std::string, std::string> channel_args{};

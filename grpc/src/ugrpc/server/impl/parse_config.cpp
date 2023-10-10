@@ -83,6 +83,7 @@ ServerConfig ParseServerConfig(const yaml_config::YamlConfig& value,
                                const components::ComponentContext& context) {
   ServerConfig config;
   config.port = value["port"].As<std::optional<int>>();
+  config.completion_queue_num = value["completion-queue-count"].As<int>(2);
   config.channel_args =
       value["channel-args"].As<decltype(config.channel_args)>({});
   config.native_log_level =

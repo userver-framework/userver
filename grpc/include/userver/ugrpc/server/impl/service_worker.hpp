@@ -11,10 +11,12 @@
 #include <userver/dynamic_config/source.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/logging/null_logger.hpp>
+#include <userver/utils/fixed_array.hpp>
 #include <userver/utils/statistics/fwd.hpp>
 
 #include <userver/ugrpc/impl/static_metadata.hpp>
 #include <userver/ugrpc/impl/statistics_storage.hpp>
+#include <userver/ugrpc/server/impl/queue_holder.hpp>
 #include <userver/ugrpc/server/middlewares/fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -23,7 +25,7 @@ namespace ugrpc::server::impl {
 
 /// Config for a `ServiceWorker`, provided by `ugrpc::server::Server`
 struct ServiceSettings final {
-  grpc::ServerCompletionQueue& queue;
+  QueueHolder& queue;
   engine::TaskProcessor& task_processor;
   ugrpc::impl::StatisticsStorage& statistics_storage;
   Middlewares middlewares;

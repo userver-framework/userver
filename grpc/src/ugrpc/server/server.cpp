@@ -15,12 +15,13 @@
 #include <userver/engine/mutex.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
+#include <userver/utils/fixed_array.hpp>
 
 #include <ugrpc/impl/logging.hpp>
 #include <ugrpc/impl/to_string.hpp>
 #include <ugrpc/server/impl/parse_config.hpp>
-#include <ugrpc/server/impl/queue_holder.hpp>
 #include <userver/ugrpc/impl/statistics_storage.hpp>
+#include <userver/ugrpc/server/impl/queue_holder.hpp>
 #include <userver/ugrpc/server/impl/service_worker.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -131,7 +132,9 @@ Server::Impl::Impl(ServerConfig&& config,
   }
   server_builder_.emplace();
   ApplyChannelArgs(*server_builder_, config);
-  queue_.emplace(server_builder_->AddCompletionQueue());
+  queue_.emplace(static_cast<std::size_t>(config.completion_queue_num),
+                 std::ref(*server_builder_));
+
   if (config.port) AddListeningPort(*config.port);
 }
 
@@ -163,7 +166,7 @@ void Server::Impl::AddService(ServiceBase& service, ServiceConfig&& config) {
   UASSERT(state_ == State::kConfiguration);
 
   service_workers_.push_back(service.MakeWorker(impl::ServiceSettings{
-      queue_->GetQueue(),
+      *queue_,
       config.task_processor,
       statistics_storage_,
       std::move(config.middlewares),
@@ -193,7 +196,8 @@ void Server::Impl::WithServerBuilder(SetupHook setup) {
 
 grpc::CompletionQueue& Server::Impl::GetCompletionQueue() noexcept {
   UASSERT(state_ == State::kConfiguration || state_ == State::kActive);
-  return queue_->GetQueue();
+  // TODO: https://st.yandex-team.ru/TAXICOMMON-7612
+  return *queue_->GetQueues().queues[0];
 }
 
 void Server::Impl::Start() {
@@ -219,10 +223,11 @@ int Server::Impl::GetPort() const noexcept {
 void Server::Impl::Stop() noexcept {
   // Note 1: Stop must be idempotent, so that the 'Stop' invocation after a
   // 'Start' failure is optional.
-  // Note 2: 'state_' remains 'kActive' while stopping, which allows clients to
-  // finish their requests using 'queue_'.
+  // Note 2: 'state_' remains 'kActive' while stopping, which allows clients
+  // to finish their requests using 'queue_'.
 
-  // Must shutdown server, then ServiceWorkers, then queues before anything else
+  // Must shutdown server, then ServiceWorkers, then queues before anything
+  // else
   if (server_) {
     LOG_INFO() << "Stopping the gRPC server";
     server_->Shutdown();

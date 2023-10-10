@@ -78,6 +78,7 @@ struct ServiceData final {
 template <typename GrpcppService, typename CallTraits>
 struct MethodData final {
   ServiceData<GrpcppService>& service_data;
+  int queue_num{0};
   const std::size_t method_id{};
   typename CallTraits::ServiceBase& service;
   const typename CallTraits::ServiceMethod service_method;
@@ -113,7 +114,9 @@ class CallData final {
     context_.AsyncNotifyWhenDone(notify_when_done.GetTag());
 
     // the request for an incoming RPC must be performed synchronously
-    auto& queue = method_data_.service_data.settings.queue;
+    auto& queue = method_data_.service_data.settings.queue.GetQueue(
+        method_data_.queue_num);
+
     method_data_.service_data.async_service.template Prepare<CallTraits>(
         method_data_.method_id, context_, initial_request_, raw_responder_,
         queue, queue, prepare_.GetTag());
@@ -227,10 +230,13 @@ class ServiceWorkerImpl final : public ServiceWorker {
                     Service& service, ServiceMethods... service_methods)
       : service_data_(settings, metadata),
         start_{[this, &service, service_methods...] {
-          std::size_t method_id = 0;
-          (CallData<GrpcppService, CallTraits<ServiceMethods>>::ListenAsync(
-               {service_data_, method_id++, service, service_methods}),
-           ...);
+          for (size_t i = 0; i < service_data_.settings.queue.GetSize(); i++) {
+            std::size_t method_id = 0;
+            (CallData<GrpcppService, CallTraits<ServiceMethods>>::ListenAsync(
+                 {service_data_, static_cast<int>(i), method_id++, service,
+                  service_methods}),
+             ...);
+          }
         }} {}
 
   ~ServiceWorkerImpl() override {

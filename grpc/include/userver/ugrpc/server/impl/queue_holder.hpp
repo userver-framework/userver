@@ -2,8 +2,7 @@
 
 #include <memory>
 
-#include <grpcpp/completion_queue.h>
-
+#include <userver/ugrpc/impl/completion_queues.hpp>
 #include <userver/utils/fast_pimpl.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -16,17 +15,21 @@ namespace ugrpc::server::impl {
 /// instances are destroyed.
 class QueueHolder final {
  public:
-  explicit QueueHolder(std::unique_ptr<grpc::ServerCompletionQueue>&& queue);
+  explicit QueueHolder(std::size_t num, grpc::ServerBuilder& server_builder);
 
   QueueHolder(QueueHolder&&) = delete;
   QueueHolder& operator=(QueueHolder&&) = delete;
   ~QueueHolder();
 
-  grpc::ServerCompletionQueue& GetQueue();
+  std::size_t GetSize() const;
+
+  grpc::ServerCompletionQueue& GetQueue(std::size_t i);
+
+  const ugrpc::impl::CompletionQueues& GetQueues();
 
  private:
   struct Impl;
-  utils::FastPimpl<Impl, 32, 8> impl_;
+  utils::FastPimpl<Impl, 48, 8> impl_;
 };
 
 }  // namespace ugrpc::server::impl
