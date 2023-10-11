@@ -1,6 +1,6 @@
 #pragma once
 
-#include <memory>
+#include <vector>
 
 #include <grpcpp/completion_queue.h>
 
