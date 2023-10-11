@@ -32,12 +32,12 @@ class SharedReadablePtr final {
   using Unique = std::unique_ptr<const T>;
   using element_type = T;
 
-  SharedReadablePtr(const SharedReadablePtr& ptr) = default;
+  SharedReadablePtr(const SharedReadablePtr& ptr) noexcept = default;
   SharedReadablePtr(SharedReadablePtr&& ptr) noexcept = default;
 
   constexpr SharedReadablePtr(std::nullptr_t) noexcept : base_(nullptr) {}
 
-  SharedReadablePtr& operator=(const SharedReadablePtr& ptr) = default;
+  SharedReadablePtr& operator=(const SharedReadablePtr& ptr) noexcept = default;
   SharedReadablePtr& operator=(SharedReadablePtr&& ptr) noexcept = default;
 
   SharedReadablePtr(const Base& ptr) noexcept : base_(ptr) {}
@@ -50,7 +50,7 @@ class SharedReadablePtr final {
 
   SharedReadablePtr(Unique&& ptr) noexcept : base_(std::move(ptr)) {}
 
-  SharedReadablePtr& operator=(const Base& ptr) {
+  SharedReadablePtr& operator=(const Base& ptr) noexcept {
     base_ = ptr;
     return *this;
   }
