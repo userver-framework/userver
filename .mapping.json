@@ -1639,6 +1639,7 @@
   "mongo/include/userver/formats/bson/inline.hpp":"taxi/uservices/userver/mongo/include/userver/formats/bson/inline.hpp",
   "mongo/include/userver/formats/bson/iterator.hpp":"taxi/uservices/userver/mongo/include/userver/formats/bson/iterator.hpp",
   "mongo/include/userver/formats/bson/serialize.hpp":"taxi/uservices/userver/mongo/include/userver/formats/bson/serialize.hpp",
+  "mongo/include/userver/formats/bson/serialize_duration.hpp":"taxi/uservices/userver/mongo/include/userver/formats/bson/serialize_duration.hpp",
   "mongo/include/userver/formats/bson/types.hpp":"taxi/uservices/userver/mongo/include/userver/formats/bson/types.hpp",
   "mongo/include/userver/formats/bson/value.hpp":"taxi/uservices/userver/mongo/include/userver/formats/bson/value.hpp",
   "mongo/include/userver/formats/bson/value_builder.hpp":"taxi/uservices/userver/mongo/include/userver/formats/bson/value_builder.hpp",

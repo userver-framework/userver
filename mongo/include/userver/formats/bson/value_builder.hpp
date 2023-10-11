@@ -109,6 +109,11 @@ class ValueBuilder {
   /// @throws TypeMismatchException if value is not a document or `null`
   ValueBuilder operator[](const std::string& name);
 
+  /// @brief Emplaces new member w/o a check whether the key already exists.
+  /// @warning May create invalid BSON with duplicate key.
+  /// @throw `TypeMismatchException` if not object or null value.
+  void EmplaceNocheck(std::string_view key, ValueBuilder value);
+
   /// @brief Access member by key for modification.
   /// @throw `TypeMismatchException` if not object or null value.
   template <
