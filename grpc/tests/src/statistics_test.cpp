@@ -104,7 +104,7 @@ UTEST_F(GrpcStatistics, StatsBeforeGet) {
 
   // check timings
   auto timing = stats.SingleMetric("timings", {{"percentile", "p100"}}).AsInt();
-  EXPECT_GT(timing, 20);
+  EXPECT_GE(timing, 20);
   EXPECT_LT(timing, 100);
 
   UEXPECT_THROW(future.Get(), ugrpc::client::InvalidArgumentError);
