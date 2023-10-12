@@ -5,6 +5,7 @@
 #include <userver/formats/json/value.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
+#include <userver/utils/text_light.hpp>
 #include <userver/utils/trivial_map.hpp>
 #include <userver/yaml_config/yaml_config.hpp>
 
@@ -30,7 +31,7 @@ TaskProcessorConfig Parse(const yaml_config::YamlConfig& value,
   config.should_guess_cpu_limit =
       value["guess-cpu-limit"].As<bool>(config.should_guess_cpu_limit);
   config.worker_threads = value["worker_threads"].As<std::size_t>();
-  config.thread_name = value["thread_name"].As<std::string>();
+  config.thread_name = value["thread_name"].As<std::string>({});
   config.os_scheduling =
       value["os-scheduling"].As<OsScheduling>(config.os_scheduling);
   config.spinning_iterations =
@@ -50,6 +51,10 @@ TaskProcessorConfig Parse(const yaml_config::YamlConfig& value,
 
 void TaskProcessorConfig::SetName(const std::string& new_name) {
   name = new_name;
+  if (thread_name.empty()) {
+    auto parts = utils::text::SplitIntoStringViewVector(new_name, "-");
+    thread_name = fmt::format("{}-worker", parts.at(0));
+  }
 }
 
 using OverloadAction = TaskProcessorSettings::OverloadAction;

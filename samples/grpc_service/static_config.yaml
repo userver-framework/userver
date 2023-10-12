@@ -66,12 +66,9 @@ components_manager:
 # yaml
     task_processors:
         grpc-blocking-task-processor:  # For blocking gRPC channel creation
-            thread_name: grpc-worker
             worker_threads: 2
 # /// [gRPC sample - task processor]
         main-task-processor:           # For non-blocking operations
-            thread_name: main-worker
             worker_threads: 8
         fs-task-processor:             # For blocking filesystem operations
-            thread_name: fs-worker
             worker_threads: 2

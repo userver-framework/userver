@@ -33,7 +33,8 @@ class Manager;
 /// coro_pool.initial_size | amount of coroutines to preallocate on startup | 1000
 /// coro_pool.max_size | max amount of coroutines to keep preallocated | 4000
 /// coro_pool.stack_size | size of a single coroutine | 256 * 1024
-/// event_thread_pool.threads | number of threads to process low level IO system calls (number of ev loops to start in libev) | -
+/// event_thread_pool.threads | number of threads to process low level IO system calls (number of ev loops to start in libev) | 2
+/// event_thread_pool.thread_name | set OS thread name to this value | 'event-worker'
 /// components | dictionary of "component name": "options" | -
 /// default_task_processor | name of the default task processor to use in components | -
 /// task_processors.*NAME*.*OPTIONS* | dictionary of task processors to create and their options. See description below | -
@@ -43,7 +44,7 @@ class Manager;
 /// Name | Description | Default value
 /// ---- | ----------- | -------------
 /// guess-cpu-limit | guess optimal threads count | false
-/// thread_name | set OS thread name to this value | -
+/// thread_name | set OS thread name to this value | Part of the task_processor name before the first '-' symbol with '-worker' appended; for example 'fs-worker' or 'main-worker'
 /// worker_threads | threads count for the task processor | -
 /// os-scheduling | OS scheduling mode for the task processor threads. 'idle' sets the lowest priority. 'low-priority' sets the priority below 'normal' but higher than 'idle'. | normal
 /// spinning-iterations | tunes the number of spin-wait iterations in case of an empty task queue before threads go to sleep | 10000

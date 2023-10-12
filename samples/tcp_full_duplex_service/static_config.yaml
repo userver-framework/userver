@@ -4,14 +4,11 @@ components_manager:
 
         main-task-processor:          # Make a task processor for CPU-bound couroutine tasks.
             worker_threads: 4         # Process tasks in 4 threads.
-            thread_name: main-worker  # OS will show the threads of this task processor with 'main-worker' prefix.
 
         fs-task-processor:            # Make a separate task processor for filesystem bound tasks.
-            thread_name: fs-worker
             worker_threads: 4
 
         monitor-task-processor:       # Make a separate task processor for administrative tasks.
-            thread_name: mon-worker
             worker_threads: 2
 
     default_task_processor: main-task-processor

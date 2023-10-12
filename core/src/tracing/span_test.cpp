@@ -1,5 +1,4 @@
 #include <fmt/format.h>
-#include <boost/algorithm/string.hpp>
 
 #include <logging/log_helper_impl.hpp>
 #include <logging/logging_test.hpp>
@@ -10,6 +9,7 @@
 #include <userver/tracing/tracer.hpp>
 #include <userver/utest/utest.hpp>
 #include <userver/utils/regex.hpp>
+#include <userver/utils/text_light.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -582,8 +582,7 @@ UTEST_F(Span, ForeignSpan) {
 
   auto logs_raw = GetStreamString();
 
-  std::vector<std::string> logs;
-  boost::algorithm::split(logs, logs_raw, boost::is_any_of("\n"));
+  auto logs = utils::text::Split(logs_raw, "\n");
 
   bool found_sw = false;
   bool found_tr = false;
