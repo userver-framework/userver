@@ -41,7 +41,7 @@ auto ParseDom(const formats::json::Value& value) {
 
 void JsonParseArrayDom(benchmark::State& state) {
   const auto input = BuildArray(state.range(0));
-  for (auto _ : state) {
+  for ([[maybe_unused]] auto _ : state) {
     auto json = formats::json::FromString(input);
     const auto res = ParseDom(json);
     benchmark::DoNotOptimize(res);
@@ -51,7 +51,7 @@ BENCHMARK(JsonParseArrayDom)->RangeMultiplier(4)->Range(1, 1024);
 
 void JsonParseArraySax(benchmark::State& state) {
   const auto input = BuildArray(state.range(0));
-  for (auto _ : state) {
+  for ([[maybe_unused]] auto _ : state) {
     std::vector<std::vector<int64_t>> result{};
     using Int64Parser = formats::json::parser::Int64Parser;
     Int64Parser int_parser;
@@ -83,7 +83,7 @@ std::string BuildObject(size_t level) {
 
 void JsonParseValueDom(benchmark::State& state) {
   const auto input = BuildObject(state.range(0));
-  for (auto _ : state) {
+  for ([[maybe_unused]] auto _ : state) {
     const auto res = formats::json::FromString(input);
     benchmark::DoNotOptimize(res);
   }
@@ -92,7 +92,7 @@ BENCHMARK(JsonParseValueDom)->RangeMultiplier(2)->Range(1, 16);
 
 void JsonParseValueSax(benchmark::State& state) {
   const auto input = BuildObject(state.range(0));
-  for (auto _ : state) {
+  for ([[maybe_unused]] auto _ : state) {
     const auto res = formats::json::parser::ParseToType<
         formats::json::Value, formats::json::parser::JsonValueParser>(input);
     benchmark::DoNotOptimize(res);
@@ -208,7 +208,7 @@ void JsonParseValueDomLotsOfMissingKeys(benchmark::State& state) {
   const auto data = GenerateData(state.range(0));
   const auto json = formats::json::ValueBuilder{data}.ExtractValue();
 
-  for (auto _ : state) {
+  for ([[maybe_unused]] auto _ : state) {
     benchmark::DoNotOptimize(json.As<Data>());
   }
 }

@@ -55,7 +55,7 @@ constexpr char bench_json_data[] = R"({
 void json_path_short(benchmark::State& state) {
   auto json = formats::json::FromString(bench_json_data);
 
-  for (auto _ : state) {
+  for ([[maybe_unused]] auto _ : state) {
     const auto res = (json["short"].As<std::string>() == "1");
     benchmark::DoNotOptimize(res);
     if (!res) throw std::runtime_error("unexpected");
@@ -66,7 +66,7 @@ BENCHMARK(json_path_short);
 void json_path_long(benchmark::State& state) {
   auto json = formats::json::FromString(bench_json_data);
 
-  for (auto _ : state) {
+  for ([[maybe_unused]] auto _ : state) {
     const auto res =
         (json["long_long_long_long_path"].As<std::string>() == "2");
     benchmark::DoNotOptimize(res);
@@ -78,7 +78,7 @@ BENCHMARK(json_path_long);
 void json_path_deeply_nested(benchmark::State& state) {
   auto json = formats::json::FromString(bench_json_data);
 
-  for (auto _ : state) {
+  for ([[maybe_unused]] auto _ : state) {
     const auto res = (json["long"]["deeply"]["deeply"]["nested"]["json"]
                           ["value"]["with"]["some"]["data"]
                               .As<std::string>() == "3");
@@ -91,7 +91,7 @@ BENCHMARK(json_path_deeply_nested);
 void json_path_long_and_deeply_nested(benchmark::State& state) {
   auto json = formats::json::FromString(bench_json_data);
 
-  for (auto _ : state) {
+  for ([[maybe_unused]] auto _ : state) {
     const auto res =
         (json["nested_long_long_long_long_path"]["deeply"]["deeply"]["nested"]
              ["json"]["value"]["with"]["some"]["data"]
@@ -110,7 +110,7 @@ formats::json::ValueBuilder Build(size_t count) {
 
 void json_object_append(benchmark::State& state) {
   const auto size = state.range(0);
-  for (auto _ : state) {
+  for ([[maybe_unused]] auto _ : state) {
     benchmark::DoNotOptimize(Build(size));
   }
 }
@@ -120,7 +120,7 @@ void json_object_compare(benchmark::State& state) {
   const auto size = state.range(0);
   const auto a = Build(size).ExtractValue();
   const auto b = Build(size).ExtractValue();
-  for (auto _ : state) {
+  for ([[maybe_unused]] auto _ : state) {
     benchmark::DoNotOptimize(a == b);
   }
 }
@@ -136,7 +136,7 @@ formats::json::ValueBuilder BuildNocheck(size_t count) {
 
 void json_object_append_nocheck(benchmark::State& state) {
   const auto size = state.range(0);
-  for (auto _ : state) {
+  for ([[maybe_unused]] auto _ : state) {
     benchmark::DoNotOptimize(BuildNocheck(size));
   }
 }
@@ -148,7 +148,7 @@ void json_object_from_unordered(benchmark::State& state) {
   std::unordered_map<std::string, int> map;
   for (int i = 0; i < size; i++) map[std::to_string(i)] = i;
 
-  for (auto _ : state) {
+  for ([[maybe_unused]] auto _ : state) {
     benchmark::DoNotOptimize(formats::json::ValueBuilder(map));
   }
 }
@@ -161,7 +161,7 @@ void json_object_from_unordered_strong_typedef(benchmark::State& state) {
   std::unordered_map<MyString, int> map;
   for (int i = 0; i < size; i++) map[MyString{std::to_string(i)}] = i;
 
-  for (auto _ : state) {
+  for ([[maybe_unused]] auto _ : state) {
     benchmark::DoNotOptimize(formats::json::ValueBuilder(map));
   }
 }

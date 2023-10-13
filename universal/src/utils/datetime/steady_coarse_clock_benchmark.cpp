@@ -7,14 +7,14 @@
 USERVER_NAMESPACE_BEGIN
 
 void steady_clock_benchmark(benchmark::State& state) {
-  for (auto _ : state) {
+  for ([[maybe_unused]] auto _ : state) {
     benchmark::DoNotOptimize(std::chrono::steady_clock::now());
   }
 }
 BENCHMARK(steady_clock_benchmark);
 
 void steady_coarse_clock_benchmark(benchmark::State& state) {
-  for (auto _ : state) {
+  for ([[maybe_unused]] auto _ : state) {
     benchmark::DoNotOptimize(utils::datetime::SteadyCoarseClock::now());
   }
 }

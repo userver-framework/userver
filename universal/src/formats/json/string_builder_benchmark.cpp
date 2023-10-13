@@ -5,6 +5,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
+// NOLINTNEXTLINE(google-build-using-namespace)
 using namespace formats::json;
 
 Value Build(int level) {
@@ -25,7 +26,7 @@ Value Build(int level) {
 }
 
 void JsonSerialize(benchmark::State& state) {
-  for (auto _ : state) {
+  for ([[maybe_unused]] auto _ : state) {
     auto json = Build(state.range(0));
     const auto res = ToString(json);
     benchmark::DoNotOptimize(res);
@@ -66,7 +67,7 @@ std::string WriteString(int level) {
 }
 
 void JsonStringBuilder(benchmark::State& state) {
-  for (auto _ : state) {
+  for ([[maybe_unused]] auto _ : state) {
     auto str = WriteString(state.range(0));
     benchmark::DoNotOptimize(str);
   }

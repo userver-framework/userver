@@ -218,7 +218,7 @@ void MappingSmallTrivialBiMap(benchmark::State& state) {
   auto f = MyLaunder("f");
   auto z = MyLaunder("z");
 
-  for (auto _ : state) {
+  for ([[maybe_unused]] auto _ : state) {
     benchmark::DoNotOptimize(kSmallTrivialBiMap.TryFind(hello));
     benchmark::DoNotOptimize(kSmallTrivialBiMap.TryFind(world));
     benchmark::DoNotOptimize(kSmallTrivialBiMap.TryFind(a));
@@ -246,7 +246,7 @@ void MappingSmallUnordered(benchmark::State& state) {
   auto f = MyLaunder("f");
   auto z = MyLaunder("z");
 
-  for (auto _ : state) {
+  for ([[maybe_unused]] auto _ : state) {
     benchmark::DoNotOptimize(kSmallUnorderedMapping.find(hello));
     benchmark::DoNotOptimize(kSmallUnorderedMapping.find(world));
     benchmark::DoNotOptimize(kSmallUnorderedMapping.find(a));
@@ -274,7 +274,7 @@ void MappingMediumTrivialBiMap(benchmark::State& state) {
   auto f = MyLaunder("f");
   auto z = MyLaunder("z");
 
-  for (auto _ : state) {
+  for ([[maybe_unused]] auto _ : state) {
     benchmark::DoNotOptimize(kMediumTrivialBiMap.TryFind(hello));
     benchmark::DoNotOptimize(kMediumTrivialBiMap.TryFind(world));
     benchmark::DoNotOptimize(kMediumTrivialBiMap.TryFind(a));
@@ -302,7 +302,7 @@ void MappingMediumUnordered(benchmark::State& state) {
   auto f = MyLaunder("f");
   auto z = MyLaunder("z");
 
-  for (auto _ : state) {
+  for ([[maybe_unused]] auto _ : state) {
     benchmark::DoNotOptimize(kMediumUnorderedMapping.find(hello));
     benchmark::DoNotOptimize(kMediumUnorderedMapping.find(world));
     benchmark::DoNotOptimize(kMediumUnorderedMapping.find(a));
@@ -331,7 +331,7 @@ void MappingHugeTrivialBiMap(benchmark::State& state) {
   auto z = MyLaunder("aaaaaaaaaaaaaaaa_z");
   auto z9 = MyLaunder("aaaaaaaaaaaaaaaa_z9");
 
-  for (auto _ : state) {
+  for ([[maybe_unused]] auto _ : state) {
     benchmark::DoNotOptimize(kHugeTrivialBiMap.TryFind(hello));
     benchmark::DoNotOptimize(kHugeTrivialBiMap.TryFind(world));
     benchmark::DoNotOptimize(kHugeTrivialBiMap.TryFind(a));
@@ -360,7 +360,7 @@ void MappingHugeUnordered(benchmark::State& state) {
   auto z = MyLaunder("aaaaaaaaaaaaaaaa_z");
   auto z9 = MyLaunder("aaaaaaaaaaaaaaaa_z9");
 
-  for (auto _ : state) {
+  for ([[maybe_unused]] auto _ : state) {
     benchmark::DoNotOptimize(kHugeUnorderedMapping.find(hello));
     benchmark::DoNotOptimize(kHugeUnorderedMapping.find(world));
     benchmark::DoNotOptimize(kHugeUnorderedMapping.find(a));
@@ -379,7 +379,7 @@ BENCHMARK(MappingHugeUnordered);
 void MappingHugeTrivialBiMapLast(benchmark::State& state) {
   auto z9 = MyLaunder("aaaaaaaaaaaaaaaa_z9");
 
-  for (auto _ : state) {
+  for ([[maybe_unused]] auto _ : state) {
     benchmark::DoNotOptimize(kHugeTrivialBiMap.TryFind(z9));
   }
 }
@@ -388,7 +388,7 @@ BENCHMARK(MappingHugeTrivialBiMapLast);
 void MappingHugeUnorderedLast(benchmark::State& state) {
   auto z9 = MyLaunder("aaaaaaaaaaaaaaaa_z9");
 
-  for (auto _ : state) {
+  for ([[maybe_unused]] auto _ : state) {
     benchmark::DoNotOptimize(kHugeUnorderedMapping.find(z9));
   }
 }
@@ -397,7 +397,7 @@ BENCHMARK(MappingHugeUnorderedLast);
 void MappingEnumsTrivialBiMap(benchmark::State& state) {
   const auto enum2 = Launder(Enum2::C7);
 
-  for (auto _ : state) {
+  for ([[maybe_unused]] auto _ : state) {
     benchmark::DoNotOptimize(kEnumTrivialBiMap.TryFind(enum2));
   }
 }
@@ -406,7 +406,7 @@ BENCHMARK(MappingEnumsTrivialBiMap);
 void MappingEnumsSwitch(benchmark::State& state) {
   const auto enum2 = Launder(Enum2::C7);
 
-  for (auto _ : state) {
+  for ([[maybe_unused]] auto _ : state) {
     benchmark::DoNotOptimize(Enum1From2Switch(enum2));
   }
 }

@@ -34,7 +34,7 @@ Slru FillSlruBlocks(unsigned elements_count) {
 }  // namespace
 
 void SlruPut(benchmark::State& state) {
-  for (auto _ : state) {
+  for ([[maybe_unused]] auto _ : state) {
     auto slru = FillSlru(kElementsCount);
     benchmark::DoNotOptimize(slru);
   }
@@ -42,7 +42,7 @@ void SlruPut(benchmark::State& state) {
 BENCHMARK(SlruPut);
 
 void SlruBlocksPut(benchmark::State& state) {
-  for (auto _ : state) {
+  for ([[maybe_unused]] auto _ : state) {
     auto slru = FillSlruBlocks(kElementsCount);
     benchmark::DoNotOptimize(slru);
   }
@@ -51,7 +51,7 @@ BENCHMARK(SlruBlocksPut);
 
 void SlruHas(benchmark::State& state) {
   auto slru = FillSlru(kElementsCount);
-  for (auto _ : state) {
+  for ([[maybe_unused]] auto _ : state) {
     for (unsigned i = 0; i < kElementsCount; ++i) {
       benchmark::DoNotOptimize(slru.Get(i));
     }
@@ -61,7 +61,7 @@ BENCHMARK(SlruHas);
 
 void SlruBlocksHas(benchmark::State& state) {
   auto slru = FillSlruBlocks(kElementsCount);
-  for (auto _ : state) {
+  for ([[maybe_unused]] auto _ : state) {
     for (unsigned i = 0; i < kElementsCount; ++i) {
       benchmark::DoNotOptimize(slru.Get(i));
     }
@@ -72,7 +72,7 @@ BENCHMARK(SlruBlocksHas);
 void SlruPutOverflow(benchmark::State& state) {
   auto slru = FillSlru(kElementsCount);
   unsigned i = kElementsCount;
-  for (auto _ : state) {
+  for ([[maybe_unused]] auto _ : state) {
     for (unsigned j = 0; j < kElementsCount; ++j) {
       slru.Put(++i, 0);
     }

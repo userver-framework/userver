@@ -23,7 +23,7 @@ std::string GenerateSource(size_t size) {
 void to_hex_benchmark(benchmark::State& state) {
   const auto source = GenerateSource(state.range(0));
 
-  for (auto _ : state) {
+  for ([[maybe_unused]] auto _ : state) {
     benchmark::DoNotOptimize(utils::encoding::ToHex(source));
   }
 }
@@ -36,7 +36,7 @@ void to_hex_benchmark_no_alloc(benchmark::State& state) {
   out.reserve(state.range(0) * 2);
   benchmark::DoNotOptimize(out);
 
-  for (auto _ : state) {
+  for ([[maybe_unused]] auto _ : state) {
     utils::encoding::ToHex(source, out);
   }
 }

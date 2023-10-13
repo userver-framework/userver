@@ -22,7 +22,7 @@ Lru FillLru(unsigned elements_count) {
 }  // namespace
 
 void LruPut(benchmark::State& state) {
-  for (auto _ : state) {
+  for ([[maybe_unused]] auto _ : state) {
     auto lru = FillLru(kElementsCount);
     benchmark::DoNotOptimize(lru);
   }
@@ -31,7 +31,7 @@ BENCHMARK(LruPut);
 
 void LruHas(benchmark::State& state) {
   auto lru = FillLru(kElementsCount);
-  for (auto _ : state) {
+  for ([[maybe_unused]] auto _ : state) {
     for (unsigned i = 0; i < kElementsCount; ++i) {
       benchmark::DoNotOptimize(lru.Has(i));
     }
@@ -42,7 +42,7 @@ BENCHMARK(LruHas);
 void LruPutOverflow(benchmark::State& state) {
   auto lru = FillLru(kElementsCount);
   unsigned i = kElementsCount;
-  for (auto _ : state) {
+  for ([[maybe_unused]] auto _ : state) {
     for (unsigned j = 0; j < kElementsCount; ++j) {
       lru.Put(++i);
     }

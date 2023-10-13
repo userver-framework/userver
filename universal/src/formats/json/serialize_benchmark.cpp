@@ -1129,7 +1129,7 @@ constexpr std::string_view str_deep_width_json = R"({
 
 // json with approximately 6 nodes
 void SmallJson(benchmark::State& state) {
-  for (auto _ : state) {
+  for ([[maybe_unused]] auto _ : state) {
     auto json = formats::json::FromString(str_small_json);
     benchmark::DoNotOptimize(json);
   }
@@ -1138,7 +1138,7 @@ void SmallJson(benchmark::State& state) {
 // json consists of 3 objects each of which consists of approximately 5 children
 // nodes
 void MiddleJson(benchmark::State& state) {
-  for (auto _ : state) {
+  for ([[maybe_unused]] auto _ : state) {
     auto json = formats::json::FromString(str_middle_json);
     benchmark::DoNotOptimize(json);
   }
@@ -1147,7 +1147,7 @@ void MiddleJson(benchmark::State& state) {
 // json consists of one object of 40 nodes and several objects each of which
 // consists of approximately 7 children nodes
 void WidthJson(benchmark::State& state) {
-  for (auto _ : state) {
+  for ([[maybe_unused]] auto _ : state) {
     auto json = formats::json::FromString(str_width_json);
     benchmark::DoNotOptimize(json);
   }
@@ -1155,7 +1155,7 @@ void WidthJson(benchmark::State& state) {
 
 // json consists of 500 levels each of which is a key and a value
 void DeepJson(benchmark::State& state) {
-  for (auto _ : state) {
+  for ([[maybe_unused]] auto _ : state) {
     auto json = formats::json::FromString(str_deep_json);
     benchmark::DoNotOptimize(json);
   }
@@ -1163,7 +1163,7 @@ void DeepJson(benchmark::State& state) {
 
 // json consists of 800 nodes and approximately 9 depth levels
 void DeepWidthJson(benchmark::State& state) {
-  for (auto _ : state) {
+  for ([[maybe_unused]] auto _ : state) {
     auto json = formats::json::FromString(str_deep_width_json);
     benchmark::DoNotOptimize(json);
   }

@@ -36,7 +36,7 @@ void HashLowercaseString(benchmark::State& state) {
 
   const auto data = GenerateRandomLowercaseString(state.range(0));
 
-  for (auto _ : state) {
+  for ([[maybe_unused]] auto _ : state) {
     for (std::size_t i = 0; i < 20; ++i) {
       benchmark::DoNotOptimize(hasher(data));
     }
@@ -63,7 +63,7 @@ void HashRandomCaseString(benchmark::State& state) {
   std::size_t index = 0;
 
   const Hasher hasher{};
-  for (auto _ : state) {
+  for ([[maybe_unused]] auto _ : state) {
     // fighting branch predictor to the best of my abilities here
     offset += index == 1024;
     index &= 1023;
@@ -87,7 +87,7 @@ void CaseInsensitiveCompareEqualStrings(benchmark::State& state) {
   const auto second = std::string{first};
   const auto cmp = utils::StrIcaseEqual{};
 
-  for (auto _ : state) {
+  for ([[maybe_unused]] auto _ : state) {
     for (std::size_t i = 0; i < 20; ++i) {
       benchmark::DoNotOptimize(cmp(first, second));
     }
@@ -109,7 +109,7 @@ void CaseInsensitiveCompareDifferentStrings(benchmark::State& state) {
 
   const auto cmp = utils::StrIcaseEqual{};
 
-  for (auto _ : state) {
+  for ([[maybe_unused]] auto _ : state) {
     for (std::size_t i = 0; i < 20; ++i) {
       benchmark::DoNotOptimize(cmp(first, second));
     }

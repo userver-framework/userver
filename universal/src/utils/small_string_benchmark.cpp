@@ -37,7 +37,8 @@ BENCHMARK(SmallString_Small)->Range(2, 2 << 10);
 
 static void SmallString_Std_Copy(benchmark::State& state) {
   auto s = GenerateString(state.range(0));
-  std::array<std::string, kArraySize> str, str2;
+  std::array<std::string, kArraySize> str;
+  std::array<std::string, kArraySize> str2;
   for (auto& x : str) x = s;
   for ([[maybe_unused]] auto _ : state) {
     for (size_t i = 0; i < str.size(); i++) str2[i] = str[i];
@@ -52,7 +53,8 @@ BENCHMARK(SmallString_Std_Copy)
 
 static void SmallString_Small_Copy(benchmark::State& state) {
   auto s = GenerateString(state.range(0));
-  std::array<utils::SmallString<1000>, kArraySize> str, str2;
+  std::array<utils::SmallString<1000>, kArraySize> str;
+  std::array<utils::SmallString<1000>, kArraySize> str2;
   for (auto& x : str) x = s;
   for ([[maybe_unused]] auto _ : state) {
     for (size_t i = 0; i < str.size(); i++) str2[i] = str[i];
@@ -67,7 +69,8 @@ BENCHMARK(SmallString_Small_Copy)
 
 static void SmallString_Std_Move(benchmark::State& state) {
   auto s = GenerateString(state.range(0));
-  std::array<std::string, kArraySize> str, str2;
+  std::array<std::string, kArraySize> str;
+  std::array<std::string, kArraySize> str2;
   for (auto& x : str) x = s;
   for ([[maybe_unused]] auto _ : state) {
     for (size_t i = 0; i < str.size(); i++) str2[i] = std::move(str[i]);
@@ -82,7 +85,8 @@ BENCHMARK(SmallString_Std_Move)
 
 static void SmallString_Small_Move(benchmark::State& state) {
   auto s = GenerateString(state.range(0));
-  std::array<utils::SmallString<1000>, kArraySize> str, str2;
+  std::array<utils::SmallString<1000>, kArraySize> str;
+  std::array<utils::SmallString<1000>, kArraySize> str2;
   for (auto& x : str) x = s;
   for ([[maybe_unused]] auto _ : state) {
     for (size_t i = 0; i < str.size(); i++) str2[i] = std::move(str[i]);

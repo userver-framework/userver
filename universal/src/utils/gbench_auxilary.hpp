@@ -7,6 +7,9 @@
 
 // Additional macros for google benchmark
 
+// Tidy really dislikes macro usage
+// NOLINTBEGIN
+
 // This macro will create a template benchmark with a fixture
 #define BENCHMARK_DEFINE_TEMPLATE_F(BaseClass, Method)        \
   template <typename T>                                       \
@@ -27,6 +30,8 @@
     }                                                             \
   };                                                              \
   BENCHMARK_PRIVATE_REGISTER_F(BaseClass##_##Method##_Benchmark_##Type)
+
+// NOLINTEND
 
 // Prevents compiler optimizations based on source data being constant in a
 // benchmark, such as constant folding.

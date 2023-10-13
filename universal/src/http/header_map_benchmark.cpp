@@ -84,7 +84,7 @@ void HeaderMapWorstCaseCollisionsBenchmark(benchmark::State& state) {
     ++index;
   }
 
-  for (auto _ : state) {
+  for ([[maybe_unused]] auto _ : state) {
     http::headers::HeaderMap map{};
 
     for (const auto& block : kCollisionBlocks) {
@@ -147,7 +147,7 @@ void HeaderMapEraseBenchmark(benchmark::State& state) {
 
   std::vector<http::headers::PredefinedHeader> predefined_headers{
       headers.begin(), headers.end()};
-  for (auto _ : state) {
+  for ([[maybe_unused]] auto _ : state) {
     auto map = initial_map;
     for (const auto& h : predefined_headers) {
       map.erase(h);

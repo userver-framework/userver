@@ -8,8 +8,9 @@
 #include <unordered_map>
 #include <vector>
 
-#include <absl/container/flat_hash_map.h>
-#include <boost/unordered/unordered_flat_map.hpp>
+// Remove '#error' directive before these 2 includes when benchmarking locally
+#error #include <absl/container/flat_hash_map.h>
+#error #include <boost/unordered/unordered_flat_map.hpp>
 
 #include <userver/http/common_headers.hpp>
 #include <userver/http/header_map.hpp>
@@ -293,7 +294,7 @@ void HttpHeadersMap_Find(benchmark::State& state) {
   MapProxy<Map> proxy{map};
 
   PopulateMap(proxy);
-  for (auto _ : state) {
+  for ([[maybe_unused]] auto _ : state) {
     for (const auto& header : kArbitraryHeaders) {
       benchmark::DoNotOptimize(proxy.Find(header));
     }
@@ -306,7 +307,7 @@ void HttpHeadersMap_FindPredefined(benchmark::State& state) {
   MapProxy<Map> proxy{map};
 
   PopulateMap(proxy);
-  for (auto _ : state) {
+  for ([[maybe_unused]] auto _ : state) {
     for (const auto& header : kArbitraryHeaders) {
       benchmark::DoNotOptimize(proxy.FindPredefined(header));
     }
@@ -315,7 +316,7 @@ void HttpHeadersMap_FindPredefined(benchmark::State& state) {
 
 template <typename Map>
 void HttpHeadersMap_Populate(benchmark::State& state) {
-  for (auto _ : state) {
+  for ([[maybe_unused]] auto _ : state) {
     Map map{};
     MapProxy<Map> proxy{map};
 
@@ -328,7 +329,7 @@ void HttpHeadersMap_Populate(benchmark::State& state) {
 
 template <typename Map>
 void HttpHeadersMap_PopulateWithKnown(benchmark::State& state) {
-  for (auto _ : state) {
+  for ([[maybe_unused]] auto _ : state) {
     Map map{};
     MapProxy<Map> proxy{map};
 
@@ -370,13 +371,13 @@ void HttpHeadersMap_FindHuge(benchmark::State& state) {
   }
 
   if constexpr (Predefined) {
-    for (auto _ : state) {
+    for ([[maybe_unused]] auto _ : state) {
       for (const auto& k : Predefined_headers) {
         benchmark::DoNotOptimize(proxy.FindPredefined(k));
       }
     }
   } else {
-    for (auto _ : state) {
+    for ([[maybe_unused]] auto _ : state) {
       for (const auto& [k, v] : headers) {
         const auto it = proxy.Find(k);
         if (it->second != v) {
@@ -401,7 +402,7 @@ void HttpHeadersMap_PopulateHuge(benchmark::State& state) {
         std::forward_as_tuple(std::to_string(i) + "break_sso_break_sso_"));
   }
 
-  for (auto _ : state) {
+  for ([[maybe_unused]] auto _ : state) {
     Map map{};
     MapProxy<Map> proxy{map};
 
@@ -418,7 +419,7 @@ void HttpHeadersMap_CopyAndEraseAll(benchmark::State& state) {
     PopulateMapWithKnown(proxy);
   }
 
-  for (auto _ : state) {
+  for ([[maybe_unused]] auto _ : state) {
     auto map_copy = map;
     MapProxy<Map> proxy{map_copy};
     for (const auto& h : kAllUsedHeaders) {
@@ -477,7 +478,7 @@ void HttpHeadersMap_FindFromAllUsed_TrivialBiMap(benchmark::State& state) {
     keys.push_back(MyLaunder(h));
   }
 
-  for (auto _ : state) {
+  for ([[maybe_unused]] auto _ : state) {
     for (const auto& h : keys) {
       benchmark::DoNotOptimize(kTrivialHeadersMap.TryFindICase(h));
     }
@@ -496,7 +497,7 @@ void HttpHeadersMap_FindFromAllUsed_HeaderMap(benchmark::State& state) {
     keys.push_back(MyLaunder(h));
   }
 
-  for (auto _ : state) {
+  for ([[maybe_unused]] auto _ : state) {
     for (const auto& h : keys) {
       benchmark::DoNotOptimize(map.find(h));
     }
@@ -512,7 +513,7 @@ void HttpHeadersMap_Showcase(benchmark::State& state) {
   MapProxy<Map> proxy{map};
 
   PopulateMapWithKnown(proxy);
-  for (auto _ : state) {
+  for ([[maybe_unused]] auto _ : state) {
     for (const auto& header : kAllUsedHeaders) {
       benchmark::DoNotOptimize(proxy.FindPredefined(header));
     }

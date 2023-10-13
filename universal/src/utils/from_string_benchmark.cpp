@@ -16,7 +16,7 @@ void ConstFromString(benchmark::State& state) {
     str.push_back('0' + i % 10);
   }
 
-  for (auto _ : state) {
+  for ([[maybe_unused]] auto _ : state) {
     for (std::size_t i = 0; i < 100; ++i) {
       benchmark::DoNotOptimize(utils::FromString<T>(str));
     }

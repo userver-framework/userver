@@ -9,7 +9,7 @@ void make_url(benchmark::State& state, std::size_t size) {
   std::string spaces(size, ' ');
   std::string latins(size, 'a');
   std::string latins_with_spaces = spaces + latins;
-  for (auto _ : state) {
+  for ([[maybe_unused]] auto _ : state) {
     const auto result = http::MakeUrl(
         path,
         {{"a", latins}, {"b", spaces}, {"c", latins_with_spaces}, {"d", ""}});
@@ -33,7 +33,7 @@ void make_query(benchmark::State& state) {
     std::string str = std::to_string(i);
     query_args[str] = str;
   }
-  for (auto _ : state) {
+  for ([[maybe_unused]] auto _ : state) {
     const auto result = http::MakeQuery(query_args);
     benchmark::DoNotOptimize(result);
   }

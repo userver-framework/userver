@@ -37,7 +37,7 @@ BENCHMARK_DEFINE_F(Stacktrace, NotCached)(benchmark::State& state) {
   };
 
   const auto approximate_depth = state.range(0);
-  for (auto _ : state) {
+  for ([[maybe_unused]] auto _ : state) {
     auto result = recursion(approximate_depth);
     benchmark::DoNotOptimize(result);
   }
@@ -67,7 +67,7 @@ BENCHMARK_DEFINE_F(Stacktrace, Cached)(benchmark::State& state) {
   };
 
   const auto approximate_depth = state.range(0);
-  for (auto _ : state) {
+  for ([[maybe_unused]] auto _ : state) {
     auto result = recursion(approximate_depth);
     benchmark::DoNotOptimize(result);
   }
@@ -97,7 +97,7 @@ BENCHMARK_DEFINE_F(Stacktrace, Get)(benchmark::State& state) {
   };
 
   const auto approximate_depth = state.range(0);
-  for (auto _ : state) {
+  for ([[maybe_unused]] auto _ : state) {
     auto result = recursion(approximate_depth);
     benchmark::DoNotOptimize(result);
   }
