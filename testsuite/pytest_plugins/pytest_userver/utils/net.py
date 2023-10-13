@@ -41,8 +41,7 @@ async def _check_tcp_port_availability(tcp: HostPort) -> bool:
         _, writer = await asyncio.open_connection(tcp.host, tcp.port)
         writer.close()
         await writer.wait_closed()
-    except (OSError, asyncio.TimeoutError) as exc:
-        logger.debug('TCP %s:%s is not available: %s', tcp.host, tcp.port, exc)
+    except (OSError, asyncio.TimeoutError):
         return False
     return True
 

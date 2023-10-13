@@ -5,6 +5,7 @@ Start the service in testsuite.
 import logging
 import pathlib
 import sys
+import time
 import traceback
 import typing
 
@@ -159,18 +160,22 @@ async def service_daemon(
         service_non_http_health_checks,
     )
 
+    class _local_counters:
+        last_log_time = 0.0
+        attempts = 0
+
     async def _checker(*, session, process) -> bool:
-        logger_testsuite.debug(
-            'userver fixture "service_daemon" is about to start "%s" checks',
-            service_non_http_health_checks,
-        )
-        result = await net.check_availability(service_non_http_health_checks)
-        logger_testsuite.debug(
-            'userver fixture "service_daemon" checked "%s" and got "%s"',
-            service_non_http_health_checks,
-            result,
-        )
-        return result
+        _local_counters.attempts += 1
+        new_log_time = time.monotonic()
+        if new_log_time - _local_counters.last_log_time > 1.0:
+            _local_counters.last_log_time = new_log_time
+            logger_testsuite.debug(
+                'userver fixture "service_daemon" checking "%s", attempt %s',
+                service_non_http_health_checks,
+                _local_counters.attempts,
+            )
+
+        return await net.check_availability(service_non_http_health_checks)
 
     health_check = _checker
     if service_http_ping_url:
