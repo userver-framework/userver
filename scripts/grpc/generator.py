@@ -84,7 +84,6 @@ class _CodeGenerator:
             'package_prefix': _to_package_prefix(self.proto_file.package),
             'namespace': _grpc_to_cpp_name(self.proto_file.package),
             'services': list(self.proto_file.service),
-            # 'qos_file': self._proto_file_dest_qos(),
         }
 
         for file_type, file_ext in self._iter_src_files():
@@ -122,9 +121,6 @@ class _CodeGenerator:
 
     def _proto_file_dest(self, file_type: str, file_ext: str) -> str:
         return f'{self._proto_file_stem()}_{file_type}.usrv.pb.{file_ext}'
-
-    def _proto_file_dest_qos(self) -> str:
-        return f'{self._proto_file_stem()}_client_qos.usrv.pb.hpp'
 
 
 def generate(

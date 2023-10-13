@@ -17,13 +17,19 @@ struct uuid;
 
 USERVER_NAMESPACE_BEGIN
 
+namespace utils::impl::strong_typedef {
+struct StrongTypedefTag;
+}
+
 /// Common serializers
 namespace formats::serialize {
 
 /// Common containers serialization (vector/set)
 template <typename T, typename Value>
 std::enable_if_t<meta::kIsRange<T> && !meta::kIsMap<T> &&
-                     !std::is_same_v<T, boost::uuids::uuid>,
+                     !std::is_same_v<T, boost::uuids::uuid> &&
+                     !std::is_convertible_v<
+                         T&, utils::impl::strong_typedef::StrongTypedefTag&>,
                  Value>
 Serialize(const T& value, To<Value>) {
   typename Value::Builder builder(formats::common::Type::kArray);

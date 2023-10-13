@@ -16,6 +16,10 @@
 
 USERVER_NAMESPACE_BEGIN
 
+namespace utils::impl::strong_typedef {
+struct StrongTypedefTag;
+}
+
 namespace formats::serialize {
 
 /// An ADL helper that allows searching for `WriteToStream` functions in
@@ -62,9 +66,9 @@ void WriteToStreamArray(const T& value, StringBuilder& sw) {
 template <typename T, typename StringBuilder>
 void WriteToStreamDict(const T& value, StringBuilder& sw) {
   typename StringBuilder::ObjectGuard guard(sw);
-  for (const auto& [key, value] : value) {
+  for (const auto& [key, item] : value) {
     sw.Key(key);
-    WriteToStream(value, sw);
+    WriteToStream(item, sw);
   }
 }
 
@@ -75,8 +79,10 @@ void WriteToStreamDict(const T& value, StringBuilder& sw) {
 /// The signature of this WriteToStream must remain the less specialized one, so
 /// that it is not preferred over other functions.
 template <typename T, typename StringBuilder>
-std::enable_if_t<!std::is_arithmetic_v<T>> WriteToStream(const T& value,
-                                                         StringBuilder& sw) {
+std::enable_if_t<
+    !std::is_arithmetic_v<T> &&
+    !std::is_convertible_v<T&, utils::impl::strong_typedef::StrongTypedefTag&>>
+WriteToStream(const T& value, StringBuilder& sw) {
   using Value = typename StringBuilder::Value;
 
   if constexpr (meta::kIsMap<T>) {

@@ -424,6 +424,25 @@ UTEST(DynamicConfigSubscription, Snippet) {
   EXPECT_EQ(subscriber.GetFooInterestingEventCounter(), 1);
 }
 
+namespace {
+
+formats::json::Value ParseJsonConfig(const dynamic_config::DocsMap&) {
+  return {};
+}
+
+constexpr dynamic_config::Key<ParseJsonConfig> kJsonConfig;
+
+}  // namespace
+
+UTEST(DynamicConfig, JsonConfig) {
+  // KeyValue automatically parses any config from formats::json::Value. But the
+  // config itself can also have the type of formats::json::Value. In this case
+  // both approaches are correct. Check that there is no ambiguity.
+  dynamic_config::StorageMock storage{{kJsonConfig, kJson}};
+  const auto snapshot = storage.GetSnapshot();
+  EXPECT_EQ(snapshot[kJsonConfig], kJson);
+}
+
 }  // namespace
 
 USERVER_NAMESPACE_END

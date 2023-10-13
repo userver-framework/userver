@@ -113,7 +113,9 @@ using EnableTransparentCompare = std::enable_if_t<
 struct StrongTypedefTag {};
 
 template <typename T>
-using IsStrongTypedef = std::is_base_of<StrongTypedefTag, T>;
+using IsStrongTypedef =
+    std::conjunction<std::is_base_of<StrongTypedefTag, T>,
+                     std::is_convertible<T&, StrongTypedefTag&>>;
 
 // For 'std::string', begin-end methods are not forwarded, because otherwise
 // it might get serialized as an array.
@@ -331,29 +333,24 @@ constexpr bool IsStrongTypedefLoggable(StrongTypedefOps Ops) {
 
 // Serialization
 
-template <typename Tag, typename T, StrongTypedefOps Ops, typename Enable,
-          typename ValueType>
-std::enable_if_t<formats::common::kIsFormatValue<ValueType>,
-                 StrongTypedef<Tag, T, Ops, Enable>>
-Parse(const ValueType& source,
-      formats::parse::To<StrongTypedef<Tag, T, Ops, Enable>>) {
-  using StrongTypedefType = StrongTypedef<Tag, T, Ops, Enable>;
-  return StrongTypedefType{source.template As<T>()};
+template <typename T, typename Value>
+std::enable_if_t<formats::common::kIsFormatValue<Value> && IsStrongTypedef<T>{},
+                 T>
+Parse(const Value& source, formats::parse::To<T>) {
+  return T{source.template As<typename T::UnderlyingType>()};
 }
 
-template <typename Tag, typename T, StrongTypedefOps Ops, typename Enable,
-          typename TargetType>
-TargetType Serialize(const StrongTypedef<Tag, T, Ops, Enable>& object,
-                     formats::serialize::To<TargetType>) {
-  impl::strong_typedef::CheckIfAllowsLogging<StrongTypedef<Tag, T, Ops>>();
-  return typename TargetType::Builder(object.GetUnderlying()).ExtractValue();
+template <typename T, typename Value>
+std::enable_if_t<IsStrongTypedef<T>{}, Value> Serialize(
+    const T& object, formats::serialize::To<Value>) {
+  impl::strong_typedef::CheckIfAllowsLogging<T>();
+  return typename Value::Builder(object.GetUnderlying()).ExtractValue();
 }
 
-template <typename Tag, typename T, StrongTypedefOps Ops, typename Enable,
-          typename StringBuilder>
-void WriteToStream(const StrongTypedef<Tag, T, Ops, Enable>& object,
-                   StringBuilder& sw) {
-  impl::strong_typedef::CheckIfAllowsLogging<StrongTypedef<Tag, T, Ops>>();
+template <typename T, typename StringBuilder>
+std::enable_if_t<IsStrongTypedef<T>{}> WriteToStream(const T& object,
+                                                     StringBuilder& sw) {
+  impl::strong_typedef::CheckIfAllowsLogging<T>();
   WriteToStream(object.GetUnderlying(), sw);
 }
 

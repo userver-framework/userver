@@ -91,9 +91,8 @@ class ValueDict final {
       : name_(std::move(name)), dict_(std::move(dict)) {}
 
   // Deprecated
-  ValueDict(std::string name, const DocsMap& docs_map)
-      : name_(std::move(name)),
-        dict_(docs_map.Get(name_).template As<DictType>()) {}
+  ValueDict(std::string_view name, const DocsMap& docs_map)
+      : name_(name), dict_(docs_map.Get(name_).template As<DictType>()) {}
 
   bool HasDefaultValue() const { return HasValue(kValueDictDefaultName); }
 

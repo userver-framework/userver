@@ -29,15 +29,16 @@ class KeyValue final {
   /// @code
   /// {kMyConfig, {"foo", 42}}
   /// @endcode
-  template <typename Key>
-  KeyValue(Key /*key*/, VariableOfKey<Key> value)
-      : id_(impl::kConfigId<Key>), value_(std::move(value)) {}
-
-  /// Parses the value from `formats::json::Value`
-  template <typename Key, typename Json, typename = impl::IsJson<Json>>
-  KeyValue(Key /*key*/, const Json& value)
+  ///
+  /// When passed a formats::json::Value, parses the value from it:
+  /// @code
+  /// {kMyConfig, formats::json::FromString(R"({"foo": "what", "bar": 42})")}
+  /// @endcode
+  template <typename Key, typename Value = dynamic_config::VariableOfKey<Key>>
+  KeyValue(Key /*key*/, Value&& value)
       : id_(impl::kConfigId<Key>),
-        value_(value.template As<VariableOfKey<Key>>()) {}
+        value_(Convert<dynamic_config::VariableOfKey<Key>>(
+            std::forward<Value>(value))) {}
 
   /// For internal use only
   impl::ConfigId GetId() const { return id_; }
@@ -46,6 +47,15 @@ class KeyValue final {
   std::any GetValue() const { return value_; }
 
  private:
+  template <typename VariableType, typename Value>
+  static VariableType Convert(Value&& value) {
+    if constexpr (std::is_same_v<std::decay_t<Value>, formats::json::Value>) {
+      return value.template As<VariableType>();
+    } else {
+      return static_cast<VariableType>(std::forward<Value>(value));
+    }
+  }
+
   impl::ConfigId id_;
   std::any value_;
 };

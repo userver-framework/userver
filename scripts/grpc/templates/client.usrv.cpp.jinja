@@ -21,17 +21,21 @@ constexpr std::string_view k{{service.name}}MethodNames[] = {
 
 {% set client_qos = 'GRPC_CLIENT_QOS_' + proto.package_prefix.replace('.', '_') + service.name + 'Client'%}
 
-USERVER_NAMESPACE::ugrpc::client::ClientQos
+#ifdef {{ client_qos }}
+USERVER_NAMESPACE::ugrpc::client::impl::ClientQos
 Parse{{service.name}}ClientQos(
     [[maybe_unused]] const USERVER_NAMESPACE::dynamic_config::DocsMap& docs_map) {
-#ifdef {{ client_qos }}
-    return docs_map.Get({{ client_qos }}).As<USERVER_NAMESPACE::ugrpc::client::ClientQos>();
-#else
-    return { { "__default__", {std::nullopt}}};
-#endif
+  return docs_map.Get({{ client_qos }})
+      .As<USERVER_NAMESPACE::ugrpc::client::impl::ClientQos>();
 }
 
-constexpr USERVER_NAMESPACE::dynamic_config::Key<Parse{{service.name}}ClientQos> k{{service.name}}ClientQosConfig;
+constexpr USERVER_NAMESPACE::dynamic_config::Key<
+    Parse{{service.name}}ClientQos
+> k{{service.name}}ClientQosConfig;
+#else
+constexpr const auto& k{{service.name}}ClientQosConfig =
+    USERVER_NAMESPACE::ugrpc::client::impl::kNoClientQos;
+#endif
 {% endfor %}
 
 }  // namespace

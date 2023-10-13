@@ -19,6 +19,10 @@ struct uuid;
 
 USERVER_NAMESPACE_BEGIN
 
+namespace utils::impl::strong_typedef {
+struct StrongTypedefTag;
+}
+
 namespace formats::parse {
 
 namespace impl {
@@ -63,7 +67,10 @@ ObjectType ParseObject(const Value& value, ExtractFunc&& extract_func) {
 
 template <typename T, typename Value>
 std::enable_if_t<common::kIsFormatValue<Value> && meta::kIsRange<T> &&
-                     !meta::kIsMap<T> && !std::is_same_v<T, boost::uuids::uuid>,
+                     !meta::kIsMap<T> &&
+                     !std::is_same_v<T, boost::uuids::uuid> &&
+                     !std::is_convertible_v<
+                         T&, utils::impl::strong_typedef::StrongTypedefTag&>,
                  T>
 Parse(const Value& value, To<T>) {
   return impl::ParseArray<T>(
@@ -95,7 +102,9 @@ std::optional<std::nullptr_t> Parse(const Value&,
 
 template <typename T, typename Value>
 std::enable_if_t<meta::kIsRange<T> && !meta::kIsMap<T> &&
-                     !std::is_same_v<T, boost::uuids::uuid>,
+                     !std::is_same_v<T, boost::uuids::uuid> &&
+                     !std::is_convertible_v<
+                         T&, utils::impl::strong_typedef::StrongTypedefTag&>,
                  T>
 Convert(const Value& value, To<T>) {
   if (value.IsMissing()) {

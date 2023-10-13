@@ -17,11 +17,12 @@ namespace dynamic_config::impl {
 using Factory = std::any (*)(const DocsMap&);
 
 template <typename Key>
-using VariableOfKey = decltype(Key::Parse(std::declval<const DocsMap&>()));
+using VariableOfKey =
+    decltype(std::declval<const Key&>().Parse(std::declval<const DocsMap&>()));
 
 template <typename Key>
 std::any FactoryFor(const DocsMap& map) {
-  return std::any{Key::Parse(map)};
+  return std::any{Key::kParserFunctionImpl(map)};
 }
 
 [[noreturn]] void WrapGetError(const std::exception& ex, std::type_index type);

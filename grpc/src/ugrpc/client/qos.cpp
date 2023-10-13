@@ -1,11 +1,12 @@
 #include <userver/ugrpc/client/qos.hpp>
 
-#include <fmt/chrono.h>
-#include <fmt/format.h>
 #include <grpcpp/client_context.h>
 
+#include <userver/formats/json/serialize_duration.hpp>
 #include <userver/formats/json/value.hpp>
+#include <userver/formats/json/value_builder.hpp>
 #include <userver/formats/parse/common_containers.hpp>
+#include <userver/formats/serialize/common_containers.hpp>
 #include <userver/testsuite/grpc_control.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -13,11 +14,20 @@ USERVER_NAMESPACE_BEGIN
 namespace ugrpc::client {
 
 Qos Parse(const formats::json::Value& value, formats::parse::To<Qos>) {
-  auto ms =
+  Qos result;
+  const auto ms =
       value["timeout-ms"].As<std::optional<std::chrono::milliseconds::rep>>();
-  if (!ms) return Qos{};
+  if (ms) {
+    result.timeout = std::chrono::milliseconds{*ms};
+  }
+  return result;
+}
 
-  return Qos{std::optional<std::chrono::milliseconds>{*ms}};
+formats::json::Value Serialize(const Qos& qos,
+                               formats::serialize::To<formats::json::Value>) {
+  formats::json::ValueBuilder result{formats::common::Type::kObject};
+  result["timeout-ms"] = qos.timeout;
+  return result.ExtractValue();
 }
 
 void ApplyQos(grpc::ClientContext& context, const Qos& qos,

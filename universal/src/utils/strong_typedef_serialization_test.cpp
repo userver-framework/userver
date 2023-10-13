@@ -1,25 +1,24 @@
-#include <userver/formats/json/serialize.hpp>
+#include <userver/utils/strong_typedef.hpp>
+
+#include <array>
+#include <limits>
+#include <vector>
 
 #include <fmt/format.h>
-#include <userver/utils/fmt_compat.hpp>
+#include <gtest/gtest.h>
+#include <boost/optional.hpp>
+#include <boost/optional/optional_io.hpp>
 
+#include <userver/formats/json/serialize.hpp>
 #include <userver/formats/json/serialize_container.hpp>
+#include <userver/formats/json/string_builder.hpp>
 #include <userver/formats/json/value.hpp>
 #include <userver/formats/json/value_builder.hpp>
 #include <userver/formats/parse/boost_optional.hpp>
 #include <userver/formats/serialize/boost_optional.hpp>
 #include <userver/formats/yaml/serialize.hpp>
 #include <userver/formats/yaml/value.hpp>
-
-#include <array>
-#include <limits>
-
-#include <boost/optional.hpp>
-#include <boost/optional/optional_io.hpp>
-
-#include <userver/utils/strong_typedef.hpp>
-
-#include <gtest/gtest.h>
+#include <userver/utils/fmt_compat.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -33,6 +32,8 @@ static void PrintTo(const utils::StrongTypedef<Tag, T, Ops>& v,
 
 }  // namespace utils
 
+namespace {
+
 struct IntTag {};
 struct OptionalIntTag {};
 using IntTypedef = utils::StrongTypedef<IntTag, int>;
@@ -40,7 +41,14 @@ using IntTypedef = utils::StrongTypedef<IntTag, int>;
 using OptionalIntTypedef =
     utils::StrongTypedef<OptionalIntTag, boost::optional<int>>;
 
-namespace {
+struct IntStructTypedef : public utils::StrongTypedef<IntStructTypedef, int> {
+  using StrongTypedef::StrongTypedef;
+};
+
+struct VectorStructTypedef
+    : public utils::StrongTypedef<VectorStructTypedef, std::vector<int>> {
+  using StrongTypedef::StrongTypedef;
+};
 
 struct NonStreamable {};
 
@@ -89,6 +97,18 @@ TEST(SerializeStrongTypedef, ParseOptionalInt) {
   EXPECT_EQ(10, *(value.GetUnderlying()));
 }
 
+TEST(SerializeStrongTypedef, ParseIntStruct) {
+  const auto json = formats::json::FromString(R"json(10)json");
+  auto value = json.As<IntStructTypedef>();
+  EXPECT_EQ(value.GetUnderlying(), 10);
+}
+
+TEST(SerializeStrongTypedef, ParseVectorStruct) {
+  const auto json = formats::json::FromString(R"json([10])json");
+  auto value = json.As<VectorStructTypedef>();
+  EXPECT_EQ(value.GetUnderlying(), std::vector{10});
+}
+
 TEST(SerializeStrongTypedef, ParseOptionalIntNone) {
   auto json_object = formats::json::FromString(R"json({"data" : null})json");
   auto json_data = json_object["data"];
@@ -131,6 +151,34 @@ TEST(SerializeStrongTypedef, SerializeCycleOptionalIntNone) {
   auto test = json_object.As<OptionalIntTypedef>();
 
   EXPECT_EQ(reference, test);
+}
+
+TEST(SerializeStrongTypedef, SerializeIntStruct) {
+  const IntStructTypedef value{10};
+  const auto json = formats::json::ValueBuilder{value}.ExtractValue();
+  ASSERT_EQ(json, formats::json::FromString("10"));
+}
+
+TEST(SerializeStrongTypedef, SerializeVectorStruct) {
+  const VectorStructTypedef value{std::vector{10}};
+  const auto json = formats::json::ValueBuilder{value}.ExtractValue();
+  ASSERT_EQ(json, formats::json::FromString("[10]"));
+}
+
+TEST(SerializeStrongTypedef, WriteToStreamIntStruct) {
+  const IntStructTypedef value{10};
+  formats::json::StringBuilder builder;
+  WriteToStream(value, builder);
+  EXPECT_EQ(formats::json::FromString(builder.GetString()),
+            formats::json::FromString("10"));
+}
+
+TEST(SerializeStrongTypedef, WriteToStreamVectorStruct) {
+  const VectorStructTypedef value{std::vector{10}};
+  formats::json::StringBuilder builder;
+  WriteToStream(value, builder);
+  EXPECT_EQ(formats::json::FromString(builder.GetString()),
+            formats::json::FromString("[10]"));
 }
 
 TEST(SerializeStrongTypedef, Fmt) {

@@ -17,7 +17,14 @@ namespace dynamic_config {
 /// @snippet core/src/components/logging_configurator.cpp  key
 template <auto Parser>
 struct Key final {
-  static auto Parse(const DocsMap& docs_map) { return Parser(docs_map); }
+  constexpr Key() = default;
+
+  auto Parse(const DocsMap& docs_map) const { return Parser(docs_map); }
+
+  /// @cond
+  // For internal use only!
+  static constexpr auto kParserFunctionImpl = Parser;
+  /// @endcond
 };
 
 /// Get the type of a config variable, given its key

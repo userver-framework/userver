@@ -23,6 +23,9 @@ struct Qos final {
 
 Qos Parse(const formats::json::Value& value, formats::parse::To<Qos>);
 
+formats::json::Value Serialize(const Qos& qos,
+                               formats::serialize::To<formats::json::Value>);
+
 void ApplyQos(grpc::ClientContext& context, const Qos& qos,
               const testsuite::GrpcControl& testsuite_control);
 

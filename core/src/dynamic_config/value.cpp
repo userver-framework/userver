@@ -32,12 +32,8 @@ bool DocsMap::Has(std::string_view name) const {
 }
 
 void DocsMap::Set(std::string name, formats::json::Value obj) {
-  auto it = docs_.find(name);
-  if (it != docs_.end()) {
-    it->second = obj;
-  } else {
-    docs_.emplace(std::move(name), std::move(obj));
-  }
+  utils::impl::TransparentInsertOrAssign(docs_, std::move(name),
+                                         std::move(obj));
 }
 
 void DocsMap::Parse(const std::string& json_string, bool empty_ok) {
