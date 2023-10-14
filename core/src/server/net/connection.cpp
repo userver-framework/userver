@@ -13,41 +13,25 @@
 #include <userver/engine/exception.hpp>
 #include <userver/engine/io/exception.hpp>
 #include <userver/engine/io/tls_wrapper.hpp>
-#include <userver/engine/single_consumer_event.hpp>
 #include <userver/engine/task/cancel.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/server/request/request_config.hpp>
 #include <userver/utils/assert.hpp>
-#include <userver/utils/scope_guard.hpp>
+#include <userver/utils/fast_scope_guard.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace server::net {
 
-std::shared_ptr<Connection> Connection::Create(
-    engine::TaskProcessor& task_processor, const ConnectionConfig& config,
-    const request::HttpRequestConfig& handler_defaults_config,
-    std::unique_ptr<engine::io::RwBase> peer_socket,
-    const engine::io::Sockaddr& remote_address,
-    const http::RequestHandlerBase& request_handler,
-    std::shared_ptr<Stats> stats,
-    request::ResponseDataAccounter& data_accounter) {
-  return std::make_shared<Connection>(
-      task_processor, config, handler_defaults_config, std::move(peer_socket),
-      remote_address, request_handler, std::move(stats), data_accounter,
-      EmplaceEnabler{});
-}
-
 Connection::Connection(
-    engine::TaskProcessor& task_processor, const ConnectionConfig& config,
+    const ConnectionConfig& config,
     const request::HttpRequestConfig& handler_defaults_config,
     std::unique_ptr<engine::io::RwBase> peer_socket,
     const engine::io::Sockaddr& remote_address,
     const http::RequestHandlerBase& request_handler,
     std::shared_ptr<Stats> stats,
-    request::ResponseDataAccounter& data_accounter, EmplaceEnabler)
-    : task_processor_(task_processor),
-      config_(config),
+    request::ResponseDataAccounter& data_accounter)
+    : config_(config),
       handler_defaults_config_(handler_defaults_config),
       peer_socket_(std::move(peer_socket)),
       request_handler_(request_handler),
@@ -63,48 +47,25 @@ Connection::Connection(
   ++stats_->connections_created;
 }
 
-void Connection::SetCloseCb(CloseCb close_cb) {
-  close_cb_ = std::move(close_cb);
-}
-
-void Connection::Start() {
+void Connection::Process() {
   LOG_TRACE() << "Starting socket listener for fd " << Fd();
 
-  // TODO TAXICOMMON-1993 Remove slicing once the issues with payload lifetime
-  // in cancelled TaskWithResult are resolved
-  engine::Task socket_listener =
-      // NOLINTNEXTLINE(cppcoreguidelines-slicing)
-      engine::AsyncNoSpan(
-          task_processor_,
-          [this](Queue::Producer producer) {
-            ListenForRequests(std::move(producer));
-          },
-          request_tasks_->GetProducer());
-
-  // `response_sender_task_` always starts because it is a Critical task
-
-  // NOLINTNEXTLINE(cppcoreguidelines-slicing)
-  response_sender_task_ = engine::CriticalAsyncNoSpan(
-      task_processor_,
-      [](std::shared_ptr<Connection> self, auto socket_listener) {
-        auto consumer = self->request_tasks_->GetConsumer();
-        [[maybe_unused]] bool ok =
-            self->response_sender_assigned_event_.WaitForEvent();
-        UASSERT(ok || engine::current_task::ShouldCancel());
-        self->ProcessResponses(consumer);
-
-        socket_listener.SyncCancel();
-        self->ProcessResponses(consumer);  // Consume remaining requests
-        self->Shutdown();
+  // In case of TaskProcessor overload keep receiving requests as we wish to
+  // keep using the connection
+  auto socket_listener = engine::CriticalAsyncNoSpan(
+      [this](Queue::Producer producer, engine::TaskCancellationToken token) {
+        ListenForRequests(std::move(producer), std::move(token));
       },
-      shared_from_this(), std::move(socket_listener));
-  response_sender_launched_event_.Send();
-  response_sender_assigned_event_.Send();
+      request_tasks_->GetProducer(),
+      engine::current_task::GetCancellationToken());
 
-  LOG_TRACE() << "Started socket listener for fd " << Fd();
+  auto consumer = request_tasks_->GetConsumer();
+  ProcessResponses(consumer);
+
+  socket_listener.SyncCancel();
+  ProcessResponses(consumer);  // Consume remaining requests
+  Shutdown();
 }
-
-void Connection::Stop() { response_sender_task_.RequestCancel(); }
 
 int Connection::Fd() const {
   auto* socket = dynamic_cast<engine::io::Socket*>(peer_socket_.get());
@@ -117,8 +78,6 @@ int Connection::Fd() const {
 }
 
 void Connection::Shutdown() noexcept {
-  UASSERT(response_sender_task_.IsValid());
-
   LOG_TRACE() << "Terminating requests processing (canceling in-flight "
                  "requests) for fd "
               << Fd();
@@ -128,29 +87,17 @@ void Connection::Shutdown() noexcept {
   --stats_->active_connections;
   ++stats_->connections_closed;
 
-  if (close_cb_) close_cb_();  // should not throw
-
   UASSERT(IsRequestTasksEmpty());
-
-  // `~Connection()` may be called from within the `response_sender_task_`.
-  // Without `Detach()` we get a deadlock.
-  std::move(response_sender_task_).Detach();
 }
 
 bool Connection::IsRequestTasksEmpty() const noexcept {
   return request_tasks_->GetSizeApproximate() == 0;
 }
 
-void Connection::ListenForRequests(Queue::Producer producer) noexcept {
+void Connection::ListenForRequests(
+    Queue::Producer producer, engine::TaskCancellationToken token) noexcept {
   using RequestBasePtr = std::shared_ptr<request::RequestBase>;
-
-  utils::ScopeGuard send_stopper([this]() {
-    // do not request cancel unless we're sure it's in valid state
-    // this task can only normally be cancelled from response sender
-    if (response_sender_launched_event_.WaitForEvent()) {
-      response_sender_task_.RequestCancel();
-    }
-  });
+  utils::FastScopeGuard send_stopper([&]() noexcept { token.RequestCancel(); });
 
   try {
     request_tasks_->SetSoftMaxSize(config_.requests_queue_size_threshold);

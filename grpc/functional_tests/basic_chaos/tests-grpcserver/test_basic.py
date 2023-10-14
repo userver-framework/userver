@@ -40,3 +40,21 @@ async def test_grpc_cc_enabled(grpc_client, service_client, testpoint):
 
     await tp_cc_disable.wait_call()
     await tp_cc_apply.wait_call()
+
+
+async def test_grpc_cancellation(grpc_client, service_client, testpoint):
+    @testpoint('testpoint_cancel')
+    def cancel_testpoint(data):
+        pass
+
+    await service_client.enable_testpoints()
+
+    try:
+        request = greeter_pb2.GreetingRequest(name='test_payload_cancellation')
+        await grpc_client.SayHello(request, wait_for_ready=True, timeout=0.1)
+        assert False
+    except grpc.RpcError as error:
+        assert error.details() == 'Deadline Exceeded'
+        assert error.code() == grpc.StatusCode.DEADLINE_EXCEEDED
+
+    await cancel_testpoint.wait_call()

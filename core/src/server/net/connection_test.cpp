@@ -114,23 +114,18 @@ UTEST(ServerNetConnection, EarlyCancel) {
   server::request::ResponseDataAccounter data_accounter;
   TestHttprequestHandler handler;
 
-  auto connection_ptr = net::Connection::Create(
-      engine::current_task::GetTaskProcessor(), config.connection_config,
-      config.handler_defaults,
-      std::make_unique<engine::io::Socket>(std::move(peer)), {}, handler, stats,
-      data_accounter);
+  auto task = engine::AsyncNoSpan([&] {
+    net::Connection connection(
+        config.connection_config, config.handler_defaults,
+        std::make_unique<engine::io::Socket>(std::move(peer)), {}, handler,
+        stats, data_accounter);
 
-  connection_ptr->Start();
-  // Immediately canceling the `socket_listener_` task without giving it
-  // any chance to start.
-  connection_ptr->Stop();
-  std::weak_ptr<net::Connection> weak = connection_ptr;
-  connection_ptr.reset();
-
-  auto task = engine::AsyncNoSpan([weak]() {
-    while (weak.lock()) engine::Yield();
+    connection.Process();
   });
 
+  // Immediately canceling the `socket_listener_` task without giving it
+  // any chance to start.
+  task.RequestCancel();
   task.WaitFor(utest::kMaxTestWaitTime);
   EXPECT_TRUE(task.IsFinished());
   UEXPECT_THROW(request.Get(), std::exception)
@@ -156,20 +151,14 @@ UTEST(ServerNetConnection, EarlyTimeout) {
 
   UEXPECT_THROW(res.Get(), clients::http::TimeoutException);
 
-  auto connection_ptr = net::Connection::Create(
-      engine::current_task::GetTaskProcessor(), config.connection_config,
-      config.handler_defaults,
-      std::make_unique<engine::io::Socket>(std::move(peer)), {}, handler, stats,
-      data_accounter);
+  auto task = engine::AsyncNoSpan([&] {
+    net::Connection connection(
+        config.connection_config, config.handler_defaults,
+        std::make_unique<engine::io::Socket>(std::move(peer)), {}, handler,
+        stats, data_accounter);
 
-  connection_ptr->Start();
-  std::weak_ptr<net::Connection> weak = connection_ptr;
-  connection_ptr.reset();
-
-  auto task = engine::AsyncNoSpan([weak]() {
-    while (weak.lock()) engine::Yield();
+    connection.Process();
   });
-
   task.WaitFor(utest::kMaxTestWaitTime);
   EXPECT_TRUE(task.IsFinished());
 }
@@ -189,20 +178,16 @@ UTEST(ServerNetConnection, TimeoutWithTaskCancellation) {
   server::request::ResponseDataAccounter data_accounter;
   TestHttprequestHandler handler{TestHttprequestHandler::Behaviors::kHang};
 
-  auto connection_ptr = net::Connection::Create(
-      engine::current_task::GetTaskProcessor(), config.connection_config,
-      config.handler_defaults,
-      std::make_unique<engine::io::Socket>(std::move(peer)), {}, handler, stats,
-      data_accounter);
+  auto task = engine::AsyncNoSpan([&] {
+    net::Connection connection(
+        config.connection_config, config.handler_defaults,
+        std::make_unique<engine::io::Socket>(std::move(peer)), {}, handler,
+        stats, data_accounter);
 
-  connection_ptr->Start();
-  std::weak_ptr<net::Connection> weak = connection_ptr;
-  connection_ptr.reset();
-
-  auto task = engine::AsyncNoSpan([weak]() {
-    while (weak.lock()) engine::Yield();
+    connection.Process();
   });
 
+  task.RequestCancel();
   task.WaitFor(utest::kMaxTestWaitTime);
   EXPECT_TRUE(task.IsFinished());
   UEXPECT_THROW(res.Get(), clients::http::TimeoutException);
@@ -241,23 +226,19 @@ UTEST(ServerNetConnection, RemoteClosed) {
   server::request::ResponseDataAccounter data_accounter;
   TestHttprequestHandler handler;
 
-  auto connection_ptr = net::Connection::Create(
-      engine::current_task::GetTaskProcessor(), config.connection_config,
-      config.handler_defaults,
-      std::make_unique<engine::io::Socket>(std::move(peer)), {}, handler, stats,
-      data_accounter);
+  auto task = engine::AsyncNoSpan([&] {
+    net::Connection connection(
+        config.connection_config, config.handler_defaults,
+        std::make_unique<engine::io::Socket>(std::move(peer)), {}, handler,
+        stats, data_accounter);
 
-  connection_ptr->Start();
-  std::weak_ptr<net::Connection> weak = connection_ptr;
-  connection_ptr.reset();
-
-  auto task = engine::AsyncNoSpan([weak]() {
-    while (weak.lock()) engine::Yield();
+    connection.Process();
   });
+  EXPECT_EQ(request.Get()->status_code(), 404);
 
+  task.RequestCancel();
   task.WaitFor(utest::kMaxTestWaitTime);
   EXPECT_TRUE(task.IsFinished());
-  EXPECT_EQ(request.Get()->status_code(), 404);
 }
 
 UTEST(ServerNetConnection, KeepAlive) {
@@ -276,13 +257,14 @@ UTEST(ServerNetConnection, KeepAlive) {
   server::request::ResponseDataAccounter data_accounter;
   TestHttprequestHandler handler;
 
-  auto connection_ptr = net::Connection::Create(
-      engine::current_task::GetTaskProcessor(), config.connection_config,
-      config.handler_defaults,
-      std::make_unique<engine::io::Socket>(std::move(peer)), {}, handler, stats,
-      data_accounter);
+  auto task = engine::AsyncNoSpan([&] {
+    net::Connection connection(
+        config.connection_config, config.handler_defaults,
+        std::make_unique<engine::io::Socket>(std::move(peer)), {}, handler,
+        stats, data_accounter);
 
-  connection_ptr->Start();
+    connection.Process();
+  });
   EXPECT_EQ(request.Get()->status_code(), 404);
 
   EXPECT_EQ(handler.asyncs_finished, 1);
@@ -310,36 +292,27 @@ UTEST(ServerNetConnection, CancelMultipleInFlight) {
     server::request::ResponseDataAccounter data_accounter;
     TestHttprequestHandler handler;
 
-    auto connection_ptr = net::Connection::Create(
-        engine::current_task::GetTaskProcessor(), config.connection_config,
-        config.handler_defaults,
-        std::make_unique<engine::io::Socket>(std::move(peer)), {}, handler,
-        stats, data_accounter);
+    auto task = engine::AsyncNoSpan([&] {
+      net::Connection connection(
+          config.connection_config, config.handler_defaults,
+          std::make_unique<engine::io::Socket>(std::move(peer)), {}, handler,
+          stats, data_accounter);
 
-    connection_ptr->Start();
+      connection.Process();
+    });
     res.Wait();
     EXPECT_EQ(handler.asyncs_finished, 1);
     handler.asyncs_finished = 0;
 
-    std::weak_ptr<net::Connection> weak = connection_ptr;
-    connection_ptr.reset();
-
-    connection_ptr = weak.lock();
-    ASSERT_TRUE(connection_ptr);  // keep-alive should work
+    task.RequestCancel();
+    ASSERT_TRUE(!task.IsFinished());  // keep-alive should work
 
     for (unsigned i = 0; i < kInFlightRequests; ++i) {
       CreateRequest(*http_client_ptr, request_socket).Detach();
     }
 
-    connection_ptr->Stop();
-    connection_ptr.reset();
-
-    auto task = engine::AsyncNoSpan([weak]() {
-      while (weak.lock()) engine::Yield();
-    });
-
+    task.RequestCancel();
     task.WaitFor(utest::kMaxTestWaitTime / kMaxAttempts);
-    EXPECT_TRUE(task.IsFinished());
 
     if (handler.asyncs_finished < kInFlightRequests) {
       return;  // success, requests were cancelled

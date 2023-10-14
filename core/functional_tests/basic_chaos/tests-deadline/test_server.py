@@ -1,3 +1,4 @@
+import asyncio
 import typing
 
 import pytest
@@ -86,3 +87,15 @@ async def test_deadline_propagation_disabled_dynamically(call):
     response = await call(htype='sleep', headers={DP_TIMEOUT_MS: '10'})
     assert isinstance(response, http.ClientResponse)
     assert response.status == 200
+
+
+async def test_cancellable(service_client, testpoint):
+    @testpoint('testpoint_cancel')
+    def cancel_testpoint(data):
+        pass
+
+    with pytest.raises(asyncio.TimeoutError):
+        await service_client.get(
+            '/chaos/httpserver', params={'type': 'cancel'}, timeout=0.1,
+        )
+    await cancel_testpoint.wait_call()

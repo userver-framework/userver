@@ -12,6 +12,7 @@
 #include <userver/components/loggable_component_base.hpp>
 #include <userver/engine/async.hpp>
 #include <userver/engine/sleep.hpp>
+#include <userver/testsuite/testpoint.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
 #include <userver/ugrpc/server/service_component_base.hpp>
@@ -54,6 +55,15 @@ void GreeterServiceComponent::SayHello(
     api::GreeterServiceBase::SayHelloCall& call,
     api::GreetingRequest&& request) {
   api::GreetingResponse response;
+
+  if (request.name() == "test_payload_cancellation") {
+    engine::InterruptibleSleepFor(std::chrono::seconds(20));
+    if (engine::current_task::IsCancelRequested()) {
+      engine::TaskCancellationBlocker block_cancel;
+      TESTPOINT("testpoint_cancel", {});
+    }
+  }
+
   response.set_greeting(fmt::format("{}, {}!", prefix_, request.name()));
   call.Finish(response);
 }

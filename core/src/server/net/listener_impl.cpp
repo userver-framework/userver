@@ -18,6 +18,7 @@
 #include <userver/fs/blocking/write.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
+#include <userver/utils/fast_scope_guard.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -54,48 +55,47 @@ ListenerImpl::~ListenerImpl() {
   socket_listener_task_.SyncCancel();
   LOG_TRACE() << "Stopped socket listener task";
 
-  CloseConnections();
+  connections_.CancelAndWait();
 }
 
 Stats ListenerImpl::GetStats() const { return *stats_; }
 
-engine::TaskProcessor& ListenerImpl::GetTaskProcessor() const {
-  return task_processor_;
-}
-
 void ListenerImpl::AcceptConnection(engine::io::Socket& request_socket) {
   auto peer_socket = request_socket.Accept({});
 
-  auto new_connection_count = ++endpoint_info_->connection_count;
+  const auto new_connection_count = ++endpoint_info_->connection_count;
+  utils::FastScopeGuard guard{
+      [this]() noexcept { --endpoint_info_->connection_count; }};
+
   if (new_connection_count > endpoint_info_->listener_config.max_connections) {
     LOG_LIMITED_WARNING() << endpoint_info_->GetDescription()
                           << " reached max_connections="
                           << endpoint_info_->listener_config.max_connections
                           << ", dropping connection #" << new_connection_count;
-    peer_socket.Close();
-    --endpoint_info_->connection_count;
     return;
   }
 
   LOG_DEBUG() << "Accepted connection #" << new_connection_count << '/'
               << endpoint_info_->listener_config.max_connections;
-  try {
-    SetupConnection(std::move(peer_socket));
-  } catch (const std::exception& e) {
-    --endpoint_info_->connection_count;
-    throw;
-  }
+
+  // In case of TaskProcessor overload we wish to keep the connection,
+  // as reopening it is CPU consuming
+  connections_.Detach(engine::CriticalAsyncNoSpan(
+      task_processor_,
+      [this](auto peer_socket, auto /*guard*/) {
+        ProcessConnection(std::move(peer_socket));
+      },
+      std::move(peer_socket), std::move(guard)));
 }
 
-void ListenerImpl::SetupConnection(engine::io::Socket peer_socket) {
-  const auto fd = peer_socket.Fd();
-
+void ListenerImpl::ProcessConnection(engine::io::Socket peer_socket) {
   if (peer_socket.Getsockname().Domain() == engine::io::AddrDomain::kInet6 ||
       peer_socket.Getsockname().Domain() == engine::io::AddrDomain::kInet)
     peer_socket.SetOption(IPPROTO_TCP, TCP_NODELAY, 1);
 
-  LOG_TRACE() << "Creating connection for fd " << fd;
+  const auto fd = peer_socket.Fd();
 
+  LOG_TRACE() << "Creating connection for fd " << fd;
   std::unique_ptr<engine::io::RwBase> socket;
   auto remote_address = peer_socket.Getpeername();
   if (endpoint_info_->listener_config.tls) {
@@ -107,40 +107,15 @@ void ListenerImpl::SetupConnection(engine::io::Socket peer_socket) {
     socket = std::make_unique<engine::io::Socket>(std::move(peer_socket));
   }
 
-  auto connection_ptr = Connection::Create(
-      task_processor_, endpoint_info_->listener_config.connection_config,
-      endpoint_info_->listener_config.handler_defaults, std::move(socket),
-      remote_address, endpoint_info_->request_handler, stats_, data_accounter_);
-  connection_ptr->SetCloseCb([endpoint_info = endpoint_info_]() {
-    --endpoint_info->connection_count;
-  });
+  Connection connection_ptr(endpoint_info_->listener_config.connection_config,
+                            endpoint_info_->listener_config.handler_defaults,
+                            std::move(socket), std::move(remote_address),
+                            endpoint_info_->request_handler, stats_,
+                            data_accounter_);
 
-  AddConnection(connection_ptr);
-
-  LOG_TRACE() << "Starting connection for fd " << fd;
-  connection_ptr->Start();
-  LOG_TRACE() << "Started connection for fd " << fd;
-}
-
-void ListenerImpl::AddConnection(
-    const std::shared_ptr<Connection>& connection) {
-  int fd = connection->Fd();
-  UASSERT(fd >= 0);
-
-  /* connections_ is expected not to grow too big:
-   * it is limited to ~max simultaneous connections by all listeners
-   */
-  if (connections_.size() <= static_cast<unsigned int>(fd))
-    connections_.resize(std::max(fd + 1, fd * 2));
-
-  connections_[fd] = connection;
-}
-
-void ListenerImpl::CloseConnections() {
-  for (auto& weak_ptr : connections_) {
-    auto connection = weak_ptr.lock();
-    if (connection) connection->Stop();
-  }
+  LOG_TRACE() << "Start connection processing for fd " << fd;
+  connection_ptr.Process();
+  LOG_TRACE() << "Finishing connection for fd " << fd;
 }
 
 }  // namespace server::net

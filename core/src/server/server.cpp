@@ -4,7 +4,6 @@
 #include <shared_mutex>
 #include <stdexcept>
 
-#include <userver/engine/sleep.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
 
@@ -80,22 +79,13 @@ void PortInfo::Start() {
 }
 
 void PortInfo::Stop() {
-  static constexpr size_t kMaxSleepMs = 50;
   LOG_TRACE() << "Stopping listeners";
   listeners_.clear();
   LOG_TRACE() << "Stopped listeners";
 
   if (endpoint_info_) {
-    // Connections are closing asynchronously.
-    // So we need to wait until they close.
-    for (size_t sleep_ms = 1; endpoint_info_->connection_count > 0;
-         sleep_ms = std::min(sleep_ms * 2, kMaxSleepMs)) {
-      LOG_DEBUG()
-          << "sleeping while connections are still closing... connection_count="
-          << endpoint_info_->connection_count << ", "
-          << endpoint_info_->GetDescription();
-      engine::SleepFor(std::chrono::milliseconds(sleep_ms));
-    }
+    UASSERT_MSG(endpoint_info_->connection_count == 0,
+                "Not all the connections were closed");
   }
 
   LOG_TRACE() << "Stopping request handlers";

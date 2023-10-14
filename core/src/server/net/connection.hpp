@@ -11,10 +11,6 @@
 
 #include <userver/concurrent/queue.hpp>
 #include <userver/engine/io/socket.hpp>
-#include <userver/engine/single_consumer_event.hpp>
-#include <userver/engine/task/task.hpp>
-#include <userver/engine/task/task_processor_fwd.hpp>
-#include <userver/engine/task/task_with_result.hpp>
 #include <userver/server/request/request_base.hpp>
 #include <userver/server/request/request_config.hpp>
 
@@ -22,38 +18,19 @@ USERVER_NAMESPACE_BEGIN
 
 namespace server::net {
 
-class Connection final : public std::enable_shared_from_this<Connection> {
-  struct EmplaceEnabler {};
-
+class Connection final {
  public:
-  using CloseCb = std::function<void()>;
-
   enum class Type { kRequest, kMonitor };
 
-  static std::shared_ptr<Connection> Create(
-      engine::TaskProcessor& task_processor, const ConnectionConfig& config,
-      const request::HttpRequestConfig& handler_defaults_config,
-      std::unique_ptr<engine::io::RwBase> peer_socket,
-      const engine::io::Sockaddr& remote_address,
-      const http::RequestHandlerBase& request_handler,
-      std::shared_ptr<Stats> stats,
-      request::ResponseDataAccounter& data_accounter);
-
-  // Use Create instead of this constructor
-  Connection(engine::TaskProcessor& task_processor,
-             const ConnectionConfig& config,
+  Connection(const ConnectionConfig& config,
              const request::HttpRequestConfig& handler_defaults_config,
              std::unique_ptr<engine::io::RwBase> peer_socket,
              const engine::io::Sockaddr& remote_address,
              const http::RequestHandlerBase& request_handler,
              std::shared_ptr<Stats> stats,
-             request::ResponseDataAccounter& data_accounter, EmplaceEnabler);
+             request::ResponseDataAccounter& data_accounter);
 
-  void SetCloseCb(CloseCb close_cb);
-
-  void Start();
-
-  void Stop();  // Can be called after Start() has finished
+  void Process();
 
   int Fd() const;
 
@@ -66,7 +43,8 @@ class Connection final : public std::enable_shared_from_this<Connection> {
 
   bool IsRequestTasksEmpty() const noexcept;
 
-  void ListenForRequests(Queue::Producer) noexcept;
+  void ListenForRequests(Queue::Producer producer,
+                         engine::TaskCancellationToken token) noexcept;
   bool NewRequest(std::shared_ptr<request::RequestBase>&& request_ptr,
                   Queue::Producer&);
 
@@ -76,7 +54,6 @@ class Connection final : public std::enable_shared_from_this<Connection> {
 
   std::string Getpeername() const;
 
-  engine::TaskProcessor& task_processor_;
   const ConnectionConfig& config_;
   const request::HttpRequestConfig& handler_defaults_config_;
   std::unique_ptr<engine::io::RwBase> peer_socket_;
@@ -88,13 +65,9 @@ class Connection final : public std::enable_shared_from_this<Connection> {
   std::string peer_name_;
 
   std::shared_ptr<Queue> request_tasks_;
-  engine::SingleConsumerEvent response_sender_launched_event_;
-  engine::SingleConsumerEvent response_sender_assigned_event_;
-  engine::Task response_sender_task_;
 
   bool is_accepting_requests_{true};
   bool is_response_chain_valid_{true};
-  CloseCb close_cb_;
 };
 
 }  // namespace server::net
