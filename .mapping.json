@@ -1459,7 +1459,6 @@
   "grpc/include/userver/ugrpc/client/channels.hpp":"taxi/uservices/userver/grpc/include/userver/ugrpc/client/channels.hpp",
   "grpc/include/userver/ugrpc/client/client_factory.hpp":"taxi/uservices/userver/grpc/include/userver/ugrpc/client/client_factory.hpp",
   "grpc/include/userver/ugrpc/client/client_factory_component.hpp":"taxi/uservices/userver/grpc/include/userver/ugrpc/client/client_factory_component.hpp",
-  "grpc/include/userver/ugrpc/client/client_qos.hpp":"taxi/uservices/userver/grpc/include/userver/ugrpc/client/client_qos.hpp",
   "grpc/include/userver/ugrpc/client/exceptions.hpp":"taxi/uservices/userver/grpc/include/userver/ugrpc/client/exceptions.hpp",
   "grpc/include/userver/ugrpc/client/impl/async_method_invocation.hpp":"taxi/uservices/userver/grpc/include/userver/ugrpc/client/impl/async_method_invocation.hpp",
   "grpc/include/userver/ugrpc/client/impl/async_methods.hpp":"taxi/uservices/userver/grpc/include/userver/ugrpc/client/impl/async_methods.hpp",
