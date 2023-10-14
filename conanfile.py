@@ -54,8 +54,9 @@ class UserverConan(ConanFile):
         'with_rabbitmq': True,
         'with_utest': True,
         'namespace': 'userver',
-        'namespace_begin': '',
-        'namespace_end': '',
+        'namespace_begin': 'namespace userver {',
+        'namespace_end': '}',
+        'mongo-c-driver/*:with_sasl' : 'cyrus'
     }
 
     # scm = {
@@ -76,51 +77,52 @@ class UserverConan(ConanFile):
         if self.options.shared:
             del self.options.fPIC
 
-        if not self.options.namespace_begin:
-            self.options.namespace_begin = (
-                f'namespace {self.options.namespace} {{'
-            )
-        if not self.options.namespace_end:
-            self.options.namespace_end = '}'
-
     def layout(self):
         cmake_layout(self)
 
     def requirements(self):
-        self.requires('boost/1.79.0')
-        self.requires('c-ares/1.18.1')
-        self.requires('cctz/2.3')
-        self.requires('concurrentqueue/1.0.3')
+        self.requires('boost/1.79.0', transitive_headers=True)
+        self.requires('c-ares/1.19.1')
+        self.requires('cctz/2.3', transitive_headers=True)
+        self.requires('concurrentqueue/1.0.3', transitive_headers=True)
         self.requires('cryptopp/8.7.0')
-        self.requires('fmt/8.1.1')
+        self.requires('fmt/8.1.1', transitive_headers=True)
         self.requires('libnghttp2/1.51.0')
         self.requires('libcurl/7.86.0')
         self.requires('libev/4.33')
         self.requires('http_parser/2.9.4')
         self.requires('openssl/1.1.1s')
-        self.requires('rapidjson/cci.20220822')
+        self.requires('rapidjson/cci.20220822', transitive_headers=True)
         self.requires('yaml-cpp/0.7.0')
         self.requires('zlib/1.2.13')
 
         if self.options.with_jemalloc:
-            self.requires('jemalloc/5.2.1')
+            self.requires('jemalloc/5.3.0')
         if self.options.with_grpc:
-            self.requires('grpc/1.48.0')
+            self.requires('grpc/1.48.4', transitive_headers=True, transitive_libs=True)
+            self.requires('googleapis/cci.20230501', transitive_headers=True, transitive_libs=True)
+            self.requires('grpc-proto/cci.20220627', transitive_headers=True, transitive_libs=True)
+            self.requires('protobuf/3.21.12', force=True)
         if self.options.with_postgresql:
             self.requires('libpq/14.5')
         if self.options.with_mongodb:
-            self.requires('mongo-c-driver/1.22.0')
-            self.options['mongo-c-driver'].with_sasl = 'cyrus'
+            self.requires('cyrus-sasl/2.1.27')
+            self.requires('mongo-c-driver/1.22.0', transitive_headers=True, transitive_libs=True)
         if self.options.with_redis:
             self.requires('hiredis/1.0.2')
         if self.options.with_rabbitmq:
             self.requires('amqp-cpp/4.3.16')
         if self.options.with_clickhouse:
             self.requires('clickhouse-cpp/2.4.0')
-            self.requires('abseil/20220623.0')
+            self.requires('abseil/20230125.3', transitive_headers=True, transitive_libs=True)
         if self.options.with_utest:
-            self.requires('gtest/1.12.1')
-            self.requires('benchmark/1.6.2')
+            self.requires('gtest/1.12.1', transitive_headers=True, transitive_libs=True)
+            self.requires('benchmark/1.6.2', transitive_headers=True, transitive_libs=True)
+
+
+    def validate(self):
+        if (self.dependencies["mongo-c-driver"].options.with_sasl != 'cyrus'):
+            raise ConanInvalidConfiguration(f"{self.ref} requires mongo-c-driver with_sasl cyrus")
 
     def generate(self):
         tool_ch = CMakeToolchain(self)
@@ -177,7 +179,7 @@ class UserverConan(ConanFile):
         return os.path.join(self.package_folder, 'cmake')
 
     def package(self):
-        self.copy(pattern='LICENSE', dst='licenses')
+        copy(self, pattern='LICENSE',src=self.source_folder, dst='licenses')
 
         copy(
             self,
@@ -304,6 +306,9 @@ class UserverConan(ConanFile):
 
     @property
     def _userver_components(self):
+        def abseil():
+            return ['abseil::abseil']
+
         def ares():
             return ['c-ares::c-ares']
 
@@ -334,14 +339,32 @@ class UserverConan(ConanFile):
         def http_parser():
             return ['http_parser::http_parser']
 
+        def libnghttp2():
+            return ['libnghttp2::libnghttp2']
+
         def openssl():
             return ['openssl::openssl']
+
+        def rapidjson():
+            return ['rapidjson::rapidjson']
+        
+        def zlib():
+            return ['zlib::zlib']
 
         def jemalloc():
             return ['jemalloc::jemalloc'] if self.options.with_jemalloc else []
 
         def grpc():
             return ['grpc::grpc'] if self.options.with_grpc else []
+
+        def googleapis():
+            return ['googleapis::googleapis'] if self.options.with_grpc else []
+        
+        def grpcproto():
+            return ['grpc-proto::grpc-proto'] if self.options.with_grpc else []
+
+        def protobuf():
+            return ['protobuf::protobuf'] if self.options.with_grpc else []
 
         def postgresql():
             return ['libpq::pq'] if self.options.with_postgresql else []
@@ -355,6 +378,13 @@ class UserverConan(ConanFile):
         def mongo():
             return (
                 ['mongo-c-driver::mongo-c-driver']
+                if self.options.with_mongodb
+                else []
+            )
+
+        def cyrussasl():
+            return (
+                ['cyrus-sasl::cyrus-sasl']
                 if self.options.with_mongodb
                 else []
             )
@@ -378,6 +408,7 @@ class UserverConan(ConanFile):
                 'lib': 'core',
                 'requires': (
                     ['core-internal', 'universal']
+                    + abseil()
                     + fmt()
                     + cctz()
                     + boost()
@@ -385,10 +416,13 @@ class UserverConan(ConanFile):
                     + yaml()
                     + libev()
                     + http_parser()
+                    + libnghttp2()
                     + curl()
                     + cryptopp()
                     + jemalloc()
                     + ares()
+                    + rapidjson()
+                    + zlib()
                 ),
             },
         ]
@@ -417,7 +451,7 @@ class UserverConan(ConanFile):
                     {
                         'target': 'grpc',
                         'lib': 'grpc',
-                        'requires': ['core'] + grpc(),
+                        'requires': ['core'] + grpc() + protobuf() + googleapis() + grpcproto(),
                     },
                     {
                         'target': 'grpc-handlers',
@@ -467,7 +501,7 @@ class UserverConan(ConanFile):
                     {
                         'target': 'mongo',
                         'lib': 'mongo',
-                        'requires': ['core'] + mongo(),
+                        'requires': ['core'] + mongo() + cyrussasl(),
                     },
                 ],
             )
