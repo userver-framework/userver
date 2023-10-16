@@ -27,25 +27,25 @@ class VariableSnapshotPtr final {
   VariableSnapshotPtr(VariableSnapshotPtr&&) = delete;
   VariableSnapshotPtr& operator=(VariableSnapshotPtr&&) = delete;
 
-  const VariableOfKey<Key>& operator*() const& { return variable_; }
-  const VariableOfKey<Key>& operator*() && { ReportMisuse(); }
+  const typename Key::VariableType& operator*() const& { return variable_; }
+  const typename Key::VariableType& operator*() && { ReportMisuse(); }
 
-  const VariableOfKey<Key>* operator->() const& { return &variable_; }
-  const VariableOfKey<Key>* operator->() && { ReportMisuse(); }
+  const typename Key::VariableType* operator->() const& { return &variable_; }
+  const typename Key::VariableType* operator->() && { ReportMisuse(); }
 
  private:
   [[noreturn]] static void ReportMisuse() {
     static_assert(!sizeof(Key), "keep the pointer before using, please");
   }
 
-  explicit VariableSnapshotPtr(Snapshot&& snapshot, Key key)
+  explicit VariableSnapshotPtr(Snapshot&& snapshot, const Key& key)
       : snapshot_(std::move(snapshot)), variable_(snapshot_[key]) {}
 
   // for the constructor
   friend class Source;
 
   Snapshot snapshot_;
-  const VariableOfKey<Key>& variable_;
+  const typename Key::VariableType& variable_;
 };
 
 /// @brief Helper class for subscribing to dynamic-config updates with a custom
@@ -93,12 +93,12 @@ class Source final {
   Snapshot GetSnapshot() const;
 
   template <typename Key>
-  VariableSnapshotPtr<Key> GetSnapshot(Key key) const {
+  VariableSnapshotPtr<Key> GetSnapshot(const Key& key) const {
     return VariableSnapshotPtr{GetSnapshot(), key};
   }
 
   template <typename Key>
-  VariableOfKey<Key> GetCopy(Key key) const {
+  typename Key::VariableType GetCopy(const Key& key) const {
     const auto snapshot = GetSnapshot();
     return snapshot[key];
   }
@@ -199,9 +199,9 @@ class Source final {
   concurrent::AsyncEventSubscriberScope UpdateAndListen(
       Class* obj, std::string_view name,
       void (Class::*func)(const dynamic_config::Snapshot& config),
-      Keys... keys) {
-    auto wrapper = [obj, func,
-                    keys = std::make_tuple(keys...)](const Diff& diff) {
+      const Keys&... keys) {
+    auto wrapper = [obj, func, keys = std::make_tuple(std::cref(keys)...)](
+                       const Diff& diff) {
       const auto args = std::tuple_cat(std::tie(diff), keys);
       if (!std::apply(HasChanged<Keys...>, args)) return;
       (obj->*func)(diff.current);
@@ -214,7 +214,7 @@ class Source final {
 
  private:
   template <typename... Keys>
-  static bool HasChanged(const Diff& diff, Keys... keys) {
+  static bool HasChanged(const Diff& diff, const Keys&... keys) {
     if (!diff.previous) return true;
 
     const auto& previous = *diff.previous;

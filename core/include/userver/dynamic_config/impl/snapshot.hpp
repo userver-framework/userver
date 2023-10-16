@@ -17,10 +17,6 @@ namespace dynamic_config::impl {
 using Factory = std::any (*)(const DocsMap&);
 
 template <typename Key>
-using VariableOfKey =
-    decltype(std::declval<const Key&>().Parse(std::declval<const DocsMap&>()));
-
-template <typename Key>
 std::any FactoryFor(const DocsMap& map) {
   return std::any{Key::kParserFunctionImpl(map)};
 }
@@ -56,8 +52,8 @@ class SnapshotData final {
   SnapshotData& operator=(SnapshotData&&) noexcept = default;
 
   template <typename Key>
-  const auto& operator[](Key) const {
-    using VariableType = VariableOfKey<Key>;
+  const auto& operator[](const Key&) const {
+    using VariableType = typename Key::VariableType;
     try {
       return std::any_cast<const VariableType&>(Get(impl::kConfigId<Key>));
     } catch (const std::exception& ex) {

@@ -17,7 +17,12 @@ namespace dynamic_config {
 /// @snippet core/src/components/logging_configurator.cpp  key
 template <auto Parser>
 struct Key final {
+  using VariableType = decltype(Parser(std::declval<const DocsMap&>()));
+
   constexpr Key() = default;
+
+  Key(Key&&) = delete;
+  Key& operator=(Key&&) = delete;
 
   auto Parse(const DocsMap& docs_map) const { return Parser(docs_map); }
 
@@ -26,10 +31,6 @@ struct Key final {
   static constexpr auto kParserFunctionImpl = Parser;
   /// @endcond
 };
-
-/// Get the type of a config variable, given its key
-template <typename Key>
-using VariableOfKey = impl::VariableOfKey<Key>;
 
 // clang-format off
 
@@ -58,13 +59,13 @@ class Snapshot final {
 
   /// Used to access individual configs in the type-safe config map
   template <typename Key>
-  const VariableOfKey<Key>& operator[](Key key) const& {
+  const typename Key::VariableType& operator[](const Key& key) const& {
     return GetData()[key];
   }
 
   /// Used to access individual configs in the type-safe config map
   template <typename Key>
-  const VariableOfKey<Key>& operator[](Key) && {
+  const typename Key::VariableType& operator[](const Key&) && {
     static_assert(!sizeof(Key), "keep the Snapshot before using, please");
   }
 
