@@ -41,6 +41,9 @@ class Channel final : IChannelInterface {
     Publish(exchange, routing_key, message, MessageType::kTransient, deadline);
   };
 
+  std::string Get(const Queue& queue, utils::Flags<Queue::Flags> flags,
+                  engine::Deadline deadline) override;
+
  private:
   utils::FastPimpl<ConnectionPtr, 32, 8> impl_;
 };

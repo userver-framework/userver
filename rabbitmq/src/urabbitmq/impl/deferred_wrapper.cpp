@@ -47,6 +47,19 @@ void DeferredWrapper::Wrap(AMQP::Deferred& deferred) {
       });
 }
 
+void DeferredWrapper::WrapGet(AMQP::DeferredGet& deferred,
+                              std::string& message) {
+  deferred
+      .onSuccess([wrap = shared_from_this(), &message](
+                     const AMQP::Message& message_rec, uint64_t, bool) {
+        message = std::string(message_rec.body(), message_rec.bodySize());
+        wrap->Ok();
+      })
+      .onError([wrap = shared_from_this()](const char* error) {
+        wrap->Fail(error);
+      });
+}
+
 }  // namespace urabbitmq::impl
 
 USERVER_NAMESPACE_END

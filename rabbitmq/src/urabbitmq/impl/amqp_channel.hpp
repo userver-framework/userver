@@ -50,6 +50,9 @@ class AmqpChannel final {
 
   ResponseAwaiter RemoveQueue(const Queue& queue, engine::Deadline deadline);
 
+  ResponseAwaiter Get(const Queue& queue, utils::Flags<Queue::Flags> flags,
+                      std::string& message, engine::Deadline deadline);
+
   void Publish(const Exchange& exchange, const std::string& routing_key,
                const std::string& message, MessageType type,
                engine::Deadline deadline);

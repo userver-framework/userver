@@ -82,6 +82,9 @@ class Client : public std::enable_shared_from_this<Client>,
     Publish(exchange, routing_key, message, MessageType::kTransient, deadline);
   };
 
+  std::string Get(const Queue& queue, utils::Flags<Queue::Flags> flags,
+                  engine::Deadline deadline) override;
+
   /// @brief Get a publisher interface for the broker.
   ///
   /// @param deadline deadline for connection acquisition from the pool

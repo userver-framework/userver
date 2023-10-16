@@ -113,6 +113,23 @@ UTEST(Consumer, ConsumeWorks) {
   EXPECT_EQ(consumed[0], message);
 }
 
+UTEST(Consumer, BasicGetWorks) {
+  ClientWrapper client{};
+  client.SetupRmqEntities();
+  const urabbitmq::ConsumerSettings settings{client.GetQueue(), 10};
+
+  const std::string message = "Hi from userver!";
+  client->PublishReliable(client.GetExchange(), client.GetRoutingKey(), message,
+                          urabbitmq::MessageType::kTransient,
+                          client.GetDeadline());
+
+  const std::string consumed_message = client->Get(
+      client.GetQueue(), urabbitmq::Queue::Flags::kNoAck, client.GetDeadline());
+
+  EXPECT_EQ(!consumed_message.empty(), true);
+  EXPECT_EQ(consumed_message, message);
+}
+
 UTEST(Consumer, ExhaustesQueue) {
   ClientWrapper client{};
   client.SetupRmqEntities();
