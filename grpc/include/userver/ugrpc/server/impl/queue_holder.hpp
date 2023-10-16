@@ -2,6 +2,8 @@
 
 #include <memory>
 
+#include <grpcpp/server_builder.h>
+
 #include <userver/ugrpc/impl/completion_queues.hpp>
 #include <userver/utils/fast_pimpl.hpp>
 
