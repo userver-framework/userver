@@ -19,7 +19,7 @@ if (USERVER_FEATURE_GRPC)
       message(STATUS "Forcing old protobuf version for testsuite")
     endif()
   else()
-    message(FATAL_ERROR "find_package(Protobuf REQUIRED) should be run before this cmake file")
+    message(FATAL_ERROR "SetupProtobuf should be run before this cmake file")
   endif()
 endif()
 

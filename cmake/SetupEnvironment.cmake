@@ -9,24 +9,28 @@ set(CMAKE_MODULE_PATH
   "${CMAKE_BINARY_DIR}"
   "${CMAKE_BINARY_DIR}/cmake_generated"
 )
+set(CMAKE_PREFIX_PATH
+  "${CMAKE_BINARY_DIR}/package_stubs"
+  ${CMAKE_PREFIX_PATH}
+)
 
-set (CMAKE_EXPORT_COMPILE_COMMANDS ON)
-if (NOT DEFINED CMAKE_CXX_STANDARD)
-set (CMAKE_CXX_STANDARD 17)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+if(NOT DEFINED CMAKE_CXX_STANDARD)
+  set(CMAKE_CXX_STANDARD 17)
 endif()
 message(STATUS "C++ standard ${CMAKE_CXX_STANDARD}")
-set (CMAKE_CXX_STANDARD_REQUIRED ON)
-set (CMAKE_CXX_EXTENSIONS OFF)
-set (CMAKE_VISIBILITY_INLINES_HIDDEN ON)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_VISIBILITY_INLINES_HIDDEN ON)
 
-add_compile_options ("-pipe" "-g" "-gz" "-fPIC")
-add_definitions ("-DPIC")
+add_compile_options("-pipe" "-g" "-gz" "-fPIC")
+add_definitions("-DPIC")
 add_definitions(-DUSERVER)
 
 option(USERVER_NO_WERROR "Do not treat warnings as errors" ON)
 if (NOT USERVER_NO_WERROR)
   message(STATUS "Forcing warnings as errors!")
-  add_compile_options ("-Werror")
+  add_compile_options("-Werror")
 endif()
 
 option(COMPILATION_TIME_TRACE "Generate clang compilation trace" OFF)
@@ -35,7 +39,7 @@ if(COMPILATION_TIME_TRACE)
 endif()
 
 # warnings
-add_compile_options ("-Wall" "-Wextra" "-Wpedantic")
+add_compile_options("-Wall" "-Wextra" "-Wpedantic")
 
 if (CMAKE_SYSTEM_NAME MATCHES "Darwin")
   set(MACOS found)
@@ -53,12 +57,12 @@ if (USE_CCACHE)
     message(STATUS "ccache: enabled")
     set(CMAKE_C_COMPILER_LAUNCHER ${CCACHE_EXECUTABLE})
     set(CMAKE_CXX_COMPILER_LAUNCHER ${CCACHE_EXECUTABLE})
-  else ()
+  else()
     message(STATUS "ccache: enabled, but not found")
   endif()
-else ()
-  message (STATUS "ccache: disabled")
-endif ()
+else()
+  message(STATUS "ccache: disabled")
+endif()
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
   set(CLANG found)
@@ -68,13 +72,13 @@ include(CheckCXXCompilerFlag)
 macro(add_cxx_compile_options_if_supported)
   foreach(OPTION ${ARGN})
     message(STATUS "Checking " ${OPTION})
-    STRING(REPLACE "-" "_" FLAG ${OPTION})
-    STRING(REPLACE "=" "_" FLAG ${FLAG})
+    string(REPLACE "-" "_" FLAG ${OPTION})
+    string(REPLACE "=" "_" FLAG ${FLAG})
     set(FLAG "HAS${FLAG}")
     if (CLANG)
-      CHECK_CXX_COMPILER_FLAG("-Werror -Wunknown-warning-option ${OPTION}" "${FLAG}")
+      check_cxx_compiler_flag("-Werror -Wunknown-warning-option ${OPTION}" "${FLAG}")
     else()
-      CHECK_CXX_COMPILER_FLAG("-Werror ${OPTION}" "${FLAG}")
+      check_cxx_compiler_flag("-Werror ${OPTION}" "${FLAG}")
     endif()
     if (${${FLAG}})
       message(STATUS "Checking " ${OPTION} " - found")
@@ -87,29 +91,29 @@ endmacro()
 
 # check stdlib is recent enough
 include(CheckIncludeFileCXX)
-CHECK_INCLUDE_FILE_CXX(variant HAS_CXX17_VARIANT)
+check_include_file_cxx(variant HAS_CXX17_VARIANT)
 message(STATUS "variant: ${HAS_CXX17_VARIANT}")
 if(NOT HAS_CXX17_VARIANT)
   message(FATAL_ERROR "You have an outdated standard C++ library")
 endif(NOT HAS_CXX17_VARIANT)
 
 if(MACOS AND NOT USERVER_CONAN)
-    set(Boost_NO_BOOST_CMAKE ON)
+  set(Boost_NO_BOOST_CMAKE ON)
 endif()
 find_package(Boost REQUIRED)
 
 include(RequireDWCAS)  # Should be called after `find_package(Boost REQUIRED)`
 
-add_cxx_compile_options_if_supported ("-ftemplate-backtrace-limit=0")
+add_cxx_compile_options_if_supported("-ftemplate-backtrace-limit=0")
 
-# all and extra do not enable theirs
-add_cxx_compile_options_if_supported ("-Wdisabled-optimization" "-Winvalid-pch")
-add_cxx_compile_options_if_supported ("-Wlogical-op" "-Wformat=2")
-add_cxx_compile_options_if_supported ("-Wno-error=deprecated-declarations")
-add_cxx_compile_options_if_supported ("-Wimplicit-fallthrough")
+# all and extra do not enable these
+add_cxx_compile_options_if_supported("-Wdisabled-optimization" "-Winvalid-pch")
+add_cxx_compile_options_if_supported("-Wlogical-op" "-Wformat=2")
+add_cxx_compile_options_if_supported("-Wno-error=deprecated-declarations")
+add_cxx_compile_options_if_supported("-Wimplicit-fallthrough")
 
 # This warning is unavoidable in generic code with templates
-add_cxx_compile_options_if_supported ("-Wno-useless-cast")
+add_cxx_compile_options_if_supported("-Wno-useless-cast")
 
 # gives false positives
 if (CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang"
@@ -118,7 +122,7 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang"
   add_compile_options("-Wno-range-loop-analysis")
 endif()
 
-message (STATUS "boost: ${Boost_VERSION}")
+message(STATUS "boost: ${Boost_VERSION}")
 if (CLANG)
   if (MACOS AND Boost_FOUND)
     # requires Boost_FOUND to make a valid expression
@@ -127,19 +131,19 @@ if (CLANG)
     endif()
   endif()
 
-  #  bug on xenial https://bugs.launchpad.net/ubuntu/+source/llvm-toolchain-3.8/+bug/1664321
-  add_definitions (-DBOOST_REGEX_NO_EXTERNAL_TEMPLATES=1)
+  # bug on xenial https://bugs.launchpad.net/ubuntu/+source/llvm-toolchain-3.8/+bug/1664321
+  add_definitions(-DBOOST_REGEX_NO_EXTERNAL_TEMPLATES=1)
 endif()
 
 # build type specific
 if (CMAKE_BUILD_TYPE MATCHES "Debug" OR CMAKE_BUILD_TYPE MATCHES "Test")
-  add_definitions ("-D_GLIBCXX_ASSERTIONS")
+  add_definitions("-D_GLIBCXX_ASSERTIONS")
   add_definitions(-DBOOST_ENABLE_ASSERT_HANDLER)
-else ()
-  add_definitions ("-DNDEBUG")
+else()
+  add_definitions("-DNDEBUG")
 
   # enable additional glibc checks (used in debian packaging, requires -O)
   add_definitions(-D_FORTIFY_SOURCE=2)
-endif ()
+endif()
 
-enable_testing ()
+enable_testing()
