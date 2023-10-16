@@ -71,7 +71,10 @@ std::unique_ptr<grpc::ClientContext> PrepareClientContext() {
 }
 
 void ExpectCancelledStats(const utils::statistics::Snapshot& stats) {
-  EXPECT_EQ(stats.SingleMetric("cancelled.v2").AsRate().value, 1);
+  // The is_cancelled_ flag may not be set at the point of sending statistics.
+  // However if it is set, then it is 1.
+  EXPECT_LE(stats.SingleMetric("cancelled.v2").AsRate().value, 1);
+
   EXPECT_EQ(stats.SingleMetric("eps.v2").AsRate().value, 1);
   EXPECT_EQ(stats.SingleMetric("rps.v2").AsRate().value, 1);
   EXPECT_EQ(stats.SingleMetric("network-error.v2").AsRate().value, 0);
@@ -95,7 +98,6 @@ UTEST_F(GrpcClientCancel, UnaryCall) {
     UEXPECT_THROW(in = call.Finish(), ugrpc::client::RpcCancelledError);
   }
 
-  GetServer().StopDebug();  // make sure that statistics arive
   const auto stats = GetStatistics(
       "grpc.client.by-destination",
       {{"grpc_destination", "sample.ugrpc.UnitTestService/SayHello"}});
@@ -115,7 +117,6 @@ UTEST_F(GrpcClientCancel, UnaryFinish) {
     UEXPECT_THROW(in = call.Finish(), ugrpc::client::RpcCancelledError);
   }
 
-  GetServer().StopDebug();  // make sure that statistics arive
   const auto stats = GetStatistics(
       "grpc.client.by-destination",
       {{"grpc_destination", "sample.ugrpc.UnitTestService/SayHello"}});
@@ -138,7 +139,6 @@ UTEST_F(GrpcClientCancel, InputStreamRead) {
                   ugrpc::client::RpcCancelledError);
   }
 
-  GetServer().StopDebug();  // make sure that statistics arive
   const auto stats = GetStatistics(
       "grpc.client.by-destination",
       {{"grpc_destination", "sample.ugrpc.UnitTestService/ReadMany"}});
@@ -158,7 +158,6 @@ UTEST_F(GrpcClientCancel, InputStreamCall) {
                   ugrpc::client::RpcCancelledError);
   }
 
-  GetServer().StopDebug();  // make sure that statistics arive
   const auto stats = GetStatistics(
       "grpc.client.by-destination",
       {{"grpc_destination", "sample.ugrpc.UnitTestService/ReadMany"}});
@@ -174,7 +173,6 @@ UTEST_F(GrpcClientCancel, OutputStreamCall) {
                   ugrpc::client::RpcCancelledError);
   }
 
-  GetServer().StopDebug();  // make sure that statistics arive
   const auto stats = GetStatistics(
       "grpc.client.by-destination",
       {{"grpc_destination", "sample.ugrpc.UnitTestService/WriteMany"}});
@@ -194,7 +192,6 @@ UTEST_F(GrpcClientCancel, OutputStreamWrite) {
     EXPECT_FALSE(os.Write(out));
   }
 
-  GetServer().StopDebug();  // make sure that statistics arive
   const auto stats = GetStatistics(
       "grpc.client.by-destination",
       {{"grpc_destination", "sample.ugrpc.UnitTestService/WriteMany"}});
@@ -216,7 +213,6 @@ UTEST_F(GrpcClientCancel, OutputStreamFinish) {
     UEXPECT_THROW(os.Finish(), ugrpc::client::RpcCancelledError);
   }
 
-  GetServer().StopDebug();  // make sure that statistics arive
   const auto stats = GetStatistics(
       "grpc.client.by-destination",
       {{"grpc_destination", "sample.ugrpc.UnitTestService/WriteMany"}});
@@ -233,7 +229,6 @@ UTEST_F(GrpcClientCancel, BidirectionalStreamCall) {
         ugrpc::client::RpcCancelledError);
   }
 
-  GetServer().StopDebug();  // make sure that statistics arive
   const auto stats = GetStatistics(
       "grpc.client.by-destination",
       {{"grpc_destination", "sample.ugrpc.UnitTestService/Chat"}});
@@ -251,7 +246,6 @@ UTEST_F(GrpcClientCancel, BidirectionalStreamRead) {
     EXPECT_FALSE(bs.Read(in));
   }
 
-  GetServer().StopDebug();  // make sure that statistics arive
   const auto stats = GetStatistics(
       "grpc.client.by-destination",
       {{"grpc_destination", "sample.ugrpc.UnitTestService/Chat"}});
@@ -269,7 +263,6 @@ UTEST_F(GrpcClientCancel, BidirectionalStreamWrite) {
     EXPECT_FALSE(bs.Write(out));
   }
 
-  GetServer().StopDebug();  // make sure that statistics arive
   const auto stats = GetStatistics(
       "grpc.client.by-destination",
       {{"grpc_destination", "sample.ugrpc.UnitTestService/Chat"}});
@@ -286,7 +279,6 @@ UTEST_F(GrpcClientCancel, BidirectionalStreamWritesDone) {
     EXPECT_FALSE(bs.WritesDone());
   }
 
-  GetServer().StopDebug();  // make sure that statistics arive
   const auto stats = GetStatistics(
       "grpc.client.by-destination",
       {{"grpc_destination", "sample.ugrpc.UnitTestService/Chat"}});

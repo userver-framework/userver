@@ -213,7 +213,6 @@ class [[nodiscard]] InputStream final : public CallAnyBase {
   ~InputStream() = default;
 
  private:
-  std::unique_ptr<impl::RpcData> data_;
   impl::RawReader<Response> stream_;
 };
 
@@ -283,7 +282,6 @@ class [[nodiscard]] OutputStream final : public CallAnyBase {
   ~OutputStream() = default;
 
  private:
-  std::unique_ptr<impl::RpcData> data_;
   std::unique_ptr<Response> final_response_;
   impl::RawWriter<Request> stream_;
 };
@@ -385,7 +383,6 @@ class [[nodiscard]] BidirectionalStream final : public CallAnyBase {
   ~BidirectionalStream() = default;
 
  private:
-  std::unique_ptr<impl::RpcData> data_;
   impl::RawReaderWriter<Request, Response> stream_;
 };
 
