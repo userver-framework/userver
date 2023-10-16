@@ -59,6 +59,26 @@ TEST(Text, EndsWith) {
   EXPECT_TRUE(utils::text::EndsWith("", ""));
 }
 
+TEST(Text, ICaseStartsWith) {
+  EXPECT_TRUE(utils::text::ICaseStartsWith("aBcDeF", "AbC"));
+  EXPECT_TRUE(utils::text::ICaseStartsWith("abcdef", ""));
+  EXPECT_TRUE(utils::text::ICaseStartsWith("abcdef", "ABCDEF"));
+  EXPECT_FALSE(utils::text::ICaseStartsWith("abc", "ABCDEF"));
+  EXPECT_FALSE(utils::text::ICaseStartsWith("cde", "abcdef"));
+  EXPECT_FALSE(utils::text::ICaseStartsWith("", "abcdef"));
+  EXPECT_TRUE(utils::text::ICaseStartsWith("", ""));
+}
+
+TEST(Text, ICaseEndsWith) {
+  EXPECT_TRUE(utils::text::ICaseEndsWith("aBcDeF", "DeF"));
+  EXPECT_TRUE(utils::text::ICaseEndsWith("abcdef", ""));
+  EXPECT_TRUE(utils::text::ICaseEndsWith("abcdef", "ABCDEF"));
+  EXPECT_FALSE(utils::text::ICaseEndsWith("abc", "ABCDEF"));
+  EXPECT_FALSE(utils::text::ICaseEndsWith("cde", "abcdef"));
+  EXPECT_FALSE(utils::text::ICaseEndsWith("", "abcdef"));
+  EXPECT_TRUE(utils::text::ICaseEndsWith("", ""));
+}
+
 TEST(Text, SplitSV) {
   {
     std::string input = "1,22,333";

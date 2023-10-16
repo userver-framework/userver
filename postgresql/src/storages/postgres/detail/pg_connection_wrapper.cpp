@@ -407,6 +407,17 @@ void PGConnectionWrapper::EnterPipelineMode() {
 #endif
 }
 
+void PGConnectionWrapper::ExitPipelineMode() {
+#if LIBPQ_HAS_PIPELINING
+  if (!PQexitPipelineMode(conn_)) {
+    PGCW_LOG_LIMITED_ERROR() << "libpq failed to exit pipeline connection mode";
+    throw ConnectionError{"Failed to exit pipeline connection mode"};
+  }
+#else
+  UINVARIANT(false, "Pipeline mode is not supported");
+#endif
+}
+
 bool PGConnectionWrapper::IsSyncingPipeline() const {
   return pipeline_sync_counter_ > 0;
 }

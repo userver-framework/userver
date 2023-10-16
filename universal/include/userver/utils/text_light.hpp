@@ -40,10 +40,23 @@ std::string Join(const std::vector<std::string>& strs, std::string_view sep);
 std::string Format(double value, int ndigits);
 
 /// Return true if `hay` starts with `needle`, false otherwise.
-bool StartsWith(std::string_view hay, std::string_view needle) noexcept;
+constexpr bool StartsWith(std::string_view hay,
+                          std::string_view needle) noexcept {
+  return hay.substr(0, needle.size()) == needle;
+}
 
 /// Return true if `hay` ends with `needle`, false otherwise.
-bool EndsWith(std::string_view hay, std::string_view needle) noexcept;
+constexpr bool EndsWith(std::string_view hay,
+                        std::string_view needle) noexcept {
+  return hay.size() >= needle.size() &&
+         hay.substr(hay.size() - needle.size()) == needle;
+}
+
+/// Case insensitive (ASCII only) variant of StartsWith()
+bool ICaseStartsWith(std::string_view hay, std::string_view needle) noexcept;
+
+/// Case insensitive (ASCII only) variant of EndsWith()
+bool ICaseEndsWith(std::string_view hay, std::string_view needle) noexcept;
 
 /// Removes double quotes from front and back of string.
 ///

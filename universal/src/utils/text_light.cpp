@@ -10,6 +10,8 @@
 
 #include <userver/utils/assert.hpp>
 
+#include <utils/impl/byte_utils.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace utils::text {
@@ -58,13 +60,15 @@ std::string Format(double value, int ndigits) {
   return res.str();
 }
 
-bool StartsWith(std::string_view hay, std::string_view needle) noexcept {
-  return hay.substr(0, needle.size()) == needle;
+bool ICaseStartsWith(std::string_view hay, std::string_view needle) noexcept {
+  return utils::impl::CaseInsensitiveEqual{}(hay.substr(0, needle.size()),
+                                             needle);
 }
 
-bool EndsWith(std::string_view hay, std::string_view needle) noexcept {
+bool ICaseEndsWith(std::string_view hay, std::string_view needle) noexcept {
   return hay.size() >= needle.size() &&
-         hay.substr(hay.size() - needle.size()) == needle;
+         utils::impl::CaseInsensitiveEqual{}(
+             hay.substr(hay.size() - needle.size()), needle);
 }
 
 std::string RemoveQuotes(std::string_view str) {

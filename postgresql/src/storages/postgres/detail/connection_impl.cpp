@@ -7,6 +7,8 @@
 #include <userver/tracing/span.hpp>
 #include <userver/tracing/tags.hpp>
 #include <userver/utils/assert.hpp>
+#include <userver/utils/scope_guard.hpp>
+#include <userver/utils/text_light.hpp>
 #include <userver/utils/uuid4.hpp>
 
 #include <storages/postgres/detail/tracing_tags.hpp>
@@ -17,11 +19,15 @@
 
 USERVER_NAMESPACE_BEGIN
 
+using USERVER_NAMESPACE::utils::ScopeGuard;
+using USERVER_NAMESPACE::utils::text::ICaseStartsWith;
+
 namespace storages::postgres::detail {
 
 namespace {
 
-const char* const kStatementTimeoutParameter = "statement_timeout";
+constexpr std::string_view kStatementTimeoutParameter = "statement_timeout";
+constexpr std::string_view kStatementVacuum = "vacuum";
 
 // we hope lc_messages is en_US, we don't control it anyway
 const std::string kBadCachedPlanErrorMessage =
@@ -346,6 +352,14 @@ ResultSet ConnectionImpl::ExecuteCommand(
     const Query& query, const QueryParameters& params,
     OptionalCommandControl statement_cmd_ctl) {
   CheckBusy();
+
+  auto pipeline_guard = std::optional<ScopeGuard>{};
+  if (IsPipelineActive() &&
+      ICaseStartsWith(query.Statement(), kStatementVacuum)) {
+    conn_wrapper_.ExitPipelineMode();
+    pipeline_guard.emplace([this]() { conn_wrapper_.EnterPipelineMode(); });
+  }
+
   TimeoutDuration execute_timeout = !!statement_cmd_ctl
                                         ? statement_cmd_ctl->execute
                                         : CurrentExecuteTimeout();
@@ -542,6 +556,11 @@ bool ConnectionImpl::Cleanup(TimeoutDuration timeout) {
     // not to kill the pgbouncer
     SetConnectionStatementTimeout(GetDefaultCommandControl().statement,
                                   deadline);
+    // Reenter pipeline mode if necessary
+    if (settings_.pipeline_mode == PipelineMode::kEnabled &&
+        !IsPipelineActive()) {
+      conn_wrapper_.EnterPipelineMode();
+    }
     return true;
   }
   return false;

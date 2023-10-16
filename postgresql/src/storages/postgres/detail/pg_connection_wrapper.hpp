@@ -57,6 +57,9 @@ class PGConnectionWrapper {
   /// Requires libpq >= 14.
   void EnterPipelineMode();
 
+  /// @brief Exit pipeline mode, see EnterPipelineMode()
+  void ExitPipelineMode();
+
   /// @brief Returns true if command send queue is empty.
   ///
   /// Normally command queue is flushed after any Send* call, but in pipeline
