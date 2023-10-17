@@ -149,9 +149,9 @@ def _dns_mock_stats(dns_mock):
 async def _gate_started(loop, for_dns_gate_port, dns_info, dns_mock):
     gate_config = chaos.GateRoute(
         name='udp proxy',
-        host_for_client='localhost',
+        host_for_client='::1',
         port_for_client=for_dns_gate_port,
-        host_to_server='localhost',
+        host_to_server='::1',
         port_to_server=dns_info.port,
     )
     async with chaos.UdpGate(gate_config, loop) as proxy:
