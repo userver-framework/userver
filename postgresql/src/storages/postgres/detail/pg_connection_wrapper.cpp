@@ -782,14 +782,16 @@ void PGConnectionWrapper::SendPortalExecute(const std::string& portal_name,
 void PGConnectionWrapper::SendPortalBind(const std::string&, const std::string&,
                                          const QueryParameters&,
                                          tracing::ScopeTime&) {
-  UINVARIANT(false,
-             "Portals are disabled by CMake option USERVER_FEATURE_PATCH_PSQL");
+  UINVARIANT(
+      false,
+      "Portals are disabled by CMake option USERVER_FEATURE_PATCH_LIBPQ");
 }
 
 void PGConnectionWrapper::SendPortalExecute(const std::string&, std::uint32_t,
                                             tracing::ScopeTime&) {
-  UINVARIANT(false,
-             "Portals are disabled by CMake option USERVER_FEATURE_PATCH_PSQL");
+  UINVARIANT(
+      false,
+      "Portals are disabled by CMake option USERVER_FEATURE_PATCH_LIBPQ");
 }
 
 #endif

@@ -10,6 +10,7 @@ if (USERVER_FEATURE_PATCH_LIBPQ)
 else()
   set_source_files_properties(
     ${CMAKE_CURRENT_SOURCE_DIR}/src/storages/postgres/detail/pg_connection_wrapper.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/storages/postgres/portal.cpp
     PROPERTIES COMPILE_FLAGS -DUSERVER_NO_LIBPQ_PATCHES=1
   )
 

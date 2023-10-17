@@ -46,6 +46,10 @@ class Portal {
 
   explicit operator bool() const { return !Done(); }
 
+  /// Returns true if CMake option USERVER_FEATURE_PATCH_LIBPQ was set to ON
+  /// and PostgreSQL portals could be created.
+  static bool IsSupportedByDriver() noexcept;
+
  private:
   static constexpr std::size_t kImplSize = 88;
   static constexpr std::size_t kImplAlign = 8;

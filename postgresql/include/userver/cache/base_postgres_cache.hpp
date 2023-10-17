@@ -62,7 +62,7 @@ namespace components {
 /// full-update-op-timeout | timeout for a full update | 1m
 /// incremental-update-op-timeout | timeout for an incremental update | 1s
 /// update-correction | incremental update window adjustment | - (0 for caches with defined GetLastKnownUpdated)
-/// chunk-size | number of rows to request from PostgreSQL, 0 to fetch all rows in one request | 1000
+/// chunk-size | number of rows to request from PostgreSQL via portals, 0 to fetch all rows in one request without portals | 1000
 ///
 /// @section pg_cc_cache_policy Cache policy
 ///
@@ -448,6 +448,11 @@ PostgreCache<PostgreCachePolicy>::PostgreCache(const ComponentConfig& config,
               pg_cache::detail::kDefaultIncrementalUpdateTimeout)},
       chunk_size_{config["chunk-size"].As<size_t>(
           pg_cache::detail::kDefaultChunkSize)} {
+  UINVARIANT(
+      !chunk_size_ || storages::postgres::Portal::IsSupportedByDriver(),
+      "Either set 'chunk-size' to 0, or enable PostgreSQL portals by building "
+      "the framework with CMake option USERVER_FEATURE_PATCH_LIBPQ set to ON.");
+
   if (this->GetAllowedUpdateTypes() ==
           cache::AllowedUpdateTypes::kFullAndIncremental &&
       !kIncrementalUpdates) {
