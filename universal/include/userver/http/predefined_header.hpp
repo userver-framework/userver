@@ -133,16 +133,16 @@ static_assert(kNoHeaderIndexLookup != 0 && kNoHeaderIndexInsertion != 0);
 
 // We use this function when constructing a PredefinedHeader ...
 constexpr std::int8_t GetHeaderIndexForLookup(std::string_view key) {
-  return kKnownHeadersLowercaseMap.TryFindICaseByFirst(key).value_or(
-      kNoHeaderIndexLookup);
+  const auto opt = kKnownHeadersLowercaseMap.TryFindICaseByFirst(key);
+  return opt.value_or(kNoHeaderIndexLookup);
 }
 
 // And this one when inserting an entry into the HeaderMap.
 // The purpose of having 2 different functions is to be able to
 // == header indexes even if none is present (both headers are unknown).
 inline std::int8_t GetHeaderIndexForInsertion(std::string_view key) {
-  return kKnownHeadersLowercaseMap.TryFindICaseByFirst(key).value_or(
-      kNoHeaderIndexInsertion);
+  const auto opt = kKnownHeadersLowercaseMap.TryFindICaseByFirst(key);
+  return opt.value_or(kNoHeaderIndexInsertion);
 }
 
 }  // namespace impl
