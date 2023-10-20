@@ -60,7 +60,7 @@ if(USERVER_FEATURE_MYSQL)
   message(STATUS "Add mysql python depends")
 endif()
 
-file(READ ${USERVER_ROOT_DIR}/testsuite/requirements-redis.txt TESTSUITE_TXT)
+file(READ ${USERVER_ROOT_DIR}/testsuite/requirements-testsuite.txt TESTSUITE_TXT)
 if(TESTSUITE_MODULES)
   list(JOIN TESTSUITE_MODULES "," TESTSUITE_MODULES_STR)
   string(REPLACE "yandex-taxi-testsuite[]" "yandex-taxi-testsuite[${TESTSUITE_MODULES_STR}]" TESTSUITE_TXT ${TESTSUITE_TXT})
