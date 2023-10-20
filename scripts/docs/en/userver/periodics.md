@@ -117,8 +117,8 @@ engine::current_task::ShouldCancel() manually.
 In 'DoWork` you can perform one step of the operation, or you can write a loop
 `while (!ShouldCancel())`. You can choose an approach based on this principle:
 
-@note If it is important to perform a distlock on the same host, then write a loop
-      `DoWork`, otherwise perform a single iteration.
+@note If it is important to perform a distlock on the same host, then write a
+      loop `DoWork`, otherwise perform a single iteration.
 
 More detailed:
 * If switching the host is cheap, then it is better not to write a loop in
@@ -130,6 +130,11 @@ More detailed:
   Then you need to write a loop inside DoWork. Or if the host needs an
   expensive setup before starting the work on a distlock task, then you can
   also write a loop.
+
+DistLocks create a single tracing::Span for the whole lifetime of worker. If
+a shorter Trace ID lifetime is required, then use tracing::Span::MakeSpan()
+to create a new Span inside the Worker::DoWork() loop iteration.
+
 
 #### Guarantees provided
 

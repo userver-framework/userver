@@ -66,6 +66,8 @@ namespace storages::postgres {
 ///     expiration_time TIMESTAMPTZ
 /// );
 /// ```
+///
+/// @see @ref scripts/docs/en/userver/periodics.md
 
 // clang-format on
 
