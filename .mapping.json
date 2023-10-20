@@ -1910,6 +1910,7 @@
   "postgresql/functional_tests/integration_tests/static_config.yaml":"taxi/uservices/userver/postgresql/functional_tests/integration_tests/static_config.yaml",
   "postgresql/functional_tests/integration_tests/tests/conftest.py":"taxi/uservices/userver/postgresql/functional_tests/integration_tests/tests/conftest.py",
   "postgresql/functional_tests/integration_tests/tests/test_failover.py":"taxi/uservices/userver/postgresql/functional_tests/integration_tests/tests/test_failover.py",
+  "postgresql/functional_tests/integration_tests/tests/test_ttl.py":"taxi/uservices/userver/postgresql/functional_tests/integration_tests/tests/test_ttl.py",
   "postgresql/functional_tests/metrics/CMakeLists.txt":"taxi/uservices/userver/postgresql/functional_tests/metrics/CMakeLists.txt",
   "postgresql/functional_tests/metrics/config_vars.yaml":"taxi/uservices/userver/postgresql/functional_tests/metrics/config_vars.yaml",
   "postgresql/functional_tests/metrics/dynamic_config_fallback.json":"taxi/uservices/userver/postgresql/functional_tests/metrics/dynamic_config_fallback.json",

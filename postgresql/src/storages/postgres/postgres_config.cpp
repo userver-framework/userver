@@ -64,6 +64,10 @@ ConnectionSettings ParseConnectionSettings(const ConfigType& config) {
   settings.recent_errors_threshold =
       config["recent-errors-threshold"].template As<size_t>(
           settings.recent_errors_threshold);
+
+  settings.max_ttl =
+      config["max-ttl-sec"].template As<std::optional<std::chrono::seconds>>();
+
   return settings;
 }
 

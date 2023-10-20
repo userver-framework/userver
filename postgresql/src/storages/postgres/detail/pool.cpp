@@ -461,7 +461,15 @@ void ConnectionPool::Push(Connection* connection) {
   auto conn_settings = conn_settings_.Read();
   if (connection->GetSettings().version < conn_settings->version) {
     DropOutdatedConnection(connection);
-  } else if (queue_.push(connection)) {
+    return;
+  }
+
+  if (connection->IsExpired()) {
+    DropExpiredConnection(connection);
+    return;
+  }
+
+  if (queue_.push(connection)) {
     conn_available_.NotifyOne();
   } else {
     // TODO Reflect this as a statistics error
@@ -486,6 +494,10 @@ Connection* ConnectionPool::Pop(engine::Deadline deadline) {
   while (queue_.pop(connection)) {
     if (connection->GetSettings().version < conn_settings->version) {
       DropOutdatedConnection(connection);
+      continue;
+    }
+    if (connection->IsExpired()) {
+      DropExpiredConnection(connection);
       continue;
     }
     return connection;
@@ -574,8 +586,13 @@ void ConnectionPool::DeleteBrokenConnection(Connection* connection) {
   DeleteConnection(connection);
 }
 
+void ConnectionPool::DropExpiredConnection(Connection* connection) {
+  LOG_LIMITED_INFO() << "Dropping expired connection";
+  DeleteConnection(connection);
+}
+
 void ConnectionPool::DropOutdatedConnection(Connection* connection) {
-  LOG_LIMITED_WARNING() << "Dropping connection with outdated settings";
+  LOG_LIMITED_INFO() << "Dropping connection with outdated settings";
   DeleteConnection(connection);
 }
 
@@ -585,6 +602,10 @@ Connection* ConnectionPool::AcquireImmediate() {
   while (queue_.pop(conn)) {
     if (conn->GetSettings().version < conn_settings->version) {
       DropOutdatedConnection(conn);
+      continue;
+    }
+    if (conn->IsExpired()) {
+      DropExpiredConnection(conn);
       continue;
     }
     ++stats_.connection.used;

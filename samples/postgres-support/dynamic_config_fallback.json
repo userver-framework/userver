@@ -18,6 +18,7 @@
   },
   "POSTGRES_CONNECTION_SETTINGS": {
     "key-value-database": {
+      "max-ttl-sec": 60,
       "recent-errors-threshold": 100000
     }
   },

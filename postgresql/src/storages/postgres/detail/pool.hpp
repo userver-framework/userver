@@ -113,6 +113,7 @@ class ConnectionPool : public std::enable_shared_from_this<ConnectionPool> {
   void CleanupConnection(Connection* connection);
   void DeleteConnection(Connection* connection);
   void DeleteBrokenConnection(Connection* connection);
+  void DropExpiredConnection(Connection* connection);
   void DropOutdatedConnection(Connection* connection);
 
   void AccountConnectionStats(Connection::Statistics stats);

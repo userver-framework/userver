@@ -342,6 +342,9 @@ properties:
   ignore-unused-query-params:
     type: boolean
     default: false
+  max-ttl-sec:
+    type integer
+    minimum: 1
 ```
 
 **Example:**
@@ -352,7 +355,8 @@ properties:
     "user-types-enabled": true,
     "max-prepared-cache-size": 5000,
     "ignore-unused-query-params": false,
-    "recent-errors-threshold": 2
+    "recent-errors-threshold": 2,
+    "max-ttl-sec": 3600
   }
 }
 ```

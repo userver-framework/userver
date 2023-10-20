@@ -7,6 +7,8 @@
 #include <userver/tracing/span.hpp>
 #include <userver/tracing/tags.hpp>
 #include <userver/utils/assert.hpp>
+#include <userver/utils/datetime.hpp>
+#include <userver/utils/rand.hpp>
 #include <userver/utils/scope_guard.hpp>
 #include <userver/utils/text_light.hpp>
 #include <userver/utils/uuid4.hpp>
@@ -19,7 +21,9 @@
 
 USERVER_NAMESPACE_BEGIN
 
+using USERVER_NAMESPACE::utils::RandRange;
 using USERVER_NAMESPACE::utils::ScopeGuard;
+using USERVER_NAMESPACE::utils::datetime::SteadyNow;
 using USERVER_NAMESPACE::utils::text::ICaseStartsWith;
 
 namespace storages::postgres::detail {
@@ -186,6 +190,13 @@ ConnectionImpl::ConnectionImpl(
   if (settings_.max_prepared_cache_size == 0) {
     throw InvalidConfig("max_prepared_cache_size is 0");
   }
+  if (settings_.max_ttl.has_value()) {
+    // Actual ttl is randomized to avoid closing too many connections at the
+    // same time
+    auto ttl = (*settings_.max_ttl).count();
+    ttl -= RandRange(ttl / 2);
+    expires_at_ = SteadyNow() + std::chrono::seconds{ttl};
+  }
 #if !LIBPQ_HAS_PIPELINING
   if (settings_.pipeline_mode == PipelineMode::kEnabled) {
     LOG_LIMITED_WARNING() << "Pipeline mode is not supported, falling back";
@@ -311,6 +322,10 @@ bool ConnectionImpl::IsPipelineActive() const {
 }
 
 bool ConnectionImpl::IsBroken() const { return conn_wrapper_.IsBroken(); }
+
+bool ConnectionImpl::IsExpired() const {
+  return expires_at_.has_value() && SteadyNow() > *expires_at_;
+}
 
 ConnectionSettings const& ConnectionImpl::GetSettings() const {
   return settings_;

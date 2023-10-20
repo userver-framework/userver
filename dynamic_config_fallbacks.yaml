@@ -74,6 +74,7 @@ groups:
                 min_pool_size: 8
         POSTGRES_CONNECTION_SETTINGS:
             key-value-database:
+                max-ttl-sec: 60
                 recent-errors-threshold: 100000
         POSTGRES_DEFAULT_COMMAND_CONTROL:
             network_timeout_ms: 750

@@ -53,6 +53,7 @@ class ConnectionImpl {
   bool IsInTransaction() const;
   bool IsPipelineActive() const;
   bool IsBroken() const;
+  bool IsExpired() const;
   ConnectionSettings const& GetSettings() const;
 
   CommandControl GetDefaultCommandControl() const;
@@ -180,6 +181,7 @@ class ConnectionImpl {
   bool is_read_only_ = true;
   bool is_discard_prepared_pending_ = false;
   ConnectionSettings settings_;
+  std::optional<std::chrono::steady_clock::time_point> expires_at_;
 
   CommandControl default_cmd_ctl_{{}, {}};
   DefaultCommandControls default_cmd_ctls_;
