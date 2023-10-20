@@ -16,7 +16,7 @@ void Mutex::lock() { impl_->lock(); }
 
 void Mutex::unlock() { impl_->unlock(); }
 
-bool Mutex::try_lock() { return impl_->try_lock(); }
+bool Mutex::try_lock() noexcept { return impl_->try_lock(); }
 
 bool Mutex::try_lock_until(Deadline deadline) {
   return impl_->try_lock_until(deadline);

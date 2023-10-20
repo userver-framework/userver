@@ -40,7 +40,7 @@ components_manager:
             service-name: http-tracing-test
 
         tracing-manager-locator:
-            incomming-format: ['taxi', 'yandex', 'b3-alternative', 'opentelemetry']
+            incoming-format: ['taxi', 'yandex', 'b3-alternative', 'opentelemetry']
             new-requests-format: ['taxi', 'yandex', 'b3-alternative', 'opentelemetry']
 
         dynamic-config:                      # Dynamic config storage options, do nothing

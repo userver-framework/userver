@@ -31,14 +31,21 @@ class TaskCancellationToken;
 
 namespace current_task {
 
-/// Checks for pending cancellation requests
+/// Checks for pending cancellation requests, use
+/// engine::current_task::ShouldCancel() instead, as the latter respects
+/// engine::TaskCancellationBlocker.
+///
+/// @see @ref task_cancellation_intro
 bool IsCancelRequested() noexcept;
 
 /// Checks for pending *non-blocked* cancellation requests
-/// @sa TaskCancellationBlocker
+///
+/// @see engine::TaskCancellationBlocker
+/// @see @ref task_cancellation_intro
 bool ShouldCancel() noexcept;
 
 /// Returns task cancellation reason for the current task
+/// @see @ref task_cancellation_intro
 TaskCancellationReason CancellationReason() noexcept;
 
 /// @brief \b Throws an exception if a cancellation request for this task is
@@ -49,6 +56,7 @@ TaskCancellationReason CancellationReason() noexcept;
 ///
 /// @warning cathching this exception without a rethrow in the same scope leads
 /// to undefined behavior.
+/// @see @ref task_cancellation_intro
 void CancellationPoint();
 
 /// Set deadline for the current task.

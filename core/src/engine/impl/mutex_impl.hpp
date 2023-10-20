@@ -36,7 +36,7 @@ class MutexImpl {
  private:
   class MutexWaitStrategy;
 
-  bool LockFastPath(TaskContext&);
+  bool LockFastPath(TaskContext&) noexcept;
   bool LockSlowPath(TaskContext&, Deadline);
 
   std::atomic<TaskContext*> owner_;
@@ -99,7 +99,7 @@ MutexImpl<Waiters>::~MutexImpl() {
 }
 
 template <class Waiters>
-bool MutexImpl<Waiters>::LockFastPath(TaskContext& current) {
+bool MutexImpl<Waiters>::LockFastPath(TaskContext& current) noexcept {
   TaskContext* expected = nullptr;
   return owner_.compare_exchange_strong(expected, &current,
                                         std::memory_order_acquire);

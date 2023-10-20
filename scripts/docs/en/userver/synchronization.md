@@ -6,6 +6,26 @@ It is assumed that the developer is aware of concurrent programming and concepts
 ## Constraint
 ⚠️🐙❗ Use of the C++ standard library and libc synchronization primitives in coroutines **is forbidden**.
 
+
+## Cancellations, Cancellation Blockers and Synchronization Primitives
+
+Different synchronization primitives treat task cancellations differently. Some
+may ignore cancellations, others return early without acquiring the resource.
+
+Many synchronization primitives ignore cancellation requests as such default
+seems to provoke less issues in code that uses the primitive. For example
+engine::Mutex::lock() ignores cancellation requests as it has no way to report
+failure other than by throwing an exception, and throwing an exception may not
+be expected by users and could lead to std::terminate().
+
+Read the documentation on particular primitive to get the behavior on
+task cancellation. The cancellation could be **blocked** by
+engine::TaskCancellationBlocker, so the latter could be used to force the
+primitive to ignore the cancellation request.  
+
+See also: @ref task_cancellation_intro
+
+
 ## Synchronization mechanisms and primitives
 
 This section describes the major available synchronization mechanisms with use cases. All the primitives are listed at the @ref userver_concurrency API Group.

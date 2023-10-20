@@ -76,7 +76,7 @@ class Span final {
   /// with no alive Span; otherwise returns the Span of the current task.
   static Span* CurrentSpanUnchecked();
 
-  /// Factory function for extreamly rare cases of creating a Span with custom
+  /// Factory function for extremely rare cases of creating a Span with custom
   /// IDs; prefer Span constructor instead.
   ///
   /// @return A new Span attached to current Span (if any) but with a new
@@ -87,7 +87,7 @@ class Span final {
   static Span MakeSpan(std::string name, std::string_view trace_id,
                        std::string_view parent_span_id);
 
-  /// Factory function for extreamly rare cases of creating a Span with custom
+  /// Factory function for extremely rare cases of creating a Span with custom
   /// IDs; prefer Span constructor instead.
   ///
   /// @return A new Span attached to current Span (if any), sets `link`.
@@ -150,7 +150,7 @@ class Span final {
   /// it is set and greater than the main log level of the Span.
   std::optional<logging::Level> GetLocalLogLevel() const;
 
-  /// Set link - a requst ID within a service. Can be called only once.
+  /// Set link - a request ID within a service. Can be called only once.
   ///
   /// Propagates within a single service, but not from client to server. A new
   /// link is generated for the "root" request handling task

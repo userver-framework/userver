@@ -195,15 +195,15 @@ When creating a new task via `utils::Async`, a new `Span` is created and linked 
 
 DB drivers and the components::HttpClient automatically create a Span for each request to trace them.
 
-### Linking service requests
+### Linking service requests via X-YaRequestId, X-YaSpanId and X-YaTraceId
 
 The HTTP client sends the current link/span_id/trace_id values in each request to the server, they do not need to be specified.
 
 When the HTTP server handles the request, it extracts data from the request headers and puts them in the Span.
 
 Names of the headers varry depending on tracing::DefaultTracingManagerLocator
-static configuration and on the chosen tracing::Fromat value. For example,
-with tracing::Fromat::kYandexTaxi the following headers would be used:
+static configuration and on the chosen tracing::Format value. For example,
+with tracing::Format::kYandexTaxi the following headers would be used:
 
 ``` 
 X-YaRequestId

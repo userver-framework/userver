@@ -52,7 +52,7 @@ DefaultTracingManagerLocator::DefaultTracingManagerLocator(
     const components::ComponentConfig& config,
     const components::ComponentContext& context)
     : components::LoggableComponentBase(config, context),
-      default_manager_(config["incomming-format"].As<FlagsFormat>(),
+      default_manager_(config["incoming-format"].As<FlagsFormat>(),
                        config["new-requests-format"].As<FlagsFormat>()),
       tracing_manager_(
           GetTracingManagerFromConfig(default_manager_, config, context)) {}
@@ -71,9 +71,9 @@ properties:
     component-name:
         type: string
         description: tracing manager component's name
-    incomming-format:
+    incoming-format:
         type: array
-        description: Incomming tracing data formats
+        description: Incoming tracing data formats
         items: &format_items
             type: string
             description: tracing formats

@@ -93,7 +93,7 @@ std::shared_ptr<Tracer> Tracer::GetTracer() {
 
 const std::string& Tracer::GetServiceName() const {
   UASSERT_MSG(!service_name_.empty(),
-              "Requested a service name, which is missconfigured and empty. "
+              "Requested a service name, which is misconfigured and empty. "
               "Set the `service-name` in the static config of the `tracer` "
               "component");
   return service_name_;

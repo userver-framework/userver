@@ -132,7 +132,7 @@ AuthCheckResult AuthCheckerBase::CheckAuth(const http::HttpRequest& request,
     throw handlers::ClientError();
   }
 
-  // Check if user have been registred.
+  // Check if user have been registered.
   auto user_data_opt = FetchUserData(client_context.username);
   if (!user_data_opt.has_value()) {
     LOG_WARNING() << fmt::format("User with username {} is not registered.",

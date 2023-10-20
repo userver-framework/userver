@@ -58,7 +58,7 @@ class SingleUseEvent final {
   void Reset() noexcept;
 
   /// Returns true iff already signaled. Never resets the signal.
-  bool IsReady() const noexcept;
+  [[nodiscard]] bool IsReady() const noexcept;
 
  private:
   std::atomic<std::uintptr_t> state_;

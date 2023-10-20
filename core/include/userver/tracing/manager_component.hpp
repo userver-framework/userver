@@ -33,7 +33,7 @@ class TracingManagerComponentBase : public components::LoggableComponentBase,
 /// multiple tracing formats. For example:
 /// @code
 /// # yaml
-/// incomming-format: ['opentelemetry', 'taxi']
+/// incoming-format: ['opentelemetry', 'taxi']
 /// new-requests-format: ['b3-alternative', 'opentelemetry']
 /// @endcode
 /// means that tracing data is extracted from OpenTelemetry headers if they
@@ -47,7 +47,7 @@ class TracingManagerComponentBase : public components::LoggableComponentBase,
 /// Name | Description | Default value
 /// ---- | ----------- | -------------
 /// component-name | name of the component, that implements TracingManagerComponentBase | <use tracing::GenericTracingManager with below settings>
-/// incomming-format | Array of incomming tracing formats supported by tracing::FormatFromString | ['taxi']
+/// incoming-format | Array of incoming tracing formats supported by tracing::FormatFromString | ['taxi']
 /// new-requests-format | Send tracing data in those formats supported by tracing::FormatFromString | ['taxi']
 ///
 // clang-format on

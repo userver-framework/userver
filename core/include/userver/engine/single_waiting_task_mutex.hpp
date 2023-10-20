@@ -20,7 +20,9 @@ namespace engine {
 ///
 /// There are some situations when a resource is accessed
 /// concurrently, but concurrency factor is limited by 2.
-/// For instance: implications of socket r/w duality
+/// For instance: implications of socket r/w duality.
+///
+/// Ignores task cancellations (succeeds even if the current task is cancelled).
 ///
 /// ## Example usage:
 ///
@@ -47,9 +49,8 @@ class SingleWaitingTaskMutex final {
   /// cancelled.
   void lock();
 
-  /// Unlocks the mutex. The mutex must be locked by the current coroutine.
-  /// @note the behaviour is undefined if a coroutine tries to unlock a mutex
-  /// which is not locked or is locked by another coroutine
+  /// Unlocks the mutex. Before calling this method the mutex should be locked
+  /// by the current coroutine.
   void unlock();
 
   bool try_lock();

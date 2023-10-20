@@ -62,29 +62,34 @@ class CancellableSemaphore final {
   void SetCapacity(Counter capacity);
 
   /// Gets the total number of available locks.
-  Counter GetCapacity() const noexcept;
+  [[nodiscard]] Counter GetCapacity() const noexcept;
 
   /// Returns an approximate number of available locks, use only for statistics.
-  std::size_t RemainingApprox() const;
+  [[nodiscard]] std::size_t RemainingApprox() const;
 
   /// Returns an approximate number of used locks, use only for statistics.
-  std::size_t UsedApprox() const;
+  [[nodiscard]] std::size_t UsedApprox() const;
 
   /// Decrements internal semaphore lock counter. Blocks if current counter is
   /// zero until the subsequent call to unlock_shared() by another coroutine.
-  /// @note the user must eventually call unlock_shared() to increment the lock
-  /// counter.
+  ///
+  /// @note the user should eventually call unlock_shared() to increment the
+  /// lock counter.
+  ///
   /// @note the method doesn't wait for the semaphore if the current task is
   /// cancelled. If a task waits on CancellableSemaphore and the cancellation
   /// is requested, the waiting is aborted with an exception.
+  ///
   /// @throws UnreachableSemaphoreLockError if `capacity == 0`
   /// @throws SemaphoreLockCancelledError if the current task is cancelled
   void lock_shared();
 
   /// Increments internal semaphore lock counter. If there is a user waiting in
-  /// lock_shared() on the same semaphore, it will be waken up.
+  /// lock_shared() on the same semaphore, it is woken up.
+  ///
   /// @note the order of coroutines to unblock is unspecified. Any code assuming
   /// any specific order (e.g. FIFO) is incorrect and must be fixed.
+  ///
   /// @note it is allowed to call lock_shared() in one coroutine and
   /// subsequently call unlock_shared() in another coroutine. In particular, it
   /// is allowed to pass std::shared_lock<engine::Semaphore> across coroutines.
@@ -153,13 +158,13 @@ class Semaphore final {
   void SetCapacity(Counter capacity);
 
   /// Gets the total number of available locks.
-  Counter GetCapacity() const noexcept;
+  [[nodiscard]] Counter GetCapacity() const noexcept;
 
   /// Returns an approximate number of available locks, use only for statistics.
-  std::size_t RemainingApprox() const;
+  [[nodiscard]] std::size_t RemainingApprox() const;
 
   /// Returns an approximate number of used locks, use only for statistics.
-  std::size_t UsedApprox() const;
+  [[nodiscard]] std::size_t UsedApprox() const;
 
   /// Decrements internal semaphore lock counter. Blocks if current counter is
   /// zero until the subsequent call to unlock_shared() by another coroutine.
@@ -171,7 +176,7 @@ class Semaphore final {
   void lock_shared();
 
   /// Increments internal semaphore lock counter. If there is a user waiting in
-  /// lock_shared() on the same semaphore, it will be waken up.
+  /// lock_shared() on the same semaphore, it is woken up.
   /// @note the order of coroutines to unblock is unspecified. Any code assuming
   /// any specific order (e.g. FIFO) is incorrect and must be fixed.
   /// @note it is allowed to call lock_shared() in one coroutine and
@@ -179,6 +184,10 @@ class Semaphore final {
   /// is allowed to pass std::shared_lock<engine::Semaphore> across coroutines.
   void unlock_shared();
 
+  /// Decrements internal semaphore lock counter if current counter is
+  /// not zero.
+  /// @note unlock_shared() should be called later to increment the lock
+  /// counter.
   [[nodiscard]] bool try_lock_shared();
 
   template <typename Rep, typename Period>
@@ -227,7 +236,7 @@ class SemaphoreLock final {
   SemaphoreLock& operator=(const SemaphoreLock&) = delete;
   SemaphoreLock& operator=(SemaphoreLock&&) noexcept;
 
-  bool OwnsLock() const noexcept;
+  [[nodiscard]] bool OwnsLock() const noexcept;
   explicit operator bool() const noexcept { return OwnsLock(); }
 
   void Lock();
