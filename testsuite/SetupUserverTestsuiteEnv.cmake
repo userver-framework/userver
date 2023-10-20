@@ -2,11 +2,8 @@
 include(UserverTestsuite)
 # /// [testsuite - UserverTestsuite]
 
-if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-  set(TESTSUITE_REQUIREMENTS ${USERVER_ROOT_DIR}/testsuite/requirements-macos.txt)
-else()
-  set(TESTSUITE_REQUIREMENTS ${USERVER_ROOT_DIR}/testsuite/requirements.txt)
-endif()
+list(APPEND TESTSUITE_REQUIREMENTS
+  ${USERVER_ROOT_DIR}/testsuite/requirements.txt)
 
 if (USERVER_FEATURE_GRPC)
   if(Protobuf_FOUND)
@@ -22,6 +19,56 @@ if (USERVER_FEATURE_GRPC)
     message(FATAL_ERROR "find_package(Protobuf REQUIRED) should be run before this cmake file")
   endif()
 endif()
+
+if(USERVER_FEATURE_MONGODB)
+  list(APPEND TESTSUITE_REQUIREMENTS
+    ${USERVER_ROOT_DIR}/testsuite/requirements-mongo.txt)
+  list(APPEND TESTSUITE_MODULES mongodb)
+  message(STATUS "Add mongodb python depends")
+endif()
+
+if(USERVER_FEATURE_POSTGRESQL)
+  list(APPEND TESTSUITE_REQUIREMENTS
+    ${USERVER_ROOT_DIR}/testsuite/requirements-postgres.txt)
+  if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+    list(APPEND TESTSUITE_MODULES postgresql-binary)
+  else()
+    list(APPEND TESTSUITE_MODULES postgresql)
+  endif()
+  message(STATUS "Add postgresql python depends")
+endif()
+
+if(USERVER_FEATURE_REDIS)
+  list(APPEND TESTSUITE_REQUIREMENTS
+    ${USERVER_ROOT_DIR}/testsuite/requirements-redis.txt)
+  list(APPEND TESTSUITE_MODULES redis)
+  message(STATUS "Add redis python depends")
+endif()
+
+if(USERVER_FEATURE_CLICKHOUSE)
+  list(APPEND TESTSUITE_MODULES clickhouse)
+  message(STATUS "Add clickhouse python depends")
+endif()
+
+if(USERVER_FEATURE_RABBITMQ)
+  list(APPEND TESTSUITE_MODULES rabbitmq)
+  message(STATUS "Add rabbitmq python depends")
+endif()
+
+if(USERVER_FEATURE_MYSQL)
+  list(APPEND TESTSUITE_MODULES mysql)
+  message(STATUS "Add mysql python depends")
+endif()
+
+file(READ ${USERVER_ROOT_DIR}/testsuite/requirements-redis.txt TESTSUITE_TXT)
+if(TESTSUITE_MODULES)
+  list(JOIN TESTSUITE_MODULES "," TESTSUITE_MODULES_STR)
+  string(REPLACE "yandex-taxi-testsuite[]" "yandex-taxi-testsuite[${TESTSUITE_MODULES_STR}]" TESTSUITE_TXT TESTSUITE_TXT)
+  message(STATUS "set testsuite with modules: ${TESTSUITE_TXT}")
+endif()
+file(WRITE ${CMAKE_BINARY_DIR}/requirements-testsuite.txt ${TESTSUITE_TXT})
+list(APPEND TESTSUITE_REQUIREMENTS
+  ${CMAKE_BINARY_DIR}/requirements-testsuite.txt)
 
 userver_venv_setup(
   NAME userver-testenv
