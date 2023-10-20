@@ -9,6 +9,7 @@
 
 #include <userver/compiler/demangle.hpp>
 #include <userver/components/component.hpp>
+#include <userver/components/statistics_storage.hpp>
 #include <userver/dynamic_config/storage_mock.hpp>
 #include <userver/dynamic_config/updates_sink/find.hpp>
 #include <userver/engine/condition_variable.hpp>
@@ -17,6 +18,9 @@
 #include <userver/fs/write.hpp>
 #include <userver/tracing/span.hpp>
 #include <userver/utils/assert.hpp>
+#include <userver/utils/fast_scope_guard.hpp>
+#include <userver/utils/statistics/rate_counter.hpp>
+#include <userver/utils/statistics/writer.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
 #include <dynamic_config/storage_data.hpp>
@@ -29,6 +33,12 @@ namespace components {
 namespace {
 
 constexpr std::chrono::seconds kWaitInterval(5);
+
+struct DynamicConfigStatistics final {
+  std::atomic<bool> was_last_parse_successful{true};
+  utils::statistics::RateCounter parse_errors;
+};
+
 }  // namespace
 
 class DynamicConfig::Impl final {
@@ -45,6 +55,9 @@ class DynamicConfig::Impl final {
   void NotifyLoadingFailed(std::string_view updater, std::string_view error);
 
  private:
+  dynamic_config::impl::SnapshotData ParseConfig(
+      const dynamic_config::DocsMap& value);
+
   void DoSetConfig(const dynamic_config::DocsMap& value);
 
   bool Has() const;
@@ -53,6 +66,8 @@ class DynamicConfig::Impl final {
   bool IsFsCacheEnabled() const;
   void ReadFsCache();
   void WriteFsCache(const dynamic_config::DocsMap&);
+
+  void WriteStatistics(utils::statistics::Writer& writer) const;
 
   dynamic_config::impl::StorageData cache_;
 
@@ -64,6 +79,10 @@ class DynamicConfig::Impl final {
   mutable engine::Mutex loaded_mutex_;
   mutable engine::ConditionVariable loaded_cv_;
   bool config_load_cancelled_{false};
+  DynamicConfigStatistics stats_;
+
+  // Must be the last field
+  utils::statistics::Entry statistics_holder_;
 };
 
 DynamicConfig::Impl::Impl(const ComponentConfig& config,
@@ -79,6 +98,12 @@ DynamicConfig::Impl::Impl(const ComponentConfig& config,
                          "responsible for DynamicConfig initialization should "
                          "be defined in a static config!"));
   ReadFsCache();
+
+  statistics_holder_ =
+      context.FindComponent<components::StatisticsStorage>()
+          .GetStorage()
+          .RegisterWriter("dynamic-config",
+                          [this](auto& writer) { WriteStatistics(writer); });
 }
 
 dynamic_config::Source DynamicConfig::Impl::GetSource() {
@@ -124,8 +149,20 @@ void DynamicConfig::Impl::NotifyLoadingFailed(std::string_view updater,
   }
 }
 
-void DynamicConfig::Impl::DoSetConfig(const dynamic_config::DocsMap& value) {
+dynamic_config::impl::SnapshotData DynamicConfig::Impl::ParseConfig(
+    const dynamic_config::DocsMap& value) {
+  utils::FastScopeGuard report_parse_error([&]() noexcept {
+    stats_.was_last_parse_successful = false;
+    ++stats_.parse_errors;
+  });
   dynamic_config::impl::SnapshotData config(value, {});
+  report_parse_error.Release();
+  stats_.was_last_parse_successful = true;
+  return config;
+}
+
+void DynamicConfig::Impl::DoSetConfig(const dynamic_config::DocsMap& value) {
+  auto config = ParseConfig(value);
 
   if (!value.GetConfigsExpectedToBeUsed(utils::InternalTag{}).empty()) {
     LOG_INFO() << "Some configs expected to be used are actually not needed: "
@@ -134,7 +171,7 @@ void DynamicConfig::Impl::DoSetConfig(const dynamic_config::DocsMap& value) {
 
   auto after_assign_hook = [&] {
     {
-      std::lock_guard lock(loaded_mutex_);
+      const std::lock_guard lock(loaded_mutex_);
       is_loaded_ = true;
     }
     loaded_cv_.NotifyAll();
@@ -155,7 +192,7 @@ void DynamicConfig::Impl::OnLoadingCancelled() {
   LOG_WARNING() << "Components load was cancelled before DynamicConfig was "
                    "loaded. Please see previous logs for the failure reason";
   {
-    std::lock_guard<engine::Mutex> lock(loaded_mutex_);
+    const std::lock_guard lock(loaded_mutex_);
     config_load_cancelled_ = true;
   }
   loaded_cv_.NotifyAll();
@@ -172,7 +209,7 @@ bool DynamicConfig::Impl::IsFsCacheEnabled() const {
 void DynamicConfig::Impl::ReadFsCache() {
   if (!IsFsCacheEnabled()) return;
 
-  tracing::Span span("dynamic_config_fs_cache_read");
+  const tracing::Span span("dynamic_config_fs_cache_read");
   try {
     if (!fs::FileExists(*fs_task_processor_, fs_cache_path_)) {
       fs_loading_error_msg_ = "No cache file found";
@@ -206,7 +243,7 @@ void DynamicConfig::Impl::WriteFsCache(
     const dynamic_config::DocsMap& docs_map) {
   if (!IsFsCacheEnabled()) return;
 
-  tracing::Span span("dynamic_config_fs_cache_write");
+  const tracing::Span span("dynamic_config_fs_cache_write");
   try {
     const auto contents = docs_map.AsJsonString();
     using perms = boost::filesystem::perms;
@@ -223,6 +260,12 @@ void DynamicConfig::Impl::WriteFsCache(
     LOG_ERROR() << "Failed to save config to FS cache '" << fs_cache_path_
                 << "': " << e;
   }
+}
+
+void DynamicConfig::Impl::WriteStatistics(
+    utils::statistics::Writer& writer) const {
+  writer["was-last-parse-successful"] = stats_.was_last_parse_successful;
+  writer["parse-errors"] = stats_.parse_errors;
 }
 
 DynamicConfig::NoblockSubscriber::NoblockSubscriber(
