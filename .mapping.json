@@ -2205,6 +2205,7 @@
   "redis/benchmark/redis_benchmark.cpp":"taxi/uservices/userver/redis/benchmark/redis_benchmark.cpp",
   "redis/benchmark/redis_fixture.cpp":"taxi/uservices/userver/redis/benchmark/redis_fixture.cpp",
   "redis/benchmark/redis_fixture.hpp":"taxi/uservices/userver/redis/benchmark/redis_fixture.hpp",
+  "redis/benchmark/ya.make":"taxi/uservices/userver/redis/benchmark/ya.make",
   "redis/functional_tests/CMakeLists.txt":"taxi/uservices/userver/redis/functional_tests/CMakeLists.txt",
   "redis/functional_tests/basic_chaos/CMakeLists.txt":"taxi/uservices/userver/redis/functional_tests/basic_chaos/CMakeLists.txt",
   "redis/functional_tests/basic_chaos/dynamic_config_fallback.json":"taxi/uservices/userver/redis/functional_tests/basic_chaos/dynamic_config_fallback.json",
