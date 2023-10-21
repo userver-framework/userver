@@ -238,11 +238,9 @@ Config Config::MergeWith(const ConfigPatch& patch) const {
   return copy;
 }
 
-std::unordered_map<std::string, ConfigPatch> ParseCacheConfigSet(
-    const dynamic_config::DocsMap& docs_map) {
-  return docs_map.Get("USERVER_CACHES")
-      .As<std::unordered_map<std::string, ConfigPatch>>();
-}
+const dynamic_config::Key<std::unordered_map<std::string, ConfigPatch>>
+    kCacheConfigSet{"USERVER_CACHES",
+                    dynamic_config::DefaultAsJsonString{"{}"}};
 
 }  // namespace cache
 

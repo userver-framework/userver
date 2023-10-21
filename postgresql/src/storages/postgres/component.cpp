@@ -53,7 +53,7 @@ Postgres::Postgres(const ComponentConfig& config,
 
   auto config_source = context.FindComponent<DynamicConfig>().GetSource();
   const auto initial_config = config_source.GetSnapshot();
-  const auto& pg_config = initial_config.Get<storages::postgres::Config>();
+  const auto& pg_config = initial_config[storages::postgres::kConfig];
 
   const auto dbalias = config["dbalias"].As<std::string>("");
 
@@ -179,7 +179,7 @@ void Postgres::ExtendStatistics(utils::statistics::Writer& writer) {
 }
 
 void Postgres::OnConfigUpdate(const dynamic_config::Snapshot& cfg) {
-  const auto& pg_config = cfg.Get<storages::postgres::Config>();
+  const auto& pg_config = cfg[storages::postgres::kConfig];
   const auto pool_settings =
       pg_config.pool_settings.GetOptional(name_).value_or(
           initial_settings_.pool_settings);

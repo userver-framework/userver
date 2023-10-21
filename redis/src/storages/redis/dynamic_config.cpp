@@ -1,18 +1,16 @@
 #include "dynamic_config.hpp"
 
-#include <userver/dynamic_config/value.hpp>
+#include <userver/formats/json/value.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace redis {
 
-int ParseDeadlinePropagationVersion(const dynamic_config::DocsMap& docs_map) {
-  return docs_map.Get("REDIS_DEADLINE_PROPAGATION_VERSION").As<int>(0);
-}
+const dynamic_config::Key<int> kDeadlinePropagationVersion{
+    "REDIS_DEADLINE_PROPAGATION_VERSION", 1};
 
-bool ParseRedisClusterAutoTopology(const dynamic_config::DocsMap& docs_map) {
-  return docs_map.Get("REDIS_CLUSTER_AUTOTOPOLOGY_ENABLED_V2").As<bool>(true);
-}
+const dynamic_config::Key<bool> kRedisAutoTopologyEnabled{
+    "REDIS_CLUSTER_AUTOTOPOLOGY_ENABLED_V2", true};
 
 }  // namespace redis
 

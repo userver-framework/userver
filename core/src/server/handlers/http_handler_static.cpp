@@ -12,11 +12,26 @@ namespace server::handlers {
 
 namespace {
 
-auto ParseContentTypeMap(const dynamic_config::DocsMap& docs_map) {
-  return docs_map.Get("USERVER_FILES_CONTENT_TYPE_MAP")
-      .As<dynamic_config::ValueDict<std::string>>();
+const dynamic_config::Key<dynamic_config::ValueDict<std::string>>
+    kContentTypeMap{
+        "USERVER_FILES_CONTENT_TYPE_MAP",
+        dynamic_config::DefaultAsJsonString{
+            R"(
+{
+  ".css": "text/css",
+  ".gif": "image/gif",
+  ".htm": "text/html",
+  ".html": "text/html",
+  ".jpeg": "image/jpeg",
+  ".js": "application/javascript",
+  ".json": "application/json",
+  ".md": "text/markdown",
+  ".png": "image/png",
+  ".svg": "image/svg+xml",
+  "__default__": "text/plain"
 }
-constexpr dynamic_config::Key<ParseContentTypeMap> kContentTypeMap{};
+)"},
+    };
 
 }  // namespace
 

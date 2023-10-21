@@ -41,7 +41,29 @@ clients::http::impl::ClientSettings GetClientSettings(
   return settings;
 }
 
-constexpr dynamic_config::Key<clients::http::impl::ParseConfig> kClientConfig;
+/// [docs map config sample]
+constexpr dynamic_config::DefaultAsJsonString kThrottleDefaults{R"(
+{
+  "http-limit": 6000,
+  "http-per-second": 1500,
+  "https-limit": 100,
+  "https-per-second": 25,
+  "max-size": 100,
+  "per-host-limit": 3000,
+  "per-host-per-second": 500,
+  "token-update-interval-ms": 0
+}
+)"};
+
+const dynamic_config::Key kClientConfig{
+    clients::http::impl::ParseConfig,
+    {
+        {"HTTP_CLIENT_CONNECTION_POOL_SIZE", 1000},
+        {"USERVER_HTTP_PROXY", ""},
+        {"HTTP_CLIENT_CONNECT_THROTTLE", kThrottleDefaults},
+    },
+};
+/// [docs map config sample]
 
 }  // namespace
 

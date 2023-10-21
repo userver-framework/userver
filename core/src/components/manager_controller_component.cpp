@@ -127,7 +127,7 @@ void ManagerControllerComponent::WriteStatistics(
 
 void ManagerControllerComponent::OnConfigUpdate(
     const dynamic_config::Snapshot& cfg) {
-  auto config = cfg.Get<ManagerControllerDynamicConfig>();
+  auto config = cfg[kManagerControllerDynamicConfig];
 
   for (const auto& [name, task_processor] :
        components_manager_.GetTaskProcessorsMap()) {

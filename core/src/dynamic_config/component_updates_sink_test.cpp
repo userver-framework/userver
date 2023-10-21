@@ -76,11 +76,9 @@ config_vars: )";
 constexpr std::string_view kUpdatesSinkChainConfigName =
     "DYNAMIC_CONFIG_UPDATES_SINK_CHAIN";
 
-std::string ParseUpdatesSinkChain(const dynamic_config::DocsMap& config) {
-  return config.Get(std::string(kUpdatesSinkChainConfigName)).As<std::string>();
-}
+const dynamic_config::Key<std::string> kUpdatesSinkChain{
+    kUpdatesSinkChainConfigName, ""};
 
-constexpr dynamic_config::Key<ParseUpdatesSinkChain> kUpdatesSinkChain{};
 std::string expected_updates_sink_chain;
 
 class TestUpdatesSink final : public components::DynamicConfigUpdatesSinkBase {
@@ -109,8 +107,7 @@ TestUpdatesSink::TestUpdatesSink(const components::ComponentConfig& config,
 
 void TestUpdatesSink::SetConfig(std::string_view updater,
                                 dynamic_config::DocsMap&& config) {
-  auto sinks_chain =
-      config.Get(std::string(kUpdatesSinkChainConfigName)).As<std::string>();
+  auto sinks_chain = config.Get(kUpdatesSinkChainConfigName).As<std::string>();
 
   if (!sinks_chain.empty()) {
     sinks_chain.append(" ");

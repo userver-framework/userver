@@ -40,12 +40,21 @@ bool ShouldDeduplicate(
   UINVARIANT(false, "Invalid cache::UpdateType");
 }
 
+const ComponentConfig& EnsureDoesNotDependOnDynamicConfig(
+    const ComponentConfig& component_config) {
+  UINVARIANT(!component_config["config-settings"].As<bool>(true),
+             "dynamic-config-client-updater.config-settings must be false, "
+             "otherwise it will create a cyclic dependency of components");
+  return component_config;
+}
+
 }  // namespace
 
 DynamicConfigClientUpdater::DynamicConfigClientUpdater(
     const ComponentConfig& component_config,
     const ComponentContext& component_context)
-    : CachingComponentBase(component_config, component_context),
+    : CachingComponentBase(EnsureDoesNotDependOnDynamicConfig(component_config),
+                           component_context),
       updates_sink_(
           dynamic_config::FindUpdatesSink(component_config, component_context)),
       load_only_my_values_(component_config["load-only-my-values"].As<bool>()),

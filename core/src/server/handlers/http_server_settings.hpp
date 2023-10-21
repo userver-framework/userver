@@ -1,29 +1,33 @@
 #pragma once
 
+#include <chrono>
+
 #include <userver/dynamic_config/snapshot.hpp>
-#include <userver/dynamic_config/value.hpp>
+#include <userver/server/http/http_status.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace server::handlers {
 
-bool ParseLogRequest(const dynamic_config::DocsMap&);
+extern const dynamic_config::Key<bool> kLogRequest;
 
-inline constexpr dynamic_config::Key<ParseLogRequest> kLogRequest;
+extern const dynamic_config::Key<bool> kLogRequestHeaders;
 
-bool ParseLogRequestHeaders(const dynamic_config::DocsMap&);
+extern const dynamic_config::Key<bool> kCheckAuthInHandlers;
 
-inline constexpr dynamic_config::Key<ParseLogRequestHeaders> kLogRequestHeaders;
+extern const dynamic_config::Key<bool> kCancelHandleRequestByDeadline;
 
-bool ParseCheckAuthInHandlers(const dynamic_config::DocsMap&);
+struct CcCustomStatus final {
+  http::HttpStatus initial_status_code;
+  std::chrono::milliseconds max_time_delta;
+};
 
-inline constexpr dynamic_config::Key<ParseCheckAuthInHandlers>
-    kCheckAuthInHandlers;
+CcCustomStatus Parse(const formats::json::Value& value,
+                     formats::parse::To<CcCustomStatus>);
 
-bool ParseCancelHandleRequestByDeadline(const dynamic_config::DocsMap&);
+extern const dynamic_config::Key<CcCustomStatus> kCcCustomStatus;
 
-inline constexpr dynamic_config::Key<ParseCancelHandleRequestByDeadline>
-    kCancelHandleRequestByDeadline;
+extern const dynamic_config::Key<bool> kStreamApiEnabled;
 
 }  // namespace server::handlers
 

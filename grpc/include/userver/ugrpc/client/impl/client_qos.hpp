@@ -10,9 +10,7 @@ namespace ugrpc::client::impl {
 
 using ClientQos = dynamic_config::ValueDict<Qos>;
 
-ClientQos ParseNoClientQos(const dynamic_config::DocsMap& docs_map);
-
-extern const dynamic_config::Key<ParseNoClientQos> kNoClientQos;
+extern const dynamic_config::Key<ClientQos> kNoClientQos;
 
 }  // namespace ugrpc::client::impl
 

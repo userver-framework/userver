@@ -1,21 +1,13 @@
 #include "client_configs.hpp"
 
-#include <userver/dynamic_config/value.hpp>
+#include <userver/formats/json/value.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::client::impl {
 
-namespace {
-
-const std::string kGrpcEnforceTaskDeadline =
-    "USERVER_GRPC_CLIENT_ENABLE_DEADLINE_PROPAGATION";
-
-}  // namespace
-
-bool ParseEnforceTaskDeadline(const dynamic_config::DocsMap& docs_map) {
-  return docs_map.Get(kGrpcEnforceTaskDeadline).As<bool>();
-}
+const dynamic_config::Key<bool> kEnforceClientTaskDeadline{
+    "USERVER_GRPC_CLIENT_ENABLE_DEADLINE_PROPAGATION", true};
 
 }  // namespace ugrpc::client::impl
 

@@ -19,19 +19,19 @@ constexpr std::string_view k{{service.name}}MethodNames[] = {
   {% endfor %}
 };
 
-{% set client_qos = 'GRPC_CLIENT_QOS_' + proto.package_prefix.replace('.', '_') + service.name + 'Client'%}
-
+{% set client_qos = 'GRPC_CLIENT_QOS_' + proto.package_prefix.replace('.', '_') + service.name + 'Client' %}
+{% set client_qos_default = 'GRPC_CLIENT_QOS_DEFAULT_' + proto.package_prefix.replace('.', '_') + service.name + 'Client' %}
 #ifdef {{ client_qos }}
-USERVER_NAMESPACE::ugrpc::client::impl::ClientQos
-Parse{{service.name}}ClientQos(
-    [[maybe_unused]] const USERVER_NAMESPACE::dynamic_config::DocsMap& docs_map) {
-  return docs_map.Get({{ client_qos }})
-      .As<USERVER_NAMESPACE::ugrpc::client::impl::ClientQos>();
-}
-
-constexpr USERVER_NAMESPACE::dynamic_config::Key<
-    Parse{{service.name}}ClientQos
-> k{{service.name}}ClientQosConfig;
+const USERVER_NAMESPACE::dynamic_config::Key<USERVER_NAMESPACE::ugrpc::client::impl::ClientQos> k{{service.name}}ClientQosConfig{
+    {{ client_qos }},
+    USERVER_NAMESPACE::dynamic_config::DefaultAsJsonString{
+#ifdef {{ client_qos_default }}
+        {{ client_qos_default }}
+#else
+        R"({"__default__": {}})"
+#endif
+    },
+};
 #else
 constexpr const auto& k{{service.name}}ClientQosConfig =
     USERVER_NAMESPACE::ugrpc::client::impl::kNoClientQos;

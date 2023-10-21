@@ -71,11 +71,9 @@ std::size_t LruCacheConfigStatic::GetWaySize() const {
   return config.GetWaySize(ways);
 }
 
-std::unordered_map<std::string, LruCacheConfig> ParseLruCacheConfigSet(
-    const dynamic_config::DocsMap& docs_map) {
-  return docs_map.Get("USERVER_LRU_CACHES")
-      .As<std::unordered_map<std::string, LruCacheConfig>>();
-}
+const dynamic_config::Key<std::unordered_map<std::string, LruCacheConfig>>
+    kLruCacheConfigSet{"USERVER_LRU_CACHES",
+                       dynamic_config::DefaultAsJsonString{"{}"}};
 
 std::optional<LruCacheConfig> GetLruConfig(
     const dynamic_config::Snapshot& config, const std::string& cache_name) {

@@ -71,6 +71,10 @@ ConnectionSettings ParseConnectionSettings(const ConfigType& config) {
   return settings;
 }
 
+PipelineMode ParsePipelineMode(const formats::json::Value& value) {
+  return value.As<int>() > 0 ? PipelineMode::kEnabled : PipelineMode::kDisabled;
+}
+
 }  // namespace
 
 ConnectionSettings Parse(const formats::json::Value& config,
@@ -141,28 +145,52 @@ StatementMetricsSettings Parse(const yaml_config::YamlConfig& config,
   return ParseStatementMetricsSettings(config);
 }
 
-PipelineMode ParsePipelineMode(const dynamic_config::DocsMap& docs_map) {
-  return docs_map.Get("POSTGRES_CONNECTION_PIPELINE_EXPERIMENT").As<int>() > 0
-             ? PipelineMode::kEnabled
-             : PipelineMode::kDisabled;
+Config Config::Parse(const dynamic_config::DocsMap& docs_map) {
+  return Config{
+      /*default_command_control=*/docs_map
+          .Get("POSTGRES_DEFAULT_COMMAND_CONTROL")
+          .As<CommandControl>(),
+      /*handlers_command_control=*/
+      docs_map.Get("POSTGRES_HANDLERS_COMMAND_CONTROL")
+          .As<CommandControlByHandlerMap>(),
+      /*queries_command_control=*/
+      docs_map.Get("POSTGRES_QUERIES_COMMAND_CONTROL")
+          .As<CommandControlByQueryMap>(),
+      /*pool_settings=*/
+      docs_map.Get("POSTGRES_CONNECTION_POOL_SETTINGS")
+          .As<dynamic_config::ValueDict<PoolSettings>>(),
+      /*connection_settings=*/
+      docs_map.Get("POSTGRES_CONNECTION_SETTINGS")
+          .As<dynamic_config::ValueDict<ConnectionSettings>>(),
+      /*statement_metrics_settings=*/
+      docs_map.Get("POSTGRES_STATEMENT_METRICS_SETTINGS")
+          .As<dynamic_config::ValueDict<StatementMetricsSettings>>(),
+  };
 }
 
-Config::Config(const dynamic_config::DocsMap& docs_map)
-    : default_command_control{"POSTGRES_DEFAULT_COMMAND_CONTROL", docs_map},
-      handlers_command_control{"POSTGRES_HANDLERS_COMMAND_CONTROL", docs_map},
-      queries_command_control{"POSTGRES_QUERIES_COMMAND_CONTROL", docs_map},
-      pool_settings{"POSTGRES_CONNECTION_POOL_SETTINGS", docs_map},
-      connection_settings{"POSTGRES_CONNECTION_SETTINGS", docs_map},
-      statement_metrics_settings("POSTGRES_STATEMENT_METRICS_SETTINGS",
-                                 docs_map) {}
+using JsonString = dynamic_config::DefaultAsJsonString;
 
-ConnlimitConfig ParseConnlimitConfig(const dynamic_config::DocsMap& docs_map) {
-  return {docs_map.Get("POSTGRES_CONNLIMIT_MODE_AUTO_ENABLED").As<bool>()};
-}
+const dynamic_config::Key<Config> kConfig{
+    Config::Parse,
+    {
+        {"POSTGRES_DEFAULT_COMMAND_CONTROL", JsonString{"{}"}},
+        {"POSTGRES_HANDLERS_COMMAND_CONTROL", JsonString{"{}"}},
+        {"POSTGRES_QUERIES_COMMAND_CONTROL", JsonString{"{}"}},
+        {"POSTGRES_CONNECTION_POOL_SETTINGS", JsonString{"{}"}},
+        {"POSTGRES_CONNECTION_SETTINGS", JsonString{"{}"}},
+        {"POSTGRES_STATEMENT_METRICS_SETTINGS", JsonString{"{}"}},
+    },
+};
 
-int ParseDeadlinePropagation(const dynamic_config::DocsMap& docs_map) {
-  return docs_map.Get("POSTGRES_DEADLINE_PROPAGATION_VERSION").As<int>();
-}
+const dynamic_config::Key<PipelineMode> kPipelineModeKey{
+    "POSTGRES_CONNECTION_PIPELINE_EXPERIMENT", ParsePipelineMode,
+    dynamic_config::DefaultAsJsonString{"0"}};
+
+const dynamic_config::Key<bool> kConnlimitModeAutoEnabled{
+    "POSTGRES_CONNLIMIT_MODE_AUTO_ENABLED", false};
+
+const dynamic_config::Key<int> kDeadlinePropagationVersionConfig{
+    "POSTGRES_DEADLINE_PROPAGATION_VERSION", 0};
 
 }  // namespace storages::postgres
 

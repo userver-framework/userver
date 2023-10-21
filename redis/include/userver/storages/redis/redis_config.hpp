@@ -1,5 +1,8 @@
 #pragma once
 
+#include <chrono>
+
+#include <userver/dynamic_config/snapshot.hpp>
 #include <userver/dynamic_config/value.hpp>
 #include <userver/formats/parse/to.hpp>
 #include <userver/storages/redis/impl/base.hpp>
@@ -36,42 +39,24 @@ PubsubMetricsSettings Parse(const formats::json::Value& elem,
 
 namespace storages::redis {
 
-class Config {
- public:
-  dynamic_config::Value<USERVER_NAMESPACE::redis::CommandControl>
-      default_command_control;
-  dynamic_config::Value<USERVER_NAMESPACE::redis::CommandControl>
-      subscriber_default_command_control;
-  dynamic_config::Value<size_t> subscriptions_rebalance_min_interval_seconds;
-  dynamic_config::Value<USERVER_NAMESPACE::redis::RedisWaitConnected>
-      redis_wait_connected;
-  dynamic_config::Value<USERVER_NAMESPACE::redis::CommandsBufferingSettings>
+struct Config final {
+  static Config Parse(const dynamic_config::DocsMap& docs_map);
+
+  USERVER_NAMESPACE::redis::CommandControl default_command_control;
+  USERVER_NAMESPACE::redis::CommandControl subscriber_default_command_control;
+  std::chrono::seconds subscriptions_rebalance_min_interval{};
+  USERVER_NAMESPACE::redis::RedisWaitConnected redis_wait_connected;
+  USERVER_NAMESPACE::redis::CommandsBufferingSettings
       commands_buffering_settings;
-  dynamic_config::Value<USERVER_NAMESPACE::redis::MetricsSettings>
-      metrics_settings;
-  dynamic_config::Value<USERVER_NAMESPACE::redis::PubsubMetricsSettings>
-      pubsub_metrics_settings;
+  USERVER_NAMESPACE::redis::MetricsSettings metrics_settings;
+  USERVER_NAMESPACE::redis::PubsubMetricsSettings pubsub_metrics_settings;
   dynamic_config::ValueDict<
       USERVER_NAMESPACE::redis::ReplicationMonitoringSettings>
       replication_monitoring_settings;
-  dynamic_config::Value<bool> redis_cluster_autotopology_enabled;
-
-  Config(const dynamic_config::DocsMap& docs_map)
-      : default_command_control{"REDIS_DEFAULT_COMMAND_CONTROL", docs_map},
-        subscriber_default_command_control{
-            "REDIS_SUBSCRIBER_DEFAULT_COMMAND_CONTROL", docs_map},
-        subscriptions_rebalance_min_interval_seconds{
-            "REDIS_SUBSCRIPTIONS_REBALANCE_MIN_INTERVAL_SECONDS", docs_map},
-        redis_wait_connected{"REDIS_WAIT_CONNECTED", docs_map},
-        commands_buffering_settings{"REDIS_COMMANDS_BUFFERING_SETTINGS",
-                                    docs_map},
-        metrics_settings{"REDIS_METRICS_SETTINGS", docs_map},
-        pubsub_metrics_settings{"REDIS_PUBSUB_METRICS_SETTINGS", docs_map},
-        replication_monitoring_settings{"REDIS_REPLICA_MONITORING_SETTINGS",
-                                        docs_map},
-        redis_cluster_autotopology_enabled{
-            "REDIS_CLUSTER_AUTOTOPOLOGY_ENABLED_V2", docs_map} {}
+  bool redis_cluster_autotopology_enabled{};
 };
+
+extern const dynamic_config::Key<Config> kConfig;
 
 }  // namespace storages::redis
 

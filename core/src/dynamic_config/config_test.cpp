@@ -14,8 +14,6 @@ namespace {
 struct DummyConfig final {
   int foo;
   std::string bar;
-
-  static DummyConfig Parse(const dynamic_config::DocsMap&) { return {}; }
 };
 
 DummyConfig Parse(const formats::json::Value& value,
@@ -23,15 +21,14 @@ DummyConfig Parse(const formats::json::Value& value,
   return {value["foo"].As<int>(), value["bar"].As<std::string>()};
 }
 
-constexpr dynamic_config::Key<DummyConfig::Parse> kDummyConfig;
+// TODO add some tests that declare actual configs together with their defaults.
+//  Currently, all configs in this tests are constant configs.
+const dynamic_config::Key kDummyConfig{dynamic_config::ConstantConfig{},
+                                       DummyConfig{42, "what"}};
 
-int ParseIntConfig(const dynamic_config::DocsMap&) { return {}; }
+const dynamic_config::Key kIntConfig{dynamic_config::ConstantConfig{}, 0};
 
-constexpr dynamic_config::Key<ParseIntConfig> kIntConfig;
-
-bool ParseBoolConfig(const dynamic_config::DocsMap&) { return {}; }
-
-constexpr dynamic_config::Key<ParseBoolConfig> kBoolConfig;
+const dynamic_config::Key kBoolConfig{dynamic_config::ConstantConfig{}, false};
 
 struct DummyConfigWrapper final {
   int GetFoo() const { return config[kDummyConfig].foo; }
@@ -70,7 +67,7 @@ UTEST_F(DynamicConfigTest, Snapshot) {
 }
 
 UTEST_F(DynamicConfigTest, ConfigCopyable) {
-  DummyConfigWrapper wrapper{config_};  // Config is copied
+  const DummyConfigWrapper wrapper{config_};  // Config is copied
   EXPECT_EQ(wrapper.GetFoo(), 42);
 }
 
@@ -82,22 +79,20 @@ UTEST_F(DynamicConfigTest, VariableSnapshotPtr) {
 
 UTEST_F(DynamicConfigTest, Copy) { EXPECT_EQ(source_.GetCopy(kIntConfig), 5); }
 
-struct ByConstructor final {
+struct OldConfig final {
+  static const dynamic_config::Key<OldConfig> kDeprecatedKey;
+
   int foo{42};
-
-  explicit ByConstructor(const dynamic_config::DocsMap&) {}
-
-  ByConstructor() = default;
 };
 
+const dynamic_config::Key<OldConfig> OldConfig::kDeprecatedKey{
+    dynamic_config::ConstantConfig{}, OldConfig{}};
+
 UTEST(DynamicConfig, TheOldWay) {
-  // Only for the purposes of testing, don't use in production code
-  dynamic_config::Key<dynamic_config::impl::ParseByConstructor<ByConstructor>>
-      key;
-  const dynamic_config::StorageMock storage{{key, {}}};
+  const dynamic_config::StorageMock storage{{OldConfig::kDeprecatedKey, {}}};
 
   const auto config = storage.GetSource().GetSnapshot();
-  EXPECT_EQ(config.Get<ByConstructor>().foo, 42);
+  EXPECT_EQ(config.Get<OldConfig>().foo, 42);
 }
 
 class DummyClient final {
@@ -159,7 +154,7 @@ UTEST(DynamicConfig, Extend) {
 const auto kJson = formats::json::FromString(R"( {"foo": 42, "bar": "what"} )");
 
 UTEST(DynamicConfig, FromJson) {
-  dynamic_config::StorageMock storage{
+  const dynamic_config::StorageMock storage{
       {kDummyConfig, kJson},
       {kIntConfig, 5},
   };
@@ -426,11 +421,8 @@ UTEST(DynamicConfigSubscription, Snippet) {
 
 namespace {
 
-formats::json::Value ParseJsonConfig(const dynamic_config::DocsMap&) {
-  return {};
-}
-
-constexpr dynamic_config::Key<ParseJsonConfig> kJsonConfig;
+const dynamic_config::Key<formats::json::Value> kJsonConfig{
+    dynamic_config::ConstantConfig{}, {}};
 
 }  // namespace
 

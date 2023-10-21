@@ -60,10 +60,8 @@ struct DynamicConfig final {
   std::chrono::milliseconds min_dump_interval;
 };
 
-std::unordered_map<std::string, ConfigPatch> ParseConfigSet(
-    const dynamic_config::DocsMap& docs_map);
-
-inline constexpr dynamic_config::Key<ParseConfigSet> kConfigSet;
+extern const dynamic_config::Key<std::unordered_map<std::string, ConfigPatch>>
+    kConfigSet;
 
 }  // namespace dump
 

@@ -3,6 +3,7 @@
 /// @file userver/dynamic_config/source.hpp
 /// @brief @copybrief dynamic_config::Source
 
+#include <optional>
 #include <string_view>
 #include <tuple>
 #include <utility>
@@ -17,35 +18,33 @@ namespace dynamic_config {
 
 /// Owns a snapshot of a config variable. You may use operator* or operator->
 /// to access the config variable.
-///
-/// `VariableSnapshotPtr` in only intended to be used locally. Don't store it
-/// as a class member or pass it between functions. Use `Snapshot` for that
-/// purpose.
-template <typename Key>
+template <typename VariableType>
 class VariableSnapshotPtr final {
  public:
   VariableSnapshotPtr(VariableSnapshotPtr&&) = delete;
   VariableSnapshotPtr& operator=(VariableSnapshotPtr&&) = delete;
 
-  const typename Key::VariableType& operator*() const& { return variable_; }
-  const typename Key::VariableType& operator*() && { ReportMisuse(); }
+  const VariableType& operator*() const& { return *variable_; }
+  const VariableType& operator*() && { ReportMisuse(); }
 
-  const typename Key::VariableType* operator->() const& { return &variable_; }
-  const typename Key::VariableType* operator->() && { ReportMisuse(); }
+  const VariableType* operator->() const& { return variable_; }
+  const VariableType* operator->() && { ReportMisuse(); }
 
  private:
   [[noreturn]] static void ReportMisuse() {
-    static_assert(!sizeof(Key), "keep the pointer before using, please");
+    static_assert(!sizeof(VariableType),
+                  "keep the pointer before using, please");
   }
 
-  explicit VariableSnapshotPtr(Snapshot&& snapshot, const Key& key)
-      : snapshot_(std::move(snapshot)), variable_(snapshot_[key]) {}
+  explicit VariableSnapshotPtr(Snapshot&& snapshot,
+                               const Key<VariableType>& key)
+      : snapshot_(std::move(snapshot)), variable_(&snapshot_[key]) {}
 
   // for the constructor
   friend class Source;
 
   Snapshot snapshot_;
-  const typename Key::VariableType& variable_;
+  const VariableType* variable_;
 };
 
 /// @brief Helper class for subscribing to dynamic-config updates with a custom
@@ -92,13 +91,14 @@ class Source final {
 
   Snapshot GetSnapshot() const;
 
-  template <typename Key>
-  VariableSnapshotPtr<Key> GetSnapshot(const Key& key) const {
+  template <typename VariableType>
+  VariableSnapshotPtr<VariableType> GetSnapshot(
+      const Key<VariableType>& key) const {
     return VariableSnapshotPtr{GetSnapshot(), key};
   }
 
-  template <typename Key>
-  typename Key::VariableType GetCopy(const Key& key) const {
+  template <typename VariableType>
+  VariableType GetCopy(const Key<VariableType>& key) const {
     const auto snapshot = GetSnapshot();
     return snapshot[key];
   }

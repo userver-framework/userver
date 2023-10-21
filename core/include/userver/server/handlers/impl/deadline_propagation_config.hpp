@@ -6,10 +6,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace server::handlers::impl {
 
-bool ParseDeadlinePropagationEnabled(const dynamic_config::DocsMap&);
-
-constexpr dynamic_config::Key<ParseDeadlinePropagationEnabled>
-    kDeadlinePropagationEnabled;
+extern const dynamic_config::Key<bool> kDeadlinePropagationEnabled;
 
 }  // namespace server::handlers::impl
 

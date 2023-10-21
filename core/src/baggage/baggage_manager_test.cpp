@@ -1,7 +1,6 @@
 #include <userver/utest/utest.hpp>
 
 #include <userver/dynamic_config/storage_mock.hpp>
-#include <userver/dynamic_config/test_helpers.hpp>
 #include <userver/formats/json.hpp>
 
 #include <userver/baggage/baggage_manager.hpp>

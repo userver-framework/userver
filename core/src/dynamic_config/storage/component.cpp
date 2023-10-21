@@ -97,6 +97,14 @@ DynamicConfig::Impl::Impl(const ComponentConfig& config,
              fmt::format("At least one dynamic config updater component "
                          "responsible for DynamicConfig initialization should "
                          "be defined in a static config!"));
+
+  // Check that defaults are parseable.
+  {
+    const auto default_docs_map = dynamic_config::impl::MakeDefaultDocsMap();
+    [[maybe_unused]] const dynamic_config::impl::SnapshotData defaults{
+        default_docs_map, {}};
+  }
+
   ReadFsCache();
 
   statistics_holder_ =

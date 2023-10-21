@@ -6,10 +6,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::client::impl {
 
-bool ParseEnforceTaskDeadline(const dynamic_config::DocsMap& docs_map);
-
-inline constexpr dynamic_config::Key<ParseEnforceTaskDeadline>
-    kEnforceClientTaskDeadline;
+extern const dynamic_config::Key<bool> kEnforceClientTaskDeadline;
 
 }  // namespace ugrpc::client::impl
 

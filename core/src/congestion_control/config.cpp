@@ -49,13 +49,38 @@ Policy Parse(const formats::json::Value& policy, formats::parse::To<Policy>) {
 }
 
 namespace impl {
+namespace {
 
-RpsCcConfig RpsCcConfig::Parse(const dynamic_config::DocsMap& docs_map) {
+RpsCcConfig ParseRpsCcConfig(const dynamic_config::DocsMap& docs_map) {
   return {
       docs_map.Get("USERVER_RPS_CCONTROL").As<Policy>(),
       docs_map.Get("USERVER_RPS_CCONTROL_ENABLED").As<bool>(),
       docs_map.Get("USERVER_RPS_CCONTROL_ACTIVATED_FACTOR_METRIC").As<int>()};
 }
+
+constexpr dynamic_config::DefaultAsJsonString kRpsControlDefaults{R"(
+{
+  "down-level": 1,
+  "down-rate-percent": 2,
+  "min-limit": 10,
+  "no-limit-seconds": 1000,
+  "overload-off-seconds": 3,
+  "overload-on-seconds": 3,
+  "up-level": 2,
+  "up-rate-percent": 2
+}
+)"};
+
+}  // namespace
+
+const dynamic_config::Key<RpsCcConfig> kRpsCcConfig{
+    ParseRpsCcConfig,
+    {
+        {"USERVER_RPS_CCONTROL", kRpsControlDefaults},
+        {"USERVER_RPS_CCONTROL_ENABLED", false},
+        {"USERVER_RPS_CCONTROL_ACTIVATED_FACTOR_METRIC", 5},
+    },
+};
 
 }  // namespace impl
 

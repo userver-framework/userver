@@ -40,10 +40,7 @@ Component::~Component() = default;
 namespace myservice::smth {
 
 namespace {
-int ParseRuntimeCfg(const dynamic_config::DocsMap& docs_map) {
-  return docs_map.Get("SAMPLE_INTEGER_FROM_RUNTIME_CONFIG").As<int>();
-}
-constexpr dynamic_config::Key<ParseRuntimeCfg> kMyConfig{};
+const dynamic_config::Key kMyConfig{"SAMPLE_INTEGER_FROM_RUNTIME_CONFIG", 42};
 }  // namespace
 
 int Component::DoSomething() const {

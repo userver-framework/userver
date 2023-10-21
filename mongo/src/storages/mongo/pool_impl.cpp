@@ -2,7 +2,7 @@
 
 #include <storages/mongo/cc_config.hpp>
 #include <storages/mongo/dynamic_config.hpp>
-#include <userver/utils/impl/userver_experiments.hpp>
+#include <userver/dynamic_config/value.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -18,7 +18,7 @@ PoolImpl::PoolImpl(std::string&& id, const PoolConfig& static_config,
       cc_controller_(id_, cc_sensor_, cc_limiter_,
                      statistics_.congestion_control, static_config.cc_config,
                      config_source, [](const dynamic_config::Snapshot& config) {
-                       return config.Get<CcConfig>().config;
+                       return config[kCcConfig];
                      }) {
   config_subscriber_ = config_source_.UpdateAndListen(
       this, "mongo_pool", &PoolImpl::OnConfigUpdate);

@@ -83,10 +83,8 @@ struct Config final {
   bool updates_enabled;
 };
 
-std::unordered_map<std::string, ConfigPatch> ParseCacheConfigSet(
-    const dynamic_config::DocsMap& docs_map);
-
-inline constexpr dynamic_config::Key<ParseCacheConfigSet> kCacheConfigSet;
+extern const dynamic_config::Key<std::unordered_map<std::string, ConfigPatch>>
+    kCacheConfigSet;
 
 }  // namespace cache
 

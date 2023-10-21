@@ -4,6 +4,7 @@
 #include <stdexcept>
 
 #include <server/handlers/http_handler_base_statistics.hpp>
+#include <server/handlers/http_server_settings.hpp>
 #include <server/request/task_inherited_request_impl.hpp>
 #include <userver/components/statistics_storage.hpp>
 #include <userver/dynamic_config/storage/component.hpp>
@@ -77,26 +78,6 @@ HttpRequestHandler::HttpRequestHandler(
 
 namespace {
 
-struct CcCustomStatus final {
-  HttpStatus initial_status_code;
-  std::chrono::milliseconds max_time_delta;
-};
-
-CcCustomStatus ParseRuntimeCfg(const dynamic_config::DocsMap& docs_map) {
-  auto obj = docs_map.Get("USERVER_RPS_CCONTROL_CUSTOM_STATUS");
-  return CcCustomStatus{
-      static_cast<HttpStatus>(obj["initial-status-code"].As<int>(429)),
-      std::chrono::milliseconds{obj["max-time-ms"].As<size_t>(10000)}};
-}
-
-constexpr dynamic_config::Key<ParseRuntimeCfg> kCcCustomStatus{};
-
-bool ParseStreamApiEnabled(const dynamic_config::DocsMap& docs_map) {
-  return docs_map.Get("USERVER_HANDLER_STREAM_API_ENABLED").As<bool>();
-}
-
-constexpr dynamic_config::Key<ParseStreamApiEnabled> kStreamApiEnabled{};
-
 utils::statistics::MetricTag<std::atomic<size_t>> kCcStatusCodeIsCustom{
     "congestion-control.rps.is-custom-status-activated"};
 
@@ -146,7 +127,7 @@ engine::TaskWithResult<void> HttpRequestHandler::StartRequestTask(
   const auto& config = config_source_.GetSnapshot();
 
   if (throttling_enabled && !rate_limit_.Obtain()) {
-    auto config_var = config[kCcCustomStatus];
+    auto config_var = config[handlers::kCcCustomStatus];
     const auto& delta = config_var.max_time_delta;
 
     auto status = HttpStatus::kTooManyRequests;
@@ -175,7 +156,8 @@ engine::TaskWithResult<void> HttpRequestHandler::StartRequestTask(
     return StartFailsafeTask(std::move(request));
   }
 
-  if (handler->GetConfig().response_body_stream && config[kStreamApiEnabled]) {
+  if (handler->GetConfig().response_body_stream &&
+      config[handlers::kStreamApiEnabled]) {
     http_response.SetStreamBody();
   }
 

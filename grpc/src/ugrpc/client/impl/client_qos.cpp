@@ -4,11 +4,10 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::client::impl {
 
-ClientQos ParseNoClientQos(const dynamic_config::DocsMap&) {
-  return ClientQos{{"__default__", {/*timeout=*/std::nullopt}}};
-}
-
-constexpr dynamic_config::Key<ParseNoClientQos> kNoClientQos;
+const dynamic_config::Key<ClientQos> kNoClientQos{
+    dynamic_config::ConstantConfig{},
+    ClientQos{{"__default__", {/*timeout=*/std::nullopt}}},
+};
 
 }  // namespace ugrpc::client::impl
 

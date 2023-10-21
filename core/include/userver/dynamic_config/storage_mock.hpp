@@ -34,11 +34,10 @@ class KeyValue final {
   /// @code
   /// {kMyConfig, formats::json::FromString(R"({"foo": "what", "bar": 42})")}
   /// @endcode
-  template <typename Key, typename Value = typename Key::VariableType>
-  KeyValue(const Key& /*key*/, Value&& value)
-      : id_(impl::kConfigId<Key>),
-        value_(
-            Convert<typename Key::VariableType>(std::forward<Value>(value))) {}
+  template <typename VariableType, typename Value = VariableType>
+  KeyValue(const Key<VariableType>& key, Value&& value)
+      : id_(impl::ConfigIdGetter::Get(key)),
+        value_(Convert<VariableType>(std::forward<Value>(value))) {}
 
   /// For internal use only
   impl::ConfigId GetId() const { return id_; }

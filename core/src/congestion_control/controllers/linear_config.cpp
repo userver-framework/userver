@@ -6,15 +6,18 @@ USERVER_NAMESPACE_BEGIN
 
 namespace congestion_control::v2 {
 
-Config::Config(formats::json::Value config) {
-  errors_threshold_percent = config["errors-threshold-percent"].As<double>(5.0);
-  safe_delta_limit = config["deactivate-delta"].As<std::size_t>(10);
-  timings_burst_threshold =
-      config["timings-burst-times-threshold"].As<double>(5);
-  min_timings =
-      std::chrono::milliseconds(config["min-timings-ms"].As<std::size_t>(20));
-  min_limit = config["min-limit"].As<std::size_t>(10);
-  min_qps = config["min-qps"].As<std::size_t>(10);
+Config Parse(const formats::json::Value& value, formats::parse::To<Config>) {
+  Config result;
+  result.errors_threshold_percent =
+      value["errors-threshold-percent"].As<double>(5.0);
+  result.safe_delta_limit = value["deactivate-delta"].As<std::size_t>(10);
+  result.timings_burst_threshold =
+      value["timings-burst-times-threshold"].As<double>(5);
+  result.min_timings =
+      std::chrono::milliseconds(value["min-timings-ms"].As<std::size_t>(20));
+  result.min_limit = value["min-limit"].As<std::size_t>(10);
+  result.min_qps = value["min-qps"].As<std::size_t>(10);
+  return result;
 }
 
 }  // namespace congestion_control::v2

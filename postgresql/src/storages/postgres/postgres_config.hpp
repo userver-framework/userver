@@ -31,36 +31,25 @@ StatementMetricsSettings Parse(const formats::json::Value& config,
 StatementMetricsSettings Parse(const yaml_config::YamlConfig& config,
                                formats::parse::To<StatementMetricsSettings>);
 
-class Config {
- public:
-  dynamic_config::Value<CommandControl> default_command_control;
-  dynamic_config::Value<CommandControlByHandlerMap> handlers_command_control;
-  dynamic_config::Value<CommandControlByQueryMap> queries_command_control;
+struct Config final {
+  static Config Parse(const dynamic_config::DocsMap& docs_map);
+
+  CommandControl default_command_control;
+  CommandControlByHandlerMap handlers_command_control;
+  CommandControlByQueryMap queries_command_control;
   dynamic_config::ValueDict<PoolSettings> pool_settings;
   dynamic_config::ValueDict<ConnectionSettings> connection_settings;
   dynamic_config::ValueDict<StatementMetricsSettings>
       statement_metrics_settings;
-
-  Config(const dynamic_config::DocsMap& docs_map);
 };
 
-PipelineMode ParsePipelineMode(const dynamic_config::DocsMap& docs_map);
+extern const dynamic_config::Key<Config> kConfig;
 
-inline constexpr dynamic_config::Key<ParsePipelineMode> kPipelineModeKey;
+extern const dynamic_config::Key<PipelineMode> kPipelineModeKey;
 
-class ConnlimitConfig {
- public:
-  bool connlimit_mode_auto_enabled;
-};
+extern const dynamic_config::Key<bool> kConnlimitModeAutoEnabled;
 
-ConnlimitConfig ParseConnlimitConfig(const dynamic_config::DocsMap& docs_map);
-
-inline constexpr dynamic_config::Key<ParseConnlimitConfig> kConnlimitConfig;
-
-int ParseDeadlinePropagation(const dynamic_config::DocsMap& docs_map);
-
-inline constexpr dynamic_config::Key<ParseDeadlinePropagation>
-    kDeadlinePropagationVersionConfig;
+extern const dynamic_config::Key<int> kDeadlinePropagationVersionConfig;
 
 }  // namespace storages::postgres
 

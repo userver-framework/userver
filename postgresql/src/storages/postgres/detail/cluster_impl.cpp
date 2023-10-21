@@ -352,7 +352,7 @@ bool ClusterImpl::IsConnlimitModeAuto(const ClusterSettings& settings) const {
 
   auto snapshot = config_source_.GetSnapshot();
   // NOLINTNEXTLINE(readability-simplify-boolean-expr)
-  if (!snapshot[kConnlimitConfig].connlimit_mode_auto_enabled) return false;
+  if (!snapshot[kConnlimitModeAutoEnabled]) return false;
 
   return true;
 }

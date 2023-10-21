@@ -9,6 +9,10 @@ USERVER_NAMESPACE_BEGIN
 
 namespace dynamic_config {
 
+ConfigDefault::ConfigDefault(std::string_view name,
+                             DefaultAsJsonString default_json)
+    : name(name), default_json(default_json.json_string) {}
+
 struct Snapshot::Impl final {
   explicit Impl(const impl::StorageData& storage) : data_ptr(storage.Read()) {}
 

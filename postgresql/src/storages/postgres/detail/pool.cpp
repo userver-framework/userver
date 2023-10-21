@@ -101,7 +101,7 @@ ConnectionPool::ConnectionPool(
       cc_controller_("postgres" + db_name, cc_sensor_, cc_limiter_,
                      stats_.congestion_control, cc_config, config_source,
                      [](const dynamic_config::Snapshot& config) {
-                       return config.Get<CcConfig>().config;
+                       return config[kCcConfig];
                      }) {
   if (kCcExperiment.IsEnabled()) {
     cc_controller_.Start();

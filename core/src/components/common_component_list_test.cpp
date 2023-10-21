@@ -18,7 +18,7 @@ constexpr std::string_view kConfigVarsTemplate = R"(
   runtime_config_path: {1}
   access_log_path: {0}/access.log
   access_tskv_log_path: {0}/access_tskv.log
-  default_log_path: {0}/server.log
+  default_log_path: '@stderr'
   log_level: {2}
 )";
 
@@ -123,7 +123,6 @@ components_manager:
       store-enabled: true
       load-only-my-values: true
       fallback-path: $runtime_config_path
-      fallback-path#fallback: /some/path/to/runtime_config.json
       fs-task-processor: fs-task-processor
 
       # options from components::CachingComponentBase
@@ -132,7 +131,7 @@ components_manager:
       update-jitter: 2s
       full-update-interval: 5m
       first-update-fail-ok: false
-      config-settings: true
+      config-settings: false
       additional-cleanup-interval: 5m
       testsuite-force-periodic-update: true
 # /// [Sample dynamic config client updater component config]

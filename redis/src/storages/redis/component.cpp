@@ -199,7 +199,7 @@ void Redis::Connect(const ComponentConfig& config,
   }
 
   auto cfg = config_.GetSnapshot();
-  const auto& redis_config = cfg.Get<storages::redis::Config>();
+  const auto& redis_config = cfg[storages::redis::kConfig];
   for (auto& sentinel_it : sentinels_) {
     sentinel_it.second->WaitConnectedOnce(redis_config.redis_wait_connected);
   }
@@ -225,7 +225,7 @@ void Redis::Connect(const ComponentConfig& config,
       LOG_WARNING() << "skip subscribe-redis client for " << redis_group.db;
   }
 
-  auto redis_wait_connected_subscribe = redis_config.redis_wait_connected.Get();
+  auto redis_wait_connected_subscribe = redis_config.redis_wait_connected;
   if (redis_wait_connected_subscribe.mode !=
       USERVER_NAMESPACE::redis::WaitConnectedMode::kNoWait)
     redis_wait_connected_subscribe.mode =
@@ -264,12 +264,11 @@ void Redis::WriteStatisticsPubsub(utils::statistics::Writer& writer) {
 
 void Redis::OnConfigUpdate(const dynamic_config::Snapshot& cfg) {
   LOG_INFO() << "update default command control";
-  const auto& redis_config = cfg.Get<storages::redis::Config>();
+  const auto& redis_config = cfg[storages::redis::kConfig];
 
   auto cc = std::make_shared<redis::CommandControl>(
       redis_config.default_command_control);
-  const auto auto_topology =
-      redis_config.redis_cluster_autotopology_enabled.Get();
+  const auto auto_topology = redis_config.redis_cluster_autotopology_enabled;
   for (auto& it : sentinels_) {
     const auto& name = it.first;
     auto& client = it.second;
@@ -284,13 +283,11 @@ void Redis::OnConfigUpdate(const dynamic_config::Snapshot& cfg) {
 
   auto subscriber_cc = std::make_shared<redis::CommandControl>(
       redis_config.subscriber_default_command_control);
-  std::chrono::seconds subscriptions_rebalance_min_interval{
-      redis_config.subscriptions_rebalance_min_interval_seconds.Get()};
   for (auto& it : subscribe_clients_) {
     auto& subscribe_client = it.second->GetNative();
     subscribe_client.SetConfigDefaultCommandControl(subscriber_cc);
     subscribe_client.SetRebalanceMinInterval(
-        subscriptions_rebalance_min_interval);
+        redis_config.subscriptions_rebalance_min_interval);
   }
 
   auto metrics_settings = metrics_settings_.Read();

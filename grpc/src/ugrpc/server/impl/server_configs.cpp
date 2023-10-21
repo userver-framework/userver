@@ -1,21 +1,13 @@
 #include "server_configs.hpp"
 
-#include <userver/dynamic_config/value.hpp>
+#include <userver/formats/json/value.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::server::impl {
 
-namespace {
-
-const std::string kGrpcServerCancelTaskByDeadline =
-    "USERVER_GRPC_SERVER_CANCEL_TASK_BY_DEADLINE";
-
-}  // namespace
-
-bool ParseCancelTaskByDeadline(const dynamic_config::DocsMap& docs_map) {
-  return docs_map.Get(kGrpcServerCancelTaskByDeadline).As<bool>();
-}
+const dynamic_config::Key<bool> kServerCancelTaskByDeadline{
+    "USERVER_GRPC_SERVER_CANCEL_TASK_BY_DEADLINE", true};
 
 }  // namespace ugrpc::server::impl
 

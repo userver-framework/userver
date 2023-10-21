@@ -6,10 +6,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::server::impl {
 
-bool ParseCancelTaskByDeadline(const dynamic_config::DocsMap& docs_map);
-
-inline constexpr dynamic_config::Key<ParseCancelTaskByDeadline>
-    kServerCancelTaskByDeadline;
+extern const dynamic_config::Key<bool> kServerCancelTaskByDeadline;
 
 }  // namespace ugrpc::server::impl
 

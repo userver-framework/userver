@@ -10,11 +10,7 @@ namespace tests::handlers {
 
 namespace {
 
-int ParseMeaningOfLife(const dynamic_config::DocsMap& docs_map) {
-  return docs_map.Get("MEANING_OF_LIFE").As<int>();
-}
-
-constexpr dynamic_config::Key<ParseMeaningOfLife> kMeaningOfLife;
+const dynamic_config::Key<int> kMeaningOfLife{"MEANING_OF_LIFE", 42};
 
 }  // namespace
 

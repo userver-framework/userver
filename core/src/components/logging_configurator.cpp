@@ -19,20 +19,22 @@ namespace components {
 namespace {
 
 /// [key]
-tracing::NoLogSpans ParseNoLogSpans(const dynamic_config::DocsMap& docs_map) {
-  return docs_map.Get("USERVER_NO_LOG_SPANS").As<tracing::NoLogSpans>();
-}
-
-constexpr dynamic_config::Key<ParseNoLogSpans> kNoLogSpans{};
+const dynamic_config::Key<tracing::NoLogSpans> kNoLogSpans{
+    "USERVER_NO_LOG_SPANS", dynamic_config::DefaultAsJsonString{R"(
+  {
+    "names": [],
+    "prefixes": []
+  }
+)"}};
 /// [key]
 
-logging::DynamicDebugConfig ParseDynamicDebug(
-    const dynamic_config::DocsMap& docs_map) {
-  return docs_map.Get("USERVER_LOG_DYNAMIC_DEBUG")
-      .As<logging::DynamicDebugConfig>();
-}
-
-constexpr dynamic_config::Key<ParseDynamicDebug> kDynamicDebugConfig{};
+const dynamic_config::Key<logging::DynamicDebugConfig> kDynamicDebugConfig{
+    "USERVER_LOG_DYNAMIC_DEBUG", dynamic_config::DefaultAsJsonString{R"(
+  {
+    "force-disabled": [],
+    "force-enabled": []
+  }
+)"}};
 
 }  // namespace
 

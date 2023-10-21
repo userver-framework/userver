@@ -1,17 +1,14 @@
 #pragma once
 
-#include <userver/dynamic_config/value.hpp>
+#include <userver/formats/json/value.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::mongo::impl {
 
-struct CcConfig {
-  CcConfig(const dynamic_config::DocsMap& docs_map)
-      : config(docs_map.Get("MONGO_CONGESTION_CONTROL_SETTINGS")) {}
-
-  congestion_control::v2::Config config;
-};
+const dynamic_config::Key<congestion_control::v2::Config> kCcConfig{
+    "MONGO_CONGESTION_CONTROL_SETTINGS",
+    dynamic_config::DefaultAsJsonString{"{}"}};
 
 }  // namespace storages::mongo::impl
 

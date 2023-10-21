@@ -94,11 +94,8 @@ bool DynamicConfig::operator!=(const DynamicConfig& other) const noexcept {
   return !(*this == other);
 }
 
-std::unordered_map<std::string, ConfigPatch> ParseConfigSet(
-    const dynamic_config::DocsMap& docs_map) {
-  return docs_map.Get("USERVER_DUMPS")
-      .As<std::unordered_map<std::string, ConfigPatch>>();
-}
+const dynamic_config::Key<std::unordered_map<std::string, ConfigPatch>>
+    kConfigSet{"USERVER_DUMPS", dynamic_config::DefaultAsJsonString{"{}"}};
 
 }  // namespace dump
 

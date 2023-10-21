@@ -21,6 +21,9 @@ class KeyValue;
 class Snapshot;  // NOLINT(bugprone-forward-declaration-namespace)
 class Source;
 
+template <typename Variable>
+class Key;
+
 }  // namespace dynamic_config
 
 USERVER_NAMESPACE_END

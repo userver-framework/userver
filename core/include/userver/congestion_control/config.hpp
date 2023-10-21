@@ -38,11 +38,9 @@ struct RpsCcConfig {
   Policy policy;
   bool is_enabled{};
   int activate_factor{0};
-
-  static RpsCcConfig Parse(const dynamic_config::DocsMap& docs_map);
 };
 
-inline constexpr dynamic_config::Key<RpsCcConfig::Parse> kRpsCcConfig;
+extern const dynamic_config::Key<RpsCcConfig> kRpsCcConfig;
 
 }  // namespace impl
 

@@ -108,7 +108,7 @@ components_manager:
       update-jitter: 2s
       full-update-interval: 5m
       first-update-fail-ok: false
-      config-settings: true
+      config-settings: false
       additional-cleanup-interval: 5m
       testsuite-force-periodic-update: true
     tracer:
