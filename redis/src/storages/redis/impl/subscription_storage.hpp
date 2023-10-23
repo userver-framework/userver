@@ -1,10 +1,13 @@
 #pragma once
 
 #include <map>
+#include <memory>
 #include <mutex>
 #include <string>
+#include <vector>
 
 #include <storages/redis/impl/sentinel.hpp>
+#include <userver/utils/rand.hpp>
 
 #include "redis.hpp"
 #include "shard_subscription_fsm.hpp"
@@ -16,13 +19,13 @@ namespace redis {
 
 using SubscriptionId = size_t;
 
-class SubscriptionStorage;
+class SubscriptionStorageBase;
 class SubscriptionRebalanceScheduler;
 
 class SubscriptionToken {
  public:
   SubscriptionToken() = default;
-  SubscriptionToken(std::weak_ptr<SubscriptionStorage> storage,
+  SubscriptionToken(std::weak_ptr<SubscriptionStorageBase> storage,
                     SubscriptionId subscription_id);
   SubscriptionToken(SubscriptionToken&& token) noexcept;
   SubscriptionToken(const SubscriptionToken& token) = delete;
@@ -36,116 +39,60 @@ class SubscriptionToken {
   void Unsubscribe();
 
  private:
-  std::weak_ptr<SubscriptionStorage> storage_;
+  std::weak_ptr<SubscriptionStorageBase> storage_;
   SubscriptionId subscription_id_{0};
 };
 
-class SubscriptionStorage
-    : public std::enable_shared_from_this<SubscriptionStorage> {
+class SubscriptionStorageBase
+    : public std::enable_shared_from_this<SubscriptionStorageBase> {
  public:
-  SubscriptionStorage(const std::shared_ptr<ThreadPools>& thread_pools,
-                      size_t shards_count, bool is_cluster_mode);
-  ~SubscriptionStorage();
-
-  size_t GetShardCount() const { return shards_count_; }
-
   using ServerWeights = std::unordered_map<ServerId, size_t, ServerIdHasher>;
-
   using CommandCb = std::function<void(size_t shard, CommandPtr command)>;
-  void SetSubscribeCallback(CommandCb);
-  void SetUnsubscribeCallback(CommandCb);
 
-  SubscriptionToken Subscribe(const std::string& channel,
-                              Sentinel::UserMessageCallback cb,
-                              CommandControl control);
-  SubscriptionToken Psubscribe(const std::string& pattern,
-                               Sentinel::UserPmessageCallback cb,
-                               CommandControl control);
+  virtual ~SubscriptionStorageBase() = default;
 
-  void Unsubscribe(SubscriptionId subscription_id);
+  virtual void SetSubscribeCallback(CommandCb) = 0;
+  virtual void SetUnsubscribeCallback(CommandCb) = 0;
 
-  void Stop();
+  virtual SubscriptionToken Subscribe(const std::string& channel,
+                                      Sentinel::UserMessageCallback cb,
+                                      CommandControl control) = 0;
+  virtual SubscriptionToken Psubscribe(const std::string& pattern,
+                                       Sentinel::UserPmessageCallback cb,
+                                       CommandControl control) = 0;
 
-  RawPubsubClusterStatistics GetStatistics() const;
+  virtual void Unsubscribe(SubscriptionId subscription_id) = 0;
 
-  void SetCommandControl(const CommandControl& control);
-  void SetRebalanceMinInterval(std::chrono::milliseconds interval);
+  virtual void Stop() = 0;
 
-  void RequestRebalance(size_t shard_idx, ServerWeights weights);
+  virtual RawPubsubClusterStatistics GetStatistics() const = 0;
 
-  void DoRebalance(size_t shard_idx, ServerWeights weights);
+  virtual void SetCommandControl(const CommandControl& control) = 0;
+  virtual void SetRebalanceMinInterval(std::chrono::milliseconds interval) = 0;
 
-  void SwitchToNonClusterMode();
+  virtual void RequestRebalance(size_t shard_idx, ServerWeights weights) = 0;
 
- private:
-  struct ChannelName {
-    ChannelName() = default;
-    ChannelName(std::string channel, bool pattern)
-        : channel(std::move(channel)), pattern(pattern) {}
+  virtual void DoRebalance(size_t shard_idx, ServerWeights weights) = 0;
 
-    std::string channel;
-    bool pattern{false};
-  };
+  virtual void SwitchToNonClusterMode() = 0;
+  virtual void SetShardsCount(size_t /*shards_count*/) = 0;
+
+  virtual const std::string& GetShardName(size_t shard_idx) const = 0;
+
+  ///{ Methods for implementing SubscriptionStorageSwitcher.
+  ///  Do NOT use them anywhere else. This methods will be removed after
+  ///  experiment
+  virtual void SubscribeImpl(const std::string& channel,
+                             Sentinel::UserMessageCallback cb,
+                             CommandControl control,
+                             SubscriptionId external_id) = 0;
+  virtual void PsubscribeImpl(const std::string& pattern,
+                              Sentinel::UserPmessageCallback cb,
+                              CommandControl control,
+                              SubscriptionId external_id) = 0;
+  ///}
 
   using FsmPtr = std::shared_ptr<shard_subscriber::Fsm>;
-
-  struct RebalanceState {
-    RebalanceState(size_t shard_idx, ServerWeights weights);
-
-    const size_t shard_idx;
-    ServerWeights weights;
-    size_t sum_weights{0};
-    size_t total_connections{0};
-    std::map<ServerId, std::vector<std::pair<ChannelName, FsmPtr>>>
-        subscriptions_by_server;
-    std::map<ServerId, size_t> need_subscription_count;
-  };
-
-  void RebalanceGatherSubscriptions(RebalanceState& state);
-  void RebalanceCalculateNeedCount(RebalanceState& state);
-  void RebalanceMoveSubscriptions(RebalanceState& state);
-
-  size_t GetChannelsCountApprox() const;
-
-  PubsubShardStatistics GetShardStatistics(size_t shard_idx) const;
-
-  void ReadActions(FsmPtr fsm, const ChannelName& channel_name);
-
-  void HandleChannelAction(FsmPtr fsm, shard_subscriber::Action action,
-                           const ChannelName& channel_name);
-
-  void HandleServerStateChanged(
-      const std::shared_ptr<shard_subscriber::Fsm>& fsm,
-      const ChannelName& channel_name, ServerId server_id,
-      shard_subscriber::Event::Type event_type);
-
-  SubscriptionId GetNextSubscriptionId();
-
-  template <class Map>
-  void DeleteChannel(Map& callback_map, const ChannelName& channel_name,
-                     const FsmPtr& fsm);
-
-  template <class Map>
-  bool DoUnsubscribe(Map& callback_map, SubscriptionId id);
-
-  CommandPtr PrepareUnsubscribeCommand(const ChannelName& channel_name);
-
-  enum class SubscriberEvent { kSubscriberConnected, kSubscriberDisconnected };
-  static shard_subscriber::Event::Type EventTypeFromSubscriberEvent(
-      SubscriberEvent event);
-
-  using SubscribeCb = std::function<void(ServerId, SubscriberEvent event)>;
-  CommandPtr PrepareSubscribeCommand(const ChannelName& channel_name,
-                                     SubscribeCb cb, size_t shard_idx);
-
-  void OnMessage(ServerId server_id, const std::string& channel,
-                 const std::string& message, size_t shard_idx);
-  void OnPmessage(ServerId server_id, const std::string& pattern,
-                  const std::string& channel, const std::string& message,
-                  size_t shard_idx);
-
-  static void UnsubscribeCallbackNone(ServerId, const std::string& /*channel*/,
-                                      size_t /*count*/) {}
 
   struct ShardChannelInfo {
     explicit ShardChannelInfo(size_t shard_idx, bool fake = false)
@@ -165,12 +112,154 @@ class SubscriptionStorage
 
     void AccountMessage(ServerId server_id, size_t message_size);
   };
+
+ protected:
   using MessageCallback = std::function<void(
       ServerId, const std::string& channel, const std::string& message)>;
   using PmessageCallback = std::function<void(
       ServerId, const std::string& pattern, const std::string& channel,
       const std::string& message)>;
 
+  struct ChannelName {
+    ChannelName() = default;
+    ChannelName(std::string channel, bool pattern)
+        : channel(std::move(channel)), pattern(pattern) {}
+
+    std::string channel;
+    bool pattern{false};
+  };
+
+  struct RebalanceState {
+    RebalanceState(size_t shard_idx, ServerWeights weights);
+
+    const size_t shard_idx;
+    ServerWeights weights;
+    size_t sum_weights{0};
+    size_t total_connections{0};
+    std::unordered_map<ServerId, std::vector<std::pair<ChannelName, FsmPtr>>,
+                       ServerIdHasher>
+        subscriptions_by_server;
+    std::unordered_map<ServerId, size_t, ServerIdHasher>
+        need_subscription_count;
+  };
+
+  template <typename CallbackMap, typename PcallbackMap>
+  class SubscriptionStorageImpl {
+   public:
+    SubscriptionStorageImpl(size_t shards_count,
+                            SubscriptionStorageBase& implemented)
+        : shards_count_(shards_count), implemented_(implemented) {}
+    void Unsubscribe(SubscriptionId subscription_id);
+
+    void ReadActions(FsmPtr fsm, const ChannelName& channel_name);
+    void HandleChannelAction(FsmPtr fsm, shard_subscriber::Action action,
+                             const ChannelName& channel_name);
+    void HandleServerStateChanged(
+        const std::shared_ptr<shard_subscriber::Fsm>& fsm,
+        const ChannelName& channel_name, ServerId server_id,
+        shard_subscriber::Event::Type event_type);
+
+    template <class Map>
+    void DeleteChannel(Map& callback_map, const ChannelName& channel_name,
+                       const FsmPtr& fsm);
+
+    template <class Map>
+    bool DoUnsubscribe(Map& callback_map, SubscriptionId id);
+
+    CommandPtr PrepareUnsubscribeCommand(const ChannelName& channel_name);
+
+    enum class SubscriberEvent {
+      kSubscriberConnected,
+      kSubscriberDisconnected
+    };
+    static shard_subscriber::Event::Type EventTypeFromSubscriberEvent(
+        SubscriberEvent event);
+
+    using SubscribeCb = std::function<void(ServerId, SubscriberEvent event)>;
+    CommandPtr PrepareSubscribeCommand(const ChannelName& channel_name,
+                                       SubscribeCb cb, size_t shard_idx);
+
+    void OnMessage(ServerId server_id, const std::string& channel,
+                   const std::string& message, size_t shard_idx);
+    void OnPmessage(ServerId server_id, const std::string& pattern,
+                    const std::string& channel, const std::string& message,
+                    size_t shard_idx);
+    size_t GetChannelsCountApprox() const;
+    PubsubShardStatistics GetShardStatistics(size_t shard_idx) const;
+    RawPubsubClusterStatistics GetStatistics() const;
+
+    void RebalanceGatherSubscriptions(RebalanceState& state,
+                                      CallbackMap& callback_map,
+                                      PcallbackMap& pcallback_map);
+    void RebalanceCalculateNeedCount(RebalanceState& state);
+
+    void RebalanceMoveSubscriptions(RebalanceState& state);
+
+    void SetCommandControl(const CommandControl& control);
+    void DoRebalance(size_t shard_idx, ServerWeights weights);
+    SubscriptionToken Subscribe(const std::string& channel,
+                                Sentinel::UserMessageCallback cb,
+                                CommandControl control);
+    SubscriptionToken Psubscribe(const std::string& channel,
+                                 Sentinel::UserPmessageCallback cb,
+                                 CommandControl control);
+    SubscriptionId GetNextSubscriptionId();
+
+    mutable std::mutex mutex_;
+    CommandCb subscribe_callback_;
+    CommandCb unsubscribe_callback_;
+    CallbackMap callback_map_;
+    PcallbackMap pattern_callback_map_;
+    CommandControl common_command_control_;
+    size_t shards_count_{0};
+    SubscriptionStorageBase& implemented_;
+    SubscriptionId next_subscription_id_{1};
+  };
+};
+
+class SubscriptionStorage : public SubscriptionStorageBase {
+ public:
+  SubscriptionStorage(
+      const std::shared_ptr<ThreadPools>& thread_pools, size_t shards_count,
+      bool is_cluster_mode,
+      std::shared_ptr<const std::vector<std::string>> shard_names);
+  ~SubscriptionStorage() override;
+
+  void SetSubscribeCallback(CommandCb) override;
+  void SetUnsubscribeCallback(CommandCb) override;
+
+  SubscriptionToken Subscribe(const std::string& channel,
+                              Sentinel::UserMessageCallback cb,
+                              CommandControl control) override;
+  SubscriptionToken Psubscribe(const std::string& pattern,
+                               Sentinel::UserPmessageCallback cb,
+                               CommandControl control) override;
+
+  void Unsubscribe(SubscriptionId subscription_id) override;
+
+  void Stop() override;
+
+  RawPubsubClusterStatistics GetStatistics() const override;
+
+  void SetCommandControl(const CommandControl& control) override;
+  void SetRebalanceMinInterval(std::chrono::milliseconds interval) override;
+
+  void RequestRebalance(size_t shard_idx, ServerWeights weights) override;
+
+  void DoRebalance(size_t shard_idx, ServerWeights weights) override;
+
+  void SwitchToNonClusterMode() override;
+  void SetShardsCount(size_t /*shards_count*/) override {}
+  const std::string& GetShardName(size_t shard_idx) const override;
+
+  void SubscribeImpl(const std::string& channel,
+                     Sentinel::UserMessageCallback cb, CommandControl control,
+                     SubscriptionId external_id) override;
+  void PsubscribeImpl(const std::string& pattern,
+                      Sentinel::UserPmessageCallback cb, CommandControl control,
+                      SubscriptionId external_id) override;
+
+ private:
   /* We could use Fsm per shard (single Fsm for all channels), but in
    * this case it would be hard to create new subsciptions for shards
    * with Fsms in transition states (e.g. previous subscription
@@ -183,6 +272,11 @@ class SubscriptionStorage
     // shard -> Fsm
     std::vector<ShardChannelInfo> info;
     size_t active_fsm_count{0};
+
+    const ShardChannelInfo& GetInfo(size_t shard_idx) const {
+      return info[shard_idx];
+    }
+    ShardChannelInfo& GetInfo(size_t shard_idx) { return info[shard_idx]; }
   };
   struct PChannelInfo {
     std::map<SubscriptionId, Sentinel::UserPmessageCallback> callbacks;
@@ -190,23 +284,22 @@ class SubscriptionStorage
     // shard -> Fsm
     std::vector<ShardChannelInfo> info;
     size_t active_fsm_count{0};
+
+    const ShardChannelInfo& GetInfo(size_t shard_idx) const {
+      return info[shard_idx];
+    }
+    ShardChannelInfo& GetInfo(size_t shard_idx) { return info[shard_idx]; }
   };
 
   // (p)channel -> subscription_id -> callback
   using CallbackMap = std::map<std::string, ChannelInfo>;
   using PcallbackMap = std::map<std::string, PChannelInfo>;
 
-  size_t shards_count_;
+  SubscriptionStorageImpl<CallbackMap, PcallbackMap> storage_impl_;
+  std::shared_ptr<const std::vector<std::string>> shard_names_;
   bool is_cluster_mode_;
-  CommandCb subscribe_callback_;
-  CommandCb unsubscribe_callback_;
 
-  mutable std::mutex mutex_;
   size_t shard_rotate_counter_;
-  CallbackMap callback_map_;
-  PcallbackMap pattern_callback_map_;
-  SubscriptionId next_subscription_id_{1};
-  CommandControl common_command_control_;
 
   std::vector<std::unique_ptr<SubscriptionRebalanceScheduler>>
       rebalance_schedulers_;

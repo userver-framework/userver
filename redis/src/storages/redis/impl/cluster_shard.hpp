@@ -22,7 +22,9 @@ class ClusterShard {
  public:
   using RedisPtr = std::shared_ptr<redis::Redis>;
   using RedisConnectionPtr = std::shared_ptr<const RedisConnectionHolder>;
+  using ServersWeighted = std::unordered_map<ServerId, size_t, ServerIdHasher>;
 
+  ClusterShard() = default;
   ClusterShard(size_t shard, RedisConnectionPtr master,
                std::vector<RedisConnectionPtr> replicas)
       : replicas_(std::move(replicas)),
@@ -45,6 +47,9 @@ class ClusterShard {
   ShardStatistics GetStatistics(bool master,
                                 const MetricsSettings& settings) const;
 
+  ServersWeighted GetAvailableServersWeighted(
+      bool with_master, const CommandControl& command_control) const;
+
  private:
   static void GetNearestServersPing(const CommandControl& command_control,
                                     std::vector<RedisConnectionPtr>& instances);
@@ -66,7 +71,7 @@ class ClusterShard {
   std::vector<RedisConnectionPtr> replicas_;
   RedisConnectionPtr master_;
   mutable std::atomic_size_t current_{0};
-  size_t shard_;
+  size_t shard_{0};
 };
 
 size_t GetStartIndex(const CommandControl& command_control, size_t attempt,

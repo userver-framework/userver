@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include <string>
 #include <unordered_map>
 
@@ -130,6 +131,16 @@ class Sentinel {
   boost::signals2::signal<void(size_t shard)> signal_instances_changed;
   // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
   boost::signals2::signal<void()> signal_not_in_cluster_mode;
+  // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
+  boost::signals2::signal<void(size_t shards_count)> signal_topology_changed;
+  // TODO: remove this signal with SubscriptionStorageSwitcher after
+  // TAXICOMMON-6018
+  // This signal signaled on finish updating SentinelImpl
+  boost::signals2::signal<void(bool auto_topology, size_t shards_count,
+                               std::shared_ptr<SentinelImplBase>,
+                               std::shared_ptr<SentinelImplBase>)>
+      // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
+      signal_auto_topology_mode_changed;
 
   Request MakeRequest(CmdArgs&& args, const std::string& key,
                       bool master = true,
@@ -156,6 +167,7 @@ class Sentinel {
                                     size_t replies_to_skip = 0);
 
   CommandControl GetCommandControl(const CommandControl& cc) const;
+  PublishSettings GetPublishSettings() const;
 
   virtual void SetConfigDefaultCommandControl(
       const std::shared_ptr<CommandControl>& cc);
@@ -195,8 +207,6 @@ class Sentinel {
                                 ReplyPtr reply);
 
  private:
-  size_t GetPublishShard(PubShard policy);
-
   void CheckRenameParams(const std::string& key,
                          const std::string& newkey) const;
 

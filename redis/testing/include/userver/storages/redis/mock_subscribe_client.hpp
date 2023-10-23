@@ -30,6 +30,7 @@ class MockSubscribeClient : public SubscribeClient {
                SubscriptionToken::OnPmessageCb on_pmessage_cb,
                const USERVER_NAMESPACE::redis::CommandControl& command_control),
               (override));
+  MOCK_METHOD(size_t, ShardsCount, (), (const, override));
 };
 
 /// @brief Mocked storages::redis::SubscriptionToken.

@@ -35,6 +35,10 @@ void SubscribeClientImpl::WaitConnectedOnce(
   redis_client_->WaitConnectedOnce(wait_connected);
 }
 
+size_t SubscribeClientImpl::ShardsCount() const {
+  return redis_client_->ShardsCount();
+}
+
 USERVER_NAMESPACE::redis::SubscribeSentinel& SubscribeClientImpl::GetNative()
     const {
   return *redis_client_;

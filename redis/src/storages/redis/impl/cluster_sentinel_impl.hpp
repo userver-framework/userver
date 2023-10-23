@@ -21,9 +21,6 @@ class ClusterSentinelImpl : public SentinelImplBase {
       size_t shard, const std::string& shard_name, bool ready)>;
   using SentinelCommand = SentinelImplBase::SentinelCommand;
 
-  static constexpr size_t kUnknownShard =
-      std::numeric_limits<std::size_t>::max();
-
   ClusterSentinelImpl(
       const engine::ev::ThreadControl& sentinel_thread_control,
       const std::shared_ptr<engine::ev::ThreadPool>& redis_thread_pool,
@@ -71,6 +68,7 @@ class ClusterSentinelImpl : public SentinelImplBase {
   void SetReplicationMonitoringSettings(
       const ReplicationMonitoringSettings& replication_monitoring_settings)
       override;
+  PublishSettings GetPublishSettings() override;
 
   static size_t GetClusterSlotsCalledCounter();
 

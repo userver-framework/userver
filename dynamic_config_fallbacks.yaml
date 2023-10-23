@@ -123,14 +123,15 @@ groups:
       - redis/library.yaml
     fallbacks:
       - samples/redis_service/dynamic_config_fallback.json
-      - redis/functional_tests/cluster_auto_topology/dynamic_config_fallback.json
 
   - library-yamls:
       - core/library.yaml
       - redis/library.yaml
     fallbacks:
-      - redis/functional_tests/integration_tests/dynamic_config_fallback.json
       - redis/functional_tests/basic_chaos/dynamic_config_fallback.json
+      - redis/functional_tests/cluster_auto_topology/dynamic_config_fallback.json
+      - redis/functional_tests/cluster_auto_topology_pubsub/dynamic_config_fallback.json
+      - redis/functional_tests/integration_tests/dynamic_config_fallback.json
       - redis/functional_tests/metrics/dynamic_config_fallback.json
       - redis/functional_tests/pubsub/dynamic_config_fallback.json
       - redis/tests/dynamic_config_fallback.json

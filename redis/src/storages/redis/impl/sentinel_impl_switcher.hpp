@@ -66,6 +66,7 @@ class ClusterSentinelImplSwitcher : public SentinelImplBase {
       const ReplicationMonitoringSettings& replication_monitoring_settings)
       override;
   void SetClusterAutoTopology(bool auto_topology) override;
+  PublishSettings GetPublishSettings() override;
   ///@}
 
   void SetEnabledByConfig(bool auto_topology);

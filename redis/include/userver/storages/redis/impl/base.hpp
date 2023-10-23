@@ -165,6 +165,12 @@ struct ReplicationMonitoringSettings {
   bool restrict_requests{false};
 };
 
+struct PublishSettings {
+  size_t shard{0};
+  bool master{true};
+  CommandControl::Strategy strategy{CommandControl::Strategy::kDefault};
+};
+
 }  // namespace redis
 
 USERVER_NAMESPACE_END

@@ -56,6 +56,8 @@ class SubscribeClient {
       std::string pattern, SubscriptionToken::OnPmessageCb on_pmessage_cb,
       const USERVER_NAMESPACE::redis::CommandControl& command_control) = 0;
 
+  virtual size_t ShardsCount() const = 0;
+
   SubscriptionToken Psubscribe(std::string pattern,
                                SubscriptionToken::OnPmessageCb on_pmessage_cb) {
     return Psubscribe(std::move(pattern), std::move(on_pmessage_cb), {});

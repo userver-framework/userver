@@ -48,16 +48,16 @@ void RedisConnectionHolder::EnsureConnected() {
 
 void RedisConnectionHolder::CreateConnection() {
   RedisCreationSettings settings;
-  /// Here we allow read from replicas possibly stale data
+  /// Here we allow read from replicas possibly stale data.
   /// This does not affect connections to masters
   settings.send_readonly = true;
   auto instance = std::make_shared<Redis>(redis_thread_pool_, settings);
   instance->signal_state_change.connect(
-      [this, weak_ptr{weak_from_this()}](Redis::State state) {
+      [weak_ptr{weak_from_this()}](Redis::State state) {
         const auto ptr = weak_ptr.lock();
         if (!ptr) return;
 
-        signal_state_change(state);
+        ptr->signal_state_change(state);
       });
 
   {

@@ -8,6 +8,7 @@
 
 #include <storages/redis/impl/sentinel.hpp>
 #include <storages/redis/impl/subscription_storage.hpp>
+#include <storages/redis/impl/subscription_storage_switcher.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -60,9 +61,11 @@ class SubscribeSentinel : protected Sentinel {
       const std::shared_ptr<CommandControl>& cc) override;
 
   void SetRebalanceMinInterval(std::chrono::milliseconds interval);
+  void SetClusterAutoTopology(bool auto_topology);
 
   using Sentinel::Restart;
   using Sentinel::SetConfigDefaultCommandControl;
+  using Sentinel::ShardsCount;
   using Sentinel::WaitConnectedDebug;
   using Sentinel::WaitConnectedOnce;
 
@@ -74,7 +77,8 @@ class SubscribeSentinel : protected Sentinel {
 
   void InitStorage();
 
-  std::shared_ptr<SubscriptionStorage> storage_;
+  std::shared_ptr<ThreadPools> thread_pools_;
+  std::shared_ptr<redis::SubscriptionStorageBase> storage_;
   std::shared_ptr<Stopper> stopper_;
 };
 

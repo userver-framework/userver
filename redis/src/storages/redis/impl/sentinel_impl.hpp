@@ -21,6 +21,7 @@
 #include <userver/utils/swappingsmart.hpp>
 
 #include <storages/redis/impl/redis_stats.hpp>
+#include <userver/storages/redis/client.hpp>
 #include <userver/storages/redis/impl/types.hpp>
 #include <userver/storages/redis/impl/wait_connected_mode.hpp>
 
@@ -88,6 +89,8 @@ class SentinelImplBase {
   virtual void SetReplicationMonitoringSettings(
       const ReplicationMonitoringSettings& replication_monitoring_settings) = 0;
   virtual void SetClusterAutoTopology(bool /*auto_topology*/) {}
+
+  virtual PublishSettings GetPublishSettings() = 0;
 };
 
 bool AdjustDeadline(const SentinelImplBase::SentinelCommand& scommand,
@@ -141,6 +144,7 @@ class SentinelImpl : public SentinelImplBase {
   void SetReplicationMonitoringSettings(
       const ReplicationMonitoringSettings& replication_monitoring_settings)
       override;
+  PublishSettings GetPublishSettings() override;
 
  private:
   static constexpr const std::chrono::milliseconds cluster_slots_timeout_ =
@@ -276,6 +280,7 @@ class SentinelImpl : public SentinelImplBase {
   utils::SwappingSmart<KeysForShards> keys_for_shards_;
   std::optional<CommandsBufferingSettings> commands_buffering_settings_;
   dynamic_config::Source dynamic_config_source_;
+  std::atomic<int> publish_shard_{0};
 };
 
 }  // namespace redis

@@ -219,7 +219,11 @@ ClusterShard::RedisPtr ClusterShard::GetInstance(
                        : instances.size();
   for (size_t i = 0; i < end; ++i) {
     const auto idx = (start_idx + i) % end;
-    const auto& cur_inst = instances[idx]->Get();
+    const auto& cur = instances[idx];
+    if (!cur) {
+      continue;
+    }
+    const auto& cur_inst = cur->Get();
 
     if (cur_inst && !cur_inst->IsDestroying() &&
         (cur_inst->GetState() == Redis::State::kConnected) &&
@@ -286,6 +290,55 @@ ClusterShard::MakeReadonlyWithMasters() const {
   ret.reserve(replicas_.size() + 1);
   ret.insert(ret.end(), replicas_.begin(), replicas_.end());
   ret.push_back(master_);
+  return ret;
+}
+
+namespace {
+
+ClusterShard::RedisPtr GetRedisIfAvailable(
+    const ClusterShard::RedisConnectionPtr& connection,
+    const CommandControl& command_control) {
+  if (!connection) {
+    return {};
+  }
+
+  auto ret = connection->Get();
+
+  if (!ret || ret->GetState() != Redis::State::kConnected ||
+      ret->IsDestroying() ||
+      (!command_control.force_server_id.IsAny() &&
+       ret->GetServerId() != command_control.force_server_id)) {
+    return {};
+  }
+
+  return ret;
+}
+
+}  // namespace
+
+ClusterShard::ServersWeighted ClusterShard::GetAvailableServersWeighted(
+    bool with_master, const CommandControl& command_control) const {
+  ClusterShard::ServersWeighted ret;
+
+  if (with_master && master_) {
+    if (const auto redis = GetRedisIfAvailable(master_, command_control)) {
+      ret.emplace(redis->GetServerId(), 1);
+      if (!command_control.force_server_id.IsAny() && !ret.empty()) {
+        return ret;
+      }
+    }
+  }
+
+  for (const auto& replica_connection : replicas_) {
+    if (const auto redis =
+            GetRedisIfAvailable(replica_connection, command_control)) {
+      ret.emplace(redis->GetServerId(), 1);
+      if (!command_control.force_server_id.IsAny() && !ret.empty()) {
+        return ret;
+      }
+    }
+  }
+
   return ret;
 }
 

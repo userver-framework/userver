@@ -94,10 +94,9 @@ class _RedisClusterNode:
     def get_primary_addresses(self) -> set[str]:
         try:
             client = self.get_client()
+            cluster_slots = client.cluster('SLOTS')
         except (BaseException, redis.exceptions.ConnectionError):
             return set()
-
-        cluster_slots = client.cluster('SLOTS')
         ret = set()
         for interval in cluster_slots:
             master = interval[2]
@@ -107,10 +106,10 @@ class _RedisClusterNode:
     def get_replica_addresses(self) -> set[str]:
         try:
             client = self.get_client()
+            cluster_slots = client.cluster('SLOTS')
         except (BaseException, redis.exceptions.ConnectionError):
             return set()
 
-        cluster_slots = client.cluster('SLOTS')
         ret = set()
         for interval in cluster_slots:
             replicas = interval[3:]

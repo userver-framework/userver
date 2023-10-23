@@ -584,9 +584,12 @@ RequestPingMessage ClientImpl::Ping(size_t shard, std::string message,
 void ClientImpl::Publish(std::string channel, std::string message,
                          const CommandControl& command_control,
                          PubShard policy) {
-  auto shard = GetPublishShard(policy);
+  const auto publish_settings = redis_client_->GetPublishSettings();
+  const auto shard = GetPublishShard(policy, publish_settings);
+  auto cc = GetCommandControl(command_control);
+  cc.strategy = publish_settings.strategy;
   MakeRequest(CmdArgs{"publish", std::move(channel), std::move(message)}, shard,
-              true, GetCommandControl(command_control));
+              publish_settings.master, cc);
 }
 
 RequestRename ClientImpl::Rename(std::string key, std::string new_key,
@@ -1080,13 +1083,19 @@ CommandControl ClientImpl::GetCommandControl(const CommandControl& cc) const {
   return redis_client_->GetCommandControl(cc);
 }
 
-size_t ClientImpl::GetPublishShard(PubShard policy) {
+size_t ClientImpl::GetPublishShard(
+    PubShard policy,
+    const USERVER_NAMESPACE::redis::PublishSettings& settings) {
+  if (force_shard_idx_) {
+    return *force_shard_idx_;
+  }
+
   switch (policy) {
     case PubShard::kZeroShard:
       return 0;
 
     case PubShard::kRoundRobin:
-      return ++publish_shard_ % ShardsCount();
+      return settings.shard;
   }
 
   return 0;

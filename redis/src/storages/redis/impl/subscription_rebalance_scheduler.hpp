@@ -18,11 +18,11 @@ namespace redis {
 class SubscriptionRebalanceScheduler {
  public:
   SubscriptionRebalanceScheduler(engine::ev::ThreadPool& thread_pool,
-                                 SubscriptionStorage& storage,
+                                 SubscriptionStorageBase& storage,
                                  size_t shard_idx);
   ~SubscriptionRebalanceScheduler();
 
-  using ServerWeights = SubscriptionStorage::ServerWeights;
+  using ServerWeights = SubscriptionStorageBase::ServerWeights;
 
   void RequestRebalance(ServerWeights weights);
 
@@ -39,7 +39,7 @@ class SubscriptionRebalanceScheduler {
   static void OnTimer(struct ev_loop*, ev_timer* w, int) noexcept;
 
   engine::ev::ThreadControl thread_control_;
-  SubscriptionStorage& storage_;
+  SubscriptionStorageBase& storage_;
   const size_t shard_idx_;
 
   ev_timer timer_{};

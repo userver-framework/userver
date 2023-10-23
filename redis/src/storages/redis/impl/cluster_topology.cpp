@@ -1,5 +1,7 @@
 #include "cluster_topology.hpp"
 
+#include <storages/redis/impl/cluster_shard.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace redis {
@@ -14,12 +16,23 @@ ClusterTopology::ClusterTopology(
       version_(version),
       timestamp_(timestamp) {
   {
-    auto HostPortToString = [](const std::pair<std::string, int> host_port) {
+    size_t all_instances_count = 0;
+    for (const auto& info : infos_) {
+      /// +1 for master
+      all_instances_count += info.slaves.size() + 1;
+    }
+
+    auto HostPortToString = [](const std::pair<std::string, int>& host_port) {
       return host_port.first + ":" + std::to_string(host_port.second);
     };
     cluster_shards_.reserve(infos_.size());
-    size_t shard_index = 0;
+
+    ClusterShard::RedisConnectionPtr super_master;
+    std::vector<ClusterShard::RedisConnectionPtr> super_replicas;
+    super_replicas.reserve(all_instances_count);
+
     for (const auto& info : infos_) {
+      const auto current_shard = cluster_shards_.size();
       const auto& master_host_port = HostPortToString(info.master.HostPort());
       /// Throws rcu::MissingKeyException on missing key in nodes
       std::shared_ptr<const RedisConnectionHolder> master =
@@ -27,12 +40,25 @@ ClusterTopology::ClusterTopology(
       std::vector<std::shared_ptr<const RedisConnectionHolder>> replicas;
       replicas.reserve(info.slaves.size());
       for (const auto& replica : info.slaves) {
+        auto host_port = HostPortToString(replica.HostPort());
         /// Throws rcu::MissingKeyException on missing key in nodes
-        replicas.push_back(nodes[HostPortToString(replica.HostPort())]);
+        replicas.push_back(nodes[host_port]);
+        host_port_to_shard_[host_port] = current_shard;
       }
-      cluster_shards_.emplace_back(shard_index++, std::move(master),
+      host_port_to_shard_[master_host_port] = current_shard;
+
+      if (!super_master) {
+        super_master = master;
+      } else {
+        super_replicas.push_back(master);
+      }
+      super_replicas.insert(super_replicas.end(), replicas.begin(),
+                            replicas.end());
+      cluster_shards_.emplace_back(current_shard, std::move(master),
                                    std::move(replicas));
     }
+    super_shard_ = ClusterShard(kUnknownShard, std::move(super_master),
+                                std::move(super_replicas));
   }
 
   {
@@ -79,12 +105,11 @@ bool ClusterTopology::HasSameInfos(const ClusterShardHostInfos& infos) const {
   return true;
 }
 
-void ClusterTopology::GetStatistics(
-    const MetricsSettings& settings, SentinelStatistics& stats,
-    const std::vector<std::string>& shard_names) const {
+void ClusterTopology::GetStatistics(const MetricsSettings& settings,
+                                    SentinelStatistics& stats) const {
   size_t shard_index = 0;
   for (const auto& shard : cluster_shards_) {
-    const auto& shard_name = shard_names.at(shard_index++);
+    const auto& shard_name = GetShardName(shard_index++);
     auto master_stats = shard.GetStatistics(true, settings);
     auto replica_stats = shard.GetStatistics(false, settings);
     stats.shard_group_total.Add(master_stats.shard_total);
@@ -93,6 +118,35 @@ void ClusterTopology::GetStatistics(
     stats.slaves.emplace(shard_name, std::move(replica_stats));
   }
 }
+
+std::unordered_map<ServerId, size_t, ServerIdHasher>
+ClusterTopology::GetAvailableServersWeighted(size_t shard_idx, bool with_master,
+                                             const CommandControl& cc) const {
+  if (shard_idx == kUnknownShard) {
+    return super_shard_.GetAvailableServersWeighted(with_master, cc);
+  }
+  return cluster_shards_.at(shard_idx).GetAvailableServersWeighted(with_master,
+                                                                   cc);
+}
+
+const std::string& GetShardName(size_t shard_index) {
+  static const size_t kMaxClusterShards = 500;
+  static const std::vector<std::string> names = [] {
+    std::vector<std::string> shard_names;
+    shard_names.reserve(kMaxClusterShards);
+    for (size_t i = 0; i < kMaxClusterShards; ++i) {
+      auto number = std::to_string(i);
+      if (number.size() < 2) {
+        number.insert(0, "0");
+      }
+      auto name = "shard" + number;
+      shard_names.push_back(std::move(name));
+    }
+    return shard_names;
+  }();
+  return names.at(shard_index);
+}
+
 }  // namespace redis
 
 USERVER_NAMESPACE_END

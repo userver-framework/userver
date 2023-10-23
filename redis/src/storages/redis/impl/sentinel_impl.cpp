@@ -546,6 +546,13 @@ void SentinelImpl::SetReplicationMonitoringSettings(
     shard->SetReplicationMonitoringSettings(replication_monitoring_settings);
 }
 
+PublishSettings SentinelImpl::GetPublishSettings() {
+  /// Why do we always publish to master? We can actualy publish to any host in
+  /// shard to distrubute load evenly
+  return PublishSettings{++publish_shard_ % ShardsCount(), true,
+                         CommandControl::Strategy::kDefault};
+}
+
 void SentinelImpl::RequestUpdateClusterSlots(size_t shard) {
   current_slots_shard_ = shard;
   ev_thread_.Send(watch_cluster_slots_);

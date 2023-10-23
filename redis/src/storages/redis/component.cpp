@@ -288,6 +288,7 @@ void Redis::OnConfigUpdate(const dynamic_config::Snapshot& cfg) {
     subscribe_client.SetConfigDefaultCommandControl(subscriber_cc);
     subscribe_client.SetRebalanceMinInterval(
         redis_config.subscriptions_rebalance_min_interval);
+    subscribe_client.SetClusterAutoTopology(auto_topology);
   }
 
   auto metrics_settings = metrics_settings_.Read();

@@ -11,7 +11,7 @@ namespace redis {
 const std::chrono::seconds kRebalanceMinIntervalDefault{30};
 
 SubscriptionRebalanceScheduler::SubscriptionRebalanceScheduler(
-    engine::ev::ThreadPool& thread_pool, SubscriptionStorage& storage,
+    engine::ev::ThreadPool& thread_pool, SubscriptionStorageBase& storage,
     size_t shard_idx)
     : thread_control_(thread_pool.NextThread()),
       storage_(storage),

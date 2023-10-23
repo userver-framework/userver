@@ -39,6 +39,7 @@ struct PubsubChannelStatistics {
 
 struct PubsubShardStatistics {
   std::unordered_map<std::string, PubsubChannelStatistics> by_channel;
+  std::string shard_name;
 };
 
 struct RawPubsubClusterStatistics {

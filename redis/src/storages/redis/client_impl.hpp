@@ -461,7 +461,9 @@ class ClientImpl final : public Client,
 
   CommandControl GetCommandControl(const CommandControl& cc) const;
 
-  size_t GetPublishShard(PubShard policy);
+  size_t GetPublishShard(
+      PubShard policy,
+      const USERVER_NAMESPACE::redis::PublishSettings& settings);
 
   size_t ShardByKey(const std::string& key, const CommandControl& cc) const;
 

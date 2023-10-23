@@ -60,7 +60,7 @@ Sentinel::Sentinel(
       thread_pools_->GetSentinelThreadPool().NextThread());
 
   const bool use_cluster_sentinel =
-      mode == ConnectionMode::kCommands && !key_shard &&
+      !key_shard &&
       utils::impl::kRedisClusterAutoTopologyExperiment.IsEnabled();
   sentinel_thread_control_->RunInEvLoopBlocking([&]() {
     if (use_cluster_sentinel) {
@@ -274,10 +274,12 @@ void Sentinel::CheckShardIdx(size_t shard_idx) const {
 }
 
 void Sentinel::CheckShardIdx(size_t shard_idx, size_t shard_count) {
-  if (shard_idx >= shard_count)
+  if (shard_idx >= shard_count &&
+      shard_idx != ClusterSentinelImplSwitcher::kUnknownShard) {
     throw InvalidArgumentException("invalid shard (" +
                                    std::to_string(shard_idx) +
                                    " >= " + std::to_string(shard_count) + ')');
+  }
 }
 
 const std::string& Sentinel::GetAnyKeyForShard(size_t shard_idx) const {
@@ -367,21 +369,13 @@ CommandControl Sentinel::GetCommandControl(const CommandControl& cc) const {
       .MergeWith(testsuite_redis_control_);
 }
 
+PublishSettings Sentinel::GetPublishSettings() const {
+  return impl_->GetPublishSettings();
+}
+
 void Sentinel::SetConfigDefaultCommandControl(
     const std::shared_ptr<CommandControl>& cc) {
   config_default_command_control_.Set(cc);
-}
-
-size_t Sentinel::GetPublishShard(PubShard policy) {
-  switch (policy) {
-    case PubShard::kZeroShard:
-      return 0;
-
-    case PubShard::kRoundRobin:
-      return ++publish_shard_ % impl_->ShardsCount();
-  }
-
-  return 0;
 }
 
 std::vector<std::shared_ptr<const Shard>> Sentinel::GetMasterShards() const {

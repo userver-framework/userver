@@ -3,10 +3,11 @@
 #include <memory>
 
 #include <type_traits>
+#include <userver/storages/redis/impl/wait_connected_mode.hpp>
 #include <userver/utils/async.hpp>
 
 #include <storages/redis/impl/cluster_sentinel_impl.hpp>
-#include "userver/storages/redis/impl/wait_connected_mode.hpp"
+#include <storages/redis/impl/sentinel.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -158,6 +159,12 @@ void ClusterSentinelImplSwitcher::SetClusterAutoTopology(bool auto_topology) {
   UpdateImpl(true, true);
 }
 
+PublishSettings ClusterSentinelImplSwitcher::GetPublishSettings() {
+  auto impl = impl_.Get();
+  UASSERT(impl);
+  return impl->GetPublishSettings();
+}
+
 void ClusterSentinelImplSwitcher::SetEnabledByConfig(bool auto_topology) {
   enabled_by_config_ = auto_topology;
 }
@@ -174,15 +181,17 @@ void ClusterSentinelImplSwitcher::UpdateImpl(bool async, bool wait) {
     /// Wait using same settings that were requested by client
     if (wait) {
       params_.sentinel_thread_control.RunInEvLoopAsync(
-          [&sentinel] { sentinel->Start(); });
-      redis::RedisWaitConnected wait_settings;
-      wait_settings.mode = WaitConnectedMode::kMasterAndSlave;
-      sentinel->WaitConnectedOnce(wait_settings);
+          [sentinel] { sentinel->Start(); });
+      sentinel->WaitConnectedOnce({WaitConnectedMode::kMasterAndSlave});
     }
+    const auto shards_count = sentinel->ShardsCount();
+    auto old = impl_.Get();
     if (enabled_by_config_ &&
-        dynamic_cast<ClusterSentinelImpl*>(impl_.Get().get()) == nullptr) {
-      impl_.Set(std::move(sentinel));
+        dynamic_cast<ClusterSentinelImpl*>(old.get()) == nullptr) {
+      impl_.Set(sentinel);
     }
+    params_.sentinel.signal_auto_topology_mode_changed(
+        true, shards_count, std::move(old), std::move(sentinel));
     creating_impl_.store(false);
   };
   auto create_sentinel = [this, wait] {
@@ -196,15 +205,17 @@ void ClusterSentinelImplSwitcher::UpdateImpl(bool async, bool wait) {
     /// Wait using same settings that were requested by client
     if (wait) {
       params_.sentinel_thread_control.RunInEvLoopAsync(
-          [&sentinel] { sentinel->Start(); });
-      redis::RedisWaitConnected wait_settings;
-      wait_settings.mode = WaitConnectedMode::kMasterAndSlave;
-      sentinel->WaitConnectedOnce(wait_settings);
+          [sentinel] { sentinel->Start(); });
+      sentinel->WaitConnectedOnce({WaitConnectedMode::kMasterAndSlave});
     }
+    const auto shards_count = sentinel->ShardsCount();
+    auto old = impl_.Get();
     if (!enabled_by_config_ &&
-        dynamic_cast<SentinelImpl*>(impl_.Get().get()) == nullptr) {
-      impl_.Set(std::move(sentinel));
+        dynamic_cast<SentinelImpl*>(old.get()) == nullptr) {
+      impl_.Set(sentinel);
     }
+    params_.sentinel.signal_auto_topology_mode_changed(
+        false, shards_count, std::move(old), std::move(sentinel));
     creating_impl_.store(false);
   };
 
@@ -232,11 +243,13 @@ void ClusterSentinelImplSwitcher::UpdateImpl(bool async, bool wait) {
 }
 
 bool ClusterSentinelImplSwitcher::IsAutoTopologySentinel() const {
-  return dynamic_cast<ClusterSentinelImpl*>(impl_.Get().get()) != nullptr;
+  auto ptr = impl_.Get();
+  return dynamic_cast<ClusterSentinelImpl*>(ptr.get()) != nullptr;
 }
 
 bool ClusterSentinelImplSwitcher::IsUniversalSentinel() const {
-  return dynamic_cast<SentinelImpl*>(impl_.Get().get()) != nullptr;
+  auto ptr = impl_.Get();
+  return dynamic_cast<SentinelImpl*>(ptr.get()) != nullptr;
 }
 
 }  // namespace redis
