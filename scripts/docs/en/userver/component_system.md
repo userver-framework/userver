@@ -1,8 +1,69 @@
 ## Component system
  
-Any userver-based service consists of components. A component is a basic
+A userver-based service usually consists of components. A component is a basic
 building block that encapsulates dependencies logic with configuration and
 is able to interact with other components.
+
+\b Example:
+
+* There is a `ClientB`, that requires initialization with some `SettingsB`
+* There is a `ClientA`, that requires initialization with some `SettingsA` and
+  a reference to `ClientB`.
+
+```cpp
+struct SettingsB{ /*...*/ };
+
+class ClientB {
+ public:
+  ClientB(SettingsB settings);
+};
+
+
+struct SettingsA{ /*...*/ };
+
+class ClientA {
+ public:
+  ClientA(ClientB& b, SettingsA settings);
+};
+```
+
+In unit tests you could create the @ref userver_clients "clients" and fill the
+settings manually in code:
+
+```cpp
+  ClientB b({.path="/opt/", .timeout=15s});
+  ClientA a(b, {.ttl=3, .skip={"some"}});
+
+  a.DoSomething();
+```
+
+When it comes to production services with tens of components and hundreds of
+settings then the configuration from code becomes cumbersome and not flexible
+enough. Knowledge about all the dependencies of clients is required; many
+clients may depend on multiple other clients; some clients may be slow to start
+and those should be initialized concurrently...
+
+Components to the rescue! A component takes care of constructing and
+configuring its own client. With components the configuration and dependency
+management problem is decomposed into small and manageable pieces:
+
+```cpp
+class ComponentA: components::LoggableComponentBase {
+ public:
+  ComponentA(const components::ComponentConfig& config,
+             const components::ComponentContext& context)
+  : client_a_(
+      context.FindComponent<ComponentB>().GetClientB(),
+      {.ttl=config["ttl"].As<int>(), .skip=config["skip"].As<std::vector<std::string>>()}
+    )
+  {}
+
+  ClientA& GetClientA() const { return client_a_; }
+
+ private:
+  ClientA client_a_;
+};
+```
 
 Only components should know about components. Clients and other types
 constructed by components should not use components::ComponentConfig,
@@ -11,6 +72,47 @@ should inherit from components::LoggableComponentBase base class and may
 override its methods.
 
 All the components are listed at the @ref userver_components API Group.
+
+## Startup context
+On component construction a components::ComponentContext is passed as a
+second parameter to the constructor of the component. That context could
+be used to get references to other components. That reference to the
+component is guaranteed to outlive the component that is being constructed.
+
+## Components construction and destruction order
+utils::DaemonMain, components::Run or components::RunOnce
+start all the components from the passed components::ComponentList.
+Each component is constructed in a separate engine::Task on the default
+task processor and is initialized concurrently with other components.
+
+This is a useful feature, for example in cases
+with multiple caches that slowly read from different databases.
+
+To make component *A* depend on component *B* just call
+components::ComponentContext::FindComponent<B>() in the constructor of A.
+FindComponent() suspends the current task and continues only after the
+construction of component B is finished. Components are destroyed
+in reverse order of construction, so the component A is destroyed before
+the component B. In other words - references from FindComponent() outlive
+the component that called the FindComponent() function. If any component
+loading fails, FindComponent() wakes up and throws an
+components::ComponentsLoadCancelledException.
+
+@anchor clients_from_components_lifetime
+## References from components and lifetime of clients
+It is a common practice to have a component that returns a reference *R* from
+some function *F*. In such cases:
+* a reference *R* lives as long as the component is alive
+* a reference *R* is usually a client 
+* and it is safe to invoke member functions of reference *R* concurrently
+  unless otherwise specified.
+
+Examples:
+* components::HttpClient::GetHttpClient()
+* components::StatisticsStorage::GetStorage()
+
+
+
 
 ## Components static configuration
 components::ManagerControllerComponent configures the engine internals from
@@ -73,43 +175,6 @@ Supported mode:
 * `kConfigFileMode::kNotRequired` - The component may not be defined in the configuration file
 
 @snippet components/component_sample_test.hpp  Sample kConfigFileMode specialization
-
-## Startup context
-On component construction a components::ComponentContext is passed as a
-second parameter to the constructor of the component. That context could
-be used to get references to other components. That reference to the
-component is guaranteed to outlive the component that is being constructed.
-
-## Components construction order
-utils::DaemonMain, components::Run or components::RunOnce
-start all the components from the passed components::ComponentList.
-Each component is constructed in a separate engine::Task on the default
-task processor and is initialized concurrently with other components.
-
-This is a useful feature, for examples in cases
-with multiple caches that slowly read from different databases.
-
-To make component *A* depend on component *B* just call
-components::ComponentContext::FindComponent<B>() in the constructor of A.
-FindComponent() suspends the current task and continues only after the
-construction of component B is finished. Components are destroyed
-in reverse order of construction, so the component A is destroyed before
-the component B. In other words - references from FindComponent() outlive
-the component that called the FindComponent() function. If any component
-loading fails, FindComponent() wakes up and throws an
-components::ComponentsLoadCancelledException.
-
-## References from components
-It is a common practice to have a component that returns reference *R* from
-some function *F*. In such cases:
-* a reference *R* lives as long as the component is alive
-* a reference *R* is usually a client 
-* and it is safe to invoke member functions of reference *R* concurrently
-  unless otherwise specified.
-
-Examples:
-* components::HttpClient::GetHttpClient()
-* components::StatisticsStorage::GetStorage()
 
 ## Writing your own components
 Users of the framework may (and should) write their own components.

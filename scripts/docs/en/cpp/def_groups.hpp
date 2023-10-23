@@ -37,6 +37,9 @@
 /// * and it is safe to invoke member functions of the same client instance
 ///   concurrently if not stated the opposite.
 ///
+/// @see @ref scripts/docs/en/userver/component_system.md for information on
+/// how to configure clients
+///
 /// ----------
 ///
 /// @htmlonly <div class="bottom-nav"> @endhtmlonly
