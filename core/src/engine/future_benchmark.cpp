@@ -105,7 +105,7 @@ struct FutureCoroSetGet {
 }  // namespace
 
 void future_std_single_threaded(benchmark::State& state) {
-  for (auto _ : state) {
+  for ([[maybe_unused]] auto _ : state) {
     std::promise<int> promise;
     auto future = promise.get_future();
     promise.set_value(42);
@@ -116,7 +116,7 @@ BENCHMARK(future_std_single_threaded);
 
 void future_coro_single_threaded(benchmark::State& state) {
   engine::RunStandalone([&] {
-    for (auto _ : state) {
+    for ([[maybe_unused]] auto _ : state) {
       engine::Promise<int> promise;
       auto future = promise.get_future();
       promise.set_value(42);

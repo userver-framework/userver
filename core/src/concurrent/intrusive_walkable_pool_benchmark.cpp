@@ -42,7 +42,7 @@ void intrusive_walkable_pool(benchmark::State& state) {
       }));
     }
 
-    for (auto _ : state) {
+    for ([[maybe_unused]] auto _ : state) {
       work();
     }
 

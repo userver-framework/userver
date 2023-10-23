@@ -49,7 +49,7 @@ void wait_list_insertion(benchmark::State& state) {
     auto contexts = MakeContexts();
     {
       WaitList::Lock guard{wl};
-      for (auto _ : state) {
+      for ([[maybe_unused]] auto _ : state) {
         wl.Append(guard, contexts[i]);
 
         if (++i == kTasksCount) {
@@ -77,19 +77,19 @@ void wait_list_removal(benchmark::State& state) {
     auto contexts = MakeContexts();
 
     WaitList::Lock guard{wl};
-    for (auto c : contexts) {
+    for (const auto& c : contexts) {
       wl.Append(guard, c);
     }
 
     std::size_t i = 0;
-    for (auto _ : state) {
+    for ([[maybe_unused]] auto _ : state) {
       wl.Remove(guard, *contexts[i]);
 
       if (++i == kTasksCount) {
         state.PauseTiming();
         i = 0;
         {
-          for (auto c : contexts) {
+          for (const auto& c : contexts) {
             wl.Append(guard, c);
           }
         }
@@ -111,6 +111,7 @@ void wait_list_add_remove_contention(benchmark::State& state) {
     WaitList wl;
 
     std::vector<engine::TaskWithResult<void>> tasks;
+    tasks.reserve(state.range(0) - 1);
     for (int i = 0; i < state.range(0) - 1; i++)
       tasks.push_back(engine::AsyncNoSpan([&]() {
         boost::intrusive_ptr<TaskContext> ctx = MakeContext();
@@ -125,7 +126,7 @@ void wait_list_add_remove_contention(benchmark::State& state) {
       }));
 
     boost::intrusive_ptr<TaskContext> ctx = MakeContext();
-    for (auto _ : state) {
+    for ([[maybe_unused]] auto _ : state) {
       {
         WaitList::Lock guard{wl};
         wl.Append(guard, ctx);
@@ -148,6 +149,7 @@ void wait_list_add_remove_contention_unbalanced(benchmark::State& state) {
     WaitList wl;
 
     std::vector<engine::TaskWithResult<void>> tasks;
+    tasks.reserve(state.range(0) - 1);
     for (int i = 0; i < state.range(0) - 1; i++)
       tasks.push_back(engine::AsyncNoSpan([&]() {
         auto contexts = MakeContexts();
@@ -164,7 +166,7 @@ void wait_list_add_remove_contention_unbalanced(benchmark::State& state) {
       }));
 
     auto contexts = MakeContexts();
-    for (auto _ : state) {
+    for ([[maybe_unused]] auto _ : state) {
       for (auto& ctx : contexts) {
         WaitList::Lock guard{wl};
         wl.Append(guard, ctx);

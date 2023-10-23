@@ -20,7 +20,7 @@ const server::http::HttpResponse::HeadersMap kHeaders = [] {
 }();
 
 void http_headers_serialization_no_ostreams(benchmark::State& state) {
-  for (auto _ : state) {
+  for ([[maybe_unused]] auto _ : state) {
     std::string os;
     os.reserve(1024);
 
@@ -45,7 +45,7 @@ void http_headers_serialization_no_ostreams(benchmark::State& state) {
 }
 
 void http_headers_serialization_ostreams(benchmark::State& state) {
-  for (auto _ : state) {
+  for ([[maybe_unused]] auto _ : state) {
     std::ostringstream os;
 
     os << "HTTP/" << 1 << "." << 1 << " " << 200

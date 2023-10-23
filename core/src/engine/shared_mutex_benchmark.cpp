@@ -16,6 +16,7 @@ void shared_mutex_benchmark(benchmark::State& state) {
     std::atomic<bool> is_running(true);
 
     std::vector<engine::TaskWithResult<void>> tasks;
+    tasks.reserve(state.range(0) - 1);
     for (int i = 0; i < state.range(0) - 1; ++i) {
       tasks.push_back(engine::AsyncNoSpan([&] {
         while (is_running) {
@@ -31,7 +32,7 @@ void shared_mutex_benchmark(benchmark::State& state) {
       variable = 1;
     }
 
-    for (auto _ : state) {
+    for ([[maybe_unused]] auto _ : state) {
       std::shared_lock lock(mutex);
       benchmark::DoNotOptimize(variable);
     }

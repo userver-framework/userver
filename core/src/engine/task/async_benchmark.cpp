@@ -24,7 +24,7 @@ using WrappedSpanCall =
 // synchronization primitives).
 void async_comparisons_std_thread(benchmark::State& state) {
   std::uint64_t constructed_joined_count = 0;
-  for (auto _ : state) {
+  for ([[maybe_unused]] auto _ : state) {
     std::thread([] {}).join();
     ++constructed_joined_count;
   }
@@ -35,7 +35,7 @@ BENCHMARK(async_comparisons_std_thread);
 void async_comparisons_coro(benchmark::State& state) {
   engine::RunStandalone(state.range(0), [&] {
     std::uint64_t constructed_joined_count = 0;
-    for (auto _ : state) {
+    for ([[maybe_unused]] auto _ : state) {
       engine::AsyncNoSpan([] {}).Wait();
       ++constructed_joined_count;
     }
@@ -46,7 +46,7 @@ BENCHMARK(async_comparisons_coro)->RangeMultiplier(2)->Range(1, 32);
 
 void wrap_call_single(benchmark::State& state) {
   engine::RunStandalone([&] {
-    for (auto _ : state) {
+    for ([[maybe_unused]] auto _ : state) {
       WrappedSpanCall(utils::impl::SpanLazyPrvalue(""), []() {});
     }
   });
@@ -59,7 +59,7 @@ void wrap_call_multiple(benchmark::State& state) {
     utils::FixedArray<std::optional<WrappedSpanCall>> calls{
         kInMemoryInstancesCount};
 
-    for (auto _ : state) {
+    for ([[maybe_unused]] auto _ : state) {
       for (auto& call : calls) {
         call.emplace(utils::impl::SpanLazyPrvalue(""), []() {});
       }
@@ -73,7 +73,7 @@ BENCHMARK(wrap_call_multiple);
 
 void wrap_call_and_perform(benchmark::State& state) {
   engine::RunStandalone([&] {
-    for (auto _ : state) {
+    for ([[maybe_unused]] auto _ : state) {
       WrappedSpanCall wrapped_call{utils::impl::SpanLazyPrvalue(""), []() {}};
       {
         // Perform requires that task-local storage is empty, then fills it
@@ -90,7 +90,7 @@ BENCHMARK(wrap_call_and_perform);
 void async_comparisons_coro_spanned(benchmark::State& state) {
   engine::RunStandalone(state.range(0), [&] {
     std::uint64_t constructed_joined_count = 0;
-    for (auto _ : state) {
+    for ([[maybe_unused]] auto _ : state) {
       utils::Async("", [] {}).Wait();
       ++constructed_joined_count;
     }

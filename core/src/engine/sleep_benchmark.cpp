@@ -12,7 +12,7 @@ USERVER_NAMESPACE_BEGIN
 void sleep_benchmark_us(benchmark::State& state) {
   engine::RunStandalone([&] {
     const std::chrono::microseconds sleep_duration{state.range(0)};
-    for (auto _ : state) {
+    for ([[maybe_unused]] auto _ : state) {
       const auto deadline = engine::Deadline::FromDuration(sleep_duration);
       engine::InterruptibleSleepUntil(deadline);
     }
@@ -26,7 +26,7 @@ BENCHMARK(sleep_benchmark_us)
 void run_in_ev_loop_benchmark(benchmark::State& state) {
   engine::RunStandalone([&] {
     auto& ev_thread = engine::current_task::GetEventThread();
-    for (auto _ : state) {
+    for ([[maybe_unused]] auto _ : state) {
       ev_thread.RunInEvLoopAsync([]() {});
     }
   });
@@ -35,7 +35,7 @@ BENCHMARK(run_in_ev_loop_benchmark);
 
 [[maybe_unused]] void successful_wait_for_benchmark(benchmark::State& state) {
   engine::RunStandalone([&] {
-    for (auto _ : state) {
+    for ([[maybe_unused]] auto _ : state) {
       auto task = engine::AsyncNoSpan([] { engine::Yield(); });
       task.WaitFor(20ms);
 
@@ -48,7 +48,7 @@ BENCHMARK(successful_wait_for_benchmark);
 void unreached_task_deadline_benchmark(benchmark::State& state,
                                        bool has_task_deadline) {
   engine::RunStandalone([&] {
-    for (auto _ : state) {
+    for ([[maybe_unused]] auto _ : state) {
       const auto sleep_deadline = engine::Deadline::FromDuration(20s);
       const auto task_deadline_raw = engine::Deadline::FromDuration(40s);
       benchmark::DoNotOptimize(task_deadline_raw);

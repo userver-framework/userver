@@ -31,7 +31,7 @@ constexpr PredefinedHeader kHeadersArray[kHeadersCount] = {
 };
 
 void http_request_headers_insert(benchmark::State& state) {
-  for (auto _ : state) {
+  for ([[maybe_unused]] auto _ : state) {
     server::http::HttpRequest::HeadersMap map;
 
     for (int i = 0; i < state.range(0); i++) map[kHeadersArray[i]] = "1";
@@ -45,7 +45,7 @@ void http_request_headers_get(benchmark::State& state) {
   for (const auto& header : kHeadersArray) map[header] = "1";
 
   std::size_t i = 0;
-  for (auto _ : state) {
+  for ([[maybe_unused]] auto _ : state) {
     if (++i == kHeadersCount) i = 0;
     benchmark::DoNotOptimize(map.find(kHeadersArray[i]));
   }

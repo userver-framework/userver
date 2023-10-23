@@ -12,7 +12,7 @@ void tracing_noop_ctr(benchmark::State& state) {
   engine::RunStandalone([&] {
     auto tracer = tracing::MakeTracer("test_service", {});
 
-    for (auto _ : state)
+    for ([[maybe_unused]] auto _ : state)
       benchmark::DoNotOptimize(tracer->CreateSpanWithoutParent("name"));
   });
 }
@@ -27,7 +27,7 @@ void tracing_happy_log(benchmark::State& state) {
     const logging::DefaultLoggerLevelScope level_scope{logging::Level::kInfo};
     auto tracer = tracing::MakeTracer("test_service", {});
 
-    for (auto _ : state)
+    for ([[maybe_unused]] auto _ : state)
       benchmark::DoNotOptimize(tracer->CreateSpanWithoutParent("name"));
   });
 }
@@ -45,7 +45,7 @@ void tracing_opentracing_ctr(benchmark::State& state) {
   auto logger = logging::MakeNullLogger();
   engine::RunStandalone([&] {
     auto tracer = tracing::MakeTracer("test_service", logger);
-    for (auto _ : state) {
+    for ([[maybe_unused]] auto _ : state) {
       benchmark::DoNotOptimize(GetSpanWithOpentracingHttpTags(tracer));
     }
   });

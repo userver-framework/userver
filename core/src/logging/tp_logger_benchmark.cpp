@@ -52,7 +52,7 @@ BENCHMARK_DEFINE_F(TpLoggerBenchmark, LogString)(benchmark::State& state) {
   engine::RunStandalone(2, [&] {
     auto scope = StartAsyncLoggerScope();
     const auto msg = Launder(std::string(state.range(0), '*'));
-    for (auto _ : state) {
+    for ([[maybe_unused]] auto _ : state) {
       LOG_INFO() << msg;
     }
     state.SetComplexityN(state.range(0));

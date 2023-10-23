@@ -51,7 +51,7 @@ class LogHelperBenchmark : public benchmark::Fixture {
 BENCHMARK_DEFINE_TEMPLATE_F(LogHelperBenchmark, LogNumber)
 (benchmark::State& state) {
   const auto msg = Launder(T{42});
-  for (auto _ : state) {
+  for ([[maybe_unused]] auto _ : state) {
     LOG_INFO() << msg;
   }
 }
@@ -63,7 +63,7 @@ BENCHMARK_INSTANTIATE_TEMPLATE_F(LogHelperBenchmark, LogNumber, double);
 
 BENCHMARK_DEFINE_F(LogHelperBenchmark, LogString)(benchmark::State& state) {
   const auto msg = Launder(std::string(state.range(0), '*'));
-  for (auto _ : state) {
+  for ([[maybe_unused]] auto _ : state) {
     LOG_INFO() << msg;
   }
   state.SetComplexityN(state.range(0));
@@ -77,7 +77,7 @@ BENCHMARK_REGISTER_F(LogHelperBenchmark, LogString)
 
 BENCHMARK_DEFINE_F(LogHelperBenchmark, LogChar)(benchmark::State& state) {
   const auto msg = Launder(std::string(state.range(0), '*'));
-  for (auto _ : state) {
+  for ([[maybe_unused]] auto _ : state) {
     LOG_INFO() << msg.c_str();
   }
   state.SetComplexityN(state.range(0));
@@ -90,7 +90,7 @@ BENCHMARK_REGISTER_F(LogHelperBenchmark, LogChar)
 
 BENCHMARK_DEFINE_F(LogHelperBenchmark, LogCheck)(benchmark::State& state) {
   const auto msg = Launder(std::string(state.range(0), '*'));
-  for (auto _ : state) {
+  for ([[maybe_unused]] auto _ : state) {
     LOG_TRACE() << msg.c_str();
   }
   state.SetComplexityN(state.range(0));
@@ -116,7 +116,7 @@ std::ostream& operator<<(std::ostream& os, const StreamedStruct& value) {
 BENCHMARK_DEFINE_F(LogHelperBenchmark, LogStruct)(benchmark::State& state) {
   const StreamedStruct msg{state.range(0),
                            Launder(std::string(state.range(0), '*'))};
-  for (auto _ : state) {
+  for ([[maybe_unused]] auto _ : state) {
     LOG_INFO() << msg;
   }
   state.SetComplexityN(state.range(0));
@@ -144,7 +144,7 @@ BENCHMARK_DEFINE_F(LogHelperBenchmark, LogMultipleStrings)
 (benchmark::State& state) {
   const MultipleStrings msg{Launder(std::string(state.range(0), '*')),
                             static_cast<std::size_t>(state.range(1))};
-  for (auto _ : state) {
+  for ([[maybe_unused]] auto _ : state) {
     LOG_INFO() << msg;
   }
 }
@@ -159,7 +159,7 @@ void LogPrependedTags(benchmark::State& state) {
   const logging::DefaultLoggerGuard guard{
       std::make_shared<PrependedTagLogger>()};
 
-  for (auto _ : state) {
+  for ([[maybe_unused]] auto _ : state) {
     LOG_INFO() << "";
   }
 }

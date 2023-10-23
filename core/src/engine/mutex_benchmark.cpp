@@ -84,7 +84,7 @@ void generic_lock(benchmark::State& state) {
   std::size_t i = 0;
   Mutex mutexes[kMutexCount];
 
-  for (auto _ : state) {
+  for ([[maybe_unused]] auto _ : state) {
     mutexes[i].lock();
 
     if (++i == kMutexCount) {
@@ -112,7 +112,7 @@ void generic_unlock(benchmark::State& state) {
     m.lock();
   }
 
-  for (auto _ : state) {
+  for ([[maybe_unused]] auto _ : state) {
     mutexes[i].unlock();
 
     if (++i == kMutexCount) {
@@ -150,7 +150,7 @@ void generic_contention(benchmark::State& state) {
 
   std::uint64_t local_lock_unlock_count = 0;
 
-  for (auto _ : state) {
+  for ([[maybe_unused]] auto _ : state) {
     m->lock();
     m->unlock();
     ++local_lock_unlock_count;
@@ -191,7 +191,7 @@ void generic_contention_with_payload(benchmark::State& state) {
 
   std::uint64_t local_lock_unlock_count = 0;
 
-  for (auto _ : state) {
+  for ([[maybe_unused]] auto _ : state) {
     m->lock();
     for (int i = 0; i < 10; ++i) {
       benchmark::DoNotOptimize(utils::DefaultRandom()());

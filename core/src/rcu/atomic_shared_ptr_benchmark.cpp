@@ -36,15 +36,13 @@ void atomic_shared_ptr_read(benchmark::State& state) {
   engine::RunStandalone([&] {
     AtomicSharedPtr<int> ptr(std::make_unique<int>(1));
 
-    for (auto _ : state) {
+    for ([[maybe_unused]] auto _ : state) {
       auto snapshot_ptr = ptr.Load();
       benchmark::DoNotOptimize(*snapshot_ptr);
     }
   });
 }
 BENCHMARK(atomic_shared_ptr_read);
-
-using std::literals::chrono_literals::operator""ms;
 
 void atomic_shared_ptr_contention(benchmark::State& state) {
   engine::RunStandalone(state.range(0), [&] {
@@ -53,6 +51,7 @@ void atomic_shared_ptr_contention(benchmark::State& state) {
         std::make_shared<std::unordered_map<int, int>>()};
 
     std::vector<engine::TaskWithResult<void>> tasks;
+    tasks.reserve(state.range(0) - 2);
     for (int i = 0; i < state.range(0) - 2; i++)
       tasks.push_back(engine::AsyncNoSpan([&]() {
         while (run) {
@@ -69,11 +68,11 @@ void atomic_shared_ptr_contention(benchmark::State& state) {
           writer[1] = i++;
           ptr.Assign(std::make_shared<const std::unordered_map<int, int>>(
               std::move(writer)));
-          engine::SleepFor(10ms);
+          engine::SleepFor(std::chrono::milliseconds{10});
         }
       }));
 
-    for (auto _ : state) {
+    for ([[maybe_unused]] auto _ : state) {
       auto snapshot_ptr = ptr.Load();
       benchmark::DoNotOptimize(*snapshot_ptr);
     }

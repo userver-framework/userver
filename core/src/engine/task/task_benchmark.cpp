@@ -17,7 +17,7 @@ void engine_task_create(benchmark::State& state) {
   // We use 2 threads to ensure that detached tasks are deallocated,
   // otherwise this benchmark OOMs after some time.
   engine::RunStandalone(2, [&] {
-    for (auto _ : state) engine::AsyncNoSpan([]() {}).Detach();
+    for ([[maybe_unused]] auto _ : state) engine::AsyncNoSpan([]() {}).Detach();
   });
 }
 BENCHMARK(engine_task_create);
@@ -33,7 +33,7 @@ void engine_task_yield_single_thread(benchmark::State& state) {
       }));
     }
 
-    for (auto _ : state) engine::Yield();
+    for ([[maybe_unused]] auto _ : state) engine::Yield();
   });
 }
 BENCHMARK(engine_task_yield_single_thread)->RangeMultiplier(2)->Range(1, 128);
@@ -56,7 +56,7 @@ void engine_task_yield_multiple_threads(benchmark::State& state) {
     }
 
     std::uint64_t yields_performed = 0;
-    for (auto _ : state) {
+    for ([[maybe_unused]] auto _ : state) {
       engine::Yield();
       ++yields_performed;
     }
@@ -100,7 +100,7 @@ void engine_task_yield_multiple_task_processors(benchmark::State& state) {
     }
 
     std::uint64_t yields_performed = 0;
-    for (auto _ : state) {
+    for ([[maybe_unused]] auto _ : state) {
       engine::Yield();
       ++yields_performed;
     }
@@ -122,7 +122,7 @@ BENCHMARK(engine_task_yield_multiple_task_processors)
     ->Range(1, 32);
 
 void thread_yield(benchmark::State& state) {
-  for (auto _ : state) std::this_thread::yield();
+  for ([[maybe_unused]] auto _ : state) std::this_thread::yield();
 }
 BENCHMARK(thread_yield)->RangeMultiplier(2)->ThreadRange(1, 32);
 

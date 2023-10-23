@@ -67,7 +67,7 @@ void SingleConsumerEvent(benchmark::State& state, Waiter waiter) {
       }));
     }
 
-    for (auto _ : state) {
+    for ([[maybe_unused]] auto _ : state) {
       benchmark::DoNotOptimize(waiter(*event));
     }
 
@@ -101,7 +101,7 @@ void SingleConsumerEventPingPong(benchmark::State& state) {
       }
     });
 
-    for (auto _ : state) {
+    for ([[maybe_unused]] auto _ : state) {
       if (!ping->WaitForEvent()) return;
       pong->Send();
     }

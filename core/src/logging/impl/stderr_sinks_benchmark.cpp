@@ -18,7 +18,7 @@ void LogFdSink(benchmark::State& state) {
       "/dev/null", fs::blocking::OpenFlag::kWrite);
 
   auto sink = logging::impl::UnownedFdSink(fd_scope.GetNative());
-  for (auto _ : state) {
+  for ([[maybe_unused]] auto _ : state) {
     for (std::size_t i = 0; i < kCountLogs; ++i) {
       sink.Log({"message\n", logging::Level::kWarning});
     }
@@ -32,7 +32,7 @@ void LogBufferedFdSink(benchmark::State& state) {
   fs::blocking::CFile c_file_scope{"/dev/null", fs::blocking::OpenFlag::kWrite};
 
   auto sink = logging::impl::BufferedUnownedFileSink(c_file_scope.GetNative());
-  for (auto _ : state) {
+  for ([[maybe_unused]] auto _ : state) {
     for (std::size_t i = 0; i < kCountLogs; ++i) {
       sink.Log({"message\n", logging::Level::kWarning});
     }

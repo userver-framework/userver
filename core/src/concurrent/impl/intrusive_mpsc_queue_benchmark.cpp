@@ -135,7 +135,7 @@ void MpscQueueProduce(benchmark::State& state) {
     }
   });
 
-  for (auto _ : state) {
+  for ([[maybe_unused]] auto _ : state) {
     queue.Produce(0);
   }
 
@@ -172,7 +172,7 @@ void MpscQueueConsume(benchmark::State& state) {
     }));
   }
 
-  for (auto _ : state) {
+  for ([[maybe_unused]] auto _ : state) {
     while (!queue.TryConsume()) {
       // No 'pause', keep hammering until we receive an item.
     }
@@ -215,7 +215,7 @@ void MpscQueueProduceConsume(benchmark::State& state) {
     }
   });
 
-  for (auto _ : state) {
+  for ([[maybe_unused]] auto _ : state) {
     while (!queue2.TryConsume()) {
     }
     queue1.Produce(0);
@@ -255,7 +255,7 @@ void IntrusiveMpscQueueProduceConsumeNoAlloc(benchmark::State& state) {
     }
   });
 
-  for (auto _ : state) {
+  for ([[maybe_unused]] auto _ : state) {
     Node* node = nullptr;
     while (!node) {
       node = queue2.TryPop();
@@ -277,7 +277,7 @@ template <typename Queue>
 void MpscQueueProduceConsumeNoContention(benchmark::State& state) {
   Queue queue(1);
 
-  for (auto _ : state) {
+  for ([[maybe_unused]] auto _ : state) {
     queue.Produce(0);
     queue.TryConsume();
   }
@@ -293,7 +293,7 @@ void IntrusiveMpscQueueProduceConsumeNoContentionNoAlloc(
   Node node;
   concurrent::impl::IntrusiveMpscQueue<Node> queue;
 
-  for (auto _ : state) {
+  for ([[maybe_unused]] auto _ : state) {
     queue.Push(node);
     benchmark::DoNotOptimize(queue.TryPop());
   }

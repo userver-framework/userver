@@ -12,7 +12,7 @@ namespace {
 
 void deadline_from_duration(benchmark::State& state,
                             std::chrono::nanoseconds duration) {
-  for (auto _ : state) {
+  for ([[maybe_unused]] auto _ : state) {
     auto deadline = engine::Deadline::FromDuration(duration);
     benchmark::DoNotOptimize(deadline);
   }
@@ -21,7 +21,7 @@ void deadline_from_duration(benchmark::State& state,
 void deadline_is_reached(benchmark::State& state,
                          std::chrono::nanoseconds duration) {
   auto deadline = engine::Deadline::FromDuration(duration);
-  for (auto _ : state) {
+  for ([[maybe_unused]] auto _ : state) {
     bool is_reached = deadline.IsReached();
     benchmark::DoNotOptimize(is_reached);
   }
